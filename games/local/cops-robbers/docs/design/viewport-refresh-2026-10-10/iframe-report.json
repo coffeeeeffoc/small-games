@@ -1,0 +1,160 @@
+[
+  {
+    "width": 320,
+    "height": 568,
+    "home": {
+      "viewport": [320, 568],
+      "document": [320, 568],
+      "buttons": [
+        {
+          "id": "",
+          "height": 44,
+          "bottom": 270
+        },
+        {
+          "id": "",
+          "height": 44,
+          "bottom": 270
+        },
+        {
+          "id": "home-start",
+          "height": 55,
+          "bottom": 331
+        },
+        {
+          "id": "resume-patrol",
+          "height": 44,
+          "bottom": 382
+        },
+        {
+          "id": "appearance-settings",
+          "height": 65,
+          "bottom": 454
+        },
+        {
+          "id": "friend-duel",
+          "height": 65,
+          "bottom": 454
+        },
+        {
+          "id": "mode-settings",
+          "height": 65,
+          "bottom": 454
+        },
+        {
+          "id": "help",
+          "height": 65,
+          "bottom": 454
+        },
+        {
+          "id": "level-select",
+          "height": 44,
+          "bottom": 505
+        },
+        {
+          "id": "quick-start",
+          "height": 44,
+          "bottom": 505
+        },
+        {
+          "id": "",
+          "height": 44,
+          "bottom": 505
+        },
+        {
+          "id": "share-challenge",
+          "height": 44,
+          "bottom": 556
+        }
+      ]
+    },
+    "helpButton": {
+      "x": 34,
+      "y": 489,
+      "width": 252,
+      "height": 48
+    },
+    "flow": "home/help/map/level/hint/home/resume",
+    "passed": true,
+    "embedding": "cross-origin localhost ports; sandbox allow-scripts allow-same-origin; fullscreen permission retained"
+  },
+  {
+    "width": 667,
+    "height": 375,
+    "home": {
+      "viewport": [667, 375],
+      "document": [667, 375],
+      "buttons": [
+        {
+          "id": "",
+          "height": 44,
+          "bottom": 353
+        },
+        {
+          "id": "",
+          "height": 44,
+          "bottom": 353
+        },
+        {
+          "id": "home-start",
+          "height": 50,
+          "bottom": 122
+        },
+        {
+          "id": "resume-patrol",
+          "height": 44,
+          "bottom": 173
+        },
+        {
+          "id": "appearance-settings",
+          "height": 65,
+          "bottom": 245
+        },
+        {
+          "id": "friend-duel",
+          "height": 65,
+          "bottom": 245
+        },
+        {
+          "id": "mode-settings",
+          "height": 65,
+          "bottom": 245
+        },
+        {
+          "id": "help",
+          "height": 65,
+          "bottom": 245
+        },
+        {
+          "id": "level-select",
+          "height": 44,
+          "bottom": 296
+        },
+        {
+          "id": "quick-start",
+          "height": 44,
+          "bottom": 296
+        },
+        {
+          "id": "",
+          "height": 44,
+          "bottom": 296
+        },
+        {
+          "id": "share-challenge",
+          "height": 44,
+          "bottom": 347
+        }
+      ]
+    },
+    "helpButton": {
+      "x": 62.5,
+      "y": 300,
+      "width": 542,
+      "height": 48
+    },
+    "flow": "home/help/map/level/hint/home/resume",
+    "passed": true,
+    "embedding": "cross-origin localhost ports; sandbox allow-scripts allow-same-origin; fullscreen permission retained"
+  }
+]

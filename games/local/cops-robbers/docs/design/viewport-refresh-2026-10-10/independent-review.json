@@ -1,0 +1,281 @@
+{
+  "started": "2026-10-10T03:01:37.167Z",
+  "passed": true,
+  "physicalMobile": false,
+  "fixture": "Actual game HTML/CSS, actual shared competition client/UI, mocked API responses",
+  "viewports": [[320, 568]],
+  "checks": [
+    {
+      "name": "friend-playing",
+      "width": 320,
+      "height": 568,
+      "passed": true,
+      "screenshot": "320x568-friend-playing.png",
+      "capturedBeforeDismissal": true,
+      "details": [
+        {
+          "size": [320, 568],
+          "canvas": {
+            "text": "好友挑战操作区",
+            "rect": {
+              "x": 29,
+              "y": 107,
+              "width": 262,
+              "height": 384,
+              "right": 291,
+              "bottom": 491
+            },
+            "clipped": {
+              "left": 29,
+              "top": 107,
+              "right": 291,
+              "bottom": 491
+            },
+            "x": 160,
+            "y": 299,
+            "hit": true,
+            "hitElement": "CANVAS",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": []
+          },
+          "exit": {
+            "text": "退出 PK",
+            "rect": {
+              "x": 203,
+              "y": 499,
+              "width": 88,
+              "height": 44,
+              "right": 291,
+              "bottom": 543
+            },
+            "clipped": {
+              "left": 203,
+              "top": 499,
+              "right": 291,
+              "bottom": 543
+            },
+            "x": 247,
+            "y": 521,
+            "hit": true,
+            "hitElement": "BUTTON",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": []
+          },
+          "overlap": false,
+          "pkcontent": {
+            "client": 384,
+            "scroll": 384
+          }
+        },
+        {
+          "size": [320, 480],
+          "canvas": {
+            "text": "好友挑战操作区",
+            "rect": {
+              "x": 29,
+              "y": 107,
+              "width": 262,
+              "height": 296,
+              "right": 291,
+              "bottom": 403
+            },
+            "clipped": {
+              "left": 29,
+              "top": 107,
+              "right": 291,
+              "bottom": 403
+            },
+            "x": 160,
+            "y": 255,
+            "hit": true,
+            "hitElement": "CANVAS",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": []
+          },
+          "exit": {
+            "text": "退出 PK",
+            "rect": {
+              "x": 203,
+              "y": 411,
+              "width": 88,
+              "height": 44,
+              "right": 291,
+              "bottom": 455
+            },
+            "clipped": {
+              "left": 203,
+              "top": 411,
+              "right": 291,
+              "bottom": 455
+            },
+            "x": 247,
+            "y": 433,
+            "hit": true,
+            "hitElement": "BUTTON",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": []
+          },
+          "overlap": false,
+          "pkcontent": {
+            "client": 296,
+            "scroll": 296
+          }
+        },
+        {
+          "size": [667, 320],
+          "canvas": {
+            "text": "好友挑战操作区",
+            "rect": {
+              "x": 29,
+              "y": 107,
+              "width": 609,
+              "height": 136,
+              "right": 638,
+              "bottom": 243
+            },
+            "clipped": {
+              "left": 29,
+              "top": 107,
+              "right": 638,
+              "bottom": 243
+            },
+            "x": 333.5,
+            "y": 175,
+            "hit": true,
+            "hitElement": "CANVAS",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": []
+          },
+          "exit": {
+            "text": "退出 PK",
+            "rect": {
+              "x": 550,
+              "y": 251,
+              "width": 88,
+              "height": 44,
+              "right": 638,
+              "bottom": 295
+            },
+            "clipped": {
+              "left": 550,
+              "top": 251,
+              "right": 638,
+              "bottom": 295
+            },
+            "x": 594,
+            "y": 273,
+            "hit": true,
+            "hitElement": "BUTTON",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": []
+          },
+          "overlap": false,
+          "pkcontent": {
+            "client": 136,
+            "scroll": 136
+          }
+        },
+        {
+          "size": [390, 844],
+          "canvas": {
+            "text": "好友挑战操作区",
+            "rect": {
+              "x": 29,
+              "y": 197,
+              "width": 332,
+              "height": 480,
+              "right": 361,
+              "bottom": 677
+            },
+            "clipped": {
+              "left": 29,
+              "top": 197,
+              "right": 361,
+              "bottom": 677
+            },
+            "x": 195,
+            "y": 437,
+            "hit": true,
+            "hitElement": "CANVAS",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": []
+          },
+          "exit": {
+            "text": "退出 PK",
+            "rect": {
+              "x": 273,
+              "y": 685,
+              "width": 88,
+              "height": 44,
+              "right": 361,
+              "bottom": 729
+            },
+            "clipped": {
+              "left": 273,
+              "top": 685,
+              "right": 361,
+              "bottom": 729
+            },
+            "x": 317,
+            "y": 707,
+            "hit": true,
+            "hitElement": "BUTTON",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": []
+          },
+          "overlap": false,
+          "pkcontent": {
+            "client": 480,
+            "scroll": 480
+          }
+        }
+      ],
+      "apiCalls": [
+        {
+          "path": "/sessions/guest",
+          "method": "POST",
+          "body": {}
+        },
+        {
+          "path": "/me",
+          "method": "GET",
+          "body": {}
+        },
+        {
+          "path": "/boards/cops-robbers",
+          "method": "GET",
+          "body": {}
+        },
+        {
+          "path": "/rooms",
+          "method": "POST",
+          "body": {
+            "game": "cops-robbers",
+            "mode": "escape",
+            "role": "pursuer",
+            "initiative": "random"
+          }
+        },
+        {
+          "path": "/rooms/ABCDEF123456",
+          "method": "GET",
+          "body": {}
+        }
+      ]
+    }
+  ],
+  "base": "http://127.0.0.1:34107",
+  "finished": "2026-10-10T03:01:38.530Z",
+  "summary": {
+    "passed": 1,
+    "failed": 0
+  }
+}

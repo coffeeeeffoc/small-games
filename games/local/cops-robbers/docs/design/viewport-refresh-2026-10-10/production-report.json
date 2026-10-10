@@ -1,0 +1,1872 @@
+{
+  "standalone": {
+    "started": "2026-10-10T03:02:15.291Z",
+    "passed": true,
+    "physicalMobile": false,
+    "fixture": "Actual game HTML/CSS, actual shared competition client/UI, mocked API responses",
+    "viewports": [
+      [320, 568],
+      [667, 375]
+    ],
+    "checks": [
+      {
+        "name": "home",
+        "width": 320,
+        "height": 568,
+        "passed": true,
+        "screenshot": "320x568-home.png",
+        "details": {
+          "document": {
+            "width": 320,
+            "height": 568,
+            "scrollWidth": 320,
+            "scrollHeight": 568,
+            "scrollX": 0,
+            "scrollY": 0
+          },
+          "entries": {
+            "#home-start": {
+              "text": "开始巡逻 ▶",
+              "rect": {
+                "x": 14,
+                "y": 276,
+                "width": 292,
+                "height": 55,
+                "right": 306,
+                "bottom": 331
+              },
+              "clipped": {
+                "left": 14,
+                "top": 276,
+                "right": 306,
+                "bottom": 331
+              },
+              "x": 160,
+              "y": 303.5,
+              "hit": true,
+              "hitElement": "BUTTON#home-start",
+              "displayed": true,
+              "inert": false,
+              "scrollAncestors": [],
+              "selector": "locator('#home-start')"
+            },
+            "#resume-patrol": {
+              "text": "继续上次 第 1 关 ›",
+              "rect": {
+                "x": 31.515625,
+                "y": 338,
+                "width": 256.953125,
+                "height": 44,
+                "right": 288.46875,
+                "bottom": 382
+              },
+              "clipped": {
+                "left": 31.515625,
+                "top": 338,
+                "right": 288.46875,
+                "bottom": 382
+              },
+              "x": 159.9921875,
+              "y": 360,
+              "hit": true,
+              "hitElement": "BUTTON#resume-patrol",
+              "displayed": true,
+              "inert": false,
+              "scrollAncestors": [],
+              "selector": "locator('#resume-patrol')"
+            },
+            "#appearance-settings": {
+              "text": "换装",
+              "rect": {
+                "x": 14,
+                "y": 389,
+                "width": 67.75,
+                "height": 65,
+                "right": 81.75,
+                "bottom": 454
+              },
+              "clipped": {
+                "left": 14,
+                "top": 389,
+                "right": 81.75,
+                "bottom": 454
+              },
+              "x": 47.875,
+              "y": 421.5,
+              "hit": true,
+              "hitElement": "svg#appearance-art",
+              "displayed": true,
+              "inert": false,
+              "scrollAncestors": [],
+              "selector": "locator('#appearance-settings')"
+            },
+            "#friend-duel": {
+              "text": "好友",
+              "rect": {
+                "x": 88.75,
+                "y": 389,
+                "width": 67.75,
+                "height": 65,
+                "right": 156.5,
+                "bottom": 454
+              },
+              "clipped": {
+                "left": 88.75,
+                "top": 389,
+                "right": 156.5,
+                "bottom": 454
+              },
+              "x": 122.625,
+              "y": 421.5,
+              "hit": true,
+              "hitElement": "path",
+              "displayed": true,
+              "inert": false,
+              "scrollAncestors": [],
+              "selector": "locator('#friend-duel')"
+            },
+            "#mode-settings": {
+              "text": "玩法",
+              "rect": {
+                "x": 163.5,
+                "y": 389,
+                "width": 67.75,
+                "height": 65,
+                "right": 231.25,
+                "bottom": 454
+              },
+              "clipped": {
+                "left": 163.5,
+                "top": 389,
+                "right": 231.25,
+                "bottom": 454
+              },
+              "x": 197.375,
+              "y": 421.5,
+              "hit": true,
+              "hitElement": "path",
+              "displayed": true,
+              "inert": false,
+              "scrollAncestors": [],
+              "selector": "locator('#mode-settings')"
+            },
+            "#help": {
+              "text": "指南",
+              "rect": {
+                "x": 238.25,
+                "y": 389,
+                "width": 67.75,
+                "height": 65,
+                "right": 306,
+                "bottom": 454
+              },
+              "clipped": {
+                "left": 238.25,
+                "top": 389,
+                "right": 306,
+                "bottom": 454
+              },
+              "x": 272.125,
+              "y": 421.5,
+              "hit": true,
+              "hitElement": "path",
+              "displayed": true,
+              "inert": false,
+              "scrollAncestors": [],
+              "selector": "locator('#help')"
+            },
+            "#level-select": {
+              "text": "街区地图 0 / 100",
+              "rect": {
+                "x": 14,
+                "y": 461,
+                "width": 118.6875,
+                "height": 44,
+                "right": 132.6875,
+                "bottom": 505
+              },
+              "clipped": {
+                "left": 14,
+                "top": 461,
+                "right": 132.6875,
+                "bottom": 505
+              },
+              "x": 73.34375,
+              "y": 483,
+              "hit": true,
+              "hitElement": "BUTTON#level-select",
+              "displayed": true,
+              "inert": false,
+              "scrollAncestors": [],
+              "selector": "locator('#level-select')"
+            },
+            "#quick-start": {
+              "text": "两步试炼",
+              "rect": {
+                "x": 138.6875,
+                "y": 461,
+                "width": 91.3125,
+                "height": 44,
+                "right": 230,
+                "bottom": 505
+              },
+              "clipped": {
+                "left": 138.6875,
+                "top": 461,
+                "right": 230,
+                "bottom": 505
+              },
+              "x": 184.34375,
+              "y": 483,
+              "hit": true,
+              "hitElement": "BUTTON#quick-start",
+              "displayed": true,
+              "inert": false,
+              "scrollAncestors": [],
+              "selector": "locator('#quick-start')"
+            },
+            "[data-game-fullscreen]": {
+              "text": "全屏",
+              "rect": {
+                "x": 236,
+                "y": 461,
+                "width": 70,
+                "height": 44,
+                "right": 306,
+                "bottom": 505
+              },
+              "clipped": {
+                "left": 236,
+                "top": 461,
+                "right": 306,
+                "bottom": 505
+              },
+              "x": 271,
+              "y": 483,
+              "hit": true,
+              "hitElement": "BUTTON",
+              "displayed": true,
+              "inert": false,
+              "scrollAncestors": [],
+              "selector": "locator('[data-game-fullscreen]')"
+            },
+            "#share-challenge": {
+              "text": "分享同题",
+              "rect": {
+                "x": 46.125,
+                "y": 512,
+                "width": 227.75,
+                "height": 44,
+                "right": 273.875,
+                "bottom": 556
+              },
+              "clipped": {
+                "left": 46.125,
+                "top": 512,
+                "right": 273.875,
+                "bottom": 556
+              },
+              "x": 160,
+              "y": 534,
+              "hit": true,
+              "hitElement": "BUTTON#share-challenge",
+              "displayed": true,
+              "inert": false,
+              "scrollAncestors": [],
+              "selector": "locator('#share-challenge')"
+            },
+            "#sound": {
+              "text": "关闭音效",
+              "rect": {
+                "x": 212,
+                "y": 6,
+                "width": 44,
+                "height": 44,
+                "right": 256,
+                "bottom": 50
+              },
+              "clipped": {
+                "left": 212,
+                "top": 6,
+                "right": 256,
+                "bottom": 50
+              },
+              "x": 234,
+              "y": 28,
+              "hit": true,
+              "hitElement": "svg",
+              "displayed": true,
+              "inert": false,
+              "scrollAncestors": [],
+              "selector": "locator('#sound')"
+            },
+            "#settings": {
+              "text": "游戏设置",
+              "rect": {
+                "x": 264,
+                "y": 6,
+                "width": 44,
+                "height": 44,
+                "right": 308,
+                "bottom": 50
+              },
+              "clipped": {
+                "left": 264,
+                "top": 6,
+                "right": 308,
+                "bottom": 50
+              },
+              "x": 286,
+              "y": 28,
+              "hit": true,
+              "hitElement": "svg",
+              "displayed": true,
+              "inert": false,
+              "scrollAncestors": [],
+              "selector": "locator('#settings')"
+            }
+          }
+        },
+        "capturedBeforeDismissal": true,
+        "apiCalls": []
+      },
+      {
+        "name": "help",
+        "width": 320,
+        "height": 568,
+        "passed": true,
+        "screenshot": "320x568-help.png",
+        "capturedBeforeDismissal": true,
+        "details": {
+          "scrollables": [
+            {
+              "index": 0,
+              "tag": "DIV",
+              "id": "",
+              "className": "dialog-body",
+              "clientHeight": 382,
+              "scrollHeight": 789
+            }
+          ]
+        },
+        "apiCalls": []
+      },
+      {
+        "name": "appearance",
+        "width": 320,
+        "height": 568,
+        "passed": true,
+        "screenshot": "320x568-appearance.png",
+        "capturedBeforeDismissal": true,
+        "details": {
+          "scrollables": []
+        },
+        "apiCalls": []
+      },
+      {
+        "name": "friend-lobby",
+        "width": 320,
+        "height": 568,
+        "passed": true,
+        "screenshot": "320x568-friend-lobby.png",
+        "details": {
+          "[data-match-mode]": {
+            "text": "出口竞速 · 100关限步周旋 · 100关",
+            "rect": {
+              "x": 34,
+              "y": 226.984375,
+              "width": 80,
+              "height": 44,
+              "right": 114,
+              "bottom": 270.984375
+            },
+            "clipped": {
+              "left": 34,
+              "top": 226.984375,
+              "right": 114,
+              "bottom": 270.984375
+            },
+            "x": 74,
+            "y": 248.984375,
+            "hit": true,
+            "hitElement": "SELECT",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('.competition-dialog [data-match-mode]')"
+          },
+          "[data-match-role]": {
+            "text": "追逐队突围队",
+            "rect": {
+              "x": 120,
+              "y": 226.984375,
+              "width": 80,
+              "height": 44,
+              "right": 200,
+              "bottom": 270.984375
+            },
+            "clipped": {
+              "left": 120,
+              "top": 226.984375,
+              "right": 200,
+              "bottom": 270.984375
+            },
+            "x": 160,
+            "y": 248.984375,
+            "hit": true,
+            "hitElement": "SELECT",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('.competition-dialog [data-match-role]')"
+          },
+          "[data-match-initiative]": {
+            "text": "系统分配先手追逐队先手突围队先手",
+            "rect": {
+              "x": 206,
+              "y": 226.984375,
+              "width": 80,
+              "height": 44,
+              "right": 286,
+              "bottom": 270.984375
+            },
+            "clipped": {
+              "left": 206,
+              "top": 226.984375,
+              "right": 286,
+              "bottom": 270.984375
+            },
+            "x": 246,
+            "y": 248.984375,
+            "hit": true,
+            "hitElement": "SELECT",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('.competition-dialog [data-match-initiative]')"
+          },
+          "[data-create]": {
+            "text": "创建好友挑战 ↗",
+            "rect": {
+              "x": 34,
+              "y": 276.984375,
+              "width": 252,
+              "height": 44,
+              "right": 286,
+              "bottom": 320.984375
+            },
+            "clipped": {
+              "left": 34,
+              "top": 276.984375,
+              "right": 286,
+              "bottom": 320.984375
+            },
+            "x": 160,
+            "y": 298.984375,
+            "hit": true,
+            "hitElement": "BUTTON",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('.competition-dialog [data-create]')"
+          },
+          "[data-code]": {
+            "text": "",
+            "rect": {
+              "x": 34,
+              "y": 388.375,
+              "width": 182,
+              "height": 46,
+              "right": 216,
+              "bottom": 434.375
+            },
+            "clipped": {
+              "left": 34,
+              "top": 388.375,
+              "right": 216,
+              "bottom": 434.375
+            },
+            "x": 125,
+            "y": 411.375,
+            "hit": true,
+            "hitElement": "INPUT",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('.competition-dialog [data-code]')"
+          },
+          "[data-join]": {
+            "text": "加入",
+            "rect": {
+              "x": 224,
+              "y": 390.375,
+              "width": 62,
+              "height": 44,
+              "right": 286,
+              "bottom": 434.375
+            },
+            "clipped": {
+              "left": 224,
+              "top": 390.375,
+              "right": 286,
+              "bottom": 434.375
+            },
+            "x": 255,
+            "y": 412.375,
+            "hit": true,
+            "hitElement": "BUTTON",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('.competition-dialog [data-join]')"
+          },
+          "[data-close]": {
+            "text": "退出 PK",
+            "rect": {
+              "x": 205,
+              "y": 497,
+              "width": 88,
+              "height": 44,
+              "right": 293,
+              "bottom": 541
+            },
+            "clipped": {
+              "left": 205,
+              "top": 497,
+              "right": 293,
+              "bottom": 541
+            },
+            "x": 249,
+            "y": 519,
+            "hit": true,
+            "hitElement": "BUTTON",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('.competition-dialog [data-close]')"
+          }
+        },
+        "capturedBeforeDismissal": true,
+        "apiCalls": [
+          {
+            "path": "/sessions/guest",
+            "method": "POST",
+            "body": {}
+          },
+          {
+            "path": "/me",
+            "method": "GET",
+            "body": {}
+          },
+          {
+            "path": "/boards/cops-robbers",
+            "method": "GET",
+            "body": {}
+          }
+        ]
+      },
+      {
+        "name": "friend-create",
+        "width": 320,
+        "height": 568,
+        "passed": true,
+        "screenshot": "320x568-friend-create.png",
+        "capturedBeforeDismissal": true,
+        "apiCalls": [
+          {
+            "path": "/me",
+            "method": "GET",
+            "body": {}
+          },
+          {
+            "path": "/boards/cops-robbers",
+            "method": "GET",
+            "body": {}
+          },
+          {
+            "path": "/rooms",
+            "method": "POST",
+            "body": {
+              "game": "cops-robbers",
+              "mode": "survival",
+              "role": "runner",
+              "initiative": "runner"
+            }
+          },
+          {
+            "path": "/rooms/ABCDEF123456/leave",
+            "method": "POST",
+            "body": {}
+          }
+        ]
+      },
+      {
+        "name": "friend-join",
+        "width": 320,
+        "height": 568,
+        "passed": true,
+        "screenshot": "320x568-friend-join.png",
+        "capturedBeforeDismissal": true,
+        "apiCalls": [
+          {
+            "path": "/me",
+            "method": "GET",
+            "body": {}
+          },
+          {
+            "path": "/boards/cops-robbers",
+            "method": "GET",
+            "body": {}
+          },
+          {
+            "path": "/rooms/join",
+            "method": "POST",
+            "body": {
+              "code": "ABCDEF123456",
+              "game": "cops-robbers"
+            }
+          }
+        ]
+      },
+      {
+        "name": "friend-board",
+        "width": 320,
+        "height": 568,
+        "passed": true,
+        "screenshot": "320x568-friend-board.png",
+        "details": {
+          "scrollables": [
+            {
+              "index": 0,
+              "tag": "DIV",
+              "id": "",
+              "className": "pk-sheet-content",
+              "clientHeight": 361,
+              "scrollHeight": 2863
+            }
+          ]
+        },
+        "capturedBeforeDismissal": true,
+        "apiCalls": [
+          {
+            "path": "/me",
+            "method": "GET",
+            "body": {}
+          },
+          {
+            "path": "/boards/cops-robbers",
+            "method": "GET",
+            "body": {}
+          },
+          {
+            "path": "/boards/cops-robbers",
+            "method": "GET",
+            "body": {}
+          }
+        ]
+      },
+      {
+        "name": "friend-result",
+        "width": 320,
+        "height": 568,
+        "passed": true,
+        "screenshot": "320x568-friend-result.png",
+        "details": [],
+        "capturedBeforeDismissal": true,
+        "apiCalls": [
+          {
+            "path": "/me",
+            "method": "GET",
+            "body": {}
+          },
+          {
+            "path": "/boards/cops-robbers",
+            "method": "GET",
+            "body": {}
+          },
+          {
+            "path": "/rooms",
+            "method": "POST",
+            "body": {
+              "game": "cops-robbers",
+              "mode": "escape",
+              "role": "pursuer",
+              "initiative": "random"
+            }
+          }
+        ]
+      },
+      {
+        "name": "home",
+        "width": 667,
+        "height": 375,
+        "passed": true,
+        "screenshot": "667x375-home.png",
+        "details": {
+          "document": {
+            "width": 667,
+            "height": 375,
+            "scrollWidth": 667,
+            "scrollHeight": 375,
+            "scrollX": 0,
+            "scrollY": 0
+          },
+          "entries": {
+            "#home-start": {
+              "text": "开始巡逻 ▶",
+              "rect": {
+                "x": 387,
+                "y": 72,
+                "width": 266,
+                "height": 50,
+                "right": 653,
+                "bottom": 122
+              },
+              "clipped": {
+                "left": 387,
+                "top": 72,
+                "right": 653,
+                "bottom": 122
+              },
+              "x": 520,
+              "y": 97,
+              "hit": true,
+              "hitElement": "BUTTON#home-start",
+              "displayed": true,
+              "inert": false,
+              "scrollAncestors": [],
+              "selector": "locator('#home-start')"
+            },
+            "#resume-patrol": {
+              "text": "继续上次 第 1 关 ›",
+              "rect": {
+                "x": 402.953125,
+                "y": 129,
+                "width": 234.078125,
+                "height": 44,
+                "right": 637.03125,
+                "bottom": 173
+              },
+              "clipped": {
+                "left": 402.953125,
+                "top": 129,
+                "right": 637.03125,
+                "bottom": 173
+              },
+              "x": 519.9921875,
+              "y": 151,
+              "hit": true,
+              "hitElement": "BUTTON#resume-patrol",
+              "displayed": true,
+              "inert": false,
+              "scrollAncestors": [],
+              "selector": "locator('#resume-patrol')"
+            },
+            "#appearance-settings": {
+              "text": "换装",
+              "rect": {
+                "x": 387,
+                "y": 180,
+                "width": 61.25,
+                "height": 65,
+                "right": 448.25,
+                "bottom": 245
+              },
+              "clipped": {
+                "left": 387,
+                "top": 180,
+                "right": 448.25,
+                "bottom": 245
+              },
+              "x": 417.625,
+              "y": 212.5,
+              "hit": true,
+              "hitElement": "svg#appearance-art",
+              "displayed": true,
+              "inert": false,
+              "scrollAncestors": [],
+              "selector": "locator('#appearance-settings')"
+            },
+            "#friend-duel": {
+              "text": "好友",
+              "rect": {
+                "x": 455.25,
+                "y": 180,
+                "width": 61.25,
+                "height": 65,
+                "right": 516.5,
+                "bottom": 245
+              },
+              "clipped": {
+                "left": 455.25,
+                "top": 180,
+                "right": 516.5,
+                "bottom": 245
+              },
+              "x": 485.875,
+              "y": 212.5,
+              "hit": true,
+              "hitElement": "path",
+              "displayed": true,
+              "inert": false,
+              "scrollAncestors": [],
+              "selector": "locator('#friend-duel')"
+            },
+            "#mode-settings": {
+              "text": "玩法",
+              "rect": {
+                "x": 523.5,
+                "y": 180,
+                "width": 61.25,
+                "height": 65,
+                "right": 584.75,
+                "bottom": 245
+              },
+              "clipped": {
+                "left": 523.5,
+                "top": 180,
+                "right": 584.75,
+                "bottom": 245
+              },
+              "x": 554.125,
+              "y": 212.5,
+              "hit": true,
+              "hitElement": "path",
+              "displayed": true,
+              "inert": false,
+              "scrollAncestors": [],
+              "selector": "locator('#mode-settings')"
+            },
+            "#help": {
+              "text": "指南",
+              "rect": {
+                "x": 591.75,
+                "y": 180,
+                "width": 61.25,
+                "height": 65,
+                "right": 653,
+                "bottom": 245
+              },
+              "clipped": {
+                "left": 591.75,
+                "top": 180,
+                "right": 653,
+                "bottom": 245
+              },
+              "x": 622.375,
+              "y": 212.5,
+              "hit": true,
+              "hitElement": "path",
+              "displayed": true,
+              "inert": false,
+              "scrollAncestors": [],
+              "selector": "locator('#help')"
+            },
+            "#level-select": {
+              "text": "街区地图 0 / 100",
+              "rect": {
+                "x": 387,
+                "y": 252,
+                "width": 106.25,
+                "height": 44,
+                "right": 493.25,
+                "bottom": 296
+              },
+              "clipped": {
+                "left": 387,
+                "top": 252,
+                "right": 493.25,
+                "bottom": 296
+              },
+              "x": 440.125,
+              "y": 274,
+              "hit": true,
+              "hitElement": "BUTTON#level-select",
+              "displayed": true,
+              "inert": false,
+              "scrollAncestors": [],
+              "selector": "locator('#level-select')"
+            },
+            "#quick-start": {
+              "text": "两步试炼",
+              "rect": {
+                "x": 497.25,
+                "y": 252,
+                "width": 81.75,
+                "height": 44,
+                "right": 579,
+                "bottom": 296
+              },
+              "clipped": {
+                "left": 497.25,
+                "top": 252,
+                "right": 579,
+                "bottom": 296
+              },
+              "x": 538.125,
+              "y": 274,
+              "hit": true,
+              "hitElement": "BUTTON#quick-start",
+              "displayed": true,
+              "inert": false,
+              "scrollAncestors": [],
+              "selector": "locator('#quick-start')"
+            },
+            "[data-game-fullscreen]": {
+              "text": "全屏",
+              "rect": {
+                "x": 583,
+                "y": 252,
+                "width": 70,
+                "height": 44,
+                "right": 653,
+                "bottom": 296
+              },
+              "clipped": {
+                "left": 583,
+                "top": 252,
+                "right": 653,
+                "bottom": 296
+              },
+              "x": 618,
+              "y": 274,
+              "hit": true,
+              "hitElement": "BUTTON",
+              "displayed": true,
+              "inert": false,
+              "scrollAncestors": [],
+              "selector": "locator('[data-game-fullscreen]')"
+            },
+            "#share-challenge": {
+              "text": "分享同题",
+              "rect": {
+                "x": 416.265625,
+                "y": 303,
+                "width": 207.46875,
+                "height": 44,
+                "right": 623.734375,
+                "bottom": 347
+              },
+              "clipped": {
+                "left": 416.265625,
+                "top": 303,
+                "right": 623.734375,
+                "bottom": 347
+              },
+              "x": 520,
+              "y": 325,
+              "hit": true,
+              "hitElement": "BUTTON#share-challenge",
+              "displayed": true,
+              "inert": false,
+              "scrollAncestors": [],
+              "selector": "locator('#share-challenge')"
+            },
+            "#sound": {
+              "text": "关闭音效",
+              "rect": {
+                "x": 559,
+                "y": 6,
+                "width": 44,
+                "height": 44,
+                "right": 603,
+                "bottom": 50
+              },
+              "clipped": {
+                "left": 559,
+                "top": 6,
+                "right": 603,
+                "bottom": 50
+              },
+              "x": 581,
+              "y": 28,
+              "hit": true,
+              "hitElement": "svg",
+              "displayed": true,
+              "inert": false,
+              "scrollAncestors": [],
+              "selector": "locator('#sound')"
+            },
+            "#settings": {
+              "text": "游戏设置",
+              "rect": {
+                "x": 611,
+                "y": 6,
+                "width": 44,
+                "height": 44,
+                "right": 655,
+                "bottom": 50
+              },
+              "clipped": {
+                "left": 611,
+                "top": 6,
+                "right": 655,
+                "bottom": 50
+              },
+              "x": 633,
+              "y": 28,
+              "hit": true,
+              "hitElement": "svg",
+              "displayed": true,
+              "inert": false,
+              "scrollAncestors": [],
+              "selector": "locator('#settings')"
+            }
+          }
+        },
+        "capturedBeforeDismissal": true,
+        "apiCalls": []
+      },
+      {
+        "name": "help",
+        "width": 667,
+        "height": 375,
+        "passed": true,
+        "screenshot": "667x375-help.png",
+        "capturedBeforeDismissal": true,
+        "details": {
+          "scrollables": [
+            {
+              "index": 0,
+              "tag": "DIV",
+              "id": "",
+              "className": "dialog-body",
+              "clientHeight": 197,
+              "scrollHeight": 535
+            }
+          ]
+        },
+        "apiCalls": []
+      },
+      {
+        "name": "appearance",
+        "width": 667,
+        "height": 375,
+        "passed": true,
+        "screenshot": "667x375-appearance.png",
+        "capturedBeforeDismissal": true,
+        "details": {
+          "scrollables": [
+            {
+              "index": 0,
+              "tag": "DIV",
+              "id": "",
+              "className": "role-options",
+              "clientHeight": 146,
+              "scrollHeight": 306
+            }
+          ]
+        },
+        "apiCalls": []
+      },
+      {
+        "name": "friend-lobby",
+        "width": 667,
+        "height": 375,
+        "passed": true,
+        "screenshot": "667x375-friend-lobby.png",
+        "details": {
+          "[data-match-mode]": {
+            "text": "出口竞速 · 100关限步周旋 · 100关",
+            "rect": {
+              "x": 34,
+              "y": 194.984375,
+              "width": 92.15625,
+              "height": 44,
+              "right": 126.15625,
+              "bottom": 238.984375
+            },
+            "clipped": {
+              "left": 34,
+              "top": 194.984375,
+              "right": 126.15625,
+              "bottom": 238.984375
+            },
+            "x": 80.078125,
+            "y": 216.984375,
+            "hit": true,
+            "hitElement": "SELECT",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('.competition-dialog [data-match-mode]')"
+          },
+          "[data-match-role]": {
+            "text": "追逐队突围队",
+            "rect": {
+              "x": 132.15625,
+              "y": 194.984375,
+              "width": 92.171875,
+              "height": 44,
+              "right": 224.328125,
+              "bottom": 238.984375
+            },
+            "clipped": {
+              "left": 132.15625,
+              "top": 194.984375,
+              "right": 224.328125,
+              "bottom": 238.984375
+            },
+            "x": 178.2421875,
+            "y": 216.984375,
+            "hit": true,
+            "hitElement": "SELECT",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('.competition-dialog [data-match-role]')"
+          },
+          "[data-match-initiative]": {
+            "text": "系统分配先手追逐队先手突围队先手",
+            "rect": {
+              "x": 230.328125,
+              "y": 194.984375,
+              "width": 92.15625,
+              "height": 44,
+              "right": 322.484375,
+              "bottom": 238.984375
+            },
+            "clipped": {
+              "left": 230.328125,
+              "top": 194.984375,
+              "right": 322.484375,
+              "bottom": 238.984375
+            },
+            "x": 276.40625,
+            "y": 216.984375,
+            "hit": true,
+            "hitElement": "SELECT",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('.competition-dialog [data-match-initiative]')"
+          },
+          "[data-create]": {
+            "text": "创建好友挑战 ↗",
+            "rect": {
+              "x": 34,
+              "y": 244.984375,
+              "width": 288.5,
+              "height": 44,
+              "right": 322.5,
+              "bottom": 288.984375
+            },
+            "clipped": {
+              "left": 34,
+              "top": 244.984375,
+              "right": 322.5,
+              "bottom": 288.984375
+            },
+            "x": 178.25,
+            "y": 266.984375,
+            "hit": true,
+            "hitElement": "BUTTON",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('.competition-dialog [data-create]')"
+          },
+          "[data-code]": {
+            "text": "",
+            "rect": {
+              "x": 344.5,
+              "y": 197.390625,
+              "width": 218.5,
+              "height": 46,
+              "right": 563,
+              "bottom": 243.390625
+            },
+            "clipped": {
+              "left": 344.5,
+              "top": 197.390625,
+              "right": 563,
+              "bottom": 243.390625
+            },
+            "x": 453.75,
+            "y": 220.390625,
+            "hit": true,
+            "hitElement": "INPUT",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('.competition-dialog [data-code]')"
+          },
+          "[data-join]": {
+            "text": "加入",
+            "rect": {
+              "x": 571,
+              "y": 199.390625,
+              "width": 62,
+              "height": 44,
+              "right": 633,
+              "bottom": 243.390625
+            },
+            "clipped": {
+              "left": 571,
+              "top": 199.390625,
+              "right": 633,
+              "bottom": 243.390625
+            },
+            "x": 602,
+            "y": 221.390625,
+            "hit": true,
+            "hitElement": "BUTTON",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('.competition-dialog [data-join]')"
+          },
+          "[data-close]": {
+            "text": "退出 PK",
+            "rect": {
+              "x": 552,
+              "y": 308,
+              "width": 88,
+              "height": 44,
+              "right": 640,
+              "bottom": 352
+            },
+            "clipped": {
+              "left": 552,
+              "top": 308,
+              "right": 640,
+              "bottom": 352
+            },
+            "x": 596,
+            "y": 330,
+            "hit": true,
+            "hitElement": "BUTTON",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('.competition-dialog [data-close]')"
+          }
+        },
+        "capturedBeforeDismissal": true,
+        "apiCalls": [
+          {
+            "path": "/sessions/guest",
+            "method": "POST",
+            "body": {}
+          },
+          {
+            "path": "/me",
+            "method": "GET",
+            "body": {}
+          },
+          {
+            "path": "/boards/cops-robbers",
+            "method": "GET",
+            "body": {}
+          }
+        ]
+      },
+      {
+        "name": "friend-create",
+        "width": 667,
+        "height": 375,
+        "passed": true,
+        "screenshot": "667x375-friend-create.png",
+        "capturedBeforeDismissal": true,
+        "apiCalls": [
+          {
+            "path": "/me",
+            "method": "GET",
+            "body": {}
+          },
+          {
+            "path": "/boards/cops-robbers",
+            "method": "GET",
+            "body": {}
+          },
+          {
+            "path": "/rooms",
+            "method": "POST",
+            "body": {
+              "game": "cops-robbers",
+              "mode": "survival",
+              "role": "runner",
+              "initiative": "runner"
+            }
+          },
+          {
+            "path": "/rooms/ABCDEF123456/leave",
+            "method": "POST",
+            "body": {}
+          }
+        ]
+      },
+      {
+        "name": "friend-join",
+        "width": 667,
+        "height": 375,
+        "passed": true,
+        "screenshot": "667x375-friend-join.png",
+        "capturedBeforeDismissal": true,
+        "apiCalls": [
+          {
+            "path": "/me",
+            "method": "GET",
+            "body": {}
+          },
+          {
+            "path": "/boards/cops-robbers",
+            "method": "GET",
+            "body": {}
+          },
+          {
+            "path": "/rooms/join",
+            "method": "POST",
+            "body": {
+              "code": "ABCDEF123456",
+              "game": "cops-robbers"
+            }
+          }
+        ]
+      },
+      {
+        "name": "friend-board",
+        "width": 667,
+        "height": 375,
+        "passed": true,
+        "screenshot": "667x375-friend-board.png",
+        "details": {
+          "scrollables": [
+            {
+              "index": 0,
+              "tag": "DIV",
+              "id": "",
+              "className": "pk-sheet-content",
+              "clientHeight": 176,
+              "scrollHeight": 2056
+            }
+          ]
+        },
+        "capturedBeforeDismissal": true,
+        "apiCalls": [
+          {
+            "path": "/me",
+            "method": "GET",
+            "body": {}
+          },
+          {
+            "path": "/boards/cops-robbers",
+            "method": "GET",
+            "body": {}
+          },
+          {
+            "path": "/boards/cops-robbers",
+            "method": "GET",
+            "body": {}
+          }
+        ]
+      },
+      {
+        "name": "friend-result",
+        "width": 667,
+        "height": 375,
+        "passed": true,
+        "screenshot": "667x375-friend-result.png",
+        "details": [
+          {
+            "index": 0,
+            "tag": "SECTION",
+            "id": "",
+            "className": "pk-result",
+            "clientHeight": 124,
+            "scrollHeight": 143
+          },
+          {
+            "index": 1,
+            "tag": "SECTION",
+            "id": "",
+            "className": "pk-result",
+            "clientHeight": 124,
+            "scrollHeight": 143
+          }
+        ],
+        "capturedBeforeDismissal": true,
+        "apiCalls": [
+          {
+            "path": "/me",
+            "method": "GET",
+            "body": {}
+          },
+          {
+            "path": "/boards/cops-robbers",
+            "method": "GET",
+            "body": {}
+          },
+          {
+            "path": "/rooms",
+            "method": "POST",
+            "body": {
+              "game": "cops-robbers",
+              "mode": "escape",
+              "role": "pursuer",
+              "initiative": "random"
+            }
+          }
+        ]
+      }
+    ],
+    "base": "http://127.0.0.1:43421",
+    "finished": "2026-10-10T03:02:24.184Z",
+    "summary": {
+      "passed": 16,
+      "failed": 0
+    }
+  },
+  "playing": {
+    "started": "2026-10-10T03:04:31.681Z",
+    "passed": true,
+    "physicalMobile": false,
+    "fixture": "Actual game HTML/CSS, shared competition client/UI and game renderer; mocked API responses validated with real server rules",
+    "viewports": [
+      [320, 568],
+      [667, 375]
+    ],
+    "checks": [
+      {
+        "name": "friend-playing",
+        "width": 320,
+        "height": 568,
+        "passed": true,
+        "screenshot": "320x568-friend-playing.png",
+        "additionalScreenshots": [
+          "320x568-friend-playing-at-320x568.png",
+          "320x568-friend-playing-at-320x480.png"
+        ],
+        "capturedBeforeDismissal": true,
+        "details": {
+          "layouts": [
+            {
+              "viewport": {
+                "width": 320,
+                "height": 568
+              },
+              "canvas": {
+                "text": "好友挑战操作区",
+                "rect": {
+                  "x": 29,
+                  "y": 107,
+                  "width": 262,
+                  "height": 384,
+                  "right": 291,
+                  "bottom": 491
+                },
+                "clipped": {
+                  "left": 29,
+                  "top": 107,
+                  "right": 291,
+                  "bottom": 491
+                },
+                "x": 160,
+                "y": 299,
+                "hit": true,
+                "hitElement": "CANVAS",
+                "displayed": true,
+                "inert": false,
+                "scrollAncestors": [],
+                "selector": "locator('.competition-dialog canvas[data-play]')"
+              },
+              "exit": {
+                "text": "退出 PK",
+                "rect": {
+                  "x": 203,
+                  "y": 499,
+                  "width": 88,
+                  "height": 44,
+                  "right": 291,
+                  "bottom": 543
+                },
+                "clipped": {
+                  "left": 203,
+                  "top": 499,
+                  "right": 291,
+                  "bottom": 543
+                },
+                "x": 247,
+                "y": 521,
+                "hit": true,
+                "hitElement": "BUTTON",
+                "displayed": true,
+                "inert": false,
+                "scrollAncestors": [],
+                "selector": "locator('.competition-dialog [data-close]')"
+              },
+              "wait": {
+                "label": "留守一步",
+                "x": 41,
+                "y": 327,
+                "w": 180,
+                "h": 44,
+                "action": {
+                  "target": 8
+                }
+              },
+              "touch": {
+                "x": 160,
+                "y": 456
+              },
+              "turn": 0
+            },
+            {
+              "viewport": {
+                "width": 320,
+                "height": 480
+              },
+              "canvas": {
+                "text": "好友挑战操作区",
+                "rect": {
+                  "x": 29,
+                  "y": 107,
+                  "width": 262,
+                  "height": 296,
+                  "right": 291,
+                  "bottom": 403
+                },
+                "clipped": {
+                  "left": 29,
+                  "top": 107,
+                  "right": 291,
+                  "bottom": 403
+                },
+                "x": 160,
+                "y": 255,
+                "hit": true,
+                "hitElement": "CANVAS",
+                "displayed": true,
+                "inert": false,
+                "scrollAncestors": [],
+                "selector": "locator('.competition-dialog canvas[data-play]')"
+              },
+              "exit": {
+                "text": "退出 PK",
+                "rect": {
+                  "x": 203,
+                  "y": 411,
+                  "width": 88,
+                  "height": 44,
+                  "right": 291,
+                  "bottom": 455
+                },
+                "clipped": {
+                  "left": 203,
+                  "top": 411,
+                  "right": 291,
+                  "bottom": 455
+                },
+                "x": 247,
+                "y": 433,
+                "hit": true,
+                "hitElement": "BUTTON",
+                "displayed": true,
+                "inert": false,
+                "scrollAncestors": [],
+                "selector": "locator('.competition-dialog [data-close]')"
+              },
+              "wait": {
+                "label": "留守一步",
+                "x": 41,
+                "y": 239,
+                "w": 180,
+                "h": 44,
+                "action": {
+                  "target": 8
+                }
+              },
+              "touch": {
+                "x": 160,
+                "y": 368
+              },
+              "turn": 0
+            }
+          ],
+          "submittedAction": {
+            "seq": 1,
+            "action": {
+              "type": "move",
+              "side": "pursuer",
+              "actor": 0,
+              "target": 8
+            }
+          }
+        },
+        "apiCalls": [
+          {
+            "path": "/sessions/guest",
+            "method": "POST",
+            "body": {}
+          },
+          {
+            "path": "/me",
+            "method": "GET",
+            "body": {}
+          },
+          {
+            "path": "/boards/cops-robbers",
+            "method": "GET",
+            "body": {}
+          },
+          {
+            "path": "/rooms",
+            "method": "POST",
+            "body": {
+              "game": "cops-robbers",
+              "mode": "escape",
+              "role": "pursuer",
+              "initiative": "random"
+            }
+          },
+          {
+            "path": "/rooms/ABCDEF123456",
+            "method": "GET",
+            "body": {}
+          },
+          {
+            "path": "/rooms/ABCDEF123456/actions",
+            "method": "POST",
+            "body": {
+              "seq": 1,
+              "action": {
+                "type": "move",
+                "side": "pursuer",
+                "actor": 0,
+                "target": 8
+              }
+            }
+          },
+          {
+            "path": "/rooms/ABCDEF123456/leave",
+            "method": "POST",
+            "body": {}
+          }
+        ]
+      },
+      {
+        "name": "friend-playing",
+        "width": 667,
+        "height": 375,
+        "passed": true,
+        "screenshot": "667x375-friend-playing.png",
+        "additionalScreenshots": [
+          "667x375-friend-playing-at-667x375.png",
+          "667x375-friend-playing-at-667x320.png"
+        ],
+        "capturedBeforeDismissal": true,
+        "details": {
+          "layouts": [
+            {
+              "viewport": {
+                "width": 667,
+                "height": 375
+              },
+              "canvas": {
+                "text": "好友挑战操作区",
+                "rect": {
+                  "x": 29,
+                  "y": 107,
+                  "width": 609,
+                  "height": 191,
+                  "right": 638,
+                  "bottom": 298
+                },
+                "clipped": {
+                  "left": 29,
+                  "top": 107,
+                  "right": 638,
+                  "bottom": 298
+                },
+                "x": 333.5,
+                "y": 202.5,
+                "hit": true,
+                "hitElement": "CANVAS",
+                "displayed": true,
+                "inert": false,
+                "scrollAncestors": [],
+                "selector": "locator('.competition-dialog canvas[data-play]')"
+              },
+              "exit": {
+                "text": "退出 PK",
+                "rect": {
+                  "x": 550,
+                  "y": 306,
+                  "width": 88,
+                  "height": 44,
+                  "right": 638,
+                  "bottom": 350
+                },
+                "clipped": {
+                  "left": 550,
+                  "top": 306,
+                  "right": 638,
+                  "bottom": 350
+                },
+                "x": 594,
+                "y": 328,
+                "hit": true,
+                "hitElement": "BUTTON",
+                "displayed": true,
+                "inert": false,
+                "scrollAncestors": [],
+                "selector": "locator('.competition-dialog [data-close]')"
+              },
+              "wait": {
+                "label": "留守一步",
+                "x": 299,
+                "y": 103.5,
+                "w": 180,
+                "h": 44,
+                "action": {
+                  "target": 8
+                }
+              },
+              "touch": {
+                "x": 418,
+                "y": 232.5
+              },
+              "turn": 0
+            },
+            {
+              "viewport": {
+                "width": 667,
+                "height": 320
+              },
+              "canvas": {
+                "text": "好友挑战操作区",
+                "rect": {
+                  "x": 29,
+                  "y": 107,
+                  "width": 609,
+                  "height": 136,
+                  "right": 638,
+                  "bottom": 243
+                },
+                "clipped": {
+                  "left": 29,
+                  "top": 107,
+                  "right": 638,
+                  "bottom": 243
+                },
+                "x": 333.5,
+                "y": 175,
+                "hit": true,
+                "hitElement": "CANVAS",
+                "displayed": true,
+                "inert": false,
+                "scrollAncestors": [],
+                "selector": "locator('.competition-dialog canvas[data-play]')"
+              },
+              "exit": {
+                "text": "退出 PK",
+                "rect": {
+                  "x": 550,
+                  "y": 251,
+                  "width": 88,
+                  "height": 44,
+                  "right": 638,
+                  "bottom": 295
+                },
+                "clipped": {
+                  "left": 550,
+                  "top": 251,
+                  "right": 638,
+                  "bottom": 295
+                },
+                "x": 594,
+                "y": 273,
+                "hit": true,
+                "hitElement": "BUTTON",
+                "displayed": true,
+                "inert": false,
+                "scrollAncestors": [],
+                "selector": "locator('.competition-dialog [data-close]')"
+              },
+              "wait": {
+                "label": "留守一步",
+                "x": 271.5,
+                "y": 76,
+                "w": 180,
+                "h": 44,
+                "action": {
+                  "target": 8
+                }
+              },
+              "touch": {
+                "x": 390.5,
+                "y": 205
+              },
+              "turn": 0
+            }
+          ],
+          "submittedAction": {
+            "seq": 1,
+            "action": {
+              "type": "move",
+              "side": "pursuer",
+              "actor": 0,
+              "target": 8
+            }
+          }
+        },
+        "apiCalls": [
+          {
+            "path": "/sessions/guest",
+            "method": "POST",
+            "body": {}
+          },
+          {
+            "path": "/me",
+            "method": "GET",
+            "body": {}
+          },
+          {
+            "path": "/boards/cops-robbers",
+            "method": "GET",
+            "body": {}
+          },
+          {
+            "path": "/rooms",
+            "method": "POST",
+            "body": {
+              "game": "cops-robbers",
+              "mode": "escape",
+              "role": "pursuer",
+              "initiative": "random"
+            }
+          },
+          {
+            "path": "/rooms/ABCDEF123456",
+            "method": "GET",
+            "body": {}
+          },
+          {
+            "path": "/rooms/ABCDEF123456/actions",
+            "method": "POST",
+            "body": {
+              "seq": 1,
+              "action": {
+                "type": "move",
+                "side": "pursuer",
+                "actor": 0,
+                "target": 8
+              }
+            }
+          },
+          {
+            "path": "/rooms/ABCDEF123456/leave",
+            "method": "POST",
+            "body": {}
+          }
+        ]
+      }
+    ],
+    "base": "http://127.0.0.1:43421",
+    "finished": "2026-10-10T03:04:35.323Z",
+    "summary": {
+      "passed": 2,
+      "failed": 0
+    }
+  }
+}
