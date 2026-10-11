@@ -60,7 +60,7 @@ test('six stable, independently valid level configurations and expected progress
   for (let i = 0; i < LEVELS.length; i++) {
     const state = createGame(i);
     assert.equal(state.cages.length, 6);
-    assert.equal(state.target, 4);
+    assert.equal(state.target, state.cages.length);
     assert.equal(state.lives, 3);
     assert.equal(remainingRescuable(state), 6);
     assert.equal(state.levelId, LEVELS[i].id);
@@ -81,6 +81,12 @@ test('content validator catches overlapping geometry and invalid unlocks', () =>
   const errors = validateLevels(levels);
   assert.ok(errors.some((e) => e.includes('overlapping')));
   assert.ok(errors.some((e) => e.includes('unlock')));
+});
+
+test('content validator rejects any target that leaves a teammate behind', () => {
+  const levels = structuredClone(LEVELS);
+  levels[0].target = 4;
+  assert.ok(validateLevels(levels).some((error) => error.includes('all teammates')));
 });
 
 test('game begins ready, paddle clamps and an inactive ball follows it', () => {
@@ -143,13 +149,18 @@ test('predicted teammate arrivals are staggered even across cage heights', () =>
     assert.ok(arrivals[i] - arrivals[i - 1] >= state.level.releaseGap - 0.02);
 });
 
-test('a teammate crossing the paddle counts once and four rescues win', () => {
+test('each teammate counts once; four and five rescues continue, only all six win', () => {
   const state = createGame();
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < state.target; i++) {
     const person = falling(state, i, state.paddle.x, state.paddle.y - RULES.personRadius - 0.1);
     stepGame(state, FIXED_STEP);
     assert.equal(person.status, 'rescued');
     assert.equal(state.rescued, i + 1);
+    assert.equal(state.phase, i + 1 === state.target ? 'won' : 'ready');
+    assert.equal(
+      state.events.filter((e) => e.type === 'win').length,
+      i + 1 === state.target ? 1 : 0,
+    );
   }
   assert.equal(state.phase, 'won');
   assert.equal(state.ball.active, false);
@@ -157,18 +168,16 @@ test('a teammate crossing the paddle counts once and four rescues win', () => {
   const snapshot = structuredClone(state);
   stepGame(state, 0.25, { targetX: 80 });
   assert.equal(state.time, snapshot.time);
-  assert.equal(state.rescued, 4);
+  assert.equal(state.rescued, 6);
 });
 
-test('missed teammates enter the net, do not cost ball lives, and third miss ends the run', () => {
+test('the first missed teammate enters the net, preserves ball lives, and ends the run', () => {
   const state = createGame();
-  for (let i = 0; i < 3; i++) {
-    const person = falling(state, i, 45, RULES.netY - RULES.personRadius - 0.1);
-    stepGame(state, FIXED_STEP);
-    assert.equal(person.status, 'missed');
-    assert.equal(state.missed, i + 1);
-    assert.equal(state.lives, 3);
-  }
+  const person = falling(state, 0, 45, RULES.netY - RULES.personRadius - 0.1);
+  stepGame(state, FIXED_STEP);
+  assert.equal(person.status, 'missed');
+  assert.equal(state.missed, 1);
+  assert.equal(state.lives, 3);
   assert.equal(state.phase, 'lost');
   assert.equal(state.lossReason, 'not-enough-people');
   assert.equal(canRevive(state), false);
@@ -358,7 +367,9 @@ test('all six formations are winnable through normal paddle input, without reviv
       if (firstReleaseAt === null && state.people.length) firstReleaseAt = state.time;
     }
     assert.equal(state.phase, 'won', `${state.level.name}: ${state.lossReason}`);
-    assert.equal(state.rescued, 4);
+    assert.equal(state.rescued, state.cages.length);
+    assert.equal(state.missed, 0);
+    assert.ok(state.cages.every((cage) => cage.hp === 0));
     assert.equal(state.usedRevive, false);
     assert.ok(firstReleaseAt < 8, `${state.level.name}: first rescue opportunity takes too long`);
   }
@@ -374,7 +385,9 @@ test('two consecutive rescues grant a temporary wide paddle; pause freezes it an
   assert.equal(state.bestRescueCombo, 2);
   assert.equal(state.paddle.w, state.level.paddleWidth * 1.3);
   const clock = state.realTime;
-  setPaused(state, true); stepGame(state, 6); setPaused(state, false);
+  setPaused(state, true);
+  stepGame(state, 6);
+  setPaused(state, false);
   assert.equal(state.realTime, clock);
   advance(state, 5.1);
   assert.equal(state.paddle.w, state.level.paddleWidth);
