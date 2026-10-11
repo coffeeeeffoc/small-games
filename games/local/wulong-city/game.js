@@ -2,7 +2,9 @@
 window.W = (() => {
   const c = document.querySelector('canvas'), ctx = c.getContext('2d'), $ = id => document.getElementById(id);
   const assets={};for(const [key,file] of [['city','city-scene.webp'],['room','room-scene.webp'],['actor','xiaocha.png']]){const picture=new Image();picture.onload=()=>{assets[key]=picture;if(s)draw();};picture.src='./assets/art/'+file;}
-  const {C,rect,line,ellipse,text,poly,face,actor,bird,sign,handle,door,background}=WulongArt.create(ctx,()=>s,assets);
+  const characterRequests=new Set(['xiaocha']);
+  assets.loadCharacter=character=>{const profile=WulongArt.characters[character];if(!profile||characterRequests.has(character))return;characterRequests.add(character);const picture=new Image();picture.onload=()=>{assets[character]=picture;if(s)draw();};picture.src='./assets/art/'+profile.file;};
+  const {C,rect,line,ellipse,text,poly,face,actor,npc,bird,sign,handle,door,background}=WulongArt.create(ctx,()=>s,assets);
   const route=LEVEL_ROUTE,totalLevels=route.order.length,chapterNames=['出门就有乌龙','街坊各有想法','日常不按常理','沿河慢慢逛','云巷的小麻烦','老街的新办法','街角藏着答案','夜市也有脾气','屋顶上的奇遇','百日乌龙大会'];
   const levels = {}, held = new Set(), inputSources = new Map(), zones = new Map();
   let s, last=0, activeDrag=null, audio, sound=true, unlocked=1, unlockedLevels=new Set([route.order[0]]), records={}, savedLevel=1, modal=false, hintStep=0, run=0, dialogPointer=false,challengeMode=false,tryoutReturn=0,tryoutState=null,tryoutHints=0,currentPage='home',chapterPage=0,practiceMode=false;
@@ -117,5 +119,5 @@ window.W = (() => {
   $('sound').onclick=()=>{sound=!sound;$('sound').textContent=sound?'音效：开':'音效：关';$('sound').setAttribute('aria-label',sound?'关闭音效':'开启音效');save();tone();};$('fullscreen').onclick=async()=>{clearInput();try{if(document.fullscreenElement)await document.exitFullscreen();else if($('game').requestFullscreen)await $('game').requestFullscreen();else $('fullscreen').textContent='当前设备不支持全屏';}catch{$('fullscreen').textContent='保持当前画面游玩';}};document.addEventListener('fullscreenchange',()=>{$('fullscreen').setAttribute('aria-label',document.fullscreenElement?'退出全屏':'进入全屏');$('fullscreen').textContent=document.fullscreenElement?'退出全屏':'进入全屏';});
   window.addEventListener('pagehide',()=>{clearInput();audio?.suspend?.();});
   if(dev)window.__wulong={snapshot:()=>JSON.parse(JSON.stringify({state:s,modal,unlocked,unlockedLevels:route.order.filter(id=>unlockedLevels.has(id)),levelNumber:route.number(s.id),records,sound,challengeMode,practiceMode,currentPage,hintStep,totalLevels,zones:[...zones.values()].map(({id,x,y,w,h,label})=>({id,x,y,w,h,label}))}))};
-  return {C,ctx,rect,line,ellipse,text,poly,face,actor,bird,sign,handle,door,background,hit,near,win,say,tone,boot,levels,add:(id,l)=>levels[id]=l,clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),frameZones:new Map()};
+  return {C,ctx,rect,line,ellipse,text,poly,face,actor,npc,bird,sign,handle,door,background,hit,near,win,say,tone,boot,levels,add:(id,l)=>levels[id]=l,clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),frameZones:new Map()};
 })();
