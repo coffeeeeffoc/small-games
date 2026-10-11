@@ -25,6 +25,7 @@ import {
 } from './incremental-validation.mjs';
 import { verifyCocosBuildInputs, cocosPreflightTargets } from './cocos-validation.mjs';
 import { run, cleanGitEnv } from './validate-push.mjs';
+import { createBrowserPreparation } from './browser-preparation.mjs';
 import {
   workspacePackages,
   affectedPackages,
@@ -633,6 +634,11 @@ export async function validateTree({
       })
     : null;
   if (incrementalScope) console.log(`Incremental scope: ${JSON.stringify(incrementalScope)}`);
+  if (incrementalScope?.browser) {
+    prepareBrowser();
+    for (const key of ['CHROMIUM_PATH', 'PLAYWRIGHT_EXECUTABLE_PATH'])
+      if (env[key]) clean[key] = env[key];
+  }
   if (incrementalScope?.pages_deploy)
     execute(
       process.platform === 'win32' ? 'python' : 'python3',
@@ -833,8 +839,12 @@ export async function validateTree({
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   const value = (flag) => process.argv[process.argv.indexOf(flag) + 1];
+  const root = value('--root') || process.cwd();
+  const env = { ...process.env };
   validateTree({
-    root: value('--root') || process.cwd(),
+    root,
+    env,
+    prepareBrowser: createBrowserPreparation({ root, env }),
     base: value('--base'),
     head: value('--head') || 'HEAD',
     incremental: process.argv.includes('--incremental'),

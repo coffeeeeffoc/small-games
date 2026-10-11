@@ -6,7 +6,7 @@ import { THEMES, readProgress, unlockedCount, completeLevel } from '../src/progr
 const win = (levelIndex, changes = {}) => ({
   phase: 'won',
   levelIndex,
-  rescued: 4,
+  rescued: 6,
   time: 40,
   lives: 3,
   ...changes,
@@ -42,19 +42,29 @@ test('clearing a level unlocks exactly the next level and a sixth clear complete
   assert.equal(unlockedCount(progress), 6);
 });
 
-test('repeat clears keep the strongest rescue record, then the faster equal-rescue record', () => {
-  const progress = readProgress(null);
+test('all-person replays upgrade legacy records and keep the faster full rescue', () => {
   const key = LEVELS[0].id;
-  completeLevel(progress, win(0, { rescued: 4, time: 45, lives: 2 }));
-  completeLevel(progress, win(0, { rescued: 4, time: 60, lives: 3 }));
-  assert.deepEqual(progress.completed[key], { rescued: 4, seconds: 45, lives: 2 });
-  completeLevel(progress, win(0, { rescued: 4, time: 35, lives: 1 }));
-  assert.deepEqual(progress.completed[key], { rescued: 4, seconds: 35, lives: 1 });
-  completeLevel(progress, win(0, { rescued: 5, time: 50, lives: 2 }));
-  assert.deepEqual(progress.completed[key], { rescued: 5, seconds: 50, lives: 2 });
-  completeLevel(progress, win(0, { rescued: 4, time: 20, lives: 3 }));
-  assert.deepEqual(progress.completed[key], { rescued: 5, seconds: 50, lives: 2 });
+  const progress = readProgress({
+    version: 1,
+    completed: { [key]: { rescued: 4, seconds: 20, lives: 3 } },
+  });
   assert.equal(unlockedCount(progress), 2);
+  completeLevel(progress, win(0, { time: 45, lives: 2 }));
+  completeLevel(progress, win(0, { time: 60, lives: 3 }));
+  assert.deepEqual(progress.completed[key], { rescued: 6, seconds: 45, lives: 2 });
+  completeLevel(progress, win(0, { time: 35, lives: 1 }));
+  assert.deepEqual(progress.completed[key], { rescued: 6, seconds: 35, lives: 1 });
+  assert.equal(completeLevel(progress, win(0, { rescued: 5, time: 10 })), false);
+  assert.deepEqual(progress.completed[key], { rescued: 6, seconds: 35, lives: 1 });
+  assert.equal(unlockedCount(progress), 2);
+});
+
+test('partial or impossible rescue counts never save a new completion, even with a won phase', () => {
+  const progress = readProgress(null);
+  for (const rescued of [0, 4, 5, 7, NaN])
+    assert.equal(completeLevel(progress, win(0, { rescued })), false);
+  assert.deepEqual(progress.completed, {});
+  assert.equal(unlockedCount(progress), 1);
 });
 
 test('trial clears never change records or unlock levels, including an improved replay', () => {
