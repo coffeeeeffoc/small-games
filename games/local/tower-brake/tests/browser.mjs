@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { chromium } from '@playwright/test';
+import { chromium, expect } from '@playwright/test';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const evidence = new URL('../docs/design/', import.meta.url);
@@ -160,8 +160,12 @@ try {
   assert.equal((await snap()).status, 'won');
   await page.waitForSelector('#result-screen:not([hidden])');
   await page.screenshot({ path: fileURLToPath(new URL('actual-win.png', evidence)) });
-  await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (text) => { window.__sharedUrl = text; } } }));
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (text) => { window.__sharedUrl = text; } } });
+  });
   await page.locator('#share-game').tap();
+  await expect(page.locator('#share-status')).toContainText('挑战链接已复制');
   const shared = new URL(await page.evaluate(() => window.__sharedUrl));
   assert.equal(shared.searchParams.get('challenge'), 'tower-v1');
   assert.equal(Number(shared.searchParams.get('targetScore')), (await snap()).score);

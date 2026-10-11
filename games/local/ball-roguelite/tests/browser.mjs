@@ -25,7 +25,7 @@ const server = createServer(async (request, response) => {
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 const origin = `http://127.0.0.1:${server.address().port}`;
 const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || '/usr/bin/chromium' });
-const report = { browser: browser.version(), environment: 'Linux Chromium mobile touch emulation', checks: [], errors: [], passed: false };
+const report = { browser: browser.version(), environment: `${process.platform} Chromium mobile touch emulation`, checks: [], errors: [], passed: false };
 function monitor(page) { page.on('pageerror', (error) => report.errors.push(error.message)); page.on('response', (response) => { if (response.url().startsWith(origin) && response.status() >= 400) report.errors.push(`${response.status()}: ${response.url()}`); }); }
 async function inspectRendering(context) {
   // Observe the real browser APIs, without adding debug controls to the game.
@@ -199,8 +199,12 @@ try {
     await expect.poll(async () => (await snapshot(page)).phase, { timeout: 18000 }).not.toBe('flight');
   }
   await expect(page.locator('#result-title')).toHaveText('星域已点亮'); await capture(page, 'mobile-victory');
-  await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (text) => { window.__sharedUrl = text; } } }));
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (text) => { window.__sharedUrl = text; } } });
+  });
   await page.locator('#share-orbit').tap();
+  await expect(page.locator('#share-status')).toHaveText('同场挑战链接已复制');
   const shared = new URL(await page.evaluate(() => window.__sharedUrl));
   assert.equal(shared.searchParams.get('challenge'), 'orbit-v1');
   assert.equal(Number(shared.searchParams.get('targetScore')), (await snapshot(page)).score);

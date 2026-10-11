@@ -525,7 +525,8 @@ try {
             await expect(page.locator('#result-message')).toContainText('全部 6 位队友');
             assert.equal(Object.keys(result.progress.completed).length, 1);
             await shot(page, 'actual-result', true);
-            await page.evaluate(() =>
+            await page.evaluate(() => {
+              Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
               Object.defineProperty(navigator, 'clipboard', {
                 configurable: true,
                 value: {
@@ -533,9 +534,10 @@ try {
                     window.__sharedUrl = text;
                   },
                 },
-              }),
-            );
+              });
+            });
             await page.locator('#share-rescue').tap();
+            await expect(page.locator('#reward-message')).toHaveText('同关挑战链接已复制');
             const shared = new URL(await page.evaluate(() => window.__sharedUrl));
             assert.equal(shared.searchParams.get('challenge'), 'rescue-v1');
             assert.equal(shared.searchParams.get('level'), result.game.levelId);
