@@ -196,21 +196,41 @@ export function threeChooseTwoBackendFileScope(file, before, after) {
 const carromSource = 'games/local/carrom-club';
 const carromCore = `${carromSource}/src/core.mjs`;
 const carromContent = `${carromSource}/src/content.mjs`;
+const carromFriendsCore = `${carromSource}/src/friends-core.mjs`;
+const carromFriendsContent = `${carromSource}/src/friends-content.mjs`;
 const carromRule = 'services/runtime-api/rules/carrom.mjs';
 const carromDeployFile = 'scripts/deploy-tencent.mjs';
 const carromDeployAnchor =
   "  for (const name of [\n    'services/runtime-api/dist',\n    'services/runtime-api/rules',\n";
 const carromDeployAddition = `    '${carromCore}',\n    '${carromContent}',\n`;
+const carromFriendsDeployAnchor = carromDeployAnchor + carromDeployAddition;
+const carromFriendsDeployAddition =
+  `    '${carromFriendsCore}',\n` + `    '${carromFriendsContent}',\n`;
 
-/** Only copy the two shared rule inputs; deployment commands and secrets stay bound. */
+function carromFriendsDeploymentScope(before, after) {
+  return (
+    typeof before === 'string' &&
+    before.split(carromFriendsDeployAnchor).length === 2 &&
+    !before.includes(carromFriendsCore) &&
+    !before.includes(carromFriendsContent) &&
+    after ===
+      before.replace(
+        carromFriendsDeployAnchor,
+        carromFriendsDeployAnchor + carromFriendsDeployAddition,
+      )
+  );
+}
+
+/** Only add the reviewed rule inputs; deployment commands and secrets stay bound. */
 export function carromBackendFileScope(file, before, after) {
   return (
     file === carromDeployFile &&
     typeof before === 'string' &&
-    before.split(carromDeployAnchor).length === 2 &&
-    !before.includes(carromCore) &&
-    !before.includes(carromContent) &&
-    after === before.replace(carromDeployAnchor, carromDeployAnchor + carromDeployAddition)
+    ((before.split(carromDeployAnchor).length === 2 &&
+      !before.includes(carromCore) &&
+      !before.includes(carromContent) &&
+      after === before.replace(carromDeployAnchor, carromDeployAnchor + carromDeployAddition)) ||
+      carromFriendsDeploymentScope(before, after))
   );
 }
 
@@ -230,6 +250,58 @@ function importsModule(source, target) {
   return parsedSource(source).body.some(
     (node) => node.type === 'ImportDeclaration' && node.source.value === target,
   );
+}
+
+function assertRelativeUrlImport(program, name, target) {
+  const url = namedVariable(program, name).init;
+  assert(
+    url?.type === 'MemberExpression' &&
+      !url.computed &&
+      url.property.name === 'href' &&
+      url.object.type === 'NewExpression' &&
+      url.object.callee.type === 'Identifier' &&
+      url.object.callee.name === 'URL' &&
+      url.object.arguments.length === 2 &&
+      url.object.arguments[0].type === 'StringLiteral' &&
+      url.object.arguments[0].value === target,
+    'Unreviewed carrom engine URL',
+  );
+  const base = url.object.arguments[1];
+  assert(
+    base.type === 'MemberExpression' &&
+      !base.computed &&
+      base.property.name === 'url' &&
+      base.object.type === 'MetaProperty' &&
+      base.object.meta.name === 'import' &&
+      base.object.property.name === 'meta',
+    'Carrom engine URL is not relative to its consumer',
+  );
+  let imported = false;
+  function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (
+      node.type === 'ImportExpression' &&
+      node.source.type === 'Identifier' &&
+      node.source.name === name
+    )
+      imported = true;
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  }
+  visit(program);
+  assert(imported, 'Missing authoritative carrom engine import');
+}
+
+function assertCarromFriendsInputs(readHead) {
+  const core = readHead(carromFriendsCore);
+  assert(importsModule(core, './core.mjs'));
+  assert(importsModule(core, './friends-content.mjs'));
+  namedVariable(parsedSource(readHead(carromFriendsContent)), 'FRIEND_LEVELS');
+  const consumer = parsedSource(readHead('services/runtime-api/src/app.ts'), true);
+  assertRelativeUrlImport(consumer, 'carromUrl', '../../../' + carromFriendsCore);
+  assertRelativeUrlImport(consumer, 'levelsUrl', '../../../' + carromFriendsContent);
 }
 const localIgnores = new Set([
   '.codex/config.toml',
@@ -666,7 +738,13 @@ export function reviewedSharedFileScopes({
         carromBackendFileScope(file, readBase(file), readHead(file))
       ) {
         assertCarromConsumers(games, packages);
+        if (carromFriendsDeploymentScope(readBase(file), readHead(file)))
+          assertCarromFriendsInputs(readHead);
         scopes.set(file, [carromSource, 'services/runtime-api']);
+      } else if (file === carromFriendsCore || file === carromFriendsContent) {
+        assertCarromConsumers(games, packages);
+        assertCarromFriendsInputs(readHead);
+        scopes.set(file, ['services/runtime-api']);
       } else if (file === carromCore || file === carromContent) {
         assertCarromConsumers(games, packages);
         assert(importsModule(readHead(carromRule), '../../../' + carromCore));

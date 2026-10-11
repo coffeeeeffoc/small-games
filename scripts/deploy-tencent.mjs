@@ -241,6 +241,8 @@ export async function prepareBackend(destination, workspace = root) {
     'services/runtime-api/rules',
     'games/local/carrom-club/src/core.mjs',
     'games/local/carrom-club/src/content.mjs',
+    'games/local/carrom-club/src/friends-core.mjs',
+    'games/local/carrom-club/src/friends-content.mjs',
     'games/local/three-choose-two/src',
     'services/kart-server/src',
     'games/local/carding-car/assets/scripts',

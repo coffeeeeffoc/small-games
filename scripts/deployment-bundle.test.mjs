@@ -238,3 +238,47 @@ test('backend packaging copies selected runtime code and frozen manifests, never
     await rm(temporary, { recursive: true, force: true });
   }
 });
+
+test('runtime bundle includes multiplayer carrom physics and level data without shipping the game UI', async () => {
+  const temporary = await mkdtemp(path.join(tmpdir(), 'deployment-carrom-'));
+  const workspace = path.join(temporary, 'workspace');
+  const put = async (filename, contents = 'export const included = true;') => {
+    await mkdir(path.dirname(path.join(workspace, filename)), { recursive: true });
+    await writeFile(path.join(workspace, filename), contents);
+  };
+  try {
+    await put('package.json', '{}');
+    await put('pnpm-lock.yaml', 'lockfileVersion: 9.0');
+    await put('pnpm-workspace.yaml', 'packages: []');
+    await put(
+      'services/runtime-api/package.json',
+      JSON.stringify({ name: '@coffeeeeffoc/runtime-api' }),
+    );
+    for (const filename of [
+      'services/runtime-api/dist/main.js',
+      'services/runtime-api/rules/carrom.mjs',
+      'games/local/three-choose-two/src/index.js',
+      'games/local/carrom-club/src/core.mjs',
+      'games/local/carrom-club/src/content.mjs',
+      'games/local/carrom-club/src/friends-core.mjs',
+      'games/local/carrom-club/src/friends-content.mjs',
+      'games/local/cops-robbers/src/engine.js',
+      'games/local/cops-robbers-realtime/src/engine.js',
+      'games/local/letters-words2/engine.js',
+      'games/local/vibeJam-myself-history-guess/src/index.js',
+      'games/local/vibeJam-myself-history-guess/public/data.json',
+      'games/submodules/xiangqi-five/game.js',
+      'games/local/carrom-club/src/main.mjs',
+    ])
+      await put(filename);
+    const destination = path.join(temporary, 'bundle');
+    await prepareSelectedBackend(destination, ['runtime'], workspace);
+    for (const filename of ['core.mjs', 'content.mjs', 'friends-core.mjs', 'friends-content.mjs'])
+      await stat(path.join(destination, 'games/local/carrom-club/src', filename));
+    await assert.rejects(stat(path.join(destination, 'games/local/carrom-club/src/main.mjs')), {
+      code: 'ENOENT',
+    });
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+});

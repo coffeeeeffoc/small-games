@@ -18,7 +18,7 @@ it('packages an executable carrom rule with its engine and content, without ship
     await writeFile(target, contents);
   };
   try {
-    // Only unrelated backend files are stubs. The rule and both game modules below
+    // Only unrelated backend files are stubs. The rule and shared game modules below
     // use production bytes, so an incomplete release fails when Node loads the result.
     await Promise.all([
       writeFixture('package.json', JSON.stringify({ name: 'deployment-fixture', type: 'module' })),
@@ -59,6 +59,8 @@ it('packages an executable carrom rule with its engine and content, without ship
       'services/runtime-api/rules/carrom.mjs',
       'games/local/carrom-club/src/core.mjs',
       'games/local/carrom-club/src/content.mjs',
+      'games/local/carrom-club/src/friends-core.mjs',
+      'games/local/carrom-club/src/friends-content.mjs',
     ]) {
       const target = path.join(workspace, name);
       await mkdir(path.dirname(target), { recursive: true });
@@ -72,6 +74,8 @@ it('packages an executable carrom rule with its engine and content, without ship
     expect((await readdir(path.join(carromDirectory, 'src'))).sort()).toEqual([
       'content.mjs',
       'core.mjs',
+      'friends-content.mjs',
+      'friends-core.mjs',
     ]);
     const packagedRuleUrl = pathToFileURL(
       path.join(destination, 'services/runtime-api/rules/carrom.mjs'),
@@ -91,6 +95,22 @@ it('packages an executable carrom rule with its engine and content, without ship
     expect(next.game.shots).toBe(1);
     expect(next.game.phase).toBe('ready');
     expect(next.game.turn).toBe(1);
+    const friendsUrl = pathToFileURL(path.join(carromDirectory, 'src/friends-core.mjs')).href;
+    const friends = await import(friendsUrl);
+    const four = friends.createMultiplayerMatch({
+      mode: 'colors',
+      players: ['a', 'b', 'c', 'd'].map((id) => ({ id })),
+    });
+    expect(four.players).toHaveLength(4);
+    expect(
+      friends.applyMultiplayerShot(four, {
+        playerId: 'a',
+        position: 500,
+        dx: 0,
+        dy: -1,
+        power: 0.2,
+      }).state.shots,
+    ).toBe(1);
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }

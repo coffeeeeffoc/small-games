@@ -19,6 +19,8 @@ const sources = {
     'games/local/three-choose-two/src',
     'games/local/carrom-club/src/core.mjs',
     'games/local/carrom-club/src/content.mjs',
+    'games/local/carrom-club/src/friends-core.mjs',
+    'games/local/carrom-club/src/friends-content.mjs',
     'games/local/cops-robbers/src',
     'games/local/cops-robbers-realtime/src',
     'games/local/letters-words2/engine.js',
