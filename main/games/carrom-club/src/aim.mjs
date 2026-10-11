@@ -1,16 +1,17 @@
-import { clamp } from './core.mjs';
+import { aimPreview, clamp } from './core.mjs';
 
 const DEAD_ZONE = 1.75;
 const RETURN_RADIUS = 6;
 const SETTLE_MS = 70;
 const QUIET_MS = 100;
 
-export function createAimGesture(id, x, y, pixelsPerUnit, now) {
+export function createAimGesture(id, x, y, pixelsPerUnit, now, game = null) {
   return {
     id,
     x,
     y,
     pixelsPerUnit,
+    game,
     point: { x, y },
     rawAngle: null,
     angle: null,
@@ -52,8 +53,17 @@ export function updateAimGesture(gesture, point, now, settled = false) {
       Math.cos(rawAngle - gesture.rawAngle),
     );
     const previousPull = Math.hypot(x - gesture.point.x, y - gesture.point.y);
-    // A minimum effective lever length prevents short pulls from amplifying angle changes.
-    const gain = 0.22 * Math.min((((pull + previousPull) / 2) * pixelsPerUnit) / 70, 1);
+    // Slow down only while the displayed ray actually hits a live coin. Keep
+    // incremental rotation in both modes, so acquiring/leaving a target never
+    // snaps the aim back to the finger's absolute angle.
+    const target =
+      gesture.game &&
+      gesture.shot.power > 0.015 &&
+      aimPreview(gesture.game, gesture.shot.dx, gesture.shot.dy)?.hit;
+    // A minimum effective lever length still protects short pulls from jitter.
+    const gain =
+      (target ? 0.22 : 1) *
+      Math.min((((pull + previousPull) / 2) * pixelsPerUnit) / (target ? 70 : 36), 1);
     gesture.angle += delta * gain;
   }
   gesture.rawAngle = rawAngle;

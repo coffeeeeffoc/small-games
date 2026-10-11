@@ -1,3 +1,6 @@
+import './dev-mode.js';
+import { shareChallenge } from './publishing.js';
+import { readChallenge, challengeOutcome } from './challenge.mjs';
 import { LEVELS, MECHANICS } from './levels.mjs';
 import { step } from './rules.mjs';
 import { renderBoard } from './render.mjs';
@@ -28,14 +31,15 @@ function shell() {
     <header class="masthead">
       <a class="brand" href="#" aria-label="同频归航"><span class="brand-mark" aria-hidden="true">⌂</span><span><span class="brand-en">TINY SIGNALS</span><h1>同频归航</h1></span></a>
       <p class="brand-copy">四座小岛，一次心有灵犀。<span>把每一盏灯，送回家。</span></p>
-      <div class="header-actions"><span class="edition">VOL. 01 <i></i> 六座小小谜题</span><button id="sound" class="round-button" aria-label="开启声音" aria-pressed="false">♪</button><button id="help" class="round-button" aria-label="查看玩法说明">?</button></div>
+      <div class="header-actions"><button id="home" class="round-button" aria-label="返回主页">⌂</button><button id="pause" class="round-button" aria-label="暂停"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1" fill="currentColor"/><rect x="14" y="4" width="5" height="16" rx="1" fill="currentColor"/></svg></button><span class="edition">VOL. 01 <i></i> 六座小小谜题</span><button id="sound" class="round-button" aria-label="开启声音" aria-pressed="false">♪</button><button id="help" class="round-button" aria-label="查看玩法说明">?</button></div>
     </header>
+    <section id="home-page" class="home-page" hidden aria-label="归航主页"><p class="eyebrow">TINY SIGNALS · 六座谜题</p><h2>四盏灯，一起回家。</h2><p>一次滑动，同步四位信使。</p><div class="home-crew" aria-hidden="true">${SYMBOLS.map((symbol, i) => `<span class="home-token token-${i}">${symbol}</span>`).join('')}</div><p id="home-progress"></p><button id="continue" class="primary-button">继续归航 →</button><button id="choose-levels" class="secondary-button">选择关卡</button><button id="normal-game" class="secondary-button" hidden>继续我的正常进度</button></section>
     <div class="game-layout">
       <section class="play-area" aria-label="四棋盘游戏">
         <div class="stage-heading"><div><p class="eyebrow"><span id="chapter">CHAPTER 01</span><span class="heading-line"></span> 同步解谜</p><h2 id="level-name"></h2></div><div class="turn-counter"><span>当前步数</span><strong id="moves">00</strong><small>每一步，一起走</small></div></div>
-        <div class="board-grid" id="boards">${NAMES.map((name, i) => `<section class="island island-${i}" data-board="${i}" aria-label="${name}的棋盘"><div class="island-heading"><span><i class="identity-symbol">${SYMBOLS[i]}</i><strong>${name}</strong><small>0${i + 1}</small></span><span class="island-state">归航中</span></div><div class="board-art"></div></section>`).join('')}</div>
-        <div class="result-banner" id="result" hidden role="status"><span class="result-emblem" id="result-icon"></span><div><h3 id="result-title"></h3><p id="result-copy"></p></div><button id="result-action" class="primary-button"></button></div>
-        <div class="shared-caption"><span class="pulse-dots"><i></i><i></i><i></i><i></i></span><span id="direction-caption">同一个方向，四种小小的可能。</span><span class="unhurried">不必着急</span></div>
+        <p id="challenge-status" class="challenge-status" hidden></p><div class="board-grid" id="boards">${NAMES.map((name, i) => `<section class="island island-${i}" data-board="${i}" aria-label="${name}的棋盘"><div class="island-heading"><span><i class="identity-symbol">${SYMBOLS[i]}</i><strong>${name}</strong><small>0${i + 1}</small></span><span class="island-state">归航中</span></div><div class="board-art"></div></section>`).join('')}</div>
+        <div class="result-banner" id="result" hidden role="status"><span class="result-emblem" id="result-icon"></span><div><h3 id="result-title"></h3><p id="result-copy"></p></div><button id="result-action" class="primary-button"></button><button id="share-challenge" class="secondary-button" hidden>分享少步挑战</button><button id="result-home" class="secondary-button">返回主页</button><p id="share-status" role="status" aria-live="polite"></p><a id="share-fallback" hidden target="_blank" rel="noopener">打开挑战链接后复制地址</a></div>
+        <div class="shared-caption"><span class="pulse-dots"><i></i><i></i><i></i><i></i></span><span id="direction-caption" role="status" aria-live="polite">同一个方向，四种小小的可能。</span><span class="unhurried">不必着急</span></div>
       </section>
       <aside class="control-panel" aria-label="归航控制台">
         <div class="mission"><p class="eyebrow">OUR LITTLE MISSION</p><h3>一个都不能少。</h3><p>将四位信使送回亮灯的小屋。<br>到家的伙伴会留下，等你。</p><div class="home-track" id="home-track"></div><div class="mission-total"><span>已到家</span><strong id="home-count">0 <small>/ 4</small></strong></div></div>
@@ -45,9 +49,10 @@ function shell() {
         <button id="hint" class="hint-button"><span>✧</span> 看一眼路线提示 <span>↗</span></button><div class="hint-panel" id="hint-panel" hidden><strong>从起点出发的参考路线</strong><p id="hint-route"></p><small>当前游玩会标记为使用提示。可重来后按顺序尝试。</small></div>
       </aside>
     </div>
-    <section class="chapter-selection" aria-label="关卡选择"><div class="chapter-section-title"><p class="eyebrow">THE JOURNEY</p><span>慢慢来，每一站都有新发现。</span><strong id="completion-count">0 / 6</strong></div><nav id="level-nav" aria-label="选择关卡"></nav></section>
+    <section class="chapter-selection" aria-label="关卡选择"><div class="chapter-section-title"><button id="levels-back" class="secondary-button" hidden>返回主页</button><p class="eyebrow">THE JOURNEY</p><span>慢慢来，每一站都有新发现。</span><strong id="completion-count">0 / 6</strong></div><nav id="level-nav" aria-label="选择关卡"></nav></section>
     <footer class="page-footer"><span><i class="status-dot"></i><span id="save-status">本机进度 · 自动保存</span></span><span>一次方向输入，同时控制四块棋盘。</span><span>TINY SIGNALS <b>✧</b> 2026</span></footer>
-    <dialog id="rules-dialog" aria-labelledby="rules-title"><div class="dialog-heading"><div><p class="eyebrow">A LITTLE FIELD GUIDE</p><h2 id="rules-title">归航手册</h2></div></div><p class="rules-intro">上下左右，同时影响四位信使。撞墙的伙伴留在原地，到家的伙伴会停下来。没有时间限制，随时撤销。</p><div class="rules-grid">${MECHANICS.map((m, i) => `<article><span>${ICONS[i]}</span><h3>${escapeHTML(m.name)}</h3><p>${escapeHTML(m.description)}</p></article>`).join('')}</div><p class="rules-footer">每次方向输入都算一拍，即使全部撞墙。撤销恢复全部机关。<br>获得最优星需要在这一轮未查看路线提示，并达到已验证的最少步数。</p><button id="close-help-bottom" class="primary-button">明白了，一起出发 →</button></dialog>
+    <dialog id="pause-dialog" aria-labelledby="pause-title"><h2 id="pause-title">休息一下，灯还亮着。</h2><p>当前局面已保留。</p><button id="resume" class="primary-button">继续归航</button><button id="pause-home" class="secondary-button">返回主页</button></dialog>
+    <dialog id="rules-dialog" aria-labelledby="rules-title"><div class="dialog-heading"><div><p class="eyebrow">A LITTLE FIELD GUIDE</p><h2 id="rules-title">归航手册</h2></div><button id="close-help" class="round-button" aria-label="关闭玩法说明">×</button></div><p class="rules-intro">上下左右，同时影响四位信使。撞墙的伙伴留在原地，到家的伙伴会停下来。没有时间限制，随时撤销。</p><div class="rules-grid">${MECHANICS.map((m, i) => `<article><span>${ICONS[i]}</span><h3>${escapeHTML(m.name)}</h3><p>${escapeHTML(m.description)}</p></article>`).join('')}</div><p class="rules-footer">每次方向输入都算一拍，即使全部撞墙。撤销恢复全部机关。<br>获得最优星需要在这一轮未查看路线提示，并达到已验证的最少步数。</p><button id="close-help-bottom" class="primary-button">明白了，一起出发 →</button></dialog>
   </main>`;
 }
 
@@ -76,7 +81,14 @@ export const gameDefinition = {
         saveError = true;
       }
     } else saveError = true;
-    let levelIndex = progress.lastLevel;
+    const developerPractice = globalThis.SmallGamesDev?.isEnabled() === true;
+    let challenge = readChallenge(globalThis.location?.href, LEVELS);
+    let levelIndex = challenge?.levelIndex ?? progress.lastLevel;
+    let page = 'play';
+    let manuallyPaused = false;
+    let arrivalMessage = '';
+    let sharePending = false;
+    let shareEpoch = 0;
     let session = new PlaySession(LEVELS[levelIndex]);
     let paused = false;
     let disposed = false;
@@ -100,7 +112,7 @@ export const gameDefinition = {
       element.addEventListener(event, listener, { ...options, signal: abort.signal });
 
     function persist() {
-      if (!canSave) return;
+      if (!canSave || challenge || developerPractice) return;
       const snapshot = structuredClone(progress);
       saveQueue = saveQueue.then(async () => {
         try {
@@ -113,6 +125,10 @@ export const gameDefinition = {
       });
     }
     function renderSaveStatus() {
+      if (developerPractice || challenge) {
+        $('#save-status').textContent = developerPractice ? '开发试玩 · 不记录进度' : '好友挑战 · 不影响正常进度';
+        return;
+      }
       $('#save-status').textContent = saveError
         ? '存储暂不可用 · 本次仍可游玩'
         : '进度已在本机保存';
@@ -151,6 +167,7 @@ export const gameDefinition = {
         const state = session.state.boards[i];
         const section = $(`[data-board="${i}"]`);
         section.classList.toggle('is-home', state.done);
+        section.classList.toggle('just-arrived', !!previous && state.done && !previous.boards[i].done);
         section.classList.toggle('is-failed', session.state.failedBoard === i);
         section.querySelector('.island-state').textContent = state.done
           ? '已到家 ✓'
@@ -208,15 +225,28 @@ export const gameDefinition = {
         caption.textContent =
           session.state.status === 'won'
             ? '每一盏灯，都回到了家。'
-            : '同一个方向，四种小小的可能。';
+            : arrivalMessage || '同一个方向，四种小小的可能。';
         caption.classList.remove('danger-text');
       }
     }
     function render(previous) {
+      target.dataset.page = page;
+      target.dataset.practice = String(developerPractice);
+      target.dataset.challenge = String(!!challenge);
+      $('.game-layout').hidden = page !== 'play';
+      $('#home-page').hidden = page !== 'home';
+      $('.chapter-selection').hidden = page === 'home';
+      $('#levels-back').hidden = page !== 'levels';
+      $('#pause').hidden = page !== 'play';
+      $('#normal-game').hidden = !challenge;
+      $('#home-progress').textContent = `${Object.keys(progress.levels).length} / ${LEVELS.length} 站已归航`;
+      $('#continue').textContent = challenge ? '继续好友挑战 →' : session.state.turn ? '继续归航 →' : '开始归航 →';
+      $('#challenge-status').hidden = !challenge && !developerPractice;
+      $('#challenge-status').textContent = developerPractice ? '开发试玩 · 不计进度与挑战成绩' : challenge ? `好友自报 ${challenge.targetMoves} 步 · 同关少步挑战` : '';
       target.dataset.status = session.state.status;
       target.dataset.level = String(levelIndex);
       target.dataset.busy = String(busy);
-      target.dataset.paused = String(paused);
+      target.dataset.paused = String(paused || manuallyPaused || page !== 'play');
       $('#moves').textContent = String(session.state.turn).padStart(2, '0');
       $('#chapter').textContent = `CHAPTER ${String(levelIndex + 1).padStart(2, '0')}`;
       $('#level-name').textContent = session.level.name;
@@ -239,10 +269,10 @@ export const gameDefinition = {
       const targetMoves = session.level.optimalMoves ?? session.level.solution?.length;
       $('#optimal-score').innerHTML =
         targetMoves !== undefined ? `${targetMoves}<small> 步</small>` : '待探索';
-      $('#undo').disabled = !session.history.length || paused;
-      $('#restart').disabled = paused;
+      $('#undo').disabled = !session.history.length || paused || manuallyPaused;
+      $('#restart').disabled = paused || manuallyPaused;
       for (const button of $$('[data-dir]')) {
-        button.disabled = paused || session.state.status !== 'playing';
+        button.disabled = paused || manuallyPaused || session.state.status !== 'playing';
         button.classList.toggle('previewing', previewDirection === button.dataset.dir);
       }
       $('#preview-toggle').setAttribute('aria-pressed', String(previewMode));
@@ -252,11 +282,11 @@ export const gameDefinition = {
       $('#commit-preview').textContent = previewDirection
         ? `确认向${DIRECTIONS_CN[previewDirection]}移动 ${ARROWS[previewDirection]}`
         : '确认这一步';
-      $('#control-note').textContent = paused
+      $('#control-note').textContent = paused || manuallyPaused
         ? '已暂停'
         : previewMode
           ? '先选方向，观察四盘，再确认'
-          : globalThis.matchMedia?.('(pointer: coarse)').matches
+          : globalThis.matchMedia?.('(max-width: 780px), (pointer: coarse)').matches
             ? '任意位置滑动一步 · 双指滚动页面'
             : '方向键 / WASD · 点击也可以';
       $('#hint-panel').hidden = !showHint;
@@ -293,11 +323,14 @@ export const gameDefinition = {
         result.classList.toggle('lost', !won);
         $('#result-icon').textContent = won ? '✧' : '↶';
         $('#result-title').textContent = won ? '四盏灯，都到家了。' : '有一位伙伴遇到了残影。';
+        $('#share-challenge').hidden = !won || session.assisted || developerPractice;
+        $('#share-challenge').disabled = sharePending;
+        $('#share-challenge').textContent = session.state.turn === session.level.optimalMoves ? '分享最优路线挑战' : '分享少步挑战';
         $('#result-copy').textContent = won
-          ? `${session.state.turn} 步完成${session.assisted ? ' · 使用了路线提示' : session.state.turn === session.level.optimalMoves ? ' · 获得最优星 ★' : ' · 再试一次，也许能更少'}。`
+          ? `${session.state.turn} 步完成${session.assisted ? ' · 使用了路线提示' : session.state.turn === session.level.optimalMoves ? ' · 获得最优星 ★' : ' · 再试一次，也许能更少'}。${challenge ? ' ' + challengeOutcome(session.state.turn, challenge.targetMoves, session.assisted) : ''}`
           : '这一步可以撤销，所有机关也会一起回到上一拍。';
         $('#result-action').textContent = won
-          ? levelIndex < LEVELS.length - 1
+          ? challenge ? '再战这一站 ↻' : levelIndex < LEVELS.length - 1
             ? '下一站 →'
             : '回到第一站 ↻'
           : '撤销这一步 ↶';
@@ -313,7 +346,7 @@ export const gameDefinition = {
       pendingDirection = null;
     }
     function move(direction) {
-      if (paused || disposed || $('#rules-dialog').open || session.state.status !== 'playing')
+      if (paused || manuallyPaused || page !== 'play' || disposed || $('#rules-dialog').open || session.state.status !== 'playing')
         return;
       if (busy) {
         pendingDirection = direction;
@@ -323,12 +356,14 @@ export const gameDefinition = {
       previewDirection = null;
       if (!session.move(direction)) return;
       busy = !reducedMotion;
-      if (session.state.status === 'won') {
+      const arrived = session.state.boards.flatMap((board, i) => board.done && !previous.boards[i].done ? [NAMES[i]] : []);
+      arrivalMessage = arrived.length ? `${arrived.join('、')}到家了！已归航 ${session.state.boards.filter((board) => board.done).length} / 4` : '';
+      if (session.state.status === 'won' && !challenge && !developerPractice) {
         progress = recordWin(progress, session);
         persist();
       }
       render(previous);
-      tone(session.state.status === 'won');
+      tone(session.state.status === 'won' || arrived.length > 0);
       if (busy)
         timer = setTimeout(() => {
           busy = false;
@@ -339,31 +374,39 @@ export const gameDefinition = {
         }, 220);
     }
     function selectLevel(index) {
-      if (paused || index < 0 || index >= LEVELS.length) return;
+      if (paused || manuallyPaused || index < 0 || index >= LEVELS.length) return;
+      challenge = null;
+      page = 'play';
+      arrivalMessage = '';
+      resetShare();
       cancelAnimation();
       levelIndex = index;
       session = new PlaySession(LEVELS[index]);
       previewDirection = null;
       showHint = false;
-      progress = { ...progress, lastLevel: index };
+      if (!developerPractice) progress = { ...progress, lastLevel: index };
       persist();
       render();
     }
     function undo() {
-      if (paused) return;
+      if (paused || manuallyPaused || page !== 'play') return;
       cancelAnimation();
       previewDirection = null;
+      arrivalMessage = '';
+      resetShare();
       if (session.undo()) render();
     }
     function restart() {
-      if (paused) return;
+      if (paused || manuallyPaused || page !== 'play') return;
       cancelAnimation();
       previewDirection = null;
+      arrivalMessage = '';
+      resetShare();
       session.restart();
       render();
     }
     function chooseDirection(direction) {
-      if (paused || disposed || $('#rules-dialog').open || session.state.status !== 'playing')
+      if (paused || manuallyPaused || page !== 'play' || disposed || $('#rules-dialog').open || session.state.status !== 'playing')
         return;
       if (previewMode) {
         previewDirection = direction;
@@ -375,7 +418,7 @@ export const gameDefinition = {
       'touchstart',
       (event) => {
         swipe = null;
-        if (event.touches.length !== 1 || paused || $('#rules-dialog').open) return;
+        if (event.touches.length !== 1 || paused || manuallyPaused || page !== 'play' || $('#rules-dialog').open) return;
         const touch = event.touches[0];
         swipe = { id: touch.identifier, x: touch.clientX, y: touch.clientY };
       },
@@ -414,7 +457,9 @@ export const gameDefinition = {
       swipe = null;
     });
     on(target.ownerDocument.defaultView, 'blur', () => {
-      swipe = null;
+      cancelAnimation();
+      previewDirection = null;
+      render();
     });
     on(target, 'click', (event) => {
       const button = event.target.closest('button');
@@ -460,11 +505,12 @@ export const gameDefinition = {
     });
     on($('#result-action'), 'click', () => {
       if (session.state.status === 'lost') undo();
+      else if (challenge) restart();
       else selectLevel((levelIndex + 1) % LEVELS.length);
     });
     on($('.brand'), 'click', (event) => {
       event.preventDefault();
-      selectLevel(0);
+      goHome();
     });
     on($('#help'), 'click', () => {
       cancelAnimation();
@@ -473,6 +519,61 @@ export const gameDefinition = {
       $('#rules-dialog').showModal();
     });
     on($('#close-help-bottom'), 'click', () => $('#rules-dialog').close());
+    on($('#close-help'), 'click', () => $('#rules-dialog').close());
+    function resetShare() {
+      shareEpoch += 1;
+      sharePending = false;
+      $('#share-status').textContent = '';
+      $('#share-fallback').hidden = true;
+    }
+    function goHome() {
+      cancelAnimation();
+      previewDirection = null;
+      manuallyPaused = false;
+      $('#pause-dialog').close();
+      resetShare();
+      page = 'home';
+      void audioContext?.suspend();
+      render();
+      $('#continue').focus({ preventScroll: true });
+      globalThis.scrollTo?.(0, 0);
+    }
+    on($('#home'), 'click', goHome);
+    on($('#result-home'), 'click', goHome);
+    on($('#pause-home'), 'click', goHome);
+    on($('#levels-back'), 'click', goHome);
+    on($('#continue'), 'click', () => { page = 'play'; render(); });
+    on($('#choose-levels'), 'click', () => { page = 'levels'; render(); });
+    on($('#normal-game'), 'click', () => selectLevel(progress.lastLevel));
+    on($('#pause'), 'click', () => {
+      cancelAnimation();
+      previewDirection = null;
+      manuallyPaused = true;
+      render();
+      void audioContext?.suspend();
+      $('#pause-dialog').showModal();
+    });
+    function resumeManual() { manuallyPaused = false; $('#pause-dialog').close(); render(); }
+    on($('#resume'), 'click', resumeManual);
+    on($('#pause-dialog'), 'cancel', (event) => { event.preventDefault(); resumeManual(); });
+    on($('#share-challenge'), 'click', async () => {
+      if (sharePending || developerPractice || session.assisted || session.state.status !== 'won') return;
+      sharePending = true;
+      const epoch = ++shareEpoch;
+      render();
+      const result = await shareChallenge({
+        title: '同频归航 · 少步挑战',
+        text: `我用 ${session.state.turn} 步送四位信使回家。${session.state.turn === session.level.optimalMoves ? '这是最优路线，你也能做到吗？' : '你能用更少步数吗？'}`,
+        url: globalThis.SmallGamesPublishingConfig?.publicUrl ?? globalThis.location?.href,
+        params: { challenge: 1, level: session.level.id, targetMoves: session.state.turn },
+      });
+      if (disposed || epoch !== shareEpoch) return;
+      sharePending = false;
+      $('#share-status').textContent = ({ shared: '已打开系统分享', copied: '挑战链接已复制', cancelled: '已取消分享，可继续游戏', unavailable: '此浏览器无法分享，请使用下方链接', failed: '复制失败，请使用下方链接' })[result.status];
+      $('#share-fallback').hidden = !result.url || !['failed', 'unavailable'].includes(result.status);
+      $('#share-fallback').href = result.url || '#';
+      render();
+    });
     const keyMap = {
       ArrowUp: 'up',
       ArrowRight: 'right',
@@ -490,7 +591,7 @@ export const gameDefinition = {
         event.altKey ||
         event.repeat ||
         $('#rules-dialog').open ||
-        paused
+        paused || manuallyPaused || page !== 'play'
       )
         return;
       if (
@@ -529,6 +630,8 @@ export const gameDefinition = {
         cancelAnimation();
         abort.abort();
         if ($('#rules-dialog').open) $('#rules-dialog').close();
+        if ($('#pause-dialog').open) $('#pause-dialog').close();
+        shareEpoch += 1;
         if (audioContext) await audioContext.close().catch(() => {});
         // A replacement instance must read after this instance's writes settle.
         await saveQueue;

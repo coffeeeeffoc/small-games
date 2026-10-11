@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#07182a" />
     <meta
       name="description"
-      content="拖动挡板反弹球、打破笼子，再接住缓缓下落的队友。六关救援挑战，六人救到四人即可通关。"
+      content="拖动挡板反弹球、打破笼子，再接住缓缓下落的队友。六关救援挑战，救回所有队友才算通关。"
     />
     <title>打破笼子接住人 · 夜间救援行动</title>
     <link
@@ -50,7 +50,7 @@
           <h1 id="game-title">
             打破笼子<br /><em>接住人</em><span class="title-star" aria-hidden="true">✦</span>
           </h1>
-          <p>球在右边，队友在左边。<br />这一次，先接谁？</p>
+          <p>一个都不能少，接小队回家！</p>
         </div>
         <div class="home-actions">
           <div id="home-progress" class="home-progress">第 01 / 06 关 · 初次救援</div>
@@ -61,7 +61,7 @@
                 d="M5 3.5a1 1 0 0 1 1.5-.86l10 5.65a2 2 0 0 1 0 3.42l-10 5.65A1 1 0 0 1 5 16.5z"
               /></svg
             ><span>开始救援</span></button
-          ><button id="levels" class="secondary">
+          ><button id="challenge-rescue" class="secondary" hidden>好友同关挑战</button><button id="levels" class="secondary">
             <span class="grid-icon" aria-hidden="true"></span>关卡选择
           </button>
           <div class="home-links">
@@ -80,7 +80,7 @@
           </div>
           <span id="level-progress" class="muted">0 / 6</span>
         </header>
-        <p class="menu-intro">每关救回 4 位队友，开启下一次行动。</p>
+        <p class="menu-intro">全员归队，开启下一次行动。</p>
         <div id="level-list" class="level-list"></div>
         <p class="small-note">通关后解锁下一关 · 进度保存在本机</p>
       </section>
@@ -91,8 +91,10 @@
             <strong id="level-number">01</strong><span id="level-name">初次救援</span>
           </div>
           <div class="rescue-hud">
-            <b id="rescue-count">0<span>/4</span></b
-            ><span>已救援</span>
+            <div class="rescue-counter">
+              <b id="rescue-count">0<span>/6</span></b><span>全员救援</span>
+            </div>
+            <div id="crew-progress" class="crew-progress" aria-hidden="true"></div>
           </div>
           <div id="lives" class="lives" aria-label="剩余3次球机会"><i></i><i></i><i></i></div>
           <button id="pause" class="icon-button" aria-label="暂停">
@@ -105,7 +107,7 @@
           <p id="launch-hint">左右拖动挡板，接球也接人</p>
           <button id="launch" class="primary compact">点击发球</button>
         </div>
-        <div id="play-tip" class="play-tip">拖动挡板 · 救回 4 位队友</div>
+        <div id="play-tip" class="play-tip">拖动挡板 · 救回全部 6 位队友</div>
       </section>
 
       <section id="pause-screen" class="screen center-screen" aria-labelledby="pause-title" hidden>
@@ -130,14 +132,16 @@
         <h2 id="result-title">接得漂亮！</h2>
         <p id="result-message"></p>
         <div class="result-stats">
-          <div><strong id="result-rescued">4</strong><span>成功接住</span></div>
+          <div><strong id="result-rescued">6</strong><span>成功接住</span></div>
           <div><strong id="result-lives">3</strong><span>剩余球机会</span></div>
         </div>
+        <p id="result-chain" class="small-note"></p>
         <p id="result-unlock" class="unlock-note"></p>
         <div class="stack">
           <button id="next" class="primary">下一关</button
           ><button id="retry" class="secondary">免费重试</button
           ><button id="revive" class="secondary" hidden>看广告 · 补一次球机会</button
+          ><button id="share-rescue" class="secondary">分享同关挑战</button
           ><button id="result-home" class="text-button">返回主页</button>
         </div>
         <p id="reward-message" class="small-note" role="status"></p>
@@ -169,16 +173,16 @@
           <article>
             <b>03</b>
             <div>
-              <h3>六人之中，救到四人</h3>
+              <h3>全员归队，一个都不能少</h3>
               <p>
-                漏接队友会落进安全网并离场；漏球扣一次机会。三次球机会耗尽，或已经无法救到四人，行动结束。
+                救回所有队友才通关。漏接队友会落进安全网并离场，本关需重试；漏球扣一次机会，三次球机会耗尽则行动结束。
               </p>
             </div>
           </article>
         </div>
         <div class="field-note">
           <strong>先接球，再接人？</strong>
-          <p>球反弹向上后，你有时间移动到队友下方。两边同时靠近时会短暂缓降，挡板保持正常速度。</p>
+          <p>连续接住两名队友，挡板加宽 5 秒；漏球或漏人会断连。球反弹向上后，你有时间移动到队友下方。两边同时靠近时会短暂缓降，挡板保持正常速度。</p>
         </div>
         <p class="small-note">电脑也可用 ← → 移动、空格发球、Esc 暂停</p>
       </section>

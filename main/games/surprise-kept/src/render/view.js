@@ -54,7 +54,7 @@ export class GameView {
     $('level-menu').textContent =
       `${String(game.index + 1).padStart(2, '0')} / ${String(game.catalog.levels.length).padStart(2, '0')}`;
     $('goal-summary').textContent = level.objective;
-    $('steps').textContent = `${state.steps} 步安排 · 随时撤销`;
+    $('steps').textContent = `${state.steps} 步安排 · ${game.challenge ? '同关试玩，不改存档' : '随时撤销'}`;
     $('item-picker').innerHTML =
       level.items.length > 1
         ? level.items

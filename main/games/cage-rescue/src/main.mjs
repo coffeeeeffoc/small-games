@@ -1,18 +1,21 @@
+import { createH5Publishing } from '../publishing.js';
 import { createGame, stepGame, launchBall, setPaused, reviveGame, canRevive } from './core.mjs';
 import { LEVELS } from './levels.mjs';
-import { drawGame, drawHome } from './render.mjs';
+import { drawGame, drawHome, drawLevel, releaseRenderCache } from './render.mjs';
 import { createLocalHost } from './host.mjs';
 import { readProgress, completeLevel, unlockedCount, THEMES } from './progress.mjs';
 import { createAudio } from './audio.mjs';
 
-export async function mountCageRescue(host = createLocalHost()) {
+export async function mountCageRescue(host) {
+  const local = !host;
+  host ??= createLocalHost();
   const $ = (id) => document.getElementById(id);
   const canvas = $('scene'),
     ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas unavailable');
   const abort = new AbortController();
-  const on = (target, event, callback) =>
-    target.addEventListener(event, callback, { signal: abort.signal });
+  const on = (target, event, callback, options = {}) =>
+    target.addEventListener(event, callback, { ...options, signal: abort.signal });
   let progress;
   try {
     progress = readProgress((await host.storage.read('progress'))?.value);
@@ -24,10 +27,38 @@ export async function mountCageRescue(host = createLocalHost()) {
     activePointer = null,
     targetX = 195,
     grabOffset = 0;
+  let challenge = false;
+  const incoming = new URL(location.href).searchParams;
+  const boundedTarget = (key, max) => {
+    const value = Number(incoming.get(key));
+    return incoming.has(key) && Number.isInteger(value) && value >= 0 && value <= max
+      ? value
+      : null;
+  };
+  const targetRescued = boundedTarget('targetRescued', 6),
+    targetCombo = boundedTarget('targetCombo', 6);
+  const challengeIndex =
+    incoming.get('challenge') === 'rescue-v1'
+      ? LEVELS.findIndex((level) => level.id === incoming.get('level'))
+      : -1;
+  const publishing = createH5Publishing({
+    gameId: 'cage-rescue',
+    title: '打破笼子接住人',
+    adMode: globalThis.SmallGamesPublishingConfig?.adMode ?? 'mock',
+    provider: globalThis.SmallGamesPublishingConfig?.provider,
+    publicUrl: globalThis.SmallGamesPublishingConfig?.publicUrl,
+    pause: () => {
+      pause();
+      return () => {};
+    },
+  });
   let trial = false,
     lastTime = 0,
-    animationId,
-    toastUntil = 0,
+    visualTime = 0,
+    animationId = null,
+    needsPaint = true,
+    toastTimer,
+    pageActive = true,
     saveQueue = Promise.resolve(),
     disposed = false;
   let rewardBusy = false,
@@ -42,11 +73,93 @@ export async function mountCageRescue(host = createLocalHost()) {
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const dev = globalThis.SmallGamesDev;
   const cleanups = [];
+  let touchAction = null,
+    lastTouchActivation = -Infinity;
+  // Chromium/WebViews can omit the compatibility click after a captured canvas drag.
+  // Activate a matched touch release directly; suppress only its later native click,
+  // which may otherwise hit a control on the newly displayed screen or ad overlay.
+  on(
+    document,
+    'pointerdown',
+    (event) => {
+      if (!event.isPrimary) return;
+      lastTouchActivation = -Infinity;
+      touchAction = null;
+      if (event.pointerType !== 'touch') return;
+      const button = event.target.closest('button');
+      touchAction =
+        button &&
+        $('game').contains(button) &&
+        !button.disabled &&
+        !button.hasAttribute('data-game-fullscreen')
+          ? { button, id: event.pointerId, x: event.clientX, y: event.clientY }
+          : null;
+    },
+    { capture: true },
+  );
+  on(
+    document,
+    'pointermove',
+    (event) => {
+      if (
+        touchAction?.id === event.pointerId &&
+        Math.hypot(event.clientX - touchAction.x, event.clientY - touchAction.y) > 12
+      )
+        touchAction.cancelled = true;
+    },
+    { capture: true },
+  );
+  on(
+    document,
+    'pointercancel',
+    (event) => {
+      if (touchAction?.id === event.pointerId) touchAction = null;
+    },
+    { capture: true },
+  );
+  on(document, 'pointerup', (event) => {
+    if (touchAction?.id !== event.pointerId) return;
+    const { button, cancelled } = touchAction;
+    touchAction = null;
+    event.preventDefault();
+    lastTouchActivation = performance.now();
+    const bounds = button.getBoundingClientRect();
+    if (
+      cancelled ||
+      button.disabled ||
+      !button.isConnected ||
+      event.clientX < bounds.left ||
+      event.clientX > bounds.right ||
+      event.clientY < bounds.top ||
+      event.clientY > bounds.bottom
+    )
+      return;
+    button.click();
+  });
+  on(
+    document,
+    'click',
+    (event) => {
+      if (
+        event.isTrusted &&
+        event.detail > 0 &&
+        performance.now() - lastTouchActivation < 700 &&
+        !event.target.closest('[data-game-fullscreen]')
+      ) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    },
+    { capture: true },
+  );
 
   function toast(message, duration = 2600) {
     $('toast').textContent = message;
     $('toast').hidden = false;
-    toastUntil = performance.now() + duration;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      if (!disposed) $('toast').hidden = true;
+    }, duration);
   }
   function save() {
     const value = structuredClone(progress);
@@ -58,6 +171,9 @@ export async function mountCageRescue(host = createLocalHost()) {
       });
   }
   function clearInput() {
+    // Keep a cancelled button press until release: a later compatibility click
+    // must stay suppressed even if focus was lost during a long press.
+    if (touchAction) touchAction.cancelled = true;
     const id = activePointer;
     activePointer = null;
     keys.clear();
@@ -85,12 +201,13 @@ export async function mountCageRescue(host = createLocalHost()) {
     for (const name of ['home', 'levels', 'play', 'pause', 'result', 'settings', 'help', 'outfits'])
       $(name + '-screen').hidden = name !== next;
     $('toast').hidden = true;
-    toastUntil = 0;
+    clearTimeout(toastTimer);
     if (next === 'home') updateHome();
     if (next === 'levels') renderLevels();
     if (next === 'outfits') renderThemes();
     if (next === 'settings') $('sound').setAttribute('aria-checked', String(progress.sound));
     lastTime = 0;
+    invalidateScene();
   }
   function updateHome() {
     const count = Object.keys(progress.completed).length;
@@ -101,12 +218,13 @@ export async function mountCageRescue(host = createLocalHost()) {
         : `第 ${String(nextIndex + 1).padStart(2, '0')} / 06 关 · ${LEVELS[nextIndex].name}`;
     $('start').querySelector('span').textContent = count ? '继续救援' : '开始救援';
   }
-  function startLevel(index, practice = false) {
-    if (!practice && index >= unlockedCount(progress)) return;
+  function startLevel(index, practice = false, isChallenge = false) {
+    if (!practice && !isChallenge && index >= unlockedCount(progress)) return;
     clearInput();
     game = createGame(index);
     targetX = game.paddle.x;
     trial = practice;
+    challenge = isChallenge;
     trails.length = 0;
     particles.length = 0;
     lastHud = '';
@@ -138,10 +256,16 @@ export async function mountCageRescue(host = createLocalHost()) {
         const label = document.createElement('span');
         label.className = 'level-status';
         label.textContent = status;
-        const miniature = document.createElement('span');
-        miniature.className = 'mini-grid';
+        const miniature = document.createElement('canvas');
+        miniature.className = 'level-preview';
+        miniature.width = 320;
+        miniature.height = 144;
         miniature.setAttribute('aria-hidden', 'true');
-        for (let n = 0; n < 6; n++) miniature.append(document.createElement('i'));
+        const preview = miniature.getContext('2d');
+        if (preview) {
+          preview.scale(2, 2);
+          drawLevel(preview, level, { locked: button.disabled, theme: progress.theme });
+        }
         const title = document.createElement('h3');
         title.textContent = level.name;
         const subtitle = document.createElement('p');
@@ -183,20 +307,33 @@ export async function mountCageRescue(host = createLocalHost()) {
           progress.theme = theme.id;
           save();
           renderThemes();
+          invalidateScene();
         };
         return button;
       }),
     );
   }
   function syncHud() {
-    const signature = `${game.levelIndex}:${game.rescued}:${game.lives}:${game.phase}:${game.slowMotion}:${trial}`;
+    const signature = `${game.levelIndex}:${game.rescued}:${game.lives}:${game.phase}:${game.slowMotion}:${game.rescueCombo}:${game.realTime < game.wideUntil}:${game.people.map((person) => person.status).join(',')}:${trial}`;
     if (signature !== lastHud) {
       lastHud = signature;
       $('level-number').textContent = String(game.levelIndex + 1).padStart(2, '0');
-      $('level-name').textContent = game.level.name;
+      $('level-name').textContent = game.level.name + (challenge ? ' · 好友挑战' : '');
       $('rescue-count').replaceChildren(
         document.createTextNode(String(game.rescued)),
-        Object.assign(document.createElement('span'), { textContent: '/4' }),
+        Object.assign(document.createElement('span'), { textContent: `/${game.target}` }),
+      );
+      $('rescue-count').setAttribute(
+        'aria-label',
+        `已救回 ${game.rescued} 位，共 ${game.target} 位队友`,
+      );
+      $('crew-progress').replaceChildren(
+        ...game.cages.map((cage) => {
+          const marker = document.createElement('i');
+          marker.dataset.status =
+            game.people.find((person) => person.cageId === cage.id)?.status || 'captive';
+          return marker;
+        }),
       );
       $('lives').setAttribute('aria-label', `剩余${game.lives}次球机会`);
       [...$('lives').children].forEach((node, i) =>
@@ -215,11 +352,13 @@ export async function mountCageRescue(host = createLocalHost()) {
     const tip =
       performance.now() < feedbackUntil
         ? feedback
-        : game.people.some((p) => p.status === 'falling' || p.status === 'waiting')
-          ? '先接球，再移到队友下方'
-          : game.rescued
-            ? '打破下一个笼子，接队友回家'
-            : '拖动挡板 · 救回 4 位队友';
+        : game.realTime < game.wideUntil
+          ? `${game.rescueCombo} 连救 · 宽板救援中`
+          : game.people.some((p) => p.status === 'falling' || p.status === 'waiting')
+            ? '先接球，再移到队友下方'
+            : game.rescued
+              ? '打破下一个笼子，接队友回家'
+              : `拖动挡板 · 救回全部 ${game.target} 位队友`;
     if (tip !== lastTip) {
       $('play-tip').textContent = tip;
       lastTip = tip;
@@ -227,7 +366,7 @@ export async function mountCageRescue(host = createLocalHost()) {
   }
   function showResult() {
     const won = game.phase === 'won';
-    if (won && completeLevel(progress, game, trial)) save();
+    if (won && completeLevel(progress, game, trial || challenge)) save();
     changeScreen('result');
     audio.play(won ? 'win' : 'miss');
     $('result-screen').dataset.won = won;
@@ -243,28 +382,35 @@ export async function mountCageRescue(host = createLocalHost()) {
         : '接得漂亮！'
       : '差一点，再来一次';
     $('result-message').textContent = won
-      ? '四位队友已安全归队。'
+      ? `全部 ${game.target} 位队友已安全归队！`
       : game.lossReason === 'not-enough-people'
-        ? '已有 3 位队友落入安全网，\n本关已无法达到 4 人救援目标。'
+        ? '有队友落入安全网，未能归队。\n全员救回才算通关，再试一次吧！'
         : '三次球机会已用完。\n试试先接球，再移动到队友下方。';
     $('result-rescued').textContent = game.rescued;
     $('result-lives').textContent = game.lives;
-    $('result-unlock').textContent = trial
-      ? '试玩不解锁关卡，也不写入通关记录'
-      : won
-        ? game.levelIndex === 5
-          ? '六关全部完成，感谢你的每一次接住。'
-          : [1, 3].includes(game.levelIndex)
-            ? '下一关与新小队装扮已解锁'
-            : `下一关 · ${LEVELS[game.levelIndex + 1].name} 已解锁`
-        : game.level.hint;
-    $('next').hidden = !won;
+    $('result-chain').textContent =
+      `最高 ${game.bestRescueCombo} 连救 · ${game.realTime.toFixed(1)} 秒${game.usedRevive ? ' · 已补球' : ''}`;
+    $('share-rescue').hidden = trial;
+    $('result-unlock').textContent = challenge
+      ? targetRescued === null
+        ? '好友同关体验 · 不改变进度'
+        : `好友自报 ${targetRescued} 人 / ${targetCombo ?? 0} 连救 · ${game.rescued >= targetRescued && game.bestRescueCombo >= (targetCombo ?? 0) ? '已达成！' : '再挑战一次'} · 不改变进度`
+      : trial
+        ? '试玩不解锁关卡，也不写入通关记录'
+        : won
+          ? game.levelIndex === 5
+            ? '六关全部完成，感谢你的每一次接住。'
+            : [1, 3].includes(game.levelIndex)
+              ? '下一关与新小队装扮已解锁'
+              : `下一关 · ${LEVELS[game.levelIndex + 1].name} 已解锁`
+          : game.level.hint;
+    $('next').hidden = !won || challenge;
     $('next').textContent = game.levelIndex === 5 ? '返回关卡' : '下一关';
     $('retry').textContent = won ? '再玩本关' : '免费重试';
     $('revive').hidden = !canRevive(game) || trial;
     $('revive').disabled = false;
     $('reward-message').textContent =
-      canRevive(game) && !trial && host.session.adAuthority === 'none'
+      canRevive(game) && !trial && !local && host.session.adAuthority === 'none'
         ? '当前为离线试玩，暂无广告可用。'
         : '';
   }
@@ -301,10 +447,10 @@ export async function mountCageRescue(host = createLocalHost()) {
   on($('launch'), 'click', launch);
   on($('pause'), 'click', pause);
   on($('resume'), 'click', resume);
-  on($('restart'), 'click', () => startLevel(game.levelIndex, trial));
+  on($('restart'), 'click', () => startLevel(game.levelIndex, trial, challenge));
   on($('home'), 'click', goHome);
   on($('result-home'), 'click', goHome);
-  on($('retry'), 'click', () => startLevel(game.levelIndex, trial));
+  on($('retry'), 'click', () => startLevel(game.levelIndex, trial, challenge));
   on($('next'), 'click', () =>
     game.levelIndex === 5 ? changeScreen('levels') : startLevel(game.levelIndex + 1, trial),
   );
@@ -318,6 +464,26 @@ export async function mountCageRescue(host = createLocalHost()) {
     save();
     $('sound').setAttribute('aria-checked', String(progress.sound));
   });
+  on($('challenge-rescue'), 'click', () => startLevel(challengeIndex, false, true));
+  on($('share-rescue'), 'click', async () => {
+    const outcome = await publishing.share({
+      text: `${game.level.name}：救回 ${game.rescued} 人，最高 ${game.bestRescueCombo} 连救，${game.realTime.toFixed(1)} 秒${game.usedRevive ? '（补球）' : ''}。来接住同一支小队！`,
+      params: {
+        challenge: 'rescue-v1',
+        level: game.levelId,
+        targetRescued: game.rescued,
+        targetCombo: game.bestRescueCombo,
+      },
+    });
+    $('reward-message').textContent =
+      outcome.status === 'copied'
+        ? '同关挑战链接已复制'
+        : outcome.status === 'shared'
+          ? '已打开系统分享'
+          : outcome.status === 'cancelled'
+            ? '已取消分享'
+            : '暂时无法分享，请稍后重试';
+  });
   on($('revive'), 'click', async () => {
     if (rewardBusy || !canRevive(game) || trial) return;
     const attempt = game;
@@ -326,10 +492,12 @@ export async function mountCageRescue(host = createLocalHost()) {
     $('reward-message').textContent = '正在请求补球机会…';
     let outcome;
     try {
-      outcome = await host.ads.offer({
-        id: 'cage-rescue.revive',
-        reward: { ballLives: 1, levelId: game.levelId },
-      });
+      outcome = local
+        ? await publishing.rewarded({ placement: 'cage-rescue.revive' })
+        : await host.ads.offer({
+            id: 'cage-rescue.revive',
+            reward: { ballLives: 1, levelId: game.levelId },
+          });
     } catch {
       outcome = { status: 'failed' };
     }
@@ -396,20 +564,32 @@ export async function mountCageRescue(host = createLocalHost()) {
       clearInput();
       pause();
       audio.suspend();
+      stopFrames();
+    } else {
+      invalidateScene();
     }
-    lastTime = 0;
   });
   on(window, 'pagehide', () => {
+    pageActive = false;
     clearInput();
     pause();
     audio.suspend();
+    stopFrames();
+  });
+  on(window, 'pageshow', () => {
+    pageActive = true;
+    invalidateScene();
   });
   function resize() {
     const rect = canvas.getBoundingClientRect(),
       ratio = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.round(rect.width * ratio);
-    canvas.height = Math.round(rect.height * ratio);
+    const width = Math.max(1, Math.round(rect.width * ratio));
+    const height = Math.max(1, Math.round(rect.height * ratio));
+    if (canvas.width === width && canvas.height === height) return;
+    canvas.width = width;
+    canvas.height = height;
     ctx.setTransform(canvas.width / 390, 0, 0, canvas.height / 700, 0, 0);
+    invalidateScene();
   }
   const observer = new ResizeObserver(resize);
   observer.observe(canvas);
@@ -432,7 +612,7 @@ export async function mountCageRescue(host = createLocalHost()) {
           run: () => {
             if (screen !== 'play') startLevel(game.levelIndex, true);
             trial = true;
-            game.rescued = 4;
+            game.rescued = game.target;
             stepGame(game, 1 / 60);
             showResult();
           },
@@ -461,9 +641,16 @@ export async function mountCageRescue(host = createLocalHost()) {
         feedback = '笼子破了！记住队友的落点';
         feedbackUntil = performance.now() + 2800;
       }
+      if (event.type === 'rescue-chain') {
+        feedback = `${event.combo} 连救！挡板加宽 5 秒`;
+        feedbackUntil = performance.now() + 3000;
+      }
       if (event.type === 'rescue') {
         audio.play('rescue');
-        feedback = `接住了！已救回 ${game.rescued} / 4 位`;
+        feedback =
+          game.realTime < game.wideUntil
+            ? `${game.rescueCombo} 连救！挡板加宽 5 秒`
+            : `接住了！已救回 ${game.rescued} / ${game.target} 位`;
         feedbackUntil = performance.now() + 2300;
       }
       if (event.type === 'miss') {
@@ -472,27 +659,74 @@ export async function mountCageRescue(host = createLocalHost()) {
         feedbackUntil = performance.now() + 2500;
       }
       if (event.type === 'ball-lost') audio.play('miss');
-      if (['break', 'rescue', 'miss'].includes(event.type) && !reducedMotion) {
-        for (let i = 0; i < 9; i++)
+      const impact = event.type === 'hit' && event.hp > 0;
+      if (
+        (['break', 'rescue', 'miss', 'bounce'].includes(event.type) || impact) &&
+        !reducedMotion
+      ) {
+        const color =
+          event.type === 'miss' ? '#8fa8bd' : event.type === 'rescue' ? '#5fe1c6' : '#ffc44e';
+        particles.push({
+          type: 'ring',
+          x: event.x,
+          y: event.y,
+          vx: 0,
+          vy: 0,
+          life: 0.32,
+          maxLife: 0.32,
+          color,
+          size: 4,
+        });
+        if (event.type === 'rescue')
           particles.push({
+            type: 'label',
+            label: '+1',
+            x: event.x,
+            y: event.y - 23,
+            vx: 0,
+            vy: -44,
+            life: 0.65,
+            maxLife: 0.65,
+            color: '#b7fff0',
+            size: 1,
+          });
+        const count = event.type === 'bounce' ? 3 : impact ? 5 : 9;
+        for (let i = 0; i < count; i++)
+          particles.push({
+            type: i % 3 === 0 ? 'star' : 'spark',
             x: event.x,
             y: event.y,
             vx: Math.cos(i * 2.4) * (35 + i * 8),
             vy: Math.sin(i * 2.4) * 70,
             life: 0.65,
             maxLife: 0.65,
-            color:
-              event.type === 'miss' ? '#8fa8bd' : event.type === 'rescue' ? '#5fe1c6' : '#ffc44e',
-            size: 2 + (i % 3),
+            color,
+            size: 3 + (i % 4),
           });
       }
     }
   }
+  function requestFrame() {
+    if (animationId === null && !disposed && pageActive && !document.hidden)
+      animationId = requestAnimationFrame(frame);
+  }
+  function stopFrames() {
+    if (animationId !== null) cancelAnimationFrame(animationId);
+    animationId = null;
+    lastTime = 0;
+  }
+  function invalidateScene() {
+    needsPaint = true;
+    requestFrame();
+  }
   function frame(now) {
-    if (disposed) return;
+    animationId = null;
+    if (disposed || !pageActive || document.hidden) return;
     const dt = lastTime ? Math.min((now - lastTime) / 1000, 0.05) : 0;
     lastTime = now;
-    if (!document.hidden && screen === 'play') {
+    const animatedHome = screen === 'home' && !reducedMotion;
+    if (screen === 'play' || animatedHome) visualTime += dt;
+    if (screen === 'play') {
       const direction =
         Number(keys.has('ArrowRight') || keys.has('d')) -
         Number(keys.has('ArrowLeft') || keys.has('a'));
@@ -510,7 +744,8 @@ export async function mountCageRescue(host = createLocalHost()) {
       for (const particle of particles) {
         particle.x += particle.vx * dt;
         particle.y += particle.vy * dt;
-        particle.vy += 120 * dt;
+        if (particle.type === 'ring') particle.size += 95 * dt;
+        else if (particle.type !== 'label') particle.vy += 120 * dt;
         particle.life -= dt;
       }
       for (const point of trails) point.life -= dt;
@@ -518,23 +753,26 @@ export async function mountCageRescue(host = createLocalHost()) {
         if (particles[i].life <= 0) particles.splice(i, 1);
       for (let i = trails.length - 1; i >= 0; i--) if (trails[i].life <= 0) trails.splice(i, 1);
     }
-    const options = {
-      time: reducedMotion ? 0 : now / 1000,
-      theme: progress.theme,
-      reducedMotion,
-      particles,
-      trails,
-    };
-    if (['play', 'pause', 'result'].includes(screen)) drawGame(ctx, game, options);
-    else drawHome(ctx, options);
-    if (toastUntil && now > toastUntil) {
-      $('toast').hidden = true;
-      toastUntil = 0;
+    if (needsPaint || screen === 'play' || animatedHome) {
+      const options = {
+        time: reducedMotion ? 0 : visualTime,
+        theme: progress.theme,
+        reducedMotion,
+        particles,
+        trails,
+      };
+      if (['play', 'pause', 'result'].includes(screen)) drawGame(ctx, game, options);
+      else drawHome(ctx, options);
+      needsPaint = false;
     }
-    animationId = requestAnimationFrame(frame);
+    if (screen === 'play' || animatedHome) requestFrame();
+    else lastTime = 0;
   }
+  $('challenge-rescue').hidden = challengeIndex < 0;
+  if (challengeIndex >= 0)
+    $('challenge-rescue').textContent =
+      `好友挑战 · ${targetRescued === null ? LEVELS[challengeIndex].name : `自报 ${targetRescued} 人 / ${targetCombo ?? 0} 连救`}`;
   changeScreen('home');
-  animationId = requestAnimationFrame(frame);
   return {
     snapshot,
     pause,
@@ -543,7 +781,10 @@ export async function mountCageRescue(host = createLocalHost()) {
       if (disposed) return;
       disposed = true;
       clearInput();
-      cancelAnimationFrame(animationId);
+      stopFrames();
+      clearTimeout(toastTimer);
+      releaseRenderCache(ctx);
+      publishing.dispose();
       abort.abort();
       observer.disconnect();
       audio.dispose();

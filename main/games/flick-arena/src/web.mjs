@@ -1,9 +1,16 @@
+import { createH5Publishing } from '../publishing.js';
+import { layouts } from './layouts.mjs';
 import { createGame } from './game.mjs';
 import { saveKey } from './progress.mjs';
 import { W, H } from './render.mjs';
+import '../competition-client.js';
+import { createOnlineClient, invitationCode } from './online.mjs';
+import { levels } from './levels.mjs';
+globalThis.__installCompetition({ ...globalThis.__COMPETITION_CONFIG__, game: 'flick-arena' });
 const canvas = document.querySelector('#game'),
   stage = document.querySelector('#stage'),
   controls = document.querySelector('#controls'),
+  fields = document.querySelector('#fields'),
   status = document.querySelector('#status');
 let saved;
 try {
@@ -11,6 +18,7 @@ try {
 } catch {}
 let listener = () => {},
   signature = '',
+  fieldSignature = '',
   last = performance.now(),
   frame;
 const target = {
@@ -41,8 +49,100 @@ const target = {
     };
   },
 };
+const online = createOnlineClient({ onChange: (room) => game.receiveRoom(room) });
+const query = new URLSearchParams(location.search);
+const requestedSeed = query.get('seed');
+const requestedLayout = layouts.find((layout) => layout.id === query.get('layout'));
+const targetShots =
+  /^\d{1,3}$/.test(query.get('targetShots') || '') &&
+  Number(query.get('targetShots')) >= 1 &&
+  Number(query.get('targetShots')) <= 999
+    ? Number(query.get('targetShots'))
+    : null;
+const challenge =
+  !invitationCode(location.href) &&
+  requestedLayout &&
+  /^\d{1,16}$/.test(requestedSeed || '') &&
+  Number.isSafeInteger(Number(requestedSeed))
+    ? { layout: requestedLayout.id, seed: Number(requestedSeed), targetShots }
+    : null;
+let publishingBusy = false;
+const publishingConfig = globalThis.SmallGamesPublishingConfig ?? {};
+const publishing = createH5Publishing({
+  gameId: 'flick-arena',
+  title: '弹指擂台',
+  adMode: publishingConfig.adMode ?? 'mock',
+  provider: publishingConfig.provider,
+  publicUrl: publishingConfig.publicUrl,
+  pause() {
+    const wasSuspended = game.isSuspended();
+    game.pause();
+    return () => {
+      last = performance.now();
+      if (!wasSuspended && !document.hidden) game.resume();
+    };
+  },
+});
+async function action(id) {
+  if (publishingBusy) return;
+  if (
+    game.app.mode === 'practice' &&
+    game.app.screen === 'result' &&
+    ['again', 'rematch', 'home'].includes(id)
+  ) {
+    publishingBusy = true;
+    try {
+      await publishing.interstitial({ placement: 'result-exit', naturalBreak: true });
+    } finally {
+      publishingBusy = false;
+    }
+  }
+  game.action(id);
+}
 const game = createGame(target, {
+  challenge,
+  async share(state) {
+    const result = await publishing.share({
+      text: `弹指擂台：${state.winner === 0 ? '守擂成功' : '再战同一擂台'}，${state.turn} 回合，出手 ${state.playerShots} 次。相同摆位，看看你的走位！`,
+      params: {
+        seed: state.seed,
+        layout: state.layout,
+        targetShots:
+          state.winner === 0 && state.playerShots > 0
+            ? Math.min(999, state.playerShots)
+            : undefined,
+      },
+    });
+    return result.status === 'copied'
+      ? '同擂台挑战链接已复制'
+      : ['failed', 'unavailable'].includes(result.status)
+        ? '分享暂不可用，可以继续切磋'
+        : '';
+  },
   save: saved,
+  online,
+  development: Boolean(window.SmallGamesDev?.isEnabled()),
+  shareBase: () => location.href,
+  async shareRoom(code, url) {
+    const text = `来弹指擂台切磋！房间码：${code}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: '弹指擂台 · 好友邀请', text, url });
+        return;
+      } catch (error) {
+        if (error.name === 'AbortError') return;
+      }
+    }
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(text + (url ? '\n' + url : ''));
+        return;
+      } catch {
+        /* The room code stays visible. */
+      }
+    }
+    throw new Error('请把页面上的房间码发给好友。');
+  },
   saveProgress(save) {
     if (window.SmallGamesDev?.isEnabled()) return;
     try {
@@ -51,17 +151,28 @@ const game = createGame(target, {
   },
   onRender(app) {
     document.body.dataset.phase = app.screen;
+    canvas.dataset.seed = String(app.state?.seed ?? '');
+    canvas.dataset.layout = app.state?.layout ?? '';
+    canvas.dataset.targetShots = String(app.targetShots ?? '');
     canvas.dataset.turn = String(app.state?.turn ?? 0);
     canvas.dataset.shots = String(app.state?.shots ?? 0);
     canvas.dataset.active = String(app.state?.active ?? 0);
     canvas.dataset.playerShots = String(app.state?.playerShots ?? 0);
     canvas.dataset.radius = String(app.state?.radius ?? 0);
     canvas.dataset.physicsPhase = app.state?.phase ?? '';
+    canvas.dataset.mode = app.mode;
+    canvas.dataset.levelId = app.chosenLevel?.id ?? '';
+    canvas.dataset.canAim = String(app.canAim);
+    canvas.dataset.localDisc = String(app.localDisc);
+    canvas.dataset.visibleState = JSON.stringify(app.state);
+    canvas.dataset.series = JSON.stringify(app.series);
+    canvas.dataset.room = JSON.stringify(app.room);
+    canvas.dataset.error = app.error;
     // Read-only visible positions support touch/accessibility checks without a developer API.
     canvas.dataset.discs = JSON.stringify(
       app.state?.discs.map(({ id, x, y, alive }) => ({ id, x, y, alive })) ?? [],
     );
-    const key = app.screen + app.buttons.map((b) => b.id + b.label).join('|');
+    const key = app.screen + app.buttons.map((b) => b.id + b.label + b.disabled).join('|');
     const box = stage.getBoundingClientRect(),
       s = Math.min(box.width / W, box.height / H),
       ox = (box.width - W * s) / 2,
@@ -74,7 +185,18 @@ const game = createGame(target, {
             {
               type: 'small-games:display-state',
               gameId: 'flick-arena',
-              screen: ['home', 'layouts', 'help'].includes(app.screen) ? 'home' : 'playing',
+              screen: [
+                'home',
+                'layouts',
+                'help',
+                'levels',
+                'friends',
+                'wardrobe',
+                'room-create',
+                'room-join',
+              ].includes(app.screen)
+                ? 'home'
+                : 'playing',
             },
             new URL(document.referrer).origin,
           );
@@ -88,13 +210,16 @@ const game = createGame(target, {
           el.id = b.id;
           el.textContent = b.label;
           el.setAttribute('aria-label', b.label);
-          el.addEventListener('click', () => game.action(b.id));
+          el.disabled = Boolean(b.disabled);
+          el.addEventListener('click', () => {
+            void action(b.id);
+          });
           return el;
         }),
       );
       status.textContent =
         app.screen === 'playing'
-          ? '按住蓝色圆盘，向后拉，松手弹出'
+          ? '轮到你时按住自己的圆盘，向后拉，松手弹出'
           : app.screen === 'result'
             ? '本局结束'
             : app.screen === 'matching'
@@ -104,12 +229,51 @@ const game = createGame(target, {
     app.buttons.forEach((b) => {
       const el = document.getElementById(b.id);
       Object.assign(el.style, {
-        left: ox + b.x * s + 'px',
-        top: oy + b.y * s + 'px',
-        width: b.w * s + 'px',
-        height: b.h * s + 'px',
+        left: ox + (b.x + b.w / 2) * s - Math.max(44, b.w * s) / 2 + 'px',
+        top: oy + (b.y + b.h / 2) * s - Math.max(44, b.h * s) / 2 + 'px',
+        width: Math.max(44, b.w * s) + 'px',
+        height: Math.max(44, b.h * s) + 'px',
       });
     });
+    const nextFields = app.fields.map((field) => field.id).join('|');
+    if (fieldSignature !== nextFields) {
+      fieldSignature = nextFields;
+      fields.replaceChildren(
+        ...app.fields.map((field) => {
+          const input = document.createElement('input');
+          input.id = field.id;
+          input.type = field.type || 'text';
+          input.maxLength = field.maxLength || 12;
+          input.placeholder = '输入 12 位房间码';
+          input.autocomplete = 'off';
+          input.spellcheck = false;
+          input.setAttribute('aria-label', field.label);
+          input.value = app.roomCode;
+          input.addEventListener('input', () => {
+            game.setField(field.id, input.value);
+            input.value = game.app.roomCode;
+          });
+          input.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+              input.blur();
+              game.action('join-room');
+            }
+          });
+          return input;
+        }),
+      );
+    }
+    for (const field of app.fields) {
+      const input = document.getElementById(field.id);
+      if (document.activeElement !== input) input.value = app.roomCode;
+      Object.assign(input.style, {
+        left: ox + field.x * s + 'px',
+        top: oy + field.y * s + 'px',
+        width: field.w * s + 'px',
+        height: field.h * s + 'px',
+        fontSize: Math.max(16, 21 * s) + 'px',
+      });
+    }
     document.querySelector('#fullscreen').hidden = !['home', 'paused'].includes(app.screen);
   },
 });
@@ -154,7 +318,7 @@ function lifecycle() {
   if (document.hidden) game.pause();
   else {
     last = performance.now();
-    game.resume();
+    if (!publishingBusy) game.resume();
   }
 }
 function blur() {
@@ -162,7 +326,7 @@ function blur() {
 }
 function focus() {
   last = performance.now();
-  game.resume();
+  if (!publishingBusy) game.resume();
 }
 document.addEventListener('visibilitychange', lifecycle);
 window.addEventListener('blur', blur);
@@ -179,9 +343,18 @@ if (dev?.isEnabled()) {
   window.__flickArena = game;
   cleanActions = dev.registerActions([
     { id: 'practice', label: '试玩：初入江湖', run: () => game.debugStart(0) },
+    ...levels.map((level, index) => ({
+      id: 'level-' + level.id,
+      label: `试玩第${level.index}关：${level.name}`,
+      run: () => game.debugLevel(index),
+    })),
   ]);
   cleanSnapshot = dev.registerSnapshot(() => game.debug());
 }
+const invited = invitationCode(location.href);
+if (invited && online.savedCode() === invited) void game.restoreRoom();
+else if (invited) game.joinInvitation(invited);
+else if (!challenge && online.savedCode()) void game.restoreRoom();
 window.addEventListener(
   'pagehide',
   (e) => {
@@ -192,6 +365,7 @@ window.addEventListener(
     cancelAnimationFrame(frame);
     observer.disconnect();
     game.dispose();
+    publishing.dispose();
     cleanActions?.();
     cleanSnapshot?.();
     document.removeEventListener('visibilitychange', lifecycle);
@@ -211,6 +385,6 @@ window.addEventListener(
 window.addEventListener('pageshow', (e) => {
   if (e.persisted) {
     last = performance.now();
-    game.resume();
+    if (!publishingBusy) game.resume();
   }
 });

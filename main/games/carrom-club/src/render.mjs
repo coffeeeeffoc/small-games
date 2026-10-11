@@ -1,6 +1,14 @@
 import { POCKETS, aimPreview } from './core.mjs';
 
 const TAU = Math.PI * 2;
+const FRIEND_COIN_STYLES = {
+  cyan: { face: ['#9ee6ed', '#238aa2', '#104955'], symbol: '●' },
+  orange: { face: ['#ffda9c', '#d66c26', '#783c19'], symbol: '▲' },
+  purple: { face: ['#dfbdf7', '#9152b7', '#4e2c6c'], symbol: '◆' },
+  green: { face: ['#bfe7ac', '#448849', '#234c2c'], symbol: '✚' },
+};
+let boardAtlas;
+const coinAtlases = new Map();
 const woodAtlas = new Image();
 woodAtlas.src = new URL('../assets/wood.webp', import.meta.url).href;
 await woodAtlas.decode().catch(() => {});
@@ -218,30 +226,81 @@ function boardTexture() {
   return canvas;
 }
 
-export function drawCoin(c, coin, scale = 1) {
+function paintCoinSymbol(c, symbol, radius) {
+  c.beginPath();
+  if (symbol === '▲') {
+    c.moveTo(0, -radius);
+    c.lineTo(radius * 0.9, radius * 0.7);
+    c.lineTo(-radius * 0.9, radius * 0.7);
+    c.closePath();
+  } else if (symbol === '◆') {
+    c.moveTo(0, -radius);
+    c.lineTo(radius * 0.8, 0);
+    c.lineTo(0, radius);
+    c.lineTo(-radius * 0.8, 0);
+    c.closePath();
+  } else if (symbol === '✚') {
+    const arm = radius * 0.34;
+    for (const [i, [x, y]] of [
+      [-arm, -radius],
+      [arm, -radius],
+      [arm, -arm],
+      [radius, -arm],
+      [radius, arm],
+      [arm, arm],
+      [arm, radius],
+      [-arm, radius],
+      [-arm, arm],
+      [-radius, arm],
+      [-radius, -arm],
+      [-arm, -arm],
+    ].entries()) {
+      if (i === 0) c.moveTo(x, y);
+      else c.lineTo(x, y);
+    }
+    c.closePath();
+  } else c.arc(0, 0, radius * 0.7, 0, TAU);
+  c.fillStyle = '#fff4d7';
+  c.strokeStyle = '#162e33';
+  c.lineWidth = radius * 0.17;
+  c.lineJoin = 'round';
+  c.fill();
+  c.stroke();
+}
+
+function paintCoin(c, coin, scale = 1) {
   const { x, y, kind } = coin,
-    r = coin.r * scale;
+    r = coin.r * scale,
+    friendStyle = FRIEND_COIN_STYLES[kind];
   c.save();
   c.shadowColor = '#2c140995';
   c.shadowBlur = 5 * scale;
   c.shadowOffsetY = 5 * scale;
-  circle(c, x, y, r, kind === 'black' ? '#111919' : kind === 'queen' ? '#790e0d' : '#b08d58');
+  circle(
+    c,
+    x,
+    y,
+    r,
+    friendStyle?.face[2] ??
+      (kind === 'black' ? '#111919' : kind === 'queen' ? '#790e0d' : '#b08d58'),
+  );
   c.shadowBlur = 0;
   c.shadowOffsetY = 0;
   const face = c.createRadialGradient(x - r * 0.4, y - r * 0.5, 0, x, y, r);
   const colors =
-    kind === 'black'
+    friendStyle?.face ??
+    (kind === 'black'
       ? ['#596263', '#232e2e', '#0b1314']
       : kind === 'queen'
         ? ['#ed7160', '#b72725', '#6b100d']
         : kind === 'striker'
           ? ['#fff6d1', '#efd5a0', '#b58a43']
-          : ['#fff2d3', '#edcf97', '#b4874b'];
+          : ['#fff2d3', '#edcf97', '#b4874b']);
   face.addColorStop(0, colors[0]);
   face.addColorStop(0.65, colors[1]);
   face.addColorStop(1, colors[2]);
   circle(c, x, y - scale, r - scale, face, colors[2], 1);
-  for (const ratio of [0.8, 0.66, 0.53])
+  for (const ratio of friendStyle ? [0.8, 0.66] : [0.8, 0.66, 0.53])
     circle(
       c,
       x,
@@ -255,25 +314,75 @@ export function drawCoin(c, coin, scale = 1) {
     circle(c, x, y - scale, r * 0.38, null, '#a7763680', scale);
     circle(c, x, y - scale, 3 * scale, '#c59650');
   }
+  if (friendStyle) {
+    c.translate(x, y - scale);
+    paintCoinSymbol(c, coin.symbol || friendStyle.symbol, r * 0.44);
+  }
   c.restore();
+}
+
+export function drawCoin(c, coin, scale = 1, rotation = 0) {
+  const key = `${coin.kind}:${coin.r}:${coin.symbol || ''}`;
+  let atlas = coinAtlases.get(key);
+  if (!atlas) {
+    const size = Math.ceil((coin.r + 14) * 2),
+      image = document.createElement('canvas');
+    // Two source pixels per board unit retain crisp rims when the canvas grows
+    // on a high-DPI screen. Gradients and shadows are painted only once per kind.
+    image.width = image.height = size * 2;
+    paintCoin(image.getContext('2d'), { ...coin, x: size, y: size }, 2);
+    atlas = { image, size };
+    coinAtlases.set(key, atlas);
+  }
+  const size = atlas.size * scale;
+  if (rotation) {
+    // Keep identifying symbols and the coin lighting upright for every seat.
+    c.save();
+    c.translate(coin.x, coin.y);
+    c.rotate(-rotation);
+    c.drawImage(atlas.image, -size / 2, -size / 2, size, size);
+    c.restore();
+  } else c.drawImage(atlas.image, coin.x - size / 2, coin.y - size / 2, size, size);
 }
 
 export function createRenderer(canvas) {
   const c = canvas.getContext('2d'),
-    board = boardTexture();
+    board = (boardAtlas ??= boardTexture());
   let width = 0;
-  return (game, { aim = null, effects = [], time = 0, alpha = 1 } = {}) => {
-    const pixels = Math.round(
-      Math.min(devicePixelRatio || 1, 2) * canvas.getBoundingClientRect().width,
-    );
+  const resize = (cssWidth = canvas.getBoundingClientRect().width) => {
+    const pixels = Math.round(Math.min(devicePixelRatio || 1, 2) * cssWidth);
     if (pixels > 0 && width !== pixels) {
       canvas.width = canvas.height = pixels;
       width = pixels;
+      return true;
     }
+    return false;
+  };
+  const draw = (
+    game,
+    {
+      aim = null,
+      effects = [],
+      time = 0,
+      alpha = 1,
+      controllable = game.turn === 0,
+      active = controllable,
+      seat = 0,
+    } = {},
+  ) => {
+    if (!width) resize();
+    if (!width) return;
     c.setTransform(width / 1000, 0, 0, width / 1000, 0, 0);
     c.clearRect(0, 0, 1000, 1000);
+    // Seats run bottom, right, top, left in world space. Rotate the complete
+    // scene so the local player's baseline is always along the lower edge.
+    const rotation = Number.isInteger(seat) ? (((seat % 4) + 4) % 4) * (Math.PI / 2) : 0;
+    c.save();
+    c.translate(500, 500);
+    c.rotate(rotation);
+    c.translate(-500, -500);
     c.drawImage(board, 0, 0);
-    if (game.phase === 'ready' && game.turn === 0) {
+    if (game.phase === 'ready' && active) {
       c.save();
       c.shadowColor = '#ffe39f';
       c.shadowBlur = 18;
@@ -292,6 +401,8 @@ export function createRenderer(canvas) {
                 y: coin.py + (coin.y - coin.py) * alpha,
               }
             : coin,
+          1,
+          rotation,
         );
       }
     if (aim?.power > 0.015) {
@@ -301,25 +412,43 @@ export function createRenderer(canvas) {
         c.save();
         c.setLineDash([6, 12]);
         c.lineDashOffset = 0;
-        c.strokeStyle = '#fffbdf';
-        c.lineWidth = 3;
-        c.shadowColor = '#594022';
-        c.shadowBlur = 3;
         c.beginPath();
         c.moveTo(s.x, s.y);
         c.lineTo(preview.x, preview.y);
+        c.strokeStyle = '#423b30';
+        c.lineWidth = 6;
         c.stroke();
+        c.strokeStyle = '#fffbdf';
+        c.lineWidth = 3;
+        c.stroke();
+        c.setLineDash([5, 5]);
+        circle(c, preview.x, preview.y, s.r, null, '#fffcde', 2.5);
         c.setLineDash([]);
-        circle(c, preview.x, preview.y, s.r, null, '#fffcdeaa', 2);
         if (preview.hit) {
           const h = preview.hit,
-            d = Math.hypot(h.x - preview.x, h.y - preview.y);
+            d = Math.hypot(h.x - preview.x, h.y - preview.y),
+            nx = (h.x - preview.x) / d,
+            ny = (h.y - preview.y) / d,
+            ex = h.x + nx * 120,
+            ey = h.y + ny * 120;
+          // A solid cyan arrow and outlined target ring are distinct from the
+          // striker's cream dotted ray even without relying on color alone.
           c.beginPath();
-          c.moveTo(h.x, h.y);
-          c.lineTo(h.x + ((h.x - preview.x) / d) * 86, h.y + ((h.y - preview.y) / d) * 86);
-          c.strokeStyle = '#a64829';
-          c.lineWidth = 3;
+          c.moveTo(h.x + nx * (h.r + 9), h.y + ny * (h.r + 9));
+          c.lineTo(ex, ey);
+          c.moveTo(ex - nx * 18 - ny * 10, ey - ny * 18 + nx * 10);
+          c.lineTo(ex, ey);
+          c.lineTo(ex - nx * 18 + ny * 10, ey - ny * 18 - nx * 10);
+          c.lineCap = 'round';
+          c.lineJoin = 'round';
+          c.strokeStyle = '#123d48';
+          c.lineWidth = 9;
           c.stroke();
+          c.strokeStyle = '#4bf0ee';
+          c.lineWidth = 4;
+          c.stroke();
+          circle(c, h.x, h.y, h.r + 6, null, '#123d48', 7);
+          circle(c, h.x, h.y, h.r + 6, null, '#4bf0ee', 3);
         }
         const length = Math.hypot(aim.dx, aim.dy);
         const ex = s.x - (aim.dx / length) * aim.pull,
@@ -347,12 +476,21 @@ export function createRenderer(canvas) {
           effect.y,
           40 + (1 - p) * 42,
           null,
-          effect.kind === 'queen' ? '#fa8066' : '#ffe7a1',
+          FRIEND_COIN_STYLES[effect.kind]?.face[0] ??
+            (effect.kind === 'queen' ? '#fa8066' : '#ffe7a1'),
           3 * p,
         );
-        drawCoin(c, { x: effect.x, y: effect.y, kind: effect.kind, r: 18 }, p);
+        drawCoin(
+          c,
+          { x: effect.x, y: effect.y, kind: effect.kind, symbol: effect.symbol, r: 18 },
+          p,
+          rotation,
+        );
       }
       c.restore();
     }
+    c.restore();
   };
+  draw.resize = resize;
+  return draw;
 }

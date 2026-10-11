@@ -942,3 +942,78 @@ h2 {
   border-radius: 6px;
   box-shadow: 0 3px 12px #263e3620;
 }
+
+.beat-track {
+  display: block;
+  height: 5px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #193e4640;
+  margin-top: 7px;
+}
+#volley-beat {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: #edd393;
+  transform-origin: left;
+}
+.volley-notice.danger #volley-beat {
+  background: #ee995b;
+}
+.volley-notice.counterattack {
+  border-color: #e9d6a3;
+  background: #254f45ed;
+  box-shadow: 0 0 20px #e1c57730;
+}
+#challenge-invite {
+  max-width: 340px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #28464b;
+}
+#challenge-result {
+  font-size: 14px;
+  color: #365e53;
+}
+.share-link {
+  width: min(430px, 95%);
+  min-height: 44px;
+  font-size: 14px;
+}
+#share-status {
+  font-size: 13px;
+  margin: 4px 0;
+}
+#result {
+  overflow: auto;
+}
+#share-result {
+  margin-bottom: 8px;
+}
+#home:has(#challenge-invite:not([hidden])) .home-note,
+#home:has(#challenge-invite:not([hidden])) .title-line {
+  display: none;
+}
+@media (max-height: 440px) {
+  #result .result-stats {
+    margin: 6px 0;
+  }
+  #result .result-medals {
+    margin: 0;
+    font-size: 22px;
+  }
+  #result h2 {
+    font-size: 27px;
+  }
+  #result > p {
+    margin: 5px 0;
+  }
+}
+
+#home:has(#challenge-invite:not([hidden])) #start {
+  margin-top: 10px;
+}
+#home:has(#challenge-invite:not([hidden])) .home-footer {
+  display: none;
+}

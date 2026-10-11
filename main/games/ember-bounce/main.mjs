@@ -14,6 +14,9 @@ import {
 import { createRenderer } from './render.mjs';
 import { createStorage } from './storage.mjs';
 import { createAudio } from './audio.mjs';
+import { restoreCheckpoint } from './checkpoint.mjs';
+import { readChallenge, challengeParams, compareChallenge, CHALLENGE_KEYS } from './challenge.mjs';
+import { createH5Publishing } from './publishing.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('arena');
@@ -23,6 +26,8 @@ const storage = createStorage(LEVELS);
 const audio = createAudio();
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 let progress = storage.load();
+let pendingChallenge = readChallenge(location.href) ?? progress.challengeRun?.invitation ?? null;
+let activeChallenge = null;
 let game = null;
 let phase = 'home';
 let pausedFrom = 'playing';
@@ -47,7 +52,15 @@ const screens = {
 const listeners = [];
 let pressedControl = null;
 let lastTouchActionAt = -Infinity;
-let lastTouchControl = null;
+const publishing = createH5Publishing({ gameId: 'ember-bounce', title: '熔光弹珠',
+  adMode: globalThis.SmallGamesPublishingConfig?.adMode ?? 'mock',
+  provider: globalThis.SmallGamesPublishingConfig?.provider,
+  publicUrl: globalThis.SmallGamesPublishingConfig?.publicUrl,
+  pause: () => {
+  const wasPlaying = phase === 'playing' || phase === 'upgrade';
+  if (wasPlaying) pause();
+  return () => { if (wasPlaying && phase === 'paused') resume(); };
+} });
 function fitArena() {
   const box = canvas.parentElement.getBoundingClientRect();
   if (box.width <= 0 || box.height <= 0) return;
@@ -83,7 +96,7 @@ listen($('app'), 'pointerup', (event) => {
   )
     return;
   lastTouchActionAt = performance.now();
-  lastTouchControl = button;
+  event.preventDefault();
   button.onclick.call(button, event);
 });
 listen($('app'), 'pointercancel', () => {
@@ -96,7 +109,6 @@ listen(
     // Keyboard/assistive clicks have detail=0; mouse clicks remain unchanged.
     if (
       event.detail > 0 &&
-      event.target.closest('button') === lastTouchControl &&
       event.pointerType !== 'mouse' &&
       performance.now() - lastTouchActionAt < 650
     ) {
@@ -144,15 +156,41 @@ function syncSettings() {
   $('haptics').setAttribute('aria-pressed', String(progress.haptics));
 }
 function syncHome() {
+  const saved = pendingChallenge ? matchingChallengeRun() : progress.run;
+  const selectedId = pendingChallenge?.levelId ?? saved?.levelId ?? progress.lastLevel;
   const index = Math.max(
     0,
-    LEVELS.findIndex((level) => level.id === progress.lastLevel),
+    LEVELS.findIndex((level) => level.id === selectedId),
   );
   $('home-number').textContent = String(index + 1).padStart(2, '0');
-  $('home-progress').textContent = `余烬之路 · ${LEVELS[index].title}`;
-  $('start').firstChild.textContent = progress.completed[progress.lastLevel]
-    ? '再次弹射 '
-    : '开始弹射 ';
+  $('home-progress').textContent = pendingChallenge
+    ? `${LEVELS[index].title} · 好友自报 ${pendingChallenge.turns} 轮`
+    : `${LEVELS[index].title}${saved ? ` · 已完成 ${saved.completedTurns} 轮` : ' · 余烬之路'}`;
+  $('start').firstChild.textContent = saved ? `继续第 ${saved.completedTurns + 1} 轮 `
+    : pendingChallenge ? `接受 ${pendingChallenge.turns} 轮挑战 `
+      : progress.completed[progress.lastLevel] ? '再次弹射 ' : '开始弹射 ';
+  $('leave-challenge').hidden = !pendingChallenge;
+}
+function matchingChallengeRun() {
+  const saved = progress.challengeRun;
+  return saved && pendingChallenge && saved.invitation.levelId === pendingChallenge.levelId
+    && saved.invitation.turns === pendingChallenge.turns ? saved.checkpoint : null;
+}
+function clearInvitation() {
+  pendingChallenge = null;
+  const url = new URL(location.href);
+  CHALLENGE_KEYS.forEach((key) => url.searchParams.delete(key));
+  try { history.replaceState(null, '', url); } catch { /* Embedded history may be unavailable. */ }
+}
+function saveRound() {
+  if (!game || game.practice || !['aim', 'upgrade'].includes(game.phase)) return;
+  progress = storage.saveRun(game, activeChallenge);
+}
+function startRequested() {
+  const saved = pendingChallenge ? matchingChallengeRun() : progress.run;
+  const restored = restoreCheckpoint(saved);
+  if (restored) activateGame(restored, pendingChallenge);
+  else startLevel(pendingChallenge?.levelId ?? progress.lastLevel, false, pendingChallenge);
 }
 function syncLevels() {
   const grid = $('level-grid');
@@ -189,27 +227,31 @@ function syncLevels() {
     grid.append(tile);
   });
 }
-function startLevel(id = progress.lastLevel, practice = false) {
-  if (!practice && !progress.unlocked.includes(id)) return;
+function startLevel(id = progress.lastLevel, practice = false, invitation = null) {
+  if (!practice && !invitation && !progress.unlocked.includes(id)) return;
+  if (!invitation && !practice) clearInvitation();
+  activateGame(createGame(id, { practice }), invitation);
+}
+function activateGame(nextGame, invitation = null) {
   void audio.unlock();
-  game = createGame(id, { practice });
-  shots = 0;
+  game = nextGame;
+  activeChallenge = invitation;
+  shots = game.completedTurns;
   outcomeProcessed = false;
   comboUntil = 0;
   renderer.reset();
-  if (!practice) {
-    progress.lastLevel = id;
-    progress = storage.save(progress);
-  }
-  $('practice-label').hidden = !practice;
-  const index = LEVELS.findIndex((level) => level.id === id);
+  saveRound();
+  $('practice-label').hidden = !game.practice && !activeChallenge;
+  $('practice-label').textContent = game.practice ? '试玩' : `好友同题 · ${activeChallenge?.turns} 轮`;
+  const index = LEVELS.findIndex((level) => level.id === game.levelId);
   $('level-name').textContent = `${String(index + 1).padStart(2, '0')} ${game.level.title}`;
-  show('playing');
+  if (game.phase === 'upgrade') syncUpgrade();
+  else show('playing');
   syncPlay();
 }
 function syncPlay() {
   if (!game) return;
-  $('turn-label').textContent = `第 ${game.turn} 轮`;
+  $('turn-label').textContent = `第 ${game.turn} 轮${activeChallenge ? ` / 目标 ${activeChallenge.turns}` : ''}`;
   $('score').textContent = String(game.score);
   $('ball-count').textContent = `× ${game.ballCount}`;
   $('wave-label').textContent = `余烬 ${game.destroyed} / ${game.totalTargets}`;
@@ -229,7 +271,7 @@ function syncPlay() {
 function pause() {
   if (!game || (phase !== 'playing' && phase !== 'upgrade')) return;
   pausedFrom = phase;
-  $('pause-level').textContent = `${game.level.title} · 第 ${game.turn} 轮`;
+  $('pause-level').textContent = `${game.level.title} · 第 ${game.turn} 轮${game.practice ? '' : ' · 离开后从本轮开始继续'}`;
   audio.suspend();
   show('paused');
 }
@@ -240,6 +282,8 @@ function resume() {
   syncPlay();
 }
 function home() {
+  saveRound();
+  if (activeChallenge && !game?.practice) pendingChallenge = activeChallenge;
   audio.suspend();
   show('home');
 }
@@ -265,6 +309,7 @@ function syncUpgrade() {
     button.onclick = () => {
       void audio.unlock();
       if (!applyUpgrade(game, upgrade.id)) return;
+      saveRound();
       consumeEvents();
       show('playing');
       syncPlay();
@@ -280,7 +325,8 @@ function result() {
   const won = game.phase === 'won';
   const index = LEVELS.findIndex((level) => level.id === game.levelId);
   const next = LEVELS[index + 1];
-  if (won)
+  if (!game.practice) progress = storage.clearRun(Boolean(activeChallenge));
+  if (won && !activeChallenge)
     progress = storage.complete(game.levelId, {
       score: game.score,
       turns: game.completedTurns,
@@ -292,6 +338,7 @@ function result() {
   $('result-title').textContent = won ? '这片夜色，亮了。' : '余烬越过了边界';
   $('result-description').textContent = game.practice
     ? '试玩结束，成绩与解锁不计入存档'
+    : activeChallenge && won ? compareChallenge(game.completedTurns, activeChallenge.turns)
     : won
       ? next
         ? `${next.title}，已为你点亮`
@@ -302,9 +349,13 @@ function result() {
   $('result-stars').setAttribute('aria-label', `${stars}星`);
   $('result-score').textContent = String(game.score);
   $('result-turns').textContent = String(game.completedTurns);
-  $('next').hidden = !won || !next || game.practice;
+  $('next').hidden = !won || !next || game.practice || Boolean(activeChallenge);
+  $('share-challenge').hidden = !won || game.practice;
+  $('share-fallback').hidden = true;
   $('next').onclick = () => next && startLevel(next.id);
   show('result');
+  if (!game.practice && !activeChallenge)
+    void publishing.interstitial({ placement: 'level-result', naturalBreak: true });
 }
 function consumeEvents() {
   if (!game || !game.events.length) return;
@@ -324,6 +375,7 @@ function consumeEvents() {
     if (event.type === 'collision') comboUntil = performance.now() + 950;
     if (event.type === 'pickup') toast(`弹珠 +${event.value} · 下一轮加入`);
     if (event.type === 'timeout') toast('已收回弹珠，继续下一轮');
+    if (event.type === 'turn') saveRound();
   }
 }
 function point(event) {
@@ -375,8 +427,11 @@ listen(canvas, 'lostpointercapture', (event) => {
     syncPlay();
   }
 });
-$('start').onclick = () => startLevel();
-$('levels-button').onclick = () => show('levels');
+$('start').onclick = startRequested;
+$('leave-challenge').onclick = () => {
+  clearInvitation(); progress = storage.clearRun(true); activeChallenge = null; game = null; syncHome();
+};
+$('levels-button').onclick = () => { clearInvitation(); activeChallenge = null; game = null; show('levels'); };
 $('levels-back').onclick = home;
 $('help').onclick = () => show('help');
 $('help-back').onclick = home;
@@ -384,7 +439,30 @@ $('pause').onclick = pause;
 $('resume').onclick = resume;
 $('back-home').onclick = home;
 $('result-home').onclick = home;
-$('retry').onclick = () => startLevel(game.levelId, game.practice);
+$('retry').onclick = () => startLevel(game.levelId, game.practice, activeChallenge);
+$('share-challenge').onclick = async () => {
+  if (game?.phase !== 'won' || game.practice) return;
+  const resultGame = game;
+  const params = challengeParams({ version: 1, levelId: game.levelId, turns: game.completedTurns });
+  if (!params) return;
+  $('share-challenge').disabled = true;
+  try {
+    const result = await publishing.share({ title: '熔光弹珠 · 少一轮挑战',
+      text: `我用 ${game.completedTurns} 轮点亮「${game.level.title}」，你能更少吗？好友自报成绩。`, params });
+    if (game !== resultGame || phase !== 'result') return;
+    if (result.status === 'cancelled') toast('已取消分享');
+    else if (result.status === 'shared') toast('已打开系统分享');
+    else if (result.status === 'copied') toast('挑战链接已复制');
+    else if (result.url) {
+      $('share-link').value = result.url;
+      $('share-fallback').hidden = false;
+      $('share-link').focus();
+      $('share-link').select();
+      toast('长按链接即可复制');
+    } else toast('暂时无法分享，请再试一次');
+  } catch { toast('暂时无法分享，请再试一次'); }
+  finally { $('share-challenge').disabled = false; }
+};
 $('recall').onclick = () => {
   if (recall(game)) {
     consumeEvents();
@@ -448,6 +526,8 @@ function readSnapshot() {
     ballCount: game?.ballCount ?? 0,
     destroyed: game?.destroyed ?? 0,
     practice: game?.practice ?? false,
+    challenge: activeChallenge ? { ...activeChallenge } : null,
+    resume: progress.run ? { levelId: progress.run.levelId, completedTurns: progress.run.completedTurns } : null,
     targets: game?.targets.map(({ id, x, y, hp, kind }) => ({ id, x, y, hp, kind })) ?? [],
     progress: { unlocked: [...progress.unlocked], completed: structuredClone(progress.completed) },
   };
@@ -517,6 +597,7 @@ listen(window, 'pagehide', (event) => {
   homeRenderer.dispose();
   resizeObserver.disconnect();
   audio.dispose();
+  publishing.dispose();
   listeners.splice(0).forEach((cleanup) => cleanup());
 });
 listen(window, 'pageshow', () => {

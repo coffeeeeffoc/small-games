@@ -49,6 +49,7 @@ export function createGame(level) {
     lastCheckpoint: { layer: 0, y: first.y - BALL_RADIUS, rotation: 0 },
     continued: false,
     passes: 0,
+    score: 0,
     bounces: 0,
     failureLayer: null,
   };
@@ -130,7 +131,9 @@ function advancePhysics(state, duration) {
       state.passes += 1;
       state.streak += 1;
       state.maxStreak = Math.max(state.maxStreak, state.streak);
-      emit(state, 'pass', { layer: layerIndex, streak: state.streak });
+      const points = 100 * Math.min(5, state.streak);
+      state.score += points;
+      emit(state, 'pass', { layer: layerIndex, streak: state.streak, points });
       if (state.streak % 3 === 0 && state.charge === 0) {
         state.charge = 1;
         emit(state, 'charge', { layer: layerIndex, streak: state.streak });

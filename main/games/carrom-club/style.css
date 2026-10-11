@@ -24,7 +24,8 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 button,
-input {
+input,
+select {
   font: inherit;
 }
 button {
@@ -37,6 +38,7 @@ button:disabled {
 }
 button:focus-visible,
 input:focus-visible,
+select:focus-visible,
 canvas:focus-visible {
   outline: 2px solid #fff0b3;
   outline-offset: 4px;
@@ -339,6 +341,411 @@ h1 {
   overflow-y: auto;
   scrollbar-width: thin;
   padding-bottom: max(30px, env(safe-area-inset-bottom));
+}
+.room-panel {
+  display: grid;
+  gap: 18px;
+  margin-top: 26px;
+  padding: 24px 18px;
+  border: 1px solid #ba9659;
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, #4d311fcc, #21160df2),
+    url('./assets/wood.webp') right center / 200% 100%;
+  box-shadow:
+    inset 0 0 0 4px #241a15,
+    0 8px 20px #0004;
+}
+.room-panel label {
+  font-size: 13px;
+  color: #d4bd8a;
+}
+.room-panel input {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px;
+  color: var(--cream);
+  border: 1px solid #ba9659;
+  border-radius: 6px;
+  background: #112623;
+  user-select: text;
+  -webkit-user-select: text;
+  font-size: 14px;
+}
+.room-code {
+  text-align: center;
+  font-size: clamp(22px, 6vw, 28px);
+  letter-spacing: 2px;
+}
+.room-panel > .muted {
+  text-align: center;
+}
+.room-players {
+  display: grid;
+  gap: 10px;
+}
+.room-player {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 54px;
+  padding: 10px;
+  background: #071b1977;
+  border-radius: 6px;
+}
+.room-player span:last-child {
+  margin-left: auto;
+  color: #d4bd8a;
+  font-size: 12px;
+}
+#room-retry {
+  margin-top: 16px;
+}
+#sync-retry {
+  padding: 2px 12px;
+}
+.room-panel select {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px;
+  border: 1px solid #ab915b;
+  border-radius: 7px;
+  background: #12332d;
+  color: var(--cream);
+  font-size: 14px;
+}
+.room-panel select:disabled {
+  opacity: 0.7;
+}
+#room-details {
+  padding: 17px 14px;
+  gap: 12px;
+  margin-top: 16px;
+}
+.room-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+}
+.room-heading > div {
+  min-width: 0;
+}
+.room-heading .room-code {
+  display: block;
+  font-size: clamp(17px, 4.7vw, 23px);
+  letter-spacing: 1px;
+  margin-top: 5px;
+}
+.room-heading .secondary {
+  width: auto;
+  min-height: 44px;
+  padding: 8px 15px;
+  font-size: 14px;
+  flex: none;
+}
+.room-settings {
+  display: grid;
+  gap: 7px;
+}
+.room-settings label {
+  margin-top: 3px;
+  font-size: 11px;
+}
+#room-level-choice {
+  display: grid;
+  gap: 7px;
+}
+.room-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #947b4c88;
+  border-radius: 7px;
+  padding: 7px;
+  background: #0c2b26;
+}
+.room-preview canvas {
+  width: 64px;
+  height: 64px;
+  flex: none;
+}
+.room-preview > div {
+  flex: 1;
+  min-width: 0;
+}
+.room-preview strong {
+  font-size: 14px;
+  font-weight: 500;
+}
+.room-preview p {
+  margin: 5px 0 0;
+  font-size: 10px;
+}
+#room-reroll {
+  padding: 6px;
+  font-size: 11px;
+}
+#room-seat-count {
+  margin: 0;
+  text-align: left;
+  font-size: 11px;
+}
+.room-players {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.room-player {
+  position: relative;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 5px 8px;
+  padding: 9px;
+  min-height: 64px;
+  border: 1px solid #9a864e77;
+}
+.room-player strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+  font-size: 12px;
+}
+.room-player span:last-child {
+  grid-column: 2;
+  margin: 0;
+  font-size: 10px;
+}
+.room-start-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-top: 5px;
+}
+.room-start-actions button {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  min-height: 48px;
+  letter-spacing: 1px;
+  padding: 10px 6px;
+}
+.room-start-actions .primary:disabled {
+  opacity: 0.45;
+  box-shadow: none;
+}
+#room-status {
+  letter-spacing: 0.5px;
+  font-size: 11px;
+}
+.friend-coin {
+  display: inline-grid;
+  place-items: center;
+  width: 23px;
+  height: 23px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--coin-color, #edcf97);
+  color: #fff;
+  border: 2px solid #eddab3;
+  box-shadow:
+    inset 0 0 0 2px #ffffff44,
+    0 2px 4px #0006;
+  font-size: 11px;
+  font-style: normal;
+}
+.friend-coin[data-color='white'] {
+  color: #50361d;
+}
+.friend-coin[data-color='black'] {
+  color: #eee0bd;
+}
+.multiplayer-seats {
+  display: flex;
+  gap: 7px;
+  padding: 0 7px;
+  width: 100%;
+}
+.multiplayer-seat {
+  flex: 1;
+  min-width: 0;
+  background: #12372f;
+  border: 1px solid #9a864e88;
+  border-radius: 8px;
+  padding: 8px;
+}
+.multiplayer-seat.active-seat {
+  border-color: #f3ce81;
+  box-shadow: 0 0 0 1px #f3ce8133;
+}
+.multiplayer-seat > div {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.multiplayer-seat strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 500;
+}
+.multiplayer-seat p {
+  font-size: 10px;
+  color: #d1c497;
+  margin: 7px 0 0;
+  white-space: nowrap;
+}
+.play.is-online #opponent-seat {
+  order: -1;
+  border: 0;
+  padding: 0 10px;
+  margin: 0;
+  min-height: 44px;
+}
+.play.is-online #opponent-seat > .disc-crest,
+.play.is-online #opponent-seat .score-line {
+  display: none;
+}
+.play.is-online #opponent-name {
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+.play.is-online #player-seat > .disc-crest {
+  width: 40px;
+  height: 40px;
+}
+.play.is-online #player-seat > .disc-crest svg {
+  display: none;
+}
+.play.is-online #player-seat > .disc-crest:after {
+  content: attr(data-symbol);
+  font-size: 21px;
+}
+.play.is-online #player-name {
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+.play.is-online .score-line {
+  font-size: 12px;
+  letter-spacing: 0;
+  margin-top: 4px;
+}
+.play.is-online .turn-pill {
+  font-size: 10px;
+  padding: 8px;
+  letter-spacing: 0;
+}
+.online-rules {
+  max-width: 330px;
+  color: #d3c497;
+  font-size: 12px;
+  margin-top: 14px;
+  line-height: 1.8;
+}
+.online-rules summary {
+  min-height: 44px;
+  padding: 12px;
+  cursor: pointer;
+}
+.online-rules p {
+  margin: 4px 0;
+}
+.result-ranking {
+  display: grid;
+  width: 100%;
+  max-width: 330px;
+  gap: 7px;
+  margin-top: 12px;
+}
+.ranking-row {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  padding: 10px;
+  background: #0d2824aa;
+  border: 1px solid #b3945744;
+  border-radius: 7px;
+  font-size: 12px;
+}
+.ranking-row strong {
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.ranking-row span {
+  color: #d8c79e;
+  font-size: 11px;
+}
+@media (max-height: 720px) and (orientation: portrait) {
+  .play.is-online {
+    gap: 3px;
+  }
+  .play.is-online .board-wrap {
+    max-width: min(100%, 48dvh);
+  }
+  .play.is-online .multiplayer-seat {
+    padding: 5px;
+  }
+  .play.is-online .multiplayer-seat p {
+    margin-top: 4px;
+  }
+  .play.is-online #opponent-seat {
+    min-height: 38px;
+  }
+  .play.is-online .status {
+    min-height: 24px;
+    padding: 3px 6px;
+  }
+  .play.is-online .shot-tray {
+    padding-bottom: 6px;
+  }
+  .play.is-online .aim-state {
+    min-height: 36px;
+    font-size: 10px;
+  }
+  #friends h2 {
+    font-size: 26px;
+  }
+}
+@media (orientation: landscape) and (max-height: 600px) {
+  .play.is-online {
+    grid-template-rows: 44px 65px 1fr;
+    gap: 0 20px;
+  }
+  .play.is-online .board-wrap {
+    grid-row: 1/4;
+  }
+  .play.is-online .multiplayer-seats {
+    grid-column: 2;
+    grid-row: 2;
+    padding: 0;
+  }
+  .play.is-online .controls {
+    grid-column: 2;
+    grid-row: 3;
+  }
+  .play.is-online .player {
+    padding: 3px 8px;
+  }
+  .play.is-online .shot-tray {
+    margin-top: 4px;
+    padding-bottom: 6px;
+  }
+  .play.is-online .position-control {
+    height: 44px;
+    margin-top: 0;
+  }
+  .play.is-online .status {
+    padding-top: 3px;
+  }
+  .result-ranking,
+  .online-rules {
+    grid-column: 1;
+  }
 }
 .page-heading {
   display: grid;
@@ -918,6 +1325,7 @@ h2 {
   background: #bda06044;
 }
 #notice {
+  pointer-events: none;
   position: absolute;
   z-index: 10;
   bottom: 20px;

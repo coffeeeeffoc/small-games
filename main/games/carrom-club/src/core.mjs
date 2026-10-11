@@ -2,6 +2,8 @@ import { LEVELS } from './content.mjs';
 
 export const SIZE = 1000;
 export const STEP = 1 / 240;
+export const COIN_POINTS = 1;
+export const QUEEN_POINTS = 3;
 export const POCKETS = [
   [104, 104],
   [896, 104],
@@ -12,6 +14,18 @@ export const clamp = (v, low, high) => Math.max(low, Math.min(high, v));
 export const sideColor = (side) => (side === 0 ? 'white' : 'black');
 export const remaining = (game, side) =>
   game.coins.filter((c) => !c.pocketed && c.kind === sideColor(side)).length;
+
+// Derive points from the board so returned coins, foul debt and older saves
+// cannot leave a separate score counter out of sync with the actual game.
+export function scoreBreakdown(game, side) {
+  const coins =
+    game.coins.filter((c) => c.pocketed && c.kind === sideColor(side)).length * COIN_POINTS;
+  const queen = game.queen === 'covered' && game.queenOwner === side ? QUEEN_POINTS : 0;
+  return { coins, queen, total: coins + queen };
+}
+export const scoreFor = (game, side) => scoreBreakdown(game, side).total;
+export const scoresFor = (game) => [scoreFor(game, 0), scoreFor(game, 1)];
+
 const disk = (id, kind, x, y) => ({
   id,
   kind,
@@ -65,6 +79,7 @@ export function createGame(levelId = null) {
     quiet: 0,
     elapsed: 0,
     winner: null,
+    finisher: null,
     message: level?.tip ?? '你的回合 · 白子先行',
     events: [],
     totals: [
@@ -77,7 +92,7 @@ export function createGame(levelId = null) {
 }
 
 export function placeStriker(game, requestedX) {
-  if (game.phase !== 'ready') return false;
+  if (game.phase !== 'ready' || !Number.isFinite(requestedX)) return false;
   const y = game.turn === 0 ? 790 : 210;
   const desired = clamp(requestedX, 235, 765);
   const free = (x) =>
@@ -126,6 +141,11 @@ export function shoot(game, dx, dy, power) {
 }
 
 export function step(game, dt = STEP) {
+  if (advancePhysics(game, dt)) resolveShot(game);
+}
+
+// Shared deterministic physics; each ruleset owns its own turn settlement.
+export function advancePhysics(game, dt = STEP) {
   if (game.phase !== 'moving') return;
   if (!Number.isFinite(dt) || dt <= 0 || dt > 1 / 60) throw new Error('Physics step out of range');
   const bodies = [...game.coins, game.striker].filter((c) => !c.pocketed);
@@ -198,7 +218,7 @@ export function step(game, dt = STEP) {
   }
   const moving = bodies.some((c) => !c.pocketed && Math.hypot(c.vx, c.vy) > 0.01);
   game.quiet = moving ? 0 : game.quiet + dt;
-  if (game.quiet > 0.15) resolveShot(game);
+  return game.quiet > 0.15;
 }
 
 function returnCoin(game, coin) {
@@ -221,7 +241,10 @@ function returnCoin(game, coin) {
   throw new Error('No return space');
 }
 
+export { disk as createDisk, returnCoin };
+
 export function resolveShot(game) {
+  if (game.phase === 'over') return;
   const side = game.turn,
     color = sideColor(side);
   const own = game.coins.filter((c) => game.shotPots.includes(c.id) && c.kind === color);
@@ -237,6 +260,7 @@ export function resolveShot(game) {
     if (queenPotted || game.queen === `pending-${side}`) {
       returnCoin(game, queen);
       game.queen = 'board';
+      game.queenOwner = null;
     }
     keep = false;
     game.message = '击球子落袋 · 罚一子，换手';
@@ -252,7 +276,7 @@ export function resolveShot(game) {
       if (credited > 0) {
         game.queen = 'covered';
         game.queenOwner = side;
-        game.message = '红后已补进 · 漂亮的一杆';
+        game.message = `红后已补进 · 红后 +${QUEEN_POINTS} 分`;
         keep = true;
       } else if (queenPotted && !game.queen.startsWith('pending')) {
         game.queen = `pending-${side}`;
@@ -261,6 +285,7 @@ export function resolveShot(game) {
       } else {
         returnCoin(game, queen);
         game.queen = 'board';
+        game.queenOwner = null;
         keep = false;
         game.message = '未能补进 · 红后返场';
       }
@@ -269,12 +294,25 @@ export function resolveShot(game) {
         ? `漂亮！${credited > 1 ? '一杆多进 · ' : ''}继续出杆`
         : '换个角度，再来一杆';
   }
-  for (let player = 0; player < (game.levelId ? 1 : 2); player++) {
+  // When both last coins fall in one shot, the active player is the finisher.
+  for (const player of game.levelId ? [0] : [side, 1 - side]) {
     if (remaining(game, player) === 0) {
       if (game.queen === 'covered' || game.queen === 'none') {
         game.phase = 'over';
-        game.winner = player;
-        game.message = player === 0 ? '清台！这一局属于你' : '阿洛清台 · 再切磋一局';
+        game.finisher = player;
+        const scores = scoresFor(game);
+        game.winner = game.levelId
+          ? 0
+          : scores[0] === scores[1]
+            ? player
+            : scores[0] > scores[1]
+              ? 0
+              : 1;
+        game.message = game.levelId
+          ? '清台！这一局属于你'
+          : `${game.winner === 0 ? '白方' : '黑方'} ${scores[game.winner]} 分获胜 · ${
+              scores[0] === scores[1] ? '同分由清台方胜出' : '清台后比较总分'
+            }`;
         return;
       }
       returnCoin(
