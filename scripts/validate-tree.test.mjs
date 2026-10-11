@@ -34,9 +34,10 @@ test('metadata early return retains mandatory publication checks and propagates 
   const selected = await validateTree(options);
   assert.equal(selected.publication_config_checks, true);
   assert.equal(selected.browser, false);
+  const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
   assert.deepEqual(calls.slice(-3), [
-    ['pnpm', 'check:dependencies'],
-    ['pnpm', 'test:game-config'],
+    [pnpm, 'check:dependencies'],
+    [pnpm, 'test:game-config'],
     ['node', '--test', 'platforms/tests/publication-config.test.mjs'],
   ]);
   assert(!calls.some((call) => call.includes('build') || call.includes('typecheck')));
