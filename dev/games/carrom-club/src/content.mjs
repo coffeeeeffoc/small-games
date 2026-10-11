@@ -1,5 +1,5 @@
 export const SCHEMA_VERSION = 1;
-export const LEVELS = [
+const INTRO_LEVELS = [
   {
     id: 'first-touch',
     title: '轻轻一击',
@@ -79,10 +79,87 @@ export const LEVELS = [
   },
 ];
 
+// The six published lessons stay byte-for-byte compatible with v1 saves. Later
+// chapters compose the same physical rules with different targets and spacing.
+export const CHAPTER_SIZE = 12;
+const CHAPTER_PROFILES = [
+  ['初识手感', 1, 2, false, 0, '瞄准背向袋口的一侧，轻拉也能落袋。'],
+  ['斜线进阶', 2, 3, false, 0, '移到另一侧摆位，让击球线正对袋口。'],
+  ['长台分量', 3, 3, false, 0, '长距离需要更足的力度，先观察首碰虚线。'],
+  ['沿边寻路', 3, 4, false, 0, '靠边的白子也可以换袋口或借库处理。'],
+  ['红后补进', 2, 3, true, 0, '先留下补进的白子，再规划红后的下一杆。'],
+  ['让路取巧', 3, 4, false, 1, '黑子只作挡路子，不用清空；换摆位绕开它。'],
+  ['散台连杆', 4, 5, true, 0, '红后和散落白子一起规划，逐杆调整摆位。'],
+  ['密阵拆解', 5, 5, true, 1, '先清外侧白子，给中央红后留出路线。'],
+  ['清台挑战', 5, 6, true, 2, '避开黑子，留一枚容易补进的白子。'],
+  ['棋社终章', 6, 7, true, 2, '安排红后补进与收尾，让每一杆都有目标。'],
+];
+export const CHAPTERS = CHAPTER_PROFILES.map(([title], index) => ({
+  id: `chapter-${index + 1}`,
+  title,
+  start: index * CHAPTER_SIZE,
+  end: (index + 1) * CHAPTER_SIZE,
+}));
+
+// Widely spaced slots allow several valid opening lines. Chapter-dependent
+// depth/edge adjustments and seeded offsets make every layout reproducible.
+const SLOTS = [
+  [260, 260],
+  [740, 285],
+  [345, 400],
+  [655, 440],
+  [260, 550],
+  [735, 585],
+  [465, 605],
+];
+function advancedLesson(number) {
+  const chapter = Math.floor((number - 1) / CHAPTER_SIZE),
+    lesson = (number - 1) % CHAPTER_SIZE,
+    [, minCoins, maxCoins, queen, blockers, tip] = CHAPTER_PROFILES[chapter];
+  let seed = number * 7919 + 1;
+  const random = () => {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+  const count = minCoins + (lesson % (maxCoins - minCoins + 1));
+  const coins = [];
+  const mirror = number % 2 === 0;
+  const offset = lesson % SLOTS.length;
+  for (let i = 0; i < count; i++) {
+    const [sx, sy] = SLOTS[(i + offset) % SLOTS.length];
+    let x = sx + Math.round((random() - 0.5) * 34),
+      y = sy + Math.round((random() - 0.5) * 30);
+    if (chapter === 2) y = Math.max(195, y - 65);
+    if (chapter === 3) x = x < 500 ? x - 65 : x + 65;
+    coins.push(['white', mirror ? 1000 - x : x, y]);
+  }
+  if (queen) {
+    const x = 195 + Math.round(random() * 15);
+    coins.unshift(['queen', mirror ? 1000 - x : x, 195 + lesson * 8]);
+  }
+  for (let i = 0; i < blockers; i++)
+    coins.push(['black', i ? 565 + lesson * 3 : 430 - lesson * 3, i ? 650 : 510]);
+  return {
+    id: `practice-${String(number).padStart(3, '0')}`,
+    title: ['借位入袋', '分线轻击', '转角寻袋', '稳杆收尾'][lesson % 4],
+    subtitle: `${CHAPTERS[chapter].title} · 第 ${lesson + 1} 练`,
+    shots: count * 3 + (queen ? 5 : 3) + blockers,
+    par: count + (queen ? 2 : 1),
+    ...(queen ? { queen: true } : {}),
+    coins,
+    tip,
+  };
+}
+export const LEVELS = [
+  ...INTRO_LEVELS,
+  ...Array.from({ length: 114 }, (_, index) => advancedLesson(index + 7)),
+];
+
 export function validateLevels(levels = LEVELS) {
   const ids = new Set();
   for (const level of levels) {
     if (
+      typeof level.id !== 'string' ||
       !level.id ||
       ids.has(level.id) ||
       !level.title ||
@@ -94,7 +171,11 @@ export function validateLevels(levels = LEVELS) {
     )
       throw new Error('Invalid carrom level');
     ids.add(level.id);
-    if (!Array.isArray(level.coins) || !level.coins.some(([kind]) => kind === 'white'))
+    if (
+      !Array.isArray(level.coins) ||
+      !level.coins.every((coin) => Array.isArray(coin) && coin.length === 3) ||
+      !level.coins.some(([kind]) => kind === 'white')
+    )
       throw new Error('Missing target coins');
     if (level.coins.filter(([kind]) => kind === 'queen').length !== (level.queen ? 1 : 0))
       throw new Error('Invalid queen count');

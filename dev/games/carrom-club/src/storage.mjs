@@ -1,5 +1,5 @@
 import { LEVELS } from './content.mjs';
-import { createGame } from './core.mjs';
+import { createGame, placeStriker, remaining } from './core.mjs';
 export const SAVE_KEY = 'carrom-club:v1';
 export const freshSave = () => ({
   version: 1,
@@ -15,6 +15,13 @@ export function validMatch(value) {
     value.version !== 1 ||
     value.phase !== 'ready' ||
     (value.levelId !== null && !LEVELS.some((l) => l.id === value.levelId))
+  )
+    return null;
+  const level = LEVELS.find((entry) => entry.id === value.levelId);
+  if (
+    value.playerShots > value.shots ||
+    value.fouls > value.playerShots ||
+    (level && (value.playerShots !== value.shots || value.playerShots >= level.shots))
   )
     return null;
   const template = createGame(value.levelId);
@@ -42,6 +49,7 @@ export function validMatch(value) {
     const c = value.coins[i],
       base = template.coins[i];
     if (
+      !c ||
       c.id !== base.id ||
       c.kind !== base.kind ||
       typeof c.pocketed !== 'boolean' ||
@@ -52,9 +60,19 @@ export function validMatch(value) {
   }
   for (const k of ['turn', 'queen', 'queenOwner', 'shots', 'playerShots', 'fouls', 'debt'])
     template[k] = value[k];
+  const queen = template.coins.find((coin) => coin.kind === 'queen');
+  if (
+    (queen ? value.queen === 'none' : value.queen !== 'none') ||
+    (queen && queen.pocketed !== (value.queen !== 'board')) ||
+    (value.queen === 'covered' ? value.queenOwner === null : value.queenOwner !== null) ||
+    (value.queen.startsWith('pending') && value.queen !== `pending-${value.turn}`) ||
+    ((value.queen === 'none' || value.queen === 'covered') &&
+      (remaining(template, 0) === 0 || (!level && remaining(template, 1) === 0)))
+  )
+    return null;
   template.message = '对局已恢复 · 从这一杆继续';
-  template.striker.y = template.turn ? 210 : 790;
-  template.striker.py = template.striker.y;
+  if (!placeStriker(template, Number.isFinite(value.striker?.x) ? value.striker.x : 500))
+    return null;
   return template;
 }
 export function readSave(storage) {
@@ -83,4 +101,7 @@ export function writeSave(storage, save) {
   }
 }
 export const unlocked = (save, index) =>
-  index === 0 || LEVELS.slice(0, index).every((l) => save.stars[l.id] > 0);
+  Number.isInteger(index) &&
+  index >= 0 &&
+  index < LEVELS.length &&
+  (index === 0 || LEVELS.slice(0, index).every((l) => save.stars[l.id] > 0));

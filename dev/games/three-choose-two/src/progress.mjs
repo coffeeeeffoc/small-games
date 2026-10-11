@@ -1,4 +1,4 @@
-import { LEVELS, getLevel } from './levels.mjs';
+import { LEVELS, getLevel, validateLevels } from './levels.mjs';
 import { SHAPE_BY_ID } from './shapes.mjs';
 import { RULE_VERSION, getStars } from './engine.mjs';
 
@@ -12,7 +12,7 @@ export function createProgress() {
   return { version: PROGRESS_VERSION, unlocked: 1, records: {}, practiceBest: 0, refillBest: 0,
     settings: { sound: true, music: true, vibration: true, highContrast: false, reducedFlash: false }, currentGame: null };
 }
-function validState(state) {
+function validState(state, allowUndo = true) {
   return object(state) && state.version === RULE_VERSION && ['level', 'endless'].includes(state.mode)
     && (state.variant === undefined || state.mode === 'endless' && ['classic', 'refill'].includes(state.variant))
     && (state.variant !== 'refill' || state.placedInGroup === 0 && state.used?.length === 0)
@@ -21,11 +21,13 @@ function validState(state) {
     && Array.isArray(state.starBoard) && state.starBoard.length === 64 && state.starBoard.every((cell) => typeof cell === 'boolean')
     && Array.isArray(state.candidates) && state.candidates.length === 3 && state.candidates.every((candidate) => SHAPE_BY_ID[candidate?.shapeId])
     && Array.isArray(state.used) && state.used.length <= 2 && new Set(state.used).size === state.used.length && state.used.every((slot) => safeInteger(slot, 0, 2))
+    && safeInteger(state.placedInGroup, 0, 2) && state.placedInGroup === state.used.length
     && safeInteger(state.group, 1) && safeInteger(state.score) && safeInteger(state.combo)
-    && object(state.stats) && Object.values(state.stats).every((value) => safeInteger(value))
+    && object(state.stats) && ['lines','multiClears','crossClears','stars','discardedBlocks','discardedCells','placements','maxLines','maxCombo'].every(key => safeInteger(state.stats[key]))
     && ['playing', 'lost', 'won', 'finished'].includes(state.status)
-    && (state.mode !== 'level' || (getLevel(state.levelId) && object(state.config) && state.config.id === state.levelId && Array.isArray(state.config.candidates)))
-    && (state.mode !== 'endless' || safeInteger(state.rng, 1, 4294967295));
+    && (state.mode !== 'level' || (getLevel(state.levelId) && object(state.config) && state.config.id === state.levelId && validateLevels([state.config]).valid && state.group <= state.config.maxGroups + 2))
+    && (state.mode !== 'endless' || safeInteger(state.rng, 1, 4294967295))
+    && (!state._undo || allowUndo && validState(state._undo, false));
 }
 function normalize(saved) {
   const progress = createProgress();

@@ -19,6 +19,7 @@ try {
 let listener = () => {},
   signature = '',
   fieldSignature = '',
+  lastControlPointerAction = -Infinity,
   last = performance.now(),
   frame;
 const target = {
@@ -100,6 +101,7 @@ async function action(id) {
   game.action(id);
 }
 const game = createGame(target, {
+  backingPerCssPixel: () => canvas.width / canvas.getBoundingClientRect().width,
   challenge,
   async share(state) {
     const result = await publishing.share({
@@ -211,7 +213,53 @@ const game = createGame(target, {
           el.textContent = b.label;
           el.setAttribute('aria-label', b.label);
           el.disabled = Boolean(b.disabled);
-          el.addEventListener('click', () => {
+          let press = null;
+          el.addEventListener('pointerdown', (event) => {
+            if (!event.isPrimary || event.button !== 0 || el.disabled) return;
+            press = { id: event.pointerId, x: event.clientX, y: event.clientY };
+            lastControlPointerAction = performance.now();
+          });
+          const cancelPress = (event) => {
+            if (!event.isPrimary || press?.id !== event.pointerId) return;
+            press = null;
+            lastControlPointerAction = performance.now();
+          };
+          el.addEventListener('pointercancel', cancelPress);
+          el.addEventListener('pointerleave', cancelPress);
+          el.addEventListener('pointermove', (event) => {
+            if (!event.isPrimary || press?.id !== event.pointerId) return;
+            const box = el.getBoundingClientRect();
+            if (
+              Math.hypot(event.clientX - press.x, event.clientY - press.y) > 12 ||
+              event.clientX < box.left ||
+              event.clientX > box.right ||
+              event.clientY < box.top ||
+              event.clientY > box.bottom
+            )
+              cancelPress(event);
+          });
+          el.addEventListener('pointerup', (event) => {
+            if (!event.isPrimary) return;
+            lastControlPointerAction = performance.now();
+            const start = press;
+            if (!start || start.id !== event.pointerId || el.disabled) return;
+            press = null;
+            const box = el.getBoundingClientRect();
+            if (
+              Math.hypot(event.clientX - start.x, event.clientY - start.y) > 12 ||
+              event.clientX < box.left ||
+              event.clientX > box.right ||
+              event.clientY < box.top ||
+              event.clientY > box.bottom
+            )
+              return;
+            // Canvas touch gestures can suppress compatibility clicks, including a quick pause.
+            lastControlPointerAction = performance.now();
+            void action(b.id);
+          });
+          el.addEventListener('click', (event) => {
+            // Keep keyboard activation, and consume the click following a handled pointer tap.
+            if (event.detail > 0 && performance.now() - lastControlPointerAction < 700) return;
             void action(b.id);
           });
           return el;

@@ -1,4 +1,6 @@
 import { prepareLevel, initialState, searchSolution } from './engine.js';
+import { quickExtra, quickExtraSolutions } from './quick-content.js';
+import { chapters } from './levels.js';
 
 const ring = start => Array.from({length:6},(_,i) => [start+i,start+(i+1)%6]);
 export const quickTrials = [
@@ -12,7 +14,8 @@ export const quickTrials = [
     nodes:[[100,100],[300,100],[500,100],[500,240],[300,240],[100,240],[100,360],[300,360],[500,360],[500,500],[300,500],[100,500]],
     edges:[...ring(0),...ring(6),[5,6]], tip:'1、2 号负责上巷，3、4 号负责下巷。每侧都要两面收紧。',
     lesson:'抓到一人只是半程：留住另一侧的分工，不要全队围着同一个目标。' },
-].map(raw => prepareLevel({...raw,mode:'quick',chapter:0,nodes:raw.nodes.map(([x,y])=>({x,y}))}));
+].map(raw => prepareLevel({...raw,mode:'quick',chapter:0,nodes:raw.nodes.map(([x,y])=>({x,y}))})).concat(quickExtra.map(prepareLevel));
+export const quickChapters = chapters.map((chapter,index)=>({...chapter,name:`试炼 ${index+1}`,subtitle:'先封逃生路线，再在步数内完成收网。'}));
 export const quickOutcome = (level,state) => state.robbers.includes(-2) ? 'lost' : state.robbers.every(node=>node===-1) ? (state.turn <= level.turnLimit ? 'won' : 'lost') : state.turn >= level.turnLimit ? 'lost' : 'planning';
 export function searchQuick(level, state) {
   if (state.turn > level.turnLimit) return { status:'unsolvable', plans:null, reason:'turn-limit', examined:0 };
@@ -22,5 +25,5 @@ export function searchQuick(level, state) {
   return answer;
 }
 export const solveQuick = (level,state) => searchQuick(level,state).plans;
-export const quickSolutions = Object.fromEntries(quickTrials.map(level => [level.id,solveQuick(level,initialState(level))]));
+export const quickSolutions = {...Object.fromEntries(quickTrials.slice(0,3).map(level => [level.id,solveQuick(level,initialState(level))])),...quickExtraSolutions};
 if (quickTrials.some(level=>!quickSolutions[level.id])) throw new Error('Quick trial requires a complete legal win witness.');

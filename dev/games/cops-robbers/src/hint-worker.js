@@ -1,13 +1,13 @@
 import { levels } from './levels.js';
 import { optimalSolutions, optimalRelaySolutions } from './optimal-solutions.js';
 import { initialState, stateKey, step, searchSolution } from './engine.js';
-import { movedOfficer } from './relay.js';
+import { movedOfficer, relayLevels } from './relay.js';
 import { quickTrials, quickSolutions, searchQuick } from './quick-trials.js';
 
 self.onmessage = ({ data }) => {
   const { id, levelId, state, rule, mode, last = -1 } = data;
   try {
-    const level = (mode === 'quick' ? quickTrials : levels).find(item => item.id === levelId);
+    const level = (mode === 'quick' ? quickTrials : rule === 'relay' ? relayLevels : levels).find(item => item.id === levelId);
     if (!level) throw new Error('Unknown level');
     const reference = (mode === 'quick' ? quickSolutions : rule === 'relay' ? optimalRelaySolutions : optimalSolutions)[levelId];
     let answer = null;

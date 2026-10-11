@@ -1,4 +1,5 @@
 import { prepareLevel } from './engine.js';
+import { extraLevels } from './extended-content.js';
 export const chapters = [
   {
     "name": "连环小巷",
@@ -34,7 +35,8 @@ export const chapters = [
     "name": "终极迷城",
     "subtitle": "三目标、多环路、远距合围",
     "color": "#9b87a4"
-  }
+  },
+  { name: "远港夜巡", subtitle: "跨环换防，分守两口再收网", color: "#789ca9" }
 ];
 export const levels = [
   {
@@ -18813,4 +18815,4 @@ export const levels = [
     ],
     "par": 17
   }
-].map(prepareLevel);
+].concat(extraLevels).map(prepareLevel);
