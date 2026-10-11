@@ -378,14 +378,14 @@ test at games/local/night-overwatch/tests/native-host-boundary.test.ts:7:1
   Error: file:///workspace/small-games/apps/shell-minigame/scripts/night-native-project.mjs:98
         throw Error(`Unreviewed canonical Night source: ${item.file}`);
               ^
-  
+
   Error: Unreviewed canonical Night source: assets/scripts/HUD.ts
       at prepareNativeProject (file:///workspace/small-games/apps/shell-minigame/scripts/night-native-project.mjs:98:13)
       at async buildPlatform (file:///workspace/small-games/apps/shell-minigame/scripts/cocos-platform.mjs:195:22)
       at async file:///workspace/small-games/apps/shell-minigame/scripts/cocos-platform.mjs:398:18
-  
+
   Node.js v24.21.0
-  
+
       at buildPlatform (file:///workspace/small-games/games/local/night-overwatch/platforms/build.mjs:12:34)
       at TestContext.<anonymous> (file:///workspace/small-games/games/local/night-overwatch/tests/native-host-boundary.test.ts:8:31)
       at Test.runInAsyncScope (node:async_hooks:227:14)
