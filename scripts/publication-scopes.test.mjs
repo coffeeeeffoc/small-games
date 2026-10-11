@@ -420,6 +420,67 @@ test('carrom friends proof preserves an existing Flick input without accepting o
   );
 });
 
+test('cumulative runtime deployment additions select Flick, Carrom and the server', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const base = '46493d57d1c275b976cdbd8fbc43a2d5ee2eeedf';
+  const head = 'b4217ac8a6b761198acda9ddcf59846f6ccfa1ce';
+  const cache = new Map();
+  const read = (ref, file) => {
+    const key = `${ref}:${file}`;
+    if (!cache.has(key)) cache.set(key, execFileSync('git', ['show', key], { encoding: 'utf8' }));
+    return cache.get(key);
+  };
+  const flick = { id: 'flick-arena', source: 'games/local/flick-arena' };
+  const context = carromContext([carromDeployment], {
+    games: [...carromCatalog, flick],
+    packages: [...carromPackages, { name: 'flick', dir: flick.source }],
+    readBase: (file) => read(base, file),
+    readHead: (file) => read(head, file),
+  });
+  const fileScopes = reviewedSharedFileScopes(context);
+  const consumers = [flick.source, carromDirectory, 'services/runtime-api'];
+  const selected = incrementalPlan({ ...context, fileScopes, readSource: () => '' });
+  assert.deepEqual(fileScopes.get(carromDeployment), consumers);
+  assert.equal(selected.full, false);
+  assert.deepEqual(selected.browser_ids, ['carrom-club', 'flick-arena']);
+  assert.deepEqual(selected.consumer_sources, consumers);
+  const after = context.readHead(carromDeployment);
+  const flickInput = "    'games/local/flick-arena/src',\n";
+  for (const changed of [
+    after + 'unreviewed();\n',
+    after.replace(flickInput, flickInput + flickInput),
+    after.replace(flickInput, "    'games/local/other/src',\n"),
+    after.replace(carromFriendsContentFile, `${carromDirectory}/src/main.mjs`),
+    after.replace(carromFriendsCopyAddition, ''),
+    after.replace(carromCopyAddition, ''),
+  ]) {
+    const invalid = {
+      ...context,
+      readHead: (file) => (file === carromDeployment ? changed : context.readHead(file)),
+    };
+    const rejected = reviewedSharedFileScopes(invalid);
+    assert.equal(rejected.has(carromDeployment), false);
+    assert.throws(
+      () => incrementalPlan({ ...invalid, fileScopes: rejected, readSource: () => '' }),
+      /scope undefined/,
+    );
+  }
+  for (const invalid of [
+    { games: carromCatalog },
+    { games: [...context.games, flick] },
+    { games: [flick] },
+    { packages: context.packages.filter((pkg) => pkg.dir !== 'services/runtime-api') },
+    { readBase: () => context.readBase(carromDeployment) + '\n' },
+    { readBase: () => after, readHead: context.readBase },
+    {
+      readHead: (file) =>
+        file === carromApp ? `/* ${context.readHead(file)} */` : context.readHead(file),
+    },
+    { changedPaths: ['scripts/deploy-tencent-extra.mjs'] },
+  ])
+    assert.equal(reviewedSharedFileScopes({ ...context, ...invalid }).size, 0);
+});
+
 test('friends deployment and engine changes select their real consumers only with executable inputs', () => {
   for (const file of [carromDeployment, carromFriendsCoreFile, carromFriendsContentFile]) {
     const context = carromFriendsContext([file]);

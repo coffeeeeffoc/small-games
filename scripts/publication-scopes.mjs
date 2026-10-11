@@ -277,6 +277,19 @@ export function carromBackendFileScope(file, before, after) {
   );
 }
 
+function cumulativeRuntimeDeploymentScope(file, before, after) {
+  if (file !== carromDeployFile || typeof before !== 'string') return false;
+  // A push can span all three reviewed additions; prove each intermediate tree.
+  const carrom = before.replace(carromDeployAnchor, carromDeployAnchor + carromDeployAddition);
+  const change = flickIntegrationChanges[file];
+  const flick = carrom.replace(change.anchor, change.anchor + change.addition);
+  return (
+    carromBackendFileScope(file, before, carrom) &&
+    flickIntegrationFileScope(file, carrom, flick) &&
+    carromFriendsDeploymentScope(flick, after)
+  );
+}
+
 function assertCarromConsumers(games, packages) {
   const catalog = games.filter((game) => game.id === 'carrom-club' || game.source === carromSource);
   assert(
@@ -753,9 +766,13 @@ export function reviewedSharedFileScopes({
   const scopes = new Map();
   for (const file of changedPaths) {
     try {
+      const cumulative =
+        file === carromDeployFile &&
+        cumulativeRuntimeDeploymentScope(file, readBase(file), readHead(file));
       if (
-        Object.hasOwn(flickIntegrationChanges, file) &&
-        flickIntegrationFileScope(file, readBase(file), readHead(file))
+        cumulative ||
+        (Object.hasOwn(flickIntegrationChanges, file) &&
+          flickIntegrationFileScope(file, readBase(file), readHead(file)))
       ) {
         const bindings = games.filter(
           (game) => game.id === 'flick-arena' || game.source === flickSource,
@@ -765,7 +782,11 @@ export function reviewedSharedFileScopes({
             bindings[0].id === 'flick-arena' &&
             bindings[0].source === flickSource,
         );
-        scopes.set(file, flickIntegrationChanges[file].consumers);
+        if (cumulative) {
+          assertCarromConsumers(games, packages);
+          assertCarromFriendsInputs(readHead);
+          scopes.set(file, [flickSource, carromSource, 'services/runtime-api']);
+        } else scopes.set(file, flickIntegrationChanges[file].consumers);
       } else if (Object.hasOwn(codexAgentHashes, file)) {
         assert.equal(
           createHash('sha256').update(readHead(file)).digest('hex'),

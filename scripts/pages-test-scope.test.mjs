@@ -1436,7 +1436,10 @@ test('planning checks out only the locked Xiangqi workspace and retains complete
     ['.github/workflows/ci.yml', 'plan'],
     ['.github/workflows/pages.yml', 'changes'],
   ]) {
-    const source = await readFile(new URL('../' + file, import.meta.url), 'utf8');
+    const source = (await readFile(new URL('../' + file, import.meta.url), 'utf8')).replace(
+      /\r\n/g,
+      '\n',
+    );
     const block = source.match(
       new RegExp(`^  ${job}:\\n([\\s\\S]*?)(?=^  [A-Za-z0-9_-]+:|$(?![\\s\\S]))`, 'm'),
     )?.[1];
