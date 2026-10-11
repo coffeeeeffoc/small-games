@@ -10,7 +10,10 @@ import { saveKey } from '../src/progress.mjs';
 // This test drives the built game with CDP touch input. Displayed state is read-only;
 // it never changes the game's state, grants progress, or substitutes a room service.
 const root = new URL('../', import.meta.url);
-const out = new URL('../docs/design/campaign-friends-2026-10-11/', import.meta.url);
+const out = new URL(
+  process.env.FLICK_VALIDATION_DIR ?? '../docs/design/campaign-friends-2026-10-11/',
+  import.meta.url,
+);
 const origin = 'http://127.0.0.1:4428/';
 const api = process.env.FLICK_COMPETITION_API;
 const focus = Number(process.env.FLICK_FOCUS_ONLINE || 0);
@@ -137,7 +140,7 @@ async function client({ clock = false, suffix = '' } = {}) {
 }
 
 try {
-  assert.equal(levels.length, 20);
+  assert.equal(levels.length, 120);
   if (!focus) {
     const solo = await client({ clock: true });
     const { page } = solo;

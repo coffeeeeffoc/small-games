@@ -38,7 +38,7 @@ export async function createSession(
   } catch {
     v.message = '存档暂不可用，本次仍可游玩';
   }
-  v.level = v.p.unlocked;
+  v.level = Math.min(v.p.unlocked, LEVELS.length - 1);
   v.b = createBattle(LEVELS[v.level]);
   const save = () => {
     const value = JSON.parse(JSON.stringify(v.p)) as JsonValue;

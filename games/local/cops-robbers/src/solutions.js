@@ -1,3 +1,4 @@
+import { extraSolutions } from './extended-content.js';
 // All 100 routes are replayed by scripts/check-levels.mjs.
 export const solutions = {
   "1": [
@@ -8743,3 +8744,5 @@ export const solutions = {
     ]
   ]
 };
+
+Object.assign(solutions, extraSolutions);

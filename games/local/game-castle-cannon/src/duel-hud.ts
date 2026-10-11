@@ -4,6 +4,7 @@ import type { DuelView } from './duel-session.js';
 import { direction } from './duel-types.js';
 import type { Hit } from './view.js';
 import { drawDuelMenu } from './duel-menu.js';
+import { CAMPAIGN } from './campaign.js';
 export const W = 960,
   H = 540;
 const cream = '#f5e8cb',
@@ -64,7 +65,14 @@ export function drawDuel(
   const me = v.duel.fighters[v.side],
     enemy = v.duel.fighters[v.side === 0 ? 1 : 0],
     g = activeGun(me);
-  const mode = v.mode === 'human' ? '真人对战' : v.mode === 'bot' ? '在线机器人' : '本地练习';
+  const mode =
+    v.campaignLevel !== null
+      ? `战役 ${v.campaignLevel + 1} / ${CAMPAIGN.length}`
+      : v.mode === 'human'
+        ? '真人对战'
+        : v.mode === 'bot'
+          ? '在线机器人'
+          : '本地练习';
   if (['playing', 'paused', 'confirm', 'result'].includes(v.screen) || v.previous === 'paused') {
     if (v.scope) {
       c.save();
@@ -115,10 +123,10 @@ export function drawDuel(
       );
     }
     label(mode, 480, 32, 16);
-    button('pause', '', 882, 18, 56, 62);
+    button('pause', '', 862, 18, 76, 76);
     c.fillStyle = cream;
-    c.fillRect(900, 36, 6, 25);
-    c.fillRect(915, 36, 6, 25);
+    c.fillRect(887, 43, 6, 25);
+    c.fillRect(907, 43, 6, 25);
     hits.at(-1)!.label = '暂停';
     if (me.hp < 35 && me.hp > 0) {
       const vignette = c.createRadialGradient(480, 270, 175, 480, 270, 530);
@@ -128,7 +136,7 @@ export function drawDuel(
       c.fillRect(0, 0, W, H);
     }
     if (v.screen === 'playing') {
-      button('scope', v.scope ? '收起望远镜' : '望远镜', 768, 112, 170, 64, v.scope);
+      button('scope', v.scope ? '收起望远镜' : '望远镜', 768, 112, 170, 76, v.scope);
       button('retreat', me.medicines ? '回地堡' : '回地堡 · 无补给', 22, 442, 158, 76, me.hp < 35);
       button(
         'crouch',

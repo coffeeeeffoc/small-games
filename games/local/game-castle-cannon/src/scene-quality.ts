@@ -39,7 +39,13 @@ export class SceneQuality {
     });
   }
   sync() {
-    for (const [source, simple] of this.diffuse) simple.color.copy(source.color);
+    for (const [source, simple] of this.diffuse) {
+      simple.color.copy(source.color);
+      if (simple.map !== source.map) {
+        simple.map = source.map;
+        simple.needsUpdate = true;
+      }
+    }
   }
   dispose() {
     for (const material of this.diffuse.values()) material.dispose();

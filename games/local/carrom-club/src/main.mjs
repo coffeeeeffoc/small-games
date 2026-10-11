@@ -1,4 +1,4 @@
-import { LEVELS, validateLevels } from './content.mjs';
+import { LEVELS, CHAPTERS, CHAPTER_SIZE, validateLevels } from './content.mjs';
 import {
   createGame,
   placeStriker,
@@ -44,6 +44,7 @@ let screen = 'home',
   practice = false,
   gesture = null,
   aim = null;
+let levelChapter = 0;
 let previousTime = 0,
   accumulator = 0,
   aiDelay = 0,
@@ -169,7 +170,8 @@ function show(next) {
   lastHud = '';
   dirty = true;
   if (next === 'home') {
-    $('start').innerHTML = `${save.match ? '继续对局' : '开始对局'} <span>›</span>`;
+    $('start').innerHTML =
+      `${save.match ? (save.match.levelId ? '继续练习' : '继续对局') : '开始对局'} <span>›</span>`;
     $('practice-progress').textContent = `${Object.keys(save.stars).length} / ${LEVELS.length}`;
     $('home-progress').textContent = save.wins
       ? `已赢下 ${save.wins} 局 · 再约一场好棋`
@@ -200,8 +202,17 @@ function show(next) {
     );
 }
 function renderLevels() {
+  const chapter = CHAPTERS[levelChapter];
+  const lessons = LEVELS.slice(chapter.start, chapter.end);
+  const completed = lessons.filter((level) => save.stars[level.id] > 0).length;
+  $('chapter-label').textContent = `${levelChapter + 1}. ${chapter.title}`;
+  $('chapter-progress').textContent =
+    `${chapter.start + 1}–${chapter.end} 关 · 已通关 ${completed}/${lessons.length}`;
+  $('chapter-prev').disabled = levelChapter === 0;
+  $('chapter-next').disabled = levelChapter === CHAPTERS.length - 1;
   $('level-grid').replaceChildren();
-  LEVELS.forEach((level, index) => {
+  lessons.forEach((level, offset) => {
+    const index = chapter.start + offset;
     const available = unlocked(save, index),
       button = document.createElement('button');
     button.className = 'level-card';
@@ -209,8 +220,9 @@ function renderLevels() {
     button.dataset.level = level.id;
     button.setAttribute(
       'aria-label',
-      `${index + 1} ${level.title}${available ? '' : '，尚未解锁'}`,
+      `${index + 1} ${level.title}${available ? `，${save.stars[level.id] ?? 0} 星` : '，尚未解锁'}`,
     );
+    if (available && !save.stars[level.id]) button.setAttribute('aria-current', 'step');
     button.innerHTML = `<h3><span>${String(index + 1).padStart(2, '0')}</span>${level.title}</h3><canvas aria-hidden="true"></canvas><div class="level-rating">${available ? '★'.repeat(save.stars[level.id] ?? 0) + '☆'.repeat(3 - (save.stars[level.id] ?? 0)) : '待解锁'}</div>${available ? '' : '<svg class="lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg>'}`;
     button.addEventListener('click', () => {
       audio.unlock();
@@ -380,7 +392,7 @@ function finish() {
       : practice
         ? '开发试玩 · 本次不记录进度'
         : win && game.levelId
-          ? `${LEVELS[index].title} · ${index < LEVELS.length - 1 ? '下一关已解锁' : '六关练习已完成'}`
+          ? `${LEVELS[index].title} · ${index < LEVELS.length - 1 ? '下一关已解锁' : `${LEVELS.length} 关练习已完成`}`
           : game.message;
   $('result-stars').textContent =
     win && game.levelId ? '★'.repeat(stars) + '☆'.repeat(3 - stars) : '';
@@ -920,7 +932,21 @@ click('start', () => {
     show('play');
   } else start();
 });
-click('levels-open', () => show('levels'));
+click('levels-open', () => {
+  const next = LEVELS.findIndex((level) => !save.stars[level.id]);
+  levelChapter = Math.floor((next < 0 ? LEVELS.length - 1 : next) / CHAPTER_SIZE);
+  $('levels').scrollTop = 0;
+  show('levels');
+});
+for (const [id, direction] of [
+  ['chapter-prev', -1],
+  ['chapter-next', 1],
+])
+  click(id, () => {
+    levelChapter = Math.max(0, Math.min(CHAPTERS.length - 1, levelChapter + direction));
+    $('levels').scrollTop = 0;
+    renderLevels();
+  });
 click('help-open', () => show('help'));
 click('help-practice', () => start(LEVELS[0].id));
 click('settings-open', () => {

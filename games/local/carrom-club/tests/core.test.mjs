@@ -14,7 +14,7 @@ import {
   scoreFor,
   scoresFor,
 } from '../src/core.mjs';
-import { LEVELS, validateLevels } from '../src/content.mjs';
+import { LEVELS, CHAPTERS, CHAPTER_SIZE, validateLevels } from '../src/content.mjs';
 import { freshSave, readSave, writeSave, validMatch, unlocked } from '../src/storage.mjs';
 
 function settle(game) {
@@ -159,7 +159,10 @@ function endgame({ white, black, queenOwner, turn }) {
     ['black', black],
     ['queen', 1],
   ])
-    game.coins.filter((c) => c.kind === kind).slice(0, count).forEach((c) => (c.pocketed = true));
+    game.coins
+      .filter((c) => c.kind === kind)
+      .slice(0, count)
+      .forEach((c) => (c.pocketed = true));
   game.queen = 'covered';
   game.queenOwner = queenOwner;
   game.turn = turn;
@@ -222,8 +225,36 @@ test('practice remains a completion challenge while reporting coin and queen poi
   assert.equal(starsFor(game), 3);
   assert.equal(scoreFor(game, 0), 5);
 });
-test('all six levels can be won through the same shot physics within their budgets', () => {
+test('120 unique lessons preserve old IDs and chapters form a complete catalog', () => {
+  assert.equal(LEVELS.length, 120);
+  assert.deepEqual(
+    LEVELS.slice(0, 6).map((level) => level.id),
+    ['first-touch', 'diagonal', 'two-wings', 'cushion', 'queen', 'finish'],
+  );
+  assert.equal(CHAPTERS.length, 10);
+  assert.equal(new Set(LEVELS.map((level) => JSON.stringify(level.coins))).size, 120);
+  CHAPTERS.forEach((chapter, index) => {
+    assert.equal(chapter.start, index * CHAPTER_SIZE);
+    assert.equal(chapter.end, (index + 1) * CHAPTER_SIZE);
+  });
+  assert.throws(() => validateLevels([{ ...LEVELS[0], coins: [null] }]));
+  assert.throws(() => validateLevels([{ ...LEVELS[0], coins: [['white', 250, 250, 1]] }]));
+});
+test('all 120 levels win through real shot physics, save correctly and unlock one next lesson', () => {
+  let save = freshSave();
+  const memory = {
+    value: null,
+    getItem() {
+      return this.value;
+    },
+    setItem(key, value) {
+      this.value = value;
+    },
+  };
   for (const level of LEVELS) {
+    const index = LEVELS.indexOf(level);
+    assert(unlocked(save, index), `${level.id} must be reachable`);
+    assert(!unlocked(save, index + 1), 'a future lesson must remain locked');
     const game = createGame(level.id);
     while (game.phase !== 'over' && game.shots < level.shots) {
       const shot = chooseShot(game);
@@ -233,7 +264,52 @@ test('all six levels can be won through the same shot physics within their budge
     }
     assert.equal(game.winner, 0, level.id);
     assert(starsFor(game) >= 1);
+    save.stars[level.id] = starsFor(game);
+    assert(writeSave(memory, save));
+    save = readSave(memory);
+    assert.equal(Object.keys(save.stars).length, index + 1);
+    assert.equal(unlocked(save, index + 1), index + 1 < LEVELS.length);
   }
+});
+test('old progress, late-game positions and pending queen covers survive v1 reload', () => {
+  const save = freshSave();
+  for (const level of LEVELS.slice(0, 6)) save.stars[level.id] = 2;
+  let restored = readSave({ getItem: () => JSON.stringify(save) });
+  assert(unlocked(restored, 6));
+  assert(!unlocked(restored, 7));
+  const game = createGame(LEVELS.at(-1).id);
+  placeStriker(game, 675);
+  const queen = game.coins.find((coin) => coin.kind === 'queen');
+  queen.pocketed = true;
+  game.queen = 'pending-0';
+  game.shots = game.playerShots = 1;
+  save.match = game;
+  restored = readSave({ getItem: () => JSON.stringify(save) });
+  assert.equal(restored.match.levelId, LEVELS.at(-1).id);
+  assert.equal(restored.match.striker.x, 675);
+  assert.equal(restored.match.queen, 'pending-0');
+  assert.equal(restored.match.striker.vx, 0);
+  const missingStriker = structuredClone(game);
+  delete missingStriker.striker;
+  assert.equal(validMatch(missingStriker).striker.x, 500);
+});
+test('impossible saved turns cannot resurrect exhausted or completed lessons', () => {
+  const exhausted = createGame(LEVELS.at(-1).id);
+  exhausted.shots = exhausted.playerShots = LEVELS.at(-1).shots;
+  assert.equal(validMatch(exhausted), null);
+  const complete = createGame('first-touch');
+  complete.coins[0].pocketed = true;
+  assert.equal(validMatch(complete), null);
+  const queen = createGame('queen');
+  queen.queen = 'covered';
+  queen.queenOwner = 0;
+  assert.equal(validMatch(queen), null);
+  queen.coins[0].pocketed = true;
+  queen.queen = 'pending-1';
+  queen.queenOwner = null;
+  assert.equal(validMatch(queen), null);
+  assert(!unlocked(freshSave(), -1));
+  assert(!unlocked(freshSave(), 120));
 });
 test('computer makes legal physical shots and a full computer-versus-computer match terminates', () => {
   const game = createGame();

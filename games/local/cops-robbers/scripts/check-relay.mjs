@@ -1,15 +1,15 @@
 import assert from 'node:assert/strict';
 import { levels } from '../src/levels.js';
-import { solutions } from '../src/solutions.js';
+import { optimalRelaySolutions as solutions } from '../src/optimal-solutions.js';
 import { initialState, legalTargets, validatePlan, step } from '../src/engine.js';
-import { relayLevelIds, movedOfficer, lastOfficer, relayTargets, relayError, solveRelay } from '../src/relay.js';
+import { relayLevelIds, relayLevels, movedOfficer, lastOfficer, relayTargets, relayError, solveRelay } from '../src/relay.js';
 import { readPuzzleLink, puzzleUrl } from '../src/share.js';
 
 let moves = 0;
 globalThis.self = { postMessage(value) { this.answer = value; } };
 await import('../src/hint-worker.js');
 for (const id of relayLevelIds) {
-  const level = levels[id - 1];
+  const level = relayLevels.find(map=>map.id===id);
   let state = initialState(level), last = -1;
   for (const plan of solutions[id]) {
     assert.equal(validatePlan(level, state, plan), null);
@@ -41,13 +41,13 @@ assert.deepEqual(relayTargets(level, after, actor, actor), [after.cops[actor]]);
 assert.ok(legalTargets(level, after, actor).length > 1, 'the variant changes an otherwise legal movement');
 assert.equal(relayError(after, [...after.cops], actor), null, 'waiting remains legal');
 for (const key of ['mode','level','role','first','rule']) assert.equal(readPuzzleLink(`https://example.test/game?level=1&${key}=x&${key}=y`), null);
-for (const raw of ['0','101','1.1','-1','Infinity','1e1','%20']) assert.equal(readPuzzleLink(`https://example.test/game?level=${raw}`), null);
+for (const raw of ['0','121','1.1','-1','Infinity','1e1','%20']) assert.equal(readPuzzleLink(`https://example.test/game?level=${raw}`), null);
 assert.equal(readPuzzleLink(`https://example.test/game?level=1&extra=${'x'.repeat(1024)}`), null);
-assert.equal(readPuzzleLink('https://example.test/game?level=2&rule=relay').rule, 'standard');
+assert.equal(readPuzzleLink('https://example.test/game?level=2&rule=relay').rule, 'relay');
 const puzzle = { mode: 'challenge', level: 7, rule: 'relay' };
 const url = puzzleUrl('https://player:private-token@example.test/game?token=secret&score=999#auth', puzzle);
 assert.equal(url, 'https://example.test/game?mode=challenge&level=7&rule=relay');
 assert.deepEqual(readPuzzleLink(url), { ...puzzle, role:'pursuer', first:'pursuer' });
 const duel = { mode:'escape', level:100, rule:'standard', role:'runner', first:'pursuer' };
 assert.deepEqual(readPuzzleLink(puzzleUrl('https://example.test/game?token=secret', duel)), duel);
-console.log(`PASS 6 relay win witnesses (${moves} moves), independent search, executable hints, wait/history rules and validated clean same-puzzle links`);
+console.log(`PASS 120 relay win witnesses (${moves} moves), independent search, executable hints, wait/history rules and validated clean same-puzzle links`);

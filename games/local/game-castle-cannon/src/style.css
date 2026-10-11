@@ -68,7 +68,7 @@ canvas {
   color: #263d42;
   background: #fff0ce;
 }
-.castle-controls button:focus-visible {
+.castle-controls button:focus-visible:not(:disabled) {
   opacity: 0.95;
   outline: 4px solid #2a779e;
   outline-offset: -3px;

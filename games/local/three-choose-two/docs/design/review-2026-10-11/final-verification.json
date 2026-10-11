@@ -1,0 +1,34 @@
+{
+  "startedAt": "2026-10-11T18:08:14.143Z",
+  "environment": "Production dist; Chromium desktop emulation with native CDP touch input",
+  "actualDevice": false,
+  "checks": [
+    {
+      "name": "Normal dev=0 final-level fixture: continued page, touch win, final settlement and reload preserve all 120 records",
+      "status": "passed",
+      "detail": {
+        "fixture": "119 prior wins from rule APIs; final win uses touch input"
+      }
+    }
+  ],
+  "screenshots": [
+    {
+      "filename": "normal-level-120.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "filename": "normal-result-120.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    }
+  ],
+  "pageErrors": [],
+  "status": "passed",
+  "browserVersion": "151.0.7922.173",
+  "finishedAt": "2026-10-11T18:08:30.839Z"
+}

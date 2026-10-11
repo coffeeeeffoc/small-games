@@ -53,7 +53,7 @@ const random=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
 const report={modes:{}, ai:[], checks:['both roles and initiatives','forged/invalid actions rejected','immutable step','capture and escape outcomes','survival deadline','no uncontested escape witness','no forced opening win within six plies for either initiative','connected unique graphs','difficulty topology progression']};
 for(const mode of ['escape','survival']){
  const maps=duelLevels.filter(level=>level.mode===mode), graphs=new Set();
- assert.equal(maps.length,100);
+ assert.equal(maps.length,120);
  const outcomes={pursuer:0,runner:0};
  for(const [index,level] of maps.entries()){
   assert.equal(level.id,index+1);assert.ok(level.dist[0].every(Number.isFinite));
@@ -68,13 +68,13 @@ for(const mode of ['escape','survival']){
    outcomes[cursor.winner]++;
   }
  }
- assert.equal(graphs.size,100,'each map has a distinct road graph, not a recolor');
+ assert.equal(graphs.size,120,'each map has a distinct road graph, not a recolor');
  const metrics=list=>({nodes:list.reduce((n,l)=>n+l.nodes.length,0)/list.length,roads:list.reduce((n,l)=>n+l.edges.length,0)/list.length,loops:list.reduce((n,l)=>n+l.edges.length-l.nodes.length+1,0)/list.length,branches:list.reduce((n,l)=>n+l.adj.filter(v=>v.length>=3).length,0)/list.length,rounds:list.reduce((n,l)=>n+l.roundLimit,0)/list.length});
  const early=metrics(maps.slice(0,20)),late=metrics(maps.slice(-20));
  assert.ok(late.nodes>=early.nodes*2);assert.ok(late.loops>=early.loops*2);assert.ok(late.branches>=early.branches*2);
  assert.ok(outcomes.pursuer>0&&outcomes.runner>0);
  report.modes[mode]={count:maps.length,uniqueRoadGraphs:graphs.size,early,late,randomOutcomes:outcomes};
- for(const id of [1,20,50,80,100])for(const firstSide of ['pursuer','runner']){
+ for(const id of [1,20,50,80,100,120])for(const firstSide of ['pursuer','runner']){
   const level=maps[id-1];let cursor=initialDuel(level,firstSide),maxMs=0;
   while(!cursor.winner){const before=performance.now(),action=chooseDuelAction(level,cursor);maxMs=Math.max(maxMs,performance.now()-before);assert.ok(action);cursor=stepDuel(level,cursor,action);}
   report.ai.push({mode,id,firstSide,winner:cursor.winner,turns:cursor.turn,maxThinkMs:Math.round(maxMs)});

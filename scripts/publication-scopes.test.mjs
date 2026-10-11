@@ -1097,6 +1097,96 @@ test('cumulative main workflow repairs retain exact reviewed producer boundaries
 const cageSource = 'games/local/cage-rescue';
 const cageChecksFile = 'apps/shell-web/scripts/game-checks/cage-rescue.mjs';
 const sharedChecksFile = 'apps/shell-web/scripts/standalone-game-checks.mjs';
+test('cops start-to-play guard keeps a single-game scope and rejects changes outside its exact assertions', () => {
+  const oldGuard = `  } else if (id === 'cops-robbers') {
+    await expect(frame.locator('#level-dialog')).toBeVisible();
+    await click(frame.getByTestId('level-button-1'));
+`;
+  const newGuard = `  } else if (id === 'cops-robbers') {
+    await expect(frame.locator('#level-dialog')).toBeHidden();
+    await expect(frame.locator('body')).toHaveAttribute('data-level', '1');
+`;
+  const before =
+    'export async function assertStandaloneGameplay(frame, id, mobile = false) {\n' +
+    "  if (id === 'other') {\n    await frame.locator('canvas').click();\n" +
+    oldGuard +
+    "    await expect(frame.locator('#board')).toBeVisible();\n  }\n}\n";
+  const after = before.replace(oldGuard, newGuard);
+  const context = {
+    changedPaths: [sharedChecksFile],
+    games: [{ id: 'cops-robbers', source: 'games/local/cops-robbers' }],
+    readBase: () => before,
+    readHead: () => after,
+  };
+  assert.deepEqual(
+    [...reviewedSharedFileScopes(context)],
+    [[sharedChecksFile, ['games/local/cops-robbers']]],
+  );
+  const realAfter = readFileSync(
+    new URL('../' + sharedChecksFile, import.meta.url),
+    'utf8',
+  ).replaceAll('\r\n', '\n');
+  assert.equal(realAfter.split(newGuard).length, 2);
+  assert.deepEqual(
+    [
+      ...reviewedSharedFileScopes({
+        ...context,
+        readBase: () => realAfter.replace(newGuard, oldGuard),
+        readHead: () => realAfter,
+      }),
+    ],
+    [[sharedChecksFile, ['games/local/cops-robbers']]],
+  );
+  for (const invalid of [
+    after.replace("'data-level', '1'", "'data-level', '120'"),
+    after.replace("id === 'cops-robbers'", "id !== 'cops-robbers'"),
+    after.replace("locator('canvas').click()", "locator('canvas').tap()"),
+    after + 'globalThis.injected = true;\n',
+    after.replace(newGuard, newGuard + newGuard),
+  ])
+    assert.equal(reviewedSharedFileScopes({ ...context, readHead: () => invalid }).size, 0);
+  const commentedBefore = `/*\n${before}*/\n`;
+  assert.equal(
+    reviewedSharedFileScopes({
+      ...context,
+      readBase: () => commentedBefore,
+      readHead: () => commentedBefore.replace(oldGuard, newGuard),
+    }).size,
+    0,
+  );
+  for (const suffix of [
+    `/*\n${oldGuard}*/\n`,
+    `function unrelated(frame, id) {\n  if (id === 'other') {\n${oldGuard}  }\n}\n`,
+  ]) {
+    const wrongAnchor = after + suffix;
+    assert.equal(
+      reviewedSharedFileScopes({
+        ...context,
+        readBase: () => wrongAnchor,
+        readHead: () => wrongAnchor.replace(oldGuard, newGuard),
+      }).size,
+      0,
+    );
+  }
+  const nestedBefore =
+    'export async function assertStandaloneGameplay(frame, id, mobile = false) {\n' +
+    "  async function unrelated(frame, id) {\n    if (id === 'other') {\n" +
+    oldGuard +
+    '    }\n  }\n}\n';
+  assert.equal(
+    reviewedSharedFileScopes({
+      ...context,
+      readBase: () => nestedBefore,
+      readHead: () => nestedBefore.replace(oldGuard, newGuard),
+    }).size,
+    0,
+  );
+  assert.equal(reviewedSharedFileScopes({ ...context, games: [] }).size, 0);
+  assert.equal(
+    reviewedSharedFileScopes({ ...context, games: [...context.games, ...context.games] }).size,
+    0,
+  );
+});
 const cageEntryFile = 'apps/shell-web/scripts/standalone-game-entry.mjs';
 const cageModule = readFileSync(
   new URL('../' + cageChecksFile, import.meta.url),

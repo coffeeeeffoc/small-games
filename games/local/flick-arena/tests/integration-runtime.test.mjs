@@ -237,6 +237,51 @@ test('campaign victory persists once, unlocks the next briefing and survives rec
   restored.game.dispose();
 });
 
+test('level 20 remains a normal next-level result and only level 120 is the finale', () => {
+  const save = {
+    version: 1,
+    played: 119,
+    wins: 119,
+    campaign: {
+      levels: Object.fromEntries(
+        levels.slice(0, 119).map((level) => [
+          level.id,
+          {
+            stars: 1,
+            goals: [],
+            bestShots: 5,
+          },
+        ]),
+      ),
+    },
+  };
+  const h = harness({ save });
+  const complete = () => {
+    const state = h.game.app.state;
+    state.phase = 'over';
+    state.winner = 0;
+    state.playerShots = 4;
+    state.shots = 8;
+    h.tick(1);
+    assert.equal(h.game.app.screen, 'result');
+  };
+  h.game.action(`level-${levels[19].id}`);
+  h.game.action('play-level');
+  complete();
+  assert(h.game.app.buttons.some((button) => button.id === 'next-level'));
+  assert(!h.texts.includes('巅峰已至！'));
+  h.game.action('next-level');
+  assert.equal(h.game.app.chosenLevel.id, levels[20].id);
+  h.game.action(`level-${levels.at(-1).id}`);
+  h.game.action('play-level');
+  complete();
+  assert(h.texts.includes('巅峰已至！'));
+  assert(h.texts.includes('120 关通关 · 回头挑战满星吧'));
+  assert(!h.game.app.buttons.some((button) => button.id === 'next-level'));
+  assert(h.game.app.buttons.some((button) => button.id === 'retry'));
+  h.game.dispose();
+});
+
 test('online menu stays usable through room polls and leaving stops further polling', async () => {
   const h = harness({ room: roomFixture() });
   await h.join();

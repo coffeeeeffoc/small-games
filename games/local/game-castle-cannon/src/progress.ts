@@ -1,5 +1,5 @@
 import type { JsonValue } from '@coffeeeeffoc/game-contract';
-import { LEVELS } from './levels.js';
+import { CAMPAIGN } from './campaign.js';
 export interface Progress {
   version: 1;
   unlocked: number;
@@ -27,15 +27,15 @@ export const newProgress = (): Progress => ({
 export function readProgress(raw: JsonValue): Progress {
   const p = newProgress();
   if (!raw || typeof raw !== 'object' || Array.isArray(raw) || raw.version !== 1) return p;
-  const ids = new Set(LEVELS.map((l) => l.id));
+  const ids = new Set(CAMPAIGN.map((l) => l.id));
   p.cleared = Array.isArray(raw.cleared)
     ? [...new Set(raw.cleared.filter((id): id is string => typeof id === 'string' && ids.has(id)))]
     : [];
   p.bonus = Array.isArray(raw.bonus)
     ? raw.bonus.filter((id): id is string => typeof id === 'string' && p.cleared.includes(id))
     : [];
-  for (let i = 0; i < LEVELS.length - 1; i++) {
-    if (!p.cleared.includes(LEVELS[i].id)) break;
+  for (let i = 0; i < CAMPAIGN.length - 1; i++) {
+    if (!p.cleared.includes(CAMPAIGN[i].id)) break;
     p.unlocked = i + 1;
   }
   p.materials =
@@ -52,10 +52,10 @@ export function readProgress(raw: JsonValue): Progress {
   return p;
 }
 export function settle(p: Progress, index: number, practice = false) {
-  const level = LEVELS[index];
-  if (practice || p.cleared.includes(level.id)) return 0;
+  const level = CAMPAIGN[index];
+  if (!level || practice || index > p.unlocked || p.cleared.includes(level.id)) return 0;
   p.cleared.push(level.id);
-  p.unlocked = Math.max(p.unlocked, Math.min(2, index + 1));
+  p.unlocked = Math.max(p.unlocked, Math.min(CAMPAIGN.length - 1, index + 1));
   p.materials += level.reward;
   return level.reward;
 }

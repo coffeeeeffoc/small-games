@@ -415,6 +415,61 @@ function assertCompetitionRegistry(readHead, games) {
 const cageRescueSource = 'games/local/cage-rescue';
 const cageRescueGameplayFile = 'apps/shell-web/scripts/game-checks/cage-rescue.mjs';
 const standaloneChecksFile = 'apps/shell-web/scripts/standalone-game-checks.mjs';
+const copsStartBefore = `  } else if (id === 'cops-robbers') {
+    await expect(frame.locator('#level-dialog')).toBeVisible();
+    await click(frame.getByTestId('level-button-1'));
+`;
+const copsStartAfter = `  } else if (id === 'cops-robbers') {
+    await expect(frame.locator('#level-dialog')).toBeHidden();
+    await expect(frame.locator('body')).toHaveAttribute('data-level', '1');
+`;
+function exactCopsStartGuard(before, after) {
+  if (
+    before.split(copsStartBefore).length !== 2 ||
+    after !== before.replace(copsStartBefore, copsStartAfter)
+  )
+    return false;
+  const program = parsedSource(after);
+  const exported = program.body.filter(
+    (node) =>
+      node.type === 'ExportNamedDeclaration' &&
+      node.declaration?.type === 'FunctionDeclaration' &&
+      node.declaration.id.name === 'assertStandaloneGameplay',
+  );
+  assert(exported.length === 1);
+  const offset = before.indexOf(copsStartBefore) + copsStartBefore.indexOf('if (');
+  const branch = ifStatementAt(program, offset);
+  assert(offset > exported[0].declaration.start && branch.end < exported[0].declaration.end);
+  function verifyOwner(node, owner = null) {
+    if (!node || typeof node !== 'object') return;
+    if (
+      [
+        'FunctionDeclaration',
+        'FunctionExpression',
+        'ArrowFunctionExpression',
+        'ObjectMethod',
+        'ClassMethod',
+        'ClassPrivateMethod',
+      ].includes(node.type)
+    )
+      owner = node;
+    if (node === branch) assert(owner === exported[0].declaration);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach((child) => verifyOwner(child, owner));
+      else if (value && typeof value === 'object') verifyOwner(value, owner);
+    }
+  }
+  verifyOwner(program);
+  assert(
+    branch.test.type === 'BinaryExpression' &&
+      branch.test.operator === '===' &&
+      branch.test.left.type === 'Identifier' &&
+      branch.test.left.name === 'id' &&
+      branch.test.right.type === 'StringLiteral' &&
+      branch.test.right.value === 'cops-robbers',
+  );
+  return true;
+}
 const castleEntryBefore = `  } else if (id === 'castle-cannon') {
     await expect(frame.locator('.castle-root')).toHaveAttribute('data-screen', 'playing');
     await click(frame.locator('[data-action="blast"]'));
@@ -847,6 +902,16 @@ export function reviewedSharedFileScopes({
         }
         assert(threeChooseTwoBackendFileScope(file, before, readHead(file)));
         scopes.set(file, ['games/local/three-choose-two', 'services/runtime-api']);
+      } else if (
+        file === standaloneChecksFile &&
+        exactCopsStartGuard(readBase(file), readHead(file))
+      ) {
+        assert(
+          games.filter(
+            (game) => game.id === 'cops-robbers' && game.source === 'games/local/cops-robbers',
+          ).length === 1,
+        );
+        scopes.set(file, ['games/local/cops-robbers']);
       } else if (
         file === standaloneChecksFile &&
         readBase(file).split(castleEntryBefore).length === 2 &&

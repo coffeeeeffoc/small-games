@@ -3,7 +3,7 @@
     "id": "carrom-club",
     "source": "games/local/carrom-club",
     "title": "克朗棋 · Carrom Club",
-    "description": "回拉指尖，听见落袋。在木质棋盘上摆位、瞄准、击球，与阿洛切磋一局，或挑战六关手感练习。",
+    "description": "回拉指尖，听见落袋。在木质棋盘上摆位、瞄准、击球，与阿洛切磋一局，或挑战120关手感练习。",
     "output": "dist"
   },
   {
@@ -143,7 +143,7 @@
     "id": "cops-robbers",
     "source": "games/local/cops-robbers",
     "title": "围捕小队",
-    "description": "先用三张短场试炼练夹击与封路，再挑战百关街区、换防接力，或切换角色与好友对抗。",
+    "description": "在各120关街区、短场试炼与换防接力中练夹击和封路，或切换角色与好友对抗。",
     "output": "dist"
   },
   {
@@ -227,7 +227,7 @@
     "id": "vibeJam-myself-history-guess",
     "source": "games/local/vibeJam-myself-history-guess",
     "title": "此时 · 此地",
-    "description": "观察历史全景，猜测地点与年份，走三幕主题旅途、五幕普通旅途或每日同题，揭晓时空中的故事。",
+    "description": "观察历史全景，猜测地点与年份，挑战126关三幕主题旅途、五幕普通旅途或每日同题，揭晓时空中的故事。",
     "output": "dist"
   },
   {
@@ -402,7 +402,7 @@
     "id": "castle-cannon",
     "source": "games/local/game-castle-cannon",
     "title": "一炮拆城",
-    "description": "隔城实时互轰！调炮蓄力、望远镜校射，切换炮位与地堡补给，守住炮手生命，摧毁对方城防。",
+    "description": "隔城实时互轰！调炮蓄力、望远镜校射，切换炮位与地堡补给，挑战120关炮战战役，守住炮手生命，摧毁对方城防。",
     "output": "dist"
   },
   {
@@ -423,14 +423,14 @@
     "id": "flick-arena",
     "source": "games/local/flick-arena",
     "title": "弹指擂台",
-    "description": "向后拉，松手弹！挑战二十关石柱、冰面与缺口擂台，或开启2–4人好友对战，轮流出招、争夺擂主。",
+    "description": "向后拉，松手弹！挑战120关石柱、冰面与缺口擂台，或开启2–4人好友对战，轮流出招、争夺擂主。",
     "output": "dist"
   },
   {
     "id": "three-choose-two",
     "source": "games/local/three-choose-two",
     "title": "三块选两块",
-    "description": "拖动三块，摆下两块。留住棋盘空间，完成三十关取舍挑战，或在无尽练习中追逐交叉消除与连续高分。",
+    "description": "拖动三块，摆下两块。留住棋盘空间，完成120关取舍挑战，或在无尽练习中追逐交叉消除与连续高分。",
     "output": "dist"
   }
 ]

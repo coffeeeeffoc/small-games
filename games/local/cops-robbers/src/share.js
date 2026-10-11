@@ -1,13 +1,16 @@
 import { relayLevelIds } from './relay.js';
+import { levels } from './levels.js';
+import { quickTrials } from './quick-trials.js';
+import { getDuelLevel } from './duel-levels.js';
 
 export function readPuzzleLink(input) {
   const url = new URL(input), query = url.searchParams;
   if (url.search.length > 1024 || ['mode','level','role','first','rule'].some(key => query.getAll(key).length > 1)) return null;
   if (!query.has('level')) return null;
   const raw = query.get('level'), level = Number(raw);
-  if (!/^\d{1,3}$/.test(raw) || level < 1 || level > 100) return null;
+  if (!/^\d{1,3}$/.test(raw) || level < 1) return null;
   const mode = ['quick','challenge', 'escape', 'survival'].includes(query.get('mode')) ? query.get('mode') : 'challenge';
-  if (mode === 'quick' && level > 3) return null;
+  if (mode === 'quick' ? !quickTrials.some(map=>map.id===level) : ['escape','survival'].includes(mode) ? !getDuelLevel(mode,level) : !levels.some(map=>map.id===level)) return null;
   const rule = mode === 'challenge' && query.get('rule') === 'relay' && relayLevelIds.includes(level) ? 'relay' : 'standard';
   return { mode, level, rule, role: mode !== 'quick' && query.get('role') === 'runner' ? 'runner' : 'pursuer', first: mode !== 'quick' && query.get('first') === 'runner' ? 'runner' : 'pursuer' };
 }

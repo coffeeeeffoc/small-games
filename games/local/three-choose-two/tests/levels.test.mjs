@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { LEVELS, CHAPTERS, validateLevels, getLevel } from '../src/levels.mjs';
 import { createLevel, place, hasPlacement, previewPlacement } from '../src/engine.mjs';
 import { SHAPE_BY_ID } from '../src/shapes.mjs';
-import { createProgress, saveCurrentGame, saveProgress, readProgress, resumeState } from '../src/progress.mjs';
+import { createProgress, saveCurrentGame, saveProgress, readProgress, resumeState, recordLevelResult } from '../src/progress.mjs';
 
 function linePotential(board) {
   let potential = 0, occupied = 0;
@@ -42,11 +42,11 @@ function playGreedy(level, policy) {
   return state;
 }
 
-test('thirty stable independent levels pass their game-owned content validation', () => {
-  assert.equal(LEVELS.length, 30); assert.equal(CHAPTERS.length, 3);
-  assert.equal(new Set(LEVELS.map(({ id }) => id)).size, 30);
-  assert.equal(new Set(LEVELS.map(({ initialBoard }) => JSON.stringify(initialBoard))).size, 30);
-  assert.equal(new Set(LEVELS.map(({ initialBoard }) => JSON.stringify(initialBoard.map(Boolean)))).size, 30, 'each board has distinct occupancy, beyond its colours');
+test('120 stable independent levels pass their game-owned content validation', () => {
+  assert.equal(LEVELS.length, 120); assert.equal(CHAPTERS.length, 12);
+  assert.equal(new Set(LEVELS.map(({ id }) => id)).size, 120);
+  assert.equal(new Set(LEVELS.map(({ initialBoard }) => JSON.stringify(initialBoard))).size, 120);
+  assert.equal(new Set(LEVELS.map(({ initialBoard }) => JSON.stringify(initialBoard.map(Boolean)))).size, 120, 'each board has distinct occupancy, beyond its colours');
   assert.equal(validateLevels().valid, true);
   for (const [i, level] of LEVELS.entries()) {
     assert.equal(level.id, i + 1); assert.equal(getLevel(level.id), level);
@@ -120,7 +120,7 @@ test('four immediate-clear strategies cannot cruise through any post-tutorial ch
 });
 
 test('discard pressure arrives after spatial planning and progressively narrows the spare allowance', () => {
-  for (const level of LEVELS) {
+  for (const level of LEVELS.slice(0, 30)) {
     if (level.id <= 20) {
       assert.equal(level.discardBudget, undefined);
       continue;
@@ -204,4 +204,49 @@ test('invalid references, budgets, star thresholds and duplicate ids are rejecte
   assert.ok(result.errors.some((error) => error.includes('shape stock')));
   assert.ok(result.errors.some((error) => error.includes('threshold')));
   assert.ok(result.errors.some((error) => error.includes('budget')));
+});
+
+
+test('normal progression reaches all 120 levels and a completed legacy catalog continues at 31', () => {
+  let progress = createProgress();
+  let raw;
+  const storage = { getItem: () => raw, setItem: (_, value) => { raw = value; } };
+  for (const level of LEVELS) {
+    assert.equal(progress.unlocked, level.id);
+    let state = createLevel(level.id);
+    for (const action of level.solution) state = place(state, action.slot, action.x, action.y);
+    progress = recordLevelResult(progress, state);
+    saveProgress(storage, progress);
+    progress = readProgress(storage);
+    assert.equal(progress.records[level.id].stars, 3);
+    if (level.id === 30) assert.equal(progress.unlocked, 31);
+  }
+  assert.equal(progress.unlocked, 120);
+  assert.equal(Object.keys(progress.records).length, 120);
+});
+
+test('expansion budgets remain achievable and decline from six to three spare cells', () => {
+  for (const level of LEVELS.slice(80)) {
+    let state = createLevel(level.id);
+    for (const action of level.solution) state = place(state, action.slot, action.x, action.y);
+    assert.equal(level.discardBudget - state.stats.discardedCells, level.id >= 101 ? 3 : 6);
+  }
+});
+
+test('damaged saved configuration and dangling drag-era slot bookkeeping cannot resume', () => {
+  let raw;
+  const storage = { getItem: () => raw, setItem: (_, value) => { raw = value; } };
+  const progress = createProgress();
+  const state = createLevel(1);
+  for (const damage of [
+    saved => { saved.config.goal = null; },
+    saved => { saved.config.candidates = []; },
+    saved => { saved.used = [1]; },
+    saved => { delete saved.stats.lines; },
+    saved => { saved._undo = { ...state, config: { ...state.config, initialBoard: [] } }; },
+  ]) {
+    const broken = structuredClone(state); damage(broken);
+    raw = JSON.stringify({ ...progress, currentGame: broken });
+    assert.equal(resumeState(readProgress(storage)), null);
+  }
 });

@@ -1,12 +1,37 @@
 import { command, activeGun, available, selectable, muzzle } from './duel-actions.js';
 import { DUEL_RULES as R } from './duel-map.js';
 import { clamp, direction, type Duel, type Side } from './duel-types.js';
+export interface BotProfile {
+  initialDelay: number;
+  reaction: number;
+  error: number;
+  correction: number;
+  structureEvery: number;
+  relocateEvery: number;
+  ammo: 'solid' | 'blast' | 'mixed';
+}
+const STANDARD: BotProfile = {
+  initialDelay: 2.3,
+  reaction: 1.1,
+  error: 4,
+  correction: 0.45,
+  structureEvery: 4,
+  relocateEvery: 0,
+  ammo: 'mixed',
+};
 export class DuelBot {
-  private nextAction = 2.3;
+  private nextAction: number;
+  private nextRelocation: number;
   private shot = 0;
   private desiredPower = 0.6;
   private targetX = 0;
-  constructor(readonly side: Side) {}
+  constructor(
+    readonly side: Side,
+    readonly profile: BotProfile = STANDARD,
+  ) {
+    this.nextAction = profile.initialDelay;
+    this.nextRelocation = profile.relocateEvery;
+  }
   tick(duel: Duel) {
     if (duel.result) return;
     const p = duel.fighters[this.side],
@@ -16,7 +41,7 @@ export class DuelBot {
     if (g?.charge !== null && g?.charge !== undefined) {
       if (duel.time - g.charge >= this.desiredPower * R.chargeSeconds) {
         command(duel, this.side, { type: 'fire' });
-        this.nextAction = duel.time + 1.1;
+        this.nextAction = duel.time + this.profile.reaction;
       }
       return;
     }
@@ -36,6 +61,14 @@ export class DuelBot {
       return;
     }
     if (!g || g.hp <= 0 || g.reload < 1) return;
+    if (this.profile.relocateEvery > 0 && !p.destroyed && duel.time >= this.nextRelocation) {
+      this.nextRelocation = duel.time + this.profile.relocateEvery;
+      const next = p.guns.find((gun) => !gun.bunker && gun.id !== p.station && available(p, gun));
+      if (next) {
+        command(duel, this.side, { type: 'station', id: next.id });
+        return;
+      }
+    }
     if (
       duel.shells.some(
         (s) =>
@@ -49,14 +82,17 @@ export class DuelBot {
     command(duel, this.side, { type: 'crouch', down: false });
     // Estimate only the public current battlefield. Bounded errors narrow after observed misses.
     const target =
-      this.shot % 4 === 3 && !enemy.destroyed
+      this.shot % this.profile.structureEvery === this.profile.structureEvery - 1 &&
+      !enemy.destroyed
         ? (duel.structures.find((s) => s.side === enemy.side && s.hp > 0)?.position ??
           enemy.position)
         : enemy.position;
     const origin = muzzle(this.side, g),
       dx = Math.abs(target.x - origin.x),
       dz = target.z - origin.z;
-    const error = Math.sin(this.shot * 2.4 + this.side) * Math.max(0.7, 4 - this.shot * 0.45);
+    const error =
+      Math.sin(this.shot * 2.4 + this.side) *
+      Math.max(0.7, this.profile.error - this.shot * this.profile.correction);
     const pitch = g.bunker ? 34 : 38;
     const angle = (pitch * Math.PI) / 180;
     const dy = target.y + 0.9 - origin.y;
@@ -75,7 +111,15 @@ export class DuelBot {
       pitch,
       yaw: (-direction(this.side) * Math.atan2(dz + error * 0.3, dx) * 180) / Math.PI,
     });
-    command(duel, this.side, { type: 'ammo', ammo: this.shot % 4 === 0 ? 'solid' : 'blast' });
+    command(duel, this.side, {
+      type: 'ammo',
+      ammo:
+        this.profile.ammo === 'mixed'
+          ? this.shot % 4 === 0
+            ? 'solid'
+            : 'blast'
+          : this.profile.ammo,
+    });
     command(duel, this.side, { type: 'charge' });
   }
 }

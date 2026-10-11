@@ -5,7 +5,7 @@ import { chromium } from '@playwright/test';
 import { levels } from '../src/levels.js';
 import { solutions } from '../src/solutions.js';
 import { initialState, legalTargets, step } from '../src/engine.js';
-import { relayLevelIds, relayTargets, movedOfficer } from '../src/relay.js';
+import { relayLevelIds, relayLevels, relayTargets, movedOfficer } from '../src/relay.js';
 
 const base = process.env.BASE_URL || 'http://127.0.0.1:43441';
 const executablePath = process.env.BROWSER_EXECUTABLE || (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined);
@@ -29,7 +29,7 @@ async function check(name, run) {
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   try {
-    await page.goto(`${base}/?motion=reduce`);
+    await page.goto(`${base}/?dev=1&motion=reduce`);
     await page.locator('#home-start').waitFor({ state: 'visible' });
     await run(page);
     assert.deepEqual(errors, [], 'No browser runtime errors');
@@ -41,7 +41,7 @@ async function check(name, run) {
   } finally { await context.close(); }
 }
 async function choose(page, id) {
-  await page.locator('#home-start').tap();
+  await page.locator('#level-select').tap();
   const chapter = levels[id - 1].chapter;
   await page.locator(`#chapter-tab-${chapter}`).tap();
   await page.getByTestId(`level-button-${id}`).tap();
@@ -70,7 +70,7 @@ try {
     assert.ok(await page.locator('.home-scene').isVisible(), 'The illustrated street scene leads the home');
     assert.notEqual(await page.locator('.home-scene').evaluate(scene => getComputedStyle(scene).backgroundImage), 'none',
       'The home scene loads its cartoon art');
-    await page.locator('#home-start').tap();
+    await page.locator('#level-select').tap();
     assert.ok(await page.locator('#level-dialog').isVisible());
     assert.equal(await page.locator('body').evaluate(body => body.classList.contains('focus-play')), false, 'Choosing levels happens outside play');
     const reachable = new Set();
@@ -81,10 +81,10 @@ try {
         reachable.add(Number(await button.getAttribute('data-level')));
       }
     }
-    assert.equal(reachable.size, levels.length, 'All 100 challenges remain reachable');
-    await page.getByTestId('level-button-100').tap();
+    assert.equal(reachable.size, levels.length, 'All 120 developer challenges remain reachable');
+    await page.getByTestId('level-button-120').tap();
     await page.waitForSelector('#cop-actor-0');
-    assert.equal(await page.locator('body').getAttribute('data-level'), '100');
+    assert.equal(await page.locator('body').getAttribute('data-level'), '120');
     assert.equal(await page.locator(visibleHomeOnly).count(), 0, 'Play contains no home configuration or level controls');
     await page.locator('#focus-toggle').tap();
     await page.locator('#settings').tap();
@@ -163,6 +163,12 @@ try {
     await touch('touchCancel');
     assert.equal(await page.locator('.drag-line').count(), 0, 'Cancellation clears the drag feedback');
     assert.deepEqual(await snapshot(page), stateView(before), 'Cancellation preserves the patrol');
+    await start(targets[cop]);
+    const movedPoint=await nodePoint(page,targets[cop]);
+    await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...movedPoint,id:1},{x:40,y:130,id:2}]});
+    await touch('touchEnd');
+    assert.equal(await page.locator('.drag-line').count(),0,'a second touch cancels the primary drag');
+    assert.deepEqual(await snapshot(page),stateView(before),'a multi-touch release cannot spend a turn');
     await start({ x: 25, y: 25 });
     await touch('touchEnd');
     assert.equal(await page.locator('.drag-line').count(), 0);
@@ -223,7 +229,7 @@ try {
     assert.deepEqual(await snapshot(page), before, 'Occupied road attempts do not consume a turn');
   });
   await check('relay selection explains the turn-four restriction before a blocked tap', async page => {
-    await page.goto(`${base}/?level=1&rule=relay&motion=reduce`);
+    await page.goto(`${base}/?dev=1&level=1&rule=relay&motion=reduce`);
     let state = initialState(levels[0]);
     for (const plan of solutions[1].slice(0, 4)) {
       const cop = plan.findIndex((node, index) => node !== state.cops[index]);
@@ -268,7 +274,7 @@ try {
     assert.equal((await snapshot(page)).cops[2], 5, 'Road 1 to 6 works after a teammate moves');
   });
   await check('standard mode highlights and moves from road 1 to 6 at the reported position', async page => {
-    await page.goto(`${base}/?level=1&rule=standard&motion=reduce`);
+    await page.goto(`${base}/?dev=1&level=1&rule=standard&motion=reduce`);
     let state = initialState(levels[0]);
     for (const plan of solutions[1].slice(0, 4)) {
       const cop = movedOfficer(state, plan);
@@ -289,8 +295,8 @@ try {
     assert.equal((await snapshot(page)).cops[2], 5, 'Standard play allows consecutive moves');
   });
   await check('all relay levels keep selectable officers, highlighted targets and legal moves in sync', async page => {
-    for (const id of relayLevelIds) {
-      await page.goto(`${base}/?level=${id}&rule=relay&motion=reduce`);
+    for (const id of relayLevelIds.slice(0,6)) {
+      await page.goto(`${base}/?dev=1&level=${id}&rule=relay&motion=reduce`);
       const map = levels[id - 1];
       let state = initialState(map), last = -1;
       for (const plan of solutions[id]) {

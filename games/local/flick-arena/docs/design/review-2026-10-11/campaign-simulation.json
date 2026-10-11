@@ -1,0 +1,850 @@
+{
+  "levels": 120,
+  "matches": 1477,
+  "allFinished": true,
+  "levelsWithWinningWitness": 120,
+  "maxShots": 29,
+  "limits": "Seeded bot-player simulation, not human win-rate or physical-device timing",
+  "levelsDetail": [
+    {
+      "id": "rookie-approach",
+      "sampled": 12,
+      "wins": 12,
+      "winningSeed": 1,
+      "maxShots": 19
+    },
+    {
+      "id": "rookie-angle",
+      "sampled": 12,
+      "wins": 12,
+      "winningSeed": 1,
+      "maxShots": 17
+    },
+    {
+      "id": "rookie-brake",
+      "sampled": 12,
+      "wins": 12,
+      "winningSeed": 1,
+      "maxShots": 19
+    },
+    {
+      "id": "rookie-edge",
+      "sampled": 12,
+      "wins": 12,
+      "winningSeed": 1,
+      "maxShots": 19
+    },
+    {
+      "id": "rookie-master",
+      "sampled": 12,
+      "wins": 12,
+      "winningSeed": 1,
+      "maxShots": 19
+    },
+    {
+      "id": "rivals-triangle",
+      "sampled": 12,
+      "wins": 6,
+      "winningSeed": 2,
+      "maxShots": 28
+    },
+    {
+      "id": "rivals-chain",
+      "sampled": 12,
+      "wins": 6,
+      "winningSeed": 2,
+      "maxShots": 20
+    },
+    {
+      "id": "rivals-escape",
+      "sampled": 12,
+      "wins": 3,
+      "winningSeed": 4,
+      "maxShots": 29
+    },
+    {
+      "id": "rivals-choice",
+      "sampled": 12,
+      "wins": 4,
+      "winningSeed": 3,
+      "maxShots": 26
+    },
+    {
+      "id": "rivals-master",
+      "sampled": 12,
+      "wins": 3,
+      "winningSeed": 6,
+      "maxShots": 27
+    },
+    {
+      "id": "terrain-pillar",
+      "sampled": 12,
+      "wins": 9,
+      "winningSeed": 1,
+      "maxShots": 17
+    },
+    {
+      "id": "terrain-bank",
+      "sampled": 12,
+      "wins": 6,
+      "winningSeed": 3,
+      "maxShots": 26
+    },
+    {
+      "id": "terrain-ice",
+      "sampled": 12,
+      "wins": 12,
+      "winningSeed": 1,
+      "maxShots": 11
+    },
+    {
+      "id": "terrain-mixed",
+      "sampled": 12,
+      "wins": 7,
+      "winningSeed": 1,
+      "maxShots": 25
+    },
+    {
+      "id": "terrain-master",
+      "sampled": 12,
+      "wins": 12,
+      "winningSeed": 1,
+      "maxShots": 19
+    },
+    {
+      "id": "summit-gap",
+      "sampled": 12,
+      "wins": 6,
+      "winningSeed": 1,
+      "maxShots": 17
+    },
+    {
+      "id": "summit-ring",
+      "sampled": 12,
+      "wins": 1,
+      "winningSeed": 12,
+      "maxShots": 19
+    },
+    {
+      "id": "summit-bridge",
+      "sampled": 12,
+      "wins": 2,
+      "winningSeed": 5,
+      "maxShots": 16
+    },
+    {
+      "id": "summit-ice-edge",
+      "sampled": 12,
+      "wins": 4,
+      "winningSeed": 6,
+      "maxShots": 15
+    },
+    {
+      "id": "summit-master",
+      "sampled": 12,
+      "wins": 6,
+      "winningSeed": 1,
+      "maxShots": 14
+    },
+    {
+      "id": "qingfeng-rookie-approach",
+      "sampled": 12,
+      "wins": 11,
+      "winningSeed": 1,
+      "maxShots": 17
+    },
+    {
+      "id": "qingfeng-rookie-angle",
+      "sampled": 12,
+      "wins": 12,
+      "winningSeed": 1,
+      "maxShots": 17
+    },
+    {
+      "id": "qingfeng-rookie-brake",
+      "sampled": 12,
+      "wins": 12,
+      "winningSeed": 1,
+      "maxShots": 19
+    },
+    {
+      "id": "qingfeng-rookie-edge",
+      "sampled": 12,
+      "wins": 11,
+      "winningSeed": 1,
+      "maxShots": 20
+    },
+    {
+      "id": "qingfeng-rookie-master",
+      "sampled": 12,
+      "wins": 11,
+      "winningSeed": 1,
+      "maxShots": 19
+    },
+    {
+      "id": "qingfeng-rivals-triangle",
+      "sampled": 12,
+      "wins": 3,
+      "winningSeed": 4,
+      "maxShots": 24
+    },
+    {
+      "id": "qingfeng-rivals-chain",
+      "sampled": 12,
+      "wins": 7,
+      "winningSeed": 2,
+      "maxShots": 21
+    },
+    {
+      "id": "qingfeng-rivals-escape",
+      "sampled": 12,
+      "wins": 5,
+      "winningSeed": 2,
+      "maxShots": 27
+    },
+    {
+      "id": "qingfeng-rivals-choice",
+      "sampled": 12,
+      "wins": 7,
+      "winningSeed": 2,
+      "maxShots": 25
+    },
+    {
+      "id": "qingfeng-rivals-master",
+      "sampled": 12,
+      "wins": 2,
+      "winningSeed": 4,
+      "maxShots": 25
+    },
+    {
+      "id": "qingfeng-terrain-pillar",
+      "sampled": 12,
+      "wins": 12,
+      "winningSeed": 1,
+      "maxShots": 17
+    },
+    {
+      "id": "qingfeng-terrain-bank",
+      "sampled": 12,
+      "wins": 3,
+      "winningSeed": 2,
+      "maxShots": 29
+    },
+    {
+      "id": "qingfeng-terrain-ice",
+      "sampled": 12,
+      "wins": 12,
+      "winningSeed": 1,
+      "maxShots": 15
+    },
+    {
+      "id": "qingfeng-terrain-mixed",
+      "sampled": 12,
+      "wins": 1,
+      "winningSeed": 2,
+      "maxShots": 19
+    },
+    {
+      "id": "qingfeng-terrain-master",
+      "sampled": 12,
+      "wins": 12,
+      "winningSeed": 1,
+      "maxShots": 11
+    },
+    {
+      "id": "qingfeng-summit-gap",
+      "sampled": 12,
+      "wins": 7,
+      "winningSeed": 1,
+      "maxShots": 17
+    },
+    {
+      "id": "qingfeng-summit-ring",
+      "sampled": 12,
+      "wins": 3,
+      "winningSeed": 3,
+      "maxShots": 20
+    },
+    {
+      "id": "qingfeng-summit-bridge",
+      "sampled": 12,
+      "wins": 2,
+      "winningSeed": 7,
+      "maxShots": 17
+    },
+    {
+      "id": "qingfeng-summit-ice-edge",
+      "sampled": 12,
+      "wins": 4,
+      "winningSeed": 1,
+      "maxShots": 13
+    },
+    {
+      "id": "qingfeng-summit-master",
+      "sampled": 12,
+      "wins": 1,
+      "winningSeed": 9,
+      "maxShots": 19
+    },
+    {
+      "id": "zhulang-rookie-approach",
+      "sampled": 12,
+      "wins": 9,
+      "winningSeed": 2,
+      "maxShots": 20
+    },
+    {
+      "id": "zhulang-rookie-angle",
+      "sampled": 12,
+      "wins": 11,
+      "winningSeed": 1,
+      "maxShots": 19
+    },
+    {
+      "id": "zhulang-rookie-brake",
+      "sampled": 12,
+      "wins": 11,
+      "winningSeed": 1,
+      "maxShots": 19
+    },
+    {
+      "id": "zhulang-rookie-edge",
+      "sampled": 12,
+      "wins": 11,
+      "winningSeed": 1,
+      "maxShots": 18
+    },
+    {
+      "id": "zhulang-rookie-master",
+      "sampled": 12,
+      "wins": 11,
+      "winningSeed": 1,
+      "maxShots": 19
+    },
+    {
+      "id": "zhulang-rivals-triangle",
+      "sampled": 12,
+      "wins": 2,
+      "winningSeed": 3,
+      "maxShots": 26
+    },
+    {
+      "id": "zhulang-rivals-chain",
+      "sampled": 12,
+      "wins": 6,
+      "winningSeed": 2,
+      "maxShots": 19
+    },
+    {
+      "id": "zhulang-rivals-escape",
+      "sampled": 12,
+      "wins": 3,
+      "winningSeed": 2,
+      "maxShots": 23
+    },
+    {
+      "id": "zhulang-rivals-choice",
+      "sampled": 12,
+      "wins": 1,
+      "winningSeed": 7,
+      "maxShots": 23
+    },
+    {
+      "id": "zhulang-rivals-master",
+      "sampled": 12,
+      "wins": 2,
+      "winningSeed": 1,
+      "maxShots": 23
+    },
+    {
+      "id": "zhulang-terrain-pillar",
+      "sampled": 12,
+      "wins": 8,
+      "winningSeed": 1,
+      "maxShots": 17
+    },
+    {
+      "id": "zhulang-terrain-bank",
+      "sampled": 12,
+      "wins": 7,
+      "winningSeed": 1,
+      "maxShots": 21
+    },
+    {
+      "id": "zhulang-terrain-ice",
+      "sampled": 12,
+      "wins": 12,
+      "winningSeed": 1,
+      "maxShots": 15
+    },
+    {
+      "id": "zhulang-terrain-mixed",
+      "sampled": 12,
+      "wins": 2,
+      "winningSeed": 5,
+      "maxShots": 21
+    },
+    {
+      "id": "zhulang-terrain-master",
+      "sampled": 12,
+      "wins": 8,
+      "winningSeed": 1,
+      "maxShots": 18
+    },
+    {
+      "id": "zhulang-summit-gap",
+      "sampled": 12,
+      "wins": 9,
+      "winningSeed": 1,
+      "maxShots": 15
+    },
+    {
+      "id": "zhulang-summit-ring",
+      "sampled": 12,
+      "wins": 1,
+      "winningSeed": 11,
+      "maxShots": 19
+    },
+    {
+      "id": "zhulang-summit-bridge",
+      "sampled": 12,
+      "wins": 5,
+      "winningSeed": 2,
+      "maxShots": 19
+    },
+    {
+      "id": "zhulang-summit-ice-edge",
+      "sampled": 12,
+      "wins": 2,
+      "winningSeed": 8,
+      "maxShots": 16
+    },
+    {
+      "id": "zhulang-summit-master",
+      "sampled": 12,
+      "wins": 4,
+      "winningSeed": 1,
+      "maxShots": 13
+    },
+    {
+      "id": "canglan-rookie-approach",
+      "sampled": 12,
+      "wins": 10,
+      "winningSeed": 2,
+      "maxShots": 16
+    },
+    {
+      "id": "canglan-rookie-angle",
+      "sampled": 12,
+      "wins": 9,
+      "winningSeed": 1,
+      "maxShots": 16
+    },
+    {
+      "id": "canglan-rookie-brake",
+      "sampled": 12,
+      "wins": 8,
+      "winningSeed": 3,
+      "maxShots": 16
+    },
+    {
+      "id": "canglan-rookie-edge",
+      "sampled": 12,
+      "wins": 12,
+      "winningSeed": 1,
+      "maxShots": 15
+    },
+    {
+      "id": "canglan-rookie-master",
+      "sampled": 12,
+      "wins": 9,
+      "winningSeed": 2,
+      "maxShots": 16
+    },
+    {
+      "id": "canglan-rivals-triangle",
+      "sampled": 12,
+      "wins": 1,
+      "winningSeed": 3,
+      "maxShots": 20
+    },
+    {
+      "id": "canglan-rivals-chain",
+      "sampled": 12,
+      "wins": 8,
+      "winningSeed": 2,
+      "maxShots": 19
+    },
+    {
+      "id": "canglan-rivals-escape",
+      "sampled": 12,
+      "wins": 2,
+      "winningSeed": 2,
+      "maxShots": 21
+    },
+    {
+      "id": "canglan-rivals-choice",
+      "sampled": 12,
+      "wins": 4,
+      "winningSeed": 1,
+      "maxShots": 21
+    },
+    {
+      "id": "canglan-rivals-master",
+      "sampled": 25,
+      "wins": 1,
+      "winningSeed": 25,
+      "maxShots": 21
+    },
+    {
+      "id": "canglan-terrain-pillar",
+      "sampled": 12,
+      "wins": 12,
+      "winningSeed": 1,
+      "maxShots": 14
+    },
+    {
+      "id": "canglan-terrain-bank",
+      "sampled": 12,
+      "wins": 1,
+      "winningSeed": 4,
+      "maxShots": 18
+    },
+    {
+      "id": "canglan-terrain-ice",
+      "sampled": 12,
+      "wins": 12,
+      "winningSeed": 1,
+      "maxShots": 11
+    },
+    {
+      "id": "canglan-terrain-mixed",
+      "sampled": 12,
+      "wins": 2,
+      "winningSeed": 6,
+      "maxShots": 18
+    },
+    {
+      "id": "canglan-terrain-master",
+      "sampled": 12,
+      "wins": 11,
+      "winningSeed": 1,
+      "maxShots": 14
+    },
+    {
+      "id": "canglan-summit-gap",
+      "sampled": 12,
+      "wins": 10,
+      "winningSeed": 1,
+      "maxShots": 13
+    },
+    {
+      "id": "canglan-summit-ring",
+      "sampled": 12,
+      "wins": 3,
+      "winningSeed": 2,
+      "maxShots": 19
+    },
+    {
+      "id": "canglan-summit-bridge",
+      "sampled": 12,
+      "wins": 4,
+      "winningSeed": 5,
+      "maxShots": 20
+    },
+    {
+      "id": "canglan-summit-ice-edge",
+      "sampled": 12,
+      "wins": 5,
+      "winningSeed": 1,
+      "maxShots": 9
+    },
+    {
+      "id": "canglan-summit-master",
+      "sampled": 12,
+      "wins": 7,
+      "winningSeed": 1,
+      "maxShots": 16
+    },
+    {
+      "id": "xinghe-rookie-approach",
+      "sampled": 12,
+      "wins": 8,
+      "winningSeed": 1,
+      "maxShots": 17
+    },
+    {
+      "id": "xinghe-rookie-angle",
+      "sampled": 12,
+      "wins": 9,
+      "winningSeed": 1,
+      "maxShots": 16
+    },
+    {
+      "id": "xinghe-rookie-brake",
+      "sampled": 12,
+      "wins": 12,
+      "winningSeed": 1,
+      "maxShots": 15
+    },
+    {
+      "id": "xinghe-rookie-edge",
+      "sampled": 12,
+      "wins": 11,
+      "winningSeed": 1,
+      "maxShots": 16
+    },
+    {
+      "id": "xinghe-rookie-master",
+      "sampled": 12,
+      "wins": 8,
+      "winningSeed": 2,
+      "maxShots": 16
+    },
+    {
+      "id": "xinghe-rivals-triangle",
+      "sampled": 12,
+      "wins": 1,
+      "winningSeed": 12,
+      "maxShots": 20
+    },
+    {
+      "id": "xinghe-rivals-chain",
+      "sampled": 12,
+      "wins": 8,
+      "winningSeed": 1,
+      "maxShots": 15
+    },
+    {
+      "id": "xinghe-rivals-escape",
+      "sampled": 12,
+      "wins": 2,
+      "winningSeed": 8,
+      "maxShots": 24
+    },
+    {
+      "id": "xinghe-rivals-choice",
+      "sampled": 12,
+      "wins": 2,
+      "winningSeed": 1,
+      "maxShots": 21
+    },
+    {
+      "id": "xinghe-rivals-master",
+      "sampled": 12,
+      "wins": 3,
+      "winningSeed": 4,
+      "maxShots": 24
+    },
+    {
+      "id": "xinghe-terrain-pillar",
+      "sampled": 12,
+      "wins": 10,
+      "winningSeed": 2,
+      "maxShots": 13
+    },
+    {
+      "id": "xinghe-terrain-bank",
+      "sampled": 12,
+      "wins": 4,
+      "winningSeed": 2,
+      "maxShots": 21
+    },
+    {
+      "id": "xinghe-terrain-ice",
+      "sampled": 12,
+      "wins": 11,
+      "winningSeed": 1,
+      "maxShots": 12
+    },
+    {
+      "id": "xinghe-terrain-mixed",
+      "sampled": 12,
+      "wins": 3,
+      "winningSeed": 2,
+      "maxShots": 18
+    },
+    {
+      "id": "xinghe-terrain-master",
+      "sampled": 12,
+      "wins": 12,
+      "winningSeed": 1,
+      "maxShots": 13
+    },
+    {
+      "id": "xinghe-summit-gap",
+      "sampled": 12,
+      "wins": 9,
+      "winningSeed": 1,
+      "maxShots": 14
+    },
+    {
+      "id": "xinghe-summit-ring",
+      "sampled": 33,
+      "wins": 1,
+      "winningSeed": 33,
+      "maxShots": 20
+    },
+    {
+      "id": "xinghe-summit-bridge",
+      "sampled": 12,
+      "wins": 3,
+      "winningSeed": 4,
+      "maxShots": 19
+    },
+    {
+      "id": "xinghe-summit-ice-edge",
+      "sampled": 12,
+      "wins": 2,
+      "winningSeed": 4,
+      "maxShots": 13
+    },
+    {
+      "id": "xinghe-summit-master",
+      "sampled": 12,
+      "wins": 7,
+      "winningSeed": 1,
+      "maxShots": 17
+    },
+    {
+      "id": "tianjue-rookie-approach",
+      "sampled": 12,
+      "wins": 7,
+      "winningSeed": 3,
+      "maxShots": 14
+    },
+    {
+      "id": "tianjue-rookie-angle",
+      "sampled": 12,
+      "wins": 10,
+      "winningSeed": 1,
+      "maxShots": 13
+    },
+    {
+      "id": "tianjue-rookie-brake",
+      "sampled": 12,
+      "wins": 11,
+      "winningSeed": 1,
+      "maxShots": 14
+    },
+    {
+      "id": "tianjue-rookie-edge",
+      "sampled": 12,
+      "wins": 10,
+      "winningSeed": 1,
+      "maxShots": 14
+    },
+    {
+      "id": "tianjue-rookie-master",
+      "sampled": 12,
+      "wins": 6,
+      "winningSeed": 1,
+      "maxShots": 14
+    },
+    {
+      "id": "tianjue-rivals-triangle",
+      "sampled": 13,
+      "wins": 1,
+      "winningSeed": 13,
+      "maxShots": 16
+    },
+    {
+      "id": "tianjue-rivals-chain",
+      "sampled": 12,
+      "wins": 2,
+      "winningSeed": 7,
+      "maxShots": 15
+    },
+    {
+      "id": "tianjue-rivals-escape",
+      "sampled": 12,
+      "wins": 2,
+      "winningSeed": 6,
+      "maxShots": 17
+    },
+    {
+      "id": "tianjue-rivals-choice",
+      "sampled": 14,
+      "wins": 1,
+      "winningSeed": 14,
+      "maxShots": 16
+    },
+    {
+      "id": "tianjue-rivals-master",
+      "sampled": 12,
+      "wins": 2,
+      "winningSeed": 4,
+      "maxShots": 14
+    },
+    {
+      "id": "tianjue-terrain-pillar",
+      "sampled": 12,
+      "wins": 11,
+      "winningSeed": 1,
+      "maxShots": 13
+    },
+    {
+      "id": "tianjue-terrain-bank",
+      "sampled": 12,
+      "wins": 1,
+      "winningSeed": 6,
+      "maxShots": 18
+    },
+    {
+      "id": "tianjue-terrain-ice",
+      "sampled": 12,
+      "wins": 12,
+      "winningSeed": 1,
+      "maxShots": 9
+    },
+    {
+      "id": "tianjue-terrain-mixed",
+      "sampled": 12,
+      "wins": 5,
+      "winningSeed": 1,
+      "maxShots": 15
+    },
+    {
+      "id": "tianjue-terrain-master",
+      "sampled": 12,
+      "wins": 10,
+      "winningSeed": 1,
+      "maxShots": 10
+    },
+    {
+      "id": "tianjue-summit-gap",
+      "sampled": 12,
+      "wins": 6,
+      "winningSeed": 1,
+      "maxShots": 11
+    },
+    {
+      "id": "tianjue-summit-ring",
+      "sampled": 12,
+      "wins": 2,
+      "winningSeed": 5,
+      "maxShots": 14
+    },
+    {
+      "id": "tianjue-summit-bridge",
+      "sampled": 12,
+      "wins": 5,
+      "winningSeed": 3,
+      "maxShots": 14
+    },
+    {
+      "id": "tianjue-summit-ice-edge",
+      "sampled": 12,
+      "wins": 5,
+      "winningSeed": 1,
+      "maxShots": 8
+    },
+    {
+      "id": "tianjue-summit-master",
+      "sampled": 12,
+      "wins": 7,
+      "winningSeed": 1,
+      "maxShots": 14
+    }
+  ]
+}

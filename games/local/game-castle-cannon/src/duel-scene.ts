@@ -4,6 +4,7 @@ import { MeshKit } from './scene-mesh.js';
 import { loadSceneMaterials } from './scene-assets.js';
 import { siegeLight } from './scene-lighting.js';
 import { SceneFrame } from './scene-frame.js';
+import { SceneQuality } from './scene-quality.js';
 import { disposeVariantGeometry } from './scene-compact.js';
 import { duelWorld } from './duel-world.js';
 import { activeGun, gunDirection } from './duel-actions.js';
@@ -29,6 +30,8 @@ export class DuelScene {
   private match = '';
   private rendered = 0;
   private lowPower = false;
+  private quality = new SceneQuality();
+  private staticKey = '';
   constructor(
     private surface: CanvasRenderSurface,
     context: WebGL2RenderingContext,
@@ -52,14 +55,24 @@ export class DuelScene {
   }
   async loadMaterials(load: NonNullable<CanvasGameTarget['loadImage']>) {
     await loadSceneMaterials(this.kit, load);
+    this.staticKey = '';
   }
   render(v: DuelView) {
+    const key =
+      v.screen === 'playing'
+        ? ''
+        : `${v.screen}:${v.matchId}:${v.duel.tick}:${v.side}:${v.p.skin}:${v.p.motion}:${v.p.lowPower}:${v.scope}:${v.scopeX}:${v.scopeY}`;
+    if (key && key === this.staticKey) return this.surface.image;
     if (!this.frame.ready()) return this.surface.image;
-    if (this.lowPower !== v.p.lowPower) {
+    const qualityChanged = this.lowPower !== v.p.lowPower;
+    if (qualityChanged) {
       this.lowPower = v.p.lowPower;
       this.renderer.setSize(this.lowPower ? 384 : 768, this.lowPower ? 216 : 432, false);
     }
-    if (!this.world) this.world = duelWorld(this.kit, this.scene, v.duel);
+    if (!this.world) {
+      this.world = duelWorld(this.kit, this.scene, v.duel);
+      this.quality.apply(this.scene, this.lowPower);
+    } else if (qualityChanged) this.quality.apply(this.scene, this.lowPower);
     const d = direction(v.side),
       me = v.duel.fighters[v.side],
       gun = activeGun(me) ?? me.guns[0]!;
@@ -102,6 +115,7 @@ export class DuelScene {
         figure.group.position.y += Math.abs(Math.sin(v.duel.time * 11)) * 0.09;
     }
     this.kit.applySkin(v.p.skin);
+    this.quality.sync();
     const live = new Set(v.duel.shells.map((s) => s.id));
     for (const [id, mesh] of this.projectiles)
       if (!live.has(id)) {
@@ -156,7 +170,7 @@ export class DuelScene {
       (mesh.material as T.MeshBasicMaterial).opacity = Math.max(0, 0.65 - age * 0.7);
       (mesh.material as T.MeshBasicMaterial).color.set(age > 0.4 ? '#5b5045' : '#ffc776');
     }
-    const main = ['home', 'maps', 'matching', 'skins'].includes(v.screen);
+    const main = ['home', 'maps', 'campaign', 'matching', 'skins'].includes(v.screen);
     if (main) {
       this.camera.fov = 48;
       this.camera.position.set(-85 * d, 15, 32 * d);
@@ -183,6 +197,7 @@ export class DuelScene {
     this.renderer.shadowMap.enabled = !v.p.lowPower;
     this.renderer.render(this.scene, this.camera);
     this.frame.submitted();
+    this.staticKey = key;
     this.rendered++;
     return this.surface.image;
   }
@@ -196,6 +211,8 @@ export class DuelScene {
   }
   dispose() {
     this.frame.dispose();
+    this.quality.apply(this.scene, false);
+    this.quality.dispose();
     this.environment();
     for (const line of this.trails) {
       line.geometry.dispose();

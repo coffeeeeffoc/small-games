@@ -1477,8 +1477,8 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect(frame.locator('.game')).toHaveAttribute('data-phase', 'playing');
     await expect(frame.locator('#asset-error')).toBeHidden();
   } else if (id === 'cops-robbers') {
-    await expect(frame.locator('#level-dialog')).toBeVisible();
-    await click(frame.getByTestId('level-button-1'));
+    await expect(frame.locator('#level-dialog')).toBeHidden();
+    await expect(frame.locator('body')).toHaveAttribute('data-level', '1');
     await expect(frame.getByTestId('board')).toBeVisible();
     await click(frame.getByTestId('hint'));
     const destination = frame.locator('.node-target.chosen');

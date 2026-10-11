@@ -1,0 +1,30 @@
+{
+  "environment": "Chromium desktop mobile emulation; CDP touch; 390×844 DPR2, 320×568, 844×390",
+  "realDevice": false,
+  "levels": 120,
+  "chapters": 24,
+  "progressSetup": "Synthetic legacy 20-level save for migration; completed-119 fixture for dev=0 finale, never a claim of manual campaign completion",
+  "normalFinale": {
+    "seed": 3,
+    "realTouchShots": 4,
+    "playerShots": 4,
+    "totalShots": 9,
+    "winner": 0
+  },
+  "stateWasManuallyReplaced": false,
+  "checks": [
+    "legacy records continue at level 21",
+    "all 24 chapters retain five-item phone layout",
+    "level 120 remains locked in normal mode",
+    "small-screen controls >=44 CSS px",
+    "developer catalog exposes level 120",
+    "resize cancels a live drag without altering the board",
+    "landscape disc target >=44 CSS px",
+    "touch cancellation and exactly one real flick in level 120",
+    "quick pause after flick; button drag-off/cancellation; keyboard activation; chapter taps never advance twice",
+    "pause freezes level 120",
+    "developer play preserves normal save",
+    "dev=0 level 120 entry, touch victory, final settlement, persistence and replay idempotence"
+  ],
+  "pageErrors": []
+}

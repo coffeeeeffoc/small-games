@@ -1,0 +1,938 @@
+[
+  {
+    "id": "waterways",
+    "number": "04",
+    "name": "水路的方向",
+    "subtitle": "先找水岸，再辨交通",
+    "cover": "quanzhou",
+    "levels": [
+      {
+        "id": "waterways-1",
+        "name": "水岸与街路",
+        "objective": "先找水岸，再看街路怎样接近水面。",
+        "seconds": 35,
+        "scenes": ["kaifeng", "quanzhou", "venice"]
+      },
+      {
+        "id": "waterways-2",
+        "name": "桥上桥下",
+        "objective": "观察桥、水面与岸边建筑的位置关系。",
+        "seconds": 35,
+        "scenes": ["hangzhou-song", "dujiangyan", "macau"]
+      },
+      {
+        "id": "waterways-3",
+        "name": "沿岸的门窗",
+        "objective": "比较临水门窗和街边门窗的朝向。",
+        "seconds": 35,
+        "scenes": ["istanbul", "kaifeng", "suzhou-garden"]
+      },
+      {
+        "id": "waterways-4",
+        "name": "流动的货物",
+        "objective": "从水岸与通道推想货物怎样进入城市。",
+        "seconds": 35,
+        "scenes": ["quanzhou", "venice", "hangzhou-song"]
+      },
+      {
+        "id": "waterways-5",
+        "name": "岸边的层次",
+        "objective": "先看近岸细节，再看远处建筑的轮廓。",
+        "seconds": 35,
+        "scenes": ["dujiangyan", "suzhou-garden", "macau"]
+      },
+      {
+        "id": "waterways-6",
+        "name": "河道的宽窄",
+        "objective": "比较水面与街道的尺度，寻找交通线索。",
+        "seconds": 35,
+        "scenes": ["istanbul", "kaifeng", "quanzhou"]
+      },
+      {
+        "id": "waterways-7",
+        "name": "水与生活",
+        "objective": "把水岸、屋檐和行人作为一组线索。",
+        "seconds": 35,
+        "scenes": ["venice", "macau", "hangzhou-song"]
+      },
+      {
+        "id": "waterways-8",
+        "name": "城市的入口",
+        "objective": "寻找人或货物由水岸进入街巷的通道。",
+        "seconds": 35,
+        "scenes": ["suzhou-garden", "istanbul", "dujiangyan"]
+      },
+      {
+        "id": "waterways-9",
+        "name": "三封水岸来信",
+        "objective": "综合水面、交通与建筑，分别作出判断。",
+        "seconds": 35,
+        "scenes": ["macau", "kaifeng", "quanzhou"]
+      }
+    ]
+  },
+  {
+    "id": "landforms",
+    "number": "05",
+    "name": "远行的地貌",
+    "subtitle": "从山海与植被，缩小地图范围",
+    "cover": "dunhuang",
+    "levels": [
+      {
+        "id": "landforms-1",
+        "name": "抬头看山",
+        "objective": "先看地平线，分辨山地或开阔环境。",
+        "seconds": 35,
+        "scenes": ["dunhuang", "petra", "babylon"]
+      },
+      {
+        "id": "landforms-2",
+        "name": "地面的颜色",
+        "objective": "比较土石色调与建筑材料，别只看一座楼。",
+        "seconds": 35,
+        "scenes": ["lhasa-potala", "giza", "machu-picchu"]
+      },
+      {
+        "id": "landforms-3",
+        "name": "植被留下的话",
+        "objective": "寻找画面中的植被，再与地形相互核对。",
+        "seconds": 35,
+        "scenes": ["dujiangyan", "babylon", "angkor"]
+      },
+      {
+        "id": "landforms-4",
+        "name": "远景的高度",
+        "objective": "观察远景与前景的高差，尝试缩小范围。",
+        "seconds": 35,
+        "scenes": ["dunhuang", "petra", "machu-picchu"]
+      },
+      {
+        "id": "landforms-5",
+        "name": "道路的坡度",
+        "objective": "看看通道怎样顺着地形延伸。",
+        "seconds": 35,
+        "scenes": ["giza", "angkor", "lhasa-potala"]
+      },
+      {
+        "id": "landforms-6",
+        "name": "石与土之间",
+        "objective": "分开观察自然岩石与人工建筑的表面。",
+        "seconds": 35,
+        "scenes": ["dujiangyan", "dunhuang", "babylon"]
+      },
+      {
+        "id": "landforms-7",
+        "name": "山地的空间",
+        "objective": "比较建筑、道路和坡地之间的关系。",
+        "seconds": 35,
+        "scenes": ["petra", "machu-picchu", "lhasa-potala"]
+      },
+      {
+        "id": "landforms-8",
+        "name": "地平线之外",
+        "objective": "结合天空下的轮廓与地表，决定地图落点。",
+        "seconds": 35,
+        "scenes": ["angkor", "dujiangyan", "giza"]
+      },
+      {
+        "id": "landforms-9",
+        "name": "三种地貌",
+        "objective": "不要只凭建筑；把环境与材料一起判断。",
+        "seconds": 35,
+        "scenes": ["babylon", "dunhuang", "machu-picchu"]
+      }
+    ]
+  },
+  {
+    "id": "rooflines",
+    "number": "06",
+    "name": "屋檐下的线索",
+    "subtitle": "近看结构，远看城市轮廓",
+    "cover": "beijing",
+    "levels": [
+      {
+        "id": "rooflines-1",
+        "name": "屋顶的轮廓",
+        "objective": "观察屋顶的斜度、弧度和层次。",
+        "seconds": 35,
+        "scenes": ["beijing", "changan", "kyoto-heian"]
+      },
+      {
+        "id": "rooflines-2",
+        "name": "排列的屋檐",
+        "objective": "从多座屋顶的重复形状中寻找共同线索。",
+        "seconds": 35,
+        "scenes": ["florence", "paris", "pingyao"]
+      },
+      {
+        "id": "rooflines-3",
+        "name": "屋顶与墙面",
+        "objective": "比较屋顶材料和墙面的组合。",
+        "seconds": 35,
+        "scenes": ["venice", "hangzhou-song", "suzhou-garden"]
+      },
+      {
+        "id": "rooflines-4",
+        "name": "屋檐的阴影",
+        "objective": "借阴影观察檐口、支撑与门窗关系。",
+        "seconds": 35,
+        "scenes": ["beijing", "changan", "pingyao"]
+      },
+      {
+        "id": "rooflines-5",
+        "name": "高低相邻",
+        "objective": "看看建筑高低如何组织街道。",
+        "seconds": 35,
+        "scenes": ["florence", "paris", "kyoto-heian"]
+      },
+      {
+        "id": "rooflines-6",
+        "name": "转角的一眼",
+        "objective": "环顾转角，寻找主建筑之外的屋顶线索。",
+        "seconds": 35,
+        "scenes": ["suzhou-garden", "beijing", "hangzhou-song"]
+      },
+      {
+        "id": "rooflines-7",
+        "name": "远近的轮廓",
+        "objective": "把近处屋檐与远处轮廓合起来判断。",
+        "seconds": 35,
+        "scenes": ["changan", "kyoto-heian", "venice"]
+      },
+      {
+        "id": "rooflines-8",
+        "name": "屋顶与街路",
+        "objective": "留意屋顶形式与街道尺度的搭配。",
+        "seconds": 35,
+        "scenes": ["pingyao", "florence", "hangzhou-song"]
+      },
+      {
+        "id": "rooflines-9",
+        "name": "先看形再猜",
+        "objective": "逐幕比较屋顶和门窗，避免只凭第一眼。",
+        "seconds": 35,
+        "scenes": ["paris", "suzhou-garden", "venice"]
+      }
+    ]
+  },
+  {
+    "id": "materials",
+    "number": "07",
+    "name": "材料的笔记",
+    "subtitle": "观察木、砖与石的组合",
+    "cover": "rome",
+    "levels": [
+      {
+        "id": "materials-1",
+        "name": "表面的纹理",
+        "objective": "辨别石、砖或木的可见纹理。",
+        "seconds": 35,
+        "scenes": ["athens", "rome", "yinxu"]
+      },
+      {
+        "id": "materials-2",
+        "name": "墙面与支撑",
+        "objective": "看看墙面与支撑结构是否使用相似材料。",
+        "seconds": 35,
+        "scenes": ["qin-mausoleum", "longmen", "florence"]
+      },
+      {
+        "id": "materials-3",
+        "name": "接缝的方向",
+        "objective": "观察可见接缝和块材排列。",
+        "seconds": 35,
+        "scenes": ["angkor", "petra", "babylon"]
+      },
+      {
+        "id": "materials-4",
+        "name": "柱与拱之间",
+        "objective": "寻找支撑方式，别只用建筑大小猜时代。",
+        "seconds": 35,
+        "scenes": ["athens", "rome", "giza"]
+      },
+      {
+        "id": "materials-5",
+        "name": "装饰的表面",
+        "objective": "区分结构表面与附加装饰。",
+        "seconds": 35,
+        "scenes": ["yinxu", "qin-mausoleum", "florence"]
+      },
+      {
+        "id": "materials-6",
+        "name": "地面到屋顶",
+        "objective": "从地面、墙面到上部结构连续观察。",
+        "seconds": 35,
+        "scenes": ["longmen", "petra", "babylon"]
+      },
+      {
+        "id": "materials-7",
+        "name": "材料与环境",
+        "objective": "把材料选择与周围环境一同判断。",
+        "seconds": 35,
+        "scenes": ["athens", "angkor", "giza"]
+      },
+      {
+        "id": "materials-8",
+        "name": "重复的结构",
+        "objective": "寻找成排或重复出现的结构细节。",
+        "seconds": 35,
+        "scenes": ["yinxu", "qin-mausoleum", "rome"]
+      },
+      {
+        "id": "materials-9",
+        "name": "三幕工匠笔记",
+        "objective": "综合材料、支撑与装饰，提出三次猜测。",
+        "seconds": 35,
+        "scenes": ["longmen", "florence", "petra"]
+      }
+    ]
+  },
+  {
+    "id": "everyday",
+    "number": "08",
+    "name": "一日的脚步",
+    "subtitle": "看街道、店铺和日常工具",
+    "cover": "kaifeng",
+    "levels": [
+      {
+        "id": "everyday-1",
+        "name": "街路的宽度",
+        "objective": "比较街路宽度与周边建筑的尺度。",
+        "seconds": 35,
+        "scenes": ["changan", "shanghai", "new-york"]
+      },
+      {
+        "id": "everyday-2",
+        "name": "门面的节奏",
+        "objective": "观察沿街门窗和店铺如何排列。",
+        "seconds": 35,
+        "scenes": ["pingyao", "paris", "kaifeng"]
+      },
+      {
+        "id": "everyday-3",
+        "name": "行人的方向",
+        "objective": "寻找行人与通道的关系，注意画面艺术综合。",
+        "seconds": 35,
+        "scenes": ["quanzhou", "hangzhou-song", "macau"]
+      },
+      {
+        "id": "everyday-4",
+        "name": "交通的痕迹",
+        "objective": "把可见交通工具与道路形态一起判断。",
+        "seconds": 35,
+        "scenes": ["pingyao", "shanghai", "new-york"]
+      },
+      {
+        "id": "everyday-5",
+        "name": "街角与入口",
+        "objective": "从路口、门面和入口观察日常空间。",
+        "seconds": 35,
+        "scenes": ["changan", "paris", "kaifeng"]
+      },
+      {
+        "id": "everyday-6",
+        "name": "高处的招牌",
+        "objective": "寻找门面装饰与街景线索，不把文字当答案。",
+        "seconds": 35,
+        "scenes": ["quanzhou", "shanghai", "macau"]
+      },
+      {
+        "id": "everyday-7",
+        "name": "地上的细节",
+        "objective": "从地面工具、货物或路面寻找辅助线索。",
+        "seconds": 35,
+        "scenes": ["changan", "new-york", "hangzhou-song"]
+      },
+      {
+        "id": "everyday-8",
+        "name": "层层街景",
+        "objective": "从近处街路看到远处轮廓，避免只盯地标。",
+        "seconds": 35,
+        "scenes": ["paris", "macau", "pingyao"]
+      },
+      {
+        "id": "everyday-9",
+        "name": "生活的三种样子",
+        "objective": "分别结合门面、交通与建筑作出判断。",
+        "seconds": 35,
+        "scenes": ["quanzhou", "kaifeng", "hangzhou-song"]
+      }
+    ]
+  },
+  {
+    "id": "public-spaces",
+    "number": "09",
+    "name": "人与广场",
+    "subtitle": "从空间的组织，判断场景",
+    "cover": "athens",
+    "levels": [
+      {
+        "id": "public-spaces-1",
+        "name": "开放与围合",
+        "objective": "先判断空间是开放还是被建筑围合。",
+        "seconds": 30,
+        "scenes": ["athens", "rome", "beijing"]
+      },
+      {
+        "id": "public-spaces-2",
+        "name": "入口与中心",
+        "objective": "比较入口和中央建筑的位置关系。",
+        "seconds": 30,
+        "scenes": ["yinxu", "qin-mausoleum", "lhasa-potala"]
+      },
+      {
+        "id": "public-spaces-3",
+        "name": "对称的线索",
+        "objective": "观察轴线与对称，不直接由规模猜年份。",
+        "seconds": 30,
+        "scenes": ["florence", "paris", "angkor"]
+      },
+      {
+        "id": "public-spaces-4",
+        "name": "抬升的平台",
+        "objective": "寻找台阶或高差，再看上方建筑。",
+        "seconds": 30,
+        "scenes": ["athens", "rome", "lhasa-potala"]
+      },
+      {
+        "id": "public-spaces-5",
+        "name": "远近的秩序",
+        "objective": "从近处通道追踪到远处主要空间。",
+        "seconds": 30,
+        "scenes": ["yinxu", "qin-mausoleum", "beijing"]
+      },
+      {
+        "id": "public-spaces-6",
+        "name": "柱列与通路",
+        "objective": "留意重复结构怎样引导观察方向。",
+        "seconds": 30,
+        "scenes": ["angkor", "athens", "paris"]
+      },
+      {
+        "id": "public-spaces-7",
+        "name": "建筑之间",
+        "objective": "把建筑之间的空地也作为线索。",
+        "seconds": 30,
+        "scenes": ["rome", "beijing", "florence"]
+      },
+      {
+        "id": "public-spaces-8",
+        "name": "空间与装饰",
+        "objective": "结合空间组织和局部装饰核对直觉。",
+        "seconds": 30,
+        "scenes": ["lhasa-potala", "yinxu", "angkor"]
+      },
+      {
+        "id": "public-spaces-9",
+        "name": "三幕公共空间",
+        "objective": "逐幕先看整体布局，再补一条细节线索。",
+        "seconds": 30,
+        "scenes": ["florence", "paris", "qin-mausoleum"]
+      }
+    ]
+  },
+  {
+    "id": "gardens",
+    "number": "10",
+    "name": "树影与院落",
+    "subtitle": "用自然与建筑互相核对",
+    "cover": "suzhou-garden",
+    "levels": [
+      {
+        "id": "gardens-1",
+        "name": "树影的边界",
+        "objective": "观察植被和建筑的边界，别忽略环境。",
+        "seconds": 30,
+        "scenes": ["suzhou-garden", "kyoto-heian", "machu-picchu"]
+      },
+      {
+        "id": "gardens-2",
+        "name": "院里的高差",
+        "objective": "比较地面、台阶与建筑的相对高度。",
+        "seconds": 30,
+        "scenes": ["lhasa-potala", "beijing", "dujiangyan"]
+      },
+      {
+        "id": "gardens-3",
+        "name": "水与树之间",
+        "objective": "寻找水面或植被怎样划分空间。",
+        "seconds": 30,
+        "scenes": ["hangzhou-song", "angkor", "kyoto-heian"]
+      },
+      {
+        "id": "gardens-4",
+        "name": "路径的转折",
+        "objective": "观察通道是直行、转折还是顺着坡地。",
+        "seconds": 30,
+        "scenes": ["suzhou-garden", "machu-picchu", "lhasa-potala"]
+      },
+      {
+        "id": "gardens-5",
+        "name": "围合的方式",
+        "objective": "比较墙、建筑和地形怎样围合空间。",
+        "seconds": 30,
+        "scenes": ["dujiangyan", "beijing", "angkor"]
+      },
+      {
+        "id": "gardens-6",
+        "name": "远处的山影",
+        "objective": "把近景结构与远处地形同时纳入判断。",
+        "seconds": 30,
+        "scenes": ["machu-picchu", "kyoto-heian", "hangzhou-song"]
+      },
+      {
+        "id": "gardens-7",
+        "name": "框住的远景",
+        "objective": "观察门窗或通道是否形成远景的框架。",
+        "seconds": 30,
+        "scenes": ["suzhou-garden", "dujiangyan", "lhasa-potala"]
+      },
+      {
+        "id": "gardens-8",
+        "name": "自然与人工",
+        "objective": "先分清自然地形与人工组织的部分。",
+        "seconds": 30,
+        "scenes": ["hangzhou-song", "beijing", "angkor"]
+      },
+      {
+        "id": "gardens-9",
+        "name": "三处栖身之地",
+        "objective": "结合环境、路径与屋顶逐幕判断。",
+        "seconds": 30,
+        "scenes": ["machu-picchu", "kyoto-heian", "dujiangyan"]
+      }
+    ]
+  },
+  {
+    "id": "boundaries",
+    "number": "11",
+    "name": "门与边界",
+    "subtitle": "从城门与通道，看城市尺度",
+    "cover": "babylon",
+    "levels": [
+      {
+        "id": "boundaries-1",
+        "name": "通道的形状",
+        "objective": "先观察门洞、通道或街口的形状。",
+        "seconds": 30,
+        "scenes": ["babylon", "pingyao", "istanbul"]
+      },
+      {
+        "id": "boundaries-2",
+        "name": "墙里的空间",
+        "objective": "看看墙面与其后的空间如何连接。",
+        "seconds": 30,
+        "scenes": ["athens", "qin-mausoleum", "yinxu"]
+      },
+      {
+        "id": "boundaries-3",
+        "name": "装饰与结构",
+        "objective": "区分门面装饰和真正承重的结构。",
+        "seconds": 30,
+        "scenes": ["macau", "beijing", "rome"]
+      },
+      {
+        "id": "boundaries-4",
+        "name": "入口的尺度",
+        "objective": "把入口高度与旁边建筑作对照。",
+        "seconds": 30,
+        "scenes": ["babylon", "yinxu", "istanbul"]
+      },
+      {
+        "id": "boundaries-5",
+        "name": "直路与转弯",
+        "objective": "沿着画面里的通道寻找城市组织线索。",
+        "seconds": 30,
+        "scenes": ["rome", "athens", "pingyao"]
+      },
+      {
+        "id": "boundaries-6",
+        "name": "远近两道线",
+        "objective": "比较近处边界与远处建筑轮廓。",
+        "seconds": 30,
+        "scenes": ["macau", "beijing", "qin-mausoleum"]
+      },
+      {
+        "id": "boundaries-7",
+        "name": "屋檐与入口",
+        "objective": "用门洞和屋檐两类线索相互核对。",
+        "seconds": 30,
+        "scenes": ["babylon", "rome", "istanbul"]
+      },
+      {
+        "id": "boundaries-8",
+        "name": "边界与生活",
+        "objective": "看看入口周边是否出现生活和交通线索。",
+        "seconds": 30,
+        "scenes": ["yinxu", "athens", "pingyao"]
+      },
+      {
+        "id": "boundaries-9",
+        "name": "三重边界",
+        "objective": "逐幕结合通道、材料与空间组织作出判断。",
+        "seconds": 30,
+        "scenes": ["macau", "qin-mausoleum", "istanbul"]
+      }
+    ]
+  },
+  {
+    "id": "engineering",
+    "number": "12",
+    "name": "结构的耐心",
+    "subtitle": "比较支撑、水路与地形",
+    "cover": "dujiangyan",
+    "levels": [
+      {
+        "id": "engineering-1",
+        "name": "层层支撑",
+        "objective": "观察上部结构如何与下部支撑连接。",
+        "seconds": 30,
+        "scenes": ["giza", "venice", "longmen"]
+      },
+      {
+        "id": "engineering-2",
+        "name": "顺着地形",
+        "objective": "判断建筑或道路怎样适应地形。",
+        "seconds": 30,
+        "scenes": ["florence", "machu-picchu", "rome"]
+      },
+      {
+        "id": "engineering-3",
+        "name": "跨过空处",
+        "objective": "寻找跨越空间的结构，观察其轮廓。",
+        "seconds": 30,
+        "scenes": ["angkor", "dujiangyan", "qin-mausoleum"]
+      },
+      {
+        "id": "engineering-4",
+        "name": "水路与岸线",
+        "objective": "把水路、岸线或地形当作工程线索。",
+        "seconds": 30,
+        "scenes": ["giza", "machu-picchu", "longmen"]
+      },
+      {
+        "id": "engineering-5",
+        "name": "块材的组织",
+        "objective": "留意石、砖或其他块材如何重复排列。",
+        "seconds": 30,
+        "scenes": ["florence", "venice", "rome"]
+      },
+      {
+        "id": "engineering-6",
+        "name": "整体和局部",
+        "objective": "先看整体尺度，再用局部结构核对。",
+        "seconds": 30,
+        "scenes": ["longmen", "dujiangyan", "qin-mausoleum"]
+      },
+      {
+        "id": "engineering-7",
+        "name": "向上与向外",
+        "objective": "比较建筑向上叠加和横向展开的方式。",
+        "seconds": 30,
+        "scenes": ["giza", "venice", "angkor"]
+      },
+      {
+        "id": "engineering-8",
+        "name": "功能的痕迹",
+        "objective": "从空间和结构推想用途，不断言艺术细节为史实。",
+        "seconds": 30,
+        "scenes": ["qin-mausoleum", "machu-picchu", "rome"]
+      },
+      {
+        "id": "engineering-9",
+        "name": "三幕结构挑战",
+        "objective": "分别用一条结构线索和一条环境线索作判断。",
+        "seconds": 30,
+        "scenes": ["angkor", "dujiangyan", "florence"]
+      }
+    ]
+  },
+  {
+    "id": "crossroads",
+    "number": "13",
+    "name": "海陆相逢",
+    "subtitle": "同类线索，在不同画面中对照",
+    "cover": "istanbul",
+    "levels": [
+      {
+        "id": "crossroads-1",
+        "name": "相似的门面",
+        "objective": "寻找三幕门面相似之处，再留意差异。",
+        "seconds": 25,
+        "scenes": ["dunhuang", "petra", "changan"]
+      },
+      {
+        "id": "crossroads-2",
+        "name": "不同的屋顶",
+        "objective": "对照屋顶形状，避免由单一元素下结论。",
+        "seconds": 25,
+        "scenes": ["quanzhou", "babylon", "istanbul"]
+      },
+      {
+        "id": "crossroads-3",
+        "name": "水路或陆路",
+        "objective": "先辨交通环境，再考虑建筑形式。",
+        "seconds": 25,
+        "scenes": ["dunhuang", "macau", "venice"]
+      },
+      {
+        "id": "crossroads-4",
+        "name": "材料的对照",
+        "objective": "比较同类结构使用的材料与颜色。",
+        "seconds": 25,
+        "scenes": ["istanbul", "petra", "changan"]
+      },
+      {
+        "id": "crossroads-5",
+        "name": "街路的对照",
+        "objective": "用街道尺度与转折修正第一眼判断。",
+        "seconds": 25,
+        "scenes": ["venice", "babylon", "quanzhou"]
+      },
+      {
+        "id": "crossroads-6",
+        "name": "同与不同",
+        "objective": "每幕寻找一条常见线索和一条独特线索。",
+        "seconds": 25,
+        "scenes": ["petra", "macau", "dunhuang"]
+      },
+      {
+        "id": "crossroads-7",
+        "name": "环境的复核",
+        "objective": "用周围地形核对建筑带来的直觉。",
+        "seconds": 25,
+        "scenes": ["istanbul", "quanzhou", "changan"]
+      },
+      {
+        "id": "crossroads-8",
+        "name": "门窗的复核",
+        "objective": "环顾寻找门窗，与屋顶线索互相核对。",
+        "seconds": 25,
+        "scenes": ["venice", "babylon", "macau"]
+      },
+      {
+        "id": "crossroads-9",
+        "name": "三封交汇来信",
+        "objective": "综合交通、材料与环境，逐幕落点。",
+        "seconds": 25,
+        "scenes": ["changan", "istanbul", "dunhuang"]
+      }
+    ]
+  },
+  {
+    "id": "urban-change",
+    "number": "14",
+    "name": "城市的层次",
+    "subtitle": "区分熟悉元素与年代线索",
+    "cover": "shanghai",
+    "levels": [
+      {
+        "id": "urban-change-1",
+        "name": "天际线的变化",
+        "objective": "比较高低轮廓，别把现代城市名当年代。",
+        "seconds": 25,
+        "scenes": ["shanghai", "new-york", "kaifeng"]
+      },
+      {
+        "id": "urban-change-2",
+        "name": "街路与车辆",
+        "objective": "同时观察道路形态和可见交通方式。",
+        "seconds": 25,
+        "scenes": ["changan", "beijing", "paris"]
+      },
+      {
+        "id": "urban-change-3",
+        "name": "门窗的密度",
+        "objective": "比较门窗排列与建筑高度。",
+        "seconds": 25,
+        "scenes": ["hangzhou-song", "florence", "rome"]
+      },
+      {
+        "id": "urban-change-4",
+        "name": "材料与尺度",
+        "objective": "从材料与建筑尺度两方面判断时代。",
+        "seconds": 25,
+        "scenes": ["shanghai", "new-york", "beijing"]
+      },
+      {
+        "id": "urban-change-5",
+        "name": "老与新之间",
+        "objective": "寻找不同形式共存的线索，避免只认一座楼。",
+        "seconds": 25,
+        "scenes": ["florence", "kaifeng", "paris"]
+      },
+      {
+        "id": "urban-change-6",
+        "name": "远景的校正",
+        "objective": "用远处轮廓校正近处建筑带来的直觉。",
+        "seconds": 25,
+        "scenes": ["hangzhou-song", "rome", "changan"]
+      },
+      {
+        "id": "urban-change-7",
+        "name": "生活的校正",
+        "objective": "用街边生活和交通核对建筑判断。",
+        "seconds": 25,
+        "scenes": ["shanghai", "paris", "kaifeng"]
+      },
+      {
+        "id": "urban-change-8",
+        "name": "熟悉却陌生",
+        "objective": "暂时放下地标印象，重新看空间与材料。",
+        "seconds": 25,
+        "scenes": ["changan", "beijing", "new-york"]
+      },
+      {
+        "id": "urban-change-9",
+        "name": "三幕时代练习",
+        "objective": "先猜地点，再独立审视年代线索。",
+        "seconds": 25,
+        "scenes": ["rome", "shanghai", "florence"]
+      }
+    ]
+  },
+  {
+    "id": "environment-review",
+    "number": "15",
+    "name": "山海复核",
+    "subtitle": "先判断区域，再独立判断年代",
+    "cover": "machu-picchu",
+    "levels": [
+      {
+        "id": "environment-review-1",
+        "name": "地形先行",
+        "objective": "先用地形缩小地区，再查看建筑。",
+        "seconds": 25,
+        "scenes": ["dunhuang", "kyoto-heian", "longmen"]
+      },
+      {
+        "id": "environment-review-2",
+        "name": "植被复核",
+        "objective": "用植被和地表核对地图直觉。",
+        "seconds": 25,
+        "scenes": ["petra", "giza", "lhasa-potala"]
+      },
+      {
+        "id": "environment-review-3",
+        "name": "材料复核",
+        "objective": "比较材料与环境是否支持同一个判断。",
+        "seconds": 25,
+        "scenes": ["dujiangyan", "machu-picchu", "babylon"]
+      },
+      {
+        "id": "environment-review-4",
+        "name": "高差复核",
+        "objective": "观察高差与通道，修正落点范围。",
+        "seconds": 25,
+        "scenes": ["angkor", "kyoto-heian", "longmen"]
+      },
+      {
+        "id": "environment-review-5",
+        "name": "轮廓复核",
+        "objective": "用整体轮廓核对局部装饰线索。",
+        "seconds": 25,
+        "scenes": ["dunhuang", "giza", "lhasa-potala"]
+      },
+      {
+        "id": "environment-review-6",
+        "name": "交通复核",
+        "objective": "寻找可能的通道，补足环境判断。",
+        "seconds": 25,
+        "scenes": ["babylon", "machu-picchu", "petra"]
+      },
+      {
+        "id": "environment-review-7",
+        "name": "地点与时代",
+        "objective": "把地区判断和年代判断分开检查。",
+        "seconds": 25,
+        "scenes": ["angkor", "dujiangyan", "longmen"]
+      },
+      {
+        "id": "environment-review-8",
+        "name": "少看一眼地标",
+        "objective": "用两条环境线索作答，不只凭主建筑。",
+        "seconds": 25,
+        "scenes": ["giza", "kyoto-heian", "dunhuang"]
+      },
+      {
+        "id": "environment-review-9",
+        "name": "三幕山海复核",
+        "objective": "每幕使用环境与结构两类线索综合判断。",
+        "seconds": 25,
+        "scenes": ["babylon", "lhasa-potala", "petra"]
+      }
+    ]
+  },
+  {
+    "id": "last-letters",
+    "number": "16",
+    "name": "山河的回信",
+    "subtitle": "让观察、比较与直觉一起落笔",
+    "cover": "longmen",
+    "levels": [
+      {
+        "id": "last-letters-1",
+        "name": "先远后近",
+        "objective": "先看整体环境，再用两条近处细节核对。",
+        "seconds": 25,
+        "scenes": ["shanghai", "new-york", "suzhou-garden"]
+      },
+      {
+        "id": "last-letters-2",
+        "name": "先形后色",
+        "objective": "优先观察形状与结构，再考虑材料色调。",
+        "seconds": 25,
+        "scenes": ["athens", "longmen", "pingyao"]
+      },
+      {
+        "id": "last-letters-3",
+        "name": "三类线索",
+        "objective": "把环境、建筑与交通逐一检查。",
+        "seconds": 25,
+        "scenes": ["yinxu", "kaifeng", "kyoto-heian"]
+      },
+      {
+        "id": "last-letters-4",
+        "name": "环顾再落点",
+        "objective": "环顾主建筑两侧，再决定地点。",
+        "seconds": 25,
+        "scenes": ["quanzhou", "dunhuang", "istanbul"]
+      },
+      {
+        "id": "last-letters-5",
+        "name": "独立判断年代",
+        "objective": "认出地点后，仍需单独检查年代线索。",
+        "seconds": 25,
+        "scenes": ["venice", "giza", "paris"]
+      },
+      {
+        "id": "last-letters-6",
+        "name": "熟悉场景新眼光",
+        "objective": "用与初见不同的细节重新判断。",
+        "seconds": 25,
+        "scenes": ["qin-mausoleum", "petra", "lhasa-potala"]
+      },
+      {
+        "id": "last-letters-7",
+        "name": "两次核对",
+        "objective": "地图落点前核对地形，年份落笔前核对结构。",
+        "seconds": 25,
+        "scenes": ["changan", "macau", "machu-picchu"]
+      },
+      {
+        "id": "last-letters-8",
+        "name": "直觉与证据",
+        "objective": "给直觉补两条画面线索，再确认落笔。",
+        "seconds": 25,
+        "scenes": ["hangzhou-song", "babylon", "beijing"]
+      },
+      {
+        "id": "last-letters-9",
+        "name": "最后三封来信",
+        "objective": "用环境、空间与日常细节完成最后三次判断。",
+        "seconds": 25,
+        "scenes": ["rome", "dujiangyan", "florence"]
+      }
+    ]
+  }
+]

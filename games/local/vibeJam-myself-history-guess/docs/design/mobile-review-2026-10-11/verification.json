@@ -1,0 +1,53 @@
+{
+  "environment": {
+    "browser": "Chromium",
+    "input": "Playwright touch + CDP touch gestures",
+    "base": "http://127.0.0.1:4175/",
+    "api": "Local practice; no online sessions created",
+    "nativeDevice": false
+  },
+  "limitation": "Desktop browser mobile emulation only. Native WeChat, iOS, Android and physical devices were not exercised by these scripts.",
+  "reference": "local-adjustments.svg and ../mobile-pk-2026-10-09/concept.png",
+  "suites": {
+    "review": {
+      "startedAt": "2026-10-11T18:06:24.906Z",
+      "completedAt": "2026-10-11T18:11:53.274Z",
+      "status": "passed",
+      "observations": [
+        "390px touch flow: home/help/settings/fullscreen, panorama drag/cancel, true map tap, invalid year/BCE, pause/resume, persisted guesses/results, one-time score, three-round completion, retry and private journal",
+        "320×568, 390×844, 430×932 and 844×390: no horizontal overflow and all visible controls at least 44 CSS px",
+        "Real elapsed 45-second introductory timeout submits exactly one zero-score result without disclosing an answer",
+        "126 sublevels / 378 touch-played rounds progress through normal locks, preserve all scores on reload, and never create online sessions or alter legacy records; city keyboard/Escape input remains valid",
+        "Blocked browser storage degrades to playable in-memory practice",
+        "A real map-load network failure exposes retry and successful retry restores the playable scene",
+        "Real navigation/pagehide pauses a 45-second practice checkpoint; chapter continue restores the same guess/BCE year, and synthetic visibilitychange separately verifies automatic pause/resume. Competitive deadlines remain on the existing server rules.",
+        "A seeded nine-level legacy save keeps its title, best scores and footprints, and the chapter continue action reaches the first new 35-second level under normal locks.",
+        "An actual deferred image request completed while synthetically hidden opens an automatically paused practice scene; restoration is playable."
+      ],
+      "screenshots": [
+        "actual-home-390.png",
+        "actual-prepare-390.png",
+        "actual-play-390.png",
+        "actual-chapters-320.png",
+        "actual-late-prepare-320.png",
+        "actual-late-play-320.png",
+        "actual-last-summary-320.png",
+        "actual-journal-complete-320.png"
+      ],
+      "errors": []
+    },
+    "lifecycle": {
+      "startedAt": "2026-10-11T18:12:45.683Z",
+      "completedAt": "2026-10-11T18:12:57.521Z",
+      "status": "passed",
+      "observations": [
+        "Real navigation/pagehide pauses a 45-second practice checkpoint; chapter continue restores the same guess/BCE year, and synthetic visibilitychange separately verifies automatic pause/resume. Competitive deadlines remain on the existing server rules.",
+        "A seeded nine-level legacy save keeps its title, best scores and footprints, and the chapter continue action reaches the first new 35-second level under normal locks.",
+        "An actual deferred image request completed while synthetically hidden opens an automatically paused practice scene; restoration is playable.",
+        "A genuine paused checkpoint with one second remaining survives an actual two-second delayed image request; its clock starts only after the panorama is ready, rather than timing out during restoration."
+      ],
+      "screenshots": [],
+      "errors": []
+    }
+  }
+}

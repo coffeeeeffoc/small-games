@@ -8,7 +8,7 @@
     "start": "node scripts/serve.mjs",
     "build": "node scripts/build.mjs",
     "preview": "node scripts/serve.mjs --dist",
-    "test": "node scripts/check-levels.mjs && node scripts/check-optimal.mjs && node scripts/check-duel.mjs && node scripts/check-relay.mjs && node scripts/check-quick.mjs",
+    "test": "node scripts/check-levels.mjs && node scripts/check-optimal.mjs && node scripts/check-duel.mjs && node scripts/check-relay.mjs && node scripts/check-quick.mjs && node scripts/check-campaign-progress.mjs",
     "test:optimal": "node scripts/check-optimal.mjs",
     "test:hints-browser": "node scripts/check-hints-browser.mjs",
     "levels:optimize": "node scripts/optimize-levels.mjs",
@@ -31,7 +31,8 @@
     "test:duel": "node scripts/check-duel.mjs",
     "test:duel-browser": "node scripts/check-duel-browser.mjs",
     "test:native": "node scripts/check-native.mjs",
-    "test:native-browser": "node scripts/check-native-browser.mjs"
+    "test:native-browser": "node scripts/check-native-browser.mjs",
+    "test:progress": "node scripts/check-campaign-progress.mjs && node scripts/check-campaign-browser.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0"

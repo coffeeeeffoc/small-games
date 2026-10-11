@@ -5,7 +5,7 @@ import { levels } from '../src/levels.js';
 import { solutions } from '../src/solutions.js';
 import { optimalSolutions, optimalRelaySolutions } from '../src/optimal-solutions.js';
 import { initialState, step } from '../src/engine.js';
-import { relayLevelIds, movedOfficer } from '../src/relay.js';
+import { relayLevelIds, relayLevels, movedOfficer } from '../src/relay.js';
 import { quickTrials, quickSolutions } from '../src/quick-trials.js';
 
 const base = process.env.BASE_URL || 'http://127.0.0.1:43420';
@@ -16,11 +16,11 @@ try {
   const page = await context.newPage();
   page.on('pageerror',error=>report.errors.push(error.message));
   await page.addInitScript(() => {
-    if (!localStorage.getItem('cops-robbers-v3')) localStorage.setItem('cops-robbers-v3',JSON.stringify({version:3,settings:{teaching:false,sound:false,reduced:true}}));
+    if (!localStorage.getItem('cops-robbers-practice-v3')) localStorage.setItem('cops-robbers-practice-v3',JSON.stringify({version:3,settings:{teaching:false,sound:false,reduced:true}}));
   });
-  const savedState = () => page.evaluate(()=>JSON.parse(localStorage.getItem('cops-robbers-v3')).current.state);
+  const savedState = () => page.evaluate(()=>JSON.parse(localStorage.getItem('cops-robbers-practice-v3')).current.state);
   async function load(id,rule='standard',mode='challenge') {
-    await page.goto(`${base}/?mode=${mode}&level=${id}&rule=${rule}&motion=reduce`);
+    await page.goto(`${base}/?dev=1&mode=${mode}&level=${id}&rule=${rule}&motion=reduce`);
     await page.getByTestId('board').waitFor({state:'visible'});
   }
   async function followHint(level,state,remaining) {
@@ -51,7 +51,7 @@ try {
     for (let remaining=length;remaining>0;remaining--) state = await followHint(level,state,remaining);
     assert.equal(await page.locator('body').getAttribute('data-phase'),'won');
     assert.equal(state.turn,length);
-    assert.equal(await page.evaluate(id=>JSON.parse(localStorage.getItem('cops-robbers-v3')).completed[id].stars,id),3);
+    assert.equal(await page.evaluate(id=>JSON.parse(localStorage.getItem('cops-robbers-practice-v3')).completed[id].stars,id),3);
     report.levels.push({id,turns:state.turn}); console.log(`Hint touch win ${id}/100: ${state.turn} turns`);
   }
   await page.setViewportSize({width:320,height:740}); await load(100);
@@ -74,9 +74,9 @@ try {
   state = await savedState();
   for (let turns=18;turns>0;turns--) state = await followHint(levels[99],state,turns);
   assert.equal(await page.locator('body').getAttribute('data-phase'),'won','initial wait remains recoverable');
-  for (const id of relayLevelIds) {
+  for (const id of relayLevelIds.slice(0,6)) {
     await load(id,'relay'); let state = await savedState();
-    for (let remaining=optimalRelaySolutions[id].length;remaining>0;remaining--) state = await followHint(levels[id-1],state,remaining);
+    for (let remaining=optimalRelaySolutions[id].length;remaining>0;remaining--) state = await followHint(relayLevels.find(map=>map.id===id),state,remaining);
     assert.equal(await page.locator('body').getAttribute('data-phase'),'won');
   }
   for (const level of quickTrials) {
@@ -85,8 +85,8 @@ try {
     assert.equal(await page.locator('body').getAttribute('data-phase'),'won');
   }
   await page.evaluate(()=>{
-    const saved = JSON.parse(localStorage.getItem('cops-robbers-v3')); saved.settings.teaching=true;
-    localStorage.setItem('cops-robbers-v3',JSON.stringify(saved));
+    const saved = JSON.parse(localStorage.getItem('cops-robbers-practice-v3')); saved.settings.teaching=true;
+    localStorage.setItem('cops-robbers-practice-v3',JSON.stringify(saved));
   });
   await load(1); state=initialState(levels[0]);
   for (let turns=7;turns>=4;turns--) {

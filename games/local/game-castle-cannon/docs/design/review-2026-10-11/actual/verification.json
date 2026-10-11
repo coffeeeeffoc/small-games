@@ -1,0 +1,81 @@
+{
+  "environment": "Production Chromium, mobile viewport + CDP touch; not physical devices",
+  "records": [
+    {
+      "name": "portrait-canvas",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "iframe": false,
+      "late": false,
+      "renderer": "official Canvas fallback",
+      "checks": [
+        "normal progress/page locks",
+        "touch continue",
+        "cancel charge without firing",
+        "manual pause survives focus",
+        "help/back",
+        "leave confirmation",
+        "real touch-aim victory",
+        "next stage",
+        "saved reload/unlocks"
+      ]
+    },
+    {
+      "name": "portrait",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "iframe": false,
+      "late": false,
+      "renderer": "3D low-power mode",
+      "checks": [
+        "normal progress/page locks",
+        "touch continue",
+        "cancel charge without firing",
+        "manual pause survives focus",
+        "help/back",
+        "leave confirmation"
+      ]
+    },
+    {
+      "name": "small-iframe",
+      "viewport": {
+        "width": 568,
+        "height": 320
+      },
+      "iframe": true,
+      "late": false,
+      "renderer": "3D low-power mode",
+      "checks": [
+        "normal progress/page locks",
+        "touch continue",
+        "cancel charge without firing",
+        "manual pause survives focus",
+        "help/back",
+        "leave confirmation"
+      ]
+    },
+    {
+      "name": "late-landscape",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "iframe": false,
+      "late": true,
+      "renderer": "3D low-power mode",
+      "checks": [
+        "normal progress/page locks",
+        "touch continue",
+        "cancel charge without firing",
+        "manual pause survives focus",
+        "help/back",
+        "leave confirmation"
+      ]
+    }
+  ],
+  "errors": []
+}

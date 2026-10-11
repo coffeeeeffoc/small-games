@@ -1,7 +1,7 @@
 import { getRoleAppearance } from './role-appearance.js';
 import { gamePortrait } from './art.js';
 
-export function setupGameShell({ openLevels }) {
+export function setupGameShell({ openLevels, startPatrol }) {
   const $ = (id) => document.getElementById(id);
   const platform =
     globalThis.__COMPETITION_CONFIG__?.platform ||
@@ -69,7 +69,7 @@ export function setupGameShell({ openLevels }) {
         .slice(0, 36);
     if ($('play-prompt').textContent !== message) $('play-prompt').textContent = message;
   }
-  $('home-start').addEventListener('click', openLevels);
+  $('home-start').addEventListener('click', startPatrol);
   $('mode-settings').addEventListener('click', () => {
     $('solo-mode').dispatchEvent(new Event('change'));
     $('mode-dialog').showModal();

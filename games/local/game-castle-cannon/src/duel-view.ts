@@ -4,6 +4,7 @@ import type { MatchMode } from './duel-protocol.js';
 export type DuelScreen =
   | 'home'
   | 'maps'
+  | 'campaign'
   | 'matching'
   | 'playing'
   | 'paused'
@@ -27,4 +28,6 @@ export interface DuelView {
   address: string;
   developer: boolean;
   matchId: string;
+  campaignLevel: number | null;
+  chapterPage: number;
 }

@@ -4,7 +4,7 @@ import { levels } from '../src/levels.js';
 import { solutions } from '../src/solutions.js';
 import { optimalSolutions, optimalRelaySolutions } from '../src/optimal-solutions.js';
 import { prepareLevel, initialState, legalPlans, searchSolution, step } from '../src/engine.js';
-import { relayLevelIds, movedOfficer, relayError } from '../src/relay.js';
+import { relayLevelIds, relayLevels, movedOfficer, relayError } from '../src/relay.js';
 import { quickTrials, searchQuick } from '../src/quick-trials.js';
 
 // Independent layer reachability audit: bit masks merge interchangeable actors;
@@ -59,11 +59,11 @@ for (const level of levels) {
   assert.ok(state.robbers.every(node => node === -1));
   assert.deepEqual(hint(level.id,state).plan,null);
   audit.push({id:level.id,referenceTurns:solutions[level.id].length,shortestTurns:plans.length,hints:plans.length});
-  console.log(`Optimal ${level.id}/100: ${plans.length} turns`);
+  console.log(`Optimal ${level.id}/${levels.length}: ${plans.length} turns`);
 }
 assert.equal(optimalSolutions[100].length,17,'level 100 regresses from the old 28-turn hint');
 for (const id of relayLevelIds) {
-  const level = levels[id-1], plans = optimalRelaySolutions[id];
+  const level = relayLevels.find(map=>map.id===id), plans = optimalRelaySolutions[id];
   assert.equal(plans.length,minimumTurns(level,initialState(level),-1),`relay shortest proof ${id}`);
   let state = initialState(level), last = -1;
   for (const [index,plan] of plans.entries()) {
@@ -115,4 +115,4 @@ assert.equal(hint(1,{...initialState(quick),turn:quick.turnLimit},'standard',-1,
 
 mkdirSync(new URL('../outputs/',import.meta.url),{recursive:true});
 writeFileSync(new URL('../outputs/optimal-audit.json',import.meta.url),JSON.stringify({levels:audit,relay:relayAudit,verifiedHints:hints,nonOptimalReferences:audit.filter(row=>row.referenceTurns>row.shortestTurns).length},null,2));
-console.log(`PASS 100 independent shortest proofs, ${hints} certified hints, 6 optimal relay routes, off-route recovery, identity symmetry, quick limits and honest search statuses`);
+console.log(`PASS 120 independent shortest proofs, ${hints} certified hints, 120 optimal relay routes, off-route recovery, identity symmetry, quick limits and honest search statuses`);

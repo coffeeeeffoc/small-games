@@ -1,10 +1,12 @@
-import { getDuelLevel } from '../../../games/local/cops-robbers/src/duel-levels.js';
+import { duelLevels, getDuelLevel } from '../../../games/local/cops-robbers/src/duel-levels.js';
 import { initialDuel, stepDuel } from '../../../games/local/cops-robbers/src/duel.js';
 
 const roles = ['pursuer', 'runner'];
 const durationMs = 300000;
-const description =
-  '双方分别操控追逐队与突围队，房间可交换角色并选择先手；出口竞速、限步周旋各100张地图，服务端随机抽图。每步移动一名队员或原地等待，双方交替行动；追逐队接触全部对手获胜，突围队抵达出口或撑过回合上限获胜。5分钟未完成由突围队获胜。胜3负0，双方都行动且至少4步才计分；每对身份每天仅首场有效对局计分（UTC日）。单机及旧挑战榜成绩不计入此榜。';
+const mapsByMode = Object.fromEntries(
+  ['escape', 'survival'].map((mode) => [mode, duelLevels.filter((level) => level.mode === mode)]),
+);
+const description = `双方分别操控追逐队与突围队，房间可交换角色并选择先手；出口竞速${mapsByMode.escape.length}张、限步周旋${mapsByMode.survival.length}张地图，服务端随机抽图。每步移动一名队员或原地等待，双方交替行动；追逐队接触全部对手获胜，突围队抵达出口或撑过回合上限获胜。5分钟未完成由突围队获胜。胜3负0，双方都行动且至少4步才计分；每对身份每天仅首场有效对局计分（UTC日）。单机及旧挑战榜成绩不计入此榜。`;
 const levelOf = (state) => getDuelLevel(state.mode, state.levelId);
 function advance(state, elapsedMs) {
   if (!Number.isFinite(elapsedMs) || elapsedMs < state.elapsedMs) throw new Error('无效服务器时间');
@@ -20,12 +22,13 @@ export default {
   duel: true,
   roles,
   modes: [
-    { id: 'escape', title: '出口竞速 · 100关' },
-    { id: 'survival', title: '限步周旋 · 100关' },
+    { id: 'escape', title: `出口竞速 · ${mapsByMode.escape.length}关` },
+    { id: 'survival', title: `限步周旋 · ${mapsByMode.survival.length}关` },
   ],
   description,
   initial(seed, mode = 'escape', firstRole = 'pursuer') {
-    const level = getDuelLevel(mode, (seed % 100) + 1);
+    const maps = Object.hasOwn(mapsByMode, mode) ? mapsByMode[mode] : undefined;
+    const level = maps?.[seed % maps.length];
     if (!level || !roles.includes(firstRole)) throw new Error('无效对战配置');
     return {
       levelId: level.id,

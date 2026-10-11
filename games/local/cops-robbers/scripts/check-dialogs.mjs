@@ -43,7 +43,7 @@ try {
     page.on('pageerror', error => errors.push(error.message));
     const activate = locator => locator[touch ? 'tap' : 'click']();
     async function load(id) {
-      await page.goto(`${base}/?level=${id}&motion=reduce`);
+      await page.goto(`${base}/?dev=1&level=${id}&motion=reduce`);
       await page.waitForFunction(id => document.body.dataset.level === String(id) && document.body.dataset.phase === 'planning', id);
     }
     async function cleanDialog(selector) {
@@ -70,7 +70,7 @@ try {
     await expect(page.locator('[data-game-fullscreen]')).not.toBeVisible();
     await activate(page.locator('#focus-toggle'));
     for (let repeat = 0; repeat < 3; repeat++) {
-      for (const [trigger, dialog, close] of [['#help','#help-dialog','明白，开始拦截！'], ['#settings','#settings-dialog','完成'], ['#home-start','#level-dialog','返回首页'], ['#share-challenge','#share-dialog','返回游戏']]) {
+      for (const [trigger, dialog, close] of [['#help','#help-dialog','明白，开始拦截！'], ['#settings','#settings-dialog','完成'], ['#level-select','#level-dialog','返回首页'], ['#share-challenge','#share-dialog','返回游戏']]) {
         await activate(page.locator(trigger));
         await cleanDialog(dialog);
         await activate(page.locator(dialog).getByRole('button', { name: close, exact: true }));

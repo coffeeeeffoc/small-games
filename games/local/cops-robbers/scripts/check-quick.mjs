@@ -22,6 +22,6 @@ for (const trial of quickTrials) {
 const first=quickTrials[0];let idle=initialState(first);
 for(let i=0;i<first.turnLimit;i++)idle=step(first,idle,idle.cops).state;
 assert.equal(quickOutcome(first,idle),'lost');assert.ok(idle.robbers.some(node=>node>=0),'turn limit is a real failure even without escape');
-assert.equal(readPuzzleLink('https://example.test/game?mode=quick&level=4'),null);
+assert.equal(readPuzzleLink('https://example.test/game?mode=quick&level=121'),null);
 assert.equal(readPuzzleLink('https://example.test/game?mode=quick&level=3&rule=relay&role=runner').rule,'standard');
-console.log('PASS 3 distinct quick win witnesses (2/2/4 steps), hard turn limit, remaining-budget hints and exact quick links');
+console.log('PASS 120 distinct quick win witnesses, hard turn limit, remaining-budget hints and exact quick links');

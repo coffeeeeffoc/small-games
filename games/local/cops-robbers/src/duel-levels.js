@@ -3,7 +3,7 @@ import { prepareLevel } from './engine.js';
 function makeMap(id, mode) {
   let seed = id * 9137 + (mode === 'escape' ? 7183 : 51031);
   const random = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296);
-  const size = 4 + Math.floor((id - 1) / 34), nodes = Array.from({ length: size * size }, (_, index) => ({ x: 65 + index % size * 470 / (size - 1), y: 70 + Math.floor(index / size) * 460 / (size - 1) }));
+  const size = Math.min(6, 4 + Math.floor((id - 1) / 34)), nodes = Array.from({ length: size * size }, (_, index) => ({ x: 65 + index % size * 470 / (size - 1), y: 70 + Math.floor(index / size) * 460 / (size - 1) }));
   const candidates = [], edges = [], parent = nodes.map((_, index) => index);
   const root = node => { while (node !== parent[node]) node = parent[node]; return node; };
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
@@ -37,5 +37,5 @@ function makeMap(id, mode) {
   return level;
 }
 
-export const duelLevels = ['escape', 'survival'].flatMap(mode => Array.from({ length: 100 }, (_, index) => makeMap(index + 1, mode)));
+export const duelLevels = ['escape', 'survival'].flatMap(mode => Array.from({ length: 120 }, (_, index) => makeMap(index + 1, mode)));
 export const getDuelLevel = (mode, id) => duelLevels.find(level => level.mode === mode && level.id === Number(id));

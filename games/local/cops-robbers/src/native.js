@@ -1,12 +1,12 @@
 import { levels } from './levels.js';
 import { initialState, legalTargets, step } from './engine.js';
-import { relayLevelIds, relayTargets, movedOfficer, lastOfficer } from './relay.js';
+import { relayLevels, relayTargets, movedOfficer, lastOfficer } from './relay.js';
 import { quickTrials, quickOutcome } from './quick-trials.js';
 import { createRenderer } from './competition-renderer.js';
 
 const KEY = 'cops-robbers-v3';
 const copy = value => JSON.parse(JSON.stringify(value));
-const modes = { standard: { label: '标准巡逻', list: levels, records: 'completed' }, relay: { label: '接力巡逻', list: levels.filter(item => relayLevelIds.includes(item.id)), records: 'relayCompleted' }, quick: { label: '快速练习', list: quickTrials, records: 'quickCompleted' } };
+const modes = { standard: { label: '标准巡逻', list: levels, records: 'completed' }, relay: { label: '接力巡逻', list: relayLevels, records: 'relayCompleted' }, quick: { label: '快速练习', list: quickTrials, records: 'quickCompleted' } };
 const inside = (p, hit) => p.x >= hit.x && p.y >= hit.y && p.x <= hit.x + hit.w && p.y <= hit.y + hit.h;
 
 /** Full local Canvas campaign. sdk is the normalized host port, never a WebView. */
@@ -37,7 +37,7 @@ export function startNativeCopsGame(sdk, config = {}, startNativeCompetition) {
   const key = () => `${mode === 'quick' ? 'quick' : 'challenge'}:${mode === 'relay' ? 'relay' : 'standard'}`;
   const records = () => save[modes[mode].records];
   const list = () => modes[mode].list;
-  const unlocked = index => index === 0 || Boolean(records()[list()[index - 1]?.id]);
+  const unlocked = index => index === 0 || Boolean(records()[list()[index]?.id]) || Boolean(records()[list()[index - 1]?.id]);
   const valid = (state, map) => state && Array.isArray(state.cops) && state.cops.length === map.cops.length && new Set(state.cops).size === state.cops.length && state.cops.every(n => Number.isInteger(n) && n >= 0 && n < map.nodes.length) && Array.isArray(state.robbers) && state.robbers.length === map.robbers.length && state.robbers.every(n => Number.isInteger(n) && n >= -2 && n < map.nodes.length && !state.cops.includes(n)) && Number.isInteger(state.turn) && state.turn >= 0 && state.turn < 100000;
   const outcome = () => mode === 'quick' ? quickOutcome(level, board) : board.robbers.includes(-2) ? 'lost' : board.robbers.every(n => n === -1) ? 'won' : board.turn >= 200 ? 'lost' : 'planning';
   const persist = () => {

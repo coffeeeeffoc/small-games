@@ -454,8 +454,8 @@ export const threeChooseTwoCanvasDefinition = {
         }
       });
       button('上一章', 25, h - 90, 108, 46, () => { levelChapter--; render(); }, { disabled: levelChapter === 0, size: 14 });
-      text(`${levelChapter + 1} / 3`, 195, h - 67, 14, ink);
-      button('下一章', 257, h - 90, 108, 46, () => { levelChapter++; render(); }, { disabled: levelChapter === 2, size: 14 });
+      text(`${levelChapter + 1} / ${CHAPTERS.length}`, 195, h - 67, 14, ink);
+      button('下一章', 257, h - 90, 108, 46, () => { levelChapter++; render(); }, { disabled: levelChapter === CHAPTERS.length - 1, size: 14 });
     }
     function drawGame(h) {
       const b = layout(), level = state.mode === 'level' ? state.config ?? getLevel(state.levelId) : null;

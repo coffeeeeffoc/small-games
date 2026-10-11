@@ -1,6 +1,7 @@
 import type { DuelView } from './duel-session.js';
 import { DUEL_MAP } from './duel-map.js';
 import type { Hit } from './view.js';
+import { CAMPAIGN } from './campaign.js';
 type Label = (
   s: string,
   x: number,
@@ -31,7 +32,14 @@ export function drawDuelMenu(
   const W = 960,
     H = 540,
     gold = '#d6b578';
-  const mode = v.mode === 'human' ? '真人对战' : v.mode === 'bot' ? '在线机器人' : '本地练习',
+  const mode =
+      v.campaignLevel !== null
+        ? `战役 ${v.campaignLevel + 1} / ${CAMPAIGN.length}`
+        : v.mode === 'human'
+          ? '真人对战'
+          : v.mode === 'bot'
+            ? '在线机器人'
+            : '本地练习',
     me = v.duel.fighters[v.side];
   if (v.screen === 'home') {
     const shade = c.createLinearGradient(0, 280, 0, 540);
@@ -46,10 +54,11 @@ export function drawDuelMenu(
     label('隔城互轰 · 炮手生存', 480, 152, 19);
     c.restore();
     button('start', '开始对战', 350, 315, 260, 82, true);
-    button('practice', '机器人练习', 114, 425, 190);
-    button('skins', '外观', 322, 425, 158);
-    button('help', '帮助', 498, 425, 158);
-    button('settings', '设置', 674, 425, 158);
+    button('campaign', '战役选关', 76, 425, 184, 76);
+    button('practice', '机器人练习', 276, 425, 184, 76);
+    button('skins', '外观', 476, 425, 124, 76);
+    button('help', '帮助', 616, 425, 124, 76);
+    button('settings', '设置', 756, 425, 124, 76);
   } else if (v.screen === 'matching') {
     panel(280, 180, 400, 170);
     label('寻找对手', 480, 228, 32);
@@ -61,6 +70,45 @@ export function drawDuelMenu(
     label('同样的弹道、装填与补给', 480, 211, 19);
     button('map-ravine', DUEL_MAP.label, 340, 250, 280, 84, true);
     button('home', '返回主页', 370, 414, 220);
+  } else if (v.screen === 'campaign') {
+    panel(90, 40, 780, 400);
+    label(`战役选关 · 第 ${v.chapterPage + 1} 章`, 480, 88, 30);
+    label(
+      `已通关 ${v.p.cleared.length} / ${CAMPAIGN.length} · ${CAMPAIGN[v.p.unlocked]!.name}`,
+      480,
+      123,
+      18,
+    );
+    for (let slot = 0; slot < 10; slot++) {
+      const index = v.chapterPage * 10 + slot,
+        level = CAMPAIGN[index];
+      if (!level) continue;
+      const cleared = v.p.cleared.includes(level.id),
+        locked = index > v.p.unlocked;
+      button(
+        `campaign-level:${index}`,
+        `${index + 1} · ${cleared ? '已通过' : locked ? '未解锁' : '待挑战'}`,
+        145 + (slot % 5) * 136,
+        154 + Math.floor(slot / 5) * 100,
+        126,
+        84,
+        index === v.p.unlocked,
+        locked,
+      );
+    }
+    button('chapter-prev', '上一章', 145, 350, 170, 76, false, v.chapterPage === 0);
+    button('campaign-continue', `继续第 ${v.p.unlocked + 1} 关`, 355, 350, 250, 76, true);
+    button(
+      'chapter-next',
+      '下一章',
+      645,
+      350,
+      170,
+      76,
+      false,
+      v.chapterPage >= Math.ceil(CAMPAIGN.length / 10) - 1,
+    );
+    button('home', '返回主页', 370, 450, 220);
   } else if (v.screen === 'paused' || v.screen === 'confirm') {
     panel(260, 142, 440, 270);
     label(v.screen === 'confirm' ? '离开当前对局？' : '对局菜单', 480, 192, 32);
@@ -83,8 +131,24 @@ export function drawDuelMenu(
       19,
     );
     label(`存活 ${Math.floor(v.duel.time)} 秒 · 我方生命 ${Math.ceil(me.hp)}`, 480, 335, 19);
-    button('rematch', '再战', 276, 420, 192, 78, true);
-    button('home', '返回主页', 492, 420, 192, 78);
+    if (v.campaignLevel !== null) {
+      label(v.message, 480, 368, 18);
+      button('campaign-retry', '重试', 170, 420, 192, 78, true);
+      const next = r?.winner === v.side && v.campaignLevel + 1 < CAMPAIGN.length;
+      button(
+        next ? 'campaign-next' : 'campaign',
+        next ? '下一关' : '战役选关',
+        384,
+        420,
+        192,
+        78,
+        next,
+      );
+      button('home', '返回主页', 598, 420, 192, 78);
+    } else {
+      button('rematch', '再战', 276, 420, 192, 78, true);
+      button('home', '返回主页', 492, 420, 192, 78);
+    }
   } else if (v.screen === 'settings' || v.screen === 'help' || v.screen === 'skins') {
     panel(190, 68, 580, 362);
     label(
@@ -110,7 +174,7 @@ export function drawDuelMenu(
       ].entries())
         label(line, 480, 165 + i * 38, 19);
     } else {
-      label(`旧材料 ${v.p.materials} · 外观不影响战斗能力`, 480, 172, 20);
+      label(`材料 ${v.p.materials} · 战役首胜获得 · 外观不影响能力`, 480, 172, 20);
       ['蓝衣炮手', '金色纹章', '铜色纹章'].forEach((s, i) =>
         button(
           `skin:${i}`,

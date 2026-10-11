@@ -7,9 +7,10 @@ import { openAppearanceSettings } from './role-appearance.js';
 import { boardHeight, presentationLevel, actorScale, applyBoardLayout, boardExitEndpoint } from './board-layout.js';
 import { setupDuelLobby } from './duel-ui.js';
 import { setSound, unlockSound, playSound } from './sound.js';
-import { relayLevelIds, movedOfficer, lastOfficer, relayTargets, relayError } from './relay.js';
+import { relayLevelIds, relayLevels, relayChapters, movedOfficer, lastOfficer, relayTargets, relayError } from './relay.js';
 import { readPuzzleLink, showPuzzleShare } from './share.js';
-import { quickTrials, quickSolutions, quickOutcome } from './quick-trials.js';
+import { quickTrials, quickChapters, quickSolutions, quickOutcome } from './quick-trials.js';
+import { levelUnlocked, nextPlayable } from './progress.js';
 
 import { setupGameShell, drawLevelPath } from './game-shell.js';
 
@@ -17,8 +18,11 @@ globalThis.__CLASSIC_CHASE_ROLES__ = true;
 const $ = id => document.getElementById(id);
 let duelLobby;
 const svgNS = 'http://www.w3.org/2000/svg';
-const storageKey = 'cops-robbers-v3';
+const storageKey = globalThis.SmallGamesDev?.isEnabled() ? 'cops-robbers-practice-v3' : 'cops-robbers-v3';
 const query = new URLSearchParams(location.search);
+const developer = globalThis.SmallGamesDev?.isEnabled() === true;
+const catalogFor = (mode,rule) => mode === 'quick' ? quickTrials : rule === 'relay' ? relayLevels : levels;
+const chaptersFor = (mode,rule) => mode === 'quick' ? quickChapters : rule === 'relay' ? relayChapters : chapters;
 const sharedPuzzle = readPuzzleLink(location.href);
 const copy = value => structuredClone(value);
 const icons = {
@@ -39,7 +43,7 @@ function validState(candidate, map) {
     && candidate.robbers.every(n => n === -1 || n === -2 || node(n) && !map.exits.includes(n) && !candidate.cops.includes(n)) && Number.isInteger(candidate.turn) && candidate.turn >= 0 && candidate.turn < 100000;
 }
 let saved = {};
-try { const raw = JSON.parse(localStorage.getItem(storageKey) || '{}'); if (raw && typeof raw === 'object' && !Array.isArray(raw)) saved = raw; } catch { /* A damaged save starts a fresh patrol. */ }
+try { const raw = JSON.parse(localStorage.getItem(storageKey) || (developer ? localStorage.getItem('cops-robbers-v3') : null) || '{}'); if (raw && typeof raw === 'object' && !Array.isArray(raw)) saved = raw; } catch { /* A damaged save starts a fresh patrol. */ }
 if (!saved.settings) { try { saved.settings = JSON.parse(localStorage.getItem('cops-robbers-v2') || localStorage.getItem('cops-robbers-v1') || '{}')?.settings; } catch { /* Keep the old save intact. */ } }
 const patrols = Object.fromEntries(['challenge:standard','challenge:relay','quick:standard'].filter(key=>saved.patrols?.[key]).map(key=>[key,saved.patrols[key]]));
 if (saved.current) patrols[`${saved.current.mode === 'quick' ? 'quick' : 'challenge'}:${saved.current.rule === 'relay' ? 'relay' : 'standard'}`] = saved.current;
@@ -53,6 +57,8 @@ for (const trial of quickTrials) {
 for (const map of levels) {
   const record = saved.completed?.[map.id];
   if (record && Number.isInteger(record.turns) && record.turns > 0 && record.turns < 100000 && Number.isInteger(record.stars) && record.stars >= 1 && record.stars <= 3) completed[map.id] = record;
+}
+for (const map of relayLevels) {
   const relayRecord = saved.relayCompleted?.[map.id];
   if (relayLevelIds.includes(map.id) && relayRecord && Number.isInteger(relayRecord.turns) && relayRecord.turns > 0 && relayRecord.turns < 100000 && Number.isInteger(relayRecord.stars) && relayRecord.stars >= 1 && relayRecord.stars <= 3) relayCompleted[map.id] = relayRecord;
 }
@@ -63,12 +69,19 @@ let level, sourceLevel, state, history = [], selected = 0, inspected = -1, hover
 let rule = 'standard';
 let playMode = 'challenge';
 const records = () => playMode === 'quick' ? quickCompleted : rule === 'relay' ? relayCompleted : completed;
-const availableLevels = () => playMode === 'quick' ? quickTrials : rule === 'relay' ? levels.filter(map => relayLevelIds.includes(map.id)) : levels;
+const availableLevels = () => catalogFor(playMode,rule);
+const isUnlocked = (mode, nextRule, id, score) => {
+  const catalog = catalogFor(mode,nextRule), snapshot = patrols[`${mode}:${nextRule}`], map = catalog.find(map=>map.id===id);
+  // A valid unfinished patrol from the former open catalog remains resumable.
+  const existingPatrol = snapshot?.levelId === id && map && validState(snapshot.state,map);
+  return levelUnlocked(catalog,score,id,developer || existingPatrol);
+};
 const targetsFor = actor => rule === 'relay' ? relayTargets(level, state, actor, lastOfficer(state, history)) : legalTargets(level, state, actor);
 const canMoveOfficer = actor => targetsFor(actor).some(node => node !== state.cops[actor]);
 const parTurns = () => rule === 'relay' ? optimalRelaySolutions[level.id].length : level.par;
 let runToken = 0, pending = null, hintWorker = null, hintTimer = null, chapterTab = 0, drag = null, suppressClickUntil = 0;
 let hintBusy = false, hintTarget = null;
+let cancelledClickUntil = 0;
 const outcome = current => playMode === 'quick' ? quickOutcome(level,current) : current.robbers.includes(-2) ? 'lost' : current.robbers.every(n => n === -1) ? 'won' : 'planning';
 // Reuse the verified route so a map change cannot leave an impossible lesson.
 let lessonState = initialState(levels[0]);
@@ -89,7 +102,7 @@ const quickLessons = Object.fromEntries(quickTrials.map(trial => {
   let cursor = initialState(trial);
   return [trial.id,quickSolutions[trial.id].map((plan,index,path) => { const item = {key:stateKey(cursor),remaining:path.length-index,cop:Math.max(0,movedOfficer(cursor,plan)),node:plan[Math.max(0,movedOfficer(cursor,plan))]}; cursor = step(trial,cursor,plan).state; return item; })];
 }));
-function lessonStep() { return playMode === 'quick' ? quickLessons[level.id].find(item=>item.key===stateKey(state) && item.remaining <= level.turnLimit-state.turn) : rule === 'standard' && teaching && level.id === 1 && phase === 'planning' ? lesson.find(item => item.key === stateKey(state)) : null; }
+function lessonStep() { return playMode === 'quick' ? level.id <= 3 && quickLessons[level.id].find(item=>item.key===stateKey(state) && item.remaining <= level.turnLimit-state.turn) : rule === 'standard' && teaching && level.id === 1 && phase === 'planning' ? lesson.find(item => item.key === stateKey(state)) : null; }
 function turnInstruction(fallback) {
   if (phase === 'planning' && !canMoveOfficer(selected)) return rule === 'relay' && selected === lastOfficer(state, history)
     ? `换防接力：${selected + 1} 号本步只能留守，点脚下数字或换人。`
@@ -295,7 +308,8 @@ function loadLevel(id, restore = null, nextRule = rule, nextMode = playMode) {
   $('duel-game').hidden = true;
   runToken++; pending = null; drag = null; clearHint();
   document.querySelectorAll('dialog[open]').forEach(dialog => dialog.close());
-  const catalog = playMode === 'quick' ? quickTrials : levels;
+  const catalog = availableLevels();
+  if (!isUnlocked(playMode,rule,id,records())) { id = nextPlayable(catalog,records()).id; restore = null; }
   sourceLevel = catalog.find(item => item.id === id) || catalog[0];
   level = presentationLevel(sourceLevel);
   state = restore && validState(restore.state, level) ? copy(restore.state) : initialState(level);
@@ -303,8 +317,8 @@ function loadLevel(id, restore = null, nextRule = rule, nextMode = playMode) {
   if (rule === 'relay') state.relayLast = lastOfficer(state, history);
   selected = 0; inspected = -1; hovered = -1; phase = outcome(state);
   chapterTab = level.chapter;
-  document.documentElement.style.setProperty('--ground', ['#e8ecd7', '#efe7d7', '#e2ecd8', '#deebe4', '#e7e8dc', '#dde9ed', '#e6deed'][level.chapter]);
-  $('chapter-name').textContent = playMode === 'quick' ? `战术试炼 ${level.id} / 3 · 每图只需几步` : `${String(level.chapter + 1).padStart(2, '0')} / ${chapters[level.chapter].name}`;
+  document.documentElement.style.setProperty('--ground', ['#e8ecd7', '#efe7d7', '#e2ecd8', '#deebe4', '#e7e8dc', '#dde9ed', '#e6deed', '#dae8df'][level.chapter]);
+  $('chapter-name').textContent = playMode === 'quick' ? `战术试炼 ${catalog.findIndex(map=>map.id===level.id)+1} / ${catalog.length}` : `${String(level.chapter + 1).padStart(2, '0')} / ${chaptersFor(playMode,rule)[level.chapter].name}`;
   $('level-number').textContent = String(level.id).padStart(2, '0'); $('level-name').textContent = level.name;
   $('mission-name').textContent = level.name; $('mission-tip').textContent = level.tip;
   $('case-number').textContent = `CASE ${String(level.id).padStart(3, '0')}`;
@@ -417,7 +431,7 @@ function showWin(sound = true) {
   $('win-details').textContent = `${level.robbers.length} 名突围队员全部完成拦截，用了 ${state.turn} 步。个人最佳 ${records()[level.id].turns} 步。${stars === 3 ? '已达成三星！下一关继续练配合。' : `再省 ${state.turn - parTurns()} 步就能获得三星，试着减少追赶和重复换防。`}`;
   if (playMode === 'quick') $('win-details').textContent = `${state.turn} 步完成 · 试炼最佳 ${records()[level.id].turns} 步。${level.lesson}`;
   $('replay').textContent = stars === 3 ? '重玩本关' : `重玩本关，挑战 ${parTurns()} 步三星`;
-  $('next-level').innerHTML = `${playMode === 'quick' ? level.id === 3 ? '三图完成，进阶换防接力' : '下一张短场试炼' : level.id === availableLevels().at(-1).id ? '看看街区巡逻记录' : '下一个任务'} <span aria-hidden="true">→</span>`;
+  $('next-level').innerHTML = `${level.id === availableLevels().at(-1).id ? '看看街区巡逻记录' : playMode === 'quick' ? '下一张短场试炼' : '下一个任务'} <span aria-hidden="true">→</span>`;
   $('win-art').innerHTML = `<svg viewBox="0 0 260 180"><ellipse cx="130" cy="158" rx="95" ry="12" fill="#dfe6d2"/><g transform="translate(78 156) scale(1.4)">${character('cop', 'cheer', 0)}</g><g transform="translate(176 161) scale(1.15)">${character('robber', 'caught', 0)}</g><g fill="#e3ad46"><path d="m124 29 4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1Z"/><circle cx="31" cy="61" r="3"/><circle cx="220" cy="83" r="4"/></g><path d="m213 37 5 9m-10-5 13-2M42 106l-7 5" stroke="#dc8b69" stroke-width="3" stroke-linecap="round"/></svg>`;
   if (!$('win-dialog').open) $('win-dialog').showModal();
   if (sound) playSound('win');
@@ -452,19 +466,20 @@ function undo() {
 let selectingMode = 'challenge', selectingRule = 'standard';
 function renderLevelDialog() {
   const selectionRecords = selectingMode === 'quick' ? quickCompleted : selectingRule === 'relay' ? relayCompleted : completed;
-  const small = selectingMode === 'quick' || selectingRule === 'relay';
-  $('chapter-tabs').innerHTML = chapters.map((chapter, i) => `<button role="tab" aria-selected="${i === chapterTab}" aria-controls="level-grid" id="chapter-tab-${i}" data-chapter="${i}">${chapter.name}</button>`).join('');
-  $('chapter-tabs').hidden = small;
-  const chapterLevels = selectingMode === 'quick' ? quickTrials : selectingRule === 'relay' ? levels.filter(map => relayLevelIds.includes(map.id)) : levels.filter(map => map.chapter === chapterTab);
+  const catalog = catalogFor(selectingMode,selectingRule), districts = chaptersFor(selectingMode,selectingRule);
+  $('chapter-tabs').innerHTML = districts.map((chapter, i) => `<button role="tab" aria-selected="${i === chapterTab}" aria-controls="level-grid" id="chapter-tab-${i}" data-chapter="${i}">${chapter.name}</button>`).join('');
+  $('chapter-tabs').hidden = false;
+  const chapterLevels = catalog.filter(map => map.chapter === chapterTab);
   const threeStars = chapterLevels.filter(map => selectionRecords[map.id]?.stars === 3).length;
-  $('chapter-description').textContent = `${selectingMode === 'quick' ? '两步试炼' : selectingRule === 'relay' ? '换防接力' : chapters[chapterTab].name} · 三星 ${threeStars}/${chapterLevels.length}`;
-  $('level-grid').setAttribute('role', small ? 'group' : 'tabpanel');
-  if (small) $('level-grid').removeAttribute('aria-labelledby');
-  else $('level-grid').setAttribute('aria-labelledby', `chapter-tab-${chapterTab}`);
+  const unlockedCount = catalog.filter(map=>isUnlocked(selectingMode,selectingRule,map.id,selectionRecords)).length;
+  $('chapter-description').textContent = `${districts[chapterTab].name} · 已开放 ${unlockedCount}/${catalog.length} · 三星 ${threeStars}/${chapterLevels.length}`;
+  $('level-grid').setAttribute('role', 'tabpanel');
+  $('level-grid').setAttribute('aria-labelledby', `chapter-tab-${chapterTab}`);
   $('level-grid').innerHTML = chapterLevels.map((map, index) => {
     const row = Math.floor(index / 3), col = row % 2 ? 3 - index % 3 : index % 3 + 1;
     const par = selectingRule === 'relay' ? optimalRelaySolutions[map.id].length : map.par;
-    return `<button style="grid-column:${col};grid-row:${row + 1}" class="${map.id === level.id ? 'current' : ''}" data-level="${map.id}" data-testid="level-button-${map.id}" data-completed="${!!selectionRecords[map.id]}" aria-label="第${map.id}关 ${map.name}${selectionRecords[map.id] ? `，已完成，${selectionRecords[map.id].stars}颗星，最佳${selectionRecords[map.id].turns}步` : ''}，三星${par}步以内"><span class="level-id">${map.id}</span><span class="level-title">${map.name}</span><span class="level-stars" aria-hidden="true">${'★'.repeat(selectionRecords[map.id]?.stars || 0)}${'☆'.repeat(3 - (selectionRecords[map.id]?.stars || 0))}</span></button>`;
+    const unlocked = isUnlocked(selectingMode,selectingRule,map.id,selectionRecords);
+    return `<button ${unlocked ? '' : 'disabled'} style="grid-column:${col};grid-row:${row + 1}" class="${map.id === level.id ? 'current' : ''}" data-level="${map.id}" data-testid="level-button-${map.id}" data-completed="${!!selectionRecords[map.id]}" aria-label="第${map.id}关 ${map.name}${unlocked ? '' : '，通关前一关解锁'}${selectionRecords[map.id] ? `，已完成，${selectionRecords[map.id].stars}颗星，最佳${selectionRecords[map.id].turns}步` : ''}，三星${par}步以内"><span class="level-id">${map.id}</span><span class="level-title">${map.name}</span><span class="level-stars" aria-hidden="true">${unlocked ? '★'.repeat(selectionRecords[map.id]?.stars || 0)+'☆'.repeat(3 - (selectionRecords[map.id]?.stars || 0)) : '未解锁'}</span></button>`;
   }).join('');
   drawLevelPath(chapterLevels.length);
 }
@@ -473,7 +488,10 @@ function openLevels() {
   if (['escape', 'survival'].includes(mode)) { $('mode-dialog').showModal(); return; }
   focusPatrol(false);
   selectingMode = mode === 'quick' ? 'quick' : 'challenge'; selectingRule = mode === 'relay' ? 'relay' : 'standard';
-  chapterTab = level.chapter; renderLevelDialog(); $('level-dialog').showModal();
+  const catalog = catalogFor(selectingMode,selectingRule), score = selectingMode==='quick'?quickCompleted:selectingRule==='relay'?relayCompleted:completed;
+  const resume = savedPatrol(selectingMode,selectingRule);
+  chapterTab = selectingMode===playMode && selectingRule===rule ? level.chapter : catalog.find(map=>map.id===resume?.levelId)?.chapter ?? nextPlayable(catalog,score).chapter;
+  renderLevelDialog(); $('level-dialog').showModal();
 }
 function showHint() {
   if (phase !== 'planning') return;
@@ -503,9 +521,24 @@ function showHint() {
 }
 
 $('board').addEventListener('click', event => {
+  if (performance.now() < cancelledClickUntil) return;
   const cop = event.target.closest('[data-cop]'), robber = event.target.closest('[data-robber]'), node = event.target.closest('.node-label');
   if (cop && performance.now() < suppressClickUntil) return;
-  if (cop) pickCop(+cop.dataset.cop); else if (robber) inspectRobber(+robber.dataset.robber); else if (node) planTarget(+node.dataset.node);
+  if (cop) pickCop(+cop.dataset.cop); else if (robber) inspectRobber(+robber.dataset.robber);
+  else if (event.pointerType === 'touch' && phase === 'planning') {
+    // Small phones still get a 44 CSS px effective target around lit junctions.
+    // Choose the closest junction instead of letting overlapping SVG circles
+    // select whichever node happens to be painted last.
+    const matrix = $('board').getScreenCTM();
+    if (!matrix) return;
+    let nearest=-1, distance=22;
+    for (const [target,p] of level.nodes.entries()) {
+      const center=new DOMPoint(p.x,p.y+26).matrixTransform(matrix);
+      const next=Math.hypot(event.clientX-center.x,event.clientY-center.y);
+      if(next<distance){distance=next;nearest=target;}
+    }
+    if(nearest>=0)planTarget(nearest); else if(node)planTarget(+node.dataset.node);
+  } else if(node)planTarget(+node.dataset.node);
 });
 $('board').addEventListener('keydown', event => {
   if (event.key !== 'Enter' && event.key !== ' ') return;
@@ -528,6 +561,7 @@ function closestNode(point) {
   return closest;
 }
 $('board').addEventListener('pointerdown', event => {
+  if (drag && drag.id !== event.pointerId) { cancelDrag(); cancelledClickUntil = performance.now()+400; return; }
   const cop = event.target.closest('[data-cop]'); if (!cop || phase !== 'planning' || event.button !== 0 || drag) return;
   drag = { index: +cop.dataset.cop, id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
   $('board').setPointerCapture(event.pointerId);
@@ -571,7 +605,7 @@ $('level-select').addEventListener('click', openLevels); $('mobile-level-select'
 $('chapter-tabs').addEventListener('click', event => { const button = event.target.closest('[data-chapter]'); if (button) { chapterTab = +button.dataset.chapter; renderLevelDialog(); $(`chapter-tab-${chapterTab}`).focus(); } });
 $('chapter-tabs').addEventListener('keydown', event => { if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return; event.preventDefault(); chapterTab = event.key === 'Home' ? 0 : event.key === 'End' ? chapters.length - 1 : (chapterTab + (event.key === 'ArrowRight' ? 1 : chapters.length - 1)) % chapters.length; renderLevelDialog(); $(`chapter-tab-${chapterTab}`).focus(); });
 $('level-grid').addEventListener('click', event => { const button = event.target.closest('[data-level]'); if (button) { playSound('select'); const restore = savedPatrol(selectingMode, selectingRule); loadLevel(+button.dataset.level, restore?.levelId === +button.dataset.level ? restore : null, selectingRule, selectingMode); } });
-$('next-level').addEventListener('click', () => { const next = availableLevels()[availableLevels().findIndex(map => map.id === level.id) + 1]; if (!next && playMode === 'quick') loadLevel(1,null,'relay','challenge'); else if (!next) { $('win-dialog').close(); $('solo-mode').value = playMode === 'quick' ? 'quick' : rule === 'relay' ? 'relay' : 'challenge'; openLevels(); } else loadLevel(next.id); });
+$('next-level').addEventListener('click', () => { const next = availableLevels()[availableLevels().findIndex(map => map.id === level.id) + 1]; if (!next) { $('win-dialog').close(); $('solo-mode').value = playMode === 'quick' ? 'quick' : rule === 'relay' ? 'relay' : 'challenge'; openLevels(); } else loadLevel(next.id); });
 $('replay').addEventListener('click', () => loadLevel(level.id));
 $('help').addEventListener('click', () => $('help-dialog').showModal()); $('settings').addEventListener('click', () => $('settings-dialog').showModal());
 $('sound').addEventListener('click', () => { soundOn = !soundOn; syncSettings(); unlockSound(); playSound('select'); persist(); });
@@ -606,12 +640,13 @@ if (query.has('level')) {
   window.history.replaceState(null, '', cleanUrl);
 }
 
-const savedPatrol = (mode,rule) => { const snapshot = patrols[`${mode}:${rule}`], map = (mode === 'quick' ? quickTrials : levels).find(item=>item.id===snapshot?.levelId); return map && validState(snapshot.state,map) && snapshot.state.robbers.some(node=>node>=0) && !snapshot.state.robbers.includes(-2) && (mode !== 'quick' || snapshot.state.turn < map.turnLimit) ? snapshot : null; };
-duelLobby = setupDuelLobby({ selectLevels: openLevels, sharedPuzzle, savedPatrol, stopChallenge: () => { if (pending) finishTurn(runToken); runToken++; pending = null; clearHint(); document.querySelectorAll('dialog[open]').forEach(dialog => dialog.close()); }, startChallenge: (options = {}) => { const targetMode = options.mode || 'challenge', targetRule = options.rule || 'standard', saved = savedPatrol(targetMode,targetRule), resume = !options.fresh && (targetMode !== playMode || targetRule !== rule || targetMode === 'quick' || targetRule === 'relay') && (!options.id || options.id === saved?.levelId) ? saved : null; loadLevel(options.id || resume?.levelId || level.id,resume,targetRule,targetMode); }, returnLobby: () => focusPatrol(false) });
+const savedPatrol = (mode,rule) => { const snapshot = patrols[`${mode}:${rule}`], map = catalogFor(mode,rule).find(item=>item.id===snapshot?.levelId), score = mode === 'quick' ? quickCompleted : rule === 'relay' ? relayCompleted : completed; return map && isUnlocked(mode,rule,map.id,score) && validState(snapshot.state,map) && snapshot.state.robbers.some(node=>node>=0) && !snapshot.state.robbers.includes(-2) && (mode !== 'quick' || snapshot.state.turn < map.turnLimit) ? snapshot : null; };
+const canSelect = (mode, nextRule, id) => isUnlocked(mode,nextRule,id, mode==='quick'?quickCompleted:nextRule==='relay'?relayCompleted:completed);
+duelLobby = setupDuelLobby({ selectLevels: openLevels, sharedPuzzle, savedPatrol, canSelect, stopChallenge: () => { if (pending) finishTurn(runToken); runToken++; pending = null; clearHint(); document.querySelectorAll('dialog[open]').forEach(dialog => dialog.close()); }, startChallenge: (options = {}) => { const targetMode = options.mode || 'challenge', targetRule = options.rule || 'standard', saved = savedPatrol(targetMode,targetRule), resume = !options.fresh && (targetMode !== playMode || targetRule !== rule || targetMode === 'quick' || targetRule === 'relay') && (!options.id || options.id === saved?.levelId) ? saved : null; loadLevel(options.id || resume?.levelId || level.id,resume,targetRule,targetMode); }, returnLobby: () => focusPatrol(false) });
 $('share-challenge').addEventListener('click', () => {
   if (document.body.dataset.lastGame === 'duel' && duelLobby.sharePuzzle()) return;
   showPuzzleShare({ mode: playMode, level: level.id, rule }, `围捕小队 · ${playMode === 'quick' ? '快速战术试炼' : rule === 'relay' ? '换防接力' : '围堵挑战'} · 第 ${level.id} 关`);
 });
 $('appearance-settings').addEventListener('click', () => openAppearanceSettings(() => { drawBase(); updatePlanning(); }));
-setupGameShell({ openLevels });
+setupGameShell({ openLevels, startPatrol: () => { const resume = savedPatrol(playMode,rule); loadLevel(resume?.levelId || nextPlayable(availableLevels(),records()).id,resume); } });
 if (!query.has('level')) { document.querySelectorAll('dialog[open]').forEach(dialog => dialog.close()); focusPatrol(false); }

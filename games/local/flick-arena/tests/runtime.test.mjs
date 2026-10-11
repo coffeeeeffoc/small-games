@@ -50,6 +50,7 @@ function harness(options = {}, width = 390, height = 780) {
     context,
     texts,
     arcs,
+    canvas: target.canvas,
     pointer: (phase, x, y, pointerId = 0) => listener?.({ phase, x, y, pointerId }),
     depth: () => depth,
   };
@@ -103,7 +104,11 @@ test('native pointer flow, cancellation, pause, settlement, and disposal without
   assert.equal(game.app.screen, 'result');
   assert.equal(game.app.save.played, 1);
   assert.equal(persisted, 1);
-  assert(texts.includes(`${game.app.state.turn} 回合 · 出手 ${game.app.state.playerShots} 次 · 击落 ${game.app.playerKnockouts} 位`));
+  assert(
+    texts.includes(
+      `${game.app.state.turn} 回合 · 出手 ${game.app.state.playerShots} 次 · 击落 ${game.app.playerKnockouts} 位`,
+    ),
+  );
   const result = JSON.stringify(game.app.state);
   game.action('replay');
   game.pause();
@@ -174,6 +179,56 @@ test('round-end shrinking advances in the native loop and freezes across pause',
   assert.equal(s.active, 0);
   assert.equal(s.playerShots, 0);
   assert(arcs.some((a) => a.x === arena.x && a.y === arena.y && a.r === s.radius * arena.scale));
+  game.dispose();
+});
+
+test('resizing during a drag preserves the match and cancels the old touch origin', () => {
+  const { game, pointer, canvas } = harness();
+  game.debugStart(0);
+  const point = playerPoint(game);
+  const before = JSON.stringify(game.app.state);
+  pointer('down', point.x, point.y, 9);
+  pointer('move', point.x, point.y + 90, 9);
+  assert(game.app.drag);
+  canvas.width = 844;
+  canvas.height = 390;
+  game.render();
+  assert.equal(game.app.drag, null);
+  pointer('up', 422, 270, 9);
+  assert.equal(JSON.stringify(game.app.state), before);
+  pointer('down', (844 - 195) / 2 + point.x * 0.5, point.y * 0.5, 10);
+  assert(game.app.drag);
+  canvas.width = 390;
+  canvas.height = 780;
+  pointer('up', point.x, point.y + 90, 10);
+  assert.equal(game.app.drag, null, 'input handles resize before the first redraw too');
+  assert.equal(JSON.stringify(game.app.state), before);
+  game.dispose();
+});
+
+test('landscape touch can start aiming within a 44 display-pixel target', () => {
+  const { game, pointer } = harness({}, 844, 390);
+  game.debugStart(0);
+  const point = playerPoint(game);
+  const scale = 0.5;
+  const offsetX = (844 - 390 * scale) / 2;
+  pointer('down', offsetX + point.x * scale + 21, point.y * scale, 4);
+  assert(game.app.drag, '21 px away remains inside the accessible landscape target');
+  pointer('cancel', 0, 0, 4);
+  assert.equal(game.app.state.shots, 0);
+  game.dispose();
+});
+
+test('human elimination shortens AI waiting without accelerating shared physics', () => {
+  const { game } = harness();
+  game.debugStart(0);
+  const state = game.app.state;
+  state.discs[0].alive = false;
+  state.active = 1;
+  for (let i = 0; i < 7; i++) game.tick(0.05);
+  assert.equal(state.shots, 1, 'remaining bots no longer wait 1.25s while the player is out');
+  assert.equal(state.phase, 'moving');
+  assert(state.elapsed <= 0.11, 'physics still advances at the fixed simulation rate');
   game.dispose();
 });
 test('touch aim previews the simulated stop and warns about both exits and the next ring', () => {
@@ -250,7 +305,9 @@ test('shared rematches preserve layout and bot seed but reset transient match st
   assert.equal(game.app.state.seed, 1234567);
   assert.equal(game.app.state.layout, game.app.layouts[2].id);
   const initial = JSON.parse(JSON.stringify(game.app.state));
-  game.app.state.phase = 'over'; game.app.screen = 'result'; game.app.playerKnockouts = 2;
+  game.app.state.phase = 'over';
+  game.app.screen = 'result';
+  game.app.playerKnockouts = 2;
   game.action('rematch');
   for (let i = 0; i < 30; i++) game.tick(0.05);
   assert.deepEqual(game.app.state, initial);

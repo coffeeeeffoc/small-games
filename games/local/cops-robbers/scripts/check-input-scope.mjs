@@ -11,15 +11,15 @@ try {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true });
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto(`${base}/?level=1&motion=reduce`);
+  await page.goto(`${base}/?dev=1&level=1&motion=reduce`);
   await page.getByTestId('node-1').click();
   await page.waitForFunction(() => document.body.dataset.turn === '1' && document.body.dataset.phase === 'planning');
   await page.locator('#focus-toggle').click();
-  const challenge = await page.evaluate(() => JSON.parse(localStorage.getItem('cops-robbers-v3')).current);
+  const challenge = await page.evaluate(() => JSON.parse(localStorage.getItem('cops-robbers-practice-v3')).current);
   await page.keyboard.press('Control+z');
   await page.locator('body').click({ position: { x: 2, y: 2 } });
   await page.keyboard.press('Space');
-  assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('cops-robbers-v3')).current), challenge, 'Lobby shortcuts must preserve the paused challenge');
+  assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('cops-robbers-practice-v3')).current), challenge, 'Lobby shortcuts must preserve the paused challenge');
 
   for (const role of ['pursuer', 'runner']) {
     await page.locator('#mode-settings').click();
@@ -36,7 +36,7 @@ try {
     await page.locator('body').click({ position: { x: 2, y: 2 } });
     await page.keyboard.press('Space');
     await page.waitForTimeout(100);
-    assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('cops-robbers-v3')).current), challenge, 'Duel shortcuts must not change the hidden challenge');
+    assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('cops-robbers-practice-v3')).current), challenge, 'Duel shortcuts must not change the hidden challenge');
 
     const level = getDuelLevel('survival', 100), initial = initialDuel(level, role);
     const origin = (role === 'pursuer' ? initial.cops : initial.robbers)[0];
@@ -61,11 +61,11 @@ try {
     assert.notEqual(await page.evaluate(() => document.activeElement.tagName), 'BODY', 'Tab must continue from the current map control');
     await page.locator('#focus-toggle').click();
   }
-  await page.locator('#home-start').click();
+  await page.locator('#level-select').click();
   await page.selectOption('#solo-mode', 'challenge');
   await page.locator('#start-mode').click();
   await page.getByTestId(`level-button-${challenge.levelId}`).click();
-  assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('cops-robbers-v3')).current), challenge, 'Selecting the paused challenge preserves its state after a duel');
+  assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('cops-robbers-practice-v3')).current), challenge, 'Selecting the paused challenge preserves its state after a duel');
   assert.equal(await page.locator('body').getAttribute('data-turn'), '1');
   await page.keyboard.press('Control+z');
   assert.equal(await page.locator('body').getAttribute('data-turn'), '0', 'Undo remains available in the active challenge');

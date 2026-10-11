@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "克朗棋：回拉指尖，听见落袋。木质棋盘上的人机对局与六关手感练习。",
+  "description": "克朗棋：回拉指尖，听见落袋。木质棋盘上的人机对局与 120 关手感练习。",
   "scripts": {
     "dev": "node server.mjs",
     "build": "node build.mjs",

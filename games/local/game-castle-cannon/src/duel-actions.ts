@@ -62,9 +62,15 @@ export function arrive(p: Fighter) {
   }
 }
 export function command(duel: Duel, side: Side, c: Command) {
-  if (duel.result) return;
   const p = duel.fighters[side],
     gun = activeGun(p);
+  if (c.type === 'cancel') {
+    cancelCharge(p);
+    p.crouched = false;
+    p.lastInput = duel.time;
+    return;
+  }
+  if (duel.result) return;
   if (p.hp <= 0) return;
   p.lastInput = duel.time;
   switch (c.type) {
@@ -98,10 +104,6 @@ export function command(duel: Duel, side: Side, c: Command) {
       break;
     case 'fire':
       if (gun?.charge !== null && gun?.charge !== undefined) fire(duel, p, gun);
-      break;
-    case 'cancel':
-      cancelCharge(p);
-      p.crouched = false;
       break;
     case 'crouch':
       if (!p.route.length && gun && selectable(p, gun)) {

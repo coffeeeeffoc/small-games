@@ -8,7 +8,10 @@ import { W, H, arena } from '../src/render.mjs';
 import { saveKey } from '../src/progress.mjs';
 
 const root = new URL('../', import.meta.url);
-const out = new URL('../docs/design/campaign-friends-2026-10-11/regression/', import.meta.url);
+const out = new URL(
+  process.env.FLICK_VALIDATION_DIR ?? '../docs/design/campaign-friends-2026-10-11/regression/',
+  import.meta.url,
+);
 const started = performance.now();
 const records = {
   environment: 'Chromium desktop emulation, 390×844, touch, DPR 2',

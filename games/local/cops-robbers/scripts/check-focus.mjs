@@ -16,7 +16,7 @@ try {
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-    await page.goto(`${base}/?level=1&motion=reduce`);
+    await page.goto(`${base}/?dev=1&level=1&motion=reduce`);
     await page.waitForSelector('#cop-actor-0');
     const layout = await page.evaluate(() => {
       const bounds = selector => {

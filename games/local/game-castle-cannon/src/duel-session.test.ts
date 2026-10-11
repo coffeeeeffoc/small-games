@@ -3,6 +3,7 @@ import { createInMemoryGameHost } from '@coffeeeeffoc/game-host';
 import { defaultCastleCannonEnvelope } from './index.js';
 import { createDuelSession } from './duel-session.js';
 import { newProgress } from './progress.js';
+import { CAMPAIGN } from './campaign.js';
 const host = () =>
   createInMemoryGameHost({
     session: {
@@ -14,6 +15,62 @@ const host = () =>
     content: defaultCastleCannonEnvelope,
   });
 describe('对战输入与旧存档', () => {
+  it('战役开发跳关仅由统一开发开关开放，不写进度或奖励', async () => {
+    const h = host(),
+      normal = await createDuelSession(h, () => {});
+    normal.previewCampaign(119);
+    expect(normal.v.screen).toBe('home');
+    await normal.dispose();
+    const developer = await createDuelSession(h, () => {}, true);
+    developer.previewCampaign(119);
+    expect(developer.v.campaignLevel).toBe(119);
+    developer.v.duel.fighters[1].hp = 0;
+    developer.tick(0.1);
+    expect(developer.v.p.unlocked).toBe(0);
+    expect(developer.v.p.materials).toBe(0);
+    await developer.dispose();
+    expect(await h.storage.read('castle-cannon:progress')).toBeNull();
+  });
+  it('战役不能跳过锁定关，首胜下一关、重试和读档保持正常进度', async () => {
+    const h = host(),
+      s = await createDuelSession(h, () => {});
+    s.action('campaign');
+    s.action('campaign-level:119');
+    expect(s.v.screen).toBe('campaign');
+    s.action('campaign-level:0');
+    expect(s.v.screen).toBe('playing');
+    expect(s.v.campaignLevel).toBe(0);
+    s.input('down', 99, 850, 460, 'fire');
+    s.v.duel.fighters[1].hp = 0;
+    s.tick(0.1);
+    expect(s.v.duel.fighters[0].guns[0].charge).toBeNull();
+    expect(s.v.p.unlocked).toBe(1);
+    expect(s.v.p.materials).toBe(4);
+    s.tick(0.1);
+    expect(s.v.p.materials).toBe(4);
+    s.action('campaign-retry');
+    s.v.duel.fighters[1].hp = 0;
+    s.tick(0.1);
+    expect(s.v.p.materials).toBe(4);
+    s.action('campaign-next');
+    expect(s.v.campaignLevel).toBe(1);
+    s.action('pause');
+    s.pause();
+    s.resume();
+    expect(s.v.screen).toBe('paused');
+    const time = s.v.duel.time;
+    s.tick(0.2);
+    expect(s.v.duel.time).toBe(time);
+    s.action('resume');
+    s.tick(0.2);
+    expect(s.v.duel.time).toBeGreaterThan(time);
+    await s.dispose();
+    const restored = await createDuelSession(h, () => {});
+    expect(restored.v.p.cleared).toEqual([CAMPAIGN[0]!.id]);
+    expect(restored.v.p.unlocked).toBe(1);
+    expect(await h.storage.read('castle-cannon:duel-records:practice')).toBeNull();
+    await restored.dispose();
+  });
   it('保留旧解锁、材料与外观，练习战绩隔离并且只结算一次', async () => {
     const h = host();
     const old = {

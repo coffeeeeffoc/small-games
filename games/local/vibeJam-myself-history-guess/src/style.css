@@ -2292,3 +2292,8 @@ button:active:not(:disabled) {
   border-right: 4px solid transparent;
   border-top: 7px solid var(--red);
 }
+
+/* The current target stays near the top even with a long chapter catalogue. */
+.chapter-continue {
+  margin: 0 0 24px;
+}

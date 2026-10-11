@@ -7,9 +7,10 @@ import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 
 const base = process.env.PLAYTEST_URL || 'http://127.0.0.1:4175/';
-const directory = resolve(
-  fileURLToPath(new URL('../docs/design/mobile-pk-2026-10-09/', import.meta.url)),
-);
+let directory =
+  process.env.HISTORY_REVIEW_DIR ||
+  resolve(fileURLToPath(new URL('../docs/design/mobile-pk-2026-10-09/', import.meta.url)));
+let screenshotSelection = process.env.HISTORY_SCREENSHOTS?.split(',');
 const storageKey = 'here-and-then.v1';
 const errors = [];
 const screenshots = [];
@@ -32,6 +33,7 @@ async function phone(width = 390, height = 844, setup) {
 const saved = (page) => page.evaluate((key) => JSON.parse(localStorage.getItem(key)), storageKey);
 async function capture(page, name) {
   await noOverflow(page);
+  if (screenshotSelection && !screenshotSelection.includes(name)) return;
   const filename = `actual-${name}.png`;
   await page.screenshot({
     path: resolve(directory, filename),
@@ -184,6 +186,19 @@ function monitorApi(page) {
 }
 
 export async function runMobileSuite(suite = 'all') {
+  if (['review', 'lifecycle'].includes(suite) && !process.env.HISTORY_REVIEW_DIR) {
+    directory = fileURLToPath(new URL('../docs/design/mobile-review-2026-10-11/', import.meta.url));
+    screenshotSelection ||= [
+      'home-390',
+      'prepare-390',
+      'play-390',
+      'chapters-320',
+      'late-prepare-320',
+      'late-play-320',
+      'last-summary-320',
+      'journal-complete-320',
+    ];
+  }
   await mkdir(directory, { recursive: true });
   browser = await chromium.launch({
     executablePath: process.env.PLAYWRIGHT_EXECUTABLE || '/usr/bin/chromium',
@@ -191,10 +206,11 @@ export async function runMobileSuite(suite = 'all') {
   });
   const startedAt = new Date().toISOString();
   try {
-    if (suite === 'core' || suite === 'all') await coreSuite();
-    if (suite === 'chapters' || suite === 'all') await chapterSuite();
+    if (['core', 'all', 'review'].includes(suite)) await coreSuite();
+    if (['chapters', 'all', 'review'].includes(suite)) await chapterSuite();
     if (suite === 'pk' || suite === 'all') await pkSuite();
     if (suite === 'polish') await polishSuite();
+    if (['review', 'lifecycle'].includes(suite)) await lifecycleSuite();
     assert.deepEqual(errors, [], 'no uncaught browser errors');
     let previous = {};
     try {
@@ -205,12 +221,17 @@ export async function runMobileSuite(suite = 'all') {
         browser: 'Chromium',
         input: 'Playwright touch + CDP touch gestures',
         base,
-        api: 'Actual Node + SQLite HTTP service; no successful API responses mocked',
+        api: ['pk', 'all', 'polish'].includes(suite)
+          ? 'Actual Node + SQLite HTTP service; no successful API responses mocked'
+          : 'Local practice; no online sessions created',
         nativeDevice: false,
       },
       limitation:
         'Desktop browser mobile emulation only. Native WeChat, iOS, Android and physical devices were not exercised by these scripts.',
-      reference: 'concept.png',
+      reference:
+        process.env.HISTORY_REVIEW_DIR || ['review', 'lifecycle'].includes(suite)
+          ? 'local-adjustments.svg and ../mobile-pk-2026-10-09/concept.png'
+          : 'concept.png',
       suites: {
         ...(previous.suites || {}),
         [suite]: {
@@ -329,7 +350,7 @@ async function coreSuite() {
   await page.locator('#begin-level').tap();
   await ready(page);
   assert.equal(await page.locator('#submit').isDisabled(), true);
-  assert.ok(Number((await page.locator('#timer').innerText()).match(/\d+/)[0]) <= 25);
+  assert.ok(Number((await page.locator('#timer').innerText()).match(/\d+/)[0]) <= 45);
   await capture(page, 'play-390');
   await touchTargets(page);
   await gesture(page);
@@ -337,16 +358,14 @@ async function coreSuite() {
   const paused = (await saved(page)).mobileJourney;
   assert.equal(paused.phase, 'paused');
   await capture(page, 'pause-390');
-  const bars = await page
-    .locator('#pause svg rect')
-    .evaluateAll((nodes) =>
-      nodes.map((node) => ({
-        x: node.getAttribute('x'),
-        y: node.getAttribute('y'),
-        width: node.getAttribute('width'),
-        height: node.getAttribute('height'),
-      })),
-    );
+  const bars = await page.locator('#pause svg rect').evaluateAll((nodes) =>
+    nodes.map((node) => ({
+      x: node.getAttribute('x'),
+      y: node.getAttribute('y'),
+      width: node.getAttribute('width'),
+      height: node.getAttribute('height'),
+    })),
+  );
   assert.equal(bars.length, 2);
   assert.equal(bars[0].width, bars[1].width);
   assert.equal(bars[0].height, bars[1].height);
@@ -474,22 +493,23 @@ async function coreSuite() {
   const started = Date.now(),
     deadline = (await saved(timed.page)).mobileJourney.deadline;
   assert.ok(
-    deadline - started > 22000 && deadline - started <= 25000,
-    'practice starts a real 25-second clock',
+    deadline - started > 42000 && deadline - started <= 45000,
+    'introductory practice starts a real 45-second clock',
   );
-  await timed.page.locator('#next').waitFor({ timeout: 28000 });
+  await timed.page.locator('#next').waitFor({ timeout: 48000 });
   await inspectResult(timed.page);
-  assert.ok(Date.now() - started >= 22000, 'timeout is exercised with real elapsed time');
+  assert.ok(Date.now() - started >= 42000, 'timeout is exercised with real elapsed time');
   assert.equal(await timed.page.locator('.result-score strong').innerText(), '0');
   assert.match(await timed.page.locator('#app').innerText(), /超时.*0 分/);
   assert.equal((await saved(timed.page)).mobileJourney.results[0].timedOut, true);
   await capture(timed.page, 'timeout-390');
   await timed.context.close();
   observations.push(
-    'Real elapsed 25-second timeout submits exactly one zero-score result without disclosing an answer',
+    'Real elapsed 45-second introductory timeout submits exactly one zero-score result without disclosing an answer',
   );
 }
 async function chapterSuite() {
+  const { CHAPTERS, LEVELS } = await import('../src/chapters.js');
   const { context, page } = await phone(320, 568);
   const requests = [];
   page.on('request', (request) => requests.push(request.url()));
@@ -504,7 +524,7 @@ async function chapterSuite() {
   await touchTargets(page);
   assert.equal(
     await page.locator('[data-chapter]:disabled').count(),
-    2,
+    CHAPTERS.length - 1,
     'later chapters begin locked',
   );
   await page.locator('[data-chapter="lanes"]').tap();
@@ -552,13 +572,14 @@ async function chapterSuite() {
     (await saved(page)).mobileJourney.guess,
     'keyboard navigation can select a visible candidate',
   );
-  const { LEVELS } = await import('../src/chapters.js');
   for (const [levelIndex, level] of LEVELS.entries()) {
     if (levelIndex > 0) {
       await page.locator('#finish-next').tap();
+      if (levelIndex === LEVELS.length - 1) await capture(page, 'late-prepare-320');
       await page.locator('#begin-level').tap();
       await ready(page);
     }
+    if (levelIndex === LEVELS.length - 1) await capture(page, 'late-play-320');
     for (let index = 0; index < 3; index++) {
       assert.match(
         await page.locator('#round-label').innerText(),
@@ -570,7 +591,16 @@ async function chapterSuite() {
       if (index < 2) await ready(page);
     }
     await page.locator('#finish-next').waitFor();
+    if (levelIndex === LEVELS.length - 1) {
+      assert.match(
+        await page.locator('#app').innerText(),
+        new RegExp(`${LEVELS.length} 关旅途已完成`),
+      );
+      await capture(page, 'last-summary-320');
+    }
     const record = await saved(page);
+    if ((levelIndex + 1) % 21 === 0)
+      console.log(`touch progression ${levelIndex + 1}/${LEVELS.length}`);
     assert.equal(
       record.records[level.id].complete,
       true,
@@ -590,8 +620,14 @@ async function chapterSuite() {
   assert.equal(await page.locator('[data-chapter]:disabled').count(), 0);
   await page.reload();
   await nav(page, 'journal');
-  assert.match(await page.locator('.journal-stats').innerText(), /9\s*\/\s*9/);
-  assert.equal((await saved(page)).visited.length, 27);
+  assert.match(
+    await page.locator('.journal-stats').innerText(),
+    new RegExp(`${LEVELS.length}\\s*\\/\\s*${LEVELS.length}`),
+  );
+  assert.equal(
+    (await saved(page)).visited.length,
+    new Set(LEVELS.flatMap((level) => level.scenes)).size,
+  );
   await capture(page, 'journal-complete-320');
   assert.ok(
     !requests.some((url) => /\/api\/history\/(?:sessions|runs)/.test(url)),
@@ -599,7 +635,7 @@ async function chapterSuite() {
   );
   await context.close();
   observations.push(
-    'Nine sublevels / 27 touch-played scenes progress through normal locks, preserve all scores on reload, and never create online sessions or alter legacy records; city keyboard/Escape input remains valid',
+    `${LEVELS.length} sublevels / ${LEVELS.length * 3} touch-played rounds progress through normal locks, preserve all scores on reload, and never create online sessions or alter legacy records; city keyboard/Escape input remains valid`,
   );
 
   const unavailable = await phone(390, 844, () => {
@@ -993,5 +1029,152 @@ async function polishSuite() {
   await host.context.close();
   observations.push(
     'Final share layout: primary CTA completely visible in 390×844; completed duel and exact invitation recover after reload; a real friend completion refreshes host challenge results',
+  );
+}
+
+async function lifecycleSuite() {
+  const sample = await phone();
+  const { page, context } = sample;
+  await page.goto(base);
+  await startPractice(page);
+  await choose(page, -221, '长安');
+  const before = (await saved(page)).mobileJourney;
+  await page.goto('about:blank');
+  await page.goto(base);
+  const after = (await saved(page)).mobileJourney;
+  assert.equal(after.phase, 'paused', 'real pagehide freezes a practice timer');
+  assert.ok(after.pausedRemaining > 0 && after.pausedRemaining <= 45000);
+  assert.deepEqual(after.guess, before.guess);
+  assert.equal(after.year, before.year);
+  await page.waitForTimeout(1200);
+  assert.equal((await saved(page)).mobileJourney.pausedRemaining, after.pausedRemaining);
+  await nav(page, 'chapters');
+  await page.locator('#continue-level').tap();
+  await ready(page);
+  assert.equal((await saved(page)).mobileJourney.level, before.level);
+  assert.equal(await page.locator('#era-select').inputValue(), 'bce');
+  // Browser automation cannot background a physical phone; dispatch the browser event
+  // separately after exercising a real navigation/pagehide above.
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  assert.equal((await saved(page)).mobileJourney.phase, 'paused');
+  await page.evaluate(() => {
+    delete document.hidden;
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  const yaw = await page.locator('#panorama').getAttribute('data-yaw');
+  await page.setViewportSize({ width: 430, height: 932 });
+  await page.locator('#panorama').dispatchEvent('keydown', { key: 'ArrowRight' });
+  await page.locator('#resume').tap();
+  await page.locator('#scene-tab').tap();
+  await page.waitForTimeout(200);
+  assert.equal(
+    await page.locator('#panorama').getAttribute('data-yaw'),
+    yaw,
+    'resize and background input cannot move a paused scene',
+  );
+  await submitLocal(page);
+  await context.close();
+  observations.push(
+    'Real navigation/pagehide pauses a 45-second practice checkpoint; chapter continue restores the same guess/BCE year, and synthetic visibilitychange separately verifies automatic pause/resume. Competitive deadlines remain on the existing server rules.',
+  );
+  const migration = await phone(320, 568);
+  const { LEVELS } = await import('../src/chapters.js');
+  await migration.context.addInitScript(
+    ({ levels, key }) => {
+      localStorage.setItem(
+        key,
+        JSON.stringify({
+          best: 5432,
+          sound: false,
+          visited: ['kaifeng'],
+          records: Object.fromEntries(
+            levels.slice(0, 9).map((level) => [level.id, { best: 3210, complete: true }]),
+          ),
+        }),
+      );
+    },
+    { levels: LEVELS, key: storageKey },
+  );
+  await migration.page.goto(base);
+  await nav(migration.page, 'journal');
+  assert.match(await migration.page.locator('.journal-heading').innerText(), /时空行者/);
+  await nav(migration.page, 'chapters');
+  await migration.page.locator('#continue-level').tap();
+  assert.match(await migration.page.locator('.rule-ticket').innerText(), /35/);
+  await migration.page.locator('#begin-level').tap();
+  await ready(migration.page);
+  const migrated = await saved(migration.page);
+  assert.equal(migrated.mobileJourney.level, LEVELS[9].id);
+  assert.equal(migrated.best, 5432);
+  assert.equal(migrated.records['stones-3'].best, 3210);
+  await migration.context.close();
+  observations.push(
+    'A seeded nine-level legacy save keeps its title, best scores and footprints, and the chapter continue action reaches the first new 35-second level under normal locks.',
+  );
+  const deferred = await phone();
+  await deferred.page.goto(base);
+  await deferred.page.locator('#start').tap();
+  let release;
+  const pendingImage = new Promise((resolve) => (release = resolve));
+  await deferred.page.route('**/assets/kaifeng.webp', async (route) => {
+    await pendingImage;
+    await route.continue();
+  });
+  await deferred.page.locator('#begin-level').tap();
+  await deferred.page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  release();
+  await deferred.page.locator('.pause-overlay').waitFor();
+  assert.equal(
+    (await saved(deferred.page)).mobileJourney.phase,
+    'paused',
+    'a late image load while hidden starts paused',
+  );
+  await deferred.page.evaluate(() => {
+    delete document.hidden;
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await deferred.page.locator('#resume').tap();
+  await ready(deferred.page);
+  await deferred.context.close();
+  observations.push(
+    'An actual deferred image request completed while synthetically hidden opens an automatically paused practice scene; restoration is playable.',
+  );
+  const slowResume = await phone();
+  await slowResume.page.goto(base);
+  await startPractice(slowResume.page);
+  await slowResume.page.locator('#pause').tap();
+  await slowResume.page.locator('#pause-home').tap();
+  // Shorten a genuine paused checkpoint to expose even small load-time losses.
+  await slowResume.page.evaluate((key) => {
+    const save = JSON.parse(localStorage.getItem(key));
+    save.mobileJourney.pausedRemaining = 1000;
+    localStorage.setItem(key, JSON.stringify(save));
+  }, storageKey);
+  await slowResume.page.reload();
+  await slowResume.page.route('**/assets/kaifeng.webp', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await route.continue();
+  });
+  await slowResume.page.locator('#start').tap();
+  await ready(slowResume.page);
+  const recovered = (await saved(slowResume.page)).mobileJourney;
+  assert.equal(
+    recovered.phase,
+    'guessing',
+    'slow restoration cannot expire before the image is playable',
+  );
+  assert.ok(
+    recovered.deadline - Date.now() > 400,
+    'the stored one-second budget starts after loading',
+  );
+  await slowResume.context.close();
+  observations.push(
+    'A genuine paused checkpoint with one second remaining survives an actual two-second delayed image request; its clock starts only after the panorama is ready, rather than timing out during restoration.',
   );
 }

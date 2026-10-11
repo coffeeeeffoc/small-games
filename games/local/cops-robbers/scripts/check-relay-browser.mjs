@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
 import { levels } from '../src/levels.js';
-import { solutions } from '../src/solutions.js';
+import { optimalRelaySolutions as solutions } from '../src/optimal-solutions.js';
 import { legalTargets } from '../src/engine.js';
 import { movedOfficer, relayLevelIds } from '../src/relay.js';
 
@@ -13,10 +13,10 @@ try {
   page.on('pageerror', error => errors.push(error.message));
   await page.addInitScript(() => {
     navigator.share = async () => { throw new DOMException('Canceled','AbortError'); };
-    if (!localStorage.getItem('cops-robbers-v3')) localStorage.setItem('cops-robbers-v3',JSON.stringify({version:3,completed:{1:{turns:7,stars:3}},settings:{sound:false,teaching:false}}));
+    if (!localStorage.getItem('cops-robbers-practice-v3')) localStorage.setItem('cops-robbers-practice-v3',JSON.stringify({version:3,completed:{1:{turns:7,stars:3}},settings:{sound:false,teaching:false}}));
   });
-  const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem('cops-robbers-v3')));
-  await page.goto(`${base}/?mode=challenge&level=1&rule=relay&motion=reduce&token=secret#auth`);
+  const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem('cops-robbers-practice-v3')));
+  await page.goto(`${base}/?dev=1&mode=challenge&level=1&rule=relay&motion=reduce&token=secret#auth`);
   let before = (await saved()).current.state, plan = solutions[1][0], actor = movedOfficer(before,plan);
   await page.getByTestId(`cop-${actor}`).tap(); await page.getByTestId(`node-${plan[actor]}`).tap();
   await page.waitForFunction(() => document.body.dataset.turn === '1' && document.body.dataset.phase === 'planning');
@@ -26,8 +26,8 @@ try {
   assert.equal((await saved()).current.state.turn,1);
   assert.match(await page.locator('#instruction').textContent(), /接力要换人/);
   await page.getByTestId('undo').tap(); assert.equal((await saved()).current.state.turn,0);
-  for (const id of relayLevelIds) {
-    await page.goto(`${base}/?mode=challenge&level=${id}&rule=relay&motion=reduce`);
+  for (const id of relayLevelIds.slice(0,6)) {
+    await page.goto(`${base}/?dev=1&mode=challenge&level=${id}&rule=relay&motion=reduce`);
     for (const plan of solutions[id]) {
       const state = (await saved()).current.state, actor = Math.max(0,movedOfficer(state,plan));
       await page.getByTestId(`cop-${actor}`).tap(); await page.getByTestId(`node-${plan[actor]}`).tap();
@@ -47,7 +47,7 @@ try {
     assert.doesNotMatch(await page.locator('#share-note').textContent(),/已复制/);
   }
   for (const viewport of [{width:320,height:568},{width:844,height:390},{width:667,height:375}]) {
-    await page.setViewportSize(viewport); await page.goto(`${base}/?level=1&rule=relay&motion=reduce`);
+    await page.setViewportSize(viewport); await page.goto(`${base}/?dev=1&level=1&rule=relay&motion=reduce`);
     const bounds = await page.evaluate(() => ['#board','.action-bar','#play-prompt'].map(selector => {
       const r = document.querySelector(selector).getBoundingClientRect(); return {selector,x:r.x,y:r.y,right:r.right,bottom:r.bottom};
     }));
@@ -60,7 +60,7 @@ try {
     await page.waitForFunction(turn => document.body.dataset.turn === String(turn) && document.body.dataset.phase === 'planning',state.turn+1);
   }
   const patrol = (await saved()).current;
-  await page.goto(`${base}/?mode=escape&level=100&role=runner&first=pursuer&rule=standard`);
+  await page.goto(`${base}/?dev=1&mode=escape&level=100&role=runner&first=pursuer&rule=standard`);
   assert.ok(await page.locator('#duel-game').isVisible());
   assert.deepEqual((await saved()).current,patrol,'a shared duel preserves the unfinished patrol save');
   await page.locator('#focus-toggle').tap();

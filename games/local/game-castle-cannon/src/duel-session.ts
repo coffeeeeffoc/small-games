@@ -4,6 +4,8 @@ import { DuelBot } from './duel-bot.js';
 import { DUEL_RULES as R } from './duel-map.js';
 import { DuelConnection, serverAddress } from './duel-network.js';
 import { newProgress, readProgress } from './progress.js';
+import { beginCampaign, campaignAction, settleCampaign } from './campaign-session.js';
+import { preferenceAction, saveDuelRecord } from './duel-progress.js';
 import { createDuel, stepDuel } from './duel-simulation.js';
 import { type Command } from './duel-types.js';
 import { duelInput } from './duel-input.js';
@@ -44,20 +46,25 @@ export async function createDuelSession(
     address,
     developer,
     matchId: '',
+    campaignLevel: null,
+    chapterPage: Math.floor(p.unlocked / 10),
   };
   let connection: DuelConnection | null = null,
     bot = new DuelBot(1),
     accumulator = 0,
     disposed = false,
-    generation = 0;
+    generation = 0,
+    suspended = false,
+    autoPaused = false;
   let persisted = '',
     saveQueue = Promise.resolve(),
     lastSound = 0,
     lastImpactSound = 0;
   const save = () => {
+    const value = JSON.parse(JSON.stringify(v.p)) as JsonValue;
     saveQueue = saveQueue.then(async () => {
       try {
-        await host.storage.write('castle-cannon:progress', v.p as unknown as JsonValue);
+        await host.storage.write('castle-cannon:progress', value);
       } catch {
         v.message = '存档暂不可用，本局仍可继续';
       }
@@ -65,7 +72,11 @@ export async function createDuelSession(
   };
   const send = (c: Command) => {
     if (connection) connection.send(c);
-    else command(v.duel, v.side, c);
+    else {
+      const shots = v.duel.nextId;
+      command(v.duel, v.side, c);
+      if (v.campaignLevel !== null && v.duel.nextId > shots) v.message = '';
+    }
   };
   const controls = duelInput(v, send, action, () => !!connection);
   const cancel = controls.cancel;
@@ -77,6 +88,7 @@ export async function createDuelSession(
     v.duel = createDuel();
     v.side = 0;
     v.mode = 'practice';
+    v.campaignLevel = null;
     v.matchId = `practice:${Date.now()}`;
     v.developer = dev;
     v.screen = 'playing';
@@ -87,6 +99,10 @@ export async function createDuelSession(
     persisted = '';
     lastSound = lastImpactSound = 0;
   }
+  function startCampaign(index: number, preview = false) {
+    const next = beginCampaign(v, index, () => practice(preview), preview);
+    if (next) bot = next;
+  }
   async function match() {
     cancel();
     connection?.dispose();
@@ -96,6 +112,7 @@ export async function createDuelSession(
     v.message = '';
     v.scope = false;
     v.developer = false;
+    v.campaignLevel = null;
     try {
       const address = serverAddress(v.address);
       const client = new DuelConnection(
@@ -142,31 +159,14 @@ export async function createDuelSession(
     v.screen = 'result';
     persisted = v.matchId;
     if (v.developer) return;
-    const matchId = v.matchId,
-      mode = v.mode,
-      side = v.side,
-      result = { ...v.duel.result };
-    saveQueue = saveQueue.then(async () => {
-      try {
-        const key = `castle-cannon:duel-records:${mode}`;
-        const old = (await host.storage.read(key))?.value;
-        const records = Array.isArray(old)
-          ? old.filter((r) => r && typeof r === 'object' && !Array.isArray(r))
-          : [];
-        if (
-          records.some(
-            (r) => r && typeof r === 'object' && !Array.isArray(r) && 'id' in r && r.id === matchId,
-          )
-        )
-          return;
-        records.push({ id: matchId, winner: result.winner, side, reason: result.reason });
-        await host.storage.write(key, records.slice(-50));
-      } catch {
-        /* Failed optional history does not alter a finished match. */
-      }
-    });
+    if (settleCampaign(v, save)) return;
+    const mode = v.mode,
+      record = { id: v.matchId, side: v.side, ...v.duel.result };
+    saveQueue = saveQueue.then(() => saveDuelRecord(host, mode, record));
   }
   function action(id: string) {
+    if (disposed) return;
+    if (campaignAction(v, id, startCampaign, cancel)) return;
     const me = v.duel.fighters[v.side],
       gun = activeGun(me);
     if (id === 'start' || id === 'rematch') {
@@ -189,15 +189,20 @@ export async function createDuelSession(
       v.screen = 'home';
       v.scope = false;
       v.message = '';
+      v.campaignLevel = null;
       return;
     }
     if (id === 'pause') {
+      if (v.screen !== 'playing') return;
       cancel();
+      autoPaused = false;
       v.screen = 'paused';
       return;
     }
     if (id === 'resume') {
+      if (v.screen !== 'paused' && v.screen !== 'confirm') return;
       cancel();
+      autoPaused = false;
       v.screen = 'playing';
       return;
     }
@@ -228,24 +233,7 @@ export async function createDuelSession(
       v.screen = id as DuelScreen;
       return;
     }
-    if (id === 'sound' || id === 'motion' || id === 'lowPower') {
-      p[id] = !p[id];
-      save();
-      return;
-    }
-    if (id.startsWith('skin:')) {
-      const skin = Number(id.slice(5));
-      if (skin === 0 || skin === 1 || skin === 2) {
-        if (p.owned.includes(skin)) p.skin = skin;
-        else if (p.materials >= 40) {
-          p.materials -= 40;
-          p.owned.push(skin);
-          p.skin = skin;
-        }
-        save();
-      }
-      return;
-    }
+    if (preferenceAction(p, id, save)) return;
     if (v.screen !== 'playing' || v.duel.result) return;
     if (id === 'scope') {
       v.scope = !v.scope;
@@ -261,8 +249,11 @@ export async function createDuelSession(
     input: controls.input,
     cancel,
     practice,
+    previewCampaign(index: number) {
+      if (developer) startCampaign(index, true);
+    },
     tick(dt: number) {
-      if (disposed) return;
+      if (disposed || suspended || !Number.isFinite(dt) || dt < 0) return;
       if (!connection && v.screen === 'playing') {
         accumulator += Math.min(dt, 0.25);
         while (accumulator >= R.step) {
@@ -287,10 +278,16 @@ export async function createDuelSession(
     },
     pause() {
       cancel();
-      if (v.screen === 'playing') v.screen = 'paused';
+      suspended = true;
+      if (v.screen === 'playing') {
+        autoPaused = true;
+        v.screen = 'paused';
+      }
     },
     resume() {
-      if (v.screen === 'paused') v.screen = 'playing';
+      suspended = false;
+      if (autoPaused && v.screen === 'paused') v.screen = 'playing';
+      autoPaused = false;
     },
     async dispose() {
       disposed = true;

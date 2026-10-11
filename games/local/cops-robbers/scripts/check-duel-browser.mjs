@@ -10,12 +10,12 @@ const errors=[],checks=[];
 try{
  const page=await browser.newPage({viewport:{width:390,height:844},hasTouch:true});
  page.on('pageerror',error=>errors.push(error.message));
- await page.goto(base);await page.locator('#home-start').waitFor();
+ await page.goto(`${base}/?dev=1`);await page.locator('#home-start').waitFor();
  const openModes=async()=>{await page.locator('#mode-settings').tap();assert.ok(await page.locator('#mode-dialog').isVisible());};
  const returnHome=async()=>{await page.locator('#focus-toggle').tap();assert.ok(await page.locator('#home-start').isVisible());};
  for(const mode of ['escape','survival'])for(const role of ['pursuer','runner'])for(const initiative of ['first','second']){
   await openModes();
-  await page.selectOption('#solo-mode',mode);await page.selectOption('#solo-role',role);await page.selectOption('#solo-initiative',initiative);await page.selectOption('#solo-level','100');await page.locator('#start-mode').tap();
+  await page.selectOption('#solo-mode',mode);await page.selectOption('#solo-role',role);await page.selectOption('#solo-initiative',initiative);await page.selectOption('#solo-level','120');await page.locator('#start-mode').tap();
   await page.waitForFunction(role=>document.body.dataset.duelSide===role&&document.body.dataset.duelTurn!==(document.querySelector('#solo-initiative').value==='second'?'0':'-1'),role);
   const turn=await page.locator('body').getAttribute('data-duel-turn');assert.equal(Number(turn),initiative==='first'?0:1);
   assert.ok(await page.locator('#duel-wait').isEnabled());await page.locator('#duel-wait').tap();
@@ -44,7 +44,7 @@ try{
  await page.locator('#friend-duel').tap();assert.match(await page.locator('#friend-note').textContent(),/单机预览/);
  checks.push('full game completed through taps, per-role win and selections survive reload, local preview friend fallback');
  for(const size of [{width:320,height:568},{width:844,height:390}]){
-  await page.setViewportSize(size);await openModes();await page.selectOption('#solo-level','100');await page.locator('#start-mode').tap();
+  await page.setViewportSize(size);await openModes();await page.selectOption('#solo-level','120');await page.locator('#start-mode').tap();
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   const boardBounds=await page.locator('#duel-board').boundingBox();assert.ok(boardBounds.width>=(size.width>size.height?280:230),'The dense map must stay large enough to play');
   await returnHome();checks.push(`${size.width}x${size.height}: no overflow and reachable return`);

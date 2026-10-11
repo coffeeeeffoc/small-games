@@ -3,8 +3,9 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { chromium, expect } from '@playwright/test';
+import { LEVELS, CHAPTER_SIZE } from '../src/content.mjs';
 
-const output = new URL('../docs/design/validation/', import.meta.url);
+const output = new URL('../docs/design/validation/2026-10-11/', import.meta.url);
 await mkdir(output, { recursive: true });
 const server = spawn(process.execPath, ['server.mjs', '--dist', '--port', '4429'], {
   cwd: new URL('../', import.meta.url),
@@ -38,6 +39,15 @@ try {
   const advance = (ms) => page.clock.runFor(ms);
   const screenshot = async (name) => {
     await advance(300);
+    if (
+      ![
+        'actual-levels-390',
+        'actual-late-levels-390',
+        'actual-final-play-390',
+        'actual-final-win-390',
+      ].includes(name)
+    )
+      return;
     return page.screenshot({ path: fileURLToPath(new URL(`${name}.png`, output)) });
   };
   const tap = async (selector) => {
@@ -113,6 +123,15 @@ try {
   await expect(page.locator('#home')).toBeVisible();
   assert.equal(await page.evaluate(() => Boolean(window.__carrom)), false);
   await screenshot('actual-home-390');
+  await tap('#friends-open');
+  await expect(page.locator('#room-entry')).toBeVisible();
+  await expect(page.locator('#room-create')).toBeVisible();
+  await expect(page.locator('#room-input')).toBeVisible();
+  await tap('#friends-back');
+  await expect(page.locator('#home')).toBeVisible();
+  checks.push(
+    'latest friend-room create/join entry and back remain touch accessible without starting a network match',
+  );
   await tap('#help-open');
   await expect(page.locator('#help')).toBeVisible();
   await expect(page.locator('#help')).toContainText('左右慢慢微调');
@@ -121,7 +140,18 @@ try {
   await tap('#help [data-home]');
   await tap('#levels-open');
   await screenshot('actual-levels-390');
-  assert.equal(await page.locator('.level-card:disabled').count(), 5);
+  assert.equal(await page.locator('.level-card').count(), CHAPTER_SIZE);
+  assert.equal(await page.locator('.level-card:disabled').count(), CHAPTER_SIZE - 1);
+  await tap('#chapter-next');
+  await expect(page.locator('#chapter-progress')).toContainText('13–24');
+  assert.equal(await page.locator('.level-card:disabled').count(), CHAPTER_SIZE);
+  const navBox = await page.locator('#chapter-next').boundingBox();
+  assert(navBox.width >= 44 && navBox.height >= 44);
+  await tap('#chapter-prev');
+  await expect(page.locator('[data-level="first-touch"]')).toBeEnabled();
+  checks.push(
+    'ordinary players can browse 10 chapters, only 12 previews render, future lessons stay locked',
+  );
   await page.goto(origin + '?dev=1');
   await advance(250);
   await tap('#levels-open');
@@ -212,11 +242,11 @@ try {
   checks.push('real touch shot pockets target; pause freezes physical state; resume reaches win');
   await tap('#result [data-home]');
   await tap('#levels-open');
-  assert.equal(await page.locator('.level-card:disabled').count(), 4);
+  assert.equal(await page.locator('.level-card:disabled').count(), CHAPTER_SIZE - 2);
   await page.reload();
   await advance(100);
   await tap('#levels-open');
-  assert.equal(await page.locator('.level-card:disabled').count(), 4);
+  assert.equal(await page.locator('.level-card:disabled').count(), CHAPTER_SIZE - 2);
   checks.push('win stars unlock exactly the next level and survive reload');
   await tap('[data-level="first-touch"]');
   for (let i = 0; i < 5; i++) {
@@ -367,6 +397,69 @@ try {
   await tap('#settings-open');
   assert.equal(await page.locator('#sound').getAttribute('aria-pressed'), 'false');
   checks.push('audio setting persists');
+  {
+    // Seed the same v1 progress produced by the unit test's 119 physical wins.
+    // Start the final lesson through the normal locked catalog, not a dev action.
+    await page.addInitScript(
+      (ids) => {
+        if (sessionStorage.getItem('carrom:final-lesson-fixture')) return;
+        sessionStorage.setItem('carrom:final-lesson-fixture', '1');
+        const save = JSON.parse(localStorage.getItem('carrom-club:v1'));
+        save.stars = Object.fromEntries(ids.map((id) => [id, 2]));
+        save.match = null;
+        localStorage.setItem('carrom-club:v1', JSON.stringify(save));
+      },
+      LEVELS.slice(0, 119).map((level) => level.id),
+    );
+    await page.reload();
+    await advance(100);
+    await tap('#levels-open');
+    await expect(page.locator('#chapter-label')).toContainText('棋社终章');
+    await expect(page.locator('#chapter-progress')).toContainText('109–120');
+    assert.equal(await page.locator('.level-card').count(), 12);
+    assert.equal(await page.locator('.level-card:disabled').count(), 0);
+    await screenshot('actual-late-levels-390');
+    await page.locator('[data-level="practice-120"]').scrollIntoViewIfNeeded();
+    await tap('[data-level="practice-120"]');
+    await screenshot('actual-final-play-390');
+    await dragShot(await page.evaluate(() => window.__carrom.previewShot()));
+    await advance(6000);
+    assert.equal((await state()).game.phase, 'ready');
+    const box = await page.locator('#position').boundingBox();
+    const rangePoint = (value) => ({
+      x: box.x + 19 + ((value - 235) / 530) * (box.width - 38),
+      y: box.y + box.height / 2,
+    });
+    await touch('touchStart', [rangePoint(Number(await page.locator('#position').inputValue()))]);
+    await touch('touchMove', [rangePoint(675)]);
+    await touch('touchEnd');
+    await advance(250);
+    const saved = (await state()).game;
+    await page.reload();
+    await advance(100);
+    await expect(page.locator('#start')).toContainText('继续练习');
+    await tap('#start');
+    assert.equal((await state()).game.levelId, 'practice-120');
+    assert.equal((await state()).game.striker.x, saved.striker.x);
+    assert.equal((await state()).game.playerShots, saved.playerShots);
+    for (let i = 0; i < LEVELS.at(-1).shots && (await state()).game.phase !== 'over'; i++) {
+      await dragShot(await page.evaluate(() => window.__carrom.previewShot()));
+      await advance(6000);
+    }
+    await expect(page.locator('#result')).toBeVisible();
+    assert.equal((await state()).game.winner, 0);
+    await expect(page.locator('#result-description')).toContainText('120 关练习已完成');
+    await expect(page.locator('#next')).toBeHidden();
+    assert((await state()).save.stars['practice-120'] > 0);
+    await screenshot('actual-final-win-390');
+    await tap('#result [data-home]');
+    await page.reload();
+    await advance(100);
+    await expect(page.locator('#practice-progress')).toContainText('120 / 120');
+    checks.push(
+      '119-win v1 fixture opens chapter 10 normally; native-touch level 120 wins, restores placement and shot count after reload, saves final stars and hides next',
+    );
+  }
   const denied = await browser.newContext({
     viewport: { width: 390, height: 844 },
     hasTouch: true,

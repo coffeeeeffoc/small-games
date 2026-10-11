@@ -87,9 +87,9 @@ const fork = prepareLevel({ nodes:[{},{},{},{}],edges:[[0,1],[1,2],[1,3]],cops:[
 assert.deepEqual(step(fork,initialState(fork),[0]).state.robbers,[2],'equal candidates use the lower node id');
 assert.equal(stateKey({ cops:[1],robbers:[2],turn:1 }),stateKey({ cops:[1],robbers:[2],turn:9 }),'repetition ignores the turn counter');
 
-assert.equal(levels.length,100);
-assert.equal(chapters.length,7);
-assert.equal(Object.keys(solutions).length,100);
+assert.equal(levels.length,120);
+assert.equal(chapters.length,8);
+assert.equal(Object.keys(solutions).length,120);
 const roadSketches = new Set();
 let moves = 0;
 const audit = [];
@@ -97,7 +97,7 @@ let seed = 91842;
 const random = () => ((seed = (Math.imul(seed,1664525) + 1013904223) >>> 0) / 4294967296);
 for (const [index,level] of levels.entries()) {
   assert.equal(level.id,index+1);
-  assert.equal(level.chapter,index<60?Math.floor(index/12):index<80?5:6);
+  assert.equal(level.chapter,index<60?Math.floor(index/12):index<80?5:index<100?6:7);
   assert.equal(level.cops.length, level.chapter === 4 ? 4 : 3);
   assert.ok(level.robbers.length >= 1 && level.robbers.length <= 5);
   assert.ok(level.exits.length>=1 && level.exits.length<=3,'each level has real escape gates');
@@ -190,5 +190,5 @@ assert.ok(splitCaptures.length/multiple.length>=0.8,'legacy multi-robber levels 
 const randomWins=audit.reduce((sum,item)=>sum+item.randomWins,0);
 assert.ok(audit.slice(12).reduce((sum,item)=>sum+item.randomWins,0)<48*40*0.25,'later levels cannot be won reliably by random movement');
 mkdirSync(new URL('../outputs/',import.meta.url),{recursive:true});
-writeFileSync(new URL('../outputs/level-audit.json',import.meta.url),JSON.stringify({rules:'single officer move, all robbers move, any escape loses',levels:100,verifiedMoves:moves,distinctLayouts:roadSketches.size,chapterAverages:averages,separateCaptures:`${splitCaptures.length}/${multiple.length}`,randomWins,randomTrials:4000,audit},null,2));
-console.log(`Rules OK. 100/100 solutions (${moves} single-officer moves), 60/60 essential squads (exhaustive removal checks), 100/100 real escape failures, 100/100 current-position hints. ${roadSketches.size} road layouts; chapter averages ${averages.map(value=>value.toFixed(1)).join(' / ')}. Separate captures ${splitCaptures.length}/${multiple.length}; random wins ${randomWins}/4000.`);
+writeFileSync(new URL('../outputs/level-audit.json',import.meta.url),JSON.stringify({rules:'single officer move, all robbers move, any escape loses',levels:levels.length,verifiedMoves:moves,distinctLayouts:roadSketches.size,chapterAverages:averages,separateCaptures:`${splitCaptures.length}/${multiple.length}`,randomWins,randomTrials:levels.length*40,audit},null,2));
+console.log(`Rules OK. 120/120 solutions (${moves} single-officer moves), 60/60 essential squads (exhaustive removal checks), 120/120 real escape failures, 120/120 current-position hints. ${roadSketches.size} road layouts; chapter averages ${averages.map(value=>value.toFixed(1)).join(' / ')}. Separate captures ${splitCaptures.length}/${multiple.length}; random wins ${randomWins}/${levels.length*40}.`);

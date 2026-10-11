@@ -250,7 +250,7 @@ async function assertFixedAfterContentScroll(page, surface, fixedSelectors, { re
 }
 
 async function load(page, query = '') {
-  await page.goto(`${base}/?motion=reduce${query ? '&' + query : ''}`);
+  await page.goto(`${base}/?dev=0&motion=reduce${query ? '&' + query : ''}`);
   assert.match(await page.title(), /围捕小队/, 'BASE_URL must point to the actual game entry');
   await page.locator('#home-start').waitFor({ state: query.includes('level=') ? 'hidden' : 'visible' });
   await page.evaluate(async () => { await document.fonts.ready; await Promise.all([...document.images].map(image => image.decode().catch(() => {}))); });
@@ -444,7 +444,7 @@ try {
       return { scrollables };
     });
     await check('levels', async (page, _fixture, capture) => {
-      await tap(page.locator('#home-start'));
+      await tap(page.locator('#level-select'));
       await surfaceFits(page, '#level-dialog');
       const fixed = ['#level-dialog-title', '#level-dialog .dialog-close', '#level-dialog .dialog-note'];
       const scrollables = await assertFixedAfterContentScroll(page, '#level-dialog', fixed);

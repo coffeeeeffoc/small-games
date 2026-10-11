@@ -3,14 +3,15 @@ import { spawn } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium, expect } from '@playwright/test';
-import { getLevel } from '../src/levels.mjs';
-import { canPlace, previewPlacement, createEndless } from '../src/engine.mjs';
+import { LEVELS, getLevel } from '../src/levels.mjs';
+import { createProgress, recordLevelResult } from '../src/progress.mjs';
+import { canPlace, previewPlacement, createEndless, createLevel, place } from '../src/engine.mjs';
 
 // Exercise the production artifact using real Chromium touch events. Read-only
 // snapshots and level solutions may describe expected state; they never place a
 // piece, unlock content, or manufacture a normal-player victory.
 const gameRoot = fileURLToPath(new URL('../', import.meta.url));
-const outputRoot = fileURLToPath(new URL('../docs/design/garden-2026-10-07/actual-v2/', import.meta.url));
+const outputRoot = process.env.THREE_CHOOSE_TWO_BROWSER_OUTPUT || fileURLToPath(new URL('../docs/design/garden-2026-10-07/actual-v2/', import.meta.url));
 const port = Number(process.env.THREE_CHOOSE_TWO_BROWSER_PORT || 4423);
 let baseURL = process.env.THREE_CHOOSE_TWO_URL;
 let server;
@@ -556,6 +557,23 @@ async function developerFlow() {
   await page.goto(new URL('?dev=1', baseURL).href);
   await action(page, 'levels');
   await expect(page.locator('[data-level="30"]')).toBeEnabled();
+  for (let i = 0; i < 3; i++) await action(page, 'levels-next');
+  await expect(page.locator('[data-level="120"]')).toBeEnabled();
+  await page.locator('[data-level="120"]').tap();
+  await action(page, 'begin');
+  assert.equal((await state(page)).levelId, 120);
+  await capture(page, 'developer-level-120');
+  for (const [i, move] of getLevel(120).solution.entries()) {
+    await drag(page, session, move.slot, move.x, move.y);
+    await waitPlacements(page, i + 1);
+  }
+  await screen(page, 'result');
+  assert.equal((await state(page)).status, 'won');
+  assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('three-choose-two-progress-v1'))), realSave);
+  await capture(page, 'developer-result-120');
+  record('All four pages are touch reachable and level 120 wins through real drag input without writing normal progress');
+  await action(page, 'levels');
+  await expect(page.locator('[data-level="30"]')).toBeEnabled();
   await page.locator('[data-level="30"]').tap();
   await action(page, 'begin');
   await screen(page, 'playing');
@@ -573,7 +591,7 @@ async function developerFlow() {
   assert.equal((await state(page)).stars, 3);
   assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('three-choose-two-progress-v1'))), realSave);
   await capture(page, 'developer-result');
-  record('Developer selection opens all 30 levels and a real touch solution earns no normal progress or record');
+  record('Developer selection opens the first 30 of 120 levels and a real touch solution earns no normal progress or record');
 
   await page.evaluate(() => window.ThreeChooseTwoDev.level(12));
   await screen(page, 'playing');
@@ -676,6 +694,51 @@ async function onlineHomeFixture() {
   await context.close();
 }
 
+async function normalFinalLevelFlow() {
+  // A late-game save fixture is constructed by the actual rule/progression APIs.
+  // Browser input still owns every move and the result of the final level.
+  let progress = createProgress();
+  for (const level of LEVELS.slice(0, -1)) {
+    let completed = createLevel(level.id);
+    for (const move of level.solution) completed = place(completed, move.slot, move.x, move.y);
+    assert.equal(completed.status, 'won');
+    progress = recordLevelResult(progress, completed);
+  }
+  const context = await phoneContext();
+  await context.addInitScript((saved) => {
+    if (!localStorage.getItem('three-choose-two-progress-v1')) localStorage.setItem('three-choose-two-progress-v1', JSON.stringify(saved));
+  }, progress);
+  const page = await context.newPage(), session = await context.newCDPSession(page);
+  monitor(page);
+  await page.goto(new URL('?dev=0', baseURL).href);
+  await action(page, 'levels');
+  await expect(page.locator('[data-level="120"]')).toBeEnabled();
+  await expect(page.locator('[data-action="levels-next"]')).toBeDisabled();
+  assert.equal(await page.locator('[data-level]').count(), 30);
+  await page.locator('[data-level="120"]').tap();
+  await action(page, 'begin');
+  assert.equal((await page.evaluate(() => window.getThreeChooseTwoSnapshot())).devPractice, false);
+  await capture(page, 'normal-level-120');
+  for (const [i, move] of getLevel(120).solution.entries()) {
+    await drag(page, session, move.slot, move.x, move.y);
+    await waitPlacements(page, i + 1);
+  }
+  await screen(page, 'result');
+  assert.equal((await state(page)).status, 'won');
+  await expect(page.locator('[data-action="next"]')).toHaveCount(0);
+  await capture(page, 'normal-result-120');
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('three-choose-two-progress-v1')));
+  assert.equal(Object.keys(saved.records).length, 120);
+  assert.equal(saved.records[120].stars, 3);
+  await action(page, 'levels');
+  await expect(page.locator('[data-level="120"]')).toContainText('120');
+  await action(page, 'home');
+  await page.reload();
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('three-choose-two-progress-v1')).records[120].stars), 3);
+  record('Normal dev=0 final-level fixture: continued page, touch win, final settlement and reload preserve all 120 records', { fixture: '119 prior wins from rule APIs; final win uses touch input' });
+  await context.close();
+}
+
 async function run() {
   await startServer();
   browser = await chromium.launch({
@@ -684,12 +747,14 @@ async function run() {
     args: ['--no-sandbox'],
   });
   report.browserVersion = browser.version();
+  if (process.env.THREE_CHOOSE_TWO_BROWSER_FLOW === 'final') { await normalFinalLevelFlow(); return; }
   await mainFlow();
   await refillFlow();
   await failureFlow();
   await smallViewports();
   await developerFlow();
   await onlineHomeFixture();
+  await normalFinalLevelFlow();
 }
 
 try {

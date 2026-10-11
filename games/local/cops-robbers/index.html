@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#b6e8ee" />
     <meta
       name="description"
-      content="突围队员会从出口逃走！点路口立即调动追逐队员，在三种各100关的挑战与对抗中选择双方角色。"
+      content="突围队员会从出口逃走！点路口立即调动追逐队员，在三种各120关的挑战与对抗中选择双方角色。"
     />
     <title>围捕小队 · 街区追逃计划</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
@@ -117,7 +117,7 @@
           </div>
           <div class="home-tools">
             <button type="button" id="level-select">
-              街区地图 <strong id="completed-count">0 / 100</strong></button
+              街区地图 <strong id="completed-count">0 / 120</strong></button
             ><button type="button" id="quick-start">两步试炼</button
             ><button type="button" class="fullscreen-button" data-game-fullscreen hidden>
               全屏
@@ -246,7 +246,7 @@
           <div id="level-grid"></div>
         </div>
       </div>
-      <p class="dialog-note dialog-footer">点一个路口，开始巡逻。所有关卡都可尝试。</p>
+      <p class="dialog-note dialog-footer">通关解锁下一关，已完成的关卡可随时重玩。</p>
     </dialog>
     <dialog id="mode-dialog" aria-labelledby="mode-title">
       <div class="dialog-heading">
@@ -256,11 +256,11 @@
       <section class="mode-card dialog-body" tabindex="0" aria-label="选择玩法和角色">
         <label
           >玩法<select id="solo-mode">
-            <option value="challenge">围堵挑战 · 100 关</option>
-            <option value="quick">两步试炼 · 3 关</option>
-            <option value="relay">换防接力 · 6 关</option>
-            <option value="escape">出口竞速 · 100 关</option>
-            <option value="survival">限步周旋 · 100 关</option>
+            <option value="challenge">围堵挑战 · 120 关</option>
+            <option value="quick">短场试炼 · 120 关</option>
+            <option value="relay">换防接力 · 120 关</option>
+            <option value="escape">出口竞速 · 120 关</option>
+            <option value="survival">限步周旋 · 120 关</option>
           </select></label
         >
         <p id="mode-description"></p>
@@ -329,7 +329,7 @@
             出口竞速和限步周旋中，双方轮流移动一名队员或留守。追逐队走到对手的位置即完成拦截；突围队可抵达出口（竞速）或坚持到回合上限获胜。开局可选择角色与先后手。
           </p>
           <br /><strong>围堵挑战：封住退路</strong>
-          <p>以下规则适用于固定电脑对手的 100 关挑战。</p>
+          <p>以下规则适用于固定电脑对手的 120 关挑战。</p>
         </div>
         <ol class="help-steps">
           <li>

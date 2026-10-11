@@ -33,3 +33,22 @@ it('battery mode preserves bounds, original textures and later skin changes acro
   geometry.dispose();
   low.dispose();
 });
+
+it('battery mode receives textures loaded after its first render', () => {
+  const scene = new T.Scene(),
+    material = new T.MeshStandardMaterial(),
+    mesh = new T.Mesh(new T.BoxGeometry(), material),
+    quality = new SceneQuality(),
+    texture = new T.Texture();
+  scene.add(mesh);
+  quality.apply(scene, true);
+  expect(mesh.material.map).toBeNull();
+  material.map = texture;
+  quality.sync();
+  expect(mesh.material.map).toBe(texture);
+  quality.apply(scene, false);
+  quality.dispose();
+  material.dispose();
+  texture.dispose();
+  mesh.geometry.dispose();
+});

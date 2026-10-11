@@ -1,0 +1,103 @@
+{
+  "passed": true,
+  "campaigns": {
+    "standard": 120,
+    "relay": 120,
+    "quick": 120,
+    "escape": 120,
+    "survival": 120
+  },
+  "standard": {
+    "levels": 120,
+    "verifiedMoves": 1919,
+    "distinctLayouts": 120,
+    "chapterAverages": [
+      6.083333333333333,
+      10.083333333333334,
+      9,
+      9.083333333333334,
+      12.583333333333334,
+      14.3,
+      15.75,
+      12.35
+    ],
+    "separateCaptures": "40/40",
+    "randomWins": 1,
+    "randomTrials": 4800
+  },
+  "optimal": {
+    "standardProofs": 120,
+    "relayProofs": 120,
+    "verifiedHints": 1410
+  },
+  "duel": {
+    "escape": {
+      "count": 120,
+      "uniqueRoadGraphs": 120,
+      "early": {
+        "nodes": 16,
+        "roads": 18.4,
+        "loops": 3.4,
+        "branches": 6.15,
+        "rounds": 19.5
+      },
+      "late": {
+        "nodes": 36,
+        "roads": 49.2,
+        "loops": 14.2,
+        "branches": 21.6,
+        "rounds": 39.5
+      },
+      "randomOutcomes": {
+        "pursuer": 1386,
+        "runner": 3414
+      }
+    },
+    "survival": {
+      "count": 120,
+      "uniqueRoadGraphs": 120,
+      "early": {
+        "nodes": 16,
+        "roads": 18.15,
+        "loops": 3.15,
+        "branches": 6.1,
+        "rounds": 11.5
+      },
+      "late": {
+        "nodes": 36,
+        "roads": 49.2,
+        "loops": 14.2,
+        "branches": 22.45,
+        "rounds": 31.5
+      },
+      "randomOutcomes": {
+        "pursuer": 1024,
+        "runner": 3776
+      }
+    }
+  },
+  "browser": {
+    "gameShell": 9,
+    "interactions": 20,
+    "dialogs": 72,
+    "focusViewports": 5,
+    "duel": 11,
+    "viewportChecks": 38,
+    "viewportPassed": 38,
+    "sizes": [
+      [
+        320,
+        568
+      ],
+      [
+        667,
+        375
+      ]
+    ]
+  },
+  "limits": [
+    "Browser touch emulation, not physical phones.",
+    "Shared competition API replaced by local responses executed against actual server rules.",
+    "Public hosted multiplayer and mini-game devices are not verified."
+  ]
+}

@@ -35,12 +35,12 @@ function layout(extra = {}) {
   };
 }
 
-test('20 stable levels form four reachable chapters with valid terrain and distinct milestones', () => {
+test('120 stable levels form 24 reachable five-level chapters without replacing legacy IDs', () => {
   assert.equal(validateLevels(levels), levels);
-  assert.equal(levels.length, 20);
+  assert.equal(levels.length, 120);
   assert.deepEqual(
     chapters.map((chapter) => levels.filter((level) => level.chapter === chapter.id).length),
-    [5, 5, 5, 5],
+    Array(24).fill(5),
   );
   assert(levels.slice(0, 5).every((level) => level.points.length === 2));
   assert(levels.slice(5, 10).every((level) => level.points.length === 3));
@@ -48,12 +48,28 @@ test('20 stable levels form four reachable chapters with valid terrain and disti
   assert.equal(levels[12].ice.length, 1);
   assert.equal(levels[15].gaps.length, 1);
   assert.deepEqual(
-    levels.filter((level) => level.boss).map((level) => level.index),
+    levels
+      .slice(0, 20)
+      .filter((level) => level.boss)
+      .map((level) => level.index),
     [5, 10, 15, 20],
   );
   assert.equal(getLevel(0), levels[0]);
   assert.equal(getLevel('summit-master'), levels[19]);
   assert.equal(getLevel('missing'), null);
+  assert.equal(levels.at(-1).index, 120);
+  assert.equal(levels[20].requires, 'summit-master');
+  const signatures = levels.map((level) =>
+    JSON.stringify({
+      points: level.points,
+      obstacles: level.obstacles,
+      ice: level.ice,
+      gaps: level.gaps,
+    }),
+  );
+  assert.equal(new Set(signatures).size, 120, 'each level has its own playable arrangement');
+  assert.notEqual(levels[32].ice[0].friction, levels[12].ice[0].friction);
+  assert.notEqual(levels[30].obstacles[0].radius, levels[10].obstacles[0].radius);
   for (const change of [
     (copy) => {
       copy[1].id = copy[0].id;
@@ -247,10 +263,39 @@ test('legacy saves migrate without lost settings; wins unlock all levels sequent
     assert.equal(again, save);
     save = readSave(JSON.parse(JSON.stringify(save)));
   }
-  assert.equal(save.played, 29);
-  assert.equal(save.wins, 24);
-  assert.equal(totalStars(save), 60);
-  assert.equal(nextLevel(save).id, levels[19].id);
+  assert.equal(save.played, 129);
+  assert.equal(save.wins, 124);
+  assert.equal(totalStars(save), 360);
+  assert.equal(nextLevel(save).id, levels.at(-1).id);
+});
+
+test('an old twenty-level campaign keeps every record and continues into the new route', () => {
+  const old = readSave({
+    version: 1,
+    played: 25,
+    wins: 20,
+    sound: false,
+    theme: 'gold',
+    campaign: {
+      levels: Object.fromEntries(
+        levels.slice(0, 20).map((level) => [
+          level.id,
+          {
+            stars: 3,
+            goals: level.challenges.map((goal) => goal.id),
+            bestShots: 4,
+          },
+        ]),
+      ),
+    },
+  });
+  assert.equal(totalStars(old), 60);
+  assert.equal(old.played, 25);
+  assert.equal(old.sound, false);
+  assert.equal(old.theme, 'gold');
+  assert.equal(nextLevel(old).id, levels[20].id);
+  assert(isLevelUnlocked(old, levels[20].id));
+  assert(!isLevelUnlocked(old, levels[21].id));
 });
 
 test('challenge stars accumulate independently across victories; losses and unfinished matches cannot unlock', () => {
@@ -300,8 +345,11 @@ test('every campaign level completes through shared bot physics across determini
   const summary = [];
   for (const level of levels) {
     let wins = 0,
-      maxShots = 0;
-    for (let seed = 1; seed <= 12; seed++) {
+      maxShots = 0,
+      sampled = 0,
+      winningSeed = null;
+    // Always run 12 seeds; search up to 40 for a concrete expert-play victory on harder routes.
+    for (let seed = 1; seed <= 12 || (wins === 0 && seed <= 40); seed++) {
       const state = createMatch(level, seed);
       for (let turn = 0; turn < 100 && state.phase !== 'over'; turn++) {
         const command = chooseBot(state);
@@ -312,11 +360,15 @@ test('every campaign level completes through shared bot physics across determini
       }
       assert.equal(state.phase, 'over', `${level.id}:${seed} stalled`);
       assert(state.shots > 1);
+      sampled++;
       maxShots = Math.max(maxShots, state.shots);
-      if (state.winner === 0) wins++;
+      if (state.winner === 0) {
+        wins++;
+        winningSeed ??= seed;
+      }
     }
-    summary.push({ id: level.id, wins, maxShots });
+    summary.push({ id: level.id, sampled, wins, winningSeed, maxShots });
     assert(wins > 0, `${level.id} must be winnable in sampled expert play`);
   }
-  console.log('campaign simulation (12 seeds per level):', JSON.stringify(summary));
+  console.log('campaign simulation (12–40 seeds per level):', JSON.stringify(summary));
 });

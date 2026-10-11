@@ -112,6 +112,9 @@ export const castleCannonCanvasDefinition: GameDefinition<CastleTarget> = {
           scope: v.scope,
           scopeX: v.scopeX,
           scopeY: v.scopeY,
+          campaignLevel: v.campaignLevel,
+          unlocked: v.p.unlocked,
+          cleared: v.p.cleared,
         },
       );
     }
@@ -141,6 +144,13 @@ export const castleCannonCanvasDefinition: GameDefinition<CastleTarget> = {
     if (dev) {
       stops.push(
         window.SmallGamesDev.registerActions([
+          {
+            id: 'castle-campaign-final',
+            label: '试玩第 120 关（不存进度）',
+            run() {
+              session.previewCampaign(119);
+            },
+          },
           {
             id: 'castle-duel',
             label: '双城炮战试玩（不存战绩）',

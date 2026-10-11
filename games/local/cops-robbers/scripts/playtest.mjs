@@ -20,7 +20,7 @@ function observe(page) {
   page.on('response', response => { if (response.status() >= 400) report.errors.push(`http ${response.status()}: ${response.url()}`); });
 }
 async function load(page, id, reduced = true) {
-  await page.goto(`${base}/?level=${id}${reduced ? '&motion=reduce' : ''}`, { waitUntil: 'networkidle' });
+  await page.goto(`${base}/?dev=1&level=${id}${reduced ? '&motion=reduce' : ''}`, { waitUntil: 'networkidle' });
   assert.match(await page.title(), /围捕小队/, '端口没有返回围捕小队');
   await page.getByTestId('board').waitFor({ state: 'visible' });
   await page.waitForFunction(id => document.body.dataset.level === String(id) && document.body.dataset.phase === 'planning', id);
@@ -92,7 +92,7 @@ try {
   const desktop = await browser.newContext({ viewport: { width: 1366, height: 900 } }), page = await desktop.newPage();
   observe(page);
   await load(page, 1, false); await win(page, 1);
-  assert.ok(await page.evaluate(() => localStorage.getItem('cops-robbers-v3')), '胜利后应保存新版本地记录');
+  assert.ok(await page.evaluate(() => localStorage.getItem('cops-robbers-practice-v3')), '胜利后应保存新版本地记录');
   await page.getByTestId('next-level').click();
   await page.waitForFunction(() => document.body.dataset.level === '2' && document.body.dataset.phase === 'planning');
   report.checks.push('首关正常动画、点击立即行动、突围队员自动响应、胜利和下一关');

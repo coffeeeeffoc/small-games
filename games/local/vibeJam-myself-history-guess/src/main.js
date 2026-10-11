@@ -1,15 +1,7 @@
 import './style.css';
 import '../dev-mode.js';
 import { rounds, cities } from './rounds.js';
-import {
-  scoreGuess,
-  clamp,
-  formatYear,
-  MIN_YEAR,
-  MAX_YEAR,
-  validPoint,
-  restoreJourney,
-} from './game.js';
+import { scoreGuess, clamp, formatYear, MIN_YEAR, MAX_YEAR, restoreJourney } from './game.js';
 import {
   CHAPTERS,
   LEVELS,
@@ -20,6 +12,7 @@ import {
   validateChapters,
 } from './chapters.js';
 import { historyApi, invitationUrl, parseInvite } from './api.js';
+import { restorePracticeJourney } from './progress.js';
 
 validateChapters(rounds);
 const $ = (selector) => document.querySelector(selector);
@@ -55,8 +48,27 @@ const icon = (name) =>
 const art = (id) => rounds.find((round) => round.id === id)?.image || rounds[0].image;
 const brand = `<span class="brand-mark">${icon('compass')}</span><span>此时<span class="brand-dot">·</span>此地</span>`;
 const fmt = (number) => Number(number || 0).toLocaleString('zh-CN');
-const stamps = ['初识山河', '行路之人', '识途旅人', '时空行者'];
+const stamps = [
+  '初识山河',
+  '行路之人',
+  '识途旅人',
+  '时空行者',
+  '山海寻踪者',
+  '岁月记录者',
+  '山河见证者',
+];
+const rankThresholds = [
+  0,
+  3,
+  6,
+  9,
+  Math.ceil(LEVELS.length / 3),
+  Math.ceil((LEVELS.length * 2) / 3),
+  LEVELS.length,
+];
 const LIMIT = 25;
+const practiceSeconds = () => levelById(state.level)?.seconds || LIMIT;
+const roundSeconds = () => (state.mode === 'practice' ? practiceSeconds() : LIMIT);
 let saved = { best: 0, visited: [], sound: true, records: {}, mobileJourney: null };
 try {
   const old = JSON.parse(localStorage.getItem('here-and-then.v1'));
@@ -183,34 +195,8 @@ function remember() {
   save();
 }
 function restoreLocal() {
-  const journey = saved.mobileJourney;
-  if (
-    journey?.version === 2 &&
-    Array.isArray(journey.deck) &&
-    journey.deck.length >= 1 &&
-    journey.deck.length <= 5 &&
-    ['guessing', 'revealed', 'paused'].includes(journey.phase) &&
-    journey.deck.every((id) => rounds.some((round) => round.id === id)) &&
-    Number.isInteger(journey.index) &&
-    journey.index >= 0 &&
-    journey.index < journey.deck.length &&
-    Array.isArray(journey.results) &&
-    journey.results.length === journey.index + (journey.phase === 'revealed' ? 1 : 0) &&
-    journey.results.every(
-      (result) => Number.isInteger(result.total) && result.total >= 0 && result.total <= 5000,
-    ) &&
-    Number.isFinite(journey.deadline) &&
-    Number.isInteger(journey.year) &&
-    journey.year !== 0 &&
-    journey.year >= MIN_YEAR &&
-    journey.year <= MAX_YEAR &&
-    (journey.guess === null || validPoint(journey.guess)) &&
-    (journey.phase !== 'paused' ||
-      (Number.isFinite(journey.pausedRemaining) &&
-        journey.pausedRemaining >= 0 &&
-        journey.pausedRemaining <= LIMIT * 1000))
-  )
-    return { ...journey, deck: journey.deck.map((id) => rounds.find((round) => round.id === id)) };
+  const journey = restorePracticeJourney(saved.mobileJourney, rounds, saved.records);
+  if (journey) return journey;
   const legacy = restoreJourney(saved.journey, rounds);
   if (legacy)
     return {
@@ -263,7 +249,7 @@ function home() {
   const target = nextLevel(saved.records);
   shell(
     'home',
-    `<section class="home-intro"><p class="eyebrow"><span class="red-line"></span>一场关于时间与地点的游戏</p><h1>你能认出，<br>这是<em>何时何地？</em></h1><p class="intro-caption">一幅画，二十五秒。凭直觉，赴一场相遇。</p></section><figure class="hero-postcard"><img src="${art('kaifeng')}" alt="山水与街巷交织的历史想象画面" fetchpriority="high"><div class="image-shade"></div><span class="photo-tag">卷一 · 人间烟火</span><span class="postmark" aria-hidden="true">山河<br>来信</span><figcaption>某年，某地。<br><strong>故事等你落笔。</strong></figcaption></figure><button class="primary start-button" id="start">${journey ? '继续未完的旅途' : '开启旅途'}${icon('arrow')}</button><div class="start-footnote"><span>${journey ? `第 ${journey.index + 1} 幕 · 进度已留存` : '三幕一小关 · 从第一封来信开始'}</span><button class="text-button" data-nav="help">怎么玩${icon('arrow')}</button></div><section class="play-modes" aria-label="挑战入口"><button class="mode-card" id="friend-entry"><span class="mode-symbol">${icon('duel')}</span><span class="eyebrow">一封战书</span><h2>好友 PK</h2><p>同样五幕，谁更懂历史？</p><span class="card-link">向好友下战书 ${icon('arrow')}</span></button><button class="mode-card dark" id="daily-entry"><span class="mode-symbol">${icon('crown')}</span><span class="eyebrow">今日山河</span><h2>全站竞逐</h2><p>每日一局，把名字留在榜上。</p><span class="card-link">赴今日之约 ${icon('arrow')}</span></button></section><div class="home-progress"><span>${icon('book')}已行 ${completed()} / 9 关</span><button class="text-button" data-nav="chapters">继续探索 ${icon('arrow')}</button></div><p class="art-note">场景为 AI 历史想象复原，不作为史料。</p>`,
+    `<section class="home-intro"><p class="eyebrow"><span class="red-line"></span>一场关于时间与地点的游戏</p><h1>你能认出，<br>这是<em>何时何地？</em></h1><p class="intro-caption">一幅画，一段时光。凭直觉，赴一场相遇。</p></section><figure class="hero-postcard"><img src="${art('kaifeng')}" alt="山水与街巷交织的历史想象画面" fetchpriority="high"><div class="image-shade"></div><span class="photo-tag">卷一 · 人间烟火</span><span class="postmark" aria-hidden="true">山河<br>来信</span><figcaption>某年，某地。<br><strong>故事等你落笔。</strong></figcaption></figure><button class="primary start-button" id="start">${journey ? '继续未完的旅途' : '开启旅途'}${icon('arrow')}</button><div class="start-footnote"><span>${journey ? `第 ${journey.index + 1} 幕 · 进度已留存` : '三幕一小关 · 从第一封来信开始'}</span><button class="text-button" data-nav="help">怎么玩${icon('arrow')}</button></div><section class="play-modes" aria-label="挑战入口"><button class="mode-card" id="friend-entry"><span class="mode-symbol">${icon('duel')}</span><span class="eyebrow">一封战书</span><h2>好友 PK</h2><p>同样五幕，谁更懂历史？</p><span class="card-link">向好友下战书 ${icon('arrow')}</span></button><button class="mode-card dark" id="daily-entry"><span class="mode-symbol">${icon('crown')}</span><span class="eyebrow">今日山河</span><h2>全站竞逐</h2><p>每日一局，把名字留在榜上。</p><span class="card-link">赴今日之约 ${icon('arrow')}</span></button></section><div class="home-progress"><span>${icon('book')}已行 ${completed()} / ${LEVELS.length} 关</span><button class="text-button" data-nav="chapters">继续探索 ${icon('arrow')}</button></div><p class="art-note">场景为 AI 历史想象复原，不作为史料。</p>`,
     { nav: 'home' },
   );
   on('#start', 'click', () => (journey ? resumeLocal(journey) : prepare(target.id)));
@@ -271,18 +257,21 @@ function home() {
   on('#daily-entry', 'click', () => competitionPrepare('daily'));
 }
 function chapters() {
+  const target = nextLevel(saved.records),
+    journey = restoreLocal();
   shell(
     '探索山河',
-    `<h1 class="page-title">把世界，<br>读成一封封来信。</h1><p class="page-description">三卷旅途，九个小关。循着线索逐一启程。</p><div class="chapter-list">${CHAPTERS.map(
+    `<h1 class="page-title">把世界，<br>读成一封封来信。</h1><p class="page-description">${CHAPTERS.length} 卷旅途，${LEVELS.length} 个小关。循着线索逐一启程。</p><button class="primary full-width chapter-continue" id="continue-level">${journey ? '继续未完的旅途' : `继续 · ${esc(target.name)}`} ${icon('arrow')}</button><div class="chapter-list">${CHAPTERS.map(
       (chapter, index) => {
         const count = chapter.levels.filter((level) => saved.records[level.id]?.complete).length;
-        const open = unlocked(chapter.levels[0].id);
-        return `<button class="chapter-card ${open ? '' : 'locked'}" data-chapter="${chapter.id}" ${open ? '' : 'disabled'}><img src="${art(chapter.cover)}" alt="历史场景想象画面" loading="lazy"><div class="chapter-shade"></div><span class="chapter-number">卷 ${chapter.number}</span><div><h2>${chapter.name}</h2><p>${chapter.subtitle}</p><span>${open ? `${count} / 3 关已完成` : '完成上一卷后启程'}</span></div><span class="chapter-arrow">${icon(open ? 'arrow' : 'lock')}</span></button>`;
+        const open = chapter.levels.some((level) => unlocked(level.id));
+        return `<button class="chapter-card ${open ? '' : 'locked'}" data-chapter="${chapter.id}" ${open ? '' : 'disabled'}><img src="${art(chapter.cover)}" alt="历史场景想象画面" loading="lazy"><div class="chapter-shade"></div><span class="chapter-number">卷 ${chapter.number}</span><div><h2>${chapter.name}</h2><p>${chapter.subtitle}</p><span>${open ? `${count} / ${chapter.levels.length} 关已完成` : '完成上一卷后启程'}</span></div><span class="chapter-arrow">${icon(open ? 'arrow' : 'lock')}</span></button>`;
       },
-    ).join('')}</div><p class="art-note">每幕限时 25 秒 · 结算只显示评分</p>`,
+    ).join('')}</div><p class="art-note">循序观察与比较 · 结算只显示评分</p>`,
     { nav: 'chapters', back: home },
   );
   bindAll('[data-chapter]', (button) => chapterDetail(button.dataset.chapter));
+  on('#continue-level', 'click', () => (journey ? resumeLocal(journey) : prepare(target.id)));
 }
 function chapterDetail(id) {
   const chapter = chapterById(id);
@@ -293,7 +282,7 @@ function chapterDetail(id) {
       .map((level, index) => {
         const open = unlocked(level.id),
           record = saved.records[level.id];
-        return `<button class="level-card ${open ? '' : 'locked'}" data-level="${level.id}" ${open ? '' : 'disabled'}><span class="level-number">${String(index + 1).padStart(2, '0')}</span><span><strong>${level.name}</strong><small>${record?.complete ? `已完成 · 最佳 ${fmt(record.best)} 分` : open ? '三幕场景 · 25 秒 / 幕' : '完成上一小关后解锁'}</small></span>${icon(record?.complete ? 'check' : open ? 'arrow' : 'lock')}</button>`;
+        return `<button class="level-card ${open ? '' : 'locked'}" data-level="${level.id}" ${open ? '' : 'disabled'}><span class="level-number">${String(index + 1).padStart(2, '0')}</span><span><strong>${level.name}</strong><small>${record?.complete ? `已完成 · 最佳 ${fmt(record.best)} 分` : open ? `三幕场景 · ${level.seconds} 秒 / 幕` : '完成上一小关后解锁'}</small></span>${icon(record?.complete ? 'check' : open ? 'arrow' : 'lock')}</button>`;
       })
       .join('')}</div>`,
     { nav: 'chapters', back: chapters },
@@ -306,7 +295,7 @@ function prepare(id) {
   const chapter = chapterById(level.chapter);
   shell(
     '启程之前',
-    `<div class="prepare-compass">${icon('compass')}</div><p class="center eyebrow">卷${chapter.number} · 第 ${level.number} 关</p><h1 class="page-title center">${level.name}</h1><p class="page-description center">别急着认出答案。先看看，画里有什么。</p><div class="rule-ticket"><div><b>03</b><span>幕历史场景</span></div><div><b>25<span>秒</span></b><span>每幕答题时间</span></div><div><b>15,000</b><span>本关满分</span></div></div><ol class="preflight"><li><span>一</span><p><strong>观察场景</strong>拖动全景，寻找时代的痕迹。</p></li><li><span>二</span><p><strong>选地点与年代</strong>地图落点，拨动年份。</p></li><li><span>三</span><p><strong>交卷看评分</strong>时间到计零分，答案留在历史里。</p></li></ol><button class="primary full-width" id="begin-level">走进这一幕 ${icon('arrow')}</button><p class="art-note">本地练习 · 不计入全站榜${devUnlock ? ' · 开发试玩不保存成长' : ''}</p>`,
+    `<div class="prepare-compass">${icon('compass')}</div><p class="center eyebrow">卷${chapter.number} · 第 ${level.number} 关</p><h1 class="page-title center">${level.name}</h1><p class="page-description center">${esc(level.objective)}</p><div class="rule-ticket"><div><b>03</b><span>幕历史场景</span></div><div><b>${level.seconds}<span>秒</span></b><span>每幕答题时间</span></div><div><b>15,000</b><span>本关满分</span></div></div><ol class="preflight"><li><span>一</span><p><strong>观察场景</strong>拖动全景，寻找时代的痕迹。</p></li><li><span>二</span><p><strong>选地点与年代</strong>地图落点，拨动年份。</p></li><li><span>三</span><p><strong>交卷看评分</strong>时间到计零分，答案留在历史里。</p></li></ol><button class="primary full-width" id="begin-level">走进这一幕 ${icon('arrow')}</button><p class="art-note">本地练习 · 不计入全站榜${devUnlock ? ' · 开发试玩不保存成长' : ''}</p>`,
     { back: () => chapterDetail(level.chapter) },
   );
   on('#begin-level', 'click', () => startLocal(level));
@@ -314,16 +303,16 @@ function prepare(id) {
 function help() {
   shell(
     '玩法说明',
-    `<h1 class="page-title">一眼入景，<br>一念千年。</h1><ol class="guide-list"><li><span>01</span><div><h2>先读画面</h2><p>单指转动全景，双指捏合缩放。建筑、衣着与交通工具，都是你的线索。</p></div></li><li><span>02</span><div><h2>再落坐标</h2><p>切到地图，点选地点。可以搜索中文城市，也能平移地图后标记中心。地图使用现代地理位置。</p></div></li><li><span>03</span><div><h2>拨回年代</h2><p>滑动时间轴，或输入年份。公元前通过左侧切换，没有公元 0 年。</p></div></li><li><span>04</span><div><h2>二十五秒，落笔</h2><p>每幕最高 5,000 分，依据地点与年代接近程度合计。超时整幕零分；结算只给评分，不公开答案与误差。</p></div></li></ol><div class="note-box"><h3>不同旅途，各有约定</h3><p>本地练习可以暂停，关闭或刷新页面会保留进度与剩余计时。好友 PK 同题同规则；竞技离开页面仍计时。</p><p>全站榜按每日正式首局成绩统计。周榜取本周最好的五天，成长和反复练习不增加榜分。</p></div><p class="art-note">AI 历史想象复原可能有细节偏差。具体年代是游戏设定，画面不作为史料。</p><button class="primary full-width" data-nav="chapters">我知道了，出发 ${icon('arrow')}</button>`,
+    `<h1 class="page-title">一眼入景，<br>一念千年。</h1><ol class="guide-list"><li><span>01</span><div><h2>先读画面</h2><p>单指转动全景，双指捏合缩放。建筑、衣着与交通工具，都是你的线索。</p></div></li><li><span>02</span><div><h2>再落坐标</h2><p>切到地图，点选地点。可以搜索中文城市，也能平移地图后标记中心。地图使用现代地理位置。</p></div></li><li><span>03</span><div><h2>拨回年代</h2><p>滑动时间轴，或输入年份。公元前通过左侧切换，没有公元 0 年。</p></div></li><li><span>04</span><div><h2>按时落笔</h2><p>每幕最高 5,000 分，依据地点与年代接近程度合计。超时整幕零分；结算只给评分，不公开答案与误差。</p></div></li></ol><div class="note-box"><h3>不同旅途，各有约定</h3><p>练习首卷每幕 45 秒，后续按关卡标明时限。切后台、关闭或刷新会暂停并保留剩余时间。好友 PK 同题同规则；竞技离开页面仍计时。</p><p>全站榜按每日正式首局成绩统计。周榜取本周最好的五天，成长和反复练习不增加榜分。</p></div><p class="art-note">AI 历史想象复原可能有细节偏差。具体年代是游戏设定，画面不作为史料。</p><button class="primary full-width" data-nav="chapters">我知道了，出发 ${icon('arrow')}</button>`,
     { back: home },
   );
 }
 function journal() {
   const points = growth(),
-    rank = stamps[Math.min(3, Math.floor(completed() / 3))];
+    rank = stamps[rankThresholds.filter((threshold) => completed() >= threshold).length - 1];
   shell(
     '我的旅行手记',
-    `<div class="journal-heading"><span class="passport-mark">${icon('compass')}</span><p class="eyebrow">旅人身份 · 本机记录</p><h1 class="page-title">${rank}</h1><p class="page-description">走过的每一幕，都让直觉更敏锐。</p></div><div class="journal-stats"><div><strong>${completed()}<small> / 9</small></strong><span>已完成小关</span></div><div><strong>${fmt(points)}</strong><span>旅人成长分</span></div><div><strong>${saved.visited.length}</strong><span>已观察场景</span></div></div><div class="growth-line"><span style="width:${(completed() / 9) * 100}%"></span></div><p class="art-note">成长分取各小关最佳成绩之和 · 只记进步，不比刷题次数</p><div class="journal-records">${CHAPTERS.map((chapter) => `<article><span>${chapter.number}</span><div><h3>${chapter.name}</h3><p>${chapter.levels.filter((level) => saved.records[level.id]?.complete).length} / 3 关完成</p></div><b>${fmt(chapter.levels.reduce((sum, level) => sum + (saved.records[level.id]?.best || 0), 0))}</b></article>`).join('')}</div>${saved.best ? `<p class="legacy-record">往日五幕最佳 ${fmt(saved.best)} 分 · 旧足迹已保留</p>` : ''}<button class="primary full-width" data-nav="chapters">再收一封来信 ${icon('arrow')}</button><button class="text-button settings-link" data-nav="settings">${icon('settings')}设置与音效</button>`,
+    `<div class="journal-heading"><span class="passport-mark">${icon('compass')}</span><p class="eyebrow">旅人身份 · 本机记录</p><h1 class="page-title">${rank}</h1><p class="page-description">走过的每一幕，都让直觉更敏锐。</p></div><div class="journal-stats"><div><strong>${completed()}<small> / ${LEVELS.length}</small></strong><span>已完成小关</span></div><div><strong>${fmt(points)}</strong><span>旅人成长分</span></div><div><strong>${saved.visited.length}</strong><span>已观察场景</span></div></div><div class="growth-line"><span style="width:${(completed() / LEVELS.length) * 100}%"></span></div><p class="art-note">成长分取各小关最佳成绩之和 · 只记进步，不比刷题次数</p><div class="journal-records">${CHAPTERS.map((chapter) => `<article><span>${chapter.number}</span><div><h3>${chapter.name}</h3><p>${chapter.levels.filter((level) => saved.records[level.id]?.complete).length} / ${chapter.levels.length} 关完成</p></div><b>${fmt(chapter.levels.reduce((sum, level) => sum + (saved.records[level.id]?.best || 0), 0))}</b></article>`).join('')}</div>${saved.best ? `<p class="legacy-record">往日五幕最佳 ${fmt(saved.best)} 分 · 旧足迹已保留</p>` : ''}<button class="primary full-width" data-nav="chapters">再收一封来信 ${icon('arrow')}</button><button class="text-button settings-link" data-nav="settings">${icon('settings')}设置与音效</button>`,
     { nav: 'journal', back: home },
   );
 }
@@ -508,6 +497,7 @@ function startLocal(level) {
     run: null,
     opponent: null,
     deadline: null,
+    resumeRemaining: null,
     dev: devUnlock,
   };
   renderGame();
@@ -522,7 +512,7 @@ function resumeLocal(journey) {
     dev: journey.dev === true,
   };
   if (state.phase === 'paused') {
-    state.deadline = Date.now() + state.pausedRemaining;
+    state.resumeRemaining = state.pausedRemaining;
     state.phase = 'guessing';
   }
   if (state.phase === 'revealed') return roundResult();
@@ -575,7 +565,7 @@ async function renderGame(restored = false) {
   state.view = 'scene';
   document.body.className = 'game-page';
   const token = generation;
-  app.innerHTML = `<main class="game-shell"><header class="game-top"><button id="pause" class="icon-button" aria-label="${state.mode === 'practice' ? '暂停' : '离开本局'}">${icon(state.mode === 'practice' ? 'pause' : 'close')}</button><span id="round-label">${state.mode === 'practice' ? '探索' : state.mode === 'daily' ? '全站竞逐' : '好友 PK'}<b>第 ${state.index + 1} / ${roundCount()} 幕</b></span><span class="game-score">${fmt(sumScore())}<small>分</small></span></header><div class="timer-track"><span id="timer-progress"></span></div><section class="scene-panel"><div id="panorama" tabindex="0" aria-label="历史全景，拖动观察四周"></div><div class="scene-caption"><span>此刻，你身在何方？</span><p id="clue">${esc(currentRound()?.clue || '观察建筑、衣着和街景，寻找历史留下的线索。')}</p></div><div class="scene-controls"><button class="scene-control" id="scene-reset" aria-label="重置视角">${icon('compass')}</button><span>拖动环顾 · 双指缩放</span></div></section><section class="map-panel" aria-label="选择地点"><div class="map-search"><label class="search-field">${icon('search')}<input id="city-search" type="search" placeholder="搜索城市或古地名" autocomplete="off" role="combobox" aria-label="搜索城市" aria-autocomplete="list" aria-controls="search-results" aria-expanded="false"></label><div id="search-results" role="listbox" hidden></div></div><div id="guess-map"></div><div class="map-controls"><button id="map-plus" aria-label="放大地图">+</button><button id="map-minus" aria-label="缩小地图">−</button></div><button id="center-pin" class="center-pin">${icon('pin')}标记地图中心</button></section><section class="answer-dock"><div class="answer-top"><div class="tab-switch"><button id="scene-tab" class="active" aria-pressed="true">${icon('eye')}观察</button><button id="map-tab" aria-pressed="false">${icon('pin')}地图<span id="pin-dot"></span></button></div><span class="timer" id="timer" role="timer">${LIMIT}<small>秒</small></span></div><div id="location-status" class="location-status">${icon('pin')}<span>地图上标记你的猜测</span></div><div class="year-row"><label for="year-range">这是哪一年？</label><div class="year-input"><select id="era-select" aria-label="公元前后"><option value="ce">公元</option><option value="bce">公元前</option></select><input id="year-number" inputmode="numeric" type="number" min="1" max="${MAX_YEAR}" value="1000" aria-label="年份"><span>年</span></div></div><input id="year-range" type="range" min="${MIN_YEAR}" max="${MAX_YEAR}" step="1" value="1000" aria-label="选择年代"><div class="year-marks"><span>公元前 3000</span><span id="year-status">请选择年代</span><span>${MAX_YEAR}</span></div><button class="primary full-width" id="submit" disabled>先选一个地点 ${icon('arrow')}</button></section><div id="load-cover" class="load-cover"><span class="loading-compass">${icon('compass')}</span><h2>正在翻开历史的一页</h2><p>一场相遇，即将发生。</p></div></main>`;
+  app.innerHTML = `<main class="game-shell"><header class="game-top"><button id="pause" class="icon-button" aria-label="${state.mode === 'practice' ? '暂停' : '离开本局'}">${icon(state.mode === 'practice' ? 'pause' : 'close')}</button><span id="round-label">${state.mode === 'practice' ? '探索' : state.mode === 'daily' ? '全站竞逐' : '好友 PK'}<b>第 ${state.index + 1} / ${roundCount()} 幕</b></span><span class="game-score">${fmt(sumScore())}<small>分</small></span></header><div class="timer-track"><span id="timer-progress"></span></div><section class="scene-panel"><div id="panorama" tabindex="0" aria-label="历史全景，拖动观察四周"></div><div class="scene-caption"><span>此刻，你身在何方？</span><p id="clue">${esc((state.mode === 'practice' ? levelById(state.level)?.objective : '') || currentRound()?.clue || '观察建筑、衣着和街景，寻找历史留下的线索。')}</p></div><div class="scene-controls"><button class="scene-control" id="scene-reset" aria-label="重置视角">${icon('compass')}</button><span>拖动环顾 · 双指缩放</span></div></section><section class="map-panel" aria-label="选择地点"><div class="map-search"><label class="search-field">${icon('search')}<input id="city-search" type="search" placeholder="搜索城市或古地名" autocomplete="off" role="combobox" aria-label="搜索城市" aria-autocomplete="list" aria-controls="search-results" aria-expanded="false"></label><div id="search-results" role="listbox" hidden></div></div><div id="guess-map"></div><div class="map-controls"><button id="map-plus" aria-label="放大地图">+</button><button id="map-minus" aria-label="缩小地图">−</button></div><button id="center-pin" class="center-pin">${icon('pin')}标记地图中心</button></section><section class="answer-dock"><div class="answer-top"><div class="tab-switch"><button id="scene-tab" class="active" aria-pressed="true">${icon('eye')}观察</button><button id="map-tab" aria-pressed="false">${icon('pin')}地图<span id="pin-dot"></span></button></div><span class="timer" id="timer" role="timer">${roundSeconds()}<small>秒</small></span></div><div id="location-status" class="location-status">${icon('pin')}<span>地图上标记你的猜测</span></div><div class="year-row"><label for="year-range">这是哪一年？</label><div class="year-input"><select id="era-select" aria-label="公元前后"><option value="ce">公元</option><option value="bce">公元前</option></select><input id="year-number" inputmode="numeric" type="number" min="1" max="${MAX_YEAR}" value="1000" aria-label="年份"><span>年</span></div></div><input id="year-range" type="range" min="${MIN_YEAR}" max="${MAX_YEAR}" step="1" value="1000" aria-label="选择年代"><div class="year-marks"><span>公元前 3000</span><span id="year-status">请选择年代</span><span>${MAX_YEAR}</span></div><button class="primary full-width" id="submit" disabled>先选一个地点 ${icon('arrow')}</button></section><div id="load-cover" class="load-cover"><span class="loading-compass">${icon('compass')}</span><h2>正在翻开历史的一页</h2><p>一场相遇，即将发生。</p></div></main>`;
   on('#pause', 'click', pause);
   on('#scene-tab', 'click', () => setView('scene'));
   on('#map-tab', 'click', () => setView('map'));
@@ -645,15 +635,23 @@ async function renderGame(restored = false) {
         .href;
     await viewer.load({ ...round, image, view: round.view || { yaw: 180, pitch: 0, fov: 75 } });
     if (token !== generation) return;
-    if (!restored && state.mode === 'practice') state.deadline = Date.now() + LIMIT * 1000;
+    if (!restored && state.mode === 'practice')
+      state.deadline = Date.now() + practiceSeconds() * 1000;
+    if (state.mode === 'practice' && Number.isFinite(state.resumeRemaining) && !document.hidden) {
+      state.deadline = Date.now() + state.resumeRemaining;
+      state.resumeRemaining = null;
+    }
     state.phase = 'guessing';
     $('#load-cover').hidden = true;
     setYear(state.year, state.yearTouched);
     if (state.guess) guessMap.goTo(state.guess);
     updateLocation();
     remember();
-    tick();
-    clock = setInterval(tick, 100);
+    if (state.mode === 'practice' && document.hidden) pause();
+    else {
+      tick();
+      if (state.phase === 'guessing') clock = setInterval(tick, 100);
+    }
     viewer.resize();
   } catch (error) {
     if (token === generation)
@@ -676,7 +674,7 @@ function setView(view) {
     $(`#${name}-tab`)?.setAttribute('aria-pressed', String(view === name));
   }
   guessMap?.resize();
-  viewer?.setActive(view === 'scene');
+  viewer?.setActive(view === 'scene' && state.phase === 'guessing');
   viewer?.resize();
 }
 function updateLocation() {
@@ -784,7 +782,7 @@ function tick() {
   if ($('#timer')) {
     $('#timer').innerHTML = `${seconds}<small>秒</small>`;
     $('#timer').classList.toggle('urgent', seconds <= 5);
-    $('#timer-progress').style.width = `${Math.min(100, (seconds / LIMIT) * 100)}%`;
+    $('#timer-progress').style.width = `${Math.min(100, (seconds / roundSeconds()) * 100)}%`;
   }
   if (seconds <= 0) submit(true);
 }
@@ -842,7 +840,10 @@ async function submit(timedOut) {
 function pause() {
   if (state.phase !== 'guessing') return;
   if (state.mode === 'practice') {
-    state.pausedRemaining = Math.max(0, state.deadline - Date.now());
+    state.pausedRemaining = Number.isFinite(state.resumeRemaining)
+      ? state.resumeRemaining
+      : Math.max(0, state.deadline - Date.now());
+    state.resumeRemaining = null;
     state.phase = 'paused';
     remember();
   }
@@ -918,7 +919,7 @@ function finish() {
   const next = level ? LEVELS[LEVELS.findIndex((item) => item.id === level.id) + 1] : null;
   shell(
     '旅途落款',
-    `<p class="eyebrow center">${mode === 'practice' ? '本地旅途' : mode === 'daily' ? '今日全站竞逐' : '好友 PK'} · 已完成</p><div class="finish-stamp" aria-hidden="true">山河<br>已阅</div><h1 class="page-title center">${opponent ? (score > opponent.score ? '这一局，你更胜一筹。' : score === opponent.score ? '山河相逢，不分高下。' : '好对手，值得再赴一约。') : '把这一刻，<br>写进你的手记。'}</h1><div class="result-score"><strong>${fmt(score)}</strong><span>本局总分 / ${fmt(total * 5000)}</span></div>${opponent ? `<p class="opponent-score">${esc(opponent.nickname)} · ${fmt(opponent.score)} 分</p>` : ''}<div class="score-receipt">${state.results.map((result, index) => `<div><span>第 ${index + 1} 幕${result.timedOut ? ' · 超时' : ''}</span><b>${fmt(mode === 'practice' ? result.total : result.score)}</b></div>`).join('')}</div><div id="finish-actions">${mode === 'practice' ? `<button class="primary full-width" id="finish-next">${next ? '下一关，新的相遇' : '再赴一场旅途'} ${icon('arrow')}</button><button class="secondary full-width" id="again">再练一次</button>` : `<button class="primary full-width" id="share-result">${opponent || mode === 'daily' ? '另开一局，向好友下战书' : '寄出战书，邀友来战'} ${icon('share')}</button><button class="secondary full-width" data-nav="leaderboard">去看山河榜</button>`}</div><p class="art-note">${mode === 'practice' ? (state.dev ? '开发试玩 · 不保存成长与关卡纪录' : level ? `本关最佳 ${fmt(saved.records[level.id]?.best)} 分 · ${next ? '下一小关已解锁' : '九关旅途已完成'}` : '往日旅途已收录') : mode === 'daily' ? '每日正式首局记榜 · 只分享战绩，不公开答案' : '好友对局独立计分 · 不计全站榜'}</p><button class="text-button settings-link" data-nav="home">返回首页 ${icon('arrow')}</button>`,
+    `<p class="eyebrow center">${mode === 'practice' ? '本地旅途' : mode === 'daily' ? '今日全站竞逐' : '好友 PK'} · 已完成</p><div class="finish-stamp" aria-hidden="true">山河<br>已阅</div><h1 class="page-title center">${opponent ? (score > opponent.score ? '这一局，你更胜一筹。' : score === opponent.score ? '山河相逢，不分高下。' : '好对手，值得再赴一约。') : '把这一刻，<br>写进你的手记。'}</h1><div class="result-score"><strong>${fmt(score)}</strong><span>本局总分 / ${fmt(total * 5000)}</span></div>${opponent ? `<p class="opponent-score">${esc(opponent.nickname)} · ${fmt(opponent.score)} 分</p>` : ''}<div class="score-receipt">${state.results.map((result, index) => `<div><span>第 ${index + 1} 幕${result.timedOut ? ' · 超时' : ''}</span><b>${fmt(mode === 'practice' ? result.total : result.score)}</b></div>`).join('')}</div><div id="finish-actions">${mode === 'practice' ? `<button class="primary full-width" id="finish-next">${next ? '下一关，新的相遇' : '再赴一场旅途'} ${icon('arrow')}</button><button class="secondary full-width" id="again">再练一次</button>` : `<button class="primary full-width" id="share-result">${opponent || mode === 'daily' ? '另开一局，向好友下战书' : '寄出战书，邀友来战'} ${icon('share')}</button><button class="secondary full-width" data-nav="leaderboard">去看山河榜</button>`}</div><p class="art-note">${mode === 'practice' ? (state.dev ? '开发试玩 · 不保存成长与关卡纪录' : level ? `本关最佳 ${fmt(saved.records[level.id]?.best)} 分 · ${next ? '下一小关已解锁' : `${LEVELS.length} 关旅途已完成`}` : '往日旅途已收录') : mode === 'daily' ? '每日正式首局记榜 · 只分享战绩，不公开答案' : '好友对局独立计分 · 不计全站榜'}</p><button class="text-button settings-link" data-nav="home">返回首页 ${icon('arrow')}</button>`,
     { back: home },
   );
   state.phase = 'finished';
@@ -996,9 +997,13 @@ async function copyLink(link) {
 window.addEventListener('resize', () => {
   if (state.screen === 'game') setView(state.view);
 });
-window.addEventListener('pagehide', remember);
+window.addEventListener('pagehide', () => {
+  if (state.mode === 'practice' && state.phase === 'guessing') pause();
+  else remember();
+});
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && state.screen === 'game') tick();
+  if (document.hidden && state.mode === 'practice' && state.phase === 'guessing') pause();
+  else if (!document.hidden && state.screen === 'game') tick();
 });
 window.SmallGamesDev?.registerActions([
   {

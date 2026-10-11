@@ -11,6 +11,7 @@
     "test:server": "node --test tests/server*.test.mjs",
     "test": "node --test tests/*.test.mjs",
     "test:browser": "node scripts/playtest.mjs",
+    "test:review:browser": "node scripts/mobile-pk-playtest.mjs review",
     "test:challenge:browser": "node scripts/challenge-playtest.mjs",
     "test:routes:browser": "node scripts/routes-playtest.mjs",
     "test:competition-renderer": "node scripts/competition-playtest.mjs"

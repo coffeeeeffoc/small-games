@@ -1,0 +1,27 @@
+{
+  "environment": "Chromium desktop mobile emulation, native CDP touch, 390×844 / 320×640 / 844×390, DPR 2",
+  "realDevice": false,
+  "browser": "140.0.7339.186",
+  "checks": [
+    "latest friend-room create/join entry and back remain touch accessible without starting a network match",
+    "ordinary players can browse 10 chapters, only 12 previews render, future lessons stay locked",
+    "native touch positioning, aiming, pointercancel without firing",
+    "a real target collision enables sub-1.2° held 4px touch adjustment",
+    "free short-pull aim follows held 4px movement by 4–8°; 1.5px jitter filtered; no idle drift; native second touch movement/removal and secondary cancellation preserve primary aim; returning to origin cancels",
+    "native fingertip lift jitter preserves preview and actual firing angle",
+    "real touch shot pockets target; pause freezes physical state; resume reaches win",
+    "win stars unlock exactly the next level and survive reload",
+    "five genuine missed shots exhaust practice budget",
+    "help explains queen cover +3 points and score-based winners; score HUD shows 0/1 points",
+    "30 placement inputs and release: no synchronous save, one deferred save, zero warm-frame gradient rebuilds or board layout reads",
+    "human break triggers AI physical turn",
+    "resume returns to the last settled turn",
+    "320×640 and 844×390 retain complete board, thumb slider and pause targets",
+    "fullscreen gesture enter and exit verified",
+    "audio setting persists",
+    "119-win v1 fixture opens chapter 10 normally; native-touch level 120 wins, restores placement and shot count after reload, saves final stars and hides next",
+    "disabled storage and rejected fullscreen keep play usable"
+  ],
+  "pageErrors": [],
+  "passed": true
+}

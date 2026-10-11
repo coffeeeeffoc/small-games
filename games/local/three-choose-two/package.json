@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "三块选两块：竖屏积木消除、三选二取舍与三十关空间挑战",
+  "description": "三块选两块：竖屏积木消除、三选二取舍与一百二十关空间挑战",
   "exports": {
     "./engine": {
       "types": "./src/engine.d.mts",

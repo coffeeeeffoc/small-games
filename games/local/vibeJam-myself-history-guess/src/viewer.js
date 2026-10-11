@@ -1,5 +1,5 @@
-import * as THREE from "three";
-import { clamp } from "./game.js";
+import * as THREE from 'three';
+import { clamp } from './game.js';
 
 // WenWare's inward-facing sphere approach, with a scoped mobile gesture lifecycle.
 export function createViewer(container) {
@@ -7,7 +7,7 @@ export function createViewer(container) {
   try {
     renderer = new THREE.WebGLRenderer({
       antialias: true,
-      powerPreference: "low-power",
+      powerPreference: 'low-power',
     });
   } catch {
     /* Interactive flat panorama on devices without WebGL. */
@@ -22,11 +22,8 @@ export function createViewer(container) {
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     container.append(renderer.domElement);
   } else {
-    container.classList.add("flat-panorama");
-    container.setAttribute(
-      "aria-description",
-      "此设备使用平面全景，仍可拖动与缩放",
-    );
+    container.classList.add('flat-panorama');
+    container.setAttribute('aria-description', '此设备使用平面全景，仍可拖动与缩放');
   }
   let yaw = 180,
     pitch = 0,
@@ -69,8 +66,7 @@ export function createViewer(container) {
     if (!pointers.size && Math.abs(velocity) > 0.01) invalidate();
   }
   function invalidate() {
-    if (!frame && active && !document.hidden && !disposed)
-      frame = requestAnimationFrame(draw);
+    if (!frame && active && !document.hidden && !disposed) frame = requestAnimationFrame(draw);
   }
   function cancel() {
     for (const id of pointers.keys())
@@ -101,14 +97,16 @@ export function createViewer(container) {
   }
   const observer = new ResizeObserver(resize);
   observer.observe(container);
-  listen(container, "pointerdown", (event) => {
-    if (event.pointerType === "mouse" && event.button !== 0) return;
+  listen(container, 'pointerdown', (event) => {
+    if (!active || disposed || document.hidden) return;
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
     event.preventDefault();
     velocity = 0;
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     container.setPointerCapture(event.pointerId);
   });
-  listen(container, "pointermove", (event) => {
+  listen(container, 'pointermove', (event) => {
+    if (!active || disposed || document.hidden) return;
     const last = pointers.get(event.pointerId);
     if (!last) return;
     const oldSpan = span(),
@@ -117,8 +115,7 @@ export function createViewer(container) {
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     if (pointers.size > 1) {
       const newSpan = span();
-      if (oldSpan > 0 && newSpan > 0)
-        zoom(camera.fov * (oldSpan / newSpan - 1));
+      if (oldSpan > 0 && newSpan > 0) zoom(camera.fov * (oldSpan / newSpan - 1));
     } else {
       const sensitivity = camera.fov / container.clientHeight;
       velocity = -dx * sensitivity * 0.32;
@@ -127,22 +124,22 @@ export function createViewer(container) {
       invalidate();
     }
   });
-  listen(container, "pointerup", (event) => {
+  listen(container, 'pointerup', (event) => {
     pointers.delete(event.pointerId);
     if (container.hasPointerCapture(event.pointerId))
       container.releasePointerCapture(event.pointerId);
     invalidate();
   });
-  listen(container, "pointercancel", cancel);
-  listen(container, "lostpointercapture", (event) => {
+  listen(container, 'pointercancel', cancel);
+  listen(container, 'lostpointercapture', (event) => {
     pointers.delete(event.pointerId);
   });
-  listen(window, "blur", cancel);
-  listen(document, "game-displaychange", () => {
+  listen(window, 'blur', cancel);
+  listen(document, 'game-displaychange', () => {
     cancel();
     resize();
   });
-  listen(document, "visibilitychange", () => {
+  listen(document, 'visibilitychange', () => {
     cancel();
     if (document.hidden) {
       cancelAnimationFrame(frame);
@@ -151,22 +148,24 @@ export function createViewer(container) {
   });
   listen(
     container,
-    "wheel",
+    'wheel',
     (event) => {
+      if (!active || disposed || document.hidden) return;
       event.preventDefault();
       zoom(event.deltaY * 0.04);
     },
     { passive: false },
   );
-  listen(container, "keydown", (event) => {
+  listen(container, 'keydown', (event) => {
+    if (!active || disposed || document.hidden) return;
     const actions = {
       ArrowLeft: () => (yaw -= 6),
       ArrowRight: () => (yaw += 6),
       ArrowUp: () => (pitch += 6),
       ArrowDown: () => (pitch -= 6),
-      "+": () => zoom(-5),
-      "=": () => zoom(-5),
-      "-": () => zoom(5),
+      '+': () => zoom(-5),
+      '=': () => zoom(-5),
+      '-': () => zoom(5),
       Home: reset,
     };
     if (actions[event.key]) {
@@ -177,9 +176,9 @@ export function createViewer(container) {
     }
   });
   if (renderer)
-    listen(renderer.domElement, "webglcontextlost", (event) => {
+    listen(renderer.domElement, 'webglcontextlost', (event) => {
       event.preventDefault();
-      container.dispatchEvent(new CustomEvent("viewererror"));
+      container.dispatchEvent(new CustomEvent('viewererror'));
     });
   async function load({ image: url, view }) {
     const id = ++requestId;
@@ -190,7 +189,7 @@ export function createViewer(container) {
       let expired = false;
       const timer = setTimeout(() => {
         expired = true;
-        reject(new Error("场景加载超时，请重试"));
+        reject(new Error('场景加载超时，请重试'));
       }, 20000);
       new THREE.TextureLoader().load(
         url,
@@ -202,7 +201,7 @@ export function createViewer(container) {
         undefined,
         () => {
           clearTimeout(timer);
-          reject(new Error("场景加载失败，请重试"));
+          reject(new Error('场景加载失败，请重试'));
         },
       );
     });
@@ -245,6 +244,7 @@ export function createViewer(container) {
       material.dispose();
       geometry.dispose();
       renderer?.dispose();
+      renderer?.forceContextLoss();
       renderer?.domElement.remove();
     },
   };

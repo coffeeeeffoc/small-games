@@ -14,6 +14,7 @@ const palette = ['#ed806b', '#73bf94', '#f2cb58', '#91a9c0', '#acbc73'];
 const storage = { getItem(key) { try { return localStorage.getItem(key); } catch { return null; } }, setItem(key, value) { try { localStorage.setItem(key, value); } catch { /* Continue in memory. */ } } };
 let progress = readProgress(storage);
 let state = null;
+let levelPage = 0;
 let screen = 'home', previousScreen = 'home', briefLevel = 1, briefPractice = false;
 let selectedSlot = null, drag = null, inputLockedUntil = 0, animationTimer, toastTimer;
 let onlineSession = null, onlineBusy = false, onlineError = '', pendingAction = null, pendingFinish = false;
@@ -119,6 +120,7 @@ function updateTheme() {
 }
 function show(next, options = {}) {
   cancelDrag();
+  if (next === 'levels' && screen !== 'levels') levelPage = Math.floor((Math.min(progress.unlocked, LEVELS.length) - 1) / 30);
   previousScreen = screen;
   screen = next;
   if (next !== 'playing') audio.syncMusic(false);
@@ -152,10 +154,10 @@ function renderHome() {
 function renderLevels(developer = false) {
   developer = devEnabled();
   const chapters = CHAPTERS.map(chapter => chapter.title);
-  return `${header('选关')}<p class="level-progress">已通关 ${Object.keys(progress.records).length} / ${LEVELS.length} · 已收集 ${totalStars(progress)} 颗星</p>${developer ? '<div class="dev-level-banner"><div><strong>开发模式 · 全关可试玩</strong><p>独立试玩，不计入真实进度与纪录</p></div><button data-action="dev-tools">调试工具</button></div>' : ''}${[0,1,2].map(chapter => `<section class="chapter"><h3>${chapters[chapter]}</h3><div class="level-grid">${LEVELS.slice(chapter*10,chapter*10+10).map(level => {
+  return `${header('选关')}<p class="level-progress">已通关 ${Object.keys(progress.records).length} / ${LEVELS.length} · 已收集 ${totalStars(progress)} 颗星</p>${developer ? '<div class="dev-level-banner"><div><strong>开发模式 · 全关可试玩</strong><p>独立试玩，不计入真实进度与纪录</p></div><button data-action="dev-tools">调试工具</button></div>' : ''}${CHAPTERS.length > 3 ? `<nav class="level-pages" aria-label="关卡分页"><button data-action="levels-prev" ${levelPage === 0 ? 'disabled' : ''}>上一页</button><span>${levelPage * 30 + 1}–${Math.min((levelPage + 1) * 30, LEVELS.length)} / ${LEVELS.length}</span><button data-action="levels-next" ${levelPage === Math.ceil(CHAPTERS.length / 3) - 1 ? 'disabled' : ''}>下一页</button></nav>` : ''}${CHAPTERS.slice(levelPage*3,levelPage*3+3).map((item,offset) => { const chapter = levelPage*3+offset; return `<section class="chapter"><h3>${chapters[chapter]}</h3><div class="level-grid">${LEVELS.slice(chapter*10,chapter*10+10).map(level => {
     const id = Number(level.id), unlocked = developer || isLevelUnlocked(progress,id), record = progress.records[id];
     return `<button class="level-button ${!unlocked ? 'locked' : id === progress.unlocked ? 'current' : ''}" data-level="${id}" ${unlocked ? '' : 'disabled'} aria-label="第${id}关 ${escape(level.title)}${!unlocked ? ' 尚未解锁' : developer ? ' 开发试玩' : record ? ' '+record.stars+'星' : ''}"><strong>${pad(id)}</strong>${developer ? '<small>试玩</small>' : record ? stars(record.stars) : !unlocked ? '<svg class="lock-icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="2"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg>' : '<small>挑战</small>'}</button>`;
-  }).join('')}</div></section>`).join('')}<p class="level-end-note">每次好选择，都会成为下一步的余地。</p>`;
+  }).join('')}</div></section>`; }).join('')}<p class="level-end-note">每次好选择，都会成为下一步的余地。</p>`;
 }
 function goalLines(config) {
   const goal = config.goal || {};
@@ -217,7 +219,7 @@ function renderResult() {
   if (state.mode !== 'level') return renderEndlessResult();
   const config = currentLevel(), won=state.status === 'won';
   const groupLimit=config.maxGroups+(state.continued ? config.continuationGroups ?? 2 : 0);
-  return `<section class="result"><p class="eyebrow">${devPractice ? '开发试玩' : won ? '关卡完成' : '再试一种选择'}</p>${resultArt(won)}<h1>${won ? '好选择，漂亮！' : state.reason === 'no-placement' ? '给下一步，多留一点。' : '还差一点点。'}</h1><p class="result-subtitle">第 ${pad(state.levelId)} 关 · ${escape(config.title)}${won ? state.continued ? '<br>续局完成' : '' : '<br>'+failureText()}</p>${won ? stars(state.stars || 1,true) : ''}<div class="result-statistics"><div><small>使用组数</small><strong>${state.group} / ${groupLimit}</strong></div><div><small>消除线数</small><strong>${state.stats.lines} / ${config.goal.lines}</strong></div></div>${!won && state.reason === 'groups-exhausted' && !state.continued ? '<p class="result-status">'+(devPractice ? '开发试玩可通过调试参数增加组数。' : rewardAvailable() ? '自愿观看激励广告，可保持棋盘增加 2 组。' : '激励广告尚未接入，可免费重开。')+'</p>' : ''}<div class="button-stack">${won && state.levelId < LEVELS.length ? '<button class="primary" data-action="next">下一关 <span aria-hidden="true">→</span></button>' : '<button class="primary" data-action="retry">再玩一次</button>'}${!won && state.canUndo && state.undoRemaining > 0 ? '<button class="secondary" data-action="undo">撤销上一步 · '+state.undoRemaining+'</button>' : won ? '<button class="secondary" data-action="retry">再玩一次</button>' : ''}${!won && state.reason === 'groups-exhausted' && !state.continued && !devPractice && rewardAvailable() ? '<button class="secondary" data-action="continue">看广告 · 增加 2 组</button>' : ''}<button class="quiet-button" data-action="home">返回首页</button></div></section>`;
+  return `<section class="result"><p class="eyebrow">${devPractice ? '开发试玩' : won ? '关卡完成' : '再试一种选择'}</p>${resultArt(won)}<h1>${won ? '好选择，漂亮！' : state.reason === 'no-placement' ? '给下一步，多留一点。' : '还差一点点。'}</h1><p class="result-subtitle">第 ${pad(state.levelId)} 关 · ${escape(config.title)}${won ? state.continued ? '<br>续局完成' : '' : '<br>'+failureText()}</p>${won ? stars(state.stars || 1,true) : ''}<div class="result-statistics"><div><small>使用组数</small><strong>${state.group} / ${groupLimit}</strong></div><div><small>消除线数</small><strong>${state.stats.lines} / ${config.goal.lines}</strong></div></div>${!won && state.reason === 'groups-exhausted' && !state.continued ? '<p class="result-status">'+(devPractice ? '开发试玩可通过调试参数增加组数。' : rewardAvailable() ? '自愿观看激励广告，可保持棋盘增加 2 组。' : '激励广告尚未接入，可免费重开。')+'</p>' : ''}<div class="button-stack">${won && state.levelId < LEVELS.length ? '<button class="primary" data-action="next">下一关 <span aria-hidden="true">→</span></button>' : won ? '<button class="primary" data-action="levels">返回选关</button>' : '<button class="primary" data-action="retry">再玩一次</button>'}${!won && state.canUndo && state.undoRemaining > 0 ? '<button class="secondary" data-action="undo">撤销上一步 · '+state.undoRemaining+'</button>' : won ? '<button class="secondary" data-action="retry">再玩一次</button>' : ''}${!won && state.reason === 'groups-exhausted' && !state.continued && !devPractice && rewardAvailable() ? '<button class="secondary" data-action="continue">看广告 · 增加 2 组</button>' : ''}<button class="quiet-button" data-action="home">返回首页</button></div></section>`;
 }
 function renderEndlessResult() {
   const settlement = onlineSession?.settlement;
@@ -240,9 +242,11 @@ function renderLeaderboard() {
 
 function isLocked() { return Date.now() < inputLockedUntil || !!state?.waitingNextGroup || !!pendingFinish; }
 function cancelDrag() {
-  if (drag) {
-    try { drag.node.releasePointerCapture(drag.pointerId); } catch { /* Capture may already be gone. */ }
-    drag.node.classList.remove('dragging');
+  const gesture = drag;
+  drag = null;
+  if (gesture) {
+    try { gesture.node.releasePointerCapture(gesture.pointerId); } catch { /* Capture may already be gone. */ }
+    gesture.node.classList.remove('dragging');
   }
   drag = null;
   document.querySelector('#board-ghost')?.replaceChildren();
@@ -294,6 +298,7 @@ window.addEventListener('pointerup', event => {
   selectedSlot = null;
   doPlace(gesture.slot,x,y);
 });
+app.addEventListener('lostpointercapture', event => { if (drag?.pointerId === event.pointerId) { cancelDrag(); selectedSlot = null; if (screen === 'playing') render(); } });
 window.addEventListener('pointercancel', event => { if (drag?.pointerId === event.pointerId) { cancelDrag(); selectedSlot = null; if (screen === 'playing') render(); } });
 function handleMenu(event) {
   const target=event.target.closest('button');
@@ -543,6 +548,8 @@ async function dispatch(action) {
       else if(isLevelUnlocked(progress,briefLevel)) {devPractice=false;beginLevel(briefLevel);}
       break;
     case 'levels': show('levels');break;
+    case 'levels-prev': if (screen === 'levels' && levelPage > 0) { levelPage--; render(); window.scrollTo(0,0); } break;
+    case 'levels-next': if (screen === 'levels' && levelPage < Math.ceil(CHAPTERS.length / 3) - 1) { levelPage++; render(); window.scrollTo(0,0); } break;
     case 'settings': persist();show('settings');break;
     case 'home': if(screen === 'endless' && onlineBusy)gameEpoch++;persist();if(onlineSession)saveOnline();show('home');break;
     case 'exit-level': exitLocalGame();break;
@@ -579,7 +586,7 @@ async function dispatch(action) {
 window.addEventListener('blur',()=>{lifecycleEpoch++;cancelDrag();selectedSlot=null;if(screen === 'playing'){persist();show('pause');}audio.stop();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){lifecycleEpoch++;cancelDrag();selectedSlot=null;if(screen === 'playing'){persist();show('pause');}audio.stop();}});
 window.addEventListener('pagehide',(event)=>{lifecycleEpoch++;cancelDrag();persist();audio.stop();if(!event.persisted)publishing.dispose();});
-window.addEventListener('resize',()=>{cancelDrag();});
+window.addEventListener('resize',()=>{cancelDrag();selectedSlot=null;});
 window.getThreeChooseTwoSnapshot=()=>state ? structuredClone({state,screen,devPractice,online:onlineSession ? {id:onlineSession.id,seq:onlineSession.seq,status:onlineSession.status,eligible:onlineSession.eligible} : null}) : {state:null,screen,devPractice};
 const developer = devEnabled() ? createDeveloperAPI({
   isEnabled: devEnabled, getSnapshot: window.getThreeChooseTwoSnapshot, getState: () => state,

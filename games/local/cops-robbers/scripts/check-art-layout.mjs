@@ -13,7 +13,7 @@ const report = { base, checks: [], passed: false };
 await mkdir('outputs', { recursive: true });
 
 async function load(surface, id) {
-  await surface.goto(`${base}/?level=${id}&motion=reduce`);
+  await surface.goto(`${base}/?dev=1&level=${id}&motion=reduce`);
   await surface.waitForFunction(id => document.body.dataset.level === String(id)
     && document.body.dataset.phase === 'planning', id);
   await surface.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
@@ -187,11 +187,11 @@ try {
           let surface = page;
           if (embedded) {
             await page.route('**/__art-frame__*', route => route.fulfill({ contentType: 'text/html', body:
-              `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0}iframe{display:block;width:100vw;height:100dvh;border:0}</style><iframe src="${base}/?level=1&motion=reduce${mode.query}"></iframe>` }));
+              `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0}iframe{display:block;width:100vw;height:100dvh;border:0}</style><iframe src="${base}/?dev=1&level=1&motion=reduce${mode.query}"></iframe>` }));
             await page.goto(`${base}/__art-frame__`);
             await page.locator('iframe').waitFor();
             surface = await (await page.locator('iframe').elementHandle()).contentFrame();
-          } else await page.goto(`${base}/?level=1&motion=reduce${mode.query}`);
+          } else await page.goto(`${base}/?dev=1&level=1&motion=reduce${mode.query}`);
           await surface.waitForFunction(enabled => document.body.dataset.phase === 'planning'
             && window.SmallGamesDev?.isEnabled() === enabled, mode.enabled);
           assert.equal(await surface.locator('small-games-devtools').count(), mode.enabled ? 1 : 0);

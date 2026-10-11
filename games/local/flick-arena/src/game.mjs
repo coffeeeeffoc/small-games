@@ -94,7 +94,9 @@ export function createGame(target, options = {}) {
     onlineAnimation = false,
     authoritative = null,
     displayedRevision = -1,
-    serverOffset = 0;
+    serverOffset = 0,
+    renderedWidth = target.canvas.width,
+    renderedHeight = target.canvas.height;
   const now = options.now ?? Date.now;
   const sounds = {};
   for (const cue of ['shot', 'hit', 'out', 'win']) {
@@ -523,6 +525,12 @@ export function createGame(target, options = {}) {
   }
   function render() {
     if (disposed) return;
+    if (renderedWidth !== target.canvas.width || renderedHeight !== target.canvas.height) {
+      // The old touch origin belongs to another viewport; preserve the match, cancel the gesture.
+      cancel();
+      renderedWidth = target.canvas.width;
+      renderedHeight = target.canvas.height;
+    }
     presentation();
     const width = target.canvas.width,
       height = target.canvas.height,
@@ -547,6 +555,7 @@ export function createGame(target, options = {}) {
   }
   function input(e) {
     if (disposed || suspended) return;
+    if (renderedWidth !== target.canvas.width || renderedHeight !== target.canvas.height) render();
     presentation();
     const p = coords(e);
     if (e.phase === 'cancel') {
@@ -564,7 +573,10 @@ export function createGame(target, options = {}) {
         const d = app.state.discs[app.localDisc],
           x = arena.x + d.x * arena.scale,
           y = arena.y + d.y * arena.scale;
-        if (Math.hypot(p.x - x, p.y - y) <= 32)
+        const displayScale = Math.min(target.canvas.width / W, target.canvas.height / H);
+        const backingPerCssPixel = options.backingPerCssPixel?.() ?? 1;
+        const touchRadius = Math.max(32, (22 * backingPerCssPixel) / displayScale);
+        if (Math.hypot(p.x - x, p.y - y) <= touchRadius)
           app.drag = { startX: p.x, startY: p.y, dx: 0, dy: 0, actor: app.state.active };
       }
     } else if (e.pointerId === pointer) {
@@ -662,7 +674,7 @@ export function createGame(target, options = {}) {
       if (toastTime <= 0) app.toast = '';
       if (s.phase === 'aim' && ['campaign', 'practice'].includes(app.mode) && s.active !== 0) {
         botTime += dt;
-        if (botTime >= 1.25) {
+        if (botTime >= (s.discs[0].alive ? 1.25 : 0.3)) {
           const move = chooseBot(s, random);
           if (move) fire(move.x, move.y, move.power);
           botTime = 0;

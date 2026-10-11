@@ -14,7 +14,7 @@ const report = { started: new Date().toISOString(), base, passed: false, checks:
 await mkdir(output, { recursive: true });
 let browser;
 async function load(page, id, reduced = true) {
-  await page.goto(`${base}/?level=${id}${reduced ? '&motion=reduce' : ''}`);
+  await page.goto(`${base}/?dev=1&level=${id}${reduced ? '&motion=reduce' : ''}`);
   assert.match(await page.title(), /围捕小队/, 'Wrong application on the test port');
   await page.waitForFunction(id => document.body.dataset.level === String(id) && document.body.dataset.phase === 'planning', id);
   assert.equal(await page.getByTestId('execute').count(), 0, 'No action confirmation button');
@@ -250,7 +250,7 @@ try {
     assert.match(await page.locator('#loss-details').textContent(), /第 \d+ 步：.*号突围队员从 \d+ 号路口逃到 \d+ 号出口/);
     assert.equal(await page.getByTestId('victory').isVisible(), false, 'Escaped robbers are not captured robbers');
     await page.screenshot({ path: resolve(output, 'escape-defeat.png'), fullPage: true });
-    const save = await page.evaluate(() => JSON.parse(localStorage.getItem('cops-robbers-v3')));
+    const save = await page.evaluate(() => JSON.parse(localStorage.getItem('cops-robbers-practice-v3')));
     assert.equal(save.completed?.[losing.id], undefined, 'Defeat must not save a completion');
     await page.getByTestId('undo-loss').click();
     assert.deepEqual(await snapshot(page, losing.id), expectedView(before));
@@ -397,10 +397,10 @@ try {
   });
 
   await check('old victories and old patrols do not restore as new-version progress', async page => {
-    await page.goto(base); await page.waitForFunction(() => document.body.dataset.phase === 'planning'); await page.locator('#resume-patrol').click();
+    await page.goto(`${base}/?dev=1`); await page.waitForFunction(() => document.body.dataset.phase === 'planning'); await page.locator('#resume-patrol').click();
     assert.equal(await page.locator('body').getAttribute('data-level'), '1');
     assert.deepEqual(await snapshot(page, 1), expectedView(initialState(levels[0])));
-    assert.match(await page.locator('#completed-count').textContent(), /^0\s*\/\s*100$/);
+    assert.match(await page.locator('#completed-count').textContent(), /^0\s*\/\s*120$/);
     assert.equal(await page.getByTestId('sound').getAttribute('aria-pressed'), 'false', 'old sound preferences survive the map revision');
     assert.ok(await page.evaluate(() => localStorage.getItem('cops-robbers-v2')), 'the old save remains intact');
     await page.locator('#focus-toggle').click();
@@ -411,10 +411,10 @@ try {
     current: { levelId: 1, state: { cops: [1], robbers: [-1], turn: 1 }, history: [] }, settings: { sound: false } })) });
 
   await check('malformed new save recovers and unavailable storage still permits play', async page => {
-    await page.goto(base); await page.waitForFunction(() => document.body.dataset.phase === 'planning'); await page.locator('#resume-patrol').click();
+    await page.goto(`${base}/?dev=1`); await page.waitForFunction(() => document.body.dataset.phase === 'planning'); await page.locator('#resume-patrol').click();
     assert.deepEqual(await snapshot(page, 1), expectedView(initialState(levels[0])));
     await replay(page, 1, solutions[1]);
-  }, { init: () => localStorage.setItem('cops-robbers-v3', '{broken-save') });
+  }, { init: () => localStorage.setItem('cops-robbers-practice-v3', '{broken-save') });
   await check('storage denial keeps capture, defeat and replay available', async page => {
     await page.setViewportSize({ width: 320, height: 740 });
     await load(page, 1); assert.match(await page.locator('#save-indicator').textContent(), /无法保存/);
@@ -480,8 +480,8 @@ try {
     await page.locator('#settings').click(); await page.locator('#motion-setting').check();
     assert.equal(await page.locator('body').evaluate(body => body.classList.contains('reduced')), true);
     await page.locator('#motion-setting').uncheck();
-    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('cops-robbers-v3')).settings.reduced), false);
-  }, { reducedMotion: 'reduce', init: () => localStorage.setItem('cops-robbers-v3', JSON.stringify({ version: 3, settings: { reduced: false } })) });
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('cops-robbers-practice-v3')).settings.reduced), false);
+  }, { reducedMotion: 'reduce', init: () => localStorage.setItem('cops-robbers-practice-v3', JSON.stringify({ version: 3, settings: { reduced: false } })) });
 
   report.passed = report.checks.every(check => check.passed);
   if (!report.passed) process.exitCode = 1;
