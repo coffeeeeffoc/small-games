@@ -1,6 +1,12 @@
 import { POCKETS, aimPreview } from './core.mjs';
 
 const TAU = Math.PI * 2;
+const FRIEND_COIN_STYLES = {
+  cyan: { face: ['#9ee6ed', '#238aa2', '#104955'], symbol: '●' },
+  orange: { face: ['#ffda9c', '#d66c26', '#783c19'], symbol: '▲' },
+  purple: { face: ['#dfbdf7', '#9152b7', '#4e2c6c'], symbol: '◆' },
+  green: { face: ['#bfe7ac', '#448849', '#234c2c'], symbol: '✚' },
+};
 let boardAtlas;
 const coinAtlases = new Map();
 const woodAtlas = new Image();
@@ -220,30 +226,81 @@ function boardTexture() {
   return canvas;
 }
 
+function paintCoinSymbol(c, symbol, radius) {
+  c.beginPath();
+  if (symbol === '▲') {
+    c.moveTo(0, -radius);
+    c.lineTo(radius * 0.9, radius * 0.7);
+    c.lineTo(-radius * 0.9, radius * 0.7);
+    c.closePath();
+  } else if (symbol === '◆') {
+    c.moveTo(0, -radius);
+    c.lineTo(radius * 0.8, 0);
+    c.lineTo(0, radius);
+    c.lineTo(-radius * 0.8, 0);
+    c.closePath();
+  } else if (symbol === '✚') {
+    const arm = radius * 0.34;
+    for (const [i, [x, y]] of [
+      [-arm, -radius],
+      [arm, -radius],
+      [arm, -arm],
+      [radius, -arm],
+      [radius, arm],
+      [arm, arm],
+      [arm, radius],
+      [-arm, radius],
+      [-arm, arm],
+      [-radius, arm],
+      [-radius, -arm],
+      [-arm, -arm],
+    ].entries()) {
+      if (i === 0) c.moveTo(x, y);
+      else c.lineTo(x, y);
+    }
+    c.closePath();
+  } else c.arc(0, 0, radius * 0.7, 0, TAU);
+  c.fillStyle = '#fff4d7';
+  c.strokeStyle = '#162e33';
+  c.lineWidth = radius * 0.17;
+  c.lineJoin = 'round';
+  c.fill();
+  c.stroke();
+}
+
 function paintCoin(c, coin, scale = 1) {
   const { x, y, kind } = coin,
-    r = coin.r * scale;
+    r = coin.r * scale,
+    friendStyle = FRIEND_COIN_STYLES[kind];
   c.save();
   c.shadowColor = '#2c140995';
   c.shadowBlur = 5 * scale;
   c.shadowOffsetY = 5 * scale;
-  circle(c, x, y, r, kind === 'black' ? '#111919' : kind === 'queen' ? '#790e0d' : '#b08d58');
+  circle(
+    c,
+    x,
+    y,
+    r,
+    friendStyle?.face[2] ??
+      (kind === 'black' ? '#111919' : kind === 'queen' ? '#790e0d' : '#b08d58'),
+  );
   c.shadowBlur = 0;
   c.shadowOffsetY = 0;
   const face = c.createRadialGradient(x - r * 0.4, y - r * 0.5, 0, x, y, r);
   const colors =
-    kind === 'black'
+    friendStyle?.face ??
+    (kind === 'black'
       ? ['#596263', '#232e2e', '#0b1314']
       : kind === 'queen'
         ? ['#ed7160', '#b72725', '#6b100d']
         : kind === 'striker'
           ? ['#fff6d1', '#efd5a0', '#b58a43']
-          : ['#fff2d3', '#edcf97', '#b4874b'];
+          : ['#fff2d3', '#edcf97', '#b4874b']);
   face.addColorStop(0, colors[0]);
   face.addColorStop(0.65, colors[1]);
   face.addColorStop(1, colors[2]);
   circle(c, x, y - scale, r - scale, face, colors[2], 1);
-  for (const ratio of [0.8, 0.66, 0.53])
+  for (const ratio of friendStyle ? [0.8, 0.66] : [0.8, 0.66, 0.53])
     circle(
       c,
       x,
@@ -257,11 +314,15 @@ function paintCoin(c, coin, scale = 1) {
     circle(c, x, y - scale, r * 0.38, null, '#a7763680', scale);
     circle(c, x, y - scale, 3 * scale, '#c59650');
   }
+  if (friendStyle) {
+    c.translate(x, y - scale);
+    paintCoinSymbol(c, coin.symbol || friendStyle.symbol, r * 0.44);
+  }
   c.restore();
 }
 
-export function drawCoin(c, coin, scale = 1) {
-  const key = `${coin.kind}:${coin.r}`;
+export function drawCoin(c, coin, scale = 1, rotation = 0) {
+  const key = `${coin.kind}:${coin.r}:${coin.symbol || ''}`;
   let atlas = coinAtlases.get(key);
   if (!atlas) {
     const size = Math.ceil((coin.r + 14) * 2),
@@ -274,7 +335,14 @@ export function drawCoin(c, coin, scale = 1) {
     coinAtlases.set(key, atlas);
   }
   const size = atlas.size * scale;
-  c.drawImage(atlas.image, coin.x - size / 2, coin.y - size / 2, size, size);
+  if (rotation) {
+    // Keep identifying symbols and the coin lighting upright for every seat.
+    c.save();
+    c.translate(coin.x, coin.y);
+    c.rotate(-rotation);
+    c.drawImage(atlas.image, -size / 2, -size / 2, size, size);
+    c.restore();
+  } else c.drawImage(atlas.image, coin.x - size / 2, coin.y - size / 2, size, size);
 }
 
 export function createRenderer(canvas) {
@@ -292,14 +360,29 @@ export function createRenderer(canvas) {
   };
   const draw = (
     game,
-    { aim = null, effects = [], time = 0, alpha = 1, controllable = game.turn === 0 } = {},
+    {
+      aim = null,
+      effects = [],
+      time = 0,
+      alpha = 1,
+      controllable = game.turn === 0,
+      active = controllable,
+      seat = 0,
+    } = {},
   ) => {
     if (!width) resize();
     if (!width) return;
     c.setTransform(width / 1000, 0, 0, width / 1000, 0, 0);
     c.clearRect(0, 0, 1000, 1000);
+    // Seats run bottom, right, top, left in world space. Rotate the complete
+    // scene so the local player's baseline is always along the lower edge.
+    const rotation = Number.isInteger(seat) ? (((seat % 4) + 4) % 4) * (Math.PI / 2) : 0;
+    c.save();
+    c.translate(500, 500);
+    c.rotate(rotation);
+    c.translate(-500, -500);
     c.drawImage(board, 0, 0);
-    if (game.phase === 'ready' && controllable) {
+    if (game.phase === 'ready' && active) {
       c.save();
       c.shadowColor = '#ffe39f';
       c.shadowBlur = 18;
@@ -318,6 +401,8 @@ export function createRenderer(canvas) {
                 y: coin.py + (coin.y - coin.py) * alpha,
               }
             : coin,
+          1,
+          rotation,
         );
       }
     if (aim?.power > 0.015) {
@@ -391,13 +476,20 @@ export function createRenderer(canvas) {
           effect.y,
           40 + (1 - p) * 42,
           null,
-          effect.kind === 'queen' ? '#fa8066' : '#ffe7a1',
+          FRIEND_COIN_STYLES[effect.kind]?.face[0] ??
+            (effect.kind === 'queen' ? '#fa8066' : '#ffe7a1'),
           3 * p,
         );
-        drawCoin(c, { x: effect.x, y: effect.y, kind: effect.kind, r: 18 }, p);
+        drawCoin(
+          c,
+          { x: effect.x, y: effect.y, kind: effect.kind, symbol: effect.symbol, r: 18 },
+          p,
+          rotation,
+        );
       }
       c.restore();
     }
+    c.restore();
   };
   draw.resize = resize;
   return draw;
