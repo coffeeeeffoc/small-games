@@ -1,5 +1,5 @@
 import { execFileSync, spawn } from 'node:child_process';
-import { cp, mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
+import { cp, lstat, mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { parseEnv } from 'node:util';
 import { fileURLToPath } from 'node:url';
@@ -323,7 +323,15 @@ ${config.services.includes('tianxia') ? proxy('/tianxia/', 'tianxia:43004/', 'li
 
 export async function prepareBundleSite(source, destination, services, adMode = 'mock') {
   if (!['mock', 'off'].includes(adMode)) throw new Error('DEPLOY_H5_AD_MODE must be mock or off');
-  await cp(source, destination, { recursive: true, dereference: false });
+  await cp(source, destination, {
+    recursive: true,
+    dereference: false,
+    filter: async (filename) => {
+      if ((await lstat(filename)).isSymbolicLink())
+        throw new Error('Static release must not contain symlinks');
+      return true;
+    },
+  });
   const code = [
     `globalThis.SmallGamesPublishingConfig=Object.assign({},globalThis.SmallGamesPublishingConfig,{adMode:${JSON.stringify(adMode)}});`,
     ...(services.includes('runtime')

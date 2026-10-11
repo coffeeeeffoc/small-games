@@ -8,7 +8,54 @@ import { publishingConsumers } from './publication-scopes.mjs';
 import { createBrowserPreparation } from './browser-preparation.mjs';
 import { run } from './validate-push.mjs';
 
-test('local and CI browser preparation installs then probes once with their dependency policy', () => {
+test('cached and explicit browsers are launch-checked without reaching a forbidden download', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'offline browser '));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const executable = path.join(root, 'browser');
+  await writeFile(executable, '');
+  for (const withDeps of [false, true]) {
+    for (const explicit of [false, true]) {
+      const env = explicit ? { PLAYWRIGHT_EXECUTABLE_PATH: executable } : {};
+      let probes = 0;
+      const prepare = createBrowserPreparation({
+        root,
+        env,
+        withDeps,
+        browserExecutable: () => executable,
+        execute: (command, args) => {
+          if (command === 'pnpm') throw new Error('403 Domain forbidden');
+          assert.equal(command, process.execPath);
+          assert.equal(args[0], '-e');
+          assert.equal(env.CHROMIUM_PATH, executable);
+          assert.equal(env.PLAYWRIGHT_EXECUTABLE_PATH, executable);
+          probes++;
+        },
+      });
+      prepare();
+      prepare();
+      assert.equal(probes, 1);
+    }
+  }
+});
+
+test('invalid explicit browser paths fail before validation without installing a replacement', () => {
+  let probes = 0;
+  const prepare = createBrowserPreparation({
+    root: '/candidate',
+    env: { CHROMIUM_PATH: '/invalid/browser' },
+    browserExecutable: () => assert.fail('Explicit paths must not select another browser'),
+    execute: (command) => {
+      assert.equal(command, process.execPath, 'Explicit paths must not reach an installer');
+      probes++;
+      throw new Error('ENOENT: browser unavailable');
+    },
+  });
+  assert.throws(prepare, /Chromium launch preflight failed.*ENOENT/);
+  assert.throws(prepare, /Chromium launch preflight failed.*ENOENT/);
+  assert.equal(probes, 2);
+});
+
+test('missing default browsers install then probe once with the local or CI dependency policy', () => {
   for (const withDeps of [false, true]) {
     const env = { PLAYWRIGHT_BROWSERS_PATH: '/shared browser cache' };
     const calls = [];

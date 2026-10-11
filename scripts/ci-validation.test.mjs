@@ -349,8 +349,8 @@ test('native-only Travel validation prepares Chromium once before its actual bro
   });
   assert.deepEqual(events, [
     'native-integrity',
-    'install',
     'resolve-installed-path',
+    'install',
     'launch-preflight',
     'travel-browser-contract',
   ]);
@@ -428,7 +428,7 @@ test('explicit browser paths survive preparation and fill missing paths without 
           );
         return { browser: false, browser_ids: [] };
       },
-      execute: () => {},
+      execute: (command) => assert.equal(command, process.execPath),
     });
     assert.equal(resolutions, 0);
     assert.deepEqual(originalEnv, before);
@@ -447,7 +447,7 @@ test('an installation failure stops native browser validation and later browser 
         diff_base: 'base',
         diff_head: 'head',
       }),
-      browserExecutable: () => assert.fail('Failed installation cannot resolve a browser'),
+      browserExecutable: () => '/fixture/missing/chromium',
       treeValidator: async ({ prepareBrowser }) => {
         prepareBrowser();
         assert.fail('Failed preparation cannot launch the native browser contract');

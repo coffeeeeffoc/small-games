@@ -169,8 +169,14 @@ test('frontend copy configures only selected endpoints and leaves original asset
     assert.equal(disabledContext.__COMPETITION_CONFIG__, undefined);
     assert.equal(await readFile(path.join(source, 'index.html'), 'utf8'), html);
     assert.equal(await readFile(path.join(destination, 'bundle.js'), 'utf8'), 'unchanged');
-    await symlink(path.join(source, 'index.html'), path.join(source, 'unsafe.html'));
+    // Windows junctions exercise the same refusal without symlink privileges.
+    await symlink(
+      path.join(source, process.platform === 'win32' ? 'games/one' : 'index.html'),
+      path.join(source, 'unsafe-link'),
+      process.platform === 'win32' ? 'junction' : 'file',
+    );
     await assert.rejects(prepareBundleSite(source, path.join(temporary, 'unsafe'), []), /symlinks/);
+    await assert.rejects(stat(path.join(temporary, 'unsafe/unsafe-link')), { code: 'ENOENT' });
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }

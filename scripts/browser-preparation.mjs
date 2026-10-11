@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import { run } from './validate-push.mjs';
 
 const launchCheck = `
@@ -29,21 +30,21 @@ export function createBrowserPreparation({
   let ready = false;
   return () => {
     if (ready) return;
-    execute(
-      'pnpm',
-      ['exec', 'playwright', 'install', ...(withDeps ? ['--with-deps'] : []), 'chromium'],
-      root,
-      env,
+    const explicit = env.PLAYWRIGHT_EXECUTABLE_PATH || env.CHROMIUM_PATH;
+    const executable = explicit || browserExecutable();
+    assert(
+      typeof executable === 'string' && executable.length > 0,
+      'Missing installed Chromium executable path',
     );
-    if (!env.CHROMIUM_PATH || !env.PLAYWRIGHT_EXECUTABLE_PATH) {
-      const executable = env.PLAYWRIGHT_EXECUTABLE_PATH || env.CHROMIUM_PATH || browserExecutable();
-      assert(
-        typeof executable === 'string' && executable.length > 0,
-        'Missing installed Chromium executable path',
+    if (!explicit && !existsSync(executable))
+      execute(
+        'pnpm',
+        ['exec', 'playwright', 'install', ...(withDeps ? ['--with-deps'] : []), 'chromium'],
+        root,
+        env,
       );
-      env.CHROMIUM_PATH ||= executable;
-      env.PLAYWRIGHT_EXECUTABLE_PATH ||= executable;
-    }
+    env.CHROMIUM_PATH ||= executable;
+    env.PLAYWRIGHT_EXECUTABLE_PATH ||= executable;
     try {
       execute(process.execPath, ['-e', launchCheck], root, env, 'logged');
     } catch (error) {
