@@ -1,5 +1,11 @@
 # 苔光花园验证记录
 
+2026-10-11 关卡和移动端界面改版通过 17 项规则/存档检查、生产构建、14 组普通流程浏览器检查和 7 组邀请/分享/广告检查。包含五章浏览和锁定、主页继续关卡号、暂停选关后恢复原棋盘与计时、结算通关号、已完成关卡重玩、最后一关入口、刷新存档、手势取消、全屏及开发试玩隔离。`320 × 568` 选关和结算控件的实际热区不小于 44 CSS 像素。
+
+最新验证环境为 Node `24.21.0`、pnpm `12.6.0`，Chromium `151.0.7922.173` 手机尺寸触屏模拟；不是手机真机测试。机器可读结果见 [普通流程报告](./design/mobile-levels-2026-10-11/actual/browser-report.json) 和 [邀请与分享报告](./design/mobile-levels-2026-10-11/actual/publishing-browser.json)，实际截图和效果图对照见 [本次设计说明](./design/mobile-levels-2026-10-11/README.md)。新增导航在生产 iframe 的同源沙箱验证宿主中以触屏输入走通；真实 Shell 兼容由最终候选的既有本游戏入口门禁复核，不将该验证宿主称为真实 Shell，也不将本地检查等同于线上 CI/Pages 发布。
+
+以下保留初版验证记录。
+
 浏览器回归使用生产构建和系统 Chromium，测试文件为 [tests/browser.mjs](../tests/browser.mjs)，机器可读结果为 [browser-report.json](./design/browser-report.json)。从游戏目录运行：
 
 ```sh

@@ -38,6 +38,15 @@ export const wulongCityCanvasDefinition = {
     let unlocked = new Set([route.order[0]]), records = {}, version = null, saveWork = Promise.resolve();
     let buttons = [], drag = null, last = Date.now(), notice = '';
     const held = new Map(), assets = {}, levels = {}, zones = new Map(), voices = new Map();
+    const characterRequests = new Set(['xiaocha']);
+    assets.loadCharacter = (character) => {
+      const profile = globalThis.WulongArt.characters[character];
+      if (disposed || !profile || characterRequests.has(character)) return;
+      characterRequests.add(character);
+      target.loadImage?.(`assets/art/${profile.file}`).then(image => {
+        if (!disposed) { assets[character] = image; render(); }
+      }).catch(() => { /* Each identity retains its own procedural fallback. */ });
+    };
     try {
       const saved = await host.storage.read('wulong-city-v1');
       const restored = route.restore(saved?.value);

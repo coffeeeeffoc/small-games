@@ -1,6 +1,6 @@
 import type { CanvasGameTarget, CanvasPointerEvent } from '@coffeeeeffoc/canvas-game-adapter';
 import type { GameHost, JsonValue } from '@coffeeeeffoc/game-contract';
-import { LEVELS } from './content.ts';
+import { CHAPTERS, LEVELS } from './content.ts';
 import {
   createPuzzle,
   placeSeed,
@@ -48,6 +48,7 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
   let puzzle = save.active ? restorePuzzle(level, save.active.puzzle) : createPuzzle(level);
   let elapsedMs = save.active?.elapsedMs ?? 0;
   let page: View['page'] = 'home';
+  let levelChapter = 1;
   let returnPage: View['page'] = 'home';
   let mode: 'seed' | 'mark' = 'seed';
   let suspended = false;
@@ -89,6 +90,22 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
       elapsedMs += Math.min(1500, Math.max(0, now - lastTime));
     lastTime = now;
   }
+  function continueLevel() {
+    return (
+      LEVELS.find((item) => item.id === save.active?.levelId) ??
+      LEVELS.find((item) => unlocked(save, item) && !save.completed[item.id]) ??
+      LEVELS[0]
+    );
+  }
+  function openLevels() {
+    checkpoint();
+    levelChapter = continueLevel().chapter;
+    invitation = undefined;
+    practice = false;
+    challenge = false;
+    notice = '';
+    page = 'levels';
+  }
   function draw() {
     if (disposed) return;
     const view: View = {
@@ -108,6 +125,9 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
       sound: save.sound,
       vibration: save.vibration,
       hasActive: !!save.active,
+      activeLevelId: save.active?.levelId,
+      continueLevel: continueLevel(),
+      levelChapter,
       dev: !!target.dev,
       native: !!target.native,
       notice:
@@ -159,7 +179,7 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
     if (disposed || suspended || publicationBusy) return;
     if (
       page === 'result' &&
-      ['result:next', 'result:replay', 'result:home'].includes(id) &&
+      ['result:next', 'result:replay', 'result:home', 'result:levels'].includes(id) &&
       target.naturalBreak &&
       !afterBreak &&
       !practice
@@ -216,20 +236,28 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
       const selected = invitation;
       invitation = undefined;
       start(selected, false, false, true);
-    } else if (id === 'home:start') {
-      const selected =
-        LEVELS.find((item) => item.id === save.active?.levelId) ??
-        LEVELS.find((item) => unlocked(save, item) && !save.completed[item.id]) ??
-        LEVELS[0];
-      start(selected, !!save.active);
-    } else if (id === 'home:levels') page = 'levels';
-    else if (id === 'home:settings') page = 'settings';
+    } else if (id === 'home:start' || (id === 'levels:continue' && page === 'levels')) {
+      invitation = undefined;
+      start(continueLevel(), !!save.active);
+    } else if (
+      (id === 'home:levels' && page === 'home') ||
+      (id === 'pause:levels' && page === 'pause') ||
+      (id === 'result:levels' && page === 'result')
+    ) {
+      openLevels();
+    } else if ((id === 'levels:prev' || id === 'levels:next') && page === 'levels') {
+      const index = CHAPTERS.findIndex((chapter) => chapter.id === levelChapter);
+      const chapter = CHAPTERS[index + (id === 'levels:next' ? 1 : -1)];
+      if (chapter) levelChapter = chapter.id;
+    } else if (id === 'home:settings') page = 'settings';
     else if (id === 'home:help' || id === 'play:help') {
       returnPage = page;
       if (page === 'play') checkpoint();
       page = 'help';
-    } else if (id === 'nav:back') page = page === 'help' ? returnPage : 'home';
-    else if (id === 'play:pause') {
+    } else if (id === 'nav:back') {
+      checkpoint();
+      page = page === 'help' ? returnPage : 'home';
+    } else if (id === 'play:pause') {
       page = 'pause';
       checkpoint();
     } else if (id === 'pause:resume') {
@@ -245,7 +273,7 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
     else if (id === 'result:next') {
       const next = LEVELS[LEVELS.indexOf(level) + 1];
       if (next && (practice || unlocked(save, next))) start(next, false, practice);
-      else page = 'levels';
+      else openLevels();
     } else if (id === 'play:seed') mode = 'seed';
     else if (id === 'play:mark') mode = 'mark';
     else if (id === 'play:undo' && page === 'play') {

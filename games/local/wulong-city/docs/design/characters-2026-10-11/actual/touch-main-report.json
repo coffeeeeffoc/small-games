@@ -1,0 +1,159 @@
+{
+  "date": "2026-10-11T14:44:19.458Z",
+  "viewport": "390x844",
+  "errors": [],
+  "report": [
+    {
+      "level": 8,
+      "result": "PASS",
+      "input": "CDP touch input, bottom controls, at most two pointers",
+      "reset": "next level transition, menu revisit, two retries",
+      "state": {
+        "id": 8,
+        "run": 5,
+        "t": 0.09993333333333279,
+        "p": {
+          "x": 65,
+          "y": 436,
+          "vx": 0,
+          "vy": 0,
+          "dir": 1,
+          "grounded": true
+        },
+        "won": false,
+        "feedback": "饭香飘到了岗亭。值班员的脚，一步也不能离岗。",
+        "hintsUsed": 0,
+        "wall": 238,
+        "meal": false,
+        "delivered": false,
+        "blocked": false,
+        "inside": false
+      }
+    },
+    {
+      "level": 17,
+      "result": "PASS",
+      "input": "CDP touch input, bottom controls, at most two pointers",
+      "reset": "next level transition, menu revisit, two retries",
+      "state": {
+        "id": 17,
+        "run": 5,
+        "t": 0.09993333333333371,
+        "p": {
+          "x": 65,
+          "y": 436,
+          "vx": 0,
+          "vy": 0,
+          "dir": 1,
+          "grounded": true
+        },
+        "won": false,
+        "feedback": "队伍已经等到生根。倒是办事窗口，脚下长着四个轮子。",
+        "hintsUsed": 0,
+        "brake": true,
+        "entered": false,
+        "counterX": 95,
+        "stamped": [
+          false,
+          false,
+          false
+        ],
+        "service": [
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "level": 19,
+      "result": "PASS",
+      "input": "CDP touch input, bottom controls, at most two pointers",
+      "reset": "next level transition, menu revisit, two retries",
+      "state": {
+        "id": 19,
+        "run": 5,
+        "t": 0,
+        "p": {
+          "x": 65,
+          "y": 436,
+          "vx": 0,
+          "vy": 0,
+          "dir": 1,
+          "grounded": true
+        },
+        "won": false,
+        "feedback": "阿绿和阿橘还在互相学掌声。演员已经谢了第不知道几次幕。",
+        "hintsUsed": 0,
+        "facing": [
+          1,
+          -1
+        ],
+        "echoes": [
+          {
+            "from": 0,
+            "to": 1,
+            "t": 0
+          }
+        ],
+        "light": 1.8,
+        "lastHeard": 0,
+        "heard": 0,
+        "curtain": 0
+      }
+    },
+    {
+      "level": 12,
+      "result": "PASS",
+      "input": "CDP touch input, bottom controls, at most two pointers",
+      "reset": "next level transition, menu revisit, two retries",
+      "state": {
+        "id": 12,
+        "run": 5,
+        "t": 0.05003333333333315,
+        "p": {
+          "x": 65,
+          "y": 436,
+          "vx": 0,
+          "vy": 0,
+          "dir": 1,
+          "grounded": true
+        },
+        "won": false,
+        "feedback": "正面是21号。住户指了指背后，房子的角像贺卡一样翘着。",
+        "hintsUsed": 0,
+        "back": false,
+        "flip": 1,
+        "delivered": false,
+        "receipt": 0,
+        "flippedGesture": false
+      }
+    },
+    {
+      "level": 14,
+      "result": "PASS",
+      "input": "CDP touch input, bottom controls, at most two pointers",
+      "reset": "next level transition, menu revisit, two retries",
+      "state": {
+        "id": 14,
+        "run": 5,
+        "t": 0.03333333333333333,
+        "p": {
+          "x": 65,
+          "y": 436,
+          "vx": 0,
+          "vy": 0,
+          "dir": 1,
+          "grounded": true
+        },
+        "won": false,
+        "feedback": "这位邻居话很多，连说出来的话都能踩一脚。",
+        "hintsUsed": 0,
+        "long": false,
+        "growth": 1,
+        "options": false,
+        "attempted": false
+      }
+    }
+  ]
+}

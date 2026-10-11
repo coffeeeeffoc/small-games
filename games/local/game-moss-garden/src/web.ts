@@ -3,7 +3,7 @@ import type { CanvasPointerEvent } from '@coffeeeeffoc/canvas-game-adapter';
 import { createMossGame } from './controller.ts';
 import { isAccessibleActionClick } from './web-input.ts';
 import { defaultMossGardenEnvelope, mossGardenManifest, validateMossContent } from './canvas.ts';
-import type { View, HitArea } from './render.ts';
+import { resultTitle, type View, type HitArea } from './render.ts';
 import './style.css';
 import { createH5Publishing, type AdProvider } from '../../../../platforms/h5/publishing.js';
 
@@ -182,7 +182,19 @@ function mirror(view: View, hits: HitArea[]) {
     else if (hit.id === 'play:seed' || hit.id === 'play:mark')
       button.setAttribute('aria-pressed', String(hit.id === `play:${view.mode}`));
   }
-  status.textContent = view.puzzle.message || view.notice || '';
+  const title =
+    view.page === 'result'
+      ? resultTitle(view)
+      : view.page === 'play' || view.page === 'pause'
+        ? `第 ${view.level.number} 关 · ${view.level.title}`
+        : view.page === 'levels'
+          ? `关卡选择 · 第 ${view.levelChapter ?? 1} 章`
+          : '苔光花园';
+  canvas.setAttribute('aria-label', title);
+  status.textContent =
+    view.page === 'result'
+      ? `${title}，${view.level.title}`
+      : view.puzzle.message || view.notice || '';
   root.dataset.page = view.page;
 }
 function feedback(kind: 'place' | 'mark' | 'win', sound: boolean, vibration: boolean) {

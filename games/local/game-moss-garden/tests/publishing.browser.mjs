@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium, expect } from '@playwright/test';
 const server = spawn(
   process.execPath,
@@ -22,7 +22,8 @@ await new Promise((resolve, reject) => {
 const browser = await chromium.launch({
   executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || '/usr/bin/chromium',
 });
-const output = new URL('../docs/design/publishing-2026-10-11/', import.meta.url);
+const output = new URL('../docs/design/mobile-levels-2026-10-11/actual/', import.meta.url);
+await mkdir(output, { recursive: true });
 const errors = [];
 try {
   const page = await browser.newPage({
@@ -82,7 +83,7 @@ try {
       await page.screenshot({ path: new URL('actual-result-320x568.png', output).pathname });
       await page.setViewportSize({ width: 390, height: 844 });
     }
-    await action(round === 2 ? 'result:home' : 'result:next');
+    await action(round === 2 ? 'result:levels' : 'result:next');
     if (round < 2) {
       await expect(page.locator('[data-game-ad]')).toHaveCount(0);
       await expect(page.locator('#garden')).toHaveAttribute('data-page', 'play');
@@ -91,7 +92,7 @@ try {
       await expect(ad).toBeVisible();
       await page.screenshot({ path: new URL('actual-ad-390x844.png', output).pathname });
       await ad.getByRole('button', { name: '关闭并继续' }).tap();
-      await expect(page.locator('#garden')).toHaveAttribute('data-page', 'home');
+      await expect(page.locator('#garden')).toHaveAttribute('data-page', 'levels');
     }
   }
   assert.equal(
@@ -99,8 +100,8 @@ try {
     original,
     'Shared locked-level challenge does not overwrite progress or active puzzle',
   );
-  await expect(page.getByRole('button', { name: '继续播种' })).toBeVisible();
-  await action('home:start');
+  await expect(page.getByRole('button', { name: '继续第 1 关' })).toBeVisible();
+  await action('levels:continue');
   await expect(page.locator('[data-hit-id="cell:0"]')).toHaveAttribute('aria-pressed', 'true');
   assert.equal(JSON.parse(await saved()).active.levelId, 'moss-01');
   await action('play:pause');
@@ -122,7 +123,7 @@ try {
           'normal save and unlock isolation',
           'leaving invitation resumes normal board through continue and selection',
           'same-level replay',
-          'third-result ad and close/resume',
+          'third-result selection ad and close/resume to normal selection',
           '390×844 / 320×568 and 44px result controls',
         ],
         errors,

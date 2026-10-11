@@ -53,7 +53,7 @@ test('same-level invitations isolate progression and replay exactly the invited 
 });
 
 test('leaving an invitation restores the ordinary continue route and current-level selection', async () => {
-  for (const route of ['continue', 'level-selection']) {
+  for (const route of ['continue', 'level-selection', 'pause-selection', 'result-selection']) {
     const original = {
       ...createSave(),
       active: {
@@ -89,11 +89,24 @@ test('leaving an invitation restores the ordinary continue route and current-lev
     try {
       game.act('home:start');
       assert.equal(game.snapshot().levelId, LEVELS[8].id);
-      game.act('play:pause');
-      game.act('pause:home');
+      if (route === 'result-selection') {
+        for (let count = 0; count < 20 && game.snapshot().page === 'play'; count++)
+          game.act('play:hint');
+        game.act('result:levels');
+      } else {
+        game.act('play:pause');
+        game.act(route === 'pause-selection' ? 'pause:levels' : 'pause:home');
+      }
       if (route === 'continue') game.act('home:start');
       else {
-        game.act('home:levels');
+        if (route === 'level-selection') game.act('home:levels');
+        assert.equal(game.snapshot().page, 'levels', route);
+        game.act(`level:${LEVELS[8].id}`);
+        assert.equal(
+          game.snapshot().page,
+          'levels',
+          'The invitation must not unlock normal selection',
+        );
         game.act(`level:${LEVELS[0].id}`);
       }
       assert.equal(game.snapshot().levelId, LEVELS[0].id, route);
