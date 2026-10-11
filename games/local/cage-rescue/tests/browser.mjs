@@ -5,6 +5,8 @@ import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium, expect } from '@playwright/test';
+import { steerWithPointer } from './pointer-play.mjs';
+import { runPerformanceChecks } from './performance-browser.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const output = path.join(root, 'test-results');
@@ -129,11 +131,11 @@ async function check(name, run) {
     console.error(`FAIL ${name}: ${error.message}`);
   }
 }
-async function fresh(viewport = { width: 390, height: 844 }, name = '') {
+async function fresh(viewport = { width: 390, height: 844 }, name = '', mobile = true) {
   const context = await browser.newContext({
     viewport,
-    hasTouch: true,
-    isMobile: true,
+    hasTouch: mobile,
+    isMobile: mobile,
     deviceScaleFactor: 1,
   });
   const page = await context.newPage();
@@ -209,6 +211,7 @@ try {
         await page.locator('#start').tap();
         await expect(page.locator('body')).toHaveAttribute('data-screen', 'play');
         assert.equal((await snapshot(page)).game.phase, 'ready');
+        await expect(page.locator('#rescue-count')).toHaveText('0/6');
         await page.locator('#launch').tap();
         await expect.poll(async () => (await snapshot(page)).game.phase).toBe('playing');
         const initialY = (await snapshot(page)).game.ball.y;
@@ -433,9 +436,11 @@ try {
     );
   }
 
-  for (const lose of [false, true]) {
+  for (const outcome of ['win', 'ball-loss', 'missed-person']) {
+    const lose = outcome === 'ball-loss';
+    const miss = outcome === 'missed-person';
     await check(
-      `natural pointer play ${lose ? 'ball-loss failure and free retry' : 'first-level rescue and save'}`,
+      `natural pointer play ${lose ? 'ball-loss failure and free retry' : miss ? 'first missed teammate and free retry' : 'all-person rescue and save'}`,
       async () => {
         const { context, page } = await fresh(undefined, 'natural play');
         try {
@@ -443,72 +448,7 @@ try {
           await ready(page);
           await page.locator('#start').tap();
           await page.locator('#launch').tap();
-          const touch = await context.newCDPSession(page);
-          const bounds = await page.locator('#scene').boundingBox();
-          await touch.send('Input.dispatchTouchEvent', {
-            type: 'touchStart',
-            touchPoints: [
-              { id: 1, x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height * 0.85 },
-            ],
-          });
-          await page.evaluate(
-            ({ lose }) => {
-              const pointerId = window.__cageRescue.snapshot().activePointer;
-              const canvas = document.querySelector('#scene');
-              const reflectX = (x) => {
-                const left = 23,
-                  span = 344;
-                const position = (((x - left) % (span * 2)) + span * 2) % (span * 2);
-                return left + (position > span ? span * 2 - position : position);
-              };
-              function steer() {
-                const current = window.__cageRescue.snapshot(),
-                  state = current.game;
-                if (current.screen !== 'play') return;
-                if (state.phase === 'ready') document.querySelector('#launch').click();
-                const ball = state.ball;
-                const eta =
-                  ball.vy > 0
-                    ? Math.max(0, (state.paddle.y - ball.r - ball.y) / ball.vy)
-                    : Infinity;
-                const landing = Number.isFinite(eta) ? reflectX(ball.x + ball.vx * eta) : ball.x;
-                const cage = state.cages
-                  .filter((item) => item.hp > 0)
-                  .sort(
-                    (a, b) => Math.abs(a.x + a.w / 2 - landing) - Math.abs(b.x + b.w / 2 - landing),
-                  )[0];
-                const angle = cage
-                  ? Math.atan2(cage.x + cage.w / 2 - landing, state.paddle.y - cage.y - cage.h / 2)
-                  : Math.sin(state.time) * 0.6;
-                let target = landing - ((angle / (Math.PI * 0.365)) * state.paddle.w) / 2;
-                const person = state.people
-                  .filter((item) => item.status === 'falling' && item.y + item.r < state.paddle.y)
-                  .sort((a, b) => b.y - a.y)[0];
-                if (person) {
-                  const personEta =
-                    (state.paddle.y - person.r - person.y) / state.level.personSpeed;
-                  const travel = Math.abs(person.x - state.paddle.x) / 1100;
-                  if (personEta < 0.65 + travel && (eta > 0.48 || personEta < eta))
-                    target = person.x;
-                }
-                if (lose) target = landing < 195 ? 350 : 40;
-                const rect = canvas.getBoundingClientRect();
-                canvas.dispatchEvent(
-                  new PointerEvent('pointermove', {
-                    pointerId,
-                    pointerType: 'touch',
-                    isPrimary: true,
-                    bubbles: true,
-                    clientX: rect.left + (target / 390) * rect.width,
-                    clientY: rect.top + rect.height * 0.85,
-                  }),
-                );
-                requestAnimationFrame(steer);
-              }
-              requestAnimationFrame(steer);
-            },
-            { lose },
-          );
+          const stopSteering = await steerWithPointer(page, context, { lose, miss });
           let result;
           let decisionCaptured = false;
           const captureDecision = process.env.CAGE_RESCUE_CAPTURE_DECISION === '1' && !lose;
@@ -534,10 +474,7 @@ try {
             }
             if (result.screen === 'result') break;
           }
-          // Steering above uses PointerEvents rather than moving the CDP contact.
-          // Cancel that contact to avoid a synthetic compatibility tap at its old coordinates.
-          await touch.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
-          await touch.detach();
+          await stopSteering();
           assert.equal(
             result.screen,
             'result',
@@ -558,27 +495,68 @@ try {
             await page.locator('#retry').tap();
             assert.equal((await snapshot(page)).game.phase, 'ready');
             assert.equal((await snapshot(page)).game.lives, 3);
+          } else if (miss) {
+            assert.equal(result.game.phase, 'lost');
+            assert.equal(result.game.lossReason, 'not-enough-people');
+            assert.equal(result.game.missed, 1);
+            assert.equal(result.game.lives, 3);
+            assert.equal(Object.keys(result.progress.completed).length, 0);
+            await expect(page.locator('#result-message')).toContainText('全员救回才算通关');
+            await expect(page.locator('#revive')).toBeHidden();
+            await shot(page, 'actual-miss-result', true);
+            await page.locator('#retry').tap();
+            assert.equal((await snapshot(page)).game.phase, 'ready');
+            assert.equal((await snapshot(page)).game.missed, 0);
           } else {
             assert.equal(result.game.phase, 'won');
-            assert.equal(result.game.rescued, 4);
+            assert.equal(result.game.rescued, result.game.target);
+            assert.equal(result.game.missed, 0);
+            const milestones = await page.evaluate(() => window.__fullRescueMilestones);
+            assert.deepEqual(
+              milestones.map((item) => item.rescued),
+              [4, 5],
+            );
+            for (const item of milestones) {
+              assert.equal(item.phase, 'playing');
+              assert.equal(item.screen, 'play');
+              assert.equal(item.completed, 0);
+              assert.equal(item.counter, `${item.rescued}/6`);
+            }
+            await expect(page.locator('#result-message')).toContainText('全部 6 位队友');
             assert.equal(Object.keys(result.progress.completed).length, 1);
             await shot(page, 'actual-result', true);
-            await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (text) => { window.__sharedUrl = text; } } }));
+            await page.evaluate(() =>
+              Object.defineProperty(navigator, 'clipboard', {
+                configurable: true,
+                value: {
+                  writeText: async (text) => {
+                    window.__sharedUrl = text;
+                  },
+                },
+              }),
+            );
             await page.locator('#share-rescue').tap();
             const shared = new URL(await page.evaluate(() => window.__sharedUrl));
             assert.equal(shared.searchParams.get('challenge'), 'rescue-v1');
             assert.equal(shared.searchParams.get('level'), result.game.levelId);
             assert.equal(Number(shared.searchParams.get('targetRescued')), result.game.rescued);
-            assert.equal(Number(shared.searchParams.get('targetCombo')), result.game.bestRescueCombo);
+            assert.equal(
+              Number(shared.searchParams.get('targetCombo')),
+              result.game.bestRescueCombo,
+            );
             assert.equal(shared.searchParams.has('dev'), false);
-            await page.screenshot({ path: path.join(design, 'publishing/mobile-result-share.png') });
+            await page.screenshot({
+              path: path.join(design, 'publishing/mobile-result-share.png'),
+            });
             await page.goto(shared.href);
             await expect(page.locator('#challenge-rescue')).toContainText('自报');
             await page.locator('#challenge-rescue').tap();
             assert.equal((await snapshot(page)).game.levelId, result.game.levelId);
             assert.equal(Object.keys((await snapshot(page)).progress.completed).length, 1);
             await page.locator('#pause').tap();
-            await page.screenshot({ path: path.join(design, 'publishing/mobile-challenge-pause.png') });
+            await page.screenshot({
+              path: path.join(design, 'publishing/mobile-challenge-pause.png'),
+            });
 
             await page.reload();
             await page.waitForFunction(() => !!window.__cageRescue);
@@ -601,6 +579,7 @@ try {
       },
     );
   }
+  await runPerformanceChecks({ check, fresh, ready, snapshot });
 } finally {
   await browser.close();
   await new Promise((resolve) => fixture.close(resolve));

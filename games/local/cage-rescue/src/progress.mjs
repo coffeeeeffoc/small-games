@@ -10,6 +10,8 @@ export function readProgress(data) {
   if (!data || data.version !== 1) return result;
   for (const level of LEVELS) {
     const record = data.completed?.[level.id];
+    // Keep unlocks earned under the original four-person goal. New clears below
+    // require every teammate; replaying upgrades a legacy record naturally.
     if (!record || !Number.isInteger(record.rescued) || record.rescued < 4 || record.rescued > 6)
       break;
     result.completed[level.id] = {
@@ -33,7 +35,7 @@ export function unlockedCount(progress) {
 export function completeLevel(progress, game, trial = false) {
   if (trial || game.phase !== 'won') return false;
   const level = LEVELS[game.levelIndex ?? game.index ?? 0];
-  if (!level) return false;
+  if (!level || game.rescued !== level.cages.length) return false;
   const index = LEVELS.indexOf(level);
   if (index >= unlockedCount(progress)) return false;
   const previous = progress.completed[level.id];

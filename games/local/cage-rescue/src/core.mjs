@@ -36,7 +36,7 @@ export function createGame(levelIndex = 0) {
     status: 'ready',
     lossReason: null,
     lives: level.lives,
-    target: level.target,
+    target: level.cages.length,
     rescued: 0,
     rescueCombo: 0,
     bestRescueCombo: 0,
