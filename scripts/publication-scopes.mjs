@@ -148,6 +148,45 @@ const lettersTests = [
   'scripts/letters-words2-iframe.browser.mjs',
 ];
 const competitionFiles = [...h5Files, ...nativeFiles, builder, ...lettersTests];
+const flickSource = 'games/local/flick-arena';
+// These three reviewed integration deltas leave commands, proxy policy and all
+// other dependency permissions byte-for-byte unchanged. Pin the real baseline
+// as well as the single replacement so comments cannot impersonate an anchor.
+const flickIntegrationChanges = {
+  'scripts/deploy-tencent.mjs': {
+    base: '02acecb81829ab2ee56e628653a7e4b37b92098067531fd770c535db889a2a34',
+    anchor: "    'services/runtime-api/rules',\n",
+    addition: "    'games/local/flick-arena/src',\n",
+    consumers: [flickSource, 'services/runtime-api'],
+  },
+  'scripts/competition-gateway.mjs': {
+    base: '4d6b9bac6b42679f28489663a0ac05e47bec4429a9c5488653499c2976be5b7e',
+    anchor: "  '.js': 'text/javascript',\n",
+    addition: "  '.mjs': 'text/javascript',\n",
+    consumers: [flickSource, 'apps/shell-web'],
+  },
+  'scripts/check-workspace-dependencies.mjs': {
+    base: '365ff86b574b7c082275d886ce7f388a182dba8b6382c28013dc3616fba7ef46',
+    anchor: "  'services/runtime-api/rules/chess.mjs -> games/submodules/xiangqi-five/game.js',\n",
+    addition:
+      "  'services/runtime-api/rules/flick.mjs -> games/local/flick-arena/src/core.mjs',\n" +
+      "  'services/runtime-api/rules/flick.mjs -> games/local/flick-arena/src/tournament.mjs',\n",
+    consumers: [flickSource, 'services/runtime-api'],
+  },
+};
+
+export function flickIntegrationFileScope(file, before, after) {
+  const change = flickIntegrationChanges[file];
+  return Boolean(
+    change &&
+      typeof before === 'string' &&
+      createHash('sha256').update(before).digest('hex') === change.base &&
+      before.split(change.anchor).length === 2 &&
+      !before.includes(change.addition) &&
+      after === before.replace(change.anchor, change.anchor + change.addition),
+  );
+}
+
 const threeChooseTwoMigration = 'infra/migrations/012-three-choose-two.sql';
 const threeChooseTwoBackendChanges = {
   'scripts/competition.mjs': [
@@ -203,21 +242,25 @@ const carromDeployFile = 'scripts/deploy-tencent.mjs';
 const carromDeployAnchor =
   "  for (const name of [\n    'services/runtime-api/dist',\n    'services/runtime-api/rules',\n";
 const carromDeployAddition = `    '${carromCore}',\n    '${carromContent}',\n`;
-const carromFriendsDeployAnchor = carromDeployAnchor + carromDeployAddition;
+const carromFriendsDeployAnchors = [
+  carromDeployAnchor + carromDeployAddition,
+  carromDeployAnchor + "    'games/local/flick-arena/src',\n" + carromDeployAddition,
+];
 const carromFriendsDeployAddition =
   `    '${carromFriendsCore}',\n` + `    '${carromFriendsContent}',\n`;
 
 function carromFriendsDeploymentScope(before, after) {
+  if (typeof before !== 'string') return false;
+  // Accept the original list or the already-merged Flick input, keeping every
+  // surrounding byte (including that input) fixed to this candidate's baseline.
+  const anchors = carromFriendsDeployAnchors.filter((anchor) => before.includes(anchor));
+  const anchor = anchors[0];
   return (
-    typeof before === 'string' &&
-    before.split(carromFriendsDeployAnchor).length === 2 &&
+    anchors.length === 1 &&
+    before.split(anchor).length === 2 &&
     !before.includes(carromFriendsCore) &&
     !before.includes(carromFriendsContent) &&
-    after ===
-      before.replace(
-        carromFriendsDeployAnchor,
-        carromFriendsDeployAnchor + carromFriendsDeployAddition,
-      )
+    after === before.replace(anchor, anchor + carromFriendsDeployAddition)
   );
 }
 
@@ -710,7 +753,20 @@ export function reviewedSharedFileScopes({
   const scopes = new Map();
   for (const file of changedPaths) {
     try {
-      if (Object.hasOwn(codexAgentHashes, file)) {
+      if (
+        Object.hasOwn(flickIntegrationChanges, file) &&
+        flickIntegrationFileScope(file, readBase(file), readHead(file))
+      ) {
+        const bindings = games.filter(
+          (game) => game.id === 'flick-arena' || game.source === flickSource,
+        );
+        assert(
+          bindings.length === 1 &&
+            bindings[0].id === 'flick-arena' &&
+            bindings[0].source === flickSource,
+        );
+        scopes.set(file, flickIntegrationChanges[file].consumers);
+      } else if (Object.hasOwn(codexAgentHashes, file)) {
         assert.equal(
           createHash('sha256').update(readHead(file)).digest('hex'),
           codexAgentHashes[file],

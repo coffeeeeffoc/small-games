@@ -72,7 +72,7 @@ export const homeControls = {
   'three-choose-two': ['[data-action="start"]', '[data-action="begin"]'],
   'retreat-rally': '#start',
   'cage-rescue': '#start',
-  'flick-arena': '#start',
+  'flick-arena': ['#start', '#play-level'],
   'tower-brake': '#start-game',
   tetracube: '#start-game',
   'chase-thief': '#start',

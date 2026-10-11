@@ -16,6 +16,7 @@ const sources = {
   runtime: [
     'services/runtime-api/dist',
     'services/runtime-api/rules',
+    'games/local/flick-arena/src',
     'games/local/three-choose-two/src',
     'games/local/carrom-club/src/core.mjs',
     'games/local/carrom-club/src/content.mjs',

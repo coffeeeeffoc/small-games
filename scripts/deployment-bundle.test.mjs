@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import vm from 'node:vm';
+import { pathToFileURL } from 'node:url';
 import {
   backendBuildCommands,
   buildEnvironment,
@@ -262,6 +263,7 @@ test('runtime bundle includes multiplayer carrom physics and level data without 
       'games/local/carrom-club/src/content.mjs',
       'games/local/carrom-club/src/friends-core.mjs',
       'games/local/carrom-club/src/friends-content.mjs',
+      'games/local/flick-arena/src/core.mjs',
       'games/local/cops-robbers/src/engine.js',
       'games/local/cops-robbers-realtime/src/engine.js',
       'games/local/letters-words2/engine.js',
@@ -278,6 +280,51 @@ test('runtime bundle includes multiplayer carrom physics and level data without 
     await assert.rejects(stat(path.join(destination, 'games/local/carrom-club/src/main.mjs')), {
       code: 'ENOENT',
     });
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
+
+test('runtime-only bundles can load the actual Flick multiplayer rule and its core', async () => {
+  const temporary = await mkdtemp(path.join(tmpdir(), 'flick-runtime-bundle-'));
+  const source = path.join(temporary, 'source');
+  const put = async (name, value = '') => {
+    const target = path.join(source, name);
+    await mkdir(path.dirname(target), { recursive: true });
+    await writeFile(target, value);
+  };
+  try {
+    await put('package.json', '{"private":true,"type":"module"}');
+    await put('pnpm-lock.yaml');
+    await put('pnpm-workspace.yaml');
+    await put('services/runtime-api/package.json', '{"name":"@coffeeeeffoc/runtime-api"}');
+    await put('services/runtime-api/dist/main.js', 'export {};');
+    for (const name of [
+      'games/local/three-choose-two/src/index.js',
+      'games/local/carrom-club/src/core.mjs',
+      'games/local/carrom-club/src/content.mjs',
+      'games/local/carrom-club/src/friends-core.mjs',
+      'games/local/carrom-club/src/friends-content.mjs',
+      'games/local/cops-robbers/src/index.js',
+      'games/local/cops-robbers-realtime/src/index.js',
+      'games/local/letters-words2/engine.js',
+      'games/local/vibeJam-myself-history-guess/src/index.js',
+      'games/local/vibeJam-myself-history-guess/public/index.html',
+      'games/submodules/xiangqi-five/game.js',
+    ])
+      await put(name);
+    for (const name of ['services/runtime-api/rules/flick.mjs', 'games/local/flick-arena/src']) {
+      const target = path.join(source, name);
+      await mkdir(path.dirname(target), { recursive: true });
+      await cp(new URL('../' + name, import.meta.url), target, { recursive: true });
+    }
+    const output = path.join(temporary, 'bundle');
+    await prepareSelectedBackend(output, ['runtime'], source);
+    const { default: rule } = await import(
+      pathToFileURL(path.join(output, 'services/runtime-api/rules/flick.mjs')).href
+    );
+    assert.equal(rule.id, 'flick-arena');
+    assert.equal(rule.roomSize('party4'), 4);
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }

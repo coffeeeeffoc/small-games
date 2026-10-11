@@ -239,6 +239,7 @@ export async function prepareBackend(destination, workspace = root) {
   for (const name of [
     'services/runtime-api/dist',
     'services/runtime-api/rules',
+    'games/local/flick-arena/src',
     'games/local/carrom-club/src/core.mjs',
     'games/local/carrom-club/src/content.mjs',
     'games/local/carrom-club/src/friends-core.mjs',

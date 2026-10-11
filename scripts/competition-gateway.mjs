@@ -11,6 +11,7 @@ const runtime = Number(process.env.COMPETITION_PORT || 43002),
 const mime = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript',
+  '.mjs': 'text/javascript',
   '.json': 'application/json',
   '.css': 'text/css',
   '.svg': 'image/svg+xml',

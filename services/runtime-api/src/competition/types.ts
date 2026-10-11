@@ -6,6 +6,9 @@ export type Rule = {
   durationMs: number;
   description?: string;
   duel?: boolean;
+  /** Shared friend rooms can have more than two seats without entering ranked duels. */
+  roomSize?(mode?: string): number;
+  unrated?: boolean;
   roles?: readonly string[];
   modes?: readonly { id: string; title: string }[];
   pollMs?: number;

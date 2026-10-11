@@ -1,0 +1,38 @@
+{
+  "environment": "Chromium desktop emulation, 390×844 touch, DPR 1",
+  "realDevice": false,
+  "stateWasManuallyReplaced": false,
+  "online": {
+    "skipped": "Set FLICK_COMPETITION_API to a real runtime API."
+  },
+  "campaign": {
+    "attempts": 1,
+    "touchShots": 7,
+    "firstLevelStars": 3,
+    "nextLevelUnlocked": true,
+    "restoredAfterReload": true
+  },
+  "local": {
+    "rounds": 2,
+    "touchShots": 3,
+    "winnerId": "player-2",
+    "wins": {
+      "player-1": 0,
+      "player-2": 2
+    },
+    "firstPlayers": [
+      "player-1",
+      "player-2"
+    ]
+  },
+  "terrain": {
+    "developerMenuOnly": true,
+    "realTouchLevels": [
+      "terrain-pillar",
+      "terrain-ice",
+      "summit-gap",
+      "summit-master"
+    ]
+  },
+  "pageErrors": []
+}

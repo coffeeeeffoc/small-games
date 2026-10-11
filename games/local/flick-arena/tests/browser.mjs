@@ -8,7 +8,7 @@ import { W, H, arena } from '../src/render.mjs';
 import { saveKey } from '../src/progress.mjs';
 
 const root = new URL('../', import.meta.url);
-const out = new URL('../docs/design/multi-round-2026-10-09/', import.meta.url);
+const out = new URL('../docs/design/campaign-friends-2026-10-11/regression/', import.meta.url);
 const started = performance.now();
 const records = {
   environment: 'Chromium desktop emulation, 390×844, touch, DPR 2',
@@ -334,6 +334,7 @@ try {
   await fallbackPage.clock.pauseAt(new Date('2026-10-09T15:00:01Z'));
   await fallbackPage.goto(origin + '?dev=0');
   await fallbackPage.locator('#start').tap();
+  await fallbackPage.locator('#play-level').tap();
   await fallbackPage.clock.runFor(1400);
   assert.equal(await fallbackPage.locator('body').getAttribute('data-phase'), 'playing');
   await fallback.close();

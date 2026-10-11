@@ -6,6 +6,7 @@ import {
   competitionConsumers,
   competitionToolPlan,
   threeChooseTwoBackendFileScope,
+  flickIntegrationFileScope,
   carromBackendFileScope,
   publishingConsumers,
   publishingScopePaths,
@@ -19,6 +20,81 @@ import {
 } from './incremental-validation.mjs';
 import { executeCompetitionChecks } from './run-selected-competition.mjs';
 import { shellContractTargets, shellContractFiles } from './validation-plan.mjs';
+
+test('flick runtime integration accepts only the exact reviewed deployment, MIME and import deltas', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const base = '8beb6d98a804fc1646ba6daceaf57bdcadab7494';
+  const flick = { id: 'flick-arena', source: 'games/local/flick-arena' };
+  const cases = [
+    {
+      file: 'scripts/deploy-tencent.mjs',
+      anchor: "    'services/runtime-api/rules',\n",
+      addition: "    'games/local/flick-arena/src',\n",
+      consumers: [flick.source, 'services/runtime-api'],
+    },
+    {
+      file: 'scripts/competition-gateway.mjs',
+      anchor: "  '.js': 'text/javascript',\n",
+      addition: "  '.mjs': 'text/javascript',\n",
+      consumers: [flick.source, 'apps/shell-web'],
+    },
+    {
+      file: 'scripts/check-workspace-dependencies.mjs',
+      anchor:
+        "  'services/runtime-api/rules/chess.mjs -> games/submodules/xiangqi-five/game.js',\n",
+      addition:
+        "  'services/runtime-api/rules/flick.mjs -> games/local/flick-arena/src/core.mjs',\n" +
+        "  'services/runtime-api/rules/flick.mjs -> games/local/flick-arena/src/tournament.mjs',\n",
+      consumers: [flick.source, 'services/runtime-api'],
+    },
+  ];
+  for (const { file, anchor, addition, consumers } of cases) {
+    const before = execFileSync('git', ['show', `${base}:${file}`], { encoding: 'utf8' });
+    const after = before.replace(anchor, anchor + addition);
+    assert.equal(flickIntegrationFileScope(file, before, after), true, file);
+    const context = {
+      changedPaths: [file],
+      games: [...games, flick],
+      readBase: () => before,
+      readHead: () => after,
+    };
+    const scopes = reviewedSharedFileScopes(context);
+    assert.deepEqual(scopes.get(file), consumers);
+    const selected = incrementalPlan({
+      changedPaths: [file],
+      games: context.games,
+      packages: [...packages, { name: 'flick-arena', dir: flick.source }],
+      fileScopes: scopes,
+      readSource: () => '',
+    });
+    assert.equal(selected.full, false);
+    assert.deepEqual(selected.game_sources, [flick.source]);
+    assert.deepEqual(selected.browser_ids, ['flick-arena']);
+    assert.equal(selected.competition.h5, false);
+    assert.equal(selected.competition.native, false);
+    for (const changed of [
+      after + '\n',
+      after.replace(addition, addition + addition),
+      after.replace(addition, addition.replace(/flick-arena|text\/javascript/, 'unreviewed')),
+      after.replace(anchor, ''),
+    ]) {
+      assert.equal(flickIntegrationFileScope(file, before, changed), false);
+      assert.equal(
+        reviewedSharedFileScopes({ ...context, readHead: () => changed }).has(file),
+        false,
+      );
+    }
+    assert.equal(flickIntegrationFileScope(file, before + '\n', after), false);
+    assert.equal(flickIntegrationFileScope(file, after, before), false);
+    assert.equal(flickIntegrationFileScope(file, null, after), false);
+    assert.equal(reviewedSharedFileScopes({ ...context, games }).has(file), false);
+    assert.equal(
+      reviewedSharedFileScopes({ ...context, games: [...games, flick, flick] }).has(file),
+      false,
+    );
+  }
+  assert.equal(flickIntegrationFileScope('scripts/unknown.mjs', '', ''), false);
+});
 
 test('reviewed Codex roles select no game consumers; extra settings and unknown files stay blocked', () => {
   for (const role of ['repo_explorer', 'implementer', 'reviewer']) {
@@ -305,6 +381,44 @@ function carromFriendsContext(changedPaths, overrides = {}) {
     ...overrides,
   });
 }
+
+test('carrom friends proof preserves an existing Flick input without accepting other list changes', () => {
+  const flickInput = "    'games/local/flick-arena/src',\n";
+  const before = carromDeploymentAfter.replace(carromCopyAnchor, carromCopyAnchor + flickInput);
+  const after = before.replace(carromCopyAddition, carromCopyAddition + carromFriendsCopyAddition);
+  assert.equal(carromBackendFileScope(carromDeployment, before, after), true);
+  const context = carromFriendsContext([carromDeployment], {
+    readBase: () => before,
+    readHead: (file) => (file === carromDeployment ? after : carromSources[file]),
+  });
+  const fileScopes = reviewedSharedFileScopes(context);
+  assert.deepEqual(fileScopes.get(carromDeployment), [carromDirectory, 'services/runtime-api']);
+  const selected = incrementalPlan({ ...context, fileScopes, readSource: context.readHead });
+  assert.deepEqual(selected.browser_ids, ['carrom-club']);
+  assert.deepEqual(selected.consumer_sources, [carromDirectory, 'services/runtime-api']);
+  for (const changed of [
+    after.replace(flickInput, ''),
+    after.replace(flickInput, flickInput + flickInput),
+    after.replace(flickInput, "    'games/local/other/src',\n"),
+    after.replace(carromFriendsCopyAddition, `    '${carromFriendsCoreFile}',\n`),
+    after + 'unreviewed();\n',
+  ])
+    assert.equal(carromBackendFileScope(carromDeployment, before, changed), false);
+  for (const extra of [
+    carromCopyAnchor + carromCopyAddition,
+    carromCopyAnchor + flickInput + carromCopyAddition,
+  ])
+    assert.equal(carromBackendFileScope(carromDeployment, before + extra, after + extra), false);
+  const unknownBefore = before.replace(flickInput, "    'games/local/other/src',\n");
+  assert.equal(
+    carromBackendFileScope(
+      carromDeployment,
+      unknownBefore,
+      unknownBefore.replace(carromCopyAddition, carromCopyAddition + carromFriendsCopyAddition),
+    ),
+    false,
+  );
+});
 
 test('friends deployment and engine changes select their real consumers only with executable inputs', () => {
   for (const file of [carromDeployment, carromFriendsCoreFile, carromFriendsContentFile]) {
