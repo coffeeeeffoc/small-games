@@ -38,6 +38,8 @@ const REPOSITORY_IMPORTS = new Set([
   'apps/shell-minigame/scripts/taptap-smoke.mjs -> games/local/letters-words2/library.js',
   'services/kart-server/tests/server.test.ts -> games/local/carding-car/assets/scripts/KartAI.ts',
   'services/runtime-api/rules/chess.mjs -> games/submodules/xiangqi-five/game.js',
+  'services/runtime-api/rules/flick.mjs -> games/local/flick-arena/src/core.mjs',
+  'services/runtime-api/rules/flick.mjs -> games/local/flick-arena/src/tournament.mjs',
   'services/runtime-api/rules/cops.mjs -> games/local/cops-robbers/src/duel-levels.js',
   'services/runtime-api/rules/cops.mjs -> games/local/cops-robbers/src/duel.js',
   'services/runtime-api/rules/history.mjs -> games/local/vibeJam-myself-history-guess/src/game.js',

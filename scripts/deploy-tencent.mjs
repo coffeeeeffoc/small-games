@@ -239,6 +239,7 @@ export async function prepareBackend(destination, workspace = root) {
   for (const name of [
     'services/runtime-api/dist',
     'services/runtime-api/rules',
+    'games/local/flick-arena/src',
     'games/local/three-choose-two/src',
     'services/kart-server/src',
     'games/local/carding-car/assets/scripts',

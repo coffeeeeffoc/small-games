@@ -4,7 +4,7 @@ import { chromium } from '@playwright/test';
 import { layouts } from '../src/layouts.mjs';
 import { W, H, arena } from '../src/render.mjs';
 
-const out = new URL('../docs/design/multi-round-2026-10-09/', import.meta.url);
+const out = new URL('../docs/design/campaign-friends-2026-10-11/regression/', import.meta.url);
 await mkdir(out, { recursive: true });
 const started = performance.now();
 const browser = await chromium.launch({

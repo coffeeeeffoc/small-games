@@ -157,6 +157,7 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
       version: room.version,
       status: room.status,
       mode: room.mode,
+      capacity: rule.roomSize?.(room.mode) ?? 2,
       roles: rule.roles,
       initiative: room.initiative,
       firstRole: room.firstRole,
@@ -180,7 +181,7 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
               rule.duel ? room.players[0]!.state : member.state,
               ruleSeat(rule, room, seat),
             ),
-      opponent: room.players[1 - seat]?.result ?? null,
+      opponent: room.players.length === 2 ? (room.players[1 - seat]?.result ?? null) : null,
       results: room.results ?? null,
       rematch: room.rematch,
     };
@@ -196,6 +197,19 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
     }
     if (!timedOut && !room.players.every((p) => p.result?.finished)) return;
     room.status = 'finished';
+    if (rule.unrated) {
+      // Casual multiplayer series settle once in the room, never in the two-player ladder.
+      room.results = room.players.map((player) => ({
+        playerId: player.id,
+        result: player.result,
+        rated: false,
+        reason: '好友擂台积分仅用于本场比赛',
+      }));
+      await tx.execute(
+        sql`insert into runtime.competition_matches values(${room.code},${boardOf(rule)},${json({ players: room.players.map((p) => ({ id: p.id, result: p.result })), rated: false, timedOut })}::jsonb,${now()}) on conflict do nothing`,
+      );
+      return;
+    }
     // ponytail: serialize settlements per board; use narrower rating locks if measured contention grows.
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${boardOf(rule)}))`);
     let rated = true;
@@ -286,7 +300,8 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
       let member = room.players.find((p) => p.id === playerId);
       if (operation === 'join' && !member) {
         if (room.status !== 'waiting') throw new CompetitionError('INVITATION_EXPIRED');
-        if (room.players.length === 2) throw new CompetitionError('ROOM_FULL');
+        if (room.players.length >= (rule.roomSize?.(room.mode) ?? 2))
+          throw new CompetitionError('ROOM_FULL');
         member = {
           id: playerId,
           role: rule.roles?.find((role) => !room.players.some((player) => player.role === role)),
@@ -302,7 +317,10 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
           throw new CompetitionError('MATCH_CLOSED');
         if (room.status === 'waiting') {
           member.ready = true;
-          if (room.players.length === 2 && room.players.every((p) => p.ready)) {
+          if (
+            room.players.length === (rule.roomSize?.(room.mode) ?? 2) &&
+            room.players.every((p) => p.ready)
+          ) {
             room.status = 'playing';
             room.startedAt = now();
             room.deadline = now() + rule.durationMs;
@@ -312,7 +330,9 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
                 : room.initiative;
             for (const player of room.players) {
               player.state = rule.initial(room.seed, room.mode, room.firstRole);
-              player.before = (await ranking(boardOf(rule), player.id, tx)).me;
+              player.before = rule.unrated
+                ? null
+                : (await ranking(boardOf(rule), player.id, tx)).me;
             }
           }
         }

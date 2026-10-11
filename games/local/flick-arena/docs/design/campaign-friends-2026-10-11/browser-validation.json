@@ -1,0 +1,77 @@
+{
+  "environment": "Chromium desktop emulation, 390×844 touch, DPR 1",
+  "realDevice": false,
+  "stateWasManuallyReplaced": false,
+  "online": {
+    "2": {
+      "independentIdentities": 2,
+      "touchShots": 2,
+      "completedRounds": 2,
+      "scores": {
+        "player-1": 0,
+        "player-2": 2
+      },
+      "champion": "player-2",
+      "wallSeconds": 35,
+      "reloadRestored": true,
+      "rematchVerified": true,
+      "serverTimeoutVerified": true
+    },
+    "3": {
+      "independentIdentities": 3,
+      "touchShots": 8,
+      "completedRounds": 3,
+      "scores": {
+        "player-1": 1,
+        "player-2": 2,
+        "player-3": 9
+      },
+      "champion": "player-3",
+      "wallSeconds": 90
+    },
+    "4": {
+      "independentIdentities": 4,
+      "touchShots": 14,
+      "completedRounds": 4,
+      "scores": {
+        "player-1": 1,
+        "player-2": 5,
+        "player-3": 6,
+        "player-4": 16
+      },
+      "champion": "player-4",
+      "wallSeconds": 84
+    },
+    "transport": "real runtime HTTP API and PostgreSQL"
+  },
+  "campaign": {
+    "attempts": 1,
+    "touchShots": 7,
+    "firstLevelStars": 3,
+    "nextLevelUnlocked": true,
+    "restoredAfterReload": true
+  },
+  "local": {
+    "rounds": 2,
+    "touchShots": 3,
+    "winnerId": "player-2",
+    "wins": {
+      "player-1": 0,
+      "player-2": 2
+    },
+    "firstPlayers": [
+      "player-1",
+      "player-2"
+    ]
+  },
+  "terrain": {
+    "developerMenuOnly": true,
+    "realTouchLevels": [
+      "terrain-pillar",
+      "terrain-ice",
+      "summit-gap",
+      "summit-master"
+    ]
+  },
+  "pageErrors": []
+}

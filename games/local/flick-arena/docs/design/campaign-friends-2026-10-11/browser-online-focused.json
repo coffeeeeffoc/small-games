@@ -1,0 +1,23 @@
+{
+  "environment": "Chromium desktop emulation, 390×844 touch, DPR 1",
+  "realDevice": false,
+  "stateWasManuallyReplaced": false,
+  "online": {
+    "2": {
+      "independentIdentities": 2,
+      "touchShots": 3,
+      "completedRounds": 2,
+      "scores": {
+        "player-1": 0,
+        "player-2": 2
+      },
+      "champion": "player-2",
+      "wallSeconds": 9,
+      "reloadRestored": true,
+      "rematchVerified": true,
+      "serverTimeoutVerified": true
+    },
+    "transport": "real runtime HTTP API and PostgreSQL"
+  },
+  "pageErrors": []
+}

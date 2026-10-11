@@ -52,6 +52,28 @@ canvas {
   outline: 3px solid #fff0ab;
   border-radius: 12px;
 }
+#fields {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+#fields input {
+  position: absolute;
+  pointer-events: auto;
+  border: 2px solid #d8b779;
+  border-radius: 12px;
+  background: #102b32;
+  color: #ffe4b1;
+  text-align: center;
+  letter-spacing: 1.5px;
+  user-select: text;
+  -webkit-user-select: text;
+  touch-action: manipulation;
+}
+#fields input:focus {
+  outline: 3px solid #ffe4b1;
+  outline-offset: 2px;
+}
 #status {
   position: absolute;
   width: 1px;
