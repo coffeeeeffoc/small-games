@@ -1,0 +1,53 @@
+{
+  "browser": "151.0.7922.173",
+  "checks": [
+    "simultaneous touch movement/jump/fire and gesture cancellation",
+    "pause freezes simulation, clock and damage",
+    "natural touch victory across all rooms, upgrade choices and Boss",
+    "normal unlocks and best run survive reload",
+    "portrait rotation fallback preserves touch direction and screen flow",
+    "568x320 safe targets; blur releases touches and pauses",
+    "fullscreen enters and exits without losing progress",
+    "natural defeat and clean retry",
+    "default production has no developer UI; desktop keyboard, mouse and Escape work",
+    "storage-blocked startup remains playable"
+  ],
+  "errors": [],
+  "screenshots": [
+    "home-844x390.png",
+    "levels-844x390.png",
+    "combat-844x390.png",
+    "pause-844x390.png",
+    "upgrade-844x390.png",
+    "boss-844x390.png",
+    "victory-844x390.png",
+    "home-390x844.png",
+    "combat-390x844.png",
+    "pause-390x844.png",
+    "levels-390x844.png",
+    "home-568x320.png",
+    "combat-568x320.png",
+    "defeat-844x390.png",
+    "home-desktop.png",
+    "combat-desktop.png"
+  ],
+  "naturalRun": {
+    "seconds": 32.316666666665476,
+    "health": 42,
+    "upgrades": [
+      "scatter",
+      "pierce"
+    ],
+    "roomsCleared": [
+      "foundry-entry",
+      "furnace-crossing",
+      "dismantler-core"
+    ],
+    "trial": false
+  },
+  "limitations": [
+    "Desktop Chromium with emulated touch; no physical phone or native mini-game platform tested.",
+    "Natural play uses a read-only snapshot to steer real multi-touch input; no life, enemy, damage or result state is edited."
+  ],
+  "passed": true
+}

@@ -222,3 +222,5 @@ Android 的 Web 素材流程复用大厅制品。B 站原生 Canvas Shell 继续
 《一炮拆城》位于 `games/local/game-castle-cannon`，访问 ID 为 `castle-cannon`，workspace 包名为 `@coffeeeeffoc/game-castle-cannon`。独立 H5 通过同源 iframe 装载，Canvas 规则和绘制同时经既有 Native Game Shell 生成微信横屏预览工程。三关以破门通路、箭塔减损、两种炮弹与自动士兵占领为核心；基础弹种不受广告限制，材料仅用于外观。构建、规则和桌面/模拟触屏、模拟 wx SDK 验收记录见 [游戏 README](../games/local/game-castle-cannon/README.md)。未验证微信开发者工具、微信真机或真实广告位，预览不是微信上线。
 
 《克朗棋 · Carrom Club》位于 `games/local/carrom-club`，包名 `@coffeeeeffoc/carrom-club`。通过 `#/games/carrom-club` 或 `/games/carrom-club/index.html` 打开。竖屏木质棋盘、滑轨摆位、回拉击球、人机九子对局和六关顺序解锁练习；独立物理核心、休闲红后/罚子规则、本地回合存档与沉浸 iframe 接入见[游戏说明](../games/local/carrom-club/README.md)。本次为 H5/手机 Web，未接入原生渠道。
+
+《灰烬防线》位于 `games/local/ashfall-front`，包名 `@coffeeeeffoc/ashfall-front`。通过 `#/games/ashfall-front` 或 `/games/ashfall-front/index.html` 打开。横屏 Canvas 射击包含三个工业房间、跳跃与冲刺、爆炸桶连锁、三选一升级和拆解者 Boss；手机触屏与竖屏旋转兜底共用同一界面，战斗时隐藏 Shell 导航。无第三方运行依赖，使用 `pnpm --filter @coffeeeeffoc/ashfall-front dev` 开发（默认端口 4467），`build` 生成静态 `dist/`，`test` 验证规则。方案、概念图与实际验收见[游戏说明](../games/local/ashfall-front/README.md)。本次接入为 H5/手机 Web，未验证原生渠道。

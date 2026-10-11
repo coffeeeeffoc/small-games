@@ -41,7 +41,23 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       }
     }
   };
-  if (id === 'three-choose-two') {
+  if (id === 'ashfall-front') {
+    const game = frame.locator('#game');
+    await expect(game).toHaveAttribute('data-screen', 'play');
+    await expect(frame.locator('#game-canvas')).toBeVisible();
+    await holdControl('#move-right', 'd', async () => {
+      await expect(frame.locator('#move-right')).toHaveAttribute('aria-pressed', 'true');
+    });
+    await expect(frame.locator('#move-right')).toHaveAttribute('aria-pressed', 'false');
+    await click(frame.getByRole('button', { name: '暂停', exact: true }));
+    await expect(frame.getByRole('button', { name: '继续战斗', exact: true })).toBeVisible();
+    await click(frame.getByRole('button', { name: '继续战斗', exact: true }));
+    await expect(game).toHaveAttribute('data-screen', 'play');
+    await click(frame.getByRole('button', { name: '暂停', exact: true }));
+    await click(frame.getByRole('button', { name: '返回主页', exact: true }));
+    await expect(game).toHaveAttribute('data-screen', 'home');
+    await expect(frame.locator('#start-game')).toBeVisible();
+  } else if (id === 'three-choose-two') {
     const game = frame.locator('#game');
     await expect(game).toHaveAttribute('data-screen', 'playing');
     await expect(frame.locator('#board')).toBeVisible();
