@@ -2,6 +2,13 @@
 
 涉及 TypeSafe API、语义分类、评分或判断流程时，使用 `typesafe-ai` 技能。
 
+### 游戏 UI 与手感技能
+
+- UI 评审、HUD 与游戏菜单/触屏布局使用 `game-ui-ux`。
+- 已有玩法的命中、爆炸、得分等反馈优化使用 `game-feel`。
+- 普通逻辑修复不要求加载这两项；按相关任务选择，参考 [项目技能说明](.agents/skills/README.md)。
+- 本仓库规则与已认可效果图优先；Unity/Godot 示例按现有 TS/JS 技术栈理解，不迁移引擎。视觉震屏与停顿不得直接改变权威联机模拟、计时或覆盖暂停状态。
+
 ### Issue tracker
 
 Issues are tracked in this repository's GitHub Issues using the `gh` CLI. See `docs/agents/issue-tracker.md`.
