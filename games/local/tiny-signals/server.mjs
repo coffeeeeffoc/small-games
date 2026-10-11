@@ -12,7 +12,7 @@ const { values } = parseArgs({
     host: { type: 'string', default: '0.0.0.0' },
   },
 });
-const root = fileURLToPath(new URL(values.dist ? './dist/' : './', import.meta.url)).replace(/\/$/, '');
+const root = path.resolve(fileURLToPath(new URL(values.dist ? './dist/' : './', import.meta.url)));
 const port = Number(values.port ?? process.env.PORT ?? 5186);
 const host = values.host;
 if (!Number.isInteger(port) || port < 1 || port > 65535 || !host.trim()) {
