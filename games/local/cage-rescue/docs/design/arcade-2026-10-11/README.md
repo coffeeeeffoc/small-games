@@ -37,3 +37,4 @@
 - `pnpm --filter @coffeeeeffoc/cage-rescue test`：37 项通过；包含六关全员可达、四/五人不结算、漏接失败、旧存档解锁和新记录校验。
 - `PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium pnpm --filter @coffeeeeffoc/cage-rescue test:browser`：12 组通过、页面/资源错误 0；包含缓存后每帧仅 3 个动态渐变、静止页面 0 次持续重绘、缩放、后台恢复和退出释放。广告奖励与 Pixel 7 触屏事件专项通过。见 `browser-report.json`。
 - `CAGE_RESCUE_TEST_MATCH=continuous node games/local/cage-rescue/tests/browser.mjs`：电脑鼠标和手机触屏视口各连续两遍六关、共 24 局全部通过，无状态编辑或补球。使用浏览器加速 RAF，分别约 486.6 和 488.5 秒模拟游玩；不是等时真机游玩。第二遍后垃圾回收 JS heap 相比第一遍增加约 0.12 MB，活动离屏缓存与选关预览合计不超过 7 张。见 `continuous-report.json`。
+- `PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium node games/local/cage-rescue/tests/shell-performance.mjs`：实际生产 Shell、DPR 2、4 倍 CPU 降速，电脑鼠标与手机触屏各连续两关正常全员通关；使用真实时间 RAF。两端各 8 次进入/退出，全部卸载 iframe，旧文档数量和垃圾回收后的 JS heap 在检查范围内；未请求其他独立游戏或内置游戏动态模块，页面错误 0。见 `shell-performance.json`。Shell 源码与此次合并的远端版本一致；专项构建只复制本游戏与开发模式所需乌龙城制品，没有准备完整目录的游戏包。
