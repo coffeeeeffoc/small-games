@@ -14,10 +14,17 @@ import { characterArt } from '../render/art.js';
 import { readProgress, saveProgress } from '../platform/storage.js';
 import { GameAudio } from '../platform/audio.js';
 import { bindPointers } from '../input/pointers.js';
+import { createH5Publishing } from '../../publishing.js';
+import { missedMemories } from '../core/memory.js';
 
 export class SurpriseGame {
   constructor(catalog) {
     this.catalog = catalog;
+    this.builtinLevelIds = new Set(catalog.levels.map(level => level.id));
+    const params = new URLSearchParams(location.search);
+    const invited = params.getAll('challenge').length === 1 ? params.get('challenge') : null;
+    this.challenge = this.builtinLevelIds.has(invited);
+    this.publishing = createH5Publishing({ gameId: 'surprise-kept', title: '惊喜别穿帮', adMode: globalThis.SmallGamesPublishingConfig?.adMode ?? 'mock', provider: globalThis.SmallGamesPublishingConfig?.provider, publicUrl: globalThis.SmallGamesPublishingConfig?.publicUrl, root: $('modal') });
     this.progress = readProgress();
     this.view = new GameView();
     this.audio = new GameAudio(this.progress.sound);
@@ -27,7 +34,7 @@ export class SurpriseGame {
     this.hintIndex = 0;
     this.cancelGesture = bindPointers(this);
     this.bind();
-    const requested = new URLSearchParams(location.search).get('level');
+    const requested = this.challenge ? invited : params.get('level');
     let index = requested
       ? catalog.levels.findIndex((l) => l.id === requested)
       : catalog.levels.findIndex((l) => l.id === this.progress.lastLevel);
@@ -67,6 +74,7 @@ export class SurpriseGame {
     this.mode = 'move';
     this.phase = 'playing';
     this.hintIndex = 0;
+    this.resultAdShown = false;
     this.view.render(this);
     this.view.feedback(
       this.index === 0 ? '试着把礼物拖到蓝箱，也可以直接点蓝箱。' : this.level.objective,
@@ -74,6 +82,7 @@ export class SurpriseGame {
     if (persist) this.persist();
   }
   persist() {
+    if (this.challenge) return;
     this.progress.lastLevel = this.level.id;
     this.progress.run = { levelId: this.level.id, actions: this.actions };
     const ok = saveProgress(this.progress);
@@ -167,6 +176,8 @@ export class SurpriseGame {
       }
       const action = b.dataset.action;
       if (action === 'close') this.closeModal();
+      if (action === 'share') void this.shareResult(b);
+      if (action === 'own-progress') this.returnToOwnProgress();
       if (action === 'restart') this.openLevel(this.index);
       if (action === 'levels') this.levelMenu();
       if (action === 'replay') {
@@ -275,7 +286,7 @@ export class SurpriseGame {
     this.view.render(this);
     this.modal(
       '惊喜先等一等',
-      `<p>没有倒计时，慢慢安排就好。</p><button class="primary" data-action="close" id="resume">继续安排</button><button class="secondary" data-action="restart">重新开始本关</button><button class="secondary" data-action="levels">返回选关</button>`,
+      `<p>${this.challenge ? '同关试玩，不改自己的安排与完成记录。' : '没有倒计时，慢慢安排就好。'}</p>${this.challenge ? '<button class="secondary" data-action="own-progress">返回自己的安排</button>' : ''}<button class="primary" data-action="close" id="resume">继续安排</button><button class="secondary" data-action="restart">重新开始本关</button><button class="secondary" data-action="levels">返回选关</button>`,
     );
   }
   async fullscreen() {
@@ -312,7 +323,8 @@ export class SurpriseGame {
       `${this.level.items
         .map((i) => {
           const seen = actor.lastSeen[i];
-          return `<div class="memory-card"><strong>${names[i]}：记得在${boxes[actor.beliefs[i]]}</strong><p>${seen.step === 0 ? `开场前最后见过${names[i]}在${boxes[seen.to]}。` : `第 ${seen.step} 步，亲眼看到${names[i]}从${boxes[seen.from]}搬到${boxes[seen.to]}。`}</p></div>`;
+          const missed = missedMemories(this.state, c, i).map(event => `<p class="missed-memory">第 ${event.step} 步，${names[i]}搬到了${boxes[event.to]}；${names[c]}${event.reason === 'away' ? '在倒茶' : '被屏风挡住'}，没看到，所以仍记得${boxes[actor.beliefs[i]]}。</p>`).join('');
+          return `<div class="memory-card"><strong>${names[i]}：记得在${boxes[actor.beliefs[i]]}</strong><p>${seen.step === 0 ? `开场前最后见过${names[i]}在${boxes[seen.to]}。` : `第 ${seen.step} 步，亲眼看到${names[i]}从${boxes[seen.from]}搬到${boxes[seen.to]}。`}</p>${missed || '<p>之后没有错过这件物品的搬运。</p>'}</div>`;
         })
         .join(
           '',
@@ -331,7 +343,7 @@ export class SurpriseGame {
     this.view.render(this);
     this.modal(
       '生日惊喜 · 选关',
-      `<p>八幕小故事，慢慢学会看见「别人知道什么」。已完成 ${Object.keys(this.progress.completed).filter((id) => this.catalog.levels.some((l) => l.id === id)).length} / ${this.catalog.levels.length}</p><div class="level-grid">${this.catalog.levels.map((l, i) => `<button class="level-card ${this.progress.completed[l.id] ? 'done' : ''}" data-level="${i}"><strong>${String(i + 1).padStart(2, '0')}</strong><b>${escape(l.title)}</b><small>${this.progress.completed[l.id] ? `✓ 已完成 · 最好 ${this.progress.completed[l.id].steps} 步` : `${l.items.length === 2 ? '双物品' : '礼物篇'} · ${escape(this.catalog.themes.get(l.theme).name)}`}</small></button>`).join('')}</div><details class="import-label"><summary>导入自己的故事章节</summary><p>选择符合章节格式的 JSON，校验通过后加入本次目录。导入内容只保留在当前会话。</p><input id="chapter-file" type="file" accept=".json,application/json" aria-label="导入章节 JSON"/><p id="import-message" role="status"></p></details><button class="secondary" data-action="close">回到房间</button>`,
+      `<p>${this.challenge ? '同关试玩，不改主线记录。' : ''}八幕小故事，慢慢学会看见「别人知道什么」。已完成 ${Object.keys(this.progress.completed).filter((id) => this.catalog.levels.some((l) => l.id === id)).length} / ${this.catalog.levels.length}</p>${this.challenge ? '<button class="primary" data-action="own-progress">返回自己的安排</button>' : ''}<div class="level-grid">${this.catalog.levels.map((l, i) => `<button class="level-card ${this.progress.completed[l.id] ? 'done' : ''}" data-level="${i}"><strong>${String(i + 1).padStart(2, '0')}</strong><b>${escape(l.title)}</b><small>${this.progress.completed[l.id] ? `✓ 已完成 · 最好 ${this.progress.completed[l.id].steps} 步` : `${l.items.length === 2 ? '双物品' : '礼物篇'} · ${escape(this.catalog.themes.get(l.theme).name)}`}</small></button>`).join('')}</div><details class="import-label"><summary>导入自己的故事章节</summary><p>选择符合章节格式的 JSON，校验通过后加入本次目录。导入内容只保留在当前会话。</p><input id="chapter-file" type="file" accept=".json,application/json" aria-label="导入章节 JSON"/><p id="import-message" role="status"></p></details><button class="secondary" data-action="close">回到房间</button>`,
     );
     $('chapter-file').onchange = async (e) => {
       const file = e.target.files[0];
@@ -427,7 +439,7 @@ export class SurpriseGame {
     document.body.dataset.phase = this.phase;
     if (result.success) {
       const previous = this.progress.completed[this.level.id];
-      if (!previous || previous.steps > this.state.steps)
+      if (!this.challenge && (!previous || previous.steps > this.state.steps))
         this.progress.completed[this.level.id] = { steps: this.state.steps };
       this.persist();
       this.audio.play('success');
@@ -437,7 +449,41 @@ export class SurpriseGame {
     } else this.audio.play('miss');
     this.modal(
       result.success ? '惊喜，藏得刚刚好！' : '还差一点点',
-      `<div class="result-art">${itemArt('gift')}</div><p class="result-lead">${result.success ? '生日快乐！大家都按你安排的记录出发了。' : '他们按自己的记忆出发了，看看哪条记录还要安排。'}</p>${this.view.checks(this.level, this.state)}<span class="step-badge">本次 ${this.state.steps} 步 · 参考 ${this.level.recommendedSteps ?? '—'} 步 · 不限制步数</span>${result.success && this.index < this.catalog.levels.length - 1 ? '<button id="next-level" class="primary" data-action="next">下一幕惊喜 →</button>' : ''}<button class="secondary" data-action="replay">回看谁看到了哪一步</button><div class="button-pair"><button class="secondary" data-action="close">回去调整</button><button class="secondary" data-action="levels">${this.index === this.catalog.levels.length - 1 && result.success ? '全章完成 · 返回选关' : '返回选关'}</button></div>`,
+      `<div class="result-art">${itemArt('gift')}</div><p class="result-lead">${result.success ? '生日快乐！大家都按你安排的记录出发了。' : '他们按自己的记忆出发了，看看哪条记录还要安排。'}</p>${this.view.checks(this.level, this.state)}<span class="step-badge">本次 ${this.state.steps} 步 · 参考 ${this.level.recommendedSteps ?? '—'} 步 · 不限制步数</span>${result.success && !this.challenge && this.index < this.catalog.levels.length - 1 ? '<button id="next-level" class="primary" data-action="next">下一幕惊喜 →</button>' : ''}${result.success && this.builtinLevelIds.has(this.level.id) ? '<button class="secondary" data-action="share">邀请朋友 · 同关不剧透</button><p id="share-status" role="status"></p><input id="share-link" aria-label="同关邀请链接" readonly hidden>' : ''}${this.challenge ? '<button class="primary" data-action="own-progress">返回自己的安排</button>' : ''}<button class="secondary" data-action="replay">回看谁看到了哪一步</button><div class="button-pair"><button class="secondary" data-action="close">回去调整</button><button class="secondary" data-action="levels">${this.index === this.catalog.levels.length - 1 && result.success ? '全章完成 · 返回选关' : '返回选关'}</button></div>`,
     );
+    if (result.success && !this.challenge && !this.resultAdShown) {
+      this.resultAdShown = true;
+      void this.publishing.interstitial({ placement: 'story-complete', naturalBreak: true });
+    }
+  }
+  returnToOwnProgress() {
+    const saved = this.progress.run;
+    this.challenge = false;
+    const url = new URL(location.href); url.searchParams.delete('challenge');
+    history.replaceState(null, '', url);
+    let index = this.catalog.levels.findIndex(level => level.id === this.progress.lastLevel);
+    if (index < 0) index = 0;
+    this.openLevel(index, false);
+    if (saved?.levelId === this.level.id) {
+      for (const action of saved.actions) {
+        const result = applyAction(this.level, this.state, action);
+        if (!result.ok) break;
+        this.history.push(result.state); this.actions.push(action); this.state = result.state;
+      }
+    }
+    this.view.render(this);
+    this.view.feedback('已回到自己的安排，好友试玩没有改动它。');
+  }
+  async shareResult(button) {
+    if (button.disabled || !this.builtinLevelIds.has(this.level.id)) return;
+    const status = $('share-status'), field = $('share-link'), level = this.level;
+    if (!status || !field) return;
+    button.disabled = true; field.hidden = true;
+    try {
+      const outcome = await this.publishing.share({ params: { challenge: level.id }, text: `我用 ${this.state.steps} 步安排好了第 ${this.index + 1} 幕生日惊喜。来试试同一幕，礼物藏在哪先保密！` });
+      if (!status.isConnected || this.level !== level) return;
+      status.textContent = outcome.status === 'shared' ? '已打开系统分享。' : outcome.status === 'copied' ? '同关链接已复制，没有位置或解法。' : outcome.status === 'cancelled' ? '已取消分享。' : '长按下面的链接复制，邀请朋友安排同一幕。';
+      if (!['shared', 'copied', 'cancelled'].includes(outcome.status)) { field.value = outcome.url; field.hidden = false; }
+    } finally { button.disabled = false; }
   }
 }

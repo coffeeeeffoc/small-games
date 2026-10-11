@@ -15,7 +15,7 @@
 <section id="map-wrap" aria-label="城市地图">
 <div class="map-tag"><span class="live-dot"></span><span id="phase">派出第一辆车，即刻开始</span></div>
 <svg id="map" viewBox="0 0 600 540" tabindex="0" role="group" aria-label="救援地图：选车后点任意位置停靠，或点事件现场救援。也可用方向键选择停靠位置，Enter确认。" xmlns="http://www.w3.org/2000/svg"></svg>
-<div class="map-legend"><span>虚线为出车路线</span><span>车辆驶入现场后开始处理</span></div>
+<p id="risk-clock" class="risk-clock"></p><div class="map-legend"><span>虚线为出车路线</span><span>车辆驶入现场后开始处理</span></div>
 </section>
 <section id="dispatch-board" aria-label="救援事项">
 <div id="incidents" aria-label="待派车事项"></div>
@@ -30,6 +30,6 @@
 <section class="console" aria-label="调度操作"><div id="fleet" aria-label="选一辆车，再点求助地点；也可直接拖车"></div><div class="instruction"><span id="hint" role="status" aria-live="polite"></span><small id="eta">先点车或先点地点都行；也可以直接拖过去。</small></div><div id="routes" aria-label="路线选择"></div><div class="actions"><button id="cancel" hidden>取消选择</button><button id="restart">重试</button><button id="go" class="primary">开始 <span>→</span></button></div></section>
 <footer>你疏通的路，是同伴赶上的救援。<span>选车不停工 · 随时分派救援</span></footer>
 </main>
-<dialog id="result" aria-labelledby="result-title"><p class="eyebrow">本次出勤记录</p><h2 id="result-title"></h2><p id="result-body"></p><p id="result-detail"></p><div class="result-actions"><button id="retry-result">再试一次</button><button id="next" class="primary">下一关 →</button></div></dialog>
+<dialog id="result" aria-labelledby="result-title"><p class="eyebrow">本次出勤记录</p><h2 id="result-title"></h2><p id="result-body"></p><p id="result-detail"></p><div class="result-actions"><button id="retry-result">再试一次</button><button id="next" class="primary">下一关 →</button></div><button id="share-result">邀请好友挑战同班</button><button id="return-result">返回待命</button><p id="share-status" role="status"></p></dialog>
 <script type="module" src="./game.js"></script>
 </body></html>

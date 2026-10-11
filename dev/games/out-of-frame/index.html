@@ -2,6 +2,7 @@
 <html lang="zh-CN">
   <head>
   <script src="./dev-mode.js"></script>
+  <script src="./fullscreen.js" defer></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#122824" />
@@ -61,7 +62,8 @@
                   拖动观察框，让机械继续前进，<br />或把这一刻，留作你的下一步。
                 </p>
                 <button id="start-button" class="primary-button">进入实验室 <span>↗</span></button>
-                <p id="intro-meta" class="intro-meta">自由探索 · 免费回退</p>
+                <p id="challenge-note" role="status" hidden></p><button id="exit-challenge" class="text-button" hidden>退出挑战 · 回到正常进度</button>
+                <button data-game-fullscreen>全屏</button><button id="intro-levels" class="text-button">选择房间</button><p id="intro-meta" class="intro-meta">自由探索 · 免费回退</p>
               </div>
             </div>
             <div id="result" class="scene-overlay" hidden>
@@ -71,9 +73,10 @@
                 <h2 id="result-title">这一刻，恰到好处。</h2>
                 <p id="result-copy"></p>
                 <button id="next-level" class="primary-button">下一个房间 →</button>
+                <button id="share-challenge" class="text-button" hidden>分享同关挑战</button><p id="share-status" role="status"></p><input id="share-link" aria-label="挑战链接" readonly hidden />
                 <div class="result-actions">
                   <button id="result-undo">回退 1 秒</button
-                  ><button id="result-retry">再试一次</button>
+                  ><button id="result-retry">再试一次</button><button id="result-home">回到开场</button>
                 </div>
               </div>
             </div>
@@ -92,7 +95,7 @@
               <button id="move-left" aria-label="向左移动">←</button
               ><button id="move-right" aria-label="向右移动">→</button>
             </div>
-            <p>一手移动 · 一手拖框<span>方向键 / A D 移动 · 空格跳跃</span></p>
+            <div class="compact-tools"><button id="touch-undo" aria-label="回退一秒">↶</button><button id="touch-restart" aria-label="重开房间">↻</button></div><p>一手移动 · 一手拖框<span>方向键 / A D 移动 · 空格跳跃</span></p>
             <button id="jump" aria-label="跳跃">
               <svg width="22" height="24" viewBox="0 0 22 24" fill="none" aria-hidden="true">
                 <path
@@ -169,7 +172,7 @@
       </div>
       <p id="pause-chapter-progress" class="chapter-subtitle"></p>
       <nav id="pause-levels" aria-label="暂停菜单选择房间"></nav>
-      <button id="pause-home" class="text-button">回到开场</button>
+      <button data-game-fullscreen>全屏</button><button id="pause-home" class="text-button">回到开场</button>
     </dialog>
     <dialog id="help-dialog" aria-labelledby="help-title">
       <p class="eyebrow">OBSERVER'S HANDBOOK</p>

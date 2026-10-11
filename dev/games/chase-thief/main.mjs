@@ -1,6 +1,8 @@
 import { LEVELS, validateLevels } from './levels.mjs';
 import { RULES, createRun, updateRun, act } from './engine.mjs';
 import { loadProgress, recordWin } from './progress.mjs';
+import { createH5Publishing } from './publishing.js';
+import { readChallenge, challengeParams, compareChallenge, CHALLENGE_KEYS } from './challenge.mjs';
 import { createAudio } from './audio.mjs';
 
 const $ = (id) => document.getElementById(id);
@@ -31,6 +33,21 @@ let manualClock = false,
   captureTimer;
 const pointers = new Map();
 const buttonPointers = new Map();
+let challenge = readChallenge(location.href);
+const publishing = createH5Publishing({
+  gameId: 'chase-thief',
+  title: '追贼别撞墙 · 同路追捕',
+  adMode: globalThis.SmallGamesPublishingConfig?.adMode ?? 'mock',
+  provider: globalThis.SmallGamesPublishingConfig?.provider,
+  publicUrl: globalThis.SmallGamesPublishingConfig?.publicUrl,
+  maxPerSession: 3,
+  root: game,
+  pause: () => {
+    const wasRunning = screen === 'running';
+    if (wasRunning) pause();
+    return () => {};
+  },
+});
 const reducedMotion = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 
 function persist() {
@@ -41,7 +58,11 @@ function persist() {
   }
 }
 function currentLevel() {
-  return LEVELS.find((level) => level.id === (run?.levelId ?? progress.selected)) ?? LEVELS[0];
+  return (
+    LEVELS.find(
+      (level) => level.id === (run?.levelId ?? challenge?.levelId ?? progress.selected),
+    ) ?? LEVELS[0]
+  );
 }
 function syncHost() {
   if (window.parent === window) return;
@@ -98,10 +119,21 @@ function toHome() {
   setScreen('home');
 }
 function renderHome() {
-  const level = LEVELS.find((item) => item.id === progress.selected) ?? LEVELS[0];
+  const level =
+    LEVELS.find((item) => item.id === (challenge?.levelId ?? progress.selected)) ?? LEVELS[0];
+  $('challenge-invite').hidden = !challenge;
+  $('leave-challenge').hidden = !challenge;
+  $('choose-levels').hidden = Boolean(challenge);
+  if (challenge)
+    $('challenge-invite').textContent =
+      `好友同路追捕 · ${level.name} · ${challenge.time.toFixed(1)} 秒 / 失误不超过 ${challenge.mistakes} 次`;
   $('home-progress').textContent =
     `${String(LEVELS.indexOf(level) + 1).padStart(2, '0')} / ${level.name}`;
-  $('start').querySelector('span').textContent = progress.best[level.id] ? '再追一次' : '开始追捕';
+  $('start').querySelector('span').textContent = challenge
+    ? '接受同路挑战'
+    : progress.best[level.id]
+      ? '再追一次'
+      : '开始追捕';
   $('sound').setAttribute('aria-pressed', String(progress.sound));
   $('haptics').setAttribute('aria-pressed', String(progress.haptics));
 }
@@ -118,25 +150,31 @@ function renderLevels() {
     return `<button class="level-card ${level.id === progress.selected ? 'selected' : ''}" data-level="${level.id}" ${unlocked ? '' : 'disabled'} aria-label="${level.name}${unlocked ? '' : '，通关前一街区解锁'}">${preview(level)}<div class="level-top"><span class="level-number">${String(index + 1).padStart(2, '0')}</span><span class="level-name">${level.name}</span></div><p class="level-subtitle">${level.subtitle}</p><div class="level-bottom"><span class="level-tag">60 秒</span>${best ? `<span class="level-tag">最快 ${best.time.toFixed(1)} 秒</span>` : ''}<span class="level-state">${unlocked ? (best ? '已抓捕 · 再挑战 ↗' : '开始追捕 ↗') : lock + ' 待解锁'}</span></div></button>`;
   }).join('');
 }
-function startLevel(id = progress.selected, practice = false) {
+function startLevel(id = challenge?.levelId ?? progress.selected, practice = false) {
   const level = LEVELS.find((item) => item.id === id);
-  if (!level || (!practice && !progress.unlocked.includes(id))) return false;
+  if (!level || (!practice && challenge?.levelId !== id && !progress.unlocked.includes(id)))
+    return false;
   audio.unlock();
   audio.stop();
   clearTimeout(captureTimer);
   run = createRun(level);
   run.practice = practice;
+  run.challenge = !practice && challenge?.levelId === id ? { ...challenge } : null;
   manualClock = false;
   settledRun = undefined;
   impact = 0;
   feedbackUntil = 0;
   $('feedback').hidden = true;
   $('tutorial').hidden = true;
-  if (!practice) {
+  if (!practice && !run.challenge) {
     progress.selected = id;
     persist();
   }
   $('street-name').textContent = level.name;
+  $('challenge-goal').hidden = !run.challenge;
+  if (run.challenge)
+    $('challenge-goal').textContent =
+      `挑战 ${run.challenge.time.toFixed(1)} 秒 · 失误 ≤ ${run.challenge.mistakes}`;
   setScreen('running');
   updateHud();
   return true;
@@ -232,7 +270,7 @@ function showResult(event, reveal = true) {
   settledRun = run;
   const won = run.phase === 'won';
   const previous = progress.best[run.levelId];
-  if (won) {
+  if (won && !run.challenge) {
     progress = recordWin(progress, run);
     persist();
   }
@@ -250,18 +288,26 @@ function showResult(event, reveal = true) {
   $('result-boosts').textContent = run.boosts;
   $('result-collisions').textContent = run.collisions;
   const nextLevel = LEVELS[LEVELS.findIndex((item) => item.id === run.levelId) + 1];
-  $('next').hidden = !won || run.practice || !nextLevel;
+  $('next').hidden = !won || run.practice || Boolean(run.challenge) || !nextLevel;
+  $('share-result').hidden = !challengeParams(run);
+  $('share-status').hidden = true;
+  $('share-link').hidden = true;
   $('retry').classList.toggle('secondary', won && !run.practice && Boolean(nextLevel));
-  const bestText = run.practice
-    ? '开发试玩 · 不记录成绩与解锁'
-    : won
-      ? !previous || run.elapsed < previous.time
-        ? '本街区最佳追捕！'
-        : '这条街，又稳稳抓住了。'
-      : '';
+  const bestText = run.challenge
+    ? `${compareChallenge(run, run.challenge)} · 挑战不改街区进度`
+    : run.practice
+      ? '开发试玩 · 不记录成绩与解锁'
+      : won
+        ? !previous || run.elapsed < previous.time
+          ? '本街区最佳追捕！'
+          : '这条街，又稳稳抓住了。'
+        : '';
   $('best-result').textContent =
-    won && !nextLevel && !run.practice ? `${bestText} 三条街全部完成。` : bestText;
+    won && !nextLevel && !run.practice && !run.challenge
+      ? `${bestText} 三条街全部完成。`
+      : bestText;
   if (reveal) setScreen(won ? 'won' : 'lost');
+  if (!run.practice) void publishing.interstitial({ placement: 'result', naturalBreak: true });
 }
 function updateHud() {
   if (!run) return;
@@ -383,6 +429,7 @@ on(game, 'pointerdown', (event) => {
   const button = event.target.closest('button');
   if (
     !button ||
+    button.closest('[data-game-ad]') ||
     button.disabled ||
     button.hasAttribute('data-game-fullscreen') ||
     (event.pointerType === 'mouse' && event.button !== 0)
@@ -430,6 +477,28 @@ on(document, 'click', (event) => {
   if (event.detail === 0 && !event.pointerType && button && game.contains(button))
     activateButton(button);
 });
+async function shareResult() {
+  const params = challengeParams(run);
+  if (!params) return;
+  const sharedRun = run;
+  $('share-result').disabled = true;
+  const result = await publishing.share({
+    params,
+    text: `${currentLevel().name}，${run.elapsed.toFixed(1)} 秒抓捕、${run.boosts} 次冲刺、${run.collisions} 次失误。来追同一路线！`,
+  });
+  $('share-result').disabled = false;
+  if (run !== sharedRun || !['won', 'caught'].includes(screen)) return;
+  $('share-status').hidden = false;
+  $('share-status').textContent = {
+    shared: '已打开系统分享',
+    copied: '挑战链接已复制',
+    cancelled: '已取消分享',
+    unavailable: '可选择下方链接手动复制',
+    failed: '复制未完成，可选择链接手动复制',
+  }[result.status];
+  $('share-link').hidden = !result.url || ['shared', 'copied', 'cancelled'].includes(result.status);
+  $('share-link').value = result.url;
+}
 function activateButton(button) {
   if (button.disabled || button.hasAttribute('data-game-fullscreen')) return;
   const action = button.dataset.action;
@@ -447,6 +516,17 @@ function activateButton(button) {
     return;
   }
   switch (button.id) {
+    case 'share-result':
+      void shareResult();
+      break;
+    case 'leave-challenge': {
+      challenge = null;
+      const url = new URL(location.href);
+      for (const key of CHALLENGE_KEYS) url.searchParams.delete(key);
+      history.replaceState(null, '', url);
+      toHome();
+      break;
+    }
     case 'reload':
       location.reload();
       break;
@@ -508,7 +588,12 @@ function activateButton(button) {
   }
 }
 on($('scene'), 'pointerdown', (event) => {
-  if (screen !== 'running' || (event.pointerType === 'mouse' && event.button !== 0)) return;
+  if (
+    screen !== 'running' ||
+    pointers.size ||
+    (event.pointerType === 'mouse' && event.button !== 0)
+  )
+    return;
   pointers.set(event.pointerId, { x: event.clientX, y: event.clientY, acted: false });
   audio.unlock();
   try {
@@ -642,6 +727,7 @@ on(window, 'pagehide', (event) => {
   cancelAnimationFrame(frameId);
   audio.stop();
   if (!event.persisted) {
+    publishing.dispose();
     listeners.abort();
     cleanActions?.();
     cleanSnapshot?.();

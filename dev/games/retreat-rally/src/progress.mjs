@@ -14,7 +14,13 @@ export function migrateProgress(raw) {
 }
 export const unlocked = (progress, level) => level.prerequisites.every((id) => progress.medals[id]);
 export function recordVictory(progress, battle, practice = false) {
-  if (battle.resultRecorded || battle.status !== 'won' || battle.mode !== 'campaign' || practice)
+  if (
+    battle.resultRecorded ||
+    battle.status !== 'won' ||
+    battle.mode !== 'campaign' ||
+    practice ||
+    battle.challenge
+  )
     return false;
   battle.resultRecorded = true;
   const stars = battle.casualties === 0 ? 3 : battle.casualties <= 2 ? 2 : 1;
