@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium, expect } from '@playwright/test';
@@ -53,9 +54,9 @@ try {
     'http://127.0.0.1:4536/?level=moss-09&targetHints=10&targetMistakes=10&targetTime=600000&dev=0&token=private',
   );
   await expect(page.getByRole('button', { name: '挑战第 9 关' })).toBeVisible();
-  await page.screenshot({ path: new URL('actual-invite-390x844.png', output).pathname });
+  await page.screenshot({ path: fileURLToPath(new URL('actual-invite-390x844.png', output)) });
   await action('home:start');
-  await page.screenshot({ path: new URL('actual-play-390x844.png', output).pathname });
+  await page.screenshot({ path: fileURLToPath(new URL('actual-play-390x844.png', output)) });
   for (let round = 0; round < 3; round++) {
     for (
       let hint = 0;
@@ -74,13 +75,16 @@ try {
       assert(Number(url.searchParams.get('targetTime')) >= 0);
       assert.equal(url.searchParams.has('dev'), false);
       assert.equal(url.searchParams.has('token'), false);
-      await page.screenshot({ path: new URL('actual-result-390x844.png', output).pathname });
+      await page.screenshot({ path: fileURLToPath(new URL('actual-result-390x844.png', output)) });
       await page.setViewportSize({ width: 320, height: 568 });
       for (const button of await page.locator('#controls button').all()) {
-        const box = await button.boundingBox();
-        assert(box.height >= 43.9, 'Small-screen result controls remain at least 44 CSS pixels');
+        await expect
+          .poll(async () => (await button.boundingBox())?.height ?? 0, {
+            message: 'Small-screen result controls remain at least 44 CSS pixels after resize',
+          })
+          .toBeGreaterThanOrEqual(43.9);
       }
-      await page.screenshot({ path: new URL('actual-result-320x568.png', output).pathname });
+      await page.screenshot({ path: fileURLToPath(new URL('actual-result-320x568.png', output)) });
       await page.setViewportSize({ width: 390, height: 844 });
     }
     await action(round === 2 ? 'result:levels' : 'result:next');
@@ -90,7 +94,7 @@ try {
     } else {
       const ad = page.locator('[data-game-ad="mock"]');
       await expect(ad).toBeVisible();
-      await page.screenshot({ path: new URL('actual-ad-390x844.png', output).pathname });
+      await page.screenshot({ path: fileURLToPath(new URL('actual-ad-390x844.png', output)) });
       await ad.getByRole('button', { name: '关闭并继续' }).tap();
       await expect(page.locator('#garden')).toHaveAttribute('data-page', 'levels');
     }

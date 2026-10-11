@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
+import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
 import { createStaticServer } from '../server.mjs';
 
-execFileSync(process.execPath, [new URL('../build.mjs', import.meta.url).pathname]);
+execFileSync(process.execPath, [fileURLToPath(new URL('../build.mjs', import.meta.url))]);
 const out = new URL('../docs/design/expansion-2026-10-11/', import.meta.url);
 await mkdir(out, { recursive: true });
 const server = createStaticServer({ dist: true });
@@ -37,7 +38,7 @@ const p = await context.newPage(),
 p.on('pageerror', (e) => errors.push(e.message));
 const shot = async (name) => {
   await p.clock.runFor(32);
-  await p.screenshot({ path: new URL(`${name}.png`, out).pathname, animations: 'disabled' });
+  await p.screenshot({ path: fileURLToPath(new URL(`${name}.png`, out)), animations: 'disabled' });
 };
 const state = () => p.evaluate(() => window.__chaseDev.snapshot());
 const tap = (selector) => p.locator(selector).filter({ visible: true }).first().tap();
