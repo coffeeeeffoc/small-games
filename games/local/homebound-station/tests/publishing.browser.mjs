@@ -3,7 +3,7 @@ import http from 'node:http';
 import { existsSync } from 'node:fs';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { chromium } from '@playwright/test';
+import { chromium, expect } from '@playwright/test';
 const root = new URL('../dist/', import.meta.url);
 const output = new URL(process.env.CAPTURE_GAME_EVIDENCE === '1' ? '../docs/design/expansion-2026-10-11/' : '../test-results/publishing/', import.meta.url);
 await mkdir(output, { recursive: true });
@@ -49,7 +49,12 @@ try {
   const { canDispatch, blocker } = await import('../src/simulation.ts');
   const raw = await snap(), sim = { ...raw, delivered: new Set(raw.delivered) };
   const blocked = sim.vehicles.find(v => blocker(sim, v));
-  if (blocked) { await tap(`[data-vehicle="${blocked.id}"]`); assert.ok(await page.locator('[data-blocking="true"]').count()); await shot('blocker-390'); }
+  assert.ok(blocked, 'the opening level contains a blocked vehicle');
+  const blockingVehicle = blocker(sim, blocked);
+  await tap(`[data-vehicle="${blocked.id}"]`);
+  // Scene labels update on the next animation frame after the touch handler.
+  await expect(page.locator(`[data-vehicle="${blockingVehicle.id}"]`)).toHaveAttribute('data-blocking', 'true');
+  await shot('blocker-390');
   const deadline = Date.now() + 180000;
   let lastDispatched = -1;
   while (!(await snap()).won && Date.now() < deadline) {
