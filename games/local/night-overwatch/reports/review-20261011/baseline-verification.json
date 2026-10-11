@@ -28,8 +28,8 @@
     }
   ],
   "errors": [],
-  "status": "partial baseline",
-  "failure": "390x844 baseline used the default desktop user agent with mobile/touch emulation, so the orientation state prevented the missions control. The runner now uses the existing Android mobile fixture and waits for a stable landscape/home state; production rerun is required.",
+  "status": "historical partial baseline",
+  "failure": "Historical baseline-only 390x844 fixture used a desktop user agent despite touch emulation, so orientation prevented the missions control. The current production rerun uses a mobile UA and stable landscape/home wait and passes all three viewports (verification.json).",
   "currentSourceVerified": false,
-  "note": "Baseline run preceded runtime changes. These results do not verify the 120-operation implementation."
+  "note": "Historical old-source run only. Current 568-*, 844-* and 390-* screenshots were replaced by the source-matched 8dc663c4ed3afed646c806be4586990a9b0fc6758cb57f9e1cb41135f1ff7307 production rerun; see verification.json. The old 390 mobile-UA fixture issue is historical and passed in the current rerun. Old screenshots are recoverable from prior Git history."
 }

@@ -318,7 +318,7 @@
     "id": "night-overwatch",
     "source": "games/local/night-overwatch",
     "title": "夜航守望",
-    "description": "先用60秒火控热身练三档火力，再在护送、伏击与巡逻任务中为救援车队清理前路。",
+    "description": "先用60秒火控热身练三档火力，再挑战120场护送、伏击与巡逻任务，为救援车队清理前路。",
     "output": "dist"
   },
   {

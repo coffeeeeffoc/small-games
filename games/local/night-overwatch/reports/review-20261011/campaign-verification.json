@@ -1,0 +1,76 @@
+{
+  "passed": true,
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "8dc663c4ed3afed646c806be4586990a9b0fc6758cb57f9e1cb41135f1ff7307"
+  },
+  "provenance": {
+    "sha": "3cf9a68fd1e0f6ef15ccd3d0935184b58c6a5479",
+    "repository": "coffeeeeffoc/small-games",
+    "game": "night-overwatch",
+    "runId": "38165967147",
+    "runAttempt": "1",
+    "sourceHash": "8dc663c4ed3afed646c806be4586990a9b0fc6758cb57f9e1cb41135f1ff7307",
+    "creator": "3.8.8",
+    "platform": "web-mobile",
+    "runner": "Windows"
+  },
+  "environment": {
+    "browser": "Chromium 151.0.7922.173 (Debian Linux)",
+    "viewport": "844x390",
+    "input": "actual CDP touch / read-only __night telemetry",
+    "physicalDevice": false,
+    "background": "synthetic document visibilitychange"
+  },
+  "results": [
+    {
+      "case": "ordinary locks / all 40 pages / old mission preference reload",
+      "status": "passed"
+    },
+    {
+      "case": "paused final task / nested help-settings / synthetic background visibility freezes time and clears input",
+      "status": "passed"
+    },
+    {
+      "case": "ordinary final 120 true touch victory",
+      "status": "passed",
+      "fixture": "119 completed tasks before real play; no forced outcome",
+      "elapsedWallSeconds": 292,
+      "battleSeconds": 268.7000000000843,
+      "fired": 27,
+      "kills": 24,
+      "friendlyKills": 0,
+      "threatsRemaining": 0,
+      "friendlyDamage": 0,
+      "friendlySurvivors": 12,
+      "progress": 120
+    },
+    {
+      "case": "120 completed persisted reload / preference retained / last page selectable",
+      "status": "passed"
+    },
+    {
+      "case": "developer can choose 120 independently of ordinary save",
+      "status": "passed"
+    }
+  ],
+  "errors": [],
+  "artifact": {
+    "id": 11712372066,
+    "zipSha256": "8dd54fe7c7a8a52d3c124156f37394b4c4f6aa04579fb82665dd304e700f5123",
+    "name": "night-overwatch-3cf9a68fd1e0f6ef15ccd3d0935184b58c6a5479"
+  },
+  "fixture": "One-time pre-boot progress fixtures; final battle starts with 119 completed task IDs. Outcomes, input, ammo and clock are not overridden.",
+  "method": {
+    "entry": "/tmp/night-120-browser.mjs",
+    "helper": "/tmp/night-flight-touch.mjs (temporary QA adaptation of tests/flight-browser.mjs; not product source)",
+    "command": "NIGHT_URL=http://127.0.0.1:4318/ NIGHT_EXPECTED_SOURCE_HASH=8dc663c4ed3afed646c806be4586990a9b0fc6758cb57f9e1cb41135f1ff7307 PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium node /tmp/night-120-browser.mjs",
+    "timing": "After real drag, read current battle time and aim; forecast legal ballistic contact using observed drag duration; re-aim before real fire if prediction error exceeds the weapon aiming threshold. Actual shot born/due and prediction error are logged.",
+    "productStateWrites": false,
+    "outcomeOverride": false,
+    "clockOverride": false,
+    "ammoOverride": false,
+    "sourceHashCheckedBeforeAndAfter": true
+  }
+}

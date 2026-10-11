@@ -1,0 +1,56 @@
+{
+  "passed": true,
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "8dc663c4ed3afed646c806be4586990a9b0fc6758cb57f9e1cb41135f1ff7307"
+  },
+  "environment": {
+    "browser": "Chromium 151.0.7922.173 Linux",
+    "viewport": "844x390",
+    "input": "actual CDP touch, read-only telemetry",
+    "physicalDevice": false
+  },
+  "fixture": "117 completed tasks before real play; 119 initially remains locked",
+  "result": {
+    "battleSeconds": 240.00000000008313,
+    "wallSeconds": 269,
+    "playerKills": 24,
+    "friendlyKills": 0,
+    "fired": 34,
+    "friendlyDamage": 0,
+    "progress": 118,
+    "next": "operation-119",
+    "nextStartsFresh": true,
+    "preferenceAndUnlockSurviveReload": true,
+    "friendlySurvivors": 12,
+    "threatsRemaining": 0
+  },
+  "errors": [],
+  "provenance": {
+    "sha": "3cf9a68fd1e0f6ef15ccd3d0935184b58c6a5479",
+    "repository": "coffeeeeffoc/small-games",
+    "game": "night-overwatch",
+    "runId": "38165967147",
+    "runAttempt": "1",
+    "sourceHash": "8dc663c4ed3afed646c806be4586990a9b0fc6758cb57f9e1cb41135f1ff7307",
+    "creator": "3.8.8",
+    "platform": "web-mobile",
+    "runner": "Windows"
+  },
+  "artifact": {
+    "id": 11712372066,
+    "zipSha256": "8dd54fe7c7a8a52d3c124156f37394b4c4f6aa04579fb82665dd304e700f5123",
+    "name": "night-overwatch-3cf9a68fd1e0f6ef15ccd3d0935184b58c6a5479"
+  },
+  "method": {
+    "entry": "/tmp/night-next-browser.mjs",
+    "helper": "/tmp/night-flight-touch.mjs (temporary QA adaptation, not product source)",
+    "command": "NIGHT_URL=http://127.0.0.1:4318/ NIGHT_EXPECTED_SOURCE_HASH=8dc663c4ed3afed646c806be4586990a9b0fc6758cb57f9e1cb41135f1ff7307 PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium node /tmp/night-next-browser.mjs",
+    "inputCorrection": "Small final drag deltas use at least one CSS pixel and a 45ms render wait; actual pre-fire ballistic prediction is checked independently. Every state-changing action is a real touch.",
+    "outcomeOverride": false,
+    "clockOverride": false,
+    "ammoOverride": false,
+    "sourceHashCheckedBeforeAndAfter": true
+  }
+}

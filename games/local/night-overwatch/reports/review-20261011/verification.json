@@ -1,13 +1,60 @@
 {
-  "sourceHash": "8dc663c4ed3afed646c806be4586990a9b0fc6758cb57f9e1cb41135f1ff7307",
-  "operations": 120,
-  "warmupSeparate": true,
-  "completeMissionSimulations": 120,
-  "controllerChecks": 22,
-  "distinctUnitChecksPassed": 218,
-  "hudNativeRerunPassed": 10,
-  "realCreatorDeclarationsStaticTypes": true,
-  "currentSourceCreatorBuild": "blocked: Creator 3.8.8 unavailable; baseline prebuilt mismatch correctly rejected",
-  "currentSourceBrowser": "not run: needs matching real Creator artifact",
-  "physicalDeviceTested": false
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "8dc663c4ed3afed646c806be4586990a9b0fc6758cb57f9e1cb41135f1ff7307"
+  },
+  "environment": "Chromium Linux; CDP touch emulation, not physical phone",
+  "results": [
+    {
+      "width": 568,
+      "height": 320,
+      "missionCards": [
+        "mission:corridor-01",
+        "mission:ambush-02",
+        "mission:patrol-03"
+      ],
+      "pauseFullscreenAndCancellation": "passed"
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "missionCards": [
+        "mission:corridor-01",
+        "mission:ambush-02",
+        "mission:patrol-03"
+      ],
+      "pauseFullscreenAndCancellation": "passed"
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "missionCards": [
+        "mission:corridor-01",
+        "mission:ambush-02",
+        "mission:patrol-03"
+      ],
+      "pauseFullscreenAndCancellation": "passed"
+    }
+  ],
+  "errors": [],
+  "passed": true,
+  "browserVersion": "Chromium 151.0.7922.173 (Debian Linux)",
+  "provenance": {
+    "sha": "3cf9a68fd1e0f6ef15ccd3d0935184b58c6a5479",
+    "repository": "coffeeeeffoc/small-games",
+    "game": "night-overwatch",
+    "runId": "38165967147",
+    "runAttempt": "1",
+    "sourceHash": "8dc663c4ed3afed646c806be4586990a9b0fc6758cb57f9e1cb41135f1ff7307",
+    "creator": "3.8.8",
+    "platform": "web-mobile",
+    "runner": "Windows"
+  },
+  "artifact": {
+    "id": 11712372066,
+    "zipSha256": "8dd54fe7c7a8a52d3c124156f37394b4c4f6aa04579fb82665dd304e700f5123",
+    "name": "night-overwatch-3cf9a68fd1e0f6ef15ccd3d0935184b58c6a5479"
+  },
+  "screenshots": "568-*, 844-*, 390-* in this directory are actual current-source screenshots; older baseline images with these names were replaced."
 }

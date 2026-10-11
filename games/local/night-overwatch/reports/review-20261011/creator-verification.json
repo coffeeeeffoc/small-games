@@ -1,0 +1,33 @@
+{
+  "passed": true,
+  "creator": "3.8.8",
+  "target": "web-mobile",
+  "sourceHash": "8dc663c4ed3afed646c806be4586990a9b0fc6758cb57f9e1cb41135f1ff7307",
+  "provenance": {
+    "sha": "3cf9a68fd1e0f6ef15ccd3d0935184b58c6a5479",
+    "repository": "coffeeeeffoc/small-games",
+    "game": "night-overwatch",
+    "runId": "38165967147",
+    "runAttempt": "1",
+    "sourceHash": "8dc663c4ed3afed646c806be4586990a9b0fc6758cb57f9e1cb41135f1ff7307",
+    "creator": "3.8.8",
+    "platform": "web-mobile",
+    "runner": "Windows"
+  },
+  "artifact": {
+    "id": 11712372066,
+    "zipSha256": "8dd54fe7c7a8a52d3c124156f37394b4c4f6aa04579fb82665dd304e700f5123",
+    "name": "night-overwatch-3cf9a68fd1e0f6ef15ccd3d0935184b58c6a5479"
+  },
+  "jobId": 114548607295,
+  "formalTypecheck": "passed",
+  "formalTests": {
+    "passed": 218,
+    "failed": 0,
+    "durationMs": 60088.7816
+  },
+  "creatorBuild": "passed",
+  "exactSourceArtifactVerification": "passed",
+  "producerProvenanceVerification": "passed",
+  "url": "https://github.com/coffeeeeffoc/small-games/actions/runs/38165967147/job/114548607295"
+}
