@@ -20,7 +20,7 @@
     "build": "node build.mjs",
     "preview": "node server.mjs --dist",
     "test": "node --test tests/*.test.mjs",
-    "test:browser": "node build.mjs && node tests/browser.mjs",
+    "test:browser": "node build.mjs && node tests/browser.mjs && node tests/publishing.browser.mjs",
     "test:online:browser": "node build.mjs && node tests/online.browser.mjs",
     "build:native": "node ../../../apps/shell-minigame/scripts/build.mjs --game three-choose-two",
     "test:native": "node ../../../scripts/native-game-smoke.mjs --standalone --game three-choose-two --platform wechat && node ../../../scripts/native-game-smoke.mjs --standalone --game three-choose-two --platform bilibili"

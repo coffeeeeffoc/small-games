@@ -30,3 +30,7 @@ button{-webkit-tap-highlight-color:transparent}
 
 .station-landmark{position:absolute;transform:translate(-50%,-50%);pointer-events:none;text-align:center;background:#254c47;color:#fff1cd;border:1px solid #bda16d;padding:5px 16px;box-shadow:0 2px 5px #1a302b44;white-space:nowrap;border-radius:2px}.station-landmark b{display:block;font-family:"STZhongsong","SimSun",serif;letter-spacing:8px;font-size:23px}.station-landmark span{display:block;font-size:12px;letter-spacing:1px;margin-top:2px}.scenery-status{position:absolute;bottom:12px;left:12px;z-index:4;background:#faf3dfed;min-height:36px;font-size:12px;padding:6px 10px}.scenery-status:disabled{opacity:1;color:#536352}.bay-label{background:#e4b968;border-color:#b48a42;color:#273e38}.bay-label.available{background:#fff1c9}.bay-label small{font-weight:700}.world-label.group-label{min-height:44px}.world-label:focus-visible{outline:3px solid #fff0a5;outline-offset:2px}
 @media(max-width:600px){.station-landmark{padding:4px 9px}.station-landmark b{font-size:20px;letter-spacing:5px}.station-landmark span{font-size:11px;letter-spacing:0}.bay-label{min-width:58px}.scenery-status{bottom:54px;left:10px;max-width:160px}}
+
+/* A textual blocker cue remains legible over the dense car scene. */
+.vehicle-label.parked.blocking::after{content:"先移这辆";position:absolute;top:-20px;left:50%;transform:translateX(-50%);padding:2px 5px;background:#9c3626;color:white;border-radius:5px;font-size:12px;white-space:nowrap;text-shadow:none;pointer-events:none}
+#share-status{overflow-wrap:anywhere;user-select:text}

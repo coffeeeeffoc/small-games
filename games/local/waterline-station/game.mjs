@@ -1,3 +1,4 @@
+import { shareChallenge } from './publishing.js';
 import { LEVELS } from './levels.mjs';
 import {
   createState,
@@ -18,7 +19,12 @@ try {
   storage = null;
 }
 const progress = readProgress(storage, LEVELS);
-let levelIndex = progress.selected;
+const invitation = new URLSearchParams(location.search);
+const invitedIndex = LEVELS.findIndex(item => item.id === invitation.get('station'));
+let challenge = invitedIndex >= 0;
+const targetMoves = challenge && /^[1-9]\d?$/.test(invitation.get('target') || '') ? Number(invitation.get('target')) : null;
+let assisted = false;
+let levelIndex = challenge ? invitedIndex : progress.selected;
 let chapterIndex = Math.floor(levelIndex / 10);
 let level = LEVELS[levelIndex];
 let state;
@@ -40,7 +46,21 @@ const escapeHtml = (value) =>
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
   );
 const format = (value) => Number(value.toFixed(2)).toString();
-const persist = () => saveProgress(storage, progress);
+const persist = () => { if (!challenge) saveProgress(storage, progress); };
+function leaveChallenge(index) {
+  if (!challenge) return;
+  challenge = false;
+  Object.assign(progress, readProgress(storage, LEVELS));
+  const url = new URL(location.href);
+  url.searchParams.delete('station');
+  url.searchParams.delete('target');
+  window.history.replaceState(null, '', url);
+  loadLevel(Number.isInteger(index) ? index : progress.selected);
+}
+async function shareResult() {
+  const result = await shareChallenge({ title: '水位联动站 · 同关挑战', text: `第 ${levelIndex + 1} 站，${assisted ? '一起解开联动水位' : `我用了 ${state.moves} 次操作`}。`, params: { station: level.id, ...(!assisted && state.won ? { target: state.moves } : {}) } });
+  $('#share-status').textContent = result.status === 'shared' ? '已打开分享面板' : result.status === 'copied' ? '同关链接已复制' : result.status === 'cancelled' ? '已取消分享' : `长按复制：${result.url}`;
+}
 
 function sound(kind = 'valve') {
   if (!progress.sound || document.hidden) return;
@@ -142,6 +162,8 @@ function selectConnection(id) {
     (level.overflow || []).some((_, index) => `overflow:${index}` === id);
   if (!exists || id === focusedConnection) return;
   focusedConnection = id;
+  const gate = level.gates.find(item => item.id === id);
+  if (gate) message(`${gate.a} 槽 ↔ ${gate.b} 槽 · ${state.gates[level.gates.indexOf(gate)] ? '连通中，再点阀门隔离' : '已隔离，点阀门连通'}；点管线不消耗操作。`, '已选管线');
   draw();
 }
 
@@ -191,6 +213,11 @@ function renderControls() {
     0,
     level.maxMoves + (state.bonusMoves || 0) - state.moves,
   );
+  const remaining = Math.max(0, level.maxMoves + (state.bonusMoves || 0) - state.moves);
+  $('.turn-display').classList.toggle('budget-low', remaining <= 2 && !state.won);
+  $('#move-budget').textContent = `已用 ${state.moves} · 三星 ≤ ${level.par}${challenge ? ' · 好友同关' : ''}${challenge && levelIndex === invitedIndex && targetMoves ? ` · 好友 ${targetMoves} 次` : ''}`;
+  $('#exit-challenge').hidden = !challenge;
+  $('#result-exit-challenge').hidden = !challenge;
   $('#objective-count').textContent =
     `${objectives.filter((o) => o.done).length} / ${objectives.length}`;
   $('#objectives').innerHTML = objectives
@@ -291,6 +318,8 @@ function showResult() {
     : extraClaimed
       ? '重新调度 →'
       : '＋ 免费增加一次操作';
+  $('#share-result').hidden = !won;
+  $('#share-status').textContent = `${assisted ? '辅助通关 · 分享只邀请同关，不比较少步成绩。' : '同关少步挑战 · 提示与额外操作均免费。'}${challenge ? ' 本次不写入正常存档。' : ''}`;
   $('#result-undo').hidden = !history.length;
   $('#result').hidden = false;
   setBackgroundInert(true);
@@ -309,7 +338,7 @@ function finishTurn() {
   draw();
   renderControls();
   if (state.won) {
-    progress.best[level.id] = Math.min(progress.best[level.id] ?? Infinity, state.moves);
+    if (!challenge) progress.best[level.id] = Math.min(progress.best[level.id] ?? Infinity, state.moves);
     persist();
     renderRoutes();
     sound('win');
@@ -351,6 +380,7 @@ function useGate(id) {
     return;
   }
   if (prediction && selectedGate !== id) {
+    assisted = true;
     selectedGate = id;
     preview = previewGate(level, state, id);
     message(
@@ -375,6 +405,7 @@ function useGate(id) {
 
 function undo() {
   if (animating || !history.length) return;
+  assisted = true;
   hideResult();
   const from = [...state.volumes];
   state = history.pop();
@@ -388,6 +419,7 @@ function undo() {
 function addMove() {
   if (animating || extraClaimed || state.won) return;
   extraClaimed = true;
+  assisted = true;
   state = { ...state, bonusMoves: 1, lost: false };
   hideResult();
   clearPreview();
@@ -407,6 +439,7 @@ function loadLevel(index) {
   state = createState(level);
   history = [];
   extraClaimed = false;
+  assisted = false;
   animating = false;
   clearPreview();
   hideResult();
@@ -465,7 +498,9 @@ $('#board-controls').addEventListener('click', (event) => {
 $('#level-nav').addEventListener('click', (event) => {
   const button = event.target.closest('[data-level-index]');
   if (button && !animating) {
-    loadLevel(Number(button.dataset.levelIndex));
+    const nextIndex = Number(button.dataset.levelIndex);
+    if (challenge && nextIndex !== invitedIndex) leaveChallenge(nextIndex);
+    else loadLevel(nextIndex);
     if (window.innerWidth <= 780)
       $('.stage-header').scrollIntoView({
         behavior: reduceMotion.matches ? 'instant' : 'smooth',
@@ -476,10 +511,17 @@ $('#level-nav').addEventListener('click', (event) => {
 $('#undo').addEventListener('click', undo);
 $('#result-undo').addEventListener('click', undo);
 $('#restart').addEventListener('click', () => loadLevel(levelIndex));
+$('#share-result').addEventListener('click', shareResult);
+$('#exit-challenge').addEventListener('click', () => leaveChallenge());
+$('#result-exit-challenge').addEventListener('click', () => leaveChallenge());
 $('#result-retry').addEventListener('click', () => loadLevel(levelIndex));
 $('#extra-move').addEventListener('click', addMove);
 $('#next-level').addEventListener('click', () => {
-  if (state.won) loadLevel((levelIndex + 1) % LEVELS.length);
+  if (state.won) {
+    const nextIndex = (levelIndex + 1) % LEVELS.length;
+    if (challenge) leaveChallenge(nextIndex);
+    else loadLevel(nextIndex);
+  }
   else if (!extraClaimed) addMove();
   else loadLevel(levelIndex);
 });
@@ -494,6 +536,7 @@ $('#predict').addEventListener('click', () => {
   draw();
 });
 $('#hint').addEventListener('click', () => {
+  assisted = true;
   const route = solve(level, state);
   if (!route?.length) {
     message(
@@ -586,6 +629,8 @@ Object.defineProperty(window, '__waterlineSnapshot', {
       chapterIndex,
       historyLength: history.length,
       extraClaimed,
+      challenge,
+      assisted,
       progress,
     }),
 });

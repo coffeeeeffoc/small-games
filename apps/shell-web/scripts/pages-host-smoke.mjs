@@ -90,7 +90,11 @@ try {
   ]) {
     assert(game, 'Missing representative standalone game merge-front');
     console.log(`Pages host: route and startup / ${game.id}`);
-    await page.locator('article').filter({ hasText: game.title }).locator('.game-launch').click();
+    await page
+      .locator('article')
+      .filter({ has: page.getByRole('heading', { name: game.title, exact: true }) })
+      .locator('.game-launch')
+      .click();
     await sharing(game.id, game.title);
     await page
       .getByRole('button', {

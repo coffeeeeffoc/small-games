@@ -18,6 +18,12 @@ const mime = {
 const server = createServer(async (req, res) => {
   try {
     const pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+    if (!process.argv.includes('--dist') && pathname === '/publishing.js') {
+      res
+        .writeHead(200, { 'Content-Type': mime['.js'] })
+        .end(await readFile(new URL('../../../platforms/h5/publishing.js', import.meta.url)));
+      return;
+    }
     let file = path.resolve(root, `.${pathname}`);
     const relative = path.relative(root, file);
     if (relative.startsWith('..') || path.isAbsolute(relative)) {

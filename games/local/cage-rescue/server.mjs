@@ -18,7 +18,7 @@ const mime = {
 const server = createServer(async (request, response) => {
   try {
     const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
-    const target = path.resolve(
+    let target = path.resolve(
       root,
       '.' + (pathname.endsWith('/') ? pathname + 'index.html' : pathname),
     );
@@ -27,6 +27,7 @@ const server = createServer(async (request, response) => {
       response.writeHead(403).end('Forbidden');
       return;
     }
+    if (pathname === '/publishing.js' && !process.argv.includes('--dist')) target = fileURLToPath(new URL('../../../platforms/h5/publishing.js', import.meta.url));
     const bytes = await readFile(target);
     response.writeHead(200, {
       'Content-Type': `${mime[path.extname(target)] || 'application/octet-stream'}; charset=utf-8`,

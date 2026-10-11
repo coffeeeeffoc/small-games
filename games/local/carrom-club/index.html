@@ -46,6 +46,7 @@
         <div class="home-actions">
           <p id="home-progress" class="muted">回拉指尖，听见落袋。</p>
           <button id="start" class="primary">开始对局 <span>›</span></button
+          ><button id="friends-open" class="secondary">好友对战</button
           ><button id="levels-open" class="secondary">
             练习选关 <span class="tiny" id="practice-progress">0 / 6</span>
           </button>
@@ -54,6 +55,41 @@
           <button id="help-open" class="text-button">玩法帮助</button><span class="diamond">◇</span
           ><span class="muted">以棋会友 · 乐在指间</span>
         </footer>
+      </section>
+
+      <section id="friends" class="screen menu" aria-label="好友对战" hidden>
+        <header class="page-heading">
+          <button id="friends-back" class="icon" aria-label="返回主页">‹</button
+          ><span class="wordmark">A TABLE FOR TWO</span><span></span>
+        </header>
+        <h2>好友对战</h2>
+        <p class="subtitle">各执一色，隔空约一局</p>
+        <div id="room-entry" class="room-panel">
+          <button id="room-create" class="primary">创建房间</button>
+          <label for="room-input">已有邀请</label>
+          <input
+            id="room-input"
+            type="text"
+            autocomplete="off"
+            autocapitalize="characters"
+            spellcheck="false"
+            placeholder="输入房号或粘贴邀请链接"
+            aria-label="房号或邀请链接"
+          />
+          <button id="room-join" class="secondary">加入好友房间</button>
+          <button id="room-recover" class="text-button" hidden>恢复上次房间</button>
+        </div>
+        <div id="room-details" class="room-panel" hidden>
+          <p class="muted">房号</p>
+          <strong id="room-code" class="room-code"></strong>
+          <div id="room-players" class="room-players"></div>
+          <button id="room-ready" class="primary">准备</button>
+          <button id="room-invite" class="secondary">复制邀请</button>
+          <input id="room-link" aria-label="邀请链接，可长按复制" readonly hidden />
+          <button id="room-leave" class="text-button">离开房间</button>
+        </div>
+        <p id="room-status" class="subtitle" role="status"></p>
+        <button id="room-retry" class="secondary" hidden>重试连接</button>
       </section>
 
       <section id="levels" class="screen menu" aria-label="练习选关" hidden>
@@ -108,7 +144,7 @@
               </svg>
             </div>
             <div class="seat-copy">
-              <strong>你 <small>白子</small></strong>
+              <strong id="player-name">你 <small>白子</small></strong>
               <div class="score-line">
                 <i class="coin white"></i><span id="player-score">0 / 9</span>
               </div>
@@ -138,6 +174,7 @@
             </div>
           </div>
           <p id="status" class="status" role="status" aria-live="polite"></p>
+          <button id="sync-retry" class="text-button" hidden>重试同步</button>
           <span class="quiet-brand">CARROM CLUB</span>
         </div>
       </section>
@@ -194,7 +231,7 @@
             <div>
               <h3>轻轻回拉</h3>
               <p>
-                按住较大的白色击球子，先向目标反方向回拉定向，再左右慢慢微调。虚线显示首个碰撞点，拉得越远，力道越大。细小抖动会被过滤；收杆后重新回拉可大幅换向。
+                按住较大的击球子，向目标反方向回拉。没有目标时快速转向；青蓝箭头出现后，左右慢慢微调。白色虚线显示击球子路径，青蓝实线箭头显示目标球方向。拉得越远，力道越大，细小抖动会被过滤。
               </p>
             </div>
           </li>
@@ -210,13 +247,17 @@
           <h3>棋社的休闲规则</h3>
           <p>你执白，阿洛执黑。进本色可继续出杆；空杆或只进对方棋子则换手。</p>
           <p>
-            红后入袋后，同杆或下一杆补进本色，否则红后返场。红后完成补进后，先清完本色的一方获胜。
+            本色棋子每枚 1 分；红后入袋后，同杆或下一杆补进本色可加 3 分，否则红后返场且不计分。
+            红后完成补进后，任一方清完本色即结算，积分高者获胜；同分时清台方获胜。
           </p>
           <p>
             击球子落袋会返还本杆本色及一枚已进子；不足的罚子记欠，后续进子偿还。红后未补进时，最后本色返场。
           </p>
           <p>
             练习按杆数评星，依次解锁。对局自动保存到最近一次静止回合；关闭页面不会保存半途的击球。
+          </p>
+          <p>
+            好友对战：创建房间并复制邀请，让好友在自己的手机加入；双方准备后开局。联网对局的暂停只打开菜单，对方仍可出杆；返回房间可恢复同步。
           </p>
         </div>
         <button id="help-practice" class="primary">去练第一杆 <span>›</span></button>
@@ -227,6 +268,7 @@
         <div class="menu-emblem" id="result-emblem">✦</div>
         <h2 id="result-title">这一局，漂亮</h2>
         <p id="result-description" class="subtitle"></p>
+        <p id="result-score" class="subtitle"></p>
         <div id="result-stars" class="result-stars"></div>
         <div class="result-stats">
           <div><strong id="result-shots">0</strong><span>次出杆</span></div>

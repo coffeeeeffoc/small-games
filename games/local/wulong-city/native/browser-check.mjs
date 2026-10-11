@@ -8,7 +8,7 @@ import { chromium } from '@playwright/test';
 
 const gameRoot = fileURLToPath(new URL('../', import.meta.url));
 const artifact = path.resolve(gameRoot, '../../../apps/shell-minigame/dist/wechat/wulong-city');
-const output = path.join(gameRoot, 'docs/design/mobile-2026-10-06/native-actual');
+const output = process.env.WULONG_EVIDENCE_DIR ? path.resolve(process.env.WULONG_EVIDENCE_DIR) : path.join(gameRoot, 'docs/design/mobile-2026-10-06/native-actual');
 const harness = `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" href="data:,"><style>html,body{margin:0;background:#153d47}canvas{display:block;width:100vw;height:100vh;touch-action:none}</style><canvas></canvas><script>
 window.exports={};
 const canvas=document.querySelector('canvas'),context=canvas.getContext('2d');
@@ -87,6 +87,7 @@ try {
     nativeHarness.advance(2200);
   });
   assert.ok(await page.evaluate(() => nativeHarness.labels().includes('乌龙解决啦！')));
+  assert.ok(await page.evaluate(() => nativeHarness.labels().includes('第 01 关 · 看过 1 级提示')), 'Native result preserves the assistance record');
   await screenshot('result');
   await tap('返回主页'); await tap('奇遇手记'); await screenshot('records');
   assert.equal(errors.length, 0, errors.join('\n'));

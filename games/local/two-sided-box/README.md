@@ -90,3 +90,21 @@ window.twoSidedBoxHost = {
 纯测试覆盖：六面投影、孔位净空、锁扣依赖、初始随机组合、逐级揭示、50 关参考解法、独立可解性搜索、第 21–50 关全部 450 组双面受限搜索、存档与异步奖励取消。宿主奖励测试还覆盖广告能力检查、严格完成状态、异常、超时、取消及迟到结果。
 
 浏览器脚本使用仓库的 `@playwright/test` 和 Chromium，默认路径 `/usr/bin/chromium`，可设置 `PLAYWRIGHT_EXECUTABLE_PATH`；`GAME_URL` 可指向已启动的服务。截图和报告输出到 `test-results/`（已忽略）。触屏模拟与真实手机验证不同；真实手机和移动 Safari 尚未验证，真实广告平台尚未接入验证。
+
+## 2026-10-11 扩围改造
+
+换挡后所有已知观察窗短暂描边同步，反馈显示轴名与挡位；减少只看到某一面、不清楚联动是否发生的问题。新增暂停和首页入口，暂停、打开说明或切后台时小球动画保留位置。结算分享固定关卡、相同初始两面和操作数目标；挑战重开仍保留相同两面。手机旋转锁定时界面自动转为横屏，多观察窗可横向滚动、整体内容可纵向滚动，Canvas点击/拖动坐标同步转换。
+
+分享使用公共 `platforms/h5/publishing.js`：系统分享或复制公开链接，拒绝/取消不会冒充发送成功；不可用时显示可复制的链接。挑战可在首页明确退出，挑战中途与完成结果均不写入普通关卡进度。链接校验版本、关卡与有界目标，公开链接不传播开发参数；这是本地异步成绩挑战，不是实时联网对战。
+
+自然结算复用公共频控，默认显式 `mock` 模式；第一、第二次结算不展示，第三次才可展示模拟插屏，并受60秒冷却和会话上限约束。关闭广告不影响胜利或免费重试，也不会发放任何奖励。可以在初始化前通过 `SmallGamesPublishingConfig` 配置 `adMode: 'off'`，或注入真实渠道 provider；本次未声称接入真实广告 SDK。
+
+局部方案与手机比例示意见 [设计记录](docs/design/2026-10-11-challenge-expansion.md)。新增生产构建浏览器专项（仓库根运行）：
+
+```sh
+node games/local/two-sided-box/tests/publishing.browser.mjs
+```
+
+专项支持 `CHROMIUM_PATH` / `PLAYWRIGHT_EXECUTABLE_PATH` 和 `GAME_URL`，默认启动本款生产构建服务器。报告与桌面/触屏截图位于本游戏 `test-results/publishing/`。验收使用 Chromium 设备模拟，真实手机与渠道 SDK 仍待验证。
+
+可提交的实际截图与报告：[本轮验证记录](docs/verification/2026-10-11-challenge-expansion/README.md)。

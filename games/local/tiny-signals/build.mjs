@@ -13,10 +13,12 @@ for (const file of [
   'rules.mjs',
   'levels.mjs',
   'session.mjs',
+  'challenge.mjs',
   'host.mjs',
 ]) {
   await cp(new URL(file, import.meta.url), new URL(file, dist));
 }
+await cp(new URL('../../../platforms/h5/publishing.js', import.meta.url), new URL('publishing.js', dist));
 const assets = new URL('./assets/', import.meta.url);
 try {
   if ((await stat(assets)).isDirectory()) {

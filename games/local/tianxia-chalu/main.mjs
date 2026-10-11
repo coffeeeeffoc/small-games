@@ -407,7 +407,11 @@ function processEvents() {
       if (event.factionId === 0) {
         battleTip(`夺下${name}！新岔口已可下令`);
         sound('capture');
-      } else if (event.previousOwner === 0) battleTip(`${name}失守，调整兵路回援`);
+        board?.signalCity(event.cityId, false);
+      } else if (event.previousOwner === 0) {
+        battleTip(`${name}失守，调整兵路回援`);
+        board?.signalCity(event.cityId, true);
+      }
     }
   }
 }

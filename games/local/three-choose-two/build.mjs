@@ -9,3 +9,5 @@ for (const name of ['index.html', 'style.css', 'main.mjs', 'dev-mode.js', 'fulls
 await cp(new URL('./native/assets/art/', import.meta.url), new URL('./native/assets/art/', output), { recursive: true });
 await stat(new URL('src/engine.mjs', output));
 console.log('Built 三块选两块 → dist/');
+
+await cp(new URL('../../../platforms/h5/publishing.js', import.meta.url), new URL('publishing.js', output));

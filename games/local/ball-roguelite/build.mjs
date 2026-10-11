@@ -6,3 +6,5 @@ for (const file of ['index.html', 'style.css', 'main.mjs', 'core.mjs', 'levels.m
   await cp(new URL(file, import.meta.url), new URL(file, dist));
 }
 console.log('Built 星轨弹珠: dist/');
+
+await cp(new URL('../../../platforms/h5/publishing.js', import.meta.url), new URL('publishing.js', dist));

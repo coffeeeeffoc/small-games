@@ -37,6 +37,7 @@ test('selective CI does not call aggregate Shell smoke or ^build game test tasks
   const plan = { full: false, browser: true, cocos: false, diff_base: 'base', diff_head: 'head' };
   await ciValidation({
     env: {},
+    browserExecutable: () => '/fixture/installed/chromium',
     selectPlan: async () => plan,
     treeValidator: async (value) => {
       assert.equal(value.deferIdenticalRulesToAggregate, false);
@@ -44,8 +45,8 @@ test('selective CI does not call aggregate Shell smoke or ^build game test tasks
     },
     execute: (command, args) => calls.push({ command, args }),
   });
-  assert.equal(calls.length, 2);
-  assert.equal(calls[1].args[0], 'scripts/run-selected-browser.mjs');
+  assert.equal(calls.length, 3);
+  assert.equal(calls[2].args[0], 'scripts/run-selected-browser.mjs');
   assert(
     !calls.some(({ args }) => args.includes('smoke:affected') || args.includes('test:affected')),
   );
@@ -131,6 +132,7 @@ test('full CI retains original dialog and dependency checker gates', async () =>
   const calls = [];
   await ciValidation({
     env: {},
+    browserExecutable: () => '/fixture/installed/chromium',
     selectPlan: async () => ({ full: true, browser: true, cocos: true }),
     treeValidator: async (value) => assert.equal(value.deferIdenticalRulesToAggregate, true),
     execute: (command, args) => calls.push(args),
@@ -147,6 +149,7 @@ test('deferred full rules require aggregate success before contract, interaction
   await assert.rejects(
     ciValidation({
       env: {},
+      browserExecutable: () => '/fixture/installed/chromium',
       selectPlan: async () => ({ full: true, browser: true, cocos: true }),
       treeValidator: async (value) => assert.equal(value.deferIdenticalRulesToAggregate, true),
       execute: (command, args) => {
@@ -156,8 +159,8 @@ test('deferred full rules require aggregate success before contract, interaction
     }),
     /aggregate rules failure/,
   );
-  assert.equal(calls.length, 2);
-  assert.equal(calls[1][0], 'test');
+  assert.equal(calls.length, 3);
+  assert.equal(calls[2][0], 'test');
 });
 
 test('a valid comparison base uses the returned browser IDs even when the risk flag is full', async () => {
@@ -179,6 +182,7 @@ test('a valid comparison base uses the returned browser IDs even when the risk f
   const calls = [];
   const result = await ciValidation({
     root: '/fixture',
+    browserExecutable: () => '/fixture/installed/chromium',
     env: { CI_VALIDATION_PLAN: JSON.stringify(frozen), TURBO_SCM_HEAD: 'exact-head' },
     treeValidator: async (options) => {
       assert.equal(options.base, 'exact-base');
@@ -189,9 +193,9 @@ test('a valid comparison base uses the returned browser IDs even when the risk f
     },
     execute: (command, args) => calls.push({ command, args }),
   });
-  assert.equal(calls.length, 2);
-  assert.equal(calls[1].args[0], 'scripts/run-selected-browser.mjs');
-  const executed = JSON.parse(calls[1].args[1]);
+  assert.equal(calls.length, 3);
+  assert.equal(calls[2].args[0], 'scripts/run-selected-browser.mjs');
+  const executed = JSON.parse(calls[2].args[1]);
   assert.deepEqual(executed.browser_ids, ['travel-bund']);
   assert.deepEqual(executed.game_sources, scope.game_sources);
   assert.deepEqual(executed.nine_native_targets, scope.nine_native_targets);
@@ -286,6 +290,7 @@ test('a full or nightly plan without a usable base retains the original aggregat
     const calls = [];
     await ciValidation({
       env: {},
+      browserExecutable: () => '/fixture/installed/chromium',
       selectPlan: async () => ({ full: true, browser: true, cocos: true, diff_base: base }),
       treeValidator: async (options) => {
         assert.equal(options.base, '');
@@ -295,7 +300,7 @@ test('a full or nightly plan without a usable base retains the original aggregat
       execute: (command, args) => calls.push(args),
     });
     assert.deepEqual(
-      calls.slice(1),
+      calls.slice(2),
       ['test', 'test:contract', 'test:integration', 'test:dialogs', 'smoke'].map((task) => [
         task,
         '--concurrency=1',
@@ -332,15 +337,21 @@ test('native-only Travel validation prepares Chromium once before its actual bro
       return { browser: false, browser_ids: [], nine_native_travel_contract: true };
     },
     execute: (command, args) => {
-      assert.equal(command, 'pnpm');
-      assert.deepEqual(args, ['exec', 'playwright', 'install', '--with-deps', 'chromium']);
-      events.push('install');
+      if (command === 'pnpm') {
+        assert.deepEqual(args, ['exec', 'playwright', 'install', '--with-deps', 'chromium']);
+        events.push('install');
+      } else {
+        assert.equal(command, process.execPath);
+        assert.equal(args[0], '-e');
+        events.push('launch-preflight');
+      }
     },
   });
   assert.deepEqual(events, [
     'native-integrity',
     'install',
     'resolve-installed-path',
+    'launch-preflight',
     'travel-browser-contract',
   ]);
   assert.equal(resolutions, 1);
@@ -378,7 +389,7 @@ test('tree H5 preparation and later selected browsers share one installation and
         assert.equal(env, treeEnv);
         assert.equal(env.CHROMIUM_PATH, '/fixture/installed/chromium');
         assert.equal(env.PLAYWRIGHT_EXECUTABLE_PATH, '/fixture/installed/chromium');
-        executed.push(args[0]);
+        if (args[0] !== '-e') executed.push(args[0]);
       }
     },
   });
@@ -387,7 +398,7 @@ test('tree H5 preparation and later selected browsers share one installation and
   assert.deepEqual(executed, ['scripts/run-selected-browser.mjs']);
 });
 
-test('explicit browser paths survive preparation and only missing paths use the installed resolver', async () => {
+test('explicit browser paths survive preparation and fill missing paths without the installed resolver', async () => {
   for (const originalEnv of [
     { CHROMIUM_PATH: '/configured/chromium', PLAYWRIGHT_EXECUTABLE_PATH: '/configured/playwright' },
     { CHROMIUM_PATH: '/configured/chromium' },
@@ -411,12 +422,15 @@ test('explicit browser paths survive preparation and only missing paths use the 
       treeValidator: async ({ prepareBrowser, env }) => {
         prepareBrowser();
         for (const key of ['CHROMIUM_PATH', 'PLAYWRIGHT_EXECUTABLE_PATH'])
-          assert.equal(env[key], before[key] || '/fixture/installed/chromium');
+          assert.equal(
+            env[key],
+            before[key] || before.PLAYWRIGHT_EXECUTABLE_PATH || before.CHROMIUM_PATH,
+          );
         return { browser: false, browser_ids: [] };
       },
       execute: () => {},
     });
-    assert.equal(resolutions, Object.keys(before).length === 2 ? 0 : 1);
+    assert.equal(resolutions, 0);
     assert.deepEqual(originalEnv, before);
   }
 });
@@ -467,6 +481,7 @@ test('full validation without a base prepares browsers after the tree phase', as
   assert.deepEqual(events, [
     'tree-complete',
     'exec',
+    '-e',
     'test',
     'test:contract',
     'test:integration',

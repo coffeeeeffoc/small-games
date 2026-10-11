@@ -1,8 +1,10 @@
+import {shareChallenge} from './publishing.js';
 import {NODES,TYPES,LEVELS,SITES,siteFor,create,step,dispatch,routes,routePoints,position,multiplier,edgeKey} from './simulation.mjs';
 const $=id=>document.getElementById(id), svg=$('map'), result=$('result');
 let state, paused=true, started=false, selected=null, pendingTarget=null, parkingCursor=null, drag=null, ignoreClick=false, last=0, bank=0, seen=0;
 let sound, master, muted=false, reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 try {muted=localStorage.getItem('city-muted')==='true';reduced ||= localStorage.getItem('city-reduced')==='true';} catch {}
+const invitedLevel=Number(new URLSearchParams(location.search).get('rescueLevel'));
 const colors=['#c35c43','#367d86','#dfb94a'];
 const save=(key,v)=>{try{localStorage.setItem(key,String(v));}catch{}};
 function unlock(){try{sound ||= new (window.AudioContext||window.webkitAudioContext)();if(!master){master=sound.createGain();master.connect(sound.destination);}master.gain.value=muted?0:.12;if(sound.state==='suspended'&&!document.hidden)sound.resume();}catch{}}
@@ -90,7 +92,7 @@ function renderDispatch(){
    for(const button of $('dispatch-cars').children){
      const car=available.find(c=>c.id===Number(button.dataset.dispatchCar));
      button.hidden=button.disabled=!car;
-     if(car){const status=`约${Math.ceil(routes(state,car,event)[0].seconds-TYPES[event.type].seconds)}秒到场`;button.querySelector('small').textContent=status;button.setAttribute('aria-label',`${car.id}号车，${status}，${siteFor(event).label}`);}
+     if(car){const seconds=routes(state,car,event)[0].seconds, margin=Math.floor(event.due-state.time-seconds);const status=`约${Math.ceil(seconds-TYPES[event.type].seconds)}秒到场 · ${event.penalized?'尽快修复':margin>=0?`完成余量 ${margin}秒`:`预计超时 ${-margin}秒`}`;button.classList.toggle('risky',!event.penalized&&margin<0);button.querySelector('small').textContent=status;button.setAttribute('aria-label',`${car.id}号车，${status}，${siteFor(event).label}`);}
    }
    const width=picker.offsetWidth;
    picker.style.left=`${Math.max(8,Math.min(innerWidth-width-8,card.left+card.width/2-width/2))}px`;
@@ -144,7 +146,11 @@ function render(){
  $('time').textContent=`${String(Math.floor(state.time/60)).padStart(2,'0')}:${String(Math.floor(state.time%60)).padStart(2,'0')}`;
  $('loss').textContent=`延误 ${state.loss}/3`;$('progress').textContent=`${state.events.filter(e=>e.state==='done').length}/${state.events.length}`;
  $('phase').textContent=state.status==='playing'?(paused?(started?'已暂停 · 点继续执行':'派出第一辆车，即刻开始'):'救援进行中 · 随时调度'):'本次出勤结束';
- $('go').innerHTML=paused?(started?'继续 <span>→</span>':'开始 <span>→</span>'):'暂停 <span>Ⅱ</span>';
+ $('go').innerHTML=paused?(started?'继续 <span>→</span>':'开始 <span>→</span>'):'暂停 <svg width="14" height="16" viewBox="0 0 14 16" aria-hidden="true"><path fill="currentColor" d="M1 1h4v14H1zM9 1h4v14H9z"/></svg>';
+ $('go').setAttribute('aria-label',paused?(started?'继续':'开始'):'暂停');
+ const urgent=state.events.filter(e=>e.state==='active'&&!e.penalized).sort((a,b)=>a.due-b.due)[0];
+ $('risk-clock').textContent=urgent?`${siteFor(urgent).label} · 距恶化 ${Math.max(0,Math.ceil(urgent.due-state.time))}秒`:'当前没有待恶化事件';
+ $('risk-clock').classList.toggle('risky',!!urgent&&urgent.due-state.time<=10);
  $('cancel').hidden=selected===null&&pendingTarget===null;
  for(const [a,b] of state.edges){const m=multiplier(state,a,b),key=edgeKey(a,b);$(`road-${key}`).classList.toggle('slow',m>1);$(`stripe-${key}`).style.opacity=m>1?'1':'0';$(`delay-${key}`).textContent=m>1?`慢行 ×${m}`:key==='BC'&&state.level===2?'上街快线':'';}
  for(const e of state.events){
@@ -164,7 +170,7 @@ function render(){
    el.setAttribute('aria-label',`${siteFor(e).label} ${TYPES[e.type].name} ${timer}${e.assigned?' · 已派'+e.assigned+'号车':''}`);
    const status=car?(working?`${car.id}号车 · 现场处理中`:car.access?.direction==='in'?`${car.id}号车 · 驶入现场`:`${car.id}号车 · 正在赶来`):done?'现场已恢复':missed?'未能及时完成':'等待派车';
    el.querySelector('.assigned').textContent=status;
-   el.querySelector('.event-risk').textContent=done?'救援完成':missed?`延误增加 ${TYPES[e.type].loss} 格`:e.penalized?'已恶化 · 仍需修复':`接报${e.due-e.at}秒未完成将${e.type==='fire'?'蔓延':e.type==='pet'?'走失':e.type==='traffic'?'拥堵加剧':'扩大停电'}`;
+   el.querySelector('.event-risk').textContent=done?'救援完成':missed?`延误增加 ${TYPES[e.type].loss} 格`:e.penalized?'已恶化 · 仍需修复':`距${e.type==='fire'?'蔓延':e.type==='pet'?'走失':e.type==='traffic'?'拥堵加剧':'扩大停电'} ${Math.max(0,Math.ceil(e.due-state.time))}秒 · 完成救援前持续计时`;
    el.querySelector('.service-fill').value=working?car.service/TYPES[e.type].seconds:done?1:0;
    el.classList.toggle('urgent',active&&(e.penalized||state.time-e.at>(e.due-e.at)*.65));
    pin.classList.toggle('working',working);pin.classList.toggle('pulse',active&&e.type==='fire');
@@ -199,7 +205,7 @@ function render(){
  if(choices.length>1)$('route-lines').innerHTML+=choices.filter(r=>r.mode!==car.mode).map(r=>`<path d="${pathD(car,r.path)}" class="route-path" data-route="${r.mode}" stroke="#717654" opacity=".45" style="stroke-width:4"/>`).join('');
  while(seen<state.log.length){const entry=state.log[seen++];if(entry.kind==='done'){tone('done');message(`${TYPES[state.events.find(e=>e.id===entry.event).type].name}处理完成 · 空闲车留在现场`);}if(entry.kind==='miss'){tone('miss');message('有求助因延误而恶化。调整分工，仍可继续救场。');}}
  if(state.status!=='playing'&&!result.open){paused=true;const won=state.status==='won';$('result-title').textContent=won?(state.loss?'守住了小城':'全城平安'):'这次没赶上';$('result-body').textContent=`处理 ${state.events.filter(e=>e.state==='done').length}/${state.events.length} 件事 · 延误 ${state.loss}/3 · 用时 ${state.time.toFixed(1)} 秒`;
- const miss=state.events.find(e=>e.penalized);$('result-detail').textContent=miss?`${TYPES[miss.type].name}在接报后 ${miss.due-miss.at} 秒恶化；需要先赶到，再服务 ${TYPES[miss.type].seconds} 秒。重试会保留同样的事件与车位。`:'你的分工让城市重新动了起来。再试一次，看看能否少跑一段路。';$('next').hidden=!won;$('next').textContent=state.level<2?'下一关 →':'再巡一城 →';result.showModal();$('retry-result').focus();}
+ const miss=state.events.find(e=>e.penalized);$('result-detail').textContent=miss?`${TYPES[miss.type].name}在接报后 ${miss.due-miss.at} 秒恶化；需要先赶到，再服务 ${TYPES[miss.type].seconds} 秒。重试会保留同样的事件与车位。`:'你的分工让城市重新动了起来。再试一次，看看能否少跑一段路。';$('next').hidden=!won;$('next').textContent=state.level<2?'下一关 →':'再巡一城 →';$('share-status').textContent='同一事件时间表与初始车位，比一比调度分工。';result.showModal();$('retry-result').focus();}
  renderDispatch();
  if(restoreFocus&&state.status==='playing')($('incidents').querySelector('.event:not([hidden])')||(!$('assigned-jobs').hidden&&$('assigned-jobs').querySelector('summary'))||$('go')).focus({preventScroll:true});
 }
@@ -272,6 +278,8 @@ svg.addEventListener('keydown',e=>{
 $('routes').addEventListener('click',e=>{const b=e.target.closest('[data-route]'),c=state.cars.find(c=>c.id===selected);if(b&&c?.target)order(c.target,b.dataset.route);});
 $('go').onclick=()=>{if(state.status!=='playing'||document.hidden)return;unlock();started=true;clearDrag();if(paused){paused=false;bank=0;last=performance.now();message('救援进行中 · 选车不暂停，可随时调度');}else pause('已暂停 · 可以安排任务，点继续执行');render();};
 $('cancel').onclick=()=>cancel();$('restart').onclick=()=>start(state.level);$('retry-result').onclick=()=>start(state.level);$('next').onclick=()=>start((state.level+1)%LEVELS.length);
+$('share-result').onclick=async()=>{const outcome=await shareChallenge({title:'小城救援队 · 同班挑战',text:`第 ${state.level+1} 班出勤，处理 ${state.events.filter(e=>e.state==='done').length} 件事，延误 ${state.loss}/3。`,params:{rescueLevel:state.level+1}});$('share-status').textContent=outcome.status==='shared'?'已打开分享面板':outcome.status==='copied'?'同班挑战链接已复制':outcome.status==='cancelled'?'已取消分享':`长按复制：${outcome.url}`;};
+$('return-result').onclick=()=>start(state.level);
 result.addEventListener('cancel',e=>e.preventDefault());
 document.querySelectorAll('[data-level]').forEach(b=>b.onclick=()=>{unlock();start(Number(b.dataset.level));});
 function soundUI(){$('sound').textContent=muted?'已静音':'声音开';$('sound').setAttribute('aria-pressed',String(muted));$('sound').setAttribute('aria-label',muted?'开启声音':'静音');}
@@ -285,5 +293,5 @@ window.addEventListener('pagehide',backgroundPause);
 window.addEventListener('blur',backgroundPause);
 window.addEventListener('resize',()=>{if(drag)cancel('画面尺寸变化 · 手势取消，原任务继续');renderDispatch();});
 window.addEventListener('keydown',e=>{if(e.key==='Escape'&&state.status==='playing'){const target=pendingTarget;cancel();$(`event-${target}`)?.focus({preventScroll:true});}});
-start(0);
+start(Number.isInteger(invitedLevel)&&invitedLevel>=1&&invitedLevel<=LEVELS.length?invitedLevel-1:0);
 function frame(now){const dt=Math.min(.2,(now-last)/1000);last=now;if(!paused&&state.status==='playing'){bank+=dt;while(bank>=.1){step(state);bank-=.1;}if(state.tick%10===0&&state.tick&&state.cars.some(c=>c.working)&&!reduced){if(frame.workTick!==state.tick){tone('work');frame.workTick=state.tick;}}render();}requestAnimationFrame(frame);}requestAnimationFrame(frame);

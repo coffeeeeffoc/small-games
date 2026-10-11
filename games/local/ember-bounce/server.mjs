@@ -48,6 +48,12 @@ const server = http.createServer(async (request, response) => {
       response.writeHead(400).end('Invalid path');
       return;
     }
+    if (!values.dist && pathname === '/publishing.js') {
+      const body = await readFile(new URL('../../../platforms/h5/publishing.js', import.meta.url));
+      response.writeHead(200, { 'Content-Type': mime['.js'], 'X-Content-Type-Options': 'nosniff' });
+      response.end(request.method === 'HEAD' ? undefined : body);
+      return;
+    }
     let filename = path.resolve(root, `.${pathname}`);
     if (filename !== path.resolve(root) && !filename.startsWith(path.resolve(root) + path.sep)) {
       response.writeHead(403).end('Forbidden');

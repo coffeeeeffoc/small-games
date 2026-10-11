@@ -5,6 +5,15 @@ import { createHash } from 'node:crypto';
 
 const loadDependency = createRequire(import.meta.url);
 
+// Reviewed role instructions only; extra permissions, hooks and MCP settings need a new review.
+const codexAgentHashes = {
+  '.codex/agents/repo_explorer.toml':
+    'e087c33533d1fde39ce515ad7ec290178b45b9fd74ba25e3db39bef9a1023b01',
+  '.codex/agents/implementer.toml':
+    '46b95c6b6b342ffed23e9b3ef425a20cba9ea9ba0a9d91d67097583b8309e7b8',
+  '.codex/agents/reviewer.toml': 'fb5948d12ef52eee6927ee12d632a1ac78ed1345a7cfbd70a4418596e64a55a3',
+};
+
 // Exact dependency-checkout repairs for the two bare planning jobs. Commands,
 // permissions, conditions and all other workflow bytes remain producer-bound.
 const planningCheckoutHashes = {
@@ -145,7 +154,7 @@ const flickSource = 'games/local/flick-arena';
 // as well as the single replacement so comments cannot impersonate an anchor.
 const flickIntegrationChanges = {
   'scripts/deploy-tencent.mjs': {
-    base: '85782048a1f2adf71522f1a82f76db9b453f3d47cc545db855d2d870983fd9dd',
+    base: '02acecb81829ab2ee56e628653a7e4b37b92098067531fd770c535db889a2a34',
     anchor: "    'services/runtime-api/rules',\n",
     addition: "    'games/local/flick-arena/src',\n",
     consumers: [flickSource, 'services/runtime-api'],
@@ -157,7 +166,7 @@ const flickIntegrationChanges = {
     consumers: [flickSource, 'apps/shell-web'],
   },
   'scripts/check-workspace-dependencies.mjs': {
-    base: 'c7561a399ef4233e33fb450b1348f6fb59edc320980f9df43f1163c7a38de5eb',
+    base: '365ff86b574b7c082275d886ce7f388a182dba8b6382c28013dc3616fba7ef46',
     anchor: "  'services/runtime-api/rules/chess.mjs -> games/submodules/xiangqi-five/game.js',\n",
     addition:
       "  'services/runtime-api/rules/flick.mjs -> games/local/flick-arena/src/core.mjs',\n" +
@@ -221,6 +230,45 @@ export function threeChooseTwoBackendFileScope(file, before, after) {
     expected = expected.replace(oldText, newText);
   }
   return expected === after;
+}
+
+const carromSource = 'games/local/carrom-club';
+const carromCore = `${carromSource}/src/core.mjs`;
+const carromContent = `${carromSource}/src/content.mjs`;
+const carromRule = 'services/runtime-api/rules/carrom.mjs';
+const carromDeployFile = 'scripts/deploy-tencent.mjs';
+const carromDeployAnchor =
+  "  for (const name of [\n    'services/runtime-api/dist',\n    'services/runtime-api/rules',\n";
+const carromDeployAddition = `    '${carromCore}',\n    '${carromContent}',\n`;
+
+/** Only copy the two shared rule inputs; deployment commands and secrets stay bound. */
+export function carromBackendFileScope(file, before, after) {
+  return (
+    file === carromDeployFile &&
+    typeof before === 'string' &&
+    before.split(carromDeployAnchor).length === 2 &&
+    !before.includes(carromCore) &&
+    !before.includes(carromContent) &&
+    after === before.replace(carromDeployAnchor, carromDeployAnchor + carromDeployAddition)
+  );
+}
+
+function assertCarromConsumers(games, packages) {
+  const catalog = games.filter((game) => game.id === 'carrom-club' || game.source === carromSource);
+  assert(
+    catalog.length === 1 && catalog[0].id === 'carrom-club' && catalog[0].source === carromSource,
+    'Unreviewed carrom catalog binding',
+  );
+  assert(
+    packages.some((pkg) => pkg.dir === 'services/runtime-api'),
+    'Missing carrom server consumer',
+  );
+}
+
+function importsModule(source, target) {
+  return parsedSource(source).body.some(
+    (node) => node.type === 'ImportDeclaration' && node.source.value === target,
+  );
 }
 const localIgnores = new Set([
   '.codex/config.toml',
@@ -559,10 +607,73 @@ function assertCageRescueImmersive(file, before, after) {
   }
 }
 
+// H5 publishing is copied/bundled into these standalone games. This explicit
+// boundary keeps a change to the shared adapter from silently skipping consumers.
+export const publishingConsumers = {
+  'tower-brake': 'games/local/tower-brake',
+  'cage-rescue': 'games/local/cage-rescue',
+  'ball-roguelite': 'games/local/ball-roguelite',
+  'three-choose-two': 'games/local/three-choose-two',
+  'flick-arena': 'games/local/flick-arena',
+  'moss-garden': 'games/local/game-moss-garden',
+  'ember-bounce': 'games/local/ember-bounce',
+  'chase-thief': 'games/local/chase-thief',
+  'retreat-rally': 'games/local/retreat-rally',
+  'tiny-signals': 'games/local/tiny-signals',
+  'orbit-atelier': 'games/local/orbit-atelier',
+  'wulong-city': 'games/local/wulong-city',
+  'surprise-kept': 'games/local/surprise-kept',
+  'homebound-station': 'games/local/homebound-station',
+  'waterline-station': 'games/local/waterline-station',
+  'rescue-team': 'games/local/rescue-team',
+  'out-of-frame': 'games/local/out-of-frame',
+  'fold-the-world': 'games/local/fold-the-world',
+  'two-sided-box': 'games/local/two-sided-box',
+};
+export const publishingScopePaths = [
+  'platforms/h5/publishing.js',
+  'platforms/h5/publishing.d.ts',
+  'platforms/h5/tests/publishing.test.mjs',
+];
+export const publicationConfigScopePaths = [
+  'platforms/publication-config.mjs',
+  'platforms/.env.example',
+  'platforms/tests/publication-config.test.mjs',
+];
+export const deploymentBundleScopePaths = [
+  'scripts/deployment-bundle.mjs',
+  'scripts/deployment-bundle.test.mjs',
+  'infra/deployment/.env.example',
+  'infra/deployment/bootstrap.sql',
+  'infra/deployment/deploy.sh',
+  'infra/deployment/validate-env.mjs',
+  'infra/deployment/initialize-operator.mjs',
+];
+const deploymentCommands = {
+  'deployment:bundle': 'node scripts/deployment-bundle.mjs',
+  'test:deployment-bundle': 'node --test scripts/deployment-bundle.test.mjs',
+};
+function deploymentCommandsOnly(before, after) {
+  const previous = JSON.parse(before);
+  const current = JSON.parse(after);
+  for (const [name, command] of Object.entries(deploymentCommands)) {
+    assert(current.scripts?.[name] === command);
+    assert(!Object.hasOwn(previous.scripts, name) || previous.scripts[name] === command);
+    if (!Object.hasOwn(previous.scripts, name)) delete current.scripts[name];
+  }
+  return isDeepStrictEqual(previous, current);
+}
+
 /** Structural proofs for config-only changes; explicit consumers for known tools.
  * No prefix wildcard accepts a new workflow, shared runtime or test script.
  */
-export function reviewedSharedFileScopes({ changedPaths, readBase, readHead, games }) {
+export function reviewedSharedFileScopes({
+  changedPaths,
+  readBase,
+  readHead,
+  games,
+  packages = [],
+}) {
   const scopes = new Map();
   for (const file of changedPaths) {
     try {
@@ -579,6 +690,42 @@ export function reviewedSharedFileScopes({ changedPaths, readBase, readHead, gam
             bindings[0].source === flickSource,
         );
         scopes.set(file, flickIntegrationChanges[file].consumers);
+      } else if (Object.hasOwn(codexAgentHashes, file)) {
+        assert.equal(
+          createHash('sha256').update(readHead(file)).digest('hex'),
+          codexAgentHashes[file],
+        );
+        scopes.set(file, []);
+      } else if (publishingScopePaths.includes(file)) {
+        for (const [id, source] of Object.entries(publishingConsumers)) {
+          assert(games.filter((game) => game.id === id && game.source === source).length === 1);
+          assert(packages.some((pkg) => pkg.dir === source));
+        }
+        scopes.set(file, Object.values(publishingConsumers));
+      } else if (publicationConfigScopePaths.includes(file)) {
+        scopes.set(file, []);
+      } else if (
+        deploymentBundleScopePaths.includes(file) ||
+        (file === 'package.json' && deploymentCommandsOnly(readBase(file), readHead(file)))
+      ) {
+        // The bundle's source-copy/secret-isolation contract is checked directly.
+        // Unchanged kart/Cocos game rendering is not an input to a backend archive.
+        for (const source of ['services/runtime-api', 'services/management-api'])
+          assert(packages.some((pkg) => pkg.dir === source));
+        scopes.set(file, ['services/runtime-api', 'services/management-api']);
+      } else if (
+        file === carromDeployFile &&
+        carromBackendFileScope(file, readBase(file), readHead(file))
+      ) {
+        assertCarromConsumers(games, packages);
+        scopes.set(file, [carromSource, 'services/runtime-api']);
+      } else if (file === carromCore || file === carromContent) {
+        assertCarromConsumers(games, packages);
+        assert(importsModule(readHead(carromRule), '../../../' + carromCore));
+        if (file === carromContent) assert(importsModule(readHead(carromCore), './content.mjs'));
+        // A pure core edit still needs authoritative-server builds/types/tests,
+        // without promoting a rules-only edit to a game browser regression.
+        scopes.set(file, ['services/runtime-api']);
       } else if (
         file === threeChooseTwoMigration ||
         Object.hasOwn(threeChooseTwoBackendChanges, file)

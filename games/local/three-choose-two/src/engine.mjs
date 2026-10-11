@@ -69,7 +69,7 @@ export function createLevel(idOrConfig = 1) {
 export function createEndless(seed = Date.now(), { ranked = false, variant = 'classic' } = {}) {
   if (!['classic', 'refill'].includes(variant) || ranked && variant !== 'classic') throw new RangeError('Unsupported endless variant');
   const draw = drawCandidates(ranked ? createCounterRng(seed) : normalizeSeed(seed), 1);
-  return { ...baseState('endless'), ranked, ...(variant === 'refill' ? { variant } : {}), rng: draw.rng, candidates: draw.candidates };
+  return { ...baseState('endless'), ranked, ...(!ranked ? { initialSeed: normalizeSeed(seed) } : {}), ...(variant === 'refill' ? { variant } : {}), rng: draw.rng, candidates: draw.candidates };
 }
 
 export function canPlace(state, slot, x, y) {

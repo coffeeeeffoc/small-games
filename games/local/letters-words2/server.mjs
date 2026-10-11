@@ -10,6 +10,7 @@ const assets = new Map([
   ['dev-mode.js', 'text/javascript; charset=utf-8'],
   ['engine.js', 'text/javascript; charset=utf-8'],
   ['challenge.js', 'text/javascript; charset=utf-8'],
+  ['word-flow.js', 'text/javascript; charset=utf-8'],
   ['library.js', 'text/javascript; charset=utf-8'],
   ['competition-renderer.js', 'text/javascript; charset=utf-8'],
   ['fullscreen.js', 'text/javascript; charset=utf-8'],

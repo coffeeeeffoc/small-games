@@ -8,6 +8,8 @@ const assets = new Map([
   ['style.css', 'text/css; charset=utf-8'],
   ...[
     'main.mjs',
+    'challenge.mjs',
+    'publishing.js',
     'scene.mjs',
     'engine.mjs',
     'levels.mjs',
@@ -44,7 +46,11 @@ export function createStaticServer({ dist = false } = {}) {
     }
     if (!asset) return fail(404, 'Not found');
     try {
-      const content = await readFile(new URL(asset, root));
+      const content = await readFile(
+        !dist && asset === 'publishing.js'
+          ? new URL('../../../platforms/h5/publishing.js', import.meta.url)
+          : new URL(asset, root),
+      );
       response.writeHead(200, {
         'Content-Type': assets.get(asset),
         'Content-Length': content.length,

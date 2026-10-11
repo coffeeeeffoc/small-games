@@ -7,7 +7,9 @@ import { promisify } from 'node:util';
 import { chromium, expect } from '@playwright/test';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const output = new URL('../../../../.scratch/ember-bounce/', import.meta.url);
+const output = process.env.EMBER_EVIDENCE_DIR
+  ? new URL(`file://${process.env.EMBER_EVIDENCE_DIR.replace(/\/$/, '')}/`)
+  : new URL('../../../../.scratch/ember-bounce/', import.meta.url);
 await mkdir(output, { recursive: true });
 let server;
 let browser;
@@ -109,6 +111,12 @@ try {
     deviceScaleFactor: 2,
   });
   const page = await phone.newPage();
+  await phone.addInitScript(() => {
+    Object.defineProperty(navigator, 'share', { configurable: true, value: async (payload) => {
+      window.__sharedChallenge = payload;
+      if (window.__cancelShare) throw new DOMException('Cancelled', 'AbortError');
+    } });
+  });
   monitor(page, 'phone');
   await page.goto(url);
   await expect(page.locator('#start')).toBeVisible();
@@ -171,11 +179,33 @@ try {
   });
   await page.locator('#resume').tap();
   await expect.poll(async () => (await snapshot(page)).corePhase, { timeout: 20_000 }).toBe('aim');
+  const roundOne = await snapshot(page);
+  assert.equal(roundOne.completedTurns, 1);
+  await page.locator('#pause').tap();
+  await page.locator('#back-home').tap();
+  await expect(page.locator('#start')).toContainText('继续第 2 轮');
+  await page.screenshot({ path: fileURLToPath(new URL('resume-home.png', output)) });
+  await page.reload();
+  await page.locator('#start').tap();
+  const resumedRound = await snapshot(page);
+  assert.equal(resumedRound.score, roundOne.score);
+  assert.deepEqual(resumedRound.targets, roundOne.targets);
+  assert.equal(resumedRound.completedTurns, 1);
+  // Start a real volley, then reload: only its settled predecessor may be resumed.
+  await shot(page, { touch: true, x: 68 / 390, y: 214 / 600 });
+  await page.reload();
+  await page.locator('#start').tap();
+  assert.equal((await snapshot(page)).completedTurns, 1);
+  assert.equal((await snapshot(page)).score, roundOne.score);
+  checks.push('settled round resumes from home and reload; interrupted flight rolls back only this round');
   await shot(page, { touch: true, x: 68 / 390, y: 214 / 600 });
   await expect
     .poll(async () => (await snapshot(page)).corePhase, { timeout: 20_000 })
     .toBe('upgrade');
   await page.screenshot({ path: fileURLToPath(new URL('portrait-upgrade.png', output)) });
+  await page.reload();
+  await page.locator('#start').tap();
+  await expect(page.locator('#upgrade')).toBeVisible();
   await page.locator('[data-upgrade="power"]').tap();
   await expect.poll(async () => (await snapshot(page)).corePhase).toBe('aim');
   await shot(page, { touch: true, x: 68 / 390, y: 214 / 600 });
@@ -188,6 +218,21 @@ try {
     : completed.progress.unlocked;
   assert(unlockedCount >= 2, 'Normal completion must unlock the next stage');
   await page.screenshot({ path: fileURLToPath(new URL('mobile-result.png', output)) });
+  assert.equal(completed.resume, null, 'A finished run must clear its checkpoint');
+  await page.evaluate(() => history.replaceState(null, '', '?dev=0&token=private#private'));
+  await page.locator('#share-challenge').tap();
+  const share = await page.evaluate(() => window.__sharedChallenge);
+  const invitationUrl = new URL(share.url);
+  assert.equal(invitationUrl.searchParams.get('emberChallenge'), '1');
+  assert.equal(invitationUrl.searchParams.get('turns'), '3');
+  assert.equal(invitationUrl.searchParams.has('dev'), false);
+  assert.equal(invitationUrl.searchParams.has('token'), false);
+  assert.equal(invitationUrl.hash, '');
+  await page.evaluate(() => { window.__cancelShare = true; });
+  await page.locator('#share-challenge').tap();
+  assert.deepEqual((await snapshot(page)).progress, completed.progress);
+  await expect(page.locator('#toast')).toContainText('已取消');
+  checks.push('upgrade checkpoint restore, clean same-level share payload, cancellation without rewards');
   await page.locator('#next').tap();
   await expect(page.locator('body')).toHaveAttribute('data-phase', 'playing');
   const beforeResize = await snapshot(page);
@@ -221,6 +266,48 @@ try {
   );
   await page.close();
   await phone.close();
+
+  const friendContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const friend = await friendContext.newPage();
+  monitor(friend, 'friend-challenge');
+  await friend.goto(url);
+  await friend.locator('#start').tap();
+  await shot(friend, { touch: true });
+  await expect.poll(async () => (await snapshot(friend)).completedTurns, { timeout: 20_000 }).toBe(1);
+  const normalResume = (await snapshot(friend)).resume;
+  await friend.goto(invitationUrl.href);
+  await expect(friend.locator('body')).toHaveAttribute('data-phase', 'home');
+  await expect(friend.locator('#start')).toContainText('接受 3 轮挑战');
+  await friend.screenshot({ path: fileURLToPath(new URL('challenge-home.png', output)) });
+  await friend.locator('#start').tap();
+  assert.equal((await snapshot(friend)).challenge.turns, 3);
+  await shot(friend, { touch: true, cancel: true });
+  assert.equal((await snapshot(friend)).shots, 0);
+  await shot(friend, { touch: true });
+  await expect.poll(async () => (await snapshot(friend)).completedTurns, { timeout: 20_000 }).toBe(1);
+  await friend.reload();
+  await expect(friend.locator('#start')).toContainText('继续第 2 轮');
+  await friend.locator('#start').tap();
+  assert.equal((await snapshot(friend)).challenge.turns, 3);
+  await shot(friend, { touch: true, x: 68 / 390, y: 214 / 600 });
+  await expect(friend.locator('#upgrade')).toBeVisible({ timeout: 20_000 });
+  await friend.locator('[data-upgrade="power"]').tap();
+  await shot(friend, { touch: true, x: 68 / 390, y: 214 / 600 });
+  await expect(friend.locator('body')).toHaveAttribute('data-phase', 'result', { timeout: 20_000 });
+  await expect(friend.locator('#result-description')).toContainText('追平好友');
+  assert.deepEqual((await snapshot(friend)).resume, normalResume);
+  assert.deepEqual((await snapshot(friend)).progress.completed, {});
+  await expect(friend.locator('#next')).toBeHidden();
+  await friend.setViewportSize({ width: 320, height: 568 });
+  await friend.screenshot({ path: fileURLToPath(new URL('challenge-result-small.png', output)) });
+  await friend.locator('#result-home').tap();
+  await friend.locator('#leave-challenge').tap();
+  await expect(friend.locator('#start')).toContainText('继续第 2 轮');
+  await friend.locator('#start').tap();
+  assert.equal((await snapshot(friend)).challenge, null);
+  assert.equal((await snapshot(friend)).completedTurns, 1);
+  checks.push('friend challenge explicit entry, independent resume, real touch tie, normal progress retained');
+  await friendContext.close();
 
   const desktop = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const desk = await desktop.newPage();
@@ -335,7 +422,7 @@ try {
   assert.deepEqual(failures, [], 'All checked browser routes must remain error-free');
   status = 'passed';
   console.log(
-    `熔光弹珠: ${checks.length} browser checks passed; screenshots in .scratch/ember-bounce/`,
+    `熔光弹珠: ${checks.length} browser checks passed; screenshots in ${fileURLToPath(output)}`,
   );
 } catch (error) {
   status = 'failed';

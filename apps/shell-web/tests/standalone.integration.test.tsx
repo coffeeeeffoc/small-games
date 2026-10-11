@@ -7,7 +7,7 @@ import { builtInGameRegistry } from '../src/registry.js';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-it('opens each standalone Game and removes its frame on exit', async () => {
+it('lists featured Games first and preserves the remaining catalog order', async () => {
   const container = document.createElement('div');
   const root = createRoot(container);
   try {
@@ -31,47 +31,55 @@ it('opens each standalone Game and removes its frame on exit', async () => {
         .map((game) => game.title)
         .filter((title) => !featuredTitles.includes(title)),
     ]);
-    for (const { id, title } of games) {
-      const card = [...container.querySelectorAll('article')].find((item) =>
-        item.textContent?.includes(title),
-      );
-      expect(card).toBeDefined();
-      const launch = card!.querySelector<HTMLAnchorElement>('a.game-launch');
-      expect(launch?.getAttribute('href')).toBe(`/games/${id}/index.html`);
-      await act(async () => launch!.click());
-      expect(window.location.hash).toBe(`#/games/${id}`);
-      const frame = container.querySelector('iframe');
-      expect(frame?.getAttribute('src')).toBe(`/games/${id}/index.html`);
-      expect(frame?.title).toBe(title);
-      expect(launch?.getAttribute('href')).toBe(frame?.getAttribute('src'));
-      if (
-        id === 'carrom-club' ||
-        id === 'three-choose-two' ||
-        id === 'retreat-rally' ||
-        id === 'cage-rescue' ||
-        id === 'chase-thief' ||
-        id === 'orbit-atelier' ||
-        id === 'ink-is-everything' ||
-        id === 'ball-roguelite' ||
-        id === 'flick-arena' ||
-        id === 'xiangqi-five' ||
-        id === 'letters-words2' ||
-        id === 'wulong-city'
-      ) {
-        expect(container.querySelector('nav a')).toBeNull();
-        expect(container.querySelector('main')?.getAttribute('data-immersive')).toBe('true');
-      } else {
-        expect(container.querySelector('a')?.getAttribute('href')).toBe(frame?.getAttribute('src'));
-      }
-      await act(async () =>
-        container
-          .querySelector('nav button')
-          ?.dispatchEvent(new MouseEvent('click', { bubbles: true })),
-      );
-      expect(container.querySelector('iframe')).toBeNull();
-      expect(window.location.hash).toBe('');
-      expect(container.querySelector('[aria-label="Game Catalog"]')).not.toBeNull();
+  } finally {
+    await act(async () => root.unmount());
+    window.history.replaceState(null, '', '/');
+    localStorage.clear();
+  }
+});
+
+it.each(games)('opens standalone Game $id and removes its frame on exit', async ({ id, title }) => {
+  const container = document.createElement('div');
+  const root = createRoot(container);
+  try {
+    await act(async () => root.render(<ShellApp runtimeClient={false} />));
+    const card = container.querySelector(`article[data-game-id="${id}"]`);
+    expect(card).not.toBeNull();
+    const launch = card!.querySelector<HTMLAnchorElement>('a.game-launch');
+    expect(launch?.getAttribute('href')).toBe(`/games/${id}/index.html`);
+    await act(async () => launch!.click());
+    expect(window.location.hash).toBe(`#/games/${id}`);
+    const frame = container.querySelector('iframe');
+    expect(frame?.getAttribute('src')).toBe(`/games/${id}/index.html`);
+    expect(frame?.title).toBe(title);
+    expect(launch?.getAttribute('href')).toBe(frame?.getAttribute('src'));
+    if (
+      id === 'carrom-club' ||
+      id === 'three-choose-two' ||
+      id === 'retreat-rally' ||
+      id === 'cage-rescue' ||
+      id === 'chase-thief' ||
+      id === 'orbit-atelier' ||
+      id === 'ink-is-everything' ||
+      id === 'ball-roguelite' ||
+      id === 'flick-arena' ||
+      id === 'xiangqi-five' ||
+      id === 'letters-words2' ||
+      id === 'wulong-city'
+    ) {
+      expect(container.querySelector('nav a')).toBeNull();
+      expect(container.querySelector('main')?.getAttribute('data-immersive')).toBe('true');
+    } else {
+      expect(container.querySelector('a')?.getAttribute('href')).toBe(frame?.getAttribute('src'));
     }
+    await act(async () =>
+      container
+        .querySelector('nav button')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true })),
+    );
+    expect(container.querySelector('iframe')).toBeNull();
+    expect(window.location.hash).toBe('');
+    expect(container.querySelector('[aria-label="Game Catalog"]')).not.toBeNull();
   } finally {
     await act(async () => root.unmount());
     window.history.replaceState(null, '', '/');

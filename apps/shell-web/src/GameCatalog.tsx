@@ -1,8 +1,21 @@
 import standaloneGames from './standalone-games.json';
 import gameMeta from './game-meta.json';
+import { GameAssessmentSummary } from './GameAssessment.js';
 import type { BuiltInGame, LazyBuiltInGame } from './registry.js';
 import { featuredPlay } from './featured-play.js';
 import { standaloneGameEntry } from './standalone-entry.js';
+import {
+  assessments,
+  assessmentSearchText,
+  catalogTabs,
+  emptyFilters,
+  filterGroups,
+  groupKeys,
+  matchesAssessment,
+  normalizeCatalogText,
+  type CatalogFilters,
+  type FilterGroup,
+} from './catalog-assessments.js';
 
 const featuredGameOrder: Record<string, number> = {
   'carding-car': 0,
@@ -15,12 +28,6 @@ const featuredGameOrder: Record<string, number> = {
   'night-overwatch': 7,
   'wulong-city': 8,
 };
-
-const normalize = (text: string) =>
-  text
-    .normalize('NFKC')
-    .toLowerCase()
-    .replace(/[\s\p{P}]/gu, '');
 
 const metadata: Record<string, (typeof gameMeta.games)[keyof typeof gameMeta.games]> =
   gameMeta.games;
@@ -64,6 +71,8 @@ export function GameCatalog({
   onView,
   onLaunch,
   disabled,
+  filters = emptyFilters(),
+  onFilters,
 }: {
   registry: readonly (BuiltInGame | LazyBuiltInGame)[];
   query: string;
@@ -72,20 +81,56 @@ export function GameCatalog({
   onView: (view: 'list' | 'cards') => void;
   onLaunch: (id: string, search?: string) => void;
   disabled: boolean;
+  filters?: CatalogFilters;
+  onFilters?: (filters: CatalogFilters) => void;
 }) {
-  const terms = query.split(/\s+/u).map(normalize).filter(Boolean);
+  const terms = query.split(/\s+/u).map(normalizeCatalogText).filter(Boolean);
   const games = [...registry, ...standaloneGames].sort(
     (a, b) => (featuredGameOrder[a.id] ?? 9) - (featuredGameOrder[b.id] ?? 9),
   );
   const sourceOf = (game: (typeof games)[number]) =>
     'source' in game ? game.source : `games/local/game-${game.id}`;
-  const matches = games.filter((game) => {
+  const searched = games.filter((game) => {
     const play = featuredPlay[game.id];
-    const text = normalize(
-      `${game.title} ${game.description} ${game.id} ${sourceOf(game)} ${play?.hook ?? ''} ${play?.choices.map((choice) => choice.label).join(' ') ?? ''}`,
+    const text = normalizeCatalogText(
+      `${game.title} ${game.description} ${game.id} ${sourceOf(game)} ${play?.hook ?? ''} ${play?.choices.map((choice) => choice.label).join(' ') ?? ''} ${assessmentSearchText(assessments[game.id])}`,
     );
     return terms.every((term) => text.includes(term));
   });
+  const matches = searched.filter((game) => matchesAssessment(assessments[game.id], filters));
+  const hasFilters = filters.tab !== 'all' || groupKeys.some((group) => filters[group].length > 0);
+  const toggle = (group: FilterGroup, value: string) =>
+    onFilters?.({
+      ...filters,
+      [group]: filters[group].includes(value)
+        ? filters[group].filter((item) => item !== value)
+        : [...filters[group], value],
+    });
+  const facet = (group: FilterGroup) => (
+    <fieldset key={group} className="catalog-facet">
+      <legend>{filterGroups[group].label}</legend>
+      <div className="catalog-chips">
+        {filterGroups[group].options.map(([value, label]) => {
+          const count = searched.filter(
+            (game) =>
+              matchesAssessment(assessments[game.id], filters, group) &&
+              assessments[game.id]?.[group].includes(value),
+          ).length;
+          return (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={filters[group].includes(value)}
+              onClick={() => toggle(group, value)}
+            >
+              {label}
+              <span className="facet-count">{count}</span>
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
 
   return (
     <>
@@ -96,7 +141,7 @@ export function GameCatalog({
             type="search"
             value={query}
             onChange={(event) => onQuery(event.target.value)}
-            placeholder="中文名、描述、目录名…多个关键词用空格分隔"
+            placeholder="中文名、目录名、标签…空格分隔关键词"
           />
         </label>
         <div className="catalog-view" role="group" aria-label="展示方式">
@@ -116,6 +161,73 @@ export function GameCatalog({
           </button>
         )}
       </div>
+      {onFilters && (
+        <section className="catalog-filters" aria-label="游戏分类筛选">
+          <p className="catalog-portfolio-summary">
+            {games.length} 款全部归类 · 有趣 / 有潜力{' '}
+            {games.filter((game) => assessments[game.id]?.potential.includes('potential')).length}{' '}
+            款 · 潜力低{' '}
+            {games.filter((game) => assessments[game.id]?.potential.includes('low')).length} 款。
+            下方四个排期组互不重叠，排期不代表潜力高低。
+          </p>
+          <div className="catalog-tabs" role="group" aria-label="评估分组">
+            {catalogTabs.map(([tab, label]) => {
+              const total = games.filter((game) =>
+                matchesAssessment(assessments[game.id], { ...emptyFilters(), tab }),
+              ).length;
+              const count = searched.filter((game) =>
+                matchesAssessment(assessments[game.id], { ...filters, tab }),
+              ).length;
+              return (
+                <button
+                  key={tab}
+                  type="button"
+                  aria-pressed={filters.tab === tab}
+                  onClick={() => onFilters({ ...filters, tab })}
+                  title={`当前条件匹配 ${count} 款，该组共 ${total} 款`}
+                >
+                  {label}
+                  <span className="facet-count">
+                    {count === total ? total : `${count} / ${total}`}
+                  </span>
+                </button>
+              );
+            })}
+            {hasFilters && (
+              <button type="button" onClick={() => onFilters(emptyFilters())}>
+                清空筛选
+              </button>
+            )}
+            {(hasFilters || query) && (
+              <button
+                type="button"
+                onClick={() => {
+                  onQuery('');
+                  onFilters(emptyFilters());
+                }}
+              >
+                重置全部
+              </button>
+            )}
+          </div>
+          {facet('potential')}
+          {facet('platforms')}
+          <details className="catalog-more-filters">
+            <summary>
+              玩法与拓展方向
+              {filters.genres.length + filters.opportunities.length > 0
+                ? ` · 已选 ${filters.genres.length + filters.opportunities.length}`
+                : ''}
+            </summary>
+            {facet('genres')}
+            {facet('opportunities')}
+          </details>
+          <p className="catalog-filter-help">
+            同组多选满足任一标签，跨组同时满足。筛选时排期显示匹配数 /
+            组内总数。平台与拓展标签表示推荐方向。爆款与毫无潜力尚无充分证据，暂不赋值。
+          </p>
+        </section>
+      )}
       <section
         className={`catalog-grid${view === 'list' ? ' catalog-list' : ''}`}
         aria-label="Game Catalog"
@@ -138,6 +250,7 @@ export function GameCatalog({
             <h2>{game.title}</h2>
             {!featuredPlay[game.id] && <code>{sourceOf(game)}</code>}
             <p>{featuredPlay[game.id]?.hook ?? game.description}</p>
+            {assessments[game.id] && <GameAssessmentSummary assessment={assessments[game.id]} />}
             {view === 'cards' && <GameHistory id={game.id} />}
             {'source' in game ? (
               <a
@@ -177,7 +290,7 @@ export function GameCatalog({
           </article>
         ))}
       </section>
-      {!matches.length && <p>没有找到匹配的游戏，试试更短的关键词或清空搜索。</p>}
+      {!matches.length && <p>没有找到匹配的游戏，试试其他标签、缩短关键词或重置全部。</p>}
     </>
   );
 }

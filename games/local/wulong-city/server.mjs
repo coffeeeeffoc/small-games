@@ -10,7 +10,7 @@ http.createServer(async (req,res) => {
     const file = path.resolve(root, '.' + (pathname === '/' ? '/index.html' : pathname));
     const relative = path.relative(root, file);
     if (relative === '..' || relative.startsWith('..' + path.sep) || path.isAbsolute(relative)) { res.writeHead(403).end(); return; }
-    const data = await readFile(file);
+    const data = await readFile(pathname === '/publishing.js' && !process.argv.includes('--dist') ? new URL('../../../platforms/h5/publishing.js', import.meta.url) : file);
     res.writeHead(200, {'Content-Type':types[path.extname(file)] || 'application/octet-stream','Cache-Control':'no-store'}).end(data);
   } catch { res.writeHead(404).end('Not found'); }
 }).listen(Number(process.env.PORT || 4174), '0.0.0.0', () => console.log('乌龙城 http://localhost:' + (process.env.PORT || 4174)));

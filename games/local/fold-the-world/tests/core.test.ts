@@ -236,3 +236,10 @@ test('First Fold: real input crosses the new collision bridge and reaches the ex
   assert.equal(game.mode,'COMPLETED');
   assert.ok(game.body.x>400); assert.equal(game.body.y,402);
 });
+
+import { readChallenge } from '../src/challenge';
+test('fold challenges accept bounded page/target while rejecting invalid pages',()=>{
+ assert.deepEqual(readChallenge('?challenge=fold-v1&level=100&targetFolds=3',100),{index:99,target:3});
+ for(const value of ['0','101','-1','Infinity','1.5','']) assert.equal(readChallenge(`?challenge=fold-v1&level=${value}`,100),null);
+ assert.equal(readChallenge('?challenge=fold-v1&level=1&targetFolds=-1',100)?.target,null);
+});

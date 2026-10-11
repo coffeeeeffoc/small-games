@@ -10,3 +10,5 @@ for (const file of ['index.html', 'style.css', 'dev-mode.js', 'fullscreen.js', '
   await cp(new URL(file, import.meta.url), new URL(file, dist), { recursive: true });
 }
 console.log('Built 打破笼子接住人 → dist/');
+
+await cp(new URL('../../../platforms/h5/publishing.js', import.meta.url), new URL('publishing.js', dist));

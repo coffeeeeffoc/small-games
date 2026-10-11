@@ -84,6 +84,8 @@ async function action(page, name, fallback) {
     await expect(locator.first()).toBeVisible();
     await locator.first().tap();
   } else await tap(page, fallback || name);
+  const advert = page.locator('[data-game-ad="mock"]');
+  if (await advert.count()) await advert.getByRole('button', { name: '关闭并继续' }).tap();
 }
 async function gesturePoints(page, slot, x, y) {
   const candidate = page.locator(`[data-slot="${slot}"]`);
@@ -329,7 +331,8 @@ async function mainFlow() {
   await action(page, 'share', '分享成绩');
   const shares = await page.evaluate(() => window.__sharedScores);
   assert.equal(shares.length, 1); assert.ok(shares[0].text.includes('三选二'));
-  assert.equal(new URL(shares[0].url).search, '', 'Public share never exports dev flags');
+  assert.equal(new URL(shares[0].url).searchParams.has('dev'), false, 'Public share never exports dev flags');
+  assert.equal(Number(new URL(shares[0].url).searchParams.get('seed')), practice.initialSeed, 'Public share replays the same initial stock');
   await expect(page.locator('#game')).toHaveAttribute('data-screen', 'result');
   await action(page, 'leaderboard', '查看排行榜');
   await screen(page, 'leaderboard');
@@ -433,7 +436,7 @@ async function failureFlow() {
   assert.equal(failed.status, 'lost');
   assert.equal(failed.reason, 'groups-exhausted');
   assert.equal(failed.stats.lines, 0);
-  assert.equal(await page.locator('button[data-action="continue"]').count(), 0, 'Unavailable ads must not promise a reward');
+  assert.equal(await page.locator('button[data-action="continue"]').count(), 1, 'The explicit simulator offers an optional continuation');
   await capture(page, 'result-failure-390x844');
   await page.reload();
   await screen(page, 'home');

@@ -14,6 +14,7 @@ const port = Number(option('--port', 4412));
 const host = option('--host', '0.0.0.0');
 const mime = {
   '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
   '.mjs': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
 };
@@ -24,6 +25,7 @@ const server = http.createServer(async (request, response) => {
     const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
     let file = path.resolve(root, '.' + pathname);
     if (file !== path.resolve(root) && !file.startsWith(root)) return response.writeHead(403).end();
+    if (!process.argv.includes('--dist') && pathname === '/publishing.js') file = fileURLToPath(new URL('../../../platforms/h5/publishing.js', import.meta.url));
     if ((await stat(file)).isDirectory()) file = path.join(file, 'index.html');
     const body = await readFile(file);
     response.writeHead(200, {

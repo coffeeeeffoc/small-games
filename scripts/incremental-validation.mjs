@@ -8,13 +8,19 @@ import {
   nineNativeChecks,
   nineNativeDependencyPlan,
 } from './nine-native-scope.mjs';
-import { competitionToolPlan } from './publication-scopes.mjs';
+import {
+  competitionToolPlan,
+  publishingConsumers,
+  publishingScopePaths,
+  deploymentBundleScopePaths,
+  publicationConfigScopePaths,
+} from './publication-scopes.mjs';
 export { reviewedSharedFileScopes } from './publication-scopes.mjs';
 
 const loadFormatter = createRequire(import.meta.url);
 
 const validationTool =
-  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|run-selected-(?:shell|browser)|ci-validation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope|pages-regression-shards|publication-scopes|run-selected-competition)(?:\.[^/]+)?\.mjs|scripts\/nine-(?:native|lock)-scope(?:\.test)?\.mjs|\.githooks\/[^/]+)$/;
+  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|run-selected-(?:shell|browser)|ci-validation|browser-preparation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope|pages-regression-shards|publication-scopes|run-selected-competition)(?:\.[^/]+)?\.mjs|scripts\/nine-(?:native|lock)-scope(?:\.test)?\.mjs|\.githooks\/[^/]+)$/;
 export const workspaceBoundaryScopePaths = Object.freeze([
   'scripts/check-workspace-dependencies.mjs',
   'scripts/check-workspace-dependencies.test.mjs',
@@ -168,6 +174,19 @@ export function incrementalPlan({
     : [];
   if (devModeIds.length)
     for (const id of navigationSamples) if (games.some((game) => game.id === id)) ids.add(id);
+  const publishingChanged = paths.some((file) => publishingScopePaths.includes(file));
+  const publishingBrowserIds = Object.entries(publishingConsumers)
+    .filter(
+      ([id]) => ids.has(id) && (publishingChanged || directGames.some((game) => game.id === id)),
+    )
+    .map(([id, source]) => {
+      assert(
+        games.some((game) => game.id === id && game.source === source) &&
+          packages.some((pkg) => pkg.dir === source),
+        `Unreviewed publishing browser consumer: ${id}`,
+      );
+      return id;
+    });
   return {
     full: false,
     browser: ids.size > 0,
@@ -207,6 +226,24 @@ export function incrementalPlan({
     nine_native_travel_contract: nineNative.travel_contract,
     native_consumers: nativeConsumers.map((consumer) => consumer.dir),
     developer_mode_ids: devModeIds.sort(),
+    catalog_rollout_checks: shellChanged,
+    interaction_browser_ids: ['letters-words2', 'tianxia-chalu'].filter(
+      (id) => ids.has(id) && directGames.some((game) => game.id === id),
+    ),
+    publishing_checks: publishingChanged,
+    publishing_browser_ids: publishingBrowserIds.sort(),
+    publication_config_checks: paths.some((file) => publicationConfigScopePaths.includes(file)),
+    deployment_bundle_checks: paths.some(
+      (file) =>
+        deploymentBundleScopePaths.includes(file) ||
+        (file === 'package.json' && fileScopes.has(file)),
+    ),
+    service_rule_sources: [
+      'services/runtime-api',
+      'services/management-api',
+      'packages/ad-runtime',
+      'platforms/douyin',
+    ].filter((source) => paths.some((file) => file.startsWith(source + '/'))),
   };
 }
 

@@ -574,8 +574,27 @@ export function draw(c, app) {
     if (customAccent) circle(c, 194, 461, 48, null, accent, 3);
     fighter(c, 194, 461, 37, 0, true, t);
     const next = nextLevel(app.save);
-    text(c, `第 ${next.index} 关 · ${next.name}`, 195, 567, 13, '#d5c09a');
-    button('start', app.save.campaign ? '继续闯关' : '开始闯关', 45, 589, 300, 55, true);
+    text(
+      c,
+      app.invited
+        ? app.invited.targetShots
+          ? `好友自报：${app.invited.targetShots} 次出手守擂`
+          : '接受好友的同擂台挑战'
+        : `第 ${next.index} 关 · ${next.name}`,
+      195,
+      567,
+      13,
+      '#d5c09a',
+    );
+    button(
+      'start',
+      app.invited ? '接受同擂台挑战' : app.save.campaign ? '继续闯关' : '开始闯关',
+      45,
+      589,
+      300,
+      55,
+      true,
+    );
     button('levels', '章节选关', 28, 660, 161, 45);
     button('friends', '好友擂台', 201, 660, 161, 45);
     button('layouts', '练习场', 28, 719, 101, 44);
@@ -1338,11 +1357,30 @@ export function draw(c, app) {
         table(c, 195, 376, 112);
         if (!draw) fighter(c, 195, 360, 62, state.winner, true, t);
         text(c, win ? '擂 主' : draw ? '平 局' : '再 来 一 局', 195, 460, 22, '#f8d185', 'serif');
-        text(c, app.reason || '落点决定下一回合的安全', 195, 528, 13, '#c8c8b0');
-        text(c, `${state.turn} 回合 · 你出手 ${state.playerShots} 次`, 195, 561, 13, '#b6bba8');
-        button('again', '再战一局', 50, 607, 290, 55, true);
-        button('replay', '回看最后一弹', 50, 676, 175, 47);
-        button('home', '回武馆', 236, 676, 104, 47);
+        text(
+          c,
+          app.targetShots
+            ? `好友自报 ${app.targetShots} 次守擂 · ${win && state.playerShots <= app.targetShots ? (state.playerShots < app.targetShots ? '已超越！' : '已追平') : '再试一次'}`
+            : app.reason || '落点决定下一回合的安全',
+          195,
+          528,
+          13,
+          '#c8c8b0',
+        );
+        text(
+          c,
+          `${state.turn} 回合 · 出手 ${state.playerShots} 次 · 击落 ${app.playerKnockouts ?? 0} 位`,
+          195,
+          561,
+          13,
+          '#b6bba8',
+        );
+        button('again', '再战一局', 50, 594, 290, 55, true);
+        button('rematch', '同局再战', 50, 661, app.canShare ? 140 : 290, 47);
+        if (app.canShare) button('share', '分享战帖', 200, 661, 140, 47);
+        button('replay', '回看最后一弹', 50, 720, 175, 47);
+        button('home', '回武馆', 236, 720, 104, 47);
+        if (app.shareNotice) text(c, app.shareNotice, 195, 578, 11, '#f8d185');
       }
     }
   }

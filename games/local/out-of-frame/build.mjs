@@ -5,9 +5,11 @@ await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
 // Keep the published game self-contained without development tools or test fixtures.
 for (const file of [
-  'index.html', 'dev-mode.js',
+  'index.html', 'dev-mode.js', 'fullscreen.js',
   'style.css',
   'game.mjs',
+  'challenge.mjs',
+  'display.mjs',
   'render.mjs',
   'engine.mjs',
   'levels.mjs',
@@ -20,3 +22,5 @@ for (const file of [
   await cp(new URL(file, import.meta.url), new URL(file, dist));
 }
 console.log('Built out-of-frame: dist/');
+
+await cp(new URL('../../../platforms/h5/publishing.js', import.meta.url), new URL('publishing.js', dist));

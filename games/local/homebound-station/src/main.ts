@@ -1,4 +1,5 @@
 import './style.css';
+import { shareChallenge } from '../../../../platforms/h5/publishing.js';
 import { ARROWS, LEVELS } from './levels.ts';
 import { advance, canSelect, createSimulation, dispatch, matchGroup, queueHead, snapshot, splitGroup, splitPlans, stars } from './simulation.ts';
 import type { SplitPlan } from './simulation.ts';
@@ -14,6 +15,15 @@ function loadProgress(): Progress {
   } catch { return { stars: [0, 0, 0], sound: true, lowQuality: false }; }
 }
 const progress = loadProgress();
+const invitedLevel = Number(new URLSearchParams(location.search).get('station'));
+const hasInvitation = Number.isInteger(invitedLevel) && invitedLevel >= 1 && invitedLevel <= LEVELS.length;
+let challenge = false;
+async function invite() {
+  const result = await shareChallenge({ title: '归途站 · 同班接驳', text: `一起解开第 ${state.config.id} 班车阵，接走 ${state.target} 位旅客。`, params: { station: state.config.id } });
+  const target = el('share-status');
+  if (!target) return;
+  target.textContent = result.status === 'shared' ? '已打开分享面板' : result.status === 'copied' ? '同关邀请链接已复制' : result.status === 'cancelled' ? '已取消分享，可继续接班' : `长按复制同关邀请：${result.url}`;
+}
 let storageWarning = '';
 function save() { try { localStorage.setItem(KEY, JSON.stringify(progress)); storageWarning = ''; } catch { storageWarning = '浏览器未允许本地保存，本次成绩仅在当前页面保留。'; } }
 app.innerHTML = `<header class="topbar"><div class="brand"><span class="stamp">归</span><div><h1>归途站</h1><p id="level-title"></p></div></div><div class="stats"><span>剩余 <b id="remaining">0</b><em> 辆</em></span><div class="progress-track"><i id="progress"></i></div></div><button id="pause" class="square" aria-label="暂停"><svg viewBox="0 0 20 20" width="16" height="20" aria-hidden="true"><rect x="4" y="2" width="4" height="16" fill="currentColor"/><rect x="12" y="2" width="4" height="16" fill="currentColor"/></svg><span>暂停</span></button></header>
@@ -64,7 +74,7 @@ async function start(index: number) {
   close(); updateHud(); void scene.loadScenery();
 }
 function menu() {
-  open(`<div class="ticket-top">HOMEBOUND STATION <span>出租车出库 · 路线解谜</span></div><p class="eyebrow">看似乱成一团，总有归途</p><h2 id="dialog-title" class="hero-title">归途<span>站</span></h2><p class="intro">看箭头，解开彼此挡路的出租车。<br>接上旅客，让整片车场有序清空。</p><div class="level-list">${LEVELS.map((l, i) => {
+  open(`<div class="ticket-top">HOMEBOUND STATION <span>出租车出库 · 路线解谜</span></div><p class="eyebrow">看似乱成一团，总有归途</p><h2 id="dialog-title" class="hero-title">归途<span>站</span></h2><p class="intro">看箭头，解开彼此挡路的出租车。<br>接上旅客，让整片车场有序清空。</p>${hasInvitation ? `<button class="primary wide" data-action="challenge">接受邀请 · 第 ${invitedLevel} 班<small>独立挑战，不改变接驳进度</small></button>` : ''}<div class="level-list">${LEVELS.map((l, i) => {
     const unlocked = i === 0 || progress.stars[i - 1]! > 0;
     return `<button data-level="${i}" ${unlocked ? '' : 'disabled'}><span class="level-number">0${l.id}</span><span><b>${l.title}</b><small>${unlocked ? l.subtitle : `完成第 ${i} 关后开放`}</small></span><em>${progress.stars[i] ? '★'.repeat(progress.stars[i]!) : unlocked ? '↗' : '锁定'}</em></button>`;
   }).join('')}</div><p class="fineprint">点击或滑动车辆 → 沿箭头出库 → 自动接客</p>`, 'menu');
@@ -116,7 +126,8 @@ function updateHud() {
   el('progress').style.width = `${(state.vehicles.length - remaining) / state.vehicles.length * 100}%`;
   el('clock').textContent = time(state.time); el('speed').textContent = `${speed}×`; el('sound').textContent = `声音 ${progress.sound ? '开' : '关'}`;
   const free = state.bays.filter(b => b.state === 'free').length;
-  el('station-status').textContent = `空闲上车位 ${free}/4 · 自动接客`;
+  const available = state.vehicles.filter(v => v.state === 'holding' && !canSelect(state, v) && matchGroup(state, v).ok).length;
+  el('station-status').textContent = `${challenge ? '好友同关 · ' : ''}${available} 辆可出库 · 空位 ${free}/4`;
   const v = state.vehicles.find(v => v.id === selectedVehicle), g = state.groups.find(g => g.id === selectedGroup);
   let hint = state.config.hint, step = '01', content = '';
   if (v && v.state === 'holding') {
@@ -142,16 +153,18 @@ function updateHud() {
 }
 function clearSelection() { selectedGroup = undefined; selectedVehicle = undefined; updateHud(); }
 function finish() {
-  settled = true; progress.stars[state.config.id - 1] = Math.max(progress.stars[state.config.id - 1]!, stars(state)); save(); beep();
-  open(`<p class="eyebrow">本班接驳完成 · 辛苦了</p><div class="result-stars">${'★'.repeat(stars(state))}<span>${'☆'.repeat(3 - stars(state))}</span></div><h2 id="dialog-title">这一程，有你真好</h2><p>每一位旅客都已乘车驶离车站。</p><div class="result-stats"><div><b>${state.delivered.size} / ${state.target}</b><small>已接驳人数</small></div><div><b>${time(state.time)}</b><small>本班用时</small></div><div><b>${Math.round(state.maxWait)} 秒</b><small>最长上车等待</small></div></div><p class="fineprint">全部接驳后按最长等待评星；不要求满载，不放弃任何一组。<br>三星 ≤ ${state.config.stars[0]} 秒 · 二星 ≤ ${state.config.stars[1]} 秒</p>${storageWarning ? `<p>${storageWarning}</p>` : ''}<button class="primary wide" data-action="${state.config.id < LEVELS.length ? 'next' : 'menu'}">${state.config.id < LEVELS.length ? '下一班 · 继续接班 →' : '返回选关'}</button><div class="two-actions"><button data-action="retry">重新挑战</button><button data-action="menu">关卡手记</button></div>`, 'result');
+  settled = true; if (!challenge) { progress.stars[state.config.id - 1] = Math.max(progress.stars[state.config.id - 1]!, stars(state)); save(); } beep();
+  open(`<p class="eyebrow">本班接驳完成 · 辛苦了</p><div class="result-stars">${'★'.repeat(stars(state))}<span>${'☆'.repeat(3 - stars(state))}</span></div><h2 id="dialog-title">这一程，有你真好</h2><p>每一位旅客都已乘车驶离车站。</p><div class="result-stats"><div><b>${state.delivered.size} / ${state.target}</b><small>已接驳人数</small></div><div><b>${time(state.time)}</b><small>本班用时</small></div><div><b>${Math.round(state.maxWait)} 秒</b><small>最长上车等待</small></div></div><p class="fineprint">全部接驳后按最长等待评星；不要求满载，不放弃任何一组。<br>三星 ≤ ${state.config.stars[0]} 秒 · 二星 ≤ ${state.config.stars[1]} 秒</p>${storageWarning ? `<p>${storageWarning}</p>` : ''}<button class="primary wide" data-action="${!challenge && state.config.id < LEVELS.length ? 'next' : 'menu'}">${!challenge && state.config.id < LEVELS.length ? '下一班 · 继续接班 →' : '返回选关'}</button><div class="two-actions"><button data-action="retry">重新挑战</button><button data-action="menu">关卡手记</button></div><button class="quiet wide" data-action="share">邀请好友接同一班</button><p class="fineprint" id="share-status" role="status">${challenge ? '好友挑战成绩独立，不写入正常进度。' : ''}同关车辆固定，不比较出车步数。</p>`, 'result');
 }
 modal.addEventListener('click', event => {
   const button = (event.target as HTMLElement).closest<HTMLButtonElement>('button'); if (!button || button.disabled) return;
-  if (button.dataset.level !== undefined) { start(Number(button.dataset.level)); beep(); return; }
+  if (button.dataset.level !== undefined) { challenge = false; start(Number(button.dataset.level)); beep(); return; }
   switch (button.dataset.action) {
     case 'resume': case 'cancel-split': close(); break;
     case 'retry': start(state.config.id - 1); break;
-    case 'menu': menu(); break;
+    case 'menu': challenge = false; menu(); break;
+    case 'challenge': challenge = true; start(invitedLevel - 1); break;
+    case 'share': void invite(); break;
     case 'next': start(state.config.id); break;
     case 'quality': progress.lowQuality = !progress.lowQuality; scene?.setQuality(progress.lowQuality); save(); button.textContent = `画质：${progress.lowQuality ? '省电' : '精细'} · 点击切换`; break;
     case 'sound': progress.sound = !progress.sound; save(); button.textContent = `声音：${progress.sound ? '开' : '关'}`; break;
@@ -159,7 +172,7 @@ modal.addEventListener('click', event => {
 });
 modal.addEventListener('cancel', event => { event.preventDefault(); if (mode === 'pause' || mode === 'split') close(); });
 el('pause').onclick = pause;
-el('speed').onclick = () => { speed = speed === 1 ? 2 : 1; updateHud(); };
+el('speed').onclick = () => { speed = speed === 3 ? 1 : speed + 1; updateHud(); };
 el('sound').onclick = () => { progress.sound = !progress.sound; save(); beep(); updateHud(); };
 
 el('fullscreen').onclick = async () => {
@@ -174,7 +187,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) pause
 window.addEventListener('pagehide', () => { state.paused = true; });
 window.addEventListener('pageshow', event => { if (event.persisted && mode === 'playing') { state.paused = false; pause(); } lastFrame = performance.now(); });
 // Read-only, detached snapshots support reproducible browser acceptance without a test-only dispatch API.
-Object.assign(window, { homeboundSnapshot: () => structuredClone(snapshot(state)), homeboundVisualSnapshot: () => scene?.inspect() });
+Object.assign(window, { homeboundSnapshot: () => structuredClone(snapshot(state)), homeboundVisualSnapshot: () => scene?.inspect(), homeboundChallengeSnapshot: () => ({ challenge, speed }) });
 let frameId = 0;
 function frame(now: number) {
   const elapsed = (now - lastFrame) / 1000; lastFrame = now;

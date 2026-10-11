@@ -29,6 +29,7 @@ test('real Git push runs the production hook and default exact-SHA snapshot vali
     for (const file of [
       'validate-push.mjs',
       'validate-tree.mjs',
+      'browser-preparation.mjs',
       'workspace-bootstrap.mjs',
       'cocos-validation.mjs',
       'validation-plan.mjs',

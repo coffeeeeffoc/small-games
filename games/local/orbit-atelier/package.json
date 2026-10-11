@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node --test tests/core.test.ts",
     "test:browser": "node tests/browser.mjs",
-    "build": "tsc --noEmit && vite build"
+    "build": "tsc --noEmit && vite build",
+    "test:publishing:browser": "node tests/publishing.browser.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.55.1",

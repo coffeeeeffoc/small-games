@@ -35,11 +35,11 @@ function addRow(game) {
   });
   game.waveIndex++;
 }
-export function createGame(id = 'stardust', { seed = 0x6d2b79f5, practice = false } = {}) {
+export function createGame(id = 'stardust', { seed = 0x6d2b79f5, practice = false, challenge = false } = {}) {
   const level = typeof id === 'object' ? id : levelById(id);
   if (!level || validateLevels([{ ...level, unlock: null }]).length) throw new Error('无效关卡');
   const game = { schemaVersion: 1, level: copy(level), levelId: level.id, phase: 'aim', seed: (seed >>> 0) || 1,
-    practice, turn: 0, score: 0, shots: 0, count: level.balls, damage: 1, upgrades: {}, cards: [],
+    initialSeed: (seed >>> 0) || 1, challenge, practice, turn: 0, score: 0, shots: 0, count: level.balls, damage: 1, upgrades: {}, cards: [],
     launchX: WIDTH / 2, nextX: null, bricks: [], balls: [], waveIndex: 0, nextId: 1,
     elapsed: 0, flight: 0, emitted: 0, volley: 0, direction: null, combo: 0, bestCombo: 0, events: [] };
   for (let i = 0; i < level.initialRows; i++) { game.bricks.forEach((b) => b.r++); addRow(game); }
@@ -79,6 +79,10 @@ function hurt(game, brick, damage, contact = {}) {
   if (brick.hp > 0) return;
   game.score++; game.combo++; game.bestCombo = Math.max(game.combo, game.bestCombo);
   emit(game, 'break', { ...point, kind: brick.kind, id: brick.id });
+  if (game.combo % 6 === 0 && game.combo <= 18 && game.count < 99) {
+    game.count++;
+    emit(game, 'combo-reward', { combo: game.combo, count: game.count });
+  }
   if (brick.kind === 'bomb') {
     emit(game, 'blast', point);
     for (const other of game.bricks) if (other.id !== brick.id && Math.abs(other.c - brick.c) <= 1 && Math.abs(other.r - brick.r) <= 1)
@@ -252,11 +256,11 @@ export function update(game, dt) {
 export function drainEvents(game) { return game.events.splice(0); }
 
 export function checkpoint(game) {
-  if (!['aim', 'upgrade'].includes(game.phase) || game.practice) return null;
+  if (!['aim', 'upgrade'].includes(game.phase) || game.practice || game.challenge) return null;
   const saved = copy(game); saved.events = []; saved.balls = []; return saved;
 }
 export function restoreGame(saved) {
-  if (!saved || saved.schemaVersion !== 1 || saved.practice || !['aim', 'upgrade'].includes(saved.phase)) return null;
+  if (!saved || saved.schemaVersion !== 1 || saved.practice || saved.challenge || !['aim', 'upgrade'].includes(saved.phase)) return null;
   const level = levelById(saved.levelId);
   if (!level || !Array.isArray(saved.bricks) || saved.bricks.length > 77 || !Array.isArray(saved.cards) || !saved.upgrades || typeof saved.upgrades !== 'object') return null;
   const integer = (v, max) => Number.isInteger(v) && v >= 0 && v <= max;
@@ -273,6 +277,7 @@ export function restoreGame(saved) {
   if (saved.phase === 'upgrade' && (saved.cards.length !== 3 || new Set(saved.cards).size !== 3 || saved.cards.some((id) => !UPGRADES.some((u) => u.id === id)))) return null;
   const game = createGame(level.id);
   for (const key of ['phase', 'seed', 'turn', 'score', 'shots', 'count', 'damage', 'upgrades', 'cards', 'launchX', 'bricks', 'waveIndex', 'nextId', 'elapsed', 'bestCombo']) game[key] = copy(saved[key] ?? game[key]);
+  game.initialSeed = integer(saved.initialSeed, 0xffffffff) && saved.initialSeed > 0 ? saved.initialSeed : null;
   game.launchX = clamp(game.launchX, FIELD.left + FIELD.radius, FIELD.right - FIELD.radius);
   return game;
 }

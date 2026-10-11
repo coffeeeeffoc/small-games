@@ -108,3 +108,8 @@ html,body{background:#c4e2dc}body{background-image:none}body:before,body:after{d
 .mode-card{padding:11px 17px 4px;margin:15px 0}.mode-card h1,.mode-card h2{font-size:24px}.mode-card p{font-size:12px;margin:2px 0 6px}.mode-illustration{height:50px;margin:7px 0}.mode-illustration>svg,.discard-example svg{height:37px}.discard-example{height:44px;width:57px}.mode-best{font-size:10px;margin:6px 0 9px}.mode-card .primary{min-height:46px;font-size:16px;padding:8px 14px}.mode-card.refill-mode{padding-bottom:16px}.mode-footnote{font-size:10px}
 }
 @media(max-width:350px){#game{padding-left:18px;padding-right:18px}.level-grid{gap:27px 7px}.level-button{min-height:65px}.level-button strong{font-size:20px}.screen-header h2{font-size:21px}.home-mode-card{gap:7px}.home-mode-card svg{width:24px;height:24px}.setting small{font-size:9px}.setting-value{gap:5px}}
+
+/* Keep the paired challenge actions thumb-sized without adding another full result row. */
+.result-challenge-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.result-challenge-actions .secondary{font-size:14px;padding:12px 6px;min-height:48px}
+.result.endless{padding-top:14px}.result.endless .result-score{margin-top:24px}.result.endless .result-statistics{margin:16px 0;gap:12px 10px}.result.endless .button-stack{gap:10px;padding-top:8px}
+@media(max-height:640px){.result.endless .result-art{height:55px}.result.endless h1{font-size:25px}.result.endless .result-score{font-size:46px;margin-top:15px}.result.endless .result-statistics{padding:12px;margin:12px 0}.result.endless .result-status{padding:10px;margin-bottom:10px}}

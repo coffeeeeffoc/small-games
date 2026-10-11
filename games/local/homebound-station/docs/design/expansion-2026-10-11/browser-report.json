@@ -1,0 +1,8 @@
+{
+  "browser": "151.0.7922.173",
+  "environment": "Chromium mobile viewport / browser touch simulation; not physical-device certification",
+  "checks": [
+    "touch cancellation, pause/resume, 3x speed, textual blocker, real first-level clear (33 passengers), invitation/share, challenge save isolation, return to normal play, portrait/landscape"
+  ],
+  "errors": []
+}

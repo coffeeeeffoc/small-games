@@ -28,10 +28,10 @@ test('room code validation and public invitations exclude developer flags', asyn
   assert.equal(invitationCode('https://game.test/?flickRoom=invalid'), null);
   const client = createOnlineClient({ storage: memory(), transport: { request: async () => fixture() } });
   await client.join('ABCDEF123456');
-  const invitation = new URL(client.invitationUrl('https://game.test/?dev=1#/play/flick-arena?dev=1'));
+  const invitation = new URL(client.invitationUrl('https://game.test/play/?dev=1&seed=3&layout=chain&targetShots=8&token=private#/play/flick-arena?dev=1'));
   assert.equal(invitation.searchParams.get('flickRoom'), 'ABCDEF123456');
   assert.equal(invitation.searchParams.has('dev'), false);
-  assert.equal(invitation.hash.includes('dev='), false);
+  assert.equal(invitation.href, 'https://game.test/play/?flickRoom=ABCDEF123456');
 });
 
 test('create and recover a real room through the shared request protocol', async () => {

@@ -2,6 +2,13 @@
 
 涉及 TypeSafe API、语义分类、评分或判断流程时，使用 `typesafe-ai` 技能。
 
+### 游戏 UI 与手感技能
+
+- UI 评审、HUD 与游戏菜单/触屏布局使用 `game-ui-ux`。
+- 已有玩法的命中、爆炸、得分等反馈优化使用 `game-feel`。
+- 普通逻辑修复不要求加载这两项；按相关任务选择，参考 [项目技能说明](.agents/skills/README.md)。
+- 本仓库规则与已认可效果图优先；Unity/Godot 示例按现有 TS/JS 技术栈理解，不迁移引擎。视觉震屏与停顿不得直接改变权威联机模拟、计时或覆盖暂停状态。
+
 ### Issue tracker
 
 Issues are tracked in this repository's GitHub Issues using the `gh` CLI. See `docs/agents/issue-tracker.md`.
@@ -13,6 +20,13 @@ Triage uses the five canonical labels without overrides. See `docs/agents/triage
 ### Domain docs
 
 Domain documentation uses a single-context layout. See `docs/agents/domain.md`.
+
+### 项目级多角色协作
+
+- 主会话负责拆分任务、分配范围、整合结果及最终交付；按任务需要调用 `.codex/agents/` 中的 `repo_explorer`（排查）、`implementer`（实现）、`reviewer`（复核），小改动可由主会话直接完成，无需启动全套角色。
+- 默认单写入者：主会话或一个 `implementer` 持有写入权；派发时明确目标、可写路径和验收要求，交还写入权后再由主会话整合。其他角色只读，子角色将后续工作交回主会话协调。
+- 排查与复核默认只读；会生成文件、更新快照、安装依赖或改动服务状态的测试由当前写入者串行执行。测试范围及发布候选验证继续遵循 `docs/operations/incremental-publication.md`，不因多角色重复全量检查。
+- 角色补充现有规则，不替代各级 `AGENTS.md`、权限、审批、hooks 或密钥管理约定。调用示例、版本兼容与只读边界见 [Codex 多角色使用说明](docs/agents/codex-multi-agent.md)。
 
 ## 游戏开发通用约定
 

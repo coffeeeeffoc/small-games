@@ -22,6 +22,13 @@ const DEPENDENCY_FIELDS = [
 // rules on the authoritative server, or exercise those rules from repository tests.
 // Runtime game code must still never import service implementations.
 const REPOSITORY_IMPORTS = new Set([
+  // These standalone H5 entries are bundled by Vite; rules/native entries stay host-only.
+  'games/local/game-moss-garden/src/web.ts -> platforms/h5/publishing.js',
+  'games/local/fold-the-world/src/main.ts -> platforms/h5/publishing.js',
+  'games/local/homebound-station/src/main.ts -> platforms/h5/publishing.js',
+  'games/local/orbit-atelier/src/main.ts -> platforms/h5/publishing.js',
+  // The share-handler contract uses the real public adapter; other game tests gain no edge.
+  'games/local/wulong-city/tests/game.test.mjs -> platforms/h5/publishing.js',
   // Build tooling and browser acceptance helpers, never game runtime dependencies.
   'games/local/night-overwatch/scripts/build.mjs -> games/local/carding-car/scripts/toolchain.mjs',
   'games/local/night-overwatch/scripts/build-native.mjs -> games/local/carding-car/scripts/toolchain.mjs',
@@ -37,6 +44,7 @@ const REPOSITORY_IMPORTS = new Set([
   'apps/shell-minigame/scripts/taptap-smoke.mjs -> games/local/letters-words2/tests/native-test-actions.mjs',
   'apps/shell-minigame/scripts/taptap-smoke.mjs -> games/local/letters-words2/library.js',
   'services/kart-server/tests/server.test.ts -> games/local/carding-car/assets/scripts/KartAI.ts',
+  'services/runtime-api/rules/carrom.mjs -> games/local/carrom-club/src/core.mjs',
   'services/runtime-api/rules/chess.mjs -> games/submodules/xiangqi-five/game.js',
   'services/runtime-api/rules/flick.mjs -> games/local/flick-arena/src/core.mjs',
   'services/runtime-api/rules/flick.mjs -> games/local/flick-arena/src/tournament.mjs',

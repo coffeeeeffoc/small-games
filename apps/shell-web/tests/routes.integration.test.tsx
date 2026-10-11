@@ -56,6 +56,39 @@ async function clickButton(container: HTMLElement, label: string) {
 }
 
 describe('Web Shell routes', () => {
+  it.each([
+    ['tower-brake', 'challenge=tower-v1&level=first-brake&targetScore=450'],
+    ['cage-rescue', 'challenge=rescue-v1&level=rescue-01&targetRescued=3&targetCombo=2'],
+    ['ball-roguelite', 'challenge=orbit-v1&level=stardust&seed=42&targetScore=250'],
+    ['ember-bounce', 'emberChallenge=1&level=first-spark&turns=9'],
+    ['three-choose-two', 'seed=42&variant=refill&targetScore=100'],
+    ['flick-arena', 'seed=42&layout=triangle&targetShots=9'],
+    ['moss-garden', 'level=moss-09&targetHints=1&targetMistakes=2&targetTime=5000'],
+  ])(
+    'opens the full %s challenge from a Shell hash and preserves independent navigation',
+    async (id, query) => {
+      window.history.replaceState(
+        null,
+        '',
+        `/small-games/?dev=1&seed=999&token=private#/games/${id}?${query}`,
+      );
+      const container = await renderShell();
+      const source = container.querySelector('iframe')?.getAttribute('src');
+      expect(source).toBe(`/games/${id}/index.html?${query}&dev=1`);
+      const independent = [...container.querySelectorAll('a')].find(
+        (link) => link.textContent === '独立打开',
+      );
+      if (['tower-brake', 'ember-bounce', 'moss-garden'].includes(id)) {
+        expect(independent?.getAttribute('href')).toBe(source);
+      }
+      expect(source).not.toContain('token=');
+      expect(source).not.toContain('seed=999');
+      await clickButton(container, '返回目录');
+      expect(container.querySelector('iframe')).toBeNull();
+      expect(window.location.hash).toBe('');
+    },
+  );
+
   it('loads only the selected game and ignores its result after leaving the route', async () => {
     const game = builtInGameRegistry[0];
     let finish!: (value: BuiltInGame) => void;

@@ -20,12 +20,14 @@ function memoryStorage(initial) {
 test('fresh progress starts at the first stable level and returned data cannot mutate the store', () => {
   const store = createStorage(levels, memoryStorage());
   assert.deepEqual(store.load(), {
-    schemaVersion: 1,
+    schemaVersion: 2,
     unlocked: ['first'],
     completed: {},
     sound: true,
     haptics: true,
     lastLevel: 'first',
+    run: null,
+    challengeRun: null,
   });
   const snapshot = store.load();
   snapshot.unlocked.push('third');
@@ -88,14 +90,14 @@ test('v0 index-based saves migrate to stable IDs and preserve legitimate setting
   );
   const store = createStorage(levels, storage);
   const data = store.load();
-  assert.equal(data.schemaVersion, 1);
+  assert.equal(data.schemaVersion, 2);
   assert.deepEqual(data.unlocked, ['first', 'second', 'third']);
   assert.deepEqual(data.completed.first, { score: 24, turns: 8, stars: 2 });
   assert.equal(data.lastLevel, 'third');
   assert.equal(data.sound, false);
   assert.equal(data.haptics, false);
   store.save(data);
-  assert.equal(JSON.parse(storage.values.get(STORAGE_KEY)).schemaVersion, 1);
+  assert.equal(JSON.parse(storage.values.get(STORAGE_KEY)).schemaVersion, 2);
 });
 
 test('unknown versions, corrupt JSON, fake unlocks and broken prerequisite chains recover safely', () => {
@@ -124,12 +126,14 @@ test('unknown versions, corrupt JSON, fake unlocks and broken prerequisite chain
     ),
   );
   assert.deepEqual(store.load(), {
-    schemaVersion: 1,
+    schemaVersion: 2,
     unlocked: ['first'],
     completed: {},
     sound: true,
     haptics: true,
     lastLevel: 'first',
+    run: null,
+    challengeRun: null,
   });
 });
 

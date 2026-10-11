@@ -4,18 +4,20 @@
   "browser": "151.0.7922.173",
   "checks": [
     "native touch positioning, aiming, pointercancel without firing",
-    "short-pull 1.5px jitter filtered; held 4px micro-adjustment under 1°; no idle drift; native second touch movement/removal and secondary cancellation preserve primary aim; returning to origin cancels",
+    "a real target collision enables sub-1.2° held 4px touch adjustment",
+    "free short-pull aim follows held 4px movement by 4–8°; 1.5px jitter filtered; no idle drift; native second touch movement/removal and secondary cancellation preserve primary aim; returning to origin cancels",
     "native fingertip lift jitter preserves preview and actual firing angle",
     "real touch shot pockets target; pause freezes physical state; resume reaches win",
     "win stars unlock exactly the next level and survive reload",
     "five genuine missed shots exhaust practice budget",
+    "help explains queen cover +3 points and score-based winners; score HUD shows 0/1 points",
+    "30 placement inputs and release: no synchronous save, one deferred save, zero warm-frame gradient rebuilds or board layout reads",
     "human break triggers AI physical turn",
     "resume returns to the last settled turn",
     "320×640 and 844×390 retain complete board, thumb slider and pause targets",
     "fullscreen gesture enter and exit verified",
     "audio setting persists",
-    "disabled storage and rejected fullscreen keep play usable",
-    "help explains coarse direction and slow adjustment; return to home verified"
+    "disabled storage and rejected fullscreen keep play usable"
   ],
   "pageErrors": [],
   "passed": true

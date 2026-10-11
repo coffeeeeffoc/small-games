@@ -22,6 +22,7 @@ import { normalizeCultivationContent } from '@coffeeeeffoc/game-cultivation/cont
 import cultivationManifestJson from '@coffeeeeffoc/game-cultivation/manifest' with { type: 'json' };
 import { gameManifestSchema } from '@coffeeeeffoc/game-contract';
 import { createProtectionStore, registerProtection } from './protection.js';
+import { validateManagementEnvironment } from './config.js';
 
 /** Creates the management HTTP application with only its own database identity. */
 export function createManagementService(
@@ -29,6 +30,7 @@ export function createManagementService(
   logger = true,
   telemetry?: RequestSpanExporter,
 ): ReturnType<typeof createService> {
+  validateManagementEnvironment(env);
   const databaseUrl = z.url().parse(env.MANAGEMENT_DATABASE_URL);
   const origin = z
     .url()
@@ -42,7 +44,13 @@ export function createManagementService(
     secretAccessKey: z.string().min(1).parse(env.S3_SECRET_ACCESS_KEY),
   });
   const database = openDatabase(databaseUrl, 'management');
-  const app = createService('management', { database, objects }, logger, telemetry);
+  const app = createService(
+    'management',
+    { database, objects },
+    logger,
+    telemetry,
+    env.TRUST_PROXY === '1' ? 'uniquelocal' : false,
+  );
   app.register(async (instance) => {
     const auth = createAuthStore(database.db);
     await registerAuthentication(instance, auth, origin);

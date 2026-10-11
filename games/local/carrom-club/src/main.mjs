@@ -8,11 +8,14 @@ import {
   remaining,
   chooseShot,
   starsFor,
+  scoreBreakdown,
+  scoresFor,
 } from './core.mjs';
 import { createAimGesture, updateAimGesture, settleAimGesture } from './aim.mjs';
 import { createRenderer } from './render.mjs';
 import { readSave, writeSave, unlocked } from './storage.mjs';
 import { createAudio } from './audio.mjs';
+import { createMultiplayer, readInvitation, invitationURL } from './multiplayer.mjs';
 
 validateLevels();
 const $ = (id) => document.getElementById(id);
@@ -40,12 +43,44 @@ let previousTime = 0,
 let lastHud = '',
   resultHandled = false,
   toastLife = 0;
+let dirty = true,
+  persistTimer,
+  online = false,
+  room = null,
+  roomAction = false,
+  networkError = '',
+  authoritative = null,
+  appliedShot = null,
+  connectAction = null,
+  boardBox = null;
 const effects = [],
   cleanups = [];
 const board = $('board'),
   position = $('position');
 const draw = createRenderer(board),
   drawHome = createRenderer($('home-board'));
+async function loadCompetitionClient() {
+  if (!globalThis.__competition) {
+    await import(new URL('../competition-client.js', import.meta.url).href);
+    globalThis.__installCompetition({
+      ...globalThis.__CARROM_COMPETITION_CONFIG__,
+      ...globalThis.__COMPETITION_CONFIG__,
+      game: 'carrom-club',
+    });
+  }
+  return globalThis.__competition;
+}
+const multiplayer = createMultiplayer({
+  storage,
+  loadClient: loadCompetitionClient,
+  onRoom: receiveRoom,
+  onError: (error) => {
+    networkError = error.message;
+    cancelAim();
+    lastHud = '';
+    renderRoom();
+  },
+});
 const homeGame = createGame();
 homeGame.coins[5].x = 250;
 homeGame.coins[5].y = 410;
@@ -60,17 +95,28 @@ const on = (target, type, handler, options) => {
   cleanups.push(() => target.removeEventListener(type, handler, options));
 };
 const click = (id, action) =>
-  on($(id), 'click', () => {
+  on($(id), 'click', (event) => {
     audio.unlock();
-    action();
+    action(event);
   });
 
-function persist() {
+function flushPersist() {
+  clearTimeout(persistTimer);
+  persistTimer = null;
   const ok = writeSave(storage, save);
   if (!ok && !persist.warned) {
     persist.warned = true;
     notice('存储暂不可用，本次仍可继续游玩。');
   }
+}
+function persist(deferred = false) {
+  if (!deferred) {
+    flushPersist();
+    return;
+  }
+  // Let release/input handlers and the next paint finish before synchronous storage I/O.
+  clearTimeout(persistTimer);
+  persistTimer = setTimeout(flushPersist, 120);
 }
 function notice(text) {
   $('notice').textContent = text;
@@ -81,10 +127,10 @@ function notice(text) {
   }, 3600);
 }
 function snapshot() {
-  if (!practice && game.phase === 'ready') {
+  if (!online && !practice && game.phase === 'ready') {
     save.match = structuredClone(game);
     save.match.events = [];
-    persist();
+    persist(true);
   }
 }
 function cancelAim() {
@@ -96,6 +142,7 @@ function cancelAim() {
   $('power-fill').style.width = '0%';
   $('aim-angle').hidden = true;
   lastHud = '';
+  dirty = true;
 }
 function show(next) {
   cancelAim();
@@ -105,12 +152,14 @@ function show(next) {
   accumulator = 0;
   previousTime = 0;
   lastHud = '';
+  dirty = true;
   if (next === 'home') {
     $('start').innerHTML = `${save.match ? '继续对局' : '开始对局'} <span>›</span>`;
     $('practice-progress').textContent = `${Object.keys(save.stars).length} / ${LEVELS.length}`;
     $('home-progress').textContent = save.wins
       ? `已赢下 ${save.wins} 局 · 再约一场好棋`
       : '回拉指尖，听见落袋。';
+    drawHome.resize();
     drawHome(homeGame);
   }
   if (next === 'levels') renderLevels();
@@ -118,8 +167,11 @@ function show(next) {
   if (next === 'play') {
     audio.unlock();
     aiDelay = 0;
+    draw.resize();
+    boardBox = board.getBoundingClientRect();
     updateHud();
   }
+  if (next === 'friends') renderRoom();
   if (window.parent !== window)
     window.parent.postMessage(
       {
@@ -152,6 +204,9 @@ function renderLevels() {
   });
 }
 function start(levelId = null, isPractice = false) {
+  if (room) return;
+  online = false;
+  board.dataset.side = '0';
   const index = LEVELS.findIndex((l) => l.id === levelId);
   if (levelId && !isPractice && !unlocked(save, index)) return;
   practice = isPractice;
@@ -166,13 +221,19 @@ function start(levelId = null, isPractice = false) {
 }
 function pause() {
   if (screen !== 'play') return;
-  $('pause-description').textContent = game.levelId
-    ? LEVELS.find((l) => l.id === game.levelId).title
-    : '这一杆，等你回来。';
+  $('pause-description').textContent = online
+    ? '联网对局仍在继续，返回后同步棋局。'
+    : game.levelId
+      ? LEVELS.find((l) => l.id === game.levelId).title
+      : '这一杆，等你回来。';
   show('pause-screen');
+  $('restart').hidden = online;
+  $('pause-home').textContent = online ? '离开房间' : '返回主页';
   audio.suspend();
 }
 function updateHud() {
+  const side = online ? (room?.you ?? 0) : 0;
+  const opponent = 1 - side;
   const key = [
     game.phase,
     game.turn,
@@ -181,40 +242,68 @@ function updateHud() {
     remaining(game, 0),
     remaining(game, 1),
     !!aim,
+    game.queen,
+    side,
+    networkError,
+    multiplayer.pending,
   ].join('|');
   if (lastHud === key) return;
   lastHud = key;
   const level = LEVELS.find((l) => l.id === game.levelId);
   $('opponent-name').innerHTML = level
     ? `${level.title} <small>练习</small>`
-    : '阿洛 <small>电脑</small>';
+    : online
+      ? `好友 <small>${opponent ? '黑子' : '白子'}</small>`
+      : '阿洛 <small>电脑</small>';
+  $('player-name').innerHTML = `你 <small>${side ? '黑子' : '白子'}</small>`;
+  const scoreText = (seat) => {
+    const score = scoreBreakdown(game, seat);
+    return `${score.total} 分 · ${score.coins}/${game.totals[seat]}${score.queen ? ' · 红后+3' : ''}`;
+  };
   $('opponent-score').textContent = level
     ? `余 ${Math.max(0, level.shots - game.playerShots)} 杆`
-    : `${game.totals[1] - remaining(game, 1)} / ${game.totals[1]}`;
-  $('player-score').textContent = `${game.totals[0] - remaining(game, 0)} / ${game.totals[0]}`;
-  $('player-seat').classList.toggle('active-seat', game.turn === 0 && game.phase === 'ready');
-  $('opponent-seat').classList.toggle('active-seat', game.turn === 1 && game.phase === 'ready');
-  const player = game.turn === 0 && game.phase === 'ready';
+    : scoreText(opponent);
+  $('player-score').textContent = scoreText(side);
+  $('player-seat').querySelector('.coin').className = `coin ${side ? 'black' : 'white'}`;
+  $('opponent-seat').querySelector('.coin').className = `coin ${opponent ? 'black' : 'white'}`;
+  $('player-seat').classList.toggle('active-seat', game.turn === side && game.phase === 'ready');
+  $('opponent-seat').classList.toggle(
+    'active-seat',
+    game.turn === opponent && game.phase === 'ready',
+  );
+  const player = canPlay();
   $('turn-pill').textContent =
     game.phase === 'moving'
       ? '棋子滑行中'
-      : game.turn === 1
-        ? '阿洛在瞄准'
-        : game.queen === 'pending-0'
-          ? '补进红后'
-          : '你的回合';
+      : online && (networkError || multiplayer.pending)
+        ? '等待同步'
+        : game.turn === opponent
+          ? online
+            ? '好友的回合'
+            : '阿洛在瞄准'
+          : game.queen === `pending-${side}`
+            ? '补进红后'
+            : '你的回合';
   $('turn-pill').classList.toggle('ai', !player);
   position.disabled = !player || !!aim;
-  position.value = game.striker.x;
+  position.value = side ? 1000 - game.striker.x : game.striker.x;
   $('play-hint').textContent = aim
     ? '松手击发 · 回到起点收杆'
     : player
       ? '滑动摆位 · 回拉击球子'
-      : game.turn === 1
+      : game.turn === opponent
         ? '看一看，下一杆怎么打'
         : '让棋子，再滑一会儿';
   if (aim) updateAimDisplay();
-  $('status').textContent = game.message;
+  $('status').textContent =
+    online && multiplayer.pending
+      ? '这一杆尚未确认，请重试同步。'
+      : online && networkError
+        ? networkError
+        : online && game.phase === 'ready'
+          ? `${game.turn === side ? '你的回合' : '好友的回合'} · ${game.message.replace('你的回合 · 白子先行', '白子先行')}`
+          : game.message;
+  $('sync-retry').hidden = !online || (!networkError && !multiplayer.pending);
   $('practice-badge').hidden = !practice;
   board.dataset.phase = game.phase;
   board.dataset.shots = game.shots;
@@ -223,30 +312,43 @@ function updateHud() {
 function finish() {
   if (resultHandled) return;
   resultHandled = true;
-  const win = game.winner === 0,
+  const side = online ? room.you : 0;
+  const win = game.winner === side,
     stars = starsFor(game),
     index = LEVELS.findIndex((l) => l.id === game.levelId);
-  if (!practice) {
+  if (!practice && !online) {
     save.match = null;
     if (win && game.levelId)
       save.stars[game.levelId] = Math.max(save.stars[game.levelId] ?? 0, stars);
     if (win && !game.levelId) save.wins++;
     persist();
   }
-  $('result-title').textContent = win
-    ? '这一局，漂亮'
-    : game.levelId
-      ? '再找一个好角度'
-      : '好棋，棋逢对手';
-  $('result-description').textContent = practice
-    ? '开发试玩 · 本次不记录进度'
-    : win && game.levelId
-      ? `${LEVELS[index].title} · ${index < LEVELS.length - 1 ? '下一关已解锁' : '六关练习已完成'}`
-      : game.message;
+  $('result-title').textContent =
+    online && game.winner === null
+      ? '平分秋色'
+      : win
+        ? '这一局，漂亮'
+        : game.levelId
+          ? '再找一个好角度'
+          : '好棋，棋逢对手';
+  $('result-description').textContent =
+    online && room.state.reason === 'resign'
+      ? win
+        ? '好友认输 · 本局结束'
+        : '你已认输 · 本局结束'
+      : practice
+        ? '开发试玩 · 本次不记录进度'
+        : win && game.levelId
+          ? `${LEVELS[index].title} · ${index < LEVELS.length - 1 ? '下一关已解锁' : '六关练习已完成'}`
+          : game.message;
   $('result-stars').textContent =
     win && game.levelId ? '★'.repeat(stars) + '☆'.repeat(3 - stars) : '';
-  $('result-shots').textContent = game.playerShots;
-  $('result-pots').textContent = game.totals[0] - remaining(game, 0);
+  const scores = scoresFor(game);
+  $('result-score').textContent = game.levelId
+    ? ''
+    : `你 ${scores[side]} 分 · ${online ? '好友' : '阿洛'} ${scores[1 - side]} 分`;
+  $('result-shots').textContent = side ? game.shots - game.playerShots : game.playerShots;
+  $('result-pots').textContent = game.totals[side] - remaining(game, side);
   $('next').hidden = !win || !game.levelId || index === LEVELS.length - 1 || practice;
   $('retry').textContent = game.levelId ? '再练一次' : '再来一局';
   show('result');
@@ -261,7 +363,236 @@ function updateSettings() {
     $(id).querySelector('strong').textContent = save[id] ? '开' : '关';
   }
 }
+function canPlay() {
+  return (
+    game.phase === 'ready' &&
+    game.turn === (online ? room?.you : 0) &&
+    (!online ||
+      (room?.status === 'playing' && !networkError && !multiplayer.pending && !roomAction))
+  );
+}
+function renderRoom() {
+  $('room-entry').hidden = !!room;
+  $('room-details').hidden = !room;
+  $('room-recover').hidden = !!room || !multiplayer.recoverable;
+  $('room-retry').hidden = !networkError;
+  $('room-status').textContent =
+    networkError ||
+    (roomAction
+      ? '正在连接…'
+      : room
+        ? room.status === 'waiting'
+          ? '双方准备后，即可开局。'
+          : '对局已结束，可再约一局。'
+        : '创建房间，把邀请发给好友。');
+  for (const id of [
+    'room-create',
+    'room-join',
+    'room-recover',
+    'room-ready',
+    'room-leave',
+    'room-retry',
+    'sync-retry',
+  ])
+    $(id).disabled = roomAction;
+  if (!room) return;
+  $('room-code').textContent = room.code;
+  $('room-players').replaceChildren();
+  for (let seat = 0; seat < 2; seat++) {
+    const player = room.players[seat];
+    const row = document.createElement('div');
+    row.className = 'room-player';
+    const disc = document.createElement('i');
+    disc.className = `coin ${seat ? 'black' : 'white'}`;
+    const name = document.createElement('strong');
+    name.textContent = seat === room.you ? '你' : '好友';
+    const state = document.createElement('span');
+    state.textContent = !player ? '等待加入' : player.ready ? '已准备' : '未准备';
+    row.append(disc, name, state);
+    $('room-players').append(row);
+  }
+  $('room-ready').disabled =
+    roomAction || (room.status === 'waiting' && room.players[room.you]?.ready);
+  $('room-ready').textContent =
+    room.status === 'waiting'
+      ? room.players[room.you]?.ready
+        ? '等待好友准备'
+        : '准备'
+      : room.status === 'playing'
+        ? '返回对局'
+        : '再来一局';
+}
+async function roomTask(action) {
+  if (roomAction) return;
+  roomAction = true;
+  networkError = '';
+  renderRoom();
+  lastHud = '';
+  try {
+    await action();
+  } catch (error) {
+    networkError = error.message;
+    notice(error.message);
+  } finally {
+    roomAction = false;
+    lastHud = '';
+    dirty = true;
+    renderRoom();
+  }
+}
+function receiveRoom(next) {
+  const previous = room;
+  room = next;
+  if (previous?.code !== next?.code) {
+    try {
+      const url = new URL(location.href);
+      if (next) url.searchParams.set('pk', next.code);
+      else url.searchParams.delete('pk');
+      history.replaceState(null, '', url);
+    } catch {
+      // Some embedding hosts disallow history changes; room storage still works.
+    }
+  }
+  networkError = '';
+  lastHud = '';
+  dirty = true;
+  renderRoom();
+  if (!next) {
+    online = false;
+    authoritative = null;
+    appliedShot = null;
+    board.dataset.side = '0';
+    return;
+  }
+  online = true;
+  practice = false;
+  board.dataset.side = String(next.you);
+  if (!next.state?.game) {
+    cancelAim();
+    authoritative = null;
+    appliedShot = null;
+    resultHandled = false;
+    show('friends');
+    return;
+  }
+  const fresh = !previous || previous.code !== next.code || previous.status === 'waiting';
+  const latest = next.state.game;
+  const lastShot = next.state.lastShot;
+  authoritative = structuredClone(latest);
+  if (fresh) {
+    game = structuredClone(latest);
+    appliedShot = latest.shots;
+    effects.length = 0;
+    resultHandled = false;
+    show('play');
+  } else if (game.phase === 'moving' && game.shots === latest.shots && screen === 'play') {
+    // The server has confirmed this animated shot; use its state when the animation settles.
+  } else if (screen === 'play' && lastShot && lastShot.id === game.shots + 1) {
+    cancelAim();
+    game = structuredClone(lastShot.before);
+    shoot(game, lastShot.dx, lastShot.dy, lastShot.power);
+  } else if (game.shots !== latest.shots || game.phase !== latest.phase || fresh) {
+    cancelAim();
+    game = structuredClone(latest);
+    appliedShot = latest.shots;
+    dirty = true;
+  }
+  if (['abandoned', 'expired'].includes(next.status)) {
+    cancelAim();
+    show('friends');
+    $('room-status').textContent =
+      next.status === 'expired'
+        ? '房间已过期，可以重新约一局。'
+        : '有玩家离开了房间，可以重新约一局。';
+  }
+  if (next.status === 'finished' && game.phase !== 'moving' && screen !== 'result') {
+    game = structuredClone(latest);
+    dirty = true;
+    if (game.phase === 'over') finish();
+  }
+}
+async function leaveRoom() {
+  if (room) await multiplayer.leave();
+  show('home');
+}
+click('friends-open', () => {
+  show('friends');
+  if (!room && multiplayer.recoverable) void roomTask(() => multiplayer.resume());
+});
+click('friends-back', () => void roomTask(leaveRoom));
+click('room-create', () => {
+  connectAction = () => multiplayer.create();
+  void roomTask(connectAction);
+});
+click('room-join', () => {
+  connectAction = () => multiplayer.join($('room-input').value);
+  void roomTask(connectAction);
+});
+click('room-recover', () => void roomTask(() => multiplayer.resume()));
+click('room-ready', () => {
+  if (room?.status === 'playing') show('play');
+  else
+    void roomTask(() => (room?.status === 'waiting' ? multiplayer.ready() : multiplayer.rematch()));
+});
+click('room-leave', () => void roomTask(leaveRoom));
+const retrySync = () =>
+  void roomTask(() =>
+    room ? multiplayer.retry() : multiplayer.recoverable ? multiplayer.resume() : connectAction?.(),
+  );
+click('room-retry', retrySync);
+// During a board update, mobile browsers may deliver touch pointerup without
+// the later compatibility click. Recover on the owned tap release as well.
+let retryTouch = null,
+  retryClickUntil = 0;
+const retryButton = $('sync-retry');
+on(retryButton, 'pointerdown', (event) => {
+  if (event.pointerType === 'mouse' || !event.isPrimary || retryButton.disabled) return;
+  retryTouch = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
+});
+on(retryButton, 'pointermove', (event) => {
+  if (
+    retryTouch?.id === event.pointerId &&
+    Math.hypot(event.clientX - retryTouch.x, event.clientY - retryTouch.y) > 12
+  )
+    retryTouch.moved = true;
+});
+on(retryButton, 'pointercancel', (event) => {
+  if (retryTouch?.id === event.pointerId) retryTouch = null;
+});
+on(retryButton, 'pointerup', (event) => {
+  const tap = retryTouch;
+  if (!tap || tap.id !== event.pointerId) return;
+  retryTouch = null;
+  if (tap.moved || retryButton.disabled) return;
+  const box = retryButton.getBoundingClientRect();
+  if (
+    event.clientX < box.left ||
+    event.clientX > box.right ||
+    event.clientY < box.top ||
+    event.clientY > box.bottom
+  )
+    return;
+  retryClickUntil = performance.now() + 800;
+  audio.unlock();
+  retrySync();
+});
+click('sync-retry', (event) => {
+  if (event.detail && performance.now() < retryClickUntil) return;
+  retrySync();
+});
+click('room-invite', () => {
+  if (!room) return;
+  const link = invitationURL(room.code);
+  $('room-link').value = link;
+  $('room-link').hidden = false;
+  void navigator.clipboard
+    ?.writeText(link)
+    .then(() => notice('邀请已复制，发给好友即可加入。'))
+    .catch(() => notice('长按邀请链接即可复制。'));
+});
 click('start', () => {
+  online = false;
+  board.dataset.side = '0';
   if (save.match) {
     game = structuredClone(save.match);
     placeStriker(game, game.striker.x);
@@ -297,64 +628,74 @@ click('haptics', () => {
   persist();
 });
 click('pause', pause);
-click('resume', () => show('play'));
+click('resume', () => {
+  if (online && authoritative) game = structuredClone(authoritative);
+  show('play');
+  if (online) void roomTask(() => multiplayer.refresh());
+});
 click('restart', () => start(game.levelId, practice));
 click('pause-home', () => {
+  if (online) {
+    void roomTask(leaveRoom);
+    return;
+  }
   snapshot();
   show('home');
 });
-click('retry', () => start(game.levelId, practice));
+click('retry', () =>
+  online ? void roomTask(() => multiplayer.rematch()) : start(game.levelId, practice),
+);
 click('next', () => {
   const i = LEVELS.findIndex((l) => l.id === game.levelId);
   if (i >= 0 && LEVELS[i + 1]) start(LEVELS[i + 1].id);
 });
 for (const button of document.querySelectorAll('[data-home]'))
-  on(button, 'click', () => show('home'));
+  on(button, 'click', () => (online ? void roomTask(leaveRoom) : show('home')));
 click('cancel-aim', cancelAim);
 on(position, 'input', () => {
-  if (screen === 'play' && game.turn === 0) {
-    placeStriker(game, Number(position.value));
-    position.value = game.striker.x;
-    lastHud = '';
+  if (screen === 'play' && canPlay()) {
+    const flipped = online && room.you === 1;
+    placeStriker(game, flipped ? 1000 - Number(position.value) : Number(position.value));
+    position.value = flipped ? 1000 - game.striker.x : game.striker.x;
+    dirty = true;
   }
 });
 on(position, 'pointerdown', () => audio.unlock());
 on(position, 'change', snapshot);
 function point(e) {
-  const box = board.getBoundingClientRect();
+  const box = boardBox ?? board.getBoundingClientRect();
+  const flipped = online && room.you === 1;
+  const x = ((e.clientX - box.left) / box.width) * 1000;
+  const y = ((e.clientY - box.top) / box.height) * 1000;
   return {
-    x: ((e.clientX - box.left) / box.width) * 1000,
-    y: ((e.clientY - box.top) / box.height) * 1000,
+    x: flipped ? 1000 - x : x,
+    y: flipped ? 1000 - y : y,
   };
 }
 on(board, 'pointerdown', (e) => {
-  if (e.button !== 0 || gesture || screen !== 'play' || game.phase !== 'ready' || game.turn !== 0)
-    return;
+  if (e.button !== 0 || gesture || screen !== 'play' || !canPlay()) return;
+  boardBox = board.getBoundingClientRect();
   const p = point(e),
-    radius = Math.max(42, (26 / board.getBoundingClientRect().width) * 1000);
+    radius = Math.max(42, (26 / boardBox.width) * 1000);
   if (Math.hypot(p.x - game.striker.x, p.y - game.striker.y) > radius) {
     notice('先拖动下方滑轨摆位，再按住大白子回拉。');
     return;
   }
   audio.unlock();
   e.preventDefault();
-  gesture = createAimGesture(
-    e.pointerId,
-    p.x,
-    p.y,
-    board.getBoundingClientRect().width / 1000,
-    performance.now(),
-  );
+  gesture = createAimGesture(e.pointerId, p.x, p.y, boardBox.width / 1000, performance.now(), game);
   board.setPointerCapture(e.pointerId);
   aim = { dx: 0, dy: 0, power: 0, pull: 0 };
   lastHud = '';
+  dirty = true;
 });
 function updateAimDisplay() {
   const power = aim.power;
   $('cancel-aim').hidden = false;
   $('power-fill').style.width = `${power * 100}%`;
   $('aim-angle').hidden = power <= 0.025;
-  const angle = (Math.atan2(aim.dx, -aim.dy) * 180) / Math.PI;
+  const flip = online && room.you === 1 ? -1 : 1;
+  const angle = (Math.atan2(aim.dx * flip, -aim.dy * flip) * 180) / Math.PI;
   $('aim-angle').textContent = `${Math.abs(angle) < 0.05 ? '0.0' : angle.toFixed(1)}°`;
   $('play-hint').textContent =
     power > 0.025 ? `力度 ${Math.round(power * 100)}% · 松手击发` : '回到起点 · 松手收杆';
@@ -363,15 +704,28 @@ on(board, 'pointermove', (e) => {
   if (!gesture || e.pointerId !== gesture.id) return;
   e.preventDefault();
   aim = updateAimGesture(gesture, point(e), performance.now());
+  dirty = true;
   updateAimDisplay();
 });
 on(board, 'pointerup', (e) => {
   if (!gesture || e.pointerId !== gesture.id) return;
+  const allowed = canPlay();
   const shot = aim;
   cancelAim();
-  if (shot?.power > 0.025) {
+  if (allowed && shot?.power > 0.025) {
     snapshot();
+    const x = game.striker.x;
     shoot(game, shot.dx, shot.dy, shot.power);
+    if (online)
+      void roomTask(async () => {
+        try {
+          await multiplayer.shoot({ x, ...shot });
+        } catch (error) {
+          if (!multiplayer.pending && authoritative) game = structuredClone(authoritative);
+          dirty = true;
+          throw error;
+        }
+      });
     updateHud();
   }
 });
@@ -387,11 +741,13 @@ on(window, 'keydown', (e) => {
   }
 });
 on(window, 'blur', () => {
+  retryTouch = null;
   cancelAim();
   pause();
 });
 on(document, 'visibilitychange', () => {
   if (document.hidden) {
+    if (persistTimer) flushPersist();
     cancelAim();
     pause();
     audio.suspend();
@@ -402,19 +758,39 @@ on(document, 'visibilitychange', () => {
 on(window, 'resize', () => {
   cancelAim();
   previousTime = 0;
-  if (screen === 'home') drawHome(homeGame);
+  boardBox = null;
+  dirty = true;
+  if (screen === 'play') {
+    draw.resize();
+    boardBox = board.getBoundingClientRect();
+  }
+  if (screen === 'home') {
+    drawHome.resize();
+    drawHome(homeGame);
+  }
   if (screen === 'levels') renderLevels();
 });
+if (typeof ResizeObserver !== 'undefined') {
+  const observer = new ResizeObserver(() => {
+    if (screen !== 'play') return;
+    if (draw.resize()) dirty = true;
+    boardBox = null;
+  });
+  observer.observe(board);
+  cleanups.push(() => observer.disconnect());
+}
 
 function frame(now) {
   const dt = previousTime ? Math.min((now - previousTime) / 1000, 0.05) : 0;
   previousTime = now;
   time += dt;
   if (screen === 'play') {
+    const animated = game.phase === 'moving' || effects.length > 0;
     if (gesture) {
       const settled = settleAimGesture(gesture, performance.now());
       if (settled !== aim) {
         aim = settled;
+        dirty = true;
         updateAimDisplay();
       }
     }
@@ -448,25 +824,53 @@ function frame(now) {
         }
       }
     }
+    // Adopt every confirmed board once after its animation; never keep client-only
+    // coin positions, and do not overwrite placement on later identical polls.
+    if (
+      online &&
+      authoritative &&
+      game.phase !== 'moving' &&
+      game.shots === authoritative.shots &&
+      (appliedShot !== authoritative.shots ||
+        game.phase !== authoritative.phase ||
+        game.message !== authoritative.message)
+    ) {
+      game = structuredClone(authoritative);
+      appliedShot = authoritative.shots;
+      dirty = true;
+    }
     for (let i = effects.length - 1; i >= 0; i--) {
       effects[i].life -= dt * 2;
       if (effects[i].life <= 0) effects.splice(i, 1);
     }
-    toastLife = Math.max(0, toastLife - dt);
-    $('pocket-toast').style.opacity = Math.min(1, toastLife);
-    if (game.phase === 'ready' && game.turn === 1) {
+    if (toastLife > 0) {
+      toastLife = Math.max(0, toastLife - dt);
+      $('pocket-toast').style.opacity = Math.min(1, toastLife);
+    }
+    if (!online && game.phase === 'ready' && game.turn === 1) {
       aiDelay += dt;
       if (aiDelay > 0.85) {
         const shot = chooseShot(game);
         placeStriker(game, shot.x);
         snapshot();
         shoot(game, shot.dx, shot.dy, shot.power);
+        dirty = true;
         aiDelay = 0;
       }
     } else aiDelay = 0;
     updateHud();
-    draw(game, { aim, effects, time, alpha: game.phase === 'moving' ? accumulator / STEP : 1 });
-    if (game.phase === 'over' && !effects.length) finish();
+    if (dirty || animated || game.phase === 'moving') {
+      draw(game, {
+        aim,
+        effects,
+        time,
+        controllable: canPlay(),
+        alpha: game.phase === 'moving' ? accumulator / STEP : 1,
+      });
+      dirty = false;
+    }
+    if (game.phase === 'over' && !effects.length && (!online || room.status === 'finished'))
+      finish();
   }
   raf = requestAnimationFrame(frame);
 }
@@ -482,20 +886,30 @@ if (dev) {
   );
   cleanups.push(window.SmallGamesDev.registerSnapshot(() => ({ screen, practice, game })));
   window.__carrom = {
-    snapshot: () => structuredClone({ screen, practice, game, save, aim }),
+    snapshot: () => structuredClone({ screen, practice, game, save, aim, online, room }),
     previewShot: () => chooseShot(game),
   };
 }
 on(window, 'pagehide', (event) => {
   snapshot();
+  if (persistTimer) flushPersist();
   cancelAim();
   audio.suspend();
   if (!event.persisted) {
     cancelAnimationFrame(raf);
     cleanups.forEach((fn) => fn?.());
     audio.close();
+    multiplayer.destroy();
     delete window.__carrom;
   }
 });
 show('home');
+const invitation = readInvitation();
+if (invitation) {
+  $('room-input').value = invitation;
+  show('friends');
+  connectAction = () =>
+    multiplayer.recoveryCode === invitation ? multiplayer.resume() : multiplayer.join(invitation);
+  void roomTask(connectAction);
+}
 raf = requestAnimationFrame(frame);

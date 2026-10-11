@@ -90,6 +90,64 @@ test('rejects private subpath and cross-package relative imports', async (t) => 
   );
 });
 
+test('carrom authority reuses only its pure core; adjacent and reverse imports remain forbidden', async (t) => {
+  const root = await createWorkspace([
+    {
+      path: 'services/runtime-api',
+      manifest: { name: '@coffeeeeffoc/runtime-api' },
+      files: {
+        'rules/carrom.mjs': "import '../../../games/local/carrom-club/src/core.mjs';\n",
+        'rules/unreviewed.mjs': "import '../../../games/local/carrom-club/src/core.mjs';\n",
+        'src/app.ts': "import '../../../games/local/carrom-club/src/main.mjs';\n",
+      },
+    },
+    {
+      path: 'games/local/carrom-club',
+      manifest: { name: '@coffeeeeffoc/carrom-club' },
+      files: {
+        'src/core.mjs': 'export const physics = true;\n',
+        'src/main.mjs': "import '../../../../services/runtime-api/rules/carrom.mjs';\n",
+      },
+    },
+  ]);
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const violations = await validateWorkspace(root);
+  assert.equal(violations.length, 3);
+  assert.ok(violations.every((entry) => entry.code === 'cross-package-relative'));
+  assert.ok(violations.some((entry) => entry.message.includes('unreviewed.mjs')));
+  assert.ok(violations.some((entry) => entry.message.includes('app.ts')));
+  assert.ok(violations.some((entry) => entry.message.includes('main.mjs')));
+});
+
+test('only reviewed H5 entries and the share-handler contract can import the public publishing adapter', async (t) => {
+  const entries = [
+    ['game-moss-garden', 'src/web.ts'],
+    ['fold-the-world', 'src/main.ts'],
+    ['homebound-station', 'src/main.ts'],
+    ['orbit-atelier', 'src/main.ts'],
+    ['wulong-city', 'tests/game.test.mjs'],
+  ];
+  const root = await createWorkspace(
+    entries.map(([game, entry]) => ({
+      path: `games/local/${game}`,
+      manifest: { name: `@coffeeeeffoc/${game}` },
+      files: {
+        [entry]: "import '../../../../platforms/h5/publishing.js';\n",
+        'src/core.ts': "import '../../../../platforms/h5/publishing.js';\n",
+        'src/native.ts': "import '../../../../platforms/h5/publishing.js';\n",
+        'src/extra.ts': "import '../../../../platforms/h5/private.js';\n",
+        'tests/other.test.mjs': "import '../../../../platforms/h5/publishing.js';\n",
+      },
+    })),
+  );
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const violations = await validateWorkspace(root);
+  assert.equal(violations.length, entries.length * 4);
+  assert(violations.every((entry) => entry.code === 'cross-package-relative'));
+  for (const [game, entry] of entries)
+    assert(!violations.some((violation) => violation.message.includes(`${game}/${entry}`)));
+});
+
 test('allows only exact shared competition rule edges, never game runtime service imports', async (t) => {
   const root = await createWorkspace([
     {

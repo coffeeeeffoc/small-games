@@ -25,6 +25,7 @@ import {
 } from './incremental-validation.mjs';
 import { verifyCocosBuildInputs, cocosPreflightTargets } from './cocos-validation.mjs';
 import { run, cleanGitEnv } from './validate-push.mjs';
+import { createBrowserPreparation } from './browser-preparation.mjs';
 import {
   workspacePackages,
   affectedPackages,
@@ -34,6 +35,7 @@ import {
   shellContractFiles,
 } from './validation-plan.mjs';
 import { main as selectScope, collectChangedPaths } from './pages-test-scope.mjs';
+import { publishingConsumers } from './publication-scopes.mjs';
 
 // Fail closed on test commands without a demonstrably browser-free entry/import graph.
 export async function assertNodeOnly(command, dir, visited = new Set()) {
@@ -379,6 +381,106 @@ export function runNineNativeChecks({
 }
 
 export function runIncrementalToolChecks({ plan, packages, root, env, execute = run }) {
+  if (plan.catalog_rollout_checks) {
+    assert(plan.browser, 'Catalog rollout validation requires real browser checks');
+    execute(
+      process.execPath,
+      ['apps/shell-web/scripts/catalog-rollout-smoke.mjs'],
+      root,
+      env,
+      'logged',
+    );
+  }
+  // These games use existing sharing or no ads; validate their interaction changes
+  // without classifying them as consumers of the public H5 publishing adapter.
+  const interactionBrowsers = {
+    'letters-words2': 'word-flow.browser.mjs',
+    'tianxia-chalu': 'browser.mjs',
+  };
+  for (const [id, file] of Object.entries(interactionBrowsers)) {
+    const source = `games/local/${id}`;
+    if (!plan.interaction_browser_ids?.includes(id)) continue;
+    assert(
+      plan.browser &&
+        plan.browser_ids?.includes(id) &&
+        plan.game_sources?.includes(source) &&
+        packages.some((pkg) => pkg.dir === source),
+      `Missing interaction browser consumer: ${id}`,
+    );
+    execute(process.execPath, [`${source}/tests/${file}`], root, env, 'logged');
+  }
+  if (plan.publishing_checks)
+    execute(
+      process.execPath,
+      ['--test', 'platforms/h5/tests/publishing.test.mjs'],
+      root,
+      env,
+      'logged',
+    );
+  if (plan.publication_config_checks)
+    execute(
+      process.execPath,
+      ['--test', 'platforms/tests/publication-config.test.mjs'],
+      root,
+      env,
+      'logged',
+    );
+  if (plan.deployment_bundle_checks)
+    execute(
+      process.execPath,
+      ['--test', 'scripts/deployment-bundle.test.mjs'],
+      root,
+      env,
+      'logged',
+    );
+  // These reviewed entry points exercise sharing/ad lifecycle in the real UI.
+  // Keep them sequential: several own a local server and write candidate evidence.
+  const publishingBrowsers = {
+    'tower-brake': ['publishing-browser.mjs'],
+    'cage-rescue': ['reward-browser.mjs', 'browser.mjs', 'touch-activation-browser.mjs'],
+    'ball-roguelite': ['browser.mjs'],
+    'ember-bounce': ['browser.mjs'],
+    'three-choose-two': ['publishing.browser.mjs'],
+    'flick-arena': ['publishing.browser.mjs'],
+    'moss-garden': ['publishing.browser.mjs'],
+    'chase-thief': ['publishing.browser.mjs'],
+    'retreat-rally': ['publishing.browser.mjs'],
+    'tiny-signals': ['publishing.browser.mjs'],
+    'orbit-atelier': ['publishing.browser.mjs'],
+    'wulong-city': ['publishing.browser.mjs'],
+    'surprise-kept': ['publishing.browser.mjs'],
+    'homebound-station': ['publishing.browser.mjs'],
+    'waterline-station': ['publishing.browser.mjs'],
+    'rescue-team': ['publishing.browser.mjs'],
+    'out-of-frame': ['publishing.browser.mjs'],
+    'fold-the-world': ['publishing.browser.mjs'],
+    'two-sided-box': ['publishing.browser.mjs'],
+  };
+  const publishingIds = [...new Set(plan.publishing_browser_ids || [])];
+  for (const id of publishingIds)
+    assert(
+      Object.hasOwn(publishingBrowsers, id) &&
+        plan.browser &&
+        plan.browser_ids.includes(id) &&
+        packages.some((pkg) => pkg.dir === publishingConsumers[id]),
+      `Unreviewed publishing browser target: ${id}`,
+    );
+  for (const id of publishingIds)
+    for (const file of publishingBrowsers[id])
+      execute(process.execPath, [`${publishingConsumers[id]}/tests/${file}`], root, env, 'logged');
+  for (const source of plan.service_rule_sources || []) {
+    assert(
+      [
+        'services/runtime-api',
+        'services/management-api',
+        'packages/ad-runtime',
+        'platforms/douyin',
+      ].includes(source),
+    );
+    const pkg = packages.find((item) => item.dir === source);
+    assert(pkg?.scripts?.test, `Missing runtime rule suite: ${source}`);
+    execute('pnpm', ['--filter', pkg.name, 'test'], root, env, 'logged');
+  }
   const releaseGates = nativeReleaseGatesEnabled(env);
   const competition = plan.competition && {
     ...plan.competition,
@@ -441,6 +543,7 @@ export async function validateTree({
   deferIdenticalRulesToAggregate = false,
   incremental = false,
   prepareBrowser = () => {},
+  selectScope: selectValidationScope = selectScope,
 }) {
   const clean = { ...cleanGitEnv(env), PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: 'false' };
   console.log(
@@ -476,7 +579,7 @@ export async function validateTree({
   const sourcePaths = paths.filter((file) => !isDocumentation(file));
   if (!sourcePaths.length)
     return { browser: false, cocos: false, browser_ids: [], nine_native_targets: [] };
-  const plan = await selectScope(
+  const plan = await selectValidationScope(
     {
       ...clean,
       GITHUB_EVENT_NAME: 'push',
@@ -531,6 +634,11 @@ export async function validateTree({
       })
     : null;
   if (incrementalScope) console.log(`Incremental scope: ${JSON.stringify(incrementalScope)}`);
+  if (incrementalScope?.browser) {
+    prepareBrowser();
+    for (const key of ['CHROMIUM_PATH', 'PLAYWRIGHT_EXECUTABLE_PATH'])
+      if (env[key]) clean[key] = env[key];
+  }
   if (incrementalScope?.pages_deploy)
     execute(
       process.platform === 'win32' ? 'python' : 'python3',
@@ -666,6 +774,8 @@ export async function validateTree({
   if (metadataOnly) {
     execute(pnpm, ['check:dependencies'], root, clean);
     execute(pnpm, ['test:game-config'], root, clean);
+    if (incrementalScope)
+      runIncrementalToolChecks({ plan: incrementalScope, packages, root, env: clean, execute });
     return incrementalScope || plan;
   }
   for (const task of ['typecheck', 'lint']) {
@@ -729,8 +839,12 @@ export async function validateTree({
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   const value = (flag) => process.argv[process.argv.indexOf(flag) + 1];
+  const root = value('--root') || process.cwd();
+  const env = { ...process.env };
   validateTree({
-    root: value('--root') || process.cwd(),
+    root,
+    env,
+    prepareBrowser: createBrowserPreparation({ root, env }),
     base: value('--base'),
     head: value('--head') || 'HEAD',
     incremental: process.argv.includes('--incremental'),

@@ -19,3 +19,5 @@ for (const file of files) {
   await cp(new URL(file, import.meta.url), new URL(file, output));
 }
 console.log('Built 转塔留一脚刹车 → dist/');
+
+await cp(new URL('../../../platforms/h5/publishing.js', import.meta.url), new URL('publishing.js', output));

@@ -36,7 +36,7 @@ FLICK_COMPETITION_API=http://127.0.0.1:4430/api/competition/v1 \
 FLICK_FOCUS_ONLINE=2 node games/local/flick-arena/tests/campaign-browser.mjs
 ```
 
-[browser-online-focused.json](browser-online-focused.json) 记录 3 次真实触摸出手完成 2 小局、0:2 冠军，以及刷新恢复、再战和真实 10 秒超时。测试逐次要求出手玩家自己的操作序号增加，并检查服务器最后一弹的序号和席位，避免把单纯超时导致的盘面版本变化当成出手成功。此项在按服务端时间追赶在线动画和低帧率轮询调整后的最新构建上通过，浏览器异常为 0。
+[browser-online-focused.json](browser-online-focused.json) 记录 2 次真实触摸出手完成 2 小局、0:2 冠军，以及刷新恢复、再战和真实 10 秒超时。测试逐次要求出手玩家自己的操作序号增加，并检查服务器最后一弹的序号和席位，避免把单纯超时导致的盘面版本变化当成出手成功。此项在按服务端时间追赶在线动画和低帧率轮询调整后的最新构建上通过，浏览器异常为 0。
 
 ## 画面对照
 
@@ -50,3 +50,15 @@ FLICK_FOCUS_ONLINE=2 node games/local/flick-arena/tests/campaign-browser.mjs
 旧练习模式的独立回归结果保存在 [regression/browser-validation.json](regression/browser-validation.json)，覆盖拖拽取消、多指隔离、失焦暂停、真实缩圈、暂停收圈、回放幂等、横屏与小屏坐标、显式关闭开发模式及存储不可用降级。其结果同样是 Chromium 模拟验证。
 
 本记录不代表微信/抖音宿主、实际手机或公网跨设备网络已验收；生产 CI、准确候选 SHA 与部署结果由发布验证单独记录。
+
+## 远端整合复核
+
+合并远端 `dev` 基线 `8beb6d98a804fc1646ba6daceaf57bdcadab7494` 的公开分享能力后，保留练习战帖的相同 seed、摆位和自报成绩；战帖与实时好友房间使用各自的邀请和再战流程。在线房间不经过结算插屏，公开房间链接只保留房间码。
+
+- [合并后闯关／同机复测](browser-merged-local.json)：第 1 关 7 次触摸获 3 星、重载解锁、同机两局轮换先手、地形与小屏通过；此份明确未重复 3/4 人在线流程，完整多人结果保留在前面的原始记录。
+- [合并后开发模式检查](developer-mode-validation.json)：独立／Shell 的开关语义、触屏取消、同源继承和跨源显式传递，共 10 项通过。
+- [Shell 实际触屏检查](regression/shell-validation.json)：拖拽、取消、暂停恢复、沉浸导航、全屏降级、横竖屏和返回目录通过。
+- 远端保留的 `tests/publishing.browser.mjs`：邀请接收、真实四次出手获胜分享、同 seed 再战、敏感参数隔离、390×844／320×568 热区，共 6 项通过。更新截图仍在原分享设计目录。
+- 新部署包测试实际复制 runtime 所需文件，并从独立目录加载 Flick 规则，确认共享核心和赛制模块随包交付。
+
+准确候选验证在已提交版本上另行执行；本记录不把尚未完成的远端 CI 或后端部署计为成功。

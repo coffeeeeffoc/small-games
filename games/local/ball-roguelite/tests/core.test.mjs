@@ -233,3 +233,36 @@ test('repeated settlement cannot duplicate unlocks and only improves stored resu
   store.finish(game); const first = store.read(); store.finish(game); assert.deepEqual(store.read(), first);
   game.score = 10; game.turn = 15; store.finish(game); assert.deepEqual(store.read().completed, first.completed);
 });
+
+test('six-brick chains reward the next volley only, with a three-ball per-shot cap', () => {
+  const game = createGame('stardust');
+  game.count = 1;
+  game.bricks = Array.from({ length: 21 }, (_, i) => ({ id: 100 + i, c: i % 7, r: 3 + Math.floor(i / 7), kind: 'bomb', hp: 1, maxHp: 1 }));
+  fire(game, 0, -400);
+  for (let frame = 0; frame < 100 && game.score < 21; frame++) update(game, 1 / 60);
+  assert.equal(game.score, 21);
+  assert.equal(game.count, 4);
+  assert.equal(game.volley, 1);
+  assert.equal(drainEvents(game).filter((event) => event.type === 'combo-reward').length, 3);
+});
+
+test('shared challenges preserve the initial seed and never overwrite ordinary progress', () => {
+  const original = createGame('endless', { seed: 123456 });
+  const saved = checkpoint(original);
+  assert.equal(restoreGame(saved).initialSeed, 123456);
+  const replay = createGame('endless', { seed: original.initialSeed, challenge: true });
+  assert.deepEqual(replay.bricks, original.bricks);
+  for (const game of [original, replay]) {
+    fire(game, 0, -400); settle(game);
+  }
+  assert.deepEqual(replay.bricks, original.bricks);
+  assert.equal(replay.seed, original.seed);
+  const storage = createStorage(memory());
+  storage.saveRun(original);
+  const before = storage.read();
+  storage.saveRun(replay); replay.phase = 'lost'; storage.finish(replay);
+  assert.deepEqual(storage.read(), before);
+  assert.equal(checkpoint(replay), null);
+  delete saved.initialSeed;
+  assert.equal(restoreGame(saved).initialSeed, null, 'old saves must not claim a recoverable opening seed');
+});

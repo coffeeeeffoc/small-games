@@ -7,6 +7,11 @@ import {
   competitionToolPlan,
   threeChooseTwoBackendFileScope,
   flickIntegrationFileScope,
+  carromBackendFileScope,
+  publishingConsumers,
+  publishingScopePaths,
+  deploymentBundleScopePaths,
+  publicationConfigScopePaths,
 } from './publication-scopes.mjs';
 import {
   incrementalPlan,
@@ -18,7 +23,7 @@ import { shellContractTargets, shellContractFiles } from './validation-plan.mjs'
 
 test('flick runtime integration accepts only the exact reviewed deployment, MIME and import deltas', async () => {
   const { execFileSync } = await import('node:child_process');
-  const base = '46493d57d1c275b976cdbd8fbc43a2d5ee2eeedf';
+  const base = '8beb6d98a804fc1646ba6daceaf57bdcadab7494';
   const flick = { id: 'flick-arena', source: 'games/local/flick-arena' };
   const cases = [
     {
@@ -89,6 +94,238 @@ test('flick runtime integration accepts only the exact reviewed deployment, MIME
     );
   }
   assert.equal(flickIntegrationFileScope('scripts/unknown.mjs', '', ''), false);
+});
+
+test('reviewed Codex roles select no game consumers; extra settings and unknown files stay blocked', () => {
+  for (const role of ['repo_explorer', 'implementer', 'reviewer']) {
+    const file = `.codex/agents/${role}.toml`;
+    const source = readFileSync(new URL(`../${file}`, import.meta.url), 'utf8').replaceAll(
+      '\r\n',
+      '\n',
+    );
+    const scopes = classify(file, null, source);
+    assert.deepEqual(scopes.get(file), []);
+    const result = plan([file], scopes);
+    assert.equal(result.full, false);
+    assert.equal(result.browser, false);
+    assert.deepEqual(result.game_sources, []);
+    assert.deepEqual(result.consumer_sources, []);
+    for (const changed of [
+      null,
+      source.replace(`name = "${role}"`, 'name = "other"'),
+      source + '\napproval_policy = "never"\n',
+      source + '\n[mcp_servers.other]\ncommand = "external-tool"\n',
+      source + '\n[hooks]\n',
+      source.replace('read-only', 'workspace-write'),
+    ].filter((changed) => changed !== source)) {
+      const rejected = classify(file, source, changed);
+      assert.equal(rejected.has(file), false);
+      assert.throws(() => plan([file], rejected), /scope undefined/);
+    }
+    for (const sibling of ['.codex/config.toml', '.codex/agents/other.toml', file + '.backup']) {
+      const rejected = classify(sibling, null, source);
+      assert.equal(rejected.has(sibling), false);
+      assert.throws(() => plan([sibling], rejected), /scope undefined/);
+    }
+  }
+});
+
+test('publishing adapter selects all registered standalone consumers and rejects missing identities', () => {
+  const games = Object.entries(publishingConsumers).map(([id, source]) => ({ id, source }));
+  const packages = games.map((game) => ({ name: game.id, dir: game.source }));
+  for (const file of publishingScopePaths) {
+    const context = { games, packages, changedPaths: [file], readSource: () => '' };
+    const fileScopes = reviewedSharedFileScopes(context);
+    const plan = incrementalPlan({ ...context, fileScopes });
+    assert.deepEqual(plan.browser_ids, games.map((game) => game.id).sort());
+    assert.equal(plan.publishing_checks, true);
+    for (const invalid of [{ games: games.slice(1) }, { packages: packages.slice(1) }]) {
+      const rejected = reviewedSharedFileScopes({ ...context, ...invalid });
+      assert.equal(rejected.size, 0);
+      assert.throws(() => incrementalPlan({ ...context, fileScopes: rejected }), /scope undefined/);
+    }
+  }
+  assert.throws(
+    () => incrementalPlan({ games, packages, changedPaths: ['platforms/h5/unknown.js'] }),
+    /scope undefined/,
+  );
+});
+
+test('deployment and public platform configuration select mandatory checks without unrelated games', () => {
+  const packages = ['runtime-api', 'management-api'].map((name) => ({
+    name,
+    dir: `services/${name}`,
+  }));
+  for (const file of [...deploymentBundleScopePaths, ...publicationConfigScopePaths]) {
+    const context = { packages, games: [], changedPaths: [file], readSource: () => '' };
+    const fileScopes = reviewedSharedFileScopes(context);
+    const plan = incrementalPlan({ ...context, fileScopes });
+    assert.equal(plan.browser, false);
+    assert.equal(plan.deployment_bundle_checks, deploymentBundleScopePaths.includes(file));
+    assert.equal(plan.publication_config_checks, publicationConfigScopePaths.includes(file));
+  }
+  const before = { scripts: { build: 'keep-existing-build' }, dependencies: {} };
+  const after = structuredClone(before);
+  after.scripts['deployment:bundle'] = 'node scripts/deployment-bundle.mjs';
+  after.scripts['test:deployment-bundle'] = 'node --test scripts/deployment-bundle.test.mjs';
+  const context = {
+    packages,
+    games: [],
+    changedPaths: ['package.json'],
+    readBase: () => JSON.stringify(before),
+    readHead: () => JSON.stringify(after),
+  };
+  assert.equal(reviewedSharedFileScopes(context).size, 1);
+  after.scripts.build = 'changed-build';
+  assert.equal(reviewedSharedFileScopes(context).size, 0);
+  for (const file of [
+    'scripts/deployment-other.mjs',
+    'infra/deployment/unknown.sh',
+    'platforms/publication-extra.mjs',
+  ])
+    assert.throws(
+      () =>
+        incrementalPlan({
+          packages,
+          games: [],
+          changedPaths: [file],
+          fileScopes: reviewedSharedFileScopes({ ...context, changedPaths: [file] }),
+        }),
+      /scope undefined/,
+    );
+});
+
+const carromDirectory = 'games/local/carrom-club';
+const carromCoreFile = `${carromDirectory}/src/core.mjs`;
+const carromContentFile = `${carromDirectory}/src/content.mjs`;
+const carromBackendRule = 'services/runtime-api/rules/carrom.mjs';
+const carromDeployment = 'scripts/deploy-tencent.mjs';
+const carromCopyAnchor =
+  "  for (const name of [\n    'services/runtime-api/dist',\n    'services/runtime-api/rules',\n";
+const carromCopyAddition = `    '${carromCoreFile}',\n    '${carromContentFile}',\n`;
+const carromDeploymentBefore =
+  `export async function prepareBackend() {\n${carromCopyAnchor}` +
+  "    'games/local/three-choose-two/src',\n  ]) await copy(name);\n}\n";
+const carromDeploymentAfter = carromDeploymentBefore.replace(
+  carromCopyAnchor,
+  carromCopyAnchor + carromCopyAddition,
+);
+const carromCatalog = [{ id: 'carrom-club', source: carromDirectory }];
+const carromPackages = [
+  { name: 'carrom', dir: carromDirectory },
+  { name: 'runtime', dir: 'services/runtime-api' },
+  { name: 'unrelated', dir: 'games/local/unrelated' },
+];
+const carromSources = {
+  [carromDeployment]: carromDeploymentAfter,
+  [carromBackendRule]: `import { createGame } from '../../../${carromCoreFile}';\n`,
+  [carromCoreFile]:
+    "import { LEVELS } from './content.mjs';\nexport const createGame = () => LEVELS;\n",
+  [carromContentFile]: 'export const LEVELS = [];\n',
+};
+function carromContext(changedPaths, overrides = {}) {
+  return {
+    changedPaths,
+    games: carromCatalog,
+    packages: carromPackages,
+    readBase: () => carromDeploymentBefore,
+    readHead: (file) => {
+      assert(Object.hasOwn(carromSources, file), `Unknown fixture: ${file}`);
+      return carromSources[file];
+    },
+    ...overrides,
+  };
+}
+
+test('carrom deployment proof accepts only the two shared rule files with unchanged surrounding bytes', () => {
+  assert.equal(
+    carromBackendFileScope(carromDeployment, carromDeploymentBefore, carromDeploymentAfter),
+    true,
+  );
+  for (const after of [
+    carromDeploymentBefore,
+    carromDeploymentAfter + '\n',
+    carromDeploymentAfter.replace('await copy(name)', 'await execute(name)'),
+    carromDeploymentAfter.replace(carromContentFile, `${carromDirectory}/src/main.mjs`),
+    carromDeploymentAfter.replace(carromCopyAddition, carromCopyAddition + carromCopyAddition),
+    carromDeploymentAfter.replace(carromCopyAddition, `    '${carromCoreFile}',\n`),
+  ])
+    assert.equal(carromBackendFileScope(carromDeployment, carromDeploymentBefore, after), false);
+  for (const before of [null, '', carromDeploymentAfter, carromDeploymentBefore + carromCopyAnchor])
+    assert.equal(carromBackendFileScope(carromDeployment, before, carromDeploymentAfter), false);
+  assert.equal(
+    carromBackendFileScope(
+      'scripts/deploy-other.mjs',
+      carromDeploymentBefore,
+      carromDeploymentAfter,
+    ),
+    false,
+  );
+});
+
+test('carrom deployment selects its game and server; unknown deployment edits remain blocked', () => {
+  const context = carromContext([carromDeployment]);
+  const fileScopes = reviewedSharedFileScopes(context);
+  assert.deepEqual(
+    [...fileScopes],
+    [[carromDeployment, [carromDirectory, 'services/runtime-api']]],
+  );
+  const selected = incrementalPlan({ ...context, fileScopes, readSource: context.readHead });
+  assert.equal(selected.full, false);
+  assert.deepEqual(selected.game_sources, [carromDirectory]);
+  assert.deepEqual(selected.browser_ids, ['carrom-club']);
+  assert.deepEqual(selected.consumer_sources, [carromDirectory, 'services/runtime-api']);
+  for (const changed of [
+    { readHead: () => carromDeploymentAfter + 'unreviewed();\n' },
+    {
+      readBase: () => {
+        throw new Error('Missing comparison');
+      },
+    },
+    { games: [] },
+    { games: [...carromCatalog, ...carromCatalog] },
+    { games: [{ id: 'another-game', source: carromDirectory }] },
+    { packages: carromPackages.filter((pkg) => pkg.dir !== 'services/runtime-api') },
+  ]) {
+    const invalid = { ...context, ...changed };
+    const rejected = reviewedSharedFileScopes(invalid);
+    assert.equal(rejected.size, 0);
+    assert.throws(
+      () => incrementalPlan({ ...invalid, fileScopes: rejected, readSource: invalid.readHead }),
+      /scope undefined/,
+    );
+  }
+  const sibling = carromContext(['scripts/deploy-tencent-extra.mjs']);
+  assert.equal(reviewedSharedFileScopes(sibling).size, 0);
+  assert.throws(
+    () => incrementalPlan({ ...sibling, readSource: sibling.readHead }),
+    /scope undefined/,
+  );
+});
+
+test('shared carrom rule inputs select the real authoritative server without unrelated consumers', () => {
+  for (const file of [carromCoreFile, carromContentFile]) {
+    const context = carromContext([file]);
+    const fileScopes = reviewedSharedFileScopes(context);
+    assert.deepEqual([...fileScopes], [[file, ['services/runtime-api']]]);
+    const selected = incrementalPlan({ ...context, fileScopes, readSource: context.readHead });
+    assert.deepEqual(selected.consumer_sources, ['services/runtime-api']);
+    assert.deepEqual(selected.game_sources, [carromDirectory]);
+    if (file === carromCoreFile)
+      assert.equal(selected.browser, false, 'Pure physics rules stay browser-free');
+  }
+  const sibling = carromContext([`${carromDirectory}/src/render.mjs`]);
+  assert.equal(reviewedSharedFileScopes(sibling).size, 0);
+  for (const falseImport of [
+    `// import { createGame } from '../../../${carromCoreFile}';\n`,
+    `const example = "import { createGame } from '../../../${carromCoreFile}';";\n`,
+    "import { createGame } from '../../../games/local/other/src/core.mjs';\n",
+  ]) {
+    const context = carromContext([carromCoreFile], {
+      readHead: (file) => (file === carromBackendRule ? falseImport : carromSources[file]),
+    });
+    assert.equal(reviewedSharedFileScopes(context).size, 0);
+  }
 });
 
 test('three choose two migration wiring is exact and does not authorize other deployment edits', () => {

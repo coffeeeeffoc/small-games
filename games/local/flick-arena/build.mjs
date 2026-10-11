@@ -25,3 +25,8 @@ if (process.env.COMPETITION_PUBLIC_API_URL) {
   );
 }
 console.log('Built flick-arena: dist/');
+
+await cp(
+  new URL('../../../platforms/h5/publishing.js', import.meta.url),
+  new URL('publishing.js', dist),
+);

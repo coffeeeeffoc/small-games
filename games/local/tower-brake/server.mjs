@@ -37,6 +37,7 @@ const server = http.createServer(async (request, response) => {
       response.writeHead(403).end('Forbidden');
       return;
     }
+    if (pathname === '/publishing.js' && !process.argv.includes('--dist')) target = fileURLToPath(new URL('../../../platforms/h5/publishing.js', import.meta.url));
     if ((await stat(target)).isDirectory()) target = path.join(target, 'index.html');
     const bytes = await readFile(target);
     response.writeHead(200, {

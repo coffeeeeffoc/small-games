@@ -1,0 +1,62 @@
+{
+  "date": "2026-10-11T14:45:28.054Z",
+  "viewport": "390x844",
+  "errors": [],
+  "report": [
+    {
+      "level": 23,
+      "result": "PASS",
+      "input": "CDP touch input, bottom controls, at most two pointers",
+      "reset": "next level transition, menu revisit, two retries",
+      "state": {
+        "id": 23,
+        "run": 5,
+        "t": 0.03333333333333333,
+        "p": {
+          "x": 65,
+          "y": 436,
+          "vx": 0,
+          "vy": 0,
+          "dir": 1,
+          "grounded": true
+        },
+        "won": false,
+        "feedback": "邻居边说边收回半句话。桥也跟着一伸一缩，句号却在旁边打盹。",
+        "hintsUsed": 0,
+        "phrase": 0,
+        "anchored": false,
+        "dotX": 398,
+        "dotY": 198,
+        "dotDrag": false,
+        "fallen": 0
+      }
+    },
+    {
+      "level": 24,
+      "result": "PASS",
+      "input": "CDP touch input, bottom controls, at most two pointers",
+      "reset": "next level transition, menu revisit, two retries",
+      "state": {
+        "id": 24,
+        "run": 5,
+        "t": 0,
+        "p": {
+          "x": 65,
+          "y": 436,
+          "vx": 0,
+          "vy": 0,
+          "dir": 1,
+          "grounded": true
+        },
+        "won": false,
+        "feedback": "领奖牌写着：热心市民，画外领取。小岔认真地朝屏幕外挥了挥手。",
+        "hintsUsed": 0,
+        "cabinetOpen": false,
+        "trophyX": 308,
+        "trophyY": 325,
+        "trophyDrag": false,
+        "awarded": false
+      }
+    }
+  ]
+}

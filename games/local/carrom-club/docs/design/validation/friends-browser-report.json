@@ -1,0 +1,14 @@
+{
+  "environment": "Desktop Chromium, emulated 390x844 and 320x844 phones, real HTTP Runtime API + isolated PostgreSQL competition_test",
+  "artifact": "production dist",
+  "actualPhonesTested": false,
+  "checks": [
+    "two separate mobile browser identities create and join the same server room through a sanitized invitation",
+    "both players see their own bottom baseline; only the current seat can move or shoot",
+    "white and black each place and shoot through native touch events; both server board snapshots agree after each shot",
+    "a failed HTTP shot blocks further input, retries once, and reload restores the same identity and board",
+    "refreshing an invitation preserves and retries an unconfirmed shot with its original sequence",
+    "authoritative result reaches both players; both rematch into one new room and leaving informs the peer"
+  ],
+  "errors": []
+}

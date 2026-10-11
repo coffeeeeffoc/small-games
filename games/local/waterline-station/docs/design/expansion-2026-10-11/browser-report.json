@@ -1,0 +1,9 @@
+{
+  "browser": "151.0.7922.173",
+  "environment": "Chromium mobile viewport / browser touch simulation; not physical-device certification",
+  "checks": [
+    "touch cancel spends zero moves, operation budget, real first-level clear, unassisted score invitation, assisted invitation omits score, challenge save isolation, replay and both orientations; turn-based game has no running clock or pause screen",
+    "explicit challenge exit restores normal save; choosing another level and next-level exit challenge; old target never leaks across levels; normal results persist after exit"
+  ],
+  "errors": []
+}

@@ -5,14 +5,14 @@
   "online": {
     "2": {
       "independentIdentities": 2,
-      "touchShots": 3,
+      "touchShots": 2,
       "completedRounds": 2,
       "scores": {
         "player-1": 0,
         "player-2": 2
       },
       "champion": "player-2",
-      "wallSeconds": 9,
+      "wallSeconds": 36,
       "reloadRestored": true,
       "rematchVerified": true,
       "serverTimeoutVerified": true

@@ -14,7 +14,7 @@
     "preview": "vite preview --host 0.0.0.0 --port 4426",
     "test": "node --test tests/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "test:browser": "node tests/browser.mjs"
+    "test:browser": "node tests/browser.mjs && node tests/publishing.browser.mjs"
   },
   "dependencies": {
     "@coffeeeeffoc/canvas-game-adapter": "workspace:*",

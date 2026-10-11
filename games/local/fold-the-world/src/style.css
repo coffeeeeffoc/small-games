@@ -8,3 +8,34 @@ button,canvas{-webkit-user-select:none;user-select:none;-webkit-touch-callout:no
 .chapters details{border-top:1px solid #d8ccb5;padding-top:4px}.chapters summary{min-height:52px;padding:14px 8px;cursor:pointer;touch-action:manipulation}.chapters summary strong{font-size:15px}.chapters summary span{float:right;font-size:11px;color:#7b735f;margin-top:3px}.chapters summary:focus-visible{outline:3px solid #b16b4c;outline-offset:1px}.chapters details[open] summary{margin-bottom:10px}.level-grid button[aria-current]{border-color:#426658;box-shadow:inset 0 0 0 1px #426658}
 .fold-controls>button{min-width:100px}#creases button{white-space:nowrap}
 @media(max-width:900px){#creases button{font-size:11px;padding:7px}.fold-controls>button{min-width:82px}.scene-note{font-family:inherit;font-style:normal}.hud-state{gap:7px}}
+
+.pause-bars{display:inline-block;width:14px;height:18px;border-left:5px solid currentColor;border-right:5px solid currentColor}.result-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}.challenge-result{color:#3f6153!important;font-weight:600}#share-link{width:100%;padding:10px;color:inherit;background:#fff8e9;border:1px solid #a1ad92}#share-status:empty{display:none}
+
+html[data-touch-landscape="true"] body{overflow:hidden}
+html[data-touch-landscape="true"] #app{position:fixed;inset:0 auto auto 0;width:var(--play-width);height:var(--play-height);overflow:hidden}
+html[data-rotated="true"] #app{transform-origin:0 0;transform:translateX(var(--play-height)) rotate(90deg)}
+html[data-touch-landscape="true"] .workspace{height:100%;padding:0 10px 4px;gap:3px}
+html[data-touch-landscape="true"] .play-hud{min-height:48px;flex-wrap:nowrap;padding:2px;gap:6px}
+html[data-touch-landscape="true"] .hud-state{width:auto;font-size:10px;padding:0;gap:6px}
+html[data-touch-landscape="true"] .hud-actions{margin:0;gap:3px}
+html[data-touch-landscape="true"] .hud-actions button{min-width:44px;padding:6px}
+html[data-touch-landscape="true"] .controls{min-height:56px;flex-wrap:nowrap;padding:0;gap:6px}
+html[data-touch-landscape="true"] .movement{order:0}
+html[data-touch-landscape="true"] .jump{order:0;margin:0;min-width:76px;height:48px}
+html[data-touch-landscape="true"] .fold-controls{order:0;width:auto;gap:5px}
+html[data-touch-landscape="true"] .movement button{height:48px;width:52px}
+html[data-touch-landscape="true"] .rotate{display:none}
+html[data-touch-landscape="true"] #overlay{position:absolute;padding:12px}
+html[data-touch-landscape="true"] .intro-card h1{font-size:42px;margin:8px 0}
+html[data-touch-landscape="true"] .intro-card p{font-size:13px;margin:10px 0}
+html[data-touch-landscape="true"] .title-art{display:none}
+html[data-touch-landscape="true"] .compact{padding:16px}
+html[data-touch-landscape="true"] .modal h2{font-size:24px;margin:8px 0}
+html[data-touch-landscape="true"] .finish-mark{display:none}
+html[data-touch-landscape="true"] .pause-grid{grid-template-columns:repeat(3,1fr);margin-top:10px}
+html[data-touch-landscape="true"] .level-grid{grid-template-columns:repeat(5,1fr)}
+html[data-touch-landscape="true"] #overlay.hint-overlay{padding:52px 12px 64px}
+html[data-touch-landscape="true"] .hint-card{width:340px;font-size:12px}
+html[data-touch-landscape="true"] #message{position:absolute;bottom:64px;max-width:90%}
+
+.workspace[inert] [data-game-fullscreen]{visibility:hidden}

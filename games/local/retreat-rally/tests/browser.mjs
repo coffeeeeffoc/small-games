@@ -67,6 +67,8 @@ async function shot(page, name) {
   await page.screenshot({ path: path.join(output, name + '.png') });
 }
 async function toHome(page) {
+  if (await page.locator('[data-game-ad=mock]').isVisible())
+    await page.getByRole('button', { name: '关闭并继续' }).click();
   if ((await snapshot(page)).screen === 'battle') await page.locator('#pause').click();
   await page.locator('.screen:not([hidden]) [data-go="home"]').first().click();
 }
@@ -233,10 +235,7 @@ try {
   const frame = shell.frameLocator('iframe');
   await expect(frame.locator('#start')).toBeVisible();
   await frame.locator('#start').tap();
-  await expect(shell.locator('[data-game-display-host]')).toHaveAttribute(
-    'data-screen',
-    'playing',
-  );
+  await expect(shell.locator('[data-game-display-host]')).toHaveAttribute('data-screen', 'playing');
   await expect(shell.getByRole('navigation', { name: '游戏导航' })).toBeHidden();
   await frame.locator('#pause').tap();
   await expect(shell.getByRole('navigation', { name: '游戏导航' })).toBeVisible();

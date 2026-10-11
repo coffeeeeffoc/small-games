@@ -1,3 +1,6 @@
+import { setupLandscape } from './display.mjs';
+import { createH5Publishing } from './publishing.js';
+import { readChallenge } from './challenge.mjs';
 import { LEVELS } from './levels.mjs';
 import { FACE_IDS, FACE_DEFS } from './faces.mjs';
 import {
@@ -31,15 +34,19 @@ try {
   /* Storage is optional. */
 }
 const progress = readProgress(storage, LEVELS);
-let levelIndex = progress.selected;
+const incomingChallenge = readChallenge(location.search, LEVELS);
+let challenge = Boolean(incomingChallenge);
+let levelIndex = incomingChallenge?.index ?? progress.selected;
+const publishing = createH5Publishing({ gameId: 'two-sided-box', title: '双面机关盒 · 同盒挑战', root: $('#result'), adMode: globalThis.SmallGamesPublishingConfig?.adMode ?? 'mock', provider: globalThis.SmallGamesPublishingConfig?.provider, publicUrl: globalThis.SmallGamesPublishingConfig?.publicUrl });
 const level = () => LEVELS[levelIndex];
-let state = createState(level());
+let state = createState(level(), challenge ? { initialFaces: incomingChallenge.faces } : {});
 let initialFaces = [...state.revealedFaces];
 let ball = [...level().path[0]];
 let ballPathCursor = 0;
 let ballMoving = false;
 let history = [];
 let generation = 0;
+let advertisedGeneration = -1;
 let feedback = level().intro;
 let audioContext;
 let structureViewer;
@@ -56,7 +63,7 @@ let selectedReveal = null;
 const faceBoards = new Map();
 
 const remember = () => ({ state: clone(state), ball: [...ball], ballPathCursor });
-const save = () => saveProgress(storage, progress);
+const save = () => { if (!challenge) saveProgress(storage, progress); };
 function sound(kind = 'move') {
   if (!progress.sound) return;
   try {
@@ -312,6 +319,13 @@ function change(action) {
   if (!result.ok) return message(result.message, true);
   if (result.changed !== false) history.push(before);
   feedback = result.message;
+  const changedShafts = Object.keys(state.shafts).filter(id => before.state.shafts[id] !== state.shafts[id]);
+  if (changedShafts.length) feedback = `${changedShafts.map(id => `${id} 轴 → ${positions[state.shafts[id]]}位`).join('，')} · 所有观察窗已同步`;
+  for (const { card } of faceBoards.values()) {
+    card.classList.remove('mechanism-changed');
+    void card.offsetWidth;
+    if (result.changed !== false) card.classList.add('mechanism-changed');
+  }
   sound();
   update();
   if (state.released) void runBall();
@@ -324,10 +338,13 @@ async function animateTo(index, token) {
     const duration = reducedMotion.matches
       ? 12
       : Math.min(240, Math.max(75, Math.hypot(...target.map((v, i) => v - start[i])) * 1.1));
-    const began = performance.now();
+    let began = performance.now();
+    let previousFrame = began;
     const completed = await new Promise((resolve) => {
       function tick(now) {
         if (token !== generation) return resolve(false);
+        if (document.hidden || document.querySelector('dialog[open]')) { began += now - previousFrame; previousFrame = now; requestAnimationFrame(tick); return; }
+        previousFrame = now;
         const fraction = Math.min(1, (now - began) / duration);
         ball = start.map((v, i) => v + (target[i] - v) * fraction);
         updateBoards();
@@ -384,16 +401,19 @@ function loadLevel(index, restart = false) {
   ballMoving = false;
   closeDialogs();
   clearBoards();
+  if (challenge && index !== incomingChallenge.index) challenge = false;
   levelIndex = index;
-  state = createState(level());
+  state = createState(level(), challenge ? { initialFaces: incomingChallenge.faces } : {});
   initialFaces = [...state.revealedFaces];
   history = [];
   ball = [...level().path[0]];
   ballPathCursor = 0;
   feedback = restart
-    ? `机关已复位，重新随机展开${initialFaces.map(faceName).join('和')}。`
+    ? `机关已复位，${challenge ? '挑战固定' : '重新随机'}展开${initialFaces.map(faceName).join('和')}。`
     : `先从${initialFaces.map(faceName).join('和')}同时观察。${level().intro}`;
-  progress.selected = index;
+  $('#challenge-note').hidden = !challenge;
+  $('#exit-challenge').hidden = !challenge;
+  if (!challenge) progress.selected = index;
   save();
   update();
   switchingLevel = false;
@@ -559,11 +579,16 @@ function showResult() {
   $('#result-copy').textContent =
     `第 ${level().number} 盒「${level().title}」已完成。${state.moves} 次机关操作，观察了 ${state.revealedFaces.length} 面。`;
   $('#next').textContent = levelIndex === LEVELS.length - 1 ? '查看全部收藏 →' : '打开下一个盒子 →';
+  if (challenge) $('#result-copy').textContent += ` ${incomingChallenge.target !== null ? (state.moves <= incomingChallenge.target ? '达成挑战目标！' : `目标 ${incomingChallenge.target} 次，再试一次。`) : ''}普通收藏进度保留。`;
+  $('#next').hidden = challenge;
+  $('#share-status').textContent = '';
+  $('#share-link').hidden = true;
   $('#result').showModal();
+  if (advertisedGeneration !== generation) { advertisedGeneration = generation; void publishing.interstitial({ placement: 'box-complete', naturalBreak: true }); }
 }
 
 function completeLevel() {
-  progress.best[level().id] = Math.min(
+  if (!challenge) progress.best[level().id] = Math.min(
     progress.best[level().id] ?? Infinity,
     Math.max(1, state.moves),
   );
@@ -709,6 +734,7 @@ document.addEventListener('visibilitychange', () => {
 window.__twoSidedSnapshot = () =>
   clone({
     levelIndex,
+    challenge,
     levelId: level().id,
     state,
     initialFaces,
@@ -729,5 +755,26 @@ window.__twoSidedSnapshot = () =>
     structure: structureViewer?.getSnapshot() ?? null,
     structureOpen: $('#structure-dialog').open,
   });
+$('#share-challenge').addEventListener('click', async () => {
+  const token = generation;
+  const result = await publishing.share({ text: `我用 ${state.moves} 次操作解开第 ${level().number} 盒，初始观察面相同，你能更少吗？`, params: { challenge: 'box-v1', level: level().id, faces: initialFaces.join(','), targetMoves: state.moves } });
+  if (token !== generation) return;
+  $('#share-status').textContent = result.status === 'copied' ? '挑战链接已复制' : result.status === 'shared' ? '已打开系统分享' : result.status === 'cancelled' ? '已取消分享' : '可选中下方链接复制';
+  $('#share-link').hidden = !['unavailable','failed'].includes(result.status);
+  $('#share-link').value = result.url;
+});
+function home() { closeDialogs(); $('#welcome').showModal(); }
+$('#result-home').addEventListener('click', home);
+$('#home').addEventListener('click', home);
+$('#pause').addEventListener('click', () => $('#pause-dialog').showModal());
+$('#pause-home').addEventListener('click', home);
+window.addEventListener('blur', () => { if (ballMoving && !document.querySelector('dialog[open]')) $('#pause-dialog').showModal(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && ballMoving && !document.querySelector('dialog[open]')) $('#pause-dialog').showModal(); });
+$('#exit-challenge').addEventListener('click', () => { challenge = false; loadLevel(progress.selected); $('#challenge-note').hidden = true; $('#exit-challenge').hidden = true; home(); });
+$('#challenge-note').hidden = !challenge;
+$('#exit-challenge').hidden = !challenge;
+$('#challenge-note').textContent = challenge ? `同盒挑战 · 固定${incomingChallenge.faces.map(faceName).join('、')}${incomingChallenge.target !== null ? ` · 目标 ${incomingChallenge.target} 次操作` : ''} · 不计入普通收藏` : '';
+window.addEventListener('pagehide', (event) => { if (!event.persisted) publishing.dispose(); });
+setupLandscape(document.querySelector('.workshop'), () => { for (const { viewer } of faceBoards.values()) viewer.resize(); structureViewer?.resize(); });
 update();
 $('#welcome').showModal();

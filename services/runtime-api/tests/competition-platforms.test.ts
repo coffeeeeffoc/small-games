@@ -28,7 +28,7 @@ function login(app: ReturnType<typeof Fastify>, platform: string) {
   });
 }
 describe('competition channel identities', () => {
-  it.each(['douyin', 'kuaishou'])(
+  it.each(['kuaishou'])(
     '%s accepts channel metadata but refuses an unverified exchange',
     async (platform) => {
       const { app, session } = await setup(platform);

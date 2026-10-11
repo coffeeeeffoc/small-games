@@ -129,10 +129,9 @@ export function createOnlineClient(options = {}) {
       if (!room?.code) return null;
       try {
         const url = new URL(base);
-        url.searchParams.delete('dev');
+        url.search = '';
+        url.hash = '';
         url.searchParams.set('flickRoom', room.code);
-        // Shell route developer flags must not leak into public invitations either.
-        url.hash = url.hash.replace(/([?&])dev=[^&]*/g, '$1').replace(/[?&]$/, '').replace('?&', '?');
         return url.href;
       } catch { return null; }
     },

@@ -511,3 +511,142 @@ select {
   background: transparent;
   color: #f4f6fb;
 }
+
+/* Review facets extend the existing lobby; game viewports keep their own layout. */
+.catalog-filters {
+  margin-bottom: 24px;
+}
+.catalog-portfolio-summary {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #c7cddc;
+}
+.catalog-grid .game-rollout {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.catalog-grid .game-rollout strong {
+  color: #d9e8ff;
+}
+.catalog-grid .game-rollout span {
+  color: #aeb4c4;
+  font-size: inherit;
+  letter-spacing: normal;
+}
+.catalog-tabs,
+.catalog-chips,
+.game-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.catalog-filters button {
+  min-height: 44px;
+  border: 1px solid #4b5268;
+  border-radius: 10px;
+  padding: 8px 12px;
+  color: #f6f3eb;
+  background: #1b1e28;
+}
+.catalog-filters button[aria-pressed='true'] {
+  color: #102019;
+  background: #79e7bb;
+  border-color: #79e7bb;
+}
+.catalog-filters .facet-count {
+  display: inline-block;
+  margin-left: 8px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+.catalog-filters .catalog-facet {
+  margin-top: 12px;
+  padding: 10px 12px 12px;
+}
+.catalog-facet legend {
+  padding: 0 6px;
+  color: #c7cddc;
+  font-size: 13px;
+}
+.catalog-filters .catalog-more-filters {
+  margin-top: 12px;
+}
+.catalog-more-filters summary,
+.game-assessment summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: list-item;
+  padding: 12px 0;
+}
+.catalog-filters .catalog-filter-help {
+  font-size: 12px;
+  margin: 12px 0 0;
+}
+.catalog-grid .game-tags {
+  grid-column: 1 / -1;
+  margin: 10px 0 0;
+}
+.catalog-grid .game-tags span {
+  padding: 4px 8px;
+  border: 1px solid #365447;
+  border-radius: 6px;
+  font-size: 12px;
+  letter-spacing: normal;
+  color: #b2e9cb;
+}
+.catalog-grid .game-tags .tag-low {
+  color: #ebcda1;
+  border-color: #62533b;
+}
+.catalog-grid .game-assessment {
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin-top: 10px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+.game-assessment dl {
+  margin: 0 0 12px;
+}
+.game-assessment dt {
+  color: #c7cddc;
+  font-weight: 700;
+  margin-top: 12px;
+}
+.game-assessment dd {
+  margin: 5px 0 0;
+  color: #aeb4c4;
+  line-height: 1.7;
+}
+.game-assessment ul {
+  padding-left: 18px;
+  margin: 0;
+}
+.catalog-list .game-assessment p {
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+}
+.catalog-grid .assessment-basis {
+  font-size: 12px;
+  border-top: 1px solid #34394a;
+  padding-top: 12px;
+  margin-bottom: 12px;
+}
+.catalog-filters button:focus-visible,
+.game-assessment summary:focus-visible,
+.catalog-more-filters summary:focus-visible {
+  outline: 2px solid #79e7bb;
+  outline-offset: 3px;
+}
+@media (max-width: 540px) {
+  .catalog-filters button {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+}

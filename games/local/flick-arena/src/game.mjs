@@ -45,6 +45,11 @@ export function createGame(target, options = {}) {
     trails: [],
     toast: '',
     reason: '',
+    canShare: typeof options.share === 'function',
+    invited: options.challenge ?? null,
+    shareNotice: '',
+    playerKnockouts: 0,
+    targetShots: null,
     error: '',
     mode: 'practice',
     chapter: 0,
@@ -80,6 +85,7 @@ export function createGame(target, options = {}) {
     replayIndex = 0,
     resultState = null,
     practice = null,
+    pendingSeed = null,
     settledState = null,
     turnToken = '',
     turnElapsed = 0,
@@ -175,6 +181,8 @@ export function createGame(target, options = {}) {
   }
   function prepareState(state) {
     app.state = state;
+    app.playerKnockouts = 0;
+    app.shareNotice = '';
     random = seeded(state.seed);
     app.reason = '';
     app.trails = [];
@@ -187,7 +195,9 @@ export function createGame(target, options = {}) {
     turnElapsed = 0;
     screen('playing');
   }
-  function start(index = null) {
+  function start(index = null, seed = null, targetShots = null) {
+    app.targetShots = targetShots;
+    pendingSeed = seed;
     app.mode = 'practice';
     app.series = null;
     app.chosenLevel = null;
@@ -196,12 +206,18 @@ export function createGame(target, options = {}) {
     screen('matching');
   }
   function begin() {
-    prepareState(createMatch(catalog[practice ?? Math.floor(Math.random() * catalog.length)]));
+    prepareState(
+      createMatch(
+        catalog[practice ?? Math.floor(Math.random() * catalog.length)],
+        pendingSeed ?? Date.now(),
+      ),
+    );
   }
   function selectLevel(level, development = false) {
     if (!level || (!development && !isLevelUnlocked(app.save, level.id))) return;
     app.chosenLevel = level;
     app.chapter = chapters.findIndex((chapter) => chapter.id === level.chapter);
+    app.targetShots = null;
     app.mode = 'campaign';
     app.series = null;
     app.challengeResult = null;
@@ -211,6 +227,7 @@ export function createGame(target, options = {}) {
     if (app.chosenLevel) prepareState(createMatch(app.chosenLevel));
   }
   function beginLocal() {
+    app.targetShots = null;
     app.mode = 'local';
     app.chosenLevel = null;
     app.series = createTournament({ players: 2, turnSeconds: app.turnSeconds, seed: now() >>> 0 });
@@ -279,6 +296,7 @@ export function createGame(target, options = {}) {
     }
     const changedRoom = app.room?.code !== room.code;
     if (changedRoom || app.room?.state?.revision !== room.state?.revision) cancel();
+    app.targetShots = null;
     app.mode = 'online';
     app.room = room;
     app.roomCode = room.code;
@@ -370,8 +388,16 @@ export function createGame(target, options = {}) {
   function action(id) {
     if (disposed || suspended || app.buttons.find((b) => b.id === id)?.disabled) return;
     app.error = '';
-    if (id === 'start') selectLevel(nextLevel(app.save));
-    else if (id === 'levels') {
+    if (id === 'start') {
+      const invite = app.invited;
+      if (invite)
+        start(
+          catalog.findIndex((layout) => layout.id === invite.layout),
+          invite.seed,
+          invite.targetShots,
+        );
+      else selectLevel(nextLevel(app.save));
+    } else if (id === 'levels') {
       app.chapter = chapters.findIndex((chapter) => chapter.id === nextLevel(app.save).chapter);
       screen('levels');
     } else if (id === 'chapter-prev' || id === 'chapter-next') {
@@ -433,8 +459,45 @@ export function createGame(target, options = {}) {
       if (app.mode === 'online') void onlineOperation(() => options.online.next());
       else if (app.series && nextTournamentRound(app.series))
         prepareState(createTournamentMatch(app.series));
+    } else if (
+      id === 'share' &&
+      app.mode === 'practice' &&
+      app.screen === 'result' &&
+      options.share
+    ) {
+      const result = snapshot();
+      Promise.resolve(options.share(result))
+        .then((message) => {
+          if (
+            !disposed &&
+            app.mode === 'practice' &&
+            app.screen === 'result' &&
+            app.state.seed === result.seed
+          ) {
+            app.shareNotice = message || '';
+            render();
+          }
+        })
+        .catch(() => {
+          if (
+            !disposed &&
+            app.mode === 'practice' &&
+            app.screen === 'result' &&
+            app.state.seed === result.seed
+          ) {
+            app.shareNotice = '分享暂不可用，可以继续切磋';
+            render();
+          }
+        });
     } else if (id === 'rematch') {
-      if (app.mode === 'online') void onlineOperation(() => options.online.rematch());
+      if (app.mode === 'practice' && app.screen === 'result')
+        start(
+          catalog.findIndex((layout) => layout.id === app.state.layout),
+          app.state.seed,
+          app.targetShots,
+        );
+      else if (app.mode === 'campaign') beginLevel();
+      else if (app.mode === 'online') void onlineOperation(() => options.online.rematch());
       else beginLocal();
     } else if (id === 'pause' && app.screen === 'playing') {
       if (app.mode === 'online') {
@@ -553,7 +616,12 @@ export function createGame(target, options = {}) {
       }
       if (e.type === 'out') {
         sound('out');
-        app.toast = `${app.playerNames[e.id] ?? names[e.id]}，出界！`;
+        const knockout =
+          e.id !== app.localDisc && s.lastShot?.actor === app.localDisc && e.reason !== 'ring';
+        if (knockout) app.playerKnockouts++;
+        app.toast = knockout
+          ? `漂亮！${s.knocked > 1 ? '连续击落' : '击落'}${app.playerNames[e.id] ?? names[e.id]}`
+          : `${app.playerNames[e.id] ?? names[e.id]}，出界！`;
         toastTime = 1.6;
         if (e.id === app.localDisc)
           app.reason =
@@ -653,6 +721,7 @@ export function createGame(target, options = {}) {
     render,
     action,
     cancel,
+    isSuspended: () => suspended,
     receiveRoom,
     setField(id, value) {
       if (id === 'room-code')

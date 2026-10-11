@@ -1,3 +1,4 @@
+import { logicalPoint } from './display.mjs';
 import { getSnapshot } from './engine.mjs';
 import { BOX_HALF, FACE_IDS, FACE_DEFS } from './faces.mjs';
 import { SHAFT_TRAVEL } from './geometry.mjs';
@@ -388,9 +389,8 @@ export function createStructureViewer(canvas, options = {}) {
   }
   function resize() {
     if (disposed) return;
-    const rect = canvas.getBoundingClientRect();
-    width = Math.max(0, rect.width);
-    height = Math.max(0, rect.height);
+    width = Math.max(0, canvas.clientWidth);
+    height = Math.max(0, canvas.clientHeight);
     ratio = Math.min(window.devicePixelRatio || 1, 3);
     const pixelWidth = Math.max(1, Math.round(width * ratio));
     const pixelHeight = Math.max(1, Math.round(height * ratio));
@@ -408,8 +408,7 @@ export function createStructureViewer(canvas, options = {}) {
     queueRender();
   }
   function localPoint(event) {
-    const rect = canvas.getBoundingClientRect();
-    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    return logicalPoint(canvas, event.clientX, event.clientY);
   }
   function hitControl(point) {
     if (!model) return null;

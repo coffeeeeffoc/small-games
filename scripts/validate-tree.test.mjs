@@ -1,9 +1,354 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { assertNodeOnly } from './validate-tree.mjs';
+import { assertNodeOnly, validateTree, runIncrementalToolChecks } from './validate-tree.mjs';
+import { publishingConsumers } from './publication-scopes.mjs';
+import { createBrowserPreparation } from './browser-preparation.mjs';
+import { run } from './validate-push.mjs';
+
+test('local and CI browser preparation installs then probes once with their dependency policy', () => {
+  for (const withDeps of [false, true]) {
+    const env = { PLAYWRIGHT_BROWSERS_PATH: '/shared browser cache' };
+    const calls = [];
+    const prepare = createBrowserPreparation({
+      root: '/candidate with spaces',
+      env,
+      withDeps,
+      browserExecutable: () => '/installed Chromium',
+      execute: (command, args, cwd, childEnv) => calls.push({ command, args, cwd, childEnv }),
+    });
+    assert.equal(calls.length, 0, 'Creating the lazy callback must not install a browser');
+    prepare();
+    prepare();
+    assert.equal(calls.length, 2);
+    assert.deepEqual(calls[0].args, [
+      'exec',
+      'playwright',
+      'install',
+      ...(withDeps ? ['--with-deps'] : []),
+      'chromium',
+    ]);
+    assert.equal(calls[1].command, process.execPath);
+    assert.equal(calls[1].args[0], '-e');
+    assert(
+      calls.every(({ cwd, childEnv }) => cwd === '/candidate with spaces' && childEnv === env),
+    );
+    assert.equal(env.CHROMIUM_PATH, '/installed Chromium');
+    assert.equal(env.PLAYWRIGHT_EXECUTABLE_PATH, '/installed Chromium');
+    assert.equal(env.PLAYWRIGHT_BROWSERS_PATH, '/shared browser cache');
+  }
+});
+
+test('browser preparation resolves Playwright using the candidate package and cache environment', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'candidate browser '));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const pkg = path.join(root, 'node_modules/@playwright/test');
+  await mkdir(pkg, { recursive: true });
+  await writeFile(path.join(root, 'package.json'), '{}');
+  await writeFile(path.join(pkg, 'package.json'), '{"main":"index.cjs"}');
+  await writeFile(
+    path.join(pkg, 'index.cjs'),
+    "exports.chromium = { executablePath: () => process.env.PLAYWRIGHT_BROWSERS_PATH + '/candidate-browser' };",
+  );
+  const parentCache = process.env.PLAYWRIGHT_BROWSERS_PATH;
+  const env = { ...process.env, PLAYWRIGHT_BROWSERS_PATH: path.join(root, 'browser cache') };
+  delete env.CHROMIUM_PATH;
+  delete env.PLAYWRIGHT_EXECUTABLE_PATH;
+  const expected = env.PLAYWRIGHT_BROWSERS_PATH + '/candidate-browser';
+  createBrowserPreparation({
+    root,
+    env,
+    execute: (command, args, cwd, childEnv, capture) => {
+      if (capture === true) return run(command, args, cwd, childEnv, capture);
+    },
+  })();
+  assert.equal(env.CHROMIUM_PATH, expected);
+  assert.equal(env.PLAYWRIGHT_EXECUTABLE_PATH, expected);
+  assert.equal(process.env.PLAYWRIGHT_BROWSERS_PATH, parentCache);
+});
+
+test('browser installation and launch failures block preparation and never mark it ready', () => {
+  for (const failedStep of ['exec', '-e']) {
+    let attempts = 0;
+    const prepare = createBrowserPreparation({
+      root: '/candidate',
+      env: {},
+      browserExecutable: () => '/browser',
+      execute: (command, args) => {
+        if (args[0] === failedStep) {
+          attempts++;
+          throw new Error('environment unavailable');
+        }
+      },
+    });
+    const message =
+      failedStep === '-e' ? /Chromium launch preflight failed/ : /environment unavailable/;
+    assert.throws(prepare, message);
+    assert.throws(prepare, message);
+    assert.equal(attempts, 2);
+  }
+});
+
+test('an H5 preflight failure stops the candidate before validation suites or builds', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'browser preflight candidate '));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });
+  await writeFile(
+    path.join(root, 'apps/shell-web/src/standalone-games.json'),
+    JSON.stringify([{ id: 'letters-words2', source: 'games/local/letters-words2' }]),
+  );
+  await writeFile(
+    path.join(root, 'package.json'),
+    JSON.stringify({
+      volta: { node: process.versions.node },
+      packageManager: 'pnpm@12.6.0',
+    }),
+  );
+  const calls = [];
+  await assert.rejects(
+    validateTree({
+      root,
+      incremental: true,
+      env: {},
+      selectScope: async () => ({ required: true, full: false, risk: 'incremental' }),
+      prepareBrowser: () => {
+        throw new Error('browser environment unavailable');
+      },
+      execute: (command, args) => {
+        calls.push(args);
+        if (command === 'git') return 'scripts/browser-preparation.mjs\0';
+        if (args[0] === '--version') return '12.6.0';
+      },
+    }),
+    /browser environment unavailable/,
+  );
+  assert(
+    !calls.some(
+      (args) =>
+        args.includes('test:validation') || args.includes('build') || args.includes('typecheck'),
+    ),
+  );
+});
+
+test('metadata early return retains mandatory publication checks and propagates their failure', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'publication-metadata-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });
+  await writeFile(path.join(root, 'apps/shell-web/src/standalone-games.json'), '[]');
+  await writeFile(
+    path.join(root, 'package.json'),
+    JSON.stringify({ volta: { node: process.versions.node }, packageManager: 'pnpm@12.6.0' }),
+  );
+  const calls = [];
+  let failContract = false;
+  const options = {
+    root,
+    incremental: true,
+    env: { MINIGAME_RELEASE_GATES: '0' },
+    selectScope: async () => ({ required: true, full: false, risk: 'metadata' }),
+    prepareBrowser: () => assert.fail('Metadata must not prepare a browser'),
+    execute(command, args) {
+      calls.push([command === process.execPath ? 'node' : command, ...args]);
+      if (command === 'git') return 'platforms/publication-config.mjs\0';
+      if (args[0] === '--version') return '12.6.0';
+      if (failContract && args.includes('platforms/tests/publication-config.test.mjs'))
+        throw new Error('publication config regression');
+    },
+  };
+  const selected = await validateTree(options);
+  assert.equal(selected.publication_config_checks, true);
+  assert.equal(selected.browser, false);
+  const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
+  assert.deepEqual(calls.slice(-3), [
+    [pnpm, 'check:dependencies'],
+    [pnpm, 'test:game-config'],
+    ['node', '--test', 'platforms/tests/publication-config.test.mjs'],
+  ]);
+  assert(!calls.some((call) => call.includes('build') || call.includes('typecheck')));
+  failContract = true;
+  await assert.rejects(validateTree(options), /publication config regression/);
+});
+
+test('catalog and non-publishing interaction checks require explicit affected consumers', () => {
+  const calls = [];
+  const plan = {
+    browser: true,
+    catalog_rollout_checks: true,
+    native_consumers: [],
+    developer_mode_ids: [],
+    game_sources: ['games/local/letters-words2', 'games/local/tianxia-chalu'],
+    browser_ids: ['letters-words2', 'tianxia-chalu'],
+    interaction_browser_ids: ['letters-words2', 'tianxia-chalu'],
+  };
+  const options = {
+    plan,
+    packages: plan.game_sources.map((dir) => ({ dir })),
+    root: '/candidate',
+    env: {},
+    execute(command, args) {
+      calls.push(args);
+    },
+  };
+  runIncrementalToolChecks(options);
+  assert.deepEqual(calls, [
+    ['apps/shell-web/scripts/catalog-rollout-smoke.mjs'],
+    ['games/local/letters-words2/tests/word-flow.browser.mjs'],
+    ['games/local/tianxia-chalu/tests/browser.mjs'],
+  ]);
+  calls.length = 0;
+  runIncrementalToolChecks({
+    ...options,
+    plan: { ...plan, catalog_rollout_checks: false, game_sources: [], interaction_browser_ids: [] },
+  });
+  assert.deepEqual(calls, []);
+  assert.throws(
+    () => runIncrementalToolChecks({ ...options, plan: { ...plan, browser: false } }),
+    /requires real browser/,
+  );
+  assert.throws(
+    () => runIncrementalToolChecks({ ...options, packages: [] }),
+    /Missing interaction browser consumer/,
+  );
+  assert.throws(
+    () =>
+      runIncrementalToolChecks({
+        ...options,
+        execute() {
+          throw new Error('touch regression');
+        },
+      }),
+    /touch regression/,
+  );
+});
+
+test('publishing browsers run exact bounded suites with native gates off and failures stop publication', () => {
+  const expected = {
+    'tower-brake': ['publishing-browser.mjs'],
+    'cage-rescue': ['reward-browser.mjs', 'browser.mjs', 'touch-activation-browser.mjs'],
+    'ball-roguelite': ['browser.mjs'],
+    'ember-bounce': ['browser.mjs'],
+    'three-choose-two': ['publishing.browser.mjs'],
+    'flick-arena': ['publishing.browser.mjs'],
+    'moss-garden': ['publishing.browser.mjs'],
+    'chase-thief': ['publishing.browser.mjs'],
+    'retreat-rally': ['publishing.browser.mjs'],
+    'tiny-signals': ['publishing.browser.mjs'],
+    'orbit-atelier': ['publishing.browser.mjs'],
+    'wulong-city': ['publishing.browser.mjs'],
+    'surprise-kept': ['publishing.browser.mjs'],
+    'homebound-station': ['publishing.browser.mjs'],
+    'waterline-station': ['publishing.browser.mjs'],
+    'rescue-team': ['publishing.browser.mjs'],
+    'out-of-frame': ['publishing.browser.mjs'],
+    'fold-the-world': ['publishing.browser.mjs'],
+    'two-sided-box': ['publishing.browser.mjs'],
+  };
+  const ids = Object.keys(expected);
+  const calls = [];
+  const options = {
+    plan: {
+      browser: true,
+      browser_ids: ids,
+      publishing_browser_ids: ids,
+      native_consumers: [],
+      developer_mode_ids: [],
+    },
+    packages: Object.values(publishingConsumers).map((dir) => ({ dir })),
+    root: '/candidate',
+    env: { MINIGAME_RELEASE_GATES: '0', PLAYWRIGHT_EXECUTABLE_PATH: '/chromium' },
+    execute(command, args, cwd, env, mode) {
+      assert.equal(command, process.execPath);
+      assert.equal(cwd, '/candidate');
+      assert.equal(env.PLAYWRIGHT_EXECUTABLE_PATH, '/chromium');
+      assert.equal(mode, 'logged');
+      calls.push(args);
+    },
+  };
+  runIncrementalToolChecks(options);
+  const scripts = ids.flatMap((id) =>
+    expected[id].map((file) => `${publishingConsumers[id]}/tests/${file}`),
+  );
+  assert.deepEqual(
+    calls,
+    scripts.map((file) => [file]),
+  );
+  for (const failing of scripts) {
+    const attempted = [];
+    assert.throws(
+      () =>
+        runIncrementalToolChecks({
+          ...options,
+          execute(command, [file]) {
+            attempted.push(file);
+            if (file === failing) throw new Error('browser regression');
+          },
+        }),
+      /browser regression/,
+    );
+    assert.deepEqual(attempted, scripts.slice(0, scripts.indexOf(failing) + 1));
+  }
+  for (const invalid of [
+    { publishing_browser_ids: ['unknown'] },
+    { browser: false },
+    { browser_ids: [] },
+  ])
+    assert.throws(
+      () =>
+        runIncrementalToolChecks({
+          ...options,
+          plan: { ...options.plan, ...invalid },
+          execute: () => assert.fail('Invalid target must fail before execution'),
+        }),
+      /Unreviewed publishing browser target/,
+    );
+  assert.throws(
+    () =>
+      runIncrementalToolChecks({
+        ...options,
+        packages: [],
+        execute: () => assert.fail('Missing consumer must fail before execution'),
+      }),
+    /Unreviewed publishing browser target/,
+  );
+});
+test('publishing and deployment contracts run with native gates deferred and service failures propagate', async () => {
+  const { runIncrementalToolChecks } = await import('./validate-tree.mjs');
+  const calls = [];
+  const options = {
+    plan: {
+      publishing_checks: true,
+      publication_config_checks: true,
+      deployment_bundle_checks: true,
+      service_rule_sources: ['services/runtime-api'],
+      native_consumers: [],
+      developer_mode_ids: [],
+    },
+    packages: [{ dir: 'services/runtime-api', name: 'runtime', scripts: { test: 'vitest run' } }],
+    root: '/fixture',
+    env: { MINIGAME_RELEASE_GATES: '0' },
+    execute: (command, args) =>
+      calls.push([command === process.execPath ? 'node' : command, ...args]),
+  };
+  runIncrementalToolChecks(options);
+  assert.deepEqual(calls, [
+    ['node', '--test', 'platforms/h5/tests/publishing.test.mjs'],
+    ['node', '--test', 'platforms/tests/publication-config.test.mjs'],
+    ['node', '--test', 'scripts/deployment-bundle.test.mjs'],
+    ['pnpm', '--filter', 'runtime', 'test'],
+  ]);
+  assert.throws(
+    () =>
+      runIncrementalToolChecks({
+        ...options,
+        execute() {
+          throw new Error('regression');
+        },
+      }),
+    /regression/,
+  );
+});
 test('native publication gates default off, retain root rules and preserve Web checks', async () => {
   const { nativeReleaseGatesEnabled, runNineNativeChecks, runIncrementalToolChecks } = await import(
     './validate-tree.mjs'

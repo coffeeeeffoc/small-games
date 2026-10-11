@@ -16,7 +16,7 @@ http.createServer(async (req, res) => {
     const file = path.resolve(root, '.' + pathname);
     const rel = path.relative(root, file);
     if (rel.startsWith('..') || path.isAbsolute(rel)) { res.writeHead(403).end(); return; }
-    const target = (await stat(file)).isDirectory() ? path.join(file, 'index.html') : file;
+    const target = pathname === '/publishing.js' ? fileURLToPath(new URL('../../../platforms/h5/publishing.js', import.meta.url)) : (await stat(file)).isDirectory() ? path.join(file, 'index.html') : file;
     const data = await readFile(target);
     res.writeHead(200, { 'Content-Type':mime[path.extname(target)] || 'application/octet-stream', 'Cache-Control':'no-store' }).end(data);
   } catch { res.writeHead(404).end('Not found'); }

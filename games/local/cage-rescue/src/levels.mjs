@@ -12,7 +12,7 @@ const makeLevel = (index, name, subtitle, hint, cages, bricks, changes = {}) => 
   subtitle,
   hint,
   unlockAfter: index ? `rescue-${String(index).padStart(2, '0')}` : null,
-  target: 4,
+  target: cages.length,
   lives: 3,
   ballSpeed: 250,
   personSpeed: 38,
@@ -112,8 +112,8 @@ export const LEVELS = [
   makeLevel(
     5,
     '全员待命',
-    '四次接住，就是胜利',
-    '不必打破所有笼子，规划最容易接住的四位队友。',
+    '一个都不能少',
+    '救回全部队友才算通关。规划破笼顺序，把每个人都接回家。',
     [
       cage('a', 49, 106, 2),
       cage('b', 170, 146, 2),
@@ -140,8 +140,8 @@ export function validateLevels(levels = LEVELS) {
       errors.push(`${prefix}: unsupported content version.`);
     if (level.unlockAfter !== (index ? levels[index - 1].id : null))
       errors.push(`${prefix}: invalid unlock dependency.`);
-    if (level.target !== 4 || level.lives !== 3)
-      errors.push(`${prefix}: expected four rescues and three lives.`);
+    if (level.target !== level.cages?.length || level.lives !== 3)
+      errors.push(`${prefix}: expected all teammates rescued and three lives.`);
     if (!Array.isArray(level.cages) || level.cages.length !== 6)
       errors.push(`${prefix}: six cages are required.`);
     if (!Number.isFinite(level.ballSpeed) || level.ballSpeed < 200 || level.ballSpeed > 320)

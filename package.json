@@ -45,6 +45,8 @@
     "build": "turbo run build",
     "build:pages": "turbo run build:pages --filter=@coffeeeeffoc/shell-web --concurrency=1",
     "deploy:tencent": "node scripts/deploy-tencent.mjs",
+    "deployment:bundle": "node scripts/deployment-bundle.mjs",
+    "test:deployment-bundle": "node --test scripts/deployment-bundle.test.mjs",
     "test:deploy": "node --test scripts/deploy-tencent.test.mjs",
     "test:pages": "pnpm --filter @coffeeeeffoc/shell-web test:pages",
     "test:pages:smoke": "pnpm --filter @coffeeeeffoc/shell-web test:pages:smoke",

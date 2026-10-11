@@ -7,8 +7,8 @@ export const { chromium } = await import(
 );
 
 export const browserOptions = {
-  ...(process.env.PLAYWRIGHT_EXECUTABLE
-    ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE }
+  ...((process.env.PLAYWRIGHT_EXECUTABLE || process.env.PLAYWRIGHT_EXECUTABLE_PATH || process.env.CHROMIUM_PATH)
+    ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE || process.env.PLAYWRIGHT_EXECUTABLE_PATH || process.env.CHROMIUM_PATH }
     : { channel: process.env.PLAYWRIGHT_CHANNEL || 'chrome' }),
   headless: true,
 };

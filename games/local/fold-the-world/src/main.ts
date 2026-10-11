@@ -1,3 +1,6 @@
+import './fullscreen.js';
+import { createH5Publishing } from '../../../../platforms/h5/publishing.js';
+import { readChallenge } from './challenge';
 import Phaser from 'phaser';
 import './style.css';
 import { Puzzle, FixedClock, type Mode } from './game';
@@ -14,7 +17,7 @@ import { blankPaper, gestureTarget, swipeProgress } from './gestures';
 document.querySelector<HTMLDivElement>('#app')!.innerHTML=`
   <main class="workspace">
     <section class="paper-frame" aria-label="${T.subtitle}">
-      <div class="play-hud"><div class="hud-state"><span id="page"></span><span id="key"></span><span id="status"></span></div><div class="hud-actions"><button id="fullscreen" aria-label="${T.fullscreen}" title="${T.fullscreen}" ${!document.documentElement.requestFullscreen?'hidden':''}>⛶</button><button id="help" aria-label="${T.help}" title="${T.help} (?)">?</button><button id="show-hint" aria-label="${T.hint}" title="${T.hint} (H)">${T.hint}<kbd>H</kbd></button><button id="restart" aria-label="${T.restart}" title="${T.restart} (R)">↻<kbd>R</kbd></button><button id="pause" aria-label="${T.pause}" title="${T.pause} (Esc)">Ⅱ</button></div></div>
+      <div class="play-hud"><div class="hud-state"><span id="page"></span><span id="key"></span><span id="status"></span></div><div class="hud-actions"><button id="fullscreen" data-game-fullscreen aria-label="${T.fullscreen}" title="${T.fullscreen}">⛶</button><button id="help" aria-label="${T.help}" title="${T.help} (?)">?</button><button id="show-hint" aria-label="${T.hint}" title="${T.hint} (H)">${T.hint}<kbd>H</kbd></button><button id="restart" aria-label="${T.restart}" title="${T.restart} (R)">↻<kbd>R</kbd></button><button id="pause" aria-label="${T.pause}" title="${T.pause} (Esc)"><span class="pause-bars" aria-hidden="true"></span></button></div></div>
       <div id="stage"></div><div id="hint" class="scene-note"></div>
     </section>
     <div class="controls"><div class="movement"><button data-control="left" aria-label="${T.moveLeft}">←<kbd>A</kbd></button><button data-control="right" aria-label="${T.moveRight}">→<kbd>D</kbd></button></div><div class="fold-controls"><div id="creases" aria-label="${T.select}"></div><button id="fold" class="primary"><span id="fold-label">${T.fold}</span><kbd>F</kbd></button></div><button class="jump" data-control="jump" aria-label="${T.jump}">↑ <span>${T.jump}</span><kbd>空格</kbd></button></div>
@@ -22,6 +25,12 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML=`
 const el=<E extends HTMLElement=HTMLElement>(id:string):E=>document.getElementById(id) as E;
 const button=(id:string):HTMLButtonElement=>el<HTMLButtonElement>(id);
 let progress=freshProgress();
+const incomingChallenge=readChallenge(location.search,levels.length);
+let challenge=Boolean(incomingChallenge);
+let challengeTarget:number|null=incomingChallenge?.target??null;
+const publishingConfig=(globalThis as typeof globalThis & {SmallGamesPublishingConfig?:Partial<Parameters<typeof createH5Publishing>[0]>}).SmallGamesPublishingConfig;
+const publishing=createH5Publishing({gameId:'fold-the-world',root:document.getElementById('app')!,title:'折叠世界 · 少折叠挑战',adMode:publishingConfig?.adMode??'mock',provider:publishingConfig?.provider,publicUrl:publishingConfig?.publicUrl,pause:()=>{clearInput();return clearInput;}});
+const targetFolds=():number=>challengeTarget??plans[index].operations.filter(Boolean).length;
 let scene:FoldScene;
 let index=0,game=new Puzzle(levels[0]),guide=new HintGuide(plans[0]);
 let selected:Fold={crease:'A',direction:'right-to-left'};
@@ -36,7 +45,7 @@ let jumpQueued=false;
 const playable=():boolean=>!menu&&game.mode==='PLAYING';
 function clearInput():void{keys.clear();touches.clear();jumpQueued=false;document.querySelectorAll('[data-control]').forEach(b=>b.removeAttribute('data-active'));clock.reset();}
 function toast(message:string):void{el('message').textContent=message;messageUntil=performance.now()+3100;}
-function save():void{try{if(!saveProgress(localStorage,progress))toast(T.savedError);}catch{toast(T.savedError);}}
+function save():void{if(challenge)return;try{if(!saveProgress(localStorage,progress))toast(T.savedError);}catch{toast(T.savedError);}}
 function options():Fold[]{return game.level.creases.flatMap(c=>c.directions.map(direction=>({crease:c.id,direction})));}
 function choose(option:Fold):void{if(game.fold||!playable())return;selected=option;renderCreases();}
 function renderCreases():void{
@@ -51,6 +60,7 @@ function renderCreases():void{
 }
 function begin(i:number):void{
   if(!Number.isInteger(i)||i<0||i>=levels.length)return;
+  if(challenge&&incomingChallenge&&i!==incomingChallenge.index){challenge=false;challengeTarget=null;}
   index=i;game=new Puzzle(levels[i]);guide=new HintGuide(plans[i]);selected=options()[0];menu=null;drag=null;hintTier=0;
   clearInput();lastMode='PLAYING';lastMessage='';el('message').textContent='';
   el('page').textContent=`${String(i+1).padStart(2,'0')} / ${levels.length}`;
@@ -91,14 +101,14 @@ function renderOverlay():void{
   const key=`${menu}/${game.mode}/${index}/${progress.unlocked}/${hintTier}/${guide.stage}`;
   if(key===overlayKey)return;overlayKey=key;
   const overlay=el('overlay');let html='';
-  if(menu==='start')html=`<div class="intro-card"><div class="eyebrow">${T.subtitle}</div><div class="title-art" aria-hidden="true"><span></span><span></span><i>· ·</i></div><h1>折叠<br><em>世界</em></h1><p>${T.intro}</p><button class="primary large" data-action="start">${T.start} ↗</button><p class="fine">${levels.length} ${T.pages} · ${T.introSmall}</p><button data-action="levels">${T.levels}</button><button data-action="help">${T.help}</button></div>`;
+  if(menu==='start')html=`<div class="intro-card"><div class="eyebrow">${T.subtitle}</div><div class="title-art" aria-hidden="true"><span></span><span></span><i>· ·</i></div><h1>折叠<br><em>世界</em></h1><p>${challenge?`同关挑战 · 第 ${incomingChallenge!.index+1} 页${challengeTarget!==null?` · 目标 ${challengeTarget} 折`:''}<br>挑战成绩与正常进度分开`:T.intro}</p><button class="primary large" data-action="start">${challenge?'接受挑战':T.start} ↗</button>${challenge?'<button data-action="exit-challenge">退出挑战 · 正常游玩</button>':''}<p class="fine">${levels.length} ${T.pages} · ${T.introSmall}</p><button data-action="levels">${T.levels}</button><button data-action="help">${T.help}</button><button data-game-fullscreen>全屏</button></div>`;
   else if(menu==='levels')html=`<div class="modal chapters"><div class="eyebrow">${T.title}</div><h2>${T.levels}</h2>${chapterMenu()}<button data-action="back">← ${T.back}</button></div>`;
   else if(menu==='hint'){
     const hint=guide.get(game,hintTier);
     html=`<div class="modal hint-card"><div class="eyebrow">${T.hintStage} ${hint.stage+1} / ${hint.stages} · ${T.hintLevel} ${hintTier+1} / 3</div><h2>${T.hintTitle}</h2><p id="hint-text">${hint.text}</p><p class="fine">${T.hintPaused}</p><div class="dialog-actions"><button data-action="hint-more" ${hintTier===2||hint.recovery?'disabled':''}>${hintTier===2?T.lastHint:T.moreHint}</button><button class="primary" data-action="back">${T.closeHint}</button></div>${hint.recovery?`<button data-action="replay">↻ ${T.restart}</button>`:''}</div>`;
   }else if(menu==='help')html=`<div class="modal compact help-card"><div class="eyebrow">${T.title}</div><h2>${T.help}</h2><dl>${[[T.movementHelp,'A / D · ← / →'],[T.jump,'空格'],[T.foldHelp,'F'],[T.creaseHelp,'1 / 2 / 3 · C'],[T.hintHelp,'H'],[T.restart,'R'],[T.pauseHelp,'Esc']].map(([label,key])=>`<div><dt>${label}</dt><dd>${key}</dd></div>`).join('')}</dl><p>${T.touchHelp}</p><p>${T.safetyHelp}</p><button class="primary" data-action="back">${T.back}</button></div>`;
-  else if(game.mode==='PAUSED')html=`<div class="modal compact"><div class="eyebrow">${T.page} ${index+1} / ${levels.length} · ${game.level.title}</div><h2>${T.paused}</h2><p>${T.folds}: ${game.folds} · ${T.time}: ${timeLabel()}</p><button class="primary large" data-action="resume">${T.resume} →</button><div class="pause-grid"><button id="chapters" data-action="levels">${T.levels}</button><button data-action="hint">${T.hint} (H)</button><button data-action="help">${T.help}</button><button id="sound" data-action="sound" aria-pressed="${progress.muted}">${progress.muted?T.quiet:T.sound}</button><button data-action="replay">↻ ${T.restart}</button></div></div>`;
-  else if(game.mode==='COMPLETED')html=`<div class="modal compact"><div class="eyebrow">${T.page} ${index+1} / ${levels.length} · ${game.level.title}</div><div class="finish-mark">✓</div><h2>${index===levels.length-1?T.finish:T.cleared}</h2><p>${T.folds}: ${game.folds} · ${T.unfoldCount}: ${game.unfolds} · ${T.time}: ${timeLabel()}</p><button class="primary large" data-action="next">${index===levels.length-1?T.levels:T.next} ↗</button><button data-action="replay">${T.replay}</button></div>`;
+  else if(game.mode==='PAUSED')html=`<div class="modal compact"><div class="eyebrow">${T.page} ${index+1} / ${levels.length} · ${game.level.title}</div><h2>${T.paused}</h2><p>${T.folds}: ${game.folds} · ${T.time}: ${timeLabel()}</p><button class="primary large" data-action="resume">${T.resume} →</button><div class="pause-grid"><button id="chapters" data-action="levels">${T.levels}</button><button data-action="hint">${T.hint} (H)</button><button data-action="help">${T.help}</button><button id="sound" data-action="sound" aria-pressed="${progress.muted}">${progress.muted?T.quiet:T.sound}</button><button data-action="replay">↻ ${T.restart}</button><button data-action="home">回到首页</button><button data-game-fullscreen>全屏</button></div></div>`;
+  else if(game.mode==='COMPLETED')html=`<div class="modal compact"><div class="eyebrow">${T.page} ${index+1} / ${levels.length} · ${game.level.title}</div><div class="finish-mark">✓</div><h2>${index===levels.length-1?T.finish:T.cleared}</h2><p>${T.folds}: ${game.folds} · ${T.unfoldCount}: ${game.unfolds} · ${T.time}: ${timeLabel()}</p><p class="challenge-result">${game.folds<=targetFolds()?'✦ 少折叠达标':`再少 ${game.folds-targetFolds()} 折即可达标`} · ${challenge?'挑战成绩不写入普通进度':'参考目标 '+targetFolds()+' 折'}</p>${challenge?'':`<button class="primary large" data-action="next">${index===levels.length-1?T.levels:T.next} ↗</button>`}<div class="result-actions"><button data-action="share">分享少折叠挑战</button><button data-action="replay">${T.replay}</button><button data-action="home">回到首页</button></div><p id="share-status" role="status"></p><input id="share-link" aria-label="挑战链接" readonly hidden /></div>`;
   overlay.className=html?`visible${menu==='hint'?' hint-overlay':''}`:'';overlay.innerHTML=html;
   overlay.dataset.side=menu==='hint'&&(guide.get(game,hintTier).marker?.x??0)>600?'left':'right';
   el('stage').setAttribute('aria-hidden',String(!!html&&menu!=='hint'));
@@ -108,9 +118,12 @@ function renderOverlay():void{
 }
 el('overlay').addEventListener('click',event=>{
   const target=(event.target as HTMLElement).closest<HTMLButtonElement>('button');if(!target||target.disabled)return;
-  if(target.dataset.level!==undefined){begin(Number(target.dataset.level));return;}
+  if(target.dataset.level!==undefined){challenge=false;challengeTarget=null;begin(Number(target.dataset.level));return;}
   switch(target.dataset.action){
-    case 'start':begin(progress.unlocked-1);break;
+    case 'start':begin(challenge?incomingChallenge!.index:progress.unlocked-1);break;
+    case 'exit-challenge':challenge=false;challengeTarget=null;overlayKey='';renderOverlay();break;
+    case 'home':game.pause();menu='start';clearInput();overlayKey='';renderOverlay();break;
+    case 'share':void share();break;
     case 'levels':openMenu('levels');break;
     case 'help':openMenu('help');break;
     case 'hint':revealHint();break;
@@ -122,7 +135,7 @@ el('overlay').addEventListener('click',event=>{
     case 'sound':progress.muted=!progress.muted;scene?.sound.setMute(progress.muted);save();overlayKey='';renderOverlay();break;
   }
 });
-button('fullscreen').onclick=()=>{const op=document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen?.();op?.catch(()=>toast(T.fullscreenError));};
+
 button('pause').onclick=pause;button('help').onclick=()=>openMenu('help');button('show-hint').onclick=revealHint;
 button('restart').onclick=()=>{if(!menu)restart();};button('fold').onclick=()=>requestFold();
 document.querySelectorAll<HTMLButtonElement>('[data-control]').forEach(b=>{
@@ -143,7 +156,30 @@ class FoldScene extends Phaser.Scene{
   private paper!:Paper;
   preload():void{for(const [name,freq,duration,end]of [['fold',260,.25,110],['jump',310,.1,460],['key',680,.18,1100],['win',520,.4,1040],['dead',180,.13,90]]as const)this.load.audio(name,tone(freq,duration,end));}
   create():void{
-    scene=this;this.paper=new Paper(this);this.sound.setMute(progress.muted);this.cameras.main.setScroll(0,180);this.input.addPointer(3);
+    scene=this;
+    const manager=this.input.manager, originalTransform=manager.transformPointer.bind(manager);
+    manager.transformPointer=(pointer,pageX,pageY,wasMove)=>{
+      if(document.documentElement.dataset.rotated!=='true'){originalTransform(pointer,pageX,pageY,wasMove);return;}
+      const rect=this.game.canvas.getBoundingClientRect();
+      pointer.prevPosition.copy(pointer.position);
+      pointer.position.set((pageY-scrollY-rect.top)/rect.height*WIDTH,(rect.right-pageX+scrollX)/rect.width*380);
+    };
+    const parentBounds=this.scale.getParentBounds.bind(this.scale);
+    this.scale.getParentBounds=()=>{
+      if(document.documentElement.dataset.rotated!=='true')return parentBounds();
+      const stage=el('stage'),size=this.scale.parentSize;
+      const changed=size.width!==stage.clientWidth||size.height!==stage.clientHeight;
+      size.setSize(stage.clientWidth,stage.clientHeight);return changed;
+    };
+    const center=this.scale.updateCenter.bind(this.scale);
+    this.scale.updateCenter=()=>{
+      if(document.documentElement.dataset.rotated!=='true'){center();return;}
+      const canvas=this.game.canvas,stage=el('stage');
+      canvas.style.marginLeft=`${Math.max(0,(stage.clientWidth-canvas.clientWidth)/2)}px`;
+      canvas.style.marginTop=`${Math.max(0,(stage.clientHeight-canvas.clientHeight)/2)}px`;
+    };
+    this.scale.getParentBounds();this.scale.refresh();
+    this.paper=new Paper(this);this.sound.setMute(progress.muted);this.cameras.main.setScroll(0,180);this.input.addPointer(3);
     this.input.keyboard?.on('keydown',(event:KeyboardEvent)=>{
       if(handledKeys.has(event))return;handledKeys.add(event);
       if(event.repeat)return;const code=event.code;
@@ -161,7 +197,7 @@ class FoldScene extends Phaser.Scene{
     this.input.on('pointerdown',(p:Phaser.Input.Pointer)=>{
       const y=p.y+this.cameras.main.scrollY;
       if(!playable()||drag||touches.size||keys.size||jumpQueued||p.x<0||p.x>WIDTH||p.y<0||p.y>380)return;
-      const scale=this.game.canvas.getBoundingClientRect().width/WIDTH;
+      const scale=this.game.canvas.clientWidth/WIDTH;
       const crease=game.level.creases.find(c=>Math.abs(p.x-c.x)<=Math.max(24,22/scale)&&y<=550);
       if(crease)choose({crease:crease.id,direction:crease.directions.includes(selected.direction)?selected.direction:crease.directions[0]});
       if(!blankPaper(p.x,y,game.world,game.body))return;
@@ -184,7 +220,7 @@ class FoldScene extends Phaser.Scene{
     this.input.on('pointerup',release);this.input.on('pointerupoutside',release);
     this.game.canvas.addEventListener('pointercancel',()=>{if(drag){game.cancelPreview();drag=null;clearInput();}});
     this.scale.on('resize',()=>{if(drag){game.cancelPreview();drag=null;clearInput();}});
-    this.game.canvas.setAttribute('aria-label',T.title);this.game.canvas.setAttribute('role','img');begin(0);menu='start';game.pause();renderOverlay();
+    this.game.canvas.setAttribute('aria-label',T.title);this.game.canvas.setAttribute('role','img');begin(incomingChallenge?.index??0);menu='start';game.pause();renderOverlay();
   }
   playTone(name:string):void{if(!progress.muted&&this.cache.audio.exists(name))this.sound.play(name,{volume:.4});}
   update(time:number,delta:number):void{
@@ -194,13 +230,13 @@ class FoldScene extends Phaser.Scene{
       const jump=jumpQueued;jumpQueued=false;const beforeKeys=game.collected.size,beforeVy=game.body.vy,mode=game.mode;
       game.tick(STEP,{axis,jump});guide.update(game);
       if(game.collected.size>beforeKeys)this.playTone('key');if(beforeVy>=0&&game.body.vy<0)this.playTone('jump');
-      if(game.mode!==mode){clearInput();if(game.mode==='COMPLETED'){recordWin(progress,index,game.folds);save();this.playTone('win');}if(game.mode==='DEAD')this.playTone('dead');}
+      if(game.mode!==mode){clearInput();if(game.mode==='COMPLETED'){if(!challenge){recordWin(progress,index,game.folds);save();}this.playTone('win');void publishing.interstitial({placement:'page-complete',naturalBreak:true});}if(game.mode==='DEAD')this.playTone('dead');}
     });
     // Input is cleared at each transition, not again on the next rendered frame.
     // Otherwise a fresh direction press immediately after closing a hint is lost.
     if(game.mode!==lastMode){lastMode=game.mode;renderOverlay();}
     if(game.message&&game.message!==lastMessage){toast(game.message);lastMessage=game.message;}if(performance.now()>messageUntil)el('message').textContent='';
-    el('status').textContent=`${game.fold?`${creaseName(game.fold.crease)} ${game.fold.direction==='right-to-left'?'←':'→'}`:T.flat} · ${T.folds} ${game.folds} 次`;
+    el('status').textContent=`${game.fold?`${creaseName(game.fold.crease)} ${game.fold.direction==='right-to-left'?'←':'→'}`:T.flat} · ${T.folds} ${game.folds} / ${targetFolds()} 次${challenge?' · 挑战':''}`;
     const count=game.level.entities.filter(e=>e.kind==='key').length;el('key').textContent=count?`钥匙 ${game.collected.size} / ${count}`:'';
     el('key').setAttribute('aria-label',`${T.key}: ${game.collected.size} / ${count}`);
     el('hint').textContent=game.mode==='FOLD_PREVIEW'?(game.preview>=.5?T.preview:T.previewShort):game.fold?T.unfoldGesture:index===0?T.firstHint:'';
@@ -211,8 +247,26 @@ class FoldScene extends Phaser.Scene{
     this.paper.draw(game,selected,time,menu==='hint'?guide.get(game,hintTier).marker:null);
   }
 }
-try{progress=readProgress(localStorage,migrated=>{if(!saveProgress(localStorage,migrated))toast(T.savedError);});}catch{toast(T.savedError);}
+try{progress=readProgress(localStorage,migrated=>{if(!challenge&&!saveProgress(localStorage,migrated))toast(T.savedError);});}catch{toast(T.savedError);}
+function fitLandscape():void{
+  const mobile=navigator.maxTouchPoints>0||matchMedia('(pointer:coarse)').matches;
+  const w=visualViewport?.width??innerWidth,h=visualViewport?.height??innerHeight,rotated=mobile&&h>w;
+  const root=document.documentElement;root.dataset.touchLandscape=String(mobile);root.dataset.rotated=String(rotated);
+  root.style.setProperty('--play-width',`${rotated?h:w}px`);root.style.setProperty('--play-height',`${rotated?w:h}px`);
+  if(scene){if(drag){game.cancelPreview();drag=null;}clearInput();requestAnimationFrame(()=>{scene.scale.getParentBounds();scene.scale.refresh();});}
+}
+document.addEventListener('game-displaychange',()=>{const root=el('app');root.style.position='absolute';void root.offsetWidth;root.style.position='';fitLandscape();});
+window.addEventListener('resize',fitLandscape);visualViewport?.addEventListener('resize',fitLandscape);fitLandscape();
 // CSS touch-action handles scrolling; Phaser 3.90 would preventDefault on non-cancelable touchcancel.
 new Phaser.Game({type:Phaser.AUTO,parent:'stage',width:WIDTH,height:380,backgroundColor:'#f4eddc',antialias:true,scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},scene:[FoldScene],input:{keyboard:true,touch:{capture:false},mouse:true},audio:{disableWebAudio:false},banner:false});
 // Observations only; no teleport, unlock, or simulation-control hooks.
-Object.defineProperty(window,'__foldSnapshot',{get:()=>JSON.parse(JSON.stringify({index,mode:game.mode,body:game.body,fold:game.fold,folds:game.folds,unfolds:game.unfolds,keys:[...game.collected],deaths:game.deaths,elapsed:game.elapsed,preview:game.preview,selected,world:game.world,objects:scene?.children.length,progress,hint:menu==='hint'?guide.get(game,hintTier):null,hintTier}))});
+Object.defineProperty(window,'__foldSnapshot',{get:()=>JSON.parse(JSON.stringify({index,challenge,challengeTarget,mode:game.mode,body:game.body,fold:game.fold,folds:game.folds,unfolds:game.unfolds,keys:[...game.collected],deaths:game.deaths,elapsed:game.elapsed,preview:game.preview,selected,world:game.world,objects:scene?.children.length,progress,hint:menu==='hint'?guide.get(game,hintTier):null,hintTier}))});
+
+async function share():Promise<void>{
+  const current=game;
+  const result=await publishing.share({text:`第 ${index+1} 页，我用了 ${game.folds} 次折叠，你能更少吗？`,params:{challenge:'fold-v1',level:index+1,targetFolds:game.folds}});
+  if(game!==current||!document.getElementById('share-status'))return;
+  el('share-status').textContent=result.status==='copied'?'挑战链接已复制':result.status==='shared'?'已打开系统分享':result.status==='cancelled'?'已取消分享':'可选中下方链接复制';
+  const link=el<HTMLInputElement>('share-link');link.hidden=!['unavailable','failed'].includes(result.status);link.value=result.url;
+}
+window.addEventListener('pagehide',event=>{if(!event.persisted)publishing.dispose();});

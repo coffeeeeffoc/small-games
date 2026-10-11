@@ -1,0 +1,8 @@
+{
+  "checks": [
+    "standalone enter/exit fullscreen",
+    "BFCache restore preserves publishing adapter",
+    "desktop solve, pause, public challenge URL"
+  ],
+  "errors": []
+}

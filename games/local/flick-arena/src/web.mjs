@@ -1,3 +1,5 @@
+import { createH5Publishing } from '../publishing.js';
+import { layouts } from './layouts.mjs';
 import { createGame } from './game.mjs';
 import { saveKey } from './progress.mjs';
 import { W, H } from './render.mjs';
@@ -48,7 +50,75 @@ const target = {
   },
 };
 const online = createOnlineClient({ onChange: (room) => game.receiveRoom(room) });
+const query = new URLSearchParams(location.search);
+const requestedSeed = query.get('seed');
+const requestedLayout = layouts.find((layout) => layout.id === query.get('layout'));
+const targetShots =
+  /^\d{1,3}$/.test(query.get('targetShots') || '') &&
+  Number(query.get('targetShots')) >= 1 &&
+  Number(query.get('targetShots')) <= 999
+    ? Number(query.get('targetShots'))
+    : null;
+const challenge =
+  !invitationCode(location.href) &&
+  requestedLayout &&
+  /^\d{1,16}$/.test(requestedSeed || '') &&
+  Number.isSafeInteger(Number(requestedSeed))
+    ? { layout: requestedLayout.id, seed: Number(requestedSeed), targetShots }
+    : null;
+let publishingBusy = false;
+const publishingConfig = globalThis.SmallGamesPublishingConfig ?? {};
+const publishing = createH5Publishing({
+  gameId: 'flick-arena',
+  title: '弹指擂台',
+  adMode: publishingConfig.adMode ?? 'mock',
+  provider: publishingConfig.provider,
+  publicUrl: publishingConfig.publicUrl,
+  pause() {
+    const wasSuspended = game.isSuspended();
+    game.pause();
+    return () => {
+      last = performance.now();
+      if (!wasSuspended && !document.hidden) game.resume();
+    };
+  },
+});
+async function action(id) {
+  if (publishingBusy) return;
+  if (
+    game.app.mode === 'practice' &&
+    game.app.screen === 'result' &&
+    ['again', 'rematch', 'home'].includes(id)
+  ) {
+    publishingBusy = true;
+    try {
+      await publishing.interstitial({ placement: 'result-exit', naturalBreak: true });
+    } finally {
+      publishingBusy = false;
+    }
+  }
+  game.action(id);
+}
 const game = createGame(target, {
+  challenge,
+  async share(state) {
+    const result = await publishing.share({
+      text: `弹指擂台：${state.winner === 0 ? '守擂成功' : '再战同一擂台'}，${state.turn} 回合，出手 ${state.playerShots} 次。相同摆位，看看你的走位！`,
+      params: {
+        seed: state.seed,
+        layout: state.layout,
+        targetShots:
+          state.winner === 0 && state.playerShots > 0
+            ? Math.min(999, state.playerShots)
+            : undefined,
+      },
+    });
+    return result.status === 'copied'
+      ? '同擂台挑战链接已复制'
+      : ['failed', 'unavailable'].includes(result.status)
+        ? '分享暂不可用，可以继续切磋'
+        : '';
+  },
   save: saved,
   online,
   development: Boolean(window.SmallGamesDev?.isEnabled()),
@@ -81,6 +151,9 @@ const game = createGame(target, {
   },
   onRender(app) {
     document.body.dataset.phase = app.screen;
+    canvas.dataset.seed = String(app.state?.seed ?? '');
+    canvas.dataset.layout = app.state?.layout ?? '';
+    canvas.dataset.targetShots = String(app.targetShots ?? '');
     canvas.dataset.turn = String(app.state?.turn ?? 0);
     canvas.dataset.shots = String(app.state?.shots ?? 0);
     canvas.dataset.active = String(app.state?.active ?? 0);
@@ -138,7 +211,9 @@ const game = createGame(target, {
           el.textContent = b.label;
           el.setAttribute('aria-label', b.label);
           el.disabled = Boolean(b.disabled);
-          el.addEventListener('click', () => game.action(b.id));
+          el.addEventListener('click', () => {
+            void action(b.id);
+          });
           return el;
         }),
       );
@@ -154,10 +229,10 @@ const game = createGame(target, {
     app.buttons.forEach((b) => {
       const el = document.getElementById(b.id);
       Object.assign(el.style, {
-        left: ox + b.x * s + 'px',
-        top: oy + b.y * s + 'px',
-        width: b.w * s + 'px',
-        height: b.h * s + 'px',
+        left: ox + (b.x + b.w / 2) * s - Math.max(44, b.w * s) / 2 + 'px',
+        top: oy + (b.y + b.h / 2) * s - Math.max(44, b.h * s) / 2 + 'px',
+        width: Math.max(44, b.w * s) + 'px',
+        height: Math.max(44, b.h * s) + 'px',
       });
     });
     const nextFields = app.fields.map((field) => field.id).join('|');
@@ -243,7 +318,7 @@ function lifecycle() {
   if (document.hidden) game.pause();
   else {
     last = performance.now();
-    game.resume();
+    if (!publishingBusy) game.resume();
   }
 }
 function blur() {
@@ -251,7 +326,7 @@ function blur() {
 }
 function focus() {
   last = performance.now();
-  game.resume();
+  if (!publishingBusy) game.resume();
 }
 document.addEventListener('visibilitychange', lifecycle);
 window.addEventListener('blur', blur);
@@ -279,7 +354,7 @@ if (dev?.isEnabled()) {
 const invited = invitationCode(location.href);
 if (invited && online.savedCode() === invited) void game.restoreRoom();
 else if (invited) game.joinInvitation(invited);
-else if (online.savedCode()) void game.restoreRoom();
+else if (!challenge && online.savedCode()) void game.restoreRoom();
 window.addEventListener(
   'pagehide',
   (e) => {
@@ -290,6 +365,7 @@ window.addEventListener(
     cancelAnimationFrame(frame);
     observer.disconnect();
     game.dispose();
+    publishing.dispose();
     cleanActions?.();
     cleanSnapshot?.();
     document.removeEventListener('visibilitychange', lifecycle);
@@ -309,6 +385,6 @@ window.addEventListener(
 window.addEventListener('pageshow', (e) => {
   if (e.persisted) {
     last = performance.now();
-    game.resume();
+    if (!publishingBusy) game.resume();
   }
 });

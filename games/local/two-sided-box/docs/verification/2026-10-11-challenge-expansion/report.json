@@ -1,0 +1,10 @@
+{
+  "checks": [
+    "standalone enter/exit fullscreen",
+    "desktop solve, actual ball pause, same initial faces in share",
+    "rotated phone canvas notch, drag cancel, touch solve, isolated collection",
+    "fixed-face replay, physical landscape, frequency-capped third-result ad",
+    "home, exit challenge, collection navigation"
+  ],
+  "errors": []
+}

@@ -31,6 +31,8 @@ export type AdRuntimeOptions = Readonly<{
   managed?: AdProvider;
   telemetry?: TelemetryPort;
   now?: () => number;
+  /** Bounds missing SDK callbacks. A still-running provider remains unavailable after timeout. */
+  timeoutMs?: number;
 }>;
 
 async function trackSafely(
@@ -52,14 +54,16 @@ export function createAdRuntime(options: AdRuntimeOptions): AdvertisingPort {
   const now = options.now ?? Date.now;
   const history = new Map<string, number[]>();
   const rewards = new Map<string, number>();
-  const queues = new Map<string, Promise<void>>();
+  let queue: Promise<void> = Promise.resolve();
+  let providerPending = false;
+  const timeoutMs = Math.max(1, options.timeoutMs ?? 45000);
   const provider =
     authority === 'host' ? options.host : authority === 'managed' ? options.managed : null;
   // Host and none sessions never consult operator configuration.
   const plan = authority === 'managed' ? options.managedPlan : undefined;
 
   async function runOffer(opportunity: RewardOpportunity): Promise<RewardOutcome> {
-    if (authority === 'none' || !provider) return { status: 'unavailable' };
+    if (authority === 'none' || !provider || providerPending) return { status: 'unavailable' };
     const placement = plan ? resolveManagedPlacement(plan, opportunity.id) : null;
     if (plan && !placement) return { status: 'unavailable' };
     if (placement && !placement.reward.enabled) return { status: 'unavailable' };
@@ -72,7 +76,28 @@ export function createAdRuntime(options: AdRuntimeOptions): AdvertisingPort {
     if (!decision.allowed) return { status: 'unavailable' };
 
     try {
-      const outcome = await provider.show({ opportunityId: opportunity.id });
+      providerPending = true;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      let playback: Promise<RewardOutcome>;
+      try {
+        playback = Promise.resolve(provider.show({ opportunityId: opportunity.id })).finally(() => {
+          providerPending = false;
+        });
+      } catch (error) {
+        providerPending = false;
+        throw error;
+      }
+      let outcome: RewardOutcome;
+      try {
+        outcome = await Promise.race([
+          playback,
+          new Promise<RewardOutcome>((resolve) => {
+            timer = setTimeout(() => resolve({ status: 'failed' }), timeoutMs);
+          }),
+        ]);
+      } finally {
+        clearTimeout(timer);
+      }
       // A dismissal still represents an impression; unavailable/failed attempts do not.
       if (outcome.status === 'completed' || outcome.status === 'dismissed') {
         shownAt.push(offeredAt);
@@ -80,14 +105,14 @@ export function createAdRuntime(options: AdRuntimeOptions): AdvertisingPort {
       }
       if (outcome.status === 'completed' && placement)
         rewards.set(opportunity.id, (rewards.get(opportunity.id) ?? 0) + 1);
-      await trackSafely(options.telemetry, 'ad.offer.completed', {
+      void trackSafely(options.telemetry, 'ad.offer.completed', {
         opportunityId: opportunity.id,
         authority,
         status: outcome.status,
       });
       return outcome;
     } catch {
-      await trackSafely(options.telemetry, 'ad.offer.failed', {
+      void trackSafely(options.telemetry, 'ad.offer.failed', {
         opportunityId: opportunity.id,
         authority,
       });
@@ -97,19 +122,13 @@ export function createAdRuntime(options: AdRuntimeOptions): AdvertisingPort {
 
   return Object.freeze({
     async offer(opportunity: RewardOpportunity): Promise<RewardOutcome> {
-      const previous = queues.get(opportunity.id) ?? Promise.resolve();
-      const execution = previous.then(() => runOffer(opportunity));
-      const settled = execution.then(
+      // Different placements share a physical screen/SDK too; never overlap their playback.
+      const execution = queue.then(() => runOffer(opportunity));
+      queue = execution.then(
         () => undefined,
         () => undefined,
       );
-      queues.set(opportunity.id, settled);
-
-      try {
-        return await execution;
-      } finally {
-        if (queues.get(opportunity.id) === settled) queues.delete(opportunity.id);
-      }
+      return execution;
     },
   });
 }

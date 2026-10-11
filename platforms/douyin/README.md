@@ -20,6 +20,12 @@ pnpm minigame:build --platform douyin --game building-power --preview
 - [广告 destroy](https://developer.open-douyin.com/docs/resource/zh-CN/mini-game/develop/api/javascript-api/ads/rewarded-video-ad/rewarded-video-ad-destroy)返回 Promise，重建需要等待。每个请求结束（包括超时）都会销毁 SDK 实例，只有销毁成功才释放租约；等待期间的新请求返回 failed。销毁失败或抛错时继续阻止后续请求，避免旧广告回调误发新请求的奖励。
 - [反馈日志](https://developer.open-douyin.com/docs/resource/zh-CN/mini-game/develop/guide/performance-optimization-both/performance-optimization/performance-tuning-tool/feedback-log-capability)要求登录，本地单人游戏使用 console 记录，不隐式申请账号。
 
+## 服务端登录协议核验（2026-10-11）
+
+本轮实际读取[小游戏 code2Session 官方文档](https://developer.open-douyin.com/docs/resource/zh-CN/mini-game/develop/server/log-in/code-2-session)，当前小游戏端点是 `GET https://minigame.zijieapi.com/mgplatform/api/apps/jscode2session`；Query 为 `appid`、`secret`、`code`（不是微信的 `js_code`），Header 为 `content-type: application/json`。Competition Service 已实现此分支，检查 `error === 0` 和非空 `openid`，并拒绝 `errcode` 错误；超时 5 秒且禁止重定向。`code` 由既有原生客户端的 `tt.login` 获取且只能使用一次；非匿名正式身份不使用 `anonymous_code/anonymous_openid` 冒充登录。`session_key` 仅在服务端处理，不能下发客户端。`COMPETITION_PLATFORM_CONFIG` 使用每款 `platform: douyin`、`appId`、`secret`。配置缺失、错误或只有匿名凭证都拒绝，不回退游客。当前边界以 [渠道矩阵](../README.md) 为准。
+
+验证：`pnpm --filter @coffeeeeffoc/platform-douyin exec vitest run tests/login.test.mjs` 使用模拟 `tt.login/request` 验证既有原生客户端；`pnpm --filter @coffeeeeffoc/runtime-api exec vitest run tests/competition-douyin.test.ts tests/competition-platforms.test.ts` 验证服务端字段、超时、失败与密钥隔离。测试没有调用真实账号换码，也未执行真机登录。
+
 ## 验收边界
 
 适配器测试覆盖触摸取消、后台停止声音、监听清理、存档异常、广告完成/中断/失败/超时/重复通知。Shell 测试覆盖注册与 AppID 门槛。测试和 Vite 构建都不等于官方工具或真机验收。

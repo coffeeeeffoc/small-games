@@ -1,4 +1,5 @@
 import http from 'node:http';
+import { multiplayerClientSource } from './network-config.mjs';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -40,6 +41,12 @@ const server = http.createServer(async (request, response) => {
     if (pathname.startsWith('/carrom-club/')) pathname = pathname.slice('/carrom-club'.length);
     if (pathname.includes('\\') || pathname.includes('\0')) {
       response.writeHead(400).end('Invalid path');
+      return;
+    }
+    if (!values.dist && pathname === '/competition-client.js') {
+      const body = await multiplayerClientSource();
+      response.writeHead(200, { 'Content-Type': types['.js'], 'Cache-Control': 'no-store' });
+      response.end(request.method === 'HEAD' ? undefined : body);
       return;
     }
     let filename = path.resolve(root, `.${pathname}`);

@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "node server.mjs",
     "start": "node server.mjs",
-    "test": "node tests/engine.test.mjs && node tests/library.test.mjs && node tests/competition.test.mjs && node tests/challenge.test.mjs && node ../../../scripts/letters-words2-competition-renderer.test.mjs && node tests/native-session.test.mjs && node tests/native-platform.test.mjs && node tests/native.test.mjs && node tests/native-navigation.test.mjs",
+    "test": "node tests/engine.test.mjs && node tests/word-flow.test.mjs && node tests/library.test.mjs && node tests/competition.test.mjs && node tests/challenge.test.mjs && node ../../../scripts/letters-words2-competition-renderer.test.mjs && node tests/native-session.test.mjs && node tests/native-platform.test.mjs && node tests/native.test.mjs && node tests/native-navigation.test.mjs",
     "test:native": "node tests/native-session.test.mjs && node tests/native-platform.test.mjs && node tests/native.test.mjs && node tests/native-navigation.test.mjs",
     "test:browser": "node tests/browser.test.mjs",
     "test:challenge:browser": "node tests/challenge.browser.test.mjs",
@@ -20,7 +20,8 @@
     "test:native:browser": "node tests/native.browser.test.mjs",
     "test:native:bundle": "node tests/native-bundle.test.mjs",
     "vocabulary:sync": "python scripts/sync-vocabulary.py",
-    "check": "node --check app.js && node --check mobile-ui.js && node --check engine.js && node --check challenge.js && node --check library.js && node --check native.js && node --check native-session.js && node --check native-platform.js && node --check server.mjs && node server.mjs --check",
-    "build": "node build.mjs"
+    "check": "node --check app.js && node --check mobile-ui.js && node --check engine.js && node --check challenge.js && node --check word-flow.js && node --check library.js && node --check native.js && node --check native-session.js && node --check native-platform.js && node --check server.mjs && node server.mjs --check",
+    "build": "node build.mjs",
+    "test:flow:browser": "node tests/word-flow.browser.mjs"
   }
 }

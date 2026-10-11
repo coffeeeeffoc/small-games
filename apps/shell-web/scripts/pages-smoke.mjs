@@ -116,7 +116,7 @@ try {
     : ['三分钟修仙', '秋声斗蟋', '打工人摸鱼记', '电子斗蛐蛐']) {
     await page
       .locator('article')
-      .filter({ hasText: title })
+      .filter({ has: page.getByRole('heading', { name: title, exact: true }) })
       .getByRole('button', { name: '进入游戏', exact: true })
       .click();
     if (title === '三分钟修仙') {
@@ -172,7 +172,7 @@ try {
     await phase(result, 'embedded-load', async () => {
       await page
         .locator('article')
-        .filter({ hasText: game.title })
+        .filter({ has: page.getByRole('heading', { name: game.title, exact: true }) })
         .getByRole('link', { name: '进入游戏', exact: true })
         .click();
       await expect(page).toHaveURL(`${url}#/games/${game.id}`);
