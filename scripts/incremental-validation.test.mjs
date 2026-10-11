@@ -38,6 +38,21 @@ const plan = (changedPaths, extra = {}) =>
     ...extra,
   });
 
+test('browser preparation is validation tooling with only the existing navigation samples', () => {
+  const selected = incrementalPlan({
+    packages,
+    games: [
+      ...games,
+      { id: 'letters-words2', source: 'games/local/letters-words2' },
+      { id: 'xiangqi-five', source: 'games/submodules/xiangqi-five' },
+    ],
+    changedPaths: ['scripts/browser-preparation.mjs'],
+    readSource: () => '',
+  });
+  assert.equal(selected.validation_tools, true);
+  assert.deepEqual(selected.browser_ids, ['letters-words2', 'xiangqi-five']);
+});
+
 test('publishing UI regressions select only reviewed consumer browsers; shared publishing selects every registered consumer', () => {
   const consumerGames = Object.entries(publishingConsumers).map(([id, source]) => ({ id, source }));
   const consumerPackages = consumerGames.map((game) => ({ name: game.id, dir: game.source }));

@@ -5,6 +5,120 @@ import os from 'node:os';
 import path from 'node:path';
 import { assertNodeOnly, validateTree, runIncrementalToolChecks } from './validate-tree.mjs';
 import { publishingConsumers } from './publication-scopes.mjs';
+import { createBrowserPreparation } from './browser-preparation.mjs';
+
+test('local and CI browser preparation installs then probes once with their dependency policy', () => {
+  for (const withDeps of [false, true]) {
+    const env = { PLAYWRIGHT_BROWSERS_PATH: '/shared browser cache' };
+    const calls = [];
+    const prepare = createBrowserPreparation({
+      root: '/candidate with spaces',
+      env,
+      withDeps,
+      browserExecutable: () => '/installed Chromium',
+      execute: (command, args, cwd, childEnv) => calls.push({ command, args, cwd, childEnv }),
+    });
+    assert.equal(calls.length, 0, 'Creating the lazy callback must not install a browser');
+    prepare();
+    prepare();
+    assert.equal(calls.length, 2);
+    assert.deepEqual(calls[0].args, [
+      'exec',
+      'playwright',
+      'install',
+      ...(withDeps ? ['--with-deps'] : []),
+      'chromium',
+    ]);
+    assert.equal(calls[1].command, process.execPath);
+    assert.equal(calls[1].args[0], '-e');
+    assert(
+      calls.every(({ cwd, childEnv }) => cwd === '/candidate with spaces' && childEnv === env),
+    );
+    assert.equal(env.CHROMIUM_PATH, '/installed Chromium');
+    assert.equal(env.PLAYWRIGHT_EXECUTABLE_PATH, '/installed Chromium');
+    assert.equal(env.PLAYWRIGHT_BROWSERS_PATH, '/shared browser cache');
+  }
+});
+
+test('browser preparation resolves Playwright from the candidate rather than the caller', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'candidate browser '));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const pkg = path.join(root, 'node_modules/@playwright/test');
+  await mkdir(pkg, { recursive: true });
+  await writeFile(path.join(root, 'package.json'), '{}');
+  await writeFile(path.join(pkg, 'package.json'), '{"main":"index.cjs"}');
+  await writeFile(
+    path.join(pkg, 'index.cjs'),
+    "exports.chromium = { executablePath: () => '/candidate/browser' };",
+  );
+  const env = {};
+  createBrowserPreparation({ root, env, execute: () => {} })();
+  assert.equal(env.CHROMIUM_PATH, '/candidate/browser');
+  assert.equal(env.PLAYWRIGHT_EXECUTABLE_PATH, '/candidate/browser');
+});
+
+test('browser installation and launch failures block preparation and never mark it ready', () => {
+  for (const failedStep of ['exec', '-e']) {
+    let attempts = 0;
+    const prepare = createBrowserPreparation({
+      root: '/candidate',
+      env: {},
+      browserExecutable: () => '/browser',
+      execute: (command, args) => {
+        if (args[0] === failedStep) {
+          attempts++;
+          throw new Error('environment unavailable');
+        }
+      },
+    });
+    const message =
+      failedStep === '-e' ? /Chromium launch preflight failed/ : /environment unavailable/;
+    assert.throws(prepare, message);
+    assert.throws(prepare, message);
+    assert.equal(attempts, 2);
+  }
+});
+
+test('an H5 preflight failure stops the candidate before validation suites or builds', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'browser preflight candidate '));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });
+  await writeFile(
+    path.join(root, 'apps/shell-web/src/standalone-games.json'),
+    JSON.stringify([{ id: 'letters-words2', source: 'games/local/letters-words2' }]),
+  );
+  await writeFile(
+    path.join(root, 'package.json'),
+    JSON.stringify({
+      volta: { node: process.versions.node },
+      packageManager: 'pnpm@12.6.0',
+    }),
+  );
+  const calls = [];
+  await assert.rejects(
+    validateTree({
+      root,
+      incremental: true,
+      env: {},
+      selectScope: async () => ({ required: true, full: false, risk: 'incremental' }),
+      prepareBrowser: () => {
+        throw new Error('browser environment unavailable');
+      },
+      execute: (command, args) => {
+        calls.push(args);
+        if (command === 'git') return 'scripts/browser-preparation.mjs\0';
+        if (args[0] === '--version') return '12.6.0';
+      },
+    }),
+    /browser environment unavailable/,
+  );
+  assert(
+    !calls.some(
+      (args) =>
+        args.includes('test:validation') || args.includes('build') || args.includes('typecheck'),
+    ),
+  );
+});
 
 test('metadata early return retains mandatory publication checks and propagates their failure', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'publication-metadata-'));

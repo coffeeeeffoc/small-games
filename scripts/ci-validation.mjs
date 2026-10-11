@@ -5,14 +5,15 @@ import { pathToFileURL } from 'node:url';
 import { main as selectScope } from './pages-test-scope.mjs';
 import { validateTree } from './validate-tree.mjs';
 import { run } from './validate-push.mjs';
-const require = createRequire(import.meta.url);
+import { createBrowserPreparation } from './browser-preparation.mjs';
 export async function ciValidation({
   root = process.cwd(),
   env = process.env,
   execute = run,
   treeValidator = validateTree,
   selectPlan = selectScope,
-  browserExecutable = () => require('@playwright/test').chromium.executablePath(),
+  browserExecutable = () =>
+    createRequire(import.meta.url)('@playwright/test').chromium.executablePath(),
 } = {}) {
   const plan = env.CI_VALIDATION_PLAN
     ? JSON.parse(env.CI_VALIDATION_PLAN)
@@ -36,26 +37,13 @@ export async function ciValidation({
     plan.diff_base.trim().length > 0 &&
     !/^0+$/.test(plan.diff_base);
   const validationEnv = { ...env };
-  let browserReady = false;
-  const ensureBrowser = () => {
-    if (browserReady) return;
-    execute(
-      'pnpm',
-      ['exec', 'playwright', 'install', '--with-deps', 'chromium'],
-      root,
-      validationEnv,
-    );
-    if (!validationEnv.CHROMIUM_PATH || !validationEnv.PLAYWRIGHT_EXECUTABLE_PATH) {
-      const executable = browserExecutable();
-      assert(
-        typeof executable === 'string' && executable.length > 0,
-        'Missing installed Chromium executable path',
-      );
-      validationEnv.CHROMIUM_PATH ||= executable;
-      validationEnv.PLAYWRIGHT_EXECUTABLE_PATH ||= executable;
-    }
-    browserReady = true;
-  };
+  const ensureBrowser = createBrowserPreparation({
+    root,
+    env: validationEnv,
+    execute,
+    withDeps: true,
+    browserExecutable,
+  });
   const validation = await treeValidator({
     root,
     base: incremental ? plan.diff_base : '',
