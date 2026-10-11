@@ -14,6 +14,13 @@ Triage uses the five canonical labels without overrides. See `docs/agents/triage
 
 Domain documentation uses a single-context layout. See `docs/agents/domain.md`.
 
+### 项目级多角色协作
+
+- 主会话负责拆分任务、分配范围、整合结果及最终交付；按任务需要调用 `.codex/agents/` 中的 `repo_explorer`（排查）、`implementer`（实现）、`reviewer`（复核），小改动可由主会话直接完成，无需启动全套角色。
+- 默认单写入者：主会话或一个 `implementer` 持有写入权；派发时明确目标、可写路径和验收要求，交还写入权后再由主会话整合。其他角色只读，子角色将后续工作交回主会话协调。
+- 排查与复核默认只读；会生成文件、更新快照、安装依赖或改动服务状态的测试由当前写入者串行执行。测试范围及发布候选验证继续遵循 `docs/operations/incremental-publication.md`，不因多角色重复全量检查。
+- 角色补充现有规则，不替代各级 `AGENTS.md`、权限、审批、hooks 或密钥管理约定。调用示例、版本兼容与只读边界见 [Codex 多角色使用说明](docs/agents/codex-multi-agent.md)。
+
 ## 游戏开发通用约定
 
 适用于仓库内所有现有及后续新增游戏，包括独立运行、Shell 内置运行、iframe 嵌入及已接入的小游戏平台。现有游戏维护、改版时按本约定调整所涉及的部分；旧有 Web 优先布局不作为后续设计模板。创作后管等内部工具不套用玩家游戏界面规范。

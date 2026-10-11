@@ -20,6 +20,40 @@ import {
 import { executeCompetitionChecks } from './run-selected-competition.mjs';
 import { shellContractTargets, shellContractFiles } from './validation-plan.mjs';
 
+test('reviewed Codex roles select no game consumers; extra settings and unknown files stay blocked', () => {
+  for (const role of ['repo_explorer', 'implementer', 'reviewer']) {
+    const file = `.codex/agents/${role}.toml`;
+    const source = readFileSync(new URL(`../${file}`, import.meta.url), 'utf8').replaceAll(
+      '\r\n',
+      '\n',
+    );
+    const scopes = classify(file, null, source);
+    assert.deepEqual(scopes.get(file), []);
+    const result = plan([file], scopes);
+    assert.equal(result.full, false);
+    assert.equal(result.browser, false);
+    assert.deepEqual(result.game_sources, []);
+    assert.deepEqual(result.consumer_sources, []);
+    for (const changed of [
+      null,
+      source.replace(`name = "${role}"`, 'name = "other"'),
+      source + '\napproval_policy = "never"\n',
+      source + '\n[mcp_servers.other]\ncommand = "external-tool"\n',
+      source + '\n[hooks]\n',
+      source.replace('read-only', 'workspace-write'),
+    ].filter((changed) => changed !== source)) {
+      const rejected = classify(file, source, changed);
+      assert.equal(rejected.has(file), false);
+      assert.throws(() => plan([file], rejected), /scope undefined/);
+    }
+    for (const sibling of ['.codex/config.toml', '.codex/agents/other.toml', file + '.backup']) {
+      const rejected = classify(sibling, null, source);
+      assert.equal(rejected.has(sibling), false);
+      assert.throws(() => plan([sibling], rejected), /scope undefined/);
+    }
+  }
+});
+
 test('publishing adapter selects all seven real standalone consumers and rejects missing identities', () => {
   const games = Object.entries(publishingConsumers).map(([id, source]) => ({ id, source }));
   const packages = games.map((game) => ({ name: game.id, dir: game.source }));

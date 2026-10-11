@@ -5,6 +5,15 @@ import { createHash } from 'node:crypto';
 
 const loadDependency = createRequire(import.meta.url);
 
+// Reviewed role instructions only; extra permissions, hooks and MCP settings need a new review.
+const codexAgentHashes = {
+  '.codex/agents/repo_explorer.toml':
+    'e087c33533d1fde39ce515ad7ec290178b45b9fd74ba25e3db39bef9a1023b01',
+  '.codex/agents/implementer.toml':
+    '46b95c6b6b342ffed23e9b3ef425a20cba9ea9ba0a9d91d67097583b8309e7b8',
+  '.codex/agents/reviewer.toml': 'fb5948d12ef52eee6927ee12d632a1ac78ed1345a7cfbd70a4418596e64a55a3',
+};
+
 // Exact dependency-checkout repairs for the two bare planning jobs. Commands,
 // permissions, conditions and all other workflow bytes remain producer-bound.
 const planningCheckoutHashes = {
@@ -617,7 +626,13 @@ export function reviewedSharedFileScopes({
   const scopes = new Map();
   for (const file of changedPaths) {
     try {
-      if (publishingScopePaths.includes(file)) {
+      if (Object.hasOwn(codexAgentHashes, file)) {
+        assert.equal(
+          createHash('sha256').update(readHead(file)).digest('hex'),
+          codexAgentHashes[file],
+        );
+        scopes.set(file, []);
+      } else if (publishingScopePaths.includes(file)) {
         for (const [id, source] of Object.entries(publishingConsumers)) {
           assert(games.filter((game) => game.id === id && game.source === source).length === 1);
           assert(packages.some((pkg) => pkg.dir === source));
