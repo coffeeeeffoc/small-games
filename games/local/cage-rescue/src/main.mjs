@@ -14,8 +14,8 @@ export async function mountCageRescue(host) {
     ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas unavailable');
   const abort = new AbortController();
-  const on = (target, event, callback) =>
-    target.addEventListener(event, callback, { signal: abort.signal });
+  const on = (target, event, callback, options = {}) =>
+    target.addEventListener(event, callback, { ...options, signal: abort.signal });
   let progress;
   try {
     progress = readProgress((await host.storage.read('progress'))?.value);
@@ -51,6 +51,46 @@ export async function mountCageRescue(host) {
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const dev = globalThis.SmallGamesDev;
   const cleanups = [];
+  let touchAction = null, lastTouchActivation = -Infinity;
+  // Chromium/WebViews can omit the compatibility click after a captured canvas drag.
+  // Activate a matched touch release directly; suppress only its later native click,
+  // which may otherwise hit a control on the newly displayed screen or ad overlay.
+  on(document, 'pointerdown', (event) => {
+    if (!event.isPrimary) return;
+    lastTouchActivation = -Infinity;
+    touchAction = null;
+    if (event.pointerType !== 'touch') return;
+    const button = event.target.closest('button');
+    touchAction = button && $('game').contains(button) &&
+      !button.disabled && !button.hasAttribute('data-game-fullscreen')
+      ? { button, id: event.pointerId, x: event.clientX, y: event.clientY } : null;
+  }, { capture: true });
+  on(document, 'pointermove', (event) => {
+    if (touchAction?.id === event.pointerId &&
+      Math.hypot(event.clientX - touchAction.x, event.clientY - touchAction.y) > 12)
+      touchAction.cancelled = true;
+  }, { capture: true });
+  on(document, 'pointercancel', (event) => {
+    if (touchAction?.id === event.pointerId) touchAction = null;
+  }, { capture: true });
+  on(document, 'pointerup', (event) => {
+    if (touchAction?.id !== event.pointerId) return;
+    const { button, cancelled } = touchAction;
+    touchAction = null;
+    event.preventDefault();
+    lastTouchActivation = performance.now();
+    const bounds = button.getBoundingClientRect();
+    if (cancelled || button.disabled || !button.isConnected || event.clientX < bounds.left ||
+      event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) return;
+    button.click();
+  });
+  on(document, 'click', (event) => {
+    if (event.isTrusted && event.detail > 0 && performance.now() - lastTouchActivation < 700 &&
+      !event.target.closest('[data-game-fullscreen]')) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  }, { capture: true });
 
   function toast(message, duration = 2600) {
     $('toast').textContent = message;
@@ -67,6 +107,9 @@ export async function mountCageRescue(host) {
       });
   }
   function clearInput() {
+    // Keep a cancelled button press until release: a later compatibility click
+    // must stay suppressed even if focus was lost during a long press.
+    if (touchAction) touchAction.cancelled = true;
     const id = activePointer;
     activePointer = null;
     keys.clear();

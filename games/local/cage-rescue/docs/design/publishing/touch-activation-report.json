@@ -1,0 +1,12 @@
+{
+  "browser": "140.0.7339.186",
+  "device": "Pixel 7 / 390×844 native Chromium touch emulation",
+  "checks": [
+    "Eight native canvas drags immediately followed by pause each activate exactly once; resume remains available",
+    "Native touch cancellation and release outside the control produce no action",
+    "Keyboard Enter, mouse click, and real mouse immediately after touch retain their activation paths",
+    "Native touch releases after blur/pagehide and an 850 ms hold stay cancelled; immediate keyboard and fresh touch activation remain available"
+  ],
+  "errors": [],
+  "passed": true
+}

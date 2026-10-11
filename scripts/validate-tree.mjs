@@ -408,7 +408,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
   // Keep them sequential: several own a local server and write candidate evidence.
   const publishingBrowsers = {
     'tower-brake': ['publishing-browser.mjs'],
-    'cage-rescue': ['reward-browser.mjs', 'browser.mjs'],
+    'cage-rescue': ['reward-browser.mjs', 'browser.mjs', 'touch-activation-browser.mjs'],
     'ball-roguelite': ['browser.mjs'],
     'ember-bounce': ['browser.mjs'],
     'three-choose-two': ['publishing.browser.mjs'],

@@ -18,3 +18,10 @@
 - 当前是桌面 Chromium 的触屏模拟，未执行真机或原生小游戏平台验收。
 
 分享 URL 还包含有界的好友目标（塔/弹珠成绩、救援人数与连救），复制链接也保留目标。主页与挑战结算明确标为“好友自报”，显示是否达成，不把 URL 数值当作服务器认证成绩。真实广告可在初始化配置中传入 `adMode: 'host'` 和统一渠道 `provider`；`publicUrl` 可由宿主指定公开独立入口。
+
+
+## Chromium 140 拖拽后按钮激活回归
+
+候选 `8e62a683d8a559819160d62468a872a4e0386ec0` 在 Chromium 140.0.7339.186 / Pixel 7 触屏模拟中复现：拖动挡板后，暂停触点仍收到 pointerdown / pointerup，但浏览器省略 click，导致仅监听 click 的暂停按钮失效。现在对游戏内按钮执行匹配触点的 pointerup 激活，并抑制同次兼容 click；新真实主触点 pointerdown（包括鼠标）会解除抑制。取消、拖出按钮、屏幕切换和失焦取消待执行动作；失焦或离页时保留取消状态直到触点释放，避免长按超过 700 ms 后补发的 click 恢复游戏。
+
+[touch-activation-report.json](touch-activation-report.json) 记录同一 Chromium 140 下连续 8 次实际拖动挡板后立即暂停，每次仅激活一次；touchCancel、移出不激活；原生触点按下后派发 blur/pagehide 事件，持续 850 ms 后释放也不激活；紧接的键盘、新触摸以及触摸后立即真实鼠标仍有效。未修改 Shell 原断言，原 `assertCageRescueGameplay` 在四个新 Pixel 7 context 中逐次通过。完整救援浏览器 10/10、奖励契约及规则 35/35 通过。没有新增页面或修改视觉；旧截图保持当前 HEAD 原样。

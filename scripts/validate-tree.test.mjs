@@ -47,7 +47,7 @@ test('metadata early return retains mandatory publication checks and propagates 
 test('publishing browsers run exact bounded suites with native gates off and failures stop publication', () => {
   const expected = {
     'tower-brake': ['publishing-browser.mjs'],
-    'cage-rescue': ['reward-browser.mjs', 'browser.mjs'],
+    'cage-rescue': ['reward-browser.mjs', 'browser.mjs', 'touch-activation-browser.mjs'],
     'ball-roguelite': ['browser.mjs'],
     'ember-bounce': ['browser.mjs'],
     'three-choose-two': ['publishing.browser.mjs'],
