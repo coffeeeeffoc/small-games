@@ -1,7 +1,10 @@
+/* eslint-disable max-lines -- Competition routes share scoped identity, origin and rate-limit hooks. */
 import type { FastifyInstance } from 'fastify';
 import rateLimit from '@fastify/rate-limit';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
+import { registerCarromRoutes } from '../carrom/routes.js';
+import type { createCarromStore } from '../carrom/store.js';
 import { CompetitionError } from './types.js';
 import { exchangeDouyinCode } from './douyin-login.js';
 import { registerRunRoutes } from './run-routes.js';
@@ -36,6 +39,7 @@ export async function registerCompetition(
   store: ReturnType<typeof createCompetitionStore>,
   env: Record<string, string | undefined>,
   threeChooseTwo?: ReturnType<typeof createThreeChooseTwoStore>,
+  carrom?: ReturnType<typeof createCarromStore>,
 ) {
   const origins = (env.COMPETITION_ORIGINS ?? '')
     .split(',')
@@ -194,6 +198,7 @@ export async function registerCompetition(
       });
       registerRunRoutes(routes, store, player);
       if (threeChooseTwo) registerThreeChooseTwoRoutes(routes, threeChooseTwo, player);
+      if (carrom) registerCarromRoutes(routes, carrom, player);
       routes.post('/rooms', { bodyLimit: 2048 }, async (request) => {
         const input = z
           .object({

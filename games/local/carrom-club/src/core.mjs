@@ -92,7 +92,7 @@ export function createGame(levelId = null) {
 }
 
 export function placeStriker(game, requestedX) {
-  if (game.phase !== 'ready') return false;
+  if (game.phase !== 'ready' || !Number.isFinite(requestedX)) return false;
   const y = game.turn === 0 ? 790 : 210;
   const desired = clamp(requestedX, 235, 765);
   const free = (x) =>
@@ -141,6 +141,11 @@ export function shoot(game, dx, dy, power) {
 }
 
 export function step(game, dt = STEP) {
+  if (advancePhysics(game, dt)) resolveShot(game);
+}
+
+// Shared deterministic physics; each ruleset owns its own turn settlement.
+export function advancePhysics(game, dt = STEP) {
   if (game.phase !== 'moving') return;
   if (!Number.isFinite(dt) || dt <= 0 || dt > 1 / 60) throw new Error('Physics step out of range');
   const bodies = [...game.coins, game.striker].filter((c) => !c.pocketed);
@@ -213,7 +218,7 @@ export function step(game, dt = STEP) {
   }
   const moving = bodies.some((c) => !c.pocketed && Math.hypot(c.vx, c.vy) > 0.01);
   game.quiet = moving ? 0 : game.quiet + dt;
-  if (game.quiet > 0.15) resolveShot(game);
+  return game.quiet > 0.15;
 }
 
 function returnCoin(game, coin) {
@@ -235,6 +240,8 @@ function returnCoin(game, coin) {
   }
   throw new Error('No return space');
 }
+
+export { disk as createDisk, returnCoin };
 
 export function resolveShot(game) {
   if (game.phase === 'over') return;

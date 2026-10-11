@@ -198,6 +198,9 @@ test('deployment and public platform configuration select mandatory checks witho
 const carromDirectory = 'games/local/carrom-club';
 const carromCoreFile = `${carromDirectory}/src/core.mjs`;
 const carromContentFile = `${carromDirectory}/src/content.mjs`;
+const carromFriendsCoreFile = `${carromDirectory}/src/friends-core.mjs`;
+const carromFriendsContentFile = `${carromDirectory}/src/friends-content.mjs`;
+const carromApp = 'services/runtime-api/src/app.ts';
 const carromBackendRule = 'services/runtime-api/rules/carrom.mjs';
 const carromDeployment = 'scripts/deploy-tencent.mjs';
 const carromCopyAnchor =
@@ -209,6 +212,12 @@ const carromDeploymentBefore =
 const carromDeploymentAfter = carromDeploymentBefore.replace(
   carromCopyAnchor,
   carromCopyAnchor + carromCopyAddition,
+);
+const carromFriendsCopyAddition =
+  `    '${carromFriendsCoreFile}',\n` + `    '${carromFriendsContentFile}',\n`;
+const carromFriendsDeploymentAfter = carromDeploymentAfter.replace(
+  carromCopyAddition,
+  carromCopyAddition + carromFriendsCopyAddition,
 );
 const carromCatalog = [{ id: 'carrom-club', source: carromDirectory }];
 const carromPackages = [
@@ -222,6 +231,16 @@ const carromSources = {
   [carromCoreFile]:
     "import { LEVELS } from './content.mjs';\nexport const createGame = () => LEVELS;\n",
   [carromContentFile]: 'export const LEVELS = [];\n',
+  [carromFriendsCoreFile]:
+    "import { createGame } from './core.mjs';\n" +
+    "import { FRIEND_LEVELS } from './friends-content.mjs';\n" +
+    'export const createMultiplayerMatch = () => createGame(FRIEND_LEVELS);\n',
+  [carromFriendsContentFile]: 'export const FRIEND_LEVELS = [];\n',
+  [carromApp]:
+    `const carromUrl = new URL('../../../${carromFriendsCoreFile}', import.meta.url).href;\n` +
+    'const carromEngine = await import(carromUrl);\n' +
+    `const levelsUrl = new URL('../../../${carromFriendsContentFile}', import.meta.url).href;\n` +
+    'const { FRIEND_LEVELS } = await import(levelsUrl);\n',
 };
 function carromContext(changedPaths, overrides = {}) {
   return {
@@ -296,6 +315,176 @@ test('carrom deployment selects its game and server; unknown deployment edits re
     );
   }
   const sibling = carromContext(['scripts/deploy-tencent-extra.mjs']);
+  assert.equal(reviewedSharedFileScopes(sibling).size, 0);
+  assert.throws(
+    () => incrementalPlan({ ...sibling, readSource: sibling.readHead }),
+    /scope undefined/,
+  );
+});
+
+test('carrom friends deployment only appends both rule files to the existing carrom copy list', () => {
+  assert.equal(
+    carromBackendFileScope(carromDeployment, carromDeploymentAfter, carromFriendsDeploymentAfter),
+    true,
+  );
+  for (const after of [
+    carromDeploymentAfter,
+    carromFriendsDeploymentAfter + '\n',
+    carromFriendsDeploymentAfter + 'unreviewed();\n',
+    carromFriendsDeploymentAfter.replace('await copy(name)', 'await execute(name)'),
+    carromFriendsDeploymentAfter.replace(
+      carromFriendsContentFile,
+      `${carromDirectory}/src/main.mjs`,
+    ),
+    carromFriendsDeploymentAfter.replace(
+      carromFriendsCopyAddition,
+      `    '${carromFriendsCoreFile}',\n`,
+    ),
+    carromFriendsDeploymentAfter.replace(
+      carromFriendsCopyAddition,
+      carromFriendsCopyAddition + carromFriendsCopyAddition,
+    ),
+    carromFriendsDeploymentAfter.replace(
+      carromFriendsCopyAddition,
+      `    '${carromFriendsContentFile}',\n    '${carromFriendsCoreFile}',\n`,
+    ),
+  ])
+    assert.equal(carromBackendFileScope(carromDeployment, carromDeploymentAfter, after), false);
+  for (const before of [
+    null,
+    '',
+    carromDeploymentBefore,
+    carromFriendsDeploymentAfter,
+    carromDeploymentAfter.replace(carromContentFile, 'other-content.mjs'),
+    carromDeploymentAfter + carromCopyAnchor + carromCopyAddition,
+    carromDeploymentAfter + `// ${carromFriendsCoreFile}\n`,
+  ])
+    assert.equal(
+      carromBackendFileScope(carromDeployment, before, carromFriendsDeploymentAfter),
+      false,
+    );
+  assert.equal(
+    carromBackendFileScope(
+      'scripts/deploy-tencent-extra.mjs',
+      carromDeploymentAfter,
+      carromFriendsDeploymentAfter,
+    ),
+    false,
+  );
+});
+
+function carromFriendsContext(changedPaths, overrides = {}) {
+  return carromContext(changedPaths, {
+    readBase: () => carromDeploymentAfter,
+    readHead: (file) =>
+      file === carromDeployment ? carromFriendsDeploymentAfter : carromSources[file],
+    ...overrides,
+  });
+}
+
+test('carrom friends proof preserves an existing Flick input without accepting other list changes', () => {
+  const flickInput = "    'games/local/flick-arena/src',\n";
+  const before = carromDeploymentAfter.replace(carromCopyAnchor, carromCopyAnchor + flickInput);
+  const after = before.replace(carromCopyAddition, carromCopyAddition + carromFriendsCopyAddition);
+  assert.equal(carromBackendFileScope(carromDeployment, before, after), true);
+  const context = carromFriendsContext([carromDeployment], {
+    readBase: () => before,
+    readHead: (file) => (file === carromDeployment ? after : carromSources[file]),
+  });
+  const fileScopes = reviewedSharedFileScopes(context);
+  assert.deepEqual(fileScopes.get(carromDeployment), [carromDirectory, 'services/runtime-api']);
+  const selected = incrementalPlan({ ...context, fileScopes, readSource: context.readHead });
+  assert.deepEqual(selected.browser_ids, ['carrom-club']);
+  assert.deepEqual(selected.consumer_sources, [carromDirectory, 'services/runtime-api']);
+  for (const changed of [
+    after.replace(flickInput, ''),
+    after.replace(flickInput, flickInput + flickInput),
+    after.replace(flickInput, "    'games/local/other/src',\n"),
+    after.replace(carromFriendsCopyAddition, `    '${carromFriendsCoreFile}',\n`),
+    after + 'unreviewed();\n',
+  ])
+    assert.equal(carromBackendFileScope(carromDeployment, before, changed), false);
+  for (const extra of [
+    carromCopyAnchor + carromCopyAddition,
+    carromCopyAnchor + flickInput + carromCopyAddition,
+  ])
+    assert.equal(carromBackendFileScope(carromDeployment, before + extra, after + extra), false);
+  const unknownBefore = before.replace(flickInput, "    'games/local/other/src',\n");
+  assert.equal(
+    carromBackendFileScope(
+      carromDeployment,
+      unknownBefore,
+      unknownBefore.replace(carromCopyAddition, carromCopyAddition + carromFriendsCopyAddition),
+    ),
+    false,
+  );
+});
+
+test('friends deployment and engine changes select their real consumers only with executable inputs', () => {
+  for (const file of [carromDeployment, carromFriendsCoreFile, carromFriendsContentFile]) {
+    const context = carromFriendsContext([file]);
+    const fileScopes = reviewedSharedFileScopes(context);
+    const consumers =
+      file === carromDeployment
+        ? [carromDirectory, 'services/runtime-api']
+        : ['services/runtime-api'];
+    assert.deepEqual([...fileScopes], [[file, consumers]]);
+    const selected = incrementalPlan({ ...context, fileScopes, readSource: context.readHead });
+    assert.equal(selected.full, false);
+    assert.deepEqual(selected.consumer_sources, consumers);
+    assert.deepEqual(selected.game_sources, [carromDirectory]);
+    assert.deepEqual(selected.browser_ids, ['carrom-club']);
+  }
+
+  const invalidInputs = [
+    [carromFriendsCoreFile, null],
+    [carromFriendsContentFile, null],
+    [carromApp, null],
+    [
+      carromFriendsCoreFile,
+      carromSources[carromFriendsCoreFile].replace('./core.mjs', './other.mjs'),
+    ],
+    [
+      carromFriendsCoreFile,
+      carromSources[carromFriendsCoreFile].replace(
+        'import { FRIEND_LEVELS }',
+        '// import { FRIEND_LEVELS }',
+      ),
+    ],
+    [carromFriendsContentFile, '// export const FRIEND_LEVELS = [];\n'],
+    [
+      carromApp,
+      carromSources[carromApp].replace(carromFriendsCoreFile, `${carromDirectory}/src/main.mjs`),
+    ],
+    [carromApp, carromSources[carromApp].replace('import.meta.url', "'https://example.com/'")],
+    [
+      carromApp,
+      carromSources[carromApp].replace('await import(carromUrl)', "'await import(carromUrl)'"),
+    ],
+    [
+      carromApp,
+      carromSources[carromApp].replace('await import(levelsUrl)', 'await import(otherUrl)'),
+    ],
+    [carromApp, `/* ${carromSources[carromApp]} */`],
+  ];
+  for (const [invalidFile, source] of invalidInputs) {
+    const context = carromFriendsContext([carromDeployment], {
+      readHead: (file) => {
+        if (file === invalidFile) {
+          if (source === null) throw new Error('Missing engine input');
+          return source;
+        }
+        return file === carromDeployment ? carromFriendsDeploymentAfter : carromSources[file];
+      },
+    });
+    const fileScopes = reviewedSharedFileScopes(context);
+    assert.equal(fileScopes.size, 0, `Reject ${invalidFile}: ${source}`);
+    assert.throws(
+      () => incrementalPlan({ ...context, fileScopes, readSource: context.readHead }),
+      /scope undefined/,
+    );
+  }
+  const sibling = carromFriendsContext(['scripts/deploy-tencent-extra.mjs']);
   assert.equal(reviewedSharedFileScopes(sibling).size, 0);
   assert.throws(
     () => incrementalPlan({ ...sibling, readSource: sibling.readHead }),
