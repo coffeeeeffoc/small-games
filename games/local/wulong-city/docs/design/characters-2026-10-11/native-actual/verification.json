@@ -1,0 +1,23 @@
+{
+  "environment": "Chromium touch browser with wx SDK adapter running the built native Canvas definition (not H5)",
+  "viewport": [
+    390,
+    844
+  ],
+  "pages": [
+    "home",
+    "levels",
+    "play",
+    "hint",
+    "pause",
+    "result",
+    "records"
+  ],
+  "firstLevelCompleted": true,
+  "storageSaved": true,
+  "listenersDisposed": true,
+  "pageErrors": [],
+  "sceneColors": 655,
+  "activePuzzleRetained": true,
+  "physicalDeviceVerified": false
+}

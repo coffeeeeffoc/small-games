@@ -27,7 +27,7 @@ function game(id) {
   const context = vm.createContext({
     window: {},
     W: {
-      ...Object.fromEntries(['rect','line','ellipse','text','poly','face','actor','bird','sign','handle','door','background'].map(name=>[name,()=>{}])),
+      ...Object.fromEntries(['rect','line','ellipse','text','poly','face','actor','npc','bird','sign','handle','door','background'].map(name=>[name,()=>{}])),
       C: new Proxy({}, {get:()=> '#abcdef'}),
       ctx: new Proxy({}, {get:()=>()=>{}}),
       hit: (id,label,x,y,w,h,click,drag,up)=>hotspots.set(id,{label,x,y,w,h,click,drag,up}),

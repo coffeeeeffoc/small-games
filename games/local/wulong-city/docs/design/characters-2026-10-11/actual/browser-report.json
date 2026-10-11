@@ -1,0 +1,201 @@
+{
+  "date": "2026-10-11T14:50:12.528Z",
+  "environment": "Chromium, production build, phone emulation with touch",
+  "checks": [
+    {
+      "level": 8,
+      "viewport": "390x844",
+      "characters": [
+        "guard.png",
+        "waiter.png",
+        "xiaocha.png"
+      ],
+      "lazyRequests": [
+        "guard.png",
+        "waiter.png"
+      ],
+      "result": "PASS"
+    },
+    {
+      "level": 17,
+      "viewport": "390x844",
+      "characters": [
+        "elder.png",
+        "aunt.png",
+        "girl.png",
+        "xiaocha.png"
+      ],
+      "lazyRequests": [
+        "elder.png",
+        "aunt.png",
+        "girl.png"
+      ],
+      "result": "PASS"
+    },
+    {
+      "level": 19,
+      "viewport": "390x844",
+      "characters": [
+        "performer.png",
+        "xiaocha.png"
+      ],
+      "lazyRequests": [
+        "performer.png"
+      ],
+      "result": "PASS"
+    },
+    {
+      "level": 12,
+      "viewport": "390x844",
+      "characters": [
+        "uncle.png",
+        "xiaocha.png"
+      ],
+      "lazyRequests": [
+        "uncle.png"
+      ],
+      "result": "PASS"
+    },
+    {
+      "level": 14,
+      "viewport": "390x844",
+      "characters": [
+        "elder.png",
+        "xiaocha.png"
+      ],
+      "lazyRequests": [
+        "elder.png"
+      ],
+      "result": "PASS"
+    },
+    {
+      "level": 23,
+      "viewport": "390x844",
+      "characters": [
+        "aunt.png",
+        "xiaocha.png"
+      ],
+      "lazyRequests": [
+        "aunt.png"
+      ],
+      "result": "PASS"
+    },
+    {
+      "level": 24,
+      "viewport": "390x844",
+      "characters": [
+        "xiaocha.png"
+      ],
+      "lazyRequests": [],
+      "result": "PASS"
+    },
+    {
+      "level": 8,
+      "viewport": "320x568",
+      "characters": [
+        "guard.png",
+        "waiter.png",
+        "xiaocha.png"
+      ],
+      "lazyRequests": [
+        "guard.png",
+        "waiter.png"
+      ],
+      "result": "PASS"
+    },
+    {
+      "level": 17,
+      "viewport": "320x568",
+      "characters": [
+        "elder.png",
+        "aunt.png",
+        "girl.png",
+        "xiaocha.png"
+      ],
+      "lazyRequests": [
+        "elder.png",
+        "aunt.png",
+        "girl.png"
+      ],
+      "result": "PASS"
+    },
+    {
+      "level": 19,
+      "viewport": "320x568",
+      "characters": [
+        "performer.png",
+        "xiaocha.png"
+      ],
+      "lazyRequests": [
+        "performer.png"
+      ],
+      "result": "PASS"
+    },
+    {
+      "level": 12,
+      "viewport": "320x568",
+      "characters": [
+        "uncle.png",
+        "xiaocha.png"
+      ],
+      "lazyRequests": [
+        "uncle.png"
+      ],
+      "result": "PASS"
+    },
+    {
+      "level": 14,
+      "viewport": "320x568",
+      "characters": [
+        "elder.png",
+        "xiaocha.png"
+      ],
+      "lazyRequests": [
+        "elder.png"
+      ],
+      "result": "PASS"
+    },
+    {
+      "level": 23,
+      "viewport": "320x568",
+      "characters": [
+        "aunt.png",
+        "xiaocha.png"
+      ],
+      "lazyRequests": [
+        "aunt.png"
+      ],
+      "result": "PASS"
+    },
+    {
+      "level": 24,
+      "viewport": "320x568",
+      "characters": [
+        "xiaocha.png"
+      ],
+      "lazyRequests": [],
+      "result": "PASS"
+    },
+    {
+      "level": 8,
+      "viewport": "390x844",
+      "missingArt": true,
+      "result": "PASS",
+      "requests": [
+        "guard.png",
+        "waiter.png"
+      ]
+    },
+    {
+      "level": 8,
+      "viewport": "390x844",
+      "delayedArt": true,
+      "result": "PASS",
+      "requests": [
+        "guard.png",
+        "waiter.png"
+      ]
+    }
+  ],
+  "errors": []
+}
