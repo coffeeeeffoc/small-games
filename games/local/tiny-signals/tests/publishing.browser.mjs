@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { fileURLToPath } from 'node:url';
 import { spawn, execFileSync } from 'node:child_process';
 import { once } from 'node:events';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -26,7 +27,7 @@ async function win(page, index = 0) {
   await ready(page);
 }
 async function screenshot(page, name) {
-  await page.screenshot({ path: new URL(name, artifacts).pathname, fullPage: true, animations: 'disabled' });
+  await page.screenshot({ path: fileURLToPath(new URL(name, artifacts)), fullPage: true, animations: 'disabled' });
 }
 try {
   await Promise.race([once(server.stdout, 'data'), once(server, 'exit').then(() => { throw new Error('preview server failed'); })]);
@@ -39,7 +40,9 @@ try {
     Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (url) => window.__sharedUrls.push(url) } });
   });
-  await page.goto(origin);
+  const response = await page.goto(origin);
+  assert.equal(response.status(), 200, 'Preview serves its root on every platform');
+  assert.equal((await page.request.get(`${origin}%2e%2e%2fpackage.json`)).status(), 403, 'Preview rejects paths outside its root');
   await ready(page);
   const cdp = await context.newCDPSession(page);
   const touch = (type, touchPoints) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints });
@@ -87,7 +90,7 @@ try {
   }
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   await screenshot(page, 'play-390.png');
-  await page.screenshot({ path: new URL('viewport-390.png', artifacts).pathname, animations: 'disabled' });
+  await page.screenshot({ path: fileURLToPath(new URL('viewport-390.png', artifacts)), animations: 'disabled' });
   report.checks.push('real touch swipe/cancel, preview/confirm, undo/restart, manual pause/resume, home/levels/continue, 44px controls, no overflow');
 
   let arrivals = 0;
@@ -176,7 +179,7 @@ try {
   const controlsBounds = await page.locator('.control-section').boundingBox();
   assert.ok(boardBounds.y + boardBounds.height <= controlsBounds.y, 'all four boards must clear fixed controls on a short phone');
   await screenshot(page, 'play-320.png');
-  await page.screenshot({ path: new URL('viewport-320.png', artifacts).pathname, animations: 'disabled' });
+  await page.screenshot({ path: fileURLToPath(new URL('viewport-320.png', artifacts)), animations: 'disabled' });
   await swipe();
   await moves(page, 1);
   await page.goto(origin + '?dev=0&challenge=1&level=garden&targetMoves=8');
@@ -203,7 +206,7 @@ try {
   console.log(JSON.stringify(report, null, 2));
 } catch (error) {
   console.error('Browser check failed', activePage?.url(), report.errors);
-  if (activePage && !activePage.isClosed()) await activePage.screenshot({ path: new URL('failure.png', artifacts).pathname });
+  if (activePage && !activePage.isClosed()) await activePage.screenshot({ path: fileURLToPath(new URL('failure.png', artifacts)) });
   throw error;
 } finally {
   await browser?.close();

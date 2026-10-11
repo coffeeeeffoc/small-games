@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { writeFile } from 'node:fs/promises';
 import { chromium, expect } from '@playwright/test';
@@ -18,7 +19,7 @@ try {
   await page.clock.pauseAt(new Date('2026-10-11T04:00:01Z'));
   await page.goto('http://127.0.0.1:4537/?seed=3&layout=chain&targetShots=8&dev=0&token=private');
   await expect(page.getByRole('button', { name: '接受同擂台挑战' })).toBeVisible();
-  await page.screenshot({ path: new URL('actual-invite-390x844.png', output).pathname });
+  await page.screenshot({ path: fileURLToPath(new URL('actual-invite-390x844.png', output)) });
   await page.locator('#start').tap(); await page.clock.runFor(1400);
   const canvas = page.locator('#game');
   assert.equal(await canvas.getAttribute('data-seed'), '3');
@@ -34,7 +35,7 @@ try {
   const originalDisc=JSON.parse(initial)[0], start=[arena.x+originalDisc.x*arena.scale,arena.y+originalDisc.y*arena.scale];
   await gesture(start,[start[0],start[1]+80],true);
   assert.equal(await canvas.getAttribute('data-shots'),'0');
-  await page.screenshot({ path: new URL('actual-play-390x844.png', output).pathname });
+  await page.screenshot({ path: fileURLToPath(new URL('actual-play-390x844.png', output)) });
   for(let iteration=0;iteration<40 && await page.locator('body').getAttribute('data-phase')!=='result';iteration++) {
     if(await canvas.getAttribute('data-active')==='0' && await canvas.getAttribute('data-physics-phase')==='aim') {
       const state=createMatch(layouts.find(layout=>layout.id==='chain'),3);
@@ -52,10 +53,10 @@ try {
   assert.equal(url.searchParams.get('seed'),'3');assert.equal(url.searchParams.get('layout'),'chain');
   assert.equal(url.searchParams.get('targetShots'),'4','A real touch win carries its actual four-shot score');
   assert.equal(url.searchParams.has('dev'),false);assert.equal(url.searchParams.has('token'),false);
-  await page.screenshot({ path: new URL('actual-result-390x844.png', output).pathname });
+  await page.screenshot({ path: fileURLToPath(new URL('actual-result-390x844.png', output)) });
   await page.setViewportSize({width:320,height:568});
   for(const button of await page.locator('#controls button').all()){const box=await button.boundingBox();assert(box.height>=43.9);}
-  await page.screenshot({ path: new URL('actual-result-320x568.png', output).pathname });
+  await page.screenshot({ path: fileURLToPath(new URL('actual-result-320x568.png', output)) });
   await page.locator('#rematch').tap();await page.clock.runFor(1400);
   assert.equal(await canvas.getAttribute('data-seed'),'3');assert.equal(await canvas.getAttribute('data-discs'),initial);
   assert.equal(await canvas.getAttribute('data-target-shots'),'8');

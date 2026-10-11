@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { writeFile } from 'node:fs/promises';
 import { chromium, expect } from '@playwright/test';
@@ -18,7 +19,7 @@ try {
   await action('start'); await action('begin');
   const original = await saved();
   await page.goto('http://127.0.0.1:4532/?seed=1337&variant=classic&targetScore=100&dev=0&token=private');
-  await page.screenshot({ path: new URL('actual-invite-390x844.png', output).pathname });
+  await page.screenshot({ path: fileURLToPath(new URL('actual-invite-390x844.png', output)) });
   await action('challenge-invite');
   assert.equal((await state()).initialSeed, 1337);
   assert.equal((await state()).challengeTarget, 100);
@@ -29,7 +30,7 @@ try {
   await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: candidate.x + candidate.width / 2, y: candidate.y + candidate.height / 2, id: 1 }] });
   await session.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
   assert.equal((await state()).stats.placements, 0);
-  await page.screenshot({ path: new URL('actual-play-390x844.png', output).pathname });
+  await page.screenshot({ path: fileURLToPath(new URL('actual-play-390x844.png', output)) });
   for (let round = 0; round < 3; round++) {
     await action('pause'); await action('end-run');
     await expect(page.locator('#game')).toHaveAttribute('data-screen', 'result');
@@ -43,9 +44,9 @@ try {
       await expect(page.locator('.result-status')).toContainText('好友自报目标 100 分 · 还差 100 分');
       assert.equal(url.searchParams.has('dev'), false); assert.equal(url.searchParams.has('token'), false);
       await page.evaluate(() => window.scrollTo(0, 0));
-      await page.screenshot({ path: new URL('actual-result-390x844.png', output).pathname });
+      await page.screenshot({ path: fileURLToPath(new URL('actual-result-390x844.png', output)) });
       await page.setViewportSize({ width: 320, height: 568 });
-      await page.screenshot({ path: new URL('actual-result-320x568.png', output).pathname, fullPage: true });
+      await page.screenshot({ path: fileURLToPath(new URL('actual-result-320x568.png', output)), fullPage: true });
       await page.setViewportSize({ width: 390, height: 844 });
     }
     await action(round === 2 ? 'home' : 'same-seed');
@@ -55,7 +56,7 @@ try {
     } else {
       const ad = page.locator('[data-game-ad="mock"]');
       await expect(ad).toBeVisible();
-      await page.screenshot({ path: new URL('actual-ad-390x844.png', output).pathname });
+      await page.screenshot({ path: fileURLToPath(new URL('actual-ad-390x844.png', output)) });
       await ad.getByRole('button', { name: '关闭并继续' }).tap();
       await expect(page.locator('#game')).toHaveAttribute('data-screen', 'home');
     }
