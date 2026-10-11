@@ -54,6 +54,8 @@ test('browser preparation resolves Playwright using the candidate package and ca
   );
   const parentCache = process.env.PLAYWRIGHT_BROWSERS_PATH;
   const env = { ...process.env, PLAYWRIGHT_BROWSERS_PATH: path.join(root, 'browser cache') };
+  delete env.CHROMIUM_PATH;
+  delete env.PLAYWRIGHT_EXECUTABLE_PATH;
   const expected = env.PLAYWRIGHT_BROWSERS_PATH + '/candidate-browser';
   createBrowserPreparation({
     root,
