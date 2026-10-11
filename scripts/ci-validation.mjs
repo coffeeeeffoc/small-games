@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { main as selectScope } from './pages-test-scope.mjs';
 import { validateTree } from './validate-tree.mjs';
@@ -12,8 +11,7 @@ export async function ciValidation({
   execute = run,
   treeValidator = validateTree,
   selectPlan = selectScope,
-  browserExecutable = () =>
-    createRequire(import.meta.url)('@playwright/test').chromium.executablePath(),
+  browserExecutable,
 } = {}) {
   const plan = env.CI_VALIDATION_PLAN
     ? JSON.parse(env.CI_VALIDATION_PLAN)

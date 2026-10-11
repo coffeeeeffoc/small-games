@@ -1,6 +1,4 @@
 import assert from 'node:assert/strict';
-import path from 'node:path';
-import { createRequire } from 'node:module';
 import { run } from './validate-push.mjs';
 
 const launchCheck = `
@@ -20,7 +18,13 @@ export function createBrowserPreparation({
   execute = run,
   withDeps = false,
   browserExecutable = () =>
-    createRequire(path.join(root, 'package.json'))('@playwright/test').chromium.executablePath(),
+    execute(
+      process.execPath,
+      ['-e', "process.stdout.write(require('@playwright/test').chromium.executablePath())"],
+      root,
+      env,
+      true,
+    ),
 }) {
   let ready = false;
   return () => {

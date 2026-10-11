@@ -6,6 +6,7 @@ import path from 'node:path';
 import { assertNodeOnly, validateTree, runIncrementalToolChecks } from './validate-tree.mjs';
 import { publishingConsumers } from './publication-scopes.mjs';
 import { createBrowserPreparation } from './browser-preparation.mjs';
+import { run } from './validate-push.mjs';
 
 test('local and CI browser preparation installs then probes once with their dependency policy', () => {
   for (const withDeps of [false, true]) {
@@ -40,7 +41,7 @@ test('local and CI browser preparation installs then probes once with their depe
   }
 });
 
-test('browser preparation resolves Playwright from the candidate rather than the caller', async (t) => {
+test('browser preparation resolves Playwright using the candidate package and cache environment', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'candidate browser '));
   t.after(() => rm(root, { recursive: true, force: true }));
   const pkg = path.join(root, 'node_modules/@playwright/test');
@@ -49,12 +50,21 @@ test('browser preparation resolves Playwright from the candidate rather than the
   await writeFile(path.join(pkg, 'package.json'), '{"main":"index.cjs"}');
   await writeFile(
     path.join(pkg, 'index.cjs'),
-    "exports.chromium = { executablePath: () => '/candidate/browser' };",
+    "exports.chromium = { executablePath: () => process.env.PLAYWRIGHT_BROWSERS_PATH + '/candidate-browser' };",
   );
-  const env = {};
-  createBrowserPreparation({ root, env, execute: () => {} })();
-  assert.equal(env.CHROMIUM_PATH, '/candidate/browser');
-  assert.equal(env.PLAYWRIGHT_EXECUTABLE_PATH, '/candidate/browser');
+  const parentCache = process.env.PLAYWRIGHT_BROWSERS_PATH;
+  const env = { ...process.env, PLAYWRIGHT_BROWSERS_PATH: path.join(root, 'browser cache') };
+  const expected = env.PLAYWRIGHT_BROWSERS_PATH + '/candidate-browser';
+  createBrowserPreparation({
+    root,
+    env,
+    execute: (command, args, cwd, childEnv, capture) => {
+      if (capture === true) return run(command, args, cwd, childEnv, capture);
+    },
+  })();
+  assert.equal(env.CHROMIUM_PATH, expected);
+  assert.equal(env.PLAYWRIGHT_EXECUTABLE_PATH, expected);
+  assert.equal(process.env.PLAYWRIGHT_BROWSERS_PATH, parentCache);
 });
 
 test('browser installation and launch failures block preparation and never mark it ready', () => {

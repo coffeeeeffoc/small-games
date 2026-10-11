@@ -37,6 +37,7 @@ test('selective CI does not call aggregate Shell smoke or ^build game test tasks
   const plan = { full: false, browser: true, cocos: false, diff_base: 'base', diff_head: 'head' };
   await ciValidation({
     env: {},
+    browserExecutable: () => '/fixture/installed/chromium',
     selectPlan: async () => plan,
     treeValidator: async (value) => {
       assert.equal(value.deferIdenticalRulesToAggregate, false);
@@ -131,6 +132,7 @@ test('full CI retains original dialog and dependency checker gates', async () =>
   const calls = [];
   await ciValidation({
     env: {},
+    browserExecutable: () => '/fixture/installed/chromium',
     selectPlan: async () => ({ full: true, browser: true, cocos: true }),
     treeValidator: async (value) => assert.equal(value.deferIdenticalRulesToAggregate, true),
     execute: (command, args) => calls.push(args),
@@ -147,6 +149,7 @@ test('deferred full rules require aggregate success before contract, interaction
   await assert.rejects(
     ciValidation({
       env: {},
+      browserExecutable: () => '/fixture/installed/chromium',
       selectPlan: async () => ({ full: true, browser: true, cocos: true }),
       treeValidator: async (value) => assert.equal(value.deferIdenticalRulesToAggregate, true),
       execute: (command, args) => {
@@ -179,6 +182,7 @@ test('a valid comparison base uses the returned browser IDs even when the risk f
   const calls = [];
   const result = await ciValidation({
     root: '/fixture',
+    browserExecutable: () => '/fixture/installed/chromium',
     env: { CI_VALIDATION_PLAN: JSON.stringify(frozen), TURBO_SCM_HEAD: 'exact-head' },
     treeValidator: async (options) => {
       assert.equal(options.base, 'exact-base');
@@ -286,6 +290,7 @@ test('a full or nightly plan without a usable base retains the original aggregat
     const calls = [];
     await ciValidation({
       env: {},
+      browserExecutable: () => '/fixture/installed/chromium',
       selectPlan: async () => ({ full: true, browser: true, cocos: true, diff_base: base }),
       treeValidator: async (options) => {
         assert.equal(options.base, '');
