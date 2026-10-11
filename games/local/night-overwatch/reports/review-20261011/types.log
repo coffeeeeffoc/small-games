@@ -1,0 +1,2 @@
+TypeScript static analysis with actual Creator 3.8.8 declarations downloaded from the verified baseline artifact. Exit: 0
+This is not the source-matching packaging/typecheck gate; the new Creator artifact is still required.

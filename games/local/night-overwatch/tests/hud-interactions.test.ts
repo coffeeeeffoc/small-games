@@ -133,7 +133,7 @@ test('HUD: escort and range entries are discoverable, and range results show a s
         sim.phase = phase; sim.failure = phase === 'failure' ? 'timeout' : '';
         hud.update(sim, world);
         const buttons = hud.buttons.filter((button: any) => button.label.node.parent === hud.modal);
-        assert.deepEqual(buttons.map((button: any) => button.id), phase === 'briefing' ? ['mission:corridor-01', 'mission:ambush-02', 'mission:patrol-03', 'homeMenu', 'training', 'start'] : ['home', 'retry']);
+        assert.deepEqual(buttons.map((button: any) => button.id), phase === 'briefing' ? ['missionsPrevious', 'missionsNext', 'mission:corridor-01', 'mission:ambush-02', 'mission:patrol-03', 'homeMenu', 'training', 'start'] : ['home', 'retry']);
         for (const button of buttons) {
           assert(button.w >= 44 && button.h >= 44);
           assert(button.y >= inset + 58 && button.y + button.h <= height - inset);
@@ -555,4 +555,38 @@ test('HUD: browser has one fullscreen action; native hosts keep only settings ac
     if (previousWindow === undefined) delete (globalThis as any).window;
     else (globalThis as any).window = previousWindow;
   }
+});
+
+test('HUD: every operation page keeps three reachable cards and pagination within phone safe areas', () => {
+  for (const [width, height] of [[568, 320], [844, 390]]) for (const safe of [0, 12]) {
+    Object.assign(frame, { width, height }); inset = safe;
+    const hud = new HUD(new SceneNode()), sim = new Simulation();
+    hud.missionsOpen = true;
+    const seen = new Set();
+    for (let page = 0; page < 40; page++) {
+      hud.missionPage = page; hud.modalKey = 'rebuild'; hud.update(sim, world);
+      const buttons = hud.buttons.filter((button: any) => button.label.node.parent === hud.modal);
+      const cards = buttons.filter((button: any) => button.id.startsWith('mission:'));
+      assert.equal(cards.length, 3);
+      cards.forEach((card: any) => seen.add(card.id));
+      for (const button of buttons) {
+        assert(button.w >= 44 && button.h >= 44, `${button.id}: thumb-sized target`);
+        assert(button.x >= safe && button.x + button.w <= width - safe);
+        assert(button.y >= safe + 58 && button.y + button.h <= height - safe);
+        assert.equal(hud.hit(button.x + button.w / 2, button.y + button.h / 2)?.id, button.id);
+        assert(!buttons.some((other: any) => other !== button && overlaps(button, other)));
+      }
+      const captions = hud.modal.children.map((node: any) => node.getComponent(cc.Label)?.string).filter(Boolean).join('\n');
+      assert.match(captions, new RegExp(`${page * 3 + 1}–${page * 3 + 3} / 120`));
+      if (page > 0) assert.match(captions, /完成上一关解锁/);
+    }
+    assert.equal(seen.size, 120);
+    hud.missionProgress = { version: 1, cleared: ['patrol-03'] };
+    hud.missionPage = 1; hud.modalKey = 'rebuild'; hud.update(sim, world);
+    const captions = hud.modal.children.map((node: any) => node.getComponent(cc.Label)?.string).filter(Boolean).join('\n');
+    assert.match(captions, /可出动/);
+    sim.phase = 'success'; hud.update(sim, world);
+    assert.deepEqual(hud.buttons.filter((button: any) => button.label.node.parent === hud.modal).map((button: any) => button.id), ['home', 'retry', 'missionNext']);
+  }
+  inset = 0;
 });

@@ -1,0 +1,13 @@
+{
+  "sourceHash": "8dc663c4ed3afed646c806be4586990a9b0fc6758cb57f9e1cb41135f1ff7307",
+  "operations": 120,
+  "warmupSeparate": true,
+  "completeMissionSimulations": 120,
+  "controllerChecks": 22,
+  "distinctUnitChecksPassed": 218,
+  "hudNativeRerunPassed": 10,
+  "realCreatorDeclarationsStaticTypes": true,
+  "currentSourceCreatorBuild": "blocked: Creator 3.8.8 unavailable; baseline prebuilt mismatch correctly rejected",
+  "currentSourceBrowser": "not run: needs matching real Creator artifact",
+  "physicalDeviceTested": false
+}

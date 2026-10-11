@@ -252,7 +252,7 @@ test('changing missions requires a briefing or result; retry preserves the chose
   g.sim.guns[2].ammo = 0;
   g.action('missionNext');
   assert.equal(g.sim.mission.id, 'ambush-02');
-  assert.equal(g.sim.phase, 'briefing', 'switching waits for the player to explicitly start');
+  assert.equal(g.sim.phase, 'playing', 'the result next-operation action starts the next task but retains lifecycle pauses');
   assert(g.sim.pauses.has('background'));
   assert.equal(g.sim.guns[2].ammo, 30);
   g.action('start');
@@ -355,4 +355,54 @@ test('returning home aborts a live mission, clears input and starts the next map
   assert.equal(g.sim.phase, 'briefing');
   g.action('start'); assert.equal(g.sim.phase, 'playing'); assert.equal(g.sim.spawned.size, 8);
   g.action('home'); assert.equal(g.sim.phase, 'briefing'); assert.equal(g.sim.fired, 0);
+});
+
+test('operation lock applies to ordinary menu/URL, developer practice stays isolated, and denied storage keeps progression', () => {
+  const originalStorage = cc.sys.localStorage, originalDev = (globalThis as any).SmallGamesDev;
+  cc.sys.localStorage = { getItem: () => { throw Error('denied'); }, setItem: () => { throw Error('denied'); } } as any;
+  const g = mission(); g.hud.t = (zh: string) => zh;
+  try {
+    g.prepareMission('?mission=operation-120');
+    assert.equal(g.sim.mission.id, 'corridor-01');
+    g.action('mission:operation-004'); assert.equal(g.sim.mission.id, 'corridor-01');
+    g.action('mission:patrol-03');
+    for (const unit of g.sim.units) if (!unit.friendly) unit.hp = 0;
+    g.sim.start(); for (const unit of g.sim.units) if (!unit.friendly) unit.hp = 0;
+    g.sim.phase = 'success'; g.saveMissionResult();
+    assert.deepEqual(g.platform.missions.cleared, ['patrol-03']);
+    g.action('missionNext'); assert.equal(g.sim.mission.id, 'operation-004');
+    assert.equal(g.sim.phase, 'playing');
+    g.sim.phase = 'briefing';
+    cc.sys.isBrowser = true;
+    (globalThis as any).SmallGamesDev = { isEnabled: () => true };
+    g.prepareMission('?mission=operation-120'); assert.equal(g.sim.mission.id, 'operation-120');
+    assert(g.operationPractice);
+    g.sim.start(); for (const unit of g.sim.units) if (!unit.friendly) unit.hp = 0;
+    g.sim.phase = 'success'; g.saveMissionResult();
+    assert.deepEqual(g.platform.missions.cleared, ['patrol-03'], 'developer practice awards no progression');
+  } finally {
+    cc.sys.isBrowser = false; cc.sys.localStorage = originalStorage; g.platform.dispose();
+    if (originalDev === undefined) delete (globalThis as any).SmallGamesDev;
+    else (globalThis as any).SmallGamesDev = originalDev;
+  }
+});
+
+test('explicit dev=0 is retained when mission shortcuts are synchronized', () => {
+  const g = mission(); g.sim.phase = 'briefing';
+  const originalLocation = Object.getOwnPropertyDescriptor(globalThis, 'location');
+  const originalHistory = Object.getOwnPropertyDescriptor(globalThis, 'history');
+  const browserLocation = { href: 'https://example.test/night/?mission=training-60&dev=0&private=secret' };
+  cc.sys.isBrowser = true;
+  Object.defineProperties(globalThis, {
+    location: { configurable: true, value: browserLocation },
+    history: { configurable: true, value: { replaceState(_state: unknown, _title: string, url: string) { browserLocation.href = url; } } },
+  });
+  try {
+    g.action('mission:ambush-02');
+    assert.equal(browserLocation.href, 'https://example.test/night/?mission=ambush-02&dev=0');
+  } finally {
+    cc.sys.isBrowser = false; g.platform.dispose();
+    for (const [name, original] of [['location', originalLocation], ['history', originalHistory]] as const)
+      if (original) Object.defineProperty(globalThis, name, original); else delete (globalThis as any)[name];
+  }
 });

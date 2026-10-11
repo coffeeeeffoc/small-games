@@ -88,12 +88,12 @@ test('friendly damage remains real and destroying an ally stops the warmup', () 
 
 test('public task shortcuts choose only one known task, and the original three escort profiles remain intact', () => {
   assert.equal(TRAINING.duration, 60); assert.equal(TRAINING.events.length, 3);
-  assert.equal(MISSIONS.length, 3);
+  assert.equal(MISSIONS.length, 120);
   for (const mission of [...MISSIONS, TRAINING]) assert.equal(readMissionSearch('?mission=' + mission.id), mission.id);
   for (const search of ['?mission=training-60&mission=training-60', '?mission=training-60&mission=ambush-02',
     '?mission=unknown', '?mission=../training-60', '?mission=', '']) assert.equal(readMissionSearch(search), undefined);
   for (const mission of MISSIONS) {
-    assert.equal(mission.mode, 'escort'); assert.equal(mission.duration, 390);
+    assert.equal(mission.mode, 'escort'); assert(mission.duration >= 390 && mission.duration <= 420);
     assert.equal(mission.events.length, 24);
   }
   assert.equal(readTrainingRecord('{broken'), undefined);

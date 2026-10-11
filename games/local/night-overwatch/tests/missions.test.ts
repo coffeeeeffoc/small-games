@@ -32,11 +32,12 @@ test('mission combinations change deployment and motion while preserving weapon 
     assert.equal(s.rescue.maxHp, standard.rescue.maxHp);
     assert.equal(s.guns[2].ammo, WEAPONS[2].ammo);
   }
-  assert.equal(nextMission(nextMission(nextMission('corridor-01'))), 'corridor-01');
+  assert.equal(nextMission(nextMission(nextMission('corridor-01'))), 'operation-004');
+  assert.equal(nextMission(MISSIONS.at(-1)!.id), MISSIONS.at(-1)!.id);
   assert.equal(missionDefinition('old-or-damaged-preference').id, 'corridor-01');
 });
 
-for (const mission of MISSIONS.slice(1)) test(`${mission.name[0]} can be completed with finite ammunition and every friendly group surviving`, (t) => {
+for (const mission of MISSIONS) test(`${mission.name[0]} can be completed with finite ammunition and every friendly group surviving`, (t) => {
   const s = new Simulation(mission.id); s.start();
   const pending = new Map<number, { unit: number; damage: number }>();
   for (let n = 0; n < s.mission.duration * 60 && s.phase === 'playing'; n++) {

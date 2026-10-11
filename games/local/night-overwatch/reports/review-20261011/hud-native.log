@@ -1,0 +1,18 @@
+✔ HUD: desktop bottom battlefield accepts aim while controls and touch footer remain blocked (42.178873ms)
+✔ HUD: escort and range entries are discoverable, and range results show a specific next goal in compact viewports (74.836296ms)
+✔ HUD: persistent global actions, compact modal layout, focus markers and zoom bindings (94.966387ms)
+✔ HUD: short-screen information priority, focus clearance and friendly group expansion (8.353525ms)
+✔ HUD: desktop controls stay compact, touch keeps FIRE, reload has a single home (5.435503ms)
+✔ HUD: rewards, zoom panel and mock ads fit small phones with safe areas and no overlapping buttons (8.751272ms)
+✔ HUD: combat supply, choices and buff countdown fit phones and the rotated logical viewport (74.169535ms)
+✔ HUD: browser has one fullscreen action; native hosts keep only settings across every game state (1.020382ms)
+✔ HUD: every operation page keeps three reachable cards and pagination within phone safe areas (34.687112ms)
+✔ native HUD creates no browser fullscreen action and platform guards calls (805.65371ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1853.788159

@@ -20,6 +20,7 @@ import { HUD } from './HUD';
 import { Platform } from './Platform';
 import { MAP, WEAPONS, type Point } from './core/Data';
 import { MISSIONS, nextMission, readMissionSearch, type MissionId } from './core/MissionCatalog';
+import { completeMission, missionUnlocked } from './core/MissionProgress';
 import { bestTrainingRecord } from './core/TrainingRecords';
 import { nextZoomLimit, type RewardKind, type SupplyReward } from './core/Rewards';
 const { ccclass } = _decorator;
@@ -41,6 +42,7 @@ export class Overwatch extends Component {
   resizeKey = '';
   lastAimInput = 0;
   selectedMission: MissionId = 'corridor-01';
+  operationPractice = false;
   private rewardRequest?: { kind: RewardKind };
   private disposed = false;
   private startupSignalled = false;
@@ -96,8 +98,13 @@ export class Overwatch extends Component {
     if (on) this.platform?.stop();
   };
   prepareMission(search: string) {
+    this.hud.missionProgress = this.platform.readOperationProgress();
+    this.hud.developer = this.platform.developer;
+    this.operationPractice = this.hud.developer;
     this.selectedMission = this.platform.readMission();
-    const launch = readMissionSearch(search);
+    if (!this.hud.developer && !missionUnlocked(this.hud.missionProgress, this.selectedMission)) this.selectedMission = 'corridor-01';
+    let launch = readMissionSearch(search);
+    if (launch && launch !== 'training-60' && !this.hud.developer && !missionUnlocked(this.hud.missionProgress, launch)) launch = undefined;
     if (launch && launch !== 'training-60') this.selectedMission = launch;
     this.sim = new Simulation(launch || this.selectedMission);
     this.hud.trainingBest = this.platform.readWarmupRecord();
@@ -135,6 +142,13 @@ export class Overwatch extends Component {
   }
   selectMission(id: MissionId, persist = false) {
     if (this.sim.phase === 'playing') return;
+    this.hud.developer = this.platform.developer;
+    if (id !== 'training-60' && !this.hud.developer && !missionUnlocked(this.hud.missionProgress || this.platform.missions, id)) {
+      this.hud.toast = this.hud.t('完成上一任务后解锁', 'COMPLETE THE PREVIOUS OPERATION TO UNLOCK');
+      this.hud.toastUntil = Date.now() + 3000;
+      return;
+    }
+    this.operationPractice = this.hud.developer;
     const pauses = new Set(this.sim.pauses);
     this.clear();
     this.sim = new Simulation(id);
@@ -236,10 +250,20 @@ export class Overwatch extends Component {
     try {
       const url = new URL(location.href);
       if (!url.searchParams.has('mission')) return;
+      const dev = url.searchParams.get('dev');
       url.search = new URLSearchParams({ mission: this.sim.mission.id }).toString();
+      if (dev !== null) url.searchParams.set('dev', dev);
       url.hash = url.username = url.password = '';
       history.replaceState(null, '', url.href);
     } catch { /* A public shortcut stays optional when browser history is unavailable. */ }
+  }
+  saveMissionResult() {
+    const previous = this.platform.missions;
+    const next = completeMission(previous, this.sim.mission.id,
+      this.sim.mission.mode === 'escort' && this.sim.phase === 'success' && this.sim.threatsRemaining === 0,
+      this.operationPractice || this.platform.developer);
+    if (next !== previous) this.platform.saveOperationProgress(next);
+    this.hud.missionProgress = next;
   }
   saveTrainingResult() {
     if (this.sim.mission.mode !== 'training') return;
@@ -284,6 +308,15 @@ export class Overwatch extends Component {
     if (id === 'missions' || id === 'homeMenu') {
       this.clear();
       this.hud.missionsOpen = id === 'missions';
+      if (id === 'missions') this.hud.missionPage = Math.floor(Math.max(0, MISSIONS.findIndex(mission => mission.id === this.selectedMission)) / 3);
+      this.hud.modalKey = 'rebuild';
+      return;
+    }
+    if (id === 'missionsPrevious' || id === 'missionsNext') {
+      if (!this.hud.missionsOpen || this.sim.phase !== 'briefing') return;
+      this.clear();
+      this.hud.missionPage = Math.max(0, Math.min(Math.ceil(MISSIONS.length / 3) - 1,
+        this.hud.missionPage + (id === 'missionsNext' ? 1 : -1)));
       this.hud.modalKey = 'rebuild';
       return;
     }
@@ -297,7 +330,10 @@ export class Overwatch extends Component {
       return;
     }
     if (id === 'missionNext') {
-      this.selectMission(nextMission(this.sim.mission.mode === 'training' ? this.selectedMission : this.sim.mission.id), true);
+      const startNext = this.sim.phase === 'success';
+      const id = nextMission(this.sim.mission.mode === 'training' ? this.selectedMission : this.sim.mission.id);
+      this.selectMission(id, true);
+      if (startNext && this.sim.mission.id === id && this.sim.phase === 'briefing') this.retry();
       return;
     }
     if (id === 'tools' || id === 'flightControls') {
@@ -702,7 +738,7 @@ export class Overwatch extends Component {
       this.hud.toast = buffBefore === 'tracking' ? this.hud.t('追踪模式已结束', 'TRACKING ENDED') : this.hud.t('射速已恢复', 'FIRE RATE RESTORED');
       this.hud.toastUntil = Date.now() + 3000;
     }
-    if (before === 'playing' && this.sim.phase !== 'playing') this.saveTrainingResult();
+    if (before === 'playing' && this.sim.phase !== 'playing') { this.saveTrainingResult(); this.saveMissionResult(); }
     // Pan in screen space: the ground axes rotate with the aircraft and sensor.
     if (
       !this.sim.paused &&
@@ -785,6 +821,9 @@ export class Overwatch extends Component {
       phase: this.sim.phase,
       mission: { id: this.sim.mission.id, mode: this.sim.mission.mode, map: this.sim.mission.map, name: this.sim.mission.name, spawned: this.sim.spawned.size, total: this.sim.mission.events.length },
       trainingBest: this.hud.trainingBest,
+      operationProgress: this.hud.missionProgress,
+      operationPractice: this.operationPractice,
+      missionPage: this.hud.missionPage,
       time: this.sim.time,
       remaining: this.sim.remaining,
       pauses: Array.from(this.sim.pauses),

@@ -1,6 +1,7 @@
 import { AudioClip, AudioSource, Node, resources, sys, screen } from 'cc';
 import type { PauseReason } from './core/Simulation';
 import { missionDefinition, type MissionId } from './core/MissionCatalog';
+import { newMissionProgress, readMissionProgress, type MissionProgress } from './core/MissionProgress';
 import { readTrainingRecord as parseTrainingRecord, type TrainingRecord } from './core/TrainingRecords';
 import { readRewards, nextZoomLimit, type RewardKind, type RewardSave, type RewardProvider, type SupplyReward } from './core/Rewards';
 export class Platform {
@@ -14,6 +15,7 @@ export class Platform {
   audioStatus = 'loading';
   cleanup: (() => void)[] = [];
   rewards: RewardSave = readRewards(null);
+  missions: MissionProgress = newMissionProgress();
   // Install before launch; this may delegate directly to an authorized GameHost.ads.offer.
   rewardProvider?: RewardProvider;
   private clear: () => void;
@@ -196,6 +198,21 @@ export class Platform {
     } catch {
       /* Optional preference; storage denial never blocks play. */
     }
+  }
+  get developer() {
+    if (!sys.isBrowser) return false;
+    try { return !!(globalThis as typeof globalThis & { SmallGamesDev?: { isEnabled(): boolean } }).SmallGamesDev?.isEnabled(); }
+    catch { return false; }
+  }
+  readOperationProgress() {
+    try { this.missions = readMissionProgress(sys.localStorage.getItem('night-overwatch-progress-v1')); }
+    catch { /* Retain current-session progress if optional storage is denied. */ }
+    return this.missions;
+  }
+  saveOperationProgress(progress: MissionProgress) {
+    this.missions = progress;
+    try { sys.localStorage.setItem('night-overwatch-progress-v1', JSON.stringify(progress)); }
+    catch { /* All remaining operations can still unlock in the current session. */ }
   }
   readMission(): MissionId {
     try {

@@ -1,0 +1,33 @@
+(node:7939) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ two-finger translation preserves both midpoint positions and cancels the remaining finger (21.151615ms)
+✔ browser mouse-generated touches with simulate=false never replace or cancel mouse input (2.310201ms)
+✔ supply completion earns one choice, ammo grants two once, and inventory never blocks ads (5.49167ms)
+✔ timed buffs block supply and zoom providers; cancellation never grants and expiry reopens ads (10.011591ms)
+✔ completed entitlement survives close, home, reload and background; repeated completion and claims are ignored (2.081857ms)
+✔ storage failure preserves in-session choice and completion after disposal still records the entitlement (3.618396ms)
+✔ a real touch activates initially desktop-classified native devices and trigger release stays safe (0.768915ms)
+✔ changing missions requires a briefing or result; retry preserves the chosen mission and system pauses (1.182957ms)
+✔ actual warmup entry, retry and return keep saved escort preferences and system pauses independent (2.614067ms)
+✔ training result saves only a clean successful range score in its separate key (1.598842ms)
+✔ actual task choices update public entry URLs without carrying private fields or credentials (1.539903ms)
+✔ returning home aborts a live mission, clears input and starts the next map cleanly (1.07886ms)
+✔ operation lock applies to ordinary menu/URL, developer practice stays isolated, and denied storage keeps progression (3.386077ms)
+✔ explicit dev=0 is retained when mission shortcuts are synchronized (1.273604ms)
+✔ 120 immutable unique operations retain old IDs and have distinct deployments with valid timing (7.690563ms)
+✔ legacy public operations stay unlocked; each clear unlocks the next and all 120 are reachable (14.029045ms)
+✔ failure, practice, locked IDs, range scores and duplicate settlement cannot advance escort progress (0.2197ms)
+✔ corrupt, oversized and disconnected records degrade safely while valid legacy clears migrate (0.351859ms)
+✔ warmup clears three different targets through real moving aircraft ballistics and finite ammunition (109.754353ms)
+ℹ {"time":8.750000000000014,"phase":"success","fired":5,"hitShots":5,"friendlyDamage":0,"ammo":[null,77,28]}
+✔ pause freezes the 60-second range, and waiting or missing cannot clear it for free (290.124156ms)
+✔ friendly damage remains real and destroying an ally stops the warmup (28.16439ms)
+✔ public task shortcuts choose only one known task, and the original three escort profiles remain intact (1.406643ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 689.86266

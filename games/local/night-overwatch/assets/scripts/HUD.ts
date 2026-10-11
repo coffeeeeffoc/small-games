@@ -30,6 +30,7 @@ import {
 } from './core/Data';
 import type { Simulation } from './core/Simulation';
 import type { World } from './World';
+import { missionUnlocked, newMissionProgress, type MissionProgress } from './core/MissionProgress';
 import { MISSIONS, TRAINING } from './core/MissionCatalog';
 import { mapRoute, routeLength, type BattlefieldId } from './core/Data';
 import { trainingNextGoal, type TrainingRecord } from './core/TrainingRecords';
@@ -67,6 +68,9 @@ export class HUD {
   modal?: Node;
   modalKey = '';
   missionsOpen = false;
+  missionPage = 0;
+  missionProgress: MissionProgress = newMissionProgress();
+  developer = false;
   helpGroup: 'basic' | 'advanced' | 'rules' = 'basic';
   helpTouch = false;
   scroll = 0;
@@ -405,10 +409,25 @@ export class HUD {
     }
     this.rect(g, 0, 0, w, h, '#07121ca0');
     this.label(n, this.t('选择任务', 'OPERATIONS'), left + 78, this.safe.top + 80, 24, 156, 42).isBold = true;
-    const y = this.safe.top + 108, bottom = h - this.safe.bottom - 62;
+    const page = Math.max(0, Math.min(Math.ceil(MISSIONS.length / 3) - 1, this.missionPage));
+    const pagerWidth = this.compact ? 54 : 78, pagerY = this.safe.top + 62;
+    const nextX = right - pagerWidth, previousX = nextX - pagerWidth - 100;
+    for (const [id, x, active, caption] of [
+      ['missionsPrevious', previousX, page > 0, this.t('上一页', 'PREV')],
+      ['missionsNext', nextX, page < Math.ceil(MISSIONS.length / 3) - 1, this.t('下一页', 'NEXT')],
+    ] as const) {
+      this.rect(g, x, pagerY, pagerWidth, 44, '#142732ee', active ? '#91e6cb55' : '#63879833', 8);
+      const label = this.button(id, caption, x, pagerY, pagerWidth, 44, n);
+      label.color = col(active ? C.white : C.dim); label.fontSize = 12;
+    }
+    this.label(n, `${page * 3 + 1}–${Math.min(MISSIONS.length, page * 3 + 3)} / ${MISSIONS.length}`,
+      previousX + pagerWidth + 50, pagerY + 22, 12, 100, 32, C.dim);
+    const y = this.safe.top + 116, bottom = h - this.safe.bottom - 62;
     const gap = 12, cw = (right - left - gap * 2) / 3, ch = bottom - y - 14;
-    for (const [i, mission] of MISSIONS.entries()) {
+    for (const [i, mission] of MISSIONS.slice(page * 3, page * 3 + 3).entries()) {
       const x = left + i * (cw + gap), selected = mission.id === s.mission.id;
+      const unlocked = this.developer || missionUnlocked(this.missionProgress, mission.id);
+      this.label(n, String(page * 3 + i + 1).padStart(3, '0'), x + 31, y + 20, 12, 44, 24, C.amber);
       this.rect(g, x, y, cw, ch, selected ? '#24434be8' : '#11212de0', selected ? C.mint : '#63879866', 12);
       const ridge = (offset: number, fill: string) => {
         g.fillColor = col(fill);
@@ -418,17 +437,21 @@ export class HUD {
         g.lineTo(x + cw - 2 - w / 2, h / 2 - y - ch * .68); g.close(); g.fill();
       };
       ridge(1, '#324c60'); ridge(2, '#192f3e');
-      this.routeGraphic(g, x + 18, y + ch * .33, cw - 36, ch * .26, 0, mission.map);
+      this.routeGraphic(g, x + 18, y + ch * .29, cw - 36, ch * .18, 0, mission.map);
       const label = this.button('mission:' + mission.id, text(mission.name, this.lang), x, y, cw, ch, n);
-      label.node.setPosition(x + cw / 2 - w / 2, h / 2 - y - ch + 25);
-      label.node.getComponent(UITransform)!.setContentSize(cw - 12, 40);
-      label.fontSize = this.compact ? 15 : 21; label.color = col(selected ? C.mint : C.white); label.isBold = true;
+      label.node.setPosition(x + cw / 2 - w / 2, h / 2 - y - ch + 39);
+      label.node.getComponent(UITransform)!.setContentSize(cw - 12, this.compact ? 28 : 40);
+      label.fontSize = this.compact ? 15 : 21; label.color = col(unlocked ? selected ? C.mint : C.white : C.dim); label.isBold = true;
+      const status = this.missionProgress.cleared.includes(mission.id) ? this.t('已完成', 'CLEARED')
+        : unlocked ? this.developer ? this.t('试玩 · 不计进度', 'PRACTICE') : this.t('可出动', 'AVAILABLE')
+          : this.t('完成上一关解锁', 'COMPLETE PREVIOUS');
+      this.label(n, status, x + cw / 2, y + ch - 16, 11, cw - 12, 22, unlocked ? C.mint : C.dim);
     }
     const bw = (right - left - 24) / 3;
     for (const [i, id] of ['homeMenu', 'training', 'start'].entries()) {
       const x = left + i * (bw + 12), primary = id === 'start', selected = id === 'training' && s.mission.mode === 'training';
       this.rect(g, x, bottom, bw, 44, primary ? C.mint : '#142732ee', selected ? C.mint : '#91e6cb55', 10);
-      const label = this.button(id, [this.t('返回', 'BACK'), this.t('60秒热身', '60s WARMUP'), this.t('出发  →', 'DEPLOY  →')][i], x, bottom, bw, 44, n);
+      const label = this.button(id, [this.t('返回', 'BACK'), this.t('60秒热身', '60s WARMUP'), this.t(`出发 ${String(Math.max(0, MISSIONS.findIndex(mission => mission.id === s.mission.id)) + 1).padStart(3, '0')} →`, 'DEPLOY  →')][i], x, bottom, bw, 44, n);
       label.color = col(primary ? '#10252a' : selected ? C.mint : C.white); label.isBold = primary;
     }
   }
@@ -857,10 +880,11 @@ export class HUD {
       );
       const resultW = (pw - (training ? 56 : 64)) / (training ? 2 : 3);
       this.button('home', this.t('返回首页', 'HOME'), px + 24, bottom, resultW, 44, n);
-      if (!training) this.button('training', this.t('60秒热身', '60s WARMUP'), px + 32 + resultW, bottom, resultW, 44, n);
+      if (!training) this.button('retry', this.t('再次出动 ↻', 'RETRY ↻'), px + 32 + resultW, bottom, resultW, 44, n);
       this.button(
-        'retry',
-        training ? this.t('再练一轮 ↻', 'TRY AGAIN ↻') : this.t('再次出动 ↻', 'RETRY ↻'),
+        training ? 'retry' : success && s.mission.id !== MISSIONS.at(-1)!.id ? 'missionNext' : 'training',
+        training ? this.t('再练一轮 ↻', 'TRY AGAIN ↻') : success && s.mission.id !== MISSIONS.at(-1)!.id
+          ? this.t('下一任务 →', 'NEXT OPERATION →') : this.t('60秒热身', '60s WARMUP'),
         px + (training ? 32 + resultW : 40 + 2 * resultW),
         bottom,
         resultW,

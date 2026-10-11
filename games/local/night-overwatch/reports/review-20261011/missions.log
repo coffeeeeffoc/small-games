@@ -1,0 +1,249 @@
+✔ mission combinations change deployment and motion while preserving weapon and escort rules (401.284183ms)
+✔ 山谷护送 can be completed with finite ammunition and every friendly group surviving (1082.500469ms)
+ℹ {"mission":"corridor-01","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 高地伏击 can be completed with finite ammunition and every friendly group surviving (427.942434ms)
+ℹ {"mission":"ambush-02","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 机动拦截 can be completed with finite ammunition and every friendly group surviving (619.273031ms)
+ℹ {"mission":"patrol-03","phase":"success","time":240.00000000008313,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ 谷地晨哨 4 can be completed with finite ammunition and every friendly group surviving (554.207117ms)
+ℹ {"mission":"operation-004","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 谷地晨哨 5 can be completed with finite ammunition and every friendly group surviving (411.913442ms)
+ℹ {"mission":"operation-005","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 谷地晨哨 6 can be completed with finite ammunition and every friendly group surviving (419.182138ms)
+ℹ {"mission":"operation-006","phase":"success","time":240.0166666667498,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ 谷地晨哨 7 can be completed with finite ammunition and every friendly group surviving (473.015352ms)
+ℹ {"mission":"operation-007","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 谷地晨哨 8 can be completed with finite ammunition and every friendly group surviving (512.608443ms)
+ℹ {"mission":"operation-008","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 谷地晨哨 9 can be completed with finite ammunition and every friendly group surviving (584.187562ms)
+ℹ {"mission":"operation-009","phase":"success","time":240.00000000008313,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ 谷地晨哨 10 can be completed with finite ammunition and every friendly group surviving (570.699549ms)
+ℹ {"mission":"operation-010","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 谷地晨哨 11 can be completed with finite ammunition and every friendly group surviving (554.208142ms)
+ℹ {"mission":"operation-011","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 谷地晨哨 12 can be completed with finite ammunition and every friendly group surviving (396.045084ms)
+ℹ {"mission":"operation-012","phase":"success","time":240.0166666667498,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ 高地警戒 1 can be completed with finite ammunition and every friendly group surviving (388.784646ms)
+ℹ {"mission":"operation-013","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 高地警戒 2 can be completed with finite ammunition and every friendly group surviving (600.005783ms)
+ℹ {"mission":"operation-014","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 高地警戒 3 can be completed with finite ammunition and every friendly group surviving (882.334284ms)
+ℹ {"mission":"operation-015","phase":"success","time":240.0166666667498,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ 高地警戒 4 can be completed with finite ammunition and every friendly group surviving (745.568672ms)
+ℹ {"mission":"operation-016","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 高地警戒 5 can be completed with finite ammunition and every friendly group surviving (481.323016ms)
+ℹ {"mission":"operation-017","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 高地警戒 6 can be completed with finite ammunition and every friendly group surviving (684.961679ms)
+ℹ {"mission":"operation-018","phase":"success","time":240.00000000008313,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ 高地警戒 7 can be completed with finite ammunition and every friendly group surviving (808.600272ms)
+ℹ {"mission":"operation-019","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 高地警戒 8 can be completed with finite ammunition and every friendly group surviving (920.713553ms)
+ℹ {"mission":"operation-020","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 高地警戒 9 can be completed with finite ammunition and every friendly group surviving (1593.483643ms)
+ℹ {"mission":"operation-021","phase":"success","time":240.0166666667498,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ 高地警戒 10 can be completed with finite ammunition and every friendly group surviving (803.629508ms)
+ℹ {"mission":"operation-022","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 高地警戒 11 can be completed with finite ammunition and every friendly group surviving (591.46771ms)
+ℹ {"mission":"operation-023","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 高地警戒 12 can be completed with finite ammunition and every friendly group surviving (542.239095ms)
+ℹ {"mission":"operation-024","phase":"success","time":240.00000000008313,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ 河岸巡航 1 can be completed with finite ammunition and every friendly group surviving (717.234708ms)
+ℹ {"mission":"operation-025","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 河岸巡航 2 can be completed with finite ammunition and every friendly group surviving (403.392949ms)
+ℹ {"mission":"operation-026","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 河岸巡航 3 can be completed with finite ammunition and every friendly group surviving (411.484469ms)
+ℹ {"mission":"operation-027","phase":"success","time":240.00000000008313,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ 河岸巡航 4 can be completed with finite ammunition and every friendly group surviving (395.860989ms)
+ℹ {"mission":"operation-028","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 河岸巡航 5 can be completed with finite ammunition and every friendly group surviving (429.944793ms)
+ℹ {"mission":"operation-029","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 河岸巡航 6 can be completed with finite ammunition and every friendly group surviving (474.735335ms)
+ℹ {"mission":"operation-030","phase":"success","time":240.0166666667498,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ 河岸巡航 7 can be completed with finite ammunition and every friendly group surviving (523.658872ms)
+ℹ {"mission":"operation-031","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 河岸巡航 8 can be completed with finite ammunition and every friendly group surviving (345.719717ms)
+ℹ {"mission":"operation-032","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 河岸巡航 9 can be completed with finite ammunition and every friendly group surviving (472.591861ms)
+ℹ {"mission":"operation-033","phase":"success","time":240.00000000008313,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ 河岸巡航 10 can be completed with finite ammunition and every friendly group surviving (440.724526ms)
+ℹ {"mission":"operation-034","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 河岸巡航 11 can be completed with finite ammunition and every friendly group surviving (508.820726ms)
+ℹ {"mission":"operation-035","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 河岸巡航 12 can be completed with finite ammunition and every friendly group surviving (336.914299ms)
+ℹ {"mission":"operation-036","phase":"success","time":240.0166666667498,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ 山路截击 1 can be completed with finite ammunition and every friendly group surviving (533.319865ms)
+ℹ {"mission":"operation-037","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 山路截击 2 can be completed with finite ammunition and every friendly group surviving (482.857956ms)
+ℹ {"mission":"operation-038","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 山路截击 3 can be completed with finite ammunition and every friendly group surviving (523.28405ms)
+ℹ {"mission":"operation-039","phase":"success","time":240.0166666667498,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ 山路截击 4 can be completed with finite ammunition and every friendly group surviving (535.56678ms)
+ℹ {"mission":"operation-040","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 山路截击 5 can be completed with finite ammunition and every friendly group surviving (313.317771ms)
+ℹ {"mission":"operation-041","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 山路截击 6 can be completed with finite ammunition and every friendly group surviving (343.1313ms)
+ℹ {"mission":"operation-042","phase":"success","time":240.00000000008313,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ 山路截击 7 can be completed with finite ammunition and every friendly group surviving (508.900654ms)
+ℹ {"mission":"operation-043","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 山路截击 8 can be completed with finite ammunition and every friendly group surviving (450.33728ms)
+ℹ {"mission":"operation-044","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 山路截击 9 can be completed with finite ammunition and every friendly group surviving (411.67764ms)
+ℹ {"mission":"operation-045","phase":"success","time":240.0166666667498,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ 山路截击 10 can be completed with finite ammunition and every friendly group surviving (397.747814ms)
+ℹ {"mission":"operation-046","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 山路截击 11 can be completed with finite ammunition and every friendly group surviving (330.490717ms)
+ℹ {"mission":"operation-047","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 山路截击 12 can be completed with finite ammunition and every friendly group surviving (456.219136ms)
+ℹ {"mission":"operation-048","phase":"success","time":240.00000000008313,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ 车队守护 1 can be completed with finite ammunition and every friendly group surviving (571.243095ms)
+ℹ {"mission":"operation-049","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 车队守护 2 can be completed with finite ammunition and every friendly group surviving (378.989644ms)
+ℹ {"mission":"operation-050","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 车队守护 3 can be completed with finite ammunition and every friendly group surviving (569.54193ms)
+ℹ {"mission":"operation-051","phase":"success","time":240.00000000008313,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ 车队守护 4 can be completed with finite ammunition and every friendly group surviving (555.553814ms)
+ℹ {"mission":"operation-052","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 车队守护 5 can be completed with finite ammunition and every friendly group surviving (367.961942ms)
+ℹ {"mission":"operation-053","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 车队守护 6 can be completed with finite ammunition and every friendly group surviving (305.190849ms)
+ℹ {"mission":"operation-054","phase":"success","time":240.0166666667498,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ 车队守护 7 can be completed with finite ammunition and every friendly group surviving (435.412001ms)
+ℹ {"mission":"operation-055","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 车队守护 8 can be completed with finite ammunition and every friendly group surviving (266.704107ms)
+ℹ {"mission":"operation-056","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 车队守护 9 can be completed with finite ammunition and every friendly group surviving (340.561866ms)
+ℹ {"mission":"operation-057","phase":"success","time":240.00000000008313,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ 车队守护 10 can be completed with finite ammunition and every friendly group surviving (339.277179ms)
+ℹ {"mission":"operation-058","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 车队守护 11 can be completed with finite ammunition and every friendly group surviving (379.461906ms)
+ℹ {"mission":"operation-059","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,66,24]}
+✔ 车队守护 12 can be completed with finite ammunition and every friendly group surviving (330.944917ms)
+ℹ {"mission":"operation-060","phase":"success","time":240.0166666667498,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ 据点支援 1 can be completed with finite ammunition and every friendly group surviving (381.384243ms)
+ℹ {"mission":"operation-061","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,68,22]}
+✔ 据点支援 2 can be completed with finite ammunition and every friendly group surviving (466.053827ms)
+ℹ {"mission":"operation-062","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,68,22]}
+✔ 据点支援 3 can be completed with finite ammunition and every friendly group surviving (324.363179ms)
+ℹ {"mission":"operation-063","phase":"success","time":240.0166666667498,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ 据点支援 4 can be completed with finite ammunition and every friendly group surviving (423.440201ms)
+ℹ {"mission":"operation-064","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,68,22]}
+✔ 据点支援 5 can be completed with finite ammunition and every friendly group surviving (298.26924ms)
+ℹ {"mission":"operation-065","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,68,22]}
+✔ 据点支援 6 can be completed with finite ammunition and every friendly group surviving (332.108405ms)
+ℹ {"mission":"operation-066","phase":"success","time":240.00000000008313,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ 据点支援 7 can be completed with finite ammunition and every friendly group surviving (340.186259ms)
+ℹ {"mission":"operation-067","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,68,22]}
+✔ 据点支援 8 can be completed with finite ammunition and every friendly group surviving (418.609018ms)
+ℹ {"mission":"operation-068","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,68,22]}
+✔ 据点支援 9 can be completed with finite ammunition and every friendly group surviving (368.615272ms)
+ℹ {"mission":"operation-069","phase":"success","time":240.0166666667498,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ 据点支援 10 can be completed with finite ammunition and every friendly group surviving (430.662165ms)
+ℹ {"mission":"operation-070","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,68,22]}
+✔ 据点支援 11 can be completed with finite ammunition and every friendly group surviving (285.651826ms)
+ℹ {"mission":"operation-071","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,68,22]}
+✔ 据点支援 12 can be completed with finite ammunition and every friendly group surviving (389.462092ms)
+ℹ {"mission":"operation-072","phase":"success","time":240.00000000008313,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ 夜色伏击 1 can be completed with finite ammunition and every friendly group surviving (471.306112ms)
+ℹ {"mission":"operation-073","phase":"success","time":240.00000000008313,"kills":24,"fired":74,"friendlyDamage":0,"ammo":[null,66,22]}
+✔ 夜色伏击 2 can be completed with finite ammunition and every friendly group surviving (309.558564ms)
+ℹ {"mission":"operation-074","phase":"success","time":240.0166666667498,"kills":24,"fired":74,"friendlyDamage":0,"ammo":[null,66,22]}
+✔ 夜色伏击 3 can be completed with finite ammunition and every friendly group surviving (433.703843ms)
+ℹ {"mission":"operation-075","phase":"success","time":240.00000000008313,"kills":24,"fired":88,"friendlyDamage":0,"ammo":[null,80,22]}
+✔ 夜色伏击 4 can be completed with finite ammunition and every friendly group surviving (347.575239ms)
+ℹ {"mission":"operation-076","phase":"success","time":240.0166666667498,"kills":24,"fired":74,"friendlyDamage":0,"ammo":[null,66,22]}
+✔ 夜色伏击 5 can be completed with finite ammunition and every friendly group surviving (345.389205ms)
+ℹ {"mission":"operation-077","phase":"success","time":240.00000000008313,"kills":24,"fired":74,"friendlyDamage":0,"ammo":[null,66,22]}
+✔ 夜色伏击 6 can be completed with finite ammunition and every friendly group surviving (293.053595ms)
+ℹ {"mission":"operation-078","phase":"success","time":240.0166666667498,"kills":24,"fired":88,"friendlyDamage":0,"ammo":[null,80,22]}
+✔ 夜色伏击 7 can be completed with finite ammunition and every friendly group surviving (422.548054ms)
+ℹ {"mission":"operation-079","phase":"success","time":240.00000000008313,"kills":24,"fired":74,"friendlyDamage":0,"ammo":[null,66,22]}
+✔ 夜色伏击 8 can be completed with finite ammunition and every friendly group surviving (334.939942ms)
+ℹ {"mission":"operation-080","phase":"success","time":240.0166666667498,"kills":24,"fired":74,"friendlyDamage":0,"ammo":[null,66,22]}
+✔ 夜色伏击 9 can be completed with finite ammunition and every friendly group surviving (399.431467ms)
+ℹ {"mission":"operation-081","phase":"success","time":240.00000000008313,"kills":24,"fired":88,"friendlyDamage":0,"ammo":[null,80,22]}
+✔ 夜色伏击 10 can be completed with finite ammunition and every friendly group surviving (385.906272ms)
+ℹ {"mission":"operation-082","phase":"success","time":240.0166666667498,"kills":24,"fired":74,"friendlyDamage":0,"ammo":[null,66,22]}
+✔ 夜色伏击 11 can be completed with finite ammunition and every friendly group surviving (361.950018ms)
+ℹ {"mission":"operation-083","phase":"success","time":240.00000000008313,"kills":24,"fired":74,"friendlyDamage":0,"ammo":[null,66,22]}
+✔ 夜色伏击 12 can be completed with finite ammunition and every friendly group surviving (344.292894ms)
+ℹ {"mission":"operation-084","phase":"success","time":240.0166666667498,"kills":24,"fired":88,"friendlyDamage":0,"ammo":[null,80,22]}
+✔ 机动围剿 1 can be completed with finite ammunition and every friendly group surviving (440.853967ms)
+ℹ {"mission":"operation-085","phase":"success","time":240.0166666667498,"kills":24,"fired":74,"friendlyDamage":0,"ammo":[null,66,22]}
+✔ 机动围剿 2 can be completed with finite ammunition and every friendly group surviving (350.8272ms)
+ℹ {"mission":"operation-086","phase":"success","time":240.00000000008313,"kills":24,"fired":74,"friendlyDamage":0,"ammo":[null,66,22]}
+✔ 机动围剿 3 can be completed with finite ammunition and every friendly group surviving (292.554149ms)
+ℹ {"mission":"operation-087","phase":"success","time":240.0166666667498,"kills":24,"fired":88,"friendlyDamage":0,"ammo":[null,80,22]}
+✔ 机动围剿 4 can be completed with finite ammunition and every friendly group surviving (381.456523ms)
+ℹ {"mission":"operation-088","phase":"success","time":240.00000000008313,"kills":24,"fired":74,"friendlyDamage":0,"ammo":[null,66,22]}
+✔ 机动围剿 5 can be completed with finite ammunition and every friendly group surviving (284.085608ms)
+ℹ {"mission":"operation-089","phase":"success","time":240.0166666667498,"kills":24,"fired":74,"friendlyDamage":0,"ammo":[null,66,22]}
+✔ 机动围剿 6 can be completed with finite ammunition and every friendly group surviving (329.767102ms)
+ℹ {"mission":"operation-090","phase":"success","time":240.00000000008313,"kills":24,"fired":88,"friendlyDamage":0,"ammo":[null,80,22]}
+✔ 机动围剿 7 can be completed with finite ammunition and every friendly group surviving (334.188154ms)
+ℹ {"mission":"operation-091","phase":"success","time":240.0166666667498,"kills":24,"fired":74,"friendlyDamage":0,"ammo":[null,66,22]}
+✔ 机动围剿 8 can be completed with finite ammunition and every friendly group surviving (346.576821ms)
+ℹ {"mission":"operation-092","phase":"success","time":240.00000000008313,"kills":24,"fired":74,"friendlyDamage":0,"ammo":[null,66,22]}
+✔ 机动围剿 9 can be completed with finite ammunition and every friendly group surviving (281.882938ms)
+ℹ {"mission":"operation-093","phase":"success","time":240.0166666667498,"kills":24,"fired":88,"friendlyDamage":0,"ammo":[null,80,22]}
+✔ 机动围剿 10 can be completed with finite ammunition and every friendly group surviving (397.664482ms)
+ℹ {"mission":"operation-094","phase":"success","time":240.00000000008313,"kills":24,"fired":74,"friendlyDamage":0,"ammo":[null,66,22]}
+✔ 机动围剿 11 can be completed with finite ammunition and every friendly group surviving (286.00149ms)
+ℹ {"mission":"operation-095","phase":"success","time":240.0166666667498,"kills":24,"fired":74,"friendlyDamage":0,"ammo":[null,66,22]}
+✔ 机动围剿 12 can be completed with finite ammunition and every friendly group surviving (382.33926ms)
+ℹ {"mission":"operation-096","phase":"success","time":240.00000000008313,"kills":24,"fired":88,"friendlyDamage":0,"ammo":[null,80,22]}
+✔ 长夜突围 1 can be completed with finite ammunition and every friendly group surviving (412.005545ms)
+ℹ {"mission":"operation-097","phase":"success","time":240.00000000008313,"kills":24,"fired":74,"friendlyDamage":0,"ammo":[null,66,22]}
+✔ 长夜突围 2 can be completed with finite ammunition and every friendly group surviving (296.488435ms)
+ℹ {"mission":"operation-098","phase":"success","time":240.0166666667498,"kills":24,"fired":74,"friendlyDamage":0,"ammo":[null,66,22]}
+✔ 长夜突围 3 can be completed with finite ammunition and every friendly group surviving (507.109214ms)
+ℹ {"mission":"operation-099","phase":"success","time":240.00000000008313,"kills":24,"fired":88,"friendlyDamage":0,"ammo":[null,80,22]}
+✔ 长夜突围 4 can be completed with finite ammunition and every friendly group surviving (499.44424ms)
+ℹ {"mission":"operation-100","phase":"success","time":240.0166666667498,"kills":24,"fired":74,"friendlyDamage":0,"ammo":[null,66,22]}
+✔ 长夜突围 5 can be completed with finite ammunition and every friendly group surviving (614.637011ms)
+ℹ {"mission":"operation-101","phase":"success","time":240.00000000008313,"kills":24,"fired":74,"friendlyDamage":0,"ammo":[null,66,22]}
+✔ 长夜突围 6 can be completed with finite ammunition and every friendly group surviving (354.064654ms)
+ℹ {"mission":"operation-102","phase":"success","time":240.0166666667498,"kills":24,"fired":88,"friendlyDamage":0,"ammo":[null,80,22]}
+✔ 长夜突围 7 can be completed with finite ammunition and every friendly group surviving (391.125389ms)
+ℹ {"mission":"operation-103","phase":"success","time":240.00000000008313,"kills":24,"fired":74,"friendlyDamage":0,"ammo":[null,66,22]}
+✔ 长夜突围 8 can be completed with finite ammunition and every friendly group surviving (334.380904ms)
+ℹ {"mission":"operation-104","phase":"success","time":240.0166666667498,"kills":24,"fired":74,"friendlyDamage":0,"ammo":[null,66,22]}
+✔ 长夜突围 9 can be completed with finite ammunition and every friendly group surviving (369.992883ms)
+ℹ {"mission":"operation-105","phase":"success","time":240.00000000008313,"kills":24,"fired":88,"friendlyDamage":0,"ammo":[null,80,22]}
+✔ 长夜突围 10 can be completed with finite ammunition and every friendly group surviving (336.479787ms)
+ℹ {"mission":"operation-106","phase":"success","time":240.0166666667498,"kills":24,"fired":75,"friendlyDamage":0,"ammo":[null,66,22]}
+✔ 长夜突围 11 can be completed with finite ammunition and every friendly group surviving (322.401517ms)
+ℹ {"mission":"operation-107","phase":"success","time":240.00000000008313,"kills":24,"fired":74,"friendlyDamage":0,"ammo":[null,66,22]}
+✔ 长夜突围 12 can be completed with finite ammunition and every friendly group surviving (287.708368ms)
+ℹ {"mission":"operation-108","phase":"success","time":240.0166666667498,"kills":24,"fired":88,"friendlyDamage":0,"ammo":[null,80,22]}
+✔ 终夜守望 1 can be completed with finite ammunition and every friendly group surviving (333.842745ms)
+ℹ {"mission":"operation-109","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,68,22]}
+✔ 终夜守望 2 can be completed with finite ammunition and every friendly group surviving (324.269182ms)
+ℹ {"mission":"operation-110","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,68,22]}
+✔ 终夜守望 3 can be completed with finite ammunition and every friendly group surviving (315.974913ms)
+ℹ {"mission":"operation-111","phase":"success","time":240.0166666667498,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ 终夜守望 4 can be completed with finite ammunition and every friendly group surviving (387.219923ms)
+ℹ {"mission":"operation-112","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,68,22]}
+✔ 终夜守望 5 can be completed with finite ammunition and every friendly group surviving (268.0732ms)
+ℹ {"mission":"operation-113","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,68,22]}
+✔ 终夜守望 6 can be completed with finite ammunition and every friendly group surviving (339.932374ms)
+ℹ {"mission":"operation-114","phase":"success","time":240.00000000008313,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ 终夜守望 7 can be completed with finite ammunition and every friendly group surviving (326.372943ms)
+ℹ {"mission":"operation-115","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,68,22]}
+✔ 终夜守望 8 can be completed with finite ammunition and every friendly group surviving (326.556669ms)
+ℹ {"mission":"operation-116","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,68,22]}
+✔ 终夜守望 9 can be completed with finite ammunition and every friendly group surviving (292.504172ms)
+ℹ {"mission":"operation-117","phase":"success","time":240.0166666667498,"kills":24,"fired":93,"friendlyDamage":0,"ammo":[null,80,24]}
+✔ 终夜守望 10 can be completed with finite ammunition and every friendly group surviving (389.513103ms)
+ℹ {"mission":"operation-118","phase":"success","time":240.00000000008313,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,68,22]}
+✔ 终夜守望 11 can be completed with finite ammunition and every friendly group surviving (268.969407ms)
+ℹ {"mission":"operation-119","phase":"success","time":240.0166666667498,"kills":24,"fired":76,"friendlyDamage":0,"ammo":[null,68,22]}
+✔ 终夜守望 12 can be completed with finite ammunition and every friendly group surviving (362.416982ms)
+ℹ {"mission":"operation-120","phase":"success","time":240.00000000008313,"kills":24,"fired":90,"friendlyDamage":0,"ammo":[null,80,24]}
+ℹ tests 121
+ℹ suites 0
+ℹ pass 121
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 53711.249327
