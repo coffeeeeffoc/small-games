@@ -23,6 +23,17 @@
         "time": "2026-10-05T10:25:40Z"
       }
     },
+    "ashfall-front": {
+      "source": "games/local/ashfall-front",
+      "created": {
+        "commit": "14de648e2b795d88dc2bb6f8bffb5b109f4c96f8",
+        "time": "2026-10-11T19:27:17Z"
+      },
+      "updated": {
+        "commit": "14de648e2b795d88dc2bb6f8bffb5b109f4c96f8",
+        "time": "2026-10-11T19:27:17Z"
+      }
+    },
     "ball-roguelite": {
       "source": "games/local/ball-roguelite",
       "created": {
@@ -30,8 +41,8 @@
         "time": "2026-10-06T10:01:31Z"
       },
       "updated": {
-        "commit": "4fac4128d2fdd3ed54e2354ca4dd20364a0cc08b",
-        "time": "2026-10-06T21:11:11Z"
+        "commit": "53aa67112f887101a0540ec52f49ee89d060fd96",
+        "time": "2026-10-12T01:46:12+08:00"
       }
     },
     "balloon-movers": {
@@ -74,8 +85,8 @@
         "time": "2026-10-07T08:42:29Z"
       },
       "updated": {
-        "commit": "5b5be7a674e94c34393f76ba96c5a970005d819f",
-        "time": "2026-10-11T15:15:02Z"
+        "commit": "53aa67112f887101a0540ec52f49ee89d060fd96",
+        "time": "2026-10-12T01:46:12+08:00"
       }
     },
     "carding-car": {
@@ -96,8 +107,8 @@
         "time": "2026-10-10T09:17:59+08:00"
       },
       "updated": {
-        "commit": "390795fcdb78e097ba614a977bf35ef65187b0ef",
-        "time": "2026-10-10T09:17:59+08:00"
+        "commit": "b55452af2334d39bd67380de46410b163c02cf50",
+        "time": "2026-10-11T15:45:16Z"
       }
     },
     "castle-cannon": {
@@ -107,8 +118,8 @@
         "time": "2026-10-05T21:29:55Z"
       },
       "updated": {
-        "commit": "d0ac3135be3405966849528ddce9ae2436d55a30",
-        "time": "2026-10-06T17:30:16Z"
+        "commit": "97c1ab420e98ff9bf0cfdc03957ecf5984682f5e",
+        "time": "2026-10-09T11:22:33+08:00"
       }
     },
     "chase-thief": {
@@ -118,8 +129,8 @@
         "time": "2026-10-06T18:26:31Z"
       },
       "updated": {
-        "commit": "ea1c86538433e0105a6af5c12dbd31f3a051d41e",
-        "time": "2026-10-06T20:27:10Z"
+        "commit": "7446f42f0937565c310e0261a4db9ecc17ef2ff2",
+        "time": "2026-10-12T02:18:18+08:00"
       }
     },
     "cops-robbers": {
@@ -129,8 +140,8 @@
         "time": "2026-09-14T01:49:09+08:00"
       },
       "updated": {
-        "commit": "44fcdbc6f38369274afbe6bc8a48c169052907c2",
-        "time": "2026-10-06T16:58:51Z"
+        "commit": "21e0d01a99b5d41501ec334253dc404d715ab0c9",
+        "time": "2026-10-10T03:07:50Z"
       }
     },
     "cops-robbers-realtime": {
@@ -195,8 +206,8 @@
         "time": "2026-10-05T19:03:26Z"
       },
       "updated": {
-        "commit": "227cadea49f0770a83384eb67f0f5bea9d6aabd8",
-        "time": "2026-10-05T19:15:27Z"
+        "commit": "8e62a683d8a559819160d62468a872a4e0386ec0",
+        "time": "2026-10-10T19:37:21Z"
       }
     },
     "fishing": {
@@ -217,8 +228,8 @@
         "time": "2026-10-05T20:43:08Z"
       },
       "updated": {
-        "commit": "bc6027de82ee9240b62ca705e016d7b0b912d75b",
-        "time": "2026-10-07T09:11:08Z"
+        "commit": "7446f42f0937565c310e0261a4db9ecc17ef2ff2",
+        "time": "2026-10-12T02:18:18+08:00"
       }
     },
     "fold-the-world": {
@@ -228,8 +239,8 @@
         "time": "2026-09-26T23:33:42+08:00"
       },
       "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
+        "commit": "7446f42f0937565c310e0261a4db9ecc17ef2ff2",
+        "time": "2026-10-12T02:18:18+08:00"
       }
     },
     "ghost-shift-manager": {
@@ -272,8 +283,8 @@
         "time": "2026-10-03T09:52:21+08:00"
       },
       "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
+        "commit": "0e050eec65d2512974b430163646af4b8536e675",
+        "time": "2026-10-11T05:50:45Z"
       }
     },
     "ink-is-everything": {
@@ -305,8 +316,8 @@
         "time": "2026-09-14T01:49:09+08:00"
       },
       "updated": {
-        "commit": "e48a4c8b5c82311683611c9a5fe1f6786d6ebed2",
-        "time": "2026-10-06T23:23:35Z"
+        "commit": "b0cb8b691d85327a67f5b1cec4d544b1a020552d",
+        "time": "2026-10-11T13:23:08+08:00"
       }
     },
     "luban-workshop": {
@@ -349,8 +360,8 @@
         "time": "2026-10-06T15:32:41Z"
       },
       "updated": {
-        "commit": "13c5758967b231b9c0ae8dfc0a4a8ca743b082d5",
-        "time": "2026-10-06T17:22:07Z"
+        "commit": "7446f42f0937565c310e0261a4db9ecc17ef2ff2",
+        "time": "2026-10-12T02:18:18+08:00"
       }
     },
     "multi-battle": {
@@ -382,8 +393,8 @@
         "time": "2026-09-28T13:34:28+08:00"
       },
       "updated": {
-        "commit": "c90c64f7267bbef75fd8f68323dc8a4ca5f4d688",
-        "time": "2026-10-06T20:19:20Z"
+        "commit": "c765ae563cc77a664d0caa08844b5f159f15ccc7",
+        "time": "2026-10-10T09:28:19+08:00"
       }
     },
     "off-camera": {
@@ -437,8 +448,8 @@
         "time": "2026-10-06T15:42:56Z"
       },
       "updated": {
-        "commit": "6a4eb6452a2211d5b5d69ad3a0859c79474e109d",
-        "time": "2026-10-06T18:36:11Z"
+        "commit": "b0cb8b691d85327a67f5b1cec4d544b1a020552d",
+        "time": "2026-10-11T13:23:08+08:00"
       }
     },
     "out-of-frame": {
@@ -448,8 +459,8 @@
         "time": "2026-10-03T07:30:43Z"
       },
       "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
+        "commit": "7446f42f0937565c310e0261a4db9ecc17ef2ff2",
+        "time": "2026-10-12T02:18:18+08:00"
       }
     },
     "precision-demolition": {
@@ -481,8 +492,8 @@
         "time": "2026-09-27T21:54:05+08:00"
       },
       "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
+        "commit": "b0cb8b691d85327a67f5b1cec4d544b1a020552d",
+        "time": "2026-10-11T13:23:08+08:00"
       }
     },
     "retreat-rally": {
@@ -492,8 +503,8 @@
         "time": "2026-10-05T20:48:51Z"
       },
       "updated": {
-        "commit": "5789425da3411ba3dc08e6a9ba3622080981cf5e",
-        "time": "2026-10-07T09:02:33Z"
+        "commit": "7446f42f0937565c310e0261a4db9ecc17ef2ff2",
+        "time": "2026-10-12T02:18:18+08:00"
       }
     },
     "rule-thief": {
@@ -514,8 +525,8 @@
         "time": "2026-10-04T13:24:41+08:00"
       },
       "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
+        "commit": "b0cb8b691d85327a67f5b1cec4d544b1a020552d",
+        "time": "2026-10-11T13:23:08+08:00"
       }
     },
     "tetracube": {
@@ -533,11 +544,11 @@
       "source": "games/local/three-choose-two",
       "created": {
         "commit": "044e8fd2ff4fc74b30eb975738e60a5ce62b0856",
-        "time": "2026-10-07T10:31:05+00:00"
+        "time": "2026-10-07T10:31:05Z"
       },
       "updated": {
-        "commit": "7409069fe22cda6c52023186f7303e4187cd2a01",
-        "time": "2026-10-08T09:14:04+08:00"
+        "commit": "7446f42f0937565c310e0261a4db9ecc17ef2ff2",
+        "time": "2026-10-12T02:18:18+08:00"
       }
     },
     "tianxia-chalu": {
@@ -547,8 +558,8 @@
         "time": "2026-10-05T20:08:16Z"
       },
       "updated": {
-        "commit": "96b9e618718b1ffc102cc54b2e47341fb0cf9cf4",
-        "time": "2026-10-05T20:10:06Z"
+        "commit": "b0cb8b691d85327a67f5b1cec4d544b1a020552d",
+        "time": "2026-10-11T13:23:08+08:00"
       }
     },
     "tiny-signals": {
@@ -558,8 +569,8 @@
         "time": "2026-10-02T13:18:30Z"
       },
       "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
+        "commit": "7446f42f0937565c310e0261a4db9ecc17ef2ff2",
+        "time": "2026-10-12T02:18:18+08:00"
       }
     },
     "tower-brake": {
@@ -569,8 +580,8 @@
         "time": "2026-10-06T21:21:45Z"
       },
       "updated": {
-        "commit": "6f9eb2c55bdd8c51834d348875f7712c5b9141c3",
-        "time": "2026-10-07T08:47:27Z"
+        "commit": "53aa67112f887101a0540ec52f49ee89d060fd96",
+        "time": "2026-10-12T01:46:12+08:00"
       }
     },
     "tower-defense-game": {
@@ -602,8 +613,8 @@
         "time": "2026-09-16T02:32:15+08:00"
       },
       "updated": {
-        "commit": "d796f243c07809366cb338d884180c3bde55ac39",
-        "time": "2026-10-06T21:09:48Z"
+        "commit": "23dc50162fe53ba2d588e871218a169a551faa33",
+        "time": "2026-10-07T23:29:06+08:00"
       }
     },
     "travel-bund-25d": {
@@ -635,8 +646,8 @@
         "time": "2026-10-03T09:08:53Z"
       },
       "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
+        "commit": "7446f42f0937565c310e0261a4db9ecc17ef2ff2",
+        "time": "2026-10-12T02:18:18+08:00"
       }
     },
     "urban-breakout": {
@@ -668,8 +679,8 @@
         "time": "2026-09-14T01:49:09+08:00"
       },
       "updated": {
-        "commit": "3bfca0a2aa10ec957568409d1a804131103a75f8",
-        "time": "2026-10-06T18:28:08Z"
+        "commit": "0075fce02f29d2dcd33546ca99eb86f24276ac98",
+        "time": "2026-10-09T16:34:11Z"
       }
     },
     "vibeJam-myself-nullrange": {
@@ -701,8 +712,8 @@
         "time": "2026-10-02T12:57:38Z"
       },
       "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
+        "commit": "b0cb8b691d85327a67f5b1cec4d544b1a020552d",
+        "time": "2026-10-11T13:23:08+08:00"
       }
     },
     "weather-command": {
@@ -723,8 +734,8 @@
         "time": "2026-09-27T00:07:35+08:00"
       },
       "updated": {
-        "commit": "1536f14570b82c2d98eb0553c16ede3d5d812565",
-        "time": "2026-10-06T16:46:56Z"
+        "commit": "8dab90e8067ad9d22b02b63966274aa0407c3fec",
+        "time": "2026-10-11T14:52:06Z"
       }
     },
     "xiangqi-five": {
@@ -734,8 +745,8 @@
         "time": "2026-09-09T01:10:15+08:00"
       },
       "updated": {
-        "commit": "bcaddf603c28b416a856d51d01c8b7d386c71a3e",
-        "time": "2026-10-06T22:48:27+08:00"
+        "commit": "4b0dbd314115d0d803e71e7f6c193b217d02feca",
+        "time": "2026-10-10T00:00:09+08:00"
       }
     }
   }

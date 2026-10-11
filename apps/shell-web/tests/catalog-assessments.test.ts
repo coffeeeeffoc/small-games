@@ -20,7 +20,7 @@ const heldIds =
 
 it('covers every registered and on-disk Game once and preserves all 26 user decisions', () => {
   const ids = [...builtInGameRegistry, ...standalone].map((g) => g.id).sort();
-  expect(ids).toHaveLength(67);
+  expect(ids).toHaveLength(68);
   expect(assessmentData.games.map((g) => g.id).sort()).toEqual(ids);
   expect(Object.keys(assessments).sort()).toEqual(ids);
   expect(new Set(ids).size).toBe(ids.length);
@@ -56,27 +56,27 @@ it('covers every registered and on-disk Game once and preserves all 26 user deci
   expect(assessments['travel-bund'].disposition).toBe('potential');
 });
 
-it('exhaustively partitions 67 games into 7 previous, 14 current, 20 later and 26 held without reducing potential', () => {
+it('exhaustively partitions 68 games into 7 previous, 15 current, 20 later and 26 held without reducing potential', () => {
   const games = Object.values(assessments);
   const scheduled = rolloutGroups.flatMap(([tab]) => {
     const matches = games.filter((game) => matchesAssessment(game, { ...emptyFilters(), tab }));
-    expect(matches).toHaveLength({ previous: 7, current: 14, later: 20, hold: 26 }[tab]);
+    expect(matches).toHaveLength({ previous: 7, current: 15, later: 20, hold: 26 }[tab]);
     return matches.map((game) => game.id);
   });
   expect(scheduled.sort()).toEqual(games.map((game) => game.id).sort());
-  expect(new Set(scheduled).size).toBe(67);
+  expect(new Set(scheduled).size).toBe(68);
   expect(
     games.filter((game) =>
       matchesAssessment(game, { ...emptyFilters(), potential: ['potential'] }),
     ),
-  ).toHaveLength(41);
+  ).toHaveLength(42);
   expect(
     games
       .filter((game) => game.schedule === 'current')
       .map((game) => game.id)
       .sort(),
   ).toEqual(
-    'chase-thief retreat-rally tiny-signals orbit-atelier letters-words2 wulong-city surprise-kept homebound-station waterline-station rescue-team tianxia-chalu out-of-frame fold-the-world two-sided-box'
+    'ashfall-front chase-thief retreat-rally tiny-signals orbit-atelier letters-words2 wulong-city surprise-kept homebound-station waterline-station rescue-team tianxia-chalu out-of-frame fold-the-world two-sided-box'
       .split(' ')
       .sort(),
   );

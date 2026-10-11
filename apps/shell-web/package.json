@@ -101,7 +101,8 @@
     "@coffeeeeffoc/tetracube": "workspace:*",
     "@coffeeeeffoc/tower-brake": "workspace:*",
     "@coffeeeeffoc/cage-rescue": "workspace:*",
-    "@coffeeeeffoc/three-choose-two": "workspace:*"
+    "@coffeeeeffoc/three-choose-two": "workspace:*",
+    "@coffeeeeffoc/ashfall-front": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-eslint": "workspace:*",

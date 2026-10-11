@@ -1,5 +1,12 @@
 [
   {
+    "id": "ashfall-front",
+    "source": "games/local/ashfall-front",
+    "title": "灰烬防线",
+    "description": "冲进灰烬工厂，跳跃连射、冲刺闪避，引爆油桶清场，组合战地升级迎战拆解者。三间房，一场短促而激烈的突围。",
+    "output": "dist"
+  },
+  {
     "id": "carrom-club",
     "source": "games/local/carrom-club",
     "title": "克朗棋 · Carrom Club",
