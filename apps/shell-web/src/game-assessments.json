@@ -1530,6 +1530,36 @@
       "delivered": [
         "新增独立种子挑战、同局重试与好友自报目标分比较；挑战不覆盖普通存档和原有在线排行；可选续局接入模拟激励，结算使用频控模拟插屏。"
       ]
+    },
+    {
+      "id": "ashfall-front",
+      "title": "灰烬防线",
+      "source": "games/local/ashfall-front",
+      "disposition": "potential",
+      "potential": ["potential"],
+      "platforms": ["mobile", "web"],
+      "primaryPlatform": "mobile",
+      "orientation": "landscape",
+      "genres": ["action", "arcade", "roguelite"],
+      "opportunities": ["challenge"],
+      "schedule": "current",
+      "implementationStatus": "implemented",
+      "scheduleReason": "用户本次明确要求制作横版射击交互原型；记录本次已实现内容，后续用真人试玩校准手感和难度。",
+      "strengths": ["三战区、环境连锁爆破、五种改装和两阶段 Boss 已形成完整短局循环。"],
+      "weaknesses": [
+        "目前仅三个战区；浏览器触屏模拟已通关，真机握持、首次上手和重复游玩价值仍待验证。"
+      ],
+      "improvements": ["收集首局死亡位置与操作反馈，优先校准右拇指区遮挡、Boss 难度和改装组合。"],
+      "evidence": [
+        "games/local/ashfall-front/README.md",
+        "games/local/ashfall-front/docs/qa/verification.md",
+        "games/local/ashfall-front/docs/qa/browser-report.json"
+      ],
+      "delivered": [
+        "原创工业场景、人物动作、命中火花与爆炸反馈；多点触控移动、跳跃、冲刺、自动瞄准射击。",
+        "三关解锁、两次改装选择、Boss 攻击预警和核心输出窗口；暂停、重试、本地进度及开发试玩隔离。",
+        "完成横屏、竖屏旋转、小屏、全屏和自然触屏通关的 Chromium 验证；不是物理手机或原生渠道验收。"
+      ]
     }
   ]
 }
