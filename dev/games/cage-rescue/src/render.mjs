@@ -4,8 +4,8 @@ const HEIGHT = 700;
 
 const THEMES = {
   rescue: {
-    sky: '#06162d',
-    horizon: '#103663',
+    sky: '#081c39',
+    horizon: '#163f6a',
     deep: '#030d1d',
     glow: '#195993',
     mint: '#42d9d0',
@@ -49,6 +49,61 @@ const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 const fraction = (n) => n - Math.floor(n);
 const seed = (n) => fraction(Math.sin(n * 127.1 + 311.7) * 43758.5453);
 
+// Keep one backing bitmap per live renderer, rather than one per visited level.
+// Only damage, theme, scene and resolution invalidate the static artwork.
+const fieldLayers = new WeakMap();
+
+export function releaseRenderCache(ctx) {
+  const layer = fieldLayers.get(ctx);
+  if (!layer) return;
+  layer.canvas.width = layer.canvas.height = 0;
+  fieldLayers.delete(ctx);
+}
+
+function drawField(ctx, p, theme, game = null, home = false) {
+  let layer = fieldLayers.get(ctx);
+  if (!layer) {
+    const canvas = ctx.canvas.ownerDocument.createElement('canvas');
+    layer = { canvas, ctx: canvas.getContext('2d') };
+    fieldLayers.set(ctx, layer);
+  }
+  const width = ctx.canvas.width;
+  const height = ctx.canvas.height;
+  const cages = game?.cages || [];
+  const bricks = game?.bricks || [];
+  const changed =
+    layer.canvas.width !== width ||
+    layer.canvas.height !== height ||
+    layer.theme !== theme ||
+    layer.home !== home ||
+    layer.game !== game ||
+    cages.some((cage, i) => cage.hp !== layer.cageHp?.[i]) ||
+    bricks.some((brick, i) => brick.hp !== layer.brickHp?.[i]);
+  if (changed) {
+    if (layer.canvas.width !== width) layer.canvas.width = width;
+    if (layer.canvas.height !== height) layer.canvas.height = height;
+    const background = layer.ctx;
+    background.setTransform(width / WIDTH, 0, 0, height / HEIGHT, 0, 0);
+    background.clearRect(0, 0, WIDTH, HEIGHT);
+    drawBackground(background, p, 0, home, true);
+    if (!home) {
+      drawNet(background, p);
+      for (const brick of bricks) drawBrick(background, brick, p);
+      for (const [index, cage] of cages.entries()) {
+        if (cage.hp > 0) drawCage(background, cage, index, p);
+      }
+    }
+    Object.assign(layer, {
+      theme,
+      home,
+      game,
+      cageHp: cages.map((cage) => cage.hp),
+      brickHp: bricks.map((brick) => brick.hp),
+    });
+  }
+  ctx.drawImage(layer.canvas, 0, 0, WIDTH, HEIGHT);
+}
+
 function rounded(ctx, x, y, w, h, r = 4) {
   const radius = Math.min(r, w / 2, h / 2);
   ctx.beginPath();
@@ -87,8 +142,26 @@ function glow(ctx, x, y, radius, color, opacity = 1) {
   ctx.restore();
 }
 
+function star(ctx, x, y, radius, fill) {
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const angle = (i * Math.PI) / 4 - Math.PI / 2;
+    const length = i % 2 ? radius * 0.3 : radius;
+    const px = x + Math.cos(angle) * length;
+    const py = y + Math.sin(angle) * length;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.strokeStyle = '#041323';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
 function drawTower(ctx, x, width, top, bottom, p, foreground = false) {
-  const edge = foreground ? '#244969' : '#102b48';
+  const edge = foreground ? '#375e80' : '#183955';
   ctx.fillStyle = foreground ? '#07172b' : '#091d35';
   ctx.fillRect(x, top, width, bottom - top);
   line(ctx, x + 1, top, x + 1, bottom, edge, foreground ? 3 : 2);
@@ -164,6 +237,26 @@ function drawBackground(ctx, p, time, home = false, reducedMotion = false) {
   }
   ctx.globalAlpha = 1;
 
+  // Construction silhouettes and a moon give the field a place, rather than a grid.
+  const moonX = home ? 61 : 286;
+  const moonY = home ? 323 : 518;
+  glow(ctx, moonX, moonY, 61, '#a9d9ed', 0.09);
+  circle(ctx, moonX, moonY, home ? 22 : 26, '#bdd5dd');
+  circle(ctx, moonX + 7, moonY - 7, home ? 17 : 21, p.sky);
+  ctx.save();
+  ctx.globalAlpha = 0.45;
+  for (const [x, y, direction] of [
+    [64, 542, 1],
+    [324, 565, -1],
+  ]) {
+    line(ctx, x, y, x, HEIGHT, '#244c6b', 3);
+    line(ctx, x - 15, y + 19, x + 15, y + 19, '#244c6b', 4);
+    line(ctx, x, y, x + direction * 95, y + 14, '#244c6b', 3);
+    line(ctx, x, y - 6, x + direction * 74, y + 3, '#244c6b', 1.5);
+    line(ctx, x + direction * 69, y + 10, x + direction * 69, y + 43, '#244c6b', 1);
+  }
+  ctx.restore();
+
   if (home) {
     ctx.save();
     ctx.translate(28, 0);
@@ -178,33 +271,34 @@ function drawBackground(ctx, p, time, home = false, reducedMotion = false) {
     ctx.globalAlpha = 0.3;
     drawTower(ctx, 277, 24, 52, 465, p);
     ctx.globalAlpha = 1;
-    glow(ctx, 321, 89, 49, '#50cdec', 0.1);
-    circle(ctx, 321, 89, 16, '#b6e3ed');
-    circle(ctx, 326, 82, 13, p.sky);
-  } else {
-    ctx.strokeStyle = '#52a9cf';
-    ctx.lineWidth = 0.5;
-    ctx.globalAlpha = 0.095;
-    ctx.beginPath();
-    for (let x = 16; x <= 374; x += 29.833) {
-      ctx.moveTo(x, 70);
-      ctx.lineTo(x, 670);
-    }
-    for (let y = 70; y <= 670; y += 30) {
-      ctx.moveTo(16, y);
-      ctx.lineTo(374, y);
-    }
+    // A riveted title plate sits behind the live HTML lettering.
+    rounded(ctx, 38, 106, 314, 137, 15);
+    ctx.fillStyle = '#041222';
+    ctx.fill();
+    ctx.strokeStyle = '#284d66';
+    ctx.lineWidth = 6;
     ctx.stroke();
-    ctx.globalAlpha = 0.8;
+    rounded(ctx, 42, 110, 306, 129, 12);
+    ctx.strokeStyle = p.mint;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    for (const x of [49, 341])
+      for (const y of [118, 231]) {
+        circle(ctx, x, y, 3.4, '#041321');
+        circle(ctx, x, y - 0.5, 2, '#7da9ba');
+      }
+  } else {
+    ctx.globalAlpha = 0.95;
     drawTower(ctx, 2, 12, 69, 700, p, true);
     drawTower(ctx, 376, 12, 69, 700, p, true);
     ctx.globalAlpha = 1;
-    line(ctx, 16, 70, 374, 70, '#2b6481', 1);
-    line(ctx, 16, 70, 16, 669, '#4397b1', 0.65);
-    line(ctx, 374, 70, 374, 669, '#4397b1', 0.65);
+    line(ctx, 16, 71, 374, 71, '#274c69', 5);
+    line(ctx, 16, 70, 374, 70, '#60849a', 1);
+    line(ctx, 16, 70, 16, 669, '#4397b1', 1.5);
+    line(ctx, 374, 70, 374, 669, '#4397b1', 1.5);
     for (const y of [121, 314, 507, 652]) {
       for (const x of [10, 380]) {
-        glow(ctx, x, y, 16, '#ffc64d', 0.12);
+        glow(ctx, x, y, 18, '#ffc64d', 0.26);
         rounded(ctx, x - 2, y - 4, 4, 8, 1.5);
         ctx.fillStyle = '#e6ad58';
         ctx.fill();
@@ -228,7 +322,7 @@ function drawNet(ctx, p, y = 669, home = false) {
   const sag = home ? 18 : 11;
   ctx.lineWidth = 0.7;
   ctx.strokeStyle = p.mint;
-  ctx.globalAlpha = home ? 0.42 : 0.43;
+  ctx.globalAlpha = home ? 0.5 : 0.58;
   for (let x = left; x <= right; x += 14) {
     const relative = (x - left) / (right - left);
     const dip = Math.sin(relative * Math.PI) * sag;
@@ -310,13 +404,15 @@ function drawPerson(
   line(ctx, 7, 1, 12, armY - (falling ? 1 : 0), '#082139', 7);
   line(ctx, -7, 1, -12, armY, p.jacket, 4);
   line(ctx, 7, 1, 12, armY - (falling ? 1 : 0), p.jacket, 4);
+  circle(ctx, -12, armY, 3.8, '#082139');
+  circle(ctx, 12, armY - (falling ? 1 : 0), 3.8, '#082139');
   circle(ctx, -12, armY, 2.8, '#fbc6a0');
   circle(ctx, 12, armY - (falling ? 1 : 0), 2.8, '#fbc6a0');
   rounded(ctx, -8, -3, 16, 16, 4);
   ctx.fillStyle = p.jacket;
   ctx.fill();
   ctx.strokeStyle = '#082139';
-  ctx.lineWidth = 1.7;
+  ctx.lineWidth = 2.4;
   ctx.stroke();
   ctx.fillStyle = p.goldLight;
   ctx.fillRect(-5.5, 0, 2, 9);
@@ -342,15 +438,18 @@ function drawPerson(
   ctx.lineTo(-8.5, -7);
   ctx.closePath();
   ctx.fill();
-  circle(ctx, -3.5, -9.5, 1.35, '#112334');
-  circle(ctx, 3.5, -9.5, 1.35, '#112334');
+  circle(ctx, -3.5, -9.5, 1.8, '#112334');
+  circle(ctx, 3.5, -9.5, 1.8, '#112334');
+  circle(ctx, -4, -10.1, 0.6, '#fffaf0');
+  circle(ctx, 3, -10.1, 0.6, '#fffaf0');
   circle(ctx, -6, -6, 1.6, '#f1a281');
   circle(ctx, 6, -6, 1.6, '#f1a281');
   ctx.beginPath();
-  ctx.arc(0, -5.6, 2.6, 0.16, Math.PI - 0.16);
-  ctx.strokeStyle = '#7d4a3b';
-  ctx.lineWidth = 1.1;
-  ctx.stroke();
+  ctx.arc(0, -5.6, 3, 0, Math.PI);
+  ctx.closePath();
+  ctx.fillStyle = '#733c2d';
+  ctx.fill();
+  line(ctx, -1.8, -5.2, 1.8, -5.2, '#fff5dc', 1.3);
 
   // Hard hat, with a central reinforced strip and its reflective lamp.
   ctx.beginPath();
@@ -359,15 +458,15 @@ function drawPerson(
   ctx.closePath();
   ctx.fillStyle = p.helmet;
   ctx.fill();
-  ctx.strokeStyle = '#8e611b';
-  ctx.lineWidth = 1.2;
+  ctx.strokeStyle = '#573e23';
+  ctx.lineWidth = 2;
   ctx.stroke();
   line(ctx, 0, -23.5, 0, -15.5, p.goldLight, 3.2);
   rounded(ctx, -13, -15.5, 26, 4.5, 2.2);
   ctx.fillStyle = p.gold;
   ctx.fill();
   ctx.strokeStyle = '#ad772b';
-  ctx.lineWidth = 0.8;
+  ctx.lineWidth = 1.4;
   ctx.stroke();
   circle(ctx, 0, -18, 2.7, '#fff1b4');
   circle(ctx, -0.4, -18.5, 1.1, '#ffffff');
@@ -385,24 +484,34 @@ function drawCage(
   const { x, y, w, h } = cage;
   ctx.save();
   const centerX = x + w / 2;
-  line(ctx, centerX, y - 17 * scale, centerX, y - 5 * scale, '#316881', 2 * scale);
+  line(ctx, centerX, y - 22 * scale, centerX, y - 5 * scale, '#031323', 4 * scale);
+  for (let link = y - 22 * scale; link < y - 5 * scale; link += 6 * scale) {
+    ctx.beginPath();
+    ctx.ellipse(centerX, link + 2 * scale, 2 * scale, 3 * scale, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = '#608c9e';
+    ctx.lineWidth = 1.3 * scale;
+    ctx.stroke();
+  }
   ctx.beginPath();
   ctx.arc(centerX, y - 3 * scale, 3 * scale, 0, Math.PI * 2);
   ctx.strokeStyle = '#64b6c4';
   ctx.lineWidth = 1.5 * scale;
   ctx.stroke();
+  rounded(ctx, x - 2 * scale, y + 4 * scale, w + 4 * scale, h, 6 * scale);
+  ctx.fillStyle = '#03101e';
+  ctx.fill();
   rounded(ctx, x, y, w, h, 5 * scale);
   ctx.fillStyle = 'rgba(3,19,35,.78)';
   ctx.fill();
-  ctx.strokeStyle = '#247988';
-  ctx.lineWidth = 2 * scale;
+  ctx.strokeStyle = '#041626';
+  ctx.lineWidth = 6 * scale;
   ctx.stroke();
   ctx.fillStyle = 'rgba(46,141,155,.09)';
   ctx.fillRect(x + 4 * scale, y + 5 * scale, w - 8 * scale, h - 10 * scale);
   for (const ratio of [0.27, 0.73])
     line(ctx, x + w * ratio, y + 4 * scale, x + w * ratio, y + h - 3 * scale, '#254451', 1 * scale);
   if (!empty && !broken)
-    drawPerson(ctx, centerX, y + h * 0.64, p, { scale: Math.min(w / 54, h / 60) * 0.9, time });
+    drawPerson(ctx, centerX, y + h * 0.6, p, { scale: Math.min(w / 54, h / 60) * 1.05, time });
 
   const rail = ctx.createLinearGradient(x, y, x, y + h);
   rail.addColorStop(0, p.mintLight);
@@ -410,7 +519,7 @@ function drawCage(
   rail.addColorStop(0.8, '#26859a');
   rail.addColorStop(1, '#65b4bc');
   ctx.strokeStyle = rail;
-  ctx.lineWidth = 3 * scale;
+  ctx.lineWidth = 4.5 * scale;
   ctx.lineCap = 'round';
   if (broken) {
     ctx.beginPath();
@@ -460,15 +569,24 @@ function drawCage(
       '#79ced0',
       3 * scale,
     );
+    for (const bx of [x + 3 * scale, x + w - 3 * scale])
+      for (const by of [y + 5 * scale, y + h - 5 * scale]) {
+        circle(ctx, bx, by, 2.2 * scale, '#092d3c');
+        circle(ctx, bx - 0.3 * scale, by - 0.5 * scale, 1.1 * scale, p.mintLight);
+      }
     // Double locks use two lit segments; damage extinguishes one of them.
     const max = cage.maxHp || cage.hp || 1;
     const hp = cage.hp ?? 1;
     const segmentW = max === 2 ? 8 : 14;
     for (let i = 0; i < max; i++) {
       const sx = centerX - (max * (segmentW + 3) - 3) / 2 + i * (segmentW + 3);
-      rounded(ctx, sx, y - 1.3 * scale, segmentW, 4.2 * scale, 1.5);
+      rounded(ctx, sx, y - 3 * scale, segmentW, 7 * scale, 1.8 * scale);
       ctx.fillStyle = i < hp ? (max === 2 ? p.gold : p.mintLight) : '#173344';
       ctx.fill();
+      ctx.strokeStyle = i < hp ? '#8c6525' : '#0a2234';
+      ctx.lineWidth = 1 * scale;
+      ctx.stroke();
+      if (i < hp) circle(ctx, sx + segmentW / 2, y + 1 * scale, 0.9 * scale, '#604b29');
     }
     if (max > hp) {
       ctx.beginPath();
@@ -482,17 +600,17 @@ function drawCage(
     }
   }
   if (!broken && index !== undefined) {
-    rounded(ctx, centerX - 8, y + h - 1, 16, 12, 4);
+    rounded(ctx, centerX - 10, y + h, 20, 13, 4);
     ctx.fillStyle = '#09263c';
     ctx.fill();
-    ctx.strokeStyle = '#347281';
-    ctx.lineWidth = 0.8;
+    ctx.strokeStyle = '#538599';
+    ctx.lineWidth = 1.2;
     ctx.stroke();
-    ctx.fillStyle = '#b3dbe1';
-    ctx.font = '700 8px system-ui, sans-serif';
+    ctx.fillStyle = '#d4f3ef';
+    ctx.font = '900 8px system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(String(index + 1).padStart(2, '0'), centerX, y + h + 5.3);
+    ctx.fillText(String(index + 1).padStart(2, '0'), centerX, y + h + 6.5);
   }
   ctx.restore();
 }
@@ -501,9 +619,12 @@ function drawBrick(ctx, brick, p, accent = false) {
   if (brick.hp <= 0) return;
   const { x, y, w, h } = brick;
   ctx.save();
-  rounded(ctx, x, y + 3, w, h, 4);
+  rounded(ctx, x - 1, y + 3, w + 2, h + 1, 5);
   ctx.fillStyle = '#031727';
   ctx.fill();
+  ctx.strokeStyle = '#031222';
+  ctx.lineWidth = 3;
+  ctx.stroke();
   const fill = ctx.createLinearGradient(x, y, x, y + h);
   fill.addColorStop(0, accent ? '#fbc361' : '#58e2d3');
   fill.addColorStop(1, accent ? '#da762b' : '#129ea9');
@@ -511,10 +632,14 @@ function drawBrick(ctx, brick, p, accent = false) {
   ctx.fillStyle = fill;
   ctx.fill();
   ctx.strokeStyle = accent ? '#ffd58e' : '#8df6e6';
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 1.5;
   ctx.stroke();
   line(ctx, x + 5, y + 3, x + w - 5, y + 3, accent ? '#ffe8b2' : '#b4ffef', 1);
   line(ctx, x + 4, y + h - 3, x + w - 4, y + h - 3, 'rgba(0,33,48,.25)', 1);
+  for (const bx of [x + 4, x + w - 4]) {
+    circle(ctx, bx, y + h / 2, 1.8, '#0a5b70');
+    circle(ctx, bx - 0.3, y + h / 2 - 0.4, 0.7, p.mintLight);
+  }
   ctx.restore();
 }
 
@@ -522,11 +647,11 @@ function drawPaddle(ctx, paddle, p, time = 0, active = false) {
   const { x, y, w, h = 15 } = paddle;
   ctx.save();
   glow(ctx, x, y + h / 2, w * 0.72, p.gold, active ? 0.2 : 0.12);
-  rounded(ctx, x - w / 2 - 2, y + 3, w + 4, h + 3, 7);
+  rounded(ctx, x - w / 2 - 3, y + 3, w + 6, h + 3, 7);
   ctx.fillStyle = '#041a2d';
   ctx.fill();
-  ctx.strokeStyle = '#5089a3';
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = '#082032';
+  ctx.lineWidth = 3;
   ctx.stroke();
   const fill = ctx.createLinearGradient(0, y, 0, y + h);
   fill.addColorStop(0, p.goldLight);
@@ -538,6 +663,20 @@ function drawPaddle(ctx, paddle, p, time = 0, active = false) {
   ctx.strokeStyle = p.gold;
   ctx.lineWidth = 1.5;
   ctx.stroke();
+  ctx.save();
+  rounded(ctx, x - w / 2 + 8, y + 5, w - 16, h - 7, 2);
+  ctx.clip();
+  ctx.fillStyle = '#50291f';
+  for (let stripeX = x - w / 2; stripeX < x + w / 2; stripeX += 20) {
+    ctx.beginPath();
+    ctx.moveTo(stripeX + 8, y + 4);
+    ctx.lineTo(stripeX + 19, y + 4);
+    ctx.lineTo(stripeX + 10, y + h);
+    ctx.lineTo(stripeX - 1, y + h);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
   line(ctx, x - w / 2 + 10, y + 2.3, x + w / 2 - 10, y + 2.3, '#fff9ce', 1.2);
   for (const side of [-1, 1]) {
     const capX = x + side * (w / 2 - 5);
@@ -571,6 +710,7 @@ function drawBall(ctx, ball, p, trails = [], reducedMotion = false) {
   }
   ctx.globalAlpha = 1;
   glow(ctx, ball.x, ball.y, r * 4.5, '#ffcc65', 0.34);
+  circle(ctx, ball.x, ball.y, r + 2.8, '#071728');
   circle(ctx, ball.x, ball.y, r + 1.6, '#ffbb44');
   circle(ctx, ball.x, ball.y, r, '#fff5c9');
   circle(ctx, ball.x - r * 0.18, ball.y - r * 0.24, r * 0.67, '#ffffff');
@@ -588,7 +728,17 @@ function drawParticles(ctx, particles, p) {
     ctx.globalAlpha = opacity;
     const color = particle.color || p.mint;
     const size = particle.size || particle.r || 3;
-    if (particle.type === 'ring') {
+    if (particle.type === 'label') {
+      ctx.font = '900 19px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#041321';
+      ctx.strokeText(particle.label, particle.x, particle.y);
+      ctx.fillStyle = color;
+      ctx.fillText(particle.label, particle.x, particle.y);
+    } else if (particle.type === 'star') {
+      star(ctx, particle.x, particle.y, size, color);
+    } else if (particle.type === 'ring') {
       ctx.beginPath();
       ctx.arc(particle.x, particle.y, size, 0, Math.PI * 2);
       ctx.strokeStyle = color;
@@ -625,19 +775,13 @@ export function drawGame(
 ) {
   const p = palette(theme);
   ctx.save();
-  ctx.clearRect(0, 0, WIDTH, HEIGHT);
-  drawBackground(ctx, p, time, false, reducedMotion);
-  drawNet(ctx, p);
+  drawField(ctx, p, theme, game);
   if (!game) {
     ctx.restore();
     return;
   }
   const paddle = game.paddle || { x: 195, y: 623, w: 108, h: 15 };
   const people = game.people || [];
-  for (const brick of game.bricks || []) drawBrick(ctx, brick, p);
-  for (const [index, cage] of (game.cages || []).entries()) {
-    if (cage.hp > 0) drawCage(ctx, cage, index, p, time);
-  }
   for (const person of people) {
     if (person.status !== 'waiting' && person.status !== 'falling') continue;
     const waiting = person.status === 'waiting';
@@ -649,7 +793,7 @@ export function drawGame(
       ctx.restore();
     }
     drawPerson(ctx, person.x, person.y, p, {
-      scale: 0.87,
+      scale: 1.02,
       falling: !waiting,
       waiting,
       parachute: true,
@@ -692,8 +836,7 @@ export function drawHome(ctx, { time = 0, theme = 'rescue', reducedMotion = fals
   const p = palette(theme);
   const clock = reducedMotion ? 0 : time;
   ctx.save();
-  ctx.clearRect(0, 0, WIDTH, HEIGHT);
-  drawBackground(ctx, p, clock, true, reducedMotion);
+  drawField(ctx, p, theme, null, true);
   // A pale construction spotlight leads the eye from the broken cage to the catcher.
   ctx.save();
   ctx.globalAlpha = 0.045;
@@ -706,10 +849,10 @@ export function drawHome(ctx, { time = 0, theme = 'rescue', reducedMotion = fals
   ctx.fill();
   ctx.restore();
   glow(ctx, 183, 420, 118, p.glow, 0.45);
-  drawCage(ctx, { x: 91, y: 320, w: 50, h: 44, hp: 0 }, undefined, p, clock, {
+  drawCage(ctx, { x: 67, y: 307, w: 64, h: 63, hp: 0 }, undefined, p, clock, {
     broken: true,
     empty: true,
-    scale: 0.85,
+    scale: 1.1,
   });
 
   // Scattered fragments are individually composed, never images of text or UI.
@@ -740,7 +883,7 @@ export function drawHome(ctx, { time = 0, theme = 'rescue', reducedMotion = fals
     ctx.restore();
   }
   const personY = 409 + Math.sin(clock * 1.3) * 2;
-  drawPerson(ctx, 130, personY, p, { scale: 1.02, falling: true, parachute: true, time: clock });
+  drawPerson(ctx, 144, personY, p, { scale: 1.55, falling: true, parachute: true, time: clock });
   // The descending ball on the opposite side makes the central decision visible.
   const ball = { x: 275, y: 422 + Math.sin(clock * 1.5) * 4, r: 8 };
   const trail = Array.from({ length: 10 }, (_, i) => ({
@@ -750,7 +893,8 @@ export function drawHome(ctx, { time = 0, theme = 'rescue', reducedMotion = fals
   drawBall(ctx, ball, p, trail, reducedMotion);
   glow(ctx, 195, 444, 116, p.gold, 0.17);
   // Keep its full underside above the progress line (which starts at y ≈ 468).
-  drawPaddle(ctx, { x: 195, y: 443, w: 150, h: 15 }, p, clock, true);
+  drawPaddle(ctx, { x: 195, y: 443, w: 184, h: 18 }, p, clock, true);
+  star(ctx, 270, 441, 12, p.goldLight);
   const footer = ctx.createLinearGradient(0, 472, 0, 680);
   footer.addColorStop(0, 'rgba(3,13,29,0)');
   footer.addColorStop(0.44, 'rgba(3,13,29,.72)');
@@ -760,39 +904,39 @@ export function drawHome(ctx, { time = 0, theme = 'rescue', reducedMotion = fals
   ctx.restore();
 }
 
-/** Optional miniature: parent may scale its 160 × 106 logical canvas as needed. */
+/** Mission formation miniature, using the same artwork as the live field. */
 export function drawLevel(ctx, level, { locked = false, theme = 'rescue' } = {}) {
   const p = palette(theme);
   ctx.save();
-  ctx.clearRect(0, 0, 160, 106);
-  const backdrop = ctx.createLinearGradient(0, 0, 160, 106);
+  ctx.clearRect(0, 0, 160, 72);
+  const backdrop = ctx.createLinearGradient(0, 0, 160, 72);
   backdrop.addColorStop(0, p.horizon);
   backdrop.addColorStop(1, p.sky);
   ctx.fillStyle = backdrop;
-  ctx.fillRect(0, 0, 160, 106);
-  ctx.globalAlpha = locked ? 0.25 : 0.7;
-  drawTower(ctx, 12, 14, 8, 110, p);
-  drawTower(ctx, 133, 16, 0, 110, p);
+  ctx.fillRect(0, 0, 160, 72);
+  ctx.globalAlpha = locked ? 0.4 : 1;
+  drawTower(ctx, 3, 7, 0, 72, p);
+  drawTower(ctx, 149, 7, 0, 72, p);
   ctx.save();
-  ctx.translate(8, -13);
-  ctx.scale(0.369, 0.285);
+  ctx.translate(8, -14);
+  ctx.scale(0.369, 0.21);
   for (const cage of level?.cages || []) drawCage(ctx, cage, undefined, p);
   for (const brick of level?.bricks || []) drawBrick(ctx, brick, p);
   ctx.restore();
   ctx.globalAlpha = 1;
   if (locked) {
     ctx.fillStyle = 'rgba(3,13,29,.34)';
-    ctx.fillRect(0, 0, 160, 106);
+    ctx.fillRect(0, 0, 160, 72);
     ctx.strokeStyle = '#7a94a7';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(80, 47, 7, Math.PI, Math.PI * 2);
+    ctx.arc(80, 31, 7, Math.PI, Math.PI * 2);
     ctx.stroke();
-    rounded(ctx, 68, 47, 24, 21, 5);
+    rounded(ctx, 68, 31, 24, 21, 5);
     ctx.fillStyle = '#a0b4c0';
     ctx.fill();
-    circle(ctx, 80, 55, 2.2, '#223b50');
-    line(ctx, 80, 55, 80, 60, '#223b50', 2.2);
+    circle(ctx, 80, 39, 2.2, '#223b50');
+    line(ctx, 80, 39, 80, 44, '#223b50', 2.2);
   }
   ctx.restore();
 }
