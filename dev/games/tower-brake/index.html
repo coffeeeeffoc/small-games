@@ -28,6 +28,7 @@
           <button id="start-game" class="primary">
             开始下落 <span class="button-note">12 层短挑战</span>
           </button>
+          <button id="challenge-game" class="secondary" hidden>好友同路线挑战</button>
           <button id="choose-level" class="secondary">
             选择路线 <span id="unlocked-count">01 / 08</span>
           </button>
@@ -132,11 +133,13 @@
           </div>
           <div><strong id="result-brakes">1</strong><span>使用刹车</span></div>
         </div>
+        <p id="result-score" class="record-note"></p>
         <p id="record-note" class="record-note"></p>
         <div class="menu-actions">
           <button id="next-game" class="primary" hidden>下一条路线</button
           ><button id="retry-game" class="primary">再来一次</button
           ><button id="continue-game" class="secondary">免费续关 <span>本局仅一次</span></button
+          ><button id="share-game" class="secondary">分享同路线挑战</button
           ><button id="result-home" class="text-button">返回主页</button>
         </div>
       </section>
@@ -201,6 +204,6 @@
       <p id="storage-notice" class="storage-notice" hidden role="status">
         无法保存到此浏览器，本次游玩不受影响。
       </p>
-    </main>
+    <p id="share-status" class="share-status" role="status"></p></main>
   </body>
 </html>

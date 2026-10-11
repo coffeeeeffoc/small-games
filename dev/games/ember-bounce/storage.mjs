@@ -1,4 +1,7 @@
-/** Progress only: an unfinished volley is deliberately not a resumable save. */
+import { checkpoint, restoreCheckpoint } from './checkpoint.mjs';
+import { validateChallenge } from './challenge.mjs';
+
+/** Keep the existing key while migrating progress and independent round checkpoints. */
 export const STORAGE_KEY = 'ember-bounce:progress:v1';
 
 function browserStorage() {
@@ -20,6 +23,8 @@ function copy(data) {
     completed: Object.fromEntries(
       Object.entries(data.completed).map(([id, result]) => [id, { ...result }]),
     ),
+    run: data.run ? structuredClone(data.run) : null,
+    challengeRun: data.challengeRun ? structuredClone(data.challengeRun) : null,
   };
 }
 
@@ -50,12 +55,14 @@ export function createStorage(levels, storage = browserStorage()) {
 
   function defaults() {
     return {
-      schemaVersion: 1,
+      schemaVersion: 2,
       unlocked: [firstId],
       completed: {},
       sound: true,
       haptics: true,
       lastLevel: firstId,
+      run: null,
+      challengeRun: null,
     };
   }
 
@@ -84,8 +91,8 @@ export function createStorage(levels, storage = browserStorage()) {
 
   function sanitize(raw) {
     const data = defaults();
-    if (!isRecord(raw) || ![undefined, 0, 1].includes(raw.schemaVersion)) return data;
-    const legacy = raw.schemaVersion !== 1;
+    if (!isRecord(raw) || ![undefined, 0, 1, 2].includes(raw.schemaVersion)) return data;
+    const legacy = raw.schemaVersion === undefined || raw.schemaVersion === 0;
     const candidates = new Map();
     if (isRecord(raw.completed)) {
       for (const [savedId, value] of Object.entries(raw.completed)) {
@@ -132,6 +139,12 @@ export function createStorage(levels, storage = browserStorage()) {
           ? catalog[raw.currentLevel]?.id
           : firstId;
     if (data.unlocked.includes(selected)) data.lastLevel = selected;
+    const restored = restoreCheckpoint(raw.run);
+    if (restored && data.unlocked.includes(restored.levelId)) data.run = checkpoint(restored);
+    const invitation = validateChallenge(raw.challengeRun?.invitation);
+    const challenged = restoreCheckpoint(raw.challengeRun?.checkpoint);
+    if (invitation && challenged?.levelId === invitation.levelId)
+      data.challengeRun = { invitation, checkpoint: checkpoint(challenged) };
     return data;
   }
 
@@ -177,8 +190,30 @@ export function createStorage(levels, storage = browserStorage()) {
     },
     save(data) {
       ensureLoaded();
-      if (!isRecord(data) || ![undefined, 0, 1].includes(data.schemaVersion)) return copy(current);
+      if (!isRecord(data) || ![undefined, 0, 1, 2].includes(data.schemaVersion)) return copy(current);
       return persist(data);
+    },
+    saveRun(game, invitation = null) {
+      ensureLoaded();
+      const saved = checkpoint(game);
+      if (!saved || !restoreCheckpoint(saved)) return copy(current);
+      const next = copy(current);
+      if (invitation) {
+        const valid = validateChallenge(invitation);
+        if (!valid || valid.levelId !== game.levelId) return copy(current);
+        next.challengeRun = { invitation: valid, checkpoint: saved };
+      } else {
+        if (!current.unlocked.includes(game.levelId)) return copy(current);
+        next.run = saved;
+        next.lastLevel = game.levelId;
+      }
+      return persist(next);
+    },
+    clearRun(challenge = false) {
+      ensureLoaded();
+      const next = copy(current);
+      next[challenge ? 'challengeRun' : 'run'] = null;
+      return persist(next);
     },
     complete(levelId, result = {}) {
       ensureLoaded();

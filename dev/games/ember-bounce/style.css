@@ -47,6 +47,30 @@ button:disabled {
 [hidden] {
   display: none !important;
 }
+.share-fallback {
+  display: block;
+  width: 100%;
+  max-width: 310px;
+  margin: 12px auto 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.share-fallback textarea {
+  display: block;
+  width: 100%;
+  min-height: 54px;
+  margin-top: 6px;
+  color: var(--ivory);
+  background: #10152f;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  font: inherit;
+  resize: none;
+}
+#result {
+  overflow-y: auto;
+}
 #app {
   width: 100%;
   max-width: 460px;
@@ -77,6 +101,7 @@ button:disabled {
 .home-screen {
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
 }
 .home-header,
 .page-header {

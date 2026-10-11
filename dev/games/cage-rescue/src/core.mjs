@@ -38,6 +38,9 @@ export function createGame(levelIndex = 0) {
     lives: level.lives,
     target: level.target,
     rescued: 0,
+    rescueCombo: 0,
+    bestRescueCombo: 0,
+    wideUntil: 0,
     missed: 0,
     usedRevive: false,
     time: 0,
@@ -307,6 +310,7 @@ function moveBall(state, dt) {
   }
   if (b.y - b.r > VIEWPORT.height) {
     state.lives--;
+    state.rescueCombo = 0;
     event(state, 'ball-lost', { x: b.x, y: VIEWPORT.height, lives: state.lives });
     resetBall(state);
     setPhase(state, 'ready');
@@ -332,11 +336,18 @@ function movePeople(state, dt) {
       person.status = 'rescued';
       person.y = p.y - person.r;
       state.rescued++;
+      state.rescueCombo++;
+      state.bestRescueCombo = Math.max(state.bestRescueCombo, state.rescueCombo);
+      if (state.rescueCombo % 2 === 0) {
+        state.wideUntil = state.realTime + 5;
+        event(state, 'rescue-chain', { combo: state.rescueCombo, duration: 5 });
+      }
       event(state, 'rescue', { id: person.id, x: person.x, y: person.y, rescued: state.rescued });
     } else if (person.y + person.r >= RULES.netY) {
       person.status = 'missed';
       person.y = RULES.netY - person.r;
       state.missed++;
+      state.rescueCombo = 0;
       event(state, 'miss', { id: person.id, x: person.x, y: person.y, missed: state.missed });
     }
   }
@@ -379,7 +390,9 @@ export function stepGame(state, dt, input = {}) {
   while (state._accumulator + 1e-9 >= FIXED_STEP && isRunning(state)) {
     state._accumulator -= FIXED_STEP;
     state.realTime += FIXED_STEP;
-    const distance = targetX - state.paddle.x;
+    state.paddle.w = state.level.paddleWidth * (state.realTime < state.wideUntil ? 1.3 : 1);
+    const boundedTarget = clamp(targetX, RULES.left + state.paddle.w / 2, RULES.right - state.paddle.w / 2);
+    const distance = boundedTarget - state.paddle.x;
     state.paddle.x += clamp(
       distance,
       -RULES.paddleSpeed * FIXED_STEP,

@@ -18,6 +18,11 @@ export function createGame(target, options = {}) {
     trails: [],
     toast: '',
     reason: '',
+    canShare: typeof options.share === 'function',
+    invited: options.challenge ?? null,
+    shareNotice: '',
+    playerKnockouts: 0,
+    targetShots: null,
   };
   let pointer = null,
     pressed = null,
@@ -32,7 +37,8 @@ export function createGame(target, options = {}) {
     replayFrames = [],
     replayIndex = 0,
     resultState = null,
-    practice = null;
+    practice = null,
+    pendingSeed = null;
   const sounds = {};
   for (const cue of ['shot', 'hit', 'out', 'win']) {
     try {
@@ -71,14 +77,18 @@ export function createGame(target, options = {}) {
       /* ephemeral play is supported */
     }
   }
-  function start(index = null) {
+  function start(index = null, seed = null, targetShots = null) {
+    app.targetShots = targetShots;
     practice = index;
+    pendingSeed = seed;
     matchTime = 0;
     screen('matching');
   }
   function begin() {
     const layout = catalog[practice ?? Math.floor(Math.random() * catalog.length)];
-    app.state = createMatch(layout);
+    app.state = createMatch(layout, pendingSeed ?? Date.now());
+    app.playerKnockouts = 0;
+    app.shareNotice = '';
     random = seeded(app.state.seed);
     app.reason = '';
     app.trails = [];
@@ -97,8 +107,18 @@ export function createGame(target, options = {}) {
   }
   function action(id) {
     if (disposed || suspended) return;
-    if (id === 'start') start();
+    if (id === 'start') {
+      const invite = app.invited;
+      start(invite ? catalog.findIndex((layout) => layout.id === invite.layout) : null, invite?.seed ?? null, invite?.targetShots ?? null);
+    }
     else if (id === 'again') start(practice);
+    else if (id === 'rematch' && app.screen === 'result') start(catalog.findIndex((layout) => layout.id === app.state.layout), app.state.seed, app.targetShots);
+    else if (id === 'share' && app.screen === 'result' && options.share) {
+      const result = snapshot();
+      Promise.resolve(options.share(result)).then((message) => {
+        if (!disposed && app.screen === 'result' && app.state.seed === result.seed) { app.shareNotice = message || ''; render(); }
+      }).catch(() => { app.shareNotice = '分享暂不可用，可以继续切磋'; render(); });
+    }
     else if (id === 'layouts' || id === 'help' || id === 'home') screen(id);
     else if (id.startsWith('layout-')) start(Number(id.slice(7)));
     else if (id === 'pause' && app.screen === 'playing') screen('paused');
@@ -250,7 +270,8 @@ export function createGame(target, options = {}) {
         }
         if (e.type === 'out') {
           sound('out');
-          app.toast = `${names[e.id]}，出界！`;
+          if (e.id !== 0 && s.lastShot?.actor === 0 && e.reason !== 'ring') app.playerKnockouts++;
+          app.toast = e.id !== 0 && s.lastShot?.actor === 0 && e.reason !== 'ring' ? `漂亮！${s.knocked > 1 ? '连续击落' : '击落'}${names[e.id]}` : `${names[e.id]}，出界！`;
           toastTime = 1.6;
           if (e.id === 0)
             app.reason =
@@ -283,6 +304,7 @@ export function createGame(target, options = {}) {
     render,
     action,
     cancel,
+    isSuspended: () => suspended,
     pause() {
       suspended = true;
       cancel();

@@ -913,3 +913,8 @@ h1 em {
     font-size: 20px;
   }
 }
+
+#result-screen { overflow-y: auto; }
+#result-chain { color: #62ebcf; margin-block: 4px; }
+#result-screen .stack { gap: 8px; }
+#result-screen .result-symbol { font-size: 54px; }

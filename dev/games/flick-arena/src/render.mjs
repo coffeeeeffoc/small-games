@@ -398,10 +398,10 @@ export function draw(c, app) {
     fighter(c, 117, 406, 32, 2, false, t);
     fighter(c, 266, 392, 32, 1, false, t);
     fighter(c, 195, 489, 40, 0, true, t);
-    button('start', '开始匹配', 50, 613, 290, 57, true);
+    button('start', app.invited ? '接受同擂台挑战' : '开始匹配', 50, 613, 290, 57, true);
     button('layouts', '练习摆位', 50, 683, 180, 47);
     button('help', '玩法', 242, 683, 98, 47);
-    text(c, '单人挑战 · 两位系统对手', 195, 754, 11, '#a3b3a7');
+    text(c, app.invited?.targetShots ? `好友自报：${app.invited.targetShots} 次出手守擂` : '单人挑战 · 两位系统对手', 195, 754, 11, '#a3b3a7');
     if (app.save.played)
       text(c, `切磋 ${app.save.played} 局 · 胜 ${app.save.wins} 局`, 195, 574, 12, '#d4be8c');
   } else if (screen === 'layouts') {
@@ -663,11 +663,14 @@ export function draw(c, app) {
       table(c, 195, 376, 112);
       if (!draw) fighter(c, 195, 360, 62, state.winner, true, t);
       text(c, win ? '擂 主' : draw ? '平 局' : '再 来 一 局', 195, 460, 22, '#f8d185', 'serif');
-      text(c, app.reason || '落点决定下一回合的安全', 195, 528, 13, '#c8c8b0');
-      text(c, `${state.turn} 回合 · 你出手 ${state.playerShots} 次`, 195, 561, 13, '#b6bba8');
-      button('again', '再战一局', 50, 607, 290, 55, true);
-      button('replay', '回看最后一弹', 50, 676, 175, 47);
-      button('home', '回武馆', 236, 676, 104, 47);
+      text(c, app.targetShots ? `好友自报 ${app.targetShots} 次守擂 · ${win && state.playerShots <= app.targetShots ? (state.playerShots < app.targetShots ? '已超越！' : '已追平') : '再试一次'}` : app.reason || '落点决定下一回合的安全', 195, 528, 13, '#c8c8b0');
+      text(c, `${state.turn} 回合 · 出手 ${state.playerShots} 次 · 击落 ${app.playerKnockouts ?? 0} 位`, 195, 561, 13, '#b6bba8');
+      button('again', '再战一局', 50, 594, 290, 55, true);
+      button('rematch', '同局再战', 50, 661, app.canShare ? 140 : 290, 47);
+      if (app.canShare) button('share', '分享战帖', 200, 661, 140, 47);
+      button('replay', '回看最后一弹', 50, 720, 175, 47);
+      button('home', '回武馆', 236, 720, 104, 47);
+      if (app.shareNotice) text(c, app.shareNotice, 195, 578, 11, '#f8d185');
     }
   }
   return buttons;
