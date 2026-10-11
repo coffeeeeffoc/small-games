@@ -7,7 +7,9 @@ import { chromium, expect } from '@playwright/test';
 // Run against a production build, never against Vite's development server.
 // `pnpm build && pnpm test:browser`, or supply an already-running GAME_URL.
 const root = fileURLToPath(new URL('../', import.meta.url));
-const output = fileURLToPath(new URL('../docs/design/', import.meta.url));
+const output = fileURLToPath(
+  new URL('../docs/design/mobile-levels-2026-10-11/actual/', import.meta.url),
+);
 const saveKey = 'moss-garden.save.v1';
 const failures = [];
 const checks = [];
@@ -135,6 +137,8 @@ try {
   monitor(page, 'normal-mobile');
   await page.goto(url);
   await screen(page, 'home');
+  await expect(action(page, 'home:start')).toHaveAttribute('aria-label', '开始第 1 关');
+  await expect(action(page, 'home:levels')).toHaveAttribute('aria-label', '关卡选择');
   assert.equal(await page.evaluate(() => window.SmallGamesDev.isEnabled()), false);
   assert.equal(
     await page.evaluate(() => 'game' in window.SmallGamesDev.inspect()),
@@ -146,15 +150,40 @@ try {
   await action(page, 'home:levels').tap();
   await screen(page, 'levels');
   await expect(action(page, 'level:moss-01')).toBeVisible();
+  await expect(action(page, 'level:moss-01')).toHaveAttribute('aria-label', /当前/);
   assert.equal(
     await action(page, 'level:moss-02').count(),
     0,
     'Locked levels cannot have a playable hit area',
   );
   await shot(page, 'levels');
+  for (let chapter = 2; chapter <= 5; chapter++) {
+    await action(page, 'levels:next').tap();
+    await expect(page.locator('#scene')).toHaveAttribute(
+      'aria-label',
+      `关卡选择 · 第 ${chapter} 章`,
+    );
+    await expect(page.locator('[data-hit-id^="level:"]')).toHaveCount(0);
+  }
+  await expect(action(page, 'levels:next')).toHaveCount(0);
+  await shot(page, 'levels-locked-chapter');
+  for (let chapter = 4; chapter >= 1; chapter--) await action(page, 'levels:prev').tap();
+  await expect(action(page, 'levels:prev')).toHaveCount(0);
+  await page.setViewportSize({ width: 320, height: 568 });
+  for (const button of await page.locator('#controls button').all()) {
+    const bounds = await button.boundingBox();
+    assert(
+      bounds.width >= 43.9 && bounds.height >= 43.9,
+      'Small-screen selection uses 44px targets',
+    );
+  }
+  await shot(page, 'levels-small-320x568');
+  await page.setViewportSize({ width: 390, height: 844 });
+  record('主页关卡号、五章浏览、锁定关卡不可进入、320px 选关触控热区');
   await action(page, 'nav:back').tap();
   await page.locator('[data-action="start"]').tap();
   await screen(page, 'play');
+  await expect(page.locator('#scene')).toHaveAttribute('aria-label', '第 1 关 · 第一束光');
   await expect(page.locator('[data-hit-id^="cell:"]')).toHaveCount(16);
   await expect(action(page, 'cell:0')).toHaveAttribute('aria-label', '花圃 第1行 第1列');
   await action(page, 'cell:0').tap();
@@ -210,6 +239,19 @@ try {
     .poll(async () => (await save(page)).active.elapsedMs)
     .toBeGreaterThan(paused.elapsedMs + 1000);
   await action(page, 'pause:resume').tap();
+  const beforeSelection = await board(page);
+  await action(page, 'play:pause').tap();
+  const beforeSelectionSave = (await save(page)).active;
+  await action(page, 'pause:levels').tap();
+  await screen(page, 'levels');
+  await expect(action(page, 'levels:continue')).toHaveAttribute('aria-label', '继续第 1 关');
+  await expect(action(page, 'level:moss-01')).toHaveAttribute('aria-label', /可继续/);
+  await action(page, 'levels:continue').tap();
+  await screen(page, 'play');
+  assert.deepEqual(await board(page), beforeSelection);
+  assert.deepEqual((await save(page)).active.puzzle, beforeSelectionSave.puzzle);
+  assert((await save(page)).active.elapsedMs >= beforeSelectionSave.elapsedMs);
+  record('暂停直接选关并继续，棋盘、标记和计时保留');
   const savedBoard = await board(page);
   await page.reload();
   await screen(page, 'home');
@@ -233,6 +275,9 @@ try {
   )
     await action(page, 'play:hint').tap();
   await screen(page, 'result');
+  await expect(page.locator('#scene')).toHaveAttribute('aria-label', '第 1 关 · 已通关');
+  await expect(page.getByRole('status')).toContainText('第 1 关 · 已通关');
+  await expect(action(page, 'result:next')).toHaveAttribute('aria-label', '挑战第 2 关');
   await shot(page, 'result');
   await expect.poll(async () => Object.keys((await save(page)).completed)).toEqual(['moss-01']);
   const completion = (await save(page)).completed['moss-01'];
@@ -240,6 +285,28 @@ try {
   assert.equal(completion.mistakes, 1);
   assert(completion.timeMs > 2000);
   assert.equal((await save(page)).active, null);
+  await action(page, 'result:levels').tap();
+  await screen(page, 'levels');
+  await expect(action(page, 'level:moss-01')).toHaveAttribute('aria-label', /已通关/);
+  await expect(action(page, 'level:moss-02')).toHaveAttribute('aria-label', /当前/);
+  await shot(page, 'levels-progress');
+  await action(page, 'level:moss-01').tap();
+  await screen(page, 'play');
+  for (const cell of await board(page)) assert.equal(cell.pressed, 'false');
+  await action(page, 'play:pause').tap();
+  await action(page, 'pause:levels').tap();
+  await expect(action(page, 'level:moss-01')).toHaveAttribute('aria-label', /已通关.*可继续/);
+  await expect(action(page, 'level:moss-02')).toHaveAttribute('aria-label', /可挑战/);
+  await shot(page, 'levels-replay');
+  await action(page, 'level:moss-01').tap();
+  for (let tap = 0; tap < 4; tap++) await action(page, 'play:hint').tap();
+  await screen(page, 'result');
+  assert.deepEqual(
+    (await save(page)).completed['moss-01'],
+    completion,
+    'Replaying keeps first completion stats',
+  );
+  record('结算明确第几关、直接选关、已通关重玩与幂等进度');
   await action(page, 'result:next').tap();
   await screen(page, 'play');
   await expect.poll(async () => (await save(page)).active.levelId).toBe('moss-02');
@@ -271,6 +338,79 @@ try {
   assert.deepEqual((await save(page)).completed['moss-01'], completion);
   record('普通提示通关、提示/失误/时间结算、下一关解锁和持久化、小屏及横屏坐标保持');
   await context.close();
+
+  const finalContext = await mobileContext();
+  await finalContext.addInitScript((key) => {
+    localStorage.setItem(
+      key,
+      JSON.stringify({
+        version: 1,
+        completed: Object.fromEntries(
+          Array.from({ length: 29 }, (_, i) => [
+            `moss-${String(i + 1).padStart(2, '0')}`,
+            { hints: 0, mistakes: 0, timeMs: 1000 },
+          ]),
+        ),
+        active: null,
+        sound: false,
+        vibration: false,
+      }),
+    );
+  }, saveKey);
+  const finalPage = await finalContext.newPage();
+  monitor(finalPage, 'last-level');
+  await finalPage.goto(url);
+  await expect(action(finalPage, 'home:start')).toHaveAttribute('aria-label', '开始第 30 关');
+  await action(finalPage, 'home:levels').tap();
+  await expect(finalPage.locator('#scene')).toHaveAttribute('aria-label', '关卡选择 · 第 5 章');
+  await action(finalPage, 'level:moss-30').tap();
+  for (let tap = 0; tap < 8; tap++) await action(finalPage, 'play:hint').tap();
+  await screen(finalPage, 'result');
+  await expect(finalPage.locator('#scene')).toHaveAttribute('aria-label', '第 30 关 · 已通关');
+  await expect(action(finalPage, 'result:next')).toHaveAttribute(
+    'aria-label',
+    '全部通关 · 查看关卡',
+  );
+  assert.equal(Object.keys((await save(finalPage)).completed).length, 30);
+  await shot(finalPage, 'result-final');
+  await action(finalPage, 'result:replay').tap();
+  await screen(finalPage, 'play');
+  for (let tap = 0; tap < 8; tap++) await action(finalPage, 'play:hint').tap();
+  await action(finalPage, 'result:next').tap();
+  await screen(finalPage, 'levels');
+  await action(finalPage, 'nav:back').tap();
+  await expect(action(finalPage, 'home:start')).toHaveAttribute('aria-label', '重玩第 1 关');
+  record('最后一关完成号、全部通关入口、本关重试和全通后重玩');
+  await finalContext.close();
+
+  const embeddedContext = await mobileContext();
+  const embeddedPage = await embeddedContext.newPage();
+  monitor(embeddedPage, 'production-iframe');
+  const hostUrl = new URL('moss-embedding-verification', url).href;
+  await embeddedPage.route(hostUrl, (route) =>
+    route.fulfill({
+      contentType: 'text/html',
+      body: `<!doctype html><html lang="zh-CN"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;height:100%;overflow:hidden}iframe{border:0;width:100%;height:100dvh}</style><iframe title="苔光花园" src="${new URL('?dev=0', url).href}" allow="fullscreen;autoplay" sandbox="allow-scripts allow-same-origin"></iframe></html>`,
+    }),
+  );
+  await embeddedPage.goto(hostUrl);
+  const frame = embeddedPage.frameLocator('iframe');
+  await screen(frame, 'home');
+  await action(frame, 'home:start').tap();
+  await action(frame, 'cell:0').tap();
+  await expect(action(frame, 'cell:0')).toHaveAttribute('aria-pressed', 'true');
+  await action(frame, 'play:pause').tap();
+  await action(frame, 'pause:levels').tap();
+  await screen(frame, 'levels');
+  await action(frame, 'levels:continue').tap();
+  await screen(frame, 'play');
+  await expect(action(frame, 'cell:0')).toHaveAttribute('aria-pressed', 'true');
+  await action(frame, 'play:pause').tap();
+  await action(frame, 'pause:home').tap();
+  await expect(action(frame, 'home:start')).toHaveAttribute('aria-label', '继续第 1 关');
+  await shot(embeddedPage, 'iframe-390x844');
+  record('生产 iframe 嵌入触屏选关、棋盘恢复与返回主页（同源沙箱验证宿主）');
+  await embeddedContext.close();
 
   const desktop = await browser.newContext({
     viewport: { width: 1280, height: 900 },

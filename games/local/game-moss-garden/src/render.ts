@@ -31,6 +31,9 @@ export interface View {
   sound: boolean;
   vibration: boolean;
   hasActive: boolean;
+  activeLevelId?: string;
+  continueLevel?: LevelView;
+  levelChapter?: number;
   dev: boolean;
   notice?: string;
   levelPage?: number;
@@ -66,7 +69,8 @@ type Icon =
   | 'fullscreen'
   | 'check'
   | 'lock'
-  | 'leaf';
+  | 'leaf'
+  | 'next';
 const PAPER = '#f5f3e8';
 const MOSS = '#264a3d';
 const MID = '#69785b';
@@ -116,12 +120,27 @@ function text(
   color = MOSS,
   font = SANS,
   align: CanvasTextAlign = 'center',
+  weight = 400,
 ): void {
   ctx.fillStyle = color;
-  ctx.font = `${size}px ${font}`;
+  ctx.font = `${weight} ${size}px ${font}`;
   ctx.textAlign = align;
   ctx.textBaseline = 'middle';
   ctx.fillText(value, x, y);
+}
+
+function strong(ctx: Ink, value: string, x: number, y: number, size = 24, color = MOSS): void {
+  text(ctx, value, x, y, size, color, SANS, 'center', 600);
+}
+
+export function resultTitle(view: Pick<View, 'level' | 'challenge'>): string {
+  return `第 ${view.level.number} 关 · ${view.challenge ? '挑战完成' : '已通关'}`;
+}
+
+function continueLabel(view: View): string {
+  const number = (view.continueLevel ?? view.level).number;
+  const completed = view.levels.every((level) => view.completed[level.id]);
+  return `${view.hasActive ? '继续' : completed ? '重玩' : '开始'}第 ${number} 关`;
 }
 
 function line(
@@ -292,6 +311,12 @@ function icon(ctx: Ink, kind: Icon, x: number, y: number, size = 21, color = MOS
     ctx.moveTo(3, -8);
     ctx.lineTo(-5, 0);
     ctx.lineTo(3, 8);
+    ctx.stroke();
+  } else if (kind === 'next') {
+    ctx.beginPath();
+    ctx.moveTo(-3, -8);
+    ctx.lineTo(5, 0);
+    ctx.lineTo(-3, 8);
     ctx.stroke();
   } else if (kind === 'help') text(ctx, '?', 0, 1, 23, color, SERIF);
   else if (kind === 'undo') {
@@ -544,10 +569,10 @@ export function renderGame(ctx: Ink, view: View): HitArea[] {
     primary = false,
     symbol?: Icon,
   ): void => {
-    rounded(ctx, x, y + 3, w, h, Math.min(24, h / 2));
-    ctx.fillStyle = primary ? '#d2d5bd' : '#eae8d8';
+    rounded(ctx, x, y + 4, w, h, Math.min(20, h / 2));
+    ctx.fillStyle = primary ? '#a6b68e' : '#dedfca';
     ctx.fill();
-    rounded(ctx, x, y, w, h, Math.min(24, h / 2));
+    rounded(ctx, x, y, w, h, Math.min(20, h / 2));
     ctx.fillStyle = primary ? MOSS : '#f8f6ed';
     ctx.fill();
     ctx.strokeStyle = primary ? MOSS : LINE;
@@ -556,8 +581,11 @@ export function renderGame(ctx: Ink, view: View): HitArea[] {
     const fg = primary ? '#fff7df' : MOSS;
     if (symbol) {
       icon(ctx, symbol, x + w / 2 - 43, y + h / 2, 21, fg);
-      text(ctx, label, x + w / 2 + 12, y + h / 2 + 1, 19, fg, SERIF);
-    } else text(ctx, label, x + w / 2, y + h / 2 + 1, primary ? 22 : 19, fg, SERIF);
+      strong(ctx, label, x + w / 2 + 12, y + h / 2 + 1, 18, fg);
+    } else {
+      strong(ctx, label, x + w / 2 - (primary ? 5 : 0), y + h / 2, primary ? 21 : 18, fg);
+      if (primary) icon(ctx, 'next', x + w - 25, y + h / 2, 18, '#e4d6a2');
+    }
     hit(id, x, y, w, h, label);
   };
   const circleButton = (
@@ -579,7 +607,7 @@ export function renderGame(ctx: Ink, view: View): HitArea[] {
   };
   const header = (title: string, subtitle?: string): void => {
     circleButton('nav:back', '返回花园', 'back', 25, 84);
-    text(ctx, title, 202, 108, 25, MOSS, SERIF);
+    strong(ctx, title, 202, 108, 25);
     if (subtitle) text(ctx, subtitle, 195, 161, 14, MID);
     leaf(ctx, 297, 120, 13, 1.1, '#a2ad87');
   };
@@ -593,117 +621,95 @@ export function renderGame(ctx: Ink, view: View): HitArea[] {
     text(ctx, 'MOSS & GLOW', 195, 212, 13, MOSS, SERIF);
     leaf(ctx, 81, 215, 13, -1, '#9aa980');
     leaf(ctx, 310, 217, 13, 1, '#9aa980');
-    garden(ctx, 195, 428, 1.05);
+    garden(ctx, 195, 394, 1.02);
     text(
       ctx,
       view.invitationNumber && view.challengeGoal
         ? `好友自报 ${view.challengeGoal.hints} 提示 / ${view.challengeGoal.mistakes} 调整 / ${time(view.challengeGoal.elapsedMs)}`
         : '让每一颗微光，找到自己的花圃',
       195,
-      564,
+      526,
       14,
       MID,
-      SERIF,
+      SANS,
     );
+    const done = view.levels.filter((l) => view.completed[l.id]).length;
+    rounded(ctx, 106, 552, 178, 34, 17);
+    ctx.fillStyle = '#e5ead7';
+    ctx.fill();
+    text(ctx, `已通关 ${done} / ${view.levels.length}`, 195, 569, 14, MOSS);
     button(
       'home:start',
-      view.invitationNumber
-        ? `挑战第 ${view.invitationNumber} 关`
-        : view.hasActive
-          ? '继续播种'
-          : '开始播种',
-      49,
+      view.invitationNumber ? `挑战第 ${view.invitationNumber} 关` : continueLabel(view),
+      36,
       610,
-      292,
+      318,
       60,
       true,
     );
-    leaf(ctx, 72, 651, 19, -0.85, '#aaba8c');
-    leaf(ctx, 317, 651, 19, 0.85, '#aaba8c');
-    button('home:levels', '选择花圃', 67, 690, 256, 50);
-    circleButton('home:settings', '设置', 'gear', 101, 765, 44);
-    circleButton('home:help', '玩法手册', 'help', 245, 765, 44);
-    text(ctx, '设置', 123, 824, 11, MID);
-    text(ctx, '玩法手册', 267, 824, 11, MID);
-    const done = view.levels.filter((l) => view.completed[l.id]).length;
-    text(ctx, `${done} / ${view.levels.length}`, 195, 788, 13, MID, SERIF);
+    button('home:levels', '关卡选择', 36, 690, 318, 56);
+    circleButton('home:settings', '设置', 'gear', 95, 770, 48);
+    circleButton('home:help', '玩法手册', 'help', 247, 770, 48);
   } else if (view.page === 'levels') {
     cornerGarden(ctx, true);
-    header('选择花圃');
+    header('关卡选择');
     const done = view.levels.filter((l) => view.completed[l.id]).length;
-    seed(ctx, 120, 170, 10, false);
-    text(ctx, `已点亮  ${done} / ${view.levels.length}`, 216, 171, 15, MOSS, SERIF);
-    rounded(ctx, 90, 197, 210, 6, 3);
+    text(
+      ctx,
+      `已通关 ${done} / ${view.levels.length} · 当前第 ${(view.continueLevel ?? view.level).number} 关`,
+      195,
+      167,
+      14,
+      MID,
+    );
+    rounded(ctx, 50, 190, 290, 7, 3.5);
     ctx.fillStyle = '#d6d8c1';
     ctx.fill();
     if (done) {
-      rounded(ctx, 90, 197, (210 * done) / Math.max(1, view.levels.length), 6, 3);
+      rounded(ctx, 50, 190, (290 * done) / Math.max(1, view.levels.length), 7, 3.5);
       ctx.fillStyle = '#788c5a';
       ctx.fill();
     }
-    const chapters = Array.from(new Set(view.levels.map((l) => l.chapter)));
-    if (
-      chapters.length <= 5 &&
-      chapters.every((chapter) => view.levels.filter((l) => l.chapter === chapter).length <= 6)
-    ) {
-      chapters.forEach((chapter, chapterIndex) => {
-        const levels = view.levels.filter((l) => l.chapter === chapter);
-        const yy = 235 + chapterIndex * 103;
-        text(ctx, chapterTitle(chapter), 35, yy, 20, MOSS, SERIF, 'left');
-        const count = levels.filter((l) => view.completed[l.id]).length;
-        text(ctx, `${count} / ${levels.length}`, 332, yy, 12, MID, SERIF);
-        line(ctx, 31, yy + 17, 359, yy + 17, '#d2d3bb');
-        levels.forEach((level, i) =>
-          drawLevelChip(ctx, level, 31 + i * 56, yy + 28, 48, view, hit),
-        );
-      });
-    } else if (
-      chapters.length === 3 &&
-      chapters.every((chapter) => view.levels.filter((l) => l.chapter === chapter).length <= 10)
-    ) {
-      chapters.forEach((chapter, chapterIndex) => {
-        const levels = view.levels.filter((l) => l.chapter === chapter);
-        const yy = 235 + chapterIndex * 181;
-        text(ctx, chapterTitle(chapter), 47, yy, 23, MOSS, SERIF, 'left');
-        const count = levels.filter((l) => view.completed[l.id]).length;
-        text(ctx, `${count} / ${levels.length}`, 322, yy, 13, MID, SERIF);
-        line(ctx, 44, yy + 20, 346, yy + 20, '#d2d3bb');
-        levels.forEach((level, i) =>
-          drawLevelChip(
-            ctx,
-            level,
-            44 + (i % 5) * 62,
-            yy + 32 + Math.floor(i / 5) * 62,
-            52,
-            view,
-            hit,
-          ),
-        );
-      });
-    } else {
-      const page = Math.max(0, view.levelPage ?? 0);
-      const pageLevels = view.levels.slice(page * 30, page * 30 + 30);
-      pageLevels.forEach((level, i) =>
-        drawLevelChip(ctx, level, 31 + (i % 6) * 56, 241 + Math.floor(i / 6) * 86, 48, view, hit),
-      );
-      if (view.levels.length > 30) {
-        if (page > 0) button('levels:prev', '上一页', 37, 731, 140, 48);
-        if ((page + 1) * 30 < view.levels.length)
-          button('levels:next', '下一页', 213, 731, 140, 48);
-      }
-    }
-    if (view.dev) text(ctx, '开发者选关', 195, 800, 11, MID);
-  } else if (view.page === 'play') {
-    circleButton('nav:back', '返回花园', 'back', 25, 84);
+    const chapters = CHAPTERS.filter((chapter) =>
+      view.levels.some((l) => l.chapter === chapter.id),
+    );
+    const chapterIndex = Math.max(
+      0,
+      chapters.findIndex((c) => c.id === view.levelChapter),
+    );
+    const chapter = chapters[chapterIndex];
+    const levels = view.levels.filter((l) => l.chapter === chapter.id);
+    const count = levels.filter((l) => view.completed[l.id]).length;
+    rounded(ctx, 31, 220, 328, 84, 20);
+    ctx.fillStyle = '#e9ebd8';
+    ctx.fill();
+    strong(ctx, chapter.title, 195, 246, 20);
     text(
       ctx,
-      `${chapterTitle(view.level.chapter)} · ${String(view.level.number).padStart(2, '0')}`,
+      `第 ${chapterIndex + 1} / ${chapters.length} 章 · 已通关 ${count} / ${levels.length}`,
       195,
-      108,
-      24,
-      MOSS,
-      SERIF,
+      279,
+      12,
+      MID,
     );
+    if (chapterIndex > 0) circleButton('levels:prev', '上一章', 'back', 38, 234, 52);
+    else icon(ctx, 'leaf', 64, 260, 23, '#a2ad87');
+    if (chapterIndex + 1 < chapters.length)
+      circleButton('levels:next', '下一章', 'next', 300, 234, 52);
+    else icon(ctx, 'leaf', 326, 260, 23, '#a2ad87');
+    levels.forEach((level, i) =>
+      drawLevelChip(ctx, level, 35 + (i % 3) * 112, 337 + Math.floor(i / 3) * 132, 96, view, hit),
+    );
+    icon(ctx, 'check', 97, 618, 17, '#718953');
+    text(ctx, '已通关', 134, 618, 12, MID);
+    icon(ctx, 'lock', 223, 618, 17, '#959c85');
+    text(ctx, '未解锁', 260, 618, 12, MID);
+    text(ctx, '通关后解锁下一关', 195, 658, 13, MID);
+    button('levels:continue', continueLabel(view), 36, 732, 318, 60, true);
+  } else if (view.page === 'play') {
+    circleButton('nav:back', '返回花园', 'back', 25, 84);
+    strong(ctx, `第 ${view.level.number} 关`, 195, 98, 26);
+    text(ctx, view.level.title, 195, 129, 13, MID);
     circleButton('play:pause', '暂停', 'pause', 319, 84);
     rounded(ctx, 69, 151, 252, 40, 20);
     ctx.fillStyle = '#eeeedf';
@@ -737,7 +743,7 @@ export function renderGame(ctx: Ink, view: View): HitArea[] {
       ctx.lineWidth = 1.2;
       ctx.stroke();
       icon(ctx, symbol, x + 79, y + 25, 24, selected ? '#fff6df' : MOSS);
-      text(ctx, label, x + 79, y + 56, 16, selected ? '#fff6df' : MOSS, SERIF);
+      strong(ctx, label, x + 79, y + 56, 16, selected ? '#fff6df' : MOSS);
       hit(id, x, y, 158, 76, label);
     });
     hit('play:help', 129, 795, 132, 44, '玩法手册');
@@ -747,19 +753,13 @@ export function renderGame(ctx: Ink, view: View): HitArea[] {
   } else if (view.page === 'pause') {
     cornerGarden(ctx, true);
     header('暂歇片刻');
-    garden(ctx, 195, 328, 0.72);
-    text(ctx, view.level.title, 195, 448, 23, MOSS, SERIF);
-    text(
-      ctx,
-      `${chapterTitle(view.level.chapter)} · 第 ${view.level.number} 关  /  ${time(view.elapsedMs)}`,
-      195,
-      486,
-      14,
-      MID,
-    );
-    button('pause:resume', '继续播种', 49, 542, 292, 58, true);
-    button('pause:restart', '重新播种', 67, 621, 256, 50);
-    button('pause:home', '返回花园', 67, 693, 256, 50);
+    garden(ctx, 195, 305, 0.67);
+    strong(ctx, `第 ${view.level.number} 关 · ${view.level.title}`, 195, 423, 23);
+    text(ctx, `${chapterTitle(view.level.chapter)} · ${time(view.elapsedMs)}`, 195, 463, 14, MID);
+    button('pause:resume', `继续第 ${view.level.number} 关`, 36, 518, 318, 60, true);
+    button('pause:restart', '重新播种', 36, 604, 153, 56);
+    button('pause:levels', '关卡选择', 201, 604, 153, 56);
+    button('pause:home', '返回花园', 36, 690, 318, 56);
     if (!view.native) {
       circleButton('settings:fullscreen', '切换全屏', 'fullscreen', 173, 774, 44);
     }
@@ -809,18 +809,19 @@ export function renderGame(ctx: Ink, view: View): HitArea[] {
     button('nav:back', '返回花园', 67, 724, 256, 50, true);
   } else if (view.page === 'result') {
     cornerGarden(ctx);
-    text(ctx, '花圃已点亮', 195, 143, 34, MOSS, SERIF);
-    text(
-      ctx,
-      `${chapterTitle(view.level.chapter)} · ${view.level.title}`,
-      195,
-      192,
-      16,
-      MID,
-      SERIF,
-    );
-    garden(ctx, 195, 369, 0.85);
-    seed(ctx, 195, 262, 25);
+    dot(ctx, 195, 136, 44, '#e9ebd8');
+    ctx.beginPath();
+    ctx.arc(195, 136, 44, 0, Math.PI * 2);
+    ctx.strokeStyle = '#c9bd83';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    strong(ctx, String(view.level.number).padStart(2, '0'), 195, 128, 34);
+    text(ctx, '已点亮', 195, 157, 11, MID);
+    leaf(ctx, 144, 157, 25, -0.7, '#91a578');
+    leaf(ctx, 246, 157, 25, 0.7, '#91a578');
+    strong(ctx, resultTitle(view), 195, 214, 29);
+    text(ctx, `${chapterTitle(view.level.chapter)} · ${view.level.title}`, 195, 253, 14, MID, SANS);
+    garden(ctx, 195, 379, 0.76);
     const goal = view.challenge ? view.challengeGoal : undefined;
     const improved =
       goal &&
@@ -838,37 +839,43 @@ export function renderGame(ctx: Ink, view: View): HitArea[] {
           ? '零提示、零调整，漂亮地点亮花圃'
           : '每一颗微光，都有自己的位置',
       195,
-      498,
-      15,
+      478,
+      13,
       MID,
-      SERIF,
+      SANS,
     );
-    rounded(ctx, 49, 537, 292, 58, 18);
+    rounded(ctx, 36, 505, 318, 64, 20);
     ctx.fillStyle = '#e9ebd8';
     ctx.fill();
-    text(ctx, time(view.elapsedMs), 103, 558, 19, MOSS, SERIF);
-    text(ctx, '用时', 103, 581, 11, MID);
-    text(ctx, String(view.puzzle.hints), 195, 558, 19, MOSS, SERIF);
-    text(ctx, '提示', 195, 581, 11, MID);
-    text(ctx, String(view.puzzle.mistakes), 287, 558, 19, MOSS, SERIF);
-    text(ctx, '调整', 287, 581, 11, MID);
+    line(ctx, 144, 520, 144, 554, '#d1d5ba');
+    line(ctx, 246, 520, 246, 554, '#d1d5ba');
+    strong(ctx, time(view.elapsedMs), 91, 528, 22);
+    text(ctx, '用时', 91, 552, 11, MID);
+    strong(ctx, String(view.puzzle.hints), 195, 528, 22);
+    text(ctx, '提示', 195, 552, 11, MID);
+    strong(ctx, String(view.puzzle.mistakes), 299, 528, 22);
+    text(ctx, '调整', 299, 552, 11, MID);
     const next = view.levels.find((l) => l.number === view.level.number + 1);
     button(
-      view.challenge || next ? 'result:next' : 'result:home',
-      view.challenge ? '再战同一花圃' : next ? '下一片花圃' : '返回花园',
-      49,
-      632,
-      292,
-      58,
+      'result:next',
+      view.challenge
+        ? `再战第 ${view.level.number} 关`
+        : next
+          ? `挑战第 ${next.number} 关`
+          : '全部通关 · 查看关卡',
+      36,
+      599,
+      318,
+      60,
       true,
     );
+    button('result:replay', '再玩本关', 36, 677, 153, 56);
+    button('result:levels', '关卡选择', 201, 677, 153, 56);
+    hit('result:home', view.canShare ? 36 : 122, 756, 146, 56, '返回花园');
+    text(ctx, '返回花园', view.canShare ? 109 : 195, 784, 15, MID);
     if (view.canShare) {
-      button('result:replay', '再次播种', 49, 711, 141, 48);
-      button('result:share', '分享花园', 200, 711, 141, 48);
-    } else button('result:replay', '再次播种', 67, 711, 256, 48);
-    if (next || view.challenge) {
-      hit('result:home', 129, 778, 132, 44, '返回花园');
-      text(ctx, '返回花园', 195, 800, 14, MID, SERIF);
+      hit('result:share', 208, 756, 146, 56, '分享花园');
+      text(ctx, '分享花园', 281, 784, 15, MOSS);
     }
   }
 
@@ -905,24 +912,27 @@ function drawLevelChip(
 ): void {
   const completed = Boolean(view.completed[level.id]);
   const playable = level.number <= view.unlocked;
-  const current = !completed && level.number === view.unlocked;
-  rounded(ctx, x, y, size, size, 13);
-  ctx.fillStyle = completed ? '#d9dfbd' : playable ? '#efefd9' : '#e5e2d3';
+  const current = level.id === (view.continueLevel?.id ?? view.level.id);
+  rounded(ctx, x, y + 4, size, size, 22);
+  ctx.fillStyle = current ? '#a6b68e' : '#d0d5bd';
+  ctx.fill();
+  rounded(ctx, x, y, size, size, 22);
+  ctx.fillStyle = current ? MOSS : completed ? '#d9dfbd' : playable ? '#efefd9' : '#e5e5d7';
   ctx.fill();
   if (current) {
-    ctx.strokeStyle = MOSS;
-    ctx.lineWidth = 1.6;
+    ctx.strokeStyle = GOLD;
+    ctx.lineWidth = 1.8;
     ctx.stroke();
   }
-  text(ctx, String(level.number), x + size / 2, y + 19, 21, playable ? MOSS : '#a4a18f', SERIF);
-  icon(
-    ctx,
-    completed ? 'leaf' : playable ? 'seed' : 'lock',
-    x + size / 2,
-    y + size - 13,
-    completed ? 15 : 12,
-    playable ? '#7f925d' : '#ada995',
-  );
+  const color = current ? '#fff7df' : playable ? MOSS : '#939783';
+  strong(ctx, String(level.number).padStart(2, '0'), x + size / 2, y + 28, 30, color);
+  text(ctx, level.title, x + size / 2, y + 56, 12, color);
+  if (current)
+    text(ctx, view.activeLevelId === level.id ? '继续' : '当前', x + size / 2, y + 80, 11, color);
+  else {
+    icon(ctx, completed ? 'check' : playable ? 'seed' : 'lock', x + 25, y + 80, 13, color);
+    text(ctx, completed ? '已通关' : playable ? '可挑战' : '未解锁', x + 57, y + 80, 10, color);
+  }
   if (playable)
     hit(
       `level:${level.id}`,
@@ -930,7 +940,7 @@ function drawLevelChip(
       y,
       size,
       size,
-      `第 ${level.number} 关：${level.title}${completed ? '，已完成' : ''}`,
+      `第 ${level.number} 关：${level.title}${completed ? '，已通关' : !current ? '，可挑战' : ''}${current ? (view.activeLevelId === level.id ? '，可继续' : '，当前') : ''}`,
     );
 }
 

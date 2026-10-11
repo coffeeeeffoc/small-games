@@ -50,6 +50,11 @@ body {
   border-radius: 10px;
   background: #fff5b333;
 }
+#controls button:active {
+  border-radius: 20px;
+  background: #fff7df26;
+  box-shadow: inset 0 0 0 2px #d5a64866;
+}
 #status {
   position: absolute;
   width: 1px;
