@@ -36,6 +36,8 @@
           <p class="hero-tagline">下一段，稳住。</p>
         </div>
         <div class="home-actions">
+          <p id="challenge-invite" class="challenge-invite" hidden></p>
+          <button id="leave-challenge" class="text-button" hidden>返回我的街区</button>
           <span id="home-progress" class="street-label">01 / 晨光里</span
           ><button id="start" class="primary">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 4 13 8-13 8Z" /></svg
@@ -111,6 +113,7 @@
           </div>
           <button class="control direction" data-action="right" aria-label="向右换道">→</button>
         </div>
+        <div id="challenge-goal" class="challenge-goal" hidden></div>
         <div id="practice-label" hidden>开发试玩 · 不记录成绩</div>
       </section>
 
@@ -141,7 +144,10 @@
           <p id="best-result" class="best-result"></p>
           <button id="next" class="primary" hidden>追进下一条街 <span>→</span></button
           ><button id="retry" class="primary">再追一次 <span>↻</span></button
-          ><button id="result-home" class="text-button">返回主页</button>
+          ><button id="share-result" class="secondary" hidden>邀请好友追同一条街</button>
+          <p id="share-status" role="status" hidden></p>
+          <input id="share-link" class="share-link" aria-label="挑战链接，可复制" readonly hidden />
+          <button id="result-home" class="text-button">返回主页</button>
         </div>
       </section>
 

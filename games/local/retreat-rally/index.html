@@ -29,6 +29,8 @@
           <p class="tagline">退一步，<em>赢下一场。</em></p>
           <div class="title-line"></div>
           <p class="home-note">保住人，才有下一次冲锋。</p>
+          <p id="challenge-invite" class="challenge-invite" hidden></p>
+          <button id="leave-challenge" class="small-button" hidden>返回我的战役</button>
           <button id="start" class="button gold primary">开始战役 <span>→</span></button>
           <button id="levels-open" class="text-button">
             战役地图 <span id="progress-count">〇 / 三</span>　↗
@@ -128,7 +130,10 @@
           </div>
           <button id="pause" class="pause-button" aria-label="暂停"><i></i><i></i></button>
         </header>
-        <div id="volley-notice" class="volley-notice" role="status"><b></b><small></small></div>
+        <div id="volley-notice" class="volley-notice" role="status">
+          <b></b><small></small
+          ><span class="beat-track" aria-hidden="true"><i id="volley-beat"></i></span>
+        </div>
         <div id="battle-hint" class="battle-hint"></div>
         <div id="command-state" class="command-state">
           <span class="status-dot"></span><b>全军进攻</b><small>看准箭雨，再退一步</small>
@@ -171,6 +176,10 @@
         <p id="result-reason"></p>
         <div id="result-stats" class="result-stats"></div>
         <button id="next" class="button gold">下一关 →</button>
+        <p id="challenge-result" hidden></p>
+        <button id="share-result" class="small-button" hidden>邀请好友比战绩</button>
+        <p id="share-status" role="status" hidden></p>
+        <input id="share-link" class="share-link" aria-label="挑战链接，可复制" readonly hidden />
         <div class="row">
           <button id="retry" class="small-button">再战一局</button
           ><button class="small-button" data-go="home">返回营地</button>

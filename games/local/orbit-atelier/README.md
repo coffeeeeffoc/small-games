@@ -32,3 +32,11 @@ pnpm --filter @coffeeeeffoc/orbit-atelier test:browser
 `src/core.ts` 管理圆交点、缺口安全余量、星栓、释放与求解；`src/levels.ts` 管理稳定关卡 ID 和原创配置；`src/storage.ts` 校验存档与结算；`src/art.ts` 绘制圆环；`src/main.ts` 连接页面、原生 Pointer Events、音效和生命周期。运行时无第三方游戏引擎或远程资源依赖，公共开发者模式和全屏功能复用仓库实现。
 
 设计稿和生产运行截图在 [docs/design](docs/design/README.md)。浏览器验证使用 Chromium、CDP 原生触屏与鼠标，覆盖 390×844、320×640、844×390、1280×900，以及 sandbox iframe。具体执行结果见 [browser-report.json](docs/design/browser-report.json)。这些是桌面浏览器移动模拟记录，尚未完成 Android／iOS 真机和原生小游戏平台验收。
+
+## 2026-10-11 扩大优化
+
+本轮补充重叠圆环的拇指选中容错：交点优先继续已选可动环、锁环不抢占可动环触点，6 px 内漂移不算转动。撤回保留已经看过的提示次数。结算可分享转动/提示成绩，链接只带 `challenge=orbit-01` 至 `orbit-24`，来访同盘试玩不改主线存档，返回工坊恢复原安排。
+
+共享 H5 发布适配器在普通第三次自然结算提供可关闭的模拟广告（至少 60 秒冷却、每会话最多 6 次），挑战与开发试玩不出广告。入口加载前可配置 `globalThis.SmallGamesPublishingConfig = { adMode: 'off', publicUrl: 'https://your-domain/game/' }`；真实宿主使用 `adMode: 'host'` 与 `provider`，不将密钥写入游戏。
+
+局部设计、实际手机尺寸截图与验证记录见 [本轮验收](docs/design/expansion-2026-10-11/verification.md)。

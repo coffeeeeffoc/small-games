@@ -7,6 +7,7 @@ for (const name of [
   'index.html',
   'style.css',
   'main.mjs',
+  'challenge.mjs',
   'scene.mjs',
   'engine.mjs',
   'levels.mjs',
@@ -17,4 +18,8 @@ for (const name of [
 ]) {
   await cp(new URL(name, import.meta.url), new URL(name, output));
 }
+await cp(
+  new URL('../../../platforms/h5/publishing.js', import.meta.url),
+  new URL('publishing.js', output),
+);
 console.log('追贼别撞墙：静态制品已生成至 dist/。');

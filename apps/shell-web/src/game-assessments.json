@@ -1,7 +1,7 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "reviewedOn": "2026-10-11",
-  "basis": "静态人工初评：逐款阅读目录登记与可用README；本次未进行全量真机、用户留存或付费验证。平台为推荐目标，分享/对战为适合方向，不代表渠道或功能已经上线。",
+  "basis": "静态人工初评：逐款阅读目录登记与可用 README；本次未进行全量真机、用户留存或付费验证。潜力判断与改造排期独立；平台为推荐目标，分享/对战为适合方向，不代表渠道或功能已经上线。已落实记录只列有实现依据的改造。",
   "games": [
     {
       "id": "cultivation",
@@ -14,7 +14,9 @@
       "orientation": "portrait",
       "genres": ["action", "roguelite"],
       "opportunities": ["challenge"],
-      "priority": "hold",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "遵循用户暂缓决定；短局承载摇杆、蓄力、瞄准与多技能，首局学习负担较高。保留入口，先验证改进方向中的最小闭环，再决定是否重新投入。",
       "strengths": ["吐纳、探索、渡劫有完整三分钟循环，携带机缘形成取舍"],
       "weaknesses": ["短局承载摇杆、蓄力、瞄准与多技能，首局学习负担较高"],
       "improvements": ["若重启，只保留一项攻击与一次闪避，验证首局渡劫到达率"],
@@ -32,7 +34,9 @@
       "orientation": "portrait",
       "genres": ["action"],
       "opportunities": ["challenge"],
-      "priority": "hold",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "遵循用户暂缓决定；与电子斗蛐蛐题材和核心节奏重叠，三擂复玩变化有限。保留入口，先验证改进方向中的最小闭环，再决定是否重新投入。",
       "strengths": ["蓄势与收梗闪避有明确时机对抗，三擂结构紧凑"],
       "weaknesses": ["与电子斗蛐蛐题材和核心节奏重叠，三擂复玩变化有限"],
       "improvements": ["合并验证素材，先测蓄力金区和敌方前摇是否一眼可懂"],
@@ -50,7 +54,9 @@
       "orientation": "landscape",
       "genres": ["stealth", "story"],
       "opportunities": ["share"],
-      "priority": "hold",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "遵循用户暂缓决定；登记仅开放周一首关，一周内容循环尚不完整。保留入口，先验证改进方向中的最小闭环，再决定是否重新投入。",
       "strengths": ["工位潜入题材易理解，周一迟到具有生活共鸣"],
       "weaknesses": ["登记仅开放周一首关，一周内容循环尚不完整"],
       "improvements": ["保留首关，先验证三十秒内能否理解躲避巡查的目标"],
@@ -68,7 +74,9 @@
       "orientation": "portrait",
       "genres": ["action"],
       "opportunities": ["challenge"],
-      "priority": "hold",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "遵循用户暂缓决定；与秋声斗蟋重复，回气和体力惩罚可能盖过爽快出手。保留入口，先验证改进方向中的最小闭环，再决定是否重新投入。",
       "strengths": ["距离、蓄势、回气与闪避实际影响五擂胜负"],
       "weaknesses": ["与秋声斗蟋重复，回气和体力惩罚可能盖过爽快出手"],
       "improvements": ["明确两作差异后再投入，先测命中反馈与失败原因"],
@@ -86,7 +94,9 @@
       "orientation": "landscape",
       "genres": ["strategy", "simulation"],
       "opportunities": ["challenge"],
-      "priority": "hold",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "遵循用户暂缓决定；需要同时读需求、时间和瓦数，娱乐反馈弱于调度信息。保留入口，先验证改进方向中的最小闭环，再决定是否重新投入。",
       "strengths": ["天气、功耗与住户需求让错峰供电有真实决策"],
       "weaknesses": ["需要同时读需求、时间和瓦数，娱乐反馈弱于调度信息"],
       "improvements": ["将首关压缩为两户一次救急，强化住户反馈再测理解率"],
@@ -104,7 +114,9 @@
       "orientation": "portrait",
       "genres": ["physics", "competitive"],
       "opportunities": ["versus", "share"],
-      "priority": "next",
+      "schedule": "later",
+      "implementationStatus": "deferred",
+      "scheduleReason": "有触屏击球和权威好友房基础，潜力保留；后续专门验证精细瞄准、规则教学、重连与公平结算，避免重复建设联机。",
       "strengths": ["回拉击球贴合触屏，红后补进与六关练习兼顾手感和深度"],
       "weaknesses": ["精细瞄准依赖小屏稳定性，红后与犯规规则需要渐进解释"],
       "improvements": ["优化松手容错与首杆引导，验证房间重连、结算和好友邀请"],
@@ -122,7 +134,9 @@
       "orientation": "portrait",
       "genres": ["arcade", "action"],
       "opportunities": ["challenge", "share"],
-      "priority": "first",
+      "schedule": "previous",
+      "implementationStatus": "implemented",
+      "scheduleReason": "上轮已针对转塔与一次刹车易上手，连穿三层补刹车形成风险回报落实触控、反馈或挑战改造；保留已改造记录，后续按真实试玩、渠道与发布验收结果继续迭代。",
       "strengths": ["转塔与一次刹车易上手，连穿三层补刹车形成风险回报"],
       "weaknesses": ["被上层遮住的危险区影响公平感，八塔复玩目标较少"],
       "improvements": [
@@ -148,12 +162,23 @@
       "orientation": "portrait",
       "genres": ["arcade", "action"],
       "opportunities": ["challenge", "share"],
-      "priority": "next",
+      "schedule": "current",
+      "implementationStatus": "implemented",
+      "scheduleReason": "换道、跳跃、滑铲已有完整短局，适合本轮围绕触屏动作容错、连续闪避与同路线挑战做小范围改造。",
       "strengths": ["滑动换道、跳跃、滑铲符合手机直觉，稳三段换冲刺"],
       "weaknesses": ["三街区的障碍组合和目标变化有限，动作窗口需实测"],
-      "improvements": ["突出追近瞬间与连续闪避，按同路线计分邀请好友挑战"],
-      "evidence": ["games/local/chase-thief/README.md"],
-      "delivered": []
+      "improvements": [
+        "在真人手机上校准换道、跳跃和滑铲窗口，扩充三街区的障碍组合；同路线成绩为异步自报，跨设备分享送达、真实广告和服务端验分仍需验证"
+      ],
+      "evidence": [
+        "games/local/chase-thief/README.md",
+        "games/local/chase-thief/docs/design/expansion-2026-10-11/README.md",
+        "games/local/chase-thief/docs/design/expansion-2026-10-11/browser-report.json"
+      ],
+      "delivered": [
+        "新增同街区用时、冲刺与失误成绩挑战，可接受未解锁街区邀请且不写普通最佳和解锁；开发试玩成绩不可分享，失败提供手动复制降级",
+        "场景第二触点不触发额外动作，取消和失焦清除手势；自然结算接可关闭、可配置关闭的频控模拟插屏"
+      ]
     },
     {
       "id": "orbit-atelier",
@@ -166,12 +191,23 @@
       "orientation": "portrait",
       "genres": ["puzzle", "physics"],
       "opportunities": ["challenge", "share"],
-      "priority": "next",
+      "schedule": "current",
+      "implementationStatus": "implemented",
+      "scheduleReason": "24张星盘已有解题内容基础，主要问题集中在交叠圆环触控和反馈，可用有限改造提升可玩性。",
       "strengths": ["圆周拖动与解环反馈直接，24张星盘有可达性验证"],
-      "weaknesses": ["多圆环交叠时选中对象与缺口识别可能困难"],
-      "improvements": ["扩充触控热区和选中反馈，按操作数分享同盘挑战"],
-      "evidence": ["games/local/orbit-atelier/README.md"],
-      "delivered": []
+      "weaknesses": ["高阶交叠圆环仍需真人验证选中与缺口识别，分享成绩为好友自报而非认证排名"],
+      "improvements": [
+        "验证24张星盘的手指误选率、操作数目标与提示需求；补真机渠道、真实广告和同盘邀请回流验证"
+      ],
+      "evidence": [
+        "games/local/orbit-atelier/README.md",
+        "games/local/orbit-atelier/docs/design/expansion-2026-10-11/README.md",
+        "games/local/orbit-atelier/docs/design/expansion-2026-10-11/verification.md"
+      ],
+      "delivered": [
+        "交叠处优先已选可动环，锁环不抢触点，容忍6px手指漂移；撤回不抹除已看提示计数",
+        "无解法同盘邀请携带转动与提示数，挑战隔离主线存档；自然结算每三次且间隔60秒可出现可关闭的频控模拟广告，挑战不出广告"
+      ]
     },
     {
       "id": "moss-garden",
@@ -184,7 +220,9 @@
       "orientation": "portrait",
       "genres": ["puzzle", "relaxing"],
       "opportunities": ["challenge", "share"],
-      "priority": "first",
+      "schedule": "previous",
+      "implementationStatus": "implemented",
+      "scheduleReason": "上轮已针对30关唯一解、撤销与解释提示适合安静碎片时间落实触控、反馈或挑战改造；保留已改造记录，后续按真实试玩、渠道与发布验收结果继续迭代。",
       "strengths": ["30关唯一解、撤销与解释提示适合安静碎片时间"],
       "weaknesses": ["规则与经典区域逻辑题接近，大棋盘依赖准确点格"],
       "improvements": [
@@ -210,7 +248,9 @@
       "orientation": "portrait",
       "genres": ["physics", "roguelite"],
       "opportunities": ["challenge", "share"],
-      "priority": "first",
+      "schedule": "previous",
+      "implementationStatus": "implemented",
+      "scheduleReason": "上轮已针对七列弹射、六类叠加强化和双模式检查点形成持续成长落实触控、反馈或挑战改造；保留已改造记录，后续按真实试玩、渠道与发布验收结果继续迭代。",
       "strengths": ["七列弹射、六类叠加强化和双模式检查点形成持续成长"],
       "weaknesses": ["高球数会拉长等待；强度叠加可能掩盖瞄准策略"],
       "improvements": [
@@ -236,7 +276,9 @@
       "orientation": "portrait",
       "genres": ["physics", "arcade"],
       "opportunities": ["challenge", "share"],
-      "priority": "first",
+      "schedule": "previous",
+      "implementationStatus": "implemented",
+      "scheduleReason": "上轮已针对拖动弹射直观，熔晶碎裂与连续反弹有即时反馈落实触控、反馈或挑战改造；保留已改造记录，后续按真实试玩、渠道与发布验收结果继续迭代。",
       "strengths": ["拖动弹射直观，熔晶碎裂与连续反弹有即时反馈"],
       "weaknesses": ["与星轨弹珠接近，上移警戒线规则需独立教学"],
       "improvements": [
@@ -259,15 +301,26 @@
       "potential": ["fun", "potential"],
       "platforms": ["mobile"],
       "primaryPlatform": "mobile",
-      "orientation": "landscape",
+      "orientation": "portrait",
       "genres": ["strategy", "competitive"],
       "opportunities": ["versus", "challenge"],
-      "priority": "next",
+      "schedule": "current",
+      "implementationStatus": "implemented",
+      "scheduleReason": "点岔口改变补给线有低操作策略深度，沿用竖屏沙盘，先改善下一出口预览、触屏取消与失城反馈。横屏适配保留，不把该局部改造视为广告或真人对战接入。",
       "strengths": ["仅点岔口即可影响补给线，少操作承载战争策略"],
-      "weaknesses": ["自动行军的归因不如直接操兵清晰，多路失守易失控"],
-      "improvements": ["强化路线预览和失守警报，先测三路战图再扩展好友对局"],
-      "evidence": ["games/local/tianxia-chalu/README.md"],
-      "delivered": []
+      "weaknesses": ["自动行军的胜负归因仍需真人验证，多路同时失守可能压过低操作策略的优势"],
+      "improvements": [
+        "用真人试玩验证下一出口预告和失城提示能否帮助及时回援，校准多路战图难度；分享、好友玩法与真实渠道仍按后续验证安排"
+      ],
+      "evidence": [
+        "games/local/tianxia-chalu/README.md",
+        "games/local/tianxia-chalu/docs/design/expansion-2026-10-11/README.md",
+        "games/local/tianxia-chalu/docs/design/browser-report.json"
+      ],
+      "delivered": [
+        "沿用竖屏沙盘，按住己方岔口显示下一出口、虚线路径与目标城，松手提交改道；拖出、触点取消、多触点（含沙盘外第二指）与失焦均取消",
+        "夺城和失守时高亮对应城池并提示回援，离开战场清理预览、监听与高亮计时；本轮不新增分享、广告或服务端玩法"
+      ]
     },
     {
       "id": "voiceprint-case",
@@ -280,7 +333,9 @@
       "orientation": "portrait",
       "genres": ["puzzle", "audio"],
       "opportunities": ["challenge", "share"],
-      "priority": "next",
+      "schedule": "later",
+      "implementationStatus": "deferred",
+      "scheduleReason": "声音辨识题材有差异；后续需要试听环境、听觉可访问性与新录音内容验证，先确认首局正确理解再扩展。",
       "strengths": ["同句不同声音与渐进噪声有辨识度，12关支持反复试听"],
       "weaknesses": ["强依赖可听环境和听觉差异，内容量制约复玩"],
       "improvements": ["增加非答案式重听提示与耳机校准，分享正确率而非答案"],
@@ -298,7 +353,9 @@
       "orientation": "landscape",
       "genres": ["sandbox", "audio"],
       "opportunities": ["share"],
-      "priority": "next",
+      "schedule": "later",
+      "implementationStatus": "deferred",
+      "scheduleReason": "声路创作和导出具备分享价值；后续先确认创作工具与目标挑战的定位，再投入任务内容和作品传播。",
       "strengths": ["实际几何声路、房间链接与音频导出适合创作分享"],
       "weaknesses": ["更接近声音实验工具，缺少明确胜负和短局动力"],
       "improvements": ["Web保留精确拖动，增加可选回声任务和作品试听卡"],
@@ -316,7 +373,9 @@
       "orientation": "landscape",
       "genres": ["exploration", "puzzle"],
       "opportunities": ["challenge", "share"],
-      "priority": "next",
+      "schedule": "later",
+      "implementationStatus": "deferred",
+      "scheduleReason": "20迷宫和空间记忆机制有探索价值；后续重点处理第一人称舒适性与移动转向，需独立输入和眩晕体验验证。",
       "strengths": ["20迷宫、标记、镜面与捷径让空间记忆有变化"],
       "weaknesses": ["第一人称移动对手机双指与眩晕敏感，节奏偏慢"],
       "improvements": ["Web优先优化移动与转向，提供舒适设置和路线纪录分享"],
@@ -334,7 +393,9 @@
       "orientation": "portrait",
       "genres": ["action", "roguelite"],
       "opportunities": ["challenge", "share"],
-      "priority": "next",
+      "schedule": "later",
+      "implementationStatus": "deferred",
+      "scheduleReason": "90秒救援转火循环有动作潜力；当前只有P1实战样板，后续需补完整章节和威胁可读性，工作量高于局部优化。",
       "strengths": ["90秒自动射击中补给转火与救援形成紧张取舍"],
       "weaknesses": ["README明确只有P1实战样板，联机和长线内容尚未完成"],
       "improvements": ["先完善首局转火与Boss可读性，再做同波次挑战和章节循环"],
@@ -352,12 +413,25 @@
       "orientation": "portrait",
       "genres": ["puzzle", "relaxing"],
       "opportunities": ["challenge", "share"],
-      "priority": "next",
+      "schedule": "current",
+      "implementationStatus": "implemented",
+      "scheduleReason": "直接点车出库适合手机，乘客接送已有反馈基础，本轮优先阻挡提示、连续解车体验和同班挑战邀请。",
       "strengths": ["点车或滑车出库直观，乘客上车提供解题回报"],
-      "weaknesses": ["密集箭头可能遮挡，出库后等待动画影响连续决策"],
-      "improvements": ["放大箭头与阻挡反馈，允许不影响判定的动画提速并分享最少步"],
-      "evidence": ["games/local/homebound-station/README.md"],
-      "delivered": []
+      "weaknesses": [
+        "密集车阵的箭头与遮挡关系仍需真人小屏验证，3D呈现依赖设备性能；同班邀请尚未验证跨设备回流"
+      ],
+      "improvements": [
+        "验证可出库计数和阻挡提示是否降低首局理解负担，校准动画速度与乘客反馈；继续验收低端手机性能、真实分享和原生渠道"
+      ],
+      "evidence": [
+        "games/local/homebound-station/README.md",
+        "games/local/homebound-station/docs/design/expansion-2026-10-11/README.md",
+        "games/local/homebound-station/docs/design/expansion-2026-10-11/browser-report.json"
+      ],
+      "delivered": [
+        "实时显示可出库数量，结合通路、乘客容量与空位判断；受阻时标出先移的车辆，3倍模拟速率缩短出库等待",
+        "取消触点、丢失捕获和失焦清理输入；结算分享同班邀请且挑战不写普通进度，固定车辆数不另造少步排行榜"
+      ]
     },
     {
       "id": "carding-car",
@@ -370,7 +444,9 @@
       "orientation": "landscape",
       "genres": ["racing", "competitive"],
       "opportunities": ["versus", "challenge", "share"],
-      "priority": "next",
+      "schedule": "later",
+      "implementationStatus": "deferred",
+      "scheduleReason": "漂移竞速和路线成长有发布潜力；后续单独处理Creator资源构建、低端设备性能与多人重连，不能用目录标签代替发布验收。",
       "strengths": ["漂移加速、八路线印章与一圈冲刺支持短局竞速和成长"],
       "weaknesses": ["3D资源与Creator构建较重，多指转向漂移需真机校准"],
       "improvements": ["强化漂移充能与终点追赶，验证同赛道邀请和多人重连"],
@@ -388,7 +464,9 @@
       "orientation": "portrait",
       "genres": ["strategy", "roguelite"],
       "opportunities": ["challenge"],
-      "priority": "hold",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "遵循用户暂缓决定；拼字、养成、布阵三套规则竞争注意力，爽点不集中。保留入口，先验证改进方向中的最小闭环，再决定是否重新投入。",
       "strengths": ["拼字唤将、合成与攻防有多层组合"],
       "weaknesses": ["拼字、养成、布阵三套规则竞争注意力，爽点不集中"],
       "improvements": ["暂缓扩展，先用一条合成出兵循环验证是否愿意重玩"],
@@ -406,7 +484,9 @@
       "orientation": "portrait",
       "genres": ["strategy", "roguelite"],
       "opportunities": ["challenge"],
-      "priority": "hold",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "遵循用户暂缓决定；自动战斗弱化即时参与，与多款合成守城产品重叠。保留入口，先验证改进方向中的最小闭环，再决定是否重新投入。",
       "strengths": ["3×4营地与四驻防位易形成阵容选择，十波有领主节奏"],
       "weaknesses": ["自动战斗弱化即时参与，与多款合成守城产品重叠"],
       "improvements": ["先验证一项可主动干预的守城动作和可读的波次危机"],
@@ -424,7 +504,9 @@
       "orientation": "landscape",
       "genres": ["arcade", "action"],
       "opportunities": ["challenge"],
-      "priority": "hold",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "遵循用户暂缓决定；捕鱼题材差异化仍待验证；切到竖屏自动暂停，移动方向兜底不完整。保留入口，先验证改进方向中的最小闭环，再决定是否重新投入。",
       "strengths": ["180秒鱼潮、八种生物与巨鲨弱点形成短局节奏，四武器有克制关系"],
       "weaknesses": ["捕鱼题材差异化仍待验证；切到竖屏自动暂停，移动方向兜底不完整"],
       "improvements": ["暂保留入口，重新投入前先复核武器手感与公平计分"],
@@ -442,7 +524,9 @@
       "orientation": "portrait",
       "genres": ["strategy", "roguelite"],
       "opportunities": ["challenge"],
-      "priority": "hold",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "遵循用户暂缓决定；README明确进度仅存当前页、刷新重开；合成守城定位与其他作品重叠。保留入口，先验证改进方向中的最小闭环，再决定是否重新投入。",
       "strengths": ["招募合成与八波塔防有清晰目标，弹道、击退和守卫阵地实际影响防守"],
       "weaknesses": ["README明确进度仅存当前页、刷新重开；合成守城定位与其他作品重叠"],
       "improvements": ["先比较两作的布阵差异与局长，验证一个独特守城机制"],
@@ -460,7 +544,9 @@
       "orientation": "portrait",
       "genres": ["puzzle", "competitive"],
       "opportunities": ["versus", "challenge"],
-      "priority": "next",
+      "schedule": "later",
+      "implementationStatus": "deferred",
+      "scheduleReason": "混合棋规和权威好友房已具备竞技基础；后续先做规则教学、房间恢复和真机渠道配置验收，保持现有公平规则。",
       "strengths": ["象棋走法加五连线有辨识度，移动棋盘、战术题、同屏与权威好友房已经实现"],
       "weaknesses": ["混合规则需循序教学，正式原生渠道仍缺AppID、密钥与域名的真机验收"],
       "improvements": ["用合法落点和连线预告教学，优先完善同屏与房间恢复"],
@@ -478,7 +564,9 @@
       "orientation": "landscape",
       "genres": ["stealth", "simulation"],
       "opportunities": ["share"],
-      "priority": "hold",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "遵循用户暂缓决定；第一人称需要WebGL2，转头和物件操作占用注意力，核账阅读较重。保留入口，先验证改进方向中的最小闭环，再决定是否重新投入。",
       "strengths": ["90秒内核账和休息双目标、收好手机与巡查方位形成具体潜行风险"],
       "weaknesses": ["第一人称需要WebGL2，转头和物件操作占用注意力，核账阅读较重"],
       "improvements": ["暂缓扩展，验证一个巡查循环是否有清晰的危险预兆"],
@@ -496,7 +584,9 @@
       "orientation": "landscape",
       "genres": ["strategy", "competitive"],
       "opportunities": ["versus", "challenge", "share"],
-      "priority": "next",
+      "schedule": "later",
+      "implementationStatus": "deferred",
+      "scheduleReason": "短场试炼与百关支撑策略复玩；后续集中梳理多模式首局路径、夹击反馈及好友同图规则，需要成套体验验证。",
       "strengths": ["夹击封路、角色互换、短场试炼与百关支持学习和复玩"],
       "weaknesses": ["多模式与角色选择可能稀释首局，好友玩法依赖一致规则"],
       "improvements": ["突出一次成功夹击反馈，以同图同规则挑战串联试炼和好友赛"],
@@ -514,7 +604,9 @@
       "orientation": "landscape",
       "genres": ["strategy", "competitive"],
       "opportunities": ["versus", "challenge", "share"],
-      "priority": "next",
+      "schedule": "later",
+      "implementationStatus": "deferred",
+      "scheduleReason": "实时封路和多警指挥具备合作空间；后续优先验证路径反馈、弱网同步和重连，联机服务验收应独立安排。",
       "strengths": ["点角色再点道路可直接指挥，多警封路有合作空间"],
       "weaknesses": ["多人同时移动时选中状态与去向容易混淆，在线需部署"],
       "improvements": ["加强路径预告与到达反馈，验证弱网重连和同配置排行榜"],
@@ -532,7 +624,9 @@
       "orientation": "portrait",
       "genres": ["story", "puzzle"],
       "opportunities": ["share"],
-      "priority": "hold",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "遵循用户暂缓决定；目前一章，阅读和业务核验较重，不适合追求即时刺激。保留入口，先验证改进方向中的最小闭环，再决定是否重新投入。",
       "strengths": ["模拟手机核验业务与诈骗后果有生活教育意义"],
       "weaknesses": ["目前一章，阅读和业务核验较重，不适合追求即时刺激"],
       "improvements": ["按教育体验保留，若续做先缩短一次核验闭环并给明确反馈"],
@@ -550,7 +644,9 @@
       "orientation": "portrait",
       "genres": ["word", "puzzle"],
       "opportunities": ["challenge"],
-      "priority": "hold",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "遵循用户暂缓决定；与词屿定位重叠，四种组合模式加大选择负担。保留入口，先验证改进方向中的最小闭环，再决定是否重新投入。",
       "strengths": ["释义拼词与字母遮挡可同时训练词汇和规划"],
       "weaknesses": ["与词屿定位重叠，四种组合模式加大选择负担"],
       "improvements": ["暂缓新增模式，将已验证词库与可用教学经验复用于词屿"],
@@ -568,12 +664,23 @@
       "orientation": "portrait",
       "genres": ["word", "puzzle"],
       "opportunities": ["challenge", "versus", "share"],
-      "priority": "next",
+      "schedule": "current",
+      "implementationStatus": "implemented",
+      "scheduleReason": "词岛与每日同题已有可复用内容，优先强化连词回报、挑战公平性和移动入口，承接同类词游的投入。",
       "strengths": ["主题词岛、教材与自定义词单兼顾轻玩和学习，已有原生入口"],
       "weaknesses": ["内容入口较多，词汇难度和遮挡无解感需持续校准"],
-      "improvements": ["先用三词早餐降低门槛，强化连词反馈与同题公平挑战"],
-      "evidence": ["games/local/letters-words2/README.md"],
-      "delivered": []
+      "improvements": [
+        "校准词汇难度与连词节奏，验证连续反馈能否提升不同词库的复玩；维护每日与好友挑战的公平规则并补原生渠道真机验收"
+      ],
+      "evidence": [
+        "games/local/letters-words2/README.md",
+        "games/local/letters-words2/docs/design/expansion-2026-10-11/README.md",
+        "games/local/letters-words2/docs/design/expansion-2026-10-11/verification.md"
+      ],
+      "delivered": [
+        "H5 / Shell 单人连续独立拼对提供即时反馈和最佳连续词数；提示、拼错或重排打断连词",
+        "自由、每日与三词模式的连词记录各自存档并跨刷新恢复；沿用已有每日同题、好友赛与分享入口"
+      ]
     },
     {
       "id": "multi-battle",
@@ -586,7 +693,9 @@
       "orientation": "landscape",
       "genres": ["strategy", "roguelite"],
       "opportunities": ["challenge"],
-      "priority": "hold",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "遵循用户暂缓决定；无限叠级数值未真人校准，商店与装备信息较密。保留入口，先验证改进方向中的最小闭环，再决定是否重新投入。",
       "strengths": ["六流派48卡与等级转移提供构筑空间"],
       "weaknesses": ["无限叠级数值未真人校准，商店与装备信息较密"],
       "improvements": ["保留原型，缩减首局卡池并验证少量构筑间的克制关系"],
@@ -604,7 +713,9 @@
       "orientation": "portrait",
       "genres": ["story", "puzzle"],
       "opportunities": ["share"],
-      "priority": "hold",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "遵循用户暂缓决定；单案约10至20分钟、复玩价值有限，新增案件成本高。保留入口，先验证改进方向中的最小闭环，再决定是否重新投入。",
       "strengths": ["单案四嫌疑人与证据核对形成完整推理过程"],
       "weaknesses": ["单案约10至20分钟、复玩价值有限，新增案件成本高"],
       "improvements": ["保留一次性体验，优化证据关联和无剧透完成卡后再测续案意愿"],
@@ -622,7 +733,9 @@
       "orientation": "portrait",
       "genres": ["exploration", "relaxing"],
       "opportunities": ["share"],
-      "priority": "hold",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "遵循用户暂缓决定；主要依赖滚动和收藏，缺少可重复的游戏决策。保留入口，先验证改进方向中的最小闭环，再决定是否重新投入。",
       "strengths": ["六幕微缩插画与印章明信片适合旅游内容浏览"],
       "weaknesses": ["主要依赖滚动和收藏，缺少可重复的游戏决策"],
       "improvements": ["作为文旅展示保留，若转游戏先验证一条主动寻景任务"],
@@ -640,7 +753,9 @@
       "orientation": "landscape",
       "genres": ["exploration", "relaxing"],
       "opportunities": ["share"],
-      "priority": "next",
+      "schedule": "later",
+      "implementationStatus": "deferred",
+      "scheduleReason": "空间探索、足迹与明信片有传播潜力；后续先做3D首屏与性能预算，再验证探索目标对复玩的贡献。",
       "strengths": ["真实外滩空间漫游与路线足迹、明信片支持探索分享"],
       "weaknesses": ["3D加载与手机性能成本较高，长期目标较轻"],
       "improvements": ["Web优先优化首屏与路线导览，移动端保留旋转兜底并完善明信片"],
@@ -658,7 +773,9 @@
       "orientation": "landscape",
       "genres": ["exploration", "relaxing"],
       "opportunities": ["share"],
-      "priority": "hold",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "遵循用户暂缓决定；README首屏模型仍约20.7MB，单纯观景缺少游戏目标。保留入口，先验证改进方向中的最小闭环，再决定是否重新投入。",
       "strengths": ["保留原始建筑布局，飞行和近景加载呈现场景规模"],
       "weaknesses": ["README首屏模型仍约20.7MB，单纯观景缺少游戏目标"],
       "improvements": ["暂停玩法投入，优先验证首屏负载与一条可完成的观景任务"],
@@ -676,7 +793,9 @@
       "orientation": "portrait",
       "genres": ["story", "relaxing"],
       "opportunities": ["share"],
-      "priority": "hold",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "遵循用户暂缓决定；操作主要是滚动，印章收集不足以支撑反复游玩。保留入口，先验证改进方向中的最小闭环，再决定是否重新投入。",
       "strengths": ["纸感插画和昼夜滚动叙事具有统一氛围"],
       "weaknesses": ["操作主要是滚动，印章收集不足以支撑反复游玩"],
       "improvements": ["保留互动作品定位，压缩首屏并验证明信片分享吸引力"],
@@ -694,7 +813,9 @@
       "orientation": "landscape",
       "genres": ["racing", "simulation"],
       "opportunities": ["challenge", "share"],
-      "priority": "next",
+      "schedule": "later",
+      "implementationStatus": "deferred",
+      "scheduleReason": "采购、驾驶、送达已成闭环；后续应一起梳理上下车与采购节奏，需比小范围反馈改造更完整的交互调整。",
       "strengths": ["采购、驾驶、送达与货物完整度形成完整三分钟循环"],
       "weaknesses": ["上下车与逐件采购可能打断驾驶爽点，多控件增加学习量"],
       "improvements": ["压缩重复采购流程，强化完整配送连击与同订单路线挑战"],
@@ -712,7 +833,9 @@
       "orientation": "portrait",
       "genres": ["puzzle", "exploration"],
       "opportunities": ["challenge", "versus", "share"],
-      "priority": "next",
+      "schedule": "later",
+      "implementationStatus": "deferred",
+      "scheduleReason": "历史猜题和好友战书有社交潜力；后续保留不公布答案规则，验证内容可信表达、非答案线索和题库复玩。",
       "strengths": ["历史全景猜地点年代有传播话题，已有好友战书和全站榜"],
       "weaknesses": ["AI想象图不能等同史料；只显示评分的设计削弱部分复盘信息"],
       "improvements": ["保留当前不公布答案规则，以非答案线索改善理解并验证好友同题"],
@@ -730,7 +853,9 @@
       "orientation": "landscape",
       "genres": ["action", "exploration"],
       "opportunities": ["challenge", "share"],
-      "priority": "next",
+      "schedule": "later",
+      "implementationStatus": "deferred",
+      "scheduleReason": "飞行、空战、回收有连续动作价值；后续先收敛多轴控制与目标锁定，再扩充三波之后的成长和内容。",
       "strengths": ["低空飞行、空战与残骸回收组合有连续动作空间"],
       "weaknesses": ["三波12机内容较短，手机升降转向与多技能操作较复杂"],
       "improvements": ["Web先强化目标锁定与命中反馈，手机减少常驻操作并做同波挑战"],
@@ -748,12 +873,24 @@
       "orientation": "landscape",
       "genres": ["puzzle", "exploration"],
       "opportunities": ["challenge", "share"],
-      "priority": "next",
+      "schedule": "current",
+      "implementationStatus": "implemented",
+      "scheduleReason": "100手工关足够承接改造，本轮优先参考路线目标、折叠操作反馈与同关挑战，并保留现有开放选关，降低空间规则上手门槛。",
       "strengths": ["折叠连接平台与取物回程在100手工关中可组合"],
-      "weaknesses": ["规则需要空间想象，README仍为全部关卡开放，成长引导偏弱"],
-      "improvements": ["首三关逐步演示折叠结果，修正正常解锁并分享少步路线"],
-      "evidence": ["games/local/fold-the-world/README.md"],
-      "delivered": []
+      "weaknesses": ["折叠仍需要空间想象，100关保持开放，首局引导和持续成长动机需要真人验证"],
+      "improvements": [
+        "用真人试玩验证首三关折叠反馈与参考路线目标的理解度，继续完善开放选关下的进度引导；少折叠成绩为自报，真机与真实广告待验收"
+      ],
+      "evidence": [
+        "games/local/fold-the-world/README.md",
+        "games/local/fold-the-world/docs/design/2026-10-11-challenge-expansion.md",
+        "games/local/fold-the-world/docs/verification/2026-10-11-challenge-expansion/README.md",
+        "games/local/fold-the-world/docs/verification/2026-10-11-challenge-expansion/report.json"
+      ],
+      "delivered": [
+        "新增参考路线的少折叠目标与结算徽记，同关折叠次数邀请隔离普通进度，保留原有100关开放",
+        "补返回首页与规范暂停图形、横屏容器和Phaser尺寸及手势映射；自然结算接第三局起可关闭模拟广告，浏览器历史缓存恢复后分享可继续"
+      ]
     },
     {
       "id": "one-stroke-course",
@@ -766,7 +903,9 @@
       "orientation": "landscape",
       "genres": ["sandbox", "physics"],
       "opportunities": ["share", "challenge"],
-      "priority": "hold",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "遵循用户暂缓决定；画线与控制小球两套操作增加学习成本，关卡仅12个。保留入口，先验证改进方向中的最小闭环，再决定是否重新投入。",
       "strengths": ["自画可碰撞赛道再亲自闯关有创作闭环"],
       "weaknesses": ["画线与控制小球两套操作增加学习成本，关卡仅12个"],
       "improvements": ["暂缓扩量，先验证画一笔即可成功的首局与路线可复用分享"],
@@ -784,7 +923,9 @@
       "orientation": "landscape",
       "genres": ["physics", "puzzle"],
       "opportunities": ["share"],
-      "priority": "hold",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "遵循用户暂缓决定；三角色切换与释放支点负担较高，仅五个短关。保留入口，先验证改进方向中的最小闭环，再决定是否重新投入。",
       "strengths": ["抓环、牵手与切支点构成有趣的物理关系"],
       "weaknesses": ["三角色切换与释放支点负担较高，仅五个短关"],
       "improvements": ["先验证双角色教学与可预测的抓握范围再评估继续投入"],
@@ -802,12 +943,23 @@
       "orientation": "portrait",
       "genres": ["puzzle", "story"],
       "opportunities": ["share", "challenge"],
-      "priority": "next",
+      "schedule": "current",
+      "implementationStatus": "implemented",
+      "scheduleReason": "100关和完整触屏流程已具备内容规模，本轮优先提示节奏、无剧透分享与关卡成就反馈。",
       "strengths": ["100个喜剧机关和完整触屏页面具有可持续内容基础"],
       "weaknesses": ["喜剧谜题容易退化为猜作者意图，需要提示分级保护节奏"],
-      "improvements": ["强化操作可发现性和成功笑点回放，分享无剧透关卡邀请"],
-      "evidence": ["games/local/wulong-city/README.md"],
-      "delivered": []
+      "improvements": [
+        "以100关真人试玩验证提示层级与笑点节奏，观察无剧透邀请回流；原生Canvas浏览器模拟不替代真实渠道SDK、广告和手机验收"
+      ],
+      "evidence": [
+        "games/local/wulong-city/README.md",
+        "games/local/wulong-city/docs/design/expansion-2026-10-11/README.md",
+        "games/local/wulong-city/docs/design/expansion-2026-10-11/verification.md"
+      ],
+      "delivered": [
+        "记录本局最高已看提示等级，结算区分独立与辅助通关；三级提示循环不能抹除记录，H5与原生Canvas逻辑一致",
+        "无剧透同关邀请显示辅助情况，保留挑战存档隔离；H5普通自然结算每三次且间隔60秒接可关闭频控模拟广告，挑战不出广告"
+      ]
     },
     {
       "id": "balloon-movers",
@@ -820,7 +972,9 @@
       "orientation": "landscape",
       "genres": ["physics", "puzzle"],
       "opportunities": ["share"],
-      "priority": "hold",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "遵循用户暂缓决定；三关且装配后需要理解重心和气量，失败归因不直观。保留入口，先验证改进方向中的最小闭环，再决定是否重新投入。",
       "strengths": ["绑点、绳长与排气真实影响家具运动，有喜剧画面"],
       "weaknesses": ["三关且装配后需要理解重心和气量，失败归因不直观"],
       "improvements": ["先用单气球示范倾斜关系，提供轨迹复盘再决定是否扩关"],
@@ -838,7 +992,9 @@
       "orientation": "landscape",
       "genres": ["puzzle", "simulation"],
       "opportunities": ["challenge"],
-      "priority": "hold",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "遵循用户暂缓决定；仅五航段且有初态变体，天气效果需先记规则。保留入口，先验证改进方向中的最小闭环，再决定是否重新投入。",
       "strengths": ["三次天气限制带来明确的资源规划，天气改变航道"],
       "weaknesses": ["仅五航段且有初态变体，天气效果需先记规则"],
       "improvements": ["暂缓扩关，用下一步水位和路径预览验证因果是否易懂"],
@@ -856,7 +1012,9 @@
       "orientation": "portrait",
       "genres": ["story", "puzzle"],
       "opportunities": ["share"],
-      "priority": "hold",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "遵循用户暂缓决定；只有三个案例，答案记住后复玩弱，主要是卡片排列。保留入口，先验证改进方向中的最小闭环，再决定是否重新投入。",
       "strengths": ["前后画面对照与事件重演便于制造喜剧揭晓"],
       "weaknesses": ["只有三个案例，答案记住后复玩弱，主要是卡片排列"],
       "improvements": ["保留原型，验证一次错误重演是否也有笑点和清晰反馈"],
@@ -874,12 +1032,23 @@
       "orientation": "landscape",
       "genres": ["strategy", "simulation"],
       "opportunities": ["challenge", "share"],
-      "priority": "next",
+      "schedule": "current",
+      "implementationStatus": "implemented",
+      "scheduleReason": "限时调度与清障具备紧张选择，本轮以车辆选择、事件反馈和可复现救援挑战提升完成一局的体验。",
       "strengths": ["三车调度、道路清障与限时救援让路径选择互相影响"],
       "weaknesses": ["多事件同时计时可能压过路线规划，触屏车辆选择需明确"],
-      "improvements": ["先强化到达倒计时和堵路反馈，再做同城事件序列挑战"],
-      "evidence": ["games/local/rescue-team/README.md"],
-      "delivered": []
+      "improvements": [
+        "验证多事件并发时倒计时和派车余量是否帮助玩家决策，校准后续城市的零延误难度；继续验证同事件邀请回流与原生渠道真机"
+      ],
+      "evidence": [
+        "games/local/rescue-team/README.md",
+        "games/local/rescue-team/docs/design/expansion-2026-10-11/README.md",
+        "games/local/rescue-team/docs/design/expansion-2026-10-11/browser-report.json"
+      ],
+      "delivered": [
+        "接报和地图显示已发生事件距恶化倒计时，候选车辆显示完成余量或预计超时；暂停冻结模拟时间，修正双实心竖条暂停图标",
+        "结算分享相同事件表与车位的挑战邀请并可返回待命，不将同局邀请称作真人对战"
+      ]
     },
     {
       "id": "precision-demolition",
@@ -892,7 +1061,9 @@
       "orientation": "portrait",
       "genres": ["physics", "puzzle"],
       "opportunities": ["share", "challenge"],
-      "priority": "hold",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "遵循用户暂缓决定；仅三关，板材堆叠和花瓶损坏的因果可能难预测。保留入口，先验证改进方向中的最小闭环，再决定是否重新投入。",
       "strengths": ["卸重、末缝方向与真实倒塌可形成直观破坏反馈"],
       "weaknesses": ["仅三关，板材堆叠和花瓶损坏的因果可能难预测"],
       "improvements": ["保留原型，补受力与倒塌方向预览后验证首关失败可解释性"],
@@ -910,7 +1081,9 @@
       "orientation": "landscape",
       "genres": ["action", "puzzle"],
       "opportunities": ["share", "challenge"],
-      "priority": "hold",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "遵循用户暂缓决定；每20秒录制与多槽协作学习成本高，三关内容有限。保留入口，先验证改进方向中的最小闭环，再决定是否重新投入。",
       "strengths": ["真实输入重放与残影协作破盾有独特时间机制"],
       "weaknesses": ["每20秒录制与多槽协作学习成本高，三关内容有限"],
       "improvements": ["先验证一段五秒残影破盾教学，再决定是否继续录制玩法"],
@@ -928,7 +1101,9 @@
       "orientation": "landscape",
       "genres": ["strategy", "simulation"],
       "opportunities": ["share"],
-      "priority": "hold",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "遵循用户暂缓决定；三夜内容较短，惊吓适量的判定可能难预期。保留入口，先验证改进方向中的最小闭环，再决定是否重新投入。",
       "strengths": ["鬼员工引信、撤鬼和安抚铃形成时机调度"],
       "weaknesses": ["三夜内容较短，惊吓适量的判定可能难预期"],
       "improvements": ["暂停扩展，先让客人承受范围和引信结果可预判"],
@@ -946,7 +1121,9 @@
       "orientation": "landscape",
       "genres": ["action", "strategy"],
       "opportunities": ["challenge", "share"],
-      "priority": "next",
+      "schedule": "later",
+      "implementationStatus": "deferred",
+      "scheduleReason": "火控选择、弹道和护送具备Web对抗感；后续需协调瞄准、透视与误伤反馈，做完整任务难度和小屏热身验证。",
       "strengths": ["三档火控、弹道遮挡与车队护送结合操作和目标取舍"],
       "weaknesses": ["盘旋透视与多武器会增加手机瞄准负担，误伤归因需清晰"],
       "improvements": ["Web优先强化落点预览，移动用60秒热身教学并分享同任务战绩"],
@@ -964,7 +1141,9 @@
       "orientation": "landscape",
       "genres": ["puzzle"],
       "opportunities": ["share", "challenge"],
-      "priority": "hold",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "遵循用户暂缓决定；抽象规则依赖说明，只有三关难证明长线变化。保留入口，先验证改进方向中的最小闭环，再决定是否重新投入。",
       "strengths": ["规则转移同时带走旧能力和副作用，有独特逻辑"],
       "weaknesses": ["抽象规则依赖说明，只有三关难证明长线变化"],
       "improvements": ["先把转移前后移动结果可视化，再验证玩家能否自行解首关"],
@@ -982,12 +1161,23 @@
       "orientation": "landscape",
       "genres": ["puzzle", "physics"],
       "opportunities": ["challenge", "share"],
-      "priority": "next",
+      "schedule": "current",
+      "implementationStatus": "implemented",
+      "scheduleReason": "50关已有渐进机制与撤销，本轮集中解决小屏管线追踪与预测反馈，再以同关最少步验证分享。",
       "strengths": ["50关水位、箱子、小船、水轮逐步组合，预测与撤销降低试错"],
-      "weaknesses": ["多水槽和管线在小屏可能难追踪，操作预算需解释"],
-      "improvements": ["加强高亮连通关系与预测水位，分享同关最少步数"],
-      "evidence": ["games/local/waterline-station/README.md"],
-      "delivered": []
+      "weaknesses": ["复杂管网在小屏仍有追踪成本，需用真人试玩验证连通反馈与操作预算是否易懂"],
+      "improvements": [
+        "验证50关中高阶管网的触屏误操作率和辅助需求，继续校准三星预算；同关成绩为好友自报，权威排行与真实渠道需另行验收"
+      ],
+      "evidence": [
+        "games/local/waterline-station/README.md",
+        "games/local/waterline-station/docs/design/expansion-2026-10-11/README.md",
+        "games/local/waterline-station/docs/design/expansion-2026-10-11/browser-report.json"
+      ],
+      "delivered": [
+        "显示已用操作 / 三星目标，剩余两步时预警，管线选择明确两端水槽与开关状态",
+        "同关少步邀请隔离正常存档，可明确退出并恢复常规进度；提示、预测、撤销或额外操作标为辅助通关且分享不附成绩，结算保留44px手机按钮"
+      ]
     },
     {
       "id": "tiny-signals",
@@ -1000,12 +1190,24 @@
       "orientation": "portrait",
       "genres": ["puzzle"],
       "opportunities": ["challenge", "share"],
-      "priority": "next",
+      "schedule": "current",
+      "implementationStatus": "implemented",
+      "scheduleReason": "同步控制四棋盘的核心规则清晰，现有六关可直接验证少步挑战与操作反馈，本轮先补复玩闭环。",
       "strengths": ["同一输入控制四棋盘，借墙停步产生明确同步谜题"],
-      "weaknesses": ["六关内容有限，四处同时观察对小屏注意力有要求"],
-      "improvements": ["强调本步四角色预览与终点状态，加入同关少步挑战"],
-      "evidence": ["games/local/tiny-signals/README.md"],
-      "delivered": []
+      "weaknesses": ["六关内容仍有限，四盘同步观察对小屏注意力有要求；好友成绩为自报的异步比较"],
+      "improvements": [
+        "真人验证四盘布局与少步目标的理解率，扩充有变化的同步关卡；系统分享面板、真机渠道和服务端权威成绩仍需单独验收"
+      ],
+      "evidence": [
+        "games/local/tiny-signals/README.md",
+        "games/local/tiny-signals/docs/design/mobile-challenge-2026-10-11/README.md",
+        "games/local/tiny-signals/docs/verification/mobile-challenge-2026-10-11/README.md",
+        "games/local/tiny-signals/docs/verification/mobile-challenge-2026-10-11/report.json"
+      ],
+      "delivered": [
+        "加入同关少步邀请与最优路线追平目标，挑战、提示和开发试玩隔离普通进度；提示或开发试玩不产生公开成绩分享",
+        "四角色到站有文字与动画反馈，修复320×568四盘遮挡，扩大44px触控区，补主页、选关、暂停与返回流程"
+      ]
     },
     {
       "id": "bullet-garden",
@@ -1018,7 +1220,9 @@
       "orientation": "landscape",
       "genres": ["action", "roguelite"],
       "opportunities": ["challenge", "share"],
-      "priority": "next",
+      "schedule": "later",
+      "implementationStatus": "deferred",
+      "scheduleReason": "14关和主动能量技能已有动作成长；后续集中校准威胁、粒子与技能反馈，避免只增加入口和分享而保留战场遮挡。",
       "strengths": ["14关、怪物渐进引入与可主动释放能量技能形成成长"],
       "weaknesses": ["首页图鉴入口多，战场粒子与地形会遮住威胁"],
       "improvements": ["收敛首局入口，强化危险预警与技能清场高光，增加同波次挑战"],
@@ -1036,7 +1240,9 @@
       "orientation": "landscape",
       "genres": ["action", "roguelite"],
       "opportunities": ["challenge", "share"],
-      "priority": "next",
+      "schedule": "later",
+      "implementationStatus": "deferred",
+      "scheduleReason": "生命兼攻击资源有独特风险回报；后续先验证消耗与回收窗口、六房难度，再扩展章节与挑战。",
       "strengths": ["墨汁兼生命与攻击资源，命中回收形成鲜明攻守循环"],
       "weaknesses": ["目前第一章六房，花墨行为可能令新手快速耗尽生存资源"],
       "improvements": ["先清晰显示消耗和回收窗口，验证六房难度再做章节与挑战"],
@@ -1054,12 +1260,24 @@
       "orientation": "landscape",
       "genres": ["puzzle", "exploration"],
       "opportunities": ["challenge", "share"],
-      "priority": "next",
+      "schedule": "current",
+      "implementationStatus": "implemented",
+      "scheduleReason": "100房间与撤销形成可持续解谜基础，Web优先改善框边界操作和通关比较，先验证独特时间规则的吸引力。",
       "strengths": ["拖框分配局部时间在100房间中组合，撤销支持探索"],
       "weaknesses": ["框内运动与框外冻结需要即时示范，精确拖框偏大屏"],
-      "improvements": ["优化边界吸附和运动预览，形成短房间挑战与少次移动分享"],
-      "evidence": ["games/local/out-of-frame/README.md"],
-      "delivered": []
+      "improvements": [
+        "真人验证100房间的时间边界可读性和拖框容错，观察同关计时挑战回流；好友计时仍为自报数据，真实渠道与广告待验收"
+      ],
+      "evidence": [
+        "games/local/out-of-frame/README.md",
+        "games/local/out-of-frame/docs/design/2026-10-11-challenge-expansion.md",
+        "games/local/out-of-frame/docs/verification/2026-10-11-challenge-expansion/README.md",
+        "games/local/out-of-frame/docs/verification/2026-10-11-challenge-expansion/report.json"
+      ],
+      "delivered": [
+        "核心靠近观察框边界时即时显示运动 / 冻结状态，加入同关计时分享，挑战不覆盖普通中途局面和成绩",
+        "补横屏旋转兜底与触控映射，自然结算接第三局起可关闭的频控模拟广告；恢复浏览器历史缓存后分享仍可用"
+      ]
     },
     {
       "id": "echo-weaver",
@@ -1072,7 +1290,9 @@
       "orientation": "landscape",
       "genres": ["puzzle", "audio"],
       "opportunities": ["share", "challenge"],
-      "priority": "next",
+      "schedule": "later",
+      "implementationStatus": "deferred",
+      "scheduleReason": "可搭建声路且静音可玩，机制有探索空间；后续先验证逐拍回放能否帮助理解和主动修改，再扩展五关内容。",
       "strengths": ["反射板、分声器、延迟块让玩家真正搭建声路，静音可玩"],
       "weaknesses": ["目前五关并明确未验证乐趣，延迟和分声因果抽象"],
       "improvements": ["强化逐拍路径回放，先观察首两关修改意愿，再增加声路分享"],
@@ -1090,12 +1310,24 @@
       "orientation": "landscape",
       "genres": ["puzzle", "physics"],
       "opportunities": ["share", "challenge"],
-      "priority": "next",
+      "schedule": "current",
+      "implementationStatus": "implemented",
+      "scheduleReason": "50个机关盒与多面联动已有内容深度，Web优先补清晰操作与无剧透完成比较，再验证窄屏体验。",
       "strengths": ["50盒与同一空间的多面投影提供扎实空间推理"],
       "weaknesses": ["多观察窗在窄屏需滚动，免费增面与最优操作目标需要区分"],
-      "improvements": ["Web优化多面联动，手机优先当前操作面，分享不泄题的通关结构"],
-      "evidence": ["games/local/two-sided-box/README.md"],
-      "delivered": []
+      "improvements": [
+        "真人验证50盒的多面关系与操作数目标，继续区分免费增面探索和少操作挑战；同盒成绩为自报，真实渠道广告与手机性能仍需验收"
+      ],
+      "evidence": [
+        "games/local/two-sided-box/README.md",
+        "games/local/two-sided-box/docs/design/2026-10-11-challenge-expansion.md",
+        "games/local/two-sided-box/docs/verification/2026-10-11-challenge-expansion/README.md",
+        "games/local/two-sided-box/docs/verification/2026-10-11-challenge-expansion/report.json"
+      ],
+      "delivered": [
+        "换挡时联动提示所有已知观察窗，暂停或返回首页真正冻结球动画；同盒操作数邀请固定初始两面，重试不重新随机且挑战不写收藏成绩",
+        "补横屏旋转与Canvas坐标映射，自然结算接第三局起可关闭模拟广告，浏览器历史缓存恢复后保持分享能力"
+      ]
     },
     {
       "id": "luban-workshop",
@@ -1108,7 +1340,9 @@
       "orientation": "landscape",
       "genres": ["puzzle", "sandbox"],
       "opportunities": ["share"],
-      "priority": "next",
+      "schedule": "later",
+      "implementationStatus": "deferred",
+      "scheduleReason": "11件互锁木构和拆装参考有空间推理潜力；后续需要选件、轴向与相机手势专项设计，再考虑移动适配。",
       "strengths": ["11件有来源的互锁木构与三维参考可支持真实拆装理解"],
       "weaknesses": ["旋转单件和组合容易与相机手势冲突，难度依赖几何观察"],
       "improvements": ["Web优先明确选件与轴向，手机做单件手势引导并分享拆解过程"],
@@ -1126,12 +1360,23 @@
       "orientation": "portrait",
       "genres": ["puzzle", "story"],
       "opportunities": ["share"],
-      "priority": "next",
+      "schedule": "current",
+      "implementationStatus": "implemented",
+      "scheduleReason": "目击记忆有独特故事表达，八关可支撑首批验证，本轮改善因果理解和无剧透挑战闭环。",
       "strengths": ["目击记忆而非简单视线提供独特生日故事，撤销无负担"],
-      "weaknesses": ["八关内容有限，记忆与当前位置的差异不易理解"],
-      "improvements": ["用角色记忆图标解释因果，分享无剧透生日完成卡"],
-      "evidence": ["games/local/surprise-kept/README.md"],
-      "delivered": []
+      "weaknesses": ["八关内容仍有限，目击记忆因果提示能否降低新手理解负担仍需真人验证"],
+      "improvements": [
+        "验证记忆气泡是否帮助玩家主动修正方案，再扩展目击与遮挡组合；补同关邀请回流、真实广告与原生渠道验收"
+      ],
+      "evidence": [
+        "games/local/surprise-kept/README.md",
+        "games/local/surprise-kept/docs/design/expansion-2026-10-11/README.md",
+        "games/local/surprise-kept/docs/design/expansion-2026-10-11/verification.md"
+      ],
+      "delivered": [
+        "记忆气泡说明最后目击后错过的搬运步骤及离席、屏风原因，帮助理解记忆与当前位置的差异",
+        "内置八关无剧透同关邀请，好友试玩不覆盖正常安排与完成数并可返回自己的安排；自然结算每三次且间隔60秒接可关闭模拟广告，挑战不出广告"
+      ]
     },
     {
       "id": "retreat-rally",
@@ -1144,12 +1389,23 @@
       "orientation": "landscape",
       "genres": ["action", "strategy"],
       "opportunities": ["versus", "share"],
-      "priority": "next",
+      "schedule": "current",
+      "implementationStatus": "implemented",
+      "scheduleReason": "按住撤退、松手进攻的低门槛核心已有差异，优先改善反攻窗口与触屏取消，验证短局复玩。",
       "strengths": ["按住撤退松手进攻操作极简，箭雨装填形成攻守节拍"],
       "weaknesses": ["三关战役较短，模拟匹配需与真实联机明显区分"],
-      "improvements": ["强化箭雨预兆和反攻窗口，先完善同屏公平对战和战绩分享"],
-      "evidence": ["games/local/retreat-rally/README.md"],
-      "delivered": []
+      "improvements": [
+        "用真人试玩校准箭雨预兆和两秒反攻窗口，扩充三关之后的战术变化；成绩为异步自报，真实联机、跨设备分享和原生渠道需独立验证"
+      ],
+      "evidence": [
+        "games/local/retreat-rally/README.md",
+        "games/local/retreat-rally/docs/design/expansion-2026-10-11/README.md",
+        "games/local/retreat-rally/docs/design/expansion-2026-10-11/browser-report.json"
+      ],
+      "delivered": [
+        "加入箭雨波次节拍条与最后一箭后的两秒反攻窗口提示，保留按住撤退、松手进攻的操作",
+        "同关人数与夺旗用时成绩邀请允许锁关挑战但不写普通军功和解锁；分享过滤开发参数并降级，自然结算接可关闭且可配置关闭的频控模拟插屏"
+      ]
     },
     {
       "id": "castle-cannon",
@@ -1162,7 +1418,9 @@
       "orientation": "landscape",
       "genres": ["action", "competitive"],
       "opportunities": ["versus", "share"],
-      "priority": "next",
+      "schedule": "later",
+      "implementationStatus": "deferred",
+      "scheduleReason": "权威双城炮战具备对抗深度；后续需公网服务、断线恢复与炮位交互联调，属于独立服务验收批次。",
       "strengths": ["权威服务实时双城炮战、弹道校射和掩体转移有对抗深度"],
       "weaknesses": ["多炮位、望远镜和趴下操作较复杂，公网服务尚待部署"],
       "improvements": ["Web优先简化校射与伤害反馈，验证断线重连和服务不可用回退"],
@@ -1180,7 +1438,9 @@
       "orientation": "landscape",
       "genres": ["puzzle", "arcade"],
       "opportunities": ["challenge", "share"],
-      "priority": "next",
+      "schedule": "later",
+      "implementationStatus": "deferred",
+      "scheduleReason": "三轴旋转与翻转消层有创新；后续先解决遮挡、轴向教学和幽灵落点，空间交互需要专门验证。",
       "strengths": ["三轴旋转与容器翻转让层消除具有空间创新"],
       "weaknesses": ["3D遮挡与多轴输入比平面消除难学，手机精细操作风险高"],
       "improvements": ["Web先增强层切片与幽灵落点，手机分步旋转并做同序列挑战"],
@@ -1198,7 +1458,9 @@
       "orientation": "portrait",
       "genres": ["arcade", "physics"],
       "opportunities": ["challenge", "share"],
-      "priority": "first",
+      "schedule": "previous",
+      "implementationStatus": "implemented",
+      "scheduleReason": "上轮已针对同一挡板接球与接人制造持续取舍，四人获救目标清楚落实触控、反馈或挑战改造；保留已改造记录，后续按真实试玩、渠道与发布验收结果继续迭代。",
       "strengths": ["同一挡板接球与接人制造持续取舍，四人获救目标清楚"],
       "weaknesses": ["球与队友同时到边缘可能造成无解感，六种阵形内容有限"],
       "improvements": [
@@ -1224,7 +1486,9 @@
       "orientation": "portrait",
       "genres": ["physics", "competitive"],
       "opportunities": ["versus", "share"],
-      "priority": "first",
+      "schedule": "previous",
+      "implementationStatus": "implemented",
+      "scheduleReason": "上轮已针对回拉出杆、边缘淘汰和预告缩圈形成短局反转落实触控、反馈或挑战改造；保留已改造记录，后续按真实试玩、渠道与发布验收结果继续迭代。",
       "strengths": ["回拉出杆、边缘淘汰和预告缩圈形成短局反转"],
       "weaknesses": ["首轮够不到对手需要解释走位，物理相撞与平局需清楚反馈"],
       "improvements": [
@@ -1250,7 +1514,9 @@
       "orientation": "portrait",
       "genres": ["puzzle", "arcade"],
       "opportunities": ["challenge", "versus", "share"],
-      "priority": "first",
+      "schedule": "previous",
+      "implementationStatus": "implemented",
+      "scheduleReason": "上轮已针对三块留两块的取舍清晰，行列交叉消除与双模式支持复玩落实触控、反馈或挑战改造；保留已改造记录，后续按真实试玩、渠道与发布验收结果继续迭代。",
       "strengths": ["三块留两块的取舍清晰，行列交叉消除与双模式支持复玩"],
       "weaknesses": ["两种补块模式计分不能混榜，8×8小屏拖放需精准预览"],
       "improvements": [

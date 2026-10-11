@@ -41,3 +41,9 @@ pnpm check:games waterline-station
 `engine.mjs` 为纯规则与广度优先求解器，`levels.mjs` 为 50 关数据及已验证的最短解，`render.mjs` 绘制玻璃圆筒、金属支架与分层管道的 SVG 场景，`game.mjs` 管理输入、动画、章节目录与辅助操作，`progress.mjs` 校验本地记录。`window.__waterlineSnapshot()` 仅返回副本，供浏览器回归读取，没有强制获胜或修改关卡状态接口。
 
 当前交付为适配桌面和手机触摸的 H5 MVP。预测、撤销、额外操作均免费，尚未接入 IAA 或微信、抖音、B站、Poki、CrazyGames 官方 SDK；H5 不能直接作为原生 Canvas 小游戏发布。关卡规则不是水利或压力工程教学模型。
+
+## 2026-10-11 局部体验扩展
+
+场景上方显示已用操作与三星目标，剩余两步时加强预算提示；选中管线会说明连接两端与开关状态。结算支持同关少步邀请；提示、预测、撤销或额外操作使用后，分享标为辅助通关并不附比较成绩。好友挑战的关卡选择和成绩与正常存档隔离。游玩和结算均可明确退出挑战，恢复常规存档；选择其他关卡或下一关自动清除邀请参数并回到常规记录，好友目标不跨关显示。仍为无时钟的回合制玩法，查看提示不需要暂停。
+
+分享复用公共 `platforms/h5/publishing.js`，开发服务器映射、构建复制公共源，不维护私有副本。浏览器触屏专项：`node games/local/waterline-station/tests/publishing.browser.mjs`。[局部设计与验收](docs/design/expansion-2026-10-11/README.md)。

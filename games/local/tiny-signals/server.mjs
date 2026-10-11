@@ -4,13 +4,15 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
-const root = path.dirname(fileURLToPath(import.meta.url));
+
 const { values } = parseArgs({
   options: {
     port: { type: 'string' },
+    dist: { type: 'boolean', default: false },
     host: { type: 'string', default: '0.0.0.0' },
   },
 });
+const root = fileURLToPath(new URL(values.dist ? './dist/' : './', import.meta.url)).replace(/\/$/, '');
 const port = Number(values.port ?? process.env.PORT ?? 5186);
 const host = values.host;
 if (!Number.isInteger(port) || port < 1 || port > 65535 || !host.trim()) {
@@ -52,6 +54,7 @@ const server = http.createServer(async (request, response) => {
       response.writeHead(403).end('Forbidden');
       return;
     }
+    if (!values.dist && pathname === '/publishing.js') filename = fileURLToPath(new URL('../../../platforms/h5/publishing.js', import.meta.url));
     if ((await stat(filename)).isDirectory()) filename = path.join(filename, 'index.html');
     const body = await readFile(filename);
     response.writeHead(200, {

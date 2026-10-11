@@ -26,10 +26,88 @@ const integer =
     Number.isSafeInteger(Number(value)) &&
     Number(value) >= minimum &&
     Number(value) <= maximum;
+const levelId = (value: string) => /^[a-z][a-z0-9-]{0,63}$/.test(value);
+const boxFaces = (value: string) => {
+  const faces = value.split(',');
+  return (
+    faces.length === 2 &&
+    faces[0] !== faces[1] &&
+    faces.every(oneOf('front', 'back', 'top', 'bottom', 'left', 'right'))
+  );
+};
 
 // Public challenge contracts, kept separate from development/session parameters.
 // A malformed or incomplete contract must not turn into a different valid challenge.
 const challengeProtocols: Readonly<Record<string, ChallengeProtocol>> = {
+  'chase-thief': {
+    fields: {
+      chaseChallenge: oneOf('1'),
+      level: oneOf('old-town', 'market', 'canal'),
+      time: (value) => /^\d{1,2}\.\d$/.test(value) && Number(value) > 0 && Number(value) <= 60,
+      mistakes: integer(2),
+    },
+    required: ['chaseChallenge', 'level', 'time', 'mistakes'],
+  },
+  'retreat-rally': {
+    fields: {
+      rallyChallenge: oneOf('1'),
+      level: oneOf('valley', 'pursuit', 'crossbow'),
+      time: integer(180, 1),
+      survivors: integer(6, 1),
+    },
+    required: ['rallyChallenge', 'level', 'time', 'survivors'],
+  },
+  'tiny-signals': {
+    fields: {
+      challenge: oneOf('1'),
+      level: oneOf('garden', 'compass', 'bridge', 'wind', 'counterweight', 'echo'),
+      targetMoves: integer(100000, 1),
+    },
+    required: ['challenge', 'level', 'targetMoves'],
+  },
+  'orbit-atelier': {
+    fields: { challenge: (value) => /^orbit-(0[1-9]|1\d|2[0-4])$/.test(value) },
+    required: ['challenge'],
+  },
+  'wulong-city': {
+    fields: { challenge: integer(100, 1) },
+    required: ['challenge'],
+  },
+  'surprise-kept': {
+    fields: { challenge: (value) => /^birthday-0[1-8]$/.test(value) },
+    required: ['challenge'],
+  },
+  'homebound-station': {
+    fields: { station: integer(3, 1) },
+    required: ['station'],
+  },
+  // Slug syntax is public; each Game resolves authored content IDs and validates
+  // level-specific goals/face combinations before entering a challenge.
+  'waterline-station': {
+    fields: { station: levelId, target: integer(99, 1) },
+    required: ['station'],
+  },
+  'rescue-team': {
+    fields: { rescueLevel: integer(3, 1) },
+    required: ['rescueLevel'],
+  },
+  'out-of-frame': {
+    fields: { challenge: oneOf('frame-v1'), level: levelId, targetMs: integer(3600000) },
+    required: ['challenge', 'level'],
+  },
+  'fold-the-world': {
+    fields: { challenge: oneOf('fold-v1'), level: integer(100, 1), targetFolds: integer(1000) },
+    required: ['challenge', 'level'],
+  },
+  'two-sided-box': {
+    fields: {
+      challenge: oneOf('box-v1'),
+      level: levelId,
+      faces: boxFaces,
+      targetMoves: integer(10000),
+    },
+    required: ['challenge', 'level', 'faces'],
+  },
   'tower-brake': {
     fields: {
       challenge: oneOf('tower-v1'),

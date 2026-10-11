@@ -516,6 +516,28 @@ select {
 .catalog-filters {
   margin-bottom: 24px;
 }
+.catalog-portfolio-summary {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #c7cddc;
+}
+.catalog-grid .game-rollout {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.catalog-grid .game-rollout strong {
+  color: #d9e8ff;
+}
+.catalog-grid .game-rollout span {
+  color: #aeb4c4;
+  font-size: inherit;
+  letter-spacing: normal;
+}
 .catalog-tabs,
 .catalog-chips,
 .game-tags {

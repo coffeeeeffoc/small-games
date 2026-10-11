@@ -38,7 +38,7 @@ const plan = (changedPaths, extra = {}) =>
     ...extra,
   });
 
-test('publishing UI regressions select only reviewed consumer browsers; shared publishing selects all seven', () => {
+test('publishing UI regressions select only reviewed consumer browsers; shared publishing selects every registered consumer', () => {
   const consumerGames = Object.entries(publishingConsumers).map(([id, source]) => ({ id, source }));
   const consumerPackages = consumerGames.map((game) => ({ name: game.id, dir: game.source }));
   const select = (changedPaths, extra = {}) => {

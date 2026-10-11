@@ -51,6 +51,21 @@ it('retains only the selected Game public parameters', () => {
 });
 
 const challenges = [
+  ['chase-thief', 'chaseChallenge=1&level=canal&time=59.9&mistakes=2'],
+  ['retreat-rally', 'rallyChallenge=1&level=crossbow&time=180&survivors=6'],
+  ['tiny-signals', 'challenge=1&level=echo&targetMoves=100000'],
+  ['orbit-atelier', 'challenge=orbit-24'],
+  ['wulong-city', 'challenge=100'],
+  ['surprise-kept', 'challenge=birthday-08'],
+  ['homebound-station', 'station=3'],
+  ['waterline-station', 'station=path-dual-ferry&target=99'],
+  ['rescue-team', 'rescueLevel=3'],
+  ['out-of-frame', 'challenge=frame-v1&level=mastery-100&targetMs=3600000'],
+  ['fold-the-world', 'challenge=fold-v1&level=100&targetFolds=1000'],
+  [
+    'two-sided-box',
+    'challenge=box-v1&level=complete-mechanism&faces=front%2Ctop&targetMoves=10000',
+  ],
   ['tower-brake', 'challenge=tower-v1&level=last-descent&targetScore=20000'],
   ['cage-rescue', 'challenge=rescue-v1&level=rescue-06&targetRescued=6&targetCombo=6'],
   ['ball-roguelite', 'challenge=orbit-v1&level=endless&seed=4294967295&targetScore=10000000'],
@@ -101,6 +116,21 @@ it.each([
 });
 
 it.each([
+  ['chase-thief', 'chaseChallenge=1&level=canal&time=60.1&mistakes=2'],
+  ['chase-thief', 'chaseChallenge=1&level=canal&time=10.0'],
+  ['retreat-rally', 'rallyChallenge=1&level=valley&time=181&survivors=6'],
+  ['retreat-rally', 'rallyChallenge=1&level=valley&time=10&survivors=7'],
+  ['tiny-signals', 'challenge=1&level=garden&targetMoves=0'],
+  ['orbit-atelier', 'challenge=orbit-25'],
+  ['wulong-city', 'challenge=101'],
+  ['surprise-kept', 'challenge=birthday-09'],
+  ['homebound-station', 'station=4'],
+  ['waterline-station', 'station=first-link&target=100'],
+  ['rescue-team', 'rescueLevel=0'],
+  ['out-of-frame', 'challenge=frame-v1&level=first-still&targetMs=3600001'],
+  ['fold-the-world', 'challenge=fold-v1&level=101'],
+  ['two-sided-box', 'challenge=box-v1&level=first-turn&faces=front,front'],
+  ['two-sided-box', 'challenge=box-v1&level=first-turn&faces=front,top&targetMoves=10001'],
   ['tower-brake', 'challenge=tower-v2&level=first-brake'],
   ['tower-brake', 'challenge=tower-v1&level=unknown'],
   ['tower-brake', 'challenge=tower-v1&level=first-brake&targetScore=20001'],

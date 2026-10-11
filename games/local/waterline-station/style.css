@@ -1188,3 +1188,9 @@ dialog .primary-button {
     scroll-behavior: auto !important;
   }
 }
+
+#move-budget{display:block;font-size:12px;flex-basis:100%;text-align:right;color:#596859;white-space:normal;margin-top:-6px}.stage-header{flex-wrap:wrap;row-gap:8px}.turn-display.budget-low{border-color:#ad522a;background:#fff0da}.budget-low #moves-left{color:#a84524}#share-status{font-size:12px;line-height:1.5;overflow-wrap:anywhere;user-select:text}
+/* Let the result actions keep finger-sized targets without squeezing into a short tank scene. */
+.result{position:fixed;padding:max(16px,env(safe-area-inset-top)) 16px;z-index:20}.result-card{width:min(350px,100%);max-height:calc(100dvh - 40px)}.result button{min-height:44px}.result #share-result{display:block;width:100%;font-size:14px;border:1px solid #b4c6a4;border-radius:8px;margin:8px 0}.result #share-status{font-size:12px;line-height:1.5;margin-bottom:0}
+
+#exit-challenge{min-height:44px;padding:8px 12px;font-size:13px;margin-left:auto;border:1px solid #b4c6a4;border-radius:8px}#result-exit-challenge{font-size:13px}#exit-challenge[hidden],#result-exit-challenge[hidden]{display:none}

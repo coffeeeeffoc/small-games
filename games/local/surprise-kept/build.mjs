@@ -18,4 +18,6 @@ for (const name of ['index.html', 'dev-mode.js', 'styles.css', 'src', 'content']
   await cp(new URL(name, import.meta.url), new URL(name, output), { recursive: true });
 }
 await stat(new URL('src/main.js', output));
+
+await cp(new URL('../../../platforms/h5/publishing.js', import.meta.url), new URL('publishing.js', output));
 console.log('Built 惊喜别穿帮 → dist/ (relative URLs, no runtime dependencies)');

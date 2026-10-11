@@ -368,3 +368,18 @@ test('settlement rejects incomplete attempts and preserves the best medal across
   assert.equal(settle(progress, completedRun(0, 10, 1)), 1);
   assert.equal(progress.medals['orbit-01'], 3);
 });
+
+
+// Overlapping geometry is resolved independently of SVG paint order.
+import { pickTouchRing } from '../src/touch.ts';
+test('touch intersections retain the selected movable ring and skip locked rings', () => {
+  const state = { levelId: 'touch', releasedCount: 0, rings: [
+    { id: 'left', x: 0, y: 0, r: 50, gap: 0.4, angle: Math.PI, removed: false },
+    { id: 'right', x: 60, y: 0, r: 50, gap: 0.4, angle: 0, removed: false },
+  ] };
+  assert.equal(pickTouchRing(state, {x:30,y:40}, 1, 'right')?.id, 'right');
+  Object.assign(state.rings[1], { unlockAfter: 1 });
+  assert.equal(pickTouchRing(state, {x:30,y:40}, 1, 'right')?.id, 'left');
+  assert.equal(pickTouchRing(state, {x:400,y:400}, 1, null), undefined);
+  assert.equal(pickTouchRing(state, {x:-50,y:0}, 1, null), undefined, 'opening has no touch stroke');
+});

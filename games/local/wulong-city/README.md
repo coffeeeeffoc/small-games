@@ -74,3 +74,11 @@ pnpm test:dev-mode
 实际手机尺寸截图保存在 `docs/design/mobile-2026-10-06/implemented/`，原生 Canvas 截图与像素/生命周期核验保存在同目录 `native-actual/`。详细验证记录见 [本次回归报告](docs/design/mobile-2026-10-06/verification.md)。这些是 Chromium 触屏模拟与渠道工程冒烟验证，未替代实体手机或渠道开发者工具真机验收。
 
 原设计与试玩历史见 `docs/PRODUCT.md`、`docs/LEVELS.md`、`docs/PLAYTEST.md`、`docs/PROGRESS.md`；其中原 games4 路径和 26 关状态属于改造前记录。
+
+## 2026-10-11 扩大优化
+
+本轮在 H5 与原生 Canvas 结算记录「独立破解 / 看过 N 级提示」。记录本局最高已查看等级，切回第一条不会洗掉提示痕迹；重试新开一局，今日试演返回则恢复主线记录。H5 邀请同关说明是否辅助，链接只包含原有 `challenge` 内部关卡 ID，不带手记、笑点或解法；挑战依然不写主线进度。
+
+普通自然结算复用共享 H5 发布适配器：第三次且至少 60 秒间隔才会出现可关闭的模拟广告，每会话最多 6 次，挑战/开发试玩不出广告。配置 `globalThis.SmallGamesPublishingConfig` 的 `adMode: 'off'` 可关闭，`adMode: 'host'` 加 `provider` 可接统一宿主，`publicUrl` 可指定公开入口。原生 Canvas 本轮同步提示标识，未新增原生分享/广告点位。
+
+局部设计、实际手机尺寸截图与验证记录见 [本轮验收](docs/design/expansion-2026-10-11/verification.md)。

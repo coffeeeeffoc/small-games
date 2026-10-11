@@ -7,4 +7,5 @@ await mkdir(dist, { recursive: true });
 for (const file of ["index.html", 'dev-mode.js',"style.css","game.js","simulation.mjs"]) {
   await cp(new URL(file, import.meta.url), new URL(file, dist), { recursive: true });
 }
+await cp(new URL('../../../platforms/h5/publishing.js', import.meta.url), new URL('publishing.js', dist));
 console.log('Built rescue-team: dist/');

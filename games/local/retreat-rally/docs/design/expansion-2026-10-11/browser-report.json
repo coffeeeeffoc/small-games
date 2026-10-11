@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "browser": "151.0.7922.173",
+  "environment": "Chromium 844x390 / 390x844 mobile touch emulation, not a physical device",
+  "checks": [
+    "Landscape touch play reaches a normal victory; pause freezes clock; arrow progress and final-arrow counterattack cue visible; share copies bounded same-level challenge",
+    "Locked two-volley level can be challenged and won without granting campaign medals or unlocks",
+    "Third natural result shows dismissible mock ad; challenge exit restores own campaign",
+    "Portrait fallback rotates full interface; two real CDP touches hold independently, release one and cancel other; pause and return remain usable",
+    "Deployment adMode=off suppresses every popup, including the third natural result"
+  ],
+  "errors": []
+}

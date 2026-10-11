@@ -76,7 +76,7 @@ function isBetter(result, previous) {
 /** Pure settlement: retries cannot duplicate rewards and practice never scores. */
 export function recordWin(progress, run) {
   const next = loadProgress(progress);
-  if (!run || run.practice === true || run.phase !== 'won') return next;
+  if (!run || run.practice === true || run.challenge || run.phase !== 'won') return next;
   const levelIndex = LEVELS.findIndex((level) => level.id === run.levelId);
   if (levelIndex < 0 || !next.unlocked.includes(run.levelId)) return next;
   const level = LEVELS[levelIndex];

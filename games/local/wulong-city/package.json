@@ -7,7 +7,9 @@
     "./canvas": "./native/canvas.js",
     "./build-plugin": "./native/shared-source.mjs"
   },
-  "coffeeeeffoc": { "role": "game" },
+  "coffeeeeffoc": {
+    "role": "game"
+  },
   "scripts": {
     "dev": "node server.mjs",
     "start": "node server.mjs",
@@ -21,10 +23,13 @@
     "test:mobile": "node tests/mobile.mjs",
     "build:native": "node ../../../apps/shell-minigame/scripts/build.mjs --game wulong-city",
     "test:native": "node ../../../scripts/native-game-smoke.mjs --standalone --game wulong-city",
-    "test:native:browser": "node native/browser-check.mjs"
+    "test:native:browser": "node native/browser-check.mjs",
+    "test:publishing:browser": "node tests/publishing.browser.mjs"
   },
   "dependencies": {
     "@coffeeeeffoc/game-contract": "workspace:*"
   },
-  "devDependencies": { "@playwright/test": "1.55.1" }
+  "devDependencies": {
+    "@playwright/test": "1.55.1"
+  }
 }

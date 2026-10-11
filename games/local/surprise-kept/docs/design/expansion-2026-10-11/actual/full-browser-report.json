@@ -1,0 +1,22 @@
+{
+  "results": [
+    "level 1: touch solution + actual/belief goals + reveal",
+    "level 2: touch solution + actual/belief goals + reveal",
+    "level 3: touch solution + actual/belief goals + reveal",
+    "level 4: touch solution + actual/belief goals + reveal",
+    "level 5: touch solution + actual/belief goals + reveal",
+    "level 6: touch solution + actual/belief goals + reveal",
+    "level 7: touch solution + actual/belief goals + reveal",
+    "level 8: touch solution + actual/belief goals + reveal",
+    "native touch drag, pointercancel, one-use screen, full undo, replay, resume and pause",
+    "failure explanation, memory inspection, free hints and correction",
+    "ninth JSON level imported and played without runtime edits; title rendered as text",
+    "320x568: layout and pause",
+    "390x844: layout and pause",
+    "430x932: layout and pause",
+    "844x390: layout and pause",
+    "1280x900: layout and pause"
+  ],
+  "errors": [],
+  "physicalDeviceTested": false
+}

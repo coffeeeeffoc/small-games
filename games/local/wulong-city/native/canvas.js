@@ -90,12 +90,12 @@ export const wulongCityCanvasDefinition = {
       if (drag) { levels[s.id]?.cancel?.(s); drag = null; }
       for (const voice of voices.values()) voice.stop();
     }
-    function show(next) { clearInput(); page = next; last = Date.now(); render(); }
+    function show(next) { if(next==='hint'&&s)s.hintsUsed=Math.max(s.hintsUsed||0,hintStep+1); clearInput(); page = next; last = Date.now(); render(); }
     function start(id) {
       if (!levels[id] || !unlocked.has(id)) return;
       clearInput(); run++; hintStep = 0; savedLevel = id;
       s = { id, run, t: 0, p: { x: 65, y: 436, vx: 0, vy: 0, dir: 1, grounded: true },
-        won: false, feedback: '', ...levels[id].init() };
+        won: false, feedback: '', hintsUsed: 0, ...levels[id].init() };
       W.s = s; W.say(LEVEL_DATA[id].intro); zones.clear(); page = 'play'; save(); render();
     }
     const logicalHeight = () => Math.max(700, target.canvas.height * 390 / target.canvas.width);
@@ -226,7 +226,7 @@ export const wulongCityCanvasDefinition = {
       paragraph(LEVEL_DATA[s.id].hints[hintStep], 52, 291, 286, 18, '#45614f', 6);
       button('回去试试', 41, h - 218, 308, 58, () => show('play'), { primary: true, size: 21 });
       button(hintStep < 2 ? '再明确一点' : '重新看第一条', 70, h - 140, 250, 50,
-        () => { hintStep = (hintStep + 1) % 3; render(); });
+        () => { hintStep = (hintStep + 1) % 3; s.hintsUsed=Math.max(s.hintsUsed||0,hintStep+1); render(); });
     }
     function drawRecords(h) {
       heading('奇遇手记');
@@ -250,7 +250,7 @@ export const wulongCityCanvasDefinition = {
     function drawResult(h) {
       rect(36, 65, 318, 115, '#fff0d4', 25, '#b69458');
       text('乌龙解决啦！', 195, 101, 29, '#385849');
-      text(`奇遇 ${String(route.number(s.id)).padStart(2, '0')}`, 195, 149, 14, '#968157');
+      text(`第 ${String(route.number(s.id)).padStart(2, '0')} 关 · ${s.hintsUsed ? `看过 ${s.hintsUsed} 级提示` : '独立破解'}`, 195, 149, 14, '#968157');
       if (assets.result) ctx.drawImage(assets.result, 93, 207, 204, 146);
       else { ellipse(195, 285, 71, 71, '#dbab58', '#956b35'); text('妙', 195, 284, 36, '#fff1cc'); }
       rect(28, 365, 334, Math.min(151, h - 580), '#fff0d4e6', 22, '#b69458');

@@ -1,0 +1,81 @@
+{
+  "environment": "Linux Chromium; mobile input is emulated, not a native-device validation",
+  "source": "Shell source served by Vite; iframe uses a navigation fixture, not gameplay validation",
+  "results": [
+    {
+      "width": 320,
+      "input": "Chromium touch emulation",
+      "all": 67,
+      "potential": 41,
+      "previous": 7,
+      "current": 14,
+      "later": 20,
+      "hold": 26,
+      "mobileCurrent": 12,
+      "checks": [
+        "all exact IDs",
+        "exclusive schedule groups",
+        "visible implementation status",
+        "touch and keyboard assessment expansion",
+        "facet intersections and total counts",
+        "reload",
+        "game return",
+        "browser back",
+        "legacy focus URL",
+        "no horizontal overflow",
+        "44px filters",
+        "no page errors"
+      ]
+    },
+    {
+      "width": 390,
+      "input": "Chromium touch emulation",
+      "all": 67,
+      "potential": 41,
+      "previous": 7,
+      "current": 14,
+      "later": 20,
+      "hold": 26,
+      "mobileCurrent": 12,
+      "checks": [
+        "all exact IDs",
+        "exclusive schedule groups",
+        "visible implementation status",
+        "touch and keyboard assessment expansion",
+        "facet intersections and total counts",
+        "reload",
+        "game return",
+        "browser back",
+        "legacy focus URL",
+        "no horizontal overflow",
+        "44px filters",
+        "no page errors"
+      ]
+    },
+    {
+      "width": 1280,
+      "input": "mouse",
+      "all": 67,
+      "potential": 41,
+      "previous": 7,
+      "current": 14,
+      "later": 20,
+      "hold": 26,
+      "mobileCurrent": 12,
+      "checks": [
+        "all exact IDs",
+        "exclusive schedule groups",
+        "visible implementation status",
+        "touch and keyboard assessment expansion",
+        "facet intersections and total counts",
+        "reload",
+        "game return",
+        "browser back",
+        "legacy focus URL",
+        "no horizontal overflow",
+        "44px filters",
+        "no page errors"
+      ]
+    }
+  ]
+}

@@ -2,15 +2,17 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import vm from 'node:vm';
+import { createH5Publishing } from '../../../../platforms/h5/publishing.js';
 
 const source = await readFile(new URL('../levels.js', import.meta.url), 'utf8');
 const data = await readFile(new URL('../levels-data.js', import.meta.url), 'utf8');
 const appSource = await readFile(new URL('../game.js', import.meta.url), 'utf8');
 
 test('the actual share handler removes URL credentials, private query and hash while retaining Pages paths', async () => {
-  const copies=[],elements={share:{},'share-status':{},'share-link':{}};
-  const context=vm.createContext({URL,location:new URL('https://user:password@example.org//small-games/wulong/?private=secret#room'),s:{id:21,won:false},LEVEL_DATA:{21:{title:'风扇只吹背后的风'}},$:id=>elements[id],navigator:{clipboard:{writeText:async url=>copies.push(url)}}});
-  const handler=appSource.split('\n').find(line=>line.includes('async function shareChallenge()'));
+  const copies=[],elements={share:{},'share-status':{isConnected:true},'share-link':{}};
+  const publishing=createH5Publishing({environment:{location:new URL('https://user:password@example.org//small-games/wulong/?private=secret#room'),navigator:{clipboard:{writeText:async url=>copies.push(url)}}}});
+  const context=vm.createContext({s:{id:21,won:false,hintsUsed:2},run:1,route:{number:id=>id},$:id=>elements[id],publishingReady:Promise.resolve(publishing)});
+  const handler=appSource.slice(appSource.indexOf('  async function shareChallenge()'),appSource.indexOf('\n  function start('));
   assert.ok(handler);
   vm.runInContext(handler,context);
   await vm.runInContext('shareChallenge()',context);

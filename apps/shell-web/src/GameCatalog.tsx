@@ -7,6 +7,7 @@ import { standaloneGameEntry } from './standalone-entry.js';
 import {
   assessments,
   assessmentSearchText,
+  catalogTabs,
   emptyFilters,
   filterGroups,
   groupKeys,
@@ -162,30 +163,36 @@ export function GameCatalog({
       </div>
       {onFilters && (
         <section className="catalog-filters" aria-label="游戏分类筛选">
+          <p className="catalog-portfolio-summary">
+            {games.length} 款全部归类 · 有趣 / 有潜力{' '}
+            {games.filter((game) => assessments[game.id]?.potential.includes('potential')).length}{' '}
+            款 · 潜力低{' '}
+            {games.filter((game) => assessments[game.id]?.potential.includes('low')).length} 款。
+            下方四个排期组互不重叠，排期不代表潜力高低。
+          </p>
           <div className="catalog-tabs" role="group" aria-label="评估分组">
-            {(
-              [
-                ['all', '全部游戏'],
-                ['focus', '本轮优先'],
-                ['hold', '暂缓投入'],
-              ] as const
-            ).map(([tab, label]) => (
-              <button
-                key={tab}
-                type="button"
-                aria-pressed={filters.tab === tab}
-                onClick={() => onFilters({ ...filters, tab })}
-              >
-                {label}
-                <span className="facet-count">
-                  {
-                    searched.filter((game) =>
-                      matchesAssessment(assessments[game.id], { ...filters, tab }),
-                    ).length
-                  }
-                </span>
-              </button>
-            ))}
+            {catalogTabs.map(([tab, label]) => {
+              const total = games.filter((game) =>
+                matchesAssessment(assessments[game.id], { ...emptyFilters(), tab }),
+              ).length;
+              const count = searched.filter((game) =>
+                matchesAssessment(assessments[game.id], { ...filters, tab }),
+              ).length;
+              return (
+                <button
+                  key={tab}
+                  type="button"
+                  aria-pressed={filters.tab === tab}
+                  onClick={() => onFilters({ ...filters, tab })}
+                  title={`当前条件匹配 ${count} 款，该组共 ${total} 款`}
+                >
+                  {label}
+                  <span className="facet-count">
+                    {count === total ? total : `${count} / ${total}`}
+                  </span>
+                </button>
+              );
+            })}
             {hasFilters && (
               <button type="button" onClick={() => onFilters(emptyFilters())}>
                 清空筛选
@@ -216,7 +223,8 @@ export function GameCatalog({
             {facet('opportunities')}
           </details>
           <p className="catalog-filter-help">
-            同组多选满足任一标签，跨组同时满足。平台与拓展标签表示推荐方向。爆款与毫无潜力尚无充分证据，暂不赋值。
+            同组多选满足任一标签，跨组同时满足。筛选时排期显示匹配数 /
+            组内总数。平台与拓展标签表示推荐方向。爆款与毫无潜力尚无充分证据，暂不赋值。
           </p>
         </section>
       )}

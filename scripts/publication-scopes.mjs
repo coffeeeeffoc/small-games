@@ -578,6 +578,18 @@ export const publishingConsumers = {
   'flick-arena': 'games/local/flick-arena',
   'moss-garden': 'games/local/game-moss-garden',
   'ember-bounce': 'games/local/ember-bounce',
+  'chase-thief': 'games/local/chase-thief',
+  'retreat-rally': 'games/local/retreat-rally',
+  'tiny-signals': 'games/local/tiny-signals',
+  'orbit-atelier': 'games/local/orbit-atelier',
+  'wulong-city': 'games/local/wulong-city',
+  'surprise-kept': 'games/local/surprise-kept',
+  'homebound-station': 'games/local/homebound-station',
+  'waterline-station': 'games/local/waterline-station',
+  'rescue-team': 'games/local/rescue-team',
+  'out-of-frame': 'games/local/out-of-frame',
+  'fold-the-world': 'games/local/fold-the-world',
+  'two-sided-box': 'games/local/two-sided-box',
 };
 export const publishingScopePaths = [
   'platforms/h5/publishing.js',

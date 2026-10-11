@@ -12,8 +12,8 @@ it('filters, explains evaluations, restores shared URLs, and retains selections 
   const ids = () =>
     [...container.querySelectorAll<HTMLElement>('article')].map((el) => el.dataset.gameId);
   async function click(prefix: string) {
-    const button = [...container.querySelectorAll<HTMLButtonElement>('button')].find((el) =>
-      el.textContent?.startsWith(prefix),
+    const button = [...container.querySelectorAll<HTMLButtonElement>('button')].find(
+      (el) => el.firstChild?.textContent === prefix,
     );
     expect(button, prefix).toBeDefined();
     await act(async () => button!.click());
@@ -28,7 +28,7 @@ it('filters, explains evaluations, restores shared URLs, and retains selections 
     expect(ids()).toHaveLength(41);
     await click('潜力低');
     expect(ids()).toHaveLength(67);
-    await click('本轮优先');
+    await click('上轮已改造');
     expect(ids()).toHaveLength(7);
     await click('毫无潜力');
     // OR semantics keep the seven potential games even with an empty-evidence label selected.
@@ -38,7 +38,7 @@ it('filters, explains evaluations, restores shared URLs, and retains selections 
     expect(ids()).toHaveLength(0);
     expect(container.textContent).toContain('没有找到匹配的游戏');
     await click('重置全部');
-    await click('本轮优先');
+    await click('上轮已改造');
     await click('详情卡片');
     const before = ids();
     const url = window.location.href;
@@ -66,6 +66,62 @@ it('filters, explains evaluations, restores shared URLs, and retains selections 
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
     expect(ids()).toHaveLength(26);
+  } finally {
+    await act(async () => root.unmount());
+    window.history.replaceState(null, '', '/');
+    localStorage.clear();
+  }
+});
+
+it('shows every exclusive rollout, visible implementation states, and filtered counts against group totals', async () => {
+  window.history.replaceState(null, '', '/?catalogTab=focus');
+  const container = document.createElement('div');
+  const root = createRoot(container);
+  const articles = () => [...container.querySelectorAll<HTMLElement>('article')];
+  const tabs = () => [...container.querySelectorAll<HTMLButtonElement>('.catalog-tabs button')];
+  async function click(prefix: string) {
+    const button = [...container.querySelectorAll<HTMLButtonElement>('button')].find(
+      (el) => el.firstChild?.textContent === prefix,
+    );
+    expect(button, prefix).toBeDefined();
+    await act(async () => button!.click());
+  }
+  try {
+    await act(async () => root.render(<ShellApp runtimeClient={false} />));
+    expect(articles()).toHaveLength(7);
+    expect(
+      tabs().find((button) => button.getAttribute('aria-pressed') === 'true')?.textContent,
+    ).toBe('上轮已改造7');
+    await click('全部游戏');
+    expect(
+      tabs()
+        .slice(0, 5)
+        .map((button) => button.textContent),
+    ).toEqual(['全部游戏67', '上轮已改造7', '本轮改造14', '有潜力 · 后续改造20', '暂缓投入26']);
+    for (const article of articles()) {
+      expect(article.querySelector('.game-rollout strong')?.textContent).toBeTruthy();
+      expect(article.querySelector('.game-rollout span')?.textContent).toBeTruthy();
+      expect(article.querySelector('.game-rollout')?.closest('details')).toBeNull();
+    }
+    await click('本轮改造');
+    expect(articles()).toHaveLength(14);
+    await click('移动端小游戏');
+    expect(articles()).toHaveLength(12);
+    expect(tabs().find((button) => button.textContent?.startsWith('本轮改造'))?.textContent).toBe(
+      '本轮改造12 / 14',
+    );
+    expect(window.location.search).toContain('catalogTab=current');
+    expect(window.location.search).toContain('catalog_platforms=mobile');
+    await click('清空筛选');
+    await click('有潜力 · 后续改造');
+    expect(articles()).toHaveLength(20);
+    await click('有潜力');
+    expect(articles()).toHaveLength(20);
+    await click('全部游戏');
+    expect(articles()).toHaveLength(41);
+    expect(tabs().find((button) => button.textContent?.startsWith('暂缓投入'))?.textContent).toBe(
+      '暂缓投入0 / 26',
+    );
   } finally {
     await act(async () => root.unmount());
     window.history.replaceState(null, '', '/');

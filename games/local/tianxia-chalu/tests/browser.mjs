@@ -112,6 +112,47 @@ async function tapRoute(page, selector = '.junction[data-owner="0"]') {
   };
 }
 try {
+  await check('Preview before committing routes; drag, cancellation and multitouch never issue a command', async () => {
+    const page = await session({ debug: false });
+    await page.locator('#start').tap();
+    const control = page.locator('.junction[data-owner="0"]').first();
+    const original = await control.getAttribute('data-route');
+    const cdp = await page.context().newCDPSession(page);
+    const rect = await control.boundingBox();
+    const point = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2, id: 1 };
+    const down = () => cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] });
+    await down();
+    await expect(page.locator('.route-preview')).toContainText('赤关 → 东津');
+    await expect(page.locator('.city.route-target')).toHaveCount(1);
+    await expect(control).toHaveAttribute('data-route', original);
+    await shot(page, 'route-preview-390x844.png');
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+    await expect(page.locator('.route-preview')).toBeHidden();
+    await expect(control).toHaveAttribute('data-route', original);
+    await down();
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ ...point, x: point.x + 50 }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await expect(control).toHaveAttribute('data-route', original);
+    await down();
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point, { ...point, x: point.x + 30, id: 2 }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await expect(page.locator('.route-preview')).toBeHidden();
+    await expect(control).toHaveAttribute('data-route', original);
+    await down();
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point, { x: 20, y: 60, id: 2 }] });
+    await expect(page.locator('.route-preview')).toBeHidden();
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await expect(control).toHaveAttribute('data-route', original);
+    await tapRoute(page);
+    await page.clock.runFor(350);
+    await control.focus();
+    await page.keyboard.press('Enter');
+    await expect(control).toHaveAttribute('data-route', original);
+    await page.locator('#pause').tap();
+    await page.locator('#resume').tap();
+    await expect(page.locator('.route-preview')).toBeHidden();
+    return { screenshots: ['route-preview-390x844.png'], methods: ['touch preview', 'pointercancel', 'drag away', 'multitouch', 'keyboard', 'pause cleanup'] };
+  });
   await check('Default player entry, locked campaign and primary mobile screens', async () => {
     const page = await session({ debug: false });
     assert.equal(await page.locator('[data-game-dev-tools]').count(), 0);

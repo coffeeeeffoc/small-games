@@ -1,0 +1,8 @@
+{
+  "browser": "151.0.7922.173",
+  "environment": "Chromium mobile viewport / browser touch simulation; not physical-device certification",
+  "checks": [
+    "touch cancel, dispatch completion margin, countdown pause/resume, real first-level zero-delay clear, same-event challenge sharing, return to ready, valid level-3 invitation, portrait/landscape"
+  ],
+  "errors": []
+}

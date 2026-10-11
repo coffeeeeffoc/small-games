@@ -13,4 +13,8 @@ for (const file of [
 ]) {
   await cp(new URL(file, import.meta.url), new URL(file, dist), { recursive: true });
 }
+await cp(
+  new URL('../../../platforms/h5/publishing.js', import.meta.url),
+  new URL('publishing.js', dist),
+);
 console.log('Built retreat-rally: dist/');

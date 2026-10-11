@@ -1,8 +1,9 @@
 import '../dev-mode.js';
 import './fullscreen.js';
 import './style.css';
+import { createH5Publishing } from '../../../../platforms/h5/publishing.js';
+import { pickTouchRing } from './touch.ts';
 import {
-  angleDistance,
   createState,
   findHint,
   getBlockers,
@@ -31,9 +32,13 @@ let returnScreen: Screen = 'home';
 let run: Run | null = progress.run ? structuredClone(progress.run) : null;
 let history: Run[] = [];
 let practice = false;
+let challenge = false;
+let sharePending = false;
+const publishingConfig = (globalThis as typeof globalThis & { SmallGamesPublishingConfig?: Partial<Parameters<typeof createH5Publishing>[0]> }).SmallGamesPublishingConfig;
+const publishing = createH5Publishing({ gameId: 'orbit-atelier', title: '星扣工坊', adMode: publishingConfig?.adMode ?? 'mock', provider: publishingConfig?.provider, publicUrl: publishingConfig?.publicUrl });
 let selectedRingId: string | null = null;
 let hint: { ringId: string; angle: number } | null = null;
-let drag: { id: number; ringId: string; pointerAngle: number; before: Run; moved: boolean } | null =
+let drag: { id: number; ringId: string; pointerAngle: number; startX: number; startY: number; before: Run; moved: boolean } | null =
   null;
 let controlPress: { id: number; target: HTMLButtonElement; x: number; y: number } | null = null;
 let suppressTouchClick = false;
@@ -62,6 +67,7 @@ const topbar = (title: string, back = 'home', right = '') =>
   `<header class="topbar">${button(back, '返回', 'icon-button', icon('back'))}<div><h1>${title}</h1><span class="title-rule">✦</span></div>${right || '<span class="top-spacer"></span>'}</header>`;
 
 function save() {
+  if (challenge) return;
   if (!practice) progress.run = run && !isComplete(run.state) ? structuredClone(run) : null;
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(progress));
@@ -121,12 +127,13 @@ function notify(message: string) {
   output.classList.add('visible');
   toastTimer = setTimeout(() => output.classList.remove('visible'), 2400);
 }
-function start(index: number, trial = false) {
-  if (!LEVELS[index] || (!trial && index > unlockedIndex(progress))) return;
+function start(index: number, trial = false, invited = false) {
+  if (!LEVELS[index] || (!trial && !invited && index > unlockedIndex(progress))) return;
   cancelDrag();
   clearTimeout(animationTimer);
   ghost = null;
   practice = trial;
+  challenge = invited;
   history = [];
   hint = null;
   selectedRingId = null;
@@ -143,9 +150,10 @@ function navigate(next: Screen) {
   cancelDrag();
   ghost = null;
   clearTimeout(animationTimer);
-  if (next === 'home' && practice) {
+  if ((next === 'home' || next === 'levels') && (practice || challenge)) {
     run = progress.run ? structuredClone(progress.run) : null;
     practice = false;
+    challenge = false;
     history = [];
     hint = null;
     selectedRingId = null;
@@ -180,13 +188,13 @@ function render() {
     ).join('')}</section>`;
   if (screen === 'playing' && run) {
     const index = LEVELS.findIndex((level) => level.id === run!.state.levelId);
-    content = `${topbar(`第 ${index + 1} 关`, 'pause', button('pause', '暂停', 'icon-button', icon('pause')))}<section class="play"><p class="level-caption">${practice ? '开发试玩 · 不记录进度' : LEVELS[index].name} <span>${run.state.releasedCount} / ${run.state.rings.length}</span></p><svg id="ring-board" viewBox="0 0 360 430" role="application" aria-label="拖动圆环转动缺口，松手解扣" tabindex="0"></svg><div class="in-scene-note">${index < 2 ? '拖动圆环，让缺口对准连接处' : LEVELS[index].intro || ''}</div><div class="play-tools">${button('undo', '撤回', 'secondary', `${icon('undo')}撤回`)}${button('hint', '提示', 'primary', `${icon('hint')}提示`)}</div></section>`;
+    content = `${topbar(`第 ${index + 1} 关`, 'pause', button('pause', '暂停', 'icon-button', icon('pause')))}<section class="play"><p class="level-caption">${challenge ? '好友同盘 · 不改主线进度' : practice ? '开发试玩 · 不记录进度' : LEVELS[index].name} <span>${run.state.releasedCount} / ${run.state.rings.length}</span></p><svg id="ring-board" viewBox="0 0 360 430" role="application" aria-label="拖动圆环转动缺口，松手解扣" tabindex="0"></svg><div class="in-scene-note">${index < 2 ? '拖动圆环，让缺口对准连接处' : LEVELS[index].intro || ''}</div><div class="play-tools">${button('undo', '撤回', 'secondary', `${icon('undo')}撤回`)}${button('hint', '提示', 'primary', `${icon('hint')}提示`)}</div></section>`;
   }
   if (screen === 'paused')
     content = `${topbar('歇一会儿', 'resume')}<section class="center-page"><div class="large-emblem">✦</div><p class="english">A MOMENT OF STILLNESS</p><h2>星光会等你</h2><p>这张星盘已为你保留。</p><div class="stack">${button('resume', '继续解扣', 'primary')}${button('retry', '重新开始', 'secondary')}${button('home', '返回工坊', 'text-button')}</div></section>`;
   if (screen === 'result' && run) {
     const index = LEVELS.findIndex((level) => level.id === run!.state.levelId);
-    content = `${topbar('星盘点亮')}<section class="center-page result"><div class="result-art">${heroArt()}</div><p class="english">CONSTELLATION RESTORED</p><h2>${practice ? '试玩完成' : index === LEVELS.length - 1 ? '满天星光，因你亮起' : '又解开一片星光'}</h2><div class="medals" aria-label="${medal}颗星">${[1, 2, 3].map((n) => `<span class="${n <= medal ? 'earned' : ''}">✦</span>`).join('')}</div><p>${run.moves} 次转动${run.hints ? ` · ${run.hints} 次提示` : ' · 独立解扣'}</p><div class="stack">${index < LEVELS.length - 1 ? button('next', '下一张星盘', 'primary') : button('levels', '查看全部星盘', 'primary')}${button('retry', '再解一次', 'secondary')}${button('home', '返回工坊', 'text-button')}</div></section>`;
+    content = `${topbar('星盘点亮')}<section class="center-page result"><div class="result-art">${heroArt()}</div><p class="english">CONSTELLATION RESTORED</p><h2>${practice ? '试玩完成' : index === LEVELS.length - 1 ? '满天星光，因你亮起' : '又解开一片星光'}</h2><div class="medals" aria-label="${medal}颗星">${[1, 2, 3].map((n) => `<span class="${n <= medal ? 'earned' : ''}">✦</span>`).join('')}</div><p>${run.moves} 次转动${run.hints ? ` · ${run.hints} 次提示` : ' · 独立解扣'}</p><div class="stack">${index < LEVELS.length - 1 && !challenge ? button('next', '下一张星盘', 'primary') : button('levels', '查看全部星盘', 'primary')}${button('retry', '再解一次', 'secondary')}${!practice ? button('share', '邀请朋友解同盘', 'secondary') : ''}<p id="share-status" role="status"></p><input id="share-link" aria-label="同盘挑战链接" readonly hidden>${button('home', '返回工坊', 'text-button')}</div></section>`;
   }
   if (screen === 'settings')
     content = `${topbar('工坊设置')}<section class="settings"><p class="english">MAKE YOURSELF AT HOME</p>${[
@@ -258,22 +266,7 @@ function pointerDown(event: PointerEvent) {
   const scale =
     (fitScene(run.state).scale * app.querySelector('#ring-board')!.getBoundingClientRect().width) /
     360;
-  const candidates = run.state.rings
-    .filter((ring) => {
-      if (ring.removed) return false;
-      const distance = Math.hypot(point.x - ring.x, point.y - ring.y),
-        angle = Math.atan2(point.y - ring.y, point.x - ring.x);
-      return (
-        Math.abs(distance - ring.r) <= Math.max(16, 22 / scale) &&
-        angleDistance(angle, ring.angle) > ring.gap / 2 - Math.asin(Math.min(1, 8 / ring.r))
-      );
-    })
-    .sort(
-      (a, b) =>
-        Math.abs(Math.hypot(point.x - a.x, point.y - a.y) - a.r) -
-        Math.abs(Math.hypot(point.x - b.x, point.y - b.y) - b.r),
-    );
-  const ring = candidates[0];
+  const ring = pickTouchRing(run.state, point, scale, selectedRingId);
   if (!ring) return;
   event.preventDefault();
   selectedRingId = ring.id;
@@ -287,6 +280,7 @@ function pointerDown(event: PointerEvent) {
     id: event.pointerId,
     ringId: ring.id,
     pointerAngle: Math.atan2(point.y - ring.y, point.x - ring.x),
+    startX: event.clientX, startY: event.clientY,
     before: structuredClone(run),
     moved: false,
   };
@@ -299,9 +293,10 @@ function pointerMove(event: PointerEvent) {
   if (!point) return;
   const ring = run.state.rings.find((r) => r.id === drag!.ringId)!;
   if (Math.hypot(point.x - ring.x, point.y - ring.y) < ring.r * 0.28) return;
+  if (!drag.moved && Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < 6) return;
+  drag.moved = true;
   const angle = Math.atan2(point.y - ring.y, point.x - ring.x);
   const delta = normalizeAngle(angle - drag.pointerAngle);
-  drag.moved ||= Math.abs(delta) > 0.004;
   rotateRing(run.state, ring.id, ring.angle + delta);
   drag.pointerAngle = angle;
   drawBoard();
@@ -327,7 +322,7 @@ function finishGesture(ringId: string, before: Run, moved: boolean) {
     hint = null;
     selectedRingId = null;
     sound();
-    if (isComplete(run.state)) medal = practice ? 0 : settle(progress, run);
+    if (isComplete(run.state)) medal = practice ? 0 : challenge ? (run.hints ? 1 : run.moves <= run.state.rings.length * 2 ? 3 : 2) : settle(progress, run);
     save();
     drawBoard();
     clearTimeout(animationTimer);
@@ -338,6 +333,7 @@ function finishGesture(ringId: string, before: Run, moved: boolean) {
         if (isComplete(run.state)) {
           screen = 'result';
           render();
+          if (!practice && !challenge) void publishing.interstitial({ placement: 'puzzle-complete', naturalBreak: true });
         } else drawBoard();
       },
       progress.settings.reducedMotion ? 0 : 330,
@@ -403,6 +399,7 @@ function activateControl(target: HTMLButtonElement) {
       render();
     } else start(unlockedIndex(progress));
   }
+  if (action === 'share' && run && screen === 'result') void shareResult();
   if (action === 'levels') navigate('levels');
   if (action === 'settings') navigate('settings');
   if (action === 'home') navigate('home');
@@ -412,6 +409,7 @@ function activateControl(target: HTMLButtonElement) {
     start(
       LEVELS.findIndex((level) => level.id === run!.state.levelId),
       practice,
+      challenge,
     );
   if (action === 'next' && run)
     start(LEVELS.findIndex((level) => level.id === run!.state.levelId) + 1, practice);
@@ -424,7 +422,9 @@ function activateControl(target: HTMLButtonElement) {
     cancelDrag();
     clearTimeout(animationTimer);
     ghost = null;
+    const usedHints = run.hints;
     run = history.pop()!;
+    run.hints = Math.max(run.hints, usedHints);
     hint = null;
     selectedRingId = null;
     save();
@@ -440,6 +440,24 @@ function activateControl(target: HTMLButtonElement) {
       notify('转动高亮圆环，让缺口朝向星标');
     } else notify('先解开外围圆环，让星栓开启');
   }
+}
+async function shareResult() {
+  if (!run || sharePending) return;
+  const requestedRun = run;
+  const status = app.querySelector<HTMLElement>('#share-status');
+  const field = app.querySelector<HTMLInputElement>('#share-link');
+  const shareButton = app.querySelector<HTMLButtonElement>('[data-action="share"]');
+  if (!status || !field || !shareButton) return;
+  sharePending = true; shareButton.disabled = true; field.hidden = true;
+  try {
+    const result = await publishing.share({
+      params: { challenge: run.state.levelId },
+      text: `我用 ${run.moves} 次转动解开一张星盘，${run.hints ? `使用 ${run.hints} 次提示` : '独立解扣'}。来试试同一张星盘！`,
+    });
+    if (run !== requestedRun || !status.isConnected) return;
+    status.textContent = result.status === 'shared' ? '已打开系统分享。' : result.status === 'copied' ? '同盘链接已复制，不含解法。' : result.status === 'cancelled' ? '已取消分享。' : '长按下面链接复制，邀请朋友解同盘。';
+    if (!['shared', 'copied', 'cancelled'].includes(result.status)) { field.value = result.url; field.hidden = false; }
+  } finally { sharePending = false; shareButton.disabled = false; }
 }
 function controlTarget(event: Event) {
   const target = (event.target as Element).closest<HTMLButtonElement>(
@@ -527,6 +545,9 @@ const unregisterSnapshot = window.SmallGamesDev.registerSnapshot(() => ({
   selectedRingId,
   drag: drag ? { ringId: drag.ringId } : null,
   practice,
+  challenge,
+  moves: run?.moves,
+  hints: run?.hints,
 }));
 const unregisterActions = window.SmallGamesDev.registerActions([
   {
@@ -573,4 +594,7 @@ window.addEventListener('pagehide', (event) => {
     unregisterActions();
   }
 });
-render();
+const invitation = new URLSearchParams(location.search);
+const invitedIndex = invitation.getAll('challenge').length === 1 ? LEVELS.findIndex(level => level.id === invitation.get('challenge')) : -1;
+if (invitedIndex >= 0) start(invitedIndex, false, true);
+else render();

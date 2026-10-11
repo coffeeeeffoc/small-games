@@ -54,10 +54,9 @@ async function loadChromium() {
     if (error.code !== 'ERR_MODULE_NOT_FOUND') throw error;
     playwright = await import('/opt/codex/cua_node/lib/node_modules/playwright-core/index.mjs');
   }
-  const candidates = [
-    process.env.PLAYWRIGHT_EXECUTABLE_PATH,
-    process.env.CHASE_CHROMIUM,
-  ].filter(Boolean);
+  const candidates = [process.env.PLAYWRIGHT_EXECUTABLE_PATH, process.env.CHASE_CHROMIUM].filter(
+    Boolean,
+  );
   // Use the project-pinned Playwright browser unless a local override is explicit.
   // A system Chromium may drift from the version installed by CI.
   let executablePath;
@@ -146,6 +145,8 @@ async function screenshot(page, name) {
 }
 
 async function tap(page, selector) {
+  if (await page.locator('[data-game-ad=mock]').isVisible())
+    await page.getByRole('button', { name: '关闭并继续' }).tap();
   const locator = page.locator(selector).filter({ visible: true }).first();
   assert(await locator.count(), `Missing visible control: ${selector}`);
   await locator.tap();

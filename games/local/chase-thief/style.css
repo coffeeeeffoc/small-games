@@ -1258,3 +1258,52 @@ body[data-phase='lost'] #result-stamp {
     transition: none !important;
   }
 }
+
+.challenge-invite {
+  margin: 0 0 8px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #163744e8;
+  color: #ffe1a6;
+  font-size: 14px;
+  line-height: 1.5;
+}
+#leave-challenge {
+  min-height: 44px;
+  color: #ffe1a6;
+}
+.challenge-goal {
+  position: absolute;
+  top: 148px;
+  left: 16px;
+  right: 16px;
+  text-align: center;
+  color: #ffe1a6;
+  font-size: 13px;
+  text-shadow: 0 2px 5px #163744;
+  pointer-events: none;
+}
+.share-link {
+  width: 100%;
+  min-height: 44px;
+  font-size: 14px;
+}
+#share-status {
+  font-size: 13px;
+  margin: 6px 0;
+}
+.result-panel {
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+}
+@media (orientation: portrait) {
+  .result-panel #result-stamp {
+    position: relative;
+    top: auto;
+    left: auto;
+    width: 58px;
+    height: 58px;
+    margin: -22px auto 12px;
+    font-size: 15px;
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "checks": [
+    "standalone enter/exit fullscreen",
+    "desktop solve, pause, public challenge URL",
+    "rotated phone touch solve, cancel, challenge save isolation",
+    "physical landscape, third-result ad frequency and dismiss",
+    "return to normal progress"
+  ],
+  "errors": []
+}

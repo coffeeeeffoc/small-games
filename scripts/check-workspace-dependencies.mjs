@@ -22,8 +22,13 @@ const DEPENDENCY_FIELDS = [
 // rules on the authoritative server, or exercise those rules from repository tests.
 // Runtime game code must still never import service implementations.
 const REPOSITORY_IMPORTS = new Set([
-  // This standalone H5 entry is bundled by Vite; puzzle rules/native entry stay host-only.
+  // These standalone H5 entries are bundled by Vite; rules/native entries stay host-only.
   'games/local/game-moss-garden/src/web.ts -> platforms/h5/publishing.js',
+  'games/local/fold-the-world/src/main.ts -> platforms/h5/publishing.js',
+  'games/local/homebound-station/src/main.ts -> platforms/h5/publishing.js',
+  'games/local/orbit-atelier/src/main.ts -> platforms/h5/publishing.js',
+  // The share-handler contract uses the real public adapter; other game tests gain no edge.
+  'games/local/wulong-city/tests/game.test.mjs -> platforms/h5/publishing.js',
   // Build tooling and browser acceptance helpers, never game runtime dependencies.
   'games/local/night-overwatch/scripts/build.mjs -> games/local/carding-car/scripts/toolchain.mjs',
   'games/local/night-overwatch/scripts/build-native.mjs -> games/local/carding-car/scripts/toolchain.mjs',

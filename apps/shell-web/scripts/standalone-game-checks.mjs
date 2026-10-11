@@ -695,6 +695,8 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect(frame.locator('#board')).toHaveAttribute('data-status', 'won');
   } else if (id === 'out-of-frame') {
     const snapshot = () => frame.locator('body').evaluate(() => globalThis.__outOfFrameSnapshot());
+    const restart = frame.locator(mobile ? '#touch-restart' : '#restart');
+    const undo = frame.locator(mobile ? '#touch-undo' : '#undo');
     await click(frame.locator('#start-button'));
     const beforeMove = await snapshot();
     await holdControl('#move-right', 'ArrowRight', () =>
@@ -702,7 +704,7 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
         .poll(async () => (await snapshot()).state.player.x)
         .toBeGreaterThan(beforeMove.state.player.x + 8),
     );
-    await click(frame.locator('#restart'));
+    await click(restart);
     await expect
       .poll(async () => (await snapshot()).state.player.x)
       .toBe(beforeMove.state.player.x);
@@ -713,12 +715,20 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     const bounds = await canvas.boundingBox();
     const beforeDrag = await snapshot();
     const { x, y, w, h } = beforeDrag.state.frame;
-    const from = {
-      x: bounds.x + ((x + w / 2) / beforeDrag.world.w) * bounds.width,
-      y: bounds.y + ((y + h / 2) / beforeDrag.world.h) * bounds.height,
-    };
+    const rotated = (await frame.locator('html').getAttribute('data-rotated')) === 'true';
+    const screenPoint = (logicalX, logicalY) =>
+      rotated
+        ? {
+            x: bounds.x + (1 - logicalY / beforeDrag.world.h) * bounds.width,
+            y: bounds.y + (logicalX / beforeDrag.world.w) * bounds.height,
+          }
+        : {
+            x: bounds.x + (logicalX / beforeDrag.world.w) * bounds.width,
+            y: bounds.y + (logicalY / beforeDrag.world.h) * bounds.height,
+          };
+    const from = screenPoint(x + w / 2, y + h / 2);
     const dx = x + w + 110 < beforeDrag.world.w ? 100 : -100;
-    const to = { x: from.x + (dx / beforeDrag.world.w) * bounds.width, y: from.y };
+    const to = screenPoint(x + w / 2 + dx, y + h / 2);
     if (mobile) {
       const touch = await page.context().newCDPSession(page);
       try {
@@ -729,7 +739,13 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
         for (let step = 1; step <= 6; step += 1) {
           await touch.send('Input.dispatchTouchEvent', {
             type: 'touchMove',
-            touchPoints: [{ x: from.x + ((to.x - from.x) * step) / 6, y: to.y, id: 1 }],
+            touchPoints: [
+              {
+                x: from.x + ((to.x - from.x) * step) / 6,
+                y: from.y + ((to.y - from.y) * step) / 6,
+                id: 1,
+              },
+            ],
           });
         }
       } finally {
@@ -749,10 +765,10 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     // the recorded drag has been crossed, using the same free rewind as players.
     for (let attempt = 0; attempt < 8; attempt += 1) {
       if (Math.abs((await snapshot()).state.frame.x - x) < 0.001) break;
-      await click(frame.locator('#undo'));
+      await click(undo);
     }
     await expect.poll(async () => (await snapshot()).state.frame.x).toBe(x);
-    await click(frame.locator('#restart'));
+    await click(restart);
   } else if (id === 'off-camera') {
     await click(frame.locator('#bank [data-card="move"]'));
     await click(frame.locator('#bank [data-card="sit"]'));

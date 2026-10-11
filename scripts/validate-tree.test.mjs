@@ -45,6 +45,58 @@ test('metadata early return retains mandatory publication checks and propagates 
   await assert.rejects(validateTree(options), /publication config regression/);
 });
 
+test('catalog and non-publishing interaction checks require explicit affected consumers', () => {
+  const calls = [];
+  const plan = {
+    browser: true,
+    catalog_rollout_checks: true,
+    native_consumers: [],
+    developer_mode_ids: [],
+    game_sources: ['games/local/letters-words2', 'games/local/tianxia-chalu'],
+    browser_ids: ['letters-words2', 'tianxia-chalu'],
+    interaction_browser_ids: ['letters-words2', 'tianxia-chalu'],
+  };
+  const options = {
+    plan,
+    packages: plan.game_sources.map((dir) => ({ dir })),
+    root: '/candidate',
+    env: {},
+    execute(command, args) {
+      calls.push(args);
+    },
+  };
+  runIncrementalToolChecks(options);
+  assert.deepEqual(calls, [
+    ['apps/shell-web/scripts/catalog-rollout-smoke.mjs'],
+    ['games/local/letters-words2/tests/word-flow.browser.mjs'],
+    ['games/local/tianxia-chalu/tests/browser.mjs'],
+  ]);
+  calls.length = 0;
+  runIncrementalToolChecks({
+    ...options,
+    plan: { ...plan, catalog_rollout_checks: false, game_sources: [], interaction_browser_ids: [] },
+  });
+  assert.deepEqual(calls, []);
+  assert.throws(
+    () => runIncrementalToolChecks({ ...options, plan: { ...plan, browser: false } }),
+    /requires real browser/,
+  );
+  assert.throws(
+    () => runIncrementalToolChecks({ ...options, packages: [] }),
+    /Missing interaction browser consumer/,
+  );
+  assert.throws(
+    () =>
+      runIncrementalToolChecks({
+        ...options,
+        execute() {
+          throw new Error('touch regression');
+        },
+      }),
+    /touch regression/,
+  );
+});
+
 test('publishing browsers run exact bounded suites with native gates off and failures stop publication', () => {
   const expected = {
     'tower-brake': ['publishing-browser.mjs'],
@@ -54,6 +106,18 @@ test('publishing browsers run exact bounded suites with native gates off and fai
     'three-choose-two': ['publishing.browser.mjs'],
     'flick-arena': ['publishing.browser.mjs'],
     'moss-garden': ['publishing.browser.mjs'],
+    'chase-thief': ['publishing.browser.mjs'],
+    'retreat-rally': ['publishing.browser.mjs'],
+    'tiny-signals': ['publishing.browser.mjs'],
+    'orbit-atelier': ['publishing.browser.mjs'],
+    'wulong-city': ['publishing.browser.mjs'],
+    'surprise-kept': ['publishing.browser.mjs'],
+    'homebound-station': ['publishing.browser.mjs'],
+    'waterline-station': ['publishing.browser.mjs'],
+    'rescue-team': ['publishing.browser.mjs'],
+    'out-of-frame': ['publishing.browser.mjs'],
+    'fold-the-world': ['publishing.browser.mjs'],
+    'two-sided-box': ['publishing.browser.mjs'],
   };
   const ids = Object.keys(expected);
   const calls = [];

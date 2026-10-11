@@ -1,6 +1,7 @@
 import { BOARD, letters, validateEntries, createGame, restoreProgress, parseWordList, isBlocked, getAvailableTiles, findSpelling, chooseWord, selectTile, submitWord, undoSelection, clearSelection, reshuffle } from './engine.js';
 import { practiceBatches, setupLibrary } from './library.js';
 import { collections, dailyIsland, seededRandom, validDay, today, parseChallenge, challengeUrl, miniIslands, miniIsland, miniUrl } from './challenge.js';
+import { freshWordFlow, restoreWordFlow, recordWordFlow, interruptWordFlow } from './word-flow.js';
 import { openScreen, closeScreen, closeScreens, setupScreens, screenVersion } from './mobile-ui.js';
 
 document.body.classList.toggle('is-embedded', window.parent !== window);
@@ -25,6 +26,7 @@ let mini = null;
 let sharePending = false;
 let shareSequence = 0;
 let dailyStats = { hints: 0, shuffles: 0, mistakes: 0 };
+let wordFlow = freshWordFlow();
 const invitation = parseChallenge(location.search);
 let invitedDay = invitation.day;
 let invitedMini = invitation.mini;
@@ -117,7 +119,7 @@ function updateHome() {
 }
 
 function saveProgress() {
-  savePreference(mini ? 'ciyu-mini-v1' : challenge ? 'ciyu-daily-v1' : 'ciyu-progress', JSON.stringify({ entries: validateEntries(game.words), completed: game.words.filter(word => word.done).map(word => word.word), name: roundName, practice, review, ...(mini ? { mini, dailyStats } : challenge ? { challenge, dailyStats } : {}),
+  savePreference(mini ? 'ciyu-mini-v1' : challenge ? 'ciyu-daily-v1' : 'ciyu-progress', JSON.stringify({ entries: validateEntries(game.words), completed: game.words.filter(word => word.done).map(word => word.word), name: roundName, practice, review, wordFlow, ...(mini ? { mini, dailyStats } : challenge ? { challenge, dailyStats } : {}),
     board: { tiles: game.tiles, boardHeight: game.boardHeight, activeWordId: game.activeWordId, selected: game.selected } }));
 }
 function markReview() {
@@ -314,6 +316,7 @@ function startGame(entries, name, focus = true, random = Math.random) {
   busy = false;
   hintId = null;
   game = createGame(entries, random);
+  wordFlow = freshWordFlow();
   activeDuration = 0;
   activeSince = null;
   roundName = name;
@@ -342,6 +345,7 @@ function showWin() {
   if (practice) $('win-summary').textContent += ` 教材已完成 ${practice.learned + game.completed} / ${practice.batches.flat().length} 词。`;
   if (challenge) $('win-summary').textContent = `${challenge} 每日词岛已清空！提示 ${dailyStats.hints} 次，重排 ${dailyStats.shuffles} 次，拼错 ${dailyStats.mistakes} 次。${dailyStats.hints + dailyStats.shuffles + dailyStats.mistakes === 0 ? '达成「独立拾词」！' : '同题再练一次，试试减少求助。'}`;
   if (mini) $('win-summary').textContent = `${miniIsland(mini).name}，三份收获都找到了！提示 ${dailyStats.hints} 次，重排 ${dailyStats.shuffles} 次，拼错 ${dailyStats.mistakes} 次。${dailyStats.hints + dailyStats.shuffles + dailyStats.mistakes === 0 ? '达成「独立拾词」！' : '再走一次，把这三个词记牢。'}`;
+  if (wordFlow.best > 1) $('win-summary').textContent += ` 最佳连续独立拼对 ${wordFlow.best} 词。`;
   $('play-again-button').textContent = mini ? '同题重玩 · 三词再出发 →' : challenge ? '同题重玩 · 挑战独立拾词 →' : practice && practice.index + 1 < practice.batches.length ? '继续本单元 · 下一座词岛 →' : practice ? '本次教材练习完成 · 再练一遍' : '再去下一座词岛 →';
   $('play-again-button').className = mini ? 'secondary-button' : 'primary-button';
   $('play-again-button').parentElement.prepend(mini ? $('next-mini') : $('play-again-button'));
@@ -372,6 +376,7 @@ function checkSpelling() {
     return;
   }
   if (result.status === 'incorrect') {
+    interruptWordFlow(wordFlow);
     if (challenge || mini) dailyStats.mistakes++;
     markReview();
     renderChallenge();
@@ -383,10 +388,12 @@ function checkSpelling() {
     return;
   }
   busy = true;
+  recordWordFlow(wordFlow);
   saveProgress();
   hintId = null;
   playSound(result.won ? 'win' : 'correct');
-  feedback(`${result.word.displayWord || result.word.word}，${result.word.meaning}。拼对了！`, 'success');
+  const flowNote = wordFlow.current > 1 ? `连对 ${wordFlow.current} 词！` : '';
+  feedback(`${flowNote}${result.word.displayWord || result.word.word}，${result.word.meaning}。拼对了！`, 'success');
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   for (const id of picked) {
     const tile = $('board').querySelector(`[data-tile-id="${id}"]`);
@@ -399,9 +406,9 @@ function checkSpelling() {
     if (result.won) {
       feedback('所有单词都拼对了，棋盘已清空。', 'success');
       if (focused && !document.hidden) showWin();
-    } else if (mini) feedback(`${miniIsland(mini).finds[Number(result.word.id.slice(5))]}！收获 ${game.completed} / 3 · 下一词：${getActiveWord().meaning}${result.rescued ? ' · 已免费整理余牌' : ''}`, 'success');
-    else if (result.rescued) feedback('拼对了！同字母自由取用让余牌互相遮挡，已自动免费整理；已完成的词保留。', 'success');
-    else feedback(`${result.word.displayWord || result.word.word} ✓ 已消除。下一词：${getActiveWord().meaning}`, 'success');
+    } else if (mini) feedback(`${flowNote}${miniIsland(mini).finds[Number(result.word.id.slice(5))]}！收获 ${game.completed} / 3 · 下一词：${getActiveWord().meaning}${result.rescued ? ' · 已免费整理余牌' : ''}`, 'success');
+    else if (result.rescued) feedback(`${flowNote}拼对了！余牌已免费整理，已完成的词保留。`, 'success');
+    else feedback(`${flowNote}${result.word.displayWord || result.word.word} ✓ 已消除。下一词：${getActiveWord().meaning}`, 'success');
   }, reducedMotion ? 0 : 280);
 }
 
@@ -465,6 +472,7 @@ $('clear-button').addEventListener('click', () => {
 });
 $('shuffle-button').addEventListener('click', () => {
   if (busy || !getActiveWord()) return;
+  interruptWordFlow(wordFlow);
   if (challenge || mini) dailyStats.shuffles++;
   reshuffle(game, challengeRandom(`shuffle:${dailyStats.shuffles}`));
   hintId = null;
@@ -480,6 +488,7 @@ $('hint-button').addEventListener('click', () => {
     feedback(hasPlayableWord() ? '这个词的字母还没全部露出，先试试词单里标记「可拼」的词。' : '暂时没有完整可拼的词，点击「重新排列」就能继续。');
     return;
   }
+  interruptWordFlow(wordFlow);
   if (challenge || mini) dailyStats.hints++;
   markReview();
   if (!letters(word.word).join('').startsWith(selectedText())) {
@@ -590,6 +599,7 @@ setupLibrary(selected => {
 function restoreRecord(saved) {
   if (!saved) throw new Error('No save');
   game = restoreProgress(saved.entries, saved.completed, challengeRandom('restore'), saved.board);
+  wordFlow = restoreWordFlow(saved.wordFlow, game.completed);
   if (saved.practice) {
     const p = saved.practice;
     if (!Array.isArray(p.batches) || p.batches.length > 10000 || !Number.isInteger(p.index) || p.index < 0 || p.index >= p.batches.length

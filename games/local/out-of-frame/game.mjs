@@ -1,3 +1,6 @@
+import { setupLandscape, logicalPoint as displayPoint } from './display.mjs';
+import { createH5Publishing } from './publishing.js';
+import { readChallenge } from './challenge.mjs';
 import { LEVELS, CHAPTERS } from './levels.mjs';
 import { createState, step, moveFrame, snapshot, restore } from './engine.mjs';
 import { render } from './render.mjs';
@@ -14,6 +17,9 @@ try {
   /* Private browsing still supports a full run. */
 }
 const progress = readProgress(storage, LEVELS);
+const incomingChallenge = readChallenge(location.search, LEVELS);
+let challenge = Boolean(incomingChallenge);
+const publishing = createH5Publishing({ gameId: 'out-of-frame', root: document.querySelector('.app'), title: '框外静止 · 同关挑战', adMode: globalThis.SmallGamesPublishingConfig?.adMode ?? 'mock', provider: globalThis.SmallGamesPublishingConfig?.provider, publicUrl: globalThis.SmallGamesPublishingConfig?.publicUrl, pause: () => { clearInput(); return clearInput; } });
 let levelIndex = 0;
 let chapterIndex = 0;
 let checkpointRestored = false;
@@ -63,9 +69,11 @@ function tone(frequency = 440, duration = 0.1) {
 }
 
 function save() {
+  if (challenge) return;
   writeProgress(storage, progress);
 }
 function saveSession() {
+  if (challenge) return;
   progress.lastLevelId = LEVELS[levelIndex].id;
   progress.checkpoint = mode === 'playing' ? createCheckpoint(state, history) : progress.checkpoint;
   save();
@@ -159,6 +167,7 @@ function refreshRoute() {
   );
 }
 function loadLevel(index, start = false, checkpoint = null) {
+  if (challenge && index !== incomingChallenge.index) challenge = false;
   clearInput();
   levelIndex = index;
   chapterIndex = CHAPTERS.findIndex(
@@ -189,14 +198,16 @@ function loadLevel(index, start = false, checkpoint = null) {
   $('hint').firstChild.textContent = '需要一点线索？ ';
   canvas.dataset.level = String(index + 1);
   $('object-status').dataset.key = '';
-  progress.lastLevelId = LEVELS[index].id;
-  progress.checkpoint = checkpoint;
+  if (!challenge) { progress.lastLevelId = LEVELS[index].id; progress.checkpoint = checkpoint; }
   $('start-button').textContent = checkpoint
     ? `继续第 ${String(index + 1).padStart(2, '0')} 关 →`
     : `进入第 ${String(index + 1).padStart(2, '0')} 关 ↗`;
   $('intro-meta').textContent = checkpoint
     ? `已保存 ${formatTime(state.time)} · ${LEVELS.length} 个房间 · 免费回退`
     : `${LEVELS.length} 个房间 · 10 个章节 · 自由探索`;
+  $('challenge-note').hidden = !challenge;
+  $('challenge-note').textContent = challenge ? `同关挑战 · ${incomingChallenge?.target !== null ? `目标 ${(incomingChallenge.target / 1000).toFixed(1)} 秒` : '自由计时'} · 不计入实验进度` : '';
+  $('exit-challenge').hidden = !challenge;
   refreshRoute();
   updateUI();
   saveSession();
@@ -329,7 +340,11 @@ function updateUI() {
       $('result-copy').textContent = won
         ? `用时 ${state.time.toFixed(1)} 秒 · ${newBest ? '新的最佳纪录' : `最佳 ${previousBest.toFixed(1)} 秒`} · 已完成 ${completedCount} / ${LEVELS.length}`
         : '回退 1 秒，换一种安排。也可以重新开始。';
-      $('next-level').hidden = !won;
+      $('share-challenge').hidden = !won;
+      $('share-status').textContent = '';
+      $('share-link').hidden = true;
+      if (won && challenge) $('result-copy').textContent = `挑战用时 ${state.time.toFixed(1)} 秒${incomingChallenge?.target !== null ? (state.time * 1000 <= incomingChallenge.target ? ' · 达成目标！' : ` · 再快 ${(state.time - incomingChallenge.target / 1000).toFixed(1)} 秒即可达标`) : ''} · 普通进度保留`;
+      $('next-level').hidden = !won || challenge;
       $('next-level').textContent =
         levelIndex === LEVELS.length - 1
           ? completedCount === LEVELS.length
@@ -338,7 +353,7 @@ function updateUI() {
           : (levelIndex + 1) % 10 === 0
             ? '进入下一章 →'
             : '下一个房间 →';
-      if (won) {
+      if (won && !challenge) {
         const level = LEVELS[levelIndex];
         progress.completed[level.id] = Math.min(
           progress.completed[level.id] || Infinity,
@@ -349,16 +364,14 @@ function updateUI() {
       }
       saveSession();
       tone(won ? 880 : 190, 0.3);
+      if (won) void publishing.interstitial({ placement: 'room-complete', naturalBreak: true });
     }
   }
 }
 
 function logicalPoint(event) {
-  const bounds = canvas.getBoundingClientRect();
-  return {
-    x: ((event.clientX - bounds.left) / bounds.width) * world.w,
-    y: ((event.clientY - bounds.top) / bounds.height) * world.h,
-  };
+  const point = displayPoint(canvas, event.clientX, event.clientY);
+  return { x: point.x / canvas.clientWidth * world.w, y: point.y / canvas.clientHeight * world.h };
 }
 canvas.addEventListener('pointerdown', (event) => {
   if (!isPlaying() || drag || event.button > 0) return;
@@ -561,7 +574,7 @@ function showIntro() {
 }
 
 function draw() {
-  const bounds = canvas.getBoundingClientRect();
+  const bounds = { width: canvas.clientWidth, height: canvas.clientHeight };
   const ratio = Math.min(window.devicePixelRatio || 1, 2);
   const width = Math.round(bounds.width * ratio),
     height = Math.round(bounds.height * ratio);
@@ -612,6 +625,7 @@ function frame(time) {
 }
 window.__outOfFrameSnapshot = () => ({
   levelIndex,
+  challenge,
   chapterIndex,
   checkpointRestored,
   state: snapshot(state),
@@ -620,13 +634,21 @@ window.__outOfFrameSnapshot = () => ({
   paused: paused(),
   historyLength: history.length,
 });
-loadLevel(
-  Math.max(
-    0,
-    LEVELS.findIndex((level) => level.id === progress.lastLevelId),
-  ),
-  false,
-  progress.checkpoint,
-);
+loadLevel(incomingChallenge?.index ?? Math.max(0, LEVELS.findIndex((level) => level.id === progress.lastLevelId)), false, challenge ? null : progress.checkpoint);
+$('exit-challenge').addEventListener('click', () => { challenge = false; mode = 'intro'; loadLevel(Math.max(0, LEVELS.findIndex(level => level.id === progress.lastLevelId)), false, progress.checkpoint); });
+$('result-home').addEventListener('click', showIntro);
+$('share-challenge').addEventListener('click', async () => {
+  const current = state;
+  const result = await publishing.share({ text: `第 ${levelIndex + 1} 关，我用了 ${state.time.toFixed(1)} 秒，你能更快吗？`, params: { challenge: 'frame-v1', level: LEVELS[levelIndex].id, targetMs: Math.ceil(state.time * 1000) } });
+  if (state !== current || $('result').hidden) return;
+  $('share-status').textContent = result.status === 'copied' ? '挑战链接已复制' : result.status === 'shared' ? '已打开系统分享' : result.status === 'cancelled' ? '已取消分享' : '可选中下方链接复制';
+  $('share-link').hidden = !['unavailable', 'failed'].includes(result.status);
+  $('share-link').value = result.url;
+});
+window.addEventListener('pagehide', (event) => { if (!event.persisted) publishing.dispose(); });
+setupLandscape(document.querySelector('.app'), clearInput);
+$('touch-undo').addEventListener('click', undo);
+$('touch-restart').addEventListener('click', () => loadLevel(levelIndex, true));
+$('intro-levels').addEventListener('click', () => openDialog($('pause-dialog')));
 updateSound();
 window.requestAnimationFrame(frame);

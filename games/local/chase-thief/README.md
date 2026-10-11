@@ -43,4 +43,10 @@ PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium pnpm --filter @coffeeeeffoc/chase-t
 
 效果图、页面关系和实际截图见 [设计说明](docs/design/README.md)。2026-10-06 验收：23 项规则/存档/服务测试通过；Chromium 151 生产制品的 12 组浏览器流程通过，覆盖三个手机尺寸、三关正常通关及坏存储降级；Web Shell 生产构建、iframe 与手机 Pages 操作回归通过。详细记录保存在 [浏览器报告](docs/design/report.json)。
 
-首版提供本地最好成绩和免费重试。广告续关、付费外观及远端成绩榜待渠道 SDK 接入后再扩展；本版没有模拟广告或支付。已验证的手机尺寸浏览器模拟不代表物理手机、原生小游戏渠道或 iOS Safari 验收。
+2026-10-11 扩围优化：正常抓捕结算可生成同街区挑战链接，对比用时与失误上限，并展示本局冲刺次数。接收链接明确显示目标，可挑战未解锁街区，但不写个人最佳或正常解锁；开发试玩不生成成绩分享。分享支持系统面板、剪贴板与手动复制，公开链接去除 dev/无关参数。场景第二触点不再发出额外动作，取消后下一手势可正常输入。
+
+复用公共 H5 发布适配器，每三次自然结算最多出现一次可立即关闭的模拟插屏（至少60秒间隔、每次游戏会话最多3次）。无广告奖励、续关付费或真实渠道广告。生产构建直接复制公共适配器，开发服务读取公共源，不维护私有副本。已验证的手机尺寸浏览器模拟不代表物理手机、原生小游戏渠道或 iOS Safari 验收。
+
+专项验证：`node games/local/chase-thief/tests/publishing.browser.mjs`（从仓库根运行），设计及手机实际截图见 [扩围记录](docs/design/expansion-2026-10-11/README.md)。
+
+部署可通过 `SmallGamesPublishingConfig.adMode`（由 `DEPLOY_H5_AD_MODE` 注入）选择 off/mock/host，并接受 publicUrl 和 Game Host provider。默认使用明确标识的模拟广告；off 模式完全关闭结算插屏。

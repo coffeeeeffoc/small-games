@@ -1,0 +1,10 @@
+{
+  "checks": [
+    "standalone enter/exit fullscreen",
+    "desktop first page, pause, fewer-fold result, public share",
+    "rotated phone: mapped gesture cancel, touch solve, isolated normal save",
+    "physical landscape, third-result simulation ad and dismissal",
+    "normal progress returns; all 100 previously open pages retained"
+  ],
+  "errors": []
+}

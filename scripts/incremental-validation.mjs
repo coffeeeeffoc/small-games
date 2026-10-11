@@ -226,6 +226,10 @@ export function incrementalPlan({
     nine_native_travel_contract: nineNative.travel_contract,
     native_consumers: nativeConsumers.map((consumer) => consumer.dir),
     developer_mode_ids: devModeIds.sort(),
+    catalog_rollout_checks: shellChanged,
+    interaction_browser_ids: ['letters-words2', 'tianxia-chalu'].filter(
+      (id) => ids.has(id) && directGames.some((game) => game.id === id),
+    ),
     publishing_checks: publishingChanged,
     publishing_browser_ids: publishingBrowserIds.sort(),
     publication_config_checks: paths.some((file) => publicationConfigScopePaths.includes(file)),

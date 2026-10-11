@@ -3,9 +3,25 @@
   "source": "Production dist served by game server",
   "checks": [
     {
+      "name": "Preview before committing routes; drag, cancellation and multitouch never issue a command",
+      "passed": true,
+      "durationMs": 4496,
+      "screenshots": [
+        "route-preview-390x844.png"
+      ],
+      "methods": [
+        "touch preview",
+        "pointercancel",
+        "drag away",
+        "multitouch",
+        "keyboard",
+        "pause cleanup"
+      ]
+    },
+    {
       "name": "Default player entry, locked campaign and primary mobile screens",
       "passed": true,
-      "durationMs": 1599,
+      "durationMs": 4491,
       "route": {
         "before": "westbank",
         "after": "southbank",
@@ -24,7 +40,7 @@
     {
       "name": "Pause freezes time; canceled touch and resize preserve the match and coordinate mapping",
       "passed": true,
-      "durationMs": 5911,
+      "durationMs": 11242,
       "pausedSeconds": 3.1,
       "virtualPauseSeconds": 15,
       "sizes": [
@@ -47,9 +63,9 @@
             "documentWidth": 320,
             "board": {
               "x": 41.8125,
-              "y": 123.5,
+              "y": 143,
               "width": 236.359375,
-              "height": 399.984375
+              "height": 382
             }
           }
         },
@@ -97,7 +113,7 @@
             "documentWidth": 390,
             "board": {
               "x": 13,
-              "y": 153.5,
+              "y": 156.5,
               "width": 364,
               "height": 616
             }
@@ -109,7 +125,7 @@
     {
       "name": "Normal campaign victory through eight real route taps unlocks and persists the next level",
       "passed": true,
-      "durationMs": 11054,
+      "durationMs": 21642,
       "seed": 1,
       "difficulty": "normal",
       "actions": [
@@ -176,14 +192,14 @@
     {
       "name": "Registered developer victory and fast finish cannot award campaign progress",
       "passed": true,
-      "durationMs": 680,
+      "durationMs": 3712,
       "progressBefore": [],
       "progressAfter": []
     },
     {
       "name": "Unassisted four-faction match reaches an ordinary 180-second result and retries",
       "passed": true,
-      "durationMs": 51731,
+      "durationMs": 132227,
       "seed": 8,
       "result": {
         "levelId": "four-kingdoms",
@@ -225,7 +241,7 @@
     {
       "name": "Fullscreen entry/exit preserves paused game; refusal and unsupported API keep touch gameplay available",
       "passed": true,
-      "durationMs": 1752,
+      "durationMs": 9611,
       "nativeBrowserFullscreen": "entered and exited",
       "fallbacks": [
         {
@@ -241,14 +257,14 @@
     {
       "name": "Blocked localStorage getter retains playable local fallback and save warning",
       "passed": true,
-      "durationMs": 315,
+      "durationMs": 3046,
       "storageFailure": "SecurityError getter",
       "result": "Home, battle, route, pause and resume all usable"
     },
     {
       "name": "320×568 home and levels retain visible touch targets and no horizontal overflow",
       "passed": true,
-      "durationMs": 479
+      "durationMs": 3229
     }
   ],
   "errors": [],
@@ -257,5 +273,5 @@
     "reference": "concept.png",
     "review": "Ink landscape, parchment battlefield, red primary actions and gold routing controls follow the concept. Runtime cities use legible vector symbols and the level map uses three progression cards. Portrait is primary; landscape keeps the vertical board and moves status to its sides."
   },
-  "browser": "140.0.7339.186"
+  "browser": "151.0.7922.173"
 }

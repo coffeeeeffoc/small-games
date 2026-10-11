@@ -51,3 +51,9 @@ node playtest.mjs ../../../node_modules/@playwright/test/index.mjs
 交互验收同时检查卡片两次点击派遣、空闲车辆实时筛选、屏幕缩放后连线端点、已分配区域的动画/展开/收起、执行车实时连线、完成与过期清理、键盘和减少动画设置。截图：[待派车选择](./docs/playtest-dispatch-picker.png)、[展开已分配](./docs/playtest-assigned-expanded.png)。
 
 手机证据来自 Chrome 视口/触控模拟，未做手机实机验证；本次不代表已部署线上。
+
+## 2026-10-11 局部体验扩展
+
+任务卡显示距恶化的实时倒计时，地图同时标明当前最紧迫的已发生事件；候选车辆给出包括路程与服务的完成余量/预计超时，方便选择。暂停冻结倒计时；暂停图标改为两根实心竖条。结算可邀请好友挑战相同事件表和初始车位，支持返回待命；这不是实时真人对战。
+
+分享复用公共 `platforms/h5/publishing.js`，开发服务器映射、构建复制公共源。浏览器触屏专项：`node games/local/rescue-team/tests/publishing.browser.mjs`（从仓库根运行）。[局部设计与验收](docs/design/expansion-2026-10-11/README.md)。

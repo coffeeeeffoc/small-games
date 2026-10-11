@@ -51,7 +51,25 @@ export const filterGroups = {
 } as const;
 
 export type FilterGroup = keyof typeof filterGroups;
-export type CatalogFilters = Record<FilterGroup, string[]> & { tab: 'all' | 'focus' | 'hold' };
+/** Scheduling is exclusive; potential and product tags remain independent facets. */
+export const rolloutGroups = [
+  ['previous', '上轮已改造'],
+  ['current', '本轮改造'],
+  ['later', '有潜力 · 后续改造'],
+  ['hold', '暂缓投入'],
+] as const;
+export type RolloutGroup = (typeof rolloutGroups)[number][0];
+export type CatalogTab = 'all' | RolloutGroup;
+export const catalogTabs = [['all', '全部游戏'], ...rolloutGroups] as const;
+export const implementationLabels: Record<string, string> = {
+  implemented: '已落实改造 · 真机待验证',
+  planned: '已排期 · 待实施',
+  deferred: '待后续改造',
+  held: '保留入口 · 暂缓改造',
+};
+export const rolloutLabel = (schedule: string): string =>
+  rolloutGroups.find(([value]) => value === schedule)?.[1] ?? schedule;
+export type CatalogFilters = Record<FilterGroup, string[]> & { tab: CatalogTab };
 export type CatalogState = { query: string; view: 'list' | 'cards'; filters: CatalogFilters };
 export type GameAssessment = (typeof data.games)[number];
 export const assessmentBasis = data.basis;
@@ -81,10 +99,8 @@ export function matchesAssessment(
   filters: CatalogFilters,
   ignoreGroup?: FilterGroup | 'tab',
 ): boolean {
-  if (ignoreGroup !== 'tab') {
-    if (filters.tab === 'focus' && assessment?.priority !== 'first') return false;
-    if (filters.tab === 'hold' && assessment?.disposition !== 'hold') return false;
-  }
+  if (ignoreGroup !== 'tab' && filters.tab !== 'all' && assessment?.schedule !== filters.tab)
+    return false;
   return groupKeys.every(
     (group) =>
       group === ignoreGroup ||
@@ -97,7 +113,9 @@ export function readCatalogState(search: string): CatalogState {
   const params = new URLSearchParams(search);
   const filters = emptyFilters();
   const tab = params.get('catalogTab');
-  if (tab === 'focus' || tab === 'hold') filters.tab = tab;
+  // Old focus links selected the first seven games; preserve that exact population.
+  if (tab === 'focus') filters.tab = 'previous';
+  else if (catalogTabs.some(([value]) => value === tab)) filters.tab = tab as CatalogTab;
   for (const group of groupKeys) {
     filters[group] = [...new Set(params.getAll(`catalog_${group}`))].filter((value) =>
       filterGroups[group].options.some(([id]) => id === value),
@@ -134,7 +152,7 @@ export function catalogStateUrl(currentUrl: string, state: CatalogState): string
 
 export function assessmentSearchText(assessment: GameAssessment | undefined): string {
   if (!assessment) return '';
-  return groupKeys
+  return `${rolloutLabel(assessment.schedule)} ${implementationLabels[assessment.implementationStatus]} ${groupKeys
     .flatMap((group) => assessment[group].map((value) => tagLabel(group, value)))
-    .join(' ');
+    .join(' ')}`;
 }

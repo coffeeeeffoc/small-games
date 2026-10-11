@@ -54,7 +54,7 @@ test('reviewed Codex roles select no game consumers; extra settings and unknown 
   }
 });
 
-test('publishing adapter selects all seven real standalone consumers and rejects missing identities', () => {
+test('publishing adapter selects all registered standalone consumers and rejects missing identities', () => {
   const games = Object.entries(publishingConsumers).map(([id, source]) => ({ id, source }));
   const packages = games.map((game) => ({ name: game.id, dir: game.source }));
   for (const file of publishingScopePaths) {

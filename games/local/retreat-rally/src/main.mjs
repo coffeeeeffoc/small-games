@@ -1,3 +1,11 @@
+import { createH5Publishing } from '../publishing.js';
+import {
+  readChallenge,
+  challengeParams,
+  compareChallenge,
+  volleyBeat,
+  CHALLENGE_KEYS,
+} from './challenge.mjs';
 import { LEVELS } from './levels.mjs';
 import { createBattle, step, setRetreat, alive, averageStamina } from './simulation.mjs';
 import { emptyProgress, migrateProgress, SAVE_KEY, unlocked, recordVictory } from './progress.mjs';
@@ -30,6 +38,20 @@ let matchTimer = null,
   previousPhase = '';
 const pointers = { blue: new Set(), red: new Set() },
   keys = { blue: false, red: false };
+let challenge = readChallenge(location.href);
+const publishing = createH5Publishing({
+  gameId: 'retreat-rally',
+  title: '收兵再冲 · 同关比战绩',
+  adMode: globalThis.SmallGamesPublishingConfig?.adMode ?? 'mock',
+  provider: globalThis.SmallGamesPublishingConfig?.provider,
+  publicUrl: globalThis.SmallGamesPublishingConfig?.publicUrl,
+  maxPerSession: 3,
+  root: game,
+  pause: () => {
+    release();
+    return () => {};
+  },
+});
 function save() {
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(progress));
@@ -85,7 +107,11 @@ function syncHost(playing) {
   if (window.parent === window) return;
   try {
     window.parent.postMessage(
-      { type: 'small-games:display-state', gameId: 'retreat-rally', screen: playing ? 'playing' : 'home' },
+      {
+        type: 'small-games:display-state',
+        gameId: 'retreat-rally',
+        screen: playing ? 'playing' : 'home',
+      },
       new URL(document.referrer).origin,
     );
   } catch {}
@@ -101,9 +127,18 @@ function show(name) {
   if (name === 'home') {
     battle = null;
     $('#progress-count').textContent = `${Object.keys(progress.medals).length} / 三`;
-    $('#start').firstChild.textContent = Object.keys(progress.medals).length
-      ? '继续战役 '
-      : '开始战役 ';
+    $('#challenge-invite').hidden = !challenge;
+    $('#leave-challenge').hidden = !challenge;
+    $('#levels-open').hidden = Boolean(challenge);
+    $('.home-modes').hidden = Boolean(challenge);
+    if (challenge)
+      $('#challenge-invite').textContent =
+        `好友挑战 · ${LEVELS.find((l) => l.id === challenge.levelId).name} · 保全 ${challenge.survivors} 人 / ${challenge.time} 秒内夺旗`;
+    $('#start').firstChild.textContent = challenge
+      ? '接受同关挑战 '
+      : Object.keys(progress.medals).length
+        ? '继续战役 '
+        : '开始战役 ';
   }
   if (name === 'levels') drawLevels();
 }
@@ -124,22 +159,35 @@ function drawLevels() {
   );
 }
 function start(index = 0, nextMode = mode, dev = false) {
-  if (nextMode === 'campaign' && !dev && !unlocked(progress, LEVELS[index])) return;
+  if (!LEVELS[index]) return;
+  if (
+    nextMode === 'campaign' &&
+    !dev &&
+    challenge?.levelId !== LEVELS[index].id &&
+    !unlocked(progress, LEVELS[index])
+  )
+    return;
   cancelMatch();
   selected = index;
   mode = nextMode;
   practice = dev;
   previousPhase = '';
   battle = createBattle(LEVELS[index], mode, Math.floor(Math.random() * 10000));
+  battle.challenge =
+    !dev && nextMode === 'campaign' && challenge?.levelId === LEVELS[index].id
+      ? { ...challenge }
+      : null;
   game.dataset.mode = mode;
   game.dataset.practice = String(practice);
   $('#battle-name').textContent = practice
     ? '开发试玩'
-    : mode === 'campaign'
-      ? LEVELS[index].name
-      : mode === 'random'
-        ? '随机对阵 · 模拟对手'
-        : '好友对战 · 同屏双人';
+    : battle.challenge
+      ? `好友挑战 · ${LEVELS[index].name}`
+      : mode === 'campaign'
+        ? LEVELS[index].name
+        : mode === 'random'
+          ? '随机对阵 · 模拟对手'
+          : '好友对战 · 同屏双人';
   $('#retreat-red').hidden = mode !== 'friend';
   show('battle');
   last = performance.now();
@@ -197,7 +245,11 @@ function updateHud() {
     `${String(Math.floor(s.time / 60)).padStart(2, '0')}:${String(Math.floor(s.time % 60)).padStart(2, '0')}`;
   const danger = ['warning', 'gap', 'impact'].includes(v.phase),
     card = $('#volley-notice');
+  const beat = volleyBeat(s);
   card.classList.toggle('danger', danger);
+  card.classList.toggle('counterattack', beat.counterattack);
+  $('#volley-beat').style.transform = `scaleX(${beat.fraction})`;
+  card.dataset.phase = v.phase;
   card.querySelector('b').textContent =
     v.phase === 'warning'
       ? `箭雨将至 · ${v.timer.toFixed(1)}秒`
@@ -207,7 +259,9 @@ function updateHud() {
           ? '箭雨落下！'
           : v.phase === 'silent'
             ? '敌方弓阵已破'
-            : `弓兵装填 · ${Math.ceil(v.timer)}秒`;
+            : beat.counterattack
+              ? '反攻窗口 · 松手进攻'
+              : `弓兵装填 · ${Math.ceil(v.timer)}秒`;
   card.querySelector('small').textContent = danger
     ? v.remaining > 1
       ? '分批齐射 · 等最后一箭落地'
@@ -235,17 +289,19 @@ function updateHud() {
   game.dataset.battleStatus = s.status;
 }
 function finish() {
-  if (recordVictory(progress, battle, practice)) save();
+  if (!battle.challenge && recordVictory(progress, battle, practice)) save();
   const won = battle.status === 'won',
     draw = battle.status === 'draw',
     friend = mode === 'friend';
-  $('#result-eyebrow').textContent = practice
-    ? '开发试玩 · 不计入进度'
-    : mode === 'campaign'
-      ? '此战，已记入行军册'
-      : friend
-        ? '同屏切磋 · 胜负已分'
-        : '本地模拟 · 对阵结束';
+  $('#result-eyebrow').textContent = battle.challenge
+    ? '好友挑战 · 不改变战役进度'
+    : practice
+      ? '开发试玩 · 不计入进度'
+      : mode === 'campaign'
+        ? '此战，已记入行军册'
+        : friend
+          ? '同屏切磋 · 胜负已分'
+          : '本地模拟 · 对阵结束';
   $('#result-title').textContent = draw
     ? '鸣金，各自收兵'
     : friend
@@ -267,8 +323,21 @@ function finish() {
         : '');
   $('#result-stats').innerHTML =
     `<span><b>${Math.ceil(battle.time)}s</b>交战用时</span><span><b>${alive(battle, 'blue').length} / 6</b>蓝方存活</span><span><b>${battle.dodged}</b>避开齐射</span>`;
-  $('#next').hidden = !(won && mode === 'campaign' && selected < LEVELS.length - 1 && !practice);
+  $('#next').hidden = !(
+    won &&
+    mode === 'campaign' &&
+    selected < LEVELS.length - 1 &&
+    !practice &&
+    !battle.challenge
+  );
+  $('#challenge-result').hidden = !battle.challenge;
+  if (battle.challenge)
+    $('#challenge-result').textContent = compareChallenge(battle, battle.challenge);
+  $('#share-result').hidden = !challengeParams(battle, practice);
+  $('#share-status').hidden = true;
+  $('#share-link').hidden = true;
   show('result');
+  if (!practice) void publishing.interstitial({ placement: 'result', naturalBreak: true });
   sound(won ? 'won' : 'end');
 }
 for (const side of ['blue', 'red']) {
@@ -326,14 +395,46 @@ document.addEventListener('visibilitychange', visibility);
 document.querySelectorAll('[data-go]').forEach((b) => (b.onclick = () => show(b.dataset.go)));
 $('#start').onclick = () =>
   start(
-    Math.min(
-      LEVELS.findIndex((l) => !progress.medals[l.id]) < 0
-        ? 2
-        : LEVELS.findIndex((l) => !progress.medals[l.id]),
-      2,
-    ),
+    challenge
+      ? LEVELS.findIndex((l) => l.id === challenge.levelId)
+      : Math.min(
+          LEVELS.findIndex((l) => !progress.medals[l.id]) < 0
+            ? 2
+            : LEVELS.findIndex((l) => !progress.medals[l.id]),
+          2,
+        ),
     'campaign',
   );
+$('#leave-challenge').onclick = () => {
+  challenge = null;
+  const url = new URL(location.href);
+  for (const key of CHALLENGE_KEYS) url.searchParams.delete(key);
+  history.replaceState(null, '', url);
+  show('home');
+};
+$('#share-result').onclick = async () => {
+  const params = challengeParams(battle, practice);
+  if (!params) return;
+  const sharedBattle = battle;
+  $('#share-result').disabled = true;
+  const result = await publishing.share({
+    params,
+    text: `${battle.level.name}，${params.time} 秒夺旗，保全 ${params.survivors} 人、躲过 ${battle.dodged} 次齐射。来比同一关！`,
+  });
+  $('#share-result').disabled = false;
+  if (battle !== sharedBattle || screenName !== 'result') return;
+  $('#share-status').hidden = false;
+  $('#share-status').textContent = {
+    shared: '已打开系统分享',
+    copied: '挑战链接已复制',
+    cancelled: '已取消分享',
+    unavailable: '可选择下方链接手动复制',
+    failed: '复制未完成，可选择链接手动复制',
+  }[result.status];
+  $('#share-link').hidden =
+    !result.url || ['shared', 'copied', 'cancelled'].includes(result.status);
+  $('#share-link').value = result.url;
+};
 $('#levels-open').onclick = () => show('levels');
 $('#help-open').onclick = () => show('help');
 $('#random-open').onclick = () => prepare('random');
@@ -411,6 +512,7 @@ window.RetreatRally = {
   pause,
 };
 function cleanup() {
+  publishing.dispose();
   cancelAnimationFrame(raf);
   release();
   cancelMatch();

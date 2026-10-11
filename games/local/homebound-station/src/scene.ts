@@ -82,7 +82,10 @@ export class StationScene {
       (event.target as Element).setPointerCapture(event.pointerId);
       if (hit?.kind === 'vehicle') this.label('vehicle', hit.id).classList.add('pressing');
     }, { signal: this.events.signal });
-    element.addEventListener('pointercancel', () => { down = undefined; }, { signal: this.events.signal });
+    const cancelGesture = () => { down = undefined; this.overlay.querySelectorAll('.pressing').forEach(el => el.classList.remove('pressing')); };
+    element.addEventListener('pointercancel', cancelGesture, { signal: this.events.signal });
+    element.addEventListener('lostpointercapture', cancelGesture, { signal: this.events.signal });
+    window.addEventListener('blur', cancelGesture, { signal: this.events.signal });
     element.addEventListener('pointerup', event => {
       const start = down; down = undefined;
       if (!start || start.pointerId !== event.pointerId || !start.hit) return;
@@ -356,6 +359,7 @@ export class StationScene {
       el.className = `world-label vehicle-label ${v.id === selectedVehicle ? 'selected' : ''} ${obstructs ? 'blocking' : ''} ${selectable ? 'selectable' : 'busy'} ${v.state === 'holding' ? 'parked' : 'moving'}`;
       const g = s.groups.find(g => g.id === v.groupId);
       this.labelText(el, v.state === 'holding' ? ARROWS[v.direction] : v.state === 'boarding' ? `${g?.boarded ?? 0}/${g?.passengers.length ?? 0}` : v.state === 'reserved' ? '待发' : v.state === 'departing' ? (job?.clearedAt === undefined ? '驶离' : '已离位') : '出库', v.state === 'holding' ? String(v.passengerCapacity) : '');
+      el.dataset.blocking = obstructs ? 'true' : 'false';
       el.setAttribute('aria-label', `${v.id} ${ARROWS[v.direction]} 可载${v.passengerCapacity}人 ${canSelect(s, v) ?? '可以出库'}`);
       this.place(el, v.position.x, 1.5, v.position.z);
     }

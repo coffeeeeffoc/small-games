@@ -1,0 +1,10 @@
+{
+  "checks": [
+    "320x568: home, all ten chapters/100 locked levels, records, settings, play, hints, pause and return use touch controls without overflow",
+    "390x844: home, all ten chapters/100 locked levels, records, settings, play, hints, pause and return use touch controls without overflow",
+    "844x390: home, all ten chapters/100 locked levels, records, settings, play, hints, pause and return use touch controls without overflow",
+    "Actual CDP multitouch moves and jumps together; releasing jump keeps movement, cancellation and pause release inputs, and orientation changes preserve the puzzle",
+    "A level completes through touch-only scene actions and movement; result has replay/share/next controls and replay safely returns to play"
+  ],
+  "errors": []
+}

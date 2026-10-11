@@ -380,6 +380,34 @@ export function runNineNativeChecks({
 }
 
 export function runIncrementalToolChecks({ plan, packages, root, env, execute = run }) {
+  if (plan.catalog_rollout_checks) {
+    assert(plan.browser, 'Catalog rollout validation requires real browser checks');
+    execute(
+      process.execPath,
+      ['apps/shell-web/scripts/catalog-rollout-smoke.mjs'],
+      root,
+      env,
+      'logged',
+    );
+  }
+  // These games use existing sharing or no ads; validate their interaction changes
+  // without classifying them as consumers of the public H5 publishing adapter.
+  const interactionBrowsers = {
+    'letters-words2': 'word-flow.browser.mjs',
+    'tianxia-chalu': 'browser.mjs',
+  };
+  for (const [id, file] of Object.entries(interactionBrowsers)) {
+    const source = `games/local/${id}`;
+    if (!plan.interaction_browser_ids?.includes(id)) continue;
+    assert(
+      plan.browser &&
+        plan.browser_ids?.includes(id) &&
+        plan.game_sources?.includes(source) &&
+        packages.some((pkg) => pkg.dir === source),
+      `Missing interaction browser consumer: ${id}`,
+    );
+    execute(process.execPath, [`${source}/tests/${file}`], root, env, 'logged');
+  }
   if (plan.publishing_checks)
     execute(
       process.execPath,
@@ -414,6 +442,18 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
     'three-choose-two': ['publishing.browser.mjs'],
     'flick-arena': ['publishing.browser.mjs'],
     'moss-garden': ['publishing.browser.mjs'],
+    'chase-thief': ['publishing.browser.mjs'],
+    'retreat-rally': ['publishing.browser.mjs'],
+    'tiny-signals': ['publishing.browser.mjs'],
+    'orbit-atelier': ['publishing.browser.mjs'],
+    'wulong-city': ['publishing.browser.mjs'],
+    'surprise-kept': ['publishing.browser.mjs'],
+    'homebound-station': ['publishing.browser.mjs'],
+    'waterline-station': ['publishing.browser.mjs'],
+    'rescue-team': ['publishing.browser.mjs'],
+    'out-of-frame': ['publishing.browser.mjs'],
+    'fold-the-world': ['publishing.browser.mjs'],
+    'two-sided-box': ['publishing.browser.mjs'],
   };
   const publishingIds = [...new Set(plan.publishing_browser_ids || [])];
   for (const id of publishingIds)

@@ -29,7 +29,7 @@ const server = http.createServer(async (request, response) => {
       response.writeHead(403).end('Forbidden');
       return;
     }
-    const bytes = await readFile(target);
+    const bytes = await readFile(pathname === '/publishing.js' && !process.argv.includes('--dist') ? new URL('../../../platforms/h5/publishing.js', import.meta.url) : target);
     response.writeHead(200, {
       'Content-Type': mime[path.extname(target)] || 'application/octet-stream',
       'Cache-Control': 'no-store',

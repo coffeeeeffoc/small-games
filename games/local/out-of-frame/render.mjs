@@ -802,5 +802,17 @@ export function render(ctx, level, state, { dragging = false, reducedMotion = fa
   drawPlayer(ctx, state.player, time, reducedMotion, state.status);
   if (dragging) drawPlacementGuides(ctx, state);
   fieldBorder(ctx, state.frame, dragging);
+  // Explain the actual core-point rule at the boundary, not the object's outline.
+  for (const object of state.objects ?? []) {
+    const cx = object.x + object.w / 2, cy = object.y + object.h / 2;
+    const frame = state.frame;
+    const edge = Math.min(Math.abs(cx - frame.x), Math.abs(cx - frame.x - frame.w), Math.abs(cy - frame.y), Math.abs(cy - frame.y - frame.h));
+    if (!dragging && edge > 22) continue;
+    const text = object.active ? '▶ 核心在框内' : '核心已冻结';
+    const tx = Math.max(62, Math.min(898, cx)), ty = Math.max(45, object.y - 19);
+    box(ctx, tx - 60, ty - 11, 120, 22, 5, '#142e32', object.active ? AMBER : MINT);
+    label(ctx, text, tx, ty, 12, object.active ? AMBER : MINT, 'center', 650);
+    circle(ctx, cx, cy, 9, null, object.active ? AMBER : MINT);
+  }
   ctx.restore();
 }

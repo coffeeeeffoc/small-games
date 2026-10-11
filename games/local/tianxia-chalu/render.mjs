@@ -5,14 +5,59 @@ const cityIcon =
   '<svg class="city-icon" viewBox="0 0 60 40" aria-hidden="true"><path d="M5 35V20H12V15H20V20H25V10L19 10 30 2 41 10H35V20H40V15H48V20H55V35H34V25H26V35Z"/><path d="M2 36H58M11 19V12M49 19V12" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
 const arrow =
   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21V3M5 10 12 3 19 10"/></svg>';
+export function nextRoute(current, junctionId) {
+  const junction = current.junctions.find((entry) => entry.id === junctionId);
+  if (!junction || junction.owner !== 0 || current.status !== 'playing') return null;
+  const source = current.cities.find((entry) => entry.id === junction.cityId);
+  const target = current.cities.find(
+    (entry) => entry.id === junction.exits[(junction.routeIndex + 1) % junction.exits.length],
+  );
+  return source && target ? { junction, source, target } : null;
+}
 export function mountBoard(board, state, onSwitch) {
   board.innerHTML =
-    '<canvas aria-hidden="true"></canvas><div class="battle-message" role="status" aria-live="polite"></div>';
+    '<canvas aria-hidden="true"></canvas><div class="battle-message" role="status" aria-live="polite"></div><div class="route-preview" role="status" aria-live="polite"></div>';
   const canvas = board.querySelector('canvas');
   const ctx = canvas.getContext('2d');
   const message = board.querySelector('.battle-message');
+  const preview = board.querySelector('.route-preview');
+  let currentState = state, press = null;
+  const activePointers = new Set(), timers = new Set();
   const cityNodes = new Map(),
     switches = new Map();
+  function clearPreview() {
+    if (preview.textContent) preview.textContent = '';
+    delete preview.dataset.route;
+    for (const node of cityNodes.values()) node.classList.remove('route-target');
+    for (const node of switches.values()) node.classList.remove('previewing');
+  }
+  function cancelPress() {
+    press = null;
+    clearPreview();
+    draw(currentState);
+  }
+  function showPreview() {
+    const route = press && nextRoute(currentState, press.junctionId);
+    if (!route) return cancelPress();
+    const key = `${route.junction.id}:${route.target.id}`;
+    if (preview.dataset.route === key) return;
+    clearPreview();
+    preview.dataset.route = key;
+    preview.textContent = `松手改道：${route.source.name} → ${route.target.name}`;
+    cityNodes.get(route.target.id)?.classList.add('route-target');
+    switches.get(route.junction.id)?.classList.add('previewing');
+    draw(currentState);
+  }
+  const trackPointer = (event) => {
+    activePointers.add(event.pointerId);
+    if (activePointers.size > 1) cancelPress();
+  };
+  const releasePointer = (event) => activePointers.delete(event.pointerId);
+  const resetPointers = () => { activePointers.clear(); cancelPress(); };
+  window.addEventListener('pointerdown', trackPointer, true);
+  window.addEventListener('pointerup', releasePointer);
+  window.addEventListener('pointercancel', releasePointer);
+  window.addEventListener('blur', resetPointers);
   for (const city of state.cities) {
     const el = document.createElement('div');
     el.className = 'city';
@@ -31,7 +76,28 @@ export function mountBoard(board, state, onSwitch) {
     button.style.top = `${junction.y / 6.6}%`;
     button.dataset.junction = junction.id;
     button.innerHTML = arrow;
-    button.addEventListener('click', () => onSwitch(junction.id));
+    button.addEventListener('pointerdown', (event) => {
+      if (event.button !== 0 || !event.isPrimary || activePointers.size > 1 || button.disabled) return;
+      press = { pointerId: event.pointerId, junctionId: junction.id, x: event.clientX, y: event.clientY };
+      button.setPointerCapture(event.pointerId);
+      showPreview();
+    });
+    button.addEventListener('pointermove', (event) => {
+      if (press?.pointerId === event.pointerId && Math.hypot(event.clientX - press.x, event.clientY - press.y) > 14) cancelPress();
+    });
+    button.addEventListener('pointerup', (event) => {
+      const bounds = button.getBoundingClientRect();
+      const commit = press?.pointerId === event.pointerId &&
+        event.clientX >= bounds.left && event.clientX <= bounds.right &&
+        event.clientY >= bounds.top && event.clientY <= bounds.bottom &&
+        nextRoute(currentState, junction.id);
+      cancelPress();
+      if (commit) onSwitch(junction.id);
+    });
+    button.addEventListener('pointercancel', cancelPress);
+    button.addEventListener('lostpointercapture', cancelPress);
+    // Keyboard and assistive activation remain available; pointer release owns touch/mouse.
+    button.addEventListener('click', (event) => { if (event.detail === 0) onSwitch(junction.id); });
     board.append(button);
     switches.set(junction.id, button);
   }
@@ -90,6 +156,17 @@ export function mountBoard(board, state, onSwitch) {
         }
       }
     }
+    const planned = press && nextRoute(current, press.junctionId);
+    if (planned) {
+      ctx.beginPath();
+      ctx.moveTo(planned.junction.x, planned.junction.y);
+      ctx.lineTo(planned.target.x, planned.target.y);
+      ctx.strokeStyle = '#a66b00';
+      ctx.lineWidth = 5;
+      ctx.setLineDash([6, 5]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
     for (const packet of current.packets) {
       const p = Math.min(1, packet.elapsed / packet.duration),
         x = packet.from.x + (packet.to.x - packet.from.x) * p,
@@ -126,6 +203,8 @@ export function mountBoard(board, state, onSwitch) {
     ctx.fillText('兵至城下，胜负一线', 195, 620);
   }
   function update(current, teach = false) {
+    currentState = current;
+    if (press) showPreview();
     draw(current);
     for (const city of current.cities) {
       const el = cityNodes.get(city.id);
@@ -151,7 +230,7 @@ export function mountBoard(board, state, onSwitch) {
       button.disabled = junction.owner !== 0 || current.status !== 'playing';
       button.setAttribute(
         'aria-label',
-        `${city.name}岔路，当前通往${target.name}${junction.owner === 0 ? '，点击改道' : '，不可控制'}`,
+        `${city.name}岔路，当前通往${target.name}${junction.owner === 0 ? `，下一出口${nextRoute(current, junction.id)?.target.name ?? target.name}，按住预览，松手改道` : '，不可控制'}`,
       );
       button.querySelector('svg').style.transform =
         `rotate(${(Math.atan2(target.y - junction.y, target.x - junction.x) * 180) / Math.PI + 90}deg)`;
@@ -179,8 +258,22 @@ export function mountBoard(board, state, onSwitch) {
       button?.classList.remove('flare');
       requestAnimationFrame(() => button?.classList.add('flare'));
     },
+    signalCity(id, lost) {
+      const node = cityNodes.get(id);
+      if (!node) return;
+      const name = lost ? 'city-lost' : 'city-captured';
+      node.classList.add(name);
+      const timer = setTimeout(() => { node.classList.remove(name); timers.delete(timer); }, 2500);
+      timers.add(timer);
+    },
     destroy() {
       observer.disconnect();
+      resetPointers();
+      for (const timer of timers) clearTimeout(timer);
+      window.removeEventListener('pointerdown', trackPointer, true);
+      window.removeEventListener('pointerup', releasePointer);
+      window.removeEventListener('pointercancel', releasePointer);
+      window.removeEventListener('blur', resetPointers);
     },
   };
 }

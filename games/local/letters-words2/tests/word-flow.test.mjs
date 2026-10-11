@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import { freshWordFlow, restoreWordFlow, interruptWordFlow, recordWordFlow } from '../word-flow.js';
+const flow = freshWordFlow(); recordWordFlow(flow); recordWordFlow(flow);
+assert.deepEqual(flow,{current:2,best:2,assisted:false});
+interruptWordFlow(flow); recordWordFlow(flow);
+assert.deepEqual(flow,{current:0,best:2,assisted:false});
+recordWordFlow(flow); assert.equal(flow.current,1);
+assert.deepEqual(restoreWordFlow(flow,4),flow);
+assert.notEqual(restoreWordFlow(flow,4),flow,'restored modes never share mutable flow state');
+for(const invalid of [undefined,{current:3,best:2,assisted:false},{current:1,best:99,assisted:false},{current:-1,best:2,assisted:false},{current:1,best:2}]) assert.deepEqual(restoreWordFlow(invalid,4),freshWordFlow());
+console.log('PASS word flow: assistance breaks independent streak, personal best survives, old/corrupt saves are bounded and isolated.');

@@ -1,0 +1,19 @@
+{
+  "build": "production dist",
+  "viewports": [
+    "390x844 touch",
+    "320x568 touch",
+    "1280x900 desktop"
+  ],
+  "checks": [
+    "real touch swipe/cancel, preview/confirm, undo/restart, manual pause/resume, home/levels/continue, 44px controls, no overflow",
+    "eight actual touchscreen moves win; all four arrivals announce; normal best saves; shared URL carries only same-level challenge parameters",
+    "invited level, fewer-move comparison, challenge restart, no progress writes, assisted challenge excluded, normal progress return",
+    "system share cancellation and denied clipboard fallback remain playable",
+    "malformed invitation falls back; developer win cannot save or share",
+    "320x568 portrait: no horizontal overflow, all four boards clear controls in normal and challenge rounds, pause visible, touch still moves",
+    "all six production-build levels finish via desktop keyboard"
+  ],
+  "errors": [],
+  "passed": true
+}

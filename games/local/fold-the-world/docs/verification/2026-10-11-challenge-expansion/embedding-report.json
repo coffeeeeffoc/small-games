@@ -1,0 +1,10 @@
+{
+  "game": "fold-the-world",
+  "checks": [
+    "360×640 locked rotation",
+    "same-origin Game Host iframe",
+    "fullscreen targets complete host and exits",
+    "touch start remains playable"
+  ],
+  "errors": []
+}

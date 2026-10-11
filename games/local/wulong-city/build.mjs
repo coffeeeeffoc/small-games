@@ -7,4 +7,6 @@ for (const file of ['index.html', 'dev-mode.js', 'style.css', 'levels-data.js', 
   await copyFile(new URL(file, import.meta.url), new URL(file, dist));
 }
 await cp(new URL('./assets/', import.meta.url), new URL('./assets/', dist), { recursive: true });
+
+await cp(new URL('../../../platforms/h5/publishing.js', import.meta.url), new URL('publishing.js', dist));
 console.log('Built wulong-city: mobile preview with shared Canvas artwork');

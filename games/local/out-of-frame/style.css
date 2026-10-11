@@ -1221,3 +1221,39 @@ dialog .primary-button {
     height: 44px;
   }
 }
+
+#share-link{width:100%;padding:10px;color:var(--mint);background:#163c37;border:1px solid #507b69}#share-status:empty{display:none}#challenge-note{font-size:12px;color:#c6e7a8}.result-actions{flex-wrap:wrap}#exit-challenge{min-height:44px}
+
+html[data-touch-landscape="true"] body{overflow:hidden}
+html[data-touch-landscape="true"] .landscape-root{position:fixed;inset:0 auto auto 0;width:var(--play-width);height:var(--play-height);overflow:auto;max-width:none;box-sizing:border-box;overscroll-behavior:contain}
+html[data-rotated="true"] .landscape-root{transform-origin:0 0;transform:translateX(var(--play-height)) rotate(90deg)}
+html[data-rotated="true"] dialog{position:fixed;inset:50% auto auto 50%;margin:0;transform:translate(-50%,-50%) rotate(90deg);max-height:calc(var(--play-height) - 24px);width:min(620px,calc(var(--play-width) - 32px));max-width:calc(var(--play-width) - 32px);overflow:auto}
+html[data-rotated="true"] dialog::backdrop{transform:none}
+
+.compact-tools{display:none}
+html[data-touch-landscape="true"] .app{padding:4px 12px}
+html[data-touch-landscape="true"] .masthead,html[data-touch-landscape="true"] .mission-panel,html[data-touch-landscape="true"] .route,html[data-touch-landscape="true"] .colophon{display:none}
+html[data-touch-landscape="true"] .game-layout{display:block;margin:0}
+html[data-touch-landscape="true"] .room-header{height:44px;padding:0 10px}
+html[data-touch-landscape="true"] .room-heading h1{font-size:14px}
+html[data-touch-landscape="true"] .room-heading .eyebrow,html[data-touch-landscape="true"] .room-chapter{display:none}
+html[data-touch-landscape="true"] #room-number{font-size:22px}
+html[data-touch-landscape="true"] .scene-wrap{width:min(100%,calc((var(--play-height) - 122px)*16/9));margin:auto}
+html[data-touch-landscape="true"] .scene-legend{display:none}
+html[data-touch-landscape="true"] .frame-guide{padding:3px 12px;min-height:20px;font-size:10px}
+html[data-touch-landscape="true"] #frame-instruction{display:none}
+html[data-touch-landscape="true"] .touch-controls{padding:4px 10px;height:50px;gap:10px}
+html[data-touch-landscape="true"] .touch-controls>p{display:none}
+html[data-touch-landscape="true"] .direction-pad button,html[data-touch-landscape="true"] #jump{height:44px;min-height:44px}
+html[data-touch-landscape="true"] .compact-tools{display:flex;gap:8px;margin:auto}
+html[data-touch-landscape="true"] .compact-tools button{width:48px;height:44px;font-size:22px}
+html[data-touch-landscape="true"] .scene-overlay{padding:8px;overflow:auto;align-items:flex-start}
+html[data-touch-landscape="true"] .intro-card h2{font-size:22px;line-height:1.15;margin:2px 0 5px}
+html[data-touch-landscape="true"] .intro-copy,html[data-touch-landscape="true"] .intro-card>.eyebrow,html[data-touch-landscape="true"] .intro-meta{display:none}
+html[data-touch-landscape="true"] .intro-card{margin:auto;text-align:center;padding:0}
+html[data-touch-landscape="true"] #challenge-note{margin:5px;font-size:11px}
+html[data-touch-landscape="true"] .result-card{margin:auto;padding:5px}
+html[data-touch-landscape="true"] .result-card h2{font-size:22px;margin:5px}
+html[data-touch-landscape="true"] .result-icon,html[data-touch-landscape="true"] #result-kicker{display:none}
+html[data-touch-landscape="true"] #result-copy{margin:7px;font-size:11px}
+html[data-touch-landscape="true"] .result-card button{min-height:44px;padding:7px 12px}
