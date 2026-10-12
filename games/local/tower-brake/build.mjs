@@ -1,4 +1,5 @@
-import { cp, mkdir, rm } from 'node:fs/promises';
+import { competitionBootstrapSource } from './api-config.mjs';
+import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
 
 const output = new URL('./dist/', import.meta.url);
 const files = [
@@ -9,6 +10,7 @@ const files = [
   'engine.mjs',
   'levels.mjs',
   'progress.mjs',
+  'leaderboard.mjs',
   'dev-mode.js',
   'fullscreen.js',
 ];
@@ -20,4 +22,13 @@ for (const file of files) {
 }
 console.log('Built 转塔留一脚刹车 → dist/');
 
-await cp(new URL('../../../platforms/h5/publishing.js', import.meta.url), new URL('publishing.js', output));
+await cp(
+  new URL('../../../platforms/h5/publishing.js', import.meta.url),
+  new URL('publishing.js', output),
+);
+
+await writeFile(new URL('competition.js', output), await competitionBootstrapSource());
+await cp(
+  new URL('../../../platforms/competition/game-services.js', import.meta.url),
+  new URL('game-services.js', output),
+);

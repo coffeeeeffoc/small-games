@@ -265,6 +265,10 @@ test('runtime bundle includes multiplayer carrom physics and level data without 
       'services/runtime-api/dist/main.js',
       'services/runtime-api/rules/carrom.mjs',
       'games/local/three-choose-two/src/index.js',
+      'games/local/cage-rescue/src/core.mjs',
+      'games/local/cage-rescue/src/levels.mjs',
+      'games/local/tower-brake/engine.mjs',
+      'games/local/tower-brake/levels.mjs',
       'games/local/carrom-club/src/core.mjs',
       'games/local/carrom-club/src/content.mjs',
       'games/local/carrom-club/src/friends-core.mjs',
@@ -307,6 +311,10 @@ test('runtime-only bundles can load the actual Flick multiplayer rule and its co
     await put('services/runtime-api/dist/main.js', 'export {};');
     for (const name of [
       'games/local/three-choose-two/src/index.js',
+      'games/local/cage-rescue/src/core.mjs',
+      'games/local/cage-rescue/src/levels.mjs',
+      'games/local/tower-brake/engine.mjs',
+      'games/local/tower-brake/levels.mjs',
       'games/local/carrom-club/src/core.mjs',
       'games/local/carrom-club/src/content.mjs',
       'games/local/carrom-club/src/friends-core.mjs',
@@ -319,7 +327,15 @@ test('runtime-only bundles can load the actual Flick multiplayer rule and its co
       'games/submodules/xiangqi-five/game.js',
     ])
       await put(name);
-    for (const name of ['services/runtime-api/rules/flick.mjs', 'games/local/flick-arena/src']) {
+    for (const name of [
+      'services/runtime-api/rules/flick.mjs',
+      'games/local/flick-arena/src',
+      'services/runtime-api/rules/ranked-games.mjs',
+      'games/local/cage-rescue/src/core.mjs',
+      'games/local/cage-rescue/src/levels.mjs',
+      'games/local/tower-brake/engine.mjs',
+      'games/local/tower-brake/levels.mjs',
+    ]) {
       const target = path.join(source, name);
       await mkdir(path.dirname(target), { recursive: true });
       await cp(new URL('../' + name, import.meta.url), target, { recursive: true });
@@ -331,6 +347,14 @@ test('runtime-only bundles can load the actual Flick multiplayer rule and its co
     );
     assert.equal(rule.id, 'flick-arena');
     assert.equal(rule.roomSize('party4'), 4);
+    const { rankedRules } = await import(
+      pathToFileURL(path.join(output, 'services/runtime-api/rules/ranked-games.mjs')).href
+    );
+    assert.deepEqual(
+      rankedRules.map((item) => item.id),
+      ['cage-rescue', 'tower-brake'],
+    );
+    for (const item of rankedRules) assert.equal(item.create('endless', 7).game.mode, 'endless');
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }

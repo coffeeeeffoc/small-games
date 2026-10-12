@@ -3,14 +3,14 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "转塔留一脚刹车：连落三层补回一次主动刹车的十二层短挑战",
+  "description": "转塔留一脚刹车：30 条路线、无尽下落与排行榜",
   "scripts": {
     "dev": "node server.mjs",
     "start": "node server.mjs",
     "build": "node build.mjs",
     "preview": "node server.mjs --dist",
     "test": "node --test tests/*.test.mjs",
-    "test:browser": "node tests/browser.mjs && node tests/publishing-browser.mjs"
+    "test:browser": "node tests/browser.mjs && node tests/publishing-browser.mjs && node tests/expansion-browser.mjs"
   },
   "coffeeeeffoc": {
     "role": "game"

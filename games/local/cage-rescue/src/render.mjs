@@ -1,3 +1,4 @@
+import { getPersonLandingX } from './core.mjs';
 /** Original Canvas artwork. All scene coordinates use the 390 × 700 playfield. */
 const WIDTH = 390;
 const HEIGHT = 700;
@@ -89,6 +90,7 @@ function drawField(ctx, p, theme, game = null, home = false) {
     if (!home) {
       drawNet(background, p);
       for (const brick of bricks) drawBrick(background, brick, p);
+      for (const barrier of game?.barriers || []) drawBarrier(background, barrier);
       for (const [index, cage] of cages.entries()) {
         if (cage.hp > 0) drawCage(background, cage, index, p);
       }
@@ -473,6 +475,41 @@ function drawPerson(
   ctx.restore();
 }
 
+function drawRoleBadge(ctx, x, y, role, scale = 1) {
+  if (!['engineer', 'medic'].includes(role)) return;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  circle(ctx, 0, 0, 9, role === 'medic' ? '#90efb3' : '#71caff');
+  ctx.fillStyle = '#123449';
+  if (role === 'medic') {
+    ctx.fillRect(-2, -6, 4, 12);
+    ctx.fillRect(-6, -2, 12, 4);
+  } else {
+    ctx.rotate(-0.55);
+    ctx.fillRect(-2, -2, 4, 9);
+    ctx.fillRect(-6, -6, 12, 5);
+  }
+  ctx.restore();
+}
+
+function drawBarrier(ctx, barrier) {
+  const { x, y, w, h } = barrier;
+  ctx.save();
+  rounded(ctx, x, y, w, h, 3);
+  ctx.fillStyle = '#718392';
+  ctx.fill();
+  ctx.strokeStyle = '#d1e0e9';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.clip();
+  for (let offset = -h; offset < w; offset += 14)
+    line(ctx, x + offset, y + 1, x + offset + h, y + h - 1, '#293a48', 5);
+  circle(ctx, x + 5, y + h / 2, 2, '#f0f4ed');
+  circle(ctx, x + w - 5, y + h / 2, 2, '#f0f4ed');
+  ctx.restore();
+}
+
 function drawCage(
   ctx,
   cage,
@@ -613,6 +650,7 @@ function drawCage(
     ctx.fillText(String(index + 1).padStart(2, '0'), centerX, y + h + 6.5);
   }
   ctx.restore();
+  drawRoleBadge(ctx, x + w - 2, y + 5, cage.role, scale * 0.9);
 }
 
 function drawBrick(ctx, brick, p, accent = false) {
@@ -788,8 +826,9 @@ export function drawGame(
     if (!waiting && person.y > 400 && person.y < paddle.y - 40) {
       ctx.save();
       ctx.globalAlpha = 0.2;
-      line(ctx, person.x - 11, paddle.y - 12, person.x, paddle.y - 7, p.mintLight, 1.3);
-      line(ctx, person.x, paddle.y - 7, person.x + 11, paddle.y - 12, p.mintLight, 1.3);
+      const landingX = getPersonLandingX(game, person);
+      line(ctx, landingX - 11, paddle.y - 12, landingX, paddle.y - 7, p.mintLight, 1.3);
+      line(ctx, landingX, paddle.y - 7, landingX + 11, paddle.y - 12, p.mintLight, 1.3);
       ctx.restore();
     }
     drawPerson(ctx, person.x, person.y, p, {
@@ -799,6 +838,22 @@ export function drawGame(
       parachute: true,
       time: reducedMotion ? 0 : time,
     });
+    drawRoleBadge(ctx, person.x + 12, person.y - 5, person.role, 0.8);
+  }
+  if (game.level.wind) {
+    const direction =
+      Math.cos((game.time * Math.PI * 2) / game.level.wind.period + game.level.wind.phase) >= 0
+        ? 1
+        : -1;
+    ctx.save();
+    ctx.globalAlpha = 0.38;
+    for (let i = 0; i < 3; i++) {
+      const x = 70 + i * 88,
+        y = 468 + i * 11;
+      line(ctx, x, y, x + direction * 30, y, '#9ed5eb', 1.5);
+      line(ctx, x + direction * 30, y, x + direction * 23, y - 4, '#9ed5eb', 1.5);
+    }
+    ctx.restore();
   }
   if (game.phase === 'ready') {
     const angle = game.level?.initialAngle || -0.38;

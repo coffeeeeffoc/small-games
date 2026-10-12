@@ -16,6 +16,8 @@ import type { Engine } from './three-choose-two/types.js';
 import { createCarromStore } from './carrom/store.js';
 import type { Engine as CarromEngine, Level as CarromLevel } from './carrom/types.js';
 import { validateRuntimeEnvironment } from './config.js';
+import { createRankedStore } from './competition/ranked-store.js';
+import type { RankedRule } from './competition/ranked-types.js';
 
 /** Creates the runtime HTTP application with only its own database identity. */
 export function createRuntimeService(
@@ -80,13 +82,15 @@ export function createRuntimeService(
       const carromEngine = (await import(carromUrl)) as CarromEngine;
       const { FRIEND_LEVELS } = (await import(levelsUrl)) as { FRIEND_LEVELS: CarromLevel[] };
       const carrom = createCarromStore(database.db, carromEngine, FRIEND_LEVELS);
-      await registerCompetition(
-        instance,
-        createCompetitionStore(database.db, rules),
-        env,
-        ranked,
-        carrom,
+      const competition = createCompetitionStore(database.db, rules);
+      const rankedUrl = new URL('../rules/ranked-games.mjs', import.meta.url).href;
+      const { rankedRules } = (await import(rankedUrl)) as { rankedRules: RankedRule[] };
+      const gameRuns = createRankedStore(
+        database.db,
+        new Map(rankedRules.map((rule) => [rule.id, rule])),
+        competition.identityDetails,
       );
+      await registerCompetition(instance, competition, env, ranked, carrom, gameRuns);
     }
     const configured = env.RELEASE_PROJECTION_TOKEN || env.ARTIFACT_TRUSTED_PUBLIC_KEY;
     const configuration = configured

@@ -138,6 +138,7 @@ async function fresh(viewport = { width: 390, height: 844 }, name = '', mobile =
     isMobile: mobile,
     deviceScaleFactor: 1,
   });
+  await context.route('**/api/competition/v1/**', (route) => route.abort('internetdisconnected'));
   const page = await context.newPage();
   page.setDefaultTimeout(5000);
   observe(page, name);
@@ -184,7 +185,7 @@ try {
         const isKey = viewport.width === 390;
         if (isKey) await shot(page, 'actual-home', true);
         await page.locator('#levels').tap();
-        await expect(page.locator('.level-card')).toHaveCount(6);
+        await expect(page.locator('.level-card')).toHaveCount(30);
         await expect(page.locator('.level-card:not([disabled])')).toHaveCount(1);
         if (isKey) await shot(page, 'actual-levels', true);
         await back(page);

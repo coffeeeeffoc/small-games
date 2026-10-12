@@ -58,6 +58,11 @@ it('packages an executable carrom rule with its engine and content, without ship
     ]);
     for (const name of [
       'services/runtime-api/rules/carrom.mjs',
+      'services/runtime-api/rules/ranked-games.mjs',
+      'games/local/cage-rescue/src/core.mjs',
+      'games/local/cage-rescue/src/levels.mjs',
+      'games/local/tower-brake/engine.mjs',
+      'games/local/tower-brake/levels.mjs',
       'games/local/carrom-club/src/core.mjs',
       'games/local/carrom-club/src/content.mjs',
       'games/local/carrom-club/src/friends-core.mjs',
@@ -69,6 +74,16 @@ it('packages an executable carrom rule with its engine and content, without ship
     }
 
     await prepareBackend(destination, workspace);
+
+    const rankedUrl = pathToFileURL(
+      path.join(destination, 'services/runtime-api/rules/ranked-games.mjs'),
+    ).href;
+    const { rankedRules } = await import(rankedUrl);
+    expect(rankedRules.map((item: { id: string }) => item.id)).toEqual([
+      'cage-rescue',
+      'tower-brake',
+    ]);
+    for (const item of rankedRules) expect(item.create('endless', 123).game.mode).toBe('endless');
 
     const carromDirectory = path.join(destination, 'games/local/carrom-club');
     expect((await readdir(carromDirectory)).sort()).toEqual(['package.json', 'src']);

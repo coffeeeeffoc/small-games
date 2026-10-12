@@ -1,8 +1,10 @@
+import { competitionBootstrapSource, competitionConfigScript } from './api-config.mjs';
 import http from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+competitionConfigScript(); // Validate deployment configuration before accepting requests.
 const root = fileURLToPath(
   new URL(process.argv.includes('--dist') ? './dist/' : './', import.meta.url),
 );
@@ -37,7 +39,21 @@ const server = http.createServer(async (request, response) => {
       response.writeHead(403).end('Forbidden');
       return;
     }
-    if (pathname === '/publishing.js' && !process.argv.includes('--dist')) target = fileURLToPath(new URL('../../../platforms/h5/publishing.js', import.meta.url));
+    if (pathname === '/competition.js' && !process.argv.includes('--dist')) {
+      const script = await competitionBootstrapSource();
+      response.writeHead(200, {
+        'Content-Type': 'text/javascript; charset=utf-8',
+        'Cache-Control': 'no-store',
+      });
+      response.end(request.method === 'HEAD' ? undefined : script);
+      return;
+    }
+    if (pathname === '/game-services.js' && !process.argv.includes('--dist'))
+      target = fileURLToPath(
+        new URL('../../../platforms/competition/game-services.js', import.meta.url),
+      );
+    if (pathname === '/publishing.js' && !process.argv.includes('--dist'))
+      target = fileURLToPath(new URL('../../../platforms/h5/publishing.js', import.meta.url));
     if ((await stat(target)).isDirectory()) target = path.join(target, 'index.html');
     const bytes = await readFile(target);
     response.writeHead(200, {

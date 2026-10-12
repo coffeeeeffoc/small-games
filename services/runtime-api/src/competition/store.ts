@@ -31,6 +31,28 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
     if (!rows[0]) throw new CompetitionError('SESSION_EXPIRED', 401);
     return rows[0];
   }
+  async function identityDetails(playerId: string | null) {
+    if (!playerId)
+      return {
+        kind: 'anonymous',
+        authenticated: false,
+        provider: null,
+        playerId: null,
+        name: null,
+      };
+    const rows = await db.execute(
+      sql`select platform,coalesce(display_name,'新玩家') as name from runtime.competition_players where id=${playerId}`,
+    );
+    if (!rows[0]) throw new CompetitionError('SESSION_EXPIRED', 401);
+    const provider = String(rows[0].platform);
+    return {
+      kind: provider === 'guest' ? 'guest' : 'platform',
+      authenticated: provider !== 'guest',
+      provider: provider === 'guest' ? null : provider,
+      playerId,
+      name: String(rows[0].name),
+    };
+  }
   async function session(platform = 'guest', appId = '', subject?: string) {
     const token = randomBytes(32).toString('hex');
     const expiresAt = now() + 180 * 86400_000;
@@ -51,7 +73,7 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
     if (!rule) throw new CompetitionError('GAME_UNAVAILABLE', 404);
     return rule;
   }
-  async function ranking(board: string, playerId: string, executor: Database | Tx = db) {
+  async function ranking(board: string, playerId: string | null, executor: Database | Tx = db) {
     const rows = await executor.execute(sql`with ranked as (
       select player_id as "playerId", coalesce(p.display_name,'新玩家') as name, score, secondary,
       rank() over(order by score desc,secondary asc)::int as rank,
@@ -272,8 +294,7 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
       );
       if (!rows[0]) throw new CompetitionError('INVITATION_NOT_FOUND', 404);
       const room = rows[0].data as Room;
-      if (operation === 'join' && input.game && room.game !== input.game)
-        throw new CompetitionError('WRONG_GAME', 409);
+      if (input.game && room.game !== input.game) throw new CompetitionError('WRONG_GAME', 409);
       const rule = ruleFor(room.game);
       if (room.version !== rule.version) throw new CompetitionError('RULE_VERSION_CHANGED');
       if (room.status === 'playing' && rule.advance) {
@@ -411,6 +432,8 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
     identity,
     session,
     profile,
+    identityDetails,
+    gameDefinitions: () => [...rules.values()],
     ranking,
     ruleFor,
     roomAction,
@@ -454,7 +477,7 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
     ) {
       return view(await create(playerId, game, options), playerId);
     },
-    async board(game: string, playerId: string) {
+    async board(game: string, playerId: string | null) {
       const rule =
         game === 'carding-car'
           ? {

@@ -272,8 +272,13 @@ test('catalog and non-publishing interaction checks require explicit affected co
 
 test('publishing browsers run exact bounded suites with native gates off and failures stop publication', () => {
   const expected = {
-    'tower-brake': ['publishing-browser.mjs'],
-    'cage-rescue': ['reward-browser.mjs', 'browser.mjs', 'touch-activation-browser.mjs'],
+    'tower-brake': ['publishing-browser.mjs', 'browser.mjs', 'expansion-browser.mjs'],
+    'cage-rescue': [
+      'reward-browser.mjs',
+      'browser.mjs',
+      'touch-activation-browser.mjs',
+      'expansion-browser.mjs',
+    ],
     'ball-roguelite': ['browser.mjs'],
     'ember-bounce': ['browser.mjs'],
     'three-choose-two': ['publishing.browser.mjs'],
@@ -1205,4 +1210,39 @@ test('native-only Creator consumers are checked before types without rebuilding 
   } finally {
     await rm(root, { recursive: true, force: true });
   }
+});
+
+test('game service client, gateway and deployment checks run in the candidate and fail publication on regression', () => {
+  const calls = [];
+  const options = {
+    root: '/candidate',
+    env: {},
+    packages: [],
+    plan: {
+      game_services_checks: true,
+      ranked_deployment_checks: true,
+      native_consumers: [],
+      developer_mode_ids: [],
+    },
+    execute: (command, args) => calls.push(args),
+  };
+  runIncrementalToolChecks(options);
+  assert.deepEqual(calls, [
+    [
+      '--test',
+      'platforms/competition/tests/game-services.test.mjs',
+      'scripts/competition-gateway.test.mjs',
+    ],
+    ['--test', 'scripts/deploy-tencent.test.mjs'],
+  ]);
+  assert.throws(
+    () =>
+      runIncrementalToolChecks({
+        ...options,
+        execute() {
+          throw new Error('game service regression');
+        },
+      }),
+    /game service regression/,
+  );
 });

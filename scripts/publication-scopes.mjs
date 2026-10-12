@@ -255,6 +255,89 @@ export function threeChooseTwoBackendFileScope(file, before, after) {
   return expected === after;
 }
 
+export const gameServiceScopePaths = Object.freeze([
+  'platforms/competition/game-services.js',
+  'platforms/competition/tests/game-services.test.mjs',
+  'scripts/competition-gateway.mjs',
+  'scripts/competition-gateway.test.mjs',
+]);
+const rankedConsumers = {
+  'cage-rescue': 'games/local/cage-rescue',
+  'tower-brake': 'games/local/tower-brake',
+};
+const rankedInputs = [
+  'games/local/cage-rescue/src/core.mjs',
+  'games/local/cage-rescue/src/levels.mjs',
+  'games/local/tower-brake/engine.mjs',
+  'games/local/tower-brake/levels.mjs',
+];
+function assertRankedConsumers(games, packages, readHead) {
+  for (const [id, source] of Object.entries(rankedConsumers)) {
+    assert(games.filter((game) => game.id === id || game.source === source).length === 1);
+    assert(games.some((game) => game.id === id && game.source === source));
+    assert(packages.some((pkg) => pkg.dir === source));
+  }
+  assert(packages.some((pkg) => pkg.dir === 'services/runtime-api'));
+  const rule = readHead('services/runtime-api/rules/ranked-games.mjs');
+  for (const input of [rankedInputs[0], ...rankedInputs.slice(2)])
+    assert(importsModule(rule, '../../../' + input));
+  assert(importsModule(readHead(rankedInputs[0]), './levels.mjs'));
+  assert(importsModule(readHead(rankedInputs[2]), './levels.mjs'));
+}
+function hasUrlReference(source, target) {
+  let found = false;
+  function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (
+      node.type === 'NewExpression' &&
+      node.callee?.name === 'URL' &&
+      node.arguments?.[0]?.type === 'StringLiteral' &&
+      node.arguments[0].value === target
+    )
+      found = true;
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  }
+  visit(parsedSource(source));
+  return found;
+}
+function assertGameServiceCopies(readHead) {
+  for (const [id, source] of Object.entries(rankedConsumers)) {
+    const build = readHead(source + '/build.mjs');
+    assert(hasUrlReference(build, '../../../platforms/competition/game-services.js'));
+    assert(hasUrlReference(build, 'game-services.js'));
+    const entry = id === 'cage-rescue' ? '/src/main.mjs' : '/main.mjs';
+    assert(
+      hasUrlReference(
+        readHead(source + entry),
+        id === 'cage-rescue' ? '../game-services.js' : './game-services.js',
+      ),
+    );
+  }
+}
+/** Only the four new shared rule inputs may be added to the deployment list. */
+export function rankedDeploymentFileScope(before, after) {
+  const anchor = "    'services/runtime-api/rules',\n";
+  const addition = rankedInputs.map((file) => `    '${file}',\n`).join('');
+  return (
+    typeof before === 'string' &&
+    before.split(anchor).length === 2 &&
+    rankedInputs.every((file) => !before.includes(file)) &&
+    after === before.replace(anchor, anchor + addition)
+  );
+}
+function rankedGatewayFileScope(before, after) {
+  const digest = (source) => createHash('sha256').update(source).digest('hex');
+  // Reviewed main guard/extracted public predicate; legacy proxy, static files and
+  // kart upgrade handling are unchanged. Any additional executable delta blocks.
+  return (
+    digest(before) === '2c9bcc4c116b52553c317da5ee4c83959f988d4d4f02cff55a22a1b273efafc8' &&
+    digest(after) === 'bbfc69bf5d9c9c9a2f1c3d28ab245024dc78030e7eec18953a9705ccccd16f92'
+  );
+}
+
 const carromSource = 'games/local/carrom-club';
 const carromCore = `${carromSource}/src/core.mjs`;
 const carromContent = `${carromSource}/src/content.mjs`;
@@ -862,6 +945,36 @@ export function reviewedSharedFileScopes({
   const scopes = vitePatchFileScopes({ changedPaths, readBase, readHead });
   for (const file of changedPaths) {
     try {
+      if (
+        gameServiceScopePaths.includes(file) &&
+        (file !== 'scripts/competition-gateway.mjs' ||
+          rankedGatewayFileScope(readBase(file), readHead(file)))
+      ) {
+        assertRankedConsumers(games, packages, readHead);
+        assertGameServiceCopies(readHead);
+        if (file === 'scripts/competition-gateway.mjs')
+          assert(rankedGatewayFileScope(readBase(file), readHead(file)));
+        const gateway = file.startsWith('scripts/');
+        if (gateway) assert(packages.some((pkg) => pkg.dir === 'apps/shell-web'));
+        scopes.set(file, [
+          ...Object.values(rankedConsumers),
+          ...(gateway ? ['services/runtime-api', 'apps/shell-web'] : []),
+        ]);
+        continue;
+      }
+      if (rankedInputs.includes(file)) {
+        assertRankedConsumers(games, packages, readHead);
+        scopes.set(file, ['services/runtime-api']);
+        continue;
+      }
+      if (
+        file === 'scripts/deploy-tencent.mjs' &&
+        rankedDeploymentFileScope(readBase(file), readHead(file))
+      ) {
+        assertRankedConsumers(games, packages, readHead);
+        scopes.set(file, [...Object.values(rankedConsumers), 'services/runtime-api']);
+        continue;
+      }
       if (file === independentPreviewScopeFile) {
         // The reviewed runner changes only nine mobile viewports and the static
         // Pages config for Tower Defense. Bind its imported helper as well.

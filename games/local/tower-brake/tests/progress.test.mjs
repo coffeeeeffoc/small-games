@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { STORAGE_KEY, readProgress, saveProgress, recordWin } from '../progress.mjs';
 
-const LEVELS = Array.from({ length: 8 }, (_, index) => ({ id: `tower-${index + 1}` }));
+const LEVELS = Array.from({ length: 30 }, (_, index) => ({ id: `tower-${index + 1}` }));
 const defaults = () => ({
   version: 1,
   unlocked: 1,
@@ -11,6 +11,7 @@ const defaults = () => ({
   skin: 'mint',
   best: {},
   continuedBest: {},
+  endlessBest: 0,
 });
 const score = (elapsed = 16.25) => ({ elapsed, maxStreak: 6, brakesUsed: 2 });
 const memoryStorage = (initial) => {
@@ -53,12 +54,12 @@ test('preferences and both score boards survive save and reload independently', 
   assert.deepEqual(readProgress(storage, LEVELS), progress);
 });
 
-test('selection never escapes the unlocked catalog and progress stops at eight towers', () => {
+test('selection never escapes the unlocked catalog and progress stops at the configured catalog length', () => {
   assert.deepEqual(read({ unlocked: 3, selected: 7 }), { ...defaults(), unlocked: 3, selected: 2 });
   assert.deepEqual(read({ unlocked: 999, selected: 999 }), {
     ...defaults(),
-    unlocked: 8,
-    selected: 7,
+    unlocked: 30,
+    selected: 29,
   });
   assert.deepEqual(read({ unlocked: -2, selected: -1 }), defaults());
   assert.deepEqual(read({ unlocked: '8', selected: 2.5 }), defaults());
@@ -67,10 +68,10 @@ test('selection never escapes the unlocked catalog and progress stops at eight t
     unlocked: 3,
     selected: 2,
   });
-  assert.deepEqual(read({ unlocked: 20, selected: 19 }, [...LEVELS, { id: 'ninth' }]), {
+  assert.deepEqual(read({ unlocked: 99, selected: 99 }, [...LEVELS, { id: 'extra' }]), {
     ...defaults(),
-    unlocked: 8,
-    selected: 7,
+    unlocked: 31,
+    selected: 30,
   });
   assert.deepEqual(read({ unlocked: 8, selected: 7 }, []), defaults());
 });
@@ -163,18 +164,18 @@ test('development practice never changes scores, selection, preferences, or unlo
   assert.deepEqual(progress, before);
 });
 
-test('repeated final wins cannot unlock a ninth tower or move the current selection', () => {
-  const progress = { ...defaults(), unlocked: 8, selected: 7 };
-  recordWin(progress, 7, LEVELS[7].id, score());
-  recordWin(progress, 7, LEVELS[7].id, score());
-  assert.equal(progress.unlocked, 8);
-  assert.equal(progress.selected, 7);
+test('repeated final wins cannot unlock a thirty-first tower or move the current selection', () => {
+  const progress = { ...defaults(), unlocked: 30, selected: 29 };
+  recordWin(progress, 29, LEVELS[29].id, score());
+  recordWin(progress, 29, LEVELS[29].id, score());
+  assert.equal(progress.unlocked, 30);
+  assert.equal(progress.selected, 29);
 });
 
 test('invalid win indices, identifiers, and statistics do not settle any reward', () => {
   const invalid = [
     [-1, LEVELS[0].id, score()],
-    [8, LEVELS[0].id, score()],
+    [30, LEVELS[0].id, score()],
     [0.5, LEVELS[0].id, score()],
     ['0', LEVELS[0].id, score()],
     [0, '__proto__', score()],
@@ -231,9 +232,25 @@ test('saving strips invalid preference values and result fields before persisten
   assert.equal(saveProgress(storage, progress), true);
   assert.deepEqual(JSON.parse(storage.values.get(STORAGE_KEY)), {
     ...defaults(),
-    unlocked: 8,
-    selected: 7,
+    unlocked: 30,
+    selected: 29,
     best: { [LEVELS[0].id]: score() },
   });
   assert.equal(progress.unlocked, 100);
+});
+
+test('an existing eight-route clear unlocks the ninth route without losing old records', async () => {
+  const { LEVELS: catalog } = await import('../levels.mjs');
+  const saved = {
+    ...defaults(),
+    unlocked: 8,
+    selected: 7,
+    best: { 'last-descent': score() },
+    endlessBest: 41,
+  };
+  const restored = read(saved, catalog);
+  assert.equal(restored.unlocked, 9);
+  assert.deepEqual(restored.best['last-descent'], score());
+  assert.equal(restored.endlessBest, 41);
+  assert.equal(read({ ...saved, endlessBest: Infinity }, catalog).endlessBest, 0);
 });

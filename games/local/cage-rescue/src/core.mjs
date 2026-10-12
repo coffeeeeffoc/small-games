@@ -1,4 +1,4 @@
-import { LEVELS, VIEWPORT } from './levels.mjs';
+import { LEVELS, VIEWPORT, createEndlessLevel } from './levels.mjs';
 
 export { LEVELS, VIEWPORT } from './levels.mjs';
 export const FIXED_STEP = 1 / 120;
@@ -28,7 +28,14 @@ export function createGame(levelIndex = 0) {
   if (!Number.isInteger(levelIndex) || levelIndex < 0 || levelIndex >= LEVELS.length)
     throw new RangeError('Unknown rescue level.');
   const level = LEVELS[levelIndex];
+  return createState(level, levelIndex);
+}
+
+function createState(level, levelIndex = -1) {
   const state = {
+    mode: 'campaign',
+    endlessWave: 0,
+    totalRescued: 0,
     levelIndex,
     levelId: level.id,
     level,
@@ -49,6 +56,7 @@ export function createGame(levelIndex = 0) {
     timeScale: 1,
     cages: level.cages.map((c) => ({ ...c, hp: c.hp, maxHp: c.hp, person: `person-${c.id}` })),
     bricks: level.bricks.map((b) => ({ ...b, hp: b.hp, maxHp: b.hp })),
+    barriers: (level.barriers || []).map((item) => ({ ...item })),
     people: [],
     ball: {
       x: 195,
@@ -66,6 +74,37 @@ export function createGame(levelIndex = 0) {
     _slowAvailableAt: 0,
   };
   return state;
+}
+
+export function createEndlessGame(seed = 0) {
+  return Object.assign(createState(createEndlessLevel(1, seed)), {
+    mode: 'endless',
+    seed: seed >>> 0,
+    endlessWave: 1,
+  });
+}
+
+function nextEndlessWave(state) {
+  const next = createState(createEndlessLevel(state.endlessWave + 1, state.seed));
+  const saved = Object.fromEntries(
+    [
+      'mode',
+      'seed',
+      'lives',
+      'usedRevive',
+      'time',
+      'realTime',
+      'totalRescued',
+      'rescueCombo',
+      'bestRescueCombo',
+      'wideUntil',
+      'events',
+      '_accumulator',
+    ].map((key) => [key, state[key]]),
+  );
+  const wave = state.endlessWave + 1;
+  Object.assign(state, next, saved, { endlessWave: wave });
+  event(state, 'wave', { wave });
 }
 
 function setPhase(state, phase) {
@@ -103,6 +142,7 @@ export function setPaused(state, paused = true) {
 
 export function canRevive(state) {
   return (
+    state.mode !== 'endless' &&
     state.phase === 'lost' &&
     state.lossReason === 'no-lives' &&
     !state.usedRevive &&
@@ -133,6 +173,10 @@ export function remainingRescuable(state) {
 function checkResult(state) {
   if (!isRunning(state)) return;
   if (state.rescued >= state.target) {
+    if (state.mode === 'endless') {
+      nextEndlessWave(state);
+      return;
+    }
     setPhase(state, 'won');
     state.ball.active = false;
     state.slowMotion = false;
@@ -187,6 +231,8 @@ function releasePerson(state, cage) {
     x: cage.x + cage.w / 2,
     y,
     r: RULES.personRadius,
+    role: cage.role || 'teammate',
+    originX: cage.x + cage.w / 2,
     status: 'waiting',
     releaseAt,
   };
@@ -195,6 +241,10 @@ function releasePerson(state, cage) {
 }
 
 function hitEntity(state, entity, kind) {
+  if (kind === 'barrier') {
+    event(state, 'metal', { x: entity.x + entity.w / 2, y: entity.y + entity.h / 2 });
+    return;
+  }
   entity.hp--;
   event(state, 'hit', {
     kind,
@@ -297,10 +347,11 @@ function moveBall(state, dt) {
   for (const [kind, entities] of [
     ['cage', state.cages],
     ['brick', state.bricks],
+    ['barrier', state.barriers],
   ]) {
     let hit = false;
     for (const entity of entities) {
-      if (entity.hp > 0 && bounceRect(b, entity, previousX, previousY)) {
+      if ((kind === 'barrier' || entity.hp > 0) && bounceRect(b, entity, previousX, previousY)) {
         hitEntity(state, entity, kind);
         hit = true;
         break;
@@ -318,6 +369,28 @@ function moveBall(state, dt) {
   }
 }
 
+function personXAt(state, person, time) {
+  const wind = state.level.wind;
+  if (!wind || !Number.isFinite(person.originX)) return person.x;
+  const frequency = (Math.PI * 2) / wind.period;
+  return clamp(
+    person.originX +
+      wind.amplitude *
+        (Math.sin(time * frequency + wind.phase) -
+          Math.sin(person.releaseAt * frequency + wind.phase)),
+    RULES.left + person.r,
+    RULES.right - person.r,
+  );
+}
+
+/** The forecast follows the same wind clock and falling speed as collision. */
+export function getPersonLandingX(state, person) {
+  const arrival =
+    Math.max(state.time, person.releaseAt) +
+    Math.max(0, state.paddle.y - person.r - person.y) / state.level.personSpeed;
+  return personXAt(state, person, arrival);
+}
+
 function movePeople(state, dt) {
   for (const person of state.people) {
     if (person.status === 'waiting' && state.time >= person.releaseAt) {
@@ -326,6 +399,7 @@ function movePeople(state, dt) {
     }
     if (person.status !== 'falling') continue;
     const previousY = person.y;
+    person.x = personXAt(state, person, state.time);
     person.y += state.level.personSpeed * dt;
     const p = state.paddle;
     if (
@@ -336,13 +410,23 @@ function movePeople(state, dt) {
       person.status = 'rescued';
       person.y = p.y - person.r;
       state.rescued++;
+      state.totalRescued++;
       state.rescueCombo++;
       state.bestRescueCombo = Math.max(state.bestRescueCombo, state.rescueCombo);
       if (state.rescueCombo % 2 === 0) {
-        state.wideUntil = state.realTime + 5;
+        state.wideUntil = Math.max(state.wideUntil, state.realTime + 5);
         event(state, 'rescue-chain', { combo: state.rescueCombo, duration: 5 });
       }
       event(state, 'rescue', { id: person.id, x: person.x, y: person.y, rescued: state.rescued });
+      if (person.role === 'engineer') {
+        state.wideUntil = Math.max(state.wideUntil, state.realTime + 8);
+        event(state, 'engineer', { duration: 8, x: person.x, y: person.y });
+      }
+      if (person.role === 'medic') {
+        const gained = state.lives < state.level.lives;
+        state.lives = Math.min(state.level.lives, state.lives + 1);
+        event(state, 'medic', { gained, lives: state.lives, x: person.x, y: person.y });
+      }
     } else if (person.y + person.r >= RULES.netY) {
       person.status = 'missed';
       person.y = RULES.netY - person.r;
@@ -391,7 +475,11 @@ export function stepGame(state, dt, input = {}) {
     state._accumulator -= FIXED_STEP;
     state.realTime += FIXED_STEP;
     state.paddle.w = state.level.paddleWidth * (state.realTime < state.wideUntil ? 1.3 : 1);
-    const boundedTarget = clamp(targetX, RULES.left + state.paddle.w / 2, RULES.right - state.paddle.w / 2);
+    const boundedTarget = clamp(
+      targetX,
+      RULES.left + state.paddle.w / 2,
+      RULES.right - state.paddle.w / 2,
+    );
     const distance = boundedTarget - state.paddle.x;
     state.paddle.x += clamp(
       distance,

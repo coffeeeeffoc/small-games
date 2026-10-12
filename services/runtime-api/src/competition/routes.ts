@@ -14,6 +14,8 @@ import {
 } from '../three-choose-two/routes.js';
 import type { createThreeChooseTwoStore } from '../three-choose-two/store.js';
 import type { createCompetitionStore } from './store.js';
+import { registerGameRoutes } from './game-routes.js';
+import type { createRankedStore } from './ranked-store.js';
 
 const tokenSchema = z.string().regex(/^[a-f0-9]{64}$/);
 const codeSchema = z.string().regex(/^[A-F0-9]{12}$/);
@@ -40,6 +42,7 @@ export async function registerCompetition(
   env: Record<string, string | undefined>,
   threeChooseTwo?: ReturnType<typeof createThreeChooseTwoStore>,
   carrom?: ReturnType<typeof createCarromStore>,
+  ranked?: ReturnType<typeof createRankedStore>,
 ) {
   const origins = (env.COMPETITION_ORIGINS ?? '')
     .split(',')
@@ -197,6 +200,7 @@ export async function registerCompetition(
         return store.board(game, await player(request.headers.authorization));
       });
       registerRunRoutes(routes, store, player);
+      if (ranked) registerGameRoutes(routes, store, ranked, player);
       if (threeChooseTwo) registerThreeChooseTwoRoutes(routes, threeChooseTwo, player);
       if (carrom) registerCarromRoutes(routes, carrom, player);
       routes.post('/rooms', { bodyLimit: 2048 }, async (request) => {

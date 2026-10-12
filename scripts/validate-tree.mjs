@@ -480,11 +480,30 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
       env,
       'logged',
     );
+  if (plan.game_services_checks)
+    execute(
+      process.execPath,
+      [
+        '--test',
+        'platforms/competition/tests/game-services.test.mjs',
+        'scripts/competition-gateway.test.mjs',
+      ],
+      root,
+      env,
+      'logged',
+    );
+  if (plan.ranked_deployment_checks)
+    execute(process.execPath, ['--test', 'scripts/deploy-tencent.test.mjs'], root, env, 'logged');
   // These reviewed entry points exercise sharing/ad lifecycle in the real UI.
   // Keep them sequential: several own a local server and write candidate evidence.
   const publishingBrowsers = {
-    'tower-brake': ['publishing-browser.mjs'],
-    'cage-rescue': ['reward-browser.mjs', 'browser.mjs', 'touch-activation-browser.mjs'],
+    'tower-brake': ['publishing-browser.mjs', 'browser.mjs', 'expansion-browser.mjs'],
+    'cage-rescue': [
+      'reward-browser.mjs',
+      'browser.mjs',
+      'touch-activation-browser.mjs',
+      'expansion-browser.mjs',
+    ],
     'ball-roguelite': ['browser.mjs'],
     'ember-bounce': ['browser.mjs'],
     'three-choose-two': ['publishing.browser.mjs'],

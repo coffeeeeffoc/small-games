@@ -1852,3 +1852,102 @@ test('castle dedicated contract selects its game and rejects unreviewed code', (
     0,
   );
 });
+
+test('shared game services select only their proven game consumers and fail closed on broken edges', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const catalog = JSON.parse(
+    readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url), 'utf8'),
+  );
+  const packages = [
+    ...catalog.map((game) => ({ dir: game.source, name: game.id })),
+    { dir: 'services/runtime-api', name: 'runtime' },
+    { dir: 'apps/shell-web', name: 'shell' },
+  ];
+  const read = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const files = [
+    'platforms/competition/game-services.js',
+    'platforms/competition/tests/game-services.test.mjs',
+    'scripts/competition-gateway.mjs',
+    'scripts/competition-gateway.test.mjs',
+    'scripts/deploy-tencent.mjs',
+  ];
+  const before = (file) =>
+    execFileSync('git', ['show', '4fe9716ce5b9277e42b976e005931f6e8c7dc2f3:' + file], {
+      encoding: 'utf8',
+    });
+  const context = {
+    changedPaths: files,
+    games: catalog,
+    packages,
+    readBase: before,
+    readHead: read,
+  };
+  const scopes = reviewedSharedFileScopes(context);
+  for (const file of files) assert(scopes.has(file), file);
+  const plan = incrementalPlan({ ...context, fileScopes: scopes, readSource: read });
+  assert.deepEqual(plan.browser_ids, [
+    'cage-rescue',
+    'letters-words2',
+    'tower-brake',
+    'xiangqi-five',
+  ]);
+  assert.deepEqual(plan.developer_mode_ids, ['cage-rescue', 'tower-brake']);
+  assert.deepEqual(plan.publishing_browser_ids, ['cage-rescue', 'tower-brake']);
+  assert.deepEqual(plan.service_rule_sources, ['services/runtime-api']);
+  assert.equal(plan.game_services_checks, true);
+  assert.equal(plan.ranked_deployment_checks, true);
+  for (const input of [
+    'games/local/cage-rescue/src/core.mjs',
+    'games/local/cage-rescue/src/levels.mjs',
+    'games/local/tower-brake/engine.mjs',
+    'games/local/tower-brake/levels.mjs',
+  ]) {
+    const one = { ...context, changedPaths: [input] };
+    const scoped = reviewedSharedFileScopes(one);
+    assert.deepEqual(scoped.get(input), ['services/runtime-api']);
+    assert.deepEqual(
+      incrementalPlan({ ...one, fileScopes: scoped, readSource: read }).service_rule_sources,
+      ['services/runtime-api'],
+    );
+  }
+  for (const [file, replaced] of [
+    [
+      'games/local/cage-rescue/build.mjs',
+      read('games/local/cage-rescue/build.mjs').replace(
+        '../../../platforms/competition/game-services.js',
+        '../../../platforms/competition/other.js',
+      ),
+    ],
+    [
+      'services/runtime-api/rules/ranked-games.mjs',
+      read('services/runtime-api/rules/ranked-games.mjs').replace(
+        '../../../games/local/tower-brake/engine.mjs',
+        './other.mjs',
+      ),
+    ],
+  ]) {
+    const broken = reviewedSharedFileScopes({
+      ...context,
+      readHead: (name) => (name === file ? replaced : read(name)),
+    });
+    assert(!broken.has(files[0]));
+  }
+  for (const file of ['scripts/competition-gateway.mjs', 'scripts/deploy-tencent.mjs']) {
+    const broken = reviewedSharedFileScopes({
+      ...context,
+      readHead: (name) => read(name) + (name === file ? '\n// unrelated change\n' : ''),
+    });
+    assert(!broken.has(file), file);
+  }
+  for (const file of [
+    'platforms/competition/unknown-service.js',
+    'scripts/competition-gateway-extra.mjs',
+  ]) {
+    const one = { ...context, changedPaths: [file] };
+    assert.throws(
+      () =>
+        incrementalPlan({ ...one, readSource: read, fileScopes: reviewedSharedFileScopes(one) }),
+      /scope undefined/,
+    );
+  }
+});

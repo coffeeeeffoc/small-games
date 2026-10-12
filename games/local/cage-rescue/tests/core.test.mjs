@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   createGame,
+  createEndlessGame,
+  getPersonLandingX,
   stepGame,
   launchBall,
   setPaused,
@@ -11,7 +13,7 @@ import {
   RULES,
   FIXED_STEP,
 } from '../src/core.mjs';
-import { LEVELS, validateLevels } from '../src/levels.mjs';
+import { LEVELS, validateLevels, createEndlessLevel } from '../src/levels.mjs';
 
 function advance(state, seconds, input = {}) {
   for (let remaining = seconds; remaining > 1e-8; remaining -= FIXED_STEP)
@@ -52,9 +54,9 @@ function dropBall(state) {
   stepGame(state, FIXED_STEP);
 }
 
-test('six stable, independently valid level configurations and expected progression', () => {
+test('thirty stable, independently valid level configurations and expected progression', () => {
   assert.deepEqual(validateLevels(), []);
-  assert.equal(new Set(LEVELS.map((l) => l.id)).size, 6);
+  assert.equal(new Set(LEVELS.map((l) => l.id)).size, 30);
   assert.ok(LEVELS[0].cages.every((c) => c.hp === 1));
   assert.ok(LEVELS.slice(2).every((l) => l.cages.some((c) => c.hp === 2)));
   for (let i = 0; i < LEVELS.length; i++) {
@@ -71,7 +73,7 @@ test('six stable, independently valid level configurations and expected progress
     );
   }
   assert.throws(() => createGame(-1), RangeError);
-  assert.throws(() => createGame(6), RangeError);
+  assert.throws(() => createGame(LEVELS.length), RangeError);
 });
 
 test('content validator catches overlapping geometry and invalid unlocks', () => {
@@ -326,7 +328,7 @@ test('invalid time/input does not corrupt state and separate runs never share mu
   assert.equal(LEVELS[0].cages[0].hp, 1);
 });
 
-test('all six formations are winnable through normal paddle input, without revive or state edits', () => {
+test('all thirty formations are winnable through normal paddle input, without revive or state edits', () => {
   // A simple deterministic player aims at a remaining cage and temporarily
   // follows a teammate about to land. It uses only the public playing API.
   const reflectX = (x) => {
@@ -335,7 +337,7 @@ test('all six formations are winnable through normal paddle input, without reviv
     const position = (((x - left) % (span * 2)) + span * 2) % (span * 2);
     return left + (position > span ? span * 2 - position : position);
   };
-  for (let levelIndex = 0; levelIndex < LEVELS.length; levelIndex++) {
+  function play(levelIndex, lead = 0.65, ballPriority = 0.48) {
     const state = createGame(levelIndex);
     let firstReleaseAt = null;
     for (let frame = 0; frame < 60 * 120 && !['won', 'lost'].includes(state.phase); frame++) {
@@ -347,31 +349,50 @@ test('all six formations are winnable through normal paddle input, without reviv
       const nextCage = state.cages
         .filter((c) => c.hp > 0)
         .sort((a, b) => Math.abs(a.x + a.w / 2 - landingX) - Math.abs(b.x + b.w / 2 - landingX))[0];
-      const angle = nextCage
+      let angle = nextCage
         ? Math.atan2(
             nextCage.x + nextCage.w / 2 - landingX,
             state.paddle.y - nextCage.y - nextCage.h / 2,
           )
         : Math.sin(state.time) * 0.6;
+      // Read the visible steel beam and bank around it instead of repeatedly
+      // aiming straight through an indestructible obstacle.
+      for (const beam of state.barriers) {
+        const distance = state.paddle.y - beam.y - beam.h - ball.r * 2;
+        const crossing = landingX + Math.tan(angle) * distance;
+        if (crossing > beam.x - ball.r && crossing < beam.x + beam.w + ball.r) {
+          const edge = landingX < beam.x + beam.w / 2 ? beam.x - 18 : beam.x + beam.w + 18;
+          angle = Math.atan2(edge - landingX, distance);
+        }
+      }
       let targetX = landingX - ((angle / RULES.maxBounceAngle) * state.paddle.w) / 2;
       const nextPerson = state.people
         .filter((p) => p.status === 'falling' && p.y + p.r < state.paddle.y)
         .sort((a, b) => b.y - a.y)[0];
       if (nextPerson) {
         const personETA = (state.paddle.y - nextPerson.r - nextPerson.y) / state.level.personSpeed;
-        const travelTime = Math.abs(nextPerson.x - state.paddle.x) / RULES.paddleSpeed;
-        if (personETA < 0.65 + travelTime && (ballETA > 0.48 || personETA < ballETA))
-          targetX = nextPerson.x;
+        const rescueX = getPersonLandingX(state, nextPerson);
+        const travelTime = Math.abs(rescueX - state.paddle.x) / RULES.paddleSpeed;
+        if (personETA < lead + travelTime && (ballETA > ballPriority || personETA < ballETA))
+          targetX = rescueX;
       }
       stepGame(state, 1 / 60, { targetX });
       if (firstReleaseAt === null && state.people.length) firstReleaseAt = state.time;
     }
+    return { state, firstReleaseAt };
+  }
+  for (let levelIndex = 0; levelIndex < LEVELS.length; levelIndex++) {
+    const run = play(levelIndex);
+    const { state, firstReleaseAt } = run;
     assert.equal(state.phase, 'won', `${state.level.name}: ${state.lossReason}`);
     assert.equal(state.rescued, state.cages.length);
     assert.equal(state.missed, 0);
     assert.ok(state.cages.every((cage) => cage.hp === 0));
     assert.equal(state.usedRevive, false);
-    assert.ok(firstReleaseAt < 8, `${state.level.name}: first rescue opportunity takes too long`);
+    assert.ok(
+      firstReleaseAt < (levelIndex < 6 ? 8 : 20),
+      `${state.level.name}: first rescue opportunity takes too long`,
+    );
   }
 });
 
@@ -394,4 +415,148 @@ test('two consecutive rescues grant a temporary wide paddle; pause freezes it an
   dropBall(state);
   assert.equal(state.rescueCombo, 0);
   assert.equal(state.bestRescueCombo, 2);
+});
+
+test('endless waves continue beyond the campaign without refilling lives or losing totals', () => {
+  const state = createEndlessGame(73);
+  state.lives = 2;
+  for (let wave = 1; wave <= 80; wave++) {
+    assert.equal(state.endlessWave, wave);
+    assert.equal(state.mode, 'endless');
+    for (let person = 0; person < 6; person++) {
+      falling(state, person, state.paddle.x, state.paddle.y - RULES.personRadius - 0.1);
+      stepGame(state, FIXED_STEP);
+    }
+    assert.equal(state.totalRescued, wave * 6);
+    assert.equal(state.lives, 2);
+    assert.equal(state.phase, 'ready');
+    assert.equal(state.people.length, 0);
+    assert.equal(state.cages.length, 6);
+  }
+  assert.equal(state.endlessWave, 81);
+  assert.ok(state.realTime >= 4 - 1e-8);
+  dropBall(state);
+  dropBall(state);
+  assert.equal(state.phase, 'lost');
+  assert.equal(canRevive(state), false);
+  assert.equal(state.totalRescued, 480);
+});
+
+test('endless content is deterministic, safe, varied beyond thirty waves and gently starts', () => {
+  for (const seed of [0, 73, 4294967295]) {
+    for (const wave of [1, 2, 6, 30, 31, 61, 1000, 100000]) {
+      const level = createEndlessLevel(wave, seed);
+      assert.deepEqual(validateLevels([level]), []);
+      assert.deepEqual(level, createEndlessLevel(wave, seed));
+    }
+    const first = createEndlessLevel(1, seed);
+    assert.ok(first.cages.every((item) => item.hp === 1));
+    assert.ok(first.bricks.every((item) => item.hp === 1));
+    assert.equal(first.ballSpeed, LEVELS[0].ballSpeed);
+    assert.notDeepEqual(createEndlessLevel(31, seed).cages, createEndlessLevel(61, seed).cages);
+  }
+});
+
+test('chapters teach support, wind and steel separately before the final combination', () => {
+  assert.ok(
+    LEVELS.slice(0, 6).every(
+      (level) => !level.wind && !level.barriers && level.cages.every((cage) => !cage.role),
+    ),
+  );
+  assert.equal(LEVELS[6].cages[0].role, 'engineer');
+  assert.ok(LEVELS[12].wind);
+  assert.equal(LEVELS[18].barriers[0].material, 'steel');
+  assert.equal(LEVELS[18].wind, null);
+  assert.ok(LEVELS[24].wind && LEVELS[24].barriers.length);
+  assert.ok(LEVELS[24].cages.some((cage) => cage.role === 'medic'));
+  for (const wave of [7, 13, 19, 25]) {
+    const level = createEndlessLevel(wave, 19);
+    assert.deepEqual(validateLevels([level]), []);
+    assert.equal(level.cages[0].role, LEVELS[wave - 1].cages[0].role);
+    assert.equal(Boolean(level.wind), Boolean(LEVELS[wave - 1].wind));
+  }
+});
+
+test('an engineer grants eight seconds of width, never shortened by the next combo or pause', () => {
+  const state = createGame(6);
+  while (state.cages[0].hp > 0) strike(state, state.cages[0]);
+  const engineer = state.people[0];
+  assert.equal(engineer.role, 'engineer');
+  Object.assign(engineer, {
+    status: 'falling',
+    x: state.paddle.x,
+    y: state.paddle.y - engineer.r - 0.1,
+  });
+  state.ball.active = false;
+  state.phase = state.status = 'ready';
+  stepGame(state, FIXED_STEP);
+  const expires = state.wideUntil;
+  assert.ok(expires >= state.realTime + 8 - 1e-8);
+  falling(state, 1, state.paddle.x, state.paddle.y - RULES.personRadius - 0.1);
+  stepGame(state, FIXED_STEP);
+  assert.equal(state.wideUntil, expires);
+  assert.equal(state.paddle.w, state.level.paddleWidth * 1.3);
+  setPaused(state, true);
+  stepGame(state, 4);
+  setPaused(state, false);
+  assert.equal(state.wideUntil, expires);
+});
+
+test('medics restore one ball up to the life cap without marking a rewarded revive', () => {
+  const state = createGame(24);
+  state.lives = 1;
+  const medic = falling(state, 4, state.paddle.x, state.paddle.y - RULES.personRadius - 0.1);
+  medic.role = 'medic';
+  stepGame(state, FIXED_STEP);
+  assert.equal(state.lives, 2);
+  assert.equal(state.usedRevive, false);
+  assert.ok(state.events.some((event) => event.type === 'medic' && event.gained));
+  state.lives = 3;
+  const another = falling(state, 5, state.paddle.x, state.paddle.y - RULES.personRadius - 0.1);
+  another.role = 'medic';
+  stepGame(state, FIXED_STEP);
+  assert.equal(state.lives, 3);
+});
+
+test('steel redirects the ball repeatedly without breaking or releasing a teammate', () => {
+  const state = createGame(18),
+    barrier = state.barriers[0],
+    original = structuredClone(barrier);
+  for (let impact = 0; impact < 8; impact++) {
+    strike(state, barrier);
+    assert.ok(state.ball.vy > 0);
+    assert.ok(state.events.some((event) => event.type === 'metal'));
+    assert.deepEqual(barrier, original);
+  }
+  assert.equal(state.people.length, 0);
+  assert.equal(remainingRescuable(state), 6);
+});
+
+test('wind pauses with the simulation and its landing marker predicts the actual catch', () => {
+  const state = createGame(12);
+  while (state.cages[4].hp > 0) strike(state, state.cages[4]);
+  state.ball.active = false;
+  state.phase = state.status = 'ready';
+  const person = state.people[0];
+  advance(state, 0.4);
+  const forecast = getPersonLandingX(state, person),
+    before = person.x;
+  setPaused(state, true);
+  stepGame(state, 3);
+  assert.equal(person.x, before);
+  setPaused(state, false);
+  for (let tick = 0; tick < 120 * 20 && person.status !== 'rescued'; tick++)
+    stepGame(state, FIXED_STEP, { targetX: forecast });
+  assert.equal(person.status, 'rescued');
+  assert.ok(Math.abs(person.x - forecast) < 0.5);
+  assert.notEqual(person.x, person.originX);
+});
+
+test('content rejects unsafe weather and unknown support roles', () => {
+  const levels = structuredClone(LEVELS);
+  levels[12].wind.amplitude = 100;
+  levels[6].cages[0].role = 'unknown';
+  const errors = validateLevels(levels);
+  assert.ok(errors.some((error) => error.includes('wind')));
+  assert.ok(errors.some((error) => error.includes('role')));
 });
