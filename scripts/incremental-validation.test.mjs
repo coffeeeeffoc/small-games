@@ -454,14 +454,22 @@ test('developer-mode game guards select every old/new assertion consumer and ret
   const { runIncrementalToolChecks } = await import('./validate-tree.mjs');
   runIncrementalToolChecks({
     plan: result,
-    packages,
+    packages: [
+      ...packages,
+      {
+        dir: 'games/local/wulong-city',
+        name: '@coffeeeeffoc/wulong-city',
+        scripts: { build: 'node build.mjs' },
+      },
+    ],
     root: '/snapshot',
     env: { KEEP: 'yes' },
     execute: (...args) => calls.push(args),
   });
-  assert.deepEqual(calls[0][1], [devModeFile]);
-  assert.equal(calls[0][3].DEV_MODE_GAME_IDS, result.developer_mode_ids.join(','));
-  assert.equal(calls[0][3].KEEP, 'yes');
+  assert.deepEqual(calls[0][1], ['--filter', '@coffeeeeffoc/wulong-city', 'build']);
+  assert.deepEqual(calls[1][1], [devModeFile]);
+  assert.equal(calls[1][3].DEV_MODE_GAME_IDS, result.developer_mode_ids.join(','));
+  assert.equal(calls[1][3].KEEP, 'yes');
   for (const readHead of [
     () =>
       devSource(
