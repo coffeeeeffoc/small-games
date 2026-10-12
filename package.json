@@ -82,7 +82,7 @@
   },
   "devDependencies": {
     "@playwright/test": "1.55.1",
-    "vite": "8.2.2",
+    "vite": "8.2.4",
     "@coffeeeeffoc/release-contract": "workspace:*",
     "@coffeeeeffoc/game-artifact": "workspace:*",
     "@coffeeeeffoc/game-cultivation": "workspace:*",

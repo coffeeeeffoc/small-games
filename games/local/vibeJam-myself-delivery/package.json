@@ -12,5 +12,5 @@
     "test": "node scripts/check-game.mjs && node scripts/check-input.mjs && node scripts/check-steering.mjs && node scripts/check-map.mjs"
   },
   "dependencies": { "three": "0.180.0" },
-  "devDependencies": { "vite": "7.1.5" }
+  "devDependencies": { "vite": "7.3.7" }
 }

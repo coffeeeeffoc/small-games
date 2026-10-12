@@ -3,6 +3,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { isDeepStrictEqual } from 'node:util';
 import { affectedPackages, isDocumentation, riskPlan } from './validation-plan.mjs';
+import { hasVitePatch, viteBuiltinSources } from './vite-patch-scope.mjs';
 import {
   nineNativeScopePaths,
   nineNativeChecks,
@@ -20,7 +21,7 @@ export { reviewedSharedFileScopes } from './publication-scopes.mjs';
 const loadFormatter = createRequire(import.meta.url);
 
 const validationTool =
-  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|run-selected-(?:shell|browser)|ci-validation|browser-preparation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope|pages-regression-shards|publication-scopes|run-selected-competition)(?:\.[^/]+)?\.mjs|scripts\/nine-(?:native|lock)-scope(?:\.test)?\.mjs|\.githooks\/[^/]+)$/;
+  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|run-selected-(?:shell|browser)|ci-validation|browser-preparation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope|pages-regression-shards|publication-scopes|vite-patch-scope|run-selected-competition)(?:\.[^/]+)?\.mjs|scripts\/nine-(?:native|lock)-scope(?:\.test)?\.mjs|\.githooks\/[^/]+)$/;
 export const workspaceBoundaryScopePaths = Object.freeze([
   'scripts/check-workspace-dependencies.mjs',
   'scripts/check-workspace-dependencies.test.mjs',
@@ -174,6 +175,8 @@ export function incrementalPlan({
     : [];
   if (devModeIds.length)
     for (const id of navigationSamples) if (games.some((game) => game.id === id)) ids.add(id);
+  if (hasVitePatch(paths, fileScopes))
+    devModeIds.push(...ids, ...viteBuiltinSources.map((source) => source.split('/game-')[1]));
   const publishingChanged = paths.some((file) => publishingScopePaths.includes(file));
   const publishingBrowserIds = Object.entries(publishingConsumers)
     .filter(
@@ -189,6 +192,7 @@ export function incrementalPlan({
     });
   return {
     full: false,
+    ...(hasVitePatch(paths, fileScopes) ? { vite_patch: true } : {}),
     browser: ids.size > 0,
     browser_ids: [...ids].sort(),
     game_sources: selected.map((game) => game.source),
@@ -225,7 +229,7 @@ export function incrementalPlan({
     nine_native_blocked: nineNative.blocked,
     nine_native_travel_contract: nineNative.travel_contract,
     native_consumers: nativeConsumers.map((consumer) => consumer.dir),
-    developer_mode_ids: devModeIds.sort(),
+    developer_mode_ids: [...new Set(devModeIds)].sort(),
     catalog_rollout_checks: shellChanged,
     interaction_browser_ids: ['letters-words2', 'tianxia-chalu'].filter(
       (id) => ids.has(id) && directGames.some((game) => game.id === id),

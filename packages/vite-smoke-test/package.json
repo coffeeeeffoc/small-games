@@ -16,7 +16,7 @@
     "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {
-    "vite": "8.2.2"
+    "vite": "8.2.4"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-eslint": "workspace:*",

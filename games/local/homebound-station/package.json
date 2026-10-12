@@ -13,6 +13,6 @@
     "build": "tsc --noEmit && vite build"
   },
   "dependencies": { "three": "0.180.0" },
-  "devDependencies": { "@types/three": "0.180.0", "typescript": "7.0.2", "vite": "8.2.2", "@playwright/test": "1.55.1" },
+  "devDependencies": { "@types/three": "0.180.0", "typescript": "7.0.2", "vite": "8.2.4", "@playwright/test": "1.55.1" },
   "coffeeeeffoc": { "role": "game" }
 }

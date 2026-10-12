@@ -12,6 +12,7 @@ import {
 import { registrationFileScopes } from './pages-registration-scope.mjs';
 import { nineNativeFileScopes, isNineNativeOnlyPath } from './nine-native-scope.mjs';
 import { nineLockFileScopes } from './nine-lock-scope.mjs';
+import { viteTestSources, viteSmokeSources, viteNativeSources } from './vite-patch-scope.mjs';
 import {
   incrementalPlan,
   entryAdapterFileScopes,
@@ -381,6 +382,33 @@ export function runNineNativeChecks({
 }
 
 export function runIncrementalToolChecks({ plan, packages, root, env, execute = run }) {
+  if (plan.vite_patch) {
+    // A test-runner dependency changes these tests, not their downstream runtime
+    // consumers. Keep this separate from affectedPackages' runtime graph.
+    for (const source of viteTestSources) {
+      const pkg = packages.find((item) => item.dir === source);
+      assert(
+        pkg?.devDependencies?.vitest === '5.0.0' && pkg.scripts?.test?.includes('vitest'),
+        `Missing audited Vite test consumer: ${source}`,
+      );
+      execute('pnpm', ['--filter', pkg.name, 'test'], root, env, 'logged');
+    }
+    for (const source of viteSmokeSources) {
+      const pkg = packages.find((item) => item.dir === source);
+      assert(pkg?.scripts?.smoke, `Missing audited Vite smoke consumer: ${source}`);
+      execute('pnpm', ['--filter', pkg.name, 'smoke'], root, env, 'logged');
+    }
+    if (nativeReleaseGatesEnabled(env)) {
+      for (const source of viteNativeSources) {
+        const pkg = packages.find((item) => item.dir === source);
+        assert(pkg?.scripts?.smoke, `Missing native Vite consumer: ${source}`);
+        execute('pnpm', ['--filter', pkg.name, 'smoke'], root, env, 'logged');
+      }
+    } else
+      console.log(
+        'Vite native host builds/smoke deferred by MINIGAME_RELEASE_GATES=0; their unit, type and lint checks remain required.',
+      );
+  }
   if (plan.catalog_rollout_checks) {
     assert(plan.browser, 'Catalog rollout validation requires real browser checks');
     execute(
@@ -659,6 +687,7 @@ export async function validateTree({
         'scripts/nine-native-scope.test.mjs',
         'scripts/nine-lock-scope.test.mjs',
         'scripts/publication-scopes.test.mjs',
+        'scripts/vite-patch-scope.test.mjs',
       ],
       root,
       clean,
@@ -733,7 +762,14 @@ export async function validateTree({
           ]),
         ]
       : direct;
-  const buildTargets = staticBuildTargets(packages, buildDirect, affected);
+  const buildTargets = staticBuildTargets(packages, buildDirect, affected).filter(
+    (pkg) =>
+      !(
+        incrementalScope?.vite_patch &&
+        !nativeReleaseGatesEnabled(clean) &&
+        viteNativeSources.includes(pkg.dir)
+      ),
+  );
   const cocosInputs = cocosPreflightTargets({
     packages,
     buildTargets,

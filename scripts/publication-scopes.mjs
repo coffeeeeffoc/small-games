@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { isDeepStrictEqual } from 'node:util';
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
+import { vitePatchFileScopes } from './vite-patch-scope.mjs';
 
 const loadDependency = createRequire(import.meta.url);
 
@@ -818,7 +819,7 @@ export function reviewedSharedFileScopes({
   games,
   packages = [],
 }) {
-  const scopes = new Map();
+  const scopes = vitePatchFileScopes({ changedPaths, readBase, readHead });
   for (const file of changedPaths) {
     try {
       const cumulative =

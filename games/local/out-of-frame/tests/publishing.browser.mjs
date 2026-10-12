@@ -3,6 +3,7 @@ import { chromium, expect } from '@playwright/test';
 import { spawn } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { expectDisplay, rotationChecks } from './rotation.mjs';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const output=new URL('../test-results/publishing/',import.meta.url);await mkdir(output,{recursive:true});
 const base=process.env.GAME_URL??'http://127.0.0.1:4657/';
@@ -37,7 +38,7 @@ try{await ready();
  const mobile=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,storageState:saved});const m=await open(mobile,shared);const before=await m.evaluate(()=>JSON.stringify({...localStorage}));assert.equal((await snap(m)).challenge,true);assert.equal(await m.evaluate(()=>document.documentElement.dataset.rotated),'true');await m.screenshot({path:fileURLToPath(new URL('phone-home.png',output))});
  await m.locator('#start-button').tap();await advance(m,100);const t=await contacts(m);await t.button(1,'#move-right');await advance(m,100);await t.cancel();await advance(m,100);const stopped=(await snap(m)).state.player.x;await advance(m,150);assert.equal((await snap(m)).state.player.x,stopped);await m.locator('#touch-restart').tap();await advance(m,30);
  await m.screenshot({path:fileURLToPath(new URL('phone-play.png',output))});await solve(m,true);assert.equal(await m.evaluate(()=>JSON.stringify({...localStorage})),before);await m.screenshot({path:fileURLToPath(new URL('phone-result.png',output))});checks.push('rotated phone touch solve, cancel, challenge save isolation');
- await m.locator('#result-retry').tap();await advance(m,30);await m.setViewportSize({width:844,height:390});await advance(m,100);assert.equal(await m.evaluate(()=>document.documentElement.dataset.rotated),'false');await solve(m,true);assert.equal(await m.locator('[data-game-ad]').count(),0);
+ await m.locator('#result-retry').tap();await advance(m,30);await rotationChecks(m);await expectDisplay(m,false);await solve(m,true);assert.equal(await m.locator('[data-game-ad]').count(),0);checks.push('repeated native rotation, exact paused state, resume, touch mapping and held-input cancellation');
  await m.locator('#result-retry').tap();await advance(m,30);await solve(m,true);assert.equal(await m.locator('[data-game-ad]').count(),1);await m.getByRole('button',{name:'关闭并继续'}).tap();assert.equal((await snap(m)).state.status,'won');assert.equal(await m.evaluate(()=>JSON.stringify({...localStorage})),before);checks.push('physical landscape, third-result ad frequency and dismiss');
  await m.locator('#result-home').tap();await m.locator('#exit-challenge').tap();assert.equal((await snap(m)).challenge,false);checks.push('return to normal progress');}
  assert.deepEqual(errors,[]);
