@@ -1,4 +1,4 @@
-import { RING_STROKE, angleDistance, circleIntersections, clearsOpening, getBlockers, canRelease, isLocked, type Ring, type State } from './core.ts';
+import { RING_STROKE, angleDistance, circleIntersections, hasBandAt, clearsOpening, getBlockers, canRelease, isLocked, type Ring, type State } from './core.ts';
 
 export const COLORS = ['#27766e', '#de7b63', '#c99845', '#4f858f'];
 const TAU = Math.PI * 2;
@@ -58,14 +58,19 @@ export function weaveArt(state: State, selectedId: string | null = null): string
       circleIntersections(a, b)?.forEach((point, crossing) => {
         const aa = Math.atan2(point.y - a.y, point.x - a.x);
         const ab = Math.atan2(point.y - b.y, point.x - b.x);
-        if (angleDistance(aa, a.angle) <= a.gap / 2 || angleDistance(ab, b.angle) <= b.gap / 2) return;
+        if (!hasBandAt(a, aa) || !hasBandAt(b, ab)) return;
         const over = crossing === 0 ? a : b;
         const color = over.color || COLORS[(crossing === 0 ? i : j) % COLORS.length];
         const under = crossing === 0 ? j : i;
         const angle = crossing === 0 ? aa : ab;
-        cuts[under]!.push(`<circle cx="${point.x - state.rings[under]!.x}" cy="${point.y - state.rings[under]!.y}" r="11" fill="black"/>`);
-        const half = Math.min(12 / over.r, angleDistance(angle, over.angle) - over.gap / 2);
-        bridges.push(`<g class="crossing" data-over="${over.id}" data-under="${state.rings[under]!.id}" transform="translate(${over.x} ${over.y})" pointer-events="none"><path d="${arc(over.r, angle - half, angle + half)}" fill="none" stroke="#283d38" stroke-width="21" opacity=".24"/><path d="${arc(over.r, angle - half, angle + half)}" fill="none" stroke="#3f4f42" stroke-width="${RING_STROKE}"/><path d="${arc(over.r, angle - half, angle + half)}" fill="none" stroke="${color}" stroke-width="13"/><path d="${arc(over.r + 4.5, angle - half, angle + half)}" fill="none" stroke="#fff2c8" stroke-width=".8" opacity=".7"/></g>`);
+        const offsetAngle = ((angle - over.angle) % TAU + TAU) % TAU;
+        const center = Math.max(over.gap / 2, Math.min(TAU - over.gap / 2, offsetAngle));
+        const start = over.angle + Math.max(over.gap / 2, center - 12 / over.r);
+        const end = over.angle + Math.min(TAU - over.gap / 2, center + 12 / over.r);
+        const path = arc(over.r, start, end);
+        cuts[under]!.push(`<path d="${path}" transform="translate(${over.x - state.rings[under]!.x} ${over.y - state.rings[under]!.y})" fill="none" stroke="black" stroke-width="21" stroke-linecap="round"/>`);
+        const caps = [over.angle + over.gap / 2, over.angle + TAU - over.gap / 2].filter(tip => tip >= start && tip <= end).map(tip => `<circle cx="${Math.cos(tip) * over.r}" cy="${Math.sin(tip) * over.r}" r="2.5" fill="#f4deaa" stroke="#80643a" stroke-width=".8"/>`).join('');
+        bridges.push(`<g class="crossing" data-over="${over.id}" data-under="${state.rings[under]!.id}" transform="translate(${over.x} ${over.y})" pointer-events="none"><path d="${path}" fill="none" stroke="#283d38" stroke-width="21" stroke-linecap="round" opacity=".24"/><path d="${path}" fill="none" stroke="#3f4f42" stroke-width="${RING_STROKE}" stroke-linecap="round"/><path d="${path}" fill="none" stroke="${color}" stroke-width="13" stroke-linecap="round"/><path d="${arc(over.r + 4.5, start, end)}" fill="none" stroke="#fff2c8" stroke-width=".8" opacity=".7"/>${caps}</g>`);
       });
     });
   });

@@ -343,6 +343,12 @@ try {
   await expect(buttons.first()).toBeEnabled();
   await expect(buttons.nth(1)).toBeDisabled();
   await screenshot(page, 'mobile-levels');
+  await buttons.last().scrollIntoViewIfNeeded();
+  const catalogBack = await action(page, 'home').boundingBox();
+  assert(catalogBack && catalogBack.y >= 0 && catalogBack.y + catalogBack.height <= 844, 'late chapter keeps the return button on screen');
+  await screenshot(page, 'mobile-levels-late');
+  await action(page, 'home').tap();
+  await screen(page, 'home');
   checks.push('ordinary home, default dev mode off and locked level catalogue');
 
   await ready(page);
@@ -355,6 +361,12 @@ try {
   assert.deepEqual(await page.locator('.crossing').evaluateAll(nodes => nodes.map(n => [n.dataset.over, n.dataset.under])), [['ring-1','ring-2'], ['ring-2','ring-1']], 'two contacts visibly alternate over/under');
   const firstHint = core.findHint(initial);
   const firstRing = initial.rings.find((ring) => ring.id === firstHint.ringId);
+  const capContactAngle = core.getBlockers(initial, firstRing.id)[0].angles[0] + firstRing.gap / 2 - 0.05;
+  await dragRing(page, firstRing, capContactAngle, {cancel: true, onHeld: async () => {
+    await expect(page.locator('.crossing')).toHaveCount(2);
+    await expect(page.locator('.contact.blocked')).not.toHaveCount(0);
+    await screenshot(page, 'mobile-cap-contact');
+  }});
   await dragRing(page, firstRing, firstRing.angle + 0.45, { cancel: true });
   assert.equal(
     liveRings(stateOf(await inspect(page))).length,
@@ -514,6 +526,19 @@ try {
     await screen(page, 'result');
   }
   checks.push('all five new chapters: first and last samples cleared by native touch (74 covered by final trial)');
+  await page.setViewportSize({width: 844, height: 390});
+  await ready(page, `${developerUrl()}&challenge=orbit-01`);
+  await releaseOne(page);
+  const lone = liveRings(stateOf(await inspect(page)))[0];
+  const thumbPoint = await page.locator('[data-scene]').evaluate((scene, ring) => {
+    const m = scene.getScreenCTM(), scale = Math.hypot(m.a, m.b);
+    const angle = ring.angle + Math.PI;
+    const p = new DOMPoint(ring.x + (ring.r + 18 / scale) * Math.cos(angle), ring.y + (ring.r + 18 / scale) * Math.sin(angle)).matrixTransform(m);
+    return {x: p.x, y: p.y};
+  }, lone);
+  await touchPath(page, [thumbPoint, thumbPoint]);
+  await screen(page, 'result');
+  checks.push('landscape letterboxed SVG keeps a 44px thumb target: tap 18 CSS px outside isolated band');
   await phone.close();
 
   const desktop = await browser.newContext({

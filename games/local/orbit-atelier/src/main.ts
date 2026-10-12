@@ -274,9 +274,8 @@ function pointerDown(event: PointerEvent) {
   if (!run || drag || event.button !== 0 || screen !== 'playing' || ghost) return;
   const point = boardPoint(event);
   if (!point) return;
-  const scale =
-    (fitScene(run.state).scale * app.querySelector('#ring-board')!.getBoundingClientRect().width) /
-    360;
+  const matrix = app.querySelector<SVGGraphicsElement>('[data-scene]')!.getScreenCTM()!;
+  const scale = Math.hypot(matrix.a, matrix.b);
   const ring = pickTouchRing(run.state, point, scale, selectedRingId);
   if (!ring) return;
   event.preventDefault();

@@ -384,6 +384,15 @@ button svg {
   gap: 28px;
   padding: 17px 0 28px;
 }
+#orbit-app[data-screen='levels'] {
+  overflow: visible;
+}
+#orbit-app[data-screen='levels'] .topbar {
+  position: sticky;
+  top: max(0px, env(safe-area-inset-top));
+  z-index: 2;
+  background: #f5f1e7;
+}
 .chapter {
   position: relative;
   padding-bottom: 25px;

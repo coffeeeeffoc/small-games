@@ -133,6 +133,10 @@ export function openingClearance(ring: Pick<Ring, 'r'>): number {
   return Math.asin(Math.min(1, (RING_STROKE + 2) / ring.r));
 }
 
+export function hasBandAt(ring: Ring, angle: number): boolean {
+  return angleDistance(ring.angle, angle) > ring.gap / 2 - Math.asin(Math.min(1, RING_STROKE / (2 * ring.r)));
+}
+
 export function clearsOpening(ring: Ring, angle: number): boolean {
   return angleDistance(ring.angle, angle) <= ring.gap / 2 - openingClearance(ring) + EPSILON;
 }

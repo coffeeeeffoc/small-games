@@ -1,4 +1,4 @@
-import { angleDistance, isLocked, type Point, type State } from './core.ts';
+import { hasBandAt, isLocked, type Point, type State } from './core.ts';
 
 /** Resolve a thumb hit without letting a locked ring steal an overlapping active ring. */
 export function pickTouchRing(state: State, point: Point, scale: number, selected: string | null) {
@@ -7,7 +7,7 @@ export function pickTouchRing(state: State, point: Point, scale: number, selecte
     ring,
     distance: Math.abs(Math.hypot(point.x - ring.x, point.y - ring.y) - ring.r),
     angle: Math.atan2(point.y - ring.y, point.x - ring.x),
-  })).filter(hit => hit.distance <= radius && angleDistance(hit.angle, hit.ring.angle) > hit.ring.gap / 2 - Math.asin(Math.min(1, 8 / hit.ring.r)))
+  })).filter(hit => hit.distance <= radius && hasBandAt(hit.ring, hit.angle))
     .sort((a, b) => a.distance - b.distance);
   const movable = candidates.filter(hit => !isLocked(state, hit.ring.id));
   const choices = movable.length ? movable : candidates;

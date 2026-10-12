@@ -200,6 +200,7 @@ test('74 authored levels validate, fit the board, and solve by actual rotate/rel
   for (const chapter of CHAPTERS)
     assert.equal(LEVELS.filter((entry) => entry.chapter === chapter.id).length, chapter.id <= 3 ? 8 : 10);
   for (const content of LEVELS) {
+    assert.ok(weaveArt(createState(content)).includes('class="crossing"'), `${content.id} must visibly interlock at the start`);
     for (const item of content.rings) {
       assert.ok(item.x - item.r >= 0 && item.x + item.r <= BOARD_WIDTH, `${content.id}: x bounds`);
       assert.ok(item.y - item.r >= 0 && item.y + item.r <= BOARD_HEIGHT, `${content.id}: y bounds`);
@@ -278,6 +279,10 @@ test('both visible crossings alternate depth and disappear when an opening reach
   assert.match(art, /data-over="a" data-under="b"/);
   assert.match(art, /data-over="b" data-under="a"/);
   assert.match(connectionArt(state, 'a'), /data-release-ready="false"/);
+  const contact = getBlockers(state, 'a')[0]!.angles[0];
+  rotateRing(state, 'a', contact + state.rings[0]!.gap / 2 - 0.05);
+  assert.match(weaveArt(state), /data-over="a" data-under="b"/, 'rounded cap still contacts the crossing inside the nominal opening');
+  assert.equal(canRelease(state, 'a'), false);
   rotateRing(state, 'a', 0);
   assert.equal(canRelease(state, 'a'), true);
   assert.equal((connectionArt(state, 'a').match(/data-clear="true"/g) || []).length, 2);

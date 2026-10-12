@@ -1,6 +1,6 @@
 {
   "status": "passed",
-  "date": "2026-10-12T20:22:56.285Z",
+  "date": "2026-10-12T20:37:42.659Z",
   "environment": {
     "browser": "154.0.8037.99",
     "engine": "Chromium",
@@ -26,6 +26,7 @@
     "native touch first-stage clear, immediate final-release blur keeps settlement, result, next, persisted unlock and small/landscape interaction",
     "native touch final-stage clear, visible lock countdown, mixed ring sizes, rounded-cap final tap and trial rewards isolated; exit restores normal attempt",
     "all five new chapters: first and last samples cleared by native touch (74 covered by final trial)",
+    "landscape letterboxed SVG keeps a 44px thumb target: tap 18 CSS px outside isolated band",
     "desktop mouse, home/help/settings, real fullscreen entry/exit, rejected fullscreen fallback and retry",
     "corrupt local storage remains playable",
     "blocked local storage remains playable",
@@ -34,7 +35,9 @@
   "screenshots": [
     "mobile-home.png",
     "mobile-levels.png",
+    "mobile-levels-late.png",
     "mobile-playing.png",
+    "mobile-cap-contact.png",
     "mobile-aligned.png",
     "mobile-extracting.png",
     "mobile-paused.png",

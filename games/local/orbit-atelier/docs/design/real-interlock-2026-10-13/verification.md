@@ -5,7 +5,7 @@
 ## 已通过
 
 - `pnpm --filter @coffeeeeffoc/orbit-atelier test`：24 项规则和存档测试。74 关全部 schema、边界与真实旋转/释放解法通过；新增 50 关均连通且至少 20 逻辑单位交叠。反向优先拆解也能完成。每个连接的单邻环解扣方向至少允许 ±3°；仅让开一处或圆头净空不足不能脱扣。
-- `pnpm --filter @coffeeeeffoc/orbit-atelier test:browser`：9 组实际生产浏览器验收。CDP 原生触屏及真实鼠标，390×844、320×640、844×390、1280×900。首关两处交点的上下穿扣交替可见；按住对齐时圆环仍存在、两处显示勾号，松手后沿缺口反方向滑离。取消恢复、撤回、暂停、失焦和前后台、最后释放立即失焦后的结算、重新加载存档、下一关与顺序解锁均通过。
+- `pnpm --filter @coffeeeeffoc/orbit-atelier test:browser`：10 组实际生产浏览器验收。CDP 原生触屏及真实鼠标，390×844、320×640、844×390、1280×900。首关两处交点的上下穿扣交替可见；按住对齐时圆环仍存在、两处显示勾号，松手后沿缺口反方向滑离。取消恢复、撤回、暂停、失焦和前后台、最后释放立即失焦后的结算、重新加载存档、下一关与顺序解锁均通过。横屏留白 SVG 中，距离孤立环带 18 CSS px 的拇指点按仍能命中，保持约 44 px 热区；滚到第八章时返回按钮仍可见且可触屏返回主页。
 - 新章节 25/34、35/44、45/54、55/64、65/74 关通过实际触屏通关；74 关同时验证锁栓倒计时、密集大小环、最终圆头点按及开发试玩隔离。独立页及带 sandbox 的 iframe 实际触屏解扣、暂停恢复通过。全屏真实进入/退出以及拒绝后的正常玩法通过。
 - `pnpm --filter @coffeeeeffoc/orbit-atelier test:publishing:browser`：第 74 关同盘邀请实际触屏解完，保留原主线存档；提示后撤回不抹除提示数；分享清理私有参数、系统分享取消不误报成功、关闭广告配置及 320 px 返回流程通过。
 - `pnpm --filter @coffeeeeffoc/shell-web exec vitest run tests/game-sharing.test.tsx`：86 项通过，包含原 24、新 25 和最终 74 关的 Shell 路由、独立入口及公开分享；拒绝 00、75 与非标准 074。
@@ -18,8 +18,10 @@
 | 实际画面 | 验收重点 |
 | --- | --- |
 | [主页](actual/mobile-home.png) | 工坊风格、真实上下穿扣绘制、开始/选关/设置 |
+| [第八章选关](actual/mobile-levels-late.png) | 完整74关目录、真实解锁锁定、滚动后仍可返回 |
 | [首关](actual/mobile-playing.png) | 28 单位交叠、两个接触位置交替上穿/下穿、真实暂停双条 |
 | [对齐](actual/mobile-aligned.png) / [滑离](actual/mobile-extracting.png) | 反馈与规则同源；按住等待松手；出口方向正确 |
+| [圆头临界接触](actual/mobile-cap-contact.png) | 交点刚进入名义缺口时，圆头仍有上下穿扣且规则仍阻挡 |
 | [宽口回窗](actual/mobile-wide-mouth.png) | 宽口解转角，两方向连接的观察难度 |
 | [织星](actual/mobile-woven.png) / [最终关](actual/mobile-final-playing.png) | 大小环、回窗、接力星栓的组合 |
 | [小屏](actual/mobile-small.png) / [横屏](actual/mobile-landscape.png) | 控件可达、尺寸变化保留对局、触控坐标正确 |
