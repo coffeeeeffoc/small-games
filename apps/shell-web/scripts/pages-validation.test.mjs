@@ -4,10 +4,29 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
-import { selectPagesGames, verifyPagesArtifacts } from './pages-validation.mjs';
+import { selectPagesGames, verifyPagesArtifacts, mobileGameViewport } from './pages-validation.mjs';
 import { monitorPagesPage } from './pages-browser-monitor.mjs';
 
 const games = [{ id: 'merge-front' }, { id: 'heavy-game' }];
+
+test('mobile entry viewports preserve landscape controls and portrait regression cases', () => {
+  for (const id of [
+    'fold-the-world',
+    'one-stroke-course',
+    'hold-tight-acrobats',
+    'carding-car',
+    'night-overwatch',
+    'fishing',
+    'vibeJam-myself-delivery',
+    'vibeJam-myself-nullrange',
+  ])
+    assert.deepEqual(mobileGameViewport(id), { width: 844, height: 390 }, id);
+  assert.deepEqual(mobileGameViewport('out-of-frame'), { width: 390, height: 844 });
+  const pixel = { width: 412, height: 839 };
+  assert.deepEqual(mobileGameViewport('out-of-frame', pixel), pixel);
+  assert.deepEqual(mobileGameViewport('fishing', pixel), { width: 844, height: 390 });
+  assert.deepEqual(mobileGameViewport('wulong-city', pixel), { width: 360, height: 900 });
+});
 
 test('game selection preserves all/default and shell-only modes, rejects invalid IDs', () => {
   assert.deepEqual(selectPagesGames(games, undefined), games);

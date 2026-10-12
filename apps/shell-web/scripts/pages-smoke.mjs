@@ -5,7 +5,7 @@ import { chromium, devices, expect } from '@playwright/test';
 import { preview } from 'vite';
 import { markers, exerciseStandalone } from './standalone-game-checks.mjs';
 import { entryMode } from './standalone-game-entry.mjs';
-import { selectPagesGames } from './pages-validation.mjs';
+import { selectPagesGames, mobileGameViewport } from './pages-validation.mjs';
 import { monitorPagesPage } from './pages-browser-monitor.mjs';
 
 const games = JSON.parse(await readFile(new URL('../src/standalone-games.json', import.meta.url)));
@@ -338,23 +338,7 @@ try {
       await expect(page).toHaveURL(url);
       await expect(page.locator('iframe')).toHaveCount(0);
     });
-    const landscape = [
-      'fold-the-world',
-      'one-stroke-course',
-      'hold-tight-acrobats',
-      'carding-car',
-      'night-overwatch',
-      'fishing',
-      'vibeJam-myself-delivery',
-      'vibeJam-myself-nullrange',
-    ].includes(game.id);
-    // This tall narrow viewport catches a held touch leaking onto the result dialog.
-    const viewport =
-      game.id === 'wulong-city'
-        ? { width: 360, height: 900 }
-        : landscape
-          ? { width: 844, height: 390 }
-          : { width: 390, height: 844 };
+    const viewport = mobileGameViewport(game.id);
     result.viewport = viewport;
     const mobileContext = await browser.newContext({ ...devices['Pixel 7'], viewport });
     const direct = await mobileContext.newPage();

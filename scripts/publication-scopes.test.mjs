@@ -12,6 +12,8 @@ import {
   publishingScopePaths,
   deploymentBundleScopePaths,
   publicationConfigScopePaths,
+  mobileViewportScopeFile,
+  independentPreviewScopeFile,
 } from './publication-scopes.mjs';
 import {
   incrementalPlan,
@@ -20,6 +22,157 @@ import {
 } from './incremental-validation.mjs';
 import { executeCompetitionChecks } from './run-selected-competition.mjs';
 import { shellContractTargets, shellContractFiles } from './validation-plan.mjs';
+
+test('viewport extraction selects all nine real consumers and rejects any unreviewed bytes', () => {
+  const file = mobileViewportScopeFile;
+  const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
+    '\r\n',
+    '\n',
+  );
+  const before = after.replace(/\n\/\/ Shared by the Pages[\s\S]*?(?=\nfunction attributes)/, '');
+  assert.notEqual(before, after);
+  const games = JSON.parse(
+    readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url), 'utf8'),
+  );
+  const packages = games.map((game) => ({ dir: game.source, name: '@fixture/' + game.id }));
+  const classify = (old, current, catalog = games) =>
+    reviewedSharedFileScopes({
+      changedPaths: [file],
+      games: catalog,
+      packages,
+      readBase: () => old,
+      readHead: () => current,
+    });
+  const scopes = classify(before, after);
+  const plan = incrementalPlan({
+    packages,
+    games,
+    changedPaths: [file],
+    fileScopes: scopes,
+    readSource: () => '',
+  });
+  assert.deepEqual(plan.browser_ids, [
+    'carding-car',
+    'fishing',
+    'fold-the-world',
+    'hold-tight-acrobats',
+    'night-overwatch',
+    'one-stroke-course',
+    'vibeJam-myself-delivery',
+    'vibeJam-myself-nullrange',
+    'wulong-city',
+  ]);
+  assert.equal(plan.validation_tools, true);
+  assert.equal(plan.full, false);
+  for (const rejected of [
+    classify(before + '\n', after),
+    classify(before, after.replace('width: 844', 'width: 843')),
+    classify(before, after + '\n'),
+    classify(
+      before,
+      after,
+      games.filter((game) => game.id !== 'fishing'),
+    ),
+  ]) {
+    assert(!rejected.has(file));
+    assert.throws(
+      () =>
+        incrementalPlan({
+          packages,
+          games,
+          changedPaths: [file],
+          fileScopes: rejected,
+          readSource: () => '',
+        }),
+      /Mobile viewport scope undefined/,
+    );
+  }
+});
+
+test('independent preview selects nine viewport consumers plus Tower Defense and fails closed', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const files = [mobileViewportScopeFile, independentPreviewScopeFile];
+  const before = Object.fromEntries(
+    files.map((file) => [
+      file,
+      execFileSync('git', ['show', 'e37783aef3042289d9cfbb7f4b0badb6a106f6d8:' + file], {
+        encoding: 'utf8',
+      }),
+    ]),
+  );
+  const after = Object.fromEntries(
+    files.map((file) => [
+      file,
+      readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll('\r\n', '\n'),
+    ]),
+  );
+  const games = JSON.parse(
+    readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url), 'utf8'),
+  );
+  const packages = games.map((game) => ({ dir: game.source, name: '@fixture/' + game.id }));
+  const classify = (current = after, catalog = games, old = before) =>
+    reviewedSharedFileScopes({
+      changedPaths: files,
+      games: catalog,
+      packages,
+      readBase: (file) => old[file],
+      readHead: (file) => current[file],
+    });
+  const scopes = classify();
+  assert.equal(scopes.get(independentPreviewScopeFile).length, 10);
+  assert(scopes.get(independentPreviewScopeFile).includes('games/submodules/tower-defense-game'));
+  const plan = incrementalPlan({
+    packages,
+    games,
+    changedPaths: files,
+    fileScopes: scopes,
+    readSource: () => '',
+  });
+  assert.equal(plan.full, false);
+  assert.equal(plan.validation_tools, true);
+  assert.deepEqual(plan.browser_ids, [
+    'carding-car',
+    'fishing',
+    'fold-the-world',
+    'hold-tight-acrobats',
+    'letters-words2',
+    'night-overwatch',
+    'one-stroke-course',
+    'tower-defense-game',
+    'vibeJam-myself-delivery',
+    'vibeJam-myself-nullrange',
+    'wulong-city',
+    'xiangqi-five',
+  ]);
+  for (const rejected of [
+    classify({
+      ...after,
+      [independentPreviewScopeFile]: after[independentPreviewScopeFile] + '\n',
+    }),
+    classify(after, games, {
+      ...before,
+      [independentPreviewScopeFile]: before[independentPreviewScopeFile] + '\n',
+    }),
+    classify({ ...after, [mobileViewportScopeFile]: after[mobileViewportScopeFile] + '\n' }),
+    classify(
+      after,
+      games.filter((game) => game.id !== 'tower-defense-game'),
+    ),
+  ]) {
+    assert(!rejected.has(independentPreviewScopeFile));
+    assert.throws(
+      () =>
+        incrementalPlan({
+          packages,
+          games,
+          changedPaths: [independentPreviewScopeFile],
+          fileScopes: rejected,
+          readSource: () => '',
+        }),
+      /Independent preview scope undefined/,
+    );
+  }
+});
 
 test('flick runtime integration accepts only the exact reviewed deployment, MIME and import deltas', async () => {
   const { execFileSync } = await import('node:child_process');

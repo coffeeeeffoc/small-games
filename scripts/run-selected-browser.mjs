@@ -4,7 +4,10 @@ import path from 'node:path';
 import { chromium, devices } from '@playwright/test';
 import { preview } from 'vite';
 import { exerciseStandalone } from '../apps/shell-web/scripts/standalone-game-checks.mjs';
-import { selectPagesGames } from '../apps/shell-web/scripts/pages-validation.mjs';
+import {
+  selectPagesGames,
+  mobileGameViewport,
+} from '../apps/shell-web/scripts/pages-validation.mjs';
 import { workspacePackages } from './validation-plan.mjs';
 import { run } from './validate-push.mjs';
 const plan = JSON.parse(process.argv[2]);
@@ -18,6 +21,10 @@ for (const game of selectPagesGames(games, JSON.stringify(plan.browser_ids))) {
     `Missing built browser target: ${game.id}`,
   );
   const server = await preview({
+    configFile:
+      game.id === 'tower-defense-game'
+        ? path.join(root, game.source, 'vite.pages.config.ts')
+        : undefined,
     root: path.join(root, game.source),
     build: { outDir: game.output },
     preview: { host: '127.0.0.1', port: 0 },
@@ -30,7 +37,14 @@ for (const game of selectPagesGames(games, JSON.stringify(plan.browser_ids))) {
       headless: true,
     });
     for (const mobile of [false, true]) {
-      const context = await browser.newContext(mobile ? devices['Pixel 7'] : {});
+      const context = await browser.newContext(
+        mobile
+          ? {
+              ...devices['Pixel 7'],
+              viewport: mobileGameViewport(game.id, devices['Pixel 7'].viewport),
+            }
+          : {},
+      );
       try {
         const page = await context.newPage();
         await page.goto(`http://127.0.0.1:${server.httpServer.address().port}`);

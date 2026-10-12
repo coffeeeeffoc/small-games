@@ -809,6 +809,24 @@ function deploymentCommandsOnly(before, after) {
   return isDeepStrictEqual(previous, current);
 }
 
+export const mobileViewportScopeFile = 'apps/shell-web/scripts/pages-validation.mjs';
+export const independentPreviewScopeFile = 'scripts/run-selected-browser.mjs';
+const mobileViewportConsumers = {
+  'fold-the-world': 'games/local/fold-the-world',
+  'one-stroke-course': 'games/local/one-stroke-course',
+  'hold-tight-acrobats': 'games/local/hold-tight-acrobats',
+  'carding-car': 'games/local/carding-car',
+  'night-overwatch': 'games/local/night-overwatch',
+  fishing: 'games/submodules/fishing',
+  'vibeJam-myself-delivery': 'games/local/vibeJam-myself-delivery',
+  'vibeJam-myself-nullrange': 'games/local/vibeJam-myself-nullrange',
+  'wulong-city': 'games/local/wulong-city',
+};
+const independentPreviewConsumers = {
+  ...mobileViewportConsumers,
+  'tower-defense-game': 'games/submodules/tower-defense-game',
+};
+
 /** Structural proofs for config-only changes; explicit consumers for known tools.
  * No prefix wildcard accepts a new workflow, shared runtime or test script.
  */
@@ -822,6 +840,47 @@ export function reviewedSharedFileScopes({
   const scopes = vitePatchFileScopes({ changedPaths, readBase, readHead });
   for (const file of changedPaths) {
     try {
+      if (file === independentPreviewScopeFile) {
+        // The reviewed runner changes only nine mobile viewports and the static
+        // Pages config for Tower Defense. Bind its imported helper as well.
+        const digest = (text) => createHash('sha256').update(text).digest('hex');
+        assert.equal(
+          digest(readBase(file)),
+          '790e82ca9e5a2402af68264950835cb51fa209366ec2a2be40cc5ae0db7f00eb',
+        );
+        assert.equal(
+          digest(readHead(file)),
+          '40b88c9a89b30e8622f5521aec578cbbdf585d8dacf01492729c28c0a2527b6f',
+        );
+        assert.equal(
+          digest(readHead(mobileViewportScopeFile)),
+          '9842e1dd43a69e8abd7067bd4bb1a126775a0c57f7df0733c98acec3a6ecc272',
+        );
+        for (const [id, source] of Object.entries(independentPreviewConsumers))
+          assert(
+            games.filter((game) => game.id === id || game.source === source).length === 1 &&
+              games.some((game) => game.id === id && game.source === source),
+          );
+        scopes.set(file, Object.values(independentPreviewConsumers));
+        continue;
+      }
+      if (file === mobileViewportScopeFile) {
+        // Exact reviewed extraction of the existing Pages viewport contract.
+        // Arbitrary selection/artifact/default-viewport changes stay unclassified.
+        const digest = (text) => createHash('sha256').update(text).digest('hex');
+        assert.equal(
+          digest(readBase(file)),
+          'da88c72eea1d129b416d24510a701054116829f010478c856420cb0e7df45a33',
+        );
+        assert.equal(
+          digest(readHead(file)),
+          '9842e1dd43a69e8abd7067bd4bb1a126775a0c57f7df0733c98acec3a6ecc272',
+        );
+        for (const [id, source] of Object.entries(mobileViewportConsumers))
+          assert(games.filter((game) => game.id === id && game.source === source).length === 1);
+        scopes.set(file, Object.values(mobileViewportConsumers));
+        continue;
+      }
       const cumulative =
         file === carromDeployFile &&
         cumulativeRuntimeDeploymentScope(file, readBase(file), readHead(file));

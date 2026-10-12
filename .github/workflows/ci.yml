@@ -77,7 +77,7 @@ jobs:
        (needs.plan.outputs.cocos == 'false' && needs.kart.result == 'skipped'))
     runs-on: ubuntu-latest
     # Full validation includes serial browser smoke tests after builds and rule tests.
-    timeout-minutes: 40
+    timeout-minutes: 60
     env:
       MINIGAME_RELEASE_GATES: ${{ vars.MINIGAME_RELEASE_GATES || '0' }}
       KART_PREBUILT_DIR: ${{ github.workspace }}/games/local/carding-car/.prebuilt

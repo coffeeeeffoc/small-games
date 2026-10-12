@@ -1189,6 +1189,7 @@ test('native-only Creator consumers are checked before types without rebuilding 
     const boundaryCheck = calls.findIndex((args) => args.includes('test:boundaries'));
     assert(boundaryCheck >= 0, 'Changed boundary tooling must exercise its real contract tests');
     assert(boundaryCheck < calls.findIndex((args) => args.includes('typecheck')));
+    assert(calls.some((args) => args.includes('apps/shell-web/scripts/pages-validation.test.mjs')));
     assert(
       !calls.some((args) => args.includes('build')),
       'The unchanged H5 artifact is not rebuilt',

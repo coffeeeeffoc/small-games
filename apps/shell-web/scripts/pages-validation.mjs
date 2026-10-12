@@ -20,6 +20,25 @@ export function selectPagesGames(games, input) {
   return games.filter((game) => selected.has(game.id));
 }
 
+// Shared by the Pages and independent CI entry checks. Keep portrait fallbacks
+// exercised for other games; these legacy entries require a landscape viewport.
+export function mobileGameViewport(id, fallback = { width: 390, height: 844 }) {
+  // This tall narrow viewport catches a held touch leaking onto the result dialog.
+  if (id === 'wulong-city') return { width: 360, height: 900 };
+  return [
+    'fold-the-world',
+    'one-stroke-course',
+    'hold-tight-acrobats',
+    'carding-car',
+    'night-overwatch',
+    'fishing',
+    'vibeJam-myself-delivery',
+    'vibeJam-myself-nullrange',
+  ].includes(id)
+    ? { width: 844, height: 390 }
+    : fallback;
+}
+
 function attributes(tag) {
   return Object.fromEntries(
     [...tag.matchAll(/([\w-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g)].map(

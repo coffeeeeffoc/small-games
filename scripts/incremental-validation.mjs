@@ -15,6 +15,8 @@ import {
   publishingScopePaths,
   deploymentBundleScopePaths,
   publicationConfigScopePaths,
+  mobileViewportScopeFile,
+  independentPreviewScopeFile,
 } from './publication-scopes.mjs';
 export { reviewedSharedFileScopes } from './publication-scopes.mjs';
 
@@ -57,6 +59,14 @@ export function incrementalPlan({
   fileScopes = new Map(),
 }) {
   const paths = changedPaths.filter((file) => !isDocumentation(file));
+  assert(
+    !paths.includes(independentPreviewScopeFile) || fileScopes.has(independentPreviewScopeFile),
+    'Independent preview scope undefined: review changed behavior and its actual game consumers',
+  );
+  assert(
+    !paths.includes(mobileViewportScopeFile) || fileScopes.has(mobileViewportScopeFile),
+    'Mobile viewport scope undefined: review changed behavior and its actual game consumers',
+  );
   const nineNative = nineNativeDependencyPlan({
     changedPaths: paths,
     games,
@@ -200,6 +210,8 @@ export function incrementalPlan({
     validation_tools: paths.some(
       (file) =>
         validationTool.test(file) ||
+        file === mobileViewportScopeFile ||
+        file === 'apps/shell-web/scripts/pages-validation.test.mjs' ||
         workspaceBoundaryScopePaths.includes(file) ||
         file === 'scripts/pages-regression-timings.json' ||
         [
