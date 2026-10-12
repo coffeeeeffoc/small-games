@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#07182a" />
     <meta
       name="description"
-      content="拖动挡板反弹球、打破笼子，再接住缓缓下落的队友。六关救援挑战，救回所有队友才算通关。"
+      content="拖动挡板反弹球、打破笼子，再接住缓缓下落的队友。30 关救援与无尽挑战，救回所有队友才算通关。"
     />
     <title>打破笼子接住人 · 夜间救援行动</title>
     <link
@@ -15,6 +15,7 @@
     />
     <link rel="stylesheet" href="./style.css" />
     <script src="./dev-mode.js"></script>
+    <script src="./competition.js"></script>
     <script src="./fullscreen.js" defer></script>
     <script type="module" src="./src/main.mjs"></script>
   </head>
@@ -53,7 +54,7 @@
           <p>一个都不能少，接小队回家！</p>
         </div>
         <div class="home-actions">
-          <div id="home-progress" class="home-progress">第 01 / 06 关 · 初次救援</div>
+          <div id="home-progress" class="home-progress">第 01 / 30 关 · 初次救援</div>
           <button id="start" class="primary">
             <svg viewBox="0 0 20 20" aria-hidden="true">
               <path
@@ -61,10 +62,15 @@
                 d="M5 3.5a1 1 0 0 1 1.5-.86l10 5.65a2 2 0 0 1 0 3.42l-10 5.65A1 1 0 0 1 5 16.5z"
               /></svg
             ><span>开始救援</span></button
-          ><button id="challenge-rescue" class="secondary" hidden>好友同关挑战</button><button id="levels" class="secondary">
+          ><button id="challenge-rescue" class="secondary" hidden>好友同关挑战</button
+          ><button id="levels" class="secondary">
             <span class="grid-icon" aria-hidden="true"></span>关卡选择
           </button>
+          <button id="endless" class="secondary">
+            无尽救援 <small id="endless-best">最佳 0 人</small>
+          </button>
           <div class="home-links">
+            <button id="leaderboard">排行榜</button><span aria-hidden="true">·</span>
             <button id="outfits">小队装扮</button><span aria-hidden="true">·</span
             ><button id="help">怎么玩</button>
           </div>
@@ -78,7 +84,7 @@
             <span class="eyebrow">RESCUE MISSIONS</span>
             <h2 id="levels-title">选择关卡</h2>
           </div>
-          <span id="level-progress" class="muted">0 / 6</span>
+          <span id="level-progress" class="muted">0 / 30</span>
         </header>
         <p class="menu-intro">全员归队，开启下一次行动。</p>
         <div id="level-list" class="level-list"></div>
@@ -92,7 +98,8 @@
           </div>
           <div class="rescue-hud">
             <div class="rescue-counter">
-              <b id="rescue-count">0<span>/6</span></b><span>全员救援</span>
+              <b id="rescue-count">0<span>/6</span></b
+              ><span>全员救援</span>
             </div>
             <div id="crew-progress" class="crew-progress" aria-hidden="true"></div>
           </div>
@@ -136,6 +143,7 @@
           <div><strong id="result-lives">3</strong><span>剩余球机会</span></div>
         </div>
         <p id="result-chain" class="small-note"></p>
+        <p id="ranking-note" class="small-note" aria-live="polite">本地挑战</p>
         <p id="result-unlock" class="unlock-note"></p>
         <div class="stack">
           <button id="next" class="primary">下一关</button
@@ -175,14 +183,17 @@
             <div>
               <h3>全员归队，一个都不能少</h3>
               <p>
-                救回所有队友才通关。漏接队友会落进安全网并离场，本关需重试；漏球扣一次机会，三次球机会耗尽则行动结束。
+                救回所有队友才通关。漏接队友会落进安全网并离场，本关需重试；漏球扣一次机会，剩余球机会耗尽则行动结束。
               </p>
             </div>
           </article>
         </div>
         <div class="field-note">
           <strong>先接球，再接人？</strong>
-          <p>连续接住两名队友，挡板加宽 5 秒；漏球或漏人会断连。球反弹向上后，你有时间移动到队友下方。两边同时靠近时会短暂缓降，挡板保持正常速度。</p>
+          <p>
+            连续接住两名队友，挡板加宽 5
+            秒；漏球或漏人会断连。球反弹向上后，你有时间移动到队友下方。两边同时靠近时会短暂缓降，挡板保持正常速度。
+          </p>
         </div>
         <p class="small-note">电脑也可用 ← → 移动、空格发球、Esc 暂停</p>
       </section>
@@ -242,6 +253,29 @@
         <p>请刷新页面后重试。</p>
         <button onclick="location.reload()" class="primary">重新加载</button>
       </div>
+      <section
+        id="leaderboard-screen"
+        class="screen menu-screen leaderboard-screen"
+        aria-labelledby="leaderboard-title"
+        hidden
+      >
+        <header class="page-heading">
+          <button class="back icon-button" data-back aria-label="返回主页">‹</button>
+          <div>
+            <span class="eyebrow">RESCUE RECORDS</span>
+            <h2 id="leaderboard-title">排行榜</h2>
+          </div>
+        </header>
+        <p id="leaderboard-identity" class="leaderboard-note">查看全站挑战成绩</p>
+        <div class="leaderboard-tabs" role="group" aria-label="排行榜类型">
+          <button data-board="campaign" aria-pressed="false">闯关榜</button
+          ><button data-board="endless" aria-pressed="true">无尽榜</button>
+        </div>
+        <ol id="leaderboard-list" class="leaderboard-list" aria-label="排行成绩"></ol>
+        <p id="leaderboard-status" class="leaderboard-note" aria-live="polite"></p>
+        <p id="leaderboard-me" class="leaderboard-note"></p>
+        <button id="leaderboard-retry" class="secondary">刷新排行榜</button>
+      </section>
     </main>
   </body>
 </html>

@@ -170,13 +170,103 @@ const designs = [
   },
 ];
 
+function ringMechanics(stage, index) {
+  if (stage < 9) return {};
+  const active = index > 0 && index < 11;
+  const spin = active && stage !== 13 && stage !== 19 && index >= 3;
+  const accelerated = active && stage >= 13 && stage !== 19 && index % 3 !== 0;
+  return {
+    spinSpeed: spin
+      ? (Math.floor(index / 3) % 2 ? 1 : -1) * (0.075 + Math.min(0.055, (stage - 9) * 0.003))
+      : 0,
+    gravityScale: accelerated ? 1.08 + Math.min(0.1, (stage - 13) * 0.006) : 1,
+    fog: stage >= 19,
+  };
+}
+
+function mechanicHint(stage) {
+  return stage < 9
+    ? ''
+    : stage < 13
+      ? '机关环会缓慢自转，看准移动的缺口。'
+      : stage < 19
+        ? '带箭头的环会加速下落，提前对准，留好刹车。'
+        : stage < 25
+          ? '薄雾遮住远处，近处两层与雷达始终清楚。'
+          : '自转、加速和薄雾同时出现；普通平台也能用来调整。';
+}
+
+const routeNames = ['节奏回廊', '薄隙盘旋', '逆流高塔', '极限回转'];
+for (let order = 8; order < 30; order++) {
+  const tier = (order - 8) / 21;
+  const turn = 76 + (order % 5) * 4;
+  const direction = order % 2 ? -1 : 1;
+  const centers = [
+    0,
+    direction * turn,
+    direction * (order % 3 ? turn * 2 : 8),
+    direction * turn * 3,
+  ];
+  const width = 72 - tier * 18;
+  designs.push({
+    id: `tower-${String(order + 1).padStart(2, '0')}`,
+    name: `${routeNames[Math.floor((order - 8) / 6)]} ${(order % 6) + 1}`,
+    subtitle: mechanicHint(order + 1),
+    difficulty: 5 + Math.floor(tier * 4),
+    rows: Array.from({ length: 11 }, (_, index) => {
+      const group = Math.floor(index / 3);
+      const center = centers[group];
+      const transition = index % 3 === 0 && group > 0;
+      return [
+        center,
+        width + (index % 3 === 0 ? 3 : 0),
+        transition ? centers[group - 1] : center + 210,
+        transition ? 58 : 112 + tier * 22,
+      ];
+    }),
+  });
+}
+
+/** Generate by absolute floor, so pruned rings need no retained random state. */
+export function createEndlessLayer(index, seed = 0) {
+  if (!Number.isSafeInteger(index) || index < 0) throw new RangeError('Invalid endless floor.');
+  const group = Math.floor(index / 3);
+  const turn = 78 + ((seed >>> 0) % 7);
+  const centerFor = (value) => value * turn + Math.floor(value / 4) * 12;
+  const center = centerFor(group);
+  const difficulty = Math.min(1, index / 360);
+  const transition = index % 3 === 0 && group > 0;
+  return {
+    ...ringMechanics(Math.min(30, Math.floor(index / 12) + 1), (index % 11) + 1),
+    index,
+    y: FIRST_LAYER_Y + index * LEVEL_HEIGHT,
+    gap: arc(center, 92 - difficulty * 34),
+    danger: [
+      arc(transition ? centerFor(group - 1) : center + 210, transition ? 54 : 84 + difficulty * 44),
+    ],
+    finish: false,
+  };
+}
+
+export function createEndlessLevel(seed = 0) {
+  return {
+    id: 'endless',
+    name: '无尽下落',
+    schemaVersion: LEVEL_SCHEMA_VERSION,
+    seed: seed >>> 0,
+    layers: Array.from({ length: 24 }, (_, index) => createEndlessLayer(index, seed)),
+  };
+}
+
 export const LEVELS = designs.map(({ rows, ...description }, order) => ({
   ...description,
   schemaVersion: LEVEL_SCHEMA_VERSION,
   order: order + 1,
+  mechanicHint: mechanicHint(order + 1),
   unlockAfter: order === 0 ? null : designs[order - 1].id,
   layers: [
     ...rows.map(([gapCenter, gapWidth, dangerCenter, dangerWidth], index) => ({
+      ...ringMechanics(order + 1, index),
       index,
       y: FIRST_LAYER_Y + index * LEVEL_HEIGHT,
       gap: arc(gapCenter, gapWidth),
@@ -203,6 +293,20 @@ export function validateLevel(level) {
     ) {
       throw new Error(`Invalid layer order: ${level.id}/${index}`);
     }
+    if (
+      layer.spinSpeed !== undefined &&
+      (!Number.isFinite(layer.spinSpeed) || Math.abs(layer.spinSpeed) > 0.2)
+    )
+      throw new Error(`Invalid rotation: ${level.id}/${index}`);
+    if (
+      layer.gravityScale !== undefined &&
+      (!Number.isFinite(layer.gravityScale) || layer.gravityScale < 1 || layer.gravityScale > 1.25)
+    )
+      throw new Error(`Invalid acceleration: ${level.id}/${index}`);
+    if (layer.fog !== undefined && typeof layer.fog !== 'boolean')
+      throw new Error(`Invalid fog: ${level.id}/${index}`);
+    if (index === 0 && layer.spinSpeed)
+      throw new Error(`Initial platform must stay still: ${level.id}`);
     if (index === 11) {
       if (!layer.finish || layer.gap || layer.danger.length)
         throw new Error(`Finish must be safe: ${level.id}`);

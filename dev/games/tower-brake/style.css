@@ -929,8 +929,101 @@ button:focus-visible {
   }
 }
 
-.share-status { position: absolute; bottom: max(8px, env(safe-area-inset-bottom)); left: 18px; right: 18px; text-align: center; font-size: 12px; color: var(--mint); pointer-events: none; }
-#result-screen { overflow-y: auto; }
-#result-screen .result-number { font-size: clamp(56px, 10vh, 92px); }
-#result-screen .result-stats { margin-block: 12px; }
-#result-score, #record-note { margin-block: 4px; }
+.share-status {
+  position: absolute;
+  bottom: max(8px, env(safe-area-inset-bottom));
+  left: 18px;
+  right: 18px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--mint);
+  pointer-events: none;
+}
+#result-screen {
+  overflow-y: auto;
+}
+#result-screen .result-number {
+  font-size: clamp(56px, 10vh, 92px);
+}
+#result-screen .result-stats {
+  margin-block: 12px;
+}
+#result-score,
+#record-note {
+  margin-block: 4px;
+}
+
+/* Phone-first additions share the existing page flow and palette. */
+.leaderboard-screen {
+  overflow-y: auto;
+}
+.leaderboard-tabs {
+  display: flex;
+  gap: 10px;
+  margin: 18px 0;
+}
+.leaderboard-tabs button {
+  flex: 1;
+  min-height: 48px;
+  border: 1px solid #396477;
+  border-radius: 12px;
+  color: #ecfaf5;
+  background: #153344;
+  font: inherit;
+}
+.leaderboard-tabs button[aria-pressed='true'] {
+  background: #8de4c4;
+  color: #07182a;
+}
+.leaderboard-list {
+  list-style: none;
+  padding: 0;
+  margin: 18px 0;
+}
+.leaderboard-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 58px;
+  border-bottom: 1px solid #284451;
+}
+.leaderboard-list li span {
+  overflow-wrap: anywhere;
+}
+.leaderboard-list li strong {
+  white-space: nowrap;
+  color: #8de4c4;
+}
+.leaderboard-note {
+  color: #b1cbd3;
+  font-size: 14px;
+  line-height: 1.6;
+}
+#ranking-note {
+  min-height: 20px;
+}
+#endless-game {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+#endless-best {
+  font-size: 12px;
+  opacity: 0.75;
+}
+@media (max-height: 700px) and (orientation: portrait) {
+  .home-bottom {
+    gap: 6px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+  }
+  .home-bottom .primary,
+  .home-bottom .secondary {
+    min-height: 44px;
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+  .home-utilities button {
+    min-height: 44px;
+  }
+}

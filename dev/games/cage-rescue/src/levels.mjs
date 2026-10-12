@@ -127,11 +127,132 @@ export const LEVELS = [
   ),
 ];
 
+/** Chapter mechanics are content; the simulation never branches on a level ID. */
+function withMechanics(level, stage) {
+  if (stage < 7) return level;
+  const wind = stage >= 13 && stage !== 19;
+  const beam = stage >= 19;
+  const engineer = stage !== 13 && stage !== 19;
+  const medic = stage >= 25;
+  const names = [
+    engineer && '工程师',
+    wind && '阵风',
+    beam && '金属横梁',
+    medic && '医疗员',
+  ].filter(Boolean);
+  return {
+    ...level,
+    chapter:
+      stage < 13 ? '小队支援' : stage < 19 ? '风中接力' : stage < 25 ? '钢梁迷阵' : '极夜协作',
+    subtitle: names.join(' · '),
+    hint:
+      stage === 7
+        ? '蓝色工具标记是工程师，接住后挡板加宽 8 秒。'
+        : stage === 13
+          ? '阵风会吹动队友，跟着下方的预计落点接人。'
+          : stage === 19
+            ? '铆钉钢梁无法打碎，让球从两边绕过去。'
+            : stage === 25
+              ? '绿色十字是医疗员，接住补回一次球机会，最多三次。'
+              : '先接支援队员，再绕过钢梁；留意阵风中的接人落点。',
+    // New mechanics get reaction room instead of stacking with maximum raw speed.
+    ballSpeed: Math.min(level.ballSpeed, 282 + Math.max(0, stage - 7) * 0.85),
+    personSpeed: Math.min(level.personSpeed, 39 + Math.max(0, stage - 7) * 0.22),
+    releaseGap: Math.max(1.9, level.releaseGap),
+    bricks: level.bricks.map((item) => ({ ...item, hp: beam ? 1 : item.hp })),
+    cages: level.cages.map((item, index) => ({
+      ...item,
+      role: engineer && index === 0 ? 'engineer' : medic && index === 4 ? 'medic' : 'teammate',
+    })),
+    wind: wind
+      ? { amplitude: 12 + Math.min(10, (stage - 13) * 0.6), period: 8, phase: stage % 3 }
+      : null,
+    barriers: beam ? [{ id: 'steel-beam', x: 159, y: 424, w: 72, h: 16, material: 'steel' }] : [],
+  };
+}
+
+// Keep the first six rescue IDs and layouts stable for existing saves.
+const training = LEVELS.slice();
+const chapters = ['街区接力', '高塔穿梭', '夜幕突围', '黎明营救'];
+for (let index = 6; index < 30; index++) {
+  const base = training[index % training.length];
+  const tier = (index - 6) / 23;
+  const mirror = Math.floor(index / 6) % 2 === 1;
+  const transform = (entity, position, reinforced = false) => ({
+    ...entity,
+    x: Math.max(
+      20,
+      Math.min(
+        370 - entity.w,
+        (mirror ? VIEWPORT.width - entity.x - entity.w : entity.x) + ((index % 4) - 1.5) * 2,
+      ),
+    ),
+    hp: reinforced || position < Math.max(1, Math.floor(tier * 6)) ? 2 : entity.hp,
+  });
+  LEVELS.push(
+    withMechanics(
+      makeLevel(
+        index,
+        `${chapters[Math.floor((index - 6) / 6)]} ${(index % 6) + 1}`,
+        index < 18 ? '观察锁扣，分配救援顺序' : '狭窄挡板，稳住连续救援',
+        '两侧切换前先判断球与队友的落点，连续救援能短暂拓宽挡板。',
+        base.cages.map((item, i) => transform(item, i, index >= 18)),
+        base.bricks.map((item, i) => transform(item, i, index >= 24)),
+        {
+          ballSpeed: 281 + tier * 34,
+          personSpeed: 40 + tier * 6,
+          paddleWidth: 100 - tier * 4,
+          releaseGap: 2 - tier * 0.45,
+          initialAngle: [12, 29].includes(index)
+            ? -0.22
+            : (mirror ? -1 : 1) * (0.38 + (index % 4) * 0.015),
+        },
+      ),
+      index + 1,
+    ),
+  );
+}
+
+/** A fresh, deterministic wave; difficulty levels off, the wave count does not. */
+export function createEndlessLevel(wave = 1, seed = 0) {
+  if (!Number.isSafeInteger(wave) || wave < 1) throw new RangeError('Invalid endless wave.');
+  const difficulty = Math.min(29, wave - 1);
+  const hash = Math.imul((seed >>> 0) ^ wave, 2654435761) >>> 0;
+  const layout = LEVELS[(wave - 1) % Math.min(LEVELS.length, Math.max(1, wave))];
+  const shiftX = (hash % 7) - 3;
+  const shiftY = ((hash >>> 8) % 7) - 3;
+  const shape = (item) => ({
+    ...item,
+    x: (hash & 128 ? VIEWPORT.width - item.x - item.w : item.x) + shiftX,
+    y: item.y + shiftY,
+  });
+  const tuning = LEVELS[difficulty];
+  return withMechanics(
+    {
+      ...structuredClone(layout),
+      id: `endless-${wave}`,
+      name: `无尽救援 · 第 ${wave} 波`,
+      unlockAfter: null,
+      wave,
+      ballSpeed: tuning.ballSpeed,
+      personSpeed: tuning.personSpeed,
+      paddleWidth: tuning.paddleWidth,
+      releaseGap: tuning.releaseGap,
+      cages: layout.cages.map((item, i) => ({
+        ...shape(item),
+        hp: difficulty >= 17 || (i + hash) % 6 < difficulty / 5 ? 2 : 1,
+      })),
+      bricks: layout.bricks.map((item) => ({ ...shape(item), hp: difficulty >= 23 ? 2 : 1 })),
+    },
+    Math.min(30, wave),
+  );
+}
+
 /** Return all content errors, keeping validation usable by tests and content tooling. */
 export function validateLevels(levels = LEVELS) {
   const errors = [];
   const levelIds = new Set();
-  if (!Array.isArray(levels) || levels.length !== 6) return ['Exactly six levels are required.'];
+  if (!Array.isArray(levels) || levels.length < 1) return ['At least one level is required.'];
   for (const [index, level] of levels.entries()) {
     const prefix = `Level ${index + 1}`;
     if (!level.id || levelIds.has(level.id)) errors.push(`${prefix}: duplicate or missing id.`);
@@ -152,8 +273,27 @@ export function validateLevels(levels = LEVELS) {
       errors.push(`${prefix}: unsafe paddle width.`);
     if (!Number.isFinite(level.releaseGap) || level.releaseGap < 1.5)
       errors.push(`${prefix}: insufficient landing separation.`);
+    if (
+      level.wind &&
+      (!Number.isFinite(level.wind.amplitude) ||
+        level.wind.amplitude < 0 ||
+        level.wind.amplitude > 24 ||
+        !Number.isFinite(level.wind.period) ||
+        level.wind.period < 6 ||
+        !Number.isFinite(level.wind.phase))
+    )
+      errors.push(`${prefix}: invalid wind field.`);
+    for (const member of level.cages || [])
+      if (member.role && !['teammate', 'engineer', 'medic'].includes(member.role))
+        errors.push(`${prefix}: unknown teammate role.`);
+    if (level.barriers && (!Array.isArray(level.barriers) || level.barriers.length > 2))
+      errors.push(`${prefix}: invalid barriers.`);
     const ids = new Set();
-    const entities = [...(level.cages || []), ...(level.bricks || [])];
+    const entities = [
+      ...(level.cages || []),
+      ...(level.bricks || []),
+      ...(Array.isArray(level.barriers) ? level.barriers : []),
+    ];
     for (const entity of entities) {
       if (!entity.id || ids.has(entity.id))
         errors.push(`${prefix}: duplicate or missing entity id.`);
@@ -168,7 +308,10 @@ export function validateLevels(levels = LEVELS) {
         entity.y + entity.h > 440
       )
         errors.push(`${prefix}: entity outside the upper playfield.`);
-      if (![1, 2].includes(entity.hp)) errors.push(`${prefix}: unsupported durability.`);
+      if (entity.material === 'steel' && (entity.w > 96 || entity.h > 20))
+        errors.push(`${prefix}: unsafe barrier size.`);
+      if (entity.material !== 'steel' && ![1, 2].includes(entity.hp))
+        errors.push(`${prefix}: unsupported durability.`);
     }
     for (let i = 0; i < entities.length; i++)
       for (let j = i + 1; j < entities.length; j++) {
