@@ -1,0 +1,148 @@
+v24.21.0
+a3e7551ec8ab5eb323a97ffe3e4c5481e72dfd11
+鉁?ordinary 5MB subpackage passes: 4MB applies only to main, with all actual bytes counted (27.4538ms)
+鉁?main including provenance manifests passes exact boundary and fails one byte below (14.4002ms)
+鉁?total includes subpackage entry, resource and unlisted files and enforces exact boundary (11.6313ms)
+鉁?default total 20MB is enforced even with a small main and an ordinary large subpackage (8.3346ms)
+鉁?root grouping uses directory boundaries, so photos-extra stays in main (14.4835ms)
+鉁?rejects unsafe subpackage root "/absolute" (11.2539ms)
+鉁?rejects unsafe subpackage root "../outside" (11.6741ms)
+鉁?rejects unsafe subpackage root "photos/../outside" (10.0162ms)
+鉁?rejects unsafe subpackage root "./photos" (17.6704ms)
+鉁?rejects unsafe subpackage root "photos//part" (10.8058ms)
+鉁?rejects unsafe subpackage root "photos\\part" (9.088ms)
+鉁?rejects unsafe subpackage root "C:/outside" (13.5824ms)
+鉁?rejects unsafe subpackage root "C:relative" (14.661ms)
+鉁?rejects unsafe subpackage root "https://host/package" (49.3944ms)
+鉁?rejects unsafe subpackage root "photos//" (13.1406ms)
+鉁?rejects unsafe subpackage root "" (12.3401ms)
+鉁?rejects unsafe subpackage root "photos\u0000hidden" (12.5425ms)
+鉁?rejects unsafe subpackage root "photos%2foutside" (10.8359ms)
+鉁?rejects invalid, duplicated or overlapping declarations [{"name":"a","root":"photos"},{"name":"b","root":"photos/"}] (10.56ms)
+鉁?rejects invalid, duplicated or overlapping declarations [{"name":"a","root":"photos"},{"name":"b","root":"photos/nested"}] (12.1031ms)
+鉁?rejects invalid, duplicated or overlapping declarations [{"name":"a","root":"photos/nested"},{"name":"b","root":"photos"}] (13.5028ms)
+鉁?rejects invalid, duplicated or overlapping declarations [{"name":"same","root":"a"},{"name":"same","root":"b"}] (10.5737ms)
+鉁?rejects invalid, duplicated or overlapping declarations [{"name":"","root":"photos"}] (10.4817ms)
+鉁?rejects invalid, duplicated or overlapping declarations [{"name":"photo\u0000s","root":"photos"}] (11.6795ms)
+鉁?rejects invalid, duplicated or overlapping declarations [{"name":42,"root":"photos"}] (10.4383ms)
+鉁?rejects invalid, duplicated or overlapping declarations [{"name":"photos","root":42}] (8.9726ms)
+鉁?rejects invalid, duplicated or overlapping declarations [{"name":"photos"}] (11.7222ms)
+鉁?rejects invalid, duplicated or overlapping declarations [null] (9.8864ms)
+鉁?rejects invalid, duplicated or overlapping declarations [[]] (11.2033ms)
+鉁?rejects invalid, duplicated or overlapping declarations [{"name":"photos","root":"photos","independent":true}] (9.1932ms)
+鉁?rejects invalid, duplicated or overlapping declarations {"name":"photos","root":"photos"} (10.779ms)
+鉁?rejects invalid, duplicated or overlapping declarations null (9.041ms)
+鉁?every configured root requires its own real game.js entry (5.857ms)
+鉁?rejects a symbolic link to an external file, directory, or package root (6.002ms)
+鉁?subpackage entry and game.json may not be symbolic links (6.5429ms)
+鉁?rejects malformed JSON, missing game.json and wrong capitalization (12.3357ms)
+鉁?invalid budgets cannot disable measurements (3.6099ms)
+鉁?synthetic converted fixture verifies integrity but cannot authenticate official tool or device (88.4017ms)
+鉁?release rejects missing and official preview IDs; configured identity must match actual configuration (75.1469ms)
+鉁?trusted inventory rejects tampered Creator source and provenance (53.0005ms)
+鉁?source hash mismatch rejects otherwise intact source (36.2115ms)
+鉁?converted binaries may neither disappear nor change (55.6922ms)
+鉁?rename-only package and missing SDK boundary are rejected (76.5169ms)
+鉁?conversion cannot substitute unrelated game entry or change orientation (59.9153ms)
+鉁?unsafe subpackage paths and symbolic links are rejected (42.4247ms)
+鉁?official 6 MiB main and 30 MiB combined budget is enforced independently (113.4129ms)
+鉁?actual native guards preserve canonical source and independently compute the two fingerprints (988.3348ms)
+鉁?fresh persistent stages exclude caches, release secrets, and old outputs (2040.1694ms)
+鉁?unreviewed or already adapted canonical files fail closed before staging (501.9443ms)
+鉁?normalized CRLF input has an honest raw receipt and unchanged source hash (1185.8051ms)
+鉁?all legitimate hash inputs are copied and mutations produce their real native hash (1226.0899ms)
+鉁?existing extension is copied with digest evidence but no authenticity claim (1192.8628ms)
+鉁?non-Night projects return their actual fingerprint without staging or adaptation (15.0892ms)
+鈩?tests 53
+鈩?suites 0
+鈩?pass 48
+鈩?fail 5
+鈩?cancelled 0
+鈩?skipped 0
+鈩?todo 0
+鈩?duration_ms 7302.1384
+
+鉁?failing tests:
+
+test at apps\shell-minigame\scripts\alipay-package-budget.test.mjs:163:1
+鉁?rejects a symbolic link to an external file, directory, or package root (6.002ms)
+  Error: EPERM: operation not permitted, symlink 'C:\Users\15211\AppData\Local\Temp\alipay-budget-outside-TwNxf0\secret.bin' -> 'C:\Users\15211\AppData\Local\Temp\alipay-budget-35lDl9\file-link'
+      at async symlink (node:internal/fs/promises:1707:10)
+      at async TestContext.<anonymous> (file:///C:/Users/15211/AppData/Local/Temp/small-games-vite-baseline-a3e7551e/apps/shell-minigame/scripts/alipay-package-budget.test.mjs:172:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'symlink',
+    path: 'C:\\Users\\15211\\AppData\\Local\\Temp\\alipay-budget-outside-TwNxf0\\secret.bin',
+    dest: 'C:\\Users\\15211\\AppData\\Local\\Temp\\alipay-budget-35lDl9\\file-link'
+  }
+
+test at apps\shell-minigame\scripts\alipay-package-budget.test.mjs:180:1
+鉁?subpackage entry and game.json may not be symbolic links (6.5429ms)
+  Error: EPERM: operation not permitted, symlink 'C:\Users\15211\AppData\Local\Temp\alipay-budget-GhB4lw\photos\real-entry.js' -> 'C:\Users\15211\AppData\Local\Temp\alipay-budget-GhB4lw\photos\game.js'
+      at async symlink (node:internal/fs/promises:1707:10)
+      at async TestContext.<anonymous> (file:///C:/Users/15211/AppData/Local/Temp/small-games-vite-baseline-a3e7551e/apps/shell-minigame/scripts/alipay-package-budget.test.mjs:183:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'symlink',
+    path: 'C:\\Users\\15211\\AppData\\Local\\Temp\\alipay-budget-GhB4lw\\photos\\real-entry.js',
+    dest: 'C:\\Users\\15211\\AppData\\Local\\Temp\\alipay-budget-GhB4lw\\photos\\game.js'
+  }
+
+test at apps\shell-minigame\scripts\kuaishou-cocos-import.test.mjs:171:1
+鉁?unsafe subpackage paths and symbolic links are rejected (42.4247ms)
+  Error: EPERM: operation not permitted, symlink 'C:\Users\15211\AppData\Local\Temp\ks-verification-fixture-Nof26p\source\engine.wasm' -> 'C:\Users\15211\AppData\Local\Temp\ks-verification-fixture-Nof26p\converted\linked.wasm'
+      at async symlink (node:internal/fs/promises:1707:10)
+      at async file:///C:/Users/15211/AppData/Local/Temp/small-games-vite-baseline-a3e7551e/apps/shell-minigame/scripts/kuaishou-cocos-import.test.mjs:181:5
+      at async withFixture (file:///C:/Users/15211/AppData/Local/Temp/small-games-vite-baseline-a3e7551e/apps/shell-minigame/scripts/kuaishou-cocos-import.test.mjs:66:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    errno: -4048,
+    code: 'EPERM',
+    syscall: 'symlink',
+    path: 'C:\\Users\\15211\\AppData\\Local\\Temp\\ks-verification-fixture-Nof26p\\source\\engine.wasm',
+    dest: 'C:\\Users\\15211\\AppData\\Local\\Temp\\ks-verification-fixture-Nof26p\\converted\\linked.wasm'
+  }
+
+test at apps\shell-minigame\scripts\night-native-project.test.mjs:40:1
+鉁?actual native guards preserve canonical source and independently compute the two fingerprints (988.3348ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + '8dc663c4ed3afed646c806be4586990a9b0fc6758cb57f9e1cb41135f1ff7307'
+  - 'd1fe27c4d4816adf0ca4d526158e3e92d79bc99c5ee2ac531d9f3c359a4dbdb3'
+  
+      at file:///C:/Users/15211/AppData/Local/Temp/small-games-vite-baseline-a3e7551e/apps/shell-minigame/scripts/night-native-project.test.mjs:44:12
+      at async runFixture (file:///C:/Users/15211/AppData/Local/Temp/small-games-vite-baseline-a3e7551e/apps/shell-minigame/scripts/night-native-project.test.mjs:35:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '8dc663c4ed3afed646c806be4586990a9b0fc6758cb57f9e1cb41135f1ff7307',
+    expected: 'd1fe27c4d4816adf0ca4d526158e3e92d79bc99c5ee2ac531d9f3c359a4dbdb3',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at apps\shell-minigame\scripts\night-native-project.test.mjs:119:1
+鉁?normalized CRLF input has an honest raw receipt and unchanged source hash (1185.8051ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + '8dc663c4ed3afed646c806be4586990a9b0fc6758cb57f9e1cb41135f1ff7307'
+  - 'd1fe27c4d4816adf0ca4d526158e3e92d79bc99c5ee2ac531d9f3c359a4dbdb3'
+  
+      at file:///C:/Users/15211/AppData/Local/Temp/small-games-vite-baseline-a3e7551e/apps/shell-minigame/scripts/night-native-project.test.mjs:129:12
+      at async runFixture (file:///C:/Users/15211/AppData/Local/Temp/small-games-vite-baseline-a3e7551e/apps/shell-minigame/scripts/night-native-project.test.mjs:35:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '8dc663c4ed3afed646c806be4586990a9b0fc6758cb57f9e1cb41135f1ff7307',
+    expected: 'd1fe27c4d4816adf0ca4d526158e3e92d79bc99c5ee2ac531d9f3c359a4dbdb3',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

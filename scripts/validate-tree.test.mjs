@@ -428,14 +428,21 @@ test('native publication gates default off, retain root rules and preserve Web c
         native_consumers: ['apps/shell-minigame'],
         developer_mode_ids: ['letters-words2'],
       },
-      packages: [],
+      packages: [
+        {
+          dir: 'games/local/wulong-city',
+          name: '@coffeeeeffoc/wulong-city',
+          scripts: { build: 'node build.mjs' },
+        },
+      ],
       root: '/fixture',
       env,
       execute: (command, args) => calls.push(args),
     });
     assert.equal(calls[1][0], 'scripts/run-selected-competition.mjs');
     assert.deepEqual(JSON.parse(calls[1][1]), { ...competition, native: false });
-    assert.equal(calls[2][0], 'scripts/test-game-dev-mode.mjs');
+    assert.deepEqual(calls[2], ['--filter', '@coffeeeeffoc/wulong-city', 'build']);
+    assert.equal(calls[3][0], 'scripts/test-game-dev-mode.mjs');
     assert.equal(competition.native, true);
   }
   assert.equal(nativeReleaseGatesEnabled({ MINIGAME_RELEASE_GATES: '1' }), true);
@@ -444,6 +451,32 @@ test('native publication gates default off, retain root rules and preserve Web c
       () => nativeReleaseGatesEnabled({ MINIGAME_RELEASE_GATES: value }),
       /must be 0 or 1/,
     );
+});
+
+test('developer-mode touch fixture is required even outside the selected game matrix', () => {
+  const calls = [];
+  const options = {
+    plan: { native_consumers: [], developer_mode_ids: ['out-of-frame'] },
+    packages: [],
+    root: '/fixture',
+    env: {},
+    execute: (command, args, root, env) => calls.push({ args, env }),
+  };
+  assert.throws(() => runIncrementalToolChecks(options), /browser fixture: wulong-city/);
+  assert.equal(calls.length, 0);
+  runIncrementalToolChecks({
+    ...options,
+    packages: [
+      {
+        dir: 'games/local/wulong-city',
+        name: '@coffeeeeffoc/wulong-city',
+        scripts: { build: 'node build.mjs' },
+      },
+    ],
+  });
+  assert.deepEqual(calls[0].args, ['--filter', '@coffeeeeffoc/wulong-city', 'build']);
+  assert.deepEqual(calls[1].args, ['scripts/test-game-dev-mode.mjs']);
+  assert.equal(calls[1].env.DEV_MODE_GAME_IDS, 'out-of-frame');
 });
 test('pure test dependency traversal and glob expansion; browser, unknown and missing tests fail closed', async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'pure-tests-'));

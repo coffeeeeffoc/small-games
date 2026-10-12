@@ -568,7 +568,15 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
     execute('pnpm', ['--filter', pkg.name, 'test'], root, env, 'logged');
     execute('pnpm', ['--filter', pkg.name, 'smoke'], root, env, 'logged');
   }
-  if (plan.developer_mode_ids.length)
+  if (plan.developer_mode_ids.length) {
+    // The shared touch/cancel and external-iframe cases always open Wulong City,
+    // even when it is not one of the changed games selected for the mode matrix.
+    const fixture = packages.find((pkg) => pkg.dir === 'games/local/wulong-city');
+    assert(
+      fixture?.name === '@coffeeeeffoc/wulong-city' && fixture.scripts?.build === 'node build.mjs',
+      'Missing reviewed developer-mode browser fixture: wulong-city',
+    );
+    execute('pnpm', ['--filter', fixture.name, 'build'], root, env, 'logged');
     execute(
       process.execPath,
       ['scripts/test-game-dev-mode.mjs'],
@@ -579,6 +587,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
       },
       'logged',
     );
+  }
 }
 
 export async function validateTree({
