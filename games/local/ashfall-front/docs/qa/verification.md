@@ -1,5 +1,7 @@
 # 灰烬防线 · 实际运行验证
 
+最新方向射击、自动焦点与TapTap H5包体验证见 [2026-10-13记录](controls-verification-2026-10-13.md)。下面保留2026-10-11初版验证过程；本目录实际截图与browser-report.json已更新至最新运行。
+
 验证日期：2026-10-11。生产静态构建，Chromium 151.0.7922.173，Linux；Playwright 使用真实浏览器多触点、键盘和鼠标事件。浏览器完整结果见 [browser-report.json](browser-report.json)。
 
 ## 手机流程

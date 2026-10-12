@@ -41,6 +41,7 @@ export async function mountAshfall(host = createLocalHost()) {
     frameId,
     toastUntil = 0;
   let mouseAim = null,
+    fireGesture = null,
     jumpEdge = false,
     dashEdge = false,
     fireEdge = false;
@@ -66,6 +67,8 @@ export async function mountAshfall(host = createLocalHost()) {
     jump: ['Space', 'KeyW', 'ArrowUp'],
     dash: ['ShiftLeft', 'ShiftRight', 'KeyK'],
     fire: ['KeyJ'],
+    aimUp: ['KeyI'],
+    aimDown: ['Comma'],
   };
   const held = (action) =>
     [...pointers.values()].includes(action) || keyMap[action]?.some((key) => keys.has(key));
@@ -81,6 +84,10 @@ export async function mountAshfall(host = createLocalHost()) {
     dashEdge = false;
     fireEdge = false;
     mouseAim = null;
+    fireGesture = null;
+    $('fire-aim').setAttribute('transform', 'translate(0 0)');
+    $('fire-line').setAttribute('x2', '20');
+    $('fire-line').setAttribute('y2', '20');
     for (const element of [canvas, ...controls]) {
       for (const id of ids) if (element.hasPointerCapture?.(id)) element.releasePointerCapture(id);
     }
@@ -149,6 +156,22 @@ export async function mountAshfall(host = createLocalHost()) {
     if (next === 'levels') renderLevels();
     if (next === 'upgrade') renderUpgrades();
     if (next === 'result') renderResult();
+    const focusSelectors = {
+      home: '#start-game',
+      levels: '.level-card:not(:disabled)',
+      upgrade: '.upgrade-card',
+      pause: '[data-action="resume"]',
+      result: '[data-action="retry"]',
+      help: '[data-action="home"]',
+    };
+    if (next === 'play') canvas.focus({ preventScroll: true });
+    else {
+      const page = $(next + '-screen');
+      const button =
+        (next === 'levels' && page.querySelector('.level-card.current:not(:disabled)')) ||
+        page.querySelector(focusSelectors[next]);
+      button?.focus({ preventScroll: true });
+    }
     notifyHost(next);
   }
   function start(index = 0, developer = false) {
@@ -274,7 +297,7 @@ export async function mountAshfall(host = createLocalHost()) {
     $('dash').classList.toggle('cooling', cooling);
     text('dash-label', cooling ? p.dashCooldown.toFixed(1) + 's' : '冲刺');
     let hint = '';
-    if (run.levelIndex === 0 && run.roomTime < 7) hint = '按住射击 · 引爆条纹油桶';
+    if (run.levelIndex === 0 && run.roomTime < 7) hint = '按住连射 · 拖动瞄准';
     else if (run.levelIndex === 0 && run.roomTime < 13) hint = '跳跃越过火线 · 冲刺短暂无敌';
     text('tutorial', hint);
   }
@@ -346,17 +369,48 @@ export async function mountAshfall(host = createLocalHost()) {
   for (const button of controls) {
     on(button, 'pointerdown', (event) => {
       if (screenName !== 'play' || (event.pointerType === 'mouse' && event.button !== 0)) return;
+      if (button.dataset.control === 'fire' && fireGesture) return;
       event.preventDefault();
       button.setPointerCapture(event.pointerId);
       pointers.set(event.pointerId, button.dataset.control);
+      if (button.dataset.control === 'fire') {
+        fireGesture = {
+          id: event.pointerId,
+          origin: clientToElement(gameElement, event.clientX, event.clientY),
+          direction: null,
+        };
+      }
       press(button.dataset.control);
       syncControls();
       void audio.unlock();
     });
     on(button, 'lostpointercapture', (event) => {
-      pointers.delete(event.pointerId);
-      syncControls();
+      releasePointer(event);
     });
+  }
+  on($('fire'), 'pointermove', (event) => {
+    if (event.pointerId !== fireGesture?.id) return;
+    const point = clientToElement(gameElement, event.clientX, event.clientY);
+    const x = point.x - fireGesture.origin.x;
+    const y = point.y - fireGesture.origin.y;
+    const distance = Math.hypot(x, y);
+    fireGesture.direction = distance >= 10 ? { x, y } : null;
+    const scale = distance >= 10 ? Math.min(distance, 24) / distance : 0;
+    const dx = (x * scale * 40) / $('fire').clientWidth;
+    const dy = (y * scale * 40) / $('fire').clientHeight;
+    $('fire-aim').setAttribute('transform', `translate(${dx} ${dy})`);
+    $('fire-line').setAttribute('x2', String(20 + dx));
+    $('fire-line').setAttribute('y2', String(20 + dy));
+  });
+  function releasePointer(event) {
+    pointers.delete(event.pointerId);
+    if (fireGesture?.id === event.pointerId) {
+      fireGesture = null;
+      $('fire-aim').setAttribute('transform', 'translate(0 0)');
+      $('fire-line').setAttribute('x2', '20');
+      $('fire-line').setAttribute('y2', '20');
+    }
+    syncControls();
   }
   const updateAim = (event) => {
     const point = clientToElement(canvas, event.clientX, event.clientY);
@@ -375,19 +429,14 @@ export async function mountAshfall(host = createLocalHost()) {
   on(canvas, 'pointermove', (event) => {
     if (screenName === 'play' && event.pointerType === 'mouse') updateAim(event);
   });
-  on(window, 'pointerup', (event) => {
-    pointers.delete(event.pointerId);
-    syncControls();
-  });
-  on(window, 'pointercancel', (event) => {
-    pointers.delete(event.pointerId);
-    syncControls();
-  });
-  on(canvas, 'lostpointercapture', (event) => {
-    pointers.delete(event.pointerId);
-    syncControls();
-  });
+  on(window, 'pointerup', releasePointer);
+  on(window, 'pointercancel', releasePointer);
+  on(canvas, 'lostpointercapture', releasePointer);
   on(window, 'keydown', (event) => {
+    if (['Enter', 'Space'].includes(event.code) && event.repeat) {
+      event.preventDefault();
+      return;
+    }
     if (event.code === 'Escape') {
       if (event.repeat) {
         event.preventDefault();
@@ -444,14 +493,18 @@ export async function mountAshfall(host = createLocalHost()) {
       accumulator = Math.min(accumulator + delta, 0.1);
       while (accumulator >= 1 / 60 && screenName === 'play') {
         const manual = [...pointers.values()].includes('mouseFire');
+        const move = Number(Boolean(held('right'))) - Number(Boolean(held('left')));
+        const tilt = Number(Boolean(held('aimDown'))) - Number(Boolean(held('aimUp')));
         stepRun(
           run,
           {
-            move: Number(Boolean(held('right'))) - Number(Boolean(held('left'))),
+            move,
             jump: jumpEdge,
             dash: dashEdge,
             fire: Boolean(held('fire') || manual || fireEdge),
             aim: manual ? mouseAim : null,
+            aimDirection:
+              fireGesture?.direction || (tilt ? { x: move || run.player.facing, y: tilt } : null),
           },
           1 / 60,
         );

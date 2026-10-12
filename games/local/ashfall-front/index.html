@@ -7,6 +7,8 @@
       content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1"
     />
     <meta name="theme-color" content="#101916" />
+    <meta name="screen-orientation" content="landscape" />
+    <meta name="x5-orientation" content="landscape" />
     <meta
       name="description"
       content="灰烬防线：冲入废墟工厂，利用连锁爆炸和战地改装，突破重装机械防线。"
@@ -21,6 +23,7 @@
     <main id="game" data-screen="home" data-rotated="false">
       <canvas
         id="game-canvas"
+        tabindex="-1"
         aria-label="灰烬防线战场，使用画面底部的移动、跳跃、冲刺和射击按钮操作"
       ></canvas>
       <div class="film-edge" aria-hidden="true"></div>
@@ -142,15 +145,19 @@
           <button
             id="fire"
             class="round-control fire-control"
-            aria-label="按住射击"
+            aria-label="按住射击，拖动瞄准"
             aria-pressed="false"
             data-control="fire"
           >
             <svg viewBox="0 0 40 40" aria-hidden="true">
-              <circle cx="20" cy="20" r="12" />
-              <circle cx="20" cy="20" r="3" />
-              <path d="M20 3v7M20 30v7M3 20h7M30 20h7" /></svg
-            ><span>射击</span>
+              <circle cx="20" cy="20" r="16" opacity=".4" />
+              <line id="fire-line" x1="20" y1="20" x2="20" y2="20" />
+              <g id="fire-aim">
+                <circle cx="20" cy="20" r="7" />
+                <circle cx="20" cy="20" r="2" />
+                <path d="M20 8v5M20 27v5M8 20h5M27 20h5" />
+              </g></svg
+            ><span>拖动瞄准</span>
           </button>
         </div>
         <div id="tutorial" class="tutorial"></div>
@@ -219,8 +226,8 @@
           </article>
           <article>
             <b>02 <span>火力与环境</span></b>
-            <p>长按射击，自动瞄准面向的敌人。击爆条纹油桶，让敌群承受连锁爆炸。</p>
-            <small>电脑：J 自动瞄准 · 鼠标瞄准并射击</small>
+            <p>按住射击自动瞄准；拖动射击按钮自由瞄准。击爆条纹油桶，触发连锁爆炸。</p>
+            <small>电脑：J 连射 · I + J 斜上 · 逗号 + J 斜下 · 鼠标自由瞄准</small>
           </article>
           <article>
             <b>03 <span>观察，再出手</span></b>

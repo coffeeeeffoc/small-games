@@ -1,0 +1,78 @@
+{
+  "format": "TapTap H5 static ZIP",
+  "entry": "index.html",
+  "screenOrientation": 2,
+  "bytes": 52730,
+  "sha256": "d9d6390e87e19322b3af7713910f91e07d3a6105656265d86c904395eaa92b23",
+  "files": [
+    {
+      "path": "assets/emblem.svg",
+      "bytes": 288,
+      "sha256": "abeae93d9443f644ad7e807530969e3395b55cf3587c4a16fa6fe1c29b03ccaf"
+    },
+    {
+      "path": "dev-mode.js",
+      "bytes": 15134,
+      "sha256": "5633115f12f8f343a16db44c3ee0f10378d109b08392ca7b6fa977b0c6d191b4"
+    },
+    {
+      "path": "fullscreen.js",
+      "bytes": 6666,
+      "sha256": "1a0ba1255adb38ac82d793ddd8b4a83734c2d9318369b8c39bb3b16997553be4"
+    },
+    {
+      "path": "index.html",
+      "bytes": 11082,
+      "sha256": "ec7eb3d97b931d2c9a3657ee214b45c0b0194362009a2412b36f076b37a6df15"
+    },
+    {
+      "path": "src/audio.mjs",
+      "bytes": 3947,
+      "sha256": "1dc26005c9c88af9331be09bb3d73af2f3c4cc3f0b3acad65674d3b1d6677b59"
+    },
+    {
+      "path": "src/core.mjs",
+      "bytes": 23762,
+      "sha256": "1756d8ebdd0e3b9a2d97058b226dacd2a61f30584cda29f4872ca5f1f5213bfd"
+    },
+    {
+      "path": "src/display.mjs",
+      "bytes": 3086,
+      "sha256": "ff7336f9161e6bcc90fdf6facf5fefdc4d03fffca677ff0f390954ec422b6af4"
+    },
+    {
+      "path": "src/host.mjs",
+      "bytes": 2016,
+      "sha256": "4d466248be13815c28e45de70c943b3153e6326ebf6949ee29ca367ce087b018"
+    },
+    {
+      "path": "src/levels.mjs",
+      "bytes": 7008,
+      "sha256": "28689c17536c0011712578f1ed86580d72f226b45d1d7f7b7687b0dddd69406d"
+    },
+    {
+      "path": "src/main.mjs",
+      "bytes": 23062,
+      "sha256": "1f821c42d00357467336e58bd4281a205737bc0457d6cc52bb4102b4f3d43b4a"
+    },
+    {
+      "path": "src/progress.mjs",
+      "bytes": 1489,
+      "sha256": "875674437c4141cb1e4994f95fe3e8f1f653c0991889fcfe8138f081a6cbc772"
+    },
+    {
+      "path": "src/render.mjs",
+      "bytes": 50387,
+      "sha256": "290666b94c41834c5ea5a1bfc92f256f92a2d4fcdf1ec6fa7b09d4680fd5acd2"
+    },
+    {
+      "path": "style.css",
+      "bytes": 23656,
+      "sha256": "aac023ff53e54180e8dee86d37bcdf0f599b8678a27b2ffd70d93b9e1e29846b"
+    }
+  ],
+  "zipMatchesDist": true,
+  "uploaded": false,
+  "reviewApproved": false,
+  "realDeviceVerified": false
+}

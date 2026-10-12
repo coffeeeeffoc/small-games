@@ -79,7 +79,9 @@ try {
   await expect(page.locator('#game')).toHaveAttribute('data-ready', 'true');
   await page.evaluate(() => window.SmallGamesDev.setPanelHidden(true));
   await screenshot('home-844x390');
+  await expect(page.locator('#start-game')).toBeFocused();
   await page.getByRole('button', { name: '行动地图', exact: true }).tap();
+  await expect(page.locator('.level-card.current')).toBeFocused();
   await expect(page.locator('.level-card:disabled')).toHaveCount(2);
   await screenshot('levels-844x390');
   await page.getByRole('button', { name: '返回主页', exact: true }).tap();
@@ -106,6 +108,13 @@ try {
       touchPoints.push({ ...xy, id: ids[action], radiusX: 7, radiusY: 7, force: 1 });
     }
     const key = [...actions].sort().join(',');
+    if ((await page.locator('#game').getAttribute('data-screen')) !== 'play') {
+      if (activeTouches)
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+      activeTouches = false;
+      activeKey = '';
+      return;
+    }
     if (activeTouches && key !== activeKey) {
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
       activeTouches = false;
@@ -126,20 +135,82 @@ try {
     state.bullets.some((b) => b.owner === 'player'),
     'fire works while moving and jumping',
   );
+  async function dragAim(x, y) {
+    await touch([]);
+    await touch(['right', 'fire']);
+    const fire = await point('#fire');
+    const right = await point('#move-right');
+    const rotated = (await page.locator('#game').getAttribute('data-rotated')) === 'true';
+    await cdp.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [
+        { x: fire.x + (rotated ? -y : x), y: fire.y + (rotated ? x : y), id: 1 },
+        { ...right, id: 3 },
+      ],
+    });
+    let aimed;
+    await expect
+      .poll(
+        async () => {
+          const snapshot = await page.evaluate(() => window.AshfallDebug.snapshot());
+          aimed = snapshot;
+          return (
+            Math.abs(snapshot.player.aimAngle - Math.atan2(y, x)) < 0.05 &&
+            snapshot.bullets.some(
+              (bullet) =>
+                bullet.owner === 'player' &&
+                Math.sign(bullet.vx) === Math.sign(x) &&
+                Math.sign(bullet.vy) === Math.sign(y),
+            )
+          );
+        },
+        { intervals: [16], timeout: 1500 },
+      )
+      .toBe(true);
+    assert.ok(
+      Math.abs(aimed.player.aimAngle - Math.atan2(y, x)) < 0.05,
+      'drag follows logical game direction',
+    );
+    assert.ok(
+      aimed.bullets.some(
+        (bullet) =>
+          bullet.owner === 'player' &&
+          Math.sign(bullet.vx) === Math.sign(x) &&
+          Math.sign(bullet.vy) === Math.sign(y),
+      ),
+      'actual diagonal projectile',
+    );
+    return aimed;
+  }
+  for (const y of [-28, 28]) await dragAim(28, y);
+  await dragAim(-28, -28);
+  await screenshot('aim-landscape-844x390');
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
   activeTouches = false;
   await expect(page.locator('#move-right')).toHaveAttribute('aria-pressed', 'false');
   await expect(page.locator('#fire')).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.locator('#fire-aim')).toHaveAttribute('transform', 'translate(0 0)');
+  report.checks.push(
+    'landscape drag aim with movement fires up/down/backwards; cancel recenters and stops',
+  );
   report.checks.push('simultaneous touch movement/jump/fire and gesture cancellation');
   await page.getByRole('button', { name: '暂停', exact: true }).tap();
   const beforePause = await page.evaluate(() => window.AshfallDebug.snapshot());
   await screenshot('pause-844x390');
+  await expect(page.getByRole('button', { name: '继续战斗', exact: true })).toBeFocused();
+  await screenshot('pause-focus-844x390');
   await page.waitForTimeout(400);
   const afterPause = await page.evaluate(() => window.AshfallDebug.snapshot());
   assert.equal(beforePause.time, afterPause.time);
   assert.equal(beforePause.player.hp, afterPause.player.hp);
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#game')).toHaveAttribute('data-screen', 'play');
+  await expect(page.locator('#game-canvas')).toBeFocused();
+  await page.keyboard.press('Escape');
   report.checks.push('pause freezes simulation, clock and damage');
   await page.getByRole('button', { name: '重新行动', exact: true }).tap();
+  await page.keyboard.down('Space');
+  let currentRoomProgress;
   let upgradeScreenshot = false,
     bossScreenshot = false,
     ticks = 0,
@@ -149,9 +220,18 @@ try {
     state = await page.evaluate(() => window.AshfallDebug.snapshot());
     if (state.screen === 'result') break;
     if (state.screen === 'upgrade') {
-      await touch([]);
+      if (activeTouches)
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      activeTouches = false;
+      activeKey = '';
       await expect(page.locator('#game')).toHaveAttribute('data-screen', 'upgrade');
+      await expect(page.locator('.upgrade-card').first()).toBeFocused();
       if (!upgradeScreenshot) {
+        currentRoomProgress = state.progress;
+        await page.keyboard.down('Space');
+        await page.keyboard.up('Space');
+        await expect(page.locator('#game')).toHaveAttribute('data-screen', 'upgrade');
+        report.checks.push('held gameplay Space across upgrade cannot auto-install focused card');
         await screenshot('upgrade-844x390');
         upgradeScreenshot = true;
       }
@@ -160,7 +240,12 @@ try {
         : state.choices.includes('pierce')
           ? 'pierce'
           : state.choices[0];
-      await page.locator('[data-upgrade="' + id + '"]').tap();
+      const card = page.locator('[data-upgrade="' + id + '"]');
+      if (state.upgrades.length === 0) {
+        await card.focus();
+        await page.keyboard.press('Enter');
+      } else await card.tap();
+      await expect(page.locator('#game')).toHaveAttribute('data-screen', 'play');
       continue;
     }
     assert.equal(state.screen, 'play', 'natural play stays active');
@@ -214,6 +299,7 @@ try {
   assert.equal(state.trial, false, 'read-only steering did not enable trial rewards');
   assert.equal(state.roomsCleared.length, 3);
   await screenshot('victory-844x390');
+  await expect(page.locator('#result-screen [data-action="retry"]')).toBeFocused();
   report.naturalRun = {
     seconds: state.time,
     health: state.player.hp,
@@ -238,6 +324,8 @@ try {
   await page.locator('#start-game').tap();
   await touch(['right', 'fire']);
   await page.waitForTimeout(200);
+  for (const y of [-28, 28]) await dragAim(28, y);
+  await screenshot('aim-portrait-390x844');
   await touch([]);
   state = await page.evaluate(() => window.AshfallDebug.snapshot());
   assert.ok(state.player.x > 420);
@@ -314,7 +402,9 @@ try {
   assert.equal(await page.evaluate(() => window.SmallGamesDev.isEnabled()), false);
   assert.equal(await page.evaluate(() => Boolean(window.AshfallDebug)), false);
   await screenshot('home-desktop');
-  await page.locator('#start-game').click();
+  await expect(page.locator('#start-game')).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#game-canvas')).toBeFocused();
   await page.keyboard.down('d');
   await expect(page.locator('#move-right')).toHaveAttribute('aria-pressed', 'true');
   await page.keyboard.press('Space');
@@ -332,11 +422,83 @@ try {
   await page.keyboard.down('Escape');
   await expect(page.locator('#game')).toHaveAttribute('data-screen', 'pause');
   await page.keyboard.up('Escape');
-  await page.keyboard.press('Escape');
+  await expect(page.getByRole('button', { name: '继续战斗', exact: true })).toBeFocused();
+  await screenshot('pause-keyboard-desktop');
+  await page.keyboard.press('Enter');
   await expect(page.locator('#game')).toHaveAttribute('data-screen', 'play');
   report.checks.push(
     'default production has no developer UI; desktop keyboard, mouse and Escape work',
   );
+  await page.goto(origin + '/?dev=1');
+  await expect(page.locator('#game')).toHaveAttribute('data-ready', 'true');
+  await page.evaluate(() => window.SmallGamesDev.setPanelHidden(true));
+  await page.keyboard.press('Enter');
+  for (const move of ['a', 'd']) {
+    await page.keyboard.down(move);
+    await page.keyboard.down('j');
+    for (const [key, y] of [
+      ['i', -1],
+      [',', 1],
+    ]) {
+      await page.keyboard.down(key);
+      let aimed;
+      await expect
+        .poll(
+          async () => {
+            const snapshot = await page.evaluate(() => window.AshfallDebug.snapshot());
+            aimed = snapshot;
+            return (
+              Math.abs(snapshot.player.aimAngle - Math.atan2(y, move === 'a' ? -1 : 1)) < 0.01 &&
+              snapshot.bullets.some(
+                (bullet) =>
+                  bullet.owner === 'player' &&
+                  Math.sign(bullet.vx) === (move === 'a' ? -1 : 1) &&
+                  Math.sign(bullet.vy) === y,
+              )
+            );
+          },
+          { intervals: [16], timeout: 1500 },
+        )
+        .toBe(true);
+      const x = move === 'a' ? -1 : 1;
+      assert.ok(Math.abs(aimed.player.aimAngle - Math.atan2(y, x)) < 0.01);
+      assert.ok(
+        aimed.bullets.some(
+          (bullet) =>
+            bullet.owner === 'player' && Math.sign(bullet.vx) === x && Math.sign(bullet.vy) === y,
+        ),
+      );
+      await page.keyboard.up(key);
+    }
+    await page.keyboard.up(move);
+    await page.keyboard.up('j');
+  }
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: '重新行动', exact: true }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#game')).toHaveAttribute('data-screen', 'play');
+  await page.keyboard.press('Space');
+  await expect
+    .poll(async () => (await page.evaluate(() => window.AshfallDebug.snapshot())).player.vy < 0)
+    .toBe(true);
+  report.checks.push(
+    'Enter starts/resumes/retries without stale focus; keyboard diagonal projectiles in both facings',
+  );
+  await page.evaluate(
+    (progress) =>
+      localStorage.setItem(
+        'ashfall-front:host:progress',
+        JSON.stringify({ version: 'restored-first-room', value: progress }),
+      ),
+    currentRoomProgress,
+  );
+  await page.reload();
+  await expect(page.locator('#game')).toHaveAttribute('data-ready', 'true');
+  await page.getByRole('button', { name: '行动地图', exact: true }).click();
+  await expect(page.locator('.level-card.current')).toBeFocused();
+  await page.keyboard.press('Enter');
+  assert.equal((await page.evaluate(() => window.AshfallDebug.snapshot())).levelIndex, 1);
+  report.checks.push('restored first-room save focuses newly unlocked room, and Enter launches it');
   await desktop.close();
   const blocked = await browser.newContext({
     viewport: { width: 844, height: 390 },
