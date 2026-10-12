@@ -64,7 +64,7 @@ async function start(page) {
   await action(page, 'start').tap();
   await screen(page, 'playing');
 }
-async function touchPath(page, points, { cancel = false, mouse = false } = {}) {
+async function touchPath(page, points, { cancel = false, mouse = false, onHeld, onReleased } = {}) {
   const owner = typeof page.context === 'function' ? page : page.page();
   if (mouse) {
     await owner.mouse.move(points[0].x, points[0].y);
@@ -89,10 +89,12 @@ async function touchPath(page, points, { cancel = false, mouse = false } = {}) {
       });
       await owner.waitForTimeout(12);
     }
+    if (onHeld) await onHeld();
     await session.send('Input.dispatchTouchEvent', {
       type: cancel ? 'touchCancel' : 'touchEnd',
       touchPoints: [],
     });
+    if (onReleased) await onReleased();
     await owner.evaluate(
       () =>
         new Promise((resolve) => {
@@ -182,7 +184,22 @@ async function releaseOne(page, options = {}) {
   assert(hint, 'Each published stage must offer a reachable release');
   const ring = before.rings.find((entry) => entry.id === hint.ringId);
   assert(ring && !ring.removed, 'Hint must name an active ring');
-  await dragRing(page, ring, hint.angle, options);
+  await dragRing(page, ring, hint.angle, {...options, ...(options.capture ? {
+    onHeld: async () => {
+      assert.equal(stateOf(await inspect(page)).releasedCount, before.releasedCount, 'alignment waits for release');
+      await expect(page.locator('[data-release-ready="true"]')).toHaveCount(1);
+      await expect(page.locator('.contact.blocked')).toHaveCount(0);
+      await screenshot(page, 'mobile-aligned');
+    },
+    onReleased: async () => {
+      await expect(page.locator('g.escaping')).toBeVisible();
+      const vector = await page.locator('g.escaping').evaluate(g => [parseFloat(g.style.getPropertyValue('--escape-x')), parseFloat(g.style.getPropertyValue('--escape-y'))]);
+      const releasedAngle = stateOf(await inspect(page)).rings.find(r => r.id === ring.id).angle;
+      assert.ok(Math.abs(vector[0] + Math.cos(releasedAngle) * 75) < 0.001);
+      assert.ok(Math.abs(vector[1] + Math.sin(releasedAngle) * 75) < 0.001);
+      await screenshot(page, 'mobile-extracting');
+    },
+  } : {})});
   await expect
     .poll(async () => liveRings(stateOf(await inspect(page))).length)
     .toBe(liveRings(before).length - 1);
@@ -289,14 +306,16 @@ async function startStaticServer() {
 try {
   await mkdir(evidence, { recursive: true });
   if (!baseUrl) {
-    await runFile('pnpm', ['run', 'build'], { cwd: root, timeout: 120_000 });
+    const manager = process.env.npm_execpath || 'pnpm';
+    const script = /\.[cm]?js$/.test(manager);
+    await runFile(script ? process.execPath : manager, script ? [manager, 'run', 'build'] : ['run', 'build'], { cwd: root, timeout: 120_000 });
     baseUrl = await startStaticServer();
   }
   core = await import(new URL('../src/core.ts', import.meta.url));
   storageKey = (await import(new URL('../src/storage.ts', import.meta.url))).SAVE_KEY;
   browser = await chromium.launch({
     headless: true,
-    executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || '/usr/bin/chromium',
+    executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || process.env.CHROMIUM_PATH,
     args: ['--no-sandbox'],
   });
   const phone = await browser.newContext({
@@ -320,7 +339,7 @@ try {
   await action(page, 'levels').tap();
   await screen(page, 'levels');
   const buttons = page.locator('button[data-level]');
-  assert((await buttons.count()) >= 2, 'Level catalogue is visible');
+  assert.equal(await buttons.count(), 74, 'All original and new levels are in the player catalogue');
   await expect(buttons.first()).toBeEnabled();
   await expect(buttons.nth(1)).toBeDisabled();
   await screenshot(page, 'mobile-levels');
@@ -332,6 +351,8 @@ try {
   await assertVisibleControls(page);
   await screenshot(page, 'mobile-playing');
   const initial = stateOf(await inspect(page));
+  await expect(page.locator('.crossing')).toHaveCount(2);
+  assert.deepEqual(await page.locator('.crossing').evaluateAll(nodes => nodes.map(n => [n.dataset.over, n.dataset.under])), [['ring-1','ring-2'], ['ring-2','ring-1']], 'two contacts visibly alternate over/under');
   const firstHint = core.findHint(initial);
   const firstRing = initial.rings.find((ring) => ring.id === firstHint.ringId);
   await dragRing(page, firstRing, firstRing.angle + 0.45, { cancel: true });
@@ -340,7 +361,7 @@ try {
     liveRings(initial).length,
     'Cancelled gesture never releases',
   );
-  await releaseOne(page);
+  await releaseOne(page, {capture: true});
   await action(page, 'undo').tap();
   await expect
     .poll(async () => liveRings(stateOf(await inspect(page))).length)
@@ -483,6 +504,16 @@ try {
   checks.push(
     'native touch final-stage clear, visible lock countdown, mixed ring sizes, rounded-cap final tap and trial rewards isolated; exit restores normal attempt',
   );
+  for (const number of [25, 34, 35, 44, 45, 54, 55, 64, 65]) {
+    await ready(page, `${developerUrl()}&challenge=orbit-${number}`);
+    await screen(page, 'playing');
+    assert.equal((await inspect(page)).challenge, true);
+    if (number === 35) await screenshot(page, 'mobile-wide-mouth');
+    if (number === 65) await screenshot(page, 'mobile-woven');
+    await clearLevel(page);
+    await screen(page, 'result');
+  }
+  checks.push('all five new chapters: first and last samples cleared by native touch (74 covered by final trial)');
   await phone.close();
 
   const desktop = await browser.newContext({

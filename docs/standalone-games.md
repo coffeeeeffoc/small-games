@@ -38,7 +38,7 @@
 
 《天下岔路》由两个子应用组成：`games/local/tianxia-chalu` 提供移动端 H5 游戏，`services/tianxia-server` 提供独立对局后端。游戏以适合单拇指点击岔路的竖屏地图为主，通过 iframe 装载，独立地址为 `/games/tianxia-chalu/index.html`。核心规则和关卡配置独立维护，后端复用游戏公开导出的规则；离线游玩不依赖服务器。开发与验证见 [游戏 README](../games/local/tianxia-chalu/README.md) 和 [后端 README](../services/tianxia-server/README.md)。
 
-《星扣工坊》位于 `games/local/orbit-atelier`，workspace 包名为 `@coffeeeeffoc/orbit-atelier`，通过 iframe 装载，独立地址为 `/games/orbit-atelier/index.html`。竖屏星图提供三个章节共 24 关，拖动圆环调整缺口，覆盖连接处的两处交点后松手解开交织星轨；星栓与分岔星图逐章引入。核心几何、规则与关卡配置独立维护，浏览器入口复用统一开发者模式及 H5 全屏。开发、构建、规则测试与浏览器验收分别使用包内 `dev`、`build`、`test` 和 `test:browser`。
+《星扣工坊》位于 `games/local/orbit-atelier`，workspace 包名为 `@coffeeeeffoc/orbit-atelier`，通过 iframe 装载，独立地址为 `/games/orbit-atelier/index.html`。竖屏星图提供八个章节共 74 关（原 24 关新增 50 关），拖动圆环调整缺口，完整让开两处连接后松手滑离；两处交点交替上穿下穿，净空判定包含金属环带宽度。分岔、宽开口、微隙及接力星栓逐章组合。核心几何、规则与关卡配置独立维护，浏览器入口复用统一开发者模式及 H5 全屏。开发、构建、规则测试与浏览器验收分别使用包内 `dev`、`build`、`test` 和 `test:browser`。
 
 《转塔留一脚刹车》位于 `games/local/tower-brake`，workspace 包名为 `@coffeeeeffoc/tower-brake`，通过 iframe 装载，独立地址为 `/games/tower-brake/index.html`。竖屏 Canvas 短挑战提供八套十二层圆塔，滑动转塔穿过缺口，连续穿过三层可补回一次 0.8 秒主动刹车。游戏无第三方运行依赖，使用 `pnpm --filter @coffeeeeffoc/tower-brake dev` 开发，`build` 生成静态 `dist/`，`test` 验证规则。核心模拟、关卡配置、渲染和存档分开维护，开发模式与全屏复用公共 H5 入口；玩法、操作与验证说明见 [游戏 README](../games/local/tower-brake/README.md)。
 

@@ -31,7 +31,7 @@
     "id": "orbit-atelier",
     "source": "games/local/orbit-atelier",
     "title": "星扣工坊",
-    "description": "转动星轨缺口，按顺序解开交织圆环，破解星栓与分岔星图，点亮二十四张原创星盘。",
+    "description": "转动缺口解开上下穿扣的圆环，用宽口、微隙与接力星栓破解八章七十四张星盘。",
     "output": "dist"
   },
   {

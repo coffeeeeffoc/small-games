@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  STROKE_MARGIN,
+  openingClearance,
+  canRelease,
   angleDistance,
   circleIntersections,
   createState,
@@ -61,7 +62,7 @@ test('covering only one of the two intersections cannot release the ring', () =>
   const state = createState(level([ring('a', 0), ring('b', 100)]));
   const blocker = getBlockers(state, 'a')[0]!;
   rotateRing(state, 'a', blocker.angles[0] + 0.2);
-  const safeHalfGap = state.rings[0]!.gap / 2 - STROKE_MARGIN;
+  const safeHalfGap = state.rings[0]!.gap / 2 - openingClearance(state.rings[0]!);
   assert.ok(angleDistance(state.rings[0]!.angle, blocker.angles[0]) <= safeHalfGap);
   assert.ok(angleDistance(state.rings[0]!.angle, blocker.angles[1]) > safeHalfGap);
   assert.equal(tryRelease(state, 'a'), false);
@@ -98,7 +99,7 @@ test('opposite neighbours block a central ring until a leaf is removed', () => {
 test('stroke clearance prevents a visually grazing intersection from escaping', () => {
   const state = createState(level([ring('a', 0), ring('b', 100)]));
   const angle = getBlockers(state, 'a')[0]!.angles[0];
-  const unsafe = angle + state.rings[0]!.gap / 2 - STROKE_MARGIN / 2;
+  const unsafe = angle + state.rings[0]!.gap / 2 - openingClearance(state.rings[0]!) / 2;
   rotateRing(state, 'a', unsafe);
   assert.equal(tryRelease(state, 'a'), false);
   const hint = findHint(state)!;
@@ -189,15 +190,15 @@ test('catalog validation detects unreachable latch cycles and repeated level IDs
   );
 });
 
-test('all 24 original levels validate, fit the board, and solve by actual rotate/release moves', () => {
-  assert.equal(LEVELS.length, 24);
+test('74 authored levels validate, fit the board, and solve by actual rotate/release moves', () => {
+  assert.equal(LEVELS.length, 74);
   assert.deepEqual(
     CHAPTERS.map((chapter) => chapter.name),
-    ['初光', '星栓', '星图'],
+    ['初光', '星栓', '星图', '穿针', '枝路', '接力', '微隙', '织星'],
   );
   assert.deepEqual(validateLevels(LEVELS), []);
-  for (const chapter of [1, 2, 3])
-    assert.equal(LEVELS.filter((entry) => entry.chapter === chapter).length, 8);
+  for (const chapter of CHAPTERS)
+    assert.equal(LEVELS.filter((entry) => entry.chapter === chapter.id).length, chapter.id <= 3 ? 8 : 10);
   for (const content of LEVELS) {
     for (const item of content.rings) {
       assert.ok(item.x - item.r >= 0 && item.x + item.r <= BOARD_WIDTH, `${content.id}: x bounds`);
@@ -219,6 +220,68 @@ test('all 24 original levels validate, fit the board, and solve by actual rotate
     assert.equal(state.releasedCount, content.rings.length);
     assert.equal(findHint(state), null);
   }
+});
+
+test('new constellations are connected, substantially overlap and support alternate safe orders', () => {
+  for (const content of LEVELS.slice(24)) {
+    const state = createState(content);
+    const connected = new Set([state.rings[0]!.id]);
+    for (let pass = 0; pass < state.rings.length; pass++)
+      for (const id of connected)
+        for (const blocker of getBlockers(state, id)) connected.add(blocker.neighborId);
+    assert.equal(connected.size, state.rings.length, `${content.id} must not contain decorative isolated rings`);
+    for (const ring of state.rings) {
+      for (const blocker of getBlockers(state, ring.id)) {
+        const neighbor = state.rings.find(r => r.id === blocker.neighborId)!;
+        assert.ok(ring.r + neighbor.r - Math.hypot(ring.x - neighbor.x, ring.y - neighbor.y) >= 20, `${content.id} overlap depth`);
+        const tolerance = (ring.gap - angleDistance(...blocker.angles)) / 2 - openingClearance(ring);
+        assert.ok(tolerance >= Math.PI / 60, `${content.id} ${ring.id} must allow at least ±3° when only this neighbor remains`);
+      }
+    }
+    assert.ok(solveLevel({...content, rings: [...content.rings].reverse()}), `${content.id} alternative removal order`);
+  }
+});
+
+test('finite band clearance and visible status agree, and rotation alone never removes', () => {
+  for (const radius of [60, 64, 68]) {
+    const state = createState(level([ring('a', 0, 0, {r: radius, gap: 2.2}), ring('b', 100, 0, {r: 64})]));
+    const a = state.rings[0]!;
+    const contact = getBlockers(state, a.id)[0]!.angles[0];
+    rotateRing(state, a.id, contact + a.gap / 2 - 0.06);
+    assert.equal(canRelease(state, a.id), false, 'thin old clearance would let the rounded tip collide');
+    assert.equal(tryRelease(state, a.id), false);
+    const hint = findHint(state)!;
+    rotateRing(state, hint.ringId, hint.angle);
+    assert.equal(canRelease(state, hint.ringId), true);
+    assert.equal(state.releasedCount, 0);
+    assert.equal(tryRelease(state, hint.ringId), true);
+  }
+});
+
+test('clearing the old 24 stages unlocks 25 without losing medals, settings or stable IDs', () => {
+  const old = freshProgress();
+  for (const [i, content] of LEVELS.slice(0, 24).entries()) {
+    assert.equal(content.id, `orbit-${String(i + 1).padStart(2, '0')}`);
+    old.medals[content.id] = 3;
+  }
+  old.settings.sound = false;
+  const restored = parseProgress(JSON.stringify(old));
+  assert.deepEqual(restored.medals, old.medals);
+  assert.equal(restored.settings.sound, false);
+  assert.equal(LEVELS[unlockedIndex(restored)]!.id, 'orbit-25');
+});
+
+import { connectionArt, weaveArt } from '../src/art.ts';
+test('both visible crossings alternate depth and disappear when an opening reaches them', () => {
+  const state = createState(level([ring('a', 0, 0, {r: 64, gap: 2.2, angle: Math.PI}), ring('b', 100, 0, {r: 64, gap: 2.2, angle: 0})]));
+  const art = weaveArt(state);
+  assert.match(art, /data-over="a" data-under="b"/);
+  assert.match(art, /data-over="b" data-under="a"/);
+  assert.match(connectionArt(state, 'a'), /data-release-ready="false"/);
+  rotateRing(state, 'a', 0);
+  assert.equal(canRelease(state, 'a'), true);
+  assert.equal((connectionArt(state, 'a').match(/data-clear="true"/g) || []).length, 2);
+  assert.doesNotMatch(weaveArt(state), /class="crossing"/);
 });
 
 function completedRun(index = 0, moves?: number, hints = 0): Run {
