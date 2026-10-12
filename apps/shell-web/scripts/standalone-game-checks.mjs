@@ -247,7 +247,7 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
         ).matrixTransform(matrix);
         return { x: transformed.x, y: transformed.y };
       };
-      const bounds = node.getBoundingClientRect();
+      const bounds = node.ownerSVGElement.getBoundingClientRect();
       return {
         start: point(angle),
         middle: point(angle + 0.3),
@@ -255,8 +255,8 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
         bounds: { x: bounds.x, y: bounds.y },
       };
     });
-    // SVG screen coordinates are local to the child document; native input is page-wide.
-    const bounds = await ring.boundingBox();
+    // Masked ring bounds differ between DOM/CDP; the board gives a stable iframe offset.
+    const bounds = await board.boundingBox();
     const offset = { x: bounds.x - points.bounds.x, y: bounds.y - points.bounds.y };
     const absolute = (point) => ({ x: point.x + offset.x, y: point.y + offset.y });
     const page = board.page();

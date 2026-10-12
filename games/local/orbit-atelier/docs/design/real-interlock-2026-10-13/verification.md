@@ -10,6 +10,7 @@
 - `pnpm --filter @coffeeeeffoc/orbit-atelier test:publishing:browser`：第 74 关同盘邀请实际触屏解完，保留原主线存档；提示后撤回不抹除提示数；分享清理私有参数、系统分享取消不误报成功、关闭广告配置及 320 px 返回流程通过。
 - `pnpm --filter @coffeeeeffoc/shell-web exec vitest run tests/game-sharing.test.tsx`：86 项通过，包含原 24、新 25 和最终 74 关的 Shell 路由、独立入口及公开分享；拒绝 00、75 与非标准 074。
 - `pnpm check:dev-mode`：64 款游戏、0 问题。`pnpm test:dev-mode`：5 项公共开关契约通过。生产入口开关与最终候选的其他增量检查由正常发布门禁执行，准确 SHA 及最终结果记录在交付日志中。
+- Shell 的真实鼠标/触屏契约保留旋转、撤回、暂停、返回行为断言；遮罩圆环的 DOM/CDP 边界不同，iframe 偏移改用棋盘边界。修复前能稳定重现未转动，修复后同一原生输入通过；增量范围只接受这三处准确替换及唯一游戏登记，任何其他执行或断言变化仍阻断。
 
 ## 画面对照
 

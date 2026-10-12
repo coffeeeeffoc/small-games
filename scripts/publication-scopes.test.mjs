@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import {
   reviewedSharedFileScopes,
   competitionConsumers,
@@ -1393,9 +1394,10 @@ const cageSource = 'games/local/cage-rescue';
 const cageChecksFile = 'apps/shell-web/scripts/game-checks/cage-rescue.mjs';
 const sharedChecksFile = 'apps/shell-web/scripts/standalone-game-checks.mjs';
 test('Tower expanded-level contract checks its game and rejects unrelated or weakened assertions', () => {
-  const after = readFileSync(new URL('../' + sharedChecksFile, import.meta.url), 'utf8').replaceAll(
-    '\r\n',
-    '\n',
+  const after = execFileSync(
+    'git',
+    ['show', '99904a43aee15199a9db387412bb7baff41e4e28:' + sharedChecksFile],
+    { encoding: 'utf8' },
   );
   const before = after
     .replace("button[data-level]')).toHaveCount(30)", "button[data-level]')).toHaveCount(8)")
@@ -1530,6 +1532,43 @@ test('cops start-to-play guard keeps a single-game scope and rejects changes out
   );
 });
 const cageEntryFile = 'apps/shell-web/scripts/standalone-game-entry.mjs';
+test('Orbit masked-SVG offset repair preserves input and gameplay assertions in a single-game scope', () => {
+  const before = execFileSync(
+    'git',
+    ['show', '036bb4d3e98cdb1c373ff3445155bcdc783ca671:' + sharedChecksFile],
+    { encoding: 'utf8' },
+  );
+  const after = readFileSync(new URL('../' + sharedChecksFile, import.meta.url), 'utf8').replaceAll(
+    '\r\n',
+    '\n',
+  );
+  const context = {
+    changedPaths: [sharedChecksFile],
+    games: [{ id: 'orbit-atelier', source: 'games/local/orbit-atelier' }],
+    readBase: () => before,
+    readHead: () => after,
+  };
+  assert.deepEqual(
+    [...reviewedSharedFileScopes(context)],
+    [[sharedChecksFile, ['games/local/orbit-atelier']]],
+  );
+  for (const invalid of [
+    after.replace(
+      "not.toHaveAttribute('data-angle', initialAngle)",
+      "toHaveAttribute('data-angle', initialAngle)",
+    ),
+    after.replace("id === 'orbit-atelier'", "id === 'another-game'"),
+    after + 'globalThis.injected = true;\n',
+    after.replace(
+      'const bounds = await board.boundingBox();',
+      'const bounds = await ring.boundingBox();',
+    ),
+  ])
+    assert.equal(reviewedSharedFileScopes({ ...context, readHead: () => invalid }).size, 0);
+  assert.equal(reviewedSharedFileScopes({ ...context, readBase: () => before + '\n' }).size, 0);
+  for (const games of [[], [...context.games, ...context.games]])
+    assert.equal(reviewedSharedFileScopes({ ...context, games }).size, 0);
+});
 const cageModule = readFileSync(
   new URL('../' + cageChecksFile, import.meta.url),
   'utf8',

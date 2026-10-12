@@ -521,6 +521,27 @@ function assertCompetitionRegistry(readHead, games) {
 const cageRescueSource = 'games/local/cage-rescue';
 const cageRescueGameplayFile = 'apps/shell-web/scripts/game-checks/cage-rescue.mjs';
 const standaloneChecksFile = 'apps/shell-web/scripts/standalone-game-checks.mjs';
+function exactOrbitBoundsGuard(before, after) {
+  // Only the reviewed masked-SVG offset fix; all input and behavior assertions stay fixed.
+  return (
+    createHash('sha256').update(before).digest('hex') ===
+      'b2ab2d1ddb7b7426b2046a238e138a0b6bc6824f555dfabe2bb0e3b90719e8f5' &&
+    after ===
+      before
+        .replace(
+          'const bounds = node.getBoundingClientRect();',
+          'const bounds = node.ownerSVGElement.getBoundingClientRect();',
+        )
+        .replace(
+          'const bounds = await ring.boundingBox();',
+          'const bounds = await board.boundingBox();',
+        )
+        .replace(
+          '// SVG screen coordinates are local to the child document; native input is page-wide.',
+          '// Masked ring bounds differ between DOM/CDP; the board gives a stable iframe offset.',
+        )
+  );
+}
 const towerLevelsBefore =
   "    await expect(frame.locator('#levels-screen button[data-level]')).toHaveCount(8);\n";
 const towerLevelsAfter =
@@ -1112,6 +1133,16 @@ export function reviewedSharedFileScopes({
         }
         assert(threeChooseTwoBackendFileScope(file, before, readHead(file)));
         scopes.set(file, ['games/local/three-choose-two', 'services/runtime-api']);
+      } else if (
+        file === standaloneChecksFile &&
+        exactOrbitBoundsGuard(readBase(file), readHead(file))
+      ) {
+        assert(
+          games.filter(
+            (game) => game.id === 'orbit-atelier' && game.source === 'games/local/orbit-atelier',
+          ).length === 1,
+        );
+        scopes.set(file, ['games/local/orbit-atelier']);
       } else if (
         file === standaloneChecksFile &&
         exactTowerLevelsGuard(readBase(file), readHead(file))
