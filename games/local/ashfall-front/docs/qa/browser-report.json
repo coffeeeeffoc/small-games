@@ -1,8 +1,10 @@
 {
-  "browser": "151.0.7922.173",
+  "browser": "154.0.8037.99",
   "checks": [
+    "landscape drag aim with movement fires up/down/backwards; cancel recenters and stops",
     "simultaneous touch movement/jump/fire and gesture cancellation",
     "pause freezes simulation, clock and damage",
+    "held gameplay Space across upgrade cannot auto-install focused card",
     "natural touch victory across all rooms, upgrade choices and Boss",
     "normal unlocks and best run survive reload",
     "portrait rotation fallback preserves touch direction and screen flow",
@@ -10,6 +12,8 @@
     "fullscreen enters and exits without losing progress",
     "natural defeat and clean retry",
     "default production has no developer UI; desktop keyboard, mouse and Escape work",
+    "Enter starts/resumes/retries without stale focus; keyboard diagonal projectiles in both facings",
+    "restored first-room save focuses newly unlocked room, and Enter launches it",
     "storage-blocked startup remains playable"
   ],
   "errors": [],
@@ -17,11 +21,14 @@
     "home-844x390.png",
     "levels-844x390.png",
     "combat-844x390.png",
+    "aim-landscape-844x390.png",
     "pause-844x390.png",
+    "pause-focus-844x390.png",
     "upgrade-844x390.png",
     "boss-844x390.png",
     "victory-844x390.png",
     "home-390x844.png",
+    "aim-portrait-390x844.png",
     "combat-390x844.png",
     "pause-390x844.png",
     "levels-390x844.png",
@@ -29,11 +36,12 @@
     "combat-568x320.png",
     "defeat-844x390.png",
     "home-desktop.png",
-    "combat-desktop.png"
+    "combat-desktop.png",
+    "pause-keyboard-desktop.png"
   ],
   "naturalRun": {
-    "seconds": 32.316666666665476,
-    "health": 42,
+    "seconds": 31.87499999999883,
+    "health": 76,
     "upgrades": [
       "scatter",
       "pierce"

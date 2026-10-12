@@ -10,6 +10,39 @@ import {
 } from '../src/core.mjs';
 const createRun = (index = 0) => createCoreRun(index, { seed: 0x41a5f00d });
 
+test('manual directions fire diagonally in both facings and reject invalid vectors', () => {
+  for (const x of [-1, 1]) {
+    for (const y of [-1, 1]) {
+      const run = createRun();
+      stepRun(run, { fire: true, move: x, aimDirection: { x, y } }, 1 / 60);
+      const bullet = run.bullets.find((item) => item.owner === 'player');
+      assert.ok(bullet);
+      assert.equal(Math.sign(bullet.vx), x);
+      assert.equal(Math.sign(bullet.vy), y);
+      assert.ok(Math.abs(Math.abs(bullet.vx) - Math.abs(bullet.vy)) < 1e-8);
+    }
+  }
+  for (const direction of [
+    { x: NaN, y: 1 },
+    { x: 1, y: Infinity },
+    { x: 0, y: 0 },
+  ]) {
+    const run = createRun();
+    stepRun(run, { fire: true, aimDirection: direction }, 1 / 60);
+    assert.ok(Number.isFinite(run.player.aimAngle));
+  }
+  const run = createRun();
+  stepRun(
+    run,
+    {
+      aim: { x: run.player.x + 100, y: run.player.y - run.player.h * 0.61 },
+      aimDirection: { x: -1, y: 1 },
+    },
+    1 / 60,
+  );
+  assert.ok(Math.abs(run.player.aimAngle) < 0.02, 'mouse aim overrides direction aim');
+});
+
 test('content validates room geometry, stable IDs, references and unlock cycles', () => {
   assert.deepEqual(validateLevels(), []);
   const duplicate = structuredClone(LEVELS);

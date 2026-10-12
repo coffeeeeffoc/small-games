@@ -188,6 +188,10 @@ h1:after {
   background: #efbf7d;
   border-color: #efbf7d;
 }
+.primary:focus-visible {
+  outline-color: #fff3d3;
+  outline-offset: -5px;
+}
 .primary:active,
 .secondary:active,
 .back-button:active {
@@ -654,8 +658,15 @@ h2 {
   padding: 18px;
 }
 #fire[aria-pressed='true'] {
+  transform: none;
   background: #f3c779;
   box-shadow: 0 0 25px #efb05e55;
+}
+#fire svg {
+  overflow: visible;
+}
+#game-canvas:focus {
+  outline: none;
 }
 .tutorial {
   position: absolute;

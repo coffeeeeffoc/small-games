@@ -50,13 +50,14 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     });
     await expect(frame.locator('#move-right')).toHaveAttribute('aria-pressed', 'false');
     await click(frame.getByRole('button', { name: '暂停', exact: true }));
-    await expect(frame.getByRole('button', { name: '继续战斗', exact: true })).toBeVisible();
-    await click(frame.getByRole('button', { name: '继续战斗', exact: true }));
+    await expect(frame.getByRole('button', { name: '继续战斗', exact: true })).toBeFocused();
+    await frame.locator('#game-canvas').page().keyboard.press('Enter');
     await expect(game).toHaveAttribute('data-screen', 'play');
+    await expect(frame.locator('#game-canvas')).toBeFocused();
     await click(frame.getByRole('button', { name: '暂停', exact: true }));
     await click(frame.getByRole('button', { name: '返回主页', exact: true }));
     await expect(game).toHaveAttribute('data-screen', 'home');
-    await expect(frame.locator('#start-game')).toBeVisible();
+    await expect(frame.locator('#start-game')).toBeFocused();
   } else if (id === 'three-choose-two') {
     const game = frame.locator('#game');
     await expect(game).toHaveAttribute('data-screen', 'playing');

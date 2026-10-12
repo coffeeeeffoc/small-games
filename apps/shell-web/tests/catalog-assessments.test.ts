@@ -14,11 +14,11 @@ import {
 } from '../src/catalog-assessments.js';
 
 const heldIds =
-  'cultivation cricket office arena building-power night-merge fishing office-slacking h5-security letters-words tower-defense-game multi-battle puzzle travel travel-bund-25d travel2 one-stroke-course hold-tight-acrobats balloon-movers weather-command merge-front off-camera precision-demolition afterimage-arena ghost-shift-manager rule-thief'.split(
+  'cultivation cricket office arena building-power night-merge fishing office-slacking h5-security letters-words tower-defense-game multi-battle puzzle travel travel-bund-25d travel2 one-stroke-course hold-tight-acrobats balloon-movers weather-command merge-front off-camera precision-demolition afterimage-arena ghost-shift-manager rule-thief chase-thief retreat-rally'.split(
     ' ',
   );
 
-it('covers every registered and on-disk Game once and preserves all 26 user decisions', () => {
+it('covers every registered and on-disk Game once and preserves all 28 user decisions', () => {
   const ids = [...builtInGameRegistry, ...standalone].map((g) => g.id).sort();
   expect(ids).toHaveLength(68);
   expect(assessmentData.games.map((g) => g.id).sort()).toEqual(ids);
@@ -50,17 +50,19 @@ it('covers every registered and on-disk Game once and preserves all 26 user deci
     expect(game.potential).not.toContain('hit');
     if (heldIds.includes(game.id)) {
       expect(game.schedule).toBe('hold');
-      expect(game.potential).toEqual(['low']);
+      expect(game.potential).toEqual(
+        ['chase-thief', 'retreat-rally'].includes(game.id) ? ['none'] : ['low'],
+      );
     } else expect(game.potential).toContain('potential');
   }
   expect(assessments['travel-bund'].disposition).toBe('potential');
 });
 
-it('exhaustively partitions 68 games into 7 previous, 15 current, 20 later and 26 held without reducing potential', () => {
+it('exhaustively partitions 68 games into 7 previous, 13 current, 20 later and 28 held with the latest user decisions', () => {
   const games = Object.values(assessments);
   const scheduled = rolloutGroups.flatMap(([tab]) => {
     const matches = games.filter((game) => matchesAssessment(game, { ...emptyFilters(), tab }));
-    expect(matches).toHaveLength({ previous: 7, current: 15, later: 20, hold: 26 }[tab]);
+    expect(matches).toHaveLength({ previous: 7, current: 13, later: 20, hold: 28 }[tab]);
     return matches.map((game) => game.id);
   });
   expect(scheduled.sort()).toEqual(games.map((game) => game.id).sort());
@@ -69,14 +71,14 @@ it('exhaustively partitions 68 games into 7 previous, 15 current, 20 later and 2
     games.filter((game) =>
       matchesAssessment(game, { ...emptyFilters(), potential: ['potential'] }),
     ),
-  ).toHaveLength(42);
+  ).toHaveLength(40);
   expect(
     games
       .filter((game) => game.schedule === 'current')
       .map((game) => game.id)
       .sort(),
   ).toEqual(
-    'ashfall-front chase-thief retreat-rally tiny-signals orbit-atelier letters-words2 wulong-city surprise-kept homebound-station waterline-station rescue-team tianxia-chalu out-of-frame fold-the-world two-sided-box'
+    'ashfall-front tiny-signals orbit-atelier letters-words2 wulong-city surprise-kept homebound-station waterline-station rescue-team tianxia-chalu out-of-frame fold-the-world two-sided-box'
       .split(' ')
       .sort(),
   );
