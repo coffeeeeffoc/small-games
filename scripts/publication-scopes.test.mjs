@@ -1345,6 +1345,50 @@ test('cumulative main workflow repairs retain exact reviewed producer boundaries
 const cageSource = 'games/local/cage-rescue';
 const cageChecksFile = 'apps/shell-web/scripts/game-checks/cage-rescue.mjs';
 const sharedChecksFile = 'apps/shell-web/scripts/standalone-game-checks.mjs';
+test('Tower expanded-level contract checks its game and rejects unrelated or weakened assertions', () => {
+  const after = readFileSync(new URL('../' + sharedChecksFile, import.meta.url), 'utf8');
+  const before = after
+    .replace("button[data-level]')).toHaveCount(30)", "button[data-level]')).toHaveCount(8)")
+    .replace(
+      '    await expect(frame.locator(\'#levels-screen button[data-level="0"]\')).toBeEnabled();\n',
+      '',
+    )
+    .replace(
+      '    await expect(frame.locator(\'#levels-screen button[data-level="29"]\')).toBeDisabled();\n',
+      '',
+    );
+  const context = {
+    changedPaths: [sharedChecksFile],
+    games: [{ id: 'tower-brake', source: 'games/local/tower-brake' }],
+    readBase: () => before,
+    readHead: () => after,
+  };
+  assert.deepEqual(
+    [...reviewedSharedFileScopes(context)],
+    [[sharedChecksFile, ['games/local/tower-brake']]],
+  );
+  const plan = incrementalPlan({
+    ...context,
+    packages: [{ dir: 'games/local/tower-brake', name: '@fixture/tower-brake' }],
+    fileScopes: reviewedSharedFileScopes(context),
+    readSource: () => '',
+  });
+  assert.deepEqual(plan.browser_ids, ['tower-brake']);
+  assert.equal(plan.full, false);
+  for (const invalid of [
+    after.replace('toHaveCount(30)', 'toHaveCount(8)'),
+    after.replace('data-level="29"]\')).toBeDisabled()', 'data-level="29"]\')).toBeEnabled()'),
+    after.replace("id === 'tower-brake'", "id === 'another-game'"),
+    after + 'globalThis.injected = true;\n',
+  ])
+    assert.equal(reviewedSharedFileScopes({ ...context, readHead: () => invalid }).size, 0);
+  assert.equal(reviewedSharedFileScopes({ ...context, readBase: () => before + '\n' }).size, 0);
+  assert.equal(reviewedSharedFileScopes({ ...context, games: [] }).size, 0);
+  assert.equal(
+    reviewedSharedFileScopes({ ...context, games: [...context.games, ...context.games] }).size,
+    0,
+  );
+});
 test('cops start-to-play guard keeps a single-game scope and rejects changes outside its exact assertions', () => {
   const oldGuard = `  } else if (id === 'cops-robbers') {
     await expect(frame.locator('#level-dialog')).toBeVisible();

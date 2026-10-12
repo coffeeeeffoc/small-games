@@ -198,7 +198,9 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect(frame.locator('#home')).toBeVisible();
     await click(frame.locator('#choose-level'));
     await expect(frame.locator('#levels-screen')).toBeVisible();
-    await expect(frame.locator('#levels-screen button[data-level]')).toHaveCount(8);
+    await expect(frame.locator('#levels-screen button[data-level]')).toHaveCount(30);
+    await expect(frame.locator('#levels-screen button[data-level="0"]')).toBeEnabled();
+    await expect(frame.locator('#levels-screen button[data-level="29"]')).toBeDisabled();
     await click(frame.locator('#levels-home'));
     await expect(frame.locator('#start-game')).toBeVisible();
   } else if (id === 'chase-thief') {

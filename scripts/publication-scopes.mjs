@@ -521,6 +521,21 @@ function assertCompetitionRegistry(readHead, games) {
 const cageRescueSource = 'games/local/cage-rescue';
 const cageRescueGameplayFile = 'apps/shell-web/scripts/game-checks/cage-rescue.mjs';
 const standaloneChecksFile = 'apps/shell-web/scripts/standalone-game-checks.mjs';
+const towerLevelsBefore =
+  "    await expect(frame.locator('#levels-screen button[data-level]')).toHaveCount(8);\n";
+const towerLevelsAfter =
+  "    await expect(frame.locator('#levels-screen button[data-level]')).toHaveCount(30);\n" +
+  '    await expect(frame.locator(\'#levels-screen button[data-level="0"]\')).toBeEnabled();\n' +
+  '    await expect(frame.locator(\'#levels-screen button[data-level="29"]\')).toBeDisabled();\n';
+function exactTowerLevelsGuard(before, after) {
+  // Bind this assertion-only update to the reviewed Tower branch; shared execution
+  // code and other game contracts must remain byte-for-byte identical.
+  return (
+    createHash('sha256').update(before).digest('hex') ===
+      'bed0bfc66e235bb68493782714df87c9ec67e39dec62d936db3356012f799128' &&
+    after === before.replace(towerLevelsBefore, towerLevelsAfter)
+  );
+}
 const copsStartBefore = `  } else if (id === 'cops-robbers') {
     await expect(frame.locator('#level-dialog')).toBeVisible();
     await click(frame.getByTestId('level-button-1'));
@@ -1097,6 +1112,16 @@ export function reviewedSharedFileScopes({
         }
         assert(threeChooseTwoBackendFileScope(file, before, readHead(file)));
         scopes.set(file, ['games/local/three-choose-two', 'services/runtime-api']);
+      } else if (
+        file === standaloneChecksFile &&
+        exactTowerLevelsGuard(readBase(file), readHead(file))
+      ) {
+        assert(
+          games.filter(
+            (game) => game.id === 'tower-brake' && game.source === 'games/local/tower-brake',
+          ).length === 1,
+        );
+        scopes.set(file, ['games/local/tower-brake']);
       } else if (
         file === standaloneChecksFile &&
         exactCopsStartGuard(readBase(file), readHead(file))
