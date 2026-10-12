@@ -23,6 +23,52 @@ import {
 import { executeCompetitionChecks } from './run-selected-competition.mjs';
 import { shellContractTargets, shellContractFiles } from './validation-plan.mjs';
 
+test('company Pages publication adds only its tested artifact and preserves game gates', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const file = '.github/workflows/pages-validate.yml';
+  const before = execFileSync('git', ['show', '4fe9716ce5b9277e42b976e005931f6e8c7dc2f3:' + file], {
+    encoding: 'utf8',
+  });
+  const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
+    '\r\n',
+    '\n',
+  );
+  const packages = [{ dir: 'apps/company-web', name: '@coffeeeeffoc/company-web' }];
+  const classify = (old, current, consumers = packages) =>
+    reviewedSharedFileScopes({
+      changedPaths: [file],
+      games: [],
+      packages: consumers,
+      readBase: () => old,
+      readHead: () => current,
+    });
+  const scopes = classify(before, after);
+  assert.deepEqual(scopes.get(file), ['apps/company-web']);
+  const plan = incrementalPlan({
+    changedPaths: [file],
+    packages,
+    games: [],
+    fileScopes: scopes,
+    readSource: () => '',
+  });
+  assert.deepEqual(plan.consumer_sources, ['apps/company-web']);
+  assert.deepEqual(plan.game_sources, []);
+  assert.equal(plan.full, false);
+  const testAt = after.indexOf('pnpm --filter @coffeeeeffoc/company-web test');
+  const copyAt = after.indexOf('cp -R apps/company-web/dist apps/shell-web/dist/company');
+  assert(after.indexOf('pnpm build:pages') < testAt && testAt < copyAt);
+  assert(copyAt < after.indexOf('name: pages-build'));
+  for (const invalid of [
+    after.replace('company-web test', 'company-web build'),
+    after.replace('apps/shell-web/dist/company', 'apps/shell-web/dist'),
+    after.replace('contents: read', 'contents: write'),
+    after + '\n',
+  ])
+    assert.equal(classify(before, invalid).has(file), false);
+  assert.equal(classify(before + '\n', after).has(file), false);
+  assert.equal(classify(before, after, []).has(file), false);
+});
+
 test('viewport extraction selects all nine real consumers and rejects any unreviewed bytes', () => {
   const file = mobileViewportScopeFile;
   const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
@@ -1280,9 +1326,10 @@ test('cache writer reduction has an exact dependency-free scope and rejects unre
         ['show', '82b4e4c30c74f082b52b9a5ef95facbca2e49508:' + file],
         { encoding: 'utf8' },
       );
-      const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
-        '\r\n',
-        '\n',
+      const after = execFileSync(
+        'git',
+        ['show', '4fe9716ce5b9277e42b976e005931f6e8c7dc2f3:' + file],
+        { encoding: 'utf8' },
       );
       assert.deepEqual(classify(file, before, after).get(file), []);
       assert.equal(plan([file], classify(file, before, after)).validation_tools, true);

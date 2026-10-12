@@ -29,6 +29,9 @@ with tempfile.TemporaryDirectory() as directory:
     (state / ".git").write_text("keep git metadata", encoding="utf-8")
     (source / "index.html").write_text("main v1", encoding="utf-8")
     (source / "old.js").write_text("old chunk", encoding="utf-8")
+    (source / "company").mkdir()
+    (source / "company/index.html").write_text("company main v1", encoding="utf-8")
+    (source / "company/style.css").write_text("body{margin:0}", encoding="utf-8")
     (source / "mobile").mkdir()
     (source / "mobile/web.zip").write_bytes(b"old native bundle")
     layers = pathlib.Path("games/travel/assets/journey/layers")
@@ -51,12 +54,14 @@ with tempfile.TemporaryDirectory() as directory:
 
     for branch, letter in (("dev", "b"), ("test", "c"), ("dev", "d"), ("main", "e")):
         (source / "index.html").write_text(branch + letter, encoding="utf-8")
+        (source / "company/index.html").write_text("company " + branch + letter, encoding="utf-8")
         (source / "old.js").unlink(missing_ok=True)
         (source / "new.js").write_text(letter, encoding="utf-8")
         prepare(source, state, site, branch, letter * 40)
         if branch != "main":
             assert (site / "mobile/web.zip").read_bytes() == production_zip
             assert (site / "index.html").read_text() == "main v1"
+            assert (site / "company/index.html").read_text() == "company main v1"
             assert (site / "old.js").exists()
         assert not (state / branch / "mobile").exists()
         assert not (state / branch / "old.js").exists()
@@ -64,6 +69,8 @@ with tempfile.TemporaryDirectory() as directory:
     for branch, prefix, letter in (("main", "", "e"), ("dev", "dev", "d"), ("test", "test", "c")):
         output = site / prefix
         assert (output / "index.html").read_text() == branch + letter
+        assert (output / "company/index.html").read_text() == "company " + branch + letter
+        assert (output / "company/style.css").read_text() == "body{margin:0}"
         assert (output / "new.js").read_text() == letter
         assert json.loads((output / "deployment.json").read_text()) == {"branch": branch, "sha": letter * 40}
         assert all(not (output / layers / name).exists() for name in drafts)
@@ -77,6 +84,7 @@ with tempfile.TemporaryDirectory() as directory:
     with zipfile.ZipFile(site / "mobile/web.zip") as archive:
         assert set(archive.namelist()) == {
             "index.html", "new.js", "deployment.json", "source-oldtown.png",
+            "company/index.html", "company/style.css",
             (layers / "oldtown.webp").as_posix(), (layers / "source-custom.png").as_posix(),
         }
         assert archive.read("index.html") == b"maine"

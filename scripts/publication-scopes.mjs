@@ -1028,6 +1028,16 @@ export function reviewedSharedFileScopes({
         assertCageRescueImmersive(file, readBase(file), readHead(file));
         scopes.set(file, [cageRescueSource]);
       } else if (
+        file === validationHistoryFile &&
+        createHash('sha256').update(readBase(file)).digest('hex') ===
+          '10e5fa89f611a547ef1608d4c4802399d6ab830398cc53c8f42ff25a53c7b467' &&
+        createHash('sha256').update(readHead(file)).digest('hex') ===
+          '195f158be27400dab8f9b73e263d66854375add335df1442cb4464a3495e6809'
+      ) {
+        // Only the reviewed company build/test/copy step; all game gates stay unchanged.
+        assert(packages.some((pkg) => pkg.dir === 'apps/company-web'));
+        scopes.set(file, ['apps/company-web']);
+      } else if (
         cacheWorkflowHashes[file] &&
         exactCacheWorkflow(file, readBase(file), readHead(file))
       ) {

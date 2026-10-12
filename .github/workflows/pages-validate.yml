@@ -93,6 +93,11 @@ jobs:
           path: games/local/night-overwatch/.prebuilt
       - run: pnpm check:games
       - run: pnpm build:pages
+      - name: Build and validate the company website
+        run: |
+          pnpm exec playwright install --with-deps chromium
+          pnpm --filter @coffeeeeffoc/company-web test
+          cp -R apps/company-web/dist apps/shell-web/dist/company
       - run: pnpm check:games --artifacts
       - run: pnpm --filter @coffeeeeffoc/shell-web test:pages:artifacts
       - uses: actions/upload-artifact@v7
