@@ -1,10 +1,15 @@
 import { physics, outsideArena } from './core.mjs';
+import { routeChapters, routeLevels } from './routes.mjs';
 
-export const chapters = Object.freeze([
+const foundationChapters = [
   { id: 'rookie', name: '初出茅庐', subtitle: '控力 · 侧击 · 保位' },
   { id: 'rivals', name: '三足鼎立', subtitle: '择敌 · 借力 · 破围' },
   { id: 'terrain', name: '借力破阵', subtitle: '石柱 · 冰面 · 反弹' },
   { id: 'summit', name: '巅峰擂台', subtitle: '缺口 · 收圈 · 决胜' },
+];
+export const chapters = Object.freeze([
+  ...foundationChapters,
+  ...routeChapters(foundationChapters),
 ]);
 const shots = (target) => ({ id: 'swift', type: 'shots', target, label: `${target} 手内获胜` });
 const hit = (target = 2) => ({
@@ -330,6 +335,7 @@ export const levels = [
     },
   ),
 ];
+levels.push(...routeLevels(levels.slice()));
 for (let i = 1; i < levels.length; i++) levels[i].requires = levels[i - 1].id;
 
 export function getLevel(idOrIndex) {

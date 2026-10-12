@@ -1,3 +1,5 @@
+import { extraSolutions } from './extended-content.js';
+import { relayExtraSolutions } from './relay-content.js';
 // Certified by exhaustive breadth-first search; regenerate with scripts/optimize-levels.mjs.
 export const optimalSolutions = {
   "1": [[1,8,9],[1,8,4],[1,9,4],[0,9,4],[1,9,4],[6,9,4],[6,8,4]],
@@ -109,3 +111,6 @@ export const optimalRelaySolutions = {
   "16": [[5,8,12],[4,8,12],[4,1,12],[3,1,12],[3,1,11],[3,0,11],[4,0,11],[4,7,11],[5,7,11],[5,13,11]],
   "27": [[3,11,12],[2,11,12],[2,4,12],[2,4,12],[1,4,12],[1,11,12],[1,11,5],[1,7,5],[1,7,6]]
 };
+
+Object.assign(optimalSolutions, extraSolutions);
+Object.assign(optimalRelaySolutions, relayExtraSolutions);

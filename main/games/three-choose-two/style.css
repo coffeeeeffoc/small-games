@@ -113,3 +113,7 @@ html,body{background:#c4e2dc}body{background-image:none}body:before,body:after{d
 .result-challenge-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.result-challenge-actions .secondary{font-size:14px;padding:12px 6px;min-height:48px}
 .result.endless{padding-top:14px}.result.endless .result-score{margin-top:24px}.result.endless .result-statistics{margin:16px 0;gap:12px 10px}.result.endless .button-stack{gap:10px;padding-top:8px}
 @media(max-height:640px){.result.endless .result-art{height:55px}.result.endless h1{font-size:25px}.result.endless .result-score{font-size:46px;margin-top:15px}.result.endless .result-statistics{padding:12px;margin:12px 0}.result.endless .result-status{padding:10px;margin-bottom:10px}}
+
+.level-pages { display: flex; align-items: center; gap: 8px; justify-content: space-between; margin: 12px 0 18px; }
+.level-pages button { min-height: 44px; min-width: 80px; }
+.level-pages span { font-size: 14px; white-space: nowrap; }

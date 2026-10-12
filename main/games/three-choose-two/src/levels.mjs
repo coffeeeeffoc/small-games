@@ -1,10 +1,12 @@
 import { SHAPE_BY_ID } from './shapes.mjs';
+import { EXTENDED_PUZZLES } from './extended-puzzles.mjs';
 
-export const CONTENT_VERSION = 2;
+export const CONTENT_VERSION = 3;
 export const CHAPTERS = Object.freeze([
   { id: 'foundation', title: '初识积木', start: 1, end: 10 },
   { id: 'choices', title: '留与舍', start: 11, end: 20 },
   { id: 'challenge', title: '空间挑战', start: 21, end: 30 },
+  ...['长边接力','拐角回廊','纵横留白','双线织园','交叉花径','预算回旋','大块腾挪','连组取舍','花园大师'].map((title, i) => ({ id: `garden-${i + 4}`, title, start: 31 + i * 10, end: 40 + i * 10 })),
 ]);
 
 const piece = (shapeId, color = 1) => ({ shapeId, color });
@@ -285,6 +287,7 @@ function makePlanningLevel(puzzle, number) {
 export const LEVELS = [
   ...tutorialRecipes.map((recipe, i) => makeTutorialLevel(recipe, i + 1)),
   ...planningPuzzles.map((puzzle, i) => makePlanningLevel(puzzle, i + 6)),
+  ...EXTENDED_PUZZLES.map((puzzle, i) => makePlanningLevel(puzzle, i + 31)),
 ];
 export function getLevel(id) { return LEVELS.find((level) => level.id === Number(id)); }
 
@@ -297,9 +300,10 @@ export function validateLevels(levels = LEVELS) {
     ids.add(level.id);
     if (!Number.isInteger(level.id) || level.id < 1 || !level.title) errors.push(`${label}: invalid identity`);
     if (!Array.isArray(level.initialBoard) || level.initialBoard.length !== 64 || level.initialBoard.some((cell) => !Number.isInteger(cell) || cell < 0 || cell > 5)) errors.push(`${label}: invalid board`);
-    if (!Number.isInteger(level.maxGroups) || level.maxGroups < 1 || level.candidates.length !== level.maxGroups + 2) errors.push(`${label}: invalid stock length`);
-    if (!Number.isInteger(level.goal?.lines) || level.goal.lines < 1 || Object.keys(level.goal).length > 2) errors.push(`${label}: invalid goals`);
-    for (const group of level.candidates ?? []) if (group.length !== 3 || group.some((candidate) => !SHAPE_BY_ID[candidate.shapeId])) errors.push(`${label}: invalid shape stock`);
+    if (!Number.isInteger(level.maxGroups) || level.maxGroups < 1 || level.candidates?.length !== level.maxGroups + 2) errors.push(`${label}: invalid stock length`);
+    if (!Number.isInteger(level.goal?.lines) || level.goal.lines < 1 || Object.keys(level.goal).length > 2 || Object.entries(level.goal).some(([key, value]) => !['lines','multi','cross','stars'].includes(key) || !Number.isInteger(value) || value < 1)) errors.push(`${label}: invalid goals`);
+    for (const group of level.candidates ?? []) if (!Array.isArray(group) || group.length !== 3 || group.some((candidate) => !SHAPE_BY_ID[candidate?.shapeId] || !Number.isInteger(candidate.color) || candidate.color < 1 || candidate.color > 5)) errors.push(`${label}: invalid shape stock`);
+    if (!CHAPTERS.some(chapter => chapter.id === level.chapter && level.id >= chapter.start && level.id <= chapter.end)) errors.push(`${label}: invalid chapter`);
     const { two, three } = level.starThresholds ?? {};
     if (!(Number.isInteger(two) && Number.isInteger(three) && three >= 1 && three <= two && two <= level.maxGroups)) errors.push(`${label}: invalid star thresholds`);
     if (level.discardBudget !== undefined && (!Number.isInteger(level.discardBudget) || level.discardBudget < 0)) errors.push(`${label}: invalid discard budget`);

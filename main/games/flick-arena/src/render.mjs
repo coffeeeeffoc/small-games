@@ -567,7 +567,7 @@ export function draw(c, app) {
     text(c, '弹指擂台', 2, 5, 56, '#0c1c21', 'serif');
     text(c, '弹指擂台', 0, 0, 56, '#fbd58a', 'serif');
     c.restore();
-    text(c, '二十关江湖 · 与好友一决高下', 195, 242, 14, '#c0c3a9');
+    text(c, `${levels.length} 关江湖 · 与好友一决高下`, 195, 242, 14, '#c0c3a9');
     table(c, 195, 411, 136);
     fighter(c, 119, 385, 29, 2, false, t);
     fighter(c, 267, 373, 29, 1, false, t);
@@ -603,7 +603,7 @@ export function draw(c, app) {
   } else if (screen === 'levels') {
     const chapterIndex = Math.max(0, Math.min(chapters.length - 1, app.chapter ?? 0));
     const chapter = chapters[chapterIndex];
-    heading('章节选关', `共 20 关 · 已获 ${earnedStars} / 60 星`);
+    heading('章节选关', `共 ${levels.length} 关 · 已获 ${earnedStars} / ${levels.length * 3} 星`);
     button('chapter-prev', '上章', 28, 205, 68, 44, false, null, chapterIndex === 0);
     button(
       'chapter-next',
@@ -1306,7 +1306,7 @@ export function draw(c, app) {
       } else if (app.mode === 'campaign' && currentLevel) {
         heading(
           win
-            ? currentLevel.index === 20
+            ? currentLevel.index === levels.length
               ? '巅峰已至！'
               : '闯关成功！'
             : draw
@@ -1325,8 +1325,8 @@ export function draw(c, app) {
         text(
           c,
           win
-            ? currentLevel.index === 20
-              ? '二十关通关 · 回头挑战满星吧'
+            ? currentLevel.index === levels.length
+              ? `${levels.length} 关通关 · 回头挑战满星吧`
               : '下一关已解锁 · 挑战星可重复收集'
             : trim(app.reason || '留一点余力，再试一次', 27),
           195,
@@ -1335,8 +1335,8 @@ export function draw(c, app) {
           '#c8c8b0',
         );
         button(
-          win && currentLevel.index < 20 ? 'next-level' : 'retry',
-          win && currentLevel.index < 20 ? '下一关' : win ? '再挑战一次' : '重试这一关',
+          win && currentLevel.index < levels.length ? 'next-level' : 'retry',
+          win && currentLevel.index < levels.length ? '下一关' : win ? '再挑战一次' : '重试这一关',
           45,
           621,
           300,

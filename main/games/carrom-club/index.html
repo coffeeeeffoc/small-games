@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#092b29" />
     <meta
       name="description"
-      content="回拉指尖，听见落袋。木质克朗棋盘上的人机切磋与六关手感练习。"
+      content="回拉指尖，听见落袋。木质克朗棋盘上的人机切磋与 120 关手感练习。"
     />
     <title>克朗棋 · Carrom Club</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
@@ -48,7 +48,7 @@
           <button id="start" class="primary">开始对局 <span>›</span></button
           ><button id="friends-open" class="secondary">好友对战</button
           ><button id="levels-open" class="secondary">
-            练习选关 <span class="tiny" id="practice-progress">0 / 6</span>
+            练习选关 <span class="tiny" id="practice-progress">0 / 120</span>
           </button>
         </div>
         <footer class="home-footer">
@@ -132,6 +132,14 @@
         </header>
         <h2>练习选关</h2>
         <p class="subtitle">手感，从第一杆开始</p>
+        <nav class="chapter-nav" aria-label="练习章节">
+          <button id="chapter-prev" class="icon" aria-label="上一章">‹</button>
+          <div>
+            <strong id="chapter-label"></strong>
+            <p id="chapter-progress" class="muted" aria-live="polite"></p>
+          </div>
+          <button id="chapter-next" class="icon" aria-label="下一章">›</button>
+        </nav>
         <div id="level-grid" class="level-grid"></div>
         <p class="muted footnote">通关解锁下一关 · 好手感值得多练一杆</p>
       </section>
