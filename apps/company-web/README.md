@@ -11,9 +11,13 @@ pnpm --filter @coffeeeeffoc/company-web preview
 pnpm --filter @coffeeeeffoc/company-web test
 ```
 
-开发地址为 `http://127.0.0.1:5180`，生产预览地址为 `http://127.0.0.1:4180`。测试需要本机已安装 Playwright Chromium；检查生产构建在 `/company/` 子路径下的资源、导航、键盘操作、1440/390/320 像素布局、动效开关、鼠标倾斜、系统减少动态效果与触摸行为，截图输出至根目录 `outputs/company-web/`。
+开发地址为 `http://127.0.0.1:5180`，生产预览地址为 `http://127.0.0.1:4180`。测试需要本机已安装 Playwright Chromium；检查生产构建在 `/small-games/company/` 子路径下的资源、导航、键盘操作、1440/390/320 像素布局、动效开关、鼠标倾斜、系统减少动态效果与触摸行为，截图输出至根目录 `outputs/company-web/`。CI 使用 `PAGES_BASE_PATH` 检查对应分支的实际子路径。
 
-构建输出在 `apps/company-web/dist/`，可独立托管在域名根目录或子目录。现有游戏大厅的 GitHub Pages 发布流程保持独立；此应用尚未配置自动发布。
+构建输出在 `apps/company-web/dist/`，可独立托管在域名根目录或子目录。GitHub Pages 流程在官网构建及浏览器测试通过后，将产物复制到游戏站点的 `company/` 子目录，保留现有游戏大厅及各分支入口。推送 `main`、`dev`、`test` 后自动发布对应版本：
+
+- 正式官网：<https://coffeeeeffoc.github.io/small-games/company/>
+- 开发预览：<https://coffeeeeffoc.github.io/small-games/dev/company/>
+- 测试预览：<https://coffeeeeffoc.github.io/small-games/test/company/>（该分支接入此配置并发布后生效）
 
 公司介绍与业务文案维护在 `index.html`，样式在 `src/style.css`。网站无外部字体、图片、统计脚本或表单。公司正式 Logo、对外联系方式、备案信息尚未提供，当前使用文字标识与原创几何装饰；获得确认后再添加正式资料。
 

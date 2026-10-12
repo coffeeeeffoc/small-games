@@ -6,9 +6,10 @@ import { preview } from 'vite';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const screenshots = fileURLToPath(new URL('../../../outputs/company-web/', import.meta.url));
+const base = `${process.env.PAGES_BASE_PATH || '/small-games/'}company/`;
 const server = await preview({
   root,
-  base: '/company/',
+  base,
   logLevel: 'error',
   preview: { host: '127.0.0.1', port: 0, strictPort: false },
 });
@@ -29,7 +30,7 @@ try {
     page.on('response', (response) => {
       if (response.status() >= 400) errors.push(`${response.status()} ${response.url()}`);
     });
-    const response = await page.goto(`http://127.0.0.1:${address.port}/company/`);
+    const response = await page.goto(`http://127.0.0.1:${address.port}${base}`);
     assert.equal(response.status(), 200);
     assert.match(await page.title(), /上海能工智人科技有限公司/);
     assert.equal(await page.locator('h1').count(), 1);
@@ -70,7 +71,7 @@ try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.goto(`http://127.0.0.1:${address.port}/company/`);
+  await page.goto(`http://127.0.0.1:${address.port}${base}`);
   await expect(page.locator('html')).toHaveAttribute('data-motion', 'on');
   const button = page.getByRole('link', { name: '探索我们所做的' });
   for (const hover of [true, false, true, false]) {
@@ -140,7 +141,7 @@ try {
     isMobile: true,
     hasTouch: true,
   });
-  await touch.goto(`http://127.0.0.1:${address.port}/company/`);
+  await touch.goto(`http://127.0.0.1:${address.port}${base}`);
   await expect(touch.locator('html')).toHaveAttribute('data-motion', 'on');
   await touch.locator('.hero-art').tap();
   assert.equal(await touch.locator('html').getAttribute('data-pointer'), null);
