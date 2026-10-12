@@ -716,6 +716,8 @@ export async function validateTree({
         'scripts/nine-lock-scope.test.mjs',
         'scripts/publication-scopes.test.mjs',
         'scripts/vite-patch-scope.test.mjs',
+        'scripts/prune-turbo-cache.test.mjs',
+        'scripts/prune-actions-cache.test.mjs',
         'apps/shell-web/scripts/pages-validation.test.mjs',
       ],
       root,

@@ -5,6 +5,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import {
   incrementalPlan,
+  cacheToolPaths,
   developerModeFileScopes,
   nativeWorkspaceFileScopes,
   nativeToolConsumers,
@@ -37,6 +38,16 @@ const plan = (changedPaths, extra = {}) =>
     readSource: () => 'export const rules = 1;',
     ...extra,
   });
+
+test('cache maintenance paths run tooling checks without game consumers; siblings fail closed', () => {
+  for (const file of cacheToolPaths) {
+    const selected = plan([file]);
+    assert.equal(selected.validation_tools, true);
+    assert.equal(selected.browser, false);
+    assert.deepEqual(selected.consumer_sources, []);
+  }
+  assert.throws(() => plan(['scripts/prune-unknown-cache.mjs']), /Incremental scope undefined/);
+});
 
 test('browser preparation is validation tooling with only the existing navigation samples', () => {
   const selected = incrementalPlan({

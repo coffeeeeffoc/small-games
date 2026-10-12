@@ -134,7 +134,7 @@ jobs:
         run: pnpm test:game-config
 
       - name: Test CI optimization gates
-        run: node --test scripts/pages-regression-shards.test.mjs scripts/reuse-cocos-artifacts.test.mjs scripts/prune-turbo-cache.test.mjs scripts/validate-push.test.mjs scripts/validation-plan.test.mjs scripts/validate-tree.test.mjs scripts/ci-validation.test.mjs scripts/cocos-validation.test.mjs scripts/workspace-bootstrap.test.mjs apps/shell-web/scripts/standalone-game-entry.test.mjs
+        run: node --test scripts/pages-regression-shards.test.mjs scripts/reuse-cocos-artifacts.test.mjs scripts/prune-turbo-cache.test.mjs scripts/prune-actions-cache.test.mjs scripts/validate-push.test.mjs scripts/validation-plan.test.mjs scripts/validate-tree.test.mjs scripts/ci-validation.test.mjs scripts/cocos-validation.test.mjs scripts/workspace-bootstrap.test.mjs apps/shell-web/scripts/standalone-game-entry.test.mjs
 
       - name: Test local format hooks
         run: pnpm test:hooks
@@ -154,7 +154,7 @@ jobs:
       - name: Bound local Turborepo task cache
         run: node scripts/prune-turbo-cache.mjs
       - name: Save bounded Turborepo cache
-        if: steps.turbo.outputs.cache-hit != 'true'
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/test') && steps.turbo.outputs.cache-hit != 'true'
         uses: actions/cache/save@v5
         with:
           path: |

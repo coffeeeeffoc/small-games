@@ -6,6 +6,24 @@ import { vitePatchFileScopes } from './vite-patch-scope.mjs';
 
 const loadDependency = createRequire(import.meta.url);
 
+// Exact reviewed cache-only workflow changes. This proof works in bare planning
+// jobs without YAML dependencies and cannot admit unrelated gates or permissions.
+const cacheWorkflowHashes = {
+  '.github/workflows/ci.yml': [
+    'e75bfeb396879c1e6550f8e54d61639a7a7509476cd68d87b20243a2984111a7',
+    'fbf776770868d3e3b36a7e73de682c736ce42ee21e19dcde6b4ab9edb8763eab',
+  ],
+  '.github/workflows/pages-validate.yml': [
+    '29c49bdf51d0ff0a5182c21912b035e158f3345e02ec5fd143b5fa947ef2cb92',
+    '10e5fa89f611a547ef1608d4c4802399d6ab830398cc53c8f42ff25a53c7b467',
+  ],
+};
+function exactCacheWorkflow(file, before, after) {
+  const hashes = cacheWorkflowHashes[file];
+  const digest = (text) => createHash('sha256').update(text).digest('hex');
+  return !!hashes && digest(before) === hashes[0] && digest(after) === hashes[1];
+}
+
 // Reviewed role instructions only; extra permissions, hooks and MCP settings need a new review.
 const codexAgentHashes = {
   '.codex/agents/repo_explorer.toml':
@@ -1009,6 +1027,11 @@ export function reviewedSharedFileScopes({
         assertCageRescueCatalog(games);
         assertCageRescueImmersive(file, readBase(file), readHead(file));
         scopes.set(file, [cageRescueSource]);
+      } else if (
+        cacheWorkflowHashes[file] &&
+        exactCacheWorkflow(file, readBase(file), readHead(file))
+      ) {
+        scopes.set(file, []);
       } else if (
         file === validationHistoryFile &&
         exactValidationHistory(file, readBase(file), readHead(file))

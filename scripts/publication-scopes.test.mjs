@@ -1227,10 +1227,9 @@ test('reviewed quality budget can be planned without installed YAML dependencies
   const before = execFileSync('git', ['show', 'e37783aef3042289d9cfbb7f4b0badb6a106f6d8:' + file], {
     encoding: 'utf8',
   });
-  const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
-    '\r\n',
-    '\n',
-  );
+  const after = execFileSync('git', ['show', '82b4e4c30c74f082b52b9a5ef95facbca2e49508:' + file], {
+    encoding: 'utf8',
+  });
   assert.equal(after, before.replace('    timeout-minutes: 40\n', '    timeout-minutes: 60\n'));
   const directory = await mkdtemp(join(tmpdir(), 'quality-budget-no-deps-'));
   try {
@@ -1261,6 +1260,54 @@ test('reviewed quality budget can be planned without installed YAML dependencies
       stdio: 'pipe',
       encoding: 'utf8',
     });
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('cache writer reduction has an exact dependency-free scope and rejects unrelated workflow changes', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const { mkdtemp, copyFile, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const directory = await mkdtemp(join(tmpdir(), 'cache-scope-no-deps-'));
+  try {
+    for (const module of ['publication-scopes.mjs', 'vite-patch-scope.mjs'])
+      await copyFile(new URL(module, import.meta.url), join(directory, module));
+    for (const file of ['.github/workflows/ci.yml', '.github/workflows/pages-validate.yml']) {
+      const before = execFileSync(
+        'git',
+        ['show', '82b4e4c30c74f082b52b9a5ef95facbca2e49508:' + file],
+        { encoding: 'utf8' },
+      );
+      const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
+        '\r\n',
+        '\n',
+      );
+      assert.deepEqual(classify(file, before, after).get(file), []);
+      assert.equal(plan([file], classify(file, before, after)).validation_tools, true);
+      const code = `
+        import assert from 'node:assert/strict';
+        import { createRequire } from 'node:module';
+        import { reviewedSharedFileScopes } from './publication-scopes.mjs';
+        assert.throws(() => createRequire(import.meta.url).resolve('js-yaml'));
+        const before = ${JSON.stringify(before)}, after = ${JSON.stringify(after)};
+        const classify = (old, current) => reviewedSharedFileScopes({ changedPaths: [${JSON.stringify(file)}], games: [], readBase: () => old, readHead: () => current });
+        assert.deepEqual(classify(before, after).get(${JSON.stringify(file)}), []);
+        for (const [old, current] of [
+          [before + '\\n', after], [before, after + '\\n'],
+          [before, after.replace("github.event_name == 'push'", "github.event_name != 'push'")],
+          [before, after.replace('pnpm check:games', 'echo skipped')],
+          [before, after + '\\npermissions:\\n  actions: write\\n'],
+        ]) assert.equal(classify(old, current).has(${JSON.stringify(file)}), false);
+      `;
+      execFileSync(process.execPath, ['--input-type=module', '-e', code], {
+        cwd: directory,
+        env: { ...process.env, NODE_PATH: '' },
+        stdio: 'pipe',
+        encoding: 'utf8',
+      });
+    }
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

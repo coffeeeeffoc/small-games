@@ -39,7 +39,7 @@ test('every Turbo writer saves only bounded task entries after a successful prun
     const workflow = yaml.load(
       await readFile(new URL('../.github/workflows/' + name, import.meta.url), 'utf8'),
     );
-    for (const job of Object.values(workflow.jobs)) {
+    for (const [id, job] of Object.entries(workflow.jobs)) {
       const steps = job.steps ?? [];
       const restore = steps.find((step) => step.name === 'Restore Turborepo cache');
       if (!restore) continue;
@@ -47,9 +47,19 @@ test('every Turbo writer saves only bounded task entries after a successful prun
       assert(restore.with.key.startsWith('turbo-bounded-v1-'));
       const prune = steps.findIndex((step) => step.run === 'node scripts/prune-turbo-cache.mjs');
       const save = steps.findIndex((step) => step.name === 'Save bounded Turborepo cache');
+      if (name === 'pages-validate.yml' && id === 'logic') {
+        assert.equal(prune, -1);
+        assert.equal(save, -1);
+        assert(restore.with.key.includes('-build-'));
+        continue;
+      }
+      assert(['quality', 'build'].includes(id));
       assert(prune >= 0 && save > prune);
       assert.equal(steps[save].uses, 'actions/cache/save@v5');
-      assert.equal(steps[save].if, "steps.turbo.outputs.cache-hit != 'true'");
+      assert.equal(
+        steps[save].if,
+        "github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/test') && steps.turbo.outputs.cache-hit != 'true'",
+      );
       assert(!steps[save].with.path.includes('cookies'));
       assert(steps[save].with.path.includes('.turbo/cache/*.tar.zst'));
     }

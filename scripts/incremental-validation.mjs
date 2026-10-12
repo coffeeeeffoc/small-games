@@ -22,6 +22,13 @@ export { reviewedSharedFileScopes } from './publication-scopes.mjs';
 
 const loadFormatter = createRequire(import.meta.url);
 
+export const cacheToolPaths = Object.freeze([
+  'scripts/prune-turbo-cache.mjs',
+  'scripts/prune-turbo-cache.test.mjs',
+  'scripts/prune-actions-cache.mjs',
+  'scripts/prune-actions-cache.test.mjs',
+]);
+
 const validationTool =
   /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|run-selected-(?:shell|browser)|ci-validation|browser-preparation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope|pages-regression-shards|publication-scopes|vite-patch-scope|run-selected-competition)(?:\.[^/]+)?\.mjs|scripts\/nine-(?:native|lock)-scope(?:\.test)?\.mjs|\.githooks\/[^/]+)$/;
 export const workspaceBoundaryScopePaths = Object.freeze([
@@ -90,6 +97,7 @@ export function incrementalPlan({
     (file) =>
       !packages.some((pkg) => file === pkg.dir || file.startsWith(pkg.dir + '/')) &&
       !validationTool.test(file) &&
+      !cacheToolPaths.includes(file) &&
       !workspaceBoundaryScopePaths.includes(file) &&
       !pagesDeployScopePaths.includes(file) &&
       file !== 'scripts/pages-regression-timings.json' &&
@@ -210,6 +218,7 @@ export function incrementalPlan({
     validation_tools: paths.some(
       (file) =>
         validationTool.test(file) ||
+        cacheToolPaths.includes(file) ||
         file === mobileViewportScopeFile ||
         file === 'apps/shell-web/scripts/pages-validation.test.mjs' ||
         workspaceBoundaryScopePaths.includes(file) ||

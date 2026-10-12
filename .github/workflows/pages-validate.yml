@@ -81,7 +81,6 @@ jobs:
           key: turbo-bounded-v1-pages-${{ runner.os }}-${{ github.job }}-${{ github.sha }}
           restore-keys: |
             turbo-bounded-v1-pages-${{ runner.os }}-${{ github.job }}-
-            turbo-bounded-v1-pages-${{ runner.os }}-
             turbo-bounded-v1-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
       - uses: actions/download-artifact@v8
@@ -105,7 +104,7 @@ jobs:
       - name: Bound local Turborepo task cache
         run: node scripts/prune-turbo-cache.mjs
       - name: Save bounded Turborepo cache
-        if: steps.turbo.outputs.cache-hit != 'true'
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/test') && steps.turbo.outputs.cache-hit != 'true'
         uses: actions/cache/save@v5
         with:
           path: |
@@ -141,10 +140,9 @@ jobs:
             .turbo/cache/*.tar.zst
             .turbo/cache/*-meta.json
             .turbo/cache/*-manifest.json
-          key: turbo-bounded-v1-pages-${{ runner.os }}-${{ github.job }}-${{ github.sha }}
+          key: turbo-bounded-v1-pages-${{ runner.os }}-build-${{ github.sha }}
           restore-keys: |
-            turbo-bounded-v1-pages-${{ runner.os }}-${{ github.job }}-
-            turbo-bounded-v1-pages-${{ runner.os }}-
+            turbo-bounded-v1-pages-${{ runner.os }}-build-
             turbo-bounded-v1-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
       - uses: actions/download-artifact@v8
@@ -159,23 +157,12 @@ jobs:
       - run: pnpm test:game-config
       - run: node --test scripts/pages-test-scope.test.mjs apps/shell-web/scripts/pages-validation.test.mjs
       - name: Test CI optimization gates
-        run: node --test scripts/pages-regression-shards.test.mjs scripts/reuse-cocos-artifacts.test.mjs scripts/prune-turbo-cache.test.mjs
+        run: node --test scripts/pages-regression-shards.test.mjs scripts/reuse-cocos-artifacts.test.mjs scripts/prune-turbo-cache.test.mjs scripts/prune-actions-cache.test.mjs
       - run: python3 scripts/test-pages-deploy.py
       - run: python3 scripts/test-mobile-assets.py
       - name: Test Shell with workspace dependencies
         run: pnpm exec turbo run test --filter=@coffeeeeffoc/shell-web --concurrency=1
       - run: node scripts/run-pages-game-tests.mjs
-      - name: Bound local Turborepo task cache
-        run: node scripts/prune-turbo-cache.mjs
-      - name: Save bounded Turborepo cache
-        if: steps.turbo.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
-        with:
-          path: |
-            .turbo/cache/*.tar.zst
-            .turbo/cache/*-meta.json
-            .turbo/cache/*-manifest.json
-          key: ${{ steps.turbo.outputs.cache-primary-key }}
 
   smoke:
     if: inputs.browser
