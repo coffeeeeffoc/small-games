@@ -1218,6 +1218,54 @@ test('bare planning jobs install only the reviewed pinned parser without changin
   }
 });
 
+test('reviewed quality budget can be planned without installed YAML dependencies', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const { mkdtemp, copyFile, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const file = '.github/workflows/ci.yml';
+  const before = execFileSync('git', ['show', 'e37783aef3042289d9cfbb7f4b0badb6a106f6d8:' + file], {
+    encoding: 'utf8',
+  });
+  const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
+    '\r\n',
+    '\n',
+  );
+  assert.equal(after, before.replace('    timeout-minutes: 40\n', '    timeout-minutes: 60\n'));
+  const directory = await mkdtemp(join(tmpdir(), 'quality-budget-no-deps-'));
+  try {
+    for (const module of ['publication-scopes.mjs', 'vite-patch-scope.mjs'])
+      await copyFile(new URL(module, import.meta.url), join(directory, module));
+    const code = `
+      import assert from 'node:assert/strict';
+      import { createRequire } from 'node:module';
+      import { reviewedSharedFileScopes } from './publication-scopes.mjs';
+      assert.throws(() => createRequire(import.meta.url).resolve('js-yaml'));
+      const before = ${JSON.stringify(before)};
+      const after = ${JSON.stringify(after)};
+      const classify = (old, current) => reviewedSharedFileScopes({
+        changedPaths: [${JSON.stringify(file)}], games: [],
+        readBase: () => old, readHead: () => current,
+      });
+      assert.deepEqual(classify(before, after).get(${JSON.stringify(file)}), []);
+      for (const [old, current] of [
+        [before + '\\n', after], [before, after + '\\n'],
+        [before, after.replace('timeout-minutes: 60', 'timeout-minutes: 61')],
+        [before, after.replace('node scripts/ci-validation.mjs', 'echo skipped')],
+        [before, after + '\\npermissions:\\n  contents: write\\n'],
+      ]) assert.equal(classify(old, current).has(${JSON.stringify(file)}), false);
+    `;
+    execFileSync(process.execPath, ['--input-type=module', '-e', code], {
+      cwd: directory,
+      env: { ...process.env, NODE_PATH: '' },
+      stdio: 'pipe',
+      encoding: 'utf8',
+    });
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 test('cumulative main workflow repairs retain exact reviewed producer boundaries', async () => {
   const { execFileSync } = await import('node:child_process');
   for (const file of ['.github/workflows/ci.yml', '.github/workflows/pages.yml']) {

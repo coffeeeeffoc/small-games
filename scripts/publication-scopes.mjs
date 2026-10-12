@@ -24,6 +24,7 @@ const planningCheckoutHashes = {
     locked: 'fdc0f51bc350921e31064da3ef56acbe01ee9ec4d0865cc03c56ba82ab619fe3',
     parser: '287190c89099b2cd3fd55769341d7ea3dd210d92de0d8164d788492b2d177b5e',
     nativeGate: 'e764209ad852faa7018194ffcea21c6cdf0ebac287df66185be948bc5ad93add',
+    qualityBudget: 'e75bfeb396879c1e6550f8e54d61639a7a7509476cd68d87b20243a2984111a7',
   },
   '.github/workflows/pages.yml': {
     original: '9a2493b15ddd4d6379ae117a94bd4620acfaa20bdf084eab6e96c0a03ca92a51',
@@ -44,6 +45,9 @@ function exactPlanningCheckout(file, before, after) {
   const digest = (text) => createHash('sha256').update(text).digest('hex');
   const oldHash = digest(before),
     newHash = digest(after);
+  // The planning job has no YAML dependency. This exact reviewed 40 -> 60
+  // minute quality budget changes no command, condition or permission.
+  if (oldHash === hashes.nativeGate && newHash === hashes.qualityBudget) return true;
   // Exact reviewed parser bootstrap only; all execution, permissions and gates stay bound.
   if (
     [hashes.original, hashes.recursive, hashes.locked].includes(oldHash) &&
