@@ -116,6 +116,18 @@ export const viteBuildSources = Object.freeze([
   'games/submodules/xiangqi-five',
 ]);
 export const viteTestSources = Object.freeze(audited.vitest);
+// These Node suites reach the native build/Vite parseAst APIs. Other native
+// packaging suites use Node alone and are not changed by this dependency patch.
+export const viteNativeNodeTests = Object.freeze(
+  [
+    'nine-games-build',
+    'taptap-build',
+    'taptap-cocos',
+    'taptap-cocos-inputs',
+    'taptap-package',
+    'taptap-smoke',
+  ].map((name) => 'apps/shell-minigame/scripts/' + name + '.test.mjs'),
+);
 export const viteBuiltinSources = Object.freeze(
   ['arena', 'building-power', 'cricket', 'cultivation', 'office'].map(
     (id) => 'games/local/game-' + id,

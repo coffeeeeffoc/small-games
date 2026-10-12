@@ -9,6 +9,7 @@ import {
   viteTestSources,
   viteSmokeSources,
   viteNativeSources,
+  viteNativeNodeTests,
   hasVitePatch,
 } from './vite-patch-scope.mjs';
 import { runIncrementalToolChecks } from './validate-tree.mjs';
@@ -96,7 +97,13 @@ test('all 30 test consumers and built-in/app smokes execute, native acceptance i
     dir,
     name: dir,
     devDependencies: { vitest: '5.0.0' },
-    scripts: { test: 'vitest run', smoke: 'node smoke.mjs' },
+    scripts: {
+      test:
+        dir === 'apps/shell-minigame'
+          ? 'vitest run tests && node --test scripts/*.test.mjs'
+          : 'vitest run',
+      smoke: 'node smoke.mjs',
+    },
   }));
   const run = (enabled) => {
     const calls = [];
@@ -110,11 +117,22 @@ test('all 30 test consumers and built-in/app smokes execute, native acceptance i
     return calls;
   };
   const calls = run('0');
-  for (const source of viteTestSources)
+  for (const source of viteTestSources.filter((source) => source !== 'apps/shell-minigame'))
     assert(
       calls.some((c) => c.join(' ') === 'pnpm --filter ' + source + ' test'),
       source,
     );
+  assert(
+    calls.some((c) => c.join(' ') === 'pnpm --filter apps/shell-minigame exec vitest run tests'),
+  );
+  assert(
+    calls.some(
+      (c) =>
+        c[0] === process.execPath &&
+        c.slice(1).join(' ') === ['--test', ...viteNativeNodeTests].join(' '),
+    ),
+  );
+  assert(!calls.some((c) => c.join(' ') === 'pnpm --filter apps/shell-minigame test'));
   for (const source of viteSmokeSources)
     assert(
       calls.some((c) => c.join(' ') === 'pnpm --filter ' + source + ' smoke'),
@@ -139,4 +157,6 @@ test('all 30 test consumers and built-in/app smokes execute, native acceptance i
       }),
     /Missing audited Vite test consumer/,
   );
+  packages.find((pkg) => pkg.dir === 'apps/shell-minigame').scripts.test += ' && extra';
+  assert.throws(() => run('0'), /Unreviewed mixed native test command/);
 });

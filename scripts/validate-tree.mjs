@@ -12,7 +12,12 @@ import {
 import { registrationFileScopes } from './pages-registration-scope.mjs';
 import { nineNativeFileScopes, isNineNativeOnlyPath } from './nine-native-scope.mjs';
 import { nineLockFileScopes } from './nine-lock-scope.mjs';
-import { viteTestSources, viteSmokeSources, viteNativeSources } from './vite-patch-scope.mjs';
+import {
+  viteTestSources,
+  viteSmokeSources,
+  viteNativeSources,
+  viteNativeNodeTests,
+} from './vite-patch-scope.mjs';
 import {
   incrementalPlan,
   entryAdapterFileScopes,
@@ -391,7 +396,21 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
         pkg?.devDependencies?.vitest === '5.0.0' && pkg.scripts?.test?.includes('vitest'),
         `Missing audited Vite test consumer: ${source}`,
       );
-      execute('pnpm', ['--filter', pkg.name, 'test'], root, env, 'logged');
+      if (source === 'apps/shell-minigame') {
+        assert.equal(
+          pkg.scripts.test,
+          'vitest run tests && node --test scripts/*.test.mjs',
+          'Unreviewed mixed native test command',
+        );
+        execute(
+          'pnpm',
+          ['--filter', pkg.name, 'exec', 'vitest', 'run', 'tests'],
+          root,
+          env,
+          'logged',
+        );
+        execute(process.execPath, ['--test', ...viteNativeNodeTests], root, env, 'logged');
+      } else execute('pnpm', ['--filter', pkg.name, 'test'], root, env, 'logged');
     }
     for (const source of viteSmokeSources) {
       const pkg = packages.find((item) => item.dir === source);
