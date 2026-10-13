@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { readFile, realpath, stat } from 'node:fs/promises';
 import { dirname, extname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { adConfiguration, configurationScript } from './ad-config.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const root = resolve(project, process.argv.includes('--dist') ? 'dist' : '.');
@@ -31,12 +32,13 @@ export const server = createServer(async (request, response) => {
   try {
     const path = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
     const name = path === '/' ? 'index.html' : path.slice(1);
-    if (name === 'publishing.js' && !process.argv.includes('--dist')) {
-      const content = await readFile(resolve(project, '../../../platforms/h5/publishing.js'));
+    if (['publishing.js', 'platform-ads.js', 'platform-config.js'].includes(name) && !process.argv.includes('--dist')) {
+      const content = name === 'platform-config.js' ? configurationScript(adConfiguration(false))
+        : await readFile(resolve(project, '../../../platforms/h5', name));
       response.writeHead(200, { 'Content-Type': mime['.js'], 'X-Content-Type-Options': 'nosniff' });
       return response.end(request.method === 'HEAD' ? undefined : content);
     }
-    const allowed = name === 'index.html' || name === 'dev-mode.js' || name === 'publishing.js' || /^favicon\.(svg|ico|png)$/.test(name)
+    const allowed = name === 'index.html' || name === 'dev-mode.js' || ['publishing.js', 'platform-ads.js', 'platform-config.js'].includes(name) || /^favicon\.(svg|ico|png)$/.test(name)
       || /^(src|assets)\//.test(name);
     if (!allowed || /[\\\0]/.test(name) || name.split('/').some(part => part.startsWith('.'))
       || !mime[extname(name).toLowerCase()]) return send(404, 'Not found');

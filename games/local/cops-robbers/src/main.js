@@ -11,7 +11,8 @@ import { relayLevelIds, relayLevels, relayChapters, movedOfficer, lastOfficer, r
 import { readPuzzleLink, showPuzzleShare } from './share.js';
 import { quickTrials, quickChapters, quickSolutions, quickOutcome } from './quick-trials.js';
 import { levelUnlocked, nextPlayable } from './progress.js';
-import { createSimulationAdProvider } from '../publishing.js';
+import { createGameAds } from './ads.js';
+import { hintAdProvider } from './ad-host.js';
 
 import { setupGameShell, drawLevelPath } from './game-shell.js';
 
@@ -82,7 +83,8 @@ const canMoveOfficer = actor => targetsFor(actor).some(node => node !== state.co
 const parTurns = () => rule === 'relay' ? optimalRelaySolutions[level.id].length : level.par;
 let runToken = 0, pending = null, hintWorker = null, hintTimer = null, chapterTab = 0, drag = null, suppressClickUntil = 0;
 let hintBusy = false, hintTarget = null;
-let hintRequest = 0, adBusy = false, adPending = false, cancelHintAd;
+let hintRequest = 0, adBusy = false;
+const hintAds = createGameAds({ getProvider: hintAdProvider, onPendingChange: updateChrome });
 let cancelledClickUntil = 0;
 const outcome = current => playMode === 'quick' ? quickOutcome(level,current) : current.robbers.includes(-2) ? 'lost' : current.robbers.every(n => n === -1) ? 'won' : 'planning';
 // Reuse the verified route so a map change cannot leave an impossible lesson.
@@ -140,7 +142,7 @@ function stopHint() {
   hintWorker?.terminate(); hintWorker = null; clearTimeout(hintTimer); hintTimer = null; hintBusy = false;
 }
 function clearHint() { stopHint(); hintTarget = null; $('hint-layer')?.replaceChildren(); }
-function cancelHintRequest() { hintRequest++; cancelHintAd?.(); clearHint(); }
+function cancelHintRequest() { hintRequest++; hintAds.cancel(); clearHint(); }
 function focusPatrol(active) {
   cancelDrag();
   if (!active) {
@@ -166,8 +168,8 @@ function updateChrome() {
   const labels = { planning: '轮到你了', police: '追逐队员移动', caught: '成功围捕', robbers: '突围队员逃跑', won: '任务完成', lost: playMode === 'quick' && !escaped ? '步数用完' : '出口失守' };
   $('phase-label').innerHTML = `<i></i>${labels[phase]}`;
   $('undo').disabled = !['planning', 'won', 'lost'].includes(phase) || !history.length;
-  $('hint').disabled = phase !== 'planning' || hintBusy || adBusy || adPending;
-  $('hint').querySelector('span:last-child').textContent = adBusy ? '观看中…' : adPending ? '广告中' : hintBusy ? '想想…' : '看广告';
+  $('hint').disabled = phase !== 'planning' || hintBusy || adBusy || hintAds.pending;
+  $('hint').querySelector('span:last-child').textContent = adBusy ? '观看中…' : hintAds.pending ? '广告中' : hintBusy ? '想想…' : '看广告';
   $('restart').disabled = false;
   $('selection-label').textContent = `${selected + 1} 号已选中`;
   [...$('squad').children].forEach((button, i) => {
@@ -497,31 +499,18 @@ function openLevels() {
   renderLevelDialog(); $('level-dialog').showModal();
 }
 async function showHint() {
-  if (phase !== 'planning' || hintBusy || adBusy || adPending) return;
+  if (phase !== 'planning' || hintBusy || adBusy || hintAds.pending) return;
   const hintKey = () => `${playMode}:${level.id}:${rule}:${stateKey(state)}:${playMode === 'quick' ? state.turn : ''}:${rule === 'relay' ? lastOfficer(state, history) : -1}`;
   const key = hintKey();
   const request = ++hintRequest;
-  const config = globalThis.SmallGamesPublishingConfig;
-  const host = globalThis.SmallGamesRewardAds;
-  const provider = config?.adMode === 'off' ? null : host?.offer
-    ? { show: () => host.offer({ id: 'cops-robbers:hint', reward: { hint: 1 } }), dispose: () => host.dispose?.() }
-    : config?.adMode === 'host' ? config.provider : createSimulationAdProvider();
-  cancelDrag(); clearHint(); adBusy = true; adPending = true; updateChrome();
+  cancelDrag(); clearHint(); adBusy = true; updateChrome();
   const controls = [...document.querySelectorAll('.layout, .topbar')].map(element => [element, element.inert]);
   controls.forEach(([element]) => { element.inert = true; });
-  let timer, result, providerSettled = false;
+  let result;
   try {
-    result = await Promise.race([
-      Promise.resolve().then(() => provider?.show({ opportunityId: 'cops-robbers:hint', kind: 'rewarded' })).finally(() => { providerSettled = true; adPending = false; updateChrome(); }),
-      new Promise(resolve => {
-        cancelHintAd = () => resolve({ status: 'dismissed' });
-        timer = setTimeout(() => resolve({ status: 'failed' }), 45000);
-      }),
-    ]);
+    result = await hintAds.offer({ id: 'cops-robbers:hint', reward: { hint: 1 } });
   } catch { result = { status: 'failed' }; }
   finally {
-    clearTimeout(timer); cancelHintAd = null;
-    try { if (!providerSettled) provider?.dispose?.(); } catch { /* Optional host cleanup. */ }
     controls.forEach(([element, inert]) => { element.inert = inert; });
     adBusy = false; updateChrome();
     if (document.body.classList.contains('focus-play')) $('hint').focus({ preventScroll: true });

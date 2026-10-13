@@ -2,7 +2,7 @@
 
 手机友好的街区追逐游戏。默认双方是卡通 **警察 / 小偷**，警帽与徽章、面罩与钱袋，以及蓝橙队色帮助识别。首页可全局更换双方造型，选择猫狐、星际形象或上传本地头像；头像只保存在当前宿主设备浏览器，不发送到服务器。即使双方使用相同头像，队色与角色标记也保留。
 
-2026-10-13：好友 PK 与全站榜暂未开放，旧邀请不会自动连入；本地巡逻和人机对抗照常可玩。“看广告”每次需要完成广告才求解当前局面，取消或失败不给提示。普通网页使用标注清楚的模拟广告，真实渠道广告由宿主接口提供。TapTap 使用 H5 静态包，打包、广告接口和后台待办见 [发布准备](docs/deployment/taptap-h5.md)，测试包与实际截图见 [验收记录](docs/qa/taptap-h5-verification-2026-10-14.md)。
+2026-10-13：好友 PK 与全站榜暂未开放，旧邀请不会自动连入；本地巡逻和人机对抗照常可玩。“看广告”每次需要完成广告才求解当前局面，取消或失败不给提示。普通网页使用标注清楚的模拟广告，真实渠道广告由宿主接口提供。TapTap 当前产物是 H5 静态包，不能上传到普通「小游戏包体」入口；当前创建页的快速上架也不能当作广告变现已确认通道。常规发布的普通小游戏目标还需移植。打包、两种上架方式、广告接口和后台待办见 [发布准备](docs/deployment/taptap-h5.md)，测试包与实际截图见 [验收记录](docs/qa/taptap-h5-verification-2026-10-14.md)。
 
 | 玩法         | 地图            | 目标与角色                                                                                                  |
 | ------------ | --------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -79,6 +79,20 @@ npm run test:competition-renderer
 - `test:relay` / `test:relay-browser`：120 图完整接力解与逐步提示、等待与历史边界、重复参数拒绝和干净链接；真实触摸通关六图，检验独立成绩、错误动作、撤销、手机布局和原生分享取消反馈。
 - `test:quick` / `test:quick-browser`：120 张独立图最短解、限步结算和剩余预算提示；真实触摸通关、失败撤销、320 像素竖屏与横屏、同题分享、独立成绩和三种巡逻存档互相恢复。
 - `test:ranking` / `test:competition-renderer`：与真正服务器规则模块一致的双方视图和意图校验；这些本地测试不代替公网服务或实体手机验收。
+
+## 广告与 TapTap H5
+
+游戏核心广告端口为 `src/ads.js`；宿主组合为 `src/ad-host.js`，复用仓库的 `platforms/h5/platform-ads.js`，明确选择 TapTap H5、微信、抖音或 B 站。实际上传目标是 TapTap H5，与原生 Tap 小游戏的构建和广告联盟不同。只有完整观看且当前局面有效时才给提示，失败和未开通不影响正常行棋。
+
+```powershell
+pnpm --filter cops-robbers deploy:taptap -PackageOnly # 本地构建、ZIP 校验和解压包触屏检查
+pnpm --filter cops-robbers deploy:taptap -DryRun     # 有效账号与应用下的上传预演
+pnpm --filter cops-robbers deploy:taptap             # 上传并创建 H5 版本
+```
+
+一键部署自动复用能启动的本机 Chromium、Chrome 或 Edge，全部不可用时再安装。游戏目录 `.env` 自动载入；可从 `.env.example` 复制配置应用 ID 和可选固定浏览器路径，无需每次设置终端环境变量。
+
+需要的环境变量为 `TAPTAP_DEVELOPER_ID`、`TAPTAP_COPS_ROBBERS_APP_ID`、`TAPTAP_COPS_ROBBERS_AD_UNIT_ID`；申请中的广告位可留空。认证用官方 `taptap-cli auth login`，账号凭证不入前端。脚本不自动修改当前在审资料或提审。详见 [发布说明](docs/deployment/taptap-h5.md) 与 [验证记录](docs/qa/taptap-ad-integration-2026-10-14.md)。
 
 ## 关卡维护
 

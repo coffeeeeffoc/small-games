@@ -464,6 +464,19 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
       env,
       'logged',
     );
+  if (plan.platform_ads_checks)
+    execute(
+      process.execPath,
+      [
+        '--test',
+        'platforms/h5/tests/platform-ads.test.mjs',
+        'platforms/h5/tests/deploy-taptap.test.mjs',
+        'games/local/cops-robbers/scripts/check-ad-core.mjs',
+      ],
+      root,
+      env,
+      'logged',
+    );
   if (plan.publication_config_checks)
     execute(
       process.execPath,

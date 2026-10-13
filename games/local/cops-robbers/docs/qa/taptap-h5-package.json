@@ -1,11 +1,13 @@
 {
+    "packageType":  "h5",
+    "uploadCommand":  "upload-h5-package",
     "format":  "TapTap H5 static ZIP",
     "entry":  "dist/index.html",
     "buildDirectory":  "games/local/cops-robbers/dist",
     "uploadDirectory":  "outputs/cops-robbers/taptap-h5/dist",
     "screenOrientation":  1,
-    "bytes":  930736,
-    "sha256":  "4cd96a4021f7540cd892d914a9aa1cc574e0851472f6b8a1d9441d113e9fa839",
+    "bytes":  933232,
+    "sha256":  "c13f564920323c46db5c317ec40e0411edba000b91ac49467c11b02b1bf9de31",
     "files":  [
                   {
                       "path":  "assets/home-chase.webp",
@@ -39,13 +41,33 @@
                   },
                   {
                       "path":  "index.html",
-                      "bytes":  19473,
-                      "sha256":  "e36d11180f962768689deacd639b7bec26ffaf4d7073f32a8c9b993bee806f80"
+                      "bytes":  19523,
+                      "sha256":  "4e23b24b0fc5f859b884e481e701c40a48157fa057f16efe3be962370eaf4859"
+                  },
+                  {
+                      "path":  "platform-ads.js",
+                      "bytes":  2904,
+                      "sha256":  "a7988952058bf09df52ab71c33954eaf2ec83bb25abe748d8b8e8319dc201664"
+                  },
+                  {
+                      "path":  "platform-config.js",
+                      "bytes":  113,
+                      "sha256":  "2c07509b9879276bebc846e241e2650983af6aeb3ca57533111bd8c1d4d8698d"
                   },
                   {
                       "path":  "publishing.js",
                       "bytes":  12289,
                       "sha256":  "8d9d43cb1c126118286921018d713e5ee860b7c7b5c13f8e1c1ecdbb0b7d277d"
+                  },
+                  {
+                      "path":  "src/ad-host.js",
+                      "bytes":  1022,
+                      "sha256":  "97a5e381d2f1d4b3831e13782f4e18408a229a62baf7bd2ca407e0d5cb1ac2fa"
+                  },
+                  {
+                      "path":  "src/ads.js",
+                      "bytes":  1611,
+                      "sha256":  "b748400d3d4c9912e2df539864de4cbce61d78a4547e598c00ad97ef473d463b"
                   },
                   {
                       "path":  "src/art.js",
@@ -114,8 +136,8 @@
                   },
                   {
                       "path":  "src/main.js",
-                      "bytes":  59190,
-                      "sha256":  "399cb0356ca5a4c70910e759cd16c454b20a3bfa865094dda49bf1b2e6d9e5a6"
+                      "bytes":  58405,
+                      "sha256":  "e9ec4609263e5da0b013ed1913216b606189a4303a2d281c416e8f25c8733426"
                   },
                   {
                       "path":  "src/native.js",
@@ -185,6 +207,10 @@
               ],
     "zipMatchesCurrentBuild":  true,
     "competitionEnabled":  false,
+    "deterministicEntryTimestamps":  true,
+    "adMode":  "host",
+    "adPlatform":  "taptap-h5",
+    "adUnitConfigured":  false,
     "uploaded":  false,
     "reviewApproved":  false,
     "realDeviceVerified":  false,

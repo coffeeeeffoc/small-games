@@ -138,6 +138,166 @@ test('browser installation and launch failures block preparation and never mark 
   }
 });
 
+test('local deployment skips broken browsers, reuses a working installation, and never downloads it again', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'reuse browser '));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const cached = path.join(root, 'cached'),
+    chrome = path.join(root, 'chrome'),
+    edge = path.join(root, 'edge');
+  for (const file of [cached, chrome, edge]) await writeFile(file, '');
+  for (const working of [cached, chrome, edge]) {
+    const env = {},
+      tried = [];
+    const prepare = createBrowserPreparation({
+      root,
+      env,
+      reuseInstalled: true,
+      browserExecutable: () => cached,
+      installedExecutables: () => [chrome, chrome, edge],
+      execute: (command, args, cwd, childEnv) => {
+        assert.equal(command, process.execPath, 'A working browser must never reach the installer');
+        assert.equal(cwd, root);
+        assert.equal(childEnv.CHROMIUM_PATH, childEnv.PLAYWRIGHT_EXECUTABLE_PATH);
+        tried.push(childEnv.CHROMIUM_PATH);
+        if (childEnv.CHROMIUM_PATH !== working) throw new Error('spawn UNKNOWN');
+      },
+    });
+    prepare();
+    prepare();
+    assert.deepEqual(
+      tried,
+      [cached, chrome, edge].slice(0, [cached, chrome, edge].indexOf(working) + 1),
+    );
+    assert.equal(env.PLAYWRIGHT_EXECUTABLE_PATH, working);
+    assert.equal(env.CHROMIUM_PATH, working);
+  }
+});
+
+test('local deployment installs only after every existing browser is unavailable, then launch-checks the download', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'install browser '));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  for (const cachedExists of [false, true]) {
+    const executable = path.join(root, cachedExists ? 'broken' : 'missing');
+    if (cachedExists) await writeFile(executable, '');
+    const env = {},
+      calls = [];
+    createBrowserPreparation({
+      root,
+      env,
+      reuseInstalled: true,
+      browserExecutable: () => executable,
+      installedExecutables: () => [],
+      execute: (command, args, cwd, childEnv, capture) => {
+        calls.push(args);
+        if (capture === true) throw new Error('spawn UNKNOWN');
+      },
+    })();
+    assert.deepEqual(calls[cachedExists ? 1 : 0], [
+      'exec',
+      'playwright',
+      'install',
+      ...(cachedExists ? ['--force'] : []),
+      'chromium',
+    ]);
+    assert.equal(calls.at(-1)[0], '-e');
+    assert.equal(env.PLAYWRIGHT_EXECUTABLE_PATH, executable);
+  }
+});
+
+test('automatic reuse never replaces an invalid explicitly configured browser', () => {
+  const prepare = createBrowserPreparation({
+    root: '/game',
+    env: { PLAYWRIGHT_EXECUTABLE_PATH: '/invalid/browser' },
+    reuseInstalled: true,
+    installedExecutables: () => assert.fail('Do not override an explicit browser'),
+    browserExecutable: () => assert.fail('Do not override an explicit browser'),
+    execute: (command) => {
+      assert.equal(command, process.execPath);
+      throw new Error('ENOENT');
+    },
+  });
+  assert.throws(prepare, /Chromium launch preflight failed.*ENOENT/);
+});
+
+test('browser preparation CLI returns the launch-checked executable from its caller package', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'game browser CLI '));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const pkg = path.join(root, 'node_modules/@playwright/test');
+  await mkdir(pkg, { recursive: true });
+  const executable = path.join(root, 'candidate-browser');
+  await writeFile(executable, '');
+  await writeFile(path.join(pkg, 'package.json'), '{"main":"index.cjs"}');
+  await writeFile(
+    path.join(pkg, 'index.cjs'),
+    `
+    exports.chromium = {
+      executablePath: () => process.env.PLAYWRIGHT_BROWSERS_PATH + '/candidate-browser',
+      launch: async ({ executablePath, channel }) => {
+        require('node:assert/strict').equal(executablePath, process.env.PLAYWRIGHT_EXECUTABLE_PATH);
+        require('node:assert/strict').equal(channel, 'chromium');
+        return { close: async () => {} };
+      }
+    };
+  `,
+  );
+  const env = { ...process.env, PLAYWRIGHT_BROWSERS_PATH: root };
+  delete env.PLAYWRIGHT_EXECUTABLE_PATH;
+  delete env.CHROMIUM_PATH;
+  const output = run(
+    process.execPath,
+    [path.resolve('scripts/browser-preparation.mjs')],
+    root,
+    env,
+    true,
+  );
+  assert.match(output, /Chromium launch preflight passed/);
+  assert.deepEqual(JSON.parse(output.split(/\r?\n/).at(-1)), {
+    executablePath: root + '/candidate-browser',
+  });
+});
+
+test(
+  'Windows local browser discovery selects Chrome after cached Chromium fails',
+  { skip: process.platform !== 'win32' },
+  async (t) => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'discover Chrome '));
+    t.after(() => rm(root, { recursive: true, force: true }));
+    const pkg = path.join(root, 'node_modules/@playwright/test');
+    await mkdir(pkg, { recursive: true });
+    const cached = path.join(root, 'cached-browser');
+    const programFiles = path.join(root, 'Program Files');
+    const chrome = path.join(programFiles, 'Google/Chrome/Application/chrome.exe');
+    await mkdir(path.dirname(chrome), { recursive: true });
+    await writeFile(cached, '');
+    await writeFile(chrome, '');
+    await writeFile(path.join(pkg, 'package.json'), '{"main":"index.cjs"}');
+    await writeFile(
+      path.join(pkg, 'index.cjs'),
+      `exports.chromium = {
+    executablePath: () => process.env.PLAYWRIGHT_BROWSERS_PATH + '/cached-browser',
+    launch: async ({ executablePath }) => {
+      if (executablePath.endsWith('cached-browser')) throw new Error('spawn UNKNOWN');
+      require('node:assert/strict').equal(executablePath, ${JSON.stringify(chrome)});
+      return { close: async () => {} };
+    }
+  };`,
+    );
+    const env = { ...process.env, PLAYWRIGHT_BROWSERS_PATH: root };
+    for (const key of Object.keys(env)) if (/^ProgramFiles$/i.test(key)) delete env[key];
+    env.ProgramFiles = programFiles;
+    delete env.PLAYWRIGHT_EXECUTABLE_PATH;
+    delete env.CHROMIUM_PATH;
+    createBrowserPreparation({
+      root,
+      env,
+      reuseInstalled: true,
+      browserExecutable: () => cached,
+    })();
+    assert.equal(env.PLAYWRIGHT_EXECUTABLE_PATH, chrome);
+    assert.equal(env.CHROMIUM_PATH, chrome);
+  },
+);
+
 test('an H5 preflight failure stops the candidate before validation suites or builds', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'browser preflight candidate '));
   t.after(() => rm(root, { recursive: true, force: true }));
@@ -374,6 +534,7 @@ test('publishing and deployment contracts run with native gates deferred and ser
   const options = {
     plan: {
       publishing_checks: true,
+      platform_ads_checks: true,
       publication_config_checks: true,
       deployment_bundle_checks: true,
       service_rule_sources: ['services/runtime-api'],
@@ -389,6 +550,13 @@ test('publishing and deployment contracts run with native gates deferred and ser
   runIncrementalToolChecks(options);
   assert.deepEqual(calls, [
     ['node', '--test', 'platforms/h5/tests/publishing.test.mjs'],
+    [
+      'node',
+      '--test',
+      'platforms/h5/tests/platform-ads.test.mjs',
+      'platforms/h5/tests/deploy-taptap.test.mjs',
+      'games/local/cops-robbers/scripts/check-ad-core.mjs',
+    ],
     ['node', '--test', 'platforms/tests/publication-config.test.mjs'],
     ['node', '--test', 'scripts/deployment-bundle.test.mjs'],
     ['pnpm', '--filter', 'runtime', 'test'],

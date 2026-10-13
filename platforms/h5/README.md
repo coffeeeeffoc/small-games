@@ -43,3 +43,35 @@ Vite 入口可直接相对导入公共源，会被打入本游戏产物。静态
 验证命令：`node --test platforms/h5/tests/publishing.test.mjs`。测试覆盖公开参数清理、取消/复制失败、频控、前后台、完整观看、销毁、超时及暂停恢复。浏览器触屏、各游戏独立发布路径、真实系统分享由游戏回归补充；SDK fixture 或桌面浏览器均不能替代渠道真机验收。
 
 国内发布配置与支持边界见 [国内渠道发布](../README.md)。
+
+## 不同平台的激励视频提供方
+
+`platform-ads.js` 是显式渠道的公共 AdProvider，可传给已有 Game Host 广告运行能力或 `createH5Publishing({ adMode: 'host', provider })`。不改变已有游戏的默认来源。
+
+```js
+import { createPlatformAdProvider } from './platform-ads.js';
+const provider = createPlatformAdProvider({
+  platform: 'taptap-h5',
+  adUnitId: '后台返回的竖屏广告位ID',
+});
+const result = await provider.show({ opportunityId: 'example:hint', kind: 'rewarded' });
+// Game Host 管理暂停和奖励；provider 只校验观看结果。退出奖励机会时清理：
+provider.dispose();
+```
+
+| 运行渠道    | 宿主  | 接入区别                                                          |
+| ----------- | ----- | ----------------------------------------------------------------- |
+| `taptap-h5` | `tap` | H5 商业广告；load 后 show，只认 isEnded=true                      |
+| `wechat`    | `wx`  | 微信小游戏宿主；load 后 show                                      |
+| `douyin`    | `tt`  | 抖音小游戏宿主；multiton=false，直接 show，等待销毁完成才释放单例 |
+| `bilibili`  | `bl`  | B 站小游戏宿主；load 后 show                                      |
+
+SDK 方法保持原接收者。缺广告位、SDK 或不支持的渠道返回 unavailable；无填充、拒绝、抛错或超时返回 failed；关闭不完整返回 dismissed；不会读其他渠道或自动弹模拟广告。广告位不能跨平台使用。仅实现提示所需的激励视频，插屏和 Banner 不在此接口范围。
+
+Tap 原生小游戏的 `taptap` 不属于此 H5 接入：其原生构建、登录、广告联盟与 `platforms/taptap` 的支持声明保持独立。本接口不转换 DOM 游戏为原生小游戏；已有 native Game Host 继续使用各自适配。
+
+静态入口构建时复制公共源到 `platform-ads.js`，开发服务器映射同一个源，勿维护手写副本。当前实际消费者为 cops-robbers，发布范围只选择该消费者；后续游戏复用时同时登记实际消费者。
+
+`deploy-taptap.ps1` 是可复用 H5 ZIP 上传脚本，接收 `-ZipPath / -DeveloperId / -AppId / -ScreenOrientation / -DryRun`。上传或预演前通过官方 `package-management get-available-package-types` 确认目标应用包含 `h5`，查询失败、结构无效或只有 `mini_app` 时停止，不上传。随后调用 `taptap-cli upload-h5-package`，保留 ZIP SHA 对应的幂等键和标有 `packageType: 'h5'` 的回执。成功回执对应的相同上传直接复用。CLI 方向为 `1=竖屏、0=横屏`，与小游戏 MCP 的 `1/2` 不同。它只上传并创建 H5 版本，不修改在审资料或提交审核；游戏入口负责先构建和验证包。H5 ZIP 不适用于普通「小游戏包体」上传框，不能靠改 ZIP 目录转换为 Tap 小游戏。
+
+验证：`node --test platforms/h5/tests/platform-ads.test.mjs platforms/h5/tests/deploy-taptap.test.mjs`。脚本测试使用本地 CLI 替身，无实际账号写入；Windows PowerShell 专属检查在其他系统跳过。依据 [官方 H5 广告说明](https://developer.taptap.cn/minigameapidoc/quick-start/mcp-guide/ad-integration-guide/)、[官方广告示例](https://github.com/taptap/instant-games-open-mcp/blob/main/src/features/ads/docs.ts)，CLI 参数依据本机官方 `2026.9.24` 帮助，2026-10-14 核查。

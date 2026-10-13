@@ -11,6 +11,7 @@ import {
   carromBackendFileScope,
   publishingConsumers,
   publishingScopePaths,
+  platformAdsScopePaths,
   deploymentBundleScopePaths,
   publicationConfigScopePaths,
   mobileViewportScopeFile,
@@ -349,6 +350,24 @@ test('publishing adapter selects all registered standalone consumers and rejects
     () => incrementalPlan({ games, packages, changedPaths: ['platforms/h5/unknown.js'] }),
     /scope undefined/,
   );
+});
+
+test('channel advertising selects only its real game consumer and mandatory contract checks', () => {
+  const games = [
+    { id: 'cops-robbers', source: 'games/local/cops-robbers' },
+    { id: 'other', source: 'games/local/other' },
+  ];
+  const packages = games.map((game) => ({ name: game.id, dir: game.source }));
+  for (const file of platformAdsScopePaths) {
+    const context = { games, packages, changedPaths: [file], readSource: () => '' };
+    const fileScopes = reviewedSharedFileScopes(context);
+    assert.deepEqual(fileScopes.get(file), ['games/local/cops-robbers']);
+    const plan = incrementalPlan({ ...context, fileScopes });
+    assert.deepEqual(plan.browser_ids, ['cops-robbers']);
+    assert.equal(plan.platform_ads_checks, true);
+    assert.equal(plan.publishing_checks, false);
+    assert.equal(reviewedSharedFileScopes({ ...context, games: games.slice(1) }).size, 0);
+  }
 });
 
 test('deployment and public platform configuration select mandatory checks without unrelated games', () => {

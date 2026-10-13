@@ -6,7 +6,7 @@ Add-Type -AssemblyName System.IO.Compression
 $gamePath = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 Push-Location $gamePath
 try {
-    & node scripts/build.mjs
+    & node scripts/build.mjs --taptap
     if ($LASTEXITCODE -ne 0) { throw 'H5 build failed' }
     $distPath = Join-Path $gamePath 'dist'
     $outputPath = [IO.Path]::GetFullPath((Join-Path $gamePath '../../../outputs/cops-robbers'))
@@ -14,7 +14,7 @@ try {
     $zipPath = Join-Path $outputPath 'cops-robbers-taptap-h5.zip'
     $temporaryPath = Join-Path $outputPath ([Guid]::NewGuid().ToString() + '.zip')
     # The ordinary build preserves old files. Package only this build's current sources.
-    $names = @('index.html', 'dev-mode.js', 'publishing.js', 'favicon.svg')
+    $names = @('index.html', 'dev-mode.js', 'publishing.js', 'platform-ads.js', 'platform-config.js', 'favicon.svg')
     foreach ($directory in @('src', 'assets')) {
         foreach ($item in (Get-ChildItem -LiteralPath (Join-Path $gamePath $directory) -Recurse -Force)) {
             if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Symlink in H5 sources' }
@@ -36,7 +36,14 @@ try {
         $archive = [IO.Compression.ZipFile]::Open($temporaryPath, [IO.Compression.ZipArchiveMode]::Create)
         try {
             foreach ($file in $inventory) {
-                [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, (Join-Path $distPath $file.path), ('dist/' + $file.path), [IO.Compression.CompressionLevel]::Optimal) | Out-Null
+                $entry = $archive.CreateEntry(('dist/' + $file.path), [IO.Compression.CompressionLevel]::Optimal)
+                # Rebuilding identical content must retain the upload idempotency key.
+                $entry.LastWriteTime = [DateTimeOffset]::Parse('2000-01-01T00:00:00Z')
+                $inputStream = [IO.File]::OpenRead((Join-Path $distPath $file.path))
+                try {
+                    $entryStream = $entry.Open()
+                    try { $inputStream.CopyTo($entryStream) } finally { $entryStream.Dispose() }
+                } finally { $inputStream.Dispose() }
             }
         } finally { $archive.Dispose() }
         $archive = [IO.Compression.ZipFile]::OpenRead($temporaryPath)
@@ -45,6 +52,7 @@ try {
             foreach ($file in $inventory) {
                 $matches = @($archive.Entries | Where-Object { $_.FullName -ceq ('dist/' + $file.path) })
                 if ($matches.Count -ne 1 -or $matches[0].Length -ne $file.bytes) { throw "ZIP entry mismatch: $($file.path)" }
+                if ($matches[0].LastWriteTime.DateTime -ne [DateTime]::Parse('2000-01-01T00:00:00')) { throw 'Non-deterministic ZIP timestamp' }
                 $stream = $matches[0].Open()
                 try {
                     if ((Get-FileHash -InputStream $stream -Algorithm SHA256).Hash.ToLowerInvariant() -ne $file.sha256) { throw "ZIP content mismatch: $($file.path)" }
@@ -60,10 +68,13 @@ try {
         }
         [IO.Compression.ZipFile]::ExtractToDirectory($temporaryPath, $extractPath)
         $report = [ordered]@{
+            packageType = 'h5'; uploadCommand = 'upload-h5-package'
             format = 'TapTap H5 static ZIP'; entry = 'dist/index.html'; buildDirectory = 'games/local/cops-robbers/dist'; uploadDirectory = 'outputs/cops-robbers/taptap-h5/dist'; screenOrientation = 1
             bytes = (Get-Item -LiteralPath $temporaryPath).Length
             sha256 = (Get-FileHash -LiteralPath $temporaryPath -Algorithm SHA256).Hash.ToLowerInvariant()
             files = $inventory; zipMatchesCurrentBuild = $true; competitionEnabled = $false
+            deterministicEntryTimestamps = $true
+            adMode = 'host'; adPlatform = 'taptap-h5'; adUnitConfigured = ![string]::IsNullOrWhiteSpace($env:TAPTAP_COPS_ROBBERS_AD_UNIT_ID)
             uploaded = $false; reviewApproved = $false; realDeviceVerified = $false; realAdsVerified = $false
         }
         Move-Item -LiteralPath $temporaryPath -Destination $zipPath -Force
@@ -71,6 +82,7 @@ try {
         [IO.Directory]::CreateDirectory($reportDirectory) | Out-Null
         [IO.File]::WriteAllText((Join-Path $reportDirectory 'taptap-h5-package.json'), ($report | ConvertTo-Json -Depth 8) + "`n", [Text.UTF8Encoding]::new($false))
         Write-Output "Verified $($inventory.Count) resources: $zipPath"
+        Write-Output 'Package type: H5. This archive is not a Tap mini-app package; use upload-h5-package or the H5 package entry.'
     } finally {
         if (Test-Path -LiteralPath $temporaryPath) { Remove-Item -LiteralPath $temporaryPath }
     }

@@ -1,0 +1,41 @@
+{
+  "base": "http://127.0.0.1:58063",
+  "checks": [
+    {
+      "name": "home owns all levels and global game entries",
+      "passed": true
+    },
+    {
+      "name": "both appearances default to police and robber and persist globally",
+      "passed": true
+    },
+    {
+      "name": "touch gestures cancel safely and drop directly on the board",
+      "passed": true
+    },
+    {
+      "name": "quick trial and duel stay behind home entries",
+      "passed": true
+    },
+    {
+      "name": "returning home cancels a pending hint and keeps the next hint available",
+      "passed": true
+    },
+    {
+      "name": "occupied road feedback stays visible in the compact game prompt",
+      "passed": true
+    },
+    {
+      "name": "relay selection explains the turn-four restriction before a blocked tap",
+      "passed": true
+    },
+    {
+      "name": "standard mode highlights and moves from road 1 to 6 at the reported position",
+      "passed": true
+    },
+    {
+      "name": "all relay levels keep selectable officers, highlighted targets and legal moves in sync",
+      "passed": true
+    }
+  ]
+}

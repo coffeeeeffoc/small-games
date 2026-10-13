@@ -942,6 +942,14 @@ export const publishingScopePaths = [
   'platforms/h5/publishing.d.ts',
   'platforms/h5/tests/publishing.test.mjs',
 ];
+// Only cops-robbers currently packages the explicit channel adapter and H5 uploader.
+export const platformAdsScopePaths = [
+  'platforms/h5/platform-ads.js',
+  'platforms/h5/platform-ads.d.ts',
+  'platforms/h5/tests/platform-ads.test.mjs',
+  'platforms/h5/deploy-taptap.ps1',
+  'platforms/h5/tests/deploy-taptap.test.mjs',
+];
 export const publicationConfigScopePaths = [
   'platforms/publication-config.mjs',
   'platforms/.env.example',
@@ -1100,6 +1108,13 @@ export function reviewedSharedFileScopes({
           codexAgentHashes[file],
         );
         scopes.set(file, []);
+      } else if (platformAdsScopePaths.includes(file)) {
+        const source = 'games/local/cops-robbers';
+        assert(
+          games.filter((game) => game.id === 'cops-robbers' && game.source === source).length === 1,
+        );
+        assert(packages.some((pkg) => pkg.dir === source));
+        scopes.set(file, [source]);
       } else if (publishingScopePaths.includes(file)) {
         for (const [id, source] of Object.entries(publishingConsumers)) {
           assert(games.filter((game) => game.id === id && game.source === source).length === 1);
