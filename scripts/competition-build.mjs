@@ -19,6 +19,7 @@ export const competitionGames = {
     directory: 'games/local/cops-robbers',
     renderer: 'src/competition-renderer.js',
     title: '围捕小队',
+    online: false,
   },
   'cops-robbers-realtime': {
     directory: 'games/local/cops-robbers-realtime',

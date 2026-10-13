@@ -1041,7 +1041,7 @@ test('new or renamed competition consumers and missing native packages remain cl
   );
 });
 
-test('only realtime may declare its online functionality disabled', () => {
+test('only the two chase games may declare their online functionality disabled', () => {
   const file = 'scripts/competition-build.mjs';
   const value = JSON.parse(registry.slice(registry.indexOf('=') + 1, -1));
   value['cops-robbers-realtime'].online = false;
@@ -1056,17 +1056,43 @@ test('only realtime may declare its online functionality disabled', () => {
   }
   value['cops-robbers-realtime'].online = false;
   value['cops-robbers'].online = false;
+  assert.deepEqual(
+    classify(file, registry, source()).get(file),
+    Object.values(competitionConsumers),
+  );
+  for (const invalid of [true, 'false', 0]) {
+    value['cops-robbers'].online = invalid;
+    assert.equal(classify(file, registry, source()).has(file), false);
+  }
+  value['cops-robbers'].online = false;
+  value['letters-words2'].online = false;
   assert.equal(classify(file, registry, source()).has(file), false);
 });
 
-test('offline realtime competition builder leaves its H5 game unchanged', async () => {
+test('the exact cops offline flag selects only its game; surrounding builder changes retain the shared scope', () => {
+  const file = 'scripts/competition-build.mjs';
+  const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
+    '\r\n',
+    '\n',
+  );
+  const before = after.replace("title: '围捕小队',\n    online: false,", "title: '围捕小队',");
+  assert.notEqual(before, after);
+  assert.deepEqual(classify(file, before, after).get(file), ['games/local/cops-robbers']);
+  assert.deepEqual(
+    classify(file, before, after + '\n').get(file),
+    Object.values(competitionConsumers),
+  );
+});
+
+test('offline chase competition builders leave their H5 games unchanged', async () => {
   const { buildCompetition } = await import('./competition-build.mjs');
   const { mkdtemp, readdir, rm } = await import('node:fs/promises');
   const { tmpdir } = await import('node:os');
   const { join } = await import('node:path');
   const outputRoot = await mkdtemp(join(tmpdir(), 'street-offline-build-'));
   try {
-    await buildCompetition({ only: 'cops-robbers-realtime', outputRoot });
+    for (const only of ['cops-robbers', 'cops-robbers-realtime'])
+      await buildCompetition({ only, outputRoot });
     assert.deepEqual(await readdir(outputRoot), []);
   } finally {
     await rm(outputRoot, { recursive: true });

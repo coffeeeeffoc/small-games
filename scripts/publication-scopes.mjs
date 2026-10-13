@@ -522,11 +522,21 @@ function assertCompetitionRegistry(readHead, games) {
         ['directory', 'renderer', 'title'],
       ) &&
         (!Object.hasOwn(registry[id], 'online') ||
-          (id === 'cops-robbers-realtime' && registry[id].online === false)),
+          (['cops-robbers', 'cops-robbers-realtime'].includes(id) &&
+            registry[id].online === false)),
       'Unreviewed competition registry fields',
     );
     assert(typeof registry[id].renderer === 'string' && typeof registry[id].title === 'string');
   }
+}
+
+function exactCopsOfflineBuild(before, after) {
+  const anchor =
+    "  'cops-robbers': {\n    directory: 'games/local/cops-robbers',\n    renderer: 'src/competition-renderer.js',\n    title: '围捕小队',\n";
+  return (
+    before.split(anchor).length === 2 &&
+    after === before.replace(anchor, anchor + '    online: false,\n')
+  );
 }
 
 const cageRescueSource = 'games/local/cage-rescue';
@@ -1342,9 +1352,11 @@ export function reviewedSharedFileScopes({
         assertCompetitionRegistry(readHead, games);
         scopes.set(
           file,
-          lettersTests.includes(file)
-            ? [competitionConsumers['letters-words2']]
-            : Object.values(competitionConsumers),
+          file === builder && exactCopsOfflineBuild(readBase(file), readHead(file))
+            ? [competitionConsumers['cops-robbers']]
+            : lettersTests.includes(file)
+              ? [competitionConsumers['letters-words2']]
+              : Object.values(competitionConsumers),
         );
       }
     } catch {

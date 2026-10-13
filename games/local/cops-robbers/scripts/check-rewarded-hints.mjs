@@ -43,6 +43,8 @@ const start = async page => { await page.locator('#home-start').tap(); await pag
 const ready = page => page.waitForFunction(() => !document.getElementById('hint').disabled);
 try {
   await mkdir(output, { recursive: true });
+  const entry = await (await fetch(base)).text();
+  assert.ok(!entry.includes('src="./competition.js"'), 'Offline release must not inject the disabled friend competition entry');
   browser = await chromium.launch(process.env.BROWSER_EXECUTABLE ? { executablePath: process.env.BROWSER_EXECUTABLE } : {});
   for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 844, height: 390 }]) {
     await check(`mock-complete-cancel-${viewport.width}`, async page => {
