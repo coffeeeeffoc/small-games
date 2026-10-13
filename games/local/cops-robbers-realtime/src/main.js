@@ -753,7 +753,7 @@ async function requestSupport(kind) {
   if (supportBusy || destroyed || document.hidden) return;
   if (game.support?.[kind]) { activateSupport(kind); return; }
   if (!canRefill(game, kind)) return;
-  const request = { game, kind, actor: selected, screen, completed: false };
+  const request = { game, kind, actor: selected, screen, completed: false, sound: audio.enabled };
   supportRequest = request;
   supportBusy = true;
   clearGesture();
@@ -763,12 +763,10 @@ async function requestSupport(kind) {
   $('support-use').disabled = true;
   $('support-return').disabled = true;
   openDialog('support-page');
-  const sound = audio.enabled;
   audio.setEnabled(false);
   let outcome;
   try { outcome = ads ? await ads.show({ opportunityId: 'cops-robbers-realtime.' + kind, kind: 'rewarded' }) : { status: 'unavailable' }; }
   catch { outcome = { status: 'failed' }; }
-  finally { if (!destroyed) audio.setEnabled(sound); }
   supportBusy = false;
   if (destroyed || supportRequest !== request || game !== request.game) return;
   request.completed = grantSupport(game, kind, outcome);
@@ -789,6 +787,7 @@ function finishSupport(use) {
   const request = supportRequest;
   if (!request || supportBusy || document.hidden || game !== request.game) return;
   supportRequest = null;
+  audio.setEnabled(request.sound);
   closePages();
   dialogResume = false;
   if (request.kind === 'rewind') {

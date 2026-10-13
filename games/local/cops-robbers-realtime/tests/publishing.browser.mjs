@@ -55,6 +55,11 @@ async function context(viewport,host=false,started=0) {
         localStorage.setItem('neighborhood-patrol-v1',JSON.stringify({startedRuns:started}));
     } catch { /* about:blank has no storage origin before navigation. */ }
     if(host) {
+      const resume = window.AudioContext.prototype.resume;
+      window.AudioContext.prototype.resume = function() {
+        window.__audioResumes = (window.__audioResumes || 0) + 1;
+        return resume.call(this);
+      };
       window.__adFixture={shows:0,close:null,error:null};
       window.tap={createRewardedVideoAd:()=>({
         show:async()=>{window.__adFixture.shows++;},load:async()=>{},
@@ -234,17 +239,26 @@ try {
     await expect(page.locator('#support-page')).toBeVisible();
     await page.evaluate(()=>document.getElementById('resume-button').click());
     assert.equal((await state(page)).phase,'paused','back navigation and resume cannot bypass an active ad');
+    const resumes = await page.evaluate(()=>window.__audioResumes || 0);
+    if(outcome==='completed') await page.evaluate(()=>Object.defineProperty(document,'hidden',{configurable:true,value:true}));
     await page.evaluate(outcome=>{
       if(outcome==='failed')window.__adFixture.error();
       else window.__adFixture.close({isEnded:outcome==='completed'});
     },outcome);
     await expect(page.locator('#support-use')).toBeEnabled();
+    assert.equal(await page.evaluate(()=>window.__audioResumes || 0),resumes,'ad completion keeps audio suspended until explicit continue');
+    if(outcome==='completed') {
+      await page.evaluate(()=>document.getElementById('support-use').click());
+      assert.equal((await state(page)).phase,'paused','background continuation is inert');
+      await page.evaluate(()=>delete document.hidden);
+    }
     assert.equal((await state(page)).support.sprint,outcome==='completed'?1:0);
     assert.equal((await state(page)).support.refilled.sprint,outcome==='completed');
     assert.equal((await state(page)).time,paused.time,'ad close never auto-resumes');
     await shot(page,'ad-'+outcome+'-844');
     await page.locator('#support-use').tap();
     assert.equal((await state(page)).phase,'playing');
+    await expect.poll(()=>page.evaluate(()=>window.__audioResumes || 0)).toBeGreaterThan(resumes);
     if(outcome==='completed') assert((await state(page)).support.remaining>3.6);
     checks.push('simulated TapTap SDK '+outcome+': only completed rewards, explicit continue');
     await ctx.close();

@@ -1,9 +1,9 @@
 {
-    "generatedAt":  "2026-10-14T00:52:13.7240448+08:00",
+    "generatedAt":  "2026-10-14T01:10:32.7387829+08:00",
     "artifact":  "outputs/taptap/cops-robbers-realtime-h5.zip",
     "entry":  "dist/index.html",
-    "bytes":  4087808,
-    "sha256":  "8762aaaae65b4e0021d1b236ce819083c3d1a0aae0d12e3172ae07b977deba22",
+    "bytes":  4087795,
+    "sha256":  "71fc2405d2ab77b790fe9434d4d205d122c25e7614c88c2e34fc93b5004697b5",
     "validation":  "Every ZIP entry was reopened and checked against the production dist bytes. No TapTap upload, real SDK ad playback or device acceptance.",
     "files":  [
                   {
@@ -83,8 +83,8 @@
                   },
                   {
                       "path":  "dist/src/main.js",
-                      "bytes":  59369,
-                      "sha256":  "0bf9240b39e3ce674297cca3f6c7945b6be290b107dd817b264ab706914e0a42"
+                      "bytes":  59339,
+                      "sha256":  "392c18cdb3f86720c5f78c53f3bf74d94a8884f1309b656089a06619da00e38f"
                   },
                   {
                       "path":  "dist/src/native.js",
