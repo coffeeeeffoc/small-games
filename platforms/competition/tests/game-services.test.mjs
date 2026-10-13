@@ -85,7 +85,8 @@ function authFixture(
       });
       if (url.endsWith('/sessions/guest') || url.endsWith('/sessions/platform'))
         return fixture.login ? fixture.login() : fixture.fresh;
-      if (url.endsWith('/runs')) return { id: 'run-' + ++sequence };
+      if (url.endsWith('/runs')) return { id: 'run-' + ++sequence, version: 'v1' };
+      if (url.endsWith('/finish')) return { accepted: true };
       if (url.includes('/rooms')) return { code: 'ABCDEF123456' };
       return {
         identity: { kind: init.headers?.authorization ? 'guest' : 'anonymous' },
@@ -104,7 +105,7 @@ test('anonymous reads do not create guests; read or write denial preserves this 
   for (const readDenied of [true, false])
     await t.test(String(readDenied), async (t) => {
       const fixture = authFixture(t, { readDenied, writeDenied: true });
-      const api = createGameServices({ gameId: 'tower-brake' });
+      const api = createGameServices({ gameId: 'tower-brake', ruleVersion: 'v1' });
       assert.equal((await api.identity()).kind, 'anonymous');
       assert.equal(fixture.calls.filter((call) => call.url.includes('/sessions/')).length, 0);
       await api.startRun({ mode: 'endless' });
@@ -117,7 +118,7 @@ test('account changes affect new requests while existing runs and rooms retain t
   const a = credential('a'),
     b = credential('b');
   const fixture = authFixture(t, { initial: JSON.stringify(a) });
-  const api = createGameServices({ gameId: 'cage-rescue' });
+  const api = createGameServices({ gameId: 'cage-rescue', ruleVersion: 'v1' });
   const first = await api.startRun({ mode: 'endless' });
   const room = await api.createRoom({ mode: 'duel' });
   fixture.setStorage(JSON.stringify(b));
@@ -141,7 +142,7 @@ test('expired, damaged and cleared stored identities never fall back to a stale 
   for (const value of [JSON.stringify(credential('b', Date.now() - 1)), '{broken', null])
     await t.test(String(value), async (t) => {
       const fixture = authFixture(t, { initial: JSON.stringify(credential('a')) });
-      const api = createGameServices({ gameId: 'tower-brake' });
+      const api = createGameServices({ gameId: 'tower-brake', ruleVersion: 'v1' });
       await api.identity();
       fixture.setStorage(value);
       await api.startRun({ mode: 'endless' });
@@ -155,7 +156,7 @@ test('a deferred login cannot overwrite a newer account or revive an explicit lo
       const fixture = authFixture(t, { initial: JSON.stringify(credential('a', Date.now() - 1)) });
       const gate = defer();
       fixture.login = () => gate.promise;
-      const api = createGameServices({ gameId: 'tower-brake' });
+      const api = createGameServices({ gameId: 'tower-brake', ruleVersion: 'v1' });
       const pending = api.startRun({ mode: 'endless' });
       await turn();
       fixture.setStorage(replacement);
@@ -173,8 +174,8 @@ test('factories share one pending login and renew near-expiry identities before 
   const fixture = authFixture(t, { initial: JSON.stringify(credential('a', Date.now() + 30000)) });
   const gate = defer();
   fixture.login = () => gate.promise;
-  const a = createGameServices({ gameId: 'cage-rescue' }),
-    b = createGameServices({ gameId: 'tower-brake' });
+  const a = createGameServices({ gameId: 'cage-rescue', ruleVersion: 'v1' }),
+    b = createGameServices({ gameId: 'tower-brake', ruleVersion: 'v1' });
   const pending = Promise.all([a.startRun({ mode: 'endless' }), b.startRun({ mode: 'endless' })]);
   await turn();
   gate.resolve(fixture.fresh);
@@ -193,7 +194,7 @@ test('a run response arriving after account switching cannot overwrite the curre
     if (url.endsWith('/runs')) await gate.promise;
     return data;
   };
-  const api = createGameServices({ gameId: 'tower-brake' });
+  const api = createGameServices({ gameId: 'tower-brake', ruleVersion: 'v1' });
   const pending = api.startRun({ mode: 'endless' });
   await turn();
   fixture.setStorage(JSON.stringify(b));
@@ -209,7 +210,7 @@ test('native login uses SDK transport and never falls back to guest on missing o
     config: { platform: 'wechat', appId: 'wx-test', apiUrl: 'https://api.example/v1' },
   });
   await assert.rejects(
-    createGameServices({ gameId: 'tower-brake' }).startRun({ mode: 'endless' }),
+    createGameServices({ gameId: 'tower-brake', ruleVersion: 'v1' }).startRun({ mode: 'endless' }),
     { code: 'PLATFORM_LOGIN_UNAVAILABLE' },
   );
   let saved = null,
@@ -225,11 +226,13 @@ test('native login uses SDK transport and never falls back to guest on missing o
       requests.push({ url, data, header });
       success({
         statusCode: 200,
-        data: url.endsWith('/sessions/platform') ? fixture.fresh : { id: 'native-run' },
+        data: url.endsWith('/sessions/platform')
+          ? fixture.fresh
+          : { id: 'native-run', version: 'v1' },
       });
     },
   };
-  const api = createGameServices({ gameId: 'tower-brake' });
+  const api = createGameServices({ gameId: 'tower-brake', ruleVersion: 'v1' });
   await assert.rejects(api.startRun({ mode: 'endless' }), { code: 'PLATFORM_LOGIN_FAILED' });
   validCode = true;
   await api.startRun({ mode: 'endless' });
@@ -333,7 +336,7 @@ test('cached credentials cannot bypass missing native configuration', async (t) 
     config: { platform: 'wechat', appId: 'wx-test' },
   });
   await assert.rejects(
-    createGameServices({ gameId: 'tower-brake' }).startRun({ mode: 'endless' }),
+    createGameServices({ gameId: 'tower-brake', ruleVersion: 'v1' }).startRun({ mode: 'endless' }),
     { code: 'PLATFORM_LOGIN_UNAVAILABLE' },
   );
   globalThis.__COMPETITION_CONFIG__ = { platform: 'wechat' };
@@ -343,7 +346,7 @@ test('cached credentials cannot bypass missing native configuration', async (t) 
     request: () => assert.fail(),
   };
   await assert.rejects(
-    createGameServices({ gameId: 'tower-brake' }).startRun({ mode: 'endless' }),
+    createGameServices({ gameId: 'tower-brake', ruleVersion: 'v1' }).startRun({ mode: 'endless' }),
     { code: 'PLATFORM_LOGIN_UNAVAILABLE' },
   );
   assert.equal(fixture.calls.length, 0);
@@ -364,4 +367,108 @@ test('a rematch invitation retains the room owner after account switching', asyn
   assert.equal(fixture.calls.at(-1).token, 'Bearer ' + a.token);
   await api.joinRoom({ code: 'FEDCBA654321' });
   assert.equal(fixture.calls.at(-1).token, 'Bearer ' + a.token);
+});
+
+test('ranked start binds the artifact version and rejects incompatible or missing server versions before uploads', async (t) => {
+  for (const [client, server] of [
+    ['v1', 'v1'],
+    ['v1', 'v2'],
+    ['v2', 'v1'],
+    ['v1', undefined],
+    ['v1', ''],
+    ['v1', null],
+  ])
+    await t.test(`${client}/${server}`, async (t) => {
+      const fixture = authFixture(t);
+      const respond = fixture.respond;
+      fixture.respond = async (url, init) => ({
+        ...(await respond(url, init)),
+        ...(url.endsWith('/runs') ? { version: server, seed: 73 } : {}),
+      });
+      const services = createGameServices({ gameId: 'tower-brake', ruleVersion: client });
+      const statuses = [];
+      const recorder = createRunRecorder(services, { onStatus: (status) => statuses.push(status) });
+      const run = await recorder.start({ mode: 'campaign', levelId: 'first-brake' });
+      assert.deepEqual(fixture.calls.at(-1).body, {
+        board: 'campaign',
+        levelId: 'first-brake',
+        version: client,
+      });
+      recorder.record({ rotation: 0.2 }, 0);
+      if (client === server) {
+        assert.equal(run.seed, 73);
+        assert.deepEqual(await recorder.finish(), { accepted: true });
+        assert.equal(recorder.status, 'finished');
+        assert.ok(fixture.calls.some(({ url }) => url.endsWith('/actions')));
+        assert.ok(fixture.calls.some(({ url }) => url.endsWith('/finish')));
+      } else {
+        assert.equal(run, null);
+        assert.equal(recorder.status, 'update-required');
+        assert.ok(!statuses.includes('recording'));
+        assert.equal(await recorder.finish(), null);
+        assert.throws(() => services.finishRun({ runId: 'run-1', seq: 0 }), {
+          code: 'SESSION_EXPIRED',
+        });
+        assert.ok(!fixture.calls.some(({ url }) => /\/(actions|finish)$/.test(url)));
+      }
+    });
+});
+
+test('missing artifact versions cannot start ranked runs while anonymous reads and practice remain available', async (t) => {
+  for (const ruleVersion of [undefined, null, '', 1])
+    await t.test(String(ruleVersion), async (t) => {
+      const fixture = authFixture(t);
+      const services = createGameServices({ gameId: 'tower-brake', ruleVersion });
+      assert.equal((await services.identity()).kind, 'anonymous');
+      const recorder = createRunRecorder(services);
+      assert.equal(await recorder.start({ mode: 'endless' }), null);
+      assert.equal(recorder.status, 'update-required');
+      recorder.record({}, 600);
+      assert.equal(await recorder.finish(), null);
+      assert.equal(await recorder.start({ mode: 'endless', practice: true }), null);
+      assert.equal(recorder.status, 'practice');
+      assert.ok(fixture.calls.every(({ body }) => body === undefined));
+    });
+});
+
+test('new client handles pre-handshake strict servers and explicit version rejection without retry or upload', async (t) => {
+  for (const code of ['INVALID_INPUT', 'RULE_VERSION_CHANGED'])
+    await t.test(code, async (t) => {
+      const fixture = authFixture(t, { initial: JSON.stringify(credential('a')) });
+      t.mock.method(globalThis, 'fetch', async (url, init) => {
+        await fixture.respond(url, init);
+        return {
+          status: code === 'INVALID_INPUT' ? 422 : 409,
+          json: async () => ({ error: code }),
+        };
+      });
+      const recorder = createRunRecorder(
+        createGameServices({ gameId: 'tower-brake', ruleVersion: 'v2' }),
+      );
+      assert.equal(await recorder.start({ mode: 'endless' }), null);
+      assert.equal(recorder.status, 'update-required');
+      recorder.record({}, 600);
+      assert.equal(await recorder.finish(), null);
+      assert.equal(fixture.calls.length, 1);
+    });
+});
+
+test('late version rejection cannot overwrite a newer recording or a timed out local run', async () => {
+  for (const timeout of [false, true]) {
+    let reject;
+    const late = new Promise((_resolve, fail) => {
+      reject = fail;
+    });
+    let starts = 0;
+    const { recorder } = recorderFixture({
+      startRun: () => (++starts === 1 ? late : Promise.resolve({ id: 'new', seed: 42 })),
+    });
+    const first = recorder.start({ mode: 'endless' });
+    await turn();
+    if (timeout) assert.equal(await first, null);
+    else await recorder.start({ mode: 'endless' });
+    reject(Object.assign(new Error('old version'), { code: 'RULE_VERSION_CHANGED' }));
+    assert.equal(await first, null);
+    assert.equal(recorder.status, timeout ? 'unavailable' : 'recording');
+  }
 });

@@ -20,7 +20,7 @@
 
 ## 输入回放协议
 
-1. `POST /games/:game/runs`：`{board, levelId?}`，返回 `{id,game,board,version,seed,stepHz:120,seq:0,status,expiresAt}`。无尽局必须采用返回的种子初始化相同核心。关卡 ID 来自游戏内容目录。
+1. `POST /games/:game/runs`：`{board, version, levelId?}`，返回 `{id,game,board,version,seed,stepHz:120,seq:0,status,expiresAt}`。无尽局必须采用返回的种子初始化相同核心。关卡 ID 来自游戏内容目录。
 2. `POST /games/:game/runs/:id/actions`：`{seq,frames:[{ticks,input}]}`。`seq` 从 1 连续递增；每个 frame **先应用一次离散输入，再执行 ticks 次 1/120 秒模拟**。`ticks=0` 用于即时发球、转塔或刹车。暂停期间不录制 ticks。
 3. `POST /games/:game/runs/:id/finish`：`{seq}`。仅当所有输入获确认后调用；重复结算返回同一回执。响应包含 `accepted`、`score`、`secondary` 与未接受原因。
 4. `GET /games/:game/runs/:id`：查看所属 run 的确认序号和结算信息。服务重启保留断点和回执；当前游戏 UI 不提供跨页面继续录制。
@@ -33,7 +33,7 @@
 
 ## 客户端接入
 
-两游戏的 `competition.js` 只提供可选服务地址配置，再导入共享 `game-services.js`；不依赖旧房间客户端的登录闭包。该模块提供 `createGameServices({gameId})` 和 `createRunRecorder(services,{onStatus})`。
+两游戏的 `competition.js` 只提供可选服务地址配置，再导入共享 `game-services.js`；不依赖旧房间客户端的登录闭包。该模块提供 `createGameServices({gameId,ruleVersion})` 和 `createRunRecorder(services,{onStatus})`。
 
 Recorder 提供 `start({mode,levelId?,practice?})`、`record(input,ticks=1)`、`finish()`、`invalidate(reason)`。开局连接最多等待 1.5 秒，网络失败返回本地模式；迟到响应不能恢复已取消的局。输入按批次串行上传，已确认输入立即丢弃；未确认缓冲上限 4800 ticks / 2400 frames。已进入结算的至多两局允许在下一局开始后继续排空，界面状态仍按当前局隔离。关闭整个页面前未获服务器确认的成绩不保证送达。
 
@@ -54,3 +54,11 @@ Run 始终使用创建时的 credential 快照，401 不触发新游客冒充旧
 启用 `COMPETITION_ENABLED=true`、`RUNTIME_DATABASE_URL`、`COMPETITION_ORIGINS`，生产设置 `COMPETITION_INTERNAL_KEY`；平台登录另配置 `COMPETITION_PLATFORM_CONFIG`。沿用 010/011/012 迁移，无新增表。部署工具自动带上两款游戏纯规则源。两游戏构建/开发服务支持 `COMPETITION_PUBLIC_API_URL`；页面注入的配置优先。客户端 `__COMPETITION_CONFIG__.apiUrl` 指向包含 `/api/competition/v1` 的服务地址；静态 Pages 单独部署不会提供数据库或比赛 API。
 
 本地 `pnpm competition:test-db` 准备隔离库；设置 `COMPETITION_TEST_DATABASE_URL=postgres://runtime_app:local-runtime-only@127.0.0.1:15432/competition_test` 后运行 `pnpm --filter @coffeeeeffoc/runtime-api exec vitest run tests/game-services.integration.test.mjs`，会执行真实 HTTP/PostgreSQL 回放、重启、并列、身份/游戏/榜隔离及幂等结算测试。客户端：`node --test platforms/competition/tests/game-services.test.mjs`；网关：`node --test scripts/competition-gateway.test.mjs`。
+
+## 排行榜规则版本握手
+
+两游戏从随制品发布的 `core.mjs` / `engine.mjs` 读取 `RANKED_RULE_VERSION`，服务端 `rankedRules` 引用同一常量。修改排行模拟、关卡内容、输入协议或计分兼容性时必须递增该常量；纯美术、布局、音效和文案变化保持版本不变。不能使用整个制品 hash、包发布版本或在线 metadata 的最新版本冒充本地规则版本。
+
+`POST /games/:game/runs` 发送 `{board,version,levelId?}`；服务端在创建状态和保存对局前检查 `version`，缺失或不匹配返回 `409 RULE_VERSION_CHANGED`。既有对局的版本隔离、输入重试回执及幂等结算保持原语义。升级前没有发送版本的客户端会被新服务端拒绝，只能继续本地挑战。
+
+共享客户端也核对返回的 `run.version`，一致后才绑定上传身份并进入 `recording`。缺失或不匹配、以及旧服务端严格 schema 拒绝新字段的 `422 INVALID_INPUT`，使 recorder 进入 `update-required`；两游戏显示更新提示并使用本地玩法，不录制或上传此局。不能通过移除版本重试来恢复排行榜。匿名读取、房间操作和显式练习不要求排行榜规则版本。

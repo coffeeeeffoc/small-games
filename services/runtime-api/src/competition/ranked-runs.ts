@@ -64,8 +64,15 @@ export function createRankedRuns(
   return {
     rules,
     boardFor,
-    async create(playerId: string, game: string, board: string, levelId?: string) {
+    async create(
+      playerId: string,
+      game: string,
+      board: string,
+      levelId?: string,
+      version?: string,
+    ) {
       const { rule, definition, key } = boardFor(game, board);
+      if (!version || version !== rule.version) throw new CompetitionError('RULE_VERSION_CHANGED');
       if (!definition.guestAllowed && !(await identity(playerId)).authenticated)
         throw new CompetitionError('LOGIN_REQUIRED', 403);
       const seed = randomInt(0x7fffffff);

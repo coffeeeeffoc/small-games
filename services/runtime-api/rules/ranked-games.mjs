@@ -62,7 +62,7 @@ export const rankedRules = [
   {
     id: 'cage-rescue',
     title: '打破笼子接住人',
-    version: 'rescue-ranked-v1',
+    version: rescue.RANKED_RULE_VERSION,
     boards: boards('人'),
     create: (board, seed, levelId) => create(board, seed, levelId, rescue, rescue.LEVELS),
     apply(state, frames) {
@@ -91,7 +91,7 @@ export const rankedRules = [
   {
     id: 'tower-brake',
     title: '转塔留一脚刹车',
-    version: 'tower-ranked-v1',
+    version: tower.RANKED_RULE_VERSION,
     boards: boards('层'),
     create: (board, seed, levelId) => create(board, seed, levelId, tower, towerLevels),
     apply(state, frames) {

@@ -1,6 +1,8 @@
 import { LEVELS, VIEWPORT, createEndlessLevel } from './levels.mjs';
 
 export { LEVELS, VIEWPORT } from './levels.mjs';
+// Bump for ranked simulation/content/scoring changes; presentation changes keep this version.
+export const RANKED_RULE_VERSION = 'rescue-ranked-v1';
 export const FIXED_STEP = 1 / 120;
 export const RULES = Object.freeze({
   left: 16,

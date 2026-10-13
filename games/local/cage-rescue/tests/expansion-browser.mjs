@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { chromium, expect } from '@playwright/test';
 import { LEVELS } from '../src/levels.mjs';
 
+import { RANKED_RULE_VERSION } from '../src/core.mjs';
+
 const gameId = 'cage-rescue';
 const cage = gameId === 'cage-rescue';
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -273,6 +275,65 @@ try {
   report.checks.push(
     '320px and landscape leaderboard controls remain touch sized; a module that never loads cannot freeze local input beyond startup timeout',
   );
+  // Production artifact handshake: only compatible runs may submit input.
+  for (const variant of ['same', 'old', 'new', 'missing', 'legacy-strict', 'rejected']) {
+    const versionContext = await createContext();
+    const writes = [];
+    await versionContext.route('**/api/competition/v1/**', (route) => {
+      const request = route.request();
+      const path = new URL(request.url()).pathname;
+      if (request.method() === 'POST') writes.push({ path, body: request.postDataJSON() });
+      if (path.endsWith('/sessions/guest'))
+        return route.fulfill({ json: { token: 'a'.repeat(64), expiresAt: Date.now() + 3600000 } });
+      if (path.endsWith('/runs')) {
+        assert.equal(request.postDataJSON().version, RANKED_RULE_VERSION);
+        if (variant === 'legacy-strict' || variant === 'rejected')
+          return route.fulfill({
+            status: variant === 'legacy-strict' ? 422 : 409,
+            json: { error: variant === 'legacy-strict' ? 'INVALID_INPUT' : 'RULE_VERSION_CHANGED' },
+          });
+        return route.fulfill({ json: {
+          id: 'version-run', seed: 73, seq: 0,
+          ...(variant === 'missing' ? {} : {
+            version: variant === 'same' ? RANKED_RULE_VERSION : `${RANKED_RULE_VERSION}-${variant}`,
+          }),
+        } });
+      }
+      return route.fulfill({ json: path.endsWith('/finish') ? { accepted: true } : {} });
+    });
+    const versionPage = await open(versionContext);
+    await versionPage.locator(selectors.endless).tap();
+    if (variant === 'same') {
+      await expect(versionPage.locator('#ranking-note')).toHaveText('成绩验证中');
+    } else {
+      const updatePrompt = versionPage.locator(cage ? '#toast' : '#feedback');
+      await expect(updatePrompt).toBeVisible();
+      await expect(updatePrompt).toContainText('请更新后重试');
+      await expect(versionPage.locator('#ranking-note')).toContainText('可继续本地练习');
+      if (variant === 'new') await shot(versionPage, 'actual-rule-version-update');
+    }
+    if (cage) {
+      await expect(versionPage.locator('#launch')).toBeEnabled();
+      await versionPage.locator('#launch').tap();
+      await expect(versionPage.locator('#launch')).toBeHidden();
+    } else {
+      await expect(versionPage.locator('#charge-hint')).not.toContainText('准备');
+      await versionPage.locator('#brake-button').tap();
+      await expect(versionPage.locator('#brake-button')).toHaveAttribute('data-charges', '0');
+    }
+    if (variant === 'same') {
+      await expect.poll(() => writes.some(({ path }) => path.endsWith('/actions')), { timeout: 8000 }).toBe(true);
+    }
+    await versionPage.locator(selectors.pause).tap();
+    await versionPage.locator(selectors.resume).tap();
+    await versionPage.locator(selectors.pause).tap();
+    await versionPage.locator(selectors.home).tap();
+    await expect(versionPage.locator(selectors.endless)).toBeVisible();
+    if (variant !== 'same')
+      assert.ok(!writes.some(({ path }) => /\/(actions|finish)$/.test(path)), variant);
+    await versionContext.close();
+  }
+  report.checks.push('artifact rule handshake: same version records; older/newer/missing responses and pre-handshake/updated server rejections show update prompt, allow local touch play, pause/resume/home and never upload');
   assert.deepEqual(errors, []);
   report.passed = true;
 } finally {

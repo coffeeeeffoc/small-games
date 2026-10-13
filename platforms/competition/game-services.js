@@ -109,7 +109,7 @@ function credentialAuthority(storage, key, authority, sdk, config, request) {
   return result;
 }
 
-export function createGameServices({ gameId }) {
+export function createGameServices({ gameId, ruleVersion }) {
   if (!/^[A-Za-z0-9][A-Za-z0-9-]{0,79}$/.test(gameId)) throw failure('INVALID_GAME');
   const config = globalThis.__COMPETITION_CONFIG__ || {};
   const sdk = globalThis[nativeNames[config.platform]];
@@ -211,12 +211,14 @@ export function createGameServices({ gameId }) {
     listBoards: async () => (await request(path)).boards,
     leaderboard: ({ boardId }) => request(path + '/leaderboards/' + encodeURIComponent(boardId)),
     async startRun({ mode, levelId }) {
+      if (typeof ruleVersion !== 'string' || !ruleVersion) throw failure('RULE_VERSION_CHANGED');
       const credential = await auth.current();
       const run = await request(
         path + '/runs',
-        { board: mode, ...(levelId ? { levelId } : {}) },
+        { board: mode, version: ruleVersion, ...(levelId ? { levelId } : {}) },
         credential,
       );
+      if (run?.version !== ruleVersion) throw failure('RULE_VERSION_CHANGED');
       owners.set(run.id, { ...credential });
       while (owners.size > 4) owners.delete(owners.keys().next().value);
       return run;
@@ -314,7 +316,8 @@ export function createRunRecorder(services, { onStatus = () => {}, startTimeoutM
       const ownGeneration = generation;
       report('connecting');
       let timer,
-        expired = false;
+        expired = false,
+        failureStatus = 'unavailable';
       const pending = Promise.resolve()
         .then(() => services.startRun({ mode, levelId }))
         .then((run) => {
@@ -324,7 +327,12 @@ export function createRunRecorder(services, { onStatus = () => {}, startTimeoutM
           }
           return run;
         })
-        .catch(() => null);
+        .catch((error) => {
+          // Pre-handshake servers reject the version field through their strict input schema.
+          if (['RULE_VERSION_CHANGED', 'INVALID_INPUT'].includes(error?.code))
+            failureStatus = 'update-required';
+          return null;
+        });
       const run = await Promise.race([
         pending,
         new Promise((resolve) => {
@@ -337,7 +345,7 @@ export function createRunRecorder(services, { onStatus = () => {}, startTimeoutM
       clearTimeout(timer);
       if (ownGeneration !== generation) return null;
       if (!run) {
-        report('unavailable');
+        report(failureStatus);
         return null;
       }
       active = {

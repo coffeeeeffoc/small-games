@@ -1,4 +1,6 @@
 import { createEndlessLevel, createEndlessLayer } from './levels.mjs';
+// Bump for ranked simulation/content/scoring changes; presentation changes keep this version.
+export const RANKED_RULE_VERSION = 'tower-ranked-v1';
 /** DOM-free, deterministic Tower Brake simulation. Distances are world units. */
 export const TAU = Math.PI * 2;
 export const BALL_ANGLE = Math.PI / 2;

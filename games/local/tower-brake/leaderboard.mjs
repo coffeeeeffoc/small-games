@@ -1,5 +1,5 @@
 // Rendering adapter: transport, identity and bounded input upload belong to the shared client.
-export function createLeaderboard({ gameId, moduleUrl, onStatus = () => {} }) {
+export function createLeaderboard({ gameId, ruleVersion, moduleUrl, onStatus = () => {} }) {
   const $ = (id) => document.getElementById(id);
   const labels = {
     local: '本地挑战',
@@ -8,6 +8,7 @@ export function createLeaderboard({ gameId, moduleUrl, onStatus = () => {} }) {
     syncing: '正在同步成绩…',
     finished: '成绩已同步',
     unavailable: '离线挑战 · 不上传排行榜',
+    'update-required': '排行榜规则不兼容，请更新后重试 · 可继续本地练习',
     practice: '试玩 / 好友挑战 · 不上传排行榜',
   };
   let recorder,
@@ -32,11 +33,11 @@ export function createLeaderboard({ gameId, moduleUrl, onStatus = () => {} }) {
     }
   }
   const status = (value) => {
-    onStatus(labels[value] || labels.local);
+    onStatus(labels[value] || labels.local, value);
   };
   const ready = import(moduleUrl)
     .then(({ createGameServices, createRunRecorder }) => {
-      services = createGameServices({ gameId });
+      services = createGameServices({ gameId, ruleVersion });
       recorder = createRunRecorder(services, { onStatus: status });
     })
     .catch(() => status('unavailable'));

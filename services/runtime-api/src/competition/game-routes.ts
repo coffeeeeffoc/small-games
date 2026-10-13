@@ -81,11 +81,21 @@ export function registerGameRoutes(
     { bodyLimit: 2048, config: { rateLimit: { max: 20, timeWindow: '1 minute' } } },
     async (request) => {
       const { game } = gameParams(request.params);
-      const { board, levelId } = z
-        .object({ board: gameId, levelId: z.string().max(100).optional() })
+      const { board, levelId, version } = z
+        .object({
+          board: gameId,
+          levelId: z.string().max(100).optional(),
+          version: z.string().max(100).optional(),
+        })
         .strict()
         .parse(request.body);
-      return ranked.create(await player(request.headers.authorization), game, board, levelId);
+      return ranked.create(
+        await player(request.headers.authorization),
+        game,
+        board,
+        levelId,
+        version,
+      );
     },
   );
   routes.get('/games/:game/runs/:id', async (request) => {

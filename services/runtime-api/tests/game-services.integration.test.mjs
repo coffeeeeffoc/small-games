@@ -89,6 +89,7 @@ integration(
     async function create(player, game, board, levelId) {
       const run = await request(`/games/${game}/runs`, player, {
         board,
+        version,
         ...(levelId ? { levelId } : {}),
       });
       return run;

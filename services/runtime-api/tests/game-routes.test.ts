@@ -127,7 +127,7 @@ it('writes require identity, refuse client result fields and expose game-scoped 
     method: 'POST',
     url: path + '/runs',
     headers,
-    payload: { board: 'endless' },
+    payload: { board: 'endless', version: 'tower-ranked-v1' },
   });
   expect(created.statusCode).toBe(200);
   const action = path + '/runs/' + created.json().id + '/actions';
@@ -164,4 +164,36 @@ it('writes require identity, refuse client result fields and expose game-scoped 
   expect(
     (await app.inject({ method: 'POST', url: path + '/rooms', headers, payload: {} })).statusCode,
   ).toBe(404);
+});
+
+it('ranked HTTP creation rejects legacy, mismatched and missing versions with an update error', async () => {
+  const { app } = await setup();
+  const headers = { authorization: 'Bearer ' + token };
+  for (const [game, version] of [
+    ['cage-rescue', 'rescue-ranked-v1'],
+    ['tower-brake', 'tower-ranked-v1'],
+  ]) {
+    const url = `/api/competition/v1/games/${game}/runs`;
+    for (const clientVersion of [undefined, '', `${version}-old`, `${version}-new`]) {
+      const response = await app.inject({
+        method: 'POST',
+        url,
+        headers,
+        payload: {
+          board: 'endless',
+          ...(clientVersion === undefined ? {} : { version: clientVersion }),
+        },
+      });
+      expect(response.statusCode).toBe(409);
+      expect(response.json()).toEqual({ error: 'RULE_VERSION_CHANGED' });
+    }
+    const response = await app.inject({
+      method: 'POST',
+      url,
+      headers,
+      payload: { board: 'endless', version },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json().version).toBe(version);
+  }
 });
