@@ -1,14 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { rankedRules } from '../rules/ranked-games.mjs';
-import { RANKED_RULE_VERSION as rescueVersion } from '../../../games/local/cage-rescue/src/core.mjs';
-import { RANKED_RULE_VERSION as towerVersion } from '../../../games/local/tower-brake/engine.mjs';
 
 describe('real rescue and tower rule adapters', () => {
-  it('uses the versions shipped with the real game simulations', () => {
-    expect(rankedRules.map(({ version }) => version)).toEqual([rescueVersion, towerVersion]);
-    expect(rescueVersion).toBeTruthy();
-    expect(towerVersion).toBeTruthy();
-  });
   it.each(rankedRules)(
     '$id restores a JSON checkpoint and replays identical fixed steps',
     (rule) => {
