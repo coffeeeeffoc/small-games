@@ -1,0 +1,2587 @@
+{
+  "capturedAt": "2026-10-13T16:57:37.018Z",
+  "game": "cops-robbers",
+  "title": "围捕小队",
+  "repository": "/workspace/small-games",
+  "gitHead": "76ffeb67d54223f95aaaff4de7ed5ce85de73d5b",
+  "capture": "Unmodified running H5 game rendered by Chromium, mobile and touch emulation. Real touch inputs only; no DOM/CSS edits or injected game state. No image generation, compositing, cropping, or resampling.",
+  "developmentMode": "Disabled with dev=0. Target levels were unlocked normally by winning every preceding level with real touch input; no progress or game state was injected.",
+  "viewport": {
+    "width": 540,
+    "height": 960
+  },
+  "deviceScaleFactor": 2,
+  "expectedPixels": {
+    "width": 1080,
+    "height": 1920
+  },
+  "browserVersion": "151.0.7922.173",
+  "screenshots": [
+    {
+      "filename": "01-surround-challenge.png",
+      "path": "/workspace/outputs/cops-robbers/publishing-2026-10-14/screenshots/01-surround-challenge.png",
+      "title": "围堵挑战",
+      "mapName": "三路合围",
+      "sourceUrl": "http://127.0.0.1:43420/?dev=0&mode=challenge&level=1&rule=standard&motion=reduce",
+      "gameplay": {
+        "mode": "challenge",
+        "rule": "standard",
+        "level": 1
+      },
+      "unlockActions": [],
+      "actions": [
+        {
+          "input": "real touchscreen tap",
+          "actor": 0,
+          "target": 1,
+          "before": {
+            "cops": [
+              2,
+              8,
+              9
+            ],
+            "robbers": [
+              5
+            ],
+            "turn": 0
+          },
+          "after": {
+            "cops": [
+              1,
+              8,
+              9
+            ],
+            "robbers": [
+              0
+            ],
+            "turn": 1
+          },
+          "caught": [],
+          "escaped": []
+        },
+        {
+          "input": "real touchscreen tap",
+          "actor": 2,
+          "target": 4,
+          "before": {
+            "cops": [
+              1,
+              8,
+              9
+            ],
+            "robbers": [
+              0
+            ],
+            "turn": 1
+          },
+          "after": {
+            "cops": [
+              1,
+              8,
+              4
+            ],
+            "robbers": [
+              5
+            ],
+            "turn": 2
+          },
+          "caught": [],
+          "escaped": []
+        }
+      ],
+      "selectedNextActor": 1,
+      "currentState": {
+        "cops": [
+          1,
+          8,
+          4
+        ],
+        "robbers": [
+          5
+        ],
+        "turn": 2
+      },
+      "geometry": {
+        "phase": "planning",
+        "turn": "2",
+        "mode": "challenge",
+        "rule": "standard",
+        "level": "1",
+        "board": {
+          "selector": "#board",
+          "x": 25.8125,
+          "y": 112,
+          "width": 488.359375,
+          "height": 716.25,
+          "right": 514.171875,
+          "bottom": 828.25
+        },
+        "frame": {
+          "selector": ".challenge-game .board-frame",
+          "x": 21.8125,
+          "y": 108,
+          "width": 496.359375,
+          "height": 724.25,
+          "right": 518.171875,
+          "bottom": 832.25
+        },
+        "controls": [
+          {
+            "selector": "#focus-toggle",
+            "x": 12,
+            "y": 6,
+            "width": 44,
+            "height": 44,
+            "right": 56,
+            "bottom": 50
+          },
+          {
+            "selector": "#squad",
+            "x": 55.5,
+            "y": 881.25,
+            "width": 163,
+            "height": 62,
+            "right": 218.5,
+            "bottom": 943.25
+          },
+          {
+            "selector": ".challenge-game .action-bar",
+            "x": 276,
+            "y": 880.25,
+            "width": 254,
+            "height": 63,
+            "right": 530,
+            "bottom": 943.25
+          },
+          {
+            "selector": "#play-prompt",
+            "x": 10,
+            "y": 839.25,
+            "width": 520,
+            "height": 31,
+            "right": 530,
+            "bottom": 870.25
+          }
+        ],
+        "visibleDialogs": [],
+        "horizontalScroll": false,
+        "documentHeight": 960,
+        "prompt": "2 号 → 10 号路口",
+        "actors": [
+          {
+            "id": "robber-actor-0",
+            "node": "5",
+            "mood": "idle"
+          },
+          {
+            "id": "cop-actor-0",
+            "node": "1",
+            "mood": "guard"
+          },
+          {
+            "id": "cop-actor-2",
+            "node": "4",
+            "mood": "guard"
+          },
+          {
+            "id": "cop-actor-1",
+            "node": "8",
+            "mood": "selected"
+          }
+        ],
+        "svgImages": [
+          "http://127.0.0.1:43420/assets/patrol-garden.webp",
+          "http://127.0.0.1:43420/assets/patrol-props.webp",
+          "http://127.0.0.1:43420/assets/patrol-props.webp",
+          "http://127.0.0.1:43420/assets/patrol-props.webp",
+          "http://127.0.0.1:43420/assets/patrol-characters.svg#robber",
+          "http://127.0.0.1:43420/assets/patrol-characters.svg#cop",
+          "http://127.0.0.1:43420/assets/patrol-characters.svg#cop",
+          "http://127.0.0.1:43420/assets/patrol-characters.svg#cop"
+        ],
+        "fontsStatus": "loaded",
+        "developerMode": "false",
+        "developerToolsPresent": false
+      },
+      "coreBoardAreaRatio": 0.6747442174840856,
+      "media": [
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-characters.svg",
+          "width": 1536,
+          "height": 1024,
+          "decoded": true
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-garden.webp",
+          "width": 1024,
+          "height": 1536,
+          "decoded": true
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-props.webp",
+          "width": 1254,
+          "height": 1254,
+          "decoded": true
+        }
+      ],
+      "responses": [
+        {
+          "url": "http://127.0.0.1:43420/?dev=0&mode=challenge&level=1&rule=standard&motion=reduce",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/style.css",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/game-shell.css",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/viewport.css",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-characters.svg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/dev-mode.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-garden.webp",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/main.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/fullscreen.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/home-chase.webp",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/engine.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/art.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/role-appearance.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/optimal-solutions.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/solutions.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/levels.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/board-layout.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/sound.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/relay.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/progress.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/duel-ui.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/share.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/quick-trials.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/game-shell.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/extended-content.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/duel-levels.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/duel.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/relay-content.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/quick-content.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-props.webp",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/favicon.svg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/favicon.svg",
+          "status": 200
+        }
+      ],
+      "pageErrors": [],
+      "failedRequests": [],
+      "pixels": {
+        "width": 1080,
+        "height": 1920
+      },
+      "bytes": 1642119,
+      "sha256": "8752db4c525625eb1675f40c82e502e523bfedb722604e5a3c71d66a3ddd1839"
+    },
+    {
+      "filename": "02-quick-dual-targets.png",
+      "path": "/workspace/outputs/cops-robbers/publishing-2026-10-14/screenshots/02-quick-dual-targets.png",
+      "title": "快速战术试炼 · 双巷分工",
+      "mapName": "双巷分工",
+      "sourceUrl": "http://127.0.0.1:43420/?dev=0&mode=quick&level=3&rule=standard&motion=reduce",
+      "gameplay": {
+        "mode": "quick",
+        "rule": "standard",
+        "level": 3
+      },
+      "unlockActions": [
+        {
+          "level": 1,
+          "mapName": "两侧夹击",
+          "sourceUrl": "http://127.0.0.1:43420/?dev=0&mode=quick&level=1&rule=standard&motion=reduce",
+          "moves": [
+            {
+              "input": "real touchscreen tap",
+              "actor": 0,
+              "target": 1,
+              "before": {
+                "cops": [
+                  0,
+                  4
+                ],
+                "robbers": [
+                  2
+                ],
+                "turn": 0
+              },
+              "after": {
+                "cops": [
+                  1,
+                  4
+                ],
+                "robbers": [
+                  2
+                ],
+                "turn": 1
+              }
+            },
+            {
+              "input": "real touchscreen tap",
+              "actor": 1,
+              "target": 3,
+              "before": {
+                "cops": [
+                  1,
+                  4
+                ],
+                "robbers": [
+                  2
+                ],
+                "turn": 1
+              },
+              "after": {
+                "cops": [
+                  1,
+                  3
+                ],
+                "robbers": [
+                  -1
+                ],
+                "turn": 2
+              }
+            }
+          ],
+          "result": "won"
+        },
+        {
+          "level": 2,
+          "mapName": "先封后追",
+          "sourceUrl": "http://127.0.0.1:43420/?dev=0&mode=quick&level=2&rule=standard&motion=reduce",
+          "moves": [
+            {
+              "input": "real touchscreen tap",
+              "actor": 2,
+              "target": 4,
+              "before": {
+                "cops": [
+                  1,
+                  2,
+                  6
+                ],
+                "robbers": [
+                  0
+                ],
+                "turn": 0
+              },
+              "after": {
+                "cops": [
+                  1,
+                  2,
+                  4
+                ],
+                "robbers": [
+                  3
+                ],
+                "turn": 1
+              }
+            },
+            {
+              "input": "real touchscreen tap",
+              "actor": 0,
+              "target": 0,
+              "before": {
+                "cops": [
+                  1,
+                  2,
+                  4
+                ],
+                "robbers": [
+                  3
+                ],
+                "turn": 1
+              },
+              "after": {
+                "cops": [
+                  0,
+                  2,
+                  4
+                ],
+                "robbers": [
+                  -1
+                ],
+                "turn": 2
+              }
+            }
+          ],
+          "result": "won"
+        }
+      ],
+      "actions": [
+        {
+          "input": "real touchscreen tap",
+          "actor": 0,
+          "target": 1,
+          "before": {
+            "cops": [
+              0,
+              4,
+              6,
+              10
+            ],
+            "robbers": [
+              2,
+              8
+            ],
+            "turn": 0
+          },
+          "after": {
+            "cops": [
+              1,
+              4,
+              6,
+              10
+            ],
+            "robbers": [
+              2,
+              8
+            ],
+            "turn": 1
+          },
+          "caught": [],
+          "escaped": []
+        }
+      ],
+      "selectedNextActor": 1,
+      "currentState": {
+        "cops": [
+          1,
+          4,
+          6,
+          10
+        ],
+        "robbers": [
+          2,
+          8
+        ],
+        "turn": 1
+      },
+      "geometry": {
+        "phase": "planning",
+        "turn": "1",
+        "mode": "quick",
+        "rule": "standard",
+        "level": "3",
+        "board": {
+          "selector": "#board",
+          "x": 49,
+          "y": 112,
+          "width": 442,
+          "height": 648.265625,
+          "right": 491,
+          "bottom": 760.265625
+        },
+        "frame": {
+          "selector": ".challenge-game .board-frame",
+          "x": 45,
+          "y": 108,
+          "width": 450,
+          "height": 656.265625,
+          "right": 495,
+          "bottom": 764.265625
+        },
+        "controls": [
+          {
+            "selector": "#focus-toggle",
+            "x": 12,
+            "y": 6,
+            "width": 44,
+            "height": 44,
+            "right": 56,
+            "bottom": 50
+          },
+          {
+            "selector": "#squad",
+            "x": 160.5,
+            "y": 813.265625,
+            "width": 219,
+            "height": 62,
+            "right": 379.5,
+            "bottom": 875.265625
+          },
+          {
+            "selector": ".challenge-game .action-bar",
+            "x": 10,
+            "y": 885.265625,
+            "width": 520,
+            "height": 62,
+            "right": 530,
+            "bottom": 947.265625
+          },
+          {
+            "selector": "#play-prompt",
+            "x": 10,
+            "y": 771.265625,
+            "width": 520,
+            "height": 31,
+            "right": 530,
+            "bottom": 802.265625
+          }
+        ],
+        "visibleDialogs": [],
+        "horizontalScroll": false,
+        "documentHeight": 960,
+        "prompt": "2 号 → 4 号路口",
+        "actors": [
+          {
+            "id": "cop-actor-0",
+            "node": "1",
+            "mood": "guard"
+          },
+          {
+            "id": "robber-actor-0",
+            "node": "2",
+            "mood": "nervous"
+          },
+          {
+            "id": "cop-actor-1",
+            "node": "4",
+            "mood": "selected"
+          },
+          {
+            "id": "cop-actor-2",
+            "node": "6",
+            "mood": "guard"
+          },
+          {
+            "id": "robber-actor-1",
+            "node": "8",
+            "mood": "idle"
+          },
+          {
+            "id": "cop-actor-3",
+            "node": "10",
+            "mood": "guard"
+          }
+        ],
+        "svgImages": [
+          "http://127.0.0.1:43420/assets/patrol-garden.webp",
+          "http://127.0.0.1:43420/assets/patrol-characters.svg#cop",
+          "http://127.0.0.1:43420/assets/patrol-characters.svg#robber",
+          "http://127.0.0.1:43420/assets/patrol-characters.svg#cop",
+          "http://127.0.0.1:43420/assets/patrol-characters.svg#cop",
+          "http://127.0.0.1:43420/assets/patrol-characters.svg#robber",
+          "http://127.0.0.1:43420/assets/patrol-characters.svg#cop"
+        ],
+        "fontsStatus": "loaded",
+        "developerMode": "false",
+        "developerToolsPresent": false
+      },
+      "coreBoardAreaRatio": 0.5527264781057099,
+      "media": [
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-characters.svg",
+          "width": 1536,
+          "height": 1024,
+          "decoded": true
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-garden.webp",
+          "width": 1024,
+          "height": 1536,
+          "decoded": true
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-props.webp",
+          "width": 1254,
+          "height": 1254,
+          "decoded": true
+        }
+      ],
+      "responses": [
+        {
+          "url": "http://127.0.0.1:43420/?dev=0&mode=quick&level=1&rule=standard&motion=reduce",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/dev-mode.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/style.css",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/game-shell.css",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/viewport.css",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-characters.svg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-garden.webp",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/main.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/home-chase.webp",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/fullscreen.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/solutions.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/art.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/engine.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/optimal-solutions.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/role-appearance.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/board-layout.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/levels.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/sound.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/share.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/relay.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/quick-trials.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/duel-ui.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/progress.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/game-shell.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/extended-content.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/duel-levels.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/relay-content.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/duel.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/quick-content.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-props.webp",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/favicon.svg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/favicon.svg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/?dev=0&mode=quick&level=2&rule=standard&motion=reduce",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/style.css",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/game-shell.css",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/viewport.css",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-characters.svg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/dev-mode.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/main.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-garden.webp",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/fullscreen.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/engine.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/art.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/optimal-solutions.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/solutions.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/role-appearance.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/board-layout.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/sound.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/relay.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/share.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/quick-trials.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/duel-ui.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/levels.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/progress.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/extended-content.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/game-shell.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/home-chase.webp",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/relay-content.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/duel-levels.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/duel.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/quick-content.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-props.webp",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/favicon.svg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/favicon.svg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/?dev=0&mode=quick&level=3&rule=standard&motion=reduce",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/style.css",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/game-shell.css",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/viewport.css",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-characters.svg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/dev-mode.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-garden.webp",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/main.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/fullscreen.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/engine.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/art.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/role-appearance.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/optimal-solutions.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/solutions.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/board-layout.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/home-chase.webp",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/sound.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/levels.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/duel-ui.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/quick-trials.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/share.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/progress.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/relay.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/game-shell.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/extended-content.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/relay-content.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/duel.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/duel-levels.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/quick-content.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/favicon.svg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/favicon.svg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-props.webp",
+          "status": 200
+        }
+      ],
+      "pageErrors": [],
+      "failedRequests": [],
+      "pixels": {
+        "width": 1080,
+        "height": 1920
+      },
+      "bytes": 1393332,
+      "sha256": "db74b01f1c536d6be1eb641d5e31c6144170cffaad355fe71aad15b4e4b0fe02"
+    },
+    {
+      "filename": "03-relay-patrol.png",
+      "path": "/workspace/outputs/cops-robbers/publishing-2026-10-14/screenshots/03-relay-patrol.png",
+      "title": "换防接力",
+      "mapName": "串起小巷",
+      "sourceUrl": "http://127.0.0.1:43420/?dev=0&mode=challenge&level=16&rule=relay&motion=reduce",
+      "gameplay": {
+        "mode": "challenge",
+        "rule": "relay",
+        "level": 16
+      },
+      "unlockActions": [
+        {
+          "level": 1,
+          "mapName": "三路合围",
+          "sourceUrl": "http://127.0.0.1:43420/?dev=0&mode=challenge&level=1&rule=relay&motion=reduce",
+          "moves": [
+            {
+              "input": "real touchscreen tap",
+              "actor": 0,
+              "target": 1,
+              "before": {
+                "cops": [
+                  2,
+                  8,
+                  9
+                ],
+                "robbers": [
+                  5
+                ],
+                "turn": 0
+              },
+              "after": {
+                "cops": [
+                  1,
+                  8,
+                  9
+                ],
+                "robbers": [
+                  0
+                ],
+                "turn": 1
+              }
+            },
+            {
+              "input": "real touchscreen tap",
+              "actor": 2,
+              "target": 4,
+              "before": {
+                "cops": [
+                  1,
+                  8,
+                  9
+                ],
+                "robbers": [
+                  0
+                ],
+                "turn": 1
+              },
+              "after": {
+                "cops": [
+                  1,
+                  8,
+                  4
+                ],
+                "robbers": [
+                  5
+                ],
+                "turn": 2
+              }
+            },
+            {
+              "input": "real touchscreen tap",
+              "actor": 1,
+              "target": 9,
+              "before": {
+                "cops": [
+                  1,
+                  8,
+                  4
+                ],
+                "robbers": [
+                  5
+                ],
+                "turn": 2
+              },
+              "after": {
+                "cops": [
+                  1,
+                  9,
+                  4
+                ],
+                "robbers": [
+                  5
+                ],
+                "turn": 3
+              }
+            },
+            {
+              "input": "real touchscreen tap",
+              "actor": 2,
+              "target": 0,
+              "before": {
+                "cops": [
+                  1,
+                  9,
+                  4
+                ],
+                "robbers": [
+                  5
+                ],
+                "turn": 3
+              },
+              "after": {
+                "cops": [
+                  1,
+                  9,
+                  0
+                ],
+                "robbers": [
+                  6
+                ],
+                "turn": 4
+              }
+            },
+            {
+              "input": "real touchscreen tap",
+              "actor": 0,
+              "target": 1,
+              "before": {
+                "cops": [
+                  1,
+                  9,
+                  0
+                ],
+                "robbers": [
+                  6
+                ],
+                "turn": 4
+              },
+              "after": {
+                "cops": [
+                  1,
+                  9,
+                  0
+                ],
+                "robbers": [
+                  7
+                ],
+                "turn": 5
+              }
+            },
+            {
+              "input": "real touchscreen tap",
+              "actor": 0,
+              "target": 6,
+              "before": {
+                "cops": [
+                  1,
+                  9,
+                  0
+                ],
+                "robbers": [
+                  7
+                ],
+                "turn": 5
+              },
+              "after": {
+                "cops": [
+                  6,
+                  9,
+                  0
+                ],
+                "robbers": [
+                  7
+                ],
+                "turn": 6
+              }
+            },
+            {
+              "input": "real touchscreen tap",
+              "actor": 1,
+              "target": 8,
+              "before": {
+                "cops": [
+                  6,
+                  9,
+                  0
+                ],
+                "robbers": [
+                  7
+                ],
+                "turn": 6
+              },
+              "after": {
+                "cops": [
+                  6,
+                  8,
+                  0
+                ],
+                "robbers": [
+                  -1
+                ],
+                "turn": 7
+              }
+            }
+          ],
+          "result": "won"
+        },
+        {
+          "level": 4,
+          "mapName": "绕到背后",
+          "sourceUrl": "http://127.0.0.1:43420/?dev=0&mode=challenge&level=4&rule=relay&motion=reduce",
+          "moves": [
+            {
+              "input": "real touchscreen tap",
+              "actor": 2,
+              "target": 4,
+              "before": {
+                "cops": [
+                  2,
+                  6,
+                  9
+                ],
+                "robbers": [
+                  3
+                ],
+                "turn": 0
+              },
+              "after": {
+                "cops": [
+                  2,
+                  6,
+                  4
+                ],
+                "robbers": [
+                  8
+                ],
+                "turn": 1
+              }
+            },
+            {
+              "input": "real touchscreen tap",
+              "actor": 1,
+              "target": 7,
+              "before": {
+                "cops": [
+                  2,
+                  6,
+                  4
+                ],
+                "robbers": [
+                  8
+                ],
+                "turn": 1
+              },
+              "after": {
+                "cops": [
+                  2,
+                  7,
+                  4
+                ],
+                "robbers": [
+                  9
+                ],
+                "turn": 2
+              }
+            },
+            {
+              "input": "real touchscreen tap",
+              "actor": 0,
+              "target": 1,
+              "before": {
+                "cops": [
+                  2,
+                  7,
+                  4
+                ],
+                "robbers": [
+                  9
+                ],
+                "turn": 2
+              },
+              "after": {
+                "cops": [
+                  1,
+                  7,
+                  4
+                ],
+                "robbers": [
+                  5
+                ],
+                "turn": 3
+              }
+            },
+            {
+              "input": "real touchscreen tap",
+              "actor": 2,
+              "target": 9,
+              "before": {
+                "cops": [
+                  1,
+                  7,
+                  4
+                ],
+                "robbers": [
+                  5
+                ],
+                "turn": 3
+              },
+              "after": {
+                "cops": [
+                  1,
+                  7,
+                  9
+                ],
+                "robbers": [
+                  5
+                ],
+                "turn": 4
+              }
+            },
+            {
+              "input": "real touchscreen tap",
+              "actor": 0,
+              "target": 6,
+              "before": {
+                "cops": [
+                  1,
+                  7,
+                  9
+                ],
+                "robbers": [
+                  5
+                ],
+                "turn": 4
+              },
+              "after": {
+                "cops": [
+                  6,
+                  7,
+                  9
+                ],
+                "robbers": [
+                  -1
+                ],
+                "turn": 5
+              }
+            }
+          ],
+          "result": "won"
+        },
+        {
+          "level": 7,
+          "mapName": "回环追逃",
+          "sourceUrl": "http://127.0.0.1:43420/?dev=0&mode=challenge&level=7&rule=relay&motion=reduce",
+          "moves": [
+            {
+              "input": "real touchscreen tap",
+              "actor": 2,
+              "target": 4,
+              "before": {
+                "cops": [
+                  6,
+                  8,
+                  9
+                ],
+                "robbers": [
+                  3
+                ],
+                "turn": 0
+              },
+              "after": {
+                "cops": [
+                  6,
+                  8,
+                  4
+                ],
+                "robbers": [
+                  2
+                ],
+                "turn": 1
+              }
+            },
+            {
+              "input": "real touchscreen tap",
+              "actor": 0,
+              "target": 7,
+              "before": {
+                "cops": [
+                  6,
+                  8,
+                  4
+                ],
+                "robbers": [
+                  2
+                ],
+                "turn": 1
+              },
+              "after": {
+                "cops": [
+                  7,
+                  8,
+                  4
+                ],
+                "robbers": [
+                  1
+                ],
+                "turn": 2
+              }
+            },
+            {
+              "input": "real touchscreen tap",
+              "actor": 2,
+              "target": 0,
+              "before": {
+                "cops": [
+                  7,
+                  8,
+                  4
+                ],
+                "robbers": [
+                  1
+                ],
+                "turn": 2
+              },
+              "after": {
+                "cops": [
+                  7,
+                  8,
+                  0
+                ],
+                "robbers": [
+                  2
+                ],
+                "turn": 3
+              }
+            },
+            {
+              "input": "real touchscreen tap",
+              "actor": 1,
+              "target": 3,
+              "before": {
+                "cops": [
+                  7,
+                  8,
+                  0
+                ],
+                "robbers": [
+                  2
+                ],
+                "turn": 3
+              },
+              "after": {
+                "cops": [
+                  7,
+                  3,
+                  0
+                ],
+                "robbers": [
+                  1
+                ],
+                "turn": 4
+              }
+            },
+            {
+              "input": "real touchscreen tap",
+              "actor": 0,
+              "target": 2,
+              "before": {
+                "cops": [
+                  7,
+                  3,
+                  0
+                ],
+                "robbers": [
+                  1
+                ],
+                "turn": 4
+              },
+              "after": {
+                "cops": [
+                  2,
+                  3,
+                  0
+                ],
+                "robbers": [
+                  -1
+                ],
+                "turn": 5
+              }
+            }
+          ],
+          "result": "won"
+        },
+        {
+          "level": 12,
+          "mapName": "小巷总动员",
+          "sourceUrl": "http://127.0.0.1:43420/?dev=0&mode=challenge&level=12&rule=relay&motion=reduce",
+          "moves": [
+            {
+              "input": "real touchscreen tap",
+              "actor": 0,
+              "target": 9,
+              "before": {
+                "cops": [
+                  8,
+                  5,
+                  6
+                ],
+                "robbers": [
+                  7
+                ],
+                "turn": 0
+              },
+              "after": {
+                "cops": [
+                  9,
+                  5,
+                  6
+                ],
+                "robbers": [
+                  2
+                ],
+                "turn": 1
+              }
+            },
+            {
+              "input": "real touchscreen tap",
+              "actor": 1,
+              "target": 0,
+              "before": {
+                "cops": [
+                  9,
+                  5,
+                  6
+                ],
+                "robbers": [
+                  2
+                ],
+                "turn": 1
+              },
+              "after": {
+                "cops": [
+                  9,
+                  0,
+                  6
+                ],
+                "robbers": [
+                  3
+                ],
+                "turn": 2
+              }
+            },
+            {
+              "input": "real touchscreen tap",
+              "actor": 0,
+              "target": 4,
+              "before": {
+                "cops": [
+                  9,
+                  0,
+                  6
+                ],
+                "robbers": [
+                  3
+                ],
+                "turn": 2
+              },
+              "after": {
+                "cops": [
+                  4,
+                  0,
+                  6
+                ],
+                "robbers": [
+                  2
+                ],
+                "turn": 3
+              }
+            },
+            {
+              "input": "real touchscreen tap",
+              "actor": 2,
+              "target": 7,
+              "before": {
+                "cops": [
+                  4,
+                  0,
+                  6
+                ],
+                "robbers": [
+                  2
+                ],
+                "turn": 3
+              },
+              "after": {
+                "cops": [
+                  4,
+                  0,
+                  7
+                ],
+                "robbers": [
+                  2
+                ],
+                "turn": 4
+              }
+            },
+            {
+              "input": "real touchscreen tap",
+              "actor": 0,
+              "target": 3,
+              "before": {
+                "cops": [
+                  4,
+                  0,
+                  7
+                ],
+                "robbers": [
+                  2
+                ],
+                "turn": 4
+              },
+              "after": {
+                "cops": [
+                  3,
+                  0,
+                  7
+                ],
+                "robbers": [
+                  1
+                ],
+                "turn": 5
+              }
+            },
+            {
+              "input": "real touchscreen tap",
+              "actor": 2,
+              "target": 2,
+              "before": {
+                "cops": [
+                  3,
+                  0,
+                  7
+                ],
+                "robbers": [
+                  1
+                ],
+                "turn": 5
+              },
+              "after": {
+                "cops": [
+                  3,
+                  0,
+                  2
+                ],
+                "robbers": [
+                  -1
+                ],
+                "turn": 6
+              }
+            }
+          ],
+          "result": "won"
+        }
+      ],
+      "actions": [
+        {
+          "input": "real touchscreen tap",
+          "actor": 0,
+          "target": 5,
+          "before": {
+            "cops": [
+              5,
+              8,
+              12
+            ],
+            "robbers": [
+              2
+            ],
+            "turn": 0
+          },
+          "after": {
+            "cops": [
+              5,
+              8,
+              12
+            ],
+            "robbers": [
+              3
+            ],
+            "turn": 1
+          },
+          "caught": [],
+          "escaped": []
+        },
+        {
+          "input": "real touchscreen tap",
+          "actor": 0,
+          "target": 4,
+          "before": {
+            "cops": [
+              5,
+              8,
+              12
+            ],
+            "robbers": [
+              3
+            ],
+            "turn": 1
+          },
+          "after": {
+            "cops": [
+              4,
+              8,
+              12
+            ],
+            "robbers": [
+              2
+            ],
+            "turn": 2
+          },
+          "caught": [],
+          "escaped": []
+        }
+      ],
+      "selectedNextActor": 1,
+      "currentState": {
+        "cops": [
+          4,
+          8,
+          12
+        ],
+        "robbers": [
+          2
+        ],
+        "turn": 2
+      },
+      "geometry": {
+        "phase": "planning",
+        "turn": "2",
+        "mode": "challenge",
+        "rule": "relay",
+        "level": "16",
+        "board": {
+          "selector": "#board",
+          "x": 25.8125,
+          "y": 112,
+          "width": 488.359375,
+          "height": 716.25,
+          "right": 514.171875,
+          "bottom": 828.25
+        },
+        "frame": {
+          "selector": ".challenge-game .board-frame",
+          "x": 21.8125,
+          "y": 108,
+          "width": 496.359375,
+          "height": 724.25,
+          "right": 518.171875,
+          "bottom": 832.25
+        },
+        "controls": [
+          {
+            "selector": "#focus-toggle",
+            "x": 12,
+            "y": 6,
+            "width": 44,
+            "height": 44,
+            "right": 56,
+            "bottom": 50
+          },
+          {
+            "selector": "#squad",
+            "x": 55.5,
+            "y": 881.25,
+            "width": 163,
+            "height": 62,
+            "right": 218.5,
+            "bottom": 943.25
+          },
+          {
+            "selector": ".challenge-game .action-bar",
+            "x": 276,
+            "y": 880.25,
+            "width": 254,
+            "height": 63,
+            "right": 530,
+            "bottom": 943.25
+          },
+          {
+            "selector": "#play-prompt",
+            "x": 10,
+            "y": 839.25,
+            "width": 520,
+            "height": 31,
+            "right": 530,
+            "bottom": 870.25
+          }
+        ],
+        "visibleDialogs": [],
+        "horizontalScroll": false,
+        "documentHeight": 960,
+        "prompt": "换一位警察，接力包抄！",
+        "actors": [
+          {
+            "id": "cop-actor-1",
+            "node": "8",
+            "mood": "selected"
+          },
+          {
+            "id": "cop-actor-2",
+            "node": "12",
+            "mood": "guard"
+          },
+          {
+            "id": "robber-actor-0",
+            "node": "2",
+            "mood": "idle"
+          },
+          {
+            "id": "cop-actor-0",
+            "node": "4",
+            "mood": "guard"
+          }
+        ],
+        "svgImages": [
+          "http://127.0.0.1:43420/assets/patrol-garden.webp",
+          "http://127.0.0.1:43420/assets/patrol-props.webp",
+          "http://127.0.0.1:43420/assets/patrol-characters.svg#cop",
+          "http://127.0.0.1:43420/assets/patrol-characters.svg#cop",
+          "http://127.0.0.1:43420/assets/patrol-characters.svg#robber",
+          "http://127.0.0.1:43420/assets/patrol-characters.svg#cop"
+        ],
+        "fontsStatus": "loaded",
+        "developerMode": "false",
+        "developerToolsPresent": false
+      },
+      "coreBoardAreaRatio": 0.6747442174840856,
+      "media": [
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-characters.svg",
+          "width": 1536,
+          "height": 1024,
+          "decoded": true
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-garden.webp",
+          "width": 1024,
+          "height": 1536,
+          "decoded": true
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-props.webp",
+          "width": 1254,
+          "height": 1254,
+          "decoded": true
+        }
+      ],
+      "responses": [
+        {
+          "url": "http://127.0.0.1:43420/?dev=0&mode=challenge&level=1&rule=relay&motion=reduce",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/style.css",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/game-shell.css",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/viewport.css",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-characters.svg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/main.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/dev-mode.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-garden.webp",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/fullscreen.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/home-chase.webp",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/engine.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/solutions.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/art.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/role-appearance.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/optimal-solutions.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/levels.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/board-layout.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/sound.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/relay.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/quick-trials.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/duel-ui.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/share.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/progress.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/game-shell.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/extended-content.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/duel-levels.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/quick-content.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/duel.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/relay-content.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-props.webp",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/favicon.svg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/favicon.svg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/?dev=0&mode=challenge&level=4&rule=relay&motion=reduce",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/style.css",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/game-shell.css",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/viewport.css",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/dev-mode.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-characters.svg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-garden.webp",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/main.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/fullscreen.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/levels.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/solutions.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/art.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/engine.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/board-layout.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/optimal-solutions.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/role-appearance.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/sound.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/share.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/relay.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/quick-trials.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/progress.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/duel-ui.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/home-chase.webp",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/extended-content.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/game-shell.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/relay-content.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/duel-levels.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/duel.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/quick-content.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-props.webp",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/favicon.svg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/favicon.svg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/?dev=0&mode=challenge&level=7&rule=relay&motion=reduce",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/style.css",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/game-shell.css",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/viewport.css",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-characters.svg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/dev-mode.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/main.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-garden.webp",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/fullscreen.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/engine.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/solutions.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/optimal-solutions.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/role-appearance.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/board-layout.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/art.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/duel-ui.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/levels.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/sound.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/relay.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/home-chase.webp",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/share.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/quick-trials.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/progress.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/game-shell.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/extended-content.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/duel-levels.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/duel.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/relay-content.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/quick-content.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-props.webp",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/favicon.svg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/favicon.svg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/?dev=0&mode=challenge&level=12&rule=relay&motion=reduce",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/style.css",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/game-shell.css",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/viewport.css",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-characters.svg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/dev-mode.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-garden.webp",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/main.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/fullscreen.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/engine.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/optimal-solutions.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/solutions.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/art.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/levels.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/board-layout.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/role-appearance.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/sound.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/relay.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/quick-trials.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/share.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/duel-ui.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/progress.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/home-chase.webp",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/game-shell.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/extended-content.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/quick-content.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/duel-levels.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/relay-content.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/duel.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-props.webp",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/favicon.svg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/favicon.svg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/?dev=0&mode=challenge&level=16&rule=relay&motion=reduce",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-characters.svg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/style.css",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/game-shell.css",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/viewport.css",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/dev-mode.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-garden.webp",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/main.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/fullscreen.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/engine.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/art.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/role-appearance.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/optimal-solutions.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/solutions.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/board-layout.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/share.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/relay.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/sound.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/quick-trials.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/progress.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/duel-ui.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/home-chase.webp",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/game-shell.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/levels.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/extended-content.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/duel-levels.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/duel.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/relay-content.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/src/quick-content.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/assets/patrol-props.webp",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/favicon.svg",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:43420/favicon.svg",
+          "status": 200
+        }
+      ],
+      "pageErrors": [],
+      "failedRequests": [],
+      "pixels": {
+        "width": 1080,
+        "height": 1920
+      },
+      "bytes": 1657013,
+      "sha256": "e01e3d297149079c7d6a749ed42000a7675a9e40cbf5c9f252295ffa21c83f2a"
+    }
+  ],
+  "passed": true
+}
