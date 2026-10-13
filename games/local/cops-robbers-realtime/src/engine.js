@@ -1,3 +1,5 @@
+import { recordCheckpoint, SPRINT_MULTIPLIER } from './support.js';
+
 const EPS = 1e-7;
 export const BODY_GAP = 23;
 export const CAPTURE_RADIUS = 68;
@@ -708,6 +710,7 @@ export function captureStatus(game, robber, geometry = captureGeometry(game)) {
 
 export function stepGame(game, dt) {
   if (game.phase !== "playing" || !Number.isFinite(dt) || dt <= 0) return;
+  recordCheckpoint(game);
   // A suspended tab never receives a long catch-up simulation; the UI also pauses on visibility changes.
   let remaining = Math.min(dt, 1);
   while (remaining > EPS && game.phase === "playing") {
@@ -728,11 +731,11 @@ export function stepGame(game, dt) {
         robber.rethink = 0.32;
       }
       if (robber.capture === 0 && canCommand(game, "robber"))
-        moveActor(game, robber, game.robberSpeed * slice, game.cops);
+        moveActor(game, robber, game.robberSpeed * slice * (robber.sprintUntil > game.time ? SPRINT_MULTIPLIER : 1), game.cops);
       else robber.moving = false;
     }
     for (const cop of game.cops)
-      if (canCommand(game, "cop")) moveActor(game, cop, game.policeSpeed * slice, active);
+      if (canCommand(game, "cop")) moveActor(game, cop, game.policeSpeed * slice * (cop.sprintUntil > game.time ? SPRINT_MULTIPLIER : 1), active);
     const geometry = captureGeometry(game);
     for (const robber of active) {
       const { enclosed } = captureStatus(game, robber, geometry);

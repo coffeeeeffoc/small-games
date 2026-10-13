@@ -272,6 +272,7 @@ test('catalog and non-publishing interaction checks require explicit affected co
 
 test('publishing browsers run exact bounded suites with native gates off and failures stop publication', () => {
   const expected = {
+    'cops-robbers-realtime': ['publishing.browser.mjs'],
     'tower-brake': ['publishing-browser.mjs', 'browser.mjs', 'expansion-browser.mjs'],
     'cage-rescue': [
       'reward-browser.mjs',

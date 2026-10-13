@@ -497,6 +497,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
   // These reviewed entry points exercise sharing/ad lifecycle in the real UI.
   // Keep them sequential: several own a local server and write candidate evidence.
   const publishingBrowsers = {
+    'cops-robbers-realtime': ['publishing.browser.mjs'],
     'tower-brake': ['publishing-browser.mjs', 'browser.mjs', 'expansion-browser.mjs'],
     'cage-rescue': [
       'reward-browser.mjs',

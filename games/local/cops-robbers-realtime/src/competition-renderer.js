@@ -10,6 +10,7 @@ export function createRenderer() {
   const inside = (hit, x, y) =>
     x >= hit.x && x <= hit.x + hit.w && y >= hit.y && y <= hit.y + hit.h;
   return {
+    getSelected: () => selected,
     draw(ctx, width, height, state) {
       hits = [];
       ctx.fillStyle = '#f5f3e9';
