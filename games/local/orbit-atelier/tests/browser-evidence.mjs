@@ -7,7 +7,7 @@ import { errorEvidence } from './evidence.mjs';
 
 export async function browserEvidence() {
   const root = fileURLToPath(new URL('../dist/', import.meta.url));
-  const evidence = process.env.ORBIT_EVIDENCE_DIR ? pathToFileURL(path.resolve(process.env.ORBIT_EVIDENCE_DIR) + path.sep) : new URL('../docs/design/expansion-2026-10-11/actual/', import.meta.url);
+  const evidence = process.env.ORBIT_EVIDENCE_DIR ? pathToFileURL(path.resolve(process.env.ORBIT_EVIDENCE_DIR) + path.sep) : new URL(`../../../../.scratch/orbit-atelier/publishing/${new Date().toISOString().replace(/[:.]/g, '-')}/`, import.meta.url);
   await mkdir(evidence, { recursive: true });
   const mime = {'.js':'text/javascript', '.html':'text/html', '.css':'text/css', '.svg':'image/svg+xml', '.json':'application/json', '.png':'image/png', '.webp':'image/webp', '.wav':'audio/wav'};
   const server = createServer(async (request,response) => {

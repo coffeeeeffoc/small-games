@@ -114,9 +114,15 @@ async function verify(id, target, assertion) {
     source: `tests/browser.mjs:${driverSource.slice(0, offset).split('\n').length}`,
   });
 }
-function monitor(page, name) {
+function monitor(page, name, container = 'standalone') {
   page.on('pageerror', (error) =>
-    fail({ context: name, kind: 'pageerror', ...observation(page), ...errorEvidence(error) }),
+    fail({
+      context: name,
+      kind: 'pageerror',
+      ...observation(page),
+      container,
+      ...errorEvidence(error),
+    }),
   );
   page.on('response', (response) => {
     if (response.url().startsWith(baseUrl) && response.status() >= 400) {
@@ -125,7 +131,7 @@ function monitor(page, name) {
         kind: 'resource',
         resource: sanitize(response.url()),
         status: response.status(),
-        ...observation(page),
+        ...observation(response.frame()),
       });
     }
   });
@@ -468,7 +474,7 @@ async function startStaticServer() {
 }
 
 try {
-  assert(!probe || probe === 'pageerror', 'Unknown diagnostic probe');
+  assert(!probe || ['pageerror', 'iframe-pageerror'].includes(probe), 'Unknown diagnostic probe');
   assert(!variant || (probe && variant === 'B'), 'Variant B is a controlled diagnostic build only');
   if (!baseUrl) {
     const manager = process.env.npm_execpath || 'pnpm';
@@ -515,11 +521,22 @@ try {
     locale: 'zh-CN',
   });
   const page = await phone.newPage();
-  monitor(page, 'mobile');
+  monitor(
+    page,
+    probe === 'iframe-pageerror' ? 'iframe-probe' : 'mobile',
+    probe === 'iframe-pageerror' ? 'sandbox-iframe' : 'standalone',
+  );
   await ready(page, normalUrl());
   if (probe) {
-    record(page, 'diagnostic-probe:pageerror');
-    await page.addScriptTag({
+    let target = page;
+    if (probe === 'iframe-pageerror') {
+      await page.goto(new URL('/__qa_frame.html', baseUrl).href);
+      target = page.frames().find((frame) => frame.parentFrame());
+      assert(target, 'Diagnostic iframe mounted');
+      await expect(app(target)).toHaveAttribute('data-ready', 'true');
+    }
+    record(target, `diagnostic-probe:${probe}`);
+    await target.addScriptTag({
       content:
         "setTimeout(function orbitDiagnosticProbe() { throw new Error('Orbit controlled diagnostic failure'); }, 0);\n//# sourceURL=/__orbit_diagnostic_probe.js",
     });
@@ -889,7 +906,7 @@ try {
     hasTouch: true,
   });
   const host = await iframeContext.newPage();
-  monitor(host, 'iframe');
+  monitor(host, 'iframe', 'sandbox-iframe');
   await host.goto(new URL('/__qa_frame.html', baseUrl).href);
   const frame = host.frames().find((entry) => entry.parentFrame());
   assert(frame, 'Game iframe mounted');

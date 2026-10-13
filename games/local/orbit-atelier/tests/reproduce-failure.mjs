@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { sourceIdentity } from './build-evidence.mjs';
-import { assertMatchingBuild } from './evidence.mjs';
+import { assertMatchingBuild, failureSignature } from './evidence.mjs';
 
 // Only the recorded Orbit driver is executable; report text/commands are data.
 const reportPath = path.resolve(process.argv[2]);
@@ -13,9 +13,9 @@ const report = JSON.parse(await readFile(reportPath, 'utf8'));
 const root = fileURLToPath(new URL('../', import.meta.url));
 assert.equal(report.status, 'failed', 'Expected a failure report');
 assert(report.build && !report.build.dirty, 'Need a committed, locally attested production build');
-assert([null, 'pageerror'].includes(report.reproduction.probe));
+assert([null, 'pageerror', 'iframe-pageerror'].includes(report.reproduction.probe));
 assert(['A', 'B'].includes(report.reproduction.variant));
-assert(report.reproduction.variant === 'A' || report.reproduction.probe === 'pageerror');
+assert(report.reproduction.variant === 'A' || report.reproduction.probe);
 const source = await sourceIdentity(root);
 assert.equal(
   source.revision,
@@ -56,12 +56,11 @@ assertMatchingBuild(report.build, result.build);
 assert.equal(result.status, 'failed');
 const expected =
   report.failures.find((entry) => entry.kind === 'pageerror') ||
+  report.failures.find((entry) => entry.kind === 'resource') ||
   report.failures.find((entry) => entry.kind === 'runner');
 assert(expected, 'Report has no reproducible failure');
 assert(
-  result.failures.some(
-    (entry) => entry.kind === expected.kind && entry.message === expected.message,
-  ),
+  result.failures.some((entry) => failureSignature(entry) === failureSignature(expected)),
   'Failure signature does not match',
 );
 console.log(

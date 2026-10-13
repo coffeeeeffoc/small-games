@@ -11,7 +11,10 @@ export function sanitize(value, limit = 16000) {
     .replace(/https?:\/\/[^\s)"'<>]+/g, (raw) => {
       try {
         const url = new URL(raw);
-        return `${url.origin}${url.pathname}`;
+        const origin = ['localhost', '127.0.0.1'].includes(url.hostname)
+          ? `${url.protocol}//${url.hostname}`
+          : url.origin;
+        return `${origin}${url.pathname}`;
       } catch {
         return '[url]';
       }
@@ -32,6 +35,18 @@ export function errorEvidence(error) {
     message: sanitize(error.message, 4000),
     stack: sanitize(error.stack),
   };
+}
+export function failureSignature(entry) {
+  return JSON.stringify(
+    entry.kind === 'resource'
+      ? {
+          kind: entry.kind,
+          resource: sanitize(entry.resource),
+          status: entry.status,
+          container: entry.container,
+        }
+      : { kind: entry.kind, name: entry.name, message: sanitize(entry.message, 4000) },
+  );
 }
 export function coverageSummary(spec, receipts, source) {
   assert.equal(spec.schemaVersion, 1);

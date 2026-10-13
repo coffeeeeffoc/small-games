@@ -46,7 +46,7 @@ node tests/coverage-report.mjs <absolute-browser-report.json>
 node tests/reproduce-failure.mjs <absolute-browser-report.json>
 ```
 
-脚本只运行固定的 Orbit driver，不执行报告里任意命令文本。普通失败重跑完整专项；可控 pageerror 只在显式设置 `ORBIT_DIAGNOSTIC_PROBE=pageerror` 时注入独立测试脚本错误并立即失败。`ORBIT_DIAGNOSTIC_VARIANT=B` 仅允许与该 probe 一起使用，使用 Vite 的 `/orbit-diagnostic-b/` base 构建第二份不同制品。两者都记录于报告供固定复现；默认测试无故障注入。probe 用来验证收集与版本绑定，不代表发现了游戏 bug。
+脚本只运行固定的 Orbit driver，不执行报告里任意命令文本。普通失败重跑完整专项；可控 pageerror 只在显式设置 `ORBIT_DIAGNOSTIC_PROBE=pageerror`（独立）或 `iframe-pageerror`（sandbox iframe）时注入独立测试脚本错误并立即失败。`ORBIT_DIAGNOSTIC_VARIANT=B` 仅允许与 probe 一起使用，使用 Vite 的 `/orbit-diagnostic-b/` base 构建第二份不同制品。两者都记录于报告供固定复现；默认测试无故障注入。probe 用来验证收集与版本绑定，不代表发现了游戏 bug。HTTP 失败按资源路径/状态/容器比较，本机随机端口被规范化，不影响重跑签名。
 
 无需 source map：报告保留生产脚本文件名及栈中行列，匹配制品可重现，必要时用对应源码定位。未生成或上传 map；hidden map 也不当作保密方案。
 

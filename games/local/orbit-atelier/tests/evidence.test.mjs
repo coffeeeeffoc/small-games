@@ -8,6 +8,7 @@ import {
   readCoverage,
   sanitize,
   textDigest,
+  failureSignature,
 } from './evidence.mjs';
 
 test('coverage requires execution receipts, valid dimensions and executable assertions', async () => {
@@ -48,6 +49,35 @@ test('bounded errors retain stack frames and remove URL credentials, queries and
 test('source and driver fingerprints normalize checkout line endings, not code changes', () => {
   assert.equal(textDigest('const x = 1;\r\n'), textDigest('const x = 1;\n'));
   assert.notEqual(textDigest('const x = 1;\n'), textDigest('const x = 2;\n'));
+});
+test('failure signatures tolerate local ephemeral ports but distinguish resources and status', () => {
+  const resource = {
+    kind: 'resource',
+    resource: 'http://127.0.0.1:1234/assets/missing.js',
+    status: 404,
+    container: 'sandbox-iframe',
+  };
+  assert.equal(
+    failureSignature(resource),
+    failureSignature({
+      ...resource,
+      resource: 'http://127.0.0.1:5678/assets/missing.js?token=private',
+    }),
+  );
+  assert.notEqual(failureSignature(resource), failureSignature({ ...resource, status: 500 }));
+  assert.notEqual(
+    failureSignature(resource),
+    failureSignature({ ...resource, container: 'standalone' }),
+  );
+  assert.notEqual(
+    failureSignature(resource),
+    failureSignature({ ...resource, resource: 'http://127.0.0.1:1234/other.js' }),
+  );
+  const runner = { kind: 'runner', name: 'Error', message: 'failed http://127.0.0.1:1234/app.js' };
+  assert.equal(
+    failureSignature(runner),
+    failureSignature({ ...runner, message: 'failed http://127.0.0.1:5678/app.js' }),
+  );
 });
 test('reproduction rejects different revision, source, asset fingerprint and dirty source', () => {
   const build = {
