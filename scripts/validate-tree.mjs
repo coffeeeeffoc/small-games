@@ -511,6 +511,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
   // Keep them sequential: several own a local server and write candidate evidence.
   const publishingBrowsers = {
     'cops-robbers': ['check-rewarded-hints.mjs'],
+    'cops-robbers-realtime': ['publishing.browser.mjs'],
     'tower-brake': ['publishing-browser.mjs', 'browser.mjs', 'expansion-browser.mjs'],
     'cage-rescue': [
       'reward-browser.mjs',

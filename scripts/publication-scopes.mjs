@@ -121,7 +121,7 @@ function exactValidationHistory(file, before, after) {
   );
 }
 
-function literalDeclaration(source, name) {
+function literalDeclaration(source, name, allowBoolean = false) {
   const { parsers } = loadDependency('prettier/plugins/babel');
   const ast = parsers.babel.parse(source, {});
   const declarations = ast.program.body
@@ -141,7 +141,11 @@ function literalDeclaration(source, name) {
       assert(new Set(names).size === names.length, 'Duplicate literal key');
     } else if (node.type === 'ArrayExpression') {
       for (const item of node.elements) check(item);
-    } else assert(node.type === 'StringLiteral', 'Unreviewed executable literal');
+    } else
+      assert(
+        node.type === 'StringLiteral' || (allowBoolean && node.type === 'BooleanLiteral'),
+        'Unreviewed executable literal',
+      );
   }
   check(entry.init);
   return JSON.parse(
@@ -499,7 +503,7 @@ function additiveLines(before, after) {
 
 function assertCompetitionRegistry(readHead, games) {
   const source = readHead(builder);
-  const registry = literalDeclaration(source, 'competitionGames');
+  const registry = literalDeclaration(source, 'competitionGames', true);
   assert(
     isDeepStrictEqual(Object.keys(registry).sort(), Object.keys(competitionConsumers).sort()),
     'Unreviewed competition consumer',
@@ -511,7 +515,14 @@ function assertCompetitionRegistry(readHead, games) {
       'Competition source mismatch',
     );
     assert(
-      isDeepStrictEqual(Object.keys(registry[id]).sort(), ['directory', 'renderer', 'title']),
+      isDeepStrictEqual(
+        Object.keys(registry[id])
+          .filter((key) => key !== 'online')
+          .sort(),
+        ['directory', 'renderer', 'title'],
+      ) &&
+        (!Object.hasOwn(registry[id], 'online') ||
+          (id === 'cops-robbers-realtime' && registry[id].online === false)),
       'Unreviewed competition registry fields',
     );
     assert(typeof registry[id].renderer === 'string' && typeof registry[id].title === 'string');
@@ -917,6 +928,7 @@ function assertCageRescueImmersive(file, before, after) {
 // boundary keeps a change to the shared adapter from silently skipping consumers.
 export const publishingConsumers = {
   'cops-robbers': 'games/local/cops-robbers',
+  'cops-robbers-realtime': 'games/local/cops-robbers-realtime',
   'tower-brake': 'games/local/tower-brake',
   'cage-rescue': 'games/local/cage-rescue',
   'ball-roguelite': 'games/local/ball-roguelite',
@@ -1314,6 +1326,18 @@ export function reviewedSharedFileScopes({
         scopes.set(file, [...sources]);
       } else if (file === 'scripts/check-game-config.test.mjs') {
         scopes.set(file, []);
+      } else if (file === 'scripts/street-native-smoke.mjs') {
+        assert(
+          games.filter(
+            (game) =>
+              game.id === 'cops-robbers-realtime' && game.source === competitionConsumers[game.id],
+          ).length === 1,
+        );
+        assert.equal(
+          createHash('sha256').update(readHead(file).replaceAll('\r\n', '\n')).digest('hex'),
+          'ccf421e8a4fee57645b4d1476bdad24b03ef12d1f4a0b20f08553cb56a336462',
+        );
+        scopes.set(file, [competitionConsumers['cops-robbers-realtime']]);
       } else if (competitionFiles.includes(file)) {
         assertCompetitionRegistry(readHead, games);
         scopes.set(

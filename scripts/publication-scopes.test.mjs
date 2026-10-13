@@ -1041,6 +1041,45 @@ test('new or renamed competition consumers and missing native packages remain cl
   );
 });
 
+test('only realtime may declare its online functionality disabled', () => {
+  const file = 'scripts/competition-build.mjs';
+  const value = JSON.parse(registry.slice(registry.indexOf('=') + 1, -1));
+  value['cops-robbers-realtime'].online = false;
+  const source = () => 'export const competitionGames = ' + JSON.stringify(value) + ';';
+  assert.deepEqual(
+    classify(file, registry, source()).get(file),
+    Object.values(competitionConsumers),
+  );
+  for (const invalid of [true, 'false', 0]) {
+    value['cops-robbers-realtime'].online = invalid;
+    assert.equal(classify(file, registry, source()).has(file), false);
+  }
+  value['cops-robbers-realtime'].online = false;
+  value['cops-robbers'].online = false;
+  assert.equal(classify(file, registry, source()).has(file), false);
+});
+
+test('offline realtime competition builder leaves its H5 game unchanged', async () => {
+  const { buildCompetition } = await import('./competition-build.mjs');
+  const { mkdtemp, readdir, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const outputRoot = await mkdtemp(join(tmpdir(), 'street-offline-build-'));
+  try {
+    await buildCompetition({ only: 'cops-robbers-realtime', outputRoot });
+    assert.deepEqual(await readdir(outputRoot), []);
+  } finally {
+    await rm(outputRoot, { recursive: true });
+  }
+});
+
+test('reviewed offline street native smoke selects its single game and rejects extra executable bytes', () => {
+  const file = 'scripts/street-native-smoke.mjs';
+  const source = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  assert.deepEqual(classify(file, '', source).get(file), ['games/local/cops-robbers-realtime']);
+  assert.equal(classify(file, '', source + '\nglobalThis.unreviewed = true;\n').has(file), false);
+});
+
 test('shared dependency closure and explicit shared-runtime consumers are combined', () => {
   const file = 'platforms/competition/h5.js';
   const scopes = classify(file, '', 'changed');

@@ -15,6 +15,11 @@ const mime = {
 createServer(async (req, res) => {
   try {
     const url = new URL(req.url, "http://localhost");
+    if (url.pathname === "/publishing.js") {
+      res.writeHead(200, { "Content-Type": mime[".js"], "Cache-Control": "no-store" });
+      res.end(await readFile(new URL("../../../../platforms/h5/publishing.js", import.meta.url)));
+      return;
+    }
     const file = resolve(root, "." + decodeURIComponent(url.pathname));
     if (file !== root && !file.startsWith(root + sep)) {
       res.writeHead(403).end();
