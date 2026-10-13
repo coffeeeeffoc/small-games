@@ -1,9 +1,10 @@
 {
   "format": "TapTap H5 static ZIP",
-  "entry": "index.html",
+  "entry": "dist/index.html",
+  "uploadDirectory": "games/local/ashfall-front/dist",
   "screenOrientation": 2,
-  "bytes": 53677,
-  "sha256": "f395bb235454b81691405a23684cb76da75ffd4579a2764e7e0f9e8cff7539bc",
+  "bytes": 53540,
+  "sha256": "923f4c54f19b8a597b43cc1ee0ace993ae1dd40bbe3c6128790423df06e40267",
   "files": [
     {
       "path": "assets/emblem.svg",

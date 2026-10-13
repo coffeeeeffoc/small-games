@@ -2,13 +2,17 @@ import assert from 'node:assert/strict';
 import { spawn, execFileSync } from 'node:child_process';
 import { mkdir, writeFile, rename } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import { chromium, expect } from '@playwright/test';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const output = fileURLToPath(new URL('../docs/qa/', import.meta.url));
+const output = path.resolve(root, process.env.ASHFALL_QA_DIR || 'docs/qa') + path.sep;
 const port = Number(process.env.ASHFALL_TEST_PORT || 4468);
-const origin = 'http://127.0.0.1:' + port;
+const origin = (process.env.ASHFALL_TEST_URL || 'http://127.0.0.1:' + port).replace(/\/$/, '');
+const requests = new Set();
 const report = {
+  entryUrl: origin + '/',
+  testedAt: new Date().toISOString(),
   browser: '',
   checks: [],
   errors: [],
@@ -20,27 +24,31 @@ const report = {
   ],
 };
 await mkdir(output, { recursive: true });
-execFileSync(process.execPath, ['build.mjs'], { cwd: root, stdio: 'inherit' });
-const server = spawn(process.execPath, ['server.mjs', '--dist'], {
-  cwd: root,
-  env: { ...process.env, HOST: '127.0.0.1', PORT: String(port) },
-  stdio: 'pipe',
-});
+let server;
 let serverLog = '';
-server.stdout.on('data', (chunk) => {
-  serverLog += chunk;
-});
-server.stderr.on('data', (chunk) => {
-  serverLog += chunk;
-});
+if (!process.env.ASHFALL_TEST_URL) {
+  execFileSync(process.execPath, ['build.mjs'], { cwd: root, stdio: 'inherit' });
+  server = spawn(process.execPath, ['server.mjs', '--dist'], {
+    cwd: root,
+    env: { ...process.env, HOST: '127.0.0.1', PORT: String(port) },
+    stdio: 'pipe',
+  });
+  server.stdout.on('data', (chunk) => {
+    serverLog += chunk;
+  });
+  server.stderr.on('data', (chunk) => {
+    serverLog += chunk;
+  });
+}
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 for (let attempt = 0; attempt < 100; attempt++) {
   try {
-    if ((await fetch(origin)).ok) break;
+    if ((await fetch(origin + '/')).ok) break;
   } catch {
     /* Wait for our server only. */
   }
-  if (server.exitCode !== null || attempt === 99) throw new Error('Server failed: ' + serverLog);
+  if ((server && server.exitCode !== null) || attempt === 99)
+    throw new Error('Server failed: ' + serverLog);
   await delay(100);
 }
 const browser = await chromium.launch({
@@ -58,9 +66,19 @@ const screenshot = async (name) => {
 };
 const observe = (current) => {
   current.on('pageerror', (error) => report.errors.push(error.message));
+  current.on('console', (message) => {
+    if (message.type() === 'error') report.errors.push(message.text());
+  });
+  current.on('request', (request) => {
+    requests.add(request.url());
+    if (new URL(request.url()).origin !== new URL(origin).origin)
+      report.errors.push('External dependency: ' + request.url());
+  });
+  current.on('requestfailed', (request) => {
+    report.errors.push('Request failed: ' + request.url() + ' ' + request.failure()?.errorText);
+  });
   current.on('response', (response) => {
-    if (response.url().startsWith(origin) && response.status() >= 400)
-      report.errors.push(response.status() + ' ' + response.url());
+    if (response.status() >= 400) report.errors.push(response.status() + ' ' + response.url());
   });
 };
 const point = async (selector) => {
@@ -434,7 +452,7 @@ try {
   const desktop = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   page = await desktop.newPage();
   observe(page);
-  await page.goto(origin);
+  await page.goto(origin + '/');
   await expect(page.locator('#game')).toHaveAttribute('data-ready', 'true');
   assert.equal(await page.evaluate(() => window.SmallGamesDev.isEnabled()), false);
   assert.equal(await page.evaluate(() => Boolean(window.AshfallDebug)), false);
@@ -640,7 +658,8 @@ try {
   console.error(error);
   process.exitCode = 1;
 } finally {
+  report.requests = [...requests].sort();
   await writeFile(output + 'browser-report.json', JSON.stringify(report, null, 2) + '\n');
   await browser.close();
-  server.kill('SIGTERM');
+  server?.kill('SIGTERM');
 }
