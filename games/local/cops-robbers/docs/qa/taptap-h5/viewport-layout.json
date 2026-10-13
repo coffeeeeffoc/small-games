@@ -1,0 +1,1624 @@
+{
+  "started": "2026-10-13T15:42:49.070Z",
+  "passed": true,
+  "physicalMobile": false,
+  "fixture": "Actual game HTML/CSS, shared competition client/UI and game renderer; mocked API responses validated with real server rules",
+  "viewports": [
+    [
+      320,
+      568
+    ],
+    [
+      390,
+      844
+    ],
+    [
+      844,
+      390
+    ]
+  ],
+  "checks": [
+    {
+      "name": "home",
+      "width": 320,
+      "height": 568,
+      "passed": true,
+      "screenshot": "320x568-home.png",
+      "details": {
+        "document": {
+          "width": 320,
+          "height": 568,
+          "scrollWidth": 320,
+          "scrollHeight": 568,
+          "scrollX": 0,
+          "scrollY": 0
+        },
+        "entries": {
+          "#home-start": {
+            "text": "开始巡逻 ▶",
+            "rect": {
+              "x": 14,
+              "y": 264,
+              "width": 292,
+              "height": 52,
+              "right": 306,
+              "bottom": 316
+            },
+            "clipped": {
+              "left": 14,
+              "top": 264,
+              "right": 306,
+              "bottom": 316
+            },
+            "x": 160,
+            "y": 290,
+            "hit": true,
+            "hitElement": "BUTTON#home-start",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#home-start')"
+          },
+          "#resume-patrol": {
+            "text": "继续上次 第 1 关 ›",
+            "rect": {
+              "x": 31.515625,
+              "y": 323,
+              "width": 256.953125,
+              "height": 44,
+              "right": 288.46875,
+              "bottom": 367
+            },
+            "clipped": {
+              "left": 31.515625,
+              "top": 323,
+              "right": 288.46875,
+              "bottom": 367
+            },
+            "x": 159.9921875,
+            "y": 345,
+            "hit": true,
+            "hitElement": "BUTTON#resume-patrol",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#resume-patrol')"
+          },
+          "#appearance-settings": {
+            "text": "换装",
+            "rect": {
+              "x": 14,
+              "y": 374,
+              "width": 67.75,
+              "height": 80,
+              "right": 81.75,
+              "bottom": 454
+            },
+            "clipped": {
+              "left": 14,
+              "top": 374,
+              "right": 81.75,
+              "bottom": 454
+            },
+            "x": 47.875,
+            "y": 414,
+            "hit": true,
+            "hitElement": "svg#appearance-art",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#appearance-settings')"
+          },
+          "#friend-duel": {
+            "text": "好友 · 未开放",
+            "rect": {
+              "x": 88.75,
+              "y": 374,
+              "width": 67.75,
+              "height": 80,
+              "right": 156.5,
+              "bottom": 454
+            },
+            "clipped": {
+              "left": 88.75,
+              "top": 374,
+              "right": 156.5,
+              "bottom": 454
+            },
+            "x": 122.625,
+            "y": 414,
+            "hit": true,
+            "hitElement": "BUTTON#friend-duel",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#friend-duel')"
+          },
+          "#mode-settings": {
+            "text": "玩法",
+            "rect": {
+              "x": 163.5,
+              "y": 374,
+              "width": 67.75,
+              "height": 80,
+              "right": 231.25,
+              "bottom": 454
+            },
+            "clipped": {
+              "left": 163.5,
+              "top": 374,
+              "right": 231.25,
+              "bottom": 454
+            },
+            "x": 197.375,
+            "y": 414,
+            "hit": true,
+            "hitElement": "path",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#mode-settings')"
+          },
+          "#help": {
+            "text": "指南",
+            "rect": {
+              "x": 238.25,
+              "y": 374,
+              "width": 67.75,
+              "height": 80,
+              "right": 306,
+              "bottom": 454
+            },
+            "clipped": {
+              "left": 238.25,
+              "top": 374,
+              "right": 306,
+              "bottom": 454
+            },
+            "x": 272.125,
+            "y": 414,
+            "hit": true,
+            "hitElement": "path",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#help')"
+          },
+          "#level-select": {
+            "text": "街区地图 0 / 120",
+            "rect": {
+              "x": 14,
+              "y": 461,
+              "width": 118.6875,
+              "height": 44,
+              "right": 132.6875,
+              "bottom": 505
+            },
+            "clipped": {
+              "left": 14,
+              "top": 461,
+              "right": 132.6875,
+              "bottom": 505
+            },
+            "x": 73.34375,
+            "y": 483,
+            "hit": true,
+            "hitElement": "BUTTON#level-select",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#level-select')"
+          },
+          "#quick-start": {
+            "text": "两步试炼",
+            "rect": {
+              "x": 138.6875,
+              "y": 461,
+              "width": 91.3125,
+              "height": 44,
+              "right": 230,
+              "bottom": 505
+            },
+            "clipped": {
+              "left": 138.6875,
+              "top": 461,
+              "right": 230,
+              "bottom": 505
+            },
+            "x": 184.34375,
+            "y": 483,
+            "hit": true,
+            "hitElement": "BUTTON#quick-start",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#quick-start')"
+          },
+          "[data-game-fullscreen]": {
+            "text": "全屏",
+            "rect": {
+              "x": 236,
+              "y": 461,
+              "width": 70,
+              "height": 44,
+              "right": 306,
+              "bottom": 505
+            },
+            "clipped": {
+              "left": 236,
+              "top": 461,
+              "right": 306,
+              "bottom": 505
+            },
+            "x": 271,
+            "y": 483,
+            "hit": true,
+            "hitElement": "BUTTON",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('[data-game-fullscreen]')"
+          },
+          "#share-challenge": {
+            "text": "分享同题",
+            "rect": {
+              "x": 46.125,
+              "y": 512,
+              "width": 227.75,
+              "height": 44,
+              "right": 273.875,
+              "bottom": 556
+            },
+            "clipped": {
+              "left": 46.125,
+              "top": 512,
+              "right": 273.875,
+              "bottom": 556
+            },
+            "x": 160,
+            "y": 534,
+            "hit": true,
+            "hitElement": "BUTTON#share-challenge",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#share-challenge')"
+          },
+          "#sound": {
+            "text": "关闭音效",
+            "rect": {
+              "x": 212,
+              "y": 6,
+              "width": 44,
+              "height": 44,
+              "right": 256,
+              "bottom": 50
+            },
+            "clipped": {
+              "left": 212,
+              "top": 6,
+              "right": 256,
+              "bottom": 50
+            },
+            "x": 234,
+            "y": 28,
+            "hit": true,
+            "hitElement": "svg",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#sound')"
+          },
+          "#settings": {
+            "text": "游戏设置",
+            "rect": {
+              "x": 264,
+              "y": 6,
+              "width": 44,
+              "height": 44,
+              "right": 308,
+              "bottom": 50
+            },
+            "clipped": {
+              "left": 264,
+              "top": 6,
+              "right": 308,
+              "bottom": 50
+            },
+            "x": 286,
+            "y": 28,
+            "hit": true,
+            "hitElement": "svg",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#settings')"
+          }
+        }
+      },
+      "capturedBeforeDismissal": true,
+      "apiCalls": []
+    },
+    {
+      "name": "friend-disabled",
+      "width": 320,
+      "height": 568,
+      "passed": true,
+      "screenshot": "320x568-friend-disabled.png",
+      "capturedBeforeDismissal": true,
+      "apiCalls": []
+    },
+    {
+      "name": "friend-lobby",
+      "width": 320,
+      "height": 568,
+      "passed": true,
+      "screenshot": "320x568-friend-lobby.png",
+      "details": {
+        "[data-match-mode]": {
+          "text": "出口竞速 · 120关限步周旋 · 120关",
+          "rect": {
+            "x": 34,
+            "y": 226.984375,
+            "width": 80,
+            "height": 44,
+            "right": 114,
+            "bottom": 270.984375
+          },
+          "clipped": {
+            "left": 34,
+            "top": 226.984375,
+            "right": 114,
+            "bottom": 270.984375
+          },
+          "x": 74,
+          "y": 248.984375,
+          "hit": true,
+          "hitElement": "SELECT",
+          "displayed": true,
+          "inert": false,
+          "scrollAncestors": [],
+          "selector": "locator('.competition-dialog [data-match-mode]')"
+        },
+        "[data-match-role]": {
+          "text": "追逐队突围队",
+          "rect": {
+            "x": 120,
+            "y": 226.984375,
+            "width": 80,
+            "height": 44,
+            "right": 200,
+            "bottom": 270.984375
+          },
+          "clipped": {
+            "left": 120,
+            "top": 226.984375,
+            "right": 200,
+            "bottom": 270.984375
+          },
+          "x": 160,
+          "y": 248.984375,
+          "hit": true,
+          "hitElement": "SELECT",
+          "displayed": true,
+          "inert": false,
+          "scrollAncestors": [],
+          "selector": "locator('.competition-dialog [data-match-role]')"
+        },
+        "[data-match-initiative]": {
+          "text": "系统分配先手追逐队先手突围队先手",
+          "rect": {
+            "x": 206,
+            "y": 226.984375,
+            "width": 80,
+            "height": 44,
+            "right": 286,
+            "bottom": 270.984375
+          },
+          "clipped": {
+            "left": 206,
+            "top": 226.984375,
+            "right": 286,
+            "bottom": 270.984375
+          },
+          "x": 246,
+          "y": 248.984375,
+          "hit": true,
+          "hitElement": "SELECT",
+          "displayed": true,
+          "inert": false,
+          "scrollAncestors": [],
+          "selector": "locator('.competition-dialog [data-match-initiative]')"
+        },
+        "[data-create]": {
+          "text": "创建好友挑战 ↗",
+          "rect": {
+            "x": 34,
+            "y": 276.984375,
+            "width": 252,
+            "height": 44,
+            "right": 286,
+            "bottom": 320.984375
+          },
+          "clipped": {
+            "left": 34,
+            "top": 276.984375,
+            "right": 286,
+            "bottom": 320.984375
+          },
+          "x": 160,
+          "y": 298.984375,
+          "hit": true,
+          "hitElement": "BUTTON",
+          "displayed": true,
+          "inert": false,
+          "scrollAncestors": [],
+          "selector": "locator('.competition-dialog [data-create]')"
+        },
+        "[data-code]": {
+          "text": "",
+          "rect": {
+            "x": 34,
+            "y": 388.375,
+            "width": 182,
+            "height": 46,
+            "right": 216,
+            "bottom": 434.375
+          },
+          "clipped": {
+            "left": 34,
+            "top": 388.375,
+            "right": 216,
+            "bottom": 434.375
+          },
+          "x": 125,
+          "y": 411.375,
+          "hit": true,
+          "hitElement": "INPUT",
+          "displayed": true,
+          "inert": false,
+          "scrollAncestors": [],
+          "selector": "locator('.competition-dialog [data-code]')"
+        },
+        "[data-join]": {
+          "text": "加入",
+          "rect": {
+            "x": 224,
+            "y": 390.375,
+            "width": 62,
+            "height": 44,
+            "right": 286,
+            "bottom": 434.375
+          },
+          "clipped": {
+            "left": 224,
+            "top": 390.375,
+            "right": 286,
+            "bottom": 434.375
+          },
+          "x": 255,
+          "y": 412.375,
+          "hit": true,
+          "hitElement": "BUTTON",
+          "displayed": true,
+          "inert": false,
+          "scrollAncestors": [],
+          "selector": "locator('.competition-dialog [data-join]')"
+        },
+        "[data-close]": {
+          "text": "退出 PK",
+          "rect": {
+            "x": 205,
+            "y": 497,
+            "width": 88,
+            "height": 44,
+            "right": 293,
+            "bottom": 541
+          },
+          "clipped": {
+            "left": 205,
+            "top": 497,
+            "right": 293,
+            "bottom": 541
+          },
+          "x": 249,
+          "y": 519,
+          "hit": true,
+          "hitElement": "BUTTON",
+          "displayed": true,
+          "inert": false,
+          "scrollAncestors": [],
+          "selector": "locator('.competition-dialog [data-close]')"
+        }
+      },
+      "capturedBeforeDismissal": true,
+      "apiCalls": [
+        {
+          "path": "/sessions/guest",
+          "method": "POST",
+          "body": {}
+        },
+        {
+          "path": "/me",
+          "method": "GET",
+          "body": {}
+        },
+        {
+          "path": "/boards/cops-robbers",
+          "method": "GET",
+          "body": {}
+        }
+      ]
+    },
+    {
+      "name": "home",
+      "width": 390,
+      "height": 844,
+      "passed": true,
+      "screenshot": "390x844-home.png",
+      "details": {
+        "document": {
+          "width": 390,
+          "height": 844,
+          "scrollWidth": 390,
+          "scrollHeight": 844,
+          "scrollX": 0,
+          "scrollY": 0
+        },
+        "entries": {
+          "#home-start": {
+            "text": "开始巡逻 ▶",
+            "rect": {
+              "x": 14,
+              "y": 548,
+              "width": 362,
+              "height": 54,
+              "right": 376,
+              "bottom": 602
+            },
+            "clipped": {
+              "left": 14,
+              "top": 548,
+              "right": 376,
+              "bottom": 602
+            },
+            "x": 195,
+            "y": 575,
+            "hit": true,
+            "hitElement": "BUTTON#home-start",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#home-start')"
+          },
+          "#resume-patrol": {
+            "text": "继续上次 第 1 关 ›",
+            "rect": {
+              "x": 35.71875,
+              "y": 610,
+              "width": 318.546875,
+              "height": 44,
+              "right": 354.265625,
+              "bottom": 654
+            },
+            "clipped": {
+              "left": 35.71875,
+              "top": 610,
+              "right": 354.265625,
+              "bottom": 654
+            },
+            "x": 194.9921875,
+            "y": 632,
+            "hit": true,
+            "hitElement": "BUTTON#resume-patrol",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#resume-patrol')"
+          },
+          "#appearance-settings": {
+            "text": "换装",
+            "rect": {
+              "x": 14,
+              "y": 662,
+              "width": 85.25,
+              "height": 66,
+              "right": 99.25,
+              "bottom": 728
+            },
+            "clipped": {
+              "left": 14,
+              "top": 662,
+              "right": 99.25,
+              "bottom": 728
+            },
+            "x": 56.625,
+            "y": 695,
+            "hit": true,
+            "hitElement": "svg#appearance-art",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#appearance-settings')"
+          },
+          "#friend-duel": {
+            "text": "好友 · 未开放",
+            "rect": {
+              "x": 106.25,
+              "y": 662,
+              "width": 85.25,
+              "height": 66,
+              "right": 191.5,
+              "bottom": 728
+            },
+            "clipped": {
+              "left": 106.25,
+              "top": 662,
+              "right": 191.5,
+              "bottom": 728
+            },
+            "x": 148.875,
+            "y": 695,
+            "hit": true,
+            "hitElement": "path",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#friend-duel')"
+          },
+          "#mode-settings": {
+            "text": "玩法",
+            "rect": {
+              "x": 198.5,
+              "y": 662,
+              "width": 85.25,
+              "height": 66,
+              "right": 283.75,
+              "bottom": 728
+            },
+            "clipped": {
+              "left": 198.5,
+              "top": 662,
+              "right": 283.75,
+              "bottom": 728
+            },
+            "x": 241.125,
+            "y": 695,
+            "hit": true,
+            "hitElement": "path",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#mode-settings')"
+          },
+          "#help": {
+            "text": "指南",
+            "rect": {
+              "x": 290.75,
+              "y": 662,
+              "width": 85.25,
+              "height": 66,
+              "right": 376,
+              "bottom": 728
+            },
+            "clipped": {
+              "left": 290.75,
+              "top": 662,
+              "right": 376,
+              "bottom": 728
+            },
+            "x": 333.375,
+            "y": 695,
+            "hit": true,
+            "hitElement": "path",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#help')"
+          },
+          "#level-select": {
+            "text": "街区地图 0 / 120",
+            "rect": {
+              "x": 14,
+              "y": 736,
+              "width": 154.234375,
+              "height": 44,
+              "right": 168.234375,
+              "bottom": 780
+            },
+            "clipped": {
+              "left": 14,
+              "top": 736,
+              "right": 168.234375,
+              "bottom": 780
+            },
+            "x": 91.1171875,
+            "y": 758,
+            "hit": true,
+            "hitElement": "BUTTON#level-select",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#level-select')"
+          },
+          "#quick-start": {
+            "text": "两步试炼",
+            "rect": {
+              "x": 174.234375,
+              "y": 736,
+              "width": 118.640625,
+              "height": 44,
+              "right": 292.875,
+              "bottom": 780
+            },
+            "clipped": {
+              "left": 174.234375,
+              "top": 736,
+              "right": 292.875,
+              "bottom": 780
+            },
+            "x": 233.5546875,
+            "y": 758,
+            "hit": true,
+            "hitElement": "BUTTON#quick-start",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#quick-start')"
+          },
+          "[data-game-fullscreen]": {
+            "text": "全屏",
+            "rect": {
+              "x": 298.875,
+              "y": 736,
+              "width": 77.125,
+              "height": 44,
+              "right": 376,
+              "bottom": 780
+            },
+            "clipped": {
+              "left": 298.875,
+              "top": 736,
+              "right": 376,
+              "bottom": 780
+            },
+            "x": 337.4375,
+            "y": 758,
+            "hit": true,
+            "hitElement": "BUTTON",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('[data-game-fullscreen]')"
+          },
+          "#share-challenge": {
+            "text": "分享同题",
+            "rect": {
+              "x": 53.8125,
+              "y": 788,
+              "width": 282.359375,
+              "height": 44,
+              "right": 336.171875,
+              "bottom": 832
+            },
+            "clipped": {
+              "left": 53.8125,
+              "top": 788,
+              "right": 336.171875,
+              "bottom": 832
+            },
+            "x": 194.9921875,
+            "y": 810,
+            "hit": true,
+            "hitElement": "BUTTON#share-challenge",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#share-challenge')"
+          },
+          "#sound": {
+            "text": "关闭音效",
+            "rect": {
+              "x": 282,
+              "y": 6,
+              "width": 44,
+              "height": 44,
+              "right": 326,
+              "bottom": 50
+            },
+            "clipped": {
+              "left": 282,
+              "top": 6,
+              "right": 326,
+              "bottom": 50
+            },
+            "x": 304,
+            "y": 28,
+            "hit": true,
+            "hitElement": "svg",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#sound')"
+          },
+          "#settings": {
+            "text": "游戏设置",
+            "rect": {
+              "x": 334,
+              "y": 6,
+              "width": 44,
+              "height": 44,
+              "right": 378,
+              "bottom": 50
+            },
+            "clipped": {
+              "left": 334,
+              "top": 6,
+              "right": 378,
+              "bottom": 50
+            },
+            "x": 356,
+            "y": 28,
+            "hit": true,
+            "hitElement": "svg",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#settings')"
+          }
+        }
+      },
+      "capturedBeforeDismissal": true,
+      "apiCalls": []
+    },
+    {
+      "name": "friend-disabled",
+      "width": 390,
+      "height": 844,
+      "passed": true,
+      "screenshot": "390x844-friend-disabled.png",
+      "capturedBeforeDismissal": true,
+      "apiCalls": []
+    },
+    {
+      "name": "friend-lobby",
+      "width": 390,
+      "height": 844,
+      "passed": true,
+      "screenshot": "390x844-friend-lobby.png",
+      "details": {
+        "[data-match-mode]": {
+          "text": "出口竞速 · 120关限步周旋 · 120关",
+          "rect": {
+            "x": 34,
+            "y": 316.984375,
+            "width": 103.328125,
+            "height": 44,
+            "right": 137.328125,
+            "bottom": 360.984375
+          },
+          "clipped": {
+            "left": 34,
+            "top": 316.984375,
+            "right": 137.328125,
+            "bottom": 360.984375
+          },
+          "x": 85.6640625,
+          "y": 338.984375,
+          "hit": true,
+          "hitElement": "SELECT",
+          "displayed": true,
+          "inert": false,
+          "scrollAncestors": [],
+          "selector": "locator('.competition-dialog [data-match-mode]')"
+        },
+        "[data-match-role]": {
+          "text": "追逐队突围队",
+          "rect": {
+            "x": 143.328125,
+            "y": 316.984375,
+            "width": 103.328125,
+            "height": 44,
+            "right": 246.65625,
+            "bottom": 360.984375
+          },
+          "clipped": {
+            "left": 143.328125,
+            "top": 316.984375,
+            "right": 246.65625,
+            "bottom": 360.984375
+          },
+          "x": 194.9921875,
+          "y": 338.984375,
+          "hit": true,
+          "hitElement": "SELECT",
+          "displayed": true,
+          "inert": false,
+          "scrollAncestors": [],
+          "selector": "locator('.competition-dialog [data-match-role]')"
+        },
+        "[data-match-initiative]": {
+          "text": "系统分配先手追逐队先手突围队先手",
+          "rect": {
+            "x": 252.65625,
+            "y": 316.984375,
+            "width": 103.34375,
+            "height": 44,
+            "right": 356,
+            "bottom": 360.984375
+          },
+          "clipped": {
+            "left": 252.65625,
+            "top": 316.984375,
+            "right": 356,
+            "bottom": 360.984375
+          },
+          "x": 304.328125,
+          "y": 338.984375,
+          "hit": true,
+          "hitElement": "SELECT",
+          "displayed": true,
+          "inert": false,
+          "scrollAncestors": [],
+          "selector": "locator('.competition-dialog [data-match-initiative]')"
+        },
+        "[data-create]": {
+          "text": "创建好友挑战 ↗",
+          "rect": {
+            "x": 34,
+            "y": 366.984375,
+            "width": 322,
+            "height": 44,
+            "right": 356,
+            "bottom": 410.984375
+          },
+          "clipped": {
+            "left": 34,
+            "top": 366.984375,
+            "right": 356,
+            "bottom": 410.984375
+          },
+          "x": 195,
+          "y": 388.984375,
+          "hit": true,
+          "hitElement": "BUTTON",
+          "displayed": true,
+          "inert": false,
+          "scrollAncestors": [],
+          "selector": "locator('.competition-dialog [data-create]')"
+        },
+        "[data-code]": {
+          "text": "",
+          "rect": {
+            "x": 34,
+            "y": 478.375,
+            "width": 252,
+            "height": 46,
+            "right": 286,
+            "bottom": 524.375
+          },
+          "clipped": {
+            "left": 34,
+            "top": 478.375,
+            "right": 286,
+            "bottom": 524.375
+          },
+          "x": 160,
+          "y": 501.375,
+          "hit": true,
+          "hitElement": "INPUT",
+          "displayed": true,
+          "inert": false,
+          "scrollAncestors": [],
+          "selector": "locator('.competition-dialog [data-code]')"
+        },
+        "[data-join]": {
+          "text": "加入",
+          "rect": {
+            "x": 294,
+            "y": 480.375,
+            "width": 62,
+            "height": 44,
+            "right": 356,
+            "bottom": 524.375
+          },
+          "clipped": {
+            "left": 294,
+            "top": 480.375,
+            "right": 356,
+            "bottom": 524.375
+          },
+          "x": 325,
+          "y": 502.375,
+          "hit": true,
+          "hitElement": "BUTTON",
+          "displayed": true,
+          "inert": false,
+          "scrollAncestors": [],
+          "selector": "locator('.competition-dialog [data-join]')"
+        },
+        "[data-close]": {
+          "text": "退出 PK",
+          "rect": {
+            "x": 275,
+            "y": 683,
+            "width": 88,
+            "height": 44,
+            "right": 363,
+            "bottom": 727
+          },
+          "clipped": {
+            "left": 275,
+            "top": 683,
+            "right": 363,
+            "bottom": 727
+          },
+          "x": 319,
+          "y": 705,
+          "hit": true,
+          "hitElement": "BUTTON",
+          "displayed": true,
+          "inert": false,
+          "scrollAncestors": [],
+          "selector": "locator('.competition-dialog [data-close]')"
+        }
+      },
+      "capturedBeforeDismissal": true,
+      "apiCalls": [
+        {
+          "path": "/sessions/guest",
+          "method": "POST",
+          "body": {}
+        },
+        {
+          "path": "/me",
+          "method": "GET",
+          "body": {}
+        },
+        {
+          "path": "/boards/cops-robbers",
+          "method": "GET",
+          "body": {}
+        }
+      ]
+    },
+    {
+      "name": "home",
+      "width": 844,
+      "height": 390,
+      "passed": true,
+      "screenshot": "844x390-home.png",
+      "details": {
+        "document": {
+          "width": 844,
+          "height": 390,
+          "scrollWidth": 844,
+          "scrollHeight": 390,
+          "scrollX": 0,
+          "scrollY": 0
+        },
+        "entries": {
+          "#home-start": {
+            "text": "开始巡逻 ▶",
+            "rect": {
+              "x": 506.40625,
+              "y": 73,
+              "width": 323.59375,
+              "height": 48,
+              "right": 830,
+              "bottom": 121
+            },
+            "clipped": {
+              "left": 506.40625,
+              "top": 73,
+              "right": 830,
+              "bottom": 121
+            },
+            "x": 668.203125,
+            "y": 97,
+            "hit": true,
+            "hitElement": "BUTTON#home-start",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#home-start')"
+          },
+          "#resume-patrol": {
+            "text": "继续上次 第 1 关 ›",
+            "rect": {
+              "x": 525.828125,
+              "y": 128,
+              "width": 284.75,
+              "height": 44,
+              "right": 810.578125,
+              "bottom": 172
+            },
+            "clipped": {
+              "left": 525.828125,
+              "top": 128,
+              "right": 810.578125,
+              "bottom": 172
+            },
+            "x": 668.203125,
+            "y": 150,
+            "hit": true,
+            "hitElement": "BUTTON#resume-patrol",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#resume-patrol')"
+          },
+          "#appearance-settings": {
+            "text": "换装",
+            "rect": {
+              "x": 506.40625,
+              "y": 179,
+              "width": 75.640625,
+              "height": 80,
+              "right": 582.046875,
+              "bottom": 259
+            },
+            "clipped": {
+              "left": 506.40625,
+              "top": 179,
+              "right": 582.046875,
+              "bottom": 259
+            },
+            "x": 544.2265625,
+            "y": 219,
+            "hit": true,
+            "hitElement": "svg#appearance-art",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#appearance-settings')"
+          },
+          "#friend-duel": {
+            "text": "好友 · 未开放",
+            "rect": {
+              "x": 589.046875,
+              "y": 179,
+              "width": 75.65625,
+              "height": 80,
+              "right": 664.703125,
+              "bottom": 259
+            },
+            "clipped": {
+              "left": 589.046875,
+              "top": 179,
+              "right": 664.703125,
+              "bottom": 259
+            },
+            "x": 626.875,
+            "y": 219,
+            "hit": true,
+            "hitElement": "BUTTON#friend-duel",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#friend-duel')"
+          },
+          "#mode-settings": {
+            "text": "玩法",
+            "rect": {
+              "x": 671.703125,
+              "y": 179,
+              "width": 75.640625,
+              "height": 80,
+              "right": 747.34375,
+              "bottom": 259
+            },
+            "clipped": {
+              "left": 671.703125,
+              "top": 179,
+              "right": 747.34375,
+              "bottom": 259
+            },
+            "x": 709.5234375,
+            "y": 219,
+            "hit": true,
+            "hitElement": "path",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#mode-settings')"
+          },
+          "#help": {
+            "text": "指南",
+            "rect": {
+              "x": 754.34375,
+              "y": 179,
+              "width": 75.65625,
+              "height": 80,
+              "right": 830,
+              "bottom": 259
+            },
+            "clipped": {
+              "left": 754.34375,
+              "top": 179,
+              "right": 830,
+              "bottom": 259
+            },
+            "x": 792.171875,
+            "y": 219,
+            "hit": true,
+            "hitElement": "path",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#help')"
+          },
+          "#level-select": {
+            "text": "街区地图 0 / 120",
+            "rect": {
+              "x": 506.40625,
+              "y": 266,
+              "width": 138.8125,
+              "height": 44,
+              "right": 645.21875,
+              "bottom": 310
+            },
+            "clipped": {
+              "left": 506.40625,
+              "top": 266,
+              "right": 645.21875,
+              "bottom": 310
+            },
+            "x": 575.8125,
+            "y": 288,
+            "hit": true,
+            "hitElement": "BUTTON#level-select",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#level-select')"
+          },
+          "#quick-start": {
+            "text": "两步试炼",
+            "rect": {
+              "x": 649.21875,
+              "y": 266,
+              "width": 106.78125,
+              "height": 44,
+              "right": 756,
+              "bottom": 310
+            },
+            "clipped": {
+              "left": 649.21875,
+              "top": 266,
+              "right": 756,
+              "bottom": 310
+            },
+            "x": 702.609375,
+            "y": 288,
+            "hit": true,
+            "hitElement": "BUTTON#quick-start",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#quick-start')"
+          },
+          "[data-game-fullscreen]": {
+            "text": "全屏",
+            "rect": {
+              "x": 760,
+              "y": 266,
+              "width": 70,
+              "height": 44,
+              "right": 830,
+              "bottom": 310
+            },
+            "clipped": {
+              "left": 760,
+              "top": 266,
+              "right": 830,
+              "bottom": 310
+            },
+            "x": 795,
+            "y": 288,
+            "hit": true,
+            "hitElement": "BUTTON",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('[data-game-fullscreen]')"
+          },
+          "#share-challenge": {
+            "text": "分享同题",
+            "rect": {
+              "x": 542,
+              "y": 317,
+              "width": 252.390625,
+              "height": 44,
+              "right": 794.390625,
+              "bottom": 361
+            },
+            "clipped": {
+              "left": 542,
+              "top": 317,
+              "right": 794.390625,
+              "bottom": 361
+            },
+            "x": 668.1953125,
+            "y": 339,
+            "hit": true,
+            "hitElement": "BUTTON#share-challenge",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#share-challenge')"
+          },
+          "#sound": {
+            "text": "关闭音效",
+            "rect": {
+              "x": 736,
+              "y": 6,
+              "width": 44,
+              "height": 44,
+              "right": 780,
+              "bottom": 50
+            },
+            "clipped": {
+              "left": 736,
+              "top": 6,
+              "right": 780,
+              "bottom": 50
+            },
+            "x": 758,
+            "y": 28,
+            "hit": true,
+            "hitElement": "svg",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#sound')"
+          },
+          "#settings": {
+            "text": "游戏设置",
+            "rect": {
+              "x": 788,
+              "y": 6,
+              "width": 44,
+              "height": 44,
+              "right": 832,
+              "bottom": 50
+            },
+            "clipped": {
+              "left": 788,
+              "top": 6,
+              "right": 832,
+              "bottom": 50
+            },
+            "x": 810,
+            "y": 28,
+            "hit": true,
+            "hitElement": "svg",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#settings')"
+          }
+        }
+      },
+      "capturedBeforeDismissal": true,
+      "apiCalls": []
+    },
+    {
+      "name": "friend-disabled",
+      "width": 844,
+      "height": 390,
+      "passed": true,
+      "screenshot": "844x390-friend-disabled.png",
+      "capturedBeforeDismissal": true,
+      "apiCalls": []
+    },
+    {
+      "name": "friend-lobby",
+      "width": 844,
+      "height": 390,
+      "passed": true,
+      "screenshot": "844x390-friend-lobby.png",
+      "details": {
+        "[data-match-mode]": {
+          "text": "出口竞速 · 120关限步周旋 · 120关",
+          "rect": {
+            "x": 74,
+            "y": 194.984375,
+            "width": 108.328125,
+            "height": 44,
+            "right": 182.328125,
+            "bottom": 238.984375
+          },
+          "clipped": {
+            "left": 74,
+            "top": 194.984375,
+            "right": 182.328125,
+            "bottom": 238.984375
+          },
+          "x": 128.1640625,
+          "y": 216.984375,
+          "hit": true,
+          "hitElement": "SELECT",
+          "displayed": true,
+          "inert": false,
+          "scrollAncestors": [],
+          "selector": "locator('.competition-dialog [data-match-mode]')"
+        },
+        "[data-match-role]": {
+          "text": "追逐队突围队",
+          "rect": {
+            "x": 188.328125,
+            "y": 194.984375,
+            "width": 108.328125,
+            "height": 44,
+            "right": 296.65625,
+            "bottom": 238.984375
+          },
+          "clipped": {
+            "left": 188.328125,
+            "top": 194.984375,
+            "right": 296.65625,
+            "bottom": 238.984375
+          },
+          "x": 242.4921875,
+          "y": 216.984375,
+          "hit": true,
+          "hitElement": "SELECT",
+          "displayed": true,
+          "inert": false,
+          "scrollAncestors": [],
+          "selector": "locator('.competition-dialog [data-match-role]')"
+        },
+        "[data-match-initiative]": {
+          "text": "系统分配先手追逐队先手突围队先手",
+          "rect": {
+            "x": 302.65625,
+            "y": 194.984375,
+            "width": 108.34375,
+            "height": 44,
+            "right": 411,
+            "bottom": 238.984375
+          },
+          "clipped": {
+            "left": 302.65625,
+            "top": 194.984375,
+            "right": 411,
+            "bottom": 238.984375
+          },
+          "x": 356.828125,
+          "y": 216.984375,
+          "hit": true,
+          "hitElement": "SELECT",
+          "displayed": true,
+          "inert": false,
+          "scrollAncestors": [],
+          "selector": "locator('.competition-dialog [data-match-initiative]')"
+        },
+        "[data-create]": {
+          "text": "创建好友挑战 ↗",
+          "rect": {
+            "x": 74,
+            "y": 244.984375,
+            "width": 337,
+            "height": 44,
+            "right": 411,
+            "bottom": 288.984375
+          },
+          "clipped": {
+            "left": 74,
+            "top": 244.984375,
+            "right": 411,
+            "bottom": 288.984375
+          },
+          "x": 242.5,
+          "y": 266.984375,
+          "hit": true,
+          "hitElement": "BUTTON",
+          "displayed": true,
+          "inert": false,
+          "scrollAncestors": [],
+          "selector": "locator('.competition-dialog [data-create]')"
+        },
+        "[data-code]": {
+          "text": "",
+          "rect": {
+            "x": 433,
+            "y": 197.390625,
+            "width": 267,
+            "height": 46,
+            "right": 700,
+            "bottom": 243.390625
+          },
+          "clipped": {
+            "left": 433,
+            "top": 197.390625,
+            "right": 700,
+            "bottom": 243.390625
+          },
+          "x": 566.5,
+          "y": 220.390625,
+          "hit": true,
+          "hitElement": "INPUT",
+          "displayed": true,
+          "inert": false,
+          "scrollAncestors": [],
+          "selector": "locator('.competition-dialog [data-code]')"
+        },
+        "[data-join]": {
+          "text": "加入",
+          "rect": {
+            "x": 708,
+            "y": 199.390625,
+            "width": 62,
+            "height": 44,
+            "right": 770,
+            "bottom": 243.390625
+          },
+          "clipped": {
+            "left": 708,
+            "top": 199.390625,
+            "right": 770,
+            "bottom": 243.390625
+          },
+          "x": 739,
+          "y": 221.390625,
+          "hit": true,
+          "hitElement": "BUTTON",
+          "displayed": true,
+          "inert": false,
+          "scrollAncestors": [],
+          "selector": "locator('.competition-dialog [data-join]')"
+        },
+        "[data-close]": {
+          "text": "退出 PK",
+          "rect": {
+            "x": 689,
+            "y": 323,
+            "width": 88,
+            "height": 44,
+            "right": 777,
+            "bottom": 367
+          },
+          "clipped": {
+            "left": 689,
+            "top": 323,
+            "right": 777,
+            "bottom": 367
+          },
+          "x": 733,
+          "y": 345,
+          "hit": true,
+          "hitElement": "BUTTON",
+          "displayed": true,
+          "inert": false,
+          "scrollAncestors": [],
+          "selector": "locator('.competition-dialog [data-close]')"
+        }
+      },
+      "capturedBeforeDismissal": true,
+      "apiCalls": [
+        {
+          "path": "/sessions/guest",
+          "method": "POST",
+          "body": {}
+        },
+        {
+          "path": "/me",
+          "method": "GET",
+          "body": {}
+        },
+        {
+          "path": "/boards/cops-robbers",
+          "method": "GET",
+          "body": {}
+        }
+      ]
+    }
+  ],
+  "base": "http://127.0.0.1:55756",
+  "finished": "2026-10-13T15:42:53.997Z",
+  "summary": {
+    "passed": 9,
+    "failed": 0
+  }
+}

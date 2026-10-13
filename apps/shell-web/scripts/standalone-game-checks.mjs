@@ -1500,6 +1500,11 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect(frame.locator('body')).toHaveAttribute('data-level', '1');
     await expect(frame.getByTestId('board')).toBeVisible();
     await click(frame.getByTestId('hint'));
+    await click(
+      frame
+        .getByRole('dialog', { name: '模拟广告' })
+        .getByRole('button', { name: '领取奖励', exact: true }),
+    );
     const destination = frame.locator('.node-target.chosen');
     await expect(destination).toHaveCount(1);
     await click(

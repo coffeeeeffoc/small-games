@@ -16,6 +16,7 @@ try {
   const page = await context.newPage();
   page.on('pageerror',error=>report.errors.push(error.message));
   await page.addInitScript(() => {
+    globalThis.SmallGamesRewardAds = { offer: async () => ({ status: 'completed' }) };
     if (!localStorage.getItem('cops-robbers-practice-v3')) localStorage.setItem('cops-robbers-practice-v3',JSON.stringify({version:3,settings:{teaching:false,sound:false,reduced:true}}));
   });
   const savedState = () => page.evaluate(()=>JSON.parse(localStorage.getItem('cops-robbers-practice-v3')).current.state);

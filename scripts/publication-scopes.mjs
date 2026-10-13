@@ -565,12 +565,26 @@ const copsStartAfter = `  } else if (id === 'cops-robbers') {
     await expect(frame.locator('#level-dialog')).toBeHidden();
     await expect(frame.locator('body')).toHaveAttribute('data-level', '1');
 `;
+const copsAdBefore = `    await click(frame.getByTestId('hint'));
+    const destination = frame.locator('.node-target.chosen');
+`;
+const copsAdAfter = `    await click(frame.getByTestId('hint'));
+    await click(
+      frame
+        .getByRole('dialog', { name: '模拟广告' })
+        .getByRole('button', { name: '领取奖励', exact: true }),
+    );
+    const destination = frame.locator('.node-target.chosen');
+`;
 function exactCopsStartGuard(before, after) {
-  if (
-    before.split(copsStartBefore).length !== 2 ||
-    after !== before.replace(copsStartBefore, copsStartAfter)
-  )
-    return false;
+  const startChange =
+    before.split(copsStartBefore).length === 2 &&
+    after === before.replace(copsStartBefore, copsStartAfter);
+  const adChange =
+    before.split(copsAdBefore).length === 2 &&
+    after === before.replace(copsAdBefore, copsAdAfter) &&
+    before.split(copsStartAfter).length === 2;
+  if (!startChange && !adChange) return false;
   const program = parsedSource(after);
   const exported = program.body.filter(
     (node) =>
@@ -579,7 +593,8 @@ function exactCopsStartGuard(before, after) {
       node.declaration.id.name === 'assertStandaloneGameplay',
   );
   assert(exported.length === 1);
-  const offset = before.indexOf(copsStartBefore) + copsStartBefore.indexOf('if (');
+  const header = startChange ? copsStartBefore : copsStartAfter;
+  const offset = before.indexOf(header) + header.indexOf('if (');
   const branch = ifStatementAt(program, offset);
   assert(offset > exported[0].declaration.start && branch.end < exported[0].declaration.end);
   function verifyOwner(node, owner = null) {
@@ -602,6 +617,11 @@ function exactCopsStartGuard(before, after) {
     }
   }
   verifyOwner(program);
+  if (adChange)
+    assert(
+      after.indexOf(copsAdAfter) > branch.consequent.start &&
+        after.indexOf(copsAdAfter) + copsAdAfter.length < branch.consequent.end,
+    );
   assert(
     branch.test.type === 'BinaryExpression' &&
       branch.test.operator === '===' &&
@@ -896,6 +916,7 @@ function assertCageRescueImmersive(file, before, after) {
 // H5 publishing is copied/bundled into these standalone games. This explicit
 // boundary keeps a change to the shared adapter from silently skipping consumers.
 export const publishingConsumers = {
+  'cops-robbers': 'games/local/cops-robbers',
   'tower-brake': 'games/local/tower-brake',
   'cage-rescue': 'games/local/cage-rescue',
   'ball-roguelite': 'games/local/ball-roguelite',

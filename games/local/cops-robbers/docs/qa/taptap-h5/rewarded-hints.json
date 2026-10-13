@@ -1,0 +1,56 @@
+{
+  "base": "http://127.0.0.1:43518",
+  "physicalMobile": false,
+  "realAdsVerified": false,
+  "checks": [
+    {
+      "name": "mock-complete-cancel-320",
+      "passed": true
+    },
+    {
+      "name": "mock-complete-cancel-390",
+      "passed": true
+    },
+    {
+      "name": "mock-complete-cancel-844",
+      "passed": true
+    },
+    {
+      "name": "host-dismissed",
+      "passed": true
+    },
+    {
+      "name": "host-unavailable",
+      "passed": true
+    },
+    {
+      "name": "host-failed",
+      "passed": true
+    },
+    {
+      "name": "host-invalid",
+      "passed": true
+    },
+    {
+      "name": "host-missing-and-throwing",
+      "passed": true
+    },
+    {
+      "name": "stale-completion-and-repeated-request",
+      "passed": true
+    },
+    {
+      "name": "host-timeout-and-background-missing",
+      "passed": true
+    },
+    {
+      "name": "host-timeout-and-background-pending",
+      "passed": true
+    },
+    {
+      "name": "completed-host-hints-and-win",
+      "passed": true
+    }
+  ],
+  "passed": true
+}

@@ -272,6 +272,7 @@ test('catalog and non-publishing interaction checks require explicit affected co
 
 test('publishing browsers run exact bounded suites with native gates off and failures stop publication', () => {
   const expected = {
+    'cops-robbers': ['check-rewarded-hints.mjs'],
     'tower-brake': ['publishing-browser.mjs', 'browser.mjs', 'expansion-browser.mjs'],
     'cage-rescue': [
       'reward-browser.mjs',
@@ -320,7 +321,9 @@ test('publishing browsers run exact bounded suites with native gates off and fai
   };
   runIncrementalToolChecks(options);
   const scripts = ids.flatMap((id) =>
-    expected[id].map((file) => `${publishingConsumers[id]}/tests/${file}`),
+    expected[id].map(
+      (file) => `${publishingConsumers[id]}/${id === 'cops-robbers' ? 'scripts' : 'tests'}/${file}`,
+    ),
   );
   assert.deepEqual(
     calls,

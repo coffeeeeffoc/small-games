@@ -497,6 +497,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
   // These reviewed entry points exercise sharing/ad lifecycle in the real UI.
   // Keep them sequential: several own a local server and write candidate evidence.
   const publishingBrowsers = {
+    'cops-robbers': ['check-rewarded-hints.mjs'],
     'tower-brake': ['publishing-browser.mjs', 'browser.mjs', 'expansion-browser.mjs'],
     'cage-rescue': [
       'reward-browser.mjs',
@@ -533,7 +534,13 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
     );
   for (const id of publishingIds)
     for (const file of publishingBrowsers[id])
-      execute(process.execPath, [`${publishingConsumers[id]}/tests/${file}`], root, env, 'logged');
+      execute(
+        process.execPath,
+        [`${publishingConsumers[id]}/${id === 'cops-robbers' ? 'scripts' : 'tests'}/${file}`],
+        root,
+        env,
+        'logged',
+      );
   for (const source of plan.service_rule_sources || []) {
     assert(
       [

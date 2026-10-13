@@ -1441,6 +1441,37 @@ test('Tower expanded-level contract checks its game and rejects unrelated or wea
     0,
   );
 });
+test('cops rewarded hint guard stays in its game branch and rejects unrelated edits', () => {
+  const after = readFileSync(new URL('../' + sharedChecksFile, import.meta.url), 'utf8').replaceAll(
+    '\r\n',
+    '\n',
+  );
+  const added = `    await click(
+      frame
+        .getByRole('dialog', { name: '模拟广告' })
+        .getByRole('button', { name: '领取奖励', exact: true }),
+    );
+`;
+  const before = after.replace(added, '');
+  assert.notEqual(before, after);
+  const context = {
+    changedPaths: [sharedChecksFile],
+    games: [{ id: 'cops-robbers', source: 'games/local/cops-robbers' }],
+    readBase: () => before,
+    readHead: () => after,
+  };
+  assert.deepEqual(
+    [...reviewedSharedFileScopes(context)],
+    [[sharedChecksFile, ['games/local/cops-robbers']]],
+  );
+  for (const invalid of [
+    after.replace("name: '领取奖励'", "name: '关闭并继续'"),
+    after.replace("'data-turn', '1'", "'data-turn', '2'"),
+    after + 'globalThis.injected = true;\n',
+  ])
+    assert.equal(reviewedSharedFileScopes({ ...context, readHead: () => invalid }).size, 0);
+});
+
 test('cops start-to-play guard keeps a single-game scope and rejects changes outside its exact assertions', () => {
   const oldGuard = `  } else if (id === 'cops-robbers') {
     await expect(frame.locator('#level-dialog')).toBeVisible();
@@ -1538,10 +1569,17 @@ test('Orbit masked-SVG offset repair preserves input and gameplay assertions in 
     ['show', '036bb4d3e98cdb1c373ff3445155bcdc783ca671:' + sharedChecksFile],
     { encoding: 'utf8' },
   );
-  const after = readFileSync(new URL('../' + sharedChecksFile, import.meta.url), 'utf8').replaceAll(
-    '\r\n',
-    '\n',
-  );
+  const after = readFileSync(new URL('../' + sharedChecksFile, import.meta.url), 'utf8')
+    .replaceAll('\r\n', '\n')
+    .replace(
+      `    await click(
+      frame
+        .getByRole('dialog', { name: '模拟广告' })
+        .getByRole('button', { name: '领取奖励', exact: true }),
+    );
+`,
+      '',
+    ); // Exercise the historical Orbit-only diff; the cops delta is checked separately above.
   const context = {
     changedPaths: [sharedChecksFile],
     games: [{ id: 'orbit-atelier', source: 'games/local/orbit-atelier' }],
