@@ -43,6 +43,9 @@
         <symbol id="i-trophy" viewBox="0 0 24 24">
           <path d="M7 3h10v7a5 5 0 0 1-10 0zM7 5H3v4q0 4 5 4M17 5h4v4q0 4-5 4M12 15v6M7 21h10" />
         </symbol>
+        <symbol id="i-bolt" viewBox="0 0 24 24">
+          <path d="m14 2-9 12h6l-1 8 9-12h-6z" fill="currentColor" stroke="none" />
+        </symbol>
         <symbol id="i-friends" viewBox="0 0 24 24">
           <circle cx="8" cy="7" r="4" />
           <path d="M1 21v-4a7 7 0 0 1 14 0v4zM16 3a4 4 0 0 1 0 8M17 14q6 0 6 7" />
@@ -104,18 +107,20 @@
               >✦</span
             >
           </button>
-          <div class="home-shortcuts">
+          <div class="home-shortcuts" hidden>
             <button
               id="friends-button"
               class="shortcut-card friends-card"
               data-competition-entry="friends"
+              hidden
+              disabled
             >
               <span class="shortcut-icon"
                 ><svg><use href="#i-friends" /></svg
               ></span>
               <div><strong>好友 PK</strong><small>叫上搭档，比一局</small></div>
               <svg class="shortcut-arrow"><use href="#i-arrow" /></svg></button
-            ><button id="records-button" class="shortcut-card records-card">
+            ><button id="records-button" class="shortcut-card records-card" hidden disabled>
               <span class="shortcut-icon"
                 ><svg><use href="#i-trophy" /></svg
               ></span>
@@ -282,9 +287,10 @@
             </button>
             <div class="record-pair">
               <div><span>我的最佳</span><strong id="selection-best">暂无</strong></div>
-              <div><span>全站最快</span><strong id="selection-world">正在读取</strong></div>
+              <div hidden><span>全站最快</span><strong id="selection-world">暂未开放</strong></div>
             </div>
             <small id="record-context" class="muted"></small>
+            <small id="starter-support" class="muted"></small>
           </div>
         </div>
         <div class="selection-actions">
@@ -356,6 +362,9 @@
             <button id="hold-button" class="button hold-button" aria-label="原地守住">
               <svg><use href="#i-shield" /></svg><span>守住</span>
             </button>
+            <button id="sprint-button" class="button sprint-button" aria-label="给选中的队员冲刺">
+              <svg><use href="#i-bolt" /></svg><span id="sprint-label">冲刺</span>
+            </button>
           </div>
         </div>
       </section>
@@ -392,7 +401,7 @@
         <div class="win-stats">
           <div><span>本次用时</span><b id="win-time"></b></div>
           <div><span>我的最佳</span><b id="win-best"></b></div>
-          <div><span>服务器最快</span><b id="win-world">正在读取</b></div>
+          <div hidden><span>服务器最快</span><b id="win-world">暂未开放</b></div>
         </div>
         <p id="record-status" role="status"></p>
         <button id="retry-record" class="button quiet" hidden>重试上传</button
@@ -419,6 +428,7 @@
           <div><span>用时</span><b id="lose-time"></b></div>
         </div>
         <button id="lose-retry" class="button primary wide">重新挑战</button>
+        <button id="rewind-button" class="button quiet wide">回溯 5 秒</button>
         <div class="dialog-actions">
           <button id="lose-review" class="button quiet">查看局面</button
           ><button class="button quiet" data-levels>选关</button
@@ -463,8 +473,12 @@
             秒。轮换指挥要求每次有效调动换人。头像设置对所有关卡生效，只存在当前设备。
           </p>
           <p>
-            通关纪录按关卡、玩法、角色、先手和指挥规则分别比较。服务器验证操作后才计入通关榜。练习不计纪录。
+            普通最佳和使用支援的辅助最佳分别保存在本机。练习不计纪录；联网功能暂未开放。
           </p>
+        </details>
+        <details>
+          <summary>冲刺与失败回溯</summary>
+          <p>冲刺让选中的队员提速 20%，持续 4 秒；失败后可回到约 5 秒前。前 5 局各赠 1 次，重试计新局、练习不计；赠送用完后每种每局可看广告补 1 次，第 6 局起不再赠送。广告期间行动暂停，关闭或失败不发奖励；回溯不退还已用次数。</p>
         </details>
         <details>
           <summary>键盘快捷键</summary>
@@ -541,7 +555,14 @@
         ><button class="button quiet wide" data-close>返回选关</button>
       </section>
     </main>
+      <section id="support-page" class="screen game-page small-dialog" data-game-page hidden tabindex="-1">
+        <div class="result-art" data-character="cop"></div>
+        <h2 id="support-title">战术支援</h2>
+        <p id="support-status" role="status"></p>
+        <button id="support-use" class="button primary wide" disabled>继续行动</button>
+        <button id="support-return" class="button quiet wide" hidden>稍后使用</button>
+      </section>
     <script type="module" src="./src/main.js"></script>
     <script defer src="./src/fullscreen.js"></script>
-  <script defer src="./competition.js"></script></body>
+  </body>
 </html>

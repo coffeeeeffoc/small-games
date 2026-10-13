@@ -644,6 +644,11 @@ export function actorBody(
   else if (actor.escaped) ctx.globalAlpha = Math.max(0, 1 - escapedAge / 0.9);
   ellipse(ctx, 0, 6, 19, 7, '#43594735');
   if (selected) ellipse(ctx, 0, 0, 30, 21, '#fff9e955', color, 4);
+  if (actor.sprinting) {
+    ellipse(ctx, 0, 3, 34, 23, '#ffba4330', '#ed9c28', 3);
+    line(ctx, [[-35, -9], [-24, -9]], '#ed9c28', 3);
+    line(ctx, [[-39, 1], [-26, 1]], '#ed9c28', 3);
+  }
   line(
     ctx,
     [
@@ -914,7 +919,7 @@ export function createRenderer(canvas) {
       } else if (game.phase !== 'playing') displayed = { ...displayed, moving: false };
       actorBody(
         ctx,
-        displayed,
+        { ...displayed, sprinting: actor.sprintUntil > game.time },
         cop,
         cop === (game.playerRole !== 'robber') && actor.id === selected,
         t + (actor.escaped && !reducedMotion ? escapedAge : 0),
