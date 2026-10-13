@@ -512,7 +512,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
     'chase-thief': ['publishing.browser.mjs'],
     'retreat-rally': ['publishing.browser.mjs'],
     'tiny-signals': ['publishing.browser.mjs'],
-    'orbit-atelier': ['publishing.browser.mjs'],
+    'orbit-atelier': ['publishing.browser.mjs', 'browser.mjs'],
     'wulong-city': ['publishing.browser.mjs'],
     'surprise-kept': ['publishing.browser.mjs'],
     'homebound-station': ['publishing.browser.mjs'],

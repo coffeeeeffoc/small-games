@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "driver": "tests/browser.mjs",
+  "environment": "Chromium production build, synthetic test profile; CDP touch is desktop emulation",
+  "cases": [
+    {
+      "id": "catalog",
+      "orientation": "portrait",
+      "input": "touch",
+      "container": "standalone",
+      "sequence": "home → levels → locked second level",
+      "assertion": "player catalogue respects unlocks"
+    },
+    {
+      "id": "pause",
+      "orientation": "portrait",
+      "input": "touch",
+      "container": "standalone",
+      "sequence": "touch pause → wait",
+      "assertion": "paused state stays unchanged"
+    },
+    {
+      "id": "reload",
+      "orientation": "portrait",
+      "input": "touch",
+      "container": "standalone",
+      "sequence": "blur → resume → hidden → home → reload → continue",
+      "assertion": "saved ring geometry restored"
+    },
+    {
+      "id": "settlement",
+      "orientation": "portrait",
+      "input": "touch",
+      "container": "standalone",
+      "sequence": "last release → blur → result",
+      "assertion": "normal completion grants a medal"
+    },
+    {
+      "id": "landscape",
+      "orientation": "landscape",
+      "input": "touch",
+      "container": "standalone",
+      "sequence": "next → small resize → landscape resize → release",
+      "assertion": "release changes ring count after resizing"
+    },
+    {
+      "id": "trial",
+      "orientation": "portrait",
+      "input": "touch",
+      "container": "standalone",
+      "sequence": "trial final stage → clear → home",
+      "assertion": "trial preserves earned medals"
+    },
+    {
+      "id": "chapters",
+      "orientation": "portrait",
+      "input": "touch",
+      "container": "standalone",
+      "sequence": "chapter boundary challenge → clear",
+      "assertion": "all nine boundary samples reach result"
+    },
+    {
+      "id": "thumb",
+      "orientation": "landscape",
+      "input": "touch",
+      "container": "standalone",
+      "sequence": "letterboxed SVG → tap outside visible band",
+      "assertion": "44px thumb target completes the stage"
+    },
+    {
+      "id": "fullscreen",
+      "orientation": "landscape",
+      "input": "mouse",
+      "container": "standalone",
+      "sequence": "settings → fullscreen entry/exit where supported → rejected request",
+      "assertion": "rejection preserves saved rings and usable settings"
+    },
+    {
+      "id": "storage-corrupt",
+      "orientation": "portrait",
+      "input": "touch",
+      "container": "standalone",
+      "sequence": "corrupt save → hint → release → pause",
+      "assertion": "one ring releases with corrupt storage"
+    },
+    {
+      "id": "storage-blocked",
+      "orientation": "portrait",
+      "input": "touch",
+      "container": "standalone",
+      "sequence": "storage throws → hint → release → pause",
+      "assertion": "one ring releases with blocked storage"
+    },
+    {
+      "id": "iframe",
+      "orientation": "portrait",
+      "input": "touch",
+      "container": "sandbox-iframe",
+      "sequence": "iframe home → release → pause → resume",
+      "assertion": "released ring remains removed after resume"
+    },
+    {
+      "id": "held-blur",
+      "orientation": "portrait",
+      "input": "touch",
+      "container": "standalone",
+      "sequence": "held drag changes angle → synthetic blur → rollback → stale touchEnd → resume → fresh release",
+      "assertion": "state/moves/hints roll back, drag clears, stale release does nothing, new release works"
+    },
+    {
+      "id": "iframe-held-hidden",
+      "orientation": "landscape",
+      "input": "touch",
+      "container": "sandbox-iframe",
+      "sequence": "held drag changes angle → synthetic hidden → rollback → stale touchEnd → visible → resume → fresh release",
+      "assertion": "iframe landscape lifecycle interruption preserves the run and fresh input works"
+    }
+  ],
+  "constraints": [
+    "Portrait is Orbit's product orientation; landscape uses a compact responsive layout, not a rotated container.",
+    "CDP touch requires Chromium with hasTouch=true. It cannot attest native host or real device input.",
+    "Mouse fullscreen success is conditional on fullscreenEnabled; rejection fallback is mandatory.",
+    "A lifecycle interruption requires an active drag with a changed angle before blur/hidden, then stale release before fresh input.",
+    "Sandbox iframe uses allow-scripts allow-same-origin and fullscreen, matching the existing test fixture; it is not the Shell host."
+  ],
+  "gaps": [
+    {
+      "id": "real-device",
+      "status": "unverified",
+      "reason": "No Android/iOS device or native mini-game host execution; browser emulation is not hardware evidence."
+    },
+    {
+      "id": "shell-touch-landscape",
+      "status": "unverified",
+      "reason": "Shared Shell iframe sample uses mouse; direct phone and sandbox iframe receipts cannot substitute for Shell phone landscape."
+    },
+    {
+      "id": "cross-origin-iframe",
+      "status": "unverified",
+      "reason": "Orbit fixture is same-origin; no Orbit-specific cross-origin lifecycle execution."
+    },
+    {
+      "id": "keyboard-gameplay",
+      "status": "unsupported",
+      "reason": "Orbit ring gameplay has no keyboard/controller binding; do not generate this input combination."
+    },
+    {
+      "id": "rotation-fallback",
+      "status": "not-applicable",
+      "reason": "Orbit is a portrait puzzle, not a landscape-locked game."
+    },
+    {
+      "id": "native-cdp",
+      "status": "unsupported",
+      "reason": "CDP is a browser protocol, not native WeChat/Douyin/Bilibili touch evidence."
+    }
+  ]
+}

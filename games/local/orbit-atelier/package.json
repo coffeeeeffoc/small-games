@@ -7,7 +7,7 @@
     "dev": "vite --host 0.0.0.0 --port 4340 --strictPort",
     "preview": "vite preview --host 0.0.0.0 --port 4340 --strictPort",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/core.test.ts",
+    "test": "node --test tests/core.test.ts tests/evidence.test.mjs",
     "test:browser": "node tests/browser.mjs",
     "build": "tsc --noEmit && vite build",
     "test:publishing:browser": "node tests/publishing.browser.mjs"

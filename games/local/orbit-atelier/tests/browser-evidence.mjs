@@ -3,6 +3,7 @@ import { createServer } from 'node:http';
 import { readFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
+import { errorEvidence } from './evidence.mjs';
 
 export async function browserEvidence() {
   const root = fileURLToPath(new URL('../dist/', import.meta.url));
@@ -28,7 +29,7 @@ export async function browserEvidence() {
     Object.defineProperty(navigator,'share',{configurable:true,value:undefined});
     Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async value=>window.__copies.push(value)}});
   });
-  const page=await context.newPage(); page.on('pageerror',e=>errors.push(e.message));
+  const page=await context.newPage(); page.on('pageerror',e=>{if(errors.length<20)errors.push(errorEvidence(e));});
   return {base,page,context,browser,errors,
     shot:async label=>page.screenshot({path:fileURLToPath(new URL(`${label}.png`,evidence)),fullPage:true,style:'small-games-devtools { visibility:hidden !important; }'}),
     close:async()=>{await browser.close();await new Promise(resolve=>server.close(resolve));},
