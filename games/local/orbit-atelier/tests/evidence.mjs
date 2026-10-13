@@ -45,7 +45,12 @@ export function failureSignature(entry) {
           status: entry.status,
           container: entry.container,
         }
-      : { kind: entry.kind, name: entry.name, message: sanitize(entry.message, 4000) },
+      : {
+          kind: entry.kind,
+          name: entry.name,
+          message: sanitize(entry.message, 4000),
+          container: entry.container,
+        },
   );
 }
 export function coverageSummary(spec, receipts, source) {

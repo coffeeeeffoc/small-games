@@ -78,6 +78,16 @@ test('failure signatures tolerate local ephemeral ports but distinguish resource
     failureSignature(runner),
     failureSignature({ ...runner, message: 'failed http://127.0.0.1:5678/app.js' }),
   );
+  const script = {
+    kind: 'pageerror',
+    name: 'Error',
+    message: 'same error',
+    container: 'standalone',
+  };
+  assert.notEqual(
+    failureSignature(script),
+    failureSignature({ ...script, container: 'sandbox-iframe' }),
+  );
 });
 test('reproduction rejects different revision, source, asset fingerprint and dirty source', () => {
   const build = {
