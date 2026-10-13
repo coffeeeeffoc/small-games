@@ -2,8 +2,8 @@
   "format": "TapTap H5 static ZIP",
   "entry": "index.html",
   "screenOrientation": 2,
-  "bytes": 52730,
-  "sha256": "d9d6390e87e19322b3af7713910f91e07d3a6105656265d86c904395eaa92b23",
+  "bytes": 53677,
+  "sha256": "f395bb235454b81691405a23684cb76da75ffd4579a2764e7e0f9e8cff7539bc",
   "files": [
     {
       "path": "assets/emblem.svg",
@@ -22,8 +22,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 11082,
-      "sha256": "ec7eb3d97b931d2c9a3657ee214b45c0b0194362009a2412b36f076b37a6df15"
+      "bytes": 11635,
+      "sha256": "c185f49013060eb2b40dfe0345d3c7e2f8390cc893178b6a18679014852b0623"
     },
     {
       "path": "src/audio.mjs",
@@ -52,8 +52,8 @@
     },
     {
       "path": "src/main.mjs",
-      "bytes": 23062,
-      "sha256": "1f821c42d00357467336e58bd4281a205737bc0457d6cc52bb4102b4f3d43b4a"
+      "bytes": 25604,
+      "sha256": "603db04a855eb7ad25e416bf344447059100070606c92f6219cd769f3fb8320f"
     },
     {
       "path": "src/progress.mjs",
@@ -67,8 +67,8 @@
     },
     {
       "path": "style.css",
-      "bytes": 23656,
-      "sha256": "aac023ff53e54180e8dee86d37bcdf0f599b8678a27b2ffd70d93b9e1e29846b"
+      "bytes": 23852,
+      "sha256": "df37244c8b89087af79c5cd0ce030bbb7075800a9de52abc3fa6f4e32f8558f5"
     }
   ],
   "zipMatchesDist": true,

@@ -30,6 +30,8 @@ export async function mountAshfall(host = createLocalHost()) {
   }
   let run = createRun();
   let screenName = 'home';
+  let helpReturn = 'home',
+    inputMode;
   let trial = false,
     disposed = false,
     lastFrame = 0,
@@ -44,7 +46,8 @@ export async function mountAshfall(host = createLocalHost()) {
     fireGesture = null,
     jumpEdge = false,
     dashEdge = false,
-    fireEdge = false;
+    fireEdge = false,
+    shotTilt = 0;
   let saveQueue = Promise.resolve(),
     storageWarning = false;
   const pointers = new Map();
@@ -65,16 +68,56 @@ export async function mountAshfall(host = createLocalHost()) {
     left: ['KeyA', 'ArrowLeft'],
     right: ['KeyD', 'ArrowRight'],
     jump: ['Space', 'KeyW', 'ArrowUp'],
-    dash: ['ShiftLeft', 'ShiftRight', 'KeyK'],
+    dash: ['ShiftLeft', 'ShiftRight'],
     fire: ['KeyJ'],
     aimUp: ['KeyI'],
-    aimDown: ['Comma'],
+    aimDown: ['KeyK', 'Comma'],
   };
   const held = (action) =>
     [...pointers.values()].includes(action) || keyMap[action]?.some((key) => keys.has(key));
+  function setInputMode(mode) {
+    if (inputMode === mode) return;
+    inputMode = mode;
+    gameElement.dataset.input = mode;
+    const touch = mode === 'touch';
+    text('help-mode', touch ? '触屏操作' : '键盘 / 鼠标操作');
+    text(
+      'help-move',
+      touch
+        ? '左下方向键移动，右下按钮跳跃和冲刺。冲刺期间短暂无敌。'
+        : 'A / D 或左右方向键移动，空格 / W / ↑ 跳跃，Shift 冲刺。',
+    );
+    text('help-move-detail', touch ? '左右手可同时操作' : '冲刺期间短暂无敌');
+    text(
+      'help-fire',
+      touch
+        ? '按住橙色射击键自动连射，朝目标方向拖动瞄准。左上、左下同理。'
+        : '按住 I 斜上连射，J 自动瞄准连射，K 斜下连射。斜向跟随面朝方向。',
+    );
+    text(
+      'help-fire-detail',
+      touch
+        ? '右上拖：向右上射\n右下拖：向右下射 · 松开停止'
+        : '每个键单独开火 · 鼠标按住左键自由瞄准',
+    );
+    $('help-aim-demo').toggleAttribute('hidden', !touch);
+    text(
+      'help-pause',
+      touch ? '右上暂停按钮可查看操作指南' : 'Esc 暂停 / 继续 · 回车确认 · Tab 切换',
+    );
+    text('help-storage', touch ? '支持多点触控 · 进度自动保存' : '进度自动保存在本机');
+  }
   function syncControls() {
     for (const button of controls)
-      button.setAttribute('aria-pressed', String(Boolean(held(button.dataset.control))));
+      button.setAttribute(
+        'aria-pressed',
+        String(
+          Boolean(
+            held(button.dataset.control) ||
+              (button.dataset.control === 'fire' && (held('aimUp') || held('aimDown'))),
+          ),
+        ),
+      );
   }
   function clearInput() {
     const ids = [...pointers.keys()];
@@ -83,6 +126,7 @@ export async function mountAshfall(host = createLocalHost()) {
     jumpEdge = false;
     dashEdge = false;
     fireEdge = false;
+    shotTilt = 0;
     mouseAim = null;
     fireGesture = null;
     $('fire-aim').setAttribute('transform', 'translate(0 0)');
@@ -162,7 +206,7 @@ export async function mountAshfall(host = createLocalHost()) {
       upgrade: '.upgrade-card',
       pause: '[data-action="resume"]',
       result: '[data-action="retry"]',
-      help: '[data-action="home"]',
+      help: '#help-back',
     };
     if (next === 'play') canvas.focus({ preventScroll: true });
     else {
@@ -297,7 +341,11 @@ export async function mountAshfall(host = createLocalHost()) {
     $('dash').classList.toggle('cooling', cooling);
     text('dash-label', cooling ? p.dashCooldown.toFixed(1) + 's' : '冲刺');
     let hint = '';
-    if (run.levelIndex === 0 && run.roomTime < 7) hint = '按住连射 · 拖动瞄准';
+    if (run.levelIndex === 0 && run.roomTime < 7)
+      hint =
+        inputMode === 'touch'
+          ? '按住射击键 · 朝目标方向拖动'
+          : 'I 斜上 · J 自动 · K 斜下，按住即连射';
     else if (run.levelIndex === 0 && run.roomTime < 13) hint = '跳跃越过火线 · 冲刺短暂无敌';
     text('tutorial', hint);
   }
@@ -305,7 +353,10 @@ export async function mountAshfall(host = createLocalHost()) {
     if (action === 'start') start(0);
     else if (action === 'levels') setScreen('levels');
     else if (action === 'home') setScreen('home');
+    else if (action === 'help-back') setScreen(helpReturn);
     else if (action === 'help') {
+      helpReturn = screenName === 'pause' ? 'pause' : 'home';
+      text('help-back-label', helpReturn === 'pause' ? '返回暂停' : '返回主页');
       syncSettings();
       setScreen('help');
     } else if (action === 'pause' && screenName === 'play') setScreen('pause');
@@ -315,6 +366,7 @@ export async function mountAshfall(host = createLocalHost()) {
     } else if (action === 'retry') start(run.startIndex, trial);
   }
   on(gameElement, 'pointerdown', (event) => {
+    setInputMode(event.pointerType === 'mouse' ? 'keyboard' : 'touch');
     const button = event.target.closest('button');
     if (button) menuPresses.set(button, event.pointerId);
   });
@@ -364,7 +416,10 @@ export async function mountAshfall(host = createLocalHost()) {
   function press(action) {
     if (action === 'jump') jumpEdge = true;
     if (action === 'dash') dashEdge = true;
-    if (action === 'fire') fireEdge = true;
+    if (['fire', 'aimUp', 'aimDown'].includes(action)) {
+      fireEdge = true;
+      shotTilt = action === 'aimUp' ? -1 : action === 'aimDown' ? 1 : 0;
+    }
   }
   for (const button of controls) {
     on(button, 'pointerdown', (event) => {
@@ -423,7 +478,7 @@ export async function mountAshfall(host = createLocalHost()) {
     updateAim(event);
     canvas.setPointerCapture(event.pointerId);
     pointers.set(event.pointerId, 'mouseFire');
-    fireEdge = true;
+    press('fire');
     void audio.unlock();
   });
   on(canvas, 'pointermove', (event) => {
@@ -433,6 +488,7 @@ export async function mountAshfall(host = createLocalHost()) {
   on(window, 'pointercancel', releasePointer);
   on(canvas, 'lostpointercapture', releasePointer);
   on(window, 'keydown', (event) => {
+    setInputMode('keyboard');
     if (['Enter', 'Space'].includes(event.code) && event.repeat) {
       event.preventDefault();
       return;
@@ -444,7 +500,8 @@ export async function mountAshfall(host = createLocalHost()) {
       }
       if (screenName === 'play') act('pause');
       else if (screenName === 'pause') act('resume');
-      else if (['help', 'levels'].includes(screenName)) act('home');
+      else if (screenName === 'help') act('help-back');
+      else if (screenName === 'levels') act('home');
       event.preventDefault();
       return;
     }
@@ -494,14 +551,18 @@ export async function mountAshfall(host = createLocalHost()) {
       while (accumulator >= 1 / 60 && screenName === 'play') {
         const manual = [...pointers.values()].includes('mouseFire');
         const move = Number(Boolean(held('right'))) - Number(Boolean(held('left')));
-        const tilt = Number(Boolean(held('aimDown'))) - Number(Boolean(held('aimUp')));
+        // Keep a short tap's direction until its fire pulse is consumed.
+        const tilt =
+          held('aimUp') || held('aimDown')
+            ? Number(Boolean(held('aimDown'))) - Number(Boolean(held('aimUp')))
+            : shotTilt;
         stepRun(
           run,
           {
             move,
             jump: jumpEdge,
             dash: dashEdge,
-            fire: Boolean(held('fire') || manual || fireEdge),
+            fire: Boolean(held('fire') || held('aimUp') || held('aimDown') || manual || fireEdge),
             aim: manual ? mouseAim : null,
             aimDirection:
               fireGesture?.direction || (tilt ? { x: move || run.player.facing, y: tilt } : null),
@@ -511,6 +572,7 @@ export async function mountAshfall(host = createLocalHost()) {
         jumpEdge = false;
         dashEdge = false;
         fireEdge = false;
+        shotTilt = 0;
         accumulator -= 1 / 60;
         visualTime += 1 / 60;
         consume();
@@ -551,6 +613,7 @@ export async function mountAshfall(host = createLocalHost()) {
       player: run.player,
       enemies: run.enemies,
       bullets: run.bullets,
+      shots: run.shots,
       upgrades: run.upgrades,
       choices: run.choices,
       roomsCleared: run.roomsCleared,
@@ -600,6 +663,7 @@ export async function mountAshfall(host = createLocalHost()) {
     else dispose();
   });
   syncSettings();
+  setInputMode(matchMedia('(pointer: coarse)').matches ? 'touch' : 'keyboard');
   setScreen('home');
   gameElement.dataset.ready = 'true';
   frameId = requestAnimationFrame(animate);

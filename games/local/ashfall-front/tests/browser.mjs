@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn, execFileSync } from 'node:child_process';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile, rename } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium, expect } from '@playwright/test';
 
@@ -50,7 +50,10 @@ const browser = await chromium.launch({
 });
 let page;
 const screenshot = async (name) => {
-  await page.screenshot({ path: output + name + '.png' });
+  // Replace completed captures atomically; overwriting existing PNGs can fail on Windows.
+  const file = output + name + '.png';
+  await writeFile(file + '.tmp', await page.screenshot());
+  await rename(file + '.tmp', file);
   report.screenshots.push(name + '.png');
 };
 const observe = (current) => {
@@ -79,6 +82,17 @@ try {
   await expect(page.locator('#game')).toHaveAttribute('data-ready', 'true');
   await page.evaluate(() => window.SmallGamesDev.setPanelHidden(true));
   await screenshot('home-844x390');
+  await expect(page.locator('#start-game')).toBeFocused();
+  await expect(page.locator('#game')).toHaveAttribute('data-input', 'touch');
+  await page.getByRole('button', { name: '操作指南', exact: false }).tap();
+  await expect(page.locator('#help-mode')).toHaveText('触屏操作');
+  await expect(page.locator('#help-fire-detail')).toContainText('右上拖：向右上射');
+  await expect(page.locator('#help-fire-detail')).toContainText('右下拖：向右下射');
+  await expect(page.locator('#help-screen')).not.toContainText('键盘');
+  await expect(page.locator('#help-aim-demo')).toBeVisible();
+  await expect(page.locator('#help-back')).toBeFocused();
+  await screenshot('help-touch-844x390');
+  await page.locator('#help-back').tap();
   await expect(page.locator('#start-game')).toBeFocused();
   await page.getByRole('button', { name: '行动地图', exact: true }).tap();
   await expect(page.locator('.level-card.current')).toBeFocused();
@@ -199,10 +213,18 @@ try {
   await screenshot('pause-844x390');
   await expect(page.getByRole('button', { name: '继续战斗', exact: true })).toBeFocused();
   await screenshot('pause-focus-844x390');
+  await page.getByRole('button', { name: '操作指南', exact: true }).tap();
+  await expect(page.locator('#help-back-label')).toHaveText('返回暂停');
   await page.waitForTimeout(400);
   const afterPause = await page.evaluate(() => window.AshfallDebug.snapshot());
   assert.equal(beforePause.time, afterPause.time);
   assert.equal(beforePause.player.hp, afterPause.player.hp);
+  await page.locator('#help-back').tap();
+  await expect(page.locator('#game')).toHaveAttribute('data-screen', 'pause');
+  await expect(page.getByRole('button', { name: '继续战斗', exact: true })).toBeFocused();
+  report.checks.push(
+    'touch-specific guide from home and pause; diagonal examples and paused return',
+  );
   await page.keyboard.press('Enter');
   await expect(page.locator('#game')).toHaveAttribute('data-screen', 'play');
   await expect(page.locator('#game-canvas')).toBeFocused();
@@ -332,6 +354,10 @@ try {
   await screenshot('combat-390x844');
   await page.getByRole('button', { name: '暂停', exact: true }).tap();
   await screenshot('pause-390x844');
+  await page.getByRole('button', { name: '操作指南', exact: true }).tap();
+  await expect(page.locator('#help-mode')).toHaveText('触屏操作');
+  await screenshot('help-touch-390x844');
+  await page.locator('#help-back').tap();
   await page.getByRole('button', { name: '返回主页', exact: true }).tap();
   await page.getByRole('button', { name: '行动地图', exact: true }).tap();
   await screenshot('levels-390x844');
@@ -339,6 +365,17 @@ try {
   await page.getByRole('button', { name: '返回主页', exact: true }).tap();
   await page.setViewportSize({ width: 568, height: 320 });
   await screenshot('home-568x320');
+  await page.getByRole('button', { name: '操作指南', exact: false }).tap();
+  for (const selector of ['#help-back', '#motion-toggle', '#help-fire-detail']) {
+    const box = await page.locator(selector).boundingBox();
+    assert.ok(
+      box.x >= 0 && box.y >= 0 && box.x + box.width <= 568.5 && box.y + box.height <= 320.5,
+      'small-screen instruction visible: ' + selector,
+    );
+    if (selector !== '#help-fire-detail') assert.ok(box.width >= 44 && box.height >= 44);
+  }
+  await screenshot('help-touch-568x320');
+  await page.locator('#help-back').tap();
   await page.locator('#start-game').tap();
   for (const selector of [
     '#move-left',
@@ -435,10 +472,13 @@ try {
   await page.keyboard.press('Enter');
   for (const move of ['a', 'd']) {
     await page.keyboard.down(move);
-    await page.keyboard.down('j');
+    await expect
+      .poll(async () => (await page.evaluate(() => window.AshfallDebug.snapshot())).player.facing)
+      .toBe(move === 'a' ? -1 : 1);
+    await page.keyboard.up(move);
     for (const [key, y] of [
       ['i', -1],
-      [',', 1],
+      ['k', 1],
     ]) {
       await page.keyboard.down(key);
       let aimed;
@@ -461,6 +501,13 @@ try {
         )
         .toBe(true);
       const x = move === 'a' ? -1 : 1;
+      assert.deepEqual(
+        aimed.keys,
+        ['Key' + key.toUpperCase()],
+        'single key fires without J or movement held',
+      );
+      assert.equal(aimed.player.dashCooldown, 0, 'K fires without triggering dash');
+      await expect(page.locator('#fire')).toHaveAttribute('aria-pressed', 'true');
       assert.ok(Math.abs(aimed.player.aimAngle - Math.atan2(y, x)) < 0.01);
       assert.ok(
         aimed.bullets.some(
@@ -469,11 +516,67 @@ try {
         ),
       );
       await page.keyboard.up(key);
+      await expect(page.locator('#fire')).toHaveAttribute('aria-pressed', 'false');
+      const shots = (await page.evaluate(() => window.AshfallDebug.snapshot())).shots;
+      assert.ok(Number.isInteger(shots) && shots > 0);
+      await page.waitForTimeout(250);
+      assert.equal(
+        (await page.evaluate(() => window.AshfallDebug.snapshot())).shots,
+        shots,
+        'releasing diagonal key stops firing',
+      );
+      const previousIds = (await page.evaluate(() => window.AshfallDebug.snapshot())).bullets.map(
+        (bullet) => bullet.id,
+      );
+      await page.evaluate((code) => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
+        window.dispatchEvent(new KeyboardEvent('keyup', { code, bubbles: true }));
+      }, 'Key' + key.toUpperCase());
+      await expect
+        .poll(
+          async () => {
+            const snapshot = await page.evaluate(() => window.AshfallDebug.snapshot());
+            return (
+              snapshot.shots > shots &&
+              snapshot.bullets.some(
+                (bullet) =>
+                  bullet.owner === 'player' &&
+                  !previousIds.includes(bullet.id) &&
+                  Math.sign(bullet.vx) === x &&
+                  Math.sign(bullet.vy) === y,
+              )
+            );
+          },
+          { intervals: [16], timeout: 1500 },
+        )
+        .toBe(true);
+      await page.waitForTimeout(250);
+      assert.equal(
+        (await page.evaluate(() => window.AshfallDebug.snapshot())).shots,
+        shots + 1,
+        'same-task press and release fires one diagonal shot',
+      );
     }
-    await page.keyboard.up(move);
-    await page.keyboard.up('j');
   }
   await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: '操作指南', exact: true }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#help-mode')).toHaveText('键盘 / 鼠标操作');
+  await expect(page.locator('#help-fire')).toHaveText(
+    '按住 I 斜上连射，J 自动瞄准连射，K 斜下连射。斜向跟随面朝方向。',
+  );
+  await expect(page.locator('#help-aim-demo')).toBeHidden();
+  await expect(page.locator('#help-back')).toBeFocused();
+  await screenshot('help-keyboard-desktop');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#game')).toHaveAttribute('data-screen', 'pause');
+  await expect(page.getByRole('button', { name: '继续战斗', exact: true })).toBeFocused();
+  await page.getByRole('button', { name: '操作指南', exact: true }).focus();
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#game')).toHaveAttribute('data-screen', 'pause');
+  await expect(page.getByRole('button', { name: '继续战斗', exact: true })).toBeFocused();
+  report.checks.push('keyboard-specific guide, focus/Enter navigation and pause return');
   await page.getByRole('button', { name: '重新行动', exact: true }).focus();
   await page.keyboard.press('Enter');
   await expect(page.locator('#game')).toHaveAttribute('data-screen', 'play');
@@ -482,7 +585,7 @@ try {
     .poll(async () => (await page.evaluate(() => window.AshfallDebug.snapshot())).player.vy < 0)
     .toBe(true);
   report.checks.push(
-    'Enter starts/resumes/retries without stale focus; keyboard diagonal projectiles in both facings',
+    'Enter starts/resumes/retries without stale focus; I/K alone fire diagonals in both facings, release stops, same-task short taps keep direction',
   );
   await page.evaluate(
     (progress) =>

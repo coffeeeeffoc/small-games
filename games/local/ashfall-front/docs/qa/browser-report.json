@@ -3,6 +3,7 @@
   "checks": [
     "landscape drag aim with movement fires up/down/backwards; cancel recenters and stops",
     "simultaneous touch movement/jump/fire and gesture cancellation",
+    "touch-specific guide from home and pause; diagonal examples and paused return",
     "pause freezes simulation, clock and damage",
     "held gameplay Space across upgrade cannot auto-install focused card",
     "natural touch victory across all rooms, upgrade choices and Boss",
@@ -12,13 +13,15 @@
     "fullscreen enters and exits without losing progress",
     "natural defeat and clean retry",
     "default production has no developer UI; desktop keyboard, mouse and Escape work",
-    "Enter starts/resumes/retries without stale focus; keyboard diagonal projectiles in both facings",
+    "keyboard-specific guide, focus/Enter navigation and pause return",
+    "Enter starts/resumes/retries without stale focus; I/K alone fire diagonals in both facings, release stops, same-task short taps keep direction",
     "restored first-room save focuses newly unlocked room, and Enter launches it",
     "storage-blocked startup remains playable"
   ],
   "errors": [],
   "screenshots": [
     "home-844x390.png",
+    "help-touch-844x390.png",
     "levels-844x390.png",
     "combat-844x390.png",
     "aim-landscape-844x390.png",
@@ -31,17 +34,20 @@
     "aim-portrait-390x844.png",
     "combat-390x844.png",
     "pause-390x844.png",
+    "help-touch-390x844.png",
     "levels-390x844.png",
     "home-568x320.png",
+    "help-touch-568x320.png",
     "combat-568x320.png",
     "defeat-844x390.png",
     "home-desktop.png",
     "combat-desktop.png",
-    "pause-keyboard-desktop.png"
+    "pause-keyboard-desktop.png",
+    "help-keyboard-desktop.png"
   ],
   "naturalRun": {
-    "seconds": 31.87499999999883,
-    "health": 76,
+    "seconds": 31.833333333332167,
+    "health": 98,
     "upgrades": [
       "scatter",
       "pierce"
