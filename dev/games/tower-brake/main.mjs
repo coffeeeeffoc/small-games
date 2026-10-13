@@ -4,6 +4,7 @@ import {
   createGame,
   createEndlessGame,
   MAX_STEP,
+  RANKED_RULE_VERSION,
   step,
   rotate,
   brake,
@@ -45,10 +46,12 @@ let starting = false,
 let competitionStatus = '本地挑战';
 const competition = createLeaderboard({
   gameId: 'tower-brake',
+  ruleVersion: RANKED_RULE_VERSION,
   moduleUrl: new URL('./game-services.js', import.meta.url).href,
-  onStatus: (text) => {
+  onStatus: (text, status) => {
     competitionStatus = text;
     $('ranking-note').textContent = text;
+    if (status === 'update-required') toast(text, 5000);
   },
 });
 const incoming = new URL(location.href).searchParams;

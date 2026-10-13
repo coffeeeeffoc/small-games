@@ -3,6 +3,7 @@ import {
   createGame,
   createEndlessGame,
   FIXED_STEP,
+  RANKED_RULE_VERSION,
   stepGame,
   launchBall,
   setPaused,
@@ -44,10 +45,12 @@ export async function mountCageRescue(host) {
   let competitionStatus = '本地挑战';
   const competition = createLeaderboard({
     gameId: 'cage-rescue',
+    ruleVersion: RANKED_RULE_VERSION,
     moduleUrl: new URL('../game-services.js', import.meta.url).href,
-    onStatus: (text) => {
+    onStatus: (text, status) => {
       competitionStatus = text;
       $('ranking-note').textContent = text;
+      if (status === 'update-required') toast(text, 5000);
     },
   });
   const incoming = new URL(location.href).searchParams;
