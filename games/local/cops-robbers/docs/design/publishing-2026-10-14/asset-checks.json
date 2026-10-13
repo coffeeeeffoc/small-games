@@ -1,0 +1,139 @@
+{
+  "game": "cops-robbers",
+  "title": "围捕小队",
+  "checked_at": "2026-10-14T00:59:23.595729+08:00",
+  "source_revision": "76ffeb67d54223f95aaaff4de7ed5ce85de73d5b",
+  "passed": true,
+  "images": [
+    {
+      "file": "icon-1024.png",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "ratio": "1024:1024",
+      "bytes": 1388661,
+      "MB_decimal": 1.389,
+      "opaque": true,
+      "sha256": "fc3e2a5f6c8fef94d9ad19253ef16b76c3fbb47a986ab9641d2ebd9f7b295d21",
+      "corner_rgb": [
+        [
+          107,
+          195,
+          139
+        ],
+        [
+          25,
+          144,
+          74
+        ],
+        [
+          38,
+          132,
+          75
+        ],
+        [
+          218,
+          197,
+          193
+        ]
+      ],
+      "kind": "icon"
+    },
+    {
+      "file": "promo-1920x1080.png",
+      "format": "PNG",
+      "width": 1920,
+      "height": 1080,
+      "ratio": "1920:1080",
+      "bytes": 2791079,
+      "MB_decimal": 2.791,
+      "opaque": true,
+      "sha256": "dc7d61ff13368e30b434d9cd2ad3b04b870617aa41b231e9028ca791b47b5205",
+      "kind": "promotional illustration"
+    },
+    {
+      "file": "screenshots/01-surround-challenge.png",
+      "format": "PNG",
+      "width": 1080,
+      "height": 1920,
+      "ratio": "1080:1920",
+      "bytes": 1642119,
+      "MB_decimal": 1.642,
+      "opaque": true,
+      "sha256": "8752db4c525625eb1675f40c82e502e523bfedb722604e5a3c71d66a3ddd1839",
+      "kind": "actual gameplay screenshot",
+      "core_board_area_percent": 67.47,
+      "mode": {
+        "mode": "challenge",
+        "rule": "standard",
+        "level": 1
+      },
+      "visible_turn": 2,
+      "page_errors": [],
+      "failed_requests": [],
+      "source_url": "http://127.0.0.1:43420/?dev=0&mode=challenge&level=1&rule=standard&motion=reduce"
+    },
+    {
+      "file": "screenshots/02-quick-dual-targets.png",
+      "format": "PNG",
+      "width": 1080,
+      "height": 1920,
+      "ratio": "1080:1920",
+      "bytes": 1393332,
+      "MB_decimal": 1.393,
+      "opaque": true,
+      "sha256": "db74b01f1c536d6be1eb641d5e31c6144170cffaad355fe71aad15b4e4b0fe02",
+      "kind": "actual gameplay screenshot",
+      "core_board_area_percent": 55.27,
+      "mode": {
+        "mode": "quick",
+        "rule": "standard",
+        "level": 3
+      },
+      "visible_turn": 1,
+      "page_errors": [],
+      "failed_requests": [],
+      "source_url": "http://127.0.0.1:43420/?dev=0&mode=quick&level=3&rule=standard&motion=reduce"
+    },
+    {
+      "file": "screenshots/03-relay-patrol.png",
+      "format": "PNG",
+      "width": 1080,
+      "height": 1920,
+      "ratio": "1080:1920",
+      "bytes": 1657013,
+      "MB_decimal": 1.657,
+      "opaque": true,
+      "sha256": "e01e3d297149079c7d6a749ed42000a7675a9e40cbf5c9f252295ffa21c83f2a",
+      "kind": "actual gameplay screenshot",
+      "core_board_area_percent": 67.47,
+      "mode": {
+        "mode": "challenge",
+        "rule": "relay",
+        "level": 16
+      },
+      "visible_turn": 2,
+      "page_errors": [],
+      "failed_requests": [],
+      "source_url": "http://127.0.0.1:43420/?dev=0&mode=challenge&level=16&rule=relay&motion=reduce"
+    }
+  ],
+  "visual_review": {
+    "icon": "Full-bleed colored background, square corners, no text or applied rounded mask.",
+    "promo": "Only the game title 围捕小队, no app-icon overlay or advertising copy; a newly composed illustration referencing existing game art."
+  },
+  "export": {
+    "icon": "Image-generation original 1254×1254; resized to 1024×1024 PNG with Lanczos, opaque RGB.",
+    "promo": "Image-generation original 1672×941; exported with Lanczos to exactly 1920×1080, negligible centered aspect trim, opaque RGB.",
+    "screenshots": "Direct Chromium screenshots at device scale factor 2, no resize, retouch or compositing."
+  },
+  "capture_environment": {
+    "runtime": "H5 in Chromium with mobile viewport and touch emulation; not a physical-device capture",
+    "viewport": {
+      "width": 540,
+      "height": 960
+    },
+    "device_scale_factor": 2,
+    "browser": "151.0.7922.173"
+  }
+}
