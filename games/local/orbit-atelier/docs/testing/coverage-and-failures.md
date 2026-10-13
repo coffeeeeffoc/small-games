@@ -38,7 +38,7 @@ node tests/coverage-report.mjs <absolute-browser-report.json>
 
 默认报告位于仓库 `.scratch/orbit-atelier/<制品哈希前12位>/<本次时间>/browser-report.json`。`ORBIT_EVIDENCE_DIR` 可指定输出目录，不再覆盖已提交设计截图。报告保存完整 pageerror/runner 栈、HTTP 失败状态、准确 Git revision、是否存在已跟踪未提交改动、源输入 SHA-256、每个制品文件 SHA-256、总制品 ID、Node/OS/浏览器、失败视口、容器和失败前动作。
 
-`ORBIT_URL` 指向外部页面时，报告的 build 为 null，明确无本地构建证明，不把当前 checkout SHA 冒充部署版本。正常本地构建前后核对源输入和 revision 未变化。构建身份包括源、配置、锁文件和实际 dist 字节；复现先核对 SHA/源，再重建并核对制品 ID，版本不匹配时在浏览器用例开始前拒绝。
+`ORBIT_URL` 指向外部页面时，报告的 build 为 null，明确无本地构建证明，不把当前 checkout SHA 冒充部署版本。正常本地构建前后核对源输入和 revision 未变化。构建身份包括源、配置、锁文件和实际 dist 字节；文本源与 driver 指纹规范化 CRLF/LF，制品仍按原始字节计算。复现先核对 SHA/源，再重建并核对制品 ID，版本不匹配时在浏览器用例开始前拒绝。
 
 在隔离、干净的对应 SHA 工作树安装冻结依赖后，从游戏目录运行：
 
@@ -50,6 +50,6 @@ node tests/reproduce-failure.mjs <absolute-browser-report.json>
 
 无需 source map：报告保留生产脚本文件名及栈中行列，匹配制品可重现，必要时用对应源码定位。未生成或上传 map；hidden map 也不当作保密方案。
 
-采集只使用新建的合成测试 profile，不读取真实用户 profile、凭据、请求头/正文、console 内容或存档值。URL 去用户名/密码、query/hash；常见 token/secret/password 等值脱敏；本机用户路径替换并保留栈文件名与行列。每个错误 message 最多 4KiB、stack 最多 16KiB，最多20个错误，最近40个动作；动作只记录固定操作名、视口和手势首尾坐标/点数。截图保持原固定有限集合。默认输出在忽略的 `.scratch` 中，局部测试产物可删除；发布候选临时树仍遵守已有生命周期，精选无敏感信息的诊断样例可按 SHA 归档。CI 失败打印有界 JSON 到既有 job log，不新增服务或 artifact 权限。
+采集只使用新建的合成测试 profile，不读取真实用户 profile、凭据、请求头/正文、console 内容或存档值。URL 去用户名/密码、query/hash；常见 token/secret/password 与 Authorization/Cookie/Bearer 值脱敏；本机用户路径替换并保留栈文件名与行列。每个错误 message 最多4000字符、stack 最多16000字符，最多20个错误，最近40个动作；动作只记录固定操作名、视口和手势首尾坐标/点数。截图保持原固定有限集合。默认输出在忽略的 `.scratch` 中，局部测试产物可删除；发布候选临时树仍遵守已有生命周期，精选无敏感信息的诊断样例可按 SHA 归档。CI 失败打印有界 JSON 到既有 job log，不新增服务或 artifact 权限。
 
 增量门禁仅把 `browser.mjs` 接入已有 Orbit publishing 专项列表，仍由真实受影响游戏 ID 选择；规则自测接入 Orbit `test`。未增加全量推送检查。线上 CI/Pages、真机和原生平台结果分别记录，Chromium/CDP 与合成生命周期事件不能称作真机验收。

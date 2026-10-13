@@ -3,8 +3,11 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
 export const digest = (value) => createHash('sha256').update(value).digest('hex');
+export const textDigest = (value) => digest(String(value).replace(/\r\n/g, '\n'));
 export function sanitize(value, limit = 16000) {
   return String(value ?? '')
+    .replace(/\b(authorization|cookie|set-cookie)\s*[:=][^\r\n]*/gi, '$1=[redacted]')
+    .replace(/\bBearer\s+[^\s,;]+/gi, 'Bearer [redacted]')
     .replace(/https?:\/\/[^\s)"'<>]+/g, (raw) => {
       try {
         const url = new URL(raw);
@@ -18,7 +21,7 @@ export function sanitize(value, limit = 16000) {
       (raw) => '[local-path]/' + raw.split(/[\\/]/).at(-1),
     )
     .replace(
-      /\b(token|secret|password|authorization|cookie|api[_-]?key)\s*[:=]\s*[^\s,;]+/gi,
+      /\b(token|access_token|refresh_token|secret|password|api[_-]?key)\s*[:=]\s*[^\s,;]+/gi,
       '$1=[redacted]',
     )
     .slice(0, limit);
@@ -60,7 +63,7 @@ export function coverageSummary(spec, receipts, source) {
   );
   return {
     driver: spec.driver,
-    driverSha256: digest(source),
+    driverSha256: textDigest(source),
     covered: spec.cases.filter((entry) => receipts.some((item) => item.id === entry.id)),
     missing: spec.cases.filter((entry) => !receipts.some((item) => item.id === entry.id)),
     gaps: spec.gaps,

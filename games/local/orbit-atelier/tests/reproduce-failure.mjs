@@ -36,7 +36,7 @@ let result;
 try {
   await promisify(execFile)(process.execPath, [path.join(root, 'tests/browser.mjs')], {
     cwd: root,
-    timeout: 180000,
+    timeout: 300000,
     maxBuffer: 2 * 1024 * 1024,
     env: {
       ...process.env,

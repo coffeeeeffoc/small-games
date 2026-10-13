@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { coverageSummary, digest, readCoverage } from './evidence.mjs';
+import { coverageSummary, textDigest, readCoverage } from './evidence.mjs';
 
 const spec = await readCoverage();
 const source = await readFile(new URL('./browser.mjs', import.meta.url), 'utf8');
@@ -8,7 +8,7 @@ const report = process.argv[2] ? JSON.parse(await readFile(process.argv[2], 'utf
 if (report)
   assert.equal(
     report.coverage.driverSha256,
-    digest(source),
+    textDigest(source),
     'Report belongs to another test driver; check out its SHA',
   );
 const result = coverageSummary(spec, report?.coverage.receipts || [], source);

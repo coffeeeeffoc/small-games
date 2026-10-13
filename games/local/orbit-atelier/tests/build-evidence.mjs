@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { digest } from './evidence.mjs';
+import { digest, textDigest } from './evidence.mjs';
 
 async function files(root, prefix = '') {
   const result = [];
@@ -32,11 +32,16 @@ export async function sourceIdentity(root) {
     ...(await files(path.join(root, 'src')).then((names) => names.map((name) => 'src/' + name))),
   ];
   const hashes = [];
-  for (const name of inputs.sort())
-    hashes.push([name, digest(await readFile(path.join(root, name)))]);
+  for (const name of inputs.sort()) {
+    const content = await readFile(path.join(root, name));
+    hashes.push([
+      name,
+      /\.(?:[cm]?[jt]s|css|html|json)$/.test(name) ? textDigest(content) : digest(content),
+    ]);
+  }
   hashes.push([
     'pnpm-lock.yaml',
-    digest(await readFile(path.resolve(root, '../../../pnpm-lock.yaml'))),
+    textDigest(await readFile(path.resolve(root, '../../../pnpm-lock.yaml'), 'utf8')),
   ]);
   return { revision, dirty, sourceSha256: digest(JSON.stringify(hashes)) };
 }

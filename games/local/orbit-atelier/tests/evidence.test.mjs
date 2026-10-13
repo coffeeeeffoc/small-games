@@ -7,6 +7,7 @@ import {
   errorEvidence,
   readCoverage,
   sanitize,
+  textDigest,
 } from './evidence.mjs';
 
 test('coverage requires execution receipts, valid dimensions and executable assertions', async () => {
@@ -37,6 +38,16 @@ test('bounded errors retain stack frames and remove URL credentials, queries and
   assert(!JSON.stringify(result).match(/Alice|user:pass|private|secret=x|token=x/));
   assert(result.stack.includes('evidence.mjs:3:4'));
   assert.equal(sanitize('x'.repeat(20000)).length, 16000);
+  assert.equal(
+    sanitize(
+      'Authorization: Bearer abc-def\nCookie: session=abc-def\nBearer abc-def\naccess_token=abc-def',
+    ),
+    'Authorization=[redacted]\nCookie=[redacted]\nBearer [redacted]\naccess_token=[redacted]',
+  );
+});
+test('source and driver fingerprints normalize checkout line endings, not code changes', () => {
+  assert.equal(textDigest('const x = 1;\r\n'), textDigest('const x = 1;\n'));
+  assert.notEqual(textDigest('const x = 1;\n'), textDigest('const x = 2;\n'));
 });
 test('reproduction rejects different revision, source, asset fingerprint and dirty source', () => {
   const build = {
