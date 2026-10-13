@@ -12,6 +12,7 @@ import {
   readCoverage,
   sanitize,
   assertMatchingBuild,
+  trustedInputProof,
 } from './evidence.mjs';
 import { sourceIdentity, buildIdentity } from './build-evidence.mjs';
 
@@ -26,6 +27,7 @@ const checks = [];
 const failures = [];
 const screenshots = [];
 const receipts = [];
+const lastInput = new WeakMap();
 const actions = [];
 const spec = await readCoverage();
 const driverSource = await readFile(fileURLToPath(import.meta.url), 'utf8');
@@ -98,8 +100,9 @@ async function verify(id, target, assertion) {
   const orientation = observed.viewport.width > observed.viewport.height ? 'landscape' : 'portrait';
   assert.equal(orientation, entry.orientation, `${id} orientation`);
   assert.equal(observed.container, entry.container, `${id} container`);
-  if (entry.input === 'touch')
-    assert(await target.evaluate(() => navigator.maxTouchPoints > 0), `${id} touch context`);
+  const input = await target.evaluate(() => window.__orbitTrustedInput);
+  const inputProof = trustedInputProof(entry.input, input, lastInput.get(target));
+  lastInput.set(target, input);
   const anchor = id.startsWith('storage-')
     ? /verify\(\s*`storage-\$\{storage\}`/
     : new RegExp(`verify\\(\\s*'${id}'`);
@@ -109,12 +112,13 @@ async function verify(id, target, assertion) {
     status: 'passed',
     orientation,
     input: entry.input,
+    inputProof,
     ...observed,
     assertion: entry.assertion,
     source: `tests/browser.mjs:${driverSource.slice(0, offset).split('\n').length}`,
   });
 }
-function monitor(page, name, container = 'standalone') {
+async function monitor(page, name, container = 'standalone') {
   page.on('pageerror', (error) =>
     fail({
       context: name,
@@ -134,6 +138,17 @@ function monitor(page, name, container = 'standalone') {
         ...observation(response.frame()),
       });
     }
+  });
+  await page.addInitScript(() => {
+    window.__orbitTrustedInput = { timeOrigin: performance.timeOrigin, touch: 0, mouse: 0 };
+    window.addEventListener(
+      'pointerdown',
+      (event) => {
+        if (event.isTrusted && ['touch', 'mouse'].includes(event.pointerType))
+          window.__orbitTrustedInput[event.pointerType]++;
+      },
+      true,
+    );
   });
 }
 async function screenshot(page, name) {
@@ -521,7 +536,7 @@ try {
     locale: 'zh-CN',
   });
   const page = await phone.newPage();
-  monitor(
+  await monitor(
     page,
     probe === 'iframe-pageerror' ? 'iframe-probe' : 'mobile',
     probe === 'iframe-pageerror' ? 'sandbox-iframe' : 'standalone',
@@ -801,7 +816,7 @@ try {
     locale: 'zh-CN',
   });
   const desk = await desktop.newPage();
-  monitor(desk, 'desktop');
+  await monitor(desk, 'desktop');
   await ready(desk);
   await assertVisibleControls(desk);
   await action(desk, 'start').click();
@@ -877,7 +892,7 @@ try {
       { mode: storage, key: storageKey },
     );
     const storagePage = await context.newPage();
-    monitor(storagePage, storage);
+    await monitor(storagePage, storage);
     await ready(storagePage);
     await start(storagePage);
     const beforeHint = stateOf(await inspect(storagePage));
@@ -906,7 +921,7 @@ try {
     hasTouch: true,
   });
   const host = await iframeContext.newPage();
-  monitor(host, 'iframe', 'sandbox-iframe');
+  await monitor(host, 'iframe', 'sandbox-iframe');
   await host.goto(new URL('/__qa_frame.html', baseUrl).href);
   const frame = host.frames().find((entry) => entry.parentFrame());
   assert(frame, 'Game iframe mounted');

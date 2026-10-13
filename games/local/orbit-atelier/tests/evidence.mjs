@@ -53,6 +53,14 @@ export function failureSignature(entry) {
         },
   );
 }
+export function trustedInputProof(input, current, previous) {
+  assert(['touch', 'mouse'].includes(input), 'Invalid input type');
+  assert(Number.isFinite(current?.timeOrigin) && current.timeOrigin > 0, 'Missing input document');
+  assert(Number.isInteger(current[input]) && current[input] >= 0, 'Invalid input counter');
+  const before = previous?.timeOrigin === current.timeOrigin ? previous[input] : 0;
+  assert(current[input] > before, `No new trusted ${input} pointerdown for this case`);
+  return { documentTimeOrigin: current.timeOrigin, trustedPointerDowns: current[input] - before };
+}
 export function coverageSummary(spec, receipts, source) {
   assert.equal(spec.schemaVersion, 1);
   const ids = spec.cases.map((entry) => entry.id);
@@ -75,6 +83,11 @@ export function coverageSummary(spec, receipts, source) {
     assert.equal(receipt.status, 'passed');
     for (const dimension of ['orientation', 'input', 'container'])
       assert.equal(receipt[dimension], entry[dimension], `${receipt.id}: ${dimension} mismatch`);
+    assert(
+      Number.isInteger(receipt.inputProof?.trustedPointerDowns) &&
+        receipt.inputProof.trustedPointerDowns > 0,
+      `${receipt.id}: missing trusted input proof`,
+    );
   }
   assert.equal(
     new Set(receipts.map((item) => item.id)).size,

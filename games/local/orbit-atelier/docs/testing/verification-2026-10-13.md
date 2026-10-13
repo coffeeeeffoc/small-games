@@ -37,4 +37,8 @@ node tests/reproduce-failure.mjs <absolute-failed-b.json>
 
 首次沙箱执行 A 因本机导航 `ERR_NETWORK_ACCESS_DENIED` 不匹配，未算成功；正常环境的工具审批通过后重新执行并匹配。工作树最终保持干净。独立代码复核发现的 iframe 标注、动态端口签名、发布截图污染工作树问题均修正，pageerror 签名也绑定实际容器。
 
+首次发布候选 `c0ef2714e93c1f9b8a28788770e848463d9fed70` 本地增量门禁和正常推送 hook 均通过，但 [CI 38372439591](https://github.com/coffeeeeffoc/small-games/actions/runs/38372439591) 在 Linux Chromium140.0.7339.186 上失败。报告记录了准确 SHA、干净构建、390×844 视口、触屏暂停成功后的动作与完整 runner 栈，定位为 `navigator.maxTouchPoints` 的能力探针断言；本地显式系统 Chrome154.0.8037.99 没有暴露这一差异。修正为每个文档、每项用例新收到的可信触摸/鼠标事件计数，并自测拒绝旧事件、错输入类型及空的新文档。原功能断言继续执行；没有绕过门禁或修改游戏行为。
+
+探针修正后的开发回归：30 项规则/诊断自测通过；Windows 下显式 Playwright 配套 Chromium140.0.7339.186 的完整浏览器专项通过，14 项回执均有新增可信输入，缺失0项。该回归运行在提交前，报告标记 `dirty:true`，用于验证修正；不能代替随后干净、准确 SHA 的候选门禁和远端 CI。
+
 未完成 Android/iPhone/Safari 真机、原生小游戏平台、Orbit 跨域 iframe 和 Shell 手机横屏触屏验收。这些仍在清单中明确标为未验证，不能用当前 Chromium/CDP 与合成 blur/hidden 代替。最终发布 base/head、CI/Pages 的准确 SHA 和结论以本次候选日志及交付记录为准。

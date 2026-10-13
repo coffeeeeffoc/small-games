@@ -4,7 +4,7 @@
 
 ## 可执行组合清单
 
-[coverage.json](../../tests/coverage.json) 定义有限、合法且有事件顺序的组合。`verify(id, target, assertion)` **先执行有效断言**，再核对实际视口方向、实际 iframe/独立容器和触屏上下文，最后写入 receipt。运行报告包含断言说明、源码行、driver SHA-256 和构建身份。静态清单、文字 checks、截图和未执行的条件分支不计入覆盖；完整专项缺任一 receipt 会失败。
+[coverage.json](../../tests/coverage.json) 定义有限、合法且有事件顺序的组合。`verify(id, target, assertion)` **先执行有效断言**，再核对实际视口方向、实际 iframe/独立容器和输入事件，最后写入 receipt。输入证据来自当前文档收到的 `isTrusted`、对应 `pointerType` 的 `pointerdown`，每项必须比该文档上次回执新增事件；页面导航后重新计数，合成 `dispatchEvent` 不算输入。运行报告包含实际事件数量、断言说明、源码行、driver SHA-256 和构建身份。静态清单、文字 checks、截图和未执行的条件分支不计入覆盖；完整专项缺任一 receipt 会失败。
 
 ```sh
 pnpm --filter @coffeeeeffoc/orbit-atelier test

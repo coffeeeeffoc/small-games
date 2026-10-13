@@ -9,6 +9,7 @@ import {
   sanitize,
   textDigest,
   failureSignature,
+  trustedInputProof,
 } from './evidence.mjs';
 
 test('coverage requires execution receipts, valid dimensions and executable assertions', async () => {
@@ -17,7 +18,11 @@ test('coverage requires execution receipts, valid dimensions and executable asse
   const empty = coverageSummary(spec, [], source);
   assert.equal(empty.covered.length, 0);
   assert.equal(empty.missing.length, spec.cases.length);
-  const receipts = spec.cases.map((entry) => ({ ...entry, status: 'passed' }));
+  const receipts = spec.cases.map((entry) => ({
+    ...entry,
+    status: 'passed',
+    inputProof: { documentTimeOrigin: 1, trustedPointerDowns: 1 },
+  }));
   assert.equal(coverageSummary(spec, receipts, source).missing.length, 0);
   assert.throws(
     () => coverageSummary(spec, [{ ...receipts[0], container: 'sandbox-iframe' }], source),
@@ -26,9 +31,36 @@ test('coverage requires execution receipts, valid dimensions and executable asse
   assert.throws(() => coverageSummary(spec, [{ ...receipts[0], id: 'fake' }], source), /Unknown/);
   assert.throws(() => coverageSummary(spec, receipts, ''), /executable assertion/);
   assert.throws(
+    () => coverageSummary(spec, [{ ...receipts[0], inputProof: undefined }], source),
+    /input proof/,
+  );
+  assert.throws(
     () => coverageSummary({ ...spec, cases: [...spec.cases, spec.cases[0]] }, [], source),
     /unique/,
   );
+});
+test('input proof requires new trusted events of the claimed type in the current document', () => {
+  const first = { timeOrigin: 1, touch: 2, mouse: 0 };
+  assert.deepEqual(trustedInputProof('touch', first), {
+    documentTimeOrigin: 1,
+    trustedPointerDowns: 2,
+  });
+  assert.throws(() => trustedInputProof('mouse', first), /No new/);
+  assert.throws(() => trustedInputProof('touch', first, first), /No new/);
+  assert.deepEqual(trustedInputProof('touch', { ...first, touch: 3 }, first), {
+    documentTimeOrigin: 1,
+    trustedPointerDowns: 1,
+  });
+  assert.equal(
+    trustedInputProof('touch', { ...first, timeOrigin: 2, touch: 1 }, first).trustedPointerDowns,
+    1,
+  );
+  assert.throws(
+    () => trustedInputProof('touch', { ...first, timeOrigin: 2, touch: 0 }, first),
+    /No new/,
+  );
+  assert.throws(() => trustedInputProof('touch', { ...first, touch: -1 }), /counter/);
+  assert.throws(() => trustedInputProof('touch', null), /document/);
 });
 test('bounded errors retain stack frames and remove URL credentials, queries and local paths', () => {
   const error = new Error('token=private https://user:pass@example.test/app?secret=x#y');
