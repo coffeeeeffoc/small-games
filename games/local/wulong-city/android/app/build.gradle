@@ -1,0 +1,65 @@
+import groovy.json.JsonSlurper
+import groovy.json.JsonOutput
+
+plugins { id 'com.android.application' }
+
+def configFile = rootProject.file(System.getenv('WULONG_ANDROID_CONFIG') ?: 'release-config.local.json')
+def config = configFile.exists() ? new JsonSlurper().parse(configFile) : [:]
+def value = { name, fallback = '' -> System.getenv(name) ?: config[name] ?: fallback }
+def quoted = { name -> JsonOutput.toJson(value(name).toString()) }
+def adsEnabled = ['TAPAD_MEDIA_ID', 'TAPAD_MEDIA_KEY', 'TAPAD_HINT_SPACE_ID', 'WULONG_PRIVACY_URL'].every { value(it) }
+
+android {
+    namespace 'com.coffeeeeffoc.wulongcity'
+    compileSdk 34
+    defaultConfig {
+        applicationId value('WULONG_APPLICATION_ID', 'com.coffeeeeffoc.wulongcity').toString()
+        minSdk 26
+        targetSdk 34
+        versionCode Integer.parseInt(value('WULONG_VERSION_CODE', '1').toString())
+        versionName value('WULONG_VERSION_NAME', '2.0.0').toString()
+        buildConfigField 'boolean', 'REWARDED_ENABLED', adsEnabled.toString()
+        ['TAPAD_MEDIA_ID', 'TAPAD_MEDIA_KEY', 'TAPAD_HINT_SPACE_ID', 'WULONG_PRIVACY_URL'].each {
+            buildConfigField 'String', it, quoted(it)
+        }
+    }
+    signingConfigs {
+        release {
+            if (value('ANDROID_KEYSTORE_PATH')) {
+                storeFile rootProject.file(value('ANDROID_KEYSTORE_PATH'))
+                storePassword value('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias value('ANDROID_KEY_ALIAS')
+                keyPassword value('ANDROID_KEY_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        debug { applicationIdSuffix '.debug' }
+        release { signingConfig signingConfigs.release; minifyEnabled false }
+    }
+    buildFeatures { buildConfig true }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    sourceSets.main.assets.srcDir layout.buildDirectory.dir('generated/assets')
+}
+
+// Studio and the CLI both compile fresh, game-only assets. No shell-wide build.
+tasks.register('prepareGame', Exec) {
+    workingDir rootProject.projectDir.parentFile
+    commandLine (System.getenv('NODE_BINARY') ?: 'node'), 'scripts/prepare-android.mjs'
+}
+tasks.named('preBuild') { dependsOn 'prepareGame' }
+tasks.register('validateReleaseConfig', Exec) {
+    workingDir rootProject.projectDir.parentFile
+    commandLine (System.getenv('NODE_BINARY') ?: 'node'), 'scripts/check-android-release.mjs'
+}
+// Aggregate :app:assemble / :app:build and Android Studio also hit the release guard.
+tasks.configureEach {
+    if (name == 'preReleaseBuild' || name == 'validateSigningRelease') dependsOn 'validateReleaseConfig'
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.10.0'
+    implementation files(rootProject.file('.cache/dirichlet_ad_5.3.0.4.aar'))
+    implementation 'com.squareup.okhttp3:okhttp:3.12.1'
+    testImplementation 'junit:junit:4.13.2'
+}

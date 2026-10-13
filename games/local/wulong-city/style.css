@@ -15,3 +15,13 @@
 .result-emblem{height:220px;font-size:0;position:relative;border:2px solid #cbb079;border-radius:20px;margin:14px 0 22px;background:url('./assets/art/result-illustration.webp') center/cover}.result-emblem span{display:none}.result-emblem b{position:absolute;right:13px;bottom:12px;width:55px;height:55px;font-size:25px;border:4px double #d6a144;box-shadow:0 3px 0 #a57b3b}
 @media(max-height:700px) and (orientation:portrait){.pause-art{height:130px}.hint-art,.journal-art{height:130px}.result-emblem{height:145px}.home-title{margin-top:65px}.hint-text{min-height:120px}.page-panel #dialog-body{min-height:auto}}
 @media(orientation:landscape) and (max-height:600px){.home-title{margin:0}.records-button{top:15px}.pause-art,.hint-art,.journal-art,.result-emblem{display:none}.hint-text{min-height:76px}}
+
+/* Optional rewarded guidance follows the existing parchment hint screen. */
+.reward-button{border:2px solid #397d79;font-size:14px;letter-spacing:0;color:#235f60;min-height:48px}
+.reward-button svg{width:20px;height:20px;flex-shrink:0}
+.reward-caption{font-size:11px!important;margin:14px 0 0;line-height:1.6!important;color:#59766c}
+#game[data-page=hint]:has(.reward-button) .hint-art{height:132px;margin-bottom:16px}
+#game[data-page=hint]:has(.reward-button) .hint-text{min-height:110px;margin-bottom:12px!important}
+.guide-active .hotspot{outline:3px dashed #146c68;outline-offset:-3px;box-shadow:inset 0 0 0 5px #ffe39690;background:#ffdf7628}
+.guide-active .hotspot:after{content:'';position:absolute;right:3px;top:3px;width:9px;height:9px;border:2px solid #fff3cb;border-radius:50%;background:#176966;pointer-events:none}
+@media(prefers-reduced-motion:no-preference){.guide-active .hotspot{animation:guide-glow 1.4s ease-in-out infinite alternate}@keyframes guide-glow{to{background:#ffdf7655;outline-color:#e0a22e}}}

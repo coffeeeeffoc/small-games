@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { expect } from '@playwright/test';
 import { browserEvidence } from './browser-evidence.mjs';
-const env=await browserEvidence();const {page,base,shot}=env;
+const env=await browserEvidence({evidence:new URL('../docs/design/rewarded-android-2026-10-14/publishing/',import.meta.url)});const {page,base,shot}=env;
 try {
  await page.goto(base+'?dev=1');await shot('home');await page.locator('#home-levels').tap();await shot('levels');await page.locator('#levels-back').tap();await page.locator('#start-game').tap();
  const normal=await page.evaluate(()=>localStorage.getItem('wulong-city-v1'));
@@ -40,8 +40,10 @@ try {
  for(let i=0;i<2;i++){await page.locator('[data-home]').tap();await page.locator('#home-records').tap();await page.locator('[data-try="25"]').tap();await page.locator('#tryout-back').tap();await expect(page.locator('#game')).toHaveAttribute('data-page','result');}
  assert.equal(await page.evaluate(()=>window.__ads.length),0,'returning from a trial cannot count the same mainline completion twice');
  for(let i=0;i<2;i++){await page.locator('#again').tap();await completeFirst();}
- await expect.poll(()=>page.evaluate(()=>window.__ads.length)).toBe(1);
- assert.equal(await page.evaluate(()=>window.__ads[0].kind),'interstitial','configured host provider receives the natural-break opportunity');
+ assert.equal(await page.evaluate(()=>window.__ads.length),0,'puzzle results never auto-play ads');
+
  assert.deepEqual(env.errors,[]);
  console.log('PASS wulong publishing: touch-only fan puzzle, 3-tier hint record survives wrap, replay resets, no-spoiler sanitized share/cancel and challenge save isolation.');
 }finally{await env.close();}
+// The publication gate executes this entry, including the installed-APK bridge contract.
+await import('./rewarded.browser.mjs');

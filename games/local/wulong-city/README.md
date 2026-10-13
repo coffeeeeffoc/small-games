@@ -81,6 +81,6 @@ pnpm test:dev-mode
 
 本轮在 H5 与原生 Canvas 结算记录「独立破解 / 看过 N 级提示」。记录本局最高已查看等级，切回第一条不会洗掉提示痕迹；重试新开一局，今日试演返回则恢复主线记录。H5 邀请同关说明是否辅助，链接只包含原有 `challenge` 内部关卡 ID，不带手记、笑点或解法；挑战依然不写主线进度。
 
-普通自然结算复用共享 H5 发布适配器：第三次且至少 60 秒间隔才会出现可关闭的模拟广告，每会话最多 6 次，挑战/开发试玩不出广告。配置 `globalThis.SmallGamesPublishingConfig` 的 `adMode: 'off'` 可关闭，`adMode: 'host'` 加 `provider` 可接统一宿主，`publicUrl` 可指定公开入口。原生 Canvas 本轮同步提示标识，未新增原生分享/广告点位。
+2026-10-14 起取消结算自动广告。提示页新增可选「机关高亮 30 秒」激励位，三级文字提示保持免费；仅配置真实宿主 provider 时显示，取消/失败不发奖。Android 安装式 APK 与签名打包见 [Android 接入说明](android/README.md)，设计和证据见 [本轮方案](docs/design/rewarded-android-2026-10-14/README.md)。
 
 局部设计、实际手机尺寸截图与验证记录见 [本轮验收](docs/design/expansion-2026-10-11/verification.md)。

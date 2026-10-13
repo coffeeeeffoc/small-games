@@ -4,9 +4,9 @@ import { readFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
-export async function browserEvidence() {
+export async function browserEvidence(options = {}) {
   const root = fileURLToPath(new URL('../dist/', import.meta.url));
-  const evidence = new URL('../docs/design/expansion-2026-10-11/actual/', import.meta.url);
+  const evidence = options.evidence ?? new URL('../docs/design/expansion-2026-10-11/actual/', import.meta.url);
   await mkdir(evidence, { recursive: true });
   const mime = {'.js':'text/javascript', '.html':'text/html', '.css':'text/css', '.svg':'image/svg+xml', '.json':'application/json', '.png':'image/png', '.webp':'image/webp', '.wav':'audio/wav'};
   const server = createServer(async (request,response) => {

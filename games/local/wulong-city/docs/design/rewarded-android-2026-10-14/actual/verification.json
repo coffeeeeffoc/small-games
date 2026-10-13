@@ -1,0 +1,12 @@
+{
+  "environment": "Chromium mobile touch emulation, simulated native SDK callbacks",
+  "checks": [
+    "all free hints; native fullscreen; duplicate completion; gameplay-only countdown; retry resets",
+    "cancel/no-fill/error; explicit cancellation; late completion cannot affect new run",
+    "320px touch target; gesture cancellation; native background stays paused after resume",
+    "touch-only puzzle/result/home; no automatic result ads; challenge and locked-level dev practice excluded"
+  ],
+  "errors": [],
+  "physicalDeviceVerified": false,
+  "realAdsVerified": false
+}

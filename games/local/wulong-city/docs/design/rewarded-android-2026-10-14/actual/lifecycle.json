@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-13T19:32:59.714Z",
+  "checks": [
+    "Pause is accessible; returning through home to level selection freezes the puzzle clock",
+    "100 levels: all three hints, pause freezes time, resume, two retries retain the correct puzzle and restore existing puzzle defaults",
+    "Escape during player/map/donut drag cancels safely and movement resumes without a stale win",
+    "A slow continuous house drag flips once, not once per animation completion",
+    "Paused past-key drag returns to yesterday without awarding completion",
+    "Retry inside a painting restores the outer camera scene",
+    "Keyboard-only grab, arrows and release install the donut wheel and finish L10",
+    "Muted echo loop runs; switching to L02 removes echo activity and preserves mute",
+    "Fullscreen controls on the pause page enter/exit; movement works during fullscreen play",
+    "Touch cancellation releases held movement",
+    "Movement ownership: two fingers on one direction, mixed keyboard/touch, and overlapping direction keys release independently",
+    "Map drag ignores unrelated cancellation; losing its own capture cancels the preview and restores the actor",
+    "320, 360, 390, 768 and 1440 pixel layouts: no horizontal overflow, controls visible",
+    "Fresh normal mode starts home; L02 locks until L01 is solved, reload returns home and continues L02, records are on their own page, and the next route encounter remains locked"
+  ],
+  "errors": []
+}
