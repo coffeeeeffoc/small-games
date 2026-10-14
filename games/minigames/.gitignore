@@ -1,0 +1,12 @@
+.tools/
+.build/
+*/build/
+*/library/
+*/temp/
+*/profiles/
+*/extensions/
+*/reports/
+*/assets/scripts/*
+!*/assets/scripts/*.meta
+release-config.local.json
+test-results/

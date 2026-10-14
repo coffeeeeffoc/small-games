@@ -1,0 +1,145 @@
+import assert from 'node:assert/strict';
+import { mkdir, readFile, writeFile, readdir, cp } from 'node:fs/promises';
+import path from 'node:path';
+import { build } from 'vite';
+import { root, repo, games, creatorConfiguration } from './config.mjs';
+import { digest, relativeFile } from '../../../apps/shell-minigame/scripts/taptap-package.mjs';
+
+export const sharedFiles = [
+  'CocosMiniGame.ts',
+  'runtime.js',
+  'runtime.d.ts',
+  'browser-sdk.js',
+  'browser-sdk.d.ts',
+];
+export const assetInputs = (game) => [
+  ['games/local/game-cricket/public/cricket-audio/perfect.wav', 'competition-action.wav'],
+  ...(game === 'cops-robbers-realtime'
+    ? [['games/local/cops-robbers-realtime/src/assets/home-city.png', 'home-city.png']]
+    : []),
+];
+const toolInputs = [
+  'package.json',
+  'pnpm-lock.yaml',
+  'pnpm-workspace.yaml',
+  'games/local/carding-car/scripts/toolchain.mjs',
+  'apps/shell-minigame/scripts/taptap-package.mjs',
+  'apps/shell-minigame/scripts/taptap-login.mjs',
+  'apps/shell-minigame/scripts/taptap-cocos-inputs.mjs',
+  'platforms/taptap/login.cjs',
+];
+export async function fingerprint(paths, config) {
+  const files = [];
+  for (const file of [...new Set(paths)].sort()) {
+    relativeFile(file);
+    const bytes = await readFile(path.join(repo, file));
+    files.push({ path: file, bytes: bytes.length, sha256: digest(bytes) });
+  }
+  return { files, sourceHash: digest(JSON.stringify({ config, files })) };
+}
+
+export async function prepareGame(config) {
+  const project = path.join(root, config.game),
+    target = path.join(project, 'assets/scripts');
+  await mkdir(target, { recursive: true });
+  await mkdir(path.join(project, 'reports'), { recursive: true });
+  const definition = games[config.game];
+  const code = `
+import { ${definition.start} as controller } from ${JSON.stringify(path.join(repo, definition.entry).replaceAll('\\', '/'))};
+import { startNativeCompetition } from ${JSON.stringify(path.join(repo, 'platforms/competition/native.js').replaceAll('\\', '/'))};
+import { normalizeTapTapSdk } from ${JSON.stringify(path.join(repo, 'platforms/taptap/normalize.mjs').replaceAll('\\', '/'))};
+import { normalizeAlipaySdk } from ${JSON.stringify(path.join(repo, 'platforms/alipay/normalize.mjs').replaceAll('\\', '/'))};
+import { withCompetitionAvailability } from ${JSON.stringify(path.join(repo, 'apps/shell-minigame/src/competition-availability.mjs').replaceAll('\\', '/'))};
+import { attachBilibiliEntry } from ${JSON.stringify(path.join(repo, 'platforms/bilibili/native-entry.mjs').replaceAll('\\', '/'))};
+import { createSdkOverlay } from ${JSON.stringify(path.join(root, 'shared/runtime.js').replaceAll('\\', '/'))};
+export const config = ${JSON.stringify(config)};
+export function prepareSdk(raw) {
+  let sdk = config.platform === 'taptap' ? normalizeTapTapSdk(raw) : config.platform === 'alipay' ? normalizeAlipaySdk(raw) : raw;
+  sdk = withCompetitionAvailability(sdk, config);
+  if (config.platform === 'bilibili') sdk = createSdkOverlay(sdk, { channelEntry: attachBilibiliEntry(sdk, { gameId: config.game }) });
+  return sdk;
+}
+export function start(sdk) {
+  const instance = controller(sdk, config, startNativeCompetition);
+  const dispose = instance.stop || instance.dispose;
+  return { ...instance, getState: () => instance.getState?.() ?? instance.state,
+    stop() { try { dispose?.call(instance); } finally { sdk.channelEntry?.dispose(); } } };
+}
+`;
+  const entryFile = path.join(project, 'reports/entry.mjs');
+  await writeFile(entryFile, code);
+  let imported = [];
+  const result = await build({
+    configFile: false,
+    root: repo,
+    logLevel: 'warn',
+    plugins: [
+      {
+        name: 'cocos-controller-entry',
+        generateBundle() {
+          imported = [...this.getModuleIds()];
+        },
+      },
+    ],
+    build: {
+      write: false,
+      target: 'es2020',
+      minify: false,
+      lib: { entry: entryFile, formats: ['es'], fileName: 'game-entry' },
+      rolldownOptions: { output: { codeSplitting: false } },
+    },
+  });
+  const chunks = (
+    Array.isArray(result) ? result.flatMap((item) => item.output) : result.output
+  ).filter((file) => file.type === 'chunk');
+  assert(
+    chunks.length === 1 && chunks[0].imports.length === 0 && chunks[0].dynamicImports.length === 0,
+    'Controller bundle must contain every runtime dependency',
+  );
+  await writeFile(path.join(target, 'game-entry.js'), chunks[0].code);
+  await writeFile(
+    path.join(target, 'game-entry.d.ts'),
+    'export const config: { game:string; platform:string; pixelRatio:number; maxUploadsPerSecond:number; assetRoot:string; debug:boolean };\nexport function prepareSdk(raw:any):any;\nexport function start(sdk:any):any;\n',
+  );
+  for (const file of sharedFiles)
+    await cp(path.join(root, 'shared', file), path.join(target, file));
+  const engineConfig = creatorConfiguration(config);
+  const configFile = path.join(project, 'reports', `build-${config.platform}.json`);
+  await writeFile(configFile, JSON.stringify(engineConfig, null, 2) + '\n');
+  const localInputs = [];
+  for (const directory of ['scripts', 'shared']) {
+    for (const file of await readdir(path.join(root, directory)))
+      localInputs.push(`games/minigames/${directory}/${file}`);
+  }
+  for (const file of await readdir(project, { recursive: true, withFileTypes: true })) {
+    if (!file.isFile()) continue;
+    const relative = path
+      .relative(project, path.join(file.parentPath, file.name))
+      .replaceAll('\\', '/');
+    if (
+      /^(?:package\.json|tsconfig\.json|settings\/|assets\/scenes(?:\.meta|\/)|assets\/scripts\.meta)/.test(
+        relative,
+      ) ||
+      /^assets\/scripts\/[^/]+\.meta$/.test(relative)
+    )
+      localInputs.push(`games/minigames/${config.game}/${relative}`);
+  }
+  const sourcePaths = imported
+    .filter((file) => path.isAbsolute(file) && file !== entryFile && !file.includes('node_modules'))
+    .map((file) => path.relative(repo, file.split('?')[0]).replaceAll('\\', '/'));
+  const identity = await fingerprint(
+    [
+      ...toolInputs,
+      ...sourcePaths,
+      ...localInputs,
+      ...assetInputs(config.game).map(([source]) => source),
+    ],
+    config,
+  );
+  return { project, configFile, engineConfig, config, ...identity };
+}
+
+export async function copyRuntimeAssets(config, output) {
+  for (const [source, destination] of assetInputs(config.game))
+    await cp(path.join(repo, source), path.join(output, destination));
+}

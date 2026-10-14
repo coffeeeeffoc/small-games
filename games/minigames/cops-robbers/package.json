@@ -1,0 +1,10 @@
+{
+  "name": "@coffeeeeffoc/cocos-cops-robbers",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "uuid": "1ed253ec-d0a9-260b-a034-7254a1d93ca2",
+  "creator": {
+    "version": "3.8.8"
+  }
+}

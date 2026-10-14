@@ -1,3 +1,4 @@
+import { cocosMinigameFileScopes } from '../games/minigames/scripts/validation-scope.mjs';
 import assert from 'node:assert/strict';
 import { readFile, stat, glob } from 'node:fs/promises';
 import path from 'node:path';
@@ -387,6 +388,44 @@ export function runNineNativeChecks({
 }
 
 export function runIncrementalToolChecks({ plan, packages, root, env, execute = run }) {
+  if (plan.cocos_minigame_ids?.length) {
+    execute(
+      process.execPath,
+      [
+        '--test',
+        'games/minigames/tests/runtime.test.mjs',
+        'games/minigames/tests/cops.test.mjs',
+        'games/minigames/tests/build.test.mjs',
+        'games/minigames/tests/scope.test.mjs',
+      ],
+      root,
+      env,
+      'logged',
+    );
+    for (const id of plan.cocos_minigame_ids) {
+      assert(
+        ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'].includes(id),
+        'Unreviewed Cocos mini-game consumer',
+      );
+      execute(
+        process.execPath,
+        [
+          'games/minigames/scripts/build.mjs',
+          '--game',
+          id,
+          '--platform',
+          'web-preview',
+          '--prepare-only',
+        ],
+        root,
+        env,
+        'logged',
+      );
+    }
+    console.log(
+      'Cocos mini-game rules and real source bundles checked; engine builds and texture/browser checks run in the separate Windows Creator workflow.',
+    );
+  }
   if (plan.vite_patch) {
     // A test-runner dependency changes these tests, not their downstream runtime
     // consumers. Keep this separate from affectedPackages' runtime graph.
@@ -717,6 +756,7 @@ export async function validateTree({
       reviewedSharedFileScopes,
       nineNativeFileScopes,
       nineLockFileScopes,
+      cocosMinigameFileScopes,
     ])
       for (const [file, sources] of classify(context)) fileScopes.set(file, sources);
   }

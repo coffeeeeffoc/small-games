@@ -47,6 +47,12 @@ test('real Git push runs the production hook and default exact-SHA snapshot vali
         await readFile(new URL(file, import.meta.url)),
       );
     }
+    const miniScope = 'games/minigames/scripts/validation-scope.mjs';
+    await mkdir(path.join(root, 'games/minigames/scripts'), { recursive: true });
+    await writeFile(
+      path.join(root, miniScope),
+      await readFile(new URL('../' + miniScope, import.meta.url)),
+    );
     await writeFile(
       path.join(root, 'package.json'),
       JSON.stringify({

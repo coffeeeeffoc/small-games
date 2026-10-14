@@ -1,3 +1,4 @@
+import { cocosMinigamePlan } from '../games/minigames/scripts/validation-scope.mjs';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { createRequire } from 'node:module';
@@ -83,7 +84,11 @@ export function incrementalPlan({
     readSource,
     fileScopes,
   });
-  const nativeOnlyPaths = new Set(nineNative.native_only_paths);
+  const cocosMini = cocosMinigamePlan({ changedPaths: paths, fileScopes });
+  const nativeOnlyPaths = new Set([
+    ...nineNative.native_only_paths,
+    ...cocosMini.native_only_paths,
+  ]);
   const h5Paths = paths.filter((file) => !nativeOnlyPaths.has(file));
   const nativeConsumers = paths.includes(nativeSmoke) ? nativeToolConsumers : [];
   for (const consumer of nativeConsumers) {
@@ -234,6 +239,7 @@ export function incrementalPlan({
     });
   return {
     full: false,
+    ...(cocosMini.ids.length ? { cocos_minigame_ids: cocosMini.ids } : {}),
     ...(hasVitePatch(paths, fileScopes) ? { vite_patch: true } : {}),
     browser: ids.size > 0,
     browser_ids: [...ids].sort(),

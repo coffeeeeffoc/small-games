@@ -1,0 +1,18 @@
+{
+  "name": "@coffeeeeffoc/cocos-minigames",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "prepare": "node scripts/build.mjs --game all --platform web-preview --prepare-only",
+    "build:taptap": "node scripts/build.mjs --platform taptap",
+    "build:wechat": "node scripts/build.mjs --platform wechat",
+    "build:bilibili": "node scripts/build.mjs --platform bilibili",
+    "build:douyin": "node scripts/build.mjs --platform douyin",
+    "build:kuaishou": "node scripts/build.mjs --platform kuaishou",
+    "build:alipay": "node scripts/build.mjs --platform alipay",
+    "build:baidu": "node scripts/build.mjs --platform baidu",
+    "build:web-preview": "node scripts/build.mjs --platform web-preview",
+    "test": "node --test tests/*.test.mjs"
+  }
+}

@@ -1,0 +1,108 @@
+name: Cocos mini-games
+on:
+  workflow_dispatch:
+  push:
+    branches: [dev]
+    paths:
+      - 'games/minigames/**'
+      - 'games/local/cops-robbers/src/**'
+      - 'games/local/cops-robbers-realtime/src/**'
+      - 'games/submodules/xiangqi-five'
+      - 'games/submodules/xiangqi-five/**'
+      - 'games/local/game-cricket/public/cricket-audio/perfect.wav'
+      - 'games/local/carding-car/scripts/toolchain.mjs'
+      - 'games/local/carding-car/scripts/setup.mjs'
+      - 'platforms/competition/**'
+      - 'platforms/taptap/**'
+      - 'platforms/alipay/normalize.mjs'
+      - 'platforms/bilibili/native-entry.mjs'
+      - 'apps/shell-minigame/src/competition-availability.mjs'
+      - 'apps/shell-minigame/scripts/taptap-*.mjs'
+      - '.github/workflows/cocos-minigames.yml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+permissions:
+  contents: read
+concurrency:
+  group: cocos-minigames-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  creator:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        game: [cops-robbers, cops-robbers-realtime, xiangqi-five]
+    steps:
+      - run: git config --global core.autocrlf false
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.21.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/cocos/3.8.8
+          key: cocos-creator-3.8.8-win-121518
+      - run: node games/minigames/scripts/setup.mjs --taptap
+      - run: node --test games/minigames/tests/*.test.mjs
+      - name: Real Creator browser build
+        run: node games/minigames/scripts/build.mjs --game ${{ matrix.game }} --platform web-preview
+      - name: Real Creator and official TapTap conversion
+        run: node games/minigames/scripts/build.mjs --game ${{ matrix.game }} --platform taptap
+      - name: Verify final official package and source identity
+        run: node games/minigames/scripts/build.mjs --verify games/minigames/${{ matrix.game }}/build/taptap/game --receipt games/minigames/${{ matrix.game }}/build/taptap.receipt.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: cocos-${{ matrix.game }}-${{ github.sha }}
+          path: |
+            games/minigames/${{ matrix.game }}/build/web-preview
+            games/minigames/${{ matrix.game }}/build/web-preview.receipt.json
+            games/minigames/${{ matrix.game }}/build/taptap
+            games/minigames/${{ matrix.game }}/build/taptap.receipt.json
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: cocos-${{ matrix.game }}-logs-${{ github.sha }}
+          path: |
+            games/minigames/${{ matrix.game }}/reports
+            games/minigames/${{ matrix.game }}/temp/logs
+          if-no-files-found: ignore
+  browser:
+    needs: creator
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        game: [cops-robbers, cops-robbers-realtime, xiangqi-five]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.21.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - uses: actions/download-artifact@v8
+        with:
+          name: cocos-${{ matrix.game }}-${{ github.sha }}
+          path: .scratch/cocos-mini
+      - name: Exercise the actual Creator texture and touch input
+        run: node games/minigames/scripts/browser.mjs --directory .scratch/cocos-mini/web-preview --receipt .scratch/cocos-mini/web-preview.receipt.json
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: cocos-${{ matrix.game }}-screens-${{ github.sha }}
+          path: games/minigames/test-results
+          if-no-files-found: error

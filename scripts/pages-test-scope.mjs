@@ -1,3 +1,4 @@
+import { cocosMinigameFileScopes } from '../games/minigames/scripts/validation-scope.mjs';
 import { appendFile, readFile, readdir, stat } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
@@ -404,6 +405,7 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
       reviewedSharedFileScopes,
       nineNativeFileScopes,
       nineLockFileScopes,
+      cocosMinigameFileScopes,
     ])
       for (const [file, sources] of classify(context)) fileScopes.set(file, sources);
     const incremental = incrementalPlan({
