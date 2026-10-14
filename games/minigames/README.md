@@ -6,7 +6,7 @@
 
 ## 工具与 TapTap 打包
 
-在仓库根目录使用 Node 24.21.0、pnpm 12.6.0：
+在仓库根目录使用 Node 24.21.0、pnpm 12.6.0、Python 3.11+（保留官方 ZIP 中的 UTF-8 文件名）：
 
 ```sh
 git submodule update --init --recursive

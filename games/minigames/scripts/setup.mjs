@@ -74,7 +74,14 @@ if (process.argv.includes('--taptap')) {
   );
   if (!existsSync(plugin.directory)) {
     await mkdir(path.dirname(plugin.directory), { recursive: true });
-    run('tar', ['-xf', plugin.archive, '-C', path.dirname(plugin.directory)]);
+    // Official v1.2.2 contains UTF-8 names without the ZIP UTF-8 flag. Windows tar
+    // interprets them as CP437, breaking the authenticated inventory.
+    run(process.platform === 'win32' ? 'python' : 'python3', [
+      '-c',
+      "import sys, zipfile; zipfile.ZipFile(sys.argv[1], metadata_encoding='utf-8').extractall(sys.argv[2])",
+      plugin.archive,
+      path.dirname(plugin.directory),
+    ]);
   }
   await verifyPlugin(plugin.archive, plugin.directory);
   for (const directory of [plugin.directory, path.join(plugin.directory, 'converter')])
