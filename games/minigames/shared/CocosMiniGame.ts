@@ -18,7 +18,7 @@ import {
   input,
   view,
 } from 'cc';
-import { config, prepareSdk, start } from './game-entry';
+import { config, prepareSdk, start } from './game-entry.js';
 import { createCanvasRuntime } from './runtime.js';
 import { createBrowserSdk } from './browser-sdk.js';
 
