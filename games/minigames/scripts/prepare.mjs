@@ -125,8 +125,14 @@ export function start(sdk) {
       localInputs.push(`games/minigames/${config.game}/${relative}`);
   }
   const sourcePaths = imported
-    .filter((file) => path.isAbsolute(file) && file !== entryFile && !file.includes('node_modules'))
-    .map((file) => path.relative(repo, file.split('?')[0]).replaceAll('\\', '/'));
+    .filter((file) => path.isAbsolute(file))
+    // Rolldown uses forward slashes on Windows; compare canonical native paths
+    // before excluding the generated entry from cross-machine source receipts.
+    .map((file) => path.resolve(file.split('?')[0]))
+    .filter(
+      (file) => file !== path.resolve(entryFile) && !file.split(path.sep).includes('node_modules'),
+    )
+    .map((file) => path.relative(repo, file).replaceAll('\\', '/'));
   const identity = await fingerprint(
     [
       ...toolInputs,

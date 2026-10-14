@@ -42,19 +42,25 @@ jobs:
         run: |
           from pathlib import Path
           from urllib.request import Request, urlopen
-          import hashlib, time
+          import hashlib, time, signal
+          def timed_out(*_):
+              raise TimeoutError('Official download exceeded its 60-second total deadline')
+          signal.signal(signal.SIGALRM, timed_out)
           archive = Path('tap-tools/taptap.zip')
           if not archive.exists():
               for attempt in range(3):
                   try:
+                      signal.alarm(60)
                       request = Request('https://app-res.tapimg.com/file/2026-04-14/67e7d94f5e586596dab061816d1c509d.zip', headers={'User-Agent': 'Mozilla/5.0'})
                       with urlopen(request, timeout=60) as response:
                           data = response.read()
                       assert hashlib.sha256(data).hexdigest() == '6b8a9a3cc62b6c54cefab397097babb771d9d99f90442cddff06310a4c9ed73f'
                       archive.parent.mkdir(parents=True, exist_ok=True)
                       archive.write_bytes(data)
+                      signal.alarm(0)
                       break
                   except Exception:
+                      signal.alarm(0)
                       if attempt == 2:
                           raise
                       time.sleep(2 * (attempt + 1))
@@ -82,12 +88,18 @@ jobs:
           node-version: 24.21.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - uses: actions/cache@v5
+      - run: node --test games/minigames/tests/*.test.mjs
+      - uses: actions/cache/restore@v5
+        id: creator-cache
         with:
           path: ~/.cache/cocos/3.8.8
           key: cocos-creator-3.8.8-win-121518
       - run: node games/minigames/scripts/setup.mjs
-      - run: node --test games/minigames/tests/*.test.mjs
+      - uses: actions/cache/save@v5
+        if: steps.creator-cache.outputs.cache-hit != 'true'
+        with:
+          path: ~/.cache/cocos/3.8.8
+          key: cocos-creator-3.8.8-win-121518
       - name: Real Creator browser build
         run: node games/minigames/scripts/build.mjs --game ${{ matrix.game }} --platform web-preview
       - uses: actions/upload-artifact@v7
