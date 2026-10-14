@@ -15,3 +15,9 @@
 首次本地 Shell/开发者模式运行遇到尚未生成的 Shell 与 workspace 导出产物，按已有依赖构建逻辑补齐后重新执行，以上记录为最终通过结果。没有放宽旧 H5 行为断言或更改旧游戏源码。
 
 每次发布仍须执行准确 base/head 的候选验证、正常 pre-push hook，并检查对应 SHA 的 CI、Pages 与 Cocos workflow。官方工具、账号权限与真机功能未由桌面浏览器代替。
+
+## 真实引擎验收记录
+
+提交 `5daebe5484cc18e0c8e51cdb80592dda1b68e2f9` 的 [Cocos workflow](https://github.com/coffeeeeffoc/small-games/actions/runs/38507560258) 已完成三款 Creator 3.8.8 浏览器产物与 TapTap v1.2.2 官方 ZIP 构建及源码一致性检查。本机下载同一提交的真实产物后，再次通过三款的鼠标、触屏、暂停恢复及前后台流程；象棋覆盖落子与战术胜利结算，回合警匪覆盖合法移动与模式切换，实时警匪覆盖模拟推进与暂停冻结。已查看实际手机尺寸截图，无纹理翻转或主要控件遮挡。
+
+同一提交的 [仓库 CI](https://github.com/coffeeeeffoc/small-games/actions/runs/38507560422) 与 [GitHub Pages 部署](https://github.com/coffeeeeffoc/small-games/actions/runs/38507560259) 已成功。三款 TapTap 官方 ZIP 实测大小分别为：回合警匪 517,820 字节、实时警匪 2,901,757 字节、象棋 491,004 字节。以上均为预览包，不代表账号、广告或小游戏真机认证。后续源码变更以对应提交的最新 workflow 结果为准。

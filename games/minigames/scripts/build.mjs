@@ -80,11 +80,12 @@ export async function verifyCreatorOutput(directory, config, { source = false } 
       ? 20_000_000
       : config.platform === 'kuaishou'
         ? 6_000_000
-        : 4_000_000;
+        : // Match the repository's existing Creator main-package budget: 4 MiB.
+          4 * 1024 * 1024;
   assert(
     mainBytes <= mainLimit &&
       totalBytes <= (config.platform === 'kuaishou' ? 30_000_000 : 20_000_000),
-    `Package budget exceeded: main=${mainBytes}, total=${totalBytes}`,
+    `Package budget exceeded: main=${mainBytes} (limit ${mainLimit}), total=${totalBytes}`,
   );
   if (
     config.platform !== 'alipay' &&
