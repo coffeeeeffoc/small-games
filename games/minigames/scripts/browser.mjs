@@ -195,6 +195,19 @@ try {
       assert.equal((await snapshot()).hidden, false);
       assert.deepEqual(errors, [], 'Creator runtime raised errors');
       checks.push({ input: touch ? 'touch' : 'mouse', colors, passed: true });
+    } catch (error) {
+      const state = await page
+        .evaluate(() => globalThis.__cocosMiniGame?.getState())
+        .catch(() => null);
+      await page
+        .screenshot({ path: path.join(evidence, `${touch ? 'touch' : 'mouse'}-failure.png`) })
+        .catch(() => {});
+      await writeFile(
+        path.join(evidence, 'failure.json'),
+        JSON.stringify({ game, touch, error: error.stack, errors, state }, null, 2),
+      );
+      console.error(JSON.stringify({ game, touch, errors, state }));
+      throw error;
     } finally {
       await context.close();
     }

@@ -5,8 +5,41 @@ import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { games, root, configuration, creatorConfiguration } from '../scripts/config.mjs';
-import { prepareGame, projectSettingsInputs, fingerprint } from '../scripts/prepare.mjs';
+import {
+  prepareGame,
+  projectSettingsInputs,
+  fingerprint,
+  normalizeIterableSpreads,
+} from '../scripts/prepare.mjs';
 import { runCheckedConversion } from '../scripts/build.mjs';
+
+test('iterable spread normalization preserves sets, maps, Unicode, holes and object/rest semantics', async () => {
+  const source = `
+    const 标签 = '棋😀';
+    const calls = [];
+    const listener = (value) => calls.push(value);
+    const listeners = new Set([listener]);
+    for (const fn of [...listeners]) fn(标签);
+    const points = new Map([[1, {x: 2}], [2, {x: 3}]]);
+    const collect = (...args) => args;
+    const nested = [...new Set([...points.keys(), ...[2, 3]])];
+    export default { calls, nested, points: [...points.values()],
+      unicode: collect(...标签), holes: [...Array(2)],
+      sequence: [...(null, listeners)], object: {...{x: 4}} };
+  `;
+  const transformed = normalizeIterableSpreads(source);
+  const evaluate = async (code) =>
+    (await import('data:text/javascript;base64,' + Buffer.from(code).toString('base64'))).default;
+  const actual = await evaluate(transformed),
+    expected = await evaluate(source);
+  assert.deepEqual(
+    { ...actual, sequence: actual.sequence.map((fn) => typeof fn) },
+    { ...expected, sequence: expected.sequence.map((fn) => typeof fn) },
+  );
+  assert(transformed.includes('...Array.from(('));
+  assert(transformed.includes('...args'));
+  assert(transformed.includes('...{x: 4}'));
+});
 
 test('Creator-generated profiles do not change source identity, but versioned settings edits do', async () => {
   const repository = await mkdtemp(path.join(tmpdir(), 'cocos-settings-'));

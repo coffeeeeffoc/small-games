@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile, readdir, cp } from 'node:fs/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { build } from 'vite';
+import { build, parseSync } from 'vite';
 import { root, repo, games, creatorConfiguration } from './config.mjs';
 import { digest, relativeFile } from '../../../apps/shell-minigame/scripts/taptap-package.mjs';
 
@@ -31,6 +31,29 @@ const toolInputs = [
   'platforms/taptap/login.cjs',
 ];
 const exec = promisify(execFile);
+
+export function normalizeIterableSpreads(code) {
+  // Creator 3.8's loose spread transform assumes arrays. Materialize iterable
+  // arguments before that transform, including those in imported H5 rules.
+  // Object spreads and rest bindings have different semantics and stay intact.
+  const { program, errors } = parseSync('cocos-controller.js', code);
+  assert.equal(errors.length, 0, 'Cannot parse controller JavaScript');
+  const edits = [];
+  const visit = (node, parent) => {
+    if (!node || typeof node.type !== 'string') return;
+    if (node.type === 'SpreadElement' && parent?.type !== 'ObjectExpression') {
+      edits.push([node.argument.start, 'Array.from(('], [node.argument.end, '))']);
+    }
+    for (const child of Object.values(node)) {
+      if (Array.isArray(child)) for (const item of child) visit(item, node);
+      else if (child && typeof child === 'object') visit(child, node);
+    }
+  };
+  visit(program);
+  for (const [offset, insertion] of edits.sort((a, b) => b[0] - a[0]))
+    code = code.slice(0, offset) + insertion + code.slice(offset);
+  return code;
+}
 
 export async function projectSettingsInputs(project, repository = repo) {
   const settings = path.relative(repository, path.join(project, 'settings')).replaceAll('\\', '/');
@@ -113,13 +136,20 @@ export function start(sdk) {
     chunks.length === 1 && chunks[0].imports.length === 0 && chunks[0].dynamicImports.length === 0,
     'Controller bundle must contain every runtime dependency',
   );
-  await writeFile(path.join(target, 'game-entry.js'), chunks[0].code);
+  await writeFile(path.join(target, 'game-entry.js'), normalizeIterableSpreads(chunks[0].code));
   await writeFile(
     path.join(target, 'game-entry.d.ts'),
     'export const config: { game:string; platform:string; pixelRatio:number; maxUploadsPerSecond:number; assetRoot:string; debug:boolean };\nexport function prepareSdk(raw:any):any;\nexport function start(sdk:any):any;\n',
   );
-  for (const file of sharedFiles)
-    await cp(path.join(root, 'shared', file), path.join(target, file));
+  for (const file of sharedFiles) {
+    const source = path.join(root, 'shared', file);
+    if (file.endsWith('.js'))
+      await writeFile(
+        path.join(target, file),
+        normalizeIterableSpreads(await readFile(source, 'utf8')),
+      );
+    else await cp(source, path.join(target, file));
+  }
   const engineConfig = creatorConfiguration(config);
   const configFile = path.join(project, 'reports', `build-${config.platform}.json`);
   await writeFile(configFile, JSON.stringify(engineConfig, null, 2) + '\n');
