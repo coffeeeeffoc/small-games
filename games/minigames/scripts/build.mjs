@@ -224,16 +224,14 @@ export async function buildGame(config, options = {}) {
   const checked = await verifyCreatorOutput(directory, config, {
     source: config.platform === 'kuaishou',
   });
-  assert.equal(
-    (
-      await fingerprint(
-        prepared.files.map((f) => f.path),
-        config,
-      )
-    ).sourceHash,
-    prepared.sourceHash,
-    'Sources changed during the engine build',
+  const afterBuild = await fingerprint(
+    prepared.files.map((f) => f.path),
+    config,
   );
+  // Report the actual changed input paths before the aggregate hash, so an
+  // editor metadata migration can be diagnosed without weakening source checks.
+  assert.deepEqual(afterBuild.files, prepared.files, 'Sources changed during the engine build');
+  assert.equal(afterBuild.sourceHash, prepared.sourceHash);
   const receipt = {
     schema: 1,
     creator: creatorVersion,
@@ -267,12 +265,12 @@ export async function verifyArtifact(directory, receiptFile) {
   assert.equal(receipt.creator, creatorVersion);
   // Re-resolve all actual imports: a manifest cannot silently omit a changed dependency.
   const current = await prepareGame(receipt.config);
+  assert.deepEqual(receipt.inputs, current.files, 'Artifact source inventory mismatch');
   assert.equal(
     receipt.sourceHash,
     current.sourceHash,
     'Artifact belongs to different game sources/configuration',
   );
-  assert.deepEqual(receipt.inputs, current.files, 'Artifact source inventory mismatch');
   assert.deepEqual(
     receipt.files,
     await inventory(path.resolve(directory)),
