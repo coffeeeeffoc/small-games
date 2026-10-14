@@ -1,10 +1,39 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { games, root, configuration, creatorConfiguration } from '../scripts/config.mjs';
-import { prepareGame } from '../scripts/prepare.mjs';
+import { prepareGame, projectSettingsInputs, fingerprint } from '../scripts/prepare.mjs';
 import { runCheckedConversion } from '../scripts/build.mjs';
+
+test('Creator-generated profiles do not change source identity, but versioned settings edits do', async () => {
+  const repository = await mkdtemp(path.join(tmpdir(), 'cocos-settings-'));
+  try {
+    const project = path.join(repository, 'game');
+    const settings = path.join(project, 'settings/v2/packages');
+    await mkdir(settings, { recursive: true });
+    execFileSync('git', ['init', '--quiet'], { cwd: repository });
+    await writeFile(path.join(settings, 'engine.json'), '{"modules":["2d"]}\n');
+    await writeFile(path.join(settings, 'project.json'), '{"version":"1.0.0"}\n');
+    execFileSync('git', ['add', 'game/settings'], { cwd: repository });
+    const identity = async () =>
+      fingerprint(await projectSettingsInputs(project, repository), {}, repository);
+    const before = await identity();
+    for (const profile of ['builder', 'device', 'information', 'program'])
+      await writeFile(path.join(settings, profile + '.json'), '{"generated":true}\n');
+    assert.deepEqual(await identity(), before);
+    await writeFile(path.join(settings, 'engine.json'), '{"modules":["2d","audio"]}\n');
+    assert.notEqual((await identity()).sourceHash, before.sourceHash);
+    execFileSync('git', ['add', 'game/settings/v2/packages/builder.json'], { cwd: repository });
+    assert((await identity()).files.some((file) => file.path.endsWith('/builder.json')));
+    await rm(path.join(settings, 'project.json'));
+    await assert.rejects(identity(), /ENOENT/);
+  } finally {
+    await rm(repository, { recursive: true, force: true });
+  }
+});
 
 test('partial official Babel failures cannot be reported as a successful TapTap package', async () => {
   const logger = console.log;

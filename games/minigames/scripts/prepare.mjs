@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile, readdir, cp } from 'node:fs/promises';
 import path from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { build } from 'vite';
 import { root, repo, games, creatorConfiguration } from './config.mjs';
 import { digest, relativeFile } from '../../../apps/shell-minigame/scripts/taptap-package.mjs';
@@ -28,11 +30,26 @@ const toolInputs = [
   'apps/shell-minigame/scripts/taptap-cocos-inputs.mjs',
   'platforms/taptap/login.cjs',
 ];
-export async function fingerprint(paths, config) {
+const exec = promisify(execFile);
+
+export async function projectSettingsInputs(project, repository = repo) {
+  const settings = path.relative(repository, path.join(project, 'settings')).replaceAll('\\', '/');
+  relativeFile(settings);
+  // Creator writes machine-specific builder/device/information/program profiles
+  // during import. Only versioned settings are source inputs; fingerprint their
+  // working-tree bytes below so local edits and missing files still invalidate.
+  const { stdout } = await exec('git', ['ls-files', '--cached', '-z', '--', settings], {
+    cwd: repository,
+    encoding: 'utf8',
+  });
+  return stdout.split('\0').filter(Boolean);
+}
+
+export async function fingerprint(paths, config, repository = repo) {
   const files = [];
   for (const file of [...new Set(paths)].sort()) {
     relativeFile(file);
-    const bytes = await readFile(path.join(repo, file));
+    const bytes = await readFile(path.join(repository, file));
     files.push({ path: file, bytes: bytes.length, sha256: digest(bytes) });
   }
   return { files, sourceHash: digest(JSON.stringify({ config, files })) };
@@ -106,7 +123,7 @@ export function start(sdk) {
   const engineConfig = creatorConfiguration(config);
   const configFile = path.join(project, 'reports', `build-${config.platform}.json`);
   await writeFile(configFile, JSON.stringify(engineConfig, null, 2) + '\n');
-  const localInputs = [];
+  const localInputs = await projectSettingsInputs(project);
   for (const directory of ['scripts', 'shared']) {
     for (const file of await readdir(path.join(root, directory)))
       localInputs.push(`games/minigames/${directory}/${file}`);
@@ -117,7 +134,7 @@ export function start(sdk) {
       .relative(project, path.join(file.parentPath, file.name))
       .replaceAll('\\', '/');
     if (
-      /^(?:package\.json|tsconfig\.json|settings\/|assets\/scenes(?:\.meta|\/)|assets\/scripts\.meta)/.test(
+      /^(?:package\.json|tsconfig\.json|assets\/scenes(?:\.meta|\/)|assets\/scripts\.meta)/.test(
         relative,
       ) ||
       /^assets\/scripts\/[^/]+\.meta$/.test(relative)
