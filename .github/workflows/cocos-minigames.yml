@@ -28,6 +28,42 @@ concurrency:
   group: cocos-minigames-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  tap-tools:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/cache@v5
+        id: tap-cache
+        with:
+          path: tap-tools/taptap.zip
+          key: taptap-official-6b8a9a3cc62b6c54cefab397097babb771d9d99f90442cddff06310a4c9ed73f
+      - name: Download and authenticate the original official TapTap archive
+        shell: python
+        run: |
+          from pathlib import Path
+          from urllib.request import Request, urlopen
+          import hashlib, time
+          archive = Path('tap-tools/taptap.zip')
+          if not archive.exists():
+              for attempt in range(3):
+                  try:
+                      request = Request('https://app-res.tapimg.com/file/2026-04-14/67e7d94f5e586596dab061816d1c509d.zip', headers={'User-Agent': 'Mozilla/5.0'})
+                      with urlopen(request, timeout=60) as response:
+                          data = response.read()
+                      assert hashlib.sha256(data).hexdigest() == '6b8a9a3cc62b6c54cefab397097babb771d9d99f90442cddff06310a4c9ed73f'
+                      archive.parent.mkdir(parents=True, exist_ok=True)
+                      archive.write_bytes(data)
+                      break
+                  except Exception:
+                      if attempt == 2:
+                          raise
+                      time.sleep(2 * (attempt + 1))
+          assert hashlib.sha256(archive.read_bytes()).hexdigest() == '6b8a9a3cc62b6c54cefab397097babb771d9d99f90442cddff06310a4c9ed73f'
+      - uses: actions/upload-artifact@v7
+        with:
+          name: taptap-official-tools-${{ github.sha }}
+          path: tap-tools/taptap.zip
+          if-no-files-found: error
   creator:
     runs-on: windows-latest
     timeout-minutes: 35
@@ -61,10 +97,41 @@ jobs:
             games/minigames/${{ matrix.game }}/build/web-preview
             games/minigames/${{ matrix.game }}/build/web-preview.receipt.json
           if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: cocos-${{ matrix.game }}-logs-${{ github.sha }}
+          path: |
+            games/minigames/${{ matrix.game }}/reports
+            games/minigames/${{ matrix.game }}/temp/logs
+          if-no-files-found: ignore
+  taptap:
+    needs: tap-tools
+    runs-on: windows-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        game: [cops-robbers, cops-robbers-realtime, xiangqi-five]
+    steps:
+      - run: git config --global core.autocrlf false
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.21.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - uses: actions/cache@v5
         with:
-          path: games/minigames/.tools/taptap.zip
-          key: taptap-official-6b8a9a3cc62b6c54cefab397097babb771d9d99f90442cddff06310a4c9ed73f
+          path: ~/.cache/cocos/3.8.8
+          key: cocos-creator-3.8.8-win-121518
+      - uses: actions/download-artifact@v8
+        with:
+          name: taptap-official-tools-${{ github.sha }}
+          path: games/minigames/.tools
       - run: node games/minigames/scripts/setup.mjs --taptap
       - name: Real Creator and official TapTap conversion
         run: node games/minigames/scripts/build.mjs --game ${{ matrix.game }} --platform taptap
@@ -74,23 +141,21 @@ jobs:
         with:
           name: cocos-${{ matrix.game }}-${{ github.sha }}
           path: |
-            games/minigames/${{ matrix.game }}/build/web-preview
-            games/minigames/${{ matrix.game }}/build/web-preview.receipt.json
             games/minigames/${{ matrix.game }}/build/taptap
             games/minigames/${{ matrix.game }}/build/taptap.receipt.json
           if-no-files-found: error
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: cocos-${{ matrix.game }}-logs-${{ github.sha }}
+          name: cocos-tap-${{ matrix.game }}-logs-${{ github.sha }}
           path: |
             games/minigames/${{ matrix.game }}/reports
             games/minigames/${{ matrix.game }}/temp/logs
           if-no-files-found: ignore
   browser:
     needs: creator
-    # A TapTap CDN failure must not hide a successfully built engine's runtime errors.
-    # Missing/invalid Creator artifacts still fail the download/verification steps.
+    # Each successfully built game remains testable if another matrix entry fails.
+    # Missing/invalid Creator artifacts still fail download/verification.
     if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 15

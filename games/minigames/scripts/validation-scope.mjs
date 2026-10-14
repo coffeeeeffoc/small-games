@@ -43,7 +43,7 @@ const projectFiles = new Set([
   ].map((file) => 'assets/scripts/' + file + '.meta'),
 ]);
 const workflow = '.github/workflows/cocos-minigames.yml';
-const workflowSha256 = '2438c8057f78e81ccdaefde59f464533ee2480533ce1798922a9ef9dca22f4fb';
+const workflowSha256 = '5d340dbd07132bd69792ef31e082abbcec51a7aa33b0a2d8a1a08652eab5eee5';
 export function cocosMinigameFileScopes({ changedPaths, readHead }) {
   const scopes = new Map();
   for (const file of changedPaths) {
