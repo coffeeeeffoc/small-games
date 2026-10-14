@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
-import { mkdir, writeFile, readFile, cp } from 'node:fs/promises';
+import { mkdir, readFile, cp, rename, rm } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { root, repo, games } from './config.mjs';
@@ -37,22 +37,35 @@ if (process.argv.includes('--taptap')) {
   const plugin = pluginPaths();
   await mkdir(path.dirname(plugin.archive), { recursive: true });
   if (!existsSync(plugin.archive)) {
-    let bytes;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        const response = await fetch(
-          'https://app-res.tapimg.com/file/2026-04-14/67e7d94f5e586596dab061816d1c509d.zip',
-          { signal: AbortSignal.timeout(120000) },
-        );
-        assert(response.ok, `Official TapTap download failed: ${response.status}`);
-        bytes = new Uint8Array(await response.arrayBuffer());
-        break;
-      } catch (error) {
-        if (attempt === 2) throw error;
-        await new Promise((resolve) => setTimeout(resolve, (attempt + 1) * 1000));
-      }
+    const temporary = plugin.archive + '.download';
+    try {
+      run(process.platform === 'win32' ? 'curl.exe' : 'curl', [
+        '--fail',
+        '--location',
+        '--retry',
+        '3',
+        '--retry-all-errors',
+        '--connect-timeout',
+        '30',
+        '--max-time',
+        '120',
+        '--referer',
+        'https://developer.taptap.cn/',
+        '-A',
+        'Mozilla/5.0',
+        '--output',
+        temporary,
+        'https://app-res.tapimg.com/file/2026-04-14/67e7d94f5e586596dab061816d1c509d.zip',
+      ]);
+      assert.equal(
+        digest(await readFile(temporary)),
+        officialPluginSha256,
+        'Official TapTap archive checksum changed',
+      );
+      await rename(temporary, plugin.archive);
+    } finally {
+      await rm(temporary, { force: true });
     }
-    await writeFile(plugin.archive, bytes, { flag: 'wx' });
   }
   assert.equal(
     digest(await readFile(plugin.archive)),

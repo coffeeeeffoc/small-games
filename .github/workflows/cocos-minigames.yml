@@ -50,10 +50,22 @@ jobs:
         with:
           path: ~/.cache/cocos/3.8.8
           key: cocos-creator-3.8.8-win-121518
-      - run: node games/minigames/scripts/setup.mjs --taptap
+      - run: node games/minigames/scripts/setup.mjs
       - run: node --test games/minigames/tests/*.test.mjs
       - name: Real Creator browser build
         run: node games/minigames/scripts/build.mjs --game ${{ matrix.game }} --platform web-preview
+      - uses: actions/upload-artifact@v7
+        with:
+          name: cocos-web-${{ matrix.game }}-${{ github.sha }}
+          path: |
+            games/minigames/${{ matrix.game }}/build/web-preview
+            games/minigames/${{ matrix.game }}/build/web-preview.receipt.json
+          if-no-files-found: error
+      - uses: actions/cache@v5
+        with:
+          path: games/minigames/.tools/taptap.zip
+          key: taptap-official-6b8a9a3cc62b6c54cefab397097babb771d9d99f90442cddff06310a4c9ed73f
+      - run: node games/minigames/scripts/setup.mjs --taptap
       - name: Real Creator and official TapTap conversion
         run: node games/minigames/scripts/build.mjs --game ${{ matrix.game }} --platform taptap
       - name: Verify final official package and source identity
@@ -77,6 +89,9 @@ jobs:
           if-no-files-found: ignore
   browser:
     needs: creator
+    # A TapTap CDN failure must not hide a successfully built engine's runtime errors.
+    # Missing/invalid Creator artifacts still fail the download/verification steps.
+    if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -96,7 +111,7 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - uses: actions/download-artifact@v8
         with:
-          name: cocos-${{ matrix.game }}-${{ github.sha }}
+          name: cocos-web-${{ matrix.game }}-${{ github.sha }}
           path: .scratch/cocos-mini
       - name: Exercise the actual Creator texture and touch input
         run: node games/minigames/scripts/browser.mjs --directory .scratch/cocos-mini/web-preview --receipt .scratch/cocos-mini/web-preview.receipt.json
