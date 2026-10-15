@@ -65,7 +65,7 @@ Compose 项目名固定为 `small-games`，仅 Nginx 发布宿主机端口；Pos
 
 ## 日常操作与回退
 
-Docker 构建默认使用 `https://registry.npmmirror.com`，pnpm 保持 12.6.0，保留冻结锁文件和完整性校验。下载请求超时为 60 秒、最多重试两次（不是整个构建的总时限）；BuildKit 缓存挂载保留已下载的依赖供后续构建复用，不会导出到应用镜像。首次切换时，旧的未完成安装层不能保证复用。
+Docker 构建默认使用 `https://registry.npmmirror.com`，pnpm 保持 12.6.0，保留冻结锁文件和完整性校验。下载请求超时为 60 秒（不是整个构建的总时限）；安装 pnpm 的 npm 启动步骤最多重试两次，pnpm 安装使用其默认重试策略。BuildKit 缓存挂载保留已下载的依赖供后续构建复用，不会导出到应用镜像。首次切换时，旧的未完成安装层不能保证复用。
 
 如需切回官方源，将 Dockerfile 中 `ARG NPM_REGISTRY` 的默认值改为 `https://registry.npmjs.org` 后重新部署。单独构建时也可用 `docker compose build --build-arg NPM_REGISTRY=https://registry.npmjs.org runtime` 临时覆盖。已上传的发布包不会自动获得本地 Dockerfile 的更新。
 

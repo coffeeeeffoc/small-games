@@ -279,6 +279,32 @@ function competitionServiceIntegration(file, before, after) {
     expected[1] === digest(after)
   );
 }
+
+// Only the reviewed pnpm 12 unsupported-option removal. Both original and
+// candidate bytes are pinned; other deployment changes keep their wider gates.
+const backendInstallerChanges = {
+  'infra/tencent/Dockerfile': {
+    before: 'eefbccfbb24da204b16d4302dd98dc9b732df71243bbfae99753da06e6ffb8b4',
+    after: '030b985d734218108ed5ee550bb1a881ede4c579d53f2c0cc358161695d449a7',
+    consumers: ['services/runtime-api', 'services/kart-server'],
+  },
+  'scripts/deployment-bundle.mjs': {
+    before: '795d32fa380d6f50e9aac24969d78c9df7646ad86470749e3a6cb77eb9d21dfc',
+    after: '104b56b34db09ade741e493a0ab6bfea051106deee89f2bf88152f07f93db0e4',
+    consumers: [
+      'services/runtime-api',
+      'services/management-api',
+      'services/kart-server',
+      'services/tianxia-server',
+    ],
+  },
+};
+function backendInstallerOnly(file, before, after) {
+  const expected = backendInstallerChanges[file];
+  const digest = (source) =>
+    createHash('sha256').update(source.replaceAll('\r\n', '\n')).digest('hex');
+  return expected && digest(before) === expected.before && digest(after) === expected.after;
+}
 const h5Files = ['platforms/competition/h5.js', 'scripts/test-competition-dialogs.mjs'];
 const nativeFiles = ['platforms/competition/native.js', 'scripts/competition-native-smoke.mjs'];
 const builder = 'scripts/competition-build.mjs';
@@ -1204,6 +1230,17 @@ export function reviewedSharedFileScopes({
   const scopes = vitePatchFileScopes({ changedPaths, readBase, readHead });
   for (const file of changedPaths) {
     try {
+      if (
+        Object.hasOwn(backendInstallerChanges, file) &&
+        typeof readBase === 'function' &&
+        typeof readHead === 'function' &&
+        backendInstallerOnly(file, readBase(file), readHead(file))
+      ) {
+        const { consumers } = backendInstallerChanges[file];
+        for (const source of consumers) assert(packages.some((pkg) => pkg.dir === source));
+        scopes.set(file, consumers);
+        continue;
+      }
       if (
         competitionServiceScopePaths.includes(file) ||
         (['package.json', 'turbo.json'].includes(file) &&

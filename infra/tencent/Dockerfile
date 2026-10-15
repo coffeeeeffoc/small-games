@@ -9,7 +9,7 @@ RUN node --check services/runtime-api/dist/main.js && node --check services/kart
 USER root
 RUN --mount=type=cache,id=small-games-pnpm12,target=/pnpm/store,sharing=locked \
     pnpm --filter @coffeeeeffoc/runtime-api... --filter @coffeeeeffoc/kart-server... install --prod --frozen-lockfile --ignore-scripts \
-    --registry="$NPM_REGISTRY" --store-dir=/pnpm/store --fetch-timeout=60000 --fetch-retries=2 \
+    --registry="$NPM_REGISTRY" --store-dir=/pnpm/store --fetch-timeout=60000 \
     && mkdir -p /app/outbox && chown node:node /app/outbox
 ENV NODE_ENV=production HOST=0.0.0.0
 USER node

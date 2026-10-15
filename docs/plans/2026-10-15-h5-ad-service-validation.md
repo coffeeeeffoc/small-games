@@ -78,6 +78,18 @@ now explicitly change each of the six reviewed producer files; the production
 classifier and its exact-byte rules are unchanged. Replacement candidate CI and
 the cloud rollout result are recorded after they complete.
 
+Replacement candidate `5cd8d72f42ff70268710049b8b20074df53bf7a3` passed both
+[CI](https://github.com/coffeeeeffoc/small-games/actions/runs/38818332328) and
+[Pages](https://github.com/coffeeeeffoc/small-games/actions/runs/38818332446).
+Its first cloud attempt stopped during Docker build because pnpm 12.6.0 rejects
+`--fetch-retries=2`. No service was stopped and no database operation ran; the
+existing Runtime, Kart, PostgreSQL, nginx and company site remained healthy.
+Both Dockerfile producers now remove that option only from pnpm installation,
+retaining npm's supported retry option and all existing lockfile, registry and
+script-isolation settings. The exact installer-only change selects its actual
+backend consumers; all other deployment and H5 changes retain their gates.
+A fresh exact candidate, archive and release directory are required for retry.
+
 Build controls are `H5_ADS_ENABLED=0|1` and `COMPETITION_SERVICE_ENABLED=0|1`.
 Both default to off in the H5 matrix tool. Explicit `--with-ads` / `--without-ads`
 and `--with-service` / `--without-service` flags select a single package;

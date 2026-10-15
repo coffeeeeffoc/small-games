@@ -1002,6 +1002,12 @@ test('optional service configuration has finite H5 consumers and rejects unknown
   const bundleContext = {
     ...context,
     changedPaths: [bundleFile],
+    readHead: (file) =>
+      file === bundleFile
+        ? execFileSync('git', ['show', '5cd8d72f42ff70268710049b8b20074df53bf7a3:' + file], {
+            encoding: 'utf8',
+          })
+        : read(file),
     readBase: (file) =>
       file === bundleFile
         ? execFileSync('git', ['show', '5fbc6feadf2663e1905538ab6b6feae0ed26156b:' + file], {
@@ -1019,7 +1025,8 @@ test('optional service configuration has finite H5 consumers and rejects unknown
     reviewedSharedFileScopes({
       ...bundleContext,
       readHead: (file) =>
-        read(file) + (file === bundleFile ? '\n// unrelated deployment edit\n' : ''),
+        bundleContext.readHead(file) +
+        (file === bundleFile ? '\n// unrelated deployment edit\n' : ''),
     }).get(bundleFile),
     reviewedSharedFileScopes(bundleContext).get(bundleFile),
   );
@@ -1059,6 +1066,83 @@ test('optional service configuration has finite H5 consumers and rejects unknown
           ? read(name).replace("'xiangqi-five'", "'xiangqi-five', 'unexpected-game'")
           : read(name),
     }).has(file),
+  );
+});
+
+test('pnpm installer compatibility selects actual backends and preserves deployment provenance gates', async () => {
+  const { workspacePackages } = await import('./validation-plan.mjs');
+  const packages = await workspacePackages(fileURLToPath(new URL('../', import.meta.url)));
+  const read = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const readBase = (file) =>
+    execFileSync('git', ['show', '5cd8d72f42ff70268710049b8b20074df53bf7a3:' + file], {
+      encoding: 'utf8',
+    }).replaceAll('\r\n', '\n');
+  const catalog = JSON.parse(read('apps/shell-web/src/standalone-games.json'));
+  for (const file of ['infra/tencent/Dockerfile', 'scripts/deployment-bundle.mjs']) {
+    const before = readBase(file);
+    const anchor = file.endsWith('Dockerfile')
+      ? '--store-dir=/pnpm/store --fetch-timeout=60000 --fetch-retries=2'
+      : 'pnpm ${filters} install --prod --frozen-lockfile --ignore-scripts --fetch-timeout=60000 --fetch-retries=2';
+    assert.equal(before.split(anchor).length, 2);
+    const after = before.replace(anchor, anchor.replace(' --fetch-retries=2', ''));
+    assert.equal(read(file).replaceAll('\r\n', '\n'), after);
+    // npm still supports its retry option; pnpm keeps the existing production
+    // lockfile, script isolation, timeout and registry settings.
+    assert.match(after, /npm install[^\n]*--fetch-retries=2/);
+    const context = {
+      packages,
+      games: catalog,
+      changedPaths: [file],
+      readBase,
+      readHead: (name) => (name === file ? after : read(name)),
+    };
+    const classify = (extra = {}) => reviewedSharedFileScopes({ ...context, ...extra });
+    const fileScopes = classify();
+    assert.deepEqual(
+      fileScopes.get(file),
+      file.endsWith('Dockerfile')
+        ? ['services/runtime-api', 'services/kart-server']
+        : [
+            'services/runtime-api',
+            'services/management-api',
+            'services/kart-server',
+            'services/tianxia-server',
+          ],
+    );
+    const plan = incrementalPlan({ ...context, fileScopes, readSource: read });
+    assert.equal(plan.deployment_bundle_checks, true);
+    assert.equal(plan.competition_service_checks, false);
+    assert.equal(plan.browser, false);
+    for (const bad of [
+      after + '\n',
+      after.replace('--fetch-retries=2', '--fetch-retries=0'),
+      after.replace('registry.npm', 'untrusted.npm'),
+    ]) {
+      const rejected = classify({ readHead: (name) => (name === file ? bad : read(name)) });
+      if (file.endsWith('Dockerfile')) assert.equal(rejected.has(file), false);
+      else assert(rejected.get(file).includes('games/local/cops-robbers'));
+    }
+    assert.notDeepEqual(
+      classify({ readBase: () => before + '\n' }).get(file),
+      fileScopes.get(file),
+    );
+    const mixedPaths = [file, 'scripts/h5-ad-config.mjs'];
+    const mixed = classify({ changedPaths: mixedPaths });
+    assert.equal(
+      incrementalPlan({ ...context, changedPaths: mixedPaths, fileScopes: mixed, readSource: read })
+        .competition_service_checks,
+      true,
+    );
+  }
+  assert.equal(
+    reviewedSharedFileScopes({
+      packages,
+      games: catalog,
+      changedPaths: ['infra/tencent/unknown.Dockerfile'],
+      readBase,
+      readHead: read,
+    }).size,
+    0,
   );
 });
 

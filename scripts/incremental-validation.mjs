@@ -294,11 +294,9 @@ export function incrementalPlan({
     competition_service_checks: paths.some(
       (file) =>
         competitionServiceScopePaths.includes(file) ||
-        [
-          'scripts/deploy-tencent.mjs',
-          'scripts/deployment-bundle.mjs',
-          'scripts/competition-gateway.mjs',
-        ].includes(file) ||
+        ['scripts/deploy-tencent.mjs', 'scripts/competition-gateway.mjs'].includes(file) ||
+        (file === 'scripts/deployment-bundle.mjs' &&
+          fileScopes.get(file)?.includes('games/local/cops-robbers')) ||
         (['package.json', 'turbo.json'].includes(file) &&
           fileScopes.get(file)?.includes('games/local/cops-robbers')),
     ),
@@ -313,6 +311,7 @@ export function incrementalPlan({
     deployment_bundle_checks: paths.some(
       (file) =>
         deploymentBundleScopePaths.includes(file) ||
+        (file === 'infra/tencent/Dockerfile' && fileScopes.has(file)) ||
         (file === 'package.json' && fileScopes.get(file)?.includes('services/runtime-api')),
     ),
     company_deployment_checks: paths.some(
