@@ -60,3 +60,54 @@ then changes only Runtime's image and recreates Kart with its previous immutable
 image in the new network namespace. No production data restore, volume replacement,
 new credentials, public route or firewall change is authorized by this procedure.
 Cloud execution and final candidate/CI evidence are recorded after they complete.
+
+The implementation candidate is `490b17bfb45daecdbdaf3f7c1092910ee600d716`, normally
+pushed to `dev` after the complete incremental pre-push gate passed against
+`5fbc6feadf2663e1905538ab6b6feae0ed26156b`. Game/runtime sources and the H5 matrix,
+advertising and service build tools are byte-identical to the accepted matrix
+source `ff699e184b2c`; subsequent changes concern documentation and validation.
+The Shell smoke contract now checks the default free hint directly instead of
+requiring a simulated advertisement. CI runs for this exact candidate are
+[CI](https://github.com/coffeeeeffoc/small-games/actions/runs/38816118745),
+[Pages](https://github.com/coffeeeeffoc/small-games/actions/runs/38816118540), and
+[Cocos](https://github.com/coffeeeeffoc/small-games/actions/runs/38816118411).
+Cocos completed successfully. The initial CI quality run exposed a test-fixture
+error: its unchanged producer files were expected to reject a historical proof,
+which happened only with Windows working-tree line endings. The negative cases
+now explicitly change each of the six reviewed producer files; the production
+classifier and its exact-byte rules are unchanged. Replacement candidate CI and
+the cloud rollout result are recorded after they complete.
+
+Build controls are `H5_ADS_ENABLED=0|1` and `COMPETITION_SERVICE_ENABLED=0|1`.
+Both default to off in the H5 matrix tool. Explicit `--with-ads` / `--without-ads`
+and `--with-service` / `--without-service` flags select a single package;
+`--matrix` builds all four combinations. Service-on builds also require
+`COMPETITION_PUBLIC_API_URL`; public packages require HTTPS, while `--local`
+permits loopback HTTP for acceptance. The entry point is
+`node scripts/h5-taptap.mjs --game all --matrix --local`.
+Actual advertising uses the corresponding public placement variable:
+`TAPTAP_COPS_ROBBERS_AD_UNIT_ID`, `TAPTAP_COPS_ROBBERS_REALTIME_AD_UNIT_ID`, or
+`TAPTAP_XIANGQI_FIVE_AD_UNIT_ID`. A missing SDK or placement does not grant a reward.
+The older Cops `--taptap` build retains its advertising-on default when no explicit
+advertising environment/flag is supplied; use `H5_ADS_ENABLED=0` or `--without-ads`
+to select its free variant.
+
+All twelve ZIPs below exist in
+`outputs/h5-taptap/ff699e184b2c-1792098171014/`; their complete SHA-256 values and
+file inventories are in `matrix.json`. All ZIP hashes were rechecked after the
+successful push. These remain local acceptance packages, not public releases.
+
+| ZIP filename                                  | Ads | Service |   Bytes | SHA-256 prefix |
+| --------------------------------------------- | --- | ------- | ------: | -------------- |
+| cops-robbers-ads-off-service-off.zip          | off | off     |  935515 | 2526c5ef15ae   |
+| cops-robbers-ads-on-service-off.zip           | on  | off     |  935555 | c333607452ac   |
+| cops-robbers-ads-off-service-on.zip           | off | on      |  989313 | 1775af0adea9   |
+| cops-robbers-ads-on-service-on.zip            | on  | on      |  989351 | f17640c32c4b   |
+| cops-robbers-realtime-ads-off-service-off.zip | off | off     | 4090554 | 803f64b07443   |
+| cops-robbers-realtime-ads-on-service-off.zip  | on  | off     | 4090594 | 7bc5b351ed3c   |
+| cops-robbers-realtime-ads-off-service-on.zip  | off | on      | 4134520 | 1c1c248642fa   |
+| cops-robbers-realtime-ads-on-service-on.zip   | on  | on      | 4134559 | 4b70720f50cd   |
+| xiangqi-five-ads-off-service-off.zip          | off | off     | 2128886 | 8d401bbf5081   |
+| xiangqi-five-ads-on-service-off.zip           | on  | off     | 2128926 | 004e1e060327   |
+| xiangqi-five-ads-off-service-on.zip           | off | on      | 2170004 | abb95a2cc656   |
+| xiangqi-five-ads-on-service-on.zip            | on  | on      | 2170045 | 7ae586ea3eb4   |

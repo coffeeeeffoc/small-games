@@ -19,8 +19,8 @@ test('exact service-tool edits retain Canvas provenance consumers while unchange
     readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url), 'utf8'),
   );
   const current = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
-  // Keep the positive proof pinned to the reviewed service delta. Later Canvas
-  // artwork edits must retain their own complete provenance consumers.
+  // Keep fixtures pinned to the reviewed service delta. Working-tree line endings
+  // must not accidentally turn an unchanged producer into a negative example.
   const reviewed = new Map(
     [
       'apps/shell-minigame/scripts/nine-games-build.mjs',
@@ -51,11 +51,15 @@ test('exact service-tool edits retain Canvas provenance consumers while unchange
   };
   const fileScopes = optionalServiceNativeFileScopes(context);
   assert(fileScopes.has(file));
-  assert.equal(
-    optionalServiceNativeFileScopes({ ...context, readHead: current }).size,
-    0,
-    'Subsequent artwork edits cannot borrow the historical service proof',
-  );
+  for (const producer of reviewed.keys())
+    assert.equal(
+      optionalServiceNativeFileScopes({
+        ...context,
+        readHead: (name) => read(name) + (name === producer ? '\n' : ''),
+      }).size,
+      0,
+      `Unreviewed bytes in ${producer} cannot borrow the historical service proof`,
+    );
   const selected = nineNativeDependencyPlan({ ...context, fileScopes, readSource: read });
   assert(selected.targets.length > 0);
   assert(selected.targets.every((target) => !target.requiresCreator));
