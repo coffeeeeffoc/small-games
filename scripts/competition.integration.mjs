@@ -324,7 +324,7 @@ try {
   assert(streetA.results.every((entry) => entry.rated && entry.result.eligible));
   assert.equal(
     (await request('/boards/cops-robbers-realtime', a)).version,
-    'street-roles-initiative-v2',
+    'street-roles-initiative-v3',
   );
   const streetRows = await database.db.execute(
     sql`select count(*)::int as n from runtime.competition_results where match_id=${street.code}`,

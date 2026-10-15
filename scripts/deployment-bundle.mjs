@@ -85,7 +85,7 @@ export function bundleConfig(env = {}) {
 // Frontend tools never inherit server-only credentials, including platform app secrets.
 export function buildEnvironment(env) {
   const allowed =
-    /^(PATH|PATHEXT|SYSTEMROOT|WINDIR|COMSPEC|HOME|USERPROFILE|APPDATA|LOCALAPPDATA|TEMP|TMP|TMPDIR|CI|TERM|LANG|LC_[A-Z_]+|HTTP_PROXY|HTTPS_PROXY|ALL_PROXY|NO_PROXY|NODE_EXTRA_CA_CERTS|SSL_CERT_FILE|NPM_CONFIG_CAFILE|NPM_CONFIG_REGISTRY|NPM_EXECPATH|NPM_NODE_EXECPATH|NPM_CONFIG_USER_AGENT|NPM_COMMAND|PNPM_HOME|COREPACK_HOME|COCOS_CREATOR|KART_PREBUILT_DIR|NIGHT_OVERWATCH_PREBUILT_DIR|KART_SERVER_URL|COMPETITION_SERVICE_ENABLED|COMPETITION_PUBLIC_API_URL|MINIGAME_RELEASE_GATES|(?:WECHAT|BILIBILI|DOUYIN|KUAISHOU|ALIPAY|TAPTAP)_APP_ID|VITE_[A-Z0-9_]+)$/;
+    /^(PATH|PATHEXT|SYSTEMROOT|WINDIR|COMSPEC|HOME|USERPROFILE|APPDATA|LOCALAPPDATA|TEMP|TMP|TMPDIR|CI|TERM|LANG|LC_[A-Z_]+|HTTP_PROXY|HTTPS_PROXY|ALL_PROXY|NO_PROXY|NODE_EXTRA_CA_CERTS|SSL_CERT_FILE|NPM_CONFIG_CAFILE|NPM_CONFIG_REGISTRY|NPM_EXECPATH|NPM_NODE_EXECPATH|NPM_CONFIG_USER_AGENT|NPM_COMMAND|PNPM_HOME|COREPACK_HOME|COCOS_CREATOR|KART_PREBUILT_DIR|NIGHT_OVERWATCH_PREBUILT_DIR|KART_SERVER_URL|COMPETITION_SERVICE_ENABLED|COMPETITION_PUBLIC_API_URL|H5_ADS_ENABLED|TAPTAP_(?:COPS_ROBBERS|COPS_ROBBERS_REALTIME|XIANGQI_FIVE)_AD_UNIT_ID|MINIGAME_RELEASE_GATES|(?:WECHAT|BILIBILI|DOUYIN|KUAISHOU|ALIPAY|TAPTAP)_APP_ID|VITE_[A-Z0-9_]+)$/;
   return Object.fromEntries(
     Object.entries(env).filter(
       ([key]) =>
@@ -366,7 +366,9 @@ export async function prepareBundleSite(source, destination, services, adMode = 
         const managed = await reconfigureH5Service(filename, env, true);
         const html = await readFile(filename, 'utf8');
         const pageCode = managed
-          ? code.replace(/globalThis\.__COMPETITION_CONFIG__=.*?;/, '')
+          ? code
+              .replace(/globalThis\.__COMPETITION_CONFIG__=.*?;/, '')
+              .replace(/globalThis\.SmallGamesPublishingConfig=.*?;/, '')
           : code;
         if (!/<head(?:\s[^>]*)?>/i.test(html)) throw new Error(`Missing HTML head: ${filename}`);
         if (code)

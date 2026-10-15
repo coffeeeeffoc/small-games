@@ -1,6 +1,7 @@
-param([switch]$WithService, [switch]$WithoutService)
+param([switch]$WithService, [switch]$WithoutService, [switch]$WithAds, [switch]$WithoutAds)
 $ErrorActionPreference = 'Stop'
 if ($WithService -and $WithoutService) { throw 'Choose -WithService or -WithoutService' }
+if ($WithAds -and $WithoutAds) { throw 'Choose -WithAds or -WithoutAds' }
 Import-Module (Join-Path $PSHOME 'Modules/Microsoft.PowerShell.Utility/Microsoft.PowerShell.Utility.psd1')
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 Add-Type -AssemblyName System.IO.Compression
@@ -11,6 +12,8 @@ try {
     $serviceArgs = @()
     if ($WithService) { $serviceArgs += '--with-service' }
     if ($WithoutService) { $serviceArgs += '--without-service' }
+    if ($WithAds) { $serviceArgs += '--with-ads' }
+    if ($WithoutAds) { $serviceArgs += '--without-ads' }
     & node scripts/build.mjs --taptap @serviceArgs
     if ($LASTEXITCODE -ne 0) { throw 'H5 build failed' }
     $distPath = Join-Path $gamePath 'dist'
@@ -22,6 +25,7 @@ try {
     $names = @('index.html', 'dev-mode.js', 'publishing.js', 'platform-ads.js', 'platform-config.js', 'favicon.svg')
     if (Test-Path -LiteralPath (Join-Path $distPath 'competition.js')) { $names += 'competition.js' }
     $serviceConfig = (& node -e "const s=require('fs').readFileSync('dist/index.html','utf8');process.stdout.write(s.match(/__COMPETITION_CONFIG__=(\{.*?\});/)[1])" | ConvertFrom-Json)
+    $adConfig = (& node -e "const s=require('fs').readFileSync('dist/platform-config.js','utf8');process.stdout.write(s.match(/Object.freeze\((\{.*?\})\)/)[1])" | ConvertFrom-Json)
     foreach ($directory in @('src', 'assets')) {
         foreach ($item in (Get-ChildItem -LiteralPath (Join-Path $gamePath $directory) -Recurse -Force)) {
             if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Symlink in H5 sources' }
@@ -81,7 +85,7 @@ try {
             sha256 = (Get-FileHash -LiteralPath $temporaryPath -Algorithm SHA256).Hash.ToLowerInvariant()
             files = $inventory; zipMatchesCurrentBuild = $true; competitionEnabled = [bool]$serviceConfig.competitionEnabled; apiUrl = $serviceConfig.apiUrl
             deterministicEntryTimestamps = $true
-            adMode = 'host'; adPlatform = 'taptap-h5'; adUnitConfigured = ![string]::IsNullOrWhiteSpace($env:TAPTAP_COPS_ROBBERS_AD_UNIT_ID)
+            adMode = $adConfig.adMode; adPlatform = 'taptap-h5'; adUnitConfigured = ![string]::IsNullOrWhiteSpace($adConfig.adUnitId)
             uploaded = $false; reviewApproved = $false; realDeviceVerified = $false; realAdsVerified = $false
         }
         Move-Item -LiteralPath $temporaryPath -Destination $zipPath -Force

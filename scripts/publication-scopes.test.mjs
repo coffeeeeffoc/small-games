@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import {
   reviewedSharedFileScopes,
   competitionConsumers,
@@ -957,7 +958,7 @@ function plan(paths, fileScopes) {
 
 test('optional service configuration has finite H5 consumers and rejects unknown siblings or game identities', async () => {
   const { workspacePackages } = await import('./validation-plan.mjs');
-  const root = new URL('../', import.meta.url).pathname;
+  const root = fileURLToPath(new URL('../', import.meta.url));
   const consumers = await workspacePackages(root);
   const catalog = JSON.parse(
     readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url), 'utf8'),
@@ -986,6 +987,31 @@ test('optional service configuration has finite H5 consumers and rejects unknown
       assert(selected.browser_ids.includes(id), file + ': ' + id);
     assert.equal(selected.competition_service_checks, true);
   }
+  const bundleFile = 'scripts/deployment-bundle.mjs';
+  const bundleContext = {
+    ...context,
+    changedPaths: [bundleFile],
+    readBase: (file) =>
+      file === bundleFile
+        ? execFileSync('git', ['show', '5fbc6feadf2663e1905538ab6b6feae0ed26156b:' + file], {
+            encoding: 'utf8',
+          })
+        : context.readBase(file),
+  };
+  assert.deepEqual(reviewedSharedFileScopes(bundleContext).get(bundleFile), [
+    'games/local/cops-robbers',
+    'games/local/cops-robbers-realtime',
+    'games/submodules/xiangqi-five',
+    'apps/shell-web',
+  ]);
+  assert.notDeepEqual(
+    reviewedSharedFileScopes({
+      ...bundleContext,
+      readHead: (file) =>
+        read(file) + (file === bundleFile ? '\n// unrelated deployment edit\n' : ''),
+    }).get(bundleFile),
+    reviewedSharedFileScopes(bundleContext).get(bundleFile),
+  );
   for (const file of [
     'scripts/competition-service-extra.mjs',
     'platforms/competition/service-extra.js',
@@ -1010,6 +1036,16 @@ test('optional service configuration has finite H5 consumers and rejects unknown
       readHead: (name) =>
         name === file
           ? read(name).replace("'xiangqi-five'", "'xiangqi-five', 'fourth-game'")
+          : read(name),
+    }).has(file),
+  );
+  assert(
+    !reviewedSharedFileScopes({
+      ...context,
+      changedPaths: [file],
+      readHead: (name) =>
+        name === 'scripts/h5-ad-config.mjs'
+          ? read(name).replace("'xiangqi-five'", "'xiangqi-five', 'unexpected-game'")
           : read(name),
     }).has(file),
   );

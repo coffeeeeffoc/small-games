@@ -25,7 +25,7 @@ async function snapshot(page) {
 async function check(name, run) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
   const page = await context.newPage();
-  await page.addInitScript(() => { globalThis.SmallGamesRewardAds = { offer: async () => ({ status: 'completed' }) }; });
+  await page.addInitScript(() => { globalThis.SmallGamesPublishingConfig = { adMode: 'host' }; globalThis.SmallGamesRewardAds = { offer: async () => ({ status: 'completed' }) }; });
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });

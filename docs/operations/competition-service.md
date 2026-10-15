@@ -63,3 +63,42 @@ pnpm deploy:tencent --public --prepare --with-service
 ```
 
 无服务前端使用 `--without-service`。打包 Runtime 和允许前端接入是独立选项：可部署后端但关闭三款前端入口，也可连接已有外部服务。脚本传入构建配置并更新发布副本；其余游戏沿用原有配置。开关与地址属于构建缓存输入，切换后重新构建发布才能改变静态前端。
+
+# Three-game H5 advertising and service matrix
+
+`H5_ADS_ENABLED=0` (default) permits the original hint/support action directly.
+`H5_ADS_ENABLED=1` selects the TapTap H5 rewarded host. Only a completed
+advertisement grants that action; dismissal, failure, timeout, page cancellation
+and an unavailable SDK grant nothing. Public ad unit IDs use
+`TAPTAP_COPS_ROBBERS_AD_UNIT_ID`, `TAPTAP_COPS_ROBBERS_REALTIME_AD_UNIT_ID`, or
+`TAPTAP_XIANGQI_FIVE_AD_UNIT_ID`. These are public build configuration, never server
+credentials. The explicit `--with-ads` / `--without-ads` flags override the variable.
+
+The independent `COMPETITION_SERVICE_ENABLED=0/1` and
+`COMPETITION_PUBLIC_API_URL` control backend access. Disabled packages discard old
+service addresses and do not contact the API. A missing SDK never becomes a mock
+completion. Free support retains the original per-run quota and assisted-score
+isolation; a free chess hint still caps the challenge at one star.
+
+From a clean committed checkout, build twelve distinct H5 ZIPs and manifests:
+
+```powershell
+$env:COMPETITION_PUBLIC_API_URL='http://127.0.0.1:43802/api/competition/v1'
+node scripts/h5-taptap.mjs --matrix --local
+$env:H5_MATRIX='<the printed output directory>'
+node scripts/h5-taptap.browser.mjs
+```
+
+`--local` explicitly marks HTTP loopback packages as local validation artifacts;
+formal service packages require HTTPS. A single package can instead use
+`--game cops-robbers --without-ads --with-service`. Every ZIP has `dist/index.html`,
+an exact file inventory and SHA-256, and pinned root/submodule commits. Generated
+game output is cleaned before each build, and source changes require a new commit
+and a new matrix. These are H5 artifacts, separate from Cocos platform packages.
+
+The browser matrix uses two independent mobile touch contexts per online variant,
+real local Runtime/PostgreSQL interactions and natural match settlement. Reports
+and screenshots remain under the matrix directory; authentication fields are
+redacted. A headless missing-SDK check proves refusal to reward, not real TapTap ad
+playback or physical-device acceptance. Restart persistence and duplicate requests
+also require the backend integration and restart evidence described below.

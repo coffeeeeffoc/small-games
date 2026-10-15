@@ -14,13 +14,21 @@
     "scripts/rule-tasks.mjs",
     "scripts/competition-service-config.mjs",
     "scripts/competition-h5-service.mjs",
+    "scripts/h5-ad-config.mjs",
     "platforms/competition/service-config.js"
   ],
   "globalPassThroughEnv": ["COCOS_CREATOR", "KART_PREBUILT_DIR", "NIGHT_OVERWATCH_PREBUILT_DIR"],
   "tasks": {
     "dev": {
       "cache": false,
-      "env": ["COMPETITION_SERVICE_ENABLED", "COMPETITION_PUBLIC_API_URL"],
+      "env": [
+        "COMPETITION_SERVICE_ENABLED",
+        "COMPETITION_PUBLIC_API_URL",
+        "H5_ADS_ENABLED",
+        "TAPTAP_COPS_ROBBERS_AD_UNIT_ID",
+        "TAPTAP_COPS_ROBBERS_REALTIME_AD_UNIT_ID",
+        "TAPTAP_XIANGQI_FIVE_AD_UNIT_ID"
+      ],
       "persistent": true
     },
     "build": {
@@ -35,6 +43,10 @@
       "env": [
         "COMPETITION_SERVICE_ENABLED",
         "COMPETITION_PUBLIC_API_URL",
+        "H5_ADS_ENABLED",
+        "TAPTAP_COPS_ROBBERS_AD_UNIT_ID",
+        "TAPTAP_COPS_ROBBERS_REALTIME_AD_UNIT_ID",
+        "TAPTAP_XIANGQI_FIVE_AD_UNIT_ID",
         "BILIBILI_AD_UNIT_ID",
         "VITE_SHELL_ORIGIN",
         "VITE_CULTIVATION_ARTIFACT_URL",
@@ -45,13 +57,27 @@
     "@coffeeeeffoc/shell-web#build": {
       "dependsOn": ["^build"],
       "cache": false,
-      "env": ["COMPETITION_SERVICE_ENABLED", "COMPETITION_PUBLIC_API_URL"],
+      "env": [
+        "COMPETITION_SERVICE_ENABLED",
+        "COMPETITION_PUBLIC_API_URL",
+        "H5_ADS_ENABLED",
+        "TAPTAP_COPS_ROBBERS_AD_UNIT_ID",
+        "TAPTAP_COPS_ROBBERS_REALTIME_AD_UNIT_ID",
+        "TAPTAP_XIANGQI_FIVE_AD_UNIT_ID"
+      ],
       "outputs": ["dist/**"]
     },
     "@coffeeeeffoc/shell-web#build:pages": {
       "dependsOn": ["^build"],
       "cache": false,
-      "env": ["COMPETITION_SERVICE_ENABLED", "COMPETITION_PUBLIC_API_URL"],
+      "env": [
+        "COMPETITION_SERVICE_ENABLED",
+        "COMPETITION_PUBLIC_API_URL",
+        "H5_ADS_ENABLED",
+        "TAPTAP_COPS_ROBBERS_AD_UNIT_ID",
+        "TAPTAP_COPS_ROBBERS_REALTIME_AD_UNIT_ID",
+        "TAPTAP_XIANGQI_FIVE_AD_UNIT_ID"
+      ],
       "outputs": ["dist/**"]
     },
     "test": {

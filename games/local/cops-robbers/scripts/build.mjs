@@ -6,7 +6,7 @@ import { prepareH5Service, serviceEnvironment } from '../../../../scripts/compet
 
 const root = await realpath(resolve(dirname(fileURLToPath(import.meta.url)), '..'));
 const output = resolve(root, 'dist');
-const config = adConfiguration(process.argv.includes('--taptap'));
+const config = adConfiguration(process.argv.includes('--taptap'), process.env, process.argv.slice(2));
 const rel = relative(root, output);
 if (isAbsolute(rel) || rel !== 'dist') throw new Error('构建输出必须为项目内的 dist 目录。');
 await mkdir(output, { recursive: true });

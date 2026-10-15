@@ -37,3 +37,24 @@ test('one recovery load/show is allowed but a failed recovery returns failed',as
   const provider=createTapTapAdProvider(f.sdk,'fixture-only');
   assert.equal((await provider.show()).status,'failed'); assert.equal(shows,2); assert.deepEqual(f.listeners,{});
 });
+test('an unclosed singleton cannot lend an old completion to another request', async()=>{
+  for (const exit of ['error', 'timeout', 'cancel']) {
+    const f=fixture(),provider=createTapTapAdProvider(f.sdk,'fixture-only',5),first=provider.show();
+    const oldClose=f.listeners.close;
+    if(exit==='error') f.listeners.error();
+    if(exit==='cancel') provider.cancel();
+    assert.equal((await first).status,exit==='cancel'?'dismissed':'failed');
+    assert.deepEqual(await provider.show(),{status:'unavailable'});
+    oldClose({isEnded:true});
+    assert.deepEqual(await provider.show(),{status:'unavailable'});
+    assert.equal(f.config.length,1);
+  }
+});
+test('confirmed destruction permits a fresh request after cancellation', async()=>{
+  const f=fixture(); f.ad.destroy=async()=>{};
+  const provider=createTapTapAdProvider(f.sdk,'fixture-only'),first=provider.show();
+  provider.cancel(); assert.equal((await first).status,'dismissed');
+  await Promise.resolve();
+  const next=provider.show(); f.listeners.close({isEnded:false});
+  assert.equal((await next).status,'dismissed'); assert.equal(f.config.length,2);
+});

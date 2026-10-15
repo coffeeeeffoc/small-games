@@ -174,6 +174,11 @@ export const competitionServiceScopePaths = [
   'scripts/competition-game.mjs',
   'platforms/competition/service-config.js',
   'platforms/competition/.env.example',
+  'scripts/h5-ad-config.mjs',
+  'scripts/h5-ad-config.test.mjs',
+  'scripts/h5-taptap.mjs',
+  'scripts/h5-taptap.browser.mjs',
+  'platforms/h5/rewarded-host.js',
 ];
 const competitionServiceIds = ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'];
 export function competitionServiceConfigOnly(file, before, after) {
@@ -188,9 +193,20 @@ export function competitionServiceConfigOnly(file, before, after) {
       const inputs = [
         'scripts/competition-service-config.mjs',
         'scripts/competition-h5-service.mjs',
+        'scripts/h5-ad-config.mjs',
         'platforms/competition/service-config.js',
       ];
-      const variables = ['COMPETITION_SERVICE_ENABLED', 'COMPETITION_PUBLIC_API_URL'];
+      const adVariables = [
+        'H5_ADS_ENABLED',
+        'TAPTAP_COPS_ROBBERS_AD_UNIT_ID',
+        'TAPTAP_COPS_ROBBERS_REALTIME_AD_UNIT_ID',
+        'TAPTAP_XIANGQI_FIVE_AD_UNIT_ID',
+      ];
+      const variables = [
+        'COMPETITION_SERVICE_ENABLED',
+        'COMPETITION_PUBLIC_API_URL',
+        ...adVariables,
+      ];
       assert.equal(new Set(current.globalDependencies).size, current.globalDependencies.length);
       assert.equal(new Set(current.tasks.build.env).size, current.tasks.build.env.length);
       for (const value of inputs) assert(current.globalDependencies.includes(value));
@@ -207,6 +223,9 @@ export function competitionServiceConfigOnly(file, before, after) {
         '@coffeeeeffoc/shell-web#build:pages',
       ]) {
         assert.deepEqual(current.tasks[task].env, variables);
+        current.tasks[task].env = current.tasks[task].env.filter(
+          (value) => !adVariables.includes(value) || previous.tasks[task]?.env?.includes(value),
+        );
         if (!Object.hasOwn(previous.tasks[task], 'env')) delete current.tasks[task].env;
       }
     } else return false;
@@ -219,6 +238,10 @@ export function competitionServiceConfigOnly(file, before, after) {
 // Exact existing integration edits reviewed with this service configuration change.
 // Later unrelated deployment/native edits must establish their own consumer scope.
 const competitionServiceIntegrations = {
+  'scripts/deployment-bundle.mjs': [
+    'f05a5a3385373da9c1170634def557b1d8d3979867c2f5c1d203c94d7acd3b83',
+    '795d32fa380d6f50e9aac24969d78c9df7646ad86470749e3a6cb77eb9d21dfc',
+  ],
   'scripts/competition-gateway.mjs': [
     'bbfc69bf5d9c9c9a2f1c3d28ab245024dc78030e7eec18953a9705ccccd16f92',
     '35c4d646992f89799a559091f793518f1da72d8c675c0cab73a0a6146e213e51',
@@ -1173,11 +1196,17 @@ export function reviewedSharedFileScopes({
         competitionServiceScopePaths.includes(file) ||
         (['package.json', 'turbo.json'].includes(file) &&
           competitionServiceConfigOnly(file, readBase(file), readHead(file))) ||
-        (Object.hasOwn(competitionServiceIntegrations, file) &&
+        (typeof readBase === 'function' &&
+          typeof readHead === 'function' &&
+          Object.hasOwn(competitionServiceIntegrations, file) &&
           competitionServiceIntegration(file, readBase(file), readHead(file)))
       ) {
         assert.deepEqual(
           literalDeclaration(readHead('scripts/competition-service-config.mjs'), 'serviceGames'),
+          competitionServiceIds,
+        );
+        assert.deepEqual(
+          literalDeclaration(readHead('scripts/h5-ad-config.mjs'), 'h5AdGames'),
           competitionServiceIds,
         );
         for (const id of competitionServiceIds) {

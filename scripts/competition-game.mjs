@@ -5,6 +5,7 @@ import { parseArgs } from 'node:util';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { prepareH5Service } from './competition-h5-service.mjs';
+import { prepareH5Ads } from './h5-ad-config.mjs';
 import {
   competitionService,
   serviceEnvironment,
@@ -17,6 +18,8 @@ const { values } = parseArgs({
     dev: { type: 'boolean' },
     'with-service': { type: 'boolean' },
     'without-service': { type: 'boolean' },
+    'with-ads': { type: 'boolean' },
+    'without-ads': { type: 'boolean' },
   },
 });
 if (!serviceGames.includes(values.game)) throw new Error(`Choose --game ${serviceGames.join('|')}`);
@@ -33,6 +36,7 @@ execFileSync(
   { cwd: game, env, stdio: 'inherit' },
 );
 await prepareH5Service(values.game, path.join(game, 'dist'), { env, local: true });
+await prepareH5Ads(values.game, path.join(game, 'dist'), { env, args: process.argv.slice(2) });
 if (values.dev) {
   const directory = path.join(game, 'dist');
   const mime = {

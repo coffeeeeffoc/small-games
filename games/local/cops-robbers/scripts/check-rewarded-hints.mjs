@@ -21,6 +21,7 @@ let browser;
 const report = { base, physicalMobile: false, realAdsVerified: false, checks: [] };
 async function check(name, run, init, viewport = { width: 390, height: 844 }) {
   const context = await browser.newContext({ viewport, hasTouch: true, isMobile: true });
+  await context.addInitScript(() => { globalThis.SmallGamesPublishingConfig = { adMode: 'host' }; });
   if (init) await context.addInitScript(init);
   const page = await context.newPage(), errors = [], requests = [];
   page.on('pageerror', error => errors.push(error.message));
@@ -74,7 +75,7 @@ try {
       await page.reload();
       await page.locator('#resume-patrol').tap();
       assert.deepEqual(await state(page), before, 'Return/reload preserves the local patrol');
-    }, undefined, viewport);
+    }, () => { globalThis.SmallGamesPublishingConfig = { adMode: 'mock' }; }, viewport);
   }
   for (const status of ['dismissed', 'unavailable', 'failed', 'invalid']) {
     await check(`host-${status}`, async page => {

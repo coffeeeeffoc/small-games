@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, startGame, stepGame, pauseGame, resumeGame, commandCop, commandRobber } from '../src/engine.js';
-import { startSupport, starterRuns, sprintRemaining, useSprint, useRewind, canRefill, grantSupport } from '../src/support.js';
+import { startSupport, starterRuns, sprintRemaining, useSprint, useRewind, canRefill, grantSupport, grantFreeSupport } from '../src/support.js';
 const definition = { id: 1, nodes: [0, 1000, 2000, 3000, 4000].map(x => ({ x, y: 300 })),
   edges: [[0,1],[1,2],[2,3],[3,4]], cops: [0,4], robbers: [2], policeSpeed:100, robberSpeed:120 };
 function run(game, seconds) { for (let i=0; i < Math.round(seconds*60); i++) stepGame(game, 1/60); }
@@ -9,6 +9,16 @@ function begin(extra = {}, options = {}) {
   const game = createGame({ ...definition, ...extra }, { ai: false, ...options });
   startGame(game); startSupport(game, 0); return game;
 }
+
+test('free support uses the same once-per-run quota and assisted rules without an ad outcome', () => {
+  const game = begin();
+  assert.equal(grantFreeSupport(game, 'sprint'), false);
+  useSprint(game, 0); run(game, 4.1);
+  assert.equal(grantFreeSupport(game, 'sprint'), true);
+  assert.equal(grantFreeSupport(game, 'sprint'), false);
+  assert.equal(useSprint(game, 0), true);
+  assert.equal(game.support.assisted, true);
+});
 test('only new formal runs consume the five persistent starter grants', () => {
   let started = 0;
   for (let ordinal=1; ordinal<=7; ordinal++) {

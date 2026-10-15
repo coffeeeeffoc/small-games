@@ -91,7 +91,7 @@ try {
   browser = await chromium.launch(executablePath ? { executablePath } : process.env.BROWSER_CHANNEL ? { channel: process.env.BROWSER_CHANNEL } : {});
   const desktop = await browser.newContext({ viewport: { width: 1366, height: 900 } }), page = await desktop.newPage();
   observe(page);
-  await page.addInitScript(() => { globalThis.SmallGamesRewardAds = { offer: async () => ({ status: 'completed' }) }; });
+  await page.addInitScript(() => { globalThis.SmallGamesPublishingConfig = { adMode: 'host' }; globalThis.SmallGamesRewardAds = { offer: async () => ({ status: 'completed' }) }; });
   await load(page, 1, false); await win(page, 1);
   assert.ok(await page.evaluate(() => localStorage.getItem('cops-robbers-practice-v3')), '胜利后应保存新版本地记录');
   await page.getByTestId('next-level').click();

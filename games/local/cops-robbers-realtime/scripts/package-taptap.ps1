@@ -1,6 +1,7 @@
-param([switch]$WithService, [switch]$WithoutService)
+param([switch]$WithService, [switch]$WithoutService, [switch]$WithAds, [switch]$WithoutAds)
 $ErrorActionPreference = 'Stop'
 if ($WithService -and $WithoutService) { throw 'Choose -WithService or -WithoutService' }
+if ($WithAds -and $WithoutAds) { throw 'Choose -WithAds or -WithoutAds' }
 $gameRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $dist = Join-Path $gameRoot 'dist'
 $output = Join-Path $gameRoot 'outputs/taptap'
@@ -16,6 +17,8 @@ try {
   $serviceArgs = @()
   if ($WithService) { $serviceArgs += '--with-service' }
   if ($WithoutService) { $serviceArgs += '--without-service' }
+  if ($WithAds) { $serviceArgs += '--with-ads' }
+  if ($WithoutAds) { $serviceArgs += '--without-ads' }
   node scripts/build.mjs --taptap @serviceArgs
   if ($LASTEXITCODE -ne 0) { throw 'H5 build failed' }
   if (!(Test-Path -LiteralPath (Join-Path $dist 'index.html'))) { throw 'Missing dist/index.html' }

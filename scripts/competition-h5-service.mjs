@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { competitionService, serviceEnvironment } from './competition-service-config.mjs';
+import { prepareH5Ads } from './h5-ad-config.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 export function h5ServiceConfig(game, { env = process.env, local = false } = {}) {
@@ -107,6 +108,7 @@ export async function reconfigureH5Service(filename, env, local = false) {
   if (!['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'].includes(game))
     throw new Error('Unknown managed service game');
   await prepareH5Service(game, path.dirname(filename), { env, local });
+  await prepareH5Ads(game, path.dirname(filename), { env });
   return true;
 }
 

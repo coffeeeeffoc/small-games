@@ -219,24 +219,38 @@ test('rebuilding and deploying a managed H5 entry never retain an old service ad
       ['tencent', (destination, env) => prepareSite(source, destination, env)],
       ['bundle', (destination, env) => prepareBundleSite(source, destination, [], 'off', env)],
     ]) {
-      for (const enabled of ['0', '1']) {
-        const destination = path.join(temporary, name + enabled);
-        await deploy(destination, { ...online, COMPETITION_SERVICE_ENABLED: enabled });
-        const html = await readFile(path.join(destination, 'index.html'), 'utf8');
-        const context = {};
-        vm.runInNewContext(
-          html.match(/<script data-competition-service>(.*?)<\/script>/)[1],
-          context,
-        );
-        assert.equal(context.__COMPETITION_CONFIG__.competitionEnabled, enabled === '1');
-        assert.equal(context.__COMPETITION_CONFIG__.apiUrl, enabled === '1' ? url : '');
-        if (enabled === '0') {
-          assert(!html.includes(url));
-          await assert.rejects(readFile(path.join(destination, 'competition.js')), {
-            code: 'ENOENT',
+      for (const enabled of ['0', '1'])
+        for (const ads of ['0', '1']) {
+          const destination = path.join(temporary, name + enabled + ads);
+          await deploy(destination, {
+            ...online,
+            COMPETITION_SERVICE_ENABLED: enabled,
+            H5_ADS_ENABLED: ads,
           });
+          const html = await readFile(path.join(destination, 'index.html'), 'utf8');
+          const context = {};
+          vm.runInNewContext(
+            html.match(/<script data-competition-service>(.*?)<\/script>/)[1],
+            context,
+          );
+          assert.equal(context.__COMPETITION_CONFIG__.competitionEnabled, enabled === '1');
+          assert.equal(context.__COMPETITION_CONFIG__.apiUrl, enabled === '1' ? url : '');
+          vm.runInNewContext(
+            await readFile(path.join(destination, 'platform-config.js'), 'utf8'),
+            context,
+          );
+          assert.equal(context.SmallGamesPublishingConfig.adMode, ads === '1' ? 'host' : 'off');
+          assert(
+            !html.includes('SmallGamesPublishingConfig=Object.assign'),
+            'managed games retain their explicit ad mode',
+          );
+          if (enabled === '0') {
+            assert(!html.includes(url));
+            await assert.rejects(readFile(path.join(destination, 'competition.js')), {
+              code: 'ENOENT',
+            });
+          }
         }
-      }
     }
     assert.equal(buildEnvironment(online).COMPETITION_SERVICE_ENABLED, '1');
   } finally {

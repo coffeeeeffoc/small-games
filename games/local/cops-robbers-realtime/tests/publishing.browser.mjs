@@ -50,6 +50,7 @@ async function tapActor(page,index,target) {
 async function context(viewport,host=false,started=0) {
   const ctx=await browser.newContext({viewport,isMobile:true,hasTouch:true});
   await ctx.addInitScript(({host,started})=>{
+    window.SmallGamesPublishingConfig = { adMode: 'host' };
     try {
       if(!localStorage.getItem('neighborhood-patrol-v1'))
         localStorage.setItem('neighborhood-patrol-v1',JSON.stringify({startedRuns:started}));
