@@ -6,7 +6,7 @@ export const THEMES = [
   { id: 'rose', title: '星火小队', subtitle: '珊瑚队服 · 紫夜城', required: 4 },
 ];
 export function readProgress(data) {
-  const result = { version: 1, completed: {}, sound: true, theme: 'rescue' };
+  const result = { version: 1, completed: {}, sound: true, theme: 'rescue', endlessBest: 0 };
   if (!data || data.version !== 1) return result;
   for (const level of LEVELS) {
     const record = data.completed?.[level.id];
@@ -20,6 +20,8 @@ export function readProgress(data) {
       lives: Number.isInteger(record.lives) ? Math.max(0, Math.min(3, record.lives)) : 0,
     };
   }
+  result.endlessBest =
+    Number.isSafeInteger(data.endlessBest) && data.endlessBest >= 0 ? data.endlessBest : 0;
   result.sound = data.sound !== false;
   if (
     THEMES.some(
@@ -33,7 +35,7 @@ export function unlockedCount(progress) {
   return Math.min(LEVELS.length, Object.keys(progress.completed).length + 1);
 }
 export function completeLevel(progress, game, trial = false) {
-  if (trial || game.phase !== 'won') return false;
+  if (trial || game.mode === 'endless' || game.phase !== 'won') return false;
   const level = LEVELS[game.levelIndex ?? game.index ?? 0];
   if (!level || game.rescued !== level.cages.length) return false;
   const index = LEVELS.indexOf(level);

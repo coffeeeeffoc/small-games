@@ -1,3 +1,4 @@
+import { layerRotationAt } from './engine.mjs';
 const TAU = Math.PI * 2;
 const BALL_ANGLE = Math.PI / 2;
 const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
@@ -239,13 +240,21 @@ export class TowerRenderer {
     const homeTop = h * (landscape ? 0.25 : 0.37);
     const homeStep = Math.min(85, (sceneBottom - homeTop - radius * squash - thickness) / 3);
     const displayLayers = home ? state.level.layers.slice(0, 4) : state.level.layers;
+    const fog = !home && state.level.layers[state.nextLayer]?.fog;
     const rings = displayLayers
       .map((layer, index) => {
         const delta = layer.y - physicalY;
         const y = home
           ? homeTop + index * homeStep
           : anchor + (layer.y - this.cameraY) * 0.82 - depth;
-        const alpha = home ? 1 : delta < -18 ? clamp(1 - (-delta - 18) / 55, 0, 0.28) : 1;
+        const alpha = home
+          ? 1
+          : delta < -18
+            ? clamp(1 - (-delta - 18) / 55, 0, 0.28)
+            : fog && index > state.nextLayer + 1
+              ? 0.16
+              : 1;
+        const ringRotation = rotation + (home ? 0 : layerRotationAt(layer, state.elapsed));
         return {
           x: centerX,
           y,
@@ -257,8 +266,8 @@ export class TowerRenderer {
           layer,
           gap: layer.gap,
           finish: layer.finish,
-          rotation,
-          segments: segmentsFor(layer, rotation),
+          rotation: ringRotation,
+          segments: segmentsFor(layer, ringRotation),
         };
       })
       .filter(
@@ -300,7 +309,20 @@ export class TowerRenderer {
     ctx.fillRect(centerX - shaftWidth / 2, shaftTop, shaftWidth, sceneBottom - shaftTop + 30);
     ctx.fillStyle = 'rgba(128, 227, 240, .11)';
     ctx.fillRect(centerX + shaftWidth / 2 - 1, shaftTop, 1, sceneBottom - shaftTop + 30);
-    for (const ring of rings) drawRingHalf(ctx, ring, true, colors);
+    for (const ring of rings) {
+      drawRingHalf(ctx, ring, true, colors);
+      if (!home && ring.alpha > 0.5 && (ring.layer.spinSpeed || ring.layer.gravityScale > 1)) {
+        ctx.save();
+        ctx.fillStyle = '#ffe3a3';
+        ctx.font = 'bold 15px sans-serif';
+        ctx.textAlign = 'center';
+        // A curved arrow and doubled chevrons are shape cues as well as color.
+        ctx.fillText(ring.layer.spinSpeed ? '↻' : '»', ring.x + ring.radius + 12, ring.y + 5);
+        if (ring.layer.spinSpeed && ring.layer.gravityScale > 1)
+          ctx.fillText('»', ring.x + ring.radius + 12, ring.y + 21);
+        ctx.restore();
+      }
+    }
 
     const ballY = home
       ? homeTop + depth - ballRadius - 5 - Math.abs(Math.sin(seconds * 2.8)) * 13
@@ -312,7 +334,11 @@ export class TowerRenderer {
       state.level.layers[nextIndex] || state.level.layers.find((layer) => layer.y >= physicalY - 2);
     if (!home && next) {
       const targetY = anchor + (next.y - this.cameraY) * 0.82;
-      const material = materialAt(next, BALL_ANGLE, rotation);
+      const material = materialAt(
+        next,
+        BALL_ANGLE,
+        rotation + layerRotationAt(next, state.elapsed),
+      );
       const targetColor = material === 'danger' ? '#ffaf85' : colors.glow;
       ctx.save();
       ctx.strokeStyle = targetColor;
@@ -430,7 +456,7 @@ export function drawRadar(canvas, landing, rotation = 0, skin = 'mint') {
     y = h / 2;
   const radius = Math.min(w * 0.43, h * 0.43),
     inner = radius * 0.57;
-  const segments = segmentsFor(layer, rotation);
+  const segments = segmentsFor(layer, landing?.effectiveRotation ?? rotation);
   // The dashed continuation makes the empty gap legible without relying on hue.
   ctx.save();
   ctx.strokeStyle = 'rgba(141, 202, 215, .38)';

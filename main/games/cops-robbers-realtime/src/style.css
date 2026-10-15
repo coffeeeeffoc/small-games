@@ -1056,6 +1056,20 @@ select[hidden] {
   border-radius: 18px;
   min-height: 60px;
 }
+.sprint-button {
+  min-height: 44px;
+  background: #f5a132;
+  border-color: #db8720;
+  color: #533712;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+.sprint-button svg { width: 20px; height: 20px; }
+#rewind-button, #support-return { margin-top: 10px; }
 .hold-button svg {
   width: 23px;
   height: 23px;
