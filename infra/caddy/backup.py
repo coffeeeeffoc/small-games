@@ -17,7 +17,7 @@ import tempfile
 import time
 
 BACKUP_DIR = Path('/var/backups/company-caddy')
-COMPANY_DIR = Path('/opt/small-games/company')
+CADDY_DIR = Path(os.environ.get('CADDY_DEPLOY_DIR', '/opt/small-games/caddy'))
 VOLUMES = ('company-web_caddy_data', 'company-web_caddy_config')
 BACKUP_NAME = re.compile(r'caddy-\d{8}T\d{6}Z-[a-f0-9]{6}\.tar\.gz')
 
@@ -128,15 +128,16 @@ def live_sources():
     by_name = {volume['Name']: volume for volume in volumes}
     if set(by_name) != set(VOLUMES) or any(volume['Driver'] != 'local' for volume in volumes):
         raise ValueError('Expected the two existing local Caddy volumes')
-    current = (COMPANY_DIR / 'current').resolve(strict=True)
-    if current.parent != COMPANY_DIR / 'releases':
-        raise ValueError('Company current release is outside releases directory')
+    current = (CADDY_DIR / 'current').resolve(strict=True)
+    if current.parent != CADDY_DIR / 'releases':
+        raise ValueError('Caddy current release is outside releases directory')
     return {
         'data': Path(by_name[VOLUMES[0]]['Mountpoint']),
         'config': Path(by_name[VOLUMES[1]]['Mountpoint']),
         'deployment/Caddyfile': current / 'caddy/Caddyfile',
         'deployment/compose.yaml': current / 'compose.yaml',
-        'deployment/release.json': current / 'site/release.json',
+        'deployment/release.json': current / 'release.json',
+        'deployment/website-directory': current / 'website-directory',
     }
 
 

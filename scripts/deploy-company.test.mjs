@@ -10,14 +10,13 @@ import {
   companyConfig,
   fileHashes,
   remoteCheck,
-  renderCompose,
-  renderCaddy,
   toolEnvironment,
   writeBundle,
 } from './deploy-company.mjs';
+import { renderCaddy, renderCompose, writeCaddyBundle } from './deploy-caddy.mjs';
 
 test('online Caddy backups restore privately, validate keys, rotate safely and reject unstable input', () => {
-  const file = fileURLToPath(new URL('../infra/company/backup.test.py', import.meta.url));
+  const file = fileURLToPath(new URL('../infra/caddy/backup.test.py', import.meta.url));
   const windows = process.platform === 'win32';
   const result = spawnSync(
     windows ? 'wsl.exe' : 'python3',
@@ -28,10 +27,10 @@ test('online Caddy backups restore privately, validate keys, rotate safely and r
   );
   assert.ifError(result.error);
   assert.equal(result.status, 0, result.stdout + result.stderr);
-  assert.match(result.stderr, /Ran 4 tests/);
+  assert.match(result.stderr, /Ran 5 tests/);
 });
 
-test('remote deployment transaction restores prior releases and isolates first/config/port/checksum failures', () => {
+test('website switches and rolls back without Docker, including legacy versions and failed HTTPS', () => {
   const file = fileURLToPath(new URL('../infra/company/deploy.test.sh', import.meta.url));
   const windows = process.platform === 'win32';
   const result = spawnSync(
@@ -44,6 +43,21 @@ test('remote deployment transaction restores prior releases and isolates first/c
   assert.ifError(result.error);
   assert.equal(result.status, 0, result.stdout + result.stderr);
   assert.match(result.stdout, /PASS activate and explicit rollback/);
+});
+
+test('Caddy maintenance validates before touching ports and restores legacy or independent configuration on failure', () => {
+  const file = fileURLToPath(new URL('../infra/caddy/deploy.test.sh', import.meta.url));
+  const windows = process.platform === 'win32';
+  const result = spawnSync(
+    windows ? 'wsl.exe' : 'bash',
+    windows
+      ? ['--exec', 'bash', '-c', 'exec bash "$(wslpath -u "$1")"', 'caddy-deploy-test', file]
+      : [file],
+    { encoding: 'utf8', timeout: 60000 },
+  );
+  assert.ifError(result.error);
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.match(result.stdout, /PASS Caddy migration and website mount/);
 });
 
 test('company configuration needs no game/COS secrets and rejects command/path injection', () => {
@@ -64,6 +78,9 @@ test('company configuration needs no game/COS secrets and rejects command/path i
     { COMPANY_WWW_DOMAIN: 'nenggongzhiren.cn' },
     { COMPANY_DEPLOY_DIR: '/opt/../etc' },
     { COMPANY_DEPLOY_DIR: '/opt/company\nwhoami' },
+    { CADDY_DEPLOY_DIR: '/opt/../etc' },
+    { CADDY_DEPLOY_DIR: '/opt/small-games/company' },
+    { CADDY_DEPLOY_DIR: '/opt/small-games/company/caddy' },
     { COMPANY_ICP: '沪ICP备2026053115号' },
   ])
     assert.throws(() => companyConfig(invalid));
@@ -80,6 +97,7 @@ test('website subprocesses do not inherit deployment/application credentials', (
       COS_SECRET_KEY: 'private',
       RUNTIME_DATABASE_URL: 'private',
       COMPANY_TLS_DIR: 'private',
+      CADDY_DEPLOY_DIR: 'private',
       GH_TOKEN: 'private',
     }),
     { PATH: '/bin', SystemRoot: 'C:/Windows', npm_execpath: '/pnpm' },
@@ -92,7 +110,11 @@ test('Caddy manages only company domains and persists certificates outside immut
   const caddy = renderCaddy(config);
   assert.match(compose, /name: company-web/);
   assert.match(compose, /ports: \['80:80', '443:443'\]/);
-  assert.doesNotMatch(compose, /postgres|runtime:|kart:|COS_|8080|external:|docker.sock/);
+  assert.doesNotMatch(compose, /postgres|runtime:|kart:|COS_|8080|docker.sock/);
+  assert.match(compose, /\/opt\/small-games\/company:\/opt\/small-games\/company:ro/);
+  assert.doesNotMatch(compose, /current:|releases\//);
+  assert.match(compose, /external: true\s+name: company-web_caddy_data/);
+  assert.match(compose, /external: true\s+name: company-web_caddy_config/);
   assert.match(compose, /read_only: true/);
   assert.match(compose, /image: caddy:2\.11\.7-alpine/);
   assert.match(compose, /caddy_data:\/data/);
@@ -105,6 +127,8 @@ test('Caddy manages only company domains and persists certificates outside immut
   );
   assert.match(caddy, /http:\/\/ \{\s+respond 404/);
   assert.match(caddy, /bind 127\.0\.0\.1/);
+  assert.match(caddy, /root \* \/opt\/small-games\/company\/current\/site/);
+  assert.match(caddy, /respond \/health "Caddy OK" 200/);
   assert.match(caddy, /hide \.\*/);
   assert.doesNotMatch(caddy, /reverse_proxy|browse|api\.|admin\.|tls internal|auto_https off/);
 });
@@ -112,7 +136,7 @@ test('Caddy manages only company domains and persists certificates outside immut
 test('preflight checks DNS without requiring a manually installed certificate or changing services', () => {
   const script = remoteCheck(companyConfig({ ECS_HOST: '192.0.2.10' }));
   assert.match(script, /getent ahostsv4 '192.0.2.10'/);
-  assert.match(script, /Caddy will obtain certificates after startup/);
+  assert.match(script, /requires the independent Caddy deployment/);
   assert.doesNotMatch(script, /fullchain\.pem|privkey\.pem|openssl x509/);
   assert.doesNotMatch(script, /mkdir|docker (?:run|pull|stop)|compose (?:up|down)|\bsudo\b/);
 });
@@ -138,13 +162,7 @@ test('release packages only validated public output and hashes every deployable 
     );
     assert.equal(manifest.sourceSha, 'a'.repeat(40));
     assert.deepEqual(Object.keys(manifest.files).sort(), ['app.js', 'index.html']);
-    assert.deepEqual((await readdir(destination)).sort(), [
-      'SHA256SUMS',
-      'caddy',
-      'compose.yaml',
-      'deploy.sh',
-      'site',
-    ]);
+    assert.deepEqual((await readdir(destination)).sort(), ['SHA256SUMS', 'deploy.sh', 'site']);
     for (const line of (await readFile(path.join(destination, 'SHA256SUMS'), 'utf8'))
       .trim()
       .split('\n')) {
@@ -175,6 +193,33 @@ test('release packages only validated public output and hashes every deployable 
       ),
       /ICP footer/,
     );
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
+
+test('Caddy package contains only independent operations and a website-independent backup service', async () => {
+  const temporary = await mkdtemp(path.join(tmpdir(), 'caddy-package-'));
+  try {
+    const destination = path.join(temporary, 'release');
+    await writeCaddyBundle(destination, companyConfig(), 'a'.repeat(40), 'caddy-test');
+    assert(!(await readdir(destination)).includes('site'));
+    const service = await readFile(path.join(destination, 'company-caddy-backup.service'), 'utf8');
+    assert.match(service, /Environment=CADDY_DEPLOY_DIR=\/opt\/small-games\/caddy/);
+    assert.doesNotMatch(service, /@CADDY_DEPLOY_DIR@/);
+    assert.equal(
+      await readFile(path.join(destination, 'website-directory'), 'utf8'),
+      '/opt/small-games/company\n',
+    );
+    const { SHA256SUMS, ...files } = await fileHashes(destination);
+    assert(SHA256SUMS);
+    assert.equal(Object.keys(files).length, 8);
+    for (const line of (await readFile(path.join(destination, 'SHA256SUMS'), 'utf8'))
+      .trim()
+      .split('\n')) {
+      const [hash, name] = line.split('  ');
+      assert.equal(files[name], hash);
+    }
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }

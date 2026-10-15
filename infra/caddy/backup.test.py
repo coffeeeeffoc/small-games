@@ -1,5 +1,6 @@
 import hashlib
 import importlib.util
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -15,6 +16,24 @@ spec.loader.exec_module(backup)
 
 
 class BackupTests(unittest.TestCase):
+    def test_configuration_sources_follow_caddy_and_do_not_depend_on_website_release(self):
+        with tempfile.TemporaryDirectory() as folder:
+            base = Path(folder)
+            release = base / 'releases/test'
+            release.mkdir(parents=True)
+            (base / 'current').symlink_to(release)
+            volumes = [{'Name': name, 'Driver': 'local', 'Mountpoint': folder} for name in backup.VOLUMES]
+            with patch.object(backup, 'CADDY_DIR', base), patch.object(backup.subprocess, 'check_output', return_value=json.dumps(volumes)):
+                sources = backup.live_sources()
+            self.assertEqual(sources['deployment/Caddyfile'], release / 'caddy/Caddyfile')
+            self.assertEqual(sources['deployment/release.json'], release / 'release.json')
+            self.assertEqual(sources['deployment/website-directory'], release / 'website-directory')
+            (base / 'current').unlink()
+            (base / 'current').symlink_to(base)
+            with patch.object(backup, 'CADDY_DIR', base), patch.object(backup.subprocess, 'check_output', return_value=json.dumps(volumes)):
+                with self.assertRaisesRegex(ValueError, 'outside releases'):
+                    backup.live_sources()
+
     @classmethod
     def setUpClass(cls):
         cls.keys = tempfile.TemporaryDirectory()

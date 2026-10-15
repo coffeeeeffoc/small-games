@@ -46,6 +46,7 @@
     "build:pages": "turbo run build:pages --filter=@coffeeeeffoc/shell-web --concurrency=1",
     "deploy:tencent": "node scripts/deploy-tencent.mjs",
     "deploy:company": "node scripts/deploy-company.mjs",
+    "deploy:caddy": "node scripts/deploy-caddy.mjs",
     "test:deploy-company": "node --test scripts/deploy-company.test.mjs",
     "deployment:bundle": "node scripts/deployment-bundle.mjs",
     "test:deployment-bundle": "node --test scripts/deployment-bundle.test.mjs",

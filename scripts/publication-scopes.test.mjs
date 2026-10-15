@@ -387,6 +387,7 @@ test('company deployment selects only the website and rejects unknown siblings a
     scripts: {
       ...before.scripts,
       'deploy:company': 'node scripts/deploy-company.mjs',
+      'deploy:caddy': 'node scripts/deploy-caddy.mjs',
       'test:deploy-company': 'node --test scripts/deploy-company.test.mjs',
     },
   };
@@ -400,7 +401,11 @@ test('company deployment selects only the website and rejects unknown siblings a
   assert.deepEqual(reviewedSharedFileScopes(context).get('package.json'), ['apps/company-web']);
   after.scripts.build = 'changed';
   assert.equal(reviewedSharedFileScopes(context).size, 0);
-  for (const file of ['scripts/deploy-company-other.mjs', 'infra/company/unknown.sh']) {
+  for (const file of [
+    'scripts/deploy-company-other.mjs',
+    'infra/company/unknown.sh',
+    'infra/caddy/unknown.sh',
+  ]) {
     const fileScopes = reviewedSharedFileScopes({ ...context, changedPaths: [file] });
     assert.equal(fileScopes.size, 0);
     assert.throws(

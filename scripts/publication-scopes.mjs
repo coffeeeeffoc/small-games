@@ -990,6 +990,8 @@ export const companyDeploymentScopePaths = [
   'infra/company/.gitattributes',
   'scripts/deploy-company.mjs',
   'scripts/deploy-company.test.mjs',
+  'scripts/company-deployment.mjs',
+  'scripts/deploy-caddy.mjs',
   'infra/company/.env.example',
   'infra/company/deploy.sh',
   'infra/company/deploy.test.sh',
@@ -997,6 +999,13 @@ export const companyDeploymentScopePaths = [
   'infra/company/backup.test.py',
   'infra/company/company-caddy-backup.service',
   'infra/company/company-caddy-backup.timer',
+  'infra/caddy/.gitattributes',
+  'infra/caddy/deploy.sh',
+  'infra/caddy/deploy.test.sh',
+  'infra/caddy/backup.py',
+  'infra/caddy/backup.test.py',
+  'infra/caddy/company-caddy-backup.service',
+  'infra/caddy/company-caddy-backup.timer',
 ];
 function companyCommandsOnly(before, after) {
   try {
@@ -1004,6 +1013,7 @@ function companyCommandsOnly(before, after) {
     const current = JSON.parse(after);
     for (const [name, command] of Object.entries({
       'deploy:company': 'node scripts/deploy-company.mjs',
+      'deploy:caddy': 'node scripts/deploy-caddy.mjs',
       'test:deploy-company': 'node --test scripts/deploy-company.test.mjs',
     })) {
       assert(current.scripts?.[name] === command);

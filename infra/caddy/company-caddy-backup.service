@@ -6,6 +6,7 @@ After=docker.service
 Type=oneshot
 User=root
 UMask=0077
+Environment=CADDY_DEPLOY_DIR=@CADDY_DEPLOY_DIR@
 ExecStart=/usr/bin/python3 /usr/local/lib/company-caddy-backup/backup.py
 Nice=19
 IOSchedulingClass=idle

@@ -1,152 +1,21 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
-import { createHash, randomBytes } from 'node:crypto';
-import { cp, mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
+import { randomBytes } from 'node:crypto';
+import { cp, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
-import { parseEnv } from 'node:util';
+import { pathToFileURL } from 'node:url';
 import { pnpmInvocation } from './validate-push.mjs';
 
-const root = fileURLToPath(new URL('../', import.meta.url));
+import {
+  root,
+  command,
+  fileHashes,
+  ssh,
+  loadConfig,
+  uploadBundle,
+  archiveBundle,
+} from './company-deployment.mjs';
+export { companyConfig, toolEnvironment, fileHashes } from './company-deployment.mjs';
 const templateDir = path.join(root, 'infra/company');
-const domainPattern = /^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/;
-const directoryPattern = /^\/(?:[a-zA-Z0-9_-]+\/)+[a-zA-Z0-9_-]+$/;
-
-export function companyConfig(env = {}) {
-  const config = {
-    domain: env.COMPANY_DOMAIN || 'nenggongzhiren.cn',
-    www: env.COMPANY_WWW_DOMAIN || 'www.nenggongzhiren.cn',
-    icp: env.COMPANY_ICP || '沪ICP备2026053115号-1',
-    host: env.ECS_HOST || '',
-    user: env.ECS_USER || 'ubuntu',
-    port: env.ECS_SSH_PORT || '22',
-    key: env.ECS_SSH_KEY || '',
-    directory: env.COMPANY_DEPLOY_DIR || '/opt/small-games/company',
-  };
-  assert(
-    domainPattern.test(config.domain) && domainPattern.test(config.www),
-    'Invalid company domain',
-  );
-  assert(config.domain !== config.www, 'The two company domains must differ');
-  assert(
-    /^沪ICP备\d+号-\d+$/.test(config.icp),
-    'Provide the complete website ICP number, including -1',
-  );
-  assert(
-    !config.host || /^[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?$/.test(config.host),
-    'Invalid ECS_HOST',
-  );
-  assert(/^[a-z_][a-z0-9_-]*$/.test(config.user), 'Invalid ECS_USER');
-  assert(
-    /^\d+$/.test(config.port) && +config.port > 0 && +config.port <= 65535,
-    'Invalid ECS_SSH_PORT',
-  );
-  assert(directoryPattern.test(config.directory), 'Invalid COMPANY_DEPLOY_DIR');
-  return config;
-}
-
-export function toolEnvironment(env = process.env) {
-  return Object.fromEntries(
-    Object.entries(env).filter(
-      ([name]) =>
-        !/SECRET|TOKEN|PASSWORD|_KEY$|DATABASE_URL|INTERNAL_KEY|^COS_|^ECS_|^COMPANY_/i.test(name),
-    ),
-  );
-}
-
-function command(program, args, options = {}) {
-  const result = spawnSync(program, args, {
-    cwd: root,
-    env: toolEnvironment(),
-    encoding: 'utf8',
-    stdio: options.capture ? 'pipe' : 'inherit',
-    ...options,
-  });
-  if (result.error) throw result.error;
-  if (result.status !== 0)
-    throw new Error(`${path.basename(program)} failed (${result.status}): ${result.stderr || ''}`);
-  return result.stdout?.trim();
-}
-
-export function renderCaddy(config) {
-  return `${config.domain} {
-    root * /srv
-    header X-Content-Type-Options nosniff
-    header Referrer-Policy strict-origin-when-cross-origin
-    header Cache-Control no-cache
-    file_server {
-        hide .*
-    }
-}
-${config.www} {
-    redir https://${config.domain}{uri} permanent
-}
-http:// {
-    respond 404
-}
-http://:8081 {
-    bind 127.0.0.1
-    root * /srv
-    handle /release.json {
-        file_server
-    }
-    handle {
-        respond 404
-    }
-}
-`;
-}
-
-export function renderCompose(config) {
-  return `name: company-web
-services:
-  web:
-    image: caddy:2.11.7-alpine
-    restart: unless-stopped
-    read_only: true
-    ports: ['80:80', '443:443']
-    volumes:
-      - ./site:/srv:ro
-      - ./caddy:/etc/caddy:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    tmpfs: ['/tmp']
-    healthcheck:
-      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8081/release.json']
-      interval: 3s
-      timeout: 2s
-      retries: 20
-    logging:
-      driver: json-file
-      options:
-        max-size: '5m'
-        max-file: '3'
-volumes:
-  caddy_data:
-  caddy_config:
-`;
-}
-
-export async function fileHashes(directory, prefix = '') {
-  const result = {};
-  for (const entry of (await readdir(directory, { withFileTypes: true })).sort((a, b) =>
-    a.name.localeCompare(b.name),
-  )) {
-    const relative = `${prefix}${entry.name}`;
-    assert(!entry.isSymbolicLink(), `Symlinks are not allowed in a release: ${relative}`);
-    assert(/^[a-zA-Z0-9_./-]+$/.test(relative), `Unexpected release filename: ${relative}`);
-    if (entry.isDirectory())
-      Object.assign(result, await fileHashes(path.join(directory, entry.name), `${relative}/`));
-    else {
-      assert(entry.isFile(), `Unexpected release entry: ${relative}`);
-      result[relative] = createHash('sha256')
-        .update(await readFile(path.join(directory, entry.name)))
-        .digest('hex');
-    }
-  }
-  return result;
-}
-
 export async function writeBundle(destination, source, config, sha, release) {
   assert(/^[a-f0-9]{40}$/.test(sha) && /^[a-z0-9-]+$/.test(release), 'Invalid release identity');
   const html = await readFile(path.join(source, 'index.html'), 'utf8');
@@ -174,9 +43,6 @@ export async function writeBundle(destination, source, config, sha, release) {
     path.join(destination, 'site/release.json'),
     JSON.stringify(manifest, null, 2) + '\n',
   );
-  await mkdir(path.join(destination, 'caddy'));
-  await writeFile(path.join(destination, 'caddy/Caddyfile'), renderCaddy(config));
-  await writeFile(path.join(destination, 'compose.yaml'), renderCompose(config));
   await writeFile(
     path.join(destination, 'deploy.sh'),
     (await readFile(path.join(templateDir, 'deploy.sh'), 'utf8')).replaceAll('\r\n', '\n'),
@@ -191,31 +57,6 @@ export async function writeBundle(destination, source, config, sha, release) {
   return manifest;
 }
 
-function ssh(config, script) {
-  assert(config.host, 'Set ECS_HOST in .env.tencent.local or .env.company.local');
-  return command(
-    'ssh',
-    [
-      '-o',
-      'BatchMode=yes',
-      '-o',
-      'ConnectTimeout=15',
-      '-o',
-      'ServerAliveInterval=15',
-      '-o',
-      'ServerAliveCountMax=3',
-      '-o',
-      'StrictHostKeyChecking=yes',
-      ...(config.key ? ['-i', config.key] : []),
-      '-p',
-      config.port,
-      `${config.user}@${config.host}`,
-      'bash -s',
-    ],
-    { input: script, stdio: ['pipe', 'inherit', 'inherit'] },
-  );
-}
-
 export function remoteCheck(config) {
   return `set -eu
 for executable in docker curl openssl getent ss flock sha256sum tar; do command -v "$executable" >/dev/null; done
@@ -223,6 +64,7 @@ docker compose version
 docker ps --format '{{.Names}} {{.Ports}}'
 test -d '${path.posix.dirname(config.directory)}' && test -w '${path.posix.dirname(config.directory)}'
 if [ -d '${config.directory}' ]; then test -w '${config.directory}'; fi
+test "$(cat '${config.caddyDirectory}/current/website-directory')" = '${config.directory}' || { echo 'Deploy independent Caddy first.' >&2; exit 1; }
 expected=$(getent ahostsv4 '${config.host}' | awk '{print $1}' | sort -u)
 test -n "$expected"
 for domain in '${config.domain}' '${config.www}'; do
@@ -230,7 +72,7 @@ for domain in '${config.domain}' '${config.www}'; do
   test -n "$resolved" || { printf 'Missing DNS A record: %s\\n' "$domain" >&2; exit 1; }
   [ "$resolved" = "$expected" ] || { printf 'DNS does not point exclusively to this server: %s (%s)\\n' "$domain" "$resolved" >&2; exit 1; }
 done
-echo 'Company SSH and DNS checks passed. Caddy will obtain certificates after startup; public HTTPS is verified after deployment.'
+echo 'Company SSH and DNS checks passed. Website publishing requires the independent Caddy deployment.'
 `;
 }
 
@@ -238,6 +80,7 @@ async function prepare(config) {
   const relevant = [
     'apps/company-web',
     'scripts/deploy-company.mjs',
+    'scripts/company-deployment.mjs',
     'infra/company',
     'package.json',
     'pnpm-lock.yaml',
@@ -270,11 +113,7 @@ async function prepare(config) {
     sha,
     release,
   );
-  const archive = `${destination}.tar.gz`;
-  command('tar', ['-czf', archive, '-C', destination, '.']);
-  const archiveHash = createHash('sha256')
-    .update(await readFile(archive))
-    .digest('hex');
+  const { archive, archiveHash } = await archiveBundle(destination);
   await writeFile(`${archive}.sha256`, `${archiveHash}  ${path.basename(archive)}\n`);
   console.log(`Prepared ${archive}\nsource=${sha}\nsha256=${archiveHash}`);
   return { archive, archiveHash, manifest };
@@ -288,19 +127,11 @@ export async function main(args = process.argv.slice(2)) {
   );
   if (args.includes('--help')) {
     console.log(
-      'pnpm deploy:company            Build, test, upload, deploy Caddy HTTPS and verify both domains\npnpm deploy:company --prepare  Build/test/package only, no server changes\npnpm deploy:company --check    Read-only SSH/DNS checks\npnpm deploy:company --rollback Restore the previous company release\nConfiguration: .env.tencent.local (SSH fallback), .env.company.local, environment (highest priority)',
+      'pnpm deploy:company            Build, test, upload, switch website release and verify HTTPS\npnpm deploy:company --prepare  Build/test/package only, no server changes\npnpm deploy:company --check    Read-only SSH/DNS checks\npnpm deploy:company --rollback Restore the previous company release\nConfiguration: .env.tencent.local (SSH fallback), .env.company.local, environment (highest priority)',
     );
     return;
   }
-  let env = {};
-  for (const filename of ['.env.tencent.local', '.env.company.local']) {
-    try {
-      env = { ...env, ...parseEnv(await readFile(path.join(root, filename), 'utf8')) };
-    } catch (error) {
-      if (error.code !== 'ENOENT') throw error;
-    }
-  }
-  const config = companyConfig({ ...env, ...process.env });
+  const config = await loadConfig();
   if (args.includes('--prepare')) {
     await prepare(config);
     return;
@@ -309,35 +140,18 @@ export async function main(args = process.argv.slice(2)) {
   if (args.includes('--rollback')) {
     ssh(
       config,
-      `set -eu\nbash '${config.directory}/current/deploy.sh' '${config.directory}' rollback '${config.domain}' '${config.www}'\n`,
+      `set -eu\nbash -s -- '${config.directory}' rollback '${config.domain}' '${config.www}' '${config.caddyDirectory}' <<'COMPANY_DEPLOY_SCRIPT'\n${(await readFile(path.join(templateDir, 'deploy.sh'), 'utf8')).replaceAll('\r\n', '\n')}\nCOMPANY_DEPLOY_SCRIPT\n`,
     );
     return;
   }
   ssh(config, remoteCheck(config));
   if (args.includes('--check')) return;
   const { archive, archiveHash, manifest } = await prepare(config);
-  const remoteArchive = `${config.directory}/incoming/${manifest.release}.tar.gz`;
-  ssh(
+  await uploadBundle(
     config,
-    `set -eu\numask 077\nmkdir -p '${config.directory}/incoming' '${config.directory}/releases'\n`,
-  );
-  command('scp', [
-    '-o',
-    'BatchMode=yes',
-    '-o',
-    'ConnectTimeout=15',
-    '-o',
-    'StrictHostKeyChecking=yes',
-    ...(config.key ? ['-i', config.key] : []),
-    '-P',
-    config.port,
-    archive,
-    `${config.user}@${config.host}:${remoteArchive}`,
-  ]);
-  const releaseDir = `${config.directory}/releases/${manifest.release}`;
-  ssh(
-    config,
-    `set -eu\nprintf '%s  %s\\n' '${archiveHash}' '${remoteArchive}' | sha256sum -c -\nmkdir '${releaseDir}'\ntar -xzf '${remoteArchive}' -C '${releaseDir}'\nchmod -R a+rX '${releaseDir}'\nbash '${releaseDir}/deploy.sh' '${config.directory}' deploy '${config.domain}' '${config.www}'\n`,
+    { archive, archiveHash, manifest },
+    config.directory,
+    `deploy '${config.domain}' '${config.www}' '${config.caddyDirectory}'`,
   );
   for (const domain of [config.domain, config.www]) {
     const response = await fetch(`https://${domain}/release.json`, {
