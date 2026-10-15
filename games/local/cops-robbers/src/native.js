@@ -100,7 +100,7 @@ export function startNativeCopsGame(sdk, config = {}, startNativeCompetition) {
       button('选择关卡', base + 58, () => { page = 'levels'; pageIndex = 0; });
       button('切换：标准 / 接力 / 快练', base + 116, () => { active = false; mode = ['standard', 'relay', 'quick'][(['standard', 'relay', 'quick'].indexOf(mode) + 1) % 3]; });
       button('学习 / 帮助 / 设置', base + 174, () => { helpReturn = 'home'; page = 'help'; });
-      const competitionReady = Boolean(config.apiUrl && /^https:\/\//.test(config.apiUrl));
+      const competitionReady = Boolean(config.competitionEnabled === true && config.apiUrl && /^https:\/\//.test(config.apiUrl));
       if (competitionReady && startNativeCompetition) button('好友挑战', base + 232, () => { dispose(); const leave = () => { child?.stop?.(); child = startNativeCopsGame({ ...sdk, createCanvas: () => canvas }, config, startNativeCompetition); }; child = startNativeCompetition(sdk, { ...config, canvas, onExit: leave }, createRenderer); });
       text(storageOK ? `已完成 ${Object.keys(records()).length} / ${list().length} 关` : '宿主存储不可用，本次仍可游玩', width / 2, height - bottom - 24, 13);
     } else if (page === 'levels') {

@@ -33,6 +33,10 @@ const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '
 const server = createServer(async (request, response) => {
   try {
     const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
+    if (pathname === '/publishing.js') {
+      response.writeHead(200, { 'Content-Type': 'text/javascript' });
+      return response.end(await readFile(resolve(repositoryRoot, 'platforms/h5/publishing.js')));
+    }
     const shared = pathname.startsWith('/platforms/') || pathname.startsWith('/games/');
     const root = shared ? repositoryRoot : gameRoot;
     const filename = resolve(root, `.${pathname === '/' ? '/index.html' : pathname}`);
@@ -289,6 +293,9 @@ assert.ok(losingCase, 'A real missed-exit loss is required to exercise populated
 async function openCompetition(page) {
   if (!(await page.locator('.competition-dialog').count())) {
     await page.evaluate(async origin => {
+      // Test the retained controller explicitly; released HTML keeps it disabled.
+      const friend = document.getElementById('friend-duel');
+      friend.removeAttribute('data-competition-launch'); friend.disabled = false;
       const [{ mountCompetition }, { createRenderer }] = await Promise.all([
         import(`${origin}/platforms/competition/h5.js`), import(`${origin}/src/competition-renderer.js`),
       ]);
@@ -394,6 +401,16 @@ try {
       for (const selector of entries) metrics[selector] = await inView(page.locator(selector), { touchTarget: true });
       for (const entry of await page.locator('.home-roster button').all()) await inView(entry, { touchTarget: true });
       return { document: await documentFits(page), entries: metrics };
+    });
+    await check('friend-disabled', async (page, fixture) => {
+      await load(page, 'room=OLDROOM');
+      await page.evaluate(async origin => {
+        const { mountCompetition } = await import(`${origin}/platforms/competition/h5.js`);
+        mountCompetition('cops-robbers', () => { throw new Error('Disabled competition must not create a renderer'); });
+      }, fixtureOrigin);
+      assert.ok(await page.locator('#friend-duel').isDisabled());
+      assert.equal(await page.locator('.competition-dialog').count(), 0);
+      assert.deepEqual(fixture.calls, [], 'Old invitations and injected competition scripts must not contact the API');
     });
     await check('help', async (page, _fixture, capture) => {
       await tap(page.locator('#help'));

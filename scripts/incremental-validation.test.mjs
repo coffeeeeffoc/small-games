@@ -1149,6 +1149,9 @@ test('fullscreen registration planning works in a checkout without installed for
       if (file.endsWith('.mjs') && !file.endsWith('.test.mjs'))
         await copyFile(new URL(file, import.meta.url), path.join(scripts, file));
     }
+    const miniScope = 'games/minigames/scripts/validation-scope.mjs';
+    await mkdir(path.join(directory, 'games/minigames/scripts'), { recursive: true });
+    await copyFile(new URL('../' + miniScope, import.meta.url), path.join(directory, miniScope));
     const fixture = {
       changedPaths: [fullscreenFile],
       games: h5Games,

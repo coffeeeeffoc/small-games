@@ -1,3 +1,4 @@
+import { cocosMinigameFileScopes } from '../games/minigames/scripts/validation-scope.mjs';
 import assert from 'node:assert/strict';
 import { readFile, stat, glob } from 'node:fs/promises';
 import path from 'node:path';
@@ -387,6 +388,44 @@ export function runNineNativeChecks({
 }
 
 export function runIncrementalToolChecks({ plan, packages, root, env, execute = run }) {
+  if (plan.cocos_minigame_ids?.length) {
+    execute(
+      process.execPath,
+      [
+        '--test',
+        'games/minigames/tests/runtime.test.mjs',
+        'games/minigames/tests/cops.test.mjs',
+        'games/minigames/tests/build.test.mjs',
+        'games/minigames/tests/scope.test.mjs',
+      ],
+      root,
+      env,
+      'logged',
+    );
+    for (const id of plan.cocos_minigame_ids) {
+      assert(
+        ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'].includes(id),
+        'Unreviewed Cocos mini-game consumer',
+      );
+      execute(
+        process.execPath,
+        [
+          'games/minigames/scripts/build.mjs',
+          '--game',
+          id,
+          '--platform',
+          'web-preview',
+          '--prepare-only',
+        ],
+        root,
+        env,
+        'logged',
+      );
+    }
+    console.log(
+      'Cocos mini-game rules and real source bundles checked; engine builds and texture/browser checks run in the separate Windows Creator workflow.',
+    );
+  }
   if (plan.vite_patch) {
     // A test-runner dependency changes these tests, not their downstream runtime
     // consumers. Keep this separate from affectedPackages' runtime graph.
@@ -464,6 +503,19 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
       env,
       'logged',
     );
+  if (plan.platform_ads_checks)
+    execute(
+      process.execPath,
+      [
+        '--test',
+        'platforms/h5/tests/platform-ads.test.mjs',
+        'platforms/h5/tests/deploy-taptap.test.mjs',
+        'games/local/cops-robbers/scripts/check-ad-core.mjs',
+      ],
+      root,
+      env,
+      'logged',
+    );
   if (plan.publication_config_checks)
     execute(
       process.execPath,
@@ -480,11 +532,32 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
       env,
       'logged',
     );
+  if (plan.game_services_checks)
+    execute(
+      process.execPath,
+      [
+        '--test',
+        'platforms/competition/tests/game-services.test.mjs',
+        'scripts/competition-gateway.test.mjs',
+      ],
+      root,
+      env,
+      'logged',
+    );
+  if (plan.ranked_deployment_checks)
+    execute(process.execPath, ['--test', 'scripts/deploy-tencent.test.mjs'], root, env, 'logged');
   // These reviewed entry points exercise sharing/ad lifecycle in the real UI.
   // Keep them sequential: several own a local server and write candidate evidence.
   const publishingBrowsers = {
-    'tower-brake': ['publishing-browser.mjs'],
-    'cage-rescue': ['reward-browser.mjs', 'browser.mjs', 'touch-activation-browser.mjs'],
+    'cops-robbers': ['check-rewarded-hints.mjs'],
+    'cops-robbers-realtime': ['publishing.browser.mjs'],
+    'tower-brake': ['publishing-browser.mjs', 'browser.mjs', 'expansion-browser.mjs'],
+    'cage-rescue': [
+      'reward-browser.mjs',
+      'browser.mjs',
+      'touch-activation-browser.mjs',
+      'expansion-browser.mjs',
+    ],
     'ball-roguelite': ['browser.mjs'],
     'ember-bounce': ['browser.mjs'],
     'three-choose-two': ['publishing.browser.mjs'],
@@ -493,7 +566,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
     'chase-thief': ['publishing.browser.mjs'],
     'retreat-rally': ['publishing.browser.mjs'],
     'tiny-signals': ['publishing.browser.mjs'],
-    'orbit-atelier': ['publishing.browser.mjs'],
+    'orbit-atelier': ['publishing.browser.mjs', 'browser.mjs'],
     'wulong-city': ['publishing.browser.mjs'],
     'surprise-kept': ['publishing.browser.mjs'],
     'homebound-station': ['publishing.browser.mjs'],
@@ -514,7 +587,13 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
     );
   for (const id of publishingIds)
     for (const file of publishingBrowsers[id])
-      execute(process.execPath, [`${publishingConsumers[id]}/tests/${file}`], root, env, 'logged');
+      execute(
+        process.execPath,
+        [`${publishingConsumers[id]}/${id === 'cops-robbers' ? 'scripts' : 'tests'}/${file}`],
+        root,
+        env,
+        'logged',
+      );
   for (const source of plan.service_rule_sources || []) {
     assert(
       [
@@ -677,6 +756,7 @@ export async function validateTree({
       reviewedSharedFileScopes,
       nineNativeFileScopes,
       nineLockFileScopes,
+      cocosMinigameFileScopes,
     ])
       for (const [file, sources] of classify(context)) fileScopes.set(file, sources);
   }

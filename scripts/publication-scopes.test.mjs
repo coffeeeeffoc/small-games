@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import {
   reviewedSharedFileScopes,
   competitionConsumers,
@@ -10,6 +11,7 @@ import {
   carromBackendFileScope,
   publishingConsumers,
   publishingScopePaths,
+  platformAdsScopePaths,
   deploymentBundleScopePaths,
   publicationConfigScopePaths,
   mobileViewportScopeFile,
@@ -348,6 +350,24 @@ test('publishing adapter selects all registered standalone consumers and rejects
     () => incrementalPlan({ games, packages, changedPaths: ['platforms/h5/unknown.js'] }),
     /scope undefined/,
   );
+});
+
+test('channel advertising selects only its real game consumer and mandatory contract checks', () => {
+  const games = [
+    { id: 'cops-robbers', source: 'games/local/cops-robbers' },
+    { id: 'other', source: 'games/local/other' },
+  ];
+  const packages = games.map((game) => ({ name: game.id, dir: game.source }));
+  for (const file of platformAdsScopePaths) {
+    const context = { games, packages, changedPaths: [file], readSource: () => '' };
+    const fileScopes = reviewedSharedFileScopes(context);
+    assert.deepEqual(fileScopes.get(file), ['games/local/cops-robbers']);
+    const plan = incrementalPlan({ ...context, fileScopes });
+    assert.deepEqual(plan.browser_ids, ['cops-robbers']);
+    assert.equal(plan.platform_ads_checks, true);
+    assert.equal(plan.publishing_checks, false);
+    assert.equal(reviewedSharedFileScopes({ ...context, games: games.slice(1) }).size, 0);
+  }
 });
 
 test('deployment and public platform configuration select mandatory checks without unrelated games', () => {
@@ -1021,6 +1041,71 @@ test('new or renamed competition consumers and missing native packages remain cl
   );
 });
 
+test('only the two chase games may declare their online functionality disabled', () => {
+  const file = 'scripts/competition-build.mjs';
+  const value = JSON.parse(registry.slice(registry.indexOf('=') + 1, -1));
+  value['cops-robbers-realtime'].online = false;
+  const source = () => 'export const competitionGames = ' + JSON.stringify(value) + ';';
+  assert.deepEqual(
+    classify(file, registry, source()).get(file),
+    Object.values(competitionConsumers),
+  );
+  for (const invalid of [true, 'false', 0]) {
+    value['cops-robbers-realtime'].online = invalid;
+    assert.equal(classify(file, registry, source()).has(file), false);
+  }
+  value['cops-robbers-realtime'].online = false;
+  value['cops-robbers'].online = false;
+  assert.deepEqual(
+    classify(file, registry, source()).get(file),
+    Object.values(competitionConsumers),
+  );
+  for (const invalid of [true, 'false', 0]) {
+    value['cops-robbers'].online = invalid;
+    assert.equal(classify(file, registry, source()).has(file), false);
+  }
+  value['cops-robbers'].online = false;
+  value['letters-words2'].online = false;
+  assert.equal(classify(file, registry, source()).has(file), false);
+});
+
+test('the exact cops offline flag selects only its game; surrounding builder changes retain the shared scope', () => {
+  const file = 'scripts/competition-build.mjs';
+  const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
+    '\r\n',
+    '\n',
+  );
+  const before = after.replace("title: '围捕小队',\n    online: false,", "title: '围捕小队',");
+  assert.notEqual(before, after);
+  assert.deepEqual(classify(file, before, after).get(file), ['games/local/cops-robbers']);
+  assert.deepEqual(
+    classify(file, before, after + '\n').get(file),
+    Object.values(competitionConsumers),
+  );
+});
+
+test('offline chase competition builders leave their H5 games unchanged', async () => {
+  const { buildCompetition } = await import('./competition-build.mjs');
+  const { mkdtemp, readdir, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const outputRoot = await mkdtemp(join(tmpdir(), 'street-offline-build-'));
+  try {
+    for (const only of ['cops-robbers', 'cops-robbers-realtime'])
+      await buildCompetition({ only, outputRoot });
+    assert.deepEqual(await readdir(outputRoot), []);
+  } finally {
+    await rm(outputRoot, { recursive: true });
+  }
+});
+
+test('reviewed offline street native smoke selects its single game and rejects extra executable bytes', () => {
+  const file = 'scripts/street-native-smoke.mjs';
+  const source = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  assert.deepEqual(classify(file, '', source).get(file), ['games/local/cops-robbers-realtime']);
+  assert.equal(classify(file, '', source + '\nglobalThis.unreviewed = true;\n').has(file), false);
+});
+
 test('shared dependency closure and explicit shared-runtime consumers are combined', () => {
   const file = 'platforms/competition/h5.js';
   const scopes = classify(file, '', 'changed');
@@ -1392,6 +1477,85 @@ test('cumulative main workflow repairs retain exact reviewed producer boundaries
 const cageSource = 'games/local/cage-rescue';
 const cageChecksFile = 'apps/shell-web/scripts/game-checks/cage-rescue.mjs';
 const sharedChecksFile = 'apps/shell-web/scripts/standalone-game-checks.mjs';
+test('Tower expanded-level contract checks its game and rejects unrelated or weakened assertions', () => {
+  const after = execFileSync(
+    'git',
+    ['show', '99904a43aee15199a9db387412bb7baff41e4e28:' + sharedChecksFile],
+    { encoding: 'utf8' },
+  );
+  const before = after
+    .replace("button[data-level]')).toHaveCount(30)", "button[data-level]')).toHaveCount(8)")
+    .replace(
+      '    await expect(frame.locator(\'#levels-screen button[data-level="0"]\')).toBeEnabled();\n',
+      '',
+    )
+    .replace(
+      '    await expect(frame.locator(\'#levels-screen button[data-level="29"]\')).toBeDisabled();\n',
+      '',
+    );
+  const context = {
+    changedPaths: [sharedChecksFile],
+    games: [{ id: 'tower-brake', source: 'games/local/tower-brake' }],
+    readBase: () => before,
+    readHead: () => after,
+  };
+  assert.deepEqual(
+    [...reviewedSharedFileScopes(context)],
+    [[sharedChecksFile, ['games/local/tower-brake']]],
+  );
+  const plan = incrementalPlan({
+    ...context,
+    packages: [{ dir: 'games/local/tower-brake', name: '@fixture/tower-brake' }],
+    fileScopes: reviewedSharedFileScopes(context),
+    readSource: () => '',
+  });
+  assert.deepEqual(plan.browser_ids, ['tower-brake']);
+  assert.equal(plan.full, false);
+  for (const invalid of [
+    after.replace('toHaveCount(30)', 'toHaveCount(8)'),
+    after.replace('data-level="29"]\')).toBeDisabled()', 'data-level="29"]\')).toBeEnabled()'),
+    after.replace("id === 'tower-brake'", "id === 'another-game'"),
+    after + 'globalThis.injected = true;\n',
+  ])
+    assert.equal(reviewedSharedFileScopes({ ...context, readHead: () => invalid }).size, 0);
+  assert.equal(reviewedSharedFileScopes({ ...context, readBase: () => before + '\n' }).size, 0);
+  assert.equal(reviewedSharedFileScopes({ ...context, games: [] }).size, 0);
+  assert.equal(
+    reviewedSharedFileScopes({ ...context, games: [...context.games, ...context.games] }).size,
+    0,
+  );
+});
+test('cops rewarded hint guard stays in its game branch and rejects unrelated edits', () => {
+  const after = readFileSync(new URL('../' + sharedChecksFile, import.meta.url), 'utf8').replaceAll(
+    '\r\n',
+    '\n',
+  );
+  const added = `    await click(
+      frame
+        .getByRole('dialog', { name: '模拟广告' })
+        .getByRole('button', { name: '领取奖励', exact: true }),
+    );
+`;
+  const before = after.replace(added, '');
+  assert.notEqual(before, after);
+  const context = {
+    changedPaths: [sharedChecksFile],
+    games: [{ id: 'cops-robbers', source: 'games/local/cops-robbers' }],
+    readBase: () => before,
+    readHead: () => after,
+  };
+  assert.deepEqual(
+    [...reviewedSharedFileScopes(context)],
+    [[sharedChecksFile, ['games/local/cops-robbers']]],
+  );
+  for (const invalid of [
+    after.replace("name: '领取奖励'", "name: '关闭并继续'"),
+    after.replace("'data-turn', '1'", "'data-turn', '2'"),
+    after + 'globalThis.injected = true;\n',
+  ])
+    assert.equal(reviewedSharedFileScopes({ ...context, readHead: () => invalid }).size, 0);
+});
+
 test('cops start-to-play guard keeps a single-game scope and rejects changes outside its exact assertions', () => {
   const oldGuard = `  } else if (id === 'cops-robbers') {
     await expect(frame.locator('#level-dialog')).toBeVisible();
@@ -1483,6 +1647,50 @@ test('cops start-to-play guard keeps a single-game scope and rejects changes out
   );
 });
 const cageEntryFile = 'apps/shell-web/scripts/standalone-game-entry.mjs';
+test('Orbit masked-SVG offset repair preserves input and gameplay assertions in a single-game scope', () => {
+  const before = execFileSync(
+    'git',
+    ['show', '036bb4d3e98cdb1c373ff3445155bcdc783ca671:' + sharedChecksFile],
+    { encoding: 'utf8' },
+  );
+  const after = readFileSync(new URL('../' + sharedChecksFile, import.meta.url), 'utf8')
+    .replaceAll('\r\n', '\n')
+    .replace(
+      `    await click(
+      frame
+        .getByRole('dialog', { name: '模拟广告' })
+        .getByRole('button', { name: '领取奖励', exact: true }),
+    );
+`,
+      '',
+    ); // Exercise the historical Orbit-only diff; the cops delta is checked separately above.
+  const context = {
+    changedPaths: [sharedChecksFile],
+    games: [{ id: 'orbit-atelier', source: 'games/local/orbit-atelier' }],
+    readBase: () => before,
+    readHead: () => after,
+  };
+  assert.deepEqual(
+    [...reviewedSharedFileScopes(context)],
+    [[sharedChecksFile, ['games/local/orbit-atelier']]],
+  );
+  for (const invalid of [
+    after.replace(
+      "not.toHaveAttribute('data-angle', initialAngle)",
+      "toHaveAttribute('data-angle', initialAngle)",
+    ),
+    after.replace("id === 'orbit-atelier'", "id === 'another-game'"),
+    after + 'globalThis.injected = true;\n',
+    after.replace(
+      'const bounds = await board.boundingBox();',
+      'const bounds = await ring.boundingBox();',
+    ),
+  ])
+    assert.equal(reviewedSharedFileScopes({ ...context, readHead: () => invalid }).size, 0);
+  assert.equal(reviewedSharedFileScopes({ ...context, readBase: () => before + '\n' }).size, 0);
+  for (const games of [[], [...context.games, ...context.games]])
+    assert.equal(reviewedSharedFileScopes({ ...context, games }).size, 0);
+});
 const cageModule = readFileSync(
   new URL('../' + cageChecksFile, import.meta.url),
   'utf8',
@@ -1898,4 +2106,104 @@ test('castle dedicated contract selects its game and rejects unreviewed code', (
     }).size,
     0,
   );
+});
+
+test('shared game services select only their proven game consumers and fail closed on broken edges', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const catalog = JSON.parse(
+    readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url), 'utf8'),
+  );
+  const packages = [
+    ...catalog.map((game) => ({ dir: game.source, name: game.id })),
+    { dir: 'services/runtime-api', name: 'runtime' },
+    { dir: 'apps/shell-web', name: 'shell' },
+  ];
+  const read = (file) =>
+    readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll('\r\n', '\n');
+  const files = [
+    'platforms/competition/game-services.js',
+    'platforms/competition/tests/game-services.test.mjs',
+    'scripts/competition-gateway.mjs',
+    'scripts/competition-gateway.test.mjs',
+    'scripts/deploy-tencent.mjs',
+  ];
+  const before = (file) =>
+    execFileSync('git', ['show', '4fe9716ce5b9277e42b976e005931f6e8c7dc2f3:' + file], {
+      encoding: 'utf8',
+    });
+  const context = {
+    changedPaths: files,
+    games: catalog,
+    packages,
+    readBase: before,
+    readHead: read,
+  };
+  const scopes = reviewedSharedFileScopes(context);
+  for (const file of files) assert(scopes.has(file), file);
+  const plan = incrementalPlan({ ...context, fileScopes: scopes, readSource: read });
+  assert.deepEqual(plan.browser_ids, [
+    'cage-rescue',
+    'letters-words2',
+    'tower-brake',
+    'xiangqi-five',
+  ]);
+  assert.deepEqual(plan.developer_mode_ids, ['cage-rescue', 'tower-brake']);
+  assert.deepEqual(plan.publishing_browser_ids, ['cage-rescue', 'tower-brake']);
+  assert.deepEqual(plan.service_rule_sources, ['services/runtime-api']);
+  assert.equal(plan.game_services_checks, true);
+  assert.equal(plan.ranked_deployment_checks, true);
+  for (const input of [
+    'games/local/cage-rescue/src/core.mjs',
+    'games/local/cage-rescue/src/levels.mjs',
+    'games/local/tower-brake/engine.mjs',
+    'games/local/tower-brake/levels.mjs',
+  ]) {
+    const one = { ...context, changedPaths: [input] };
+    const scoped = reviewedSharedFileScopes(one);
+    assert.deepEqual(scoped.get(input), ['services/runtime-api']);
+    assert.deepEqual(
+      incrementalPlan({ ...one, fileScopes: scoped, readSource: read }).service_rule_sources,
+      ['services/runtime-api'],
+    );
+  }
+  for (const [file, replaced] of [
+    [
+      'games/local/cage-rescue/build.mjs',
+      read('games/local/cage-rescue/build.mjs').replace(
+        '../../../platforms/competition/game-services.js',
+        '../../../platforms/competition/other.js',
+      ),
+    ],
+    [
+      'services/runtime-api/rules/ranked-games.mjs',
+      read('services/runtime-api/rules/ranked-games.mjs').replace(
+        '../../../games/local/tower-brake/engine.mjs',
+        './other.mjs',
+      ),
+    ],
+  ]) {
+    const broken = reviewedSharedFileScopes({
+      ...context,
+      readHead: (name) => (name === file ? replaced : read(name)),
+    });
+    assert(!broken.has(files[0]));
+  }
+  for (const file of ['scripts/competition-gateway.mjs', 'scripts/deploy-tencent.mjs']) {
+    const broken = reviewedSharedFileScopes({
+      ...context,
+      readHead: (name) => read(name) + (name === file ? '\n// unrelated change\n' : ''),
+    });
+    assert(!broken.has(file), file);
+  }
+  for (const file of [
+    'platforms/competition/unknown-service.js',
+    'scripts/competition-gateway-extra.mjs',
+  ]) {
+    const one = { ...context, changedPaths: [file] };
+    assert.throws(
+      () =>
+        incrementalPlan({ ...one, readSource: read, fileScopes: reviewedSharedFileScopes(one) }),
+      /scope undefined/,
+    );
+  }
 });

@@ -1,0 +1,32 @@
+{
+  "status": "passed",
+  "browserVersion": "154.0.8037.99",
+  "builtIn": 5,
+  "selected": [
+    "cops-robbers"
+  ],
+  "standalone": [
+    {
+      "id": "cops-robbers",
+      "entryMode": "adapter",
+      "status": "passed",
+      "phase": "complete",
+      "timings": {
+        "embedded-load": 1289,
+        "embedded-gameplay": 5997,
+        "embedded-return": 78,
+        "mobile-load": 200,
+        "mobile-gameplay": 6476,
+        "mobile-screenshot": 519
+      },
+      "embedded": "passed",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "directMobile": "passed",
+      "durationMs": 15343
+    }
+  ],
+  "failures": []
+}

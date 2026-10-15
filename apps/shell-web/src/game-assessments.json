@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
-  "reviewedOn": "2026-10-11",
-  "basis": "静态人工初评：逐款阅读目录登记与可用 README；本次未进行全量真机、用户留存或付费验证。潜力判断与改造排期独立；平台为推荐目标，分享/对战为适合方向，不代表渠道或功能已经上线。已落实记录只列有实现依据的改造。",
+  "reviewedOn": "2026-10-13",
+  "basis": "静态人工初评：逐款阅读目录登记与可用 README；本次未进行全量真机、用户留存或付费验证。潜力判断与改造排期独立；平台为推荐目标，分享/对战为适合方向，不代表渠道或功能已经上线。已落实记录只列有实现依据的改造。2026-10-13 按用户决定将收兵再冲、追贼别撞墙归为毫无潜力并暂缓投入。",
   "games": [
     {
       "id": "cultivation",
@@ -155,21 +155,19 @@
       "id": "chase-thief",
       "title": "追贼别撞墙",
       "source": "games/local/chase-thief",
-      "disposition": "potential",
-      "potential": ["fun", "potential"],
+      "disposition": "hold",
+      "potential": ["none"],
       "platforms": ["mobile"],
       "primaryPlatform": "mobile",
       "orientation": "portrait",
       "genres": ["arcade", "action"],
       "opportunities": ["challenge", "share"],
-      "schedule": "current",
-      "implementationStatus": "implemented",
-      "scheduleReason": "换道、跳跃、滑铲已有完整短局，适合本轮围绕触屏动作容错、连续闪避与同路线挑战做小范围改造。",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "2026-10-13 用户明确归类为没潜力，保留现有入口与已落实记录，暂缓继续投入。",
       "strengths": ["滑动换道、跳跃、滑铲符合手机直觉，稳三段换冲刺"],
       "weaknesses": ["三街区的障碍组合和目标变化有限，动作窗口需实测"],
-      "improvements": [
-        "在真人手机上校准换道、跳跃和滑铲窗口，扩充三街区的障碍组合；同路线成绩为异步自报，跨设备分享送达、真实广告和服务端验分仍需验证"
-      ],
+      "improvements": ["按用户决定暂缓继续改造；保留现有可玩内容和历史验证记录。"],
       "evidence": [
         "games/local/chase-thief/README.md",
         "games/local/chase-thief/docs/design/expansion-2026-10-11/README.md",
@@ -193,18 +191,21 @@
       "opportunities": ["challenge", "share"],
       "schedule": "current",
       "implementationStatus": "implemented",
-      "scheduleReason": "24张星盘已有解题内容基础，主要问题集中在交叠圆环触控和反馈，可用有限改造提升可玩性。",
-      "strengths": ["圆周拖动与解环反馈直接，24张星盘有可达性验证"],
+      "scheduleReason": "74张星盘组合上下穿扣、宽口、微隙和接力星栓，适合短局观察与逐步拆解。",
+      "strengths": ["圆周拖动与解环反馈直接，74张星盘有可达性验证"],
       "weaknesses": ["高阶交叠圆环仍需真人验证选中与缺口识别，分享成绩为好友自报而非认证排名"],
       "improvements": [
-        "验证24张星盘的手指误选率、操作数目标与提示需求；补真机渠道、真实广告和同盘邀请回流验证"
+        "验证74张星盘的手指误选率、操作数目标与提示需求；补真机渠道、真实广告和同盘邀请回流验证"
       ],
       "evidence": [
         "games/local/orbit-atelier/README.md",
         "games/local/orbit-atelier/docs/design/expansion-2026-10-11/README.md",
-        "games/local/orbit-atelier/docs/design/expansion-2026-10-11/verification.md"
+        "games/local/orbit-atelier/docs/design/expansion-2026-10-11/verification.md",
+        "games/local/orbit-atelier/docs/design/real-interlock-2026-10-13/README.md",
+        "games/local/orbit-atelier/docs/design/real-interlock-2026-10-13/verification.md"
       ],
       "delivered": [
+        "两处交点交替上下穿扣，按环带净空显示阻挡与出口；保留24关并新增五章50关，分享支持至74关",
         "交叠处优先已选可动环，锁环不抢触点，容忍6px手指漂移；撤回不抹除已看提示计数",
         "无解法同盘邀请携带转动与提示数，挑战隔离主线存档；自然结算每三次且间隔60秒可出现可关闭的频控模拟广告，挑战不出广告"
       ]
@@ -1382,21 +1383,19 @@
       "id": "retreat-rally",
       "title": "收兵再冲",
       "source": "games/local/retreat-rally",
-      "disposition": "potential",
-      "potential": ["fun", "potential"],
+      "disposition": "hold",
+      "potential": ["none"],
       "platforms": ["mobile"],
       "primaryPlatform": "mobile",
       "orientation": "landscape",
       "genres": ["action", "strategy"],
       "opportunities": ["versus", "share"],
-      "schedule": "current",
-      "implementationStatus": "implemented",
-      "scheduleReason": "按住撤退、松手进攻的低门槛核心已有差异，优先改善反攻窗口与触屏取消，验证短局复玩。",
+      "schedule": "hold",
+      "implementationStatus": "held",
+      "scheduleReason": "2026-10-13 用户明确归类为没潜力，保留现有入口与已落实记录，暂缓继续投入。",
       "strengths": ["按住撤退松手进攻操作极简，箭雨装填形成攻守节拍"],
       "weaknesses": ["三关战役较短，模拟匹配需与真实联机明显区分"],
-      "improvements": [
-        "用真人试玩校准箭雨预兆和两秒反攻窗口，扩充三关之后的战术变化；成绩为异步自报，真实联机、跨设备分享和原生渠道需独立验证"
-      ],
+      "improvements": ["按用户决定暂缓继续改造；保留现有可玩内容和历史验证记录。"],
       "evidence": [
         "games/local/retreat-rally/README.md",
         "games/local/retreat-rally/docs/design/expansion-2026-10-11/README.md",

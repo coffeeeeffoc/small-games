@@ -1,0 +1,15 @@
+{
+  "kind": "expected-build-rejection",
+  "revision": "bd479446a064508216bde3deb4d5e4b99bd21e29",
+  "expectedBuild": "bd1d365dbc5464bb098fb29ae7b134579525acd00ba8c36e8d63fdd7404ad132",
+  "actualBuild": "72b43a38c183ca186b89375031aef9eef39dbeb0899a20fc490947f9077fae48",
+  "status": "failed",
+  "beforeBrowserLaunch": true,
+  "failure": {
+    "kind": "runner",
+    "name": "AssertionError",
+    "message": "Reproduction build mismatch\n+ actual - expected\n\n+ '72b43a38c183ca186b89375031aef9eef39dbeb0899a20fc490947f9077fae48'\n- 'bd1d365dbc5464bb098fb29ae7b134579525acd00ba8c36e8d63fdd7404ad132'\n",
+    "stack": "AssertionError [ERR_ASSERTION]: Reproduction build mismatch\n+ actual - expected\n\n+ '72b43a38c183ca186b89375031aef9eef39dbeb0899a20fc490947f9077fae48'\n- 'bd1d365dbc5464bb098fb29ae7b134579525acd00ba8c36e8d63fdd7404ad132'\n\n    at assertMatchingBuild (file:///[local-path]/evidence.mjs:100:10)\n    at file:///[local-path]/browser.mjs:497:7",
+    "actions": []
+  }
+}

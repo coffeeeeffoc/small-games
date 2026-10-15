@@ -2,6 +2,7 @@
 <html lang="zh-CN">
   <head>
     <script src="./dev-mode.js"></script>
+    <script src="./platform-config.js"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#b6e8ee" />
@@ -60,7 +61,7 @@
               <svg id="appearance-art" viewBox="0 0 100 80" aria-hidden="true"></svg
               ><span>换装</span>
             </button>
-            <button type="button" id="friend-duel">
+            <button type="button" id="friend-duel" data-competition-launch disabled aria-label="好友 PK 暂未开放">
               <svg viewBox="0 0 64 56" aria-hidden="true">
                 <circle cx="22" cy="19" r="12" fill="#ffca87" />
                 <circle cx="43" cy="22" r="10" fill="#ffb188" />
@@ -70,7 +71,7 @@
                   stroke="#16465a"
                   stroke-width="3"
                 /></svg
-              ><span>好友</span>
+              ><span>好友 · 未开放</span>
             </button>
             <button type="button" id="mode-settings">
               <svg viewBox="0 0 64 56" aria-hidden="true">
@@ -196,8 +197,8 @@
               <path d="M4 10a8 8 0 1 1 1 8M4 4v6h6" /></svg
             ><span>重来</span>
           </button>
-          <button class="secondary-action" id="hint" data-testid="hint">
-            <span id="hint-icon"></span><span>提示</span>
+          <button class="secondary-action" id="hint" data-testid="hint" aria-label="看广告获取提示">
+            <span id="hint-icon"></span><span>看广告</span>
           </button>
         </div>
         <div class="game-footnote sr-only">

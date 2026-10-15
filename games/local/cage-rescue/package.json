@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "打破笼子接住人：单球、双用途挡板与六关救援挑战",
+  "description": "打破笼子接住人：单球、双用途挡板与30 关、无尽救援与排行榜",
   "coffeeeeffoc": {
     "role": "game"
   },
@@ -13,6 +13,6 @@
     "preview": "node server.mjs --dist",
     "build": "node build.mjs",
     "test": "node --test tests/*.test.mjs",
-    "test:browser": "node tests/browser.mjs && node tests/reward-browser.mjs && node tests/touch-activation-browser.mjs"
+    "test:browser": "node tests/browser.mjs && node tests/reward-browser.mjs && node tests/touch-activation-browser.mjs && node tests/expansion-browser.mjs"
   }
 }

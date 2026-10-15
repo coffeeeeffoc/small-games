@@ -1,0 +1,17 @@
+{
+  "environment": "Android API 34 Pixel_3a emulator, system WebView",
+  "apkSha256": "702863777aaf94c58e4b35b06d242ba56b367c97f252f9754b1029f33a4aacb6",
+  "checks": [
+    "installed real debug APK",
+    "offline packaged game home and assets",
+    "native capabilities; ads disabled without config",
+    "touch-only L01 completion and L02 unlock",
+    "free hints",
+    "native back/pause/background/resume",
+    "process restart restores real progress",
+    "browser fullscreen hidden"
+  ],
+  "errors": [],
+  "physicalDeviceVerified": false,
+  "realAdsVerified": false
+}

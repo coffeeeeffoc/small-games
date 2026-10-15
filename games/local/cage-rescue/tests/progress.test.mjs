@@ -20,13 +20,19 @@ function cleared(count) {
 
 test('new players can enter only the first level, with default appearance and sound', () => {
   const progress = readProgress(null);
-  assert.deepEqual(progress, { version: 1, completed: {}, sound: true, theme: 'rescue' });
+  assert.deepEqual(progress, {
+    version: 1,
+    completed: {},
+    sound: true,
+    theme: 'rescue',
+    endlessBest: 0,
+  });
   assert.equal(unlockedCount(progress), 1);
   assert.equal(completeLevel(progress, win(1)), false);
   assert.deepEqual(progress.completed, {});
 });
 
-test('clearing a level unlocks exactly the next level and a sixth clear completes the campaign', () => {
+test('clearing a level unlocks exactly the next level and a thirtieth clear completes the campaign', () => {
   const progress = readProgress(null);
   for (let index = 0; index < LEVELS.length; index++) {
     assert.equal(unlockedCount(progress), Math.min(index + 1, LEVELS.length));
@@ -39,7 +45,7 @@ test('clearing a level unlocks exactly the next level and a sixth clear complete
     LEVELS.map((level) => level.id),
   );
   assert.deepEqual(readProgress(JSON.parse(JSON.stringify(progress))), progress);
-  assert.equal(unlockedCount(progress), 6);
+  assert.equal(unlockedCount(progress), 30);
 });
 
 test('all-person replays upgrade legacy records and keep the faster full rescue', () => {
@@ -134,4 +140,20 @@ test('appearance gates use completed levels, and unknown or prematurely selected
   const unknown = cleared(6);
   unknown.theme = 'missing-theme';
   assert.equal(readProgress(unknown).theme, 'rescue');
+});
+
+test('legacy six clears unlock the seventh rescue while endless records stay separate', () => {
+  const completed = Object.fromEntries(
+    LEVELS.slice(0, 6).map((level) => [level.id, { rescued: 6, seconds: 30, lives: 3 }]),
+  );
+  const progress = readProgress({ version: 1, completed, endlessBest: 37 });
+  assert.equal(unlockedCount(progress), 7);
+  assert.equal(progress.endlessBest, 37);
+  const before = structuredClone(progress);
+  assert.equal(
+    completeLevel(progress, { mode: 'endless', phase: 'won', levelIndex: 6, rescued: 6 }),
+    false,
+  );
+  assert.deepEqual(progress, before);
+  assert.equal(readProgress({ version: 1, endlessBest: -1 }).endlessBest, 0);
 });

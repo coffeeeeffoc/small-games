@@ -5,6 +5,7 @@ import { createH5Publishing } from '../../../../platforms/h5/publishing.js';
 import { pickTouchRing } from './touch.ts';
 import {
   createState,
+  canRelease,
   findHint,
   getBlockers,
   isComplete,
@@ -15,7 +16,7 @@ import {
   type State,
 } from './core.ts';
 import { CHAPTERS, LEVELS } from './levels.ts';
-import { fitScene, heroArt, ringArt, skyArt, star } from './art.ts';
+import { connectionArt, fitScene, heroArt, ringArt, weaveArt, skyArt, star } from './art.ts';
 import { SAVE_KEY, parseProgress, settle, unlockedIndex, type Run } from './storage.ts';
 
 type Screen = 'home' | 'levels' | 'playing' | 'paused' | 'result' | 'settings' | 'help';
@@ -176,12 +177,12 @@ function render() {
       (chapter, chapterIndex) => {
         const levels = LEVELS.filter((level) => level.chapter === chapter.id);
         const earned = levels.filter((level) => progress.medals[level.id]).length;
-        return `<article class="chapter"><div class="chapter-heading"><div class="chapter-emblem emblem-${chapterIndex}">${icon(chapterIndex === 1 ? 'lock' : 'levels')}</div><div><span class="chapter-kicker">CHAPTER 0${chapter.id}</span><h2>${chapter.name}</h2><p>${chapter.description}</p></div><span class="chapter-count">${earned}/8</span></div><div class="level-grid">${levels
-          .map((level, i) => {
+        return `<article class="chapter"><div class="chapter-heading"><div class="chapter-emblem emblem-${chapterIndex}">${icon(chapterIndex === 1 ? 'lock' : 'levels')}</div><div><span class="chapter-kicker">CHAPTER 0${chapter.id}</span><h2>${chapter.name}</h2><p>${chapter.description}</p></div><span class="chapter-count">${earned}/${levels.length}</span></div><div class="level-grid">${levels
+          .map((level) => {
             const index = LEVELS.indexOf(level),
               unlocked = index <= unlockedIndex(progress),
               score = progress.medals[level.id];
-            return `<button type="button" data-level="${level.id}" class="level ${score ? 'completed' : ''} ${index === unlockedIndex(progress) ? 'current' : ''}" ${unlocked ? '' : 'disabled'} aria-label="第${index + 1}关 ${level.name}${unlocked ? '' : '，未解锁'}"><span>${unlocked ? i + 1 : icon('lock')}</span>${score ? `<small>${'✦'.repeat(score)}</small>` : ''}</button>`;
+            return `<button type="button" data-level="${level.id}" class="level ${score ? 'completed' : ''} ${index === unlockedIndex(progress) ? 'current' : ''}" ${unlocked ? '' : 'disabled'} aria-label="第${index + 1}关 ${level.name}${unlocked ? '' : '，未解锁'}"><span>${unlocked ? index + 1 : icon('lock')}</span>${score ? `<small>${'✦'.repeat(score)}</small>` : ''}</button>`;
           })
           .join('')}</div></article>`;
       },
@@ -232,20 +233,30 @@ function render() {
     });
     board.addEventListener('keydown', keyInput);
   }
+  if (screen === 'levels') app.querySelector('.level.current')?.scrollIntoView({block: 'center'});
   announceHost();
 }
 function drawBoard() {
   const board = app.querySelector('#ring-board');
   if (!board || !run) return;
   const fit = fitScene(run.state);
-  board.innerHTML = `${skyArt()}<g data-scene transform="${fit.transform}">${run.state.rings.map((ring, i) => (ring.removed ? '' : ringArt(ring, i, ring.id === selectedRingId || ring.id === hint?.ringId, isLocked(run!.state, ring.id), Math.max(0, (ring.unlockAfter || 0) - run!.state.releasedCount)))).join('')}${
+  const focusId = selectedRingId || hint?.ringId;
+  const escaping = ghost?.state.rings.find(r => r.id === ghost!.ringId);
+  board.innerHTML = `${skyArt()}<g data-scene transform="${fit.transform}">${weaveArt(run.state, focusId)}${focusId ? connectionArt(run.state, focusId) : ''}${
     hint
       ? (() => {
           const ring = run!.state.rings.find((r) => r.id === hint!.ringId)!;
           return `<g class="hint-target" transform="translate(${ring.x} ${ring.y})"><path d="M${Math.cos(hint.angle) * (ring.r + 20)} ${Math.sin(hint.angle) * (ring.r + 20)} L${Math.cos(hint.angle) * (ring.r + 36)} ${Math.sin(hint.angle) * (ring.r + 36)}" stroke="#27766e" stroke-width="2"/>${star(Math.cos(hint.angle) * (ring.r + 40), Math.sin(hint.angle) * (ring.r + 40), 6, '#27766e')}</g>`;
         })()
       : ''
-  }${ghost ? `<g class="escaping">${ringArt(ghost.state.rings.find((r) => r.id === ghost!.ringId)!, 0)}</g>` : ''}</g>`;
+  }${escaping ? `<g class="escaping" style="--escape-x:${-Math.cos(escaping.angle) * 75}px;--escape-y:${-Math.sin(escaping.angle) * 75}px">${ringArt(escaping, 0)}</g>` : ''}</g>`;
+  const note = app.querySelector('.in-scene-note');
+  const focused = run.state.rings.find(r => r.id === focusId && !r.removed);
+  if (note && focused) note.textContent = isLocked(run.state, focused.id) ? '先解开其他圆环，让星栓开启' : canRelease(run.state, focused.id) ? (getBlockers(run.state, focused.id).length ? '两处已让开 · 松手解扣' : '已无连接 · 点按收起') : '叉号处仍相扣 · 转动缺口让开连接';
+  else if (note) {
+    const index = LEVELS.findIndex(level => level.id === run!.state.levelId);
+    note.textContent = index < 2 ? '拖动圆环，让缺口对准连接处' : LEVELS[index]!.intro || '';
+  }
   const undo = app.querySelector<HTMLButtonElement>('[data-action="undo"]');
   if (undo) undo.disabled = !history.length || isComplete(run.state);
   const hintButton = app.querySelector<HTMLButtonElement>('[data-action="hint"]');
@@ -263,9 +274,8 @@ function pointerDown(event: PointerEvent) {
   if (!run || drag || event.button !== 0 || screen !== 'playing' || ghost) return;
   const point = boardPoint(event);
   if (!point) return;
-  const scale =
-    (fitScene(run.state).scale * app.querySelector('#ring-board')!.getBoundingClientRect().width) /
-    360;
+  const matrix = app.querySelector<SVGGraphicsElement>('[data-scene]')!.getScreenCTM()!;
+  const scale = Math.hypot(matrix.a, matrix.b);
   const ring = pickTouchRing(run.state, point, scale, selectedRingId);
   if (!ring) return;
   event.preventDefault();
@@ -336,7 +346,7 @@ function finishGesture(ringId: string, before: Run, moved: boolean) {
           if (!practice && !challenge) void publishing.interstitial({ placement: 'puzzle-complete', naturalBreak: true });
         } else drawBoard();
       },
-      progress.settings.reducedMotion ? 0 : 330,
+      progress.settings.reducedMotion ? 0 : 420,
     );
   } else {
     if (moved) {
@@ -434,6 +444,7 @@ function activateControl(target: HTMLButtonElement) {
     cancelDrag();
     hint = findHint(run.state);
     if (hint) {
+      selectedRingId = hint.ringId;
       run.hints++;
       save();
       drawBoard();

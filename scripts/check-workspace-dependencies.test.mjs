@@ -367,3 +367,38 @@ test('reports the complete workspace dependency cycle', async (t) => {
     ],
   );
 });
+
+test('ranked authority may import only the reviewed pure rescue and tower inputs', async (t) => {
+  const root = await createWorkspace([
+    {
+      path: 'services/runtime-api',
+      manifest: { name: '@coffeeeeffoc/runtime-api' },
+      files: {
+        'rules/ranked-games.mjs':
+          "import '../../../games/local/cage-rescue/src/core.mjs';\nimport '../../../games/local/tower-brake/engine.mjs';\nimport '../../../games/local/tower-brake/levels.mjs';\n",
+        'rules/unreviewed.mjs': "import '../../../games/local/tower-brake/engine.mjs';\n",
+        'src/app.ts': "import '../../../games/local/cage-rescue/src/main.mjs';\n",
+      },
+    },
+    {
+      path: 'games/local/cage-rescue',
+      manifest: { name: '@coffeeeeffoc/cage-rescue' },
+      files: {
+        'src/core.mjs': 'export const core = true;',
+        'src/main.mjs': "import '../../../../services/runtime-api/rules/ranked-games.mjs';",
+      },
+    },
+    {
+      path: 'games/local/tower-brake',
+      manifest: { name: '@coffeeeeffoc/tower-brake' },
+      files: {
+        'engine.mjs': 'export const engine = true;',
+        'levels.mjs': 'export const levels = [];',
+      },
+    },
+  ]);
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const violations = await validateWorkspace(root);
+  assert.equal(violations.length, 3);
+  assert(violations.every((entry) => entry.code === 'cross-package-relative'));
+});

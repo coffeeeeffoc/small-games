@@ -16,6 +16,10 @@ const sources = {
   runtime: [
     'services/runtime-api/dist',
     'services/runtime-api/rules',
+    'games/local/cage-rescue/src/core.mjs',
+    'games/local/cage-rescue/src/levels.mjs',
+    'games/local/tower-brake/engine.mjs',
+    'games/local/tower-brake/levels.mjs',
     'games/local/flick-arena/src',
     'games/local/three-choose-two/src',
     'games/local/carrom-club/src/core.mjs',

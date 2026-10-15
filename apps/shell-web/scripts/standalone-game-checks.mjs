@@ -50,13 +50,14 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     });
     await expect(frame.locator('#move-right')).toHaveAttribute('aria-pressed', 'false');
     await click(frame.getByRole('button', { name: '暂停', exact: true }));
-    await expect(frame.getByRole('button', { name: '继续战斗', exact: true })).toBeVisible();
-    await click(frame.getByRole('button', { name: '继续战斗', exact: true }));
+    await expect(frame.getByRole('button', { name: '继续战斗', exact: true })).toBeFocused();
+    await frame.locator('#game-canvas').page().keyboard.press('Enter');
     await expect(game).toHaveAttribute('data-screen', 'play');
+    await expect(frame.locator('#game-canvas')).toBeFocused();
     await click(frame.getByRole('button', { name: '暂停', exact: true }));
     await click(frame.getByRole('button', { name: '返回主页', exact: true }));
     await expect(game).toHaveAttribute('data-screen', 'home');
-    await expect(frame.locator('#start-game')).toBeVisible();
+    await expect(frame.locator('#start-game')).toBeFocused();
   } else if (id === 'three-choose-two') {
     const game = frame.locator('#game');
     await expect(game).toHaveAttribute('data-screen', 'playing');
@@ -198,7 +199,9 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect(frame.locator('#home')).toBeVisible();
     await click(frame.locator('#choose-level'));
     await expect(frame.locator('#levels-screen')).toBeVisible();
-    await expect(frame.locator('#levels-screen button[data-level]')).toHaveCount(8);
+    await expect(frame.locator('#levels-screen button[data-level]')).toHaveCount(30);
+    await expect(frame.locator('#levels-screen button[data-level="0"]')).toBeEnabled();
+    await expect(frame.locator('#levels-screen button[data-level="29"]')).toBeDisabled();
     await click(frame.locator('#levels-home'));
     await expect(frame.locator('#start-game')).toBeVisible();
   } else if (id === 'chase-thief') {
@@ -244,7 +247,7 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
         ).matrixTransform(matrix);
         return { x: transformed.x, y: transformed.y };
       };
-      const bounds = node.getBoundingClientRect();
+      const bounds = node.ownerSVGElement.getBoundingClientRect();
       return {
         start: point(angle),
         middle: point(angle + 0.3),
@@ -252,8 +255,8 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
         bounds: { x: bounds.x, y: bounds.y },
       };
     });
-    // SVG screen coordinates are local to the child document; native input is page-wide.
-    const bounds = await ring.boundingBox();
+    // Masked ring bounds differ between DOM/CDP; the board gives a stable iframe offset.
+    const bounds = await board.boundingBox();
     const offset = { x: bounds.x - points.bounds.x, y: bounds.y - points.bounds.y };
     const absolute = (point) => ({ x: point.x + offset.x, y: point.y + offset.y });
     const page = board.page();
@@ -1497,6 +1500,11 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect(frame.locator('body')).toHaveAttribute('data-level', '1');
     await expect(frame.getByTestId('board')).toBeVisible();
     await click(frame.getByTestId('hint'));
+    await click(
+      frame
+        .getByRole('dialog', { name: '模拟广告' })
+        .getByRole('button', { name: '领取奖励', exact: true }),
+    );
     const destination = frame.locator('.node-target.chosen');
     await expect(destination).toHaveCount(1);
     await click(

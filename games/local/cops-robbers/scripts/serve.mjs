@@ -2,11 +2,12 @@ import { createServer } from 'node:http';
 import { readFile, realpath, stat } from 'node:fs/promises';
 import { dirname, extname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { adConfiguration, configurationScript } from './ad-config.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const root = resolve(project, process.argv.includes('--dist') ? 'dist' : '.');
 const port = Number(process.env.PORT || 43420);
-if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT 必须是 1–65535 的整数。');
+if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('PORT 必须是 0–65535 的整数；0 自动选择空闲端口。');
 const mime = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.json': 'application/json; charset=utf-8',
@@ -22,7 +23,7 @@ const canonicalRoot = await realpath(root).catch(() => {
 });
 if (!inside(await realpath(project), canonicalRoot)) throw new Error('静态目录必须位于项目内。');
 
-const server = createServer(async (request, response) => {
+export const server = createServer(async (request, response) => {
   const send = (status, message) => {
     response.writeHead(status, { 'Content-Type': 'text/plain; charset=utf-8', 'X-Content-Type-Options': 'nosniff' });
     response.end(request.method === 'HEAD' ? undefined : message);
@@ -31,7 +32,13 @@ const server = createServer(async (request, response) => {
   try {
     const path = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
     const name = path === '/' ? 'index.html' : path.slice(1);
-    const allowed = name === 'index.html' || name === 'dev-mode.js' || /^favicon\.(svg|ico|png)$/.test(name)
+    if (['publishing.js', 'platform-ads.js', 'platform-config.js'].includes(name) && !process.argv.includes('--dist')) {
+      const content = name === 'platform-config.js' ? configurationScript(adConfiguration(false))
+        : await readFile(resolve(project, '../../../platforms/h5', name));
+      response.writeHead(200, { 'Content-Type': mime['.js'], 'X-Content-Type-Options': 'nosniff' });
+      return response.end(request.method === 'HEAD' ? undefined : content);
+    }
+    const allowed = name === 'index.html' || name === 'dev-mode.js' || ['publishing.js', 'platform-ads.js', 'platform-config.js'].includes(name) || /^favicon\.(svg|ico|png)$/.test(name)
       || /^(src|assets)\//.test(name);
     if (!allowed || /[\\\0]/.test(name) || name.split('/').some(part => part.startsWith('.'))
       || !mime[extname(name).toLowerCase()]) return send(404, 'Not found');
@@ -59,4 +66,4 @@ server.on('error', error => {
     : `静态服务启动失败：${error.message}`);
   process.exitCode = 1;
 });
-server.listen(port, '127.0.0.1', () => console.log(`围捕小队 ${process.argv.includes('--dist') ? '构建预览' : '开发服务'}：http://127.0.0.1:${port}`));
+server.listen(port, '127.0.0.1', () => console.log(`围捕小队 ${process.argv.includes('--dist') ? '构建预览' : '开发服务'}：http://127.0.0.1:${server.address().port}`));

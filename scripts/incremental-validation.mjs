@@ -1,3 +1,4 @@
+import { cocosMinigamePlan } from '../games/minigames/scripts/validation-scope.mjs';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { createRequire } from 'node:module';
@@ -11,8 +12,10 @@ import {
 } from './nine-native-scope.mjs';
 import {
   competitionToolPlan,
+  gameServiceScopePaths,
   publishingConsumers,
   publishingScopePaths,
+  platformAdsScopePaths,
   deploymentBundleScopePaths,
   publicationConfigScopePaths,
   mobileViewportScopeFile,
@@ -81,7 +84,11 @@ export function incrementalPlan({
     readSource,
     fileScopes,
   });
-  const nativeOnlyPaths = new Set(nineNative.native_only_paths);
+  const cocosMini = cocosMinigamePlan({ changedPaths: paths, fileScopes });
+  const nativeOnlyPaths = new Set([
+    ...nineNative.native_only_paths,
+    ...cocosMini.native_only_paths,
+  ]);
   const h5Paths = paths.filter((file) => !nativeOnlyPaths.has(file));
   const nativeConsumers = paths.includes(nativeSmoke) ? nativeToolConsumers : [];
   for (const consumer of nativeConsumers) {
@@ -191,6 +198,20 @@ export function incrementalPlan({
         .filter((game) => fileScopes.get(developerMode)?.includes(game.source))
         .map((game) => game.id)
     : [];
+  for (const id of ['cage-rescue', 'tower-brake']) {
+    const game = games.find((item) => item.id === id);
+    if (
+      game &&
+      paths.some(
+        (file) =>
+          (gameServiceScopePaths.includes(file) && fileScopes.get(file)?.includes(game.source)) ||
+          ['build.mjs', 'api-config.mjs', 'index.html', 'main.mjs', 'src/main.mjs'].some(
+            (entry) => file === game.source + '/' + entry,
+          ),
+      )
+    )
+      devModeIds.push(id);
+  }
   if (devModeIds.length)
     for (const id of navigationSamples) if (games.some((game) => game.id === id)) ids.add(id);
   if (hasVitePatch(paths, fileScopes))
@@ -198,7 +219,15 @@ export function incrementalPlan({
   const publishingChanged = paths.some((file) => publishingScopePaths.includes(file));
   const publishingBrowserIds = Object.entries(publishingConsumers)
     .filter(
-      ([id]) => ids.has(id) && (publishingChanged || directGames.some((game) => game.id === id)),
+      ([id]) =>
+        ids.has(id) &&
+        (publishingChanged ||
+          directGames.some((game) => game.id === id) ||
+          paths.some(
+            (file) =>
+              gameServiceScopePaths.includes(file) &&
+              fileScopes.get(file)?.includes(publishingConsumers[id]),
+          )),
     )
     .map(([id, source]) => {
       assert(
@@ -210,6 +239,7 @@ export function incrementalPlan({
     });
   return {
     full: false,
+    ...(cocosMini.ids.length ? { cocos_minigame_ids: cocosMini.ids } : {}),
     ...(hasVitePatch(paths, fileScopes) ? { vite_patch: true } : {}),
     browser: ids.size > 0,
     browser_ids: [...ids].sort(),
@@ -255,7 +285,14 @@ export function incrementalPlan({
     interaction_browser_ids: ['letters-words2', 'tianxia-chalu'].filter(
       (id) => ids.has(id) && directGames.some((game) => game.id === id),
     ),
+    game_services_checks: paths.some(
+      (file) => gameServiceScopePaths.includes(file) && fileScopes.has(file),
+    ),
+    ranked_deployment_checks:
+      paths.includes('scripts/deploy-tencent.mjs') &&
+      fileScopes.get('scripts/deploy-tencent.mjs')?.includes('games/local/cage-rescue'),
     publishing_checks: publishingChanged,
+    platform_ads_checks: paths.some((file) => platformAdsScopePaths.includes(file)),
     publishing_browser_ids: publishingBrowserIds.sort(),
     publication_config_checks: paths.some((file) => publicationConfigScopePaths.includes(file)),
     deployment_bundle_checks: paths.some(
@@ -268,7 +305,10 @@ export function incrementalPlan({
       'services/management-api',
       'packages/ad-runtime',
       'platforms/douyin',
-    ].filter((source) => paths.some((file) => file.startsWith(source + '/'))),
+    ].filter(
+      (source) =>
+        scopedConsumers.includes(source) || paths.some((file) => file.startsWith(source + '/')),
+    ),
   };
 }
 

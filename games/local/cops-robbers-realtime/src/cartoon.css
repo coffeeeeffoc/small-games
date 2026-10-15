@@ -427,6 +427,11 @@
 }
 
 /* A side dock gives short landscape phones more room for the street. */
+@media (orientation: portrait) and (max-width: 420px) {
+  .squad-dock { gap: 7px; padding: 10px 8px; }
+  .squad-dock .hold-button { min-width: 50px; width: 50px; padding: 8px 4px; }
+  .squad-dock .sprint-button { width: 72px; flex: none; flex-direction: column; padding: 8px 3px; font-size: 11px; min-height: 60px; }
+}
 @media (orientation: landscape) and (max-height: 560px) {
   .squad-dock {
     left: auto;
@@ -463,4 +468,5 @@
     width: 100%;
     flex: none;
   }
+  .squad-dock .sprint-button { width: 100%; flex: none; }
 }

@@ -121,7 +121,7 @@ function exactValidationHistory(file, before, after) {
   );
 }
 
-function literalDeclaration(source, name) {
+function literalDeclaration(source, name, allowBoolean = false) {
   const { parsers } = loadDependency('prettier/plugins/babel');
   const ast = parsers.babel.parse(source, {});
   const declarations = ast.program.body
@@ -141,7 +141,11 @@ function literalDeclaration(source, name) {
       assert(new Set(names).size === names.length, 'Duplicate literal key');
     } else if (node.type === 'ArrayExpression') {
       for (const item of node.elements) check(item);
-    } else assert(node.type === 'StringLiteral', 'Unreviewed executable literal');
+    } else
+      assert(
+        node.type === 'StringLiteral' || (allowBoolean && node.type === 'BooleanLiteral'),
+        'Unreviewed executable literal',
+      );
   }
   check(entry.init);
   return JSON.parse(
@@ -253,6 +257,89 @@ export function threeChooseTwoBackendFileScope(file, before, after) {
     expected = expected.replace(oldText, newText);
   }
   return expected === after;
+}
+
+export const gameServiceScopePaths = Object.freeze([
+  'platforms/competition/game-services.js',
+  'platforms/competition/tests/game-services.test.mjs',
+  'scripts/competition-gateway.mjs',
+  'scripts/competition-gateway.test.mjs',
+]);
+const rankedConsumers = {
+  'cage-rescue': 'games/local/cage-rescue',
+  'tower-brake': 'games/local/tower-brake',
+};
+const rankedInputs = [
+  'games/local/cage-rescue/src/core.mjs',
+  'games/local/cage-rescue/src/levels.mjs',
+  'games/local/tower-brake/engine.mjs',
+  'games/local/tower-brake/levels.mjs',
+];
+function assertRankedConsumers(games, packages, readHead) {
+  for (const [id, source] of Object.entries(rankedConsumers)) {
+    assert(games.filter((game) => game.id === id || game.source === source).length === 1);
+    assert(games.some((game) => game.id === id && game.source === source));
+    assert(packages.some((pkg) => pkg.dir === source));
+  }
+  assert(packages.some((pkg) => pkg.dir === 'services/runtime-api'));
+  const rule = readHead('services/runtime-api/rules/ranked-games.mjs');
+  for (const input of [rankedInputs[0], ...rankedInputs.slice(2)])
+    assert(importsModule(rule, '../../../' + input));
+  assert(importsModule(readHead(rankedInputs[0]), './levels.mjs'));
+  assert(importsModule(readHead(rankedInputs[2]), './levels.mjs'));
+}
+function hasUrlReference(source, target) {
+  let found = false;
+  function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (
+      node.type === 'NewExpression' &&
+      node.callee?.name === 'URL' &&
+      node.arguments?.[0]?.type === 'StringLiteral' &&
+      node.arguments[0].value === target
+    )
+      found = true;
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  }
+  visit(parsedSource(source));
+  return found;
+}
+function assertGameServiceCopies(readHead) {
+  for (const [id, source] of Object.entries(rankedConsumers)) {
+    const build = readHead(source + '/build.mjs');
+    assert(hasUrlReference(build, '../../../platforms/competition/game-services.js'));
+    assert(hasUrlReference(build, 'game-services.js'));
+    const entry = id === 'cage-rescue' ? '/src/main.mjs' : '/main.mjs';
+    assert(
+      hasUrlReference(
+        readHead(source + entry),
+        id === 'cage-rescue' ? '../game-services.js' : './game-services.js',
+      ),
+    );
+  }
+}
+/** Only the four new shared rule inputs may be added to the deployment list. */
+export function rankedDeploymentFileScope(before, after) {
+  const anchor = "    'services/runtime-api/rules',\n";
+  const addition = rankedInputs.map((file) => `    '${file}',\n`).join('');
+  return (
+    typeof before === 'string' &&
+    before.split(anchor).length === 2 &&
+    rankedInputs.every((file) => !before.includes(file)) &&
+    after === before.replace(anchor, anchor + addition)
+  );
+}
+function rankedGatewayFileScope(before, after) {
+  const digest = (source) => createHash('sha256').update(source).digest('hex');
+  // Reviewed main guard/extracted public predicate; legacy proxy, static files and
+  // kart upgrade handling are unchanged. Any additional executable delta blocks.
+  return (
+    digest(before) === '2c9bcc4c116b52553c317da5ee4c83959f988d4d4f02cff55a22a1b273efafc8' &&
+    digest(after) === 'bbfc69bf5d9c9c9a2f1c3d28ab245024dc78030e7eec18953a9705ccccd16f92'
+  );
 }
 
 const carromSource = 'games/local/carrom-club';
@@ -416,7 +503,7 @@ function additiveLines(before, after) {
 
 function assertCompetitionRegistry(readHead, games) {
   const source = readHead(builder);
-  const registry = literalDeclaration(source, 'competitionGames');
+  const registry = literalDeclaration(source, 'competitionGames', true);
   assert(
     isDeepStrictEqual(Object.keys(registry).sort(), Object.keys(competitionConsumers).sort()),
     'Unreviewed competition consumer',
@@ -428,16 +515,69 @@ function assertCompetitionRegistry(readHead, games) {
       'Competition source mismatch',
     );
     assert(
-      isDeepStrictEqual(Object.keys(registry[id]).sort(), ['directory', 'renderer', 'title']),
+      isDeepStrictEqual(
+        Object.keys(registry[id])
+          .filter((key) => key !== 'online')
+          .sort(),
+        ['directory', 'renderer', 'title'],
+      ) &&
+        (!Object.hasOwn(registry[id], 'online') ||
+          (['cops-robbers', 'cops-robbers-realtime'].includes(id) &&
+            registry[id].online === false)),
       'Unreviewed competition registry fields',
     );
     assert(typeof registry[id].renderer === 'string' && typeof registry[id].title === 'string');
   }
 }
 
+function exactCopsOfflineBuild(before, after) {
+  const anchor =
+    "  'cops-robbers': {\n    directory: 'games/local/cops-robbers',\n    renderer: 'src/competition-renderer.js',\n    title: '围捕小队',\n";
+  return (
+    before.split(anchor).length === 2 &&
+    after === before.replace(anchor, anchor + '    online: false,\n')
+  );
+}
+
 const cageRescueSource = 'games/local/cage-rescue';
 const cageRescueGameplayFile = 'apps/shell-web/scripts/game-checks/cage-rescue.mjs';
 const standaloneChecksFile = 'apps/shell-web/scripts/standalone-game-checks.mjs';
+function exactOrbitBoundsGuard(before, after) {
+  // Only the reviewed masked-SVG offset fix; all input and behavior assertions stay fixed.
+  return (
+    createHash('sha256').update(before).digest('hex') ===
+      'b2ab2d1ddb7b7426b2046a238e138a0b6bc6824f555dfabe2bb0e3b90719e8f5' &&
+    after ===
+      before
+        .replace(
+          'const bounds = node.getBoundingClientRect();',
+          'const bounds = node.ownerSVGElement.getBoundingClientRect();',
+        )
+        .replace(
+          'const bounds = await ring.boundingBox();',
+          'const bounds = await board.boundingBox();',
+        )
+        .replace(
+          '// SVG screen coordinates are local to the child document; native input is page-wide.',
+          '// Masked ring bounds differ between DOM/CDP; the board gives a stable iframe offset.',
+        )
+  );
+}
+const towerLevelsBefore =
+  "    await expect(frame.locator('#levels-screen button[data-level]')).toHaveCount(8);\n";
+const towerLevelsAfter =
+  "    await expect(frame.locator('#levels-screen button[data-level]')).toHaveCount(30);\n" +
+  '    await expect(frame.locator(\'#levels-screen button[data-level="0"]\')).toBeEnabled();\n' +
+  '    await expect(frame.locator(\'#levels-screen button[data-level="29"]\')).toBeDisabled();\n';
+function exactTowerLevelsGuard(before, after) {
+  // Bind this assertion-only update to the reviewed Tower branch; shared execution
+  // code and other game contracts must remain byte-for-byte identical.
+  return (
+    createHash('sha256').update(before).digest('hex') ===
+      'bed0bfc66e235bb68493782714df87c9ec67e39dec62d936db3356012f799128' &&
+    after === before.replace(towerLevelsBefore, towerLevelsAfter)
+  );
+}
 const copsStartBefore = `  } else if (id === 'cops-robbers') {
     await expect(frame.locator('#level-dialog')).toBeVisible();
     await click(frame.getByTestId('level-button-1'));
@@ -446,12 +586,26 @@ const copsStartAfter = `  } else if (id === 'cops-robbers') {
     await expect(frame.locator('#level-dialog')).toBeHidden();
     await expect(frame.locator('body')).toHaveAttribute('data-level', '1');
 `;
+const copsAdBefore = `    await click(frame.getByTestId('hint'));
+    const destination = frame.locator('.node-target.chosen');
+`;
+const copsAdAfter = `    await click(frame.getByTestId('hint'));
+    await click(
+      frame
+        .getByRole('dialog', { name: '模拟广告' })
+        .getByRole('button', { name: '领取奖励', exact: true }),
+    );
+    const destination = frame.locator('.node-target.chosen');
+`;
 function exactCopsStartGuard(before, after) {
-  if (
-    before.split(copsStartBefore).length !== 2 ||
-    after !== before.replace(copsStartBefore, copsStartAfter)
-  )
-    return false;
+  const startChange =
+    before.split(copsStartBefore).length === 2 &&
+    after === before.replace(copsStartBefore, copsStartAfter);
+  const adChange =
+    before.split(copsAdBefore).length === 2 &&
+    after === before.replace(copsAdBefore, copsAdAfter) &&
+    before.split(copsStartAfter).length === 2;
+  if (!startChange && !adChange) return false;
   const program = parsedSource(after);
   const exported = program.body.filter(
     (node) =>
@@ -460,7 +614,8 @@ function exactCopsStartGuard(before, after) {
       node.declaration.id.name === 'assertStandaloneGameplay',
   );
   assert(exported.length === 1);
-  const offset = before.indexOf(copsStartBefore) + copsStartBefore.indexOf('if (');
+  const header = startChange ? copsStartBefore : copsStartAfter;
+  const offset = before.indexOf(header) + header.indexOf('if (');
   const branch = ifStatementAt(program, offset);
   assert(offset > exported[0].declaration.start && branch.end < exported[0].declaration.end);
   function verifyOwner(node, owner = null) {
@@ -483,6 +638,11 @@ function exactCopsStartGuard(before, after) {
     }
   }
   verifyOwner(program);
+  if (adChange)
+    assert(
+      after.indexOf(copsAdAfter) > branch.consequent.start &&
+        after.indexOf(copsAdAfter) + copsAdAfter.length < branch.consequent.end,
+    );
   assert(
     branch.test.type === 'BinaryExpression' &&
       branch.test.operator === '===' &&
@@ -777,6 +937,8 @@ function assertCageRescueImmersive(file, before, after) {
 // H5 publishing is copied/bundled into these standalone games. This explicit
 // boundary keeps a change to the shared adapter from silently skipping consumers.
 export const publishingConsumers = {
+  'cops-robbers': 'games/local/cops-robbers',
+  'cops-robbers-realtime': 'games/local/cops-robbers-realtime',
   'tower-brake': 'games/local/tower-brake',
   'cage-rescue': 'games/local/cage-rescue',
   'ball-roguelite': 'games/local/ball-roguelite',
@@ -801,6 +963,14 @@ export const publishingScopePaths = [
   'platforms/h5/publishing.js',
   'platforms/h5/publishing.d.ts',
   'platforms/h5/tests/publishing.test.mjs',
+];
+// Only cops-robbers currently packages the explicit channel adapter and H5 uploader.
+export const platformAdsScopePaths = [
+  'platforms/h5/platform-ads.js',
+  'platforms/h5/platform-ads.d.ts',
+  'platforms/h5/tests/platform-ads.test.mjs',
+  'platforms/h5/deploy-taptap.ps1',
+  'platforms/h5/tests/deploy-taptap.test.mjs',
 ];
 export const publicationConfigScopePaths = [
   'platforms/publication-config.mjs',
@@ -862,6 +1032,36 @@ export function reviewedSharedFileScopes({
   const scopes = vitePatchFileScopes({ changedPaths, readBase, readHead });
   for (const file of changedPaths) {
     try {
+      if (
+        gameServiceScopePaths.includes(file) &&
+        (file !== 'scripts/competition-gateway.mjs' ||
+          rankedGatewayFileScope(readBase(file), readHead(file)))
+      ) {
+        assertRankedConsumers(games, packages, readHead);
+        assertGameServiceCopies(readHead);
+        if (file === 'scripts/competition-gateway.mjs')
+          assert(rankedGatewayFileScope(readBase(file), readHead(file)));
+        const gateway = file.startsWith('scripts/');
+        if (gateway) assert(packages.some((pkg) => pkg.dir === 'apps/shell-web'));
+        scopes.set(file, [
+          ...Object.values(rankedConsumers),
+          ...(gateway ? ['services/runtime-api', 'apps/shell-web'] : []),
+        ]);
+        continue;
+      }
+      if (rankedInputs.includes(file)) {
+        assertRankedConsumers(games, packages, readHead);
+        scopes.set(file, ['services/runtime-api']);
+        continue;
+      }
+      if (
+        file === 'scripts/deploy-tencent.mjs' &&
+        rankedDeploymentFileScope(readBase(file), readHead(file))
+      ) {
+        assertRankedConsumers(games, packages, readHead);
+        scopes.set(file, [...Object.values(rankedConsumers), 'services/runtime-api']);
+        continue;
+      }
       if (file === independentPreviewScopeFile) {
         // The reviewed runner changes only nine mobile viewports and the static
         // Pages config for Tower Defense. Bind its imported helper as well.
@@ -930,6 +1130,13 @@ export function reviewedSharedFileScopes({
           codexAgentHashes[file],
         );
         scopes.set(file, []);
+      } else if (platformAdsScopePaths.includes(file)) {
+        const source = 'games/local/cops-robbers';
+        assert(
+          games.filter((game) => game.id === 'cops-robbers' && game.source === source).length === 1,
+        );
+        assert(packages.some((pkg) => pkg.dir === source));
+        scopes.set(file, [source]);
       } else if (publishingScopePaths.includes(file)) {
         for (const [id, source] of Object.entries(publishingConsumers)) {
           assert(games.filter((game) => game.id === id && game.source === source).length === 1);
@@ -984,6 +1191,26 @@ export function reviewedSharedFileScopes({
         }
         assert(threeChooseTwoBackendFileScope(file, before, readHead(file)));
         scopes.set(file, ['games/local/three-choose-two', 'services/runtime-api']);
+      } else if (
+        file === standaloneChecksFile &&
+        exactOrbitBoundsGuard(readBase(file), readHead(file))
+      ) {
+        assert(
+          games.filter(
+            (game) => game.id === 'orbit-atelier' && game.source === 'games/local/orbit-atelier',
+          ).length === 1,
+        );
+        scopes.set(file, ['games/local/orbit-atelier']);
+      } else if (
+        file === standaloneChecksFile &&
+        exactTowerLevelsGuard(readBase(file), readHead(file))
+      ) {
+        assert(
+          games.filter(
+            (game) => game.id === 'tower-brake' && game.source === 'games/local/tower-brake',
+          ).length === 1,
+        );
+        scopes.set(file, ['games/local/tower-brake']);
       } else if (
         file === standaloneChecksFile &&
         exactCopsStartGuard(readBase(file), readHead(file))
@@ -1109,13 +1336,27 @@ export function reviewedSharedFileScopes({
         scopes.set(file, [...sources]);
       } else if (file === 'scripts/check-game-config.test.mjs') {
         scopes.set(file, []);
+      } else if (file === 'scripts/street-native-smoke.mjs') {
+        assert(
+          games.filter(
+            (game) =>
+              game.id === 'cops-robbers-realtime' && game.source === competitionConsumers[game.id],
+          ).length === 1,
+        );
+        assert.equal(
+          createHash('sha256').update(readHead(file).replaceAll('\r\n', '\n')).digest('hex'),
+          'ccf421e8a4fee57645b4d1476bdad24b03ef12d1f4a0b20f08553cb56a336462',
+        );
+        scopes.set(file, [competitionConsumers['cops-robbers-realtime']]);
       } else if (competitionFiles.includes(file)) {
         assertCompetitionRegistry(readHead, games);
         scopes.set(
           file,
-          lettersTests.includes(file)
-            ? [competitionConsumers['letters-words2']]
-            : Object.values(competitionConsumers),
+          file === builder && exactCopsOfflineBuild(readBase(file), readHead(file))
+            ? [competitionConsumers['cops-robbers']]
+            : lettersTests.includes(file)
+              ? [competitionConsumers['letters-words2']]
+              : Object.values(competitionConsumers),
         );
       }
     } catch {

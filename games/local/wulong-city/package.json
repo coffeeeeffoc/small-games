@@ -15,7 +15,7 @@
     "start": "node server.mjs",
     "build": "node build.mjs",
     "preview": "node server.mjs --dist",
-    "test": "node --test tests/game.test.mjs tests/order.test.mjs tests/characters.test.mjs",
+    "test": "node --test tests/game.test.mjs tests/order.test.mjs tests/characters.test.mjs tests/reward-hints.test.mjs tests/android.test.mjs",
     "test:browser": "node tests/playtest.mjs",
     "test:keyboard": "node tests/keyboard.mjs",
     "test:lifecycle": "node tests/lifecycle.mjs",
@@ -25,7 +25,12 @@
     "build:native": "node ../../../apps/shell-minigame/scripts/build.mjs --game wulong-city",
     "test:native": "node ../../../scripts/native-game-smoke.mjs --standalone --game wulong-city",
     "test:native:browser": "node native/browser-check.mjs",
-    "test:publishing:browser": "node tests/publishing.browser.mjs"
+    "test:publishing:browser": "node tests/publishing.browser.mjs",
+    "build:android": "node scripts/build-android.mjs",
+    "build:android:release": "node scripts/build-android.mjs --release",
+    "check:android": "node scripts/build-android.mjs --check",
+    "test:rewarded:browser": "node tests/rewarded.browser.mjs",
+    "test:android:device": "node tests/android-device.mjs"
   },
   "dependencies": {
     "@coffeeeeffoc/game-contract": "workspace:*"

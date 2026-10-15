@@ -1,9 +1,11 @@
-import { copyFile, lstat, mkdir, readdir, realpath } from 'node:fs/promises';
+import { copyFile, lstat, mkdir, readdir, realpath, writeFile } from 'node:fs/promises';
 import { dirname, extname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { adConfiguration, configurationScript } from './ad-config.mjs';
 
 const root = await realpath(resolve(dirname(fileURLToPath(import.meta.url)), '..'));
 const output = resolve(root, 'dist');
+const config = adConfiguration(process.argv.includes('--taptap'));
 const rel = relative(root, output);
 if (isAbsolute(rel) || rel !== 'dist') throw new Error('构建输出必须为项目内的 dist 目录。');
 await mkdir(output, { recursive: true });
@@ -30,6 +32,13 @@ async function copy(source, destination) {
 }
 await copy(resolve(root, 'index.html'), resolve(output, 'index.html'));
 await copy(resolve(root, 'dev-mode.js'), resolve(output, 'dev-mode.js'));
+await copy(resolve(root, '../../../platforms/h5/publishing.js'), resolve(output, 'publishing.js'));
+await copy(resolve(root, '../../../platforms/h5/platform-ads.js'), resolve(output, 'platform-ads.js'));
+const configPath = resolve(output, 'platform-config.js');
+try {
+  if ((await lstat(configPath)).isSymbolicLink()) throw new Error('广告配置输出不能是符号链接。');
+} catch (error) { if (error.code !== 'ENOENT') throw error; }
+await writeFile(configPath, configurationScript(config));
 await copy(resolve(root, 'src'), resolve(output, 'src'));
 for (const name of ['assets', 'favicon.svg', 'favicon.ico', 'favicon.png']) {
   try { await lstat(resolve(root, name)); } catch (error) { if (error.code === 'ENOENT') continue; throw error; }

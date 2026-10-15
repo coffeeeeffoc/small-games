@@ -10,6 +10,8 @@ import {
 } from '../levels.mjs';
 import {
   createGame,
+  createEndlessGame,
+  layerRotationAt,
   step,
   rotate,
   brake,
@@ -42,10 +44,10 @@ function until(state, predicate, { fps = 240, timeout = 10 } = {}) {
 const alignGap = (state) => rotate(state, getLanding(state).rotationToGap);
 const setLocalAngle = (state, angle) => rotate(state, BALL_ANGLE - angle - state.rotation);
 
-test('eight independent, valid 12-layer routes end on a completely safe platform', () => {
-  assert.equal(LEVELS.length, 8);
+test('thirty independent, valid 12-layer routes end on a completely safe platform', () => {
+  assert.equal(LEVELS.length, 30);
   assert.equal(validateLevels(), true);
-  assert.equal(new Set(LEVELS.map((level) => JSON.stringify(level.layers))).size, 8);
+  assert.equal(new Set(LEVELS.map((level) => JSON.stringify(level.layers))).size, 30);
   for (const level of LEVELS) {
     assert.equal(validateLevel(level), true);
     assert.equal(level.layers.length, LAYER_COUNT);
@@ -262,7 +264,7 @@ test('wrapped arcs and future landing forecasts share collision classification',
   assert.equal(sectorAt(LEVELS[0].layers[0], LEVELS[0].layers[0].gap.end), 'normal');
 });
 
-test('all eight routes are reachable with a modest rotation speed and player-controlled brakes', () => {
+test('all thirty routes are reachable with a modest rotation speed and player-controlled brakes', () => {
   // 2.8 rad/s is a ~30° correction in 190 ms. This is a reachable control trace,
   // not teleporting the ball or bypassing platform collision.
   const fps = 120;
@@ -314,4 +316,136 @@ test('continuous drops earn capped multipliers and braking trades combo for safe
   alignGap(game);
   until(game, (state) => state.nextLayer === 7);
   assert.equal(game.score, 2100);
+});
+
+test('endless generates over one thousand playable floors with a bounded ring buffer', () => {
+  for (const seed of [0, 91, 4294967295]) {
+    const state = createEndlessGame(seed);
+    let ticks = 0;
+    while (state.totalFloors < 1000 && state.status === 'playing' && ticks < 120 * 600) {
+      const landing = getLanding(state);
+      assert.equal(landing.number, state.totalFloors + 1);
+      if (
+        landing.type === 'danger' &&
+        landing.y - BALL_RADIUS - state.y < 90 &&
+        state.v > 0 &&
+        state.charge
+      )
+        brake(state);
+      rotate(state, Math.max(-2.8 / 120, Math.min(2.8 / 120, landing.rotationToGap)));
+      step(state, 1 / 120);
+      assert.ok(state.level.layers.length <= 36);
+      assert.ok(state.level.layers.every((layer) => !layer.finish));
+      ticks++;
+    }
+    assert.equal(state.status, 'playing', `seed ${seed}`);
+    assert.equal(state.totalFloors, 1000);
+    assert.equal(state.passes, 1000);
+    assert.ok(state.layerOffset > 950);
+    assert.equal(resumeCheckpoint(state), false);
+  }
+});
+
+test('endless starts deterministically and cannot rewind scored floors after failure', () => {
+  const first = createEndlessGame(42),
+    second = createEndlessGame(42);
+  assert.deepEqual(first, second);
+  const danger = first.level.layers[0].danger[0];
+  setLocalAngle(
+    first,
+    normalizeAngle(danger.start + normalizeAngle(danger.end - danger.start) / 2),
+  );
+  step(first, 2);
+  assert.equal(first.status, 'lost');
+  assert.equal(resumeCheckpoint(first), false);
+});
+
+test('new chapters introduce rotating, accelerating and foggy rings without changing the first eight', () => {
+  assert.ok(
+    LEVELS.slice(0, 8).every((level) =>
+      level.layers.every(
+        (layer) =>
+          layer.spinSpeed === undefined &&
+          layer.gravityScale === undefined &&
+          layer.fog === undefined,
+      ),
+    ),
+  );
+  assert.ok(LEVELS[8].layers.some((layer) => layer.spinSpeed));
+  assert.ok(LEVELS[12].layers.some((layer) => layer.gravityScale > 1));
+  assert.ok(LEVELS[18].layers.some((layer) => layer.fog));
+  assert.ok(
+    LEVELS[24].layers.some((layer) => layer.spinSpeed && layer.gravityScale > 1 && layer.fog),
+  );
+  for (const [key, value] of [
+    ['spinSpeed', 2],
+    ['gravityScale', 10],
+    ['fog', 'opaque'],
+  ]) {
+    const bad = structuredClone(LEVELS[24]);
+    bad.layers[3][key] = value;
+    assert.throws(() => validateLevel(bad), /Invalid/);
+  }
+});
+
+test('the moving-ring forecast and collision share the simulation clock, including brakes', () => {
+  const state = createGame(LEVELS[8]);
+  state.nextLayer = 3;
+  state.y = state.level.layers[3].y - BALL_RADIUS - 100;
+  state.v = 200;
+  const before = getLanding(state);
+  brake(state);
+  step(state, 0.4);
+  const after = getLanding(state);
+  assert.notEqual(after.effectiveRotation, before.effectiveRotation);
+  assert.equal(after.type, sectorAt(after.layer, BALL_ANGLE - after.effectiveRotation));
+  near(after.effectiveRotation, state.rotation + layerRotationAt(after.layer, state.elapsed));
+  const frozen = state.y;
+  step(state, 0.4);
+  near(state.y, frozen);
+  alignGap(state);
+  until(state, (run) => run.nextLayer > 3);
+  assert.equal(state.status, 'playing');
+});
+
+test('accelerating rings increase fall speed while exact collision remains frame-independent', () => {
+  const base = structuredClone(LEVELS[0]),
+    fast = structuredClone(LEVELS[0]);
+  fast.layers[0].gravityScale = 1.2;
+  const normal = createGame(base),
+    accelerated = createGame(fast);
+  for (const game of [normal, accelerated]) {
+    game.y = -200;
+    game.v = 100;
+    step(game, 0.1);
+  }
+  assert.ok(accelerated.v > normal.v && accelerated.y > normal.y);
+  const results = [30, 60, 120].map((fps) => {
+    const game = createGame(LEVELS[24]);
+    for (let frame = 0; frame < fps * 0.5; frame++) step(game, 1 / fps);
+    return game;
+  });
+  for (const game of results) {
+    near(game.y, results[0].y);
+    near(game.v, results[0].v);
+  }
+});
+
+test('continuation compensates moving machinery to restore the same safe landing angle', () => {
+  const state = createGame(LEVELS[8]);
+  state.nextLayer = 3;
+  const layer = state.level.layers[3];
+  state.y = layer.y - BALL_RADIUS - 0.01;
+  state.v = 100;
+  setLocalAngle(state, (160 * Math.PI) / 180);
+  step(state, 1 / 120);
+  assert.equal(state.lastCheckpoint.layer, 3);
+  const safe = getLanding(state).angle;
+  state.elapsed += 4;
+  state.status = 'lost';
+  const elapsed = state.elapsed;
+  assert.equal(resumeCheckpoint(state), true);
+  assert.equal(getLanding(state).type, 'normal');
+  near(getLanding(state).angle, safe, 0.001);
+  assert.equal(state.elapsed, elapsed);
 });

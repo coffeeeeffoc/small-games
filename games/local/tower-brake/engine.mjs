@@ -1,3 +1,6 @@
+import { createEndlessLevel, createEndlessLayer } from './levels.mjs';
+// Bump for ranked simulation/content/scoring changes; presentation changes keep this version.
+export const RANKED_RULE_VERSION = 'tower-ranked-v1';
 /** DOM-free, deterministic Tower Brake simulation. Distances are world units. */
 export const TAU = Math.PI * 2;
 export const BALL_ANGLE = Math.PI / 2;
@@ -13,6 +16,11 @@ export const normalizeAngle = (angle) => ((angle % TAU) + TAU) % TAU;
 const signedAngle = (angle) => normalizeAngle(angle + Math.PI) - Math.PI;
 const inArc = (angle, arc) =>
   !!arc && normalizeAngle(angle - arc.start) < normalizeAngle(arc.end - arc.start);
+
+/** Oscillating machinery uses simulation time, including a ball-only brake. */
+export function layerRotationAt(layer, elapsed = 0) {
+  return layer.spinSpeed ? 0.36 * Math.sin((elapsed * layer.spinSpeed) / 0.36) : 0;
+}
 
 /** Gap takes precedence only at a shared boundary; content validation forbids overlap. */
 export function sectorAt(layer, localAngle) {
@@ -34,6 +42,9 @@ export function createGame(level) {
   const first = level.layers[0];
   return {
     level,
+    mode: 'campaign',
+    layerOffset: 0,
+    totalFloors: 0,
     status: 'playing',
     y: first.y - BALL_RADIUS,
     v: BOUNCE_SPEED,
@@ -53,6 +64,25 @@ export function createGame(level) {
     bounces: 0,
     failureLayer: null,
   };
+}
+
+export function createEndlessGame(seed = 0) {
+  return Object.assign(createGame(createEndlessLevel(seed)), { mode: 'endless', seed: seed >>> 0 });
+}
+
+function extendEndless(state) {
+  if (state.mode !== 'endless') return;
+  if (state.nextLayer >= 24) {
+    const count = state.nextLayer - 1;
+    state.level.layers.splice(0, count);
+    state.layerOffset += count;
+    state.nextLayer -= count;
+    state.lastCheckpoint = null; // Endless runs never rewind already-scored floors.
+  }
+  while (state.level.layers.length < state.nextLayer + 12) {
+    const index = state.layerOffset + state.level.layers.length;
+    state.level.layers.push(createEndlessLayer(index, state.seed));
+  }
 }
 
 export function rotate(state, delta) {
@@ -76,36 +106,42 @@ export function getLanding(state, offset = 0) {
   const index = state.nextLayer + offset;
   const layer = state.level.layers[index];
   if (!layer) return null;
-  const angle = normalizeAngle(BALL_ANGLE - state.rotation);
+  const effectiveRotation = state.rotation + layerRotationAt(layer, state.elapsed);
+  const angle = normalizeAngle(BALL_ANGLE - effectiveRotation);
   const center = layer.gap
     ? normalizeAngle(layer.gap.start + normalizeAngle(layer.gap.end - layer.gap.start) / 2)
     : angle;
   return {
     index,
-    number: index + 1,
+    number: (layer.index ?? index) + 1,
     y: layer.y,
     type: sectorAt(layer, angle),
     angle,
-    rotationToGap: signedAngle(BALL_ANGLE - center - state.rotation),
+    effectiveRotation,
+    rotationToGap: signedAngle(BALL_ANGLE - center - effectiveRotation),
     layer,
   };
 }
 
-function motionAfter(y, v, time) {
-  const accelerating = Math.min(time, Math.max(0, (MAX_FALL_SPEED - v) / GRAVITY));
-  const acceleratedY = y + v * accelerating + (GRAVITY * accelerating * accelerating) / 2;
-  const speed = Math.min(MAX_FALL_SPEED, v + GRAVITY * accelerating);
+function motionAfter(y, v, time, scale = 1) {
+  const gravity = GRAVITY * scale,
+    maxSpeed = MAX_FALL_SPEED * scale;
+  const accelerating = Math.min(time, Math.max(0, (maxSpeed - v) / gravity));
+  const acceleratedY = y + v * accelerating + (gravity * accelerating * accelerating) / 2;
+  const speed = Math.min(maxSpeed, v + gravity * accelerating);
   return { y: acceleratedY + speed * (time - accelerating), v: speed };
 }
 
 /** Exact descending intersection prevents tunneling at low frame rates. */
-function timeToSurface(y, v, surface) {
+function timeToSurface(y, v, surface, scale = 1) {
+  const gravity = GRAVITY * scale,
+    maxSpeed = MAX_FALL_SPEED * scale;
   const distance = surface - y;
   if (distance < -EPSILON) return 0;
-  const capTime = Math.max(0, (MAX_FALL_SPEED - v) / GRAVITY);
-  const capY = y + v * capTime + (GRAVITY * capTime * capTime) / 2;
-  if (surface > capY) return capTime + (surface - capY) / MAX_FALL_SPEED;
-  return Math.max(0, (-v + Math.sqrt(Math.max(0, v * v + 2 * GRAVITY * distance))) / GRAVITY);
+  const capTime = Math.max(0, (maxSpeed - v) / gravity);
+  const capY = y + v * capTime + (gravity * capTime * capTime) / 2;
+  if (surface > capY) return capTime + (surface - capY) / maxSpeed;
+  return Math.max(0, (-v + Math.sqrt(Math.max(0, v * v + 2 * gravity * distance))) / gravity);
 }
 
 function advancePhysics(state, duration) {
@@ -114,9 +150,10 @@ function advancePhysics(state, duration) {
     const layer = state.level.layers[state.nextLayer];
     if (!layer) break;
     const surface = layer.y - BALL_RADIUS;
-    const hitTime = timeToSurface(state.y, state.v, surface);
+    const scale = layer.gravityScale || 1;
+    const hitTime = timeToSurface(state.y, state.v, surface, scale);
     const travelTime = Math.min(remaining, hitTime);
-    const motion = motionAfter(state.y, state.v, travelTime);
+    const motion = motionAfter(state.y, state.v, travelTime, scale);
     state.y = motion.y;
     state.v = motion.v;
     state.elapsed += travelTime;
@@ -124,11 +161,15 @@ function advancePhysics(state, duration) {
     if (hitTime > travelTime + EPSILON) break;
 
     state.y = surface;
-    const type = sectorAt(layer, BALL_ANGLE - state.rotation);
+    const type = sectorAt(
+      layer,
+      BALL_ANGLE - state.rotation - layerRotationAt(layer, state.elapsed),
+    );
     const layerIndex = state.nextLayer;
     if (type === 'gap') {
       state.nextLayer += 1;
       state.passes += 1;
+      state.totalFloors += 1;
       state.streak += 1;
       state.maxStreak = Math.max(state.maxStreak, state.streak);
       const points = 100 * Math.min(5, state.streak);
@@ -138,11 +179,17 @@ function advancePhysics(state, duration) {
         state.charge = 1;
         emit(state, 'charge', { layer: layerIndex, streak: state.streak });
       }
+      extendEndless(state);
     } else if (type === 'normal') {
       state.v = BOUNCE_SPEED;
       state.streak = 0;
       state.bounces += 1;
-      state.lastCheckpoint = { layer: layerIndex, y: surface, rotation: state.rotation };
+      state.lastCheckpoint = {
+        layer: layerIndex,
+        y: surface,
+        rotation: state.rotation,
+        effectiveRotation: state.rotation + layerRotationAt(layer, state.elapsed),
+      };
       emit(state, 'bounce', { layer: layerIndex });
     } else if (type === 'danger') {
       state.status = 'lost';
@@ -184,12 +231,21 @@ export function step(state, dt) {
 
 /** One safe retry at the latest ordinary landing. The run stays marked as continued. */
 export function resumeCheckpoint(state) {
-  if (state.status !== 'lost' || state.continued || !state.lastCheckpoint) return false;
+  if (
+    state.mode === 'endless' ||
+    state.status !== 'lost' ||
+    state.continued ||
+    !state.lastCheckpoint
+  )
+    return false;
   const checkpoint = state.lastCheckpoint;
   state.status = 'playing';
   state.y = checkpoint.y;
   state.v = BOUNCE_SPEED;
-  state.rotation = checkpoint.rotation;
+  state.rotation = normalizeAngle(
+    (checkpoint.effectiveRotation ?? checkpoint.rotation) -
+      layerRotationAt(state.level.layers[checkpoint.layer], state.elapsed),
+  );
   state.nextLayer = checkpoint.layer;
   state.streak = 0;
   state.charge = 1;

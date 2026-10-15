@@ -1,8 +1,19 @@
 import { createH5Publishing } from './publishing.js';
 import { LEVELS } from './levels.mjs';
-import { createGame, step, rotate, brake, resumeCheckpoint, getLanding } from './engine.mjs';
+import {
+  createGame,
+  createEndlessGame,
+  MAX_STEP,
+  RANKED_RULE_VERSION,
+  step,
+  rotate,
+  brake,
+  resumeCheckpoint,
+  getLanding,
+} from './engine.mjs';
 import { TowerRenderer, drawRadar } from './render.mjs';
 import { readProgress, saveProgress, recordWin } from './progress.mjs';
+import { createLeaderboard } from './leaderboard.mjs';
 
 const $ = (id) => document.getElementById(id);
 let storage;
@@ -21,6 +32,7 @@ const screens = [
   'result-screen',
   'help-screen',
   'settings-screen',
+  'leaderboard-screen',
 ];
 let screen = 'home';
 let selected = progress.selected;
@@ -28,11 +40,44 @@ let game = createGame(LEVELS[selected]);
 let demo = createGame(LEVELS[selected]);
 let practice = false;
 let challenge = false;
+let starting = false,
+  startSequence = 0,
+  frameAccumulator = 0;
+let competitionStatus = '本地挑战';
+const competition = createLeaderboard({
+  gameId: 'tower-brake',
+  ruleVersion: RANKED_RULE_VERSION,
+  moduleUrl: new URL('./game-services.js', import.meta.url).href,
+  onStatus: (text, status) => {
+    competitionStatus = text;
+    $('ranking-note').textContent = text;
+    if (status === 'update-required') toast(text, 5000);
+  },
+});
 const incoming = new URL(location.href).searchParams;
 const targetValue = Number(incoming.get('targetScore'));
-const targetScore = incoming.has('targetScore') && Number.isInteger(targetValue) && targetValue >= 0 && targetValue <= 20000 ? targetValue : null;
-const challengeIndex = incoming.get('challenge') === 'tower-v1' ? LEVELS.findIndex((level) => level.id === incoming.get('level')) : -1;
-const publishing = createH5Publishing({ gameId: 'tower-brake', title: '转塔留一脚刹车', adMode: globalThis.SmallGamesPublishingConfig?.adMode ?? 'mock', provider: globalThis.SmallGamesPublishingConfig?.provider, publicUrl: globalThis.SmallGamesPublishingConfig?.publicUrl, pause: () => { pause(); return () => {}; } });
+const targetScore =
+  incoming.has('targetScore') &&
+  Number.isInteger(targetValue) &&
+  targetValue >= 0 &&
+  targetValue <= 20000
+    ? targetValue
+    : null;
+const challengeIndex =
+  incoming.get('challenge') === 'tower-v1'
+    ? LEVELS.findIndex((level) => level.id === incoming.get('level'))
+    : -1;
+const publishing = createH5Publishing({
+  gameId: 'tower-brake',
+  title: '转塔留一脚刹车',
+  adMode: globalThis.SmallGamesPublishingConfig?.adMode ?? 'mock',
+  provider: globalThis.SmallGamesPublishingConfig?.provider,
+  publicUrl: globalThis.SmallGamesPublishingConfig?.publicUrl,
+  pause: () => {
+    pause();
+    return () => {};
+  },
+});
 let previousTime = 0;
 let frameId;
 let feedbackUntil = 0;
@@ -62,15 +107,30 @@ const on = (id, fn) => action($(id), fn);
 let lastTouchActionAt = -Infinity;
 // A compatibility click may target a newly opened overlay, not the original button.
 // Reset on the next real contact so a deliberate close is never swallowed.
-listen(document, 'pointerdown', (event) => {
-  if (event.pointerType === 'touch') lastTouchActionAt = -Infinity;
-}, { capture: true });
-listen(document, 'click', (event) => {
-  if (event.isTrusted && event.detail > 0 && now() - lastTouchActionAt <= 700 && !event.target.closest('[data-game-fullscreen]')) {
-    event.preventDefault();
-    event.stopImmediatePropagation();
-  }
-}, { capture: true });
+listen(
+  document,
+  'pointerdown',
+  (event) => {
+    if (event.pointerType === 'touch') lastTouchActionAt = -Infinity;
+  },
+  { capture: true },
+);
+listen(
+  document,
+  'click',
+  (event) => {
+    if (
+      event.isTrusted &&
+      event.detail > 0 &&
+      now() - lastTouchActionAt <= 700 &&
+      !event.target.closest('[data-game-fullscreen]')
+    ) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  },
+  { capture: true },
+);
 const pad = (value) => String(value).padStart(2, '0');
 const now = () => performance.now();
 
@@ -128,7 +188,14 @@ function show(name) {
   $('play-screen').dataset.phase =
     name === 'play-screen' ? 'playing' : name === 'pause-screen' ? 'paused' : name;
   previousTime = 0;
-  if (name === 'home') updateHome();
+  if (name === 'home') {
+    ++startSequence;
+    starting = false;
+    competition.invalidate('returned home');
+    updateHome();
+  }
+  if (name === 'leaderboard-screen') void competition.show();
+  else competition.close();
   if (name === 'levels-screen') updateLevels();
   if (name === 'settings-screen') updateSettings();
   $('feedback').classList.remove('visible');
@@ -143,7 +210,8 @@ function updateHome() {
   }
   const level = LEVELS[selected];
   $('home-route').textContent = `${pad(selected + 1)} / ${level.name}`;
-  $('unlocked-count').textContent = `${pad(progress.unlocked)} / 08`;
+  $('unlocked-count').textContent = `${pad(progress.unlocked)} / ${LEVELS.length}`;
+  $('endless-best').textContent = `最佳 ${progress.endlessBest} 层`;
   $('home').dataset.ready = 'true';
   demo = createGame(level);
 }
@@ -174,7 +242,8 @@ function updateLevels() {
     action(button, () => start(index));
     grid.append(button);
   });
-  $('levels-progress').textContent = `已解锁 ${progress.unlocked} / 8 · 完成一条，开启下一条`;
+  $('levels-progress').textContent =
+    `已解锁 ${progress.unlocked} / ${LEVELS.length} · 完成一条，开启下一条`;
 }
 
 function updateSettings() {
@@ -187,26 +256,44 @@ function updateSettings() {
     );
 }
 
-function start(index = selected, isPractice = false, isChallenge = false) {
-  if (!LEVELS[index] || (!isPractice && !isChallenge && index >= progress.unlocked)) return;
+async function start(index = selected, isPractice = false, isChallenge = false, endless = false) {
+  if (!endless && (!LEVELS[index] || (!isPractice && !isChallenge && index >= progress.unlocked)))
+    return;
+  const attempt = ++startSequence;
+  starting = true;
+  frameAccumulator = 0;
+  competition.invalidate('new run');
   selected = index;
   practice = isPractice;
   challenge = isChallenge;
-  if (!practice && !challenge) {
+  if (!endless && !practice && !challenge) {
     progress.selected = index;
     save();
   }
-  game = createGame(LEVELS[index]);
+  game = endless ? createEndlessGame() : createGame(LEVELS[index]);
   resultSaved = false;
   dragged = 0;
   $('gesture-hint').style.opacity = '1';
   $('gesture-hint').innerHTML = '<span aria-hidden="true">↔</span> 左右滑动，转出缺口';
-  $('level-label').textContent =
-    `${pad(index + 1)} / ${LEVELS[index].name}${practice ? ' · 试玩' : challenge ? ' · 好友挑战' : ''}`;
+  $('level-label').textContent = endless
+    ? '无尽下落 · 保持节奏'
+    : `${pad(index + 1)} / ${LEVELS[index].name}${practice ? ' · 试玩' : challenge ? ' · 好友挑战' : ''}`;
   show('play-screen');
   lastUiKey = '';
   updateGameUI();
   sound('click');
+  if (game.level.mechanicHint) toast(game.level.mechanicHint, 5000);
+  const online = await competition.start({
+    mode: endless ? 'endless' : 'campaign',
+    levelId: endless ? undefined : LEVELS[index].id,
+    practice: practice || challenge || !!window.SmallGamesDev?.isEnabled(),
+  });
+  if (attempt !== startSequence) return;
+  if (endless) game = createEndlessGame(online?.seed ?? 0);
+  starting = false;
+  previousTime = 0;
+  lastUiKey = '';
+  updateGameUI();
 }
 
 function toast(message, duration = 1600) {
@@ -215,9 +302,18 @@ function toast(message, duration = 1600) {
   feedbackUntil = now() + duration;
 }
 
+function turn(delta) {
+  if (starting) return false;
+  if (!rotate(game, delta)) return false;
+  competition.record({ rotation: delta }, 0);
+  return true;
+}
+
 function useBrake() {
+  if (starting) return;
   if (screen !== 'play-screen' || game.status !== 'playing') return;
   if (brake(game)) {
+    competition.record({ brake: true }, 0);
     sound('brake');
     toast('刹住了。现在转出缺口。', 800);
     updateGameUI();
@@ -233,25 +329,29 @@ function pause() {
 function updateGameUI() {
   const landing = getLanding(game);
   const following = getLanding(game, 1);
-  const current = Math.min(12, game.nextLayer + 1);
+  const endless = game.mode === 'endless';
+  const current = endless ? game.totalFloors : Math.min(12, game.nextLayer + 1);
   const key = [
     current,
+    starting,
     game.streak,
     game.charge,
     Math.ceil(game.brakeLeft * 10),
     landing?.type,
     following?.type,
-    game.rotation.toFixed(3),
+    (landing?.effectiveRotation ?? game.rotation).toFixed(3),
   ].join('|');
   if (key === lastUiKey) return;
   lastUiKey = key;
   $('floor-count').textContent = pad(current);
-  $('floor-fill').style.width = `${(game.nextLayer / 12) * 100}%`;
+  $('floor-total').textContent = endless ? '层 · 无尽' : '/ 12';
+  $('floor-fill').style.width =
+    `${((endless ? game.totalFloors % 12 : game.nextLayer) / 12) * 100}%`;
   $('combo-count').textContent = String(game.streak);
   const pips = game.streak > 0 && game.streak % 3 === 0 ? 3 : game.streak % 3;
   [...$('combo-pips').children].forEach((el, index) => el.classList.toggle('filled', index < pips));
   $('brake-button').dataset.charges = String(game.charge);
-  $('brake-button').disabled = !game.charge || game.brakeLeft > 0;
+  $('brake-button').disabled = starting || !game.charge || game.brakeLeft > 0;
   $('brake-button').classList.toggle('active', game.brakeLeft > 0);
   $('brake-label').textContent =
     game.brakeLeft > 0 ? `${game.brakeLeft.toFixed(1)}s` : game.charge ? '刹车' : '充能中';
@@ -261,12 +361,22 @@ function updateGameUI() {
       : game.charge
         ? '0.8 秒 · 点击使用'
         : `再连穿 ${3 - (game.streak % 3)} 层`;
-  $('charge-hint').textContent = game.continued
-    ? '续关挑战 · 成绩单独记录'
-    : practice
-      ? '开发试玩 · 不记录成绩'
-      : `${game.score} 分 · 连穿倍率 ×${Math.max(1, Math.min(5, game.streak))}`;
-  $('landing-label').textContent = `第 ${landing?.number ?? 12} 层落点`;
+  $('charge-hint').textContent = starting
+    ? '准备挑战…'
+    : game.continued
+      ? '续关挑战 · 成绩单独记录'
+      : practice
+        ? '开发试玩 · 不记录成绩'
+        : `${game.score} 分 · 连穿倍率 ×${Math.max(1, Math.min(5, game.streak))}`;
+  const mechanisms = [
+    landing?.layer.spinSpeed && '自转',
+    landing?.layer.gravityScale > 1 && '加速',
+    landing?.layer.fog && '薄雾',
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  $('landing-label').textContent =
+    `第 ${landing?.number ?? 12} 层${mechanisms ? ` · ${mechanisms}` : '落点'}`;
   const names = {
     normal: '普通区 · 会弹起',
     gap: '缺口 · 可穿过',
@@ -291,6 +401,12 @@ function finish() {
   const won = game.status === 'won';
   const bucket = game.continued ? progress.continuedBest : progress.best;
   const previousBest = bucket[LEVELS[selected].id]?.elapsed;
+  if (game.mode === 'endless' && !practice && !challenge && !window.SmallGamesDev?.isEnabled()) {
+    progress.endlessBest = Math.max(progress.endlessBest, game.totalFloors);
+    save();
+  }
+  $('ranking-note').textContent = competitionStatus;
+  void competition.finish();
   if (won && !practice && !challenge) {
     recordWin(progress, selected, LEVELS[selected].id, game, { practice });
     save();
@@ -302,36 +418,51 @@ function finish() {
   $('result-number').style.color = won ? 'var(--mint)' : '#fbab8d';
   $('result-title').textContent = won ? '稳稳落地。' : '差一点，就过去了。';
   $('result-copy').textContent = won
-    ? selected === 7
-      ? '八条路线全部完成。再试一次，留下更好的成绩。'
+    ? selected === LEVELS.length - 1
+      ? `${LEVELS.length} 条路线全部完成。试试无尽下落，继续挑战。`
       : '这一次，你掌握了下落的节奏。'
     : `第 ${game.nextLayer + 1} 层碰到了危险区。${game.charge ? '下次试试先刹住，再转塔。' : '看准落点，普通平台也能给你喘息。'}`;
   $('result-streak').textContent = String(game.maxStreak);
   $('result-time').innerHTML = `${game.elapsed.toFixed(1)}<small>s</small>`;
   $('result-brakes').textContent = String(game.brakesUsed);
   $('record-note').textContent = challenge
-    ? `好友自报目标 ${targetScore ?? "—"} 分 · ${targetScore === null ? "同路线体验" : game.score >= targetScore ? "已达成！" : `还差 ${targetScore - game.score} 分`} · 不改变进度`
+    ? `好友自报目标 ${targetScore ?? '—'} 分 · ${targetScore === null ? '同路线体验' : game.score >= targetScore ? '已达成！' : `还差 ${targetScore - game.score} 分`} · 不改变进度`
     : practice
-    ? '开发试玩 · 不记录成绩与解锁'
-    : game.continued
-      ? '续关成绩 · 与无续关挑战分开记录'
-      : won
-        ? previousBest === undefined || game.elapsed < previousBest
-          ? '新的最佳时间 · 无续关完成'
-          : '无续关完成 · 最佳时间已保留'
-        : '重来不会消耗任何次数';
+      ? '开发试玩 · 不记录成绩与解锁'
+      : game.continued
+        ? '续关成绩 · 与无续关挑战分开记录'
+        : won
+          ? previousBest === undefined || game.elapsed < previousBest
+            ? '新的最佳时间 · 无续关完成'
+            : '无续关完成 · 最佳时间已保留'
+          : '重来不会消耗任何次数';
   $('next-game').hidden = !won || selected === LEVELS.length - 1 || practice || challenge;
-  $('share-game').hidden = practice;
+  $('share-game').hidden = practice || game.mode === 'endless';
   $('result-score').textContent = `${game.score} 分 · 连穿越久，单层分数越高`;
   $('share-status').textContent = '';
   $('retry-game').className =
     won && selected < LEVELS.length - 1 && !practice ? 'secondary' : 'primary';
-  $('continue-game').hidden = won || game.continued || practice;
+  $('continue-game').hidden = won || game.continued || practice || game.mode === 'endless';
+  if (game.mode === 'endless') {
+    $('result-kicker').textContent = 'ENDLESS DESCENT';
+    $('result-number').textContent = `${game.totalFloors} 层`;
+    $('result-title').textContent = '再下深一点。';
+    $('result-copy').textContent = `第 ${game.totalFloors + 1} 层碰到危险区。下一次，留一脚刹车。`;
+    $('record-note').textContent = `本机最佳 ${progress.endlessBest} 层 · 无尽挑战不解锁路线`;
+    $('next-game').hidden = true;
+  }
   show('result-screen');
 }
 
 on('start-game', () => start());
 on('choose-level', () => show('levels-screen'));
+on('endless-game', () => start(selected, false, false, true));
+on('leaderboard-button', () => show('leaderboard-screen'));
+on('leaderboard-home', () => show('home'));
+on('leaderboard-retry', () => void competition.show());
+document
+  .querySelectorAll('[data-board]')
+  .forEach((button) => action(button, () => void competition.show(button.dataset.board)));
 on('levels-home', () => show('home'));
 on('help-button', () => show('help-screen'));
 on('help-home', () => show('home'));
@@ -343,17 +474,35 @@ on('resume-game', () => {
   show('play-screen');
   if (audio?.state === 'suspended') void audio.resume();
 });
-on('restart-game', () => start(selected, practice, challenge));
+on('restart-game', () => start(selected, practice, challenge, game.mode === 'endless'));
 on('pause-home', () => show('home'));
-on('retry-game', () => start(selected, practice, challenge));
-on('next-game', async () => { const target = selected + 1, attempt = game; $('next-game').disabled = true; await publishing.interstitial({ placement: 'route-complete', naturalBreak: true }); $('next-game').disabled = false; if (screen === 'result-screen' && game === attempt && !document.hidden) start(target); });
+on('retry-game', () => start(selected, practice, challenge, game.mode === 'endless'));
+on('next-game', async () => {
+  const target = selected + 1,
+    attempt = game;
+  $('next-game').disabled = true;
+  await publishing.interstitial({ placement: 'route-complete', naturalBreak: true });
+  $('next-game').disabled = false;
+  if (screen === 'result-screen' && game === attempt && !document.hidden) start(target);
+});
 on('result-home', () => show('home'));
 on('challenge-game', () => start(challengeIndex, false, true));
 on('share-game', async () => {
-  const outcome = await publishing.share({ text: `我在${LEVELS[selected].name}获得 ${game.score} 分，最高连穿 ${game.maxStreak} 层${game.continued ? '（续关）' : ''}。来挑战同一条路线！`, params: { challenge: 'tower-v1', level: LEVELS[selected].id, targetScore: game.score } });
-  $('share-status').textContent = outcome.status === 'copied' ? '挑战链接已复制，发给好友即可玩同一路线' : outcome.status === 'shared' ? '已打开系统分享' : outcome.status === 'cancelled' ? '已取消分享' : '暂时无法分享，请稍后重试';
+  const outcome = await publishing.share({
+    text: `我在${LEVELS[selected].name}获得 ${game.score} 分，最高连穿 ${game.maxStreak} 层${game.continued ? '（续关）' : ''}。来挑战同一条路线！`,
+    params: { challenge: 'tower-v1', level: LEVELS[selected].id, targetScore: game.score },
+  });
+  $('share-status').textContent =
+    outcome.status === 'copied'
+      ? '挑战链接已复制，发给好友即可玩同一路线'
+      : outcome.status === 'shared'
+        ? '已打开系统分享'
+        : outcome.status === 'cancelled'
+          ? '已取消分享'
+          : '暂时无法分享，请稍后重试';
 });
 on('continue-game', () => {
+  competition.invalidate('continued');
   if (resumeCheckpoint(game)) {
     resultSaved = false;
     lastUiKey = '';
@@ -396,7 +545,7 @@ listen($('app'), 'pointermove', (event) => {
   if (!drag || event.pointerId !== drag.id || screen !== 'play-screen') return;
   const delta = event.clientX - drag.x;
   drag.x = event.clientX;
-  rotate(game, (-delta / Math.max(280, $('app').clientWidth)) * Math.PI * 1.7);
+  turn((-delta / Math.max(280, $('app').clientWidth)) * Math.PI * 1.7);
   dragged += Math.abs(delta);
   if (dragged > 45) $('gesture-hint').style.opacity = '0';
   updateGameUI();
@@ -437,16 +586,22 @@ function frame(time) {
     const direction =
       (keys.has('ArrowRight') || keys.has('KeyD') ? 1 : 0) -
       (keys.has('ArrowLeft') || keys.has('KeyA') ? 1 : 0);
-    if (direction) {
-      rotate(game, -direction * dt * 2.7);
+    if (direction && !starting) {
+      turn(-direction * dt * 2.7);
       $('gesture-hint').style.opacity = '0';
     }
-    step(game, dt);
+    if (!starting) frameAccumulator += dt;
+    while (frameAccumulator + 1e-9 >= MAX_STEP && game.status === 'playing') {
+      frameAccumulator -= MAX_STEP;
+      competition.record({}, 1);
+      step(game, MAX_STEP);
+    }
     for (const event of game.events.splice(0)) {
       if (event.type === 'bounce' || event.type === 'land') sound('bounce');
       if (event.type === 'pass') {
         sound('pass');
-        if (event.streak > 0 && event.streak % 3 === 0) toast(`${event.streak} 层连落 · +${event.points} 分`);
+        if (event.streak > 0 && event.streak % 3 === 0)
+          toast(`${event.streak} 层连落 · +${event.points} 分`);
       }
       if (event.type === 'charge') {
         sound('recharge');
@@ -495,13 +650,14 @@ if (window.SmallGamesDev?.isEnabled()) {
     start: (index) => start(index, true),
     snapshot: () => ({ ...game, screen, practice }),
     getState: () => game,
-    rotate: (delta) => rotate(game, delta),
+    rotate: turn,
     brake: useBrake,
     pause,
   };
 }
 listen(window, 'pagehide', (event) => {
   pause();
+  competition.invalidate('page hidden');
   cancelAnimationFrame(frameId);
   if (!event.persisted) {
     publishing.dispose();
@@ -519,7 +675,9 @@ listen(window, 'pageshow', (event) => {
   }
 });
 $('challenge-game').hidden = challengeIndex < 0;
-if (challengeIndex >= 0) $('challenge-game').textContent = `好友挑战 · ${LEVELS[challengeIndex].name}${targetScore === null ? "" : ` · 自报 ${targetScore} 分`}`;
+if (challengeIndex >= 0)
+  $('challenge-game').textContent =
+    `好友挑战 · ${LEVELS[challengeIndex].name}${targetScore === null ? '' : ` · 自报 ${targetScore} 分`}`;
 updateHome();
 updateSettings();
 frameId = requestAnimationFrame(frame);

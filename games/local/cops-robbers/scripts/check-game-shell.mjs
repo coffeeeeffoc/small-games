@@ -25,6 +25,7 @@ async function snapshot(page) {
 async function check(name, run) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
   const page = await context.newPage();
+  await page.addInitScript(() => { globalThis.SmallGamesRewardAds = { offer: async () => ({ status: 'completed' }) }; });
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
@@ -68,6 +69,7 @@ try {
       assert.ok(await page.locator(selector).isVisible(), `${selector} must be available on home`);
     }
     assert.ok(await page.locator('.home-scene').isVisible(), 'The illustrated street scene leads the home');
+    assert.ok(await page.locator('#friend-duel').isDisabled(), 'Friend PK and the global board are temporarily unavailable');
     assert.notEqual(await page.locator('.home-scene').evaluate(scene => getComputedStyle(scene).backgroundImage), 'none',
       'The home scene loads its cartoon art');
     await page.locator('#level-select').tap();
@@ -213,7 +215,7 @@ try {
     await page.locator('#focus-toggle').tap();
     await page.locator('#resume-patrol').tap();
     assert.ok(await page.getByTestId('hint').isEnabled(), 'A cancelled request never leaves hint disabled');
-    assert.equal((await page.getByTestId('hint').textContent()).trim(), '提示');
+    assert.equal((await page.getByTestId('hint').textContent()).trim(), '看广告');
     assert.deepEqual(await snapshot(page), before, 'Cancelling and resuming a hint preserves the patrol');
   });
   await check('occupied road feedback stays visible in the compact game prompt', async page => {

@@ -1,6 +1,6 @@
 /** Pure puzzle rules. Angles use screen coordinates: right = 0, down = π / 2. */
 export const TAU = Math.PI * 2;
-export const STROKE_MARGIN = 0.055;
+export const RING_STROKE = 15;
 const EPSILON = 1e-9;
 
 export interface Point {
@@ -22,7 +22,7 @@ export interface Ring extends Point {
 export interface Level {
   id: string;
   name: string;
-  chapter: 1 | 2 | 3;
+  chapter: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
   intro?: string;
   rings: Ring[];
 }
@@ -128,17 +128,30 @@ export function rotateRing(state: State, ringId: string, angle: number): boolean
   return true;
 }
 
-export function tryRelease(state: State, ringId: string): boolean {
+/** Both rounded ring tips and the neighbouring band must fit through the opening. */
+export function openingClearance(ring: Pick<Ring, 'r'>): number {
+  return Math.asin(Math.min(1, (RING_STROKE + 2) / ring.r));
+}
+
+export function hasBandAt(ring: Ring, angle: number): boolean {
+  return angleDistance(ring.angle, angle) > ring.gap / 2 - Math.asin(Math.min(1, RING_STROKE / (2 * ring.r)));
+}
+
+export function clearsOpening(ring: Ring, angle: number): boolean {
+  return angleDistance(ring.angle, angle) <= ring.gap / 2 - openingClearance(ring) + EPSILON;
+}
+
+export function canRelease(state: State, ringId: string): boolean {
   const ring = state.rings.find((candidate) => candidate.id === ringId);
   if (!ring || ring.removed || isLocked(state, ringId)) return false;
-  const safeHalfGap = ring.gap / 2 - STROKE_MARGIN;
-  if (
-    getBlockers(state, ringId).some((blocker) =>
-      blocker.angles.some((angle) => angleDistance(ring.angle, angle) > safeHalfGap + EPSILON),
-    )
-  ) {
-    return false;
-  }
+  return getBlockers(state, ringId).every((blocker) =>
+    blocker.angles.every((angle) => clearsOpening(ring, angle)),
+  );
+}
+
+export function tryRelease(state: State, ringId: string): boolean {
+  if (!canRelease(state, ringId)) return false;
+  const ring = state.rings.find((candidate) => candidate.id === ringId)!;
   ring.removed = true;
   state.releasedCount += 1;
   return true;
@@ -166,14 +179,14 @@ function coveringAngle(angles: number[], opening: number, currentAngle: number):
       best = { angle, span };
     }
   }
-  return best && best.span + STROKE_MARGIN * 2 <= opening + EPSILON ? best.angle : null;
+  return best && best.span <= opening + EPSILON ? best.angle : null;
 }
 
 export function findHint(state: State): Hint | null {
   for (const ring of state.rings) {
     if (ring.removed || isLocked(state, ring.id)) continue;
     const angles = getBlockers(state, ring.id).flatMap((blocker) => blocker.angles);
-    const angle = coveringAngle(angles, ring.gap, ring.angle);
+    const angle = coveringAngle(angles, ring.gap - openingClearance(ring) * 2, ring.angle);
     if (angle !== null) return { ringId: ring.id, angle };
   }
   return null;
@@ -209,7 +222,8 @@ export function validateLevel(value: unknown): string[] {
     errors.push('level id must be a non-empty string of at most 80 characters');
   if (!isName(value.name))
     errors.push('level name must be a non-empty string of at most 80 characters');
-  if (![1, 2, 3].includes(value.chapter as number)) errors.push('chapter must be 1, 2 or 3');
+  if (!Number.isInteger(value.chapter) || (value.chapter as number) < 1 || (value.chapter as number) > 8)
+    errors.push('chapter must be an integer between 1 and 8');
   if (value.intro !== undefined && (typeof value.intro !== 'string' || value.intro.length > 160)) {
     errors.push('intro must be a string of at most 160 characters');
   }
@@ -244,7 +258,7 @@ export function validateLevel(value: unknown): string[] {
     if (
       typeof ring.gap !== 'number' ||
       !Number.isFinite(ring.gap) ||
-      ring.gap <= STROKE_MARGIN * 2 ||
+      (typeof ring.r === 'number' && ring.gap <= openingClearance({r: ring.r}) * 2) ||
       ring.gap >= TAU
     ) {
       errors.push(`${label} gap must be greater than stroke clearance and less than a full turn`);

@@ -1,0 +1,61 @@
+{
+  "entryUrl": "http://127.0.0.1:4469/dist/",
+  "testedAt": "2026-10-13T15:18:14.114Z",
+  "browser": "154.0.8037.99",
+  "checks": [
+    "landscape drag aim with movement fires up/down/backwards; cancel recenters and stops",
+    "simultaneous touch movement/jump/fire and gesture cancellation",
+    "touch-specific guide from home and pause; diagonal examples and paused return",
+    "pause freezes simulation, clock and damage",
+    "held gameplay Space across upgrade cannot auto-install focused card",
+    "natural touch victory across all rooms, upgrade choices and Boss",
+    "normal unlocks and best run survive reload",
+    "portrait rotation fallback preserves touch direction and screen flow",
+    "568x320 safe targets; blur releases touches and pauses",
+    "fullscreen enters and exits without losing progress",
+    "natural defeat and clean retry",
+    "default production has no developer UI; desktop keyboard, mouse and Escape work",
+    "keyboard-specific guide, focus/Enter navigation and pause return",
+    "Enter starts/resumes/retries without stale focus; I/K alone fire diagonals in both facings, release stops, same-task short taps keep direction",
+    "restored first-room save focuses newly unlocked room, and Enter launches it",
+    "storage-blocked startup remains playable"
+  ],
+  "errors": [],
+  "screenshots": [
+    "taptap-h5/home-844x390.png",
+    "taptap-h5/combat-390x844.png",
+    "taptap-h5/pause-focus-844x390.png",
+    "taptap-h5/victory-844x390.png"
+  ],
+  "naturalRun": {
+    "seconds": 32.50833333333213,
+    "health": 76,
+    "upgrades": ["scatter", "pierce"],
+    "roomsCleared": ["foundry-entry", "furnace-crossing", "dismantler-core"],
+    "trial": false
+  },
+  "limitations": [
+    "Desktop Chromium with emulated touch; no physical phone or native mini-game platform tested.",
+    "Natural play uses a read-only snapshot to steer real multi-touch input; no life, enemy, damage or result state is edited."
+  ],
+  "passed": true,
+  "requests": [
+    "http://127.0.0.1:4469/dist/",
+    "http://127.0.0.1:4469/dist/?dev=0",
+    "http://127.0.0.1:4469/dist/?dev=1",
+    "http://127.0.0.1:4469/dist/assets/emblem.svg",
+    "http://127.0.0.1:4469/dist/dev-mode.js",
+    "http://127.0.0.1:4469/dist/fullscreen.js",
+    "http://127.0.0.1:4469/dist/src/audio.mjs",
+    "http://127.0.0.1:4469/dist/src/core.mjs",
+    "http://127.0.0.1:4469/dist/src/display.mjs",
+    "http://127.0.0.1:4469/dist/src/host.mjs",
+    "http://127.0.0.1:4469/dist/src/levels.mjs",
+    "http://127.0.0.1:4469/dist/src/main.mjs",
+    "http://127.0.0.1:4469/dist/src/progress.mjs",
+    "http://127.0.0.1:4469/dist/src/render.mjs",
+    "http://127.0.0.1:4469/dist/style.css"
+  ],
+  "packageSha256": "923f4c54f19b8a597b43cc1ee0ace993ae1dd40bbe3c6128790423df06e40267",
+  "allCapturesDirectory": "F:\\playground\\playground-ai\\small-games\\.scratch\\ashfall-h5-3567e0c7172e48858120e2dcee80f73c/browser"
+}

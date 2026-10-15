@@ -1,5 +1,7 @@
 # 灰烬防线 · 实际运行验证
 
+最新TapTap H5目录结构、可重复打包与解压入口验证见 [发布准备记录](taptap-h5-verification-2026-10-13.md)；单键射击与平台操作指南见 [2026-10-13记录](simple-shooting-verification-2026-10-13.md)。下面保留2026-10-11初版验证过程；本次包体验证另存taptap-h5-browser-report.json与taptap-h5/截图，未覆盖之前的browser-report.json。
+
 验证日期：2026-10-11。生产静态构建，Chromium 151.0.7922.173，Linux；Playwright 使用真实浏览器多触点、键盘和鼠标事件。浏览器完整结果见 [browser-report.json](browser-report.json)。
 
 ## 手机流程

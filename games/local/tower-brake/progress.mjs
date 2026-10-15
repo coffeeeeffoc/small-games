@@ -1,6 +1,7 @@
+import { LEVELS } from './levels.mjs';
 export const STORAGE_KEY = 'tower-brake-v1';
 
-const MAX_LEVELS = 8;
+const MAX_LEVELS = LEVELS.length;
 const SKINS = new Set(['mint', 'amber', 'ice']);
 const RESERVED_IDS = new Set(['__proto__', 'constructor', 'prototype']);
 
@@ -17,6 +18,7 @@ function defaults() {
     skin: 'mint',
     best: {},
     continuedBest: {},
+    endlessBest: 0,
   };
 }
 
@@ -55,7 +57,7 @@ function sanitizeProgress(saved, levels) {
   const progress = defaults();
   if (!isRecord(saved) || (saved.version !== undefined && saved.version !== 1)) return progress;
 
-  const catalog = Array.isArray(levels) ? levels.slice(0, MAX_LEVELS) : null;
+  const catalog = Array.isArray(levels) ? levels : null;
   const count = catalog ? Math.max(1, catalog.length) : MAX_LEVELS;
   const allowedIds = catalog ? new Set(catalog.map((level) => level?.id).filter(isLevelId)) : null;
 
@@ -65,6 +67,13 @@ function sanitizeProgress(saved, levels) {
   if (Number.isInteger(saved.selected)) {
     progress.selected = Math.max(0, Math.min(progress.unlocked - 1, saved.selected));
   }
+  if (
+    progress.unlocked === 8 &&
+    (saved.best?.['last-descent'] || saved.continuedBest?.['last-descent'])
+  )
+    progress.unlocked = Math.min(count, 9);
+  progress.endlessBest =
+    Number.isSafeInteger(saved.endlessBest) && saved.endlessBest >= 0 ? saved.endlessBest : 0;
   progress.sound = saved.sound !== false;
   progress.skin = SKINS.has(saved.skin) ? saved.skin : 'mint';
   progress.best = sanitizeScores(saved.best, allowedIds);

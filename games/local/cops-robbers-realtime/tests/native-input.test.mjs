@@ -60,3 +60,30 @@ test('native street safe area and capsule offsets preserve physical hit mapping'
     listeners.get('Hide')(); assert.equal(game.getState().page, 'pause'); const tick = game.getState().ticks; listeners.get('Show')(); assert.equal(game.getState().ticks, tick); assert.equal(game.getState().page, 'pause');
   } finally { game.stop(); if (previous === undefined) delete globalThis.__installCompetition; else globalThis.__installCompetition = previous; }
 });
+
+test('a touch started during a native ad cannot consume the reward after its callback', async () => {
+  const listeners = new Map(), storage = new Map([['street-native-v1',JSON.stringify({startedRuns:5})]]);
+  const sdk = { createCanvas:()=>({getContext:()=>new Proxy({}, {get:()=>()=>{}})}), createImage:()=>({width:0}),
+    getSystemInfoSync:()=>({windowWidth:844,windowHeight:390,pixelRatio:1}), getStorageSync:key=>storage.get(key), setStorageSync:(key,value)=>storage.set(key,value) };
+  for(const name of ['TouchStart','TouchEnd','TouchCancel','Hide','Show']) {
+    sdk['on'+name]=fn=>listeners.set(name,fn); sdk['off'+name]=()=>listeners.delete(name);
+  }
+  let finish;
+  const instance=startNativeStreetGame(sdk,{rewardProvider:{show:()=>new Promise(resolve=>{finish=resolve;})}});
+  const event=(x,y,active)=>({changedTouches:[{clientX:x,clientY:y,identifier:1}],touches:active?[{clientX:x,clientY:y,identifier:1}]:[]});
+  const tap=label=>{const hit=instance.getLayout().hits.find(item=>item.label===label); assert(hit,label);
+    listeners.get('TouchStart')(event(hit.x+hit.w/2,hit.y+22,true)); listeners.get('TouchEnd')(event(hit.x+hit.w/2,hit.y+22,false));};
+  try {
+    tap('开始游戏 →'); tap('开始行动 →'); tap('广告冲刺');
+    const frozen=instance.getState().time;
+    listeners.get('TouchStart')(event(420,212,true));
+    finish({status:'completed'}); await Promise.resolve(); await Promise.resolve();
+    listeners.get('TouchEnd')(event(420,212,false));
+    assert.equal(instance.getState().page,'support');
+    assert.equal(instance.getState().phase,'paused');
+    assert.equal(instance.getState().support.sprint,1);
+    assert.equal(instance.getState().time,frozen);
+    tap('使用并继续'); assert.equal(instance.getState().support.sprint,0);
+    assert.equal(instance.getState().phase,'playing');
+  } finally { instance.stop(); }
+});

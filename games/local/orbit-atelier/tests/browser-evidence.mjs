@@ -1,12 +1,13 @@
 import { chromium } from '@playwright/test';
 import { createServer } from 'node:http';
 import { readFile, mkdir } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
+import { errorEvidence } from './evidence.mjs';
 
 export async function browserEvidence() {
   const root = fileURLToPath(new URL('../dist/', import.meta.url));
-  const evidence = new URL('../docs/design/expansion-2026-10-11/actual/', import.meta.url);
+  const evidence = process.env.ORBIT_EVIDENCE_DIR ? pathToFileURL(path.resolve(process.env.ORBIT_EVIDENCE_DIR) + path.sep) : new URL(`../../../../.scratch/orbit-atelier/publishing/${new Date().toISOString().replace(/[:.]/g, '-')}/`, import.meta.url);
   await mkdir(evidence, { recursive: true });
   const mime = {'.js':'text/javascript', '.html':'text/html', '.css':'text/css', '.svg':'image/svg+xml', '.json':'application/json', '.png':'image/png', '.webp':'image/webp', '.wav':'audio/wav'};
   const server = createServer(async (request,response) => {
@@ -20,7 +21,7 @@ export async function browserEvidence() {
   });
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const base=`http://127.0.0.1:${server.address().port}/`;
-  const browser=await chromium.launch({executablePath:process.env.PLAYWRIGHT_EXECUTABLE_PATH||process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});
+  const browser=await chromium.launch({executablePath:process.env.PLAYWRIGHT_EXECUTABLE_PATH||process.env.CHROMIUM_PATH,args:['--no-sandbox']});
   const errors=[];
   const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true,reducedMotion:'reduce'});
   await context.addInitScript(()=>{
@@ -28,7 +29,7 @@ export async function browserEvidence() {
     Object.defineProperty(navigator,'share',{configurable:true,value:undefined});
     Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async value=>window.__copies.push(value)}});
   });
-  const page=await context.newPage(); page.on('pageerror',e=>errors.push(e.message));
+  const page=await context.newPage(); page.on('pageerror',e=>{if(errors.length<20)errors.push(errorEvidence(e));});
   return {base,page,context,browser,errors,
     shot:async label=>page.screenshot({path:fileURLToPath(new URL(`${label}.png`,evidence)),fullPage:true,style:'small-games-devtools { visibility:hidden !important; }'}),
     close:async()=>{await browser.close();await new Promise(resolve=>server.close(resolve));},

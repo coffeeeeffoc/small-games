@@ -327,6 +327,7 @@ button svg {
   touch-action: none;
   user-select: none;
   overflow: visible;
+  outline: none;
 }
 .ring-number {
   font:
@@ -340,13 +341,14 @@ button svg {
   fill: #266760;
 }
 .in-scene-note {
-  height: 30px;
+  min-height: 36px;
   font-size: 11px;
   color: #998971;
   letter-spacing: 1px;
   text-align: center;
   padding: 4px 0;
   max-width: 100%;
+  line-height: 1.5;
 }
 .play-tools {
   display: flex;
@@ -361,15 +363,19 @@ button svg {
   opacity: 0.45;
 }
 .escaping {
-  animation: escape 0.33s ease-out both;
+  animation: escape 0.42s ease-out both;
   transform-box: fill-box;
   transform-origin: center;
   pointer-events: none;
 }
 @keyframes escape {
+  60% {
+    opacity: 1;
+    transform: translate(calc(var(--escape-x) * .6), calc(var(--escape-y) * .6));
+  }
   to {
     opacity: 0;
-    transform: translateY(-50px) rotate(10deg) scale(0.8);
+    transform: translate(var(--escape-x), var(--escape-y));
   }
 }
 .chapters {
@@ -377,6 +383,15 @@ button svg {
   flex-direction: column;
   gap: 28px;
   padding: 17px 0 28px;
+}
+#orbit-app[data-screen='levels'] {
+  overflow: visible;
+}
+#orbit-app[data-screen='levels'] .topbar {
+  position: sticky;
+  top: max(0px, env(safe-area-inset-top));
+  z-index: 2;
+  background: #f5f1e7;
 }
 .chapter {
   position: relative;

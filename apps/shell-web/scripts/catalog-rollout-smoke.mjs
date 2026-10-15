@@ -37,7 +37,7 @@ try {
     const page = await browser.newPage({ viewport: { width, height: 844 }, hasTouch: touch });
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
-    await page.route('**/games/chase-thief/index.html?*', (route) =>
+    await page.route('**/games/tiny-signals/index.html?*', (route) =>
       route.fulfill({
         contentType: 'text/html',
         body: '<!doctype html><meta charset="utf-8"><p>目录往返导航验证</p>',
@@ -54,9 +54,9 @@ try {
     assert.deepEqual(await ids(), data.games.map((game) => game.id).sort());
     for (const [schedule, label, count] of [
       ['previous', '上轮已改造', 7],
-      ['current', '本轮改造', 15],
+      ['current', '本轮改造', 13],
       ['later', '有潜力 · 后续改造', 20],
-      ['hold', '暂缓投入', 26],
+      ['hold', '暂缓投入', 28],
     ]) {
       await activate(tab(label));
       await expect(articles).toHaveCount(count);
@@ -83,23 +83,28 @@ try {
     }
     await activate(tab('全部游戏'));
     await activate(page.locator('.catalog-facet').getByRole('button', { name: /^有潜力/ }));
-    await expect(articles).toHaveCount(42);
-    await expect(tab('暂缓投入')).toContainText('0 / 26');
+    await expect(articles).toHaveCount(40);
+    await expect(tab('暂缓投入')).toContainText('0 / 28');
+    await activate(tab('清空筛选'));
+    await activate(tab('全部游戏'));
+    await activate(page.locator('.catalog-facet').getByRole('button', { name: /^毫无潜力/ }));
+    await expect(articles).toHaveCount(2);
+    assert.deepEqual(await ids(), ['chase-thief', 'retreat-rally']);
     await activate(tab('清空筛选'));
     await activate(tab('本轮改造'));
     await activate(page.locator('.catalog-facet').getByRole('button', { name: /^移动端小游戏/ }));
-    await expect(articles).toHaveCount(13);
-    await expect(tab('本轮改造')).toContainText('13 / 15');
+    await expect(articles).toHaveCount(11);
+    await expect(tab('本轮改造')).toContainText('11 / 13');
     await activate(page.getByRole('button', { name: '详情卡片', exact: true }));
     const selectedIds = await ids();
     const savedUrl = page.url();
     await page.reload();
-    await expect(articles).toHaveCount(13);
+    await expect(articles).toHaveCount(11);
     assert.deepEqual(await ids(), selectedIds);
     assert.equal(new URL(page.url()).searchParams.get('catalogTab'), 'current');
     assert.equal(new URL(page.url()).searchParams.get('catalog_platforms'), 'mobile');
     await expect(page.locator('.catalog-list')).toHaveCount(0);
-    const chase = page.locator('[data-game-id="chase-thief"]');
+    const chase = page.locator('[data-game-id="tiny-signals"]');
     await activate(chase.locator('summary'));
     await expect(chase.locator('details')).toHaveAttribute('open', '');
     await expect(chase.locator('details')).toContainText('排期理由');
@@ -112,12 +117,12 @@ try {
     await activate(chase.getByRole('link', { name: '进入游戏', exact: true }));
     await expect(page.frameLocator('iframe').getByText('目录往返导航验证')).toBeVisible();
     await activate(page.getByRole('button', { name: '返回目录', exact: true }));
-    await expect(articles).toHaveCount(13);
+    await expect(articles).toHaveCount(11);
     assert.deepEqual(await ids(), selectedIds);
     await page.goBack(); // Return to the game entry in browser history.
     await expect(page.locator('iframe')).toHaveCount(1);
     await page.goBack(); // Return to the filtered catalog before launch.
-    await expect(articles).toHaveCount(13);
+    await expect(articles).toHaveCount(11);
     assert.deepEqual(await ids(), selectedIds);
     assert.equal(page.url(), savedUrl);
     assert(
@@ -155,12 +160,12 @@ try {
       width,
       input: touch ? 'Chromium touch emulation' : 'mouse',
       all: 68,
-      potential: 42,
+      potential: 40,
       previous: 7,
-      current: 15,
+      current: 13,
       later: 20,
-      hold: 26,
-      mobileCurrent: 13,
+      hold: 28,
+      mobileCurrent: 11,
       checks: [
         'all exact IDs',
         'exclusive schedule groups',

@@ -11,7 +11,7 @@ const appSource = await readFile(new URL('../game.js', import.meta.url), 'utf8')
 test('the actual share handler removes URL credentials, private query and hash while retaining Pages paths', async () => {
   const copies=[],elements={share:{},'share-status':{isConnected:true},'share-link':{}};
   const publishing=createH5Publishing({environment:{location:new URL('https://user:password@example.org//small-games/wulong/?private=secret#room'),navigator:{clipboard:{writeText:async url=>copies.push(url)}}}});
-  const context=vm.createContext({s:{id:21,won:false,hintsUsed:2},run:1,route:{number:id=>id},$:id=>elements[id],publishingReady:Promise.resolve(publishing)});
+  const context=vm.createContext({native:null,s:{id:21,won:false,hintsUsed:2},run:1,route:{number:id=>id},$:id=>elements[id],publishingReady:Promise.resolve(publishing)});
   const handler=appSource.slice(appSource.indexOf('  async function shareChallenge()'),appSource.indexOf('\n  function start('));
   assert.ok(handler);
   vm.runInContext(handler,context);

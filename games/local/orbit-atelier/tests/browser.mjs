@@ -6,17 +6,36 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { chromium, expect } from '@playwright/test';
+import {
+  coverageSummary,
+  errorEvidence,
+  readCoverage,
+  sanitize,
+  assertMatchingBuild,
+  trustedInputProof,
+} from './evidence.mjs';
+import { sourceIdentity, buildIdentity } from './build-evidence.mjs';
 
 // Run the production build. Gameplay is driven only through native browser
 // gestures and visible player controls; the developer snapshot is read-only.
 const root = fileURLToPath(new URL('../', import.meta.url));
-const evidence = process.env.ORBIT_EVIDENCE_DIR
+let evidence = process.env.ORBIT_EVIDENCE_DIR
   ? path.resolve(process.env.ORBIT_EVIDENCE_DIR)
-  : path.join(root, 'docs/design');
+  : path.resolve(root, '../../../.scratch/orbit-atelier');
 const runFile = promisify(execFile);
 const checks = [];
 const failures = [];
 const screenshots = [];
+const receipts = [];
+const lastInput = new WeakMap();
+const actions = [];
+const spec = await readCoverage();
+const driverSource = await readFile(fileURLToPath(import.meta.url), 'utf8');
+const probe = process.env.ORBIT_DIAGNOSTIC_PROBE;
+const variant = process.env.ORBIT_DIAGNOSTIC_VARIANT;
+let build = null;
+let coverage;
+let browserVersion;
 let server;
 let browser;
 let status = 'running';
@@ -26,11 +45,27 @@ let core;
 let storageKey;
 
 const app = (page) => page.locator('#orbit-app');
-const action = (page, name) =>
-  name === 'pause'
-    ? page.getByRole('button', { name: '暂停', exact: true })
-    : page.locator(`[data-action="${name}"]:visible`).first();
-const screen = (page, value) => expect(app(page)).toHaveAttribute('data-screen', value);
+const action = (page, name) => {
+  const locator =
+    name === 'pause'
+      ? page.getByRole('button', { name: '暂停', exact: true })
+      : page.locator(`[data-action="${name}"]:visible`).first();
+  return new Proxy(locator, {
+    get(target, property) {
+      if (property === 'tap' || property === 'click')
+        return async (...args) => {
+          record(page, `${String(property)}:${name}`);
+          return target[property](...args);
+        };
+      const value = target[property];
+      return typeof value === 'function' ? value.bind(target) : value;
+    },
+  });
+};
+const screen = (page, value) => {
+  record(page, `expect-screen:${value}`);
+  return expect(app(page)).toHaveAttribute('data-screen', value);
+};
 const inspect = (page) => page.evaluate(() => window.SmallGamesDev.inspect().game);
 const stateOf = (game) => game.state ?? game.run?.state ?? game.run ?? game;
 const liveRings = (state) => state.rings.filter((ring) => !ring.removed);
@@ -40,15 +75,84 @@ function developerUrl() {
   url.searchParams.set('dev', '1');
   return url.href;
 }
-function monitor(page, name) {
-  page.on('pageerror', (error) => failures.push({ name, error: error.message }));
+function observation(target) {
+  const owner = typeof target.context === 'function' ? target : target.page();
+  return {
+    viewport: owner.viewportSize(),
+    container:
+      typeof target.parentFrame === 'function' && target.parentFrame()
+        ? 'sandbox-iframe'
+        : 'standalone',
+  };
+}
+function record(target, action, detail = {}) {
+  actions.push({ action, ...observation(target), ...detail });
+  if (actions.length > 40) actions.shift();
+}
+function fail(entry) {
+  if (failures.length < 20) failures.push({ ...entry, actions: structuredClone(actions) });
+}
+async function verify(id, target, assertion) {
+  await assertion();
+  const entry = spec.cases.find((item) => item.id === id);
+  assert(entry, `Unknown case: ${id}`);
+  const observed = observation(target);
+  const orientation = observed.viewport.width > observed.viewport.height ? 'landscape' : 'portrait';
+  assert.equal(orientation, entry.orientation, `${id} orientation`);
+  assert.equal(observed.container, entry.container, `${id} container`);
+  const input = await target.evaluate(() => window.__orbitTrustedInput);
+  const inputProof = trustedInputProof(entry.input, input, lastInput.get(target));
+  lastInput.set(target, input);
+  const anchor = id.startsWith('storage-')
+    ? /verify\(\s*`storage-\$\{storage\}`/
+    : new RegExp(`verify\\(\\s*'${id}'`);
+  const offset = driverSource.search(anchor);
+  receipts.push({
+    id,
+    status: 'passed',
+    orientation,
+    input: entry.input,
+    inputProof,
+    ...observed,
+    assertion: entry.assertion,
+    source: `tests/browser.mjs:${driverSource.slice(0, offset).split('\n').length}`,
+  });
+}
+async function monitor(page, name, container = 'standalone') {
+  page.on('pageerror', (error) =>
+    fail({
+      context: name,
+      kind: 'pageerror',
+      ...observation(page),
+      container,
+      ...errorEvidence(error),
+    }),
+  );
   page.on('response', (response) => {
     if (response.url().startsWith(baseUrl) && response.status() >= 400) {
-      failures.push({ name, resource: response.url(), status: response.status() });
+      fail({
+        context: name,
+        kind: 'resource',
+        resource: sanitize(response.url()),
+        status: response.status(),
+        ...observation(response.frame()),
+      });
     }
+  });
+  await page.addInitScript(() => {
+    window.__orbitTrustedInput = { timeOrigin: performance.timeOrigin, touch: 0, mouse: 0 };
+    window.addEventListener(
+      'pointerdown',
+      (event) => {
+        if (event.isTrusted && ['touch', 'mouse'].includes(event.pointerType))
+          window.__orbitTrustedInput[event.pointerType]++;
+      },
+      true,
+    );
   });
 }
 async function screenshot(page, name) {
+  record(page, `screenshot:${name}`);
   const filename = `${name}.png`;
   await page.screenshot({
     path: path.join(evidence, filename),
@@ -57,6 +161,7 @@ async function screenshot(page, name) {
   screenshots.push(filename);
 }
 async function ready(page, url = developerUrl()) {
+  record(page, 'navigate', { url: sanitize(url) });
   await page.goto(url);
   await expect(app(page)).toHaveAttribute('data-ready', 'true');
 }
@@ -64,7 +169,13 @@ async function start(page) {
   await action(page, 'start').tap();
   await screen(page, 'playing');
 }
-async function touchPath(page, points, { cancel = false, mouse = false } = {}) {
+async function touchPath(page, points, { cancel = false, mouse = false, onHeld, onReleased } = {}) {
+  record(page, mouse ? 'mouse-path' : 'touch-path', {
+    points: points.length,
+    from: points[0],
+    to: points.at(-1),
+    cancel,
+  });
   const owner = typeof page.context === 'function' ? page : page.page();
   if (mouse) {
     await owner.mouse.move(points[0].x, points[0].y);
@@ -89,10 +200,12 @@ async function touchPath(page, points, { cancel = false, mouse = false } = {}) {
       });
       await owner.waitForTimeout(12);
     }
+    if (onHeld) await onHeld();
     await session.send('Input.dispatchTouchEvent', {
       type: cancel ? 'touchCancel' : 'touchEnd',
       touchPoints: [],
     });
+    if (onReleased) await onReleased();
     await owner.evaluate(
       () =>
         new Promise((resolve) => {
@@ -104,6 +217,7 @@ async function touchPath(page, points, { cancel = false, mouse = false } = {}) {
   }
 }
 async function touchControl(page, name, { cancel = false, moveAway = false } = {}) {
+  record(page, `touch-control:${name}`, { cancel, moveAway });
   const bounds = await action(page, name).boundingBox();
   assert(bounds, `${name} control is visible`);
   const point = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
@@ -182,7 +296,38 @@ async function releaseOne(page, options = {}) {
   assert(hint, 'Each published stage must offer a reachable release');
   const ring = before.rings.find((entry) => entry.id === hint.ringId);
   assert(ring && !ring.removed, 'Hint must name an active ring');
-  await dragRing(page, ring, hint.angle, options);
+  await dragRing(page, ring, hint.angle, {
+    ...options,
+    ...(options.capture
+      ? {
+          onHeld: async () => {
+            assert.equal(
+              stateOf(await inspect(page)).releasedCount,
+              before.releasedCount,
+              'alignment waits for release',
+            );
+            await expect(page.locator('[data-release-ready="true"]')).toHaveCount(1);
+            await expect(page.locator('.contact.blocked')).toHaveCount(0);
+            await screenshot(page, 'mobile-aligned');
+          },
+          onReleased: async () => {
+            await expect(page.locator('g.escaping')).toBeVisible();
+            const vector = await page
+              .locator('g.escaping')
+              .evaluate((g) => [
+                parseFloat(g.style.getPropertyValue('--escape-x')),
+                parseFloat(g.style.getPropertyValue('--escape-y')),
+              ]);
+            const releasedAngle = stateOf(await inspect(page)).rings.find(
+              (r) => r.id === ring.id,
+            ).angle;
+            assert.ok(Math.abs(vector[0] + Math.cos(releasedAngle) * 75) < 0.001);
+            assert.ok(Math.abs(vector[1] + Math.sin(releasedAngle) * 75) < 0.001);
+            await screenshot(page, 'mobile-extracting');
+          },
+        }
+      : {}),
+  });
   await expect
     .poll(async () => liveRings(stateOf(await inspect(page))).length)
     .toBe(liveRings(before).length - 1);
@@ -201,6 +346,61 @@ async function clearLevel(page, { capLast = false } = {}) {
     await releaseOne(page, { blurAfter: last, cap: capLast && last });
   }
   await screen(page, 'result');
+}
+async function interruptHeldDrag(target, lifecycle) {
+  const before = await inspect(target);
+  const ring = liveRings(stateOf(before))[0];
+  await dragRing(target, ring, ring.angle + 0.45, {
+    onHeld: async () => {
+      const held = await inspect(target);
+      assert.equal(held.drag?.ringId, ring.id, 'Interruption starts with an active drag');
+      assert(
+        Math.abs(
+          core.angleDistance(
+            stateOf(held).rings.find((item) => item.id === ring.id).angle,
+            ring.angle,
+          ),
+        ) > 0.1,
+        'Held gesture changed the angle',
+      );
+      record(target, `synthetic-lifecycle:${lifecycle}`);
+      await target.evaluate((mode) => {
+        if (mode === 'blur') window.dispatchEvent(new Event('blur'));
+        else {
+          Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+          document.dispatchEvent(new Event('visibilitychange'));
+        }
+      }, lifecycle);
+      await screen(target, 'paused');
+      const paused = await inspect(target);
+      assert.deepEqual(stateOf(paused), stateOf(before), 'Interruption rolls back full state');
+      assert.equal(paused.moves, before.moves);
+      assert.equal(paused.hints, before.hints);
+      assert.equal(paused.drag, null);
+    },
+    onReleased: async () => {
+      await screen(target, 'paused');
+      assert.deepEqual(
+        stateOf(await inspect(target)),
+        stateOf(before),
+        'Stale touchEnd cannot commit',
+      );
+    },
+  });
+  if (lifecycle === 'hidden')
+    await target.evaluate(() => {
+      delete document.hidden;
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+  await action(target, 'resume').tap();
+  await screen(target, 'playing');
+  assert.deepEqual(stateOf(await inspect(target)), stateOf(before));
+  await releaseOne(target);
+  assert.equal(
+    liveRings(stateOf(await inspect(target))).length,
+    liveRings(stateOf(before)).length - 1,
+    'Fresh input releases one ring after interruption',
+  );
 }
 async function assertVisibleControls(page) {
   const info = await page.locator('button:visible').evaluateAll((buttons) =>
@@ -257,7 +457,9 @@ async function startStaticServer() {
   };
   server = createServer(async (request, response) => {
     try {
-      const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
+      let pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
+      if (variant && pathname.startsWith('/orbit-diagnostic-b/'))
+        pathname = pathname.slice('/orbit-diagnostic-b'.length);
       if (pathname === '/__qa_frame.html') {
         response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         response.end(
@@ -287,18 +489,45 @@ async function startStaticServer() {
 }
 
 try {
-  await mkdir(evidence, { recursive: true });
+  assert(!probe || ['pageerror', 'iframe-pageerror'].includes(probe), 'Unknown diagnostic probe');
+  assert(!variant || (probe && variant === 'B'), 'Variant B is a controlled diagnostic build only');
   if (!baseUrl) {
-    await runFile('pnpm', ['run', 'build'], { cwd: root, timeout: 120_000 });
+    const manager = process.env.npm_execpath || 'pnpm';
+    const script = /\.[cm]?js$/.test(manager);
+    const source = await sourceIdentity(root);
+    const runManager = (args) => {
+      const windowsShim = process.platform === 'win32' && manager === 'pnpm';
+      return runFile(
+        windowsShim ? 'cmd.exe' : script ? process.execPath : manager,
+        windowsShim ? ['/d', '/s', '/c', 'pnpm', ...args] : script ? [manager, ...args] : args,
+        { cwd: root, timeout: 120_000 },
+      );
+    };
+    await runManager(['run', 'build']);
+    if (variant) await runManager(['exec', 'vite', 'build', '--base=/orbit-diagnostic-b/']);
+    assert.deepEqual(await sourceIdentity(root), source, 'Source changed during production build');
+    build = await buildIdentity(root, source);
+    build.variant = variant || 'A';
+    if (process.env.ORBIT_EXPECTED_BUILD)
+      assertMatchingBuild(JSON.parse(process.env.ORBIT_EXPECTED_BUILD), build);
     baseUrl = await startStaticServer();
+    if (variant) baseUrl = new URL('/orbit-diagnostic-b/', baseUrl).href;
   }
+  if (!process.env.ORBIT_EVIDENCE_DIR)
+    evidence = path.join(
+      evidence,
+      build?.id.slice(0, 12) || 'external-unattested',
+      new Date().toISOString().replace(/[:.]/g, '-'),
+    );
+  await mkdir(evidence, { recursive: true });
   core = await import(new URL('../src/core.ts', import.meta.url));
   storageKey = (await import(new URL('../src/storage.ts', import.meta.url))).SAVE_KEY;
   browser = await chromium.launch({
     headless: true,
-    executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || '/usr/bin/chromium',
+    executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || process.env.CHROMIUM_PATH,
     args: ['--no-sandbox'],
   });
+  browserVersion = browser.version();
   const phone = await browser.newContext({
     viewport: { width: 390, height: 844 },
     isMobile: true,
@@ -307,8 +536,28 @@ try {
     locale: 'zh-CN',
   });
   const page = await phone.newPage();
-  monitor(page, 'mobile');
+  await monitor(
+    page,
+    probe === 'iframe-pageerror' ? 'iframe-probe' : 'mobile',
+    probe === 'iframe-pageerror' ? 'sandbox-iframe' : 'standalone',
+  );
   await ready(page, normalUrl());
+  if (probe) {
+    let target = page;
+    if (probe === 'iframe-pageerror') {
+      await page.goto(new URL('/__qa_frame.html', baseUrl).href);
+      target = page.frames().find((frame) => frame.parentFrame());
+      assert(target, 'Diagnostic iframe mounted');
+      await expect(app(target)).toHaveAttribute('data-ready', 'true');
+    }
+    record(target, `diagnostic-probe:${probe}`);
+    await target.addScriptTag({
+      content:
+        "setTimeout(function orbitDiagnosticProbe() { throw new Error('Orbit controlled diagnostic failure'); }, 0);\n//# sourceURL=/__orbit_diagnostic_probe.js",
+    });
+    await expect.poll(() => failures.some((entry) => entry.kind === 'pageerror')).toBe(true);
+    assert.deepEqual(failures, [], 'Controlled pageerror probe must fail the browser suite');
+  }
   await screen(page, 'home');
   assert.equal(
     await page.locator('small-games-devtools').count(),
@@ -320,10 +569,23 @@ try {
   await action(page, 'levels').tap();
   await screen(page, 'levels');
   const buttons = page.locator('button[data-level]');
-  assert((await buttons.count()) >= 2, 'Level catalogue is visible');
+  assert.equal(
+    await buttons.count(),
+    74,
+    'All original and new levels are in the player catalogue',
+  );
   await expect(buttons.first()).toBeEnabled();
-  await expect(buttons.nth(1)).toBeDisabled();
+  await verify('catalog', page, () => expect(buttons.nth(1)).toBeDisabled());
   await screenshot(page, 'mobile-levels');
+  await buttons.last().scrollIntoViewIfNeeded();
+  const catalogBack = await action(page, 'home').boundingBox();
+  assert(
+    catalogBack && catalogBack.y >= 0 && catalogBack.y + catalogBack.height <= 844,
+    'late chapter keeps the return button on screen',
+  );
+  await screenshot(page, 'mobile-levels-late');
+  await action(page, 'home').tap();
+  await screen(page, 'home');
   checks.push('ordinary home, default dev mode off and locked level catalogue');
 
   await ready(page);
@@ -332,15 +594,36 @@ try {
   await assertVisibleControls(page);
   await screenshot(page, 'mobile-playing');
   const initial = stateOf(await inspect(page));
+  await expect(page.locator('.crossing')).toHaveCount(2);
+  assert.deepEqual(
+    await page
+      .locator('.crossing')
+      .evaluateAll((nodes) => nodes.map((n) => [n.dataset.over, n.dataset.under])),
+    [
+      ['ring-1', 'ring-2'],
+      ['ring-2', 'ring-1'],
+    ],
+    'two contacts visibly alternate over/under',
+  );
   const firstHint = core.findHint(initial);
   const firstRing = initial.rings.find((ring) => ring.id === firstHint.ringId);
+  const capContactAngle =
+    core.getBlockers(initial, firstRing.id)[0].angles[0] + firstRing.gap / 2 - 0.05;
+  await dragRing(page, firstRing, capContactAngle, {
+    cancel: true,
+    onHeld: async () => {
+      await expect(page.locator('.crossing')).toHaveCount(2);
+      await expect(page.locator('.contact.blocked')).not.toHaveCount(0);
+      await screenshot(page, 'mobile-cap-contact');
+    },
+  });
   await dragRing(page, firstRing, firstRing.angle + 0.45, { cancel: true });
   assert.equal(
     liveRings(stateOf(await inspect(page))).length,
     liveRings(initial).length,
     'Cancelled gesture never releases',
   );
-  await releaseOne(page);
+  await releaseOne(page, { capture: true });
   await action(page, 'undo').tap();
   await expect
     .poll(async () => liveRings(stateOf(await inspect(page))).length)
@@ -373,7 +656,9 @@ try {
   await screenshot(page, 'mobile-paused');
   const paused = stateOf(await inspect(page));
   await page.waitForTimeout(150);
-  assert.deepEqual(stateOf(await inspect(page)), paused, 'Paused rules stay unchanged');
+  await verify('pause', page, async () =>
+    assert.deepEqual(stateOf(await inspect(page)), paused, 'Paused rules stay unchanged'),
+  );
   await action(page, 'resume').tap();
   await screen(page, 'playing');
   await page.evaluate(() => window.dispatchEvent(new Event('blur')));
@@ -397,7 +682,11 @@ try {
   await page.reload();
   await expect(app(page)).toHaveAttribute('data-ready', 'true');
   await start(page);
-  assertSavedRings(stateOf(await inspect(page)).rings, undone.rings);
+  await verify('reload', page, async () =>
+    assertSavedRings(stateOf(await inspect(page)).rings, undone.rings),
+  );
+  await verify('held-blur', page, () => interruptHeldDrag(page, 'blur'));
+  await action(page, 'undo').tap();
   checks.push(
     'native touch cancel, real release, undo, pause, blur/visibility pause and saved game reload',
   );
@@ -405,7 +694,9 @@ try {
   await screen(page, 'result');
   const completed = await inspect(page);
   assert.equal(completed.practice, false, 'Player gesture completion is a normal rewarded run');
-  assert(completed.progress.medals[initial.levelId] > 0, 'Normal completion records a medal');
+  await verify('settlement', page, () =>
+    assert(completed.progress.medals[initial.levelId] > 0, 'Normal completion records a medal'),
+  );
   await screenshot(page, 'mobile-result');
   await action(page, 'next').tap();
   await screen(page, 'playing');
@@ -422,7 +713,7 @@ try {
   await page.setViewportSize({ width: 844, height: 390 });
   await assertVisibleControls(page);
   await screenshot(page, 'mobile-landscape');
-  await releaseOne(page);
+  await verify('landscape', page, () => releaseOne(page));
   await action(page, 'pause').tap();
   await action(page, 'home').tap();
   await action(page, 'levels').tap();
@@ -475,13 +766,48 @@ try {
   const restoredAttempt = await inspect(page);
   assert.equal(restoredAttempt.practice, false, 'Exiting a trial restores player mode');
   assertSavedRings(stateOf(restoredAttempt).rings, stateOf(normalAttempt).rings);
-  assert.deepEqual(
-    restoredAttempt.progress.medals,
-    normalAttempt.progress.medals,
-    'Exiting trial preserves earned medals',
+  await verify('trial', page, () =>
+    assert.deepEqual(
+      restoredAttempt.progress.medals,
+      normalAttempt.progress.medals,
+      'Exiting trial preserves earned medals',
+    ),
   );
   checks.push(
     'native touch final-stage clear, visible lock countdown, mixed ring sizes, rounded-cap final tap and trial rewards isolated; exit restores normal attempt',
+  );
+  await verify('chapters', page, async () => {
+    for (const number of [25, 34, 35, 44, 45, 54, 55, 64, 65]) {
+      await ready(page, `${developerUrl()}&challenge=orbit-${number}`);
+      await screen(page, 'playing');
+      assert.equal((await inspect(page)).challenge, true);
+      if (number === 35) await screenshot(page, 'mobile-wide-mouth');
+      if (number === 65) await screenshot(page, 'mobile-woven');
+      await clearLevel(page);
+      await screen(page, 'result');
+    }
+  });
+  checks.push(
+    'all five new chapters: first and last samples cleared by native touch (74 covered by final trial)',
+  );
+  await page.setViewportSize({ width: 844, height: 390 });
+  await ready(page, `${developerUrl()}&challenge=orbit-01`);
+  await releaseOne(page);
+  const lone = liveRings(stateOf(await inspect(page)))[0];
+  const thumbPoint = await page.locator('[data-scene]').evaluate((scene, ring) => {
+    const m = scene.getScreenCTM(),
+      scale = Math.hypot(m.a, m.b);
+    const angle = ring.angle + Math.PI;
+    const p = new DOMPoint(
+      ring.x + (ring.r + 18 / scale) * Math.cos(angle),
+      ring.y + (ring.r + 18 / scale) * Math.sin(angle),
+    ).matrixTransform(m);
+    return { x: p.x, y: p.y };
+  }, lone);
+  await touchPath(page, [thumbPoint, thumbPoint]);
+  await verify('thumb', page, () => screen(page, 'result'));
+  checks.push(
+    'landscape letterboxed SVG keeps a 44px thumb target: tap 18 CSS px outside isolated band',
   );
   await phone.close();
 
@@ -490,7 +816,7 @@ try {
     locale: 'zh-CN',
   });
   const desk = await desktop.newPage();
-  monitor(desk, 'desktop');
+  await monitor(desk, 'desktop');
   await ready(desk);
   await assertVisibleControls(desk);
   await action(desk, 'start').click();
@@ -521,7 +847,9 @@ try {
   await fullscreen.click();
   await screen(desk, 'settings');
   await expect(app(desk)).toHaveAttribute('data-ready', 'true');
-  assertSavedRings(stateOf(await inspect(desk)).rings, beforeFullscreen.rings);
+  await verify('fullscreen', desk, async () =>
+    assertSavedRings(stateOf(await inspect(desk)).rings, beforeFullscreen.rings),
+  );
   fullscreenResult.denialFallback = true;
   await action(desk, 'help').click();
   await screen(desk, 'help');
@@ -564,7 +892,7 @@ try {
       { mode: storage, key: storageKey },
     );
     const storagePage = await context.newPage();
-    monitor(storagePage, storage);
+    await monitor(storagePage, storage);
     await ready(storagePage);
     await start(storagePage);
     const beforeHint = stateOf(await inspect(storagePage));
@@ -575,6 +903,12 @@ try {
       'Hint guides without releasing a ring',
     );
     await releaseOne(storagePage);
+    await verify(`storage-${storage}`, storagePage, async () =>
+      assert.equal(
+        liveRings(stateOf(await inspect(storagePage))).length,
+        liveRings(beforeHint).length - 1,
+      ),
+    );
     await action(storagePage, 'pause').tap();
     await screen(storagePage, 'paused');
     checks.push(`${storage} local storage remains playable`);
@@ -587,7 +921,7 @@ try {
     hasTouch: true,
   });
   const host = await iframeContext.newPage();
-  monitor(host, 'iframe');
+  await monitor(host, 'iframe', 'sandbox-iframe');
   await host.goto(new URL('/__qa_frame.html', baseUrl).href);
   const frame = host.frames().find((entry) => entry.parentFrame());
   assert(frame, 'Game iframe mounted');
@@ -596,11 +930,22 @@ try {
   await screenshot(host, 'iframe-home');
   await action(frame, 'start').tap();
   await screen(frame, 'playing');
+  const iframeBefore = stateOf(await inspect(frame));
   await releaseOne(frame);
   await action(frame, 'pause').tap();
   await screen(frame, 'paused');
   await action(frame, 'resume').tap();
   await screen(frame, 'playing');
+  await verify('iframe', frame, async () =>
+    assert.equal(
+      liveRings(stateOf(await inspect(frame))).length,
+      liveRings(iframeBefore).length - 1,
+    ),
+  );
+  await action(frame, 'pause').tap();
+  await action(frame, 'retry').tap();
+  await host.setViewportSize({ width: 844, height: 390 });
+  await verify('iframe-held-hidden', frame, () => interruptHeldDrag(frame, 'hidden'));
   checks.push('sandboxed iframe home, native touch ring release and pause/resume');
   await iframeContext.close();
   assert.deepEqual(
@@ -608,37 +953,57 @@ try {
     [],
     'Production browser routes must have no script or resource failures',
   );
+  coverage = coverageSummary(spec, receipts, driverSource);
+  assert.equal(
+    coverage.missing.length,
+    0,
+    'Every declared combination needs a passed executable assertion',
+  );
   status = 'passed';
   console.log(`星扣工坊：${checks.length} browser checks passed`);
 } catch (error) {
   status = 'failed';
-  failures.push({ error: String(error), stack: error.stack });
-  throw error;
+  fail({ kind: 'runner', ...errorEvidence(error) });
+  process.exitCode = 1;
 } finally {
   await mkdir(evidence, { recursive: true });
+  const report = {
+    status,
+    date: new Date().toISOString(),
+    build,
+    reproduction: {
+      revision: build?.revision || null,
+      command: 'node tests/reproduce-failure.mjs <absolute-browser-report.json>',
+      normalCommand: 'pnpm --filter @coffeeeeffoc/orbit-atelier test:browser',
+      probe: probe || null,
+      variant: variant || 'A',
+      externalUrl: build ? null : sanitize(baseUrl),
+    },
+    coverage: coverage || coverageSummary(spec, receipts, driverSource),
+    actions,
+    environment: {
+      node: process.version,
+      os: process.platform,
+      arch: process.arch,
+      packageManager: 'pnpm@12.6.0 (repository lock)',
+      browser: browserVersion,
+      engine: 'Chromium',
+      rendering: 'production build',
+      input: 'CDP native touch + mouse',
+      viewports: ['390×844', '320×640', '844×390', '1280×900'],
+      realDevice: false,
+      fullscreen: fullscreenResult,
+    },
+    checks,
+    screenshots,
+    failures,
+  };
   await writeFile(
     path.join(evidence, 'browser-report.json'),
-    JSON.stringify(
-      {
-        status,
-        date: new Date().toISOString(),
-        environment: {
-          browser: browser?.version(),
-          engine: 'Chromium',
-          rendering: 'production build',
-          input: 'CDP native touch + mouse',
-          viewports: ['390×844', '320×640', '844×390', '1280×900'],
-          realDevice: false,
-          fullscreen: fullscreenResult,
-        },
-        checks,
-        screenshots,
-        failures,
-      },
-      null,
-      2,
-    ) + '\n',
+    JSON.stringify(report, null, 2) + '\n',
   );
+  if (status === 'failed') console.error('ORBIT_FAILURE_REPORT ' + JSON.stringify(report));
+  console.log(`Orbit evidence: ${path.join(evidence, 'browser-report.json')}`);
   await browser?.close();
   if (server) await new Promise((resolve) => server.close(resolve));
 }

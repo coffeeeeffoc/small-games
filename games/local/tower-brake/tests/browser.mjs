@@ -41,6 +41,7 @@ const context = await browser.newContext({
   hasTouch: true,
   deviceScaleFactor: 1,
 });
+await context.route('**/api/competition/v1/**', (route) => route.abort('internetdisconnected'));
 const page = await context.newPage();
 page.on('pageerror', (error) => errors.push(error.message));
 const snap = () => page.evaluate(() => window.__towerBrake.snapshot());
@@ -76,8 +77,8 @@ try {
   assert.equal(await page.evaluate(() => window.__towerBrake), undefined);
   await page.screenshot({ path: fileURLToPath(new URL('actual-home.png', evidence)) });
   await page.locator('#choose-level').tap();
-  assert.equal(await page.locator('[data-level]').count(), 8);
-  assert.equal(await page.locator('[data-level]:disabled').count(), 7);
+  assert.equal(await page.locator('[data-level]').count(), 30);
+  assert.equal(await page.locator('[data-level]:disabled').count(), 29);
   await page.screenshot({ path: fileURLToPath(new URL('actual-levels.png', evidence)) });
   await page.locator('#levels-home').tap();
   await page.locator('#settings-button').tap();
@@ -89,7 +90,7 @@ try {
   await page.locator('#help-button').tap();
   assert.equal(await page.locator('.help-list li').count(), 3);
   await page.locator('#help-home').tap();
-  check('Phone home, eight-route locked selection, help, sound and skins');
+  check('Phone home, thirty-route locked selection, help, sound and skins');
 
   await page.goto(`${origin}/?dev=1`);
   await page.waitForFunction(() => !!window.__towerBrake);
@@ -162,7 +163,14 @@ try {
   await page.screenshot({ path: fileURLToPath(new URL('actual-win.png', evidence)) });
   await page.evaluate(() => {
     Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
-    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (text) => { window.__sharedUrl = text; } } });
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: async (text) => {
+          window.__sharedUrl = text;
+        },
+      },
+    });
   });
   await page.locator('#share-game').tap();
   await expect(page.locator('#share-status')).toContainText('挑战链接已复制');
@@ -170,7 +178,9 @@ try {
   assert.equal(shared.searchParams.get('challenge'), 'tower-v1');
   assert.equal(Number(shared.searchParams.get('targetScore')), (await snap()).score);
   assert.equal(shared.searchParams.has('dev'), false);
-  await page.screenshot({ path: fileURLToPath(new URL('publishing/mobile-result-share.png', evidence)) });
+  await page.screenshot({
+    path: fileURLToPath(new URL('publishing/mobile-result-share.png', evidence)),
+  });
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('tower-brake-v1')));
   assert.equal(saved.unlocked, 2);
   assert.ok(Object.keys(saved.best).length === 1);
@@ -272,13 +282,14 @@ try {
   assert.equal((await snap()).practice, false);
   assert.equal((await snap()).level.id, shared.searchParams.get('level'));
   await page.locator('#pause-button').tap();
-  await page.screenshot({ path: fileURLToPath(new URL('publishing/mobile-challenge-pause.png', evidence)) });
+  await page.screenshot({
+    path: fileURLToPath(new URL('publishing/mobile-challenge-pause.png', evidence)),
+  });
   assert.equal(await page.evaluate(() => localStorage.getItem('tower-brake-v1')), beforeChallenge);
   await page.locator('#pause-home').tap();
   await page.locator('#start-game').tap();
   assert.equal((await snap()).practice, false);
   check('Share produces a public fixed-route challenge; opening it preserves normal progress');
-
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.route(`${origin}/fixture*`, (route) =>
@@ -306,7 +317,7 @@ try {
   await frame.locator('#pause-home').tap();
   assert.equal(await frame.locator('#home').isVisible(), true);
   await frame.locator('#choose-level').tap();
-  assert.equal(await frame.locator('[data-level]').count(), 8);
+  assert.equal(await frame.locator('[data-level]').count(), 30);
   check(
     'Production iframe supports touch play, pause, return and selection; child dev=0 overrides parent dev=1',
   );

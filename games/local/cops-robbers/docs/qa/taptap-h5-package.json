@@ -1,0 +1,218 @@
+{
+    "packageType":  "h5",
+    "uploadCommand":  "upload-h5-package",
+    "format":  "TapTap H5 static ZIP",
+    "entry":  "dist/index.html",
+    "buildDirectory":  "games/local/cops-robbers/dist",
+    "uploadDirectory":  "outputs/cops-robbers/taptap-h5/dist",
+    "screenOrientation":  1,
+    "bytes":  933232,
+    "sha256":  "c13f564920323c46db5c317ec40e0411edba000b91ac49467c11b02b1bf9de31",
+    "files":  [
+                  {
+                      "path":  "assets/home-chase.webp",
+                      "bytes":  195246,
+                      "sha256":  "e3499a2f27be60070ef6eeabef1b29b88ef34408bcf6fedf445f8a782d4686e2"
+                  },
+                  {
+                      "path":  "assets/patrol-characters.svg",
+                      "bytes":  249775,
+                      "sha256":  "0dfda21a1086356334430bc3a6736fc9f0b2e3f806302683dac14068110ffd41"
+                  },
+                  {
+                      "path":  "assets/patrol-garden.webp",
+                      "bytes":  171538,
+                      "sha256":  "ab2805508e6a12d7f7eec503cf6050cf9fbac15cfb61affa2581be8066710ec9"
+                  },
+                  {
+                      "path":  "assets/patrol-props.webp",
+                      "bytes":  250574,
+                      "sha256":  "38adfcc6bd8f2065299c3678a4fa7ea5ece0e288f878f8c635655f5795934dd1"
+                  },
+                  {
+                      "path":  "dev-mode.js",
+                      "bytes":  15134,
+                      "sha256":  "5633115f12f8f343a16db44c3ee0f10378d109b08392ca7b6fa977b0c6d191b4"
+                  },
+                  {
+                      "path":  "favicon.svg",
+                      "bytes":  265,
+                      "sha256":  "e25b0e008d90246e7a6718099cc2c6328bf0ed4c22e532b2da078844335f10b4"
+                  },
+                  {
+                      "path":  "index.html",
+                      "bytes":  19523,
+                      "sha256":  "4e23b24b0fc5f859b884e481e701c40a48157fa057f16efe3be962370eaf4859"
+                  },
+                  {
+                      "path":  "platform-ads.js",
+                      "bytes":  2904,
+                      "sha256":  "a7988952058bf09df52ab71c33954eaf2ec83bb25abe748d8b8e8319dc201664"
+                  },
+                  {
+                      "path":  "platform-config.js",
+                      "bytes":  113,
+                      "sha256":  "2c07509b9879276bebc846e241e2650983af6aeb3ca57533111bd8c1d4d8698d"
+                  },
+                  {
+                      "path":  "publishing.js",
+                      "bytes":  12289,
+                      "sha256":  "8d9d43cb1c126118286921018d713e5ee860b7c7b5c13f8e1c1ecdbb0b7d277d"
+                  },
+                  {
+                      "path":  "src/ad-host.js",
+                      "bytes":  1022,
+                      "sha256":  "97a5e381d2f1d4b3831e13782f4e18408a229a62baf7bd2ca407e0d5cb1ac2fa"
+                  },
+                  {
+                      "path":  "src/ads.js",
+                      "bytes":  1611,
+                      "sha256":  "b748400d3d4c9912e2df539864de4cbce61d78a4547e598c00ad97ef473d463b"
+                  },
+                  {
+                      "path":  "src/art.js",
+                      "bytes":  7242,
+                      "sha256":  "147e8d3ea73b2dbb6a8a2ee87612854ead44e55d4ec6c947a031adeee872f34d"
+                  },
+                  {
+                      "path":  "src/board-layout.js",
+                      "bytes":  1840,
+                      "sha256":  "934eba93544127a09ca9857f025d14c8c93d0b76cd3dd71bbbb74824b00815e1"
+                  },
+                  {
+                      "path":  "src/competition-renderer.js",
+                      "bytes":  7043,
+                      "sha256":  "321ea4ec08e2f2e6ffdf67d83aa57180a12c22973f22a1428482981398fc1cee"
+                  },
+                  {
+                      "path":  "src/duel.js",
+                      "bytes":  4015,
+                      "sha256":  "facc9d2bb281322402472e7148eee2e8b229527de174967999e81642ab1d0ba0"
+                  },
+                  {
+                      "path":  "src/duel-levels.js",
+                      "bytes":  2955,
+                      "sha256":  "a729f0ba517943f2dbd3eaaa51bba0fcf96cf837808360fd6979f32fde16d1e5"
+                  },
+                  {
+                      "path":  "src/duel-ui.js",
+                      "bytes":  17572,
+                      "sha256":  "c97e241424cf9c7311b6ffddb524e5445c9d15074aa95f030ec6395e946e081c"
+                  },
+                  {
+                      "path":  "src/engine.js",
+                      "bytes":  7010,
+                      "sha256":  "3288a386e52e06004b6e95821c7cca8067c0435d9ca910df1e6d33845ca49b11"
+                  },
+                  {
+                      "path":  "src/extended-content.js",
+                      "bytes":  19861,
+                      "sha256":  "6676f1446a20700e46714c672d7cf63f338f66c6babd89c1b26ca2adf9aace3c"
+                  },
+                  {
+                      "path":  "src/fullscreen.js",
+                      "bytes":  6666,
+                      "sha256":  "1a0ba1255adb38ac82d793ddd8b4a83734c2d9318369b8c39bb3b16997553be4"
+                  },
+                  {
+                      "path":  "src/game-shell.css",
+                      "bytes":  22483,
+                      "sha256":  "9c4bdc9d5cc6709ff0ce4632a5429a48ccd28bb06d475f2e318defc1ab518d3d"
+                  },
+                  {
+                      "path":  "src/game-shell.js",
+                      "bytes":  5820,
+                      "sha256":  "8546812bb5e065ea94c34c46a8d135eb0f1f48eca4992c5f73aaa1d843f214e3"
+                  },
+                  {
+                      "path":  "src/hint-worker.js",
+                      "bytes":  2007,
+                      "sha256":  "b075904a0af68e02a65d2ba10fdcb0f88bb77ab9ca6b2210dc89320fbfad58ba"
+                  },
+                  {
+                      "path":  "src/levels.js",
+                      "bytes":  240258,
+                      "sha256":  "a50448227ad1930f65666caea06a89824b3828f9af1b4ad4bad870ad0e61be54"
+                  },
+                  {
+                      "path":  "src/main.js",
+                      "bytes":  58405,
+                      "sha256":  "e9ec4609263e5da0b013ed1913216b606189a4303a2d281c416e8f25c8733426"
+                  },
+                  {
+                      "path":  "src/native.js",
+                      "bytes":  17249,
+                      "sha256":  "93bd633c91354325ebc3049b5326d31f2004d63bcd5c807f8ce78ca74ef76799"
+                  },
+                  {
+                      "path":  "src/optimal-solutions.js",
+                      "bytes":  12628,
+                      "sha256":  "ebe5758803c72b1ad2c58b61ad6669f03f06e3ba6ec41085c91cbc6977986d36"
+                  },
+                  {
+                      "path":  "src/progress.js",
+                      "bytes":  516,
+                      "sha256":  "697ce467ec2d489a112c321b1e9fff4982bf2d4bfbd5af124582987d34e4c5bd"
+                  },
+                  {
+                      "path":  "src/quick-content.js",
+                      "bytes":  77634,
+                      "sha256":  "aa2f7faf1faf80366fcbd07facb76beed159e5da82bcf1529bb86841172c36f7"
+                  },
+                  {
+                      "path":  "src/quick-trials.js",
+                      "bytes":  2870,
+                      "sha256":  "867c5551665e30de7cc9870b10da6a0f3dd52ff7a94549ab320a1e420906143e"
+                  },
+                  {
+                      "path":  "src/relay.js",
+                      "bytes":  1901,
+                      "sha256":  "ac750a09ad9eec103b84017e2f330892c3d954d582394b859b6844f931fe0db2"
+                  },
+                  {
+                      "path":  "src/relay-content.js",
+                      "bytes":  77621,
+                      "sha256":  "bb03f379bdca2fb0bfa2c26289830dff4b8b9fa43b4ed69ad87b0a0c3e8ec7b7"
+                  },
+                  {
+                      "path":  "src/role-appearance.js",
+                      "bytes":  20602,
+                      "sha256":  "0ba7da9447c0a3ecc475ea62a09a2004194f8f35a3eed15e69d8878bddd69c5f"
+                  },
+                  {
+                      "path":  "src/share.js",
+                      "bytes":  2985,
+                      "sha256":  "8f2ebe8e8e1f80a1cbbffb48ff6930d78792a70d0a0e57d7a8fc677f821b1ef3"
+                  },
+                  {
+                      "path":  "src/solutions.js",
+                      "bytes":  78704,
+                      "sha256":  "0fc556f668b69cecb82d55b3c5cc078abb02761bf7d4a7a895632a4409f2745d"
+                  },
+                  {
+                      "path":  "src/sound.js",
+                      "bytes":  1345,
+                      "sha256":  "0d2b5a79de5e127b104487c96e166bb39b035db5611a67a2a2a022ce541f4c0a"
+                  },
+                  {
+                      "path":  "src/style.css",
+                      "bytes":  34583,
+                      "sha256":  "8538a5336479e81df4584f7904c19ded3eaaf3dfcc4683f3a175439ea7f538c3"
+                  },
+                  {
+                      "path":  "src/viewport.css",
+                      "bytes":  19381,
+                      "sha256":  "d7505c9cdde87b0aaab6f30e7f876e74101e58924acd08f17237e210d65fbf8f"
+                  }
+              ],
+    "zipMatchesCurrentBuild":  true,
+    "competitionEnabled":  false,
+    "deterministicEntryTimestamps":  true,
+    "adMode":  "host",
+    "adPlatform":  "taptap-h5",
+    "adUnitConfigured":  false,
+    "uploaded":  false,
+    "reviewApproved":  false,
+    "realDeviceVerified":  false,
+    "realAdsVerified":  false
+}

@@ -66,7 +66,7 @@ const challengeProtocols: Readonly<Record<string, ChallengeProtocol>> = {
     required: ['challenge', 'level', 'targetMoves'],
   },
   'orbit-atelier': {
-    fields: { challenge: (value) => /^orbit-(0[1-9]|1\d|2[0-4])$/.test(value) },
+    fields: { challenge: (value) => /^orbit-(0[1-9]|[1-6]\d|7[0-4])$/.test(value) },
     required: ['challenge'],
   },
   'wulong-city': {

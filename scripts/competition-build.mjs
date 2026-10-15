@@ -19,11 +19,13 @@ export const competitionGames = {
     directory: 'games/local/cops-robbers',
     renderer: 'src/competition-renderer.js',
     title: '围捕小队',
+    online: false,
   },
   'cops-robbers-realtime': {
     directory: 'games/local/cops-robbers-realtime',
     renderer: 'src/competition-renderer.js',
     title: '街区追捕',
+    online: false,
   },
   'letters-words2': {
     directory: 'games/local/letters-words2',
@@ -59,6 +61,10 @@ export async function buildCompetition({
     : ['h5'];
   for (const [game, selected] of Object.entries(competitionGames)) {
     if (only && game !== only) continue;
+    if (!native && selected.online === false) {
+      console.log(`Competition h5/${game}: temporarily disabled`);
+      continue;
+    }
     const renderer = path.join(root, selected.directory, selected.renderer).replaceAll('\\', '/');
     await stat(renderer); // Missing adapters block builds instead of silently publishing empty targets.
     for (const platform of targets) {

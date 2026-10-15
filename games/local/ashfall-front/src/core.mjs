@@ -306,6 +306,14 @@ function playerAim(run, input) {
     y = p.y - p.h * 0.61;
   if (input.aim && Number.isFinite(input.aim.x) && Number.isFinite(input.aim.y))
     return Math.atan2(input.aim.y - y, input.aim.x - x);
+  const direction = input.aimDirection;
+  if (
+    direction &&
+    Number.isFinite(direction.x) &&
+    Number.isFinite(direction.y) &&
+    (direction.x !== 0 || direction.y !== 0)
+  )
+    return Math.atan2(direction.y, direction.x);
   let target = null,
     best = 950;
   for (const enemy of run.enemies) {

@@ -1,0 +1,16 @@
+.tools/
+.build/
+*/build/
+*/library/
+*/temp/
+*/profiles/
+*/extensions/
+*/reports/
+*/settings/v2/packages/builder.json
+*/settings/v2/packages/device.json
+*/settings/v2/packages/information.json
+*/settings/v2/packages/program.json
+*/assets/scripts/*
+!*/assets/scripts/*.meta
+release-config.local.json
+test-results/

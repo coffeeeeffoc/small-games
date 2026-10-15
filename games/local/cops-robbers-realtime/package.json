@@ -9,8 +9,9 @@
     "test": "node --test tests/*.test.mjs",
     "test:levels": "node scripts/verify-levels.mjs",
     "build": "node scripts/build.mjs",
-    "test:browser": "node scripts/mobile-pages-playtest.mjs",
-    "test:mobile-pages": "node scripts/mobile-pages-playtest.mjs",
+    "test:browser": "node tests/publishing.browser.mjs",
+    "test:mobile-pages": "node tests/publishing.browser.mjs",
+    "package:taptap": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-taptap.ps1",
     "test:native": "node ../../../scripts/street-native-smoke.mjs",
     "test:runner-browser": "node scripts/runner-playtest.mjs"
   },
