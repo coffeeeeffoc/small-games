@@ -25,7 +25,6 @@ test('original rules select the Cocos consumer without removing original H5 vali
   assert.deepEqual(plan.ids, ['cops-robbers-realtime']);
   assert.deepEqual(plan.native_only_paths, []);
 });
-
 test('each shared original cops illustration selects its Cocos consumer and preserves H5 validation', () => {
   for (const name of ['home-chase.webp', 'patrol-garden.webp', 'patrol-characters.svg']) {
     const file = `games/local/cops-robbers/assets/${name}`;
@@ -41,6 +40,15 @@ test('each shared original cops illustration selects its Cocos consumer and pres
       'the Cocos workflow must also watch the original asset',
     );
   }
+});
+
+test('the public service resolver selects all three Cocos consumers and retains H5 checks', () => {
+  const plan = cocosMinigamePlan({
+    changedPaths: ['scripts/competition-service-config.mjs'],
+    fileScopes: new Map(),
+  });
+  assert.deepEqual(plan.ids, ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five']);
+  assert.deepEqual(plan.native_only_paths, []);
 });
 test('only the reviewed required engine workflow is classified', () => {
   const file = '.github/workflows/cocos-minigames.yml';

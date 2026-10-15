@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { competitionService } from '../../../scripts/competition-service-config.mjs';
 
 export const root = fileURLToPath(new URL('../', import.meta.url));
 export const repo = path.resolve(root, '../..');
@@ -56,8 +57,13 @@ export function configuration(game, platform, { release = false, env = process.e
   );
   const prefix = `MINIGAME_${game.toUpperCase().replaceAll('-', '_')}_${platform.toUpperCase().replaceAll('-', '_')}_`;
   const value = (name) => env[prefix + name] || env[`${platform.toUpperCase()}_${name}`] || '';
+  const service = competitionService({
+    env,
+    apiUrl: value('API_URL') || undefined,
+    local: platform === 'web-preview',
+  });
   const appId = value('APP_ID'),
-    apiUrl = value('API_URL'),
+    apiUrl = service.apiUrl,
     adUnitId = value('AD_UNIT_ID');
   assert(!appId || /^[A-Za-z0-9_-]{1,128}$/.test(appId), 'Invalid public AppID');
   if (platform === 'wechat' && appId)
@@ -74,15 +80,19 @@ export function configuration(game, platform, { release = false, env = process.e
   if (apiUrl) {
     const url = new URL(apiUrl);
     assert(
-      url.protocol === 'https:' && !url.username && !url.password && !url.search && !url.hash,
+      (url.protocol === 'https:' || platform === 'web-preview') &&
+        !url.username &&
+        !url.password &&
+        !url.search &&
+        !url.hash,
       'API_URL must be public HTTPS without credentials, query or fragment',
     );
   }
   if (release) assert(appId, `Release requires ${prefix}APP_ID`);
-  if (release && platform === 'taptap')
+  if (release && platform === 'taptap' && service.competitionEnabled)
     assert(apiUrl, 'TapTap release requires the server code2Session API URL');
   const competitionConfigured = Boolean(
-    appId && apiUrl && platform !== 'alipay' && platform !== 'web-preview',
+    apiUrl && platform !== 'alipay' && (appId || platform === 'web-preview'),
   );
   return {
     game,
@@ -93,7 +103,7 @@ export function configuration(game, platform, { release = false, env = process.e
     apiUrl,
     rewardedAdUnitId: adUnitId,
     competitionConfigured,
-    competitionEnabled: game === 'xiangqi-five' && competitionConfigured,
+    competitionEnabled: competitionConfigured,
     preview: !release,
     assetRoot: '',
     pixelRatio: 1.5,

@@ -27,6 +27,41 @@ async function createWorkspace(packages) {
   return root;
 }
 
+test('optional service configuration is restricted to the reviewed build and development tools', async (t) => {
+  const root = await createWorkspace([
+    ...['cops-robbers', 'cops-robbers-realtime'].map((game) => ({
+      path: `games/local/${game}`,
+      manifest: { name: game },
+      files: {
+        'scripts/build.mjs': "import '../../../../scripts/competition-h5-service.mjs';",
+        'scripts/serve.mjs': "import '../../../../scripts/competition-h5-service.mjs';",
+        'src/main.js': "import '../../../../scripts/competition-h5-service.mjs';",
+      },
+    })),
+    {
+      path: 'apps/shell-minigame',
+      manifest: { name: '@coffeeeeffoc/shell-minigame' },
+      files: {
+        'scripts/nine-games-targets.mjs':
+          "import '../../../scripts/competition-service-config.mjs';",
+        'scripts/taptap-login.mjs': "import '../../../scripts/competition-service-config.mjs';",
+        'src/main.js': "import '../../../scripts/competition-service-config.mjs';",
+        'scripts/unknown.mjs': "import '../../../scripts/competition-service-config.mjs';",
+      },
+    },
+  ]);
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const violations = await validateWorkspace(root);
+  assert.equal(violations.length, 4);
+  assert(
+    violations.every(
+      (item) =>
+        item.code === 'cross-package-relative' &&
+        /src\/main\.js|scripts\/unknown\.mjs/.test(item.message),
+    ),
+  );
+});
+
 test('allows workspace dependencies through declared public exports', async (t) => {
   const root = await createWorkspace([
     {

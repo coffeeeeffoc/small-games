@@ -6,6 +6,12 @@ import { wechatPlatform } from '../platforms/wechat/build.mjs';
 import { bilibiliPlatform } from '../platforms/bilibili/build.mjs';
 import { douyinPlatform } from '../platforms/douyin/build.mjs';
 import { kuaishouPlatform } from '../platforms/kuaishou/build.mjs';
+import {
+  serviceGames,
+  competitionService,
+  serviceEnvironment,
+} from './competition-service-config.mjs';
+import { prepareH5Service } from './competition-h5-service.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 export const competitionPlatforms = {
@@ -49,6 +55,7 @@ export async function buildCompetition({
   platform: onlyPlatform,
   outputRoot,
   config = {},
+  env = process.env,
 } = {}) {
   if (only && !Object.hasOwn(competitionGames, only))
     throw new Error(`Unknown competition game: ${only}`);
@@ -61,6 +68,14 @@ export async function buildCompetition({
     : ['h5'];
   for (const [game, selected] of Object.entries(competitionGames)) {
     if (only && game !== only) continue;
+    if (!native && serviceGames.includes(game)) {
+      await prepareH5Service(
+        game,
+        outputRoot ? path.join(outputRoot, game) : path.join(root, selected.directory, 'dist'),
+        { env, local: true },
+      );
+      continue;
+    }
     if (!native && selected.online === false) {
       console.log(`Competition h5/${game}: temporarily disabled`);
       continue;
@@ -77,7 +92,12 @@ export async function buildCompetition({
           (platformConfig.appId && !adapter.appId.test(platformConfig.appId)))
       )
         throw new Error(`Invalid ${platform}/${game} AppID`);
-      const apiUrl = platformConfig.apiUrl || process.env.COMPETITION_PUBLIC_API_URL || '';
+      const service = serviceGames.includes(game)
+        ? competitionService({ env, apiUrl: platformConfig.apiUrl || undefined })
+        : null;
+      const apiUrl = service
+        ? service.apiUrl
+        : platformConfig.apiUrl || env.COMPETITION_PUBLIC_API_URL || '';
       if (typeof apiUrl !== 'string' || (apiUrl && !/^https?:\/\//.test(apiUrl)))
         throw new Error('Competition API URL must be HTTP(S)');
       const outDir = outputRoot
@@ -98,11 +118,27 @@ export async function buildCompetition({
           native ? 'native.js' : 'h5.js',
         )
         .replaceAll('\\', '/');
-      const configValue = { ...platformConfig, game, platform, title: selected.title, apiUrl };
+      const configValue = {
+        ...platformConfig,
+        game,
+        platform,
+        title: selected.title,
+        apiUrl,
+        ...(service || {}),
+      };
       const nativeHost = path.join(root, 'platforms/competition/native.js').replaceAll('\\', '/');
+      const localControllers = {
+        'cops-robbers': ['games/local/cops-robbers/src/native.js', 'startNativeCopsGame'],
+        'cops-robbers-realtime': [
+          'games/local/cops-robbers-realtime/src/native.js',
+          'startNativeStreetGame',
+        ],
+        'xiangqi-five': ['platforms/competition/xiangqi-five/native.js', 'startNativeXiangqiGame'],
+      };
+      const localController = localControllers[game];
       const source = native
-        ? streetNative
-          ? `import{startNativeStreetGame}from ${JSON.stringify(module)};import{startNativeCompetition}from ${JSON.stringify(nativeHost)};export const instance=startNativeStreetGame(typeof ${adapter.sdk}==='undefined'?undefined:${adapter.sdk},${JSON.stringify(configValue)},startNativeCompetition);`
+        ? localController && (streetNative || !service.competitionEnabled)
+          ? `import{${localController[1]}}from ${JSON.stringify(path.join(root, localController[0]).replaceAll('\\', '/'))};import{startNativeCompetition}from ${JSON.stringify(nativeHost)};export const instance=${localController[1]}(typeof ${adapter.sdk}==='undefined'?undefined:${adapter.sdk},${JSON.stringify(configValue)},startNativeCompetition);`
           : lettersNative
             ? `import{startNativeLettersGame}from ${JSON.stringify(module)};import{startNativeCompetition}from ${JSON.stringify(nativeHost)};export const instance=startNativeLettersGame(typeof ${adapter.sdk}==='undefined'?undefined:${adapter.sdk},${JSON.stringify(configValue)},startNativeCompetition);`
             : `import{startNativeCompetition}from ${JSON.stringify(module)};import{createRenderer}from ${JSON.stringify(renderer)};export const instance=startNativeCompetition(typeof ${adapter.sdk}==='undefined'?undefined:${adapter.sdk},${JSON.stringify(configValue)},createRenderer);`
@@ -170,11 +206,14 @@ export async function buildCompetition({
               apiConfigured: !!apiUrl,
               mode: platformConfig.appId ? 'configured-unverified' : 'preview-unverified',
               rendering: 'native Canvas 2D',
-              gameplayScope: streetNative
-                ? 'solo campaign and server-authoritative friend competition'
-                : lettersNative
-                  ? 'solo vocabulary islands, textbooks and server-authoritative friend competition'
-                  : 'server-authoritative friend competition only',
+              gameplayScope:
+                localController && !service.competitionEnabled && !streetNative
+                  ? 'native local solo; service disabled'
+                  : streetNative
+                    ? 'solo campaign and server-authoritative friend competition'
+                    : lettersNative
+                      ? 'solo vocabulary islands, textbooks and server-authoritative friend competition'
+                      : 'server-authoritative friend competition only',
               nativeRuntimeVerified: false,
               platformLoginVerified: false,
               builtAt: new Date().toISOString(),
@@ -203,5 +242,6 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     only: process.argv.find((a) => a.startsWith('--game='))?.slice(7),
     platform: process.argv.find((a) => a.startsWith('--platform='))?.slice(11),
     config,
+    env: serviceEnvironment(process.argv.slice(2)),
   });
 }

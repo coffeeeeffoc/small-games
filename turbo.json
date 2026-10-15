@@ -11,12 +11,16 @@
     "games/local/carding-car/scripts/**",
     "scripts/cocos-validation.mjs",
     "scripts/workspace-bootstrap.mjs",
-    "scripts/rule-tasks.mjs"
+    "scripts/rule-tasks.mjs",
+    "scripts/competition-service-config.mjs",
+    "scripts/competition-h5-service.mjs",
+    "platforms/competition/service-config.js"
   ],
   "globalPassThroughEnv": ["COCOS_CREATOR", "KART_PREBUILT_DIR", "NIGHT_OVERWATCH_PREBUILT_DIR"],
   "tasks": {
     "dev": {
       "cache": false,
+      "env": ["COMPETITION_SERVICE_ENABLED", "COMPETITION_PUBLIC_API_URL"],
       "persistent": true
     },
     "build": {
@@ -29,6 +33,8 @@
         "public/vendor/**"
       ],
       "env": [
+        "COMPETITION_SERVICE_ENABLED",
+        "COMPETITION_PUBLIC_API_URL",
         "BILIBILI_AD_UNIT_ID",
         "VITE_SHELL_ORIGIN",
         "VITE_CULTIVATION_ARTIFACT_URL",
@@ -39,11 +45,13 @@
     "@coffeeeeffoc/shell-web#build": {
       "dependsOn": ["^build"],
       "cache": false,
+      "env": ["COMPETITION_SERVICE_ENABLED", "COMPETITION_PUBLIC_API_URL"],
       "outputs": ["dist/**"]
     },
     "@coffeeeeffoc/shell-web#build:pages": {
       "dependsOn": ["^build"],
       "cache": false,
+      "env": ["COMPETITION_SERVICE_ENABLED", "COMPETITION_PUBLIC_API_URL"],
       "outputs": ["dist/**"]
     },
     "test": {

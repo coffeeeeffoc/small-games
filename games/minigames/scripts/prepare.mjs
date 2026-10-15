@@ -35,6 +35,7 @@ const toolInputs = [
   'apps/shell-minigame/scripts/taptap-login.mjs',
   'apps/shell-minigame/scripts/taptap-cocos-inputs.mjs',
   'platforms/taptap/login.cjs',
+  'scripts/competition-service-config.mjs',
 ];
 const exec = promisify(execFile);
 

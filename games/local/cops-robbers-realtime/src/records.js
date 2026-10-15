@@ -1,6 +1,8 @@
 export const RUN_VERSION = 'street-solo-v2';
-// Domain setup is pending; leave the replay protocol intact for re-enabling later.
-export const ONLINE_ENABLED = false;
+export function onlineEnabled(config = globalThis.__COMPETITION_CONFIG__) {
+  return config?.competitionEnabled === true && /^https?:\/\//.test(config.apiUrl || '');
+}
+export const ONLINE_ENABLED = onlineEnabled();
 
 export function runConfig(game) {
   return {
@@ -19,7 +21,7 @@ export function formatRecord(seconds) {
   return `${String(minutes).padStart(2, '0')}:${((hundredths % 6000) / 100).toFixed(2).padStart(5, '0')}`;
 }
 async function request(config, body) {
-  if (!ONLINE_ENABLED) throw new Error('联网功能暂未开放');
+  if (!onlineEnabled()) throw new Error('联网功能暂未开放');
   const client = globalThis.__competition;
   if (!client) throw new Error('服务器暂未连接');
   const query = new URLSearchParams(config);

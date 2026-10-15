@@ -12,6 +12,10 @@ import history from '../services/runtime-api/rules/history.mjs';
 import chess from '../services/runtime-api/rules/chess.mjs';
 import { findSpelling } from '../games/local/letters-words2/engine.js';
 import { createRenderer as createLettersRenderer } from '../games/local/letters-words2/competition-renderer.js';
+import {
+  createNativeSDKFixture,
+  flushNative,
+} from '../games/local/letters-words2/tests/native-sdk-fixture.mjs';
 
 const rules = new Map([cops, realtime, letters, history, chess].map((rule) => [rule.id, rule]));
 const selectedGame = process.argv.find((argument) => argument.startsWith('--game='))?.slice(7);
@@ -29,6 +33,43 @@ for (const [game, selected] of Object.entries(competitionGames)) {
   if (selectedGame && game !== selectedGame) continue;
   if (game === 'cops-robbers-realtime') continue; // Campaign shell tested above using real replay-verified field input.
   for (const [platform, adapter] of Object.entries(competitionPlatforms)) {
+    const soloDirectory = path.join(root, platform, game);
+    const soloRelease = JSON.parse(readFileSync(path.join(soloDirectory, 'release.json'), 'utf8'));
+    if (['cops-robbers', 'xiangqi-five'].includes(game) && !soloRelease.apiConfigured) {
+      const f = createNativeSDKFixture();
+      const restore = f.installGlobals();
+      const exports = {};
+      let instance;
+      try {
+        vm.runInNewContext(readFileSync(path.join(soloDirectory, 'game.js'), 'utf8'), {
+          [adapter.sdk]: f.sdk,
+          exports,
+          module: { exports },
+          console,
+          Date,
+          setTimeout,
+          clearTimeout,
+          setInterval,
+          clearInterval,
+          requestAnimationFrame,
+          cancelAnimationFrame,
+        });
+        instance = exports.instance;
+        assert(!f.findLabel('好友挑战'));
+        f.tapLabel(game === 'cops-robbers' ? '开始巡逻' : '同屏双人');
+        await flushNative();
+        assert.equal((instance.getState?.() || instance.state).page, 'play');
+        assert.equal(f.requests.length, 0);
+        assert.equal(soloRelease.gameplayScope, 'native local solo; service disabled');
+      } finally {
+        (instance?.stop || instance?.dispose)?.call(instance);
+        restore();
+      }
+      console.log(
+        `${platform}/${game}: offline solo entry, touch start and zero service requests passed`,
+      );
+      continue;
+    }
     for (const audioMode of ['normal', 'create-failure', 'initialize-failure', 'play-failure']) {
       const directory = path.join(root, platform, game);
       const source = readFileSync(path.join(directory, 'game.js'), 'utf8');

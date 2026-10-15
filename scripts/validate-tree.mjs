@@ -388,6 +388,22 @@ export function runNineNativeChecks({
 }
 
 export function runIncrementalToolChecks({ plan, packages, root, env, execute = run }) {
+  if (plan.competition_service_checks) {
+    execute(
+      process.execPath,
+      [
+        '--test',
+        'scripts/competition-service-config.test.mjs',
+        'apps/shell-minigame/scripts/taptap-cocos.test.mjs',
+        'apps/shell-minigame/scripts/taptap-cocos-inputs.test.mjs',
+        'apps/shell-minigame/scripts/taptap-login.test.mjs',
+      ],
+      root,
+      env,
+      'logged',
+    );
+    execute(process.execPath, ['scripts/competition-service.browser.mjs'], root, env, 'logged');
+  }
   if (plan.cocos_minigame_ids?.length) {
     execute(
       process.execPath,

@@ -1,4 +1,6 @@
+param([switch]$WithService, [switch]$WithoutService)
 $ErrorActionPreference = 'Stop'
+if ($WithService -and $WithoutService) { throw 'Choose -WithService or -WithoutService' }
 $gameRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $dist = Join-Path $gameRoot 'dist'
 $output = Join-Path $gameRoot 'outputs/taptap'
@@ -11,7 +13,10 @@ function FileHash($path) {
 }
 Push-Location $gameRoot
 try {
-  node scripts/build.mjs
+  $serviceArgs = @()
+  if ($WithService) { $serviceArgs += '--with-service' }
+  if ($WithoutService) { $serviceArgs += '--without-service' }
+  node scripts/build.mjs --taptap @serviceArgs
   if ($LASTEXITCODE -ne 0) { throw 'H5 build failed' }
   if (!(Test-Path -LiteralPath (Join-Path $dist 'index.html'))) { throw 'Missing dist/index.html' }
   New-Item -ItemType Directory -Force -Path $output, $qa | Out-Null

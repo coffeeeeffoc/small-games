@@ -149,23 +149,30 @@ test('platform identities, release credentials, unsupported targets and orientat
     () =>
       configuration('cops-robbers', 'taptap', {
         release: true,
-        env: { TAPTAP_APP_ID: 'tap_actual_id' },
+        env: { TAPTAP_APP_ID: 'tap_actual_id', COMPETITION_SERVICE_ENABLED: '1' },
       }),
     /API/,
   );
   assert.throws(
     () =>
       configuration('cops-robbers', 'taptap', {
-        env: { TAPTAP_API_URL: 'https://user:secret@example.com' },
+        env: {
+          COMPETITION_SERVICE_ENABLED: '1',
+          TAPTAP_API_URL: 'https://user:secret@example.com',
+        },
       }),
     /HTTPS/,
   );
   const release = configuration('cops-robbers', 'taptap', {
     release: true,
-    env: { TAPTAP_APP_ID: 'tap_actual_id', TAPTAP_API_URL: 'https://example.com/api' },
+    env: {
+      COMPETITION_SERVICE_ENABLED: '1',
+      TAPTAP_APP_ID: 'tap_actual_id',
+      TAPTAP_API_URL: 'https://example.com/api',
+    },
   });
   assert.equal(release.debug, false);
-  assert.equal(release.competitionEnabled, false);
+  assert.equal(release.competitionEnabled, true);
   assert.equal(creatorConfiguration(release).packages.wechatgame.appid, 'touristappid');
 });
 

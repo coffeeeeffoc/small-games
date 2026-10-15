@@ -4,6 +4,8 @@ import { randomBytes } from 'node:crypto';
 import { parseEnv } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { competitionService, serviceEnvironment } from './competition-service-config.mjs';
+import { reconfigureH5Service } from './competition-h5-service.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const templates = path.join(root, 'infra/tencent');
@@ -163,13 +165,14 @@ function toolEnvironment() {
   );
 }
 
-async function pnpm(args) {
+async function pnpm(args, env = {}) {
   if (!process.env.npm_execpath)
     throw new Error('Run with pnpm deploy:tencent so the pinned pnpm executable is available.');
-  await run(process.env.npm_execpath, args, { env: toolEnvironment() });
+  await run(process.env.npm_execpath, args, { env: { ...toolEnvironment(), ...env } });
 }
 
-export async function prepareSite(source, destination) {
+export async function prepareSite(source, destination, env = {}) {
+  competitionService({ env, local: env.DEPLOY_MODE === 'internal' });
   await cp(source, destination, { recursive: true, dereference: false });
   const config =
     '<script data-tencent-runtime>globalThis.__COMPETITION_CONFIG__=Object.assign({},globalThis.__COMPETITION_CONFIG__,{apiUrl:location.origin+"/api/competition/v1"});globalThis.__kartServerUrl=(location.protocol==="http:"?"ws://":"wss://")+location.host+"/kart";</script>';
@@ -180,11 +183,17 @@ export async function prepareSite(source, destination) {
       if (entry.isSymbolicLink()) throw new Error('Static release must not contain symlinks');
       if (entry.isDirectory()) await visit(filename);
       else if (entry.name.endsWith('.html')) {
+        const managed = await reconfigureH5Service(filename, env, env.DEPLOY_MODE === 'internal');
         const html = await readFile(filename, 'utf8');
         if (!/<head(?:\s[^>]*)?>/i.test(html)) throw new Error(`Missing HTML head: ${filename}`);
         await writeFile(
           filename,
-          html.replace(/<head(?:\s[^>]*)?>/i, (head) => head + config),
+          html.replace(
+            /<head(?:\s[^>]*)?>/i,
+            (head) =>
+              head +
+              (managed ? config.replace(/globalThis\.__COMPETITION_CONFIG__=.*?;/, '') : config),
+          ),
         );
         pages++;
       }
@@ -273,7 +282,16 @@ async function main() {
   }
   if (
     args.some(
-      (arg) => !['--check', '--prepare', '--internal', '--public', '--tunnel'].includes(arg),
+      (arg) =>
+        ![
+          '--check',
+          '--prepare',
+          '--internal',
+          '--public',
+          '--tunnel',
+          '--with-service',
+          '--without-service',
+        ].includes(arg),
     ) ||
     ['--check', '--prepare', '--tunnel'].filter((arg) => args.includes(arg)).length > 1 ||
     (args.includes('--internal') && args.includes('--public')) ||
@@ -288,11 +306,18 @@ async function main() {
   } catch (error) {
     if (error.code !== 'ENOENT') throw error;
   }
-  const config = deploymentConfig({
-    ...local,
-    ...process.env,
-    DEPLOY_MODE: args.includes('--public') ? 'public' : 'internal',
-  });
+  const config = deploymentConfig(
+    serviceEnvironment(args, {
+      ...local,
+      ...process.env,
+      DEPLOY_MODE: args.includes('--public') ? 'public' : 'internal',
+    }),
+  );
+  competitionService({ env: config, local: config.DEPLOY_MODE === 'internal' });
+  const clientEnv = {
+    COMPETITION_SERVICE_ENABLED: config.COMPETITION_SERVICE_ENABLED ?? '0',
+    COMPETITION_PUBLIC_API_URL: config.COMPETITION_PUBLIC_API_URL ?? '',
+  };
   if (config.ECS_SSH_KEY) await stat(config.ECS_SSH_KEY);
   if (args.includes('--tunnel')) {
     console.log(
@@ -325,7 +350,7 @@ async function main() {
   await mkdir(path.join(bundle, 'nginx'), { recursive: true, mode: 0o700 });
   await mkdir(path.join(bundle, 'migrations'), { recursive: true });
   await pnpm(['check:games']);
-  await pnpm(['build:pages']);
+  await pnpm(['build:pages'], clientEnv);
   await pnpm(['check:games', '--artifacts']);
   await pnpm([
     'exec',
@@ -336,7 +361,11 @@ async function main() {
     '--concurrency=1',
   ]);
   await pnpm(['--filter', '@coffeeeeffoc/kart-server', 'typecheck']);
-  const pages = await prepareSite(path.join(root, 'apps/shell-web/dist'), path.join(stage, 'site'));
+  const pages = await prepareSite(
+    path.join(root, 'apps/shell-web/dist'),
+    path.join(stage, 'site'),
+    config,
+  );
   await prepareBackend(path.join(bundle, 'backend'));
   for (const file of ['Dockerfile', 'compose.yaml', 'bootstrap.sql', 'deploy.sh'])
     await cp(path.join(templates, file), path.join(bundle, file));

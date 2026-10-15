@@ -166,6 +166,94 @@ export const competitionConsumers = {
   'vibeJam-myself-history-guess': 'games/local/vibeJam-myself-history-guess',
   'xiangqi-five': 'games/submodules/xiangqi-five',
 };
+export const competitionServiceScopePaths = [
+  'scripts/competition-service-config.mjs',
+  'scripts/competition-service-config.test.mjs',
+  'scripts/competition-service.browser.mjs',
+  'scripts/competition-h5-service.mjs',
+  'scripts/competition-game.mjs',
+  'platforms/competition/service-config.js',
+  'platforms/competition/.env.example',
+];
+const competitionServiceIds = ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'];
+export function competitionServiceConfigOnly(file, before, after) {
+  try {
+    const previous = JSON.parse(before),
+      current = JSON.parse(after);
+    if (file === 'package.json') {
+      assert.equal(current.scripts['competition:game'], 'node scripts/competition-game.mjs');
+      if (!Object.hasOwn(previous.scripts, 'competition:game'))
+        delete current.scripts['competition:game'];
+    } else if (file === 'turbo.json') {
+      const inputs = [
+        'scripts/competition-service-config.mjs',
+        'scripts/competition-h5-service.mjs',
+        'platforms/competition/service-config.js',
+      ];
+      const variables = ['COMPETITION_SERVICE_ENABLED', 'COMPETITION_PUBLIC_API_URL'];
+      assert.equal(new Set(current.globalDependencies).size, current.globalDependencies.length);
+      assert.equal(new Set(current.tasks.build.env).size, current.tasks.build.env.length);
+      for (const value of inputs) assert(current.globalDependencies.includes(value));
+      for (const value of variables) assert(current.tasks.build.env.includes(value));
+      current.globalDependencies = current.globalDependencies.filter(
+        (value) => !inputs.includes(value) || previous.globalDependencies.includes(value),
+      );
+      current.tasks.build.env = current.tasks.build.env.filter(
+        (value) => !variables.includes(value) || previous.tasks.build.env.includes(value),
+      );
+      for (const task of [
+        'dev',
+        '@coffeeeeffoc/shell-web#build',
+        '@coffeeeeffoc/shell-web#build:pages',
+      ]) {
+        assert.deepEqual(current.tasks[task].env, variables);
+        if (!Object.hasOwn(previous.tasks[task], 'env')) delete current.tasks[task].env;
+      }
+    } else return false;
+    return isDeepStrictEqual(previous, current);
+  } catch {
+    return false;
+  }
+}
+
+// Exact existing integration edits reviewed with this service configuration change.
+// Later unrelated deployment/native edits must establish their own consumer scope.
+const competitionServiceIntegrations = {
+  'scripts/competition-gateway.mjs': [
+    'bbfc69bf5d9c9c9a2f1c3d28ab245024dc78030e7eec18953a9705ccccd16f92',
+    '35c4d646992f89799a559091f793518f1da72d8c675c0cab73a0a6146e213e51',
+  ],
+  'scripts/deploy-tencent.mjs': [
+    'e8623f1a812418ffcbf56519fb6ac72dcc163960421a7fe2efe6eee3c15bb825',
+    '3e7e728a461a30c24baaee7462b0ba8ddc715dfb0694776ea61843ce197e1f4a',
+  ],
+  'platforms/competition/client.js': [
+    'fe6eafe4a5446940c318f4121b9d1160ac71eccd2878a61c8214a195ffda66e1',
+    '445d0b6f8f81cc58e2c84d9dfd5951e1fbf7fb7cc93883a50772ba172841637d',
+  ],
+  'platforms/competition/native.js': [
+    '37e2f19ed16a3d6c01ecbbf5d953265f1134a560af8addb2dcf890d37630f2c8',
+    'de8d7e999b3fb0fb9cfd28e9c2425594ce8f30ee62ac11225464845f41b8bfd8',
+  ],
+  'platforms/competition/xiangqi-five/native.js': [
+    'b1cfc9787be26a3f72471fa929f0a2cf258579df6ee334090662fb6affba98a6',
+    'ce106bb530030e833ec00cc6ec42b266cd4d568a0abccc627ff6b799c026e9dc',
+  ],
+  'platforms/competition/xiangqi-five/tests/native.test.mjs': [
+    '79aae92d0c368a95ec88bd1eff10d51156b4cd1d97170536ead1d5414baaa9e2',
+    'aa9dd9390d54dc91799ff408cd55d6caa2bfb66a0b8191f4121ae5b28c80a802',
+  ],
+};
+function competitionServiceIntegration(file, before, after) {
+  const expected = competitionServiceIntegrations[file];
+  const digest = (text) => createHash('sha256').update(text.replaceAll('\r\n', '\n')).digest('hex');
+  return (
+    expected &&
+    typeof before === 'string' &&
+    expected[0] === digest(before) &&
+    expected[1] === digest(after)
+  );
+}
 const h5Files = ['platforms/competition/h5.js', 'scripts/test-competition-dialogs.mjs'];
 const nativeFiles = ['platforms/competition/native.js', 'scripts/competition-native-smoke.mjs'];
 const builder = 'scripts/competition-build.mjs';
@@ -1082,6 +1170,57 @@ export function reviewedSharedFileScopes({
   for (const file of changedPaths) {
     try {
       if (
+        competitionServiceScopePaths.includes(file) ||
+        (['package.json', 'turbo.json'].includes(file) &&
+          competitionServiceConfigOnly(file, readBase(file), readHead(file))) ||
+        (Object.hasOwn(competitionServiceIntegrations, file) &&
+          competitionServiceIntegration(file, readBase(file), readHead(file)))
+      ) {
+        assert.deepEqual(
+          literalDeclaration(readHead('scripts/competition-service-config.mjs'), 'serviceGames'),
+          competitionServiceIds,
+        );
+        for (const id of competitionServiceIds) {
+          assert.equal(
+            games.filter((game) => game.id === id && game.source === competitionConsumers[id])
+              .length,
+            1,
+          );
+          assert.equal(packages.filter((pkg) => pkg.dir === competitionConsumers[id]).length, 1);
+        }
+        const native = [
+          'platforms/competition/native.js',
+          'platforms/competition/client.js',
+        ].includes(file);
+        const xiangqi = file.startsWith('platforms/competition/xiangqi-five/');
+        const sources = xiangqi
+          ? [competitionConsumers['xiangqi-five']]
+          : native
+            ? Object.values(competitionConsumers)
+            : competitionServiceIds.map((id) => competitionConsumers[id]);
+        const gateway = ['scripts/deploy-tencent.mjs', 'scripts/competition-gateway.mjs'].includes(
+          file,
+        );
+        if (gateway) {
+          assertRankedConsumers(games, packages, readHead);
+          assertGameServiceCopies(readHead);
+        }
+        scopes.set(file, [
+          ...new Set([
+            ...sources,
+            ...(native || xiangqi ? [] : ['apps/shell-web']),
+            ...(file === 'scripts/competition-service-config.mjs' ? ['apps/shell-minigame'] : []),
+            ...(native
+              ? ['apps/shell-minigame', 'apps/shell-bilibili']
+              : xiangqi
+                ? ['apps/shell-minigame']
+                : []),
+            ...(gateway ? [...Object.values(rankedConsumers), 'services/runtime-api'] : []),
+          ]),
+        ]);
+        continue;
+      }
+      if (
         gameServiceScopePaths.includes(file) &&
         (file !== 'scripts/competition-gateway.mjs' ||
           rankedGatewayFileScope(readBase(file), readHead(file)))
@@ -1214,7 +1353,13 @@ export function reviewedSharedFileScopes({
         // Unchanged kart/Cocos game rendering is not an input to a backend archive.
         for (const source of ['services/runtime-api', 'services/management-api'])
           assert(packages.some((pkg) => pkg.dir === source));
-        scopes.set(file, ['services/runtime-api', 'services/management-api']);
+        scopes.set(file, [
+          'services/runtime-api',
+          'services/management-api',
+          ...(['scripts/deployment-bundle.mjs', 'scripts/deployment-bundle.test.mjs'].includes(file)
+            ? [...competitionServiceIds.map((id) => competitionConsumers[id]), 'apps/shell-web']
+            : []),
+        ]);
       } else if (
         file === carromDeployFile &&
         carromBackendFileScope(file, readBase(file), readHead(file))

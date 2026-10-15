@@ -436,6 +436,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       game: { type: 'string' },
       platform: { type: 'string' },
       preview: { type: 'boolean' },
+      'with-service': { type: 'boolean' },
+      'without-service': { type: 'boolean' },
       output: { type: 'string' },
       verify: { type: 'string' },
     },
@@ -445,6 +447,9 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     console.log('Artifact integrity verified.');
   } else {
     const results = await runBuild({
+      env: (await import('../../../scripts/competition-service-config.mjs')).serviceEnvironment(
+        process.argv.slice(2),
+      ),
       all: values.all,
       game: values.game,
       platform: values.platform,

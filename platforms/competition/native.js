@@ -101,7 +101,11 @@ export function startNativeCompetition(sdk, config, createRenderer) {
   const roleNames = street
     ? { pursuer: '警察', runner: '小偷', random: '系统分配' }
     : { pursuer: '追逐队', runner: '突围队', random: '系统分配' };
-  if (!['wechat', 'bilibili', 'douyin', 'kuaishou', 'alipay', 'taptap'].includes(config?.platform))
+  if (
+    !['wechat', 'bilibili', 'douyin', 'kuaishou', 'alipay', 'taptap', 'web-preview'].includes(
+      config?.platform,
+    )
+  )
     throw new Error('原生好友挑战需要明确的平台配置。');
   if (!sdk) throw new Error(`缺少 ${config.platform} 原生 SDK，无法启动游戏。`);
   for (const name of [
@@ -136,7 +140,7 @@ export function startNativeCompetition(sdk, config, createRenderer) {
       /* Optional audio and cleanup cannot block gameplay. */
     }
   }
-  globalThis.__installCompetition(config, sdk);
+  globalThis.__installCompetition(config, config.platform === 'web-preview' ? undefined : sdk);
   const client = globalThis.__competition,
     canvas = config.canvas || sdk.createCanvas(),
     ctx = canvas.getContext('2d'),

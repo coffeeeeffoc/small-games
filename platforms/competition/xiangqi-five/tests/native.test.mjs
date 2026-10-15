@@ -70,7 +70,7 @@ test('native same-screen games use real rules, old save replay, cancellation and
       { game, tap, emit, point } = f;
     try {
       assert.equal(game.state.page, 'home');
-      tap('好友挑战');
+      assert(!game.getLayout().hits.some((item) => item.label === '好友挑战'));
       assert.equal(game.state.page, 'home');
       tap('同屏双人');
       assert.equal(game.state.game.mode, 'xiangqi');

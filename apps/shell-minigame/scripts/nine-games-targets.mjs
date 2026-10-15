@@ -1,4 +1,5 @@
 // Scope frozen from dev e07dc064 GameCatalog.featuredGameOrder on 2026-10-06.
+import { competitionService, serviceGames } from '../../../scripts/competition-service-config.mjs';
 // New catalog registrations must not change this release batch.
 export const scopeCommit = 'e07dc06483bd7fe0b9fdfe219e06362fce3c0caf';
 export const nineGames = [
@@ -106,7 +107,10 @@ export function targetOptions(game, platform, { preview = false, env = process.e
     throw new Error(
       `Release requires ${key}; explicitly use --preview for unconfigured local builds.`,
     );
-  const apiUrl = env.MINIGAME_COMPETITION_API_URL || '';
+  const service = serviceGames.includes(game)
+    ? competitionService({ env, apiUrl: env.MINIGAME_COMPETITION_API_URL || undefined })
+    : null;
+  const apiUrl = service ? service.apiUrl : env.MINIGAME_COMPETITION_API_URL || '';
   if (apiUrl) {
     let url;
     try {
@@ -146,6 +150,11 @@ export function targetOptions(game, platform, { preview = false, env = process.e
     platform,
     appId,
     apiUrl,
+    ...(service
+      ? {
+          competitionEnabled: service.competitionEnabled && Boolean(appId) && platform !== 'alipay',
+        }
+      : {}),
     ...(assetBase ? { assetBase } : {}),
     preview,
     competitionConfigured: Boolean(

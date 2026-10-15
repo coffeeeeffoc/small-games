@@ -2,6 +2,7 @@ import { copyFile, lstat, mkdir, readdir, realpath, writeFile } from 'node:fs/pr
 import { dirname, extname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { adConfiguration, configurationScript } from './ad-config.mjs';
+import { prepareH5Service, serviceEnvironment } from '../../../../scripts/competition-h5-service.mjs';
 
 const root = await realpath(resolve(dirname(fileURLToPath(import.meta.url)), '..'));
 const output = resolve(root, 'dist');
@@ -44,4 +45,5 @@ for (const name of ['assets', 'favicon.svg', 'favicon.ico', 'favicon.png']) {
   try { await lstat(resolve(root, name)); } catch (error) { if (error.code === 'ENOENT') continue; throw error; }
   await copy(resolve(root, name), resolve(output, name));
 }
+await prepareH5Service('cops-robbers', output, { env: serviceEnvironment(process.argv.slice(2)), local: !process.argv.includes('--taptap') });
 console.log(`已复制 ${copied} 个游戏文件到 ${output}；现有其他文件保留。`);

@@ -33,6 +33,7 @@
     "competition:dev": "node scripts/competition.mjs dev",
     "competition:stop": "node scripts/competition.mjs stop",
     "competition:build": "node scripts/competition-build.mjs",
+    "competition:game": "node scripts/competition-game.mjs",
     "competition:native": "node scripts/competition-build.mjs --native",
     "artifact:build": "node scripts/build-artifact.mjs",
     "dev:platform": "node scripts/platform.mjs dev",

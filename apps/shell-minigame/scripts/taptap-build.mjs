@@ -189,10 +189,15 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       all: { type: 'boolean' },
       game: { type: 'string' },
       preview: { type: 'boolean' },
+      'with-service': { type: 'boolean' },
+      'without-service': { type: 'boolean' },
       output: { type: 'string' },
     },
   });
   const results = await buildTapTap({
+    env: (await import('../../../scripts/competition-service-config.mjs')).serviceEnvironment(
+      process.argv.slice(2),
+    ),
     all: values.all,
     game: values.game,
     preview: values.preview,

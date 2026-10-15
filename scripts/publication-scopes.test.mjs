@@ -6,6 +6,8 @@ import {
   reviewedSharedFileScopes,
   competitionConsumers,
   competitionToolPlan,
+  competitionServiceScopePaths,
+  competitionServiceConfigOnly,
   threeChooseTwoBackendFileScope,
   flickIntegrationFileScope,
   carromBackendFileScope,
@@ -953,6 +955,86 @@ function plan(paths, fileScopes) {
   });
 }
 
+test('optional service configuration has finite H5 consumers and rejects unknown siblings or game identities', async () => {
+  const { workspacePackages } = await import('./validation-plan.mjs');
+  const root = new URL('../', import.meta.url).pathname;
+  const consumers = await workspacePackages(root);
+  const catalog = JSON.parse(
+    readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url), 'utf8'),
+  );
+  const read = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const context = {
+    packages: consumers,
+    games: catalog,
+    readHead: read,
+    readBase: (file) =>
+      execFileSync('git', ['show', 'c010423731cc22fb0657a4a86ac9811e1997bbc1:' + file], {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }),
+  };
+  for (const file of [...competitionServiceScopePaths, 'package.json', 'turbo.json']) {
+    const fileScopes = reviewedSharedFileScopes({ ...context, changedPaths: [file] });
+    assert(fileScopes.has(file), file);
+    const selected = incrementalPlan({
+      ...context,
+      changedPaths: [file],
+      fileScopes,
+      readSource: read,
+    });
+    for (const id of ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'])
+      assert(selected.browser_ids.includes(id), file + ': ' + id);
+    assert.equal(selected.competition_service_checks, true);
+  }
+  for (const file of [
+    'scripts/competition-service-extra.mjs',
+    'platforms/competition/service-extra.js',
+  ]) {
+    const fileScopes = reviewedSharedFileScopes({ ...context, changedPaths: [file] });
+    assert(!fileScopes.has(file));
+    assert.throws(
+      () => incrementalPlan({ ...context, changedPaths: [file], fileScopes, readSource: read }),
+      /scope undefined/,
+    );
+  }
+  const file = competitionServiceScopePaths[0];
+  for (const games of [
+    [...catalog, catalog.find((game) => game.id === 'xiangqi-five')],
+    catalog.filter((game) => game.id !== 'cops-robbers'),
+  ])
+    assert(!reviewedSharedFileScopes({ ...context, games, changedPaths: [file] }).has(file));
+  assert(
+    !reviewedSharedFileScopes({
+      ...context,
+      changedPaths: [file],
+      readHead: (name) =>
+        name === file
+          ? read(name).replace("'xiangqi-five'", "'xiangqi-five', 'fourth-game'")
+          : read(name),
+    }).has(file),
+  );
+});
+
+test('service command and Turbo environment changes preserve every unrelated task and cache setting', () => {
+  for (const file of ['package.json', 'turbo.json']) {
+    const before = execFileSync(
+      'git',
+      ['show', 'c010423731cc22fb0657a4a86ac9811e1997bbc1:' + file],
+      { encoding: 'utf8' },
+    );
+    const current = JSON.parse(readFileSync(new URL('../' + file, import.meta.url), 'utf8'));
+    assert(competitionServiceConfigOnly(file, before, JSON.stringify(current)));
+    const bad = structuredClone(current);
+    if (file === 'package.json') bad.scripts['competition:game'] += ' && arbitrary-command';
+    else bad.tasks['@coffeeeeffoc/shell-web#build:pages'].cache = true;
+    assert(!competitionServiceConfigOnly(file, before, JSON.stringify(bad)));
+    if (file === 'turbo.json') {
+      current.tasks.build.env.push('COMPETITION_SERVICE_ENABLED');
+      assert(!competitionServiceConfigOnly(file, before, JSON.stringify(current)));
+    }
+  }
+});
+
 test('the native gate variable wiring is exact and cannot authorize other CI changes', async () => {
   const { execFileSync } = await import('node:child_process');
   const file = '.github/workflows/ci.yml';
@@ -1149,16 +1231,34 @@ test('the exact cops offline flag selects only its game; surrounding builder cha
   );
 });
 
-test('offline chase competition builders leave their H5 games unchanged', async () => {
+test('offline chase competition builds discard stale service addresses and bundles', async () => {
   const { buildCompetition } = await import('./competition-build.mjs');
-  const { mkdtemp, readdir, rm } = await import('node:fs/promises');
+  const { mkdtemp, mkdir, writeFile, readFile, rm } = await import('node:fs/promises');
   const { tmpdir } = await import('node:os');
   const { join } = await import('node:path');
   const outputRoot = await mkdtemp(join(tmpdir(), 'street-offline-build-'));
   try {
-    for (const only of ['cops-robbers', 'cops-robbers-realtime'])
-      await buildCompetition({ only, outputRoot });
-    assert.deepEqual(await readdir(outputRoot), []);
+    for (const only of ['cops-robbers', 'cops-robbers-realtime']) {
+      const directory = join(outputRoot, only);
+      await mkdir(directory);
+      await writeFile(
+        join(directory, 'index.html'),
+        '<html><head></head><body><script defer src="./competition.js"></script></body></html>',
+      );
+      await writeFile(join(directory, 'competition.js'), 'stale online code');
+      await buildCompetition({
+        only,
+        outputRoot,
+        env: {
+          COMPETITION_SERVICE_ENABLED: '0',
+          COMPETITION_PUBLIC_API_URL: 'https://old.invalid/api',
+        },
+      });
+      const html = await readFile(join(directory, 'index.html'), 'utf8');
+      assert(!html.includes('competition.js') && !html.includes('old.invalid'));
+      assert(html.includes('"competitionEnabled":false'));
+      await assert.rejects(readFile(join(directory, 'competition.js')), { code: 'ENOENT' });
+    }
   } finally {
     await rm(outputRoot, { recursive: true });
   }
@@ -2193,7 +2293,7 @@ test('shared game services select only their proven game consumers and fail clos
     'scripts/deploy-tencent.mjs',
   ];
   const before = (file) =>
-    execFileSync('git', ['show', '4fe9716ce5b9277e42b976e005931f6e8c7dc2f3:' + file], {
+    execFileSync('git', ['show', 'c010423731cc22fb0657a4a86ac9811e1997bbc1:' + file], {
       encoding: 'utf8',
     });
   const context = {
@@ -2208,12 +2308,19 @@ test('shared game services select only their proven game consumers and fail clos
   const plan = incrementalPlan({ ...context, fileScopes: scopes, readSource: read });
   assert.deepEqual(plan.browser_ids, [
     'cage-rescue',
+    'cops-robbers',
+    'cops-robbers-realtime',
     'letters-words2',
     'tower-brake',
     'xiangqi-five',
   ]);
   assert.deepEqual(plan.developer_mode_ids, ['cage-rescue', 'tower-brake']);
-  assert.deepEqual(plan.publishing_browser_ids, ['cage-rescue', 'tower-brake']);
+  assert.deepEqual(plan.publishing_browser_ids, [
+    'cage-rescue',
+    'cops-robbers',
+    'cops-robbers-realtime',
+    'tower-brake',
+  ]);
   assert.deepEqual(plan.service_rule_sources, ['services/runtime-api']);
   assert.equal(plan.game_services_checks, true);
   assert.equal(plan.ranked_deployment_checks, true);

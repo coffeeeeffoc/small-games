@@ -12,6 +12,7 @@ import {
 } from './nine-native-scope.mjs';
 import {
   competitionToolPlan,
+  competitionServiceScopePaths,
   gameServiceScopePaths,
   publishingConsumers,
   publishingScopePaths,
@@ -289,6 +290,17 @@ export function incrementalPlan({
     ),
     game_services_checks: paths.some(
       (file) => gameServiceScopePaths.includes(file) && fileScopes.has(file),
+    ),
+    competition_service_checks: paths.some(
+      (file) =>
+        competitionServiceScopePaths.includes(file) ||
+        [
+          'scripts/deploy-tencent.mjs',
+          'scripts/deployment-bundle.mjs',
+          'scripts/competition-gateway.mjs',
+        ].includes(file) ||
+        (['package.json', 'turbo.json'].includes(file) &&
+          fileScopes.get(file)?.includes('games/local/cops-robbers')),
     ),
     ranked_deployment_checks:
       paths.includes('scripts/deploy-tencent.mjs') &&

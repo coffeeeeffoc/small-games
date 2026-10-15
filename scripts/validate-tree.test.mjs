@@ -4,6 +4,38 @@ import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { assertNodeOnly, validateTree, runIncrementalToolChecks } from './validate-tree.mjs';
+
+test('optional service and importer contracts still run with native release gates disabled', () => {
+  const calls = [];
+  const options = {
+    plan: {
+      competition_service_checks: true,
+      native_consumers: [],
+      developer_mode_ids: [],
+      nine_native_targets: [],
+    },
+    packages: [],
+    root: '/candidate',
+    env: { MINIGAME_RELEASE_GATES: '0' },
+    execute: (...args) => calls.push(args),
+  };
+  runIncrementalToolChecks(options);
+  assert(calls.some(([, args]) => args.includes('scripts/competition-service-config.test.mjs')));
+  assert(
+    calls.some(([, args]) => args.includes('apps/shell-minigame/scripts/taptap-cocos.test.mjs')),
+  );
+  assert(calls.some(([, args]) => args[0] === 'scripts/competition-service.browser.mjs'));
+  assert.throws(
+    () =>
+      runIncrementalToolChecks({
+        ...options,
+        execute: () => {
+          throw new Error('service regression');
+        },
+      }),
+    /service regression/,
+  );
+});
 import { publishingConsumers } from './publication-scopes.mjs';
 import { createBrowserPreparation } from './browser-preparation.mjs';
 import { run } from './validate-push.mjs';

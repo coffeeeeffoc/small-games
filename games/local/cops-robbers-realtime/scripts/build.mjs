@@ -1,6 +1,7 @@
 import { mkdir, cp, copyFile, rm } from "node:fs/promises";
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { prepareH5Service, serviceEnvironment } from '../../../../scripts/competition-h5-service.mjs';
 if (resolve('.') !== resolve(fileURLToPath(new URL('../', import.meta.url)))) throw new Error('Run from the game directory');
 await rm(resolve('dist'), { recursive: true, force: true });
 await mkdir("dist", { recursive: true });
@@ -8,4 +9,5 @@ await copyFile("index.html", "dist/index.html");
 await copyFile("dev-mode.js", "dist/dev-mode.js");
 await copyFile(new URL("../../../../platforms/h5/publishing.js", import.meta.url), "dist/publishing.js");
 await cp("src", "dist/src", { recursive: true });
+await prepareH5Service('cops-robbers-realtime', resolve('dist'), { env: serviceEnvironment(process.argv.slice(2)), local: !process.argv.includes('--taptap') });
 console.log("Built static game → dist/");
