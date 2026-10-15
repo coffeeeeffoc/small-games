@@ -21,7 +21,7 @@
 				modes: ["escape", "survival"]
 			},
 			"cops-robbers-realtime": {
-				version: "street-roles-initiative-v2",
+				version: "street-roles-initiative-v3",
 				modes: ["classic", "escape"]
 			}
 		};

@@ -34,7 +34,7 @@ if (ONLINE_ENABLED) {
     document.getElementById(id).disabled = false;
   }
 }
-import { startSupport, starterRuns, sprintRemaining, canRefill, grantSupport, useSprint, useRewind } from './support.js';
+import { startSupport, starterRuns, sprintRemaining, canRefill, grantSupport, grantFreeSupport, useSprint, useRewind } from './support.js';
 import { createTapTapAdProvider } from './taptap-h5-ads.js';
 import { createSimulationAdProvider } from '../publishing.js';
 import { readPuzzleLink, fillPuzzleShare } from './share.js';
@@ -181,6 +181,8 @@ const audio = createAudio(progress.sound);
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 let supportBusy = false, supportRequest = null;
 const adConfig = globalThis.SmallGamesPublishingConfig || {};
+const freeSupport = adConfig.adMode === 'off';
+if (freeSupport) $('support-help').textContent = '冲刺让选中的队员提速 20%，持续 4 秒；失败后可回到约 5 秒前。前 5 局各赠 1 次，重试计新局、练习不计；用完后每种每局可直接补领 1 次。使用支援的成绩单独记录；回溯不退还已用次数。';
 // Explicit ability requests use the game's per-run quota instead of interstitial session limits.
 const ads = adConfig.adMode === 'off' ? null : adConfig.adMode === 'mock'
   ? createSimulationAdProvider({ document, root: document.body })
@@ -430,11 +432,11 @@ function updateHud() {
     (!support?.sprint && !canRefill(game, 'sprint'));
   $('sprint-label').textContent = remaining > 0 ? '冲刺 ' + remaining.toFixed(1) + '秒'
     : support?.sprint ? '冲刺 · ' + support.sprint
-    : canRefill(game, 'sprint') ? '广告冲刺' : '冲刺已用完';
+    : canRefill(game, 'sprint') ? (freeSupport ? '补领冲刺' : '广告冲刺') : '冲刺已用完';
   $('rewind-button').hidden = !support || !['won', 'lost'].includes(game.phase) || playerWon();
   $('rewind-button').disabled = supportBusy || (!support?.rewind && !canRefill(game, 'rewind'));
   $('rewind-button').textContent = support?.rewind ? '回溯 5 秒 · ' + support.rewind
-    : canRefill(game, 'rewind') ? '看广告 · 回溯 5 秒' : '回溯已用完';
+    : canRefill(game, 'rewind') ? (freeSupport ? '补领回溯 5 秒' : '看广告 · 回溯 5 秒') : '回溯已用完';
   for (const button of $('cop-roster').children) {
     const actor = controlled()[Number(button.dataset.member)];
     button.setAttribute('aria-pressed', String(Number(button.dataset.member) === selected));
@@ -610,7 +612,7 @@ function loadLevel(id, saved = null, opening = {}) {
   $('start-button').firstChild.textContent = '开始行动';
   $('starter-support').textContent = starterRuns(progress.startedRuns) < 5
     ? '新手支援：本局赠回溯和冲刺各 1 次'
-    : '需要支援时，可看广告领取回溯或冲刺';
+    : freeSupport ? '需要支援时，每局可补领一次回溯或冲刺' : '需要支援时，可看广告领取回溯或冲刺';
   syncChoices();
   buildRoster();
   canvas.setAttribute('aria-label', game.level.name + '。点击' + roleLabel() + '再点击道路。');
@@ -767,21 +769,21 @@ async function requestSupport(kind) {
   clearGesture();
   pauseGame(game);
   $('support-title').textContent = kind === 'sprint' ? '领取一次冲刺' : '领取一次回溯';
-  $('support-status').textContent = '正在打开广告，行动进度已暂停。';
+  $('support-status').textContent = freeSupport ? '行动进度已暂停，正在领取支援。' : '正在打开广告，行动进度已暂停。';
   $('support-use').disabled = true;
   $('support-return').disabled = true;
   openDialog('support-page');
   audio.setEnabled(false);
   let outcome;
-  try { outcome = ads ? await ads.show({ opportunityId: 'cops-robbers-realtime.' + kind, kind: 'rewarded' }) : { status: 'unavailable' }; }
+  try { outcome = freeSupport ? null : ads ? await ads.show({ opportunityId: 'cops-robbers-realtime.' + kind, kind: 'rewarded' }) : { status: 'unavailable' }; }
   catch { outcome = { status: 'failed' }; }
   supportBusy = false;
   if (destroyed || supportRequest !== request || game !== request.game) return;
-  request.completed = grantSupport(game, kind, outcome);
+  request.completed = freeSupport ? grantFreeSupport(game, kind) : grantSupport(game, kind, outcome);
   $('support-title').textContent = request.completed ? (kind === 'sprint' ? '冲刺已就绪' : '回溯已就绪') : '本次未领取';
   $('support-status').textContent = request.completed
     ? (kind === 'sprint' ? `${request.actor + 1} 号${roleLabel()} · 提速 20% · 4 秒` : '回到约 5 秒前，重新布置围堵。')
-    : outcome.status === 'dismissed' ? '广告已关闭，补领次数保留。'
+    : outcome?.status === 'dismissed' ? '广告已关闭，补领次数保留。'
     : '广告暂不可用，补领次数保留；可以继续正常游戏。';
   $('support-use').textContent = request.completed ? (kind === 'sprint' ? '使用冲刺并继续' : '回溯并继续')
     : kind === 'sprint' ? '继续行动' : '返回失败页';
@@ -1286,6 +1288,7 @@ document.querySelectorAll('[data-game-page]').forEach((dialog) =>
 );
 document.addEventListener('visibilitychange', () => {
   clearGesture();
+  if (document.hidden) ads?.cancel?.();
   if (document.hidden) pause('你刚刚离开了页面。准备好后，再继续行动。');
 });
 window.addEventListener('blur', () => {
@@ -1522,6 +1525,7 @@ document.querySelectorAll('[data-competition-entry]').forEach((button) =>
 animationId = requestAnimationFrame(frame);
 window.addEventListener('pagehide', (event) => {
   clearGesture();
+  ads?.cancel?.();
   pauseGame(game);
   if (!event.persisted) {
     destroyed = true;

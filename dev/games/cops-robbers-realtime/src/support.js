@@ -36,7 +36,11 @@ export function canRefill(game, kind) {
 }
 
 export function grantSupport(game, kind, outcome) {
-  if (outcome?.status !== 'completed' || !canRefill(game, kind)) return false;
+  return outcome?.status === 'completed' && grantFreeSupport(game, kind);
+}
+
+export function grantFreeSupport(game, kind) {
+  if (!canRefill(game, kind)) return false;
   game.support[kind] = 1;
   game.support.refilled[kind] = true;
   return true;

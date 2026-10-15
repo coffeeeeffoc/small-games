@@ -85,6 +85,7 @@ let runToken = 0, pending = null, hintWorker = null, hintTimer = null, chapterTa
 let hintBusy = false, hintTarget = null;
 let hintRequest = 0, adBusy = false;
 const hintAds = createGameAds({ getProvider: hintAdProvider, onPendingChange: updateChrome });
+const freeHints = globalThis.SmallGamesPublishingConfig?.adMode === 'off';
 let cancelledClickUntil = 0;
 const outcome = current => playMode === 'quick' ? quickOutcome(level,current) : current.robbers.includes(-2) ? 'lost' : current.robbers.every(n => n === -1) ? 'won' : 'planning';
 // Reuse the verified route so a map change cannot leave an impossible lesson.
@@ -169,7 +170,8 @@ function updateChrome() {
   $('phase-label').innerHTML = `<i></i>${labels[phase]}`;
   $('undo').disabled = !['planning', 'won', 'lost'].includes(phase) || !history.length;
   $('hint').disabled = phase !== 'planning' || hintBusy || adBusy || hintAds.pending;
-  $('hint').querySelector('span:last-child').textContent = adBusy ? '观看中…' : hintAds.pending ? '广告中' : hintBusy ? '想想…' : '看广告';
+  $('hint').querySelector('span:last-child').textContent = adBusy ? '观看中…' : hintAds.pending ? '广告中' : hintBusy ? '想想…' : freeHints ? '提示' : '看广告';
+  $('hint').setAttribute('aria-label', freeHints ? '获取提示' : '看广告获取提示');
   $('restart').disabled = false;
   $('selection-label').textContent = `${selected + 1} 号已选中`;
   [...$('squad').children].forEach((button, i) => {
@@ -503,7 +505,9 @@ async function showHint() {
   const hintKey = () => `${playMode}:${level.id}:${rule}:${stateKey(state)}:${playMode === 'quick' ? state.turn : ''}:${rule === 'relay' ? lastOfficer(state, history) : -1}`;
   const key = hintKey();
   const request = ++hintRequest;
-  cancelDrag(); clearHint(); adBusy = true; updateChrome();
+  cancelDrag(); clearHint();
+  if (!freeHints) {
+  adBusy = true; updateChrome();
   const controls = [...document.querySelectorAll('.layout, .topbar')].map(element => [element, element.inert]);
   controls.forEach(([element]) => { element.inert = true; });
   let result;
@@ -519,6 +523,7 @@ async function showHint() {
   if (result?.status !== 'completed') {
     notify(result?.status === 'dismissed' ? '广告未看完，本次未获取提示。' : result?.status === 'failed' ? '广告加载失败，请稍后重试。' : '广告暂不可用，请稍后重试。', 'alert');
     return;
+  }
   }
   clearHint(); hintBusy = true; updatePlanning(); notify('正在核对最短围捕路线…你也可以继续走。');
   try {

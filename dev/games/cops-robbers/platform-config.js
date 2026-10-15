@@ -1,1 +1,1 @@
-globalThis.SmallGamesPublishingConfig ??= Object.freeze({"adMode":"mock"});
+globalThis.SmallGamesPublishingConfig ??= Object.freeze({"adMode":"off","adsEnabled":false});
