@@ -48,7 +48,6 @@ const report = {
   realDeviceVerified: false,
   notRun: [
     'Actual advertisement playback and completed/cancelled/failed/timeout host callbacks',
-    'Duplicate action/settlement submissions',
     'Runtime and PostgreSQL restart persistence',
   ],
   variants: [],
@@ -628,6 +627,14 @@ async function finishMatch(players, code) {
   const boards = [];
   for (const player of players) {
     assert(player.acceptedActions > 0, 'Both identities must send real UI actions');
+    const duplicate = await player.page.evaluate(
+      async ({ code, action }) =>
+        globalThis.__competition.request(`/rooms/${code}/actions`, {
+          body: JSON.stringify(action),
+        }),
+      { code, action: player.lastAction },
+    );
+    assert.deepEqual(duplicate.results, results, 'Retrying an identical touch cannot settle twice');
     await rendered(player.page);
     await screenshot(player, 'settlement');
     const board = await player.page.evaluate(
@@ -657,6 +664,7 @@ async function finishMatch(players, code) {
     roomCode: code,
     playerIds: players.map((p) => p.profile.playerId),
     acceptedTouchActions: players.map((p) => p.acceptedActions),
+    duplicateActionsPreserveSettlement: true,
     roomVersion: players[0].room.version,
     results,
     boards,

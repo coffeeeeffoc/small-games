@@ -251,8 +251,8 @@ const competitionServiceIntegrations = {
     '3e7e728a461a30c24baaee7462b0ba8ddc715dfb0694776ea61843ce197e1f4a',
   ],
   'platforms/competition/client.js': [
-    'fe6eafe4a5446940c318f4121b9d1160ac71eccd2878a61c8214a195ffda66e1',
     '445d0b6f8f81cc58e2c84d9dfd5951e1fbf7fb7cc93883a50772ba172841637d',
+    '8426f3cd53e8eccafabe63ab626a1c039e7df44fa88000f8f4978934ae263649',
   ],
   'platforms/competition/native.js': [
     '37e2f19ed16a3d6c01ecbbf5d953265f1134a560af8addb2dcf890d37630f2c8',

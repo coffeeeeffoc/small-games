@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { runInNewContext } from 'node:vm';
+import realtimeRule from '../services/runtime-api/rules/realtime.mjs';
 const source = await readFile(
   new URL('../platforms/competition/client.js', import.meta.url),
   'utf8',
 );
 const versions = {
   'cops-robbers': ['roles-initiative-duel-v2', ['escape', 'survival']],
-  'cops-robbers-realtime': ['street-roles-initiative-v2', ['classic', 'escape']],
+  'cops-robbers-realtime': [realtimeRule.version, ['classic', 'escape']],
 };
 for (const [game, [version, modes]] of Object.entries(versions))
   for (const platform of ['h5', 'wechat', 'bilibili', 'douyin', 'kuaishou']) {

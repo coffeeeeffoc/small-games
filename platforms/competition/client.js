@@ -17,7 +17,7 @@ globalThis.__installCompetition = (options, nativeSdk) => {
   const teamRules = {
     'cops-robbers': { version: 'roles-initiative-duel-v2', modes: ['escape', 'survival'] },
     'cops-robbers-realtime': {
-      version: 'street-roles-initiative-v2',
+      version: 'street-roles-initiative-v3',
       modes: ['classic', 'escape'],
     },
   };
