@@ -109,7 +109,9 @@ for (const game of games)
       [
         '-NoProfile',
         '-Command',
-        `Add-Type -AssemblyName System.IO.Compression.FileSystem
+        `$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName System.IO.Compression
+Add-Type -AssemblyName System.IO.Compression.FileSystem
 $archive = [IO.Compression.ZipFile]::Open($env:H5_ZIP_OUTPUT, [IO.Compression.ZipArchiveMode]::Create)
 try {
   foreach ($file in ($env:H5_ZIP_FILES | ConvertFrom-Json)) {
