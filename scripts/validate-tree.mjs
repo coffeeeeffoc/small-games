@@ -532,6 +532,8 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
       env,
       'logged',
     );
+  if (plan.company_deployment_checks)
+    execute(process.execPath, ['--test', 'scripts/deploy-company.test.mjs'], root, env, 'logged');
   if (plan.game_services_checks)
     execute(
       process.execPath,

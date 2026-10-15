@@ -986,6 +986,31 @@ export const deploymentBundleScopePaths = [
   'infra/deployment/validate-env.mjs',
   'infra/deployment/initialize-operator.mjs',
 ];
+export const companyDeploymentScopePaths = [
+  'infra/company/.gitattributes',
+  'scripts/deploy-company.mjs',
+  'scripts/deploy-company.test.mjs',
+  'infra/company/.env.example',
+  'infra/company/deploy.sh',
+  'infra/company/deploy.test.sh',
+];
+function companyCommandsOnly(before, after) {
+  try {
+    const previous = JSON.parse(before);
+    const current = JSON.parse(after);
+    for (const [name, command] of Object.entries({
+      'deploy:company': 'node scripts/deploy-company.mjs',
+      'test:deploy-company': 'node --test scripts/deploy-company.test.mjs',
+    })) {
+      assert(current.scripts?.[name] === command);
+      assert(!Object.hasOwn(previous.scripts, name) || previous.scripts[name] === command);
+      if (!Object.hasOwn(previous.scripts, name)) delete current.scripts[name];
+    }
+    return isDeepStrictEqual(previous, current);
+  } catch {
+    return false;
+  }
+}
 const deploymentCommands = {
   'deployment:bundle': 'node scripts/deployment-bundle.mjs',
   'test:deployment-bundle': 'node --test scripts/deployment-bundle.test.mjs',
@@ -1145,6 +1170,12 @@ export function reviewedSharedFileScopes({
         scopes.set(file, Object.values(publishingConsumers));
       } else if (publicationConfigScopePaths.includes(file)) {
         scopes.set(file, []);
+      } else if (
+        companyDeploymentScopePaths.includes(file) ||
+        (file === 'package.json' && companyCommandsOnly(readBase(file), readHead(file)))
+      ) {
+        assert(packages.some((pkg) => pkg.dir === 'apps/company-web'));
+        scopes.set(file, ['apps/company-web']);
       } else if (
         deploymentBundleScopePaths.includes(file) ||
         (file === 'package.json' && deploymentCommandsOnly(readBase(file), readHead(file)))

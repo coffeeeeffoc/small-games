@@ -17,6 +17,7 @@ import {
   publishingScopePaths,
   platformAdsScopePaths,
   deploymentBundleScopePaths,
+  companyDeploymentScopePaths,
   publicationConfigScopePaths,
   mobileViewportScopeFile,
   independentPreviewScopeFile,
@@ -298,7 +299,12 @@ export function incrementalPlan({
     deployment_bundle_checks: paths.some(
       (file) =>
         deploymentBundleScopePaths.includes(file) ||
-        (file === 'package.json' && fileScopes.has(file)),
+        (file === 'package.json' && fileScopes.get(file)?.includes('services/runtime-api')),
+    ),
+    company_deployment_checks: paths.some(
+      (file) =>
+        companyDeploymentScopePaths.includes(file) ||
+        (file === 'package.json' && fileScopes.get(file)?.includes('apps/company-web')),
     ),
     service_rule_sources: [
       'services/runtime-api',

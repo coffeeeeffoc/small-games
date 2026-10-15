@@ -13,6 +13,7 @@ import {
   publishingScopePaths,
   platformAdsScopePaths,
   deploymentBundleScopePaths,
+  companyDeploymentScopePaths,
   publicationConfigScopePaths,
   mobileViewportScopeFile,
   independentPreviewScopeFile,
@@ -367,6 +368,45 @@ test('channel advertising selects only its real game consumer and mandatory cont
     assert.equal(plan.platform_ads_checks, true);
     assert.equal(plan.publishing_checks, false);
     assert.equal(reviewedSharedFileScopes({ ...context, games: games.slice(1) }).size, 0);
+  }
+});
+
+test('company deployment selects only the website and rejects unknown siblings and root commands', () => {
+  const packages = [{ name: '@coffeeeeffoc/company-web', dir: 'apps/company-web' }];
+  for (const file of companyDeploymentScopePaths) {
+    const context = { packages, games: [], changedPaths: [file], readSource: () => '' };
+    const fileScopes = reviewedSharedFileScopes(context);
+    assert.deepEqual(fileScopes.get(file), ['apps/company-web']);
+    const plan = incrementalPlan({ ...context, fileScopes });
+    assert.equal(plan.company_deployment_checks, true);
+    assert.equal(plan.deployment_bundle_checks, false);
+    assert.deepEqual(plan.browser_ids, []);
+  }
+  const before = { scripts: { build: 'keep' } };
+  const after = {
+    scripts: {
+      ...before.scripts,
+      'deploy:company': 'node scripts/deploy-company.mjs',
+      'test:deploy-company': 'node --test scripts/deploy-company.test.mjs',
+    },
+  };
+  const context = {
+    packages,
+    games: [],
+    changedPaths: ['package.json'],
+    readBase: () => JSON.stringify(before),
+    readHead: () => JSON.stringify(after),
+  };
+  assert.deepEqual(reviewedSharedFileScopes(context).get('package.json'), ['apps/company-web']);
+  after.scripts.build = 'changed';
+  assert.equal(reviewedSharedFileScopes(context).size, 0);
+  for (const file of ['scripts/deploy-company-other.mjs', 'infra/company/unknown.sh']) {
+    const fileScopes = reviewedSharedFileScopes({ ...context, changedPaths: [file] });
+    assert.equal(fileScopes.size, 0);
+    assert.throws(
+      () => incrementalPlan({ packages, games: [], changedPaths: [file], fileScopes }),
+      /scope undefined/,
+    );
   }
 });
 

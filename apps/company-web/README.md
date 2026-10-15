@@ -1,5 +1,7 @@
 # 能工智人公司官网
 
+自有服务器发布使用根目录命令 `pnpm deploy:company`；仅准备发布包用 `pnpm deploy:company --prepare`。首次 DNS、证书配置与回退见[官网部署说明](../../infra/company/README.md)。
+
 上海能工智人科技有限公司的中文介绍站，涵盖公司介绍、软件开发、小游戏、AI 应用与产品理念。独立 pnpm workspace，使用现有 Vite 构建静态 HTML/CSS 和原生 JavaScript，不依赖游戏大厅或后端服务。
 
 在仓库根目录运行：
