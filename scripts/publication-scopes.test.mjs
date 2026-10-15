@@ -986,6 +986,17 @@ test('optional service configuration has finite H5 consumers and rejects unknown
     for (const id of ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'])
       assert(selected.browser_ids.includes(id), file + ': ' + id);
     assert.equal(selected.competition_service_checks, true);
+    if (file === 'scripts/competition.integration.mjs')
+      assert(fileScopes.get(file).includes('services/runtime-api'));
+    if (file === 'scripts/competition-client.test.mjs') {
+      for (const source of [
+        'games/local/letters-words2',
+        'games/local/vibeJam-myself-history-guess',
+        'apps/shell-minigame',
+        'apps/shell-bilibili',
+      ])
+        assert(fileScopes.get(file).includes(source));
+    }
   }
   const bundleFile = 'scripts/deployment-bundle.mjs';
   const bundleContext = {

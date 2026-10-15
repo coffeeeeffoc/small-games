@@ -179,6 +179,8 @@ export const competitionServiceScopePaths = [
   'scripts/h5-taptap.mjs',
   'scripts/h5-taptap.browser.mjs',
   'platforms/h5/rewarded-host.js',
+  'scripts/competition-client.test.mjs',
+  'scripts/competition.integration.mjs',
 ];
 const competitionServiceIds = ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'];
 export function competitionServiceConfigOnly(file, before, after) {
@@ -1220,6 +1222,7 @@ export function reviewedSharedFileScopes({
         const native = [
           'platforms/competition/native.js',
           'platforms/competition/client.js',
+          'scripts/competition-client.test.mjs',
         ].includes(file);
         const xiangqi = file.startsWith('platforms/competition/xiangqi-five/');
         const sources = xiangqi
@@ -1245,6 +1248,7 @@ export function reviewedSharedFileScopes({
                 ? ['apps/shell-minigame']
                 : []),
             ...(gateway ? [...Object.values(rankedConsumers), 'services/runtime-api'] : []),
+            ...(file === 'scripts/competition.integration.mjs' ? ['services/runtime-api'] : []),
           ]),
         ]);
         continue;
