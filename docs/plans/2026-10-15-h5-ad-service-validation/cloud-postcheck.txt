@@ -1,0 +1,2 @@
+{"service":"runtime","status":"ok","dependencies":{"database":"ok","competition":"ok"}}
+POSTCHECK_OK revision=bef154e3c1a01ba46f7c8a5d50ce87a8f55b5c19 runtimeImage=sha256:9519236be6deecb0ab88ad218dee8a8582ecd1b151b9c120ea47ba41c8d2534a companyHTTPS=200 staticPointerUnchanged=true

@@ -1,0 +1,10 @@
+{
+  "checkedAt": "2026-10-15T23:50:21.8545423Z",
+  "runtimePort43802Listening": false,
+  "runtimeProcessStoppedByCleanup": false,
+  "postgresContainer": "small-games-h5-matrix-20261015",
+  "postgresContainerStopped": true,
+  "databaseVolume": "small-games-h5-matrix-20261015",
+  "databaseVolumePreserved": true,
+  "dataOrArtifactsDeleted": false
+}

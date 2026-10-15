@@ -26,6 +26,12 @@ Evidence is in [the validation directory](2026-10-15-h5-ad-service-validation/):
   `notRun` field describes that browser process alone; this supplemental report
   supplies its restart verification.
 - Representative actual home and settlement screenshots for all three games.
+- `candidate-ci.json`: exact final implementation candidate, complete local
+  comparison from the last green baseline, normal push and successful CI/Pages.
+- `cloud-rollout.json` and `cloud-postcheck.txt`: sanitized deployment receipt,
+  protected data/volume/port checks, exact running image and company HTTPS health.
+- `local-cleanup.json`: task-owned test database stopped; its volume and artifacts
+  remain. The local Runtime port was already closed; no stale PID was stopped.
 
 The isolated database was `competition_test` in task-owned container
 `small-games-h5-matrix-20261015`, bound only to `127.0.0.1:15439`; Runtime used
@@ -51,15 +57,14 @@ local validation artifacts containing loopback HTTP service URLs. Formal package
 require a confirmed HTTPS API and actual TapTap host/advertisement acceptance.
 H5 ZIPs are separate from Cocos native platform packages.
 
-Cloud rollout follows local interface acceptance and exact candidate checks. The
+Cloud rollout followed local interface acceptance and exact candidate checks. The
 existing server has an internal nginx listener at 127.0.0.1:8080 and a separate
-company site on 80/443. Its current database lacks migration 012, which the new
-Runtime health check requires. The prepared rollout performs whole-database
-backup, isolated restore/content/schema validation and an additive migration,
-then changes only Runtime's image and recreates Kart with its previous immutable
+company site on 80/443. Its database initially lacked migration 012, which the new
+Runtime health check requires. The completed rollout performed whole-database
+backup, isolated restore/content/schema validation and the additive migration,
+then changed only Runtime's image and recreated Kart with its previous immutable
 image in the new network namespace. No production data restore, volume replacement,
-new credentials, public route or firewall change is authorized by this procedure.
-Cloud execution and final candidate/CI evidence are recorded after they complete.
+new credentials, public route or firewall change was performed.
 
 The implementation candidate is `490b17bfb45daecdbdaf3f7c1092910ee600d716`, normally
 pushed to `dev` after the complete incremental pre-push gate passed against
@@ -75,8 +80,7 @@ Cocos completed successfully. The initial CI quality run exposed a test-fixture
 error: its unchanged producer files were expected to reject a historical proof,
 which happened only with Windows working-tree line endings. The negative cases
 now explicitly change each of the six reviewed producer files; the production
-classifier and its exact-byte rules are unchanged. Replacement candidate CI and
-the cloud rollout result are recorded after they complete.
+classifier and its exact-byte rules are unchanged. Replacement results follow.
 
 Replacement candidate `5cd8d72f42ff70268710049b8b20074df53bf7a3` passed both
 [CI](https://github.com/coffeeeeffoc/small-games/actions/runs/38818332328) and
@@ -88,7 +92,7 @@ Both Dockerfile producers now remove that option only from pnpm installation,
 retaining npm's supported retry option and all existing lockfile, registry and
 script-isolation settings. The exact installer-only change selects its actual
 backend consumers; all other deployment and H5 changes retain their gates.
-A fresh exact candidate, archive and release directory are required for retry.
+The successful retry used a fresh exact candidate, archive and release directory.
 
 Candidate `724d83c422d5b9b41e5326bb08018b080a23fd21` passed its normal local push
 gate, but [CI quality](https://github.com/coffeeeeffoc/small-games/actions/runs/38821852321)
@@ -100,6 +104,44 @@ validation retains its existing Turbo command. An actual isolated workspace
 test verifies emitted dependency order across an unselected source-only game,
 the exclusion of its Web build, actual backend type/test execution and rejection
 when a required emitted build fails. Creator preflight and candidate gates remain.
+
+The deployed implementation is `bef154e3c1a01ba46f7c8a5d50ce87a8f55b5c19`.
+The complete local comparison `5cd8d72f..bef154e3` passed, including all four
+backend builds and emitted inputs, deployment contracts, Runtime/Management tests,
+and two actual Shell mobile-touch/navigation samples. The normal push also passed
+against remote `724d83c4`. Both exact-candidate workflows completed successfully:
+[CI](https://github.com/coffeeeeffoc/small-games/actions/runs/38824635640) and
+[Pages](https://github.com/coffeeeeffoc/small-games/actions/runs/38824635656).
+
+Cloud deployment completed at 2026-10-15 23:54:50 UTC. The active backend pointer
+is `/opt/small-games/backend-current`, referring to
+`/opt/small-games/backend-releases/runtime-20261015t233713074z-bef154e3`.
+Runtime image digest is
+`sha256:9519236be6deecb0ab88ad218dee8a8582ecd1b151b9c120ea47ba41c8d2534a`.
+Its revision label was separately confirmed. The source archive SHA-256 is
+`5eef67e29f93b1755f781edc8fbeda3670ca4389c6edd86ac6fcf1cc87d20edd`.
+
+The whole-database backup remains only on the server at
+`/opt/small-games/backups/runtime-20261015t233713074z-bef154e3.dump`, SHA-256
+`ac776bb74dbafc08a704d123422bee798c86f2a36c105587b1c647ae2ee1c6c7`.
+Its isolated restore matched every original user-table row digest, column,
+constraint and index. Migration 012 was first exercised there, then applied
+additively to the existing production database. Existing data and role/table
+permissions were retained; volume `small-games_postgres-data` was preserved.
+
+Runtime/database/competition health, Kart protocol 2, all three game definitions
+and versus leaderboards passed through the existing internal nginx listener.
+Cloud checks were read-only and created no test identities, matches or scores.
+The nginx, PostgreSQL and company container identities/ports remained unchanged;
+the company site's HTTPS returned 200. The static site's original `current`
+pointer remains unchanged. The release directory retains immutable previous-image
+rollback overrides; rollback does not restore or replace production data.
+
+Public API readiness remains false: the formal HTTPS route and permitted Origin
+must be confirmed before public service-enabled H5 packages are produced. Actual
+TapTap advertisement playback and physical-device acceptance also remain pending.
+Desktop emulation, native build conversion and SDK fixtures do not supply those
+acceptances. Local test services are stopped; their data volume and artifacts remain.
 
 Build controls are `H5_ADS_ENABLED=0|1` and `COMPETITION_SERVICE_ENABLED=0|1`.
 Both default to off in the H5 matrix tool. Explicit `--with-ads` / `--without-ads`

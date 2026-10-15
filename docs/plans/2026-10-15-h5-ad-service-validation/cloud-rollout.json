@@ -1,0 +1,58 @@
+{
+  "status": "completed",
+  "checkedAt": "2026-10-15T23:54:50.909Z",
+  "revision": "bef154e3c1a01ba46f7c8a5d50ce87a8f55b5c19",
+  "tag": "runtime-20261015t233713074z-bef154e3",
+  "remoteDirectory": "/opt/small-games/backend-releases/runtime-20261015t233713074z-bef154e3",
+  "sourceArchiveSHA256": "5eef67e29f93b1755f781edc8fbeda3670ca4389c6edd86ac6fcf1cc87d20edd",
+  "backupSHA256": "ac776bb74dbafc08a704d123422bee798c86f2a36c105587b1c647ae2ee1c6c7",
+  "runtimeImage": "sha256:9519236be6deecb0ab88ad218dee8a8582ecd1b151b9c120ea47ba41c8d2534a",
+  "runtimeHealth": {
+    "service": "runtime",
+    "status": "ok",
+    "dependencies": {
+      "database": "ok",
+      "competition": "ok"
+    }
+  },
+  "kartHealth": {
+    "ok": true,
+    "protocol": 2,
+    "rooms": 0
+  },
+  "restoredBackupAllTableDigestsAndSchemaMatch": true,
+  "existingDataAndACLsPreserved": true,
+  "protectedContainersAndPortsUnchanged": true,
+  "databaseVolume": "small-games_postgres-data",
+  "migration": "012-three-choose-two.sql; additive; first verified in network-isolated restored database",
+  "kartImage": "previous immutable image; namespace recreated",
+  "kartSourceHashesMatchCandidate": true,
+  "interfaceChecks": [
+    {
+      "game": "cops-robbers",
+      "version": "roles-initiative-duel-v2",
+      "definitionAndLeaderboardReadOnly": "passed",
+      "players": 0
+    },
+    {
+      "game": "cops-robbers-realtime",
+      "version": "street-roles-initiative-v3",
+      "definitionAndLeaderboardReadOnly": "passed",
+      "players": 0
+    },
+    {
+      "game": "xiangqi-five",
+      "version": "xiangqi9x10-duel-v1",
+      "definitionAndLeaderboardReadOnly": "passed",
+      "players": 0
+    }
+  ],
+  "publicRoutingChanged": false,
+  "credentialsChanged": false,
+  "productionDataRestorePerformed": false,
+  "publicApiReady": false,
+  "remaining": [
+    "Confirm formal HTTPS route/origin before producing public service-enabled H5 packages",
+    "Real TapTap advertisement and physical-device acceptance"
+  ]
+}
