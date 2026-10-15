@@ -1738,9 +1738,10 @@ test('Tower expanded-level contract checks its game and rejects unrelated or wea
   );
 });
 test('cops rewarded hint guard stays in its game branch and rejects unrelated edits', () => {
-  const after = readFileSync(new URL('../' + sharedChecksFile, import.meta.url), 'utf8').replaceAll(
-    '\r\n',
-    '\n',
+  const after = execFileSync(
+    'git',
+    ['show', '5fbc6feadf2663e1905538ab6b6feae0ed26156b:' + sharedChecksFile],
+    { encoding: 'utf8' },
   );
   const added = `    await click(
       frame
@@ -1766,6 +1767,45 @@ test('cops rewarded hint guard stays in its game branch and rejects unrelated ed
     after + 'globalThis.injected = true;\n',
   ])
     assert.equal(reviewedSharedFileScopes({ ...context, readHead: () => invalid }).size, 0);
+});
+
+test('cops free-hint contract remains scoped and rejects weakened or unrelated assertions', () => {
+  const before = execFileSync(
+    'git',
+    ['show', '5fbc6feadf2663e1905538ab6b6feae0ed26156b:' + sharedChecksFile],
+    { encoding: 'utf8' },
+  );
+  const after = readFileSync(new URL('../' + sharedChecksFile, import.meta.url), 'utf8').replaceAll(
+    '\r\n',
+    '\n',
+  );
+  const context = {
+    changedPaths: [sharedChecksFile],
+    games: [{ id: 'cops-robbers', source: 'games/local/cops-robbers' }],
+    readBase: () => before,
+    readHead: () => after,
+  };
+  assert.deepEqual(
+    [...reviewedSharedFileScopes(context)],
+    [[sharedChecksFile, ['games/local/cops-robbers']]],
+  );
+  for (const invalid of [
+    after.replace("'aria-label', '获取提示'", "'aria-label', '看广告获取提示'"),
+    after.replace("{ name: '模拟广告' })).toHaveCount(0)", "{ name: '模拟广告' })).toHaveCount(1)"),
+    after.replace("'data-turn', '1'", "'data-turn', '2'"),
+    after.replace("id === 'cops-robbers'", "id === 'other'"),
+    after + '\n',
+  ])
+    assert.equal(reviewedSharedFileScopes({ ...context, readHead: () => invalid }).size, 0);
+  assert.equal(reviewedSharedFileScopes({ ...context, games: [] }).size, 0);
+  assert.equal(
+    reviewedSharedFileScopes({
+      ...context,
+      readBase: () => '/*\n' + before + '\n*/',
+      readHead: () => '/*\n' + after + '\n*/',
+    }).size,
+    0,
+  );
 });
 
 test('cops start-to-play guard keeps a single-game scope and rejects changes outside its exact assertions', () => {
@@ -1865,7 +1905,11 @@ test('Orbit masked-SVG offset repair preserves input and gameplay assertions in 
     ['show', '036bb4d3e98cdb1c373ff3445155bcdc783ca671:' + sharedChecksFile],
     { encoding: 'utf8' },
   );
-  const after = readFileSync(new URL('../' + sharedChecksFile, import.meta.url), 'utf8')
+  const after = execFileSync(
+    'git',
+    ['show', '5fbc6feadf2663e1905538ab6b6feae0ed26156b:' + sharedChecksFile],
+    { encoding: 'utf8' },
+  )
     .replaceAll('\r\n', '\n')
     .replace(
       `    await click(

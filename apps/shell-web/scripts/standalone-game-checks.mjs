@@ -1499,12 +1499,9 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect(frame.locator('#level-dialog')).toBeHidden();
     await expect(frame.locator('body')).toHaveAttribute('data-level', '1');
     await expect(frame.getByTestId('board')).toBeVisible();
+    await expect(frame.getByTestId('hint')).toHaveAttribute('aria-label', '获取提示');
     await click(frame.getByTestId('hint'));
-    await click(
-      frame
-        .getByRole('dialog', { name: '模拟广告' })
-        .getByRole('button', { name: '领取奖励', exact: true }),
-    );
+    await expect(frame.getByRole('dialog', { name: '模拟广告' })).toHaveCount(0);
     const destination = frame.locator('.node-target.chosen');
     await expect(destination).toHaveCount(1);
     await click(

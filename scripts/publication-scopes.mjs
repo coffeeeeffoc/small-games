@@ -710,6 +710,11 @@ const copsAdAfter = `    await click(frame.getByTestId('hint'));
     );
     const destination = frame.locator('.node-target.chosen');
 `;
+const copsFreeHintAfter = `    await expect(frame.getByTestId('hint')).toHaveAttribute('aria-label', '获取提示');
+    await click(frame.getByTestId('hint'));
+    await expect(frame.getByRole('dialog', { name: '模拟广告' })).toHaveCount(0);
+    const destination = frame.locator('.node-target.chosen');
+`;
 function exactCopsStartGuard(before, after) {
   const startChange =
     before.split(copsStartBefore).length === 2 &&
@@ -718,7 +723,11 @@ function exactCopsStartGuard(before, after) {
     before.split(copsAdBefore).length === 2 &&
     after === before.replace(copsAdBefore, copsAdAfter) &&
     before.split(copsStartAfter).length === 2;
-  if (!startChange && !adChange) return false;
+  const freeHintChange =
+    before.split(copsAdAfter).length === 2 &&
+    after === before.replace(copsAdAfter, copsFreeHintAfter) &&
+    before.split(copsStartAfter).length === 2;
+  if (!startChange && !adChange && !freeHintChange) return false;
   const program = parsedSource(after);
   const exported = program.body.filter(
     (node) =>
@@ -751,10 +760,11 @@ function exactCopsStartGuard(before, after) {
     }
   }
   verifyOwner(program);
-  if (adChange)
+  const hintGuard = freeHintChange ? copsFreeHintAfter : copsAdAfter;
+  if (adChange || freeHintChange)
     assert(
-      after.indexOf(copsAdAfter) > branch.consequent.start &&
-        after.indexOf(copsAdAfter) + copsAdAfter.length < branch.consequent.end,
+      after.indexOf(hintGuard) > branch.consequent.start &&
+        after.indexOf(hintGuard) + hintGuard.length < branch.consequent.end,
     );
   assert(
     branch.test.type === 'BinaryExpression' &&
