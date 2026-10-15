@@ -45,7 +45,8 @@ try {
   await mkdir(output, { recursive: true });
   const entry = await (await fetch(base)).text();
   assert.ok(!entry.includes('src="./competition.js"'), 'Offline release must not inject the disabled friend competition entry');
-  browser = await chromium.launch(process.env.BROWSER_EXECUTABLE ? { executablePath: process.env.BROWSER_EXECUTABLE } : {});
+  const executablePath = process.env.BROWSER_EXECUTABLE || process.env.PLAYWRIGHT_EXECUTABLE_PATH || process.env.CHROMIUM_PATH;
+  browser = await chromium.launch(executablePath ? { executablePath } : {});
   for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 844, height: 390 }]) {
     await check(`mock-complete-cancel-${viewport.width}`, async page => {
       await page.screenshot({ path: fileURLToPath(new URL(`home-${viewport.width}.png`, output)) });
