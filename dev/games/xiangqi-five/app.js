@@ -1,3 +1,4 @@
+// Runtime service bridge
 import {
   BOARDS,
   TYPES,
@@ -1252,6 +1253,7 @@ function validSnapshot(data) {
   );
 }
 async function roomRequest(server, path, body, token) {
+  if (globalThis.__COMPETITION_CONFIG__?.serviceManaged) throw new Error("请使用好友挑战入口");
   const response = await fetch(`${server}/api/rooms${path}`, {
     method: body ? 'POST' : 'GET',
     headers: {
@@ -1415,6 +1417,7 @@ if (invitation.has('room')) {
   $('room-server').value = invitation.get('server') || location.origin;
 }
 async function checkRoomService() {
+  if (globalThis.__COMPETITION_CONFIG__?.serviceManaged) return;
   if (room) return;
   roomServiceReady = false;
   renderRoom();
@@ -1531,7 +1534,7 @@ setInterval(pollRoom, 1000);
 try {
   const saved = JSON.parse(sessionStorage.getItem('xiangqi-room') || 'null');
   if (
-    saved &&
+    !globalThis.__COMPETITION_CONFIG__?.serviceManaged && saved &&
     /^[A-F0-9]{8}$/.test(saved.code) &&
     /^[a-f0-9]{48}$/.test(saved.token) &&
     ['red', 'black'].includes(saved.side) &&
@@ -1551,7 +1554,7 @@ try {
   /* Invalid or inaccessible saved room: remain in local mode. */
 }
 render();
-if (invitation.has('room') && !room) {
+if (!globalThis.__COMPETITION_CONFIG__?.serviceManaged && invitation.has('room') && !room) {
   showScreen('room');
   void checkRoomService();
 }

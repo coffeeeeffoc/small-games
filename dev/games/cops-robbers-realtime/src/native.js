@@ -12,20 +12,22 @@ import {
 } from './engine.js';
 import { createRenderer } from './competition-renderer.js';
 import { drawRoleAvatar } from './role-appearance.js';
-import { ONLINE_ENABLED, runConfig, formatRecord, readRecords, submitRun } from './records.js';
+import { onlineEnabled, runConfig, formatRecord, readRecords, submitRun } from './records.js';
 import { startSupport, starterRuns, sprintRemaining, canRefill, grantSupport, useSprint, useRewind } from './support.js';
 import { createTapTapAdProvider } from './taptap-h5-ads.js';
 
 // Native Canvas shell: the same engine, replay protocol and field-only orders as H5.
 export function startNativeStreetGame(sdk, config, startNativeCompetition) {
   if (!sdk) throw new Error('缺少小游戏 SDK');
+  globalThis.__COMPETITION_CONFIG__ = config;
+  const ONLINE_ENABLED = onlineEnabled(config);
   globalThis.__CLASSIC_CHASE_ROLES__ = true;
   globalThis.__chaseRoleStorage = {
     getItem: (key) => sdk.getStorageSync(key),
     setItem: (key, value) => sdk.setStorageSync(key, value),
   };
   globalThis.__chaseRoleImage = () => sdk.createImage();
-  if (ONLINE_ENABLED) globalThis.__installCompetition(config, sdk);
+  if (ONLINE_ENABLED) globalThis.__installCompetition(config, config.platform === 'web-preview' ? undefined : sdk);
   const canvas = sdk.createCanvas(),
     ctx = canvas.getContext('2d'),
     renderer = createRenderer();

@@ -1131,6 +1131,12 @@
 		if (new URL(location.href).searchParams.has("pk")) open();
 	}
 	//#endregion
+	//#region ../../platforms/competition/service-config.js
+	/** Shared by H5 and native entries; no origin fallback for optional services. */
+	function competitionAvailable(config = globalThis.__COMPETITION_CONFIG__) {
+		return config?.competitionEnabled === true && /^https?:\/\//.test(config.apiUrl || "");
+	}
+	//#endregion
 	//#region ../../platforms/competition/h5.js
 	var titles = {
 		"cops-robbers": "围捕小队",
@@ -1294,6 +1300,11 @@ body.competition-active #mode-online { position:static; }
 }
 `;
 	function mountCompetition(game, createRenderer) {
+		if ([
+			"cops-robbers",
+			"cops-robbers-realtime",
+			"xiangqi-five"
+		].includes(game) && !competitionAvailable()) return;
 		if (game === "cops-robbers-realtime") return mountStreetCompetition(game, createRenderer);
 		const street = game === "cops-robbers-realtime";
 		const xiangqi = game === "xiangqi-five";
@@ -1305,19 +1316,21 @@ body.competition-active #mode-online { position:static; }
 			pursuer: "追逐队",
 			runner: "突围队"
 		};
-		if (document.querySelector("[data-competition-launch]")) return;
+		if (document.querySelector(".competition-dialog") || !document.getElementById("friend-duel") && document.querySelector("[data-competition-launch]")) return;
 		globalThis.__installCompetition();
 		const client = globalThis.__competition, renderer = createRenderer({
 			createImage: () => new Image(),
 			assetBase: new URL("./", location.href).href
 		});
-		const modeEntry = xiangqi ? document.getElementById("mode-online") : letters ? document.getElementById("friend-button") : null;
+		const modeEntry = xiangqi ? document.getElementById("mode-online") : letters ? document.getElementById("friend-button") : document.getElementById("friend-duel");
 		const launch = modeEntry || document.createElement("button");
 		if (!modeEntry) launch.textContent = "好友 PK · 全站榜";
 		if (modeEntry) modeEntry.hidden = false;
+		launch.disabled = false;
+		launch.removeAttribute("aria-label");
 		launch.dataset.competitionLaunch = "";
 		const style = document.createElement("style");
-		style.textContent = xiangqi ? h5_default.replaceAll("[data-competition-launch]", "[data-competition-launch]:not(#mode-online)") + xiangqiCompetitionStyles : letters ? h5_default.replaceAll("[data-competition-launch]", "[data-competition-launch]:not(#friend-button)") + lettersCompetitionStyles : h5_default;
+		style.textContent = xiangqi ? h5_default.replaceAll("[data-competition-launch]", "[data-competition-launch]:not(#mode-online)") + xiangqiCompetitionStyles : letters ? h5_default.replaceAll("[data-competition-launch]", "[data-competition-launch]:not(#friend-button)") + lettersCompetitionStyles : h5_default.replaceAll("[data-competition-launch]", "[data-competition-launch]:not(#friend-duel)");
 		document.head.append(style);
 		const dialog = document.createElement(xiangqi ? "section" : "dialog");
 		dialog.className = "competition-dialog";
