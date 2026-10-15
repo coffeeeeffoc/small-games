@@ -19,7 +19,7 @@ try {
   assert(address && typeof address === 'object');
   browser = await chromium.launch();
   await mkdir(screenshots, { recursive: true });
-  for (const width of [1440, 390, 320]) {
+  for (const width of [1440, 1024, 768, 390, 320]) {
     const page = await browser.newPage({
       viewport: { width, height: 900 },
       reducedMotion: 'reduce',
@@ -34,7 +34,19 @@ try {
     assert.equal(response.status(), 200);
     assert.match(await page.title(), /上海能工智人科技有限公司/);
     assert.equal(await page.locator('h1').count(), 1);
-    assert.equal(await page.locator('.intelligence-glyph').textContent(), '智');
+    const artwork = page.locator('.brand-mark img, .hero-scene, .service-illustration');
+    await expect(artwork).toHaveCount(5);
+    for (const asset of await artwork.all()) {
+      await expect(asset).toBeVisible();
+      await expect
+        .poll(() => asset.evaluate((image) => image.complete && image.naturalWidth > 0))
+        .toBe(true);
+    }
+    const favicon = await page.request.get(
+      await page.locator('link[rel="icon"]').evaluate((link) => link.href),
+    );
+    assert.equal(favicon.status(), 200);
+    assert.match(favicon.headers()['content-type'], /image\/svg\+xml/);
     assert.equal(await page.locator('.service').count(), 3);
     assert.equal(await page.locator('html').getAttribute('lang'), 'zh-CN');
     await expect(page.locator('.motion-toggle')).toBeVisible();
@@ -46,6 +58,11 @@ try {
       '0px',
     );
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
+    const sceneBounds = await page.locator('.hero-scene').boundingBox();
+    assert(
+      sceneBounds.x <= 1 && sceneBounds.x + sceneBounds.width >= width - 1,
+      'The sky artwork must cover the full viewport width without a hard empty edge',
+    );
     await page.keyboard.press('Tab');
     assert.equal(await page.locator(':focus').textContent(), '跳到正文');
     await page.keyboard.press('Enter');
@@ -64,7 +81,27 @@ try {
     await expect(page).toHaveURL(/#expertise$/);
     await page.getByRole('link', { name: '返回顶部', exact: true }).click();
     await expect(page).toHaveURL(/#top$/);
+    await page.getByRole('link', { name: '认识能工智人' }).click();
+    await expect(page).toHaveURL(/#about$/);
+    await page.getByRole('link', { name: '能工智人，返回首页' }).click();
+    await expect(page).toHaveURL(/#top$/);
+    await page.getByRole('link', { name: '探索业务方向', exact: true }).click();
+    await expect(page).toHaveURL(/#expertise$/);
+    for (const service of await page.locator('.service').all()) {
+      const summary = service.locator('summary');
+      await summary.focus();
+      await page.keyboard.press('Enter');
+      await expect(service).toHaveAttribute('open', '');
+      await expect(service.locator('.service-details')).toBeVisible();
+      await page.keyboard.press('Space');
+      await expect(service).not.toHaveAttribute('open', '');
+    }
+    await page.getByRole('link', { name: '返回顶部', exact: true }).click();
+    await expect(page).toHaveURL(/#top$/);
     await page.screenshot({ path: `${screenshots}/${width}.png`, fullPage: true });
+    if (width === 1440 || width === 390 || width === 320) {
+      await page.screenshot({ path: `${screenshots}/hero-${width}.png` });
+    }
     assert.deepEqual(errors, []);
     await page.close();
   }
@@ -88,9 +125,9 @@ try {
     });
     assert(
       frames.every(
-        ([image, color]) => image.includes('linear-gradient') && color === 'rgb(50, 90, 235)',
+        ([image, color]) => image.includes('linear-gradient') && color === 'rgb(0, 75, 255)',
       ),
-      'CTA must retain its opaque blue gradient throughout hover transitions',
+      'CTA must retain its opaque electric-blue gradient throughout hover transitions',
     );
   }
   const sculpture = page.locator('.sculpture');
@@ -151,11 +188,27 @@ try {
       .evaluate((element) => element.style.getPropertyValue('--tilt-x')),
     '',
   );
+  const touchService = touch.locator('.service').first();
+  await touchService.locator('summary').tap();
+  await expect(touchService.locator('.service-details')).toBeVisible();
+  await touchService.locator('summary').tap();
+  await expect(touchService).not.toHaveAttribute('open', '');
   await touch.getByRole('button', { name: '暂停动效', exact: true }).tap();
   await expect(touch.locator('html')).toHaveAttribute('data-motion', 'off');
   await touch.close();
+
+  const staticPage = await browser.newPage({
+    viewport: { width: 390, height: 844 },
+    javaScriptEnabled: false,
+  });
+  await staticPage.goto(`http://127.0.0.1:${address.port}${base}`);
+  await expect(staticPage.getByRole('heading', { level: 1 })).toBeVisible();
+  await expect(staticPage.locator('.motion-toggle')).toBeHidden();
+  await staticPage.locator('.service summary').first().click();
+  await expect(staticPage.locator('.service-details').first()).toBeVisible();
+  await staticPage.close();
   console.log(
-    'Company website passed: production subpath, assets, keyboard, navigation, 1440/390/320px, animation, pointer tilt, pause/resume, reduced motion, touch.',
+    'Company website passed: production subpath, artwork, keyboard, navigation, 1440/1024/768/390/320px, service details, animation, pointer tilt, pause/resume, reduced motion, touch, no-JavaScript fallback.',
   );
 } finally {
   await browser?.close();
