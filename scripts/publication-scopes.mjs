@@ -1198,7 +1198,7 @@ export function reviewedSharedFileScopes({
         scopes.set(file, [
           ...new Set([
             ...sources,
-            'apps/shell-web',
+            ...(native || xiangqi ? [] : ['apps/shell-web']),
             ...(file === 'scripts/competition-service-config.mjs' ? ['apps/shell-minigame'] : []),
             ...(native
               ? ['apps/shell-minigame', 'apps/shell-bilibili']
