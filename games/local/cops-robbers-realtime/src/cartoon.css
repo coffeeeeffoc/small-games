@@ -351,8 +351,8 @@
     min-height: 80px;
   }
   .squad-dock {
-    left: max(13px, env(safe-area-inset-left));
-    right: max(13px, env(safe-area-inset-right));
+    left: 13px;
+    right: 13px;
     width: max-content;
     max-width: calc(100% - 26px);
   }
@@ -435,9 +435,9 @@
 @media (orientation: landscape) and (max-height: 560px) {
   .squad-dock {
     left: auto;
-    right: max(12px, env(safe-area-inset-right));
+    right: 12px;
     top: 76px;
-    bottom: max(12px, env(safe-area-inset-bottom));
+    bottom: 12px;
     width: 104px;
     max-width: 104px;
     flex-direction: column;

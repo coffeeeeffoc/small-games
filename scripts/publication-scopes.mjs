@@ -1052,6 +1052,16 @@ export const publishingScopePaths = [
   'platforms/h5/publishing.d.ts',
   'platforms/h5/tests/publishing.test.mjs',
 ];
+export const safeAreaConsumers = {
+  'cops-robbers': 'games/local/cops-robbers',
+  'cops-robbers-realtime': 'games/local/cops-robbers-realtime',
+  'xiangqi-five': 'games/submodules/xiangqi-five',
+};
+export const safeAreaScopePaths = [
+  'platforms/h5/safe-area.js',
+  'platforms/h5/tests/safe-area.test.mjs',
+  'platforms/h5/tests/safe-area.browser.mjs',
+];
 // Only cops-robbers currently packages the explicit channel adapter and H5 uploader.
 export const platformAdsScopePaths = [
   'platforms/h5/platform-ads.js',
@@ -1315,6 +1325,12 @@ export function reviewedSharedFileScopes({
         );
         assert(packages.some((pkg) => pkg.dir === source));
         scopes.set(file, [source]);
+      } else if (safeAreaScopePaths.includes(file)) {
+        for (const [id, source] of Object.entries(safeAreaConsumers)) {
+          assert(games.filter((game) => game.id === id && game.source === source).length === 1);
+          assert(packages.some((pkg) => pkg.dir === source));
+        }
+        scopes.set(file, Object.values(safeAreaConsumers));
       } else if (publishingScopePaths.includes(file)) {
         for (const [id, source] of Object.entries(publishingConsumers)) {
           assert(games.filter((game) => game.id === id && game.source === source).length === 1);

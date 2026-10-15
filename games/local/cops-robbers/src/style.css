@@ -14,8 +14,8 @@ body.reduced *,body.reduced *:before,body.reduced *:after{animation:none!importa
 @media(max-width:350px){.brand small{display:none}.brand-badge{width:30px;height:34px}.brand{font-size:16px;gap:7px}.topbar{padding:0 10px}.layout{padding:0 9px}.top-actions .icon-button{min-width:42px;min-height:44px}.squad-label{display:none}.board-hud{top:9px}.instruction{font-size:10px}.action-bar{grid-template-columns:58px 1fr 58px;gap:7px}.secondary-action{font-size:10px}.save-indicator{display:none}.page-footer{padding:16px}}
 @media(min-width:781px) and (min-height:650px){.layout{grid-template-columns:260px minmax(0,clamp(420px,calc(100dvh - 440px),590px));gap:68px;margin-top:25px;margin-bottom:25px}.briefing{padding-top:24px}.game-heading{margin-bottom:14px}.game-heading h2{font-size:22px}.topbar{height:88px}.squad-row{margin-top:3px;margin-bottom:10px}.game-footnote{margin-top:12px}}
 @media(max-width:420px){.layout{margin-top:15px}.instruction{min-height:34px;padding-top:9px}.squad-row{margin-bottom:9px}.game-footnote{margin-top:8px}}
-@supports(padding:env(safe-area-inset-bottom)){body{padding-bottom:env(safe-area-inset-bottom)}.topbar{padding-top:env(safe-area-inset-top);height:calc(76px + env(safe-area-inset-top))}@media(min-width:781px){.topbar{height:calc(102px + env(safe-area-inset-top))}}}
-@media(max-width:420px){.topbar{height:calc(68px + env(safe-area-inset-top))}}
+@supports(padding:var(--game-safe-area-bottom, env(safe-area-inset-bottom))){body{padding-bottom:var(--game-safe-area-bottom, env(safe-area-inset-bottom))}.topbar{padding-top:var(--game-safe-area-top, env(safe-area-inset-top));height:calc(76px + var(--game-safe-area-top, env(safe-area-inset-top)))}@media(min-width:781px){.topbar{height:calc(102px + var(--game-safe-area-top, env(safe-area-inset-top)))}}}
+@media(max-width:420px){.topbar{height:calc(68px + var(--game-safe-area-top, env(safe-area-inset-top)))}}
 
 .board-hud{position:static;margin:0 5px 9px;height:24px;pointer-events:auto}.briefing h1{font-size:40px;letter-spacing:0}.execute-text,#execute-text{white-space:nowrap}
 @media(min-width:781px) and (max-width:930px){.layout{grid-template-columns:210px minmax(0,1fr);gap:24px}.briefing h1{font-size:34px}}
@@ -33,21 +33,21 @@ body.reduced *,body.reduced *:before,body.reduced *:after{animation:none!importa
 .game-footnote{flex-wrap:wrap}.save-indicator.save-error{display:block;flex-basis:100%;font-size:11px;color:#b9492c;text-align:center;line-height:1.6}
 @media(max-width:780px),(max-height:600px){.topbar{position:sticky;top:0;z-index:10;background:#f5f0e5}}
 @media(max-width:350px){.brand-badge{display:none}}
-@media(max-height:600px) and (orientation:landscape){.topbar{height:calc(58px + env(safe-area-inset-top))}}
+@media(max-height:600px) and (orientation:landscape){.topbar{height:calc(58px + var(--game-safe-area-top, env(safe-area-inset-top)))}}
 
 /* Focus is ordinary page layout and preserves play even without browser fullscreen. */
 #resume-patrol{margin-top:20px;width:100%}
 body:not(.focus-play) #focus-toggle{display:none}
 body:not(.focus-play) .briefing{display:block}
 .focus-play .brand,.focus-play .top-caption,.focus-play .briefing,.focus-play .page-footer,.focus-play .chapter-label,.focus-play .board-footer,.focus-play .direct-move-note{display:none}
-.focus-play .topbar{height:calc(54px + env(safe-area-inset-top));padding:env(safe-area-inset-top) max(10px,env(safe-area-inset-right)) 0 max(10px,env(safe-area-inset-left));max-width:760px}
+.focus-play .topbar{height:calc(54px + var(--game-safe-area-top, env(safe-area-inset-top)));padding:var(--game-safe-area-top, env(safe-area-inset-top)) max(10px,var(--game-safe-area-right, env(safe-area-inset-right))) 0 max(10px,var(--game-safe-area-left, env(safe-area-inset-left)));max-width:760px}
 .focus-play .top-actions{gap:4px}
 .focus-play .top-actions button,.focus-play #focus-toggle{min-height:44px;min-width:44px}
-.focus-play .layout{display:block;max-width:560px;margin:8px auto;padding:0 max(10px,env(safe-area-inset-right)) 0 max(10px,env(safe-area-inset-left))}
+.focus-play .layout{display:block;max-width:560px;margin:8px auto;padding:0 max(10px,var(--game-safe-area-right, env(safe-area-inset-right))) 0 max(10px,var(--game-safe-area-left, env(safe-area-inset-left)))}
 .focus-play .game-heading{margin:0 0 4px;min-height:44px}
 .focus-play .game-heading h2{margin:0;font-size:18px;gap:8px}
 .focus-play .board-hud{margin:0 0 4px;height:26px}
-.focus-play .board-frame{width:min(100%,calc(100dvh - 314px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));margin:0 auto}
+.focus-play .board-frame{width:min(100%,calc(100dvh - 314px - var(--game-safe-area-top, env(safe-area-inset-top)) - var(--game-safe-area-bottom, env(safe-area-inset-bottom))));margin:0 auto}
 .focus-play .threat-strip{margin-top:4px;min-height:24px;font-size:11px}
 .focus-play .instruction{font-size:12px;line-height:1.5;padding:4px 0;min-height:26px}
 .focus-play .squad-row{margin:0;min-height:44px}
@@ -60,7 +60,7 @@ body:not(.focus-play) .briefing{display:block}
 @media(max-height:500px) and (orientation:landscape){
   .focus-play .topbar{max-width:950px}
   .focus-play .layout{max-width:950px}
-  .focus-play .game{display:grid;grid-template-columns:minmax(0,calc(100dvh - 78px - env(safe-area-inset-top) - env(safe-area-inset-bottom))) minmax(230px,1fr);gap:0 16px;justify-content:center}
+  .focus-play .game{display:grid;grid-template-columns:minmax(0,calc(100dvh - 78px - var(--game-safe-area-top, env(safe-area-inset-top)) - var(--game-safe-area-bottom, env(safe-area-inset-bottom)))) minmax(230px,1fr);gap:0 16px;justify-content:center}
   .focus-play .board-frame{grid-column:1;grid-row:1/8;width:100%;align-self:start}
   .focus-play .game>:not(.board-frame){grid-column:2}
   .focus-play .game-heading{grid-row:1}
@@ -78,7 +78,7 @@ body:not(.focus-play) .briefing{display:block}
 #label-layer .node-label circle{pointer-events:none}
 #label-layer .node-label.hinted circle{pointer-events:all}
 #label-layer .node-label.hinted rect{fill:#fff0b9;stroke:#d6a137;stroke-width:4}
-.relay-note{font-size:11px;color:#6c541d;background:#f6edcf;border-radius:8px;padding:6px 8px;line-height:1.4;text-align:center}.share-url{display:block;width:100%;margin-top:8px;min-height:44px;padding:9px;border:1px solid #b8c6b3;border-radius:8px;font:inherit;font-size:12px}.game-footnote{flex-wrap:wrap}.focus-play[data-rule=relay] .board-frame{width:min(100%,calc(100dvh - 360px - env(safe-area-inset-top) - env(safe-area-inset-bottom)))}
+.relay-note{font-size:11px;color:#6c541d;background:#f6edcf;border-radius:8px;padding:6px 8px;line-height:1.4;text-align:center}.share-url{display:block;width:100%;margin-top:8px;min-height:44px;padding:9px;border:1px solid #b8c6b3;border-radius:8px;font:inherit;font-size:12px}.game-footnote{flex-wrap:wrap}.focus-play[data-rule=relay] .board-frame{width:min(100%,calc(100dvh - 360px - var(--game-safe-area-top, env(safe-area-inset-top)) - var(--game-safe-area-bottom, env(safe-area-inset-bottom))))}
 @media(max-height:500px) and (orientation:landscape){.focus-play[data-rule=relay] .board-frame{width:100%}.focus-play[data-rule=relay] .threat-strip{display:none}.focus-play[data-rule=relay] .relay-note{grid-row:3}}
 @media(min-width:640px) and (max-height:560px){.focus-play .duel-game{display:grid;grid-template-columns:minmax(0,calc(100dvh - 80px)) minmax(230px,1fr);gap:0 14px;max-width:950px}.focus-play .duel-game .board-frame{grid-column:1;grid-row:1/7;width:100%;align-self:start}.focus-play .duel-game>:not(.board-frame){grid-column:2}.focus-play .duel-game .game-heading{grid-row:1}.focus-play .duel-game #duel-rules{grid-row:2}.focus-play .duel-game .board-hud{grid-row:3}.focus-play .duel-game #duel-squad{grid-row:4}.focus-play .duel-game #duel-note{grid-row:5}.focus-play .duel-game .duel-controls:last-child{grid-row:6}}
 
@@ -88,7 +88,7 @@ body:not(.focus-play) .briefing{display:block}
 .map-expand-button:hover{background:#dfece7}.map-expand-button[aria-pressed=true]{background:#d3e4d3}
 body.map-expanded{overflow:hidden}
 body.map-expanded .topbar{visibility:hidden}
-body.map-expanded.focus-play :is(.game,.duel-game):not([hidden]){position:fixed;inset:0;z-index:10;max-width:none;width:100%;height:100dvh;margin:0;padding:12px max(12px,env(safe-area-inset-right)) 12px max(12px,env(safe-area-inset-left));background:var(--paper);display:grid;grid-template-columns:minmax(0,min(calc(100dvh - 24px),calc(100dvw - 292px))) 250px;grid-template-rows:repeat(7,min-content);align-content:center;align-items:center;justify-content:center;gap:12px 18px}
+body.map-expanded.focus-play :is(.game,.duel-game):not([hidden]){position:fixed;inset:0;z-index:10;max-width:none;width:100%;height:100dvh;margin:0;padding:12px max(12px,var(--game-safe-area-right, env(safe-area-inset-right))) 12px max(12px,var(--game-safe-area-left, env(safe-area-inset-left)));background:var(--paper);display:grid;grid-template-columns:minmax(0,min(calc(100dvh - 24px),calc(100dvw - 292px))) 250px;grid-template-rows:repeat(7,min-content);align-content:center;align-items:center;justify-content:center;gap:12px 18px}
 body.map-expanded.focus-play :is(.game,.duel-game) .board-frame{grid-column:1;grid-row:1/9;width:100%;align-self:center;margin:0}
 body.map-expanded.focus-play :is(.game,.duel-game)>:not(.board-frame){grid-column:2}
 body.map-expanded .game-heading{grid-row:1;margin:0}body.map-expanded .board-hud{grid-row:2;margin:0}
@@ -99,8 +99,8 @@ body.map-expanded .game-footnote{grid-row:7;margin:0}
 body.map-expanded #duel-note{grid-row:4}body.map-expanded #duel-rules,body.map-expanded .relay-note,body.map-expanded .game-footnote span,body.map-expanded #selection-label,body.map-expanded .squad-label{display:none}
 body.map-expanded #duel-board{width:100%;aspect-ratio:1}
 @media(max-width:700px) and (orientation:portrait){
- body.map-expanded.focus-play :is(.game,.duel-game):not([hidden]){padding:max(8px,env(safe-area-inset-top)) 8px max(8px,env(safe-area-inset-bottom));grid-template-columns:1fr 1fr;grid-template-rows:26px minmax(0,1fr) 44px 44px;gap:6px;align-content:stretch}
- body.map-expanded.focus-play :is(.game,.duel-game) .board-frame{grid-column:1/3;grid-row:2;width:min(calc(100dvw - 16px),calc(100dvh - 154px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));justify-self:center}
+ body.map-expanded.focus-play :is(.game,.duel-game):not([hidden]){padding:max(8px,var(--game-safe-area-top, env(safe-area-inset-top))) 8px max(8px,var(--game-safe-area-bottom, env(safe-area-inset-bottom)));grid-template-columns:1fr 1fr;grid-template-rows:26px minmax(0,1fr) 44px 44px;gap:6px;align-content:stretch}
+ body.map-expanded.focus-play :is(.game,.duel-game) .board-frame{grid-column:1/3;grid-row:2;width:min(calc(100dvw - 16px),calc(100dvh - 154px - var(--game-safe-area-top, env(safe-area-inset-top)) - var(--game-safe-area-bottom, env(safe-area-inset-bottom))));justify-self:center}
  body.map-expanded.focus-play :is(.game,.duel-game) .board-hud{grid-column:1/3;grid-row:1}
  body.map-expanded.focus-play :is(.game,.duel-game) .squad-row,body.map-expanded.focus-play :is(.game,.duel-game) #duel-squad{grid-column:1/3;grid-row:3;justify-content:center}
  body.map-expanded.focus-play :is(.game,.duel-game) .action-bar,body.map-expanded.focus-play :is(.game,.duel-game) .duel-controls:last-child{grid-column:1/3;grid-row:4}

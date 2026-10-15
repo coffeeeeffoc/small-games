@@ -1,0 +1,18 @@
+PASS safe area cops-robbers 390x844 sdk
+PASS safe area cops-robbers-realtime 390x844 sdk
+PASS safe area xiangqi-five 390x844 sdk
+PASS safe area cops-robbers 320x568 ua
+PASS safe area cops-robbers-realtime 320x568 ua
+PASS safe area xiangqi-five 320x568 ua
+PASS safe area cops-robbers 844x390 sdk
+PASS safe area cops-robbers-realtime 844x390 sdk
+PASS safe area xiangqi-five 844x390 sdk
+PASS safe area cops-robbers 568x320 sdk
+PASS safe area cops-robbers-realtime 568x320 sdk
+PASS safe area xiangqi-five 568x320 sdk
+PASS safe area cops-robbers 390x844 browser
+PASS safe area cops-robbers-realtime 390x844 browser
+PASS safe area xiangqi-five 390x844 browser
+PASS safe area cops-robbers 390x844 sdk iframe
+PASS safe area cops-robbers-realtime 390x844 sdk iframe
+PASS safe area xiangqi-five 390x844 sdk iframe

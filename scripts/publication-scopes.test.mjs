@@ -13,6 +13,8 @@ import {
   carromBackendFileScope,
   publishingConsumers,
   publishingScopePaths,
+  safeAreaConsumers,
+  safeAreaScopePaths,
   platformAdsScopePaths,
   deploymentBundleScopePaths,
   companyDeploymentScopePaths,
@@ -351,6 +353,24 @@ test('publishing adapter selects all registered standalone consumers and rejects
   }
   assert.throws(
     () => incrementalPlan({ games, packages, changedPaths: ['platforms/h5/unknown.js'] }),
+    /scope undefined/,
+  );
+});
+
+test('H5 safe areas select the three standalone consumers and require their geometry checks', () => {
+  const games = Object.entries(safeAreaConsumers).map(([id, source]) => ({ id, source }));
+  const packages = games.map((game) => ({ name: game.id, dir: game.source }));
+  for (const file of safeAreaScopePaths) {
+    const context = { games, packages, changedPaths: [file], readSource: () => '' };
+    const fileScopes = reviewedSharedFileScopes(context);
+    const plan = incrementalPlan({ ...context, fileScopes });
+    assert.deepEqual(plan.browser_ids, games.map((game) => game.id).sort());
+    assert.equal(plan.safe_area_checks, true);
+    assert.equal(reviewedSharedFileScopes({ ...context, games: games.slice(1) }).size, 0);
+    assert.equal(reviewedSharedFileScopes({ ...context, packages: packages.slice(1) }).size, 0);
+  }
+  assert.throws(
+    () => incrementalPlan({ games, packages, changedPaths: ['platforms/h5/unknown-safe-area.js'] }),
     /scope undefined/,
   );
 });
