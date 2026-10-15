@@ -137,7 +137,7 @@ export async function buildCompetition({
       };
       const localController = localControllers[game];
       const source = native
-        ? localController
+        ? localController && (streetNative || !service.competitionEnabled)
           ? `import{${localController[1]}}from ${JSON.stringify(path.join(root, localController[0]).replaceAll('\\', '/'))};import{startNativeCompetition}from ${JSON.stringify(nativeHost)};export const instance=${localController[1]}(typeof ${adapter.sdk}==='undefined'?undefined:${adapter.sdk},${JSON.stringify(configValue)},startNativeCompetition);`
           : lettersNative
             ? `import{startNativeLettersGame}from ${JSON.stringify(module)};import{startNativeCompetition}from ${JSON.stringify(nativeHost)};export const instance=startNativeLettersGame(typeof ${adapter.sdk}==='undefined'?undefined:${adapter.sdk},${JSON.stringify(configValue)},startNativeCompetition);`
@@ -206,11 +206,14 @@ export async function buildCompetition({
               apiConfigured: !!apiUrl,
               mode: platformConfig.appId ? 'configured-unverified' : 'preview-unverified',
               rendering: 'native Canvas 2D',
-              gameplayScope: streetNative
-                ? 'solo campaign and server-authoritative friend competition'
-                : lettersNative
-                  ? 'solo vocabulary islands, textbooks and server-authoritative friend competition'
-                  : 'server-authoritative friend competition only',
+              gameplayScope:
+                localController && !service.competitionEnabled && !streetNative
+                  ? 'native local solo; service disabled'
+                  : streetNative
+                    ? 'solo campaign and server-authoritative friend competition'
+                    : lettersNative
+                      ? 'solo vocabulary islands, textbooks and server-authoritative friend competition'
+                      : 'server-authoritative friend competition only',
               nativeRuntimeVerified: false,
               platformLoginVerified: false,
               builtAt: new Date().toISOString(),
