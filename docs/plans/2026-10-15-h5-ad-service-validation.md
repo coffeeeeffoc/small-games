@@ -90,6 +90,17 @@ script-isolation settings. The exact installer-only change selects its actual
 backend consumers; all other deployment and H5 changes retain their gates.
 A fresh exact candidate, archive and release directory are required for retry.
 
+Candidate `724d83c422d5b9b41e5326bb08018b080a23fd21` passed its normal local push
+gate, but [CI quality](https://github.com/coffeeeeffoc/small-games/actions/runs/38821852321)
+exposed a mismatch between the explicit build plan and Turbo's implicit `^build`
+expansion: the backend-only change attempted an unchanged Carding Web build
+without its Creator artifact. Cloud execution remained blocked. Incremental
+builds now execute the explicit targets with pnpm's workspace topology; full
+validation retains its existing Turbo command. An actual isolated workspace
+test verifies emitted dependency order across an unselected source-only game,
+the exclusion of its Web build, actual backend type/test execution and rejection
+when a required emitted build fails. Creator preflight and candidate gates remain.
+
 Build controls are `H5_ADS_ENABLED=0|1` and `COMPETITION_SERVICE_ENABLED=0|1`.
 Both default to off in the H5 matrix tool. Explicit `--with-ads` / `--without-ads`
 and `--with-service` / `--without-service` flags select a single package;

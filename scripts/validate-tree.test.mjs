@@ -40,6 +40,100 @@ import { publishingConsumers } from './publication-scopes.mjs';
 import { createBrowserPreparation } from './browser-preparation.mjs';
 import { run } from './validate-push.mjs';
 
+test('actual incremental builds preserve emitted dependency order without building source-only Creator inputs', async (t) => {
+  const { readFile } = await import('node:fs/promises');
+  const root = await mkdtemp(path.join(os.tmpdir(), 'explicit-build-order-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const put = async (file, value) => {
+    await mkdir(path.dirname(path.join(root, file)), { recursive: true });
+    await writeFile(
+      path.join(root, file),
+      typeof value === 'string' ? value : JSON.stringify(value),
+    );
+  };
+  await put('package.json', {
+    private: true,
+    packageManager: 'pnpm@12.6.0',
+    volta: { node: process.versions.node },
+  });
+  await put(
+    'pnpm-workspace.yaml',
+    'packages:\n  - packages/*\n  - services/*\n  - games/local/*\n',
+  );
+  await put('turbo.json', { tasks: { build: { dependsOn: ['^build'] } } });
+  await put('apps/shell-web/src/standalone-games.json', '[]');
+  await put('packages/z-core/package.json', {
+    name: 'z-core',
+    version: '1.0.0',
+    exports: './dist/index.js',
+    scripts: { build: 'node build.cjs' },
+  });
+  await put(
+    'packages/z-core/build.cjs',
+    "const fs = require('node:fs'); fs.mkdirSync('dist', { recursive: true }); fs.writeFileSync('dist/index.js', 'emitted-core'); fs.appendFileSync('../../order.txt', 'core\\n');",
+  );
+  await put('games/local/creator-source/package.json', {
+    name: 'creator-source',
+    version: '1.0.0',
+    creator: { version: '3.8.8' },
+    exports: './race.ts',
+    dependencies: { 'z-core': 'workspace:*' },
+    scripts: { build: 'node build.cjs' },
+  });
+  await put(
+    'games/local/creator-source/build.cjs',
+    "throw Error('Unchanged Creator Web build must not execute');",
+  );
+  await put('services/runtime-api/package.json', {
+    name: 'a-backend',
+    version: '1.0.0',
+    dependencies: { 'creator-source': 'workspace:*' },
+    scripts: { build: 'node build.cjs', typecheck: 'node types.cjs', test: 'node tests.cjs' },
+    coffeeeeffoc: { role: 'service' },
+  });
+  await put(
+    'services/runtime-api/build.cjs',
+    "const fs = require('node:fs'); require('node:assert/strict').equal(fs.readFileSync('../../packages/z-core/dist/index.js', 'utf8'), 'emitted-core'); fs.appendFileSync('../../order.txt', 'backend\\n');",
+  );
+  for (const [file, task] of [
+    ['types.cjs', 'typecheck'],
+    ['tests.cjs', 'test'],
+  ])
+    await put(
+      `services/runtime-api/${file}`,
+      `require('node:fs').appendFileSync('../../checks.txt', '${task}\\n');`,
+    );
+  const calls = [];
+  const options = {
+    root,
+    incremental: true,
+    env: process.env,
+    selectScope: async () => ({ required: true, full: false, risk: 'rules' }),
+    prepareBrowser: () => assert.fail('Backend input changes do not need a browser'),
+    execute(command, args, cwd, env, capture) {
+      calls.push(args);
+      if (command === 'git') return 'services/runtime-api/source.ts\0';
+      if (args[0] === '--version') return run(command, args, cwd, env, capture);
+      if (
+        (args.includes('build') && (args.includes('--recursive') || args.includes('turbo'))) ||
+        args.includes('typecheck') ||
+        args.includes('test')
+      )
+        return run(command, args, cwd, env, true);
+    },
+  };
+  await validateTree(options);
+  assert.equal(await readFile(path.join(root, 'order.txt'), 'utf8'), 'core\nbackend\n');
+  const build = calls.find((args) => args.includes('build'));
+  assert(build.includes('--filter=z-core') && build.includes('--filter=a-backend'));
+  assert(!build.includes('--filter=creator-source'));
+  assert(calls.some((args) => args.includes('a-backend') && args.includes('typecheck')));
+  assert(calls.some((args) => args.includes('a-backend') && args.includes('test')));
+  assert.equal(await readFile(path.join(root, 'checks.txt'), 'utf8'), 'typecheck\ntest\n');
+  await put('packages/z-core/build.cjs', "throw Error('Required emitted build regression');");
+  await assert.rejects(validateTree(options), /Required emitted build regression/);
+});
+
 test('cached and explicit browsers are launch-checked without reaching a forbidden download', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'offline browser '));
   t.after(() => rm(root, { recursive: true, force: true }));

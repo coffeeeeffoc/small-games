@@ -876,8 +876,8 @@ export async function validateTree({
       if (task.task === 'test' && typeof task.directory === 'string')
         aggregateTasks.set(task.package, task);
   }
-  // Build the changed package's dependency chain. Do not build every game merely because
-  // Shell consumes this game; check consumers directly without Turbo's ^build expansion.
+  // Build the explicit targets and emitted prerequisites in workspace order.
+  // Turbo's ^build expansion would also rebuild unchanged source-only game inputs.
   const browserGames = incrementalScope?.browser_ids || [];
   const browserDirect = packages.filter((pkg) =>
     catalog.some((game) => browserGames.includes(game.id) && game.source === pkg.dir),
@@ -920,14 +920,23 @@ export async function validateTree({
   if (buildTargets.length)
     execute(
       pnpm,
-      [
-        'exec',
-        'turbo',
-        'run',
-        'build',
-        ...buildTargets.map((pkg) => `--filter=${pkg.name}`),
-        '--concurrency=1',
-      ],
+      incremental
+        ? [
+            ...buildTargets.map((pkg) => `--filter=${pkg.name}`),
+            '--recursive',
+            '--sort',
+            '--workspace-concurrency=1',
+            'run',
+            'build',
+          ]
+        : [
+            'exec',
+            'turbo',
+            'run',
+            'build',
+            ...buildTargets.map((pkg) => `--filter=${pkg.name}`),
+            '--concurrency=1',
+          ],
       root,
       clean,
     );
