@@ -4,6 +4,8 @@
 
 本目录不属于 pnpm workspace，也不进入 H5 游戏目录。现有 `games/local` / `games/submodules`、Shell 登记、GitHub Pages 构建和存档均沿用原入口。这里导入原有规则、关卡、AI 和联机协议；生成的脚本只写入各 Cocos 工程的 `assets/scripts`，不会覆盖旧游戏。
 
+围捕小队的 Cocos 首页与棋盘直接复用原 H5 的追逃插画、花园背景、角色图集及布局映射，构建记录包含素材指纹；网页 DOM/CSS 仍由各入口分别实现。视觉恢复与实际引擎截图见[原版美术恢复记录](docs/design/cops-original-art-2026-10-16.md)。这项恢复仅覆盖围捕小队，不代表三款的全部界面与功能已经一致。
+
 ## 工具与 TapTap 打包
 
 在仓库根目录使用 Node 24.21.0、pnpm 12.6.0、Python 3.11+（保留官方 ZIP 中的 UTF-8 文件名）：

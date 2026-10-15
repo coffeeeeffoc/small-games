@@ -1,0 +1,46 @@
+{
+  "game": "cops-robbers",
+  "gitSha": "760242e5f5efa4321d3be8ccdee054b8f6eb05b4",
+  "creator": "3.8.8",
+  "sourceHash": "c33b6547af578ad7ab56e978311434c98a10fd781773863af091fa5de636925c",
+  "browser": "155.0.8059.40",
+  "checks": [
+    {
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "input": "mouse",
+      "colors": 2107,
+      "passed": true
+    },
+    {
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "input": "touch",
+      "colors": 2107,
+      "passed": true
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "input": "mouse",
+      "colors": 3460,
+      "passed": true
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "input": "touch",
+      "colors": 3460,
+      "passed": true
+    }
+  ],
+  "realDeviceVerified": false
+}

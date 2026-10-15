@@ -10,8 +10,42 @@ import {
   projectSettingsInputs,
   fingerprint,
   normalizeIterableSpreads,
+  assetInputs,
+  copyRuntimeAssets,
 } from '../scripts/prepare.mjs';
 import { runCheckedConversion } from '../scripts/build.mjs';
+
+test('Cocos cops packages the original home, garden and character art without changing H5 assets', async () => {
+  const output = await mkdtemp(path.join(tmpdir(), 'cocos-cops-art-'));
+  try {
+    const inputs = assetInputs('cops-robbers');
+    for (const name of ['home-chase.webp', 'patrol-garden.webp', 'patrol-characters.svg'])
+      assert(
+        inputs.some(([source]) => source === `games/local/cops-robbers/assets/${name}`),
+        `Missing original ${name}`,
+      );
+    await copyRuntimeAssets({ game: 'cops-robbers' }, output);
+    for (const name of ['home-chase.webp', 'patrol-garden.webp'])
+      assert.deepEqual(
+        await readFile(path.join(output, name)),
+        await readFile(new URL(`../../local/cops-robbers/assets/${name}`, import.meta.url)),
+      );
+    const svg = await readFile(
+      new URL('../../local/cops-robbers/assets/patrol-characters.svg', import.meta.url),
+      'utf8',
+    );
+    const embedded = svg.match(/xlink:href="data:image\/webp;base64,([A-Za-z0-9+/=]+)"/);
+    assert(embedded);
+    assert(svg.includes('<view id="cop" viewBox="0 0 768 1024"/>'));
+    assert(svg.includes('<view id="robber" viewBox="768 0 768 1024"/>'));
+    assert.deepEqual(
+      await readFile(path.join(output, 'patrol-characters.webp')),
+      Buffer.from(embedded[1], 'base64'),
+    );
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});
 
 test('iterable spread normalization preserves sets, maps, Unicode, holes and object/rest semantics', async () => {
   const source = `

@@ -24,6 +24,13 @@ import {
 } from '../../local/cops-robbers/src/duel.js';
 import { levelUnlocked } from '../../local/cops-robbers/src/progress.js';
 import { createRenderer } from '../../local/cops-robbers/src/competition-renderer.js';
+import {
+  presentationLevel,
+  boardHeight,
+  actorScale,
+  boardExitEndpoint,
+} from '../../local/cops-robbers/src/board-layout.js';
+import { createCopsArt, paperPanel, roundedPath } from './art.mjs';
 
 const copy = (value) => JSON.parse(JSON.stringify(value));
 const object = (value) => value && typeof value === 'object' && !Array.isArray(value);
@@ -146,6 +153,7 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
   let aiTimer = null,
     generation = 0,
     child;
+  let art;
   const subscriptions = [],
     channel = sdk.channelEntry;
   let channelMessage = '';
@@ -532,7 +540,10 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
   function draw() {
     if (stopped || disposed) return;
     hits = [];
-    ctx.fillStyle = '#f5f0e5';
+    const sky = ctx.createLinearGradient(0, 0, 0, height);
+    sky.addColorStop(0, '#6bc7e5');
+    sky.addColorStop(1, '#c5e7b1');
+    ctx.fillStyle = sky;
     ctx.fillRect(0, 0, width, height);
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'center';
@@ -540,13 +551,28 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
       center = leftInset + span / 2;
     const text = (label, x, y, size = 16, color = '#263e43', maxWidth = span) => {
       ctx.fillStyle = color;
-      ctx.font = `${size}px sans-serif`;
+      ctx.font = `700 ${size}px sans-serif`;
       ctx.fillText(String(label), x, y, maxWidth);
     };
     const button = (id, label, y, action, enabled = true, x = leftInset, w = span) => {
-      ctx.fillStyle = enabled ? '#1258c2' : '#aab8b2';
-      ctx.fillRect(x, y, w, 46);
-      text(label, x + w / 2, y + 23, 16, '#fff', w - 12);
+      const down = pressed?.hit.id === id;
+      const primary = ['start', 'resume', 'continue', 'hint'].includes(id);
+      const fill = !enabled ? '#d9e0ca' : down ? '#f4cf64' : primary ? '#ffdc50' : '#fff9e7';
+      const border = primary && enabled ? '#e6ae38' : '#94b8a6';
+      paperPanel(ctx, x, y + (down ? 2 : 0), w, 46, fill, border, 15);
+      if (id === 'pause') {
+        ctx.fillStyle = '#174861';
+        ctx.fillRect(x + w / 2 - 8, y + 14, 5, 18);
+        ctx.fillRect(x + w / 2 + 3, y + 14, 5, 18);
+      } else
+        text(
+          label,
+          x + w / 2,
+          y + 23 + (down ? 2 : 0),
+          16,
+          enabled ? '#174861' : '#809182',
+          w - 12,
+        );
       if (enabled) hits.push({ id, label, x, y, w, h: 46, action });
     };
     const title = (label) => text(label, center, top + 28, 24);
@@ -555,25 +581,68 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
       changePage('home');
     };
     const backY = height - bottom - 56;
+    if (page !== 'home' && page !== 'play')
+      paperPanel(
+        ctx,
+        leftInset - 10,
+        top + 54,
+        span + 20,
+        Math.max(46, backY - top - 66),
+        '#fff9e7',
+        '#a7c7a1',
+        24,
+      );
     if (page === 'home') {
-      title('围捕小队');
-      text(`${modes[mode].label}${isDuel() ? ` · ${roleLabel(role)}` : ''}`, center, top + 70);
-      const base = top + 100;
-      button('start', snapshot() ? '继续游戏' : '开始游戏', base, start);
-      button('levels', '选择关卡', base + 56, () => {
+      const competition =
+        config.competitionEnabled === true &&
+        /^https:\/\//.test(config.apiUrl || '') &&
+        startNativeCompetition;
+      const base = height - bottom - (isDuel() || competition ? 4 : 3) * 56 - 38;
+      const heroTop = top + 96,
+        heroHeight = Math.max(20, base - heroTop - 14);
+      ctx.save();
+      roundedPath(ctx, 0, heroTop, width, heroHeight, 24);
+      ctx.clip();
+      art?.cover(ctx, 'home', 0, heroTop, width, heroHeight);
+      ctx.restore();
+      text('街区追逃计划', center, top + 14, 12, '#247c93');
+      ctx.font = '900 40px sans-serif';
+      ctx.strokeStyle = '#174861';
+      ctx.lineWidth = 6;
+      ctx.strokeText('围捕小队', center, top + 54, span);
+      ctx.fillStyle = '#ffe774';
+      ctx.fillText('围捕小队', center, top + 54, span);
+      button('start', snapshot() ? '继续巡逻 ▶' : '开始巡逻 ▶', base, start);
+      button('levels', '街区地图 · 选择关卡', base + 56, () => {
         pageIndex = 0;
         changePage('levels');
       });
-      button('modes', '选择玩法', base + 112, () => changePage('modes'));
-      button('help', '学习 / 帮助 / 设置', base + 168, () => {
-        helpReturn = 'home';
-        changePage('help');
-      });
+      button(
+        'modes',
+        '选择玩法',
+        base + 112,
+        () => changePage('modes'),
+        true,
+        leftInset,
+        (span - 10) / 2,
+      );
+      button(
+        'help',
+        '玩法 / 设置',
+        base + 112,
+        () => {
+          helpReturn = 'home';
+          changePage('help');
+        },
+        true,
+        center + 5,
+        (span - 10) / 2,
+      );
       if (isDuel())
         button(
           'setup',
           '角色与先手',
-          base + 224,
+          base + 168,
           () => changePage('setup'),
           true,
           leftInset,
@@ -591,7 +660,7 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
         button(
           'competition',
           '好友挑战',
-          base + 224,
+          base + 168,
           launchCompetition,
           true,
           isDuel() ? center + 5 : leftInset,
@@ -601,7 +670,9 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
         ? list().filter((map) => wonDuel(map.id)).length
         : Object.keys(records()).length;
       text(
-        storageOK ? `已完成 ${count} / ${list().length} 关` : '暂时无法保存，本次仍可游玩',
+        storageOK
+          ? `${modes[mode].label} · 已完成 ${count} / ${list().length} 关`
+          : '暂时无法保存，本次仍可游玩',
         center,
         height - bottom - 20,
         13,
@@ -653,20 +724,61 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
       button('back', '返回主页', backY, home);
     } else if (page === 'levels') {
       title(`${modes[mode].label} · 选关`);
-      const rows = Math.max(1, Math.min(6, Math.floor((height - top - bottom - 204) / 54))),
-        startIndex = pageIndex * rows;
-      list()
-        .slice(startIndex, startIndex + rows)
-        .forEach((map, index) => {
-          const record = isDuel() ? wonDuel(map.id) : records()[map.id];
-          button(
-            `level:${map.id}`,
-            `${map.id} ${map.name}${record ? (isDuel() ? ' ✓' : ` ${'★'.repeat(record.stars)}`) : unlocked(map.id) ? '' : ' · 未解锁'}`,
-            top + 65 + index * 54,
-            () => load(map.id),
-            unlocked(map.id),
-          );
-        });
+      const rows = Math.max(1, Math.min(5, Math.floor((height - top - bottom - 204) / 74)));
+      const perPage = rows * 3,
+        startIndex = pageIndex * perPage,
+        cardWidth = (span - 16) / 3;
+      const maps = list().slice(startIndex, startIndex + perPage);
+      const rowStep = rows > 1 ? Math.max(74, (backY - top - 234) / (rows - 1)) : 74;
+      const place = (index) => {
+        const row = Math.floor(index / 3),
+          column = row % 2 ? 2 - (index % 3) : index % 3;
+        return { x: leftInset + column * (cardWidth + 8), y: top + 68 + row * rowStep };
+      };
+      ctx.beginPath();
+      maps.forEach((_, index) => {
+        const p = place(index);
+        if (index === 0) ctx.moveTo(p.x + cardWidth / 2, p.y + 31);
+        else ctx.lineTo(p.x + cardWidth / 2, p.y + 31);
+      });
+      ctx.strokeStyle = '#e9c980';
+      ctx.lineWidth = 7;
+      ctx.stroke();
+      maps.forEach((map, index) => {
+        const record = isDuel() ? wonDuel(map.id) : records()[map.id],
+          enabled = unlocked(map.id);
+        const p = place(index),
+          id = `level:${map.id}`,
+          down = pressed?.hit.id === id;
+        paperPanel(
+          ctx,
+          p.x,
+          p.y + (down ? 2 : 0),
+          cardWidth,
+          62,
+          down ? '#ffe383' : record ? '#dbf3ce' : enabled ? '#fff9e7' : '#e1e7d2',
+          enabled ? '#a5bd91' : '#c4cfb6',
+          14,
+        );
+        text(map.id, p.x + cardWidth / 2, p.y + 19, 22, enabled ? '#174861' : '#879582');
+        text(map.name, p.x + cardWidth / 2, p.y + 38, 10, '#496b60', cardWidth - 8);
+        text(
+          record ? (isDuel() ? '已完成' : '★'.repeat(record.stars)) : enabled ? '待挑战' : '未解锁',
+          p.x + cardWidth / 2,
+          p.y + 53,
+          10,
+          record ? '#ba8526' : '#879582',
+        );
+        if (enabled)
+          hits.push({
+            id,
+            label: `第${map.id}关 ${map.name}`,
+            ...p,
+            w: cardWidth,
+            h: 62,
+            action: () => load(map.id),
+          });
+      });
       button(
         'previous',
         '上一页',
@@ -681,7 +793,7 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
         '下一页',
         backY - 56,
         () => pageIndex++,
-        startIndex + rows < list().length,
+        startIndex + perPage < list().length,
         center + 5,
         (span - 10) / 2,
       );
@@ -777,34 +889,72 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
       });
       button('home', '返回主页', y + 168, home);
     } else if (page === 'play') {
-      title(level.name);
+      text(level.name, center + 16, top + 28, 23, '#174861', span - 52);
+      button(
+        'pause',
+        '暂停',
+        top + 5,
+        () => {
+          persist();
+          changePage('pause');
+        },
+        true,
+        leftInset - 8,
+        46,
+      );
       text(
         isDuel()
           ? `我是${roleLabel(role)} · ${roleLabel(firstSide)}先手 · ${Math.floor(board.turn / 2)}/${level.roundLimit} 回合`
           : `${board.turn} 步${mode === 'quick' ? ` / ${level.turnLimit}` : ''}`,
         center,
-        top + 63,
+        top + 70,
         14,
       );
-      const size = Math.max(96, Math.min(span + 16, height - top - bottom - 240)),
-        left = center - size / 2,
-        boardTop = top + 86;
+      const boardTop = top + 96,
+        controlsY = height - bottom - 56;
+      const baseHeight = boardHeight({ width, height });
+      const display = presentationLevel(
+        level,
+        baseHeight === 880
+          ? Math.max(baseHeight, Math.min(1200, ((controlsY - boardTop - 52) * 600) / (span + 16)))
+          : baseHeight,
+      );
+      const scale = Math.min(
+        (span + 16) / 600,
+        Math.max(96, controlsY - boardTop - 52) / display.height,
+      );
+      const size = 600 * scale,
+        boardSizeY = display.height * scale,
+        left = center - size / 2;
       const point = (n) => ({
-        x: left + (level.nodes[n].x / 600) * size,
-        y: boardTop + (level.nodes[n].y / 600) * size,
+        x: left + display.nodes[n].x * scale,
+        y: boardTop + display.nodes[n].y * scale,
       });
-      ctx.fillStyle = '#e3e8d2';
-      ctx.fillRect(left, boardTop, size, size);
-      ctx.lineWidth = Math.max(8, size * 0.03);
-      ctx.strokeStyle = '#fff8eb';
-      for (const [a, b] of level.edges) {
-        const p = point(a),
-          q = point(b);
-        ctx.beginPath();
-        ctx.moveTo(p.x, p.y);
-        ctx.lineTo(q.x, q.y);
-        ctx.stroke();
+      paperPanel(ctx, left - 4, boardTop - 4, size + 8, boardSizeY + 8, '#acd76d', '#fff9e7', 22);
+      ctx.save();
+      roundedPath(ctx, left, boardTop, size, boardSizeY, 20);
+      ctx.clip();
+      art?.cover(ctx, 'garden', left, boardTop, size, boardSizeY);
+      ctx.lineCap = 'round';
+      for (const [stroke, lineWidth] of [
+        ['#86b663', 34],
+        ['#fff4d3', 25],
+        ['#d9c699', 1.5],
+      ]) {
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = Math.max(lineWidth === 1.5 ? 1 : 6, lineWidth * scale);
+        ctx.setLineDash(lineWidth === 1.5 ? [3, 7] : []);
+        for (const [a, b] of level.edges) {
+          const p = point(a),
+            q = point(b);
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(q.x, q.y);
+          ctx.stroke();
+        }
       }
+      ctx.setLineDash([]);
+      ctx.restore();
       const legal = targets(),
         circle = (p, radius, color) => {
           ctx.fillStyle = color;
@@ -814,16 +964,47 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
         };
       level.nodes.forEach((_, n) => {
         const p = point(n);
-        if (hintNode === n) circle(p, 20, '#ffd35b');
-        circle(
-          p,
-          legal.includes(n) ? 12 : 9,
-          level.exits.includes(n) ? '#ec9a43' : legal.includes(n) ? '#8dbded' : '#fff',
-        );
-        text(n + 1, p.x, p.y, 11);
+        const radius = Math.max(10, Math.min(17, size * 0.045));
+        if (hintNode === n) circle(p, radius + 5, '#ffd35b');
+        circle(p, radius, legal.includes(n) ? '#81e3d6' : '#fff9df');
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = legal.includes(n) ? '#16869c' : '#fffef2';
+        ctx.stroke();
+        if (level.exits.includes(n)) {
+          const edge = boardExitEndpoint(display, n);
+          const ex = left + edge.x * scale,
+            ey = boardTop + edge.y * scale;
+          ctx.strokeStyle = '#d67a43';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(ex, ey);
+          ctx.stroke();
+          paperPanel(
+            ctx,
+            Math.max(left, Math.min(left + size - 48, ex - 24)),
+            Math.max(boardTop + 3, ey - 29),
+            48,
+            20,
+            '#16869c',
+            '#fff9e7',
+            5,
+          );
+          text(
+            '逃生口',
+            Math.max(left + 24, Math.min(left + size - 24, ex)),
+            Math.max(boardTop + 13, ey - 19),
+            10,
+            '#fff9e7',
+            44,
+          );
+        }
+        paperPanel(ctx, p.x - 12, p.y + radius - 4, 24, 20, '#fff9e7', '#d2deb5', 7);
+        text(n + 1, p.x, p.y + radius + 6, 12);
         if (canAct())
           hits.push({
             id: `node${n}`,
+            node: n,
             x: p.x - 22,
             y: p.y - 22,
             w: 44,
@@ -839,17 +1020,32 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
           if (n < 0) return;
           const p = point(n),
             mine = side === (isDuel() ? role : 'pursuer');
-          if (mine && index === selected) circle(p, 23, '#fff');
-          circle(p, 17, side === 'pursuer' ? '#1258c2' : '#d65b19');
-          text(`${side === 'runner' ? '突' : ''}${index + 1}`, p.x, p.y, 12, '#fff');
+          const actorHeight = Math.max(44, Math.min(76, 110 * scale * actorScale(display)));
+          if (mine && index === selected) {
+            circle(p, 22, '#ffe272');
+            ctx.strokeStyle = '#16869c';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+          }
+          if (!art?.actor(ctx, side, p.x, p.y + 3, actorHeight)) {
+            circle(p, 17, side === 'pursuer' ? '#1258c2' : '#d65b19');
+          }
+          text(
+            index + 1,
+            p.x,
+            p.y - actorHeight - 6,
+            12,
+            side === 'pursuer' ? '#125778' : '#8e4b2d',
+          );
           if (mine && canAct())
             hits.push({
               id: `${side === 'pursuer' ? 'cop' : 'robber'}${index}`,
               actor: true,
+              node: n,
               x: p.x - 22,
-              y: p.y - 22,
+              y: p.y - actorHeight,
               w: 44,
-              h: 44,
+              h: actorHeight + 12,
               action: () => {
                 selected = index;
                 note = '';
@@ -857,14 +1053,15 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
               },
             });
         });
-      const y = backY - 56;
+      const y = controlsY;
+      paperPanel(ctx, leftInset - 5, y - 43, span + 10, 30, '#f4ffdf', '#a7c7a1', 15);
       text(
         note ||
           (isDuel() && board.side !== role
             ? '电脑思考中…'
             : `已选 ${selected + 1} 号 · 点相邻路口`),
         center,
-        y - 22,
+        y - 28,
         13,
       );
       if (isDuel()) button('wait', '留守一步', y, () => move(myPositions()[selected]), canAct());
@@ -887,26 +1084,23 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
         );
         button('hint', '提示', y, showHint, canAct(), leftInset + (third + 8) * 2, third);
       }
-      button('pause', '暂停', backY, () => {
-        persist();
-        changePage('pause');
-      });
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(leftInset + 16, backY + 13, 5, 20);
-      ctx.fillRect(leftInset + 25, backY + 13, 5, 20);
     }
     config.onFrame?.(canvas);
   }
   const point = (touch) => ({ x: touch.clientX ?? touch.x, y: touch.clientY ?? touch.y });
-  const find = (position) =>
-    hits
-      .filter((hit) => inside(position, hit))
+  const find = (position) => {
+    const candidates = hits.filter((hit) => inside(position, hit));
+    return candidates
+      .filter(
+        (hit) => hit.actor || !candidates.some((actor) => actor.actor && actor.node === hit.node),
+      )
       .sort(
         (a, b) =>
           Math.hypot(position.x - a.x - a.w / 2, position.y - a.y - a.h / 2) -
             Math.hypot(position.x - b.x - b.w / 2, position.y - b.y - b.h / 2) ||
           Number(Boolean(b.actor)) - Number(Boolean(a.actor)),
       )[0];
+  };
   const cancel = () => {
     pressed = null;
   };
@@ -919,6 +1113,7 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
     const touch = touches[0],
       hit = find(point(touch));
     pressed = hit ? { hit, identifier: touch.identifier, page } : null;
+    draw();
   });
   subscribe('onTouchMove', 'offTouchMove', (event) => {
     const touches = event.touches || [];
@@ -927,13 +1122,19 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
       touches.length !== 1 ||
       touches[0].identifier !== pressed.identifier ||
       !inside(point(touches[0]), pressed.hit)
-    )
+    ) {
       cancel();
+      draw();
+    }
   });
-  subscribe('onTouchCancel', 'offTouchCancel', cancel);
+  subscribe('onTouchCancel', 'offTouchCancel', () => {
+    cancel();
+    draw();
+  });
   subscribe('onTouchEnd', 'offTouchEnd', (event) => {
     const prior = pressed;
     cancel();
+    draw();
     const touches = event.changedTouches || [];
     if (
       !visible ||
@@ -980,10 +1181,12 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
   function dispose() {
     if (disposed) return;
     disposed = true;
+    art?.dispose();
     if (!stopped) stopLocal();
     (child?.dispose || child?.stop)?.call(child);
     child = null;
   }
+  art = createCopsArt(sdk, draw);
   resize();
   return {
     canvas,
@@ -1004,6 +1207,7 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
         outcome: active ? outcome() : null,
         note,
         hintNode,
+        art: art.snapshot(),
         hits: hits.map(({ action, ...hit }) => hit),
       },
   };

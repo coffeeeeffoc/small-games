@@ -6,6 +6,9 @@ on:
     paths:
       - 'games/minigames/**'
       - 'games/local/cops-robbers/src/**'
+      - 'games/local/cops-robbers/assets/home-chase.webp'
+      - 'games/local/cops-robbers/assets/patrol-garden.webp'
+      - 'games/local/cops-robbers/assets/patrol-characters.svg'
       - 'games/local/cops-robbers-realtime/src/**'
       - 'games/submodules/xiangqi-five'
       - 'games/submodules/xiangqi-five/**'

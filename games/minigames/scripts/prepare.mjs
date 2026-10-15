@@ -16,6 +16,12 @@ export const sharedFiles = [
 ];
 export const assetInputs = (game) => [
   ['games/local/game-cricket/public/cricket-audio/perfect.wav', 'competition-action.wav'],
+  ...(game === 'cops-robbers'
+    ? ['home-chase.webp', 'patrol-garden.webp', 'patrol-characters.svg'].map((name) => [
+        `games/local/cops-robbers/assets/${name}`,
+        name.replace('.svg', '.webp'),
+      ])
+    : []),
   ...(game === 'cops-robbers-realtime'
     ? [['games/local/cops-robbers-realtime/src/assets/home-city.png', 'home-city.png']]
     : []),
@@ -193,6 +199,13 @@ export function start(sdk) {
 }
 
 export async function copyRuntimeAssets(config, output) {
-  for (const [source, destination] of assetInputs(config.game))
-    await cp(path.join(repo, source), path.join(output, destination));
+  for (const [source, destination] of assetInputs(config.game)) {
+    if (source.endsWith('/patrol-characters.svg')) {
+      // The H5 SVG already embeds the atlas. Native Image loads its original WebP bytes.
+      const svg = await readFile(path.join(repo, source), 'utf8');
+      const atlas = svg.match(/xlink:href="data:image\/webp;base64,([A-Za-z0-9+/=]+)"/);
+      assert(atlas, 'Original patrol character atlas is missing');
+      await writeFile(path.join(output, destination), Buffer.from(atlas[1], 'base64'));
+    } else await cp(path.join(repo, source), path.join(output, destination));
+  }
 }

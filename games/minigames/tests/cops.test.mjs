@@ -14,19 +14,34 @@ import {
   chooseDuelAction,
 } from '../../local/cops-robbers/src/duel.js';
 
-function fixture({ saved = {}, size = [390, 844], random = 0.9, config = {}, competition } = {}) {
+function fixture({
+  saved = {},
+  size = [390, 844],
+  random = 0.9,
+  config = {},
+  competition,
+  art = false,
+} = {}) {
   let clock = 1000,
     nextTimer = 0;
   const timers = new Map(),
     callbacks = [],
     listeners = new Map(),
     writes = [],
-    storage = new Map(Object.entries(saved));
+    storage = new Map(Object.entries(saved)),
+    images = [],
+    draws = [];
   const context = new Proxy(
     {},
     {
       get: (_, key) =>
-        key === 'measureText' ? (text) => ({ width: String(text).length * 15 }) : () => {},
+        key === 'createLinearGradient'
+          ? () => ({ addColorStop() {} })
+          : key === 'drawImage'
+            ? (...args) => draws.push(args)
+            : key === 'measureText'
+              ? (text) => ({ width: String(text).length * 15 })
+              : () => {},
     },
   );
   const canvas = { width: 0, height: 0, getContext: () => context };
@@ -46,6 +61,12 @@ function fixture({ saved = {}, size = [390, 844], random = 0.9, config = {}, com
       writes.push([key, JSON.parse(value)]);
     },
   };
+  if (art)
+    sdk.createImage = () => {
+      const image = { width: 1536, height: 1024 };
+      images.push(image);
+      return image;
+    };
   for (const name of [
     'TouchStart',
     'TouchMove',
@@ -119,8 +140,55 @@ function fixture({ saved = {}, size = [390, 844], random = 0.9, config = {}, com
     tap,
     runAI,
     selectMode,
+    images,
+    draws,
   };
 }
+
+test('original home, garden and illustrated actors load, redraw and detach on disposal', () => {
+  const f = fixture({ art: true });
+  assert.deepEqual(f.images.map((image) => image.src).sort(), [
+    'home-chase.webp',
+    'patrol-characters.webp',
+    'patrol-garden.webp',
+  ]);
+  for (const image of f.images) image.onload();
+  assert(f.draws.some(([image]) => image.src === 'home-chase.webp'));
+  f.tap('start');
+  assert(f.draws.some(([image]) => image.src === 'patrol-garden.webp'));
+  assert(f.draws.some(([image, x]) => image.src === 'patrol-characters.webp' && x === 0));
+  assert(f.draws.some(([image, x]) => image.src === 'patrol-characters.webp' && x === 768));
+  assert.deepEqual(f.game.getState().art.failed, []);
+  const callback = f.images[0].onload;
+  f.game.dispose();
+  const count = f.draws.length;
+  callback();
+  assert.equal(f.draws.length, count, 'late image callbacks must not redraw a disposed game');
+  assert(f.images.every((image) => image.onload === null && image.onerror === null));
+});
+
+test('tapping an officer at its feet selects it without consuming a move', () => {
+  const f = fixture();
+  f.tap('start');
+  const before = f.game.getState().board;
+  f.tap(`node${before.cops[1]}`);
+  assert.equal(f.game.getState().selected, 1, 'the officer takes priority over its own junction');
+  assert.deepEqual(f.game.getState().board, before);
+  f.tap(`node${before.cops[1]}`);
+  assert.deepEqual(
+    f.game.getState().board,
+    before,
+    'selecting the officer again must not wait a turn',
+  );
+  const target = legalTargets(levels[0], before, 1).find((node) => node !== before.cops[1]);
+  if (target !== undefined) {
+    f.tap(`node${target}`);
+    const plan = [...before.cops];
+    plan[1] = target;
+    assert.deepEqual(f.game.getState().board, step(levels[0], before, plan).state);
+  }
+  f.game.dispose();
+});
 
 test('five modes and setup controls fit a 320 × 568 safe area', () => {
   const f = fixture({ size: [320, 568] });

@@ -43,7 +43,7 @@ const projectFiles = new Set([
   ].map((file) => 'assets/scripts/' + file + '.meta'),
 ]);
 const workflow = '.github/workflows/cocos-minigames.yml';
-const workflowSha256 = '8fc5cca7a1b2fed65e540073b2e7a86b67fafc85b2976152fed0c6bb84e17527';
+const workflowSha256 = '37b47418d61b494929d5821ea4760bff48917a83974b76a7fbd214ed7b639b19';
 export function cocosMinigameFileScopes({ changedPaths, readHead }) {
   const scopes = new Map();
   for (const file of changedPaths) {
@@ -66,7 +66,7 @@ export function cocosMinigameFileScopes({ changedPaths, readHead }) {
       common.has(relative) ||
       (cocosMinigameIds.includes(game) &&
         (projectFiles.has(parts.join('/')) ||
-          (game === 'cops-robbers' && parts.join('/') === 'controller.mjs')))
+          (game === 'cops-robbers' && ['controller.mjs', 'art.mjs'].includes(parts.join('/')))))
     )
       scopes.set(file, []);
   }
@@ -85,6 +85,12 @@ export function cocosMinigamePlan({ changedPaths, fileScopes }) {
     }
     for (const id of ['cops-robbers', 'cops-robbers-realtime'])
       if (file.startsWith(`games/local/${id}/src/`)) ids.add(id);
+    if (
+      ['home-chase.webp', 'patrol-garden.webp', 'patrol-characters.svg'].some(
+        (name) => file === `games/local/cops-robbers/assets/${name}`,
+      )
+    )
+      ids.add('cops-robbers');
     if (
       file === 'games/submodules/xiangqi-five' ||
       file.startsWith('games/submodules/xiangqi-five/') ||
