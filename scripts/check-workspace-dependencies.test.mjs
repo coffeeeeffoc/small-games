@@ -57,8 +57,37 @@ test('optional service configuration is restricted to the reviewed build and dev
     violations.every(
       (item) =>
         item.code === 'cross-package-relative' &&
-        /src\/main\.js|scripts\/unknown\.mjs/.test(item.message),
+        /src\/main\.js|scripts\/unknown\.mjs/.test(item.message.replaceAll('\\', '/')),
     ),
+  );
+});
+
+test('H5 advertising configuration permits only its two actual build-time callers', async (t) => {
+  const root = await createWorkspace(
+    ['cops-robbers', 'cops-robbers-realtime'].map((game) => ({
+      path: `games/local/${game}`,
+      manifest: { name: game },
+      files: Object.fromEntries(
+        ['scripts/ad-config.mjs', 'scripts/build.mjs', 'scripts/unknown.mjs', 'src/main.js'].map(
+          (file) => [file, "import '../../../../scripts/h5-ad-config.mjs';"],
+        ),
+      ),
+    })),
+  );
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const violations = await validateWorkspace(root);
+  assert.equal(violations.length, 6);
+  assert(violations.every((item) => item.code === 'cross-package-relative'));
+  assert.deepEqual(
+    violations.map((item) => item.message.replaceAll('\\', '/').split(' imports ')[0]).sort(),
+    [
+      'games/local/cops-robbers/scripts/build.mjs',
+      'games/local/cops-robbers/scripts/unknown.mjs',
+      'games/local/cops-robbers/src/main.js',
+      'games/local/cops-robbers-realtime/scripts/ad-config.mjs',
+      'games/local/cops-robbers-realtime/scripts/unknown.mjs',
+      'games/local/cops-robbers-realtime/src/main.js',
+    ].sort(),
   );
 });
 
