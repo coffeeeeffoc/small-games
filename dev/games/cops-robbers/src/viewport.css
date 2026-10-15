@@ -3,14 +3,19 @@
   background: #c5e7c2;
 }
 body.game-shell {
-  --home-bar: calc(56px + env(safe-area-inset-top));
+  --home-bar: calc(56px + var(--game-safe-area-top, env(safe-area-inset-top)));
   background: linear-gradient(#68cbed 0%, #bce9e6 34%, #b9dea5 68%, #c5e7c2 100%);
+}
+.game-shell .layout {
+  position: relative;
+  width: calc(100% - var(--game-safe-area-left, 0px) - var(--game-safe-area-right, 0px));
+  left: calc((var(--game-safe-area-left, 0px) - var(--game-safe-area-right, 0px)) / 2);
 }
 .game-shell:not(.focus-play) .topbar {
   height: var(--home-bar);
   max-width: 520px;
-  padding: env(safe-area-inset-top) max(12px, env(safe-area-inset-right)) 0
-    max(12px, env(safe-area-inset-left));
+  padding: var(--game-safe-area-top, env(safe-area-inset-top)) max(12px, var(--game-safe-area-right, env(safe-area-inset-right))) 0
+    max(12px, var(--game-safe-area-left, env(safe-area-inset-left)));
 }
 .game-shell:not(.focus-play) .brand {
   font-size: 15px;
@@ -62,7 +67,7 @@ body.game-shell {
 .game-shell .home-menu {
   grid-row: 3;
   margin: 0;
-  padding: 0 14px max(12px, env(safe-area-inset-bottom));
+  padding: 0 14px max(12px, var(--game-safe-area-bottom, env(safe-area-inset-bottom)));
   display: grid;
   gap: 8px;
   z-index: 1;
@@ -150,8 +155,8 @@ body.game-shell {
 
 /* Native dialog boxes keep their title and actions outside the scrolling body. */
 .game-shell dialog:not(.competition-dialog):not([data-role-appearance]) {
-  width: min(450px, calc(100vw - 24px));
-  max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  width: min(450px, calc(100vw - var(--game-safe-area-left, 0px) - var(--game-safe-area-right, 0px) - 24px));
+  max-height: calc(100dvh - 24px - var(--game-safe-area-top, env(safe-area-inset-top)) - var(--game-safe-area-bottom, env(safe-area-inset-bottom)));
   padding: 16px;
   overflow: hidden;
 }
@@ -249,7 +254,7 @@ body.game-shell {
   font-size: 12px;
 }
 .game-shell #level-dialog {
-  max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  max-height: calc(100dvh - 24px - var(--game-safe-area-top, env(safe-area-inset-top)) - var(--game-safe-area-bottom, env(safe-area-inset-bottom)));
 }
 .game-shell #chapter-tabs {
   scrollbar-width: thin;
@@ -302,7 +307,7 @@ body.game-shell {
 /* The shared appearance picker gets a local layout without changing its synced code. */
 .game-shell [data-role-appearance] {
   padding: 16px;
-  max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  max-height: calc(100dvh - 24px - var(--game-safe-area-top, env(safe-area-inset-top)) - var(--game-safe-area-bottom, env(safe-area-inset-bottom)));
   overflow: hidden;
   border-color: #94ba9e;
   font-family: inherit;
@@ -351,8 +356,8 @@ body.game-shell {
   --pk-muted: #55786b;
   --pk-line: #c6d7b7;
   --pk-accent: #ffdc58;
-  width: min(620px, calc(100vw - 24px));
-  height: min(640px, calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
+  width: min(620px, calc(100vw - var(--game-safe-area-left, 0px) - var(--game-safe-area-right, 0px) - 24px));
+  height: min(640px, calc(100dvh - 24px - var(--game-safe-area-top, env(safe-area-inset-top)) - var(--game-safe-area-bottom, env(safe-area-inset-bottom))));
   max-height: none;
   max-width: none;
   padding: 0;
@@ -685,7 +690,10 @@ body.game-shell {
   .game-shell .home-menu {
     grid-column: 2;
     grid-row: 1 / 3;
-    align-self: center;
+    align-self: stretch;
+    align-content: start;
+    min-height: 0;
+    overflow-y: auto;
     gap: 7px;
     padding-left: 0;
   }
@@ -708,7 +716,7 @@ body.game-shell {
     font-size: 10px;
   }
   .game-shell dialog:not(.competition-dialog):not([data-role-appearance]) {
-    width: min(580px, calc(100vw - 24px));
+    width: min(580px, calc(100vw - var(--game-safe-area-left, 0px) - var(--game-safe-area-right, 0px) - 24px));
     padding: 12px 16px;
   }
   .game-shell .result-summary .win-art,
@@ -741,7 +749,7 @@ body.game-shell {
     grid-template-columns: 1fr 1fr;
   }
   .game-shell .competition-dialog {
-    width: min(740px, calc(100vw - 24px));
+    width: min(740px, calc(100vw - var(--game-safe-area-left, 0px) - var(--game-safe-area-right, 0px) - 24px));
   }
   .game-shell .competition-dialog .pk-options {
     grid-template-columns: 1fr 1fr;
@@ -792,6 +800,9 @@ body.game-shell {
   }
 }
 @media (max-height: 650px) and (orientation: portrait) {
+  .game-shell .home-roster {
+    display: none;
+  }
   .game-shell .home-title {
     margin-top: 0;
   }
@@ -810,5 +821,65 @@ body.game-shell {
   }
   .game-shell #home-start {
     min-height: 50px;
+  }
+}
+
+/* Center overlays inside the same protected region as the game header. */
+.game-shell dialog {
+  left: var(--game-safe-area-left, 0px);
+  right: var(--game-safe-area-right, 0px);
+  top: var(--game-safe-area-top, 0px);
+  bottom: var(--game-safe-area-bottom, 0px);
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .game-shell.focus-play .topbar {
+    height: 0;
+    padding: 0;
+  }
+  .game-shell.focus-play #focus-toggle {
+    position: absolute;
+    top: calc(var(--game-safe-area-top, 0px) + 8px);
+    left: max(12px, var(--game-safe-area-left, 0px));
+  }
+  .game-shell.focus-play .layout {
+    padding-top: calc(var(--game-safe-area-top, 0px) + 8px);
+    padding-left: max(64px, var(--game-safe-area-left, 0px));
+  }
+  .game-shell.focus-play .game,
+  .game-shell.focus-play .duel-game {
+    height: calc(100dvh - var(--game-safe-area-top, 0px) - var(--game-safe-area-bottom, 0px) - 16px);
+    grid-template-columns: minmax(0, 1fr) minmax(230px, 290px);
+    grid-template-rows: 35px 35px minmax(24px, 1fr) 48px 44px;
+    gap: 4px 20px;
+  }
+  .game-shell.focus-play .board-frame,
+  .game-shell.focus-play[data-rule='relay'] .board-frame,
+  .game-shell.focus-play .duel-game .board-frame {
+    width: min(100%, calc((100dvh - var(--game-safe-area-top, 0px) - var(--game-safe-area-bottom, 0px) - 16px) / var(--board-aspect, 1)));
+    justify-self: center;
+  }
+  .game-shell.focus-play .squad-row,
+  .game-shell.focus-play .action-bar {
+    margin: 0;
+  }
+  .game-shell.focus-play .action-bar button {
+    min-height: 44px;
+    height: 44px;
+  }
+  .game-shell.focus-play .game-heading {
+    min-height: 35px;
+  }
+  .game-shell.focus-play .play-prompt {
+    min-height: 24px;
+    padding: 3px 8px;
+  }
+  .game-shell.focus-play #squad button {
+    height: 48px;
+    min-height: 44px;
+  }
+  .game-shell.focus-play .squad-avatar {
+    width: 36px;
+    height: 36px;
   }
 }
