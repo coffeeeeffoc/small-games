@@ -146,7 +146,11 @@ function sameAction(actual, wanted) {
 async function touchAction(player, wanted) {
   await rendered(player.page);
   const canvas = player.surface.locator('canvas[data-play]');
-  await canvas.waitFor({ state: 'visible' });
+  await until(
+    async () => player.room.status === 'finished' || (await canvas.isVisible()),
+    'Playing canvas or authoritative settlement',
+  );
+  if (player.room.status === 'finished') return false;
   await canvas.scrollIntoViewIfNeeded();
   const dimensions = await canvas.evaluate((element) => ({
     width: element.clientWidth,
@@ -192,7 +196,9 @@ async function touchAction(player, wanted) {
   }
   assert(found, `No visible touch point for ${JSON.stringify(wanted)}`);
   const tap = async ([x, y]) => {
+    if (player.room.status === 'finished') return false;
     const box = await canvas.boundingBox();
+    if (!box && player.room.status === 'finished') return false;
     assert(box, 'Canvas disappeared');
     const screenX = box.x + (x * box.width) / dimensions.width;
     const screenY = box.y + (y * box.height) / dimensions.height;
@@ -202,17 +208,42 @@ async function touchAction(player, wanted) {
       `Touch point outside viewport: ${screenX},${screenY}`,
     );
     await player.page.touchscreen.tap(screenX, screenY);
+    return true;
   };
   const previous = player.room.seq;
   if (selection) {
-    await tap(selection);
+    if (!(await tap(selection))) return false;
     await rendered(player.page);
   }
-  await tap(found);
+  if (!(await tap(found))) return false;
   await until(
-    () => player.room.seq === previous + 1 && player.lastAction?.seq === previous + 1,
+    () =>
+      player.room.status === 'finished' ||
+      (player.room.seq === previous + 1 && player.lastAction?.seq === previous + 1),
     `${player.variant.name}/${player.id} accepted touch action`,
   );
+  if (player.room.status === 'finished') {
+    const terminal = player.apiFailures.filter(
+      (failure) =>
+        failure.path === `/api/competition/v1/rooms/${player.room.code}/actions` &&
+        failure.status === 409 &&
+        ['MATCH_CLOSED', 'PLAYER_FINISHED'].includes(failure.body?.error),
+    );
+    if (terminal.length) {
+      const confirmed = await player.page.evaluate(
+        (code) => globalThis.__competition.request(`/rooms/${code}`),
+        player.room.code,
+      );
+      assert.equal(
+        confirmed.status,
+        'finished',
+        'A late input must be confirmed against the authoritative room',
+      );
+      player.terminalRejections.push(...terminal);
+      player.apiFailures = player.apiFailures.filter((failure) => !terminal.includes(failure));
+    }
+    if (player.room.seq !== previous + 1 || player.lastAction?.seq !== previous + 1) return false;
+  }
   const authoritative =
     state !== original && wanted.type === 'move'
       ? { ...wanted, x: wanted.y, y: -wanted.x }
@@ -223,6 +254,7 @@ async function touchAction(player, wanted) {
   );
   player.acceptedActions++;
   await rendered(player.page);
+  return true;
 }
 async function screenshot(player, name) {
   await player.page.screenshot({
@@ -251,6 +283,7 @@ async function newPlayer(variant, id) {
     requests: [],
     errors: [],
     apiFailures: [],
+    terminalRejections: [],
     acceptedActions: 0,
     closing: false,
   };
@@ -599,8 +632,7 @@ async function playStreet(players) {
       let sent = false;
       for (const node of nodes) {
         try {
-          await touchAction(player, { type: 'move', actor, x: node.x, y: node.y });
-          sent = true;
+          sent = await touchAction(player, { type: 'move', actor, x: node.x, y: node.y });
           break;
         } catch (error) {
           if (!error.message.startsWith('No visible touch point')) throw error;
@@ -665,6 +697,7 @@ async function finishMatch(players, code) {
     playerIds: players.map((p) => p.profile.playerId),
     acceptedTouchActions: players.map((p) => p.acceptedActions),
     duplicateActionsPreserveSettlement: true,
+    confirmedLateTerminalInputs: players.map((p) => p.terminalRejections),
     roomVersion: players[0].room.version,
     results,
     boards,
