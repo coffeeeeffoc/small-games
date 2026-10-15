@@ -223,25 +223,6 @@ async function touchAction(player, wanted) {
     `${player.variant.name}/${player.id} accepted touch action`,
   );
   if (player.room.status === 'finished') {
-    const terminal = player.apiFailures.filter(
-      (failure) =>
-        failure.path === `/api/competition/v1/rooms/${player.room.code}/actions` &&
-        failure.status === 409 &&
-        ['MATCH_CLOSED', 'PLAYER_FINISHED'].includes(failure.body?.error),
-    );
-    if (terminal.length) {
-      const confirmed = await player.page.evaluate(
-        (code) => globalThis.__competition.request(`/rooms/${code}`),
-        player.room.code,
-      );
-      assert.equal(
-        confirmed.status,
-        'finished',
-        'A late input must be confirmed against the authoritative room',
-      );
-      player.terminalRejections.push(...terminal);
-      player.apiFailures = player.apiFailures.filter((failure) => !terminal.includes(failure));
-    }
     if (player.room.seq !== previous + 1 || player.lastAction?.seq !== previous + 1) return false;
   }
   const authoritative =
@@ -319,6 +300,28 @@ async function newPlayer(variant, id) {
         body,
       });
       if (!response.ok()) {
+        const code = pathname.match(
+          /^\/api\/competition\/v1\/rooms\/([A-F0-9]{12})\/actions$/,
+        )?.[1];
+        if (
+          code === player.room?.code &&
+          response.status() === 409 &&
+          ['MATCH_CLOSED', 'PLAYER_FINISHED'].includes(body?.error)
+        ) {
+          const confirmed = await page.evaluate(
+            (roomCode) => globalThis.__competition.request(`/rooms/${roomCode}`),
+            code,
+          );
+          assert.equal(confirmed.code, code);
+          assert.equal(
+            confirmed.status,
+            'finished',
+            'Late input requires authoritative settlement',
+          );
+          player.room = confirmed;
+          player.terminalRejections.push({ status: response.status(), path: pathname, body });
+          return;
+        }
         if (!player.closing)
           player.apiFailures.push({ status: response.status(), path: pathname, body });
         return;
