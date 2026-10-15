@@ -74,9 +74,9 @@ span > svg {
 }
 .app-shell {
   position: fixed;
-  inset: 0;
-  width: 100dvw;
-  height: 100dvh;
+  inset: var(--game-safe-area-top, 0px) var(--game-safe-area-right, 0px) var(--game-safe-area-bottom, 0px) var(--game-safe-area-left, 0px);
+  width: calc(100dvw - var(--game-safe-area-left, 0px) - var(--game-safe-area-right, 0px));
+  height: calc(100dvh - var(--game-safe-area-top, 0px) - var(--game-safe-area-bottom, 0px));
   overflow: hidden;
   background: var(--paper);
 }
@@ -89,8 +89,8 @@ span > svg {
   animation: page-in 0.3s cubic-bezier(0.2, 0.8, 0.3, 1) both;
 }
 .screen:not(.game-screen) {
-  padding: 20px max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom))
-    max(20px, env(safe-area-inset-left));
+  padding: 20px 20px 20px
+    20px;
 }
 .button,
 .icon-button,
@@ -749,8 +749,8 @@ select[hidden] {
   transform: translateX(-50%);
   max-width: 700px;
   width: 100%;
-  padding: 18px max(20px, env(safe-area-inset-right)) max(23px, env(safe-area-inset-bottom))
-    max(20px, env(safe-area-inset-left));
+  padding: 18px 20px 23px
+    20px;
   display: flex;
   gap: 12px;
   background: linear-gradient(#fff8eb00, #fff8eb 15%);
@@ -908,9 +908,9 @@ select[hidden] {
 }
 .board-top {
   position: absolute;
-  top: max(12px, env(safe-area-inset-top));
-  left: max(12px, env(safe-area-inset-left));
-  right: max(12px, env(safe-area-inset-right));
+  top: 12px;
+  left: 12px;
+  right: 12px;
   display: flex;
   align-items: flex-start;
   gap: 9px;
@@ -970,9 +970,9 @@ select[hidden] {
 }
 .squad-dock {
   position: absolute;
-  bottom: max(13px, env(safe-area-inset-bottom));
-  left: max(13px, env(safe-area-inset-left));
-  right: max(13px, env(safe-area-inset-right));
+  bottom: 13px;
+  left: 13px;
+  right: 13px;
   display: flex;
   gap: 12px;
   align-items: center;
@@ -1916,7 +1916,7 @@ select[hidden] {
 /* Keep the scrollable choices between the header and action row. */
 .app-shell .level-screen {
   overflow: hidden;
-  padding-bottom: max(20px, env(safe-area-inset-bottom)) !important;
+  padding-bottom: 20px !important;
 }
 .level-screen .selection-body {
   overflow: auto;
@@ -1945,4 +1945,17 @@ select[hidden] {
   .app-shell .level-screen {
     padding-bottom: 15px !important;
   }
+}
+
+/* Dialogs are outside app-shell and need the same protected viewport. */
+dialog,
+dialog.small-dialog,
+dialog.records-dialog,
+dialog.help-dialog {
+  max-width: calc(100dvw - var(--game-safe-area-left, 0px) - var(--game-safe-area-right, 0px) - 24px);
+  max-height: calc(100dvh - var(--game-safe-area-top, 0px) - var(--game-safe-area-bottom, 0px) - 24px);
+  left: var(--game-safe-area-left, 0px);
+  right: var(--game-safe-area-right, 0px);
+  top: var(--game-safe-area-top, 0px);
+  bottom: var(--game-safe-area-bottom, 0px);
 }

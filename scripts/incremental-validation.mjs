@@ -15,6 +15,7 @@ import {
   gameServiceScopePaths,
   publishingConsumers,
   publishingScopePaths,
+  safeAreaScopePaths,
   platformAdsScopePaths,
   deploymentBundleScopePaths,
   companyDeploymentScopePaths,
@@ -293,6 +294,7 @@ export function incrementalPlan({
       paths.includes('scripts/deploy-tencent.mjs') &&
       fileScopes.get('scripts/deploy-tencent.mjs')?.includes('games/local/cage-rescue'),
     publishing_checks: publishingChanged,
+    safe_area_checks: paths.some((file) => safeAreaScopePaths.includes(file)),
     platform_ads_checks: paths.some((file) => platformAdsScopePaths.includes(file)),
     publishing_browser_ids: publishingBrowserIds.sort(),
     publication_config_checks: paths.some((file) => publicationConfigScopePaths.includes(file)),

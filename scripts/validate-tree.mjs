@@ -495,6 +495,16 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
     );
     execute(process.execPath, [`${source}/tests/${file}`], root, env, 'logged');
   }
+  if (plan.safe_area_checks) {
+    execute(
+      process.execPath,
+      ['--test', 'platforms/h5/tests/safe-area.test.mjs'],
+      root,
+      env,
+      'logged',
+    );
+    execute(process.execPath, ['platforms/h5/tests/safe-area.browser.mjs'], root, env, 'logged');
+  }
   if (plan.publishing_checks)
     execute(
       process.execPath,

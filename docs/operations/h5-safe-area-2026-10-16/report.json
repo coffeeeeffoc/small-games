@@ -1,0 +1,150 @@
+{
+  "browser": "151.0.7922.173",
+  "realDeviceVerified": false,
+  "checks": [
+    {
+      "game": "cops-robbers",
+      "width": 390,
+      "height": 844,
+      "host": "sdk",
+      "framed": false,
+      "passed": true
+    },
+    {
+      "game": "cops-robbers-realtime",
+      "width": 390,
+      "height": 844,
+      "host": "sdk",
+      "framed": false,
+      "passed": true
+    },
+    {
+      "game": "xiangqi-five",
+      "width": 390,
+      "height": 844,
+      "host": "sdk",
+      "framed": false,
+      "passed": true
+    },
+    {
+      "game": "cops-robbers",
+      "width": 320,
+      "height": 568,
+      "host": "ua",
+      "framed": false,
+      "passed": true
+    },
+    {
+      "game": "cops-robbers-realtime",
+      "width": 320,
+      "height": 568,
+      "host": "ua",
+      "framed": false,
+      "passed": true
+    },
+    {
+      "game": "xiangqi-five",
+      "width": 320,
+      "height": 568,
+      "host": "ua",
+      "framed": false,
+      "passed": true
+    },
+    {
+      "game": "cops-robbers",
+      "width": 844,
+      "height": 390,
+      "host": "sdk",
+      "framed": false,
+      "passed": true
+    },
+    {
+      "game": "cops-robbers-realtime",
+      "width": 844,
+      "height": 390,
+      "host": "sdk",
+      "framed": false,
+      "passed": true
+    },
+    {
+      "game": "xiangqi-five",
+      "width": 844,
+      "height": 390,
+      "host": "sdk",
+      "framed": false,
+      "passed": true
+    },
+    {
+      "game": "cops-robbers",
+      "width": 568,
+      "height": 320,
+      "host": "sdk",
+      "framed": false,
+      "passed": true
+    },
+    {
+      "game": "cops-robbers-realtime",
+      "width": 568,
+      "height": 320,
+      "host": "sdk",
+      "framed": false,
+      "passed": true
+    },
+    {
+      "game": "xiangqi-five",
+      "width": 568,
+      "height": 320,
+      "host": "sdk",
+      "framed": false,
+      "passed": true
+    },
+    {
+      "game": "cops-robbers",
+      "width": 390,
+      "height": 844,
+      "host": "browser",
+      "framed": false,
+      "passed": true
+    },
+    {
+      "game": "cops-robbers-realtime",
+      "width": 390,
+      "height": 844,
+      "host": "browser",
+      "framed": false,
+      "passed": true
+    },
+    {
+      "game": "xiangqi-five",
+      "width": 390,
+      "height": 844,
+      "host": "browser",
+      "framed": false,
+      "passed": true
+    },
+    {
+      "game": "cops-robbers",
+      "width": 390,
+      "height": 844,
+      "host": "sdk",
+      "framed": true,
+      "passed": true
+    },
+    {
+      "game": "cops-robbers-realtime",
+      "width": 390,
+      "height": 844,
+      "host": "sdk",
+      "framed": true,
+      "passed": true
+    },
+    {
+      "game": "xiangqi-five",
+      "width": 390,
+      "height": 844,
+      "host": "sdk",
+      "framed": true,
+      "passed": true
+    }
+  ]
+}
