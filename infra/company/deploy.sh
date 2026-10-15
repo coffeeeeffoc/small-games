@@ -44,7 +44,7 @@ done
 
 compose() { docker compose --project-name company-web --env-file /dev/null -f "$1/compose.yaml" "${@:2}"; }
 (cd "$target" && sha256sum -c SHA256SUMS)
-compose "$target" run --rm --no-deps --interactive=false -T --entrypoint nginx web -t
+compose "$target" run --rm --no-deps --interactive=false -T --entrypoint caddy web validate --config /etc/caddy/Caddyfile --adapter caddyfile
 
 restore() {
   status=$?
@@ -60,7 +60,7 @@ restore() {
 trap restore ERR
 compose "$target" up -d --wait --wait-timeout 90
 for host in "$domain" "$www"; do
-  if ! actual=$(curl --noproxy '*' --fail --silent --show-error --retry 4 --retry-delay 1 --connect-timeout 5 --max-time 15 --resolve "$host:443:127.0.0.1" "https://$host/release.json"); then
+  if ! actual=$(curl --noproxy '*' --fail --silent --show-error --location --retry 15 --retry-all-errors --retry-delay 2 --connect-timeout 5 --max-time 10 --resolve "$domain:443:127.0.0.1" --resolve "$www:443:127.0.0.1" "https://$host/release.json"); then
     false # Trigger one rollback in the parent shell, not another inside command substitution.
   fi
   [[ "$actual" == "$(cat "$target/site/release.json")" ]]

@@ -22,7 +22,6 @@ export function companyConfig(env = {}) {
     port: env.ECS_SSH_PORT || '22',
     key: env.ECS_SSH_KEY || '',
     directory: env.COMPANY_DEPLOY_DIR || '/opt/small-games/company',
-    tls: env.COMPANY_TLS_DIR || '/opt/small-games/certs/company',
   };
   assert(
     domainPattern.test(config.domain) && domainPattern.test(config.www),
@@ -43,11 +42,6 @@ export function companyConfig(env = {}) {
     'Invalid ECS_SSH_PORT',
   );
   assert(directoryPattern.test(config.directory), 'Invalid COMPANY_DEPLOY_DIR');
-  assert(directoryPattern.test(config.tls), 'Invalid COMPANY_TLS_DIR');
-  assert(
-    config.directory !== config.tls && !config.tls.startsWith(`${config.directory}/`),
-    'Certificates must be outside the release directory',
-  );
   return config;
 }
 
@@ -74,44 +68,31 @@ function command(program, args, options = {}) {
   return result.stdout?.trim();
 }
 
-export function renderNginx(config) {
-  return `server {
-    listen 80 default_server;
-    server_name _;
-    return 404;
-}
-server {
-    listen 80;
-    server_name ${config.domain} ${config.www};
-    return 308 https://$host$request_uri;
-}
-server {
-    listen 443 ssl default_server;
-    ssl_reject_handshake on;
-}
-server {
-    listen 443 ssl;
-    server_name ${config.domain} ${config.www};
-    ssl_certificate /etc/nginx/certs/fullchain.pem;
-    ssl_certificate_key /etc/nginx/certs/privkey.pem;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    root /usr/share/nginx/html;
-    index index.html;
-    server_tokens off;
-    add_header X-Content-Type-Options nosniff always;
-    add_header Referrer-Policy strict-origin-when-cross-origin always;
-    location / {
-        try_files $uri $uri/ =404;
-        add_header Cache-Control "no-cache";
+export function renderCaddy(config) {
+  return `${config.domain} {
+    root * /srv
+    header X-Content-Type-Options nosniff
+    header Referrer-Policy strict-origin-when-cross-origin
+    header Cache-Control no-cache
+    file_server {
+        hide .*
     }
-    location ~ /\\. { deny all; }
 }
-server {
-    listen 8081;
-    server_name localhost;
-    root /usr/share/nginx/html;
-    location = /release.json { }
-    location / { return 404; }
+${config.www} {
+    redir https://${config.domain}{uri} permanent
+}
+http:// {
+    respond 404
+}
+http://:8081 {
+    bind 127.0.0.1
+    root * /srv
+    handle /release.json {
+        file_server
+    }
+    handle {
+        respond 404
+    }
 }
 `;
 }
@@ -120,16 +101,16 @@ export function renderCompose(config) {
   return `name: company-web
 services:
   web:
-    image: nginx:1.28-alpine
+    image: caddy:2.11.7-alpine
     restart: unless-stopped
-    entrypoint: ['nginx', '-g', 'daemon off;']
     read_only: true
     ports: ['80:80', '443:443']
     volumes:
-      - ./site:/usr/share/nginx/html:ro
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ${config.tls}:/etc/nginx/certs:ro
-    tmpfs: ['/var/cache/nginx', '/var/run', '/tmp']
+      - ./site:/srv:ro
+      - ./caddy:/etc/caddy:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    tmpfs: ['/tmp']
     healthcheck:
       test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8081/release.json']
       interval: 3s
@@ -140,6 +121,9 @@ services:
       options:
         max-size: '5m'
         max-file: '3'
+volumes:
+  caddy_data:
+  caddy_config:
 `;
 }
 
@@ -190,7 +174,8 @@ export async function writeBundle(destination, source, config, sha, release) {
     path.join(destination, 'site/release.json'),
     JSON.stringify(manifest, null, 2) + '\n',
   );
-  await writeFile(path.join(destination, 'nginx.conf'), renderNginx(config));
+  await mkdir(path.join(destination, 'caddy'));
+  await writeFile(path.join(destination, 'caddy/Caddyfile'), renderCaddy(config));
   await writeFile(path.join(destination, 'compose.yaml'), renderCompose(config));
   await writeFile(
     path.join(destination, 'deploy.sh'),
@@ -245,14 +230,7 @@ for domain in '${config.domain}' '${config.www}'; do
   test -n "$resolved" || { printf 'Missing DNS A record: %s\\n' "$domain" >&2; exit 1; }
   [ "$resolved" = "$expected" ] || { printf 'DNS does not point exclusively to this server: %s (%s)\\n' "$domain" "$resolved" >&2; exit 1; }
 done
-test -r '${config.tls}/fullchain.pem' && test -r '${config.tls}/privkey.pem' || { echo 'Missing readable company fullchain.pem / privkey.pem' >&2; exit 1; }
-openssl x509 -in '${config.tls}/fullchain.pem' -noout -checkend 604800
-openssl x509 -in '${config.tls}/fullchain.pem' -noout -checkhost '${config.domain}' | grep -F 'does match certificate'
-openssl x509 -in '${config.tls}/fullchain.pem' -noout -checkhost '${config.www}' | grep -F 'does match certificate'
-cert_key=$(openssl x509 -in '${config.tls}/fullchain.pem' -pubkey -noout | openssl sha256)
-private_key=$(openssl pkey -in '${config.tls}/privkey.pem' -passin pass: -pubout | openssl sha256)
-[ "$cert_key" = "$private_key" ] || { echo 'TLS certificate/key mismatch' >&2; exit 1; }
-echo 'Company SSH, DNS and certificate checks passed. Public firewall reachability is checked after deployment.'
+echo 'Company SSH and DNS checks passed. Caddy will obtain certificates after startup; public HTTPS is verified after deployment.'
 `;
 }
 
@@ -310,7 +288,7 @@ export async function main(args = process.argv.slice(2)) {
   );
   if (args.includes('--help')) {
     console.log(
-      'pnpm deploy:company            Build, test, upload, deploy HTTPS and verify both domains\npnpm deploy:company --prepare  Build/test/package only, no server changes\npnpm deploy:company --check    Read-only SSH/DNS/TLS checks\npnpm deploy:company --rollback Restore the previous company release\nConfiguration: .env.tencent.local (SSH fallback), .env.company.local, environment (highest priority)',
+      'pnpm deploy:company            Build, test, upload, deploy Caddy HTTPS and verify both domains\npnpm deploy:company --prepare  Build/test/package only, no server changes\npnpm deploy:company --check    Read-only SSH/DNS checks\npnpm deploy:company --rollback Restore the previous company release\nConfiguration: .env.tencent.local (SSH fallback), .env.company.local, environment (highest priority)',
     );
     return;
   }

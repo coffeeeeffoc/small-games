@@ -11,7 +11,7 @@ import {
   fileHashes,
   remoteCheck,
   renderCompose,
-  renderNginx,
+  renderCaddy,
   toolEnvironment,
   writeBundle,
 } from './deploy-company.mjs';
@@ -48,8 +48,7 @@ test('company configuration needs no game/COS secrets and rejects command/path i
     { COMPANY_DOMAIN: 'example.com;id' },
     { COMPANY_WWW_DOMAIN: 'nenggongzhiren.cn' },
     { COMPANY_DEPLOY_DIR: '/opt/../etc' },
-    { COMPANY_TLS_DIR: '/opt/certs\nwhoami' },
-    { COMPANY_TLS_DIR: '/opt/small-games/company/private' },
+    { COMPANY_DEPLOY_DIR: '/opt/company\nwhoami' },
     { COMPANY_ICP: '沪ICP备2026053115号' },
   ])
     assert.throws(() => companyConfig(invalid));
@@ -72,28 +71,34 @@ test('website subprocesses do not inherit deployment/application credentials', (
   );
 });
 
-test('isolated static container exposes only HTTPS and HTTP redirects, with default host rejection', () => {
+test('Caddy manages only company domains and persists certificates outside immutable releases', () => {
   const config = companyConfig();
   const compose = renderCompose(config);
-  const nginx = renderNginx(config);
+  const caddy = renderCaddy(config);
   assert.match(compose, /name: company-web/);
   assert.match(compose, /ports: \['80:80', '443:443'\]/);
   assert.doesNotMatch(compose, /postgres|runtime:|kart:|COS_|8080|external:|docker.sock/);
   assert.match(compose, /read_only: true/);
-  assert.match(nginx, /server_name nenggongzhiren.cn www.nenggongzhiren.cn;/);
-  assert.match(nginx, /ssl_reject_handshake on/);
-  assert.match(nginx, /return 308 https:\/\/\$host\$request_uri/);
-  assert.doesNotMatch(nginx, /proxy_pass|autoindex on/);
-  assert.match(nginx, /try_files \$uri \$uri\/ =404/);
+  assert.match(compose, /image: caddy:2\.11\.7-alpine/);
+  assert.match(compose, /caddy_data:\/data/);
+  assert.match(compose, /caddy_config:\/config/);
+  assert.match(compose, /\.\/caddy:\/etc\/caddy:ro/);
+  assert.match(caddy, /^nenggongzhiren\.cn \{/);
+  assert.match(
+    caddy,
+    /www\.nenggongzhiren\.cn \{\s+redir https:\/\/nenggongzhiren\.cn\{uri\} permanent/,
+  );
+  assert.match(caddy, /http:\/\/ \{\s+respond 404/);
+  assert.match(caddy, /bind 127\.0\.0\.1/);
+  assert.match(caddy, /hide \.\*/);
+  assert.doesNotMatch(caddy, /reverse_proxy|browse|api\.|admin\.|tls internal|auto_https off/);
 });
 
-test('preflight checks DNS and TLS without creating files or starting services', () => {
+test('preflight checks DNS without requiring a manually installed certificate or changing services', () => {
   const script = remoteCheck(companyConfig({ ECS_HOST: '192.0.2.10' }));
   assert.match(script, /getent ahostsv4 '192.0.2.10'/);
-  assert.match(script, /checkend 604800/);
-  assert.match(script, /checkhost 'nenggongzhiren.cn'.*does match certificate/);
-  assert.match(script, /checkhost 'www.nenggongzhiren.cn'.*does match certificate/);
-  assert.match(script, /TLS certificate\/key mismatch/);
+  assert.match(script, /Caddy will obtain certificates after startup/);
+  assert.doesNotMatch(script, /fullchain\.pem|privkey\.pem|openssl x509/);
   assert.doesNotMatch(script, /mkdir|docker (?:run|pull|stop)|compose (?:up|down)|\bsudo\b/);
 });
 
@@ -120,9 +125,9 @@ test('release packages only validated public output and hashes every deployable 
     assert.deepEqual(Object.keys(manifest.files).sort(), ['app.js', 'index.html']);
     assert.deepEqual((await readdir(destination)).sort(), [
       'SHA256SUMS',
+      'caddy',
       'compose.yaml',
       'deploy.sh',
-      'nginx.conf',
       'site',
     ]);
     for (const line of (await readFile(path.join(destination, 'SHA256SUMS'), 'utf8'))
