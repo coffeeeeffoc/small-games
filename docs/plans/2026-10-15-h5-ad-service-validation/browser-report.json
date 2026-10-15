@@ -1,0 +1,4152 @@
+{
+  "startedAt": "2026-10-15T21:03:20.730Z",
+  "sourceSHA": "ff699e184b2c9d2f41229f635c61c0c13605cff8",
+  "submoduleSHA": "2238989bb5fa9beeaab591b6fa5717cf08fab6c7",
+  "browser": "155.0.8059.40",
+  "api": "http://127.0.0.1:43802/api/competition/v1",
+  "origin": "http://127.0.0.1:43810",
+  "apiTrace": "api-1792098200730.ndjson",
+  "scope": "Twelve H5 configurations, touch rewards and six real online touch matches",
+  "realAdsVerified": false,
+  "realDeviceVerified": false,
+  "notRun": [
+    "Actual advertisement playback and completed/cancelled/failed/timeout host callbacks",
+    "Runtime and PostgreSQL restart persistence"
+  ],
+  "variants": [
+    {
+      "name": "cops-robbers-ads-off-service-off",
+      "game": "cops-robbers",
+      "adsEnabled": false,
+      "serviceEnabled": false,
+      "zipSHA256": "2526c5ef15ae07e3e7e1defa8f678e9578da014268af1ddabc00f2984f3ed23b",
+      "passedWithinDeclaredScope": true,
+      "config": {
+        "service": {
+          "game": "cops-robbers",
+          "platform": "h5",
+          "serviceManaged": true,
+          "competitionEnabled": false,
+          "apiUrl": ""
+        },
+        "ads": {
+          "enabled": false,
+          "mode": "off"
+        },
+        "hasRealAdSdk": false
+      },
+      "reward": {
+        "mode": "explicit-free-reward",
+        "hintVisible": 1,
+        "feedback": "最短还需 7 步：1 号追逐队员到 2 号路口拦截。点高亮的 2 号数字移动。",
+        "realAdvertisementPlayed": false
+      },
+      "offlineApiRequests": 0
+    },
+    {
+      "name": "cops-robbers-ads-on-service-off",
+      "game": "cops-robbers",
+      "adsEnabled": true,
+      "serviceEnabled": false,
+      "zipSHA256": "c333607452ac424c96870f26ee57bfb569f67b5afe176eb929fa354ead5913d1",
+      "passedWithinDeclaredScope": true,
+      "config": {
+        "service": {
+          "game": "cops-robbers",
+          "platform": "h5",
+          "serviceManaged": true,
+          "competitionEnabled": false,
+          "apiUrl": ""
+        },
+        "ads": {
+          "enabled": true,
+          "mode": "host"
+        },
+        "hasRealAdSdk": false
+      },
+      "reward": {
+        "mode": "host-unavailable-no-reward",
+        "hintVisible": 0,
+        "feedback": "广告暂不可用，请稍后重试。",
+        "realAdvertisementPlayed": false
+      },
+      "offlineApiRequests": 0
+    },
+    {
+      "name": "cops-robbers-ads-off-service-on",
+      "game": "cops-robbers",
+      "adsEnabled": false,
+      "serviceEnabled": true,
+      "zipSHA256": "1775af0adea957a55503ba3b373a3f2e658b2789bc1fefa1501aac0bc59a52f5",
+      "passedWithinDeclaredScope": true,
+      "config": {
+        "service": {
+          "game": "cops-robbers",
+          "platform": "h5",
+          "serviceManaged": true,
+          "competitionEnabled": true,
+          "apiUrl": "http://127.0.0.1:43802/api/competition/v1"
+        },
+        "ads": {
+          "enabled": false,
+          "mode": "off"
+        },
+        "hasRealAdSdk": false
+      },
+      "reward": {
+        "mode": "explicit-free-reward",
+        "hintVisible": 1,
+        "feedback": "最短还需 7 步：1 号追逐队员到 2 号路口拦截。点高亮的 2 号数字移动。",
+        "realAdvertisementPlayed": false
+      },
+      "online": {
+        "roomCode": "46F860C65CE3",
+        "playerIds": [
+          "87a1c942-3028-4a77-952c-2d601b36e0a1",
+          "18fca302-3a34-4a31-9e6a-5a8a86c0af2b"
+        ],
+        "acceptedTouchActions": [8, 7],
+        "duplicateActionsPreserveSettlement": true,
+        "confirmedLateTerminalInputs": [[], []],
+        "roomVersion": "roles-initiative-duel-v2",
+        "results": [
+          {
+            "playerId": "87a1c942-3028-4a77-952c-2d601b36e0a1",
+            "result": {
+              "finished": true,
+              "eligible": true,
+              "score": 3,
+              "secondary": 0
+            },
+            "before": null,
+            "rated": true,
+            "reason": null,
+            "after": {
+              "board": "cops-robbers:roles-initiative-duel-v2",
+              "top": [
+                {
+                  "playerId": "1339b2c2-2f51-4f20-b407-8207291bd613",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 1,
+                  "total": 14
+                },
+                {
+                  "playerId": "1621c0f9-b607-4239-97f4-275a5ac3211e",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 2,
+                  "total": 14
+                },
+                {
+                  "playerId": "654c9d83-eb58-4677-b62a-9dcdf18d359f",
+                  "name": "海湾新名字",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 3,
+                  "total": 14
+                },
+                {
+                  "playerId": "69ce9e5f-5636-4cd8-b182-03c4c6ac8566",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 4,
+                  "total": 14
+                },
+                {
+                  "playerId": "87a1c942-3028-4a77-952c-2d601b36e0a1",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 5,
+                  "total": 14
+                },
+                {
+                  "playerId": "d8cced0d-646c-4c74-9ffe-e6d94a961d5a",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 6,
+                  "total": 14
+                },
+                {
+                  "playerId": "fa66518e-cba3-4293-82cf-72fa37c2cd0b",
+                  "name": "海湾新名字",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 7,
+                  "total": 14
+                },
+                {
+                  "playerId": "18fca302-3a34-4a31-9e6a-5a8a86c0af2b",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 8,
+                  "position": 8,
+                  "total": 14
+                },
+                {
+                  "playerId": "3d566102-8508-4860-bd38-22f92dd6d6e3",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 8,
+                  "position": 9,
+                  "total": 14
+                },
+                {
+                  "playerId": "60d70cb2-5fc8-4d22-988b-1f1a3192d7d3",
+                  "name": "海湾旅人",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 8,
+                  "position": 10,
+                  "total": 14
+                },
+                {
+                  "playerId": "91a0fc71-dfa1-46fc-a87f-7ac4b50e4ae8",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 8,
+                  "position": 11,
+                  "total": 14
+                },
+                {
+                  "playerId": "9c20b71e-84bd-43c9-9e9e-ea2f677b6eca",
+                  "name": "海湾旅人",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 8,
+                  "position": 12,
+                  "total": 14
+                },
+                {
+                  "playerId": "c1fbb2cc-d710-4518-95a8-11b0f402daa3",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 8,
+                  "position": 13,
+                  "total": 14
+                },
+                {
+                  "playerId": "d1455820-4cd7-4879-b41d-85d035f259a6",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 8,
+                  "position": 14,
+                  "total": 14
+                }
+              ],
+              "me": {
+                "playerId": "87a1c942-3028-4a77-952c-2d601b36e0a1",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 5,
+                "total": 14
+              },
+              "previous": null,
+              "threshold": null,
+              "gap": null,
+              "eligiblePlayers": 14,
+              "reason": null
+            }
+          },
+          {
+            "playerId": "18fca302-3a34-4a31-9e6a-5a8a86c0af2b",
+            "result": {
+              "finished": true,
+              "eligible": true,
+              "score": 0,
+              "secondary": 0
+            },
+            "before": null,
+            "rated": true,
+            "reason": null,
+            "after": {
+              "board": "cops-robbers:roles-initiative-duel-v2",
+              "top": [
+                {
+                  "playerId": "1339b2c2-2f51-4f20-b407-8207291bd613",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 1,
+                  "total": 14
+                },
+                {
+                  "playerId": "1621c0f9-b607-4239-97f4-275a5ac3211e",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 2,
+                  "total": 14
+                },
+                {
+                  "playerId": "654c9d83-eb58-4677-b62a-9dcdf18d359f",
+                  "name": "海湾新名字",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 3,
+                  "total": 14
+                },
+                {
+                  "playerId": "69ce9e5f-5636-4cd8-b182-03c4c6ac8566",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 4,
+                  "total": 14
+                },
+                {
+                  "playerId": "87a1c942-3028-4a77-952c-2d601b36e0a1",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 5,
+                  "total": 14
+                },
+                {
+                  "playerId": "d8cced0d-646c-4c74-9ffe-e6d94a961d5a",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 6,
+                  "total": 14
+                },
+                {
+                  "playerId": "fa66518e-cba3-4293-82cf-72fa37c2cd0b",
+                  "name": "海湾新名字",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 7,
+                  "total": 14
+                },
+                {
+                  "playerId": "18fca302-3a34-4a31-9e6a-5a8a86c0af2b",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 8,
+                  "position": 8,
+                  "total": 14
+                },
+                {
+                  "playerId": "3d566102-8508-4860-bd38-22f92dd6d6e3",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 8,
+                  "position": 9,
+                  "total": 14
+                },
+                {
+                  "playerId": "60d70cb2-5fc8-4d22-988b-1f1a3192d7d3",
+                  "name": "海湾旅人",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 8,
+                  "position": 10,
+                  "total": 14
+                },
+                {
+                  "playerId": "91a0fc71-dfa1-46fc-a87f-7ac4b50e4ae8",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 8,
+                  "position": 11,
+                  "total": 14
+                },
+                {
+                  "playerId": "9c20b71e-84bd-43c9-9e9e-ea2f677b6eca",
+                  "name": "海湾旅人",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 8,
+                  "position": 12,
+                  "total": 14
+                },
+                {
+                  "playerId": "c1fbb2cc-d710-4518-95a8-11b0f402daa3",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 8,
+                  "position": 13,
+                  "total": 14
+                },
+                {
+                  "playerId": "d1455820-4cd7-4879-b41d-85d035f259a6",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 8,
+                  "position": 14,
+                  "total": 14
+                }
+              ],
+              "me": {
+                "playerId": "18fca302-3a34-4a31-9e6a-5a8a86c0af2b",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 8,
+                "position": 8,
+                "total": 14
+              },
+              "previous": {
+                "playerId": "fa66518e-cba3-4293-82cf-72fa37c2cd0b",
+                "name": "海湾新名字",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 7,
+                "total": 14
+              },
+              "threshold": null,
+              "gap": {
+                "score": 3,
+                "secondary": 0
+              },
+              "eligiblePlayers": 14,
+              "reason": null
+            }
+          }
+        ],
+        "boards": [
+          {
+            "game": "cops-robbers",
+            "title": "围捕小队 · 双队对抗",
+            "version": "roles-initiative-duel-v2",
+            "description": "双方分别操控追逐队与突围队，房间可交换角色并选择先手；出口竞速120张、限步周旋120张地图，服务端随机抽图。每步移动一名队员或原地等待，双方交替行动；追逐队接触全部对手获胜，突围队抵达出口或撑过回合上限获胜。5分钟未完成由突围队获胜。胜3负0，双方都行动且至少4步才计分；每对身份每天仅首场有效对局计分（UTC日）。单机及旧挑战榜成绩不计入此榜。",
+            "rules": "双方分别操控追逐队与突围队，房间可交换角色并选择先手；出口竞速120张、限步周旋120张地图，服务端随机抽图。每步移动一名队员或原地等待，双方交替行动；追逐队接触全部对手获胜，突围队抵达出口或撑过回合上限获胜。5分钟未完成由突围队获胜。胜3负0，双方都行动且至少4步才计分；每对身份每天仅首场有效对局计分（UTC日）。单机及旧挑战榜成绩不计入此榜。",
+            "modes": [
+              {
+                "id": "escape",
+                "title": "出口竞速 · 120关"
+              },
+              {
+                "id": "survival",
+                "title": "限步周旋 · 120关"
+              }
+            ],
+            "roles": ["pursuer", "runner"],
+            "board": "cops-robbers:roles-initiative-duel-v2",
+            "top": [
+              {
+                "playerId": "1339b2c2-2f51-4f20-b407-8207291bd613",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 1,
+                "total": 14
+              },
+              {
+                "playerId": "1621c0f9-b607-4239-97f4-275a5ac3211e",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 2,
+                "total": 14
+              },
+              {
+                "playerId": "654c9d83-eb58-4677-b62a-9dcdf18d359f",
+                "name": "海湾新名字",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 3,
+                "total": 14
+              },
+              {
+                "playerId": "69ce9e5f-5636-4cd8-b182-03c4c6ac8566",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 4,
+                "total": 14
+              },
+              {
+                "playerId": "87a1c942-3028-4a77-952c-2d601b36e0a1",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 5,
+                "total": 14
+              },
+              {
+                "playerId": "d8cced0d-646c-4c74-9ffe-e6d94a961d5a",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 6,
+                "total": 14
+              },
+              {
+                "playerId": "fa66518e-cba3-4293-82cf-72fa37c2cd0b",
+                "name": "海湾新名字",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 7,
+                "total": 14
+              },
+              {
+                "playerId": "18fca302-3a34-4a31-9e6a-5a8a86c0af2b",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 8,
+                "position": 8,
+                "total": 14
+              },
+              {
+                "playerId": "3d566102-8508-4860-bd38-22f92dd6d6e3",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 8,
+                "position": 9,
+                "total": 14
+              },
+              {
+                "playerId": "60d70cb2-5fc8-4d22-988b-1f1a3192d7d3",
+                "name": "海湾旅人",
+                "score": 0,
+                "secondary": 0,
+                "rank": 8,
+                "position": 10,
+                "total": 14
+              },
+              {
+                "playerId": "91a0fc71-dfa1-46fc-a87f-7ac4b50e4ae8",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 8,
+                "position": 11,
+                "total": 14
+              },
+              {
+                "playerId": "9c20b71e-84bd-43c9-9e9e-ea2f677b6eca",
+                "name": "海湾旅人",
+                "score": 0,
+                "secondary": 0,
+                "rank": 8,
+                "position": 12,
+                "total": 14
+              },
+              {
+                "playerId": "c1fbb2cc-d710-4518-95a8-11b0f402daa3",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 8,
+                "position": 13,
+                "total": 14
+              },
+              {
+                "playerId": "d1455820-4cd7-4879-b41d-85d035f259a6",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 8,
+                "position": 14,
+                "total": 14
+              }
+            ],
+            "me": {
+              "playerId": "87a1c942-3028-4a77-952c-2d601b36e0a1",
+              "name": "新玩家",
+              "score": 3,
+              "secondary": 0,
+              "rank": 1,
+              "position": 5,
+              "total": 14
+            },
+            "previous": null,
+            "threshold": null,
+            "gap": null,
+            "eligiblePlayers": 14,
+            "reason": null
+          },
+          {
+            "game": "cops-robbers",
+            "title": "围捕小队 · 双队对抗",
+            "version": "roles-initiative-duel-v2",
+            "description": "双方分别操控追逐队与突围队，房间可交换角色并选择先手；出口竞速120张、限步周旋120张地图，服务端随机抽图。每步移动一名队员或原地等待，双方交替行动；追逐队接触全部对手获胜，突围队抵达出口或撑过回合上限获胜。5分钟未完成由突围队获胜。胜3负0，双方都行动且至少4步才计分；每对身份每天仅首场有效对局计分（UTC日）。单机及旧挑战榜成绩不计入此榜。",
+            "rules": "双方分别操控追逐队与突围队，房间可交换角色并选择先手；出口竞速120张、限步周旋120张地图，服务端随机抽图。每步移动一名队员或原地等待，双方交替行动；追逐队接触全部对手获胜，突围队抵达出口或撑过回合上限获胜。5分钟未完成由突围队获胜。胜3负0，双方都行动且至少4步才计分；每对身份每天仅首场有效对局计分（UTC日）。单机及旧挑战榜成绩不计入此榜。",
+            "modes": [
+              {
+                "id": "escape",
+                "title": "出口竞速 · 120关"
+              },
+              {
+                "id": "survival",
+                "title": "限步周旋 · 120关"
+              }
+            ],
+            "roles": ["pursuer", "runner"],
+            "board": "cops-robbers:roles-initiative-duel-v2",
+            "top": [
+              {
+                "playerId": "1339b2c2-2f51-4f20-b407-8207291bd613",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 1,
+                "total": 14
+              },
+              {
+                "playerId": "1621c0f9-b607-4239-97f4-275a5ac3211e",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 2,
+                "total": 14
+              },
+              {
+                "playerId": "654c9d83-eb58-4677-b62a-9dcdf18d359f",
+                "name": "海湾新名字",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 3,
+                "total": 14
+              },
+              {
+                "playerId": "69ce9e5f-5636-4cd8-b182-03c4c6ac8566",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 4,
+                "total": 14
+              },
+              {
+                "playerId": "87a1c942-3028-4a77-952c-2d601b36e0a1",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 5,
+                "total": 14
+              },
+              {
+                "playerId": "d8cced0d-646c-4c74-9ffe-e6d94a961d5a",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 6,
+                "total": 14
+              },
+              {
+                "playerId": "fa66518e-cba3-4293-82cf-72fa37c2cd0b",
+                "name": "海湾新名字",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 7,
+                "total": 14
+              },
+              {
+                "playerId": "18fca302-3a34-4a31-9e6a-5a8a86c0af2b",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 8,
+                "position": 8,
+                "total": 14
+              },
+              {
+                "playerId": "3d566102-8508-4860-bd38-22f92dd6d6e3",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 8,
+                "position": 9,
+                "total": 14
+              },
+              {
+                "playerId": "60d70cb2-5fc8-4d22-988b-1f1a3192d7d3",
+                "name": "海湾旅人",
+                "score": 0,
+                "secondary": 0,
+                "rank": 8,
+                "position": 10,
+                "total": 14
+              },
+              {
+                "playerId": "91a0fc71-dfa1-46fc-a87f-7ac4b50e4ae8",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 8,
+                "position": 11,
+                "total": 14
+              },
+              {
+                "playerId": "9c20b71e-84bd-43c9-9e9e-ea2f677b6eca",
+                "name": "海湾旅人",
+                "score": 0,
+                "secondary": 0,
+                "rank": 8,
+                "position": 12,
+                "total": 14
+              },
+              {
+                "playerId": "c1fbb2cc-d710-4518-95a8-11b0f402daa3",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 8,
+                "position": 13,
+                "total": 14
+              },
+              {
+                "playerId": "d1455820-4cd7-4879-b41d-85d035f259a6",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 8,
+                "position": 14,
+                "total": 14
+              }
+            ],
+            "me": {
+              "playerId": "18fca302-3a34-4a31-9e6a-5a8a86c0af2b",
+              "name": "新玩家",
+              "score": 0,
+              "secondary": 0,
+              "rank": 8,
+              "position": 8,
+              "total": 14
+            },
+            "previous": {
+              "playerId": "fa66518e-cba3-4293-82cf-72fa37c2cd0b",
+              "name": "海湾新名字",
+              "score": 3,
+              "secondary": 0,
+              "rank": 1,
+              "position": 7,
+              "total": 14
+            },
+            "threshold": null,
+            "gap": {
+              "score": 3,
+              "secondary": 0
+            },
+            "eligiblePlayers": 14,
+            "reason": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "cops-robbers-ads-on-service-on",
+      "game": "cops-robbers",
+      "adsEnabled": true,
+      "serviceEnabled": true,
+      "zipSHA256": "f17640c32c4b0fef815c495f3fad03d31ec23c00ca80eada02c6940c79c32590",
+      "passedWithinDeclaredScope": true,
+      "config": {
+        "service": {
+          "game": "cops-robbers",
+          "platform": "h5",
+          "serviceManaged": true,
+          "competitionEnabled": true,
+          "apiUrl": "http://127.0.0.1:43802/api/competition/v1"
+        },
+        "ads": {
+          "enabled": true,
+          "mode": "host"
+        },
+        "hasRealAdSdk": false
+      },
+      "reward": {
+        "mode": "host-unavailable-no-reward",
+        "hintVisible": 0,
+        "feedback": "广告暂不可用，请稍后重试。",
+        "realAdvertisementPlayed": false
+      },
+      "online": {
+        "roomCode": "56AB1019BFA7",
+        "playerIds": [
+          "7fd581ad-efb6-4811-9ba6-49e02e84caea",
+          "51956f1c-c9d4-422a-97f7-27cc79860a74"
+        ],
+        "acceptedTouchActions": [6, 5],
+        "duplicateActionsPreserveSettlement": true,
+        "confirmedLateTerminalInputs": [[], []],
+        "roomVersion": "roles-initiative-duel-v2",
+        "results": [
+          {
+            "playerId": "7fd581ad-efb6-4811-9ba6-49e02e84caea",
+            "result": {
+              "finished": true,
+              "eligible": true,
+              "score": 3,
+              "secondary": 0
+            },
+            "before": null,
+            "rated": true,
+            "reason": null,
+            "after": {
+              "board": "cops-robbers:roles-initiative-duel-v2",
+              "top": [
+                {
+                  "playerId": "1339b2c2-2f51-4f20-b407-8207291bd613",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 1,
+                  "total": 16
+                },
+                {
+                  "playerId": "1621c0f9-b607-4239-97f4-275a5ac3211e",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 2,
+                  "total": 16
+                },
+                {
+                  "playerId": "654c9d83-eb58-4677-b62a-9dcdf18d359f",
+                  "name": "海湾新名字",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 3,
+                  "total": 16
+                },
+                {
+                  "playerId": "69ce9e5f-5636-4cd8-b182-03c4c6ac8566",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 4,
+                  "total": 16
+                },
+                {
+                  "playerId": "7fd581ad-efb6-4811-9ba6-49e02e84caea",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 5,
+                  "total": 16
+                },
+                {
+                  "playerId": "87a1c942-3028-4a77-952c-2d601b36e0a1",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 6,
+                  "total": 16
+                },
+                {
+                  "playerId": "d8cced0d-646c-4c74-9ffe-e6d94a961d5a",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 7,
+                  "total": 16
+                },
+                {
+                  "playerId": "fa66518e-cba3-4293-82cf-72fa37c2cd0b",
+                  "name": "海湾新名字",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 8,
+                  "total": 16
+                },
+                {
+                  "playerId": "18fca302-3a34-4a31-9e6a-5a8a86c0af2b",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 9,
+                  "position": 9,
+                  "total": 16
+                },
+                {
+                  "playerId": "3d566102-8508-4860-bd38-22f92dd6d6e3",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 9,
+                  "position": 10,
+                  "total": 16
+                },
+                {
+                  "playerId": "51956f1c-c9d4-422a-97f7-27cc79860a74",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 9,
+                  "position": 11,
+                  "total": 16
+                },
+                {
+                  "playerId": "60d70cb2-5fc8-4d22-988b-1f1a3192d7d3",
+                  "name": "海湾旅人",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 9,
+                  "position": 12,
+                  "total": 16
+                },
+                {
+                  "playerId": "91a0fc71-dfa1-46fc-a87f-7ac4b50e4ae8",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 9,
+                  "position": 13,
+                  "total": 16
+                },
+                {
+                  "playerId": "9c20b71e-84bd-43c9-9e9e-ea2f677b6eca",
+                  "name": "海湾旅人",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 9,
+                  "position": 14,
+                  "total": 16
+                },
+                {
+                  "playerId": "c1fbb2cc-d710-4518-95a8-11b0f402daa3",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 9,
+                  "position": 15,
+                  "total": 16
+                },
+                {
+                  "playerId": "d1455820-4cd7-4879-b41d-85d035f259a6",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 9,
+                  "position": 16,
+                  "total": 16
+                }
+              ],
+              "me": {
+                "playerId": "7fd581ad-efb6-4811-9ba6-49e02e84caea",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 5,
+                "total": 16
+              },
+              "previous": null,
+              "threshold": null,
+              "gap": null,
+              "eligiblePlayers": 16,
+              "reason": null
+            }
+          },
+          {
+            "playerId": "51956f1c-c9d4-422a-97f7-27cc79860a74",
+            "result": {
+              "finished": true,
+              "eligible": true,
+              "score": 0,
+              "secondary": 0
+            },
+            "before": null,
+            "rated": true,
+            "reason": null,
+            "after": {
+              "board": "cops-robbers:roles-initiative-duel-v2",
+              "top": [
+                {
+                  "playerId": "1339b2c2-2f51-4f20-b407-8207291bd613",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 1,
+                  "total": 16
+                },
+                {
+                  "playerId": "1621c0f9-b607-4239-97f4-275a5ac3211e",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 2,
+                  "total": 16
+                },
+                {
+                  "playerId": "654c9d83-eb58-4677-b62a-9dcdf18d359f",
+                  "name": "海湾新名字",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 3,
+                  "total": 16
+                },
+                {
+                  "playerId": "69ce9e5f-5636-4cd8-b182-03c4c6ac8566",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 4,
+                  "total": 16
+                },
+                {
+                  "playerId": "7fd581ad-efb6-4811-9ba6-49e02e84caea",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 5,
+                  "total": 16
+                },
+                {
+                  "playerId": "87a1c942-3028-4a77-952c-2d601b36e0a1",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 6,
+                  "total": 16
+                },
+                {
+                  "playerId": "d8cced0d-646c-4c74-9ffe-e6d94a961d5a",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 7,
+                  "total": 16
+                },
+                {
+                  "playerId": "fa66518e-cba3-4293-82cf-72fa37c2cd0b",
+                  "name": "海湾新名字",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 8,
+                  "total": 16
+                },
+                {
+                  "playerId": "18fca302-3a34-4a31-9e6a-5a8a86c0af2b",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 9,
+                  "position": 9,
+                  "total": 16
+                },
+                {
+                  "playerId": "3d566102-8508-4860-bd38-22f92dd6d6e3",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 9,
+                  "position": 10,
+                  "total": 16
+                },
+                {
+                  "playerId": "51956f1c-c9d4-422a-97f7-27cc79860a74",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 9,
+                  "position": 11,
+                  "total": 16
+                },
+                {
+                  "playerId": "60d70cb2-5fc8-4d22-988b-1f1a3192d7d3",
+                  "name": "海湾旅人",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 9,
+                  "position": 12,
+                  "total": 16
+                },
+                {
+                  "playerId": "91a0fc71-dfa1-46fc-a87f-7ac4b50e4ae8",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 9,
+                  "position": 13,
+                  "total": 16
+                },
+                {
+                  "playerId": "9c20b71e-84bd-43c9-9e9e-ea2f677b6eca",
+                  "name": "海湾旅人",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 9,
+                  "position": 14,
+                  "total": 16
+                },
+                {
+                  "playerId": "c1fbb2cc-d710-4518-95a8-11b0f402daa3",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 9,
+                  "position": 15,
+                  "total": 16
+                },
+                {
+                  "playerId": "d1455820-4cd7-4879-b41d-85d035f259a6",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 9,
+                  "position": 16,
+                  "total": 16
+                }
+              ],
+              "me": {
+                "playerId": "51956f1c-c9d4-422a-97f7-27cc79860a74",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 9,
+                "position": 11,
+                "total": 16
+              },
+              "previous": {
+                "playerId": "fa66518e-cba3-4293-82cf-72fa37c2cd0b",
+                "name": "海湾新名字",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 8,
+                "total": 16
+              },
+              "threshold": null,
+              "gap": {
+                "score": 3,
+                "secondary": 0
+              },
+              "eligiblePlayers": 16,
+              "reason": null
+            }
+          }
+        ],
+        "boards": [
+          {
+            "game": "cops-robbers",
+            "title": "围捕小队 · 双队对抗",
+            "version": "roles-initiative-duel-v2",
+            "description": "双方分别操控追逐队与突围队，房间可交换角色并选择先手；出口竞速120张、限步周旋120张地图，服务端随机抽图。每步移动一名队员或原地等待，双方交替行动；追逐队接触全部对手获胜，突围队抵达出口或撑过回合上限获胜。5分钟未完成由突围队获胜。胜3负0，双方都行动且至少4步才计分；每对身份每天仅首场有效对局计分（UTC日）。单机及旧挑战榜成绩不计入此榜。",
+            "rules": "双方分别操控追逐队与突围队，房间可交换角色并选择先手；出口竞速120张、限步周旋120张地图，服务端随机抽图。每步移动一名队员或原地等待，双方交替行动；追逐队接触全部对手获胜，突围队抵达出口或撑过回合上限获胜。5分钟未完成由突围队获胜。胜3负0，双方都行动且至少4步才计分；每对身份每天仅首场有效对局计分（UTC日）。单机及旧挑战榜成绩不计入此榜。",
+            "modes": [
+              {
+                "id": "escape",
+                "title": "出口竞速 · 120关"
+              },
+              {
+                "id": "survival",
+                "title": "限步周旋 · 120关"
+              }
+            ],
+            "roles": ["pursuer", "runner"],
+            "board": "cops-robbers:roles-initiative-duel-v2",
+            "top": [
+              {
+                "playerId": "1339b2c2-2f51-4f20-b407-8207291bd613",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 1,
+                "total": 16
+              },
+              {
+                "playerId": "1621c0f9-b607-4239-97f4-275a5ac3211e",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 2,
+                "total": 16
+              },
+              {
+                "playerId": "654c9d83-eb58-4677-b62a-9dcdf18d359f",
+                "name": "海湾新名字",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 3,
+                "total": 16
+              },
+              {
+                "playerId": "69ce9e5f-5636-4cd8-b182-03c4c6ac8566",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 4,
+                "total": 16
+              },
+              {
+                "playerId": "7fd581ad-efb6-4811-9ba6-49e02e84caea",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 5,
+                "total": 16
+              },
+              {
+                "playerId": "87a1c942-3028-4a77-952c-2d601b36e0a1",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 6,
+                "total": 16
+              },
+              {
+                "playerId": "d8cced0d-646c-4c74-9ffe-e6d94a961d5a",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 7,
+                "total": 16
+              },
+              {
+                "playerId": "fa66518e-cba3-4293-82cf-72fa37c2cd0b",
+                "name": "海湾新名字",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 8,
+                "total": 16
+              },
+              {
+                "playerId": "18fca302-3a34-4a31-9e6a-5a8a86c0af2b",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 9,
+                "position": 9,
+                "total": 16
+              },
+              {
+                "playerId": "3d566102-8508-4860-bd38-22f92dd6d6e3",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 9,
+                "position": 10,
+                "total": 16
+              },
+              {
+                "playerId": "51956f1c-c9d4-422a-97f7-27cc79860a74",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 9,
+                "position": 11,
+                "total": 16
+              },
+              {
+                "playerId": "60d70cb2-5fc8-4d22-988b-1f1a3192d7d3",
+                "name": "海湾旅人",
+                "score": 0,
+                "secondary": 0,
+                "rank": 9,
+                "position": 12,
+                "total": 16
+              },
+              {
+                "playerId": "91a0fc71-dfa1-46fc-a87f-7ac4b50e4ae8",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 9,
+                "position": 13,
+                "total": 16
+              },
+              {
+                "playerId": "9c20b71e-84bd-43c9-9e9e-ea2f677b6eca",
+                "name": "海湾旅人",
+                "score": 0,
+                "secondary": 0,
+                "rank": 9,
+                "position": 14,
+                "total": 16
+              },
+              {
+                "playerId": "c1fbb2cc-d710-4518-95a8-11b0f402daa3",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 9,
+                "position": 15,
+                "total": 16
+              },
+              {
+                "playerId": "d1455820-4cd7-4879-b41d-85d035f259a6",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 9,
+                "position": 16,
+                "total": 16
+              }
+            ],
+            "me": {
+              "playerId": "7fd581ad-efb6-4811-9ba6-49e02e84caea",
+              "name": "新玩家",
+              "score": 3,
+              "secondary": 0,
+              "rank": 1,
+              "position": 5,
+              "total": 16
+            },
+            "previous": null,
+            "threshold": null,
+            "gap": null,
+            "eligiblePlayers": 16,
+            "reason": null
+          },
+          {
+            "game": "cops-robbers",
+            "title": "围捕小队 · 双队对抗",
+            "version": "roles-initiative-duel-v2",
+            "description": "双方分别操控追逐队与突围队，房间可交换角色并选择先手；出口竞速120张、限步周旋120张地图，服务端随机抽图。每步移动一名队员或原地等待，双方交替行动；追逐队接触全部对手获胜，突围队抵达出口或撑过回合上限获胜。5分钟未完成由突围队获胜。胜3负0，双方都行动且至少4步才计分；每对身份每天仅首场有效对局计分（UTC日）。单机及旧挑战榜成绩不计入此榜。",
+            "rules": "双方分别操控追逐队与突围队，房间可交换角色并选择先手；出口竞速120张、限步周旋120张地图，服务端随机抽图。每步移动一名队员或原地等待，双方交替行动；追逐队接触全部对手获胜，突围队抵达出口或撑过回合上限获胜。5分钟未完成由突围队获胜。胜3负0，双方都行动且至少4步才计分；每对身份每天仅首场有效对局计分（UTC日）。单机及旧挑战榜成绩不计入此榜。",
+            "modes": [
+              {
+                "id": "escape",
+                "title": "出口竞速 · 120关"
+              },
+              {
+                "id": "survival",
+                "title": "限步周旋 · 120关"
+              }
+            ],
+            "roles": ["pursuer", "runner"],
+            "board": "cops-robbers:roles-initiative-duel-v2",
+            "top": [
+              {
+                "playerId": "1339b2c2-2f51-4f20-b407-8207291bd613",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 1,
+                "total": 16
+              },
+              {
+                "playerId": "1621c0f9-b607-4239-97f4-275a5ac3211e",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 2,
+                "total": 16
+              },
+              {
+                "playerId": "654c9d83-eb58-4677-b62a-9dcdf18d359f",
+                "name": "海湾新名字",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 3,
+                "total": 16
+              },
+              {
+                "playerId": "69ce9e5f-5636-4cd8-b182-03c4c6ac8566",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 4,
+                "total": 16
+              },
+              {
+                "playerId": "7fd581ad-efb6-4811-9ba6-49e02e84caea",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 5,
+                "total": 16
+              },
+              {
+                "playerId": "87a1c942-3028-4a77-952c-2d601b36e0a1",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 6,
+                "total": 16
+              },
+              {
+                "playerId": "d8cced0d-646c-4c74-9ffe-e6d94a961d5a",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 7,
+                "total": 16
+              },
+              {
+                "playerId": "fa66518e-cba3-4293-82cf-72fa37c2cd0b",
+                "name": "海湾新名字",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 8,
+                "total": 16
+              },
+              {
+                "playerId": "18fca302-3a34-4a31-9e6a-5a8a86c0af2b",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 9,
+                "position": 9,
+                "total": 16
+              },
+              {
+                "playerId": "3d566102-8508-4860-bd38-22f92dd6d6e3",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 9,
+                "position": 10,
+                "total": 16
+              },
+              {
+                "playerId": "51956f1c-c9d4-422a-97f7-27cc79860a74",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 9,
+                "position": 11,
+                "total": 16
+              },
+              {
+                "playerId": "60d70cb2-5fc8-4d22-988b-1f1a3192d7d3",
+                "name": "海湾旅人",
+                "score": 0,
+                "secondary": 0,
+                "rank": 9,
+                "position": 12,
+                "total": 16
+              },
+              {
+                "playerId": "91a0fc71-dfa1-46fc-a87f-7ac4b50e4ae8",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 9,
+                "position": 13,
+                "total": 16
+              },
+              {
+                "playerId": "9c20b71e-84bd-43c9-9e9e-ea2f677b6eca",
+                "name": "海湾旅人",
+                "score": 0,
+                "secondary": 0,
+                "rank": 9,
+                "position": 14,
+                "total": 16
+              },
+              {
+                "playerId": "c1fbb2cc-d710-4518-95a8-11b0f402daa3",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 9,
+                "position": 15,
+                "total": 16
+              },
+              {
+                "playerId": "d1455820-4cd7-4879-b41d-85d035f259a6",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 9,
+                "position": 16,
+                "total": 16
+              }
+            ],
+            "me": {
+              "playerId": "51956f1c-c9d4-422a-97f7-27cc79860a74",
+              "name": "新玩家",
+              "score": 0,
+              "secondary": 0,
+              "rank": 9,
+              "position": 11,
+              "total": 16
+            },
+            "previous": {
+              "playerId": "fa66518e-cba3-4293-82cf-72fa37c2cd0b",
+              "name": "海湾新名字",
+              "score": 3,
+              "secondary": 0,
+              "rank": 1,
+              "position": 8,
+              "total": 16
+            },
+            "threshold": null,
+            "gap": {
+              "score": 3,
+              "secondary": 0
+            },
+            "eligiblePlayers": 16,
+            "reason": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "cops-robbers-realtime-ads-off-service-off",
+      "game": "cops-robbers-realtime",
+      "adsEnabled": false,
+      "serviceEnabled": false,
+      "zipSHA256": "803f64b074437ca5f16a64274616fb01150e1ba8193c9e3f515d59353493d806",
+      "passedWithinDeclaredScope": true,
+      "config": {
+        "service": {
+          "game": "cops-robbers-realtime",
+          "platform": "h5",
+          "serviceManaged": true,
+          "competitionEnabled": false,
+          "apiUrl": ""
+        },
+        "ads": {
+          "enabled": false,
+          "mode": "off"
+        },
+        "hasRealAdSdk": false
+      },
+      "reward": {
+        "mode": "explicit-free-reward",
+        "starter": {
+          "sprint": 1,
+          "rewind": 1,
+          "refilled": {
+            "sprint": false,
+            "rewind": false
+          },
+          "assisted": false,
+          "ordinal": 1,
+          "remaining": 0,
+          "busy": false
+        },
+        "granted": {
+          "sprint": 1,
+          "rewind": 1,
+          "refilled": {
+            "sprint": true,
+            "rewind": false
+          },
+          "assisted": true,
+          "ordinal": 1,
+          "remaining": 0,
+          "busy": false
+        },
+        "after": {
+          "sprint": 0,
+          "rewind": 1,
+          "refilled": {
+            "sprint": true,
+            "rewind": false
+          },
+          "assisted": true,
+          "ordinal": 1,
+          "remaining": 0,
+          "busy": false
+        },
+        "feedback": "1 号警察 · 提速 20% · 4 秒",
+        "realAdvertisementPlayed": false
+      },
+      "offlineApiRequests": 0
+    },
+    {
+      "name": "cops-robbers-realtime-ads-on-service-off",
+      "game": "cops-robbers-realtime",
+      "adsEnabled": true,
+      "serviceEnabled": false,
+      "zipSHA256": "7bc5b351ed3c49c7919a03e1d033558aef7a70122bff7910060cef9cb0ab7109",
+      "passedWithinDeclaredScope": true,
+      "config": {
+        "service": {
+          "game": "cops-robbers-realtime",
+          "platform": "h5",
+          "serviceManaged": true,
+          "competitionEnabled": false,
+          "apiUrl": ""
+        },
+        "ads": {
+          "enabled": true,
+          "mode": "host"
+        },
+        "hasRealAdSdk": false
+      },
+      "reward": {
+        "mode": "host-unavailable-no-reward",
+        "starter": {
+          "sprint": 1,
+          "rewind": 1,
+          "refilled": {
+            "sprint": false,
+            "rewind": false
+          },
+          "assisted": false,
+          "ordinal": 1,
+          "remaining": 0,
+          "busy": false
+        },
+        "granted": {
+          "sprint": 0,
+          "rewind": 1,
+          "refilled": {
+            "sprint": false,
+            "rewind": false
+          },
+          "assisted": true,
+          "ordinal": 1,
+          "remaining": 0,
+          "busy": false
+        },
+        "after": {
+          "sprint": 0,
+          "rewind": 1,
+          "refilled": {
+            "sprint": false,
+            "rewind": false
+          },
+          "assisted": true,
+          "ordinal": 1,
+          "remaining": 0,
+          "busy": false
+        },
+        "feedback": "广告暂不可用，补领次数保留；可以继续正常游戏。",
+        "realAdvertisementPlayed": false
+      },
+      "offlineApiRequests": 0
+    },
+    {
+      "name": "cops-robbers-realtime-ads-off-service-on",
+      "game": "cops-robbers-realtime",
+      "adsEnabled": false,
+      "serviceEnabled": true,
+      "zipSHA256": "1c1c248642fa60429226fa194e3ac3562ddd235fe2b9ea8f2ef20fa8d079712b",
+      "passedWithinDeclaredScope": true,
+      "config": {
+        "service": {
+          "game": "cops-robbers-realtime",
+          "platform": "h5",
+          "serviceManaged": true,
+          "competitionEnabled": true,
+          "apiUrl": "http://127.0.0.1:43802/api/competition/v1"
+        },
+        "ads": {
+          "enabled": false,
+          "mode": "off"
+        },
+        "hasRealAdSdk": false
+      },
+      "reward": {
+        "mode": "explicit-free-reward",
+        "starter": {
+          "sprint": 1,
+          "rewind": 1,
+          "refilled": {
+            "sprint": false,
+            "rewind": false
+          },
+          "assisted": false,
+          "ordinal": 1,
+          "remaining": 0,
+          "busy": false
+        },
+        "granted": {
+          "sprint": 1,
+          "rewind": 1,
+          "refilled": {
+            "sprint": true,
+            "rewind": false
+          },
+          "assisted": true,
+          "ordinal": 1,
+          "remaining": 0,
+          "busy": false
+        },
+        "after": {
+          "sprint": 0,
+          "rewind": 1,
+          "refilled": {
+            "sprint": true,
+            "rewind": false
+          },
+          "assisted": true,
+          "ordinal": 1,
+          "remaining": 0,
+          "busy": false
+        },
+        "feedback": "1 号警察 · 提速 20% · 4 秒",
+        "realAdvertisementPlayed": false
+      },
+      "online": {
+        "roomCode": "02AFCD749928",
+        "playerIds": [
+          "fd3fb035-e6f3-4290-a1f2-ecf6e769b29c",
+          "d944f556-2210-447e-8a94-8108c2b847b7"
+        ],
+        "acceptedTouchActions": [59, 58],
+        "duplicateActionsPreserveSettlement": true,
+        "confirmedLateTerminalInputs": [
+          [],
+          [
+            {
+              "status": 409,
+              "path": "/api/competition/v1/rooms/02AFCD749928/actions",
+              "body": {
+                "error": "MATCH_CLOSED"
+              }
+            }
+          ]
+        ],
+        "roomVersion": "street-roles-initiative-v3",
+        "results": [
+          {
+            "after": {
+              "me": {
+                "name": "新玩家",
+                "rank": 6,
+                "score": 0,
+                "total": 10,
+                "playerId": "fd3fb035-e6f3-4290-a1f2-ecf6e769b29c",
+                "position": 10,
+                "secondary": 0
+              },
+              "gap": {
+                "score": 3,
+                "secondary": 0
+              },
+              "top": [
+                {
+                  "name": "海湾新名字",
+                  "rank": 1,
+                  "score": 3,
+                  "total": 10,
+                  "playerId": "654c9d83-eb58-4677-b62a-9dcdf18d359f",
+                  "position": 1,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 1,
+                  "score": 3,
+                  "total": 10,
+                  "playerId": "a58e367e-c449-42cf-a7b1-c057a4793151",
+                  "position": 2,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 1,
+                  "score": 3,
+                  "total": 10,
+                  "playerId": "d6555af2-9da7-4c6d-8209-573d03649800",
+                  "position": 3,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 1,
+                  "score": 3,
+                  "total": 10,
+                  "playerId": "d944f556-2210-447e-8a94-8108c2b847b7",
+                  "position": 4,
+                  "secondary": 0
+                },
+                {
+                  "name": "海湾新名字",
+                  "rank": 1,
+                  "score": 3,
+                  "total": 10,
+                  "playerId": "fa66518e-cba3-4293-82cf-72fa37c2cd0b",
+                  "position": 5,
+                  "secondary": 0
+                },
+                {
+                  "name": "海湾旅人",
+                  "rank": 6,
+                  "score": 0,
+                  "total": 10,
+                  "playerId": "60d70cb2-5fc8-4d22-988b-1f1a3192d7d3",
+                  "position": 6,
+                  "secondary": 0
+                },
+                {
+                  "name": "海湾旅人",
+                  "rank": 6,
+                  "score": 0,
+                  "total": 10,
+                  "playerId": "9c20b71e-84bd-43c9-9e9e-ea2f677b6eca",
+                  "position": 7,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 6,
+                  "score": 0,
+                  "total": 10,
+                  "playerId": "dfc5aa8d-3bbd-4978-a283-377be99a7c35",
+                  "position": 8,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 6,
+                  "score": 0,
+                  "total": 10,
+                  "playerId": "f7398e20-1a57-44bb-927d-950f770ae825",
+                  "position": 9,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 6,
+                  "score": 0,
+                  "total": 10,
+                  "playerId": "fd3fb035-e6f3-4290-a1f2-ecf6e769b29c",
+                  "position": 10,
+                  "secondary": 0
+                }
+              ],
+              "board": "cops-robbers-realtime:street-roles-initiative-v3",
+              "reason": null,
+              "previous": {
+                "name": "海湾新名字",
+                "rank": 1,
+                "score": 3,
+                "total": 10,
+                "playerId": "fa66518e-cba3-4293-82cf-72fa37c2cd0b",
+                "position": 5,
+                "secondary": 0
+              },
+              "threshold": null,
+              "eligiblePlayers": 10
+            },
+            "rated": true,
+            "before": null,
+            "reason": null,
+            "result": {
+              "score": 0,
+              "eligible": true,
+              "finished": true,
+              "secondary": 0
+            },
+            "playerId": "fd3fb035-e6f3-4290-a1f2-ecf6e769b29c"
+          },
+          {
+            "after": {
+              "me": {
+                "name": "新玩家",
+                "rank": 1,
+                "score": 3,
+                "total": 10,
+                "playerId": "d944f556-2210-447e-8a94-8108c2b847b7",
+                "position": 4,
+                "secondary": 0
+              },
+              "gap": null,
+              "top": [
+                {
+                  "name": "海湾新名字",
+                  "rank": 1,
+                  "score": 3,
+                  "total": 10,
+                  "playerId": "654c9d83-eb58-4677-b62a-9dcdf18d359f",
+                  "position": 1,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 1,
+                  "score": 3,
+                  "total": 10,
+                  "playerId": "a58e367e-c449-42cf-a7b1-c057a4793151",
+                  "position": 2,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 1,
+                  "score": 3,
+                  "total": 10,
+                  "playerId": "d6555af2-9da7-4c6d-8209-573d03649800",
+                  "position": 3,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 1,
+                  "score": 3,
+                  "total": 10,
+                  "playerId": "d944f556-2210-447e-8a94-8108c2b847b7",
+                  "position": 4,
+                  "secondary": 0
+                },
+                {
+                  "name": "海湾新名字",
+                  "rank": 1,
+                  "score": 3,
+                  "total": 10,
+                  "playerId": "fa66518e-cba3-4293-82cf-72fa37c2cd0b",
+                  "position": 5,
+                  "secondary": 0
+                },
+                {
+                  "name": "海湾旅人",
+                  "rank": 6,
+                  "score": 0,
+                  "total": 10,
+                  "playerId": "60d70cb2-5fc8-4d22-988b-1f1a3192d7d3",
+                  "position": 6,
+                  "secondary": 0
+                },
+                {
+                  "name": "海湾旅人",
+                  "rank": 6,
+                  "score": 0,
+                  "total": 10,
+                  "playerId": "9c20b71e-84bd-43c9-9e9e-ea2f677b6eca",
+                  "position": 7,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 6,
+                  "score": 0,
+                  "total": 10,
+                  "playerId": "dfc5aa8d-3bbd-4978-a283-377be99a7c35",
+                  "position": 8,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 6,
+                  "score": 0,
+                  "total": 10,
+                  "playerId": "f7398e20-1a57-44bb-927d-950f770ae825",
+                  "position": 9,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 6,
+                  "score": 0,
+                  "total": 10,
+                  "playerId": "fd3fb035-e6f3-4290-a1f2-ecf6e769b29c",
+                  "position": 10,
+                  "secondary": 0
+                }
+              ],
+              "board": "cops-robbers-realtime:street-roles-initiative-v3",
+              "reason": null,
+              "previous": null,
+              "threshold": null,
+              "eligiblePlayers": 10
+            },
+            "rated": true,
+            "before": null,
+            "reason": null,
+            "result": {
+              "score": 3,
+              "eligible": true,
+              "finished": true,
+              "secondary": 0
+            },
+            "playerId": "d944f556-2210-447e-8a94-8108c2b847b7"
+          }
+        ],
+        "boards": [
+          {
+            "game": "cops-robbers-realtime",
+            "title": "街区追捕 · 警察与小偷",
+            "version": "street-roles-initiative-v3",
+            "description": "警察与小偷由双方分别实时操控，可交换角色并选择先手，先手先行动2秒。自由追逐、出口竞速各100张地图，服务端随机抽图；警察合围全部对手获胜，小偷抵达出口或撑过时限获胜。胜3负0，双方都下达命令且经过开局阶段才计分；每对身份每天仅首场有效对局计分（UTC日）。比赛不能暂停，断线按已有命令继续；单机及旧挑战榜不计入此榜。",
+            "rules": "警察与小偷由双方分别实时操控，可交换角色并选择先手，先手先行动2秒。自由追逐、出口竞速各100张地图，服务端随机抽图；警察合围全部对手获胜，小偷抵达出口或撑过时限获胜。胜3负0，双方都下达命令且经过开局阶段才计分；每对身份每天仅首场有效对局计分（UTC日）。比赛不能暂停，断线按已有命令继续；单机及旧挑战榜不计入此榜。",
+            "modes": [
+              {
+                "id": "classic",
+                "title": "自由追逐 · 100关"
+              },
+              {
+                "id": "escape",
+                "title": "出口竞速 · 100关"
+              }
+            ],
+            "roles": ["pursuer", "runner"],
+            "board": "cops-robbers-realtime:street-roles-initiative-v3",
+            "top": [
+              {
+                "playerId": "654c9d83-eb58-4677-b62a-9dcdf18d359f",
+                "name": "海湾新名字",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 1,
+                "total": 10
+              },
+              {
+                "playerId": "a58e367e-c449-42cf-a7b1-c057a4793151",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 2,
+                "total": 10
+              },
+              {
+                "playerId": "d6555af2-9da7-4c6d-8209-573d03649800",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 3,
+                "total": 10
+              },
+              {
+                "playerId": "d944f556-2210-447e-8a94-8108c2b847b7",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 4,
+                "total": 10
+              },
+              {
+                "playerId": "fa66518e-cba3-4293-82cf-72fa37c2cd0b",
+                "name": "海湾新名字",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 5,
+                "total": 10
+              },
+              {
+                "playerId": "60d70cb2-5fc8-4d22-988b-1f1a3192d7d3",
+                "name": "海湾旅人",
+                "score": 0,
+                "secondary": 0,
+                "rank": 6,
+                "position": 6,
+                "total": 10
+              },
+              {
+                "playerId": "9c20b71e-84bd-43c9-9e9e-ea2f677b6eca",
+                "name": "海湾旅人",
+                "score": 0,
+                "secondary": 0,
+                "rank": 6,
+                "position": 7,
+                "total": 10
+              },
+              {
+                "playerId": "dfc5aa8d-3bbd-4978-a283-377be99a7c35",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 6,
+                "position": 8,
+                "total": 10
+              },
+              {
+                "playerId": "f7398e20-1a57-44bb-927d-950f770ae825",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 6,
+                "position": 9,
+                "total": 10
+              },
+              {
+                "playerId": "fd3fb035-e6f3-4290-a1f2-ecf6e769b29c",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 6,
+                "position": 10,
+                "total": 10
+              }
+            ],
+            "me": {
+              "playerId": "fd3fb035-e6f3-4290-a1f2-ecf6e769b29c",
+              "name": "新玩家",
+              "score": 0,
+              "secondary": 0,
+              "rank": 6,
+              "position": 10,
+              "total": 10
+            },
+            "previous": {
+              "playerId": "fa66518e-cba3-4293-82cf-72fa37c2cd0b",
+              "name": "海湾新名字",
+              "score": 3,
+              "secondary": 0,
+              "rank": 1,
+              "position": 5,
+              "total": 10
+            },
+            "threshold": null,
+            "gap": {
+              "score": 3,
+              "secondary": 0
+            },
+            "eligiblePlayers": 10,
+            "reason": null
+          },
+          {
+            "game": "cops-robbers-realtime",
+            "title": "街区追捕 · 警察与小偷",
+            "version": "street-roles-initiative-v3",
+            "description": "警察与小偷由双方分别实时操控，可交换角色并选择先手，先手先行动2秒。自由追逐、出口竞速各100张地图，服务端随机抽图；警察合围全部对手获胜，小偷抵达出口或撑过时限获胜。胜3负0，双方都下达命令且经过开局阶段才计分；每对身份每天仅首场有效对局计分（UTC日）。比赛不能暂停，断线按已有命令继续；单机及旧挑战榜不计入此榜。",
+            "rules": "警察与小偷由双方分别实时操控，可交换角色并选择先手，先手先行动2秒。自由追逐、出口竞速各100张地图，服务端随机抽图；警察合围全部对手获胜，小偷抵达出口或撑过时限获胜。胜3负0，双方都下达命令且经过开局阶段才计分；每对身份每天仅首场有效对局计分（UTC日）。比赛不能暂停，断线按已有命令继续；单机及旧挑战榜不计入此榜。",
+            "modes": [
+              {
+                "id": "classic",
+                "title": "自由追逐 · 100关"
+              },
+              {
+                "id": "escape",
+                "title": "出口竞速 · 100关"
+              }
+            ],
+            "roles": ["pursuer", "runner"],
+            "board": "cops-robbers-realtime:street-roles-initiative-v3",
+            "top": [
+              {
+                "playerId": "654c9d83-eb58-4677-b62a-9dcdf18d359f",
+                "name": "海湾新名字",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 1,
+                "total": 10
+              },
+              {
+                "playerId": "a58e367e-c449-42cf-a7b1-c057a4793151",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 2,
+                "total": 10
+              },
+              {
+                "playerId": "d6555af2-9da7-4c6d-8209-573d03649800",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 3,
+                "total": 10
+              },
+              {
+                "playerId": "d944f556-2210-447e-8a94-8108c2b847b7",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 4,
+                "total": 10
+              },
+              {
+                "playerId": "fa66518e-cba3-4293-82cf-72fa37c2cd0b",
+                "name": "海湾新名字",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 5,
+                "total": 10
+              },
+              {
+                "playerId": "60d70cb2-5fc8-4d22-988b-1f1a3192d7d3",
+                "name": "海湾旅人",
+                "score": 0,
+                "secondary": 0,
+                "rank": 6,
+                "position": 6,
+                "total": 10
+              },
+              {
+                "playerId": "9c20b71e-84bd-43c9-9e9e-ea2f677b6eca",
+                "name": "海湾旅人",
+                "score": 0,
+                "secondary": 0,
+                "rank": 6,
+                "position": 7,
+                "total": 10
+              },
+              {
+                "playerId": "dfc5aa8d-3bbd-4978-a283-377be99a7c35",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 6,
+                "position": 8,
+                "total": 10
+              },
+              {
+                "playerId": "f7398e20-1a57-44bb-927d-950f770ae825",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 6,
+                "position": 9,
+                "total": 10
+              },
+              {
+                "playerId": "fd3fb035-e6f3-4290-a1f2-ecf6e769b29c",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 6,
+                "position": 10,
+                "total": 10
+              }
+            ],
+            "me": {
+              "playerId": "d944f556-2210-447e-8a94-8108c2b847b7",
+              "name": "新玩家",
+              "score": 3,
+              "secondary": 0,
+              "rank": 1,
+              "position": 4,
+              "total": 10
+            },
+            "previous": null,
+            "threshold": null,
+            "gap": null,
+            "eligiblePlayers": 10,
+            "reason": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "cops-robbers-realtime-ads-on-service-on",
+      "game": "cops-robbers-realtime",
+      "adsEnabled": true,
+      "serviceEnabled": true,
+      "zipSHA256": "4b70720f50cdd24a7bd6e3d5c3b325d9ab38f219bbdb0697fc1b1137a0191bfb",
+      "passedWithinDeclaredScope": true,
+      "config": {
+        "service": {
+          "game": "cops-robbers-realtime",
+          "platform": "h5",
+          "serviceManaged": true,
+          "competitionEnabled": true,
+          "apiUrl": "http://127.0.0.1:43802/api/competition/v1"
+        },
+        "ads": {
+          "enabled": true,
+          "mode": "host"
+        },
+        "hasRealAdSdk": false
+      },
+      "reward": {
+        "mode": "host-unavailable-no-reward",
+        "starter": {
+          "sprint": 1,
+          "rewind": 1,
+          "refilled": {
+            "sprint": false,
+            "rewind": false
+          },
+          "assisted": false,
+          "ordinal": 1,
+          "remaining": 0,
+          "busy": false
+        },
+        "granted": {
+          "sprint": 0,
+          "rewind": 1,
+          "refilled": {
+            "sprint": false,
+            "rewind": false
+          },
+          "assisted": true,
+          "ordinal": 1,
+          "remaining": 0,
+          "busy": false
+        },
+        "after": {
+          "sprint": 0,
+          "rewind": 1,
+          "refilled": {
+            "sprint": false,
+            "rewind": false
+          },
+          "assisted": true,
+          "ordinal": 1,
+          "remaining": 0,
+          "busy": false
+        },
+        "feedback": "广告暂不可用，补领次数保留；可以继续正常游戏。",
+        "realAdvertisementPlayed": false
+      },
+      "online": {
+        "roomCode": "9C99C9D5DADF",
+        "playerIds": [
+          "42156c2b-0d31-4267-b21c-c7a268adf9a2",
+          "fb2f44d1-1419-4929-a24d-20502a9bdb85"
+        ],
+        "acceptedTouchActions": [58, 58],
+        "duplicateActionsPreserveSettlement": true,
+        "confirmedLateTerminalInputs": [[], []],
+        "roomVersion": "street-roles-initiative-v3",
+        "results": [
+          {
+            "after": {
+              "me": {
+                "name": "新玩家",
+                "rank": 7,
+                "score": 0,
+                "total": 12,
+                "playerId": "42156c2b-0d31-4267-b21c-c7a268adf9a2",
+                "position": 7,
+                "secondary": 0
+              },
+              "gap": {
+                "score": 3,
+                "secondary": 0
+              },
+              "top": [
+                {
+                  "name": "海湾新名字",
+                  "rank": 1,
+                  "score": 3,
+                  "total": 12,
+                  "playerId": "654c9d83-eb58-4677-b62a-9dcdf18d359f",
+                  "position": 1,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 1,
+                  "score": 3,
+                  "total": 12,
+                  "playerId": "a58e367e-c449-42cf-a7b1-c057a4793151",
+                  "position": 2,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 1,
+                  "score": 3,
+                  "total": 12,
+                  "playerId": "d6555af2-9da7-4c6d-8209-573d03649800",
+                  "position": 3,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 1,
+                  "score": 3,
+                  "total": 12,
+                  "playerId": "d944f556-2210-447e-8a94-8108c2b847b7",
+                  "position": 4,
+                  "secondary": 0
+                },
+                {
+                  "name": "海湾新名字",
+                  "rank": 1,
+                  "score": 3,
+                  "total": 12,
+                  "playerId": "fa66518e-cba3-4293-82cf-72fa37c2cd0b",
+                  "position": 5,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 1,
+                  "score": 3,
+                  "total": 12,
+                  "playerId": "fb2f44d1-1419-4929-a24d-20502a9bdb85",
+                  "position": 6,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 7,
+                  "score": 0,
+                  "total": 12,
+                  "playerId": "42156c2b-0d31-4267-b21c-c7a268adf9a2",
+                  "position": 7,
+                  "secondary": 0
+                },
+                {
+                  "name": "海湾旅人",
+                  "rank": 7,
+                  "score": 0,
+                  "total": 12,
+                  "playerId": "60d70cb2-5fc8-4d22-988b-1f1a3192d7d3",
+                  "position": 8,
+                  "secondary": 0
+                },
+                {
+                  "name": "海湾旅人",
+                  "rank": 7,
+                  "score": 0,
+                  "total": 12,
+                  "playerId": "9c20b71e-84bd-43c9-9e9e-ea2f677b6eca",
+                  "position": 9,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 7,
+                  "score": 0,
+                  "total": 12,
+                  "playerId": "dfc5aa8d-3bbd-4978-a283-377be99a7c35",
+                  "position": 10,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 7,
+                  "score": 0,
+                  "total": 12,
+                  "playerId": "f7398e20-1a57-44bb-927d-950f770ae825",
+                  "position": 11,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 7,
+                  "score": 0,
+                  "total": 12,
+                  "playerId": "fd3fb035-e6f3-4290-a1f2-ecf6e769b29c",
+                  "position": 12,
+                  "secondary": 0
+                }
+              ],
+              "board": "cops-robbers-realtime:street-roles-initiative-v3",
+              "reason": null,
+              "previous": {
+                "name": "新玩家",
+                "rank": 1,
+                "score": 3,
+                "total": 12,
+                "playerId": "fb2f44d1-1419-4929-a24d-20502a9bdb85",
+                "position": 6,
+                "secondary": 0
+              },
+              "threshold": null,
+              "eligiblePlayers": 12
+            },
+            "rated": true,
+            "before": null,
+            "reason": null,
+            "result": {
+              "score": 0,
+              "eligible": true,
+              "finished": true,
+              "secondary": 0
+            },
+            "playerId": "42156c2b-0d31-4267-b21c-c7a268adf9a2"
+          },
+          {
+            "after": {
+              "me": {
+                "name": "新玩家",
+                "rank": 1,
+                "score": 3,
+                "total": 12,
+                "playerId": "fb2f44d1-1419-4929-a24d-20502a9bdb85",
+                "position": 6,
+                "secondary": 0
+              },
+              "gap": null,
+              "top": [
+                {
+                  "name": "海湾新名字",
+                  "rank": 1,
+                  "score": 3,
+                  "total": 12,
+                  "playerId": "654c9d83-eb58-4677-b62a-9dcdf18d359f",
+                  "position": 1,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 1,
+                  "score": 3,
+                  "total": 12,
+                  "playerId": "a58e367e-c449-42cf-a7b1-c057a4793151",
+                  "position": 2,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 1,
+                  "score": 3,
+                  "total": 12,
+                  "playerId": "d6555af2-9da7-4c6d-8209-573d03649800",
+                  "position": 3,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 1,
+                  "score": 3,
+                  "total": 12,
+                  "playerId": "d944f556-2210-447e-8a94-8108c2b847b7",
+                  "position": 4,
+                  "secondary": 0
+                },
+                {
+                  "name": "海湾新名字",
+                  "rank": 1,
+                  "score": 3,
+                  "total": 12,
+                  "playerId": "fa66518e-cba3-4293-82cf-72fa37c2cd0b",
+                  "position": 5,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 1,
+                  "score": 3,
+                  "total": 12,
+                  "playerId": "fb2f44d1-1419-4929-a24d-20502a9bdb85",
+                  "position": 6,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 7,
+                  "score": 0,
+                  "total": 12,
+                  "playerId": "42156c2b-0d31-4267-b21c-c7a268adf9a2",
+                  "position": 7,
+                  "secondary": 0
+                },
+                {
+                  "name": "海湾旅人",
+                  "rank": 7,
+                  "score": 0,
+                  "total": 12,
+                  "playerId": "60d70cb2-5fc8-4d22-988b-1f1a3192d7d3",
+                  "position": 8,
+                  "secondary": 0
+                },
+                {
+                  "name": "海湾旅人",
+                  "rank": 7,
+                  "score": 0,
+                  "total": 12,
+                  "playerId": "9c20b71e-84bd-43c9-9e9e-ea2f677b6eca",
+                  "position": 9,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 7,
+                  "score": 0,
+                  "total": 12,
+                  "playerId": "dfc5aa8d-3bbd-4978-a283-377be99a7c35",
+                  "position": 10,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 7,
+                  "score": 0,
+                  "total": 12,
+                  "playerId": "f7398e20-1a57-44bb-927d-950f770ae825",
+                  "position": 11,
+                  "secondary": 0
+                },
+                {
+                  "name": "新玩家",
+                  "rank": 7,
+                  "score": 0,
+                  "total": 12,
+                  "playerId": "fd3fb035-e6f3-4290-a1f2-ecf6e769b29c",
+                  "position": 12,
+                  "secondary": 0
+                }
+              ],
+              "board": "cops-robbers-realtime:street-roles-initiative-v3",
+              "reason": null,
+              "previous": null,
+              "threshold": null,
+              "eligiblePlayers": 12
+            },
+            "rated": true,
+            "before": null,
+            "reason": null,
+            "result": {
+              "score": 3,
+              "eligible": true,
+              "finished": true,
+              "secondary": 0
+            },
+            "playerId": "fb2f44d1-1419-4929-a24d-20502a9bdb85"
+          }
+        ],
+        "boards": [
+          {
+            "game": "cops-robbers-realtime",
+            "title": "街区追捕 · 警察与小偷",
+            "version": "street-roles-initiative-v3",
+            "description": "警察与小偷由双方分别实时操控，可交换角色并选择先手，先手先行动2秒。自由追逐、出口竞速各100张地图，服务端随机抽图；警察合围全部对手获胜，小偷抵达出口或撑过时限获胜。胜3负0，双方都下达命令且经过开局阶段才计分；每对身份每天仅首场有效对局计分（UTC日）。比赛不能暂停，断线按已有命令继续；单机及旧挑战榜不计入此榜。",
+            "rules": "警察与小偷由双方分别实时操控，可交换角色并选择先手，先手先行动2秒。自由追逐、出口竞速各100张地图，服务端随机抽图；警察合围全部对手获胜，小偷抵达出口或撑过时限获胜。胜3负0，双方都下达命令且经过开局阶段才计分；每对身份每天仅首场有效对局计分（UTC日）。比赛不能暂停，断线按已有命令继续；单机及旧挑战榜不计入此榜。",
+            "modes": [
+              {
+                "id": "classic",
+                "title": "自由追逐 · 100关"
+              },
+              {
+                "id": "escape",
+                "title": "出口竞速 · 100关"
+              }
+            ],
+            "roles": ["pursuer", "runner"],
+            "board": "cops-robbers-realtime:street-roles-initiative-v3",
+            "top": [
+              {
+                "playerId": "654c9d83-eb58-4677-b62a-9dcdf18d359f",
+                "name": "海湾新名字",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 1,
+                "total": 12
+              },
+              {
+                "playerId": "a58e367e-c449-42cf-a7b1-c057a4793151",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 2,
+                "total": 12
+              },
+              {
+                "playerId": "d6555af2-9da7-4c6d-8209-573d03649800",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 3,
+                "total": 12
+              },
+              {
+                "playerId": "d944f556-2210-447e-8a94-8108c2b847b7",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 4,
+                "total": 12
+              },
+              {
+                "playerId": "fa66518e-cba3-4293-82cf-72fa37c2cd0b",
+                "name": "海湾新名字",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 5,
+                "total": 12
+              },
+              {
+                "playerId": "fb2f44d1-1419-4929-a24d-20502a9bdb85",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 6,
+                "total": 12
+              },
+              {
+                "playerId": "42156c2b-0d31-4267-b21c-c7a268adf9a2",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 7,
+                "position": 7,
+                "total": 12
+              },
+              {
+                "playerId": "60d70cb2-5fc8-4d22-988b-1f1a3192d7d3",
+                "name": "海湾旅人",
+                "score": 0,
+                "secondary": 0,
+                "rank": 7,
+                "position": 8,
+                "total": 12
+              },
+              {
+                "playerId": "9c20b71e-84bd-43c9-9e9e-ea2f677b6eca",
+                "name": "海湾旅人",
+                "score": 0,
+                "secondary": 0,
+                "rank": 7,
+                "position": 9,
+                "total": 12
+              },
+              {
+                "playerId": "dfc5aa8d-3bbd-4978-a283-377be99a7c35",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 7,
+                "position": 10,
+                "total": 12
+              },
+              {
+                "playerId": "f7398e20-1a57-44bb-927d-950f770ae825",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 7,
+                "position": 11,
+                "total": 12
+              },
+              {
+                "playerId": "fd3fb035-e6f3-4290-a1f2-ecf6e769b29c",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 7,
+                "position": 12,
+                "total": 12
+              }
+            ],
+            "me": {
+              "playerId": "42156c2b-0d31-4267-b21c-c7a268adf9a2",
+              "name": "新玩家",
+              "score": 0,
+              "secondary": 0,
+              "rank": 7,
+              "position": 7,
+              "total": 12
+            },
+            "previous": {
+              "playerId": "fb2f44d1-1419-4929-a24d-20502a9bdb85",
+              "name": "新玩家",
+              "score": 3,
+              "secondary": 0,
+              "rank": 1,
+              "position": 6,
+              "total": 12
+            },
+            "threshold": null,
+            "gap": {
+              "score": 3,
+              "secondary": 0
+            },
+            "eligiblePlayers": 12,
+            "reason": null
+          },
+          {
+            "game": "cops-robbers-realtime",
+            "title": "街区追捕 · 警察与小偷",
+            "version": "street-roles-initiative-v3",
+            "description": "警察与小偷由双方分别实时操控，可交换角色并选择先手，先手先行动2秒。自由追逐、出口竞速各100张地图，服务端随机抽图；警察合围全部对手获胜，小偷抵达出口或撑过时限获胜。胜3负0，双方都下达命令且经过开局阶段才计分；每对身份每天仅首场有效对局计分（UTC日）。比赛不能暂停，断线按已有命令继续；单机及旧挑战榜不计入此榜。",
+            "rules": "警察与小偷由双方分别实时操控，可交换角色并选择先手，先手先行动2秒。自由追逐、出口竞速各100张地图，服务端随机抽图；警察合围全部对手获胜，小偷抵达出口或撑过时限获胜。胜3负0，双方都下达命令且经过开局阶段才计分；每对身份每天仅首场有效对局计分（UTC日）。比赛不能暂停，断线按已有命令继续；单机及旧挑战榜不计入此榜。",
+            "modes": [
+              {
+                "id": "classic",
+                "title": "自由追逐 · 100关"
+              },
+              {
+                "id": "escape",
+                "title": "出口竞速 · 100关"
+              }
+            ],
+            "roles": ["pursuer", "runner"],
+            "board": "cops-robbers-realtime:street-roles-initiative-v3",
+            "top": [
+              {
+                "playerId": "654c9d83-eb58-4677-b62a-9dcdf18d359f",
+                "name": "海湾新名字",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 1,
+                "total": 12
+              },
+              {
+                "playerId": "a58e367e-c449-42cf-a7b1-c057a4793151",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 2,
+                "total": 12
+              },
+              {
+                "playerId": "d6555af2-9da7-4c6d-8209-573d03649800",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 3,
+                "total": 12
+              },
+              {
+                "playerId": "d944f556-2210-447e-8a94-8108c2b847b7",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 4,
+                "total": 12
+              },
+              {
+                "playerId": "fa66518e-cba3-4293-82cf-72fa37c2cd0b",
+                "name": "海湾新名字",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 5,
+                "total": 12
+              },
+              {
+                "playerId": "fb2f44d1-1419-4929-a24d-20502a9bdb85",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 6,
+                "total": 12
+              },
+              {
+                "playerId": "42156c2b-0d31-4267-b21c-c7a268adf9a2",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 7,
+                "position": 7,
+                "total": 12
+              },
+              {
+                "playerId": "60d70cb2-5fc8-4d22-988b-1f1a3192d7d3",
+                "name": "海湾旅人",
+                "score": 0,
+                "secondary": 0,
+                "rank": 7,
+                "position": 8,
+                "total": 12
+              },
+              {
+                "playerId": "9c20b71e-84bd-43c9-9e9e-ea2f677b6eca",
+                "name": "海湾旅人",
+                "score": 0,
+                "secondary": 0,
+                "rank": 7,
+                "position": 9,
+                "total": 12
+              },
+              {
+                "playerId": "dfc5aa8d-3bbd-4978-a283-377be99a7c35",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 7,
+                "position": 10,
+                "total": 12
+              },
+              {
+                "playerId": "f7398e20-1a57-44bb-927d-950f770ae825",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 7,
+                "position": 11,
+                "total": 12
+              },
+              {
+                "playerId": "fd3fb035-e6f3-4290-a1f2-ecf6e769b29c",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 7,
+                "position": 12,
+                "total": 12
+              }
+            ],
+            "me": {
+              "playerId": "fb2f44d1-1419-4929-a24d-20502a9bdb85",
+              "name": "新玩家",
+              "score": 3,
+              "secondary": 0,
+              "rank": 1,
+              "position": 6,
+              "total": 12
+            },
+            "previous": null,
+            "threshold": null,
+            "gap": null,
+            "eligiblePlayers": 12,
+            "reason": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "xiangqi-five-ads-off-service-off",
+      "game": "xiangqi-five",
+      "adsEnabled": false,
+      "serviceEnabled": false,
+      "zipSHA256": "8d401bbf508156bd0c1a457f631946eea8e6ce3ddcc80bff1e52e846412d721f",
+      "passedWithinDeclaredScope": true,
+      "config": {
+        "service": {
+          "game": "xiangqi-five",
+          "platform": "h5",
+          "serviceManaged": true,
+          "competitionEnabled": false,
+          "apiUrl": ""
+        },
+        "ads": {
+          "enabled": false,
+          "mode": "off"
+        },
+        "hasRealAdSdk": false
+      },
+      "reward": {
+        "mode": "explicit-free-reward",
+        "hintVisible": true,
+        "feedback": "",
+        "starsRule": "查看提示后，本题最高获得一星。",
+        "realAdvertisementPlayed": false
+      },
+      "offlineApiRequests": 0
+    },
+    {
+      "name": "xiangqi-five-ads-on-service-off",
+      "game": "xiangqi-five",
+      "adsEnabled": true,
+      "serviceEnabled": false,
+      "zipSHA256": "004e1e0603273a9c623f78c4c05c0a12ccc89c7ec166f4b67359df5bb9e211e6",
+      "passedWithinDeclaredScope": true,
+      "config": {
+        "service": {
+          "game": "xiangqi-five",
+          "platform": "h5",
+          "serviceManaged": true,
+          "competitionEnabled": false,
+          "apiUrl": ""
+        },
+        "ads": {
+          "enabled": true,
+          "mode": "host"
+        },
+        "hasRealAdSdk": false
+      },
+      "reward": {
+        "mode": "host-unavailable-no-reward",
+        "hintVisible": false,
+        "feedback": "广告暂不可用，本次未获取提示。",
+        "starsRule": "查看提示后，本题最高获得一星。",
+        "backgroundCancellation": true,
+        "realAdvertisementPlayed": false
+      },
+      "offlineApiRequests": 0
+    },
+    {
+      "name": "xiangqi-five-ads-off-service-on",
+      "game": "xiangqi-five",
+      "adsEnabled": false,
+      "serviceEnabled": true,
+      "zipSHA256": "abb95a2cc656ad6066f3fd67c7eae750cab2303ba4a4ab4a68aec0fd6b084128",
+      "passedWithinDeclaredScope": true,
+      "config": {
+        "service": {
+          "game": "xiangqi-five",
+          "platform": "h5",
+          "serviceManaged": true,
+          "competitionEnabled": true,
+          "apiUrl": "http://127.0.0.1:43802/api/competition/v1"
+        },
+        "ads": {
+          "enabled": false,
+          "mode": "off"
+        },
+        "hasRealAdSdk": false
+      },
+      "reward": {
+        "mode": "explicit-free-reward",
+        "hintVisible": true,
+        "feedback": "",
+        "starsRule": "查看提示后，本题最高获得一星。",
+        "realAdvertisementPlayed": false
+      },
+      "online": {
+        "roomCode": "CDE8227F79D9",
+        "playerIds": [
+          "c20067dd-860e-41a1-8dc6-4e53b04b004e",
+          "43843e1a-be15-4ae7-84cf-c7cc899c62eb"
+        ],
+        "acceptedTouchActions": [5, 4],
+        "duplicateActionsPreserveSettlement": true,
+        "confirmedLateTerminalInputs": [[], []],
+        "roomVersion": "xiangqi9x10-duel-v1",
+        "results": [
+          {
+            "playerId": "c20067dd-860e-41a1-8dc6-4e53b04b004e",
+            "result": {
+              "finished": true,
+              "eligible": true,
+              "score": 3,
+              "secondary": 0
+            },
+            "before": null,
+            "rated": true,
+            "reason": null,
+            "after": {
+              "board": "xiangqi-five:xiangqi9x10-duel-v1",
+              "top": [
+                {
+                  "playerId": "3a0b9e20-c7b9-49c3-bbdc-a34ea37ed35f",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 1,
+                  "total": 10
+                },
+                {
+                  "playerId": "6830e409-2620-4d86-b93c-fb0071a3db9e",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 2,
+                  "total": 10
+                },
+                {
+                  "playerId": "97970a52-f25e-4653-8974-e040dd71463a",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 3,
+                  "total": 10
+                },
+                {
+                  "playerId": "c20067dd-860e-41a1-8dc6-4e53b04b004e",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 4,
+                  "total": 10
+                },
+                {
+                  "playerId": "c8d9cdcf-cd4b-4297-b292-6b1f88e1e6ce",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 5,
+                  "total": 10
+                },
+                {
+                  "playerId": "0600199c-e6f7-4a1a-bf36-b583b3eaa711",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 6,
+                  "position": 6,
+                  "total": 10
+                },
+                {
+                  "playerId": "286b3c6b-2922-4d75-a6bc-c85bd9b4b57a",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 6,
+                  "position": 7,
+                  "total": 10
+                },
+                {
+                  "playerId": "43843e1a-be15-4ae7-84cf-c7cc899c62eb",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 6,
+                  "position": 8,
+                  "total": 10
+                },
+                {
+                  "playerId": "e20ae6ca-0ef0-4c46-970e-32e9a1b20638",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 6,
+                  "position": 9,
+                  "total": 10
+                },
+                {
+                  "playerId": "eede11ee-7400-4ea0-8843-572d1402e247",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 6,
+                  "position": 10,
+                  "total": 10
+                }
+              ],
+              "me": {
+                "playerId": "c20067dd-860e-41a1-8dc6-4e53b04b004e",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 4,
+                "total": 10
+              },
+              "previous": null,
+              "threshold": null,
+              "gap": null,
+              "eligiblePlayers": 10,
+              "reason": null
+            }
+          },
+          {
+            "playerId": "43843e1a-be15-4ae7-84cf-c7cc899c62eb",
+            "result": {
+              "finished": true,
+              "eligible": true,
+              "score": 0,
+              "secondary": 0
+            },
+            "before": null,
+            "rated": true,
+            "reason": null,
+            "after": {
+              "board": "xiangqi-five:xiangqi9x10-duel-v1",
+              "top": [
+                {
+                  "playerId": "3a0b9e20-c7b9-49c3-bbdc-a34ea37ed35f",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 1,
+                  "total": 10
+                },
+                {
+                  "playerId": "6830e409-2620-4d86-b93c-fb0071a3db9e",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 2,
+                  "total": 10
+                },
+                {
+                  "playerId": "97970a52-f25e-4653-8974-e040dd71463a",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 3,
+                  "total": 10
+                },
+                {
+                  "playerId": "c20067dd-860e-41a1-8dc6-4e53b04b004e",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 4,
+                  "total": 10
+                },
+                {
+                  "playerId": "c8d9cdcf-cd4b-4297-b292-6b1f88e1e6ce",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 5,
+                  "total": 10
+                },
+                {
+                  "playerId": "0600199c-e6f7-4a1a-bf36-b583b3eaa711",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 6,
+                  "position": 6,
+                  "total": 10
+                },
+                {
+                  "playerId": "286b3c6b-2922-4d75-a6bc-c85bd9b4b57a",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 6,
+                  "position": 7,
+                  "total": 10
+                },
+                {
+                  "playerId": "43843e1a-be15-4ae7-84cf-c7cc899c62eb",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 6,
+                  "position": 8,
+                  "total": 10
+                },
+                {
+                  "playerId": "e20ae6ca-0ef0-4c46-970e-32e9a1b20638",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 6,
+                  "position": 9,
+                  "total": 10
+                },
+                {
+                  "playerId": "eede11ee-7400-4ea0-8843-572d1402e247",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 6,
+                  "position": 10,
+                  "total": 10
+                }
+              ],
+              "me": {
+                "playerId": "43843e1a-be15-4ae7-84cf-c7cc899c62eb",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 6,
+                "position": 8,
+                "total": 10
+              },
+              "previous": {
+                "playerId": "c8d9cdcf-cd4b-4297-b292-6b1f88e1e6ce",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 5,
+                "total": 10
+              },
+              "threshold": null,
+              "gap": {
+                "score": 3,
+                "secondary": 0
+              },
+              "eligiblePlayers": 10,
+              "reason": null
+            }
+          }
+        ],
+        "boards": [
+          {
+            "game": "xiangqi-five",
+            "title": "象五子棋 · 好友积分",
+            "version": "xiangqi9x10-duel-v1",
+            "description": "9×10 自由部署：象棋走法，同色连五胜。胜3、和1、负0；每对身份每天仅首场有效对局计分（UTC日，北京时间08:00重置）。15分钟或600手和棋；不足10手的超时/认输不计分。单机、机器人及旧休闲房不计入本榜。",
+            "rules": "9×10 自由部署：象棋走法，同色连五胜。胜3、和1、负0；每对身份每天仅首场有效对局计分（UTC日，北京时间08:00重置）。15分钟或600手和棋；不足10手的超时/认输不计分。单机、机器人及旧休闲房不计入本榜。",
+            "board": "xiangqi-five:xiangqi9x10-duel-v1",
+            "top": [
+              {
+                "playerId": "3a0b9e20-c7b9-49c3-bbdc-a34ea37ed35f",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 1,
+                "total": 10
+              },
+              {
+                "playerId": "6830e409-2620-4d86-b93c-fb0071a3db9e",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 2,
+                "total": 10
+              },
+              {
+                "playerId": "97970a52-f25e-4653-8974-e040dd71463a",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 3,
+                "total": 10
+              },
+              {
+                "playerId": "c20067dd-860e-41a1-8dc6-4e53b04b004e",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 4,
+                "total": 10
+              },
+              {
+                "playerId": "c8d9cdcf-cd4b-4297-b292-6b1f88e1e6ce",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 5,
+                "total": 10
+              },
+              {
+                "playerId": "0600199c-e6f7-4a1a-bf36-b583b3eaa711",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 6,
+                "position": 6,
+                "total": 10
+              },
+              {
+                "playerId": "286b3c6b-2922-4d75-a6bc-c85bd9b4b57a",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 6,
+                "position": 7,
+                "total": 10
+              },
+              {
+                "playerId": "43843e1a-be15-4ae7-84cf-c7cc899c62eb",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 6,
+                "position": 8,
+                "total": 10
+              },
+              {
+                "playerId": "e20ae6ca-0ef0-4c46-970e-32e9a1b20638",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 6,
+                "position": 9,
+                "total": 10
+              },
+              {
+                "playerId": "eede11ee-7400-4ea0-8843-572d1402e247",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 6,
+                "position": 10,
+                "total": 10
+              }
+            ],
+            "me": {
+              "playerId": "c20067dd-860e-41a1-8dc6-4e53b04b004e",
+              "name": "新玩家",
+              "score": 3,
+              "secondary": 0,
+              "rank": 1,
+              "position": 4,
+              "total": 10
+            },
+            "previous": null,
+            "threshold": null,
+            "gap": null,
+            "eligiblePlayers": 10,
+            "reason": null
+          },
+          {
+            "game": "xiangqi-five",
+            "title": "象五子棋 · 好友积分",
+            "version": "xiangqi9x10-duel-v1",
+            "description": "9×10 自由部署：象棋走法，同色连五胜。胜3、和1、负0；每对身份每天仅首场有效对局计分（UTC日，北京时间08:00重置）。15分钟或600手和棋；不足10手的超时/认输不计分。单机、机器人及旧休闲房不计入本榜。",
+            "rules": "9×10 自由部署：象棋走法，同色连五胜。胜3、和1、负0；每对身份每天仅首场有效对局计分（UTC日，北京时间08:00重置）。15分钟或600手和棋；不足10手的超时/认输不计分。单机、机器人及旧休闲房不计入本榜。",
+            "board": "xiangqi-five:xiangqi9x10-duel-v1",
+            "top": [
+              {
+                "playerId": "3a0b9e20-c7b9-49c3-bbdc-a34ea37ed35f",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 1,
+                "total": 10
+              },
+              {
+                "playerId": "6830e409-2620-4d86-b93c-fb0071a3db9e",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 2,
+                "total": 10
+              },
+              {
+                "playerId": "97970a52-f25e-4653-8974-e040dd71463a",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 3,
+                "total": 10
+              },
+              {
+                "playerId": "c20067dd-860e-41a1-8dc6-4e53b04b004e",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 4,
+                "total": 10
+              },
+              {
+                "playerId": "c8d9cdcf-cd4b-4297-b292-6b1f88e1e6ce",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 5,
+                "total": 10
+              },
+              {
+                "playerId": "0600199c-e6f7-4a1a-bf36-b583b3eaa711",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 6,
+                "position": 6,
+                "total": 10
+              },
+              {
+                "playerId": "286b3c6b-2922-4d75-a6bc-c85bd9b4b57a",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 6,
+                "position": 7,
+                "total": 10
+              },
+              {
+                "playerId": "43843e1a-be15-4ae7-84cf-c7cc899c62eb",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 6,
+                "position": 8,
+                "total": 10
+              },
+              {
+                "playerId": "e20ae6ca-0ef0-4c46-970e-32e9a1b20638",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 6,
+                "position": 9,
+                "total": 10
+              },
+              {
+                "playerId": "eede11ee-7400-4ea0-8843-572d1402e247",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 6,
+                "position": 10,
+                "total": 10
+              }
+            ],
+            "me": {
+              "playerId": "43843e1a-be15-4ae7-84cf-c7cc899c62eb",
+              "name": "新玩家",
+              "score": 0,
+              "secondary": 0,
+              "rank": 6,
+              "position": 8,
+              "total": 10
+            },
+            "previous": {
+              "playerId": "c8d9cdcf-cd4b-4297-b292-6b1f88e1e6ce",
+              "name": "新玩家",
+              "score": 3,
+              "secondary": 0,
+              "rank": 1,
+              "position": 5,
+              "total": 10
+            },
+            "threshold": null,
+            "gap": {
+              "score": 3,
+              "secondary": 0
+            },
+            "eligiblePlayers": 10,
+            "reason": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "xiangqi-five-ads-on-service-on",
+      "game": "xiangqi-five",
+      "adsEnabled": true,
+      "serviceEnabled": true,
+      "zipSHA256": "7ae586ea3eb4e7c015d49c6d46df1739182225b478e6a9b47ce8451b38e125df",
+      "passedWithinDeclaredScope": true,
+      "config": {
+        "service": {
+          "game": "xiangqi-five",
+          "platform": "h5",
+          "serviceManaged": true,
+          "competitionEnabled": true,
+          "apiUrl": "http://127.0.0.1:43802/api/competition/v1"
+        },
+        "ads": {
+          "enabled": true,
+          "mode": "host"
+        },
+        "hasRealAdSdk": false
+      },
+      "reward": {
+        "mode": "host-unavailable-no-reward",
+        "hintVisible": false,
+        "feedback": "广告暂不可用，本次未获取提示。",
+        "starsRule": "查看提示后，本题最高获得一星。",
+        "backgroundCancellation": true,
+        "realAdvertisementPlayed": false
+      },
+      "online": {
+        "roomCode": "B7E392BF7D8D",
+        "playerIds": [
+          "bc5651db-8fa6-4b6e-b610-4fd697c78eb3",
+          "5cf114a9-c543-49e1-8fb6-eafb852138ed"
+        ],
+        "acceptedTouchActions": [5, 4],
+        "duplicateActionsPreserveSettlement": true,
+        "confirmedLateTerminalInputs": [[], []],
+        "roomVersion": "xiangqi9x10-duel-v1",
+        "results": [
+          {
+            "playerId": "bc5651db-8fa6-4b6e-b610-4fd697c78eb3",
+            "result": {
+              "finished": true,
+              "eligible": true,
+              "score": 3,
+              "secondary": 0
+            },
+            "before": null,
+            "rated": true,
+            "reason": null,
+            "after": {
+              "board": "xiangqi-five:xiangqi9x10-duel-v1",
+              "top": [
+                {
+                  "playerId": "3a0b9e20-c7b9-49c3-bbdc-a34ea37ed35f",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 1,
+                  "total": 12
+                },
+                {
+                  "playerId": "6830e409-2620-4d86-b93c-fb0071a3db9e",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 2,
+                  "total": 12
+                },
+                {
+                  "playerId": "97970a52-f25e-4653-8974-e040dd71463a",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 3,
+                  "total": 12
+                },
+                {
+                  "playerId": "bc5651db-8fa6-4b6e-b610-4fd697c78eb3",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 4,
+                  "total": 12
+                },
+                {
+                  "playerId": "c20067dd-860e-41a1-8dc6-4e53b04b004e",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 5,
+                  "total": 12
+                },
+                {
+                  "playerId": "c8d9cdcf-cd4b-4297-b292-6b1f88e1e6ce",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 6,
+                  "total": 12
+                },
+                {
+                  "playerId": "0600199c-e6f7-4a1a-bf36-b583b3eaa711",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 7,
+                  "position": 7,
+                  "total": 12
+                },
+                {
+                  "playerId": "286b3c6b-2922-4d75-a6bc-c85bd9b4b57a",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 7,
+                  "position": 8,
+                  "total": 12
+                },
+                {
+                  "playerId": "43843e1a-be15-4ae7-84cf-c7cc899c62eb",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 7,
+                  "position": 9,
+                  "total": 12
+                },
+                {
+                  "playerId": "5cf114a9-c543-49e1-8fb6-eafb852138ed",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 7,
+                  "position": 10,
+                  "total": 12
+                },
+                {
+                  "playerId": "e20ae6ca-0ef0-4c46-970e-32e9a1b20638",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 7,
+                  "position": 11,
+                  "total": 12
+                },
+                {
+                  "playerId": "eede11ee-7400-4ea0-8843-572d1402e247",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 7,
+                  "position": 12,
+                  "total": 12
+                }
+              ],
+              "me": {
+                "playerId": "bc5651db-8fa6-4b6e-b610-4fd697c78eb3",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 4,
+                "total": 12
+              },
+              "previous": null,
+              "threshold": null,
+              "gap": null,
+              "eligiblePlayers": 12,
+              "reason": null
+            }
+          },
+          {
+            "playerId": "5cf114a9-c543-49e1-8fb6-eafb852138ed",
+            "result": {
+              "finished": true,
+              "eligible": true,
+              "score": 0,
+              "secondary": 0
+            },
+            "before": null,
+            "rated": true,
+            "reason": null,
+            "after": {
+              "board": "xiangqi-five:xiangqi9x10-duel-v1",
+              "top": [
+                {
+                  "playerId": "3a0b9e20-c7b9-49c3-bbdc-a34ea37ed35f",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 1,
+                  "total": 12
+                },
+                {
+                  "playerId": "6830e409-2620-4d86-b93c-fb0071a3db9e",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 2,
+                  "total": 12
+                },
+                {
+                  "playerId": "97970a52-f25e-4653-8974-e040dd71463a",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 3,
+                  "total": 12
+                },
+                {
+                  "playerId": "bc5651db-8fa6-4b6e-b610-4fd697c78eb3",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 4,
+                  "total": 12
+                },
+                {
+                  "playerId": "c20067dd-860e-41a1-8dc6-4e53b04b004e",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 5,
+                  "total": 12
+                },
+                {
+                  "playerId": "c8d9cdcf-cd4b-4297-b292-6b1f88e1e6ce",
+                  "name": "新玩家",
+                  "score": 3,
+                  "secondary": 0,
+                  "rank": 1,
+                  "position": 6,
+                  "total": 12
+                },
+                {
+                  "playerId": "0600199c-e6f7-4a1a-bf36-b583b3eaa711",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 7,
+                  "position": 7,
+                  "total": 12
+                },
+                {
+                  "playerId": "286b3c6b-2922-4d75-a6bc-c85bd9b4b57a",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 7,
+                  "position": 8,
+                  "total": 12
+                },
+                {
+                  "playerId": "43843e1a-be15-4ae7-84cf-c7cc899c62eb",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 7,
+                  "position": 9,
+                  "total": 12
+                },
+                {
+                  "playerId": "5cf114a9-c543-49e1-8fb6-eafb852138ed",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 7,
+                  "position": 10,
+                  "total": 12
+                },
+                {
+                  "playerId": "e20ae6ca-0ef0-4c46-970e-32e9a1b20638",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 7,
+                  "position": 11,
+                  "total": 12
+                },
+                {
+                  "playerId": "eede11ee-7400-4ea0-8843-572d1402e247",
+                  "name": "新玩家",
+                  "score": 0,
+                  "secondary": 0,
+                  "rank": 7,
+                  "position": 12,
+                  "total": 12
+                }
+              ],
+              "me": {
+                "playerId": "5cf114a9-c543-49e1-8fb6-eafb852138ed",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 7,
+                "position": 10,
+                "total": 12
+              },
+              "previous": {
+                "playerId": "c8d9cdcf-cd4b-4297-b292-6b1f88e1e6ce",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 6,
+                "total": 12
+              },
+              "threshold": null,
+              "gap": {
+                "score": 3,
+                "secondary": 0
+              },
+              "eligiblePlayers": 12,
+              "reason": null
+            }
+          }
+        ],
+        "boards": [
+          {
+            "game": "xiangqi-five",
+            "title": "象五子棋 · 好友积分",
+            "version": "xiangqi9x10-duel-v1",
+            "description": "9×10 自由部署：象棋走法，同色连五胜。胜3、和1、负0；每对身份每天仅首场有效对局计分（UTC日，北京时间08:00重置）。15分钟或600手和棋；不足10手的超时/认输不计分。单机、机器人及旧休闲房不计入本榜。",
+            "rules": "9×10 自由部署：象棋走法，同色连五胜。胜3、和1、负0；每对身份每天仅首场有效对局计分（UTC日，北京时间08:00重置）。15分钟或600手和棋；不足10手的超时/认输不计分。单机、机器人及旧休闲房不计入本榜。",
+            "board": "xiangqi-five:xiangqi9x10-duel-v1",
+            "top": [
+              {
+                "playerId": "3a0b9e20-c7b9-49c3-bbdc-a34ea37ed35f",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 1,
+                "total": 12
+              },
+              {
+                "playerId": "6830e409-2620-4d86-b93c-fb0071a3db9e",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 2,
+                "total": 12
+              },
+              {
+                "playerId": "97970a52-f25e-4653-8974-e040dd71463a",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 3,
+                "total": 12
+              },
+              {
+                "playerId": "bc5651db-8fa6-4b6e-b610-4fd697c78eb3",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 4,
+                "total": 12
+              },
+              {
+                "playerId": "c20067dd-860e-41a1-8dc6-4e53b04b004e",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 5,
+                "total": 12
+              },
+              {
+                "playerId": "c8d9cdcf-cd4b-4297-b292-6b1f88e1e6ce",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 6,
+                "total": 12
+              },
+              {
+                "playerId": "0600199c-e6f7-4a1a-bf36-b583b3eaa711",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 7,
+                "position": 7,
+                "total": 12
+              },
+              {
+                "playerId": "286b3c6b-2922-4d75-a6bc-c85bd9b4b57a",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 7,
+                "position": 8,
+                "total": 12
+              },
+              {
+                "playerId": "43843e1a-be15-4ae7-84cf-c7cc899c62eb",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 7,
+                "position": 9,
+                "total": 12
+              },
+              {
+                "playerId": "5cf114a9-c543-49e1-8fb6-eafb852138ed",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 7,
+                "position": 10,
+                "total": 12
+              },
+              {
+                "playerId": "e20ae6ca-0ef0-4c46-970e-32e9a1b20638",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 7,
+                "position": 11,
+                "total": 12
+              },
+              {
+                "playerId": "eede11ee-7400-4ea0-8843-572d1402e247",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 7,
+                "position": 12,
+                "total": 12
+              }
+            ],
+            "me": {
+              "playerId": "bc5651db-8fa6-4b6e-b610-4fd697c78eb3",
+              "name": "新玩家",
+              "score": 3,
+              "secondary": 0,
+              "rank": 1,
+              "position": 4,
+              "total": 12
+            },
+            "previous": null,
+            "threshold": null,
+            "gap": null,
+            "eligiblePlayers": 12,
+            "reason": null
+          },
+          {
+            "game": "xiangqi-five",
+            "title": "象五子棋 · 好友积分",
+            "version": "xiangqi9x10-duel-v1",
+            "description": "9×10 自由部署：象棋走法，同色连五胜。胜3、和1、负0；每对身份每天仅首场有效对局计分（UTC日，北京时间08:00重置）。15分钟或600手和棋；不足10手的超时/认输不计分。单机、机器人及旧休闲房不计入本榜。",
+            "rules": "9×10 自由部署：象棋走法，同色连五胜。胜3、和1、负0；每对身份每天仅首场有效对局计分（UTC日，北京时间08:00重置）。15分钟或600手和棋；不足10手的超时/认输不计分。单机、机器人及旧休闲房不计入本榜。",
+            "board": "xiangqi-five:xiangqi9x10-duel-v1",
+            "top": [
+              {
+                "playerId": "3a0b9e20-c7b9-49c3-bbdc-a34ea37ed35f",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 1,
+                "total": 12
+              },
+              {
+                "playerId": "6830e409-2620-4d86-b93c-fb0071a3db9e",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 2,
+                "total": 12
+              },
+              {
+                "playerId": "97970a52-f25e-4653-8974-e040dd71463a",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 3,
+                "total": 12
+              },
+              {
+                "playerId": "bc5651db-8fa6-4b6e-b610-4fd697c78eb3",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 4,
+                "total": 12
+              },
+              {
+                "playerId": "c20067dd-860e-41a1-8dc6-4e53b04b004e",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 5,
+                "total": 12
+              },
+              {
+                "playerId": "c8d9cdcf-cd4b-4297-b292-6b1f88e1e6ce",
+                "name": "新玩家",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 6,
+                "total": 12
+              },
+              {
+                "playerId": "0600199c-e6f7-4a1a-bf36-b583b3eaa711",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 7,
+                "position": 7,
+                "total": 12
+              },
+              {
+                "playerId": "286b3c6b-2922-4d75-a6bc-c85bd9b4b57a",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 7,
+                "position": 8,
+                "total": 12
+              },
+              {
+                "playerId": "43843e1a-be15-4ae7-84cf-c7cc899c62eb",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 7,
+                "position": 9,
+                "total": 12
+              },
+              {
+                "playerId": "5cf114a9-c543-49e1-8fb6-eafb852138ed",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 7,
+                "position": 10,
+                "total": 12
+              },
+              {
+                "playerId": "e20ae6ca-0ef0-4c46-970e-32e9a1b20638",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 7,
+                "position": 11,
+                "total": 12
+              },
+              {
+                "playerId": "eede11ee-7400-4ea0-8843-572d1402e247",
+                "name": "新玩家",
+                "score": 0,
+                "secondary": 0,
+                "rank": 7,
+                "position": 12,
+                "total": 12
+              }
+            ],
+            "me": {
+              "playerId": "5cf114a9-c543-49e1-8fb6-eafb852138ed",
+              "name": "新玩家",
+              "score": 0,
+              "secondary": 0,
+              "rank": 7,
+              "position": 10,
+              "total": 12
+            },
+            "previous": {
+              "playerId": "c8d9cdcf-cd4b-4297-b292-6b1f88e1e6ce",
+              "name": "新玩家",
+              "score": 3,
+              "secondary": 0,
+              "rank": 1,
+              "position": 6,
+              "total": 12
+            },
+            "threshold": null,
+            "gap": {
+              "score": 3,
+              "secondary": 0
+            },
+            "eligiblePlayers": 12,
+            "reason": null
+          }
+        ]
+      }
+    }
+  ],
+  "completedAt": "2026-10-15T21:09:23.071Z"
+}

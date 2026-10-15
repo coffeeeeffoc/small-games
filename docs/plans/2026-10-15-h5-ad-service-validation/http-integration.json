@@ -1,0 +1,20 @@
+{
+  "startedAt": "2026-10-15T20:31:36.226Z",
+  "database": "competition_test",
+  "checks": [
+    "real HTTP two identities, join/full/membership, ready idempotence, illegal input, full solution, consistent settlement, duplicate submission once",
+    "service restart preserves session, results and personal best",
+    "real opposing-side match; role swaps reset readiness; explicit/random initiative is shared; wrong side, non-host initiative, midgame changes rejected; same-pair rematch does not farm rank",
+    "persistent non-unique nicknames: input/identity rejection, live room/board names, rename keeps ID/score/rank, service restart preserves name",
+    "102 isolated SQL fixtures: Top100 boundary, rank101, tied rank1/1/3, exact count, previous/gap, empty/no-score/version isolation",
+    "realtime HTTP two-client role authority, human movement, real 2-second opening freeze, illegal actor/side/forged commands, shared state, simulator timeout via isolated clock fixture, consistent one-time settlement and both friend modes",
+    "expired invitations rejected"
+  ],
+  "rankingLatencyMs": {
+    "p50": 3.222700000000259,
+    "p95": 41.95310000000063,
+    "participants": 102,
+    "requests": 20
+  },
+  "completedAt": "2026-10-15T20:31:44.082Z"
+}

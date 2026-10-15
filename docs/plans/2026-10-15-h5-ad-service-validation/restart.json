@@ -1,0 +1,288 @@
+{
+  "checkedAt": "2026-10-15T21:12:47.456Z",
+  "sourceSHA": "ff699e184b2c9d2f41229f635c61c0c13605cff8",
+  "database": "competition_test",
+  "restart": "Owned local Runtime process and dedicated PostgreSQL container restarted",
+  "oldSessionAuthenticated": true,
+  "allRuntimeTableDigestsUnchanged": true,
+  "before": [
+    {
+      "table": "competition_actions",
+      "count": 643,
+      "digest": "b4d6c4f14911c7b95607e75c6b746b2d"
+    },
+    {
+      "table": "competition_best",
+      "count": 246,
+      "digest": "f2300a3f82d9185625c4d809f715d3ef"
+    },
+    {
+      "table": "competition_duels",
+      "count": 20,
+      "digest": "666b039490fc23aa9fe5796e1df5ea9e"
+    },
+    {
+      "table": "competition_matches",
+      "count": 22,
+      "digest": "8da74da00b958ec0c9834f8e39499c11"
+    },
+    {
+      "table": "competition_players",
+      "count": 252,
+      "digest": "9edb86f3b6f2de5b32eeb323cb74234d"
+    },
+    {
+      "table": "competition_results",
+      "count": 42,
+      "digest": "416a95f6792778f4188c926357eb1f5c"
+    },
+    {
+      "table": "competition_rooms",
+      "count": 24,
+      "digest": "cc3409699e7ae980b7d644ab4205417f"
+    },
+    {
+      "table": "competition_sessions",
+      "count": 48,
+      "digest": "fdd97d7ba9f62a7fdec9464af9b3d318"
+    },
+    {
+      "table": "schema_version",
+      "count": 1,
+      "digest": "bba73959c92203c081403013e984f020"
+    },
+    {
+      "table": "three_choose_two_actions",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "table": "three_choose_two_best",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "table": "three_choose_two_results",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "table": "three_choose_two_sessions",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    }
+  ],
+  "after": [
+    {
+      "table": "competition_actions",
+      "count": 643,
+      "digest": "b4d6c4f14911c7b95607e75c6b746b2d"
+    },
+    {
+      "table": "competition_best",
+      "count": 246,
+      "digest": "f2300a3f82d9185625c4d809f715d3ef"
+    },
+    {
+      "table": "competition_duels",
+      "count": 20,
+      "digest": "666b039490fc23aa9fe5796e1df5ea9e"
+    },
+    {
+      "table": "competition_matches",
+      "count": 22,
+      "digest": "8da74da00b958ec0c9834f8e39499c11"
+    },
+    {
+      "table": "competition_players",
+      "count": 252,
+      "digest": "9edb86f3b6f2de5b32eeb323cb74234d"
+    },
+    {
+      "table": "competition_results",
+      "count": 42,
+      "digest": "416a95f6792778f4188c926357eb1f5c"
+    },
+    {
+      "table": "competition_rooms",
+      "count": 24,
+      "digest": "cc3409699e7ae980b7d644ab4205417f"
+    },
+    {
+      "table": "competition_sessions",
+      "count": 48,
+      "digest": "fdd97d7ba9f62a7fdec9464af9b3d318"
+    },
+    {
+      "table": "schema_version",
+      "count": 1,
+      "digest": "bba73959c92203c081403013e984f020"
+    },
+    {
+      "table": "three_choose_two_actions",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "table": "three_choose_two_best",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "table": "three_choose_two_results",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "table": "three_choose_two_sessions",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    }
+  ],
+  "boards": [
+    {
+      "game": "cops-robbers",
+      "expectedPlayerIds": [
+        "87a1c942-3028-4a77-952c-2d601b36e0a1",
+        "18fca302-3a34-4a31-9e6a-5a8a86c0af2b",
+        "7fd581ad-efb6-4811-9ba6-49e02e84caea",
+        "51956f1c-c9d4-422a-97f7-27cc79860a74"
+      ],
+      "eligiblePlayers": 16,
+      "persistedScores": [
+        {
+          "playerId": "7fd581ad-efb6-4811-9ba6-49e02e84caea",
+          "name": "新玩家",
+          "score": 3,
+          "secondary": 0,
+          "rank": 1,
+          "position": 5,
+          "total": 16
+        },
+        {
+          "playerId": "87a1c942-3028-4a77-952c-2d601b36e0a1",
+          "name": "新玩家",
+          "score": 3,
+          "secondary": 0,
+          "rank": 1,
+          "position": 6,
+          "total": 16
+        },
+        {
+          "playerId": "18fca302-3a34-4a31-9e6a-5a8a86c0af2b",
+          "name": "新玩家",
+          "score": 0,
+          "secondary": 0,
+          "rank": 9,
+          "position": 9,
+          "total": 16
+        },
+        {
+          "playerId": "51956f1c-c9d4-422a-97f7-27cc79860a74",
+          "name": "新玩家",
+          "score": 0,
+          "secondary": 0,
+          "rank": 9,
+          "position": 11,
+          "total": 16
+        }
+      ]
+    },
+    {
+      "game": "cops-robbers-realtime",
+      "expectedPlayerIds": [
+        "fd3fb035-e6f3-4290-a1f2-ecf6e769b29c",
+        "d944f556-2210-447e-8a94-8108c2b847b7",
+        "42156c2b-0d31-4267-b21c-c7a268adf9a2",
+        "fb2f44d1-1419-4929-a24d-20502a9bdb85"
+      ],
+      "eligiblePlayers": 12,
+      "persistedScores": [
+        {
+          "playerId": "d944f556-2210-447e-8a94-8108c2b847b7",
+          "name": "新玩家",
+          "score": 3,
+          "secondary": 0,
+          "rank": 1,
+          "position": 4,
+          "total": 12
+        },
+        {
+          "playerId": "fb2f44d1-1419-4929-a24d-20502a9bdb85",
+          "name": "新玩家",
+          "score": 3,
+          "secondary": 0,
+          "rank": 1,
+          "position": 6,
+          "total": 12
+        },
+        {
+          "playerId": "42156c2b-0d31-4267-b21c-c7a268adf9a2",
+          "name": "新玩家",
+          "score": 0,
+          "secondary": 0,
+          "rank": 7,
+          "position": 7,
+          "total": 12
+        },
+        {
+          "playerId": "fd3fb035-e6f3-4290-a1f2-ecf6e769b29c",
+          "name": "新玩家",
+          "score": 0,
+          "secondary": 0,
+          "rank": 7,
+          "position": 12,
+          "total": 12
+        }
+      ]
+    },
+    {
+      "game": "xiangqi-five",
+      "expectedPlayerIds": [
+        "c20067dd-860e-41a1-8dc6-4e53b04b004e",
+        "43843e1a-be15-4ae7-84cf-c7cc899c62eb",
+        "bc5651db-8fa6-4b6e-b610-4fd697c78eb3",
+        "5cf114a9-c543-49e1-8fb6-eafb852138ed"
+      ],
+      "eligiblePlayers": 12,
+      "persistedScores": [
+        {
+          "playerId": "bc5651db-8fa6-4b6e-b610-4fd697c78eb3",
+          "name": "新玩家",
+          "score": 3,
+          "secondary": 0,
+          "rank": 1,
+          "position": 4,
+          "total": 12
+        },
+        {
+          "playerId": "c20067dd-860e-41a1-8dc6-4e53b04b004e",
+          "name": "新玩家",
+          "score": 3,
+          "secondary": 0,
+          "rank": 1,
+          "position": 5,
+          "total": 12
+        },
+        {
+          "playerId": "43843e1a-be15-4ae7-84cf-c7cc899c62eb",
+          "name": "新玩家",
+          "score": 0,
+          "secondary": 0,
+          "rank": 7,
+          "position": 9,
+          "total": 12
+        },
+        {
+          "playerId": "5cf114a9-c543-49e1-8fb6-eafb852138ed",
+          "name": "新玩家",
+          "score": 0,
+          "secondary": 0,
+          "rank": 7,
+          "position": 10,
+          "total": 12
+        }
+      ]
+    }
+  ]
+}

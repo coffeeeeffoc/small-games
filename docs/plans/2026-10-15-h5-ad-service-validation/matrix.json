@@ -1,0 +1,2068 @@
+{
+  "sourceSHA": "ff699e184b2c9d2f41229f635c61c0c13605cff8",
+  "submoduleSHA": "2238989bb5fa9beeaab591b6fa5717cf08fab6c7",
+  "variants": [
+    {
+      "name": "cops-robbers-ads-off-service-off",
+      "game": "cops-robbers",
+      "packageType": "h5",
+      "entry": "dist/index.html",
+      "adsEnabled": false,
+      "adMode": "off",
+      "adUnitConfigured": false,
+      "serviceEnabled": false,
+      "apiUrl": "",
+      "localValidation": true,
+      "sourceSHA": "ff699e184b2c9d2f41229f635c61c0c13605cff8",
+      "submoduleSHA": "2238989bb5fa9beeaab591b6fa5717cf08fab6c7",
+      "zip": "cops-robbers-ads-off-service-off.zip",
+      "bytes": 935515,
+      "sha256": "2526c5ef15ae07e3e7e1defa8f678e9578da014268af1ddabc00f2984f3ed23b",
+      "files": [
+        {
+          "path": "assets/home-chase.webp",
+          "bytes": 195246,
+          "sha256": "e3499a2f27be60070ef6eeabef1b29b88ef34408bcf6fedf445f8a782d4686e2"
+        },
+        {
+          "path": "assets/patrol-characters.svg",
+          "bytes": 249775,
+          "sha256": "0dfda21a1086356334430bc3a6736fc9f0b2e3f806302683dac14068110ffd41"
+        },
+        {
+          "path": "assets/patrol-garden.webp",
+          "bytes": 171538,
+          "sha256": "ab2805508e6a12d7f7eec503cf6050cf9fbac15cfb61affa2581be8066710ec9"
+        },
+        {
+          "path": "assets/patrol-props.webp",
+          "bytes": 250574,
+          "sha256": "38adfcc6bd8f2065299c3678a4fa7ea5ece0e288f878f8c635655f5795934dd1"
+        },
+        {
+          "path": "dev-mode.js",
+          "bytes": 15134,
+          "sha256": "5633115f12f8f343a16db44c3ee0f10378d109b08392ca7b6fa977b0c6d191b4"
+        },
+        {
+          "path": "favicon.svg",
+          "bytes": 265,
+          "sha256": "e25b0e008d90246e7a6718099cc2c6328bf0ed4c22e532b2da078844335f10b4"
+        },
+        {
+          "path": "index.html",
+          "bytes": 19754,
+          "sha256": "faf7ae12849284d21fcd6447b0220be1cce21e207bf4e82cb230f63931401dbb"
+        },
+        {
+          "path": "platform-ads.js",
+          "bytes": 2993,
+          "sha256": "1f8c779d20ab0bf05f60e901fb1ea01c3e251aca545c1d6f01b9fcaa4f7782b7"
+        },
+        {
+          "path": "platform-config.js",
+          "bytes": 94,
+          "sha256": "38448ec4fe63a220c82ba299da8d455c1cf978db7858ebeecd0c43420723917d"
+        },
+        {
+          "path": "publishing.js",
+          "bytes": 12289,
+          "sha256": "8d9d43cb1c126118286921018d713e5ee860b7c7b5c13f8e1c1ecdbb0b7d277d"
+        },
+        {
+          "path": "src/ad-host.js",
+          "bytes": 1045,
+          "sha256": "0a04d9b3da70b5da862ff9e11983aba6b5e2d7eea5befefe9b7882969d1da62e"
+        },
+        {
+          "path": "src/ads.js",
+          "bytes": 1644,
+          "sha256": "44a4d26ec605b8d4bcef248fb0f1ff0c8fcc453105005ea25a2964dc282b9503"
+        },
+        {
+          "path": "src/art.js",
+          "bytes": 7242,
+          "sha256": "147e8d3ea73b2dbb6a8a2ee87612854ead44e55d4ec6c947a031adeee872f34d"
+        },
+        {
+          "path": "src/board-layout.js",
+          "bytes": 1840,
+          "sha256": "934eba93544127a09ca9857f025d14c8c93d0b76cd3dd71bbbb74824b00815e1"
+        },
+        {
+          "path": "src/competition-renderer.js",
+          "bytes": 7043,
+          "sha256": "321ea4ec08e2f2e6ffdf67d83aa57180a12c22973f22a1428482981398fc1cee"
+        },
+        {
+          "path": "src/duel-levels.js",
+          "bytes": 2955,
+          "sha256": "a729f0ba517943f2dbd3eaaa51bba0fcf96cf837808360fd6979f32fde16d1e5"
+        },
+        {
+          "path": "src/duel-ui.js",
+          "bytes": 17303,
+          "sha256": "a7160bf2192f532b97cc21e68cb9c09f74b34d3a31653fa24e97702d9f8eb81f"
+        },
+        {
+          "path": "src/duel.js",
+          "bytes": 4015,
+          "sha256": "facc9d2bb281322402472e7148eee2e8b229527de174967999e81642ab1d0ba0"
+        },
+        {
+          "path": "src/engine.js",
+          "bytes": 7010,
+          "sha256": "3288a386e52e06004b6e95821c7cca8067c0435d9ca910df1e6d33845ca49b11"
+        },
+        {
+          "path": "src/extended-content.js",
+          "bytes": 19861,
+          "sha256": "6676f1446a20700e46714c672d7cf63f338f66c6babd89c1b26ca2adf9aace3c"
+        },
+        {
+          "path": "src/fullscreen.js",
+          "bytes": 6666,
+          "sha256": "1a0ba1255adb38ac82d793ddd8b4a83734c2d9318369b8c39bb3b16997553be4"
+        },
+        {
+          "path": "src/game-shell.css",
+          "bytes": 22803,
+          "sha256": "dae85da5e32a16243fd92a38057d1221888b8ab2ed9a2c6919586684e12b0422"
+        },
+        {
+          "path": "src/game-shell.js",
+          "bytes": 5820,
+          "sha256": "8546812bb5e065ea94c34c46a8d135eb0f1f48eca4992c5f73aaa1d843f214e3"
+        },
+        {
+          "path": "src/hint-worker.js",
+          "bytes": 2007,
+          "sha256": "b075904a0af68e02a65d2ba10fdcb0f88bb77ab9ca6b2210dc89320fbfad58ba"
+        },
+        {
+          "path": "src/levels.js",
+          "bytes": 240258,
+          "sha256": "a50448227ad1930f65666caea06a89824b3828f9af1b4ad4bad870ad0e61be54"
+        },
+        {
+          "path": "src/main.js",
+          "bytes": 58628,
+          "sha256": "a60a75171ba3ceda275c305461ebd19d93d5af1a4dc6b0dabd94f5c202c03c39"
+        },
+        {
+          "path": "src/native.js",
+          "bytes": 17250,
+          "sha256": "3fa15e46b5f7f7e70a78d107bd056425bc5c7b0c46d5f0c3a59dd200e0640fd4"
+        },
+        {
+          "path": "src/optimal-solutions.js",
+          "bytes": 12628,
+          "sha256": "ebe5758803c72b1ad2c58b61ad6669f03f06e3ba6ec41085c91cbc6977986d36"
+        },
+        {
+          "path": "src/progress.js",
+          "bytes": 516,
+          "sha256": "697ce467ec2d489a112c321b1e9fff4982bf2d4bfbd5af124582987d34e4c5bd"
+        },
+        {
+          "path": "src/quick-content.js",
+          "bytes": 77634,
+          "sha256": "aa2f7faf1faf80366fcbd07facb76beed159e5da82bcf1529bb86841172c36f7"
+        },
+        {
+          "path": "src/quick-trials.js",
+          "bytes": 2870,
+          "sha256": "867c5551665e30de7cc9870b10da6a0f3dd52ff7a94549ab320a1e420906143e"
+        },
+        {
+          "path": "src/relay-content.js",
+          "bytes": 77621,
+          "sha256": "bb03f379bdca2fb0bfa2c26289830dff4b8b9fa43b4ed69ad87b0a0c3e8ec7b7"
+        },
+        {
+          "path": "src/relay.js",
+          "bytes": 1901,
+          "sha256": "ac750a09ad9eec103b84017e2f330892c3d954d582394b859b6844f931fe0db2"
+        },
+        {
+          "path": "src/role-appearance.js",
+          "bytes": 20602,
+          "sha256": "0ba7da9447c0a3ecc475ea62a09a2004194f8f35a3eed15e69d8878bddd69c5f"
+        },
+        {
+          "path": "src/safe-area.js",
+          "bytes": 4209,
+          "sha256": "5d419a734940d674317c6d0774682ecd0045da7dc3899385f3719c4ae41506ab"
+        },
+        {
+          "path": "src/share.js",
+          "bytes": 2985,
+          "sha256": "8f2ebe8e8e1f80a1cbbffb48ff6930d78792a70d0a0e57d7a8fc677f821b1ef3"
+        },
+        {
+          "path": "src/solutions.js",
+          "bytes": 78704,
+          "sha256": "0fc556f668b69cecb82d55b3c5cc078abb02761bf7d4a7a895632a4409f2745d"
+        },
+        {
+          "path": "src/sound.js",
+          "bytes": 1345,
+          "sha256": "0d2b5a79de5e127b104487c96e166bb39b035db5611a67a2a2a022ce541f4c0a"
+        },
+        {
+          "path": "src/style.css",
+          "bytes": 35288,
+          "sha256": "c28f785564c2f53dd83348075759f979259232c51e470751af93970a0630c100"
+        },
+        {
+          "path": "src/viewport.css",
+          "bytes": 22321,
+          "sha256": "ef06ba26c6bc61468f4b2f8dfc7ff002036de7872aff0b10c61aebb6b272ef11"
+        }
+      ],
+      "realAdsVerified": false,
+      "realDeviceVerified": false
+    },
+    {
+      "name": "cops-robbers-ads-on-service-off",
+      "game": "cops-robbers",
+      "packageType": "h5",
+      "entry": "dist/index.html",
+      "adsEnabled": true,
+      "adMode": "host",
+      "adUnitConfigured": false,
+      "serviceEnabled": false,
+      "apiUrl": "",
+      "localValidation": true,
+      "sourceSHA": "ff699e184b2c9d2f41229f635c61c0c13605cff8",
+      "submoduleSHA": "2238989bb5fa9beeaab591b6fa5717cf08fab6c7",
+      "zip": "cops-robbers-ads-on-service-off.zip",
+      "bytes": 935555,
+      "sha256": "c333607452ac424c96870f26ee57bfb569f67b5afe176eb929fa354ead5913d1",
+      "files": [
+        {
+          "path": "assets/home-chase.webp",
+          "bytes": 195246,
+          "sha256": "e3499a2f27be60070ef6eeabef1b29b88ef34408bcf6fedf445f8a782d4686e2"
+        },
+        {
+          "path": "assets/patrol-characters.svg",
+          "bytes": 249775,
+          "sha256": "0dfda21a1086356334430bc3a6736fc9f0b2e3f806302683dac14068110ffd41"
+        },
+        {
+          "path": "assets/patrol-garden.webp",
+          "bytes": 171538,
+          "sha256": "ab2805508e6a12d7f7eec503cf6050cf9fbac15cfb61affa2581be8066710ec9"
+        },
+        {
+          "path": "assets/patrol-props.webp",
+          "bytes": 250574,
+          "sha256": "38adfcc6bd8f2065299c3678a4fa7ea5ece0e288f878f8c635655f5795934dd1"
+        },
+        {
+          "path": "dev-mode.js",
+          "bytes": 15134,
+          "sha256": "5633115f12f8f343a16db44c3ee0f10378d109b08392ca7b6fa977b0c6d191b4"
+        },
+        {
+          "path": "favicon.svg",
+          "bytes": 265,
+          "sha256": "e25b0e008d90246e7a6718099cc2c6328bf0ed4c22e532b2da078844335f10b4"
+        },
+        {
+          "path": "index.html",
+          "bytes": 19754,
+          "sha256": "faf7ae12849284d21fcd6447b0220be1cce21e207bf4e82cb230f63931401dbb"
+        },
+        {
+          "path": "platform-ads.js",
+          "bytes": 2993,
+          "sha256": "1f8c779d20ab0bf05f60e901fb1ea01c3e251aca545c1d6f01b9fcaa4f7782b7"
+        },
+        {
+          "path": "platform-config.js",
+          "bytes": 153,
+          "sha256": "67ecaae8ff111622b8d182024d4d6a7ddb4ca74f4991089b2e160aeec7943966"
+        },
+        {
+          "path": "publishing.js",
+          "bytes": 12289,
+          "sha256": "8d9d43cb1c126118286921018d713e5ee860b7c7b5c13f8e1c1ecdbb0b7d277d"
+        },
+        {
+          "path": "src/ad-host.js",
+          "bytes": 1045,
+          "sha256": "0a04d9b3da70b5da862ff9e11983aba6b5e2d7eea5befefe9b7882969d1da62e"
+        },
+        {
+          "path": "src/ads.js",
+          "bytes": 1644,
+          "sha256": "44a4d26ec605b8d4bcef248fb0f1ff0c8fcc453105005ea25a2964dc282b9503"
+        },
+        {
+          "path": "src/art.js",
+          "bytes": 7242,
+          "sha256": "147e8d3ea73b2dbb6a8a2ee87612854ead44e55d4ec6c947a031adeee872f34d"
+        },
+        {
+          "path": "src/board-layout.js",
+          "bytes": 1840,
+          "sha256": "934eba93544127a09ca9857f025d14c8c93d0b76cd3dd71bbbb74824b00815e1"
+        },
+        {
+          "path": "src/competition-renderer.js",
+          "bytes": 7043,
+          "sha256": "321ea4ec08e2f2e6ffdf67d83aa57180a12c22973f22a1428482981398fc1cee"
+        },
+        {
+          "path": "src/duel-levels.js",
+          "bytes": 2955,
+          "sha256": "a729f0ba517943f2dbd3eaaa51bba0fcf96cf837808360fd6979f32fde16d1e5"
+        },
+        {
+          "path": "src/duel-ui.js",
+          "bytes": 17303,
+          "sha256": "a7160bf2192f532b97cc21e68cb9c09f74b34d3a31653fa24e97702d9f8eb81f"
+        },
+        {
+          "path": "src/duel.js",
+          "bytes": 4015,
+          "sha256": "facc9d2bb281322402472e7148eee2e8b229527de174967999e81642ab1d0ba0"
+        },
+        {
+          "path": "src/engine.js",
+          "bytes": 7010,
+          "sha256": "3288a386e52e06004b6e95821c7cca8067c0435d9ca910df1e6d33845ca49b11"
+        },
+        {
+          "path": "src/extended-content.js",
+          "bytes": 19861,
+          "sha256": "6676f1446a20700e46714c672d7cf63f338f66c6babd89c1b26ca2adf9aace3c"
+        },
+        {
+          "path": "src/fullscreen.js",
+          "bytes": 6666,
+          "sha256": "1a0ba1255adb38ac82d793ddd8b4a83734c2d9318369b8c39bb3b16997553be4"
+        },
+        {
+          "path": "src/game-shell.css",
+          "bytes": 22803,
+          "sha256": "dae85da5e32a16243fd92a38057d1221888b8ab2ed9a2c6919586684e12b0422"
+        },
+        {
+          "path": "src/game-shell.js",
+          "bytes": 5820,
+          "sha256": "8546812bb5e065ea94c34c46a8d135eb0f1f48eca4992c5f73aaa1d843f214e3"
+        },
+        {
+          "path": "src/hint-worker.js",
+          "bytes": 2007,
+          "sha256": "b075904a0af68e02a65d2ba10fdcb0f88bb77ab9ca6b2210dc89320fbfad58ba"
+        },
+        {
+          "path": "src/levels.js",
+          "bytes": 240258,
+          "sha256": "a50448227ad1930f65666caea06a89824b3828f9af1b4ad4bad870ad0e61be54"
+        },
+        {
+          "path": "src/main.js",
+          "bytes": 58628,
+          "sha256": "a60a75171ba3ceda275c305461ebd19d93d5af1a4dc6b0dabd94f5c202c03c39"
+        },
+        {
+          "path": "src/native.js",
+          "bytes": 17250,
+          "sha256": "3fa15e46b5f7f7e70a78d107bd056425bc5c7b0c46d5f0c3a59dd200e0640fd4"
+        },
+        {
+          "path": "src/optimal-solutions.js",
+          "bytes": 12628,
+          "sha256": "ebe5758803c72b1ad2c58b61ad6669f03f06e3ba6ec41085c91cbc6977986d36"
+        },
+        {
+          "path": "src/progress.js",
+          "bytes": 516,
+          "sha256": "697ce467ec2d489a112c321b1e9fff4982bf2d4bfbd5af124582987d34e4c5bd"
+        },
+        {
+          "path": "src/quick-content.js",
+          "bytes": 77634,
+          "sha256": "aa2f7faf1faf80366fcbd07facb76beed159e5da82bcf1529bb86841172c36f7"
+        },
+        {
+          "path": "src/quick-trials.js",
+          "bytes": 2870,
+          "sha256": "867c5551665e30de7cc9870b10da6a0f3dd52ff7a94549ab320a1e420906143e"
+        },
+        {
+          "path": "src/relay-content.js",
+          "bytes": 77621,
+          "sha256": "bb03f379bdca2fb0bfa2c26289830dff4b8b9fa43b4ed69ad87b0a0c3e8ec7b7"
+        },
+        {
+          "path": "src/relay.js",
+          "bytes": 1901,
+          "sha256": "ac750a09ad9eec103b84017e2f330892c3d954d582394b859b6844f931fe0db2"
+        },
+        {
+          "path": "src/role-appearance.js",
+          "bytes": 20602,
+          "sha256": "0ba7da9447c0a3ecc475ea62a09a2004194f8f35a3eed15e69d8878bddd69c5f"
+        },
+        {
+          "path": "src/safe-area.js",
+          "bytes": 4209,
+          "sha256": "5d419a734940d674317c6d0774682ecd0045da7dc3899385f3719c4ae41506ab"
+        },
+        {
+          "path": "src/share.js",
+          "bytes": 2985,
+          "sha256": "8f2ebe8e8e1f80a1cbbffb48ff6930d78792a70d0a0e57d7a8fc677f821b1ef3"
+        },
+        {
+          "path": "src/solutions.js",
+          "bytes": 78704,
+          "sha256": "0fc556f668b69cecb82d55b3c5cc078abb02761bf7d4a7a895632a4409f2745d"
+        },
+        {
+          "path": "src/sound.js",
+          "bytes": 1345,
+          "sha256": "0d2b5a79de5e127b104487c96e166bb39b035db5611a67a2a2a022ce541f4c0a"
+        },
+        {
+          "path": "src/style.css",
+          "bytes": 35288,
+          "sha256": "c28f785564c2f53dd83348075759f979259232c51e470751af93970a0630c100"
+        },
+        {
+          "path": "src/viewport.css",
+          "bytes": 22321,
+          "sha256": "ef06ba26c6bc61468f4b2f8dfc7ff002036de7872aff0b10c61aebb6b272ef11"
+        }
+      ],
+      "realAdsVerified": false,
+      "realDeviceVerified": false
+    },
+    {
+      "name": "cops-robbers-ads-off-service-on",
+      "game": "cops-robbers",
+      "packageType": "h5",
+      "entry": "dist/index.html",
+      "adsEnabled": false,
+      "adMode": "off",
+      "adUnitConfigured": false,
+      "serviceEnabled": true,
+      "apiUrl": "http://127.0.0.1:43802/api/competition/v1",
+      "localValidation": true,
+      "sourceSHA": "ff699e184b2c9d2f41229f635c61c0c13605cff8",
+      "submoduleSHA": "2238989bb5fa9beeaab591b6fa5717cf08fab6c7",
+      "zip": "cops-robbers-ads-off-service-on.zip",
+      "bytes": 989313,
+      "sha256": "1775af0adea957a55503ba3b373a3f2e658b2789bc1fefa1501aac0bc59a52f5",
+      "files": [
+        {
+          "path": "assets/home-chase.webp",
+          "bytes": 195246,
+          "sha256": "e3499a2f27be60070ef6eeabef1b29b88ef34408bcf6fedf445f8a782d4686e2"
+        },
+        {
+          "path": "assets/patrol-characters.svg",
+          "bytes": 249775,
+          "sha256": "0dfda21a1086356334430bc3a6736fc9f0b2e3f806302683dac14068110ffd41"
+        },
+        {
+          "path": "assets/patrol-garden.webp",
+          "bytes": 171538,
+          "sha256": "ab2805508e6a12d7f7eec503cf6050cf9fbac15cfb61affa2581be8066710ec9"
+        },
+        {
+          "path": "assets/patrol-props.webp",
+          "bytes": 250574,
+          "sha256": "38adfcc6bd8f2065299c3678a4fa7ea5ece0e288f878f8c635655f5795934dd1"
+        },
+        {
+          "path": "competition.js",
+          "bytes": 341574,
+          "sha256": "fda507b8b58b6124687ad51bf7493c3e0825b4db8b6c232056e90b7e6530d54b"
+        },
+        {
+          "path": "dev-mode.js",
+          "bytes": 15134,
+          "sha256": "5633115f12f8f343a16db44c3ee0f10378d109b08392ca7b6fa977b0c6d191b4"
+        },
+        {
+          "path": "favicon.svg",
+          "bytes": 265,
+          "sha256": "e25b0e008d90246e7a6718099cc2c6328bf0ed4c22e532b2da078844335f10b4"
+        },
+        {
+          "path": "index.html",
+          "bytes": 19840,
+          "sha256": "4008e6b52dea2af62284f834e19180b9d59d156090233ca6caaec06d3e498912"
+        },
+        {
+          "path": "platform-ads.js",
+          "bytes": 2993,
+          "sha256": "1f8c779d20ab0bf05f60e901fb1ea01c3e251aca545c1d6f01b9fcaa4f7782b7"
+        },
+        {
+          "path": "platform-config.js",
+          "bytes": 94,
+          "sha256": "38448ec4fe63a220c82ba299da8d455c1cf978db7858ebeecd0c43420723917d"
+        },
+        {
+          "path": "publishing.js",
+          "bytes": 12289,
+          "sha256": "8d9d43cb1c126118286921018d713e5ee860b7c7b5c13f8e1c1ecdbb0b7d277d"
+        },
+        {
+          "path": "src/ad-host.js",
+          "bytes": 1045,
+          "sha256": "0a04d9b3da70b5da862ff9e11983aba6b5e2d7eea5befefe9b7882969d1da62e"
+        },
+        {
+          "path": "src/ads.js",
+          "bytes": 1644,
+          "sha256": "44a4d26ec605b8d4bcef248fb0f1ff0c8fcc453105005ea25a2964dc282b9503"
+        },
+        {
+          "path": "src/art.js",
+          "bytes": 7242,
+          "sha256": "147e8d3ea73b2dbb6a8a2ee87612854ead44e55d4ec6c947a031adeee872f34d"
+        },
+        {
+          "path": "src/board-layout.js",
+          "bytes": 1840,
+          "sha256": "934eba93544127a09ca9857f025d14c8c93d0b76cd3dd71bbbb74824b00815e1"
+        },
+        {
+          "path": "src/competition-renderer.js",
+          "bytes": 7043,
+          "sha256": "321ea4ec08e2f2e6ffdf67d83aa57180a12c22973f22a1428482981398fc1cee"
+        },
+        {
+          "path": "src/duel-levels.js",
+          "bytes": 2955,
+          "sha256": "a729f0ba517943f2dbd3eaaa51bba0fcf96cf837808360fd6979f32fde16d1e5"
+        },
+        {
+          "path": "src/duel-ui.js",
+          "bytes": 17303,
+          "sha256": "a7160bf2192f532b97cc21e68cb9c09f74b34d3a31653fa24e97702d9f8eb81f"
+        },
+        {
+          "path": "src/duel.js",
+          "bytes": 4015,
+          "sha256": "facc9d2bb281322402472e7148eee2e8b229527de174967999e81642ab1d0ba0"
+        },
+        {
+          "path": "src/engine.js",
+          "bytes": 7010,
+          "sha256": "3288a386e52e06004b6e95821c7cca8067c0435d9ca910df1e6d33845ca49b11"
+        },
+        {
+          "path": "src/extended-content.js",
+          "bytes": 19861,
+          "sha256": "6676f1446a20700e46714c672d7cf63f338f66c6babd89c1b26ca2adf9aace3c"
+        },
+        {
+          "path": "src/fullscreen.js",
+          "bytes": 6666,
+          "sha256": "1a0ba1255adb38ac82d793ddd8b4a83734c2d9318369b8c39bb3b16997553be4"
+        },
+        {
+          "path": "src/game-shell.css",
+          "bytes": 22803,
+          "sha256": "dae85da5e32a16243fd92a38057d1221888b8ab2ed9a2c6919586684e12b0422"
+        },
+        {
+          "path": "src/game-shell.js",
+          "bytes": 5820,
+          "sha256": "8546812bb5e065ea94c34c46a8d135eb0f1f48eca4992c5f73aaa1d843f214e3"
+        },
+        {
+          "path": "src/hint-worker.js",
+          "bytes": 2007,
+          "sha256": "b075904a0af68e02a65d2ba10fdcb0f88bb77ab9ca6b2210dc89320fbfad58ba"
+        },
+        {
+          "path": "src/levels.js",
+          "bytes": 240258,
+          "sha256": "a50448227ad1930f65666caea06a89824b3828f9af1b4ad4bad870ad0e61be54"
+        },
+        {
+          "path": "src/main.js",
+          "bytes": 58628,
+          "sha256": "a60a75171ba3ceda275c305461ebd19d93d5af1a4dc6b0dabd94f5c202c03c39"
+        },
+        {
+          "path": "src/native.js",
+          "bytes": 17250,
+          "sha256": "3fa15e46b5f7f7e70a78d107bd056425bc5c7b0c46d5f0c3a59dd200e0640fd4"
+        },
+        {
+          "path": "src/optimal-solutions.js",
+          "bytes": 12628,
+          "sha256": "ebe5758803c72b1ad2c58b61ad6669f03f06e3ba6ec41085c91cbc6977986d36"
+        },
+        {
+          "path": "src/progress.js",
+          "bytes": 516,
+          "sha256": "697ce467ec2d489a112c321b1e9fff4982bf2d4bfbd5af124582987d34e4c5bd"
+        },
+        {
+          "path": "src/quick-content.js",
+          "bytes": 77634,
+          "sha256": "aa2f7faf1faf80366fcbd07facb76beed159e5da82bcf1529bb86841172c36f7"
+        },
+        {
+          "path": "src/quick-trials.js",
+          "bytes": 2870,
+          "sha256": "867c5551665e30de7cc9870b10da6a0f3dd52ff7a94549ab320a1e420906143e"
+        },
+        {
+          "path": "src/relay-content.js",
+          "bytes": 77621,
+          "sha256": "bb03f379bdca2fb0bfa2c26289830dff4b8b9fa43b4ed69ad87b0a0c3e8ec7b7"
+        },
+        {
+          "path": "src/relay.js",
+          "bytes": 1901,
+          "sha256": "ac750a09ad9eec103b84017e2f330892c3d954d582394b859b6844f931fe0db2"
+        },
+        {
+          "path": "src/role-appearance.js",
+          "bytes": 20602,
+          "sha256": "0ba7da9447c0a3ecc475ea62a09a2004194f8f35a3eed15e69d8878bddd69c5f"
+        },
+        {
+          "path": "src/safe-area.js",
+          "bytes": 4209,
+          "sha256": "5d419a734940d674317c6d0774682ecd0045da7dc3899385f3719c4ae41506ab"
+        },
+        {
+          "path": "src/share.js",
+          "bytes": 2985,
+          "sha256": "8f2ebe8e8e1f80a1cbbffb48ff6930d78792a70d0a0e57d7a8fc677f821b1ef3"
+        },
+        {
+          "path": "src/solutions.js",
+          "bytes": 78704,
+          "sha256": "0fc556f668b69cecb82d55b3c5cc078abb02761bf7d4a7a895632a4409f2745d"
+        },
+        {
+          "path": "src/sound.js",
+          "bytes": 1345,
+          "sha256": "0d2b5a79de5e127b104487c96e166bb39b035db5611a67a2a2a022ce541f4c0a"
+        },
+        {
+          "path": "src/style.css",
+          "bytes": 35288,
+          "sha256": "c28f785564c2f53dd83348075759f979259232c51e470751af93970a0630c100"
+        },
+        {
+          "path": "src/viewport.css",
+          "bytes": 22321,
+          "sha256": "ef06ba26c6bc61468f4b2f8dfc7ff002036de7872aff0b10c61aebb6b272ef11"
+        }
+      ],
+      "realAdsVerified": false,
+      "realDeviceVerified": false
+    },
+    {
+      "name": "cops-robbers-ads-on-service-on",
+      "game": "cops-robbers",
+      "packageType": "h5",
+      "entry": "dist/index.html",
+      "adsEnabled": true,
+      "adMode": "host",
+      "adUnitConfigured": false,
+      "serviceEnabled": true,
+      "apiUrl": "http://127.0.0.1:43802/api/competition/v1",
+      "localValidation": true,
+      "sourceSHA": "ff699e184b2c9d2f41229f635c61c0c13605cff8",
+      "submoduleSHA": "2238989bb5fa9beeaab591b6fa5717cf08fab6c7",
+      "zip": "cops-robbers-ads-on-service-on.zip",
+      "bytes": 989351,
+      "sha256": "f17640c32c4b0fef815c495f3fad03d31ec23c00ca80eada02c6940c79c32590",
+      "files": [
+        {
+          "path": "assets/home-chase.webp",
+          "bytes": 195246,
+          "sha256": "e3499a2f27be60070ef6eeabef1b29b88ef34408bcf6fedf445f8a782d4686e2"
+        },
+        {
+          "path": "assets/patrol-characters.svg",
+          "bytes": 249775,
+          "sha256": "0dfda21a1086356334430bc3a6736fc9f0b2e3f806302683dac14068110ffd41"
+        },
+        {
+          "path": "assets/patrol-garden.webp",
+          "bytes": 171538,
+          "sha256": "ab2805508e6a12d7f7eec503cf6050cf9fbac15cfb61affa2581be8066710ec9"
+        },
+        {
+          "path": "assets/patrol-props.webp",
+          "bytes": 250574,
+          "sha256": "38adfcc6bd8f2065299c3678a4fa7ea5ece0e288f878f8c635655f5795934dd1"
+        },
+        {
+          "path": "competition.js",
+          "bytes": 341574,
+          "sha256": "67f5f281176adb869d8b2855585fed87dbedffad6eb7f0003d871c940a422653"
+        },
+        {
+          "path": "dev-mode.js",
+          "bytes": 15134,
+          "sha256": "5633115f12f8f343a16db44c3ee0f10378d109b08392ca7b6fa977b0c6d191b4"
+        },
+        {
+          "path": "favicon.svg",
+          "bytes": 265,
+          "sha256": "e25b0e008d90246e7a6718099cc2c6328bf0ed4c22e532b2da078844335f10b4"
+        },
+        {
+          "path": "index.html",
+          "bytes": 19840,
+          "sha256": "4008e6b52dea2af62284f834e19180b9d59d156090233ca6caaec06d3e498912"
+        },
+        {
+          "path": "platform-ads.js",
+          "bytes": 2993,
+          "sha256": "1f8c779d20ab0bf05f60e901fb1ea01c3e251aca545c1d6f01b9fcaa4f7782b7"
+        },
+        {
+          "path": "platform-config.js",
+          "bytes": 153,
+          "sha256": "67ecaae8ff111622b8d182024d4d6a7ddb4ca74f4991089b2e160aeec7943966"
+        },
+        {
+          "path": "publishing.js",
+          "bytes": 12289,
+          "sha256": "8d9d43cb1c126118286921018d713e5ee860b7c7b5c13f8e1c1ecdbb0b7d277d"
+        },
+        {
+          "path": "src/ad-host.js",
+          "bytes": 1045,
+          "sha256": "0a04d9b3da70b5da862ff9e11983aba6b5e2d7eea5befefe9b7882969d1da62e"
+        },
+        {
+          "path": "src/ads.js",
+          "bytes": 1644,
+          "sha256": "44a4d26ec605b8d4bcef248fb0f1ff0c8fcc453105005ea25a2964dc282b9503"
+        },
+        {
+          "path": "src/art.js",
+          "bytes": 7242,
+          "sha256": "147e8d3ea73b2dbb6a8a2ee87612854ead44e55d4ec6c947a031adeee872f34d"
+        },
+        {
+          "path": "src/board-layout.js",
+          "bytes": 1840,
+          "sha256": "934eba93544127a09ca9857f025d14c8c93d0b76cd3dd71bbbb74824b00815e1"
+        },
+        {
+          "path": "src/competition-renderer.js",
+          "bytes": 7043,
+          "sha256": "321ea4ec08e2f2e6ffdf67d83aa57180a12c22973f22a1428482981398fc1cee"
+        },
+        {
+          "path": "src/duel-levels.js",
+          "bytes": 2955,
+          "sha256": "a729f0ba517943f2dbd3eaaa51bba0fcf96cf837808360fd6979f32fde16d1e5"
+        },
+        {
+          "path": "src/duel-ui.js",
+          "bytes": 17303,
+          "sha256": "a7160bf2192f532b97cc21e68cb9c09f74b34d3a31653fa24e97702d9f8eb81f"
+        },
+        {
+          "path": "src/duel.js",
+          "bytes": 4015,
+          "sha256": "facc9d2bb281322402472e7148eee2e8b229527de174967999e81642ab1d0ba0"
+        },
+        {
+          "path": "src/engine.js",
+          "bytes": 7010,
+          "sha256": "3288a386e52e06004b6e95821c7cca8067c0435d9ca910df1e6d33845ca49b11"
+        },
+        {
+          "path": "src/extended-content.js",
+          "bytes": 19861,
+          "sha256": "6676f1446a20700e46714c672d7cf63f338f66c6babd89c1b26ca2adf9aace3c"
+        },
+        {
+          "path": "src/fullscreen.js",
+          "bytes": 6666,
+          "sha256": "1a0ba1255adb38ac82d793ddd8b4a83734c2d9318369b8c39bb3b16997553be4"
+        },
+        {
+          "path": "src/game-shell.css",
+          "bytes": 22803,
+          "sha256": "dae85da5e32a16243fd92a38057d1221888b8ab2ed9a2c6919586684e12b0422"
+        },
+        {
+          "path": "src/game-shell.js",
+          "bytes": 5820,
+          "sha256": "8546812bb5e065ea94c34c46a8d135eb0f1f48eca4992c5f73aaa1d843f214e3"
+        },
+        {
+          "path": "src/hint-worker.js",
+          "bytes": 2007,
+          "sha256": "b075904a0af68e02a65d2ba10fdcb0f88bb77ab9ca6b2210dc89320fbfad58ba"
+        },
+        {
+          "path": "src/levels.js",
+          "bytes": 240258,
+          "sha256": "a50448227ad1930f65666caea06a89824b3828f9af1b4ad4bad870ad0e61be54"
+        },
+        {
+          "path": "src/main.js",
+          "bytes": 58628,
+          "sha256": "a60a75171ba3ceda275c305461ebd19d93d5af1a4dc6b0dabd94f5c202c03c39"
+        },
+        {
+          "path": "src/native.js",
+          "bytes": 17250,
+          "sha256": "3fa15e46b5f7f7e70a78d107bd056425bc5c7b0c46d5f0c3a59dd200e0640fd4"
+        },
+        {
+          "path": "src/optimal-solutions.js",
+          "bytes": 12628,
+          "sha256": "ebe5758803c72b1ad2c58b61ad6669f03f06e3ba6ec41085c91cbc6977986d36"
+        },
+        {
+          "path": "src/progress.js",
+          "bytes": 516,
+          "sha256": "697ce467ec2d489a112c321b1e9fff4982bf2d4bfbd5af124582987d34e4c5bd"
+        },
+        {
+          "path": "src/quick-content.js",
+          "bytes": 77634,
+          "sha256": "aa2f7faf1faf80366fcbd07facb76beed159e5da82bcf1529bb86841172c36f7"
+        },
+        {
+          "path": "src/quick-trials.js",
+          "bytes": 2870,
+          "sha256": "867c5551665e30de7cc9870b10da6a0f3dd52ff7a94549ab320a1e420906143e"
+        },
+        {
+          "path": "src/relay-content.js",
+          "bytes": 77621,
+          "sha256": "bb03f379bdca2fb0bfa2c26289830dff4b8b9fa43b4ed69ad87b0a0c3e8ec7b7"
+        },
+        {
+          "path": "src/relay.js",
+          "bytes": 1901,
+          "sha256": "ac750a09ad9eec103b84017e2f330892c3d954d582394b859b6844f931fe0db2"
+        },
+        {
+          "path": "src/role-appearance.js",
+          "bytes": 20602,
+          "sha256": "0ba7da9447c0a3ecc475ea62a09a2004194f8f35a3eed15e69d8878bddd69c5f"
+        },
+        {
+          "path": "src/safe-area.js",
+          "bytes": 4209,
+          "sha256": "5d419a734940d674317c6d0774682ecd0045da7dc3899385f3719c4ae41506ab"
+        },
+        {
+          "path": "src/share.js",
+          "bytes": 2985,
+          "sha256": "8f2ebe8e8e1f80a1cbbffb48ff6930d78792a70d0a0e57d7a8fc677f821b1ef3"
+        },
+        {
+          "path": "src/solutions.js",
+          "bytes": 78704,
+          "sha256": "0fc556f668b69cecb82d55b3c5cc078abb02761bf7d4a7a895632a4409f2745d"
+        },
+        {
+          "path": "src/sound.js",
+          "bytes": 1345,
+          "sha256": "0d2b5a79de5e127b104487c96e166bb39b035db5611a67a2a2a022ce541f4c0a"
+        },
+        {
+          "path": "src/style.css",
+          "bytes": 35288,
+          "sha256": "c28f785564c2f53dd83348075759f979259232c51e470751af93970a0630c100"
+        },
+        {
+          "path": "src/viewport.css",
+          "bytes": 22321,
+          "sha256": "ef06ba26c6bc61468f4b2f8dfc7ff002036de7872aff0b10c61aebb6b272ef11"
+        }
+      ],
+      "realAdsVerified": false,
+      "realDeviceVerified": false
+    },
+    {
+      "name": "cops-robbers-realtime-ads-off-service-off",
+      "game": "cops-robbers-realtime",
+      "packageType": "h5",
+      "entry": "dist/index.html",
+      "adsEnabled": false,
+      "adMode": "off",
+      "adUnitConfigured": false,
+      "serviceEnabled": false,
+      "apiUrl": "",
+      "localValidation": true,
+      "sourceSHA": "ff699e184b2c9d2f41229f635c61c0c13605cff8",
+      "submoduleSHA": "2238989bb5fa9beeaab591b6fa5717cf08fab6c7",
+      "zip": "cops-robbers-realtime-ads-off-service-off.zip",
+      "bytes": 4090554,
+      "sha256": "803f64b074437ca5f16a64274616fb01150e1ba8193c9e3f515d59353493d806",
+      "files": [
+        {
+          "path": "dev-mode.js",
+          "bytes": 15134,
+          "sha256": "5633115f12f8f343a16db44c3ee0f10378d109b08392ca7b6fa977b0c6d191b4"
+        },
+        {
+          "path": "index.html",
+          "bytes": 27615,
+          "sha256": "88af852a06256e9507d7eae3ced9ff4457e22bfb5be699019f3931c78c62dbe3"
+        },
+        {
+          "path": "platform-config.js",
+          "bytes": 94,
+          "sha256": "38448ec4fe63a220c82ba299da8d455c1cf978db7858ebeecd0c43420723917d"
+        },
+        {
+          "path": "publishing.js",
+          "bytes": 12289,
+          "sha256": "8d9d43cb1c126118286921018d713e5ee860b7c7b5c13f8e1c1ecdbb0b7d277d"
+        },
+        {
+          "path": "src/appearance.css",
+          "bytes": 11344,
+          "sha256": "e6193ea0582d68f823c0257e1960e84f6c9a599381792dcc3bdee1c32e1c54db"
+        },
+        {
+          "path": "src/assets/characters.png",
+          "bytes": 1594303,
+          "sha256": "da0dc59b9c072a80accf7e6c1e8e2b54b22577c63d9fb0a2f01fcc6cf4e48033"
+        },
+        {
+          "path": "src/assets/home-city.png",
+          "bytes": 2412320,
+          "sha256": "9842948f3dba69b92f41fb074b534b198ae7f0dca0ca353483172f05e0c0f1a2"
+        },
+        {
+          "path": "src/audio.js",
+          "bytes": 2111,
+          "sha256": "088470f403221d20415491672a5ca0fb4d841289b7ae8b49d66838403689f4c2"
+        },
+        {
+          "path": "src/cartoon.css",
+          "bytes": 9893,
+          "sha256": "88996058d33c674e5d3d446a8a038cdc8a1d83c950f63c046b492ce82e2f1441"
+        },
+        {
+          "path": "src/challenge-finals.js",
+          "bytes": 43517,
+          "sha256": "37439412352bde76cabab621ffcfb3030920a3dad19f15e90c15940ca0b5f0ee"
+        },
+        {
+          "path": "src/competition-renderer.js",
+          "bytes": 6989,
+          "sha256": "933eab89698c18e7e7825f96388a1f25d3be04b35234b4bf2e3c1d493e9c0a35"
+        },
+        {
+          "path": "src/engine.js",
+          "bytes": 30248,
+          "sha256": "fdbaea0bf7d8b008bc5d45704fd85e5e46a6bd73daf805c626aa10fff007676e"
+        },
+        {
+          "path": "src/fullscreen.js",
+          "bytes": 6666,
+          "sha256": "1a0ba1255adb38ac82d793ddd8b4a83734c2d9318369b8c39bb3b16997553be4"
+        },
+        {
+          "path": "src/layout-variants.js",
+          "bytes": 4040,
+          "sha256": "cf758daeec18c88c558110a4b4936f872c2aa9c40bb9856dd248272395abd84a"
+        },
+        {
+          "path": "src/level-safety.js",
+          "bytes": 909,
+          "sha256": "9eaad67103c32befddaa9a8e363ccba25779aa42e4a5a92301a6e94c04c81d92"
+        },
+        {
+          "path": "src/levels.js",
+          "bytes": 34112,
+          "sha256": "73463f5e08e245c937608c014ecbbc03bdead2d3103e4bdb7c784690e14d33dc"
+        },
+        {
+          "path": "src/main.js",
+          "bytes": 60303,
+          "sha256": "7c19526ab98633d2167db514c22acca159a2fcb16430edc944e702de57d561ac"
+        },
+        {
+          "path": "src/native.js",
+          "bytes": 24926,
+          "sha256": "5671c5fae594be01e30f0e91d7fef421f05304355a60318d5eb4524f62dc527a"
+        },
+        {
+          "path": "src/quick-trials.js",
+          "bytes": 1373,
+          "sha256": "60c8a5fd11039e21b2bd166135719b7cc8b9cb3039d897274669a5658b8533d7"
+        },
+        {
+          "path": "src/records.js",
+          "bytes": 1379,
+          "sha256": "d0dbd370e47e61889e5d47a7d62a6c27c9cb05a0ed622ee9d67257f08c9c8fff"
+        },
+        {
+          "path": "src/renderer.js",
+          "bytes": 28852,
+          "sha256": "6f7aaa2077d7b6a0acbffbe1401e8528566e84bc651d9938ea8546cef1ed4c4c"
+        },
+        {
+          "path": "src/role-appearance.js",
+          "bytes": 26879,
+          "sha256": "6daebc11807a70100d845b6dc9cc77d5d402c576e1568267c53cf1fc30679cb7"
+        },
+        {
+          "path": "src/safe-area.js",
+          "bytes": 4209,
+          "sha256": "5d419a734940d674317c6d0774682ecd0045da7dc3899385f3719c4ae41506ab"
+        },
+        {
+          "path": "src/share.js",
+          "bytes": 2453,
+          "sha256": "fd89d7ebebac6abae3065ed9246bbb6cd89a0ccb9bf01926bdac5b4bcee4ef59"
+        },
+        {
+          "path": "src/style.css",
+          "bytes": 37422,
+          "sha256": "658449c9671255fc9ee074d02e4e9750b18430eee62bb3cdf2d0dd7c52ebebde"
+        },
+        {
+          "path": "src/support.js",
+          "bytes": 3206,
+          "sha256": "720f5790edf71408063f2e63b75fd855ba4c97ecd4ddea0fd2710da24d358928"
+        },
+        {
+          "path": "src/taptap-h5-ads.js",
+          "bytes": 1883,
+          "sha256": "6d7e77ebf50657aa2f068ec2cea85fa5d55bb614f8ceb4f31c2c7f4edaa67103"
+        }
+      ],
+      "realAdsVerified": false,
+      "realDeviceVerified": false
+    },
+    {
+      "name": "cops-robbers-realtime-ads-on-service-off",
+      "game": "cops-robbers-realtime",
+      "packageType": "h5",
+      "entry": "dist/index.html",
+      "adsEnabled": true,
+      "adMode": "host",
+      "adUnitConfigured": false,
+      "serviceEnabled": false,
+      "apiUrl": "",
+      "localValidation": true,
+      "sourceSHA": "ff699e184b2c9d2f41229f635c61c0c13605cff8",
+      "submoduleSHA": "2238989bb5fa9beeaab591b6fa5717cf08fab6c7",
+      "zip": "cops-robbers-realtime-ads-on-service-off.zip",
+      "bytes": 4090594,
+      "sha256": "7bc5b351ed3c49c7919a03e1d033558aef7a70122bff7910060cef9cb0ab7109",
+      "files": [
+        {
+          "path": "dev-mode.js",
+          "bytes": 15134,
+          "sha256": "5633115f12f8f343a16db44c3ee0f10378d109b08392ca7b6fa977b0c6d191b4"
+        },
+        {
+          "path": "index.html",
+          "bytes": 27615,
+          "sha256": "88af852a06256e9507d7eae3ced9ff4457e22bfb5be699019f3931c78c62dbe3"
+        },
+        {
+          "path": "platform-config.js",
+          "bytes": 153,
+          "sha256": "67ecaae8ff111622b8d182024d4d6a7ddb4ca74f4991089b2e160aeec7943966"
+        },
+        {
+          "path": "publishing.js",
+          "bytes": 12289,
+          "sha256": "8d9d43cb1c126118286921018d713e5ee860b7c7b5c13f8e1c1ecdbb0b7d277d"
+        },
+        {
+          "path": "src/appearance.css",
+          "bytes": 11344,
+          "sha256": "e6193ea0582d68f823c0257e1960e84f6c9a599381792dcc3bdee1c32e1c54db"
+        },
+        {
+          "path": "src/assets/characters.png",
+          "bytes": 1594303,
+          "sha256": "da0dc59b9c072a80accf7e6c1e8e2b54b22577c63d9fb0a2f01fcc6cf4e48033"
+        },
+        {
+          "path": "src/assets/home-city.png",
+          "bytes": 2412320,
+          "sha256": "9842948f3dba69b92f41fb074b534b198ae7f0dca0ca353483172f05e0c0f1a2"
+        },
+        {
+          "path": "src/audio.js",
+          "bytes": 2111,
+          "sha256": "088470f403221d20415491672a5ca0fb4d841289b7ae8b49d66838403689f4c2"
+        },
+        {
+          "path": "src/cartoon.css",
+          "bytes": 9893,
+          "sha256": "88996058d33c674e5d3d446a8a038cdc8a1d83c950f63c046b492ce82e2f1441"
+        },
+        {
+          "path": "src/challenge-finals.js",
+          "bytes": 43517,
+          "sha256": "37439412352bde76cabab621ffcfb3030920a3dad19f15e90c15940ca0b5f0ee"
+        },
+        {
+          "path": "src/competition-renderer.js",
+          "bytes": 6989,
+          "sha256": "933eab89698c18e7e7825f96388a1f25d3be04b35234b4bf2e3c1d493e9c0a35"
+        },
+        {
+          "path": "src/engine.js",
+          "bytes": 30248,
+          "sha256": "fdbaea0bf7d8b008bc5d45704fd85e5e46a6bd73daf805c626aa10fff007676e"
+        },
+        {
+          "path": "src/fullscreen.js",
+          "bytes": 6666,
+          "sha256": "1a0ba1255adb38ac82d793ddd8b4a83734c2d9318369b8c39bb3b16997553be4"
+        },
+        {
+          "path": "src/layout-variants.js",
+          "bytes": 4040,
+          "sha256": "cf758daeec18c88c558110a4b4936f872c2aa9c40bb9856dd248272395abd84a"
+        },
+        {
+          "path": "src/level-safety.js",
+          "bytes": 909,
+          "sha256": "9eaad67103c32befddaa9a8e363ccba25779aa42e4a5a92301a6e94c04c81d92"
+        },
+        {
+          "path": "src/levels.js",
+          "bytes": 34112,
+          "sha256": "73463f5e08e245c937608c014ecbbc03bdead2d3103e4bdb7c784690e14d33dc"
+        },
+        {
+          "path": "src/main.js",
+          "bytes": 60303,
+          "sha256": "7c19526ab98633d2167db514c22acca159a2fcb16430edc944e702de57d561ac"
+        },
+        {
+          "path": "src/native.js",
+          "bytes": 24926,
+          "sha256": "5671c5fae594be01e30f0e91d7fef421f05304355a60318d5eb4524f62dc527a"
+        },
+        {
+          "path": "src/quick-trials.js",
+          "bytes": 1373,
+          "sha256": "60c8a5fd11039e21b2bd166135719b7cc8b9cb3039d897274669a5658b8533d7"
+        },
+        {
+          "path": "src/records.js",
+          "bytes": 1379,
+          "sha256": "d0dbd370e47e61889e5d47a7d62a6c27c9cb05a0ed622ee9d67257f08c9c8fff"
+        },
+        {
+          "path": "src/renderer.js",
+          "bytes": 28852,
+          "sha256": "6f7aaa2077d7b6a0acbffbe1401e8528566e84bc651d9938ea8546cef1ed4c4c"
+        },
+        {
+          "path": "src/role-appearance.js",
+          "bytes": 26879,
+          "sha256": "6daebc11807a70100d845b6dc9cc77d5d402c576e1568267c53cf1fc30679cb7"
+        },
+        {
+          "path": "src/safe-area.js",
+          "bytes": 4209,
+          "sha256": "5d419a734940d674317c6d0774682ecd0045da7dc3899385f3719c4ae41506ab"
+        },
+        {
+          "path": "src/share.js",
+          "bytes": 2453,
+          "sha256": "fd89d7ebebac6abae3065ed9246bbb6cd89a0ccb9bf01926bdac5b4bcee4ef59"
+        },
+        {
+          "path": "src/style.css",
+          "bytes": 37422,
+          "sha256": "658449c9671255fc9ee074d02e4e9750b18430eee62bb3cdf2d0dd7c52ebebde"
+        },
+        {
+          "path": "src/support.js",
+          "bytes": 3206,
+          "sha256": "720f5790edf71408063f2e63b75fd855ba4c97ecd4ddea0fd2710da24d358928"
+        },
+        {
+          "path": "src/taptap-h5-ads.js",
+          "bytes": 1883,
+          "sha256": "6d7e77ebf50657aa2f068ec2cea85fa5d55bb614f8ceb4f31c2c7f4edaa67103"
+        }
+      ],
+      "realAdsVerified": false,
+      "realDeviceVerified": false
+    },
+    {
+      "name": "cops-robbers-realtime-ads-off-service-on",
+      "game": "cops-robbers-realtime",
+      "packageType": "h5",
+      "entry": "dist/index.html",
+      "adsEnabled": false,
+      "adMode": "off",
+      "adUnitConfigured": false,
+      "serviceEnabled": true,
+      "apiUrl": "http://127.0.0.1:43802/api/competition/v1",
+      "localValidation": true,
+      "sourceSHA": "ff699e184b2c9d2f41229f635c61c0c13605cff8",
+      "submoduleSHA": "2238989bb5fa9beeaab591b6fa5717cf08fab6c7",
+      "zip": "cops-robbers-realtime-ads-off-service-on.zip",
+      "bytes": 4134520,
+      "sha256": "1c1c248642fa60429226fa194e3ac3562ddd235fe2b9ea8f2ef20fa8d079712b",
+      "files": [
+        {
+          "path": "competition.js",
+          "bytes": 169596,
+          "sha256": "016ac5fba4b23788dcabf3116d796ca738c80c9e78b050bec3d497db242bfb37"
+        },
+        {
+          "path": "dev-mode.js",
+          "bytes": 15134,
+          "sha256": "5633115f12f8f343a16db44c3ee0f10378d109b08392ca7b6fa977b0c6d191b4"
+        },
+        {
+          "path": "index.html",
+          "bytes": 27701,
+          "sha256": "b1e8e3408b41f9159faf153a0c0b0db109dadddc8d3583297d50db624a2ee083"
+        },
+        {
+          "path": "platform-config.js",
+          "bytes": 94,
+          "sha256": "38448ec4fe63a220c82ba299da8d455c1cf978db7858ebeecd0c43420723917d"
+        },
+        {
+          "path": "publishing.js",
+          "bytes": 12289,
+          "sha256": "8d9d43cb1c126118286921018d713e5ee860b7c7b5c13f8e1c1ecdbb0b7d277d"
+        },
+        {
+          "path": "src/appearance.css",
+          "bytes": 11344,
+          "sha256": "e6193ea0582d68f823c0257e1960e84f6c9a599381792dcc3bdee1c32e1c54db"
+        },
+        {
+          "path": "src/assets/characters.png",
+          "bytes": 1594303,
+          "sha256": "da0dc59b9c072a80accf7e6c1e8e2b54b22577c63d9fb0a2f01fcc6cf4e48033"
+        },
+        {
+          "path": "src/assets/home-city.png",
+          "bytes": 2412320,
+          "sha256": "9842948f3dba69b92f41fb074b534b198ae7f0dca0ca353483172f05e0c0f1a2"
+        },
+        {
+          "path": "src/audio.js",
+          "bytes": 2111,
+          "sha256": "088470f403221d20415491672a5ca0fb4d841289b7ae8b49d66838403689f4c2"
+        },
+        {
+          "path": "src/cartoon.css",
+          "bytes": 9893,
+          "sha256": "88996058d33c674e5d3d446a8a038cdc8a1d83c950f63c046b492ce82e2f1441"
+        },
+        {
+          "path": "src/challenge-finals.js",
+          "bytes": 43517,
+          "sha256": "37439412352bde76cabab621ffcfb3030920a3dad19f15e90c15940ca0b5f0ee"
+        },
+        {
+          "path": "src/competition-renderer.js",
+          "bytes": 6989,
+          "sha256": "933eab89698c18e7e7825f96388a1f25d3be04b35234b4bf2e3c1d493e9c0a35"
+        },
+        {
+          "path": "src/engine.js",
+          "bytes": 30248,
+          "sha256": "fdbaea0bf7d8b008bc5d45704fd85e5e46a6bd73daf805c626aa10fff007676e"
+        },
+        {
+          "path": "src/fullscreen.js",
+          "bytes": 6666,
+          "sha256": "1a0ba1255adb38ac82d793ddd8b4a83734c2d9318369b8c39bb3b16997553be4"
+        },
+        {
+          "path": "src/layout-variants.js",
+          "bytes": 4040,
+          "sha256": "cf758daeec18c88c558110a4b4936f872c2aa9c40bb9856dd248272395abd84a"
+        },
+        {
+          "path": "src/level-safety.js",
+          "bytes": 909,
+          "sha256": "9eaad67103c32befddaa9a8e363ccba25779aa42e4a5a92301a6e94c04c81d92"
+        },
+        {
+          "path": "src/levels.js",
+          "bytes": 34112,
+          "sha256": "73463f5e08e245c937608c014ecbbc03bdead2d3103e4bdb7c784690e14d33dc"
+        },
+        {
+          "path": "src/main.js",
+          "bytes": 60303,
+          "sha256": "7c19526ab98633d2167db514c22acca159a2fcb16430edc944e702de57d561ac"
+        },
+        {
+          "path": "src/native.js",
+          "bytes": 24926,
+          "sha256": "5671c5fae594be01e30f0e91d7fef421f05304355a60318d5eb4524f62dc527a"
+        },
+        {
+          "path": "src/quick-trials.js",
+          "bytes": 1373,
+          "sha256": "60c8a5fd11039e21b2bd166135719b7cc8b9cb3039d897274669a5658b8533d7"
+        },
+        {
+          "path": "src/records.js",
+          "bytes": 1379,
+          "sha256": "d0dbd370e47e61889e5d47a7d62a6c27c9cb05a0ed622ee9d67257f08c9c8fff"
+        },
+        {
+          "path": "src/renderer.js",
+          "bytes": 28852,
+          "sha256": "6f7aaa2077d7b6a0acbffbe1401e8528566e84bc651d9938ea8546cef1ed4c4c"
+        },
+        {
+          "path": "src/role-appearance.js",
+          "bytes": 26879,
+          "sha256": "6daebc11807a70100d845b6dc9cc77d5d402c576e1568267c53cf1fc30679cb7"
+        },
+        {
+          "path": "src/safe-area.js",
+          "bytes": 4209,
+          "sha256": "5d419a734940d674317c6d0774682ecd0045da7dc3899385f3719c4ae41506ab"
+        },
+        {
+          "path": "src/share.js",
+          "bytes": 2453,
+          "sha256": "fd89d7ebebac6abae3065ed9246bbb6cd89a0ccb9bf01926bdac5b4bcee4ef59"
+        },
+        {
+          "path": "src/style.css",
+          "bytes": 37422,
+          "sha256": "658449c9671255fc9ee074d02e4e9750b18430eee62bb3cdf2d0dd7c52ebebde"
+        },
+        {
+          "path": "src/support.js",
+          "bytes": 3206,
+          "sha256": "720f5790edf71408063f2e63b75fd855ba4c97ecd4ddea0fd2710da24d358928"
+        },
+        {
+          "path": "src/taptap-h5-ads.js",
+          "bytes": 1883,
+          "sha256": "6d7e77ebf50657aa2f068ec2cea85fa5d55bb614f8ceb4f31c2c7f4edaa67103"
+        }
+      ],
+      "realAdsVerified": false,
+      "realDeviceVerified": false
+    },
+    {
+      "name": "cops-robbers-realtime-ads-on-service-on",
+      "game": "cops-robbers-realtime",
+      "packageType": "h5",
+      "entry": "dist/index.html",
+      "adsEnabled": true,
+      "adMode": "host",
+      "adUnitConfigured": false,
+      "serviceEnabled": true,
+      "apiUrl": "http://127.0.0.1:43802/api/competition/v1",
+      "localValidation": true,
+      "sourceSHA": "ff699e184b2c9d2f41229f635c61c0c13605cff8",
+      "submoduleSHA": "2238989bb5fa9beeaab591b6fa5717cf08fab6c7",
+      "zip": "cops-robbers-realtime-ads-on-service-on.zip",
+      "bytes": 4134559,
+      "sha256": "4b70720f50cdd24a7bd6e3d5c3b325d9ab38f219bbdb0697fc1b1137a0191bfb",
+      "files": [
+        {
+          "path": "competition.js",
+          "bytes": 169596,
+          "sha256": "aefaaa993a0e899a640f096e32f7dfe94f1c930740be868f390ac374886e255c"
+        },
+        {
+          "path": "dev-mode.js",
+          "bytes": 15134,
+          "sha256": "5633115f12f8f343a16db44c3ee0f10378d109b08392ca7b6fa977b0c6d191b4"
+        },
+        {
+          "path": "index.html",
+          "bytes": 27701,
+          "sha256": "b1e8e3408b41f9159faf153a0c0b0db109dadddc8d3583297d50db624a2ee083"
+        },
+        {
+          "path": "platform-config.js",
+          "bytes": 153,
+          "sha256": "67ecaae8ff111622b8d182024d4d6a7ddb4ca74f4991089b2e160aeec7943966"
+        },
+        {
+          "path": "publishing.js",
+          "bytes": 12289,
+          "sha256": "8d9d43cb1c126118286921018d713e5ee860b7c7b5c13f8e1c1ecdbb0b7d277d"
+        },
+        {
+          "path": "src/appearance.css",
+          "bytes": 11344,
+          "sha256": "e6193ea0582d68f823c0257e1960e84f6c9a599381792dcc3bdee1c32e1c54db"
+        },
+        {
+          "path": "src/assets/characters.png",
+          "bytes": 1594303,
+          "sha256": "da0dc59b9c072a80accf7e6c1e8e2b54b22577c63d9fb0a2f01fcc6cf4e48033"
+        },
+        {
+          "path": "src/assets/home-city.png",
+          "bytes": 2412320,
+          "sha256": "9842948f3dba69b92f41fb074b534b198ae7f0dca0ca353483172f05e0c0f1a2"
+        },
+        {
+          "path": "src/audio.js",
+          "bytes": 2111,
+          "sha256": "088470f403221d20415491672a5ca0fb4d841289b7ae8b49d66838403689f4c2"
+        },
+        {
+          "path": "src/cartoon.css",
+          "bytes": 9893,
+          "sha256": "88996058d33c674e5d3d446a8a038cdc8a1d83c950f63c046b492ce82e2f1441"
+        },
+        {
+          "path": "src/challenge-finals.js",
+          "bytes": 43517,
+          "sha256": "37439412352bde76cabab621ffcfb3030920a3dad19f15e90c15940ca0b5f0ee"
+        },
+        {
+          "path": "src/competition-renderer.js",
+          "bytes": 6989,
+          "sha256": "933eab89698c18e7e7825f96388a1f25d3be04b35234b4bf2e3c1d493e9c0a35"
+        },
+        {
+          "path": "src/engine.js",
+          "bytes": 30248,
+          "sha256": "fdbaea0bf7d8b008bc5d45704fd85e5e46a6bd73daf805c626aa10fff007676e"
+        },
+        {
+          "path": "src/fullscreen.js",
+          "bytes": 6666,
+          "sha256": "1a0ba1255adb38ac82d793ddd8b4a83734c2d9318369b8c39bb3b16997553be4"
+        },
+        {
+          "path": "src/layout-variants.js",
+          "bytes": 4040,
+          "sha256": "cf758daeec18c88c558110a4b4936f872c2aa9c40bb9856dd248272395abd84a"
+        },
+        {
+          "path": "src/level-safety.js",
+          "bytes": 909,
+          "sha256": "9eaad67103c32befddaa9a8e363ccba25779aa42e4a5a92301a6e94c04c81d92"
+        },
+        {
+          "path": "src/levels.js",
+          "bytes": 34112,
+          "sha256": "73463f5e08e245c937608c014ecbbc03bdead2d3103e4bdb7c784690e14d33dc"
+        },
+        {
+          "path": "src/main.js",
+          "bytes": 60303,
+          "sha256": "7c19526ab98633d2167db514c22acca159a2fcb16430edc944e702de57d561ac"
+        },
+        {
+          "path": "src/native.js",
+          "bytes": 24926,
+          "sha256": "5671c5fae594be01e30f0e91d7fef421f05304355a60318d5eb4524f62dc527a"
+        },
+        {
+          "path": "src/quick-trials.js",
+          "bytes": 1373,
+          "sha256": "60c8a5fd11039e21b2bd166135719b7cc8b9cb3039d897274669a5658b8533d7"
+        },
+        {
+          "path": "src/records.js",
+          "bytes": 1379,
+          "sha256": "d0dbd370e47e61889e5d47a7d62a6c27c9cb05a0ed622ee9d67257f08c9c8fff"
+        },
+        {
+          "path": "src/renderer.js",
+          "bytes": 28852,
+          "sha256": "6f7aaa2077d7b6a0acbffbe1401e8528566e84bc651d9938ea8546cef1ed4c4c"
+        },
+        {
+          "path": "src/role-appearance.js",
+          "bytes": 26879,
+          "sha256": "6daebc11807a70100d845b6dc9cc77d5d402c576e1568267c53cf1fc30679cb7"
+        },
+        {
+          "path": "src/safe-area.js",
+          "bytes": 4209,
+          "sha256": "5d419a734940d674317c6d0774682ecd0045da7dc3899385f3719c4ae41506ab"
+        },
+        {
+          "path": "src/share.js",
+          "bytes": 2453,
+          "sha256": "fd89d7ebebac6abae3065ed9246bbb6cd89a0ccb9bf01926bdac5b4bcee4ef59"
+        },
+        {
+          "path": "src/style.css",
+          "bytes": 37422,
+          "sha256": "658449c9671255fc9ee074d02e4e9750b18430eee62bb3cdf2d0dd7c52ebebde"
+        },
+        {
+          "path": "src/support.js",
+          "bytes": 3206,
+          "sha256": "720f5790edf71408063f2e63b75fd855ba4c97ecd4ddea0fd2710da24d358928"
+        },
+        {
+          "path": "src/taptap-h5-ads.js",
+          "bytes": 1883,
+          "sha256": "6d7e77ebf50657aa2f068ec2cea85fa5d55bb614f8ceb4f31c2c7f4edaa67103"
+        }
+      ],
+      "realAdsVerified": false,
+      "realDeviceVerified": false
+    },
+    {
+      "name": "xiangqi-five-ads-off-service-off",
+      "game": "xiangqi-five",
+      "packageType": "h5",
+      "entry": "dist/index.html",
+      "adsEnabled": false,
+      "adMode": "off",
+      "adUnitConfigured": false,
+      "serviceEnabled": false,
+      "apiUrl": "",
+      "localValidation": true,
+      "sourceSHA": "ff699e184b2c9d2f41229f635c61c0c13605cff8",
+      "submoduleSHA": "2238989bb5fa9beeaab591b6fa5717cf08fab6c7",
+      "zip": "xiangqi-five-ads-off-service-off.zip",
+      "bytes": 2128886,
+      "sha256": "8d401bbf508156bd0c1a457f631946eea8e6ce3ddcc80bff1e52e846412d721f",
+      "files": [
+        {
+          "path": ".nojekyll",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "app.js",
+          "bytes": 61478,
+          "sha256": "89ca45467f62353d7979349d158704e55411f688831351a58b4a9837f6018c22"
+        },
+        {
+          "path": "assets/chess-glyphs-LICENSE.txt",
+          "bytes": 4864,
+          "sha256": "7117d95e66a1d54966e4137c9c2109f656f484c8e1004fd5d384cf553a39d7aa"
+        },
+        {
+          "path": "assets/chess-glyphs.woff2",
+          "bytes": 4856,
+          "sha256": "39330e614b48edf992abfeb5268c9eff952fb4ca1779e4c2efddcf786dda8460"
+        },
+        {
+          "path": "assets/hero-paper.webp",
+          "bytes": 177346,
+          "sha256": "74f76a06d3dba8211798390e4aa1ac53ac8950f1b9a02cd0c557b6d50b8dc3b6"
+        },
+        {
+          "path": "assets/pavilion-background.png",
+          "bytes": 2028799,
+          "sha256": "f6827f1620b991cdaa20a6888d780747d8c8b616192f25454952f45a0f256f60"
+        },
+        {
+          "path": "board-view.js",
+          "bytes": 3301,
+          "sha256": "ea79c1669a9e36b5ca3522269f3bfd690d83146d49a6137eb07b058ebfbe4c18"
+        },
+        {
+          "path": "challenges.js",
+          "bytes": 9493,
+          "sha256": "83a5043d2ab6d5cf8c45dd878273306c2bcbe27b80c67564c2a84e758c6889a6"
+        },
+        {
+          "path": "computer-worker.js",
+          "bytes": 229,
+          "sha256": "a09c99fdc7adc92dec0abe1d993a96442cd5bf23371850628fcec54348627bb5"
+        },
+        {
+          "path": "computer.js",
+          "bytes": 15894,
+          "sha256": "cd43595320c64bce436ace85e85c7fdad24a3f6218d3ac8a88e07a438e074b70"
+        },
+        {
+          "path": "dev-mode.js",
+          "bytes": 14790,
+          "sha256": "986844491337ac0bb53394d44917356a820f346f0d2b0d63b2ab34e36a7a4a2f"
+        },
+        {
+          "path": "fullscreen.js",
+          "bytes": 6552,
+          "sha256": "72acd28e8258e9e49b91288dc67b9af8f857c9eda6eaa5b80a4dfaa4009bedc7"
+        },
+        {
+          "path": "game.js",
+          "bytes": 5834,
+          "sha256": "16ba34607aa5907e891ed01695f47c2b21591c94f9eee6413a9ac050b49e5e16"
+        },
+        {
+          "path": "index.html",
+          "bytes": 31617,
+          "sha256": "106ca60befac1bab2037c4e88adaa28ac1fad5811e3e3876ce78ac137a825687"
+        },
+        {
+          "path": "local-game.js",
+          "bytes": 1938,
+          "sha256": "d6a469385285ae4865f1c1cbd01aadff189fb14e9a41988cf9382966d5ff50a2"
+        },
+        {
+          "path": "pieces.js",
+          "bytes": 7313,
+          "sha256": "dcec662bb9a34236680e17cd9d2bc3997d31755345b10c287a76e756032768b5"
+        },
+        {
+          "path": "platform-ads.js",
+          "bytes": 2993,
+          "sha256": "1f8c779d20ab0bf05f60e901fb1ea01c3e251aca545c1d6f01b9fcaa4f7782b7"
+        },
+        {
+          "path": "platform-config.js",
+          "bytes": 94,
+          "sha256": "38448ec4fe63a220c82ba299da8d455c1cf978db7858ebeecd0c43420723917d"
+        },
+        {
+          "path": "rewarded-hints.js",
+          "bytes": 1664,
+          "sha256": "12214c671c01c631ad51a69e1fec78580b525383ff0546b98b8ced6f0554a8b0"
+        },
+        {
+          "path": "rewarded-host.js",
+          "bytes": 704,
+          "sha256": "b4f587c2fd8b786e8c0eee2bc5642c126afb5e4346582863b0a255fb094e5516"
+        },
+        {
+          "path": "safe-area.js",
+          "bytes": 4209,
+          "sha256": "5d419a734940d674317c6d0774682ecd0045da7dc3899385f3719c4ae41506ab"
+        },
+        {
+          "path": "style.css",
+          "bytes": 44070,
+          "sha256": "acd86d440a2fa6d504951c397b08c99e3533725d6a24d3809682b7f29e55e273"
+        }
+      ],
+      "realAdsVerified": false,
+      "realDeviceVerified": false
+    },
+    {
+      "name": "xiangqi-five-ads-on-service-off",
+      "game": "xiangqi-five",
+      "packageType": "h5",
+      "entry": "dist/index.html",
+      "adsEnabled": true,
+      "adMode": "host",
+      "adUnitConfigured": false,
+      "serviceEnabled": false,
+      "apiUrl": "",
+      "localValidation": true,
+      "sourceSHA": "ff699e184b2c9d2f41229f635c61c0c13605cff8",
+      "submoduleSHA": "2238989bb5fa9beeaab591b6fa5717cf08fab6c7",
+      "zip": "xiangqi-five-ads-on-service-off.zip",
+      "bytes": 2128926,
+      "sha256": "004e1e0603273a9c623f78c4c05c0a12ccc89c7ec166f4b67359df5bb9e211e6",
+      "files": [
+        {
+          "path": ".nojekyll",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "app.js",
+          "bytes": 61478,
+          "sha256": "89ca45467f62353d7979349d158704e55411f688831351a58b4a9837f6018c22"
+        },
+        {
+          "path": "assets/chess-glyphs-LICENSE.txt",
+          "bytes": 4864,
+          "sha256": "7117d95e66a1d54966e4137c9c2109f656f484c8e1004fd5d384cf553a39d7aa"
+        },
+        {
+          "path": "assets/chess-glyphs.woff2",
+          "bytes": 4856,
+          "sha256": "39330e614b48edf992abfeb5268c9eff952fb4ca1779e4c2efddcf786dda8460"
+        },
+        {
+          "path": "assets/hero-paper.webp",
+          "bytes": 177346,
+          "sha256": "74f76a06d3dba8211798390e4aa1ac53ac8950f1b9a02cd0c557b6d50b8dc3b6"
+        },
+        {
+          "path": "assets/pavilion-background.png",
+          "bytes": 2028799,
+          "sha256": "f6827f1620b991cdaa20a6888d780747d8c8b616192f25454952f45a0f256f60"
+        },
+        {
+          "path": "board-view.js",
+          "bytes": 3301,
+          "sha256": "ea79c1669a9e36b5ca3522269f3bfd690d83146d49a6137eb07b058ebfbe4c18"
+        },
+        {
+          "path": "challenges.js",
+          "bytes": 9493,
+          "sha256": "83a5043d2ab6d5cf8c45dd878273306c2bcbe27b80c67564c2a84e758c6889a6"
+        },
+        {
+          "path": "computer-worker.js",
+          "bytes": 229,
+          "sha256": "a09c99fdc7adc92dec0abe1d993a96442cd5bf23371850628fcec54348627bb5"
+        },
+        {
+          "path": "computer.js",
+          "bytes": 15894,
+          "sha256": "cd43595320c64bce436ace85e85c7fdad24a3f6218d3ac8a88e07a438e074b70"
+        },
+        {
+          "path": "dev-mode.js",
+          "bytes": 14790,
+          "sha256": "986844491337ac0bb53394d44917356a820f346f0d2b0d63b2ab34e36a7a4a2f"
+        },
+        {
+          "path": "fullscreen.js",
+          "bytes": 6552,
+          "sha256": "72acd28e8258e9e49b91288dc67b9af8f857c9eda6eaa5b80a4dfaa4009bedc7"
+        },
+        {
+          "path": "game.js",
+          "bytes": 5834,
+          "sha256": "16ba34607aa5907e891ed01695f47c2b21591c94f9eee6413a9ac050b49e5e16"
+        },
+        {
+          "path": "index.html",
+          "bytes": 31617,
+          "sha256": "106ca60befac1bab2037c4e88adaa28ac1fad5811e3e3876ce78ac137a825687"
+        },
+        {
+          "path": "local-game.js",
+          "bytes": 1938,
+          "sha256": "d6a469385285ae4865f1c1cbd01aadff189fb14e9a41988cf9382966d5ff50a2"
+        },
+        {
+          "path": "pieces.js",
+          "bytes": 7313,
+          "sha256": "dcec662bb9a34236680e17cd9d2bc3997d31755345b10c287a76e756032768b5"
+        },
+        {
+          "path": "platform-ads.js",
+          "bytes": 2993,
+          "sha256": "1f8c779d20ab0bf05f60e901fb1ea01c3e251aca545c1d6f01b9fcaa4f7782b7"
+        },
+        {
+          "path": "platform-config.js",
+          "bytes": 153,
+          "sha256": "67ecaae8ff111622b8d182024d4d6a7ddb4ca74f4991089b2e160aeec7943966"
+        },
+        {
+          "path": "rewarded-hints.js",
+          "bytes": 1664,
+          "sha256": "12214c671c01c631ad51a69e1fec78580b525383ff0546b98b8ced6f0554a8b0"
+        },
+        {
+          "path": "rewarded-host.js",
+          "bytes": 704,
+          "sha256": "b4f587c2fd8b786e8c0eee2bc5642c126afb5e4346582863b0a255fb094e5516"
+        },
+        {
+          "path": "safe-area.js",
+          "bytes": 4209,
+          "sha256": "5d419a734940d674317c6d0774682ecd0045da7dc3899385f3719c4ae41506ab"
+        },
+        {
+          "path": "style.css",
+          "bytes": 44070,
+          "sha256": "acd86d440a2fa6d504951c397b08c99e3533725d6a24d3809682b7f29e55e273"
+        }
+      ],
+      "realAdsVerified": false,
+      "realDeviceVerified": false
+    },
+    {
+      "name": "xiangqi-five-ads-off-service-on",
+      "game": "xiangqi-five",
+      "packageType": "h5",
+      "entry": "dist/index.html",
+      "adsEnabled": false,
+      "adMode": "off",
+      "adUnitConfigured": false,
+      "serviceEnabled": true,
+      "apiUrl": "http://127.0.0.1:43802/api/competition/v1",
+      "localValidation": true,
+      "sourceSHA": "ff699e184b2c9d2f41229f635c61c0c13605cff8",
+      "submoduleSHA": "2238989bb5fa9beeaab591b6fa5717cf08fab6c7",
+      "zip": "xiangqi-five-ads-off-service-on.zip",
+      "bytes": 2170004,
+      "sha256": "abb95a2cc656ad6066f3fd67c7eae750cab2303ba4a4ab4a68aec0fd6b084128",
+      "files": [
+        {
+          "path": ".nojekyll",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "app.js",
+          "bytes": 61478,
+          "sha256": "89ca45467f62353d7979349d158704e55411f688831351a58b4a9837f6018c22"
+        },
+        {
+          "path": "assets/chess-glyphs-LICENSE.txt",
+          "bytes": 4864,
+          "sha256": "7117d95e66a1d54966e4137c9c2109f656f484c8e1004fd5d384cf553a39d7aa"
+        },
+        {
+          "path": "assets/chess-glyphs.woff2",
+          "bytes": 4856,
+          "sha256": "39330e614b48edf992abfeb5268c9eff952fb4ca1779e4c2efddcf786dda8460"
+        },
+        {
+          "path": "assets/hero-paper.webp",
+          "bytes": 177346,
+          "sha256": "74f76a06d3dba8211798390e4aa1ac53ac8950f1b9a02cd0c557b6d50b8dc3b6"
+        },
+        {
+          "path": "assets/pavilion-background.png",
+          "bytes": 2028799,
+          "sha256": "f6827f1620b991cdaa20a6888d780747d8c8b616192f25454952f45a0f256f60"
+        },
+        {
+          "path": "board-view.js",
+          "bytes": 3301,
+          "sha256": "ea79c1669a9e36b5ca3522269f3bfd690d83146d49a6137eb07b058ebfbe4c18"
+        },
+        {
+          "path": "challenges.js",
+          "bytes": 9493,
+          "sha256": "83a5043d2ab6d5cf8c45dd878273306c2bcbe27b80c67564c2a84e758c6889a6"
+        },
+        {
+          "path": "competition.js",
+          "bytes": 160128,
+          "sha256": "f76d732ee74d569c457c1d911072baca02584c648bc06e89874ebdf28628b1b5"
+        },
+        {
+          "path": "computer-worker.js",
+          "bytes": 229,
+          "sha256": "a09c99fdc7adc92dec0abe1d993a96442cd5bf23371850628fcec54348627bb5"
+        },
+        {
+          "path": "computer.js",
+          "bytes": 15894,
+          "sha256": "cd43595320c64bce436ace85e85c7fdad24a3f6218d3ac8a88e07a438e074b70"
+        },
+        {
+          "path": "dev-mode.js",
+          "bytes": 14790,
+          "sha256": "986844491337ac0bb53394d44917356a820f346f0d2b0d63b2ab34e36a7a4a2f"
+        },
+        {
+          "path": "fullscreen.js",
+          "bytes": 6552,
+          "sha256": "72acd28e8258e9e49b91288dc67b9af8f857c9eda6eaa5b80a4dfaa4009bedc7"
+        },
+        {
+          "path": "game.js",
+          "bytes": 5834,
+          "sha256": "16ba34607aa5907e891ed01695f47c2b21591c94f9eee6413a9ac050b49e5e16"
+        },
+        {
+          "path": "index.html",
+          "bytes": 31703,
+          "sha256": "9b073eb17713f3192a97383c5fe828388556aa1071aeca7af993ce6212a488a3"
+        },
+        {
+          "path": "local-game.js",
+          "bytes": 1938,
+          "sha256": "d6a469385285ae4865f1c1cbd01aadff189fb14e9a41988cf9382966d5ff50a2"
+        },
+        {
+          "path": "pieces.js",
+          "bytes": 7313,
+          "sha256": "dcec662bb9a34236680e17cd9d2bc3997d31755345b10c287a76e756032768b5"
+        },
+        {
+          "path": "platform-ads.js",
+          "bytes": 2993,
+          "sha256": "1f8c779d20ab0bf05f60e901fb1ea01c3e251aca545c1d6f01b9fcaa4f7782b7"
+        },
+        {
+          "path": "platform-config.js",
+          "bytes": 94,
+          "sha256": "38448ec4fe63a220c82ba299da8d455c1cf978db7858ebeecd0c43420723917d"
+        },
+        {
+          "path": "rewarded-hints.js",
+          "bytes": 1664,
+          "sha256": "12214c671c01c631ad51a69e1fec78580b525383ff0546b98b8ced6f0554a8b0"
+        },
+        {
+          "path": "rewarded-host.js",
+          "bytes": 704,
+          "sha256": "b4f587c2fd8b786e8c0eee2bc5642c126afb5e4346582863b0a255fb094e5516"
+        },
+        {
+          "path": "safe-area.js",
+          "bytes": 4209,
+          "sha256": "5d419a734940d674317c6d0774682ecd0045da7dc3899385f3719c4ae41506ab"
+        },
+        {
+          "path": "style.css",
+          "bytes": 44070,
+          "sha256": "acd86d440a2fa6d504951c397b08c99e3533725d6a24d3809682b7f29e55e273"
+        }
+      ],
+      "realAdsVerified": false,
+      "realDeviceVerified": false
+    },
+    {
+      "name": "xiangqi-five-ads-on-service-on",
+      "game": "xiangqi-five",
+      "packageType": "h5",
+      "entry": "dist/index.html",
+      "adsEnabled": true,
+      "adMode": "host",
+      "adUnitConfigured": false,
+      "serviceEnabled": true,
+      "apiUrl": "http://127.0.0.1:43802/api/competition/v1",
+      "localValidation": true,
+      "sourceSHA": "ff699e184b2c9d2f41229f635c61c0c13605cff8",
+      "submoduleSHA": "2238989bb5fa9beeaab591b6fa5717cf08fab6c7",
+      "zip": "xiangqi-five-ads-on-service-on.zip",
+      "bytes": 2170045,
+      "sha256": "7ae586ea3eb4e7c015d49c6d46df1739182225b478e6a9b47ce8451b38e125df",
+      "files": [
+        {
+          "path": ".nojekyll",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "app.js",
+          "bytes": 61478,
+          "sha256": "89ca45467f62353d7979349d158704e55411f688831351a58b4a9837f6018c22"
+        },
+        {
+          "path": "assets/chess-glyphs-LICENSE.txt",
+          "bytes": 4864,
+          "sha256": "7117d95e66a1d54966e4137c9c2109f656f484c8e1004fd5d384cf553a39d7aa"
+        },
+        {
+          "path": "assets/chess-glyphs.woff2",
+          "bytes": 4856,
+          "sha256": "39330e614b48edf992abfeb5268c9eff952fb4ca1779e4c2efddcf786dda8460"
+        },
+        {
+          "path": "assets/hero-paper.webp",
+          "bytes": 177346,
+          "sha256": "74f76a06d3dba8211798390e4aa1ac53ac8950f1b9a02cd0c557b6d50b8dc3b6"
+        },
+        {
+          "path": "assets/pavilion-background.png",
+          "bytes": 2028799,
+          "sha256": "f6827f1620b991cdaa20a6888d780747d8c8b616192f25454952f45a0f256f60"
+        },
+        {
+          "path": "board-view.js",
+          "bytes": 3301,
+          "sha256": "ea79c1669a9e36b5ca3522269f3bfd690d83146d49a6137eb07b058ebfbe4c18"
+        },
+        {
+          "path": "challenges.js",
+          "bytes": 9493,
+          "sha256": "83a5043d2ab6d5cf8c45dd878273306c2bcbe27b80c67564c2a84e758c6889a6"
+        },
+        {
+          "path": "competition.js",
+          "bytes": 160128,
+          "sha256": "2038481c7b41d31b38dfd22bc27b603bf2851422a459f426f29331bac13b0ad2"
+        },
+        {
+          "path": "computer-worker.js",
+          "bytes": 229,
+          "sha256": "a09c99fdc7adc92dec0abe1d993a96442cd5bf23371850628fcec54348627bb5"
+        },
+        {
+          "path": "computer.js",
+          "bytes": 15894,
+          "sha256": "cd43595320c64bce436ace85e85c7fdad24a3f6218d3ac8a88e07a438e074b70"
+        },
+        {
+          "path": "dev-mode.js",
+          "bytes": 14790,
+          "sha256": "986844491337ac0bb53394d44917356a820f346f0d2b0d63b2ab34e36a7a4a2f"
+        },
+        {
+          "path": "fullscreen.js",
+          "bytes": 6552,
+          "sha256": "72acd28e8258e9e49b91288dc67b9af8f857c9eda6eaa5b80a4dfaa4009bedc7"
+        },
+        {
+          "path": "game.js",
+          "bytes": 5834,
+          "sha256": "16ba34607aa5907e891ed01695f47c2b21591c94f9eee6413a9ac050b49e5e16"
+        },
+        {
+          "path": "index.html",
+          "bytes": 31703,
+          "sha256": "9b073eb17713f3192a97383c5fe828388556aa1071aeca7af993ce6212a488a3"
+        },
+        {
+          "path": "local-game.js",
+          "bytes": 1938,
+          "sha256": "d6a469385285ae4865f1c1cbd01aadff189fb14e9a41988cf9382966d5ff50a2"
+        },
+        {
+          "path": "pieces.js",
+          "bytes": 7313,
+          "sha256": "dcec662bb9a34236680e17cd9d2bc3997d31755345b10c287a76e756032768b5"
+        },
+        {
+          "path": "platform-ads.js",
+          "bytes": 2993,
+          "sha256": "1f8c779d20ab0bf05f60e901fb1ea01c3e251aca545c1d6f01b9fcaa4f7782b7"
+        },
+        {
+          "path": "platform-config.js",
+          "bytes": 153,
+          "sha256": "67ecaae8ff111622b8d182024d4d6a7ddb4ca74f4991089b2e160aeec7943966"
+        },
+        {
+          "path": "rewarded-hints.js",
+          "bytes": 1664,
+          "sha256": "12214c671c01c631ad51a69e1fec78580b525383ff0546b98b8ced6f0554a8b0"
+        },
+        {
+          "path": "rewarded-host.js",
+          "bytes": 704,
+          "sha256": "b4f587c2fd8b786e8c0eee2bc5642c126afb5e4346582863b0a255fb094e5516"
+        },
+        {
+          "path": "safe-area.js",
+          "bytes": 4209,
+          "sha256": "5d419a734940d674317c6d0774682ecd0045da7dc3899385f3719c4ae41506ab"
+        },
+        {
+          "path": "style.css",
+          "bytes": 44070,
+          "sha256": "acd86d440a2fa6d504951c397b08c99e3533725d6a24d3809682b7f29e55e273"
+        }
+      ],
+      "realAdsVerified": false,
+      "realDeviceVerified": false
+    }
+  ]
+}
