@@ -20,6 +20,7 @@ import {
   officialPluginSha256,
 } from '../../../apps/shell-minigame/scripts/taptap-cocos-inputs.mjs';
 import { installTapTapLogin } from '../../../apps/shell-minigame/scripts/taptap-login.mjs';
+import { serviceEnvironment } from '../../../scripts/competition-service-config.mjs';
 
 const json = async (file) => JSON.parse(await readFile(file, 'utf8'));
 const save = (file, value) => writeFile(file, JSON.stringify(value, null, 2) + '\n');
@@ -300,6 +301,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
       game: { type: 'string', default: 'all' },
       platform: { type: 'string', default: 'taptap' },
       release: { type: 'boolean', default: false },
+      'with-service': { type: 'boolean' },
+      'without-service': { type: 'boolean' },
       'prepare-only': { type: 'boolean' },
       'prepare-source': { type: 'boolean' },
       verify: { type: 'string' },
@@ -313,7 +316,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
   } else
     for (const id of values.game === 'all' ? Object.keys(games) : [values.game]) {
       const result = await buildGame(
-        configuration(id, values.platform, { release: values.release }),
+        configuration(id, values.platform, {
+          release: values.release,
+          env: serviceEnvironment(process.argv.slice(2)),
+        }),
         { prepareOnly: values['prepare-only'], prepareSource: values['prepare-source'] },
       );
       console.log(

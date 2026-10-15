@@ -4,6 +4,8 @@ import { createHash } from 'node:crypto';
 import { parseEnv } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { competitionService, serviceEnvironment } from './competition-service-config.mjs';
+import { reconfigureH5Service } from './competition-h5-service.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const serviceNames = {
@@ -53,6 +55,7 @@ const entrypoints = {
 };
 
 export function bundleConfig(env = {}) {
+  const gameService = competitionService({ env, local: true });
   const services = [
     ...new Set((env.DEPLOY_SERVICES ?? 'runtime,kart,tianxia').split(',').filter(Boolean)),
   ];
@@ -73,6 +76,7 @@ export function bundleConfig(env = {}) {
     services,
     frontend,
     adMode,
+    gameService,
     release,
     output: path.resolve(root, env.DEPLOY_OUTPUT_DIR ?? `.scratch/deployment/${release}`),
   };
@@ -81,7 +85,7 @@ export function bundleConfig(env = {}) {
 // Frontend tools never inherit server-only credentials, including platform app secrets.
 export function buildEnvironment(env) {
   const allowed =
-    /^(PATH|PATHEXT|SYSTEMROOT|WINDIR|COMSPEC|HOME|USERPROFILE|APPDATA|LOCALAPPDATA|TEMP|TMP|TMPDIR|CI|TERM|LANG|LC_[A-Z_]+|HTTP_PROXY|HTTPS_PROXY|ALL_PROXY|NO_PROXY|NODE_EXTRA_CA_CERTS|SSL_CERT_FILE|NPM_CONFIG_CAFILE|NPM_CONFIG_REGISTRY|NPM_EXECPATH|NPM_NODE_EXECPATH|NPM_CONFIG_USER_AGENT|NPM_COMMAND|PNPM_HOME|COREPACK_HOME|COCOS_CREATOR|KART_PREBUILT_DIR|NIGHT_OVERWATCH_PREBUILT_DIR|KART_SERVER_URL|COMPETITION_PUBLIC_API_URL|MINIGAME_RELEASE_GATES|(?:WECHAT|BILIBILI|DOUYIN|KUAISHOU|ALIPAY|TAPTAP)_APP_ID|VITE_[A-Z0-9_]+)$/;
+    /^(PATH|PATHEXT|SYSTEMROOT|WINDIR|COMSPEC|HOME|USERPROFILE|APPDATA|LOCALAPPDATA|TEMP|TMP|TMPDIR|CI|TERM|LANG|LC_[A-Z_]+|HTTP_PROXY|HTTPS_PROXY|ALL_PROXY|NO_PROXY|NODE_EXTRA_CA_CERTS|SSL_CERT_FILE|NPM_CONFIG_CAFILE|NPM_CONFIG_REGISTRY|NPM_EXECPATH|NPM_NODE_EXECPATH|NPM_CONFIG_USER_AGENT|NPM_COMMAND|PNPM_HOME|COREPACK_HOME|COCOS_CREATOR|KART_PREBUILT_DIR|NIGHT_OVERWATCH_PREBUILT_DIR|KART_SERVER_URL|COMPETITION_SERVICE_ENABLED|COMPETITION_PUBLIC_API_URL|MINIGAME_RELEASE_GATES|(?:WECHAT|BILIBILI|DOUYIN|KUAISHOU|ALIPAY|TAPTAP)_APP_ID|VITE_[A-Z0-9_]+)$/;
   return Object.fromEntries(
     Object.entries(env).filter(
       ([key]) =>
@@ -327,7 +331,8 @@ ${config.services.includes('tianxia') ? proxy('/tianxia/', 'tianxia:43004/', 'li
 `;
 }
 
-export async function prepareBundleSite(source, destination, services, adMode = 'mock') {
+export async function prepareBundleSite(source, destination, services, adMode = 'mock', env = {}) {
+  competitionService({ env, local: true });
   if (!['mock', 'off'].includes(adMode)) throw new Error('DEPLOY_H5_AD_MODE must be mock or off');
   await cp(source, destination, {
     recursive: true,
@@ -358,14 +363,18 @@ export async function prepareBundleSite(source, destination, services, adMode = 
       if (entry.isSymbolicLink()) throw new Error('Static release must not contain symlinks');
       if (entry.isDirectory()) await visit(filename);
       else if (entry.name.endsWith('.html')) {
+        const managed = await reconfigureH5Service(filename, env, true);
         const html = await readFile(filename, 'utf8');
+        const pageCode = managed
+          ? code.replace(/globalThis\.__COMPETITION_CONFIG__=.*?;/, '')
+          : code;
         if (!/<head(?:\s[^>]*)?>/i.test(html)) throw new Error(`Missing HTML head: ${filename}`);
         if (code)
           await writeFile(
             filename,
             html.replace(
               /<head(?:\s[^>]*)?>/i,
-              (head) => `${head}<script data-deployment-runtime>${code}</script>`,
+              (head) => `${head}<script data-deployment-runtime>${pageCode}</script>`,
             ),
           );
         pages++;
@@ -446,14 +455,15 @@ async function main() {
     );
     return;
   }
-  if (args.some((arg) => arg !== '--check')) throw new Error('Unknown deployment:bundle argument');
+  if (args.some((arg) => !['--check', '--with-service', '--without-service'].includes(arg)))
+    throw new Error('Unknown deployment:bundle argument');
   const local = await readFile(path.join(root, '.env.deployment.local'), 'utf8')
     .then(parseEnv)
     .catch((error) => {
       if (error.code === 'ENOENT') return {};
       throw error;
     });
-  const env = { ...local, ...process.env };
+  const env = serviceEnvironment(args, { ...local, ...process.env });
   const config = bundleConfig(env);
   if (args.includes('--check')) {
     console.log(JSON.stringify(config, null, 2));
@@ -472,6 +482,7 @@ async function main() {
         path.join(config.output, 'site'),
         config.services,
         config.adMode,
+        env,
       )
     : 0;
   const templateDirectory = path.join(root, 'infra/deployment');

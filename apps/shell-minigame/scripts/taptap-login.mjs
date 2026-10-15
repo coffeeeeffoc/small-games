@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { nineGames } from './nine-games-targets.mjs';
 import { tapTapApiBase } from '@coffeeeeffoc/platform-taptap/login';
+import { serviceGames } from '../../../scripts/competition-service-config.mjs';
 
 const helper = new URL(import.meta.resolve('@coffeeeeffoc/platform-taptap/login'));
 const marker = '// TapTap login bootstrap: install before the official packing step.\n';
@@ -30,7 +31,11 @@ export function publicTapTapLoginConfig(config) {
         'TapTap login requires public HTTPS without credentials, query or fragments.',
       );
   }
-  if (!config.preview && (!config.appId || !config.apiUrl))
+  const managed = serviceGames.includes(config.game);
+  const offline = managed && !config.apiUrl && config.competitionEnabled !== true;
+  if (managed && config.competitionEnabled === false && config.apiUrl)
+    throw new Error('Disabled competition must not contain an API URL.');
+  if (!config.preview && (!config.appId || (!config.apiUrl && !offline)))
     throw new Error('TapTap release requires a MiniApp ID and the server login API URL.');
   return {
     platform: 'taptap',

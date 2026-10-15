@@ -28,14 +28,14 @@ TapTap 流程是 **Creator 微信原生目标 → 独立转换副本 → 配置 
 - `games/minigames/<game>/build/taptap.receipt.json`：源码、配置、引擎版本、官方插件、文件清单和 Git SHA 的构建记录。
 - `games/minigames/<game>/reports/`：引擎日志与构建配置。
 
-默认生成预览包，不伪造 AppID、登录成功或设备验收。正式包增加 `--release`，必须提供真实 AppID；TapTap 还需公网 HTTPS 会话 API。环境变量见 `.env.example`，需由终端显式设置，不自动加载该文件。各游戏可用 `MINIGAME_<游戏名大写且横线转下划线>_<平台大写>_APP_ID/API_URL/AD_UNIT_ID` 覆盖公共渠道变量。所有字段均为公开配置，客户端不放 AppSecret。
+默认生成无服务端预览包。正式包增加 `--release` 并提供真实 AppID；`--without-service` 可生成无服务端正式包，`--with-service` 要求有效的服务地址。统一配置为 `COMPETITION_SERVICE_ENABLED=0/1` 和 `COMPETITION_PUBLIC_API_URL`，详见[服务配置说明](../../docs/operations/competition-service.md)。环境变量见 `.env.example`，需由终端显式设置，不自动加载该文件。各游戏可用 `MINIGAME_<游戏名大写且横线转下划线>_<平台大写>_APP_ID/API_URL/AD_UNIT_ID` 覆盖公共渠道变量。所有字段均为公开配置，客户端不放 AppSecret。
 
 ```sh
 node games/minigames/scripts/build.mjs --game xiangqi-five --platform taptap --release
 node games/minigames/scripts/build.mjs --verify games/minigames/xiangqi-five/build/taptap/game --receipt games/minigames/xiangqi-five/build/taptap.receipt.json
 ```
 
-三款使用不同 AppID 时，设置对应的三个游戏级变量。已有两款警匪的联网关闭策略保持不变；象棋仅在配置真实会话服务后启用好友挑战。未配置广告位时，实时警匪仍可正常游玩，广告补充不会假报成功。平台后台的登录、广告、分享、合法域名与真机权限需在各自官方工具验收。
+三款使用不同 AppID 时，设置对应的三个游戏级变量。三款均在允许接入且配置有效服务后启用好友挑战。未配置广告位时，实时警匪仍可正常游玩，广告补充不会假报成功。平台后台的登录、广告、分享、合法域名与真机权限需在各自官方工具验收。
 
 ## 其他渠道
 

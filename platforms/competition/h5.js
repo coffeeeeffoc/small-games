@@ -2,6 +2,7 @@ import './client.js';
 import styles from './h5.css?inline';
 import { scoreText, gapText, playerName } from './format.js';
 import { mountStreetCompetition } from './street-pages.js';
+import { competitionAvailable } from './service-config.js';
 
 const titles = {
   'cops-robbers': '围捕小队',
@@ -167,6 +168,11 @@ body.competition-active #mode-online { position:static; }
 }
 `;
 export function mountCompetition(game, createRenderer) {
+  if (
+    ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'].includes(game) &&
+    !competitionAvailable()
+  )
+    return;
   if (game === 'cops-robbers-realtime') return mountStreetCompetition(game, createRenderer);
   const street = game === 'cops-robbers-realtime';
   const xiangqi = game === 'xiangqi-five';
@@ -174,7 +180,11 @@ export function mountCompetition(game, createRenderer) {
   const roleNames = street
     ? { pursuer: '警察', runner: '小偷' }
     : { pursuer: '追逐队', runner: '突围队' };
-  if (document.querySelector('[data-competition-launch]')) return;
+  if (
+    document.querySelector('.competition-dialog') ||
+    (!document.getElementById('friend-duel') && document.querySelector('[data-competition-launch]'))
+  )
+    return;
   globalThis.__installCompetition();
   const client = globalThis.__competition,
     renderer = createRenderer({
@@ -185,10 +195,12 @@ export function mountCompetition(game, createRenderer) {
     ? document.getElementById('mode-online')
     : letters
       ? document.getElementById('friend-button')
-      : null;
+      : document.getElementById('friend-duel');
   const launch = modeEntry || document.createElement('button');
   if (!modeEntry) launch.textContent = '好友 PK · 全站榜';
   if (modeEntry) modeEntry.hidden = false;
+  launch.disabled = false;
+  launch.removeAttribute('aria-label');
   launch.dataset.competitionLaunch = '';
   const style = document.createElement('style');
   style.textContent = xiangqi
@@ -201,7 +213,10 @@ export function mountCompetition(game, createRenderer) {
           '[data-competition-launch]',
           '[data-competition-launch]:not(#friend-button)',
         ) + lettersCompetitionStyles
-      : styles;
+      : styles.replaceAll(
+          '[data-competition-launch]',
+          '[data-competition-launch]:not(#friend-duel)',
+        );
   document.head.append(style);
   const dialog = document.createElement(xiangqi ? 'section' : 'dialog');
   dialog.className = 'competition-dialog';

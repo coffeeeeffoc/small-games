@@ -8,7 +8,75 @@ import {
   nineNativeChecks,
   nineNativeScopePaths,
   nightProtocolFileScopes,
+  optionalServiceNativeFileScopes,
 } from './nine-native-scope.mjs';
+
+test('exact service-tool edits retain Canvas provenance consumers while unchanged Creator inputs need no rebuild', async () => {
+  const { nineNativeDependencyPlan } = await import('./nine-native-scope.mjs');
+  const { workspacePackages } = await import('./validation-plan.mjs');
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const games = JSON.parse(
+    readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url), 'utf8'),
+  );
+  const read = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const packages = await workspacePackages(root);
+  const file = 'apps/shell-minigame/scripts/nine-games-targets.mjs';
+  const context = {
+    changedPaths: [file],
+    games,
+    packages,
+    readHead: read,
+    readBase: (file) =>
+      execFileSync('git', ['show', 'c010423731cc22fb0657a4a86ac9811e1997bbc1:' + file], {
+        encoding: 'utf8',
+      }),
+  };
+  const fileScopes = optionalServiceNativeFileScopes(context);
+  assert(fileScopes.has(file));
+  const selected = nineNativeDependencyPlan({ ...context, fileScopes, readSource: read });
+  assert(selected.targets.length > 0);
+  assert(selected.targets.every((target) => !target.requiresCreator));
+  for (const id of [
+    'cops-robbers',
+    'cops-robbers-realtime',
+    'xiangqi-five',
+    'letters-words2',
+    'wulong-city',
+  ])
+    assert(
+      selected.targets.some((target) => target.game === id),
+      id,
+    );
+  for (const override of [
+    { fileScopes: new Map([[file, [...fileScopes.get(file)]]]) },
+    {
+      readSource: (name) =>
+        read(name) + (name === 'scripts/competition-service-config.mjs' ? '\n' : ''),
+    },
+    { changedPaths: [file, 'games/local/carding-car/package.json'] },
+  ]) {
+    const restored = nineNativeDependencyPlan({
+      ...context,
+      fileScopes,
+      readSource: read,
+      ...override,
+    });
+    assert(
+      restored.targets.some((target) => target.game === 'carding-car' && target.requiresCreator),
+    );
+  }
+  assert.equal(
+    optionalServiceNativeFileScopes({ ...context, readBase: () => 'unknown baseline' }).size,
+    0,
+  );
+  assert.equal(
+    optionalServiceNativeFileScopes({
+      ...context,
+      readHead: (name) => read(name) + (name === file ? '\n' : ''),
+    }).size,
+    0,
+  );
+});
 const baseline = '748f0b15be225ecb03807b4a7b1a3cd737298bda';
 const competition = 'platforms/competition/native.js';
 const nightHelper = 'apps/shell-web/scripts/standalone-game-checks.mjs';
@@ -38,7 +106,15 @@ const catalog = JSON.parse(
 );
 // Digest proofs use committed Git bytes, independent of Windows checkout EOLs.
 const snapshot = (file) =>
-  readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll('\r\n', '\n');
+  [
+    'platforms/competition/native.js',
+    'platforms/competition/xiangqi-five/native.js',
+    'platforms/competition/xiangqi-five/tests/native.test.mjs',
+  ].includes(file)
+    ? execFileSync('git', ['show', 'c010423731cc22fb0657a4a86ac9811e1997bbc1:' + file], {
+        encoding: 'utf8',
+      })
+    : readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll('\r\n', '\n');
 const beforeCompetition = execFileSync('git', ['show', `${baseline}:${competition}`], {
   encoding: 'utf8',
 });

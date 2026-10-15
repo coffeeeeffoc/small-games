@@ -3,10 +3,15 @@ import { readFile, realpath, stat } from 'node:fs/promises';
 import { dirname, extname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { adConfiguration, configurationScript } from './ad-config.mjs';
+import { h5ServiceConfig, serviceBundle, serviceHtml, serviceEnvironment } from '../../../../scripts/competition-h5-service.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const root = resolve(project, process.argv.includes('--dist') ? 'dist' : '.');
 const port = Number(process.env.PORT || 43420);
+const env = serviceEnvironment(process.argv.slice(2));
+const service = !process.argv.includes('--dist') || env.COMPETITION_SERVICE_ENABLED !== undefined
+  ? h5ServiceConfig('cops-robbers', { env, local: true }) : null;
+const competition = service?.competitionEnabled ? await serviceBundle('cops-robbers') : null;
 if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('PORT 必须是 0–65535 的整数；0 自动选择空闲端口。');
 const mime = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
@@ -32,13 +37,18 @@ export const server = createServer(async (request, response) => {
   try {
     const path = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
     const name = path === '/' ? 'index.html' : path.slice(1);
+    if (name === 'competition.js' && service) {
+      if (!competition) return send(404, 'Not found');
+      response.writeHead(200, { 'Content-Type': mime['.js'] });
+      return response.end(request.method === 'HEAD' ? undefined : competition);
+    }
     if (['publishing.js', 'platform-ads.js', 'platform-config.js'].includes(name) && !process.argv.includes('--dist')) {
       const content = name === 'platform-config.js' ? configurationScript(adConfiguration(false))
         : await readFile(resolve(project, '../../../platforms/h5', name));
       response.writeHead(200, { 'Content-Type': mime['.js'], 'X-Content-Type-Options': 'nosniff' });
       return response.end(request.method === 'HEAD' ? undefined : content);
     }
-    const allowed = name === 'index.html' || name === 'dev-mode.js' || ['publishing.js', 'platform-ads.js', 'platform-config.js'].includes(name) || /^favicon\.(svg|ico|png)$/.test(name)
+    const allowed = name === 'index.html' || name === 'dev-mode.js' || name === 'competition.js' || ['publishing.js', 'platform-ads.js', 'platform-config.js'].includes(name) || /^favicon\.(svg|ico|png)$/.test(name)
       || /^(src|assets)\//.test(name);
     if (!allowed || /[\\\0]/.test(name) || name.split('/').some(part => part.startsWith('.'))
       || !mime[extname(name).toLowerCase()]) return send(404, 'Not found');
@@ -47,7 +57,8 @@ export const server = createServer(async (request, response) => {
     const canonical = await realpath(target);
     if (!inside(canonicalRoot, canonical) || canonical !== resolve(canonicalRoot, name)
       || !(await stat(canonical)).isFile()) return send(404, 'Not found');
-    const content = await readFile(canonical);
+    let content = await readFile(canonical);
+    if (name === 'index.html' && service) content = Buffer.from(serviceHtml(content.toString(), service));
     response.writeHead(200, {
       'Content-Type': mime[extname(name).toLowerCase()], 'Content-Length': content.length,
       'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff',

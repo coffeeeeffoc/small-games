@@ -1,4 +1,6 @@
+param([switch]$WithService, [switch]$WithoutService)
 $ErrorActionPreference = 'Stop'
+if ($WithService -and $WithoutService) { throw 'Choose -WithService or -WithoutService' }
 Import-Module (Join-Path $PSHOME 'Modules/Microsoft.PowerShell.Utility/Microsoft.PowerShell.Utility.psd1')
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 Add-Type -AssemblyName System.IO.Compression
@@ -6,7 +8,10 @@ Add-Type -AssemblyName System.IO.Compression
 $gamePath = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 Push-Location $gamePath
 try {
-    & node scripts/build.mjs --taptap
+    $serviceArgs = @()
+    if ($WithService) { $serviceArgs += '--with-service' }
+    if ($WithoutService) { $serviceArgs += '--without-service' }
+    & node scripts/build.mjs --taptap @serviceArgs
     if ($LASTEXITCODE -ne 0) { throw 'H5 build failed' }
     $distPath = Join-Path $gamePath 'dist'
     $outputPath = [IO.Path]::GetFullPath((Join-Path $gamePath '../../../outputs/cops-robbers'))
@@ -15,6 +20,8 @@ try {
     $temporaryPath = Join-Path $outputPath ([Guid]::NewGuid().ToString() + '.zip')
     # The ordinary build preserves old files. Package only this build's current sources.
     $names = @('index.html', 'dev-mode.js', 'publishing.js', 'platform-ads.js', 'platform-config.js', 'favicon.svg')
+    if (Test-Path -LiteralPath (Join-Path $distPath 'competition.js')) { $names += 'competition.js' }
+    $serviceConfig = (& node -e "const s=require('fs').readFileSync('dist/index.html','utf8');process.stdout.write(s.match(/__COMPETITION_CONFIG__=(\{.*?\});/)[1])" | ConvertFrom-Json)
     foreach ($directory in @('src', 'assets')) {
         foreach ($item in (Get-ChildItem -LiteralPath (Join-Path $gamePath $directory) -Recurse -Force)) {
             if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Symlink in H5 sources' }
@@ -72,7 +79,7 @@ try {
             format = 'TapTap H5 static ZIP'; entry = 'dist/index.html'; buildDirectory = 'games/local/cops-robbers/dist'; uploadDirectory = 'outputs/cops-robbers/taptap-h5/dist'; screenOrientation = 1
             bytes = (Get-Item -LiteralPath $temporaryPath).Length
             sha256 = (Get-FileHash -LiteralPath $temporaryPath -Algorithm SHA256).Hash.ToLowerInvariant()
-            files = $inventory; zipMatchesCurrentBuild = $true; competitionEnabled = $false
+            files = $inventory; zipMatchesCurrentBuild = $true; competitionEnabled = [bool]$serviceConfig.competitionEnabled; apiUrl = $serviceConfig.apiUrl
             deterministicEntryTimestamps = $true
             adMode = 'host'; adPlatform = 'taptap-h5'; adUnitConfigured = ![string]::IsNullOrWhiteSpace($env:TAPTAP_COPS_ROBBERS_AD_UNIT_ID)
             uploaded = $false; reviewApproved = $false; realDeviceVerified = $false; realAdsVerified = $false

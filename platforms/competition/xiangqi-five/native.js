@@ -286,8 +286,10 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
         },
       );
       y += 58;
-      button('好友挑战', 24, y, w, openPK);
-      y += 58;
+      if (config.competitionEnabled === true && config.apiUrl) {
+        button('好友挑战', 24, y, w, openPK);
+        y += 58;
+      }
       button('战术练习', 24, y, w, () => change('training'));
       y += 58;
       button('玩法与设置', 24, y, w, () => change('help'));
@@ -495,7 +497,11 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
     }, 100);
   }
   function openPK() {
-    if (!config.apiUrl || typeof startNativeCompetition !== 'function') {
+    if (
+      config.competitionEnabled !== true ||
+      !config.apiUrl ||
+      typeof startNativeCompetition !== 'function'
+    ) {
       message = '好友服务尚未配置，单机仍可继续';
       render();
       return;

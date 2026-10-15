@@ -209,6 +209,81 @@ export function nativeSourceInventoryFileScopes({
 const TAP_NORMALIZER_HEAD_SHA = '02247727d9d13015d7a3362bc07273595522b0d65222e853a476d99b8f6c505a';
 const tapNormalizerProofValues = new WeakSet();
 
+// Reviewed optional-service additions execute only for these three games.
+// Bind all shared producers and the pure resolver, so changing any other byte
+// restores their complete dependency graph and genuine Creator requirements.
+const optionalServiceIds = ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'];
+const optionalServiceReviews = {
+  'apps/shell-minigame/scripts/nine-games-build.mjs': [
+    'e6d300910a9159af2f8d03f6c329fa320abe890a4f2b091289a787a68ff6fd29',
+    '36f0218a2a1ee89b9d56234ef3063c0911681d9edbd1e975a01eede6df0f0ed0',
+  ],
+  'apps/shell-minigame/scripts/nine-games-targets.mjs': [
+    '0c88345eab4080223dcdeb55668cb5750017ed1c4390d7c6545cce4588e8c491',
+    '34a1647faded832e8040d87250327d860a58a848d73c7724b69ae8ef4c22d070',
+  ],
+  'apps/shell-minigame/scripts/taptap-build.mjs': [
+    '4eb7d376b0168b3b650e963f3b12b59b37ecf3ba936933bcd60bd4f6f0124bbf',
+    '07c4ef5faf0ff29890b1ebbd260749468dd66b9ef699e82d0a779774a22f2efb',
+  ],
+  'apps/shell-minigame/scripts/taptap-targets.mjs': [
+    '15105d4a5a2253418aff9d846ad04736f629494b070147318944075e257bc99a',
+    'bd8b97bbc9fab7355248b260aad5c76022c81356521c15a6d2c699180277a44a',
+  ],
+  'apps/shell-minigame/scripts/taptap-login.mjs': [
+    '8775e67f61893c760f7470ac64b37d017a18027e7ab7733a8c258dff2156aea0',
+    '2186f8fca5aca7ea33e41e180a02e2fdd3d0c5b3265246c53c911c54392c9403',
+  ],
+  'scripts/competition-service-config.mjs': [
+    null,
+    'e3a6d13d3da2cb292d5ea0aaa8fd0f5d5be0b95b22f602346a4203dd29651bd7',
+  ],
+};
+const optionalServiceProofValues = new WeakMap();
+function assertOptionalServiceSources(read) {
+  for (const [file, [, hash]] of Object.entries(optionalServiceReviews))
+    assert.equal(digest(read(file)), hash);
+}
+export function optionalServiceNativeFileScopes({
+  changedPaths,
+  readBase,
+  readHead,
+  games,
+  packages,
+}) {
+  const scopes = new Map();
+  try {
+    assertOptionalServiceSources(readHead);
+    for (const id of optionalServiceIds) {
+      assert.equal(games.filter((game) => game.id === id && game.source === sources[id]).length, 1);
+      assert.equal(games.filter((game) => game.id === id).length, 1);
+      assert.equal(games.filter((game) => game.source === sources[id]).length, 1);
+      assert.equal(packages.filter((pkg) => pkg.dir === sources[id]).length, 1);
+    }
+    for (const file of changedPaths.filter((file) => Object.hasOwn(optionalServiceReviews, file))) {
+      const [baseHash, headHash] = optionalServiceReviews[file];
+      let before;
+      try {
+        before = readBase(file);
+      } catch {
+        assert.equal(baseHash, null);
+      }
+      if (typeof before === 'string') assert([baseHash, headHash].includes(digest(before)));
+      else assert.equal(baseHash, null);
+      const affected = [
+        ...optionalServiceIds.map((id) => sources[id]),
+        MINIGAME,
+        ...(file.startsWith('scripts/') ? ['apps/shell-web'] : []),
+      ];
+      optionalServiceProofValues.set(affected, file);
+      scopes.set(file, affected);
+    }
+  } catch {
+    return new Map();
+  }
+  return scopes;
+}
+
 /** Three TapTap-only generator additions; every other producer byte must match. */
 export function tapNormalizerFileScopes({ changedPaths, readBase, readHead, games, packages }) {
   const scopes = new Map();
@@ -443,6 +518,14 @@ export function nightProtocolFileScopes({ changedPaths, readBase, readHead, game
 /** Undefined entries deliberately leave unsupported/unknown changes blocked. */
 export function nineNativeFileScopes({ changedPaths, readBase, readHead, games, packages }) {
   const scopes = new Map();
+  for (const [file, affected] of optionalServiceNativeFileScopes({
+    changedPaths,
+    readBase,
+    readHead,
+    games,
+    packages,
+  }))
+    scopes.set(file, affected);
   if (changedPaths.includes(tapWorkflow)) {
     try {
       assert.equal(digest(readHead(tapWorkflow).replaceAll('\r\n', '\n')), tapWorkflowSha256);
@@ -1380,6 +1463,15 @@ export function nineNativeDependencyPlan({
         /* Stale/missing source cannot exclude shared consumers. */
       }
     }
+  const optionalServiceOnly = new Set();
+  try {
+    assertOptionalServiceSources(readSource);
+    for (const file of changedPaths)
+      if (optionalServiceProofValues.get(fileScopes.get(file)) === file)
+        optionalServiceOnly.add(file);
+  } catch {
+    /* Stale or copied proofs retain the entire shared consumer graph. */
+  }
   const graph = new Map([...nativeGraph].map(([file, targets]) => [file, new Set(targets)]));
   if (hasTapTap)
     for (const [file, targets] of taptapGraph) {
@@ -1476,11 +1568,13 @@ export function nineNativeDependencyPlan({
           if (platform === platformDirectory) selected.add(game + ':' + platform);
         }
     }
-    const fileTargets = tapCompetitionOnly.has(file)
-      ? tapCompetitionOnly.get(file).map((game) => game + ':taptap')
-      : file === INVENTORY_BUILDER && tapNormalizerOnly
-        ? [...competitionGames, 'travel-bund', 'wulong-city'].map((game) => game + ':taptap')
-        : graph.get(file) || [];
+    const fileTargets = optionalServiceOnly.has(file)
+      ? [...(graph.get(file) || [])].filter((target) => !cocosGames.includes(target.split(':')[0]))
+      : tapCompetitionOnly.has(file)
+        ? tapCompetitionOnly.get(file).map((game) => game + ':taptap')
+        : file === INVENTORY_BUILDER && tapNormalizerOnly
+          ? [...competitionGames, 'travel-bund', 'wulong-city'].map((game) => game + ':taptap')
+          : graph.get(file) || [];
     for (const target of fileTargets) {
       const [game, platform] = target.split(':');
       // Builder provenance includes configuration inputs for every channel. Only
@@ -1533,6 +1627,7 @@ export function nineNativeDependencyPlan({
       blocked.add('night-overwatch');
     if (
       !(file === INVENTORY_BUILDER && (inventoryOnly || tapNormalizerOnly)) &&
+      !optionalServiceOnly.has(file) &&
       /^apps\/shell-minigame\/scripts\/(?:cocos-platform|night-native-project|kuaishou-cocos-import|nine-games-build|nine-games-targets)\.mjs$/.test(
         file,
       )

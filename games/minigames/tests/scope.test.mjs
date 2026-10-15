@@ -24,6 +24,14 @@ test('original rules select the Cocos consumer without removing original H5 vali
   assert.deepEqual(plan.ids, ['cops-robbers-realtime']);
   assert.deepEqual(plan.native_only_paths, []);
 });
+test('the public service resolver selects all three Cocos consumers and retains H5 checks', () => {
+  const plan = cocosMinigamePlan({
+    changedPaths: ['scripts/competition-service-config.mjs'],
+    fileScopes: new Map(),
+  });
+  assert.deepEqual(plan.ids, ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five']);
+  assert.deepEqual(plan.native_only_paths, []);
+});
 test('only the reviewed required engine workflow is classified', () => {
   const file = '.github/workflows/cocos-minigames.yml';
   const real = readFileSync(

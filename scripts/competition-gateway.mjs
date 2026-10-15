@@ -3,7 +3,10 @@ import { connect } from 'node:net';
 import { readFile, stat, realpath } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { competitionService, serviceGames } from './competition-service-config.mjs';
+import { h5ServiceConfig, serviceHtml, prepareH5Service } from './competition-h5-service.mjs';
 export function isPublicCompetitionPath(pathname) {
+  if (pathname === '/api/competition/v1/runs/cops-robbers-realtime') return true;
   return /^\/api\/competition\/v1\/(?:sessions\/(?:guest|platform)|me|boards\/[^/]+|rooms(?:\/[^/]+)?(?:\/(?:ready|leave|rematch|actions|role|initiative))?|games\/[A-Za-z0-9][A-Za-z0-9-]{0,79}(?:\/leaderboards\/[A-Za-z0-9][A-Za-z0-9-]{0,79}|\/runs(?:\/[a-f0-9-]{36}(?:\/(?:actions|finish))?)?|\/rooms(?:\/(?:join|[A-F0-9]{12}(?:\/(?:ready|leave|rematch|actions|role|initiative))?))?)?)$/.test(
     pathname,
   );
@@ -12,6 +15,12 @@ export function isPublicCompetitionPath(pathname) {
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const root = fileURLToPath(new URL('../apps/shell-web/dist/', import.meta.url));
   const rootReal = await realpath(root);
+  competitionService({ local: true });
+  for (const game of serviceGames) {
+    const directory = path.join(root, 'games', game);
+    if (await stat(path.join(directory, 'index.html')).catch(() => false))
+      await prepareH5Service(game, directory, { local: true });
+  }
   const runtime = Number(process.env.COMPETITION_PORT || 43002),
     kart = Number(process.env.KART_SERVER_PORT || 43003),
     port = Number(process.env.COMPETITION_GATEWAY_PORT || 43010);
@@ -94,8 +103,23 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
         throw new Error('Denied path');
       let content = await readFile(resolved);
       if (path.extname(resolved) === '.html') {
+        const match = content
+          .toString()
+          .match(
+            /<script data-competition-service>globalThis\.__COMPETITION_CONFIG__=(\{.*?\});<\/script>/,
+          );
+        if (match)
+          content = Buffer.from(
+            serviceHtml(
+              content.toString(),
+              h5ServiceConfig(JSON.parse(match[1]).game, { local: true }),
+            ),
+          );
         const config = `<script>globalThis.__COMPETITION_CONFIG__={apiUrl:location.origin+'/api/competition/v1'};globalThis.__kartServerUrl=(location.protocol==='https:'?'wss:':'ws:')+'//'+location.host+'/kart';</script>`;
-        content = Buffer.from(content.toString().replace('<head>', '<head>' + config));
+        const injected = match
+          ? config.replace(/globalThis\.__COMPETITION_CONFIG__=.*?;/, '')
+          : config;
+        content = Buffer.from(content.toString().replace('<head>', '<head>' + injected));
       }
       res.setHeader('content-type', mime[path.extname(resolved)] || 'application/octet-stream');
       res.setHeader('cache-control', 'no-cache');

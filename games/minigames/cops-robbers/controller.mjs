@@ -488,7 +488,7 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
   function launchCompetition() {
     if (
       config.competitionEnabled !== true ||
-      !/^https:\/\//.test(config.apiUrl || '') ||
+      !/^https?:\/\//.test(config.apiUrl || '') ||
       !startNativeCompetition ||
       stopped
     )
@@ -578,14 +578,14 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
           true,
           leftInset,
           config.competitionEnabled === true &&
-            /^https:\/\//.test(config.apiUrl || '') &&
+            /^https?:\/\//.test(config.apiUrl || '') &&
             startNativeCompetition
             ? (span - 10) / 2
             : span,
         );
       if (
         config.competitionEnabled === true &&
-        /^https:\/\//.test(config.apiUrl || '') &&
+        /^https?:\/\//.test(config.apiUrl || '') &&
         startNativeCompetition
       )
         button(

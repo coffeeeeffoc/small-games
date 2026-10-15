@@ -78,13 +78,14 @@ test('configured Tap identities enable the existing friend protocol only for sup
     const env = {
       [`${prefix}_APP_ID`]: 'public-app-id',
       MINIGAME_COMPETITION_API_URL: 'https://api.example.com/competition/v1',
+      COMPETITION_SERVICE_ENABLED: '1',
       MINIGAME_TRAVEL_BUND_ASSET_BASE: 'https://assets.example.com/travel/',
     };
     const config = tapTapOptions(game.id, { env });
     assert.equal(config.competitionConfigured, !['travel-bund', 'wulong-city'].includes(game.id));
     assert.throws(
       () => tapTapOptions(game.id, { env: { ...env, MINIGAME_COMPETITION_API_URL: '' } }),
-      /login service/,
+      /login service|set COMPETITION_PUBLIC_API_URL/,
     );
   }
 });

@@ -99,6 +99,7 @@ export function cocosMinigamePlan({ changedPaths, fileScopes }) {
         file,
       ) ||
       [
+        'scripts/competition-service-config.mjs',
         'games/local/game-cricket/public/cricket-audio/perfect.wav',
         'games/local/carding-car/scripts/toolchain.mjs',
         'games/local/carding-car/scripts/setup.mjs',

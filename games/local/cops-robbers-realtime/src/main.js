@@ -26,6 +26,14 @@ import {
   roleCharacterMarkup,
 } from './role-appearance.js';
 import { RUN_VERSION, ONLINE_ENABLED, runConfig, formatRecord, readRecords, submitRun } from './records.js';
+
+if (ONLINE_ENABLED) {
+  document.querySelector('.home-shortcuts').hidden = false;
+  for (const id of ['friends-button', 'records-button']) {
+    document.getElementById(id).hidden = false;
+    document.getElementById(id).disabled = false;
+  }
+}
 import { startSupport, starterRuns, sprintRemaining, canRefill, grantSupport, useSprint, useRewind } from './support.js';
 import { createTapTapAdProvider } from './taptap-h5-ads.js';
 import { createSimulationAdProvider } from '../publishing.js';

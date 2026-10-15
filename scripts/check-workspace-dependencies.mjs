@@ -30,6 +30,15 @@ const REPOSITORY_IMPORTS = new Set([
   // The share-handler contract uses the real public adapter; other game tests gain no edge.
   'games/local/wulong-city/tests/game.test.mjs -> platforms/h5/publishing.js',
   // Build tooling and browser acceptance helpers, never game runtime dependencies.
+  'apps/shell-minigame/scripts/nine-games-build.mjs -> scripts/competition-service-config.mjs',
+  'apps/shell-minigame/scripts/nine-games-targets.mjs -> scripts/competition-service-config.mjs',
+  'apps/shell-minigame/scripts/taptap-build.mjs -> scripts/competition-service-config.mjs',
+  'apps/shell-minigame/scripts/taptap-login.mjs -> scripts/competition-service-config.mjs',
+  'apps/shell-minigame/scripts/taptap-targets.mjs -> scripts/competition-service-config.mjs',
+  'games/local/cops-robbers/scripts/build.mjs -> scripts/competition-h5-service.mjs',
+  'games/local/cops-robbers/scripts/serve.mjs -> scripts/competition-h5-service.mjs',
+  'games/local/cops-robbers-realtime/scripts/build.mjs -> scripts/competition-h5-service.mjs',
+  'games/local/cops-robbers-realtime/scripts/serve.mjs -> scripts/competition-h5-service.mjs',
   'games/local/night-overwatch/scripts/build.mjs -> games/local/carding-car/scripts/toolchain.mjs',
   'games/local/night-overwatch/scripts/build-native.mjs -> games/local/carding-car/scripts/toolchain.mjs',
   'games/local/night-overwatch/scripts/build-native.mjs -> games/local/carding-car/scripts/native-targets.mjs',
