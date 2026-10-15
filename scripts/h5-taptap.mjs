@@ -109,9 +109,27 @@ for (const game of games)
       [
         '-NoProfile',
         '-Command',
-        'Add-Type -AssemblyName System.IO.Compression.FileSystem; [IO.Compression.ZipFile]::CreateFromDirectory($env:H5_ZIP_SOURCE,$env:H5_ZIP_OUTPUT)',
+        `Add-Type -AssemblyName System.IO.Compression.FileSystem
+$archive = [IO.Compression.ZipFile]::Open($env:H5_ZIP_OUTPUT, [IO.Compression.ZipArchiveMode]::Create)
+try {
+  foreach ($file in ($env:H5_ZIP_FILES | ConvertFrom-Json)) {
+    $entry = $archive.CreateEntry(('dist/' + $file.path), [IO.Compression.CompressionLevel]::Optimal)
+    $entry.LastWriteTime = [DateTimeOffset]::Parse('2000-01-01T00:00:00Z')
+    $inputStream = [IO.File]::OpenRead((Join-Path $env:H5_ZIP_SOURCE ('dist/' + $file.path)))
+    try { $entryStream = $entry.Open(); try { $inputStream.CopyTo($entryStream) } finally { $entryStream.Dispose() } }
+    finally { $inputStream.Dispose() }
+  }
+} finally { $archive.Dispose() }`,
       ],
-      { env: { ...process.env, H5_ZIP_SOURCE: directory, H5_ZIP_OUTPUT: zip }, stdio: 'inherit' },
+      {
+        env: {
+          ...process.env,
+          H5_ZIP_SOURCE: directory,
+          H5_ZIP_OUTPUT: zip,
+          H5_ZIP_FILES: JSON.stringify(files),
+        },
+        stdio: 'inherit',
+      },
     );
     const bytes = await readFile(zip);
     assert.deepEqual(
