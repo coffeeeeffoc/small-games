@@ -18,7 +18,25 @@ test('exact service-tool edits retain Canvas provenance consumers while unchange
   const games = JSON.parse(
     readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url), 'utf8'),
   );
-  const read = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const current = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  // Keep the positive proof pinned to the reviewed service delta. Later Canvas
+  // artwork edits must retain their own complete provenance consumers.
+  const reviewed = new Map(
+    [
+      'apps/shell-minigame/scripts/nine-games-build.mjs',
+      'apps/shell-minigame/scripts/nine-games-targets.mjs',
+      'apps/shell-minigame/scripts/taptap-build.mjs',
+      'apps/shell-minigame/scripts/taptap-targets.mjs',
+      'apps/shell-minigame/scripts/taptap-login.mjs',
+      'scripts/competition-service-config.mjs',
+    ].map((file) => [
+      file,
+      execFileSync('git', ['show', '5fbc6feadf2663e1905538ab6b6feae0ed26156b:' + file], {
+        encoding: 'utf8',
+      }),
+    ]),
+  );
+  const read = (file) => (reviewed.has(file) ? reviewed.get(file) : current(file));
   const packages = await workspacePackages(root);
   const file = 'apps/shell-minigame/scripts/nine-games-targets.mjs';
   const context = {
@@ -33,6 +51,11 @@ test('exact service-tool edits retain Canvas provenance consumers while unchange
   };
   const fileScopes = optionalServiceNativeFileScopes(context);
   assert(fileScopes.has(file));
+  assert.equal(
+    optionalServiceNativeFileScopes({ ...context, readHead: current }).size,
+    0,
+    'Subsequent artwork edits cannot borrow the historical service proof',
+  );
   const selected = nineNativeDependencyPlan({ ...context, fileScopes, readSource: read });
   assert(selected.targets.length > 0);
   assert(selected.targets.every((target) => !target.requiresCreator));
@@ -107,6 +130,7 @@ const catalog = JSON.parse(
 // Digest proofs use committed Git bytes, independent of Windows checkout EOLs.
 const snapshot = (file) =>
   [
+    'platforms/competition/client.js',
     'platforms/competition/native.js',
     'platforms/competition/xiangqi-five/native.js',
     'platforms/competition/xiangqi-five/tests/native.test.mjs',
@@ -979,6 +1003,15 @@ test('exact TapTap competition recognition selects only its native consumers and
     };
     const fileScopes = tapCompetitionFileScopes(c);
     assert.equal(fileScopes.size, 1);
+    assert.equal(
+      tapCompetitionFileScopes({
+        ...c,
+        readHead: (name) =>
+          readFileSync(new URL('../' + name, import.meta.url), 'utf8').replaceAll('\r\n', '\n'),
+      }).size,
+      0,
+      'Subsequent protocol changes cannot borrow the historical SDK-only proof',
+    );
     assert.deepEqual([...nineNativeFileScopes(c)], [...fileScopes]);
     const plan = incrementalPlan({ ...c, fileScopes, readSource: snapshot });
     assert.equal(plan.nine_native_targets.length, count);
