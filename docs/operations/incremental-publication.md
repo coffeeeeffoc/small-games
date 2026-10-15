@@ -1,6 +1,6 @@
 # 准确候选版本的增量发布验证
 
-官网独立部署的精确脚本路径与两条根命令由 `companyDeploymentScopePaths` 分类，仅选择 `apps/company-web` 和部署契约测试。包体隔离、Linux/WSL 故障回退与官网现有浏览器检查保留；未知 `infra/company` 或部署脚本仍阻断，不扩大到游戏后端。
+官网独立部署的精确脚本路径与两条根命令由 `companyDeploymentScopePaths` 分类，仅选择 `apps/company-web` 和部署契约测试。范围包含 Caddy 卷备份的 Python 实现、恢复/权限/轮换测试及独立 systemd service/timer；这些文件不修改游戏后端或在线卷。包体隔离、Linux/WSL 故障回退与官网现有浏览器检查保留；未知 `infra/company` 或部署脚本仍阻断，不扩大到游戏后端。
 
 使用 Node 24.21.0 / pnpm 12.6.0。先读取远端 dev 的准确 SHA，获取最新提交，正常合并并保留并行改动。候选必须已经提交；禁止把合并前的验证记录当作合并后结果。
 

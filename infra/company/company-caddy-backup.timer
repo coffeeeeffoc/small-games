@@ -1,0 +1,12 @@
+[Unit]
+Description=Daily company Caddy volume backup
+
+[Timer]
+OnCalendar=*-*-* 03:30:00 Asia/Shanghai
+RandomizedDelaySec=5min
+AccuracySec=1s
+Persistent=true
+Unit=company-caddy-backup.service
+
+[Install]
+WantedBy=timers.target

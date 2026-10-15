@@ -993,6 +993,10 @@ export const companyDeploymentScopePaths = [
   'infra/company/.env.example',
   'infra/company/deploy.sh',
   'infra/company/deploy.test.sh',
+  'infra/company/backup.py',
+  'infra/company/backup.test.py',
+  'infra/company/company-caddy-backup.service',
+  'infra/company/company-caddy-backup.timer',
 ];
 function companyCommandsOnly(before, after) {
   try {

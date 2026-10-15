@@ -16,6 +16,21 @@ import {
   writeBundle,
 } from './deploy-company.mjs';
 
+test('online Caddy backups restore privately, validate keys, rotate safely and reject unstable input', () => {
+  const file = fileURLToPath(new URL('../infra/company/backup.test.py', import.meta.url));
+  const windows = process.platform === 'win32';
+  const result = spawnSync(
+    windows ? 'wsl.exe' : 'python3',
+    windows
+      ? ['--exec', 'bash', '-c', 'exec python3 "$(wslpath -u "$1")"', 'caddy-backup-test', file]
+      : [file],
+    { encoding: 'utf8', timeout: 60000 },
+  );
+  assert.ifError(result.error);
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.match(result.stderr, /Ran 4 tests/);
+});
+
 test('remote deployment transaction restores prior releases and isolates first/config/port/checksum failures', () => {
   const file = fileURLToPath(new URL('../infra/company/deploy.test.sh', import.meta.url));
   const windows = process.platform === 'win32';

@@ -41,6 +41,60 @@ curl --fail --location https://www.nenggongzhiren.cn/release.json
 
 保留数据卷和运行服务，并监控公开证书的剩余有效期。不要为了验证续期反复删除证书或强制重新签发，避免触发证书机构限额。
 
+## Caddy 数据卷定期备份
+
+本项目的 `backup.py` 与 `company-caddy-backup.service` / `.timer` 独立于官网发布事务安装。每天北京时间 03:30 开始，随机延后最多五分钟，保留最近 30 天的本地副本；服务器关机错过任务时，systemd 会在定时器恢复后补跑。CPU 配额 10%，CPU/磁盘调度使用低优先级，不停止、暂停、重启或修改官网及游戏容器。
+
+备份目录为 `/var/backups/company-caddy`，仅 root 可进入（700），压缩包和 SHA-256 校验文件仅 root 可读写（600）。包内包含两个 Caddy 卷、当前 `Caddyfile`、Compose 配置和公开版本记录，不包含游戏、数据库或整个网站源码。副本包含证书私钥和 ACME 账户密钥，不能提交到 Git、放入官网静态目录或上传公共存储桶。
+
+在线备份会比较读取前后的文件 SHA-256，并验证归档内容和所有证书/私钥配对；文件变动时最多重试三次。Caddy 进程锁不进入备份。只有新副本验证成功后才删除过期的同类副本；失败保留已有备份并记录到 systemd journal。在线副本不是磁盘原子快照；如果持续写入导致无法获得稳定副本，任务会失败，不能把日志中的失败当作备份完成。
+
+在服务器上取得本仓库对应版本的以下文件后，从仓库根目录安装（不重新部署官网）：
+
+```bash
+sudo install -d -m 700 /var/backups/company-caddy
+sudo install -d -m 755 /usr/local/lib/company-caddy-backup
+sudo install -m 644 infra/company/backup.py /usr/local/lib/company-caddy-backup/backup.py
+sudo install -m 644 infra/company/company-caddy-backup.service /etc/systemd/system/
+sudo install -m 644 infra/company/company-caddy-backup.timer /etc/systemd/system/
+sudo systemd-analyze verify /etc/systemd/system/company-caddy-backup.service /etc/systemd/system/company-caddy-backup.timer
+sudo systemctl daemon-reload
+sudo systemctl enable --now company-caddy-backup.timer
+sudo systemctl start company-caddy-backup.service
+```
+
+安装路径与脚本默认值对应当前 `/opt/small-games/company` 和两个 `company-web_caddy_*` 卷。迁移部署目录、Compose 项目名或卷名时，先同步脚本中的这些固定值并重新验证，不要只修改官网配置。
+
+日常检查与手动触发：
+
+```bash
+systemctl list-timers company-caddy-backup.timer --all
+sudo systemctl status company-caddy-backup.service --no-pager
+sudo journalctl -u company-caddy-backup.service -n 30 --no-pager
+sudo ls -lh /var/backups/company-caddy
+sudo systemctl start company-caddy-backup.service
+```
+
+一次性任务成功后显示 `inactive (dead)` 是正常状态，同时应看到 `Result=success` / `status=0/SUCCESS`。定时器应保持 `active (waiting)` 且有下一次执行时间。失败仅写入 journal，目前没有邮件、短信或异地通知，需检查最近成功时间，不能仅看定时器是否启用。
+
+### 校验和恢复演练
+
+以下命令在服务器 root shell 中运行，将 `backup_file` 替换为实际备份文件名。先检查 SHA-256 和归档内容，再恢复到全新的临时目录；不会覆盖在线卷，也不会启动第二个 Caddy 或触发证书签发：
+
+```bash
+sudo -i
+cd /var/backups/company-caddy
+backup_file=caddy-YYYYMMDDTHHMMSSZ-xxxxxx.tar.gz
+sha256sum --check "$backup_file.sha256"
+python3 /usr/local/lib/company-caddy-backup/backup.py --verify "$backup_file"
+restore_dir=$(mktemp -d /var/backups/company-caddy-restore.XXXXXX)
+tar -xzf "$backup_file" -C "$restore_dir" --no-same-owner
+```
+
+临时目录中的 `data/`、`config/` 分别对应 Caddy 的 `/data`、`/config`；`deployment/` 保存当时的配置和版本信息。演练完成后，仅清理本次创建的临时目录。真正灾难恢复应在维护窗口中进行：先保留当前卷，再把副本恢复到两个新命名卷，核对权限和配置后切换 Caddy 挂载并验证两个域名；不要直接向正在运行的卷解压，不需要停止游戏容器。官网静态产物仍需从对应发布版本恢复或重新构建。
+
+本地副本与 Docker 数据目前位于同一台服务器磁盘，不能抵御整盘丢失、重装或服务器销毁。按当前选择未配置 COS 或其他异地副本。重装前应另行导出备份并核验可恢复性。
+
 ## 产物、校验与回退
 
 包输出到 `outputs/company-deploy/<时间-SHA-随机串>.tar.gz`，相邻 `.sha256` 校验整包。内容只有 `site/`、`caddy/Caddyfile`、Compose 配置、部署脚本与文件摘要；不含服务密码、SSH/TLS 私钥或游戏代码。`site/release.json` 记录公开的源码 SHA、版本、域名、备案号和网站资源摘要。
