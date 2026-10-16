@@ -7,6 +7,7 @@ import path from 'node:path';
 import { chromium } from '@playwright/test';
 import { inventory, digest, zipInventory } from '../apps/shell-minigame/scripts/taptap-package.mjs';
 import { matrixContract } from './h5-taptap-matrix.mjs';
+import { reachableStreetNodes } from './h5-taptap-touch.mjs';
 import { createRenderer as copsRenderer } from '../games/local/cops-robbers/src/competition-renderer.js';
 import { chooseDuelAction, stepDuel } from '../games/local/cops-robbers/src/duel.js';
 import { getDuelLevel } from '../games/local/cops-robbers/src/duel-levels.js';
@@ -533,8 +534,17 @@ async function rewardCheck(player) {
   };
 }
 
+async function onlineIdle(player) {
+  await until(
+    async () => (await player.surface.getAttribute('aria-busy')) !== 'true',
+    'Online entry finishes loading',
+  );
+}
 async function openOnline(player) {
-  if (player.surface && (await player.surface.isVisible())) return;
+  if (player.surface && (await player.surface.isVisible())) {
+    await onlineIdle(player);
+    return;
+  }
   if (player.variant.game === 'xiangqi-five') {
     await player.page.locator('#home-start').tap();
     await player.page.locator('#mode-online').tap();
@@ -548,8 +558,10 @@ async function openOnline(player) {
   }
   await player.surface.waitFor({ state: 'visible' });
   player.profile = await player.page.evaluate(() => globalThis.__competition.request('/me'));
+  await onlineIdle(player);
 }
 async function profilePage(player) {
+  await onlineIdle(player);
   const responsePromise = player.page.waitForResponse(
     (response) =>
       response.request().method() === 'GET' &&
@@ -786,16 +798,20 @@ async function playStreet(players) {
       // Wait for this real route to finish. Clicking a moving avatar means hold,
       // so repeated retargets near it cannot prove a planned map destination.
       if (own[actor].moving) continue;
+      const reachable = reachableStreetNodes(player.room.state, actor);
       const score = (point) =>
         Math.min(...targets.map((target) => Math.hypot(target.x - point.x, target.y - point.y)));
       const nodes = state.map.nodes
-        .filter((node) =>
-          own.every(
-            (item) =>
-              item.caught || item.escaped || Math.hypot(item.x - node.x, item.y - node.y) > 180,
-          ),
+        .filter(
+          (node, index) =>
+            reachable.has(index) &&
+            own.every(
+              (item) =>
+                item.caught || item.escaped || Math.hypot(item.x - node.x, item.y - node.y) > 180,
+            ),
         )
         .sort((a, b) => (runner ? score(b) - score(a) : score(a) - score(b)));
+      if (!nodes.length) continue;
       let sent = false;
       for (const node of nodes) {
         try {

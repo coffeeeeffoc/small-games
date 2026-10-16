@@ -199,6 +199,7 @@ export const competitionServiceScopePaths = [
   'scripts/h5-taptap.browser.mjs',
   'scripts/h5-taptap-matrix.mjs',
   'scripts/h5-taptap-matrix.test.mjs',
+  'scripts/h5-taptap-touch.mjs',
   'platforms/h5/rewarded-host.js',
   'scripts/competition-client.test.mjs',
   'scripts/competition.integration.mjs',

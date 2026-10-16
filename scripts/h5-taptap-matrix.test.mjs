@@ -1,11 +1,42 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { reachableStreetNodes } from './h5-taptap-touch.mjs';
+import { getLevels } from '../games/local/cops-robbers-realtime/src/levels.js';
 import {
   matrixContract,
   matrixGames,
   packageModes,
   productionCompetitionApi,
 } from './h5-taptap-matrix.mjs';
+
+test('street touch planning excludes routes blocked by opponents in real public snapshots', () => {
+  for (const fixture of [
+    { levelId: 26, cop: { x: 752, y: 352.3333333333361 }, robber: { x: 920, y: 80 } },
+    { levelId: 33, cop: { x: 492.4499999999957, y: 80 }, robber: { x: 920, y: 520 } },
+  ]) {
+    const level = getLevels('classic').find((item) => item.id === fixture.levelId);
+    const state = {
+      levelId: fixture.levelId,
+      mode: 'classic',
+      role: 'runner',
+      map: { nodes: level.nodes, edges: level.edges },
+      cops: [
+        { id: 0, ...fixture.cop },
+        { id: 1, x: 248, y: 80 },
+        { id: 2, x: 416, y: 80 },
+      ],
+      robbers: [{ id: 0, ...fixture.robber, caught: false, escaped: false }],
+    };
+    const before = structuredClone(state);
+    const reachable = reachableStreetNodes(state, 0);
+    const blocked = state.map.nodes.findIndex((node) => node.x === 80 && node.y === 520);
+    assert(blocked >= 0);
+    assert.equal(reachable.has(blocked), false);
+    assert(reachable.size > 0 && reachable.size < state.map.nodes.length);
+    assert.deepEqual(state, before, 'Planning cannot mutate authoritative state');
+    assert.equal(reachableStreetNodes({ ...state, role: 'pursuer' }, 0).has(blocked), true);
+  }
+});
 
 test('explicit axes constrain matrix output and ordinary builds retain environment defaults', () => {
   assert.deepEqual(packageModes({ matrix: true }), [
