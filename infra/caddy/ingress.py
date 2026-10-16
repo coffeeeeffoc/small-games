@@ -10,6 +10,7 @@ import re
 import signal
 import subprocess
 import sys
+import traceback
 
 LABEL = 'io.small-games.competition-ingress'
 DOMAIN = 'api.nenggongzhiren.cn'
@@ -301,7 +302,14 @@ def deploy(base, website, domain, www):
             journal['status'] = 'active'
             journal_path.write_text(json.dumps(journal, sort_keys=True) + '\n')
             print('CADDY_INGRESS_ACTIVE=' + str(target))
-        except BaseException:
+        except BaseException as error:
+            # Only code locations: exception text/stderr can carry OAuth or runtime secrets.
+            journal['failure'] = {
+                'type': type(error).__name__,
+                'source': [{'function': frame.name, 'line': frame.lineno}
+                           for frame in traceback.extract_tb(error.__traceback__)
+                           if frame.filename == __file__],
+            }
             # Recover both proxies, even when one of the rollback commands fails.
             errors = []
             for name, attempted in (('web', caddy_attempted), ('nginx', nginx_attempted)):

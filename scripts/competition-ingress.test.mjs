@@ -304,6 +304,7 @@ test('management stays on its sole origin with finite APIs and no SPA API fallba
   assert.match(nginx, /proxy_set_header X-Management-Entry admin;/);
   assert.match(nginx, /resolver_timeout 2s;/);
   assert.match(nginx, /error_log \/dev\/null crit;/);
+  assert.match(nginx, /location = \/api \{ return 404 '\{"error":"NOT_FOUND"\}'; \}/);
   assert.match(nginx, /error_page 502 503 504 =503 @management_unavailable;/);
   assert.match(
     nginx,

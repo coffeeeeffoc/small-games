@@ -9,3 +9,7 @@
 修复只让响应解析保留原始命令输出，其他命令仍按原方式去除外围空白。新增测试覆盖 204/302/404 空正文、JSON/页面正文换行、缺失头终止符仍拒绝，以及失败命令 stderr 不泄漏。没有放宽 CORS、关闭断言、跳过事务或扩大网络权限。实际公网重试结果另行记录。
 
 原始本地日志保留在 `.scratch/identity-caddy-production-rollout-da201f83.log`、`.scratch/identity-ingress-diagnosis-first.log`、`.scratch/identity-ingress-runtime-projection.log`、`.scratch/identity-ingress-cors-projection.log` 和 `.scratch/identity-public-status-after-ingress-rollback.log`。私有备份留在服务器，未上传数据库或 TLS 备份。
+
+第二次候选 `1f687e11e4b28664bc3dfe895f6b9b22bc71ff6b` 已通过两种 API 前缀的 204、元数据、排行榜、鉴权与 CORS 检查，但仍触发完整回滚，`rollbackErrors=[]`。后续用服务器现有 Nginx 1.28.3 镜像、无网络无端口无生产挂载的临时容器，复现 `location /api/` 的代理配置会将 `/api` 自动 301 到 `/api/`。该行为与既定后台 `/api` 直接 404 且无重定向的验收冲突；增加精确 `/api` 的 JSON 404 路由，保持有限 API 范围不变。复现日志为 `.scratch/identity-nginx-api-root-probe.log`，修复复验另存 `.scratch/identity-nginx-api-root-fixed.log`。
+
+事务失败记录现仅追加异常类型、函数名及行号，不记录异常文本、stderr、参数或局部变量；测试同时确认失败后两层代理回滚及日志中不存在敏感错误文本。第二次失败的准确行号未由旧版本记录，以上为实际复现的确定性路由缺陷，重新上线仍须完成全部真实 HTTPS 验收。

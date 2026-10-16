@@ -176,6 +176,11 @@ class IngressTests(unittest.TestCase):
                     self.activate()
                 self.assertEqual((self.base / 'current').resolve(), self.old)
                 self.assertFalse((self.games / 'ingress-managed').is_symlink())
+                journal = json.loads((self.base / 'transactions' / (self.target.name + '.json')).read_text())
+                self.assertEqual(set(journal['failure']), {'type', 'source'})
+                self.assertEqual(journal['failure']['type'], 'RuntimeError')
+                self.assertNotIn('TLS failed', json.dumps(journal))
+                self.assertTrue(all(set(frame) == {'function', 'line'} for frame in journal['failure']['source']))
                 self.assertIn(('docker','network','rm',ingress.NETWORK), self.events)
                 rollback = [event for event in self.events if event[:2] == ('docker','compose')]
                 self.assertTrue(rollback and 'nginx-rollback.yaml' in ' '.join(rollback[0]))

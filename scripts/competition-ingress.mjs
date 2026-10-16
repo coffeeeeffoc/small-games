@@ -239,6 +239,7 @@ server {
     # Upstream failure messages otherwise include OAuth query values.
     error_log /dev/null crit;
     default_type application/json;
+    location = /api { return 404 '{"error":"NOT_FOUND"}'; }
     location /api/ {
         if ($management_public_path = 0) { return 404 '{"error":"NOT_FOUND"}'; }
         if ($request_method !~ ^(GET|POST|OPTIONS)$) { return 404 '{"error":"NOT_FOUND"}'; }
