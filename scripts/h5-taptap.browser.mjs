@@ -7,7 +7,14 @@ import path from 'node:path';
 import { chromium } from '@playwright/test';
 import { inventory, digest, zipInventory } from '../apps/shell-minigame/scripts/taptap-package.mjs';
 import { matrixContract } from './h5-taptap-matrix.mjs';
-import { reachableStreetNodes } from './h5-taptap-touch.mjs';
+import {
+  reachableStreetNodes,
+  reachableStreetMove,
+  isBlockedStreetTouch,
+  isExpectedTouchRequest,
+  touchAttemptFinished,
+  completeTouchResponse,
+} from './h5-taptap-touch.mjs';
 import { createRenderer as copsRenderer } from '../games/local/cops-robbers/src/competition-renderer.js';
 import { chooseDuelAction, stepDuel } from '../games/local/cops-robbers/src/duel.js';
 import { getDuelLevel } from '../games/local/cops-robbers/src/duel-levels.js';
@@ -157,7 +164,7 @@ function sameAction(actual, wanted) {
     )
   );
 }
-async function touchAction(player, wanted) {
+async function touchAction(player, wanted, planningState) {
   await rendered(player.page);
   const canvas = player.surface.locator('canvas[data-play]');
   await until(
@@ -225,29 +232,89 @@ async function touchAction(player, wanted) {
     return true;
   };
   const previous = player.room.seq;
-  if (selection) {
-    if (!(await tap(selection))) return false;
-    await rendered(player.page);
-  }
-  if (!(await tap(found))) return false;
-  await until(
-    () =>
-      player.room.status === 'finished' ||
-      (player.room.seq === previous + 1 && player.lastAction?.seq === previous + 1),
-    `${player.variant.name}/${player.id} accepted touch action`,
-  );
-  if (player.room.status === 'finished') {
-    if (player.room.seq !== previous + 1 || player.lastAction?.seq !== previous + 1) return false;
-  }
   const authoritative =
     state !== original && wanted.type === 'move'
       ? { ...wanted, x: wanted.y, y: -wanted.x }
       : wanted;
+  if (player.variant.game === 'cops-robbers-realtime' && wanted.type === 'move')
+    assert(
+      reachableStreetMove(planningState || original, authoritative),
+      'Plan a reachable public-snapshot route',
+    );
+  const expected = {
+    role: original.role,
+    code: player.room.code,
+    request: { seq: previous + 1, action: authoritative },
+    sent: false,
+    completed: false,
+  };
+  player.expectedTouch = expected;
+  if (selection) {
+    if (!(await tap(selection))) {
+      player.expectedTouch = null;
+      return false;
+    }
+    await rendered(player.page);
+  }
+  if (!(await tap(found))) {
+    player.expectedTouch = null;
+    return false;
+  }
+  await onlineIdle(player);
+  await until(
+    () => touchAttemptFinished(expected, player.room.status === 'finished'),
+    `${player.variant.name}/${player.id} sent touch response finishes`,
+  );
+  assert(!expected.error, 'Sent touch response processing must succeed');
+  assert(
+    !expected.sent || expected.status < 400 || expected.rejected || expected.terminal,
+    'Unexpected touch action rejection',
+  );
+  if (expected.rejected) {
+    await onlineIdle(player);
+    const confirmed = await player.page.evaluate(
+      (code) => globalThis.__competition.request(`/rooms/${code}`),
+      player.room.code,
+    );
+    assert.equal(confirmed.code, player.room.code);
+    assert.equal(confirmed.seq, previous, 'Rejected input cannot advance the player sequence');
+    if (confirmed.serverNow >= player.room.serverNow) player.room = confirmed;
+    const terminal = player.room.status === 'finished';
+    const actor = player.room.state.robbers[authoritative.actor];
+    assert(
+      terminal ||
+        actor.caught ||
+        actor.escaped ||
+        !reachableStreetMove(player.room.state, authoritative),
+      'A rejected planned route must now be blocked or naturally finished',
+    );
+    player.inputRejections.push({
+      seq: previous + 1,
+      status: 422,
+      error: 'ILLEGAL_ACTION',
+      sequenceUnchanged: true,
+      terminal,
+      recoveredUsingUI: false,
+    });
+    player.expectedTouch = null;
+    return false;
+  }
+  if (player.room.status === 'finished') {
+    if (player.room.seq !== previous + 1 || player.lastAction?.seq !== previous + 1) {
+      player.expectedTouch = null;
+      return false;
+    }
+  }
+  assert.equal(player.room.seq, previous + 1);
+  assert.equal(player.lastAction?.seq, previous + 1);
   assert(
     sameAction(player.lastAction.action, authoritative),
     'Touch must emit the planned legal action',
   );
   player.acceptedActions++;
+  for (const rejection of player.inputRejections)
+    if (rejection.seq === player.lastAction.seq) rejection.recoveredUsingUI = true;
+  player.expectedTouch = null;
   await rendered(player.page);
   return true;
 }
@@ -279,6 +346,9 @@ async function newPlayer(variant, id) {
     errors: [],
     apiFailures: [],
     terminalRejections: [],
+    inputRejections: [],
+    expectedTouch: null,
+    touchRequests: new WeakMap(),
     acceptedActions: 0,
     closing: false,
   };
@@ -286,6 +356,19 @@ async function newPlayer(variant, id) {
   context.on('request', (request) => {
     if (!isApi(request.url())) return;
     const entry = { method: request.method(), path: new URL(request.url()).pathname };
+    const expected = player.expectedTouch;
+    if (
+      isExpectedTouchRequest({
+        ...entry,
+        code: expected?.code,
+        input: requestBody(request),
+        expected,
+      })
+    ) {
+      if (expected.sent) player.errors.push('A touch emitted duplicate action requests');
+      expected.sent = true;
+      player.touchRequests.set(request, expected);
+    }
     player.requests.push(entry);
     trace({
       variant: variant.name,
@@ -296,12 +379,19 @@ async function newPlayer(variant, id) {
     });
   });
   context.on('requestfailed', (request) => {
-    if (!player.closing && isApi(request.url()))
+    const expected = player.touchRequests.get(request);
+    if (expected) {
+      expected.error = true;
+      expected.completed = true;
+    }
+    if ((!player.closing || expected) && isApi(request.url()))
       player.errors.push(`${request.method()} ${request.url()}: ${request.failure()?.errorText}`);
   });
   context.on('response', (response) => {
     if (!isApi(response.url())) return;
-    const task = (async () => {
+    const expected = player.touchRequests.get(response.request());
+    if (expected) expected.status = response.status();
+    const task = completeTouchResponse(expected, async () => {
       const body = await response.json().catch(() => null);
       const pathname = new URL(response.url()).pathname;
       trace({
@@ -314,8 +404,22 @@ async function newPlayer(variant, id) {
         body,
       });
       if (!response.ok()) {
+        if (
+          isBlockedStreetTouch({
+            game: variant.game,
+            code: expected?.code,
+            path: pathname,
+            status: response.status(),
+            body,
+            input: requestBody(response.request()),
+            expected,
+          })
+        ) {
+          expected.rejected = true;
+          return;
+        }
         const code = pathname.match(
-          /^\/api\/competition\/v1\/rooms\/([A-F0-9]{12})\/actions$/,
+          /^\/(?:small-games\/v1|api\/competition\/v1)\/rooms\/([A-F0-9]{12})\/actions$/,
         )?.[1];
         if (
           code === player.room?.code &&
@@ -332,11 +436,12 @@ async function newPlayer(variant, id) {
             'finished',
             'Late input requires authoritative settlement',
           );
-          player.room = confirmed;
+          if (confirmed.serverNow >= player.room.serverNow) player.room = confirmed;
+          if (expected) expected.terminal = true;
           player.terminalRejections.push({ status: response.status(), path: pathname, body });
           return;
         }
-        if (!player.closing)
+        if (!player.closing || expected)
           player.apiFailures.push({ status: response.status(), path: pathname, body });
         return;
       }
@@ -353,8 +458,9 @@ async function newPlayer(variant, id) {
         player.lastAction = requestBody(response.request());
       if (pathname.endsWith('/me')) player.profile = body;
       if (pathname.includes('/boards/')) player.board = body;
-    })().catch((error) => {
-      if (!player.closing) player.errors.push(error.message);
+    }).catch((error) => {
+      if (expected) expected.error = true;
+      if (!player.closing || expected) player.errors.push(error.message);
     });
     pending.add(task);
     void task.finally(() => pending.delete(task));
@@ -787,7 +893,8 @@ async function playStreet(players) {
       const size = await player.surface
         .locator('canvas[data-play]')
         .evaluate((element) => ({ width: element.clientWidth, height: element.clientHeight }));
-      const state = projected(player.variant.game, player.room.state, size.width, size.height);
+      const planningState = player.room.state;
+      const state = projected(player.variant.game, planningState, size.width, size.height);
       const runner = state.role === 'runner';
       const own = runner ? state.robbers : state.cops;
       const actor = own.findIndex((item) => !item.caught && !item.escaped);
@@ -798,7 +905,7 @@ async function playStreet(players) {
       // Wait for this real route to finish. Clicking a moving avatar means hold,
       // so repeated retargets near it cannot prove a planned map destination.
       if (own[actor].moving) continue;
-      const reachable = reachableStreetNodes(player.room.state, actor);
+      const reachable = reachableStreetNodes(planningState, actor);
       const score = (point) =>
         Math.min(...targets.map((target) => Math.hypot(target.x - point.x, target.y - point.y)));
       const nodes = state.map.nodes
@@ -813,15 +920,23 @@ async function playStreet(players) {
         .sort((a, b) => (runner ? score(b) - score(a) : score(a) - score(b)));
       if (!nodes.length) continue;
       let sent = false;
+      const rejectedBefore = player.inputRejections.length;
       for (const node of nodes) {
         try {
-          sent = await touchAction(player, { type: 'move', actor, x: node.x, y: node.y });
-          break;
+          sent = await touchAction(
+            player,
+            { type: 'move', actor, x: node.x, y: node.y },
+            planningState,
+          );
+          if (sent || player.room.status === 'finished') break;
         } catch (error) {
           if (!error.message.startsWith('No visible touch point')) throw error;
         }
       }
-      assert(sent || player.room.status === 'finished', 'No legal street touch target');
+      assert(
+        sent || player.room.status === 'finished' || player.inputRejections.length > rejectedBefore,
+        'No legal street touch target',
+      );
     }
     await delay(1500);
   }
@@ -842,6 +957,10 @@ async function finishMatch(players, code) {
   const boards = [];
   for (const player of players) {
     assert(player.acceptedActions > 0, 'Both identities must send real UI actions');
+    assert(
+      player.inputRejections.every((item) => item.terminal || item.recoveredUsingUI),
+      'Rejected movement requires real UI recovery using the same sequence',
+    );
     const boardBefore = await player.page.evaluate(
       (game) => globalThis.__competition.request(`/games/${game}/leaderboards/versus`),
       player.variant.game,
@@ -903,6 +1022,7 @@ async function finishMatch(players, code) {
     acceptedTouchActions: players.map((p) => p.acceptedActions),
     duplicateActionsPreserveSettlement: true,
     confirmedLateTerminalInputs: players.map((p) => p.terminalRejections),
+    confirmedBlockedRouteInputs: players.map((p) => p.inputRejections),
     roomVersion: players[0].room.version,
     results,
     boards,

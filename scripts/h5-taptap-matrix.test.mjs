@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { reachableStreetNodes } from './h5-taptap-touch.mjs';
+import {
+  reachableStreetNodes,
+  isBlockedStreetTouch,
+  isExpectedTouchRequest,
+  touchAttemptFinished,
+  completeTouchResponse,
+} from './h5-taptap-touch.mjs';
 import { getLevels } from '../games/local/cops-robbers-realtime/src/levels.js';
 import {
   matrixContract,
@@ -8,6 +14,108 @@ import {
   packageModes,
   productionCompetitionApi,
 } from './h5-taptap-matrix.mjs';
+
+test('only a matching planned runner movement may enter the verified blocked-route recovery path', () => {
+  const request = { seq: 3, action: { type: 'move', actor: 0, x: 80, y: 520 } };
+  const fixture = {
+    game: 'cops-robbers-realtime',
+    code: 'ABCDEF012345',
+    path: '/small-games/v1/rooms/ABCDEF012345/actions',
+    status: 422,
+    body: { error: 'ILLEGAL_ACTION' },
+    input: structuredClone(request),
+    expected: { role: 'runner', request },
+  };
+  assert.equal(isBlockedStreetTouch(fixture), true);
+  assert.equal(
+    isBlockedStreetTouch({
+      ...fixture,
+      path: fixture.path.replace('/small-games/v1', '/api/competition/v1'),
+    }),
+    true,
+  );
+  for (const change of [
+    { game: 'cops-robbers' },
+    { code: undefined, path: '/me' },
+    { code: 'AAAAAAAAAAAA' },
+    { status: 403 },
+    { status: 409 },
+    { body: { error: 'VALIDATION_ERROR' } },
+    { path: '/small-games/v1/me' },
+    { expected: { ...fixture.expected, role: 'pursuer' } },
+    { expected: null },
+    { input: undefined, expected: { role: 'runner' } },
+    {
+      input: { ...request, action: { type: 'hold', actor: 0 } },
+      expected: { role: 'runner', request: { ...request, action: { type: 'hold', actor: 0 } } },
+    },
+    { input: { ...request, seq: 2 } },
+    { input: { ...request, action: { ...request.action, score: 3 } } },
+  ])
+    assert.equal(Boolean(isBlockedStreetTouch({ ...fixture, ...change })), false);
+});
+
+test('finished polling cannot bypass a sent touch with delayed response headers or body', async () => {
+  const expected = {
+    role: 'runner',
+    code: 'ABCDEF012345',
+    request: { seq: 3, action: { type: 'move', actor: 0, x: 80, y: 520 } },
+    sent: false,
+    completed: false,
+  };
+  const request = {};
+  const requests = new WeakMap();
+  const fixture = {
+    code: expected.code,
+    path: `/small-games/v1/rooms/${expected.code}/actions`,
+    method: 'POST',
+    input: structuredClone(expected.request),
+    expected,
+  };
+  assert.equal(isExpectedTouchRequest({ ...fixture, method: 'GET' }), false);
+  assert.equal(isExpectedTouchRequest(fixture), true);
+  expected.sent = true;
+  requests.set(request, expected);
+  assert.equal(touchAttemptFinished(expected, true), false, 'Response headers have not arrived');
+  let readBody;
+  const body = new Promise((resolve) => (readBody = resolve));
+  let verifyRecovery;
+  const recovery = new Promise((resolve) => (verifyRecovery = resolve));
+  const bound = requests.get(request);
+  let checked = false;
+  const task = completeTouchResponse(bound, async () => {
+    const value = await body;
+    assert.equal(
+      isBlockedStreetTouch({
+        ...fixture,
+        expected: bound,
+        game: 'cops-robbers-realtime',
+        status: 422,
+        body: value,
+      }),
+      true,
+    );
+    await recovery;
+    checked = true;
+  });
+  assert.equal(touchAttemptFinished(expected, true), false, 'Response body is still pending');
+  readBody({ error: 'ILLEGAL_ACTION' });
+  await Promise.resolve();
+  assert.equal(touchAttemptFinished(expected, true), false, 'Recovery checks are still pending');
+  verifyRecovery();
+  await task;
+  assert.equal(checked, true);
+  assert.equal(touchAttemptFinished(expected, true), true);
+  assert.equal(touchAttemptFinished({ sent: false }, true), true, 'Idle UI sent no action');
+  const failed = { sent: true };
+  await assert.rejects(
+    completeTouchResponse(failed, async () => {
+      throw new Error('fixture');
+    }),
+  );
+  assert.equal(failed.completed, true, 'Failed processing also resolves the lifecycle');
+  assert.equal(failed.error, true, 'Failure is recorded before the attempt completes');
+});
 
 test('street touch planning excludes routes blocked by opponents in real public snapshots', () => {
   for (const fixture of [
