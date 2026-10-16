@@ -33,22 +33,39 @@ const server = spawn(process.execPath, ['server.mjs', '--dist'], {
   stdio: ['ignore', 'pipe', 'pipe'],
 });
 let serverOutput = '';
-server.stdout.on('data', (data) => {
-  serverOutput += data;
-});
-server.stderr.on('data', (data) => {
-  serverOutput += data;
-});
-const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-for (let attempt = 0; attempt < 100; attempt++) {
-  if (server.exitCode !== null) throw new Error(`Test server exited: ${serverOutput}`);
-  try {
-    if ((await fetch(origin)).ok) break;
-  } catch {
-    /* Wait for the owned server. */
+await new Promise((resolve, reject) => {
+  const timer = setTimeout(
+    () => finish(new Error(`Owned test server did not listen: ${serverOutput}`)),
+    30_000,
+  );
+  const exited = (code, signal) =>
+    finish(new Error(`Test server exited (${code ?? signal}): ${serverOutput}`));
+  const failed = (error) => finish(error);
+  const output = (data) => {
+    serverOutput += data;
+    if (serverOutput.includes(`http://localhost:${port}/`)) finish();
+  };
+  function finish(error) {
+    clearTimeout(timer);
+    server.stdout.off('data', output);
+    server.stderr.off('data', output);
+    server.off('error', failed);
+    server.off('exit', exited);
+    if (error) {
+      server.kill('SIGTERM');
+      reject(error);
+    } else resolve();
   }
-  if (attempt === 99) throw new Error('Production server did not become ready');
-  await pause(50);
+  server.stdout.on('data', output);
+  server.stderr.on('data', output);
+  server.once('error', failed);
+  server.once('exit', exited);
+});
+try {
+  assert.ok((await fetch(origin, { signal: AbortSignal.timeout(5000) })).ok);
+} catch (error) {
+  server.kill('SIGTERM');
+  throw error;
 }
 const mime = {
   '.html': 'text/html',
@@ -111,6 +128,18 @@ function observe(page, name) {
         type: 'http',
         status: response.status(),
         url: response.url(),
+      });
+  });
+  page.on('requestfailed', (request) => {
+    if (
+      ['document', 'script', 'stylesheet'].includes(request.resourceType()) &&
+      [origin, fixtureOrigin].some((base) => request.url().startsWith(base + '/'))
+    )
+      report.errors.push({
+        check: name,
+        type: 'requestfailed',
+        url: request.url(),
+        message: request.failure()?.errorText,
       });
   });
 }
