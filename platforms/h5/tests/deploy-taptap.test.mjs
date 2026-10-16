@@ -5,6 +5,75 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
+import { createHash } from 'node:crypto';
+
+test(
+  'H5 manifest enforces portrait, rejects mismatched archives and never defaults preserve orientation',
+  { skip: process.platform !== 'win32' },
+  async () => {
+    const directory = await mkdtemp(path.join(os.tmpdir(), 'taptap-h5-orientation-'));
+    const quote = (value) => "'" + value.replaceAll("'", "''") + "'";
+    const uploader = fileURLToPath(new URL('../deploy-taptap.ps1', import.meta.url));
+    try {
+      const zip = path.join(directory, 'game.zip'),
+        manifest = path.join(directory, 'game.json');
+      const bytes = Buffer.from('no live upload');
+      await writeFile(zip, bytes);
+      await writeFile(
+        manifest,
+        JSON.stringify({
+          game: 'xiangqi-five',
+          packageType: 'h5',
+          entry: 'dist/index.html',
+          zip: 'game.zip',
+          sha256: createHash('sha256').update(bytes).digest('hex'),
+          orientation: 'portrait',
+        }),
+      );
+      const script = `
+$ErrorActionPreference='Stop'
+$global:probes=0
+$global:uploads=0
+function taptap-cli {
+  $global:LASTEXITCODE=0
+  if ($args[0] -eq 'package-management') { $global:probes++; return '{"ok":true,"data":{"status":"completed","result":{"available_package_types":["h5"]}}}' }
+  $global:uploads++
+  if ($args[$args.IndexOf('--screen-orientation')+1] -ne '1') { throw 'Portrait was not passed' }
+  return '{"ok":true,"data":{"status":"completed"}}'
+}
+function Reject-BeforeCli($arguments) {
+  $before=$global:probes
+  $rejected=$false
+  try { & ${quote(uploader)} -ZipPath ${quote(zip)} -DeveloperId 123 -AppId 456 -DryRun @arguments } catch { $rejected=$true }
+  if (!$rejected -or $global:probes -ne $before) { throw 'Invalid orientation/manifest reached CLI' }
+}
+& ${quote(uploader)} -ZipPath ${quote(zip)} -DeveloperId 123 -AppId 456 -DryRun
+Reject-BeforeCli @{ScreenOrientation=0}
+$m=Get-Content -Raw -LiteralPath ${quote(manifest)} | ConvertFrom-Json
+$m.game='cops-robbers-realtime'; $m.orientation='preserve'
+$m | ConvertTo-Json | Set-Content -LiteralPath ${quote(manifest)}
+Reject-BeforeCli @{}
+& ${quote(uploader)} -ZipPath ${quote(zip)} -DeveloperId 123 -AppId 456 -ScreenOrientation 1 -DryRun
+$m.sha256='wrong'; $m | ConvertTo-Json | Set-Content -LiteralPath ${quote(manifest)}
+Reject-BeforeCli @{ScreenOrientation=1}
+Remove-Item -LiteralPath ${quote(manifest)}
+Reject-BeforeCli @{}
+if ($global:uploads -ne 2) { throw 'Unexpected upload count' }
+`;
+      const source = path.join(directory, 'check.ps1');
+      await writeFile(source, script);
+      const result = spawnSync(
+        'powershell',
+        ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', source],
+        { encoding: 'utf8', timeout: 30000 },
+      );
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+    } finally {
+      assert.equal(path.dirname(directory), os.tmpdir());
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);
 
 test(
   'H5 uploader passes exact package/channel parameters, preserves intent, and never submits review',
@@ -32,9 +101,9 @@ function taptap-cli {
   if ($global:fail) { return '{"ok":false,"error":{"code":"FAILED"}}' }
   return '{"ok":true,"data":{"status":"completed","version_id":"fixture"}}'
 }
-& ${quote(uploader)} -ZipPath ${quote(zip)} -DeveloperId 123 -AppId 456 -DryRun
-& ${quote(uploader)} -ZipPath ${quote(zip)} -DeveloperId 123 -AppId 456
-& ${quote(uploader)} -ZipPath ${quote(zip)} -DeveloperId 123 -AppId 456
+& ${quote(uploader)} -ZipPath ${quote(zip)} -DeveloperId 123 -AppId 456 -ScreenOrientation 1 -DryRun
+& ${quote(uploader)} -ZipPath ${quote(zip)} -DeveloperId 123 -AppId 456 -ScreenOrientation 1
+& ${quote(uploader)} -ZipPath ${quote(zip)} -DeveloperId 123 -AppId 456 -ScreenOrientation 1
 if ($global:calls.Count -ne 2) { throw 'Exact successful upload must be reused' }
 if ($global:probes.Count -ne 2) { throw 'Every new upload or preview needs a package-type check; successful receipts need no new upload' }
 foreach ($probe in $global:probes) {
@@ -57,7 +126,7 @@ try { & ${quote(uploader)} -ZipPath ${quote(zip)} -DeveloperId '<YOUR_ID>' -AppI
 if (!$rejected -or $global:calls.Count -ne 3) { throw 'Placeholder IDs must fail before CLI calls' }
 $global:fail = $true
 $rejected = $false
-try { & ${quote(uploader)} -ZipPath ${quote(zip)} -DeveloperId 123 -AppId 456 -DryRun } catch { $rejected = $true }
+try { & ${quote(uploader)} -ZipPath ${quote(zip)} -DeveloperId 123 -AppId 456 -ScreenOrientation 1 -DryRun } catch { $rejected = $true }
 if (!$rejected) { throw 'Structured platform failure must fail the script' }
 `;
       const source = path.join(directory, 'check.ps1');
@@ -128,7 +197,7 @@ $startDirectory = (Get-Location).Path
 foreach ($response in $responses) {
   $global:response = $response
   $rejected = $false
-  try { & ${quote(uploader)} -ZipPath ${quote(zip)} -DeveloperId 123 -AppId 456 } catch {
+  try { & ${quote(uploader)} -ZipPath ${quote(zip)} -DeveloperId 123 -AppId 456 -ScreenOrientation 1 } catch {
     $rejected = $true
     if ($response -eq $responses[0] -and $_.Exception.Message -notlike '*cannot be uploaded as a Tap mini-app package*') { throw 'Type mismatch needs an actionable explanation' }
   }

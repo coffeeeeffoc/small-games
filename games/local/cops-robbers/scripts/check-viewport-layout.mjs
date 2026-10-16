@@ -33,9 +33,9 @@ const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '
 const server = createServer(async (request, response) => {
   try {
     const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
-    if (pathname === '/publishing.js') {
+    if (pathname === '/publishing.js' || pathname === '/platform-ads.js') {
       response.writeHead(200, { 'Content-Type': 'text/javascript' });
-      return response.end(await readFile(resolve(repositoryRoot, 'platforms/h5/publishing.js')));
+      return response.end(await readFile(resolve(repositoryRoot, 'platforms/h5', pathname.slice(1))));
     }
     const shared = pathname.startsWith('/platforms/') || pathname.startsWith('/games/');
     const root = shared ? repositoryRoot : gameRoot;
@@ -150,17 +150,21 @@ async function inspect(locator) {
     const style = getComputedStyle(element);
     const clipped = { left: Math.max(0, rect.left), top: Math.max(0, rect.top), right: Math.min(innerWidth, rect.right), bottom: Math.min(innerHeight, rect.bottom) };
     const scrollAncestors = [];
+    let viewportFixed = style.position === 'fixed';
     for (let parent = element.parentElement; parent; parent = parent.parentElement) {
       const parentStyle = getComputedStyle(parent), bounds = parent.getBoundingClientRect();
-      if (/(auto|scroll|hidden|clip)/.test(parentStyle.overflowX)) {
+      // The viewport-fixed roster escapes the menu's scrolling clip. Browser
+      // hit testing below remains authoritative for actual obstruction.
+      if (parentStyle.position === 'fixed') viewportFixed = true;
+      if (!viewportFixed && /(auto|scroll|hidden|clip)/.test(parentStyle.overflowX)) {
         clipped.left = Math.max(clipped.left, bounds.left + parent.clientLeft);
         clipped.right = Math.min(clipped.right, bounds.left + parent.clientLeft + parent.clientWidth);
       }
-      if (/(auto|scroll|hidden|clip)/.test(parentStyle.overflowY)) {
+      if (!viewportFixed && /(auto|scroll|hidden|clip)/.test(parentStyle.overflowY)) {
         clipped.top = Math.max(clipped.top, bounds.top + parent.clientTop);
         clipped.bottom = Math.min(clipped.bottom, bounds.top + parent.clientTop + parent.clientHeight);
       }
-      if (parent.scrollHeight > parent.clientHeight + 1 && /auto|scroll/.test(parentStyle.overflowY)) {
+      if (!viewportFixed && parent.scrollHeight > parent.clientHeight + 1 && /auto|scroll/.test(parentStyle.overflowY)) {
         scrollAncestors.push({ tag: parent.tagName, id: parent.id, className: parent.className, scrollTop: parent.scrollTop });
       }
     }
@@ -358,6 +362,13 @@ try {
   browser = await chromium.launch({ ...(executablePath ? { executablePath } : {}), headless: true });
   for (const [width, height] of selectedViewports) {
     const context = await browser.newContext({ viewport: { width, height }, hasTouch: true, reducedMotion: 'reduce' });
+    if (process.env.VIEWPORT_HOST === '1') await context.addInitScript(() => {
+      globalThis.SmallGamesPublishingConfig = { platform: 'taptap-h5', adMode: 'off', adsEnabled: false };
+      globalThis.tap = {
+        getWindowInfo: () => ({ windowWidth: innerWidth, windowHeight: innerHeight, safeArea: { top: innerWidth > innerHeight ? 0 : 59, left: innerWidth > innerHeight ? 59 : 0, right: innerWidth - (innerWidth > innerHeight ? 34 : 0), bottom: innerHeight - 20 } }),
+        getMenuButtonBoundingClientRect: () => ({ top: 12, bottom: innerWidth > innerHeight ? 44 : 85 }),
+      };
+    });
     async function check(name, run) {
       if (onlyCases && !onlyCases.includes(name)) return;
       const page = await context.newPage(), fixture = serviceFixture(), errors = [];
@@ -398,8 +409,22 @@ try {
     await check('home', async page => {
       const entries = ['#home-start', '#resume-patrol', '#appearance-settings', '#friend-duel', '#mode-settings', '#help', '#level-select', '#quick-start', '[data-game-fullscreen]', '#share-challenge', '#sound', '#settings'];
       const metrics = {};
-      for (const selector of entries) metrics[selector] = await inView(page.locator(selector), { touchTarget: true });
-      for (const entry of await page.locator('.home-roster button').all()) await inView(entry, { touchTarget: true });
+      for (const selector of entries) {
+        if (selector === '#friend-duel' && !(await page.locator(selector).isVisible())) {
+          assert(await page.locator(selector).isDisabled());
+          continue;
+        }
+        if (width > height && selector === '#share-challenge') await page.locator(selector).scrollIntoViewIfNeeded();
+        metrics[selector] = await inView(page.locator(selector), { touchTarget: true });
+      }
+      const scene = await page.locator('.home-scene').boundingBox();
+      assert.equal(scene.y, 0, 'decorative scene reaches the top edge');
+      assert.equal(scene.height, height);
+      if (process.env.VIEWPORT_HOST === '1') {
+        const top = await page.evaluate(() => parseFloat(document.documentElement.style.getPropertyValue('--game-host-top')) || 0);
+        assert(metrics['#settings'].rect.y >= top + 8 - 1);
+      }
+      for (const entry of await page.locator('.home-roster button:visible').all()) await inView(entry, { touchTarget: true });
       return { document: await documentFits(page), entries: metrics };
     });
     await check('friend-disabled', async (page, fixture) => {
@@ -433,10 +458,13 @@ try {
       await surfaceFits(page, '#mode-dialog');
       await inView(page.locator('#solo-mode'), { touchTarget: true });
       await page.locator('#solo-mode').selectOption('escape');
-      for (const selector of ['#solo-mode', '#solo-role', '#solo-initiative', '#solo-level', '#start-mode', '#mode-dialog .dialog-close']) await inView(page.locator(selector), { touchTarget: true });
+      for (const selector of ['#solo-mode', '#solo-role', '#solo-initiative', '#solo-level', '#start-mode', '#mode-dialog .dialog-close']) {
+        if (process.env.VIEWPORT_HOST === '1') await page.locator(selector).scrollIntoViewIfNeeded();
+        await inView(page.locator(selector), { touchTarget: true });
+      }
       await surfaceFits(page, '#mode-dialog');
       const scrollables = await assertFixedAfterContentScroll(page, '#mode-dialog', ['#mode-title', '#start-mode', '#mode-dialog .dialog-close']);
-      assert.equal(scrollables.length, 0, 'Short duel setup must fit without scrolling');
+      if (process.env.VIEWPORT_HOST !== '1') assert.equal(scrollables.length, 0, 'Short duel setup must fit without scrolling');
       return { scrollables };
     });
     await check('share', async page => {

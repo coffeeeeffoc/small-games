@@ -371,6 +371,7 @@ async function refreshBoard() {
   $('records-local').textContent = formatRecord(bestTime(id));
   $('records-world').textContent = '正在读取';
   $('records-list').replaceChildren();
+  globalThis.__competition?.renderConnectionInfo?.($('records-state'));
   $('records-state').textContent = '正在读取服务器纪录…';
   try {
     const data = await readRecords(config);
@@ -387,8 +388,9 @@ async function refreshBoard() {
       item.append(time);
       $('records-list').append(item);
     }
-  } catch {
+  } catch (error) {
     if (serial !== boardRequest) return;
+    globalThis.__competition?.renderConnectionInfo?.($('records-state'), error);
     $('records-world').textContent = '暂未连接';
     $('records-state').textContent = '服务器暂不可用；个人最佳仍保存在本机，可稍后刷新。';
   }
@@ -398,14 +400,16 @@ async function uploadRecord(submission = pendingSubmission) {
   if (!submission) return;
   $('record-status').textContent = '正在验证通关纪录…';
   $('retry-record').hidden = true;
+  globalThis.__competition?.renderConnectionInfo?.($('record-status'));
   try {
     const result = await submitRun(submission.config, submission.ticks, submission.orders);
     if (pendingSubmission !== submission) return;
     $('win-world').textContent = formatRecord(result.fastestMs / 1000);
     $('record-status').textContent = '服务器已验证并保存';
     pendingSubmission = null;
-  } catch {
+  } catch (error) {
     if (pendingSubmission !== submission) return;
+    globalThis.__competition?.renderConnectionInfo?.($('record-status'), error);
     $('win-world').textContent = '暂未连接';
     $('record-status').textContent = '个人最佳已保存，服务器尚未确认。';
     $('retry-record').hidden = false;

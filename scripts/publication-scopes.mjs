@@ -177,6 +177,7 @@ export const competitionIdentityConsumers = Object.freeze({
   'tower-brake': 'games/local/tower-brake',
 });
 export const competitionIdentityScopePaths = Object.freeze([
+  'scripts/competition-connection.test.mjs',
   'platforms/competition/client.js',
   'scripts/competition-client.test.mjs',
   'platforms/competition/tests/identity.test.mjs',
@@ -332,6 +333,8 @@ function backendInstallerOnly(file, before, after) {
   return expected && digest(before) === expected.before && digest(after) === expected.after;
 }
 const h5Files = [
+  'scripts/competition-connection.browser.mjs',
+  'platforms/competition/connection-info.js',
   'platforms/competition/h5.js',
   'platforms/competition/h5.css',
   'platforms/competition/profile-dom.js',

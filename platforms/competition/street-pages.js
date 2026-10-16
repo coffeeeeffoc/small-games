@@ -1,4 +1,5 @@
 import './client.js';
+import { renderConnectionInfo } from './connection-info.js';
 import styles from './street.css?inline';
 import { scoreText, gapText, playerName } from './format.js';
 import { getRoleAppearance } from '../../games/local/cops-robbers-realtime/src/role-appearance.js';
@@ -140,6 +141,7 @@ export function mountStreetCompetition(game, createRenderer) {
     return element;
   }
   function feedback(value) {
+    renderConnectionInfo(status, value);
     status.textContent = value instanceof Error ? value.message : String(value);
     status.toggleAttribute('data-error', value instanceof Error);
   }

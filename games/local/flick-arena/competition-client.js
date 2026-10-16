@@ -364,6 +364,36 @@ globalThis.__installCompetition = (options, nativeSdk) => {
   const sdk = native ? nativeSdk || root[nativePlatforms[config.platform]] : null;
   if (native && !sdk) throw new Error(`缺少 ${config.platform} 原生 SDK，无法启动好友挑战。`);
   const base = (config.apiUrl || '/api/competition/v1').replace(/\/$/, '');
+  // Bind a small, fixed diagnostic to the actual failed request. Never retain
+  // request values, response bodies, raw exceptions or identity information.
+  const connectionFailures = new WeakMap();
+  const publicAddress = (value, originOnly = false) => {
+    try {
+      const url = new root.URL(value, root.location?.href);
+      if (!['http:', 'https:'].includes(url.protocol)) return '不可用';
+      return originOnly ? url.origin : url.origin + url.pathname;
+    } catch {
+      return '不可用';
+    }
+  };
+  const rememberFailure = (error, phase, path, method, headers) => {
+    connectionFailures.set(
+      error,
+      Object.freeze({
+        pageOrigin: publicAddress(root.location?.href, true),
+        apiBase: publicAddress(base),
+        stage: (path.startsWith('/sessions/') ? 'session_' : 'request_') + phase,
+        method: ['GET', 'POST', 'OPTIONS'].includes(method) ? method : 'OTHER',
+        headerNames: Object.freeze([
+          'content-type',
+          ...(Object.hasOwn(headers, 'authorization') || Object.hasOwn(headers, 'Authorization')
+            ? ['authorization']
+            : []),
+        ]),
+      }),
+    );
+    return error;
+  };
   const teamRules = {
     'cops-robbers': { version: 'roles-initiative-duel-v2', modes: ['escape', 'survival'] },
     'cops-robbers-realtime': {
@@ -424,7 +454,9 @@ globalThis.__installCompetition = (options, nativeSdk) => {
     const headers = { 'content-type': 'application/json', ...(init.headers || {}) };
     if (credential?.token) headers.authorization = `Bearer ${credential.token}`;
     const method = init.method || (init.body ? 'POST' : 'GET');
-    let status, data;
+    let status,
+      data,
+      phase = 'transport';
     try {
       if (sdk) {
         const response = await new Promise((resolve, reject) =>
@@ -450,17 +482,18 @@ globalThis.__installCompetition = (options, nativeSdk) => {
           signal: AbortSignal.timeout(8000),
         });
         status = response.status;
+        phase = 'response';
         data = await response.json();
       }
     } catch {
       const error = new Error('网络不可用，请重试；成绩尚未得到服务端确认。');
       error.code = 'SERVICE_UNAVAILABLE';
-      throw error;
+      throw rememberFailure(error, phase, path, method, headers);
     }
     if (status < 200 || status >= 300) {
       const error = new Error(errors[data?.error] || `服务未接受请求 (${status})`);
       error.code = data?.error;
-      throw error;
+      throw rememberFailure(error, 'http', path, method, headers);
     }
     return data;
   }
@@ -478,6 +511,7 @@ globalThis.__installCompetition = (options, nativeSdk) => {
   const session = () => auth.current().catch(localized);
   const roomOwners = new Map();
   root.__competition = {
+    connectionInfo: (error) => connectionFailures.get(error) || null,
     session,
     upgrade: (input) => auth.upgrade(input).catch(localized),
     canSyncProfile: () => auth.canSyncProfile(),

@@ -158,6 +158,16 @@ test('dirty/ungitted source builds selected variants, survives a compiler cleari
       const rootZip = await readFile(path.join(result.output, variant.zip)),
         gameZip = await readFile(path.join(folder, variant.gameOutput, variant.zip));
       assert.equal(digest(rootZip), digest(gameZip));
+      assert.equal(variant.orientation, 'portrait');
+      assert.equal(variant.orientationVerified, false);
+      const rootManifest = JSON.parse(
+        await readFile(path.join(result.output, variant.name + '.json')),
+      );
+      const gameManifest = JSON.parse(
+        await readFile(path.join(folder, variant.gameOutput, variant.name + '.json')),
+      );
+      assert.deepEqual(rootManifest, gameManifest);
+      assert.equal(rootManifest.orientation, 'portrait');
       assert.equal(variant.serviceEnabled, false);
       assert.equal(variant.apiUrl, '');
       assert(variant.files.every((file) => !file.path.startsWith('h5-packages/')));

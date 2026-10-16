@@ -12,6 +12,7 @@ import { getLevels } from '../games/local/cops-robbers-realtime/src/levels.js';
 import {
   matrixContract,
   matrixGames,
+  h5Orientations,
   packageModes,
   productionCompetitionApi,
 } from './h5-taptap-matrix.mjs';
@@ -236,6 +237,8 @@ function fixture(production, allServices = false) {
         name: `${game}-ads-${ads ? 'on' : 'off'}-service-${service ? 'on' : 'off'}`,
         game,
         packageType: 'h5',
+        orientation: h5Orientations[game],
+        orientationVerified: false,
         adsEnabled: ads,
         serviceEnabled: service,
         sourceSHA,
@@ -251,6 +254,11 @@ function fixture(production, allServices = false) {
   };
 }
 test('acceptance requires twelve local variants or complete six/twelve formal variants', () => {
+  assert.deepEqual(h5Orientations, {
+    'cops-robbers': 'portrait',
+    'cops-robbers-realtime': 'preserve',
+    'xiangqi-five': 'portrait',
+  });
   assert.equal(productionCompetitionApi, 'https://api.nenggongzhiren.cn/small-games/v1');
   assert.equal(matrixContract(fixture(false)).port, 43810);
   assert.deepEqual(matrixContract(fixture(true), { production: true }), {
@@ -271,6 +279,8 @@ test('acceptance requires twelve local variants or complete six/twelve formal va
     (m) => (m.variants[0].localValidation = true),
     (m) => (m.variants[0].apiUrl = 'http://localhost:43802/api/competition/v1'),
     (m) => (m.variants[0].adsEnabled = 'false'),
+    (m) => (m.variants[0].orientation = 'landscape'),
+    (m) => (m.variants[0].orientationVerified = true),
     (m) => (m.variants[0].submoduleSHA = 'c'.repeat(40)),
     (m) => (m.variants[0].serviceEnabled = false),
   ]) {

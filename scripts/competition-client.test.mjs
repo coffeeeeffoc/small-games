@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import './competition-connection.test.mjs';
 import { readFile } from 'node:fs/promises';
 import { runInNewContext } from 'node:vm';
 import realtimeRule from '../services/runtime-api/rules/realtime.mjs';

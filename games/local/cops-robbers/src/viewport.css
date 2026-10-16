@@ -6,6 +6,18 @@ body.game-shell {
   --home-bar: calc(56px + var(--game-safe-area-top, env(safe-area-inset-top)));
   background: linear-gradient(#68cbed 0%, #bce9e6 34%, #b9dea5 68%, #c5e7c2 100%);
 }
+body.game-shell:not(.focus-play) {
+  position: fixed;
+  inset: 0;
+  height: 100dvh;
+  overflow: hidden;
+}
+/* Illustration bleeds to the edge; only the title and controls reserve host insets. */
+.game-shell:not(.focus-play) .topbar {
+  position: absolute;
+  inset: 0 0 auto;
+  margin: 0 auto;
+}
 .game-shell .layout {
   position: relative;
   width: calc(100% - var(--game-safe-area-left, 0px) - var(--game-safe-area-right, 0px));
@@ -21,7 +33,7 @@ body.game-shell {
   font-size: 15px;
 }
 .game-shell:not(.focus-play) .layout {
-  height: calc(100dvh - var(--home-bar));
+  height: 100dvh;
   max-width: 520px;
   margin: 0 auto;
   padding: 0;
@@ -40,6 +52,7 @@ body.game-shell {
   grid-row: 1;
   margin-top: 3px;
   z-index: 1;
+  padding-top: var(--home-bar);
 }
 .game-shell .home-kicker {
   padding: 4px 13px;
@@ -53,13 +66,17 @@ body.game-shell {
   padding: 4px 12px;
 }
 .game-shell .home-scene {
-  grid-row: 2;
-  position: relative;
-  inset: auto;
+  grid-row: auto;
+  grid-column: auto;
+  position: fixed;
+  inset: 0;
+  width: 100dvw;
+  height: 100dvh;
+  pointer-events: none;
   min-height: 0;
-  background-position: center 61%;
+  background-position: center 45%;
   background-size: cover;
-  mask-image: linear-gradient(transparent, #000 12%, #000 88%, transparent);
+  mask-image: none;
 }
 .game-shell .home-scene::after {
   display: none;
@@ -669,6 +686,7 @@ body.game-shell {
     max-width: 960px;
   }
   .game-shell:not(.focus-play) .briefing {
+    padding-top: var(--home-bar);
     grid-template-columns: minmax(0, 1fr) minmax(280px, 40%);
     grid-template-rows: auto minmax(0, 1fr);
     gap: 0 10px;
@@ -676,6 +694,7 @@ body.game-shell {
   .game-shell .home-title {
     grid-column: 1;
     margin-top: 0;
+    padding-top: 0;
   }
   .game-shell .briefing h1 {
     font-size: 38px;
@@ -698,9 +717,10 @@ body.game-shell {
     padding-left: 0;
   }
   .game-shell .home-roster {
+    position: fixed;
     right: auto;
-    left: -100px;
-    bottom: 6px;
+    left: max(12px, var(--game-safe-area-left, 0px));
+    bottom: max(12px, var(--game-safe-area-bottom, 0px));
   }
   .game-shell .home-portals button {
     min-height: 60px;

@@ -1,0 +1,1141 @@
+{
+  "started": "2026-10-16T19:34:32.170Z",
+  "passed": true,
+  "physicalMobile": false,
+  "fixture": "Actual game HTML/CSS, shared competition client/UI and game renderer; mocked API responses validated with real server rules",
+  "viewports": [
+    [
+      320,
+      568
+    ],
+    [
+      390,
+      844
+    ],
+    [
+      844,
+      390
+    ]
+  ],
+  "checks": [
+    {
+      "name": "home",
+      "width": 320,
+      "height": 568,
+      "passed": true,
+      "screenshot": "320x568-home.png",
+      "details": {
+        "document": {
+          "width": 320,
+          "height": 568,
+          "scrollWidth": 320,
+          "scrollHeight": 568,
+          "scrollX": 0,
+          "scrollY": 0
+        },
+        "entries": {
+          "#home-start": {
+            "text": "开始巡逻 ▶",
+            "rect": {
+              "x": 14,
+              "y": 272,
+              "width": 292,
+              "height": 52,
+              "right": 306,
+              "bottom": 324
+            },
+            "clipped": {
+              "left": 14,
+              "top": 272,
+              "right": 306,
+              "bottom": 324
+            },
+            "x": 160,
+            "y": 298,
+            "hit": true,
+            "hitElement": "BUTTON#home-start",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#home-start')"
+          },
+          "#resume-patrol": {
+            "text": "继续上次 第 1 关 ›",
+            "rect": {
+              "x": 31.515625,
+              "y": 331,
+              "width": 256.953125,
+              "height": 44,
+              "right": 288.46875,
+              "bottom": 375
+            },
+            "clipped": {
+              "left": 31.515625,
+              "top": 331,
+              "right": 288.46875,
+              "bottom": 375
+            },
+            "x": 159.9921875,
+            "y": 353,
+            "hit": true,
+            "hitElement": "BUTTON#resume-patrol",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#resume-patrol')"
+          },
+          "#appearance-settings": {
+            "text": "换装",
+            "rect": {
+              "x": 14,
+              "y": 382,
+              "width": 67.75,
+              "height": 64,
+              "right": 81.75,
+              "bottom": 446
+            },
+            "clipped": {
+              "left": 14,
+              "top": 382,
+              "right": 81.75,
+              "bottom": 446
+            },
+            "x": 47.875,
+            "y": 414,
+            "hit": true,
+            "hitElement": "svg#appearance-art",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#appearance-settings')"
+          },
+          "#mode-settings": {
+            "text": "玩法",
+            "rect": {
+              "x": 88.75,
+              "y": 382,
+              "width": 67.75,
+              "height": 64,
+              "right": 156.5,
+              "bottom": 446
+            },
+            "clipped": {
+              "left": 88.75,
+              "top": 382,
+              "right": 156.5,
+              "bottom": 446
+            },
+            "x": 122.625,
+            "y": 414,
+            "hit": true,
+            "hitElement": "path",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#mode-settings')"
+          },
+          "#help": {
+            "text": "指南",
+            "rect": {
+              "x": 163.5,
+              "y": 382,
+              "width": 67.75,
+              "height": 64,
+              "right": 231.25,
+              "bottom": 446
+            },
+            "clipped": {
+              "left": 163.5,
+              "top": 382,
+              "right": 231.25,
+              "bottom": 446
+            },
+            "x": 197.375,
+            "y": 414,
+            "hit": true,
+            "hitElement": "path",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#help')"
+          },
+          "#level-select": {
+            "text": "街区地图 0 / 120",
+            "rect": {
+              "x": 14,
+              "y": 453,
+              "width": 118.6875,
+              "height": 44,
+              "right": 132.6875,
+              "bottom": 497
+            },
+            "clipped": {
+              "left": 14,
+              "top": 453,
+              "right": 132.6875,
+              "bottom": 497
+            },
+            "x": 73.34375,
+            "y": 475,
+            "hit": true,
+            "hitElement": "BUTTON#level-select",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#level-select')"
+          },
+          "#quick-start": {
+            "text": "两步试炼",
+            "rect": {
+              "x": 138.6875,
+              "y": 453,
+              "width": 91.3125,
+              "height": 44,
+              "right": 230,
+              "bottom": 497
+            },
+            "clipped": {
+              "left": 138.6875,
+              "top": 453,
+              "right": 230,
+              "bottom": 497
+            },
+            "x": 184.34375,
+            "y": 475,
+            "hit": true,
+            "hitElement": "BUTTON#quick-start",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#quick-start')"
+          },
+          "[data-game-fullscreen]": {
+            "text": "全屏",
+            "rect": {
+              "x": 236,
+              "y": 453,
+              "width": 70,
+              "height": 44,
+              "right": 306,
+              "bottom": 497
+            },
+            "clipped": {
+              "left": 236,
+              "top": 453,
+              "right": 306,
+              "bottom": 497
+            },
+            "x": 271,
+            "y": 475,
+            "hit": true,
+            "hitElement": "BUTTON",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('[data-game-fullscreen]')"
+          },
+          "#share-challenge": {
+            "text": "分享同题",
+            "rect": {
+              "x": 46.125,
+              "y": 504,
+              "width": 227.75,
+              "height": 44,
+              "right": 273.875,
+              "bottom": 548
+            },
+            "clipped": {
+              "left": 46.125,
+              "top": 504,
+              "right": 273.875,
+              "bottom": 548
+            },
+            "x": 160,
+            "y": 526,
+            "hit": true,
+            "hitElement": "BUTTON#share-challenge",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#share-challenge')"
+          },
+          "#sound": {
+            "text": "关闭音效",
+            "rect": {
+              "x": 212,
+              "y": 106,
+              "width": 44,
+              "height": 44,
+              "right": 256,
+              "bottom": 150
+            },
+            "clipped": {
+              "left": 212,
+              "top": 106,
+              "right": 256,
+              "bottom": 150
+            },
+            "x": 234,
+            "y": 128,
+            "hit": true,
+            "hitElement": "svg",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#sound')"
+          },
+          "#settings": {
+            "text": "游戏设置",
+            "rect": {
+              "x": 264,
+              "y": 106,
+              "width": 44,
+              "height": 44,
+              "right": 308,
+              "bottom": 150
+            },
+            "clipped": {
+              "left": 264,
+              "top": 106,
+              "right": 308,
+              "bottom": 150
+            },
+            "x": 286,
+            "y": 128,
+            "hit": true,
+            "hitElement": "svg",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#settings')"
+          }
+        }
+      },
+      "capturedBeforeDismissal": true,
+      "apiCalls": []
+    },
+    {
+      "name": "help",
+      "width": 320,
+      "height": 568,
+      "passed": true,
+      "screenshot": "320x568-help.png",
+      "capturedBeforeDismissal": true,
+      "details": {
+        "scrollables": [
+          {
+            "index": 0,
+            "tag": "DIV",
+            "id": "",
+            "className": "dialog-body",
+            "clientHeight": 266,
+            "scrollHeight": 780
+          }
+        ]
+      },
+      "apiCalls": []
+    },
+    {
+      "name": "settings",
+      "width": 320,
+      "height": 568,
+      "passed": true,
+      "screenshot": "320x568-settings.png",
+      "details": {
+        "scrollables": [
+          {
+            "index": 0,
+            "tag": "DIV",
+            "id": "",
+            "className": "dialog-body",
+            "clientHeight": 282,
+            "scrollHeight": 293
+          }
+        ]
+      },
+      "capturedBeforeDismissal": true,
+      "apiCalls": []
+    },
+    {
+      "name": "mode",
+      "width": 320,
+      "height": 568,
+      "passed": true,
+      "screenshot": "320x568-mode.png",
+      "details": {
+        "scrollables": [
+          {
+            "index": 0,
+            "tag": "SECTION",
+            "id": "",
+            "className": "mode-card dialog-body",
+            "clientHeight": 261,
+            "scrollHeight": 264
+          }
+        ]
+      },
+      "capturedBeforeDismissal": true,
+      "apiCalls": []
+    },
+    {
+      "name": "home",
+      "width": 390,
+      "height": 844,
+      "passed": true,
+      "screenshot": "390x844-home.png",
+      "details": {
+        "document": {
+          "width": 390,
+          "height": 844,
+          "scrollWidth": 390,
+          "scrollHeight": 844,
+          "scrollX": 0,
+          "scrollY": 0
+        },
+        "entries": {
+          "#home-start": {
+            "text": "开始巡逻 ▶",
+            "rect": {
+              "x": 14,
+              "y": 540,
+              "width": 362,
+              "height": 54,
+              "right": 376,
+              "bottom": 594
+            },
+            "clipped": {
+              "left": 14,
+              "top": 540,
+              "right": 376,
+              "bottom": 594
+            },
+            "x": 195,
+            "y": 567,
+            "hit": true,
+            "hitElement": "BUTTON#home-start",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#home-start')"
+          },
+          "#resume-patrol": {
+            "text": "继续上次 第 1 关 ›",
+            "rect": {
+              "x": 35.71875,
+              "y": 602,
+              "width": 318.546875,
+              "height": 44,
+              "right": 354.265625,
+              "bottom": 646
+            },
+            "clipped": {
+              "left": 35.71875,
+              "top": 602,
+              "right": 354.265625,
+              "bottom": 646
+            },
+            "x": 194.9921875,
+            "y": 624,
+            "hit": true,
+            "hitElement": "BUTTON#resume-patrol",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#resume-patrol')"
+          },
+          "#appearance-settings": {
+            "text": "换装",
+            "rect": {
+              "x": 14,
+              "y": 654,
+              "width": 85.25,
+              "height": 66,
+              "right": 99.25,
+              "bottom": 720
+            },
+            "clipped": {
+              "left": 14,
+              "top": 654,
+              "right": 99.25,
+              "bottom": 720
+            },
+            "x": 56.625,
+            "y": 687,
+            "hit": true,
+            "hitElement": "svg#appearance-art",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#appearance-settings')"
+          },
+          "#mode-settings": {
+            "text": "玩法",
+            "rect": {
+              "x": 106.25,
+              "y": 654,
+              "width": 85.25,
+              "height": 66,
+              "right": 191.5,
+              "bottom": 720
+            },
+            "clipped": {
+              "left": 106.25,
+              "top": 654,
+              "right": 191.5,
+              "bottom": 720
+            },
+            "x": 148.875,
+            "y": 687,
+            "hit": true,
+            "hitElement": "path",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#mode-settings')"
+          },
+          "#help": {
+            "text": "指南",
+            "rect": {
+              "x": 198.5,
+              "y": 654,
+              "width": 85.25,
+              "height": 66,
+              "right": 283.75,
+              "bottom": 720
+            },
+            "clipped": {
+              "left": 198.5,
+              "top": 654,
+              "right": 283.75,
+              "bottom": 720
+            },
+            "x": 241.125,
+            "y": 687,
+            "hit": true,
+            "hitElement": "path",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#help')"
+          },
+          "#level-select": {
+            "text": "街区地图 0 / 120",
+            "rect": {
+              "x": 14,
+              "y": 728,
+              "width": 154.234375,
+              "height": 44,
+              "right": 168.234375,
+              "bottom": 772
+            },
+            "clipped": {
+              "left": 14,
+              "top": 728,
+              "right": 168.234375,
+              "bottom": 772
+            },
+            "x": 91.1171875,
+            "y": 750,
+            "hit": true,
+            "hitElement": "BUTTON#level-select",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#level-select')"
+          },
+          "#quick-start": {
+            "text": "两步试炼",
+            "rect": {
+              "x": 174.234375,
+              "y": 728,
+              "width": 118.640625,
+              "height": 44,
+              "right": 292.875,
+              "bottom": 772
+            },
+            "clipped": {
+              "left": 174.234375,
+              "top": 728,
+              "right": 292.875,
+              "bottom": 772
+            },
+            "x": 233.5546875,
+            "y": 750,
+            "hit": true,
+            "hitElement": "BUTTON#quick-start",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#quick-start')"
+          },
+          "[data-game-fullscreen]": {
+            "text": "全屏",
+            "rect": {
+              "x": 298.875,
+              "y": 728,
+              "width": 77.125,
+              "height": 44,
+              "right": 376,
+              "bottom": 772
+            },
+            "clipped": {
+              "left": 298.875,
+              "top": 728,
+              "right": 376,
+              "bottom": 772
+            },
+            "x": 337.4375,
+            "y": 750,
+            "hit": true,
+            "hitElement": "BUTTON",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('[data-game-fullscreen]')"
+          },
+          "#share-challenge": {
+            "text": "分享同题",
+            "rect": {
+              "x": 53.8125,
+              "y": 780,
+              "width": 282.359375,
+              "height": 44,
+              "right": 336.171875,
+              "bottom": 824
+            },
+            "clipped": {
+              "left": 53.8125,
+              "top": 780,
+              "right": 336.171875,
+              "bottom": 824
+            },
+            "x": 194.9921875,
+            "y": 802,
+            "hit": true,
+            "hitElement": "BUTTON#share-challenge",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#share-challenge')"
+          },
+          "#sound": {
+            "text": "关闭音效",
+            "rect": {
+              "x": 282,
+              "y": 106,
+              "width": 44,
+              "height": 44,
+              "right": 326,
+              "bottom": 150
+            },
+            "clipped": {
+              "left": 282,
+              "top": 106,
+              "right": 326,
+              "bottom": 150
+            },
+            "x": 304,
+            "y": 128,
+            "hit": true,
+            "hitElement": "svg",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#sound')"
+          },
+          "#settings": {
+            "text": "游戏设置",
+            "rect": {
+              "x": 334,
+              "y": 106,
+              "width": 44,
+              "height": 44,
+              "right": 378,
+              "bottom": 150
+            },
+            "clipped": {
+              "left": 334,
+              "top": 106,
+              "right": 378,
+              "bottom": 150
+            },
+            "x": 356,
+            "y": 128,
+            "hit": true,
+            "hitElement": "svg",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#settings')"
+          }
+        }
+      },
+      "capturedBeforeDismissal": true,
+      "apiCalls": []
+    },
+    {
+      "name": "help",
+      "width": 390,
+      "height": 844,
+      "passed": true,
+      "screenshot": "390x844-help.png",
+      "capturedBeforeDismissal": true,
+      "details": {
+        "scrollables": [
+          {
+            "index": 0,
+            "tag": "DIV",
+            "id": "",
+            "className": "dialog-body",
+            "clientHeight": 542,
+            "scrollHeight": 683
+          }
+        ]
+      },
+      "apiCalls": []
+    },
+    {
+      "name": "settings",
+      "width": 390,
+      "height": 844,
+      "passed": true,
+      "screenshot": "390x844-settings.png",
+      "details": {
+        "scrollables": []
+      },
+      "capturedBeforeDismissal": true,
+      "apiCalls": []
+    },
+    {
+      "name": "mode",
+      "width": 390,
+      "height": 844,
+      "passed": true,
+      "screenshot": "390x844-mode.png",
+      "details": {
+        "scrollables": []
+      },
+      "capturedBeforeDismissal": true,
+      "apiCalls": []
+    },
+    {
+      "name": "home",
+      "width": 844,
+      "height": 390,
+      "passed": true,
+      "screenshot": "844x390-home.png",
+      "details": {
+        "document": {
+          "width": 844,
+          "height": 390,
+          "scrollWidth": 844,
+          "scrollHeight": 390,
+          "scrollX": 0,
+          "scrollY": 0
+        },
+        "entries": {
+          "#home-start": {
+            "text": "开始巡逻 ▶",
+            "rect": {
+              "x": 509.609375,
+              "y": 128,
+              "width": 286.390625,
+              "height": 48,
+              "right": 796,
+              "bottom": 176
+            },
+            "clipped": {
+              "left": 509.609375,
+              "top": 128,
+              "right": 796,
+              "bottom": 176
+            },
+            "x": 652.8046875,
+            "y": 152,
+            "hit": true,
+            "hitElement": "BUTTON#home-start",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [
+              {
+                "tag": "DIV",
+                "id": "",
+                "className": "home-menu",
+                "scrollTop": 0
+              }
+            ],
+            "selector": "locator('#home-start')"
+          },
+          "#resume-patrol": {
+            "text": "继续上次 第 1 关 ›",
+            "rect": {
+              "x": 526.796875,
+              "y": 183,
+              "width": 252.015625,
+              "height": 44,
+              "right": 778.8125,
+              "bottom": 227
+            },
+            "clipped": {
+              "left": 526.796875,
+              "top": 183,
+              "right": 778.8125,
+              "bottom": 227
+            },
+            "x": 652.8046875,
+            "y": 205,
+            "hit": true,
+            "hitElement": "BUTTON#resume-patrol",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [
+              {
+                "tag": "DIV",
+                "id": "",
+                "className": "home-menu",
+                "scrollTop": 0
+              }
+            ],
+            "selector": "locator('#resume-patrol')"
+          },
+          "#appearance-settings": {
+            "text": "换装",
+            "rect": {
+              "x": 509.609375,
+              "y": 234,
+              "width": 66.34375,
+              "height": 64,
+              "right": 575.953125,
+              "bottom": 298
+            },
+            "clipped": {
+              "left": 509.609375,
+              "top": 234,
+              "right": 575.953125,
+              "bottom": 298
+            },
+            "x": 542.78125,
+            "y": 266,
+            "hit": true,
+            "hitElement": "svg#appearance-art",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [
+              {
+                "tag": "DIV",
+                "id": "",
+                "className": "home-menu",
+                "scrollTop": 0
+              }
+            ],
+            "selector": "locator('#appearance-settings')"
+          },
+          "#mode-settings": {
+            "text": "玩法",
+            "rect": {
+              "x": 582.953125,
+              "y": 234,
+              "width": 66.34375,
+              "height": 64,
+              "right": 649.296875,
+              "bottom": 298
+            },
+            "clipped": {
+              "left": 582.953125,
+              "top": 234,
+              "right": 649.296875,
+              "bottom": 298
+            },
+            "x": 616.125,
+            "y": 266,
+            "hit": true,
+            "hitElement": "path",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [
+              {
+                "tag": "DIV",
+                "id": "",
+                "className": "home-menu",
+                "scrollTop": 0
+              }
+            ],
+            "selector": "locator('#mode-settings')"
+          },
+          "#help": {
+            "text": "指南",
+            "rect": {
+              "x": 656.296875,
+              "y": 234,
+              "width": 66.34375,
+              "height": 64,
+              "right": 722.640625,
+              "bottom": 298
+            },
+            "clipped": {
+              "left": 656.296875,
+              "top": 234,
+              "right": 722.640625,
+              "bottom": 298
+            },
+            "x": 689.46875,
+            "y": 266,
+            "hit": true,
+            "hitElement": "path",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [
+              {
+                "tag": "DIV",
+                "id": "",
+                "className": "home-menu",
+                "scrollTop": 0
+              }
+            ],
+            "selector": "locator('#help')"
+          },
+          "#level-select": {
+            "text": "街区地图 0 / 120",
+            "rect": {
+              "x": 509.609375,
+              "y": 305,
+              "width": 117.78125,
+              "height": 44,
+              "right": 627.390625,
+              "bottom": 349
+            },
+            "clipped": {
+              "left": 509.609375,
+              "top": 305,
+              "right": 627.390625,
+              "bottom": 349
+            },
+            "x": 568.5,
+            "y": 327,
+            "hit": true,
+            "hitElement": "BUTTON#level-select",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [
+              {
+                "tag": "DIV",
+                "id": "",
+                "className": "home-menu",
+                "scrollTop": 0
+              }
+            ],
+            "selector": "locator('#level-select')"
+          },
+          "#quick-start": {
+            "text": "两步试炼",
+            "rect": {
+              "x": 631.390625,
+              "y": 305,
+              "width": 90.609375,
+              "height": 44,
+              "right": 722,
+              "bottom": 349
+            },
+            "clipped": {
+              "left": 631.390625,
+              "top": 305,
+              "right": 722,
+              "bottom": 349
+            },
+            "x": 676.6953125,
+            "y": 327,
+            "hit": true,
+            "hitElement": "BUTTON#quick-start",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [
+              {
+                "tag": "DIV",
+                "id": "",
+                "className": "home-menu",
+                "scrollTop": 0
+              }
+            ],
+            "selector": "locator('#quick-start')"
+          },
+          "[data-game-fullscreen]": {
+            "text": "全屏",
+            "rect": {
+              "x": 726,
+              "y": 305,
+              "width": 70,
+              "height": 44,
+              "right": 796,
+              "bottom": 349
+            },
+            "clipped": {
+              "left": 726,
+              "top": 305,
+              "right": 796,
+              "bottom": 349
+            },
+            "x": 761,
+            "y": 327,
+            "hit": true,
+            "hitElement": "BUTTON",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [
+              {
+                "tag": "DIV",
+                "id": "",
+                "className": "home-menu",
+                "scrollTop": 0
+              }
+            ],
+            "selector": "locator('[data-game-fullscreen]')"
+          },
+          "#share-challenge": {
+            "text": "分享同题",
+            "rect": {
+              "x": 541.109375,
+              "y": 346,
+              "width": 223.375,
+              "height": 44,
+              "right": 764.484375,
+              "bottom": 390
+            },
+            "clipped": {
+              "left": 541.109375,
+              "top": 346,
+              "right": 764.484375,
+              "bottom": 390
+            },
+            "x": 652.796875,
+            "y": 368,
+            "hit": true,
+            "hitElement": "BUTTON#share-challenge",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [
+              {
+                "tag": "DIV",
+                "id": "",
+                "className": "home-menu",
+                "scrollTop": 10
+              }
+            ],
+            "selector": "locator('#share-challenge')"
+          },
+          "#sound": {
+            "text": "关闭音效",
+            "rect": {
+              "x": 714,
+              "y": 78,
+              "width": 44,
+              "height": 44,
+              "right": 758,
+              "bottom": 122
+            },
+            "clipped": {
+              "left": 714,
+              "top": 78,
+              "right": 758,
+              "bottom": 122
+            },
+            "x": 736,
+            "y": 100,
+            "hit": true,
+            "hitElement": "svg",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#sound')"
+          },
+          "#settings": {
+            "text": "游戏设置",
+            "rect": {
+              "x": 766,
+              "y": 78,
+              "width": 44,
+              "height": 44,
+              "right": 810,
+              "bottom": 122
+            },
+            "clipped": {
+              "left": 766,
+              "top": 78,
+              "right": 810,
+              "bottom": 122
+            },
+            "x": 788,
+            "y": 100,
+            "hit": true,
+            "hitElement": "svg",
+            "displayed": true,
+            "inert": false,
+            "scrollAncestors": [],
+            "selector": "locator('#settings')"
+          }
+        }
+      },
+      "capturedBeforeDismissal": true,
+      "apiCalls": []
+    },
+    {
+      "name": "help",
+      "width": 844,
+      "height": 390,
+      "passed": true,
+      "screenshot": "844x390-help.png",
+      "capturedBeforeDismissal": true,
+      "details": {
+        "scrollables": [
+          {
+            "index": 0,
+            "tag": "DIV",
+            "id": "",
+            "className": "dialog-body",
+            "clientHeight": 124,
+            "scrollHeight": 544
+          }
+        ]
+      },
+      "apiCalls": []
+    },
+    {
+      "name": "settings",
+      "width": 844,
+      "height": 390,
+      "passed": true,
+      "screenshot": "844x390-settings.png",
+      "details": {
+        "scrollables": []
+      },
+      "capturedBeforeDismissal": true,
+      "apiCalls": []
+    },
+    {
+      "name": "mode",
+      "width": 844,
+      "height": 390,
+      "passed": true,
+      "screenshot": "844x390-mode.png",
+      "details": {
+        "scrollables": [
+          {
+            "index": 0,
+            "tag": "SECTION",
+            "id": "",
+            "className": "mode-card dialog-body",
+            "clientHeight": 119,
+            "scrollHeight": 172
+          }
+        ]
+      },
+      "capturedBeforeDismissal": true,
+      "apiCalls": []
+    }
+  ],
+  "base": "http://127.0.0.1:60933",
+  "finished": "2026-10-16T19:34:43.365Z",
+  "summary": {
+    "passed": 12,
+    "failed": 0
+  }
+}

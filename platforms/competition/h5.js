@@ -1,4 +1,5 @@
 import './client.js';
+import { renderConnectionInfo } from './connection-info.js';
 import styles from './h5.css?inline';
 import { scoreText, gapText, playerName } from './format.js';
 import { mountStreetCompetition } from './street-pages.js';
@@ -174,6 +175,8 @@ export function mountCompetition(game, createRenderer) {
     !competitionAvailable()
   )
     return;
+  globalThis.__installCompetition();
+  globalThis.__competition.renderConnectionInfo = renderConnectionInfo;
   if (game === 'cops-robbers-realtime') return mountStreetCompetition(game, createRenderer);
   const street = game === 'cops-robbers-realtime';
   const xiangqi = game === 'xiangqi-five';
@@ -381,6 +384,7 @@ export function mountCompetition(game, createRenderer) {
     return content;
   }
   function feedback(error) {
+    renderConnectionInfo(status, error);
     status.textContent = error instanceof Error ? error.message : String(error);
     status.toggleAttribute('data-error', error instanceof Error);
     if (letters)

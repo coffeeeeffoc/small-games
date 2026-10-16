@@ -1,0 +1,44 @@
+{
+  "sourceSHA": "a7944ed44960a69fc87d946b680c50323619f3a0",
+  "browser": "155.0.8059.82",
+  "realDeviceVerified": false,
+  "productionRequestsSent": false,
+  "checks": [
+    {
+      "game": "cops-robbers",
+      "width": 320,
+      "passed": true,
+      "sha256": "bff9316e33aab5a9286ff7adccaed6de76d6706d97e9e0708ccba59d6e8a984a"
+    },
+    {
+      "game": "cops-robbers",
+      "width": 390,
+      "passed": true,
+      "sha256": "bff9316e33aab5a9286ff7adccaed6de76d6706d97e9e0708ccba59d6e8a984a"
+    },
+    {
+      "game": "cops-robbers-realtime",
+      "width": 320,
+      "passed": true,
+      "sha256": "b3e59c9d935c688125ffe6cd7547c63a26f4e3f0e7b143489e469bea315d7d95"
+    },
+    {
+      "game": "cops-robbers-realtime",
+      "width": 390,
+      "passed": true,
+      "sha256": "b3e59c9d935c688125ffe6cd7547c63a26f4e3f0e7b143489e469bea315d7d95"
+    },
+    {
+      "game": "xiangqi-five",
+      "width": 320,
+      "passed": true,
+      "sha256": "d71f0956e1698ad75060b936dd0f085f3efe128dbf022027ac94446319f21dd6"
+    },
+    {
+      "game": "xiangqi-five",
+      "width": 390,
+      "passed": true,
+      "sha256": "d71f0956e1698ad75060b936dd0f085f3efe128dbf022027ac94446319f21dd6"
+    }
+  ]
+}

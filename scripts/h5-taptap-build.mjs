@@ -20,7 +20,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import path from 'node:path';
 import { h5AdGames, prepareH5Ads } from './h5-ad-config.mjs';
 import { prepareH5Service } from './competition-h5-service.mjs';
-import { packageModes } from './h5-taptap-matrix.mjs';
+import { packageModes, h5Orientations } from './h5-taptap-matrix.mjs';
 import { inventory, zipInventory, digest } from '../apps/shell-minigame/scripts/taptap-package.mjs';
 
 export const root = fileURLToPath(new URL('../', import.meta.url));
@@ -370,6 +370,8 @@ export async function buildH5Packages(
           platform: 'taptap-h5',
           packageType: 'h5',
           entry: 'dist/index.html',
+          orientation: h5Orientations[game],
+          orientationVerified: false,
           adsEnabled: ads,
           adMode: adConfig.adMode,
           adUnitConfigured: Boolean(adConfig.adUnitId),

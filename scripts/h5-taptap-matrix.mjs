@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 
 export const matrixGames = ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'];
+// H5 orientation belongs to app upload metadata, not native game.json.
+export const h5Orientations = Object.freeze({
+  'cops-robbers': 'portrait',
+  'cops-robbers-realtime': 'preserve',
+  'xiangqi-five': 'portrait',
+});
 export const productionCompetitionApi = 'https://api.nenggongzhiren.cn/small-games/v1';
 export function packageModes(values, env = {}) {
   assert(!(values['with-ads'] && values['without-ads']), 'Choose an advertising mode');
@@ -45,6 +51,8 @@ export function matrixContract(matrix, { production = false } = {}) {
       `${v.game}-ads-${v.adsEnabled ? 'on' : 'off'}-service-${v.serviceEnabled ? 'on' : 'off'}`,
     );
     assert.equal(v.packageType, 'h5');
+    assert.equal(v.orientation, h5Orientations[v.game]);
+    assert.equal(v.orientationVerified, false);
     assert.equal(v.sourceSHA, matrix.sourceSHA);
     assert.equal(v.submoduleSHA, matrix.submoduleSHA);
     assert.equal(v.apiUrl, v.serviceEnabled ? api : '');
