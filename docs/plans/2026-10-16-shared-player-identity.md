@@ -105,7 +105,7 @@ explicitly unverified where unavailable.
 
 ## Current safe checkpoint
 
-The candidate remains uncommitted. The [compatibility record](2026-10-16-shared-player-identity/compatibility.md)
+Implementation was recorded locally in `151e6e49d1d35a14ca73cccca285e5e62da85461`; it has not been pushed or deployed. The [compatibility record](2026-10-16-shared-player-identity/compatibility.md)
 distinguishes fixed-source HTTP contract fixtures from PostgreSQL and unknown
 APK acceptance. The initial no-database checkpoint had 162 passes and 18 skips;
 the real PostgreSQL results below supersede those skips. Runtime type/lint and
@@ -126,6 +126,17 @@ two targeted reruns, including all 18 database cases. See
 No cloud rollout or formal package upload has been performed.
 Migration 013 grants only SELECT/INSERT/DELETE on its new refresh table; it does
 not change original table privileges or owners.
+
+## Latest local checkpoint
+
+The complete current Runtime suite passed 183 tests in 27 files, with zero
+skips, against the existing real PostgreSQL. New ingress/packaging contracts
+passed 21 tests, including six Python transaction mock cases. Existing company
+contracts passed all nine checks using Linux/WSL, including private backup
+restore and both prior rollback fixtures. These do not yet prove actual cached
+proxy-image syntax or production activation. The two Runtime proxy-default
+producers now start safely with forwarding trust disabled; the approved
+production override must specify its precise trusted Nginx address.
 
 ## Deferred admin handoff
 

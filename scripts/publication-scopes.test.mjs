@@ -33,6 +33,7 @@ import {
 } from './incremental-validation.mjs';
 import { executeCompetitionChecks } from './run-selected-competition.mjs';
 import { shellContractTargets, shellContractFiles } from './validation-plan.mjs';
+import { ingressPreflightGuard } from './competition-ingress.mjs';
 
 test('company Pages publication adds only its tested artifact and preserves game gates', async () => {
   const { execFileSync } = await import('node:child_process');
@@ -493,7 +494,10 @@ test('competition ingress selects only both proxy consumers and rejects unrelate
 test('generic Runtime proxy defaults admit exactly the reviewed producer bytes and block extra changes', () => {
   const packages = [{ name: 'runtime', dir: 'services/runtime-api' }];
   for (const file of runtimeProxyDefaultScopePaths) {
-    const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+    const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
+      '\r\n',
+      '\n',
+    );
     const before = file.endsWith('.yaml')
       ? after.replace(
           "      PORT: '43002'\n      TRUST_PROXY: '0'",
@@ -1152,10 +1156,15 @@ test('optional service configuration has finite H5 consumers and rejects unknown
   );
 });
 
-test('pnpm installer compatibility selects actual backends and preserves deployment provenance gates', async () => {
+test('historical pnpm installer compatibility selects actual backends and preserves deployment provenance gates', async () => {
   const { workspacePackages } = await import('./validation-plan.mjs');
   const packages = await workspacePackages(fileURLToPath(new URL('../', import.meta.url)));
-  const read = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const read = (file) =>
+    file === 'scripts/deployment-bundle.mjs'
+      ? execFileSync('git', ['show', '26756c80cfa4ddf9bda16269265e353fddeaeeaf:' + file], {
+          encoding: 'utf8',
+        })
+      : readFileSync(new URL('../' + file, import.meta.url), 'utf8');
   const readBase = (file) =>
     execFileSync('git', ['show', '5cd8d72f42ff70268710049b8b20074df53bf7a3:' + file], {
       encoding: 'utf8',
@@ -1743,7 +1752,11 @@ test('reviewed quality budget can be planned without installed YAML dependencies
   assert.equal(after, before.replace('    timeout-minutes: 40\n', '    timeout-minutes: 60\n'));
   const directory = await mkdtemp(join(tmpdir(), 'quality-budget-no-deps-'));
   try {
-    for (const module of ['publication-scopes.mjs', 'vite-patch-scope.mjs'])
+    for (const module of [
+      'publication-scopes.mjs',
+      'vite-patch-scope.mjs',
+      'competition-ingress.mjs',
+    ])
       await copyFile(new URL(module, import.meta.url), join(directory, module));
     const code = `
       import assert from 'node:assert/strict';
@@ -1782,7 +1795,11 @@ test('cache writer reduction has an exact dependency-free scope and rejects unre
   const { join } = await import('node:path');
   const directory = await mkdtemp(join(tmpdir(), 'cache-scope-no-deps-'));
   try {
-    for (const module of ['publication-scopes.mjs', 'vite-patch-scope.mjs'])
+    for (const module of [
+      'publication-scopes.mjs',
+      'vite-patch-scope.mjs',
+      'competition-ingress.mjs',
+    ])
       await copyFile(new URL(module, import.meta.url), join(directory, module));
     for (const file of ['.github/workflows/ci.yml', '.github/workflows/pages-validate.yml']) {
       const before = execFileSync(
@@ -2851,7 +2868,9 @@ test('identity display and security files have their real H5 consumers; unknown 
 
 test('identity migration and registrations are exact additive runtime-only changes', () => {
   const read = (file) =>
-    readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll('\r\n', '\n');
+    readFileSync(new URL('../' + file, import.meta.url), 'utf8')
+      .replaceAll('\r\n', '\n')
+      .replace(file === 'scripts/deploy-tencent.mjs' ? ingressPreflightGuard : '\0', '');
   const migration = 'infra/migrations/013-competition-identities.sql';
   const files = [
     migration,

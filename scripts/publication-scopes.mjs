@@ -1420,8 +1420,8 @@ export function reviewedSharedFileScopes({
   for (const file of changedPaths) {
     try {
       if (runtimeProxyDefaultScopePaths.includes(file) && readBase && readHead) {
-        const before = readBase(file),
-          after = readHead(file);
+        const before = readBase(file)?.replaceAll('\r\n', '\n'),
+          after = readHead(file)?.replaceAll('\r\n', '\n');
         const [oldDefault, newDefault] = runtimeProxyDefaultChanges[file];
         if (before.includes(oldDefault) && after.includes(newDefault)) {
           assert(before.split(oldDefault).length === 2 && after.split(newDefault).length === 2);

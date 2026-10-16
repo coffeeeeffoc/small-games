@@ -1,6 +1,6 @@
 # Shared competition identity compatibility checkpoint
 
-Date: 2026-10-16. Candidate is the current uncommitted working tree, not a published SHA.
+Date: 2026-10-16. Implementation checkpoint: local commit `151e6e49d1d35a14ca73cccca285e5e62da85461`, not yet published.
 Fixed old source: `26756c80cfa4ddf9bda16269265e353fddeaeeaf`.
 
 ## Evidence and limits
@@ -64,6 +64,11 @@ Negative contracts reject deleted fields, changed primitive types, changed statu
 extra persisted canary keys. Nickname, avatar and coarse-region trust-boundary tests remain active.
 
 ## Commands and current results
+
+Latest complete Runtime run: **183 passed, 0 failed, 0 skipped**, 27 files,
+real PostgreSQL, `--maxWorkers=1 --testTimeout=30000`. This supersedes the earlier
+no-database/skipped checkpoint below. Fixture cleanup uses the existing owner;
+real browser Runtime still needs the application-role acceptance.
 
 - Runtime `typecheck`: passed.
 - Runtime `lint --max-warnings 0`: passed.

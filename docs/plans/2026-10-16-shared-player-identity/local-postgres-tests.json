@@ -48,5 +48,14 @@
     "Actual APK compatibility unknown",
     "Three requested games natural mobile-touch matches for new candidate pending",
     "Production deployment not performed"
-  ]
+  ],
+  "currentFullRun": {
+    "sourceSHA": "151e6e49d1d35a14ca73cccca285e5e62da85461",
+    "command": "pnpm --filter @coffeeeeffoc/runtime-api exec vitest run --maxWorkers=1 --testTimeout=30000",
+    "passed": 183,
+    "failed": 0,
+    "skipped": 0,
+    "files": 27,
+    "note": "Complete current Runtime suite, including the actual four-way H5/client HTTP/PG matrix and exact proxy peer tests; same existing task PostgreSQL and unchanged fixture-owner permissions."
+  }
 }
