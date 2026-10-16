@@ -10,6 +10,12 @@ Optional, separately approved competition HTTPS ingress uses the exact `competit
 
 使用 Node 24.21.0 / pnpm 12.6.0。先读取远端 dev 的准确 SHA，获取最新提交，正常合并并保留并行改动。候选必须已经提交；禁止把合并前的验证记录当作合并后结果。
 
+## 按需跳过本地 pre-push
+
+日常保存进度、不希望等待本地推送校验时，可显式运行 `pnpm push:no-verify`，或指定目标：`pnpm push:no-verify origin dev`。命令直接执行 `git push --no-verify`，其余参数原样交给 Git；只跳过本次 pre-push，不修改 `core.hooksPath`、提交检查或普通 `git push` 的行为，也不绕过远端的非快进保护与接收检查。
+
+跳过后没有本地候选校验通过记录，远端 CI/Pages 仍可能因旧游戏或其他检查失败。正式发布的候选验证及部署验收继续按本文执行；不能把跳过检查的推送当作验证通过。
+
 ## 当前 Web 测试阶段与原生发布开关
 
 `MINIGAME_RELEASE_GATES` 默认未设置或为 `0`：保留准确候选、格式、注册、依赖边界、构建、类型、lint、规则及 Web/手机 Web 的真实入口和触屏检查；暂缓各原生小游戏平台的构建、转换、资源包和宿主冒烟门禁。日志明确记录 deferred，不表示原生平台通过。Cocos 的 Web 产物和引擎声明仍须来自 Creator 3.8.8 或源码匹配的真实制品。

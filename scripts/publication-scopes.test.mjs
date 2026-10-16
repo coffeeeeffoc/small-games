@@ -3313,6 +3313,44 @@ test('admin lock proof plans without installed YAML dependencies', async () => {
   }
 });
 
+test('the opt-in no-verify command has no game consumers and rejects unrelated package changes', () => {
+  const json = (value) => JSON.stringify(value, null, 2) + '\n';
+  const previous = { scripts: { build: 'keep' }, dependencies: { example: '1.0.0' } };
+  const current = structuredClone(previous);
+  current.scripts['push:no-verify'] = 'git push --no-verify';
+  const before = json(previous),
+    after = json(current);
+  assert.deepEqual(targetedCommandsOnly(before, after), []);
+  const context = {
+    changedPaths: ['package.json'],
+    packages: [],
+    games: [],
+    readBase: () => before,
+    readHead: () => after,
+  };
+  const fileScopes = reviewedSharedFileScopes(context);
+  assert.deepEqual(fileScopes.get('package.json'), []);
+  const plan = incrementalPlan({ ...context, fileScopes, readSource: () => '' });
+  assert.equal(plan.full, false);
+  assert.deepEqual(plan.consumer_sources, []);
+  assert.deepEqual(plan.browser_ids, []);
+  for (const invalid of [
+    after.replace('git push --no-verify', 'git push --no-verify --force'),
+    after.replace('keep', 'changed'),
+    after.replace('1.0.0', '2.0.0'),
+    after.replace('"scripts": {', '"scripts": {}, "scripts": {'),
+    after.replace('"build":', '"prepush:no-verify": "arbitrary-command", "build":'),
+  ]) {
+    assert.equal(targetedCommandsOnly(before, invalid), null);
+    assert.equal(
+      reviewedSharedFileScopes({ ...context, readHead: () => invalid }).has('package.json'),
+      false,
+    );
+  }
+  assert.equal(targetedCommandsOnly(after, before), null);
+  assert.equal(targetedCommandsOnly(after, after), null);
+});
+
 test('selected backend tools and additive local build commands have finite consumers', () => {
   const games = ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'].map((id) => ({
     id,
@@ -3328,6 +3366,7 @@ test('selected backend tools and additive local build commands have finite consu
         ...previous.scripts,
         'deploy:backend': 'node scripts/deploy-backend.mjs',
         'build:games': 'node scripts/build-games.mjs',
+        'push:no-verify': 'git push --no-verify',
       },
     };
   const json = (value) => JSON.stringify(value, null, 2) + '\n',
