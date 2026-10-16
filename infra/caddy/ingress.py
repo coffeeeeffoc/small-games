@@ -25,11 +25,11 @@ def require(condition, message):
         raise RuntimeError(message)
 
 
-def command(*args):
+def command(*args, preserve_output=False):
     # Never print command stderr: Docker/runtime errors can contain sensitive configuration.
     result = subprocess.run(args, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     require(result.returncode == 0, f'Ingress command failed: {args[0]} {args[1] if len(args) > 1 else ""}')
-    return result.stdout.strip()
+    return result.stdout if preserve_output else result.stdout.strip()
 
 
 def config_from(path):
@@ -171,12 +171,13 @@ def check_protected(snapshot, website, company_body, static_pointer, backend_poi
     require({item.name: hashlib.sha256(item.read_bytes()).hexdigest() for item in (Path(config['nginx']['legacyRelease']) / 'nginx').iterdir()} == snapshot['legacyHashes'], 'Legacy Nginx configuration changed')
 
 
-def curl(host, path, *arguments):
-    return command('curl', '--noproxy', '*', '--silent', '--show-error', '--connect-timeout', '5', '--max-time', '15', '--resolve', f'{host}:443:127.0.0.1', *arguments, f'https://{host}{path}')
+def curl(host, path, *arguments, preserve_output=False):
+    return command('curl', '--noproxy', '*', '--silent', '--show-error', '--connect-timeout', '5', '--max-time', '15', '--resolve', f'{host}:443:127.0.0.1', *arguments, f'https://{host}{path}', preserve_output=preserve_output)
 
 
 def response(host, path, *arguments):
-    raw = curl(host, path, '-D', '-', *arguments).replace('\r\n', '\n')
+    # Empty bodies still need the final header separator (e.g. OPTIONS 204, redirects, 404).
+    raw = curl(host, path, '-D', '-', *arguments, preserve_output=True).replace('\r\n', '\n')
     head, separator, body = raw.partition('\n\n')
     lines = head.splitlines()
     require(separator and lines and re.fullmatch(r'HTTP/[\d.]+ \d{3}.*', lines[0]), 'Invalid HTTPS response')

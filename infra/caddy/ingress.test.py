@@ -19,6 +19,40 @@ spec.loader.exec_module(ingress)
 EXAMPLE = json.loads(Path(__file__).with_name('ingress.example.json').read_text())
 
 
+class HttpsResponseTests(unittest.TestCase):
+    def parsed(self, raw):
+        result = types.SimpleNamespace(returncode=0, stdout=raw, stderr='')
+        with patch.object(ingress.subprocess, 'run', return_value=result):
+            return ingress.response(ingress.DOMAIN, '/small-games/v1/me')
+
+    def test_empty_responses_keep_the_header_terminator(self):
+        for status in (204, 302, 404):
+            with self.subTest(status=status):
+                raw = f'HTTP/2 {status}\r\nAccess-Control-Allow-Origin: http://localhost:8080\r\n\r\n'
+                code, headers, body = self.parsed(raw)
+                self.assertEqual(code, status)
+                self.assertEqual(headers['access-control-allow-origin'], 'http://localhost:8080')
+                self.assertEqual(body, '')
+
+    def test_json_and_page_body_whitespace_is_preserved(self):
+        for body in ('{"error":"SESSION_EXPIRED"}\n', '<html>page</html>\n'):
+            with self.subTest(body=body):
+                self.assertEqual(self.parsed('HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n' + body)[2], body)
+
+    def test_missing_header_terminator_is_still_invalid(self):
+        with self.assertRaisesRegex(RuntimeError, 'Invalid HTTPS response'):
+            self.parsed('HTTP/2 204\r\nContent-Type: application/json\r\n')
+
+    def test_normal_commands_still_trim_and_stderr_stays_private(self):
+        result = types.SimpleNamespace(returncode=0, stdout='  value\n', stderr='')
+        with patch.object(ingress.subprocess, 'run', return_value=result):
+            self.assertEqual(ingress.command('tool'), 'value')
+        result.returncode, result.stderr = 1, 'private diagnostic canary'
+        with patch.object(ingress.subprocess, 'run', return_value=result):
+            with self.assertRaisesRegex(RuntimeError, '^Ingress command failed: tool $'):
+                ingress.command('tool', preserve_output=True)
+
+
 class IngressTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
