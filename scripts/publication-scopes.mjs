@@ -1367,7 +1367,9 @@ export function targetedCommandsOnly(before, after) {
       consumers = [];
     assert.equal(before.replaceAll('\r\n', '\n'), JSON.stringify(previous, null, 2) + '\n');
     assert.equal(after.replaceAll('\r\n', '\n'), JSON.stringify(current, null, 2) + '\n');
+    let added = false;
     for (const [name, command, targets] of [
+      ['push:no-verify', 'git push --no-verify', []],
       ['deploy:backend', 'node scripts/deploy-backend.mjs', selectedBackendConsumers],
       [
         'build:games',
@@ -1380,10 +1382,11 @@ export function targetedCommandsOnly(before, after) {
       else if (Object.hasOwn(current.scripts, name)) {
         assert.equal(current.scripts[name], command);
         delete current.scripts[name];
+        added = true;
         consumers.push(...targets);
       }
     }
-    assert(consumers.length && isDeepStrictEqual(previous, current));
+    assert(added && isDeepStrictEqual(previous, current));
     return [...new Set(consumers)];
   } catch {
     return null;
