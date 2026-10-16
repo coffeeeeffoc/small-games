@@ -5,6 +5,39 @@ import os from 'node:os';
 import path from 'node:path';
 import { assertNodeOnly, validateTree, runIncrementalToolChecks } from './validate-tree.mjs';
 
+test('H5 acceptance hooks execute only bounded unit contracts, never PG or the matrix browser', () => {
+  const calls = [],
+    options = {
+      plan: { h5_acceptance_checks: true, native_consumers: [], developer_mode_ids: [] },
+      packages: [],
+      root: '/candidate',
+      env: {},
+      execute: (command, args) => calls.push([command, ...args]),
+    };
+  runIncrementalToolChecks(options);
+  assert.deepEqual(calls, [
+    [
+      process.execPath,
+      '--test',
+      '--test-concurrency=1',
+      'scripts/h5-taptap-build.test.mjs',
+      'scripts/h5-taptap-runtime.test.mjs',
+      'scripts/h5-taptap-trace.test.mjs',
+      'scripts/h5-taptap-matrix.test.mjs',
+    ],
+  ]);
+  assert.throws(
+    () =>
+      runIncrementalToolChecks({
+        ...options,
+        execute() {
+          throw new Error('QA unit canary');
+        },
+      }),
+    /QA unit canary/,
+  );
+});
+
 test('admin deployment contract actually executes and fails closed independently of game browsers', () => {
   const calls = [];
   const options = {

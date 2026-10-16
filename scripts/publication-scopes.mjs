@@ -209,6 +209,19 @@ export const competitionServiceScopePaths = [
   'scripts/competition-client.test.mjs',
   'scripts/competition.integration.mjs',
 ];
+// These acceptance tools never start Docker/Chrome from hooks; their bounded unit contracts do.
+export const h5AcceptanceScopePaths = Object.freeze([
+  'scripts/h5-taptap-build.mjs',
+  'scripts/h5-taptap-build.test.mjs',
+  'scripts/h5-taptap-matrix.mjs',
+  'scripts/h5-taptap-matrix.test.mjs',
+  'scripts/h5-taptap.browser.mjs',
+  'scripts/h5-taptap-touch.mjs',
+  'scripts/h5-taptap-runtime.mjs',
+  'scripts/h5-taptap-runtime.test.mjs',
+  'scripts/h5-taptap-trace.mjs',
+  'scripts/h5-taptap-trace.test.mjs',
+]);
 const competitionServiceIds = ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'];
 export function competitionServiceConfigOnly(file, before, after) {
   try {
@@ -1962,6 +1975,10 @@ export function reviewedSharedFileScopes({
         const { consumers } = backendInstallerChanges[file];
         for (const source of consumers) assert(packages.some((pkg) => pkg.dir === source));
         scopes.set(file, consumers);
+        continue;
+      }
+      if (h5AcceptanceScopePaths.includes(file) && !competitionServiceScopePaths.includes(file)) {
+        scopes.set(file, []);
         continue;
       }
       if (

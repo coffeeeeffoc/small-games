@@ -20,7 +20,13 @@ import { setTimeout as delay } from 'node:timers/promises';
 import path from 'node:path';
 import { h5AdGames, prepareH5Ads } from './h5-ad-config.mjs';
 import { prepareH5Service } from './competition-h5-service.mjs';
-import { packageModes, h5Orientations } from './h5-taptap-matrix.mjs';
+import {
+  packageModes,
+  h5Orientations,
+  acceptanceSelection,
+  productionCompetitionApi,
+  localCompetitionApi,
+} from './h5-taptap-matrix.mjs';
 import { inventory, zipInventory, digest } from '../apps/shell-minigame/scripts/taptap-package.mjs';
 
 export const root = fileURLToPath(new URL('../', import.meta.url));
@@ -28,11 +34,15 @@ const retained = 'h5-packages';
 export function compilerEnvironment(env = process.env) {
   const allowed =
     /^(?:PATH|PATHEXT|SYSTEMROOT|WINDIR|COMSPEC|HOME|USERPROFILE|APPDATA|LOCALAPPDATA|TEMP|TMP|TMPDIR|LANG|LC_[A-Z_]+|CI|H5_ADS_ENABLED|COMPETITION_SERVICE_ENABLED|COMPETITION_PUBLIC_API_URL|TAPTAP_(?:COPS_ROBBERS|COPS_ROBBERS_REALTIME|XIANGQI_FIVE)_AD_UNIT_ID)$/i;
-  return Object.fromEntries(
-    Object.keys(env)
-      .filter((name) => allowed.test(name))
-      .map((name) => [name, env[name]]),
-  );
+  return {
+    ...Object.fromEntries(
+      Object.keys(env)
+        .filter((name) => allowed.test(name))
+        .map((name) => [name, env[name]]),
+    ),
+    NODE_OPTIONS: '--max-old-space-size=512',
+    UV_THREADPOOL_SIZE: '1',
+  };
 }
 const inside = (base, target) => {
   const relative = path.relative(base, target);
@@ -270,8 +280,20 @@ export async function buildH5Packages(
     zip = writeH5Zip,
   } = {},
 ) {
+  // Reject incompatible acceptance requests before even creating an output directory.
+  const selection = acceptanceSelection(values);
+  if (selection) {
+    const expectedApi = values.local ? localCompetitionApi : productionCompetitionApi;
+    assert.equal(
+      env.COMPETITION_PUBLIC_API_URL,
+      expectedApi,
+      'Acceptance profile requires its exact API',
+    );
+    assert(!allowDirty && !buildOnly, 'Acceptance profiles require a clean complete candidate');
+  }
   workspace = await realpath(workspace);
-  const games = values.games ?? (values.game === 'all' ? h5AdGames : [values.game]);
+  const games =
+    selection?.games ?? values.games ?? (values.game === 'all' ? h5AdGames : [values.game]);
   assert(
     games.length &&
       new Set(games).size === games.length &&
@@ -297,7 +319,7 @@ export async function buildH5Packages(
   assert(inside(path.join(workspace, 'outputs'), output), 'Package output must be under outputs');
   await ordinaryDirectory(workspace, path.dirname(output));
   await mkdir(output, { recursive: false });
-  const modes = values.modes ?? packageModes(values, env),
+  const modes = selection?.modes ?? values.modes ?? packageModes(values, env),
     manifests = [];
   assert(
     modes.length &&
@@ -366,6 +388,8 @@ export async function buildH5Packages(
           'ZIP must match this build output',
         );
         const manifest = {
+          profile: selection?.profile ?? null,
+          identityMode: 'ephemeral',
           name,
           game,
           platform: 'taptap-h5',
@@ -431,6 +455,7 @@ export async function buildH5Packages(
     }
   }
   const matrix = {
+    profile: selection?.profile ?? null,
     sourceSHA,
     sourceDirty,
     submoduleSHA,
@@ -450,6 +475,7 @@ export async function main(args = process.argv.slice(2)) {
     args,
     options: {
       game: { type: 'string', default: 'all' },
+      profile: { type: 'string' },
       matrix: { type: 'boolean' },
       'with-ads': { type: 'boolean' },
       'without-ads': { type: 'boolean' },

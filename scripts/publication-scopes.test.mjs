@@ -8,6 +8,7 @@ import {
   competitionConsumers,
   competitionToolPlan,
   competitionServiceScopePaths,
+  h5AcceptanceScopePaths,
   competitionServiceConfigOnly,
   identityGatewayFileScope,
   threeChooseTwoBackendFileScope,
@@ -42,6 +43,44 @@ import {
 import { executeCompetitionChecks } from './run-selected-competition.mjs';
 import { shellContractTargets, shellContractFiles } from './validation-plan.mjs';
 import { ingressPreflightGuard } from './competition-ingress.mjs';
+
+test('new H5 acceptance helpers have finite unit-only scope and unknown siblings remain blocked', () => {
+  for (const file of h5AcceptanceScopePaths.filter(
+    (file) => !competitionServiceScopePaths.includes(file),
+  )) {
+    const context = {
+      changedPaths: [file],
+      games: [],
+      packages: [],
+      readBase: () => '',
+      readHead: () => '',
+      readSource: () => '',
+    };
+    const fileScopes = reviewedSharedFileScopes(context);
+    assert.deepEqual(fileScopes.get(file), []);
+    const plan = incrementalPlan({ ...context, fileScopes });
+    assert.equal(plan.h5_acceptance_checks, true);
+    assert.equal(plan.competition_service_checks, false);
+    assert.deepEqual(plan.browser_ids, []);
+    assert.deepEqual(plan.consumer_sources, []);
+  }
+  for (const file of [
+    'scripts/h5-taptap-runtime-extra.mjs',
+    'scripts/h5-taptap-trace-private.mjs',
+  ]) {
+    const context = {
+      changedPaths: [file],
+      games: [],
+      packages: [],
+      readBase: () => '',
+      readHead: () => '',
+      readSource: () => '',
+    };
+    const fileScopes = reviewedSharedFileScopes(context);
+    assert.equal(fileScopes.has(file), false);
+    assert.throws(() => incrementalPlan({ ...context, fileScopes }), /scope undefined/);
+  }
+});
 
 test('admin deployment paths select exact consumers, including the control policy readers', () => {
   const packages = [

@@ -8,6 +8,63 @@ export const h5Orientations = Object.freeze({
   'xiangqi-five': 'portrait',
 });
 export const productionCompetitionApi = 'https://api.nenggongzhiren.cn/small-games/v1';
+export const localCompetitionApi = 'http://127.0.0.1:43802/api/competition/v1';
+export const localH5Origin = 'http://127.0.0.1:43810';
+export const acceptanceProfiles = Object.freeze(['qa-matrix', 'online-ads']);
+export function assertCandidateSource(matrix, { head, submodule, dirty }) {
+  assert.equal(dirty, '', 'Acceptance requires the whole tree and submodules clean');
+  assert.equal(head, matrix.sourceSHA, 'Acceptance main SHA changed');
+  assert.equal(submodule, matrix.submoduleSHA, 'Acceptance submodule SHA changed');
+}
+export function browserEntryContract({ production, localRestart, owned, ipc }) {
+  assert(!(production && localRestart), 'Production acceptance cannot restart local resources');
+  if (!production) {
+    assert(localRestart && ipc && owned, 'Local acceptance requires the fresh-owned IPC wrapper');
+    assert.match(owned.runId, /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/);
+    assert.equal(owned.api, localCompetitionApi);
+    assert.equal(owned.origin, localH5Origin);
+  }
+}
+/** Explicit acceptance scopes never inherit axes from process environment or array length. */
+export function acceptanceSelection(values) {
+  if (values.profile === undefined) return null;
+  assert(acceptanceProfiles.includes(values.profile), 'Unknown H5 acceptance profile');
+  assert(!values.game || values.game === 'all', 'Acceptance profiles require all three games');
+  assert(
+    !values.games ||
+      JSON.stringify([...values.games].sort()) === JSON.stringify([...matrixGames].sort()),
+    'Acceptance profiles require the exact three games',
+  );
+  assert(!values.modes, 'Acceptance profiles do not accept custom modes');
+  const local = values.profile === 'qa-matrix';
+  assert(
+    Boolean(values.local) === local,
+    'QA profiles require --local; online-ads forbids --local',
+  );
+  if (local) {
+    assert(
+      !['with-ads', 'without-ads', 'with-service', 'without-service'].some((key) => values[key]),
+      'QA profiles require all four combinations',
+    );
+  } else {
+    assert(
+      !values.matrix && !values['without-ads'] && !values['without-service'],
+      'online-ads requires ads and service enabled',
+    );
+  }
+  return {
+    profile: values.profile,
+    games: [...matrixGames],
+    modes: local
+      ? [
+          [false, false],
+          [true, false],
+          [false, true],
+          [true, true],
+        ]
+      : [[true, true]],
+  };
+}
 export function packageModes(values, env = {}) {
   assert(!(values['with-ads'] && values['without-ads']), 'Choose an advertising mode');
   assert(!(values['with-service'] && values['without-service']), 'Choose a service mode');
@@ -26,13 +83,20 @@ export function packageModes(values, env = {}) {
 
 /** Acceptance requires a complete scope, never a partially filtered successful matrix. */
 export function matrixContract(matrix, { production = false } = {}) {
-  const api = production ? productionCompetitionApi : 'http://127.0.0.1:43802/api/competition/v1';
-  const origin = production ? 'http://localhost:8080' : 'http://127.0.0.1:43810';
+  assert.equal(
+    matrix.profile,
+    production ? 'online-ads' : 'qa-matrix',
+    'Explicit acceptance profile required',
+  );
+  assert.equal(matrix.sourceDirty, false, 'Acceptance requires a clean packaged candidate');
+  assert.match(matrix.sourceSHA, /^[a-f0-9]{40}$/);
+  assert.match(matrix.submoduleSHA, /^[a-f0-9]{40}$/);
+  const api = production ? productionCompetitionApi : localCompetitionApi;
+  const origin = production ? 'http://localhost:8080' : localH5Origin;
   assert(Array.isArray(matrix.variants), 'Missing package matrix');
-  const services = production && matrix.variants.length === 6 ? [true] : [false, true];
   const expected = matrixGames.flatMap((game) =>
-    services.flatMap((service) =>
-      [false, true].map(
+    (production ? [true] : [false, true]).flatMap((service) =>
+      (production ? [true] : [false, true]).map(
         (ads) => `${game}-ads-${ads ? 'on' : 'off'}-service-${service ? 'on' : 'off'}`,
       ),
     ),
@@ -54,6 +118,9 @@ export function matrixContract(matrix, { production = false } = {}) {
     assert.equal(v.orientation, h5Orientations[v.game]);
     assert.equal(v.orientationVerified, false);
     assert.equal(v.sourceSHA, matrix.sourceSHA);
+    assert.equal(v.profile, matrix.profile);
+    assert.equal(v.sourceDirty, false);
+    assert.equal(v.identityMode, 'ephemeral');
     assert.equal(v.submoduleSHA, matrix.submoduleSHA);
     assert.equal(v.apiUrl, v.serviceEnabled ? api : '');
     assert.equal(

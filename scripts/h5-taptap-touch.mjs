@@ -6,7 +6,54 @@ import {
   startGame,
   roadTarget,
   routePreview,
+  roadDistance,
 } from '../games/local/cops-robbers-realtime/src/engine.js';
+/** Reuses the game's existing first-level playtest strategy; outputs touch targets only. */
+export function soloStreetPlan(snapshot) {
+  assert.equal(snapshot.mode, 'challenge');
+  assert.equal(snapshot.level, 1);
+  assert.equal(snapshot.role, 'cop');
+  const level = getLevels('challenge')[0],
+    model = createGame(level);
+  const origin = roadTarget(model, snapshot.cops[level.hunter]);
+  const target = snapshot.robbers
+    .filter((actor) => !actor.caught && !actor.escaped)
+    .sort(
+      (a, b) =>
+        roadDistance(model, origin, roadTarget(model, a)) -
+        roadDistance(model, origin, roadTarget(model, b)),
+    )[0];
+  return {
+    guards: level.solution.map(({ cop, node }) => ({
+      actor: cop,
+      target: { ...level.nodes[node] },
+    })),
+    pursuit: target ? { actor: level.hunter, target: { x: target.x, y: target.y } } : null,
+  };
+}
+
+/** Pace real guest requests under the unchanged per-IP 20/minute server limit. */
+export function guestScheduler(
+  initial = [],
+  { now = Date.now, pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms)) } = {},
+) {
+  const requests = initial.filter((value) => Number.isFinite(value));
+  let pending = Promise.resolve();
+  return () => {
+    const task = pending.then(async () => {
+      while (true) {
+        while (requests.length && requests[0] <= now() - 60000) requests.shift();
+        if (requests.length < 18) {
+          requests.push(now());
+          return;
+        }
+        await pause(Math.max(1, Math.min(1000, requests[0] + 60001 - now())));
+      }
+    });
+    pending = task.catch(() => {});
+    return task;
+  };
+}
 
 // Plan from the public snapshot in Node; the browser still receives only real touch input.
 export function reachableStreetNodes(state, actor) {

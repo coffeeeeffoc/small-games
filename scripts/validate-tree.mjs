@@ -409,6 +409,21 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
       env,
       'logged',
     );
+  if (plan.h5_acceptance_checks)
+    execute(
+      process.execPath,
+      [
+        '--test',
+        '--test-concurrency=1',
+        'scripts/h5-taptap-build.test.mjs',
+        'scripts/h5-taptap-runtime.test.mjs',
+        'scripts/h5-taptap-trace.test.mjs',
+        ...(plan.competition_service_checks ? [] : ['scripts/h5-taptap-matrix.test.mjs']),
+      ],
+      root,
+      env,
+      'logged',
+    );
   if (plan.competition_service_checks) {
     execute(
       process.execPath,

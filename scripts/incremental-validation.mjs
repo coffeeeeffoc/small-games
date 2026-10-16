@@ -13,6 +13,7 @@ import {
 import {
   competitionToolPlan,
   competitionServiceScopePaths,
+  h5AcceptanceScopePaths,
   competitionIdentityScopePaths,
   competitionIdentityMirrorPaths,
   gameServiceScopePaths,
@@ -358,6 +359,9 @@ export function incrementalPlan({
           fileScopes.get(file)?.includes('games/local/cops-robbers')) ||
         (['package.json', 'turbo.json'].includes(file) &&
           fileScopes.get(file)?.includes('games/local/cops-robbers')),
+    ),
+    h5_acceptance_checks: paths.some(
+      (file) => h5AcceptanceScopePaths.includes(file) && fileScopes.has(file),
     ),
     ranked_deployment_checks:
       paths.includes('scripts/deploy-tencent.mjs') &&

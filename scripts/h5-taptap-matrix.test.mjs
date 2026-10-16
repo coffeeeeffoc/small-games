@@ -15,6 +15,9 @@ import {
   h5Orientations,
   packageModes,
   productionCompetitionApi,
+  acceptanceSelection,
+  assertCandidateSource,
+  browserEntryContract,
 } from './h5-taptap-matrix.mjs';
 
 test('only a matching planned runner movement may enter the verified blocked-route recovery path', () => {
@@ -223,17 +226,22 @@ test('explicit axes constrain matrix output and ordinary builds retain environme
   assert.throws(() => packageModes({ 'with-ads': true, 'without-ads': true }));
   assert.throws(() => packageModes({ 'with-service': true, 'without-service': true }));
 });
-function fixture(production, allServices = false) {
+function fixture(production) {
   const sourceSHA = 'a'.repeat(40),
     submoduleSHA = 'b'.repeat(40);
   return {
+    profile: production ? 'online-ads' : 'qa-matrix',
+    sourceDirty: false,
     sourceSHA,
     submoduleSHA,
     variants: matrixGames.flatMap((game) =>
-      packageModes({
-        matrix: true,
-        ...(production && !allServices ? { 'with-service': true } : {}),
-      }).map(([ads, service]) => ({
+      acceptanceSelection({
+        profile: production ? 'online-ads' : 'qa-matrix',
+        local: !production,
+      }).modes.map(([ads, service]) => ({
+        profile: production ? 'online-ads' : 'qa-matrix',
+        sourceDirty: false,
+        identityMode: 'ephemeral',
         name: `${game}-ads-${ads ? 'on' : 'off'}-service-${service ? 'on' : 'off'}`,
         game,
         packageType: 'h5',
@@ -253,7 +261,7 @@ function fixture(production, allServices = false) {
     ),
   };
 }
-test('acceptance requires twelve local variants or complete six/twelve formal variants', () => {
+test('explicit profiles require twelve local QA variants and only three online-ads deliverables', () => {
   assert.deepEqual(h5Orientations, {
     'cops-robbers': 'portrait',
     'cops-robbers-realtime': 'preserve',
@@ -266,11 +274,8 @@ test('acceptance requires twelve local variants or complete six/twelve formal va
     origin: 'http://localhost:8080',
     port: 8080,
   });
-  assert.deepEqual(matrixContract(fixture(true, true), { production: true }), {
-    api: productionCompetitionApi,
-    origin: 'http://localhost:8080',
-    port: 8080,
-  });
+  assert.equal(fixture(false).variants.length, 12);
+  assert.equal(fixture(true).variants.length, 3);
   assert.throws(() => matrixContract(fixture(false), { production: true }));
   assert.throws(() => matrixContract(fixture(true)));
   for (const mutate of [
@@ -283,6 +288,11 @@ test('acceptance requires twelve local variants or complete six/twelve formal va
     (m) => (m.variants[0].orientationVerified = true),
     (m) => (m.variants[0].submoduleSHA = 'c'.repeat(40)),
     (m) => (m.variants[0].serviceEnabled = false),
+    (m) => delete m.profile,
+    (m) => (m.sourceDirty = true),
+    (m) => (m.variants[0].sourceDirty = true),
+    (m) => (m.variants[0].identityMode = 'persistent'),
+    (m) => (m.variants[0].profile = 'qa-matrix'),
   ]) {
     const m = fixture(true);
     mutate(m);
@@ -291,15 +301,84 @@ test('acceptance requires twelve local variants or complete six/twelve formal va
   for (const mutate of [
     (m) => m.variants.pop(),
     (m) => m.variants.push(m.variants[0]),
-    (m) => (m.variants[0].localValidation = true),
+    (m) => (m.variants[0].localValidation = false),
     (m) => (m.variants[0].apiUrl = productionCompetitionApi),
     (m) => (m.variants[0].sourceSHA = 'c'.repeat(40)),
     (m) => {
       m.variants[0] = m.variants[1];
     },
   ]) {
-    const m = fixture(true, true);
+    const m = fixture(false);
     mutate(m);
+    assert.throws(() => matrixContract(m));
+  }
+  for (const count of [6, 12]) {
+    const m = fixture(true);
+    m.variants = Array.from({ length: count }, (_, index) => m.variants[index % 3]);
     assert.throws(() => matrixContract(m, { production: true }));
   }
+});
+
+test('guest pacing honors the real server window without lowering its limit', async () => {
+  const { guestScheduler } = await import('./h5-taptap-touch.mjs');
+  let now = 1000,
+    waited = 0;
+  const schedule = guestScheduler(Array(18).fill(now), {
+    now: () => now,
+    pause: async (ms) => {
+      assert(ms <= 1000);
+      now += ms;
+      waited += ms;
+    },
+  });
+  await Promise.all([schedule(), schedule()]);
+  assert(waited >= 60000);
+  assert(waited <= 61000);
+});
+test('both browser entrypoints must retain the clean exact main and submodule candidate', () => {
+  const matrix = fixture(false),
+    proof = { head: matrix.sourceSHA, submodule: matrix.submoduleSHA, dirty: '' };
+  assertCandidateSource(matrix, proof);
+  for (const change of [
+    { dirty: ' M scripts/h5-taptap-touch.mjs' },
+    { dirty: ' m games/submodules/xiangqi-five' },
+    { head: 'c'.repeat(40) },
+    { submodule: 'd'.repeat(40) },
+  ])
+    assert.throws(() => assertCandidateSource(matrix, { ...proof, ...change }));
+});
+test('local browser cannot touch a fixed Runtime without its fresh-owned IPC wrapper', () => {
+  const owned = {
+    runId: '12345678-1234-1234-1234-123456789012',
+    api: 'http://127.0.0.1:43802/api/competition/v1',
+    origin: 'http://127.0.0.1:43810',
+  };
+  browserEntryContract({ production: false, localRestart: true, owned, ipc: true });
+  browserEntryContract({ production: true, localRestart: false });
+  for (const change of [
+    { localRestart: false },
+    { ipc: false },
+    { owned: null },
+    { production: true },
+  ])
+    assert.throws(() =>
+      browserEntryContract({ production: false, localRestart: true, owned, ipc: true, ...change }),
+    );
+});
+test('normal Street solo planning is read-only and uses existing first-level guard/hunter targets', async () => {
+  const { soloStreetPlan } = await import('./h5-taptap-touch.mjs');
+  const level = getLevels('challenge')[0],
+    state = {
+      mode: 'challenge',
+      level: 1,
+      role: 'cop',
+      cops: level.cops.map((node, id) => ({ ...level.nodes[node], id })),
+      robbers: level.robbers.map((node, id) => ({ ...level.nodes[node], id, caught: false })),
+    };
+  const before = structuredClone(state),
+    plan = soloStreetPlan(state);
+  assert.equal(plan.guards.length, level.solution.length);
+  assert.equal(plan.pursuit.actor, level.hunter);
+  assert.deepEqual(state, before);
+  assert.throws(() => soloStreetPlan({ ...state, level: 0 }));
 });
