@@ -1,0 +1,20 @@
+{
+  "completedAt": "2026-10-16T07:39:48.192Z",
+  "node": "v24.21.0",
+  "command": "pnpm --filter @coffeeeeffoc/runtime-api exec vitest run --maxWorkers=1 --testTimeout=30000",
+  "files": 28,
+  "passed": 185,
+  "failed": 0,
+  "skipped": 0,
+  "database": "existing task-owned PostgreSQL 17.6 competition_test on loopback 15439",
+  "sourceDirectories": [
+    "services/runtime-api/src",
+    "services/runtime-api/tests",
+    "services/runtime-api/rules",
+    "packages/service-kit/src"
+  ],
+  "canonicalLfSourceSHA256": "ceb3016eeeb116990de92cd3baa33ca025b671f0888e27af54f1bde5c94f0c90",
+  "logSHA256": "c019bdc81c85b22ad5e143a3ad27ed5882d617c562ef36de6753dbacab781081",
+  "priorAttempt": "An incorrect repository-default local fixture password caused authentication failures; corrected from the verified task-owned container configuration without logging credentials. No source assertions were relaxed.",
+  "productionModified": false
+}

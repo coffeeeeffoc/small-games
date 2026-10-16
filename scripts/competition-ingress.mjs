@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { isIP } from 'node:net';
 
 export const ingressDomain = 'api.nenggongzhiren.cn';
+export const adminDomain = 'admin.nenggongzhiren.cn';
 export const ingressNetwork = 'small-games-competition-ingress';
 export const nginxImage = 'sha256:dc73b49f5124cf2ee538dfbdfbd121f0b4ccdcb20fea30f3a81bd477c02e2bb5';
 export const caddyImage = 'sha256:f77f856a30f0004200b36b322d61da17fade31e24875699d77fb968399b9eb77';
@@ -52,7 +53,7 @@ export function validateIngress(value) {
 
 // Keep the public surface finite; arbitrary future /api routes are not published.
 // Methods are also enforced: no DELETE/PUT, no catalog/projection/internal endpoints.
-export const competitionIngressPaths = [
+const internalCompetitionPaths = [
   '/api/competition/v1/sessions/(?:guest|platform|refresh|upgrade)',
   '/api/competition/v1/me',
   '/api/competition/v1/boards/[A-Za-z0-9][A-Za-z0-9-]{0,79}',
@@ -62,7 +63,57 @@ export const competitionIngressPaths = [
   '/api/competition/v1/carrom/rooms(?:/(?:join|[A-F0-9]{12}(?:/(?:settings|ready|start|rematch|leave|shoot))?))?',
   '/api/competition/v1/games/[A-Za-z0-9][A-Za-z0-9-]{0,79}(?:/leaderboards/[A-Za-z0-9][A-Za-z0-9-]{0,79}|/runs(?:/[a-f0-9-]{36}(?:/(?:actions|finish))?)?|/rooms(?:/(?:join|[A-F0-9]{12}(?:/(?:ready|leave|rematch|actions|role|initiative))?))?)?',
 ];
+export const competitionIngressPaths = internalCompetitionPaths.flatMap((route) => [
+  route.replace('/api/competition/v1/', '/small-games/v1/'),
+  route,
+]);
 export const competitionIngressPattern = `^(?:${competitionIngressPaths.join('|')})$`;
+export const managementIngressPattern =
+  '^/api/(?:auth/github(?:/callback)?|session|refresh|logout)$';
+
+export function renderAdminCaddy(ingress) {
+  const config = validateIngress(ingress);
+  return `${adminDomain} {
+    root * /srv/admin
+    header Cache-Control no-store
+    header Referrer-Policy no-referrer
+    header X-Content-Type-Options nosniff
+    header Content-Security-Policy "default-src 'self'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'"
+    route {
+        @api path /api /api/*
+        handle @api {
+            reverse_proxy http://${config.network.nginxIp}:8083 {
+                header_up Host ${adminDomain}
+                header_up X-Forwarded-Host ${adminDomain}
+                header_up X-Forwarded-For {remote_host}
+                header_up X-Real-IP {remote_host}
+                header_up X-Forwarded-Proto https
+                header_up -Forwarded
+                header_up -X-Competition-Internal-Key
+                header_up -X-Management-Entry
+            }
+        }
+        @forbidden path /forbidden
+        handle @forbidden {
+            rewrite * /index.html
+            file_server {
+                status 403
+            }
+        }
+        @pages path / /login
+        handle @pages {
+            rewrite * /index.html
+            file_server
+        }
+        @assets path /assets/* /mark.svg
+        handle @assets {
+            file_server
+        }
+        respond 404
+    }
+}
+`;
+}
 
 export function renderApiCaddy(ingress) {
   const config = validateIngress(ingress);
@@ -84,6 +135,7 @@ export function renderApiCaddy(ingress) {
             header_up X-Forwarded-Proto https
             header_up -Forwarded
             header_up -X-Competition-Internal-Key
+            header_up -X-Management-Entry
         }
         reverse_proxy @health http://${config.network.nginxIp}:8082 {
             header_up Host ${config.domain}
@@ -93,6 +145,7 @@ export function renderApiCaddy(ingress) {
             header_up X-Forwarded-Proto https
             header_up -Forwarded
             header_up -X-Competition-Internal-Key
+            header_up -X-Management-Entry
         }
         respond 404
     }
@@ -112,6 +165,11 @@ map $uri $competition_public_path {
     "~${competitionIngressPattern}" 1;
 }
 limit_req_zone $binary_remote_addr zone=competition_ingress:10m rate=60r/s;
+limit_req_zone $binary_remote_addr zone=management_ingress:10m rate=20r/s;
+map $uri $management_public_path {
+    default 0;
+    "~${managementIngressPattern}" 1;
+}
 log_format competition_ingress '$remote_addr peer=$realip_remote_addr $request_method $uri $status';
 server {
     listen ${config.network.nginxIp}:8082;
@@ -138,15 +196,17 @@ server {
         proxy_set_header X-Forwarded-Proto https;
         proxy_set_header Forwarded '';
         proxy_set_header X-Competition-Internal-Key '';
+        proxy_set_header X-Management-Entry '';
         proxy_connect_timeout 3s;
         proxy_read_timeout 15s;
     }
-    location /api/competition/v1/ {
+    location ~ ^/(?:small-games|api/competition)/v1/ {
         if ($competition_public_path = 0) { return 404; }
         if ($request_method !~ ^(GET|POST|OPTIONS)$) { return 404; }
         limit_req zone=competition_ingress burst=120 nodelay;
         limit_req_status 429;
         set $competition_runtime runtime:43002;
+        rewrite ^/small-games/v1/(.*)$ /api/competition/v1/$1 break;
         proxy_pass http://$competition_runtime;
         proxy_http_version 1.1;
         proxy_set_header Host ${config.domain};
@@ -156,10 +216,52 @@ server {
         proxy_set_header X-Forwarded-Proto https;
         proxy_set_header Forwarded '';
         proxy_set_header X-Competition-Internal-Key '';
+        proxy_set_header X-Management-Entry '';
         proxy_connect_timeout 3s;
         proxy_read_timeout 15s;
     }
     location / { return 404; }
+}
+server {
+    listen ${config.network.nginxIp}:8083;
+    server_name ${adminDomain};
+    server_tokens off;
+    client_max_body_size 16k;
+    resolver 127.0.0.11 valid=30s ipv6=off;
+    resolver_timeout 2s;
+    set_real_ip_from ${config.network.caddyIp};
+    real_ip_header X-Real-IP;
+    real_ip_recursive off;
+    if ($competition_edge_peer = 0) { return 404; }
+    if ($host != ${adminDomain}) { return 404; }
+    if ($request_uri ~ "^[^?]*(%|//|/[.][.]?(/|[?]|$))") { return 404; }
+    access_log /dev/stdout competition_ingress;
+    # Upstream failure messages otherwise include OAuth query values.
+    error_log /dev/null crit;
+    default_type application/json;
+    location /api/ {
+        if ($management_public_path = 0) { return 404 '{"error":"NOT_FOUND"}'; }
+        if ($request_method !~ ^(GET|POST|OPTIONS)$) { return 404 '{"error":"NOT_FOUND"}'; }
+        limit_req zone=management_ingress burst=40 nodelay;
+        limit_req_status 429;
+        set $management_upstream management:43001;
+        proxy_pass http://$management_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host ${adminDomain};
+        proxy_set_header X-Forwarded-Host ${adminDomain};
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Forwarded '';
+        proxy_set_header X-Competition-Internal-Key '';
+        proxy_set_header X-Management-Entry admin;
+        proxy_connect_timeout 3s;
+        proxy_read_timeout 25s;
+        proxy_intercept_errors on;
+        error_page 502 503 504 =503 @management_unavailable;
+    }
+    location @management_unavailable { return 503 '{"error":"temporarily_unavailable"}'; }
+    location / { return 404 '{"error":"NOT_FOUND"}'; }
 }
 `;
 }

@@ -1320,6 +1320,121 @@ export const competitionIngressScopePaths = [
   'infra/caddy/backup.test.py',
   'scripts/deploy-tencent.test.mjs',
 ];
+export const adminConsoleScopePaths = [
+  'infra/admin-console/.env.example',
+  'infra/admin-console/migrations/001-admin-auth.sql',
+];
+const adminConsumers = ['services/management-api', 'apps/admin-web'];
+const ingressConsumers = ['apps/company-web', 'services/runtime-api', ...adminConsumers];
+const adminLockBlocks = [
+  [
+    'importers',
+    'apps/admin-web',
+    'be075a8e11cb779742017134248abe64263a3fa44b710917fa1d4fbe4488bb40',
+  ],
+  [
+    'packages',
+    '@remix-run/route-pattern@0.22.1',
+    'b92144f2ca8fdb42fa4e91048e88d0191b93af23e72902bd401c6defabe82afb',
+  ],
+  [
+    'packages',
+    'react-dom@19.3.1',
+    'c8faa95760593f1c7ec0c920ed8f45d19625c3ae1b83d6691c4de0ff808fbc1b',
+  ],
+  [
+    'packages',
+    'react-router@8.4.0',
+    'aedd8cf8b95a1ef62c1fd2febad1c8968620467a1d4e718e5bbf78eacc30f309',
+  ],
+  ['packages', 'react@19.3.1', '9e8d6071e2c047769af663dad5444697bfeef921716efa6fca204377bd9c3120'],
+  ['packages', 'vite@8.3.4', '100c7615f501e0bed71fa1013bdd59779a9e7258a52d45074999d360c22736fe'],
+  [
+    'snapshots',
+    '@remix-run/route-pattern@0.22.1',
+    '035e985eb4a917bbc49831d67dd64414b8377a6dccf69210b476875bea0b9326',
+  ],
+  [
+    'snapshots',
+    'react-dom@19.3.1(react@19.3.1)',
+    '60a538b25f823770692987e57adc6c1263fed5d47e679a81242b3d7e8989e77d',
+  ],
+  [
+    'snapshots',
+    'react-router@8.4.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)',
+    'e9d0f84938da1f74cb9630a89e113914f967602cd31db1d50d28963b4ba01389',
+  ],
+  ['snapshots', 'react@19.3.1', '1d39ab4f8b9d3f27f44be168020ff6d0e9038edc9995350f3277c152a2e0b4cf'],
+  [
+    'snapshots',
+    'vite@8.3.4(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)',
+    '315b55e55b2d45f94c5ce4043e8f5d0ac3011d835f07d14d203c7e02195d1017',
+  ],
+];
+function lockBlocks(text) {
+  const blocks = [];
+  for (const table of text.matchAll(/^(importers|packages|snapshots):\n/gm)) {
+    const start = table.index + table[0].length;
+    const boundary = text.slice(start).search(/^\S/m);
+    const end = boundary < 0 ? text.length : start + boundary;
+    const entries = [...text.slice(start, end).matchAll(/^ {2}(\S[^\n]*?):(?: \{\})?\n/gm)];
+    for (let index = 0; index < entries.length; index++) {
+      const entry = entries[index];
+      blocks.push({
+        table: table[1],
+        key: entry[1].replace(/^'(.*)'$/, '$1'),
+        start: start + entry.index,
+        end: index + 1 < entries.length ? start + entries[index + 1].index : end,
+      });
+    }
+  }
+  return blocks;
+}
+// One reviewed importer and ten complete immutable blocks, preserving both YAML documents byte for byte.
+function adminWebLockOnly(before, after, manifest) {
+  const digest = (text) => createHash('sha256').update(text).digest('hex');
+  assert.equal(digest(before), '5fdaa007c884ee4f52f9c0d3d05d3bb8cf53db125fcbcb0fc9406ea45c29125f');
+  assert.equal(digest(after), 'e502c45f69cc2ce487aefcca7b6745cb3703ba96d79b3e9194018c6f6ac6d0fe');
+  const parsedManifest = JSON.parse(manifest);
+  assert.equal(manifest.replaceAll('\r\n', '\n'), JSON.stringify(parsedManifest, null, 2) + '\n');
+  assert.deepEqual(parsedManifest, {
+    name: '@coffeeeeffoc/admin-web',
+    version: '0.1.0',
+    private: true,
+    type: 'module',
+    scripts: {
+      dev: 'vite --host 127.0.0.1 --port 5182 --strictPort',
+      build: 'tsc --noEmit && vite build',
+      preview: 'vite preview --host 127.0.0.1 --port 4182 --strictPort',
+      typecheck: 'tsc --noEmit',
+      lint: 'tsc --noEmit',
+      test: 'pnpm build && node tests/browser.mjs',
+    },
+    dependencies: { react: '19.3.1', 'react-dom': '19.3.1', 'react-router': '8.4.0' },
+    devDependencies: {
+      '@types/react': '19.2.14',
+      '@types/react-dom': '19.2.3',
+      typescript: '7.0.2',
+      vite: '8.3.4',
+      '@playwright/test': '1.55.1',
+    },
+  });
+  const old = lockBlocks(before),
+    current = lockBlocks(after),
+    additions = [];
+  for (const [table, key, hash] of adminLockBlocks) {
+    assert(!old.some((block) => block.table === table && block.key === key));
+    const matches = current.filter((block) => block.table === table && block.key === key);
+    assert.equal(matches.length, 1);
+    assert.equal(digest(after.slice(matches[0].start, matches[0].end)), hash);
+    additions.push(matches[0]);
+  }
+  let remainder = after;
+  for (const block of additions.sort((a, b) => b.start - a.start))
+    remainder = remainder.slice(0, block.start) + remainder.slice(block.end);
+  assert.equal(remainder, before);
+  return true;
+}
 export const runtimeProxyDefaultScopePaths = [
   'infra/tencent/compose.yaml',
   'scripts/deployment-bundle.mjs',
@@ -1419,6 +1534,26 @@ export function reviewedSharedFileScopes({
   const scopes = vitePatchFileScopes({ changedPaths, readBase, readHead });
   for (const file of changedPaths) {
     try {
+      if (
+        file === 'pnpm-lock.yaml' &&
+        readBase &&
+        readHead &&
+        adminWebLockOnly(readBase(file), readHead(file), readHead('apps/admin-web/package.json'))
+      ) {
+        assert.equal(
+          packages.filter(
+            (pkg) => pkg.dir === 'apps/admin-web' && pkg.name === '@coffeeeeffoc/admin-web',
+          ).length,
+          1,
+        );
+        scopes.set(file, ['apps/admin-web']);
+        continue;
+      }
+      if (adminConsoleScopePaths.includes(file)) {
+        for (const source of adminConsumers) assert(packages.some((pkg) => pkg.dir === source));
+        scopes.set(file, adminConsumers);
+        continue;
+      }
       if (runtimeProxyDefaultScopePaths.includes(file) && readBase && readHead) {
         const before = readBase(file)?.replaceAll('\r\n', '\n'),
           after = readHead(file)?.replaceAll('\r\n', '\n');
@@ -1436,9 +1571,8 @@ export function reviewedSharedFileScopes({
         }
       }
       if (competitionIngressScopePaths.includes(file)) {
-        for (const source of ['apps/company-web', 'services/runtime-api'])
-          assert(packages.some((pkg) => pkg.dir === source));
-        scopes.set(file, ['apps/company-web', 'services/runtime-api']);
+        for (const source of ingressConsumers) assert(packages.some((pkg) => pkg.dir === source));
+        scopes.set(file, ingressConsumers);
         continue;
       }
       if (['scripts/deploy-tencent.mjs', 'infra/tencent/deploy.sh'].includes(file)) {

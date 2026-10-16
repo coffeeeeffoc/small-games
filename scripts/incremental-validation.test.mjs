@@ -1176,3 +1176,42 @@ test('fullscreen registration planning works in a checkout without installed for
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('admin checks stay separate from game browsers and backend changes include their UI build consumer', () => {
+  const graph = [
+    { name: 'kit', dir: 'packages/service-kit' },
+    { name: 'runtime', dir: 'services/runtime-api', dependencies: { kit: 'workspace:*' } },
+    { name: 'management', dir: 'services/management-api', dependencies: { kit: 'workspace:*' } },
+    { name: '@coffeeeeffoc/admin-web', dir: 'apps/admin-web' },
+    { name: 'unrelated', dir: 'games/local/unrelated' },
+  ];
+  const select = (file) =>
+    incrementalPlan({
+      packages: graph,
+      games: [{ id: 'unrelated', source: 'games/local/unrelated' }],
+      changedPaths: [file],
+      readSource: () => '',
+    });
+  for (const file of [
+    'apps/admin-web/src/main.tsx',
+    'services/management-api/src/admin/routes.ts',
+    'packages/service-kit/src/cors.ts',
+  ]) {
+    const result = select(file);
+    assert.equal(result.admin_console_checks, true);
+    assert.equal(result.browser, false);
+    assert.deepEqual(result.browser_ids, []);
+    assert.deepEqual(result.game_sources, []);
+    assert.ok(result.consumer_sources.includes('apps/admin-web'));
+  }
+  assert.deepEqual(select('apps/admin-web/src/main.tsx').service_rule_sources, []);
+  assert.deepEqual(select('services/management-api/src/admin/routes.ts').service_rule_sources, [
+    'services/management-api',
+  ]);
+  assert.deepEqual(select('packages/service-kit/src/cors.ts').service_rule_sources, [
+    'services/runtime-api',
+    'services/management-api',
+    'packages/service-kit',
+  ]);
+  assert.equal(select('services/runtime-api/src/main.ts').admin_console_checks, false);
+});

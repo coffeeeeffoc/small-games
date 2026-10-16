@@ -5,3 +5,4 @@ export {
   type RequestSpanExporter,
 } from './server.js';
 export { openDatabase } from './database.js';
+export { readCorsPolicy, registerCors, type CorsPolicy } from './cors.js';

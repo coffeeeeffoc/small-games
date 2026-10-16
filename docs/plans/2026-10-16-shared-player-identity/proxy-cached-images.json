@@ -1,0 +1,196 @@
+{
+  "task": "competition-proxy-probe-20261016-e18d9712e5",
+  "startedAt": "2026-10-16T07:34:01.253Z",
+  "sourceHashes": {
+    "scripts/competition-ingress.mjs": "9806fc45b0da1c597d1d52fc154eb45924fb24ba2b8f8965b25a47f2d70e535e",
+    "scripts/deploy-caddy.mjs": "a740a67968b1e9816b5085289ae6d0d764586f7a579a9fd344caa5cc671c8e79",
+    "scripts/company-deployment.mjs": "74d62f8f42b26fbd321b8cf8e1be7f90e43d1945eb7335a8ef5d814095031bca",
+    "infra/caddy/ingress.example.json": "72861f8a492e43505caaf49c578a1d6d79c8bab63e58e994e900c4fbbb7be89d",
+    "infra/caddy/backup.test.py": "f2fd934ed2496e2233893512dc69d29fa5a802ca9090dc3a8eb59f166c007045",
+    ".scratch/competition-proxy-probe-run.mjs": "52e1e7414510a34b980dcb641637a77a342ceec91d4f7c2fd12a5a207c32a8d3",
+    "apps/admin-web/dist/assets/index-Bb0vhzZd.css": "5ffa068eced071f683e0f006d50288ffe41d5a53b6a21ae8344a031dc7d2ec07",
+    "apps/admin-web/dist/assets/index-CxkZoo5X.js": "722f36bb82ef94eb930cb89a163a3c9a6c8be39bb4f18af7ee3e88daa397664b",
+    "apps/admin-web/dist/index.html": "322fb3ecb28adc35161f843c8b559aad8aceb7614514f9b101a622dee620bbcb",
+    "apps/admin-web/dist/mark.svg": "ca358a2d6c602891b08c99451e054da53758260bce8f5f292af090bc35bdef32"
+  },
+  "configHashes": {
+    "Caddyfile-production": "0a0040c88394480e6a418d0654754e8cf31c060853e5196b9190201adb22b728",
+    "Caddyfile-fixture": "0f39546d6a568edb219a98d58f62955877917c443552db355d94d77f78e25358",
+    "ingress-production.conf": "0d42ffcc5614b3d860b59007fb6f6357c3ab38f0cddda6e906400307ee641cfe",
+    "ingress-fixture.conf": "8b4e68e0a80f51e2b4bc04e089e0a5c75b4f24e4b3935a1d96cce94788518002",
+    "production.d/legacy.conf": "2fae6d108ad61054a79772f1f6da1ae6412c6aeb35679d5fbf36ff741e218817",
+    "production.d/ingress.conf": "0d42ffcc5614b3d860b59007fb6f6357c3ab38f0cddda6e906400307ee641cfe",
+    "nginx-fixture.conf": "726ce22b8f869c208e9cddc7d50a56b9777f2799e3a6b464b92ca4e176dae754"
+  },
+  "fixtureFileHashes": {
+    "Caddyfile-production": "0a0040c88394480e6a418d0654754e8cf31c060853e5196b9190201adb22b728",
+    "Caddyfile-fixture": "0f39546d6a568edb219a98d58f62955877917c443552db355d94d77f78e25358",
+    "ingress-production.conf": "0d42ffcc5614b3d860b59007fb6f6357c3ab38f0cddda6e906400307ee641cfe",
+    "ingress-fixture.conf": "8b4e68e0a80f51e2b4bc04e089e0a5c75b4f24e4b3935a1d96cce94788518002",
+    "production.d/legacy.conf": "2fae6d108ad61054a79772f1f6da1ae6412c6aeb35679d5fbf36ff741e218817",
+    "production.d/ingress.conf": "0d42ffcc5614b3d860b59007fb6f6357c3ab38f0cddda6e906400307ee641cfe",
+    "nginx-fixture.conf": "726ce22b8f869c208e9cddc7d50a56b9777f2799e3a6b464b92ca4e176dae754",
+    "company/current/site/index.html": "1ca721352bb76da4f3927e922e96787814be0d7e9e6783efb97d6e8c627aed81",
+    "admin/assets/index-Bb0vhzZd.css": "5ffa068eced071f683e0f006d50288ffe41d5a53b6a21ae8344a031dc7d2ec07",
+    "admin/assets/index-CxkZoo5X.js": "722f36bb82ef94eb930cb89a163a3c9a6c8be39bb4f18af7ee3e88daa397664b",
+    "admin/index.html": "322fb3ecb28adc35161f843c8b559aad8aceb7614514f9b101a622dee620bbcb",
+    "admin/mark.svg": "ca358a2d6c602891b08c99451e054da53758260bce8f5f292af090bc35bdef32",
+    "anchor.mjs": "090caa13f3abbbe932a4139ca4bd9e7ef7d9d7e1066de4a012d7c7c883900fc8",
+    "probe.mjs": "bc86e201758be81e03a56624c638c240b59409f7afc14420fd96b920b1efdfbb"
+  },
+  "transformations": [
+    "Production renderCaddy and renderIngressNginx validated without substitutions, with actual cached image IDs.",
+    "Validators use container:<anchorID>, sharing the anchor --network none namespace; validators themselves do not use literal --network none.",
+    "Anchor only: namespaced net.ipv4.ip_nonlocal_bind=1 permits unmodified nginx -t production listen addresses; no host sysctl/capabilities/ports/networks change.",
+    "Only fixture Nginx listen/trusted peer addresses become 127.0.0.1; runtime/management upstream DNS become loopback literal addresses.",
+    "Only fixture Caddy site addresses use http:// and Nginx upstream address becomes 127.0.0.1. Production HTTPS header and redirect values remain.",
+    "Only fixture Nginx /etc/hosts receives runtime/kart loopback entries for unmodified legacy syntax validation.",
+    "Fixture-only outer nginx worker/events wrapper loads the original rendered ingress, with no legacy request routing during HTTP probes.",
+    "Actual admin-web/dist is mounted read-only; company site is an independent fixture; no certificate volumes or host ports.",
+    "DNS negative temporarily changes only the fixture management upstream to unresolvable-proxy-probe.invalid:43001, then restores fixture config."
+  ],
+  "limitations": [
+    "No production activation or TLS/ACME validation.",
+    "No real backend authentication, GitHub OAuth, or SDK validation.",
+    "Only echo HTTP contracts are exercised."
+  ],
+  "stages": {
+    "prepare": {
+      "ok": true,
+      "directory": "/tmp/competition-proxy-probe-20261016-e18d9712e5",
+      "ids": {
+        "anchor": "79463c91ce6966aa2954ab453571ddbbc3f07f50dbb28a12be3be4dcb2586656",
+        "nginx": "03682ad0210ddbe9b86335a731247f964041da4eddfafaf001158b2f4950621a",
+        "caddy": "94c86d6d9fedc3eb6f317b132d7e39c6aba94c216056cf6835346c198ed94652"
+      },
+      "validators": {
+        "nginx": {
+          "image": "sha256:dc73b49f5124cf2ee538dfbdfbd121f0b4ccdcb20fea30f3a81bd477c02e2bb5",
+          "networkMode": "container:79463c91ce6966aa2954ab453571ddbbc3f07f50dbb28a12be3be4dcb2586656",
+          "productionValidationLogSha256": "c1d95d6441adac8d73265f026042743581500b1133052abc44ed98cf52bb6618",
+          "ok": true,
+          "blocker": null
+        },
+        "caddy": {
+          "image": "sha256:f77f856a30f0004200b36b322d61da17fade31e24875699d77fb968399b9eb77",
+          "networkMode": "container:79463c91ce6966aa2954ab453571ddbbc3f07f50dbb28a12be3be4dcb2586656",
+          "productionValidationLogSha256": "0584752ff2fbe77b136cd56467d7cf507265358add68b98d934fc28a9472a97a",
+          "ok": true,
+          "blocker": null
+        }
+      },
+      "productionFingerprintSha256": "03edfbf9eacfd30e1a2cb14c7dc81a98af1850d1a80bc7c7803d136d17ca483d"
+    },
+    "ready": {
+      "ok": true,
+      "result": {
+        "ready": true
+      }
+    },
+    "functional": {
+      "ok": true,
+      "result": {
+        "gameChecks": 4,
+        "complexQueryAndJsonExact": true,
+        "primaryRedirectExact": true,
+        "aliasesAndInternal404": true,
+        "realAssetCount": 3,
+        "adminPages": true,
+        "headersOverwrittenAndRemoved": true,
+        "nonExactPeers404": true
+      }
+    },
+    "rate": {
+      "ok": true,
+      "result": {
+        "count": 230,
+        "statuses": {
+          "200": 127,
+          "429": 103
+        },
+        "byPrefix": {
+          "/api/competition/v1": {
+            "sent": 115,
+            "ok": 63,
+            "limited": 52
+          },
+          "/small-games/v1": {
+            "sent": 115,
+            "ok": 64,
+            "limited": 51
+          }
+        },
+        "elapsedMs": 306,
+        "spoofedClientIpDoesNotSplitBucket": true
+      }
+    },
+    "offline": {
+      "ok": true,
+      "result": {
+        "status": 503,
+        "elapsedMs": 4,
+        "fixedJson": true
+      }
+    },
+    "dns": {
+      "ok": true,
+      "result": {
+        "status": 503,
+        "elapsedMs": 2016,
+        "resolverTimeout": "2s",
+        "fixedJson": true
+      }
+    },
+    "readtimeout": {
+      "ok": true,
+      "result": {
+        "status": 503,
+        "elapsedMs": 25024,
+        "readTimeout": "25s",
+        "fixedJson": true
+      }
+    },
+    "edgefailure": {
+      "ok": true,
+      "result": {
+        "status": 502,
+        "queryRedactionErrorCase": true
+      }
+    },
+    "logs": {
+      "ok": true,
+      "logs": {
+        "nginx": {
+          "sha256": "ee422761dec7cba0d26ef0eec807170a592b9c48d7d2d4a49fcbe004b9a0ba73",
+          "bytes": 43121,
+          "canaryAbsent": true
+        },
+        "caddy": {
+          "sha256": "35fb2e743c534868f4fedf956408d4c1d72602cf8f5c45cf652c691d5d670f77",
+          "bytes": 3150,
+          "canaryAbsent": true
+        },
+        "anchor": {
+          "sha256": "d972c4ed0884a296d9baddc74d4b92c029184fb40b0058eb0ff6490ffe8619f1",
+          "bytes": 28,
+          "canaryAbsent": true
+        }
+      },
+      "noCanaryInActualContainerLogs": true
+    },
+    "cleanup": {
+      "ok": true,
+      "removedExactIds": [
+        "94c86d6d9fedc3eb6f317b132d7e39c6aba94c216056cf6835346c198ed94652",
+        "03682ad0210ddbe9b86335a731247f964041da4eddfafaf001158b2f4950621a",
+        "79463c91ce6966aa2954ab453571ddbbc3f07f50dbb28a12be3be4dcb2586656"
+      ],
+      "productionBeforeAfterEqual": true,
+      "productionFingerprintSha256": "03edfbf9eacfd30e1a2cb14c7dc81a98af1850d1a80bc7c7803d136d17ca483d",
+      "retainedFixtureDirectory": "/tmp/competition-proxy-probe-20261016-e18d9712e5"
+    }
+  },
+  "httpContractsOk": true,
+  "ok": true,
+  "finishedAt": "2026-10-16T07:34:51.938Z"
+}

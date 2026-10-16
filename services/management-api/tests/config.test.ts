@@ -34,3 +34,18 @@ it('production sessions require HTTPS except for explicit loopback development',
     }),
   ).toThrow(/HTTPS/);
 });
+it('admin capability needs only its own database identity and explicit admin configuration', () => {
+  const admin = {
+    MANAGEMENT_CAPABILITIES: 'admin',
+    MANAGEMENT_DATABASE_URL: 'postgres://management_app:fixture@localhost/small_games',
+    ADMIN_ORIGIN: 'https://admin.nenggongzhiren.cn',
+  };
+  expect(() => validateManagementEnvironment(admin)).not.toThrow();
+  for (const override of [
+    { MANAGEMENT_DATABASE_URL: 'postgres://platform_owner:fixture@localhost/small_games' },
+    { MANAGEMENT_CAPABILITIES: 'unknown' },
+    { ADMIN_CORS_ORIGINS: '*' },
+    { ADMIN_GITHUB_CLIENT_ID: 'partial' },
+  ])
+    expect(() => validateManagementEnvironment({ ...admin, ...override })).toThrow();
+});

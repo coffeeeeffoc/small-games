@@ -147,6 +147,8 @@ def live_sources():
         if not re.fullmatch(r'/opt/small-games/releases/[a-z0-9-]+', str(legacy)) or legacy.resolve() != legacy:
             raise ValueError('Unsafe legacy Nginx backup path')
         sources['deployment/nginx-legacy'] = legacy / 'nginx'
+        if (current / 'admin-site').is_dir():
+            sources['deployment/admin-site'] = current / 'admin-site'
     return sources
 
 

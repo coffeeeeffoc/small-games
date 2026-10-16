@@ -1,0 +1,30 @@
+{
+  "node": "v24.21.0",
+  "browser": "155.0.8059.82",
+  "viewportWidths": [320, 390, 1360],
+  "fixtureResponses": true,
+  "realGithubVerified": false,
+  "realDeviceVerified": false,
+  "sourceHashes": {
+    "apps/admin-web/src/main.tsx": "bc63ff87cb9050ed15d4bd4bb422b4e813dae16722dadd01b1845910ad69f80e",
+    "apps/admin-web/src/theme.css": "8582b075aa3e7b44317f11851dcefb7e40e78ec3ad630eff9126c6476eb3359a",
+    "apps/admin-web/vite.config.ts": "2ce7268986c1eb5dd0acade6f5c430a63c7171aac866e1d50c1b6af339475775",
+    "apps/admin-web/package.json": "f584e65517e7b0dc34c6317aae0edc6b39abf2ebc643ce50f23a00a43791e296",
+    "apps/admin-web/tsconfig.json": "c2fc45a8b4b53e19383b56020ba5ff6d0aaa1339f6e1683d0e6d728eb96b16b3",
+    "apps/admin-web/tests/browser.mjs": "54cd1719046318f8aadf8428b1accdac294ffce4dd2c0825ec8d11de9ebf4dcb"
+  },
+  "buildHashes": {
+    "apps/admin-web/dist/assets/index-Bb0vhzZd.css": "5ffa068eced071f683e0f006d50288ffe41d5a53b6a21ae8344a031dc7d2ec07",
+    "apps/admin-web/dist/assets/index-CxkZoo5X.js": "722f36bb82ef94eb930cb89a163a3c9a6c8be39bb4f18af7ee3e88daa397664b",
+    "apps/admin-web/dist/index.html": "322fb3ecb28adc35161f843c8b559aad8aceb7614514f9b101a622dee620bbcb",
+    "apps/admin-web/dist/mark.svg": "ca358a2d6c602891b08c99451e054da53758260bce8f5f292af090bc35bdef32"
+  },
+  "screenshots": {
+    "docs/admin-console/qa/fixtures-current/forbidden-1360.png": "5043e0e57f83fbdf862f673ff6eff361570f05a4d5076a3f80338e54b0b5b16b",
+    "docs/admin-console/qa/fixtures-current/forbidden-390.png": "9d23c49b65541485b47d6e3bf97a8743376bc8fde0133b93f09af649ac29330b",
+    "docs/admin-console/qa/fixtures-current/login-1360.png": "acdbb19ce842fd9f542363335023b53b3847788eb7d5241afcab1286d2dfaddd",
+    "docs/admin-console/qa/fixtures-current/login-390.png": "3810f9c89ff9bf6c47244f55ef0e274603f00f4f1002e9d4d0aad3ebccd7d639",
+    "docs/admin-console/qa/fixtures-current/welcome-1360.png": "526fc6aa831632ac90c10877cebb1664a1fb776f9557ef6de7f4d9b8d2e0acbf",
+    "docs/admin-console/qa/fixtures-current/welcome-390.png": "d31782f069a9303580f7a805ea3685bfc10185e69bda2343a8085b50f265e264"
+  }
+}

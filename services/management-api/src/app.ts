@@ -23,6 +23,11 @@ import cultivationManifestJson from '@coffeeeeffoc/game-cultivation/manifest' wi
 import { gameManifestSchema } from '@coffeeeeffoc/game-contract';
 import { createProtectionStore, registerProtection } from './protection.js';
 import { validateManagementEnvironment } from './config.js';
+import { sql } from 'drizzle-orm';
+import { readAdminConfig, normalizePeer } from './admin/config.js';
+import { createAdminStore } from './admin/store.js';
+import { githubProvider } from './admin/github.js';
+import { registerAdminAuthentication } from './admin/routes.js';
 
 /** Creates the management HTTP application with only its own database identity. */
 export function createManagementService(
@@ -32,6 +37,61 @@ export function createManagementService(
 ): ReturnType<typeof createService> {
   validateManagementEnvironment(env);
   const databaseUrl = z.url().parse(env.MANAGEMENT_DATABASE_URL);
+  const adminOnly = env.MANAGEMENT_CAPABILITIES === 'admin';
+  const admin = adminOnly || env.ADMIN_ORIGIN ? readAdminConfig(env) : undefined;
+  const database = openDatabase(databaseUrl, 'management');
+  const safeTelemetry: RequestSpanExporter = {
+    exportSpan(span) {
+      const safe = {
+        ...span,
+        route: span.route.split('?')[0]!,
+      };
+      if (telemetry) return telemetry.exportSpan(safe);
+      if (logger) console.info(JSON.stringify({ otelSpan: safe }));
+    },
+  };
+  const safeLogger = logger
+    ? {
+        serializers: {
+          req: (request: { method: string; url: string; id: string }) => ({
+            method: request.method,
+            url: request.url.split('?')[0],
+            id: request.id,
+          }),
+        },
+      }
+    : false;
+  const trustProxy = admin?.trustedProxy
+    ? (address: string, hop: number) => hop === 0 && normalizePeer(address) === admin.trustedProxy
+    : false;
+  if (adminOnly) {
+    const probe = {
+      async check() {
+        const rows = await database.db.execute(
+          sql`select version from admin_console.schema_version where version = 1`,
+        );
+        if (rows.length !== 1) throw new Error('Admin schema is not initialized');
+      },
+      close: database.close,
+    };
+    const app = createService(
+      'management',
+      { database: probe },
+      safeLogger,
+      safeTelemetry,
+      trustProxy,
+    );
+    app.setNotFoundHandler((_request, reply) => reply.code(404).send({ error: 'NOT_FOUND' }));
+    app.register(async (instance) =>
+      registerAdminAuthentication(
+        instance,
+        createAdminStore(database.db),
+        admin!,
+        githubProvider(admin!.clientId, admin!.clientSecret),
+      ),
+    );
+    return app;
+  }
   const origin = z
     .url()
     .refine((value) => new URL(value).origin === value && /^https?:/.test(value))
@@ -43,15 +103,22 @@ export function createManagementService(
     accessKeyId: z.string().min(1).parse(env.S3_ACCESS_KEY_ID),
     secretAccessKey: z.string().min(1).parse(env.S3_SECRET_ACCESS_KEY),
   });
-  const database = openDatabase(databaseUrl, 'management');
   const app = createService(
     'management',
     { database, objects },
-    logger,
-    telemetry,
-    env.TRUST_PROXY === '1' ? 'uniquelocal' : false,
+    safeLogger,
+    safeTelemetry,
+    admin ? trustProxy : env.TRUST_PROXY === '1' ? 'uniquelocal' : false,
   );
+  app.setNotFoundHandler((_request, reply) => reply.code(404).send({ error: 'NOT_FOUND' }));
   app.register(async (instance) => {
+    if (admin)
+      await registerAdminAuthentication(
+        instance,
+        createAdminStore(database.db),
+        admin,
+        githubProvider(admin.clientId, admin.clientSecret),
+      );
     const auth = createAuthStore(database.db);
     await registerAuthentication(instance, auth, origin);
     await registerDrafts(instance, auth, createDraftStore(database.db), origin);

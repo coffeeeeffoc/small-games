@@ -650,6 +650,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
       [
         'services/runtime-api',
         'services/management-api',
+        'packages/service-kit',
         'packages/ad-runtime',
         'platforms/douyin',
       ].includes(source),
@@ -657,6 +658,15 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
     const pkg = packages.find((item) => item.dir === source);
     assert(pkg?.scripts?.test, `Missing runtime rule suite: ${source}`);
     execute('pnpm', ['--filter', pkg.name, 'test'], root, env, 'logged');
+  }
+  if (plan.admin_console_checks) {
+    const admin = packages.find((pkg) => pkg.dir === 'apps/admin-web');
+    assert(
+      admin?.name === '@coffeeeeffoc/admin-web' &&
+        admin.scripts?.test === 'pnpm build && node tests/browser.mjs',
+      'Unreviewed admin browser consumer',
+    );
+    execute(process.execPath, ['apps/admin-web/tests/browser.mjs'], root, env, 'logged');
   }
   const releaseGates = nativeReleaseGatesEnabled(env);
   const competition = plan.competition && {
@@ -821,7 +831,7 @@ export async function validateTree({
       })
     : null;
   if (incrementalScope) console.log(`Incremental scope: ${JSON.stringify(incrementalScope)}`);
-  if (incrementalScope?.browser) {
+  if (incrementalScope?.browser || incrementalScope?.admin_console_checks) {
     prepareBrowser();
     for (const key of ['CHROMIUM_PATH', 'PLAYWRIGHT_EXECUTABLE_PATH'])
       if (env[key]) clean[key] = env[key];
@@ -906,7 +916,11 @@ export async function validateTree({
   );
   // Shell's ordinary build intentionally prepares the whole deployment. Incremental
   // gates build its emitted prerequisites and selected game artifacts separately.
-  const metadataOnly = plan.required && plan.risk === 'metadata' && !incrementalScope?.browser;
+  const metadataOnly =
+    plan.required &&
+    plan.risk === 'metadata' &&
+    !incrementalScope?.browser &&
+    !incrementalScope?.admin_console_checks;
   const buildDirect = metadataOnly
     ? []
     : incremental

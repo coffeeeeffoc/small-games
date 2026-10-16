@@ -21,6 +21,7 @@ import {
   deploymentBundleScopePaths,
   companyDeploymentScopePaths,
   competitionIngressScopePaths,
+  adminConsoleScopePaths,
   runtimeProxyDefaultScopePaths,
   publicationConfigScopePaths,
   mobileViewportScopeFile,
@@ -402,6 +403,8 @@ test('company deployment selects only the website and rejects unknown siblings a
   const packages = [
     { name: '@coffeeeeffoc/company-web', dir: 'apps/company-web' },
     { name: '@coffeeeeffoc/runtime-api', dir: 'services/runtime-api' },
+    { name: '@coffeeeeffoc/management-api', dir: 'services/management-api' },
+    { name: '@coffeeeeffoc/admin-web', dir: 'apps/admin-web' },
   ];
   for (const file of companyDeploymentScopePaths) {
     const context = { packages, games: [], changedPaths: [file], readSource: () => '' };
@@ -409,7 +412,7 @@ test('company deployment selects only the website and rejects unknown siblings a
     assert.deepEqual(
       fileScopes.get(file),
       competitionIngressScopePaths.includes(file)
-        ? ['apps/company-web', 'services/runtime-api']
+        ? ['apps/company-web', 'services/runtime-api', 'services/management-api', 'apps/admin-web']
         : ['apps/company-web'],
     );
     const plan = incrementalPlan({ ...context, fileScopes });
@@ -450,15 +453,22 @@ test('company deployment selects only the website and rejects unknown siblings a
   }
 });
 
-test('competition ingress selects only both proxy consumers and rejects unrelated legacy deployment edits', async () => {
+test('competition ingress selects the actual website and both API/frontend consumers, with legacy deltas still bounded', async () => {
   const packages = [
     { name: 'company', dir: 'apps/company-web' },
     { name: 'runtime', dir: 'services/runtime-api' },
+    { name: 'management', dir: 'services/management-api' },
+    { name: 'admin', dir: 'apps/admin-web' },
   ];
   for (const file of competitionIngressScopePaths) {
     const context = { packages, games: [], changedPaths: [file], readSource: () => '' };
     const fileScopes = reviewedSharedFileScopes(context);
-    assert.deepEqual(fileScopes.get(file), ['apps/company-web', 'services/runtime-api']);
+    assert.deepEqual(fileScopes.get(file), [
+      'apps/company-web',
+      'services/runtime-api',
+      'services/management-api',
+      'apps/admin-web',
+    ]);
     const plan = incrementalPlan({ ...context, fileScopes });
     assert.equal(plan.competition_ingress_checks, true);
     assert.deepEqual(plan.browser_ids, []);
@@ -3000,5 +3010,194 @@ test('identity compatibility fixtures keep the existing finite Runtime package s
     assert.equal(plan.full, false);
     assert.deepEqual(plan.game_sources, []);
     assert.deepEqual(plan.service_rule_sources, ['services/runtime-api']);
+  }
+});
+
+test('admin infrastructure has exact consumers and unknown neighboring paths fail closed', () => {
+  const packages = [
+    { name: 'management', dir: 'services/management-api' },
+    { name: '@coffeeeeffoc/admin-web', dir: 'apps/admin-web' },
+  ];
+  for (const file of adminConsoleScopePaths) {
+    const context = { packages, games: [], changedPaths: [file], readSource: () => '' };
+    const fileScopes = reviewedSharedFileScopes(context);
+    assert.deepEqual(fileScopes.get(file), ['services/management-api', 'apps/admin-web']);
+    const plan = incrementalPlan({ ...context, fileScopes });
+    assert.equal(plan.admin_console_checks, true);
+    assert.equal(plan.browser, false);
+    assert.deepEqual(plan.browser_ids, []);
+    assert.deepEqual(plan.service_rule_sources, ['services/management-api']);
+  }
+  for (const file of [
+    'infra/admin-console/migrations/002-unreviewed.sql',
+    'infra/admin-console/compose.yaml',
+    'infra/admin-console/.env.other',
+  ]) {
+    const context = { packages, games: [], changedPaths: [file] };
+    const fileScopes = reviewedSharedFileScopes(context);
+    assert.equal(fileScopes.size, 0);
+    assert.throws(() => incrementalPlan({ ...context, fileScopes }), /scope undefined/);
+  }
+});
+
+test('admin lock proof accepts only the 11 reviewed complete blocks, manifest tuple, and unchanged two-document remainder', () => {
+  const file = 'pnpm-lock.yaml';
+  const before = execFileSync('git', ['show', '6e9c1f7246090c7009e9519a8cda6e8efab956d5:' + file], {
+    cwd: new URL('../', import.meta.url),
+    encoding: 'utf8',
+  });
+  const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
+    '\r\n',
+    '\n',
+  );
+  const manifest = JSON.parse(
+    readFileSync(new URL('../apps/admin-web/package.json', import.meta.url), 'utf8'),
+  );
+  const packages = [{ dir: 'apps/admin-web', name: manifest.name }];
+  const classify = (old, current, pkg = manifest) =>
+    reviewedSharedFileScopes({
+      changedPaths: [file],
+      packages,
+      games: [],
+      readBase: () => old,
+      readHead: (name) =>
+        name === file
+          ? current
+          : typeof pkg === 'string'
+            ? pkg
+            : JSON.stringify(pkg, null, 2) + '\n',
+    });
+  assert.equal((before.match(/^---$/gm) || []).length, 2);
+  assert.equal((after.match(/^---$/gm) || []).length, 2);
+  assert.deepEqual(classify(before, after).get(file), ['apps/admin-web']);
+  const manifestText = JSON.stringify(manifest, null, 2) + '\n';
+  const duplicateKey = manifestText.replace(
+    '"react": "19.3.1"',
+    '"react": "0.0.0",\n    "react": "19.3.1"',
+  );
+  assert.deepEqual(JSON.parse(duplicateKey), manifest);
+  assert.equal(classify(before, after, duplicateKey).has(file), false, 'duplicate manifest key');
+  assert.equal(
+    classify(before, after, JSON.stringify(manifest)).has(file),
+    false,
+    'noncanonical manifest bytes',
+  );
+  const blocks = [];
+  for (const table of ['importers', 'packages', 'snapshots']) {
+    const start = after.lastIndexOf(`\n${table}:\n`) + table.length + 3;
+    const tail = after.slice(start),
+      end = tail.search(/^\S/m);
+    const body = end < 0 ? tail : tail.slice(0, end);
+    const entries = [...body.matchAll(/^  (\S[^\n]*?):(?: \{\})?\n/gm)];
+    for (let i = 0; i < entries.length; i++) {
+      const key = entries[i][1].replace(/^'(.*)'$/, '$1');
+      if (
+        key === 'apps/admin-web' ||
+        /^@remix-run\/route-pattern@0\.22\.1(?:$|\()/.test(key) ||
+        /^(react(?:-dom|-router)?|vite)@(19\.3\.1|8\.4\.0|8\.3\.4)(?:$|\()/.test(key)
+      )
+        blocks.push(
+          body.slice(entries[i].index, i + 1 < entries.length ? entries[i + 1].index : body.length),
+        );
+    }
+  }
+  assert.equal(blocks.length, 11);
+  let remainder = after;
+  for (const block of blocks) {
+    assert.equal(remainder.split(block).length, 2);
+    remainder = remainder.replace(block, '');
+  }
+  assert.equal(remainder, before);
+  for (const block of blocks) {
+    assert.equal(
+      classify(before, after.replace(block, '')).has(file),
+      false,
+      'missing reviewed block',
+    );
+    assert.equal(
+      classify(before, after.replace(block, block + block)).has(file),
+      false,
+      'duplicate reviewed block',
+    );
+    assert.equal(
+      classify(before, after.replace(block, block.replace('\n', ' # drift\n'))).has(file),
+      false,
+      'block bytes drift',
+    );
+  }
+  for (const [old, current] of [
+    [before + '\n', after],
+    [before, after + '\n'],
+    [before, after.replace("lockfileVersion: '9.0'", "lockfileVersion: '8.0'")],
+    [before, after.replace('sha512-', 'sha512-Z')],
+  ])
+    assert.equal(classify(old, current).has(file), false, 'other document/remainder byte drift');
+  for (const mutate of [
+    (p) => (p.dependencies.react = '19.3.2'),
+    (p) => (p.devDependencies.vite = '8.3.5'),
+    (p) => (p.optionalDependencies = { extra: '1.0.0' }),
+    (p) => (p.peerDependencies = { react: '*' }),
+    (p) => (p.scripts.test = 'node bypass.mjs'),
+    (p) => (p.name = 'wrong'),
+  ]) {
+    const current = structuredClone(manifest);
+    mutate(current);
+    assert.equal(classify(before, after, current).has(file), false);
+  }
+});
+
+test('admin lock proof plans without installed YAML dependencies', async () => {
+  const { mkdtemp, copyFile, writeFile, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const file = 'pnpm-lock.yaml';
+  const before = execFileSync('git', ['show', '6e9c1f7246090c7009e9519a8cda6e8efab956d5:' + file], {
+    cwd: new URL('../', import.meta.url),
+    encoding: 'utf8',
+  });
+  const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
+    '\r\n',
+    '\n',
+  );
+  const manifest = JSON.parse(
+    readFileSync(new URL('../apps/admin-web/package.json', import.meta.url), 'utf8'),
+  );
+  const directory = await mkdtemp(join(tmpdir(), 'admin-gates-no-deps-'));
+  try {
+    for (const module of [
+      'publication-scopes.mjs',
+      'vite-patch-scope.mjs',
+      'competition-ingress.mjs',
+    ])
+      await copyFile(new URL(module, import.meta.url), join(directory, module));
+    await writeFile(join(directory, 'fixture.json'), JSON.stringify({ before, after, manifest }));
+    await writeFile(
+      join(directory, 'probe.mjs'),
+      `
+      import assert from 'node:assert/strict';
+      import { createRequire } from 'node:module';
+      import { readFileSync } from 'node:fs';
+      import { reviewedSharedFileScopes } from './publication-scopes.mjs';
+      assert.throws(() => createRequire(import.meta.url).resolve('js-yaml'));
+      const { before, after, manifest } = JSON.parse(readFileSync(new URL('./fixture.json', import.meta.url), 'utf8'));
+      const classify = (current, pkg = manifest) => reviewedSharedFileScopes({
+        changedPaths: ['pnpm-lock.yaml'], games: [],
+        packages: [{ dir: 'apps/admin-web', name: manifest.name }],
+        readBase: () => before,
+        readHead: (file) => file === 'pnpm-lock.yaml' ? current : JSON.stringify(pkg, null, 2) + '\\n',
+      });
+      assert.deepEqual(classify(after).get('pnpm-lock.yaml'), ['apps/admin-web']);
+      assert.equal(classify(after + '\\n').has('pnpm-lock.yaml'), false);
+      assert.equal(classify(after, { ...manifest, name: 'unreviewed' }).has('pnpm-lock.yaml'), false);
+    `,
+    );
+    execFileSync(process.execPath, [join(directory, 'probe.mjs')], {
+      cwd: directory,
+      env: { ...process.env, NODE_PATH: '' },
+      stdio: 'pipe',
+      encoding: 'utf8',
+    });
+  } finally {
+    await rm(directory, { recursive: true, force: true });
   }
 });

@@ -65,10 +65,11 @@ extra persisted canary keys. Nickname, avatar and coarse-region trust-boundary t
 
 ## Commands and current results
 
-Latest complete Runtime run: **183 passed, 0 failed, 0 skipped**, 27 files,
+Latest complete Runtime run: **185 passed, 0 failed, 0 skipped**, 28 files,
 real PostgreSQL, `--maxWorkers=1 --testTimeout=30000`. This supersedes the earlier
-no-database/skipped checkpoint below. Fixture cleanup uses the existing owner;
-real browser Runtime still needs the application-role acceptance.
+no-database/skipped checkpoint below and includes the current CORS tests. Fixture cleanup uses the
+existing local test owner; later browser acceptance uses the application role. See
+[runtime-current-tests.json](runtime-current-tests.json).
 
 - Runtime `typecheck`: passed.
 - Runtime `lint --max-warnings 0`: passed.
@@ -103,3 +104,20 @@ It does not change any original table owner/ACL. No cleanup privilege is added b
 The compatibility fixture and tests belong to the existing Runtime package scope.
 A publication-plan regression locks them to Runtime's complete rule tests without
 selecting unrelated game browsers; unknown repository-level siblings remain blocked.
+
+## Later application-role browser acceptance
+
+The twelve local H5 configurations subsequently passed with the real application Runtime and
+PostgreSQL, independent player contexts, natural touch matches, duplicate settlement checks, and
+same-volume Runtime/PostgreSQL restart persistence. This supersedes the pending local
+application-role browser acceptance above; it does not change the fixed-old compatibility boundary.
+See [local-h5-browser.json](local-h5-browser.json). The public canonical-address storage alias was
+added after those local packages; its exact-host/path isolation has separate client tests and must
+also be exercised by the later formal HTTPS packages.
+
+An isolated PG17.6 restore separately preserved original rows, schema, owners and canonical ACLs,
+verified migration 013 twice, rejected seven malformed states, and detected a changed column ACL.
+The original container, volume and ports were unchanged. See
+[restore-rehearsal.json](restore-rehearsal.json). This is a local rehearsal, not a production backup
+or a completed production migration. Actual production deployment, public package acceptance,
+official SDK advertisement completion, real platform login and device acceptance remain separate.

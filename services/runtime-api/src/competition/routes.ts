@@ -1,4 +1,6 @@
 import type { FastifyInstance } from 'fastify';
+import { registerCors } from '@coffeeeeffoc/service-kit';
+import { readCompetitionCors } from '../config.js';
 import rateLimit from '@fastify/rate-limit';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
@@ -40,15 +42,13 @@ export async function registerCompetition(
   carrom?: ReturnType<typeof createCarromStore>,
   ranked?: ReturnType<typeof createRankedStore>,
 ) {
-  const origins = (env.COMPETITION_ORIGINS ?? '')
-    .split(',')
-    .filter(Boolean)
-    .map((origin) => z.url().parse(origin));
+  const cors = readCompetitionCors(env);
   const platforms = platformConfigSchema.parse(JSON.parse(env.COMPETITION_PLATFORM_CONFIG ?? '[]'));
   const internalKey = env.COMPETITION_INTERNAL_KEY;
   if (internalKey) z.string().min(32).parse(internalKey);
   await app.register(
     async (routes) => {
+      registerCors(routes, cors);
       await routes.register(rateLimit, {
         global: true,
         max: 1200,
@@ -62,18 +62,7 @@ export async function registerCompetition(
       });
       routes.addHook('onRequest', async (request, reply) => {
         reply.header('cache-control', 'no-store');
-        const origin = request.headers.origin;
-        if (origin && !origins.includes(origin))
-          return reply.code(403).send({ error: 'ORIGIN_REJECTED' });
-        if (origin) reply.header('access-control-allow-origin', origin).header('vary', 'Origin');
       });
-      routes.options('/*', async (_request, reply) =>
-        reply
-          .header('access-control-allow-methods', 'GET,POST,OPTIONS')
-          .header('access-control-allow-headers', 'authorization,content-type')
-          .code(204)
-          .send(),
-      );
       routes.setErrorHandler((error, request, reply) => {
         if (error instanceof CompetitionError)
           return reply.code(error.status).send({ error: error.code });

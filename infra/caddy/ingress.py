@@ -13,6 +13,7 @@ import sys
 
 LABEL = 'io.small-games.competition-ingress'
 DOMAIN = 'api.nenggongzhiren.cn'
+ADMIN_DOMAIN = 'admin.nenggongzhiren.cn'
 NETWORK = 'small-games-competition-ingress'
 NGINX_IMAGE = 'sha256:dc73b49f5124cf2ee538dfbdfbd121f0b4ccdcb20fea30f3a81bd477c02e2bb5'
 CADDY_IMAGE = 'sha256:f77f856a30f0004200b36b322d61da17fade31e24875699d77fb968399b9eb77'
@@ -154,9 +155,11 @@ def validate_candidates(target, config, old=None):
     compose(target, 'web', 'config', '--quiet')
     require(compose(target, 'nginx', 'config', '--services') == 'nginx', 'Nginx candidate contains another service')
     compose(target, 'nginx', 'config', '--quiet')
-    command('docker', 'run', '--rm', '--network', 'none', '--pull', 'never', '--read-only', '--tmpfs', '/data', '--tmpfs', '/config', '--tmpfs', '/tmp', '-v', str(target / 'caddy') + ':/etc/caddy:ro', '--entrypoint', 'caddy', CADDY_IMAGE, 'validate', '--config', '/etc/caddy/Caddyfile', '--adapter', 'caddyfile')
+    command('docker', 'run', '--rm', '--network', 'none', '--pull', 'never', '--read-only', '--tmpfs', '/data', '--tmpfs', '/config', '--tmpfs', '/tmp', '-v', str(target / 'caddy') + ':/etc/caddy:ro', '-v', str(target / 'admin-site') + ':/srv/admin:ro', '--entrypoint', 'caddy', CADDY_IMAGE, 'validate', '--config', '/etc/caddy/Caddyfile', '--adapter', 'caddyfile')
     legacy = config['nginx']['legacyRelease']
-    command('docker', 'run', '--rm', '--network', 'none', '--pull', 'never', '--read-only', '--add-host', 'runtime:127.0.0.1', '--add-host', 'kart:127.0.0.1', '--tmpfs', '/var/cache/nginx', '--tmpfs', '/var/run', '--tmpfs', '/tmp', '-v', str(target / 'nginx') + ':/etc/nginx/conf.d:ro', '-v', legacy + '/nginx:/etc/nginx/legacy:ro', '-v', legacy + '/site:/srv/site:ro', '--entrypoint', 'nginx', NGINX_IMAGE, '-t')
+    # nginx -t also binds listen sockets. Permit the unchanged production IP only
+    # inside this isolated network namespace; no host sysctl, port or capability changes.
+    command('docker', 'run', '--rm', '--network', 'none', '--sysctl', 'net.ipv4.ip_nonlocal_bind=1', '--pull', 'never', '--read-only', '--add-host', 'runtime:127.0.0.1', '--add-host', 'kart:127.0.0.1', '--tmpfs', '/var/cache/nginx', '--tmpfs', '/var/run', '--tmpfs', '/tmp', '-v', str(target / 'nginx') + ':/etc/nginx/conf.d:ro', '-v', legacy + '/nginx:/etc/nginx/legacy:ro', '-v', legacy + '/site:/srv/site:ro', '--entrypoint', 'nginx', NGINX_IMAGE, '-t')
 
 
 def check_protected(snapshot, website, company_body, static_pointer, backend_pointer, config):
@@ -172,18 +175,65 @@ def curl(host, path, *arguments):
     return command('curl', '--noproxy', '*', '--silent', '--show-error', '--connect-timeout', '5', '--max-time', '15', '--resolve', f'{host}:443:127.0.0.1', *arguments, f'https://{host}{path}')
 
 
+def response(host, path, *arguments):
+    raw = curl(host, path, '-D', '-', *arguments).replace('\r\n', '\n')
+    head, separator, body = raw.partition('\n\n')
+    lines = head.splitlines()
+    require(separator and lines and re.fullmatch(r'HTTP/[\d.]+ \d{3}.*', lines[0]), 'Invalid HTTPS response')
+    headers = dict(line.split(':', 1) for line in lines[1:] if ':' in line)
+    return int(lines[0].split()[1]), {key.lower(): value.strip() for key, value in headers.items()}, body
+
+
 def verify_public(config, domain, www, company_body):
     for host in (domain, www):
         require(curl(host, '/release.json', '--fail', '--location', '--resolve', f'{domain}:443:127.0.0.1') == company_body.strip(), 'Company HTTPS content changed')
     health = json.loads(curl(DOMAIN, '/health', '--fail', '--retry', '12', '--retry-all-errors', '--retry-delay', '2'))
     require(health == {'service': 'runtime', 'status': 'ok'}, 'Public health is not minimal/live')
-    for game in ('cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'):
-        for path in (f'/api/competition/v1/games/{game}', f'/api/competition/v1/games/{game}/leaderboards/versus'):
-            json.loads(curl(DOMAIN, path, '--fail'))
+    prefixes = ('/small-games/v1', '/api/competition/v1')
+    for prefix in prefixes:
+        for game in ('cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'):
+            definition = json.loads(curl(DOMAIN, f'{prefix}/games/{game}?probe=a%2Fb&repeat=one&repeat=two', '--fail'))
+            board = json.loads(curl(DOMAIN, f'{prefix}/games/{game}/leaderboards/versus', '--fail'))
+            require(definition.get('game') == game and definition.get('capabilities', {}).get('multiplayer') is True, 'Game definition changed')
+            require(board.get('game') == game and board.get('boardType') == 'versus' and isinstance(board.get('top'), list), 'Game leaderboard changed')
+        status, headers, body = response(DOMAIN, f'{prefix}/me')
+        require(status == 401 and json.loads(body).get('error') == 'SESSION_EXPIRED' and 'location' not in headers, 'Anonymous API contract changed')
+        # A valid profile body reaches authentication; a lost body fails validation. Neither can write without a credential.
+        status, headers, body = response(DOMAIN, f'{prefix}/me?probe=body', '-X', 'POST', '-H', 'Content-Type: application/json', '--data-binary', '{"nickname":"Ingress probe"}')
+        require(status == 401 and json.loads(body).get('error') == 'SESSION_EXPIRED' and 'location' not in headers, 'API POST body or method changed')
+        status, headers, _ = response(DOMAIN, f'{prefix}/games/xiangqi-five', '-X', 'OPTIONS', '-H', 'Origin: http://localhost:8080', '-H', 'Access-Control-Request-Method: POST', '-H', 'Access-Control-Request-Headers: authorization,content-type')
+        require(status == 204 and headers.get('access-control-allow-origin') == 'http://localhost:8080' and 'access-control-allow-credentials' not in headers, 'Public preflight policy changed')
     denied = ('/', '/health/live', '/health/runtime', '/health/kart', '/kart', '/releases/', '/internal', '/api/competition/v1/internal', '/api/competition/v1/internal/settle', '/api/competition/v1/games/xiangqi-five/internal', '/api/runtime/releases/project', '/api/competition/v1/%69nternal', '/api/competition/v1/games/../internal')
     for path in denied:
         require(curl(DOMAIN, path, '--path-as-is', '-o', '/dev/null', '-w', '%{http_code}') == '404', 'A non-public route was exposed')
+    for prefix in prefixes:
+        for suffix in ('/internal', '/internal/settle', '/%69nternal', '/games/../internal', '//me'):
+            require(curl(DOMAIN, prefix + suffix, '--path-as-is', '-o', '/dev/null', '-w', '%{http_code}') == '404', 'A forbidden API alias was exposed')
+    for host, path in ((DOMAIN, '/admin/'), (DOMAIN, '/api/session'), (domain, '/api/session'), (domain, '/admin/api/session'), (domain, '/admin/api'), (www, '/api/session'), (www, '/admin/api/session')):
+        status, headers, _ = response(host, path)
+        require(status == 404 and 'location' not in headers, 'A removed API alias redirected or became public')
     require(curl(DOMAIN, '/api/competition/v1/games/xiangqi-five', '-H', 'Origin: https://unapproved-origin.invalid', '-o', '/dev/null', '-w', '%{http_code}') == '403', 'Existing CORS rejection changed')
+    require(curl(DOMAIN, '/small-games/v1/games/xiangqi-five', '-H', 'Origin: https://unapproved-origin.invalid', '-o', '/dev/null', '-w', '%{http_code}') == '403', 'Canonical CORS rejection changed')
+    status, headers, _ = response(domain, '/admin/login?a=1&a=2&next=%2F')
+    require(status == 302 and headers.get('location') == f'https://{ADMIN_DOMAIN}/login?a=1&a=2&next=%2F', 'Admin page redirect changed its query')
+    curl(ADMIN_DOMAIN, '/', '--fail', '--retry', '12', '--retry-all-errors', '--retry-delay', '2', '--retry-max-time', '60')
+    site = Path(__file__).resolve().parent / 'admin-site'
+    expected = (site / 'index.html').read_text()
+    for path, wanted in (('/', 200), ('/login', 200), ('/forbidden', 403)):
+        status, headers, body = response(ADMIN_DOMAIN, path)
+        require(status == wanted and body.strip() == expected.strip() and headers.get('cache-control') == 'no-store', 'Admin HTTPS page differs from its actual build')
+    assets = set(re.findall(r"""(?:src|href)=["'](/assets/[A-Za-z0-9._-]+\.(?:js|css))["']""", expected))
+    require(assets and any(asset.endswith('.js') for asset in assets), 'Admin build has no script asset')
+    for asset in sorted(assets):
+        status, _, body = response(ADMIN_DOMAIN, asset)
+        require(status == 200 and body.strip() == (site / asset.lstrip('/')).read_text().strip(), 'Admin public asset differs from its actual build')
+    for path in ('/api/unknown', '/api', '/assets/missing.js'):
+        status, headers, _ = response(ADMIN_DOMAIN, path)
+        require(status == 404 and 'location' not in headers, 'Admin API or asset fell back to the SPA')
+    status, headers, body = response(ADMIN_DOMAIN, '/api/session')
+    require(headers.get('content-type', '').startswith('application/json') and 'location' not in headers, 'Admin API did not return JSON')
+    require((status == 503 and json.loads(body) == {'error': 'temporarily_unavailable'}) or (status == 401 and json.loads(body) == {'error': 'authentication_required'}), 'Admin unavailable/anonymous contract changed')
+    return {'gamePrefixes': list(prefixes), 'adminUiAndAssets': 'passed', 'management': 'unavailable' if status == 503 else 'anonymous-session-only', 'realGithubLoginVerified': False}
 
 
 def atomic_pointer(path, destination):
@@ -242,7 +292,7 @@ def deploy(base, website, domain, www):
             compose(target, 'nginx', 'up', '-d', '--no-deps', '--no-build', '--pull', 'never', '--wait', '--wait-timeout', '90', 'nginx')
             caddy_attempted = True
             compose(target, 'web', 'up', '-d', '--no-deps', '--no-build', '--pull', 'never', '--wait', '--wait-timeout', '90', 'web')
-            verify_public(config, domain, www, company_body)
+            journal['acceptance'] = verify_public(config, domain, www, company_body)
             check_protected(snapshot, website, company_body, static_pointer, backend_pointer, config)
             preflight(config, base, target)
             atomic_pointer(previous, old)

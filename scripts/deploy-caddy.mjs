@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { cp, lstat, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
   validateIngress,
   renderApiCaddy,
+  renderAdminCaddy,
+  adminDomain,
   renderIngressNginx,
   renderNginxCompose,
 } from './competition-ingress.mjs';
@@ -20,19 +22,57 @@ import {
 } from './company-deployment.mjs';
 
 export function renderCaddy(config) {
-  return `${config.domain} {
+  return `${
+    config.ingress
+      ? `{
+    log {
+        format filter {
+            wrap json
+            fields {
+                request delete
+            }
+        }
+    }
+}
+`
+      : ''
+  }${config.domain} {
     root * ${config.directory}/current/site
     header X-Content-Type-Options nosniff
     header Referrer-Policy strict-origin-when-cross-origin
     header Cache-Control no-cache
-    file_server {
-        hide .*
+    route {
+${
+  config.ingress
+    ? `        @removedApi path /api /api/* /admin/api /admin/api/*
+        respond @removedApi 404
+        @adminPage path /admin /admin/*
+        handle @adminPage {
+            route {
+                uri strip_prefix /admin
+                redir https://${adminDomain}{uri} 302
+            }
+        }
+`
+    : ''
+}        file_server {
+            hide .*
+        }
     }
 }
 ${config.www} {
-    redir https://${config.domain}{uri} permanent
-}
-${config.ingress ? renderApiCaddy(config.ingress) : ''}http:// {
+${
+  config.ingress
+    ? `    route {
+        @removedApi path /api /api/* /admin/api /admin/api/*
+        respond @removedApi 404
+        redir https://${config.domain}{uri} permanent
+    }
+`
+    : `    redir https://${config.domain}{uri} permanent
+`
+}}
+${config.ingress ? renderApiCaddy(config.ingress) + renderAdminCaddy(config.ingress) : ''}http:// {
     respond 404
 }
 http://:8081 {
@@ -53,7 +93,7 @@ services:
     volumes:
       - ${config.directory}:${config.directory}:ro
       - ./caddy:/etc/caddy:ro
-      - caddy_data:/data
+${config.ingress ? '      - ./admin-site:/srv/admin:ro\n' : ''}      - caddy_data:/data
       - caddy_config:/config
     tmpfs: ['/tmp']
 ${config.ingress ? `    networks:\n      default: {}\n      competition_ingress:\n        ipv4_address: ${config.ingress.network.caddyIp}\n` : ''}    healthcheck:
@@ -76,7 +116,13 @@ ${config.ingress ? `networks:\n  competition_ingress:\n    external: true\n    n
 `;
 }
 
-export async function writeCaddyBundle(destination, config, sha, release) {
+export async function writeCaddyBundle(
+  destination,
+  config,
+  sha,
+  release,
+  { adminSite = path.join(root, 'apps/admin-web/dist') } = {},
+) {
   assert(/^[a-f0-9]{40}$/.test(sha) && /^[a-z0-9-]+$/.test(release), 'Invalid release identity');
   await mkdir(destination, { recursive: false });
   await mkdir(path.join(destination, 'caddy'));
@@ -84,6 +130,27 @@ export async function writeCaddyBundle(destination, config, sha, release) {
   await writeFile(path.join(destination, 'compose.yaml'), renderCompose(config));
   await writeFile(path.join(destination, 'website-directory'), config.directory + '\n');
   if (config.ingress) {
+    const files = await fileHashes(adminSite);
+    assert(
+      files['index.html'] &&
+        files['mark.svg'] &&
+        Object.keys(files).some((name) => /^assets\/[^/]+\.js$/.test(name)),
+      'Build the actual admin UI before packaging',
+    );
+    assert(
+      Object.keys(files).every((name) =>
+        /^(?:index\.html|mark\.svg|assets\/[A-Za-z0-9._-]+\.(?:js|css))$/.test(name),
+      ),
+      'Unexpected private/debug admin asset',
+    );
+    await cp(adminSite, path.join(destination, 'admin-site'), {
+      recursive: true,
+      filter: async (file) => {
+        assert(!(await lstat(file)).isSymbolicLink(), 'Admin assets cannot be links');
+        return true;
+      },
+    });
+    assert.deepEqual(await fileHashes(path.join(destination, 'admin-site')), files);
     const ingress = validateIngress(config.ingress);
     await writeFile(
       path.join(destination, 'ingress.json'),
@@ -108,7 +175,11 @@ export async function writeCaddyBundle(destination, config, sha, release) {
     release,
     sourceSha: sha,
     createdAt: new Date().toISOString(),
-    domains: [config.domain, config.www, ...(config.ingress ? [config.ingress.domain] : [])],
+    domains: [
+      config.domain,
+      config.www,
+      ...(config.ingress ? [config.ingress.domain, adminDomain] : []),
+    ],
   };
   await writeFile(path.join(destination, 'release.json'), JSON.stringify(manifest, null, 2) + '\n');
   for (const name of [
@@ -177,6 +248,7 @@ export async function main(args = process.argv.slice(2)) {
     'scripts/deploy-caddy.mjs',
     'scripts/competition-ingress.mjs',
     'infra/caddy',
+    'apps/admin-web',
     'package.json',
   ];
   assert(
@@ -184,6 +256,7 @@ export async function main(args = process.argv.slice(2)) {
     'Commit Caddy changes before preparing an identifiable release.',
   );
   const sha = command('git', ['rev-parse', 'HEAD'], { capture: true });
+  if (config.ingress) command('pnpm', ['--filter', '@coffeeeeffoc/admin-web', 'build']);
   const release = `${new Date()
     .toISOString()
     .replace(/[^0-9]/g, '')

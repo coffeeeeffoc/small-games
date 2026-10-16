@@ -22,12 +22,16 @@ class BackupTests(unittest.TestCase):
             release = base / 'releases/test'
             release.mkdir(parents=True)
             (base / 'current').symlink_to(release)
+            (release / 'admin-site').mkdir()
+            (release / 'admin-site/index.html').write_text('<div id="root"></div>')
+            (release / 'ingress.json').write_text(json.dumps({'nginx': {'legacyRelease': '/opt/small-games/releases/fixture'}}))
             volumes = [{'Name': name, 'Driver': 'local', 'Mountpoint': folder} for name in backup.VOLUMES]
             with patch.object(backup, 'CADDY_DIR', base), patch.object(backup.subprocess, 'check_output', return_value=json.dumps(volumes)):
                 sources = backup.live_sources()
             self.assertEqual(sources['deployment/Caddyfile'], release / 'caddy/Caddyfile')
             self.assertEqual(sources['deployment/release.json'], release / 'release.json')
             self.assertEqual(sources['deployment/website-directory'], release / 'website-directory')
+            self.assertEqual(sources['deployment/admin-site'], release / 'admin-site')
             (base / 'current').unlink()
             (base / 'current').symlink_to(base)
             with patch.object(backup, 'CADDY_DIR', base), patch.object(backup.subprocess, 'check_output', return_value=json.dumps(volumes)):

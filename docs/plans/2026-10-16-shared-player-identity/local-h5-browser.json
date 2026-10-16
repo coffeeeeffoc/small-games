@@ -1,0 +1,1465 @@
+{
+  "startedAt": "2026-10-16T04:41:48.382Z",
+  "sourceSHA": "6e9c1f7246090c7009e9519a8cda6e8efab956d5",
+  "submoduleSHA": "2238989bb5fa9beeaab591b6fa5717cf08fab6c7",
+  "browser": "155.0.8059.82",
+  "api": "http://127.0.0.1:43802/api/competition/v1",
+  "origin": "http://127.0.0.1:43810",
+  "apiTrace": "api-1792125708381.ndjson",
+  "scope": "Twelve local H5 configurations, real touch profiles, rewards and six online matches",
+  "realAdsVerified": false,
+  "realDeviceVerified": false,
+  "notRun": ["Actual advertisement playback and completed/cancelled/failed/timeout host callbacks"],
+  "variants": [
+    {
+      "name": "cops-robbers-ads-off-service-off",
+      "game": "cops-robbers",
+      "adsEnabled": false,
+      "serviceEnabled": false,
+      "zipSHA256": "2526c5ef15ae07e3e7e1defa8f678e9578da014268af1ddabc00f2984f3ed23b",
+      "passedWithinDeclaredScope": true,
+      "config": {
+        "service": {
+          "game": "cops-robbers",
+          "platform": "h5",
+          "serviceManaged": true,
+          "competitionEnabled": false,
+          "apiUrl": ""
+        },
+        "ads": {
+          "enabled": false,
+          "mode": "off"
+        },
+        "hasRealAdSdk": false
+      },
+      "reward": {
+        "mode": "explicit-free-reward",
+        "hintVisible": 1,
+        "feedback": "最短还需 7 步：1 号追逐队员到 2 号路口拦截。点高亮的 2 号数字移动。",
+        "realAdvertisementPlayed": false
+      },
+      "offlineApiRequests": 0
+    },
+    {
+      "name": "cops-robbers-ads-on-service-off",
+      "game": "cops-robbers",
+      "adsEnabled": true,
+      "serviceEnabled": false,
+      "zipSHA256": "c333607452ac424c96870f26ee57bfb569f67b5afe176eb929fa354ead5913d1",
+      "passedWithinDeclaredScope": true,
+      "config": {
+        "service": {
+          "game": "cops-robbers",
+          "platform": "h5",
+          "serviceManaged": true,
+          "competitionEnabled": false,
+          "apiUrl": ""
+        },
+        "ads": {
+          "enabled": true,
+          "mode": "host"
+        },
+        "hasRealAdSdk": false
+      },
+      "reward": {
+        "mode": "host-unavailable-no-reward",
+        "hintVisible": 0,
+        "feedback": "广告暂不可用，请稍后重试。",
+        "realAdvertisementPlayed": false
+      },
+      "offlineApiRequests": 0
+    },
+    {
+      "name": "cops-robbers-ads-off-service-on",
+      "game": "cops-robbers",
+      "adsEnabled": false,
+      "serviceEnabled": true,
+      "zipSHA256": "41fb992ba6a64244fb271400dc4e166f506bea9af3665ffa00abeb3185a0f9a2",
+      "passedWithinDeclaredScope": true,
+      "config": {
+        "service": {
+          "game": "cops-robbers",
+          "platform": "h5",
+          "serviceManaged": true,
+          "competitionEnabled": true,
+          "apiUrl": "http://127.0.0.1:43802/api/competition/v1"
+        },
+        "ads": {
+          "enabled": false,
+          "mode": "off"
+        },
+        "hasRealAdSdk": false
+      },
+      "reward": {
+        "mode": "explicit-free-reward",
+        "hintVisible": 1,
+        "feedback": "最短还需 7 步：1 号追逐队员到 2 号路口拦截。点高亮的 2 号数字移动。",
+        "realAdvertisementPlayed": false
+      },
+      "profiles": {
+        "players": [
+          {
+            "userId": "f75939bd-680a-48a2-9b76-cb35f18d784f",
+            "name": "联机00A",
+            "reloadPreservesIdentity": true
+          },
+          {
+            "userId": "271c92b1-ce32-4e9e-83bf-1386c6340c39",
+            "name": "联机00B",
+            "reloadPreservesIdentity": true
+          }
+        ],
+        "staleFormSendsNoWrite": true,
+        "crossGame": [
+          {
+            "game": "cops-robbers-realtime",
+            "userId": "f75939bd-680a-48a2-9b76-cb35f18d784f"
+          },
+          {
+            "game": "xiangqi-five",
+            "userId": "f75939bd-680a-48a2-9b76-cb35f18d784f"
+          }
+        ],
+        "actualSdkProfileSyncAvailable": false
+      },
+      "online": {
+        "roomCode": "11C1F6B30180",
+        "playerIds": [
+          "f75939bd-680a-48a2-9b76-cb35f18d784f",
+          "271c92b1-ce32-4e9e-83bf-1386c6340c39"
+        ],
+        "acceptedTouchActions": [4, 3],
+        "duplicateActionsPreserveSettlement": true,
+        "confirmedLateTerminalInputs": [[], []],
+        "roomVersion": "roles-initiative-duel-v2",
+        "results": [
+          {
+            "userId": "f75939bd-680a-48a2-9b76-cb35f18d784f",
+            "playerId": "f75939bd-680a-48a2-9b76-cb35f18d784f",
+            "result": {
+              "finished": true,
+              "eligible": true,
+              "score": 3,
+              "secondary": 0
+            },
+            "rated": true,
+            "reason": null,
+            "before": null,
+            "after": {
+              "me": {
+                "userId": "f75939bd-680a-48a2-9b76-cb35f18d784f",
+                "nickname": "联机00A",
+                "name": "联机00A",
+                "avatarUrl": "",
+                "region": null,
+                "profileSource": "self-reported",
+                "profileUpdatedAt": 1792125719186,
+                "playerId": "f75939bd-680a-48a2-9b76-cb35f18d784f",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 10,
+                "total": 22
+              }
+            }
+          },
+          {
+            "userId": "271c92b1-ce32-4e9e-83bf-1386c6340c39",
+            "playerId": "271c92b1-ce32-4e9e-83bf-1386c6340c39",
+            "result": {
+              "finished": true,
+              "eligible": true,
+              "score": 0,
+              "secondary": 0
+            },
+            "rated": true,
+            "reason": null,
+            "before": null,
+            "after": {
+              "me": {
+                "userId": "271c92b1-ce32-4e9e-83bf-1386c6340c39",
+                "nickname": "联机00B",
+                "name": "联机00B",
+                "avatarUrl": "",
+                "region": null,
+                "profileSource": "self-reported",
+                "profileUpdatedAt": 1792125720655,
+                "playerId": "271c92b1-ce32-4e9e-83bf-1386c6340c39",
+                "score": 0,
+                "secondary": 0,
+                "rank": 12,
+                "position": 14,
+                "total": 22
+              }
+            }
+          }
+        ],
+        "boards": [
+          {
+            "game": "cops-robbers",
+            "version": "roles-initiative-duel-v2",
+            "boardType": "versus",
+            "me": {
+              "userId": "f75939bd-680a-48a2-9b76-cb35f18d784f",
+              "nickname": "联机00A",
+              "name": "联机00A",
+              "avatarUrl": "",
+              "region": null,
+              "profileSource": "self-reported",
+              "profileUpdatedAt": 1792125719186,
+              "playerId": "f75939bd-680a-48a2-9b76-cb35f18d784f",
+              "score": 3,
+              "secondary": 0,
+              "rank": 1,
+              "position": 10,
+              "total": 22
+            }
+          },
+          {
+            "game": "cops-robbers",
+            "version": "roles-initiative-duel-v2",
+            "boardType": "versus",
+            "me": {
+              "userId": "271c92b1-ce32-4e9e-83bf-1386c6340c39",
+              "nickname": "联机00B",
+              "name": "联机00B",
+              "avatarUrl": "",
+              "region": null,
+              "profileSource": "self-reported",
+              "profileUpdatedAt": 1792125720655,
+              "playerId": "271c92b1-ce32-4e9e-83bf-1386c6340c39",
+              "score": 0,
+              "secondary": 0,
+              "rank": 12,
+              "position": 14,
+              "total": 22
+            }
+          }
+        ]
+      },
+      "persistence": {
+        "sameBrowserIdentity": true,
+        "profile": true,
+        "settlement": true,
+        "score": true,
+        "runtimeAndPostgresRestart": true
+      }
+    },
+    {
+      "name": "cops-robbers-ads-on-service-on",
+      "game": "cops-robbers",
+      "adsEnabled": true,
+      "serviceEnabled": true,
+      "zipSHA256": "02b7c754209af4151d6be60e72bab36b3f8a492fa664a1e8746e5cd1b94ff2c1",
+      "passedWithinDeclaredScope": true,
+      "config": {
+        "service": {
+          "game": "cops-robbers",
+          "platform": "h5",
+          "serviceManaged": true,
+          "competitionEnabled": true,
+          "apiUrl": "http://127.0.0.1:43802/api/competition/v1"
+        },
+        "ads": {
+          "enabled": true,
+          "mode": "host"
+        },
+        "hasRealAdSdk": false
+      },
+      "reward": {
+        "mode": "host-unavailable-no-reward",
+        "hintVisible": 0,
+        "feedback": "广告暂不可用，请稍后重试。",
+        "realAdvertisementPlayed": false
+      },
+      "profiles": {
+        "players": [
+          {
+            "userId": "2334ed5c-5150-4ced-9bfa-2c2e9566a7ef",
+            "name": "联机01A",
+            "reloadPreservesIdentity": true
+          },
+          {
+            "userId": "6e908768-c03a-4377-9ca5-c8b9f6cb56cd",
+            "name": "联机01B",
+            "reloadPreservesIdentity": true
+          }
+        ],
+        "staleFormSendsNoWrite": true,
+        "crossGame": [
+          {
+            "game": "cops-robbers-realtime",
+            "userId": "2334ed5c-5150-4ced-9bfa-2c2e9566a7ef"
+          },
+          {
+            "game": "xiangqi-five",
+            "userId": "2334ed5c-5150-4ced-9bfa-2c2e9566a7ef"
+          }
+        ],
+        "actualSdkProfileSyncAvailable": false
+      },
+      "online": {
+        "roomCode": "58DF8832AD28",
+        "playerIds": [
+          "2334ed5c-5150-4ced-9bfa-2c2e9566a7ef",
+          "6e908768-c03a-4377-9ca5-c8b9f6cb56cd"
+        ],
+        "acceptedTouchActions": [6, 5],
+        "duplicateActionsPreserveSettlement": true,
+        "confirmedLateTerminalInputs": [[], []],
+        "roomVersion": "roles-initiative-duel-v2",
+        "results": [
+          {
+            "userId": "2334ed5c-5150-4ced-9bfa-2c2e9566a7ef",
+            "playerId": "2334ed5c-5150-4ced-9bfa-2c2e9566a7ef",
+            "result": {
+              "finished": true,
+              "eligible": true,
+              "score": 3,
+              "secondary": 0
+            },
+            "rated": true,
+            "reason": null,
+            "before": null,
+            "after": {
+              "me": {
+                "userId": "2334ed5c-5150-4ced-9bfa-2c2e9566a7ef",
+                "nickname": "联机01A",
+                "name": "联机01A",
+                "avatarUrl": "",
+                "region": null,
+                "profileSource": "self-reported",
+                "profileUpdatedAt": 1792125738655,
+                "playerId": "2334ed5c-5150-4ced-9bfa-2c2e9566a7ef",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 3,
+                "total": 24
+              }
+            }
+          },
+          {
+            "userId": "6e908768-c03a-4377-9ca5-c8b9f6cb56cd",
+            "playerId": "6e908768-c03a-4377-9ca5-c8b9f6cb56cd",
+            "result": {
+              "finished": true,
+              "eligible": true,
+              "score": 0,
+              "secondary": 0
+            },
+            "rated": true,
+            "reason": null,
+            "before": null,
+            "after": {
+              "me": {
+                "userId": "6e908768-c03a-4377-9ca5-c8b9f6cb56cd",
+                "nickname": "联机01B",
+                "name": "联机01B",
+                "avatarUrl": "",
+                "region": null,
+                "profileSource": "self-reported",
+                "profileUpdatedAt": 1792125740259,
+                "playerId": "6e908768-c03a-4377-9ca5-c8b9f6cb56cd",
+                "score": 0,
+                "secondary": 0,
+                "rank": 13,
+                "position": 19,
+                "total": 24
+              }
+            }
+          }
+        ],
+        "boards": [
+          {
+            "game": "cops-robbers",
+            "version": "roles-initiative-duel-v2",
+            "boardType": "versus",
+            "me": {
+              "userId": "2334ed5c-5150-4ced-9bfa-2c2e9566a7ef",
+              "nickname": "联机01A",
+              "name": "联机01A",
+              "avatarUrl": "",
+              "region": null,
+              "profileSource": "self-reported",
+              "profileUpdatedAt": 1792125738655,
+              "playerId": "2334ed5c-5150-4ced-9bfa-2c2e9566a7ef",
+              "score": 3,
+              "secondary": 0,
+              "rank": 1,
+              "position": 3,
+              "total": 24
+            }
+          },
+          {
+            "game": "cops-robbers",
+            "version": "roles-initiative-duel-v2",
+            "boardType": "versus",
+            "me": {
+              "userId": "6e908768-c03a-4377-9ca5-c8b9f6cb56cd",
+              "nickname": "联机01B",
+              "name": "联机01B",
+              "avatarUrl": "",
+              "region": null,
+              "profileSource": "self-reported",
+              "profileUpdatedAt": 1792125740259,
+              "playerId": "6e908768-c03a-4377-9ca5-c8b9f6cb56cd",
+              "score": 0,
+              "secondary": 0,
+              "rank": 13,
+              "position": 19,
+              "total": 24
+            }
+          }
+        ]
+      },
+      "persistence": {
+        "sameBrowserIdentity": true,
+        "profile": true,
+        "settlement": true,
+        "score": true,
+        "runtimeAndPostgresRestart": true
+      }
+    },
+    {
+      "name": "cops-robbers-realtime-ads-off-service-off",
+      "game": "cops-robbers-realtime",
+      "adsEnabled": false,
+      "serviceEnabled": false,
+      "zipSHA256": "803f64b074437ca5f16a64274616fb01150e1ba8193c9e3f515d59353493d806",
+      "passedWithinDeclaredScope": true,
+      "config": {
+        "service": {
+          "game": "cops-robbers-realtime",
+          "platform": "h5",
+          "serviceManaged": true,
+          "competitionEnabled": false,
+          "apiUrl": ""
+        },
+        "ads": {
+          "enabled": false,
+          "mode": "off"
+        },
+        "hasRealAdSdk": false
+      },
+      "reward": {
+        "mode": "explicit-free-reward",
+        "starter": {
+          "sprint": 1,
+          "rewind": 1,
+          "refilled": {
+            "sprint": false,
+            "rewind": false
+          },
+          "assisted": false,
+          "ordinal": 1,
+          "remaining": 0,
+          "busy": false
+        },
+        "granted": {
+          "sprint": 1,
+          "rewind": 1,
+          "refilled": {
+            "sprint": true,
+            "rewind": false
+          },
+          "assisted": true,
+          "ordinal": 1,
+          "remaining": 0,
+          "busy": false
+        },
+        "after": {
+          "sprint": 0,
+          "rewind": 1,
+          "refilled": {
+            "sprint": true,
+            "rewind": false
+          },
+          "assisted": true,
+          "ordinal": 1,
+          "remaining": 0,
+          "busy": false
+        },
+        "feedback": "1 号警察 · 提速 20% · 4 秒",
+        "realAdvertisementPlayed": false
+      },
+      "offlineApiRequests": 0
+    },
+    {
+      "name": "cops-robbers-realtime-ads-on-service-off",
+      "game": "cops-robbers-realtime",
+      "adsEnabled": true,
+      "serviceEnabled": false,
+      "zipSHA256": "7bc5b351ed3c49c7919a03e1d033558aef7a70122bff7910060cef9cb0ab7109",
+      "passedWithinDeclaredScope": true,
+      "config": {
+        "service": {
+          "game": "cops-robbers-realtime",
+          "platform": "h5",
+          "serviceManaged": true,
+          "competitionEnabled": false,
+          "apiUrl": ""
+        },
+        "ads": {
+          "enabled": true,
+          "mode": "host"
+        },
+        "hasRealAdSdk": false
+      },
+      "reward": {
+        "mode": "host-unavailable-no-reward",
+        "starter": {
+          "sprint": 1,
+          "rewind": 1,
+          "refilled": {
+            "sprint": false,
+            "rewind": false
+          },
+          "assisted": false,
+          "ordinal": 1,
+          "remaining": 0,
+          "busy": false
+        },
+        "granted": {
+          "sprint": 0,
+          "rewind": 1,
+          "refilled": {
+            "sprint": false,
+            "rewind": false
+          },
+          "assisted": true,
+          "ordinal": 1,
+          "remaining": 0,
+          "busy": false
+        },
+        "after": {
+          "sprint": 0,
+          "rewind": 1,
+          "refilled": {
+            "sprint": false,
+            "rewind": false
+          },
+          "assisted": true,
+          "ordinal": 1,
+          "remaining": 0,
+          "busy": false
+        },
+        "feedback": "广告暂不可用，补领次数保留；可以继续正常游戏。",
+        "realAdvertisementPlayed": false
+      },
+      "offlineApiRequests": 0
+    },
+    {
+      "name": "cops-robbers-realtime-ads-off-service-on",
+      "game": "cops-robbers-realtime",
+      "adsEnabled": false,
+      "serviceEnabled": true,
+      "zipSHA256": "bcf0a6c975a0e5bf4b621e9fec2015bc9dcf091bb73f63f66b4a59220d1dd309",
+      "passedWithinDeclaredScope": true,
+      "config": {
+        "service": {
+          "game": "cops-robbers-realtime",
+          "platform": "h5",
+          "serviceManaged": true,
+          "competitionEnabled": true,
+          "apiUrl": "http://127.0.0.1:43802/api/competition/v1"
+        },
+        "ads": {
+          "enabled": false,
+          "mode": "off"
+        },
+        "hasRealAdSdk": false
+      },
+      "reward": {
+        "mode": "explicit-free-reward",
+        "starter": {
+          "sprint": 1,
+          "rewind": 1,
+          "refilled": {
+            "sprint": false,
+            "rewind": false
+          },
+          "assisted": false,
+          "ordinal": 1,
+          "remaining": 0,
+          "busy": false
+        },
+        "granted": {
+          "sprint": 1,
+          "rewind": 1,
+          "refilled": {
+            "sprint": true,
+            "rewind": false
+          },
+          "assisted": true,
+          "ordinal": 1,
+          "remaining": 0,
+          "busy": false
+        },
+        "after": {
+          "sprint": 0,
+          "rewind": 1,
+          "refilled": {
+            "sprint": true,
+            "rewind": false
+          },
+          "assisted": true,
+          "ordinal": 1,
+          "remaining": 0,
+          "busy": false
+        },
+        "feedback": "1 号警察 · 提速 20% · 4 秒",
+        "realAdvertisementPlayed": false
+      },
+      "profiles": {
+        "players": [
+          {
+            "userId": "f8af1b2d-aed0-4e85-a44b-477014a41cd6",
+            "name": "联机10A",
+            "reloadPreservesIdentity": true
+          },
+          {
+            "userId": "e635305e-a305-45c8-8883-9d6a41e3fd98",
+            "name": "联机10B",
+            "reloadPreservesIdentity": true
+          }
+        ],
+        "staleFormSendsNoWrite": true,
+        "crossGame": [
+          {
+            "game": "cops-robbers",
+            "userId": "f8af1b2d-aed0-4e85-a44b-477014a41cd6"
+          },
+          {
+            "game": "xiangqi-five",
+            "userId": "f8af1b2d-aed0-4e85-a44b-477014a41cd6"
+          }
+        ],
+        "actualSdkProfileSyncAvailable": false
+      },
+      "online": {
+        "roomCode": "0642EF84000F",
+        "playerIds": [
+          "f8af1b2d-aed0-4e85-a44b-477014a41cd6",
+          "e635305e-a305-45c8-8883-9d6a41e3fd98"
+        ],
+        "acceptedTouchActions": [25, 22],
+        "duplicateActionsPreserveSettlement": true,
+        "confirmedLateTerminalInputs": [[], []],
+        "roomVersion": "street-roles-initiative-v3",
+        "results": [
+          {
+            "userId": "f8af1b2d-aed0-4e85-a44b-477014a41cd6",
+            "playerId": "f8af1b2d-aed0-4e85-a44b-477014a41cd6",
+            "result": {
+              "finished": true,
+              "eligible": true,
+              "score": 0,
+              "secondary": 0
+            },
+            "rated": true,
+            "reason": null,
+            "before": null,
+            "after": {
+              "me": {
+                "userId": "f8af1b2d-aed0-4e85-a44b-477014a41cd6",
+                "nickname": "联机10A",
+                "name": "联机10A",
+                "avatarUrl": "",
+                "region": null,
+                "profileSource": "self-reported",
+                "profileUpdatedAt": 1792125791110,
+                "playerId": "f8af1b2d-aed0-4e85-a44b-477014a41cd6",
+                "score": 0,
+                "secondary": 0,
+                "rank": 9,
+                "position": 15,
+                "total": 16
+              }
+            }
+          },
+          {
+            "userId": "e635305e-a305-45c8-8883-9d6a41e3fd98",
+            "playerId": "e635305e-a305-45c8-8883-9d6a41e3fd98",
+            "result": {
+              "finished": true,
+              "eligible": true,
+              "score": 3,
+              "secondary": 0
+            },
+            "rated": true,
+            "reason": null,
+            "before": null,
+            "after": {
+              "me": {
+                "userId": "e635305e-a305-45c8-8883-9d6a41e3fd98",
+                "nickname": "联机10B",
+                "name": "联机10B",
+                "avatarUrl": "",
+                "region": null,
+                "profileSource": "self-reported",
+                "profileUpdatedAt": 1792125792998,
+                "playerId": "e635305e-a305-45c8-8883-9d6a41e3fd98",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 6,
+                "total": 16
+              }
+            }
+          }
+        ],
+        "boards": [
+          {
+            "game": "cops-robbers-realtime",
+            "version": "street-roles-initiative-v3",
+            "boardType": "versus",
+            "me": {
+              "userId": "f8af1b2d-aed0-4e85-a44b-477014a41cd6",
+              "nickname": "联机10A",
+              "name": "联机10A",
+              "avatarUrl": "",
+              "region": null,
+              "profileSource": "self-reported",
+              "profileUpdatedAt": 1792125791110,
+              "playerId": "f8af1b2d-aed0-4e85-a44b-477014a41cd6",
+              "score": 0,
+              "secondary": 0,
+              "rank": 9,
+              "position": 15,
+              "total": 16
+            }
+          },
+          {
+            "game": "cops-robbers-realtime",
+            "version": "street-roles-initiative-v3",
+            "boardType": "versus",
+            "me": {
+              "userId": "e635305e-a305-45c8-8883-9d6a41e3fd98",
+              "nickname": "联机10B",
+              "name": "联机10B",
+              "avatarUrl": "",
+              "region": null,
+              "profileSource": "self-reported",
+              "profileUpdatedAt": 1792125792998,
+              "playerId": "e635305e-a305-45c8-8883-9d6a41e3fd98",
+              "score": 3,
+              "secondary": 0,
+              "rank": 1,
+              "position": 6,
+              "total": 16
+            }
+          }
+        ]
+      },
+      "persistence": {
+        "sameBrowserIdentity": true,
+        "profile": true,
+        "settlement": true,
+        "score": true,
+        "runtimeAndPostgresRestart": true
+      }
+    },
+    {
+      "name": "cops-robbers-realtime-ads-on-service-on",
+      "game": "cops-robbers-realtime",
+      "adsEnabled": true,
+      "serviceEnabled": true,
+      "zipSHA256": "8297c6090be43ad84399984bfa55d0872eb0a3a89c1bdb9a0fe6ad014afd2a3a",
+      "passedWithinDeclaredScope": true,
+      "config": {
+        "service": {
+          "game": "cops-robbers-realtime",
+          "platform": "h5",
+          "serviceManaged": true,
+          "competitionEnabled": true,
+          "apiUrl": "http://127.0.0.1:43802/api/competition/v1"
+        },
+        "ads": {
+          "enabled": true,
+          "mode": "host"
+        },
+        "hasRealAdSdk": false
+      },
+      "reward": {
+        "mode": "host-unavailable-no-reward",
+        "starter": {
+          "sprint": 1,
+          "rewind": 1,
+          "refilled": {
+            "sprint": false,
+            "rewind": false
+          },
+          "assisted": false,
+          "ordinal": 1,
+          "remaining": 0,
+          "busy": false
+        },
+        "granted": {
+          "sprint": 0,
+          "rewind": 1,
+          "refilled": {
+            "sprint": false,
+            "rewind": false
+          },
+          "assisted": true,
+          "ordinal": 1,
+          "remaining": 0,
+          "busy": false
+        },
+        "after": {
+          "sprint": 0,
+          "rewind": 1,
+          "refilled": {
+            "sprint": false,
+            "rewind": false
+          },
+          "assisted": true,
+          "ordinal": 1,
+          "remaining": 0,
+          "busy": false
+        },
+        "feedback": "广告暂不可用，补领次数保留；可以继续正常游戏。",
+        "realAdvertisementPlayed": false
+      },
+      "profiles": {
+        "players": [
+          {
+            "userId": "2c6a7d5a-f157-4800-a1c9-b5164a5ffe41",
+            "name": "联机11A",
+            "reloadPreservesIdentity": true
+          },
+          {
+            "userId": "86497aab-81b6-4970-b0f2-3e6be35e3b2a",
+            "name": "联机11B",
+            "reloadPreservesIdentity": true
+          }
+        ],
+        "staleFormSendsNoWrite": true,
+        "crossGame": [
+          {
+            "game": "cops-robbers",
+            "userId": "2c6a7d5a-f157-4800-a1c9-b5164a5ffe41"
+          },
+          {
+            "game": "xiangqi-five",
+            "userId": "2c6a7d5a-f157-4800-a1c9-b5164a5ffe41"
+          }
+        ],
+        "actualSdkProfileSyncAvailable": false
+      },
+      "online": {
+        "roomCode": "07BD57FFFA4F",
+        "playerIds": [
+          "2c6a7d5a-f157-4800-a1c9-b5164a5ffe41",
+          "86497aab-81b6-4970-b0f2-3e6be35e3b2a"
+        ],
+        "acceptedTouchActions": [39, 20],
+        "duplicateActionsPreserveSettlement": true,
+        "confirmedLateTerminalInputs": [
+          [],
+          [
+            {
+              "status": 409,
+              "path": "/api/competition/v1/rooms/07BD57FFFA4F/actions",
+              "body": {
+                "error": "MATCH_CLOSED"
+              }
+            }
+          ]
+        ],
+        "roomVersion": "street-roles-initiative-v3",
+        "results": [
+          {
+            "userId": "2c6a7d5a-f157-4800-a1c9-b5164a5ffe41",
+            "playerId": "2c6a7d5a-f157-4800-a1c9-b5164a5ffe41",
+            "result": {
+              "finished": true,
+              "eligible": true,
+              "score": 0,
+              "secondary": 0
+            },
+            "rated": true,
+            "reason": null,
+            "before": null,
+            "after": {
+              "me": {
+                "userId": "2c6a7d5a-f157-4800-a1c9-b5164a5ffe41",
+                "nickname": "联机11A",
+                "name": "联机11A",
+                "avatarUrl": "",
+                "region": null,
+                "profileSource": "self-reported",
+                "profileUpdatedAt": 1792125931052,
+                "playerId": "2c6a7d5a-f157-4800-a1c9-b5164a5ffe41",
+                "score": 0,
+                "secondary": 0,
+                "rank": 10,
+                "position": 11,
+                "total": 18
+              }
+            }
+          },
+          {
+            "userId": "86497aab-81b6-4970-b0f2-3e6be35e3b2a",
+            "playerId": "86497aab-81b6-4970-b0f2-3e6be35e3b2a",
+            "result": {
+              "finished": true,
+              "eligible": true,
+              "score": 3,
+              "secondary": 0
+            },
+            "rated": true,
+            "reason": null,
+            "before": null,
+            "after": {
+              "me": {
+                "userId": "86497aab-81b6-4970-b0f2-3e6be35e3b2a",
+                "nickname": "联机11B",
+                "name": "联机11B",
+                "avatarUrl": "",
+                "region": null,
+                "profileSource": "self-reported",
+                "profileUpdatedAt": 1792125932905,
+                "playerId": "86497aab-81b6-4970-b0f2-3e6be35e3b2a",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 3,
+                "total": 18
+              }
+            }
+          }
+        ],
+        "boards": [
+          {
+            "game": "cops-robbers-realtime",
+            "version": "street-roles-initiative-v3",
+            "boardType": "versus",
+            "me": {
+              "userId": "2c6a7d5a-f157-4800-a1c9-b5164a5ffe41",
+              "nickname": "联机11A",
+              "name": "联机11A",
+              "avatarUrl": "",
+              "region": null,
+              "profileSource": "self-reported",
+              "profileUpdatedAt": 1792125931052,
+              "playerId": "2c6a7d5a-f157-4800-a1c9-b5164a5ffe41",
+              "score": 0,
+              "secondary": 0,
+              "rank": 10,
+              "position": 11,
+              "total": 18
+            }
+          },
+          {
+            "game": "cops-robbers-realtime",
+            "version": "street-roles-initiative-v3",
+            "boardType": "versus",
+            "me": {
+              "userId": "86497aab-81b6-4970-b0f2-3e6be35e3b2a",
+              "nickname": "联机11B",
+              "name": "联机11B",
+              "avatarUrl": "",
+              "region": null,
+              "profileSource": "self-reported",
+              "profileUpdatedAt": 1792125932905,
+              "playerId": "86497aab-81b6-4970-b0f2-3e6be35e3b2a",
+              "score": 3,
+              "secondary": 0,
+              "rank": 1,
+              "position": 3,
+              "total": 18
+            }
+          }
+        ]
+      },
+      "persistence": {
+        "sameBrowserIdentity": true,
+        "profile": true,
+        "settlement": true,
+        "score": true,
+        "runtimeAndPostgresRestart": true
+      }
+    },
+    {
+      "name": "xiangqi-five-ads-off-service-off",
+      "game": "xiangqi-five",
+      "adsEnabled": false,
+      "serviceEnabled": false,
+      "zipSHA256": "8d401bbf508156bd0c1a457f631946eea8e6ce3ddcc80bff1e52e846412d721f",
+      "passedWithinDeclaredScope": true,
+      "config": {
+        "service": {
+          "game": "xiangqi-five",
+          "platform": "h5",
+          "serviceManaged": true,
+          "competitionEnabled": false,
+          "apiUrl": ""
+        },
+        "ads": {
+          "enabled": false,
+          "mode": "off"
+        },
+        "hasRealAdSdk": false
+      },
+      "reward": {
+        "mode": "explicit-free-reward",
+        "hintVisible": true,
+        "feedback": "",
+        "starsRule": "查看提示后，本题最高获得一星。",
+        "realAdvertisementPlayed": false
+      },
+      "offlineApiRequests": 0
+    },
+    {
+      "name": "xiangqi-five-ads-on-service-off",
+      "game": "xiangqi-five",
+      "adsEnabled": true,
+      "serviceEnabled": false,
+      "zipSHA256": "004e1e0603273a9c623f78c4c05c0a12ccc89c7ec166f4b67359df5bb9e211e6",
+      "passedWithinDeclaredScope": true,
+      "config": {
+        "service": {
+          "game": "xiangqi-five",
+          "platform": "h5",
+          "serviceManaged": true,
+          "competitionEnabled": false,
+          "apiUrl": ""
+        },
+        "ads": {
+          "enabled": true,
+          "mode": "host"
+        },
+        "hasRealAdSdk": false
+      },
+      "reward": {
+        "mode": "host-unavailable-no-reward",
+        "hintVisible": false,
+        "feedback": "广告暂不可用，本次未获取提示。",
+        "starsRule": "查看提示后，本题最高获得一星。",
+        "backgroundCancellation": true,
+        "realAdvertisementPlayed": false
+      },
+      "offlineApiRequests": 0
+    },
+    {
+      "name": "xiangqi-five-ads-off-service-on",
+      "game": "xiangqi-five",
+      "adsEnabled": false,
+      "serviceEnabled": true,
+      "zipSHA256": "416fc584ad2c1989207bee089783387f6e6da435222f1e3e4748d175506bb09b",
+      "passedWithinDeclaredScope": true,
+      "config": {
+        "service": {
+          "game": "xiangqi-five",
+          "platform": "h5",
+          "serviceManaged": true,
+          "competitionEnabled": true,
+          "apiUrl": "http://127.0.0.1:43802/api/competition/v1"
+        },
+        "ads": {
+          "enabled": false,
+          "mode": "off"
+        },
+        "hasRealAdSdk": false
+      },
+      "reward": {
+        "mode": "explicit-free-reward",
+        "hintVisible": true,
+        "feedback": "",
+        "starsRule": "查看提示后，本题最高获得一星。",
+        "realAdvertisementPlayed": false
+      },
+      "profiles": {
+        "players": [
+          {
+            "userId": "8913b692-43ef-4077-b388-a3c30dd54d2b",
+            "name": "联机20A",
+            "reloadPreservesIdentity": true
+          },
+          {
+            "userId": "f0579e4e-6b23-4016-a8b9-fa803c1d1251",
+            "name": "联机20B",
+            "reloadPreservesIdentity": true
+          }
+        ],
+        "staleFormSendsNoWrite": true,
+        "crossGame": [
+          {
+            "game": "cops-robbers",
+            "userId": "8913b692-43ef-4077-b388-a3c30dd54d2b"
+          },
+          {
+            "game": "cops-robbers-realtime",
+            "userId": "8913b692-43ef-4077-b388-a3c30dd54d2b"
+          }
+        ],
+        "actualSdkProfileSyncAvailable": false
+      },
+      "online": {
+        "roomCode": "923EF062C3BE",
+        "playerIds": [
+          "8913b692-43ef-4077-b388-a3c30dd54d2b",
+          "f0579e4e-6b23-4016-a8b9-fa803c1d1251"
+        ],
+        "acceptedTouchActions": [5, 4],
+        "duplicateActionsPreserveSettlement": true,
+        "confirmedLateTerminalInputs": [[], []],
+        "roomVersion": "xiangqi9x10-duel-v1",
+        "results": [
+          {
+            "userId": "8913b692-43ef-4077-b388-a3c30dd54d2b",
+            "playerId": "8913b692-43ef-4077-b388-a3c30dd54d2b",
+            "result": {
+              "finished": true,
+              "eligible": true,
+              "score": 3,
+              "secondary": 0
+            },
+            "rated": true,
+            "reason": null,
+            "before": null,
+            "after": {
+              "me": {
+                "userId": "8913b692-43ef-4077-b388-a3c30dd54d2b",
+                "nickname": "联机20A",
+                "name": "联机20A",
+                "avatarUrl": "",
+                "region": null,
+                "profileSource": "self-reported",
+                "profileUpdatedAt": 1792126073525,
+                "playerId": "8913b692-43ef-4077-b388-a3c30dd54d2b",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 3,
+                "total": 14
+              }
+            }
+          },
+          {
+            "userId": "f0579e4e-6b23-4016-a8b9-fa803c1d1251",
+            "playerId": "f0579e4e-6b23-4016-a8b9-fa803c1d1251",
+            "result": {
+              "finished": true,
+              "eligible": true,
+              "score": 0,
+              "secondary": 0
+            },
+            "rated": true,
+            "reason": null,
+            "before": null,
+            "after": {
+              "me": {
+                "userId": "f0579e4e-6b23-4016-a8b9-fa803c1d1251",
+                "nickname": "联机20B",
+                "name": "联机20B",
+                "avatarUrl": "",
+                "region": null,
+                "profileSource": "self-reported",
+                "profileUpdatedAt": 1792126075372,
+                "playerId": "f0579e4e-6b23-4016-a8b9-fa803c1d1251",
+                "score": 0,
+                "secondary": 0,
+                "rank": 8,
+                "position": 14,
+                "total": 14
+              }
+            }
+          }
+        ],
+        "boards": [
+          {
+            "game": "xiangqi-five",
+            "version": "xiangqi9x10-duel-v1",
+            "boardType": "versus",
+            "me": {
+              "userId": "8913b692-43ef-4077-b388-a3c30dd54d2b",
+              "nickname": "联机20A",
+              "name": "联机20A",
+              "avatarUrl": "",
+              "region": null,
+              "profileSource": "self-reported",
+              "profileUpdatedAt": 1792126073525,
+              "playerId": "8913b692-43ef-4077-b388-a3c30dd54d2b",
+              "score": 3,
+              "secondary": 0,
+              "rank": 1,
+              "position": 3,
+              "total": 14
+            }
+          },
+          {
+            "game": "xiangqi-five",
+            "version": "xiangqi9x10-duel-v1",
+            "boardType": "versus",
+            "me": {
+              "userId": "f0579e4e-6b23-4016-a8b9-fa803c1d1251",
+              "nickname": "联机20B",
+              "name": "联机20B",
+              "avatarUrl": "",
+              "region": null,
+              "profileSource": "self-reported",
+              "profileUpdatedAt": 1792126075372,
+              "playerId": "f0579e4e-6b23-4016-a8b9-fa803c1d1251",
+              "score": 0,
+              "secondary": 0,
+              "rank": 8,
+              "position": 14,
+              "total": 14
+            }
+          }
+        ]
+      },
+      "persistence": {
+        "sameBrowserIdentity": true,
+        "profile": true,
+        "settlement": true,
+        "score": true,
+        "runtimeAndPostgresRestart": true
+      }
+    },
+    {
+      "name": "xiangqi-five-ads-on-service-on",
+      "game": "xiangqi-five",
+      "adsEnabled": true,
+      "serviceEnabled": true,
+      "zipSHA256": "841e0a1e1a59c20235a3a86d672a3e4896d0758e970e33a6ee126875b83cd68d",
+      "passedWithinDeclaredScope": true,
+      "config": {
+        "service": {
+          "game": "xiangqi-five",
+          "platform": "h5",
+          "serviceManaged": true,
+          "competitionEnabled": true,
+          "apiUrl": "http://127.0.0.1:43802/api/competition/v1"
+        },
+        "ads": {
+          "enabled": true,
+          "mode": "host"
+        },
+        "hasRealAdSdk": false
+      },
+      "reward": {
+        "mode": "host-unavailable-no-reward",
+        "hintVisible": false,
+        "feedback": "广告暂不可用，本次未获取提示。",
+        "starsRule": "查看提示后，本题最高获得一星。",
+        "backgroundCancellation": true,
+        "realAdvertisementPlayed": false
+      },
+      "profiles": {
+        "players": [
+          {
+            "userId": "4109ec17-f121-4f2c-af90-fb1a85eae336",
+            "name": "联机21A",
+            "reloadPreservesIdentity": true
+          },
+          {
+            "userId": "75154984-75ac-41e8-8aad-e8720e01b629",
+            "name": "联机21B",
+            "reloadPreservesIdentity": true
+          }
+        ],
+        "staleFormSendsNoWrite": true,
+        "crossGame": [
+          {
+            "game": "cops-robbers",
+            "userId": "4109ec17-f121-4f2c-af90-fb1a85eae336"
+          },
+          {
+            "game": "cops-robbers-realtime",
+            "userId": "4109ec17-f121-4f2c-af90-fb1a85eae336"
+          }
+        ],
+        "actualSdkProfileSyncAvailable": false
+      },
+      "online": {
+        "roomCode": "37A1B3750924",
+        "playerIds": [
+          "4109ec17-f121-4f2c-af90-fb1a85eae336",
+          "75154984-75ac-41e8-8aad-e8720e01b629"
+        ],
+        "acceptedTouchActions": [5, 4],
+        "duplicateActionsPreserveSettlement": true,
+        "confirmedLateTerminalInputs": [[], []],
+        "roomVersion": "xiangqi9x10-duel-v1",
+        "results": [
+          {
+            "userId": "4109ec17-f121-4f2c-af90-fb1a85eae336",
+            "playerId": "4109ec17-f121-4f2c-af90-fb1a85eae336",
+            "result": {
+              "finished": true,
+              "eligible": true,
+              "score": 3,
+              "secondary": 0
+            },
+            "rated": true,
+            "reason": null,
+            "before": null,
+            "after": {
+              "me": {
+                "userId": "4109ec17-f121-4f2c-af90-fb1a85eae336",
+                "nickname": "联机21A",
+                "name": "联机21A",
+                "avatarUrl": "",
+                "region": null,
+                "profileSource": "self-reported",
+                "profileUpdatedAt": 1792126092498,
+                "playerId": "4109ec17-f121-4f2c-af90-fb1a85eae336",
+                "score": 3,
+                "secondary": 0,
+                "rank": 1,
+                "position": 2,
+                "total": 16
+              }
+            }
+          },
+          {
+            "userId": "75154984-75ac-41e8-8aad-e8720e01b629",
+            "playerId": "75154984-75ac-41e8-8aad-e8720e01b629",
+            "result": {
+              "finished": true,
+              "eligible": true,
+              "score": 0,
+              "secondary": 0
+            },
+            "rated": true,
+            "reason": null,
+            "before": null,
+            "after": {
+              "me": {
+                "userId": "75154984-75ac-41e8-8aad-e8720e01b629",
+                "nickname": "联机21B",
+                "name": "联机21B",
+                "avatarUrl": "",
+                "region": null,
+                "profileSource": "self-reported",
+                "profileUpdatedAt": 1792126094353,
+                "playerId": "75154984-75ac-41e8-8aad-e8720e01b629",
+                "score": 0,
+                "secondary": 0,
+                "rank": 9,
+                "position": 13,
+                "total": 16
+              }
+            }
+          }
+        ],
+        "boards": [
+          {
+            "game": "xiangqi-five",
+            "version": "xiangqi9x10-duel-v1",
+            "boardType": "versus",
+            "me": {
+              "userId": "4109ec17-f121-4f2c-af90-fb1a85eae336",
+              "nickname": "联机21A",
+              "name": "联机21A",
+              "avatarUrl": "",
+              "region": null,
+              "profileSource": "self-reported",
+              "profileUpdatedAt": 1792126092498,
+              "playerId": "4109ec17-f121-4f2c-af90-fb1a85eae336",
+              "score": 3,
+              "secondary": 0,
+              "rank": 1,
+              "position": 2,
+              "total": 16
+            }
+          },
+          {
+            "game": "xiangqi-five",
+            "version": "xiangqi9x10-duel-v1",
+            "boardType": "versus",
+            "me": {
+              "userId": "75154984-75ac-41e8-8aad-e8720e01b629",
+              "nickname": "联机21B",
+              "name": "联机21B",
+              "avatarUrl": "",
+              "region": null,
+              "profileSource": "self-reported",
+              "profileUpdatedAt": 1792126094353,
+              "playerId": "75154984-75ac-41e8-8aad-e8720e01b629",
+              "score": 0,
+              "secondary": 0,
+              "rank": 9,
+              "position": 13,
+              "total": 16
+            }
+          }
+        ]
+      },
+      "persistence": {
+        "sameBrowserIdentity": true,
+        "profile": true,
+        "settlement": true,
+        "score": true,
+        "runtimeAndPostgresRestart": true
+      }
+    }
+  ],
+  "localRestart": {
+    "runId": "1792125708381",
+    "postgresContainer": "small-games-h5-matrix-20261015",
+    "serviceRole": "runtime_app",
+    "volumePreserved": true,
+    "postgresRestarted": true,
+    "startedAt": "2026-10-16T04:49:52.851Z",
+    "postgresReadyAt": "2026-10-16T04:50:07.312Z",
+    "before": {
+      "id": "f4ffa1154802cd8b43170433b3336cb088ad375f9ae5a077c8bbd0d6548f04d5",
+      "label": "h5-ad-service-matrix",
+      "mounts": [
+        {
+          "Type": "volume",
+          "Name": "small-games-h5-matrix-20261015",
+          "Source": "/var/lib/docker/volumes/small-games-h5-matrix-20261015/_data",
+          "Destination": "/var/lib/postgresql/data",
+          "Driver": "local",
+          "Mode": "z",
+          "RW": true,
+          "Propagation": ""
+        }
+      ],
+      "ports": {
+        "5432/tcp": [
+          {
+            "HostIp": "127.0.0.1",
+            "HostPort": "15439"
+          }
+        ]
+      }
+    },
+    "after": {
+      "id": "f4ffa1154802cd8b43170433b3336cb088ad375f9ae5a077c8bbd0d6548f04d5",
+      "label": "h5-ad-service-matrix",
+      "mounts": [
+        {
+          "Type": "volume",
+          "Name": "small-games-h5-matrix-20261015",
+          "Source": "/var/lib/docker/volumes/small-games-h5-matrix-20261015/_data",
+          "Destination": "/var/lib/postgresql/data",
+          "Driver": "local",
+          "Mode": "z",
+          "RW": true,
+          "Propagation": ""
+        }
+      ],
+      "ports": {
+        "5432/tcp": [
+          {
+            "HostIp": "127.0.0.1",
+            "HostPort": "15439"
+          }
+        ]
+      }
+    },
+    "runtimeRestarted": true,
+    "runtimeReadyAt": "2026-10-16T04:50:28.432Z"
+  },
+  "completedAt": "2026-10-16T04:50:40.462Z",
+  "fullLocalReport": "outputs/h5-taptap/identity-local-20261016/browser/1792125708381/report-1792125708381.json",
+  "fullLocalReportSHA256": "e4af62bbd7ae7df0f2575dc75eb091362c1d7431e6553ae0b3f833c703b26597",
+  "browserHarnessSHA256": "5d07843db141c33a75b80e61c6e2e44aee29a9143e71e84e6ffde11e1a1c17fc"
+}

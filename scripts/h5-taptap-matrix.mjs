@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 
 export const matrixGames = ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'];
-export const productionCompetitionApi = 'https://api.nenggongzhiren.cn/api/competition/v1';
+export const productionCompetitionApi = 'https://api.nenggongzhiren.cn/small-games/v1';
 export function packageModes(values, env = {}) {
   assert(!(values['with-ads'] && values['without-ads']), 'Choose an advertising mode');
   assert(!(values['with-service'] && values['without-service']), 'Choose a service mode');

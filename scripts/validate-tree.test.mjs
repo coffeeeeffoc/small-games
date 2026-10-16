@@ -1631,3 +1631,142 @@ test('identity and game-service checks share their Node suite without duplicatin
   );
   assert(calls.some(([, args]) => args.includes('scripts/competition-gateway.test.mjs')));
 });
+
+test('admin gate executes the actual browser entry and finite service suites, propagating failures', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'admin-gate-contract-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(path.join(root, 'apps/admin-web/tests'), { recursive: true });
+  const script = path.join(root, 'apps/admin-web/tests/browser.mjs');
+  await writeFile(
+    script,
+    "import { writeFileSync } from 'node:fs'; writeFileSync('browser-ran','yes');\n",
+  );
+  const admin = {
+    name: '@coffeeeeffoc/admin-web',
+    dir: 'apps/admin-web',
+    scripts: { test: 'pnpm build && node tests/browser.mjs' },
+  };
+  const options = {
+    plan: {
+      admin_console_checks: true,
+      native_consumers: [],
+      developer_mode_ids: [],
+      service_rule_sources: [],
+    },
+    packages: [admin],
+    root,
+    env: process.env,
+  };
+  runIncrementalToolChecks(options);
+  assert.equal(
+    await (await import('node:fs/promises')).readFile(path.join(root, 'browser-ran'), 'utf8'),
+    'yes',
+  );
+  await writeFile(script, "throw Error('admin browser regression');\n");
+  assert.throws(() => runIncrementalToolChecks(options), /admin browser regression/);
+  assert.throws(
+    () => runIncrementalToolChecks({ ...options, packages: [] }),
+    /Unreviewed admin browser consumer/,
+  );
+  assert.throws(
+    () =>
+      runIncrementalToolChecks({
+        ...options,
+        packages: [{ ...admin, scripts: { test: 'node bypass.mjs' } }],
+      }),
+    /Unreviewed admin browser consumer/,
+  );
+  const calls = [];
+  runIncrementalToolChecks({
+    ...options,
+    plan: {
+      ...options.plan,
+      service_rule_sources: ['packages/service-kit', 'services/management-api'],
+    },
+    packages: [
+      admin,
+      { name: 'kit', dir: 'packages/service-kit', scripts: { test: 'vitest run' } },
+      { name: 'management', dir: 'services/management-api', scripts: { test: 'vitest run' } },
+    ],
+    execute: (command, args) =>
+      calls.push([command === process.execPath ? 'node' : command, ...args]),
+  });
+  assert.deepEqual(calls, [
+    ['pnpm', '--filter', 'kit', 'test'],
+    ['pnpm', '--filter', 'management', 'test'],
+    ['node', 'apps/admin-web/tests/browser.mjs'],
+  ]);
+  assert.throws(() =>
+    runIncrementalToolChecks({
+      ...options,
+      plan: { ...options.plan, service_rule_sources: ['packages/unknown'] },
+    }),
+  );
+});
+
+test('management-only metadata candidates prepare a browser and build fresh UI before its mandatory gate', async (t) => {
+  const { readFileSync } = await import('node:fs');
+  const root = await mkdtemp(path.join(os.tmpdir(), 'admin-fresh-build-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const put = async (file, value) => {
+    await mkdir(path.dirname(path.join(root, file)), { recursive: true });
+    await writeFile(
+      path.join(root, file),
+      typeof value === 'string' ? value : JSON.stringify(value),
+    );
+  };
+  await put('package.json', {
+    volta: { node: process.versions.node },
+    packageManager: 'pnpm@12.6.0',
+  });
+  await put('apps/shell-web/src/standalone-games.json', '[]');
+  await put('services/management-api/package.json', {
+    name: 'management',
+    scripts: { build: 'node build.mjs', test: 'vitest run' },
+  });
+  await put('apps/admin-web/package.json', {
+    name: '@coffeeeeffoc/admin-web',
+    scripts: { build: 'node build.mjs', test: 'pnpm build && node tests/browser.mjs' },
+  });
+  await put(
+    'apps/admin-web/build.mjs',
+    "import { mkdirSync,writeFileSync } from 'node:fs';mkdirSync('dist',{recursive:true});writeFileSync('dist/index.html','fresh UI');\n",
+  );
+  const order = [];
+  const options = {
+    root,
+    incremental: true,
+    env: { MINIGAME_RELEASE_GATES: '0' },
+    selectScope: async () => ({ required: true, full: false, risk: 'metadata' }),
+    prepareBrowser: () => order.push('prepare'),
+    execute(command, args, cwd, env) {
+      if (command === 'git') return 'services/management-api/src/admin/routes.ts\0';
+      if (args[0] === '--version') return '12.6.0';
+      if (args.includes('build')) {
+        assert.ok(args.includes('--filter=@coffeeeeffoc/admin-web'));
+        order.push('build');
+        return run(process.execPath, ['build.mjs'], path.join(root, 'apps/admin-web'), env, true);
+      }
+      if (args[0] === 'apps/admin-web/tests/browser.mjs') {
+        assert.equal(
+          readFileSync(path.join(root, 'apps/admin-web/dist/index.html'), 'utf8'),
+          'fresh UI',
+        );
+        order.push('browser');
+      }
+    },
+  };
+  const plan = await validateTree(options);
+  assert.equal(plan.browser, false);
+  assert.equal(plan.admin_console_checks, true);
+  assert.deepEqual(order, ['prepare', 'build', 'browser']);
+  await assert.rejects(
+    validateTree({
+      ...options,
+      prepareBrowser: () => {
+        throw Error('admin browser unavailable');
+      },
+    }),
+    /admin browser unavailable/,
+  );
+});

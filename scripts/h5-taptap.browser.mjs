@@ -19,9 +19,10 @@ let matrixFile = path.resolve(process.env.H5_MATRIX);
 if ((await stat(matrixFile)).isDirectory()) matrixFile = path.join(matrixFile, 'matrix.json');
 const directory = path.dirname(matrixFile);
 const matrix = JSON.parse(await readFile(matrixFile, 'utf8'));
-const output = path.join(directory, 'browser');
-await mkdir(output, { recursive: true });
 const runId = Date.now().toString();
+const output = path.join(directory, 'browser', runId);
+await mkdir(output, { recursive: true });
+console.log(`H5_BROWSER_EVIDENCE ${output}`);
 const traceFile = path.join(output, `api-${runId}.ndjson`);
 const production = process.argv.includes('--production-service');
 const localRestart = process.argv.includes('--with-local-restart');
@@ -709,6 +710,9 @@ async function startMatch(a, b) {
   assert.equal(b.room.code, code);
   assert.equal(a.room.players[a.room.you].id, a.profile.playerId);
   assert.equal(b.room.players[b.room.you].id, b.profile.playerId);
+  await until(() => a.room.players.length === 2, 'Host UI receives both room profiles');
+  await screenshot(a, 'room');
+  await screenshot(b, 'room');
   await a.surface.locator('[data-ready]').tap();
   await b.surface.locator('[data-ready]').tap();
   await until(
@@ -779,11 +783,19 @@ async function playStreet(players) {
         ? state.cops
         : state.robbers.filter((item) => !item.caught && !item.escaped);
       if (actor < 0 || !targets.length) continue;
+      // Wait for this real route to finish. Clicking a moving avatar means hold,
+      // so repeated retargets near it cannot prove a planned map destination.
+      if (own[actor].moving) continue;
       const score = (point) =>
         Math.min(...targets.map((target) => Math.hypot(target.x - point.x, target.y - point.y)));
-      const nodes = [...state.map.nodes].sort((a, b) =>
-        runner ? score(b) - score(a) : score(a) - score(b),
-      );
+      const nodes = state.map.nodes
+        .filter((node) =>
+          own.every(
+            (item) =>
+              item.caught || item.escaped || Math.hypot(item.x - node.x, item.y - node.y) > 180,
+          ),
+        )
+        .sort((a, b) => (runner ? score(b) - score(a) : score(a) - score(b)));
       let sent = false;
       for (const node of nodes) {
         try {

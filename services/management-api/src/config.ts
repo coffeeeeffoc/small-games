@@ -1,7 +1,27 @@
 import { z } from 'zod';
+import { readAdminConfig } from './admin/config.js';
 
 /** Reject incomplete configuration before allocating database or object-store clients. */
 export function validateManagementEnvironment(env: Record<string, string | undefined>) {
+  if (env.MANAGEMENT_CAPABILITIES && !['admin', 'studio'].includes(env.MANAGEMENT_CAPABILITIES))
+    throw new Error('Invalid management configuration: MANAGEMENT_CAPABILITIES');
+  if (env.MANAGEMENT_CAPABILITIES === 'admin') {
+    try {
+      const url = new URL(env.MANAGEMENT_DATABASE_URL ?? '');
+      if (
+        !['postgres:', 'postgresql:'].includes(url.protocol) ||
+        decodeURIComponent(url.username) !== 'management_app'
+      )
+        throw new Error();
+    } catch {
+      throw new Error(
+        'Invalid management configuration: MANAGEMENT_DATABASE_URL (management_app required)',
+      );
+    }
+    readAdminConfig(env);
+    return;
+  }
+  if (env.ADMIN_ORIGIN) readAdminConfig(env);
   const origin = z.url().refine((value) => {
     const url = new URL(value);
     return /^https?:$/.test(url.protocol) && url.origin === value;

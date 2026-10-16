@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { validateRuntimeEnvironment } from '../src/config.js';
+import { readCompetitionCors, validateRuntimeEnvironment } from '../src/config.js';
 
 const base = { RUNTIME_DATABASE_URL: 'postgres://runtime_app:secret@localhost/runtime' };
 it('rejects configuration typos and partial capability configuration without echoing secrets', () => {
@@ -42,4 +42,49 @@ it('requires explicit competition origins and internal key in production', () =>
     }),
   ).not.toThrow();
   expect(() => validateRuntimeEnvironment(base)).not.toThrow();
+});
+it('validates the effective independent CORS policy before resources, including new-only production configuration', () => {
+  const production = {
+    ...base,
+    NODE_ENV: 'production',
+    COMPETITION_ENABLED: 'true',
+    COMPETITION_INTERNAL_KEY: 'a'.repeat(32),
+  };
+  expect(() =>
+    validateRuntimeEnvironment({
+      ...production,
+      COMPETITION_CORS_ORIGINS: 'https://public.example',
+    }),
+  ).not.toThrow();
+  expect(
+    readCompetitionCors({
+      COMPETITION_CORS_ORIGINS: 'https://public.example',
+      COMPETITION_ORIGINS: 'invalid ignored legacy',
+      ADMIN_CORS_ORIGINS: 'https://admin.nenggongzhiren.cn',
+    }).origins,
+  ).toEqual(['https://public.example']);
+  expect(readCompetitionCors({ COMPETITION_ORIGINS: 'http://localhost:8080' }).origins).toEqual([
+    'http://localhost:8080',
+  ]);
+  expect(() =>
+    validateRuntimeEnvironment({
+      ...production,
+      COMPETITION_CORS_ORIGINS: '',
+      COMPETITION_ORIGINS: 'http://localhost:8080',
+    }),
+  ).toThrow(/ORIGINS/);
+  for (const invalid of [
+    { COMPETITION_CORS_ORIGINS: 'https://*.example.com' },
+    { COMPETITION_CORS_METHODS: 'TRACE' },
+    { COMPETITION_CORS_HEADERS: '*' },
+    { COMPETITION_CORS_CREDENTIALS: 'yes' },
+    { COMPETITION_CORS_MAX_AGE: '-1' },
+  ]) {
+    expect(() => validateRuntimeEnvironment({ ...base, ...invalid })).toThrow(/configuration/);
+    try {
+      validateRuntimeEnvironment({ ...base, ...invalid });
+    } catch (error) {
+      expect(String(error)).not.toContain(Object.values(invalid)[0]);
+    }
+  }
 });

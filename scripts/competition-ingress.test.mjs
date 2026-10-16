@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { readFile, mkdtemp, rm } from 'node:fs/promises';
+import { readFile, mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -9,6 +9,8 @@ import yaml from 'js-yaml';
 import {
   validateIngress,
   renderApiCaddy,
+  renderAdminCaddy,
+  managementIngressPattern,
   renderIngressNginx,
   renderNginxCompose,
   competitionIngressPattern,
@@ -124,7 +126,8 @@ test('public paths cover registered game, identity, TCT and carrom endpoints and
     'carrom/rooms/join',
     'carrom/rooms/ABCDEF012345/shoot',
   ])
-    assert(allowed.test('/api/competition/v1/' + suffix), suffix);
+    for (const prefix of ['/small-games/v1/', '/api/competition/v1/'])
+      assert(allowed.test(prefix + suffix), prefix + suffix);
   for (const route of [
     '/health',
     '/kart',
@@ -139,7 +142,8 @@ test('public paths cover registered game, identity, TCT and carrom endpoints and
     '/api/competition/v1/boards/../internal',
     '/api/competition/v1/%69nternal',
   ])
-    assert(!allowed.test(route), route);
+    for (const candidate of [route, route.replace('/api/competition/v1/', '/small-games/v1/')])
+      assert(!allowed.test(candidate), candidate);
 });
 
 test('Caddy and Nginx keep host ports, isolate trust, sanitize forwarding and limit by the resolved client', () => {
@@ -173,6 +177,15 @@ test('Caddy and Nginx keep host ports, isolate trust, sanitize forwarding and li
   assert.match(nginx, /map \$realip_remote_addr \$competition_edge_peer/);
   assert.match(nginx, /limit_req_zone \$binary_remote_addr/);
   assert.match(nginx, /limit_req_status 429/);
+  assert(nginx.includes('rewrite ^/small-games/v1/(.*)$ /api/competition/v1/$1 break;'));
+  const gameLocation = nginx.slice(
+    nginx.indexOf('location ~ ^/(?:small-games|api/competition)/v1/'),
+  );
+  assert(
+    gameLocation.indexOf('set $competition_runtime runtime:43002;') <
+      gameLocation.indexOf('rewrite ^/small-games/v1/'),
+    'break must not skip upstream initialization',
+  );
   assert.match(nginx, /proxy_pass http:\/\/\$competition_runtime\/health\/live/);
   assert.doesNotMatch(
     nginx,
@@ -202,7 +215,21 @@ test('immutable package includes both proxy configs, a first-migration rollback 
   const folder = await mkdtemp(path.join(tmpdir(), 'competition-ingress-'));
   try {
     const target = path.join(folder, 'candidate');
-    await writeCaddyBundle(target, { ...companyConfig(), ingress }, 'a'.repeat(40), 'ingress-test');
+    const adminSite = path.join(folder, 'admin-build');
+    await mkdir(path.join(adminSite, 'assets'), { recursive: true });
+    for (const [file, body] of Object.entries({
+      'index.html': '<script src="/assets/index.js"></script>',
+      'mark.svg': '<svg/>',
+      'assets/index.js': 'console.log("fixture");',
+    }))
+      await writeFile(path.join(adminSite, file), body);
+    await writeCaddyBundle(
+      target,
+      { ...companyConfig(), ingress },
+      'a'.repeat(40),
+      'ingress-test',
+      { adminSite },
+    );
     const files = await fileHashes(target);
     for (const name of [
       'ingress.json',
@@ -211,6 +238,9 @@ test('immutable package includes both proxy configs, a first-migration rollback 
       'nginx-rollback.yaml',
       'nginx/00-legacy.conf',
       'nginx/10-competition-ingress.conf',
+      'admin-site/index.html',
+      'admin-site/mark.svg',
+      'admin-site/assets/index.js',
     ])
       assert(files[name], name);
     for (const line of (await readFile(path.join(target, 'SHA256SUMS'), 'utf8'))
@@ -223,9 +253,62 @@ test('immutable package includes both proxy configs, a first-migration rollback 
       await readFile(path.join(target, 'nginx/00-legacy.conf'), 'utf8'),
       'include /etc/nginx/legacy/*.conf;\n',
     );
+    await writeFile(path.join(adminSite, '.env'), 'PRIVATE_FIXTURE=true');
+    await assert.rejects(
+      writeCaddyBundle(
+        path.join(folder, 'rejected'),
+        { ...companyConfig(), ingress },
+        'a'.repeat(40),
+        'rejected',
+        { adminSite },
+      ),
+      /private\/debug admin asset/,
+    );
   } finally {
     await rm(folder, { recursive: true, force: true });
   }
+});
+
+test('management stays on its sole origin with finite APIs and no SPA API fallback', () => {
+  const allowed = new RegExp(managementIngressPattern);
+  for (const route of [
+    '/api/auth/github',
+    '/api/auth/github/callback',
+    '/api/session',
+    '/api/refresh',
+    '/api/logout',
+  ])
+    assert(allowed.test(route), route);
+  for (const route of [
+    '/api',
+    '/api/users',
+    '/api/auth/github/extra',
+    '/admin/api/session',
+    '/api/admin/session',
+  ])
+    assert(!allowed.test(route), route);
+  const admin = renderAdminCaddy(ingress),
+    main = renderCaddy({ ...companyConfig(), ingress });
+  assert.match(admin, /admin\.nenggongzhiren\.cn \{/);
+  assert.match(admin, /http:\/\/172\.30\.245\.3:8083/);
+  assert.match(admin, /@pages path \/ \/login\n/);
+  assert.match(admin, /status 403/);
+  assert(admin.indexOf('handle @api') < admin.indexOf('handle @pages'));
+  assert.match(main, /@removedApi path \/api \/api\/\* \/admin\/api \/admin\/api\/\*/);
+  assert(main.indexOf('respond @removedApi 404') < main.indexOf('handle @adminPage'));
+  assert.match(
+    main,
+    /handle @adminPage \{\s+route \{\s+uri strip_prefix \/admin\s+redir https:\/\/admin\.nenggongzhiren\.cn\{uri\} 302/,
+  );
+  const nginx = renderIngressNginx(ingress);
+  assert.match(nginx, /proxy_set_header X-Management-Entry admin;/);
+  assert.match(nginx, /resolver_timeout 2s;/);
+  assert.match(nginx, /error_log \/dev\/null crit;/);
+  assert.match(nginx, /error_page 502 503 504 =503 @management_unavailable;/);
+  assert.match(
+    nginx,
+    /location @management_unavailable \{ return 503 '\{"error":"temporarily_unavailable"\}'; \}/,
+  );
 });
 
 test('legacy deployment guards run before mutation and recheck after acquiring the game lock', async () => {

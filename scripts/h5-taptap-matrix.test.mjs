@@ -63,6 +63,7 @@ function fixture(production) {
   };
 }
 test('local acceptance requires exactly twelve variants; formal acceptance requires exact six HTTPS service variants', () => {
+  assert.equal(productionCompetitionApi, 'https://api.nenggongzhiren.cn/small-games/v1');
   assert.equal(matrixContract(fixture(false)).port, 43810);
   assert.deepEqual(matrixContract(fixture(true), { production: true }), {
     api: productionCompetitionApi,

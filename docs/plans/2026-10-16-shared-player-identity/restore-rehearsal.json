@@ -1,0 +1,25 @@
+{
+  "completedAt": "2026-10-16T05:56:26.176Z",
+  "sourceContainer": "small-games-h5-matrix-20261015",
+  "sourceContainerUnchanged": true,
+  "cachedImage": "sha256:d741b376874687de90374fd34f55c6b2760e8f7bd7e4ae5cd47f50757fc08cf8",
+  "isolatedContainer": "small-games-identity-restore-1792130173555",
+  "isolatedNetwork": "none",
+  "hostPorts": [],
+  "backupSHA256": "a082674de0aa8a60f053982e8a72c34ad1b47c75f2627b544b52b079169d6a96",
+  "originalRowsSchemaOwnersAndCanonicalAclRestored": true,
+  "existingCompleteStateResume": true,
+  "pre013MigrationTwice": true,
+  "malformedStatesRejected": 7,
+  "columnAclProbeDetected": true,
+  "sourceBefore": {
+    "id": "f4ffa1154802cd8b43170433b3336cb088ad375f9ae5a077c8bbd0d6548f04d5",
+    "mounts": "[{\"Type\":\"volume\",\"Name\":\"small-games-h5-matrix-20261015\",\"Source\":\"/var/lib/docker/volumes/small-games-h5-matrix-20261015/_data\",\"Destination\":\"/var/lib/postgresql/data\",\"Driver\":\"local\",\"Mode\":\"z\",\"RW\":true,\"Propagation\":\"\"}]",
+    "ports": "{\"5432/tcp\":[{\"HostIp\":\"127.0.0.1\",\"HostPort\":\"15439\"}]}"
+  },
+  "sourceAfter": {
+    "id": "f4ffa1154802cd8b43170433b3336cb088ad375f9ae5a077c8bbd0d6548f04d5",
+    "mounts": "[{\"Type\":\"volume\",\"Name\":\"small-games-h5-matrix-20261015\",\"Source\":\"/var/lib/docker/volumes/small-games-h5-matrix-20261015/_data\",\"Destination\":\"/var/lib/postgresql/data\",\"Driver\":\"local\",\"Mode\":\"z\",\"RW\":true,\"Propagation\":\"\"}]",
+    "ports": "{\"5432/tcp\":[{\"HostIp\":\"127.0.0.1\",\"HostPort\":\"15439\"}]}"
+  }
+}

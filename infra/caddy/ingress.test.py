@@ -209,6 +209,76 @@ class IngressTests(unittest.TestCase):
             self.assertNotIn('-p',event)
             self.assertNotIn('company-web_caddy_data',' '.join(event))
         self.assertIn('runtime:127.0.0.1',validators[1])
+        self.assertIn('net.ipv4.ip_nonlocal_bind=1',validators[1])
+        self.assertNotIn('--sysctl',validators[0])
+        for event in validators:
+            self.assertNotIn('--privileged',event)
+            self.assertNotIn('--cap-add',event)
+
+    def test_public_acceptance_covers_canonical_routes_admin_assets_and_unavailable_backend(self):
+        site = self.target / 'admin-site'
+        (site / 'assets').mkdir(parents=True)
+        html = '<div id="root"></div><script src="/assets/index.js"></script>'
+        (site / 'index.html').write_text(html)
+        (site / 'assets/index.js').write_text('console.log("fixture");')
+        seen = []
+        broken = set()
+        management_status = 503
+        def fetch(host, path, *args):
+            seen.append((host, path, args))
+            if host == ingress.ADMIN_DOMAIN and path == '/':
+                return html
+            if path == '/release.json':
+                return '{"company":"unchanged"}'
+            if path == '/health':
+                return '{"service":"runtime","status":"ok"}'
+            if '%{http_code}' in args:
+                return '403' if 'Origin: https://unapproved-origin.invalid' in args else '404'
+            if '/leaderboards/versus' in path:
+                game = path.split('/games/')[1].split('/')[0]
+                return json.dumps({'game':game, 'boardType':'versus', 'top':[]})
+            if '/games/' in path:
+                game = path.split('/games/')[1].split('?')[0]
+                return json.dumps({'game':game, 'capabilities':{'multiplayer':True}})
+            raise AssertionError((host, path))
+        def read_response(host, path, *args):
+            seen.append((host, path, args))
+            if (host, path) in broken:
+                return 500, {}, ''
+            if host == 'nenggongzhiren.cn' and path == '/admin/login?a=1&a=2&next=%2F':
+                return 302, {'location':f'https://{ingress.ADMIN_DOMAIN}/login?a=1&a=2&next=%2F'}, ''
+            if host == ingress.ADMIN_DOMAIN:
+                if path in ('/', '/login', '/forbidden'):
+                    return (403 if path == '/forbidden' else 200), {'cache-control':'no-store'}, html
+                if path == '/assets/index.js':
+                    return 200, {}, 'console.log("fixture");'
+                if path == '/api/session':
+                    error = 'temporarily_unavailable' if management_status == 503 else 'authentication_required'
+                    return management_status, {'content-type':'application/json'}, json.dumps({'error':error})
+            if host == ingress.DOMAIN:
+                if 'OPTIONS' in args:
+                    self.assertIn('Origin: http://localhost:8080', args)
+                    return 204, {'access-control-allow-origin':'http://localhost:8080'}, ''
+                if '/me' in path:
+                    if 'POST' in args:
+                        self.assertEqual(json.loads(args[-1]), {'nickname':'Ingress probe'})
+                    return 401, {'content-type':'application/json'}, '{"error":"SESSION_EXPIRED"}'
+            return 404, {}, ''
+        with patch.object(ingress, '__file__', str(self.target / 'ingress.py')), patch.object(ingress, 'curl', side_effect=fetch), patch.object(ingress, 'response', side_effect=read_response):
+            result = ingress.verify_public(self.config, 'nenggongzhiren.cn', 'www.nenggongzhiren.cn', '{"company":"unchanged"}')
+            self.assertEqual(result['management'], 'unavailable')
+            self.assertFalse(result['realGithubLoginVerified'])
+            self.assertEqual(result['gamePrefixes'], ['/small-games/v1', '/api/competition/v1'])
+            management_status = 401
+            self.assertEqual(ingress.verify_public(self.config, 'nenggongzhiren.cn', 'www.nenggongzhiren.cn', '{"company":"unchanged"}')['management'], 'anonymous-session-only')
+            for failing in ((ingress.DOMAIN, '/small-games/v1/me'), (ingress.ADMIN_DOMAIN, '/login'), (ingress.ADMIN_DOMAIN, '/assets/index.js')):
+                broken.add(failing)
+                with self.assertRaises(RuntimeError):
+                    ingress.verify_public(self.config, 'nenggongzhiren.cn', 'www.nenggongzhiren.cn', '{"company":"unchanged"}')
+                broken.clear()
+        for prefix in ('/small-games/v1', '/api/competition/v1'):
+            self.assertTrue(any(path == prefix + '/me?probe=body' and 'POST' in args for _, path, args in seen))
+            self.assertTrue(any(path.startswith(prefix + '/games/') and 'repeat=one&repeat=two' in path for _, path, _ in seen))
 
 
 if __name__ == '__main__':

@@ -23,6 +23,9 @@
     try {
       endpoint = new root.URL(base, root.location?.href).href.replace(/\/$/, '');
     } catch {}
+    // These two reviewed HTTPS routes reach the same service; keep existing scoped identities.
+    if (endpoint === 'https://api.nenggongzhiren.cn/small-games/v1')
+      endpoint = 'https://api.nenggongzhiren.cn/api/competition/v1';
     const authority = `${endpoint}|${provider}|${provider === 'h5' ? '' : config.appId || ''}`;
     const key = `competition-session-v2:${encodeURIComponent(authority)}`;
     const installationKey = `competition-installation-v1:${encodeURIComponent(endpoint)}`;

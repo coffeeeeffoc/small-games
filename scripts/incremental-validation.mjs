@@ -162,6 +162,9 @@ export function incrementalPlan({
     ...competition.consumer_sources.map((dir) => dir + '/package.json'),
     ...scopedConsumers.map((dir) => dir + '/package.json'),
   ]);
+  const adminConsoleChecks = affected.some((pkg) =>
+    ['apps/admin-web', 'services/management-api'].includes(pkg.dir),
+  );
   const directGames = games.filter((game) =>
     h5Paths.some((file) => file === game.source || file.startsWith(game.source + '/')),
   );
@@ -252,6 +255,7 @@ export function incrementalPlan({
     ...(hasVitePatch(paths, fileScopes) ? { vite_patch: true } : {}),
     browser: ids.size > 0,
     browser_ids: [...ids].sort(),
+    admin_console_checks: adminConsoleChecks,
     game_sources: selected.map((game) => game.source),
     pages_deploy: paths.some((file) => pagesDeployScopePaths.includes(file)),
     validation_tools: paths.some(
@@ -277,6 +281,7 @@ export function incrementalPlan({
         ...competition.consumer_sources,
         ...scopedConsumers,
         ...nativeConsumers.map((consumer) => consumer.dir),
+        ...(adminConsoleChecks ? ['apps/admin-web'] : []),
         ...(devModeIds.length ? ['apps/shell-web'] : []),
       ]),
     ],
@@ -348,12 +353,10 @@ export function incrementalPlan({
     service_rule_sources: [
       'services/runtime-api',
       'services/management-api',
+      'packages/service-kit',
       'packages/ad-runtime',
       'platforms/douyin',
-    ].filter(
-      (source) =>
-        scopedConsumers.includes(source) || paths.some((file) => file.startsWith(source + '/')),
-    ),
+    ].filter((source) => affected.some((pkg) => pkg.dir === source)),
   };
 }
 

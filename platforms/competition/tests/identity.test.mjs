@@ -136,6 +136,48 @@ test('authority scope isolates endpoints and platform AppIDs and survives duplic
   assert.notEqual(a.storageKey, b.storageKey);
 });
 
+test('approved canonical and legacy HTTPS routes retain one scoped identity across reload and refresh', async () => {
+  const endpoints = [
+    'https://api.nenggongzhiren.cn/api/competition/v1',
+    'https://api.nenggongzhiren.cn/small-games/v1',
+  ];
+  for (const firstUrl of endpoints) {
+    const first = fixture({ config: { apiUrl: firstUrl } });
+    const alias = first.context.__createCompetitionIdentity({
+      ...first.options,
+      config: { apiUrl: endpoints.find((url) => url !== firstUrl) },
+    });
+    assert.equal(alias, first.auth);
+    const [a, b] = await Promise.all([first.auth.current(), alias.current()]);
+    assert.equal(a, b);
+    assert.equal(first.calls.length, 1);
+    const reload = fixture({
+      storage: first.storage,
+      config: { apiUrl: endpoints.find((url) => url !== firstUrl) },
+    });
+    assert.equal((await reload.auth.current()).userId, id);
+    assert.equal(reload.calls.length, 0);
+    reload.save({ ...a, expiresAt: 0 });
+    assert.equal((await reload.auth.current()).userId, id);
+    assert.equal(reload.calls[0].path, '/sessions/refresh');
+    assert.equal(reload.calls[0].owner, null);
+    for (const apiUrl of [
+      'https://other.nenggongzhiren.cn/small-games/v1',
+      'http://api.nenggongzhiren.cn/small-games/v1',
+      'https://api.nenggongzhiren.cn/small-games/v2',
+      'https://api.nenggongzhiren.cn/other/v1',
+      'https://api.nenggongzhiren.cn/small-games/v1?tenant=other',
+    ]) {
+      const other = fixture({ storage: first.storage, config: { apiUrl } });
+      assert.notEqual(other.auth.storageKey, first.auth.storageKey);
+      assert.equal(other.auth.saved(), null);
+      await other.auth.current();
+      assert.equal(other.calls[0].path, '/sessions/guest');
+      assert.equal(other.calls[0].owner, null);
+    }
+  }
+});
+
 test('legacy migration needs known API authority and never probes a new API with an old bearer', async () => {
   for (const proven of [false, true]) {
     const f = fixture({

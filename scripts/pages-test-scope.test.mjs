@@ -798,6 +798,7 @@ test('known documentation and separate applications skip Pages', () => {
     'games/local/echo-lab/docs/screenshots/mobile.png',
     '.agents/instructions.md',
     'apps/studio-web/src/index.ts',
+    'apps/admin-web/src/main.tsx',
     'apps/shell-android/build.gradle',
     'apps/shell-minigame/src/main.ts',
     'services/runtime-api/src/main.ts',
@@ -1516,5 +1517,77 @@ test('TapTap platform files have no Pages consumer while an unknown platform rem
   assert.equal(
     selectPagesScope({ ...context, changedPaths: ['platforms/unreviewed/build.mjs'] }).full,
     true,
+  );
+});
+
+test('accurate base/head admin lock additions select only admin checks and block unknown lock/infra deltas', async (t) => {
+  const { root, git } = await temporaryRepository(t);
+  const lock = 'pnpm-lock.yaml';
+  const baseline = execFileSync(
+    'git',
+    ['show', '6e9c1f7246090c7009e9519a8cda6e8efab956d5:' + lock],
+    {
+      cwd: new URL('../', import.meta.url),
+      encoding: 'utf8',
+    },
+  );
+  const current = readFileSync(new URL('../' + lock, import.meta.url), 'utf8').replaceAll(
+    '\r\n',
+    '\n',
+  );
+  const manifest = readFileSync(new URL('../apps/admin-web/package.json', import.meta.url), 'utf8');
+  await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });
+  await writeFile(path.join(root, 'apps/shell-web/src/standalone-games.json'), '[]');
+  await writeFile(path.join(root, 'package.json'), '{"private":true}');
+  await writeFile(path.join(root, lock), baseline);
+  git('add', '.');
+  git('commit', '-m', 'base');
+  const base = git('rev-parse', 'HEAD');
+  await mkdir(path.join(root, 'apps/admin-web'), { recursive: true });
+  await writeFile(path.join(root, 'apps/admin-web/package.json'), manifest);
+  await writeFile(path.join(root, lock), current);
+  git('add', '.');
+  git('commit', '-m', 'admin addition');
+  const head = git('rev-parse', 'HEAD');
+  const env = {
+    PAGES_DIFF_BASE: base,
+    PAGES_VALIDATED_BASE: base,
+    PAGES_DIFF_HEAD: head,
+    GITHUB_EVENT_NAME: 'push',
+    GITHUB_REF_NAME: 'dev',
+    VALIDATION_RISK_PLAN: 'true',
+  };
+  const selected = await main(env, root);
+  assert.equal(selected.diff_base, base);
+  assert.equal(selected.diff_head, head);
+  assert.equal(selected.full, false);
+  assert.equal(selected.cocos, false);
+  assert.equal(selected.browser, false);
+  assert.deepEqual(selected.browser_ids, []);
+  assert.equal(selected.admin_console_checks, true);
+  assert.deepEqual(selected.consumer_sources, ['apps/admin-web']);
+  await writeFile(path.join(root, lock), current + '\n');
+  git('add', '.');
+  git('commit', '-m', 'unknown lock byte');
+  await assert.rejects(
+    main({ ...env, PAGES_DIFF_HEAD: git('rev-parse', 'HEAD') }, root),
+    /scope undefined/,
+  );
+  await writeFile(path.join(root, lock), current);
+  await mkdir(path.join(root, 'infra/admin-console'), { recursive: true });
+  await writeFile(path.join(root, 'infra/admin-console/unknown.sql'), 'select 1;');
+  git('add', '.');
+  git('commit', '-m', 'unknown infrastructure');
+  await assert.rejects(
+    main(
+      {
+        ...env,
+        PAGES_DIFF_BASE: head,
+        PAGES_VALIDATED_BASE: head,
+        PAGES_DIFF_HEAD: git('rev-parse', 'HEAD'),
+      },
+      root,
+    ),
+    /scope undefined/,
   );
 });

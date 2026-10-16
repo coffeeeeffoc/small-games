@@ -1,5 +1,22 @@
 import { z } from 'zod';
 import { BlockList, isIP } from 'node:net';
+import { readCorsPolicy } from '@coffeeeeffoc/service-kit';
+
+export function readCompetitionCors(env: Record<string, string | undefined>) {
+  return readCorsPolicy(
+    {
+      ...env,
+      COMPETITION_CORS_ORIGINS: env.COMPETITION_CORS_ORIGINS ?? env.COMPETITION_ORIGINS ?? '',
+    },
+    'COMPETITION_CORS',
+    {
+      origins: [],
+      methods: ['GET', 'POST', 'OPTIONS'],
+      headers: ['authorization', 'content-type'],
+      credentials: false,
+    },
+  );
+}
 
 const origin = z.url().refine((value) => {
   const url = new URL(value);
@@ -36,8 +53,14 @@ export function validateRuntimeEnvironment(env: Record<string, string | undefine
     invalid.add('RELEASE_PROJECTION_TOKEN / ARTIFACT_TRUSTED_PUBLIC_KEY');
   if (!!env.SHELL_ORIGIN !== !!env.ARTIFACT_DELIVERY_URL)
     invalid.add('SHELL_ORIGIN / ARTIFACT_DELIVERY_URL');
-  const origins = (env.COMPETITION_ORIGINS ?? '').split(',').filter(Boolean);
-  if (origins.some((value) => !origin.safeParse(value).success)) invalid.add('COMPETITION_ORIGINS');
+  let hasOrigins = false;
+  try {
+    hasOrigins = readCompetitionCors(env).origins.length > 0;
+  } catch {
+    invalid.add(
+      'COMPETITION_CORS_ORIGINS / COMPETITION_CORS_METHODS / COMPETITION_CORS_HEADERS / COMPETITION_CORS_CREDENTIALS / COMPETITION_CORS_MAX_AGE / COMPETITION_ORIGINS',
+    );
+  }
   if (env.COMPETITION_PLATFORM_CONFIG) {
     try {
       const platforms: unknown = JSON.parse(env.COMPETITION_PLATFORM_CONFIG);
@@ -48,7 +71,7 @@ export function validateRuntimeEnvironment(env: Record<string, string | undefine
   }
   if (env.NODE_ENV === 'production' && env.COMPETITION_ENABLED === 'true') {
     if (!env.COMPETITION_INTERNAL_KEY) invalid.add('COMPETITION_INTERNAL_KEY');
-    if (!origins.length) invalid.add('COMPETITION_ORIGINS');
+    if (!hasOrigins) invalid.add('COMPETITION_CORS_ORIGINS / COMPETITION_ORIGINS');
   }
   if (invalid.size) throw new Error(`Invalid runtime configuration: ${[...invalid].join(', ')}`);
 }

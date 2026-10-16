@@ -24,6 +24,7 @@ import {
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const GAME_SOURCE = /^games\/(?:local|submodules)\/[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const NON_PAGES_APPS = new Set([
+  'admin-web',
   'company-web',
   'shell-android',
   'shell-bilibili',

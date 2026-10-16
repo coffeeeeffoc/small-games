@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="zh-CN">
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  /><title>Small Games · 后管视觉预览</title
+  ><style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      color: #172126;
+      background: #f6f7f2;
+      font-family: Inter, 'Segoe UI', 'Microsoft Yahei', sans-serif;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 28px 5vw;
+      border-bottom: 1px solid #dce0d8;
+    }
+    .brand {
+      font-weight: 850;
+      letter-spacing: -0.7px;
+      font-size: 22px;
+    }
+    .logo {
+      display: inline-grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      margin-right: 10px;
+      border-radius: 12px;
+      background: #214ee8;
+      color: white;
+      transform: rotate(-8deg);
+    }
+    small {
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: #53635f;
+    }
+    main {
+      padding: 5vw;
+      display: grid;
+      gap: 30px;
+    }
+    article {
+      min-height: 550px;
+      background: #fff;
+      border: 1px solid #dce0d8;
+      border-radius: 32px;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 1.12fr 1fr;
+      box-shadow: 0 20px 60px #1e354009;
+    }
+    .copy {
+      padding: 64px 54px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    .eyebrow {
+      font-size: 12px;
+      letter-spacing: 2px;
+      font-weight: 700;
+      color: #53635f;
+    }
+    .tag {
+      font-size: 12px;
+      padding: 8px 12px;
+      border: 1px solid #dce0d8;
+      border-radius: 30px;
+    }
+    h1 {
+      font-size: clamp(40px, 4.6vw, 68px);
+      line-height: 1.12;
+      letter-spacing: -3px;
+      margin: 25px 0;
+    }
+    h1 em {
+      font-style: normal;
+      color: #214ee8;
+    }
+    p {
+      font-size: 15px;
+      line-height: 1.9;
+      color: #53635f;
+      max-width: 32em;
+    }
+    button {
+      font: inherit;
+      font-weight: 700;
+      background: #214ee8;
+      color: white;
+      padding: 16px 28px;
+      border: 0;
+      border-radius: 16px;
+      margin: 22px 0;
+    }
+    button:focus-visible {
+      outline: 3px solid #172126;
+      outline-offset: 5px;
+    }
+    .art {
+      position: relative;
+      background: #f5f4cc;
+      display: grid;
+      place-items: center;
+      isolation: isolate;
+      overflow: hidden;
+    }
+    .orb {
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      border: 46px solid #214ee8;
+      box-shadow:
+        inset 0 0 0 2px #fff,
+        12px 18px 0 #14236b22;
+      transform: rotate(-20deg);
+    }
+    .orb:before {
+      content: '';
+      display: block;
+      width: 180px;
+      height: 110px;
+      background: #ff8369;
+      transform: translate(110px, -90px) rotate(45deg);
+      border-radius: 24px;
+      border: 7px solid white;
+    }
+    .orb:after {
+      content: '✦';
+      position: absolute;
+      color: #172126;
+      font-size: 85px;
+      top: 120px;
+      left: -40px;
+    }
+    .dot {
+      position: absolute;
+      width: 74px;
+      height: 74px;
+      background: #60d5b0;
+      border: 7px solid white;
+      border-radius: 50%;
+      left: 12%;
+      bottom: 18%;
+    }
+    .caption {
+      position: absolute;
+      bottom: 36px;
+      left: 38px;
+      font-size: 11px;
+      letter-spacing: 3px;
+    }
+    .welcome {
+      background: #d8f0e5;
+    }
+    .denied {
+      background: #ffe4dc;
+    }
+    .denied .orb {
+      border-color: #f1846d;
+    }
+    .denied .orb:before {
+      background: #214ee8;
+    }
+    .big-code {
+      position: absolute;
+      font-size: 64px;
+      font-weight: 900;
+      letter-spacing: -4px;
+    }
+    .note {
+      font-size: 12px;
+      color: #53635f;
+      margin-top: 14px;
+    }
+    .foot {
+      padding: 12px 5vw 36px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #53635f;
+    }
+    @media (max-width: 650px) {
+      header {
+        padding: 20px;
+      }
+      .copy {
+        padding: 34px 26px;
+      }
+      article {
+        grid-template-columns: 1fr;
+      }
+      .art {
+        min-height: 300px;
+        grid-row: 1;
+      }
+      .orb {
+        scale: 0.7;
+      }
+      h1 {
+        letter-spacing: -2px;
+      }
+      .foot {
+        padding: 20px;
+      }
+      main {
+        padding: 20px;
+      }
+    }
+  </style>
+  <header>
+    <div class="brand"><span class="logo">s.</span>small games <small> / ADMIN</small></div>
+    <span class="tag">视觉预览 · 01</span>
+  </header>
+  <main>
+    <article>
+      <div class="copy">
+        <span class="eyebrow">SMALL GAMES, BIG IDEAS.</span>
+        <h1>让好玩的灵感，<br /><em>从这里出发。</em></h1>
+        <p>欢迎来到小游戏管理空间。<br />用你的 GitHub 账号，开启今天的创造。</p>
+        <button>◉　使用 GitHub 继续　↗</button><span class="note">仅向已获授权的成员开放</span>
+      </div>
+      <div class="art">
+        <div class="orb"></div>
+        <div class="dot"></div>
+        <span class="caption">A LITTLE PLAY. A LOT OF POSSIBILITY.</span>
+      </div>
+    </article>
+    <article>
+      <div class="copy">
+        <span class="eyebrow">YOUR SPACE, READY.</span>
+        <h1>欢迎回来，<br /><em>创造者。</em></h1>
+        <p>灵感已就位，今天也让好玩发生。<br />这里是你的小游戏管理空间。</p>
+        <span class="tag">✓　已通过 GitHub 验证</span><button>退出登录　↗</button>
+      </div>
+      <div class="art welcome">
+        <div class="orb"></div>
+        <div class="dot"></div>
+        <span class="caption">MAKE ROOM FOR SOMETHING GOOD.</span>
+      </div>
+    </article>
+    <article>
+      <div class="copy">
+        <span class="eyebrow">403 · MEMBERS ONLY</span>
+        <h1>这片空间，<br /><em>还没为你开放。</em></h1>
+        <p>你的 GitHub 账号尚未获得访问权限。<br />可以换一个账号，或联系管理员。</p>
+        <button>换个 GitHub 账号　↗</button
+        ><span class="note">已完成身份验证，尚未获得管理权限</span>
+      </div>
+      <div class="art denied">
+        <div class="orb"></div>
+        <div class="dot"></div>
+        <div class="big-code">403</div>
+        <span class="caption">A SMALL PAUSE BEFORE THE NEXT PLAY.</span>
+      </div>
+    </article>
+  </main>
+  <div class="foot"><span>© SMALL GAMES</span><span>登录 / 欢迎 / 403 · 实现前设计参考</span></div>
+</html>
