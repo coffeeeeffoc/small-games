@@ -5,7 +5,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { registerCors } from '@coffeeeeffoc/service-kit';
 import { isAdminRequest, type AdminConfig } from './config.js';
 import type { AdminSession, AdminStore } from './store.js';
-import type { GithubProvider } from './github.js';
+import { GithubIdentityError, type GithubProvider } from './github.js';
 
 const random = () => randomBytes(32).toString('base64url');
 export const adminHash = (value: string) => createHash('sha256').update(value).digest('hex');
@@ -143,23 +143,38 @@ export async function registerAdminAuthentication(
             !config.clientSecret
           )
             return reply.redirect(landing('/login?error=expired'));
+          let phase: 'identify' | 'session_revoke' | 'session_write' | 'session_cookie' =
+            'identify';
           try {
             const identity = await github.identify(query.code, flow.verifier, callback);
+            phase = 'session_revoke';
             reply.clearCookie(sessionCookie, options);
             const old = request.cookies[sessionCookie];
             if (old && tokenPattern.test(old)) await store.deleteSession(adminHash(old));
             const email = identity.emails.find((value) => config.allowlist.has(value));
             if (!email) return reply.redirect(landing('/forbidden'));
             const token = random();
+            phase = 'session_write';
             await store.putSession(adminHash(token), {
               githubId: identity.githubId,
               login: identity.login,
               email,
               expiresAt: now() + 8 * 3600_000,
             });
+            phase = 'session_cookie';
             reply.setCookie(sessionCookie, token, { ...options, maxAge: 8 * 3600 });
             return reply.redirect(landing('/'));
-          } catch {
+          } catch (error) {
+            routes.log.warn(
+              {
+                code: 'ADMIN_GITHUB_CALLBACK_FAILED',
+                phase,
+                ...(error instanceof GithubIdentityError && phase === 'identify'
+                  ? { stage: error.stage, reason: error.reason, status: error.status }
+                  : {}),
+              },
+              'Admin GitHub callback failed',
+            );
             return reply.redirect(landing('/login?error=unavailable'));
           }
         },
