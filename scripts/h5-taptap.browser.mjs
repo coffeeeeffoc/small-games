@@ -398,6 +398,7 @@ try {
       requests: [],
       errors: [],
       apiFailures: [],
+      responseTasks: new Set(),
       terminalRejections: [],
       inputRejections: [],
       expectedTouch: null,
@@ -542,7 +543,11 @@ try {
         if (!player.closing || expected) player.errors.push(safeFailure(error));
       });
       pending.add(task);
-      void task.finally(() => pending.delete(task));
+      player.responseTasks.add(task);
+      void task.finally(() => {
+        pending.delete(task);
+        player.responseTasks.delete(task);
+      });
     });
     await page.goto(gameUrl(variant), { waitUntil: 'networkidle' });
     await page.locator('body').waitFor({ state: 'visible' });
@@ -728,6 +733,11 @@ try {
       'Online entry finishes loading',
     );
   }
+  async function assertPlayerHealthy(player) {
+    while (player.responseTasks.size) await Promise.all([...player.responseTasks]);
+    assert.deepEqual(player.errors, [], 'Unhandled page or network error');
+    assert.deepEqual(player.apiFailures, [], 'Unexpected HTTP rejection');
+  }
   async function retainDocument(player) {
     player.documentId = await player.page.evaluate(
       () => (globalThis.__h5AcceptanceDocumentId ??= crypto.randomUUID()),
@@ -743,7 +753,6 @@ try {
     await page.locator('#levels-button').tap();
     await page.locator('[data-choice-for="mode-select"][data-value="challenge"]').tap();
     await page.locator('[data-choice-for="role-select"][data-value="cop"]').tap();
-    await page.locator('[data-choice-for="initiative-select"][data-value="first"]').tap();
     await page.locator('#start-button').tap();
     await until(
       async () => (await streetSnapshot(player)).phase === 'playing',
@@ -753,7 +762,7 @@ try {
     assert.match(player.soloAdmission?.admissionId, /^[a-f0-9-]{36}$/);
     player.profile = await page.evaluate(() => globalThis.__competition.request('/me'));
     const order = async (command) => {
-      await page.locator('.cop-card').nth(command.actor).tap();
+      await page.locator(`#cop-roster button[data-member="${command.actor}"]`).tap();
       const point = await page.evaluate(
         async (target) =>
           (await import(new URL('./src/main.js', location.href).href)).worldToScreen(target),
@@ -762,6 +771,10 @@ try {
       await page.touchscreen.tap(point.x, point.y);
     };
     const initial = await streetSnapshot(player);
+    assert.equal(initial.mode, 'challenge');
+    assert.equal(initial.role, 'cop');
+    assert.equal(initial.level, 1);
+    assert.equal(initial.firstRole, null);
     for (const guard of soloStreetPlan(initial).guards) await order(guard);
     const deadline = Date.now() + 90000;
     let actions = 0;
@@ -790,6 +803,10 @@ try {
       player.soloAdmission.admissionId,
     );
     const original = player.soloSubmission;
+    assert.equal(
+      new URL(original.path, 'http://qa.invalid').searchParams.get('first'),
+      'simultaneous',
+    );
     const duplicate = await page.evaluate(
       ({ path, body }) => globalThis.__competition.request(path, { body: JSON.stringify(body) }),
       original,
@@ -799,13 +816,18 @@ try {
     await page.locator('#win-dialog [data-home]').tap();
     await page.locator('#records-button').tap();
     await until(() => player.soloBoard?.personalMs > 0, 'UI receives own persisted solo standing');
-    assert(player.soloBoard.top.some((row) => row.userId === player.profile.userId));
+    assert(Number.isFinite(player.soloBoard.personalMs));
+    assert.equal(player.soloBoard.personalMs, original.result.personalMs);
+    const ownStanding = player.soloBoard.top.find((row) => row.userId === player.profile.userId);
+    if (ownStanding) assert.equal(ownStanding.elapsedMs, original.result.personalMs);
     await screenshot(player, 'natural-solo-board');
+    await assertPlayerHealthy(player);
     const proof = { player, submission: original, board: player.soloBoard };
     if (localRestart) {
       solos.push(proof);
       await retainDocument(player);
     } else {
+      player.closing = true;
       await player.context.close();
       contexts.delete(player.context);
     }
@@ -1305,8 +1327,8 @@ try {
           player.requests.filter((request) => request.path.endsWith('/sessions/guest')).length,
           guestCount,
         );
-        assert.deepEqual(player.errors, []);
-        assert.deepEqual(player.apiFailures, []);
+        await assertPlayerHealthy(player);
+        player.closing = true;
         await player.context.close();
         contexts.delete(player.context);
       }
@@ -1338,11 +1360,12 @@ try {
         (path) => globalThis.__competition.request(path),
         boardUrl.pathname + boardUrl.search,
       );
-      assert.equal(
-        saved.top.find((row) => row.userId === player.profile.userId)?.elapsedMs,
-        board.top.find((row) => row.userId === player.profile.userId)?.elapsedMs,
-      );
+      const ownStanding = saved.top.find((row) => row.userId === player.profile.userId);
+      if (ownStanding) assert.equal(ownStanding.elapsedMs, submission.result.personalMs);
       assert.equal(saved.personalMs, board.personalMs);
+      assert.equal(saved.personalMs, submission.result.personalMs);
+      await assertPlayerHealthy(player);
+      player.closing = true;
       await player.context.close();
       contexts.delete(player.context);
     }
@@ -1518,8 +1541,7 @@ try {
         }
         await Promise.all([...pending]);
         for (const player of players) {
-          assert.deepEqual(player.errors, [], 'Unhandled page or network error');
-          assert.deepEqual(player.apiFailures, [], 'Unexpected HTTP rejection');
+          await assertPlayerHealthy(player);
         }
         if (localRestart && variant.serviceEnabled) {
           for (const player of players) {

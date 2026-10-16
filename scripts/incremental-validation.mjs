@@ -28,6 +28,7 @@ import {
   adminCspScopePaths,
   backendDeploymentScopePaths,
   backendSharedScopePaths,
+  imageAuthorityScopePaths,
   runtimeProxyDefaultScopePaths,
   publicationConfigScopePaths,
   mobileViewportScopeFile,
@@ -292,6 +293,9 @@ export function incrementalPlan({
         (file === 'package.json' && fileScopes.get(file)?.includes('services/tianxia-server')),
     )
       ? { backend_deployment_checks: true }
+      : {}),
+    ...(paths.some((file) => imageAuthorityScopePaths.includes(file))
+      ? { image_authority_checks: true }
       : {}),
     game_sources: selected.map((game) => game.source),
     pages_deploy: paths.some((file) => pagesDeployScopePaths.includes(file)),

@@ -1404,6 +1404,15 @@ export const backendDeploymentScopePaths = [
   'infra/backend-update/deploy.py',
   'infra/backend-update/deploy.test.py',
 ];
+export const imageAuthorityScopePaths = [
+  'infra/deployment/image-authority.py',
+  'infra/deployment/image-authority.test.py',
+];
+export const imageAuthorityConsumers = [
+  'services/runtime-api',
+  'services/kart-server',
+  'services/management-api',
+];
 export const backendSharedScopePaths = [
   'scripts/backend-build.mjs',
   'scripts/deploy-admin.mjs',
@@ -1806,6 +1815,11 @@ export function reviewedSharedFileScopes({
           1,
         );
         scopes.set(file, ['apps/admin-web']);
+        continue;
+      }
+      if (imageAuthorityScopePaths.includes(file)) {
+        for (const dir of imageAuthorityConsumers) assert(packages.some((pkg) => pkg.dir === dir));
+        scopes.set(file, imageAuthorityConsumers);
         continue;
       }
       if (backendDeploymentScopePaths.includes(file)) {

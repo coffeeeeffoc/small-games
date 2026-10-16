@@ -599,7 +599,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
     );
   if (plan.company_deployment_checks)
     execute(process.execPath, ['--test', 'scripts/deploy-company.test.mjs'], root, env, 'logged');
-  if (plan.backend_deployment_checks)
+  if (plan.backend_deployment_checks || plan.image_authority_checks)
     execute(process.execPath, ['--test', 'scripts/deploy-backend.test.mjs'], root, env, 'logged');
   if (plan.admin_deployment_checks)
     execute(process.execPath, ['--test', 'scripts/deploy-admin.test.mjs'], root, env, 'logged');

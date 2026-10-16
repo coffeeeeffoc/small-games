@@ -1922,3 +1922,31 @@ test('backend contracts execute independently and failure blocks candidate valid
     /backend canary/,
   );
 });
+
+test('shared authority helper contracts run once even alongside backend deployment checks', () => {
+  for (const plan of [
+    { image_authority_checks: true },
+    { image_authority_checks: true, backend_deployment_checks: true },
+  ]) {
+    const calls = [];
+    const options = {
+      plan: { ...plan, native_consumers: [], developer_mode_ids: [] },
+      packages: [],
+      root: '/fixture',
+      env: {},
+      execute: (program, args) => calls.push([program, ...args]),
+    };
+    runIncrementalToolChecks(options);
+    assert.deepEqual(calls, [[process.execPath, '--test', 'scripts/deploy-backend.test.mjs']]);
+    assert.throws(
+      () =>
+        runIncrementalToolChecks({
+          ...options,
+          execute() {
+            throw Error('authority canary');
+          },
+        }),
+      /authority canary/,
+    );
+  }
+});

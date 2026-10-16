@@ -52,9 +52,23 @@ export const adminFailures = new Set([
   'SERVICE_NOT_RUNNING',
   'SCHEMA_CHANGED',
   'BACKUP_FAILED',
+  'AUTHORITY_IMAGE_REQUIRED',
+  'AUTHORITY_FALLBACK_REQUIRED',
+  'AUTHORITY_PROBE_OWNER_MISMATCH',
+  'AUTHORITY_PROBE_RECOVERY_REQUIRED',
+  'AUTHORITY_PROBE_CLEANUP_FAILED',
+  'AUTHORITY_PROBE_COMMAND_CLEANUP_FAILED',
 ]);
 
 export function remoteDiagnostic(line) {
+  const pid = /^BACKEND_REMOTE_PROBE_PID ([1-9][0-9]{0,9})$/.exec(line);
+  if (pid && Number(pid[1]) <= 2147483647) return { probeProcessId: Number(pid[1]) };
+  const owned = /^BACKEND_REMOTE_OWNED_PROBE ([a-f0-9]{64})$/.exec(line);
+  if (owned) return { ownedContainerId: owned[1] };
+  const probe = /^BACKEND_REMOTE_PROBE_UUID ([a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})$/.exec(
+    line,
+  );
+  if (probe) return { probeUUID: probe[1] };
   const stage = /^(?:ADMIN|BACKEND)_REMOTE_(?:STAGE|FAILED_STAGE) ([a-z_]+)$/.exec(line);
   if (stage && adminStages.has(stage[1])) return { stage: stage[1] };
   const failure = /^(?:ADMIN|BACKEND)_REMOTE_STOPPED ([A-Z_]+)$/.exec(line);
@@ -93,6 +107,9 @@ export async function deploymentCommand(
       line = '',
       remoteStage = 'preflight',
       remoteFailure = null,
+      ownedContainerId,
+      probeUUID,
+      probeProcessId,
       timedOut = false,
       finished = false,
       forceTimer,
@@ -151,6 +168,18 @@ export async function deploymentCommand(
             output(`${prefix}_REMOTE_STAGE ${remoteStage}`);
           }
           if (value?.failure) remoteFailure = value.failure;
+          if (value?.ownedContainerId) {
+            ownedContainerId = value.ownedContainerId;
+            output(`${prefix}_OWNED_PROBE ${ownedContainerId}`);
+          }
+          if (value?.probeUUID) {
+            probeUUID = value.probeUUID;
+            output(`${prefix}_PROBE_UUID ${probeUUID}`);
+          }
+          if (value?.probeProcessId) {
+            probeProcessId = value.probeProcessId;
+            output(`${prefix}_PROBE_PID ${probeProcessId}`);
+          }
           line = '';
         } else if (line.length < 128) line += character;
       }
@@ -182,6 +211,9 @@ export async function deploymentCommand(
         failure.remoteStage = remoteStage;
         failure.remoteFailure = remoteFailure;
         failure.signal = signal;
+        if (ownedContainerId) failure.ownedContainerId = ownedContainerId;
+        if (probeUUID) failure.probeUUID = probeUUID;
+        if (probeProcessId) failure.probeProcessId = probeProcessId;
         reject(failure);
       } else {
         output(`${prefix}_STAGE ${stage} complete elapsed=${elapsed}s`);

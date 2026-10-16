@@ -1,9 +1,19 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { backendInput, backendDockerfile, backendReceipt } from './deploy-backend.mjs';
-import { remoteDiagnostic } from './deployment-progress.mjs';
+import {
+  backendInput,
+  backendDockerfile,
+  backendReceipt,
+  backendRunnerInput,
+  writeBackendBundle,
+} from './deploy-backend.mjs';
+import { remoteDiagnostic, deploymentCommand } from './deployment-progress.mjs';
 
 test('backend progress accepts only finite stages and redacts unknown remote errors', () => {
   assert.deepEqual(remoteDiagnostic('BACKEND_REMOTE_STAGE context_guard'), {
@@ -17,6 +27,29 @@ test('backend progress accepts only finite stages and redacts unknown remote err
   assert.deepEqual(remoteDiagnostic('BACKEND_REMOTE_STOPPED SECRET_CANARY'), {
     failure: 'REMOTE_GUARD_FAILED',
   });
+  assert.deepEqual(remoteDiagnostic('BACKEND_REMOTE_OWNED_PROBE ' + 'a'.repeat(64)), {
+    ownedContainerId: 'a'.repeat(64),
+  });
+  const uuid = '12345678-1234-4234-8234-123456789abc';
+  assert.deepEqual(remoteDiagnostic('BACKEND_REMOTE_PROBE_UUID ' + uuid), { probeUUID: uuid });
+  assert.deepEqual(remoteDiagnostic('BACKEND_REMOTE_PROBE_PID 2147483647'), {
+    probeProcessId: 2147483647,
+  });
+  for (const text of [
+    'BACKEND_REMOTE_OWNED_PROBE ' + 'a'.repeat(63),
+    'BACKEND_REMOTE_OWNED_PROBE ' + 'a'.repeat(65),
+    'BACKEND_REMOTE_OWNED_PROBE ' + 'G'.repeat(64),
+    'BACKEND_REMOTE_PROBE_UUID secret=CANARY',
+    'UNKNOWN_REMOTE_OWNED_PROBE ' + 'a'.repeat(64),
+    'BACKEND_REMOTE_PROBE_PID 0',
+    'BACKEND_REMOTE_PROBE_PID -1',
+    'BACKEND_REMOTE_PROBE_PID 01',
+    'BACKEND_REMOTE_PROBE_PID 2147483648',
+    'BACKEND_REMOTE_PROBE_PID 12345678901',
+    'BACKEND_REMOTE_PROBE_PID PRIVATE_CANARY',
+    'UNKNOWN_REMOTE_PROBE_PID 1234',
+  ])
+    assert.equal(remoteDiagnostic(text), null);
 });
 
 test('backend selection is explicit and excludes admin, empty entries and unrelated targets', () => {
@@ -51,6 +84,48 @@ test('selected backend image is readable by node and has a runnable default with
     backendDockerfile(['tianxia']).includes('CMD ["node","services/tianxia-server/src/main.mjs"]'),
   );
 });
+
+test('selected backend bundle seals the reviewed shared helper alongside the runner', async (t) => {
+  const temporary = await mkdtemp(path.join(tmpdir(), 'backend-authority-bundle-'));
+  t.after(() => rm(temporary, { recursive: true, force: true }));
+  const workspace = path.join(temporary, 'source');
+  const put = async (file, value) => {
+    const target = path.join(workspace, file);
+    await mkdir(path.dirname(target), { recursive: true });
+    await writeFile(target, value);
+  };
+  for (const [file, value] of Object.entries({
+    'package.json': '{}',
+    'pnpm-lock.yaml': 'lockfileVersion: 9.0',
+    'pnpm-workspace.yaml': 'packages: []',
+    'services/kart-server/package.json': JSON.stringify({ name: '@coffeeeeffoc/kart-server' }),
+    'services/kart-server/src/main.ts': 'export const fixture = true;',
+    'games/local/carding-car/assets/scripts/fixture.ts': 'export const fixture = true;',
+    'infra/backend-update/deploy.py': 'reviewed-runner\n',
+    'infra/deployment/image-authority.py': 'reviewed-authority\n',
+  }))
+    await put(file, value);
+  const output = path.join(temporary, 'bundle');
+  const manifest = await writeBackendBundle(
+    output,
+    {
+      head: 'a'.repeat(40),
+      release: 'candidate',
+      services: ['kart'],
+    },
+    workspace,
+  );
+  for (const [file, expected] of [
+    ['deploy.py', 'reviewed-runner\n'],
+    ['image-authority.py', 'reviewed-authority\n'],
+  ]) {
+    assert.equal(await readFile(path.join(output, file), 'utf8'), expected);
+    assert.equal(manifest.files[file], createHash('sha256').update(expected).digest('hex'));
+  }
+  assert.deepEqual(manifest.services, ['kart']);
+  assert.equal(manifest.databaseMigrations, false);
+  assert.equal(manifest.qualityChecks, 'not-run');
+});
 test('backend receipt accepts only finite source and image evidence, without fake isolated restore', () => {
   const receipt = {
     ok: true,
@@ -66,6 +141,10 @@ test('backend receipt accepts only finite source and image evidence, without fak
     backupSHA256: 'b'.repeat(64),
     isolatedRestoreVerified: false,
     activeImages: { runtime: 'sha256:' + 'c'.repeat(64), kart: 'sha256:' + 'd'.repeat(64) },
+    imageCapabilities: {
+      runtime: { image: 'sha256:' + 'c'.repeat(64), control: 1, ephemeralGuestScope: 1 },
+      kart: { image: 'sha256:' + 'd'.repeat(64), control: 1, identityRecheck: 1 },
+    },
   };
   assert.deepEqual(backendReceipt(JSON.stringify(receipt), ['runtime']), receipt);
   for (const changes of [
@@ -77,19 +156,90 @@ test('backend receipt accepts only finite source and image evidence, without fak
     { activeImages: { runtime: 'tag:mutable', kart: receipt.activeImages.kart } },
     { recreateCompanions: ['management'] },
     { backupSHA256: null },
+    { imageCapabilities: {} },
+    { imageCapabilities: { ...receipt.imageCapabilities, management: { control: 1 } } },
+    {
+      imageCapabilities: {
+        ...receipt.imageCapabilities,
+        runtime: { ...receipt.imageCapabilities.runtime, ephemeralGuestScope: true },
+      },
+    },
+    {
+      imageCapabilities: {
+        ...receipt.imageCapabilities,
+        runtime: { ...receipt.imageCapabilities.runtime, ephemeralGuestScope: 0 },
+      },
+    },
+    {
+      imageCapabilities: {
+        ...receipt.imageCapabilities,
+        runtime: { ...receipt.imageCapabilities.runtime, image: receipt.activeImages.kart },
+      },
+    },
   ])
     assert.throws(() => backendReceipt(JSON.stringify({ ...receipt, ...changes }), ['runtime']));
 });
 test('backend failure and rollback contracts use isolated mocks only', () => {
-  const file = fileURLToPath(new URL('../infra/backend-update/deploy.test.py', import.meta.url)),
-    windows = process.platform === 'win32';
+  const windows = process.platform === 'win32';
+  for (const name of [
+    '../infra/backend-update/deploy.test.py',
+    '../infra/deployment/image-authority.test.py',
+  ]) {
+    const file = fileURLToPath(new URL(name, import.meta.url));
+    const result = spawnSync(
+      windows ? 'wsl.exe' : 'python3',
+      windows
+        ? ['--exec', 'bash', '-c', 'exec python3 -B "$(wslpath -u "$1")"', 'backend-contract', file]
+        : ['-B', file],
+      { encoding: 'utf8', timeout: 60000, env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' } },
+    );
+    assert.ifError(result.error);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+  }
+});
+
+test('current runner carries reviewed helper and passes historical release only as data', () => {
+  const source =
+    "def entry(args,payload):\n assert args==['--rollback']\n assert payload['release']=='historical'\n assert IMAGE_AUTHORITY.marker=='current'\n print('CURRENT_RUNNER_OK')\n";
+  const script = backendRunnerInput(source, "marker='current'\n", '--rollback', {
+    release: 'historical',
+    services: ['runtime'],
+    caddyDirectory: '/opt/small-games/caddy',
+  });
+  assert(!script.includes('releases/historical/deploy.py'));
+  const windows = process.platform === 'win32';
   const result = spawnSync(
     windows ? 'wsl.exe' : 'python3',
-    windows
-      ? ['--exec', 'bash', '-c', 'exec python3 "$(wslpath -u "$1")"', 'backend-contract', file]
-      : [file],
-    { encoding: 'utf8', timeout: 60000 },
+    windows ? ['--exec', 'python3', '-'] : ['-'],
+    { input: script, encoding: 'utf8', timeout: 30000 },
   );
   assert.ifError(result.error);
-  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout.trim(), 'CURRENT_RUNNER_OK');
+  assert.throws(() => backendRunnerInput(source, '', '--unknown', {}));
+  assert.throws(() =>
+    backendRunnerInput(source, '', '--rollback', { oversized: 'x'.repeat(8193) }),
+  );
+});
+
+test('safe ownership diagnostics survive failure without forwarding arbitrary stderr', async () => {
+  const lines = [];
+  const id = 'a'.repeat(64),
+    uuid = '12345678-1234-4234-8234-123456789abc';
+  const stderr = `BACKEND_REMOTE_OWNED_PROBE ${id}\nBACKEND_REMOTE_PROBE_UUID ${uuid}\nBACKEND_REMOTE_PROBE_PID 1234\nBACKEND_REMOTE_PROBE_PID PRIVATE_CANARY\nPRIVATE_CANARY\nBACKEND_REMOTE_STOPPED AUTHORITY_PROBE_CLEANUP_FAILED\n`;
+  await assert.rejects(
+    deploymentCommand(
+      process.execPath,
+      ['-e', `process.stderr.write(${JSON.stringify(stderr)});process.exitCode=1`],
+      { prefix: 'BACKEND', remote: true, output: (line) => lines.push(line), timeout: 10000 },
+    ),
+    (error) => {
+      assert.equal(error.ownedContainerId, id);
+      assert.equal(error.probeUUID, uuid);
+      assert.equal(error.probeProcessId, 1234);
+      assert.equal(error.remoteFailure, 'AUTHORITY_PROBE_CLEANUP_FAILED');
+      return true;
+    },
+  );
+  assert(!lines.join('\n').includes('PRIVATE_CANARY'));
 });

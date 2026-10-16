@@ -14,6 +14,22 @@ import { pnpmInvocation } from './validate-push.mjs';
 
 const allowed = ['runtime', 'kart', 'tianxia'],
   remoteRoot = '/opt/small-games/backend-updates';
+export function backendRunnerInput(source, authoritySource, mode, payload) {
+  assert(['--check', '--execute', '--rollback'].includes(mode), 'ARGUMENTS');
+  const body = JSON.stringify(payload);
+  assert(Buffer.byteLength(body) <= 8192, 'ARGUMENTS');
+  const base64 = (value) => Buffer.from(value, 'utf8').toString('base64');
+  return [
+    'import base64,json,types',
+    "helper={'__name__':'image_authority_reviewed'}",
+    `exec(compile(base64.b64decode('${base64(authoritySource)}'),'image-authority-reviewed','exec'),helper)`,
+    "ns={'__name__':'backend_reviewed'}",
+    `exec(compile(base64.b64decode('${base64(source)}'),'backend-current-runner','exec'),ns)`,
+    "ns['IMAGE_AUTHORITY']=types.SimpleNamespace(**helper)",
+    `ns['entry'](${JSON.stringify([mode])},json.loads(base64.b64decode('${base64(body)}')))`,
+    '',
+  ].join('\n');
+}
 export function backendInput(args) {
   const { values } = parseArgs({
     args,
@@ -68,6 +84,11 @@ export async function writeBackendBundle(
   await cp(
     path.join(workspace, 'infra/backend-update/deploy.py'),
     path.join(destination, 'deploy.py'),
+    { force: false, errorOnExist: true },
+  );
+  await cp(
+    path.join(workspace, 'infra/deployment/image-authority.py'),
+    path.join(destination, 'image-authority.py'),
     { force: false, errorOnExist: true },
   );
   await writeFile(path.join(destination, 'Dockerfile'), backendDockerfile(services));
@@ -138,6 +159,7 @@ export function backendReceipt(text, selection) {
     'backupSHA256',
     'isolatedRestoreVerified',
     'activeImages',
+    'imageCapabilities',
   ];
   assert(
     Object.keys(value).length === keys.length &&
@@ -189,6 +211,34 @@ export function backendReceipt(text, selection) {
     ),
     'REMOTE_RECEIPT',
   );
+  const floors = {
+    runtime: { control: 1, ephemeralGuestScope: 1 },
+    kart: { control: 1, identityRecheck: 1 },
+  };
+  assert(
+    value.imageCapabilities &&
+      typeof value.imageCapabilities === 'object' &&
+      !Array.isArray(value.imageCapabilities),
+    'REMOTE_RECEIPT',
+  );
+  assert.deepEqual(
+    Object.keys(value.imageCapabilities).sort(),
+    Object.keys(value.activeImages)
+      .filter((name) => Object.hasOwn(floors, name))
+      .sort(),
+    'REMOTE_RECEIPT',
+  );
+  for (const [name, proof] of Object.entries(value.imageCapabilities)) {
+    assert(proof && typeof proof === 'object' && !Array.isArray(proof), 'REMOTE_RECEIPT');
+    assert.deepEqual(
+      Object.keys(proof).sort(),
+      ['image', ...Object.keys(floors[name])].sort(),
+      'REMOTE_RECEIPT',
+    );
+    assert.equal(proof.image, value.activeImages[name], 'REMOTE_RECEIPT');
+    for (const [key, minimum] of Object.entries(floors[name]))
+      assert(Number.isSafeInteger(proof[key]) && proof[key] >= minimum, 'REMOTE_RECEIPT');
+  }
   return value;
 }
 export async function main(args = process.argv.slice(2)) {
@@ -203,12 +253,20 @@ export async function main(args = process.argv.slice(2)) {
     env = childEnvironment();
   const run = (program, args, options = {}) =>
     deploymentCommand(program, args, { cwd: root, env, prefix: 'BACKEND', ...options });
+  const currentRunner = async (mode, payload) =>
+    backendRunnerInput(
+      await readFile(path.join(root, 'infra/backend-update/deploy.py'), 'utf8'),
+      await readFile(path.join(root, 'infra/deployment/image-authority.py'), 'utf8'),
+      mode,
+      payload,
+    );
   if (input.mode === 'check') {
-    const source = await readFile(path.join(root, 'infra/backend-update/deploy.py'), 'utf8');
-    const script = `import json\nns={'__name__':'backend_preflight'}\nexec(compile(${JSON.stringify(source)},'backend-public-check','exec'),ns)\nns['main'](['--check'],json.loads(${JSON.stringify(JSON.stringify({ services: input.services, caddyDirectory: config.caddyDirectory }))}))\n`;
     const text = await run('ssh', sshArguments(config, 'python3 -'), {
       stage: 'read_only_preflight',
-      input: script,
+      input: await currentRunner('--check', {
+        services: input.services,
+        caddyDirectory: config.caddyDirectory,
+      }),
       timeout: 60000,
     });
     const result = JSON.parse(text);
@@ -221,19 +279,17 @@ export async function main(args = process.argv.slice(2)) {
     return;
   }
   if (input.mode === 'rollback') {
-    const text = await run(
-      'ssh',
-      sshArguments(
-        config,
-        `python3 '${remoteRoot}/releases/${input.release}/deploy.py' --rollback`,
-      ),
-      {
-        stage: 'rollback',
-        remote: true,
-        timeout: 900000,
-        input: JSON.stringify({ services: input.services, caddyDirectory: config.caddyDirectory }),
-      },
-    );
+    sourceGuard(git(['rev-parse', 'HEAD']));
+    const text = await run('ssh', sshArguments(config, 'python3 -'), {
+      stage: 'rollback',
+      remote: true,
+      timeout: 900000,
+      input: await currentRunner('--rollback', {
+        release: input.release,
+        services: input.services,
+        caddyDirectory: config.caddyDirectory,
+      }),
+    });
     console.log(JSON.stringify(backendReceipt(text, input.services)));
     return;
   }
@@ -291,20 +347,17 @@ export async function main(args = process.argv.slice(2)) {
     input: `set -eu\numask 077\nprintf '%s  %s\\n' '${hash}' '${remoteRoot}/incoming/${release}.tar.gz' | sha256sum -c - >/dev/null\nmkdir '${remoteRoot}/releases/${release}'\ntar -xzf '${remoteRoot}/incoming/${release}.tar.gz' -C '${remoteRoot}/releases/${release}'\n`,
   });
   sourceGuard(head);
-  const text = await run(
-    'ssh',
-    sshArguments(config, `python3 '${remoteRoot}/releases/${release}/deploy.py' --execute`),
-    {
-      stage: 'remote_update',
-      remote: true,
-      timeout: 2700000,
-      input: JSON.stringify({
-        sourceSHA: head,
-        services: input.services,
-        caddyDirectory: config.caddyDirectory,
-      }),
-    },
-  );
+  const text = await run('ssh', sshArguments(config, 'python3 -'), {
+    stage: 'remote_update',
+    remote: true,
+    timeout: 2700000,
+    input: await currentRunner('--execute', {
+      release,
+      sourceSHA: head,
+      services: input.services,
+      caddyDirectory: config.caddyDirectory,
+    }),
+  });
   const receipt = backendReceipt(text, input.services);
   assert.equal(receipt.sourceSHA, head, 'REMOTE_RECEIPT');
   await writeFile(path.join(directory, 'receipt.json'), JSON.stringify(receipt, null, 2) + '\n');

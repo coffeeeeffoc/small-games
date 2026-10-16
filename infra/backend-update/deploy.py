@@ -2,6 +2,7 @@
 import contextlib
 import hashlib
 import http.client
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -18,6 +19,14 @@ PRIVATE = ROOT / 'backend-private'
 ALLOWED = ('runtime', 'kart', 'tianxia')
 PORTS = {'runtime': 43002, 'kart': 43003, 'tianxia': 43004}
 STAGE = 'preflight'
+PUBLIC_ENV = {
+    'runtime': {'COMPETITION_CONTROL_ENABLED': 'true',
+                'COMPETITION_CONTROL_INSTANCE_ID': 'small-games-runtime'},
+    'kart': {'COMPETITION_CONTROL_ENABLED': 'true',
+             'COMPETITION_CONTROL_INSTANCE_ID': 'small-games-kart'},
+}
+IMAGE_ID = r'sha256:[a-f0-9]{64}'
+IMAGE_AUTHORITY = None
 
 
 class Stopped(Exception):
@@ -35,6 +44,38 @@ def stage(name):
     global STAGE
     STAGE = name
     print('BACKEND_REMOTE_STAGE ' + name, file=sys.stderr, flush=True)
+
+
+def authority_module():
+    global IMAGE_AUTHORITY
+    if IMAGE_AUTHORITY is None:
+        file = Path(__file__).with_name('image-authority.py')
+        if not file.is_file():
+            file = Path(__file__).resolve().parents[1] / 'deployment/image-authority.py'
+        spec = importlib.util.spec_from_file_location('image_authority', file)
+        IMAGE_AUTHORITY = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(IMAGE_AUTHORITY)
+    return IMAGE_AUTHORITY
+
+
+def require_authority(images, failure='AUTHORITY_IMAGE_REQUIRED'):
+    targets = {name: image for name, image in images.items() if name in PUBLIC_ENV}
+    if not targets:
+        return {}
+    if 'kart' in targets and 'runtime' not in targets:
+        targets['runtime'] = inventory('small-games', 'runtime')['image']
+    authority = authority_module()
+    try:
+        proof = authority.require_images(targets, failure)
+    except authority.AuthorityError as error:
+        stopped = Stopped(error.code)
+        for key in ('ownedContainerId', 'probeUUID', 'probeName'):
+            setattr(stopped, key, getattr(error, key, None))
+        pid = getattr(error, 'probeProcessId', None)
+        stopped.probeProcessId = pid if type(pid) is int and 0 < pid <= 2147483647 else None
+        stopped.originalCode = authority.original_code(error)
+        raise stopped from None
+    return {name: value for name, value in proof.items() if name in images}
 
 
 def command(*args, input=None, timeout=180, output=None):
@@ -216,10 +257,77 @@ def guard_games(selected):
                 "fetch('http://127.0.0.1:43003/health').then(r=>r.json()).then(v=>process.exit(v.rooms===0?0:1)).catch(()=>process.exit(1))")
 
 
+def assert_public_environment(name, item):
+    expected = json.dumps(PUBLIC_ENV[name])
+    command('docker', 'exec', item['id'], 'node', '-e', 'const expected=' + expected + ';'
+            'if(Object.entries(expected).some(([key,value])=>process.env[key]!==value))process.exit(1)', timeout=5)
+
+
+def guard_control_schema():
+    try:
+        pg = inventory('small-games', 'postgres')['id']
+        output = command('docker', 'exec', pg, 'psql', '-X', '-qAt', '-U', 'platform_owner',
+                         '-d', 'small_games', '-v', 'ON_ERROR_STOP=1', '-c',
+                         'BEGIN TRANSACTION READ ONLY; SELECT json_agg(version ORDER BY version) '
+                         'FROM game_control.schema_version; COMMIT;', timeout=10)
+        require(len(output) <= 64, 'AUTHORITY_FALLBACK_REQUIRED')
+        versions = json.loads(output)
+        require(isinstance(versions, list) and len(versions) == 1
+                and type(versions[0]) is int and versions[0] == 2, 'AUTHORITY_FALLBACK_REQUIRED')
+    except Stopped as error:
+        if str(error) == 'SIGNAL_INTERRUPTED':
+            raise
+        raise Stopped('AUTHORITY_FALLBACK_REQUIRED') from None
+    except (ValueError, TypeError, KeyError):
+        raise Stopped('AUTHORITY_FALLBACK_REQUIRED') from None
+
+
+def guard_authority_state(selected):
+    touched = {name: item for name, item in selected.items() if name in PUBLIC_ENV}
+    if not touched:
+        return
+    if 'runtime' not in touched:
+        touched['runtime'] = inventory('small-games', 'runtime')
+    try:
+        for name, item in touched.items():
+            require(item['running'], 'AUTHORITY_FALLBACK_REQUIRED')
+            assert_public_environment(name, item)
+        guard_control_schema()
+    except Stopped as error:
+        if str(error) == 'SIGNAL_INTERRUPTED':
+            raise
+        raise Stopped('AUTHORITY_FALLBACK_REQUIRED') from None
+
+
 def override(file, images, labels):
-    write_private(file, (json.dumps({'services': {name: {'image': image, 'pull_policy': 'never',
-                  'labels': {'io.small-games.backend-update': labels[name] or ''}}
-                  for name, image in images.items()}}) + '\n').encode())
+    require(set(images) == set(labels), 'ROLLBACK_GUARD')
+    services = {}
+    for name, image in images.items():
+        require(name in ALLOWED and isinstance(image, str) and re.fullmatch(IMAGE_ID, image), 'SERVICE_IMAGE')
+        label = labels[name] or ''
+        require(isinstance(label, str) and (label == '' or re.fullmatch(r'[a-z0-9-]{1,100}', label)), 'ROLLBACK_GUARD')
+        services[name] = {'image': image, 'pull_policy': 'never',
+                          'labels': {'io.small-games.backend-update': label}}
+        if name in PUBLIC_ENV:
+            services[name]['environment'] = dict(PUBLIC_ENV[name])
+    write_private(file, (json.dumps({'services': services}) + '\n').encode())
+
+
+def historical_rollback_labels(release, images):
+    value = private_json(PRIVATE / release.name / 'rollback.json')
+    require(isinstance(value, dict) and set(value) == {'services'}
+            and isinstance(value['services'], dict) and set(value['services']) == set(images), 'ROLLBACK_GUARD')
+    labels = {}
+    for name, image in images.items():
+        item = value['services'][name]
+        require(isinstance(item, dict) and set(item) in (
+            {'image', 'pull_policy', 'labels'}, {'image', 'pull_policy', 'labels', 'environment'})
+            and item['image'] == image and item['pull_policy'] == 'never'
+            and isinstance(item['labels'], dict)
+            and set(item['labels']) == {'io.small-games.backend-update'}, 'ROLLBACK_GUARD')
+        require('environment' not in item or item['environment'] == PUBLIC_ENV.get(name, {}), 'ROLLBACK_GUARD')
+        labels[name] = item['labels']['io.small-games.backend-update']
+    return labels
 
 
 def recreate(contexts, override_file, names):
@@ -233,6 +341,8 @@ def health(names, images):
     current = {name: inventory('small-games', name) for name in names}
     for name, item in current.items():
         require(item['running'] and item['image'] == images[name], 'SERVICE_IMAGE')
+        if name in PUBLIC_ENV:
+            assert_public_environment(name, item)
         command('docker', 'exec', item['id'], 'node', '-e',
                 "fetch('http://127.0.0.1:" + str(PORTS[name]) + "/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))", timeout=10)
     if 'runtime' in current and 'kart' in current:
@@ -264,6 +374,9 @@ def assert_boundaries(before, after):
 
 
 def restore(journal, rollback_file):
+    require_authority(journal['oldImages'], 'AUTHORITY_FALLBACK_REQUIRED')
+    if set(journal['oldImages']) & set(PUBLIC_ENV):
+        guard_control_schema()
     stage('rollback')
     # A stopped Kart must release its old Runtime namespace before Runtime recreation.
     if 'runtime' in journal['selected'] and 'kart' in journal['selected']:
@@ -275,20 +388,26 @@ def restore(journal, rollback_file):
     return health(journal['selected'], journal['oldImages'])
 
 
-def receipt(manifest, mode, companions, active, backup_hash=None):
+def receipt(manifest, mode, companions, active, capabilities, backup_hash=None):
+    images = {name: item['image'] for name, item in active.items()}
+    require(set(capabilities) == set(images) & set(PUBLIC_ENV)
+            and all(proof.get('image') == images[name] for name, proof in capabilities.items()), 'SERVICE_IMAGE')
     return {'ok': True, 'mode': mode, 'sourceSHA': manifest['sourceSHA'], 'release': manifest['release'],
             'services': manifest['services'], 'recreateCompanions': companions, 'healthVerified': True,
             'databaseReplaced': False, 'schemaChanged': False, 'backupCreated': backup_hash is not None,
             'backupSHA256': backup_hash, 'isolatedRestoreVerified': False,
-            'activeImages': {name: item['image'] for name, item in active.items()}}
+            'activeImages': images, 'imageCapabilities': capabilities}
 
 
 def execute(release, manifest, config, selected, companions, contexts, protection):
     stage('context_guard')
+    old_images = {name: item['image'] for name, item in selected.items()}
+    # Ordinary deployment requires a compatible recovery image before any mutation.
+    require_authority(old_images, 'AUTHORITY_FALLBACK_REQUIRED')
+    guard_authority_state(selected)
     revision = PRIVATE / release.name
     private_directory(PRIVATE)
     private_directory(revision)
-    old_images = {name: item['image'] for name, item in selected.items()}
     for image in old_images.values():
         require(text('docker', 'image', 'inspect', image, '--format', '{{.Id}}') == image, 'ROLLBACK_IMAGE')
     image = 'small-games-backend-update:' + release.name
@@ -296,6 +415,7 @@ def execute(release, manifest, config, selected, companions, contexts, protectio
     command('docker', 'build', '--pull=false', '-t', image, str(release), timeout=1200)
     new_id = text('docker', 'image', 'inspect', image, '--format', '{{.Id}}')
     images = {name: new_id if name in manifest['services'] else item['image'] for name, item in selected.items()}
+    capabilities = require_authority(images)
     update_file, rollback_file = revision / 'update.json', revision / 'rollback.json'
     override(update_file, images, {name: release.name for name in selected})
     override(rollback_file, old_images, {name: item['update'] for name, item in selected.items()})
@@ -333,30 +453,49 @@ def execute(release, manifest, config, selected, companions, contexts, protectio
             assert_boundaries(selected, restored)
             require(not pg or schema_hash(pg) == old_schema, 'SCHEMA_CHANGED')
             assert_protected(protection)
-        except Exception:
+        except Exception as error:
+            if getattr(error, 'probeUUID', None) or getattr(error, 'probeProcessId', None):
+                raise
             raise Stopped('ROLLBACK_FAILED') from None
         raise
-    return receipt(manifest, 'execute', companions, active, backup_hash)
+    return receipt(manifest, 'execute', companions, active, capabilities, backup_hash)
 
 
 def rollback_update(release, manifest, selected, contexts, protection):
     journal = private_json(PRIVATE / release.name / 'journal.json')
-    require(set(journal['selected']) == set(selected)
+    require(isinstance(journal, dict) and set(journal) == {
+        'selected', 'contexts', 'oldImages', 'images', 'schemaHash', 'backupSHA256',
+        'sourceSHA', 'release', 'companions'}, 'ROLLBACK_GUARD')
+    companions = ['kart'] if 'runtime' in manifest['services'] and 'kart' not in manifest['services'] and 'kart' in selected else []
+    require(journal['release'] == release.name and journal['sourceSHA'] == manifest['sourceSHA']
+            and isinstance(journal['selected'], list) and len(journal['selected']) == len(selected)
+            and set(journal['selected']) == set(selected) and journal['companions'] == companions
+            and isinstance(journal['oldImages'], dict) and set(journal['oldImages']) == set(selected)
+            and isinstance(journal['images'], dict) and set(journal['images']) == set(selected)
+            and all(isinstance(value, str) and re.fullmatch(IMAGE_ID, value)
+                    for values in (journal['oldImages'], journal['images']) for value in values.values())
             and all(item['update'] == release.name and item['image'] == journal['images'][name]
                     for name, item in selected.items()), 'ROLLBACK_GUARD')
+    capabilities = require_authority(journal['oldImages'], 'AUTHORITY_FALLBACK_REQUIRED')
+    current_images = {name: item['image'] for name, item in selected.items()}
+    require_authority(current_images, 'AUTHORITY_FALLBACK_REQUIRED')
+    guard_authority_state(selected)
     pg = inventory('small-games', 'postgres')['id'] if 'runtime' in selected else None
     require(not pg or schema_hash(pg) == journal['schemaHash'], 'SCHEMA_CHANGED')
     for image in journal['oldImages'].values():
         require(text('docker', 'image', 'inspect', image, '--format', '{{.Id}}') == image, 'ROLLBACK_IMAGE')
-    for context in journal['contexts'].values():
-        compose(context, PRIVATE / release.name / 'rollback.json', 'config', '--quiet')
+    # Historical files supply labels/images only, never executable Compose context.
+    journal = {**journal, 'contexts': contexts}
+    rollback_file = PRIVATE / release.name / ('reviewed-rollback-' + os.urandom(6).hex() + '.json')
+    override(rollback_file, journal['oldImages'], historical_rollback_labels(release, journal['oldImages']))
+    for context in contexts.values():
+        compose(context, rollback_file, 'config', '--quiet')
     fallback = PRIVATE / release.name / ('failback-' + os.urandom(6).hex() + '.json')
-    current_images = {name: item['image'] for name, item in selected.items()}
     override(fallback, current_images, {name: item['update'] for name, item in selected.items()})
     current_journal = {'selected': list(selected), 'contexts': contexts, 'oldImages': current_images}
     guard_games(selected)
     try:
-        active = restore(journal, PRIVATE / release.name / 'rollback.json')
+        active = restore(journal, rollback_file)
         assert_boundaries(selected, active)
         require(not pg or schema_hash(pg) == journal['schemaHash'], 'SCHEMA_CHANGED')
         assert_protected(protection)
@@ -366,10 +505,12 @@ def rollback_update(release, manifest, selected, contexts, protection):
             assert_boundaries(selected, restored)
             require(not pg or schema_hash(pg) == journal['schemaHash'], 'SCHEMA_CHANGED')
             assert_protected(protection)
-        except Exception:
+        except Exception as error:
+            if getattr(error, 'probeUUID', None) or getattr(error, 'probeProcessId', None):
+                raise
             raise Stopped('ROLLBACK_FAILED') from None
         raise
-    return receipt(manifest, 'rollback', journal['companions'], active)
+    return receipt(manifest, 'rollback', journal['companions'], active, capabilities)
 
 
 def main(args=None, payload=None):
@@ -380,8 +521,14 @@ def main(args=None, payload=None):
         require(len(data) <= 8192, 'INPUT_TOO_LARGE')
         payload = json.loads(data)
     require(isinstance(payload, dict), 'CONFIG')
-    expected = {'services', 'caddyDirectory', 'sourceSHA'} if args[0] == '--execute' else {'services', 'caddyDirectory'}
-    require(set(payload) == expected if args[0] != '--check' else 'services' in payload and set(payload) <= expected, 'CONFIG')
+    expected = {'services', 'caddyDirectory', 'release'}
+    if args[0] == '--execute':
+        expected.add('sourceSHA')
+    require(set(payload) == expected if args[0] != '--check' else
+            'services' in payload and set(payload) <= {'services', 'caddyDirectory'}, 'CONFIG')
+    if args[0] != '--check':
+        require(isinstance(payload['release'], str)
+                and re.fullmatch(r'[a-z0-9-]{1,100}', payload['release']), 'RELEASE_PATH')
     services = payload.get('services')
     require(isinstance(services, list) and services and len(set(services)) == len(services)
             and all(name in ALLOWED for name in services), 'BACKEND_SELECTION')
@@ -392,7 +539,7 @@ def main(args=None, payload=None):
         return
     import fcntl
     caddy = checked_path(payload['caddyDirectory'], True)
-    release = Path(__file__).resolve().parent
+    release = BASE / 'releases' / payload['release']
     manifest = manifest_from(release)
     require(manifest['services'] == services, 'SOURCE_MISMATCH')
     with contextlib.ExitStack() as stack:
@@ -417,12 +564,25 @@ def interrupted(_signum, _frame):
     raise Stopped('SIGNAL_INTERRUPTED')
 
 
-if __name__ == '__main__':
+def entry(args=None, payload=None):
     try:
         for number in (signal.SIGHUP, signal.SIGTERM, signal.SIGINT):
             signal.signal(number, interrupted)
-        main()
+        main(args, payload)
     except Exception as error:
+        pid = getattr(error, 'probeProcessId', None)
+        if type(pid) is int and 0 < pid <= 2147483647:
+            print('BACKEND_REMOTE_PROBE_PID ' + str(pid), file=sys.stderr)
+        owned_id = getattr(error, 'ownedContainerId', None)
+        if isinstance(owned_id, str) and re.fullmatch(r'[a-f0-9]{64}', owned_id):
+            print('BACKEND_REMOTE_OWNED_PROBE ' + owned_id, file=sys.stderr)
+        probe_uuid = getattr(error, 'probeUUID', None)
+        if isinstance(probe_uuid, str) and re.fullmatch(r'[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}', probe_uuid):
+            print('BACKEND_REMOTE_PROBE_UUID ' + probe_uuid, file=sys.stderr)
         print('BACKEND_REMOTE_FAILED_STAGE ' + getattr(error, 'stage', STAGE), file=sys.stderr)
         print('BACKEND_REMOTE_STOPPED ' + (str(error) if isinstance(error, Stopped) else 'UNEXPECTED_FAILURE'), file=sys.stderr)
         sys.exit(1)
+
+
+if __name__ == '__main__':
+    entry()

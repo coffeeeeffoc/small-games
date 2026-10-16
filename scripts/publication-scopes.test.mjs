@@ -29,6 +29,8 @@ import {
   selectedBackendConsumers,
   backendDeploymentScopePaths,
   backendSharedScopePaths,
+  imageAuthorityScopePaths,
+  imageAuthorityConsumers,
   targetedCommandsOnly,
   runtimeProxyDefaultScopePaths,
   publicationConfigScopePaths,
@@ -3577,4 +3579,72 @@ test('selected backend tools and additive local build commands have finite consu
     });
   assert(classify('/game-build.local.json\n').has('.gitignore'));
   assert.equal(classify('/game-build.local.json\nscripts/\n').size, 0);
+});
+
+test('shared authority helper selects only its three backend consumers and bounded contracts', async () => {
+  const packages = [...imageAuthorityConsumers, 'services/tianxia-server'].map((dir) => ({
+    dir,
+    name: dir,
+  }));
+  for (const file of imageAuthorityScopePaths) {
+    const context = { changedPaths: [file], packages, games: [], readSource: () => '' };
+    const fileScopes = reviewedSharedFileScopes(context);
+    assert.deepEqual(fileScopes.get(file), imageAuthorityConsumers);
+    const plan = incrementalPlan({ ...context, fileScopes });
+    assert.equal(plan.image_authority_checks, true);
+    assert.equal(plan.full, false);
+    assert.equal(plan.admin_console_checks, true);
+    assert(!plan.consumer_sources.includes('services/tianxia-server'));
+    assert.deepEqual(plan.browser_ids, []);
+    assert.deepEqual(plan.native_consumers, []);
+  }
+  assert.equal(
+    reviewedSharedFileScopes({
+      changedPaths: ['infra/deployment/image-authority-extra.py'],
+      packages,
+      games: [],
+    }).size,
+    0,
+  );
+  assert.equal(
+    reviewedSharedFileScopes({
+      changedPaths: imageAuthorityScopePaths,
+      packages: packages.slice(1),
+      games: [],
+    }).size,
+    0,
+  );
+  const { mkdtemp, copyFile, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const directory = await mkdtemp(join(tmpdir(), 'image-authority-no-deps-'));
+  try {
+    // Keep this bare fixture explicit: scope planning must not need the probe or YAML installs.
+    for (const module of [
+      'publication-scopes.mjs',
+      'vite-patch-scope.mjs',
+      'competition-ingress.mjs',
+      'admin-csp.mjs',
+    ])
+      await copyFile(new URL(module, import.meta.url), join(directory, module));
+    const code = `
+      import assert from 'node:assert/strict';
+      import { createRequire } from 'node:module';
+      import { reviewedSharedFileScopes, imageAuthorityScopePaths, imageAuthorityConsumers } from './publication-scopes.mjs';
+      assert.throws(() => createRequire(import.meta.url).resolve('js-yaml'));
+      const packages=imageAuthorityConsumers.map(dir=>({dir,name:dir}));
+      const scope=reviewedSharedFileScopes({changedPaths:imageAuthorityScopePaths,packages,games:[]});
+      for(const file of imageAuthorityScopePaths)assert.deepEqual(scope.get(file),imageAuthorityConsumers);
+      assert.equal(reviewedSharedFileScopes({changedPaths:['infra/deployment/unknown.py'],packages,games:[]}).size,0);
+    `;
+    execFileSync(process.execPath, ['--input-type=module', '-e', code], {
+      cwd: directory,
+      env: { ...process.env, NODE_PATH: '' },
+      stdio: 'pipe',
+      encoding: 'utf8',
+      timeout: 10000,
+    });
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });
