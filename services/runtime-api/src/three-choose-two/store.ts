@@ -4,6 +4,13 @@ import { CompetitionError } from '../competition/types.js';
 import { createRankedLedger } from './ledger.js';
 import { assertGameControl, gamePolicy, type CompetitionControl } from '../competition/control.js';
 import {
+  assertGameScope,
+  assertResourceAuth,
+  assertStoredPlayerGame,
+  playerIdOf,
+  type PlayerAuth,
+} from '../competition/auth.js';
+import {
   LOGIN_REASON,
   publicState,
   type Database,
@@ -81,6 +88,16 @@ export function createThreeChooseTwoStore(
     if (playerId && session.playerId !== playerId) throw new CompetitionError('NOT_A_MEMBER', 403);
     return session;
   }
+  async function storedSession(tx: Transaction, id: string) {
+    const preview = await tx.execute(
+      sql`select data from runtime.three_choose_two_sessions where id=${id}`,
+    );
+    if (!preview[0]) throw new CompetitionError('SESSION_NOT_FOUND', 404);
+    const playerId = (preview[0].data as RankedSession).playerId;
+    // Creation already locks player before active session; every other path keeps that order.
+    await assertStoredPlayerGame(tx, playerId, 'three-choose-two', now());
+    return locked(tx, id, playerId);
+  }
   async function expire(
     tx: Transaction,
     session: RankedSession,
@@ -101,7 +118,9 @@ export function createThreeChooseTwoStore(
       await save(tx, session);
     }
   }
-  async function create(playerId: string, token?: string) {
+  async function create(auth: PlayerAuth, token?: string) {
+    assertGameScope(auth, 'three-choose-two');
+    const playerId = playerIdOf(auth);
     return db.transaction(async (tx) => {
       const policy = await gamePolicy(control, tx, 'three-choose-two');
       assertGameControl(policy, policy?.killEpoch, true);
@@ -109,6 +128,7 @@ export function createThreeChooseTwoStore(
       await tx.execute(
         sql`select id from runtime.competition_players where id=${playerId} for update`,
       );
+      await assertResourceAuth(tx, auth, 'three-choose-two', now());
       // Upgrade revokes guest credentials under this same player lock.
       if (token) {
         const valid = await tx.execute(sql`select 1 from runtime.competition_sessions
@@ -153,18 +173,24 @@ export function createThreeChooseTwoStore(
       return view(session, tx);
     });
   }
-  async function get(playerId: string, id: string) {
+  async function get(auth: PlayerAuth, id: string) {
+    assertGameScope(auth, 'three-choose-two');
+    const playerId = playerIdOf(auth);
     return db.transaction(async (tx) => {
       const policy = await gamePolicy(control, tx, 'three-choose-two');
+      await assertResourceAuth(tx, auth, 'three-choose-two', now());
       const session = await locked(tx, id, playerId);
       if (session.status === 'active') assertGameControl(policy, session.killEpoch ?? 0);
       await expire(tx, session, policy);
       return view(session, tx);
     });
   }
-  async function action(playerId: string, id: string, input: Placement) {
+  async function action(auth: PlayerAuth, id: string, input: Placement) {
+    assertGameScope(auth, 'three-choose-two');
+    const playerId = playerIdOf(auth);
     return db.transaction(async (tx) => {
       const policy = await gamePolicy(control, tx, 'three-choose-two');
+      await assertResourceAuth(tx, auth, 'three-choose-two', now());
       const session = await locked(tx, id, playerId);
       const actionHash = hash(input);
       const duplicate = await tx.execute(
@@ -193,9 +219,12 @@ export function createThreeChooseTwoStore(
       return view(session, tx);
     });
   }
-  async function finish(playerId: string, id: string) {
+  async function finish(auth: PlayerAuth, id: string) {
+    assertGameScope(auth, 'three-choose-two');
+    const playerId = playerIdOf(auth);
     return db.transaction(async (tx) => {
       const policy = await gamePolicy(control, tx, 'three-choose-two');
+      await assertResourceAuth(tx, auth, 'three-choose-two', now());
       const session = await locked(tx, id, playerId);
       if (session.status === 'finished') return view(session, tx);
       assertGameControl(policy, session.killEpoch ?? 0);
@@ -211,12 +240,15 @@ export function createThreeChooseTwoStore(
     for (const row of rows) {
       await db.transaction(async (tx) => {
         const policy = await gamePolicy(control, tx, 'three-choose-two');
-        const session = await locked(tx, String(row.id));
+        const session = await storedSession(tx, String(row.id));
         await expire(tx, session, policy);
       });
     }
   }
-  async function board(playerId: string, version = engine.RULE_VERSION) {
+  async function board(auth: PlayerAuth, version = engine.RULE_VERSION) {
+    assertGameScope(auth, 'three-choose-two');
+    const playerId = playerIdOf(auth);
+    await db.transaction((tx) => assertResourceAuth(tx, auth, 'three-choose-two', now()));
     await expireDue();
     const result = await ledger.ranking(version, playerId);
     return { ...result, reason: (await eligible(playerId)) ? result.reason : LOGIN_REASON };
@@ -224,7 +256,7 @@ export function createThreeChooseTwoStore(
   async function audit(id: string) {
     return db.transaction(async (tx) => {
       const policy = await gamePolicy(control, tx, 'three-choose-two');
-      const session = await locked(tx, id);
+      const session = await storedSession(tx, id);
       assertGameControl(policy, session.killEpoch ?? 0);
       const actions = await tx.execute(
         sql`select seq,action,created_at as "createdAt" from runtime.three_choose_two_actions where session_id=${id} order by seq`,
@@ -235,7 +267,7 @@ export function createThreeChooseTwoStore(
   async function review(id: string, decision: 'approve' | 'reject', reason: string) {
     return db.transaction(async (tx) => {
       const policy = await gamePolicy(control, tx, 'three-choose-two');
-      const session = await locked(tx, id);
+      const session = await storedSession(tx, id);
       assertGameControl(policy, session.killEpoch ?? 0);
       await ledger.review(tx, session, decision, reason);
       await save(tx, session);

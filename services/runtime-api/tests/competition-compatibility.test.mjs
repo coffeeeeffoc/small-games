@@ -46,6 +46,8 @@ function memoryDatabase(clock) {
         players.set(p[0], {
           id: p[0],
           platform: old ? p[1] : 'guest',
+          app_id: old ? p[2] : p[1],
+          created_at: old ? p[4] : p[2],
           display_name: null,
           profile: { source: 'default' },
         });
@@ -63,14 +65,28 @@ function memoryDatabase(clock) {
         const found = sessions.get(p[0]);
         return found?.expires_at > clock.time ? [found] : [];
       }
+      if (sql.includes('from runtime.competition_sessions s join runtime.competition_players p')) {
+        const found = sessions.get(p[0]);
+        return found?.expires_at > clock.time
+          ? [{ ...players.get(found.player_id), expires_at: found.expires_at }]
+          : [];
+      }
+      if (sql.startsWith('select 1 from runtime.competition_sessions')) {
+        const found = sessions.get(p[0]);
+        return found?.expires_at > clock.time && found.player_id === p[1] ? [{ ok: 1 }] : [];
+      }
       if (
         sql.includes('join runtime.competition_refresh_tokens') ||
-        sql.startsWith('select r.expires_at from runtime.competition_refresh_tokens')
+        sql.startsWith('select r.expires_at')
       ) {
         const found = refresh.get(p[0]);
-        return found && found.expires_at > clock.time ? [found] : [];
+        return found && found.expires_at > clock.time
+          ? [{ ...found, ...players.get(found.id) }]
+          : [];
       }
       if (sql.startsWith('select id,platform,display_name,profile'))
+        return [players.get(p[0])].filter(Boolean);
+      if (sql.startsWith('select id,platform,app_id,created_at'))
         return [players.get(p[0])].filter(Boolean);
       if (sql.startsWith('select profile from runtime.competition_players'))
         return [players.get(p[0])].filter(Boolean);

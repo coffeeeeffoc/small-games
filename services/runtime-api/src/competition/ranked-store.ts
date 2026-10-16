@@ -4,6 +4,7 @@ import { CompetitionError } from './types.js';
 import { createRankedRuns } from './ranked-runs.js';
 import type { RankedRule, RankedRun, Receipt, RunRepository } from './ranked-types.js';
 import { assertGameControl, gamePolicy, type CompetitionControl } from './control.js';
+import { assertResourceAuth } from './auth.js';
 
 type Database = ReturnType<typeof openDatabase>['db'];
 /** Namespaced match rows hold checkpoints and small durable idempotency receipts. */
@@ -15,16 +16,17 @@ export function createRankedStore(
   control?: CompetitionControl,
 ) {
   const repository: RunRepository = {
-    async create(run) {
+    async create(run, auth) {
       await db.transaction(async (tx) => {
         const policy = await gamePolicy(control, tx, run.game);
         assertGameControl(policy, policy?.killEpoch, true);
+        await assertResourceAuth(tx, auth ?? run.playerId, run.game, now());
         run.killEpoch = policy?.killEpoch ?? 0;
         await tx.execute(sql`insert into runtime.competition_matches(id,board,data,created_at)
           values(${`ranked-run:${run.id}`},${run.boardKey},${JSON.stringify(run)}::jsonb,${run.createdAt})`);
       });
     },
-    async mutate(id, change) {
+    async mutate(id, change, auth) {
       return db.transaction(async (tx) => {
         let policy: Awaited<ReturnType<typeof gamePolicy>>;
         if (control) {
@@ -40,6 +42,12 @@ export function createRankedStore(
         const run = rows[0]?.data as RankedRun | undefined;
         if (!run || run.kind !== 'ranked-run-v1') throw new CompetitionError('RUN_NOT_FOUND', 404);
         if (policy && policy.gameId !== run.game) throw new CompetitionError('WRONG_GAME');
+        if (auth) await assertResourceAuth(tx, auth, run.game, now());
+        if (
+          run.boardKey !== `${run.game}:${run.board}:${run.version}` ||
+          !rules.get(run.game)?.boards.some((board) => board.id === run.board)
+        )
+          throw new CompetitionError('WRONG_GAME');
         const original = JSON.stringify(run);
         const result = await change({
           run,

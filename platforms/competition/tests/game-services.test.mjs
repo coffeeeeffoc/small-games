@@ -1,6 +1,65 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGameServices, createRunRecorder } from '../game-services.js';
+test('ephemeral game-services selects endpoint/game memory before any storage getter and shares factory identity', async (t) => {
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage'),
+    oldConfig = globalThis.__COMPETITION_CONFIG__,
+    oldFetch = globalThis.fetch;
+  let storageReads = 0;
+  const calls = [],
+    game = 'cops-robbers';
+  t.after(() => {
+    if (descriptor) Object.defineProperty(globalThis, 'localStorage', descriptor);
+    else delete globalThis.localStorage;
+    globalThis.__COMPETITION_CONFIG__ = oldConfig;
+    globalThis.fetch = oldFetch;
+  });
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    get() {
+      storageReads++;
+      throw new Error('denied');
+    },
+  });
+  globalThis.__COMPETITION_CONFIG__ = {
+    identityMode: 'ephemeral',
+    game,
+    platform: 'h5',
+    apiUrl: 'https://ephemeral-service.example/v1',
+  };
+  globalThis.fetch = async (url, init) => {
+    const stamp = Date.now();
+    calls.push({ url, body: JSON.parse(init.body) });
+    return {
+      status: 200,
+      json: async () =>
+        url.endsWith('/sessions/guest')
+          ? {
+              identityKind: 'guest',
+              identityMode: 'ephemeral',
+              game,
+              userId: 'ephemeral-owner',
+              playerId: 'ephemeral-owner',
+              token: 'e'.repeat(64),
+              expiresAt: stamp + 15 * 60_000,
+              identityExpiresAt: stamp + 8 * 3600_000,
+              refreshExpiresAt: stamp + 8 * 3600_000,
+              refreshToken: 'f'.repeat(64),
+            }
+          : { code: 'AABBCCDDEEFF', players: [] },
+    };
+  };
+  const a = createGameServices({ gameId: game, ruleVersion: 'v1' }),
+    b = createGameServices({ gameId: game, ruleVersion: 'v1' });
+  await a.createRoom();
+  await b.createRoom();
+  assert.equal(storageReads, 0);
+  assert.equal(calls.filter((c) => c.url.endsWith('/sessions/guest')).length, 1);
+  assert.deepEqual(calls[0].body, { identityVersion: 2, identityMode: 'ephemeral', game });
+  assert.throws(() => createGameServices({ gameId: 'xiangqi-five', ruleVersion: 'v1' }), {
+    code: 'IDENTITY_SCOPE_MISMATCH',
+  });
+});
 
 const defer = () => {
   let resolve;

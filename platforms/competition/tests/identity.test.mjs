@@ -12,6 +12,16 @@ import {
 
 const source = await readFile(new URL('../client.js', import.meta.url), 'utf8');
 const id = '00000000-0000-4000-8000-000000000001';
+const ephemeralCredential = (game, now = Date.now(), extra = {}) =>
+  credential({
+    identityMode: 'ephemeral',
+    game,
+    identityExpiresAt: now + 8 * 3600_000,
+    refreshExpiresAt: now + 8 * 3600_000,
+    refreshToken: 'c'.repeat(64),
+    expiresAt: now + 15 * 60_000,
+    ...extra,
+  });
 const credential = (extra = {}) => ({
   userId: id,
   playerId: id,
@@ -53,6 +63,161 @@ function fixture({ config = {}, sdk, storage = new Map(), handler } = {}) {
     save: (value) => storage.set(auth.storageKey, JSON.stringify(value)),
   };
 }
+test('ephemeral installer chooses page memory before storage getters, migration, installation or listeners', async () => {
+  let reads = 0,
+    writes = 0,
+    listeners = 0,
+    installations = 0;
+  const game = 'cops-robbers',
+    calls = [];
+  const context = {
+    URL,
+    location: new URL('https://game.example/play'),
+    setTimeout,
+    clearTimeout,
+    AbortSignal,
+    addEventListener() {
+      listeners++;
+    },
+    crypto: {
+      randomUUID() {
+        installations++;
+        return id;
+      },
+    },
+    async fetch(url, options) {
+      calls.push({ url, body: JSON.parse(options.body) });
+      return { status: 200, json: async () => ephemeralCredential(game) };
+    },
+  };
+  Object.defineProperty(context, 'localStorage', {
+    get() {
+      reads++;
+      throw new Error('must not read storage');
+    },
+  });
+  runInNewContext(source, context);
+  context.__installCompetition({
+    identityMode: 'ephemeral',
+    game,
+    platform: 'h5',
+    apiUrl: 'https://api.example/v1',
+  });
+  await context.__competition.session();
+  context.__competition.roomStorage.setItem('competition-room:' + game, 'AABBCCDDEEFF');
+  assert.equal(
+    context.__competition.roomStorage.getItem('competition-room:' + game),
+    'AABBCCDDEEFF',
+  );
+  assert.deepEqual(
+    calls.map((c) => JSON.parse(JSON.stringify(c.body))),
+    [{ identityVersion: 2, identityMode: 'ephemeral', game }],
+  );
+  assert.equal(reads + writes + listeners + installations, 0);
+});
+test('ephemeral identity shares only endpoint plus game in the page, while reload starts a new owner', async () => {
+  let count = 0;
+  const game = 'xiangqi-five',
+    storage = new Map([['competition-session-v1:h5', JSON.stringify(credential())]]);
+  const f = fixture({
+    config: { identityMode: 'ephemeral', game },
+    storage,
+    handler: () =>
+      ephemeralCredential(game, Date.now(), {
+        userId: `page-${++count}`,
+        playerId: `page-${count}`,
+      }),
+  });
+  const first = await f.auth.current();
+  assert.equal(f.context.__createCompetitionIdentity(f.options), f.auth);
+  const otherGame = f.context.__createCompetitionIdentity({
+    ...f.options,
+    config: { ...f.options.config, game: 'cops-robbers' },
+  });
+  const otherApi = f.context.__createCompetitionIdentity({
+    ...f.options,
+    config: { ...f.options.config, apiUrl: 'https://other.example/v1' },
+  });
+  assert.notEqual(otherGame, f.auth);
+  assert.notEqual(otherApi, f.auth);
+  assert.equal(storage.size, 1);
+  const reloaded = fixture({
+    config: { identityMode: 'ephemeral', game },
+    storage,
+    handler: () => ephemeralCredential(game, Date.now(), { userId: 'reload', playerId: 'reload' }),
+  });
+  assert.notEqual((await reloaded.auth.current()).userId, first.userId);
+  assert.equal(reloaded.calls[0].path, '/sessions/guest');
+});
+test('ephemeral refresh preserves UUID and absolute expiry, then fails without creating a replacement', async () => {
+  const started = Date.now();
+  let clock = started;
+  const game = 'cops-robbers-realtime',
+    expires = started + 8 * 3600_000;
+  const f = fixture({
+    config: { identityMode: 'ephemeral', game },
+    handler: () =>
+      ephemeralCredential(game, clock, { identityExpiresAt: expires, refreshExpiresAt: expires }),
+  });
+  f.context.Date = class extends Date {
+    static now() {
+      return clock;
+    }
+  };
+  const first = await f.auth.current();
+  clock += 15 * 60_000;
+  assert.equal((await f.auth.current()).userId, first.userId);
+  assert.equal(f.calls[1].path, '/sessions/refresh');
+  clock = expires;
+  await assert.rejects(f.auth.current(), { code: 'IDENTITY_EXPIRED' });
+  assert.equal(f.calls.length, 2);
+  await assert.rejects(f.auth.upgrade({}), { code: 'IDENTITY_UPGRADE_NOT_ALLOWED' });
+});
+test('old services cannot silently downgrade ephemeral identity to a persistent legacy guest', async () => {
+  const f = fixture({
+    config: { identityMode: 'ephemeral', game: 'cops-robbers' },
+    handler: () => credential({ refreshToken: 'c'.repeat(64) }),
+  });
+  await assert.rejects(f.auth.current(), { code: 'IDENTITY_MODE_UNSUPPORTED' });
+  await assert.rejects(f.auth.current(), { code: 'IDENTITY_MODE_UNSUPPORTED' });
+  assert.equal(f.calls.length, 1);
+  assert.equal(f.storage.size, 0);
+  assert.throws(() => fixture({ config: { identityMode: 'ephemeral', game: 'carrom-club' } }), {
+    code: 'IDENTITY_MODE_UNSUPPORTED',
+  });
+});
+test('ephemeral identity remains usable at the final 60s/30s and fails at the exact absolute deadline', async () => {
+  const start = Date.now(),
+    end = start + 8 * 3600_000;
+  let clock = start;
+  const game = 'xiangqi-five';
+  const f = fixture({
+    config: { identityMode: 'ephemeral', game },
+    handler: () =>
+      ephemeralCredential(game, clock, {
+        identityExpiresAt: end,
+        refreshExpiresAt: end,
+        expiresAt: Math.min(clock + 15 * 60_000, end),
+      }),
+  });
+  f.context.Date = class extends Date {
+    static now() {
+      return clock;
+    }
+  };
+  const first = await f.auth.current();
+  clock = end - 60000;
+  const final = await f.auth.current();
+  assert.equal(final.userId, first.userId);
+  assert.equal(final.expiresAt, end);
+  assert.equal(f.calls.length, 2);
+  clock = end - 30000;
+  assert.equal((await f.auth.current()).token, final.token);
+  assert.equal(f.calls.length, 2);
+  clock = end;
+  await assert.rejects(f.auth.current(), { code: 'IDENTITY_EXPIRED' });
+  assert.equal(f.calls.length, 2);
+});
 
 test('unknown native providers fail closed; web-preview retains guest transport', async () => {
   for (const platform of ['alipay', 'unknown']) {

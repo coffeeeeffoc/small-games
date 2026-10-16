@@ -7,12 +7,12 @@ import {
   type ControlGameId,
   type CorsPolicy,
   type GameControlPolicy,
-  type openDatabase,
+  type openControlDatabase,
+  type ControlDatabaseExecutor,
 } from '@coffeeeeffoc/service-kit';
 import { CompetitionError } from './types.js';
 
-type Database = ReturnType<typeof openDatabase>['db'];
-export type ControlExecutor = Pick<Database, 'execute'>;
+export type ControlExecutor = ControlDatabaseExecutor;
 type Publication = { version: number; digest: string | null; policy: CorsPolicy };
 const unavailable = () => new CompetitionError('CONTROL_UNAVAILABLE', 503);
 export function assertGameControl(
@@ -29,7 +29,7 @@ export type CompetitionControl = ReturnType<typeof createCompetitionControl>;
 
 /** The Runtime identity can only read the published projection/policy and append observations. */
 export function createCompetitionControl(
-  db: Database,
+  database: ReturnType<typeof openControlDatabase>,
   fallback: CorsPolicy,
   now = Date.now,
   instanceId: string = randomUUID(),
@@ -37,15 +37,37 @@ export function createCompetitionControl(
   if (!instanceId || instanceId.length > 128 || /[\p{Cc}]/u.test(instanceId)) throw unavailable();
   let reported: string | undefined;
   let reportedAt = 0;
-  async function read(tx: ControlExecutor, started: number) {
+  function budget(started = now()) {
+    return () => {
+      const remaining = Math.floor(started + 2000 - now());
+      if (remaining <= 0) throw unavailable();
+      return remaining;
+    };
+  }
+  async function execute(
+    tx: ControlExecutor,
+    query: Parameters<ControlExecutor['execute']>[0],
+    remaining: () => number,
+  ) {
+    const ms = remaining();
+    await tx.execute(sql`select set_config('statement_timeout',${`${ms}ms`},true),
+      set_config('lock_timeout',${`${Math.min(1500, ms)}ms`},true)`);
+    remaining();
+    const rows = await tx.execute(query);
+    remaining();
+    return rows;
+  }
+  async function read(tx: ControlExecutor, remaining: () => number) {
     try {
-      if (now() - started > 2000) throw unavailable();
-      const publications = await tx.execute(
+      const publications = await execute(
+        tx,
         sql`select version,digest,snapshot from game_control.published_config`,
+        remaining,
       );
-      if (now() - started > 2000) throw unavailable();
-      const rows = await tx.execute(
+      const rows = await execute(
+        tx,
         sql`select game_id,state,kill_epoch,revision from game_control.current_policy order by game_id`,
+        remaining,
       );
       const policies = rows.map((row) =>
         gameControlPolicySchema.parse({
@@ -60,7 +82,7 @@ export function createCompetitionControl(
         new Set(policies.map((p) => p.gameId)).size !== CONTROL_GAME_IDS.length
       )
         throw unavailable();
-      if (now() - started > 2000) throw unavailable();
+      remaining();
       if (!publications.length) {
         if (policies.some((p) => p.revision !== 0 || p.killEpoch !== 0 || p.state !== 'enabled'))
           throw unavailable();
@@ -91,38 +113,40 @@ export function createCompetitionControl(
     }
   }
   async function lock(tx: ControlExecutor, game: string) {
-    const started = now();
+    const remaining = budget();
     if (!(CONTROL_GAME_IDS as readonly string[]).includes(game)) throw unavailable();
     // EXACT same 64-bit key as Management's sorted exclusive publication locks.
     try {
-      await tx.execute(sql`set local lock_timeout = '1500ms'`);
-      await tx.execute(sql`set local statement_timeout = '2000ms'`);
-      await tx.execute(
+      await execute(
+        tx,
         sql`select pg_advisory_xact_lock_shared(hashtextextended('game-control:' || ${game},0))`,
+        remaining,
       );
-      const current = await read(tx, started);
+      const current = await read(tx, remaining);
       return current.policies.find((p) => p.gameId === game)!;
     } catch {
       throw unavailable();
     }
   }
-  async function cors(): Promise<Publication> {
-    const started = now();
-    return db
-      .transaction(async (tx) => {
-        await tx.execute(sql`set local lock_timeout = '1500ms'`);
-        await tx.execute(sql`set local statement_timeout = '2000ms'`);
-        for (const game of [...CONTROL_GAME_IDS].sort())
-          await tx.execute(
-            sql`select pg_advisory_xact_lock_shared(hashtextextended('game-control:' || ${game},0))`,
-          );
-        return read(tx, started);
-      })
-      .catch(() => {
-        throw unavailable();
-      });
+  async function projection(tx: ControlExecutor, remaining: () => number) {
+    for (const game of [...CONTROL_GAME_IDS].sort())
+      await execute(
+        tx,
+        sql`select pg_advisory_xact_lock_shared(hashtextextended('game-control:' || ${game},0))`,
+        remaining,
+      );
+    return read(tx, remaining);
   }
-  async function observe(
+  async function cors(): Promise<Publication> {
+    try {
+      return await database.transaction(projection);
+    } catch {
+      throw unavailable();
+    }
+  }
+  async function appendObservation(
+    tx: ControlExecutor,
+    remaining: () => number,
     publication: Pick<Publication, 'version' | 'digest'>,
     consumer = 'runtime',
     instance = instanceId,
@@ -137,18 +161,29 @@ export function createCompetitionControl(
       throw unavailable();
     const key = `${consumer}:${instance}:${publication.version}:${publication.digest}`;
     if (consumer === 'runtime' && reported === key && now() - reportedAt < 20_000) return;
-    await db.execute(sql`insert into game_control.application_observations(id,consumer,instance_id,version,digest,status,observed_at)
-      values(${randomUUID()},${consumer},${instance},${publication.version},${publication.digest},'applied',${now()})`);
-    if (consumer === 'runtime') {
-      reported = key;
-      reportedAt = now();
-    }
+    await execute(
+      tx,
+      sql`insert into game_control.application_observations(id,consumer,instance_id,version,digest,status,observed_at)
+      values(${randomUUID()},${consumer},${instance},${publication.version},${publication.digest},'applied',${now()})`,
+      remaining,
+    );
+    // Caller runs this only after the transaction's COMMIT completed within the budget.
+    return consumer === 'runtime'
+      ? () => {
+          reported = key;
+          reportedAt = now();
+        }
+      : undefined;
   }
   async function kartLease() {
-    const started = now();
-    return db.transaction(async (tx) => {
-      const policy = await lock(tx, 'carding-car');
-      const current = await read(tx, started);
+    return database.transaction(async (tx, remaining) => {
+      await execute(
+        tx,
+        sql`select pg_advisory_xact_lock_shared(hashtextextended('game-control:' || ${'carding-car'},0))`,
+        remaining,
+      );
+      const current = await read(tx, remaining);
+      const policy = current.policies.find((p) => p.gameId === 'carding-car')!;
       return {
         controlEnabled: true as const,
         gameId: 'carding-car' as const,
@@ -156,18 +191,32 @@ export function createCompetitionControl(
         killEpoch: policy.killEpoch,
         version: current.version,
         digest: current.digest,
-        validForMs: 2000,
+        validForMs: remaining(),
       };
     });
   }
   async function publicCors() {
-    const publication = await cors();
-    // Shared resolver installs the bounded public policy for both HTTP and readiness consumers.
-    const policy = publication.policy;
-    await observe(publication);
-    return policy;
+    try {
+      const applied = await database.transaction(async (tx, remaining) => {
+        const publication = await projection(tx, remaining);
+        const committed = await appendObservation(tx, remaining, publication);
+        return { policy: publication.policy, committed };
+      });
+      applied.committed?.();
+      return applied.policy;
+    } catch {
+      throw unavailable();
+    }
   }
-  return { lock, cors, publicCors, observe, kartLease, instanceId };
+  async function observeKart(input: { version: number; digest: string; instanceId: string }) {
+    return database.transaction(async (tx, remaining) => {
+      const current = await projection(tx, remaining);
+      if (current.version !== input.version || current.digest !== input.digest)
+        throw new CompetitionError('CONTROL_VERSION_CHANGED');
+      await appendObservation(tx, remaining, input, 'kart', input.instanceId);
+    });
+  }
+  return { lock, cors, publicCors, observeKart, kartLease, instanceId, close: database.close };
 }
 export async function gamePolicy(
   control: CompetitionControl | undefined,

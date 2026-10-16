@@ -1,5 +1,5 @@
 {
-  "runId": "game-control-17606fd4-07bb-4eb3-9362-f7fd193d62c3",
+  "runId": "game-control-f6ad706c-882b-4ddc-9d47-2d7e6ecac1d8",
   "isolated": true,
   "loopbackOnly": true,
   "productionAccess": false,
@@ -15,8 +15,34 @@
     "fail-closed-foreign-key-namespace",
     "one-time-bootstrap-db-disable-and-concurrent-last-administrator",
     "CAS-append-only-rollback-epoch-and-shared-advisory-order",
+    "runtime-control-observation-lock-bounded-rollback-retry",
+    "runtime-control-concurrent-cors-and-private-lease",
+    "runtime-control-terminated-bound-connection-no-autocommit-reconnect",
+    "runtime-control-non-sql-deadline-late-write-rejected-and-slot-recovers",
+    "runtime-control-finite-fifo-and-close-cancel-all-callers",
+    "identity-player-no-key-update-prevents-real-result-FK-board-deadlock",
+    "identity-resource-guard-still-serializes-with-upgrade-and-refresh-player-lock",
     "publication-members-audit-survive-database-restart"
   ],
   "migrationSha256": "d16a0a06e9da6531b8140fa196dc0fe2a3d91a74cc2fcf877685fe7346f74451",
-  "postgresVersion": "17.6"
+  "postgresVersion": "17.6",
+  "runtimeControl": {
+    "observationLockMs": 1557,
+    "commitInFlight": "unknown-no-rollback-guarantee",
+    "sourceSha256": {
+      "controlDatabase": "6d9e8ba315cfec14447b64a47f9833f038a77bbedd2f72676ef128ce8e4f21c5",
+      "runtimeControl": "1b35ea19e29e7854e64b3a474d4c2b5779767c0540a0a30944a28c00c5f33e44"
+    },
+    "executedModuleSha256": {
+      "controlDatabase": "5e61c1ca49480997287331c189d87a19a612d1df71fc01718e679d6ffc522a57",
+      "runtimeControl": "7c08506963dcd2dc38240567ca116c6804049a107cf938748ae043f2e395370a"
+    }
+  },
+  "identityLocks": {
+    "fixture": "real-010-tables-no-additional-grants-owner-only-lock-regression",
+    "oldLock": "40P01-reproduced",
+    "productionLock": "two-settlements-committed-upgrade-lock-serialized",
+    "sourceSha256": "f153d1c6bc9d03c103779bfc135c9e2d092326bda81701a51e50a053e8468f9f",
+    "executedModuleSha256": "7a91c8ba64057e841cd9e817fae6627ef63f0971c53f8569944f975f1472efeb"
+  }
 }

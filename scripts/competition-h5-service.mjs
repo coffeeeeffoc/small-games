@@ -6,8 +6,20 @@ import { competitionService, serviceEnvironment } from './competition-service-co
 import { prepareH5Ads } from './h5-ad-config.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-export function h5ServiceConfig(game, { env = process.env, local = false } = {}) {
-  return { game, platform: 'h5', serviceManaged: true, ...competitionService({ env, local }) };
+export function h5ServiceConfig(game, { env = process.env, local = false, identityMode } = {}) {
+  if (
+    identityMode !== undefined &&
+    (identityMode !== 'ephemeral' ||
+      !['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'].includes(game))
+  )
+    throw new Error('Unknown managed identity mode');
+  return {
+    game,
+    platform: 'h5',
+    serviceManaged: true,
+    ...competitionService({ env, local }),
+    ...(identityMode ? { identityMode } : {}),
+  };
 }
 
 export function serviceHtml(html, config) {
@@ -104,10 +116,10 @@ export async function reconfigureH5Service(filename, env, local = false) {
     /<script data-competition-service>globalThis\.__COMPETITION_CONFIG__=(\{.*?\});<\/script>/,
   );
   if (!match) return false;
-  const { game } = JSON.parse(match[1]);
+  const { game, identityMode } = JSON.parse(match[1]);
   if (!['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'].includes(game))
     throw new Error('Unknown managed service game');
-  await prepareH5Service(game, path.dirname(filename), { env, local });
+  await prepareH5Service(game, path.dirname(filename), { env, local, identityMode });
   await prepareH5Ads(game, path.dirname(filename), { env });
   return true;
 }

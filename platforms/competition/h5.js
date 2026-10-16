@@ -195,6 +195,14 @@ export function mountCompetition(game, createRenderer) {
       createImage: () => new Image(),
       assetBase: new URL('./', location.href).href,
     });
+  const roomStorage =
+    client.identityMode === 'ephemeral'
+      ? client.roomStorage
+      : {
+          getItem: (key) => localStorage.getItem(key),
+          setItem: (key, value) => localStorage.setItem(key, value),
+          removeItem: (key) => localStorage.removeItem(key),
+        };
   const modeEntry = xiangqi
     ? document.getElementById('mode-online')
     : letters
@@ -438,6 +446,14 @@ export function mountCompetition(game, createRenderer) {
     form.append(message, save);
     sheet.append(form);
     sheet.append(text('p', profileDetails(profile), 'pk-sheet-note'));
+    if (profile.identityMode === 'ephemeral')
+      sheet.append(
+        text(
+          'p',
+          '本页临时访客仅用于当前游戏，最长 8 小时；刷新页面会开始新身份，原成绩不会转移。页内存储不隔离同源脚本。',
+          'pk-sheet-note',
+        ),
+      );
     if (client.canSyncProfile?.()) {
       const sync = action(
         '同步已授权的平台资料',
@@ -588,7 +604,7 @@ export function mountCompetition(game, createRenderer) {
       showResults();
     }
     try {
-      localStorage.setItem(`competition-room:${game}`, room.code);
+      roomStorage.setItem(`competition-room:${game}`, room.code);
     } catch {}
   }
   async function run(task) {
@@ -792,7 +808,7 @@ export function mountCompetition(game, createRenderer) {
     const invite = new URL(location.href).searchParams.get('pk');
     let saved;
     try {
-      saved = localStorage.getItem(`competition-room:${game}`);
+      saved = roomStorage.getItem(`competition-room:${game}`);
     } catch {}
     await run(async () => {
       updateProfile(await client.request('/me'));
@@ -906,7 +922,7 @@ export function mountCompetition(game, createRenderer) {
       select('.pk-footer').hidden = false;
       dialog.removeAttribute('data-playing');
       try {
-        localStorage.removeItem(`competition-room:${game}`);
+        roomStorage.removeItem(`competition-room:${game}`);
       } catch {}
       if (!modeEntry) launch.textContent = '好友 PK · 全站榜';
       launch.removeAttribute('title');

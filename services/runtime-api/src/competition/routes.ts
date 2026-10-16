@@ -7,12 +7,7 @@ import { z } from 'zod';
 import { registerCarromRoutes } from '../carrom/routes.js';
 import type { createCarromStore } from '../carrom/store.js';
 import { CompetitionError } from './types.js';
-import {
-  platformConfigSchema,
-  platformLoginSchema,
-  verifiedPlatformSubject,
-} from './platform-login.js';
-import { profilePatchSchema } from './profile.js';
+import { platformConfigSchema } from './platform-login.js';
 import { registerRunRoutes } from './run-routes.js';
 import {
   registerThreeChooseTwoRoutes,
@@ -23,6 +18,7 @@ import type { createCompetitionStore } from './store.js';
 import { registerGameRoutes } from './game-routes.js';
 import type { createRankedStore } from './ranked-store.js';
 import type { CompetitionControl } from './control.js';
+import { registerIdentityRoutes } from './session-routes.js';
 
 const tokenSchema = z.string().regex(/^[a-f0-9]{64}$/);
 const codeSchema = z.string().regex(/^[A-F0-9]{12}$/);
@@ -83,93 +79,9 @@ export async function registerCompetition(
       const player = (authorization: string | undefined) => {
         if (!authorization || !/^Bearer [a-f0-9]{64}$/.test(authorization))
           throw new CompetitionError('SESSION_EXPIRED', 401);
-        return store.identity(authorization.slice(7));
+        return store.auth(authorization.slice(7));
       };
-      routes.post(
-        '/sessions/guest',
-        {
-          bodyLimit: 1024,
-          config: {
-            rateLimit: { max: 20, timeWindow: '1 minute', keyGenerator: (request) => request.ip },
-          },
-        },
-        async (request) => {
-          const { installationId, identityVersion } = z
-            .object({
-              installationId: z.uuid().optional(),
-              identityVersion: z.literal(2).optional(),
-            })
-            .strict()
-            .parse(request.body ?? {});
-          return store.guestSession(installationId, identityVersion);
-        },
-      );
-      routes.post(
-        '/sessions/platform',
-        {
-          bodyLimit: 4096,
-          config: {
-            rateLimit: { max: 20, timeWindow: '1 minute', keyGenerator: (request) => request.ip },
-          },
-        },
-        async (request) => {
-          const input = platformLoginSchema.parse(request.body);
-          return store.session(
-            input.platform,
-            input.appId,
-            await verifiedPlatformSubject(platforms, input),
-          );
-        },
-      );
-      routes.post(
-        '/sessions/refresh',
-        {
-          bodyLimit: 1024,
-          config: {
-            rateLimit: { max: 20, timeWindow: '1 minute', keyGenerator: (request) => request.ip },
-          },
-        },
-        async (request) => {
-          const { refreshToken } = z
-            .object({ refreshToken: tokenSchema.optional() })
-            .strict()
-            .parse(request.body ?? {});
-          if (refreshToken) return store.refreshSession(refreshToken);
-          await player(request.headers.authorization);
-          return store.renewGuestSession(request.headers.authorization!.slice(7));
-        },
-      );
-      routes.post(
-        '/sessions/upgrade',
-        {
-          bodyLimit: 4096,
-          config: {
-            rateLimit: { max: 20, timeWindow: '1 minute', keyGenerator: (request) => request.ip },
-          },
-        },
-        async (request) => {
-          const input = platformLoginSchema.parse(request.body);
-          await player(request.headers.authorization);
-          const subject = await verifiedPlatformSubject(platforms, input);
-          return store.upgrade(
-            request.headers.authorization!.slice(7),
-            input.platform,
-            input.appId,
-            subject,
-          );
-        },
-      );
-      routes.get('/me', async (request) =>
-        store.profile(await player(request.headers.authorization)),
-      );
-      routes.post(
-        '/me',
-        { bodyLimit: 4096, config: { rateLimit: { max: 6, timeWindow: '1 minute' } } },
-        async (request) => {
-          const input = profilePatchSchema.parse(request.body);
-          return store.profile(await player(request.headers.authorization), input);
-        },
-      );
+      registerIdentityRoutes(routes, store, platforms, player);
       routes.get('/boards/:game', async (request) => {
         const game = z
           .string()
@@ -266,7 +178,7 @@ export async function registerCompetition(
       routes.post('/internal/verify', { bodyLimit: 2048 }, async (request) => {
         internal(request);
         const { token } = z.object({ token: tokenSchema }).strict().parse(request.body);
-        return { playerId: await store.identity(token) };
+        return store.verifyKart(token);
       });
       routes.post('/internal/control', { bodyLimit: 1024 }, async (request) => {
         internal(request);
@@ -300,10 +212,7 @@ export async function registerCompetition(
           .strict()
           .parse(request.body);
         if (!control) throw new CompetitionError('CONTROL_UNAVAILABLE', 503);
-        const current = await control.cors();
-        if (current.version !== input.version || current.digest !== input.digest)
-          throw new CompetitionError('CONTROL_VERSION_CHANGED');
-        await control.observe(input, 'kart', input.instanceId);
+        await control.observeKart(input);
         return { applied: true };
       });
       routes.post('/internal/kart-results', { bodyLimit: 8192 }, async (request) => {

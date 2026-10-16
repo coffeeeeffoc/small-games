@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { createThreeChooseTwoStore } from './store.js';
+import type { PlayerAuth } from '../competition/auth.js';
 
 type Store = ReturnType<typeof createThreeChooseTwoStore>;
 const sessionId = (params: unknown) => z.object({ id: z.uuid() }).parse(params).id;
@@ -8,7 +9,7 @@ const sessionId = (params: unknown) => z.object({ id: z.uuid() }).parse(params).
 export function registerThreeChooseTwoRoutes(
   routes: FastifyInstance,
   store: Store,
-  player: (authorization: string | undefined) => Promise<string>,
+  player: (authorization: string | undefined) => Promise<PlayerAuth>,
 ) {
   routes.post('/three-choose-two/session', { bodyLimit: 1024 }, async (request) => {
     z.object({})

@@ -12,7 +12,9 @@ function database(results: Record<string, unknown>[][]) {
   const queries: { sql: string; params: unknown[] }[] = [];
   const execute = vi.fn(async (query) => {
     queries.push(new PgDialect().sqlToQuery(query));
-    return results.shift() ?? [];
+    return (results.shift() ?? []).map((row) =>
+      row.platform === 'guest' ? { app_id: '', created_at: 0, ...row } : row,
+    );
   });
   const db = {
     execute,
@@ -23,7 +25,7 @@ function database(results: Record<string, unknown>[][]) {
 describe('identity transaction ordering and credential revocation', () => {
   it('negotiates legacy 180-day access explicitly and keeps v2 access at one day', async () => {
     for (const version of [undefined, 2] as const) {
-      const { identities, queries } = database([[], [], [], [{ id: userId, platform: 'guest' }]]);
+      const { identities, queries } = database([[], [], [{ id: userId, platform: 'guest' }], []]);
       const result = await identities.guestSession(undefined, version);
       expect(result.expiresAt).toBe(1000 + (version === 2 ? 1 : 180) * 86400_000);
       expect(result.refreshExpiresAt).toBe(1000 + 180 * 86400_000);
@@ -37,12 +39,12 @@ describe('identity transaction ordering and credential revocation', () => {
     const { identities, queries } = database([
       [],
       [],
-      [],
       [{ id: userId, platform: 'guest' }],
       [],
       [],
       [],
       [{ id: otherId, platform: 'guest' }],
+      [],
     ]);
     const a = await identities.guestSession(userId),
       b = await identities.guestSession(userId);
@@ -61,8 +63,8 @@ describe('identity transaction ordering and credential revocation', () => {
     const { identities, queries } = database([
       [{ id: userId }],
       [{ expires_at: 100000 }],
-      [],
       [{ id: userId, platform: 'guest' }],
+      [],
     ]);
     const result = await identities.refreshSession(refreshToken);
     expect(result).toMatchObject({
@@ -86,8 +88,8 @@ describe('identity transaction ordering and credential revocation', () => {
       [{ id: userId }],
       [{}],
       [],
-      [],
       [{ id: userId, platform: 'guest' }],
+      [],
     ]);
     const renewed = await identities.renewGuestSession(token);
     expect(renewed).toMatchObject({ userId, playerId: userId, identityKind: 'guest' });
@@ -112,8 +114,8 @@ describe('identity transaction ordering and credential revocation', () => {
       [],
       [],
       [],
-      [],
       [{ id: userId, platform: 'taptap' }],
+      [],
     ]);
     const result = await identities.upgrade(token, 'taptap', 'app-a', 'verified');
     expect(result).toMatchObject({

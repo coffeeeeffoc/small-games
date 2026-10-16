@@ -4,7 +4,7 @@ export {
   type DependencyProbe,
   type RequestSpanExporter,
 } from './server.js';
-export { openDatabase } from './database.js';
+export { openDatabase, openControlDatabase, type ControlDatabaseExecutor } from './database.js';
 export { readCorsPolicy, registerCors, type CorsPolicy } from './cors.js';
 export {
   CONTROL_GAME_IDS,

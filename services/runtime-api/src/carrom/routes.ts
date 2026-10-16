@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { createCarromStore } from './store.js';
+import type { PlayerAuth } from '../competition/auth.js';
 
 const code = z.string().regex(/^[A-F0-9]{12}$/);
 const revision = z.number().int().positive();
@@ -39,7 +40,7 @@ const operations = {
 export function registerCarromRoutes(
   routes: FastifyInstance,
   store: ReturnType<typeof createCarromStore>,
-  player: (authorization: string | undefined) => Promise<string>,
+  player: (authorization: string | undefined) => Promise<PlayerAuth>,
 ) {
   routes.post(
     '/carrom/rooms',

@@ -7,6 +7,10 @@ import { openDatabase } from '@coffeeeeffoc/service-kit';
 import { createControlStore } from '../dist/admin/control-store.js';
 import { createControlService } from '../dist/admin/control-service.js';
 import { CONTROL_GAMES } from '../dist/admin/control-model.js';
+import {
+  verifyRuntimeControl,
+  verifyCompetitionIdentityLocks,
+} from './control-runtime-postgres.mjs';
 
 // Fresh, labelled fixture only. Never connects to an existing container or database.
 const dockerBin = process.env.DOCKER_EXECUTABLE ?? 'H:/setup/Docker/resources/bin/docker.exe';
@@ -378,6 +382,14 @@ try {
   assert.equal(state.policies.find((policy) => policy.gameId === 'cops-robbers').killEpoch, 1);
   assert.equal(state.policies.find((policy) => policy.gameId === 'cops-robbers').state, 'enabled');
   checked('CAS-append-only-rollback-epoch-and-shared-advisory-order');
+  step('runtime-bounded-control-transactions');
+  receipt.runtimeControl = await verifyRuntimeControl({
+    url: `postgres://runtime_app:${runtimePassword}@127.0.0.1:${guard()}/control_test`,
+    owner,
+    checked,
+  });
+  step('competition-identity-FK-board-lock-order');
+  receipt.identityLocks = await verifyCompetitionIdentityLocks({ owner, checked });
   step('observation-and-restart-persistence');
   assert.equal(state.status, 'desired');
   await runtime.db.execute(

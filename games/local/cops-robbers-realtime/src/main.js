@@ -25,7 +25,7 @@ import {
   roleAvatarSvg,
   roleCharacterMarkup,
 } from './role-appearance.js';
-import { RUN_VERSION, ONLINE_ENABLED, runConfig, formatRecord, readRecords, submitRun } from './records.js';
+import { RUN_VERSION, ONLINE_ENABLED, runConfig, formatRecord, readRecords, startRun,submitRun } from './records.js';
 
 if (ONLINE_ENABLED) {
   document.querySelector('.home-shortcuts').hidden = false;
@@ -52,7 +52,9 @@ let screen = 'home',
   runTicks = 0,
   runOrders = [],
   recordRequest = 0,
-  pendingSubmission = null;
+  pendingSubmission = null,
+  runAdmission=null,
+  admissionPending=false;
 function readProgress() {
   try {
     const value = JSON.parse(localStorage.getItem(STORAGE));
@@ -402,7 +404,7 @@ async function uploadRecord(submission = pendingSubmission) {
   $('retry-record').hidden = true;
   globalThis.__competition?.renderConnectionInfo?.($('record-status'));
   try {
-    const result = await submitRun(submission.config, submission.ticks, submission.orders);
+    const result = await submitRun(submission.config, submission.ticks, submission.orders,submission.admission);
     if (pendingSubmission !== submission) return;
     $('win-world').textContent = formatRecord(result.fastestMs / 1000);
     $('record-status').textContent = '服务器已验证并保存';
@@ -594,6 +596,7 @@ function loadLevel(id, saved = null, opening = {}) {
   runTicks = 0;
   runOrders = [];
   pendingSubmission = null;
+  runAdmission=null;
   const chapter = CHAPTERS[game.level.chapter];
   chapterTab = game.level.chapter;
   $('chapter-name').textContent = mode === 'quick' ? '战术试炼' : chapter.name;
@@ -628,7 +631,7 @@ function loadLevel(id, saved = null, opening = {}) {
   return true;
 }
 async function begin() {
-  if (supportRequest) return;
+  if (supportRequest || admissionPending) return;
   showScreen('game');
   audio.unlock();
   if (['won', 'lost'].includes(game.phase) && !playerWon()) {
@@ -648,8 +651,16 @@ async function begin() {
     return;
   }
   const starting = game;
+  let admission=null;
+  if(ONLINE_ENABLED && starting.level.id>0 && starting.phase==='ready') {
+    admissionPending=true;
+    try {admission=await startRun(runConfig(starting));}
+    catch {toast('开局服务暂不可用，本局继续本地挑战，无法提交排行榜。');}
+    finally {admissionPending=false;}
+  }
   const start = () => {
     if (game !== starting || supportRequest || document.hidden || !startGame(game)) return;
+    runAdmission=admission;
     progress.startedRuns = startSupport(game, Math.max(progress.startedRuns, readProgress().startedRuns));
     saveProgress();
     audio.play('start');
@@ -890,7 +901,7 @@ function won() {
   audio.play('win');
   $('win-time').textContent = formatRecord(game.time);
   $('win-world').textContent = '正在读取';
-  pendingSubmission = { config: runConfig(game), ticks: runTicks, orders: runOrders.slice() };
+  pendingSubmission = { config: runConfig(game), ticks: runTicks, orders: runOrders.slice(),admission:runAdmission };
   if (ONLINE_ENABLED && !assisted) void uploadRecord();
   $('win-best').textContent = formatRecord(records[recordKey(id)]);
   $('record-status').textContent = assisted ? '辅助通关 · 最佳用时单独保存' : '个人最佳已保存在本机';

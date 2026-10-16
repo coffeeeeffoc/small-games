@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
-import { mkdtemp, readdir, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -60,6 +60,9 @@ test('outbox survives restart and retries the same result after HTTP failure', a
     await integration.settle(result);
     await integration.flush();
     assert.deepEqual(await readdir(directory), [`${result.matchId}.json`]);
+    const persisted = await readFile(path.join(directory, `${result.matchId}.json`), 'utf8');
+    assert.deepEqual(JSON.parse(persisted), result);
+    assert.doesNotMatch(persisted, /token|refresh|proof|credential/i);
     await integration.close();
     available = true;
     integration = await createCompetition({ url, key, directory });

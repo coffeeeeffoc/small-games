@@ -1,6 +1,7 @@
 import {
   createService,
   openDatabase,
+  openControlDatabase,
   type DependencyProbe,
   type RequestSpanExporter,
 } from '@coffeeeeffoc/service-kit';
@@ -37,7 +38,7 @@ export function createRuntimeService(
   const control =
     env.COMPETITION_ENABLED === 'true' && env.COMPETITION_CONTROL_ENABLED === 'true'
       ? createCompetitionControl(
-          database.db,
+          openControlDatabase(databaseUrl),
           readCompetitionCors(env),
           Date.now,
           env.COMPETITION_CONTROL_INSTANCE_ID,
@@ -70,7 +71,7 @@ export function createRuntimeService(
             async check() {
               await control.publicCors();
             },
-            close() {},
+            close: control.close,
           },
         }
       : {}),

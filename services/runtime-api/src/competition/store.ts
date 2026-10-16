@@ -6,9 +6,34 @@ import { CompetitionError, type Room, type Rule } from './types.js';
 import { createCompetitionIdentities } from './identity-store.js';
 import { publicProfile, publicResult, publicRoomResults } from './profile.js';
 import { assertGameControl, gamePolicy, type CompetitionControl } from './control.js';
+import {
+  assertGameScope,
+  assertResourceAuth,
+  assertStoredPlayerGame,
+  playerIdOf,
+  type PlayerAuth,
+} from './auth.js';
 
 type Database = ReturnType<typeof openDatabase>['db'];
 type Tx = Parameters<Parameters<Database['transaction']>[0]>[0];
+type RankingRow = ReturnType<typeof publicProfile> & {
+  playerId: string;
+  score: number;
+  secondary: number;
+  rank: number;
+  position: number;
+  total: number;
+};
+type Ranking = {
+  board: string;
+  top: RankingRow[];
+  me: RankingRow | null;
+  previous: RankingRow | null;
+  threshold: RankingRow | null | undefined;
+  gap: { score: number; secondary: number } | null;
+  eligiblePlayers: number;
+  reason: string | null;
+};
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
 const json = (value: unknown) => JSON.stringify(value);
 const boardOf = (rule: Rule) => `${rule.id}:${rule.version}`;
@@ -26,7 +51,23 @@ export function createCompetitionStore(
     if (!rule) throw new CompetitionError('GAME_UNAVAILABLE', 404);
     return rule;
   }
-  async function ranking(board: string, playerId: string | null, executor: Database | Tx = db) {
+  async function ranking(
+    board: string,
+    auth: PlayerAuth | null,
+    executor: Database | Tx = db,
+    game?: string,
+  ): Promise<Ranking> {
+    if (auth && typeof auth !== 'string')
+      return db.transaction(async (tx) => {
+        await assertResourceAuth(
+          tx,
+          auth,
+          game ?? (board === 'carding-car-seaside-v1' ? 'carding-car' : board.split(':')[0]!),
+          now(),
+        );
+        return ranking(board, auth.playerId, tx);
+      });
+    const playerId = auth;
     const rankedRows = await executor.execute(sql`with ranked as (
       select player_id as "playerId", p.display_name,p.profile, score, secondary,
       rank() over(order by score desc,secondary asc)::int as rank,
@@ -89,14 +130,16 @@ export function createCompetitionStore(
         (excluded.score=runtime.competition_best.score and excluded.secondary<runtime.competition_best.secondary)`);
   }
   async function create(
-    playerId: string,
+    auth: PlayerAuth,
     game: string,
     options: { mode?: string; role?: string; initiative?: string } = {},
     executor: Database | Tx = db,
   ) {
+    const playerId = playerIdOf(auth);
     const rule = ruleFor(game);
     const policy = await gamePolicy(control, executor, game);
     assertGameControl(policy, policy?.killEpoch, true);
+    await assertResourceAuth(executor, auth, game, now());
     if (options.mode && !rule.modes?.some((mode) => mode.id === options.mode))
       throw new CompetitionError('INVALID_MODE', 422);
     if (options.role && !rule.roles?.includes(options.role))
@@ -245,7 +288,7 @@ export function createCompetitionStore(
     );
   }
   async function roomAction(
-    playerId: string,
+    auth: PlayerAuth,
     code: string,
     operation: string,
     input: {
@@ -256,6 +299,7 @@ export function createCompetitionStore(
       initiative?: string;
     } = {},
   ) {
+    const playerId = playerIdOf(auth);
     return db.transaction(async (tx) => {
       let policy: Awaited<ReturnType<typeof gamePolicy>>;
       if (control && operation !== 'leave') {
@@ -270,6 +314,7 @@ export function createCompetitionStore(
       );
       if (!rows[0]) throw new CompetitionError('INVITATION_NOT_FOUND', 404);
       const room = rows[0].data as Room;
+      await assertResourceAuth(tx, auth, room.game, now());
       if (policy && policy.gameId !== room.game) throw new CompetitionError('WRONG_GAME');
       if (input.game && room.game !== input.game) throw new CompetitionError('WRONG_GAME', 409);
       const rule = ruleFor(room.game);
@@ -419,7 +464,7 @@ export function createCompetitionStore(
         if (!room.rematch)
           room.rematch = (
             await create(
-              playerId,
+              auth,
               room.game,
               { mode: room.mode, role: member.role, initiative: room.initiative },
               tx,
@@ -438,10 +483,12 @@ export function createCompetitionStore(
     ranking,
     ruleFor,
     roomAction,
-    async startStreetRun(playerId: string, config: Record<string, unknown>) {
+    async startStreetRun(auth: PlayerAuth, config: Record<string, unknown>) {
+      const playerId = playerIdOf(auth);
       return db.transaction(async (tx) => {
         const policy = await gamePolicy(control, tx, 'cops-robbers-realtime');
         assertGameControl(policy, policy?.killEpoch, true);
+        await assertResourceAuth(tx, auth, 'cops-robbers-realtime', now());
         const admissionId = randomUUID();
         const data = {
           kind: 'street-admission-v1',
@@ -457,11 +504,13 @@ export function createCompetitionStore(
       });
     },
     async streetRuns(
-      playerId: string,
+      auth: PlayerAuth,
       config: Record<string, unknown>,
       input?: unknown,
       admissionId?: string,
     ) {
+      const playerId = playerIdOf(auth);
+      assertGameScope(auth, 'cops-robbers-realtime');
       const rule = ruleFor('cops-robbers-realtime');
       let board: string;
       let result: { board: string; elapsedMs: number } | undefined;
@@ -475,6 +524,7 @@ export function createCompetitionStore(
         const matchId = 'street-run:' + hash(json([playerId, config, input]));
         result = await db.transaction(async (tx) => {
           const policy = await gamePolicy(control, tx, 'cops-robbers-realtime');
+          await assertResourceAuth(tx, auth, 'cops-robbers-realtime', now());
           await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${matchId}))`);
           const prior = await tx.execute(sql`select score from runtime.competition_results
             where match_id=${matchId} and player_id=${playerId}`);
@@ -524,7 +574,7 @@ export function createCompetitionStore(
           return verified;
         });
       }
-      const rankingResult = await ranking(board, playerId);
+      const rankingResult = await ranking(board, auth, db, 'cops-robbers-realtime');
       const top = rankingResult.top.map((row) => ({
         playerId: row.playerId,
         userId: row.userId,
@@ -546,15 +596,16 @@ export function createCompetitionStore(
       };
     },
     async create(
-      playerId: string,
+      auth: PlayerAuth,
       game: string,
       options: { mode?: string; role?: string; initiative?: string } = {},
     ) {
       return db.transaction(async (tx) =>
-        view(await create(playerId, game, options, tx), playerId, tx),
+        view(await create(auth, game, options, tx), playerIdOf(auth), tx),
       );
     },
-    async board(game: string, playerId: string | null) {
+    async board(game: string, auth: PlayerAuth | null) {
+      assertGameScope(auth, game);
       const rule =
         game === 'carding-car'
           ? {
@@ -576,7 +627,7 @@ export function createCompetitionStore(
         rules: rule.description,
         modes: rule.modes,
         roles: rule.roles,
-        ...(await ranking(board, playerId)),
+        ...(await ranking(board, auth, db, game)),
       };
     },
     async kartResults(input: {
@@ -595,6 +646,8 @@ export function createCompetitionStore(
         throw new CompetitionError('INVALID_RESULT', 422);
       return db.transaction(async (tx) => {
         const policy = await gamePolicy(control, tx, 'carding-car');
+        for (const id of input.entries.map((e) => e.playerId).sort())
+          await assertStoredPlayerGame(tx, id, 'carding-car', now());
         await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${input.matchId}))`);
         const existing = await tx.execute(
           sql`select data from runtime.competition_matches where id=${input.matchId}`,

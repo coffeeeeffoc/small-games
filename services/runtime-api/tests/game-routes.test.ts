@@ -34,7 +34,7 @@ async function setup(dual = false, conflict = false) {
   const ranking = vi.fn(async () => ({ top: [], me: null }));
   const board = vi.fn(async () => ({ top: [], me: null }));
   const store = {
-    identity,
+    auth: identity,
     roomAction,
     ranking,
     board,

@@ -3,11 +3,14 @@ import { expect, it, vi } from 'vitest';
 import { registerCompetition } from '../src/competition/routes.js';
 import type { createCompetitionStore } from '../src/competition/store.js';
 import type { CompetitionControl } from '../src/competition/control.js';
+import { CompetitionError } from '../src/competition/types.js';
 
 it('exposes only Kart policy on the existing private key/peer channel and rejects stale acknowledgements', async () => {
   const app = Fastify(),
     key = 'k'.repeat(32);
-  const observe = vi.fn(async () => {}),
+  const observeKart = vi.fn(async (input: { version: number }) => {
+      if (input.version !== 3) throw new CompetitionError('CONTROL_VERSION_CHANGED');
+    }),
     kartLease = vi.fn(async () => ({
       controlEnabled: true,
       gameId: 'carding-car',
@@ -26,8 +29,7 @@ it('exposes only Kart policy on the existing private key/peer channel and reject
       maxAge: 600,
     }),
     kartLease,
-    observe,
-    cors: async () => ({ version: 3, digest: 'a'.repeat(64) }),
+    observeKart,
   } as unknown as CompetitionControl;
   await registerCompetition(
     app,
@@ -70,7 +72,7 @@ it('exposes only Kart policy on the existing private key/peer channel and reject
       payload: { instanceId: 'kart-primary', version: 2, digest: 'a'.repeat(64) },
     });
     expect(stale.statusCode).toBe(409);
-    expect(observe).not.toHaveBeenCalled();
+    expect(observeKart).toHaveBeenCalledTimes(1);
     const current = await app.inject({
       method: 'POST',
       url: acknowledgement,
@@ -78,11 +80,11 @@ it('exposes only Kart policy on the existing private key/peer channel and reject
       payload: { instanceId: 'kart-primary', version: 3, digest: 'a'.repeat(64) },
     });
     expect(current.statusCode).toBe(200);
-    expect(observe).toHaveBeenCalledWith(
-      { instanceId: 'kart-primary', version: 3, digest: 'a'.repeat(64) },
-      'kart',
-      'kart-primary',
-    );
+    expect(observeKart).toHaveBeenCalledWith({
+      instanceId: 'kart-primary',
+      version: 3,
+      digest: 'a'.repeat(64),
+    });
   } finally {
     await app.close();
   }

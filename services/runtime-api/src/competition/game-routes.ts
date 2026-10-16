@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { CompetitionError } from './types.js';
 import type { createCompetitionStore } from './store.js';
 import type { createRankedStore } from './ranked-store.js';
+import { assertGameScope, type PlayerAuth } from './auth.js';
 
 const gameId = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9-]{0,79}$/);
 const roomCode = z.string().regex(/^[A-F0-9]{12}$/);
@@ -17,7 +18,7 @@ export function registerGameRoutes(
   routes: FastifyInstance,
   store: ReturnType<typeof createCompetitionStore>,
   ranked: ReturnType<typeof createRankedStore>,
-  player: (authorization: string | undefined) => Promise<string>,
+  player: (authorization: string | undefined) => Promise<PlayerAuth>,
 ) {
   const viewer = (authorization: string | undefined) =>
     authorization ? player(authorization) : Promise.resolve(null);
@@ -53,14 +54,17 @@ export function registerGameRoutes(
   }
   routes.get('/games/:game', async (request) => {
     const { game } = gameParams(request.params);
+    const auth = await viewer(request.headers.authorization);
+    assertGameScope(auth, game);
     return {
       ...definition(game),
-      identity: await store.identityDetails(await viewer(request.headers.authorization)),
+      identity: await store.identityDetails(auth),
     };
   });
   routes.get('/games/:game/leaderboards/:board', async (request) => {
     const { game, board } = z.object({ game: gameId, board: gameId }).parse(request.params);
     const playerId = await viewer(request.headers.authorization);
+    assertGameScope(playerId, game);
     definition(game);
     if (ranked.rules.get(game)?.boards.some((item) => item.id === board)) {
       const { key, rule, definition: boardDefinition } = ranked.boardFor(game, board);

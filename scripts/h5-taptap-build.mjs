@@ -348,6 +348,7 @@ export async function buildH5Packages(
           serviceConfig = await prepareH5Service(game, dist, {
             env: buildEnv,
             local: Boolean(values.local),
+            identityMode: 'ephemeral',
           }),
           files = await inventory(dist);
         assert(

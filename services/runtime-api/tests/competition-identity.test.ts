@@ -17,7 +17,7 @@ async function setup() {
   const app = Fastify();
   apps.push(app);
   const store = {
-    identity: vi.fn(async () => userId),
+    auth: vi.fn(async () => userId),
     guestSession: vi.fn(async () => ({ userId, playerId: userId, token, refreshToken })),
     refreshSession: vi.fn(async () => ({ userId, playerId: userId, token, refreshToken })),
     renewGuestSession: vi.fn(async () => ({ userId, playerId: userId, token, refreshToken })),

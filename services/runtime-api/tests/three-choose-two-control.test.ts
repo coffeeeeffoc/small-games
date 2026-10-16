@@ -90,6 +90,8 @@ function fixture(pending = false) {
     if (text.startsWith('select platform,subject'))
       return [{ platform: 'wechat', subject: 'server-verified' }];
     if (text.startsWith('select id from runtime.competition_players')) return [{ id: owner }];
+    if (text.startsWith('select id,platform,app_id,created_at'))
+      return [{ id: owner, platform: 'wechat', app_id: 'fixture', created_at: 1 }];
     return [];
   });
   return {

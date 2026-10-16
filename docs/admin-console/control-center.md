@@ -12,8 +12,14 @@ API 为 `/api/control` 下的 catalog、state、revisions、members、roles、au
 
 `infra/admin-console/migrations/002-control-center.sql` 仅新建 `game_control`，不修改既有游戏表或 `admin_console`。迁移拒绝未知对象、所有者、外键目标、ACL 和 owner 的全局默认表／函数授权，不自动修复权限。Runtime 只能读取发布投影和游戏策略、追加应用报告，不能读取管理成员或修改开关。
 
-本地验证：管理服务 typecheck、lint、17 个测试文件共 53 项通过。`services/management-api/tests/control-postgres.mjs` 使用全新 UUID 标签的 PostgreSQL 17.6 容器、卷和专用网络，端口仅绑定回环，执行后精确清理；12 项检查覆盖迁移幂等、异常 ACL／外键拒绝、旧数据保护、真实应用角色、管理员并发、发布与 Runtime 锁竞争、重启持久化。证据见 `qa/control-postgres-current.json`。这些结果不代表生产已迁移或实际 GitHub 已验收。
+本地验证：管理服务 typecheck、lint、17 个测试文件共 53 项通过。`services/management-api/tests/control-postgres.mjs` 使用全新 UUID 标签的 PostgreSQL 17.6 容器、卷和专用网络，端口仅绑定回环，执行后精确清理；19 项检查覆盖迁移幂等、异常 ACL／外键拒绝、旧数据保护、真实应用角色、管理员并发、发布与 Runtime 锁竞争、重启持久化、控制事务超时及身份锁并发。证据见 `qa/control-postgres-current.json`，其中记录实际执行模块和源码 SHA-256。这些结果不代表生产已迁移或实际 GitHub 已验收。
 
-Runtime 控制定向测试 45 项、service-kit 控制及 CORS 测试 7 项通过；Kart 在本机回环允许的环境串行执行 12 项，通过真实双连接、重连、结算及控制租约测试。Runtime/service-kit build、Kart/management typecheck 通过。发布工具套件首次 147 项中 146 项通过，唯一失败为新增迁移消费者的旧期待；修正后相关三项通过，未知相邻迁移仍阻断。控制读取和心跳的跨 SQL 总超时预算仍需修正及验收，不能据此启用生产。
+控制数据库使用独立的单连接池，最多排队五项，总预算从入队开始计算；postgres-js 事务客户端固定物理连接。超时主动拒绝并清理当前连接，迟到回调不能再执行 SQL 或更新策略缓存；下一项可重新建立池。真实 PostgreSQL 已验证观察表锁、语句间断线、非 SQL 等待、排队和关闭。COMMIT 已发出后的结果仍可能未知，不能承诺全部超时事务已回滚；结果不确定时不授予控制权、不更新策略缓存。Runtime 额外使用一个控制连接，生产前须核实既有角色连接上限与资源预算。
+
+三款 TapTap H5 显式使用临时游客身份，凭据和房间记录仅保存在当前页面内存，刷新或换游戏不复用；后端严格协商模式和游戏范围，access 最长十五分钟，身份及刷新总期从创建起八小时。现有 legacy／平台登录继续兼容，因此这不是共享 origin 上的强应用隔离，也不证明真人身份。请求固定首次身份上下文，在资源事务内再次核对真实游戏、玩家和撤权；玩家行使用 NO KEY UPDATE，允许结果外键读取，并继续与升级、刷新互斥。真实原始表定义的并发回归先复现旧锁 40P01，再验证两个结算提交及升级锁等待；它不是完整 HTTP 自然对局的替代证据。
+
+街区单局在开始时取得票据，main.js 和 native.js 通过共用 records.js 绑定玩家与关卡配置；取消、换配置或换身份不能借票据提交。Kart 排位身份以十秒重验、最多十五秒租约限制存活，失败时停止授权；旧客户端需要退出后重新入房恢复已过期凭据，不宣称 WebSocket 即时撤权。凭据仅在私有 WeakMap 中，不能进入房间快照或 outbox。
+
+本轮客户端／producer 定向五文件 65 项、Runtime 19 文件 171 项及 Kart 两文件 14 项最终均覆盖通过；早先失败的旧锁期待已修正，原自然双人三圈模拟在 120 秒有界运行中用时约 37 秒。Runtime build/typecheck/lint、service-kit lint、Kart typecheck、改动文件格式检查通过。发布工具套件此前 147 项中 146 项通过，唯一旧期待修正后相关三项通过；准确合并候选仍须正常 hook 验证，不能将这些工作区结果当作已推送或部署。
 
 生产启用前必须给出准确候选、备份、SQL／GRANT、CSP／路由差异及回退方案。当前未执行生产迁移、授权或跨域白名单变更。

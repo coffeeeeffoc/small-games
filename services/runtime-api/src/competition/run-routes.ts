@@ -1,11 +1,12 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { createCompetitionStore } from './store.js';
+import type { PlayerAuth } from './auth.js';
 
 export function registerRunRoutes(
   routes: FastifyInstance,
   store: ReturnType<typeof createCompetitionStore>,
-  player: (authorization: string | undefined) => Promise<string>,
+  player: (authorization: string | undefined) => Promise<PlayerAuth>,
 ) {
   const config = (query: unknown) =>
     z

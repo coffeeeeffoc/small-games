@@ -196,7 +196,7 @@ it('accepts carrom room creation and joining through the existing authenticated 
   const identity = vi.fn(async () => 'verified-player');
   const create = vi.fn(async () => ({ code: 'ABCDEF123456' }));
   const roomAction = vi.fn(async () => ({ status: 'waiting' }));
-  const store = { identity, create, roomAction } as unknown as ReturnType<
+  const store = { auth: identity, create, roomAction } as unknown as ReturnType<
     typeof createCompetitionStore
   >;
   await registerCompetition(app, store, {});

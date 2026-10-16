@@ -1,5 +1,6 @@
 import { createHash, randomInt, randomUUID } from 'node:crypto';
 import { CompetitionError } from './types.js';
+import { assertGameScope, playerIdOf, type PlayerAuth } from './auth.js';
 import type {
   Frame,
   RankedRule,
@@ -65,12 +66,14 @@ export function createRankedRuns(
     rules,
     boardFor,
     async create(
-      playerId: string,
+      auth: PlayerAuth,
       game: string,
       board: string,
       levelId?: string,
       version?: string,
     ) {
+      assertGameScope(auth, game);
+      const playerId = playerIdOf(auth);
       const { rule, definition, key } = boardFor(game, board);
       if (!version || version !== rule.version) throw new CompetitionError('RULE_VERSION_CHANGED');
       if (!definition.guestAllowed && !(await identity(playerId)).authenticated)
@@ -99,82 +102,100 @@ export function createRankedRuns(
         expiresAt: now() + lifetime,
         status: 'active',
       };
-      await repository.create(run);
+      await repository.create(run, auth);
       return view(run);
     },
-    get(playerId: string, game: string, id: string) {
-      return repository.mutate(id, async ({ run, assertControl }) => {
-        assertOwner(run, playerId, game);
-        if (!run.settlement) assertControl?.();
-        return { ...view(run), settlement: run.settlement ?? null };
-      });
+    get(auth: PlayerAuth, game: string, id: string) {
+      const playerId = playerIdOf(auth);
+      assertGameScope(auth, game);
+      return repository.mutate(
+        id,
+        async ({ run, assertControl }) => {
+          assertOwner(run, playerId, game);
+          if (!run.settlement) assertControl?.();
+          return { ...view(run), settlement: run.settlement ?? null };
+        },
+        auth,
+      );
     },
-    actions(playerId: string, game: string, id: string, input: { seq: number; frames: Frame[] }) {
-      return repository.mutate(id, async (tx) => {
-        const run = tx.run;
-        assertOwner(run, playerId, game);
-        const hash = createHash('sha256')
-          .update(JSON.stringify(canonical(input)))
-          .digest('hex');
-        const existing = await tx.receipt(input.seq);
-        if (existing) {
-          if (existing.hash !== hash) throw new CompetitionError('SEQUENCE_CONFLICT');
-          return existing.response;
-        }
-        tx.assertControl?.();
-        assertActive(run);
-        if (input.seq !== run.seq + 1) throw new CompetitionError('SEQUENCE_CONFLICT');
-        const ticks = input.frames.reduce((sum, frame) => sum + frame.ticks, 0);
-        if (
-          !input.frames.length ||
-          input.frames.length > 1200 ||
-          ticks > 2400 ||
-          input.frames.some((frame) => !Number.isSafeInteger(frame.ticks) || frame.ticks < 0)
-        )
-          throw new CompetitionError('INVALID_INPUT', 422);
-        if (((run.ticks + ticks) * 1000) / 120 > now() - run.createdAt + 2000)
-          throw new CompetitionError('RUN_AHEAD_OF_TIME', 422);
-        try {
-          run.state = ruleFor(game).apply(run.state, input.frames);
-        } catch {
-          throw new CompetitionError('ILLEGAL_ACTION', 422);
-        }
-        run.seq = input.seq;
-        run.ticks += ticks;
-        run.expiresAt = now() + lifetime;
-        const response = view(run);
-        await tx.saveReceipt(input.seq, { hash, response });
-        return response;
-      });
+    actions(auth: PlayerAuth, game: string, id: string, input: { seq: number; frames: Frame[] }) {
+      const playerId = playerIdOf(auth);
+      assertGameScope(auth, game);
+      return repository.mutate(
+        id,
+        async (tx) => {
+          const run = tx.run;
+          assertOwner(run, playerId, game);
+          const hash = createHash('sha256')
+            .update(JSON.stringify(canonical(input)))
+            .digest('hex');
+          const existing = await tx.receipt(input.seq);
+          if (existing) {
+            if (existing.hash !== hash) throw new CompetitionError('SEQUENCE_CONFLICT');
+            return existing.response;
+          }
+          tx.assertControl?.();
+          assertActive(run);
+          if (input.seq !== run.seq + 1) throw new CompetitionError('SEQUENCE_CONFLICT');
+          const ticks = input.frames.reduce((sum, frame) => sum + frame.ticks, 0);
+          if (
+            !input.frames.length ||
+            input.frames.length > 1200 ||
+            ticks > 2400 ||
+            input.frames.some((frame) => !Number.isSafeInteger(frame.ticks) || frame.ticks < 0)
+          )
+            throw new CompetitionError('INVALID_INPUT', 422);
+          if (((run.ticks + ticks) * 1000) / 120 > now() - run.createdAt + 2000)
+            throw new CompetitionError('RUN_AHEAD_OF_TIME', 422);
+          try {
+            run.state = ruleFor(game).apply(run.state, input.frames);
+          } catch {
+            throw new CompetitionError('ILLEGAL_ACTION', 422);
+          }
+          run.seq = input.seq;
+          run.ticks += ticks;
+          run.expiresAt = now() + lifetime;
+          const response = view(run);
+          await tx.saveReceipt(input.seq, { hash, response });
+          return response;
+        },
+        auth,
+      );
     },
-    finish(playerId: string, game: string, id: string, seq: number) {
-      return repository.mutate(id, async (tx) => {
-        const run = tx.run;
-        assertOwner(run, playerId, game);
-        if (seq !== run.seq) throw new CompetitionError('SEQUENCE_CONFLICT');
-        if (run.settlement) return run.settlement;
-        tx.assertControl?.();
-        assertActive(run);
-        const result = ruleFor(game).result(run.state);
-        if (
-          !Number.isSafeInteger(result.score) ||
-          result.score < 0 ||
-          !Number.isSafeInteger(result.secondary) ||
-          result.secondary < 0
-        )
-          throw new CompetitionError('INVALID_RESULT', 422);
-        const accepted = result.eligible && result.complete && result.score > 0;
-        const settlement: Settlement = {
-          ...result,
-          accepted,
-          runId: id,
-          reason: accepted ? null : 'INCOMPLETE_OR_PRACTICE',
-        };
-        if (accepted) await tx.record(settlement);
-        run.status = 'finished';
-        run.settlement = settlement;
-        return settlement;
-      });
+    finish(auth: PlayerAuth, game: string, id: string, seq: number) {
+      const playerId = playerIdOf(auth);
+      assertGameScope(auth, game);
+      return repository.mutate(
+        id,
+        async (tx) => {
+          const run = tx.run;
+          assertOwner(run, playerId, game);
+          if (seq !== run.seq) throw new CompetitionError('SEQUENCE_CONFLICT');
+          if (run.settlement) return run.settlement;
+          tx.assertControl?.();
+          assertActive(run);
+          const result = ruleFor(game).result(run.state);
+          if (
+            !Number.isSafeInteger(result.score) ||
+            result.score < 0 ||
+            !Number.isSafeInteger(result.secondary) ||
+            result.secondary < 0
+          )
+            throw new CompetitionError('INVALID_RESULT', 422);
+          const accepted = result.eligible && result.complete && result.score > 0;
+          const settlement: Settlement = {
+            ...result,
+            accepted,
+            runId: id,
+            reason: accepted ? null : 'INCOMPLETE_OR_PRACTICE',
+          };
+          if (accepted) await tx.record(settlement);
+          run.status = 'finished';
+          run.settlement = settlement;
+          return settlement;
+        },
+        auth,
+      );
     },
   };
 }

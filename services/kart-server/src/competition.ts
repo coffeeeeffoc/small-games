@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 
 export const rankedBoard = 'carding-car-seaside-v1';
 export const rankedSeed = 20260923;
+export const KART_AUTHORITY_PROTOCOL = Object.freeze({ control: 1, identityRecheck: 1 });
 export type KartResult = {
   matchId: string;
   board: string;
@@ -38,7 +39,7 @@ class CompetitionRequestError extends Error {
   }
 }
 export type Competition = {
-  verify(token: string): Promise<{ playerId: string }>;
+  verify(token: string): Promise<{ playerId: string; expiresAt?: number }>;
   settle(result: KartResult): Promise<void>;
   saved(matchId: string): boolean;
   cancelled?(matchId: string): boolean;
@@ -143,7 +144,15 @@ export async function createCompetition(options: {
       const result = await request('verify', { token });
       if (!result || typeof result.playerId !== 'string' || !result.playerId)
         throw new Error('Invalid competition identity response');
-      return { playerId: result.playerId };
+      if (
+        result.expiresAt !== undefined &&
+        (!Number.isSafeInteger(result.expiresAt) || result.expiresAt <= Date.now())
+      )
+        throw new CompetitionRequestError('SESSION_EXPIRED');
+      return {
+        playerId: result.playerId,
+        ...(result.expiresAt === undefined ? {} : { expiresAt: result.expiresAt }),
+      };
     },
     async settle(result) {
       if (!/^[a-f0-9-]{36}$/.test(result.matchId)) throw new Error('Invalid match ID');

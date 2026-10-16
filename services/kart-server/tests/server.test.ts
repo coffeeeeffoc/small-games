@@ -20,6 +20,250 @@ const create: ClientMessage = {
   route: 'seaside',
   bots: 1,
 };
+for (const failure of ['revoked', 'expired', 'transient'])
+  test(`ranked sockets revalidate ${failure} credentials and never expose private member proofs`, async () => {
+    let clock = 100000,
+      revoked = false,
+      settlements = 0;
+    const tokens = ['ranked-member-a-secret-token', 'ranked-member-b-secret-token'];
+    const frames: string[] = [];
+    const server = createKartServer({
+      autoTick: false,
+      now: () => clock,
+      competition: {
+        async verify(token) {
+          if (revoked && failure === 'revoked')
+            throw Object.assign(new Error('SESSION_EXPIRED'), { code: 'SESSION_EXPIRED' });
+          if (revoked && failure === 'transient') throw new Error('fixture transport unavailable');
+          return {
+            playerId: tokens.indexOf(token) === 0 ? 'player-a' : 'player-b',
+            expiresAt: revoked && failure === 'expired' ? clock - 1 : 900000,
+          };
+        },
+        settle: async () => {
+          settlements++;
+        },
+        saved: () => false,
+      },
+    });
+    await server.app.listen({ host: '127.0.0.1', port: 0 });
+    const { port } = server.app.server.address() as { port: number };
+    const a = await peer(`ws://127.0.0.1:${port}/kart`),
+      b = await peer(`ws://127.0.0.1:${port}/kart`);
+    for (const connection of [a, b])
+      connection.socket.on('message', (data) => frames.push(data.toString()));
+    try {
+      a.send({ ...create, ranked: true, competitionToken: tokens[0] });
+      const joined = await a.wait('joined');
+      b.send({ type: 'join', ...appearance, code: joined.room.code, competitionToken: tokens[1] });
+      await b.wait('joined');
+      for (const client of [a, b]) {
+        client.send({ type: 'prepared', revision: 1 });
+        client.send({ type: 'ready', ready: true });
+      }
+      await a.wait(
+        'room',
+        (m) => m.room.members.length === 2 && m.room.members.every((p) => p.ready),
+      );
+      a.send({ type: 'start' });
+      await a.wait('room', (m) => m.room.phase === 'loading');
+      a.send({ type: 'loaded', raceId: 1 });
+      b.send({ type: 'loaded', raceId: 1 });
+      await a.wait('room', (m) => m.room.phase === 'racing');
+      const room = server.rooms.get(joined.room.code)!;
+      revoked = true;
+      clock += 10001;
+      server.step();
+      await new Promise((resolve) => setImmediate(resolve));
+      const before = room.race!.time,
+        seq = room.members[0].seq,
+        beforeTick = room.tick;
+      a.send({
+        type: 'input',
+        raceId: 1,
+        seq: seq + 1,
+        input: { steer: 0, throttle: 1, brake: false, drift: false },
+      });
+      a.send({ type: 'ready', ready: true });
+      assert.equal(
+        (await a.wait('error')).message,
+        failure === 'transient' ? 'IDENTITY_UNAVAILABLE' : 'SESSION_EXPIRED',
+      );
+      assert.equal(room.members[0].seq, seq);
+      const race = room.race!;
+      server.step();
+      assert.equal(race.time, before);
+      assert.equal(settlements, 0);
+      if (failure === 'transient') {
+        assert.equal(server.rooms.has(joined.room.code), true);
+        assert.equal(room.identityPaused, true);
+        revoked = false;
+        a.send({ type: 'ready', ready: true });
+        await a.wait(
+          'error',
+          (m) => !['IDENTITY_UNAVAILABLE', 'SESSION_EXPIRED'].includes(m.message),
+        );
+        a.send({
+          type: 'input',
+          raceId: 1,
+          seq: seq + 1,
+          input: { steer: 0, throttle: 1, brake: false, drift: false },
+        });
+        await new Promise((resolve) => setImmediate(resolve));
+        server.step();
+        assert.equal(room.members[0].seq, seq);
+        assert.ok(room.tick > beforeTick);
+      } else assert.equal(server.rooms.has(joined.room.code), false);
+      assert.ok(tokens.every((token) => !frames.join('').includes(token)));
+      assert.doesNotMatch(
+        frames.join(''),
+        /tokenHash|refreshToken|validUntil|checkAt|guestGameScope/,
+      );
+    } finally {
+      a.socket.terminate();
+      b.socket.terminate();
+      await server.app.close();
+    }
+  });
+test('failed lease acknowledgement cannot extend tick/input/settlement authority', async () => {
+  let clock = 100000,
+    version = 1,
+    fail = false,
+    settlements = 0;
+  const server = createKartServer({
+    autoTick: false,
+    now: () => clock,
+    controlEnabled: true,
+    competition: {
+      verify: async () => ({ playerId: 'fixture' }),
+      saved: () => false,
+      settle: async () => {
+        settlements++;
+      },
+      control: async () => ({
+        controlEnabled: true,
+        gameId: 'carding-car',
+        state: 'enabled',
+        killEpoch: 0,
+        version,
+        digest: 'a'.repeat(64),
+        validForMs: 2000,
+      }),
+      applied: async () => {
+        if (fail) throw new Error('ACK_UNAVAILABLE');
+      },
+    },
+  });
+  await server.app.listen({ host: '127.0.0.1', port: 0 });
+  const { port } = server.app.server.address() as { port: number };
+  const a = await peer(`ws://127.0.0.1:${port}/kart`);
+  try {
+    a.send(create);
+    const joined = await a.wait('joined');
+    a.send({ type: 'prepared', revision: 1 });
+    await a.wait('room', (m) => m.room.members[0].loadedRevision === 1);
+    a.send({ type: 'ready', ready: true });
+    await a.wait('room', (m) => m.room.members[0].ready);
+    a.send({ type: 'start' });
+    await a.wait('room', (m) => m.room.phase === 'loading');
+    a.send({ type: 'loaded', raceId: 1 });
+    await a.wait('room', (m) => m.room.phase === 'racing');
+    const room = server.rooms.get(joined.room.code)!;
+    version = 2;
+    fail = true;
+    a.send({ type: 'ready', ready: true });
+    assert.equal((await a.wait('error')).message, 'ACK_UNAVAILABLE');
+    const time = room.race!.time,
+      seq = room.members[0].seq;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      clock += 1000;
+      server.step();
+      await new Promise((resolve) => setImmediate(resolve));
+      a.send({
+        type: 'input',
+        raceId: 1,
+        seq: seq + 1,
+        input: { steer: 0, throttle: 1, brake: false, drift: false },
+      });
+      a.send({ type: 'ready', ready: true });
+      assert.equal(
+        (await a.wait('error', (m) => m.message === 'ACK_UNAVAILABLE')).message,
+        'ACK_UNAVAILABLE',
+      );
+      assert.equal(room.race!.time, time);
+      assert.equal(room.members[0].seq, seq);
+      assert.equal(room.members[0].input.throttle, 0);
+    }
+    room.race!.time = 600;
+    server.step();
+    assert.equal(room.state.phase, 'racing');
+    assert.equal(settlements, 0);
+    assert.equal(room.controlPaused, true);
+  } finally {
+    a.socket.terminate();
+    await server.app.close();
+  }
+});
+test('a member leaving while resume awaits control cannot be reattached', async () => {
+  let pause = false,
+    release: (() => void) | undefined,
+    entered: (() => void) | undefined;
+  const waiting = new Promise<void>((resolve) => {
+    entered = resolve;
+  });
+  const lease: KartControlLease = {
+    controlEnabled: true,
+    gameId: 'carding-car',
+    state: 'enabled',
+    killEpoch: 0,
+    version: 0,
+    digest: null,
+    validForMs: 2000,
+  };
+  const server = createKartServer({
+    autoTick: false,
+    controlEnabled: true,
+    competition: {
+      verify: async () => ({ playerId: 'fixture' }),
+      saved: () => false,
+      settle: async () => {},
+      control: async () => {
+        if (pause) {
+          entered!();
+          await new Promise<void>((resolve) => {
+            release = resolve;
+          });
+        }
+        return lease;
+      },
+    },
+  });
+  await server.app.listen({ host: '127.0.0.1', port: 0 });
+  const { port } = server.app.server.address() as { port: number };
+  const a = await peer(`ws://127.0.0.1:${port}/kart`),
+    b = await peer(`ws://127.0.0.1:${port}/kart`);
+  try {
+    a.send(create);
+    const joined = await a.wait('joined');
+    pause = true;
+    b.send({ type: 'resume', version: 2, code: joined.room.code, token: joined.token });
+    await waiting;
+    a.send({ type: 'leave' });
+    await once(a.socket, 'close');
+    release!();
+    assert.equal((await b.wait('error')).message, 'GAME_CANCELLED');
+    assert.equal(server.rooms.get(joined.room.code)!.members.length, 0);
+    assert.equal(
+      b.messages.some((m) => m.type === 'joined'),
+      false,
+    );
+  } finally {
+    release?.();
+    a.socket.terminate();
+    b.socket.terminate();
+    await server.app.close();
+  }
+});
 test('control uses fresh admission reads, cancels killed racing before tick and stamps recovered rooms', async () => {
   let clock = 100000,
     epoch = 0,

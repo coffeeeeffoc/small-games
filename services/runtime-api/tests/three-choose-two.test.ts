@@ -16,7 +16,7 @@ async function setup() {
   const action = vi.fn(async () => ({ seq: 1, state: { score: 0 } }));
   const finish = vi.fn(async () => ({ status: 'finished' }));
   const audit = vi.fn(async () => ({ actions: [] }));
-  const store = { identity } as unknown as ReturnType<typeof createCompetitionStore>;
+  const store = { auth: identity } as unknown as ReturnType<typeof createCompetitionStore>;
   const ranked = { action, finish, audit } as unknown as ReturnType<
     typeof createThreeChooseTwoStore
   >;

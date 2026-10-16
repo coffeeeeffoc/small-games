@@ -7,6 +7,8 @@ const failure = (code, message = '排行榜暂不可用，本地挑战仍可继�
 export function createGameServices({ gameId, ruleVersion }) {
   if (!/^[A-Za-z0-9][A-Za-z0-9-]{0,79}$/.test(gameId)) throw failure('INVALID_GAME');
   const config = globalThis.__COMPETITION_CONFIG__ || {};
+  if (config.identityMode === 'ephemeral' && config.game !== gameId)
+    throw failure('IDENTITY_SCOPE_MISMATCH');
   const sdk = globalThis[nativeNames[config.platform]];
   const base = (config.apiUrl || '/api/competition/v1').replace(/\/$/, '');
   const path = '/games/' + encodeURIComponent(gameId);
@@ -14,7 +16,7 @@ export function createGameServices({ gameId, ruleVersion }) {
     roomOwners = new Map();
   let storage;
   try {
-    storage = sdk || globalThis.localStorage;
+    if (config.identityMode === undefined) storage = sdk || globalThis.localStorage;
   } catch {
     /* Memory-only identity. */
   }

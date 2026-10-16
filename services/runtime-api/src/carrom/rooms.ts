@@ -1,6 +1,8 @@
+import { publicCarromRoom } from './view.js';
 import { createHash, randomBytes, randomInt } from 'node:crypto';
 import { CompetitionError } from '../competition/types.js';
 import type { Engine, Input, Level, Repository, Room, Settings } from './types.js';
+import { assertGameScope, playerIdOf, type PlayerAuth } from '../competition/auth.js';
 
 const offlineMs = 15_000;
 const hostGraceMs = 45_000;
@@ -43,35 +45,7 @@ export function createCarromRooms(
     room.settledRound = 0;
     room.reason = 'series-reset';
   }
-  function view(room: Room, playerId: string) {
-    return {
-      code: room.code,
-      game: room.game,
-      version: room.version,
-      hostId: room.hostId,
-      status: room.status,
-      settings: room.settings,
-      resolvedLevelId: room.settings.levelId,
-      revision: room.revision,
-      round: room.round,
-      state: room.state,
-      you: room.players.findIndex((p) => p.id === playerId),
-      players: room.players.map(({ id, name, ready, lastSeen }) => ({
-        id,
-        name,
-        ready,
-        connected: now() - lastSeen < offlineMs,
-      })),
-      seq: room.players.find((p) => p.id === playerId)?.seq ?? 0,
-      lastShot: room.lastShot,
-      turnDeadline: room.turnDeadline,
-      deadline: room.deadline,
-      series: room.series,
-      reason: room.reason,
-      serverNow: now(),
-      pollMs: 900,
-    };
-  }
+  const view = (room: Room, playerId: string) => publicCarromRoom(room, playerId, now());
   function settle(room: Room) {
     if (room.state?.phase !== 'over' || room.settledRound === room.round) return;
     room.status = 'finished';
@@ -107,7 +81,9 @@ export function createCarromRooms(
       settle(room);
     }
   }
-  async function create(playerId: string, options: Partial<Settings> = {}) {
+  async function create(auth: PlayerAuth, options: Partial<Settings> = {}) {
+    assertGameScope(auth, 'carrom-club');
+    const playerId = playerIdOf(auth);
     const room: Room = {
       code: randomBytes(6).toString('hex').toUpperCase(),
       game: 'carrom-club',
@@ -135,10 +111,12 @@ export function createCarromRooms(
       settledRound: 0,
     };
     resetSeries(room);
-    await repository.create(room);
+    await repository.create(room, auth);
     return view(room, playerId);
   }
-  async function action(playerId: string, code: string, operation: string, input: Input = {}) {
+  async function action(auth: PlayerAuth, code: string, operation: string, input: Input = {}) {
+    assertGameScope(auth, 'carrom-club');
+    const playerId = playerIdOf(auth);
     const name = operation === 'join' ? await repository.name(playerId) : undefined;
     return repository.mutate(
       code,
@@ -312,6 +290,7 @@ export function createCarromRooms(
       operation,
       input,
       playerId,
+      auth,
     );
   }
   return { create, action };

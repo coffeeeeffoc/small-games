@@ -5,6 +5,7 @@ import { CompetitionError } from '../competition/types.js';
 import { createCarromRooms } from './rooms.js';
 import type { Engine, Level, Repository, Room } from './types.js';
 import { assertGameControl, gamePolicy, type CompetitionControl } from '../competition/control.js';
+import { assertResourceAuth } from '../competition/auth.js';
 
 type Database = ReturnType<typeof openDatabase>['db'];
 /** Reuse durable room storage and identity; serialize every mutation under a row lock. */
@@ -23,17 +24,18 @@ export function createCarromStore(
       if (!rows[0]) throw new CompetitionError('SESSION_EXPIRED', 401);
       return String(rows[0].name);
     },
-    async create(room) {
+    async create(room, auth) {
       await db.transaction(async (tx) => {
         const policy = await gamePolicy(control, tx, 'carrom-club');
         assertGameControl(policy, policy?.killEpoch, true);
+        if (auth) await assertResourceAuth(tx, auth, room.game, now());
         room.killEpoch = policy?.killEpoch ?? 0;
         await tx.execute(
           sql`insert into runtime.competition_rooms values(${room.code},${JSON.stringify(room)}::jsonb,${room.deadline})`,
         );
       });
     },
-    async mutate(code, change, operation, input, playerId) {
+    async mutate(code, change, operation, input, playerId, auth) {
       return db.transaction(async (tx) => {
         const policy =
           operation === 'leave' ? undefined : await gamePolicy(control, tx, 'carrom-club');
@@ -43,6 +45,7 @@ export function createCarromStore(
         if (!rows[0]) throw new CompetitionError('INVITATION_NOT_FOUND', 404);
         const room = rows[0].data as Room;
         if (room.game !== 'carrom-club') throw new CompetitionError('WRONG_GAME');
+        if (auth) await assertResourceAuth(tx, auth, room.game, now());
         const finishedRead = operation === 'get' && room.status === 'finished';
         const shotHash =
           operation === 'shoot'

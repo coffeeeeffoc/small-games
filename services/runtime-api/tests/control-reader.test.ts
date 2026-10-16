@@ -3,6 +3,8 @@ import {
   CONTROL_GAME_IDS,
   controlSnapshotDigest,
   normalizeControlSnapshot,
+  type openControlDatabase,
+  type ControlDatabaseExecutor,
 } from '@coffeeeeffoc/service-kit';
 import { assertGameControl, createCompetitionControl } from '../src/competition/control.js';
 import { controlDatabase } from './control-fixture.js';
@@ -18,12 +20,15 @@ function fixture() {
   let version = 0,
     time = 1000,
     delayed = false,
-    broken = false;
+    broken = false,
+    perQueryDelay = 0,
+    failCommit = false;
   let snapshot = normalizeControlSnapshot({
     apiOrigins: ['https://published.example'],
     games: Object.fromEntries(CONTROL_GAME_IDS.map((id) => [id, 'enabled'])),
   });
   const memory = controlDatabase((text) => {
+    if (!text.includes('set_config')) time += perQueryDelay;
     if (text.includes('pg_advisory_xact_lock_shared') && delayed) time += 2001;
     if (text.includes('from game_control.published_config'))
       return version
@@ -38,10 +43,25 @@ function fixture() {
       }));
     return [];
   });
-  const control = createCompetitionControl(memory.db, fallback, () => time, 'runtime-primary');
+  const database = {
+    transaction<T>(work: (tx: ControlDatabaseExecutor, remaining: () => number) => Promise<T>) {
+      const deadline = time + 2000;
+      return memory.db.transaction(async (tx) => {
+        const result = await work(tx, () => {
+          if (time >= deadline) throw new Error('CONTROL_UNAVAILABLE');
+          return deadline - time;
+        });
+        if (failCommit) throw new Error('commit failed');
+        return result;
+      });
+    },
+    close() {},
+  } satisfies ReturnType<typeof openControlDatabase>;
+  const control = createCompetitionControl(database, fallback, () => time, 'runtime-primary');
   return {
     ...memory,
     control,
+    database,
     publish(next = 1) {
       version = next;
     },
@@ -50,6 +70,12 @@ function fixture() {
     },
     delay() {
       delayed = true;
+    },
+    queryDelay(ms: number) {
+      perQueryDelay = ms;
+    },
+    failCommit(value: boolean) {
+      failCommit = value;
     },
     breakDigest() {
       broken = true;
@@ -90,18 +116,49 @@ it('uses env only at version zero, applies a precise version, and heartbeats aft
     false,
   );
 });
+it('shrinks each SQL budget and memoizes observations only after successful commit', async () => {
+  const f = fixture();
+  f.publish();
+  f.queryDelay(50);
+  f.failCommit(true);
+  await expect(f.control.publicCors()).rejects.toMatchObject({ code: 'CONTROL_UNAVAILABLE' });
+  f.failCommit(false);
+  await f.control.publicCors();
+  const observations = f.queries.filter((q) =>
+    q.sql.startsWith('insert into game_control.application_observations'),
+  );
+  expect(observations).toHaveLength(2);
+  const firstTransaction = f.queries.slice(0, f.queries.indexOf(observations[0]!) + 1);
+  const timeouts = firstTransaction
+    .filter((q) => q.sql.includes("set_config('statement_timeout'"))
+    .map((q) => Number(String(q.params[0]).replace('ms', '')));
+  expect(timeouts[0]).toBe(2000);
+  expect(timeouts.at(-1)).toBeLessThan(2000);
+  expect(timeouts.every((ms, index) => index === 0 || ms < timeouts[index - 1]!)).toBe(true);
+  const slow = fixture();
+  slow.publish();
+  slow.queryDelay(2001);
+  await expect(slow.control.publicCors()).rejects.toMatchObject({ code: 'CONTROL_UNAVAILABLE' });
+  expect(slow.queries.some((q) => q.sql.includes('insert into'))).toBe(false);
+});
 it('counts lock wait in its two-second budget and never falls back after errors or digest corruption', async () => {
   const f = fixture();
   f.publish();
   f.delay();
   await expect(f.control.cors()).rejects.toMatchObject({ code: 'CONTROL_UNAVAILABLE' });
-  expect(f.queries.some((q) => q.sql === "set local lock_timeout = '1500ms'")).toBe(true);
+  expect(
+    f.queries.some(
+      (q) => q.sql.includes("set_config('lock_timeout'") && q.params.includes('1500ms'),
+    ),
+  ).toBe(true);
   const broken = fixture();
   broken.publish();
   broken.breakDigest();
   await expect(broken.control.publicCors()).rejects.toMatchObject({ code: 'CONTROL_UNAVAILABLE' });
   expect(broken.queries.some((q) => q.sql.includes('insert into'))).toBe(false);
-  expect(() => createCompetitionControl(broken.db, fallback, Date.now, 'x'.repeat(129))).toThrow();
+  expect(() =>
+    createCompetitionControl(broken.database, fallback, Date.now, 'x'.repeat(129)),
+  ).toThrow();
 });
 it('uses the exact shared publication key, and all eleven games permanently reject an old epoch', async () => {
   const f = fixture();

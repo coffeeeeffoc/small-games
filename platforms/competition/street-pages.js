@@ -34,6 +34,14 @@ export function mountStreetCompetition(game, createRenderer) {
   globalThis.__CLASSIC_CHASE_ROLES__ = true;
   globalThis.__installCompetition();
   const client = globalThis.__competition;
+  const roomStorage =
+    client.identityMode === 'ephemeral'
+      ? client.roomStorage
+      : {
+          getItem: (key) => localStorage.getItem(key),
+          setItem: (key, value) => localStorage.setItem(key, value),
+          removeItem: (key) => localStorage.removeItem(key),
+        };
   const renderer = createRenderer({
     createImage: () => new Image(),
     assetBase: new URL('./', location.href).href,
@@ -149,7 +157,7 @@ export function mountStreetCompetition(game, createRenderer) {
   const detachedKey = `competition-detached-rooms:${game}`;
   function detachedRooms() {
     try {
-      return JSON.parse(localStorage.getItem(detachedKey) || '[]').filter((code) =>
+      return JSON.parse(roomStorage.getItem(detachedKey) || '[]').filter((code) =>
         /^[A-F0-9]{12}$/.test(code),
       );
     } catch {
@@ -158,12 +166,12 @@ export function mountStreetCompetition(game, createRenderer) {
   }
   function rememberDetached(code) {
     try {
-      localStorage.setItem(detachedKey, JSON.stringify([...new Set([...detachedRooms(), code])]));
+      roomStorage.setItem(detachedKey, JSON.stringify([...new Set([...detachedRooms(), code])]));
     } catch {}
   }
   function forgetDetached(code) {
     try {
-      localStorage.setItem(
+      roomStorage.setItem(
         detachedKey,
         JSON.stringify(detachedRooms().filter((item) => item !== code)),
       );
@@ -199,6 +207,9 @@ export function mountStreetCompetition(game, createRenderer) {
     renderAvatar(select('[data-avatar]'), value, client.avatarPolicy);
     renderAvatar(select('[data-name-avatar]'), value, client.avatarPolicy);
     select('[data-profile-details]').textContent = profileDetails(value);
+    if (value.identityMode === 'ephemeral')
+      select('[data-profile-details]').textContent +=
+        ' · 本页临时访客仅用于当前游戏，最长8小时；刷新会开始新身份，原成绩不会转移。页内存储不隔离同源脚本。';
     select('[data-sync-profile]').hidden = !client.canSyncProfile?.();
     for (const figure of all('[data-figure]')) {
       figure.style.backgroundPositionX = `${getRoleAppearance(figure.dataset.figure).preset * 50}%`;
@@ -418,7 +429,7 @@ export function mountStreetCompetition(game, createRenderer) {
       showResults();
     }
     try {
-      localStorage.setItem(`competition-room:${game}`, room.code);
+      roomStorage.setItem(`competition-room:${game}`, room.code);
     } catch {}
   }
   async function refresh() {
@@ -704,7 +715,7 @@ export function mountStreetCompetition(game, createRenderer) {
         const invite = new URL(location.href).searchParams.get('pk');
         let saved;
         try {
-          saved = localStorage.getItem(`competition-room:${game}`);
+          saved = roomStorage.getItem(`competition-room:${game}`);
         } catch {}
         if (invite && /^[A-F0-9]{12}$/.test(invite)) {
           select('[data-code]').value = invite;
@@ -752,7 +763,7 @@ export function mountStreetCompetition(game, createRenderer) {
       pending = null;
       resultShown = null;
       try {
-        localStorage.removeItem(`competition-room:${game}`);
+        roomStorage.removeItem(`competition-room:${game}`);
       } catch {}
       feedback('邀请一位好友，一起玩一局。');
     } catch {

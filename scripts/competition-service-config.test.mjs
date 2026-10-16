@@ -11,7 +11,12 @@ import {
 } from './competition-service-config.mjs';
 import { configuration } from '../games/minigames/scripts/config.mjs';
 import { publicTapTapLoginConfig } from '../apps/shell-minigame/scripts/taptap-login.mjs';
-import { prepareH5Service } from './competition-h5-service.mjs';
+import {
+  prepareH5Service,
+  h5ServiceConfig,
+  serviceHtml,
+  reconfigureH5Service,
+} from './competition-h5-service.mjs';
 import { prepareSite } from './deploy-tencent.mjs';
 import { prepareBundleSite, buildEnvironment } from './deployment-bundle.mjs';
 import {
@@ -25,6 +30,47 @@ import { tapTapOptions } from '../apps/shell-minigame/scripts/taptap-targets.mjs
 
 const url = 'https://api.example.com/api/competition/v1';
 const online = { COMPETITION_SERVICE_ENABLED: '1', COMPETITION_PUBLIC_API_URL: url };
+test('only the three explicit Tap H5 producers select ephemeral mode; generic/native config is unchanged', async () => {
+  for (const game of ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five']) {
+    assert.equal(h5ServiceConfig(game, { env: online }).identityMode, undefined);
+    const config = h5ServiceConfig(game, { env: online, identityMode: 'ephemeral' });
+    assert.equal(config.identityMode, 'ephemeral');
+    assert.equal(config.game, game);
+    assert.match(
+      serviceHtml('<html><head></head><body></body></html>', config),
+      /"identityMode":"ephemeral"/,
+    );
+  }
+  assert.throws(() => h5ServiceConfig('letters-words2', { identityMode: 'ephemeral' }));
+  assert.throws(() => h5ServiceConfig('cops-robbers', { identityMode: 'unknown' }));
+  const source = await readFile(new URL('./h5-taptap-build.mjs', import.meta.url), 'utf8');
+  assert.match(
+    source,
+    /prepareH5Service\(game, dist, \{\s*env: buildEnv,\s*local: Boolean\(values.local\),\s*identityMode: 'ephemeral'/,
+  );
+});
+test('reconfigure keeps explicit ephemeral mode with service disabled without building a game', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'competition-ephemeral-config-'));
+  try {
+    const index = path.join(directory, 'index.html');
+    await writeFile(
+      index,
+      serviceHtml(
+        '<html><head></head><body></body></html>',
+        h5ServiceConfig('cops-robbers', {
+          env: { COMPETITION_SERVICE_ENABLED: '0' },
+          identityMode: 'ephemeral',
+        }),
+      ),
+    );
+    await reconfigureH5Service(index, { COMPETITION_SERVICE_ENABLED: '0', H5_ADS_ENABLED: '0' });
+    const html = await readFile(index, 'utf8');
+    assert.match(html, /"identityMode":"ephemeral"/);
+    assert.match(html, /"competitionEnabled":false/);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
 test('service flags leave the other channel games public configuration unchanged', () => {
   for (const game of [
     'carding-car',

@@ -65,13 +65,14 @@ export type Room = {
   reason?: string;
 };
 export type Repository = {
-  create(room: Room): Promise<void>;
+  create(room: Room, auth?: PlayerAuth): Promise<void>;
   mutate<T>(
     code: string,
     change: (room: Room) => T,
     operation?: string,
     input?: Input,
     playerId?: string,
+    auth?: PlayerAuth,
   ): Promise<T>;
   name(playerId: string): Promise<string>;
 };
@@ -84,3 +85,4 @@ export type Input = {
   seq?: number;
   shot?: Shot;
 };
+import type { PlayerAuth } from '../competition/auth.js';
