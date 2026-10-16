@@ -3,12 +3,14 @@ import { readAdminConfig } from '../src/admin/config.js';
 import { registerAdminAuthentication } from '../src/admin/routes.js';
 import type { AdminFlow, AdminSession, AdminStore } from '../src/admin/store.js';
 import type { GithubProvider, Identity } from '../src/admin/github.js';
+import type { ControlService } from '../src/admin/control-service.js';
 
 export const origin = 'https://admin.nenggongzhiren.cn';
 export async function adminFixture(
   identity: Identity = { githubId: '123', login: 'creator', emails: ['1521152077@qq.com'] },
   env: Record<string, string> = {},
   github?: GithubProvider,
+  control?: ControlService,
 ) {
   let now = Date.now();
   const config = readAdminConfig({
@@ -75,6 +77,7 @@ export async function adminFixture(
       },
     },
     () => now,
+    control,
   );
   const headers = { host: 'admin.nenggongzhiren.cn' };
   const begin = async () => {

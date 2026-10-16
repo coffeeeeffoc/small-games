@@ -1,8 +1,21 @@
 import { z } from 'zod';
 import { readAdminConfig } from './admin/config.js';
 
+export function adminControlEnabled(env: Record<string, string | undefined>) {
+  if (
+    env.ADMIN_CONTROL_ENABLED !== undefined &&
+    !['true', 'false'].includes(env.ADMIN_CONTROL_ENABLED)
+  )
+    throw new Error('Invalid management configuration: ADMIN_CONTROL_ENABLED');
+  return env.ADMIN_CONTROL_ENABLED === 'true';
+}
+
 /** Reject incomplete configuration before allocating database or object-store clients. */
 export function validateManagementEnvironment(env: Record<string, string | undefined>) {
+  if (adminControlEnabled(env) && env.MANAGEMENT_CAPABILITIES !== 'admin' && !env.ADMIN_ORIGIN)
+    throw new Error(
+      'Invalid management configuration: ADMIN_CONTROL_ENABLED requires ADMIN_ORIGIN',
+    );
   if (env.MANAGEMENT_CAPABILITIES && !['admin', 'studio'].includes(env.MANAGEMENT_CAPABILITIES))
     throw new Error('Invalid management configuration: MANAGEMENT_CAPABILITIES');
   if (env.MANAGEMENT_CAPABILITIES === 'admin') {

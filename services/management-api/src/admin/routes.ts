@@ -6,6 +6,10 @@ import { registerCors } from '@coffeeeeffoc/service-kit';
 import { isAdminRequest, type AdminConfig } from './config.js';
 import type { AdminSession, AdminStore } from './store.js';
 import { GithubIdentityError, type GithubProvider } from './github.js';
+import { ZodError } from 'zod';
+import type { ControlService } from './control-service.js';
+import { ControlError, type Principal } from './control-model.js';
+import { registerControlRoutes } from './control-routes.js';
 
 const random = () => randomBytes(32).toString('base64url');
 export const adminHash = (value: string) => createHash('sha256').update(value).digest('hex');
@@ -22,6 +26,7 @@ export async function registerAdminAuthentication(
   config: AdminConfig,
   github: GithubProvider,
   now = Date.now,
+  control?: ControlService,
 ) {
   await app.register(
     async (routes) => {
@@ -31,6 +36,7 @@ export async function registerAdminAuthentication(
         return isAdminRequest(request, config) && request.headers.origin === config.origin;
       });
       const sessions = new WeakMap<FastifyRequest, { session: AdminSession; token: string }>();
+      const principals = new WeakMap<FastifyRequest, Principal>();
       const secure = new URL(config.origin).protocol === 'https:';
       const sessionCookie = secure ? '__Secure-sg_admin_session' : 'sg_admin_session';
       const flowCookie = secure ? '__Secure-sg_admin_flow' : 'sg_admin_flow';
@@ -45,6 +51,10 @@ export async function registerAdminAuthentication(
           .header('content-security-policy', "default-src 'none'; frame-ancestors 'none'");
       });
       routes.setErrorHandler((error, _request, reply) => {
+        if (error instanceof ControlError)
+          return reply.code(error.status).send({ error: error.code });
+        if (error instanceof ZodError && control)
+          return reply.code(422).send({ error: 'INVALID_INPUT' });
         const limited = error instanceof Error && 'statusCode' in error && error.statusCode === 429;
         routes.log.warn(
           { code: limited ? 'ADMIN_RATE_LIMITED' : 'ADMIN_UNAVAILABLE' },
@@ -72,7 +82,8 @@ export async function registerAdminAuthentication(
             : undefined;
         if (!session || Number(session.expiresAt) <= now())
           return reply.code(401).send({ error: 'authentication_required' });
-        if (!config.allowlist.has(session.email)) {
+        const principal = control ? await control.access.session(session) : undefined;
+        if (control ? !principal : !config.allowlist.has(session.email)) {
           await store.deleteSession(adminHash(token!));
           reply.clearCookie(sessionCookie, options);
           return reply.code(403).send({ error: 'forbidden' });
@@ -86,12 +97,13 @@ export async function registerAdminAuthentication(
             return reply.code(403).send({ error: 'invalid_csrf' });
         }
         sessions.set(request, { session, token: token! });
+        if (principal) principals.set(request, principal);
       });
       routes.get(
         '/auth/github',
         { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } },
         async (request, reply) => {
-          if (!config.clientId || !config.clientSecret || !config.allowlist.size)
+          if (!config.clientId || !config.clientSecret || (!control && !config.allowlist.size))
             return reply.redirect(landing('/login?error=unavailable'));
           const state = random(),
             verifier = random();
@@ -151,7 +163,9 @@ export async function registerAdminAuthentication(
             reply.clearCookie(sessionCookie, options);
             const old = request.cookies[sessionCookie];
             if (old && tokenPattern.test(old)) await store.deleteSession(adminHash(old));
-            const email = identity.emails.find((value) => config.allowlist.has(value));
+            const email = control
+              ? await control.access.identify(identity, config.allowlist)
+              : identity.emails.find((value) => config.allowlist.has(value));
             if (!email) return reply.redirect(landing('/forbidden'));
             const token = random();
             phase = 'session_write';
@@ -185,6 +199,12 @@ export async function registerAdminAuthentication(
           user: { login: session.login },
           csrfToken: csrf(token),
           expiresAt: Number(session.expiresAt),
+          ...(control
+            ? {
+                roles: principals.get(request)!.roles,
+                permissions: principals.get(request)!.permissions,
+              }
+            : {}),
         };
       });
       routes.post(
@@ -207,6 +227,12 @@ export async function registerAdminAuthentication(
             user: { login: rotated.login },
             csrfToken: csrf(replacement),
             expiresAt: Number(rotated.expiresAt),
+            ...(control
+              ? {
+                  roles: principals.get(request)!.roles,
+                  permissions: principals.get(request)!.permissions,
+                }
+              : {}),
           };
         },
       );
@@ -216,6 +242,8 @@ export async function registerAdminAuthentication(
         reply.clearCookie(sessionCookie, options);
         return { ok: true };
       });
+      if (control)
+        await registerControlRoutes(routes, control, (request) => sessions.get(request)!.session);
     },
     { prefix: '/api' },
   );

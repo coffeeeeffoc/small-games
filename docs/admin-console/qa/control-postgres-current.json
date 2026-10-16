@@ -1,0 +1,22 @@
+{
+  "runId": "game-control-17606fd4-07bb-4eb3-9362-f7fd193d62c3",
+  "isolated": true,
+  "loopbackOnly": true,
+  "productionAccess": false,
+  "checks": [
+    "reject-global-default-ACL-before-creating-schema",
+    "migration-twice-existing-data-and-ACL-preserved",
+    "runtime-read-only-policy-no-members-and-management-append-only-ledger",
+    "fail-closed-column",
+    "fail-closed-table",
+    "fail-closed-owner",
+    "fail-closed-runtime-update",
+    "fail-closed-public-read",
+    "fail-closed-foreign-key-namespace",
+    "one-time-bootstrap-db-disable-and-concurrent-last-administrator",
+    "CAS-append-only-rollback-epoch-and-shared-advisory-order",
+    "publication-members-audit-survive-database-restart"
+  ],
+  "migrationSha256": "d16a0a06e9da6531b8140fa196dc0fe2a3d91a74cc2fcf877685fe7346f74451",
+  "postgresVersion": "17.6"
+}

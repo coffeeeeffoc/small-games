@@ -22,12 +22,14 @@ import { normalizeCultivationContent } from '@coffeeeeffoc/game-cultivation/cont
 import cultivationManifestJson from '@coffeeeeffoc/game-cultivation/manifest' with { type: 'json' };
 import { gameManifestSchema } from '@coffeeeeffoc/game-contract';
 import { createProtectionStore, registerProtection } from './protection.js';
-import { validateManagementEnvironment } from './config.js';
+import { adminControlEnabled, validateManagementEnvironment } from './config.js';
 import { sql } from 'drizzle-orm';
 import { readAdminConfig, normalizePeer } from './admin/config.js';
 import { createAdminStore } from './admin/store.js';
 import { githubProvider } from './admin/github.js';
 import { registerAdminAuthentication } from './admin/routes.js';
+import { createControlStore } from './admin/control-store.js';
+import { createControlService } from './admin/control-service.js';
 
 /** Creates the management HTTP application with only its own database identity. */
 export function createManagementService(
@@ -40,6 +42,19 @@ export function createManagementService(
   const adminOnly = env.MANAGEMENT_CAPABILITIES === 'admin';
   const admin = adminOnly || env.ADMIN_ORIGIN ? readAdminConfig(env) : undefined;
   const database = openDatabase(databaseUrl, 'management');
+  const control = adminControlEnabled(env)
+    ? createControlService(createControlStore(database.db), admin!.origin)
+    : undefined;
+  const checkControl = async () => {
+    if (!control) return;
+    const rows = await database.db.execute(
+      sql`select version from game_control.schema_version where version=2`,
+    );
+    if (rows.length !== 1) throw new Error('Control schema is not initialized');
+    await database.db.execute(
+      sql`select version,digest,snapshot from game_control.published_config limit 0`,
+    );
+  };
   const safeTelemetry: RequestSpanExporter = {
     exportSpan(span) {
       const safe = {
@@ -71,6 +86,7 @@ export function createManagementService(
           sql`select version from admin_console.schema_version where version = 1`,
         );
         if (rows.length !== 1) throw new Error('Admin schema is not initialized');
+        await checkControl();
       },
       close: database.close,
     };
@@ -88,6 +104,8 @@ export function createManagementService(
         createAdminStore(database.db),
         admin!,
         githubProvider(admin!.clientId, admin!.clientSecret),
+        Date.now,
+        control,
       ),
     );
     return app;
@@ -105,7 +123,18 @@ export function createManagementService(
   });
   const app = createService(
     'management',
-    { database, objects },
+    {
+      database: control
+        ? {
+            check: async () => {
+              await database.check();
+              await checkControl();
+            },
+            close: database.close,
+          }
+        : database,
+      objects,
+    },
     safeLogger,
     safeTelemetry,
     admin ? trustProxy : env.TRUST_PROXY === '1' ? 'uniquelocal' : false,
@@ -118,6 +147,8 @@ export function createManagementService(
         createAdminStore(database.db),
         admin,
         githubProvider(admin.clientId, admin.clientSecret),
+        Date.now,
+        control,
       );
     const auth = createAuthStore(database.db);
     await registerAuthentication(instance, auth, origin);
