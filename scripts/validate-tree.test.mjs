@@ -5,6 +5,29 @@ import os from 'node:os';
 import path from 'node:path';
 import { assertNodeOnly, validateTree, runIncrementalToolChecks } from './validate-tree.mjs';
 
+test('admin deployment contract actually executes and fails closed independently of game browsers', () => {
+  const calls = [];
+  const options = {
+    plan: { admin_deployment_checks: true, native_consumers: [], developer_mode_ids: [] },
+    packages: [],
+    root: '/fixture',
+    env: {},
+    execute: (command, args) => calls.push([command, ...args]),
+  };
+  runIncrementalToolChecks(options);
+  assert.deepEqual(calls, [[process.execPath, '--test', 'scripts/deploy-admin.test.mjs']]);
+  assert.throws(
+    () =>
+      runIncrementalToolChecks({
+        ...options,
+        execute() {
+          throw new Error('admin canary failed');
+        },
+      }),
+    /admin canary failed/,
+  );
+});
+
 test('optional service and importer contracts still run with native release gates disabled', () => {
   const calls = [];
   const options = {

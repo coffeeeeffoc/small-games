@@ -1321,11 +1321,31 @@ export const competitionIngressScopePaths = [
   'infra/caddy/backup.test.py',
   'scripts/deploy-tencent.test.mjs',
 ];
-export const adminConsoleScopePaths = [
+export const adminDeploymentScopePaths = [
   'infra/admin-console/.env.example',
   'infra/admin-console/migrations/001-admin-auth.sql',
+  'scripts/deploy-admin.mjs',
+  'scripts/deploy-admin.test.mjs',
+  'infra/admin-console/deploy.py',
+  'infra/admin-console/deploy.test.py',
+  'infra/admin-console/fingerprint.sql',
 ];
+export const adminConsoleScopePaths = [...adminDeploymentScopePaths];
 const adminConsumers = ['services/management-api', 'apps/admin-web'];
+function adminCommandsOnly(before, after) {
+  try {
+    const previous = JSON.parse(before),
+      current = JSON.parse(after);
+    assert.equal(before.replaceAll('\r\n', '\n'), JSON.stringify(previous, null, 2) + '\n');
+    assert.equal(after.replaceAll('\r\n', '\n'), JSON.stringify(current, null, 2) + '\n');
+    assert.equal(current.scripts?.['deploy:admin'], 'node scripts/deploy-admin.mjs');
+    assert(!Object.hasOwn(previous.scripts, 'deploy:admin'));
+    delete current.scripts['deploy:admin'];
+    return isDeepStrictEqual(previous, current);
+  } catch {
+    return false;
+  }
+}
 const ingressConsumers = ['apps/company-web', 'services/runtime-api', ...adminConsumers];
 const adminLockBlocks = [
   [
@@ -1550,7 +1570,13 @@ export function reviewedSharedFileScopes({
         scopes.set(file, ['apps/admin-web']);
         continue;
       }
-      if (adminConsoleScopePaths.includes(file)) {
+      if (
+        adminConsoleScopePaths.includes(file) ||
+        (file === 'package.json' &&
+          readBase &&
+          readHead &&
+          adminCommandsOnly(readBase(file), readHead(file)))
+      ) {
         for (const source of adminConsumers) assert(packages.some((pkg) => pkg.dir === source));
         scopes.set(file, adminConsumers);
         continue;

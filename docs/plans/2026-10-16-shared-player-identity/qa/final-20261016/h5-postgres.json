@@ -1,0 +1,146 @@
+{
+  "completedAt": "2026-10-16T11:41:40.745Z",
+  "sourceSHA": "47687063bd522437962026b52ee6d784dfecd099",
+  "reportSHA256": "584aa5e5301011638126187f14dbfa25e189b18a90f535ba1cf65dbf4090f06e",
+  "database": "Existing small_games in small-games-postgres-1",
+  "queryMode": "BEGIN TRANSACTION READ ONLY; own twelve acceptance identities only",
+  "originalDatabaseRestarted": false,
+  "twelveIndependentPlayersPersisted": true,
+  "sixRatedMatchesPersisted": true,
+  "resultsAndLeaderboardScoresMatch": true,
+  "exactlyOneResultPerMatchPlayerAfterDuplicateSubmission": true,
+  "rows": [
+    {
+      "game": "cops-robbers",
+      "room": "62FD718FDEAF",
+      "userId": "846b85a4-11d9-4ae3-ad98-6e02999b4fd1",
+      "identity": true,
+      "profile": true,
+      "resultCount": 1,
+      "resultMatches": true,
+      "bestMatches": true,
+      "ratedMatch": true
+    },
+    {
+      "game": "cops-robbers",
+      "room": "62FD718FDEAF",
+      "userId": "9739b886-b536-4dcd-bc8f-485a4fa94d37",
+      "identity": true,
+      "profile": true,
+      "resultCount": 1,
+      "resultMatches": true,
+      "bestMatches": true,
+      "ratedMatch": true
+    },
+    {
+      "game": "cops-robbers",
+      "room": "FDE2AD3BE18B",
+      "userId": "1dd42e8f-1fb3-4907-8870-39c00cae28f6",
+      "identity": true,
+      "profile": true,
+      "resultCount": 1,
+      "resultMatches": true,
+      "bestMatches": true,
+      "ratedMatch": true
+    },
+    {
+      "game": "cops-robbers",
+      "room": "FDE2AD3BE18B",
+      "userId": "30798480-977a-4a60-bad7-1a879ab47b60",
+      "identity": true,
+      "profile": true,
+      "resultCount": 1,
+      "resultMatches": true,
+      "bestMatches": true,
+      "ratedMatch": true
+    },
+    {
+      "game": "cops-robbers-realtime",
+      "room": "3CD468738082",
+      "userId": "57dc5679-f919-4a09-877d-d59a775e2a5d",
+      "identity": true,
+      "profile": true,
+      "resultCount": 1,
+      "resultMatches": true,
+      "bestMatches": true,
+      "ratedMatch": true
+    },
+    {
+      "game": "cops-robbers-realtime",
+      "room": "3CD468738082",
+      "userId": "91fb6140-09de-43b8-b3fa-f968bf922e7f",
+      "identity": true,
+      "profile": true,
+      "resultCount": 1,
+      "resultMatches": true,
+      "bestMatches": true,
+      "ratedMatch": true
+    },
+    {
+      "game": "cops-robbers-realtime",
+      "room": "7234E5EB0BE9",
+      "userId": "6e5053a1-8baa-4348-992f-424f37ad3620",
+      "identity": true,
+      "profile": true,
+      "resultCount": 1,
+      "resultMatches": true,
+      "bestMatches": true,
+      "ratedMatch": true
+    },
+    {
+      "game": "cops-robbers-realtime",
+      "room": "7234E5EB0BE9",
+      "userId": "dc0170d4-9ade-4c19-80db-ed7b9b6e9ace",
+      "identity": true,
+      "profile": true,
+      "resultCount": 1,
+      "resultMatches": true,
+      "bestMatches": true,
+      "ratedMatch": true
+    },
+    {
+      "game": "xiangqi-five",
+      "room": "0106350DF4F2",
+      "userId": "8c556a1b-f8dc-4aa1-89d9-57ee3f52f9f9",
+      "identity": true,
+      "profile": true,
+      "resultCount": 1,
+      "resultMatches": true,
+      "bestMatches": true,
+      "ratedMatch": true
+    },
+    {
+      "game": "xiangqi-five",
+      "room": "0106350DF4F2",
+      "userId": "a7e89ac4-90cd-411a-9e01-d6645e40022e",
+      "identity": true,
+      "profile": true,
+      "resultCount": 1,
+      "resultMatches": true,
+      "bestMatches": true,
+      "ratedMatch": true
+    },
+    {
+      "game": "xiangqi-five",
+      "room": "1DE8A33D638B",
+      "userId": "927e2bc4-09d8-4001-a363-4172086eb1df",
+      "identity": true,
+      "profile": true,
+      "resultCount": 1,
+      "resultMatches": true,
+      "bestMatches": true,
+      "ratedMatch": true
+    },
+    {
+      "game": "xiangqi-five",
+      "room": "1DE8A33D638B",
+      "userId": "f47ad9cd-1ddb-4e65-a0b7-54036151558a",
+      "identity": true,
+      "profile": true,
+      "resultCount": 1,
+      "resultMatches": true,
+      "bestMatches": true,
+      "ratedMatch": true
+    }
+  ]
+}

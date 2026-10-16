@@ -1,0 +1,76 @@
+{
+  "recordedAt": "2026-10-16T12:27:07.488482+00:00",
+  "environment": "Windows; Node 24.21.0; pnpm 12.6.0; WSL Python contract; local Docker Desktop",
+  "contractFiles": [
+    "scripts/deploy-admin.test.mjs",
+    "scripts/publication-scopes.test.mjs",
+    "scripts/incremental-validation.test.mjs",
+    "scripts/validate-tree.test.mjs"
+  ],
+  "tests": 152,
+  "passed": 152,
+  "failed": 0,
+  "skipped": 0,
+  "exitCode": 0,
+  "contractLog": ".scratch/admin-deploy-complete-success.log",
+  "formatCheckExitCode": 0,
+  "formatLog": ".scratch/admin-deploy-format-check.log",
+  "postgres": [
+    {
+      "passed": true,
+      "image": "sha256:d741b376874687de90374fd34f55c6b2760e8f7bd7e4ae5cd47f50757fc08cf8",
+      "sourceContainerId": "f0b87a756d79f5a7abc19a52f03bc82ba79a495ae2a33b8af02b561b9c652380",
+      "sourceNetwork": "none",
+      "completeRestoreVerified": true,
+      "oldStateSHA256": "678a9b9ff0bfb5078b3d1b2e78e4bfb38662a704cbe83ab8b904e45b31a51fbd",
+      "sequenceAfterNextvalRestore": true,
+      "atomicRoleRollback": true,
+      "connectGrantOptionRejectedWithoutRepair": true,
+      "existingAuthRowsPreserved": true,
+      "idempotent": true,
+      "permissionSQLState42501Only": true
+    },
+    {
+      "fixtureContainersCleaned": true,
+      "label": "local-eb9515c61009"
+    }
+  ],
+  "composeModel": [
+    {
+      "passed": true,
+      "composeVersion": "5.5.0",
+      "composeExecutable": "existing Docker Desktop standalone plugin binary",
+      "composeRawModelSpecialCharactersPreserved": true,
+      "literalDollarSerializationHandled": true,
+      "configurationOnly": true,
+      "containersCreated": false,
+      "realSecretsRead": false
+    }
+  ],
+  "composeProcess": [
+    {
+      "passed": true,
+      "composeVersion": "5.5.0",
+      "image": "sha256:d741b376874687de90374fd34f55c6b2760e8f7bd7e4ae5cd47f50757fc08cf8",
+      "project": "small-games-admin-raw-c7a6e766b791",
+      "label": "raw-c7a6e766b791",
+      "networkMode": "none",
+      "readOnly": true,
+      "hostPorts": false,
+      "persistentVolumes": false,
+      "pgDataTmpfs": true,
+      "entrypoint": "/bin/sh",
+      "processEnvironmentExact": true,
+      "canarySHA256": "2655a26bc592c7d801c65005838502b7ac14c543747ce4e954b2a61e10adddc6",
+      "realSecretsRead": false
+    },
+    {
+      "canaryContainersCleaned": true,
+      "label": "raw-c7a6e766b791",
+      "automaticRemove": true
+    }
+  ],
+  "realOAuthRead": false,
+  "realGithubLoginVerified": false,
+  "productionChangedByTheseLocalTests": false
+}

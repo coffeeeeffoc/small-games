@@ -22,6 +22,7 @@ import {
   companyDeploymentScopePaths,
   competitionIngressScopePaths,
   adminConsoleScopePaths,
+  adminDeploymentScopePaths,
   runtimeProxyDefaultScopePaths,
   publicationConfigScopePaths,
   mobileViewportScopeFile,
@@ -35,6 +36,71 @@ import {
 import { executeCompetitionChecks } from './run-selected-competition.mjs';
 import { shellContractTargets, shellContractFiles } from './validation-plan.mjs';
 import { ingressPreflightGuard } from './competition-ingress.mjs';
+
+test('admin deployment paths and sole root command select only management and admin UI', () => {
+  const packages = [
+    { dir: 'services/management-api', name: 'management' },
+    { dir: 'apps/admin-web', name: '@coffeeeeffoc/admin-web' },
+  ];
+  const before = JSON.stringify({ scripts: { other: 'keep' } }, null, 2) + '\n';
+  const after =
+    JSON.stringify(
+      { scripts: { other: 'keep', 'deploy:admin': 'node scripts/deploy-admin.mjs' } },
+      null,
+      2,
+    ) + '\n';
+  for (const file of [...adminDeploymentScopePaths, 'package.json']) {
+    const scopes = reviewedSharedFileScopes({
+      changedPaths: [file],
+      games: [],
+      packages,
+      readBase: () => before,
+      readHead: () => after,
+    });
+    assert.deepEqual(scopes.get(file), ['services/management-api', 'apps/admin-web']);
+    const plan = incrementalPlan({
+      changedPaths: [file],
+      games: [],
+      packages,
+      fileScopes: scopes,
+      readSource: () => '',
+    });
+    assert.equal(plan.admin_deployment_checks, true);
+    assert.equal(plan.admin_console_checks, true);
+    assert.deepEqual(plan.browser_ids, []);
+    assert.ok(plan.consumer_sources.includes('apps/admin-web'));
+  }
+  for (const file of [
+    'infra/admin-console/unknown.py',
+    'scripts/deploy-admin-extra.mjs',
+    'pnpm-lock.yaml',
+  ])
+    assert.equal(
+      reviewedSharedFileScopes({
+        changedPaths: [file],
+        games: [],
+        packages,
+        readBase: () => before,
+        readHead: () => after,
+      }).has(file),
+      false,
+    );
+  for (const current of [
+    after.replace('node scripts/deploy-admin.mjs', 'node unsafe.mjs'),
+    after.replace('"keep"', '"changed"'),
+    after.replace('"scripts": {', '"scripts": {}, "scripts": {'),
+  ])
+    assert.equal(
+      reviewedSharedFileScopes({
+        changedPaths: ['package.json'],
+        games: [],
+        packages,
+        readBase: () => before,
+        readHead: () => current,
+      }).has('package.json'),
+      false,
+    );
+});
 
 test('company Pages publication adds only its tested artifact and preserves game gates', async () => {
   const { execFileSync } = await import('node:child_process');
@@ -1065,7 +1131,12 @@ test('optional service configuration has finite H5 consumers and rejects unknown
   const catalog = JSON.parse(
     readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url), 'utf8'),
   );
-  const read = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const read = (file) =>
+    file === 'package.json'
+      ? execFileSync('git', ['show', '47687063bd522437962026b52ee6d784dfecd099:' + file], {
+          encoding: 'utf8',
+        })
+      : readFileSync(new URL('../' + file, import.meta.url), 'utf8');
   const context = {
     packages: consumers,
     games: catalog,
@@ -1260,7 +1331,11 @@ test('service command and Turbo environment changes preserve every unrelated tas
       ['show', 'c010423731cc22fb0657a4a86ac9811e1997bbc1:' + file],
       { encoding: 'utf8' },
     );
-    const current = JSON.parse(readFileSync(new URL('../' + file, import.meta.url), 'utf8'));
+    const current = JSON.parse(
+      execFileSync('git', ['show', '47687063bd522437962026b52ee6d784dfecd099:' + file], {
+        encoding: 'utf8',
+      }),
+    );
     assert(competitionServiceConfigOnly(file, before, JSON.stringify(current)));
     const bad = structuredClone(current);
     if (file === 'package.json') bad.scripts['competition:game'] += ' && arbitrary-command';

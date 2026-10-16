@@ -1,0 +1,58 @@
+{
+  "sourceSHA": "a64bb7429755a7307a007f730caa37e0ea8c4e78",
+  "startedAt": "2026-10-16T09:53:08.730Z",
+  "defaultTLSValidation": true,
+  "realOAuthVerified": false,
+  "adminRoleProvisioned": false,
+  "checks": [
+    {
+      "name": "Canonical/legacy game metadata and versus boards",
+      "passed": true,
+      "prefix": "/small-games/v1",
+      "noRedirect": true
+    },
+    {
+      "name": "Canonical/legacy game metadata and versus boards",
+      "passed": true,
+      "prefix": "/api/competition/v1",
+      "noRedirect": true
+    },
+    {
+      "name": "Removed aliases, internal routes and query-preserving admin page redirect",
+      "passed": true
+    },
+    {
+      "name": "Exact public CORS localhost origin; unapproved origin has no ACAO",
+      "passed": true
+    },
+    {
+      "name": "Live admin TLS/pages/403 and fixed unavailable API; real credentials not provisioned",
+      "passed": true
+    },
+    {
+      "name": "230 unauthenticated spoofed-header requests share Nginx real-IP bucket across both prefixes",
+      "passed": true,
+      "responses": {
+        "/small-games/v1": {
+          "401": 66,
+          "429": 49
+        },
+        "/api/competition/v1": {
+          "401": 64,
+          "429": 51
+        }
+      }
+    },
+    {
+      "name": "Actual proxy logs omit callback query and retain non-spoofed source addresses",
+      "passed": true,
+      "matchingRequests": 232,
+      "logSHA256": "5f091b77983d4059d86af292723e83d6175bb2b025a0609ff995108ee7992d41"
+    }
+  ],
+  "companySourceSHA": "da201f8371a39a51553db7a25216c5f6d87ac739",
+  "ingressRelease": "20261016095209-a64bb7429755-5ae871",
+  "completedAt": "2026-10-16T09:53:41.056Z",
+  "browserAndTouchEmulationOnly": true,
+  "passed": true
+}

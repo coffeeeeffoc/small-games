@@ -23,6 +23,7 @@ import {
   deploymentBundleScopePaths,
   companyDeploymentScopePaths,
   competitionIngressScopePaths,
+  adminDeploymentScopePaths,
   runtimeProxyDefaultScopePaths,
   publicationConfigScopePaths,
   mobileViewportScopeFile,
@@ -256,6 +257,15 @@ export function incrementalPlan({
     browser: ids.size > 0,
     browser_ids: [...ids].sort(),
     admin_console_checks: adminConsoleChecks,
+    ...(paths.some(
+      (file) =>
+        adminDeploymentScopePaths.includes(file) ||
+        (file === 'package.json' &&
+          fileScopes.get(file)?.includes('apps/admin-web') &&
+          fileScopes.get(file)?.includes('services/management-api')),
+    )
+      ? { admin_deployment_checks: true }
+      : {}),
     game_sources: selected.map((game) => game.source),
     pages_deploy: paths.some((file) => pagesDeployScopePaths.includes(file)),
     validation_tools: paths.some(

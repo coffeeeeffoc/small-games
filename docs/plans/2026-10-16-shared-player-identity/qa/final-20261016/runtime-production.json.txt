@@ -1,0 +1,30 @@
+{
+  "status": "completed",
+  "revision": "da201f8371a39a51553db7a25216c5f6d87ac739",
+  "tag": "identity-20261016t085143850z-da201f83",
+  "archiveSHA256": "513283c66be2ea1942fc1076431e0c41846c4a98f06777ddefc04712d0f0be99",
+  "completedAt": "2026-10-16T09:18:45.943Z",
+  "runtimeImage": "sha256:aef467b3bea0afaa8d683536c9c72b3dd1e4243247f12e718200647d446dab76",
+  "backup": "f5e991e452c2a90804455ed1d97c7fb506641e2572316ac76a081a1dde2a109a  /opt/small-games/backups/identity-20261016t085143850z-da201f83.dump",
+  "originalDataSchemaOwnersAclRestored": true,
+  "repeatedMigrationVerified": true,
+  "existingRolesUnchanged": true,
+  "protectedContainersUnchanged": true,
+  "interfaceChecks": [
+    {
+      "game": "cops-robbers",
+      "version": "roles-initiative-duel-v2",
+      "definitionAndLeaderboard": "passed"
+    },
+    {
+      "game": "cops-robbers-realtime",
+      "version": "street-roles-initiative-v3",
+      "definitionAndLeaderboard": "passed"
+    },
+    {
+      "game": "xiangqi-five",
+      "version": "xiangqi9x10-duel-v1",
+      "definitionAndLeaderboard": "passed"
+    }
+  ]
+}

@@ -82,7 +82,8 @@
     "validate:push": "node scripts/validate-push.mjs",
     "hooks:diagnose": "node scripts/hook-diagnostics.mjs",
     "test:validation:integration": "node scripts/validate-push.integration.mjs",
-    "test:validation": "node --test scripts/validate-push.test.mjs scripts/validate-push-hook.test.mjs scripts/validate-tree.test.mjs scripts/validation-plan.test.mjs scripts/ci-validation.test.mjs scripts/cocos-validation.test.mjs scripts/workspace-bootstrap.test.mjs apps/shell-web/scripts/standalone-game-entry.test.mjs"
+    "test:validation": "node --test scripts/validate-push.test.mjs scripts/validate-push-hook.test.mjs scripts/validate-tree.test.mjs scripts/validation-plan.test.mjs scripts/ci-validation.test.mjs scripts/cocos-validation.test.mjs scripts/workspace-bootstrap.test.mjs apps/shell-web/scripts/standalone-game-entry.test.mjs",
+    "deploy:admin": "node scripts/deploy-admin.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.55.1",

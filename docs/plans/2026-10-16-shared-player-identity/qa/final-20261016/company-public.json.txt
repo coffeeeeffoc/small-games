@@ -1,0 +1,52 @@
+{
+  "completedAt": "2026-10-16T09:02:36.458Z",
+  "sourceSha": "da201f8371a39a51553db7a25216c5f6d87ac739",
+  "url": "https://nenggongzhiren.cn",
+  "release": "20261016090157-da201f8371a3-ef5a05",
+  "tlsCertificateValidation": "Default Node HTTPS and Chrome validation; no bypass",
+  "protectedContainersAndPointersUnchanged": true,
+  "protectedStateSHA256": "a0d0a810bdf126b48969610e6ced458ac1dfe57c640c3d6ac597b606d4548725",
+  "assets": [
+    {
+      "name": "brand-mark-v5-2fb69722.png",
+      "sha256": "2fb6972212e8a129a9cd83c9ec65fbdfcf2e02453799162e97ebc2e000d1c782",
+      "bytes": 123718,
+      "contentType": "image/png",
+      "conditionalRequestStatus": 304
+    },
+    {
+      "name": "favicon-v5-022178cd.ico",
+      "sha256": "022178cd5b919af5b20cc783343418a866895575eba024bd6905862334da4bcc",
+      "bytes": 141003,
+      "contentType": "image/vnd.microsoft.icon",
+      "conditionalRequestStatus": 304
+    }
+  ],
+  "pages": [
+    {
+      "width": 390,
+      "logo": {
+        "src": "/brand-mark-v5-2fb69722.png",
+        "width": 512,
+        "height": 261,
+        "fit": "contain"
+      },
+      "favicon": "./favicon-v5-022178cd.ico",
+      "screenshot": "actual-public-390.png"
+    },
+    {
+      "width": 1440,
+      "logo": {
+        "src": "/brand-mark-v5-2fb69722.png",
+        "width": 512,
+        "height": 261,
+        "fit": "contain"
+      },
+      "favicon": "./favicon-v5-022178cd.ico",
+      "screenshot": "actual-public-1440.png"
+    }
+  ],
+  "errors": [],
+  "archiveAssetsExcludedFromPublicRelease": true,
+  "actualDeviceVerified": false
+}

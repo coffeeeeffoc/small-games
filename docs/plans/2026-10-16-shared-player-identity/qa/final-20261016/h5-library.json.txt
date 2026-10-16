@@ -1,0 +1,85 @@
+{
+  "sourceSHA": "47687063bd522437962026b52ee6d784dfecd099",
+  "deliverySHA256": "cbcc66992c660571767e61858e71d3ea19aae75e24410f37aac68563809ce1af",
+  "signedURLsStored": false,
+  "files": [
+    {
+      "filename": "cops-robbers-service-off-h5-ads-on-off.zip",
+      "libraryFileId": "libfile_ddd8b11730cc81919fb191adfbe0a4c7",
+      "fileId": "file_000000008aa081fd9c28f7f89c2878a8",
+      "version": 0,
+      "bytes": 1877641,
+      "sha256": "23ca16d4ad8ad6b34d7a39bee0a775eb7b97e7099eed6bdc41bbe8ff07227363",
+      "xattr": {
+        "name": "user.library-file-version",
+        "value": "0",
+        "nativeStatus": "unsupported"
+      }
+    },
+    {
+      "filename": "cops-robbers-service-on-h5-ads-on-off.zip",
+      "libraryFileId": "libfile_8b225eb0065c8191afc57e0acca01926",
+      "fileId": "file_00000000476081f5b0980fe348edb3b4",
+      "version": 0,
+      "bytes": 2001512,
+      "sha256": "3633dc8c34622be296298088116d9bb58ffd7c9e01c070f321217016e17d3a4f",
+      "xattr": {
+        "name": "user.library-file-version",
+        "value": "0",
+        "nativeStatus": "unsupported"
+      }
+    },
+    {
+      "filename": "cops-robbers-realtime-service-off-h5-ads-on-off.zip",
+      "libraryFileId": "libfile_8267a51fcd4881918c4c43bdd13b468e",
+      "fileId": "file_0000000065a881fdb2e4f6260791268a",
+      "version": 0,
+      "bytes": 8190087,
+      "sha256": "a8d244d6659b3dcee63e1ea84af07c767262b19fb74acad4ecbb6fce1924db83",
+      "xattr": {
+        "name": "user.library-file-version",
+        "value": "0",
+        "nativeStatus": "unsupported"
+      }
+    },
+    {
+      "filename": "cops-robbers-realtime-service-on-h5-ads-on-off.zip",
+      "libraryFileId": "libfile_ba9381ffc9a481918ce01abfae50679e",
+      "fileId": "file_0000000064a481fd89c1510ee63746a3",
+      "version": 0,
+      "bytes": 8292000,
+      "sha256": "8332c09e27ec6ac2bc14ad21f7f003b1973d2fa64cc95c0665272f946c2f8e7c",
+      "xattr": {
+        "name": "user.library-file-version",
+        "value": "0",
+        "nativeStatus": "unsupported"
+      }
+    },
+    {
+      "filename": "xiangqi-five-service-off-h5-ads-on-off.zip",
+      "libraryFileId": "libfile_08fb636505ac8191b8591499e587c3ef",
+      "fileId": "file_00000000d67c8210a447dd5366b11f99",
+      "version": 0,
+      "bytes": 4265300,
+      "sha256": "3ace7a23c3699cf1d1b25f2d931af093821701de51f8492db54eea95a74b546f",
+      "xattr": {
+        "name": "user.library-file-version",
+        "value": "0",
+        "nativeStatus": "unsupported"
+      }
+    },
+    {
+      "filename": "xiangqi-five-service-on-h5-ads-on-off.zip",
+      "libraryFileId": "libfile_8793357c01f48191ae8a36a6929b2ef1",
+      "fileId": "file_0000000011ec81f5956f07b29556a043",
+      "version": 0,
+      "bytes": 4362374,
+      "sha256": "0c0ddb1b2170643f53733013a78cf2449e16a076527420f2b1fb7fcf851240bd",
+      "xattr": {
+        "name": "user.library-file-version",
+        "value": "0",
+        "nativeStatus": "unsupported"
+      }
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+# Preserve original receipt bytes and SHA256 on Windows and Linux.
+*.json.txt -text
