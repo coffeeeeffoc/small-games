@@ -312,8 +312,12 @@ test('management stays on its sole origin with finite APIs and no SPA API fallba
 });
 
 test('legacy deployment guards run before mutation and recheck after acquiring the game lock', async () => {
-  const shell = await readFile(new URL('../infra/tencent/deploy.sh', import.meta.url), 'utf8');
-  const tool = await readFile(new URL('./deploy-tencent.mjs', import.meta.url), 'utf8');
+  const shell = (
+    await readFile(new URL('../infra/tencent/deploy.sh', import.meta.url), 'utf8')
+  ).replaceAll('\r\n', '\n');
+  const tool = (
+    await readFile(new URL('./deploy-tencent.mjs', import.meta.url), 'utf8')
+  ).replaceAll('\r\n', '\n');
   assert(shell.includes('set +a\n' + ingressShellGuard + 'compose()'));
   assert.equal(shell.split(ingressShellGuard).length, 3);
   assert(shell.lastIndexOf(ingressShellGuard) < shell.indexOf('compose stop nginx'));
