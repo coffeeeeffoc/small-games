@@ -475,8 +475,13 @@ test('competition ingress selects the actual website and both API/frontend consu
   }
   const { ingressShellGuard, ingressPreflightGuard } = await import('./competition-ingress.mjs');
   for (const file of ['scripts/deploy-tencent.mjs', 'infra/tencent/deploy.sh']) {
-    const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+    // Classifier inputs come from git show (LF), including Windows CRLF checkouts.
+    const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
+      '\r\n',
+      '\n',
+    );
     const guard = file.endsWith('.mjs') ? ingressPreflightGuard : ingressShellGuard;
+    assert(after.includes(guard), 'Fixture must contain the reviewed ingress guard');
     const before = after.replaceAll(guard, '');
     const context = {
       packages,
