@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "cachedImage": "sha256:f77f856a30f0004200b36b322d61da17fade31e24875699d77fb968399b9eb77",
+  "isolatedNetwork": "none",
+  "hostPorts": false,
+  "fallbackBeforeActivation": true,
+  "absolutePointerServesNewUi": true,
+  "pointerRollbackRestoresFallback": true,
+  "credentialsUsed": false
+}

@@ -1,5 +1,7 @@
 # 准确候选版本的增量发布验证
 
+日常 `deploy:admin` / `deploy:company` 只执行目标构建、制品对应、发布保护、健康与回滚，不从固定历史基线重复调用 validatePush 或测试浏览器。此边界不改变正常 git hooks / CI 对准确 dev 候选的要求。SSH/脱敏进度工具是官网与管理 API/UI 的真实共享消费者，按精确文件分类；后台构建规划仅编译实际运行导出，cultivation 只编译内容配置。管理 UI 的稳定只读挂载通过原有 ingress 事务一次准备，普通后台发布只切管理版本。
+
 可选服务配置仅改变围捕小队、街区追捕和象五子棋的联网策略。六个共享 producer/resolver 文件的已审阅 base/head 摘要及运行时 proof 一起证明卡丁车、夜航的 Creator 源码未变；仅对这一精确增量免除两款的引擎重建，其他 Canvas 制品仍保留真实依赖图。额外字节、不同基线、缺失或复制 proof、同次修改 Creator 输入均恢复完整门禁。TapTap 登录工具摘要会使旧的 native provenance 失效，因此仍运行 importer、官方转换输入及登录契约；正式打包必须按当前工具重新转换和记录，不能把旧 provenance 当成当前验收。
 
 官网部署的精确脚本路径与三条根命令由 `companyDeploymentScopePaths` 分类，仅选择 `apps/company-web` 和部署契约测试。`deploy:company` 发布/回滚静态版本，`deploy:caddy` 独立维护入口；范围包含共享 SSH/摘要工具、`infra/caddy` 的 Compose 事务、卷备份 Python、恢复/权限/轮换测试及 systemd service/timer，并保留旧路径的删除分类。普通官网发布不操作容器，运维不改变游戏后端或公开范围。包体隔离、Linux/WSL 故障回退与官网现有浏览器检查保留；未知同级脚本仍阻断。

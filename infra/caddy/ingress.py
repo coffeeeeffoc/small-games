@@ -219,7 +219,8 @@ def verify_public(config, domain, www, company_body):
     status, headers, _ = response(domain, '/admin/login?a=1&a=2&next=%2F')
     require(status == 302 and headers.get('location') == f'https://{ADMIN_DOMAIN}/login?a=1&a=2&next=%2F', 'Admin page redirect changed its query')
     curl(ADMIN_DOMAIN, '/', '--fail', '--retry', '12', '--retry-all-errors', '--retry-delay', '2', '--retry-max-time', '60')
-    site = Path(__file__).resolve().parent / 'admin-site'
+    published_site = Path(config['deploymentDirectory']) / 'admin-console/current/site'
+    site = published_site if published_site.is_dir() else Path(__file__).resolve().parent / 'admin-site'
     expected = (site / 'index.html').read_text()
     for path, wanted in (('/', 200), ('/login', 200), ('/forbidden', 403)):
         status, headers, body = response(ADMIN_DOMAIN, path)

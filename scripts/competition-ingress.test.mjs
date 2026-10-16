@@ -153,6 +153,13 @@ test('Caddy and Nginx keep host ports, isolate trust, sanitize forwarding and li
   assert.match(caddy, /api\.nenggongzhiren\.cn \{/);
   assert.match(caddy, /root \* \/opt\/small-games\/company\/current\/site/);
   assert.deepEqual(compose.services.web.ports, ['80:80', '443:443']);
+  assert(
+    compose.services.web.volumes.includes(
+      '/opt/small-games/admin-console:/opt/small-games/admin-console:ro',
+    ),
+  );
+  assert.match(caddy, /@published file \{\s+root \/opt\/small-games\/admin-console\/current\/site/);
+  assert.match(caddy, /root @published \/opt\/small-games\/admin-console\/current\/site/);
   assert.deepEqual(Object.keys(compose.services.web.networks), ['default', 'competition_ingress']);
   assert.equal(
     compose.services.web.networks.competition_ingress.ipv4_address,

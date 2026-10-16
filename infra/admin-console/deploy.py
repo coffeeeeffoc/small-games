@@ -22,10 +22,19 @@ ORIGIN = 'https://admin.nenggongzhiren.cn'
 CALLBACK = ORIGIN + '/api/auth/github/callback'
 EMAIL = '1521152077@qq.com'
 LABEL = 'io.small-games.admin-fixture'
+CURRENT_STAGE = 'preflight'
+
+
+def stage(name):
+    global CURRENT_STAGE
+    CURRENT_STAGE = name
+    print('ADMIN_REMOTE_STAGE ' + name, file=sys.stderr, flush=True)
 
 
 class Stopped(Exception):
-    pass
+    def __init__(self, code):
+        super().__init__(code)
+        self.stage = CURRENT_STAGE
 
 
 def require(condition, code):
@@ -37,6 +46,8 @@ def command(*args, input=None, timeout=180):
     try:
         result = subprocess.run(args, input=input, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                 timeout=timeout, check=False)
+    except subprocess.TimeoutExpired:
+        raise Stopped('COMMAND_TIMEOUT') from None
     except (OSError, subprocess.SubprocessError):
         raise Stopped('COMMAND_FAILED') from None
     if result.returncode != 0:
@@ -402,6 +413,7 @@ def activate(release, password, oauth, trusted_ip):
     old_service = service('small-games', 'management', optional=True)
     require(not old_service or (previous and old_service['admin'] == previous.name and not old_service['ports']), 'UNKNOWN_MANAGEMENT_SERVICE')
     revision = PRIVATE / release.name
+    stage('private_configuration')
     private_directory(revision)
     raw_capability(revision)
     envfile = revision / 'management.env'
@@ -409,17 +421,24 @@ def activate(release, password, oauth, trusted_ip):
     file = revision / 'compose.json'
     write_private(file, (json.dumps(compose(release, envfile)) + '\n').encode())
     compose_command(file, 'config', '--quiet')
+    stage('image_build')
     command('docker', 'build', '--pull=false', '-t', 'small-games-management:' + release.name, str(release), timeout=1200)
     try:
+        stage('service_start')
         compose_command(file, 'up', '-d', '--no-deps', '--no-build', '--wait', '--wait-timeout', '180', 'management')
         current = service('small-games', 'management')
         require(current['admin'] == release.name and not current['ports']
                 and set(current['networks']) == {'small-games_default'}, 'MANAGEMENT_BOUNDARY')
-        public_probe(oauth)
+        stage('https_probe')
+        stage('pointer_switch')
         if previous:
             atomic_pointer(BASE / 'previous', previous)
         atomic_pointer(BASE / 'current', release)
+        stage('https_probe')
+        public_probe(oauth)
+        require(https_request('/', time.monotonic() + 10)[2].strip() == (release / 'site/index.html').read_bytes().strip(), 'HTTPS_PROBE')
     except Exception:
+        stage('rollback')
         try:
             current = service('small-games', 'management', optional=True)
             if current:
@@ -433,6 +452,7 @@ def activate(release, password, oauth, trusted_ip):
 
 
 def rollback():
+    stage('rollback')
     saved = admin_pointer_state()
     current, previous = (BASE / 'current').resolve(strict=True), (BASE / 'previous').resolve(strict=True)
     manifest_from(current)
@@ -448,9 +468,9 @@ def rollback():
             and all(proof.get(key) is True for key in ('oldDataUnchanged','isolatedRestoreVerified','leastPrivilegeVerified')), 'ROLLBACK_PROOF')
     try:
         compose_command(file, 'up', '-d', '--no-deps', '--no-build', '--wait', '--wait-timeout', '180', 'management')
-        retry_probe(anonymous_probe)
         atomic_pointer(BASE / 'current', previous)
         atomic_pointer(BASE / 'previous', current)
+        retry_probe(anonymous_probe)
     except Exception:
         try:
             compose_command(PRIVATE / current.name / 'compose.json', 'up', '-d', '--no-deps', '--no-build', '--wait', '--wait-timeout', '180', 'management')
@@ -464,6 +484,7 @@ def rollback():
 
 
 def provision(release, config):
+    stage('database_guard')
     manifest = manifest_from(release)
     require(manifest['sourceSHA'] == config['sourceSHA'], 'SOURCE_MISMATCH')
     private_directory(PRIVATE)
@@ -499,13 +520,16 @@ def provision(release, config):
             command('docker', 'stop', '--time', '30', protected[name]['id'])
         require(psql(pg, "SELECT count(*) FROM pg_stat_activity WHERE datname=current_database() AND pid<>pg_backend_pid() AND backend_type='client backend';") == '0', 'UNKNOWN_DATABASE_WRITER')
         expected = old_state(pg, fingerprint, include_admin)
+        stage('database_backup')
         write_private(backup_dir / 'before.json', expected.encode())
         roles = command('docker', 'exec', pg, 'pg_dumpall', '-U', 'platform_owner', '--roles-only', '--no-role-passwords')
         write_private(backup_dir / 'roles.sql', roles)
         backup = backup_dir / 'database.dump'
         write_private(backup, command('docker', 'exec', pg, 'pg_dump', '-U', 'platform_owner', '-d', 'small_games', '-Fc', timeout=600))
         password = database_config(pg)['password']
+        stage('database_restore')
         restore_proof(pg, backup, roles, migration, fingerprint, password, expected, tag, include_admin)
+        stage('database_migration')
         psql(pg, transaction(password, migration, fingerprint, include_admin))
         require(old_state(pg, fingerprint, include_admin) == expected and psql(pg, PUBLIC_CHECK) == 't'
                 and psql(pg, EFFECTIVE_CHECK) == 't', 'PRODUCTION_PERMISSION_PROOF')
@@ -515,6 +539,7 @@ def provision(release, config):
             'isolatedRestoreVerified': True, 'leastPrivilegeVerified': True}
         write_private(backup_dir / 'receipt.json', json.dumps(proof).encode())
     finally:
+        stage('game_restore')
         restart_failed = False
         for name in ['runtime', 'kart', 'management']:
             if name in stopped:
@@ -568,6 +593,7 @@ def main(args=None, payload=None):
     import fcntl
     args = sys.argv[1:] if args is None else args
     require(len(args) == 1 and args[0] in ('--execute', '--provision-only', '--rollback'), 'ARGUMENTS')
+    stage('preflight')
     config = read_payload(sys.stdin.buffer) if payload is None else payload
     require(isinstance(config, dict) and re.fullmatch(r'/opt/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-]+', config.get('caddyDirectory', '')), 'CONFIG')
     caddy = Path(config['caddyDirectory'])
@@ -594,6 +620,7 @@ def main(args=None, payload=None):
                            'leastPrivilegeVerified': True, 'backupRetained': True, 'realGithubLoginVerified': False}
         finally:
             assert_protection(protection)
+    stage('complete')
     print(json.dumps(receipt))
 
 
@@ -604,5 +631,6 @@ if __name__ == '__main__':
         main()
     except Exception as error:
         # No SQL, URI, subprocess stderr, OAuth response headers or configuration values.
+        print('ADMIN_REMOTE_FAILED_STAGE ' + getattr(error, 'stage', CURRENT_STAGE), file=sys.stderr, flush=True)
         print('ADMIN_REMOTE_STOPPED ' + (str(error) if isinstance(error, Stopped) else 'UNEXPECTED_FAILURE'), file=sys.stderr)
         sys.exit(1)

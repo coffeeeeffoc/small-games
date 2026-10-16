@@ -5,6 +5,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseEnv } from 'node:util';
+import { deploymentCommand } from './deployment-progress.mjs';
 
 export const root = fileURLToPath(new URL('../', import.meta.url));
 const domainPattern = /^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/;
@@ -52,12 +53,14 @@ export function companyConfig(env = {}) {
 
 export function toolEnvironment(env = process.env) {
   return Object.fromEntries(
-    Object.entries(env).filter(
-      ([name]) =>
-        !/SECRET|TOKEN|PASSWORD|_KEY$|DATABASE_URL|INTERNAL_KEY|^COS_|^ECS_|^COMPANY_|^CADDY_/i.test(
-          name,
-        ),
-    ),
+    Object.keys(env)
+      .filter(
+        (name) =>
+          !/SECRET|TOKEN|PASSWORD|_KEY$|DATABASE_URL|INTERNAL_KEY|^COS_|^ECS_|^COMPANY_|^CADDY_|^ADMIN_|^MANAGEMENT_/i.test(
+            name,
+          ),
+      )
+      .map((name) => [name, env[name]]),
   );
 }
 
@@ -86,23 +89,32 @@ export async function uploadBundle(config, bundle, directory, arguments_) {
   const { archive, archiveHash, manifest } = bundle;
   const remoteArchive = `${directory}/incoming/${manifest.release}.tar.gz`;
   const releaseDir = `${directory}/releases/${manifest.release}`;
-  ssh(config, `set -eu\numask 077\nmkdir -p '${directory}/incoming' '${directory}/releases'\n`);
-  command('scp', [
-    '-o',
-    'BatchMode=yes',
-    '-o',
-    'ConnectTimeout=15',
-    '-o',
-    'StrictHostKeyChecking=yes',
-    ...(config.key ? ['-i', config.key] : []),
-    '-P',
-    config.port,
-    archive,
-    `${config.user}@${config.host}:${remoteArchive}`,
-  ]);
-  ssh(
+  await sshProgress(
+    config,
+    `set -eu\numask 077\nmkdir -p '${directory}/incoming' '${directory}/releases'\n`,
+    'upload_prepare',
+  );
+  await deploymentCommand(
+    'scp',
+    [
+      '-o',
+      'BatchMode=yes',
+      '-o',
+      'ConnectTimeout=15',
+      '-o',
+      'StrictHostKeyChecking=yes',
+      ...(config.key ? ['-i', config.key] : []),
+      '-P',
+      config.port,
+      archive,
+      `${config.user}@${config.host}:${remoteArchive}`,
+    ],
+    { cwd: root, env: toolEnvironment(), prefix: 'COMPANY', stage: 'upload', timeout: 300000 },
+  );
+  await sshProgress(
     config,
     `set -eu\nprintf '%s  %s\\n' '${archiveHash}' '${remoteArchive}' | sha256sum -c -\nmkdir '${releaseDir}'\ntar -xzf '${remoteArchive}' -C '${releaseDir}'\nchmod -R a+rX '${releaseDir}'\nbash '${releaseDir}/deploy.sh' '${directory}' ${arguments_}\n`,
+    'remote_activate',
   );
 }
 
@@ -112,6 +124,7 @@ export function command(program, args, options = {}) {
     env: toolEnvironment(),
     encoding: 'utf8',
     stdio: options.capture ? 'pipe' : 'inherit',
+    timeout: 180000,
     ...options,
   });
   if (result.error) throw result.error;
@@ -162,5 +175,38 @@ export function ssh(config, script, { capture = false } = {}) {
       'bash -s',
     ],
     { input: script, stdio: capture ? 'pipe' : ['pipe', 'inherit', 'inherit'] },
+  );
+}
+
+export async function sshProgress(config, script, stage = 'preflight') {
+  assert(config.host, 'Set ECS_HOST in the existing local SSH configuration');
+  return await deploymentCommand(
+    'ssh',
+    [
+      '-o',
+      'BatchMode=yes',
+      '-o',
+      'StrictHostKeyChecking=yes',
+      '-o',
+      'ConnectTimeout=15',
+      '-o',
+      'ServerAliveInterval=15',
+      '-o',
+      'ServerAliveCountMax=3',
+      ...(config.key ? ['-i', config.key] : []),
+      '-p',
+      config.port,
+      `${config.user}@${config.host}`,
+      'bash -s',
+    ],
+    {
+      cwd: root,
+      env: toolEnvironment(),
+      input: script,
+      prefix: 'COMPANY',
+      stage,
+      timeout: 900000,
+      remote: false,
+    },
   );
 }

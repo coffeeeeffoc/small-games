@@ -1,0 +1,103 @@
+{
+  "readOnly": true,
+  "release": "f07fff6b9671-1792159182417-548f2d",
+  "pointers": {
+    "current": "/opt/small-games/releases/20260928t144509669z-0b2c9952",
+    "backend-current": "/opt/small-games/backend-releases/identity-20261016t085143850z-da201f83",
+    "admin-console/current": null,
+    "admin-console/previous": null,
+    "company/current": "/opt/small-games/company/releases/20261016090157-da201f8371a3-ef5a05",
+    "caddy/current": "/opt/small-games/caddy/releases/20261016095209-a64bb7429755-5ae871"
+  },
+  "services": {
+    "small-games/postgres": {
+      "count": 1,
+      "containers": [
+        {
+          "id": "fb6f941c30af4788a29ad48b6c3a6a5e0eb831927c8df72c602511c8322cd229",
+          "image": "sha256:d741b376874687de90374fd34f55c6b2760e8f7bd7e4ae5cd47f50757fc08cf8",
+          "running": true,
+          "health": "healthy",
+          "ports": {}
+        }
+      ]
+    },
+    "small-games/runtime": {
+      "count": 1,
+      "containers": [
+        {
+          "id": "313e34d549f837edcf9f772b1e3b803392cd205500b7a1f0a62a41462da5d5a1",
+          "image": "sha256:aef467b3bea0afaa8d683536c9c72b3dd1e4243247f12e718200647d446dab76",
+          "running": true,
+          "health": "healthy",
+          "ports": {}
+        }
+      ]
+    },
+    "small-games/kart": {
+      "count": 1,
+      "containers": [
+        {
+          "id": "7b2eb08fa1c2d3606fa3394b60089b9fd5970c8196bb7e9f062fe1ff70a887ad",
+          "image": "sha256:a31b3c88034f224b850f47087bda9a3f2b56ce22ee4f042430fd740ed2a6e572",
+          "running": true,
+          "health": "healthy",
+          "ports": {}
+        }
+      ]
+    },
+    "small-games/nginx": {
+      "count": 1,
+      "containers": [
+        {
+          "id": "b1a751737f0987029d4e0f8f896e962f753972332c59b622165cc28b816e96bc",
+          "image": "sha256:dc73b49f5124cf2ee538dfbdfbd121f0b4ccdcb20fea30f3a81bd477c02e2bb5",
+          "running": true,
+          "health": "healthy",
+          "ports": {
+            "80/tcp": [
+              {
+                "HostIp": "127.0.0.1",
+                "HostPort": "8080"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "small-games/management": {
+      "count": 0
+    },
+    "company-web/web": {
+      "count": 1,
+      "containers": [
+        {
+          "id": "b5e57071d78c2fd758abf1f1dcec9ecbaa5578603015e62fd38a167ed3a5057d",
+          "image": "sha256:f77f856a30f0004200b36b322d61da17fade31e24875699d77fb968399b9eb77",
+          "running": true,
+          "health": "healthy",
+          "ports": {
+            "443/tcp": [
+              {
+                "HostIp": "",
+                "HostPort": "443"
+              }
+            ],
+            "80/tcp": [
+              {
+                "HostIp": "",
+                "HostPort": "80"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "releasePresent": true,
+  "backupReceiptPresent": true,
+  "privateComposePresent": true,
+  "restoreFixtureIds": [],
+  "managementImageBuilt": "sha256:5dd994ea1dffefeee5db26b2708682b0795d2cd9f0343b92e3f49282c2c1205f",
+  "checkedAt": "2026-10-16T14:14:38.065Z"
+}

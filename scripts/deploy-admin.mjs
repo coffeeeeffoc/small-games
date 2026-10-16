@@ -4,14 +4,14 @@ import { cp, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { fileHashes, loadConfig, root } from './company-deployment.mjs';
-import { backendBuildCommands, prepareSelectedBackend } from './deployment-bundle.mjs';
+import { prepareSelectedBackend } from './deployment-bundle.mjs';
+import { selectedBackendBuildCommands } from './backend-build.mjs';
+import { deploymentCommand } from './deployment-progress.mjs';
 import { pnpmInvocation } from './validate-push.mjs';
 
 export const ADMIN_ORIGIN = 'https://admin.nenggongzhiren.cn';
 export const ADMIN_CALLBACK = `${ADMIN_ORIGIN}/api/auth/github/callback`;
 export const ADMIN_EMAIL = '1521152077@qq.com';
-// Covers the first admin implementation, not merely the latest documentation commit.
-export const ADMIN_BASE = '6e9c1f7246090c7009e9519a8cda6e8efab956d5';
 const remoteRoot = '/opt/small-games/admin-console';
 const shaPattern = /^[a-f0-9]{40}$/;
 const errors = new Set([
@@ -30,10 +30,20 @@ const errors = new Set([
   'SSH_FAILED',
   'REMOTE_FAILED',
   'HTTPS_FAILED',
+  'TIMEOUT',
 ]);
 const stop = (code) => {
   throw new Error(code);
 };
+export const adminDockerfile = `FROM node:24.21.0-bookworm-slim
+WORKDIR /app
+RUN npm install -g pnpm@12.6.0
+COPY --chown=node:node backend/ ./
+RUN pnpm --filter @coffeeeeffoc/management-api... install --prod --frozen-lockfile --ignore-scripts
+ENV NODE_ENV=production
+USER node
+CMD ["node","services/management-api/dist/main.js"]
+`;
 
 export function childEnvironment(env = process.env) {
   // Filter names before accessing values, including in provision-only mode.
@@ -127,49 +137,29 @@ export function sshArguments(config, command) {
   ];
 }
 
-function run(program, args, { input, env = childEnvironment(), cwd = root } = {}) {
-  const result = spawnSync(program, args, {
+const run = (program, args, options = {}) =>
+  deploymentCommand(program, args, {
+    env: childEnvironment(),
+    cwd: root,
+    prefix: 'ADMIN',
+    ...options,
+  });
+const git = (args) => {
+  const result = spawnSync('git', ['-c', 'core.fsmonitor=false', ...args], {
+    cwd: root,
     shell: false,
-    cwd,
-    env,
-    input,
     encoding: 'utf8',
     stdio: 'pipe',
-    maxBuffer: 64 * 1024 * 1024,
-  });
-  if (result.error || result.status !== 0) stop(program === 'ssh' ? 'SSH_FAILED' : 'TOOL_FAILED');
-  return result.stdout;
-}
-const git = (args) =>
-  run('git', ['-c', 'core.fsmonitor=false', ...args], {
+    timeout: 30000,
     env: {
       ...childEnvironment(),
       GIT_TERMINAL_PROMPT: '0',
       GIT_SSH_COMMAND: 'ssh -o BatchMode=yes -o StrictHostKeyChecking=yes',
     },
-  }).trim();
-
-export async function validationChild(base, head) {
-  if (base !== ADMIN_BASE || !shaPattern.test(head)) stop('CANDIDATE_FAILED');
-  const { validatePush } = await import('./validate-push.mjs');
-  const count = await validatePush(`refs/heads/dev ${head} refs/heads/dev ${base}\n`, { root });
-  if (count !== 1) stop('CANDIDATE_FAILED');
-  console.log(`ADMIN_CANDIDATE_PROOF ${JSON.stringify({ base, head, count })}`);
-}
-
-export function candidateProof(output, head) {
-  const lines = output.split(/\r?\n/).filter((line) => line.startsWith('ADMIN_CANDIDATE_PROOF '));
-  if (lines.length !== 1) stop('CANDIDATE_FAILED');
-  let proof;
-  try {
-    proof = JSON.parse(lines[0].slice('ADMIN_CANDIDATE_PROOF '.length));
-  } catch {
-    stop('CANDIDATE_FAILED');
-  }
-  if (proof.base !== ADMIN_BASE || proof.head !== head || proof.count !== 1)
-    stop('CANDIDATE_FAILED');
-  return proof;
-}
+  });
+  if (result.error || result.status !== 0) stop('TOOL_FAILED');
+  return result.stdout.trim();
+};
 function sameCandidate(head) {
   if (git(['rev-parse', 'HEAD']) !== head) stop('HEAD_CHANGED');
   if (git(['status', '--porcelain'])) stop('DIRTY_TREE');
@@ -179,20 +169,28 @@ function sameCandidate(head) {
 
 export async function writeAdminBundle(
   destination,
-  { head, release, proof, provisionOnly },
+  { head, release, provisionOnly },
   workspace = root,
 ) {
-  if (
-    !shaPattern.test(head) ||
-    !/^[a-z0-9-]+$/.test(release) ||
-    proof.head !== head ||
-    proof.base !== ADMIN_BASE ||
-    proof.count !== 1
-  )
-    stop('CANDIDATE_FAILED');
+  if (!shaPattern.test(head) || !/^[a-z0-9-]+$/.test(release)) stop('CANDIDATE_FAILED');
   await mkdir(destination);
-  if (!provisionOnly)
+  if (!provisionOnly) {
     await prepareSelectedBackend(path.join(destination, 'backend'), ['management'], workspace);
+    const site = path.join(workspace, 'apps/admin-web/dist');
+    const assets = await fileHashes(site);
+    if (
+      !assets['index.html'] ||
+      Object.keys(assets).some(
+        (name) => !/^(?:index\.html|mark\.svg|assets\/[A-Za-z0-9._-]+\.(?:js|css))$/.test(name),
+      )
+    )
+      stop('BUNDLE_UNSAFE');
+    await cp(site, path.join(destination, 'site'), {
+      recursive: true,
+      force: false,
+      errorOnExist: true,
+    });
+  }
   for (const name of ['deploy.py', 'fingerprint.sql', 'migrations/001-admin-auth.sql']) {
     const target = path.join(destination, name);
     await mkdir(path.dirname(target), { recursive: true });
@@ -202,23 +200,20 @@ export async function writeAdminBundle(
     });
   }
   if (!provisionOnly) {
-    await writeFile(
-      path.join(destination, 'Dockerfile'),
-      `FROM node:24.21.0-bookworm-slim
-WORKDIR /app
-RUN npm install -g pnpm@12.6.0
-COPY backend/ ./
-RUN pnpm --filter @coffeeeeffoc/management-api... install --prod --frozen-lockfile --ignore-scripts
-ENV NODE_ENV=production
-USER node
-CMD ["node","services/management-api/dist/main.js"]
-`,
-    );
+    await writeFile(path.join(destination, 'Dockerfile'), adminDockerfile);
   }
   const files = await fileHashes(destination);
   if (Object.keys(files).some((name) => /(?:^|\/)\.env(?:\.|$)|\.(?:pem|key)$/i.test(name)))
     stop('BUNDLE_UNSAFE');
-  const manifest = { version: 1, sourceSHA: head, release, proof, provisionOnly, files };
+  const manifest = {
+    version: 1,
+    sourceSHA: head,
+    release,
+    scope: ['management', 'admin-web'],
+    qualityChecks: 'not-run',
+    provisionOnly,
+    files,
+  };
   await writeFile(
     path.join(destination, 'manifest.json'),
     JSON.stringify(manifest, null, 2) + '\n',
@@ -228,28 +223,34 @@ CMD ["node","services/management-api/dist/main.js"]
 
 async function sendPublicBundle(config, directory, manifest) {
   const archive = `${directory}.tar.gz`;
-  run('tar', ['-czf', archive, '-C', directory, '.']);
+  await run('tar', ['-czf', archive, '-C', directory, '.'], { stage: 'archive' });
   const digest = createHash('sha256')
     .update(await readFile(archive))
     .digest('hex');
   const releaseDir = `${remoteRoot}/releases/${manifest.release}`;
-  run('ssh', sshArguments(config, 'bash -s'), {
+  await run('ssh', sshArguments(config, 'bash -s'), {
+    stage: 'upload_prepare',
     input: `set -eu\numask 077\nmkdir -p '${remoteRoot}/incoming' '${remoteRoot}/releases'\ntest ! -e '${releaseDir}'\ntest ! -e '${remoteRoot}/incoming/${manifest.release}.tar.gz'\n`,
   });
-  run('scp', [
-    '-o',
-    'BatchMode=yes',
-    '-o',
-    'StrictHostKeyChecking=yes',
-    '-o',
-    'ConnectTimeout=15',
-    ...(config.key ? ['-i', config.key] : []),
-    '-P',
-    config.port,
-    archive,
-    `${config.user}@${config.host}:${remoteRoot}/incoming/${manifest.release}.tar.gz`,
-  ]);
-  run('ssh', sshArguments(config, 'bash -s'), {
+  await run(
+    'scp',
+    [
+      '-o',
+      'BatchMode=yes',
+      '-o',
+      'StrictHostKeyChecking=yes',
+      '-o',
+      'ConnectTimeout=15',
+      ...(config.key ? ['-i', config.key] : []),
+      '-P',
+      config.port,
+      archive,
+      `${config.user}@${config.host}:${remoteRoot}/incoming/${manifest.release}.tar.gz`,
+    ],
+    { stage: 'upload', timeout: 300000 },
+  );
+  await run('ssh', sshArguments(config, 'bash -s'), {
+    stage: 'archive_verify',
     input: `set -eu\numask 077\nprintf '%s  %s\\n' '${digest}' '${remoteRoot}/incoming/${manifest.release}.tar.gz' | sha256sum -c - >/dev/null\nmkdir '${releaseDir}'\ntar -xzf '${remoteRoot}/incoming/${manifest.release}.tar.gz' -C '${releaseDir}'\n`,
   });
   return releaseDir;
@@ -309,11 +310,6 @@ export function remoteReceipt(text, mode) {
 }
 
 export async function main(args = process.argv.slice(2)) {
-  if (args[0] === '--validate-child') {
-    if (args.length !== 3) stop('ARGUMENTS');
-    await validationChild(args[1], args[2]);
-    return;
-  }
   const input = await executionInput(args);
   if (input.mode === '--help') {
     console.log(
@@ -330,14 +326,20 @@ export async function main(args = process.argv.slice(2)) {
       stop('SSH_FAILED');
     }
   // Harmless prerequisites fail before candidate builds or remote filesystem writes.
-  run('ssh', sshArguments(config, 'bash -s'), {
-    input: `set -eu\ncommand -v docker >/dev/null\ncommand -v python3 >/dev/null\ndocker compose version >/dev/null\ntest -w '/opt/small-games'\ntest -f '${config.caddyDirectory}/current/ingress.json'\ntest -L '/opt/small-games/backend-current'\n`,
+  await run('ssh', sshArguments(config, 'bash -s'), {
+    stage: 'preflight',
+    timeout: 60000,
+    remote: true,
+    input: `set -eu\ncommand -v docker >/dev/null\ncommand -v python3 >/dev/null\ndocker compose version >/dev/null\ntest -w '/opt/small-games'\ntest -f '${config.caddyDirectory}/current/ingress.json'\ntest -L '/opt/small-games/backend-current'\n${input.mode === '--execute' ? `web=$(docker ps -q --filter label=com.docker.compose.project=company-web --filter label=com.docker.compose.service=web)\ntest "$(docker inspect --format '{{range .Mounts}}{{if eq .Destination "/opt/small-games/admin-console"}}{{.Source}} {{.RW}}{{end}}{{end}}' "$web")" = '/opt/small-games/admin-console false' || { printf 'ADMIN_REMOTE_STOPPED UI_MOUNT_REQUIRED\\n' >&2; exit 1; }\n` : ''}`,
   });
   if (input.mode === '--rollback') {
-    const text = run(
+    const text = await run(
       'ssh',
       sshArguments(config, `python3 '${remoteRoot}/current/deploy.py' --rollback`),
       {
+        stage: 'rollback',
+        timeout: 600000,
+        remote: true,
         input: JSON.stringify({ caddyDirectory: config.caddyDirectory }),
       },
     );
@@ -347,45 +349,43 @@ export async function main(args = process.argv.slice(2)) {
   const head = git(['rev-parse', 'HEAD']);
   if (!shaPattern.test(head)) stop('HEAD_CHANGED');
   sameCandidate(head);
-  try {
-    git(['merge-base', '--is-ancestor', ADMIN_BASE, head]);
-  } catch {
-    stop('BASE_NOT_ANCESTOR');
-  }
-  console.log('ADMIN_STAGE candidate_validation');
-  // The entire validator, including its nested spawns, runs without admin credentials.
-  const proof = candidateProof(
-    run(process.execPath, [
-      path.join(root, 'scripts/deploy-admin.mjs'),
-      '--validate-child',
-      ADMIN_BASE,
-      head,
-    ]),
-    head,
-  );
-  sameCandidate(head);
+  console.log('ADMIN_SCOPE admin-web,management quality_checks=not-run');
   const provisionOnly = input.mode === '--provision-only';
-  if (!provisionOnly)
-    for (const command of backendBuildCommands(['management'])) {
+  if (!provisionOnly) {
+    for (const command of [
+      ...(await selectedBackendBuildCommands(['management'], root)),
+      ['--filter', '@coffeeeeffoc/admin-web', 'build'],
+    ]) {
       const pnpm = pnpmInvocation(childEnvironment());
-      run(pnpm.command, [...pnpm.prefix, ...command]);
+      await run(pnpm.command, [...pnpm.prefix, ...command], {
+        stage: `build_${command[1].split('/').at(-1).replaceAll('-', '_')}`,
+        timeout: 300000,
+      });
     }
+  }
   sameCandidate(head);
   const release = `${head.slice(0, 12)}-${Date.now()}-${randomBytes(3).toString('hex')}`;
   const parent = path.join(root, 'outputs/admin-deploy');
   await mkdir(parent, { recursive: true });
   const directory = path.join(parent, release);
-  const manifest = await writeAdminBundle(directory, { head, release, proof, provisionOnly });
+  const manifest = await writeAdminBundle(directory, { head, release, provisionOnly });
   const releaseDir = await sendPublicBundle(config, directory, manifest);
   sameCandidate(head);
   console.log('ADMIN_STAGE protected_remote_transaction');
-  const text = run('ssh', sshArguments(config, `python3 '${releaseDir}/deploy.py' ${input.mode}`), {
-    input: JSON.stringify({
-      caddyDirectory: config.caddyDirectory,
-      sourceSHA: head,
-      oauth: input.oauth,
-    }),
-  });
+  const text = await run(
+    'ssh',
+    sshArguments(config, `python3 '${releaseDir}/deploy.py' ${input.mode}`),
+    {
+      stage: 'protected_remote_transaction',
+      timeout: 2700000,
+      remote: true,
+      input: JSON.stringify({
+        caddyDirectory: config.caddyDirectory,
+        sourceSHA: head,
+        oauth: input.oauth,
+      }),
+    },
+  );
   const receipt = remoteReceipt(text, input.mode);
   if (receipt.sourceSHA !== head) stop('REMOTE_FAILED');
   await writeFile(path.join(directory, 'receipt.json'), JSON.stringify(receipt, null, 2) + '\n');

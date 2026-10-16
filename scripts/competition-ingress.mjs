@@ -75,11 +75,16 @@ export function renderAdminCaddy(ingress) {
   const config = validateIngress(ingress);
   return `${adminDomain} {
     root * /srv/admin
+    @published file {
+        root /opt/small-games/admin-console/current/site
+        try_files /index.html
+    }
     header Cache-Control no-store
     header Referrer-Policy no-referrer
     header X-Content-Type-Options nosniff
     header Content-Security-Policy "default-src 'self'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'"
     route {
+        root @published /opt/small-games/admin-console/current/site
         @api path /api /api/*
         handle @api {
             reverse_proxy http://${config.network.nginxIp}:8083 {

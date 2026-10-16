@@ -10,7 +10,7 @@ GitHub 当前允许多个 callback，本项目只配置一个是入口安全约�
 
 ## 本机填写并执行
 
-本地候选校验还需要 Python 3：Windows 使用已配置的 WSL 发行版运行 Linux 文件权限和符号链接契约，macOS 使用 `python3`。沿用仓库的浏览器准备约定；Docker/Compose 是服务器运行前置，本地 Docker 仅用于显式隔离数据库演练。
+部署命令不再重复执行旧基线候选校验、游戏构建或浏览器测试。正常提交推送和 CI 的相关检查保留；开发验证中的 Linux 权限契约在 Windows 使用 WSL。Docker/Compose 是服务器运行前置，本地 Docker 仅用于显式隔离数据库演练。
 
 使用仓库规定的 Node 24.21.0、pnpm 12.6.0，已有 git、ssh、scp、tar。沿用 `.env.tencent.local` / `.env.company.local` 的 SSH 目标与私钥路径，用户须先核实主机指纹并配置 known_hosts；始终启用 `StrictHostKeyChecking=yes`、`BatchMode=yes`。缺 SSH 前置会在耗时构建前失败，不自动信任主机密钥。
 
@@ -42,9 +42,11 @@ pnpm deploy:admin --rollback
 
 ## 候选与秘密边界
 
-要求整个工作树干净，HEAD 等于实时 origin/dev，以首个 admin 实现前固定基线 `6e9c1f7246090c7009e9519a8cda6e8efab956d5` 验证 ancestor，在独立无秘密子进程实际调用 `validatePush`。只有真实返回的准确 base/head/count 被接受，不使用手填 VALIDATED_HEAD。验证、构建、上传前后远端推进均中止；应重新同步合并并正常推送，不能 force 或跳过 hooks。
+要求整个工作树干净、HEAD 等于实时 origin/dev，构建和上传前后重新确认源码及目标未变。只编译 management 的实际运行依赖、cultivation 内容导出和 admin-web，不运行 cultivation UI、其他游戏或 Cocos 构建，不在部署命令里调用 validatePush。公开清单记录本轮 sourceSHA、明确 scope、文件 SHA256 与 `qualityChecks: not-run`，不生成或复用虚构的候选验收 proof。正常 push/CI 仍检查准确增量；远端推进应正常合并并重新推送。
 
-所有 git/pnpm/build/验证及嵌套子进程剔除 ADMIN*\*、MANAGEMENT*\* 等凭据变量。发布包只含选定 management 后端和带 SHA256 的部署源，不含本地 OAuth 文件、私钥、受保护环境。真实配置只经 SSH stdin JSON，不进 argv、日志、前端或制品。命令错误只返回固定枚举，不打印 SQL、URI、stderr、Location、Cookie 或 token。
+所有 git/pnpm/build 及嵌套子进程剔除 ADMIN*\*、MANAGEMENT*\* 等凭据变量。发布包只含选定 management 后端、公开 admin-web 产物和带 SHA256 的部署源，不含本地 OAuth 文件、私钥、受保护环境。真实配置只经 SSH stdin JSON，不进 argv、日志、前端或制品。镜像以 node 用户运行，COPY 明确归属 node，兼容私有上传目录的 0700/0600 源权限。
+
+命令输出脱敏阶段、每 15 秒等待进度和阶段耗时。远端阶段区分数据库保护/备份/恢复/迁移、游戏恢复、镜像构建、服务启动、HTTPS 和指针切换；失败显示停止阶段、固定原因与退出码，不打印 SQL、URI、原始 stderr、Location、Cookie 或 token。构建、SSH 和远端子步骤都有超时。SSH 断线或超时后不能直接假定零变更或回滚完成，应只读复核容器、指针和备份回执，保留现场后再处理。
 
 服务端用非秘密 canary 实测 Compose `env_file.format: raw` 对 `$`、引号、`#`、反斜杠的保真能力，失败停止；实际 Compose 仅 `config --quiet`。配置在发布目录外 `/opt/small-games/admin-private/<release>/management.env`，目录 0700、文件 0600。数据库密码由服务器生成于同目录下 database.json 并复用，不要求用户再次输入。
 
@@ -59,6 +61,8 @@ pnpm deploy:admin --rollback
 ## 激活、探针与回滚
 
 只启用原 management service 的 admin-only 能力，加入现有 backend network，无 host ports、无新 PG/DB/网络、无旧内容业务/S3/workers。可信代理由实际 Nginx backend IP 与 ingress.json 一致性确认。全程保护 Runtime、Kart、PG、Nginx、Caddy 及静态/backend/HTTPS 指针。
+
+管理 UI 与 API 使用同一个 admin-console/current 版本指针。已有 Caddy 入口需由维护者一次运行 `pnpm deploy:caddy` 准备公开目录的只读挂载；保留既有 ingress、证书卷、拓扑及双代理事务回滚，不新增端口或网络。尚未激活管理版本时继续使用 Caddy 内原登录页；之后普通 `deploy:admin` 同步切换 UI 与管理服务，HTTPS 不匹配则同时恢复。普通后台更新不重发官网或游戏。
 
 健康通过后有界等待 Nginx 负 DNS 缓存失效，校验 HTTPS 页面 200、匿名 session 401、登录 302 到 GitHub，以及固定 callback/scope、state/PKCE 和 Host-only Cookie 属性。输出仅布尔事实和 source/backup/old-state 哈希，不跟随 GitHub、不记录重定向参数值。**这不是真实 GitHub 登录验收**；用户最后自己在浏览器完成授权、刷新、退出和撤权验证。
 

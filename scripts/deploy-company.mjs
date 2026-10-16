@@ -13,7 +13,10 @@ import {
   loadConfig,
   uploadBundle,
   archiveBundle,
+  sshProgress,
 } from './company-deployment.mjs';
+import { deploymentCommand } from './deployment-progress.mjs';
+import { toolEnvironment } from './company-deployment.mjs';
 export { companyConfig, toolEnvironment, fileHashes } from './company-deployment.mjs';
 const templateDir = path.join(root, 'infra/company');
 export async function writeBundle(destination, source, config, sha, release) {
@@ -81,6 +84,7 @@ async function prepare(config) {
     'apps/company-web',
     'scripts/deploy-company.mjs',
     'scripts/company-deployment.mjs',
+    'scripts/deployment-progress.mjs',
     'infra/company',
     'package.json',
     'pnpm-lock.yaml',
@@ -89,7 +93,17 @@ async function prepare(config) {
   assert(!dirty, 'Commit website/deployment changes before preparing an identifiable release.');
   const sha = command('git', ['rev-parse', 'HEAD'], { capture: true });
   const pnpm = pnpmInvocation();
-  command(pnpm.command, [...pnpm.prefix, '--filter', '@coffeeeeffoc/company-web', 'test']);
+  await deploymentCommand(
+    pnpm.command,
+    [...pnpm.prefix, '--filter', '@coffeeeeffoc/company-web', 'build'],
+    {
+      cwd: root,
+      env: toolEnvironment(),
+      prefix: 'COMPANY',
+      stage: 'build_company_web',
+      timeout: 180000,
+    },
+  );
   assert.equal(
     command('git', ['rev-parse', 'HEAD'], { capture: true }),
     sha,
@@ -127,7 +141,7 @@ export async function main(args = process.argv.slice(2)) {
   );
   if (args.includes('--help')) {
     console.log(
-      'pnpm deploy:company            Build, test, upload, switch website release and verify HTTPS\npnpm deploy:company --prepare  Build/test/package only, no server changes\npnpm deploy:company --check    Read-only SSH/DNS checks\npnpm deploy:company --rollback Restore the previous company release\nConfiguration: .env.tencent.local (SSH fallback), .env.company.local, environment (highest priority)',
+      'pnpm deploy:company            Build/upload website only, switch release and verify HTTPS\npnpm deploy:company --prepare  Build/package only, no server changes\npnpm deploy:company --check    Read-only SSH/DNS checks\npnpm deploy:company --rollback Restore the previous company release\nConfiguration: .env.tencent.local (SSH fallback), .env.company.local, environment (highest priority)',
     );
     return;
   }
@@ -138,13 +152,14 @@ export async function main(args = process.argv.slice(2)) {
   }
   if (config.key) await stat(config.key);
   if (args.includes('--rollback')) {
-    ssh(
+    await sshProgress(
       config,
       `set -eu\nbash -s -- '${config.directory}' rollback '${config.domain}' '${config.www}' '${config.caddyDirectory}' <<'COMPANY_DEPLOY_SCRIPT'\n${(await readFile(path.join(templateDir, 'deploy.sh'), 'utf8')).replaceAll('\r\n', '\n')}\nCOMPANY_DEPLOY_SCRIPT\n`,
     );
     return;
   }
-  ssh(config, remoteCheck(config));
+  console.log('COMPANY_SCOPE company-web quality_checks=not-run');
+  await sshProgress(config, remoteCheck(config), 'preflight');
   if (args.includes('--check')) return;
   const { archive, archiveHash, manifest } = await prepare(config);
   await uploadBundle(

@@ -1322,6 +1322,9 @@ export const competitionIngressScopePaths = [
   'scripts/deploy-tencent.test.mjs',
 ];
 export const adminDeploymentScopePaths = [
+  'scripts/backend-build.mjs',
+  'scripts/deployment-progress.mjs',
+  'scripts/company-deployment.mjs',
   'infra/admin-console/.env.example',
   'infra/admin-console/migrations/001-admin-auth.sql',
   'scripts/deploy-admin.mjs',
@@ -1332,6 +1335,10 @@ export const adminDeploymentScopePaths = [
 ];
 export const adminConsoleScopePaths = [...adminDeploymentScopePaths];
 const adminConsumers = ['services/management-api', 'apps/admin-web'];
+export const sharedDeploymentScopePaths = [
+  'scripts/company-deployment.mjs',
+  'scripts/deployment-progress.mjs',
+];
 function adminCommandsOnly(before, after) {
   try {
     const previous = JSON.parse(before),
@@ -1471,6 +1478,7 @@ const runtimeProxyDefaultChanges = {
   ],
 };
 export const companyDeploymentScopePaths = [
+  'scripts/deployment-progress.mjs',
   'infra/company/.gitattributes',
   'scripts/deploy-company.mjs',
   'scripts/deploy-company.test.mjs',
@@ -1568,6 +1576,12 @@ export function reviewedSharedFileScopes({
           1,
         );
         scopes.set(file, ['apps/admin-web']);
+        continue;
+      }
+      if (sharedDeploymentScopePaths.includes(file)) {
+        const consumers = ['apps/company-web', ...adminConsumers];
+        for (const source of consumers) assert(packages.some((pkg) => pkg.dir === source));
+        scopes.set(file, consumers);
         continue;
       }
       if (

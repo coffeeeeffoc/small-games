@@ -3,6 +3,8 @@ import { randomBytes } from 'node:crypto';
 import { cp, lstat, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { pnpmInvocation } from './validate-push.mjs';
+import { deploymentCommand } from './deployment-progress.mjs';
 import {
   validateIngress,
   renderApiCaddy,
@@ -19,6 +21,7 @@ import {
   archiveBundle,
   uploadBundle,
   ssh,
+  toolEnvironment,
 } from './company-deployment.mjs';
 
 export function renderCaddy(config) {
@@ -93,7 +96,7 @@ services:
     volumes:
       - ${config.directory}:${config.directory}:ro
       - ./caddy:/etc/caddy:ro
-${config.ingress ? '      - ./admin-site:/srv/admin:ro\n' : ''}      - caddy_data:/data
+${config.ingress ? '      - ./admin-site:/srv/admin:ro\n      - /opt/small-games/admin-console:/opt/small-games/admin-console:ro\n' : ''}      - caddy_data:/data
       - caddy_config:/config
     tmpfs: ['/tmp']
 ${config.ingress ? `    networks:\n      default: {}\n      competition_ingress:\n        ipv4_address: ${config.ingress.network.caddyIp}\n` : ''}    healthcheck:
@@ -245,6 +248,7 @@ export async function main(args = process.argv.slice(2)) {
   }
   const relevant = [
     'scripts/company-deployment.mjs',
+    'scripts/deployment-progress.mjs',
     'scripts/deploy-caddy.mjs',
     'scripts/competition-ingress.mjs',
     'infra/caddy',
@@ -256,7 +260,20 @@ export async function main(args = process.argv.slice(2)) {
     'Commit Caddy changes before preparing an identifiable release.',
   );
   const sha = command('git', ['rev-parse', 'HEAD'], { capture: true });
-  if (config.ingress) command('pnpm', ['--filter', '@coffeeeeffoc/admin-web', 'build']);
+  if (config.ingress) {
+    const pnpm = pnpmInvocation();
+    await deploymentCommand(
+      pnpm.command,
+      [...pnpm.prefix, '--filter', '@coffeeeeffoc/admin-web', 'build'],
+      {
+        cwd: root,
+        env: toolEnvironment(),
+        prefix: 'CADDY',
+        stage: 'build_admin_web',
+        timeout: 180000,
+      },
+    );
+  }
   const release = `${new Date()
     .toISOString()
     .replace(/[^0-9]/g, '')

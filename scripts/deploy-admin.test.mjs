@@ -6,7 +6,6 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  ADMIN_BASE,
   ADMIN_ORIGIN,
   ADMIN_CALLBACK,
   ADMIN_EMAIL,
@@ -14,10 +13,12 @@ import {
   parseAdminFile,
   executionInput,
   sshArguments,
-  candidateProof,
+  adminDockerfile,
   remoteReceipt,
   writeAdminBundle,
 } from './deploy-admin.mjs';
+import { selectedBackendBuildCommands } from './backend-build.mjs';
+import { deploymentCommand, remoteDiagnostic } from './deployment-progress.mjs';
 
 test('raw user configuration preserves punctuation and accepts CRLF while fixed policy fails closed', () => {
   const secret = '$HOME-${X}-"quoted"-\'single\'-#hash-\\slash';
@@ -101,24 +102,79 @@ test('SSH uses exact host checking, no secrets in argv and rejects missing host'
   assert.throws(() => sshArguments({ host: '' }, ''), /SSH_FAILED/);
 });
 
-test('candidate proof covers fixed pre-admin base and exact checked head, never hand-filled environment', () => {
-  const head = 'a'.repeat(40);
-  const proof = { base: ADMIN_BASE, head, count: 1 };
-  assert.deepEqual(
-    candidateProof(`other logs\nADMIN_CANDIDATE_PROOF ${JSON.stringify(proof)}\n`, head),
-    proof,
-  );
-  for (const value of [
-    { ...proof, base: 'b'.repeat(40) },
-    { ...proof, head: 'c'.repeat(40) },
-    { ...proof, count: 0 },
-  ])
-    assert.throws(() => candidateProof(`ADMIN_CANDIDATE_PROOF ${JSON.stringify(value)}`, head));
-  assert.throws(() =>
-    candidateProof(
-      `ADMIN_CANDIDATE_PROOF ${JSON.stringify(proof)}\nADMIN_CANDIDATE_PROOF ${JSON.stringify(proof)}`,
-      head,
+test('admin compiles only runtime exports and its API, without cultivation UI, Cocos or quality gates', async () => {
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const commands = await selectedBackendBuildCommands(['management'], root);
+  assert(
+    commands.some(
+      (command) =>
+        command.join(' ') ===
+        '--filter @coffeeeeffoc/game-cultivation exec tsc -p tsconfig.content.json',
     ),
+  );
+  assert(
+    commands.some((command) => command.join(' ') === '--filter @coffeeeeffoc/management-api build'),
+  );
+  assert(
+    !commands.some((command) =>
+      /turbo|test|lint|validate|carding|overwatch|game-cultivation build/.test(command.join(' ')),
+    ),
+  );
+  const source = await readFile(new URL('./deploy-admin.mjs', import.meta.url), 'utf8');
+  assert(!/validatePush|ADMIN_BASE|--validate-child|candidateProof/.test(source));
+  assert.match(adminDockerfile, /COPY --chown=node:node backend\/ \.\//);
+  assert.match(adminDockerfile, /USER node/);
+});
+
+test('progress exposes finite remote stages and failures, never child secrets or stderr', async () => {
+  const output = [];
+  await assert.rejects(
+    deploymentCommand(
+      process.execPath,
+      [
+        '-e',
+        "console.error('CANARY_SECRET');console.error('ADMIN_REMOTE_STAGE service_start');console.error('ADMIN_REMOTE_STOPPED COMMAND_FAILED');process.exit(1)",
+      ],
+      {
+        prefix: 'ADMIN',
+        stage: 'transaction',
+        remote: true,
+        output: (line) => output.push(line),
+        heartbeat: 100,
+      },
+    ),
+    (error) => error.message === 'REMOTE_FAILED' && error.remoteStage === 'service_start',
+  );
+  assert(!output.join('\n').includes('CANARY_SECRET'));
+  assert(output.some((line) => line.includes('reason=COMMAND_FAILED')));
+  assert.equal(remoteDiagnostic('ADMIN_REMOTE_STAGE CANARY_SECRET'), null);
+  assert.equal(remoteDiagnostic('ADMIN_REMOTE_STOPPED TOKEN=secret'), null);
+  const timeoutOutput = [];
+  await assert.rejects(
+    deploymentCommand(process.execPath, ['-e', 'setInterval(()=>{},1000)'], {
+      timeout: 100,
+      heartbeat: 30,
+      output: (line) => timeoutOutput.push(line),
+    }),
+    /TIMEOUT/,
+  );
+  assert(timeoutOutput.some((line) => line.includes('category=TIMEOUT')));
+  const start = Date.now();
+  await assert.rejects(
+    deploymentCommand(
+      process.execPath,
+      ['-e', "process.on('SIGTERM',()=>{});setInterval(()=>{},1000)"],
+      {
+        timeout: 800,
+        heartbeat: 100,
+        output: () => {},
+      },
+    ),
+    /TIMEOUT/,
+  );
+  assert(
+    Date.now() - start < 6000,
+    'A child ignoring SIGTERM must still terminate within the grace period',
   );
 });
 
@@ -182,7 +238,6 @@ test('provision bundle contains only hashed public helpers, never local OAuth or
       {
         head,
         release: 'fixture',
-        proof: { base: ADMIN_BASE, head, count: 1 },
         provisionOnly: true,
       },
       fixture,

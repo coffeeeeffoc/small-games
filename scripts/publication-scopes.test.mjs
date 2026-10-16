@@ -23,6 +23,7 @@ import {
   competitionIngressScopePaths,
   adminConsoleScopePaths,
   adminDeploymentScopePaths,
+  sharedDeploymentScopePaths,
   runtimeProxyDefaultScopePaths,
   publicationConfigScopePaths,
   mobileViewportScopeFile,
@@ -41,6 +42,7 @@ test('admin deployment paths and sole root command select only management and ad
   const packages = [
     { dir: 'services/management-api', name: 'management' },
     { dir: 'apps/admin-web', name: '@coffeeeeffoc/admin-web' },
+    { dir: 'apps/company-web', name: '@coffeeeeffoc/company-web' },
   ];
   const before = JSON.stringify({ scripts: { other: 'keep' } }, null, 2) + '\n';
   const after =
@@ -57,7 +59,11 @@ test('admin deployment paths and sole root command select only management and ad
       readBase: () => before,
       readHead: () => after,
     });
-    assert.deepEqual(scopes.get(file), ['services/management-api', 'apps/admin-web']);
+    assert.deepEqual(scopes.get(file), [
+      ...(sharedDeploymentScopePaths.includes(file) ? ['apps/company-web'] : []),
+      'services/management-api',
+      'apps/admin-web',
+    ]);
     const plan = incrementalPlan({
       changedPaths: [file],
       games: [],
@@ -479,7 +485,9 @@ test('company deployment selects only the website and rejects unknown siblings a
       fileScopes.get(file),
       competitionIngressScopePaths.includes(file)
         ? ['apps/company-web', 'services/runtime-api', 'services/management-api', 'apps/admin-web']
-        : ['apps/company-web'],
+        : sharedDeploymentScopePaths.includes(file)
+          ? ['apps/company-web', 'services/management-api', 'apps/admin-web']
+          : ['apps/company-web'],
     );
     const plan = incrementalPlan({ ...context, fileScopes });
     assert.equal(plan.company_deployment_checks, true);
@@ -3097,11 +3105,16 @@ test('admin infrastructure has exact consumers and unknown neighboring paths fai
   const packages = [
     { name: 'management', dir: 'services/management-api' },
     { name: '@coffeeeeffoc/admin-web', dir: 'apps/admin-web' },
+    { name: '@coffeeeeffoc/company-web', dir: 'apps/company-web' },
   ];
   for (const file of adminConsoleScopePaths) {
     const context = { packages, games: [], changedPaths: [file], readSource: () => '' };
     const fileScopes = reviewedSharedFileScopes(context);
-    assert.deepEqual(fileScopes.get(file), ['services/management-api', 'apps/admin-web']);
+    assert.deepEqual(fileScopes.get(file), [
+      ...(sharedDeploymentScopePaths.includes(file) ? ['apps/company-web'] : []),
+      'services/management-api',
+      'apps/admin-web',
+    ]);
     const plan = incrementalPlan({ ...context, fileScopes });
     assert.equal(plan.admin_console_checks, true);
     assert.equal(plan.browser, false);
