@@ -1,0 +1,24 @@
+{
+  "completedAt": "2026-10-16T08:04:31.677Z",
+  "browser": "155.0.8059.82",
+  "fixture": "SVG decoded as image from data URL; no public SVG deployment",
+  "results": [
+    {
+      "name": "logo-symbol-gradient",
+      "sourceSHA256": "8cac0435b93feca500dd83e179dae696a71a13ba5b17b658186b268da22af481",
+      "naturalSize": [960, 490],
+      "loaded": true,
+      "screenshotSHA256": "e3fc2804376c404171847e79c497e62d2f459635d15480e71edca26ee3bf1625"
+    },
+    {
+      "name": "logo-symbol-monochrome",
+      "sourceSHA256": "9a538deb301c5a843d3707e8bbc5695dbc038e29ee6120b204970f68e0d7fd92",
+      "naturalSize": [960, 490],
+      "loaded": true,
+      "screenshotSHA256": "2a1e0f94757897e7ebcc0899a2a13c3c3e7b7bdb4b9aacb8f844551a9df468c5"
+    }
+  ],
+  "websiteUsesPng": true,
+  "archiveExcludedFromPublicBuild": true,
+  "realDeviceVerified": false
+}

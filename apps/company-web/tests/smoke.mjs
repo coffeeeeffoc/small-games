@@ -17,7 +17,8 @@ let browser;
 try {
   const address = server.httpServer.address();
   assert(address && typeof address === 'object');
-  browser = await chromium.launch();
+  const executablePath = process.env.PLAYWRIGHT_EXECUTABLE_PATH || process.env.CHROMIUM_PATH;
+  browser = await chromium.launch(executablePath ? { executablePath } : {});
   await mkdir(screenshots, { recursive: true });
   for (const width of [1440, 1024, 768, 390, 320]) {
     const page = await browser.newPage({
@@ -46,7 +47,16 @@ try {
       await page.locator('link[rel="icon"]').evaluate((link) => link.href),
     );
     assert.equal(favicon.status(), 200);
-    assert.match(favicon.headers()['content-type'], /image\/svg\+xml/);
+    assert.match(favicon.headers()['content-type'], /image\/(?:x-icon|vnd\.microsoft\.icon)/);
+    const faviconBytes = await favicon.body();
+    assert.equal(faviconBytes.readUInt16LE(2), 1);
+    assert.equal(faviconBytes.readUInt16LE(4), 6);
+    const mark = page.locator('.brand-mark img');
+    assert.deepEqual(
+      await mark.evaluate((image) => [image.naturalWidth, image.naturalHeight]),
+      [512, 261],
+    );
+    assert.equal(await mark.evaluate((image) => getComputedStyle(image).objectFit), 'contain');
     assert.equal(await page.locator('.service').count(), 3);
     assert.equal(await page.locator('html').getAttribute('lang'), 'zh-CN');
     await expect(page.locator('.motion-toggle')).toBeVisible();

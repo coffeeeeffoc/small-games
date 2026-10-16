@@ -1,0 +1,59 @@
+{
+  "source_library_id": "libfile_90f382db8bf48191847da31fd0d61dbb",
+  "silhouette_iou": 0.9864957185931713,
+  "svg_viewBox": [0, 0, 960, 490],
+  "files": [
+    {
+      "file": "svg/logo-symbol-gradient.svg",
+      "bytes": 6749,
+      "sha256": "8cac0435b93feca500dd83e179dae696a71a13ba5b17b658186b268da22af481",
+      "original_delivery_sha256": "8cac0435b93feca500dd83e179dae696a71a13ba5b17b658186b268da22af481",
+      "source_file": "logo-symbol-gradient.svg"
+    },
+    {
+      "file": "svg/logo-symbol-monochrome.svg",
+      "bytes": 2717,
+      "sha256": "9a538deb301c5a843d3707e8bbc5695dbc038e29ee6120b204970f68e0d7fd92",
+      "original_delivery_sha256": "9a538deb301c5a843d3707e8bbc5695dbc038e29ee6120b204970f68e0d7fd92",
+      "source_file": "logo-symbol-monochrome.svg"
+    },
+    {
+      "file": "qa/comparison.png",
+      "bytes": 168935,
+      "sha256": "9973598418c96e7aa80ed94f8341c472806ae16dfe1c1bfb7118e6e68968ba1a",
+      "original_delivery_sha256": "9973598418c96e7aa80ed94f8341c472806ae16dfe1c1bfb7118e6e68968ba1a",
+      "source_file": "comparison.png"
+    },
+    {
+      "file": "qa/gradient-preview.png",
+      "bytes": 107457,
+      "sha256": "4f6e57200589660fb8e246f511cc2d938cf866d5b6958f2cca54ef3f472044e1",
+      "original_delivery_sha256": "4f6e57200589660fb8e246f511cc2d938cf866d5b6958f2cca54ef3f472044e1",
+      "source_file": "gradient-preview.png"
+    },
+    {
+      "file": "qa/monochrome-preview.png",
+      "bytes": 24228,
+      "sha256": "9a9c6e3336f17c62b284ddd1272ee06dfe8281ea22635cabd5b7d80a15549c79",
+      "original_delivery_sha256": "9a9c6e3336f17c62b284ddd1272ee06dfe8281ea22635cabd5b7d80a15549c79",
+      "source_file": "monochrome-preview.png"
+    },
+    {
+      "file": "README.md",
+      "bytes": 1666,
+      "sha256": "c679fc20d0a71a7ac926e8ecfebe0cce2e49435cac5a8375f6de56ae60d1b57a",
+      "original_delivery_sha256": "3553ddd2e1fcec97eac3c1e0c8dcc02a29c5976eb0ef4682e8fef33b0b46d5a4",
+      "source_file": "README.md"
+    }
+  ],
+  "delivery_library_id": "libfile_96c9ea70bc6c8191a00b8ab355737e46",
+  "delivery_zip_sha256": "291433d1b6d2095d594efc8a698688aa8fc7a521d12ebabeb14e06f260d81aa7",
+  "website_usage": "Archive only; website continues to use the approved PNG.",
+  "open_highlight_strokes": {
+    "logo-symbol-gradient.svg": 1,
+    "logo-symbol-monochrome.svg": 0
+  },
+  "xmlStructureVerified": true,
+  "svgBytesMatchDelivery": true,
+  "chromiumAcceptance": "../../../docs/design/logo-v5/svg-browser/receipt.json"
+}

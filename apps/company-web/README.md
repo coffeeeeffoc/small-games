@@ -25,7 +25,7 @@ pnpm --filter @coffeeeeffoc/company-web test
 
 品牌视觉采用用户确认的[晴空科技设计图](docs/design/sunlight/approved.png)：晴空蓝、电光青与饱和钴蓝 `#004bff`，搭配阳光橙 `#ff6b0b` 和明黄 `#ffdf39`。首屏是贯通导航的城市天空场景，业务区与页尾横幅按后续反馈调为浅天空蓝渐变，搭配深蓝文字；业务卡片保持浅青、杏橙、明黄，公司介绍与理念延续明亮的蓝色体系。
 
-`public/brand-mark.svg` 是蓝色折带 N 与橙色四角星组成的导航标识，`public/favicon.svg` 是小尺寸简化版。`public/assets/` 下的四张 WebP 为基于确认图生成的本地视觉素材：无文字的玻璃 N 首屏场景，以及透明底的软件、游戏、AI 图标，总计约 370 KiB。原始确认图保存在设计目录。首屏图片优先加载，业务图标延迟加载，无外部图片或字体依赖。
+导航使用已批准第五版的无字透明 PNG `public/brand-mark-v5-2fb69722.png`，按原比例放入既有标识区域；favicon 使用 `public/favicon-v5-022178cd.ico` 的六个尺寸帧。完整带字/无字多尺寸、母版、图标和预览保存在 `brand/logo-v5/`，未引用的变体不进入 Vite 公开产物或小游戏包；见其 `INTEGRATION.md` 和 manifest。原 SVG 作为历史资源保留，官网当前使用 PNG。`public/assets/` 下的四张 WebP 为基于确认图生成的本地视觉素材：无文字的玻璃 N 首屏场景，以及透明底的软件、游戏、AI 图标，总计约 370 KiB。原始确认图保存在设计目录。首屏图片优先加载，业务图标延迟加载，无外部图片或字体依赖。
 
 所有文案、导航和按钮均为真实 HTML。三张业务卡片使用原生 `details/summary` 展开介绍，支持鼠标、触摸和键盘，在 JavaScript 不可用时仍能使用。手机端将天空场景重新构图到文案下方，避免裁切主体。
 

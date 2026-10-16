@@ -125,6 +125,7 @@ html[data-pointer='active'] .pointer-light {
   display: block;
   width: 66px;
   height: 60px;
+  object-fit: contain;
 }
 nav {
   display: flex;

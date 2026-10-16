@@ -1,0 +1,252 @@
+{
+  "approved_source_library_id": "libfile_90f382db8bf48191847da31fd0d61dbb",
+  "date": "2026-10-16",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 1924,
+      "sha256": "7d73ec09743bb524b484b764493ee0fb68b96bada6639184d4d7e6d1c2051c3b"
+    },
+    {
+      "path": "icons/apple-touch-icon.png",
+      "bytes": 17025,
+      "sha256": "fab669b5bb748329f019984abf6d76d971a99420e4f2b8fd91adfad275bbdc3c",
+      "width": 180,
+      "height": 180,
+      "mode": "RGBA"
+    },
+    {
+      "path": "icons/favicon.ico",
+      "bytes": 141003,
+      "sha256": "022178cd5b919af5b20cc783343418a866895575eba024bd6905862334da4bcc",
+      "width": 256,
+      "height": 256,
+      "mode": "RGBA",
+      "embedded_sizes": [
+        [16, 16],
+        [32, 32],
+        [48, 48],
+        [64, 64],
+        [128, 128],
+        [256, 256]
+      ]
+    },
+    {
+      "path": "icons/icon-128.png",
+      "bytes": 13745,
+      "sha256": "cc6b37f7dd29b0536104b1d1aa9a1449b29070a5f579026d0c7636cc77d8dfb2",
+      "width": 128,
+      "height": 128,
+      "mode": "RGBA"
+    },
+    {
+      "path": "icons/icon-16.png",
+      "bytes": 851,
+      "sha256": "b32e388a381ec614144e83db0bb91b1f6a987d25cf0e4089ce095f542d4807e4",
+      "width": 16,
+      "height": 16,
+      "mode": "P"
+    },
+    {
+      "path": "icons/icon-256.png",
+      "bytes": 41284,
+      "sha256": "aa25cc05e5a0fb35cc888398d6a8419eda9ee8a239c278c0dc33b863ffed1fca",
+      "width": 256,
+      "height": 256,
+      "mode": "RGBA"
+    },
+    {
+      "path": "icons/icon-32.png",
+      "bytes": 1706,
+      "sha256": "d2b3df7a58b1766ac0d2c60191436920f64e9193a9520e54d0086ddd36da7b24",
+      "width": 32,
+      "height": 32,
+      "mode": "RGBA"
+    },
+    {
+      "path": "icons/icon-48.png",
+      "bytes": 3160,
+      "sha256": "b7a4315a62718f1ea35ad72c074575524402faed867b654954c32f1ee61ec76b",
+      "width": 48,
+      "height": 48,
+      "mode": "RGBA"
+    },
+    {
+      "path": "icons/icon-512.png",
+      "bytes": 123803,
+      "sha256": "d3702fd63912e028b4b7644941dde73e7dbbb0699952b40d738f4627de9390b9",
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA"
+    },
+    {
+      "path": "icons/icon-64.png",
+      "bytes": 4817,
+      "sha256": "1b169d247a0317abf513ee04c48c5901bb7a70451b939cfc87917d507c9eedf9",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA"
+    },
+    {
+      "path": "masters/logo-lockup-master.png",
+      "bytes": 388079,
+      "sha256": "7381b9cc747b381387f6d5455fec2da9dc3eadd9f77622b15c72881f5d210071",
+      "width": 960,
+      "height": 680,
+      "mode": "RGBA"
+    },
+    {
+      "path": "masters/logo-symbol-master.png",
+      "bytes": 526925,
+      "sha256": "d60d8576b524955b33d2d7bb22a0eae726fe8a275bea574ad84fe5e6b2f05b98",
+      "width": 960,
+      "height": 490,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/logo-lockup-1024.png",
+      "bytes": 509891,
+      "sha256": "90c88ab0985c93515064e585e717e5c11d50d7da4f53ec86b2af3c950e8fcfff",
+      "width": 1024,
+      "height": 725,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/logo-lockup-2048.png",
+      "bytes": 1537568,
+      "sha256": "179e43077b672a25d08f8ea37b26ee0d43538e25e24170bf25690be89dd92fae",
+      "width": 2048,
+      "height": 1451,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/logo-lockup-256.png",
+      "bytes": 58270,
+      "sha256": "257a0025e1f44fe8ea59bf25c1d8dd829baf69408c64d5f95f26e57f1c1eeccc",
+      "width": 256,
+      "height": 181,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/logo-lockup-512.png",
+      "bytes": 164757,
+      "sha256": "9d6c9df5c556c2c5bb57563c8c9c6063411a9ca4457e207b5f15537b90aee5d0",
+      "width": 512,
+      "height": 363,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/logo-symbol-1024.png",
+      "bytes": 393101,
+      "sha256": "679d35df7cf4c68f9aa24d7590126e14cebcc0811f5099613e81676b6dbdd59e",
+      "width": 1024,
+      "height": 523,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/logo-symbol-128.png",
+      "bytes": 13953,
+      "sha256": "1a18e190b38de3cbb5367dfb2b5cba778a92783606c7b7d0251dc82fb2e3099d",
+      "width": 128,
+      "height": 65,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/logo-symbol-16.png",
+      "bytes": 930,
+      "sha256": "fc46b219472e3db576a3e413d2ae6f3ed520aaa0fca331302817dcae31e16193",
+      "width": 16,
+      "height": 8,
+      "mode": "P"
+    },
+    {
+      "path": "png/logo-symbol-2048.png",
+      "bytes": 1201549,
+      "sha256": "4e6015e6ee9085e7e8cecffaef059366f974dabbfec580655fc55dd00de8d105",
+      "width": 2048,
+      "height": 1045,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/logo-symbol-256.png",
+      "bytes": 41388,
+      "sha256": "779bf895451ffe2a5d843df7dc0711892c3a387edb0078f0d9ea57c9f37618e3",
+      "width": 256,
+      "height": 131,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/logo-symbol-32.png",
+      "bytes": 1817,
+      "sha256": "e96ff14d851431901c1ea149ec0ef2c133480749a39f83b69773652ed29edd00",
+      "width": 32,
+      "height": 16,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/logo-symbol-512.png",
+      "bytes": 123718,
+      "sha256": "2fb6972212e8a129a9cd83c9ec65fbdfcf2e02453799162e97ebc2e000d1c782",
+      "width": 512,
+      "height": 261,
+      "mode": "RGBA"
+    },
+    {
+      "path": "png/logo-symbol-64.png",
+      "bytes": 4905,
+      "sha256": "bc346c2a0465de33b4750086781c271d07916123b55636c3a0471dad61356095",
+      "width": 64,
+      "height": 33,
+      "mode": "RGBA"
+    },
+    {
+      "path": "qa/contact-sheet.png",
+      "bytes": 415062,
+      "sha256": "862030aac064907335be0d9ff4d396cfced20eb87bb5598c1a10c6ca33ec8c78",
+      "width": 630,
+      "height": 1127,
+      "mode": "RGB"
+    },
+    {
+      "path": "qa/favicon-contact-sheet.png",
+      "bytes": 34153,
+      "sha256": "5763a0864fa0ecf785e3ec5dd244c96437f7f56b48fd5dce5b0e0f96c8aa8a93",
+      "width": 800,
+      "height": 320,
+      "mode": "RGB"
+    },
+    {
+      "path": "qa/lockup-white.png",
+      "bytes": 157812,
+      "sha256": "921ce84458976338e67b57a8fd00721f46029accd821f13246742fb4d83d6a61",
+      "width": 600,
+      "height": 425,
+      "mode": "RGB"
+    },
+    {
+      "path": "qa/symbol-dark.png",
+      "bytes": 127739,
+      "sha256": "d9eb1e34328a0331491a8840a503ab64baacc680512e6488eff69b99117bba3b",
+      "width": 600,
+      "height": 306,
+      "mode": "RGB"
+    },
+    {
+      "path": "qa/symbol-white.png",
+      "bytes": 125102,
+      "sha256": "53a1757348dded47311044e6d091b10c73547dd7dd20d2446caa55f704d7397f",
+      "width": 600,
+      "height": 306,
+      "mode": "RGB"
+    },
+    {
+      "path": "INTEGRATION.md",
+      "bytes": 2531,
+      "sha256": "0fd7c3011d2f4ef37e4130100e24d1f98ca198f941d99d765a58bb345381026e"
+    }
+  ],
+  "original_readme_sha256": "215f545bb8bca5f9c3dde8fe24c6ce7b7c0f914428071965b1871e6f62aacd0c",
+  "delivery_library_id": "libfile_5c644fefe774819184f9e566a1040b40",
+  "delivery_zip_sha256": "843113d1ea095e9643a11cfe9dedc98479fb7c0496c714a48048463652162cd1",
+  "separate_asset_sets": ["vector/manifest.json"]
+}
