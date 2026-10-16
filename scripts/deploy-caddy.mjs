@@ -224,6 +224,30 @@ systemctl list-timers company-caddy-backup.timer --all --no-pager
 `;
 }
 
+export const caddySourceInputs = Object.freeze([
+  'scripts/company-deployment.mjs',
+  'scripts/deployment-progress.mjs',
+  'scripts/deploy-caddy.mjs',
+  'scripts/competition-ingress.mjs',
+  'scripts/admin-csp.mjs',
+  'scripts/admin-csp.d.mts',
+  'infra/caddy',
+  'apps/admin-web',
+  'package.json',
+]);
+
+/** Both preparation boundaries must describe the same committed CSP and UI inputs. */
+export function assertCaddySource(expectedSha, run = command) {
+  const sha = run('git', ['rev-parse', 'HEAD'], { capture: true });
+  if (expectedSha !== undefined)
+    assert.equal(sha, expectedSha, 'HEAD changed while preparing Caddy');
+  assert(
+    !run('git', ['status', '--porcelain', '--', ...caddySourceInputs], { capture: true }),
+    'Commit Caddy changes before preparing an identifiable release.',
+  );
+  return sha;
+}
+
 export async function main(args = process.argv.slice(2)) {
   const parsedArgs = parseCaddyArgs(args);
   if (args.includes('--help')) {
@@ -246,20 +270,7 @@ export async function main(args = process.argv.slice(2)) {
     );
     return;
   }
-  const relevant = [
-    'scripts/company-deployment.mjs',
-    'scripts/deployment-progress.mjs',
-    'scripts/deploy-caddy.mjs',
-    'scripts/competition-ingress.mjs',
-    'infra/caddy',
-    'apps/admin-web',
-    'package.json',
-  ];
-  assert(
-    !command('git', ['status', '--porcelain', '--', ...relevant], { capture: true }),
-    'Commit Caddy changes before preparing an identifiable release.',
-  );
-  const sha = command('git', ['rev-parse', 'HEAD'], { capture: true });
+  const sha = assertCaddySource();
   if (config.ingress) {
     const pnpm = pnpmInvocation();
     await deploymentCommand(
@@ -282,15 +293,7 @@ export async function main(args = process.argv.slice(2)) {
   await mkdir(output, { recursive: true });
   const destination = path.join(output, release);
   const manifest = await writeCaddyBundle(destination, config, sha, release);
-  assert.equal(
-    command('git', ['rev-parse', 'HEAD'], { capture: true }),
-    sha,
-    'HEAD changed while preparing Caddy',
-  );
-  assert(
-    !command('git', ['status', '--porcelain', '--', ...relevant], { capture: true }),
-    'Caddy sources changed while preparing',
-  );
+  assertCaddySource(sha);
   const bundle = { ...(await archiveBundle(destination)), manifest };
   console.log(`Prepared ${bundle.archive}\nsource=${sha}\nsha256=${bundle.archiveHash}`);
   if (args.includes('--prepare')) return;

@@ -1,0 +1,14 @@
+{
+  "checkedAt": "2026-10-16T22:37:37.4394780Z",
+  "receiptSHA256": "3ae22537512fb4c3225ebf2939ef9c237a52bb6c111d29a416b3e1bfbc3ef39c",
+  "receiptHashesMatch": true,
+  "sourceHashCount": 21,
+  "buildHashCount": 4,
+  "screenshotHashCount": 24,
+  "gitDiffCheckExitCode": 0,
+  "ownedCaddyProcesses": 0,
+  "ownedCaddyDirectories": 0,
+  "browserProducedReceiptSHA256": "be4fb213d7f47164bb85bf7498d8a28f6f9ec2996da1756438564c45b0647433",
+  "receiptFormattingOnly": true,
+  "browserOriginalReceiptArchive": "outputs/admin-ui-raw-71714822-0e62-4ede-9792-08a0bf4b6330/receipt.browser-original.json"
+}

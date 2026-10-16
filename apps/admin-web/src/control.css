@@ -1,0 +1,181 @@
+.control-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: min(1380px, 90%);
+  margin: 24px auto 0;
+}
+.control-nav a {
+  padding: 12px 18px;
+  min-height: 44px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--muted);
+  border: 1px solid transparent;
+}
+.control-nav a.active {
+  color: var(--blue);
+  background: #e8edff;
+  border-color: #cdd7ff;
+}
+main.control-main {
+  margin: 0 auto auto;
+  padding-top: 32px;
+}
+.control-center {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+.control-title h1 {
+  font-size: 34px;
+  line-height: 1.25;
+  letter-spacing: -1px;
+  margin: 16px 0;
+}
+.control-title p,
+.control-help {
+  color: var(--muted);
+  line-height: 1.8;
+  font-size: 14px;
+}
+.control-center .ant-btn {
+  min-height: 44px;
+  height: auto;
+  white-space: normal;
+}
+.control-center .anticon svg {
+  width: 1em;
+  height: 1em;
+}
+.control-center .ant-card {
+  min-width: 0;
+}
+.control-center .ant-card-body {
+  padding: 24px;
+}
+.control-center label:not(.ant-checkbox-wrapper) {
+  display: block;
+  margin: 18px 0 10px;
+  font-weight: 600;
+}
+.control-center .ant-select {
+  min-width: 220px;
+  max-width: 100%;
+}
+.control-center .ant-select-multiple {
+  width: 100%;
+}
+.control-summary,
+.control-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.control-actions {
+  margin: 16px 0 0;
+}
+.control-summary {
+  color: var(--muted);
+  font-size: 13px;
+}
+.control-id {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  margin-top: 6px;
+}
+.control-check {
+  margin: 20px 0;
+}
+.table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.control-center .ant-table-cell {
+  overflow-wrap: anywhere;
+}
+.table-scroll table {
+  min-width: 580px;
+}
+.control-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.control-table th,
+.control-table td {
+  padding: 16px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line);
+  line-height: 1.7;
+}
+.control-table th {
+  background: #fafafa;
+  font-weight: 600;
+}
+.control-table td {
+  overflow-wrap: anywhere;
+}
+.config-diff {
+  padding-left: 24px;
+  line-height: 1.9;
+  overflow-wrap: anywhere;
+}
+.permission-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.permission-options legend {
+  padding: 0 8px;
+  font-weight: 600;
+}
+.audit-detail {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-width: 480px;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.control-unavailable {
+  padding: 28px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+}
+.control-unavailable h1 {
+  font-size: 30px;
+  letter-spacing: -1px;
+}
+@media (max-width: 760px) {
+  .control-nav {
+    width: calc(100% - 32px);
+    gap: 4px;
+    margin-top: 16px;
+  }
+  .control-nav a {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+  .control-center .ant-card-body {
+    padding: 16px;
+  }
+  .control-center .ant-alert {
+    align-items: flex-start;
+  }
+  .control-title h1 {
+    font-size: 28px;
+  }
+  .permission-options {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+}

@@ -1,0 +1,15 @@
+CONTROL: full workflow at 1360px
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for getByRole('button', { name: '淇濆瓨鑽夌', exact: true })
+
+    at controlBrowserChecks (F:\playground\playground-ai\small-games\apps\admin-web\tests\control-browser.mjs:49:69)
+    at async file:///F:/playground/playground-ai/small-games/apps/admin-web/tests/browser.mjs:151:25 {
+  name: 'TimeoutError'
+}
+
+Node.js v24.21.0

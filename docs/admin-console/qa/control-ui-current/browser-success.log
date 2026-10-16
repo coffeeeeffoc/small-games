@@ -1,0 +1,16 @@
+CONTROL: full workflow at 1360px
+CONTROL: full workflow at 390px
+CONTROL: full workflow at 320px
+CONTROL: CAS conflict, last administrator and immediate revocation
+CONTROL: member and role CRUD, builtin and referenced role protection
+CONTROL: least privilege control.read
+CONTROL: least privilege members.read,members.write
+CONTROL: least privilege roles.read
+CONTROL: least privilege audit.read
+CONTROL: least privilege control.read,control.publish
+CONTROL: reject missing nonce
+CONTROL: reject invalid nonce
+CONTROL: reject noncanonical nonce
+CONTROL: reject duplicate nonce
+CONTROL: per-response nonce and intentional unnonced-style negative
+PASS: 9 legacy scenes + 15 control groups; actual Caddy, permissions/CAS/revocation/CSP/nonce; 320/390/1360, touch, reduced motion

@@ -4,6 +4,9 @@ import { mkdtemp, mkdir, writeFile, readFile, realpath, rm, unlink } from 'node:
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { EventEmitter } from 'node:events';
+import { PassThrough } from 'node:stream';
+import { readFileSync } from 'node:fs';
 import { startAdminCaddy } from './admin-caddy-fixture.mjs';
 import {
   adminUiPaths,
@@ -12,6 +15,72 @@ import {
   injectAdminTemplate,
   renderAdminDocument,
 } from './admin-csp.mjs';
+
+test(
+  'asynchronous spawn failure preserves its error and cleans owned API and temporary directory',
+  { timeout: 180000 },
+  async () => {
+    const parent = await realpath(tmpdir());
+    const site = await mkdtemp(path.join(parent, 'small-games-csp-spawn-fixture-'));
+    const original = Object.assign(new Error('Injected owned spawn failure'), { code: 'EACCES' });
+    const unhandled = [];
+    const observe = (error) => unhandled.push(error);
+    process.on('unhandledRejection', observe);
+    let directory,
+      ports = [],
+      killed = false;
+    try {
+      await writeFile(
+        path.join(site, 'index.html'),
+        injectAdminTemplate('<!doctype html><head></head><body>fixture</body>'),
+      );
+      await assert.rejects(
+        startAdminCaddy(site, {
+          spawnProcess(_executable, args, options) {
+            directory = options.cwd;
+            const config = readFileSync(args[2], 'utf8');
+            ports = [
+              ...new Set(
+                [...config.matchAll(/127\.0\.0\.1:(\d+)/g)].map((match) => Number(match[1])),
+              ),
+            ];
+            const child = new EventEmitter();
+            child.stdout = new PassThrough();
+            child.stderr = new PassThrough();
+            child.exitCode = null;
+            child.signalCode = null;
+            child.kill = () => {
+              killed = true;
+              return false;
+            };
+            queueMicrotask(() => child.emit('error', original));
+            return child;
+          },
+        }),
+        (error) => error === original && error.code === 'EACCES',
+      );
+      assert(
+        directory &&
+          path.dirname(directory) === parent &&
+          path.basename(directory).startsWith('small-games-admin-caddy-'),
+      );
+      await assert.rejects(realpath(directory), { code: 'ENOENT' });
+      assert(ports.length >= 2);
+      for (const port of ports)
+        await assert.rejects(
+          fetch(`http://127.0.0.1:${port}/api/session`, { signal: AbortSignal.timeout(1000) }),
+        );
+      await new Promise((resolve) => setImmediate(resolve));
+      assert.deepEqual(unhandled, []);
+      assert.equal(killed, false, 'A failed spawn has no PID to terminate');
+    } finally {
+      process.off('unhandledRejection', observe);
+      assert.equal(await realpath(site), site);
+      assert.equal(path.dirname(site), parent);
+      await rm(site, { recursive: true, force: false });
+    }
+  },
+);
 
 test(
   'actual Caddy renders finite trusted admin documents with fresh CSP nonces and strips conditional/range requests',

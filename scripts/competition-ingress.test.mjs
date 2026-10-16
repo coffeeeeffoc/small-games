@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { readFile, mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { readFile, mkdtemp, mkdir, writeFile, rm, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -25,12 +25,73 @@ import {
   chooseIngress,
   parseCaddyArgs,
   writeCaddyBundle,
+  assertCaddySource,
 } from './deploy-caddy.mjs';
 import { companyConfig, fileHashes } from './company-deployment.mjs';
 
 const ingress = JSON.parse(
   await readFile(new URL('../infra/caddy/ingress.example.json', import.meta.url), 'utf8'),
 );
+test('Caddy source guard rejects dirty nonce implementation or declarations at both boundaries', async () => {
+  const parent = await realpath(tmpdir());
+  const directory = await mkdtemp(path.join(parent, 'small-games-caddy-source-'));
+  const git = (args) => {
+    const result = spawnSync(
+      'git',
+      ['-C', directory, '-c', 'core.fsmonitor=false', '-c', 'core.autocrlf=false', ...args],
+      { encoding: 'utf8', shell: false, windowsHide: true, timeout: 30000 },
+    );
+    assert.ifError(result.error);
+    assert.equal(result.status, 0, result.stderr);
+    return result.stdout.trim();
+  };
+  const run = (program, args) => {
+    assert.equal(program, 'git');
+    return git(args);
+  };
+  const commit = () =>
+    git([
+      '-c',
+      'user.name=Caddy fixture',
+      '-c',
+      'user.email=caddy@example.invalid',
+      '-c',
+      'commit.gpgsign=false',
+      'commit',
+      '--quiet',
+      '-m',
+      'fixture',
+    ]);
+  try {
+    git(['init', '--quiet']);
+    await mkdir(path.join(directory, 'scripts'));
+    for (const file of ['admin-csp.mjs', 'admin-csp.d.mts'])
+      await writeFile(path.join(directory, 'scripts', file), 'export {};\n');
+    git(['add', '.']);
+    commit();
+    const candidate = assertCaddySource(undefined, run);
+    assert.match(candidate, /^[a-f0-9]{40}$/);
+    assert.equal(assertCaddySource(candidate, run), candidate);
+    for (const file of ['admin-csp.mjs', 'admin-csp.d.mts']) {
+      const target = path.join(directory, 'scripts', file);
+      await writeFile(target, 'export const changed = true;\n');
+      assert.throws(() => assertCaddySource(undefined, run), /Commit Caddy changes/);
+      assert.throws(() => assertCaddySource(candidate, run), /Commit Caddy changes/);
+      await writeFile(target, 'export {};\n');
+    }
+    await writeFile(path.join(directory, 'scripts/admin-csp.mjs'), 'export const next = true;\n');
+    git(['add', '.']);
+    commit();
+    assert.throws(() => assertCaddySource(candidate, run), /HEAD changed/);
+    assert.notEqual(assertCaddySource(undefined, run), candidate);
+  } finally {
+    assert.equal(await realpath(directory), directory);
+    assert.equal(path.dirname(directory), parent);
+    assert(path.basename(directory).startsWith('small-games-caddy-source-'));
+    await rm(directory, { recursive: true, force: false });
+  }
+});
+
 test('both generic Runtime producers start with trust disabled, keep other services unchanged and satisfy validation', async () => {
   const { validateRuntimeEnvironment } = await import('../services/runtime-api/src/config.ts');
   const bundle = renderBundleCompose(bundleConfig({ DEPLOY_SERVICES: 'runtime,management,kart' }));

@@ -1,0 +1,67 @@
+{
+  "url": "http://127.0.0.1:57703/games",
+  "pageErrors": [],
+  "requests": [
+    {
+      "path": "/api/session",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/control/state",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/control/catalog",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/control/revisions",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/control/revisions",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "path": "/api/control/revisions",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/control/revisions/00000000-0000-4000-8000-000000000010/publish",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "path": "/api/control/state",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/control/catalog",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/control/revisions",
+      "method": "GET",
+      "status": 200
+    }
+  ],
+  "document": "跳至主要内容\nsmall games/ADMIN\n好玩，从这里生长\n欢迎\n公共配置\n游戏状态\n成员\n角色\n审计\nCONTROL CENTER\n游戏状态\n\n先保存草稿，再明确发布。发布写入目标版本，不代表全部服务已生效。\n\n当前版本 3\n待应用\n编辑基线 3\n应用覆盖尚不完整\n\n只展示已知实例的报告，不能据此判断完整部署覆盖或服务健康。\n\n缺少新鲜报告：kart\n\n状态未知：runtime / expired-instance（报告过期，不能视为进程已停止）\n\n游戏运行策略\n游戏\t草稿状态\t终止代次\n围捕小队\ncops-robbers\n\t\n停止新局\n\t0\n街区追捕\ncops-robbers-realtime\n\t\n开放\n\t0\n字母拼词\nletters-words2\n\t\n开放\n\t0\n历史猜想\nvibeJam-myself-history-guess\n\t\n开放\n\t0\n象五子棋\nxiangqi-five\n\t\n开放\n\t0\n弹击竞技场\nflick-arena\n\t\n开放\n\t0\n卡罗姆俱乐部\ncarrom-club\n\t\n开放\n\t0\n笼中救援\ncage-rescue\n\t\n开放\n\t0\n转塔刹车\ntower-brake\n\t\n开放\n\t0\n三选二\nthree-choose-two\n\t\n开放\n\t0\n卡丁车\ncarding-car\n\t\n开放\n\t0\n\n停止新局会保留在途对局；停用会终止旧局结算，重新开放不会恢复旧局资格。只有发布后才改变目标策略。\n\ntianxia-chalu · 独立服务，尚未纳管\n\n草稿保留 1 个公共 API 来源；可在“公共配置”页面核对。\n\n变更理由\n保存草稿\n发布此草稿\n放弃编辑并重新读取\n已知应用报告\nruntime / expired-instance · 版本 1 · 已报告应用 · 1970/1/1 08:00:00\n© 2026 SMALL GAMES\n一点灵感，很多可能。",
+  "csp": [
+    {
+      "directive": "style-src-elem",
+      "blocked": "inline"
+    },
+    {
+      "directive": "style-src-elem",
+      "blocked": "inline"
+    }
+  ]
+}

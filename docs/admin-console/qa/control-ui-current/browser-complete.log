@@ -1,0 +1,24 @@
+CONTROL: full workflow at 1360px
+CONTROL: full workflow at 390px
+CONTROL: full workflow at 320px
+CONTROL: CAS conflict, last administrator and immediate revocation
+CONTROL: member and role CRUD, builtin and referenced role protection
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+2 !== 0
+
+    at controlBrowserChecks (file:///F:/playground/playground-ai/small-games/apps/admin-web/tests/control-browser.mjs:265:14)
+    at async file:///F:/playground/playground-ai/small-games/apps/admin-web/tests/browser.mjs:154:25 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 2,
+  expected: 0,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.21.0

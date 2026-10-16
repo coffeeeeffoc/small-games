@@ -87,7 +87,7 @@ async function freePort() {
 }
 
 /** An actual pinned Caddy process, with only owned loopback resources and no TLS/admin ports. */
-export async function startAdminCaddy(site, { apiHandler } = {}) {
+export async function startAdminCaddy(site, { apiHandler, spawnProcess = spawn } = {}) {
   assert(
     process.arch === 'x64' && assets[process.platform],
     'Caddy fixture requires reviewed x64 Windows/Linux',
@@ -99,29 +99,47 @@ export async function startAdminCaddy(site, { apiHandler } = {}) {
   let child,
     api,
     exited,
+    spawnFailure,
     closed = false;
   let childOutput = '';
   const close = async () => {
     if (closed) return;
     closed = true;
-    if (child && child.exitCode === null && child.signalCode === null) child.kill();
-    if (exited)
-      await Promise.race([
-        exited,
-        delay(8000, undefined, { ref: false }).then(() => {
-          throw new Error('Owned Caddy did not exit');
-        }),
-      ]);
-    if (api?.listening)
-      await new Promise((resolve, reject) =>
-        api.close((error) => (error ? reject(error) : resolve())),
-      );
-    assert.equal(await realpath(directory), directory);
-    assert.equal(path.dirname(directory), parent);
-    assert(path.basename(directory).startsWith('small-games-admin-caddy-'));
-    const info = await lstat(directory);
-    assert(info.isDirectory() && !info.isSymbolicLink());
-    await rm(directory, { recursive: true, force: false, maxRetries: 3 });
+    let failure;
+    try {
+      if (child?.pid && child.exitCode === null && child.signalCode === null) child.kill();
+      if (exited)
+        await Promise.race([
+          exited,
+          delay(8000, undefined, { ref: false }).then(() => {
+            throw new Error('Owned Caddy did not exit');
+          }),
+        ]);
+      if (spawnFailure) throw spawnFailure;
+    } catch (error) {
+      failure = error;
+    } finally {
+      try {
+        if (api?.listening)
+          await new Promise((resolve, reject) =>
+            api.close((error) => (error ? reject(error) : resolve())),
+          );
+      } catch (error) {
+        failure ??= error;
+      } finally {
+        try {
+          assert.equal(await realpath(directory), directory);
+          assert.equal(path.dirname(directory), parent);
+          assert(path.basename(directory).startsWith('small-games-admin-caddy-'));
+          const info = await lstat(directory);
+          assert(info.isDirectory() && !info.isSymbolicLink());
+          await rm(directory, { recursive: true, force: false, maxRetries: 3 });
+        } catch (error) {
+          failure ??= error;
+        }
+      }
+    }
+    if (failure) throw failure;
   };
   try {
     const archive = path.join(directory, archiveName);
@@ -180,7 +198,7 @@ export async function startAdminCaddy(site, { apiHandler } = {}) {
 `;
     const configPath = path.join(directory, 'Caddyfile');
     await writeFile(configPath, prelude + config, { flag: 'wx' });
-    child = spawn(executable, ['run', '--config', configPath, '--adapter', 'caddyfile'], {
+    child = spawnProcess(executable, ['run', '--config', configPath, '--adapter', 'caddyfile'], {
       windowsHide: true,
       stdio: ['ignore', 'pipe', 'pipe'],
       cwd: directory,
@@ -190,8 +208,12 @@ export async function startAdminCaddy(site, { apiHandler } = {}) {
         XDG_DATA_HOME: path.join(directory, 'data'),
       },
     });
-    exited = new Promise((resolve, reject) => {
-      child.once('error', reject);
+    // Resolve on error as well as exit: a spawn error must not reject before readiness awaits it.
+    exited = new Promise((resolve) => {
+      child.once('error', (error) => {
+        spawnFailure = error;
+        resolve();
+      });
       child.once('exit', resolve);
     });
     for (const stream of [child.stdout, child.stderr])
@@ -200,6 +222,7 @@ export async function startAdminCaddy(site, { apiHandler } = {}) {
       });
     let ready = false;
     for (let attempt = 0; attempt < 80; attempt++) {
+      if (spawnFailure) throw spawnFailure;
       if (child.exitCode !== null) throw new Error(`Caddy fixture exited: ${childOutput}`);
       try {
         const response = await fetch(url + '/api/session', { signal: AbortSignal.timeout(500) });
@@ -213,7 +236,12 @@ export async function startAdminCaddy(site, { apiHandler } = {}) {
     assert(ready, 'Owned Caddy loopback listener unavailable');
     return { url, runtime: { version, archiveSha256, executableSha256 }, close };
   } catch (error) {
-    await close();
+    try {
+      await close();
+    } catch (cleanupError) {
+      if (cleanupError !== error && error instanceof Error && Object.isExtensible(error))
+        Object.defineProperty(error, 'cleanupFailed', { value: true });
+    }
     throw error;
   }
 }

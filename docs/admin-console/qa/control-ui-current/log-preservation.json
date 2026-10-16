@@ -1,0 +1,76 @@
+{
+  "operation": "Trim trailing horizontal whitespace only; preserve original log bytes in local archive",
+  "archive": "outputs/admin-ui-raw-71714822-0e62-4ede-9792-08a0bf4b6330",
+  "files": {
+    "browser-attempt-2.log": {
+      "rawSha256": "37092fa71e4d57bbf6660d8ff052771c6d950eef464607ecd69435cd7525e783",
+      "committedSha256": "37092fa71e4d57bbf6660d8ff052771c6d950eef464607ecd69435cd7525e783",
+      "changed": false
+    },
+    "browser-complete.log": {
+      "rawSha256": "42dc1b35bc9fa1cf16469ba80a6866ad902bbcde5063543ce736b149179b1c50",
+      "committedSha256": "42dc1b35bc9fa1cf16469ba80a6866ad902bbcde5063543ce736b149179b1c50",
+      "changed": false
+    },
+    "browser-success.log": {
+      "rawSha256": "4bd8c53ebf2c314f7569601f7b840edb56657a31bd1fa1bfb3eed50de220ecb4",
+      "committedSha256": "4bd8c53ebf2c314f7569601f7b840edb56657a31bd1fa1bfb3eed50de220ecb4",
+      "changed": false
+    },
+    "build-final.log": {
+      "rawSha256": "2c3a0986343b1080381ce67a864ae0e2b39c944eca8843cfc65a7788c772f868",
+      "committedSha256": "ca039e757e5909174c8a3cfd2a00a01c558d4556c115c49c7d9446882c76a1de",
+      "changed": true
+    },
+    "build-native-tables.log": {
+      "rawSha256": "a3558323b8ee0e5ea50d81355c6786e006dfbbfd84a5f46e48dddb600f985fa7",
+      "committedSha256": "27817e5fa0908f1daa0bff6fd9332fa1c4b3fa118c1a9c23dd5e930efae318db",
+      "changed": true
+    },
+    "build.log": {
+      "rawSha256": "d1e991e35e44f0547c4a83dbb5c512cb993827b71fbe24187ec06cbcba358be1",
+      "committedSha256": "69e27ba66329389d7da62572881ab0cbd13027a24edd1d1b048035aed37b3f79",
+      "changed": true
+    },
+    "caddy-spawn-regression-final.log": {
+      "rawSha256": "bc4d743711d009fdeb1087cf16ea0829bf9a3e24123999255d6ac65bf495b958",
+      "committedSha256": "bc4d743711d009fdeb1087cf16ea0829bf9a3e24123999255d6ac65bf495b958",
+      "changed": false
+    },
+    "caddy-spawn-regression.log": {
+      "rawSha256": "5d55c66e8d8841a7fc0f28e75adab9bfc95efdb0a004434119c4065208fc971d",
+      "committedSha256": "5d55c66e8d8841a7fc0f28e75adab9bfc95efdb0a004434119c4065208fc971d",
+      "changed": false
+    },
+    "format-check.log": {
+      "rawSha256": "f20510a9da4717c51c4cffee6d0dd88d6c9a723d0a83711d01216f5b48961283",
+      "committedSha256": "f20510a9da4717c51c4cffee6d0dd88d6c9a723d0a83711d01216f5b48961283",
+      "changed": false
+    },
+    "navigation-diagnostic-2.log": {
+      "rawSha256": "aebae6986cad867f046395041430c6eeb1f366bb38eb3f7aa107248d8c6c857b",
+      "committedSha256": "aebae6986cad867f046395041430c6eeb1f366bb38eb3f7aa107248d8c6c857b",
+      "changed": false
+    },
+    "navigation-diagnostic.log": {
+      "rawSha256": "065283e13ce9e6fc49d3b0332180f80ed0d85488e46aa4a914bbe27f1ddf7e71",
+      "committedSha256": "065283e13ce9e6fc49d3b0332180f80ed0d85488e46aa4a914bbe27f1ddf7e71",
+      "changed": false
+    },
+    "navigation-fixed.log": {
+      "rawSha256": "e812273e41cab53df618a8487b1870be91348b4ccea4004b9a0dbdf4888ccdaf",
+      "committedSha256": "e812273e41cab53df618a8487b1870be91348b4ccea4004b9a0dbdf4888ccdaf",
+      "changed": false
+    },
+    "roles-navigation-diagnostic.log": {
+      "rawSha256": "279dcdc519f446671d2feed3f946f455331d2240bb312ebb015088ec21bab367",
+      "committedSha256": "279dcdc519f446671d2feed3f946f455331d2240bb312ebb015088ec21bab367",
+      "changed": false
+    },
+    "roles-navigation-fixed.log": {
+      "rawSha256": "0473952a2abf05bbafc21207d2eece6c41e4cf8b14303dee541caa07916b5e15",
+      "committedSha256": "0473952a2abf05bbafc21207d2eece6c41e4cf8b14303dee541caa07916b5e15",
+      "changed": false
+    }
+  }
+}

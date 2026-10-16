@@ -1,11 +1,15 @@
 import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router';
+import { App as AntApp, ConfigProvider } from 'antd';
+import { permissions, type Session } from './control-api';
+import { ControlCenter, ControlNavigation } from './control-center';
 import './theme.css';
+import './control.css';
 
 type Auth =
   | { state: 'loading' | 'anonymous' | 'forbidden' | 'unavailable' }
-  | { state: 'ready'; login: string; csrfToken: string };
+  | ({ state: 'ready' } & Session);
 function GithubIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -49,7 +53,7 @@ function Artwork({ mood }: { mood: string }) {
     </div>
   );
 }
-function App() {
+function App({ nonceReady }: { nonceReady: boolean }) {
   const [auth, setAuth] = useState<Auth>({ state: 'loading' });
   const [loggingOut, setLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState(false);
@@ -73,7 +77,23 @@ function App() {
         !/^[\w-]{43}$/.test(body.csrfToken)
       )
         throw new Error();
-      setAuth({ state: 'ready', login: body.user.login, csrfToken: body.csrfToken });
+      const roles = body.roles ?? [],
+        granted = body.permissions ?? [];
+      if (
+        (body.roles === undefined) !== (body.permissions === undefined) ||
+        !Array.isArray(roles) ||
+        !roles.every((role) => typeof role === 'string' && /^[a-z][a-z0-9-]{0,47}$/.test(role)) ||
+        !Array.isArray(granted) ||
+        !granted.every((permission) => permissions.includes(permission))
+      )
+        throw new Error();
+      setAuth({
+        state: 'ready',
+        login: body.user.login,
+        csrfToken: body.csrfToken,
+        roles,
+        permissions: granted,
+      });
     } catch {
       setAuth({ state: 'unavailable' });
     }
@@ -109,6 +129,9 @@ function App() {
   const forbidden = location.pathname === '/forbidden' || auth.state === 'forbidden';
   const mood = forbidden ? 'forbidden' : welcome ? 'welcome' : 'login';
   const error = new URLSearchParams(location.search).get('error');
+  const isControl = ['/config', '/games', '/members', '/roles', '/audit'].includes(
+    location.pathname,
+  );
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main">
@@ -127,7 +150,8 @@ function App() {
           好玩，从这里生长
         </span>
       </header>
-      <main id="main">
+      {auth.state === 'ready' && nonceReady && <ControlNavigation session={auth} />}
+      <main id="main" className={isControl ? 'control-main' : undefined}>
         <Routes>
           <Route
             path="/login"
@@ -144,139 +168,167 @@ function App() {
             }
           />
           <Route path="/forbidden" element={null} />
+          {['/config', '/games', '/members', '/roles', '/audit'].map((path) => (
+            <Route
+              key={path}
+              path={path}
+              element={
+                auth.state === 'anonymous' ? (
+                  <Navigate to="/login" replace />
+                ) : auth.state === 'forbidden' ? (
+                  <Navigate to="/forbidden" replace />
+                ) : null
+              }
+            />
+          ))}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-        <section className={`stage stage--${mood}`} aria-labelledby="page-title">
-          <div className="stage-copy">
-            <span className="eyebrow">
-              {forbidden
-                ? '403 · MEMBERS ONLY'
-                : welcome
-                  ? 'YOUR SPACE, READY.'
-                  : 'SMALL GAMES, BIG IDEAS.'}
-            </span>
-            <h1 id="page-title" tabIndex={-1}>
-              {forbidden ? (
-                <>
-                  这片空间，
-                  <br />
-                  <em>还没为你开放。</em>
-                </>
-              ) : welcome ? (
-                <>
-                  欢迎回来，
-                  <br />
-                  <em>创造者。</em>
-                </>
-              ) : (
-                <>
-                  让好玩的灵感，
-                  <br />
-                  <em>从这里出发。</em>
-                </>
-              )}
-            </h1>
-            <p className="intro">
-              {forbidden ? (
-                <>
-                  你的 GitHub 账号尚未获得访问权限。
-                  <br />
-                  可以换一个账号，或联系管理员。
-                </>
-              ) : welcome ? (
-                <>
-                  灵感已就位，今天也让好玩发生。
-                  <br />
-                  这里是你的小游戏管理空间。
-                </>
-              ) : (
-                <>
-                  欢迎来到小游戏管理空间。
-                  <br />
-                  用你的 GitHub 账号，开启今天的创造。
-                </>
-              )}
-            </p>
-            <div className="actions" aria-live="polite">
-              {forbidden ? (
-                <>
-                  <a className="button" href="/api/auth/github">
-                    <GithubIcon />
-                    换个 GitHub 账号
-                    <Arrow />
-                  </a>
-                  <a className="text-link" href="/login">
-                    返回登录页
-                  </a>
-                </>
-              ) : welcome ? (
-                <>
-                  <span className="identity">
-                    <span className="identity-avatar">{auth.login.charAt(0).toUpperCase()}</span>
-                    <span>
-                      <strong>@{auth.login}</strong>
-                      <small>已通过 GitHub 验证</small>
-                    </span>
-                    <span className="verified" aria-label="已授权">
-                      ✓
-                    </span>
-                  </span>
-                  <button
-                    className="button button--secondary"
-                    onClick={() => void logout()}
-                    disabled={loggingOut}
-                  >
-                    {loggingOut ? '正在退出…' : '退出登录'}
-                    <Arrow />
-                  </button>
-                  {logoutError && (
-                    <p role="alert" className="notice">
-                      退出暂未完成，请重试。
-                    </p>
+        {isControl && auth.state === 'ready' ? (
+          nonceReady ? (
+            <ControlCenter session={auth} refresh={refresh} />
+          ) : (
+            <section className="control-unavailable" role="alert">
+              <h1 id="page-title">页面暂时无法加载</h1>
+              <p>请刷新页面或联系管理员。</p>
+            </section>
+          )
+        ) : (
+          <>
+            <section className={`stage stage--${mood}`} aria-labelledby="page-title">
+              <div className="stage-copy">
+                <span className="eyebrow">
+                  {forbidden
+                    ? '403 · MEMBERS ONLY'
+                    : welcome
+                      ? 'YOUR SPACE, READY.'
+                      : 'SMALL GAMES, BIG IDEAS.'}
+                </span>
+                <h1 id="page-title" tabIndex={-1}>
+                  {forbidden ? (
+                    <>
+                      这片空间，
+                      <br />
+                      <em>还没为你开放。</em>
+                    </>
+                  ) : welcome ? (
+                    <>
+                      欢迎回来，
+                      <br />
+                      <em>创造者。</em>
+                    </>
+                  ) : (
+                    <>
+                      让好玩的灵感，
+                      <br />
+                      <em>从这里出发。</em>
+                    </>
                   )}
-                </>
-              ) : auth.state === 'loading' ? (
-                <p className="notice" role="status">
-                  正在确认你的登录状态…
+                </h1>
+                <p className="intro">
+                  {forbidden ? (
+                    <>
+                      你的 GitHub 账号尚未获得访问权限。
+                      <br />
+                      可以换一个账号，或联系管理员。
+                    </>
+                  ) : welcome ? (
+                    <>
+                      灵感已就位，今天也让好玩发生。
+                      <br />
+                      这里是你的小游戏管理空间。
+                    </>
+                  ) : (
+                    <>
+                      欢迎来到小游戏管理空间。
+                      <br />
+                      用你的 GitHub 账号，开启今天的创造。
+                    </>
+                  )}
                 </p>
-              ) : auth.state === 'unavailable' ? (
-                <>
-                  <p className="notice" role="alert">
-                    管理空间暂时连接不上，请稍后重试。
-                  </p>
-                  <button className="button" onClick={() => void refresh()}>
-                    重新连接
-                    <Arrow />
-                  </button>
-                </>
-              ) : (
-                <>
-                  <a className="button" href="/api/auth/github">
-                    <GithubIcon />
-                    使用 GitHub 继续
-                    <Arrow />
-                  </a>
-                  {error && (
-                    <p className="notice" role="alert">
-                      {error === 'expired'
-                        ? '登录已过期或已取消，请重新开始。'
-                        : '登录暂不可用，请稍后重试。'}
+                <div className="actions" aria-live="polite">
+                  {forbidden ? (
+                    <>
+                      <a className="button" href="/api/auth/github">
+                        <GithubIcon />
+                        换个 GitHub 账号
+                        <Arrow />
+                      </a>
+                      <a className="text-link" href="/login">
+                        返回登录页
+                      </a>
+                    </>
+                  ) : welcome ? (
+                    <>
+                      <span className="identity">
+                        <span className="identity-avatar">
+                          {auth.login.charAt(0).toUpperCase()}
+                        </span>
+                        <span>
+                          <strong>@{auth.login}</strong>
+                          <small>已通过 GitHub 验证</small>
+                        </span>
+                        <span className="verified" aria-label="已授权">
+                          ✓
+                        </span>
+                      </span>
+                      <button
+                        className="button button--secondary"
+                        onClick={() => void logout()}
+                        disabled={loggingOut}
+                      >
+                        {loggingOut ? '正在退出…' : '退出登录'}
+                        <Arrow />
+                      </button>
+                      {logoutError && (
+                        <p role="alert" className="notice">
+                          退出暂未完成，请重试。
+                        </p>
+                      )}
+                    </>
+                  ) : auth.state === 'loading' ? (
+                    <p className="notice" role="status">
+                      正在确认你的登录状态…
                     </p>
+                  ) : auth.state === 'unavailable' ? (
+                    <>
+                      <p className="notice" role="alert">
+                        管理空间暂时连接不上，请稍后重试。
+                      </p>
+                      <button className="button" onClick={() => void refresh()}>
+                        重新连接
+                        <Arrow />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <a className="button" href="/api/auth/github">
+                        <GithubIcon />
+                        使用 GitHub 继续
+                        <Arrow />
+                      </a>
+                      {error && (
+                        <p className="notice" role="alert">
+                          {error === 'expired'
+                            ? '登录已过期或已取消，请重新开始。'
+                            : '登录暂不可用，请稍后重试。'}
+                        </p>
+                      )}
+                      <span className="fine-print">仅向已获授权的成员开放</span>
+                    </>
                   )}
-                  <span className="fine-print">仅向已获授权的成员开放</span>
-                </>
-              )}
+                </div>
+              </div>
+              <Artwork mood={mood} />
+            </section>
+            <div className="under-stage">
+              <span className="tiny-cross" aria-hidden="true">
+                ✦
+              </span>
+              <span>让每一个小想法，都有好玩的可能。</span>
+              <span className="edition">SMALL GAMES / ADMIN SPACE</span>
             </div>
-          </div>
-          <Artwork mood={mood} />
-        </section>
-        <div className="under-stage">
-          <span className="tiny-cross" aria-hidden="true">
-            ✦
-          </span>
-          <span>让每一个小想法，都有好玩的可能。</span>
-          <span className="edition">SMALL GAMES / ADMIN SPACE</span>
-        </div>
+          </>
+        )}
       </main>
       <footer className="site-footer">
         <span>© {new Date().getFullYear()} SMALL GAMES</span>
@@ -285,10 +337,43 @@ function App() {
     </div>
   );
 }
+function readNonce(): string | undefined {
+  const metas = document.querySelectorAll('meta[name="sg-csp-nonce"]');
+  const value = metas.length === 1 ? metas[0].getAttribute('content') : null;
+  try {
+    if (
+      value &&
+      /^[A-Za-z0-9+/]{43}=$/.test(value) &&
+      atob(value).length === 32 &&
+      btoa(atob(value)) === value
+    )
+      return value;
+  } catch {
+    /* Invalid browser metadata must not enable the control UI. */
+  }
+}
+const nonce = readNonce();
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <App />
+      {nonce ? (
+        <ConfigProvider
+          csp={{ nonce }}
+          theme={{
+            token: {
+              colorPrimary: '#214ee8',
+              borderRadius: 12,
+              fontFamily: "Inter, 'Segoe UI', 'Microsoft Yahei', sans-serif",
+            },
+          }}
+        >
+          <AntApp component={false}>
+            <App nonceReady />
+          </AntApp>
+        </ConfigProvider>
+      ) : (
+        <App nonceReady={false} />
+      )}
     </BrowserRouter>
   </StrictMode>,
 );

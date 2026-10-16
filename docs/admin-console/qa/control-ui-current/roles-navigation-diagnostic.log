@@ -1,0 +1,3 @@
+CONTROL: member and role CRUD, builtin and referenced role protection
+ROLE_NAVIGATION {"path":"/roles","heading":"鎴愬憳","tables":["鎴愬憳鍒楄〃"],"administratorRows":[{"text":"owner@example.com\n宸茬粦瀹?GitHub\n\t鏈夋晥\tAdministrator\t\n缂栬緫鎴愬憳\n鍒犻櫎鎴愬憳","buttons":2}]}
+DIAGNOSTIC ONLY: navigation/save completed; no full acceptance receipt
