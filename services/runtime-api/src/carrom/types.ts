@@ -37,6 +37,7 @@ export type Member = {
   lastHash?: string;
 };
 export type Room = {
+  killEpoch?: number;
   game: 'carrom-club';
   code: string;
   version: number;
@@ -65,7 +66,13 @@ export type Room = {
 };
 export type Repository = {
   create(room: Room): Promise<void>;
-  mutate<T>(code: string, change: (room: Room) => T): Promise<T>;
+  mutate<T>(
+    code: string,
+    change: (room: Room) => T,
+    operation?: string,
+    input?: Input,
+    playerId?: string,
+  ): Promise<T>;
   name(playerId: string): Promise<string>;
 };
 export type Input = {

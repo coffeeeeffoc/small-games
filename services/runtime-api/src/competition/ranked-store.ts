@@ -3,6 +3,7 @@ import type { openDatabase } from '@coffeeeeffoc/service-kit';
 import { CompetitionError } from './types.js';
 import { createRankedRuns } from './ranked-runs.js';
 import type { RankedRule, RankedRun, Receipt, RunRepository } from './ranked-types.js';
+import { assertGameControl, gamePolicy, type CompetitionControl } from './control.js';
 
 type Database = ReturnType<typeof openDatabase>['db'];
 /** Namespaced match rows hold checkpoints and small durable idempotency receipts. */
@@ -11,21 +12,38 @@ export function createRankedStore(
   rules: Map<string, RankedRule>,
   identity: (playerId: string) => Promise<{ authenticated: boolean }>,
   now = Date.now,
+  control?: CompetitionControl,
 ) {
   const repository: RunRepository = {
     async create(run) {
-      await db.execute(sql`insert into runtime.competition_matches(id,board,data,created_at)
-        values(${`ranked-run:${run.id}`},${run.boardKey},${JSON.stringify(run)}::jsonb,${run.createdAt})`);
+      await db.transaction(async (tx) => {
+        const policy = await gamePolicy(control, tx, run.game);
+        assertGameControl(policy, policy?.killEpoch, true);
+        run.killEpoch = policy?.killEpoch ?? 0;
+        await tx.execute(sql`insert into runtime.competition_matches(id,board,data,created_at)
+          values(${`ranked-run:${run.id}`},${run.boardKey},${JSON.stringify(run)}::jsonb,${run.createdAt})`);
+      });
     },
     async mutate(id, change) {
       return db.transaction(async (tx) => {
+        let policy: Awaited<ReturnType<typeof gamePolicy>>;
+        if (control) {
+          const preview = await tx.execute(
+            sql`select data from runtime.competition_matches where id=${`ranked-run:${id}`}`,
+          );
+          if (!preview[0]) throw new CompetitionError('RUN_NOT_FOUND', 404);
+          policy = await gamePolicy(control, tx, (preview[0].data as RankedRun).game);
+        }
         const rows = await tx.execute(
           sql`select data from runtime.competition_matches where id=${`ranked-run:${id}`} for update`,
         );
         const run = rows[0]?.data as RankedRun | undefined;
         if (!run || run.kind !== 'ranked-run-v1') throw new CompetitionError('RUN_NOT_FOUND', 404);
+        if (policy && policy.gameId !== run.game) throw new CompetitionError('WRONG_GAME');
+        const original = JSON.stringify(run);
         const result = await change({
           run,
+          assertControl: () => assertGameControl(policy, run.killEpoch ?? 0),
           async receipt(seq) {
             const receipts = await tx.execute(
               sql`select data from runtime.competition_matches where id=${`ranked-action:${id}:${seq}`}`,
@@ -47,9 +65,10 @@ export function createRankedStore(
               (excluded.score=runtime.competition_best.score and excluded.secondary<runtime.competition_best.secondary)`);
           },
         });
-        await tx.execute(
-          sql`update runtime.competition_matches set data=${JSON.stringify(run)}::jsonb where id=${`ranked-run:${id}`}`,
-        );
+        if (JSON.stringify(run) !== original)
+          await tx.execute(
+            sql`update runtime.competition_matches set data=${JSON.stringify(run)}::jsonb where id=${`ranked-run:${id}`}`,
+          );
         return result;
       });
     },

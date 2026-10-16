@@ -1335,6 +1335,7 @@ export const adminDeploymentScopePaths = [
   'scripts/company-deployment.mjs',
   'infra/admin-console/.env.example',
   'infra/admin-console/migrations/001-admin-auth.sql',
+  'infra/admin-console/migrations/002-control-center.sql',
   'scripts/deploy-admin.mjs',
   'scripts/deploy-admin.test.mjs',
   'infra/admin-console/deploy.py',
@@ -1619,6 +1620,12 @@ export function reviewedSharedFileScopes({
   const scopes = vitePatchFileScopes({ changedPaths, readBase, readHead });
   for (const file of changedPaths) {
     try {
+      if (file === 'infra/admin-console/migrations/002-control-center.sql') {
+        const consumers = [...adminConsumers, 'services/runtime-api', 'services/kart-server'];
+        for (const dir of consumers) assert(packages.some((pkg) => pkg.dir === dir));
+        scopes.set(file, consumers);
+        continue;
+      }
       if (
         file === 'pnpm-lock.yaml' &&
         readBase &&

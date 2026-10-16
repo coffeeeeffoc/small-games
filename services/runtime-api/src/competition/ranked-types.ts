@@ -24,6 +24,7 @@ export type RankedRule = {
 };
 export type Settlement = RankedResult & { accepted: boolean; reason: string | null; runId: string };
 export type RankedRun = {
+  killEpoch?: number;
   kind: 'ranked-run-v1';
   id: string;
   game: string;
@@ -55,6 +56,7 @@ export type RunView = {
 };
 export type Receipt = { hash: string; response: RunView };
 export type RunTransaction = {
+  assertControl?(): void;
   run: RankedRun;
   receipt(seq: number): Promise<Receipt | undefined>;
   saveReceipt(seq: number, receipt: Receipt): Promise<void>;

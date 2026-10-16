@@ -1,4 +1,9 @@
-import { createService, openDatabase, type RequestSpanExporter } from '@coffeeeeffoc/service-kit';
+import {
+  createService,
+  openDatabase,
+  type DependencyProbe,
+  type RequestSpanExporter,
+} from '@coffeeeeffoc/service-kit';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
 import { webcrypto } from 'node:crypto';
@@ -15,7 +20,8 @@ import { createThreeChooseTwoStore } from './three-choose-two/store.js';
 import type { Engine } from './three-choose-two/types.js';
 import { createCarromStore } from './carrom/store.js';
 import type { Engine as CarromEngine, Level as CarromLevel } from './carrom/types.js';
-import { runtimeTrustedProxy, validateRuntimeEnvironment } from './config.js';
+import { readCompetitionCors, runtimeTrustedProxy, validateRuntimeEnvironment } from './config.js';
+import { createCompetitionControl } from './competition/control.js';
 import { createRankedStore } from './competition/ranked-store.js';
 import type { RankedRule } from './competition/ranked-types.js';
 
@@ -28,7 +34,16 @@ export function createRuntimeService(
   validateRuntimeEnvironment(env);
   const databaseUrl = z.url().parse(env.RUNTIME_DATABASE_URL);
   const database = openDatabase(databaseUrl, 'runtime');
-  const dependencies = {
+  const control =
+    env.COMPETITION_ENABLED === 'true' && env.COMPETITION_CONTROL_ENABLED === 'true'
+      ? createCompetitionControl(
+          database.db,
+          readCompetitionCors(env),
+          Date.now,
+          env.COMPETITION_CONTROL_INSTANCE_ID,
+        )
+      : undefined;
+  const dependencies: Record<string, DependencyProbe> = {
     database,
     ...(env.COMPETITION_ENABLED === 'true'
       ? {
@@ -49,9 +64,25 @@ export function createRuntimeService(
           },
         }
       : {}),
+    ...(control
+      ? {
+          control: {
+            async check() {
+              await control.publicCors();
+            },
+            close() {},
+          },
+        }
+      : {}),
   };
   // One private Nginx hop; never enable this on a directly exposed listener.
-  const app = createService('runtime', dependencies, logger, telemetry, runtimeTrustedProxy(env));
+  const app: ReturnType<typeof createService> = createService(
+    'runtime',
+    dependencies,
+    logger,
+    telemetry,
+    runtimeTrustedProxy(env),
+  );
   app.register(async (instance) => {
     if (env.COMPETITION_ENABLED === 'true') {
       const rules = new Map<string, Rule>();
@@ -67,7 +98,7 @@ export function createRuntimeService(
         .int()
         .min(1000)
         .parse(env.THREE_CHOOSE_TWO_REVIEW_SCORE ?? 100_000);
-      const ranked = createThreeChooseTwoStore(database.db, engine, Date.now, reviewScore);
+      const ranked = createThreeChooseTwoStore(database.db, engine, Date.now, reviewScore, control);
       const carromUrl = new URL(
         '../../../games/local/carrom-club/src/friends-core.mjs',
         import.meta.url,
@@ -78,16 +109,18 @@ export function createRuntimeService(
       ).href;
       const carromEngine = (await import(carromUrl)) as CarromEngine;
       const { FRIEND_LEVELS } = (await import(levelsUrl)) as { FRIEND_LEVELS: CarromLevel[] };
-      const carrom = createCarromStore(database.db, carromEngine, FRIEND_LEVELS);
-      const competition = createCompetitionStore(database.db, rules);
+      const carrom = createCarromStore(database.db, carromEngine, FRIEND_LEVELS, Date.now, control);
+      const competition = createCompetitionStore(database.db, rules, Date.now, control);
       const rankedUrl = new URL('../rules/ranked-games.mjs', import.meta.url).href;
       const { rankedRules } = (await import(rankedUrl)) as { rankedRules: RankedRule[] };
       const gameRuns = createRankedStore(
         database.db,
         new Map(rankedRules.map((rule) => [rule.id, rule])),
         competition.identityDetails,
+        Date.now,
+        control,
       );
-      await registerCompetition(instance, competition, env, ranked, carrom, gameRuns);
+      await registerCompetition(instance, competition, env, ranked, carrom, gameRuns, control);
     }
     const configured = env.RELEASE_PROJECTION_TOKEN || env.ARTIFACT_TRUSTED_PUBLIC_KEY;
     const configuration = configured

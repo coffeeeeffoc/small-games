@@ -6,7 +6,29 @@ import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { createCompetition, rankedBoard } from '../src/competition.ts';
+import { createCompetition, rankedBoard, kartControlLeaseSchema } from '../src/competition.ts';
+
+test('private control leases reject unsupported providers, unknown fields, bad epochs and excessive lifetimes', () => {
+  const good = {
+    controlEnabled: true,
+    gameId: 'carding-car',
+    state: 'enabled',
+    killEpoch: 0,
+    version: 0,
+    digest: null,
+    validForMs: 2000,
+  };
+  assert.equal(kartControlLeaseSchema.parse(good).gameId, 'carding-car');
+  for (const invalid of [
+    { ...good, controlEnabled: false },
+    { ...good, gameId: 'tianxia-chalu' },
+    { ...good, killEpoch: -1 },
+    { ...good, validForMs: 2001 },
+    { ...good, version: 1 },
+    { ...good, members: [] },
+  ])
+    assert.throws(() => kartControlLeaseSchema.parse(invalid));
+});
 
 test('outbox survives restart and retries the same result after HTTP failure', async () => {
   const directory = await mkdtemp(path.join(tmpdir(), 'kart-outbox-'));

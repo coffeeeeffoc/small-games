@@ -9,7 +9,7 @@ import { isIP } from 'node:net';
 import type { IncomingMessage } from 'node:http';
 import { WebSocket, WebSocketServer } from 'ws';
 import { z } from 'zod';
-import { rankedBoard, rankedSeed, type Competition } from './competition.ts';
+import { rankedBoard, rankedSeed, type Competition, type KartControlLease } from './competition.ts';
 import { RaceManager } from '@coffeeeeffoc/carding-car/race';
 import { routes } from '@coffeeeeffoc/carding-car/routes';
 import { vehicles, drivers } from '@coffeeeeffoc/carding-car/selection';
@@ -112,6 +112,9 @@ type Member = {
   seq: number;
 };
 type Room = {
+  killEpoch?: number;
+  controlPaused?: boolean;
+  inputRevision?: number;
   state: RoomState;
   members: Member[];
   race?: RaceManager;
@@ -130,6 +133,7 @@ export type ServerOptions = {
   autoTick?: boolean;
   logger?: boolean;
   competition?: Competition;
+  controlEnabled?: boolean;
   /** Only for an unpublished container port behind Nginx, which overwrites X-Real-IP. */
   trustProxy?: boolean;
 };
@@ -144,6 +148,38 @@ export function createKartServer(options: ServerOptions = {}) {
   const app = Fastify({ logger: options.logger ?? false, requestTimeout: 10000, bodyLimit: 4096 });
   const wss = new WebSocketServer({ noServer: true, maxPayload: 4096, perMessageDeflate: false });
   const now = options.now ?? Date.now;
+  if (options.controlEnabled && !options.competition?.control)
+    throw new Error('CONTROL_UNAVAILABLE: configure the existing private Runtime channel');
+  let lease: (KartControlLease & { expiresAt: number }) | undefined;
+  let refreshing: Promise<void> | undefined;
+  let reportedKey = '',
+    reportedAt = 0;
+  function refreshControl() {
+    if (!options.controlEnabled) return Promise.resolve();
+    return (refreshing ??= (async () => {
+      const requestedAt = now();
+      const next = await options.competition!.control!();
+      const expiresAt = requestedAt + next.validForMs;
+      if (!next.controlEnabled || expiresAt <= now()) throw new Error('CONTROL_UNAVAILABLE');
+      // Install the lease into the actual create/start/tick gates before acknowledging it.
+      lease = { ...next, expiresAt };
+      const key = `${next.version}:${next.digest}`;
+      if (key !== reportedKey || now() - reportedAt >= 20_000) {
+        await options.competition!.applied?.(next);
+        reportedKey = key;
+        reportedAt = now();
+      }
+    })().finally(() => {
+      refreshing = undefined;
+    }));
+  }
+  function assertControl(room?: Room, admission = false) {
+    if (!options.controlEnabled) return;
+    if (!lease || lease.expiresAt <= now()) throw new Error('CONTROL_UNAVAILABLE');
+    if (lease.state === 'disabled') throw new Error('GAME_DISABLED');
+    if (room && (room.killEpoch ?? 0) !== lease.killEpoch) throw new Error('GAME_CANCELLED');
+    if (admission && lease.state !== 'enabled') throw new Error('GAME_DRAINING');
+  }
   // ponytail: one process owns up to 16 ephemeral rooms; shard by room before scaling horizontally.
   const rooms = new Map<string, Room>();
   const bindings = new Map<WebSocket, { room: Room; member: Member }>();
@@ -298,6 +334,8 @@ export function createKartServer(options: ServerOptions = {}) {
           })
         : undefined;
       if (message.competitionToken && !identity) throw new Error('排位服务尚未配置');
+      await refreshControl();
+      assertControl(undefined, true);
       if (socket.readyState !== WebSocket.OPEN) return;
       let room: Room;
       if (message.type === 'create') {
@@ -308,6 +346,7 @@ export function createKartServer(options: ServerOptions = {}) {
           roomCode = randomBytes(4).toString('hex').toUpperCase();
         } while (rooms.has(roomCode));
         room = {
+          killEpoch: lease?.killEpoch ?? 0,
           state: {
             code: roomCode,
             hostId: '',
@@ -338,6 +377,7 @@ export function createKartServer(options: ServerOptions = {}) {
         const found = rooms.get(message.code);
         if (!found) throw new Error('房间不存在或已结束');
         room = found;
+        assertControl(room, true);
         if (room.state.ranked && !identity) throw new Error('排位赛需要有效玩家身份');
         if (identity && room.members.some((member) => member.playerId === identity.playerId))
           throw new Error('你已加入该房间，请使用原会话重连');
@@ -383,6 +423,11 @@ export function createKartServer(options: ServerOptions = {}) {
         send(socket, { type: 'error', message: '重连已过期，请重新加入房间', fatal: true });
         return;
       }
+      if (!(room.state.phase === 'finished' && room.state.settlement === 'saved')) {
+        await refreshControl();
+        assertControl(room, room.state.phase !== 'racing' && room.state.phase !== 'finished');
+      }
+      if (!rooms.has(room.state.code)) throw new Error('GAME_CANCELLED');
       attach(socket, room, member);
       return;
     }
@@ -394,7 +439,17 @@ export function createKartServer(options: ServerOptions = {}) {
       socket.close(1000);
       return;
     }
+    if (['start', 'ready', 'rematch', 'loaded'].includes(message.type)) await refreshControl();
+    if (bindings.get(socket) !== binding || member.socket !== socket)
+      throw new Error('GAME_CANCELLED');
+    assertControl(
+      room,
+      room.state.phase !== 'racing' ||
+        ['start', 'ready', 'rematch', 'loaded'].includes(message.type),
+    );
+    if (!rooms.has(room.state.code)) throw new Error('GAME_CANCELLED');
     if (message.type === 'input') {
+      if (room.controlPaused) return;
       if (
         room.state.phase !== 'racing' ||
         message.raceId !== room.state.raceId ||
@@ -520,9 +575,47 @@ export function createKartServer(options: ServerOptions = {}) {
     broadcast(room);
   }
   function step() {
+    if (options.controlEnabled && (!lease || lease.expiresAt - now() <= 1000)) {
+      void refreshControl().catch(() => {
+        /* Keep only the original short deadline; never renew on failure. */
+      });
+    }
     for (const [roomCode, room] of rooms) {
       if (room.state.settlement === 'pending' && options.competition?.saved(room.matchId)) {
         room.state.settlement = 'saved';
+        broadcast(room);
+      }
+      const savedRead = room.state.phase === 'finished' && room.state.settlement === 'saved';
+      if (options.controlEnabled && !savedRead) {
+        try {
+          assertControl(room);
+          room.controlPaused = false;
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : 'CONTROL_UNAVAILABLE';
+          if (reason === 'CONTROL_UNAVAILABLE') {
+            if (!room.controlPaused) room.inputRevision = (room.inputRevision ?? 0) + 1;
+            // A stale lease pauses authority; fixed 1/60 ticks resume without time catch-up.
+            for (const member of room.members) {
+              member.input = stopped;
+              if (!room.controlPaused) send(member.socket, { type: 'error', message: reason });
+            }
+            room.controlPaused = true;
+            continue;
+          }
+          // Cancel without invoking RaceManager.finish/settle or synthesizing a winner/loser.
+          room.race = undefined;
+          rooms.delete(roomCode);
+          for (const member of room.members)
+            if (member.socket) {
+              bindings.delete(member.socket);
+              send(member.socket, { type: 'error', message: reason, fatal: true });
+              member.socket.close(4000, reason);
+            }
+          continue;
+        }
+      }
+      if (room.state.settlement === 'pending' && options.competition?.cancelled?.(room.matchId)) {
+        room.state.settlement = 'failed';
         broadcast(room);
       }
       if (
@@ -596,6 +689,7 @@ export function createKartServer(options: ServerOptions = {}) {
               }),
               startedAt: room.startedAt,
               finishedAt: now(),
+              ...(options.controlEnabled ? { killEpoch: room.killEpoch ?? 0 } : {}),
             })
             .catch((error) => {
               room.state.settlement = 'failed';
@@ -670,12 +764,32 @@ export function createKartServer(options: ServerOptions = {}) {
           socket.close(1008, 'Command limit');
           return;
         }
+        if (parsed.data.type === 'input' && options.controlEnabled) {
+          const binding = bindings.get(socket);
+          if (binding?.room.controlPaused) return;
+          try {
+            assertControl(binding?.room);
+          } catch {
+            return;
+          }
+        }
+        const inputRoom = parsed.data.type === 'input' ? bindings.get(socket)?.room : undefined;
+        const inputRevision = inputRoom?.inputRevision;
         if (++peer.pending > 16) {
           socket.close(1008, 'Command queue limit');
           return;
         }
         peer.queue = peer.queue
-          .then(() => receive(socket, parsed.data))
+          .then(() => {
+            if (
+              parsed.data.type === 'input' &&
+              options.controlEnabled &&
+              (bindings.get(socket)?.room !== inputRoom ||
+                inputRoom?.inputRevision !== inputRevision)
+            )
+              return;
+            return receive(socket, parsed.data);
+          })
           .catch((error) => {
             send(socket, { type: 'error', message: (error as Error).message });
           })
@@ -724,6 +838,7 @@ export function createKartServer(options: ServerOptions = {}) {
   app.addHook('preClose', async () => {
     clearInterval(timer);
     clearInterval(heartbeat);
+    await refreshing?.catch(() => {});
     for (const socket of peers.keys()) socket.terminate();
     await Promise.all([...rooms.values()].map((room) => room.settlement));
     await new Promise<void>((resolve) => wss.close(() => resolve()));

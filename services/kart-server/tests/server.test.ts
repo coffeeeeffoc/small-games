@@ -5,7 +5,12 @@ import { WebSocket } from 'ws';
 import { createKartServer } from '../src/server.ts';
 import type { ServerMessage, ClientMessage } from '@coffeeeeffoc/carding-car/protocol';
 import { aiInput } from '../../../games/local/carding-car/assets/scripts/KartAI.ts';
-import { rankedBoard, rankedSeed, type KartResult } from '../src/competition.ts';
+import {
+  rankedBoard,
+  rankedSeed,
+  type KartResult,
+  type KartControlLease,
+} from '../src/competition.ts';
 
 const appearance = { name: '小车手', vehicle: 'classic-kart', driver: 'rookie', version: 2 };
 const create: ClientMessage = {
@@ -15,6 +20,190 @@ const create: ClientMessage = {
   route: 'seaside',
   bots: 1,
 };
+test('control uses fresh admission reads, cancels killed racing before tick and stamps recovered rooms', async () => {
+  let clock = 100000,
+    epoch = 0,
+    policy: KartControlLease['state'] = 'enabled',
+    settlements = 0,
+    reads = 0;
+  const server = createKartServer({
+    autoTick: false,
+    now: () => clock,
+    controlEnabled: true,
+    competition: {
+      verify: async () => ({ playerId: 'fixture' }),
+      saved: () => false,
+      settle: async () => {
+        settlements++;
+      },
+      control: async () => {
+        reads++;
+        return {
+          controlEnabled: true,
+          gameId: 'carding-car',
+          state: policy,
+          killEpoch: epoch,
+          version: 1,
+          digest: 'a'.repeat(64),
+          validForMs: 2000,
+        };
+      },
+      applied: async () => {},
+    },
+  });
+  await server.app.listen({ host: '127.0.0.1', port: 0 });
+  const { port } = server.app.server.address() as { port: number };
+  const a = await peer(`ws://127.0.0.1:${port}/kart`),
+    b = await peer(`ws://127.0.0.1:${port}/kart`);
+  try {
+    a.send(create);
+    const joined = await a.wait('joined');
+    policy = 'draining';
+    b.send({ type: 'join', ...appearance, code: joined.room.code });
+    assert.equal((await b.wait('error')).message, 'GAME_DRAINING');
+    a.send({ type: 'start' });
+    assert.equal((await a.wait('error')).message, 'GAME_DRAINING');
+    policy = 'enabled';
+    a.send({ type: 'start' });
+    assert.match((await a.wait('error')).message, /准备/);
+    a.send({ type: 'prepared', revision: 1 });
+    await a.wait('room', (m) => m.room.members[0].loadedRevision === 1);
+    a.send({ type: 'ready', ready: true });
+    await a.wait('room', (m) => m.room.members[0].ready);
+    a.send({ type: 'start' });
+    const loading = (await a.wait('room', (m) => m.room.phase === 'loading')).room;
+    a.send({ type: 'loaded', raceId: loading.raceId });
+    await a.wait('room', (m) => m.room.phase === 'racing');
+    const race = server.rooms.get(joined.room.code)!.race!,
+      before = race.time;
+    policy = 'disabled';
+    epoch = 1;
+    a.send({ type: 'ready', ready: true });
+    assert.equal((await a.wait('error')).message, 'GAME_DISABLED');
+    server.step();
+    assert.equal(race.time, before);
+    assert.equal(settlements, 0);
+    assert.equal(server.rooms.has(joined.room.code), false);
+    policy = 'enabled';
+    b.send(create);
+    const recovered = await b.wait('joined');
+    assert.equal(server.rooms.get(recovered.room.code)!.killEpoch, 1);
+    assert.ok(reads >= 8);
+    // Expiry cannot grant a tick while its fresh read is still pending.
+    clock += 2001;
+    server.step();
+    assert.equal(server.rooms.has(recovered.room.code), true);
+    assert.equal(server.rooms.get(recovered.room.code)!.controlPaused, true);
+    assert.equal(settlements, 0);
+  } finally {
+    a.socket.terminate();
+    b.socket.terminate();
+    await server.app.close();
+  }
+});
+test('an acknowledged finished receipt stays readable/resumable after disable without new scoring', async () => {
+  let policy: KartControlLease['state'] = 'enabled',
+    epoch = 0,
+    settlements = 0,
+    reads = 0;
+  const server = createKartServer({
+    autoTick: false,
+    controlEnabled: true,
+    competition: {
+      verify: async () => ({ playerId: 'fixture' }),
+      settle: async () => {
+        settlements++;
+      },
+      saved: () => true,
+      control: async () => {
+        reads++;
+        return {
+          controlEnabled: true,
+          gameId: 'carding-car',
+          state: policy,
+          killEpoch: epoch,
+          version: 1,
+          digest: 'a'.repeat(64),
+          validForMs: 2000,
+        };
+      },
+    },
+  });
+  await server.app.listen({ host: '127.0.0.1', port: 0 });
+  const { port } = server.app.server.address() as { port: number };
+  const a = await peer(`ws://127.0.0.1:${port}/kart`),
+    b = await peer(`ws://127.0.0.1:${port}/kart`);
+  try {
+    a.send(create);
+    const joined = await a.wait('joined');
+    // Explicit durable-receipt fixture; this test does not claim a naturally completed race/PG write.
+    const room = server.rooms.get(joined.room.code)!;
+    room.state.phase = 'finished';
+    room.state.settlement = 'pending';
+    policy = 'disabled';
+    epoch = 1;
+    b.send(create);
+    assert.equal((await b.wait('error')).message, 'GAME_DISABLED');
+    server.step();
+    assert.equal(room.state.settlement, 'saved');
+    assert.equal(server.rooms.has(room.state.code), true);
+    a.socket.terminate();
+    const beforeRead = reads;
+    b.send({
+      type: 'resume',
+      version: appearance.version,
+      code: joined.room.code,
+      token: joined.token,
+    });
+    const resumed = await b.wait('joined');
+    assert.equal(resumed.room.phase, 'finished');
+    assert.equal(resumed.room.settlement, 'saved');
+    assert.equal(reads, beforeRead);
+    b.send({ type: 'rematch' });
+    assert.equal((await b.wait('error')).message, 'GAME_DISABLED');
+    assert.equal(settlements, 0);
+  } finally {
+    a.socket.terminate();
+    b.socket.terminate();
+    await server.app.close();
+  }
+});
+test('a slow control response consumes its lease instead of granting two seconds after arrival', async () => {
+  let clock = 100000;
+  const server = createKartServer({
+    autoTick: false,
+    now: () => clock,
+    controlEnabled: true,
+    competition: {
+      verify: async () => ({ playerId: 'fixture' }),
+      settle: async () => {},
+      saved: () => false,
+      control: async () => {
+        clock += 2100;
+        return {
+          controlEnabled: true,
+          gameId: 'carding-car',
+          state: 'enabled',
+          killEpoch: 0,
+          version: 0,
+          digest: null,
+          validForMs: 2000,
+        };
+      },
+    },
+  });
+  await server.app.listen({ host: '127.0.0.1', port: 0 });
+  const { port } = server.app.server.address() as { port: number };
+  const a = await peer(`ws://127.0.0.1:${port}/kart`);
+  try {
+    a.send(create);
+    assert.equal((await a.wait('error')).message, 'CONTROL_UNAVAILABLE');
+    assert.equal(server.rooms.size, 0);
+  } finally {
+    a.socket.terminate();
+    await server.app.close();
+  }
+});
 test('Nginx clients have separate connection quotas only when proxy trust is explicit', async () => {
   for (const trustProxy of [false, true]) {
     const server = createKartServer({ autoTick: false, trustProxy });

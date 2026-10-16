@@ -51,10 +51,25 @@ export function readCorsPolicy(
 /** Call before authentication; preflight validates policy without executing business handlers. */
 export function registerCors(
   app: FastifyInstance,
-  policy: CorsPolicy,
+  source: CorsPolicy | ((request: FastifyRequest) => Promise<CorsPolicy>),
   sameOrigin?: (request: FastifyRequest) => boolean,
+  phase: 'onRequest' | 'preValidation' = 'onRequest',
 ) {
-  app.addHook('onRequest', async (request, reply) => {
+  const snapshots = new WeakMap<FastifyRequest, CorsPolicy>();
+  app.addHook(phase, async (request, reply) => {
+    let policy: CorsPolicy;
+    try {
+      const resolved = typeof source === 'function' ? await source(request) : source;
+      policy = {
+        ...resolved,
+        origins: [...resolved.origins],
+        methods: [...resolved.methods],
+        headers: [...resolved.headers],
+      };
+      snapshots.set(request, policy);
+    } catch {
+      return reply.code(503).send({ error: 'CONTROL_UNAVAILABLE' });
+    }
     const origin = request.headers.origin;
     if (origin && !sameOrigin?.(request) && !policy.origins.includes(origin))
       return reply.code(403).send({ error: 'ORIGIN_REJECTED' });
@@ -67,6 +82,8 @@ export function registerCors(
       return reply.code(403).send({ error: 'CORS_METHOD_REJECTED' });
   });
   app.options('/*', async (request, reply) => {
+    const policy = snapshots.get(request);
+    if (!policy) return reply.code(503).send({ error: 'CONTROL_UNAVAILABLE' });
     const method = request.headers['access-control-request-method'];
     const requested = request.headers['access-control-request-headers'];
     const headers =

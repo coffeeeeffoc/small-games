@@ -37,6 +37,8 @@ export type Settlement = {
   isPersonalBest: boolean;
 };
 export type RankedSession = {
+  killEpoch?: number;
+  cancelled?: boolean;
   id: string;
   playerId: string;
   version: string;

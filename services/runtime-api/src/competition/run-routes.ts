@@ -28,11 +28,23 @@ export function registerRunRoutes(
       bodyLimit: 160000,
       config: { rateLimit: { max: 6, timeWindow: '1 minute' } },
     },
-    async (request) =>
-      store.streetRuns(
+    async (request) => {
+      const { admissionId, ...query } = z
+        .object({ admissionId: z.uuid().optional() })
+        .passthrough()
+        .parse(request.query);
+      return store.streetRuns(
         await player(request.headers.authorization),
-        config(request.query),
+        config(query),
         request.body,
-      ),
+        admissionId,
+      );
+    },
   );
+  routes.post('/runs/cops-robbers-realtime/start', { bodyLimit: 1024 }, async (request) => {
+    z.object({})
+      .strict()
+      .parse(request.body ?? {});
+    return store.startStreetRun(await player(request.headers.authorization), config(request.query));
+  });
 }

@@ -30,6 +30,7 @@ export type Member = {
   before?: unknown;
 };
 export type Room = {
+  killEpoch?: number;
   code: string;
   game: string;
   version: string;

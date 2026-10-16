@@ -52,10 +52,15 @@ for (const origin of origins) {
 }
 if (!!process.env.COMPETITION_API_URL !== !!process.env.COMPETITION_INTERNAL_KEY)
   throw new Error('Configure COMPETITION_API_URL and COMPETITION_INTERNAL_KEY together');
+const controlEnabled =
+  z.enum(['true', 'false']).parse(process.env.COMPETITION_CONTROL_ENABLED ?? 'false') === 'true';
+if (controlEnabled && !process.env.COMPETITION_API_URL)
+  throw new Error('Control requires the existing private competition channel');
 const competition = process.env.COMPETITION_API_URL
   ? await createCompetition({
       url: process.env.COMPETITION_API_URL,
       key: process.env.COMPETITION_INTERNAL_KEY!,
+      instanceId: process.env.COMPETITION_CONTROL_INSTANCE_ID,
       directory:
         process.env.KART_OUTBOX_DIR || fileURLToPath(new URL('../.data/results', import.meta.url)),
       log: (message) => console.log(message),
@@ -66,6 +71,7 @@ const { app } = createKartServer({
   maxRooms,
   logger: true,
   competition,
+  controlEnabled,
   trustProxy: process.env.TRUST_PROXY === '1',
 });
 app.addHook('onClose', async () => {

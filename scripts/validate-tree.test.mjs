@@ -1704,12 +1704,21 @@ test('admin gate executes the actual browser entry and finite service suites, pr
     ...options,
     plan: {
       ...options.plan,
-      service_rule_sources: ['packages/service-kit', 'services/management-api'],
+      service_rule_sources: [
+        'packages/service-kit',
+        'services/management-api',
+        'services/kart-server',
+      ],
     },
     packages: [
       admin,
       { name: 'kit', dir: 'packages/service-kit', scripts: { test: 'vitest run' } },
       { name: 'management', dir: 'services/management-api', scripts: { test: 'vitest run' } },
+      {
+        name: 'kart',
+        dir: 'services/kart-server',
+        scripts: { test: 'node --test tests/*.test.ts' },
+      },
     ],
     execute: (command, args) =>
       calls.push([command === process.execPath ? 'node' : command, ...args]),
@@ -1717,6 +1726,7 @@ test('admin gate executes the actual browser entry and finite service suites, pr
   assert.deepEqual(calls, [
     ['pnpm', '--filter', 'kit', 'test'],
     ['pnpm', '--filter', 'management', 'test'],
+    ['pnpm', '--filter', 'kart', 'test'],
     ['node', 'apps/admin-web/tests/browser.mjs'],
   ]);
   assert.throws(() =>
@@ -1724,6 +1734,24 @@ test('admin gate executes the actual browser entry and finite service suites, pr
       ...options,
       plan: { ...options.plan, service_rule_sources: ['packages/unknown'] },
     }),
+  );
+  assert.throws(
+    () =>
+      runIncrementalToolChecks({
+        ...options,
+        plan: { ...options.plan, service_rule_sources: ['services/kart-server'] },
+        packages: [
+          {
+            name: 'kart',
+            dir: 'services/kart-server',
+            scripts: { test: 'node --test tests/*.test.ts' },
+          },
+        ],
+        execute: () => {
+          throw new Error('kart regression');
+        },
+      }),
+    /kart regression/,
   );
 });
 

@@ -42,7 +42,7 @@ import { executeCompetitionChecks } from './run-selected-competition.mjs';
 import { shellContractTargets, shellContractFiles } from './validation-plan.mjs';
 import { ingressPreflightGuard } from './competition-ingress.mjs';
 
-test('admin deployment paths and sole root command select only management and admin UI', () => {
+test('admin deployment paths select exact consumers, including the control policy readers', () => {
   const packages = [
     { dir: 'services/management-api', name: 'management' },
     { dir: 'apps/admin-web', name: '@coffeeeeffoc/admin-web' },
@@ -68,6 +68,9 @@ test('admin deployment paths and sole root command select only management and ad
       ...(sharedDeploymentScopePaths.includes(file) ? ['apps/company-web'] : []),
       'services/management-api',
       'apps/admin-web',
+      ...(file === 'infra/admin-console/migrations/002-control-center.sql'
+        ? ['services/runtime-api', 'services/kart-server']
+        : []),
       ...(backendSharedScopePaths.includes(file) ? selectedBackendConsumers : []),
     ]);
     const plan = incrementalPlan({
@@ -3124,10 +3127,12 @@ test('admin infrastructure has exact consumers and unknown neighboring paths fai
   for (const file of adminConsoleScopePaths) {
     const context = { packages, games: [], changedPaths: [file], readSource: () => '' };
     const fileScopes = reviewedSharedFileScopes(context);
+    const controlMigration = file === 'infra/admin-console/migrations/002-control-center.sql';
     assert.deepEqual(fileScopes.get(file), [
       ...(sharedDeploymentScopePaths.includes(file) ? ['apps/company-web'] : []),
       'services/management-api',
       'apps/admin-web',
+      ...(controlMigration ? ['services/runtime-api', 'services/kart-server'] : []),
       ...(backendSharedScopePaths.includes(file) ? selectedBackendConsumers : []),
     ]);
     const plan = incrementalPlan({ ...context, fileScopes });
@@ -3135,12 +3140,15 @@ test('admin infrastructure has exact consumers and unknown neighboring paths fai
     assert.equal(plan.browser, false);
     assert.deepEqual(plan.browser_ids, []);
     assert.deepEqual(plan.service_rule_sources, [
-      ...(backendSharedScopePaths.includes(file) ? ['services/runtime-api'] : []),
+      ...(backendSharedScopePaths.includes(file) || controlMigration
+        ? ['services/runtime-api', 'services/kart-server']
+        : []),
       'services/management-api',
     ]);
   }
   for (const file of [
     'infra/admin-console/migrations/002-unreviewed.sql',
+    'infra/admin-console/migrations/003-control-center.sql',
     'infra/admin-console/compose.yaml',
     'infra/admin-console/.env.other',
   ]) {

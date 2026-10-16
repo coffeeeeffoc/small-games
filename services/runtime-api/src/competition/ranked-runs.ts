@@ -103,8 +103,9 @@ export function createRankedRuns(
       return view(run);
     },
     get(playerId: string, game: string, id: string) {
-      return repository.mutate(id, async ({ run }) => {
+      return repository.mutate(id, async ({ run, assertControl }) => {
         assertOwner(run, playerId, game);
+        if (!run.settlement) assertControl?.();
         return { ...view(run), settlement: run.settlement ?? null };
       });
     },
@@ -120,6 +121,7 @@ export function createRankedRuns(
           if (existing.hash !== hash) throw new CompetitionError('SEQUENCE_CONFLICT');
           return existing.response;
         }
+        tx.assertControl?.();
         assertActive(run);
         if (input.seq !== run.seq + 1) throw new CompetitionError('SEQUENCE_CONFLICT');
         const ticks = input.frames.reduce((sum, frame) => sum + frame.ticks, 0);
@@ -151,6 +153,7 @@ export function createRankedRuns(
         assertOwner(run, playerId, game);
         if (seq !== run.seq) throw new CompetitionError('SEQUENCE_CONFLICT');
         if (run.settlement) return run.settlement;
+        tx.assertControl?.();
         assertActive(run);
         const result = ruleFor(game).result(run.state);
         if (

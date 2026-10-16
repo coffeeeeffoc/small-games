@@ -8,6 +8,89 @@ const defaults = {
   headers: ['authorization', 'content-type'],
   credentials: false,
 };
+it('detaches each request snapshot from provider-owned mutable arrays', async () => {
+  const app = Fastify();
+  const policy = {
+    ...defaults,
+    origins: ['https://one.example'],
+    methods: ['GET', 'POST', 'OPTIONS'],
+    headers: ['authorization'],
+    maxAge: 600,
+  };
+  registerCors(app, async () => policy);
+  app.addHook('onRequest', async () => {
+    policy.origins.length = 0;
+    policy.methods.length = 0;
+    policy.headers.length = 0;
+  });
+  try {
+    const response = await app.inject({
+      method: 'OPTIONS',
+      url: '/api',
+      headers: {
+        origin: 'https://one.example',
+        'access-control-request-method': 'POST',
+        'access-control-request-headers': 'authorization',
+      },
+    });
+    expect(response.statusCode).toBe(204);
+    expect(response.headers['access-control-allow-methods']).toContain('POST');
+  } finally {
+    await app.close();
+  }
+});
+it('uses one asynchronous snapshot for both preflight stages and fails closed on resolver errors', async () => {
+  const app = Fastify();
+  let calls = 0,
+    failed = false;
+  registerCors(app, async () => {
+    calls++;
+    if (failed) throw new Error('unavailable');
+    return {
+      ...defaults,
+      maxAge: 600,
+      origins: calls === 1 ? ['https://one.example'] : ['https://two.example'],
+    };
+  });
+  app.post('/api', async () => ({}));
+  try {
+    const preflight = await app.inject({
+      method: 'OPTIONS',
+      url: '/api',
+      headers: {
+        origin: 'https://one.example',
+        'access-control-request-method': 'POST',
+        'access-control-request-headers': 'authorization,content-type',
+      },
+    });
+    expect(preflight.statusCode).toBe(204);
+    expect(calls).toBe(1);
+    expect(preflight.headers['access-control-allow-credentials']).toBeUndefined();
+    expect(
+      (
+        await app.inject({
+          url: '/api',
+          method: 'POST',
+          headers: { origin: 'https://one.example' },
+        })
+      ).statusCode,
+    ).toBe(403);
+    failed = true;
+    const unavailable = await app.inject({
+      method: 'OPTIONS',
+      url: '/api',
+      headers: {
+        origin: 'https://two.example',
+        'access-control-request-method': 'POST',
+      },
+    });
+    expect(unavailable.statusCode).toBe(503);
+    expect(unavailable.json()).toEqual({ error: 'CONTROL_UNAVAILABLE' });
+    expect(unavailable.headers['access-control-allow-origin']).toBeUndefined();
+  } finally {
+    await app.close();
+  }
+});
 it('rejects wildcard, non-origin, invalid method/header, credentials and age configuration without echoing values', () => {
   for (const env of [
     { X_ORIGINS: '*' },

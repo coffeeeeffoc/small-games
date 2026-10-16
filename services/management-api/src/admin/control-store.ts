@@ -174,7 +174,8 @@ export function createControlStore(db: Database): ControlStore {
           },
           async observations() {
             const rows = await tx.execute(
-              sql`select distinct on(consumer,instance_id) * from game_control.application_observations order by consumer,instance_id,observed_at desc,id desc`,
+              // At an equal timestamp, retain failure or the older version rather than hiding uncertainty.
+              sql`select distinct on(consumer,instance_id) * from game_control.application_observations order by consumer,instance_id,observed_at desc,(status='failed') desc,version asc,id desc`,
             );
             return rows.map(
               (row): Observation => ({

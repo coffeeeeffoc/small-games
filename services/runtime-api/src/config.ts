@@ -29,6 +29,13 @@ export function validateRuntimeEnvironment(env: Record<string, string | undefine
   const schema = z.object({
     RUNTIME_DATABASE_URL: database,
     COMPETITION_ENABLED: z.enum(['true', 'false']).optional(),
+    COMPETITION_CONTROL_ENABLED: z.enum(['true', 'false']).optional(),
+    COMPETITION_CONTROL_INSTANCE_ID: z
+      .string()
+      .min(1)
+      .max(128)
+      .regex(/^[^\p{Cc}]+$/u)
+      .optional(),
     TRUST_PROXY: z.enum(['0', '1']).optional(),
     RUNTIME_TRUSTED_PROXY_IP: z
       .string()

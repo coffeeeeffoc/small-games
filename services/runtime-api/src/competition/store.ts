@@ -1,10 +1,11 @@
 /* eslint-disable max-lines -- Room transactions and settlement share lock ordering; keep them visible in one store. */
-import { createHash, randomBytes, randomInt } from 'node:crypto';
+import { createHash, randomBytes, randomInt, randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import type { openDatabase } from '@coffeeeeffoc/service-kit';
 import { CompetitionError, type Room, type Rule } from './types.js';
 import { createCompetitionIdentities } from './identity-store.js';
 import { publicProfile, publicResult, publicRoomResults } from './profile.js';
+import { assertGameControl, gamePolicy, type CompetitionControl } from './control.js';
 
 type Database = ReturnType<typeof openDatabase>['db'];
 type Tx = Parameters<Parameters<Database['transaction']>[0]>[0];
@@ -14,7 +15,12 @@ const boardOf = (rule: Rule) => `${rule.id}:${rule.version}`;
 const ruleSeat = (rule: Rule, room: Room, seat: number) =>
   rule.roles ? rule.roles.indexOf(room.players[seat]!.role!) : seat;
 
-export function createCompetitionStore(db: Database, rules: Map<string, Rule>, now = Date.now) {
+export function createCompetitionStore(
+  db: Database,
+  rules: Map<string, Rule>,
+  now = Date.now,
+  control?: CompetitionControl,
+) {
   function ruleFor(game: string) {
     const rule = rules.get(game);
     if (!rule) throw new CompetitionError('GAME_UNAVAILABLE', 404);
@@ -89,6 +95,8 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
     executor: Database | Tx = db,
   ) {
     const rule = ruleFor(game);
+    const policy = await gamePolicy(control, executor, game);
+    assertGameControl(policy, policy?.killEpoch, true);
     if (options.mode && !rule.modes?.some((mode) => mode.id === options.mode))
       throw new CompetitionError('INVALID_MODE', 422);
     if (options.role && !rule.roles?.includes(options.role))
@@ -99,6 +107,7 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
     )
       throw new CompetitionError('INVALID_ROLE', 422);
     const room: Room = {
+      killEpoch: policy?.killEpoch ?? 0,
       code: randomBytes(6).toString('hex').toUpperCase(),
       game,
       version: rule.version,
@@ -248,14 +257,50 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
     } = {},
   ) {
     return db.transaction(async (tx) => {
+      let policy: Awaited<ReturnType<typeof gamePolicy>>;
+      if (control && operation !== 'leave') {
+        const preview = await tx.execute(
+          sql`select data from runtime.competition_rooms where code=${code}`,
+        );
+        if (!preview[0]) throw new CompetitionError('INVITATION_NOT_FOUND', 404);
+        policy = await gamePolicy(control, tx, (preview[0].data as Room).game);
+      }
       const rows = await tx.execute(
         sql`select data from runtime.competition_rooms where code=${code} for update`,
       );
       if (!rows[0]) throw new CompetitionError('INVITATION_NOT_FOUND', 404);
       const room = rows[0].data as Room;
+      if (policy && policy.gameId !== room.game) throw new CompetitionError('WRONG_GAME');
       if (input.game && room.game !== input.game) throw new CompetitionError('WRONG_GAME', 409);
       const rule = ruleFor(room.game);
       if (room.version !== rule.version) throw new CompetitionError('RULE_VERSION_CHANGED');
+      if (operation === 'leave') {
+        if (!room.players.some((p) => p.id === playerId))
+          throw new CompetitionError('NOT_A_MEMBER', 403);
+        if (room.status === 'waiting' || room.status === 'playing') room.status = 'abandoned';
+        await tx.execute(
+          sql`update runtime.competition_rooms set data=${json(room)}::jsonb,expires_at=${room.deadline} where code=${code}`,
+        );
+        return view(room, playerId, tx);
+      }
+      if (control && operation === 'actions') {
+        const receipts = await tx.execute(
+          sql`select action_hash from runtime.competition_actions where room_code=${code} and player_id=${playerId} and seq=${input.seq}`,
+        );
+        if (receipts[0]) {
+          if (receipts[0].action_hash !== hash(json(input.action)))
+            throw new CompetitionError('SEQUENCE_CONFLICT');
+          return view(room, playerId, tx);
+        }
+      }
+      if (room.status === 'finished' && operation === 'get') return view(room, playerId, tx);
+      assertGameControl(
+        policy,
+        room.killEpoch ?? 0,
+        ['join', 'ready', 'rematch'].includes(operation),
+      );
+      if (policy?.state === 'draining' && room.status !== 'playing' && operation === 'get')
+        return view(room, playerId, tx);
       if (room.status === 'playing' && rule.advance) {
         for (const player of rule.duel ? room.players.slice(0, 1) : room.players)
           player.state =
@@ -393,22 +438,90 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
     ranking,
     ruleFor,
     roomAction,
-    async streetRuns(playerId: string, config: Record<string, unknown>, input?: unknown) {
+    async startStreetRun(playerId: string, config: Record<string, unknown>) {
+      return db.transaction(async (tx) => {
+        const policy = await gamePolicy(control, tx, 'cops-robbers-realtime');
+        assertGameControl(policy, policy?.killEpoch, true);
+        const admissionId = randomUUID();
+        const data = {
+          kind: 'street-admission-v1',
+          playerId,
+          game: 'cops-robbers-realtime',
+          killEpoch: policy?.killEpoch ?? 0,
+          configHash: hash(json(config)),
+          expiresAt: now() + 86400_000,
+        };
+        await tx.execute(sql`insert into runtime.competition_matches(id,board,data,created_at)
+          values(${`street-admission:${admissionId}`},${'street-admission'},${json(data)}::jsonb,${now()})`);
+        return { admissionId, expiresAt: data.expiresAt };
+      });
+    },
+    async streetRuns(
+      playerId: string,
+      config: Record<string, unknown>,
+      input?: unknown,
+      admissionId?: string,
+    ) {
       const rule = ruleFor('cops-robbers-realtime');
       let board: string;
       let result: { board: string; elapsedMs: number } | undefined;
       try {
         if (!rule.runBoard || !rule.verifyRun) throw new Error('unsupported');
         board = rule.runBoard(config);
-        if (input !== undefined) result = rule.verifyRun(config, input);
       } catch {
         throw new CompetitionError('INVALID_RUN', 422);
       }
-      if (result) {
+      if (input !== undefined) {
         const matchId = 'street-run:' + hash(json([playerId, config, input]));
-        const elapsedMs = result.elapsedMs;
-        await db.transaction(async (tx) => {
+        result = await db.transaction(async (tx) => {
+          const policy = await gamePolicy(control, tx, 'cops-robbers-realtime');
+          await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${matchId}))`);
+          const prior = await tx.execute(sql`select score from runtime.competition_results
+            where match_id=${matchId} and player_id=${playerId}`);
+          // Original hash/owner receipt wins before any fresh admission or result verification.
+          if (prior[0]) return { board, elapsedMs: -Number(prior[0].score) };
+          let admission:
+            | {
+                playerId: string;
+                game: string;
+                killEpoch?: number;
+                configHash: string;
+                expiresAt: number;
+                resultHash?: string;
+              }
+            | undefined;
+          if (admissionId) {
+            const rows = await tx.execute(sql`select data from runtime.competition_matches
+              where id=${`street-admission:${admissionId}`} for update`);
+            admission = rows[0]?.data as typeof admission;
+            if (
+              !admission ||
+              admission.playerId !== playerId ||
+              admission.game !== 'cops-robbers-realtime' ||
+              admission.configHash !== hash(json(config)) ||
+              admission.expiresAt <= now()
+            )
+              throw new CompetitionError('RUN_ADMISSION_REQUIRED', 403);
+            if (admission.resultHash && admission.resultHash !== matchId)
+              throw new CompetitionError('SEQUENCE_CONFLICT');
+          }
+          // No trusted legacy start exists: after the first kill, a fresh server ticket is mandatory.
+          assertGameControl(policy, admission?.killEpoch ?? 0, !admission);
+          let verified: { board: string; elapsedMs: number };
+          try {
+            verified = rule.verifyRun!(config, input);
+          } catch {
+            throw new CompetitionError('INVALID_RUN', 422);
+          }
+          const elapsedMs = verified.elapsedMs;
           await record(tx, matchId, board, playerId, -elapsedMs, 0);
+          if (admission) {
+            admission.resultHash = matchId;
+            await tx.execute(
+              sql`update runtime.competition_matches set data=${json(admission)}::jsonb where id=${`street-admission:${admissionId}`}`,
+            );
+          }
+          return verified;
         });
       }
       const rankingResult = await ranking(board, playerId);
@@ -437,7 +550,9 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
       game: string,
       options: { mode?: string; role?: string; initiative?: string } = {},
     ) {
-      return view(await create(playerId, game, options), playerId);
+      return db.transaction(async (tx) =>
+        view(await create(playerId, game, options, tx), playerId, tx),
+      );
     },
     async board(game: string, playerId: string | null) {
       const rule =
@@ -470,6 +585,7 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
       entries: { playerId: string; elapsedMs: number }[];
       startedAt: number;
       finishedAt: number;
+      killEpoch?: number;
     }) {
       if (
         input.board !== 'carding-car-seaside-v1' ||
@@ -478,6 +594,7 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
       )
         throw new CompetitionError('INVALID_RESULT', 422);
       return db.transaction(async (tx) => {
+        const policy = await gamePolicy(control, tx, 'carding-car');
         await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${input.matchId}))`);
         const existing = await tx.execute(
           sql`select data from runtime.competition_matches where id=${input.matchId}`,
@@ -489,11 +606,20 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
             prior.board !== input.board ||
             prior.startedAt !== input.startedAt ||
             prior.finishedAt !== input.finishedAt ||
+            (prior.killEpoch ?? 0) !== (input.killEpoch ?? 0) ||
             json(prior.entries.map((e) => [e.playerId, e.elapsedMs]).sort()) !==
               json(input.entries.map((e) => [e.playerId, e.elapsedMs]).sort())
           )
             throw new CompetitionError('SETTLEMENT_CONFLICT');
         }
+        if (existing.length)
+          return {
+            accepted: true,
+            rankings: await Promise.all(
+              input.entries.map((e) => ranking(input.board, e.playerId, tx)),
+            ),
+          };
+        assertGameControl(policy, input.killEpoch ?? 0);
         await tx.execute(
           sql`insert into runtime.competition_matches values(${input.matchId},${input.board},${json(input)}::jsonb,${now()}) on conflict do nothing`,
         );

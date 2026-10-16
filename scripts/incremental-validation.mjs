@@ -372,6 +372,7 @@ export function incrementalPlan({
     ),
     service_rule_sources: [
       'services/runtime-api',
+      'services/kart-server',
       'services/management-api',
       'packages/service-kit',
       'packages/ad-runtime',

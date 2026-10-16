@@ -2,6 +2,7 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { CompetitionError } from '../competition/types.js';
 import { createRankedLedger } from './ledger.js';
+import { assertGameControl, gamePolicy, type CompetitionControl } from '../competition/control.js';
 import {
   LOGIN_REASON,
   publicState,
@@ -22,6 +23,7 @@ export function createThreeChooseTwoStore(
   engine: Engine,
   now = Date.now,
   reviewScore = 100_000,
+  control?: CompetitionControl,
 ) {
   const ledger = createRankedLedger(db, engine, now, reviewScore);
   async function save(tx: Transaction, session: RankedSession) {
@@ -49,6 +51,7 @@ export function createThreeChooseTwoStore(
       ? await ledger.ranking(session.version, session.playerId, executor)
       : null;
     return {
+      ...(session.cancelled ? { cancelled: true, error: 'GAME_CANCELLED' } : {}),
       id: session.id,
       version: session.version,
       shapeVersion: session.shapeVersion,
@@ -78,14 +81,30 @@ export function createThreeChooseTwoStore(
     if (playerId && session.playerId !== playerId) throw new CompetitionError('NOT_A_MEMBER', 403);
     return session;
   }
-  async function expire(tx: Transaction, session: RankedSession) {
+  async function expire(
+    tx: Transaction,
+    session: RankedSession,
+    policy?: Awaited<ReturnType<typeof gamePolicy>>,
+  ) {
     if (session.status === 'active' && session.expiresAt <= now()) {
+      if (
+        policy &&
+        (policy.state === 'disabled' || (session.killEpoch ?? 0) !== policy.killEpoch)
+      ) {
+        session.status = 'finished';
+        session.cancelled = true;
+        // Persist a cancellation with no result; do not throw it away by rolling back.
+        await save(tx, session);
+        return;
+      }
       await ledger.settle(tx, session, true);
       await save(tx, session);
     }
   }
   async function create(playerId: string, token?: string) {
     return db.transaction(async (tx) => {
+      const policy = await gamePolicy(control, tx, 'three-choose-two');
+      assertGameControl(policy, policy?.killEpoch, true);
       // Serialize creation across devices; the partial unique index is an additional guard.
       await tx.execute(
         sql`select id from runtime.competition_players where id=${playerId} for update`,
@@ -103,10 +122,15 @@ export function createThreeChooseTwoStore(
       );
       if (rows[0]) {
         const active = rows[0].data as RankedSession;
-        await expire(tx, active);
+        if (policy && (active.killEpoch ?? 0) !== policy.killEpoch) {
+          active.status = 'finished';
+          active.cancelled = true;
+          await save(tx, active);
+        } else await expire(tx, active, policy);
         if (active.status === 'active') return view(active, tx);
       }
       const session: RankedSession = {
+        killEpoch: policy?.killEpoch ?? 0,
         id: randomUUID(),
         playerId,
         version: engine.RULE_VERSION,
@@ -131,15 +155,17 @@ export function createThreeChooseTwoStore(
   }
   async function get(playerId: string, id: string) {
     return db.transaction(async (tx) => {
+      const policy = await gamePolicy(control, tx, 'three-choose-two');
       const session = await locked(tx, id, playerId);
-      await expire(tx, session);
+      if (session.status === 'active') assertGameControl(policy, session.killEpoch ?? 0);
+      await expire(tx, session, policy);
       return view(session, tx);
     });
   }
   async function action(playerId: string, id: string, input: Placement) {
     return db.transaction(async (tx) => {
+      const policy = await gamePolicy(control, tx, 'three-choose-two');
       const session = await locked(tx, id, playerId);
-      await expire(tx, session);
       const actionHash = hash(input);
       const duplicate = await tx.execute(
         sql`select action_hash from runtime.three_choose_two_actions where session_id=${id} and seq=${input.seq}`,
@@ -148,6 +174,9 @@ export function createThreeChooseTwoStore(
         if (duplicate[0].action_hash !== actionHash) throw new CompetitionError('ACTION_CONFLICT');
         return view(session, tx);
       }
+      if (session.status !== 'active') return view(session, tx);
+      assertGameControl(policy, session.killEpoch ?? 0);
+      await expire(tx, session, policy);
       if (session.status !== 'active') return view(session, tx);
       if (session.version !== engine.RULE_VERSION)
         throw new CompetitionError('RULE_VERSION_CHANGED');
@@ -166,7 +195,10 @@ export function createThreeChooseTwoStore(
   }
   async function finish(playerId: string, id: string) {
     return db.transaction(async (tx) => {
+      const policy = await gamePolicy(control, tx, 'three-choose-two');
       const session = await locked(tx, id, playerId);
+      if (session.status === 'finished') return view(session, tx);
+      assertGameControl(policy, session.killEpoch ?? 0);
       await ledger.settle(tx, session, session.expiresAt <= now());
       await save(tx, session);
       return view(session, tx);
@@ -178,8 +210,9 @@ export function createThreeChooseTwoStore(
     );
     for (const row of rows) {
       await db.transaction(async (tx) => {
+        const policy = await gamePolicy(control, tx, 'three-choose-two');
         const session = await locked(tx, String(row.id));
-        await expire(tx, session);
+        await expire(tx, session, policy);
       });
     }
   }
@@ -190,7 +223,9 @@ export function createThreeChooseTwoStore(
   }
   async function audit(id: string) {
     return db.transaction(async (tx) => {
+      const policy = await gamePolicy(control, tx, 'three-choose-two');
       const session = await locked(tx, id);
+      assertGameControl(policy, session.killEpoch ?? 0);
       const actions = await tx.execute(
         sql`select seq,action,created_at as "createdAt" from runtime.three_choose_two_actions where session_id=${id} order by seq`,
       );
@@ -199,7 +234,9 @@ export function createThreeChooseTwoStore(
   }
   async function review(id: string, decision: 'approve' | 'reject', reason: string) {
     return db.transaction(async (tx) => {
+      const policy = await gamePolicy(control, tx, 'three-choose-two');
       const session = await locked(tx, id);
+      assertGameControl(policy, session.killEpoch ?? 0);
       await ledger.review(tx, session, decision, reason);
       await save(tx, session);
       return view(session, tx);

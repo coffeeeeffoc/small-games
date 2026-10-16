@@ -119,6 +119,7 @@ export function createControlService(store: ControlStore, adminOrigin: string, n
         games: CONTROL_GAMES,
         permissions: CONTROL_PERMISSIONS,
         consumers: CONSUMERS,
+        independentGames: [{ id: 'tianxia-chalu', managed: false }],
       }));
     },
     state(session: AdminSession) {
@@ -127,6 +128,8 @@ export function createControlService(store: ControlStore, adminOrigin: string, n
         const revision = head.revisionId ? await tx.revision(head.revisionId) : undefined;
         if (head.version > 0 && !revision) throw new Error('Missing published revision');
         const observations = await tx.observations();
+        const fresh = (item: (typeof observations)[number]) =>
+          item.observedAt <= now() && item.observedAt > now() - 60_000;
         // These are consumer reports, never an assertion that merely writing the DB applied config.
         const matching = observations.filter(
           (item) =>
@@ -134,8 +137,7 @@ export function createControlService(store: ControlStore, adminOrigin: string, n
             item.version === head.version &&
             item.digest === revision.digest &&
             item.status === 'applied' &&
-            item.observedAt <= now() &&
-            item.observedAt > now() - 60_000,
+            fresh(item),
         );
         const observed = CONSUMERS.every((consumer) => {
           const reports = observations.filter((item) => item.consumer === consumer);
@@ -148,6 +150,16 @@ export function createControlService(store: ControlStore, adminOrigin: string, n
           digest: revision?.digest ?? null,
           policies: await tx.policies(),
           observations,
+          observationCoverage: {
+            // Reports cannot establish that an unregistered or expired process has stopped.
+            complete: false,
+            missingConsumers: CONSUMERS.filter(
+              (consumer) => !observations.some((item) => item.consumer === consumer && fresh(item)),
+            ),
+            expiredUnknown: observations
+              .filter((item) => !fresh(item))
+              .map(({ consumer, instanceId }) => ({ consumer, instanceId })),
+          },
           status: !head.version
             ? 'unpublished'
             : observed
@@ -228,6 +240,8 @@ export function createControlService(store: ControlStore, adminOrigin: string, n
         await tx.putMember(member);
         await audit(tx, actor, old ? 'members.update' : 'members.create', member.id, {
           reason: input.reason,
+          before: old ? { active: old.active, roleIds: old.roleIds } : null,
+          after: { active: member.active, roleIds: member.roleIds },
         });
         return member;
       });
@@ -242,7 +256,11 @@ export function createControlService(store: ControlStore, adminOrigin: string, n
         );
         await preserveAdministrator(tx, id);
         await tx.deleteMember(id);
-        await audit(tx, actor, 'members.delete', id, { reason });
+        await audit(tx, actor, 'members.delete', id, {
+          reason,
+          before: { active: member.active, roleIds: member.roleIds },
+          after: null,
+        });
         return { ok: true };
       });
     },
@@ -262,7 +280,11 @@ export function createControlService(store: ControlStore, adminOrigin: string, n
         const existing = (await tx.roles()).find((entry) => entry.id === id);
         grantable(actor, existing ? [existing, role] : [role]);
         await tx.putRole(role);
-        await audit(tx, actor, 'roles.save', id, { reason: input.reason });
+        await audit(tx, actor, 'roles.save', id, {
+          reason: input.reason,
+          before: existing ? { name: existing.name, permissions: existing.permissions } : null,
+          after: { name: role.name, permissions: role.permissions },
+        });
         return role;
       });
     },
@@ -275,7 +297,11 @@ export function createControlService(store: ControlStore, adminOrigin: string, n
         if ((await tx.members()).some((member) => member.roleIds.includes(id)))
           throw new ControlError('ROLE_IN_USE');
         await tx.deleteRole(id);
-        await audit(tx, actor, 'roles.delete', id, { reason });
+        await audit(tx, actor, 'roles.delete', id, {
+          reason,
+          before: { name: role.name, permissions: role.permissions },
+          after: null,
+        });
         return { ok: true };
       });
     },

@@ -22,6 +22,7 @@ import type { createThreeChooseTwoStore } from '../three-choose-two/store.js';
 import type { createCompetitionStore } from './store.js';
 import { registerGameRoutes } from './game-routes.js';
 import type { createRankedStore } from './ranked-store.js';
+import type { CompetitionControl } from './control.js';
 
 const tokenSchema = z.string().regex(/^[a-f0-9]{64}$/);
 const codeSchema = z.string().regex(/^[A-F0-9]{12}$/);
@@ -41,6 +42,7 @@ export async function registerCompetition(
   threeChooseTwo?: ReturnType<typeof createThreeChooseTwoStore>,
   carrom?: ReturnType<typeof createCarromStore>,
   ranked?: ReturnType<typeof createRankedStore>,
+  control?: CompetitionControl,
 ) {
   const cors = readCompetitionCors(env);
   const platforms = platformConfigSchema.parse(JSON.parse(env.COMPETITION_PLATFORM_CONFIG ?? '[]'));
@@ -48,7 +50,6 @@ export async function registerCompetition(
   if (internalKey) z.string().min(32).parse(internalKey);
   await app.register(
     async (routes) => {
-      registerCors(routes, cors);
       await routes.register(rateLimit, {
         global: true,
         max: 1200,
@@ -60,6 +61,13 @@ export async function registerCompetition(
             : request.ip;
         },
       });
+      // Route-specific rate-limit onRequest hooks precede preValidation, avoiding rejected DB reads.
+      registerCors(
+        routes,
+        control ? () => control.publicCors() : cors,
+        undefined,
+        control ? 'preValidation' : 'onRequest',
+      );
       routes.addHook('onRequest', async (request, reply) => {
         reply.header('cache-control', 'no-store');
       });
@@ -260,6 +268,44 @@ export async function registerCompetition(
         const { token } = z.object({ token: tokenSchema }).strict().parse(request.body);
         return { playerId: await store.identity(token) };
       });
+      routes.post('/internal/control', { bodyLimit: 1024 }, async (request) => {
+        internal(request);
+        z.object({})
+          .strict()
+          .parse(request.body ?? {});
+        return control
+          ? control.kartLease()
+          : {
+              controlEnabled: false,
+              gameId: 'carding-car',
+              state: 'enabled',
+              killEpoch: 0,
+              version: 0,
+              digest: null,
+              validForMs: 2000,
+            };
+      });
+      routes.post('/internal/control-observation', { bodyLimit: 1024 }, async (request) => {
+        internal(request);
+        const input = z
+          .object({
+            instanceId: z
+              .string()
+              .min(1)
+              .max(128)
+              .regex(/^[^\p{Cc}]+$/u),
+            version: z.number().int().positive(),
+            digest: z.string().regex(/^[a-f0-9]{64}$/),
+          })
+          .strict()
+          .parse(request.body);
+        if (!control) throw new CompetitionError('CONTROL_UNAVAILABLE', 503);
+        const current = await control.cors();
+        if (current.version !== input.version || current.digest !== input.digest)
+          throw new CompetitionError('CONTROL_VERSION_CHANGED');
+        await control.observe(input, 'kart', input.instanceId);
+        return { applied: true };
+      });
       routes.post('/internal/kart-results', { bodyLimit: 8192 }, async (request) => {
         internal(request);
         const input = z
@@ -275,6 +321,7 @@ export async function registerCompetition(
               .max(2),
             startedAt: z.number().int().positive(),
             finishedAt: z.number().int().positive(),
+            killEpoch: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).optional(),
           })
           .strict()
           .parse(request.body);
