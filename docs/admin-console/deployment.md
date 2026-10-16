@@ -10,6 +10,8 @@ GitHub 当前允许多个 callback，本项目只配置一个是入口安全约�
 
 ## 本机填写并执行
 
+本地候选校验还需要 Python 3：Windows 使用已配置的 WSL 发行版运行 Linux 文件权限和符号链接契约，macOS 使用 `python3`。沿用仓库的浏览器准备约定；Docker/Compose 是服务器运行前置，本地 Docker 仅用于显式隔离数据库演练。
+
 使用仓库规定的 Node 24.21.0、pnpm 12.6.0，已有 git、ssh、scp、tar。沿用 `.env.tencent.local` / `.env.company.local` 的 SSH 目标与私钥路径，用户须先核实主机指纹并配置 known_hosts；始终启用 `StrictHostKeyChecking=yes`、`BatchMode=yes`。缺 SSH 前置会在耗时构建前失败，不自动信任主机密钥。
 
 Windows PowerShell：

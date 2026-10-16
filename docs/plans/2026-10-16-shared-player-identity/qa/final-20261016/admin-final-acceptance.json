@@ -1,0 +1,44 @@
+{
+  "sourceSHA": "a20343772ac8efecd9073c8040bfb388855571e4",
+  "release": "a20343772ac8-1792156217273-a5e4ab",
+  "recordedAt": "2026-10-16T13:18:39.345Z",
+  "candidateProof": {
+    "base": "6e9c1f7246090c7009e9519a8cda6e8efab956d5",
+    "head": "a20343772ac8efecd9073c8040bfb388855571e4",
+    "count": 1
+  },
+  "archive": {
+    "bytes": 14164,
+    "sha256": "6b0d9940f80c12b9b8fdfd2ea21d7d89ce3c47d9454aed2d483f6a0be56e0b45"
+  },
+  "productionReceipt": "admin-production.json",
+  "postflight": "admin-production-postflight.json",
+  "runs": [
+    {
+      "conclusion": "success",
+      "databaseId": 38903102849,
+      "headSha": "a20343772ac8efecd9073c8040bfb388855571e4",
+      "status": "completed",
+      "url": "https://github.com/coffeeeeffoc/small-games/actions/runs/38903102849",
+      "workflowName": "CI"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 38903103066,
+      "headSha": "a20343772ac8efecd9073c8040bfb388855571e4",
+      "status": "completed",
+      "url": "https://github.com/coffeeeeffoc/small-games/actions/runs/38903103066",
+      "workflowName": "Deploy arcade to GitHub Pages"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 38903103000,
+      "headSha": "a20343772ac8efecd9073c8040bfb388855571e4",
+      "status": "completed",
+      "url": "https://github.com/coffeeeeffoc/small-games/actions/runs/38903103000",
+      "workflowName": "Cocos mini-games"
+    }
+  ],
+  "realGithubLoginVerified": false,
+  "managementActivated": false
+}

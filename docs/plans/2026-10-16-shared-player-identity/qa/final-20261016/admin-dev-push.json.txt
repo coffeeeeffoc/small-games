@@ -1,0 +1,14 @@
+{
+  "wrapper": "Node spawnSync argsArray shell=false; native stdout/stderr descriptors; normal hooks enabled",
+  "sourceSHA": "a20343772ac8efecd9073c8040bfb388855571e4",
+  "baseSHA": "47687063bd522437962026b52ee6d784dfecd099",
+  "remoteBefore": "47687063bd522437962026b52ee6d784dfecd099",
+  "pushUrl": "https://github.com/coffeeeeffoc/small-games.git",
+  "startedAt": "2026-10-16T12:43:43.630Z",
+  "completedAt": "2026-10-16T12:48:11.295Z",
+  "exitCode": 0,
+  "signal": null,
+  "errorCode": null,
+  "stdout": ".scratch\\admin-dev-push-a20343772ac8-recovered.stdout.log",
+  "stderr": ".scratch\\admin-dev-push-a20343772ac8-recovered.stderr.log"
+}

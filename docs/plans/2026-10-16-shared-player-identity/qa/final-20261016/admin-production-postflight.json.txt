@@ -1,0 +1,102 @@
+{
+  "sourceSHA": "a20343772ac8efecd9073c8040bfb388855571e4",
+  "checkedAt": "2026-10-16T13:15:10.282Z",
+  "readOnly": true,
+  "checks": [
+    {
+      "databaseMatches": true,
+      "ownerMatches": true,
+      "bootstrapOwnerMatches": true,
+      "postgresVersion": 170006,
+      "managementRoleExists": true,
+      "adminSchemaExists": true,
+      "identity013": true,
+      "activeRooms": 0
+    },
+    {
+      "kartEmpty": true
+    }
+  ],
+  "publicChecks": [
+    {
+      "route": "/small-games/v1/games/cops-robbers",
+      "status": 200,
+      "noRedirect": true,
+      "exactCors": true
+    },
+    {
+      "route": "/small-games/v1/games/cops-robbers/leaderboards/versus",
+      "status": 200,
+      "noRedirect": true,
+      "exactCors": true
+    },
+    {
+      "route": "/small-games/v1/games/cops-robbers-realtime",
+      "status": 200,
+      "noRedirect": true,
+      "exactCors": true
+    },
+    {
+      "route": "/small-games/v1/games/cops-robbers-realtime/leaderboards/versus",
+      "status": 200,
+      "noRedirect": true,
+      "exactCors": true
+    },
+    {
+      "route": "/small-games/v1/games/xiangqi-five",
+      "status": 200,
+      "noRedirect": true,
+      "exactCors": true
+    },
+    {
+      "route": "/small-games/v1/games/xiangqi-five/leaderboards/versus",
+      "status": 200,
+      "noRedirect": true,
+      "exactCors": true
+    },
+    {
+      "route": "/api/competition/v1/games/cops-robbers",
+      "status": 200,
+      "noRedirect": true,
+      "exactCors": true
+    },
+    {
+      "route": "/api/competition/v1/games/cops-robbers/leaderboards/versus",
+      "status": 200,
+      "noRedirect": true,
+      "exactCors": true
+    },
+    {
+      "route": "/api/competition/v1/games/cops-robbers-realtime",
+      "status": 200,
+      "noRedirect": true,
+      "exactCors": true
+    },
+    {
+      "route": "/api/competition/v1/games/cops-robbers-realtime/leaderboards/versus",
+      "status": 200,
+      "noRedirect": true,
+      "exactCors": true
+    },
+    {
+      "route": "/api/competition/v1/games/xiangqi-five",
+      "status": 200,
+      "noRedirect": true,
+      "exactCors": true
+    },
+    {
+      "route": "/api/competition/v1/games/xiangqi-five/leaderboards/versus",
+      "status": 200,
+      "noRedirect": true,
+      "exactCors": true
+    },
+    {
+      "adminRoute": "/",
+      "status": 200
+    },
+    {
+      "adminRoute": "/api/session",
+      "status": 503
+    }
+  ]
+}

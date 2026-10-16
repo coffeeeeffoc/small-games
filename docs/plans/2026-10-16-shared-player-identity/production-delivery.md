@@ -41,7 +41,11 @@ HTTPS 来源 `a64bb7429755a7307a007f730caa37e0ea8c4e78`，发布 `20261016095209
 
 本地最终有限套件 152/152，fail 0、skip 0、exit 0；格式通过。真实缓存 PG 17.6 演练覆盖完整恢复及成员 grantor、nextval 后序列、角色/schema 原子失败回滚、幂等、已有认证行保留、CONNECT grant option 拒绝且不自动修 ACL、42501 权限负例。Compose 5.5.0 同时验证 raw 配置序列化与隔离进程中的精确环境值；所有临时容器已按自有 ID/标签清理。见 [本地工具验收](qa/final-20261016/admin-local.json)。
 
-生产最小角色与 001 迁移以随后独立的 `--provision-only` 回执为准；本条工具提交尚不代表管理服务已激活。真实 Client ID/secret 由用户本人填写 ignored 的 `.env.admin.local`，再自行执行默认命令。真实 GitHub 授权、刷新、退出和撤权尚待用户完成。
+生产 `--provision-only` 已于 13:10:36 UTC 成功退出，来源 `a20343772ac8efecd9073c8040bfb388855571e4`，发布 `a20343772ac8-1792156217273-a5e4ab`。真实候选验证覆盖 `6e9c1f7246090c7009e9519a8cda6e8efab956d5 → a2034377`；完整 SHA/count 及源文件摘要见 [部署清单](qa/final-20261016/admin-deployment-manifest.json)。最小 `management_app` 和 001 已创建，备份保留；完整隔离恢复、旧数据不变和最小权限均为 true。备份 SHA256 为 `7f55d4442a4f8241d274e4984d71dd91a49a05b4eec43601b64842a4f17eab5b`，旧状态 SHA256 为 `41791f406789873ad2f73364fce069cdf39a6ec04ba9e601b0961f9bc6b1692d`。见 [生产回执](qa/final-20261016/admin-production.json) 和 [命令时间记录](qa/final-20261016/admin-production-command.json)。
+
+同一候选的 [CI 38903102849](https://github.com/coffeeeeffoc/small-games/actions/runs/38903102849)、[Pages 38903103066](https://github.com/coffeeeeffoc/small-games/actions/runs/38903103066)、[Cocos 38903103000](https://github.com/coffeeeeffoc/small-games/actions/runs/38903103000) 全部成功。首次 push 遇 Windows 子进程启动异常并被 hook 拦下；35 项管理测试在相同 SHA 复测通过后，重新正常 push 成功，没有改断言或绕过 hook。见 [恢复记录](qa/final-20261016/admin-push-recovery.json) 与 [最终审计索引](qa/final-20261016/admin-final-acceptance.json)。
+
+迁移后再次只读确认角色/schema 已存在，两个 API 前缀下三游戏的元数据及 versus 榜共 12 个请求均 200、无重定向且 CORS 未扩大；后管页面 200，管理服务尚未激活，匿名 API 按预期仍为 503。见 [迁移后接口记录](qa/final-20261016/admin-production-postflight.json)。真实 Client ID/secret 仍由用户本人填写 ignored 的 `.env.admin.local`，再自行执行 `pnpm deploy:admin`；助手未读取真实 OAuth，真实 GitHub 授权、刷新、退出和撤权尚待用户完成。
 
 ## 实际验收边界
 

@@ -1,0 +1,20 @@
+{
+  "sourceSHA": "a20343772ac8efecd9073c8040bfb388855571e4",
+  "checkedAt": "2026-10-16T12:50:02.331Z",
+  "readOnly": true,
+  "checks": [
+    {
+      "databaseMatches": true,
+      "ownerMatches": true,
+      "bootstrapOwnerMatches": true,
+      "postgresVersion": 170006,
+      "managementRoleExists": false,
+      "adminSchemaExists": false,
+      "identity013": true,
+      "activeRooms": 0
+    },
+    {
+      "kartEmpty": true
+    }
+  ]
+}

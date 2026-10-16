@@ -15,6 +15,31 @@
     "sha256": "5ccb4f6991b0f14c68dafb52a93ab92f90fdea43dc1bac12aa37c9a43b63f38b"
   },
   {
+    "file": "admin-deployment-manifest.json",
+    "bytes": 596,
+    "sha256": "690031b3c3d57379a3ed87c5f0f0375d6820a17e19bb796a63133a10a185babb"
+  },
+  {
+    "file": "admin-deployment-manifest.json.txt",
+    "bytes": 596,
+    "sha256": "690031b3c3d57379a3ed87c5f0f0375d6820a17e19bb796a63133a10a185babb"
+  },
+  {
+    "file": "admin-dev-push.json",
+    "bytes": 646,
+    "sha256": "0931d839ec0b6141776a1d6fa611b711cb1cbc662a024d8310b137463451bbf8"
+  },
+  {
+    "file": "admin-dev-push.json.txt",
+    "bytes": 646,
+    "sha256": "0931d839ec0b6141776a1d6fa611b711cb1cbc662a024d8310b137463451bbf8"
+  },
+  {
+    "file": "admin-final-acceptance.json",
+    "bytes": 1493,
+    "sha256": "6ae6f4b22ee79540cb8e02dd23e7f3090a28703816d75730f52855b9373f96b1"
+  },
+  {
     "file": "admin-local.json",
     "bytes": 2510,
     "sha256": "d6ca970b3e527f9f9f6917b94475c31f34ec5c0d20a27b14ada168a2e36cc182"
@@ -28,6 +53,51 @@
     "file": "admin-login-390.png",
     "bytes": 60652,
     "sha256": "4be62c9a743b34ec49e4db27c32c09ea4960938ddf58c73833d978b95c4e90a2"
+  },
+  {
+    "file": "admin-production-command.json",
+    "bytes": 391,
+    "sha256": "2ed3ec28fbb32f5da22c1e51650363a637d098671392904fcb9037acedfb7939"
+  },
+  {
+    "file": "admin-production-command.json.txt",
+    "bytes": 391,
+    "sha256": "2ed3ec28fbb32f5da22c1e51650363a637d098671392904fcb9037acedfb7939"
+  },
+  {
+    "file": "admin-production-postflight.json",
+    "bytes": 2416,
+    "sha256": "4a0b1fc9358d12192409849076feb1ca202d26d20a589b8b2cc007611fc60d18"
+  },
+  {
+    "file": "admin-production-postflight.json.txt",
+    "bytes": 2416,
+    "sha256": "4a0b1fc9358d12192409849076feb1ca202d26d20a589b8b2cc007611fc60d18"
+  },
+  {
+    "file": "admin-production-preflight.json",
+    "bytes": 443,
+    "sha256": "5e58d2dede86511a2e642ffe4e2459d2a797b34527927e72ad4cf3cd8ec85062"
+  },
+  {
+    "file": "admin-production-preflight.json.txt",
+    "bytes": 443,
+    "sha256": "5e58d2dede86511a2e642ffe4e2459d2a797b34527927e72ad4cf3cd8ec85062"
+  },
+  {
+    "file": "admin-production.json",
+    "bytes": 454,
+    "sha256": "5b64b7ee57e7569132b04acd107687995995317bd0b09f29510917fcf5c78cf5"
+  },
+  {
+    "file": "admin-production.json.txt",
+    "bytes": 454,
+    "sha256": "5b64b7ee57e7569132b04acd107687995995317bd0b09f29510917fcf5c78cf5"
+  },
+  {
+    "file": "admin-push-recovery.json",
+    "bytes": 1283,
+    "sha256": "95ecc9fb085b37b4e108cb14ded2f4a4b225be8e6bac7a4fb7f4236c6b47d2e0"
   },
   {
     "file": "company-public.json",

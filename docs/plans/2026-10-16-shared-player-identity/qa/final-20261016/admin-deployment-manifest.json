@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "sourceSHA": "a20343772ac8efecd9073c8040bfb388855571e4",
+  "release": "a20343772ac8-1792156217273-a5e4ab",
+  "proof": {
+    "base": "6e9c1f7246090c7009e9519a8cda6e8efab956d5",
+    "head": "a20343772ac8efecd9073c8040bfb388855571e4",
+    "count": 1
+  },
+  "provisionOnly": true,
+  "files": {
+    "deploy.py": "6d803df5ae4a8ad32cdad93d0add6fc05262aa71c21bde14649b422ea2f92eb4",
+    "fingerprint.sql": "80aeb2ffbe00f9e3087ed37996f607f5e9ebb744a4e33c9f8bb12d019e9f83ac",
+    "migrations/001-admin-auth.sql": "306165743b018a647bbdb9da1e5f970d92664cb7d344c9f6c9f84b72243674b3"
+  }
+}

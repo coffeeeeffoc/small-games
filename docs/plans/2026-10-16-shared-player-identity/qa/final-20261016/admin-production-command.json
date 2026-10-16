@@ -1,0 +1,11 @@
+{
+  "sourceSHA": "a20343772ac8efecd9073c8040bfb388855571e4",
+  "command": "pnpm deploy:admin --provision-only",
+  "startedAt": "2026-10-16T12:56:37.434Z",
+  "completedAt": "2026-10-16T13:10:36.754Z",
+  "exitCode": 0,
+  "signal": null,
+  "errorCode": null,
+  "stdout": ".scratch/admin-production-provision-a203.stdout.log",
+  "stderr": ".scratch/admin-production-provision-a203.stderr.log"
+}

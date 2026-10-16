@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "provisioned": true,
+  "activated": false,
+  "sourceSHA": "a20343772ac8efecd9073c8040bfb388855571e4",
+  "backupSHA256": "7f55d4442a4f8241d274e4984d71dd91a49a05b4eec43601b64842a4f17eab5b",
+  "oldStateSHA256": "41791f406789873ad2f73364fce069cdf39a6ec04ba9e601b0961f9bc6b1692d",
+  "oldDataUnchanged": true,
+  "isolatedRestoreVerified": true,
+  "leastPrivilegeVerified": true,
+  "backupRetained": true,
+  "realGithubLoginVerified": false
+}
