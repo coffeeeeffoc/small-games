@@ -24,6 +24,8 @@ import {
   companyDeploymentScopePaths,
   competitionIngressScopePaths,
   adminDeploymentScopePaths,
+  backendDeploymentScopePaths,
+  backendSharedScopePaths,
   runtimeProxyDefaultScopePaths,
   publicationConfigScopePaths,
   mobileViewportScopeFile,
@@ -265,6 +267,14 @@ export function incrementalPlan({
           fileScopes.get(file)?.includes('services/management-api')),
     )
       ? { admin_deployment_checks: true }
+      : {}),
+    ...(paths.some(
+      (file) =>
+        backendDeploymentScopePaths.includes(file) ||
+        backendSharedScopePaths.includes(file) ||
+        (file === 'package.json' && fileScopes.get(file)?.includes('services/tianxia-server')),
+    )
+      ? { backend_deployment_checks: true }
       : {}),
     game_sources: selected.map((game) => game.source),
     pages_deploy: paths.some((file) => pagesDeployScopePaths.includes(file)),

@@ -24,6 +24,10 @@ import {
   adminConsoleScopePaths,
   adminDeploymentScopePaths,
   sharedDeploymentScopePaths,
+  selectedBackendConsumers,
+  backendDeploymentScopePaths,
+  backendSharedScopePaths,
+  targetedCommandsOnly,
   runtimeProxyDefaultScopePaths,
   publicationConfigScopePaths,
   mobileViewportScopeFile,
@@ -43,6 +47,7 @@ test('admin deployment paths and sole root command select only management and ad
     { dir: 'services/management-api', name: 'management' },
     { dir: 'apps/admin-web', name: '@coffeeeeffoc/admin-web' },
     { dir: 'apps/company-web', name: '@coffeeeeffoc/company-web' },
+    ...selectedBackendConsumers.map((dir) => ({ dir, name: dir })),
   ];
   const before = JSON.stringify({ scripts: { other: 'keep' } }, null, 2) + '\n';
   const after =
@@ -63,6 +68,7 @@ test('admin deployment paths and sole root command select only management and ad
       ...(sharedDeploymentScopePaths.includes(file) ? ['apps/company-web'] : []),
       'services/management-api',
       'apps/admin-web',
+      ...(backendSharedScopePaths.includes(file) ? selectedBackendConsumers : []),
     ]);
     const plan = incrementalPlan({
       changedPaths: [file],
@@ -477,6 +483,7 @@ test('company deployment selects only the website and rejects unknown siblings a
     { name: '@coffeeeeffoc/runtime-api', dir: 'services/runtime-api' },
     { name: '@coffeeeeffoc/management-api', dir: 'services/management-api' },
     { name: '@coffeeeeffoc/admin-web', dir: 'apps/admin-web' },
+    ...['services/kart-server', 'services/tianxia-server'].map((dir) => ({ dir, name: dir })),
   ];
   for (const file of companyDeploymentScopePaths) {
     const context = { packages, games: [], changedPaths: [file], readSource: () => '' };
@@ -486,7 +493,12 @@ test('company deployment selects only the website and rejects unknown siblings a
       competitionIngressScopePaths.includes(file)
         ? ['apps/company-web', 'services/runtime-api', 'services/management-api', 'apps/admin-web']
         : sharedDeploymentScopePaths.includes(file)
-          ? ['apps/company-web', 'services/management-api', 'apps/admin-web']
+          ? [
+              'apps/company-web',
+              'services/management-api',
+              'apps/admin-web',
+              ...selectedBackendConsumers,
+            ]
           : ['apps/company-web'],
     );
     const plan = incrementalPlan({ ...context, fileScopes });
@@ -542,6 +554,7 @@ test('competition ingress selects the actual website and both API/frontend consu
       'services/runtime-api',
       'services/management-api',
       'apps/admin-web',
+      ...(backendSharedScopePaths.includes(file) ? selectedBackendConsumers : []),
     ]);
     const plan = incrementalPlan({ ...context, fileScopes });
     assert.equal(plan.competition_ingress_checks, true);
@@ -3106,6 +3119,7 @@ test('admin infrastructure has exact consumers and unknown neighboring paths fai
     { name: 'management', dir: 'services/management-api' },
     { name: '@coffeeeeffoc/admin-web', dir: 'apps/admin-web' },
     { name: '@coffeeeeffoc/company-web', dir: 'apps/company-web' },
+    ...selectedBackendConsumers.map((dir) => ({ dir, name: dir })),
   ];
   for (const file of adminConsoleScopePaths) {
     const context = { packages, games: [], changedPaths: [file], readSource: () => '' };
@@ -3114,12 +3128,16 @@ test('admin infrastructure has exact consumers and unknown neighboring paths fai
       ...(sharedDeploymentScopePaths.includes(file) ? ['apps/company-web'] : []),
       'services/management-api',
       'apps/admin-web',
+      ...(backendSharedScopePaths.includes(file) ? selectedBackendConsumers : []),
     ]);
     const plan = incrementalPlan({ ...context, fileScopes });
     assert.equal(plan.admin_console_checks, true);
     assert.equal(plan.browser, false);
     assert.deepEqual(plan.browser_ids, []);
-    assert.deepEqual(plan.service_rule_sources, ['services/management-api']);
+    assert.deepEqual(plan.service_rule_sources, [
+      ...(backendSharedScopePaths.includes(file) ? ['services/runtime-api'] : []),
+      'services/management-api',
+    ]);
   }
   for (const file of [
     'infra/admin-console/migrations/002-unreviewed.sql',
@@ -3293,4 +3311,73 @@ test('admin lock proof plans without installed YAML dependencies', async () => {
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+});
+
+test('selected backend tools and additive local build commands have finite consumers', () => {
+  const games = ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'].map((id) => ({
+    id,
+    source: competitionConsumers[id],
+  }));
+  const packages = [
+    ...games.map((game) => ({ dir: game.source, name: game.id })),
+    ...selectedBackendConsumers.map((dir) => ({ dir, name: dir })),
+  ];
+  const previous = { scripts: { 'deploy:admin': 'node scripts/deploy-admin.mjs', other: 'keep' } },
+    next = {
+      scripts: {
+        ...previous.scripts,
+        'deploy:backend': 'node scripts/deploy-backend.mjs',
+        'build:games': 'node scripts/build-games.mjs',
+      },
+    };
+  const json = (value) => JSON.stringify(value, null, 2) + '\n',
+    before = json(previous),
+    after = json(next);
+  assert.deepEqual(targetedCommandsOnly(before, after), [
+    ...selectedBackendConsumers,
+    ...games.map((game) => game.source),
+  ]);
+  for (const current of [
+    after.replace('keep', 'changed'),
+    after.replace('node scripts/build-games.mjs', 'node unsafe.mjs'),
+    after.replace('"scripts": {', '"scripts": {}, "scripts": {'),
+  ])
+    assert.equal(targetedCommandsOnly(before, current), null);
+  for (const file of [...backendDeploymentScopePaths, 'package.json']) {
+    const context = {
+      changedPaths: [file],
+      packages,
+      games,
+      readBase: () => before,
+      readHead: () => after,
+    };
+    const scopes = reviewedSharedFileScopes(context),
+      plan = incrementalPlan({ ...context, fileScopes: scopes, readSource: () => '' });
+    assert.deepEqual(
+      scopes.get(file),
+      file === 'package.json'
+        ? [...selectedBackendConsumers, ...games.map((game) => game.source)]
+        : selectedBackendConsumers,
+    );
+    assert.equal(plan.backend_deployment_checks, true);
+    assert.equal(plan.full, false);
+    assert.deepEqual(plan.native_consumers, []);
+    assert(!plan.consumer_sources.includes('apps/admin-web'));
+  }
+  for (const file of [
+    'infra/backend-update/extra.py',
+    'infra/builds/extra.json',
+    'scripts/build-games-extra.mjs',
+  ])
+    assert.equal(reviewedSharedFileScopes({ changedPaths: [file], packages, games }).size, 0);
+  const classify = (current) =>
+    reviewedSharedFileScopes({
+      changedPaths: ['.gitignore'],
+      packages,
+      games,
+      readBase: () => '',
+      readHead: () => current,
+    });
+  assert(classify('/game-build.local.json\n').has('.gitignore'));
+  assert.equal(classify('/game-build.local.json\nscripts/\n').size, 0);
 });

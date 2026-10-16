@@ -1793,3 +1793,26 @@ test('management-only metadata candidates prepare a browser and build fresh UI b
     /admin browser unavailable/,
   );
 });
+
+test('backend contracts execute independently and failure blocks candidate validation', () => {
+  const calls = [],
+    options = {
+      plan: { backend_deployment_checks: true, native_consumers: [], developer_mode_ids: [] },
+      packages: [],
+      root: '/fixture',
+      env: {},
+      execute: (command, args) => calls.push([command, ...args]),
+    };
+  runIncrementalToolChecks(options);
+  assert.deepEqual(calls, [[process.execPath, '--test', 'scripts/deploy-backend.test.mjs']]);
+  assert.throws(
+    () =>
+      runIncrementalToolChecks({
+        ...options,
+        execute() {
+          throw Error('backend canary');
+        },
+      }),
+    /backend canary/,
+  );
+});

@@ -3,6 +3,8 @@ import { spawn, spawnSync } from 'node:child_process';
 // Only this finite wire vocabulary may cross a secret-bearing SSH boundary.
 export const adminStages = new Set([
   'preflight',
+  'context_guard',
+  'service_stop',
   'database_guard',
   'database_backup',
   'database_restore',
@@ -38,12 +40,24 @@ export const adminFailures = new Set([
   'PRODUCTION_PERMISSION_PROOF',
   'UNEXPECTED_FAILURE',
   'UI_MOUNT_REQUIRED',
+  'COMPOSE_CONTEXT_UNRESOLVED',
+  'COMPOSE_CONTEXT_CHANGED',
+  'KART_NAMESPACE',
+  'ROLLBACK_FAILED',
+  'ROLLBACK_GUARD',
+  'ROLLBACK_IMAGE',
+  'SERVICE_BOUNDARY',
+  'SERVICE_IMAGE',
+  'SERVICE_INVENTORY',
+  'SERVICE_NOT_RUNNING',
+  'SCHEMA_CHANGED',
+  'BACKUP_FAILED',
 ]);
 
 export function remoteDiagnostic(line) {
-  const stage = /^ADMIN_REMOTE_(?:STAGE|FAILED_STAGE) ([a-z_]+)$/.exec(line);
+  const stage = /^(?:ADMIN|BACKEND)_REMOTE_(?:STAGE|FAILED_STAGE) ([a-z_]+)$/.exec(line);
   if (stage && adminStages.has(stage[1])) return { stage: stage[1] };
-  const failure = /^ADMIN_REMOTE_STOPPED ([A-Z_]+)$/.exec(line);
+  const failure = /^(?:ADMIN|BACKEND)_REMOTE_STOPPED ([A-Z_]+)$/.exec(line);
   if (failure)
     return { failure: adminFailures.has(failure[1]) ? failure[1] : 'REMOTE_GUARD_FAILED' };
   return null;

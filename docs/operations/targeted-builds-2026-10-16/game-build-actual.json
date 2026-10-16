@@ -1,0 +1,116 @@
+{
+  "kind": "actual-local-build-command",
+  "sourceSHA": "91905bceb11abbfb77b10f138516942ff54e09a4",
+  "sourceDirty": true,
+  "configFile": ".scratch/selected-games.local.json",
+  "firstBatch": "outputs/game-builds/20261016T153232015Z-8b2a21",
+  "firstVariants": 12,
+  "secondBatch": "outputs/game-builds/20261016T153236807Z-953277",
+  "secondVariants": 1,
+  "rootAndPerGameZipHashesMatch": true,
+  "firstStreetBatchRetained": true,
+  "zipInventoriesMatch": true,
+  "qualityChecks": "not-run",
+  "deploymentPerformed": false,
+  "realHostAdsVerified": false,
+  "started": "2026-10-16T15:32:31.808Z",
+  "completed": "2026-10-16T15:32:42.522Z",
+  "packages": [
+    {
+      "game": "cops-robbers",
+      "ads": false,
+      "backend": false,
+      "zip": "cops-robbers-taptap-h5-ads-off-service-off.zip",
+      "sha256": "2649ff121c3d4d77e7676b510c303886ce1428ef1cc11638420027f545664356",
+      "gameOutput": "games/local/cops-robbers/dist/h5-packages/20261016T153232015Z-8b2a21"
+    },
+    {
+      "game": "cops-robbers",
+      "ads": true,
+      "backend": false,
+      "zip": "cops-robbers-taptap-h5-ads-on-service-off.zip",
+      "sha256": "d5db4c0a2af169659cb34074035a8c47d70cd20a569b8b1c3a2cad7db7748e4b",
+      "gameOutput": "games/local/cops-robbers/dist/h5-packages/20261016T153232015Z-8b2a21"
+    },
+    {
+      "game": "cops-robbers",
+      "ads": false,
+      "backend": true,
+      "zip": "cops-robbers-taptap-h5-ads-off-service-on.zip",
+      "sha256": "2c45a3d3863323c484f9ebe366390ecf536bdb171c736c1eae042b47cb300182",
+      "gameOutput": "games/local/cops-robbers/dist/h5-packages/20261016T153232015Z-8b2a21"
+    },
+    {
+      "game": "cops-robbers",
+      "ads": true,
+      "backend": true,
+      "zip": "cops-robbers-taptap-h5-ads-on-service-on.zip",
+      "sha256": "d167551549dcf3d9da121aa7ad0235ce9639a4137878aad0319a0de316ffc74e",
+      "gameOutput": "games/local/cops-robbers/dist/h5-packages/20261016T153232015Z-8b2a21"
+    },
+    {
+      "game": "cops-robbers-realtime",
+      "ads": false,
+      "backend": false,
+      "zip": "cops-robbers-realtime-taptap-h5-ads-off-service-off.zip",
+      "sha256": "66525e6844b400fe253417781585a2bf430047a811e10f4093620bbbdad659e2",
+      "gameOutput": "games/local/cops-robbers-realtime/dist/h5-packages/20261016T153232015Z-8b2a21"
+    },
+    {
+      "game": "cops-robbers-realtime",
+      "ads": true,
+      "backend": false,
+      "zip": "cops-robbers-realtime-taptap-h5-ads-on-service-off.zip",
+      "sha256": "b6f49ac0fed977c3e5f89fa83448ec5be72a674697d6730570b193c8c79de80b",
+      "gameOutput": "games/local/cops-robbers-realtime/dist/h5-packages/20261016T153232015Z-8b2a21"
+    },
+    {
+      "game": "cops-robbers-realtime",
+      "ads": false,
+      "backend": true,
+      "zip": "cops-robbers-realtime-taptap-h5-ads-off-service-on.zip",
+      "sha256": "cec220f7a956cdf19c9fad49eed099c990824fd177cb38d0875ebc9f34ec9a5d",
+      "gameOutput": "games/local/cops-robbers-realtime/dist/h5-packages/20261016T153232015Z-8b2a21"
+    },
+    {
+      "game": "cops-robbers-realtime",
+      "ads": true,
+      "backend": true,
+      "zip": "cops-robbers-realtime-taptap-h5-ads-on-service-on.zip",
+      "sha256": "21ba361dd86b47b1d97f4657580862ba0a37c111d90daa4edd5fec057632bd44",
+      "gameOutput": "games/local/cops-robbers-realtime/dist/h5-packages/20261016T153232015Z-8b2a21"
+    },
+    {
+      "game": "xiangqi-five",
+      "ads": false,
+      "backend": false,
+      "zip": "xiangqi-five-taptap-h5-ads-off-service-off.zip",
+      "sha256": "af7f0fca28fc9f0d5ae08283a7839c1cdaaa7c9667a402abdfa1ff6726b163eb",
+      "gameOutput": "games/submodules/xiangqi-five/dist/h5-packages/20261016T153232015Z-8b2a21"
+    },
+    {
+      "game": "xiangqi-five",
+      "ads": true,
+      "backend": false,
+      "zip": "xiangqi-five-taptap-h5-ads-on-service-off.zip",
+      "sha256": "25efdbe5edd0bf3ac6d74a3d3ad3398d15ccf00e8085e927dc485fe6ba223db5",
+      "gameOutput": "games/submodules/xiangqi-five/dist/h5-packages/20261016T153232015Z-8b2a21"
+    },
+    {
+      "game": "xiangqi-five",
+      "ads": false,
+      "backend": true,
+      "zip": "xiangqi-five-taptap-h5-ads-off-service-on.zip",
+      "sha256": "70e2ba1b9c6be1207a98a015fae17a6caeccab74fb2a414a98a8093b3f23f8a3",
+      "gameOutput": "games/submodules/xiangqi-five/dist/h5-packages/20261016T153232015Z-8b2a21"
+    },
+    {
+      "game": "xiangqi-five",
+      "ads": true,
+      "backend": true,
+      "zip": "xiangqi-five-taptap-h5-ads-on-service-on.zip",
+      "sha256": "df7d1070f40086c665a260343582a6bf01de719ae63752a50ed6a7926f23cb97",
+      "gameOutput": "games/submodules/xiangqi-five/dist/h5-packages/20261016T153232015Z-8b2a21"
+    }
+  ]
+}

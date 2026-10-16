@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "games": [],
+  "ads": [false, true],
+  "backend": [false, true],
+  "apiUrl": "https://api.nenggongzhiren.cn/small-games/v1",
+  "localBackend": false,
+  "adUnits": {}
+}

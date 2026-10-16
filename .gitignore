@@ -47,3 +47,6 @@ outputs/
 opencode.json
 opencode.json.backup.*
 AGENTS.md.backup.*
+
+# Local selected H5 build choices
+/game-build.local.json

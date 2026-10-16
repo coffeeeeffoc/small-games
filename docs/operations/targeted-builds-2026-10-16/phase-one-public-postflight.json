@@ -1,0 +1,153 @@
+{
+  "checkedAt": "2026-10-16T14:41:23.306Z",
+  "sourceSHA": "91905bceb11abbfb77b10f138516942ff54e09a4",
+  "companyRelease": "20261016143927-91905bceb11a-b5b61a",
+  "companyAllFilesMatch": true,
+  "files": [
+    {
+      "name": "assets/ai-icon.webp",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "name": "assets/games-icon.webp",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "name": "assets/hero-scene.webp",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "name": "assets/index-8k4OAkl6.css",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "name": "assets/index-BNGLqbXs.js",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "name": "assets/software-icon.webp",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "name": "brand-mark-v5-2fb69722.png",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "name": "brand-mark.svg",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "name": "favicon-v5-022178cd.ico",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "name": "favicon.svg",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "name": "index.html",
+      "status": 200,
+      "hashMatches": true
+    }
+  ],
+  "gameMetadataAndLeaderboardsHealthy": true,
+  "games": [
+    {
+      "prefix": "/small-games/v1",
+      "game": "cops-robbers",
+      "leaderboard": false,
+      "status": 200
+    },
+    {
+      "prefix": "/small-games/v1",
+      "game": "cops-robbers",
+      "leaderboard": true,
+      "status": 200
+    },
+    {
+      "prefix": "/small-games/v1",
+      "game": "cops-robbers-realtime",
+      "leaderboard": false,
+      "status": 200
+    },
+    {
+      "prefix": "/small-games/v1",
+      "game": "cops-robbers-realtime",
+      "leaderboard": true,
+      "status": 200
+    },
+    {
+      "prefix": "/small-games/v1",
+      "game": "xiangqi-five",
+      "leaderboard": false,
+      "status": 200
+    },
+    {
+      "prefix": "/small-games/v1",
+      "game": "xiangqi-five",
+      "leaderboard": true,
+      "status": 200
+    },
+    {
+      "prefix": "/api/competition/v1",
+      "game": "cops-robbers",
+      "leaderboard": false,
+      "status": 200
+    },
+    {
+      "prefix": "/api/competition/v1",
+      "game": "cops-robbers",
+      "leaderboard": true,
+      "status": 200
+    },
+    {
+      "prefix": "/api/competition/v1",
+      "game": "cops-robbers-realtime",
+      "leaderboard": false,
+      "status": 200
+    },
+    {
+      "prefix": "/api/competition/v1",
+      "game": "cops-robbers-realtime",
+      "leaderboard": true,
+      "status": 200
+    },
+    {
+      "prefix": "/api/competition/v1",
+      "game": "xiangqi-five",
+      "leaderboard": false,
+      "status": 200
+    },
+    {
+      "prefix": "/api/competition/v1",
+      "game": "xiangqi-five",
+      "leaderboard": true,
+      "status": 200
+    }
+  ],
+  "admin": [
+    {
+      "path": "/",
+      "status": 200
+    },
+    {
+      "path": "/login",
+      "status": 200
+    },
+    {
+      "path": "/api/session",
+      "status": 503
+    }
+  ],
+  "realGithubLoginVerified": false
+}

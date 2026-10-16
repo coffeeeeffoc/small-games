@@ -196,6 +196,10 @@ export const competitionServiceScopePaths = [
   'scripts/h5-ad-config.mjs',
   'scripts/h5-ad-config.test.mjs',
   'scripts/h5-taptap.mjs',
+  'scripts/h5-taptap-build.mjs',
+  'scripts/build-games.mjs',
+  'scripts/build-games.test.mjs',
+  'infra/builds/games.example.json',
   'scripts/h5-taptap.browser.mjs',
   'scripts/h5-taptap-matrix.mjs',
   'scripts/h5-taptap-matrix.test.mjs',
@@ -782,6 +786,7 @@ const localIgnores = new Set([
   'opencode.json',
   'opencode.json.backup.*',
   'AGENTS.md.backup.*',
+  '/game-build.local.json',
 ]);
 const ignoreLines = (text) =>
   text
@@ -1339,6 +1344,51 @@ export const sharedDeploymentScopePaths = [
   'scripts/company-deployment.mjs',
   'scripts/deployment-progress.mjs',
 ];
+export const selectedBackendConsumers = [
+  'services/runtime-api',
+  'services/kart-server',
+  'services/tianxia-server',
+];
+export const backendDeploymentScopePaths = [
+  'scripts/deploy-backend.mjs',
+  'scripts/deploy-backend.test.mjs',
+  'infra/backend-update/deploy.py',
+  'infra/backend-update/deploy.test.py',
+];
+export const backendSharedScopePaths = [
+  'scripts/backend-build.mjs',
+  'scripts/deploy-admin.mjs',
+  ...sharedDeploymentScopePaths,
+];
+export function targetedCommandsOnly(before, after) {
+  try {
+    const previous = JSON.parse(before),
+      current = JSON.parse(after),
+      consumers = [];
+    assert.equal(before.replaceAll('\r\n', '\n'), JSON.stringify(previous, null, 2) + '\n');
+    assert.equal(after.replaceAll('\r\n', '\n'), JSON.stringify(current, null, 2) + '\n');
+    for (const [name, command, targets] of [
+      ['deploy:backend', 'node scripts/deploy-backend.mjs', selectedBackendConsumers],
+      [
+        'build:games',
+        'node scripts/build-games.mjs',
+        competitionServiceIds.map((id) => competitionConsumers[id]),
+      ],
+    ]) {
+      if (Object.hasOwn(previous.scripts, name))
+        assert.equal(current.scripts[name], previous.scripts[name]);
+      else if (Object.hasOwn(current.scripts, name)) {
+        assert.equal(current.scripts[name], command);
+        delete current.scripts[name];
+        consumers.push(...targets);
+      }
+    }
+    assert(consumers.length && isDeepStrictEqual(previous, current));
+    return [...new Set(consumers)];
+  } catch {
+    return null;
+  }
+}
 function adminCommandsOnly(before, after) {
   try {
     const previous = JSON.parse(before),
@@ -1578,8 +1628,27 @@ export function reviewedSharedFileScopes({
         scopes.set(file, ['apps/admin-web']);
         continue;
       }
+      if (backendDeploymentScopePaths.includes(file)) {
+        for (const dir of selectedBackendConsumers) assert(packages.some((pkg) => pkg.dir === dir));
+        scopes.set(file, selectedBackendConsumers);
+        continue;
+      }
+      if (file === 'package.json' && readBase && readHead) {
+        const consumers = targetedCommandsOnly(readBase(file), readHead(file));
+        if (consumers) {
+          for (const dir of consumers) assert(packages.some((pkg) => pkg.dir === dir));
+          for (const id of competitionServiceIds.filter((id) =>
+            consumers.includes(competitionConsumers[id]),
+          ))
+            assert(
+              games.some((game) => game.id === id && game.source === competitionConsumers[id]),
+            );
+          scopes.set(file, consumers);
+          continue;
+        }
+      }
       if (sharedDeploymentScopePaths.includes(file)) {
-        const consumers = ['apps/company-web', ...adminConsumers];
+        const consumers = ['apps/company-web', ...adminConsumers, ...selectedBackendConsumers];
         for (const source of consumers) assert(packages.some((pkg) => pkg.dir === source));
         scopes.set(file, consumers);
         continue;
@@ -1592,7 +1661,12 @@ export function reviewedSharedFileScopes({
           adminCommandsOnly(readBase(file), readHead(file)))
       ) {
         for (const source of adminConsumers) assert(packages.some((pkg) => pkg.dir === source));
-        scopes.set(file, adminConsumers);
+        const consumers = [
+          ...adminConsumers,
+          ...(backendSharedScopePaths.includes(file) ? selectedBackendConsumers : []),
+        ];
+        for (const dir of consumers) assert(packages.some((pkg) => pkg.dir === dir));
+        scopes.set(file, consumers);
         continue;
       }
       if (runtimeProxyDefaultScopePaths.includes(file) && readBase && readHead) {

@@ -409,6 +409,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
         'scripts/competition-service-config.test.mjs',
         'scripts/h5-ad-config.test.mjs',
         'scripts/h5-taptap-matrix.test.mjs',
+        'scripts/build-games.test.mjs',
         'apps/shell-minigame/scripts/taptap-cocos.test.mjs',
         'apps/shell-minigame/scripts/taptap-cocos-inputs.test.mjs',
         'apps/shell-minigame/scripts/taptap-login.test.mjs',
@@ -575,6 +576,8 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
     );
   if (plan.company_deployment_checks)
     execute(process.execPath, ['--test', 'scripts/deploy-company.test.mjs'], root, env, 'logged');
+  if (plan.backend_deployment_checks)
+    execute(process.execPath, ['--test', 'scripts/deploy-backend.test.mjs'], root, env, 'logged');
   if (plan.admin_deployment_checks)
     execute(process.execPath, ['--test', 'scripts/deploy-admin.test.mjs'], root, env, 'logged');
   if (plan.competition_ingress_checks)

@@ -1,0 +1,7 @@
+{
+  "ok": true,
+  "readOnly": true,
+  "services": ["runtime", "kart"],
+  "recreateCompanions": [],
+  "composeContextVerified": true
+}
