@@ -35,37 +35,43 @@ test('explicit axes constrain matrix output and ordinary builds retain environme
   assert.throws(() => packageModes({ 'with-ads': true, 'without-ads': true }));
   assert.throws(() => packageModes({ 'with-service': true, 'without-service': true }));
 });
-function fixture(production) {
+function fixture(production, allServices = false) {
   const sourceSHA = 'a'.repeat(40),
     submoduleSHA = 'b'.repeat(40);
   return {
     sourceSHA,
     submoduleSHA,
     variants: matrixGames.flatMap((game) =>
-      packageModes({ matrix: true, ...(production ? { 'with-service': true } : {}) }).map(
-        ([ads, service]) => ({
-          name: `${game}-ads-${ads ? 'on' : 'off'}-service-${service ? 'on' : 'off'}`,
-          game,
-          packageType: 'h5',
-          adsEnabled: ads,
-          serviceEnabled: service,
-          sourceSHA,
-          submoduleSHA,
-          apiUrl: service
-            ? production
-              ? productionCompetitionApi
-              : 'http://127.0.0.1:43802/api/competition/v1'
-            : '',
-          localValidation: !production,
-        }),
-      ),
+      packageModes({
+        matrix: true,
+        ...(production && !allServices ? { 'with-service': true } : {}),
+      }).map(([ads, service]) => ({
+        name: `${game}-ads-${ads ? 'on' : 'off'}-service-${service ? 'on' : 'off'}`,
+        game,
+        packageType: 'h5',
+        adsEnabled: ads,
+        serviceEnabled: service,
+        sourceSHA,
+        submoduleSHA,
+        apiUrl: service
+          ? production
+            ? productionCompetitionApi
+            : 'http://127.0.0.1:43802/api/competition/v1'
+          : '',
+        localValidation: !production,
+      })),
     ),
   };
 }
-test('local acceptance requires exactly twelve variants; formal acceptance requires exact six HTTPS service variants', () => {
+test('acceptance requires twelve local variants or complete six/twelve formal variants', () => {
   assert.equal(productionCompetitionApi, 'https://api.nenggongzhiren.cn/small-games/v1');
   assert.equal(matrixContract(fixture(false)).port, 43810);
   assert.deepEqual(matrixContract(fixture(true), { production: true }), {
+    api: productionCompetitionApi,
+    origin: 'http://localhost:8080',
+    port: 8080,
+  });
+  assert.deepEqual(matrixContract(fixture(true, true), { production: true }), {
     api: productionCompetitionApi,
     origin: 'http://localhost:8080',
     port: 8080,
@@ -82,6 +88,20 @@ test('local acceptance requires exactly twelve variants; formal acceptance requi
     (m) => (m.variants[0].serviceEnabled = false),
   ]) {
     const m = fixture(true);
+    mutate(m);
+    assert.throws(() => matrixContract(m, { production: true }));
+  }
+  for (const mutate of [
+    (m) => m.variants.pop(),
+    (m) => m.variants.push(m.variants[0]),
+    (m) => (m.variants[0].localValidation = true),
+    (m) => (m.variants[0].apiUrl = productionCompetitionApi),
+    (m) => (m.variants[0].sourceSHA = 'c'.repeat(40)),
+    (m) => {
+      m.variants[0] = m.variants[1];
+    },
+  ]) {
+    const m = fixture(true, true);
     mutate(m);
     assert.throws(() => matrixContract(m, { production: true }));
   }

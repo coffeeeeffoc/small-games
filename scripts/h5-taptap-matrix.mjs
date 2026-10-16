@@ -18,18 +18,19 @@ export function packageModes(values, env = {}) {
   );
 }
 
-/** Acceptance has two exact scopes, never a partially filtered successful matrix. */
+/** Acceptance requires a complete scope, never a partially filtered successful matrix. */
 export function matrixContract(matrix, { production = false } = {}) {
   const api = production ? productionCompetitionApi : 'http://127.0.0.1:43802/api/competition/v1';
   const origin = production ? 'http://localhost:8080' : 'http://127.0.0.1:43810';
+  assert(Array.isArray(matrix.variants), 'Missing package matrix');
+  const services = production && matrix.variants.length === 6 ? [true] : [false, true];
   const expected = matrixGames.flatMap((game) =>
-    (production ? [true] : [false, true]).flatMap((service) =>
+    services.flatMap((service) =>
       [false, true].map(
         (ads) => `${game}-ads-${ads ? 'on' : 'off'}-service-${service ? 'on' : 'off'}`,
       ),
     ),
   );
-  assert(Array.isArray(matrix.variants), 'Missing package matrix');
   assert.deepEqual(
     matrix.variants.map((v) => v.name).sort(),
     expected.sort(),

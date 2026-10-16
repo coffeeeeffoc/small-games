@@ -55,7 +55,7 @@ const report = {
   origin,
   apiTrace: path.basename(traceFile),
   scope: production
-    ? 'Six HTTPS service H5 configurations, real touch profiles, rewards and matches'
+    ? `${matrix.variants.length} formal H5 configurations, HTTPS where enabled, real touch profiles, rewards and matches`
     : 'Twelve local H5 configurations, real touch profiles, rewards and six online matches',
   realAdsVerified: false,
   realDeviceVerified: false,
