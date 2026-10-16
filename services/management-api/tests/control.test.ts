@@ -89,6 +89,40 @@ it('serializes CAS publishing, retains immutable drafts/history, and rollback cr
   expect(f.state().revisions.at(-1)).toMatchObject({ rollbackOf: first, parentVersion: 2 });
   expect(f.state().revisions.find((row) => row.id === first)).toEqual(first === a.id ? a : b);
   expect(f.state().audits.filter((row) => row.action === 'revisions.publish')).toHaveLength(3);
+  const listed = await f.service.revisions(f.session);
+  expect(listed.find((row) => row.id === first)?.publishedVersion).toBe(1);
+  expect(
+    listed.find((row) => row.id === (first === a.id ? b.id : a.id))?.publishedVersion,
+  ).toBeNull();
+  expect(listed.find((row) => row.id === draft.id)?.publishedVersion).toBe(2);
+  expect(listed.find((row) => row.rollbackOf === first)?.publishedVersion).toBe(3);
+});
+
+it('exposes publication membership to control readers without requiring audit access', async () => {
+  const f = await controlFixture();
+  const revision = await f.service.draft(f.session, {
+    expectedVersion: 0,
+    snapshot: controlSnapshot(),
+    reason: 'visible publication history',
+  });
+  await f.service.publish(f.session, revision.id, 0);
+  await f.service.saveRole(f.session, 'viewer', {
+    name: 'Viewer',
+    permissions: ['control.read'],
+    reason: 'read configuration',
+  });
+  const viewer = await f.service.saveMember(f.session, undefined, {
+    email: 'viewer@example.test',
+    roleIds: ['viewer'],
+    reason: 'configuration review',
+  });
+  const identity = { githubId: '456', login: 'viewer', emails: ['viewer@example.test'] };
+  await f.service.access.identify(identity, new Set());
+  const session = { ...f.session, ...identity, email: viewer.email };
+  expect(await f.service.revisions(session)).toMatchObject([
+    { id: revision.id, publishedVersion: 1 },
+  ]);
+  await expect(f.service.audits(session)).rejects.toMatchObject({ code: 'FORBIDDEN' });
 });
 
 it('preserves killEpoch across disabled to enabled gaps and draining; only entering disabled increments', async () => {

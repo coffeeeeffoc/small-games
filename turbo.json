@@ -54,6 +54,15 @@
         "VITE_CULTIVATION_ARTIFACT_INTEGRITY"
       ]
     },
+    "@coffeeeeffoc/admin-web#build": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/scripts/admin-csp.mjs",
+        "$TURBO_ROOT$/scripts/admin-csp.d.mts"
+      ],
+      "outputs": ["dist/**"]
+    },
     "@coffeeeeffoc/shell-web#build": {
       "dependsOn": ["^build"],
       "cache": false,

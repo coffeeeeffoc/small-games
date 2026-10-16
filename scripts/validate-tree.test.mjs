@@ -28,6 +28,51 @@ test('admin deployment contract actually executes and fails closed independently
   );
 });
 
+test('Street admission contracts execute without running unrelated game suites', () => {
+  const calls = [];
+  runIncrementalToolChecks({
+    plan: { street_admission_checks: true, native_consumers: [], developer_mode_ids: [] },
+    packages: [],
+    root: '/candidate',
+    env: {},
+    execute: (command, args) => calls.push([command, ...args]),
+  });
+  assert.deepEqual(calls, [
+    [process.execPath, '--test', 'platforms/competition/tests/street-admission.test.mjs'],
+  ]);
+});
+
+test('actual Caddy CSP contracts execute independently and failures stop the candidate', () => {
+  const calls = [];
+  const options = {
+    plan: { admin_csp_checks: true, native_consumers: [], developer_mode_ids: [] },
+    packages: [],
+    root: '/candidate',
+    env: {},
+    execute: (command, args) => calls.push([command, ...args]),
+  };
+  runIncrementalToolChecks(options);
+  assert.deepEqual(calls, [
+    [
+      process.execPath,
+      '--test',
+      '--test-concurrency=1',
+      'scripts/admin-csp.test.mjs',
+      'scripts/admin-caddy-fixture.test.mjs',
+    ],
+  ]);
+  assert.throws(
+    () =>
+      runIncrementalToolChecks({
+        ...options,
+        execute: () => {
+          throw new Error('Caddy CSP failed');
+        },
+      }),
+    /Caddy CSP failed/,
+  );
+});
+
 test('optional service and importer contracts still run with native release gates disabled', () => {
   const calls = [];
   const options = {

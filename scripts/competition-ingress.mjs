@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { isIP } from 'node:net';
+import { adminBaseCsp, adminUiPaths } from './admin-csp.mjs';
 
 export const ingressDomain = 'api.nenggongzhiren.cn';
 export const adminDomain = 'admin.nenggongzhiren.cn';
@@ -58,7 +59,7 @@ const internalCompetitionPaths = [
   '/api/competition/v1/me',
   '/api/competition/v1/boards/[A-Za-z0-9][A-Za-z0-9-]{0,79}',
   '/api/competition/v1/rooms(?:/(?:join|[A-F0-9]{12}(?:/(?:ready|leave|rematch|actions|role|initiative))?))?',
-  '/api/competition/v1/runs/cops-robbers-realtime',
+  '/api/competition/v1/runs/cops-robbers-realtime(?:/start)?',
   '/api/competition/v1/three-choose-two/(?:board|session(?:/[a-f0-9-]{36}(?:/(?:actions|finish))?)?)',
   '/api/competition/v1/carrom/rooms(?:/(?:join|[A-F0-9]{12}(?:/(?:settings|ready|start|rematch|leave|shoot))?))?',
   '/api/competition/v1/games/[A-Za-z0-9][A-Za-z0-9-]{0,79}(?:/leaderboards/[A-Za-z0-9][A-Za-z0-9-]{0,79}|/runs(?:/[a-f0-9-]{36}(?:/(?:actions|finish))?)?|/rooms(?:/(?:join|[A-F0-9]{12}(?:/(?:ready|leave|rematch|actions|role|initiative))?))?)?',
@@ -69,10 +70,25 @@ export const competitionIngressPaths = internalCompetitionPaths.flatMap((route) 
 ]);
 export const competitionIngressPattern = `^(?:${competitionIngressPaths.join('|')})$`;
 export const managementIngressPattern =
-  '^/api/(?:auth/github(?:/callback)?|session|refresh|logout)$';
+  '^/api/(?:auth/github(?:/callback)?|session|refresh|logout|control/(?:catalog|state|audit|rollback|revisions(?:/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/publish)?|members(?:/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}(?:/delete)?)?|roles(?:/[a-z][a-z0-9-]{0,47}(?:/delete)?)?))$';
 
 export function renderAdminCaddy(ingress) {
   const config = validateIngress(ingress);
+  const html = (name, forbidden = false) => `            route {
+                @${name}Write not method GET HEAD
+                respond @${name}Write 405
+                request_header -If-None-Match
+                request_header -If-Modified-Since
+                request_header -If-Match
+                request_header -If-Unmodified-Since
+                request_header -Range
+                request_header -If-Range
+                rewrite * /index.html
+                templates {
+                    mime text/html
+                }
+                file_server${forbidden ? ' {\n                    status 403\n                }' : ''}
+            }`;
   return `${adminDomain} {
     root * /srv/admin
     @published file {
@@ -82,7 +98,7 @@ export function renderAdminCaddy(ingress) {
     header Cache-Control no-store
     header Referrer-Policy no-referrer
     header X-Content-Type-Options nosniff
-    header Content-Security-Policy "default-src 'self'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'"
+    header Content-Security-Policy "${adminBaseCsp}"
     route {
         root @published /opt/small-games/admin-console/current/site
         @api path /api /api/*
@@ -100,15 +116,11 @@ export function renderAdminCaddy(ingress) {
         }
         @forbidden path /forbidden
         handle @forbidden {
-            rewrite * /index.html
-            file_server {
-                status 403
-            }
+${html('forbidden', true)}
         }
-        @pages path / /login
+        @pages path ${adminUiPaths.filter((route) => route !== '/forbidden').join(' ')}
         handle @pages {
-            rewrite * /index.html
-            file_server
+${html('pages')}
         }
         @assets path /assets/* /mark.svg
         handle @assets {

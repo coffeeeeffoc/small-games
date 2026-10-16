@@ -159,9 +159,13 @@ export function createControlStore(db: Database): ControlStore {
           async revisions() {
             return (
               await tx.execute(
-                sql`select * from game_control.revisions order by created_at desc,id desc limit 100`,
+                sql`select r.*,p.version as published_version from game_control.revisions r left join game_control.publications p on p.revision_id=r.id order by r.created_at desc,r.id desc limit 100`,
               )
-            ).map(revision);
+            ).map((row) => ({
+              ...revision(row),
+              publishedVersion:
+                row.published_version == null ? null : Number(row.published_version),
+            }));
           },
           async revision(id) {
             const rows = await tx.execute(sql`select * from game_control.revisions where id=${id}`);

@@ -114,6 +114,7 @@ test('public paths cover registered game, identity, TCT and carrom endpoints and
     'sessions/guest',
     'sessions/refresh',
     'sessions/upgrade',
+    'runs/cops-robbers-realtime/start',
     'me',
     'boards/xiangqi-five',
     'rooms/join',
@@ -284,6 +285,17 @@ test('management stays on its sole origin with finite APIs and no SPA API fallba
     '/api/session',
     '/api/refresh',
     '/api/logout',
+    '/api/control/catalog',
+    '/api/control/state',
+    '/api/control/revisions',
+    '/api/control/revisions/11111111-1111-4111-8111-111111111111/publish',
+    '/api/control/rollback',
+    '/api/control/members',
+    '/api/control/members/11111111-1111-4111-8111-111111111111',
+    '/api/control/members/11111111-1111-4111-8111-111111111111/delete',
+    '/api/control/roles',
+    '/api/control/roles/config-editor/delete',
+    '/api/control/audit',
   ])
     assert(allowed.test(route), route);
   for (const route of [
@@ -292,13 +304,29 @@ test('management stays on its sole origin with finite APIs and no SPA API fallba
     '/api/auth/github/extra',
     '/admin/api/session',
     '/api/admin/session',
+    '/api/control',
+    '/api/control/internal',
+    '/api/control/revisions/not-a-uuid/publish',
+    '/api/control/revisions/11111111-1111-4111-8111-111111111111/delete',
+    '/api/control/roles/administrator/extra',
   ])
     assert(!allowed.test(route), route);
   const admin = renderAdminCaddy(ingress),
     main = renderCaddy({ ...companyConfig(), ingress });
   assert.match(admin, /admin\.nenggongzhiren\.cn \{/);
   assert.match(admin, /http:\/\/172\.30\.245\.3:8083/);
-  assert.match(admin, /@pages path \/ \/login\n/);
+  assert.match(admin, /@pages path \/ \/login \/config \/games \/members \/roles \/audit\n/);
+  assert.equal((admin.match(/templates \{/g) || []).length, 2);
+  for (const header of [
+    'If-None-Match',
+    'If-Modified-Since',
+    'If-Match',
+    'If-Unmodified-Since',
+    'Range',
+    'If-Range',
+  ])
+    assert.equal(admin.split('request_header -' + header + '\n').length, 3);
+  assert.doesNotMatch(admin, /unsafe-inline|unsafe-eval|nonce-fixed/);
   assert.match(admin, /status 403/);
   assert(admin.indexOf('handle @api') < admin.indexOf('handle @pages'));
   assert.match(main, /@removedApi path \/api \/api\/\* \/admin\/api \/admin\/api\/\*/);

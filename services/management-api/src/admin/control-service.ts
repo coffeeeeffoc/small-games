@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { AdminSession } from './store.js';
 import { createControlAccess } from './control-access.js';
+import { controlApplicationState } from './control-observations.js';
 import {
   ADMINISTRATOR,
   CONSUMERS,
@@ -128,21 +129,6 @@ export function createControlService(store: ControlStore, adminOrigin: string, n
         const revision = head.revisionId ? await tx.revision(head.revisionId) : undefined;
         if (head.version > 0 && !revision) throw new Error('Missing published revision');
         const observations = await tx.observations();
-        const fresh = (item: (typeof observations)[number]) =>
-          item.observedAt <= now() && item.observedAt > now() - 60_000;
-        // These are consumer reports, never an assertion that merely writing the DB applied config.
-        const matching = observations.filter(
-          (item) =>
-            revision &&
-            item.version === head.version &&
-            item.digest === revision.digest &&
-            item.status === 'applied' &&
-            fresh(item),
-        );
-        const observed = CONSUMERS.every((consumer) => {
-          const reports = observations.filter((item) => item.consumer === consumer);
-          return reports.length > 0 && reports.every((item) => matching.includes(item));
-        });
         return {
           ...head,
           configured: head.version > 0,
@@ -150,23 +136,7 @@ export function createControlService(store: ControlStore, adminOrigin: string, n
           digest: revision?.digest ?? null,
           policies: await tx.policies(),
           observations,
-          observationCoverage: {
-            // Reports cannot establish that an unregistered or expired process has stopped.
-            complete: false,
-            missingConsumers: CONSUMERS.filter(
-              (consumer) => !observations.some((item) => item.consumer === consumer && fresh(item)),
-            ),
-            expiredUnknown: observations
-              .filter((item) => !fresh(item))
-              .map(({ consumer, instanceId }) => ({ consumer, instanceId })),
-          },
-          status: !head.version
-            ? 'unpublished'
-            : observed
-              ? 'observed'
-              : matching.length
-                ? 'partial'
-                : 'desired',
+          ...controlApplicationState(head, revision, observations, now()),
         };
       });
     },

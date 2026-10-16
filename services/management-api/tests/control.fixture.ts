@@ -102,7 +102,12 @@ export function memoryControlStore() {
             return draft.publications.includes(id);
           },
           async revisions() {
-            return structuredClone(draft.revisions);
+            return structuredClone(draft.revisions).map((row) => ({
+              ...row,
+              publishedVersion: draft.publications.includes(row.id)
+                ? draft.publications.indexOf(row.id) + 1
+                : null,
+            }));
           },
           async revision(id) {
             return structuredClone(draft.revisions.find((row) => row.id === id));

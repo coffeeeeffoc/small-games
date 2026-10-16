@@ -23,6 +23,7 @@ import {
   competitionIngressScopePaths,
   adminConsoleScopePaths,
   adminDeploymentScopePaths,
+  adminCspScopePaths,
   sharedDeploymentScopePaths,
   selectedBackendConsumers,
   backendDeploymentScopePaths,
@@ -1160,7 +1161,11 @@ test('optional service configuration has finite H5 consumers and rejects unknown
       ? execFileSync('git', ['show', '47687063bd522437962026b52ee6d784dfecd099:' + file], {
           encoding: 'utf8',
         })
-      : readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+      : file === 'turbo.json'
+        ? execFileSync('git', ['show', '1367ae4f9758fb3a36935267db236e481b67d52a:' + file], {
+            encoding: 'utf8',
+          })
+        : readFileSync(new URL('../' + file, import.meta.url), 'utf8');
   const context = {
     packages: consumers,
     games: catalog,
@@ -1870,6 +1875,7 @@ test('reviewed quality budget can be planned without installed YAML dependencies
       'publication-scopes.mjs',
       'vite-patch-scope.mjs',
       'competition-ingress.mjs',
+      'admin-csp.mjs',
     ])
       await copyFile(new URL(module, import.meta.url), join(directory, module));
     const code = `
@@ -1913,6 +1919,7 @@ test('cache writer reduction has an exact dependency-free scope and rejects unre
       'publication-scopes.mjs',
       'vite-patch-scope.mjs',
       'competition-ingress.mjs',
+      'admin-csp.mjs',
     ])
       await copyFile(new URL(module, import.meta.url), join(directory, module));
     for (const file of ['.github/workflows/ci.yml', '.github/workflows/pages-validate.yml']) {
@@ -2940,6 +2947,7 @@ test('identity display and security files have their real H5 consumers; unknown 
     'platforms/competition/h5.css',
     'platforms/competition/street-pages.js',
     'platforms/competition/street.css',
+    'platforms/competition/tests/street-admission.test.mjs',
     'platforms/competition/tests/identity.test.mjs',
   ]) {
     const context = {
@@ -3159,19 +3167,110 @@ test('admin infrastructure has exact consumers and unknown neighboring paths fai
   }
 });
 
+const frozenAdminBaseline = (file) =>
+  execFileSync('git', ['show', '1367ae4f9758fb3a36935267db236e481b67d52a:' + file], {
+    cwd: new URL('../', import.meta.url),
+    encoding: 'utf8',
+  }).replaceAll('\r\n', '\n');
+
+test('AntD lock extension preserves all other importers and resolutions and rejects extra dependency or byte changes', () => {
+  const file = 'pnpm-lock.yaml',
+    before = frozenAdminBaseline(file);
+  const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
+    '\r\n',
+    '\n',
+  );
+  const manifest = readFileSync(
+    new URL('../apps/admin-web/package.json', import.meta.url),
+    'utf8',
+  ).replaceAll('\r\n', '\n');
+  const classify = (head, pkg = manifest, base = before) =>
+    reviewedSharedFileScopes({
+      changedPaths: [file],
+      games: [],
+      packages: [{ dir: 'apps/admin-web', name: '@coffeeeeffoc/admin-web' }],
+      readBase: () => base,
+      readHead: (name) => (name === file ? head : pkg),
+    });
+  assert.deepEqual(classify(after).get(file), ['apps/admin-web']);
+  for (const changed of [
+    after + '\n',
+    after.replace('specifier: 6.6.6', 'specifier: 6.6.7'),
+    after.replace('sha512-', 'sha512-X'),
+    after.replace(
+      "  '@ant-design/colors@8.0.1':",
+      "  '@ant-design/colors@8.0.1': {}\n\n  '@ant-design/colors@8.0.1':",
+    ),
+  ])
+    assert.equal(classify(changed).has(file), false);
+  assert.equal(classify(after, manifest, before + '\n').has(file), false);
+  const extra = JSON.parse(manifest);
+  extra.dependencies.unrelated = '1.0.0';
+  assert.equal(classify(after, JSON.stringify(extra, null, 2) + '\n').has(file), false);
+  assert.equal(
+    classify(after, manifest.replace('"antd": "6.6.6"', '"antd": "0.0.0", "antd": "6.6.6"')).has(
+      file,
+    ),
+    false,
+  );
+});
+
+test('CSP tools select only actual admin/company consumers, exact Turbo inputs and mandatory Caddy checks', () => {
+  const packages = [
+    { dir: 'apps/admin-web', name: '@coffeeeeffoc/admin-web' },
+    { dir: 'apps/company-web', name: '@coffeeeeffoc/company-web' },
+  ];
+  for (const file of adminCspScopePaths) {
+    const context = {
+      changedPaths: [file],
+      packages,
+      games: [],
+      readBase: () => '',
+      readHead: () => '',
+    };
+    const fileScopes = reviewedSharedFileScopes(context);
+    assert.deepEqual(fileScopes.get(file), ['apps/admin-web', 'apps/company-web']);
+    const plan = incrementalPlan({ ...context, fileScopes, readSource: () => '' });
+    assert.equal(plan.full, false);
+    assert.equal(plan.admin_csp_checks, true);
+    assert.equal(plan.admin_console_checks, true);
+    assert.deepEqual(plan.browser_ids, []);
+    assert.equal(reviewedSharedFileScopes({ ...context, packages: [] }).has(file), false);
+  }
+  const before = frozenAdminBaseline('turbo.json');
+  const after = readFileSync(new URL('../turbo.json', import.meta.url), 'utf8');
+  const classify = (value) =>
+    reviewedSharedFileScopes({
+      changedPaths: ['turbo.json'],
+      packages,
+      games: [],
+      readBase: () => before,
+      readHead: () => value,
+    });
+  assert.deepEqual(classify(after).get('turbo.json'), ['apps/admin-web']);
+  const invalid = JSON.parse(after);
+  invalid.tasks['@coffeeeeffoc/admin-web#build'].inputs.push('$TURBO_ROOT$/arbitrary/**');
+  assert.equal(classify(JSON.stringify(invalid)).has('turbo.json'), false);
+  assert.equal(
+    reviewedSharedFileScopes({
+      changedPaths: ['scripts/admin-csp-other.mjs'],
+      packages,
+      games: [],
+      readBase: () => '',
+      readHead: () => '',
+    }).size,
+    0,
+  );
+});
+
 test('admin lock proof accepts only the 11 reviewed complete blocks, manifest tuple, and unchanged two-document remainder', () => {
   const file = 'pnpm-lock.yaml';
   const before = execFileSync('git', ['show', '6e9c1f7246090c7009e9519a8cda6e8efab956d5:' + file], {
     cwd: new URL('../', import.meta.url),
     encoding: 'utf8',
   });
-  const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
-    '\r\n',
-    '\n',
-  );
-  const manifest = JSON.parse(
-    readFileSync(new URL('../apps/admin-web/package.json', import.meta.url), 'utf8'),
-  );
+  const after = frozenAdminBaseline(file);
+  const manifest = JSON.parse(frozenAdminBaseline('apps/admin-web/package.json'));
   const packages = [{ dir: 'apps/admin-web', name: manifest.name }];
   const classify = (old, current, pkg = manifest) =>
     reviewedSharedFileScopes({
@@ -3274,22 +3373,33 @@ test('admin lock proof plans without installed YAML dependencies', async () => {
     cwd: new URL('../', import.meta.url),
     encoding: 'utf8',
   });
-  const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
-    '\r\n',
-    '\n',
-  );
-  const manifest = JSON.parse(
-    readFileSync(new URL('../apps/admin-web/package.json', import.meta.url), 'utf8'),
-  );
+  const after = frozenAdminBaseline(file);
+  const manifest = JSON.parse(frozenAdminBaseline('apps/admin-web/package.json'));
   const directory = await mkdtemp(join(tmpdir(), 'admin-gates-no-deps-'));
   try {
     for (const module of [
       'publication-scopes.mjs',
       'vite-patch-scope.mjs',
       'competition-ingress.mjs',
+      'admin-csp.mjs',
     ])
       await copyFile(new URL(module, import.meta.url), join(directory, module));
-    await writeFile(join(directory, 'fixture.json'), JSON.stringify({ before, after, manifest }));
+    await writeFile(
+      join(directory, 'fixture.json'),
+      JSON.stringify([
+        { before, after, manifest },
+        {
+          before: frozenAdminBaseline(file),
+          after: readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
+            '\r\n',
+            '\n',
+          ),
+          manifest: JSON.parse(
+            readFileSync(new URL('../apps/admin-web/package.json', import.meta.url), 'utf8'),
+          ),
+        },
+      ]),
+    );
     await writeFile(
       join(directory, 'probe.mjs'),
       `
@@ -3298,7 +3408,7 @@ test('admin lock proof plans without installed YAML dependencies', async () => {
       import { readFileSync } from 'node:fs';
       import { reviewedSharedFileScopes } from './publication-scopes.mjs';
       assert.throws(() => createRequire(import.meta.url).resolve('js-yaml'));
-      const { before, after, manifest } = JSON.parse(readFileSync(new URL('./fixture.json', import.meta.url), 'utf8'));
+      for (const { before, after, manifest } of JSON.parse(readFileSync(new URL('./fixture.json', import.meta.url), 'utf8'))) {
       const classify = (current, pkg = manifest) => reviewedSharedFileScopes({
         changedPaths: ['pnpm-lock.yaml'], games: [],
         packages: [{ dir: 'apps/admin-web', name: manifest.name }],
@@ -3308,6 +3418,7 @@ test('admin lock proof plans without installed YAML dependencies', async () => {
       assert.deepEqual(classify(after).get('pnpm-lock.yaml'), ['apps/admin-web']);
       assert.equal(classify(after + '\\n').has('pnpm-lock.yaml'), false);
       assert.equal(classify(after, { ...manifest, name: 'unreviewed' }).has('pnpm-lock.yaml'), false);
+      }
     `,
     );
     execFileSync(process.execPath, [join(directory, 'probe.mjs')], {

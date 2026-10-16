@@ -38,6 +38,7 @@ test('real Git push runs the production hook and default exact-SHA snapshot vali
       'nine-lock-scope.mjs',
       'publication-scopes.mjs',
       'competition-ingress.mjs',
+      'admin-csp.mjs',
       'vite-patch-scope.mjs',
       'pages-test-scope.mjs',
       'pages-registration-scope.mjs',

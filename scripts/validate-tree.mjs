@@ -388,6 +388,14 @@ export function runNineNativeChecks({
 }
 
 export function runIncrementalToolChecks({ plan, packages, root, env, execute = run }) {
+  if (plan.street_admission_checks)
+    execute(
+      process.execPath,
+      ['--test', 'platforms/competition/tests/street-admission.test.mjs'],
+      root,
+      env,
+      'logged',
+    );
   if (plan.identity_checks)
     execute(
       process.execPath,
@@ -580,6 +588,19 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
     execute(process.execPath, ['--test', 'scripts/deploy-backend.test.mjs'], root, env, 'logged');
   if (plan.admin_deployment_checks)
     execute(process.execPath, ['--test', 'scripts/deploy-admin.test.mjs'], root, env, 'logged');
+  if (plan.admin_csp_checks)
+    execute(
+      process.execPath,
+      [
+        '--test',
+        '--test-concurrency=1',
+        'scripts/admin-csp.test.mjs',
+        'scripts/admin-caddy-fixture.test.mjs',
+      ],
+      root,
+      env,
+      'logged',
+    );
   if (plan.competition_ingress_checks)
     execute(
       process.execPath,

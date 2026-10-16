@@ -340,7 +340,11 @@ const h5Files = [
   'platforms/competition/profile-dom.js',
   'scripts/test-competition-dialogs.mjs',
 ];
-const streetFiles = ['platforms/competition/street-pages.js', 'platforms/competition/street.css'];
+const streetFiles = [
+  'platforms/competition/street-pages.js',
+  'platforms/competition/street.css',
+  'platforms/competition/tests/street-admission.test.mjs',
+];
 const nativeFiles = ['platforms/competition/native.js', 'scripts/competition-native-smoke.mjs'];
 const builder = 'scripts/competition-build.mjs';
 const lettersTests = [
@@ -1344,6 +1348,34 @@ export const adminDeploymentScopePaths = [
 ];
 export const adminConsoleScopePaths = [...adminDeploymentScopePaths];
 const adminConsumers = ['services/management-api', 'apps/admin-web'];
+export const adminCspScopePaths = [
+  'scripts/admin-csp.mjs',
+  'scripts/admin-csp.d.mts',
+  'scripts/admin-csp.test.mjs',
+  'scripts/admin-caddy-fixture.mjs',
+  'scripts/admin-caddy-fixture.test.mjs',
+];
+function adminCspTurboOnly(before, after) {
+  try {
+    const previous = JSON.parse(before),
+      current = JSON.parse(after);
+    const key = '@coffeeeeffoc/admin-web#build';
+    assert(!Object.hasOwn(previous.tasks, key));
+    assert.deepEqual(current.tasks[key], {
+      dependsOn: ['^build'],
+      inputs: [
+        '$TURBO_DEFAULT$',
+        '$TURBO_ROOT$/scripts/admin-csp.mjs',
+        '$TURBO_ROOT$/scripts/admin-csp.d.mts',
+      ],
+      outputs: ['dist/**'],
+    });
+    delete current.tasks[key];
+    return isDeepStrictEqual(previous, current);
+  } catch {
+    return false;
+  }
+}
 export const sharedDeploymentScopePaths = [
   'scripts/company-deployment.mjs',
   'scripts/deployment-progress.mjs',
@@ -1475,9 +1507,118 @@ function lockBlocks(text) {
   }
   return blocks;
 }
-// One reviewed importer and ten complete immutable blocks, preserving both YAML documents byte for byte.
+const adminAntdPackages = [
+  '@ant-design/colors@8.0.1',
+  '@ant-design/cssinjs-utils@2.1.2',
+  '@ant-design/cssinjs@2.1.2',
+  '@ant-design/fast-color@3.0.1',
+  '@ant-design/icons-svg@4.6.0',
+  '@ant-design/icons@6.3.4',
+  '@ant-design/react-slick@2.0.0',
+  '@babel/runtime@8.0.7',
+  '@emotion/hash@0.8.0',
+  '@emotion/unitless@0.7.5',
+  '@rc-component/async-validator@6.0.0',
+  '@rc-component/cascader@1.22.0',
+  '@rc-component/checkbox@2.0.0',
+  '@rc-component/collapse@1.2.0',
+  '@rc-component/color-picker@3.1.1',
+  '@rc-component/context@2.0.2',
+  '@rc-component/dialog@1.10.0',
+  '@rc-component/drawer@1.4.2',
+  '@rc-component/dropdown@1.0.3',
+  '@rc-component/form@1.8.6',
+  '@rc-component/image@1.10.0',
+  '@rc-component/input-number@1.6.2',
+  '@rc-component/input@1.3.1',
+  '@rc-component/listy@1.2.3',
+  '@rc-component/mentions@1.12.0',
+  '@rc-component/menu@1.5.0',
+  '@rc-component/mini-decimal@1.1.4',
+  '@rc-component/motion@1.3.3',
+  '@rc-component/mutate-observer@2.0.1',
+  '@rc-component/notification@2.1.1',
+  '@rc-component/overflow@1.0.1',
+  '@rc-component/pagination@1.4.0',
+  '@rc-component/picker@1.12.2',
+  '@rc-component/portal@2.2.1',
+  '@rc-component/progress@1.0.3',
+  '@rc-component/qrcode@2.0.0',
+  '@rc-component/rate@1.0.1',
+  '@rc-component/resize-observer@1.1.2',
+  '@rc-component/segmented@1.4.0',
+  '@rc-component/select@1.10.1',
+  '@rc-component/slider@1.1.1',
+  '@rc-component/steps@1.2.3',
+  '@rc-component/switch@1.0.3',
+  '@rc-component/table@1.11.1',
+  '@rc-component/tabs@1.13.0',
+  '@rc-component/tooltip@1.5.2',
+  '@rc-component/tour@2.4.0',
+  '@rc-component/tree-select@1.16.1',
+  '@rc-component/tree@1.4.0',
+  '@rc-component/trigger@3.10.1',
+  '@rc-component/upload@1.1.1',
+  '@rc-component/util@1.14.0',
+  '@rc-component/virtual-list@1.5.2',
+  'antd@6.6.6',
+  'compute-scroll-into-view@3.1.1',
+  'dayjs@1.11.23',
+  'is-mobile@5.0.0',
+  'json2mq@0.2.0',
+  'scroll-into-view-if-needed@3.1.0',
+  'string-convert@0.2.1',
+  'stylis@4.4.0',
+  'throttle-debounce@5.0.2',
+];
+function adminAntdLockOnly(before, after, manifest) {
+  const digest = (text) => createHash('sha256').update(text).digest('hex');
+  assert.equal(digest(before), 'e502c45f69cc2ce487aefcca7b6745cb3703ba96d79b3e9194018c6f6ac6d0fe');
+  // Binds all 62 package integrities, peer-resolved snapshots and both YAML documents.
+  assert.equal(digest(after), '368395f73d1fb9465161f7e98568ee426623dbde047af5addc24ab0a7434dffb');
+  const canonicalManifest = manifest.replaceAll('\r\n', '\n');
+  assert.equal(canonicalManifest, JSON.stringify(JSON.parse(manifest), null, 2) + '\n');
+  assert.equal(
+    digest(canonicalManifest),
+    'ac4ed4049a84caf0a05e13c9b230c00552582e4075f4e10c062ccce6929f42f9',
+  );
+  const old = lockBlocks(before),
+    current = lockBlocks(after);
+  const added = current.filter(
+    (block) => !old.some((item) => item.table === block.table && item.key === block.key),
+  );
+  assert.equal(added.length, 124);
+  for (const table of ['packages', 'snapshots']) {
+    const keys = added
+      .filter((block) => block.table === table)
+      .map((block) => block.key.split('(')[0]);
+    assert.equal(new Set(keys).size, 62);
+    assert.deepEqual(keys.sort(), [...adminAntdPackages].sort());
+  }
+  const importer = (blocks) => {
+    const matches = blocks.filter(
+      (block) => block.table === 'importers' && block.key === 'apps/admin-web',
+    );
+    assert.equal(matches.length, 1);
+    return matches[0];
+  };
+  const remove = (text, blocks) => {
+    for (const block of [...blocks].sort((a, b) => b.start - a.start))
+      text = text.slice(0, block.start) + text.slice(block.end);
+    return text;
+  };
+  assert.equal(
+    remove(after, [...added, importer(current)]),
+    remove(before, [importer(old)]),
+    'Unrelated lockfile bytes changed',
+  );
+  return true;
+}
+// Exact initial admin addition or the separately reviewed AntD-only extension.
 function adminWebLockOnly(before, after, manifest) {
   const digest = (text) => createHash('sha256').update(text).digest('hex');
+  if (digest(before) === 'e502c45f69cc2ce487aefcca7b6745cb3703ba96d79b3e9194018c6f6ac6d0fe')
+    return adminAntdLockOnly(before, after, manifest);
   assert.equal(digest(before), '5fdaa007c884ee4f52f9c0d3d05d3bb8cf53db125fcbcb0fc9406ea45c29125f');
   assert.equal(digest(after), 'e502c45f69cc2ce487aefcca7b6745cb3703ba96d79b3e9194018c6f6ac6d0fe');
   const parsedManifest = JSON.parse(manifest);
@@ -1620,6 +1761,19 @@ export function reviewedSharedFileScopes({
   const scopes = vitePatchFileScopes({ changedPaths, readBase, readHead });
   for (const file of changedPaths) {
     try {
+      if (
+        adminCspScopePaths.includes(file) ||
+        (file === 'turbo.json' &&
+          readBase &&
+          readHead &&
+          adminCspTurboOnly(readBase(file), readHead(file)))
+      ) {
+        const consumers =
+          file === 'turbo.json' ? ['apps/admin-web'] : ['apps/admin-web', 'apps/company-web'];
+        for (const dir of consumers) assert(packages.some((pkg) => pkg.dir === dir));
+        scopes.set(file, consumers);
+        continue;
+      }
       if (file === 'infra/admin-console/migrations/002-control-center.sql') {
         const consumers = [...adminConsumers, 'services/runtime-api', 'services/kart-server'];
         for (const dir of consumers) assert(packages.some((pkg) => pkg.dir === dir));

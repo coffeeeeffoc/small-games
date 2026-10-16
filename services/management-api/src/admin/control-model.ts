@@ -117,6 +117,10 @@ export interface Head {
   version: number;
   revisionId: string | null;
 }
+/** Publication membership is projected for lists; immutable revision contents remain unchanged. */
+export interface ListedRevision extends Revision {
+  publishedVersion: number | null;
+}
 export interface GamePolicy {
   gameId: (typeof CONTROL_GAMES)[number];
   state: 'enabled' | 'draining' | 'disabled';
@@ -168,7 +172,7 @@ export interface ControlTransaction {
   ): Promise<boolean>;
   policies(): Promise<GamePolicy[]>;
   published(id: string): Promise<boolean>;
-  revisions(): Promise<Revision[]>;
+  revisions(): Promise<ListedRevision[]>;
   revision(id: string): Promise<Revision | undefined>;
   insertRevision(revision: Revision): Promise<void>;
   observations(): Promise<Observation[]>;

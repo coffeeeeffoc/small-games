@@ -24,6 +24,7 @@ import {
   companyDeploymentScopePaths,
   competitionIngressScopePaths,
   adminDeploymentScopePaths,
+  adminCspScopePaths,
   backendDeploymentScopePaths,
   backendSharedScopePaths,
   runtimeProxyDefaultScopePaths,
@@ -259,6 +260,21 @@ export function incrementalPlan({
     browser: ids.size > 0,
     browser_ids: [...ids].sort(),
     admin_console_checks: adminConsoleChecks,
+    ...(paths.some((file) =>
+      [
+        'platforms/competition/tests/street-admission.test.mjs',
+        'games/local/cops-robbers-realtime/src/main.js',
+        'games/local/cops-robbers-realtime/src/native.js',
+        'games/local/cops-robbers-realtime/src/records.js',
+      ].includes(file),
+    )
+      ? { street_admission_checks: true }
+      : {}),
+    ...(paths.some(
+      (file) => adminCspScopePaths.includes(file) || file === 'scripts/competition-ingress.mjs',
+    )
+      ? { admin_csp_checks: true }
+      : {}),
     ...(paths.some(
       (file) =>
         adminDeploymentScopePaths.includes(file) ||

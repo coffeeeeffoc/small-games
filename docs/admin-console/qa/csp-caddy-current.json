@@ -1,0 +1,28 @@
+{
+  "testedAt": "2026-10-16T22:02:12.850Z",
+  "node": "v24.21.0",
+  "platform": "win32",
+  "caddy": {
+    "version": "2.11.7",
+    "archiveSha256": "0a1edc0b799512051c57071ce0e798d3f2cf67dc98171366f1d2b326072e3b06",
+    "executableSha256": "5f93a9bd555f3aac9d33af2756ba14b3519d8cca4ffd55256bdaeab444c9db2a"
+  },
+  "fixtureResponses": true,
+  "productionAccess": false,
+  "realGithubLoginVerified": false,
+  "realDeviceVerified": false,
+  "sourceHashes": {
+    "scripts/admin-csp.mjs": "940aa2ba8caa47dc26239c0fc570731054072e8c13af78c09c9a374ec372f255",
+    "scripts/admin-caddy-fixture.mjs": "ac879a9401509b4d94ecbcc7a0d0942d3b47ecacb7f392289b74afdef18ad01c",
+    "scripts/admin-caddy-fixture.test.mjs": "043372b63ae325970829fd696db8f3cd3ff9e38dcb8348e5bfea8b45cd94eefa",
+    "scripts/competition-ingress.mjs": "d09cb06be322e545a26594da02d8d9eba2b517d70c159f89207b0b34a07d64c2"
+  },
+  "checks": [
+    "eight-finite-documents-and-403",
+    "fresh-canonical-32-byte-nonce-per-response",
+    "all-six-conditionals-and-range-stripped-before-file-server",
+    "HEAD-and-write-methods",
+    "assets-and-API-never-template",
+    "unknown-raw-index-and-missing-index-fail-closed"
+  ]
+}
