@@ -14,6 +14,7 @@ import {
   isExpectedTouchRequest,
   touchAttemptFinished,
   completeTouchResponse,
+  prepareTouchCanvas,
 } from './h5-taptap-touch.mjs';
 import { createRenderer as copsRenderer } from '../games/local/cops-robbers/src/competition-renderer.js';
 import { chooseDuelAction, stepDuel } from '../games/local/cops-robbers/src/duel.js';
@@ -172,11 +173,12 @@ async function touchAction(player, wanted, planningState) {
     'Playing canvas or authoritative settlement',
   );
   if (player.room.status === 'finished') return false;
-  await canvas.scrollIntoViewIfNeeded();
+  if (!(await prepareTouchCanvas(canvas, () => player.room.status === 'finished'))) return false;
   const dimensions = await canvas.evaluate((element) => ({
     width: element.clientWidth,
     height: element.clientHeight,
   }));
+  if (player.room.status === 'finished') return false;
   assert(dimensions.width > 0 && dimensions.height > 0);
   const original = player.room.state;
   const state = projected(player.variant.game, original, dimensions.width, dimensions.height);
@@ -219,7 +221,7 @@ async function touchAction(player, wanted, planningState) {
   const tap = async ([x, y]) => {
     if (player.room.status === 'finished') return false;
     const box = await canvas.boundingBox();
-    if (!box && player.room.status === 'finished') return false;
+    if (player.room.status === 'finished') return false;
     assert(box, 'Canvas disappeared');
     const screenX = box.x + (x * box.width) / dimensions.width;
     const screenY = box.y + (y * box.height) / dimensions.height;

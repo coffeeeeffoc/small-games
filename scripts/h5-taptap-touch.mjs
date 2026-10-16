@@ -73,3 +73,13 @@ export async function completeTouchResponse(expected, processResponse) {
     if (expected) expected.completed = true;
   }
 }
+
+export async function prepareTouchCanvas(canvas, isFinished) {
+  try {
+    await canvas.scrollIntoViewIfNeeded({ timeout: 2000 });
+  } catch (error) {
+    if (error.name !== 'TimeoutError' || !isFinished() || (await canvas.isVisible())) throw error;
+    return false;
+  }
+  return !isFinished();
+}

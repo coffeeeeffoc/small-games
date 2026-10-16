@@ -6,6 +6,7 @@ import {
   isExpectedTouchRequest,
   touchAttemptFinished,
   completeTouchResponse,
+  prepareTouchCanvas,
 } from './h5-taptap-touch.mjs';
 import { getLevels } from '../games/local/cops-robbers-realtime/src/levels.js';
 import {
@@ -53,6 +54,53 @@ test('only a matching planned runner movement may enter the verified blocked-rou
     { input: { ...request, action: { ...request.action, score: 3 } } },
   ])
     assert.equal(Boolean(isBlockedStreetTouch({ ...fixture, ...change })), false);
+});
+
+test('canvas preparation only tolerates a hidden canvas after authoritative settlement', async () => {
+  const timeout = Object.assign(new Error('fixture hidden canvas'), { name: 'TimeoutError' });
+  let finished = false;
+  const canvas = {
+    async scrollIntoViewIfNeeded(options) {
+      assert.equal(options.timeout, 2000);
+      finished = true;
+      throw timeout;
+    },
+    async isVisible() {
+      return false;
+    },
+  };
+  assert.equal(await prepareTouchCanvas(canvas, () => finished), false);
+  await assert.rejects(
+    prepareTouchCanvas(canvas, () => false),
+    (error) => error === timeout,
+  );
+  await assert.rejects(
+    prepareTouchCanvas(
+      {
+        ...canvas,
+        async isVisible() {
+          return true;
+        },
+      },
+      () => true,
+    ),
+    (error) => error === timeout,
+  );
+  const unrelated = new Error('fixture unrelated error');
+  await assert.rejects(
+    prepareTouchCanvas(
+      {
+        ...canvas,
+        async scrollIntoViewIfNeeded() {
+          throw unrelated;
+        },
+      },
+      () => true,
+    ),
+    (error) => error === unrelated,
+  );
+  assert.equal(await prepareTouchCanvas({ async scrollIntoViewIfNeeded() {} }, () => false), true);
+  assert.equal(await prepareTouchCanvas({ async scrollIntoViewIfNeeded() {} }, () => true), false);
 });
 
 test('finished polling cannot bypass a sent touch with delayed response headers or body', async () => {
