@@ -29,3 +29,8 @@ await cp(
   new URL('../../../platforms/competition/game-services.js', import.meta.url),
   new URL('game-services.js', dist),
 );
+
+await cp(
+  new URL('../../../platforms/competition/client.js', import.meta.url),
+  new URL('client.js', dist),
+);

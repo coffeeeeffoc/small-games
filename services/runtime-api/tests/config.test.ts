@@ -6,6 +6,12 @@ it('rejects configuration typos and partial capability configuration without ech
   for (const invalid of [
     { COMPETITION_ENABLED: 'yes' },
     { TRUST_PROXY: 'true' },
+    { TRUST_PROXY: '1' },
+    { TRUST_PROXY: '1', RUNTIME_TRUSTED_PROXY_IP: 'uniquelocal' },
+    { TRUST_PROXY: '1', RUNTIME_TRUSTED_PROXY_IP: '172.18.0.0/16' },
+    { TRUST_PROXY: '1', RUNTIME_TRUSTED_PROXY_IP: '172.18.0.4,127.0.0.1' },
+    { TRUST_PROXY: '1', RUNTIME_TRUSTED_PROXY_IP: ' 172.18.0.4' },
+    { TRUST_PROXY: '0', RUNTIME_TRUSTED_PROXY_IP: '172.18.0.4' },
     { RUNTIME_DATABASE_URL: 'https://credential:private@example.com' },
     { RELEASE_PROJECTION_TOKEN: 'sensitive-token' },
     { SHELL_ORIGIN: 'https://games.example.com' },
@@ -18,6 +24,12 @@ it('rejects configuration typos and partial capability configuration without ech
   } catch (error) {
     expect(String(error)).not.toContain('sensitive-token');
   }
+});
+it('accepts only an explicitly enabled exact proxy address', () => {
+  for (const address of ['172.18.0.4', '::1'])
+    expect(() =>
+      validateRuntimeEnvironment({ ...base, TRUST_PROXY: '1', RUNTIME_TRUSTED_PROXY_IP: address }),
+    ).not.toThrow();
 });
 it('requires explicit competition origins and internal key in production', () => {
   const env = { ...base, NODE_ENV: 'production', COMPETITION_ENABLED: 'true' };

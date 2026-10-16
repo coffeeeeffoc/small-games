@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { competitionIdentityFileScope } from './publication-scopes.mjs';
 const formatter = createRequire(import.meta.url);
 const tapWorkflow = '.github/workflows/taptap-cocos.yml';
 const tapWorkflowSha256 = '16b39a784ea6a1f1bc4553e4260d545452214c083aac0a61ba692da59b3c0851';
@@ -655,6 +656,10 @@ export function nineNativeFileScopes({ changedPaths, readBase, readHead, games, 
   ]) {
     if (!changedPaths.includes(file)) continue;
     try {
+      if (file === 'platforms/competition/client.js') {
+        scopes.set(file, competitionIdentityFileScope({ games, packages, readBase, readHead }));
+        continue;
+      }
       for (const text of [readBase(file), readHead(file)]) {
         assert.equal(typeof text, 'string');
         assert(text.trim());
@@ -663,12 +668,7 @@ export function nineNativeFileScopes({ changedPaths, readBase, readHead, games, 
           'New shared module dependencies require ownership review',
         );
       }
-      const consumers =
-        file === 'platforms/kart-sharing.js'
-          ? ['carding-car']
-          : file.endsWith('client.js')
-            ? [...competitionGames, 'carding-car']
-            : competitionGames;
+      const consumers = file === 'platforms/kart-sharing.js' ? ['carding-car'] : competitionGames;
       for (const id of consumers) {
         const source = id === 'carding-car' ? 'games/local/carding-car' : sources[id];
         assert.equal(games.filter((game) => game.id === id).length, 1);

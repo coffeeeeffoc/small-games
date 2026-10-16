@@ -185,6 +185,19 @@ integration(
       ).toBe(false);
       expect(guestBoard.reason).toContain('登录');
       time += 86_400_001;
+      // This probe expires the game run, not the player's authentication.
+      for (const credential of [a, b, c]) {
+        const account = await database.db.execute(
+          sql`select app_id,subject from runtime.competition_players where id=${credential.playerId}`,
+        );
+        const renewed = await identities.session(
+          'wechat',
+          String(account[0]!.app_id),
+          String(account[0]!.subject),
+        );
+        expect(renewed.userId).toBe(credential.playerId);
+        Object.assign(credential, renewed);
+      }
       const expired = await request(`/session/${next.id}`, a);
       expect(expired.status).toBe('finished');
       expect(expired.settlement.reason).toBe('SESSION_EXPIRED');

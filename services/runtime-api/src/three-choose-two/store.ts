@@ -84,12 +84,19 @@ export function createThreeChooseTwoStore(
       await save(tx, session);
     }
   }
-  async function create(playerId: string) {
+  async function create(playerId: string, token?: string) {
     return db.transaction(async (tx) => {
       // Serialize creation across devices; the partial unique index is an additional guard.
       await tx.execute(
         sql`select id from runtime.competition_players where id=${playerId} for update`,
       );
+      // Upgrade revokes guest credentials under this same player lock.
+      if (token) {
+        const valid = await tx.execute(sql`select 1 from runtime.competition_sessions
+          where player_id=${playerId} and token_hash=${createHash('sha256').update(token).digest('hex')}
+          and expires_at>${now()}`);
+        if (!valid[0]) throw new CompetitionError('SESSION_EXPIRED', 401);
+      }
       const canRank = await eligible(playerId, tx);
       const rows = await tx.execute(
         sql`select data from runtime.three_choose_two_sessions where player_id=${playerId} and status='active' for update`,

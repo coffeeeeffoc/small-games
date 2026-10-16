@@ -224,7 +224,11 @@ export function renderBundleCompose(config) {
     const env = item.environment;
     if (['runtime', 'management'].includes(service)) {
       item.depends_on = { postgres: { condition: 'service_healthy' } };
-      Object.assign(env, { HOST: '0.0.0.0', PORT: String(port), TRUST_PROXY: '1' });
+      Object.assign(env, {
+        HOST: '0.0.0.0',
+        PORT: String(port),
+        TRUST_PROXY: service === 'runtime' ? '0' : '1',
+      });
     }
     if (service === 'runtime') {
       Object.assign(env, {

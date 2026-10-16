@@ -126,6 +126,10 @@ export function tunnelArgs(config) {
 
 export function serverPreflight(config) {
   return `set -eu
+if [ -e '${config.ECS_DEPLOY_DIR}/ingress-managed' ] || [ -L '${config.ECS_DEPLOY_DIR}/ingress-managed' ]; then
+  echo 'Managed competition ingress is active; legacy full-stack deployment is disabled.' >&2
+  exit 1
+fi
 docker compose version
 version=$(docker version --format '{{.Server.Version}}')
 printf 'Docker Engine: %s\\n' "$version"
@@ -381,6 +385,7 @@ async function main() {
     '010-competition.sql',
     '011-competition-profiles.sql',
     '012-three-choose-two.sql',
+    '013-competition-identities.sql',
   ])
     await cp(path.join(root, 'infra/migrations', file), path.join(bundle, 'migrations', file));
   await writeFile(

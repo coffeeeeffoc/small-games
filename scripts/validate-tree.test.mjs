@@ -21,6 +21,7 @@ test('optional service and importer contracts still run with native release gate
   };
   runIncrementalToolChecks(options);
   assert(calls.some(([, args]) => args.includes('scripts/competition-service-config.test.mjs')));
+  assert(calls.some(([, args]) => args.includes('scripts/h5-taptap-matrix.test.mjs')));
   assert(
     calls.some(([, args]) => args.includes('apps/shell-minigame/scripts/taptap-cocos.test.mjs')),
   );
@@ -107,7 +108,8 @@ test('actual incremental builds preserve emitted dependency order without buildi
   const options = {
     root,
     incremental: true,
-    env: process.env,
+    // The isolated fixture has no lockfile; run the installed pinned pnpm without resolving itself online.
+    env: { ...process.env, PNPM_CONFIG_PM_ON_FAIL: 'ignore' },
     selectScope: async () => ({ required: true, full: false, risk: 'rules' }),
     prepareBrowser: () => assert.fail('Backend input changes do not need a browser'),
     execute(command, args, cwd, env, capture) {
@@ -697,6 +699,34 @@ test('publishing and deployment contracts run with native gates deferred and ser
         },
       }),
     /regression/,
+  );
+});
+test('competition ingress has a mandatory finite candidate gate and propagates failures', async () => {
+  const { runIncrementalToolChecks } = await import('./validate-tree.mjs');
+  const calls = [];
+  const options = {
+    plan: {
+      competition_ingress_checks: true,
+      native_consumers: [],
+      developer_mode_ids: [],
+      service_rule_sources: [],
+    },
+    packages: [],
+    root: '/fixture',
+    env: { MINIGAME_RELEASE_GATES: '0' },
+    execute: (command, args) => calls.push(args),
+  };
+  runIncrementalToolChecks(options);
+  assert.deepEqual(calls, [['--test', 'scripts/competition-ingress.test.mjs']]);
+  assert.throws(
+    () =>
+      runIncrementalToolChecks({
+        ...options,
+        execute() {
+          throw new Error('ingress regression');
+        },
+      }),
+    /ingress regression/,
   );
 });
 test('native publication gates default off, retain root rules and preserve Web checks', async () => {
@@ -1543,4 +1573,61 @@ test('game service client, gateway and deployment checks run in the candidate an
       }),
     /game service regression/,
   );
+});
+
+test('identity checks execute only the finite Node suites and propagate failures', () => {
+  const calls = [];
+  const options = {
+    plan: { identity_checks: true, native_consumers: [], developer_mode_ids: [] },
+    packages: [],
+    root: '/candidate',
+    env: { MINIGAME_RELEASE_GATES: '0' },
+    execute: (...args) => calls.push(args),
+  };
+  runIncrementalToolChecks(options);
+  assert.deepEqual(
+    calls.map(([, args]) => args),
+    [
+      [
+        '--test',
+        'scripts/competition-client.test.mjs',
+        'platforms/competition/tests/game-services.test.mjs',
+        'platforms/competition/tests/identity.test.mjs',
+      ],
+    ],
+  );
+  assert(!calls.flatMap(([, args]) => args).includes('platforms/douyin/tests/login.test.mjs'));
+  assert.throws(
+    () =>
+      runIncrementalToolChecks({
+        ...options,
+        execute: () => {
+          throw new Error('identity regression');
+        },
+      }),
+    /identity regression/,
+  );
+});
+
+test('identity and game-service checks share their Node suite without duplicating it', () => {
+  const calls = [];
+  runIncrementalToolChecks({
+    plan: {
+      identity_checks: true,
+      game_services_checks: true,
+      native_consumers: [],
+      developer_mode_ids: [],
+    },
+    packages: [],
+    root: '/candidate',
+    env: { MINIGAME_RELEASE_GATES: '0' },
+    execute: (...args) => calls.push(args),
+  });
+  assert.equal(
+    calls
+      .flatMap(([, args]) => args)
+      .filter((file) => file === 'platforms/competition/tests/game-services.test.mjs').length,
+    1,
+  );
+  assert(calls.some(([, args]) => args.includes('scripts/competition-gateway.test.mjs')));
 });

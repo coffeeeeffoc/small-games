@@ -3,6 +3,7 @@ import styles from './h5.css?inline';
 import { scoreText, gapText, playerName } from './format.js';
 import { mountStreetCompetition } from './street-pages.js';
 import { competitionAvailable } from './service-config.js';
+import { renderAvatar, regionText, profileDetails } from './profile-dom.js';
 
 const titles = {
   'cops-robbers': '围捕小队',
@@ -391,13 +392,27 @@ export function mountCompetition(game, createRenderer) {
   function updateProfile(value) {
     profile = value;
     select('[data-profile-name]').textContent = value.name;
-    select('[data-avatar]').textContent = Array.from(value.name)[0] || '你';
+    renderAvatar(select('[data-avatar]'), value, client.avatarPolicy);
   }
   async function showProfile() {
     updateProfile(await client.request('/me'));
     const sheet = detailPanel('让好友认出你', '昵称可修改，成绩和身份不会改变。', 'profile');
+    const expectedUserId = profile.userId || profile.playerId;
+    const active = () =>
+      isOpen() &&
+      !details.hidden &&
+      sheet.isConnected &&
+      sheet.closest('[data-details]') === details;
+    const hero = text('div', '', 'pk-profile-hero');
+    hero.append(
+      renderAvatar(text('span', '', 'pk-avatar'), profile, client.avatarPolicy),
+      text('strong', profile.name),
+      text('small', profile.identityKind === 'platform' ? '平台身份' : '游客身份 · 当前浏览器保存'),
+    );
+    sheet.append(hero);
     const form = document.createElement('form');
     form.className = 'pk-profile-form';
+    form.dataset.userId = expectedUserId;
     const label = text('label', '你的昵称'),
       input = document.createElement('input');
     input.name = 'name';
@@ -418,11 +433,27 @@ export function mountCompetition(game, createRenderer) {
     save.type = 'submit';
     form.append(message, save);
     sheet.append(form);
+    sheet.append(text('p', profileDetails(profile), 'pk-sheet-note'));
+    if (client.canSyncProfile?.()) {
+      const sync = action(
+        '同步已授权的平台资料',
+        () =>
+          void run(async () => {
+            const value = await client.syncProfile(expectedUserId);
+            if (!active()) return;
+            updateProfile(value);
+            dismiss();
+            feedback('平台资料已同步。');
+          }),
+        'pk-secondary',
+      );
+      sheet.append(sync);
+    }
     const identity = document.createElement('details');
     identity.className = 'pk-profile-id';
     identity.append(
       text('summary', '查看我的玩家 ID'),
-      text('code', profile.playerId),
+      text('code', profile.userId || profile.playerId),
       text('p', '系统自动生成，只用于识别账号。昵称和短编号不能用来登录或找回游客身份。'),
     );
     sheet.append(identity);
@@ -432,8 +463,15 @@ export function mountCompetition(game, createRenderer) {
       save.disabled = true;
       message.textContent = '正在保存…';
       try {
-        updateProfile(await client.request('/me', { body: JSON.stringify({ name: input.value }) }));
+        const value = await client.request(
+          '/me',
+          { body: JSON.stringify({ name: input.value }) },
+          expectedUserId,
+        );
+        if (!active()) return;
+        updateProfile(value);
         if (room) accept(await client.request(`/rooms/${room.code}`));
+        if (!active()) return;
         dismiss();
         feedback('昵称已保存，房间和全站榜会使用新名字。');
       } catch (error) {
@@ -455,7 +493,7 @@ export function mountCompetition(game, createRenderer) {
       if (player) {
         card.toggleAttribute('data-ready', !!player.ready);
         card.append(
-          text('span', Array.from(player.name || '新')[0], 'pk-avatar'),
+          renderAvatar(text('span', '', 'pk-avatar'), player, client.avatarPolicy),
           text('strong', playerName(player, room.players) + (seat === room.you ? '（你）' : '')),
           text(
             'small',
@@ -473,6 +511,7 @@ export function mountCompetition(game, createRenderer) {
               .join(' · '),
           ),
         );
+        if (regionText(player)) card.append(text('small', regionText(player), 'pk-region'));
       } else {
         card.dataset.empty = '';
         card.append(
@@ -582,6 +621,7 @@ export function mountCompetition(game, createRenderer) {
         player = room.players.find((p) => p.id === entry.playerId),
         card = text('section', '', 'pk-result');
       card.append(
+        renderAvatar(text('span', '', 'pk-avatar'), player, client.avatarPolicy),
         text(
           'h3',
           (me ? '你 · ' : '') + playerName(player || { playerId: entry.playerId }, room.players),
@@ -655,9 +695,12 @@ export function mountCompetition(game, createRenderer) {
           ),
         );
       if (row.playerId === board.me?.playerId) label.append(text('small', '你'));
+      if (regionText(row)) label.append(text('small', regionText(row), 'pk-region'));
+      const name = text('span', '', 'pk-rank-person');
+      name.append(renderAvatar(text('span', '', 'pk-avatar'), row, client.avatarPolicy), label);
       item.append(
         text('span', String(row.rank), 'pk-rank-number'),
-        label,
+        name,
         text('span', scoreText(game, row.score, row.secondary), 'pk-rank-score'),
       );
       list.append(item);

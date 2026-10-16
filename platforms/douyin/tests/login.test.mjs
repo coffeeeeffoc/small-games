@@ -27,7 +27,7 @@ function client(result) {
       });
     },
   };
-  const context = vm.createContext({ Date, console });
+  const context = vm.createContext({ Date, console, setTimeout, clearTimeout });
   vm.runInContext(source, context);
   context.__installCompetition(
     {
@@ -56,7 +56,11 @@ test('existing native client sends authenticated tt.login code and caches only s
     code: 'single-use-tt-code',
   });
   assert.equal(requests[0].timeout, 8000);
-  assert.equal(writes[0].key, 'competition-session-v1:douyin:tt-test-app');
+  assert.equal(
+    writes[0].key,
+    'competition-session-v2:' +
+      encodeURIComponent('https://api.game.test/api/competition/v1|douyin|tt-test-app'),
+  );
   assert.equal(writes[0].value.includes('single-use-tt-code'), false);
 });
 

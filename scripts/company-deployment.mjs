@@ -140,7 +140,7 @@ export async function fileHashes(directory, prefix = '') {
   return result;
 }
 
-export function ssh(config, script) {
+export function ssh(config, script, { capture = false } = {}) {
   assert(config.host, 'Set ECS_HOST in .env.tencent.local or .env.company.local');
   return command(
     'ssh',
@@ -161,6 +161,6 @@ export function ssh(config, script) {
       `${config.user}@${config.host}`,
       'bash -s',
     ],
-    { input: script, stdio: ['pipe', 'inherit', 'inherit'] },
+    { input: script, stdio: capture ? 'pipe' : ['pipe', 'inherit', 'inherit'] },
   );
 }

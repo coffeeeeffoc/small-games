@@ -79,6 +79,9 @@ test('internal deployment isolates ports, serves local files, and needs no COS/d
     './site:/srv/site:ro',
   ]);
   assert.equal(compose.services.runtime.environment.COMPETITION_ORIGINS, '${APP_ORIGIN:?required}');
+  assert.equal(compose.services.runtime.environment.TRUST_PROXY, '0');
+  assert.equal(compose.services.kart.environment.TRUST_PROXY, '1');
+  assert(!Object.hasOwn(compose.services.runtime.environment, 'RUNTIME_TRUSTED_PROXY_IP'));
   assert.equal(compose.services.kart.environment.KART_ALLOWED_ORIGINS, '${APP_ORIGIN:?required}');
   assert.equal(config.APP_ORIGIN, 'http://localhost:8080');
   assert.ok(tunnelArgs(config).includes('127.0.0.1:8080:127.0.0.1:8080'));

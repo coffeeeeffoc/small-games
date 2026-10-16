@@ -6,6 +6,11 @@ cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
 set -a
 source .env
 set +a
+# A managed ingress owns Nginx; legacy full-stack publication must not replace it.
+if [[ -e "$ECS_DEPLOY_DIR/ingress-managed" || -L "$ECS_DEPLOY_DIR/ingress-managed" ]]; then
+    echo 'Managed competition ingress is active; use deploy:caddy for proxy changes.' >&2
+    exit 1
+fi
 compose() { docker compose --project-name small-games --env-file .env -f compose.yaml "$@"; }
 for command in docker flock curl; do
     command -v "$command" >/dev/null || { echo "Missing server command: $command" >&2; exit 1; }
@@ -25,6 +30,11 @@ fi
 mkdir -p "$ECS_DEPLOY_DIR"/{backups,nginx-extra,www}
 exec 9>"$ECS_DEPLOY_DIR/deploy.lock"
 flock -n 9 || { echo 'Another deployment is running.' >&2; exit 1; }
+# A managed ingress owns Nginx; legacy full-stack publication must not replace it.
+if [[ -e "$ECS_DEPLOY_DIR/ingress-managed" || -L "$ECS_DEPLOY_DIR/ingress-managed" ]]; then
+    echo 'Managed competition ingress is active; use deploy:caddy for proxy changes.' >&2
+    exit 1
+fi
 previous=$(readlink -f "$ECS_DEPLOY_DIR/current" || true)
 switched=false
 failed() {

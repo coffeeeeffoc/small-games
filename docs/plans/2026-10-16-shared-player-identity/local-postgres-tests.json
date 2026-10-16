@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-16",
+  "candidate": "uncommitted working tree based on 26756c80cfa4ddf9bda16269265e353fddeaeeaf",
+  "database": "competition_test",
+  "container": "small-games-h5-matrix-20261015",
+  "binding": "127.0.0.1:15439 -> 5432",
+  "postgres": "17.6",
+  "node": "24.21.0",
+  "scope": "Real PostgreSQL and loopback HTTP; official platform exchange in identity tests is explicitly mocked. Not physical devices or natural game acceptance.",
+  "fixtureDatabaseRole": "platform_owner for isolated fixture data and cleanup; real game Runtime app role still to be verified by browser matrix",
+  "migrationSha256": "807825e0f99eb41b0ad97c0b1a7a2a98d5cbf1ad0d9d7406e08c2ed557c0978f",
+  "oldTables": 13,
+  "originalRowsAndAclPreserved": true,
+  "repeatedMigrationIdempotent": true,
+  "refreshTablePrivileges": {
+    "select": true,
+    "insert": true,
+    "delete": true,
+    "update": false
+  },
+  "runs": [
+    {
+      "command": "vitest run --maxWorkers=1",
+      "passed": 178,
+      "failed": 2,
+      "skipped": 0,
+      "failures": "Existing Flick party4 and three-choose-two exceeded default 5000ms."
+    },
+    {
+      "command": "vitest run tests/flick-rooms.integration.test.ts tests/three-choose-two.integration.test.ts --maxWorkers=1 --testTimeout=30000",
+      "passed": 7,
+      "failed": 1,
+      "skipped": 0,
+      "failures": "Three-choose-two test clock advanced one day; later B/C profile requests still used expired credentials."
+    },
+    {
+      "command": "vitest run tests/three-choose-two.integration.test.ts --maxWorkers=1 --testTimeout=30000",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "repair": "All three fixture platform users reauthenticate under the same scoped tuple; UUID preservation is asserted. No production behavior or game assertion relaxed."
+    }
+  ],
+  "uniqueTestsPassedAcrossRuns": 180,
+  "realDatabaseCases": 18,
+  "limits": [
+    "Actual platform SDK and real account login not verified",
+    "Actual APK compatibility unknown",
+    "Three requested games natural mobile-touch matches for new candidate pending",
+    "Production deployment not performed"
+  ]
+}

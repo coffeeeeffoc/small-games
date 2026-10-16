@@ -1,8 +1,10 @@
 /* eslint-disable max-lines -- Room transactions and settlement share lock ordering; keep them visible in one store. */
-import { createHash, randomBytes, randomInt, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomInt } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import type { openDatabase } from '@coffeeeeffoc/service-kit';
 import { CompetitionError, type Room, type Rule } from './types.js';
+import { createCompetitionIdentities } from './identity-store.js';
+import { publicProfile, publicResult, publicRoomResults } from './profile.js';
 
 type Database = ReturnType<typeof openDatabase>['db'];
 type Tx = Parameters<Parameters<Database['transaction']>[0]>[0];
@@ -13,74 +15,28 @@ const ruleSeat = (rule: Rule, room: Room, seat: number) =>
   rule.roles ? rule.roles.indexOf(room.players[seat]!.role!) : seat;
 
 export function createCompetitionStore(db: Database, rules: Map<string, Rule>, now = Date.now) {
-  async function identity(token: string) {
-    const rows = await db.execute(
-      sql`select player_id from runtime.competition_sessions where token_hash=${hash(token)} and expires_at>${now()}`,
-    );
-    if (!rows[0]) throw new CompetitionError('SESSION_EXPIRED', 401);
-    return String(rows[0].player_id);
-  }
-  async function profile(playerId: string, name?: string) {
-    if (name !== undefined)
-      await db.execute(
-        sql`update runtime.competition_players set display_name=${name} where id=${playerId}`,
-      );
-    const rows = await db.execute(
-      sql`select id as "playerId",coalesce(display_name,'新玩家') as name from runtime.competition_players where id=${playerId}`,
-    );
-    if (!rows[0]) throw new CompetitionError('SESSION_EXPIRED', 401);
-    return rows[0];
-  }
-  async function identityDetails(playerId: string | null) {
-    if (!playerId)
-      return {
-        kind: 'anonymous',
-        authenticated: false,
-        provider: null,
-        playerId: null,
-        name: null,
-      };
-    const rows = await db.execute(
-      sql`select platform,coalesce(display_name,'新玩家') as name from runtime.competition_players where id=${playerId}`,
-    );
-    if (!rows[0]) throw new CompetitionError('SESSION_EXPIRED', 401);
-    const provider = String(rows[0].platform);
-    return {
-      kind: provider === 'guest' ? 'guest' : 'platform',
-      authenticated: provider !== 'guest',
-      provider: provider === 'guest' ? null : provider,
-      playerId,
-      name: String(rows[0].name),
-    };
-  }
-  async function session(platform = 'guest', appId = '', subject?: string) {
-    const token = randomBytes(32).toString('hex');
-    const expiresAt = now() + 180 * 86400_000;
-    return db.transaction(async (tx) => {
-      const rows =
-        await tx.execute(sql`insert into runtime.competition_players(id,platform,app_id,subject,created_at)
-        values(${randomUUID()},${platform},${appId},${subject ?? null},${now()})
-        on conflict(platform,app_id,subject) do update set subject=excluded.subject returning id`);
-      const playerId = String(rows[0]!.id);
-      await tx.execute(
-        sql`insert into runtime.competition_sessions values(${hash(token)},${playerId},${expiresAt})`,
-      );
-      return { playerId, token, expiresAt };
-    });
-  }
   function ruleFor(game: string) {
     const rule = rules.get(game);
     if (!rule) throw new CompetitionError('GAME_UNAVAILABLE', 404);
     return rule;
   }
   async function ranking(board: string, playerId: string | null, executor: Database | Tx = db) {
-    const rows = await executor.execute(sql`with ranked as (
-      select player_id as "playerId", coalesce(p.display_name,'新玩家') as name, score, secondary,
+    const rankedRows = await executor.execute(sql`with ranked as (
+      select player_id as "playerId", p.display_name,p.profile, score, secondary,
       rank() over(order by score desc,secondary asc)::int as rank,
       row_number() over(order by score desc,secondary asc,player_id)::int as position,
       count(*) over()::int as total from runtime.competition_best b join runtime.competition_players p on p.id=b.player_id where board=${board}
     ) select * from ranked where position<=100 or "playerId"=${playerId}
       or position=(select max(position) from ranked where rank<(select rank from ranked where "playerId"=${playerId})) order by position`);
+    const rows = rankedRows.map((row) => ({
+      ...publicProfile(row),
+      playerId: String(row.playerId),
+      score: Number(row.score),
+      secondary: Number(row.secondary),
+      rank: Number(row.rank),
+      position: Number(row.position),
+      total: Number(row.total),
+    }));
     const top = rows.filter((row) => Number(row.position) <= 100);
     const me = rows.find((row) => row.playerId === playerId) ?? null;
     const previous = me
@@ -167,12 +123,12 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
     if (seat < 0) throw new CompetitionError('NOT_A_MEMBER', 403);
     const member = room.players[seat]!;
     const names = await executor.execute(
-      sql`select id,coalesce(display_name,'新玩家') as name from runtime.competition_players where id in (${sql.join(
+      sql`select id,display_name,profile from runtime.competition_players where id in (${sql.join(
         room.players.map((p) => sql`${p.id}::uuid`),
         sql`,`,
       )})`,
     );
-    const nameOf = (id: string) => String(names.find((p) => p.id === id)?.name ?? '新玩家');
+    const profileOf = (id: string) => publicProfile(names.find((p) => p.id === id) ?? { id });
     return {
       code: room.code,
       game: room.game,
@@ -186,10 +142,10 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
       you: seat,
       players: room.players.map(({ id, role, ready, result }) => ({
         id,
-        name: nameOf(id),
+        ...profileOf(id),
         role,
         ready,
-        result,
+        result: publicResult(result),
       })),
       seq: member.seq,
       startedAt: room.startedAt,
@@ -203,8 +159,9 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
               rule.duel ? room.players[0]!.state : member.state,
               ruleSeat(rule, room, seat),
             ),
-      opponent: room.players.length === 2 ? (room.players[1 - seat]?.result ?? null) : null,
-      results: room.results ?? null,
+      opponent:
+        room.players.length === 2 ? publicResult(room.players[1 - seat]?.result ?? null) : null,
+      results: publicRoomResults(room.results),
       rematch: room.rematch,
     };
   }
@@ -222,6 +179,7 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
     if (rule.unrated) {
       // Casual multiplayer series settle once in the room, never in the two-player ladder.
       room.results = room.players.map((player) => ({
+        userId: player.id,
         playerId: player.id,
         result: player.result,
         rated: false,
@@ -263,6 +221,7 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
     );
     room.results = await Promise.all(
       room.players.map(async (player) => ({
+        userId: player.id,
         playerId: player.id,
         result: player.result,
         before: player.before ?? null,
@@ -429,10 +388,7 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
     });
   }
   return {
-    identity,
-    session,
-    profile,
-    identityDetails,
+    ...createCompetitionIdentities(db, now),
     gameDefinitions: () => [...rules.values()],
     ranking,
     ruleFor,
@@ -458,7 +414,13 @@ export function createCompetitionStore(db: Database, rules: Map<string, Rule>, n
       const rankingResult = await ranking(board, playerId);
       const top = rankingResult.top.map((row) => ({
         playerId: row.playerId,
+        userId: row.userId,
         name: row.name,
+        nickname: row.nickname,
+        avatarUrl: row.avatarUrl,
+        region: row.region,
+        profileSource: row.profileSource,
+        profileUpdatedAt: row.profileUpdatedAt,
         elapsedMs: -Number(row.score),
         rank: row.rank,
       }));

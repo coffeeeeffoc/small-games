@@ -1406,3 +1406,32 @@
     transition: none;
   }
 }
+
+.street-competition [data-player-avatar] {
+  display: inline-grid;
+  place-items: center;
+  overflow: hidden;
+  flex: none;
+  background-image: none !important;
+  font-weight: 800;
+}
+.street-competition [data-player-avatar]::before,
+.street-competition [data-player-avatar]::after {
+  display: none !important;
+}
+.street-competition [data-player-avatar] img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+.sp-region {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: #6c7d88;
+}
+.sp-name-hero [data-player-avatar] {
+  font-size: 32px;
+}

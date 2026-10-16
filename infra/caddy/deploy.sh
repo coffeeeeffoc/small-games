@@ -22,6 +22,14 @@ fi
 # The legacy website release is only a migration fallback, never a publication script.
 fallback=$old
 if [[ -z "$fallback" && -f "$website/current/compose.yaml" ]]; then fallback=$(readlink -f "$website/current"); fi
+if [[ -f "$target/ingress.json" ]]; then
+  # Caddy lock is held; the proxy-only transaction takes the game lock second.
+  exec python3 "$target/ingress.py" "$base" "$website" "$domain" "$www"
+fi
+if [[ -f "$old/ingress.json" || -e /opt/small-games/ingress-managed || -L /opt/small-games/ingress-managed ]]; then
+  echo 'Managed ingress must be retained; refusing a website-only Caddy candidate.' >&2
+  exit 1
+fi
 for port in 80 443; do
   owns_port=false
   for id in $(docker ps -q); do

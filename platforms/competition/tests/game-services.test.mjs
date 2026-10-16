@@ -51,17 +51,23 @@ function authFixture(
     sequence = 0;
   const calls = [],
     writes = [];
+  const installations = new Map();
   globalThis.__COMPETITION_CONFIG__ = config;
   globalThis.__competition = {
     session: () => assert.fail('Legacy cached identity must never be consulted'),
   };
   globalThis.localStorage = {
-    getItem() {
+    getItem(key) {
       if (readDenied) throw new Error('denied');
+      if (key.startsWith('competition-installation-')) return installations.get(key);
       return storage;
     },
     setItem(key, value) {
       if (writeDenied) throw new Error('denied');
+      if (key.startsWith('competition-installation-')) {
+        installations.set(key, value);
+        return;
+      }
       writes.push(value);
       storage = value;
     },
@@ -83,7 +89,11 @@ function authFixture(
         token: init.headers?.authorization,
         body: init.body ? JSON.parse(init.body) : undefined,
       });
-      if (url.endsWith('/sessions/guest') || url.endsWith('/sessions/platform'))
+      if (
+        ['/sessions/guest', '/sessions/platform', '/sessions/refresh'].some((path) =>
+          url.endsWith(path),
+        )
+      )
         return fixture.login ? fixture.login() : fixture.fresh;
       if (url.endsWith('/runs')) return { id: 'run-' + ++sequence, version: 'v1' };
       if (url.endsWith('/finish')) return { accepted: true };
@@ -138,8 +148,8 @@ test('account changes affect new requests while existing runs and rooms retain t
     code: 'INVALID_OPERATION',
   });
 });
-test('expired, damaged and cleared stored identities never fall back to a stale legacy account', async (t) => {
-  for (const value of [JSON.stringify(credential('b', Date.now() - 1)), '{broken', null])
+test('damaged and cleared stored identities never fall back to a stale legacy account', async (t) => {
+  for (const value of ['{broken', null])
     await t.test(String(value), async (t) => {
       const fixture = authFixture(t, { initial: JSON.stringify(credential('a')) });
       const api = createGameServices({ gameId: 'tower-brake', ruleVersion: 'v1' });
@@ -153,7 +163,12 @@ test('expired, damaged and cleared stored identities never fall back to a stale 
 test('a deferred login cannot overwrite a newer account or revive an explicit logout', async (t) => {
   for (const replacement of [JSON.stringify(credential('b')), null, '{broken'])
     await t.test(String(replacement), async (t) => {
-      const fixture = authFixture(t, { initial: JSON.stringify(credential('a', Date.now() - 1)) });
+      const fixture = authFixture(t, {
+        initial: JSON.stringify({
+          ...credential('a', Date.now() - 1),
+          refreshToken: 'r'.repeat(64),
+        }),
+      });
       const gate = defer();
       fixture.login = () => gate.promise;
       const api = createGameServices({ gameId: 'tower-brake', ruleVersion: 'v1' });
@@ -181,7 +196,7 @@ test('factories share one pending login and renew near-expiry identities before 
   gate.resolve(fixture.fresh);
   const runs = await pending;
   assert.notEqual(runs[0].id, runs[1].id);
-  assert.equal(fixture.calls.filter((call) => call.url.endsWith('/sessions/guest')).length, 1);
+  assert.equal(fixture.calls.filter((call) => call.url.endsWith('/sessions/refresh')).length, 1);
 });
 test('a run response arriving after account switching cannot overwrite the current reader identity', async (t) => {
   const a = credential('a'),
@@ -406,7 +421,7 @@ test('ranked start binds the artifact version and rejects incompatible or missin
         assert.equal(recorder.status, 'update-required');
         assert.ok(!statuses.includes('recording'));
         assert.equal(await recorder.finish(), null);
-        assert.throws(() => services.finishRun({ runId: 'run-1', seq: 0 }), {
+        await assert.rejects(services.finishRun({ runId: 'run-1', seq: 0 }), {
           code: 'SESSION_EXPIRED',
         });
         assert.ok(!fixture.calls.some(({ url }) => /\/(actions|finish)$/.test(url)));

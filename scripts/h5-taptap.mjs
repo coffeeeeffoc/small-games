@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { h5AdGames, prepareH5Ads } from './h5-ad-config.mjs';
 import { prepareH5Service } from './competition-h5-service.mjs';
+import { packageModes } from './h5-taptap-matrix.mjs';
 import { inventory, zipInventory, digest } from '../apps/shell-minigame/scripts/taptap-package.mjs';
 
 const { values } = parseArgs({
@@ -51,20 +52,7 @@ const output = path.resolve(
 );
 await mkdir(path.dirname(output), { recursive: true });
 await mkdir(output, { recursive: false });
-const modes = values.matrix
-  ? [
-      [false, false],
-      [true, false],
-      [false, true],
-      [true, true],
-    ]
-  : [
-      [
-        values['with-ads'] || (!values['without-ads'] && process.env.H5_ADS_ENABLED === '1'),
-        values['with-service'] ||
-          (!values['without-service'] && process.env.COMPETITION_SERVICE_ENABLED === '1'),
-      ],
-    ];
+const modes = packageModes(values, process.env);
 const manifests = [];
 for (const game of games)
   for (const [ads, service] of modes) {

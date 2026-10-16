@@ -26,11 +26,14 @@ for (const [game, [version, modes]] of Object.entries(versions))
     };
     const status = (url) => (url.endsWith('/leave') && leaveError ? 409 : 200);
     const sdk = {
+      login: () => assert.fail('Valid cached platform session must not relogin'),
       getStorageSync: () => token,
       request: ({ url, method, success }) =>
         success({ statusCode: status(url), data: response(url, method) }),
     };
     const context = {
+      setTimeout,
+      clearTimeout,
       localStorage: { getItem: () => token },
       wx: sdk,
       bl: sdk,
@@ -46,6 +49,7 @@ for (const [game, [version, modes]] of Object.entries(versions))
     context.__installCompetition({
       game,
       platform,
+      appId: 'test-app',
       apiUrl: 'https://test.invalid/api/competition/v1',
     });
     const client = context.__competition;
@@ -98,7 +102,7 @@ for (const platform of ['wechat', 'bilibili', 'douyin', 'kuaishou']) {
       });
     },
   };
-  const context = { [sdkName]: sdk };
+  const context = { [sdkName]: sdk, setTimeout, clearTimeout };
   runInNewContext(source, context);
   context.__installCompetition({
     platform,
@@ -111,14 +115,14 @@ for (const platform of ['wechat', 'bilibili', 'douyin', 'kuaishou']) {
   assert.equal(sent[0].data.platform, platform);
   assert.equal(sent[0].data.appId, 'game-app');
   assert.equal(sent[0].data.code, 'official-sdk-code');
-  assert.ok(stored[0][0].includes(`${platform}:game-app`));
+  assert.ok(decodeURIComponent(stored[0][0]).includes(`${platform}|game-app`));
   assert.ok(sent.every(({ url }) => !url.endsWith('/sessions/guest')));
 
   const missing = {};
   runInNewContext(source, missing);
   assert.throws(() => missing.__installCompetition({ platform }), /原生 SDK/);
   sdk.login = ({ success }) => success({ code: '' });
-  const invalid = { [sdkName]: sdk };
+  const invalid = { [sdkName]: sdk, setTimeout, clearTimeout };
   runInNewContext(source, invalid);
   invalid.__installCompetition({ platform, appId: 'game-app', apiUrl: 'https://test.invalid/api' });
   await assert.rejects(

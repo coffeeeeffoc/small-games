@@ -987,10 +987,12 @@ test('shared competition protocol modules select all actual H5 consumers and nat
     const fileScopes = nineNativeFileScopes(context);
     const result = incrementalPlan({ ...context, fileScopes, readSource });
     assert.deepEqual(result.browser_ids, [
-      ...(file.endsWith('client.js') ? ['carding-car'] : []),
+      ...(file.endsWith('client.js') ? ['cage-rescue', 'carding-car', 'carrom-club'] : []),
       'cops-robbers',
       'cops-robbers-realtime',
+      ...(file.endsWith('client.js') ? ['flick-arena'] : []),
       'letters-words2',
+      ...(file.endsWith('client.js') ? ['three-choose-two', 'tower-brake'] : []),
       'vibeJam-myself-history-guess',
       'xiangqi-five',
     ]);

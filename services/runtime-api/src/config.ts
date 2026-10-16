@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { BlockList, isIP } from 'node:net';
 
 const origin = z.url().refine((value) => {
   const url = new URL(value);
@@ -12,6 +13,10 @@ export function validateRuntimeEnvironment(env: Record<string, string | undefine
     RUNTIME_DATABASE_URL: database,
     COMPETITION_ENABLED: z.enum(['true', 'false']).optional(),
     TRUST_PROXY: z.enum(['0', '1']).optional(),
+    RUNTIME_TRUSTED_PROXY_IP: z
+      .string()
+      .refine((value) => isIP(value) !== 0)
+      .optional(),
     COMPETITION_INTERNAL_KEY: z.string().min(32).optional(),
     RELEASE_PROJECTION_TOKEN: z.string().min(32).optional(),
     ARTIFACT_TRUSTED_PUBLIC_KEY: z
@@ -25,6 +30,8 @@ export function validateRuntimeEnvironment(env: Record<string, string | undefine
   const parsed = schema.safeParse(env);
   const invalid = new Set<string>();
   if (!parsed.success) for (const issue of parsed.error.issues) invalid.add(String(issue.path[0]));
+  if ((env.TRUST_PROXY === '1') !== !!env.RUNTIME_TRUSTED_PROXY_IP)
+    invalid.add('RUNTIME_TRUSTED_PROXY_IP');
   if (!!env.RELEASE_PROJECTION_TOKEN !== !!env.ARTIFACT_TRUSTED_PUBLIC_KEY)
     invalid.add('RELEASE_PROJECTION_TOKEN / ARTIFACT_TRUSTED_PUBLIC_KEY');
   if (!!env.SHELL_ORIGIN !== !!env.ARTIFACT_DELIVERY_URL)
@@ -44,4 +51,16 @@ export function validateRuntimeEnvironment(env: Record<string, string | undefine
     if (!origins.length) invalid.add('COMPETITION_ORIGINS');
   }
   if (invalid.size) throw new Error(`Invalid runtime configuration: ${[...invalid].join(', ')}`);
+}
+
+/** Exactly one forwarding peer, including IPv4-mapped sockets; never trust a subnet/hop count. */
+export function runtimeTrustedProxy(env: Record<string, string | undefined>) {
+  if (env.TRUST_PROXY !== '1') return false;
+  const address = env.RUNTIME_TRUSTED_PROXY_IP;
+  if (!address || !isIP(address))
+    throw new Error('Invalid runtime configuration: RUNTIME_TRUSTED_PROXY_IP');
+  const allowed = new BlockList();
+  allowed.addAddress(address, isIP(address) === 6 ? 'ipv6' : 'ipv4');
+  return (peer: string, hop: number) =>
+    hop === 0 && allowed.check(peer, isIP(peer) === 6 ? 'ipv6' : 'ipv4');
 }

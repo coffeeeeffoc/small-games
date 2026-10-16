@@ -15,7 +15,7 @@ import { createThreeChooseTwoStore } from './three-choose-two/store.js';
 import type { Engine } from './three-choose-two/types.js';
 import { createCarromStore } from './carrom/store.js';
 import type { Engine as CarromEngine, Level as CarromLevel } from './carrom/types.js';
-import { validateRuntimeEnvironment } from './config.js';
+import { runtimeTrustedProxy, validateRuntimeEnvironment } from './config.js';
 import { createRankedStore } from './competition/ranked-store.js';
 import type { RankedRule } from './competition/ranked-types.js';
 
@@ -35,9 +35,12 @@ export function createRuntimeService(
           competition: {
             async check() {
               await database.db.execute(
-                sql`select display_name from runtime.competition_players limit 0`,
+                sql`select display_name,profile from runtime.competition_players limit 0`,
               );
               await database.db.execute(sql`select 1 from runtime.competition_matches limit 0`);
+              await database.db.execute(
+                sql`select 1 from runtime.competition_refresh_tokens limit 0`,
+              );
               await database.db.execute(
                 sql`select 1 from runtime.three_choose_two_sessions limit 0`,
               );
@@ -48,13 +51,7 @@ export function createRuntimeService(
       : {}),
   };
   // One private Nginx hop; never enable this on a directly exposed listener.
-  const app = createService(
-    'runtime',
-    dependencies,
-    logger,
-    telemetry,
-    env.TRUST_PROXY === '1' ? 'uniquelocal' : false,
-  );
+  const app = createService('runtime', dependencies, logger, telemetry, runtimeTrustedProxy(env));
   app.register(async (instance) => {
     if (env.COMPETITION_ENABLED === 'true') {
       const rules = new Map<string, Rule>();

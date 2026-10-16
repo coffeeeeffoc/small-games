@@ -898,3 +898,59 @@ body:has(.competition-dialog[open]) {
   justify-content: flex-end;
   margin-top: 18px;
 }
+
+.competition-dialog [data-player-avatar] {
+  display: inline-grid;
+  place-items: center;
+  overflow: hidden;
+  flex: none;
+  background-image: none !important;
+  font-weight: 800;
+}
+.competition-dialog [data-player-avatar]::before,
+.competition-dialog [data-player-avatar]::after {
+  display: none !important;
+}
+.competition-dialog [data-player-avatar] img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+.pk-rank-person {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.pk-profile-hero {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin: 8px 0 20px;
+}
+.pk-profile-hero .pk-avatar {
+  width: 64px;
+  height: 64px;
+  font-size: 28px;
+}
+.pk-profile-hero small {
+  color: var(--pk-muted);
+}
+.pk-rank-person .pk-avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 14px;
+  border-radius: 10px;
+}
+.pk-rank-person .pk-rank-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.pk-region {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--pk-muted);
+}

@@ -8,6 +8,10 @@ const css = await readFile(new URL('../platforms/competition/h5.css', import.met
 const source = (await readFile(new URL('../platforms/competition/h5.js', import.meta.url), 'utf8'))
   .replace("import './client.js';", '')
   .replace("import styles from './h5.css?inline';", `const styles = ${JSON.stringify(css)};`);
+const profileDom = await readFile(
+  new URL('../platforms/competition/profile-dom.js', import.meta.url),
+  'utf8',
+);
 const format = await readFile(
   new URL('../platforms/competition/format.js', import.meta.url),
   'utf8',
@@ -88,19 +92,21 @@ const server = createServer((request, response) => {
   const lettersPage =
     new URL(request.url, 'http://localhost').searchParams.get('game') === 'letters-words2';
   response.end(
-    request.url === '/service-config.js'
-      ? serviceConfig
-      : request.url === '/h5.js'
-        ? source
-        : request.url === '/street-pages.js'
-          ? streetSource
-          : request.url.endsWith('/role-appearance.js')
-            ? roleAppearance
-            : request.url === '/format.js'
-              ? format
-              : request.url === '/fixture.js'
-                ? fixture
-                : `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body${xiangqiPage ? ' data-screen="modes"' : ''}><button data-game-fullscreen>全屏</button>${xiangqiPage ? '<main class="page"><section data-screen="modes"><button id="mode-online" hidden style="min-height:48px;margin:24px"><strong>好友对弈</strong><small>邀请朋友一起玩</small></button></section></main>' : lettersPage ? '<button id="friend-button" hidden style="min-height:44px;margin:24px">好友同题</button>' : ''}<script type="module" src="/fixture.js"></script></body></html>`,
+    request.url === '/profile-dom.js'
+      ? profileDom
+      : request.url === '/service-config.js'
+        ? serviceConfig
+        : request.url === '/h5.js'
+          ? source
+          : request.url === '/street-pages.js'
+            ? streetSource
+            : request.url.endsWith('/role-appearance.js')
+              ? roleAppearance
+              : request.url === '/format.js'
+                ? format
+                : request.url === '/fixture.js'
+                  ? fixture
+                  : `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body${xiangqiPage ? ' data-screen="modes"' : ''}><button data-game-fullscreen>全屏</button>${xiangqiPage ? '<main class="page"><section data-screen="modes"><button id="mode-online" hidden style="min-height:48px;margin:24px"><strong>好友对弈</strong><small>邀请朋友一起玩</small></button></section></main>' : lettersPage ? '<button id="friend-button" hidden style="min-height:44px;margin:24px">好友同题</button>' : ''}<script type="module" src="/fixture.js"></script></body></html>`,
   );
 });
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));

@@ -388,6 +388,19 @@ export function runNineNativeChecks({
 }
 
 export function runIncrementalToolChecks({ plan, packages, root, env, execute = run }) {
+  if (plan.identity_checks)
+    execute(
+      process.execPath,
+      [
+        '--test',
+        'scripts/competition-client.test.mjs',
+        'platforms/competition/tests/game-services.test.mjs',
+        'platforms/competition/tests/identity.test.mjs',
+      ],
+      root,
+      env,
+      'logged',
+    );
   if (plan.competition_service_checks) {
     execute(
       process.execPath,
@@ -395,6 +408,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
         '--test',
         'scripts/competition-service-config.test.mjs',
         'scripts/h5-ad-config.test.mjs',
+        'scripts/h5-taptap-matrix.test.mjs',
         'apps/shell-minigame/scripts/taptap-cocos.test.mjs',
         'apps/shell-minigame/scripts/taptap-cocos-inputs.test.mjs',
         'apps/shell-minigame/scripts/taptap-login.test.mjs',
@@ -561,12 +575,20 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
     );
   if (plan.company_deployment_checks)
     execute(process.execPath, ['--test', 'scripts/deploy-company.test.mjs'], root, env, 'logged');
+  if (plan.competition_ingress_checks)
+    execute(
+      process.execPath,
+      ['--test', 'scripts/competition-ingress.test.mjs'],
+      root,
+      env,
+      'logged',
+    );
   if (plan.game_services_checks)
     execute(
       process.execPath,
       [
         '--test',
-        'platforms/competition/tests/game-services.test.mjs',
+        ...(plan.identity_checks ? [] : ['platforms/competition/tests/game-services.test.mjs']),
         'scripts/competition-gateway.test.mjs',
       ],
       root,

@@ -14,7 +14,10 @@ export function registerThreeChooseTwoRoutes(
     z.object({})
       .strict()
       .parse(request.body ?? {});
-    return store.create(await player(request.headers.authorization));
+    return store.create(
+      await player(request.headers.authorization),
+      request.headers.authorization!.slice(7),
+    );
   });
   routes.get('/three-choose-two/session/:id', async (request) =>
     store.get(await player(request.headers.authorization), sessionId(request.params)),

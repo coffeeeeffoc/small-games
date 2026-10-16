@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "domain": "api.nenggongzhiren.cn",
+  "deploymentDirectory": "/opt/small-games",
+  "network": {
+    "name": "small-games-competition-ingress",
+    "subnet": "172.30.245.0/29",
+    "caddyIp": "172.30.245.2",
+    "nginxIp": "172.30.245.3"
+  },
+  "nginx": {
+    "image": "sha256:dc73b49f5124cf2ee538dfbdfbd121f0b4ccdcb20fea30f3a81bd477c02e2bb5",
+    "legacyRelease": "/opt/small-games/releases/20260928t144509669z-0b2c9952",
+    "backendIp": "172.18.0.4"
+  },
+  "caddyImage": "sha256:f77f856a30f0004200b36b322d61da17fade31e24875699d77fb968399b9eb77"
+}

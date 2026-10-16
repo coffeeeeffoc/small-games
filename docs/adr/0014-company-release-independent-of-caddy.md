@@ -6,4 +6,4 @@
 
 保留 `company-web` Compose 项目和已有 `company-web_caddy_data` / `company-web_caddy_config` 卷名，避免迁移时丢失签发账户和证书。首次拆分需要替换挂载，可能短暂中断官网；失败恢复旧配置。后续只有主动执行 Caddy 运维命令才更新入口容器。备份继续每日本地保存并保留 30 天，配置来源改为 Caddy 当前版本，不随官网回滚。
 
-本次只服务现有官网，不增加多站点框架，不开启 api/admin，不改变游戏的内部访问和网络。
+Default Caddy serves only the company website. Separately approved competition ingress may publish api.nenggongzhiren.cn through the finite API and minimal health boundary in [the ingress runbook](../operations/competition-ingress.md). Website publication still switches static content only. API activation preserves CORS, database isolation and existing host ports; admin production changes require separate approval.

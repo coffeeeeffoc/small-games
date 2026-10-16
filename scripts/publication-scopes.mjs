@@ -3,6 +3,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
 import { vitePatchFileScopes } from './vite-patch-scope.mjs';
+import { ingressShellGuard, ingressPreflightGuard } from './competition-ingress.mjs';
 
 const loadDependency = createRequire(import.meta.url);
 
@@ -166,6 +167,24 @@ export const competitionConsumers = {
   'vibeJam-myself-history-guess': 'games/local/vibeJam-myself-history-guess',
   'xiangqi-five': 'games/submodules/xiangqi-five',
 };
+export const competitionIdentityConsumers = Object.freeze({
+  ...competitionConsumers,
+  'carding-car': 'games/local/carding-car',
+  'carrom-club': 'games/local/carrom-club',
+  'flick-arena': 'games/local/flick-arena',
+  'three-choose-two': 'games/local/three-choose-two',
+  'cage-rescue': 'games/local/cage-rescue',
+  'tower-brake': 'games/local/tower-brake',
+});
+export const competitionIdentityScopePaths = Object.freeze([
+  'platforms/competition/client.js',
+  'scripts/competition-client.test.mjs',
+  'platforms/competition/tests/identity.test.mjs',
+]);
+export const competitionIdentityMirrorPaths = Object.freeze([
+  'games/local/flick-arena/competition-client.js',
+  'games/local/three-choose-two/competition.js',
+]);
 export const competitionServiceScopePaths = [
   'scripts/competition-service-config.mjs',
   'scripts/competition-service-config.test.mjs',
@@ -178,6 +197,8 @@ export const competitionServiceScopePaths = [
   'scripts/h5-ad-config.test.mjs',
   'scripts/h5-taptap.mjs',
   'scripts/h5-taptap.browser.mjs',
+  'scripts/h5-taptap-matrix.mjs',
+  'scripts/h5-taptap-matrix.test.mjs',
   'platforms/h5/rewarded-host.js',
   'scripts/competition-client.test.mjs',
   'scripts/competition.integration.mjs',
@@ -305,7 +326,13 @@ function backendInstallerOnly(file, before, after) {
     createHash('sha256').update(source.replaceAll('\r\n', '\n')).digest('hex');
   return expected && digest(before) === expected.before && digest(after) === expected.after;
 }
-const h5Files = ['platforms/competition/h5.js', 'scripts/test-competition-dialogs.mjs'];
+const h5Files = [
+  'platforms/competition/h5.js',
+  'platforms/competition/h5.css',
+  'platforms/competition/profile-dom.js',
+  'scripts/test-competition-dialogs.mjs',
+];
+const streetFiles = ['platforms/competition/street-pages.js', 'platforms/competition/street.css'];
 const nativeFiles = ['platforms/competition/native.js', 'scripts/competition-native-smoke.mjs'];
 const builder = 'scripts/competition-build.mjs';
 const lettersTests = [
@@ -398,6 +425,46 @@ export function threeChooseTwoBackendFileScope(file, before, after) {
   return expected === after;
 }
 
+const identityMigration = 'infra/migrations/013-competition-identities.sql';
+const identityMigrationHash = '807825e0f99eb41b0ad97c0b1a7a2a98d5cbf1ad0d9d7406e08c2ed557c0978f';
+const identityBackendChanges = {
+  'scripts/competition.mjs': [
+    '4d6d7118079c0e63e9399dc335b4e754c3bfe43125c3a09ac3cf2cd0a18b5d86',
+    '64c72ea195ed65e748739539f8beab44f058409c4eeb0ac61514922d28ea92da',
+    "    await readFile(new URL('../infra/migrations/012-three-choose-two.sql', import.meta.url)),\n    mode === 'test-db' ? 'competition_test' : 'small_games',\n  );\n",
+    "  await psql(\n    await readFile(new URL('../infra/migrations/013-competition-identities.sql', import.meta.url)),\n    mode === 'test-db' ? 'competition_test' : 'small_games',\n  );\n",
+  ],
+  'scripts/platform.mjs': [
+    '34c2de49422a98c5574083fe6b43e785c2c521bc2ae3ce3674091b2767bca1e6',
+    '46ded3328e004801c67707845da131618f5710ce45c454defc9b6dba651212d6',
+    "    '012-three-choose-two.sql',\n",
+    "    '013-competition-identities.sql',\n",
+  ],
+  'scripts/deploy-tencent.mjs': [
+    '3e7e728a461a30c24baaee7462b0ba8ddc715dfb0694776ea61843ce197e1f4a',
+    '85e9bc13b35896c286f16282109825d08c542c203fb13a5a69efb4d0d99a7aea',
+    "    '012-three-choose-two.sql',\n",
+    "    '013-competition-identities.sql',\n",
+  ],
+};
+/** This additive identity migration cannot classify another migration or deployment edit. */
+export function identityBackendFileScope(file, before, after) {
+  const digest = (text) => createHash('sha256').update(text.replaceAll('\r\n', '\n')).digest('hex');
+  if (file === identityMigration) return before === null && digest(after) === identityMigrationHash;
+  const review = identityBackendChanges[file];
+  if (!review || typeof before !== 'string' || typeof after !== 'string') return false;
+  const [baseHash, headHash, anchor, addition] = review;
+  before = before.replaceAll('\r\n', '\n');
+  after = after.replaceAll('\r\n', '\n');
+  return (
+    digest(before) === baseHash &&
+    digest(after) === headHash &&
+    before.split(anchor).length === 2 &&
+    !before.includes(addition) &&
+    after === before.replace(anchor, anchor + addition)
+  );
+}
+
 export const gameServiceScopePaths = Object.freeze([
   'platforms/competition/game-services.js',
   'platforms/competition/tests/game-services.test.mjs',
@@ -446,11 +513,58 @@ function hasUrlReference(source, target) {
   visit(parsedSource(source));
   return found;
 }
+function hasCopyReference(source, from, to) {
+  let count = 0;
+  function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (
+      node.type === 'CallExpression' &&
+      node.callee?.name === 'cp' &&
+      node.arguments?.[0]?.type === 'NewExpression' &&
+      node.arguments[0].callee?.name === 'URL' &&
+      node.arguments[0].arguments?.[0]?.value === from &&
+      node.arguments?.[1]?.type === 'NewExpression' &&
+      node.arguments[1].callee?.name === 'URL' &&
+      node.arguments[1].arguments?.[0]?.value === to
+    )
+      count++;
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  }
+  visit(parsedSource(source));
+  return count === 1;
+}
 function assertGameServiceCopies(readHead) {
+  const service = readHead('platforms/competition/game-services.js');
+  assert.deepEqual(
+    parsedSource(service)
+      .body.filter((node) => node.type === 'ImportDeclaration')
+      .map((node) => node.source.value),
+    ['./client.js'],
+  );
+  assert(!/\bimport\s*\(|\brequire\s*\(/m.test(service));
   for (const [id, source] of Object.entries(rankedConsumers)) {
     const build = readHead(source + '/build.mjs');
-    assert(hasUrlReference(build, '../../../platforms/competition/game-services.js'));
-    assert(hasUrlReference(build, 'game-services.js'));
+    for (const file of ['game-services.js', 'client.js'])
+      assert(hasCopyReference(build, '../../../platforms/competition/' + file, file));
+    const server = readHead(source + '/server.mjs');
+    assert.equal(
+      server.split("pathname === '/client.js' && !process.argv.includes('--dist')").length,
+      2,
+    );
+    assert(hasUrlReference(server, '../../../platforms/competition/client.js'));
+    const turbo = JSON.parse(readHead(source + '/turbo.json'));
+    assert.deepEqual(turbo.extends, ['//']);
+    const inputs = turbo.tasks?.build?.inputs;
+    assert(Array.isArray(inputs) && new Set(inputs).size === inputs.length);
+    for (const input of [
+      '$TURBO_DEFAULT$',
+      '$TURBO_ROOT$/platforms/competition/client.js',
+      '$TURBO_ROOT$/platforms/competition/game-services.js',
+    ])
+      assert(inputs.includes(input));
     const entry = id === 'cage-rescue' ? '/src/main.mjs' : '/main.mjs';
     assert(
       hasUrlReference(
@@ -459,6 +573,38 @@ function assertGameServiceCopies(readHead) {
       ),
     );
   }
+}
+
+/** One complete client boundary shared by general and native classifiers. */
+export function competitionIdentityFileScope({ games, packages, readBase, readHead }) {
+  const file = 'platforms/competition/client.js';
+  for (const reader of [readBase, readHead]) {
+    const text = reader(file);
+    assert(typeof text === 'string' && text.trim());
+    assert(!/\bimport\b|\brequire\s*\(|\bexport\s*[^;\n]*\bfrom\s*['"]/m.test(text));
+  }
+  assertCompetitionRegistry(readHead, games);
+  for (const [id, source] of Object.entries(competitionIdentityConsumers)) {
+    assert.equal(games.filter((game) => game.id === id).length, 1);
+    assert.equal(games.filter((game) => game.source === source).length, 1);
+    assert.equal(games.filter((game) => game.id === id && game.source === source).length, 1);
+    assert.equal(packages.filter((pkg) => pkg.dir === source).length, 1);
+  }
+  for (const copy of competitionIdentityMirrorPaths) assert.equal(readHead(copy), readHead(file));
+  assert(
+    hasUrlReference(
+      readHead('games/local/carding-car/scripts/build.mjs'),
+      '../../../../platforms/competition/client.js',
+    ),
+  );
+  assert(
+    hasUrlReference(
+      readHead('games/local/carrom-club/network-config.mjs'),
+      '../../../platforms/competition/client.js',
+    ),
+  );
+  assertGameServiceCopies(readHead);
+  return Object.values(competitionIdentityConsumers);
 }
 /** Only the four new shared rule inputs may be added to the deployment list. */
 export function rankedDeploymentFileScope(before, after) {
@@ -478,6 +624,21 @@ function rankedGatewayFileScope(before, after) {
   return (
     digest(before) === '2c9bcc4c116b52553c317da5ee4c83959f988d4d4f02cff55a22a1b273efafc8' &&
     digest(after) === 'bbfc69bf5d9c9c9a2f1c3d28ab245024dc78030e7eec18953a9705ccccd16f92'
+  );
+}
+
+/** Add only the two identity routes; static serving, proxy policy and other paths remain bound. */
+export function identityGatewayFileScope(before, after) {
+  if (typeof before !== 'string' || typeof after !== 'string') return false;
+  before = before.replaceAll('\r\n', '\n');
+  after = after.replaceAll('\r\n', '\n');
+  const digest = (source) => createHash('sha256').update(source).digest('hex');
+  const anchor = String.raw`sessions\/(?:guest|platform)`;
+  return (
+    digest(before) === '35c4d646992f89799a559091f793518f1da72d8c675c0cab73a0a6146e213e51' &&
+    digest(after) === '1b2e94613c2985e2d9f7ac9defe98eba5b001d77150a58c756bb6b9618ad71f6' &&
+    before.split(anchor).length === 2 &&
+    after === before.replace(anchor, String.raw`sessions\/(?:guest|platform|refresh|upgrade)`)
   );
 }
 
@@ -648,6 +809,8 @@ function assertCompetitionRegistry(readHead, games) {
     'Unreviewed competition consumer',
   );
   for (const [id, directory] of Object.entries(competitionConsumers)) {
+    assert.equal(games.filter((game) => game.id === id).length, 1);
+    assert.equal(games.filter((game) => game.source === directory).length, 1);
     assert(
       registry[id].directory === directory &&
         games.some((game) => game.id === id && game.source === directory),
@@ -1145,6 +1308,32 @@ export const deploymentBundleScopePaths = [
   'infra/deployment/validate-env.mjs',
   'infra/deployment/initialize-operator.mjs',
 ];
+export const competitionIngressScopePaths = [
+  'scripts/competition-ingress.mjs',
+  'scripts/competition-ingress.test.mjs',
+  'scripts/deploy-caddy.mjs',
+  'infra/caddy/deploy.sh',
+  'infra/caddy/ingress.py',
+  'infra/caddy/ingress.test.py',
+  'infra/caddy/ingress.example.json',
+  'infra/caddy/backup.py',
+  'infra/caddy/backup.test.py',
+  'scripts/deploy-tencent.test.mjs',
+];
+export const runtimeProxyDefaultScopePaths = [
+  'infra/tencent/compose.yaml',
+  'scripts/deployment-bundle.mjs',
+];
+const runtimeProxyDefaultChanges = {
+  'infra/tencent/compose.yaml': [
+    "      PORT: '43002'\n      TRUST_PROXY: '1'",
+    "      PORT: '43002'\n      TRUST_PROXY: '0'",
+  ],
+  'scripts/deployment-bundle.mjs': [
+    "      Object.assign(env, { HOST: '0.0.0.0', PORT: String(port), TRUST_PROXY: '1' });",
+    "      Object.assign(env, {\n        HOST: '0.0.0.0',\n        PORT: String(port),\n        TRUST_PROXY: service === 'runtime' ? '0' : '1',\n      });",
+  ],
+};
 export const companyDeploymentScopePaths = [
   'infra/company/.gitattributes',
   'scripts/deploy-company.mjs',
@@ -1230,6 +1419,124 @@ export function reviewedSharedFileScopes({
   const scopes = vitePatchFileScopes({ changedPaths, readBase, readHead });
   for (const file of changedPaths) {
     try {
+      if (runtimeProxyDefaultScopePaths.includes(file) && readBase && readHead) {
+        const before = readBase(file),
+          after = readHead(file);
+        const [oldDefault, newDefault] = runtimeProxyDefaultChanges[file];
+        if (before.includes(oldDefault) && after.includes(newDefault)) {
+          assert(before.split(oldDefault).length === 2 && after.split(newDefault).length === 2);
+          assert.equal(
+            after.replace(newDefault, oldDefault),
+            before,
+            'Other producer bytes changed',
+          );
+          assert(packages.some((pkg) => pkg.dir === 'services/runtime-api'));
+          scopes.set(file, ['services/runtime-api']);
+          continue;
+        }
+      }
+      if (competitionIngressScopePaths.includes(file)) {
+        for (const source of ['apps/company-web', 'services/runtime-api'])
+          assert(packages.some((pkg) => pkg.dir === source));
+        scopes.set(file, ['apps/company-web', 'services/runtime-api']);
+        continue;
+      }
+      if (['scripts/deploy-tencent.mjs', 'infra/tencent/deploy.sh'].includes(file)) {
+        const before = readBase(file),
+          after = readHead(file);
+        const guard = file.endsWith('.mjs') ? ingressPreflightGuard : ingressShellGuard;
+        const count = file.endsWith('.mjs') ? 1 : 2;
+        if (!before.includes(guard) && after.split(guard).length === count + 1) {
+          const stripped = after.replaceAll(guard, '');
+          // The early guard and lock-race guard must precede every service/build/database mutation.
+          if (file.endsWith('.mjs'))
+            assert(after.includes('return `set -eu\n' + guard + 'docker compose version'));
+          else {
+            assert(after.includes('set +a\n' + guard + 'compose()'));
+            assert(
+              after.includes(
+                "flock -n 9 || { echo 'Another deployment is running.' >&2; exit 1; }\n" +
+                  guard +
+                  'previous=',
+              ),
+            );
+          }
+          let consumers = [];
+          if (stripped !== before) {
+            const inherited = reviewedSharedFileScopes({
+              changedPaths: [file],
+              readBase,
+              readHead: (name) => (name === file ? stripped : readHead(name)),
+              games,
+              packages,
+            });
+            assert(inherited.has(file), 'Unrelated deployment delta remains unreviewed');
+            consumers = inherited.get(file);
+          }
+          for (const source of ['apps/company-web', 'services/runtime-api'])
+            assert(packages.some((pkg) => pkg.dir === source));
+          scopes.set(file, [
+            ...new Set([...consumers, 'apps/company-web', 'services/runtime-api']),
+          ]);
+          continue;
+        }
+      }
+      if (
+        file === 'scripts/competition-gateway.mjs' &&
+        identityGatewayFileScope(readBase(file), readHead(file))
+      ) {
+        const consumers = competitionIdentityFileScope({ games, packages, readBase, readHead });
+        for (const source of ['services/runtime-api', 'apps/shell-web']) {
+          assert.equal(packages.filter((pkg) => pkg.dir === source).length, 1);
+          consumers.push(source);
+        }
+        scopes.set(file, consumers);
+        continue;
+      }
+      if (
+        competitionIdentityScopePaths.includes(file) ||
+        competitionIdentityMirrorPaths.includes(file)
+      ) {
+        const consumers = competitionIdentityFileScope({ games, packages, readBase, readHead });
+        if (file === 'scripts/competition-client.test.mjs')
+          for (const host of ['apps/shell-minigame', 'apps/shell-bilibili']) {
+            assert.equal(packages.filter((pkg) => pkg.dir === host).length, 1);
+            consumers.push(host);
+          }
+        scopes.set(
+          file,
+          competitionIdentityMirrorPaths.includes(file)
+            ? consumers.filter((source) => file.startsWith(source + '/'))
+            : consumers,
+        );
+        continue;
+      }
+      if (file === identityMigration || Object.hasOwn(identityBackendChanges, file)) {
+        let before;
+        try {
+          before = readBase(file);
+        } catch {
+          before = null;
+        }
+        if (identityBackendFileScope(file, before, readHead(file))) {
+          assert.equal(packages.filter((pkg) => pkg.dir === 'services/runtime-api').length, 1);
+          scopes.set(file, ['services/runtime-api']);
+          continue;
+        }
+        if (file === identityMigration) continue;
+      }
+      if (streetFiles.includes(file)) {
+        assertCompetitionRegistry(readHead, games);
+        assert(importsModule(readHead('platforms/competition/h5.js'), './street-pages.js'));
+        assert(
+          importsModule(readHead('platforms/competition/street-pages.js'), './profile-dom.js'),
+        );
+        assert(
+          importsModule(readHead('platforms/competition/street-pages.js'), './street.css?inline'),
+        );
+        scopes.set(file, [competitionConsumers['cops-robbers-realtime']]);
+        continue;
+      }
       if (
         Object.hasOwn(backendInstallerChanges, file) &&
         typeof readBase === 'function' &&
@@ -1636,6 +1943,15 @@ export function reviewedSharedFileScopes({
         scopes.set(file, [competitionConsumers['cops-robbers-realtime']]);
       } else if (competitionFiles.includes(file)) {
         assertCompetitionRegistry(readHead, games);
+        if (
+          ['platforms/competition/profile-dom.js', 'platforms/competition/h5.css'].includes(file)
+        ) {
+          assert(importsModule(readHead('platforms/competition/h5.js'), './profile-dom.js'));
+          assert(importsModule(readHead('platforms/competition/h5.js'), './h5.css?inline'));
+          assert(
+            importsModule(readHead('platforms/competition/street-pages.js'), './profile-dom.js'),
+          );
+        }
         scopes.set(
           file,
           file === builder && exactCopsOfflineBuild(readBase(file), readHead(file))

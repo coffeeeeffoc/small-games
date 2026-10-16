@@ -1,0 +1,417 @@
+{
+  "database": "competition_test",
+  "container": "small-games-h5-matrix-20261015",
+  "oldTables": 13,
+  "originalRowsAndAclPreserved": true,
+  "repeatedMigrationIdempotent": true,
+  "profileColumnExistedBefore": false,
+  "migrationSha256": "807825e0f99eb41b0ad97c0b1a7a2a98d5cbf1ad0d9d7406e08c2ed557c0978f",
+  "before": {
+    "rows": [
+      {
+        "table": "competition_actions",
+        "count": 643,
+        "digest": "94c88378dabf8cde10ece5ed4a8fc6ad"
+      },
+      {
+        "table": "competition_best",
+        "count": 246,
+        "digest": "dabe7cf1a3911df938e80e17d9656c7e"
+      },
+      {
+        "table": "competition_duels",
+        "count": 20,
+        "digest": "b7774cb01459908be57b35d944e7ef03"
+      },
+      {
+        "table": "competition_matches",
+        "count": 22,
+        "digest": "9c3cd33fa8b2b132297f69281ed0ddf5"
+      },
+      {
+        "table": "competition_players",
+        "count": 252,
+        "digest": "4de25365b76c2ddd8c14b1ed025f7c4a"
+      },
+      {
+        "table": "competition_results",
+        "count": 42,
+        "digest": "2befce392b1c14cd3a4750f3c38b3bce"
+      },
+      {
+        "table": "competition_rooms",
+        "count": 24,
+        "digest": "6b9e0f60570a6f2e83c44fffd631dea7"
+      },
+      {
+        "table": "competition_sessions",
+        "count": 48,
+        "digest": "805f3e137c1931bed23efcf4f98c3ba7"
+      },
+      {
+        "table": "schema_version",
+        "count": 1,
+        "digest": "0ba592be92b0332a0deca6d837cbb676"
+      },
+      {
+        "table": "three_choose_two_actions",
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      {
+        "table": "three_choose_two_best",
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      {
+        "table": "three_choose_two_results",
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      {
+        "table": "three_choose_two_sessions",
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      }
+    ],
+    "acl": [
+      {
+        "table": "competition_actions",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      },
+      {
+        "table": "competition_best",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      },
+      {
+        "table": "competition_duels",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arw/platform_owner}"
+      },
+      {
+        "table": "competition_matches",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arw/platform_owner}"
+      },
+      {
+        "table": "competition_players",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      },
+      {
+        "table": "competition_results",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      },
+      {
+        "table": "competition_rooms",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      },
+      {
+        "table": "competition_sessions",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      },
+      {
+        "table": "schema_version",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=r/platform_owner}"
+      },
+      {
+        "table": "three_choose_two_actions",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      },
+      {
+        "table": "three_choose_two_best",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      },
+      {
+        "table": "three_choose_two_results",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      },
+      {
+        "table": "three_choose_two_sessions",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      }
+    ]
+  },
+  "afterFirst": {
+    "rows": [
+      {
+        "table": "competition_actions",
+        "count": 643,
+        "digest": "94c88378dabf8cde10ece5ed4a8fc6ad"
+      },
+      {
+        "table": "competition_best",
+        "count": 246,
+        "digest": "dabe7cf1a3911df938e80e17d9656c7e"
+      },
+      {
+        "table": "competition_duels",
+        "count": 20,
+        "digest": "b7774cb01459908be57b35d944e7ef03"
+      },
+      {
+        "table": "competition_matches",
+        "count": 22,
+        "digest": "9c3cd33fa8b2b132297f69281ed0ddf5"
+      },
+      {
+        "table": "competition_players",
+        "count": 252,
+        "digest": "4de25365b76c2ddd8c14b1ed025f7c4a"
+      },
+      {
+        "table": "competition_results",
+        "count": 42,
+        "digest": "2befce392b1c14cd3a4750f3c38b3bce"
+      },
+      {
+        "table": "competition_rooms",
+        "count": 24,
+        "digest": "6b9e0f60570a6f2e83c44fffd631dea7"
+      },
+      {
+        "table": "competition_sessions",
+        "count": 48,
+        "digest": "805f3e137c1931bed23efcf4f98c3ba7"
+      },
+      {
+        "table": "schema_version",
+        "count": 1,
+        "digest": "0ba592be92b0332a0deca6d837cbb676"
+      },
+      {
+        "table": "three_choose_two_actions",
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      {
+        "table": "three_choose_two_best",
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      {
+        "table": "three_choose_two_results",
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      {
+        "table": "three_choose_two_sessions",
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      }
+    ],
+    "acl": [
+      {
+        "table": "competition_actions",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      },
+      {
+        "table": "competition_best",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      },
+      {
+        "table": "competition_duels",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arw/platform_owner}"
+      },
+      {
+        "table": "competition_matches",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arw/platform_owner}"
+      },
+      {
+        "table": "competition_players",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      },
+      {
+        "table": "competition_results",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      },
+      {
+        "table": "competition_rooms",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      },
+      {
+        "table": "competition_sessions",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      },
+      {
+        "table": "schema_version",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=r/platform_owner}"
+      },
+      {
+        "table": "three_choose_two_actions",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      },
+      {
+        "table": "three_choose_two_best",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      },
+      {
+        "table": "three_choose_two_results",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      },
+      {
+        "table": "three_choose_two_sessions",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      }
+    ]
+  },
+  "afterSecond": {
+    "rows": [
+      {
+        "table": "competition_actions",
+        "count": 643,
+        "digest": "94c88378dabf8cde10ece5ed4a8fc6ad"
+      },
+      {
+        "table": "competition_best",
+        "count": 246,
+        "digest": "dabe7cf1a3911df938e80e17d9656c7e"
+      },
+      {
+        "table": "competition_duels",
+        "count": 20,
+        "digest": "b7774cb01459908be57b35d944e7ef03"
+      },
+      {
+        "table": "competition_matches",
+        "count": 22,
+        "digest": "9c3cd33fa8b2b132297f69281ed0ddf5"
+      },
+      {
+        "table": "competition_players",
+        "count": 252,
+        "digest": "4de25365b76c2ddd8c14b1ed025f7c4a"
+      },
+      {
+        "table": "competition_results",
+        "count": 42,
+        "digest": "2befce392b1c14cd3a4750f3c38b3bce"
+      },
+      {
+        "table": "competition_rooms",
+        "count": 24,
+        "digest": "6b9e0f60570a6f2e83c44fffd631dea7"
+      },
+      {
+        "table": "competition_sessions",
+        "count": 48,
+        "digest": "805f3e137c1931bed23efcf4f98c3ba7"
+      },
+      {
+        "table": "schema_version",
+        "count": 1,
+        "digest": "0ba592be92b0332a0deca6d837cbb676"
+      },
+      {
+        "table": "three_choose_two_actions",
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      {
+        "table": "three_choose_two_best",
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      {
+        "table": "three_choose_two_results",
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      {
+        "table": "three_choose_two_sessions",
+        "count": 0,
+        "digest": "d41d8cd98f00b204e9800998ecf8427e"
+      }
+    ],
+    "acl": [
+      {
+        "table": "competition_actions",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      },
+      {
+        "table": "competition_best",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      },
+      {
+        "table": "competition_duels",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arw/platform_owner}"
+      },
+      {
+        "table": "competition_matches",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arw/platform_owner}"
+      },
+      {
+        "table": "competition_players",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      },
+      {
+        "table": "competition_results",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      },
+      {
+        "table": "competition_rooms",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      },
+      {
+        "table": "competition_sessions",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      },
+      {
+        "table": "schema_version",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=r/platform_owner}"
+      },
+      {
+        "table": "three_choose_two_actions",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      },
+      {
+        "table": "three_choose_two_best",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      },
+      {
+        "table": "three_choose_two_results",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      },
+      {
+        "table": "three_choose_two_sessions",
+        "owner": "platform_owner",
+        "acl": "{platform_owner=arwdDxtm/platform_owner,runtime_app=arwd/platform_owner}"
+      }
+    ]
+  }
+}

@@ -5,7 +5,8 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { chromium } from '@playwright/test';
-import { inventory } from '../apps/shell-minigame/scripts/taptap-package.mjs';
+import { inventory, digest, zipInventory } from '../apps/shell-minigame/scripts/taptap-package.mjs';
+import { matrixContract } from './h5-taptap-matrix.mjs';
 import { createRenderer as copsRenderer } from '../games/local/cops-robbers/src/competition-renderer.js';
 import { chooseDuelAction, stepDuel } from '../games/local/cops-robbers/src/duel.js';
 import { getDuelLevel } from '../games/local/cops-robbers/src/duel-levels.js';
@@ -22,8 +23,16 @@ const output = path.join(directory, 'browser');
 await mkdir(output, { recursive: true });
 const runId = Date.now().toString();
 const traceFile = path.join(output, `api-${runId}.ndjson`);
-const origin = 'http://127.0.0.1:43810';
-const api = 'http://127.0.0.1:43802/api/competition/v1';
+const production = process.argv.includes('--production-service');
+const localRestart = process.argv.includes('--with-local-restart');
+assert(
+  process.argv
+    .slice(2)
+    .every((arg) => ['--production-service', '--with-local-restart'].includes(arg)),
+  'Unknown browser flag',
+);
+assert(!(production && localRestart), 'Never restart production services from browser acceptance');
+const { origin, api, port } = matrixContract(matrix, { production });
 const constructors = {
   'cops-robbers': copsRenderer,
   'cops-robbers-realtime': streetRenderer,
@@ -32,6 +41,7 @@ const constructors = {
 const roots = new Map();
 const contexts = new Set();
 const pending = new Set();
+const persistence = [];
 let traceWrites = Promise.resolve();
 let browser;
 let server;
@@ -43,7 +53,9 @@ const report = {
   api,
   origin,
   apiTrace: path.basename(traceFile),
-  scope: 'Twelve H5 configurations, touch rewards and six real online touch matches',
+  scope: production
+    ? 'Six HTTPS service H5 configurations, real touch profiles, rewards and matches'
+    : 'Twelve local H5 configurations, real touch profiles, rewards and six online matches',
   realAdsVerified: false,
   realDeviceVerified: false,
   notRun: [
@@ -521,6 +533,7 @@ async function rewardCheck(player) {
 }
 
 async function openOnline(player) {
+  if (player.surface && (await player.surface.isVisible())) return;
   if (player.variant.game === 'xiangqi-five') {
     await player.page.locator('#home-start').tap();
     await player.page.locator('#mode-online').tap();
@@ -534,6 +547,145 @@ async function openOnline(player) {
   }
   await player.surface.waitFor({ state: 'visible' });
   player.profile = await player.page.evaluate(() => globalThis.__competition.request('/me'));
+}
+async function profilePage(player) {
+  const responsePromise = player.page.waitForResponse(
+    (response) =>
+      response.request().method() === 'GET' &&
+      new URL(response.url()).pathname.endsWith('/me') &&
+      response.status() === 200,
+  );
+  await player.surface.locator('[data-profile]').tap();
+  const street = player.variant.game === 'cops-robbers-realtime';
+  const panel = player.surface.locator(street ? '[data-page="nickname"]' : '[data-kind="profile"]');
+  await panel.waitFor({ state: 'visible' });
+  const input = panel.getByRole('textbox', { name: '你的昵称' });
+  const profile = await (await responsePromise).json();
+  await until(
+    async () =>
+      (await panel.locator('form').getAttribute('data-user-id')) === profile.userId &&
+      (await input.inputValue()) === profile.name,
+    'Fresh server profile loads into owner-bound form',
+  );
+  return { panel, input, save: panel.getByRole('button', { name: '保存昵称', exact: true }) };
+}
+async function closeProfile(player) {
+  await player.surface
+    .locator(
+      player.variant.game === 'cops-robbers-realtime'
+        ? '[data-page-back]'
+        : '[data-details] [data-dismiss]',
+    )
+    .tap();
+}
+async function storedCredential(player) {
+  return player.page.evaluate(() => {
+    const keys = Object.keys(localStorage).filter((key) =>
+      key.startsWith('competition-session-v2:'),
+    );
+    if (keys.length !== 1) throw new Error('Expected one API-scoped credential');
+    return { key: keys[0], raw: localStorage.getItem(keys[0]) };
+  });
+}
+async function profilesCheck(a, b) {
+  const evidence = [];
+  for (const player of [a, b]) {
+    await openOnline(player);
+    const initial = player.profile;
+    assert.equal(initial.userId, initial.playerId);
+    assert.match(initial.userId, /^[a-f0-9-]{36}$/);
+    assert.equal(initial.avatarUrl, '');
+    assert.equal(initial.region, null);
+    const name = `联机${Object.keys(constructors).indexOf(player.variant.game)}${player.variant.adsEnabled ? 1 : 0}${player.id.toUpperCase()}`;
+    const { panel, input, save } = await profilePage(player);
+    assert.match(await panel.textContent(), /地区未知/);
+    assert.equal(await panel.getByRole('button', { name: '同步已授权的平台资料' }).count(), 0);
+    await input.fill(name);
+    for (const viewport of [
+      { width: 320, height: 568 },
+      { width: 844, height: 390 },
+      { width: 390, height: 844 },
+    ]) {
+      await player.page.setViewportSize(viewport);
+      await save.scrollIntoViewIfNeeded();
+      const box = await save.boundingBox();
+      assert(box && box.height >= 44 && box.width >= 44, 'Save target must be touch sized');
+      await screenshot(player, `profile-${viewport.width}x${viewport.height}`);
+    }
+    await save.tap();
+    await until(() => player.profile?.name === name, 'Real API accepts touch profile save');
+    assert.equal(player.profile.userId, initial.userId);
+    const guestCount = player.requests.filter((r) => r.path.endsWith('/sessions/guest')).length;
+    await player.page.reload({ waitUntil: 'networkidle' });
+    await openOnline(player);
+    assert.equal(player.profile.userId, initial.userId);
+    assert.equal(player.profile.name, name);
+    assert.equal(
+      player.requests.filter((r) => r.path.endsWith('/sessions/guest')).length,
+      guestCount,
+      'Reload must reuse identity',
+    );
+    evidence.push({ userId: initial.userId, name, reloadPreservesIdentity: true });
+  }
+  assert.notEqual(a.profile.userId, b.profile.userId);
+  const aCredential = await storedCredential(a),
+    bCredential = await storedCredential(b);
+  assert.equal(aCredential.key, bCredential.key);
+  const { panel, input, save } = await profilePage(a);
+  await input.fill('过期表单');
+  const postCount = a.requests.filter((r) => r.method === 'POST' && r.path.endsWith('/me')).length;
+  try {
+    await a.page.evaluate(({ key, raw }) => localStorage.setItem(key, raw), bCredential);
+    await save.tap();
+    await until(
+      async () => /账号已变化/.test(await panel.textContent()),
+      'Stale form rejects changed account',
+    );
+    assert.equal(
+      a.requests.filter((r) => r.method === 'POST' && r.path.endsWith('/me')).length,
+      postCount,
+      'Stale profile cannot write another account',
+    );
+    const other = await b.page.evaluate(() => globalThis.__competition.request('/me'));
+    assert.equal(other.name, evidence[1].name);
+  } finally {
+    await a.page.evaluate(({ key, raw }) => localStorage.setItem(key, raw), aCredential);
+  }
+  await closeProfile(a);
+  await a.page.reload({ waitUntil: 'networkidle' });
+  await openOnline(a);
+  assert.equal(a.profile.userId, evidence[0].userId);
+  const original = a.variant;
+  const crossGame = [];
+  const guests = a.requests.filter((request) => request.path.endsWith('/sessions/guest')).length;
+  for (const game of Object.keys(constructors).filter((game) => game !== original.game)) {
+    const variant = matrix.variants.find(
+      (v) => v.game === game && v.adsEnabled === original.adsEnabled && v.serviceEnabled,
+    );
+    assert(variant);
+    a.variant = variant;
+    a.surface = null;
+    await a.page.goto(gameUrl(variant), { waitUntil: 'networkidle' });
+    await openOnline(a);
+    assert.equal(a.profile.userId, evidence[0].userId);
+    assert.equal(a.profile.name, evidence[0].name);
+    crossGame.push({ game, userId: a.profile.userId });
+  }
+  a.variant = original;
+  a.surface = null;
+  await a.page.goto(gameUrl(original), { waitUntil: 'networkidle' });
+  await openOnline(a);
+  assert.equal(
+    a.requests.filter((request) => request.path.endsWith('/sessions/guest')).length,
+    guests,
+    'Three games must share the same API identity',
+  );
+  return {
+    players: evidence,
+    staleFormSendsNoWrite: true,
+    crossGame,
+    actualSdkProfileSyncAvailable: false,
+  };
 }
 async function startMatch(a, b) {
   await openOnline(a);
@@ -662,6 +814,10 @@ async function finishMatch(players, code) {
   const boards = [];
   for (const player of players) {
     assert(player.acceptedActions > 0, 'Both identities must send real UI actions');
+    const boardBefore = await player.page.evaluate(
+      (game) => globalThis.__competition.request(`/games/${game}/leaderboards/versus`),
+      player.variant.game,
+    );
     const duplicate = await player.page.evaluate(
       async ({ code, action }) =>
         globalThis.__competition.request(`/rooms/${code}/actions`, {
@@ -673,12 +829,30 @@ async function finishMatch(players, code) {
     await rendered(player.page);
     await screenshot(player, 'settlement');
     const board = await player.page.evaluate(
-      (game) => globalThis.__competition.request(`/boards/${game}`),
+      (game) => globalThis.__competition.request(`/games/${game}/leaderboards/versus`),
       player.variant.game,
     );
+    if (production) {
+      const mine = (value) =>
+        Object.fromEntries(
+          ['userId', 'playerId', 'score', 'secondary'].map((key) => [key, value.me?.[key]]),
+        );
+      assert.deepEqual(
+        mine(board),
+        mine(boardBefore),
+        'Duplicate submission cannot change this test identity score',
+      );
+    } else
+      assert.deepEqual(
+        board,
+        boardBefore,
+        'Duplicate submission cannot change isolated persistent standings',
+      );
     const result = results.find((entry) => entry.playerId === player.profile.playerId);
     assert.equal(board.me?.playerId, player.profile.playerId);
     assert.equal(board.me.score, result.result.score);
+    assert.equal(board.me.name, player.profile.name);
+    assert.equal(board.me.userId, player.profile.userId);
     assert(board.me.rank >= 1);
     boards.push(board);
     const details = player.surface.locator('[data-details]:visible');
@@ -707,6 +881,90 @@ async function finishMatch(players, code) {
   };
 }
 
+async function verifyLocalPersistence() {
+  assert.equal(persistence.length, 6, 'Persistence requires all six real local matches');
+  const gate = path.join(output, `persistence-${runId}`);
+  await writeFile(
+    `${gate}.request.json`,
+    JSON.stringify(
+      {
+        runId,
+        api,
+        postgresContainer: 'small-games-h5-matrix-20261015',
+        matches: persistence.map(({ item }) => ({
+          variant: item.name,
+          roomCode: item.online.roomCode,
+          playerIds: item.online.playerIds,
+        })),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+  console.log(`H5_PERSISTENCE_CHECKPOINT ${gate}`);
+  const receipt = await until(
+    async () => {
+      try {
+        return JSON.parse(await readFile(`${gate}.resumed.json`, 'utf8'));
+      } catch (error) {
+        if (error.code === 'ENOENT') return null;
+        throw error;
+      }
+    },
+    'Owned Runtime and PostgreSQL restart receipt',
+    300000,
+  );
+  assert.equal(receipt.runId, runId);
+  assert.equal(receipt.postgresContainer, 'small-games-h5-matrix-20261015');
+  for (const key of ['volumePreserved', 'runtimeRestarted', 'postgresRestarted'])
+    assert.equal(receipt[key], true);
+  assert.equal(receipt.serviceRole, 'runtime_app');
+  for (const { item, players } of persistence) {
+    for (const player of players) {
+      const id = player.profile.userId,
+        name = player.profile.name;
+      const guestCount = player.requests.filter((r) => r.path.endsWith('/sessions/guest')).length;
+      player.surface = null;
+      player.closing = false;
+      await player.page.goto(gameUrl(player.variant), { waitUntil: 'networkidle' });
+      await openOnline(player);
+      assert.equal(player.profile.userId, id);
+      assert.equal(player.profile.name, name);
+      assert.equal(
+        player.requests.filter((r) => r.path.endsWith('/sessions/guest')).length,
+        guestCount,
+      );
+      const saved = await player.page.evaluate(
+        async ({ game, code }) => ({
+          room: await globalThis.__competition.request(`/rooms/${code}`),
+          board: await globalThis.__competition.request(`/games/${game}/leaderboards/versus`),
+        }),
+        { game: player.variant.game, code: item.online.roomCode },
+      );
+      assert.deepEqual(saved.room.results, item.online.results);
+      const before = item.online.boards.find((board) => board.me.playerId === id).me;
+      for (const key of ['userId', 'playerId', 'score', 'secondary'])
+        assert.equal(saved.board.me[key], before[key]);
+      assert.deepEqual(player.errors, []);
+      assert.deepEqual(player.apiFailures, []);
+      player.closing = true;
+      await player.context.close();
+      contexts.delete(player.context);
+    }
+    item.persistence = {
+      sameBrowserIdentity: true,
+      profile: true,
+      settlement: true,
+      score: true,
+      runtimeAndPostgresRestart: true,
+    };
+  }
+  report.localRestart = receipt;
+  report.notRun = report.notRun.filter(
+    (item) => item !== 'Runtime and PostgreSQL restart persistence',
+  );
+}
+
 const mime = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -726,8 +984,6 @@ const mime = {
   '.wasm': 'application/wasm',
 };
 try {
-  assert.equal(matrix.variants.length, 12, 'Expected all twelve H5 variants');
-  assert.equal(new Set(matrix.variants.map((v) => v.name)).size, 12);
   assert.equal(
     execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
     matrix.sourceSHA,
@@ -740,11 +996,6 @@ try {
     }).trim(),
     matrix.submoduleSHA,
   );
-  for (const game of Object.keys(constructors)) {
-    const variants = matrix.variants.filter((v) => v.game === game);
-    assert.equal(variants.length, 4);
-    assert.equal(new Set(variants.map((v) => `${v.adsEnabled}:${v.serviceEnabled}`)).size, 4);
-  }
   for (const variant of matrix.variants) {
     assert.match(variant.name, /^[a-z0-9-]+$/);
     assert.equal(variant.packageType, 'h5');
@@ -752,6 +1003,15 @@ try {
     assert.equal(variant.apiUrl, variant.serviceEnabled ? api : '');
     const dist = await realpath(path.join(directory, variant.name, 'dist'));
     assert.deepEqual(await inventory(dist), variant.files, `Artifact drift: ${variant.name}`);
+    assert.equal(path.basename(variant.zip), variant.zip);
+    const zip = await readFile(path.join(directory, variant.zip));
+    assert.equal(digest(zip), variant.sha256, `ZIP hash drift: ${variant.name}`);
+    assert.deepEqual(
+      zipInventory(zip),
+      variant.files
+        .map((file) => ({ ...file, path: `dist/${file.path}` }))
+        .sort((a, b) => a.path.localeCompare(b.path)),
+    );
     roots.set(variant.name, dist);
   }
   server = createServer(async (request, response) => {
@@ -781,7 +1041,7 @@ try {
   });
   await new Promise((resolve, reject) => {
     server.once('error', reject);
-    server.listen(43810, '127.0.0.1', resolve);
+    server.listen(port, '127.0.0.1', resolve);
   });
   browser = await chromium.launch({
     headless: true,
@@ -817,6 +1077,7 @@ try {
       } else {
         const b = await newPlayer(variant, 'b');
         players.push(b);
+        item.profiles = await profilesCheck(a, b);
         const code = await startMatch(a, b);
         if (variant.game === 'cops-robbers') await playCops(players);
         else if (variant.game === 'xiangqi-five') await playChess(players);
@@ -828,6 +1089,13 @@ try {
         assert.deepEqual(player.errors, [], 'Unhandled page or network error');
         assert.deepEqual(player.apiFailures, [], 'Unexpected HTTP rejection');
       }
+      if (localRestart && variant.serviceEnabled) {
+        for (const player of players) {
+          player.closing = true;
+          await player.page.goto('about:blank');
+        }
+        persistence.push({ item, players });
+      }
       item.passedWithinDeclaredScope = true;
     } catch (error) {
       item.error = error.stack;
@@ -835,6 +1103,7 @@ try {
       for (const player of players) await screenshot(player, 'failure').catch(() => {});
     } finally {
       for (const player of players) {
+        if (persistence.some((entry) => entry.players.includes(player))) continue;
         player.closing = true;
         await player.context.close().catch(() => {});
         contexts.delete(player.context);
@@ -848,6 +1117,8 @@ try {
       }),
     );
   }
+  if (localRestart && report.variants.every((item) => item.passedWithinDeclaredScope))
+    await verifyLocalPersistence();
 } catch (error) {
   report.error = error.stack;
   process.exitCode = 1;

@@ -29,7 +29,7 @@ services:
     environment:
       HOST: 0.0.0.0
       PORT: '43002'
-      TRUST_PROXY: '1'
+      TRUST_PROXY: '0'
       RUNTIME_DATABASE_URL: postgres://runtime_app:${RUNTIME_DB_PASSWORD:?required}@postgres:5432/small_games
       COMPETITION_ENABLED: 'true'
       COMPETITION_ORIGINS: https://${GAME_DOMAIN:?required}

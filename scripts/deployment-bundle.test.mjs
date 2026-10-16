@@ -92,6 +92,10 @@ test('compose isolates ports and identities, checks dependency readiness and per
   assert.equal(compose.services.runtime.depends_on.postgres.condition, 'service_healthy');
   assert.equal(compose.services.gateway.depends_on.kart.condition, 'service_healthy');
   assert.ok(compose.services.runtime.environment.RUNTIME_DATABASE_URL.includes('runtime_app:'));
+  assert.equal(compose.services.runtime.environment.TRUST_PROXY, '0');
+  assert.equal(compose.services.management.environment.TRUST_PROXY, '1');
+  assert.equal(compose.services.kart.environment.TRUST_PROXY, '1');
+  assert(!Object.hasOwn(compose.services.runtime.environment, 'RUNTIME_TRUSTED_PROXY_IP'));
   assert.ok(
     compose.services.management.environment.MANAGEMENT_DATABASE_URL.includes('management_app:'),
   );

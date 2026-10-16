@@ -1,0 +1,12 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/platforms/competition/client.js",
+        "$TURBO_ROOT$/platforms/competition/game-services.js"
+      ]
+    }
+  }
+}

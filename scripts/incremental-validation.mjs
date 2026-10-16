@@ -13,6 +13,8 @@ import {
 import {
   competitionToolPlan,
   competitionServiceScopePaths,
+  competitionIdentityScopePaths,
+  competitionIdentityMirrorPaths,
   gameServiceScopePaths,
   publishingConsumers,
   publishingScopePaths,
@@ -20,6 +22,8 @@ import {
   platformAdsScopePaths,
   deploymentBundleScopePaths,
   companyDeploymentScopePaths,
+  competitionIngressScopePaths,
+  runtimeProxyDefaultScopePaths,
   publicationConfigScopePaths,
   mobileViewportScopeFile,
   independentPreviewScopeFile,
@@ -72,6 +76,8 @@ export function incrementalPlan({
   fileScopes = new Map(),
 }) {
   const paths = changedPaths.filter((file) => !isDocumentation(file));
+  for (const file of paths.filter((file) => competitionIdentityMirrorPaths.includes(file)))
+    assert(fileScopes.has(file), `Shared identity mirror drift: ${file}`);
   assert(
     !paths.includes(independentPreviewScopeFile) || fileScopes.has(independentPreviewScopeFile),
     'Independent preview scope undefined: review changed behavior and its actual game consumers',
@@ -291,6 +297,18 @@ export function incrementalPlan({
     game_services_checks: paths.some(
       (file) => gameServiceScopePaths.includes(file) && fileScopes.has(file),
     ),
+    identity_checks: paths.some((file) =>
+      [
+        ...competitionIdentityScopePaths,
+        ...competitionIdentityMirrorPaths,
+        'platforms/competition/game-services.js',
+        'platforms/competition/tests/game-services.test.mjs',
+        'platforms/competition/profile-dom.js',
+        'services/runtime-api/src/competition/identity-store.ts',
+        'services/runtime-api/src/competition/platform-login.ts',
+        'services/runtime-api/src/competition/profile.ts',
+      ].includes(file),
+    ),
     competition_service_checks: paths.some(
       (file) =>
         competitionServiceScopePaths.includes(file) ||
@@ -318,6 +336,14 @@ export function incrementalPlan({
       (file) =>
         companyDeploymentScopePaths.includes(file) ||
         (file === 'package.json' && fileScopes.get(file)?.includes('apps/company-web')),
+    ),
+    competition_ingress_checks: paths.some(
+      (file) =>
+        competitionIngressScopePaths.includes(file) ||
+        (runtimeProxyDefaultScopePaths.includes(file) &&
+          fileScopes.get(file)?.includes('services/runtime-api')) ||
+        (['scripts/deploy-tencent.mjs', 'infra/tencent/deploy.sh'].includes(file) &&
+          fileScopes.get(file)?.includes('apps/company-web')),
     ),
     service_rule_sources: [
       'services/runtime-api',

@@ -4,6 +4,12 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
+  validateIngress,
+  renderApiCaddy,
+  renderIngressNginx,
+  renderNginxCompose,
+} from './competition-ingress.mjs';
+import {
   root,
   command,
   fileHashes,
@@ -26,7 +32,7 @@ export function renderCaddy(config) {
 ${config.www} {
     redir https://${config.domain}{uri} permanent
 }
-http:// {
+${config.ingress ? renderApiCaddy(config.ingress) : ''}http:// {
     respond 404
 }
 http://:8081 {
@@ -40,7 +46,7 @@ export function renderCompose(config) {
   return `name: company-web
 services:
   web:
-    image: caddy:2.11.7-alpine
+    image: ${config.ingress ? validateIngress(config.ingress).caddyImage : 'caddy:2.11.7-alpine'}
     restart: unless-stopped
     read_only: true
     ports: ['80:80', '443:443']
@@ -50,7 +56,7 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     tmpfs: ['/tmp']
-    healthcheck:
+${config.ingress ? `    networks:\n      default: {}\n      competition_ingress:\n        ipv4_address: ${config.ingress.network.caddyIp}\n` : ''}    healthcheck:
       test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8081/health']
       interval: 3s
       timeout: 2s
@@ -60,7 +66,7 @@ services:
       options:
         max-size: '5m'
         max-file: '3'
-volumes:
+${config.ingress ? `networks:\n  competition_ingress:\n    external: true\n    name: ${config.ingress.network.name}\n` : ''}volumes:
   caddy_data:
     external: true
     name: company-web_caddy_data
@@ -77,11 +83,32 @@ export async function writeCaddyBundle(destination, config, sha, release) {
   await writeFile(path.join(destination, 'caddy/Caddyfile'), renderCaddy(config));
   await writeFile(path.join(destination, 'compose.yaml'), renderCompose(config));
   await writeFile(path.join(destination, 'website-directory'), config.directory + '\n');
+  if (config.ingress) {
+    const ingress = validateIngress(config.ingress);
+    await writeFile(
+      path.join(destination, 'ingress.json'),
+      JSON.stringify(ingress, null, 2) + '\n',
+    );
+    await mkdir(path.join(destination, 'nginx'));
+    await writeFile(
+      path.join(destination, 'nginx/00-legacy.conf'),
+      'include /etc/nginx/legacy/*.conf;\n',
+    );
+    await writeFile(
+      path.join(destination, 'nginx/10-competition-ingress.conf'),
+      renderIngressNginx(ingress),
+    );
+    await writeFile(path.join(destination, 'nginx-compose.yaml'), renderNginxCompose(ingress));
+    await writeFile(
+      path.join(destination, 'nginx-rollback.yaml'),
+      renderNginxCompose(ingress, { legacy: true }),
+    );
+  }
   const manifest = {
     release,
     sourceSha: sha,
     createdAt: new Date().toISOString(),
-    domains: [config.domain, config.www],
+    domains: [config.domain, config.www, ...(config.ingress ? [config.ingress.domain] : [])],
   };
   await writeFile(path.join(destination, 'release.json'), JSON.stringify(manifest, null, 2) + '\n');
   for (const name of [
@@ -89,6 +116,7 @@ export async function writeCaddyBundle(destination, config, sha, release) {
     'backup.py',
     'company-caddy-backup.service',
     'company-caddy-backup.timer',
+    ...(config.ingress ? ['ingress.py'] : []),
   ]) {
     const body = (await readFile(path.join(root, 'infra/caddy', name), 'utf8'))
       .replaceAll('\r\n', '\n')
@@ -123,10 +151,7 @@ systemctl list-timers company-caddy-backup.timer --all --no-pager
 }
 
 export async function main(args = process.argv.slice(2)) {
-  assert(
-    args.length <= 1 && args.every((arg) => ['--check', '--prepare', '--help'].includes(arg)),
-    'Use pnpm deploy:caddy [--check|--prepare|--help]',
-  );
+  const parsedArgs = parseCaddyArgs(args);
   if (args.includes('--help')) {
     console.log(
       'pnpm deploy:caddy            Deploy independent Caddy and local daily backups\npnpm deploy:caddy --prepare  Package only\npnpm deploy:caddy --check    Read-only container and volume checks\nUse pnpm deploy:company for ordinary website updates.',
@@ -134,6 +159,12 @@ export async function main(args = process.argv.slice(2)) {
     return;
   }
   const config = await loadConfig();
+  // A read failure is fatal: never turn an existing API off because SSH/config was unavailable.
+  const active = config.host ? readActiveIngress(config) : null;
+  config.ingress = chooseIngress(
+    active,
+    parsedArgs.ingress ? JSON.parse(await readFile(parsedArgs.ingress, 'utf8')) : null,
+  );
   if (args.includes('--check')) {
     ssh(
       config,
@@ -144,6 +175,7 @@ export async function main(args = process.argv.slice(2)) {
   const relevant = [
     'scripts/company-deployment.mjs',
     'scripts/deploy-caddy.mjs',
+    'scripts/competition-ingress.mjs',
     'infra/caddy',
     'package.json',
   ];
@@ -182,6 +214,48 @@ export async function main(args = process.argv.slice(2)) {
   console.log(
     'Independent Caddy and private daily backups deployed. Ordinary website releases no longer update this container.',
   );
+}
+
+export function parseCaddyArgs(args) {
+  const result = {};
+  for (let i = 0; i < args.length; i++) {
+    const argument = args[i];
+    if (argument === '--ingress') {
+      assert(
+        !result.ingress && args[i + 1] && !args[i + 1].startsWith('--'),
+        'Provide one ingress JSON path',
+      );
+      result.ingress = args[++i];
+    } else {
+      assert(
+        ['--check', '--prepare', '--help'].includes(argument) && !result.action,
+        'Use deploy:caddy [--check|--prepare|--help] [--ingress path.json]',
+      );
+      result.action = argument;
+    }
+  }
+  return result;
+}
+
+export function chooseIngress(active, requested) {
+  const previous = active ? validateIngress(active) : null;
+  const next = requested ? validateIngress(requested) : previous;
+  if (previous && requested)
+    assert.deepEqual(
+      next,
+      previous,
+      'Active topology changes require a separate reviewed migration',
+    );
+  return next;
+}
+
+export function readActiveIngress(config) {
+  const output = ssh(
+    config,
+    `set -eu\ncurrent='${config.caddyDirectory}/current'\nif [ -e "$current/ingress.json" ]; then\n  cat "$current/ingress.json"\nelse\n  if [ -e '/opt/small-games/ingress-managed' ] || [ -L '/opt/small-games/ingress-managed' ]; then\n    echo 'Managed ingress state is incomplete; inspect its transaction journal.' >&2; exit 1\n  fi\n  printf 'null\\n'\nfi\n`,
+    { capture: true },
+  );
+  return JSON.parse(output);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {

@@ -131,7 +131,7 @@ def live_sources():
     current = (CADDY_DIR / 'current').resolve(strict=True)
     if current.parent != CADDY_DIR / 'releases':
         raise ValueError('Caddy current release is outside releases directory')
-    return {
+    sources = {
         'data': Path(by_name[VOLUMES[0]]['Mountpoint']),
         'config': Path(by_name[VOLUMES[1]]['Mountpoint']),
         'deployment/Caddyfile': current / 'caddy/Caddyfile',
@@ -139,10 +139,50 @@ def live_sources():
         'deployment/release.json': current / 'release.json',
         'deployment/website-directory': current / 'website-directory',
     }
+    if (current / 'ingress.json').is_file():
+        for name in ('ingress.json', 'nginx-compose.yaml', 'nginx-rollback.yaml', 'nginx'):
+            sources['deployment/' + name] = current / name
+        ingress = json.loads((current / 'ingress.json').read_text())
+        legacy = Path(ingress['nginx']['legacyRelease'])
+        if not re.fullmatch(r'/opt/small-games/releases/[a-z0-9-]+', str(legacy)) or legacy.resolve() != legacy:
+            raise ValueError('Unsafe legacy Nginx backup path')
+        sources['deployment/nginx-legacy'] = legacy / 'nginx'
+    return sources
+
+
+def preflight(directory):
+    global CADDY_DIR
+    CADDY_DIR = Path(directory)
+    sources = live_sources()
+    archive = create_backup(BACKUP_DIR, sources)
+    expected = archive.with_name(archive.name + '.sha256').read_text()
+    checksum = hashlib.sha256(archive.read_bytes()).hexdigest()
+    if expected != f'{checksum}  {archive.name}\n':
+        raise ValueError('Backup receipt mismatch')
+    manifest = verify_archive(archive)
+    with tempfile.TemporaryDirectory(prefix='.restore-', dir=BACKUP_DIR) as folder:
+        restored = Path(folder)
+        # verify_archive already rejects absolute/traversal/link/device entries.
+        with tarfile.open(archive, 'r:gz') as contents:
+            for name in manifest['files']:
+                target = restored / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(contents.extractfile(name).read())
+                target.chmod(0o600)
+        actual = {str(item.relative_to(restored)).replace(os.sep, '/'): hashlib.sha256(item.read_bytes()).hexdigest() for item in restored.rglob('*') if item.is_file()}
+        if actual != manifest['files']:
+            raise ValueError('Isolated backup restore differs')
+    print(json.dumps({'archive': archive.name, 'sha256': checksum}))
 
 
 def main():
     os.umask(0o077)
+    if len(sys.argv) == 3 and sys.argv[1] == '--preflight':
+        BACKUP_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
+        with (BACKUP_DIR / 'backup.lock').open('a') as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            preflight(sys.argv[2])
+        return
     if len(sys.argv) == 3 and sys.argv[1] == '--verify':
         manifest = verify_archive(Path(sys.argv[2]))
         print(f"Verified {len(manifest['files'])} files and all certificate/key pairs")

@@ -1,4 +1,3 @@
-/* eslint-disable max-lines -- Competition routes share scoped identity, origin and rate-limit hooks. */
 import type { FastifyInstance } from 'fastify';
 import rateLimit from '@fastify/rate-limit';
 import { createHash, timingSafeEqual } from 'node:crypto';
@@ -6,7 +5,12 @@ import { z } from 'zod';
 import { registerCarromRoutes } from '../carrom/routes.js';
 import type { createCarromStore } from '../carrom/store.js';
 import { CompetitionError } from './types.js';
-import { exchangeDouyinCode } from './douyin-login.js';
+import {
+  platformConfigSchema,
+  platformLoginSchema,
+  verifiedPlatformSubject,
+} from './platform-login.js';
+import { profilePatchSchema } from './profile.js';
 import { registerRunRoutes } from './run-routes.js';
 import {
   registerThreeChooseTwoRoutes,
@@ -28,14 +32,6 @@ const gameSchema = z.enum([
   'flick-arena',
   'carrom-club',
 ]);
-const platformConfig = z.array(
-  z.object({
-    platform: z.enum(['wechat', 'bilibili', 'douyin', 'kuaishou', 'taptap']),
-    appId: z.string().min(1),
-    secret: z.string().min(16),
-  }),
-);
-
 export async function registerCompetition(
   app: FastifyInstance,
   store: ReturnType<typeof createCompetitionStore>,
@@ -48,7 +44,7 @@ export async function registerCompetition(
     .split(',')
     .filter(Boolean)
     .map((origin) => z.url().parse(origin));
-  const platforms = platformConfig.parse(JSON.parse(env.COMPETITION_PLATFORM_CONFIG ?? '[]'));
+  const platforms = platformConfigSchema.parse(JSON.parse(env.COMPETITION_PLATFORM_CONFIG ?? '[]'));
   const internalKey = env.COMPETITION_INTERNAL_KEY;
   if (internalKey) z.string().min(32).parse(internalKey);
   await app.register(
@@ -100,7 +96,16 @@ export async function registerCompetition(
             rateLimit: { max: 20, timeWindow: '1 minute', keyGenerator: (request) => request.ip },
           },
         },
-        async () => store.session(),
+        async (request) => {
+          const { installationId, identityVersion } = z
+            .object({
+              installationId: z.uuid().optional(),
+              identityVersion: z.literal(2).optional(),
+            })
+            .strict()
+            .parse(request.body ?? {});
+          return store.guestSession(installationId, identityVersion);
+        },
       );
       routes.post(
         '/sessions/platform',
@@ -111,59 +116,50 @@ export async function registerCompetition(
           },
         },
         async (request) => {
-          const input = z
-            .object({
-              platform: z.enum(['wechat', 'bilibili', 'douyin', 'kuaishou', 'taptap']),
-              appId: z.string().max(100),
-              code: z.string().min(1).max(512),
-            })
-            .strict()
-            .parse(request.body);
-          const configured = platforms.find(
-            (p) => p.platform === input.platform && p.appId === input.appId,
+          const input = platformLoginSchema.parse(request.body);
+          return store.session(
+            input.platform,
+            input.appId,
+            await verifiedPlatformSubject(platforms, input),
           );
-          if (!configured) throw new CompetitionError('PLATFORM_NOT_CONFIGURED', 503);
-          // The client/rendering adapters can exist before a verified server-side
-          // code exchange. Never issue a guest identity for a native platform.
-          if (input.platform === 'kuaishou')
-            throw new CompetitionError('PLATFORM_LOGIN_UNAVAILABLE', 503);
-          if (input.platform === 'douyin')
-            return store.session(
-              input.platform,
-              input.appId,
-              await exchangeDouyinCode(input.appId, configured.secret, input.code),
-            );
-          const endpoints = {
-            wechat: 'https://api.weixin.qq.com/sns/jscode2session',
-            bilibili: 'https://miniapp.bilibili.com/api/sns/jscode2session',
-            // Ordinary TapTap mini-games use MiniApp ID + mini-game secret, not TapSDK
-            // Client ID/OAuth. Official auth.code2Session, domestic service endpoint:
-            // https://developer.taptap.cn/minigameapidoc/dev/server/login/code2Session/
-            taptap: 'https://cloud-miniapp.tapapis.cn/auth/v1/jscode2session',
-          };
-          const endpoint = new URL(endpoints[input.platform]);
-          endpoint.search = new URLSearchParams({
-            appid: input.appId,
-            secret: configured.secret,
-            js_code: input.code,
-            grant_type: 'authorization_code',
-          }).toString();
-          const response = await fetch(endpoint, {
-            signal: AbortSignal.timeout(5000),
-            redirect: 'error',
-          });
-          if (!response.ok) throw new CompetitionError('PLATFORM_LOGIN_FAILED', 401);
-          const data = (await response.json()) as {
-            openid?: unknown;
-            openId?: unknown;
-            errcode?: number;
-          };
-          const subject = data.openid;
-          if (data.errcode || typeof subject !== 'string' || !subject)
-            throw new CompetitionError('PLATFORM_LOGIN_FAILED', 401);
-          // Keep platform/AppID scoping; issue only our own credential. The platform
-          // session_key and optional unionid are never returned to the client.
-          return store.session(input.platform, input.appId, subject);
+        },
+      );
+      routes.post(
+        '/sessions/refresh',
+        {
+          bodyLimit: 1024,
+          config: {
+            rateLimit: { max: 20, timeWindow: '1 minute', keyGenerator: (request) => request.ip },
+          },
+        },
+        async (request) => {
+          const { refreshToken } = z
+            .object({ refreshToken: tokenSchema.optional() })
+            .strict()
+            .parse(request.body ?? {});
+          if (refreshToken) return store.refreshSession(refreshToken);
+          await player(request.headers.authorization);
+          return store.renewGuestSession(request.headers.authorization!.slice(7));
+        },
+      );
+      routes.post(
+        '/sessions/upgrade',
+        {
+          bodyLimit: 4096,
+          config: {
+            rateLimit: { max: 20, timeWindow: '1 minute', keyGenerator: (request) => request.ip },
+          },
+        },
+        async (request) => {
+          const input = platformLoginSchema.parse(request.body);
+          await player(request.headers.authorization);
+          const subject = await verifiedPlatformSubject(platforms, input);
+          return store.upgrade(
+            request.headers.authorization!.slice(7),
+            input.platform,
+            input.appId,
+            subject,
+          );
         },
       );
       routes.get('/me', async (request) =>
@@ -171,25 +167,10 @@ export async function registerCompetition(
       );
       routes.post(
         '/me',
-        { bodyLimit: 1024, config: { rateLimit: { max: 6, timeWindow: '1 minute' } } },
+        { bodyLimit: 4096, config: { rateLimit: { max: 6, timeWindow: '1 minute' } } },
         async (request) => {
-          const { name } = z
-            .object({
-              name: z
-                .string()
-                .max(100)
-                .transform((value) => value.normalize('NFKC').trim().replace(/\s+/g, ' '))
-                .refine(
-                  (value) =>
-                    Array.from(value).length >= 2 &&
-                    Array.from(value).length <= 16 &&
-                    /^[\p{L}\p{N} ·_-]+$/u.test(value),
-                  'INVALID_NAME',
-                ),
-            })
-            .strict()
-            .parse(request.body);
-          return store.profile(await player(request.headers.authorization), name);
+          const input = profilePatchSchema.parse(request.body);
+          return store.profile(await player(request.headers.authorization), input);
         },
       );
       routes.get('/boards/:game', async (request) => {

@@ -38,6 +38,8 @@ const server = createServer(async (request, response) => {
       response.end(request.method === 'HEAD' ? undefined : script);
       return;
     }
+    if (pathname === '/client.js' && !process.argv.includes('--dist'))
+      target = fileURLToPath(new URL('../../../platforms/competition/client.js', import.meta.url));
     if (pathname === '/game-services.js' && !process.argv.includes('--dist'))
       target = fileURLToPath(
         new URL('../../../platforms/competition/game-services.js', import.meta.url),

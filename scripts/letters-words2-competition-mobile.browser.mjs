@@ -17,6 +17,10 @@ const source = (await readFile(new URL('../platforms/competition/h5.js', import.
 const files = new Map([
   ['/h5.js', source],
   [
+    '/profile-dom.js',
+    await readFile(new URL('../platforms/competition/profile-dom.js', import.meta.url), 'utf8'),
+  ],
+  [
     '/service-config.js',
     await readFile(new URL('../platforms/competition/service-config.js', import.meta.url), 'utf8'),
   ],

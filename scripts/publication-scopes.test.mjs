@@ -9,6 +9,7 @@ import {
   competitionToolPlan,
   competitionServiceScopePaths,
   competitionServiceConfigOnly,
+  identityGatewayFileScope,
   threeChooseTwoBackendFileScope,
   flickIntegrationFileScope,
   carromBackendFileScope,
@@ -19,6 +20,8 @@ import {
   platformAdsScopePaths,
   deploymentBundleScopePaths,
   companyDeploymentScopePaths,
+  competitionIngressScopePaths,
+  runtimeProxyDefaultScopePaths,
   publicationConfigScopePaths,
   mobileViewportScopeFile,
   independentPreviewScopeFile,
@@ -395,11 +398,19 @@ test('channel advertising selects only its real game consumer and mandatory cont
 });
 
 test('company deployment selects only the website and rejects unknown siblings and root commands', () => {
-  const packages = [{ name: '@coffeeeeffoc/company-web', dir: 'apps/company-web' }];
+  const packages = [
+    { name: '@coffeeeeffoc/company-web', dir: 'apps/company-web' },
+    { name: '@coffeeeeffoc/runtime-api', dir: 'services/runtime-api' },
+  ];
   for (const file of companyDeploymentScopePaths) {
     const context = { packages, games: [], changedPaths: [file], readSource: () => '' };
     const fileScopes = reviewedSharedFileScopes(context);
-    assert.deepEqual(fileScopes.get(file), ['apps/company-web']);
+    assert.deepEqual(
+      fileScopes.get(file),
+      competitionIngressScopePaths.includes(file)
+        ? ['apps/company-web', 'services/runtime-api']
+        : ['apps/company-web'],
+    );
     const plan = incrementalPlan({ ...context, fileScopes });
     assert.equal(plan.company_deployment_checks, true);
     assert.equal(plan.deployment_bundle_checks, false);
@@ -438,6 +449,78 @@ test('company deployment selects only the website and rejects unknown siblings a
   }
 });
 
+test('competition ingress selects only both proxy consumers and rejects unrelated legacy deployment edits', async () => {
+  const packages = [
+    { name: 'company', dir: 'apps/company-web' },
+    { name: 'runtime', dir: 'services/runtime-api' },
+  ];
+  for (const file of competitionIngressScopePaths) {
+    const context = { packages, games: [], changedPaths: [file], readSource: () => '' };
+    const fileScopes = reviewedSharedFileScopes(context);
+    assert.deepEqual(fileScopes.get(file), ['apps/company-web', 'services/runtime-api']);
+    const plan = incrementalPlan({ ...context, fileScopes });
+    assert.equal(plan.competition_ingress_checks, true);
+    assert.deepEqual(plan.browser_ids, []);
+  }
+  const { ingressShellGuard, ingressPreflightGuard } = await import('./competition-ingress.mjs');
+  for (const file of ['scripts/deploy-tencent.mjs', 'infra/tencent/deploy.sh']) {
+    const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+    const guard = file.endsWith('.mjs') ? ingressPreflightGuard : ingressShellGuard;
+    const before = after.replaceAll(guard, '');
+    const context = {
+      packages,
+      games: [],
+      changedPaths: [file],
+      readBase: () => before,
+      readHead: () => after,
+    };
+    assert.deepEqual(reviewedSharedFileScopes(context).get(file), [
+      'apps/company-web',
+      'services/runtime-api',
+    ]);
+    assert.equal(
+      reviewedSharedFileScopes({
+        ...context,
+        readHead: () => after + '\n// unrelated deployment mutation\n',
+      }).size,
+      0,
+    );
+  }
+  for (const file of ['scripts/competition-ingress-extra.mjs', 'infra/caddy/ingress-extra.py'])
+    assert.equal(reviewedSharedFileScopes({ packages, games: [], changedPaths: [file] }).size, 0);
+});
+
+test('generic Runtime proxy defaults admit exactly the reviewed producer bytes and block extra changes', () => {
+  const packages = [{ name: 'runtime', dir: 'services/runtime-api' }];
+  for (const file of runtimeProxyDefaultScopePaths) {
+    const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+    const before = file.endsWith('.yaml')
+      ? after.replace(
+          "      PORT: '43002'\n      TRUST_PROXY: '0'",
+          "      PORT: '43002'\n      TRUST_PROXY: '1'",
+        )
+      : after.replace(
+          "      Object.assign(env, {\n        HOST: '0.0.0.0',\n        PORT: String(port),\n        TRUST_PROXY: service === 'runtime' ? '0' : '1',\n      });",
+          "      Object.assign(env, { HOST: '0.0.0.0', PORT: String(port), TRUST_PROXY: '1' });",
+        );
+    assert.notEqual(before, after);
+    const context = {
+      packages,
+      games: [],
+      changedPaths: [file],
+      readBase: () => before,
+      readHead: () => after,
+    };
+    const fileScopes = reviewedSharedFileScopes(context);
+    assert.deepEqual(fileScopes.get(file), ['services/runtime-api']);
+    assert.equal(incrementalPlan({ ...context, fileScopes }).competition_ingress_checks, true);
+    assert.equal(
+      reviewedSharedFileScopes({ ...context, readHead: () => after + '\n# unreviewed mutation\n' })
+        .size,
+      0,
+    );
+  }
+});
 test('deployment and public platform configuration select mandatory checks without unrelated games', () => {
   const packages = ['runtime-api', 'management-api'].map((name) => ({
     name,
@@ -2458,8 +2541,13 @@ test('shared game services select only their proven game consumers and fail clos
     { dir: 'services/runtime-api', name: 'runtime' },
     { dir: 'apps/shell-web', name: 'shell' },
   ];
+  // Historical service delta; identity migration and gateway renewal are reviewed separately.
   const read = (file) =>
-    readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll('\r\n', '\n');
+    ['scripts/deploy-tencent.mjs', 'scripts/competition-gateway.mjs'].includes(file)
+      ? execFileSync('git', ['show', '26756c80cfa4ddf9bda16269265e353fddeaeeaf:' + file], {
+          encoding: 'utf8',
+        })
+      : readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll('\r\n', '\n');
   const files = [
     'platforms/competition/game-services.js',
     'platforms/competition/tests/game-services.test.mjs',
@@ -2552,5 +2640,346 @@ test('shared game services select only their proven game consumers and fail clos
         incrementalPlan({ ...one, readSource: read, fileScopes: reviewedSharedFileScopes(one) }),
       /scope undefined/,
     );
+  }
+});
+
+test('shared identity client proves all eleven consumers and native composition never loses any', async () => {
+  const { competitionIdentityConsumers, competitionIdentityFileScope } = await import(
+    './publication-scopes.mjs'
+  );
+  const { nineNativeFileScopes } = await import('./nine-native-scope.mjs');
+  const { workspacePackages } = await import('./validation-plan.mjs');
+  const catalog = JSON.parse(
+    readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url), 'utf8'),
+  );
+  const pkgs = await workspacePackages(fileURLToPath(new URL('../', import.meta.url)));
+  const read = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const context = {
+    changedPaths: ['platforms/competition/client.js'],
+    games: catalog,
+    packages: pkgs,
+    readBase: read,
+    readHead: read,
+  };
+  const expected = Object.values(competitionIdentityConsumers);
+  assert.equal(expected.length, 11);
+  assert.deepEqual(competitionIdentityFileScope(context), expected);
+  const general = reviewedSharedFileScopes(context),
+    native = nineNativeFileScopes(context);
+  const combined = new Map([...general, ...native]);
+  assert.deepEqual(general.get(context.changedPaths[0]), expected);
+  assert.deepEqual(native.get(context.changedPaths[0]), expected);
+  assert.deepEqual(combined.get(context.changedPaths[0]), expected);
+  const result = incrementalPlan({ ...context, fileScopes: combined, readSource: read });
+  assert.deepEqual(result.browser_ids, Object.keys(competitionIdentityConsumers).sort());
+  assert.equal(result.identity_checks, true);
+  assert.equal(result.nine_native_targets.length, 36);
+  assert.deepEqual(
+    result.nine_native_blocked.map((item) => item.game),
+    ['carding-car'],
+  );
+  assert(
+    result.nine_native_targets
+      .filter((target) => target.game === 'carding-car')
+      .every((target) => target.requiresCreator === '3.8.8'),
+  );
+  for (const variant of [
+    { games: catalog.filter((game) => game.id !== 'carrom-club') },
+    { games: [...catalog, catalog.find((game) => game.id === 'flick-arena')] },
+    { games: [...catalog, { id: 'alias', source: 'games/local/tower-brake' }] },
+    { packages: pkgs.filter((pkg) => pkg.dir !== 'games/local/cage-rescue') },
+    { packages: [...pkgs, pkgs.find((pkg) => pkg.dir === 'games/local/carding-car')] },
+  ]) {
+    assert.equal(reviewedSharedFileScopes({ ...context, ...variant }).size, 0);
+    assert.equal(nineNativeFileScopes({ ...context, ...variant }).size, 0);
+  }
+  for (const [file, changed] of [
+    [
+      'platforms/competition/client.js',
+      read('platforms/competition/client.js') + "\nimport './unknown.js';",
+    ],
+    [
+      'platforms/competition/client.js',
+      read('platforms/competition/client.js') + '\nrequire(dynamicModule);',
+    ],
+    [
+      'games/local/flick-arena/competition-client.js',
+      read('games/local/flick-arena/competition-client.js') + '\n',
+    ],
+    [
+      'games/local/three-choose-two/competition.js',
+      read('games/local/three-choose-two/competition.js') + '\n',
+    ],
+    [
+      'platforms/competition/game-services.js',
+      read('platforms/competition/game-services.js').replace("import './client.js';", ''),
+    ],
+    [
+      'platforms/competition/game-services.js',
+      read('platforms/competition/game-services.js') + "\nimport './unknown.js';",
+    ],
+    [
+      'platforms/competition/game-services.js',
+      read('platforms/competition/game-services.js') + "\nimport './client.js';",
+    ],
+    [
+      'platforms/competition/game-services.js',
+      read('platforms/competition/game-services.js') + "\nawait import('./unknown.js');",
+    ],
+    [
+      'games/local/cage-rescue/build.mjs',
+      read('games/local/cage-rescue/build.mjs').replace(
+        "new URL('client.js', dist)",
+        "new URL('other.js', dist)",
+      ),
+    ],
+    [
+      'games/local/tower-brake/build.mjs',
+      read('games/local/tower-brake/build.mjs').replace(
+        "new URL('../../../platforms/competition/client.js', import.meta.url)",
+        "new URL('../../../platforms/competition/other.js', import.meta.url)",
+      ),
+    ],
+    [
+      'games/local/cage-rescue/server.mjs',
+      read('games/local/cage-rescue/server.mjs').replace(
+        "pathname === '/client.js'",
+        "pathname === '/wrong.js'",
+      ),
+    ],
+    [
+      'games/local/tower-brake/turbo.json',
+      JSON.stringify({
+        extends: ['//'],
+        tasks: {
+          build: {
+            inputs: ['$TURBO_DEFAULT$', '$TURBO_ROOT$/platforms/competition/game-services.js'],
+          },
+        },
+      }),
+    ],
+    [
+      'games/local/cage-rescue/turbo.json',
+      JSON.stringify({
+        extends: ['//'],
+        tasks: {
+          build: {
+            inputs: [
+              '$TURBO_DEFAULT$',
+              '$TURBO_ROOT$/platforms/competition/client.js',
+              '$TURBO_ROOT$/platforms/competition/game-services.js',
+              '$TURBO_DEFAULT$',
+            ],
+          },
+        },
+      }),
+    ],
+  ]) {
+    assert.notEqual(changed, read(file), file);
+    const altered = { ...context, readHead: (name) => (name === file ? changed : read(name)) };
+    assert.equal(reviewedSharedFileScopes(altered).has(context.changedPaths[0]), false, file);
+    assert.equal(nineNativeFileScopes(altered).has(context.changedPaths[0]), false, file);
+  }
+  const mirror = 'games/local/flick-arena/competition-client.js';
+  const drift = {
+    ...context,
+    changedPaths: [mirror],
+    readHead: (name) => read(name) + (name === mirror ? '\n' : ''),
+  };
+  assert.throws(
+    () =>
+      incrementalPlan({
+        ...drift,
+        fileScopes: reviewedSharedFileScopes(drift),
+        readSource: drift.readHead,
+      }),
+    /identity mirror drift/,
+  );
+});
+
+test('identity display and security files have their real H5 consumers; unknown siblings stay blocked', async () => {
+  const { workspacePackages } = await import('./validation-plan.mjs');
+  const catalog = JSON.parse(
+    readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url), 'utf8'),
+  );
+  const pkgs = await workspacePackages(fileURLToPath(new URL('../', import.meta.url)));
+  const read = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  for (const file of [
+    'platforms/competition/profile-dom.js',
+    'platforms/competition/h5.css',
+    'platforms/competition/street-pages.js',
+    'platforms/competition/street.css',
+    'platforms/competition/tests/identity.test.mjs',
+  ]) {
+    const context = {
+      changedPaths: [file],
+      games: catalog,
+      packages: pkgs,
+      readBase: read,
+      readHead: read,
+    };
+    const scoped = reviewedSharedFileScopes(context);
+    const expected = file.includes('/street')
+      ? [competitionConsumers['cops-robbers-realtime']]
+      : file.includes('/tests/identity')
+        ? Object.values((await import('./publication-scopes.mjs')).competitionIdentityConsumers)
+        : Object.values(competitionConsumers);
+    assert.deepEqual(scoped.get(file), expected, file);
+    const result = incrementalPlan({ ...context, fileScopes: scoped, readSource: read });
+    assert.equal(result.full, false);
+    if (file.endsWith('profile-dom.js') || file.endsWith('identity.test.mjs'))
+      assert.equal(result.identity_checks, true);
+  }
+  const unknown = 'platforms/competition/profile-extra.js';
+  const context = {
+    changedPaths: [unknown],
+    games: catalog,
+    packages: pkgs,
+    readBase: read,
+    readHead: read,
+  };
+  assert.throws(
+    () =>
+      incrementalPlan({
+        ...context,
+        fileScopes: reviewedSharedFileScopes(context),
+        readSource: read,
+      }),
+    /scope undefined/,
+  );
+});
+
+test('identity migration and registrations are exact additive runtime-only changes', () => {
+  const read = (file) =>
+    readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll('\r\n', '\n');
+  const migration = 'infra/migrations/013-competition-identities.sql';
+  const files = [
+    migration,
+    'scripts/competition.mjs',
+    'scripts/platform.mjs',
+    'scripts/deploy-tencent.mjs',
+  ];
+  const original = (file) =>
+    file === migration
+      ? null
+      : execFileSync('git', ['show', '26756c80cfa4ddf9bda16269265e353fddeaeeaf:' + file], {
+          encoding: 'utf8',
+        });
+  const context = {
+    changedPaths: files,
+    games: [],
+    packages: [{ name: 'runtime', dir: 'services/runtime-api' }],
+    readBase: original,
+    readHead: read,
+  };
+  const classified = reviewedSharedFileScopes(context);
+  for (const file of files) assert.deepEqual(classified.get(file), ['services/runtime-api'], file);
+  const result = incrementalPlan({ ...context, fileScopes: classified, readSource: read });
+  assert.deepEqual(result.game_sources, []);
+  assert.deepEqual(result.service_rule_sources, ['services/runtime-api']);
+  for (const file of files) {
+    for (const changed of [read(file) + '\n', read(file) + '\nselect 1;\n'])
+      assert.equal(
+        reviewedSharedFileScopes({
+          ...context,
+          changedPaths: [file],
+          readHead: (name) => (name === file ? changed : read(name)),
+        }).has(file),
+        false,
+        file,
+      );
+    if (file !== migration) {
+      assert.equal(
+        reviewedSharedFileScopes({
+          ...context,
+          changedPaths: [file],
+          readBase: (name) => original(name) + '\n',
+        }).has(file),
+        false,
+      );
+      const marker =
+        file === 'scripts/competition.mjs'
+          ? "  await psql(\n    await readFile(new URL('../infra/migrations/013-competition-identities.sql', import.meta.url)),\n    mode === 'test-db' ? 'competition_test' : 'small_games',\n  );\n"
+          : "    '013-competition-identities.sql',\n";
+      assert(read(file).includes(marker));
+      const duplicated = read(file).replace(marker, marker + marker);
+      assert.equal(
+        reviewedSharedFileScopes({
+          ...context,
+          changedPaths: [file],
+          readHead: (name) => (name === file ? duplicated : read(name)),
+        }).has(file),
+        false,
+      );
+    }
+  }
+  const unknown = 'infra/migrations/014-unreviewed.sql';
+  const other = {
+    ...context,
+    changedPaths: [unknown],
+    readBase: () => null,
+    readHead: () => read(migration),
+  };
+  assert.throws(
+    () =>
+      incrementalPlan({
+        ...other,
+        fileScopes: reviewedSharedFileScopes(other),
+        readSource: other.readHead,
+      }),
+    /scope undefined/,
+  );
+});
+
+test('identity gateway routing has exact consumers and rejects any other proxy change', async () => {
+  const { workspacePackages } = await import('./validation-plan.mjs');
+  const file = 'scripts/competition-gateway.mjs';
+  const read = (name) => readFileSync(new URL('../' + name, import.meta.url), 'utf8');
+  const before = execFileSync('git', ['show', '26756c80cfa4ddf9bda16269265e353fddeaeeaf:' + file], {
+    encoding: 'utf8',
+  });
+  const after = read(file);
+  assert(identityGatewayFileScope(before, after));
+  for (const [old, current] of [
+    [before + '\n', after],
+    [before, after + '\n'],
+    [before, after.replace("host: '127.0.0.1'", "host: '0.0.0.0'")],
+    [before, after.replace('refresh|upgrade', 'refresh|upgrade|internal')],
+  ])
+    assert.equal(identityGatewayFileScope(old, current), false);
+  const context = {
+    changedPaths: [file],
+    games: JSON.parse(read('apps/shell-web/src/standalone-games.json')),
+    packages: await workspacePackages(fileURLToPath(new URL('../', import.meta.url))),
+    readBase: (name) => (name === file ? before : read(name)),
+    readHead: read,
+  };
+  const consumers = reviewedSharedFileScopes(context).get(file);
+  assert(consumers);
+  assert.equal(new Set(consumers).size, 13);
+  for (const source of [
+    'games/local/cops-robbers',
+    'games/local/flick-arena',
+    'games/local/three-choose-two',
+    'services/runtime-api',
+    'apps/shell-web',
+  ])
+    assert(consumers.includes(source));
+});
+
+test('identity compatibility fixtures keep the existing finite Runtime package scope', async () => {
+  const { workspacePackages } = await import('./validation-plan.mjs');
+  const packages = await workspacePackages(fileURLToPath(new URL('../', import.meta.url)));
+  for (const file of [
+    'competition-compatibility-fixture.mjs',
+    'competition-compatibility.test.mjs',
+    'competition-compatibility.integration.test.mjs',
+    'competition-identity.integration.test.ts',
+  ]) {
+    const changedPaths = ['services/runtime-api/tests/' + file];
+    const plan = incrementalPlan({ packages, games: [], changedPaths, readSource: () => '' });
+    assert.equal(plan.full, false);
+    assert.deepEqual(plan.game_sources, []);
+    assert.deepEqual(plan.service_rule_sources, ['services/runtime-api']);
   }
 });

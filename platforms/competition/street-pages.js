@@ -2,6 +2,7 @@ import './client.js';
 import styles from './street.css?inline';
 import { scoreText, gapText, playerName } from './format.js';
 import { getRoleAppearance } from '../../games/local/cops-robbers-realtime/src/role-appearance.js';
+import { renderAvatar, regionText, profileDetails } from './profile-dom.js';
 
 const roleNames = { pursuer: '警察', runner: '小偷', random: '随机先行' };
 const spriteUrl = new URL('./src/assets/characters.png', document.baseURI).href;
@@ -84,7 +85,7 @@ export function mountStreetCompetition(game, createRenderer) {
       </section>
       <section class="sp-page sp-play-page" data-page="play" hidden><div class="sp-play-info"><strong data-play-role></strong><span>点击角色，再点道路移动</span></div><canvas data-play aria-label="好友挑战操作区"></canvas><div class="sp-play-actions"><button data-rules>玩法说明</button><button data-invite>邀请信息</button><button data-close>离开对局</button></div></section>
       <section class="sp-page" data-page="board" hidden><div class="sp-board-intro">${icon('trophy')}<h2>街区高手榜</h2><p data-board-summary>正在读取全站成绩…</p></div><div data-board-content></div><button class="sp-secondary" data-refresh-board>${icon('refresh')}刷新榜单</button></section>
-      <section class="sp-page" data-page="nickname" hidden><div class="sp-name-hero"><span class="sp-portrait" data-name-avatar></span><i>✦</i><i>✦</i></div><form class="sp-card sp-name-form" data-name-form><label for="street-nickname">你的昵称</label><div class="sp-name-input"><input id="street-nickname" name="name" maxlength="32" autocomplete="off" spellcheck="false" required aria-label="你的昵称">${icon('pen')}</div><small>2–16 个中英文字、数字、空格或 · _ -</small><p class="sp-form-message" role="status" data-name-message></p><button class="sp-primary" type="submit" data-save-name>${icon('check')}保存昵称</button></form><p class="sp-note">成绩会跟随你的账号，修改昵称后仍然保留。</p><div class="sp-player-id"><small>我的玩家 ID</small><code data-player-id></code></div></section>
+      <section class="sp-page" data-page="nickname" hidden><div class="sp-name-hero"><span class="sp-portrait" data-name-avatar></span><i>✦</i><i>✦</i></div><form class="sp-card sp-name-form" data-name-form><label for="street-nickname">你的昵称</label><div class="sp-name-input"><input id="street-nickname" name="name" maxlength="32" autocomplete="off" spellcheck="false" required aria-label="你的昵称">${icon('pen')}</div><small>2–16 个中英文字、数字、空格或 · _ -</small><p class="sp-form-message" role="status" data-name-message></p><button class="sp-primary" type="submit" data-save-name>${icon('check')}保存昵称</button></form><p class="sp-note" data-profile-details>地区未知 · 默认资料</p><button class="sp-secondary" type="button" data-sync-profile hidden>同步已授权的平台资料</button><p class="sp-note">成绩会跟随你的账号，修改昵称后仍然保留。</p><div class="sp-player-id"><small>我的玩家 ID</small><code data-player-id></code></div></section>
       <section class="sp-page" data-page="rules" hidden><div class="sp-rules-hero">${icon('shield')}<h2>街区追捕，开局指南</h2><p>选中角色，点击道路，开始追逐！</p></div><div class="sp-card" data-rules-content></div><button class="sp-primary" data-page-return>知道啦，返回 ${icon('arrow')}</button></section>
       <section class="sp-page" data-page="results" hidden><div class="sp-result-hero"><span class="sp-figure" data-figure="pursuer"></span><span class="sp-result-trophy">${icon('trophy')}</span><span class="sp-figure" data-figure="runner"></span><h2 data-result-title>这局打得漂亮！</h2><p>好友对战 · 本局积分已确认</p></div><div class="sp-results" data-results></div><button class="sp-primary" data-result-rematch>${icon('refresh')}再来一局</button><button class="sp-secondary" data-board>${icon('trophy')}查看全站榜</button><button class="sp-text-button" data-close>${icon('home')}回到首页</button></section>
       <section class="sp-page" data-page="invite" hidden><div class="sp-invite-hero">${icon('friends')}<h2>叫上好友，一起追逐！</h2><p>一人当警察，一人当小偷</p></div><div class="sp-card sp-invite-card"><small>你的房间码</small><strong data-invite-code></strong><button class="sp-primary" data-copy-code>${icon('link')}复制房间码</button><small>或把邀请链接发给好友</small><input data-invite-url readonly aria-label="邀请链接"><button class="sp-secondary" data-copy-link>${icon('link')}复制邀请链接</button><p class="sp-form-message" role="status" data-invite-message></p></div><button class="sp-text-button" data-page-return>返回房间 ${icon('arrow')}</button></section>
@@ -185,27 +186,18 @@ export function mountStreetCompetition(game, createRenderer) {
     }
     accept(value, generation);
   }
-  function portrait(role = 'pursuer') {
+  function portrait(player) {
     const element = node('span', '', 'sp-portrait');
-    decoratePortrait(element, role);
-    return element;
-  }
-  function decoratePortrait(element, role = 'pursuer') {
-    const appearance = getRoleAppearance(role);
-    element.style.removeProperty('background-image');
-    element.dataset.portraitRole = role;
-    element.dataset.preset = String(Number(appearance.preset) || 0);
-    if (appearance.avatar) {
-      element.style.backgroundImage = `url("${appearance.avatar}")`;
-      element.dataset.custom = '';
-    } else element.removeAttribute('data-custom');
+    return renderAvatar(element, player, client.avatarPolicy);
   }
   function updateProfile(value) {
     profile = value;
     select('[data-profile-name]').textContent = value.name;
-    select('[data-player-id]').textContent = value.playerId;
-    decoratePortrait(select('[data-avatar]'));
-    decoratePortrait(select('[data-name-avatar]'));
+    select('[data-player-id]').textContent = value.userId || value.playerId;
+    renderAvatar(select('[data-avatar]'), value, client.avatarPolicy);
+    renderAvatar(select('[data-name-avatar]'), value, client.avatarPolicy);
+    select('[data-profile-details]').textContent = profileDetails(value);
+    select('[data-sync-profile]').hidden = !client.canSyncProfile?.();
     for (const figure of all('[data-figure]')) {
       figure.style.backgroundPositionX = `${getRoleAppearance(figure.dataset.figure).preset * 50}%`;
     }
@@ -342,7 +334,8 @@ export function mountStreetCompetition(game, createRenderer) {
             `${roleNames[player.role] || '好友'} · ${room.status === 'waiting' ? (player.ready ? '已准备 ✓' : '等待准备') : room.status === 'finished' ? '对局结束' : '对局中断'}`,
           ),
         );
-        card.append(portrait(player.role), copy);
+        if (regionText(player)) copy.append(node('small', regionText(player), 'sp-region'));
+        card.append(portrait(player), copy);
       } else {
         card.dataset.empty = '';
         card.append(
@@ -465,7 +458,7 @@ export function mountStreetCompetition(game, createRenderer) {
       const card = node('section', '', 'sp-result-card');
       const head = node('div', '', 'sp-result-player');
       head.append(
-        portrait(player.role),
+        portrait(player),
         node('h3', `${entry.playerId === me.id ? '你 · ' : ''}${playerName(player, room.players)}`),
       );
       const record = entry.after.me;
@@ -508,11 +501,12 @@ export function mountStreetCompetition(game, createRenderer) {
         const card = node('div', '', 'sp-podium-place');
         card.dataset.rank = String(row.rank);
         card.append(
-          portrait(index === 1 ? 'runner' : 'pursuer'),
+          portrait(row),
           node('span', String(row.rank), 'sp-podium-number'),
           node('strong', playerName(row, board.top)),
           node('small', scoreText(game, row.score, row.secondary)),
         );
+        if (regionText(row)) card.append(node('small', regionText(row), 'sp-region'));
         podium.append(card);
       }
       target.append(podium);
@@ -523,10 +517,12 @@ export function mountStreetCompetition(game, createRenderer) {
       item.toggleAttribute('data-self', row.playerId === board.me?.playerId);
       item.append(
         node('span', String(row.rank), 'sp-rank-number'),
-        portrait(row.rank % 2 ? 'runner' : 'pursuer'),
+        portrait(row),
         node('strong', playerName(row, board.top)),
         node('span', scoreText(game, row.score, row.secondary)),
       );
+      if (regionText(row))
+        item.querySelector('strong').append(node('small', regionText(row), 'sp-region'));
       list.append(item);
     }
     if (!board.top.length)
@@ -544,17 +540,16 @@ export function mountStreetCompetition(game, createRenderer) {
       ),
       node('small', gapText(game, board)),
     );
-    own.append(portrait(), ownCopy);
+    own.append(portrait(profile), ownCopy);
     target.append(list, own, node('p', '好友对战累计积分，练习成绩不计入全站榜。', 'sp-note'));
   }
   async function showProfile(generation = sessionGeneration) {
     navigate('nickname');
     select('[data-save-name]').disabled = false;
-    if (!profile) {
-      const value = await client.request('/me');
-      if (!isCurrent(generation)) return;
-      updateProfile(value);
-    }
+    const value = await client.request('/me');
+    if (!isCurrent(generation)) return;
+    updateProfile(value);
+    select('[data-name-form]').dataset.userId = profile.userId || profile.playerId;
     select('[name="name"]').value = profile.name;
     select('[data-name-message]').textContent = '';
   }
@@ -802,6 +797,14 @@ export function mountStreetCompetition(game, createRenderer) {
   });
   select('[data-refresh-board]').onclick = () => void run(showBoard);
   select('[data-profile]').onclick = () => void run(showProfile);
+  select('[data-sync-profile]').onclick = () =>
+    void run(async (generation) => {
+      const value = await client.syncProfile(select('[data-name-form]').dataset.userId);
+      if (!isCurrent(generation)) return;
+      updateProfile(value);
+      select('[name="name"]').value = value.name;
+      select('[data-name-message]').textContent = '平台资料已同步。';
+    });
   all('[data-rules]').forEach((button) => {
     button.onclick = () => void run(showRules);
   });
@@ -884,9 +887,13 @@ export function mountStreetCompetition(game, createRenderer) {
       save.disabled = true;
       select('[data-name-message]').textContent = '正在保存昵称…';
       try {
-        const value = await client.request('/me', {
-          body: JSON.stringify({ name: select('[name="name"]').value }),
-        });
+        const value = await client.request(
+          '/me',
+          {
+            body: JSON.stringify({ name: select('[name="name"]').value }),
+          },
+          select('[data-name-form]').dataset.userId,
+        );
         if (!isCurrent(generation)) return;
         updateProfile(value);
         if (room) accept(await client.request(`/rooms/${room.code}`), generation);

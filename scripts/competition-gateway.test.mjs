@@ -7,6 +7,8 @@ test('game gateway exposes registered public route shapes without exposing inter
   for (const route of [
     'sessions/guest',
     'sessions/platform',
+    'sessions/refresh',
+    'sessions/upgrade',
     'me',
     'boards/cops-robbers',
     'runs/cops-robbers-realtime',
@@ -24,6 +26,8 @@ test('game gateway exposes registered public route shapes without exposing inter
     assert(isPublicCompetitionPath(base + route), route);
   for (const route of [
     'internal/verify',
+    'sessions/upgrade/internal',
+    'sessions/refresh/anything',
     'runs/cops-robbers-realtime/internal',
     'runs/unknown-game',
     'internal',
