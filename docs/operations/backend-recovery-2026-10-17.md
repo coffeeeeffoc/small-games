@@ -36,7 +36,7 @@ pnpm deploy:backend --services runtime,kart --check
 
 ## 以后怎么更新
 
-在仓库根目录执行，先提交并正常推送 dev，再部署本次改动的服务。部署入口检查干净 HEAD 与实时远端 dev 一致。
+在干净的部署工作区根目录执行，先提交并正常推送 dev，再部署本次改动的服务。部署入口检查干净 HEAD 与实时远端 dev 一致。本次使用 `F:\playground\playground-ai\backend-login-recovery`；原工作区仍有并行开发内容，不要通过 reset/clean 强行清理它。
 
 ```powershell
 git fetch origin dev
@@ -68,8 +68,32 @@ pnpm deploy:admin --rollback
 
 ## 验证记录
 
-截至实施中的本地验证：真实 PostgreSQL 恢复演练 28 项通过（含 14 类结构/权限变异、提交响应丢失和重试），Linux 协调器测试 25 项通过；三游戏手机浏览器自动身份、昵称头像、刷新复用通过；五个共享游戏页面的桌面与触屏对话流程通过。
+2026-10-18 已完成真实云端恢复、部署和回退演练。当前后端与后管应用源码为 `bfea2c77ed7f14fc9eb31535d26fd0cc0acde802`；[CI 39072086768](https://github.com/coffeeeeffoc/small-games/actions/runs/39072086768) 和 [Pages 39072086792](https://github.com/coffeeeeffoc/small-games/actions/runs/39072086792) 均成功。后续仅前端素材修复及文档提交，不表示云端应用重新构建过。
 
-提交 `92c271851ae95089bfabacacfd6f37df689ae841` 的独立 PostgreSQL/H5 验收已通过：12 种组合、6 场双人对局、2 场自然单人流程、真实 runtime_app/management_app 角色、跨游戏与房间越权负例、Runtime/PG 重启及重复提交幂等性。记录位于 `outputs/h5-taptap/anonymous-92c27185/`，fixture `654f7e37-be6c-43d5-afeb-ff2dd5c1407f` 已清理。这是本地浏览器与真实数据库验收，尚不等于公网或真机验收。最终发布 SHA、云端恢复、CI/Pages 和公网验证结果在执行后补充。真实广告完成和原生手机宿主验收单独记录，不能用 Web 模拟替代。
+| 项目                 | 实际结果                                                                                                                              |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| 历史失败候选         | `0d7bfdfe4087-1792248271760-eb122d` 已恢复，并重复执行验证可重试                                                                      |
+| 控制中心与身份迁移   | `5f31c5df94e8-1792271769909-d094a4` 的 002、014 已完成，使用修复后的恢复命令继续并重新开放原 Nginx                                    |
+| 游戏后端现役 release | `bfea2c77ed7f-1792273503270-8a2019`，Runtime/Kart 健康，部署检查通过                                                                  |
+| 后管现役 release     | `bfea2c77ed7f-1792273542776-ce7b23`，内部健康与公网探针通过                                                                           |
+| 日常回退             | Runtime/Kart 的 `389e94f1bb73-1792272746484-9b9892` 和后管的 `389e94f1bb73-1792272885080-2c7c37` 均真实更新后回退成功，再发布当前版本 |
+| 代理入口             | Caddy proxy-only 发布完成；游戏 API、后管 API 分离，后管每个文档的 nonce 与 CSP 一致                                                  |
+| 公网 API 边界        | 23 项通过：精确 Origin、非白名单/协议/端口拒绝、匿名拒绝、跨游戏与房间越权拒绝、头像校验、刷新轮换、注销会话族                        |
+| 三游戏公网对战       | 真实 API，两个独立 Chromium 手机触屏上下文，分别完成对局、结算和排行榜；重复动作不重复记分                                            |
+| 玩家资料与广告缺省   | 随机身份、修改昵称/头像、刷新复用、入口独立身份通过；无广告位时提示等能力正常可用                                                     |
+
+公网后管登录页与 403 页另经 Chromium 实际打开、文本和资源校验并检查截图，均无页面脚本错误；截图在 `outputs/admin-public-2026-10-18/`。这不等于完成 OAuth 登录。
+
+可提交的脱敏汇总见 [云端恢复验收 JSON](../admin-console/qa/cloud-recovery-2026-10-18.json)。
+
+正式 [Pages dev](https://coffeeeeffoc.github.io/small-games/dev/) 已确认发布 `ba88e46a0f7f7fb5c37c28a20c8eae7a0319eece`；[CI 39074139487](https://github.com/coffeeeeffoc/small-games/actions/runs/39074139487)、[Pages 39074139519](https://github.com/coffeeeeffoc/small-games/actions/runs/39074139519) 和 Cocos 检查均成功。正式网址的三游戏嵌入/手机触屏玩法、返回、网络响应与 Runtime 隔离复查通过。该提交删除共享头像模块导入时的多余图片预加载，修复围捕小队错误请求街区素材的 404；新增回归断言先复现失败，修改后五款共享界面的桌面/触屏检查通过。
+
+双人对局证据：围捕小队 `6416C4CF7BC3`，街区围捕 `8028FE644F5B`，象棋五子棋 `C5F70C33535D`。本地完整报告和截图位于 `outputs/h5-taptap/online-bfea2c77/browser/057c7fc5-692c-4c38-a0d3-a6ac05d6e8fb/`，报告记录 `realDeviceVerified=false`、`realAdsVerified=false`。浏览器 H5 包使用 `http://localhost:8080` Origin，后端请求全部到真实公网 API；正式 Pages 另行验证，不混为同一入口。
+
+测试清理回执 `.scratch/qa-cleanup-receipt.json`：仅删除本轮捕获的 26 个身份、7 个房间、30 条动作、3 条对战计分、7 条最佳成绩和 7 条结果，以及关联会话/票据；事务检查所有参与者归属，其他数据保留。最终 Pages 复测新增的 2 个身份及 2 条单局准入票据也已清理（`.scratch/qa-pages-cleanup-receipt.json`），两轮合计 28 个身份。验收房间已清理，报告中的编号用于对应证据，不再是可加入的线上房间。
+
+仍需用户完成一次真实 GitHub 登录：当前后管 `ADMIN_CONTROL_ENABLED=true`，配置白名单包含 `1521152077@qq.com`；数据库成员尚未首次绑定、配置版本为 0，游戏使用已部署的环境策略。登录 [后管](https://admin.nenggongzhiren.cn) 后，首次管理员绑定会由正常 OAuth 流程完成，再在后台发布首个来源/游戏配置版本。浏览器连接工具报 `Debugger unattached`，因此本轮只验证了 OAuth 起始 302、匿名管理 API 401 与 403 页面，未冒充完成登录、后台角色操作或首次配置发布。后续可在后台更改开关、发布并回退，检查实际 API 和版本观察；本地真实数据库的权限、发布、锁竞争和回退测试已经通过。
+
+本地补充证据：真实 PostgreSQL 恢复演练 28 项（含 14 类结构/权限变异、提交响应丢失和重试）、Linux 协调器 27 项、数据库 helper 契约 14 项、Caddy 入口契约 12 项通过；`92c271851ae95089bfabacacfd6f37df689ae841` 的独立 PostgreSQL/H5 验收包含 12 种组合、6 场双人对局、2 场自然单人流程、重启和幂等性，fixture 已清理。原生平台真机和真实广告回调仍待平台验收。
 
 参考：[管理部署详细说明](../admin-console/deployment.md)、[准确候选发布规则](incremental-publication.md)。
