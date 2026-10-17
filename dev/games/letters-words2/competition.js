@@ -15,6 +15,17 @@
 		const valid = (value, reserve = 0) => typeof value?.token === "string" && value.token.length > 0 && Number.isFinite(value.expiresAt) && value.expiresAt > Date.now() + reserve;
 		const ownerId = (value) => value?.userId || value?.playerId || null;
 		root.__createCompetitionIdentity = ({ config, sdk, storage, request }) => {
+			const ephemeral = config.identityMode === "ephemeral";
+			if (config.identityMode !== void 0 && !ephemeral) throw error("IDENTITY_MODE_UNSUPPORTED");
+			if (ephemeral && (![
+				"cops-robbers",
+				"cops-robbers-realtime",
+				"xiangqi-five"
+			].includes(config.game) || ![
+				void 0,
+				"h5",
+				"web-preview"
+			].includes(config.platform))) throw error("IDENTITY_MODE_UNSUPPORTED");
 			const unsupported = config.platform && ![
 				"h5",
 				"web-preview",
@@ -27,19 +38,20 @@
 				endpoint = new root.URL(base, root.location?.href).href.replace(/\/$/, "");
 			} catch {}
 			if (endpoint === "https://api.nenggongzhiren.cn/small-games/v1") endpoint = "https://api.nenggongzhiren.cn/api/competition/v1";
-			const authority = `${endpoint}|${provider}|${provider === "h5" ? "" : config.appId || ""}`;
+			const authority = `${endpoint}|${provider}|${provider === "h5" ? "" : config.appId || ""}${ephemeral ? "|ephemeral:" + config.game : ""}`;
 			const key = `competition-session-v2:${encodeURIComponent(authority)}`;
 			const installationKey = `competition-installation-v1:${encodeURIComponent(endpoint)}`;
 			const legacyKey = `competition-session-v1:${provider === "h5" ? "h5" : `${provider}:${config.appId}`}`;
-			const owner = storage || root;
+			const owner = ephemeral ? root : storage || root;
 			let shared = authorities.get(owner);
 			if (!shared) authorities.set(owner, shared = /* @__PURE__ */ new Map());
 			if (shared.has(authority)) return shared.get(authority);
 			let memory = null, lastRaw, seen = false, memoryOnly = false, revision = 0, pending;
-			let legacyTried = false, legacyActive = false, legacyBlocked = false, installation;
+			let legacyTried = false, legacyActive = false, legacyBlocked = false, installation, modeRejected = false;
+			const renewalReserve = (credential) => ephemeral && credential?.identityExpiresAt - Date.now() <= 6e4 ? 0 : 6e4;
 			const get = (name) => sdk ? sdk.getStorageSync(name) : storage?.getItem(name);
 			const set = (name, value) => sdk ? sdk.setStorageSync(name, value) : storage?.setItem(name, value);
-			root.addEventListener?.("storage", (event) => {
+			if (!ephemeral) root.addEventListener?.("storage", (event) => {
 				if (event.key === key || event.key === null || legacyActive && event.key === legacyKey) {
 					revision++;
 					memoryOnly = false;
@@ -50,6 +62,11 @@
 				}
 			});
 			function read() {
+				if (ephemeral) return {
+					credential: memory,
+					revision,
+					readable: true
+				};
 				let raw;
 				try {
 					raw = get(key) || null;
@@ -99,7 +116,7 @@
 				memoryOnly = true;
 				const encoded = JSON.stringify(memory);
 				try {
-					if (storage) {
+					if (!ephemeral && storage) {
 						set(key, encoded);
 						lastRaw = encoded;
 						seen = true;
@@ -145,12 +162,19 @@
 				return running;
 			}
 			function unchanged(initial, credential) {
+				if (ephemeral) {
+					if (credential?.identityMode !== "ephemeral" || credential.game !== config.game || credential.identityKind !== "guest" || !Number.isFinite(credential.identityExpiresAt) || credential.identityExpiresAt <= Date.now() || !Number.isFinite(credential.refreshExpiresAt) || credential.refreshExpiresAt > credential.identityExpiresAt || credential.expiresAt > credential.identityExpiresAt || credential.expiresAt > Date.now() + 9e5 + 1e3) {
+						modeRejected = true;
+						throw error("IDENTITY_MODE_UNSUPPORTED");
+					}
+					if (initial.credential && initial.credential.identityExpiresAt !== credential.identityExpiresAt) throw error("SESSION_CHANGED");
+				}
 				const latest = read();
 				if (latest.revision !== initial.revision) {
-					if (valid(latest.credential, 6e4)) return latest.credential;
+					if (valid(latest.credential, renewalReserve(latest.credential))) return latest.credential;
 					throw error("SESSION_CHANGED");
 				}
-				if (!valid(credential, 6e4)) throw error("SESSION_EXPIRED");
+				if (!valid(credential, renewalReserve(credential))) throw error("SESSION_EXPIRED");
 				if (ownerId(initial.credential) && ownerId(credential) !== ownerId(initial.credential)) throw error("SESSION_CHANGED");
 				return persist(credential);
 			}
@@ -159,6 +183,7 @@
 				authority,
 				storageKey: key,
 				acceptProfile(profile, credential) {
+					if (ephemeral && (profile.identityMode !== "ephemeral" || profile.game !== config.game || profile.identityExpiresAt !== credential.identityExpiresAt)) throw error("IDENTITY_MODE_UNSUPPORTED");
 					const latest = read().credential;
 					if (!ownerId(latest) || ownerId(latest) !== ownerId(credential) || ownerId(profile) !== ownerId(latest)) throw error("SESSION_CHANGED");
 					return persist({
@@ -167,12 +192,14 @@
 					});
 				},
 				current() {
+					if (modeRejected) return Promise.reject(error("IDENTITY_MODE_UNSUPPORTED"));
 					if (unsupported) return Promise.reject(error("PLATFORM_LOGIN_UNAVAILABLE"));
 					if (provider !== "h5" && (!sdk?.login || !sdk?.request || !config.appId)) return Promise.reject(error("PLATFORM_LOGIN_UNAVAILABLE"));
 					if (pending) return pending;
 					const initial = read();
+					if (ephemeral && initial.credential?.identityExpiresAt <= Date.now()) return Promise.reject(error("IDENTITY_EXPIRED"));
 					if (legacyBlocked && !initial.credential) return Promise.reject(error("IDENTITY_MIGRATION_REQUIRED"));
-					if (valid(initial.credential, 6e4) && !legacyActive) return Promise.resolve(initial.credential);
+					if (valid(initial.credential, renewalReserve(initial.credential)) && !legacyActive) return Promise.resolve(initial.credential);
 					return launch(async () => {
 						let credential = initial.credential;
 						if (legacyActive) {
@@ -194,16 +221,20 @@
 							}, null);
 						} else if (credential) throw error("SESSION_EXPIRED");
 						else {
-							const id = installationId();
+							const id = ephemeral ? void 0 : installationId();
 							credential = await request("/sessions/guest", {
 								identityVersion: 2,
-								...id ? { installationId: id } : {}
+								...ephemeral ? {
+									identityMode: "ephemeral",
+									game: config.game
+								} : id ? { installationId: id } : {}
 							}, null);
 						}
 						return unchanged(initial, credential);
 					});
 				},
 				async forOwner(credential) {
+					if (ephemeral && credential?.identityExpiresAt <= Date.now()) throw error("IDENTITY_EXPIRED");
 					const latest = read().credential;
 					if (ownerId(credential) && ownerId(latest) === ownerId(credential)) {
 						const renewed = await result.current();
@@ -213,6 +244,7 @@
 					return credential;
 				},
 				async upgrade({ platform, appId, code, sdk: platformSdk } = {}) {
+					if (ephemeral) throw error("IDENTITY_UPGRADE_NOT_ALLOWED");
 					if (pending) await pending;
 					const credential = await result.current();
 					if (pending) throw error("SESSION_CHANGED");
@@ -232,7 +264,7 @@
 						return unchanged(initial, upgraded);
 					});
 				},
-				canSyncProfile: () => !!(sdk?.getSetting && sdk?.getUserInfo),
+				canSyncProfile: () => !ephemeral && !!(sdk?.getSetting && sdk?.getUserInfo),
 				async syncProfile(expectedUserId) {
 					if (!result.canSyncProfile()) throw error("PLATFORM_PROFILE_UNAVAILABLE");
 					const credential = await result.current();
@@ -286,8 +318,12 @@
 	})();
 	globalThis.__installCompetition = (options, nativeSdk) => {
 		const root = globalThis;
-		if (root.__competition) return;
 		const config = options || root.__COMPETITION_CONFIG__ || {};
+		if (root.__competition) {
+			if (config.identityMode === "ephemeral" && (root.__competition.identityMode !== "ephemeral" || root.__competition.config?.game !== config.game || root.__competition.config?.apiUrl !== config.apiUrl)) throw Object.assign(/* @__PURE__ */ new Error("IDENTITY_MODE_UNSUPPORTED"), { code: "IDENTITY_MODE_UNSUPPORTED" });
+			return;
+		}
+		const ephemeral = config.identityMode === "ephemeral";
 		const nativePlatforms = {
 			wechat: "wx",
 			bilibili: "bl",
@@ -299,6 +335,30 @@
 		const sdk = native ? nativeSdk || root[nativePlatforms[config.platform]] : null;
 		if (native && !sdk) throw new Error(`缺少 ${config.platform} 原生 SDK，无法启动好友挑战。`);
 		const base = (config.apiUrl || "/api/competition/v1").replace(/\/$/, "");
+		const connectionFailures = /* @__PURE__ */ new WeakMap();
+		const publicAddress = (value, originOnly = false) => {
+			try {
+				const url = new root.URL(value, root.location?.href);
+				if (!["http:", "https:"].includes(url.protocol)) return "不可用";
+				return originOnly ? url.origin : url.origin + url.pathname;
+			} catch {
+				return "不可用";
+			}
+		};
+		const rememberFailure = (error, phase, path, method, headers) => {
+			connectionFailures.set(error, Object.freeze({
+				pageOrigin: publicAddress(root.location?.href, true),
+				apiBase: publicAddress(base),
+				stage: (path.startsWith("/sessions/") ? "session_" : "request_") + phase,
+				method: [
+					"GET",
+					"POST",
+					"OPTIONS"
+				].includes(method) ? method : "OTHER",
+				headerNames: Object.freeze(["content-type", ...Object.hasOwn(headers, "authorization") || Object.hasOwn(headers, "Authorization") ? ["authorization"] : []])
+			}));
+			return error;
+		};
 		const teamRules = {
 			"cops-robbers": {
 				version: "roles-initiative-duel-v2",
@@ -323,9 +383,12 @@
 		}
 		let auth, storage;
 		try {
-			storage = sdk || root.localStorage;
+			if (config.identityMode === void 0) storage = sdk || root.localStorage;
 		} catch {}
 		const errors = {
+			IDENTITY_EXPIRED: "本页临时身份已到期，请重新打开游戏开始新的临时身份；原成绩不会转移。",
+			IDENTITY_SCOPE_MISMATCH: "此临时身份仅用于当前游戏，无法访问其他游戏资源。",
+			IDENTITY_MODE_UNSUPPORTED: "服务尚不支持临时身份，请等待服务更新后重新打开游戏。",
 			SESSION_EXPIRED: "登录已过期，请重新进入；当前对局不会冒用新身份。",
 			REFRESH_EXPIRED: "匿名登录已过期，请重新进入；旧成绩不会转移给新身份。",
 			SESSION_CHANGED: "账号已变化，请返回主页重新进入。",
@@ -360,7 +423,7 @@
 			};
 			if (credential?.token) headers.authorization = `Bearer ${credential.token}`;
 			const method = init.method || (init.body ? "POST" : "GET");
-			let status, data;
+			let status, data, phase = "transport";
 			try {
 				if (sdk) {
 					const response = await new Promise((resolve, reject) => sdk.request({
@@ -384,17 +447,18 @@
 						signal: AbortSignal.timeout(8e3)
 					});
 					status = response.status;
+					phase = "response";
 					data = await response.json();
 				}
 			} catch {
 				const error = /* @__PURE__ */ new Error("网络不可用，请重试；成绩尚未得到服务端确认。");
 				error.code = "SERVICE_UNAVAILABLE";
-				throw error;
+				throw rememberFailure(error, phase, path, method, headers);
 			}
 			if (status < 200 || status >= 300) {
 				const error = new Error(errors[data?.error] || `服务未接受请求 (${status})`);
 				error.code = data?.error;
-				throw error;
+				throw rememberFailure(error, "http", path, method, headers);
 			}
 			return data;
 		}
@@ -410,7 +474,15 @@
 		};
 		const session = () => auth.current().catch(localized);
 		const roomOwners = /* @__PURE__ */ new Map();
+		const pageRooms = /* @__PURE__ */ new Map();
 		root.__competition = {
+			identityMode: ephemeral ? "ephemeral" : "persistent",
+			roomStorage: ephemeral ? {
+				getItem: (key) => pageRooms.get(key) ?? null,
+				setItem: (key, value) => pageRooms.set(key, String(value)),
+				removeItem: (key) => pageRooms.delete(key)
+			} : null,
+			connectionInfo: (error) => connectionFailures.get(error) || null,
 			session,
 			upgrade: (input) => auth.upgrade(input).catch(localized),
 			canSyncProfile: () => auth.canSyncProfile(),
@@ -453,6 +525,43 @@
 			config
 		};
 	};
+	//#endregion
+	//#region ../../platforms/competition/connection-info.js
+	var panels = /* @__PURE__ */ new WeakMap();
+	var stages = {
+		session_transport: "建立会话：网络请求未完成",
+		session_response: "建立会话：响应无法解析",
+		session_http: "建立会话：服务未接受请求",
+		request_transport: "业务请求：网络请求未完成",
+		request_response: "业务请求：响应无法解析",
+		request_http: "业务请求：服务未接受请求"
+	};
+	function renderConnectionInfo(host, error) {
+		panels.get(host)?.remove();
+		panels.delete(host);
+		const info = globalThis.__competition?.connectionInfo?.(error);
+		if (!info || !Object.hasOwn(stages, info.stage)) return;
+		const details = document.createElement("details");
+		details.className = "competition-connection-info";
+		details.style.cssText = "font:12px/1.6 system-ui;text-align:left;overflow-wrap:anywhere;max-width:100%;max-height:40dvh;overflow:auto;flex:none;color:inherit";
+		const summary = document.createElement("summary");
+		summary.textContent = "查看连接信息";
+		summary.style.cssText = "min-height:44px;display:list-item;align-content:center;cursor:pointer";
+		details.append(summary);
+		for (const [label, value] of [
+			["页面来源（页面推导，未验证请求 Origin）", info.pageOrigin],
+			["API 地址", info.apiBase],
+			["失败阶段", stages[info.stage]],
+			["请求方法", info.method],
+			["请求头名称", info.headerNames.join(", ")]
+		]) {
+			const row = document.createElement("div");
+			row.textContent = `${label}：${value}`;
+			details.append(row);
+		}
+		host.after(details);
+		panels.set(host, details);
+	}
 	//#endregion
 	//#region ../../platforms/competition/h5.css?inline
 	var h5_default = "[data-competition-launch] {\n  position: fixed;\n  right: 16px;\n  bottom: max(16px, env(safe-area-inset-bottom));\n  z-index: 1000;\n  min-height: 48px;\n  padding: 12px 20px;\n  border: 1px solid #28594f;\n  border-radius: 999px;\n  background: #173e38;\n  color: #fff8e7;\n  font:\n    600 14px 'PingFang SC',\n    'Microsoft YaHei',\n    sans-serif;\n  box-shadow: 0 4px 18px #12372a26;\n  cursor: pointer;\n}\nbody:is(.is-playing, .focus-play, .play-focus, .game-page) > [data-competition-launch] {\n  display: none;\n}\n.competition-dialog {\n  --pk-ink: #203b35;\n  --pk-muted: #60736b;\n  --pk-line: #d7dfd5;\n  --pk-accent: #e8ba54;\n  position: fixed;\n  inset: 0;\n  margin: auto;\n  padding: 0;\n  border: 1px solid #ffffff80;\n  border-radius: 24px;\n  width: min(880px, calc(100% - 32px));\n  max-width: none;\n  height: min(790px, calc(100dvh - 32px));\n  max-height: none;\n  background: #f3f5ed;\n  color: var(--pk-ink);\n  font:\n    15px/1.6 'PingFang SC',\n    'Microsoft YaHei',\n    sans-serif;\n  box-sizing: border-box;\n  box-shadow: 0 28px 90px #06271e45;\n  overflow: hidden;\n  text-align: left;\n}\n.competition-dialog::backdrop {\n  background: #0b2924b8;\n  backdrop-filter: blur(7px);\n}\n.competition-dialog * {\n  box-sizing: border-box;\n}\n.competition-dialog [hidden] {\n  display: none !important;\n}\n.competition-dialog h2,\n.competition-dialog h3,\n.competition-dialog p {\n  margin: 0;\n  color: inherit;\n  font-family: inherit;\n}\n.competition-dialog button {\n  min-height: 44px;\n  padding: 10px 16px;\n  border: 1px solid var(--pk-line);\n  border-radius: 12px;\n  color: var(--pk-ink);\n  background: #fffdf8;\n  font-family: inherit;\n  font-size: 14px;\n  cursor: pointer;\n  touch-action: manipulation;\n  box-shadow: none;\n  transition:\n    background 0.15s,\n    transform 0.15s;\n  letter-spacing: 0;\n}\n.competition-dialog button:hover {\n  background: #e7eee3;\n}\n.competition-dialog button:active {\n  transform: translateY(1px);\n}\n.competition-dialog button:disabled {\n  opacity: 0.5;\n  cursor: default;\n}\n.competition-dialog button:focus-visible,\n.competition-dialog input:focus-visible {\n  outline: 3px solid #42997c;\n  outline-offset: 3px;\n}\n.competition-dialog button.pk-primary {\n  background: var(--pk-accent);\n  border-color: #cba347;\n  color: #293a27;\n}\n.competition-dialog button.pk-primary:hover {\n  background: #f0ca76;\n}\n.competition-dialog button.pk-quiet {\n  background: transparent;\n  border-color: transparent;\n  color: var(--pk-muted);\n}\n.pk-shell {\n  height: 100%;\n  min-height: 0;\n  display: flex;\n  flex-direction: column;\n  padding: 18px 24px max(18px, env(safe-area-inset-bottom));\n}\n.pk-header {\n  display: flex;\n  align-items: center;\n  gap: 12px;\n  flex: none;\n  padding-bottom: 12px;\n  border-bottom: 1px solid var(--pk-line);\n}\n.pk-brand {\n  flex: 1;\n  min-width: 0;\n  display: flex;\n  align-items: center;\n  gap: 10px;\n}\n.pk-brand-mark {\n  width: 38px;\n  height: 38px;\n  border-radius: 12px;\n  display: grid;\n  place-items: center;\n  background: #234c41;\n  color: #f1c66a;\n  font:\n    bold 15px Georgia,\n    serif;\n  flex: none;\n}\n.pk-brand strong {\n  font-size: 17px;\n  display: block;\n  line-height: 1.4;\n}\n.pk-brand small {\n  color: var(--pk-muted);\n  font-size: 11px;\n  letter-spacing: 1.5px;\n  display: block;\n}\n.pk-tools {\n  display: flex;\n  gap: 4px;\n  align-items: center;\n}\n.pk-status {\n  flex: none;\n  min-height: 25px;\n  margin: 10px 0 !important;\n  font-size: 12px;\n  color: var(--pk-muted) !important;\n  display: flex;\n  align-items: center;\n  gap: 8px;\n}\n.pk-status::before {\n  content: '';\n  width: 6px;\n  height: 6px;\n  border-radius: 50%;\n  background: #468b6c;\n  flex: none;\n}\n.pk-status[data-error] {\n  color: #974c35 !important;\n}\n.pk-status[data-error]::before {\n  background: #be6547;\n}\n.pk-content {\n  flex: 1;\n  min-height: 0;\n  overflow: auto;\n  overscroll-behavior: contain;\n}\n.pk-hero {\n  padding: 16px 0 20px;\n}\n.pk-eyebrow {\n  display: block;\n  font-size: 11px;\n  font-weight: 700;\n  letter-spacing: 2px;\n  color: #75806b;\n  margin-bottom: 8px;\n}\n.pk-hero h2 {\n  font-size: clamp(24px, 4vw, 34px);\n  font-weight: 800;\n  line-height: 1.35;\n  letter-spacing: -1px;\n}\n.pk-hero p {\n  margin-top: 10px;\n  max-width: 440px;\n  color: var(--pk-muted);\n  font-size: 14px;\n}\n.pk-profile {\n  display: flex;\n  align-items: center;\n  gap: 12px;\n  padding: 14px 16px;\n  background: #e7ede2;\n  border-radius: 16px;\n  margin-bottom: 18px;\n}\n.pk-avatar {\n  width: 42px;\n  height: 42px;\n  border-radius: 50%;\n  display: grid;\n  place-items: center;\n  flex: none;\n  background: #c9dace;\n  color: #28543f;\n  font-weight: 700;\n  font-size: 18px;\n}\n.pk-profile-copy {\n  flex: 1;\n  min-width: 0;\n}\n.pk-profile-copy strong {\n  display: block;\n  overflow-wrap: anywhere;\n}\n.pk-profile-copy small {\n  display: block;\n  color: var(--pk-muted);\n  font-size: 11px;\n}\n.pk-options {\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  gap: 14px;\n}\n.pk-option {\n  padding: 22px;\n  border: 1px solid var(--pk-line);\n  border-radius: 18px;\n  background: #fffef9;\n}\n.pk-option h3 {\n  font-size: 19px;\n  margin-bottom: 5px;\n}\n.pk-option p {\n  font-size: 13px;\n  color: var(--pk-muted);\n  margin-bottom: 18px;\n  min-height: 40px;\n}\n.pk-option > button {\n  width: 100%;\n}\n.pk-join {\n  display: flex;\n  gap: 8px;\n  align-items: flex-end;\n}\n.pk-join label {\n  flex: 1;\n  min-width: 0;\n  font-size: 12px;\n}\n.pk-join input {\n  margin-top: 5px;\n  width: 100%;\n  font-family: Consolas, monospace;\n  letter-spacing: 1px;\n  text-transform: uppercase;\n}\n.competition-dialog input {\n  min-height: 46px;\n  padding: 10px 12px;\n  border: 1px solid #bacabd;\n  border-radius: 10px;\n  background: white;\n  color: #203b35;\n  font-size: 16px;\n  max-width: 100%;\n  box-shadow: none;\n}\n.pk-footer {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 12px;\n  margin-top: 18px;\n  padding: 10px 0;\n}\n.pk-footer p {\n  max-width: 310px;\n  color: var(--pk-muted);\n  font-size: 12px;\n}\n.pk-footer button {\n  white-space: nowrap;\n}\n.pk-room-intro {\n  text-align: center;\n  padding: 16px 0;\n}\n.pk-room-intro h2 {\n  font-size: 24px;\n}\n.pk-room-intro p {\n  font-size: 13px;\n  color: var(--pk-muted);\n  margin-top: 6px;\n}\n.pk-room-code {\n  display: block;\n  margin: 8px 0;\n  font:\n    600 18px/1.5 Consolas,\n    monospace;\n  letter-spacing: 3px;\n  color: #42604c;\n}\n.pk-matchup {\n  display: grid;\n  grid-template-columns: 1fr 42px 1fr;\n  align-items: center;\n  gap: 8px;\n  margin: 16px 0;\n}\n.pk-versus {\n  text-align: center;\n  color: #9c977a;\n  font:\n    bold italic 21px Georgia,\n    serif;\n}\n.pk-player {\n  border: 1px solid var(--pk-line);\n  border-radius: 18px;\n  background: #fffef9;\n  text-align: center;\n  padding: 22px 12px;\n  min-width: 0;\n}\n.pk-player .pk-avatar {\n  margin: 0 auto 12px;\n  width: 54px;\n  height: 54px;\n}\n.pk-player strong {\n  display: block;\n  overflow-wrap: anywhere;\n  font-size: 15px;\n}\n.pk-player small {\n  display: block;\n  color: var(--pk-muted);\n  font-size: 12px;\n  margin-top: 4px;\n}\n.pk-player[data-ready] {\n  border-color: #78a287;\n  background: #edf5e9;\n}\n.pk-player[data-empty] {\n  border-style: dashed;\n  background: transparent;\n}\n.pk-room-actions {\n  display: flex;\n  gap: 12px;\n  justify-content: center;\n}\n.pk-room-actions > button {\n  min-width: 130px;\n}\n.pk-room-note {\n  text-align: center;\n  color: var(--pk-muted) !important;\n  font-size: 12px;\n  margin-top: 16px !important;\n}\n.competition-dialog canvas[data-play] {\n  display: block;\n  width: 100%;\n  height: 100%;\n  min-height: 0;\n  touch-action: none;\n  border-radius: 14px;\n  background: #102a32;\n}\n.competition-dialog[data-playing] .pk-content {\n  overflow: hidden;\n}\n.competition-dialog[data-playing] .pk-brand small {\n  display: none;\n}\n.competition-dialog[data-playing] .pk-shell {\n  padding: 10px 14px max(10px, env(safe-area-inset-bottom));\n}\n.competition-dialog[data-playing] .pk-status {\n  margin: 5px 0 !important;\n}\n.competition-dialog[data-playing] .pk-header {\n  padding-bottom: 7px;\n}\n.competition-dialog[data-playing] .pk-brand-mark {\n  width: 30px;\n  height: 30px;\n  border-radius: 9px;\n}\n.pk-overlay {\n  position: absolute;\n  inset: 0;\n  z-index: 5;\n  background: #153d315c;\n  backdrop-filter: blur(5px);\n  padding: 24px;\n  display: grid;\n  place-items: center;\n  overflow: auto;\n}\n.pk-sheet {\n  width: 100%;\n  max-width: 560px;\n  max-height: 100%;\n  overflow: auto;\n  border: 1px solid #dce3d5;\n  border-radius: 22px;\n  background: #fffef8;\n  box-shadow: 0 18px 60px #11291d30;\n  padding: 24px;\n  overscroll-behavior: contain;\n}\n.pk-sheet[data-kind='board'] {\n  max-width: 690px;\n}\n.pk-sheet-head {\n  display: flex;\n  gap: 12px;\n  align-items: center;\n  margin-bottom: 18px;\n}\n.pk-sheet-head > div {\n  flex: 1;\n}\n.pk-sheet-head h2 {\n  font-size: 23px;\n  line-height: 1.3;\n}\n.pk-sheet-head small {\n  color: var(--pk-muted);\n  font-size: 12px;\n}\n.pk-rule-list {\n  list-style: none;\n  padding: 0;\n  margin: 0;\n  counter-reset: rules;\n}\n.pk-rule-list li {\n  counter-increment: rules;\n  display: flex;\n  gap: 14px;\n  margin-top: 18px;\n  line-height: 1.8;\n  font-size: 14px;\n}\n.pk-rule-list li::before {\n  content: counter(rules, decimal-leading-zero);\n  font:\n    600 12px/28px Consolas,\n    monospace;\n  color: #3c7660;\n  flex: none;\n}\n.pk-sheet-note {\n  margin-top: 18px !important;\n  padding-top: 16px;\n  border-top: 1px solid var(--pk-line);\n  color: var(--pk-muted) !important;\n  font-size: 12px;\n}\n.pk-my-record {\n  padding: 16px;\n  border-radius: 16px;\n  background: #234c41;\n  color: #fff8e4;\n  margin-bottom: 18px;\n}\n.pk-my-record small {\n  color: #c3d6c3;\n}\n.pk-my-record strong {\n  display: block;\n  font-size: 22px;\n  line-height: 1.4;\n  margin: 5px 0;\n}\n.pk-my-record p {\n  font-size: 12px;\n  color: #e3eadc;\n}\n.pk-list {\n  display: grid;\n  gap: 2px;\n}\n.pk-rank-row {\n  display: grid;\n  grid-template-columns: 30px minmax(0, 1fr) auto;\n  gap: 10px;\n  align-items: center;\n  padding: 12px 8px;\n  border-bottom: 1px solid #e9ede3;\n  font-size: 13px;\n}\n.pk-rank-row[data-self] {\n  background: #edf2e6;\n  border-radius: 10px;\n}\n.pk-rank-number {\n  font:\n    600 17px Georgia,\n    serif;\n  color: #7b876e;\n}\n.pk-rank-row:nth-child(-n + 3) .pk-rank-number {\n  color: #9a7130;\n}\n.pk-rank-name {\n  font-weight: 600;\n  overflow-wrap: anywhere;\n}\n.pk-rank-name small {\n  display: block;\n  font-weight: 400;\n  color: var(--pk-muted);\n  font-size: 10px;\n}\n.pk-rank-score {\n  text-align: right;\n  font-variant-numeric: tabular-nums;\n  max-width: 190px;\n  overflow-wrap: anywhere;\n  font-size: 12px;\n}\n.pk-empty {\n  padding: 32px 16px;\n  text-align: center;\n  color: var(--pk-muted);\n  border: 1px dashed var(--pk-line);\n  border-radius: 14px;\n  font-size: 14px;\n}\n.pk-result {\n  padding: 16px;\n  border-radius: 16px;\n  background: #f0f3e8;\n  margin-bottom: 12px;\n}\n.pk-result h3 {\n  font-size: 14px;\n}\n.pk-result strong {\n  display: block;\n  font-size: 22px;\n  line-height: 1.5;\n  margin: 5px 0;\n}\n.pk-result p {\n  font-size: 12px;\n  color: var(--pk-muted);\n  margin-top: 5px;\n}\n.pk-result-actions {\n  display: flex;\n  gap: 10px;\n  margin-top: 18px;\n  flex-wrap: wrap;\n}\n.pk-result-actions button {\n  flex: 1;\n}\n.pk-profile-form label {\n  font-weight: 600;\n  display: block;\n}\n.pk-profile-form input {\n  width: 100%;\n  margin: 8px 0;\n}\n.pk-profile-form small {\n  color: var(--pk-muted);\n  font-size: 12px;\n}\n.pk-profile-form .pk-form-message {\n  color: #974c35;\n  min-height: 24px;\n  font-size: 12px;\n  margin-top: 8px;\n}\n.pk-profile-form button[type='submit'] {\n  width: 100%;\n  margin-top: 10px;\n}\n.pk-profile-id {\n  margin-top: 20px;\n  border-top: 1px solid var(--pk-line);\n  padding-top: 12px;\n  color: var(--pk-muted);\n  font-size: 12px;\n}\n.pk-profile-id summary {\n  cursor: pointer;\n  min-height: 32px;\n}\n.pk-profile-id code {\n  display: block;\n  font-size: 11px;\n  overflow-wrap: anywhere;\n  margin-top: 8px;\n}\n@media (max-width: 600px) {\n  .competition-dialog {\n    width: 100%;\n    height: 100dvh;\n    border: 0;\n    border-radius: 0;\n  }\n  .pk-shell {\n    padding: 12px 16px max(16px, env(safe-area-inset-bottom));\n  }\n  .pk-header {\n    gap: 4px;\n  }\n  .pk-brand {\n    gap: 8px;\n  }\n  .pk-brand strong {\n    font-size: 15px;\n  }\n  .pk-brand-mark {\n    width: 32px;\n    height: 32px;\n  }\n  .pk-brand small {\n    font-size: 9px;\n    letter-spacing: 0.5px;\n  }\n  .pk-tools {\n    gap: 0;\n  }\n  .competition-dialog .pk-tools button {\n    padding: 8px 9px;\n    font-size: 12px;\n  }\n  .pk-hero {\n    padding: 10px 0 16px;\n  }\n  .pk-hero h2 {\n    font-size: 27px;\n  }\n  .pk-profile {\n    padding: 12px;\n    margin-bottom: 12px;\n  }\n  .pk-options {\n    grid-template-columns: 1fr;\n    gap: 10px;\n  }\n  .pk-option {\n    padding: 16px;\n  }\n  .pk-option h3 {\n    font-size: 17px;\n  }\n  .pk-option p {\n    min-height: 0;\n    margin-bottom: 12px;\n  }\n  .pk-footer {\n    margin-top: 8px;\n    align-items: flex-start;\n  }\n  .pk-footer p {\n    font-size: 11px;\n  }\n  .pk-overlay {\n    padding: 16px;\n  }\n  .pk-sheet {\n    padding: 20px;\n    border-radius: 20px;\n  }\n  .pk-sheet-head h2 {\n    font-size: 21px;\n  }\n  .pk-rank-row {\n    grid-template-columns: 23px minmax(0, 1fr);\n    gap: 5px 8px;\n  }\n  .pk-rank-score {\n    grid-column: 2;\n    text-align: left;\n    max-width: none;\n    font-size: 11px;\n    color: var(--pk-muted);\n  }\n  .pk-rank-name small {\n    display: inline;\n    margin-left: 6px;\n  }\n  .pk-player {\n    padding: 18px 8px;\n  }\n  .competition-dialog[data-playing] .pk-brand strong {\n    font-size: 13px;\n  }\n  .competition-dialog[data-playing] .pk-brand-mark {\n    display: none;\n  }\n}\n@media (max-height: 500px) and (min-width: 601px) {\n  .competition-dialog {\n    width: 100%;\n    height: 100dvh;\n    border: 0;\n    border-radius: 0;\n  }\n  .pk-shell {\n    padding: 8px 20px;\n  }\n  .pk-status {\n    margin: 4px 0 !important;\n  }\n  .pk-hero {\n    padding: 8px 0;\n  }\n  .pk-hero h2 {\n    font-size: 24px;\n  }\n  .pk-hero p {\n    margin-top: 3px;\n  }\n  .pk-profile {\n    padding: 8px 12px;\n    margin-bottom: 10px;\n  }\n  .pk-option {\n    padding: 12px;\n  }\n  .pk-option p {\n    min-height: 0;\n    margin-bottom: 8px;\n  }\n  .pk-overlay {\n    padding: 12px;\n  }\n  .pk-sheet {\n    padding: 16px 22px;\n  }\n  .pk-matchup {\n    margin: 6px 0;\n  }\n  .pk-player {\n    padding: 8px;\n  }\n  .pk-player .pk-avatar {\n    width: 36px;\n    height: 36px;\n    margin-bottom: 4px;\n  }\n  .pk-room-intro {\n    padding: 3px 0;\n  }\n  .pk-room-note {\n    margin-top: 6px !important;\n  }\n}\n@media (prefers-reduced-motion: reduce) {\n  .competition-dialog button {\n    transition: none;\n  }\n}\n.pk-overlay {\n  top: 76px;\n}\n.pk-brand strong {\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n.pk-brand > div {\n  min-width: 0;\n}\n.competition-dialog[aria-busy] [data-create],\n.competition-dialog[aria-busy] [data-join] {\n  opacity: 0.6;\n  cursor: progress;\n}\nbody:has(.competition-dialog[open]) {\n  overflow: hidden !important;\n}\n.competition-dialog button {\n  font-weight: 600;\n  line-height: 1.4;\n}\n.competition-dialog .pk-quiet {\n  font-weight: 500;\n}\n.pk-match-options {\n  display: grid;\n  gap: 10px;\n  margin-bottom: 16px;\n}\n.pk-match-options label {\n  display: grid;\n  gap: 4px;\n  font-size: 13px;\n}\n.pk-match-options select {\n  min-height: 44px;\n  border: 1px solid #bacabd;\n  border-radius: 10px;\n  background: #fff;\n  color: #203b35;\n  padding: 8px;\n  font: inherit;\n}\n.pk-match-options small,\n.pk-role-actions small {\n  color: var(--pk-muted);\n  font-size: 12px;\n}\n.pk-role-actions {\n  display: flex;\n  flex-wrap: wrap;\n  gap: 8px;\n  align-items: center;\n  justify-content: center;\n  margin: 12px 0 18px;\n}\n.pk-role-actions small {\n  flex-basis: 100%;\n  text-align: center;\n}\n.pk-role-actions button[aria-pressed='true'] {\n  background: #234c41;\n  color: #fff;\n  opacity: 1;\n}\n.competition-dialog select:focus-visible {\n  outline: 3px solid #42997c;\n  outline-offset: 3px;\n}\n@media (max-width: 420px) {\n  .pk-room-actions {\n    gap: 6px;\n    flex-wrap: wrap;\n  }\n  .pk-room-actions > button {\n    min-width: 110px;\n  }\n}\n.pk-role-actions select {\n  margin-left: 8px;\n  min-height: 44px;\n  background: #fff;\n  color: #203b35;\n  border: 1px solid #bacabd;\n  border-radius: 8px;\n  padding: 8px;\n  font: inherit;\n}\n\n.pk-exit {\n  flex: none;\n  display: flex;\n  justify-content: flex-end;\n  padding-top: 8px;\n}\n.pk-sheet-actions {\n  display: flex;\n  justify-content: flex-end;\n  margin-top: 18px;\n}\n\n.competition-dialog [data-player-avatar] {\n  display: inline-grid;\n  place-items: center;\n  overflow: hidden;\n  flex: none;\n  background-image: none !important;\n  font-weight: 800;\n}\n.competition-dialog [data-player-avatar]::before,\n.competition-dialog [data-player-avatar]::after {\n  display: none !important;\n}\n.competition-dialog [data-player-avatar] img {\n  display: block;\n  width: 100%;\n  height: 100%;\n  object-fit: cover;\n  border-radius: inherit;\n}\n.pk-rank-person {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  min-width: 0;\n}\n.pk-profile-hero {\n  display: grid;\n  justify-items: center;\n  gap: 8px;\n  margin: 8px 0 20px;\n}\n.pk-profile-hero .pk-avatar {\n  width: 64px;\n  height: 64px;\n  font-size: 28px;\n}\n.pk-profile-hero small {\n  color: var(--pk-muted);\n}\n.pk-rank-person .pk-avatar {\n  width: 32px;\n  height: 32px;\n  font-size: 14px;\n  border-radius: 10px;\n}\n.pk-rank-person .pk-rank-name {\n  min-width: 0;\n  overflow-wrap: anywhere;\n}\n.pk-region {\n  display: block;\n  font-size: 11px;\n  font-weight: 400;\n  color: var(--pk-muted);\n}\n";
@@ -783,6 +892,11 @@
 		globalThis.__CLASSIC_CHASE_ROLES__ = true;
 		globalThis.__installCompetition();
 		const client = globalThis.__competition;
+		const roomStorage = client.identityMode === "ephemeral" ? client.roomStorage : {
+			getItem: (key) => localStorage.getItem(key),
+			setItem: (key, value) => localStorage.setItem(key, value),
+			removeItem: (key) => localStorage.removeItem(key)
+		};
 		const renderer = createRenderer({
 			createImage: () => new Image(),
 			assetBase: new URL("./", location.href).href
@@ -852,6 +966,7 @@
 		let poll = null, frame = 0, lastPoll = 0, busy = false, exiting = false, pending = null, resultShown = null;
 		let current = "lobby", trail = [], returnFocus = null;
 		let viewSource = null, viewState = null, viewTurned = false;
+		let drawnView = null;
 		let sessionGeneration = 0, busyGeneration = 0;
 		let historyDepth = 0, historySession = null;
 		const preferences = {
@@ -878,6 +993,7 @@
 			return element;
 		}
 		function feedback(value) {
+			renderConnectionInfo(status, value);
 			status.textContent = value instanceof Error ? value.message : String(value);
 			status.toggleAttribute("data-error", value instanceof Error);
 		}
@@ -885,19 +1001,19 @@
 		const detachedKey = `competition-detached-rooms:${game}`;
 		function detachedRooms() {
 			try {
-				return JSON.parse(localStorage.getItem(detachedKey) || "[]").filter((code) => /^[A-F0-9]{12}$/.test(code));
+				return JSON.parse(roomStorage.getItem(detachedKey) || "[]").filter((code) => /^[A-F0-9]{12}$/.test(code));
 			} catch {
 				return [];
 			}
 		}
 		function rememberDetached(code) {
 			try {
-				localStorage.setItem(detachedKey, JSON.stringify([.../* @__PURE__ */ new Set([...detachedRooms(), code])]));
+				roomStorage.setItem(detachedKey, JSON.stringify([.../* @__PURE__ */ new Set([...detachedRooms(), code])]));
 			} catch {}
 		}
 		function forgetDetached(code) {
 			try {
-				localStorage.setItem(detachedKey, JSON.stringify(detachedRooms().filter((item) => item !== code)));
+				roomStorage.setItem(detachedKey, JSON.stringify(detachedRooms().filter((item) => item !== code)));
 			} catch {}
 		}
 		async function leaveDetached(value) {
@@ -926,6 +1042,7 @@
 			renderAvatar(select("[data-avatar]"), value, client.avatarPolicy);
 			renderAvatar(select("[data-name-avatar]"), value, client.avatarPolicy);
 			select("[data-profile-details]").textContent = profileDetails(value);
+			if (value.identityMode === "ephemeral") select("[data-profile-details]").textContent += " · 本页临时访客仅用于当前游戏，最长8小时；刷新会开始新身份，原成绩不会转移。页内存储不隔离同源脚本。";
 			select("[data-sync-profile]").hidden = !client.canSyncProfile?.();
 			for (const figure of all("[data-figure]")) figure.style.backgroundPositionX = `${getRoleAppearance(figure.dataset.figure).preset * 50}%`;
 		}
@@ -1044,6 +1161,7 @@
 		}
 		function accept(value, generation = sessionGeneration) {
 			if (!isCurrent(generation)) return;
+			if (room?.code === value.code && (value.seq < room.seq || value.serverNow < room.serverNow)) return;
 			const oldStatus = room?.status;
 			if (room?.code !== value.code) pending = null;
 			room = value;
@@ -1104,7 +1222,7 @@
 				showResults();
 			}
 			try {
-				localStorage.setItem(`competition-room:${game}`, room.code);
+				roomStorage.setItem(`competition-room:${game}`, room.code);
 			} catch {}
 		}
 		async function refresh() {
@@ -1262,9 +1380,16 @@
 				turned
 			};
 		}
+		function clearRenderMetadata() {
+			drawnView = null;
+			delete canvas.dataset.renderedSeq;
+			delete canvas.dataset.renderedServerNow;
+			delete canvas.dataset.selectedActor;
+		}
 		function draw() {
 			if (!surface.open) return;
 			if (current === "play" && room?.state) {
+				const drawnRoom = room;
 				const width = canvas.clientWidth, height = canvas.clientHeight;
 				const ratio = Math.min(devicePixelRatio || 1, 2);
 				if (canvas.width !== Math.floor(width * ratio) || canvas.height !== Math.floor(height * ratio)) {
@@ -1273,8 +1398,20 @@
 				}
 				ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 				ctx.clearRect(0, 0, width, height);
-				renderer.draw(ctx, width, height, renderedView(room.state, width, height).state);
-			}
+				const view = renderedView(drawnRoom.state, width, height);
+				renderer.draw(ctx, width, height, view.state);
+				drawnView = {
+					...view,
+					code: drawnRoom.code,
+					width,
+					height
+				};
+				canvas.dataset.renderedSeq = String(drawnRoom.seq);
+				canvas.dataset.renderedServerNow = String(drawnRoom.serverNow);
+				const selected = renderer.getSelected?.();
+				if (Number.isSafeInteger(selected) && selected >= 0) canvas.dataset.selectedActor = String(selected);
+				else delete canvas.dataset.selectedActor;
+			} else clearRenderMetadata();
 			frame = requestAnimationFrame(draw);
 		}
 		async function open(entry) {
@@ -1321,7 +1458,7 @@
 					const invite = new URL(location.href).searchParams.get("pk");
 					let saved;
 					try {
-						saved = localStorage.getItem(`competition-room:${game}`);
+						saved = roomStorage.getItem(`competition-room:${game}`);
 					} catch {}
 					if (invite && /^[A-F0-9]{12}$/.test(invite)) {
 						select("[data-code]").value = invite;
@@ -1345,6 +1482,7 @@
 			historySession = null;
 			clearInterval(poll);
 			cancelAnimationFrame(frame);
+			clearRenderMetadata();
 			if (restoreHistory && depth > 0) await new Promise((resolve) => {
 				const done = () => {
 					clearTimeout(timeout);
@@ -1363,7 +1501,7 @@
 				pending = null;
 				resultShown = null;
 				try {
-					localStorage.removeItem(`competition-room:${game}`);
+					roomStorage.removeItem(`competition-room:${game}`);
 				} catch {}
 				feedback("邀请一位好友，一起玩一局。");
 			} catch {
@@ -1484,9 +1622,11 @@
 		};
 		canvas.addEventListener("pointerup", (event) => {
 			if (!room || room.status !== "playing" || current !== "play") return;
+			const view = drawnView;
+			if (!view || view.code !== room.code || view.width !== canvas.clientWidth || view.height !== canvas.clientHeight) return;
 			const rect = canvas.getBoundingClientRect();
-			const view = renderedView(room.state, canvas.clientWidth, canvas.clientHeight);
-			const tapped = renderer.tap(event.clientX - rect.left, event.clientY - rect.top, view.state);
+			if (!Number.isFinite(rect.width) || !Number.isFinite(rect.height) || rect.width <= 0 || rect.height <= 0) return;
+			const tapped = renderer.tap((event.clientX - rect.left) * view.width / rect.width, (event.clientY - rect.top) * view.height / rect.height, view.state);
 			const command = view.turned && tapped?.type === "move" ? {
 				...tapped,
 				x: tapped.y,
@@ -1711,6 +1851,8 @@ body.competition-active #mode-online { position:static; }
 			"cops-robbers-realtime",
 			"xiangqi-five"
 		].includes(game) && !competitionAvailable()) return;
+		globalThis.__installCompetition();
+		globalThis.__competition.renderConnectionInfo = renderConnectionInfo;
 		if (game === "cops-robbers-realtime") return mountStreetCompetition(game, createRenderer);
 		const street = game === "cops-robbers-realtime";
 		const xiangqi = game === "xiangqi-five";
@@ -1728,6 +1870,11 @@ body.competition-active #mode-online { position:static; }
 			createImage: () => new Image(),
 			assetBase: new URL("./", location.href).href
 		});
+		const roomStorage = client.identityMode === "ephemeral" ? client.roomStorage : {
+			getItem: (key) => localStorage.getItem(key),
+			setItem: (key, value) => localStorage.setItem(key, value),
+			removeItem: (key) => localStorage.removeItem(key)
+		};
 		const modeEntry = xiangqi ? document.getElementById("mode-online") : letters ? document.getElementById("friend-button") : document.getElementById("friend-duel");
 		const launch = modeEntry || document.createElement("button");
 		if (!modeEntry) launch.textContent = "好友 PK · 全站榜";
@@ -1880,6 +2027,7 @@ body.competition-active #mode-online { position:static; }
 			return content;
 		}
 		function feedback(error) {
+			renderConnectionInfo(status, error);
 			status.textContent = error instanceof Error ? error.message : String(error);
 			status.toggleAttribute("data-error", error instanceof Error);
 			if (letters) status.toggleAttribute("data-feedback", /复制|发送房间码|已读取邀请|昵称已保存/.test(status.textContent));
@@ -1917,6 +2065,7 @@ body.competition-active #mode-online { position:static; }
 			form.append(message, save);
 			sheet.append(form);
 			sheet.append(text("p", profileDetails(profile), "pk-sheet-note"));
+			if (profile.identityMode === "ephemeral") sheet.append(text("p", "本页临时访客仅用于当前游戏，最长 8 小时；刷新页面会开始新身份，原成绩不会转移。页内存储不隔离同源脚本。", "pk-sheet-note"));
 			if (client.canSyncProfile?.()) {
 				const sync = action("同步已授权的平台资料", () => void run(async () => {
 					const value = await client.syncProfile(expectedUserId);
@@ -2015,7 +2164,7 @@ body.competition-active #mode-online { position:static; }
 				showResults();
 			}
 			try {
-				localStorage.setItem(`competition-room:${game}`, room.code);
+				roomStorage.setItem(`competition-room:${game}`, room.code);
 			} catch {}
 		}
 		async function run(task) {
@@ -2132,7 +2281,7 @@ body.competition-active #mode-online { position:static; }
 			const invite = new URL(location.href).searchParams.get("pk");
 			let saved;
 			try {
-				saved = localStorage.getItem(`competition-room:${game}`);
+				saved = roomStorage.getItem(`competition-room:${game}`);
 			} catch {}
 			await run(async () => {
 				updateProfile(await client.request("/me"));
@@ -2209,7 +2358,7 @@ body.competition-active #mode-online { position:static; }
 				select(".pk-footer").hidden = false;
 				dialog.removeAttribute("data-playing");
 				try {
-					localStorage.removeItem(`competition-room:${game}`);
+					roomStorage.removeItem(`competition-room:${game}`);
 				} catch {}
 				if (!modeEntry) launch.textContent = "好友 PK · 全站榜";
 				launch.removeAttribute("title");

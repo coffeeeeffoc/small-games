@@ -12,7 +12,7 @@ import {
 } from './engine.js';
 import { createRenderer } from './competition-renderer.js';
 import { drawRoleAvatar } from './role-appearance.js';
-import { onlineEnabled, runConfig, formatRecord, readRecords, submitRun } from './records.js';
+import { onlineEnabled, runConfig, formatRecord, readRecords,startRun, submitRun } from './records.js';
 import { startSupport, starterRuns, sprintRemaining, canRefill, grantSupport, useSprint, useRewind } from './support.js';
 import { createTapTapAdProvider } from './taptap-h5-ads.js';
 
@@ -65,7 +65,7 @@ export function startNativeStreetGame(sdk, config, startNativeCompetition) {
     message = '',
     serverRecord = null,
     serial = 0;
-  let submitting = null;
+  let submitting = null,runAdmission=null,admissionPending=false;
   let gesture = null;
   const channel = sdk.channelEntry; let channelMessage = '';
   const runChannel = action => { if (action.available === false) { channelMessage = '宿主暂不支持此入口'; draw(); return; } channelMessage = ''; Promise.resolve().then(() => action.run()).catch(error => { channelMessage = error.message; }).finally(draw); };
@@ -120,6 +120,7 @@ export function startNativeStreetGame(sdk, config, startNativeCompetition) {
     ticks = 0;
     orders = [];
     submitting = null;
+    runAdmission=null;
     persist();
     void refresh();
   }
@@ -157,8 +158,19 @@ export function startNativeStreetGame(sdk, config, startNativeCompetition) {
     page = 'home';
     message = '';
   }
-  function start() {
+  async function start() {
+    if(admissionPending || game.phase!=='ready') return;
+    const starting=game;
+    let admission=null;
+    if(ONLINE_ENABLED && starting.level.id>0) {
+      admissionPending=true;
+      try {admission=await startRun(runConfig(starting));}
+      catch {message='开局服务暂不可用，本局继续本地挑战，无法提交排行榜。';}
+      finally {admissionPending=false;}
+    }
+    if(stopped || game!==starting || hidden) return;
     if (!startGame(game)) return;
+    runAdmission=admission;
     startedRuns = startSupport(game, startedRuns);
     persist();
     page = 'game';
@@ -171,7 +183,7 @@ export function startNativeStreetGame(sdk, config, startNativeCompetition) {
     const attempt = submitting;
     message = '正在验证通关纪录…';
     try {
-      const data = await submitRun(attempt.config, attempt.ticks, attempt.orders);
+      const data = await submitRun(attempt.config, attempt.ticks, attempt.orders,attempt.admission);
       if (attempt !== submitting || stopped) return;
       serverRecord = data;
       message = '服务器已验证并保存';
@@ -600,7 +612,7 @@ export function startNativeStreetGame(sdk, config, startNativeCompetition) {
           const scoreKey = (game.support?.assisted ? 'assisted:' : '') + key();
           progress[scoreKey] = Math.min(progress[scoreKey] || Infinity, game.time);
           persist();
-          submitting = { config: runConfig(game), ticks, orders: orders.slice() };
+          submitting = { config: runConfig(game), ticks, orders: orders.slice(),admission:runAdmission };
           if (ONLINE_ENABLED && !game.support?.assisted) void upload();
         }
       }
