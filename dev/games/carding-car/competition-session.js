@@ -1,164 +1,86 @@
 globalThis.__COMPETITION_CONFIG__ = Object.assign({"platform":"h5","appId":"","apiUrl":""}, globalThis.__COMPETITION_CONFIG__ || {});
-// Keep this file classic-script compatible: several native producers embed it verbatim.
-// Both competition clients share one authority even when this source is loaded twice.
+// Classic script: browser and native producers embed the same authenticated identity client.
 (() => {
   const root = globalThis;
   if (root.__createCompetitionIdentity) return;
   const authorities = new WeakMap();
   const providers = { wechat: 'wx', bilibili: 'bl', douyin: 'tt', kuaishou: 'ks', taptap: 'tap' };
   const error = (code) => Object.assign(new Error(code), { code });
-  const valid = (value, reserve = 0) =>
-    typeof value?.token === 'string' &&
-    value.token.length > 0 &&
-    Number.isFinite(value.expiresAt) &&
-    value.expiresAt > Date.now() + reserve;
   const ownerId = (value) => value?.userId || value?.playerId || null;
   root.__createCompetitionIdentity = ({ config, sdk, storage, request }) => {
-    const ephemeral = config.identityMode === 'ephemeral';
-    if (config.identityMode !== undefined && !ephemeral) throw error('IDENTITY_MODE_UNSUPPORTED');
-    if (
-      ephemeral &&
-      (!['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'].includes(config.game) ||
-        ![undefined, 'h5', 'web-preview'].includes(config.platform))
-    )
-      throw error('IDENTITY_MODE_UNSUPPORTED');
+    const provider = Object.hasOwn(providers, config.platform) ? config.platform : 'h5';
     const unsupported =
       config.platform &&
       !['h5', 'web-preview', ...Object.keys(providers)].includes(config.platform);
-    const provider =
-      Object.hasOwn(providers, config.platform) || unsupported ? config.platform : 'h5';
     const base = (config.apiUrl || '/api/competition/v1').replace(/\/$/, '');
     let endpoint = base;
     try {
       endpoint = new root.URL(base, root.location?.href).href.replace(/\/$/, '');
     } catch {}
-    // These two reviewed HTTPS routes reach the same service; keep existing scoped identities.
-    if (endpoint === 'https://api.nenggongzhiren.cn/small-games/v1')
-      endpoint = 'https://api.nenggongzhiren.cn/api/competition/v1';
-    const authority = `${endpoint}|${provider}|${provider === 'h5' ? '' : config.appId || ''}${ephemeral ? '|ephemeral:' + config.game : ''}`;
-    const key = `competition-session-v2:${encodeURIComponent(authority)}`;
-    const installationKey = `competition-installation-v1:${encodeURIComponent(endpoint)}`;
-    const legacyKey = `competition-session-v1:${provider === 'h5' ? 'h5' : `${provider}:${config.appId}`}`;
-    const owner = ephemeral ? root : storage || root;
+    const authority = `${endpoint}|${provider}|${config.appId || ''}|${config.game || ''}`;
+    const key = `competition-session-v3:${encodeURIComponent(authority)}`;
+    const owner = storage || root;
     let shared = authorities.get(owner);
     if (!shared) authorities.set(owner, (shared = new Map()));
     if (shared.has(authority)) return shared.get(authority);
     let memory = null,
       lastRaw,
       seen = false,
-      memoryOnly = false,
+      volatile = false,
       revision = 0,
       pending;
-    let legacyTried = false,
-      legacyActive = false,
-      legacyBlocked = false,
-      installation,
-      modeRejected = false;
-    const renewalReserve = (credential) =>
-      ephemeral && credential?.identityExpiresAt - Date.now() <= 60000 ? 0 : 60000;
-    const get = (name) => (sdk ? sdk.getStorageSync(name) : storage?.getItem(name));
-    const set = (name, value) =>
-      sdk ? sdk.setStorageSync(name, value) : storage?.setItem(name, value);
-    if (!ephemeral)
-      root.addEventListener?.('storage', (event) => {
-        if (event.key === key || event.key === null || (legacyActive && event.key === legacyKey)) {
-          revision++;
-          memoryOnly = false;
-          memory = null;
-          seen = false;
-          legacyTried = true;
-          legacyActive = false;
-        }
-      });
+    const sameSession = (a, b) =>
+      a?.sessionId && a.sessionId === b?.sessionId && ownerId(a) === ownerId(b);
+    const shape = (value) =>
+      ['guest', 'platform'].includes(value?.identityKind) &&
+      value.game === config.game &&
+      /^[a-f0-9-]{36}$/.test(value.sessionId || '') &&
+      !!ownerId(value) &&
+      /^[a-f0-9]{64}$/.test(value.token || '') &&
+      /^[a-f0-9]{64}$/.test(value.refreshToken || '') &&
+      Number.isFinite(value.expiresAt) &&
+      Number.isFinite(value.refreshExpiresAt);
+    const valid = (value, reserve = 0) => shape(value) && value.expiresAt > Date.now() + reserve;
+    const get = () => (sdk ? sdk.getStorageSync(key) : storage?.getItem(key));
+    const set = (value) => (sdk ? sdk.setStorageSync(key, value) : storage?.setItem(key, value));
+    root.addEventListener?.('storage', (event) => {
+      if (event.key === key || event.key === null) {
+        seen = false;
+        volatile = false;
+      }
+    });
     function read() {
-      if (ephemeral) return { credential: memory, revision, readable: true };
-      let raw;
+      if (volatile || (!storage && !sdk)) return { credential: memory, revision };
       try {
-        raw = get(key) || null;
-      } catch {
-        return { credential: memory, revision, readable: false };
-      }
-      if (!seen || raw !== lastRaw) {
-        seen = true;
-        lastRaw = raw;
-        revision++;
-        memoryOnly = false;
-        memory = null;
-        try {
-          memory = JSON.parse(raw || 'null');
-        } catch {}
-        if (memory?.apiAuthority && memory.apiAuthority !== authority) memory = null;
-      }
-      if (!raw && !legacyTried) {
-        legacyTried = true;
-        try {
-          const candidate = JSON.parse(get(legacyKey) || 'null');
-          const sameOrigin =
-            root.location?.href &&
-            endpoint === new root.URL('/api/competition/v1', root.location.href).href;
-          // Old records have no API scope. Never offer their bearer to a new foreign API.
-          if (valid(candidate) && (sameOrigin || candidate.apiAuthority === authority)) {
-            memory = candidate;
-            memoryOnly = true;
-            legacyActive = true;
-          } else if (candidate?.token && provider === 'h5') legacyBlocked = true;
-        } catch {}
-      }
-      if (
-        !memoryOnly &&
-        memory &&
-        (typeof memory.token !== 'string' || !Number.isFinite(memory.expiresAt))
-      )
-        memory = null;
-      return { credential: memory, revision, readable: true };
-    }
-    function persist(credential) {
-      memory = { ...credential, apiAuthority: authority };
-      legacyActive = false;
-      memoryOnly = true;
-      const encoded = JSON.stringify(memory);
-      try {
-        if (!ephemeral && storage) {
-          set(key, encoded);
-          lastRaw = encoded;
+        const raw = get() || null;
+        if (!seen || raw !== lastRaw) {
           seen = true;
-          memoryOnly = false;
-        }
-      } catch {
-        /* Storage denial leaves this page's server identity usable. */
-      }
-      revision++;
-      return memory;
-    }
-    function installationId() {
-      if (installation) return installation;
-      try {
-        installation = get(installationKey);
-      } catch {}
-      if (
-        !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(
-          installation || '',
-        )
-      ) {
-        installation = root.crypto?.randomUUID?.();
-        if (installation)
+          lastRaw = raw;
+          let next;
           try {
-            if (storage) set(installationKey, installation);
-          } catch {}
-      }
-      return installation;
+            next = JSON.parse(raw || 'null');
+          } catch {
+            next = null;
+          }
+          if (next?.apiAuthority !== authority || !shape(next)) next = null;
+          if (!sameSession(memory, next) && (memory || next)) revision++;
+          memory = next;
+        }
+      } catch {}
+      return { credential: memory, revision };
     }
-    async function loginCode(platform, appId, suppliedSdk) {
-      const platformSdk = suppliedSdk || root[providers[platform]];
-      if (!Object.hasOwn(providers, platform) || !appId || !platformSdk?.login)
-        throw error('PLATFORM_LOGIN_UNAVAILABLE');
-      let timer;
-      const login = await new Promise((resolve, reject) => {
-        timer = setTimeout(() => reject(error('PLATFORM_LOGIN_FAILED')), 8000);
-        platformSdk.login({ success: resolve, fail: () => reject(error('PLATFORM_LOGIN_FAILED')) });
-      }).finally(() => clearTimeout(timer));
-      if (typeof login?.code !== 'string' || !login.code) throw error('PLATFORM_LOGIN_FAILED');
-      return login.code;
+    function persist(value) {
+      if (!sameSession(memory, value) && (memory || value)) revision++;
+      memory = value ? { ...value, apiAuthority: authority } : null;
+      lastRaw = memory ? JSON.stringify(memory) : null;
+      seen = true;
+      try {
+        set(lastRaw || '');
+        volatile = !storage && !sdk;
+      } catch {
+        volatile = true;
+      }
+      return memory;
     }
     function launch(task) {
       const running = task();
@@ -170,162 +92,95 @@ globalThis.__COMPETITION_CONFIG__ = Object.assign({"platform":"h5","appId":"","a
         .catch(() => {});
       return running;
     }
-    function unchanged(initial, credential) {
-      if (ephemeral) {
-        if (
-          credential?.identityMode !== 'ephemeral' ||
-          credential.game !== config.game ||
-          credential.identityKind !== 'guest' ||
-          !Number.isFinite(credential.identityExpiresAt) ||
-          credential.identityExpiresAt <= Date.now() ||
-          !Number.isFinite(credential.refreshExpiresAt) ||
-          credential.refreshExpiresAt > credential.identityExpiresAt ||
-          credential.expiresAt > credential.identityExpiresAt ||
-          credential.expiresAt > Date.now() + 15 * 60_000 + 1000
-        ) {
-          modeRejected = true;
-          throw error('IDENTITY_MODE_UNSUPPORTED');
-        }
-        if (
-          initial.credential &&
-          initial.credential.identityExpiresAt !== credential.identityExpiresAt
-        )
-          throw error('SESSION_CHANGED');
-      }
-      const latest = read();
-      if (latest.revision !== initial.revision) {
-        if (valid(latest.credential, renewalReserve(latest.credential))) return latest.credential;
+    function accept(initial, credential, refreshing = false) {
+      if (read().revision !== initial.revision) throw error('SESSION_CHANGED');
+      if (!valid(credential)) throw error('SESSION_EXPIRED');
+      if (refreshing && !sameSession(initial.credential, credential))
+        throw error('SESSION_CHANGED');
+      if (refreshing && memory.token !== initial.credential.token) {
+        if (valid(memory)) return memory;
         throw error('SESSION_CHANGED');
       }
-      if (!valid(credential, renewalReserve(credential))) throw error('SESSION_EXPIRED');
-      if (ownerId(initial.credential) && ownerId(credential) !== ownerId(initial.credential))
-        throw error('SESSION_CHANGED');
+      if (refreshing && (memory.profileUpdatedAt || 0) > (credential.profileUpdatedAt || 0))
+        for (const field of profileFields) credential[field] = memory[field];
       return persist(credential);
     }
+    const profileFields = [
+      'nickname',
+      'name',
+      'avatarId',
+      'avatarUrl',
+      'region',
+      'profileSource',
+      'profileUpdatedAt',
+      'avatarPolicy',
+    ];
     const result = {
       saved: () => read().credential,
       authority,
       storageKey: key,
-      acceptProfile(profile, credential) {
-        if (
-          ephemeral &&
-          (profile.identityMode !== 'ephemeral' ||
-            profile.game !== config.game ||
-            profile.identityExpiresAt !== credential.identityExpiresAt)
-        )
-          throw error('IDENTITY_MODE_UNSUPPORTED');
+      assertCurrent(credential) {
+        if (!sameSession(read().credential, credential)) throw error('SESSION_CHANGED');
+      },
+      invalidate(credential, failure) {
         const latest = read().credential;
-        if (
-          !ownerId(latest) ||
-          ownerId(latest) !== ownerId(credential) ||
-          ownerId(profile) !== ownerId(latest)
-        )
+        if (failure?.code === 'SESSION_EXPIRED' && latest?.token === credential?.token)
+          persist({ ...latest, expiresAt: 0 });
+      },
+      acceptProfile(profile, credential) {
+        const latest = read().credential;
+        result.assertCurrent(credential);
+        if (ownerId(profile) !== ownerId(latest) || profile.game !== config.game)
           throw error('SESSION_CHANGED');
-        return persist({ ...latest, ...profile });
+        if ((profile.profileUpdatedAt || 0) < (latest.profileUpdatedAt || 0)) return latest;
+        const next = { ...latest };
+        for (const field of profileFields) if (field in profile) next[field] = profile[field];
+        return persist(next);
       },
       current() {
-        if (modeRejected) return Promise.reject(error('IDENTITY_MODE_UNSUPPORTED'));
-        if (unsupported) return Promise.reject(error('PLATFORM_LOGIN_UNAVAILABLE'));
-        if (provider !== 'h5' && (!sdk?.login || !sdk?.request || !config.appId))
+        if (unsupported || (provider !== 'h5' && !sdk?.request))
           return Promise.reject(error('PLATFORM_LOGIN_UNAVAILABLE'));
         if (pending) return pending;
-        const initial = read();
-        if (ephemeral && initial.credential?.identityExpiresAt <= Date.now())
-          return Promise.reject(error('IDENTITY_EXPIRED'));
-        if (legacyBlocked && !initial.credential)
-          return Promise.reject(error('IDENTITY_MIGRATION_REQUIRED'));
-        if (valid(initial.credential, renewalReserve(initial.credential)) && !legacyActive)
-          return Promise.resolve(initial.credential);
+        const initial = read(),
+          saved = initial.credential;
+        if (valid(saved, 60000)) return Promise.resolve(saved);
         return launch(async () => {
-          let credential = initial.credential;
-          if (legacyActive) {
-            const profile = await request('/me', undefined, credential);
+          try {
+            const credential = saved?.refreshToken
+              ? await request('/sessions/refresh', { refreshToken: saved.refreshToken }, null)
+              : await request('/sessions/guest', { game: config.game }, null);
+            return accept(initial, credential, !!saved?.refreshToken);
+          } catch (failure) {
+            const latest = read();
             if (
-              !ownerId(profile) ||
-              (ownerId(credential) && ownerId(credential) !== ownerId(profile))
+              latest.revision === initial.revision &&
+              latest.credential?.token !== saved?.token &&
+              valid(latest.credential)
             )
-              throw error('SESSION_CHANGED');
-            credential = { ...credential, ...profile };
+              return latest.credential;
+            if (failure.code === 'REFRESH_EXPIRED' && latest.revision === initial.revision)
+              persist(null);
+            throw failure;
           }
-          if (credential?.refreshToken) {
-            credential = await request(
-              '/sessions/refresh',
-              { refreshToken: credential.refreshToken },
-              null,
-            );
-          } else if (
-            credential &&
-            valid(credential) &&
-            (credential.identityKind === 'guest' ||
-              (provider === 'h5' && credential.identityKind !== 'platform'))
-          ) {
-            credential = await request('/sessions/refresh', {}, credential);
-          } else if (provider !== 'h5') {
-            const code = await loginCode(provider, config.appId, sdk);
-            credential = await request(
-              '/sessions/platform',
-              { platform: provider, appId: config.appId, code },
-              null,
-            );
-          } else if (credential) {
-            throw error('SESSION_EXPIRED');
-          } else {
-            const id = ephemeral ? undefined : installationId();
-            credential = await request(
-              '/sessions/guest',
-              {
-                identityVersion: 2,
-                ...(ephemeral
-                  ? { identityMode: 'ephemeral', game: config.game }
-                  : id
-                    ? { installationId: id }
-                    : {}),
-              },
-              null,
-            );
-          }
-          return unchanged(initial, credential);
         });
+      },
+      async logout() {
+        const saved = read().credential;
+        persist(null);
+        revision++;
+        pending = null;
+        if (saved) await request('/sessions/logout', {}, saved);
       },
       async forOwner(credential) {
-        if (ephemeral && credential?.identityExpiresAt <= Date.now())
-          throw error('IDENTITY_EXPIRED');
-        const latest = read().credential;
-        if (ownerId(credential) && ownerId(latest) === ownerId(credential)) {
-          const renewed = await result.current();
-          if (ownerId(renewed) !== ownerId(credential)) throw error('SESSION_CHANGED');
-          return renewed;
-        }
-        return credential;
+        result.assertCurrent(credential);
+        const current = await result.current();
+        result.assertCurrent(credential);
+        return current;
       },
-      async upgrade({ platform, appId, code, sdk: platformSdk } = {}) {
-        if (ephemeral) throw error('IDENTITY_UPGRADE_NOT_ALLOWED');
-        if (pending) await pending;
-        const credential = await result.current();
-        if (pending) throw error('SESSION_CHANGED');
-        if (credential.identityKind !== 'guest') throw error('IDENTITY_UPGRADE_NOT_ALLOWED');
-        const initial = read();
-        if (
-          initial.credential?.token !== credential.token ||
-          ownerId(initial.credential) !== ownerId(credential)
-        )
-          throw error('SESSION_CHANGED');
-        return launch(async () => {
-          const verifiedCode = code || (await loginCode(platform, appId, platformSdk));
-          if (read().revision !== initial.revision) throw error('SESSION_CHANGED');
-          const upgraded = await request(
-            '/sessions/upgrade',
-            { platform, appId, code: verifiedCode },
-            credential,
-          );
-          const latest = read();
-          if (latest.revision !== initial.revision) throw error('SESSION_CHANGED');
-          if (upgraded.identityKind !== 'platform' || ownerId(upgraded) !== ownerId(credential))
-            throw error('SESSION_CHANGED');
-          return unchanged(initial, upgraded);
-        });
+      upgrade: async () => {
+        throw error('IDENTITY_UPGRADE_NOT_ALLOWED');
       },
-      canSyncProfile: () => !ephemeral && !!(sdk?.getSetting && sdk?.getUserInfo),
+      canSyncProfile: () => !!(sdk?.getSetting && sdk?.getUserInfo),
       async syncProfile(expectedUserId) {
         if (!result.canSyncProfile()) throw error('PLATFORM_PROFILE_UNAVAILABLE');
         const credential = await result.current();
@@ -409,17 +264,14 @@ globalThis.__installCompetition = (options, nativeSdk) => {
   const config = options || root.__COMPETITION_CONFIG__ || {};
   if (root.__competition) {
     if (
-      config.identityMode === 'ephemeral' &&
-      (root.__competition.identityMode !== 'ephemeral' ||
-        root.__competition.config?.game !== config.game ||
-        root.__competition.config?.apiUrl !== config.apiUrl)
+      root.__competition.config?.game !== config.game ||
+      root.__competition.config?.apiUrl !== config.apiUrl
     )
-      throw Object.assign(new Error('IDENTITY_MODE_UNSUPPORTED'), {
-        code: 'IDENTITY_MODE_UNSUPPORTED',
+      throw Object.assign(new Error('IDENTITY_SCOPE_MISMATCH'), {
+        code: 'IDENTITY_SCOPE_MISMATCH',
       });
     return;
   }
-  const ephemeral = config.identityMode === 'ephemeral';
   const nativePlatforms = {
     wechat: 'wx',
     bilibili: 'bl',
@@ -487,15 +339,16 @@ globalThis.__installCompetition = (options, nativeSdk) => {
   }
   let auth, storage;
   try {
-    if (config.identityMode === undefined) storage = sdk || root.localStorage;
+    storage = sdk || root.localStorage;
   } catch {}
   const errors = {
-    IDENTITY_EXPIRED: '本页临时身份已到期，请重新打开游戏开始新的临时身份；原成绩不会转移。',
-    IDENTITY_SCOPE_MISMATCH: '此临时身份仅用于当前游戏，无法访问其他游戏资源。',
-    IDENTITY_MODE_UNSUPPORTED: '服务尚不支持临时身份，请等待服务更新后重新打开游戏。',
-    SESSION_EXPIRED: '登录已过期，请重新进入；当前对局不会冒用新身份。',
-    REFRESH_EXPIRED: '匿名登录已过期，请重新进入；旧成绩不会转移给新身份。',
-    SESSION_CHANGED: '账号已变化，请返回主页重新进入。',
+    LOGIN_REQUIRED: '联网身份暂不可用，请稍后重试。',
+    IDENTITY_EXPIRED: '此入口的身份已过期，请重新进入。',
+    IDENTITY_SCOPE_MISMATCH: '此凭证仅用于对应游戏，请从原入口进入。',
+    IDENTITY_MODE_UNSUPPORTED: '联网服务正在更新，请稍后重试。',
+    SESSION_EXPIRED: '连接凭证已过期，请重试以自动续期。',
+    REFRESH_EXPIRED: '本机身份已失效，再次进入联网功能会建立新身份。',
+    SESSION_CHANGED: '玩家身份已变化，请返回主页重新进入。',
     IDENTITY_MIGRATION_REQUIRED: '检测到旧账号，请从原服务入口恢复；不会自动换号或转移成绩。',
     IDENTITY_ALREADY_BOUND: '此平台账号已有身份，无法自动合并游客成绩。',
     IDENTITY_UPGRADE_NOT_ALLOWED: '当前账号不能自动绑定另一个平台身份。',
@@ -580,16 +433,17 @@ globalThis.__installCompetition = (options, nativeSdk) => {
   };
   const session = () => auth.current().catch(localized);
   const roomOwners = new Map();
-  const pageRooms = new Map();
   root.__competition = {
-    identityMode: ephemeral ? 'ephemeral' : 'persistent',
-    roomStorage: ephemeral
-      ? {
-          getItem: (key) => pageRooms.get(key) ?? null,
-          setItem: (key, value) => pageRooms.set(key, String(value)),
-          removeItem: (key) => pageRooms.delete(key),
-        }
-      : null,
+    identityMode: 'persistent',
+    roomStorage: null,
+    async logout() {
+      roomOwners.clear();
+      verifiedGames.clear();
+      try {
+        storage?.removeItem?.(`competition-room:${config.game}`);
+      } catch {}
+      await auth.logout();
+    },
     connectionInfo: (error) => connectionFailures.get(error) || null,
     session,
     upgrade: (input) => auth.upgrade(input).catch(localized),
@@ -601,6 +455,7 @@ globalThis.__installCompetition = (options, nativeSdk) => {
     async request(path, init, expectedUserId) {
       const current = await session();
       const assertCurrentOwner = (owner) => {
+        auth.assertCurrent(owner);
         if (!expectedUserId) return;
         const latest = auth.saved();
         if (
@@ -620,15 +475,22 @@ globalThis.__installCompetition = (options, nativeSdk) => {
       const roomRequest = path.startsWith('/rooms') && !path.endsWith('/leave');
       const game = config.game || (init?.body ? JSON.parse(init.body).game : undefined);
       if (roomRequest && teamRules[game] && !verifiedGames.has(game)) {
-        verifyRules(game, await send('/boards/' + game, {}, owner), true);
+        const board = await send('/boards/' + game, {}, owner).catch((error) => {
+          auth.invalidate(owner, error);
+          throw error;
+        });
+        assertCurrentOwner(owner);
+        verifyRules(game, board, true);
       }
       assertCurrentOwner(owner);
       const data = await send(path, init, owner).catch((error) => {
+        auth.invalidate(owner, error);
         // An old ruleset has invalidated the room; both clients can discard local recovery.
         if (path.endsWith('/leave') && error.code === 'RULE_VERSION_CHANGED')
           return { obsolete: true };
         throw error;
       });
+      assertCurrentOwner(owner);
       if (path.startsWith('/boards/')) verifyRules(path.slice('/boards/'.length), data, true);
       if (roomRequest) verifyRules(data.game, data);
       if (data.code && Array.isArray(data.players)) {
@@ -636,7 +498,18 @@ globalThis.__installCompetition = (options, nativeSdk) => {
         while (roomOwners.size > 8) roomOwners.delete(roomOwners.keys().next().value);
       }
       if (code && path.endsWith('/leave')) roomOwners.delete(code);
-      if (path === '/me' && data.userId) auth.acceptProfile(data, owner);
+      if (path === '/me' && data.userId) {
+        const accepted = auth.acceptProfile(data, owner);
+        for (const field of [
+          'nickname',
+          'name',
+          'avatarUrl',
+          'region',
+          'profileSource',
+          'profileUpdatedAt',
+        ])
+          data[field] = accepted[field];
+      }
       return data;
     },
     config,

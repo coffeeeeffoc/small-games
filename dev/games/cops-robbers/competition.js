@@ -1,0 +1,17087 @@
+(function() {
+	//#region ../../platforms/competition/client.js
+	(() => {
+		const root = globalThis;
+		if (root.__createCompetitionIdentity) return;
+		const authorities = /* @__PURE__ */ new WeakMap();
+		const providers = {
+			wechat: "wx",
+			bilibili: "bl",
+			douyin: "tt",
+			kuaishou: "ks",
+			taptap: "tap"
+		};
+		const error = (code) => Object.assign(new Error(code), { code });
+		const ownerId = (value) => value?.userId || value?.playerId || null;
+		root.__createCompetitionIdentity = ({ config, sdk, storage, request }) => {
+			const provider = Object.hasOwn(providers, config.platform) ? config.platform : "h5";
+			const unsupported = config.platform && ![
+				"h5",
+				"web-preview",
+				...Object.keys(providers)
+			].includes(config.platform);
+			const base = (config.apiUrl || "/api/competition/v1").replace(/\/$/, "");
+			let endpoint = base;
+			try {
+				endpoint = new root.URL(base, root.location?.href).href.replace(/\/$/, "");
+			} catch {}
+			const authority = `${endpoint}|${provider}|${config.appId || ""}|${config.game || ""}`;
+			const key = `competition-session-v3:${encodeURIComponent(authority)}`;
+			const owner = storage || root;
+			let shared = authorities.get(owner);
+			if (!shared) authorities.set(owner, shared = /* @__PURE__ */ new Map());
+			if (shared.has(authority)) return shared.get(authority);
+			let memory = null, lastRaw, seen = false, volatile = false, revision = 0, pending;
+			const sameSession = (a, b) => a?.sessionId && a.sessionId === b?.sessionId && ownerId(a) === ownerId(b);
+			const shape = (value) => ["guest", "platform"].includes(value?.identityKind) && value.game === config.game && /^[a-f0-9-]{36}$/.test(value.sessionId || "") && !!ownerId(value) && /^[a-f0-9]{64}$/.test(value.token || "") && /^[a-f0-9]{64}$/.test(value.refreshToken || "") && Number.isFinite(value.expiresAt) && Number.isFinite(value.refreshExpiresAt);
+			const valid = (value, reserve = 0) => shape(value) && value.expiresAt > Date.now() + reserve;
+			const get = () => sdk ? sdk.getStorageSync(key) : storage?.getItem(key);
+			const set = (value) => sdk ? sdk.setStorageSync(key, value) : storage?.setItem(key, value);
+			root.addEventListener?.("storage", (event) => {
+				if (event.key === key || event.key === null) {
+					seen = false;
+					volatile = false;
+				}
+			});
+			function read() {
+				if (volatile || !storage && !sdk) return {
+					credential: memory,
+					revision
+				};
+				try {
+					const raw = get() || null;
+					if (!seen || raw !== lastRaw) {
+						seen = true;
+						lastRaw = raw;
+						let next;
+						try {
+							next = JSON.parse(raw || "null");
+						} catch {
+							next = null;
+						}
+						if (next?.apiAuthority !== authority || !shape(next)) next = null;
+						if (!sameSession(memory, next) && (memory || next)) revision++;
+						memory = next;
+					}
+				} catch {}
+				return {
+					credential: memory,
+					revision
+				};
+			}
+			function persist(value) {
+				if (!sameSession(memory, value) && (memory || value)) revision++;
+				memory = value ? {
+					...value,
+					apiAuthority: authority
+				} : null;
+				lastRaw = memory ? JSON.stringify(memory) : null;
+				seen = true;
+				try {
+					set(lastRaw || "");
+					volatile = !storage && !sdk;
+				} catch {
+					volatile = true;
+				}
+				return memory;
+			}
+			function launch(task) {
+				const running = task();
+				pending = running;
+				running.finally(() => {
+					if (pending === running) pending = null;
+				}).catch(() => {});
+				return running;
+			}
+			function accept(initial, credential, refreshing = false) {
+				if (read().revision !== initial.revision) throw error("SESSION_CHANGED");
+				if (!valid(credential)) throw error("SESSION_EXPIRED");
+				if (refreshing && !sameSession(initial.credential, credential)) throw error("SESSION_CHANGED");
+				if (refreshing && memory.token !== initial.credential.token) {
+					if (valid(memory)) return memory;
+					throw error("SESSION_CHANGED");
+				}
+				if (refreshing && (memory.profileUpdatedAt || 0) > (credential.profileUpdatedAt || 0)) for (const field of profileFields) credential[field] = memory[field];
+				return persist(credential);
+			}
+			const profileFields = [
+				"nickname",
+				"name",
+				"avatarId",
+				"avatarUrl",
+				"region",
+				"profileSource",
+				"profileUpdatedAt",
+				"avatarPolicy"
+			];
+			const result = {
+				saved: () => read().credential,
+				authority,
+				storageKey: key,
+				assertCurrent(credential) {
+					if (!sameSession(read().credential, credential)) throw error("SESSION_CHANGED");
+				},
+				invalidate(credential, failure) {
+					const latest = read().credential;
+					if (failure?.code === "SESSION_EXPIRED" && latest?.token === credential?.token) persist({
+						...latest,
+						expiresAt: 0
+					});
+				},
+				acceptProfile(profile, credential) {
+					const latest = read().credential;
+					result.assertCurrent(credential);
+					if (ownerId(profile) !== ownerId(latest) || profile.game !== config.game) throw error("SESSION_CHANGED");
+					if ((profile.profileUpdatedAt || 0) < (latest.profileUpdatedAt || 0)) return latest;
+					const next = { ...latest };
+					for (const field of profileFields) if (field in profile) next[field] = profile[field];
+					return persist(next);
+				},
+				current() {
+					if (unsupported || provider !== "h5" && !sdk?.request) return Promise.reject(error("PLATFORM_LOGIN_UNAVAILABLE"));
+					if (pending) return pending;
+					const initial = read(), saved = initial.credential;
+					if (valid(saved, 6e4)) return Promise.resolve(saved);
+					return launch(async () => {
+						try {
+							const credential = saved?.refreshToken ? await request("/sessions/refresh", { refreshToken: saved.refreshToken }, null) : await request("/sessions/guest", { game: config.game }, null);
+							return accept(initial, credential, !!saved?.refreshToken);
+						} catch (failure) {
+							const latest = read();
+							if (latest.revision === initial.revision && latest.credential?.token !== saved?.token && valid(latest.credential)) return latest.credential;
+							if (failure.code === "REFRESH_EXPIRED" && latest.revision === initial.revision) persist(null);
+							throw failure;
+						}
+					});
+				},
+				async logout() {
+					const saved = read().credential;
+					persist(null);
+					revision++;
+					pending = null;
+					if (saved) await request("/sessions/logout", {}, saved);
+				},
+				async forOwner(credential) {
+					result.assertCurrent(credential);
+					const current = await result.current();
+					result.assertCurrent(credential);
+					return current;
+				},
+				upgrade: async () => {
+					throw error("IDENTITY_UPGRADE_NOT_ALLOWED");
+				},
+				canSyncProfile: () => !!(sdk?.getSetting && sdk?.getUserInfo),
+				async syncProfile(expectedUserId) {
+					if (!result.canSyncProfile()) throw error("PLATFORM_PROFILE_UNAVAILABLE");
+					const credential = await result.current();
+					if (expectedUserId && ownerId(credential) !== expectedUserId) throw error("SESSION_CHANGED");
+					if (credential.identityKind !== "platform") throw error("PLATFORM_PROFILE_UNAVAILABLE");
+					const initial = read();
+					if (initial.credential?.token !== credential.token || ownerId(initial.credential) !== ownerId(credential)) throw error("SESSION_CHANGED");
+					const call = (method, options) => {
+						let timer;
+						return new Promise((resolve, reject) => {
+							timer = setTimeout(() => reject(error("PLATFORM_PROFILE_UNAVAILABLE")), 8e3);
+							sdk[method]({
+								...options,
+								success: (value) => {
+									clearTimeout(timer);
+									resolve(value);
+								},
+								fail: () => {
+									clearTimeout(timer);
+									reject(error("PLATFORM_PROFILE_UNAVAILABLE"));
+								}
+							});
+						}).finally(() => clearTimeout(timer));
+					};
+					if ((await call("getSetting", {}))?.authSetting?.["scope.userInfo"] !== true) throw error("PLATFORM_PROFILE_NOT_AUTHORIZED");
+					const { userInfo } = await call("getUserInfo", { withCredentials: false });
+					if (!userInfo || typeof userInfo.nickName !== "string") throw error("PLATFORM_PROFILE_UNAVAILABLE");
+					if (read().revision !== initial.revision) throw error("SESSION_CHANGED");
+					const region = {};
+					if (typeof userInfo.country === "string" && userInfo.country.trim()) region.country = userInfo.country;
+					if (typeof userInfo.province === "string" && userInfo.province.trim()) region.province = userInfo.province;
+					let avatarUrl = "";
+					try {
+						const candidate = new root.URL(userInfo.avatarUrl);
+						if (candidate.protocol === "https:" && !candidate.username && !candidate.password && !candidate.port && !candidate.hash && credential.avatarPolicy?.origins?.includes(candidate.origin) && ![...candidate.searchParams.keys()].some((key) => /token|secret|password|credential|session/i.test(key))) avatarUrl = candidate.href;
+					} catch {}
+					const profile = await request("/me", {
+						nickname: userInfo.nickName,
+						avatarUrl,
+						region: Object.keys(region).length ? region : null,
+						source: "user-authorized"
+					}, credential);
+					if (read().revision !== initial.revision) throw error("SESSION_CHANGED");
+					result.acceptProfile(profile, credential);
+					return profile;
+				}
+			};
+			shared.set(authority, result);
+			return result;
+		};
+	})();
+	globalThis.__installCompetition = (options, nativeSdk) => {
+		const root = globalThis;
+		const config = options || root.__COMPETITION_CONFIG__ || {};
+		if (root.__competition) {
+			if (root.__competition.config?.game !== config.game || root.__competition.config?.apiUrl !== config.apiUrl) throw Object.assign(/* @__PURE__ */ new Error("IDENTITY_SCOPE_MISMATCH"), { code: "IDENTITY_SCOPE_MISMATCH" });
+			return;
+		}
+		const nativePlatforms = {
+			wechat: "wx",
+			bilibili: "bl",
+			douyin: "tt",
+			kuaishou: "ks",
+			taptap: "tap"
+		};
+		const native = Object.hasOwn(nativePlatforms, config.platform);
+		const sdk = native ? nativeSdk || root[nativePlatforms[config.platform]] : null;
+		if (native && !sdk) throw new Error(`缺少 ${config.platform} 原生 SDK，无法启动好友挑战。`);
+		const base = (config.apiUrl || "/api/competition/v1").replace(/\/$/, "");
+		const connectionFailures = /* @__PURE__ */ new WeakMap();
+		const publicAddress = (value, originOnly = false) => {
+			try {
+				const url = new root.URL(value, root.location?.href);
+				if (!["http:", "https:"].includes(url.protocol)) return "不可用";
+				return originOnly ? url.origin : url.origin + url.pathname;
+			} catch {
+				return "不可用";
+			}
+		};
+		const rememberFailure = (error, phase, path, method, headers) => {
+			connectionFailures.set(error, Object.freeze({
+				pageOrigin: publicAddress(root.location?.href, true),
+				apiBase: publicAddress(base),
+				stage: (path.startsWith("/sessions/") ? "session_" : "request_") + phase,
+				method: [
+					"GET",
+					"POST",
+					"OPTIONS"
+				].includes(method) ? method : "OTHER",
+				headerNames: Object.freeze(["content-type", ...Object.hasOwn(headers, "authorization") || Object.hasOwn(headers, "Authorization") ? ["authorization"] : []])
+			}));
+			return error;
+		};
+		const teamRules = {
+			"cops-robbers": {
+				version: "roles-initiative-duel-v2",
+				modes: ["escape", "survival"]
+			},
+			"cops-robbers-realtime": {
+				version: "street-roles-initiative-v3",
+				modes: ["classic", "escape"]
+			}
+		};
+		const verifiedGames = /* @__PURE__ */ new Set();
+		function verifyRules(game, data, board = false) {
+			const expected = teamRules[game];
+			if (!expected) return;
+			if (data.version !== expected.version || !Array.isArray(data.roles) || !["pursuer", "runner"].every((role) => data.roles.includes(role)) || board && !expected.modes.every((mode) => data.modes?.some((item) => item.id === mode))) {
+				verifiedGames.delete(game);
+				const error = /* @__PURE__ */ new Error("好友服务正在更新，请稍后重试，单机仍可玩。");
+				error.code = "RULE_VERSION_CHANGED";
+				throw error;
+			}
+			if (board) verifiedGames.add(game);
+		}
+		let auth, storage;
+		try {
+			storage = sdk || root.localStorage;
+		} catch {}
+		const errors = {
+			LOGIN_REQUIRED: "联网身份暂不可用，请稍后重试。",
+			IDENTITY_EXPIRED: "此入口的身份已过期，请重新进入。",
+			IDENTITY_SCOPE_MISMATCH: "此凭证仅用于对应游戏，请从原入口进入。",
+			IDENTITY_MODE_UNSUPPORTED: "联网服务正在更新，请稍后重试。",
+			SESSION_EXPIRED: "连接凭证已过期，请重试以自动续期。",
+			REFRESH_EXPIRED: "本机身份已失效，再次进入联网功能会建立新身份。",
+			SESSION_CHANGED: "玩家身份已变化，请返回主页重新进入。",
+			IDENTITY_MIGRATION_REQUIRED: "检测到旧账号，请从原服务入口恢复；不会自动换号或转移成绩。",
+			IDENTITY_ALREADY_BOUND: "此平台账号已有身份，无法自动合并游客成绩。",
+			IDENTITY_UPGRADE_NOT_ALLOWED: "当前账号不能自动绑定另一个平台身份。",
+			PLATFORM_PROFILE_UNAVAILABLE: "平台资料暂不可用，现有头像昵称继续使用。",
+			PLATFORM_PROFILE_NOT_AUTHORIZED: "尚未授权平台资料，现有头像昵称继续使用。",
+			PLATFORM_NOT_CONFIGURED: "此游戏的平台登录尚未配置。",
+			PLATFORM_LOGIN_FAILED: "平台登录失败，请重新进入。",
+			PLATFORM_LOGIN_UNAVAILABLE: "此平台的好友挑战暂不可用，请稍后再试。",
+			ROOM_FULL: "房间已满。",
+			INVITATION_EXPIRED: "邀请已过期或比赛已开始。",
+			INVITATION_NOT_FOUND: "找不到这个邀请，请核对房间码。",
+			NOT_A_MEMBER: "你不是此房间的参赛者。",
+			MATCH_CLOSED: "本局已结束。",
+			ILLEGAL_ACTION: "此操作不符合当前规则，请刷新局面。",
+			SEQUENCE_CONFLICT: "操作顺序已变化，请重试。",
+			WRONG_GAME: "这个房间属于另一款游戏，尚未加入。",
+			INVALID_ROLE: "请选择本游戏支持的角色。",
+			INVALID_MODE: "请选择本游戏支持的对战模式。",
+			RULE_VERSION_CHANGED: "游戏规则已更新，请退出旧房间后重新开局。",
+			HOST_ONLY: "开局顺序由房主设置，双方确认后准备。",
+			INVALID_INPUT: "请检查输入；昵称为 2–16 个中英文字、数字、空格或 · _ -。",
+			RATE_LIMITED: "操作过于频繁，请稍后重试。",
+			SERVICE_UNAVAILABLE: "全站服务暂不可用，当前结果尚未确认。"
+		};
+		async function send(path, init = {}, credential = auth?.saved()) {
+			const headers = {
+				"content-type": "application/json",
+				...init.headers || {}
+			};
+			if (credential?.token) headers.authorization = `Bearer ${credential.token}`;
+			const method = init.method || (init.body ? "POST" : "GET");
+			let status, data, phase = "transport";
+			try {
+				if (sdk) {
+					const response = await new Promise((resolve, reject) => sdk.request({
+						url: base + path,
+						method,
+						header: headers,
+						data: typeof init.body === "string" ? JSON.parse(init.body) : init.body,
+						timeout: 8e3,
+						success: resolve,
+						fail: reject
+					}));
+					status = response.statusCode;
+					data = response.data;
+				} else {
+					const response = await fetch(base + path, {
+						...init,
+						method,
+						headers,
+						credentials: "omit",
+						redirect: "error",
+						signal: AbortSignal.timeout(8e3)
+					});
+					status = response.status;
+					phase = "response";
+					data = await response.json();
+				}
+			} catch {
+				const error = /* @__PURE__ */ new Error("网络不可用，请重试；成绩尚未得到服务端确认。");
+				error.code = "SERVICE_UNAVAILABLE";
+				throw rememberFailure(error, phase, path, method, headers);
+			}
+			if (status < 200 || status >= 300) {
+				const error = new Error(errors[data?.error] || `服务未接受请求 (${status})`);
+				error.code = data?.error;
+				throw rememberFailure(error, "http", path, method, headers);
+			}
+			return data;
+		}
+		auth = root.__createCompetitionIdentity({
+			config,
+			sdk,
+			storage,
+			request: (path, body, owner) => send(path, body === void 0 ? {} : { body: JSON.stringify(body) }, owner)
+		});
+		const localized = (error) => {
+			if (errors[error.code]) error.message = errors[error.code];
+			throw error;
+		};
+		const session = () => auth.current().catch(localized);
+		const roomOwners = /* @__PURE__ */ new Map();
+		root.__competition = {
+			identityMode: "persistent",
+			roomStorage: null,
+			async logout() {
+				roomOwners.clear();
+				verifiedGames.clear();
+				try {
+					storage?.removeItem?.(`competition-room:${config.game}`);
+				} catch {}
+				await auth.logout();
+			},
+			connectionInfo: (error) => connectionFailures.get(error) || null,
+			session,
+			upgrade: (input) => auth.upgrade(input).catch(localized),
+			canSyncProfile: () => auth.canSyncProfile(),
+			syncProfile: (expectedUserId) => auth.syncProfile(expectedUserId).catch(localized),
+			get avatarPolicy() {
+				return auth.saved()?.avatarPolicy;
+			},
+			async request(path, init, expectedUserId) {
+				const current = await session();
+				const assertCurrentOwner = (owner) => {
+					auth.assertCurrent(owner);
+					if (!expectedUserId) return;
+					const latest = auth.saved();
+					if ((owner.userId || owner.playerId) !== expectedUserId || (latest?.userId || latest?.playerId) !== expectedUserId || latest.token !== owner.token) {
+						const error = new Error(errors.SESSION_CHANGED);
+						error.code = "SESSION_CHANGED";
+						throw error;
+					}
+				};
+				assertCurrentOwner(current);
+				const code = path.match(/^\/rooms\/([A-F0-9]{12})(?:\/|$)/)?.[1];
+				const owner = code && roomOwners.has(code) ? await auth.forOwner(roomOwners.get(code)) : current;
+				const roomRequest = path.startsWith("/rooms") && !path.endsWith("/leave");
+				const game = config.game || (init?.body ? JSON.parse(init.body).game : void 0);
+				if (roomRequest && teamRules[game] && !verifiedGames.has(game)) {
+					const board = await send("/boards/" + game, {}, owner).catch((error) => {
+						auth.invalidate(owner, error);
+						throw error;
+					});
+					assertCurrentOwner(owner);
+					verifyRules(game, board, true);
+				}
+				assertCurrentOwner(owner);
+				const data = await send(path, init, owner).catch((error) => {
+					auth.invalidate(owner, error);
+					if (path.endsWith("/leave") && error.code === "RULE_VERSION_CHANGED") return { obsolete: true };
+					throw error;
+				});
+				assertCurrentOwner(owner);
+				if (path.startsWith("/boards/")) verifyRules(path.slice(8), data, true);
+				if (roomRequest) verifyRules(data.game, data);
+				if (data.code && Array.isArray(data.players)) {
+					roomOwners.set(data.code, owner);
+					while (roomOwners.size > 8) roomOwners.delete(roomOwners.keys().next().value);
+				}
+				if (code && path.endsWith("/leave")) roomOwners.delete(code);
+				if (path === "/me" && data.userId) {
+					const accepted = auth.acceptProfile(data, owner);
+					for (const field of [
+						"nickname",
+						"name",
+						"avatarUrl",
+						"region",
+						"profileSource",
+						"profileUpdatedAt"
+					]) data[field] = accepted[field];
+				}
+				return data;
+			},
+			config
+		};
+	};
+	//#endregion
+	//#region ../../platforms/competition/connection-info.js
+	var panels = /* @__PURE__ */ new WeakMap();
+	var stages = {
+		session_transport: "建立会话：网络请求未完成",
+		session_response: "建立会话：响应无法解析",
+		session_http: "建立会话：服务未接受请求",
+		request_transport: "业务请求：网络请求未完成",
+		request_response: "业务请求：响应无法解析",
+		request_http: "业务请求：服务未接受请求"
+	};
+	function renderConnectionInfo(host, error) {
+		panels.get(host)?.remove();
+		panels.delete(host);
+		const info = globalThis.__competition?.connectionInfo?.(error);
+		if (!info || !Object.hasOwn(stages, info.stage)) return;
+		const details = document.createElement("details");
+		details.className = "competition-connection-info";
+		details.style.cssText = "font:12px/1.6 system-ui;text-align:left;overflow-wrap:anywhere;max-width:100%;max-height:40dvh;overflow:auto;flex:none;color:inherit";
+		const summary = document.createElement("summary");
+		summary.textContent = "查看连接信息";
+		summary.style.cssText = "min-height:44px;display:list-item;align-content:center;cursor:pointer";
+		details.append(summary);
+		for (const [label, value] of [
+			["页面来源（页面推导，未验证请求 Origin）", info.pageOrigin],
+			["API 地址", info.apiBase],
+			["失败阶段", stages[info.stage]],
+			["请求方法", info.method],
+			["请求头名称", info.headerNames.join(", ")]
+		]) {
+			const row = document.createElement("div");
+			row.textContent = `${label}：${value}`;
+			details.append(row);
+		}
+		host.after(details);
+		panels.set(host, details);
+	}
+	//#endregion
+	//#region ../../platforms/competition/h5.css?inline
+	var h5_default = "[data-competition-launch] {\n  position: fixed;\n  right: 16px;\n  bottom: max(16px, env(safe-area-inset-bottom));\n  z-index: 1000;\n  min-height: 48px;\n  padding: 12px 20px;\n  border: 1px solid #28594f;\n  border-radius: 999px;\n  background: #173e38;\n  color: #fff8e7;\n  font:\n    600 14px 'PingFang SC',\n    'Microsoft YaHei',\n    sans-serif;\n  box-shadow: 0 4px 18px #12372a26;\n  cursor: pointer;\n}\nbody:is(.is-playing, .focus-play, .play-focus, .game-page) > [data-competition-launch] {\n  display: none;\n}\n.competition-dialog {\n  --pk-ink: #203b35;\n  --pk-muted: #60736b;\n  --pk-line: #d7dfd5;\n  --pk-accent: #e8ba54;\n  position: fixed;\n  inset: 0;\n  margin: auto;\n  padding: 0;\n  border: 1px solid #ffffff80;\n  border-radius: 24px;\n  width: min(880px, calc(100% - 32px));\n  max-width: none;\n  height: min(790px, calc(100dvh - 32px));\n  max-height: none;\n  background: #f3f5ed;\n  color: var(--pk-ink);\n  font:\n    15px/1.6 'PingFang SC',\n    'Microsoft YaHei',\n    sans-serif;\n  box-sizing: border-box;\n  box-shadow: 0 28px 90px #06271e45;\n  overflow: hidden;\n  text-align: left;\n}\n.competition-dialog::backdrop {\n  background: #0b2924b8;\n  backdrop-filter: blur(7px);\n}\n.competition-dialog * {\n  box-sizing: border-box;\n}\n.competition-dialog [hidden] {\n  display: none !important;\n}\n.competition-dialog h2,\n.competition-dialog h3,\n.competition-dialog p {\n  margin: 0;\n  color: inherit;\n  font-family: inherit;\n}\n.competition-dialog button {\n  min-height: 44px;\n  padding: 10px 16px;\n  border: 1px solid var(--pk-line);\n  border-radius: 12px;\n  color: var(--pk-ink);\n  background: #fffdf8;\n  font-family: inherit;\n  font-size: 14px;\n  cursor: pointer;\n  touch-action: manipulation;\n  box-shadow: none;\n  transition:\n    background 0.15s,\n    transform 0.15s;\n  letter-spacing: 0;\n}\n.competition-dialog button:hover {\n  background: #e7eee3;\n}\n.competition-dialog button:active {\n  transform: translateY(1px);\n}\n.competition-dialog button:disabled {\n  opacity: 0.5;\n  cursor: default;\n}\n.competition-dialog button:focus-visible,\n.competition-dialog input:focus-visible {\n  outline: 3px solid #42997c;\n  outline-offset: 3px;\n}\n.competition-dialog button.pk-primary {\n  background: var(--pk-accent);\n  border-color: #cba347;\n  color: #293a27;\n}\n.competition-dialog button.pk-primary:hover {\n  background: #f0ca76;\n}\n.competition-dialog button.pk-quiet {\n  background: transparent;\n  border-color: transparent;\n  color: var(--pk-muted);\n}\n.pk-shell {\n  height: 100%;\n  min-height: 0;\n  display: flex;\n  flex-direction: column;\n  padding: 18px 24px max(18px, env(safe-area-inset-bottom));\n}\n.pk-header {\n  display: flex;\n  align-items: center;\n  gap: 12px;\n  flex: none;\n  padding-bottom: 12px;\n  border-bottom: 1px solid var(--pk-line);\n}\n.pk-brand {\n  flex: 1;\n  min-width: 0;\n  display: flex;\n  align-items: center;\n  gap: 10px;\n}\n.pk-brand-mark {\n  width: 38px;\n  height: 38px;\n  border-radius: 12px;\n  display: grid;\n  place-items: center;\n  background: #234c41;\n  color: #f1c66a;\n  font:\n    bold 15px Georgia,\n    serif;\n  flex: none;\n}\n.pk-brand strong {\n  font-size: 17px;\n  display: block;\n  line-height: 1.4;\n}\n.pk-brand small {\n  color: var(--pk-muted);\n  font-size: 11px;\n  letter-spacing: 1.5px;\n  display: block;\n}\n.pk-tools {\n  display: flex;\n  gap: 4px;\n  align-items: center;\n}\n.pk-status {\n  flex: none;\n  min-height: 25px;\n  margin: 10px 0 !important;\n  font-size: 12px;\n  color: var(--pk-muted) !important;\n  display: flex;\n  align-items: center;\n  gap: 8px;\n}\n.pk-status::before {\n  content: '';\n  width: 6px;\n  height: 6px;\n  border-radius: 50%;\n  background: #468b6c;\n  flex: none;\n}\n.pk-status[data-error] {\n  color: #974c35 !important;\n}\n.pk-status[data-error]::before {\n  background: #be6547;\n}\n.pk-content {\n  flex: 1;\n  min-height: 0;\n  overflow: auto;\n  overscroll-behavior: contain;\n}\n.pk-hero {\n  padding: 16px 0 20px;\n}\n.pk-eyebrow {\n  display: block;\n  font-size: 11px;\n  font-weight: 700;\n  letter-spacing: 2px;\n  color: #75806b;\n  margin-bottom: 8px;\n}\n.pk-hero h2 {\n  font-size: clamp(24px, 4vw, 34px);\n  font-weight: 800;\n  line-height: 1.35;\n  letter-spacing: -1px;\n}\n.pk-hero p {\n  margin-top: 10px;\n  max-width: 440px;\n  color: var(--pk-muted);\n  font-size: 14px;\n}\n.pk-profile {\n  display: flex;\n  align-items: center;\n  gap: 12px;\n  padding: 14px 16px;\n  background: #e7ede2;\n  border-radius: 16px;\n  margin-bottom: 18px;\n}\n.pk-avatar {\n  width: 42px;\n  height: 42px;\n  border-radius: 50%;\n  display: grid;\n  place-items: center;\n  flex: none;\n  background: #c9dace;\n  color: #28543f;\n  font-weight: 700;\n  font-size: 18px;\n}\n.pk-profile-copy {\n  flex: 1;\n  min-width: 0;\n}\n.pk-profile-copy strong {\n  display: block;\n  overflow-wrap: anywhere;\n}\n.pk-profile-copy small {\n  display: block;\n  color: var(--pk-muted);\n  font-size: 11px;\n}\n.pk-options {\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  gap: 14px;\n}\n.pk-option {\n  padding: 22px;\n  border: 1px solid var(--pk-line);\n  border-radius: 18px;\n  background: #fffef9;\n}\n.pk-option h3 {\n  font-size: 19px;\n  margin-bottom: 5px;\n}\n.pk-option p {\n  font-size: 13px;\n  color: var(--pk-muted);\n  margin-bottom: 18px;\n  min-height: 40px;\n}\n.pk-option > button {\n  width: 100%;\n}\n.pk-join {\n  display: flex;\n  gap: 8px;\n  align-items: flex-end;\n}\n.pk-join label {\n  flex: 1;\n  min-width: 0;\n  font-size: 12px;\n}\n.pk-join input {\n  margin-top: 5px;\n  width: 100%;\n  font-family: Consolas, monospace;\n  letter-spacing: 1px;\n  text-transform: uppercase;\n}\n.competition-dialog input {\n  min-height: 46px;\n  padding: 10px 12px;\n  border: 1px solid #bacabd;\n  border-radius: 10px;\n  background: white;\n  color: #203b35;\n  font-size: 16px;\n  max-width: 100%;\n  box-shadow: none;\n}\n.pk-footer {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 12px;\n  margin-top: 18px;\n  padding: 10px 0;\n}\n.pk-footer p {\n  max-width: 310px;\n  color: var(--pk-muted);\n  font-size: 12px;\n}\n.pk-footer button {\n  white-space: nowrap;\n}\n.pk-room-intro {\n  text-align: center;\n  padding: 16px 0;\n}\n.pk-room-intro h2 {\n  font-size: 24px;\n}\n.pk-room-intro p {\n  font-size: 13px;\n  color: var(--pk-muted);\n  margin-top: 6px;\n}\n.pk-room-code {\n  display: block;\n  margin: 8px 0;\n  font:\n    600 18px/1.5 Consolas,\n    monospace;\n  letter-spacing: 3px;\n  color: #42604c;\n}\n.pk-matchup {\n  display: grid;\n  grid-template-columns: 1fr 42px 1fr;\n  align-items: center;\n  gap: 8px;\n  margin: 16px 0;\n}\n.pk-versus {\n  text-align: center;\n  color: #9c977a;\n  font:\n    bold italic 21px Georgia,\n    serif;\n}\n.pk-player {\n  border: 1px solid var(--pk-line);\n  border-radius: 18px;\n  background: #fffef9;\n  text-align: center;\n  padding: 22px 12px;\n  min-width: 0;\n}\n.pk-player .pk-avatar {\n  margin: 0 auto 12px;\n  width: 54px;\n  height: 54px;\n}\n.pk-player strong {\n  display: block;\n  overflow-wrap: anywhere;\n  font-size: 15px;\n}\n.pk-player small {\n  display: block;\n  color: var(--pk-muted);\n  font-size: 12px;\n  margin-top: 4px;\n}\n.pk-player[data-ready] {\n  border-color: #78a287;\n  background: #edf5e9;\n}\n.pk-player[data-empty] {\n  border-style: dashed;\n  background: transparent;\n}\n.pk-room-actions {\n  display: flex;\n  gap: 12px;\n  justify-content: center;\n}\n.pk-room-actions > button {\n  min-width: 130px;\n}\n.pk-room-note {\n  text-align: center;\n  color: var(--pk-muted) !important;\n  font-size: 12px;\n  margin-top: 16px !important;\n}\n.competition-dialog canvas[data-play] {\n  display: block;\n  width: 100%;\n  height: 100%;\n  min-height: 0;\n  touch-action: none;\n  border-radius: 14px;\n  background: #102a32;\n}\n.competition-dialog[data-playing] .pk-content {\n  overflow: hidden;\n}\n.competition-dialog[data-playing] .pk-brand small {\n  display: none;\n}\n.competition-dialog[data-playing] .pk-shell {\n  padding: 10px 14px max(10px, env(safe-area-inset-bottom));\n}\n.competition-dialog[data-playing] .pk-status {\n  margin: 5px 0 !important;\n}\n.competition-dialog[data-playing] .pk-header {\n  padding-bottom: 7px;\n}\n.competition-dialog[data-playing] .pk-brand-mark {\n  width: 30px;\n  height: 30px;\n  border-radius: 9px;\n}\n.pk-overlay {\n  position: absolute;\n  inset: 0;\n  z-index: 5;\n  background: #153d315c;\n  backdrop-filter: blur(5px);\n  padding: 24px;\n  display: grid;\n  place-items: center;\n  overflow: auto;\n}\n.pk-sheet {\n  width: 100%;\n  max-width: 560px;\n  max-height: 100%;\n  overflow: auto;\n  border: 1px solid #dce3d5;\n  border-radius: 22px;\n  background: #fffef8;\n  box-shadow: 0 18px 60px #11291d30;\n  padding: 24px;\n  overscroll-behavior: contain;\n}\n.pk-sheet[data-kind='board'] {\n  max-width: 690px;\n}\n.pk-sheet-head {\n  display: flex;\n  gap: 12px;\n  align-items: center;\n  margin-bottom: 18px;\n}\n.pk-sheet-head > div {\n  flex: 1;\n}\n.pk-sheet-head h2 {\n  font-size: 23px;\n  line-height: 1.3;\n}\n.pk-sheet-head small {\n  color: var(--pk-muted);\n  font-size: 12px;\n}\n.pk-rule-list {\n  list-style: none;\n  padding: 0;\n  margin: 0;\n  counter-reset: rules;\n}\n.pk-rule-list li {\n  counter-increment: rules;\n  display: flex;\n  gap: 14px;\n  margin-top: 18px;\n  line-height: 1.8;\n  font-size: 14px;\n}\n.pk-rule-list li::before {\n  content: counter(rules, decimal-leading-zero);\n  font:\n    600 12px/28px Consolas,\n    monospace;\n  color: #3c7660;\n  flex: none;\n}\n.pk-sheet-note {\n  margin-top: 18px !important;\n  padding-top: 16px;\n  border-top: 1px solid var(--pk-line);\n  color: var(--pk-muted) !important;\n  font-size: 12px;\n}\n.pk-my-record {\n  padding: 16px;\n  border-radius: 16px;\n  background: #234c41;\n  color: #fff8e4;\n  margin-bottom: 18px;\n}\n.pk-my-record small {\n  color: #c3d6c3;\n}\n.pk-my-record strong {\n  display: block;\n  font-size: 22px;\n  line-height: 1.4;\n  margin: 5px 0;\n}\n.pk-my-record p {\n  font-size: 12px;\n  color: #e3eadc;\n}\n.pk-list {\n  display: grid;\n  gap: 2px;\n}\n.pk-rank-row {\n  display: grid;\n  grid-template-columns: 30px minmax(0, 1fr) auto;\n  gap: 10px;\n  align-items: center;\n  padding: 12px 8px;\n  border-bottom: 1px solid #e9ede3;\n  font-size: 13px;\n}\n.pk-rank-row[data-self] {\n  background: #edf2e6;\n  border-radius: 10px;\n}\n.pk-rank-number {\n  font:\n    600 17px Georgia,\n    serif;\n  color: #7b876e;\n}\n.pk-rank-row:nth-child(-n + 3) .pk-rank-number {\n  color: #9a7130;\n}\n.pk-rank-name {\n  font-weight: 600;\n  overflow-wrap: anywhere;\n}\n.pk-rank-name small {\n  display: block;\n  font-weight: 400;\n  color: var(--pk-muted);\n  font-size: 10px;\n}\n.pk-rank-score {\n  text-align: right;\n  font-variant-numeric: tabular-nums;\n  max-width: 190px;\n  overflow-wrap: anywhere;\n  font-size: 12px;\n}\n.pk-empty {\n  padding: 32px 16px;\n  text-align: center;\n  color: var(--pk-muted);\n  border: 1px dashed var(--pk-line);\n  border-radius: 14px;\n  font-size: 14px;\n}\n.pk-result {\n  padding: 16px;\n  border-radius: 16px;\n  background: #f0f3e8;\n  margin-bottom: 12px;\n}\n.pk-result h3 {\n  font-size: 14px;\n}\n.pk-result strong {\n  display: block;\n  font-size: 22px;\n  line-height: 1.5;\n  margin: 5px 0;\n}\n.pk-result p {\n  font-size: 12px;\n  color: var(--pk-muted);\n  margin-top: 5px;\n}\n.pk-result-actions {\n  display: flex;\n  gap: 10px;\n  margin-top: 18px;\n  flex-wrap: wrap;\n}\n.pk-result-actions button {\n  flex: 1;\n}\n.pk-profile-form label {\n  font-weight: 600;\n  display: block;\n}\n.pk-profile-form input {\n  width: 100%;\n  margin: 8px 0;\n}\n.pk-profile-form small {\n  color: var(--pk-muted);\n  font-size: 12px;\n}\n.pk-profile-form .pk-form-message {\n  color: #974c35;\n  min-height: 24px;\n  font-size: 12px;\n  margin-top: 8px;\n}\n.pk-profile-form button[type='submit'] {\n  width: 100%;\n  margin-top: 10px;\n}\n.pk-profile-id {\n  margin-top: 20px;\n  border-top: 1px solid var(--pk-line);\n  padding-top: 12px;\n  color: var(--pk-muted);\n  font-size: 12px;\n}\n.pk-profile-id summary {\n  cursor: pointer;\n  min-height: 32px;\n}\n.pk-profile-id code {\n  display: block;\n  font-size: 11px;\n  overflow-wrap: anywhere;\n  margin-top: 8px;\n}\n@media (max-width: 600px) {\n  .competition-dialog {\n    width: 100%;\n    height: 100dvh;\n    border: 0;\n    border-radius: 0;\n  }\n  .pk-shell {\n    padding: 12px 16px max(16px, env(safe-area-inset-bottom));\n  }\n  .pk-header {\n    gap: 4px;\n  }\n  .pk-brand {\n    gap: 8px;\n  }\n  .pk-brand strong {\n    font-size: 15px;\n  }\n  .pk-brand-mark {\n    width: 32px;\n    height: 32px;\n  }\n  .pk-brand small {\n    font-size: 9px;\n    letter-spacing: 0.5px;\n  }\n  .pk-tools {\n    gap: 0;\n  }\n  .competition-dialog .pk-tools button {\n    padding: 8px 9px;\n    font-size: 12px;\n  }\n  .pk-hero {\n    padding: 10px 0 16px;\n  }\n  .pk-hero h2 {\n    font-size: 27px;\n  }\n  .pk-profile {\n    padding: 12px;\n    margin-bottom: 12px;\n  }\n  .pk-options {\n    grid-template-columns: 1fr;\n    gap: 10px;\n  }\n  .pk-option {\n    padding: 16px;\n  }\n  .pk-option h3 {\n    font-size: 17px;\n  }\n  .pk-option p {\n    min-height: 0;\n    margin-bottom: 12px;\n  }\n  .pk-footer {\n    margin-top: 8px;\n    align-items: flex-start;\n  }\n  .pk-footer p {\n    font-size: 11px;\n  }\n  .pk-overlay {\n    padding: 16px;\n  }\n  .pk-sheet {\n    padding: 20px;\n    border-radius: 20px;\n  }\n  .pk-sheet-head h2 {\n    font-size: 21px;\n  }\n  .pk-rank-row {\n    grid-template-columns: 23px minmax(0, 1fr);\n    gap: 5px 8px;\n  }\n  .pk-rank-score {\n    grid-column: 2;\n    text-align: left;\n    max-width: none;\n    font-size: 11px;\n    color: var(--pk-muted);\n  }\n  .pk-rank-name small {\n    display: inline;\n    margin-left: 6px;\n  }\n  .pk-player {\n    padding: 18px 8px;\n  }\n  .competition-dialog[data-playing] .pk-brand strong {\n    font-size: 13px;\n  }\n  .competition-dialog[data-playing] .pk-brand-mark {\n    display: none;\n  }\n}\n@media (max-height: 500px) and (min-width: 601px) {\n  .competition-dialog {\n    width: 100%;\n    height: 100dvh;\n    border: 0;\n    border-radius: 0;\n  }\n  .pk-shell {\n    padding: 8px 20px;\n  }\n  .pk-status {\n    margin: 4px 0 !important;\n  }\n  .pk-hero {\n    padding: 8px 0;\n  }\n  .pk-hero h2 {\n    font-size: 24px;\n  }\n  .pk-hero p {\n    margin-top: 3px;\n  }\n  .pk-profile {\n    padding: 8px 12px;\n    margin-bottom: 10px;\n  }\n  .pk-option {\n    padding: 12px;\n  }\n  .pk-option p {\n    min-height: 0;\n    margin-bottom: 8px;\n  }\n  .pk-overlay {\n    padding: 12px;\n  }\n  .pk-sheet {\n    padding: 16px 22px;\n  }\n  .pk-matchup {\n    margin: 6px 0;\n  }\n  .pk-player {\n    padding: 8px;\n  }\n  .pk-player .pk-avatar {\n    width: 36px;\n    height: 36px;\n    margin-bottom: 4px;\n  }\n  .pk-room-intro {\n    padding: 3px 0;\n  }\n  .pk-room-note {\n    margin-top: 6px !important;\n  }\n}\n@media (prefers-reduced-motion: reduce) {\n  .competition-dialog button {\n    transition: none;\n  }\n}\n.pk-overlay {\n  top: 76px;\n}\n.pk-brand strong {\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n.pk-brand > div {\n  min-width: 0;\n}\n.competition-dialog[aria-busy] [data-create],\n.competition-dialog[aria-busy] [data-join] {\n  opacity: 0.6;\n  cursor: progress;\n}\nbody:has(.competition-dialog[open]) {\n  overflow: hidden !important;\n}\n.competition-dialog button {\n  font-weight: 600;\n  line-height: 1.4;\n}\n.competition-dialog .pk-quiet {\n  font-weight: 500;\n}\n.pk-match-options {\n  display: grid;\n  gap: 10px;\n  margin-bottom: 16px;\n}\n.pk-match-options label {\n  display: grid;\n  gap: 4px;\n  font-size: 13px;\n}\n.pk-match-options select {\n  min-height: 44px;\n  border: 1px solid #bacabd;\n  border-radius: 10px;\n  background: #fff;\n  color: #203b35;\n  padding: 8px;\n  font: inherit;\n}\n.pk-match-options small,\n.pk-role-actions small {\n  color: var(--pk-muted);\n  font-size: 12px;\n}\n.pk-role-actions {\n  display: flex;\n  flex-wrap: wrap;\n  gap: 8px;\n  align-items: center;\n  justify-content: center;\n  margin: 12px 0 18px;\n}\n.pk-role-actions small {\n  flex-basis: 100%;\n  text-align: center;\n}\n.pk-role-actions button[aria-pressed='true'] {\n  background: #234c41;\n  color: #fff;\n  opacity: 1;\n}\n.competition-dialog select:focus-visible {\n  outline: 3px solid #42997c;\n  outline-offset: 3px;\n}\n@media (max-width: 420px) {\n  .pk-room-actions {\n    gap: 6px;\n    flex-wrap: wrap;\n  }\n  .pk-room-actions > button {\n    min-width: 110px;\n  }\n}\n.pk-role-actions select {\n  margin-left: 8px;\n  min-height: 44px;\n  background: #fff;\n  color: #203b35;\n  border: 1px solid #bacabd;\n  border-radius: 8px;\n  padding: 8px;\n  font: inherit;\n}\n\n.pk-exit {\n  flex: none;\n  display: flex;\n  justify-content: flex-end;\n  padding-top: 8px;\n}\n.pk-sheet-actions {\n  display: flex;\n  justify-content: flex-end;\n  margin-top: 18px;\n}\n\n.competition-dialog [data-player-avatar] {\n  display: inline-grid;\n  place-items: center;\n  overflow: hidden;\n  flex: none;\n  background-image: none !important;\n  font-weight: 800;\n}\n.competition-dialog [data-player-avatar]::before,\n.competition-dialog [data-player-avatar]::after {\n  display: none !important;\n}\n.competition-dialog [data-player-avatar] img {\n  display: block;\n  width: 100%;\n  height: 100%;\n  object-fit: cover;\n  border-radius: inherit;\n}\n.pk-rank-person {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  min-width: 0;\n}\n.pk-profile-hero {\n  display: grid;\n  justify-items: center;\n  gap: 8px;\n  margin: 8px 0 20px;\n}\n.pk-profile-hero .pk-avatar {\n  width: 64px;\n  height: 64px;\n  font-size: 28px;\n}\n.pk-profile-hero small {\n  color: var(--pk-muted);\n}\n.pk-rank-person .pk-avatar {\n  width: 32px;\n  height: 32px;\n  font-size: 14px;\n  border-radius: 10px;\n}\n.pk-rank-person .pk-rank-name {\n  min-width: 0;\n  overflow-wrap: anywhere;\n}\n.pk-region {\n  display: block;\n  font-size: 11px;\n  font-weight: 400;\n  color: var(--pk-muted);\n}\n";
+	//#endregion
+	//#region ../../platforms/competition/format.js
+	function playerName(player) {
+		return player?.nickname || player?.name || "新玩家";
+	}
+	function scoreText(game, score, secondary = 0) {
+		const time = `${(secondary / 1e3).toFixed(2)}秒`;
+		if (game === "carding-car") return `${(-score / 1e3).toFixed(2)}秒`;
+		if (game === "cops-robbers" || game === "cops-robbers-realtime") return `${score}分`;
+		if (game === "letters-words2") return `${Math.floor(score / 1e6)}词 · 正确率${(score % 1e6 / 100).toFixed(2)}% · ${time}`;
+		return `${score}分${game === "xiangqi-five" ? "" : " · " + time}`;
+	}
+	function gapText(game, board) {
+		if (!board.me) return "尚无有效成绩";
+		if (!board.gap) return Number(board.me.rank) === 1 ? "已并列或独占榜首" : "暂无更高目标";
+		const { score, secondary } = board.gap;
+		if (score === 0) return `距上一名快 ${(Math.max(0, secondary) / 1e3).toFixed(2)} 秒`;
+		if (game === "carding-car") return `距上一名快 ${(score / 1e3).toFixed(2)} 秒`;
+		if (game === "letters-words2") {
+			const words = Math.floor(board.previous.score / 1e6) - Math.floor(board.me.score / 1e6);
+			return words ? `距上一名多完成 ${words} 词` : `距上一名正确率提高 ${(score / 100).toFixed(2)} 个百分点`;
+		}
+		return `距上一名 ${score} 分`;
+	}
+	//#endregion
+	//#region ../../platforms/competition/street.css?inline
+	var street_default = ".street-competition {\n  --sp-ink: #182c55;\n  --sp-muted: #788092;\n  --sp-blue: #0789ff;\n  --sp-coral: #ff934b;\n  position: fixed;\n  inset: 0;\n  z-index: 1200;\n  overflow: hidden;\n  color: var(--sp-ink);\n  background: #f2e7d5;\n  font:\n    15px/1.5 'PingFang SC',\n    'Microsoft YaHei',\n    system-ui,\n    sans-serif;\n  text-align: left;\n  isolation: isolate;\n}\n.street-competition[hidden],\n.street-competition [hidden] {\n  display: none !important;\n}\n.street-competition *,\n.street-competition *::before,\n.street-competition *::after {\n  box-sizing: border-box;\n}\n.street-competition h1,\n.street-competition h2,\n.street-competition h3,\n.street-competition p {\n  margin: 0;\n  font-family: inherit;\n  color: inherit;\n  letter-spacing: 0;\n}\n.street-competition button,\n.street-competition input {\n  font: inherit;\n  color: inherit;\n  letter-spacing: 0;\n}\n.street-competition button {\n  min-height: 46px;\n  border: 0;\n  border-radius: 17px;\n  padding: 10px 16px;\n  background: #fffaf0;\n  color: var(--sp-ink);\n  cursor: pointer;\n  font-weight: 850;\n  touch-action: manipulation;\n  -webkit-tap-highlight-color: transparent;\n  transition:\n    transform 160ms ease,\n    filter 160ms ease,\n    box-shadow 160ms ease;\n}\n.street-competition button:active {\n  transform: translateY(3px) scale(0.98);\n}\n.street-competition button:disabled {\n  opacity: 0.58;\n  cursor: default;\n}\n.street-competition button:focus-visible,\n.street-competition input:focus-visible {\n  outline: 3px solid #ffc849;\n  outline-offset: 3px;\n}\n.street-competition svg {\n  width: 24px;\n  height: 24px;\n  fill: none;\n  stroke: currentColor;\n  stroke-width: 2.6;\n  stroke-linecap: round;\n  stroke-linejoin: round;\n  flex: none;\n}\n.sp-shell {\n  width: min(100%, 520px);\n  height: 100dvh;\n  margin: auto;\n  display: flex;\n  flex-direction: column;\n  background: radial-gradient(ellipse at 50% 18%, #fffef7 0, #fff6e8 66%, #f8ecd9 100%);\n  box-shadow: 0 0 80px #8973531a;\n  padding-top: env(safe-area-inset-top);\n}\n.sp-header {\n  display: grid;\n  grid-template-columns: 46px 1fr 46px;\n  gap: 6px;\n  align-items: center;\n  min-height: 76px;\n  padding: 10px 16px 5px;\n  flex: none;\n  text-align: center;\n}\n.sp-header h1 {\n  font-size: clamp(23px, 7vw, 30px);\n  font-weight: 950;\n  line-height: 1.2;\n}\n.sp-header p {\n  font-size: 11px;\n  color: #65738c;\n  margin-top: 3px;\n}\n.street-competition button.sp-back,\n.street-competition button.sp-help {\n  padding: 0;\n  width: 43px;\n  height: 43px;\n  min-height: 43px;\n  display: grid;\n  place-items: center;\n  border-radius: 50%;\n  background: #fffaf0;\n  border: 1px solid #ead9bd;\n  box-shadow:\n    0 3px 0 #deccb056,\n    inset 0 1px 0 white;\n}\n.street-competition button.sp-help {\n  width: 34px;\n  height: 34px;\n  min-height: 34px;\n  justify-self: end;\n  font-size: 19px;\n  color: #7c8b9c;\n  border-color: transparent;\n  box-shadow: none;\n}\n.sp-status {\n  margin: 0 18px 7px !important;\n  min-height: 25px;\n  flex: none;\n  font-size: 11px;\n  color: #62818a !important;\n  text-align: center;\n  padding: 3px 6px;\n}\n.sp-status[data-error] {\n  background: #ffebe1;\n  border-radius: 10px;\n  color: #aa4730 !important;\n}\n.sp-pages {\n  flex: 1;\n  min-height: 0;\n  overflow: hidden;\n}\n.sp-page {\n  height: 100%;\n  overflow-y: auto;\n  overflow-x: hidden;\n  overscroll-behavior: contain;\n  padding: 0 18px 18px;\n  scrollbar-width: thin;\n}\n.sp-vs-hero {\n  position: relative;\n  height: 230px;\n  display: flex;\n  align-items: flex-end;\n  justify-content: center;\n  overflow: hidden;\n  margin: 0 -8px 16px;\n  background:\n    radial-gradient(ellipse at 30% 90%, #cbe9ff99 0, transparent 55%),\n    radial-gradient(ellipse at 80% 90%, #ffe0c099 0, transparent 55%);\n  border-radius: 28px;\n}\n.sp-figure {\n  display: block;\n  aspect-ratio: 2 / 3;\n  width: 145px;\n  flex: none;\n  background-image: var(--sp-sprites);\n  background-size: 300% 200%;\n  background-repeat: no-repeat;\n  background-position: 0 0;\n}\n.sp-figure[data-figure='runner'] {\n  background-position: 0 100%;\n}\n.sp-vs-hero .sp-figure:first-child {\n  transform: rotate(-5deg);\n}\n.sp-vs-hero .sp-figure:nth-of-type(2) {\n  transform: rotate(5deg);\n}\n.sp-vs {\n  position: absolute;\n  left: 50%;\n  top: 42%;\n  transform: translate(-50%, -50%) rotate(-9deg);\n  font-size: 61px;\n  line-height: 1;\n  font-weight: 1000;\n  font-style: italic;\n  color: #ffd651;\n  -webkit-text-stroke: 2px #ffae39;\n  text-shadow:\n    0 5px 0 #e4792d,\n    0 7px 10px #ae551634;\n  z-index: 1;\n}\n.sp-spark {\n  position: absolute;\n  color: #ffcd47;\n  font-size: 32px;\n  font-style: normal;\n}\n.sp-spark-one {\n  top: 6px;\n  left: 4px;\n  transform: rotate(-20deg);\n}\n.sp-spark-two {\n  top: 14px;\n  right: 8px;\n  transform: rotate(14deg);\n}\n.sp-entry-grid {\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  gap: 12px;\n}\n.street-competition .sp-entry {\n  position: relative;\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  padding: 17px 10px 15px;\n  min-height: 147px;\n  border: 2px solid #ffffffbb;\n  box-shadow:\n    0 4px 0 #0e73d13b,\n    0 6px 10px #466fa21a,\n    inset 0 2px 0 #ffffff77;\n  border-radius: 22px;\n  color: white;\n}\n.street-competition .sp-entry-blue {\n  background: linear-gradient(150deg, #4fc3ff 0, #078bff 68%, #0870ed);\n}\n.street-competition .sp-entry-coral {\n  background: linear-gradient(150deg, #ffc293 0, #ff8f45 70%, #ff7843);\n  box-shadow:\n    0 4px 0 #e5753345,\n    0 6px 10px #bc80431a,\n    inset 0 2px 0 #ffffff77;\n}\n.sp-entry > svg {\n  width: 40px;\n  height: 40px;\n  stroke-width: 2.8;\n  margin-bottom: 5px;\n  filter: drop-shadow(0 2px 0 #2257a321);\n}\n.sp-entry strong {\n  font-size: clamp(21px, 6vw, 27px);\n  line-height: 1.3;\n  text-shadow: 0 2px 0 #2167b62c;\n}\n.sp-entry small {\n  font-size: 11px;\n  opacity: 0.95;\n  margin-top: 4px;\n}\n.sp-entry-arrow {\n  position: absolute;\n  right: 4px;\n  top: 59%;\n}\n.sp-entry-arrow svg {\n  width: 18px;\n  height: 18px;\n}\n.sp-profile-card,\n.sp-wide-link {\n  display: flex;\n  align-items: center;\n  gap: 10px;\n  border: 1px solid #ebd9bf;\n  border-radius: 21px;\n  background: #fffbf3;\n  padding: 11px;\n  margin-top: 14px;\n  box-shadow: 0 3px 0 #e1cda426;\n}\n.sp-profile-card > div {\n  min-width: 0;\n  flex: 1;\n}\n.sp-profile-card strong {\n  display: block;\n  font-size: 15px;\n  overflow-wrap: anywhere;\n}\n.sp-profile-card small {\n  display: block;\n  font-size: 11px;\n  color: #7d8392;\n}\n.street-competition .sp-profile-card button {\n  padding: 6px;\n  min-height: 44px;\n  width: 44px;\n  background: #e9f4ff;\n  color: #168bff;\n}\n.sp-portrait {\n  display: block;\n  width: 52px;\n  height: 52px;\n  border: 2px solid white;\n  border-radius: 50%;\n  background-color: #d9f0ff;\n  background-image: var(--sp-sprites);\n  background-size: 300% 300%;\n  background-repeat: no-repeat;\n  background-position: 0 0;\n  box-shadow: 0 2px 5px #44719821;\n  flex: none;\n}\n.sp-portrait[data-portrait-role='runner'] {\n  background-color: #ffe4cf;\n  background-position-y: 75%;\n}\n.sp-portrait[data-preset='1'] {\n  background-position-x: 50%;\n}\n.sp-portrait[data-preset='2'] {\n  background-position-x: 100%;\n}\n.sp-portrait[data-custom] {\n  background-size: cover;\n  background-position: center;\n}\n.street-competition .sp-wide-link {\n  width: 100%;\n  margin-top: 10px;\n  min-height: 68px;\n  padding: 12px 14px;\n  text-align: left;\n}\n.sp-wide-link > svg:first-child {\n  color: #eea22b;\n  width: 36px;\n  height: 36px;\n}\n.sp-wide-link > span {\n  flex: 1;\n}\n.sp-wide-link strong,\n.sp-wide-link small {\n  display: block;\n}\n.sp-wide-link strong {\n  font-size: 19px;\n}\n.sp-wide-link small {\n  font-size: 11px;\n  color: #94806c;\n  font-weight: 500;\n}\n.sp-note {\n  font-size: 11px;\n  color: #8a8790 !important;\n  margin: 13px 4px 5px !important;\n  text-align: center;\n  line-height: 1.7;\n  overflow-wrap: anywhere;\n}\n.sp-bottom-nav {\n  min-height: 72px;\n  padding: 5px 15px max(8px, env(safe-area-inset-bottom));\n  flex: none;\n  display: grid;\n  grid-template-columns: repeat(3, 1fr);\n  gap: 8px;\n  border-top: 1px solid #ecddc3;\n  background: #fff9ee;\n}\n.street-competition .sp-bottom-nav button {\n  display: flex;\n  align-items: center;\n  flex-direction: column;\n  gap: 2px;\n  padding: 5px 8px;\n  color: #979294;\n  font-size: 11px;\n  background: transparent;\n  border-radius: 16px;\n}\n.sp-bottom-nav button svg {\n  width: 26px;\n  height: 26px;\n}\n.street-competition .sp-bottom-nav button[aria-pressed='true'] {\n  background: #e8f3ff;\n  color: #008bff;\n}\n.sp-section-heading {\n  font-size: 15px;\n  line-height: 1.5;\n  font-weight: 900;\n  margin: 16px 0 8px !important;\n  display: flex;\n  align-items: center;\n  gap: 7px;\n}\n.sp-section-heading::before {\n  content: '';\n  width: 4px;\n  height: 15px;\n  background: #088eff;\n  border-radius: 5px;\n}\n.sp-choice-roles {\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  gap: 11px;\n}\n.street-competition .sp-choice-roles button {\n  padding: 6px 5px 9px;\n  position: relative;\n  overflow: hidden;\n  border: 2px solid #f7d0af;\n  background: linear-gradient(145deg, #ffdfbb, #ffb891);\n  box-shadow: 0 3px 0 #dac4ac33;\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n}\n.street-competition .sp-choice-roles button:first-child {\n  border-color: #acdfff;\n  background: linear-gradient(145deg, #d4f5ff, #a5dcff);\n}\n.street-competition .sp-choice-roles button[aria-pressed='true'] {\n  border-color: #058fff;\n  box-shadow:\n    0 0 0 2px #fff,\n    0 3px 0 #2896e840;\n}\n.sp-choice-roles .sp-figure {\n  width: 115px;\n  height: 173px;\n  margin-bottom: -7px;\n}\n.sp-choice-roles strong {\n  font-size: 18px;\n  position: relative;\n  padding-top: 5px;\n  z-index: 1;\n}\n.sp-choice-roles small {\n  font-size: 10px;\n  color: #5c779a;\n  position: relative;\n  z-index: 1;\n  font-weight: 600;\n}\n.sp-choice-roles i {\n  display: none;\n  position: absolute;\n  right: 6px;\n  top: 6px;\n  width: 23px;\n  height: 23px;\n  border: 2px solid white;\n  border-radius: 50%;\n  background: #078aff;\n  color: white;\n}\n.sp-choice-roles i svg {\n  width: 16px;\n  height: 16px;\n}\n.sp-choice-roles [aria-pressed='true'] i {\n  display: grid;\n  place-items: center;\n}\n.sp-mode-grid {\n  display: grid;\n  grid-template-columns: repeat(2, 1fr);\n  gap: 10px;\n}\n.street-competition .sp-mode-card {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  padding: 10px 7px;\n  border: 2px solid #e9d9c3;\n  background: #fffcf5;\n  box-shadow: 0 3px 0 #c8b28d1a;\n  border-radius: 19px;\n}\n.street-competition .sp-mode-card[aria-pressed='true'] {\n  border-color: #098fff;\n  background: #eef8ff;\n}\n.sp-mode-symbol {\n  display: grid;\n  place-items: center;\n  width: 100%;\n  height: 62px;\n  margin-bottom: 4px;\n  font-size: 36px;\n  color: #ffe157;\n  text-shadow: 0 2px 0 #e09b22;\n  border-radius: 11px;\n  background:\n    linear-gradient(#a4d9f578, #61b6ed16),\n    var(--sp-city) center 46% / cover;\n}\n.sp-mode-card strong {\n  font-size: 14px;\n}\n.sp-mode-card small {\n  font-size: 10px;\n  font-weight: 500;\n  color: #708298;\n  margin-top: 3px;\n}\n.sp-segments {\n  display: flex;\n  gap: 5px;\n  padding: 4px;\n  border-radius: 999px;\n  background: #eee8df;\n  box-shadow: inset 0 1px 2px #77645615;\n}\n.street-competition .sp-segments button {\n  flex: 1;\n  min-width: 0;\n  min-height: 44px;\n  padding: 7px 5px;\n  border-radius: 999px;\n  background: transparent;\n  font-size: 12px;\n  color: #6c7181;\n}\n.street-competition .sp-segments button[aria-pressed='true'] {\n  color: white;\n  background: linear-gradient(#37b6ff, #0589ff);\n  box-shadow:\n    inset 0 2px 0 #ffffff6b,\n    0 3px 0 #1b7ee02e;\n}\n.street-competition .sp-segments button[aria-pressed='true']:disabled {\n  opacity: 1;\n}\n.sp-info-pills {\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  gap: 10px;\n  margin: 14px 0 18px;\n}\n.sp-info-pills > span {\n  display: grid;\n  grid-template-columns: 30px 1fr;\n  align-items: center;\n  padding: 10px;\n  background: #fffbf5;\n  border: 1px solid #ebdcc7;\n  border-radius: 16px;\n}\n.sp-info-pills svg {\n  grid-row: span 2;\n  color: #239dff;\n}\n.sp-info-pills strong {\n  font-size: 12px;\n}\n.sp-info-pills small {\n  font-size: 10px;\n  color: #8e8d98;\n}\n.street-competition .sp-primary,\n.street-competition .sp-secondary,\n.street-competition .sp-invite-link {\n  width: 100%;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  gap: 8px;\n  margin-top: 12px;\n}\n.street-competition .sp-primary {\n  min-height: 56px;\n  color: white;\n  font-weight: 950;\n  font-size: 21px;\n  border: 2px solid #f8feff;\n  border-radius: 999px;\n  background: linear-gradient(#47c5ff 0, #1097ff 38%, #057dff 100%);\n  box-shadow:\n    0 4px 0 #1c69bc48,\n    inset 0 2px 0 #ffffff61,\n    0 6px 10px #266eac19;\n  text-shadow: 0 2px 0 #206ab633;\n}\n.street-competition .sp-primary svg {\n  width: 25px;\n  height: 25px;\n}\n.street-competition .sp-secondary {\n  min-height: 51px;\n  border: 1px solid #e4d1b5;\n  background: #fff9ed;\n  box-shadow:\n    inset 0 2px 0 #fff,\n    0 3px 0 #cbb18b32;\n  font-size: 16px;\n  border-radius: 999px;\n}\n.sp-card {\n  padding: 19px 16px;\n  border: 1px solid #ead9bf;\n  border-radius: 24px;\n  background: #fffbf3;\n  box-shadow: 0 4px 0 #d9c29d1a;\n}\n.sp-vs-hero-small {\n  height: 200px;\n  margin-top: 7px;\n}\n.sp-vs-hero-small .sp-figure {\n  width: 126px;\n}\n.sp-join-form label {\n  display: block;\n  text-align: center;\n  font-size: 17px;\n  font-weight: 900;\n}\n.street-competition input {\n  width: 100%;\n  min-width: 0;\n  min-height: 48px;\n  padding: 10px 13px;\n  border: 2px solid #e9dcc6;\n  border-radius: 15px;\n  background: #fffaf3;\n  outline-offset: 3px;\n  box-shadow: inset 0 2px 0 #9b7d4b0a;\n}\n.street-competition .sp-join-form input {\n  margin-top: 16px;\n  text-align: center;\n  font-size: clamp(18px, 6vw, 24px);\n  font-weight: 900;\n  letter-spacing: 2px;\n  color: #127bea;\n  text-transform: uppercase;\n}\n.sp-join-form > small {\n  display: block;\n  font-size: 11px;\n  color: #8b8995;\n  text-align: center;\n  margin-top: 10px;\n}\n.sp-room-hero {\n  height: 190px;\n  margin-bottom: 0;\n  background:\n    linear-gradient(#bbdef573, #fff6e700),\n    var(--sp-city) center 55% / cover;\n}\n.sp-room-hero .sp-figure {\n  width: 126px;\n}\n.sp-room-code-card {\n  padding: 10px 10px 8px;\n  text-align: center;\n  margin: -6px 15px 12px;\n  border: 1px solid #e5d5ba;\n  border-radius: 18px;\n  background: #fffdf5;\n  position: relative;\n  box-shadow: 0 4px 0 #c3a17321;\n}\n.sp-room-code-card > small {\n  font-size: 10px;\n  color: #9a8990;\n}\n.street-competition .sp-room-code-card button {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  gap: 10px;\n  width: 100%;\n  background: transparent;\n  padding: 2px 4px;\n  min-height: 34px;\n}\n.sp-room-code-card strong {\n  font-size: 19px;\n  letter-spacing: 2px;\n  overflow-wrap: anywhere;\n}\n.sp-room-code-card svg {\n  width: 19px;\n  height: 19px;\n  color: #1693ff;\n}\n.sp-players {\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  gap: 9px;\n}\n.sp-player {\n  min-width: 0;\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  padding: 10px 7px;\n  border: 2px solid #afdfff;\n  border-radius: 18px;\n  background: #f8fcff;\n}\n.sp-player[data-role='runner'] {\n  background: #fff8f0;\n  border-color: #f7c7a4;\n}\n.sp-player .sp-portrait {\n  width: 43px;\n  height: 43px;\n}\n.sp-player-copy {\n  flex: 1;\n  min-width: 0;\n  white-space: pre-line;\n}\n.sp-player-copy strong {\n  font-size: 11px;\n  display: block;\n  overflow-wrap: anywhere;\n}\n.sp-player-copy small {\n  display: block;\n  font-size: 10px;\n  color: #7b8b9b;\n  margin-top: 3px;\n}\n.sp-player[data-ready] .sp-player-copy small {\n  color: #35a051;\n}\n.sp-player[data-empty] {\n  border-style: dashed;\n  background: #fffaf2;\n  border-color: #e3d4bc;\n  color: #989198;\n  font-size: 10px;\n}\n.sp-wait-avatar {\n  width: 35px;\n  height: 35px;\n  display: grid;\n  place-items: center;\n  background: #f0e8dc;\n  border-radius: 50%;\n  font-size: 24px;\n  flex: none;\n}\n.sp-room-hint {\n  font-size: 11px;\n  color: #738294 !important;\n  text-align: center;\n  margin-top: 10px !important;\n}\n.sp-room-settings .sp-section-heading {\n  margin: 10px 0 6px !important;\n  font-size: 12px;\n}\n.sp-room-settings > small {\n  display: block;\n  font-size: 10px;\n  color: #998c91;\n  text-align: center;\n  margin-top: 7px;\n}\n.street-competition .sp-invite-link {\n  min-height: 44px;\n  font-size: 12px;\n  border: 1px solid #bcdafa;\n  border-radius: 13px;\n  background: #e9f4ff;\n  color: #1384e7;\n}\n.street-competition .sp-text-button {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  gap: 7px;\n  width: 100%;\n  background: transparent;\n  min-height: 48px;\n  font-size: 13px;\n  color: #827578;\n  margin-top: 6px;\n}\n.sp-play-page {\n  display: flex;\n  flex-direction: column;\n  padding: 0 8px max(7px, env(safe-area-inset-bottom));\n}\n.sp-play-info {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 5px;\n  padding: 3px 8px 8px;\n  flex: none;\n}\n.sp-play-info strong {\n  font-size: 13px;\n  color: #1684ed;\n}\n.sp-play-info span {\n  font-size: 10px;\n  color: #7c8d9e;\n}\n.sp-play-page canvas {\n  width: 100%;\n  height: 100%;\n  flex: 1;\n  min-height: 0;\n  display: block;\n  border-radius: 17px;\n  touch-action: none;\n}\n.sp-play-actions {\n  display: flex;\n  gap: 6px;\n  flex: none;\n  padding-top: 8px;\n}\n.street-competition .sp-play-actions button {\n  flex: 1;\n  padding: 7px 5px;\n  font-size: 11px;\n  background: #eaf4ff;\n  color: #5783a6;\n}\n.street-competition[data-playing] .sp-header {\n  min-height: 50px;\n  padding-top: 3px;\n  padding-bottom: 0;\n}\n.street-competition[data-playing] .sp-header h1 {\n  font-size: 19px;\n}\n.street-competition[data-playing] .sp-header p {\n  display: none;\n}\n.street-competition[data-playing] .sp-status {\n  margin-bottom: 3px !important;\n  min-height: 22px;\n}\n.sp-board-intro,\n.sp-rules-hero,\n.sp-invite-hero {\n  text-align: center;\n  padding: 14px 6px 20px;\n}\n.sp-board-intro > svg,\n.sp-rules-hero > svg,\n.sp-invite-hero > svg {\n  display: block;\n  margin: auto auto 6px;\n  width: 53px;\n  height: 53px;\n  color: #ffbc33;\n  filter: drop-shadow(0 3px 0 #f4a32b22);\n}\n.sp-board-intro h2,\n.sp-rules-hero h2,\n.sp-invite-hero h2 {\n  font-size: 20px;\n  font-weight: 950;\n}\n.sp-board-intro p,\n.sp-rules-hero p,\n.sp-invite-hero p {\n  margin-top: 5px;\n  color: #7d8a99;\n  font-size: 11px;\n}\n.sp-podium {\n  display: flex;\n  align-items: flex-end;\n  justify-content: center;\n  gap: 5px;\n  padding: 9px 3px 0;\n  min-height: 217px;\n  background:\n    linear-gradient(#fffbf500, #e4f2fb99),\n    var(--sp-city) center 65% / cover;\n  border-radius: 24px 24px 0 0;\n}\n.sp-podium-place {\n  flex: 1;\n  min-width: 0;\n  text-align: center;\n  padding: 10px 6px 12px;\n  border: 1px solid #e9d9bf;\n  border-radius: 16px 16px 0 0;\n  background: #fff7e9;\n  position: relative;\n}\n.sp-podium-place[data-rank='1'] {\n  background: linear-gradient(#fff0b4, #ffe1a1);\n  padding-bottom: 30px;\n}\n.sp-podium-place .sp-portrait {\n  margin: -61px auto 11px;\n  width: 65px;\n  height: 65px;\n  background-color: #fff9df;\n  box-shadow: 0 0 0 3px #fff7e980;\n}\n.sp-podium-place[data-rank='1'] .sp-portrait {\n  width: 80px;\n  height: 80px;\n  margin-top: -80px;\n}\n.sp-podium-number {\n  position: absolute;\n  top: -14px;\n  right: 8px;\n  width: 25px;\n  height: 25px;\n  border-radius: 50%;\n  background: #ecc88a;\n  color: #fff;\n  font-weight: 950;\n  display: grid;\n  place-items: center;\n  box-shadow: 0 2px 0 #bd8b452b;\n}\n.sp-podium-place[data-rank='1'] .sp-podium-number {\n  background: #ffc132;\n  color: #a25c15;\n  width: 31px;\n  height: 31px;\n}\n.sp-podium-place strong {\n  display: block;\n  font-size: 11px;\n  overflow-wrap: anywhere;\n  line-height: 1.4;\n}\n.sp-podium-place small {\n  display: block;\n  color: #b68134;\n  font-size: 11px;\n  margin-top: 6px;\n  font-weight: 900;\n}\n.sp-rank-list {\n  list-style: none;\n  padding: 5px 12px;\n  margin: 0;\n  border: 1px solid #ead9bf;\n  border-radius: 0 0 20px 20px;\n  background: #fffaf0;\n}\n.sp-rank-row {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  min-height: 59px;\n  border-bottom: 1px solid #ece0ce;\n  font-size: 12px;\n}\n.sp-rank-row:last-child {\n  border: 0;\n}\n.sp-rank-row .sp-portrait {\n  width: 32px;\n  height: 32px;\n}\n.sp-rank-row strong {\n  flex: 1;\n  min-width: 0;\n  overflow-wrap: anywhere;\n  font-size: 11px;\n}\n.sp-rank-row > span:last-child {\n  font-weight: 800;\n  font-size: 11px;\n}\n.sp-rank-number {\n  width: 18px;\n  text-align: center;\n  font-weight: 950;\n}\n.sp-empty {\n  text-align: center;\n  padding: 28px 12px;\n  color: #95879b;\n  font-size: 12px;\n}\n.sp-my-record {\n  display: flex;\n  align-items: center;\n  gap: 10px;\n  margin-top: 13px;\n  padding: 12px;\n  border: 2px solid #0e99ff;\n  border-radius: 20px;\n  background: linear-gradient(120deg, #f0fbff, #dcefff);\n  box-shadow: 0 3px 0 #008dff1a;\n}\n.sp-my-record-copy {\n  flex: 1;\n  min-width: 0;\n}\n.sp-my-record strong,\n.sp-my-record span,\n.sp-my-record small {\n  display: block;\n}\n.sp-my-record strong {\n  font-size: 13px;\n  overflow-wrap: anywhere;\n}\n.sp-my-record-copy > span {\n  font-weight: 900;\n  color: #147bea;\n  font-size: 16px;\n}\n.sp-my-record small {\n  font-size: 10px;\n  color: #6e839a;\n}\n.sp-name-hero {\n  position: relative;\n  display: flex;\n  justify-content: center;\n  padding: 22px 0 24px;\n}\n.sp-name-hero .sp-portrait {\n  width: 135px;\n  height: 135px;\n  border: 5px solid white;\n  box-shadow:\n    0 4px 0 #e3cba533,\n    0 0 0 2px #bee7fd;\n}\n.sp-name-hero i {\n  position: absolute;\n  color: #ffc94e;\n  font-size: 39px;\n  top: 43px;\n  font-style: normal;\n}\n.sp-name-hero i:nth-of-type(1) {\n  left: 18px;\n}\n.sp-name-hero i:nth-of-type(2) {\n  right: 18px;\n  top: 87px;\n  font-size: 23px;\n}\n.sp-name-form > label {\n  display: block;\n  font-size: 13px;\n  font-weight: 850;\n  margin-bottom: 7px;\n}\n.sp-name-input {\n  position: relative;\n}\n.street-competition .sp-name-input input {\n  padding-right: 39px;\n  font-weight: 850;\n}\n.sp-name-input svg {\n  position: absolute;\n  right: 12px;\n  top: 12px;\n  color: #008dff;\n  width: 21px;\n  height: 21px;\n}\n.sp-name-form > small {\n  display: block;\n  font-size: 10px;\n  margin-top: 8px;\n  color: #9b8992;\n  text-align: center;\n}\n.sp-form-message {\n  min-height: 20px;\n  font-size: 11px;\n  text-align: center;\n  color: #ba704c !important;\n  margin-top: 8px !important;\n}\n.sp-player-id {\n  padding: 20px 4px;\n  text-align: center;\n  color: #a7a0a3;\n}\n.sp-player-id small {\n  display: block;\n  font-size: 10px;\n}\n.sp-player-id code {\n  display: block;\n  margin-top: 4px;\n  font-size: 10px;\n  overflow-wrap: anywhere;\n}\n.sp-rule-list {\n  padding-left: 22px;\n  margin: 0;\n  font-size: 13px;\n  color: #607493;\n}\n.sp-rule-list li {\n  padding: 9px 0 9px 5px;\n}\n.sp-rule-list li::marker {\n  color: #168dff;\n  font-weight: 950;\n}\n.sp-result-hero {\n  position: relative;\n  min-height: 264px;\n  display: flex;\n  align-items: flex-end;\n  justify-content: center;\n  padding-bottom: 59px;\n}\n.sp-result-hero .sp-figure {\n  width: 123px;\n}\n.sp-result-trophy {\n  position: absolute;\n  z-index: 1;\n  color: #ffbf32;\n  top: 100px;\n  left: 50%;\n  transform: translateX(-50%) rotate(-8deg);\n  filter: drop-shadow(0 3px 0 #b97d2833);\n}\n.sp-result-trophy svg {\n  width: 80px;\n  height: 80px;\n  fill: #ffeaaa;\n  stroke-width: 2;\n}\n.sp-result-hero h2 {\n  position: absolute;\n  bottom: 32px;\n  left: 0;\n  width: 100%;\n  text-align: center;\n  color: #f3832d;\n  font-size: 24px;\n  font-weight: 950;\n}\n.sp-result-hero > p {\n  position: absolute;\n  bottom: 8px;\n  left: 0;\n  width: 100%;\n  text-align: center;\n  font-size: 11px;\n  color: #8c8493;\n}\n.sp-results {\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  gap: 9px;\n}\n.sp-result-card {\n  padding: 12px 9px;\n  border: 1px solid #ead4b6;\n  border-radius: 18px;\n  background: #fff9ee;\n  text-align: center;\n  min-width: 0;\n}\n.sp-result-card:first-child {\n  border-color: #8dcfff;\n  background: #ecf8ff;\n}\n.sp-result-player {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  gap: 6px;\n}\n.sp-result-player .sp-portrait {\n  width: 48px;\n  height: 48px;\n}\n.sp-result-player h3 {\n  font-size: 11px;\n  overflow-wrap: anywhere;\n}\n.sp-result-score {\n  display: block;\n  font-size: 20px;\n  font-weight: 950;\n  color: #168bff;\n  margin: 9px 0 5px;\n}\n.sp-result-card p {\n  font-size: 10px;\n  color: #8a8190;\n}\n.sp-result-card > small {\n  display: block;\n  font-size: 10px;\n  color: #967e64;\n  margin-top: 7px;\n}\n.sp-invite-hero {\n  padding-top: 26px;\n}\n.sp-invite-hero > svg {\n  color: #1b9dff;\n}\n.sp-invite-card {\n  text-align: center;\n}\n.sp-invite-card > small {\n  display: block;\n  color: #9a8991;\n  font-size: 11px;\n}\n.sp-invite-card > strong {\n  font-size: 24px;\n  letter-spacing: 2px;\n  display: block;\n  margin: 13px 0;\n  user-select: all;\n  overflow-wrap: anywhere;\n}\n.sp-invite-card .sp-primary {\n  font-size: 18px;\n  margin-bottom: 20px;\n}\n.street-competition .sp-invite-card input {\n  min-height: 44px;\n  font-size: 11px;\n  margin-top: 10px;\n  color: #8b8095;\n}\n@media (max-width: 350px) {\n  .sp-page {\n    padding-left: 13px;\n    padding-right: 13px;\n  }\n  .sp-header {\n    padding-left: 12px;\n    padding-right: 12px;\n  }\n  .sp-header h1 {\n    font-size: 24px;\n  }\n  .sp-header p {\n    font-size: 10px;\n  }\n  .sp-vs-hero {\n    height: 198px;\n  }\n  .sp-vs-hero .sp-figure {\n    width: 126px;\n  }\n  .sp-entry-grid {\n    gap: 9px;\n  }\n  .street-competition .sp-entry {\n    min-height: 133px;\n  }\n  .sp-choice-roles .sp-figure {\n    width: 95px;\n    height: 143px;\n  }\n  .sp-choice-roles strong {\n    font-size: 16px;\n  }\n  .sp-choice-roles small {\n    font-size: 9px;\n  }\n  .sp-room-code-card strong {\n    font-size: 16px;\n  }\n  .sp-room-hero {\n    height: 174px;\n  }\n  .sp-room-hero .sp-figure {\n    width: 112px;\n  }\n  .sp-player .sp-portrait {\n    width: 35px;\n    height: 35px;\n  }\n  .sp-player-copy strong {\n    font-size: 10px;\n  }\n  .sp-result-hero .sp-figure {\n    width: 105px;\n  }\n  .sp-result-hero {\n    min-height: 237px;\n  }\n  .sp-result-trophy {\n    top: 82px;\n  }\n  .sp-result-score {\n    font-size: 17px;\n  }\n}\n@media (orientation: landscape) and (max-height: 540px) {\n  .sp-shell {\n    width: min(100%, 760px);\n  }\n  .sp-header {\n    min-height: 55px;\n    padding-top: 5px;\n  }\n  .sp-header h1 {\n    font-size: 22px;\n  }\n  .sp-header p {\n    font-size: 10px;\n  }\n  .sp-status {\n    min-height: 20px;\n    margin-bottom: 3px !important;\n  }\n  .sp-bottom-nav {\n    min-height: 56px;\n  }\n  .street-competition .sp-bottom-nav button {\n    flex-direction: row;\n    justify-content: center;\n    gap: 8px;\n  }\n  .sp-page {\n    padding-left: 24px;\n    padding-right: 24px;\n  }\n  [data-page='lobby'] .sp-vs-hero {\n    float: left;\n    width: 41%;\n    height: 220px;\n    margin: 0 18px 0 0;\n  }\n  [data-page='lobby'] .sp-vs-hero .sp-figure {\n    width: 129px;\n  }\n  [data-page='lobby'] .sp-entry-grid {\n    padding-top: 4px;\n  }\n  .street-competition [data-page='lobby'] .sp-entry {\n    min-height: 118px;\n    padding-top: 9px;\n  }\n  [data-page='lobby'] .sp-entry > svg {\n    width: 29px;\n    height: 29px;\n  }\n  [data-page='lobby'] .sp-entry strong {\n    font-size: 20px;\n  }\n  [data-page='lobby'] .sp-profile-card {\n    margin-top: 8px;\n    padding: 7px 10px;\n  }\n  [data-page='lobby'] .sp-wide-link {\n    margin-top: 8px;\n    min-height: 57px;\n    width: auto;\n  }\n  [data-page='lobby'] .sp-note {\n    clear: both;\n  }\n  .sp-play-page {\n    padding-left: 10px;\n    padding-right: 10px;\n  }\n  .sp-play-actions {\n    padding-top: 4px;\n  }\n  .street-competition .sp-play-actions button {\n    min-height: 44px;\n  }\n}\n@media (prefers-reduced-motion: reduce) {\n  .street-competition button {\n    transition: none;\n  }\n}\n\n.street-competition [data-player-avatar] {\n  display: inline-grid;\n  place-items: center;\n  overflow: hidden;\n  flex: none;\n  background-image: none !important;\n  font-weight: 800;\n}\n.street-competition [data-player-avatar]::before,\n.street-competition [data-player-avatar]::after {\n  display: none !important;\n}\n.street-competition [data-player-avatar] img {\n  display: block;\n  width: 100%;\n  height: 100%;\n  object-fit: cover;\n  border-radius: inherit;\n}\n.sp-region {\n  display: block;\n  font-size: 11px;\n  font-weight: 400;\n  color: #6c7d88;\n}\n.sp-name-hero [data-player-avatar] {\n  font-size: 32px;\n}\n";
+	//#endregion
+	//#region ../../games/local/cops-robbers-realtime/src/role-appearance.js
+	var storageKey$1 = "chase-role-appearance-v1";
+	var presets$1 = {
+		team: {
+			cop: [
+				"#1677bf",
+				"#d9f3ff",
+				"◆"
+			],
+			robber: [
+				"#d65b19",
+				"#fff0b8",
+				"ϟ"
+			]
+		},
+		animals: {
+			cop: [
+				"#176cb0",
+				"#d9f3ff",
+				"🐱"
+			],
+			robber: [
+				"#bc4c17",
+				"#ffe3be",
+				"🦊"
+			]
+		},
+		cosmic: {
+			cop: [
+				"#4d51b8",
+				"#e4e4ff",
+				"✦"
+			],
+			robber: [
+				"#b54920",
+				"#ffdfb4",
+				"☄"
+			]
+		}
+	};
+	var characterSheet = "./src/assets/characters.png";
+	var characters = {
+		cop: [
+			{
+				name: "阳光巡警",
+				description: "正义、勇敢，守护街区的每一天。",
+				crop: [
+					104,
+					12,
+					282
+				]
+			},
+			{
+				name: "机灵警花",
+				description: "眼疾手快，任何小线索都逃不过她。",
+				crop: [
+					486,
+					18,
+					306
+				]
+			},
+			{
+				name: "暖心警长",
+				description: "经验满满，总能找到最佳围捕路线。",
+				crop: [
+					904,
+					8,
+					314
+				]
+			}
+		],
+		robber: [
+			{
+				name: "街头小机灵",
+				description: "一顶橘色帽子，藏着满脑子的鬼点子。",
+				crop: [
+					92,
+					637,
+					322
+				]
+			},
+			{
+				name: "橘子少女",
+				description: "轻快又灵巧，转个弯就有新惊喜。",
+				crop: [
+					507,
+					640,
+					315
+				]
+			},
+			{
+				name: "眼镜智多星",
+				description: "观察街区，发现每一条突围小路。",
+				crop: [
+					967,
+					638,
+					311
+				]
+			}
+		]
+	};
+	var images$2 = /* @__PURE__ */ new Map();
+	var classicRoles$1 = () => globalThis.__CLASSIC_CHASE_ROLES__ === true;
+	var settings$1;
+	var stored$1;
+	var side$1 = (role) => [
+		"cop",
+		"pursuer",
+		"chaser"
+	].includes(role) ? "cop" : "robber";
+	var validAvatar$1 = (value) => typeof value === "string" && value.length <= 12e4 && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(value);
+	function read$1() {
+		try {
+			const value = (globalThis.__chaseRoleStorage || globalThis.localStorage)?.getItem(storageKey$1) || "{}";
+			if (settings$1 && value === stored$1) return settings$1;
+			stored$1 = value;
+			settings$1 = JSON.parse(value);
+		} catch {
+			settings$1 = {};
+		}
+		if (!settings$1 || typeof settings$1 !== "object" || Array.isArray(settings$1)) settings$1 = {};
+		return settings$1;
+	}
+	function getRoleAppearance$1(role, selectedPreset) {
+		const key = side$1(role), value = read$1()[key];
+		const style = Object.hasOwn(presets$1, value?.style) ? value.style : "team";
+		const [color, accent, badge] = presets$1[style][key];
+		const preset = Number.isInteger(selectedPreset) && selectedPreset >= 0 && selectedPreset < 3 ? selectedPreset : Number.isInteger(value?.preset) && value.preset >= 0 && value.preset < 3 ? value.preset : 0;
+		return {
+			label: classicRoles$1() ? key === "cop" ? "警察" : "小偷" : key === "cop" ? "追逐队" : "突围队",
+			style,
+			color,
+			accent,
+			badge,
+			preset,
+			character: characters[key][preset],
+			sprite: characterSheet,
+			avatar: selectedPreset === void 0 && validAvatar$1(value?.avatar) ? value.avatar : ""
+		};
+	}
+	function loadPortraitImage(source) {
+		if (!source) return null;
+		let img = images$2.get(source);
+		if (!img && (globalThis.__chaseRoleImage || typeof Image !== "undefined")) {
+			img = globalThis.__chaseRoleImage ? globalThis.__chaseRoleImage() : new Image();
+			img.onload = () => {
+				img.roleLoaded = true;
+			};
+			img.src = source;
+			images$2.set(source, img);
+		}
+		return img;
+	}
+	if (classicRoles$1() && typeof Image !== "undefined" && !globalThis.__chaseRoleImage) loadPortraitImage(characterSheet);
+	//#endregion
+	//#region ../../platforms/competition/avatars.js
+	var avatars = [
+		{
+			id: "cat",
+			name: "小猫",
+			color: "#e9b169",
+			background: "#fae4bb"
+		},
+		{
+			id: "fox",
+			name: "狐狸",
+			color: "#e88f56",
+			background: "#f7dcc8"
+		},
+		{
+			id: "panda",
+			name: "熊猫",
+			color: "#f7f6ec",
+			background: "#dbe9d3"
+		},
+		{
+			id: "rabbit",
+			name: "兔子",
+			color: "#fff4ed",
+			background: "#f5d8de"
+		},
+		{
+			id: "bear",
+			name: "小熊",
+			color: "#b68663",
+			background: "#eadbc8"
+		},
+		{
+			id: "owl",
+			name: "猫头鹰",
+			color: "#a393be",
+			background: "#e7def0"
+		},
+		{
+			id: "koala",
+			name: "考拉",
+			color: "#a8bdc4",
+			background: "#d9eaf0"
+		},
+		{
+			id: "tiger",
+			name: "老虎",
+			color: "#eda84e",
+			background: "#ffebc7"
+		}
+	];
+	function drawAvatar(ctx, id, x, y, size) {
+		const avatar = avatars.find((item) => item.id === id) || avatars[0];
+		ctx.save();
+		ctx.translate(x, y);
+		ctx.scale(size / 64, size / 64);
+		const circle = (cx, cy, radius, color) => {
+			ctx.fillStyle = color;
+			ctx.beginPath();
+			ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+			ctx.fill();
+		};
+		const triangle = (x1, y1, x2, y2, x3, y3, color) => {
+			ctx.fillStyle = color;
+			ctx.beginPath();
+			ctx.moveTo(x1, y1);
+			ctx.lineTo(x2, y2);
+			ctx.lineTo(x3, y3);
+			ctx.closePath();
+			ctx.fill();
+		};
+		const dark = "#3c4444";
+		circle(32, 32, 32, avatar.background);
+		if ([
+			"cat",
+			"fox",
+			"owl"
+		].includes(avatar.id)) {
+			triangle(12, 31, 13, 10, 30, 22, avatar.color);
+			triangle(34, 22, 51, 10, 52, 31, avatar.color);
+			triangle(16, 25, 16, 16, 25, 23, "#f6c3b0");
+			triangle(39, 23, 48, 16, 48, 25, "#f6c3b0");
+		} else if (avatar.id === "rabbit") for (const cx of [24, 40]) {
+			circle(cx, 15, 7, avatar.color);
+			circle(cx, 22, 7, avatar.color);
+			circle(cx, 15, 3, "#ebb0bd");
+			circle(cx, 21, 3, "#ebb0bd");
+		}
+		else for (const cx of [15, 49]) {
+			circle(cx, 23, avatar.id === "koala" ? 11 : 9, avatar.id === "panda" ? dark : avatar.color);
+			if (avatar.id !== "panda") circle(cx, 23, 5, "#e8c3b3");
+		}
+		circle(32, 37, 22, avatar.color);
+		if (avatar.id === "fox") {
+			triangle(12, 29, 31, 49, 17, 51, "#fff3df");
+			triangle(52, 29, 33, 49, 47, 51, "#fff3df");
+		}
+		if (avatar.id === "panda" || avatar.id === "owl") for (const cx of [23, 41]) circle(cx, 34, 8, avatar.id === "panda" ? dark : "#fff5df");
+		if (avatar.id === "tiger") {
+			triangle(28, 17, 36, 17, 32, 29, "#805637");
+			triangle(10, 34, 20, 37, 11, 40, "#805637");
+			triangle(54, 34, 44, 37, 53, 40, "#805637");
+		}
+		for (const cx of [23, 41]) {
+			circle(cx, 35, 3, avatar.id === "panda" ? "#fff8e9" : dark);
+			circle(cx + .7, 34, .8, "#ffffff");
+		}
+		circle(32, 44, avatar.id === "koala" ? 5 : 3, dark);
+		circle(17, 43, 3, "#eaa598");
+		circle(47, 43, 3, "#eaa598");
+		ctx.restore();
+	}
+	//#endregion
+	//#region ../../platforms/competition/profile-dom.js
+	function regionText(player) {
+		return [player?.region?.country, player?.region?.province].filter(Boolean).join(" · ");
+	}
+	function allowedAvatar(value, policy) {
+		if (typeof value !== "string" || value.length > 2048 || /[\s\p{Cc}]/u.test(value)) return false;
+		try {
+			const url = new URL(value);
+			return !!(url.protocol === "https:" && !url.username && !url.password && !url.port && !url.hash && policy?.origins?.includes(url.origin) && ![...url.searchParams.keys()].some((key) => /token|secret|password|credential|session/i.test(key)));
+		} catch {
+			return false;
+		}
+	}
+	async function avatarBlob(value, policy, transport = fetch) {
+		if (!allowedAvatar(value, policy)) return null;
+		const max = Math.min(Number(policy.maxBytes) || 0, 1048576);
+		if (max <= 0) return null;
+		const response = await transport(value, {
+			credentials: "omit",
+			redirect: "error",
+			referrerPolicy: "no-referrer",
+			mode: "cors",
+			signal: AbortSignal.timeout(5e3)
+		});
+		if (!response.ok || response.redirected || !/^image\/(png|jpeg|webp|gif)$/i.test(response.headers.get("content-type")?.split(";")[0] || "") || Number(response.headers.get("content-length")) > max) {
+			await response.body?.cancel().catch(() => {});
+			return null;
+		}
+		const reader = response.body?.getReader();
+		if (!reader) return null;
+		let size = 0;
+		const chunks = [];
+		try {
+			for (;;) {
+				const { done, value: chunk } = await reader.read();
+				if (done) break;
+				size += chunk.byteLength;
+				if (size > max) return null;
+				chunks.push(chunk);
+			}
+		} finally {
+			await reader.cancel().catch(() => {});
+		}
+		return size ? new Blob(chunks, { type: response.headers.get("content-type").split(";")[0] }) : null;
+	}
+	var images$1 = /* @__PURE__ */ new Map();
+	var queue = [];
+	var active = 0;
+	function drain() {
+		while (active < 4 && queue.length) {
+			const { url, policy, resolve } = queue.shift();
+			active++;
+			avatarBlob(url, policy).catch(() => null).then(resolve).finally(() => {
+				active--;
+				drain();
+			});
+		}
+	}
+	function imageUrl(url, policy) {
+		if (!allowedAvatar(url, policy)) return Promise.resolve(null);
+		if (!images$1.has(url)) {
+			const pending = new Promise((resolve) => {
+				queue.push({
+					url,
+					policy,
+					resolve
+				});
+			});
+			images$1.set(url, pending);
+			if (images$1.size > 64) {
+				const oldest = images$1.keys().next().value;
+				images$1.delete(oldest);
+			}
+			drain();
+		}
+		return images$1.get(url);
+	}
+	function renderAvatar(element, player, policy) {
+		const fallback = Array.from(player?.nickname || player?.name || "新")[0];
+		element.dataset.playerAvatar = "";
+		element.removeAttribute("data-custom");
+		element.removeAttribute("data-preset");
+		element.removeAttribute("data-portrait-role");
+		element.style.removeProperty("background-image");
+		element.replaceChildren(document.createTextNode(fallback));
+		const marker = {};
+		element.avatarRequest = marker;
+		if (avatars.some((avatar) => avatar.id === player?.avatarId)) {
+			const canvas = document.createElement("canvas");
+			canvas.width = canvas.height = 128;
+			canvas.style.cssText = "width:100%;height:100%;display:block;border-radius:inherit";
+			canvas.setAttribute("aria-hidden", "true");
+			drawAvatar(canvas.getContext("2d"), player.avatarId, 0, 0, 128);
+			element.dataset.preset = player.avatarId;
+			element.replaceChildren(canvas);
+			return element;
+		}
+		imageUrl(player?.avatarUrl, policy).then((blob) => {
+			if (!blob || blob.size > policy.maxBytes || element.avatarRequest !== marker || !element.isConnected) return;
+			const url = URL.createObjectURL(blob);
+			const image = document.createElement("img");
+			image.alt = "";
+			image.decoding = "async";
+			image.onload = () => {
+				URL.revokeObjectURL(url);
+				if (element.avatarRequest === marker) element.replaceChildren(image);
+			};
+			image.onerror = () => URL.revokeObjectURL(url);
+			image.src = url;
+		});
+		return element;
+	}
+	function avatarPicker(selected, policy) {
+		const field = document.createElement("fieldset");
+		field.className = "player-avatar-picker";
+		const legend = document.createElement("legend");
+		legend.textContent = "选择头像";
+		const grid = document.createElement("div");
+		field.append(legend, grid);
+		for (const avatar of avatars.filter((item) => policy?.presets?.includes(item.id))) {
+			const button = document.createElement("button");
+			button.type = "button";
+			button.dataset.avatarId = avatar.id;
+			button.setAttribute("aria-label", avatar.name);
+			button.setAttribute("aria-pressed", String(selected === avatar.id));
+			renderAvatar(button, { avatarId: avatar.id }, policy);
+			button.onclick = () => {
+				for (const sibling of grid.children) sibling.setAttribute("aria-pressed", String(sibling === button));
+			};
+			grid.append(button);
+		}
+		return {
+			element: field,
+			value: () => grid.querySelector("[aria-pressed=\"true\"]")?.dataset.avatarId
+		};
+	}
+	var avatarPickerStyles = `.player-avatar-picker{border:0;margin:16px 0;padding:0;min-width:0;grid-column:1/-1}.player-avatar-picker legend{font-weight:700;margin-bottom:10px}.player-avatar-picker>div{display:grid;grid-template-columns:repeat(4,minmax(44px,1fr));gap:12px}.player-avatar-picker button{width:100%;height:auto;aspect-ratio:1;min-height:44px;padding:5px!important;border:2px solid transparent!important;border-radius:18px;box-shadow:none!important;background:transparent!important}.player-avatar-picker button[aria-pressed=true]{border-color:currentColor!important;background:#f4e5bd!important}.player-avatar-picker canvas{max-width:52px;height:auto!important;aspect-ratio:1;margin:auto}`;
+	//#endregion
+	//#region ../../platforms/competition/street-pages.js
+	var roleNames = {
+		pursuer: "警察",
+		runner: "小偷",
+		random: "随机先行"
+	};
+	var spriteUrl = new URL("./src/assets/characters.png", document.baseURI).href;
+	var cityUrl = new URL("./src/assets/home-city.png", document.baseURI).href;
+	var icons = {
+		back: "<path d=\"m14 5-7 7 7 7\"/>",
+		arrow: "<path d=\"m9 5 7 7-7 7\"/>",
+		home: "<path d=\"m3 11 9-8 9 8M5 10v11h5v-7h4v7h5V10\"/>",
+		friends: "<circle cx=\"8\" cy=\"7\" r=\"3\"/><circle cx=\"17\" cy=\"8\" r=\"3\"/><path d=\"M2 21v-3a6 6 0 0 1 12 0v3M16 15a5 5 0 0 1 6 5\"/>",
+		trophy: "<path d=\"M7 3h10v7a5 5 0 0 1-10 0ZM7 5H3v3a4 4 0 0 0 4 4M17 5h4v3a4 4 0 0 1-4 4M12 15v6M8 21h8\"/>",
+		link: "<path d=\"m9 15 6-6M8 16l-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0M16 8l1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0\"/>",
+		check: "<path d=\"m5 12 4 4L20 5\"/>",
+		play: "<path d=\"m8 4 12 8-12 8Z\"/>",
+		shield: "<path d=\"m12 2 8 4v6c0 5-8 10-8 10S4 17 4 12V6Z\"/><path d=\"m8 12 3 3 5-6\"/>",
+		star: "<path d=\"m12 2 3 7 7 1-5 5 1 7-6-4-6 4 1-7-5-5 7-1Z\"/>",
+		refresh: "<path d=\"M20 7v5h-5M4 17v-5h5M19 12a7 7 0 0 0-12-5M5 12a7 7 0 0 0 12 5\"/>",
+		pen: "<path d=\"m15 3 6 6-11 11-7 1 1-7ZM12 6l6 6\"/>"
+	};
+	var icon = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true">${icons[name] || icons.star}</svg>`;
+	function mountStreetCompetition(game, createRenderer) {
+		if (document.querySelector("[data-competition-launch]")) return;
+		globalThis.__CLASSIC_CHASE_ROLES__ = true;
+		globalThis.__installCompetition();
+		const client = globalThis.__competition;
+		const roomStorage = client.identityMode === "ephemeral" ? client.roomStorage : {
+			getItem: (key) => localStorage.getItem(key),
+			setItem: (key, value) => localStorage.setItem(key, value),
+			removeItem: (key) => localStorage.removeItem(key)
+		};
+		const renderer = createRenderer({
+			createImage: () => new Image(),
+			assetBase: new URL("./", location.href).href
+		});
+		const style = document.createElement("style");
+		style.textContent = street_default + avatarPickerStyles;
+		document.head.append(style);
+		const launch = document.createElement("button");
+		launch.dataset.competitionLaunch = "";
+		launch.className = "street-pk-launch";
+		launch.textContent = "好友 PK · 全站榜";
+		launch.hidden = !!document.querySelector("[data-competition-entry]");
+		const surface = document.createElement("div");
+		surface.className = "street-competition";
+		surface.dataset.streetCompetition = "";
+		surface.hidden = true;
+		surface.open = false;
+		surface.setAttribute("aria-label", "街区追捕 · 好友 PK");
+		surface.style.setProperty("--sp-sprites", `url("${spriteUrl}")`);
+		surface.style.setProperty("--sp-city", `url("${cityUrl}")`);
+		surface.innerHTML = `<div class="sp-shell">
+    <header class="sp-header"><button class="sp-back" data-page-back aria-label="返回">${icon("back")}</button><div><h1 data-page-title>好友 PK</h1><p data-page-subtitle>叫上好友，一起追逐！</p></div><button class="sp-help" data-rules aria-label="查看玩法">?</button></header>
+    <p class="sp-status" role="status" aria-live="polite" data-status>邀请一位好友，一起玩一局。</p>
+    <main class="sp-pages">
+      <section class="sp-page" data-page="lobby" data-lobby>
+        <div class="sp-vs-hero"><span class="sp-figure" data-figure="pursuer"></span><strong class="sp-vs">VS</strong><span class="sp-figure" data-figure="runner"></span><i class="sp-spark sp-spark-one">✦</i><i class="sp-spark sp-spark-two">✦</i></div>
+        <div class="sp-entry-grid"><button class="sp-entry sp-entry-blue" data-go="create">${icon("home")}<strong>创建房间</strong><small>邀请好友一起玩</small><span class="sp-entry-arrow">${icon("arrow")}</span></button><button class="sp-entry sp-entry-coral" data-go="join">${icon("friends")}<strong>加入房间</strong><small>好友正在等你</small><span class="sp-entry-arrow">${icon("arrow")}</span></button></div>
+        <div class="sp-profile-card"><span class="sp-portrait" data-avatar></span><div><strong data-profile-name>街区新伙伴</strong><small>用你的昵称和好友见面</small></div><button data-profile aria-label="修改资料">${icon("pen")}</button></div>
+        <button class="sp-wide-link" data-board>${icon("trophy")}<span><strong>全站榜</strong><small>看看谁是街区追捕高手</small></span>${icon("arrow")}</button>
+        <p class="sp-note">游客身份保存在当前浏览器，昵称可以重名。</p>
+      </section>
+      <section class="sp-page" data-page="create" hidden>
+        <h2 class="sp-section-heading">选择你的阵营</h2><div class="sp-choice-roles"><button data-match-role="pursuer" aria-pressed="true"><span class="sp-figure" data-figure="pursuer"></span><strong>我是警察</strong><small>协作包围，抓住小偷！</small><i>${icon("check")}</i></button><button data-match-role="runner" aria-pressed="false"><span class="sp-figure" data-figure="runner"></span><strong>我是小偷</strong><small>灵活躲避，坚持到最后！</small><i>${icon("check")}</i></button></div>
+        <h2 class="sp-section-heading">选择对战模式</h2><div class="sp-mode-grid" data-match-modes></div>
+        <h2 class="sp-section-heading">谁先行动？</h2><div class="sp-segments" data-match-initiative><button data-initiative="pursuer" aria-pressed="false">警察先行</button><button data-initiative="runner" aria-pressed="false">小偷先行</button><button data-initiative="random" aria-pressed="true">随机</button></div>
+        <div class="sp-info-pills"><span>${icon("friends")}<strong>2 人 PK</strong><small>各自操控一方</small></span><span>${icon("shield")}<strong>2 秒先行</strong><small>随后同时行动</small></span></div>
+        <button class="sp-primary" data-create>${icon("play")}创建房间</button><p class="sp-note">地图从对应模式的 100 关中抽取。</p>
+      </section>
+      <section class="sp-page" data-page="join" hidden>
+        <div class="sp-vs-hero sp-vs-hero-small"><span class="sp-figure" data-figure="pursuer"></span><strong class="sp-vs">VS</strong><span class="sp-figure" data-figure="runner"></span></div>
+        <form class="sp-card sp-join-form" data-join-form><label for="street-room-code">输入好友的房间码</label><input id="street-room-code" data-code minlength="12" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="12 位房间码" required><small>让好友把房间码或邀请链接发给你</small><button class="sp-primary" data-join type="submit">加入房间 ${icon("arrow")}</button></form>
+      </section>
+      <section class="sp-page" data-page="room" data-room hidden>
+        <div class="sp-vs-hero sp-room-hero"><span class="sp-figure" data-figure="pursuer"></span><strong class="sp-vs">VS</strong><span class="sp-figure" data-figure="runner"></span></div>
+        <div class="sp-room-code-card"><small>房间码 · 分享给好友</small><button data-share aria-label="查看邀请和复制房间码"><strong data-room-code></strong>${icon("link")}</button></div>
+        <div class="sp-players" data-players></div>
+        <p class="sp-room-hint" data-room-hint></p>
+        <div class="sp-room-settings" data-role-options><h2 class="sp-section-heading">我的阵营</h2><div class="sp-segments"><button data-role="pursuer">警察</button><button data-role="runner">小偷</button></div><h2 class="sp-section-heading">谁先行动？</h2><div class="sp-segments" data-room-initiative><button data-room-lead="pursuer">警察先行</button><button data-room-lead="runner">小偷先行</button><button data-room-lead="random">随机</button></div><small data-initiative-note></small></div>
+        <button class="sp-invite-link" data-invite>${icon("link")}邀请好友，一起来玩</button><button class="sp-primary" data-ready>准备好了 ${icon("play")}</button><button class="sp-primary" data-rematch hidden>${icon("refresh")}再来一局</button><button class="sp-secondary" data-result hidden>查看对战结果</button><button class="sp-text-button" data-close>离开房间，回到首页</button>
+      </section>
+      <section class="sp-page sp-play-page" data-page="play" hidden><div class="sp-play-info"><strong data-play-role></strong><span>点击角色，再点道路移动</span></div><canvas data-play aria-label="好友挑战操作区"></canvas><div class="sp-play-actions"><button data-rules>玩法说明</button><button data-invite>邀请信息</button><button data-close>离开对局</button></div></section>
+      <section class="sp-page" data-page="board" hidden><div class="sp-board-intro">${icon("trophy")}<h2>街区高手榜</h2><p data-board-summary>正在读取全站成绩…</p></div><div data-board-content></div><button class="sp-secondary" data-refresh-board>${icon("refresh")}刷新榜单</button></section>
+      <section class="sp-page" data-page="nickname" hidden><div class="sp-name-hero"><span class="sp-portrait" data-name-avatar></span><i>✦</i><i>✦</i></div><form class="sp-card sp-name-form" data-name-form><label for="street-nickname">你的昵称</label><div class="sp-name-input"><input id="street-nickname" name="name" maxlength="32" autocomplete="off" spellcheck="false" required aria-label="你的昵称">${icon("pen")}</div><small>2–16 个中英文字、数字、空格或 · _ -</small><div data-avatar-picker></div><p class="sp-form-message" role="status" data-name-message></p><button class="sp-primary" type="submit" data-save-name>${icon("check")}保存资料</button></form><p class="sp-note">资料保存在当前入口。清除本机数据后会建立新身份。</p></section>
+      <section class="sp-page" data-page="rules" hidden><div class="sp-rules-hero">${icon("shield")}<h2>街区追捕，开局指南</h2><p>选中角色，点击道路，开始追逐！</p></div><div class="sp-card" data-rules-content></div><button class="sp-primary" data-page-return>知道啦，返回 ${icon("arrow")}</button></section>
+      <section class="sp-page" data-page="results" hidden><div class="sp-result-hero"><span class="sp-figure" data-figure="pursuer"></span><span class="sp-result-trophy">${icon("trophy")}</span><span class="sp-figure" data-figure="runner"></span><h2 data-result-title>这局打得漂亮！</h2><p>好友对战 · 本局积分已确认</p></div><div class="sp-results" data-results></div><button class="sp-primary" data-result-rematch>${icon("refresh")}再来一局</button><button class="sp-secondary" data-board>${icon("trophy")}查看全站榜</button><button class="sp-text-button" data-close>${icon("home")}回到首页</button></section>
+      <section class="sp-page" data-page="invite" hidden><div class="sp-invite-hero">${icon("friends")}<h2>叫上好友，一起追逐！</h2><p>一人当警察，一人当小偷</p></div><div class="sp-card sp-invite-card"><small>你的房间码</small><strong data-invite-code></strong><button class="sp-primary" data-copy-code>${icon("link")}复制房间码</button><small>或把邀请链接发给好友</small><input data-invite-url readonly aria-label="邀请链接"><button class="sp-secondary" data-copy-link>${icon("link")}复制邀请链接</button><p class="sp-form-message" role="status" data-invite-message></p></div><button class="sp-text-button" data-page-return>返回房间 ${icon("arrow")}</button></section>
+    </main>
+    <nav class="sp-bottom-nav" aria-label="好友对战导航"><button data-home>${icon("home")}首页</button><button data-go="lobby" aria-pressed="true">${icon("friends")}好友 PK</button><button data-board>${icon("trophy")}全站榜</button></nav>
+  </div>`;
+		document.body.append(launch, surface);
+		const select = (query) => surface.querySelector(query);
+		const all = (query) => [...surface.querySelectorAll(query)];
+		const status = select("[data-status]");
+		const canvas = select("canvas");
+		const ctx = canvas.getContext("2d");
+		let picker;
+		let room = null, profile = null, modes = [], metadata = null;
+		let poll = null, frame = 0, lastPoll = 0, busy = false, exiting = false, pending = null, resultShown = null;
+		let current = "lobby", trail = [], returnFocus = null;
+		let viewSource = null, viewState = null, viewTurned = false;
+		let drawnView = null;
+		let sessionGeneration = 0, busyGeneration = 0;
+		let historyDepth = 0, historySession = null;
+		const preferences = {
+			mode: "classic",
+			role: "pursuer",
+			initiative: "random"
+		};
+		const pageTitles = {
+			lobby: ["好友 PK", "叫上好友，一起来一场街区追逐！"],
+			create: ["创建房间", "选好阵营，等好友一起出发"],
+			join: ["加入房间", "好友在等你，快来集合！"],
+			room: ["等好友就位", "邀请好友，准备好就出发"],
+			play: ["好友追逐中", ""],
+			board: ["全站榜", "每一局，都离高手更近一点"],
+			nickname: ["修改资料", "选个喜欢的头像，让好友认出你"],
+			rules: ["这局怎么玩", ""],
+			results: ["对战结果", ""],
+			invite: ["邀请好友", "把房间码分享给你的伙伴"]
+		};
+		function node(tag, value, className = "") {
+			const element = document.createElement(tag);
+			element.textContent = value;
+			if (className) element.className = className;
+			return element;
+		}
+		function feedback(value) {
+			renderConnectionInfo(status, value);
+			status.textContent = value instanceof Error ? value.message : String(value);
+			status.toggleAttribute("data-error", value instanceof Error);
+		}
+		const isCurrent = (generation) => surface.open && generation === sessionGeneration;
+		const detachedKey = `competition-detached-rooms:${game}`;
+		function detachedRooms() {
+			try {
+				return JSON.parse(roomStorage.getItem(detachedKey) || "[]").filter((code) => /^[A-F0-9]{12}$/.test(code));
+			} catch {
+				return [];
+			}
+		}
+		function rememberDetached(code) {
+			try {
+				roomStorage.setItem(detachedKey, JSON.stringify([.../* @__PURE__ */ new Set([...detachedRooms(), code])]));
+			} catch {}
+		}
+		function forgetDetached(code) {
+			try {
+				roomStorage.setItem(detachedKey, JSON.stringify(detachedRooms().filter((item) => item !== code)));
+			} catch {}
+		}
+		async function leaveDetached(value) {
+			if (!value?.code || !["waiting", "playing"].includes(value.status)) return;
+			if (surface.open && room?.code === value.code) return;
+			rememberDetached(value.code);
+			try {
+				await client.request(`/rooms/${value.code}/leave`, { body: "{}" });
+				forgetDetached(value.code);
+			} catch {}
+		}
+		async function receiveRoom(value, generation) {
+			if (!isCurrent(generation)) {
+				await leaveDetached(value);
+				return;
+			}
+			accept(value, generation);
+		}
+		function portrait(player) {
+			return renderAvatar(node("span", "", "sp-portrait"), player, client.avatarPolicy);
+		}
+		function updateProfile(value) {
+			profile = value;
+			select("[data-profile-name]").textContent = value.name;
+			renderAvatar(select("[data-avatar]"), value, client.avatarPolicy);
+			renderAvatar(select("[data-name-avatar]"), value, client.avatarPolicy);
+			for (const figure of all("[data-figure]")) figure.style.backgroundPositionX = `${getRoleAppearance$1(figure.dataset.figure).preset * 50}%`;
+		}
+		function navigate(page, { remember = true, animate = true, syncHistory = true } = {}) {
+			if (!select(`[data-page="${page}"]`)) return;
+			const changed = current !== page;
+			if (remember && changed) trail.push(current);
+			current = page;
+			if (surface.open && syncHistory && historySession) {
+				if (remember && changed) {
+					historyDepth++;
+					history.pushState({
+						...history.state,
+						streetPage: page,
+						streetSession: historySession,
+						streetDepth: historyDepth
+					}, "", location.href);
+				} else history.replaceState({
+					...history.state,
+					streetPage: page,
+					streetSession: historySession,
+					streetDepth: historyDepth
+				}, "", location.href);
+			}
+			for (const section of all("[data-page]")) section.hidden = section.dataset.page !== page;
+			surface.dataset.page = page;
+			surface.toggleAttribute("data-playing", page === "play");
+			select("[data-page-title]").textContent = page === "room" && room?.players.length === 2 ? "好友已就位" : pageTitles[page][0];
+			select("[data-page-subtitle]").textContent = pageTitles[page][1];
+			select(".sp-bottom-nav").hidden = !["lobby", "board"].includes(page);
+			for (const button of all(".sp-bottom-nav button")) button.setAttribute("aria-pressed", String(page === "board" ? button.hasAttribute("data-board") : button.dataset.go === "lobby"));
+			const target = select(`[data-page="${page}"]`);
+			target.scrollTop = 0;
+			if (animate && !matchMedia("(prefers-reduced-motion: reduce)").matches) target.animate([{
+				opacity: 0,
+				transform: "translateX(26px)"
+			}, {
+				opacity: 1,
+				transform: "translateX(0)"
+			}], {
+				duration: 230,
+				easing: "cubic-bezier(.2,.7,.2,1)"
+			});
+		}
+		function back() {
+			if (["room", "play"].includes(current)) {
+				close();
+				return;
+			}
+			if (historyDepth > 0) history.back();
+			else if (trail.length) navigate(trail.pop(), { remember: false });
+			else close();
+		}
+		async function run(task) {
+			const generation = sessionGeneration;
+			if (busy && busyGeneration === generation || exiting || !surface.open) return;
+			busy = true;
+			busyGeneration = generation;
+			surface.setAttribute("aria-busy", "true");
+			try {
+				await task(generation);
+			} catch (error) {
+				if (isCurrent(generation)) {
+					if (error.code && error.code !== "SERVICE_UNAVAILABLE") pending = null;
+					feedback(error);
+				}
+			} finally {
+				if (busyGeneration === generation) {
+					busy = false;
+					surface.removeAttribute("aria-busy");
+				}
+			}
+		}
+		function renderModes() {
+			const target = select("[data-match-modes]");
+			target.replaceChildren();
+			if (!modes.length) {
+				target.append(node("p", "对战服务暂未连接，请返回后重试。", "sp-empty"));
+				select("[data-create]").disabled = true;
+				return;
+			}
+			select("[data-create]").disabled = false;
+			if (!modes.some((mode) => mode.id === preferences.mode)) preferences.mode = modes[0].id;
+			for (const mode of modes) {
+				const button = node("button", "", "sp-mode-card");
+				button.dataset.matchMode = mode.id;
+				button.setAttribute("aria-pressed", String(mode.id === preferences.mode));
+				const symbol = node("span", mode.id === "escape" ? "↗" : "★", "sp-mode-symbol");
+				button.append(symbol, node("strong", mode.id === "classic" ? "经典围捕" : mode.id === "escape" ? "出口竞速" : mode.title), node("small", mode.id === "escape" ? "抢先到达出口，突破包围" : "合作追捕，守住整条街区"));
+				button.onclick = () => {
+					preferences.mode = mode.id;
+					for (const item of target.children) item.setAttribute("aria-pressed", String(item === button));
+				};
+				target.append(button);
+			}
+		}
+		function renderPlayers() {
+			const target = select("[data-players]");
+			target.replaceChildren();
+			for (let seat = 0; seat < 2; seat++) {
+				const player = room.players[seat];
+				const card = node("div", "", "sp-player");
+				if (player) {
+					card.dataset.role = player.role || (seat === 0 ? "pursuer" : "runner");
+					card.toggleAttribute("data-ready", !!player.ready);
+					const copy = node("div", "", "sp-player-copy");
+					copy.append(node("strong", playerName(player, room.players) + (seat === room.you ? " · 你" : "")), node("small", `${roleNames[player.role] || "好友"} · ${room.status === "waiting" ? player.ready ? "已准备 ✓" : "等待准备" : room.status === "finished" ? "对局结束" : "对局中断"}`));
+					if (regionText(player)) copy.append(node("small", regionText(player), "sp-region"));
+					card.append(portrait(player), copy);
+				} else {
+					card.dataset.empty = "";
+					card.append(node("span", "＋", "sp-wait-avatar"), node("div", "等一位好友\n分享邀请给 TA", "sp-player-copy"));
+				}
+				target.append(card);
+			}
+		}
+		function accept(value, generation = sessionGeneration) {
+			if (!isCurrent(generation)) return;
+			if (room?.code === value.code && (value.seq < room.seq || value.serverNow < room.serverNow)) return;
+			const oldStatus = room?.status;
+			if (room?.code !== value.code) pending = null;
+			room = value;
+			const playing = room.status === "playing";
+			const ended = [
+				"finished",
+				"abandoned",
+				"expired"
+			].includes(room.status);
+			select("[data-room-code]").textContent = room.code;
+			select("[data-room-hint]").textContent = ended ? room.status === "finished" ? "本局已结束，再来一局继续较量！" : "这局暂告一段落，可以重新邀请好友。" : `${modes.find((mode) => mode.id === room.mode)?.title || "好友对战"} · 双方准备后自动开始`;
+			select("[data-role-options]").hidden = room.status !== "waiting" || !room.roles;
+			select("[data-initiative-note]").textContent = room.you === 0 ? "由你设置先行阵营，修改后双方重新准备。" : "由房主设置先行阵营，先行方有 2 秒行动时间。";
+			for (const button of all("[data-room-lead]")) {
+				button.setAttribute("aria-pressed", String(button.dataset.roomLead === (room.initiative || "random")));
+				button.disabled = room.you !== 0;
+			}
+			for (const button of all("button[data-role]")) {
+				const selected = button.dataset.role === room.players[room.you]?.role;
+				button.setAttribute("aria-pressed", String(selected));
+				button.disabled = selected;
+			}
+			select("[data-ready]").hidden = room.status !== "waiting";
+			select("[data-ready]").disabled = !!room.players[room.you]?.ready;
+			select("[data-ready]").textContent = room.players[room.you]?.ready ? "已准备，等好友 ✓" : "准备好了！ ▸";
+			select("[data-rematch]").hidden = !ended;
+			select("[data-result]").hidden = room.status !== "finished";
+			select("[data-invite]").hidden = ended;
+			select("[data-play-role]").textContent = `你是${roleNames[room.players[room.you]?.role] || "街区伙伴"}`;
+			renderPlayers();
+			feedback({
+				waiting: room.players.length === 2 ? "好友已就位，双方准备就能开始" : "房间已创建，邀请好友来集合",
+				playing: "追逐进行中",
+				finished: "对战结束，本局积分已确认",
+				abandoned: "玩家已退出，可以再来一局",
+				expired: "房间已过期，可以重新邀请好友"
+			}[room.status] + (playing ? ` · 剩余 ${Math.max(0, Math.ceil((room.deadline - room.serverNow) / 1e3))} 秒` : ""));
+			if (playing && (oldStatus !== "playing" || [
+				"lobby",
+				"create",
+				"join",
+				"room",
+				"results"
+			].includes(current))) {
+				trail = [];
+				navigate("play", { remember: false });
+			} else if (!playing && [
+				"lobby",
+				"create",
+				"join",
+				"play"
+			].includes(current)) {
+				trail = [];
+				navigate("room", { remember: false });
+			}
+			if (room.status === "finished" && resultShown !== room.code) {
+				resultShown = room.code;
+				showResults();
+			}
+			try {
+				roomStorage.setItem(`competition-room:${game}`, room.code);
+			} catch {}
+		}
+		async function refresh() {
+			const generation = sessionGeneration;
+			if (!room || busy && busyGeneration === generation || exiting || !surface.open || Date.now() - lastPoll < (room.pollMs || 1200)) return;
+			lastPoll = Date.now();
+			try {
+				accept(await client.request(`/rooms/${room.code}`), generation);
+			} catch (error) {
+				if (isCurrent(generation)) feedback(error);
+			}
+		}
+		function showResults() {
+			if (!room) return;
+			const target = select("[data-results]");
+			target.replaceChildren();
+			const me = room.players[room.you];
+			const ownResult = room.results?.find((entry) => entry.playerId === me.id);
+			const opponent = room.results?.find((entry) => entry.playerId !== me.id);
+			select("[data-result-title]").textContent = ownResult?.result.eligible && ownResult.result.score > (opponent?.result.score ?? ownResult.result.score) ? "这局赢得漂亮！" : ownResult?.result.eligible && ownResult.result.score < (opponent?.result.score ?? ownResult.result.score) ? "差一点，再来一局！" : "这局打得漂亮！";
+			for (const entry of room.results || []) {
+				const player = room.players.find((item) => item.id === entry.playerId) || { playerId: entry.playerId };
+				const card = node("section", "", "sp-result-card");
+				const head = node("div", "", "sp-result-player");
+				head.append(portrait(player), node("h3", `${entry.playerId === me.id ? "你 · " : ""}${playerName(player, room.players)}`));
+				const record = entry.after.me;
+				card.append(head, node("strong", entry.result.eligible ? `${scoreText(game, entry.result.score, entry.result.secondary)} · 本局` : "本局无有效成绩", "sp-result-score"), node("p", record ? `总积分 ${scoreText(game, record.score, record.secondary)} · 全站第 ${record.rank} 名` : "完成有效对战，就能登上全站榜"), node("small", gapText(game, entry.after)));
+				if (entry.reason) card.append(node("p", entry.reason));
+				target.append(card);
+			}
+			navigate("results");
+		}
+		async function showBoard(generation = sessionGeneration, { remember = true } = {}) {
+			navigate("board", { remember });
+			select("[data-board-summary]").textContent = "正在读取全站成绩…";
+			const board = await client.request(`/boards/${game}`);
+			if (!isCurrent(generation)) return;
+			select("[data-board-summary]").textContent = `${board.eligiblePlayers} 位玩家 · 好友对战累计积分`;
+			const target = select("[data-board-content]");
+			target.replaceChildren();
+			if (board.top.length) {
+				const podium = node("div", "", "sp-podium");
+				for (const index of [
+					1,
+					0,
+					2
+				]) {
+					const row = board.top[index];
+					if (!row) continue;
+					const card = node("div", "", "sp-podium-place");
+					card.dataset.rank = String(row.rank);
+					card.append(portrait(row), node("span", String(row.rank), "sp-podium-number"), node("strong", playerName(row, board.top)), node("small", scoreText(game, row.score, row.secondary)));
+					if (regionText(row)) card.append(node("small", regionText(row), "sp-region"));
+					podium.append(card);
+				}
+				target.append(podium);
+			}
+			const list = node("ol", "", "sp-rank-list");
+			for (const row of board.top.slice(3)) {
+				const item = node("li", "", "sp-rank-row");
+				item.toggleAttribute("data-self", row.playerId === board.me?.playerId);
+				item.append(node("span", String(row.rank), "sp-rank-number"), portrait(row), node("strong", playerName(row, board.top)), node("span", scoreText(game, row.score, row.secondary)));
+				if (regionText(row)) item.querySelector("strong").append(node("small", regionText(row), "sp-region"));
+				list.append(item);
+			}
+			if (!board.top.length) list.append(node("li", "全站榜还空着，邀请好友完成一局，留下你的名字！", "sp-empty"));
+			const own = node("section", "", "sp-my-record");
+			const ownCopy = node("div", "", "sp-my-record-copy");
+			ownCopy.append(node("strong", `${profile?.name || "我"} · ${board.me ? "第 " + board.me.rank + " 名" : "尚未上榜"}`), node("span", board.me ? scoreText(game, board.me.score, board.me.secondary) : "等你完成第一局"), node("small", gapText(game, board)));
+			own.append(portrait(profile), ownCopy);
+			target.append(list, own, node("p", "好友对战累计积分，练习成绩不计入全站榜。", "sp-note"));
+		}
+		async function showProfile(generation = sessionGeneration) {
+			navigate("nickname");
+			select("[data-save-name]").disabled = false;
+			const value = await client.request("/me");
+			if (!isCurrent(generation)) return;
+			updateProfile(value);
+			select("[data-name-form]").dataset.userId = profile.userId || profile.playerId;
+			select("[name=\"name\"]").value = profile.name;
+			picker = avatarPicker(profile.avatarId, client.avatarPolicy);
+			select("[data-avatar-picker]").replaceChildren(picker.element);
+			select("[data-name-message]").textContent = "";
+		}
+		async function showRules(generation = sessionGeneration) {
+			navigate("rules");
+			const target = select("[data-rules-content]");
+			target.replaceChildren(node("p", "正在读取玩法说明…"));
+			const rules = room?.state?.rules || metadata?.description || (await client.request(`/boards/${game}`)).description || "双方准备后开始，点击角色，再点击道路移动。";
+			if (!isCurrent(generation)) return;
+			const list = node("ol", "", "sp-rule-list");
+			for (const part of rules.split(/[；。]+/).map((part) => part.trim()).filter(Boolean)) list.append(node("li", `${part}。`));
+			target.replaceChildren(list, node("p", room?.status === "playing" ? "查看说明时对局仍在计时，返回即可继续行动。" : "警察和小偷独立操作，比赛积分由服务端确认。", "sp-note"));
+		}
+		function showInvite() {
+			if (!room) return;
+			const url = new URL(location.href);
+			url.searchParams.set("pk", room.code);
+			select("[data-invite-code]").textContent = room.code;
+			select("[data-invite-url]").value = url.href;
+			select("[data-invite-message]").textContent = "";
+			navigate("invite");
+		}
+		async function copyInvite(link, generation = sessionGeneration) {
+			const value = link ? select("[data-invite-url]").value : room.code;
+			try {
+				await navigator.clipboard.writeText(value);
+				if (!isCurrent(generation)) return;
+				select("[data-invite-message]").textContent = link ? "邀请链接已复制，发给好友吧！" : "房间码已复制，发给好友吧！";
+			} catch {
+				if (!isCurrent(generation)) return;
+				select("[data-invite-message]").textContent = "可以长按选择上方内容，再复制给好友。";
+			}
+		}
+		function renderedView(state, width, height) {
+			const nodes = state?.map?.nodes || [];
+			const extentX = nodes.length ? Math.max(...nodes.map((point) => point.x)) - Math.min(...nodes.map((point) => point.x)) : 0;
+			const extentY = nodes.length ? Math.max(...nodes.map((point) => point.y)) - Math.min(...nodes.map((point) => point.y)) : 0;
+			const turned = width < height && extentX > extentY;
+			if (viewSource === state && viewTurned === turned) return {
+				state: viewState,
+				turned
+			};
+			viewSource = state;
+			viewTurned = turned;
+			if (!turned) viewState = state;
+			else {
+				const point = (value) => value ? {
+					...value,
+					x: -value.y,
+					y: value.x
+				} : value;
+				const actor = (value) => ({
+					...point(value),
+					...value.routePoints ? { routePoints: value.routePoints.map(point) } : {},
+					...value.destination ? { destination: point(value.destination) } : {},
+					...value.gap ? { gap: {
+						...value.gap,
+						from: point(value.gap.from),
+						to: point(value.gap.to)
+					} } : {}
+				});
+				viewState = {
+					...state,
+					map: {
+						...state.map,
+						nodes: nodes.map(point)
+					},
+					cops: state.cops.map(actor),
+					robbers: state.robbers.map(actor),
+					exits: state.exits.map(point)
+				};
+			}
+			surface.dataset.mapProjection = turned ? "quarter-turn" : "normal";
+			return {
+				state: viewState,
+				turned
+			};
+		}
+		function clearRenderMetadata() {
+			drawnView = null;
+			delete canvas.dataset.renderedSeq;
+			delete canvas.dataset.renderedServerNow;
+			delete canvas.dataset.selectedActor;
+		}
+		function draw() {
+			if (!surface.open) return;
+			if (current === "play" && room?.state) {
+				const drawnRoom = room;
+				const width = canvas.clientWidth, height = canvas.clientHeight;
+				const ratio = Math.min(devicePixelRatio || 1, 2);
+				if (canvas.width !== Math.floor(width * ratio) || canvas.height !== Math.floor(height * ratio)) {
+					canvas.width = Math.floor(width * ratio);
+					canvas.height = Math.floor(height * ratio);
+				}
+				ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+				ctx.clearRect(0, 0, width, height);
+				const view = renderedView(drawnRoom.state, width, height);
+				renderer.draw(ctx, width, height, view.state);
+				drawnView = {
+					...view,
+					code: drawnRoom.code,
+					width,
+					height
+				};
+				canvas.dataset.renderedSeq = String(drawnRoom.seq);
+				canvas.dataset.renderedServerNow = String(drawnRoom.serverNow);
+				const selected = renderer.getSelected?.();
+				if (Number.isSafeInteger(selected) && selected >= 0) canvas.dataset.selectedActor = String(selected);
+				else delete canvas.dataset.selectedActor;
+			} else clearRenderMetadata();
+			frame = requestAnimationFrame(draw);
+		}
+		async function open(entry) {
+			if (exiting) return;
+			let generation = sessionGeneration;
+			const opening = !surface.open;
+			if (!surface.open) {
+				sessionGeneration++;
+				generation = sessionGeneration;
+				returnFocus = document.activeElement;
+				window.dispatchEvent(new CustomEvent("competition-visibility", { detail: { open: true } }));
+				surface.open = true;
+				surface.setAttribute("open", "");
+				surface.hidden = false;
+				historySession = `street-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+				historyDepth = 1;
+				history.pushState({
+					...history.state,
+					streetPage: "lobby",
+					streetSession: historySession,
+					streetDepth: historyDepth
+				}, "", location.href);
+				trail = [];
+				navigate("lobby", { remember: false });
+				draw();
+				poll = setInterval(refresh, 250);
+				await run(async (generation) => {
+					const me = await client.request("/me");
+					if (!isCurrent(generation)) return;
+					updateProfile(me);
+					const board = await client.request(`/boards/${game}`);
+					if (!isCurrent(generation)) return;
+					metadata = board;
+					modes = metadata.modes || [];
+					renderModes();
+					for (const code of detachedRooms()) {
+						if (!isCurrent(generation)) return;
+						await leaveDetached({
+							code,
+							status: "waiting"
+						});
+					}
+					if (!isCurrent(generation)) return;
+					const invite = new URL(location.href).searchParams.get("pk");
+					let saved;
+					try {
+						saved = roomStorage.getItem(`competition-room:${game}`);
+					} catch {}
+					if (invite && /^[A-F0-9]{12}$/.test(invite)) {
+						select("[data-code]").value = invite;
+						navigate("join");
+						feedback("邀请已就位，点击加入房间吧！");
+					} else if (saved) accept(await client.request(`/rooms/${saved}`), generation);
+				});
+			}
+			if (entry === "board" && isCurrent(generation)) await run((generation) => showBoard(generation, { remember: !opening }));
+		}
+		async function close({ restoreHistory = true } = {}) {
+			if (exiting || !surface.open) return;
+			exiting = true;
+			launch.disabled = true;
+			surface.open = false;
+			sessionGeneration++;
+			surface.hidden = true;
+			surface.removeAttribute("open");
+			const depth = historyDepth;
+			historyDepth = 0;
+			historySession = null;
+			clearInterval(poll);
+			cancelAnimationFrame(frame);
+			clearRenderMetadata();
+			if (restoreHistory && depth > 0) await new Promise((resolve) => {
+				const done = () => {
+					clearTimeout(timeout);
+					window.removeEventListener("popstate", done);
+					resolve();
+				};
+				const timeout = setTimeout(done, 500);
+				window.addEventListener("popstate", done, { once: true });
+				history.go(-depth);
+			});
+			window.dispatchEvent(new CustomEvent("competition-visibility", { detail: { open: false } }));
+			if (returnFocus?.isConnected && !returnFocus.closest("[hidden]")) returnFocus.focus();
+			try {
+				if (room && ["waiting", "playing"].includes(room.status)) await client.request(`/rooms/${room.code}/leave`, { body: "{}" });
+				room = null;
+				pending = null;
+				resultShown = null;
+				try {
+					roomStorage.removeItem(`competition-room:${game}`);
+				} catch {}
+				feedback("邀请一位好友，一起玩一局。");
+			} catch {
+				launch.title = "退出尚未得到确认，重新进入可以恢复房间。";
+			} finally {
+				exiting = false;
+				launch.disabled = false;
+			}
+		}
+		async function rematch(generation = sessionGeneration) {
+			const result = await client.request(`/rooms/${room.code}/rematch`, { body: "{}" });
+			if (!isCurrent(generation)) {
+				await leaveDetached({
+					code: result.rematch,
+					status: "waiting"
+				});
+				return;
+			}
+			resultShown = null;
+			trail = [];
+			navigate("room", { remember: false });
+			await receiveRoom(await client.request("/rooms/join", { body: JSON.stringify({ code: result.rematch }) }), generation);
+		}
+		launch.onclick = () => void open();
+		globalThis.__openStreetCompetition = open;
+		globalThis.__openCompetition = open;
+		window.addEventListener("competition-navigation", (event) => void open(event.detail?.page || event.detail?.entry));
+		all("[data-go]").forEach((button) => {
+			button.onclick = () => navigate(button.dataset.go);
+		});
+		all("[data-home], [data-close]").forEach((button) => {
+			button.onclick = () => void close();
+		});
+		select("[data-page-back]").onclick = back;
+		all("[data-page-return]").forEach((button) => {
+			button.onclick = back;
+		});
+		all("[data-board]").forEach((button) => {
+			button.onclick = () => void run(showBoard);
+		});
+		select("[data-refresh-board]").onclick = () => void run(showBoard);
+		select("[data-profile]").onclick = () => void run(showProfile);
+		all("[data-rules]").forEach((button) => {
+			button.onclick = () => void run(showRules);
+		});
+		all("[data-invite], [data-share]").forEach((button) => {
+			button.onclick = showInvite;
+		});
+		select("[data-copy-code]").onclick = () => void run((generation) => copyInvite(false, generation));
+		select("[data-copy-link]").onclick = () => void run((generation) => copyInvite(true, generation));
+		all("[data-match-role]").forEach((button) => {
+			button.onclick = () => {
+				preferences.role = button.dataset.matchRole;
+				all("[data-match-role]").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+			};
+		});
+		all("[data-initiative]").forEach((button) => {
+			button.onclick = () => {
+				preferences.initiative = button.dataset.initiative;
+				all("[data-initiative]").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+			};
+		});
+		select("[data-create]").onclick = () => void run(async (generation) => {
+			await receiveRoom(await client.request("/rooms", { body: JSON.stringify({
+				game,
+				...preferences
+			}) }), generation);
+		});
+		select("[data-join-form]").onsubmit = (event) => {
+			event.preventDefault();
+			run(async (generation) => {
+				await receiveRoom(await client.request("/rooms/join", { body: JSON.stringify({
+					code: select("[data-code]").value.trim().toUpperCase(),
+					game
+				}) }), generation);
+			});
+		};
+		select("[data-code]").addEventListener("input", (event) => {
+			event.target.value = event.target.value.replace(/[^a-fA-F0-9]/g, "").toUpperCase();
+		});
+		all("button[data-role]").forEach((button) => {
+			button.onclick = () => void run(async (generation) => accept(await client.request(`/rooms/${room.code}/role`, { body: JSON.stringify({ role: button.dataset.role }) }), generation));
+		});
+		all("[data-room-lead]").forEach((button) => {
+			button.onclick = () => void run(async (generation) => accept(await client.request(`/rooms/${room.code}/initiative`, { body: JSON.stringify({ initiative: button.dataset.roomLead }) }), generation));
+		});
+		select("[data-ready]").onclick = () => void run(async (generation) => accept(await client.request(`/rooms/${room.code}/ready`, { body: "{}" }), generation));
+		select("[data-rematch]").onclick = () => void run(rematch);
+		select("[data-result-rematch]").onclick = () => void run(rematch);
+		select("[data-result]").onclick = showResults;
+		select("[data-name-form]").onsubmit = (event) => {
+			event.preventDefault();
+			run(async (generation) => {
+				const save = select("[data-save-name]");
+				save.disabled = true;
+				select("[data-name-message]").textContent = "正在保存昵称…";
+				try {
+					const value = await client.request("/me", { body: JSON.stringify({
+						name: select("[name=\"name\"]").value,
+						avatarId: picker?.value()
+					}) }, select("[data-name-form]").dataset.userId);
+					if (!isCurrent(generation)) return;
+					updateProfile(value);
+					if (room) accept(await client.request(`/rooms/${room.code}`), generation);
+					if (!isCurrent(generation)) return;
+					back();
+					feedback("资料保存好啦，好友会看到你的新头像和昵称！");
+				} catch (error) {
+					if (isCurrent(generation)) select("[data-name-message]").textContent = error.message;
+				} finally {
+					if (isCurrent(generation)) save.disabled = false;
+				}
+			});
+		};
+		canvas.addEventListener("pointerup", (event) => {
+			if (!room || room.status !== "playing" || current !== "play") return;
+			const view = drawnView;
+			if (!view || view.code !== room.code || view.width !== canvas.clientWidth || view.height !== canvas.clientHeight) return;
+			const rect = canvas.getBoundingClientRect();
+			if (!Number.isFinite(rect.width) || !Number.isFinite(rect.height) || rect.width <= 0 || rect.height <= 0) return;
+			const tapped = renderer.tap((event.clientX - rect.left) * view.width / rect.width, (event.clientY - rect.top) * view.height / rect.height, view.state);
+			const command = view.turned && tapped?.type === "move" ? {
+				...tapped,
+				x: tapped.y,
+				y: -tapped.x
+			} : tapped;
+			if (!command) return;
+			run(async (generation) => {
+				pending ??= {
+					seq: room.seq + 1,
+					action: command
+				};
+				const next = await client.request(`/rooms/${room.code}/actions`, { body: JSON.stringify(pending) });
+				if (!isCurrent(generation)) return;
+				pending = null;
+				accept(next, generation);
+			});
+		});
+		document.addEventListener("keydown", (event) => {
+			if (event.key === "Escape" && surface.open) {
+				event.preventDefault();
+				back();
+			}
+		});
+		window.addEventListener("popstate", (event) => {
+			if (!surface.open) return;
+			if (event.state?.streetSession !== historySession) {
+				close({ restoreHistory: false });
+				return;
+			}
+			historyDepth = event.state.streetDepth || 1;
+			trail.length = Math.max(0, historyDepth - 1);
+			let page = event.state.streetPage || "lobby";
+			if (room && ["room", "play"].includes(current) && page === "lobby") {
+				close();
+				return;
+			}
+			if (room?.status === "playing" && page === "room") page = "play";
+			else if (room && room.status !== "playing" && page === "play") page = "room";
+			navigate(page, {
+				remember: false,
+				syncHistory: false
+			});
+		});
+		document.addEventListener("chase-appearancechange", () => {
+			if (profile) updateProfile(profile);
+			if (room && surface.open) renderPlayers();
+		});
+		if (new URL(location.href).searchParams.has("pk")) open();
+	}
+	//#endregion
+	//#region ../../platforms/competition/service-config.js
+	/** Shared by H5 and native entries; no origin fallback for optional services. */
+	function competitionAvailable(config = globalThis.__COMPETITION_CONFIG__) {
+		return config?.competitionEnabled === true && /^https?:\/\//.test(config.apiUrl || "");
+	}
+	//#endregion
+	//#region ../../platforms/competition/h5.js
+	var titles = {
+		"cops-robbers": "围捕小队",
+		"cops-robbers-realtime": "街区追捕",
+		"letters-words2": "词屿 · 字母叠叠乐",
+		"vibeJam-myself-history-guess": "此时·此地",
+		"xiangqi-five": "象五子棋"
+	};
+	var lettersCompetitionStyles = `
+[data-letters-competition].competition-dialog {
+  --pk-ink:#244e48; --pk-muted:#77877b; --pk-line:#d5dfc7; --pk-accent:#f28d58;
+  width:min(430px,100vw); height:100dvh; max-height:none; margin:0 auto;
+  border:0; border-radius:0; background:#f6f3e9; box-shadow:none;
+  font-family:system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;
+}
+[data-letters-competition]::backdrop { background:#f6f3e9; backdrop-filter:none; }
+[data-letters-competition] .pk-shell { padding:max(24px,env(safe-area-inset-top)) 24px max(20px,env(safe-area-inset-bottom)); }
+[data-letters-competition] .pk-header { min-height:44px; padding:0; border:0; gap:0; }
+[data-letters-competition] .pk-brand { justify-content:center; }
+[data-letters-competition] .pk-brand strong { font-size:15px; font-weight:750; letter-spacing:1px; }
+[data-letters-competition] .pk-brand-mark,
+[data-letters-competition] .pk-brand small,
+[data-letters-competition] .pk-profile-copy small,
+[data-letters-competition] .pk-profile > .pk-avatar,
+[data-letters-competition] .pk-room-note,
+[data-letters-competition] .pk-footer > p,
+[data-letters-competition] .pk-hero .pk-eyebrow { display:none; }
+[data-letters-competition] .pk-tools { width:44px; }
+[data-letters-competition] .pk-tools button { width:44px; min-width:44px; padding:0; font-size:12px; }
+[data-letters-competition] button { min-height:52px; border:1px solid #c5d1be; border-radius:17px; background:#e4ecd8; font-size:15px; font-weight:750; box-shadow:0 3px #becbb6; }
+[data-letters-competition] button:hover { background:#e4ecd8; }
+[data-letters-competition] button:active { transform:translateY(3px); box-shadow:none; }
+[data-letters-competition] button.pk-primary { min-height:58px; border:0; background:#f28d58; color:#244e48; font-size:18px; box-shadow:0 5px #cd7043; }
+[data-letters-competition] button.pk-primary:hover { background:#f28d58; }
+[data-letters-competition] button.pk-quiet,
+[data-letters-competition] button.pk-back { min-height:44px; border:0; border-radius:14px; background:transparent; box-shadow:none; color:#244e48; }
+[data-letters-competition] button.pk-back { width:44px; min-width:44px; padding:0; font-size:28px; }
+[data-letters-competition] .pk-status { display:none; }
+[data-letters-competition] .pk-status[data-error] { display:block; min-height:24px; margin:6px 0!important; color:#a65d3b!important; }
+[data-letters-competition] .pk-status[data-feedback]:not([data-error]) { display:block; min-height:24px; margin:6px 0!important; }
+[data-letters-competition] .pk-content { padding-bottom:5px; }
+[data-letters-competition] .pk-hero { padding:22px 0 17px; }
+[data-letters-competition] .pk-hero h2 { font-size:28px; font-weight:800; letter-spacing:0; line-height:1.4; }
+[data-letters-competition] .pk-hero p { margin-top:8px; font-size:13px; line-height:1.7; }
+[data-letters-competition] .pk-letter-hero { min-height:150px; border-radius:24px; background:#e8eddc; position:relative; overflow:hidden; margin:0 0 22px; padding:24px; display:flex; align-items:center; }
+[data-letters-competition] .pk-letter-hero strong { position:relative; z-index:1; font-size:22px; line-height:1.6; }
+[data-letters-competition] .pk-letter-hero img { position:absolute; width:220px; right:-42px; bottom:-2px; }
+[data-letters-competition] .pk-options { grid-template-columns:1fr; gap:17px; }
+[data-letters-competition] .pk-option { padding:21px; border:1px solid #e2e3d5; border-radius:22px; background:#fffdf7; }
+[data-letters-competition] .pk-option h3 { font-size:18px; margin:0 0 8px; font-weight:800; }
+[data-letters-competition] .pk-option p { min-height:0; margin:0 0 20px; font-size:12px; line-height:1.6; }
+[data-letters-competition] .pk-join { display:grid; gap:14px; }
+[data-letters-competition] .pk-join label { font-size:0; }
+[data-letters-competition] input { min-height:53px; border:1px solid #d6dfcc; border-radius:15px; background:#fffdf7; color:#244e48; padding:0 15px; }
+[data-letters-competition] .pk-join input { margin:0; font:14px system-ui,sans-serif; letter-spacing:1px; }
+[data-letters-competition] .pk-footer { flex:none; padding:6px 0 0; margin-top:6px; gap:10px; flex-direction:row; }
+[data-letters-competition] .pk-footer > button { width:auto; min-height:44px; border:0; background:transparent; box-shadow:none; color:#77877b; font-size:12px; padding:0 4px; }
+[data-letters-competition] .pk-profile { width:auto; flex:1; min-width:0; padding:0; margin:0; border-radius:0; background:transparent; gap:4px; min-height:44px; }
+[data-letters-competition] .pk-profile-copy strong { font-size:12px; color:#77877b; }
+[data-letters-competition] .pk-profile button { padding:0 6px; font-size:12px; color:#77877b; }
+[data-letters-competition] .pk-room-intro { padding:24px 0 14px; }
+[data-letters-competition] .pk-room-intro h2 { font-size:27px; font-weight:800; }
+[data-letters-competition] .pk-room-intro .pk-eyebrow { display:none; }
+[data-letters-competition] .pk-room-code { margin:20px 0 12px; padding:14px 5px; border:1px dashed #bdcbae; border-radius:16px; background:#e8eddc; color:#244e48; font-size:19px; letter-spacing:2px; }
+[data-letters-competition] .pk-room-intro p { font-size:13px; line-height:1.7; }
+[data-letters-competition] .pk-matchup { grid-template-columns:1fr 28px 1fr; gap:5px; margin:18px 0 26px; }
+[data-letters-competition] .pk-player { border:1px solid #d5dfc7; border-radius:22px; background:#fffdf7; padding:22px 7px; }
+[data-letters-competition] .pk-player[data-ready] { background:#e8efd9; }
+[data-letters-competition] .pk-player[data-empty] { border-style:dashed; background:transparent; }
+[data-letters-competition] .pk-avatar { background:#cde4c4; color:#315c4d; border-radius:16px; box-shadow:0 3px #acc49c; }
+[data-letters-competition] .pk-room-actions { flex-direction:column; gap:15px; }
+[data-letters-competition] .pk-room-actions > button { min-width:0; width:100%; }
+[data-letters-competition][data-playing] .pk-shell { padding:max(8px,env(safe-area-inset-top)) 0 max(6px,env(safe-area-inset-bottom)); }
+[data-letters-competition][data-playing] .pk-header { margin:0 12px; padding:0; }
+[data-letters-competition][data-playing] .pk-brand strong { font-size:13px; }
+[data-letters-competition] canvas[data-play] { border-radius:0; background:#f6f3e9; }
+[data-letters-competition]:has([data-details]:not([hidden])) .pk-shell { display:none; }
+[data-letters-competition] .pk-detail-page { position:absolute; inset:0; display:block; height:100%; padding:max(24px,env(safe-area-inset-top)) 24px max(20px,env(safe-area-inset-bottom)); background:#f6f3e9; backdrop-filter:none; }
+[data-letters-competition] .pk-sheet { max-width:none; height:100%; max-height:none; border:0; border-radius:0; background:transparent; box-shadow:none; padding:0; display:flex; flex-direction:column; overflow:hidden; }
+[data-letters-competition] .pk-sheet-head { flex:none; margin:0 0 24px; min-height:44px; }
+[data-letters-competition] .pk-sheet-head h2 { font-size:26px; font-weight:800; }
+[data-letters-competition] .pk-sheet-head small { font-size:12px; }
+[data-letters-competition] .pk-sheet-content { flex:1; overflow:auto; min-height:0; padding:0 0 5px; }
+[data-letters-competition] .pk-sheet-actions { flex:none; padding-top:14px; margin-top:0; }
+[data-letters-competition] .pk-sheet-actions button { width:100%; }
+[data-letters-competition] .pk-result { border:1px solid #d5dfc7; border-radius:22px; background:#e8efd9; padding:20px; }
+[data-letters-competition] .pk-result strong { font-size:23px; }
+[data-letters-competition] .pk-result-actions { flex-direction:column; gap:15px; }
+[data-letters-competition] .pk-my-record { background:#244e48; border-radius:22px; }
+[data-letters-competition] .pk-rule-list li { padding:16px; margin-top:12px; border:1px solid #e2e3d5; border-radius:18px; background:#fffdf7; line-height:1.7; }
+@media (max-height:650px) { [data-letters-competition] .pk-letter-hero { min-height:106px; margin-bottom:16px; padding:18px; } [data-letters-competition] .pk-letter-hero strong { font-size:19px; } [data-letters-competition] .pk-hero { padding-top:14px; } }
+@media (orientation:landscape) and (max-height:500px) { [data-letters-competition].competition-dialog { width:100vw; } [data-letters-competition] .pk-shell { padding:8px 18px; } [data-letters-competition] .pk-letter-hero { display:none; } [data-letters-competition] .pk-options { grid-template-columns:1fr 1fr; } [data-letters-competition] .pk-footer { flex-direction:row; gap:18px; } [data-letters-competition] .pk-footer > button { width:auto; } [data-letters-competition] .pk-profile { width:auto; flex:1; } [data-letters-competition] .pk-hero { padding:5px 0 12px; } [data-letters-competition] .pk-room-actions { flex-direction:row; } }
+`;
+	var xiangqiCompetitionStyles = `
+body.competition-active { background:#fff8e8; overflow:hidden; }
+body.competition-active [data-screen], body.competition-active > .page, body.competition-active > .app-shell { display:none!important; }
+body.competition-active #mode-online { position:static; }
+[data-xiangqi-competition][hidden] { display:none!important; }
+[data-xiangqi-competition].competition-dialog {
+  --pk-ink:#573626; --pk-muted:#94785d; --pk-line:#ddc8a9; --pk-accent:#ef795f;
+  position:relative; inset:auto; width:100%; max-width:600px; height:100dvh;
+  margin:0 auto; border:0; border-radius:0; background:#fff8e8; box-shadow:none;
+  font-family:'PingFang SC','Microsoft YaHei',sans-serif;
+}
+[data-xiangqi-competition] .pk-shell { padding: max(14px,env(safe-area-inset-top)) 18px max(14px,env(safe-area-inset-bottom)); }
+[data-xiangqi-competition] .pk-header { border:0; padding-bottom:8px; }
+[data-xiangqi-competition] .pk-back { padding:0; width:44px; min-width:44px; border:0; background:transparent; font-size:28px; }
+[data-xiangqi-competition] .pk-brand { justify-content:center; }
+[data-xiangqi-competition] .pk-brand strong { font-size:23px; font-weight:900; }
+[data-xiangqi-competition] .pk-brand-mark,
+[data-xiangqi-competition] .pk-brand small,
+[data-xiangqi-competition] .pk-profile-copy small,
+[data-xiangqi-competition] .pk-room-note,
+[data-xiangqi-competition] .pk-footer p,
+[data-xiangqi-competition] .pk-hero .pk-eyebrow,
+[data-xiangqi-competition] .pk-hero p { display:none; }
+[data-xiangqi-competition] .pk-status { font-size:12px; justify-content:center; min-height:20px; margin:3px 0 12px!important; }
+[data-xiangqi-competition] .pk-hero { padding:10px 0 18px; background:none; border:0; }
+[data-xiangqi-competition] .pk-hero h2 { font-size:27px; font-weight:900; }
+[data-xiangqi-competition] .pk-profile { padding:12px 14px; border:2px solid #d6c29e; border-radius:20px; background:#edf3dc; margin-bottom:18px; }
+[data-xiangqi-competition] .pk-avatar { background:#b8d0a9; color:#365f45; border:2px solid #668360; box-shadow:0 3px 0 #7fa578; }
+[data-xiangqi-competition] .pk-options { grid-template-columns:1fr; gap:16px; }
+[data-xiangqi-competition] .pk-option { padding:18px; border:2px solid #d6b38c; border-radius:24px; background:#fff0da; box-shadow:0 4px 0 #ead5b8; }
+[data-xiangqi-competition] .pk-option h3 { font-size:20px; font-weight:900; }
+[data-xiangqi-competition] .pk-option p { margin:5px 0 14px!important; font-size:13px; }
+[data-xiangqi-competition] button { border:2px solid #ba9b77; border-radius:16px; background:#fff5df; min-height:48px; font-size:15px; font-weight:800; box-shadow:0 3px 0 #dfc7a9; }
+[data-xiangqi-competition] button:active { transform:translateY(2px); }
+[data-xiangqi-competition] button.pk-primary { border-color:#b25843; background:#ef795f; color:#fffaf0; box-shadow:0 4px 0 #be5c42; }
+[data-xiangqi-competition] button.pk-quiet { border-color:transparent; background:transparent; box-shadow:none; padding:8px; min-height:44px; }
+[data-xiangqi-competition] input { min-width:0; border:2px solid #d6b38c; border-radius:14px; background:#fffcf2; color:#573626; min-height:48px; }
+[data-xiangqi-competition] .pk-join { gap:10px; }
+[data-xiangqi-competition] .pk-footer { border:0; padding-top:18px; justify-content:center; }
+[data-xiangqi-competition] .pk-footer button { width:100%; background:#dce9cb; }
+[data-xiangqi-competition] .pk-room-code { background:#fff0d5; border:2px dashed #d3ad78; color:#715137; border-radius:15px; }
+[data-xiangqi-competition] .pk-room-intro { padding:14px 0; }
+[data-xiangqi-competition] .pk-player { border-radius:20px; border:2px solid #d6c29e; background:#f0f4df; }
+[data-xiangqi-competition] .pk-room-actions { gap:12px; flex-wrap:wrap; }
+[data-xiangqi-competition] .pk-room-actions > button { flex:1; min-width:120px; }
+[data-xiangqi-competition][data-playing] .pk-shell { padding: max(8px,env(safe-area-inset-top)) 10px max(6px,env(safe-area-inset-bottom)); }
+[data-xiangqi-competition][data-playing] .pk-header { min-height:44px; padding:0; }
+[data-xiangqi-competition][data-playing] .pk-brand strong { font-size:18px; }
+[data-xiangqi-competition][data-playing] .pk-status { display:none; }
+[data-xiangqi-competition] canvas[data-play] { background:#fff8e8; border-radius:0; }
+[data-xiangqi-competition]:has([data-details]:not([hidden])) .pk-shell { display:none; }
+[data-xiangqi-competition] .pk-detail-page {
+  position:static; inset:auto; display:block; height:100%; background:#fff8e8;
+  backdrop-filter:none; padding:max(20px,env(safe-area-inset-top)) 18px max(20px,env(safe-area-inset-bottom));
+}
+[data-xiangqi-competition] .pk-sheet { height:100%; max-width:none; border:0; border-radius:0; background:transparent; box-shadow:none; padding:0; display:flex; flex-direction:column; }
+[data-xiangqi-competition] .pk-sheet-head { flex:none; }
+[data-xiangqi-competition] .pk-sheet-head h2 { font-size:26px; font-weight:900; }
+[data-xiangqi-competition] .pk-sheet-content { flex:1; overflow:auto; padding:2px 0 14px; }
+[data-xiangqi-competition] .pk-sheet-actions { flex:none; padding-top:14px; }
+[data-xiangqi-competition] .pk-sheet-actions button { width:100%; background:#dce9cb; }
+[data-xiangqi-competition] .pk-result { border:2px solid #d6c29e; border-radius:22px; background:#edf3dc; }
+@media (orientation:landscape) and (max-height:500px) {
+  [data-xiangqi-competition].competition-dialog { max-width:none; }
+  [data-xiangqi-competition] .pk-options { grid-template-columns:1fr 1fr; }
+  [data-xiangqi-competition] .pk-shell { padding:8px 18px; }
+  [data-xiangqi-competition][data-playing] .pk-header { min-height:44px; }
+}
+`;
+	function mountCompetition(game, createRenderer) {
+		if ([
+			"cops-robbers",
+			"cops-robbers-realtime",
+			"xiangqi-five"
+		].includes(game) && !competitionAvailable()) return;
+		globalThis.__installCompetition();
+		globalThis.__competition.renderConnectionInfo = renderConnectionInfo;
+		globalThis.__competition.renderAvatar = renderAvatar;
+		if (game === "cops-robbers-realtime") return mountStreetCompetition(game, createRenderer);
+		const street = game === "cops-robbers-realtime";
+		const xiangqi = game === "xiangqi-five";
+		const letters = game === "letters-words2";
+		const roleNames = street ? {
+			pursuer: "警察",
+			runner: "小偷"
+		} : {
+			pursuer: "追逐队",
+			runner: "突围队"
+		};
+		if (document.querySelector(".competition-dialog") || !document.getElementById("friend-duel") && document.querySelector("[data-competition-launch]")) return;
+		globalThis.__installCompetition();
+		const client = globalThis.__competition, renderer = createRenderer({
+			createImage: () => new Image(),
+			assetBase: new URL("./", location.href).href
+		});
+		const roomStorage = client.identityMode === "ephemeral" ? client.roomStorage : {
+			getItem: (key) => localStorage.getItem(key),
+			setItem: (key, value) => localStorage.setItem(key, value),
+			removeItem: (key) => localStorage.removeItem(key)
+		};
+		const modeEntry = xiangqi ? document.getElementById("mode-online") : letters ? document.getElementById("friend-button") : document.getElementById("friend-duel");
+		const launch = modeEntry || document.createElement("button");
+		if (!modeEntry) launch.textContent = "好友 PK · 全站榜";
+		if (modeEntry) modeEntry.hidden = false;
+		launch.disabled = false;
+		launch.removeAttribute("aria-label");
+		launch.dataset.competitionLaunch = "";
+		const style = document.createElement("style");
+		style.textContent = xiangqi ? h5_default.replaceAll("[data-competition-launch]", "[data-competition-launch]:not(#mode-online)") + xiangqiCompetitionStyles : letters ? h5_default.replaceAll("[data-competition-launch]", "[data-competition-launch]:not(#friend-button)") + lettersCompetitionStyles : h5_default.replaceAll("[data-competition-launch]", "[data-competition-launch]:not(#friend-duel)");
+		style.textContent += avatarPickerStyles;
+		document.head.append(style);
+		const dialog = document.createElement(xiangqi ? "section" : "dialog");
+		dialog.className = "competition-dialog";
+		if (xiangqi) {
+			dialog.dataset.xiangqiCompetition = "";
+			dialog.hidden = true;
+		}
+		dialog.setAttribute("aria-label", `${titles[game]} · 好友对决`);
+		dialog.innerHTML = `<div class="pk-shell">
+    <header class="pk-header"><div class="pk-brand"><span class="pk-brand-mark" aria-hidden="true">PK</span><div><strong>${titles[game]}</strong><small>好友对决 · 同场较量</small></div></div>
+      <nav class="pk-tools" aria-label="游玩工具"><button class="pk-quiet" data-rules>玩法</button></nav></header>
+    <p class="pk-status" role="status" data-status>同一规则，和好友认真比一局。</p>
+    <main class="pk-content">
+      <section data-lobby><div class="pk-hero"><span class="pk-eyebrow">一起玩，更有意思</span><h2>叫上好友，比一局。</h2><p>同样的起点，各自的本事。邀请一位好友，完成挑战，看看谁更胜一筹。</p></div>
+        <div class="pk-profile"><span class="pk-avatar" data-avatar aria-hidden="true">你</span><div class="pk-profile-copy"><strong data-profile-name>正在读取昵称…</strong><small>你的名字会出现在房间和排行榜中</small></div><button class="pk-quiet" data-profile>修改资料</button></div>
+        <div class="pk-options"><section class="pk-option"><h3>我来开一局</h3><p>创建房间，把邀请发给好友。双方准备后开始。</p><div class="pk-match-options" data-match-options hidden><label>对战模式<select data-match-mode></select></label><label>我的角色<select data-match-role><option value="pursuer">追逐队</option><option value="runner">突围队</option></select></label><label>开局顺序<select data-match-initiative><option value="random">系统分配先手</option><option value="pursuer">追逐队先手</option><option value="runner">突围队先手</option></select></label><small>双方独立操控不同队伍，胜负取决于操作。地图从本模式 100 关中抽取。</small></div><button class="pk-primary" data-create>创建好友挑战 <span aria-hidden="true">↗</span></button></section>
+          <section class="pk-option"><h3>好友在等我</h3><p>收到邀请链接可直接加入，也可以输入房间码。</p><div class="pk-join"><label>房间码<input data-code maxlength="12" autocomplete="off" spellcheck="false" placeholder="12 位房间码"></label><button data-join>加入</button></div></section></div>
+      </section>
+      <section data-room hidden><div class="pk-room-intro"><span class="pk-eyebrow">好友房间</span><h2 data-room-title>等好友就位</h2><span class="pk-room-code" data-room-code></span><p data-room-hint>把邀请发给好友，双方准备后开始。</p></div><div class="pk-matchup" data-players></div>
+        <div class="pk-role-actions" data-role-options hidden><span>我的角色</span><button data-role="pursuer">追逐队</button><button data-role="runner">突围队</button><small>切换后交换双方角色，请两人重新准备。</small><label>开局顺序<select data-room-initiative><option value="random">系统分配先手</option><option value="pursuer">追逐队先手</option><option value="runner">突围队先手</option></select></label><small data-initiative-note></small></div><div class="pk-room-actions"><button data-share>复制邀请</button><button class="pk-primary" data-ready>准备</button><button class="pk-primary" data-rematch hidden>再来一局</button><button data-result hidden>查看结果</button></div><p class="pk-room-note">相同规则 · 独立操作 · 服务端确认结果</p></section>
+      <canvas data-play hidden aria-label="好友挑战操作区"></canvas>
+    </main>
+    <footer class="pk-footer"><p>昵称可以重名，成绩跟随账号。昵称可重名，资料保存在当前入口。</p><button data-board>全站榜 <span aria-hidden="true">↗</span></button></footer>
+    <div class="pk-exit"><button data-close aria-label="退出 PK">退出 PK</button></div>
+  </div><section class="pk-overlay" data-details hidden aria-label="比赛详情"></section>`;
+		if (!modeEntry) document.body.append(launch);
+		document.body.append(dialog);
+		if (letters) {
+			dialog.dataset.lettersCompetition = "";
+			const back = dialog.querySelector("[data-close]");
+			back.textContent = "←";
+			back.setAttribute("aria-label", "返回词屿首页");
+			back.className = "pk-back";
+			dialog.querySelector(".pk-header").prepend(back);
+			dialog.querySelector(".pk-exit").remove();
+			dialog.querySelector(".pk-brand strong").textContent = "好友同题";
+			dialog.querySelector(".pk-hero h2").textContent = "一起，开一座词岛。";
+			dialog.querySelector(".pk-hero p").textContent = "同一组 18 词，和朋友来一场 120 秒拼词。";
+			const art = document.createElement("div");
+			art.className = "pk-letter-hero";
+			art.innerHTML = "<strong>叫上朋友<br>看看谁先点亮</strong><img src=\"./assets/ui/island.svg\" alt=\"\">";
+			dialog.querySelector(".pk-options").before(art);
+			const options = dialog.querySelectorAll(".pk-option");
+			options[0].querySelector("h3").textContent = "创建好友房间";
+			options[0].querySelector("p").textContent = "把邀请发给好友，准备好就出发。";
+			dialog.querySelector("[data-create]").textContent = "创建房间 →";
+			options[1].querySelector("h3").textContent = "加入朋友的房间";
+			options[1].querySelector("p").hidden = true;
+			dialog.querySelector("[data-code]").placeholder = "输入 12 位房间码";
+			dialog.querySelector("[data-code]").setAttribute("aria-label", "12 位房间码");
+			dialog.querySelector("[data-join]").textContent = "加入房间 →";
+			dialog.querySelector(".pk-footer").prepend(dialog.querySelector(".pk-profile"));
+			dialog.querySelector("[data-board]").textContent = "看看全站榜 →";
+			dialog.querySelector(".pk-overlay").classList.add("pk-detail-page");
+		}
+		if (xiangqi) {
+			const back = dialog.querySelector("[data-close]");
+			back.textContent = "←";
+			back.setAttribute("aria-label", "返回玩法选择");
+			back.className = "pk-back";
+			dialog.querySelector(".pk-header").prepend(back);
+			dialog.querySelector(".pk-exit").remove();
+			dialog.querySelector(".pk-brand strong").textContent = "好友对弈";
+			dialog.querySelector(".pk-brand-mark").textContent = "五";
+			dialog.querySelector(".pk-hero h2").textContent = "叫上好友，下一局！";
+			dialog.querySelector("[data-create]").textContent = "创建房间";
+			dialog.querySelector("[data-board]").textContent = "看看排行榜 →";
+			dialog.querySelector(".pk-overlay").classList.add("pk-detail-page");
+		}
+		if (street) {
+			globalThis.__CLASSIC_CHASE_ROLES__ = true;
+			dialog.dataset.streetCompetition = "";
+			const walker = document.createTreeWalker(dialog, NodeFilter.SHOW_TEXT);
+			while (walker.nextNode()) walker.currentNode.textContent = walker.currentNode.textContent.replaceAll("追逐队", "警察").replaceAll("突围队", "小偷");
+		}
+		const select = (q) => dialog.querySelector(letters && q === "[data-ready]" ? "button[data-ready]" : q), status = select("[data-status]"), canvas = select("canvas"), ctx = canvas.getContext("2d"), details = select("[data-details]");
+		let room = null, profile = null, poll = null, busy = false, exiting = false, pending = null, frame = 0, lastPoll = 0, resultShown = null, returnFocus = null, modes = [];
+		let pageGeneration = 0;
+		async function request(...args) {
+			const generation = pageGeneration;
+			const value = await client.request(...args);
+			if (generation !== pageGeneration) throw Object.assign(/* @__PURE__ */ new Error("页面已关闭，请重新进入。"), { code: "SESSION_CHANGED" });
+			return value;
+		}
+		const isOpen = () => xiangqi ? !dialog.hidden : dialog.open;
+		let screenStates = [];
+		function closeCompetition() {
+			if (!xiangqi) {
+				dialog.close();
+				return;
+			}
+			dialog.hidden = true;
+			dialog.removeAttribute("open");
+			document.body.classList.remove("competition-active");
+			for (const [screen, inert] of screenStates) screen.inert = inert;
+			screenStates = [];
+			if (history.state?.xqOnline) {
+				const nextState = { ...history.state };
+				delete nextState.xqOnline;
+				history.replaceState(nextState, "", location.href);
+			}
+			dialog.dispatchEvent(new Event("close"));
+			window.dispatchEvent(new CustomEvent("xiangqi-online-close", { detail: { open: false } }));
+			if (launch.isConnected && !launch.closest("[hidden]")) launch.focus();
+		}
+		function text(tag, value, className = "") {
+			const node = document.createElement(tag);
+			node.textContent = value;
+			if (className) node.className = className;
+			return node;
+		}
+		function action(label, handler, className = "") {
+			const button = text("button", label, className);
+			button.type = "button";
+			button.onclick = handler;
+			return button;
+		}
+		function dismiss() {
+			details.hidden = true;
+			select(".pk-content").inert = false;
+			select(".pk-footer").inert = false;
+			if (!xiangqi && !letters) select(".pk-exit").inert = false;
+			if (returnFocus?.isConnected && !returnFocus.closest("[hidden]")) returnFocus.focus();
+			else select("[data-rules]").focus();
+		}
+		function detailPanel(title, subtitle, kind) {
+			if (details.hidden) returnFocus = document.activeElement;
+			details.hidden = false;
+			details.replaceChildren();
+			select(".pk-content").inert = true;
+			select(".pk-footer").inert = true;
+			if (!xiangqi && !letters) select(".pk-exit").inert = true;
+			const sheet = text("div", "", "pk-sheet");
+			sheet.dataset.kind = kind;
+			const head = text("div", "", "pk-sheet-head"), label = document.createElement("div");
+			label.append(text("h2", title), text("small", subtitle));
+			const close = action("返回游戏", dismiss);
+			const actions = text("div", "", "pk-sheet-actions");
+			const content = text("div", "", "pk-sheet-content");
+			close.dataset.dismiss = "";
+			close.setAttribute("aria-label", "返回游戏");
+			close.title = "返回游戏";
+			head.append(label);
+			actions.append(close);
+			sheet.append(head, content, actions);
+			details.append(sheet);
+			close.focus();
+			return content;
+		}
+		function feedback(error) {
+			renderConnectionInfo(status, error);
+			status.textContent = error instanceof Error ? error.message : String(error);
+			status.toggleAttribute("data-error", error instanceof Error);
+			if (letters) status.toggleAttribute("data-feedback", /复制|发送房间码|已读取邀请|昵称已保存/.test(status.textContent));
+		}
+		function updateProfile(value) {
+			profile = value;
+			select("[data-profile-name]").textContent = value.name;
+			renderAvatar(select("[data-avatar]"), value, client.avatarPolicy);
+		}
+		async function showProfile() {
+			updateProfile(await request("/me"));
+			const sheet = detailPanel("让好友认出你", "昵称可修改，成绩和身份不会改变。", "profile");
+			const expectedUserId = profile.userId || profile.playerId;
+			const active = () => isOpen() && !details.hidden && sheet.isConnected && sheet.closest("[data-details]") === details;
+			const hero = text("div", "", "pk-profile-hero");
+			hero.append(renderAvatar(text("span", "", "pk-avatar"), profile, client.avatarPolicy), text("strong", profile.name));
+			sheet.append(hero);
+			const form = document.createElement("form");
+			form.className = "pk-profile-form";
+			form.dataset.userId = expectedUserId;
+			const label = text("label", "你的昵称"), input = document.createElement("input");
+			input.name = "name";
+			input.value = profile.name;
+			input.maxLength = 32;
+			input.autocomplete = "off";
+			input.spellcheck = false;
+			input.required = true;
+			input.setAttribute("aria-label", "你的昵称");
+			label.append(input);
+			form.append(label, text("small", "2–16 个中英文字、数字、空格或 · _ -。"));
+			const picker = avatarPicker(profile.avatarId, client.avatarPolicy);
+			form.append(picker.element);
+			const message = text("p", "", "pk-form-message");
+			message.setAttribute("role", "status");
+			const save = text("button", "保存资料", "pk-primary");
+			save.type = "submit";
+			form.append(message, save);
+			sheet.append(form);
+			sheet.append(text("p", "资料保存在当前入口。清除本机数据后会建立新身份。", "pk-sheet-note"));
+			form.onsubmit = async (event) => {
+				event.preventDefault();
+				if (save.disabled) return;
+				save.disabled = true;
+				message.textContent = "正在保存…";
+				try {
+					const value = await request("/me", { body: JSON.stringify({
+						name: input.value,
+						avatarId: picker.value()
+					}) }, expectedUserId);
+					if (!active()) return;
+					updateProfile(value);
+					if (room) accept(await request(`/rooms/${room.code}`));
+					if (!active()) return;
+					dismiss();
+					feedback("资料已保存，房间和全站榜会同步更新。");
+				} catch (error) {
+					message.textContent = error.message;
+				} finally {
+					save.disabled = false;
+				}
+			};
+			input.focus();
+			input.select();
+		}
+		function renderPlayers() {
+			const target = select("[data-players]");
+			target.replaceChildren();
+			for (let seat = 0; seat < 2; seat++) {
+				if (seat === 1) target.append(text("span", "VS", "pk-versus"));
+				const player = room.players[seat], card = text("div", "", "pk-player");
+				if (player) {
+					card.toggleAttribute("data-ready", !!player.ready);
+					card.append(renderAvatar(text("span", "", "pk-avatar"), player, client.avatarPolicy), text("strong", playerName(player, room.players) + (seat === room.you ? "（你）" : "")), text("small", [roleNames[player.role], room.status === "waiting" ? player.ready ? "已准备" : "还未准备" : room.status === "finished" ? "本局已结束" : "本局已中断"].filter(Boolean).join(" · ")));
+					if (regionText(player)) card.append(text("small", regionText(player), "pk-region"));
+				} else {
+					card.dataset.empty = "";
+					card.append(text("span", "＋", "pk-avatar"), text("strong", "等一位好友"), text("small", "复制邀请，发给 TA"));
+				}
+				target.append(card);
+			}
+		}
+		function accept(value) {
+			if (!isOpen()) return;
+			if (room?.code !== value.code) pending = null;
+			room = value;
+			const playing = room.status === "playing", ended = [
+				"finished",
+				"abandoned",
+				"expired"
+			].includes(room.status);
+			select("[data-lobby]").hidden = true;
+			select("[data-room]").hidden = playing;
+			canvas.hidden = !playing;
+			select(".pk-footer").hidden = playing;
+			select("[data-room-code]").textContent = room.code;
+			select("[data-room-title]").textContent = ended ? room.status === "finished" ? "这一局，已分高下" : "这局暂告一段落" : room.players.length === 2 ? "好友已就位" : "等好友就位";
+			select("[data-room-hint]").textContent = ended ? "再来一局，继续和好友较量。" : room.roles ? `${modes.find((mode) => mode.id === room.mode)?.title || room.mode} · 选择角色，双方准备后开始。` : "双方准备后自动开始。规则和初始条件完全相同。";
+			select("[data-role-options]").hidden = room.status !== "waiting" || !room.roles;
+			select("[data-room-initiative]").value = room.initiative || "random";
+			select("[data-room-initiative]").disabled = room.you !== 0;
+			select("[data-initiative-note]").textContent = (game === "cops-robbers-realtime" ? "先手有 2 秒开局行动时间，随后双方同时行动。" : "先手队伍先走一步，此后交替行动。") + "由房主设置，改动后双方重新准备。";
+			for (const button of dialog.querySelectorAll("[data-role]")) {
+				const selected = button.dataset.role === room.players[room.you]?.role;
+				button.setAttribute("aria-pressed", String(selected));
+				button.disabled = selected;
+			}
+			select("[data-ready]").hidden = room.status !== "waiting";
+			select("[data-ready]").disabled = !!room.players[room.you]?.ready;
+			select("[data-ready]").textContent = room.players[room.you]?.ready ? "已准备，等好友" : "准备";
+			select("[data-share]").hidden = ended;
+			select("[data-rematch]").hidden = !ended;
+			select("[data-result]").hidden = room.status !== "finished";
+			dialog.toggleAttribute("data-playing", playing);
+			feedback({
+				waiting: "等待双方准备",
+				playing: room.players[room.you]?.result?.finished ? "已完成，等待对方" : "比赛中",
+				finished: "比赛结束，结果已确认",
+				abandoned: "玩家退出，本局中断",
+				expired: "邀请已过期，请再来一局"
+			}[room.status] + (playing ? ` · 剩余 ${Math.max(0, Math.ceil((room.deadline - room.serverNow) / 1e3))} 秒` : ""));
+			if (!playing) renderPlayers();
+			if (room.status === "finished" && resultShown !== room.code) {
+				resultShown = room.code;
+				showResults();
+			}
+			try {
+				roomStorage.setItem(`competition-room:${game}`, room.code);
+			} catch {}
+		}
+		async function run(task) {
+			if (busy || exiting || !isOpen()) return;
+			const generation = pageGeneration;
+			busy = true;
+			dialog.setAttribute("aria-busy", "true");
+			try {
+				await task();
+			} catch (error) {
+				if (generation !== pageGeneration) return;
+				if (error.code && error.code !== "SERVICE_UNAVAILABLE") pending = null;
+				feedback(error);
+			} finally {
+				busy = false;
+				dialog.removeAttribute("aria-busy");
+			}
+		}
+		async function refresh() {
+			if (!room || busy || !isOpen() || Date.now() - lastPoll < (room.pollMs || 1200)) return;
+			lastPoll = Date.now();
+			try {
+				accept(await request(`/rooms/${room.code}`));
+			} catch (error) {
+				feedback(error);
+			}
+		}
+		function showResults() {
+			const sheet = detailPanel(letters ? "这一岛，拾得漂亮！" : "这一局，打得漂亮", letters ? "同题较量，看看这一局的收获。" : "比赛结果已由服务端确认。", "result");
+			for (const entry of room.results || []) {
+				const me = entry.playerId === room.players[room.you].id, player = room.players.find((p) => p.id === entry.playerId), card = text("section", "", "pk-result");
+				card.append(renderAvatar(text("span", "", "pk-avatar"), player, client.avatarPolicy), text("h3", (me ? "你 · " : "") + playerName(player || { playerId: entry.playerId }, room.players)), text("strong", entry.result.eligible ? scoreText(game, entry.result.score, entry.result.secondary) : "本局无有效成绩"));
+				const rank = entry.after.me?.rank, old = entry.before?.rank, change = rank ? old ? `排名变化 ${old - rank > 0 ? "+" : ""}${old - rank}` : "首次上榜" : "尚无有效成绩";
+				card.append(text("p", `${game === "xiangqi-five" || room.roles ? "总积分" : "个人最佳"} ${entry.after.me ? scoreText(game, entry.after.me.score, entry.after.me.secondary) : "暂无"}`), text("p", `全站第 ${rank ?? "—"} 名 / ${entry.after.eligiblePlayers} 人 · ${change}`), text("p", gapText(game, entry.after)));
+				if (entry.reason) card.append(text("p", entry.reason));
+				sheet.append(card);
+			}
+			const actions = text("div", "", "pk-result-actions");
+			actions.append(action("再次挑战", () => select("[data-rematch]").click(), "pk-primary"), action("查看全站榜", () => void run(showBoard)));
+			sheet.append(actions);
+		}
+		async function showBoard() {
+			const board = await request(`/boards/${game}`), sheet = detailPanel("全站榜", `${board.eligiblePlayers} 位合格玩家 · ${board.roles || game === "xiangqi-five" ? "好友对战积分" : "每人一条最佳成绩"}`, "board"), own = text("section", "", "pk-my-record");
+			own.append(text("small", `${profile?.name || "我的成绩"} · ${board.me ? "全站第 " + board.me.rank + " 名" : "尚未上榜"}`), text("strong", board.me ? scoreText(game, board.me.score, board.me.secondary) : "等你留下第一份成绩"), text("p", gapText(game, board)));
+			sheet.append(own);
+			const list = text("div", "", "pk-list");
+			for (const row of board.top) {
+				const item = text("div", "", "pk-rank-row");
+				item.toggleAttribute("data-self", row.playerId === board.me?.playerId);
+				const label = text("span", row.name || "新玩家", "pk-rank-name");
+				if (row.playerId === board.me?.playerId) label.append(text("small", "你"));
+				const name = text("span", "", "pk-rank-person");
+				name.append(renderAvatar(text("span", "", "pk-avatar"), row, client.avatarPolicy), label);
+				item.append(text("span", String(row.rank), "pk-rank-number"), name, text("span", scoreText(game, row.score, row.secondary), "pk-rank-score"));
+				list.append(item);
+			}
+			if (!board.top.length) list.append(text("p", "全站榜暂为空。完成一次有效挑战，就能留下你的名字。", "pk-empty"));
+			sheet.append(list, text("p", board.description || board.title, "pk-sheet-note"));
+		}
+		async function showRules() {
+			if (!details.hidden && details.firstElementChild?.dataset.kind === "rules") {
+				dismiss();
+				return;
+			}
+			const sheet = detailPanel("这局怎么玩", titles[game], "rules"), loading = text("p", "正在读取比赛规则…");
+			sheet.append(loading);
+			try {
+				const rules = room?.state?.rules || (await request(`/boards/${game}`)).description || "双方准备后开始，服务端验证操作与计时。";
+				if (!sheet.isConnected || sheet.closest("[data-details]") !== details) return;
+				loading.remove();
+				const list = text("ol", "", "pk-rule-list");
+				for (const part of rules.split(/[；。]+/).map((part) => part.trim()).filter(Boolean)) list.append(text("li", part + "。"));
+				sheet.append(list, text("p", room?.status === "playing" ? "查看规则时比赛计时继续。准备好后，关闭这张卡片继续。" : "练习和离线成绩不计入全站榜。双方准备后，比赛由服务端开始计时。", "pk-sheet-note"));
+			} catch (error) {
+				loading.textContent = error.message;
+			}
+		}
+		function draw() {
+			if (!isOpen()) return;
+			if (!canvas.hidden && (!xiangqi || details.hidden)) {
+				const rect = street ? {
+					width: canvas.clientWidth,
+					height: canvas.clientHeight
+				} : canvas.getBoundingClientRect(), ratio = Math.min(devicePixelRatio || 1, 2), width = Math.floor(rect.width * ratio), height = Math.floor(rect.height * ratio);
+				if (canvas.width !== width || canvas.height !== height) {
+					canvas.width = width;
+					canvas.height = height;
+				}
+				ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+				ctx.clearRect(0, 0, rect.width, rect.height);
+				if (room?.state) renderer.draw(ctx, rect.width, rect.height, room.state);
+			}
+			frame = requestAnimationFrame(draw);
+		}
+		async function open() {
+			if (isOpen() || exiting) return;
+			pageGeneration++;
+			window.dispatchEvent(new CustomEvent("competition-visibility", { detail: { open: true } }));
+			if (xiangqi) {
+				history.pushState({
+					...history.state,
+					xqScreen: document.body.dataset.screen || "modes",
+					xqOnline: true
+				}, "", location.href);
+				window.dispatchEvent(new CustomEvent("xiangqi-online-open", { detail: { open: true } }));
+				screenStates = [...document.querySelectorAll("[data-screen]:not(body)")].map((screen) => [screen, screen.inert]);
+				for (const [screen] of screenStates) screen.inert = true;
+				document.body.classList.add("competition-active");
+				dialog.hidden = false;
+				dialog.setAttribute("open", "");
+				select("[data-close]").focus();
+			} else dialog.showModal();
+			draw();
+			poll = setInterval(refresh, 250);
+			const invite = new URL(location.href).searchParams.get("pk");
+			let saved;
+			try {
+				saved = roomStorage.getItem(`competition-room:${game}`);
+			} catch {}
+			await run(async () => {
+				updateProfile(await request("/me"));
+				const metadata = await request(`/boards/${game}`);
+				modes = metadata.modes || [];
+				select("[data-match-options]").hidden = !metadata.roles;
+				select("[data-match-mode]").replaceChildren(...modes.map((mode) => {
+					const option = text("option", mode.title);
+					option.value = mode.id;
+					return option;
+				}));
+				if (invite && /^[A-F0-9]{12}$/.test(invite)) {
+					select("[data-code]").value = invite;
+					feedback("已读取邀请，请点击加入。");
+				} else if (saved) accept(await request(`/rooms/${saved}`));
+			});
+		}
+		launch.onclick = () => void open();
+		if (street) globalThis.__openStreetCompetition = async (entry) => {
+			await open();
+			if (entry === "board") await run(showBoard);
+		};
+		select("[data-create]").onclick = () => void run(async () => accept(await request("/rooms", { body: JSON.stringify({
+			game,
+			...modes.length ? {
+				mode: select("[data-match-mode]").value,
+				role: select("[data-match-role]").value,
+				initiative: select("[data-match-initiative]").value
+			} : {}
+		}) })));
+		for (const button of dialog.querySelectorAll("[data-role]")) button.onclick = () => void run(async () => accept(await request(`/rooms/${room.code}/role`, { body: JSON.stringify({ role: button.dataset.role }) })));
+		select("[data-room-initiative]").onchange = () => void run(async () => accept(await request(`/rooms/${room.code}/initiative`, { body: JSON.stringify({ initiative: select("[data-room-initiative]").value }) })));
+		select("[data-join]").onclick = () => void run(async () => accept(await request("/rooms/join", { body: JSON.stringify({
+			code: select("[data-code]").value.trim().toUpperCase(),
+			game
+		}) })));
+		select("[data-ready]").onclick = () => void run(async () => accept(await request(`/rooms/${room.code}/ready`, { body: "{}" })));
+		select("[data-rematch]").onclick = () => void run(async () => {
+			const result = await request(`/rooms/${room.code}/rematch`, { body: "{}" });
+			dismiss();
+			accept(await request("/rooms/join", { body: JSON.stringify({ code: result.rematch }) }));
+		});
+		select("[data-share]").onclick = () => void run(async () => {
+			const url = new URL(location.href);
+			if (letters) {
+				url.search = "";
+				url.hash = "";
+			}
+			url.searchParams.set("pk", room.code);
+			try {
+				await navigator.clipboard.writeText(url.href);
+				feedback("邀请链接已复制；也可发送房间码 " + room.code);
+			} catch {
+				feedback("请发送房间码 " + room.code + " 给好友。");
+			}
+		});
+		select("[data-board]").onclick = () => void run(showBoard);
+		select("[data-profile]").onclick = () => void run(showProfile);
+		select("[data-rules]").onclick = () => void run(showRules);
+		select("[data-result]").onclick = showResults;
+		function resetRoom() {
+			room = null;
+			pending = null;
+			resultShown = null;
+			select("[data-lobby]").hidden = false;
+			select("[data-room]").hidden = true;
+			canvas.hidden = true;
+			select(".pk-footer").hidden = false;
+			dialog.removeAttribute("data-playing");
+			try {
+				roomStorage.removeItem(`competition-room:${game}`);
+			} catch {}
+			if (!modeEntry) launch.textContent = "好友 PK · 全站榜";
+			launch.removeAttribute("title");
+			feedback("同一规则，和好友认真比一局。");
+		}
+		async function close() {
+			if (exiting) return;
+			exiting = true;
+			launch.disabled = true;
+			pageGeneration++;
+			closeCompetition();
+			try {
+				if (room && ["waiting", "playing"].includes(room.status)) await client.request(`/rooms/${room.code}/leave`, { body: "{}" });
+				resetRoom();
+			} catch {
+				if (!modeEntry) launch.textContent = "已退出 · 房间待确认";
+				launch.title = "网络不可用，服务端尚未确认退出。重连可查看原房间，否则按时限结束。";
+			} finally {
+				exiting = false;
+				launch.disabled = false;
+				if (letters && launch.isConnected && launch.getClientRects().length) launch.focus();
+			}
+		}
+		select("[data-close]").onclick = () => void close();
+		dialog.addEventListener("cancel", (event) => {
+			event.preventDefault();
+			if (!details.hidden) dismiss();
+			else select("[data-close]").click();
+		});
+		if (xiangqi) {
+			document.addEventListener("keydown", (event) => {
+				if (event.key !== "Escape" || !isOpen()) return;
+				event.preventDefault();
+				if (!details.hidden) dismiss();
+				else select("[data-close]").click();
+			});
+			window.addEventListener("xiangqi-online-exit", () => {
+				if (isOpen()) select("[data-close]").click();
+			});
+		}
+		details.addEventListener("click", (event) => {
+			if (!xiangqi && event.target === details) dismiss();
+		});
+		dialog.addEventListener("close", () => {
+			clearInterval(poll);
+			cancelAnimationFrame(frame);
+			dismiss();
+			window.dispatchEvent(new CustomEvent("competition-visibility", { detail: { open: false } }));
+		});
+		let lettersPointer = null;
+		if (letters) {
+			canvas.addEventListener("pointerdown", (event) => {
+				if (!room || room.status !== "playing" || !details.hidden) return;
+				if (lettersPointer) {
+					lettersPointer.cancelled = true;
+					return;
+				}
+				lettersPointer = {
+					id: event.pointerId,
+					x: event.clientX,
+					y: event.clientY,
+					cancelled: false
+				};
+				canvas.setPointerCapture?.(event.pointerId);
+			});
+			canvas.addEventListener("pointermove", (event) => {
+				if (lettersPointer?.id === event.pointerId && Math.hypot(event.clientX - lettersPointer.x, event.clientY - lettersPointer.y) > 10) lettersPointer.cancelled = true;
+			});
+			const cancel = () => {
+				lettersPointer = null;
+			};
+			canvas.addEventListener("pointercancel", cancel);
+			canvas.addEventListener("lostpointercapture", cancel);
+			dialog.addEventListener("close", cancel);
+			window.addEventListener("blur", cancel);
+			window.addEventListener("resize", cancel);
+			document.addEventListener("visibilitychange", () => {
+				if (document.hidden) cancel();
+			});
+		}
+		canvas.addEventListener("pointerup", (event) => {
+			if (!room || room.status !== "playing" || !details.hidden) {
+				if (letters) lettersPointer = null;
+				return;
+			}
+			if (letters) {
+				const pointer = lettersPointer;
+				lettersPointer = null;
+				if (!pointer || pointer.id !== event.pointerId || pointer.cancelled) return;
+			}
+			const rect = canvas.getBoundingClientRect();
+			const rotated = street && matchMedia("(orientation: portrait)").matches;
+			const command = renderer.tap(rotated ? event.clientY - rect.top : event.clientX - rect.left, rotated ? rect.right - event.clientX : event.clientY - rect.top, room.state);
+			if (!command) return;
+			run(async () => {
+				pending ??= {
+					seq: room.seq + 1,
+					action: command
+				};
+				const next = await request(`/rooms/${room.code}/actions`, { body: JSON.stringify(pending) });
+				pending = null;
+				accept(next);
+			});
+		});
+		if (new URL(location.href).searchParams.has("pk")) open();
+	}
+	//#endregion
+	//#region ../../games/local/cops-robbers/src/engine.js
+	function prepareLevel(raw) {
+		const adj = raw.nodes.map(() => []);
+		for (const [a, b] of raw.edges) {
+			adj[a].push(b);
+			adj[b].push(a);
+		}
+		adj.forEach((neighbors) => neighbors.sort((a, b) => a - b));
+		const dist = adj.map((_, start) => {
+			const distances = adj.map(() => Infinity), queue = [start];
+			distances[start] = 0;
+			for (let i = 0; i < queue.length; i++) for (const next of adj[queue[i]]) {
+				if (distances[next] !== Infinity) continue;
+				distances[next] = distances[queue[i]] + 1;
+				queue.push(next);
+			}
+			return distances;
+		});
+		return {
+			...raw,
+			exits: raw.exits || [],
+			adj,
+			dist
+		};
+	}
+	function legalTargets(level, state, copIndex) {
+		const from = state.cops[copIndex];
+		if (from === void 0) return [];
+		return [from, ...level.adj[from]].filter((node) => !state.robbers.includes(node) && (node === from || !state.cops.includes(node)));
+	}
+	//#endregion
+	//#region ../../games/local/cops-robbers/src/levels.js
+	var levels = [
+		{
+			"id": 1,
+			"chapter": 0,
+			"name": "三路合围",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 519,
+					"y": 229
+				},
+				{
+					"x": 435,
+					"y": 486
+				},
+				{
+					"x": 165,
+					"y": 486
+				},
+				{
+					"x": 81,
+					"y": 229
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 428,
+					"y": 258
+				},
+				{
+					"x": 379,
+					"y": 409
+				},
+				{
+					"x": 221,
+					"y": 409
+				},
+				{
+					"x": 172,
+					"y": 258
+				}
+			],
+			"edges": [
+				[0, 1],
+				[5, 6],
+				[0, 5],
+				[1, 2],
+				[6, 7],
+				[1, 6],
+				[2, 3],
+				[7, 8],
+				[3, 4],
+				[8, 9],
+				[4, 0],
+				[9, 5],
+				[4, 9]
+			],
+			"cops": [
+				2,
+				8,
+				9
+			],
+			"robbers": [5],
+			"exits": [4, 1],
+			"par": 7
+		},
+		{
+			"id": 2,
+			"chapter": 0,
+			"name": "内外夹击",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 499,
+					"y": 185
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 101,
+					"y": 185
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 417,
+					"y": 233
+				},
+				{
+					"x": 417,
+					"y": 368
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 183,
+					"y": 368
+				},
+				{
+					"x": 183,
+					"y": 233
+				}
+			],
+			"edges": [
+				[0, 1],
+				[6, 7],
+				[0, 6],
+				[1, 2],
+				[7, 8],
+				[1, 7],
+				[2, 3],
+				[8, 9],
+				[2, 8],
+				[3, 4],
+				[9, 10],
+				[4, 5],
+				[10, 11],
+				[5, 0],
+				[11, 6],
+				[5, 11]
+			],
+			"cops": [
+				1,
+				9,
+				5
+			],
+			"robbers": [7],
+			"exits": [3, 0],
+			"par": 6
+		},
+		{
+			"id": 3,
+			"chapter": 0,
+			"name": "巷口接力",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 519,
+					"y": 229
+				},
+				{
+					"x": 435,
+					"y": 486
+				},
+				{
+					"x": 165,
+					"y": 486
+				},
+				{
+					"x": 81,
+					"y": 229
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 428,
+					"y": 258
+				},
+				{
+					"x": 379,
+					"y": 409
+				},
+				{
+					"x": 221,
+					"y": 409
+				},
+				{
+					"x": 172,
+					"y": 258
+				}
+			],
+			"edges": [
+				[0, 1],
+				[5, 6],
+				[0, 5],
+				[1, 2],
+				[6, 7],
+				[1, 6],
+				[2, 3],
+				[7, 8],
+				[3, 4],
+				[8, 9],
+				[3, 8],
+				[4, 0],
+				[9, 5],
+				[4, 9]
+			],
+			"cops": [
+				8,
+				9,
+				5
+			],
+			"robbers": [6],
+			"exits": [4, 0],
+			"par": 5
+		},
+		{
+			"id": 4,
+			"chapter": 0,
+			"name": "绕到背后",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 519,
+					"y": 229
+				},
+				{
+					"x": 435,
+					"y": 486
+				},
+				{
+					"x": 165,
+					"y": 486
+				},
+				{
+					"x": 81,
+					"y": 229
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 428,
+					"y": 258
+				},
+				{
+					"x": 379,
+					"y": 409
+				},
+				{
+					"x": 221,
+					"y": 409
+				},
+				{
+					"x": 172,
+					"y": 258
+				}
+			],
+			"edges": [
+				[0, 1],
+				[5, 6],
+				[1, 2],
+				[6, 7],
+				[1, 6],
+				[2, 3],
+				[7, 8],
+				[2, 7],
+				[3, 4],
+				[8, 9],
+				[3, 8],
+				[4, 0],
+				[9, 5],
+				[4, 9]
+			],
+			"cops": [
+				2,
+				6,
+				9
+			],
+			"robbers": [3],
+			"exits": [4, 1],
+			"par": 5
+		},
+		{
+			"id": 5,
+			"chapter": 0,
+			"name": "岔路换防",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 499,
+					"y": 185
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 101,
+					"y": 185
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 417,
+					"y": 233
+				},
+				{
+					"x": 417,
+					"y": 368
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 183,
+					"y": 368
+				},
+				{
+					"x": 183,
+					"y": 233
+				}
+			],
+			"edges": [
+				[0, 1],
+				[6, 7],
+				[0, 6],
+				[1, 2],
+				[7, 8],
+				[1, 7],
+				[2, 3],
+				[8, 9],
+				[3, 4],
+				[9, 10],
+				[4, 5],
+				[10, 11],
+				[4, 10],
+				[5, 0],
+				[11, 6],
+				[5, 11]
+			],
+			"cops": [
+				2,
+				1,
+				7
+			],
+			"robbers": [5],
+			"exits": [3, 0],
+			"par": 7
+		},
+		{
+			"id": 6,
+			"chapter": 0,
+			"name": "缺口危机",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 519,
+					"y": 229
+				},
+				{
+					"x": 435,
+					"y": 486
+				},
+				{
+					"x": 165,
+					"y": 486
+				},
+				{
+					"x": 81,
+					"y": 229
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 428,
+					"y": 258
+				},
+				{
+					"x": 379,
+					"y": 409
+				},
+				{
+					"x": 221,
+					"y": 409
+				},
+				{
+					"x": 172,
+					"y": 258
+				}
+			],
+			"edges": [
+				[0, 1],
+				[5, 6],
+				[1, 2],
+				[6, 7],
+				[1, 6],
+				[2, 3],
+				[7, 8],
+				[2, 7],
+				[3, 4],
+				[8, 9],
+				[4, 0],
+				[9, 5],
+				[4, 9]
+			],
+			"cops": [
+				9,
+				4,
+				8
+			],
+			"robbers": [5],
+			"exits": [1, 0],
+			"par": 5
+		},
+		{
+			"id": 7,
+			"chapter": 0,
+			"name": "回环追逃",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 519,
+					"y": 229
+				},
+				{
+					"x": 435,
+					"y": 486
+				},
+				{
+					"x": 165,
+					"y": 486
+				},
+				{
+					"x": 81,
+					"y": 229
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 428,
+					"y": 258
+				},
+				{
+					"x": 379,
+					"y": 409
+				},
+				{
+					"x": 221,
+					"y": 409
+				},
+				{
+					"x": 172,
+					"y": 258
+				}
+			],
+			"edges": [
+				[0, 1],
+				[5, 6],
+				[0, 5],
+				[1, 2],
+				[6, 7],
+				[2, 3],
+				[7, 8],
+				[2, 7],
+				[3, 4],
+				[8, 9],
+				[3, 8],
+				[4, 0],
+				[9, 5],
+				[4, 9]
+			],
+			"cops": [
+				6,
+				8,
+				9
+			],
+			"robbers": [3],
+			"exits": [0, 4],
+			"par": 5
+		},
+		{
+			"id": 8,
+			"chapter": 0,
+			"name": "两门之间",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 499,
+					"y": 185
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 101,
+					"y": 185
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 417,
+					"y": 233
+				},
+				{
+					"x": 417,
+					"y": 368
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 183,
+					"y": 368
+				},
+				{
+					"x": 183,
+					"y": 233
+				}
+			],
+			"edges": [
+				[0, 1],
+				[6, 7],
+				[1, 2],
+				[7, 8],
+				[1, 7],
+				[2, 3],
+				[8, 9],
+				[2, 8],
+				[3, 4],
+				[9, 10],
+				[3, 9],
+				[4, 5],
+				[10, 11],
+				[5, 0],
+				[11, 6],
+				[5, 11]
+			],
+			"cops": [
+				7,
+				5,
+				4
+			],
+			"robbers": [2],
+			"exits": [3, 0],
+			"par": 8
+		},
+		{
+			"id": 9,
+			"chapter": 0,
+			"name": "街心穿行",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 519,
+					"y": 229
+				},
+				{
+					"x": 435,
+					"y": 486
+				},
+				{
+					"x": 165,
+					"y": 486
+				},
+				{
+					"x": 81,
+					"y": 229
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 428,
+					"y": 258
+				},
+				{
+					"x": 379,
+					"y": 409
+				},
+				{
+					"x": 221,
+					"y": 409
+				},
+				{
+					"x": 172,
+					"y": 258
+				}
+			],
+			"edges": [
+				[0, 1],
+				[5, 6],
+				[1, 2],
+				[6, 7],
+				[1, 6],
+				[2, 3],
+				[7, 8],
+				[3, 4],
+				[8, 9],
+				[3, 8],
+				[4, 0],
+				[9, 5],
+				[4, 9]
+			],
+			"cops": [
+				5,
+				7,
+				6
+			],
+			"robbers": [9],
+			"exits": [0, 1],
+			"par": 7
+		},
+		{
+			"id": 10,
+			"chapter": 0,
+			"name": "不能漏岗",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 499,
+					"y": 185
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 101,
+					"y": 185
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 417,
+					"y": 233
+				},
+				{
+					"x": 417,
+					"y": 368
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 183,
+					"y": 368
+				},
+				{
+					"x": 183,
+					"y": 233
+				}
+			],
+			"edges": [
+				[0, 1],
+				[6, 7],
+				[1, 2],
+				[7, 8],
+				[1, 7],
+				[2, 3],
+				[8, 9],
+				[3, 4],
+				[9, 10],
+				[3, 9],
+				[4, 5],
+				[10, 11],
+				[4, 10],
+				[5, 0],
+				[11, 6],
+				[5, 11]
+			],
+			"cops": [
+				1,
+				2,
+				4
+			],
+			"robbers": [10],
+			"exits": [3, 0],
+			"par": 7
+		},
+		{
+			"id": 11,
+			"chapter": 0,
+			"name": "转角包抄",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 519,
+					"y": 229
+				},
+				{
+					"x": 435,
+					"y": 486
+				},
+				{
+					"x": 165,
+					"y": 486
+				},
+				{
+					"x": 81,
+					"y": 229
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 428,
+					"y": 258
+				},
+				{
+					"x": 379,
+					"y": 409
+				},
+				{
+					"x": 221,
+					"y": 409
+				},
+				{
+					"x": 172,
+					"y": 258
+				}
+			],
+			"edges": [
+				[0, 1],
+				[5, 6],
+				[0, 5],
+				[1, 2],
+				[6, 7],
+				[2, 3],
+				[7, 8],
+				[2, 7],
+				[3, 4],
+				[8, 9],
+				[3, 8],
+				[4, 0],
+				[9, 5]
+			],
+			"cops": [
+				3,
+				0,
+				8
+			],
+			"robbers": [2],
+			"exits": [4, 1],
+			"par": 5
+		},
+		{
+			"id": 12,
+			"chapter": 0,
+			"name": "小巷总动员",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 519,
+					"y": 229
+				},
+				{
+					"x": 435,
+					"y": 486
+				},
+				{
+					"x": 165,
+					"y": 486
+				},
+				{
+					"x": 81,
+					"y": 229
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 428,
+					"y": 258
+				},
+				{
+					"x": 379,
+					"y": 409
+				},
+				{
+					"x": 221,
+					"y": 409
+				},
+				{
+					"x": 172,
+					"y": 258
+				}
+			],
+			"edges": [
+				[0, 1],
+				[5, 6],
+				[0, 5],
+				[1, 2],
+				[6, 7],
+				[2, 3],
+				[7, 8],
+				[2, 7],
+				[3, 4],
+				[8, 9],
+				[4, 0],
+				[9, 5],
+				[4, 9]
+			],
+			"cops": [
+				8,
+				5,
+				6
+			],
+			"robbers": [7],
+			"exits": [4, 0],
+			"par": 6
+		},
+		{
+			"id": 13,
+			"chapter": 1,
+			"name": "十字摊位",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 463,
+					"y": 137
+				},
+				{
+					"x": 530,
+					"y": 300
+				},
+				{
+					"x": 463,
+					"y": 463
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 137,
+					"y": 463
+				},
+				{
+					"x": 70,
+					"y": 300
+				},
+				{
+					"x": 137,
+					"y": 137
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 395,
+					"y": 205
+				},
+				{
+					"x": 435,
+					"y": 300
+				},
+				{
+					"x": 395,
+					"y": 395
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 205,
+					"y": 395
+				},
+				{
+					"x": 165,
+					"y": 300
+				},
+				{
+					"x": 205,
+					"y": 205
+				}
+			],
+			"edges": [
+				[0, 1],
+				[8, 9],
+				[0, 8],
+				[1, 2],
+				[9, 10],
+				[1, 9],
+				[2, 3],
+				[10, 11],
+				[3, 4],
+				[11, 12],
+				[3, 11],
+				[4, 5],
+				[12, 13],
+				[4, 12],
+				[5, 6],
+				[13, 14],
+				[5, 13],
+				[6, 7],
+				[14, 15],
+				[7, 0],
+				[15, 8],
+				[7, 15]
+			],
+			"cops": [
+				9,
+				14,
+				6
+			],
+			"robbers": [12],
+			"exits": [2, 0],
+			"par": 10
+		},
+		{
+			"id": 14,
+			"chapter": 1,
+			"name": "早点铺后街",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 499,
+					"y": 185
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 101,
+					"y": 185
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 417,
+					"y": 233
+				},
+				{
+					"x": 417,
+					"y": 368
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 183,
+					"y": 368
+				},
+				{
+					"x": 183,
+					"y": 233
+				}
+			],
+			"edges": [
+				[0, 1],
+				[6, 7],
+				[0, 6],
+				[1, 2],
+				[7, 8],
+				[2, 3],
+				[8, 9],
+				[2, 8],
+				[3, 4],
+				[9, 10],
+				[4, 5],
+				[10, 11],
+				[4, 10],
+				[5, 0],
+				[11, 6],
+				[5, 11]
+			],
+			"cops": [
+				6,
+				9,
+				8
+			],
+			"robbers": [11],
+			"exits": [3, 0],
+			"par": 10
+		},
+		{
+			"id": 15,
+			"chapter": 1,
+			"name": "双街追逃",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 499,
+					"y": 185
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 101,
+					"y": 185
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 417,
+					"y": 233
+				},
+				{
+					"x": 417,
+					"y": 368
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 183,
+					"y": 368
+				},
+				{
+					"x": 183,
+					"y": 233
+				}
+			],
+			"edges": [
+				[0, 1],
+				[6, 7],
+				[0, 6],
+				[1, 2],
+				[7, 8],
+				[1, 7],
+				[2, 3],
+				[8, 9],
+				[3, 4],
+				[9, 10],
+				[3, 9],
+				[4, 5],
+				[10, 11],
+				[4, 10],
+				[5, 0],
+				[11, 6],
+				[5, 11]
+			],
+			"cops": [
+				7,
+				8,
+				4
+			],
+			"robbers": [9],
+			"exits": [3, 0],
+			"par": 9
+		},
+		{
+			"id": 16,
+			"chapter": 1,
+			"name": "串起小巷",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 480,
+					"y": 157
+				},
+				{
+					"x": 524,
+					"y": 351
+				},
+				{
+					"x": 400,
+					"y": 507
+				},
+				{
+					"x": 200,
+					"y": 507
+				},
+				{
+					"x": 76,
+					"y": 351
+				},
+				{
+					"x": 120,
+					"y": 157
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 406,
+					"y": 216
+				},
+				{
+					"x": 432,
+					"y": 330
+				},
+				{
+					"x": 359,
+					"y": 422
+				},
+				{
+					"x": 241,
+					"y": 422
+				},
+				{
+					"x": 168,
+					"y": 330
+				},
+				{
+					"x": 194,
+					"y": 216
+				}
+			],
+			"edges": [
+				[0, 1],
+				[7, 8],
+				[0, 7],
+				[1, 2],
+				[8, 9],
+				[1, 8],
+				[2, 3],
+				[9, 10],
+				[2, 9],
+				[3, 4],
+				[10, 11],
+				[3, 10],
+				[4, 5],
+				[11, 12],
+				[5, 6],
+				[12, 13],
+				[5, 12],
+				[6, 0],
+				[13, 7]
+			],
+			"cops": [
+				5,
+				8,
+				12
+			],
+			"robbers": [2],
+			"exits": [0, 4],
+			"par": 10
+		},
+		{
+			"id": 17,
+			"chapter": 1,
+			"name": "中央花摊",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 480,
+					"y": 157
+				},
+				{
+					"x": 524,
+					"y": 351
+				},
+				{
+					"x": 400,
+					"y": 507
+				},
+				{
+					"x": 200,
+					"y": 507
+				},
+				{
+					"x": 76,
+					"y": 351
+				},
+				{
+					"x": 120,
+					"y": 157
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 406,
+					"y": 216
+				},
+				{
+					"x": 432,
+					"y": 330
+				},
+				{
+					"x": 359,
+					"y": 422
+				},
+				{
+					"x": 241,
+					"y": 422
+				},
+				{
+					"x": 168,
+					"y": 330
+				},
+				{
+					"x": 194,
+					"y": 216
+				}
+			],
+			"edges": [
+				[0, 1],
+				[7, 8],
+				[0, 7],
+				[1, 2],
+				[8, 9],
+				[1, 8],
+				[2, 3],
+				[9, 10],
+				[2, 9],
+				[3, 4],
+				[10, 11],
+				[3, 10],
+				[4, 5],
+				[11, 12],
+				[5, 6],
+				[12, 13],
+				[6, 0],
+				[13, 7],
+				[6, 13]
+			],
+			"cops": [
+				4,
+				11,
+				1
+			],
+			"robbers": [10, 13],
+			"exits": [0, 3],
+			"par": 10
+		},
+		{
+			"id": 18,
+			"chapter": 1,
+			"name": "三路分工",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 499,
+					"y": 185
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 101,
+					"y": 185
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 417,
+					"y": 233
+				},
+				{
+					"x": 417,
+					"y": 368
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 183,
+					"y": 368
+				},
+				{
+					"x": 183,
+					"y": 233
+				}
+			],
+			"edges": [
+				[0, 1],
+				[6, 7],
+				[0, 6],
+				[1, 2],
+				[7, 8],
+				[1, 7],
+				[2, 3],
+				[8, 9],
+				[2, 8],
+				[3, 4],
+				[9, 10],
+				[4, 5],
+				[10, 11],
+				[4, 10],
+				[5, 0],
+				[11, 6]
+			],
+			"cops": [
+				2,
+				9,
+				6
+			],
+			"robbers": [5, 7],
+			"exits": [3, 0],
+			"par": 11
+		},
+		{
+			"id": 19,
+			"chapter": 1,
+			"name": "糕点铺夹击",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 519,
+					"y": 229
+				},
+				{
+					"x": 435,
+					"y": 486
+				},
+				{
+					"x": 165,
+					"y": 486
+				},
+				{
+					"x": 81,
+					"y": 229
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 428,
+					"y": 258
+				},
+				{
+					"x": 379,
+					"y": 409
+				},
+				{
+					"x": 221,
+					"y": 409
+				},
+				{
+					"x": 172,
+					"y": 258
+				}
+			],
+			"edges": [
+				[0, 1],
+				[5, 6],
+				[0, 5],
+				[1, 2],
+				[6, 7],
+				[1, 6],
+				[2, 3],
+				[7, 8],
+				[2, 7],
+				[3, 4],
+				[8, 9],
+				[4, 0],
+				[9, 5],
+				[4, 9]
+			],
+			"cops": [
+				2,
+				7,
+				9
+			],
+			"robbers": [3, 5],
+			"exits": [1, 4],
+			"par": 7
+		},
+		{
+			"id": 20,
+			"chapter": 1,
+			"name": "后街近路",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 519,
+					"y": 229
+				},
+				{
+					"x": 435,
+					"y": 486
+				},
+				{
+					"x": 165,
+					"y": 486
+				},
+				{
+					"x": 81,
+					"y": 229
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 428,
+					"y": 258
+				},
+				{
+					"x": 379,
+					"y": 409
+				},
+				{
+					"x": 221,
+					"y": 409
+				},
+				{
+					"x": 172,
+					"y": 258
+				}
+			],
+			"edges": [
+				[0, 1],
+				[5, 6],
+				[0, 5],
+				[1, 2],
+				[6, 7],
+				[1, 6],
+				[2, 3],
+				[7, 8],
+				[2, 7],
+				[3, 4],
+				[8, 9],
+				[3, 8],
+				[4, 0],
+				[9, 5]
+			],
+			"cops": [
+				5,
+				0,
+				7
+			],
+			"robbers": [9, 6],
+			"exits": [1, 4],
+			"par": 8
+		},
+		{
+			"id": 21,
+			"chapter": 1,
+			"name": "忙碌菜市场",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 499,
+					"y": 185
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 101,
+					"y": 185
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 417,
+					"y": 233
+				},
+				{
+					"x": 417,
+					"y": 368
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 183,
+					"y": 368
+				},
+				{
+					"x": 183,
+					"y": 233
+				}
+			],
+			"edges": [
+				[0, 1],
+				[6, 7],
+				[0, 6],
+				[1, 2],
+				[7, 8],
+				[1, 7],
+				[2, 3],
+				[8, 9],
+				[2, 8],
+				[3, 4],
+				[9, 10],
+				[3, 9],
+				[4, 5],
+				[10, 11],
+				[5, 0],
+				[11, 6],
+				[5, 11]
+			],
+			"cops": [
+				10,
+				2,
+				1
+			],
+			"robbers": [4, 7],
+			"exits": [3, 0],
+			"par": 9
+		},
+		{
+			"id": 22,
+			"chapter": 1,
+			"name": "双环连廊",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 463,
+					"y": 137
+				},
+				{
+					"x": 530,
+					"y": 300
+				},
+				{
+					"x": 463,
+					"y": 463
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 137,
+					"y": 463
+				},
+				{
+					"x": 70,
+					"y": 300
+				},
+				{
+					"x": 137,
+					"y": 137
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 395,
+					"y": 205
+				},
+				{
+					"x": 435,
+					"y": 300
+				},
+				{
+					"x": 395,
+					"y": 395
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 205,
+					"y": 395
+				},
+				{
+					"x": 165,
+					"y": 300
+				},
+				{
+					"x": 205,
+					"y": 205
+				}
+			],
+			"edges": [
+				[0, 1],
+				[8, 9],
+				[0, 8],
+				[1, 2],
+				[9, 10],
+				[2, 3],
+				[10, 11],
+				[2, 10],
+				[3, 4],
+				[11, 12],
+				[3, 11],
+				[4, 5],
+				[12, 13],
+				[5, 6],
+				[13, 14],
+				[6, 7],
+				[14, 15],
+				[6, 14],
+				[7, 0],
+				[15, 8],
+				[7, 15]
+			],
+			"cops": [
+				9,
+				2,
+				7
+			],
+			"robbers": [13, 5],
+			"exits": [6, 0],
+			"par": 12
+		},
+		{
+			"id": 23,
+			"chapter": 1,
+			"name": "收摊时刻",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 480,
+					"y": 157
+				},
+				{
+					"x": 524,
+					"y": 351
+				},
+				{
+					"x": 400,
+					"y": 507
+				},
+				{
+					"x": 200,
+					"y": 507
+				},
+				{
+					"x": 76,
+					"y": 351
+				},
+				{
+					"x": 120,
+					"y": 157
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 406,
+					"y": 216
+				},
+				{
+					"x": 432,
+					"y": 330
+				},
+				{
+					"x": 359,
+					"y": 422
+				},
+				{
+					"x": 241,
+					"y": 422
+				},
+				{
+					"x": 168,
+					"y": 330
+				},
+				{
+					"x": 194,
+					"y": 216
+				}
+			],
+			"edges": [
+				[0, 1],
+				[7, 8],
+				[1, 2],
+				[8, 9],
+				[2, 3],
+				[9, 10],
+				[3, 4],
+				[10, 11],
+				[4, 5],
+				[11, 12],
+				[5, 6],
+				[12, 13],
+				[5, 12],
+				[6, 0],
+				[13, 7],
+				[6, 13]
+			],
+			"cops": [
+				10,
+				1,
+				12
+			],
+			"robbers": [13, 3],
+			"exits": [5, 0],
+			"par": 14
+		},
+		{
+			"id": 24,
+			"chapter": 1,
+			"name": "市场总巡逻",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 463,
+					"y": 137
+				},
+				{
+					"x": 530,
+					"y": 300
+				},
+				{
+					"x": 463,
+					"y": 463
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 137,
+					"y": 463
+				},
+				{
+					"x": 70,
+					"y": 300
+				},
+				{
+					"x": 137,
+					"y": 137
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 395,
+					"y": 205
+				},
+				{
+					"x": 435,
+					"y": 300
+				},
+				{
+					"x": 395,
+					"y": 395
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 205,
+					"y": 395
+				},
+				{
+					"x": 165,
+					"y": 300
+				},
+				{
+					"x": 205,
+					"y": 205
+				}
+			],
+			"edges": [
+				[0, 1],
+				[8, 9],
+				[0, 8],
+				[1, 2],
+				[9, 10],
+				[1, 9],
+				[2, 3],
+				[10, 11],
+				[2, 10],
+				[3, 4],
+				[11, 12],
+				[3, 11],
+				[4, 5],
+				[12, 13],
+				[4, 12],
+				[5, 6],
+				[13, 14],
+				[6, 7],
+				[14, 15],
+				[6, 14],
+				[7, 0],
+				[15, 8]
+			],
+			"cops": [
+				1,
+				14,
+				5
+			],
+			"robbers": [6, 9],
+			"exits": [4, 0],
+			"par": 11
+		},
+		{
+			"id": 25,
+			"chapter": 2,
+			"name": "湖边双环",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 519,
+					"y": 229
+				},
+				{
+					"x": 435,
+					"y": 486
+				},
+				{
+					"x": 165,
+					"y": 486
+				},
+				{
+					"x": 81,
+					"y": 229
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 428,
+					"y": 258
+				},
+				{
+					"x": 379,
+					"y": 409
+				},
+				{
+					"x": 221,
+					"y": 409
+				},
+				{
+					"x": 172,
+					"y": 258
+				}
+			],
+			"edges": [
+				[0, 1],
+				[5, 6],
+				[0, 5],
+				[1, 2],
+				[6, 7],
+				[1, 6],
+				[2, 3],
+				[7, 8],
+				[3, 4],
+				[8, 9],
+				[4, 0],
+				[9, 5],
+				[4, 9],
+				[5, 7]
+			],
+			"cops": [
+				7,
+				2,
+				6
+			],
+			"robbers": [8],
+			"exits": [1, 4],
+			"par": 8
+		},
+		{
+			"id": 26,
+			"chapter": 2,
+			"name": "林间出口",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 499,
+					"y": 185
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 101,
+					"y": 185
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 417,
+					"y": 233
+				},
+				{
+					"x": 417,
+					"y": 368
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 183,
+					"y": 368
+				},
+				{
+					"x": 183,
+					"y": 233
+				}
+			],
+			"edges": [
+				[0, 1],
+				[6, 7],
+				[0, 6],
+				[1, 2],
+				[7, 8],
+				[2, 3],
+				[8, 9],
+				[2, 8],
+				[3, 4],
+				[9, 10],
+				[3, 9],
+				[4, 5],
+				[10, 11],
+				[4, 10],
+				[5, 0],
+				[11, 6],
+				[5, 11],
+				[6, 9],
+				[6, 10]
+			],
+			"cops": [
+				1,
+				9,
+				8
+			],
+			"robbers": [10],
+			"exits": [0, 3],
+			"par": 9
+		},
+		{
+			"id": 27,
+			"chapter": 2,
+			"name": "花园捷径",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 480,
+					"y": 157
+				},
+				{
+					"x": 524,
+					"y": 351
+				},
+				{
+					"x": 400,
+					"y": 507
+				},
+				{
+					"x": 200,
+					"y": 507
+				},
+				{
+					"x": 76,
+					"y": 351
+				},
+				{
+					"x": 120,
+					"y": 157
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 406,
+					"y": 216
+				},
+				{
+					"x": 432,
+					"y": 330
+				},
+				{
+					"x": 359,
+					"y": 422
+				},
+				{
+					"x": 241,
+					"y": 422
+				},
+				{
+					"x": 168,
+					"y": 330
+				},
+				{
+					"x": 194,
+					"y": 216
+				}
+			],
+			"edges": [
+				[0, 1],
+				[7, 8],
+				[0, 7],
+				[1, 2],
+				[8, 9],
+				[1, 8],
+				[2, 3],
+				[9, 10],
+				[2, 9],
+				[3, 4],
+				[10, 11],
+				[3, 10],
+				[4, 5],
+				[11, 12],
+				[4, 11],
+				[5, 6],
+				[12, 13],
+				[5, 12],
+				[6, 0],
+				[13, 7],
+				[7, 11]
+			],
+			"cops": [
+				3,
+				7,
+				12
+			],
+			"robbers": [10],
+			"exits": [2, 5],
+			"par": 8
+		},
+		{
+			"id": 28,
+			"chapter": 2,
+			"name": "双亭连道",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 499,
+					"y": 185
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 101,
+					"y": 185
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 417,
+					"y": 233
+				},
+				{
+					"x": 417,
+					"y": 368
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 183,
+					"y": 368
+				},
+				{
+					"x": 183,
+					"y": 233
+				}
+			],
+			"edges": [
+				[0, 1],
+				[6, 7],
+				[1, 2],
+				[7, 8],
+				[2, 3],
+				[8, 9],
+				[2, 8],
+				[3, 4],
+				[9, 10],
+				[3, 9],
+				[4, 5],
+				[10, 11],
+				[5, 0],
+				[11, 6],
+				[6, 8],
+				[6, 10]
+			],
+			"cops": [
+				5,
+				9,
+				1
+			],
+			"robbers": [2],
+			"exits": [0, 3],
+			"par": 8
+		},
+		{
+			"id": 29,
+			"chapter": 2,
+			"name": "池塘与长廊",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 480,
+					"y": 157
+				},
+				{
+					"x": 524,
+					"y": 351
+				},
+				{
+					"x": 400,
+					"y": 507
+				},
+				{
+					"x": 200,
+					"y": 507
+				},
+				{
+					"x": 76,
+					"y": 351
+				},
+				{
+					"x": 120,
+					"y": 157
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 406,
+					"y": 216
+				},
+				{
+					"x": 432,
+					"y": 330
+				},
+				{
+					"x": 359,
+					"y": 422
+				},
+				{
+					"x": 241,
+					"y": 422
+				},
+				{
+					"x": 168,
+					"y": 330
+				},
+				{
+					"x": 194,
+					"y": 216
+				}
+			],
+			"edges": [
+				[0, 1],
+				[7, 8],
+				[1, 2],
+				[8, 9],
+				[1, 8],
+				[2, 3],
+				[9, 10],
+				[2, 9],
+				[3, 4],
+				[10, 11],
+				[3, 10],
+				[4, 5],
+				[11, 12],
+				[4, 11],
+				[5, 6],
+				[12, 13],
+				[6, 0],
+				[13, 7],
+				[6, 13],
+				[7, 9]
+			],
+			"cops": [
+				12,
+				3,
+				2
+			],
+			"robbers": [8, 13],
+			"exits": [4, 0],
+			"par": 9
+		},
+		{
+			"id": 30,
+			"chapter": 2,
+			"name": "树影穿梭",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 480,
+					"y": 157
+				},
+				{
+					"x": 524,
+					"y": 351
+				},
+				{
+					"x": 400,
+					"y": 507
+				},
+				{
+					"x": 200,
+					"y": 507
+				},
+				{
+					"x": 76,
+					"y": 351
+				},
+				{
+					"x": 120,
+					"y": 157
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 406,
+					"y": 216
+				},
+				{
+					"x": 432,
+					"y": 330
+				},
+				{
+					"x": 359,
+					"y": 422
+				},
+				{
+					"x": 241,
+					"y": 422
+				},
+				{
+					"x": 168,
+					"y": 330
+				},
+				{
+					"x": 194,
+					"y": 216
+				}
+			],
+			"edges": [
+				[0, 1],
+				[7, 8],
+				[1, 2],
+				[8, 9],
+				[1, 8],
+				[2, 3],
+				[9, 10],
+				[2, 9],
+				[3, 4],
+				[10, 11],
+				[3, 10],
+				[4, 5],
+				[11, 12],
+				[4, 11],
+				[5, 6],
+				[12, 13],
+				[5, 12],
+				[6, 0],
+				[13, 7],
+				[7, 9],
+				[7, 10],
+				[7, 12]
+			],
+			"cops": [
+				3,
+				12,
+				4
+			],
+			"robbers": [13, 0],
+			"exits": [2, 5],
+			"par": 6
+		},
+		{
+			"id": 31,
+			"chapter": 2,
+			"name": "凉亭换防",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 480,
+					"y": 157
+				},
+				{
+					"x": 524,
+					"y": 351
+				},
+				{
+					"x": 400,
+					"y": 507
+				},
+				{
+					"x": 200,
+					"y": 507
+				},
+				{
+					"x": 76,
+					"y": 351
+				},
+				{
+					"x": 120,
+					"y": 157
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 406,
+					"y": 216
+				},
+				{
+					"x": 432,
+					"y": 330
+				},
+				{
+					"x": 359,
+					"y": 422
+				},
+				{
+					"x": 241,
+					"y": 422
+				},
+				{
+					"x": 168,
+					"y": 330
+				},
+				{
+					"x": 194,
+					"y": 216
+				}
+			],
+			"edges": [
+				[0, 1],
+				[7, 8],
+				[1, 2],
+				[8, 9],
+				[1, 8],
+				[2, 3],
+				[9, 10],
+				[3, 4],
+				[10, 11],
+				[4, 5],
+				[11, 12],
+				[4, 11],
+				[5, 6],
+				[12, 13],
+				[6, 0],
+				[13, 7],
+				[6, 13],
+				[7, 9],
+				[7, 10]
+			],
+			"cops": [
+				11,
+				13,
+				0
+			],
+			"robbers": [6, 9],
+			"exits": [4, 2],
+			"par": 9
+		},
+		{
+			"id": 32,
+			"chapter": 2,
+			"name": "湖心捷径",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 463,
+					"y": 137
+				},
+				{
+					"x": 530,
+					"y": 300
+				},
+				{
+					"x": 463,
+					"y": 463
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 137,
+					"y": 463
+				},
+				{
+					"x": 70,
+					"y": 300
+				},
+				{
+					"x": 137,
+					"y": 137
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 395,
+					"y": 205
+				},
+				{
+					"x": 435,
+					"y": 300
+				},
+				{
+					"x": 395,
+					"y": 395
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 205,
+					"y": 395
+				},
+				{
+					"x": 165,
+					"y": 300
+				},
+				{
+					"x": 205,
+					"y": 205
+				}
+			],
+			"edges": [
+				[0, 1],
+				[8, 9],
+				[0, 8],
+				[1, 2],
+				[9, 10],
+				[1, 9],
+				[2, 3],
+				[10, 11],
+				[3, 4],
+				[11, 12],
+				[3, 11],
+				[4, 5],
+				[12, 13],
+				[4, 12],
+				[5, 6],
+				[13, 14],
+				[6, 7],
+				[14, 15],
+				[7, 0],
+				[15, 8],
+				[7, 15],
+				[8, 10],
+				[8, 12],
+				[8, 14]
+			],
+			"cops": [
+				7,
+				13,
+				14
+			],
+			"robbers": [12, 15],
+			"exits": [6, 0],
+			"par": 11
+		},
+		{
+			"id": 33,
+			"chapter": 2,
+			"name": "花圃迷阵",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 463,
+					"y": 137
+				},
+				{
+					"x": 530,
+					"y": 300
+				},
+				{
+					"x": 463,
+					"y": 463
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 137,
+					"y": 463
+				},
+				{
+					"x": 70,
+					"y": 300
+				},
+				{
+					"x": 137,
+					"y": 137
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 395,
+					"y": 205
+				},
+				{
+					"x": 435,
+					"y": 300
+				},
+				{
+					"x": 395,
+					"y": 395
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 205,
+					"y": 395
+				},
+				{
+					"x": 165,
+					"y": 300
+				},
+				{
+					"x": 205,
+					"y": 205
+				}
+			],
+			"edges": [
+				[0, 1],
+				[8, 9],
+				[1, 2],
+				[9, 10],
+				[1, 9],
+				[2, 3],
+				[10, 11],
+				[3, 4],
+				[11, 12],
+				[3, 11],
+				[4, 5],
+				[12, 13],
+				[5, 6],
+				[13, 14],
+				[6, 7],
+				[14, 15],
+				[7, 0],
+				[15, 8],
+				[8, 10],
+				[8, 13],
+				[8, 14]
+			],
+			"cops": [
+				2,
+				3,
+				14
+			],
+			"robbers": [15, 5],
+			"exits": [0, 4],
+			"par": 11
+		},
+		{
+			"id": 34,
+			"chapter": 2,
+			"name": "林地环线",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 480,
+					"y": 157
+				},
+				{
+					"x": 524,
+					"y": 351
+				},
+				{
+					"x": 400,
+					"y": 507
+				},
+				{
+					"x": 200,
+					"y": 507
+				},
+				{
+					"x": 76,
+					"y": 351
+				},
+				{
+					"x": 120,
+					"y": 157
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 406,
+					"y": 216
+				},
+				{
+					"x": 432,
+					"y": 330
+				},
+				{
+					"x": 359,
+					"y": 422
+				},
+				{
+					"x": 241,
+					"y": 422
+				},
+				{
+					"x": 168,
+					"y": 330
+				},
+				{
+					"x": 194,
+					"y": 216
+				}
+			],
+			"edges": [
+				[0, 1],
+				[7, 8],
+				[0, 7],
+				[1, 2],
+				[8, 9],
+				[1, 8],
+				[2, 3],
+				[9, 10],
+				[2, 9],
+				[3, 4],
+				[10, 11],
+				[4, 5],
+				[11, 12],
+				[4, 11],
+				[5, 6],
+				[12, 13],
+				[6, 0],
+				[13, 7]
+			],
+			"cops": [
+				3,
+				13,
+				1
+			],
+			"robbers": [4, 9],
+			"exits": [0, 2],
+			"par": 8
+		},
+		{
+			"id": 35,
+			"chapter": 2,
+			"name": "野餐散场",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 480,
+					"y": 157
+				},
+				{
+					"x": 524,
+					"y": 351
+				},
+				{
+					"x": 400,
+					"y": 507
+				},
+				{
+					"x": 200,
+					"y": 507
+				},
+				{
+					"x": 76,
+					"y": 351
+				},
+				{
+					"x": 120,
+					"y": 157
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 406,
+					"y": 216
+				},
+				{
+					"x": 432,
+					"y": 330
+				},
+				{
+					"x": 359,
+					"y": 422
+				},
+				{
+					"x": 241,
+					"y": 422
+				},
+				{
+					"x": 168,
+					"y": 330
+				},
+				{
+					"x": 194,
+					"y": 216
+				}
+			],
+			"edges": [
+				[0, 1],
+				[7, 8],
+				[0, 7],
+				[1, 2],
+				[8, 9],
+				[1, 8],
+				[2, 3],
+				[9, 10],
+				[3, 4],
+				[10, 11],
+				[3, 10],
+				[4, 5],
+				[11, 12],
+				[4, 11],
+				[5, 6],
+				[12, 13],
+				[5, 12],
+				[6, 0],
+				[13, 7],
+				[6, 13],
+				[7, 9],
+				[7, 10]
+			],
+			"cops": [
+				10,
+				8,
+				1
+			],
+			"robbers": [9, 11],
+			"exits": [0, 2],
+			"par": 9
+		},
+		{
+			"id": 36,
+			"chapter": 2,
+			"name": "公园闭园",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 480,
+					"y": 157
+				},
+				{
+					"x": 524,
+					"y": 351
+				},
+				{
+					"x": 400,
+					"y": 507
+				},
+				{
+					"x": 200,
+					"y": 507
+				},
+				{
+					"x": 76,
+					"y": 351
+				},
+				{
+					"x": 120,
+					"y": 157
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 406,
+					"y": 216
+				},
+				{
+					"x": 432,
+					"y": 330
+				},
+				{
+					"x": 359,
+					"y": 422
+				},
+				{
+					"x": 241,
+					"y": 422
+				},
+				{
+					"x": 168,
+					"y": 330
+				},
+				{
+					"x": 194,
+					"y": 216
+				}
+			],
+			"edges": [
+				[0, 1],
+				[7, 8],
+				[0, 7],
+				[1, 2],
+				[8, 9],
+				[2, 3],
+				[9, 10],
+				[3, 4],
+				[10, 11],
+				[4, 5],
+				[11, 12],
+				[5, 6],
+				[12, 13],
+				[5, 12],
+				[6, 0],
+				[13, 7],
+				[6, 13],
+				[7, 10],
+				[7, 11]
+			],
+			"cops": [
+				6,
+				1,
+				11
+			],
+			"robbers": [3, 13],
+			"exits": [5, 0],
+			"par": 12
+		},
+		{
+			"id": 37,
+			"chapter": 3,
+			"name": "两岸多桥",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 463,
+					"y": 137
+				},
+				{
+					"x": 530,
+					"y": 300
+				},
+				{
+					"x": 463,
+					"y": 463
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 137,
+					"y": 463
+				},
+				{
+					"x": 70,
+					"y": 300
+				},
+				{
+					"x": 137,
+					"y": 137
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 395,
+					"y": 205
+				},
+				{
+					"x": 435,
+					"y": 300
+				},
+				{
+					"x": 395,
+					"y": 395
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 205,
+					"y": 395
+				},
+				{
+					"x": 165,
+					"y": 300
+				},
+				{
+					"x": 205,
+					"y": 205
+				}
+			],
+			"edges": [
+				[0, 1],
+				[8, 9],
+				[1, 2],
+				[9, 10],
+				[2, 3],
+				[10, 11],
+				[2, 10],
+				[3, 4],
+				[11, 12],
+				[4, 5],
+				[12, 13],
+				[4, 12],
+				[5, 6],
+				[13, 14],
+				[5, 13],
+				[6, 7],
+				[14, 15],
+				[6, 14],
+				[7, 0],
+				[15, 8],
+				[8, 11],
+				[8, 13]
+			],
+			"cops": [
+				7,
+				9,
+				6
+			],
+			"robbers": [11, 8],
+			"exits": [0, 4],
+			"par": 7
+		},
+		{
+			"id": 38,
+			"chapter": 3,
+			"name": "仓库后门",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 499,
+					"y": 185
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 101,
+					"y": 185
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 417,
+					"y": 233
+				},
+				{
+					"x": 417,
+					"y": 368
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 183,
+					"y": 368
+				},
+				{
+					"x": 183,
+					"y": 233
+				}
+			],
+			"edges": [
+				[0, 1],
+				[6, 7],
+				[1, 2],
+				[7, 8],
+				[1, 7],
+				[2, 3],
+				[8, 9],
+				[3, 4],
+				[9, 10],
+				[4, 5],
+				[10, 11],
+				[4, 10],
+				[5, 0],
+				[11, 6],
+				[5, 11],
+				[6, 8],
+				[6, 9],
+				[6, 10]
+			],
+			"cops": [
+				5,
+				2,
+				8
+			],
+			"robbers": [4, 7],
+			"exits": [0, 3],
+			"par": 8
+		},
+		{
+			"id": 39,
+			"chapter": 3,
+			"name": "两岸回廊",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 480,
+					"y": 157
+				},
+				{
+					"x": 524,
+					"y": 351
+				},
+				{
+					"x": 400,
+					"y": 507
+				},
+				{
+					"x": 200,
+					"y": 507
+				},
+				{
+					"x": 76,
+					"y": 351
+				},
+				{
+					"x": 120,
+					"y": 157
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 406,
+					"y": 216
+				},
+				{
+					"x": 432,
+					"y": 330
+				},
+				{
+					"x": 359,
+					"y": 422
+				},
+				{
+					"x": 241,
+					"y": 422
+				},
+				{
+					"x": 168,
+					"y": 330
+				},
+				{
+					"x": 194,
+					"y": 216
+				}
+			],
+			"edges": [
+				[0, 1],
+				[7, 8],
+				[1, 2],
+				[8, 9],
+				[1, 8],
+				[2, 3],
+				[9, 10],
+				[3, 4],
+				[10, 11],
+				[3, 10],
+				[4, 5],
+				[11, 12],
+				[5, 6],
+				[12, 13],
+				[5, 12],
+				[6, 0],
+				[13, 7],
+				[7, 9],
+				[7, 10],
+				[7, 11],
+				[7, 12]
+			],
+			"cops": [
+				3,
+				13,
+				6
+			],
+			"robbers": [7, 1],
+			"exits": [4, 0],
+			"par": 8
+		},
+		{
+			"id": 40,
+			"chapter": 3,
+			"name": "货箱通道",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 480,
+					"y": 157
+				},
+				{
+					"x": 524,
+					"y": 351
+				},
+				{
+					"x": 400,
+					"y": 507
+				},
+				{
+					"x": 200,
+					"y": 507
+				},
+				{
+					"x": 76,
+					"y": 351
+				},
+				{
+					"x": 120,
+					"y": 157
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 406,
+					"y": 216
+				},
+				{
+					"x": 432,
+					"y": 330
+				},
+				{
+					"x": 359,
+					"y": 422
+				},
+				{
+					"x": 241,
+					"y": 422
+				},
+				{
+					"x": 168,
+					"y": 330
+				},
+				{
+					"x": 194,
+					"y": 216
+				}
+			],
+			"edges": [
+				[0, 1],
+				[7, 8],
+				[0, 7],
+				[1, 2],
+				[8, 9],
+				[1, 8],
+				[2, 3],
+				[9, 10],
+				[3, 4],
+				[10, 11],
+				[4, 5],
+				[11, 12],
+				[5, 6],
+				[12, 13],
+				[5, 12],
+				[6, 0],
+				[13, 7],
+				[6, 13],
+				[7, 10],
+				[7, 11]
+			],
+			"cops": [
+				12,
+				1,
+				2
+			],
+			"robbers": [7, 5],
+			"exits": [0, 3],
+			"par": 11
+		},
+		{
+			"id": 41,
+			"chapter": 3,
+			"name": "渡口换防",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 480,
+					"y": 157
+				},
+				{
+					"x": 524,
+					"y": 351
+				},
+				{
+					"x": 400,
+					"y": 507
+				},
+				{
+					"x": 200,
+					"y": 507
+				},
+				{
+					"x": 76,
+					"y": 351
+				},
+				{
+					"x": 120,
+					"y": 157
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 406,
+					"y": 216
+				},
+				{
+					"x": 432,
+					"y": 330
+				},
+				{
+					"x": 359,
+					"y": 422
+				},
+				{
+					"x": 241,
+					"y": 422
+				},
+				{
+					"x": 168,
+					"y": 330
+				},
+				{
+					"x": 194,
+					"y": 216
+				}
+			],
+			"edges": [
+				[0, 1],
+				[7, 8],
+				[0, 7],
+				[1, 2],
+				[8, 9],
+				[1, 8],
+				[2, 3],
+				[9, 10],
+				[2, 9],
+				[3, 4],
+				[10, 11],
+				[4, 5],
+				[11, 12],
+				[4, 11],
+				[5, 6],
+				[12, 13],
+				[6, 0],
+				[13, 7],
+				[6, 13],
+				[7, 12]
+			],
+			"cops": [
+				13,
+				6,
+				1
+			],
+			"robbers": [7, 4],
+			"exits": [2, 5],
+			"par": 11
+		},
+		{
+			"id": 42,
+			"chapter": 3,
+			"name": "双仓连桥",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 480,
+					"y": 157
+				},
+				{
+					"x": 524,
+					"y": 351
+				},
+				{
+					"x": 400,
+					"y": 507
+				},
+				{
+					"x": 200,
+					"y": 507
+				},
+				{
+					"x": 76,
+					"y": 351
+				},
+				{
+					"x": 120,
+					"y": 157
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 406,
+					"y": 216
+				},
+				{
+					"x": 432,
+					"y": 330
+				},
+				{
+					"x": 359,
+					"y": 422
+				},
+				{
+					"x": 241,
+					"y": 422
+				},
+				{
+					"x": 168,
+					"y": 330
+				},
+				{
+					"x": 194,
+					"y": 216
+				}
+			],
+			"edges": [
+				[0, 1],
+				[7, 8],
+				[1, 2],
+				[8, 9],
+				[1, 8],
+				[2, 3],
+				[9, 10],
+				[2, 9],
+				[3, 4],
+				[10, 11],
+				[4, 5],
+				[11, 12],
+				[4, 11],
+				[5, 6],
+				[12, 13],
+				[5, 12],
+				[6, 0],
+				[13, 7],
+				[7, 11],
+				[7, 12]
+			],
+			"cops": [
+				8,
+				5,
+				7
+			],
+			"robbers": [12, 9],
+			"exits": [4, 0],
+			"par": 8
+		},
+		{
+			"id": 43,
+			"chapter": 3,
+			"name": "栈桥回环",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 480,
+					"y": 157
+				},
+				{
+					"x": 524,
+					"y": 351
+				},
+				{
+					"x": 400,
+					"y": 507
+				},
+				{
+					"x": 200,
+					"y": 507
+				},
+				{
+					"x": 76,
+					"y": 351
+				},
+				{
+					"x": 120,
+					"y": 157
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 406,
+					"y": 216
+				},
+				{
+					"x": 432,
+					"y": 330
+				},
+				{
+					"x": 359,
+					"y": 422
+				},
+				{
+					"x": 241,
+					"y": 422
+				},
+				{
+					"x": 168,
+					"y": 330
+				},
+				{
+					"x": 194,
+					"y": 216
+				}
+			],
+			"edges": [
+				[0, 1],
+				[7, 8],
+				[0, 7],
+				[1, 2],
+				[8, 9],
+				[1, 8],
+				[2, 3],
+				[9, 10],
+				[2, 9],
+				[3, 4],
+				[10, 11],
+				[3, 10],
+				[4, 5],
+				[11, 12],
+				[5, 6],
+				[12, 13],
+				[6, 0],
+				[13, 7],
+				[6, 13],
+				[7, 10],
+				[7, 12]
+			],
+			"cops": [
+				13,
+				4,
+				7
+			],
+			"robbers": [0, 12],
+			"exits": [5, 2],
+			"par": 11
+		},
+		{
+			"id": 44,
+			"chapter": 3,
+			"name": "码头三岔",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 463,
+					"y": 137
+				},
+				{
+					"x": 530,
+					"y": 300
+				},
+				{
+					"x": 463,
+					"y": 463
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 137,
+					"y": 463
+				},
+				{
+					"x": 70,
+					"y": 300
+				},
+				{
+					"x": 137,
+					"y": 137
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 395,
+					"y": 205
+				},
+				{
+					"x": 435,
+					"y": 300
+				},
+				{
+					"x": 395,
+					"y": 395
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 205,
+					"y": 395
+				},
+				{
+					"x": 165,
+					"y": 300
+				},
+				{
+					"x": 205,
+					"y": 205
+				}
+			],
+			"edges": [
+				[0, 1],
+				[8, 9],
+				[1, 2],
+				[9, 10],
+				[1, 9],
+				[2, 3],
+				[10, 11],
+				[3, 4],
+				[11, 12],
+				[4, 5],
+				[12, 13],
+				[4, 12],
+				[5, 6],
+				[13, 14],
+				[6, 7],
+				[14, 15],
+				[7, 0],
+				[15, 8],
+				[7, 15],
+				[8, 10],
+				[8, 11],
+				[8, 13]
+			],
+			"cops": [
+				8,
+				4,
+				7
+			],
+			"robbers": [9, 15],
+			"exits": [2, 6],
+			"par": 9
+		},
+		{
+			"id": 45,
+			"chapter": 3,
+			"name": "旧船坞",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 480,
+					"y": 157
+				},
+				{
+					"x": 524,
+					"y": 351
+				},
+				{
+					"x": 400,
+					"y": 507
+				},
+				{
+					"x": 200,
+					"y": 507
+				},
+				{
+					"x": 76,
+					"y": 351
+				},
+				{
+					"x": 120,
+					"y": 157
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 406,
+					"y": 216
+				},
+				{
+					"x": 432,
+					"y": 330
+				},
+				{
+					"x": 359,
+					"y": 422
+				},
+				{
+					"x": 241,
+					"y": 422
+				},
+				{
+					"x": 168,
+					"y": 330
+				},
+				{
+					"x": 194,
+					"y": 216
+				}
+			],
+			"edges": [
+				[0, 1],
+				[7, 8],
+				[1, 2],
+				[8, 9],
+				[2, 3],
+				[9, 10],
+				[2, 9],
+				[3, 4],
+				[10, 11],
+				[4, 5],
+				[11, 12],
+				[4, 11],
+				[5, 6],
+				[12, 13],
+				[5, 12],
+				[6, 0],
+				[13, 7],
+				[6, 13],
+				[7, 9],
+				[7, 11],
+				[7, 12]
+			],
+			"cops": [
+				12,
+				1,
+				10
+			],
+			"robbers": [7, 2],
+			"exits": [4, 0],
+			"par": 8
+		},
+		{
+			"id": 46,
+			"chapter": 3,
+			"name": "货场包围",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 480,
+					"y": 157
+				},
+				{
+					"x": 524,
+					"y": 351
+				},
+				{
+					"x": 400,
+					"y": 507
+				},
+				{
+					"x": 200,
+					"y": 507
+				},
+				{
+					"x": 76,
+					"y": 351
+				},
+				{
+					"x": 120,
+					"y": 157
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 406,
+					"y": 216
+				},
+				{
+					"x": 432,
+					"y": 330
+				},
+				{
+					"x": 359,
+					"y": 422
+				},
+				{
+					"x": 241,
+					"y": 422
+				},
+				{
+					"x": 168,
+					"y": 330
+				},
+				{
+					"x": 194,
+					"y": 216
+				}
+			],
+			"edges": [
+				[0, 1],
+				[7, 8],
+				[0, 7],
+				[1, 2],
+				[8, 9],
+				[2, 3],
+				[9, 10],
+				[2, 9],
+				[3, 4],
+				[10, 11],
+				[3, 10],
+				[4, 5],
+				[11, 12],
+				[4, 11],
+				[5, 6],
+				[12, 13],
+				[6, 0],
+				[13, 7],
+				[6, 13],
+				[7, 9],
+				[7, 10],
+				[7, 11]
+			],
+			"cops": [
+				6,
+				13,
+				10
+			],
+			"robbers": [0, 8],
+			"exits": [2, 5],
+			"par": 8
+		},
+		{
+			"id": 47,
+			"chapter": 3,
+			"name": "夜航之前",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 463,
+					"y": 137
+				},
+				{
+					"x": 530,
+					"y": 300
+				},
+				{
+					"x": 463,
+					"y": 463
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 137,
+					"y": 463
+				},
+				{
+					"x": 70,
+					"y": 300
+				},
+				{
+					"x": 137,
+					"y": 137
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 395,
+					"y": 205
+				},
+				{
+					"x": 435,
+					"y": 300
+				},
+				{
+					"x": 395,
+					"y": 395
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 205,
+					"y": 395
+				},
+				{
+					"x": 165,
+					"y": 300
+				},
+				{
+					"x": 205,
+					"y": 205
+				}
+			],
+			"edges": [
+				[0, 1],
+				[8, 9],
+				[1, 2],
+				[9, 10],
+				[1, 9],
+				[2, 3],
+				[10, 11],
+				[2, 10],
+				[3, 4],
+				[11, 12],
+				[4, 5],
+				[12, 13],
+				[4, 12],
+				[5, 6],
+				[13, 14],
+				[5, 13],
+				[6, 7],
+				[14, 15],
+				[6, 14],
+				[7, 0],
+				[15, 8],
+				[8, 13],
+				[8, 14]
+			],
+			"cops": [
+				9,
+				5,
+				14
+			],
+			"robbers": [6, 10],
+			"exits": [0, 4],
+			"par": 12
+		},
+		{
+			"id": 48,
+			"chapter": 3,
+			"name": "封港行动",
+			"tip": "3 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 463,
+					"y": 137
+				},
+				{
+					"x": 530,
+					"y": 300
+				},
+				{
+					"x": 463,
+					"y": 463
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 137,
+					"y": 463
+				},
+				{
+					"x": 70,
+					"y": 300
+				},
+				{
+					"x": 137,
+					"y": 137
+				},
+				{
+					"x": 300,
+					"y": 165
+				},
+				{
+					"x": 395,
+					"y": 205
+				},
+				{
+					"x": 435,
+					"y": 300
+				},
+				{
+					"x": 395,
+					"y": 395
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 205,
+					"y": 395
+				},
+				{
+					"x": 165,
+					"y": 300
+				},
+				{
+					"x": 205,
+					"y": 205
+				}
+			],
+			"edges": [
+				[0, 1],
+				[8, 9],
+				[0, 8],
+				[1, 2],
+				[9, 10],
+				[1, 9],
+				[2, 3],
+				[10, 11],
+				[2, 10],
+				[3, 4],
+				[11, 12],
+				[3, 11],
+				[4, 5],
+				[12, 13],
+				[4, 12],
+				[5, 6],
+				[13, 14],
+				[5, 13],
+				[6, 7],
+				[14, 15],
+				[6, 14],
+				[7, 0],
+				[15, 8],
+				[8, 11],
+				[8, 12]
+			],
+			"cops": [
+				4,
+				7,
+				3
+			],
+			"robbers": [12, 1],
+			"exits": [2, 6],
+			"par": 8
+		},
+		{
+			"id": 49,
+			"chapter": 4,
+			"name": "四路会合",
+			"tip": "4 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 448,
+					"y": 124
+				},
+				{
+					"x": 527,
+					"y": 260
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 379,
+					"y": 516
+				},
+				{
+					"x": 221,
+					"y": 516
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 73,
+					"y": 260
+				},
+				{
+					"x": 152,
+					"y": 124
+				},
+				{
+					"x": 254,
+					"y": 173
+				},
+				{
+					"x": 346,
+					"y": 173
+				},
+				{
+					"x": 417,
+					"y": 233
+				},
+				{
+					"x": 433,
+					"y": 323
+				},
+				{
+					"x": 387,
+					"y": 403
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 213,
+					"y": 403
+				},
+				{
+					"x": 167,
+					"y": 323
+				},
+				{
+					"x": 183,
+					"y": 233
+				}
+			],
+			"edges": [
+				[0, 1],
+				[9, 10],
+				[0, 9],
+				[1, 2],
+				[10, 11],
+				[1, 10],
+				[2, 3],
+				[11, 12],
+				[2, 11],
+				[2, 12],
+				[3, 4],
+				[12, 13],
+				[3, 12],
+				[4, 5],
+				[13, 14],
+				[4, 13],
+				[5, 6],
+				[14, 15],
+				[5, 14],
+				[6, 7],
+				[15, 16],
+				[6, 15],
+				[7, 8],
+				[16, 17],
+				[7, 16],
+				[8, 0],
+				[17, 9],
+				[8, 17],
+				[9, 11]
+			],
+			"cops": [
+				13,
+				3,
+				8,
+				10
+			],
+			"robbers": [1, 17],
+			"exits": [
+				2,
+				4,
+				5
+			],
+			"par": 12
+		},
+		{
+			"id": 50,
+			"chapter": 4,
+			"name": "路口接力",
+			"tip": "4 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 463,
+					"y": 137
+				},
+				{
+					"x": 530,
+					"y": 300
+				},
+				{
+					"x": 463,
+					"y": 463
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 137,
+					"y": 463
+				},
+				{
+					"x": 70,
+					"y": 300
+				},
+				{
+					"x": 137,
+					"y": 137
+				},
+				{
+					"x": 248,
+					"y": 175
+				},
+				{
+					"x": 352,
+					"y": 175
+				},
+				{
+					"x": 425,
+					"y": 248
+				},
+				{
+					"x": 425,
+					"y": 352
+				},
+				{
+					"x": 352,
+					"y": 425
+				},
+				{
+					"x": 248,
+					"y": 425
+				},
+				{
+					"x": 175,
+					"y": 352
+				},
+				{
+					"x": 175,
+					"y": 248
+				}
+			],
+			"edges": [
+				[0, 1],
+				[8, 9],
+				[0, 8],
+				[1, 2],
+				[9, 10],
+				[1, 9],
+				[2, 3],
+				[10, 11],
+				[2, 10],
+				[3, 4],
+				[11, 12],
+				[3, 11],
+				[4, 5],
+				[12, 13],
+				[4, 12],
+				[5, 6],
+				[13, 14],
+				[5, 13],
+				[6, 7],
+				[14, 15],
+				[6, 14],
+				[6, 15],
+				[7, 0],
+				[15, 8],
+				[7, 15],
+				[8, 10],
+				[8, 11]
+			],
+			"cops": [
+				0,
+				14,
+				3,
+				9
+			],
+			"robbers": [1, 8],
+			"exits": [
+				6,
+				2,
+				4
+			],
+			"par": 13
+		},
+		{
+			"id": 51,
+			"chapter": 4,
+			"name": "社区巡逻",
+			"tip": "4 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 463,
+					"y": 137
+				},
+				{
+					"x": 530,
+					"y": 300
+				},
+				{
+					"x": 463,
+					"y": 463
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 137,
+					"y": 463
+				},
+				{
+					"x": 70,
+					"y": 300
+				},
+				{
+					"x": 137,
+					"y": 137
+				},
+				{
+					"x": 248,
+					"y": 175
+				},
+				{
+					"x": 352,
+					"y": 175
+				},
+				{
+					"x": 425,
+					"y": 248
+				},
+				{
+					"x": 425,
+					"y": 352
+				},
+				{
+					"x": 352,
+					"y": 425
+				},
+				{
+					"x": 248,
+					"y": 425
+				},
+				{
+					"x": 175,
+					"y": 352
+				},
+				{
+					"x": 175,
+					"y": 248
+				}
+			],
+			"edges": [
+				[0, 1],
+				[8, 9],
+				[0, 8],
+				[1, 2],
+				[9, 10],
+				[1, 9],
+				[2, 3],
+				[10, 11],
+				[2, 10],
+				[3, 4],
+				[11, 12],
+				[3, 11],
+				[4, 5],
+				[12, 13],
+				[4, 12],
+				[5, 6],
+				[13, 14],
+				[5, 13],
+				[6, 7],
+				[14, 15],
+				[6, 14],
+				[7, 0],
+				[15, 8],
+				[7, 15],
+				[7, 8],
+				[8, 10],
+				[8, 11]
+			],
+			"cops": [
+				5,
+				13,
+				7,
+				8
+			],
+			"robbers": [12, 15],
+			"exits": [
+				6,
+				2,
+				0
+			],
+			"par": 11
+		},
+		{
+			"id": 52,
+			"chapter": 4,
+			"name": "双环夹巷",
+			"tip": "4 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 463,
+					"y": 137
+				},
+				{
+					"x": 530,
+					"y": 300
+				},
+				{
+					"x": 463,
+					"y": 463
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 137,
+					"y": 463
+				},
+				{
+					"x": 70,
+					"y": 300
+				},
+				{
+					"x": 137,
+					"y": 137
+				},
+				{
+					"x": 248,
+					"y": 175
+				},
+				{
+					"x": 352,
+					"y": 175
+				},
+				{
+					"x": 425,
+					"y": 248
+				},
+				{
+					"x": 425,
+					"y": 352
+				},
+				{
+					"x": 352,
+					"y": 425
+				},
+				{
+					"x": 248,
+					"y": 425
+				},
+				{
+					"x": 175,
+					"y": 352
+				},
+				{
+					"x": 175,
+					"y": 248
+				}
+			],
+			"edges": [
+				[0, 1],
+				[8, 9],
+				[0, 8],
+				[1, 2],
+				[9, 10],
+				[1, 9],
+				[2, 3],
+				[10, 11],
+				[2, 10],
+				[3, 4],
+				[11, 12],
+				[3, 11],
+				[3, 12],
+				[4, 5],
+				[12, 13],
+				[4, 12],
+				[5, 6],
+				[13, 14],
+				[5, 13],
+				[6, 7],
+				[14, 15],
+				[6, 14],
+				[7, 0],
+				[15, 8],
+				[7, 15],
+				[8, 10],
+				[8, 11]
+			],
+			"cops": [
+				10,
+				5,
+				9,
+				0
+			],
+			"robbers": [15, 1],
+			"exits": [
+				2,
+				6,
+				4
+			],
+			"par": 13
+		},
+		{
+			"id": 53,
+			"chapter": 4,
+			"name": "街心大花园",
+			"tip": "4 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 448,
+					"y": 124
+				},
+				{
+					"x": 527,
+					"y": 260
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 379,
+					"y": 516
+				},
+				{
+					"x": 221,
+					"y": 516
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 73,
+					"y": 260
+				},
+				{
+					"x": 152,
+					"y": 124
+				},
+				{
+					"x": 254,
+					"y": 173
+				},
+				{
+					"x": 346,
+					"y": 173
+				},
+				{
+					"x": 417,
+					"y": 233
+				},
+				{
+					"x": 433,
+					"y": 323
+				},
+				{
+					"x": 387,
+					"y": 403
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 213,
+					"y": 403
+				},
+				{
+					"x": 167,
+					"y": 323
+				},
+				{
+					"x": 183,
+					"y": 233
+				}
+			],
+			"edges": [
+				[0, 1],
+				[9, 10],
+				[0, 9],
+				[1, 2],
+				[10, 11],
+				[1, 10],
+				[1, 11],
+				[2, 3],
+				[11, 12],
+				[2, 11],
+				[3, 4],
+				[12, 13],
+				[3, 12],
+				[4, 5],
+				[13, 14],
+				[4, 13],
+				[5, 6],
+				[14, 15],
+				[5, 14],
+				[6, 7],
+				[15, 16],
+				[6, 15],
+				[7, 8],
+				[16, 17],
+				[7, 16],
+				[8, 0],
+				[17, 9],
+				[8, 17],
+				[9, 12]
+			],
+			"cops": [
+				11,
+				1,
+				0,
+				13
+			],
+			"robbers": [2, 10],
+			"exits": [
+				5,
+				7,
+				4
+			],
+			"par": 14
+		},
+		{
+			"id": 54,
+			"chapter": 4,
+			"name": "穿街过巷",
+			"tip": "4 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 448,
+					"y": 124
+				},
+				{
+					"x": 527,
+					"y": 260
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 379,
+					"y": 516
+				},
+				{
+					"x": 221,
+					"y": 516
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 73,
+					"y": 260
+				},
+				{
+					"x": 152,
+					"y": 124
+				},
+				{
+					"x": 254,
+					"y": 173
+				},
+				{
+					"x": 346,
+					"y": 173
+				},
+				{
+					"x": 417,
+					"y": 233
+				},
+				{
+					"x": 433,
+					"y": 323
+				},
+				{
+					"x": 387,
+					"y": 403
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 213,
+					"y": 403
+				},
+				{
+					"x": 167,
+					"y": 323
+				},
+				{
+					"x": 183,
+					"y": 233
+				}
+			],
+			"edges": [
+				[0, 1],
+				[9, 10],
+				[0, 9],
+				[1, 2],
+				[10, 11],
+				[1, 10],
+				[2, 3],
+				[11, 12],
+				[2, 11],
+				[3, 4],
+				[12, 13],
+				[3, 12],
+				[4, 5],
+				[13, 14],
+				[4, 13],
+				[5, 6],
+				[14, 15],
+				[5, 14],
+				[5, 15],
+				[6, 7],
+				[15, 16],
+				[6, 15],
+				[7, 8],
+				[16, 17],
+				[7, 16],
+				[8, 0],
+				[17, 9],
+				[8, 17],
+				[9, 11]
+			],
+			"cops": [
+				12,
+				10,
+				7,
+				3
+			],
+			"robbers": [17, 1],
+			"exits": [
+				4,
+				2,
+				5
+			],
+			"par": 12
+		},
+		{
+			"id": 55,
+			"chapter": 4,
+			"name": "广场四角",
+			"tip": "4 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 448,
+					"y": 124
+				},
+				{
+					"x": 527,
+					"y": 260
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 379,
+					"y": 516
+				},
+				{
+					"x": 221,
+					"y": 516
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 73,
+					"y": 260
+				},
+				{
+					"x": 152,
+					"y": 124
+				},
+				{
+					"x": 254,
+					"y": 173
+				},
+				{
+					"x": 346,
+					"y": 173
+				},
+				{
+					"x": 417,
+					"y": 233
+				},
+				{
+					"x": 433,
+					"y": 323
+				},
+				{
+					"x": 387,
+					"y": 403
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 213,
+					"y": 403
+				},
+				{
+					"x": 167,
+					"y": 323
+				},
+				{
+					"x": 183,
+					"y": 233
+				}
+			],
+			"edges": [
+				[0, 1],
+				[9, 10],
+				[0, 9],
+				[1, 2],
+				[10, 11],
+				[1, 10],
+				[2, 3],
+				[11, 12],
+				[2, 11],
+				[3, 4],
+				[12, 13],
+				[3, 12],
+				[4, 5],
+				[13, 14],
+				[4, 13],
+				[4, 14],
+				[5, 6],
+				[14, 15],
+				[5, 14],
+				[6, 7],
+				[15, 16],
+				[6, 15],
+				[7, 8],
+				[16, 17],
+				[7, 16],
+				[8, 0],
+				[17, 9],
+				[8, 17]
+			],
+			"cops": [
+				9,
+				2,
+				6,
+				8
+			],
+			"robbers": [0, 15],
+			"exits": [
+				5,
+				4,
+				7
+			],
+			"par": 14
+		},
+		{
+			"id": 56,
+			"chapter": 4,
+			"name": "小队大集合",
+			"tip": "4 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 448,
+					"y": 124
+				},
+				{
+					"x": 527,
+					"y": 260
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 379,
+					"y": 516
+				},
+				{
+					"x": 221,
+					"y": 516
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 73,
+					"y": 260
+				},
+				{
+					"x": 152,
+					"y": 124
+				},
+				{
+					"x": 254,
+					"y": 173
+				},
+				{
+					"x": 346,
+					"y": 173
+				},
+				{
+					"x": 417,
+					"y": 233
+				},
+				{
+					"x": 433,
+					"y": 323
+				},
+				{
+					"x": 387,
+					"y": 403
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 213,
+					"y": 403
+				},
+				{
+					"x": 167,
+					"y": 323
+				},
+				{
+					"x": 183,
+					"y": 233
+				}
+			],
+			"edges": [
+				[0, 1],
+				[9, 10],
+				[0, 9],
+				[1, 2],
+				[10, 11],
+				[1, 10],
+				[1, 11],
+				[2, 3],
+				[11, 12],
+				[2, 11],
+				[3, 4],
+				[12, 13],
+				[3, 12],
+				[4, 5],
+				[13, 14],
+				[4, 13],
+				[5, 6],
+				[14, 15],
+				[5, 14],
+				[6, 7],
+				[15, 16],
+				[6, 15],
+				[7, 8],
+				[16, 17],
+				[7, 16],
+				[8, 0],
+				[17, 9],
+				[8, 17],
+				[9, 11],
+				[9, 12]
+			],
+			"cops": [
+				12,
+				3,
+				7,
+				14
+			],
+			"robbers": [16, 13],
+			"exits": [
+				0,
+				4,
+				2
+			],
+			"par": 14
+		},
+		{
+			"id": 57,
+			"chapter": 4,
+			"name": "穿过老城区",
+			"tip": "4 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 448,
+					"y": 124
+				},
+				{
+					"x": 527,
+					"y": 260
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 379,
+					"y": 516
+				},
+				{
+					"x": 221,
+					"y": 516
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 73,
+					"y": 260
+				},
+				{
+					"x": 152,
+					"y": 124
+				},
+				{
+					"x": 254,
+					"y": 173
+				},
+				{
+					"x": 346,
+					"y": 173
+				},
+				{
+					"x": 417,
+					"y": 233
+				},
+				{
+					"x": 433,
+					"y": 323
+				},
+				{
+					"x": 387,
+					"y": 403
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 213,
+					"y": 403
+				},
+				{
+					"x": 167,
+					"y": 323
+				},
+				{
+					"x": 183,
+					"y": 233
+				}
+			],
+			"edges": [
+				[0, 1],
+				[9, 10],
+				[0, 9],
+				[1, 2],
+				[10, 11],
+				[1, 10],
+				[2, 3],
+				[11, 12],
+				[2, 11],
+				[3, 4],
+				[12, 13],
+				[3, 12],
+				[4, 5],
+				[13, 14],
+				[4, 13],
+				[4, 14],
+				[5, 6],
+				[14, 15],
+				[5, 14],
+				[6, 7],
+				[15, 16],
+				[6, 15],
+				[7, 8],
+				[16, 17],
+				[7, 16],
+				[8, 0],
+				[17, 9],
+				[8, 17],
+				[9, 12]
+			],
+			"cops": [
+				9,
+				6,
+				8,
+				13
+			],
+			"robbers": [
+				16,
+				11,
+				2
+			],
+			"exits": [
+				7,
+				5,
+				4
+			],
+			"par": 13
+		},
+		{
+			"id": 58,
+			"chapter": 4,
+			"name": "四路出击",
+			"tip": "4 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 448,
+					"y": 124
+				},
+				{
+					"x": 527,
+					"y": 260
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 379,
+					"y": 516
+				},
+				{
+					"x": 221,
+					"y": 516
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 73,
+					"y": 260
+				},
+				{
+					"x": 152,
+					"y": 124
+				},
+				{
+					"x": 254,
+					"y": 173
+				},
+				{
+					"x": 346,
+					"y": 173
+				},
+				{
+					"x": 417,
+					"y": 233
+				},
+				{
+					"x": 433,
+					"y": 323
+				},
+				{
+					"x": 387,
+					"y": 403
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 213,
+					"y": 403
+				},
+				{
+					"x": 167,
+					"y": 323
+				},
+				{
+					"x": 183,
+					"y": 233
+				}
+			],
+			"edges": [
+				[0, 1],
+				[9, 10],
+				[0, 9],
+				[1, 2],
+				[10, 11],
+				[1, 10],
+				[2, 3],
+				[11, 12],
+				[2, 11],
+				[3, 4],
+				[12, 13],
+				[3, 12],
+				[4, 5],
+				[13, 14],
+				[4, 13],
+				[5, 6],
+				[14, 15],
+				[5, 14],
+				[6, 7],
+				[15, 16],
+				[6, 15],
+				[6, 16],
+				[7, 8],
+				[16, 17],
+				[7, 16],
+				[8, 0],
+				[17, 9],
+				[8, 17]
+			],
+			"cops": [
+				13,
+				8,
+				14,
+				3
+			],
+			"robbers": [
+				12,
+				17,
+				0
+			],
+			"exits": [
+				5,
+				4,
+				7
+			],
+			"par": 11
+		},
+		{
+			"id": 59,
+			"chapter": 4,
+			"name": "城市晚安",
+			"tip": "4 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 448,
+					"y": 124
+				},
+				{
+					"x": 527,
+					"y": 260
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 379,
+					"y": 516
+				},
+				{
+					"x": 221,
+					"y": 516
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 73,
+					"y": 260
+				},
+				{
+					"x": 152,
+					"y": 124
+				},
+				{
+					"x": 254,
+					"y": 173
+				},
+				{
+					"x": 346,
+					"y": 173
+				},
+				{
+					"x": 417,
+					"y": 233
+				},
+				{
+					"x": 433,
+					"y": 323
+				},
+				{
+					"x": 387,
+					"y": 403
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 213,
+					"y": 403
+				},
+				{
+					"x": 167,
+					"y": 323
+				},
+				{
+					"x": 183,
+					"y": 233
+				}
+			],
+			"edges": [
+				[0, 1],
+				[9, 10],
+				[0, 9],
+				[1, 2],
+				[10, 11],
+				[1, 10],
+				[1, 11],
+				[2, 3],
+				[11, 12],
+				[2, 11],
+				[3, 4],
+				[12, 13],
+				[3, 12],
+				[4, 5],
+				[13, 14],
+				[4, 13],
+				[5, 6],
+				[14, 15],
+				[5, 14],
+				[6, 7],
+				[15, 16],
+				[6, 15],
+				[7, 8],
+				[16, 17],
+				[7, 16],
+				[8, 0],
+				[17, 9],
+				[8, 17],
+				[9, 11]
+			],
+			"cops": [
+				3,
+				6,
+				8,
+				12
+			],
+			"robbers": [
+				11,
+				14,
+				2
+			],
+			"exits": [
+				4,
+				7,
+				5
+			],
+			"par": 11
+		},
+		{
+			"id": 60,
+			"chapter": 4,
+			"name": "最后的围捕",
+			"tip": "4 人合作：有人守住逃生口，有人沿内外环路包抄。封口的队友离岗前，先安排另一人接防。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 448,
+					"y": 124
+				},
+				{
+					"x": 527,
+					"y": 260
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 379,
+					"y": 516
+				},
+				{
+					"x": 221,
+					"y": 516
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 73,
+					"y": 260
+				},
+				{
+					"x": 152,
+					"y": 124
+				},
+				{
+					"x": 254,
+					"y": 173
+				},
+				{
+					"x": 346,
+					"y": 173
+				},
+				{
+					"x": 417,
+					"y": 233
+				},
+				{
+					"x": 433,
+					"y": 323
+				},
+				{
+					"x": 387,
+					"y": 403
+				},
+				{
+					"x": 300,
+					"y": 435
+				},
+				{
+					"x": 213,
+					"y": 403
+				},
+				{
+					"x": 167,
+					"y": 323
+				},
+				{
+					"x": 183,
+					"y": 233
+				}
+			],
+			"edges": [
+				[0, 1],
+				[9, 10],
+				[0, 9],
+				[1, 2],
+				[10, 11],
+				[1, 10],
+				[2, 3],
+				[11, 12],
+				[2, 11],
+				[3, 4],
+				[12, 13],
+				[3, 12],
+				[4, 5],
+				[13, 14],
+				[4, 13],
+				[4, 14],
+				[5, 6],
+				[14, 15],
+				[5, 14],
+				[6, 7],
+				[15, 16],
+				[6, 15],
+				[7, 8],
+				[16, 17],
+				[7, 16],
+				[8, 0],
+				[17, 9],
+				[8, 17],
+				[9, 11]
+			],
+			"cops": [
+				17,
+				0,
+				13,
+				6
+			],
+			"robbers": [
+				15,
+				2,
+				12
+			],
+			"exits": [
+				4,
+				5,
+				7
+			],
+			"par": 13
+		},
+		{
+			"id": 61,
+			"chapter": 5,
+			"name": "立体环街 1",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 438,
+					"y": 110
+				},
+				{
+					"x": 523,
+					"y": 227
+				},
+				{
+					"x": 523,
+					"y": 373
+				},
+				{
+					"x": 438,
+					"y": 490
+				},
+				{
+					"x": 300,
+					"y": 535
+				},
+				{
+					"x": 162,
+					"y": 490
+				},
+				{
+					"x": 77,
+					"y": 373
+				},
+				{
+					"x": 77,
+					"y": 227
+				},
+				{
+					"x": 162,
+					"y": 110
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 382,
+					"y": 187
+				},
+				{
+					"x": 433,
+					"y": 257
+				},
+				{
+					"x": 433,
+					"y": 343
+				},
+				{
+					"x": 382,
+					"y": 413
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 218,
+					"y": 413
+				},
+				{
+					"x": 167,
+					"y": 343
+				},
+				{
+					"x": 167,
+					"y": 257
+				},
+				{
+					"x": 218,
+					"y": 187
+				}
+			],
+			"edges": [
+				[0, 1],
+				[10, 11],
+				[1, 2],
+				[11, 12],
+				[1, 11],
+				[2, 3],
+				[12, 13],
+				[3, 4],
+				[13, 14],
+				[3, 13],
+				[4, 5],
+				[14, 15],
+				[4, 14],
+				[5, 6],
+				[15, 16],
+				[5, 15],
+				[6, 7],
+				[16, 17],
+				[7, 8],
+				[17, 18],
+				[8, 9],
+				[18, 19],
+				[9, 0],
+				[19, 10],
+				[10, 17]
+			],
+			"cops": [
+				6,
+				19,
+				18
+			],
+			"robbers": [16, 9],
+			"exits": [2, 7],
+			"par": 14
+		},
+		{
+			"id": 62,
+			"chapter": 5,
+			"name": "立体环街 2",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 438,
+					"y": 110
+				},
+				{
+					"x": 523,
+					"y": 227
+				},
+				{
+					"x": 523,
+					"y": 373
+				},
+				{
+					"x": 438,
+					"y": 490
+				},
+				{
+					"x": 300,
+					"y": 535
+				},
+				{
+					"x": 162,
+					"y": 490
+				},
+				{
+					"x": 77,
+					"y": 373
+				},
+				{
+					"x": 77,
+					"y": 227
+				},
+				{
+					"x": 162,
+					"y": 110
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 382,
+					"y": 187
+				},
+				{
+					"x": 433,
+					"y": 257
+				},
+				{
+					"x": 433,
+					"y": 343
+				},
+				{
+					"x": 382,
+					"y": 413
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 218,
+					"y": 413
+				},
+				{
+					"x": 167,
+					"y": 343
+				},
+				{
+					"x": 167,
+					"y": 257
+				},
+				{
+					"x": 218,
+					"y": 187
+				}
+			],
+			"edges": [
+				[0, 1],
+				[10, 11],
+				[0, 10],
+				[1, 2],
+				[11, 12],
+				[1, 11],
+				[2, 3],
+				[12, 13],
+				[2, 12],
+				[3, 4],
+				[13, 14],
+				[3, 13],
+				[4, 5],
+				[14, 15],
+				[5, 6],
+				[15, 16],
+				[5, 15],
+				[6, 7],
+				[16, 17],
+				[7, 8],
+				[17, 18],
+				[8, 9],
+				[18, 19],
+				[8, 18],
+				[9, 0],
+				[19, 10],
+				[9, 19]
+			],
+			"cops": [
+				8,
+				1,
+				11
+			],
+			"robbers": [6, 19],
+			"exits": [2, 7],
+			"par": 9
+		},
+		{
+			"id": 63,
+			"chapter": 5,
+			"name": "立体环街 3",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 438,
+					"y": 110
+				},
+				{
+					"x": 523,
+					"y": 227
+				},
+				{
+					"x": 523,
+					"y": 373
+				},
+				{
+					"x": 438,
+					"y": 490
+				},
+				{
+					"x": 300,
+					"y": 535
+				},
+				{
+					"x": 162,
+					"y": 490
+				},
+				{
+					"x": 77,
+					"y": 373
+				},
+				{
+					"x": 77,
+					"y": 227
+				},
+				{
+					"x": 162,
+					"y": 110
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 382,
+					"y": 187
+				},
+				{
+					"x": 433,
+					"y": 257
+				},
+				{
+					"x": 433,
+					"y": 343
+				},
+				{
+					"x": 382,
+					"y": 413
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 218,
+					"y": 413
+				},
+				{
+					"x": 167,
+					"y": 343
+				},
+				{
+					"x": 167,
+					"y": 257
+				},
+				{
+					"x": 218,
+					"y": 187
+				}
+			],
+			"edges": [
+				[0, 1],
+				[10, 11],
+				[1, 2],
+				[11, 12],
+				[2, 3],
+				[12, 13],
+				[2, 12],
+				[3, 4],
+				[13, 14],
+				[3, 13],
+				[4, 5],
+				[14, 15],
+				[4, 14],
+				[5, 6],
+				[15, 16],
+				[5, 15],
+				[6, 7],
+				[16, 17],
+				[7, 8],
+				[17, 18],
+				[7, 17],
+				[8, 9],
+				[18, 19],
+				[9, 0],
+				[19, 10]
+			],
+			"cops": [
+				17,
+				4,
+				15
+			],
+			"robbers": [10, 9],
+			"exits": [3, 7],
+			"par": 8
+		},
+		{
+			"id": 64,
+			"chapter": 5,
+			"name": "立体环街 4",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 438,
+					"y": 110
+				},
+				{
+					"x": 523,
+					"y": 227
+				},
+				{
+					"x": 523,
+					"y": 373
+				},
+				{
+					"x": 438,
+					"y": 490
+				},
+				{
+					"x": 300,
+					"y": 535
+				},
+				{
+					"x": 162,
+					"y": 490
+				},
+				{
+					"x": 77,
+					"y": 373
+				},
+				{
+					"x": 77,
+					"y": 227
+				},
+				{
+					"x": 162,
+					"y": 110
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 382,
+					"y": 187
+				},
+				{
+					"x": 433,
+					"y": 257
+				},
+				{
+					"x": 433,
+					"y": 343
+				},
+				{
+					"x": 382,
+					"y": 413
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 218,
+					"y": 413
+				},
+				{
+					"x": 167,
+					"y": 343
+				},
+				{
+					"x": 167,
+					"y": 257
+				},
+				{
+					"x": 218,
+					"y": 187
+				}
+			],
+			"edges": [
+				[0, 1],
+				[10, 11],
+				[0, 10],
+				[1, 2],
+				[11, 12],
+				[2, 3],
+				[12, 13],
+				[2, 12],
+				[3, 4],
+				[13, 14],
+				[3, 13],
+				[4, 5],
+				[14, 15],
+				[4, 14],
+				[5, 6],
+				[15, 16],
+				[6, 7],
+				[16, 17],
+				[6, 16],
+				[7, 8],
+				[17, 18],
+				[8, 9],
+				[18, 19],
+				[8, 18],
+				[9, 0],
+				[19, 10]
+			],
+			"cops": [
+				14,
+				3,
+				18
+			],
+			"robbers": [15, 9],
+			"exits": [7, 2],
+			"par": 12
+		},
+		{
+			"id": 65,
+			"chapter": 5,
+			"name": "立体环街 5",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 451,
+					"y": 120
+				},
+				{
+					"x": 531,
+					"y": 259
+				},
+				{
+					"x": 504,
+					"y": 417
+				},
+				{
+					"x": 380,
+					"y": 521
+				},
+				{
+					"x": 220,
+					"y": 521
+				},
+				{
+					"x": 96,
+					"y": 418
+				},
+				{
+					"x": 69,
+					"y": 259
+				},
+				{
+					"x": 149,
+					"y": 120
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 390,
+					"y": 193
+				},
+				{
+					"x": 438,
+					"y": 276
+				},
+				{
+					"x": 421,
+					"y": 370
+				},
+				{
+					"x": 348,
+					"y": 432
+				},
+				{
+					"x": 252,
+					"y": 432
+				},
+				{
+					"x": 179,
+					"y": 370
+				},
+				{
+					"x": 162,
+					"y": 276
+				},
+				{
+					"x": 210,
+					"y": 193
+				}
+			],
+			"edges": [
+				[0, 1],
+				[9, 10],
+				[0, 9],
+				[1, 2],
+				[10, 11],
+				[1, 10],
+				[2, 3],
+				[11, 12],
+				[2, 11],
+				[3, 4],
+				[12, 13],
+				[3, 12],
+				[4, 5],
+				[13, 14],
+				[5, 6],
+				[14, 15],
+				[5, 14],
+				[6, 7],
+				[15, 16],
+				[6, 15],
+				[7, 8],
+				[16, 17],
+				[7, 16],
+				[8, 0],
+				[17, 9],
+				[8, 17],
+				[9, 16]
+			],
+			"cops": [
+				13,
+				14,
+				1
+			],
+			"robbers": [17, 4],
+			"exits": [6, 0],
+			"par": 14
+		},
+		{
+			"id": 66,
+			"chapter": 5,
+			"name": "立体环街 6",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 438,
+					"y": 110
+				},
+				{
+					"x": 523,
+					"y": 227
+				},
+				{
+					"x": 523,
+					"y": 373
+				},
+				{
+					"x": 438,
+					"y": 490
+				},
+				{
+					"x": 300,
+					"y": 535
+				},
+				{
+					"x": 162,
+					"y": 490
+				},
+				{
+					"x": 77,
+					"y": 373
+				},
+				{
+					"x": 77,
+					"y": 227
+				},
+				{
+					"x": 162,
+					"y": 110
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 382,
+					"y": 187
+				},
+				{
+					"x": 433,
+					"y": 257
+				},
+				{
+					"x": 433,
+					"y": 343
+				},
+				{
+					"x": 382,
+					"y": 413
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 218,
+					"y": 413
+				},
+				{
+					"x": 167,
+					"y": 343
+				},
+				{
+					"x": 167,
+					"y": 257
+				},
+				{
+					"x": 218,
+					"y": 187
+				}
+			],
+			"edges": [
+				[0, 1],
+				[10, 11],
+				[0, 10],
+				[1, 2],
+				[11, 12],
+				[1, 11],
+				[2, 3],
+				[12, 13],
+				[2, 12],
+				[3, 4],
+				[13, 14],
+				[4, 5],
+				[14, 15],
+				[4, 14],
+				[5, 6],
+				[15, 16],
+				[5, 15],
+				[6, 7],
+				[16, 17],
+				[7, 8],
+				[17, 18],
+				[7, 17],
+				[8, 9],
+				[18, 19],
+				[8, 18],
+				[9, 0],
+				[19, 10],
+				[9, 19],
+				[10, 18]
+			],
+			"cops": [
+				18,
+				13,
+				10
+			],
+			"robbers": [9, 16],
+			"exits": [8, 3],
+			"par": 15
+		},
+		{
+			"id": 67,
+			"chapter": 5,
+			"name": "立体环街 7",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 451,
+					"y": 120
+				},
+				{
+					"x": 531,
+					"y": 259
+				},
+				{
+					"x": 504,
+					"y": 417
+				},
+				{
+					"x": 380,
+					"y": 521
+				},
+				{
+					"x": 220,
+					"y": 521
+				},
+				{
+					"x": 96,
+					"y": 418
+				},
+				{
+					"x": 69,
+					"y": 259
+				},
+				{
+					"x": 149,
+					"y": 120
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 390,
+					"y": 193
+				},
+				{
+					"x": 438,
+					"y": 276
+				},
+				{
+					"x": 421,
+					"y": 370
+				},
+				{
+					"x": 348,
+					"y": 432
+				},
+				{
+					"x": 252,
+					"y": 432
+				},
+				{
+					"x": 179,
+					"y": 370
+				},
+				{
+					"x": 162,
+					"y": 276
+				},
+				{
+					"x": 210,
+					"y": 193
+				}
+			],
+			"edges": [
+				[0, 1],
+				[9, 10],
+				[0, 9],
+				[1, 2],
+				[10, 11],
+				[1, 10],
+				[2, 3],
+				[11, 12],
+				[2, 11],
+				[3, 4],
+				[12, 13],
+				[3, 12],
+				[4, 5],
+				[13, 14],
+				[5, 6],
+				[14, 15],
+				[5, 14],
+				[6, 7],
+				[15, 16],
+				[7, 8],
+				[16, 17],
+				[7, 16],
+				[8, 0],
+				[17, 9],
+				[8, 17],
+				[9, 11],
+				[9, 15]
+			],
+			"cops": [
+				12,
+				3,
+				7
+			],
+			"robbers": [5, 10],
+			"exits": [0, 2],
+			"par": 13
+		},
+		{
+			"id": 68,
+			"chapter": 5,
+			"name": "立体环街 8",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 438,
+					"y": 110
+				},
+				{
+					"x": 523,
+					"y": 227
+				},
+				{
+					"x": 523,
+					"y": 373
+				},
+				{
+					"x": 438,
+					"y": 490
+				},
+				{
+					"x": 300,
+					"y": 535
+				},
+				{
+					"x": 162,
+					"y": 490
+				},
+				{
+					"x": 77,
+					"y": 373
+				},
+				{
+					"x": 77,
+					"y": 227
+				},
+				{
+					"x": 162,
+					"y": 110
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 382,
+					"y": 187
+				},
+				{
+					"x": 433,
+					"y": 257
+				},
+				{
+					"x": 433,
+					"y": 343
+				},
+				{
+					"x": 382,
+					"y": 413
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 218,
+					"y": 413
+				},
+				{
+					"x": 167,
+					"y": 343
+				},
+				{
+					"x": 167,
+					"y": 257
+				},
+				{
+					"x": 218,
+					"y": 187
+				}
+			],
+			"edges": [
+				[0, 1],
+				[10, 11],
+				[0, 10],
+				[1, 2],
+				[11, 12],
+				[1, 11],
+				[2, 3],
+				[12, 13],
+				[2, 12],
+				[3, 4],
+				[13, 14],
+				[4, 5],
+				[14, 15],
+				[4, 14],
+				[5, 6],
+				[15, 16],
+				[6, 7],
+				[16, 17],
+				[6, 16],
+				[7, 8],
+				[17, 18],
+				[7, 17],
+				[8, 9],
+				[18, 19],
+				[8, 18],
+				[9, 0],
+				[19, 10],
+				[9, 19],
+				[10, 12],
+				[10, 13]
+			],
+			"cops": [
+				11,
+				10,
+				17
+			],
+			"robbers": [7, 5],
+			"exits": [0, 2],
+			"par": 10
+		},
+		{
+			"id": 69,
+			"chapter": 5,
+			"name": "立体环街 9",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 438,
+					"y": 110
+				},
+				{
+					"x": 523,
+					"y": 227
+				},
+				{
+					"x": 523,
+					"y": 373
+				},
+				{
+					"x": 438,
+					"y": 490
+				},
+				{
+					"x": 300,
+					"y": 535
+				},
+				{
+					"x": 162,
+					"y": 490
+				},
+				{
+					"x": 77,
+					"y": 373
+				},
+				{
+					"x": 77,
+					"y": 227
+				},
+				{
+					"x": 162,
+					"y": 110
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 382,
+					"y": 187
+				},
+				{
+					"x": 433,
+					"y": 257
+				},
+				{
+					"x": 433,
+					"y": 343
+				},
+				{
+					"x": 382,
+					"y": 413
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 218,
+					"y": 413
+				},
+				{
+					"x": 167,
+					"y": 343
+				},
+				{
+					"x": 167,
+					"y": 257
+				},
+				{
+					"x": 218,
+					"y": 187
+				}
+			],
+			"edges": [
+				[0, 1],
+				[10, 11],
+				[1, 2],
+				[11, 12],
+				[1, 11],
+				[2, 3],
+				[12, 13],
+				[2, 12],
+				[3, 4],
+				[13, 14],
+				[3, 13],
+				[4, 5],
+				[14, 15],
+				[5, 6],
+				[15, 16],
+				[5, 15],
+				[6, 7],
+				[16, 17],
+				[6, 16],
+				[7, 8],
+				[17, 18],
+				[7, 17],
+				[8, 9],
+				[18, 19],
+				[8, 18],
+				[9, 0],
+				[19, 10],
+				[10, 15],
+				[10, 16],
+				[10, 17]
+			],
+			"cops": [
+				12,
+				1,
+				6
+			],
+			"robbers": [8, 4],
+			"exits": [5, 0],
+			"par": 12
+		},
+		{
+			"id": 70,
+			"chapter": 5,
+			"name": "立体环街 10",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 438,
+					"y": 110
+				},
+				{
+					"x": 523,
+					"y": 227
+				},
+				{
+					"x": 523,
+					"y": 373
+				},
+				{
+					"x": 438,
+					"y": 490
+				},
+				{
+					"x": 300,
+					"y": 535
+				},
+				{
+					"x": 162,
+					"y": 490
+				},
+				{
+					"x": 77,
+					"y": 373
+				},
+				{
+					"x": 77,
+					"y": 227
+				},
+				{
+					"x": 162,
+					"y": 110
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 382,
+					"y": 187
+				},
+				{
+					"x": 433,
+					"y": 257
+				},
+				{
+					"x": 433,
+					"y": 343
+				},
+				{
+					"x": 382,
+					"y": 413
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 218,
+					"y": 413
+				},
+				{
+					"x": 167,
+					"y": 343
+				},
+				{
+					"x": 167,
+					"y": 257
+				},
+				{
+					"x": 218,
+					"y": 187
+				}
+			],
+			"edges": [
+				[0, 1],
+				[10, 11],
+				[0, 10],
+				[1, 2],
+				[11, 12],
+				[1, 11],
+				[2, 3],
+				[12, 13],
+				[2, 12],
+				[3, 4],
+				[13, 14],
+				[3, 13],
+				[4, 5],
+				[14, 15],
+				[4, 14],
+				[5, 6],
+				[15, 16],
+				[5, 15],
+				[6, 7],
+				[16, 17],
+				[7, 8],
+				[17, 18],
+				[8, 9],
+				[18, 19],
+				[8, 18],
+				[9, 0],
+				[19, 10],
+				[9, 19],
+				[10, 15],
+				[10, 18]
+			],
+			"cops": [
+				10,
+				4,
+				3
+			],
+			"robbers": [17, 15],
+			"exits": [8, 7],
+			"par": 19
+		},
+		{
+			"id": 71,
+			"chapter": 5,
+			"name": "立体环街 11",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 451,
+					"y": 120
+				},
+				{
+					"x": 531,
+					"y": 259
+				},
+				{
+					"x": 504,
+					"y": 417
+				},
+				{
+					"x": 380,
+					"y": 521
+				},
+				{
+					"x": 220,
+					"y": 521
+				},
+				{
+					"x": 96,
+					"y": 418
+				},
+				{
+					"x": 69,
+					"y": 259
+				},
+				{
+					"x": 149,
+					"y": 120
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 390,
+					"y": 193
+				},
+				{
+					"x": 438,
+					"y": 276
+				},
+				{
+					"x": 421,
+					"y": 370
+				},
+				{
+					"x": 348,
+					"y": 432
+				},
+				{
+					"x": 252,
+					"y": 432
+				},
+				{
+					"x": 179,
+					"y": 370
+				},
+				{
+					"x": 162,
+					"y": 276
+				},
+				{
+					"x": 210,
+					"y": 193
+				}
+			],
+			"edges": [
+				[0, 1],
+				[9, 10],
+				[0, 9],
+				[1, 2],
+				[10, 11],
+				[1, 10],
+				[2, 3],
+				[11, 12],
+				[2, 11],
+				[3, 4],
+				[12, 13],
+				[3, 12],
+				[4, 5],
+				[13, 14],
+				[5, 6],
+				[14, 15],
+				[6, 7],
+				[15, 16],
+				[7, 8],
+				[16, 17],
+				[8, 0],
+				[17, 9],
+				[9, 13],
+				[9, 15]
+			],
+			"cops": [
+				14,
+				1,
+				4
+			],
+			"robbers": [5, 15],
+			"exits": [0, 2],
+			"par": 14
+		},
+		{
+			"id": 72,
+			"chapter": 5,
+			"name": "立体环街 12",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 438,
+					"y": 110
+				},
+				{
+					"x": 523,
+					"y": 227
+				},
+				{
+					"x": 523,
+					"y": 373
+				},
+				{
+					"x": 438,
+					"y": 490
+				},
+				{
+					"x": 300,
+					"y": 535
+				},
+				{
+					"x": 162,
+					"y": 490
+				},
+				{
+					"x": 77,
+					"y": 373
+				},
+				{
+					"x": 77,
+					"y": 227
+				},
+				{
+					"x": 162,
+					"y": 110
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 382,
+					"y": 187
+				},
+				{
+					"x": 433,
+					"y": 257
+				},
+				{
+					"x": 433,
+					"y": 343
+				},
+				{
+					"x": 382,
+					"y": 413
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 218,
+					"y": 413
+				},
+				{
+					"x": 167,
+					"y": 343
+				},
+				{
+					"x": 167,
+					"y": 257
+				},
+				{
+					"x": 218,
+					"y": 187
+				}
+			],
+			"edges": [
+				[0, 1],
+				[10, 11],
+				[0, 10],
+				[1, 2],
+				[11, 12],
+				[1, 11],
+				[2, 3],
+				[12, 13],
+				[2, 12],
+				[3, 4],
+				[13, 14],
+				[4, 5],
+				[14, 15],
+				[5, 6],
+				[15, 16],
+				[6, 7],
+				[16, 17],
+				[7, 8],
+				[17, 18],
+				[7, 17],
+				[8, 9],
+				[18, 19],
+				[8, 18],
+				[9, 0],
+				[19, 10],
+				[9, 19],
+				[10, 16],
+				[10, 17]
+			],
+			"cops": [
+				16,
+				13,
+				1
+			],
+			"robbers": [5, 11],
+			"exits": [7, 8],
+			"par": 18
+		},
+		{
+			"id": 73,
+			"chapter": 5,
+			"name": "立体环街 13",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 438,
+					"y": 110
+				},
+				{
+					"x": 523,
+					"y": 227
+				},
+				{
+					"x": 523,
+					"y": 373
+				},
+				{
+					"x": 438,
+					"y": 490
+				},
+				{
+					"x": 300,
+					"y": 535
+				},
+				{
+					"x": 162,
+					"y": 490
+				},
+				{
+					"x": 77,
+					"y": 373
+				},
+				{
+					"x": 77,
+					"y": 227
+				},
+				{
+					"x": 162,
+					"y": 110
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 382,
+					"y": 187
+				},
+				{
+					"x": 433,
+					"y": 257
+				},
+				{
+					"x": 433,
+					"y": 343
+				},
+				{
+					"x": 382,
+					"y": 413
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 218,
+					"y": 413
+				},
+				{
+					"x": 167,
+					"y": 343
+				},
+				{
+					"x": 167,
+					"y": 257
+				},
+				{
+					"x": 218,
+					"y": 187
+				}
+			],
+			"edges": [
+				[0, 1],
+				[10, 11],
+				[0, 10],
+				[1, 2],
+				[11, 12],
+				[1, 11],
+				[2, 3],
+				[12, 13],
+				[3, 4],
+				[13, 14],
+				[4, 5],
+				[14, 15],
+				[5, 6],
+				[15, 16],
+				[5, 15],
+				[6, 7],
+				[16, 17],
+				[6, 16],
+				[7, 8],
+				[17, 18],
+				[8, 9],
+				[18, 19],
+				[8, 18],
+				[9, 0],
+				[19, 10],
+				[10, 16],
+				[10, 17]
+			],
+			"cops": [
+				17,
+				12,
+				7
+			],
+			"robbers": [14, 8],
+			"exits": [3, 2],
+			"par": 17
+		},
+		{
+			"id": 74,
+			"chapter": 5,
+			"name": "立体环街 14",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 438,
+					"y": 110
+				},
+				{
+					"x": 523,
+					"y": 227
+				},
+				{
+					"x": 523,
+					"y": 373
+				},
+				{
+					"x": 438,
+					"y": 490
+				},
+				{
+					"x": 300,
+					"y": 535
+				},
+				{
+					"x": 162,
+					"y": 490
+				},
+				{
+					"x": 77,
+					"y": 373
+				},
+				{
+					"x": 77,
+					"y": 227
+				},
+				{
+					"x": 162,
+					"y": 110
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 382,
+					"y": 187
+				},
+				{
+					"x": 433,
+					"y": 257
+				},
+				{
+					"x": 433,
+					"y": 343
+				},
+				{
+					"x": 382,
+					"y": 413
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 218,
+					"y": 413
+				},
+				{
+					"x": 167,
+					"y": 343
+				},
+				{
+					"x": 167,
+					"y": 257
+				},
+				{
+					"x": 218,
+					"y": 187
+				}
+			],
+			"edges": [
+				[0, 1],
+				[10, 11],
+				[1, 2],
+				[11, 12],
+				[1, 11],
+				[2, 3],
+				[12, 13],
+				[2, 12],
+				[3, 4],
+				[13, 14],
+				[3, 13],
+				[4, 5],
+				[14, 15],
+				[4, 14],
+				[5, 6],
+				[15, 16],
+				[6, 7],
+				[16, 17],
+				[6, 16],
+				[7, 8],
+				[17, 18],
+				[8, 9],
+				[18, 19],
+				[9, 0],
+				[19, 10],
+				[10, 15],
+				[10, 18]
+			],
+			"cops": [
+				6,
+				19,
+				10
+			],
+			"robbers": [9, 0],
+			"exits": [3, 5],
+			"par": 14
+		},
+		{
+			"id": 75,
+			"chapter": 5,
+			"name": "立体环街 15",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 427,
+					"y": 102
+				},
+				{
+					"x": 514,
+					"y": 202
+				},
+				{
+					"x": 533,
+					"y": 333
+				},
+				{
+					"x": 478,
+					"y": 454
+				},
+				{
+					"x": 366,
+					"y": 525
+				},
+				{
+					"x": 234,
+					"y": 525
+				},
+				{
+					"x": 122,
+					"y": 454
+				},
+				{
+					"x": 67,
+					"y": 333
+				},
+				{
+					"x": 86,
+					"y": 202
+				},
+				{
+					"x": 173,
+					"y": 102
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 376,
+					"y": 182
+				},
+				{
+					"x": 427,
+					"y": 242
+				},
+				{
+					"x": 439,
+					"y": 320
+				},
+				{
+					"x": 406,
+					"y": 392
+				},
+				{
+					"x": 339,
+					"y": 434
+				},
+				{
+					"x": 261,
+					"y": 434
+				},
+				{
+					"x": 194,
+					"y": 392
+				},
+				{
+					"x": 161,
+					"y": 320
+				},
+				{
+					"x": 173,
+					"y": 242
+				},
+				{
+					"x": 224,
+					"y": 182
+				}
+			],
+			"edges": [
+				[0, 1],
+				[11, 12],
+				[0, 11],
+				[1, 2],
+				[12, 13],
+				[1, 12],
+				[2, 3],
+				[13, 14],
+				[2, 13],
+				[3, 4],
+				[14, 15],
+				[3, 14],
+				[4, 5],
+				[15, 16],
+				[4, 15],
+				[5, 6],
+				[16, 17],
+				[6, 7],
+				[17, 18],
+				[6, 17],
+				[7, 8],
+				[18, 19],
+				[7, 18],
+				[8, 9],
+				[19, 20],
+				[8, 19],
+				[9, 10],
+				[20, 21],
+				[10, 0],
+				[21, 11],
+				[10, 21],
+				[11, 15]
+			],
+			"cops": [
+				9,
+				5,
+				0
+			],
+			"robbers": [18, 21],
+			"exits": [6, 8],
+			"par": 13
+		},
+		{
+			"id": 76,
+			"chapter": 5,
+			"name": "立体环街 16",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 438,
+					"y": 110
+				},
+				{
+					"x": 523,
+					"y": 227
+				},
+				{
+					"x": 523,
+					"y": 373
+				},
+				{
+					"x": 438,
+					"y": 490
+				},
+				{
+					"x": 300,
+					"y": 535
+				},
+				{
+					"x": 162,
+					"y": 490
+				},
+				{
+					"x": 77,
+					"y": 373
+				},
+				{
+					"x": 77,
+					"y": 227
+				},
+				{
+					"x": 162,
+					"y": 110
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 382,
+					"y": 187
+				},
+				{
+					"x": 433,
+					"y": 257
+				},
+				{
+					"x": 433,
+					"y": 343
+				},
+				{
+					"x": 382,
+					"y": 413
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 218,
+					"y": 413
+				},
+				{
+					"x": 167,
+					"y": 343
+				},
+				{
+					"x": 167,
+					"y": 257
+				},
+				{
+					"x": 218,
+					"y": 187
+				}
+			],
+			"edges": [
+				[0, 1],
+				[10, 11],
+				[0, 10],
+				[1, 2],
+				[11, 12],
+				[1, 11],
+				[2, 3],
+				[12, 13],
+				[2, 12],
+				[3, 4],
+				[13, 14],
+				[3, 13],
+				[4, 5],
+				[14, 15],
+				[4, 14],
+				[5, 6],
+				[15, 16],
+				[6, 7],
+				[16, 17],
+				[6, 16],
+				[7, 8],
+				[17, 18],
+				[8, 9],
+				[18, 19],
+				[8, 18],
+				[9, 0],
+				[19, 10],
+				[9, 19],
+				[10, 12]
+			],
+			"cops": [
+				8,
+				17,
+				10
+			],
+			"robbers": [19, 14],
+			"exits": [2, 0],
+			"par": 20
+		},
+		{
+			"id": 77,
+			"chapter": 5,
+			"name": "立体环街 17",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 427,
+					"y": 102
+				},
+				{
+					"x": 514,
+					"y": 202
+				},
+				{
+					"x": 533,
+					"y": 333
+				},
+				{
+					"x": 478,
+					"y": 454
+				},
+				{
+					"x": 366,
+					"y": 525
+				},
+				{
+					"x": 234,
+					"y": 525
+				},
+				{
+					"x": 122,
+					"y": 454
+				},
+				{
+					"x": 67,
+					"y": 333
+				},
+				{
+					"x": 86,
+					"y": 202
+				},
+				{
+					"x": 173,
+					"y": 102
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 376,
+					"y": 182
+				},
+				{
+					"x": 427,
+					"y": 242
+				},
+				{
+					"x": 439,
+					"y": 320
+				},
+				{
+					"x": 406,
+					"y": 392
+				},
+				{
+					"x": 339,
+					"y": 434
+				},
+				{
+					"x": 261,
+					"y": 434
+				},
+				{
+					"x": 194,
+					"y": 392
+				},
+				{
+					"x": 161,
+					"y": 320
+				},
+				{
+					"x": 173,
+					"y": 242
+				},
+				{
+					"x": 224,
+					"y": 182
+				}
+			],
+			"edges": [
+				[0, 1],
+				[11, 12],
+				[1, 2],
+				[12, 13],
+				[2, 3],
+				[13, 14],
+				[2, 13],
+				[3, 4],
+				[14, 15],
+				[3, 14],
+				[4, 5],
+				[15, 16],
+				[4, 15],
+				[5, 6],
+				[16, 17],
+				[5, 16],
+				[6, 7],
+				[17, 18],
+				[6, 17],
+				[7, 8],
+				[18, 19],
+				[7, 18],
+				[8, 9],
+				[19, 20],
+				[8, 19],
+				[9, 10],
+				[20, 21],
+				[10, 0],
+				[21, 11],
+				[10, 21],
+				[11, 14],
+				[11, 16],
+				[11, 20]
+			],
+			"cops": [
+				15,
+				11,
+				18
+			],
+			"robbers": [21, 3],
+			"exits": [8, 6],
+			"par": 16
+		},
+		{
+			"id": 78,
+			"chapter": 5,
+			"name": "立体环街 18",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 438,
+					"y": 110
+				},
+				{
+					"x": 523,
+					"y": 227
+				},
+				{
+					"x": 523,
+					"y": 373
+				},
+				{
+					"x": 438,
+					"y": 490
+				},
+				{
+					"x": 300,
+					"y": 535
+				},
+				{
+					"x": 162,
+					"y": 490
+				},
+				{
+					"x": 77,
+					"y": 373
+				},
+				{
+					"x": 77,
+					"y": 227
+				},
+				{
+					"x": 162,
+					"y": 110
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 382,
+					"y": 187
+				},
+				{
+					"x": 433,
+					"y": 257
+				},
+				{
+					"x": 433,
+					"y": 343
+				},
+				{
+					"x": 382,
+					"y": 413
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 218,
+					"y": 413
+				},
+				{
+					"x": 167,
+					"y": 343
+				},
+				{
+					"x": 167,
+					"y": 257
+				},
+				{
+					"x": 218,
+					"y": 187
+				}
+			],
+			"edges": [
+				[0, 1],
+				[10, 11],
+				[0, 10],
+				[1, 2],
+				[11, 12],
+				[1, 11],
+				[2, 3],
+				[12, 13],
+				[3, 4],
+				[13, 14],
+				[3, 13],
+				[4, 5],
+				[14, 15],
+				[4, 14],
+				[5, 6],
+				[15, 16],
+				[5, 15],
+				[6, 7],
+				[16, 17],
+				[6, 16],
+				[7, 8],
+				[17, 18],
+				[8, 9],
+				[18, 19],
+				[8, 18],
+				[9, 0],
+				[19, 10],
+				[10, 17]
+			],
+			"cops": [
+				19,
+				6,
+				14
+			],
+			"robbers": [15, 11],
+			"exits": [5, 3],
+			"par": 16
+		},
+		{
+			"id": 79,
+			"chapter": 5,
+			"name": "立体环街 19",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 427,
+					"y": 102
+				},
+				{
+					"x": 514,
+					"y": 202
+				},
+				{
+					"x": 533,
+					"y": 333
+				},
+				{
+					"x": 478,
+					"y": 454
+				},
+				{
+					"x": 366,
+					"y": 525
+				},
+				{
+					"x": 234,
+					"y": 525
+				},
+				{
+					"x": 122,
+					"y": 454
+				},
+				{
+					"x": 67,
+					"y": 333
+				},
+				{
+					"x": 86,
+					"y": 202
+				},
+				{
+					"x": 173,
+					"y": 102
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 376,
+					"y": 182
+				},
+				{
+					"x": 427,
+					"y": 242
+				},
+				{
+					"x": 439,
+					"y": 320
+				},
+				{
+					"x": 406,
+					"y": 392
+				},
+				{
+					"x": 339,
+					"y": 434
+				},
+				{
+					"x": 261,
+					"y": 434
+				},
+				{
+					"x": 194,
+					"y": 392
+				},
+				{
+					"x": 161,
+					"y": 320
+				},
+				{
+					"x": 173,
+					"y": 242
+				},
+				{
+					"x": 224,
+					"y": 182
+				}
+			],
+			"edges": [
+				[0, 1],
+				[11, 12],
+				[0, 11],
+				[1, 2],
+				[12, 13],
+				[1, 12],
+				[2, 3],
+				[13, 14],
+				[3, 4],
+				[14, 15],
+				[3, 14],
+				[4, 5],
+				[15, 16],
+				[4, 15],
+				[5, 6],
+				[16, 17],
+				[5, 16],
+				[6, 7],
+				[17, 18],
+				[6, 17],
+				[7, 8],
+				[18, 19],
+				[7, 18],
+				[8, 9],
+				[19, 20],
+				[8, 19],
+				[9, 10],
+				[20, 21],
+				[9, 20],
+				[10, 0],
+				[21, 11],
+				[11, 19]
+			],
+			"cops": [
+				16,
+				17,
+				9
+			],
+			"robbers": [10, 6],
+			"exits": [3, 5],
+			"par": 14
+		},
+		{
+			"id": 80,
+			"chapter": 5,
+			"name": "立体环街 20",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 427,
+					"y": 102
+				},
+				{
+					"x": 514,
+					"y": 202
+				},
+				{
+					"x": 533,
+					"y": 333
+				},
+				{
+					"x": 478,
+					"y": 454
+				},
+				{
+					"x": 366,
+					"y": 525
+				},
+				{
+					"x": 234,
+					"y": 525
+				},
+				{
+					"x": 122,
+					"y": 454
+				},
+				{
+					"x": 67,
+					"y": 333
+				},
+				{
+					"x": 86,
+					"y": 202
+				},
+				{
+					"x": 173,
+					"y": 102
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 376,
+					"y": 182
+				},
+				{
+					"x": 427,
+					"y": 242
+				},
+				{
+					"x": 439,
+					"y": 320
+				},
+				{
+					"x": 406,
+					"y": 392
+				},
+				{
+					"x": 339,
+					"y": 434
+				},
+				{
+					"x": 261,
+					"y": 434
+				},
+				{
+					"x": 194,
+					"y": 392
+				},
+				{
+					"x": 161,
+					"y": 320
+				},
+				{
+					"x": 173,
+					"y": 242
+				},
+				{
+					"x": 224,
+					"y": 182
+				}
+			],
+			"edges": [
+				[0, 1],
+				[11, 12],
+				[0, 11],
+				[1, 2],
+				[12, 13],
+				[1, 12],
+				[2, 3],
+				[13, 14],
+				[2, 13],
+				[3, 4],
+				[14, 15],
+				[3, 14],
+				[4, 5],
+				[15, 16],
+				[5, 6],
+				[16, 17],
+				[6, 7],
+				[17, 18],
+				[7, 8],
+				[18, 19],
+				[7, 18],
+				[8, 9],
+				[19, 20],
+				[8, 19],
+				[9, 10],
+				[20, 21],
+				[9, 20],
+				[10, 0],
+				[21, 11]
+			],
+			"cops": [
+				5,
+				10,
+				18
+			],
+			"robbers": [21, 8],
+			"exits": [2, 0],
+			"par": 18
+		},
+		{
+			"id": 81,
+			"chapter": 6,
+			"name": "终极迷城 1",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 438,
+					"y": 110
+				},
+				{
+					"x": 523,
+					"y": 227
+				},
+				{
+					"x": 523,
+					"y": 373
+				},
+				{
+					"x": 438,
+					"y": 490
+				},
+				{
+					"x": 300,
+					"y": 535
+				},
+				{
+					"x": 162,
+					"y": 490
+				},
+				{
+					"x": 77,
+					"y": 373
+				},
+				{
+					"x": 77,
+					"y": 227
+				},
+				{
+					"x": 162,
+					"y": 110
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 382,
+					"y": 187
+				},
+				{
+					"x": 433,
+					"y": 257
+				},
+				{
+					"x": 433,
+					"y": 343
+				},
+				{
+					"x": 382,
+					"y": 413
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 218,
+					"y": 413
+				},
+				{
+					"x": 167,
+					"y": 343
+				},
+				{
+					"x": 167,
+					"y": 257
+				},
+				{
+					"x": 218,
+					"y": 187
+				}
+			],
+			"edges": [
+				[0, 1],
+				[10, 11],
+				[0, 10],
+				[1, 2],
+				[11, 12],
+				[1, 11],
+				[2, 3],
+				[12, 13],
+				[2, 12],
+				[3, 4],
+				[13, 14],
+				[3, 13],
+				[4, 5],
+				[14, 15],
+				[4, 14],
+				[5, 6],
+				[15, 16],
+				[5, 15],
+				[6, 7],
+				[16, 17],
+				[7, 8],
+				[17, 18],
+				[7, 17],
+				[8, 9],
+				[18, 19],
+				[8, 18],
+				[9, 0],
+				[19, 10]
+			],
+			"cops": [
+				11,
+				1,
+				6
+			],
+			"robbers": [
+				12,
+				13,
+				7
+			],
+			"exits": [2, 0],
+			"par": 17
+		},
+		{
+			"id": 82,
+			"chapter": 6,
+			"name": "终极迷城 2",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 427,
+					"y": 102
+				},
+				{
+					"x": 514,
+					"y": 202
+				},
+				{
+					"x": 533,
+					"y": 333
+				},
+				{
+					"x": 478,
+					"y": 454
+				},
+				{
+					"x": 366,
+					"y": 525
+				},
+				{
+					"x": 234,
+					"y": 525
+				},
+				{
+					"x": 122,
+					"y": 454
+				},
+				{
+					"x": 67,
+					"y": 333
+				},
+				{
+					"x": 86,
+					"y": 202
+				},
+				{
+					"x": 173,
+					"y": 102
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 376,
+					"y": 182
+				},
+				{
+					"x": 427,
+					"y": 242
+				},
+				{
+					"x": 439,
+					"y": 320
+				},
+				{
+					"x": 406,
+					"y": 392
+				},
+				{
+					"x": 339,
+					"y": 434
+				},
+				{
+					"x": 261,
+					"y": 434
+				},
+				{
+					"x": 194,
+					"y": 392
+				},
+				{
+					"x": 161,
+					"y": 320
+				},
+				{
+					"x": 173,
+					"y": 242
+				},
+				{
+					"x": 224,
+					"y": 182
+				}
+			],
+			"edges": [
+				[0, 1],
+				[11, 12],
+				[0, 11],
+				[1, 2],
+				[12, 13],
+				[2, 3],
+				[13, 14],
+				[3, 4],
+				[14, 15],
+				[4, 5],
+				[15, 16],
+				[5, 6],
+				[16, 17],
+				[5, 16],
+				[6, 7],
+				[17, 18],
+				[6, 17],
+				[7, 8],
+				[18, 19],
+				[7, 18],
+				[8, 9],
+				[19, 20],
+				[8, 19],
+				[9, 10],
+				[20, 21],
+				[9, 20],
+				[10, 0],
+				[21, 11],
+				[10, 21],
+				[11, 19]
+			],
+			"cops": [
+				15,
+				0,
+				8
+			],
+			"robbers": [
+				13,
+				12,
+				6
+			],
+			"exits": [3, 2],
+			"par": 22
+		},
+		{
+			"id": 83,
+			"chapter": 6,
+			"name": "终极迷城 3",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 438,
+					"y": 110
+				},
+				{
+					"x": 523,
+					"y": 227
+				},
+				{
+					"x": 523,
+					"y": 373
+				},
+				{
+					"x": 438,
+					"y": 490
+				},
+				{
+					"x": 300,
+					"y": 535
+				},
+				{
+					"x": 162,
+					"y": 490
+				},
+				{
+					"x": 77,
+					"y": 373
+				},
+				{
+					"x": 77,
+					"y": 227
+				},
+				{
+					"x": 162,
+					"y": 110
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 382,
+					"y": 187
+				},
+				{
+					"x": 433,
+					"y": 257
+				},
+				{
+					"x": 433,
+					"y": 343
+				},
+				{
+					"x": 382,
+					"y": 413
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 218,
+					"y": 413
+				},
+				{
+					"x": 167,
+					"y": 343
+				},
+				{
+					"x": 167,
+					"y": 257
+				},
+				{
+					"x": 218,
+					"y": 187
+				}
+			],
+			"edges": [
+				[0, 1],
+				[10, 11],
+				[1, 2],
+				[11, 12],
+				[2, 3],
+				[12, 13],
+				[3, 4],
+				[13, 14],
+				[3, 13],
+				[4, 5],
+				[14, 15],
+				[4, 14],
+				[5, 6],
+				[15, 16],
+				[5, 15],
+				[6, 7],
+				[16, 17],
+				[6, 16],
+				[7, 8],
+				[17, 18],
+				[7, 17],
+				[8, 9],
+				[18, 19],
+				[9, 0],
+				[19, 10],
+				[9, 19],
+				[10, 17]
+			],
+			"cops": [
+				6,
+				10,
+				1
+			],
+			"robbers": [
+				17,
+				0,
+				14
+			],
+			"exits": [2, 3],
+			"par": 16
+		},
+		{
+			"id": 84,
+			"chapter": 6,
+			"name": "终极迷城 4",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 427,
+					"y": 102
+				},
+				{
+					"x": 514,
+					"y": 202
+				},
+				{
+					"x": 533,
+					"y": 333
+				},
+				{
+					"x": 478,
+					"y": 454
+				},
+				{
+					"x": 366,
+					"y": 525
+				},
+				{
+					"x": 234,
+					"y": 525
+				},
+				{
+					"x": 122,
+					"y": 454
+				},
+				{
+					"x": 67,
+					"y": 333
+				},
+				{
+					"x": 86,
+					"y": 202
+				},
+				{
+					"x": 173,
+					"y": 102
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 376,
+					"y": 182
+				},
+				{
+					"x": 427,
+					"y": 242
+				},
+				{
+					"x": 439,
+					"y": 320
+				},
+				{
+					"x": 406,
+					"y": 392
+				},
+				{
+					"x": 339,
+					"y": 434
+				},
+				{
+					"x": 261,
+					"y": 434
+				},
+				{
+					"x": 194,
+					"y": 392
+				},
+				{
+					"x": 161,
+					"y": 320
+				},
+				{
+					"x": 173,
+					"y": 242
+				},
+				{
+					"x": 224,
+					"y": 182
+				}
+			],
+			"edges": [
+				[0, 1],
+				[11, 12],
+				[0, 11],
+				[1, 2],
+				[12, 13],
+				[1, 12],
+				[2, 3],
+				[13, 14],
+				[2, 13],
+				[3, 4],
+				[14, 15],
+				[3, 14],
+				[4, 5],
+				[15, 16],
+				[4, 15],
+				[5, 6],
+				[16, 17],
+				[6, 7],
+				[17, 18],
+				[6, 17],
+				[7, 8],
+				[18, 19],
+				[7, 18],
+				[8, 9],
+				[19, 20],
+				[9, 10],
+				[20, 21],
+				[9, 20],
+				[10, 0],
+				[21, 11],
+				[11, 14]
+			],
+			"cops": [
+				7,
+				21,
+				4
+			],
+			"robbers": [
+				6,
+				12,
+				20
+			],
+			"exits": [0, 3],
+			"par": 19
+		},
+		{
+			"id": 85,
+			"chapter": 6,
+			"name": "终极迷城 5",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 438,
+					"y": 110
+				},
+				{
+					"x": 523,
+					"y": 227
+				},
+				{
+					"x": 523,
+					"y": 373
+				},
+				{
+					"x": 438,
+					"y": 490
+				},
+				{
+					"x": 300,
+					"y": 535
+				},
+				{
+					"x": 162,
+					"y": 490
+				},
+				{
+					"x": 77,
+					"y": 373
+				},
+				{
+					"x": 77,
+					"y": 227
+				},
+				{
+					"x": 162,
+					"y": 110
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 382,
+					"y": 187
+				},
+				{
+					"x": 433,
+					"y": 257
+				},
+				{
+					"x": 433,
+					"y": 343
+				},
+				{
+					"x": 382,
+					"y": 413
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 218,
+					"y": 413
+				},
+				{
+					"x": 167,
+					"y": 343
+				},
+				{
+					"x": 167,
+					"y": 257
+				},
+				{
+					"x": 218,
+					"y": 187
+				}
+			],
+			"edges": [
+				[0, 1],
+				[10, 11],
+				[0, 10],
+				[1, 2],
+				[11, 12],
+				[1, 11],
+				[2, 3],
+				[12, 13],
+				[2, 12],
+				[3, 4],
+				[13, 14],
+				[4, 5],
+				[14, 15],
+				[5, 6],
+				[15, 16],
+				[5, 15],
+				[6, 7],
+				[16, 17],
+				[6, 16],
+				[7, 8],
+				[17, 18],
+				[7, 17],
+				[8, 9],
+				[18, 19],
+				[9, 0],
+				[19, 10],
+				[9, 19],
+				[10, 12],
+				[10, 14]
+			],
+			"cops": [
+				13,
+				12,
+				19
+			],
+			"robbers": [
+				15,
+				5,
+				8
+			],
+			"exits": [0, 2],
+			"par": 11
+		},
+		{
+			"id": 86,
+			"chapter": 6,
+			"name": "终极迷城 6",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 427,
+					"y": 102
+				},
+				{
+					"x": 514,
+					"y": 202
+				},
+				{
+					"x": 533,
+					"y": 333
+				},
+				{
+					"x": 478,
+					"y": 454
+				},
+				{
+					"x": 366,
+					"y": 525
+				},
+				{
+					"x": 234,
+					"y": 525
+				},
+				{
+					"x": 122,
+					"y": 454
+				},
+				{
+					"x": 67,
+					"y": 333
+				},
+				{
+					"x": 86,
+					"y": 202
+				},
+				{
+					"x": 173,
+					"y": 102
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 376,
+					"y": 182
+				},
+				{
+					"x": 427,
+					"y": 242
+				},
+				{
+					"x": 439,
+					"y": 320
+				},
+				{
+					"x": 406,
+					"y": 392
+				},
+				{
+					"x": 339,
+					"y": 434
+				},
+				{
+					"x": 261,
+					"y": 434
+				},
+				{
+					"x": 194,
+					"y": 392
+				},
+				{
+					"x": 161,
+					"y": 320
+				},
+				{
+					"x": 173,
+					"y": 242
+				},
+				{
+					"x": 224,
+					"y": 182
+				}
+			],
+			"edges": [
+				[0, 1],
+				[11, 12],
+				[0, 11],
+				[1, 2],
+				[12, 13],
+				[1, 12],
+				[2, 3],
+				[13, 14],
+				[2, 13],
+				[3, 4],
+				[14, 15],
+				[4, 5],
+				[15, 16],
+				[5, 6],
+				[16, 17],
+				[5, 16],
+				[6, 7],
+				[17, 18],
+				[6, 17],
+				[7, 8],
+				[18, 19],
+				[8, 9],
+				[19, 20],
+				[8, 19],
+				[9, 10],
+				[20, 21],
+				[10, 0],
+				[21, 11],
+				[11, 13],
+				[11, 14],
+				[11, 18],
+				[11, 20]
+			],
+			"cops": [
+				0,
+				15,
+				9
+			],
+			"robbers": [
+				21,
+				7,
+				11
+			],
+			"exits": [3, 2],
+			"par": 14
+		},
+		{
+			"id": 87,
+			"chapter": 6,
+			"name": "终极迷城 7",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 427,
+					"y": 102
+				},
+				{
+					"x": 514,
+					"y": 202
+				},
+				{
+					"x": 533,
+					"y": 333
+				},
+				{
+					"x": 478,
+					"y": 454
+				},
+				{
+					"x": 366,
+					"y": 525
+				},
+				{
+					"x": 234,
+					"y": 525
+				},
+				{
+					"x": 122,
+					"y": 454
+				},
+				{
+					"x": 67,
+					"y": 333
+				},
+				{
+					"x": 86,
+					"y": 202
+				},
+				{
+					"x": 173,
+					"y": 102
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 376,
+					"y": 182
+				},
+				{
+					"x": 427,
+					"y": 242
+				},
+				{
+					"x": 439,
+					"y": 320
+				},
+				{
+					"x": 406,
+					"y": 392
+				},
+				{
+					"x": 339,
+					"y": 434
+				},
+				{
+					"x": 261,
+					"y": 434
+				},
+				{
+					"x": 194,
+					"y": 392
+				},
+				{
+					"x": 161,
+					"y": 320
+				},
+				{
+					"x": 173,
+					"y": 242
+				},
+				{
+					"x": 224,
+					"y": 182
+				}
+			],
+			"edges": [
+				[0, 1],
+				[11, 12],
+				[0, 11],
+				[1, 2],
+				[12, 13],
+				[1, 12],
+				[2, 3],
+				[13, 14],
+				[2, 13],
+				[3, 4],
+				[14, 15],
+				[3, 14],
+				[4, 5],
+				[15, 16],
+				[4, 15],
+				[5, 6],
+				[16, 17],
+				[5, 16],
+				[6, 7],
+				[17, 18],
+				[7, 8],
+				[18, 19],
+				[7, 18],
+				[8, 9],
+				[19, 20],
+				[8, 19],
+				[9, 10],
+				[20, 21],
+				[10, 0],
+				[21, 11],
+				[11, 17],
+				[11, 18]
+			],
+			"cops": [
+				13,
+				15,
+				12
+			],
+			"robbers": [
+				1,
+				9,
+				20
+			],
+			"exits": [6, 5],
+			"par": 18
+		},
+		{
+			"id": 88,
+			"chapter": 6,
+			"name": "终极迷城 8",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 427,
+					"y": 102
+				},
+				{
+					"x": 514,
+					"y": 202
+				},
+				{
+					"x": 533,
+					"y": 333
+				},
+				{
+					"x": 478,
+					"y": 454
+				},
+				{
+					"x": 366,
+					"y": 525
+				},
+				{
+					"x": 234,
+					"y": 525
+				},
+				{
+					"x": 122,
+					"y": 454
+				},
+				{
+					"x": 67,
+					"y": 333
+				},
+				{
+					"x": 86,
+					"y": 202
+				},
+				{
+					"x": 173,
+					"y": 102
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 376,
+					"y": 182
+				},
+				{
+					"x": 427,
+					"y": 242
+				},
+				{
+					"x": 439,
+					"y": 320
+				},
+				{
+					"x": 406,
+					"y": 392
+				},
+				{
+					"x": 339,
+					"y": 434
+				},
+				{
+					"x": 261,
+					"y": 434
+				},
+				{
+					"x": 194,
+					"y": 392
+				},
+				{
+					"x": 161,
+					"y": 320
+				},
+				{
+					"x": 173,
+					"y": 242
+				},
+				{
+					"x": 224,
+					"y": 182
+				}
+			],
+			"edges": [
+				[0, 1],
+				[11, 12],
+				[0, 11],
+				[1, 2],
+				[12, 13],
+				[2, 3],
+				[13, 14],
+				[2, 13],
+				[3, 4],
+				[14, 15],
+				[3, 14],
+				[4, 5],
+				[15, 16],
+				[5, 6],
+				[16, 17],
+				[6, 7],
+				[17, 18],
+				[6, 17],
+				[7, 8],
+				[18, 19],
+				[7, 18],
+				[8, 9],
+				[19, 20],
+				[8, 19],
+				[9, 10],
+				[20, 21],
+				[9, 20],
+				[10, 0],
+				[21, 11],
+				[10, 21]
+			],
+			"cops": [
+				17,
+				14,
+				2
+			],
+			"robbers": [
+				3,
+				18,
+				10
+			],
+			"exits": [5, 6],
+			"par": 15
+		},
+		{
+			"id": 89,
+			"chapter": 6,
+			"name": "终极迷城 9",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 427,
+					"y": 102
+				},
+				{
+					"x": 514,
+					"y": 202
+				},
+				{
+					"x": 533,
+					"y": 333
+				},
+				{
+					"x": 478,
+					"y": 454
+				},
+				{
+					"x": 366,
+					"y": 525
+				},
+				{
+					"x": 234,
+					"y": 525
+				},
+				{
+					"x": 122,
+					"y": 454
+				},
+				{
+					"x": 67,
+					"y": 333
+				},
+				{
+					"x": 86,
+					"y": 202
+				},
+				{
+					"x": 173,
+					"y": 102
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 376,
+					"y": 182
+				},
+				{
+					"x": 427,
+					"y": 242
+				},
+				{
+					"x": 439,
+					"y": 320
+				},
+				{
+					"x": 406,
+					"y": 392
+				},
+				{
+					"x": 339,
+					"y": 434
+				},
+				{
+					"x": 261,
+					"y": 434
+				},
+				{
+					"x": 194,
+					"y": 392
+				},
+				{
+					"x": 161,
+					"y": 320
+				},
+				{
+					"x": 173,
+					"y": 242
+				},
+				{
+					"x": 224,
+					"y": 182
+				}
+			],
+			"edges": [
+				[0, 1],
+				[11, 12],
+				[0, 11],
+				[1, 2],
+				[12, 13],
+				[2, 3],
+				[13, 14],
+				[3, 4],
+				[14, 15],
+				[3, 14],
+				[4, 5],
+				[15, 16],
+				[4, 15],
+				[5, 6],
+				[16, 17],
+				[6, 7],
+				[17, 18],
+				[7, 8],
+				[18, 19],
+				[8, 9],
+				[19, 20],
+				[8, 19],
+				[9, 10],
+				[20, 21],
+				[9, 20],
+				[10, 0],
+				[21, 11],
+				[10, 21],
+				[11, 20]
+			],
+			"cops": [
+				10,
+				5,
+				16
+			],
+			"robbers": [
+				15,
+				14,
+				1
+			],
+			"exits": [0, 9],
+			"par": 14
+		},
+		{
+			"id": 90,
+			"chapter": 6,
+			"name": "终极迷城 10",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 418,
+					"y": 96
+				},
+				{
+					"x": 504,
+					"y": 183
+				},
+				{
+					"x": 535,
+					"y": 300
+				},
+				{
+					"x": 504,
+					"y": 417
+				},
+				{
+					"x": 418,
+					"y": 504
+				},
+				{
+					"x": 300,
+					"y": 535
+				},
+				{
+					"x": 183,
+					"y": 504
+				},
+				{
+					"x": 96,
+					"y": 418
+				},
+				{
+					"x": 65,
+					"y": 300
+				},
+				{
+					"x": 96,
+					"y": 182
+				},
+				{
+					"x": 182,
+					"y": 96
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 370,
+					"y": 179
+				},
+				{
+					"x": 421,
+					"y": 230
+				},
+				{
+					"x": 440,
+					"y": 300
+				},
+				{
+					"x": 421,
+					"y": 370
+				},
+				{
+					"x": 370,
+					"y": 421
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 230,
+					"y": 421
+				},
+				{
+					"x": 179,
+					"y": 370
+				},
+				{
+					"x": 160,
+					"y": 300
+				},
+				{
+					"x": 179,
+					"y": 230
+				},
+				{
+					"x": 230,
+					"y": 179
+				}
+			],
+			"edges": [
+				[0, 1],
+				[12, 13],
+				[1, 2],
+				[13, 14],
+				[2, 3],
+				[14, 15],
+				[3, 4],
+				[15, 16],
+				[4, 5],
+				[16, 17],
+				[4, 16],
+				[5, 6],
+				[17, 18],
+				[5, 17],
+				[6, 7],
+				[18, 19],
+				[6, 18],
+				[7, 8],
+				[19, 20],
+				[7, 19],
+				[8, 9],
+				[20, 21],
+				[9, 10],
+				[21, 22],
+				[9, 21],
+				[10, 11],
+				[22, 23],
+				[10, 22],
+				[11, 0],
+				[23, 12],
+				[11, 23],
+				[12, 18],
+				[12, 19],
+				[12, 20],
+				[12, 22]
+			],
+			"cops": [
+				6,
+				12,
+				7
+			],
+			"robbers": [
+				13,
+				16,
+				19
+			],
+			"exits": [5, 11],
+			"par": 13
+		},
+		{
+			"id": 91,
+			"chapter": 6,
+			"name": "终极迷城 11",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 427,
+					"y": 102
+				},
+				{
+					"x": 514,
+					"y": 202
+				},
+				{
+					"x": 533,
+					"y": 333
+				},
+				{
+					"x": 478,
+					"y": 454
+				},
+				{
+					"x": 366,
+					"y": 525
+				},
+				{
+					"x": 234,
+					"y": 525
+				},
+				{
+					"x": 122,
+					"y": 454
+				},
+				{
+					"x": 67,
+					"y": 333
+				},
+				{
+					"x": 86,
+					"y": 202
+				},
+				{
+					"x": 173,
+					"y": 102
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 376,
+					"y": 182
+				},
+				{
+					"x": 427,
+					"y": 242
+				},
+				{
+					"x": 439,
+					"y": 320
+				},
+				{
+					"x": 406,
+					"y": 392
+				},
+				{
+					"x": 339,
+					"y": 434
+				},
+				{
+					"x": 261,
+					"y": 434
+				},
+				{
+					"x": 194,
+					"y": 392
+				},
+				{
+					"x": 161,
+					"y": 320
+				},
+				{
+					"x": 173,
+					"y": 242
+				},
+				{
+					"x": 224,
+					"y": 182
+				}
+			],
+			"edges": [
+				[0, 1],
+				[11, 12],
+				[1, 2],
+				[12, 13],
+				[1, 12],
+				[2, 3],
+				[13, 14],
+				[2, 13],
+				[3, 4],
+				[14, 15],
+				[3, 14],
+				[4, 5],
+				[15, 16],
+				[4, 15],
+				[5, 6],
+				[16, 17],
+				[6, 7],
+				[17, 18],
+				[6, 17],
+				[7, 8],
+				[18, 19],
+				[7, 18],
+				[8, 9],
+				[19, 20],
+				[8, 19],
+				[9, 10],
+				[20, 21],
+				[9, 20],
+				[10, 0],
+				[21, 11]
+			],
+			"cops": [
+				3,
+				4,
+				21
+			],
+			"robbers": [
+				12,
+				0,
+				11
+			],
+			"exits": [8, 6],
+			"par": 13
+		},
+		{
+			"id": 92,
+			"chapter": 6,
+			"name": "终极迷城 12",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 427,
+					"y": 102
+				},
+				{
+					"x": 514,
+					"y": 202
+				},
+				{
+					"x": 533,
+					"y": 333
+				},
+				{
+					"x": 478,
+					"y": 454
+				},
+				{
+					"x": 366,
+					"y": 525
+				},
+				{
+					"x": 234,
+					"y": 525
+				},
+				{
+					"x": 122,
+					"y": 454
+				},
+				{
+					"x": 67,
+					"y": 333
+				},
+				{
+					"x": 86,
+					"y": 202
+				},
+				{
+					"x": 173,
+					"y": 102
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 376,
+					"y": 182
+				},
+				{
+					"x": 427,
+					"y": 242
+				},
+				{
+					"x": 439,
+					"y": 320
+				},
+				{
+					"x": 406,
+					"y": 392
+				},
+				{
+					"x": 339,
+					"y": 434
+				},
+				{
+					"x": 261,
+					"y": 434
+				},
+				{
+					"x": 194,
+					"y": 392
+				},
+				{
+					"x": 161,
+					"y": 320
+				},
+				{
+					"x": 173,
+					"y": 242
+				},
+				{
+					"x": 224,
+					"y": 182
+				}
+			],
+			"edges": [
+				[0, 1],
+				[11, 12],
+				[1, 2],
+				[12, 13],
+				[2, 3],
+				[13, 14],
+				[3, 4],
+				[14, 15],
+				[4, 5],
+				[15, 16],
+				[4, 15],
+				[5, 6],
+				[16, 17],
+				[5, 16],
+				[6, 7],
+				[17, 18],
+				[6, 17],
+				[7, 8],
+				[18, 19],
+				[8, 9],
+				[19, 20],
+				[9, 10],
+				[20, 21],
+				[10, 0],
+				[21, 11],
+				[10, 21],
+				[11, 18],
+				[11, 19]
+			],
+			"cops": [
+				11,
+				4,
+				14
+			],
+			"robbers": [
+				6,
+				18,
+				19
+			],
+			"exits": [0, 9],
+			"par": 15
+		},
+		{
+			"id": 93,
+			"chapter": 6,
+			"name": "终极迷城 13",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 418,
+					"y": 96
+				},
+				{
+					"x": 504,
+					"y": 183
+				},
+				{
+					"x": 535,
+					"y": 300
+				},
+				{
+					"x": 504,
+					"y": 417
+				},
+				{
+					"x": 418,
+					"y": 504
+				},
+				{
+					"x": 300,
+					"y": 535
+				},
+				{
+					"x": 183,
+					"y": 504
+				},
+				{
+					"x": 96,
+					"y": 418
+				},
+				{
+					"x": 65,
+					"y": 300
+				},
+				{
+					"x": 96,
+					"y": 182
+				},
+				{
+					"x": 182,
+					"y": 96
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 370,
+					"y": 179
+				},
+				{
+					"x": 421,
+					"y": 230
+				},
+				{
+					"x": 440,
+					"y": 300
+				},
+				{
+					"x": 421,
+					"y": 370
+				},
+				{
+					"x": 370,
+					"y": 421
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 230,
+					"y": 421
+				},
+				{
+					"x": 179,
+					"y": 370
+				},
+				{
+					"x": 160,
+					"y": 300
+				},
+				{
+					"x": 179,
+					"y": 230
+				},
+				{
+					"x": 230,
+					"y": 179
+				}
+			],
+			"edges": [
+				[0, 1],
+				[12, 13],
+				[1, 2],
+				[13, 14],
+				[2, 3],
+				[14, 15],
+				[3, 4],
+				[15, 16],
+				[4, 5],
+				[16, 17],
+				[5, 6],
+				[17, 18],
+				[6, 7],
+				[18, 19],
+				[7, 8],
+				[19, 20],
+				[7, 19],
+				[8, 9],
+				[20, 21],
+				[8, 20],
+				[9, 10],
+				[21, 22],
+				[9, 21],
+				[10, 11],
+				[22, 23],
+				[10, 22],
+				[11, 0],
+				[23, 12],
+				[11, 23],
+				[12, 14],
+				[12, 17],
+				[12, 21]
+			],
+			"cops": [
+				8,
+				23,
+				19
+			],
+			"robbers": [
+				5,
+				4,
+				10
+			],
+			"exits": [0, 1],
+			"par": 19
+		},
+		{
+			"id": 94,
+			"chapter": 6,
+			"name": "终极迷城 14",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 418,
+					"y": 96
+				},
+				{
+					"x": 504,
+					"y": 183
+				},
+				{
+					"x": 535,
+					"y": 300
+				},
+				{
+					"x": 504,
+					"y": 417
+				},
+				{
+					"x": 418,
+					"y": 504
+				},
+				{
+					"x": 300,
+					"y": 535
+				},
+				{
+					"x": 183,
+					"y": 504
+				},
+				{
+					"x": 96,
+					"y": 418
+				},
+				{
+					"x": 65,
+					"y": 300
+				},
+				{
+					"x": 96,
+					"y": 182
+				},
+				{
+					"x": 182,
+					"y": 96
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 370,
+					"y": 179
+				},
+				{
+					"x": 421,
+					"y": 230
+				},
+				{
+					"x": 440,
+					"y": 300
+				},
+				{
+					"x": 421,
+					"y": 370
+				},
+				{
+					"x": 370,
+					"y": 421
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 230,
+					"y": 421
+				},
+				{
+					"x": 179,
+					"y": 370
+				},
+				{
+					"x": 160,
+					"y": 300
+				},
+				{
+					"x": 179,
+					"y": 230
+				},
+				{
+					"x": 230,
+					"y": 179
+				}
+			],
+			"edges": [
+				[0, 1],
+				[12, 13],
+				[0, 12],
+				[1, 2],
+				[13, 14],
+				[1, 13],
+				[2, 3],
+				[14, 15],
+				[3, 4],
+				[15, 16],
+				[3, 15],
+				[4, 5],
+				[16, 17],
+				[4, 16],
+				[5, 6],
+				[17, 18],
+				[6, 7],
+				[18, 19],
+				[7, 8],
+				[19, 20],
+				[8, 9],
+				[20, 21],
+				[8, 20],
+				[9, 10],
+				[21, 22],
+				[10, 11],
+				[22, 23],
+				[11, 0],
+				[23, 12],
+				[12, 20],
+				[12, 22]
+			],
+			"cops": [
+				3,
+				7,
+				11
+			],
+			"robbers": [
+				15,
+				14,
+				18
+			],
+			"exits": [0, 1],
+			"par": 12
+		},
+		{
+			"id": 95,
+			"chapter": 6,
+			"name": "终极迷城 15",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 418,
+					"y": 96
+				},
+				{
+					"x": 504,
+					"y": 183
+				},
+				{
+					"x": 535,
+					"y": 300
+				},
+				{
+					"x": 504,
+					"y": 417
+				},
+				{
+					"x": 418,
+					"y": 504
+				},
+				{
+					"x": 300,
+					"y": 535
+				},
+				{
+					"x": 183,
+					"y": 504
+				},
+				{
+					"x": 96,
+					"y": 418
+				},
+				{
+					"x": 65,
+					"y": 300
+				},
+				{
+					"x": 96,
+					"y": 182
+				},
+				{
+					"x": 182,
+					"y": 96
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 370,
+					"y": 179
+				},
+				{
+					"x": 421,
+					"y": 230
+				},
+				{
+					"x": 440,
+					"y": 300
+				},
+				{
+					"x": 421,
+					"y": 370
+				},
+				{
+					"x": 370,
+					"y": 421
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 230,
+					"y": 421
+				},
+				{
+					"x": 179,
+					"y": 370
+				},
+				{
+					"x": 160,
+					"y": 300
+				},
+				{
+					"x": 179,
+					"y": 230
+				},
+				{
+					"x": 230,
+					"y": 179
+				}
+			],
+			"edges": [
+				[0, 1],
+				[12, 13],
+				[1, 2],
+				[13, 14],
+				[2, 3],
+				[14, 15],
+				[2, 14],
+				[3, 4],
+				[15, 16],
+				[3, 15],
+				[4, 5],
+				[16, 17],
+				[4, 16],
+				[5, 6],
+				[17, 18],
+				[5, 17],
+				[6, 7],
+				[18, 19],
+				[7, 8],
+				[19, 20],
+				[7, 19],
+				[8, 9],
+				[20, 21],
+				[8, 20],
+				[9, 10],
+				[21, 22],
+				[10, 11],
+				[22, 23],
+				[11, 0],
+				[23, 12],
+				[12, 19],
+				[12, 20]
+			],
+			"cops": [
+				0,
+				19,
+				12
+			],
+			"robbers": [
+				9,
+				13,
+				21
+			],
+			"exits": [2, 1],
+			"par": 15
+		},
+		{
+			"id": 96,
+			"chapter": 6,
+			"name": "终极迷城 16",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 418,
+					"y": 96
+				},
+				{
+					"x": 504,
+					"y": 183
+				},
+				{
+					"x": 535,
+					"y": 300
+				},
+				{
+					"x": 504,
+					"y": 417
+				},
+				{
+					"x": 418,
+					"y": 504
+				},
+				{
+					"x": 300,
+					"y": 535
+				},
+				{
+					"x": 183,
+					"y": 504
+				},
+				{
+					"x": 96,
+					"y": 418
+				},
+				{
+					"x": 65,
+					"y": 300
+				},
+				{
+					"x": 96,
+					"y": 182
+				},
+				{
+					"x": 182,
+					"y": 96
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 370,
+					"y": 179
+				},
+				{
+					"x": 421,
+					"y": 230
+				},
+				{
+					"x": 440,
+					"y": 300
+				},
+				{
+					"x": 421,
+					"y": 370
+				},
+				{
+					"x": 370,
+					"y": 421
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 230,
+					"y": 421
+				},
+				{
+					"x": 179,
+					"y": 370
+				},
+				{
+					"x": 160,
+					"y": 300
+				},
+				{
+					"x": 179,
+					"y": 230
+				},
+				{
+					"x": 230,
+					"y": 179
+				}
+			],
+			"edges": [
+				[0, 1],
+				[12, 13],
+				[0, 12],
+				[1, 2],
+				[13, 14],
+				[1, 13],
+				[2, 3],
+				[14, 15],
+				[3, 4],
+				[15, 16],
+				[4, 5],
+				[16, 17],
+				[5, 6],
+				[17, 18],
+				[6, 7],
+				[18, 19],
+				[7, 8],
+				[19, 20],
+				[7, 19],
+				[8, 9],
+				[20, 21],
+				[8, 20],
+				[9, 10],
+				[21, 22],
+				[10, 11],
+				[22, 23],
+				[10, 22],
+				[11, 0],
+				[23, 12],
+				[11, 23],
+				[12, 14],
+				[12, 15],
+				[12, 21]
+			],
+			"cops": [
+				22,
+				9,
+				14
+			],
+			"robbers": [
+				17,
+				7,
+				8
+			],
+			"exits": [2, 1],
+			"par": 13
+		},
+		{
+			"id": 97,
+			"chapter": 6,
+			"name": "终极迷城 17",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 418,
+					"y": 96
+				},
+				{
+					"x": 504,
+					"y": 183
+				},
+				{
+					"x": 535,
+					"y": 300
+				},
+				{
+					"x": 504,
+					"y": 417
+				},
+				{
+					"x": 418,
+					"y": 504
+				},
+				{
+					"x": 300,
+					"y": 535
+				},
+				{
+					"x": 183,
+					"y": 504
+				},
+				{
+					"x": 96,
+					"y": 418
+				},
+				{
+					"x": 65,
+					"y": 300
+				},
+				{
+					"x": 96,
+					"y": 182
+				},
+				{
+					"x": 182,
+					"y": 96
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 370,
+					"y": 179
+				},
+				{
+					"x": 421,
+					"y": 230
+				},
+				{
+					"x": 440,
+					"y": 300
+				},
+				{
+					"x": 421,
+					"y": 370
+				},
+				{
+					"x": 370,
+					"y": 421
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 230,
+					"y": 421
+				},
+				{
+					"x": 179,
+					"y": 370
+				},
+				{
+					"x": 160,
+					"y": 300
+				},
+				{
+					"x": 179,
+					"y": 230
+				},
+				{
+					"x": 230,
+					"y": 179
+				}
+			],
+			"edges": [
+				[0, 1],
+				[12, 13],
+				[0, 12],
+				[1, 2],
+				[13, 14],
+				[1, 13],
+				[2, 3],
+				[14, 15],
+				[2, 14],
+				[3, 4],
+				[15, 16],
+				[3, 15],
+				[4, 5],
+				[16, 17],
+				[4, 16],
+				[5, 6],
+				[17, 18],
+				[6, 7],
+				[18, 19],
+				[6, 18],
+				[7, 8],
+				[19, 20],
+				[8, 9],
+				[20, 21],
+				[8, 20],
+				[9, 10],
+				[21, 22],
+				[10, 11],
+				[22, 23],
+				[11, 0],
+				[23, 12],
+				[11, 23],
+				[12, 21]
+			],
+			"cops": [
+				6,
+				23,
+				19
+			],
+			"robbers": [
+				3,
+				0,
+				14
+			],
+			"exits": [9, 5],
+			"par": 12
+		},
+		{
+			"id": 98,
+			"chapter": 6,
+			"name": "终极迷城 18",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 427,
+					"y": 102
+				},
+				{
+					"x": 514,
+					"y": 202
+				},
+				{
+					"x": 533,
+					"y": 333
+				},
+				{
+					"x": 478,
+					"y": 454
+				},
+				{
+					"x": 366,
+					"y": 525
+				},
+				{
+					"x": 234,
+					"y": 525
+				},
+				{
+					"x": 122,
+					"y": 454
+				},
+				{
+					"x": 67,
+					"y": 333
+				},
+				{
+					"x": 86,
+					"y": 202
+				},
+				{
+					"x": 173,
+					"y": 102
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 376,
+					"y": 182
+				},
+				{
+					"x": 427,
+					"y": 242
+				},
+				{
+					"x": 439,
+					"y": 320
+				},
+				{
+					"x": 406,
+					"y": 392
+				},
+				{
+					"x": 339,
+					"y": 434
+				},
+				{
+					"x": 261,
+					"y": 434
+				},
+				{
+					"x": 194,
+					"y": 392
+				},
+				{
+					"x": 161,
+					"y": 320
+				},
+				{
+					"x": 173,
+					"y": 242
+				},
+				{
+					"x": 224,
+					"y": 182
+				}
+			],
+			"edges": [
+				[0, 1],
+				[11, 12],
+				[0, 11],
+				[1, 2],
+				[12, 13],
+				[1, 12],
+				[2, 3],
+				[13, 14],
+				[2, 13],
+				[3, 4],
+				[14, 15],
+				[4, 5],
+				[15, 16],
+				[4, 15],
+				[5, 6],
+				[16, 17],
+				[5, 16],
+				[6, 7],
+				[17, 18],
+				[6, 17],
+				[7, 8],
+				[18, 19],
+				[7, 18],
+				[8, 9],
+				[19, 20],
+				[9, 10],
+				[20, 21],
+				[9, 20],
+				[10, 0],
+				[21, 11]
+			],
+			"cops": [
+				12,
+				10,
+				19
+			],
+			"robbers": [
+				4,
+				9,
+				15
+			],
+			"exits": [0, 2],
+			"par": 15
+		},
+		{
+			"id": 99,
+			"chapter": 6,
+			"name": "终极迷城 19",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 418,
+					"y": 96
+				},
+				{
+					"x": 504,
+					"y": 183
+				},
+				{
+					"x": 535,
+					"y": 300
+				},
+				{
+					"x": 504,
+					"y": 417
+				},
+				{
+					"x": 418,
+					"y": 504
+				},
+				{
+					"x": 300,
+					"y": 535
+				},
+				{
+					"x": 183,
+					"y": 504
+				},
+				{
+					"x": 96,
+					"y": 418
+				},
+				{
+					"x": 65,
+					"y": 300
+				},
+				{
+					"x": 96,
+					"y": 182
+				},
+				{
+					"x": 182,
+					"y": 96
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 370,
+					"y": 179
+				},
+				{
+					"x": 421,
+					"y": 230
+				},
+				{
+					"x": 440,
+					"y": 300
+				},
+				{
+					"x": 421,
+					"y": 370
+				},
+				{
+					"x": 370,
+					"y": 421
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 230,
+					"y": 421
+				},
+				{
+					"x": 179,
+					"y": 370
+				},
+				{
+					"x": 160,
+					"y": 300
+				},
+				{
+					"x": 179,
+					"y": 230
+				},
+				{
+					"x": 230,
+					"y": 179
+				}
+			],
+			"edges": [
+				[0, 1],
+				[12, 13],
+				[0, 12],
+				[1, 2],
+				[13, 14],
+				[1, 13],
+				[2, 3],
+				[14, 15],
+				[2, 14],
+				[3, 4],
+				[15, 16],
+				[3, 15],
+				[4, 5],
+				[16, 17],
+				[4, 16],
+				[5, 6],
+				[17, 18],
+				[5, 17],
+				[6, 7],
+				[18, 19],
+				[6, 18],
+				[7, 8],
+				[19, 20],
+				[7, 19],
+				[8, 9],
+				[20, 21],
+				[9, 10],
+				[21, 22],
+				[9, 21],
+				[10, 11],
+				[22, 23],
+				[11, 0],
+				[23, 12],
+				[12, 17],
+				[12, 21]
+			],
+			"cops": [
+				11,
+				13,
+				1
+			],
+			"robbers": [
+				3,
+				20,
+				17
+			],
+			"exits": [10, 9],
+			"par": 25
+		},
+		{
+			"id": 100,
+			"chapter": 6,
+			"name": "终极迷城 20",
+			"tip": "多重回环与长距换防：先守出口，再分路收紧包围。挑战仅保证存在击败固定电脑策略的走法。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 65
+				},
+				{
+					"x": 418,
+					"y": 96
+				},
+				{
+					"x": 504,
+					"y": 183
+				},
+				{
+					"x": 535,
+					"y": 300
+				},
+				{
+					"x": 504,
+					"y": 417
+				},
+				{
+					"x": 418,
+					"y": 504
+				},
+				{
+					"x": 300,
+					"y": 535
+				},
+				{
+					"x": 183,
+					"y": 504
+				},
+				{
+					"x": 96,
+					"y": 418
+				},
+				{
+					"x": 65,
+					"y": 300
+				},
+				{
+					"x": 96,
+					"y": 182
+				},
+				{
+					"x": 182,
+					"y": 96
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 370,
+					"y": 179
+				},
+				{
+					"x": 421,
+					"y": 230
+				},
+				{
+					"x": 440,
+					"y": 300
+				},
+				{
+					"x": 421,
+					"y": 370
+				},
+				{
+					"x": 370,
+					"y": 421
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 230,
+					"y": 421
+				},
+				{
+					"x": 179,
+					"y": 370
+				},
+				{
+					"x": 160,
+					"y": 300
+				},
+				{
+					"x": 179,
+					"y": 230
+				},
+				{
+					"x": 230,
+					"y": 179
+				}
+			],
+			"edges": [
+				[0, 1],
+				[12, 13],
+				[0, 12],
+				[1, 2],
+				[13, 14],
+				[1, 13],
+				[2, 3],
+				[14, 15],
+				[3, 4],
+				[15, 16],
+				[3, 15],
+				[4, 5],
+				[16, 17],
+				[4, 16],
+				[5, 6],
+				[17, 18],
+				[6, 7],
+				[18, 19],
+				[6, 18],
+				[7, 8],
+				[19, 20],
+				[7, 19],
+				[8, 9],
+				[20, 21],
+				[8, 20],
+				[9, 10],
+				[21, 22],
+				[9, 21],
+				[10, 11],
+				[22, 23],
+				[10, 22],
+				[11, 0],
+				[23, 12],
+				[11, 23]
+			],
+			"cops": [
+				16,
+				10,
+				3
+			],
+			"robbers": [
+				6,
+				21,
+				7
+			],
+			"exits": [11, 1],
+			"par": 17
+		}
+	].concat([
+		{
+			"id": 101,
+			"chapter": 7,
+			"name": "远港合围 001",
+			"tip": "先安排出口接防，再从环路两侧收紧；别让留守队员提前离岗。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 424,
+					"y": 107
+				},
+				{
+					"x": 509,
+					"y": 204
+				},
+				{
+					"x": 528,
+					"y": 333
+				},
+				{
+					"x": 474,
+					"y": 451
+				},
+				{
+					"x": 365,
+					"y": 521
+				},
+				{
+					"x": 235,
+					"y": 521
+				},
+				{
+					"x": 126,
+					"y": 451
+				},
+				{
+					"x": 72,
+					"y": 333
+				},
+				{
+					"x": 91,
+					"y": 204
+				},
+				{
+					"x": 176,
+					"y": 107
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 376,
+					"y": 182
+				},
+				{
+					"x": 427,
+					"y": 242
+				},
+				{
+					"x": 439,
+					"y": 320
+				},
+				{
+					"x": 406,
+					"y": 392
+				},
+				{
+					"x": 339,
+					"y": 434
+				},
+				{
+					"x": 261,
+					"y": 434
+				},
+				{
+					"x": 194,
+					"y": 392
+				},
+				{
+					"x": 161,
+					"y": 320
+				},
+				{
+					"x": 173,
+					"y": 242
+				},
+				{
+					"x": 224,
+					"y": 182
+				}
+			],
+			"edges": [
+				[0, 1],
+				[0, 10],
+				[0, 11],
+				[1, 2],
+				[1, 12],
+				[2, 3],
+				[2, 13],
+				[3, 4],
+				[3, 14],
+				[4, 5],
+				[4, 15],
+				[5, 6],
+				[5, 16],
+				[6, 7],
+				[7, 8],
+				[7, 18],
+				[8, 9],
+				[8, 19],
+				[9, 10],
+				[9, 20],
+				[11, 12],
+				[11, 13],
+				[11, 16],
+				[11, 18],
+				[11, 21],
+				[12, 13],
+				[13, 14],
+				[14, 15],
+				[15, 16],
+				[16, 17],
+				[17, 18],
+				[18, 19],
+				[19, 20],
+				[20, 21]
+			],
+			"cops": [
+				5,
+				7,
+				4
+			],
+			"robbers": [13, 2],
+			"exits": [6, 8],
+			"par": 10
+		},
+		{
+			"id": 102,
+			"chapter": 7,
+			"name": "远港合围 002",
+			"tip": "先安排出口接防，再从环路两侧收紧；别让留守队员提前离岗。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 424,
+					"y": 107
+				},
+				{
+					"x": 509,
+					"y": 204
+				},
+				{
+					"x": 528,
+					"y": 333
+				},
+				{
+					"x": 474,
+					"y": 451
+				},
+				{
+					"x": 365,
+					"y": 521
+				},
+				{
+					"x": 235,
+					"y": 521
+				},
+				{
+					"x": 126,
+					"y": 451
+				},
+				{
+					"x": 72,
+					"y": 333
+				},
+				{
+					"x": 91,
+					"y": 204
+				},
+				{
+					"x": 176,
+					"y": 107
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 376,
+					"y": 182
+				},
+				{
+					"x": 427,
+					"y": 242
+				},
+				{
+					"x": 439,
+					"y": 320
+				},
+				{
+					"x": 406,
+					"y": 392
+				},
+				{
+					"x": 339,
+					"y": 434
+				},
+				{
+					"x": 261,
+					"y": 434
+				},
+				{
+					"x": 194,
+					"y": 392
+				},
+				{
+					"x": 161,
+					"y": 320
+				},
+				{
+					"x": 173,
+					"y": 242
+				},
+				{
+					"x": 224,
+					"y": 182
+				}
+			],
+			"edges": [
+				[0, 1],
+				[0, 10],
+				[0, 11],
+				[1, 2],
+				[2, 3],
+				[2, 13],
+				[3, 4],
+				[4, 5],
+				[5, 6],
+				[6, 7],
+				[6, 17],
+				[7, 8],
+				[7, 18],
+				[8, 9],
+				[8, 19],
+				[9, 10],
+				[9, 20],
+				[10, 21],
+				[11, 12],
+				[11, 20],
+				[11, 21],
+				[12, 13],
+				[13, 14],
+				[14, 15],
+				[15, 16],
+				[16, 17],
+				[17, 18],
+				[18, 19],
+				[19, 20],
+				[20, 21]
+			],
+			"cops": [
+				13,
+				7,
+				15
+			],
+			"robbers": [10, 18],
+			"exits": [2, 6],
+			"par": 12
+		},
+		{
+			"id": 103,
+			"chapter": 7,
+			"name": "远港合围 003",
+			"tip": "先安排出口接防，再从环路两侧收紧；别让留守队员提前离岗。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 424,
+					"y": 107
+				},
+				{
+					"x": 509,
+					"y": 204
+				},
+				{
+					"x": 528,
+					"y": 333
+				},
+				{
+					"x": 474,
+					"y": 451
+				},
+				{
+					"x": 365,
+					"y": 521
+				},
+				{
+					"x": 235,
+					"y": 521
+				},
+				{
+					"x": 126,
+					"y": 451
+				},
+				{
+					"x": 72,
+					"y": 333
+				},
+				{
+					"x": 91,
+					"y": 204
+				},
+				{
+					"x": 176,
+					"y": 107
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 376,
+					"y": 182
+				},
+				{
+					"x": 427,
+					"y": 242
+				},
+				{
+					"x": 439,
+					"y": 320
+				},
+				{
+					"x": 406,
+					"y": 392
+				},
+				{
+					"x": 339,
+					"y": 434
+				},
+				{
+					"x": 261,
+					"y": 434
+				},
+				{
+					"x": 194,
+					"y": 392
+				},
+				{
+					"x": 161,
+					"y": 320
+				},
+				{
+					"x": 173,
+					"y": 242
+				},
+				{
+					"x": 224,
+					"y": 182
+				}
+			],
+			"edges": [
+				[0, 1],
+				[0, 10],
+				[1, 2],
+				[2, 3],
+				[3, 4],
+				[3, 14],
+				[4, 5],
+				[4, 15],
+				[5, 6],
+				[6, 7],
+				[6, 17],
+				[7, 8],
+				[8, 9],
+				[8, 19],
+				[9, 10],
+				[9, 20],
+				[10, 21],
+				[11, 12],
+				[11, 18],
+				[11, 20],
+				[11, 21],
+				[12, 13],
+				[13, 14],
+				[14, 15],
+				[15, 16],
+				[16, 17],
+				[17, 18],
+				[18, 19],
+				[19, 20],
+				[20, 21]
+			],
+			"cops": [
+				20,
+				7,
+				14
+			],
+			"robbers": [17, 13],
+			"exits": [9, 8],
+			"par": 10
+		},
+		{
+			"id": 104,
+			"chapter": 7,
+			"name": "远港合围 004",
+			"tip": "先安排出口接防，再从环路两侧收紧；别让留守队员提前离岗。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 424,
+					"y": 107
+				},
+				{
+					"x": 509,
+					"y": 204
+				},
+				{
+					"x": 528,
+					"y": 333
+				},
+				{
+					"x": 474,
+					"y": 451
+				},
+				{
+					"x": 365,
+					"y": 521
+				},
+				{
+					"x": 235,
+					"y": 521
+				},
+				{
+					"x": 126,
+					"y": 451
+				},
+				{
+					"x": 72,
+					"y": 333
+				},
+				{
+					"x": 91,
+					"y": 204
+				},
+				{
+					"x": 176,
+					"y": 107
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 376,
+					"y": 182
+				},
+				{
+					"x": 427,
+					"y": 242
+				},
+				{
+					"x": 439,
+					"y": 320
+				},
+				{
+					"x": 406,
+					"y": 392
+				},
+				{
+					"x": 339,
+					"y": 434
+				},
+				{
+					"x": 261,
+					"y": 434
+				},
+				{
+					"x": 194,
+					"y": 392
+				},
+				{
+					"x": 161,
+					"y": 320
+				},
+				{
+					"x": 173,
+					"y": 242
+				},
+				{
+					"x": 224,
+					"y": 182
+				}
+			],
+			"edges": [
+				[0, 1],
+				[0, 10],
+				[0, 11],
+				[1, 2],
+				[1, 12],
+				[2, 3],
+				[2, 13],
+				[3, 4],
+				[3, 14],
+				[4, 5],
+				[4, 15],
+				[5, 6],
+				[6, 7],
+				[7, 8],
+				[8, 9],
+				[9, 10],
+				[11, 12],
+				[11, 13],
+				[11, 21],
+				[12, 13],
+				[13, 14],
+				[14, 15],
+				[15, 16],
+				[16, 17],
+				[17, 18],
+				[18, 19],
+				[19, 20],
+				[20, 21]
+			],
+			"cops": [
+				5,
+				2,
+				21
+			],
+			"robbers": [8, 13],
+			"exits": [6, 3],
+			"par": 10
+		},
+		{
+			"id": 105,
+			"chapter": 7,
+			"name": "远港合围 005",
+			"tip": "先安排出口接防，再从环路两侧收紧；别让留守队员提前离岗。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 424,
+					"y": 107
+				},
+				{
+					"x": 509,
+					"y": 204
+				},
+				{
+					"x": 528,
+					"y": 333
+				},
+				{
+					"x": 474,
+					"y": 451
+				},
+				{
+					"x": 365,
+					"y": 521
+				},
+				{
+					"x": 235,
+					"y": 521
+				},
+				{
+					"x": 126,
+					"y": 451
+				},
+				{
+					"x": 72,
+					"y": 333
+				},
+				{
+					"x": 91,
+					"y": 204
+				},
+				{
+					"x": 176,
+					"y": 107
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 376,
+					"y": 182
+				},
+				{
+					"x": 427,
+					"y": 242
+				},
+				{
+					"x": 439,
+					"y": 320
+				},
+				{
+					"x": 406,
+					"y": 392
+				},
+				{
+					"x": 339,
+					"y": 434
+				},
+				{
+					"x": 261,
+					"y": 434
+				},
+				{
+					"x": 194,
+					"y": 392
+				},
+				{
+					"x": 161,
+					"y": 320
+				},
+				{
+					"x": 173,
+					"y": 242
+				},
+				{
+					"x": 224,
+					"y": 182
+				}
+			],
+			"edges": [
+				[0, 1],
+				[0, 10],
+				[0, 11],
+				[1, 2],
+				[1, 12],
+				[2, 3],
+				[3, 4],
+				[3, 14],
+				[4, 5],
+				[4, 15],
+				[5, 6],
+				[5, 16],
+				[6, 7],
+				[6, 17],
+				[7, 8],
+				[7, 18],
+				[8, 9],
+				[9, 10],
+				[11, 12],
+				[11, 18],
+				[11, 21],
+				[12, 13],
+				[13, 14],
+				[14, 15],
+				[15, 16],
+				[16, 17],
+				[17, 18],
+				[18, 19],
+				[19, 20],
+				[20, 21]
+			],
+			"cops": [
+				2,
+				7,
+				11
+			],
+			"robbers": [4, 16],
+			"exits": [3, 6],
+			"par": 12
+		},
+		{
+			"id": 106,
+			"chapter": 7,
+			"name": "远港合围 006",
+			"tip": "先安排出口接防，再从环路两侧收紧；别让留守队员提前离岗。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 424,
+					"y": 107
+				},
+				{
+					"x": 509,
+					"y": 204
+				},
+				{
+					"x": 528,
+					"y": 333
+				},
+				{
+					"x": 474,
+					"y": 451
+				},
+				{
+					"x": 365,
+					"y": 521
+				},
+				{
+					"x": 235,
+					"y": 521
+				},
+				{
+					"x": 126,
+					"y": 451
+				},
+				{
+					"x": 72,
+					"y": 333
+				},
+				{
+					"x": 91,
+					"y": 204
+				},
+				{
+					"x": 176,
+					"y": 107
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 376,
+					"y": 182
+				},
+				{
+					"x": 427,
+					"y": 242
+				},
+				{
+					"x": 439,
+					"y": 320
+				},
+				{
+					"x": 406,
+					"y": 392
+				},
+				{
+					"x": 339,
+					"y": 434
+				},
+				{
+					"x": 261,
+					"y": 434
+				},
+				{
+					"x": 194,
+					"y": 392
+				},
+				{
+					"x": 161,
+					"y": 320
+				},
+				{
+					"x": 173,
+					"y": 242
+				},
+				{
+					"x": 224,
+					"y": 182
+				}
+			],
+			"edges": [
+				[0, 1],
+				[0, 10],
+				[0, 11],
+				[1, 2],
+				[1, 12],
+				[2, 3],
+				[2, 13],
+				[3, 4],
+				[3, 14],
+				[4, 5],
+				[4, 15],
+				[5, 6],
+				[5, 16],
+				[6, 7],
+				[7, 8],
+				[7, 18],
+				[8, 9],
+				[8, 19],
+				[9, 10],
+				[11, 12],
+				[11, 15],
+				[11, 16],
+				[11, 18],
+				[11, 21],
+				[12, 13],
+				[13, 14],
+				[14, 15],
+				[15, 16],
+				[16, 17],
+				[17, 18],
+				[18, 19],
+				[19, 20],
+				[20, 21]
+			],
+			"cops": [
+				4,
+				3,
+				13
+			],
+			"robbers": [14, 21],
+			"exits": [5, 2],
+			"par": 11
+		},
+		{
+			"id": 107,
+			"chapter": 7,
+			"name": "远港合围 007",
+			"tip": "先安排出口接防，再从环路两侧收紧；别让留守队员提前离岗。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 424,
+					"y": 107
+				},
+				{
+					"x": 509,
+					"y": 204
+				},
+				{
+					"x": 528,
+					"y": 333
+				},
+				{
+					"x": 474,
+					"y": 451
+				},
+				{
+					"x": 365,
+					"y": 521
+				},
+				{
+					"x": 235,
+					"y": 521
+				},
+				{
+					"x": 126,
+					"y": 451
+				},
+				{
+					"x": 72,
+					"y": 333
+				},
+				{
+					"x": 91,
+					"y": 204
+				},
+				{
+					"x": 176,
+					"y": 107
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 376,
+					"y": 182
+				},
+				{
+					"x": 427,
+					"y": 242
+				},
+				{
+					"x": 439,
+					"y": 320
+				},
+				{
+					"x": 406,
+					"y": 392
+				},
+				{
+					"x": 339,
+					"y": 434
+				},
+				{
+					"x": 261,
+					"y": 434
+				},
+				{
+					"x": 194,
+					"y": 392
+				},
+				{
+					"x": 161,
+					"y": 320
+				},
+				{
+					"x": 173,
+					"y": 242
+				},
+				{
+					"x": 224,
+					"y": 182
+				}
+			],
+			"edges": [
+				[0, 1],
+				[0, 10],
+				[0, 11],
+				[1, 2],
+				[1, 12],
+				[2, 3],
+				[3, 4],
+				[3, 14],
+				[4, 5],
+				[4, 15],
+				[5, 6],
+				[5, 16],
+				[6, 7],
+				[6, 17],
+				[7, 8],
+				[8, 9],
+				[8, 19],
+				[9, 10],
+				[9, 20],
+				[10, 21],
+				[11, 12],
+				[11, 17],
+				[11, 19],
+				[11, 21],
+				[12, 13],
+				[13, 14],
+				[14, 15],
+				[15, 16],
+				[16, 17],
+				[17, 18],
+				[18, 19],
+				[19, 20],
+				[20, 21]
+			],
+			"cops": [
+				2,
+				10,
+				5
+			],
+			"robbers": [19, 15],
+			"exits": [3, 9],
+			"par": 11
+		},
+		{
+			"id": 108,
+			"chapter": 7,
+			"name": "远港合围 008",
+			"tip": "先安排出口接防，再从环路两侧收紧；别让留守队员提前离岗。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 424,
+					"y": 107
+				},
+				{
+					"x": 509,
+					"y": 204
+				},
+				{
+					"x": 528,
+					"y": 333
+				},
+				{
+					"x": 474,
+					"y": 451
+				},
+				{
+					"x": 365,
+					"y": 521
+				},
+				{
+					"x": 235,
+					"y": 521
+				},
+				{
+					"x": 126,
+					"y": 451
+				},
+				{
+					"x": 72,
+					"y": 333
+				},
+				{
+					"x": 91,
+					"y": 204
+				},
+				{
+					"x": 176,
+					"y": 107
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 376,
+					"y": 182
+				},
+				{
+					"x": 427,
+					"y": 242
+				},
+				{
+					"x": 439,
+					"y": 320
+				},
+				{
+					"x": 406,
+					"y": 392
+				},
+				{
+					"x": 339,
+					"y": 434
+				},
+				{
+					"x": 261,
+					"y": 434
+				},
+				{
+					"x": 194,
+					"y": 392
+				},
+				{
+					"x": 161,
+					"y": 320
+				},
+				{
+					"x": 173,
+					"y": 242
+				},
+				{
+					"x": 224,
+					"y": 182
+				}
+			],
+			"edges": [
+				[0, 1],
+				[0, 10],
+				[0, 11],
+				[1, 2],
+				[1, 12],
+				[2, 3],
+				[2, 13],
+				[3, 4],
+				[3, 14],
+				[4, 5],
+				[4, 15],
+				[5, 6],
+				[6, 7],
+				[6, 17],
+				[7, 8],
+				[7, 18],
+				[8, 9],
+				[8, 19],
+				[9, 10],
+				[9, 20],
+				[10, 21],
+				[11, 12],
+				[11, 21],
+				[12, 13],
+				[13, 14],
+				[14, 15],
+				[15, 16],
+				[16, 17],
+				[17, 18],
+				[18, 19],
+				[19, 20],
+				[20, 21]
+			],
+			"cops": [
+				9,
+				14,
+				17
+			],
+			"robbers": [19, 12],
+			"exits": [8, 3],
+			"par": 12
+		},
+		{
+			"id": 109,
+			"chapter": 7,
+			"name": "远港合围 009",
+			"tip": "先安排出口接防，再从环路两侧收紧；别让留守队员提前离岗。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 424,
+					"y": 107
+				},
+				{
+					"x": 509,
+					"y": 204
+				},
+				{
+					"x": 528,
+					"y": 333
+				},
+				{
+					"x": 474,
+					"y": 451
+				},
+				{
+					"x": 365,
+					"y": 521
+				},
+				{
+					"x": 235,
+					"y": 521
+				},
+				{
+					"x": 126,
+					"y": 451
+				},
+				{
+					"x": 72,
+					"y": 333
+				},
+				{
+					"x": 91,
+					"y": 204
+				},
+				{
+					"x": 176,
+					"y": 107
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 376,
+					"y": 182
+				},
+				{
+					"x": 427,
+					"y": 242
+				},
+				{
+					"x": 439,
+					"y": 320
+				},
+				{
+					"x": 406,
+					"y": 392
+				},
+				{
+					"x": 339,
+					"y": 434
+				},
+				{
+					"x": 261,
+					"y": 434
+				},
+				{
+					"x": 194,
+					"y": 392
+				},
+				{
+					"x": 161,
+					"y": 320
+				},
+				{
+					"x": 173,
+					"y": 242
+				},
+				{
+					"x": 224,
+					"y": 182
+				}
+			],
+			"edges": [
+				[0, 1],
+				[0, 10],
+				[1, 2],
+				[1, 12],
+				[2, 3],
+				[3, 4],
+				[3, 14],
+				[4, 5],
+				[5, 6],
+				[6, 7],
+				[7, 8],
+				[7, 18],
+				[8, 9],
+				[9, 10],
+				[9, 20],
+				[11, 12],
+				[11, 19],
+				[11, 21],
+				[12, 13],
+				[13, 14],
+				[14, 15],
+				[15, 16],
+				[16, 17],
+				[17, 18],
+				[18, 19],
+				[19, 20],
+				[20, 21]
+			],
+			"cops": [
+				3,
+				1,
+				4
+			],
+			"robbers": [6, 12],
+			"exits": [2, 0],
+			"par": 11
+		},
+		{
+			"id": 110,
+			"chapter": 7,
+			"name": "远港合围 010",
+			"tip": "先安排出口接防，再从环路两侧收紧；别让留守队员提前离岗。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 424,
+					"y": 107
+				},
+				{
+					"x": 509,
+					"y": 204
+				},
+				{
+					"x": 528,
+					"y": 333
+				},
+				{
+					"x": 474,
+					"y": 451
+				},
+				{
+					"x": 365,
+					"y": 521
+				},
+				{
+					"x": 235,
+					"y": 521
+				},
+				{
+					"x": 126,
+					"y": 451
+				},
+				{
+					"x": 72,
+					"y": 333
+				},
+				{
+					"x": 91,
+					"y": 204
+				},
+				{
+					"x": 176,
+					"y": 107
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 376,
+					"y": 182
+				},
+				{
+					"x": 427,
+					"y": 242
+				},
+				{
+					"x": 439,
+					"y": 320
+				},
+				{
+					"x": 406,
+					"y": 392
+				},
+				{
+					"x": 339,
+					"y": 434
+				},
+				{
+					"x": 261,
+					"y": 434
+				},
+				{
+					"x": 194,
+					"y": 392
+				},
+				{
+					"x": 161,
+					"y": 320
+				},
+				{
+					"x": 173,
+					"y": 242
+				},
+				{
+					"x": 224,
+					"y": 182
+				}
+			],
+			"edges": [
+				[0, 1],
+				[0, 10],
+				[1, 2],
+				[1, 12],
+				[2, 3],
+				[3, 4],
+				[3, 14],
+				[4, 5],
+				[4, 15],
+				[5, 6],
+				[5, 16],
+				[6, 7],
+				[6, 17],
+				[7, 8],
+				[7, 18],
+				[8, 9],
+				[8, 19],
+				[9, 10],
+				[9, 20],
+				[10, 21],
+				[11, 12],
+				[11, 17],
+				[11, 18],
+				[11, 20],
+				[11, 21],
+				[12, 13],
+				[13, 14],
+				[14, 15],
+				[15, 16],
+				[16, 17],
+				[17, 18],
+				[18, 19],
+				[19, 20],
+				[20, 21]
+			],
+			"cops": [
+				7,
+				5,
+				21
+			],
+			"robbers": [15, 16],
+			"exits": [8, 6],
+			"par": 13
+		},
+		{
+			"id": 111,
+			"chapter": 7,
+			"name": "远港合围 011",
+			"tip": "先安排出口接防，再从环路两侧收紧；别让留守队员提前离岗。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 415,
+					"y": 101
+				},
+				{
+					"x": 499,
+					"y": 185
+				},
+				{
+					"x": 530,
+					"y": 300
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 415,
+					"y": 499
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 185,
+					"y": 499
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 70,
+					"y": 300
+				},
+				{
+					"x": 101,
+					"y": 185
+				},
+				{
+					"x": 185,
+					"y": 101
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 370,
+					"y": 179
+				},
+				{
+					"x": 421,
+					"y": 230
+				},
+				{
+					"x": 440,
+					"y": 300
+				},
+				{
+					"x": 421,
+					"y": 370
+				},
+				{
+					"x": 370,
+					"y": 421
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 230,
+					"y": 421
+				},
+				{
+					"x": 179,
+					"y": 370
+				},
+				{
+					"x": 160,
+					"y": 300
+				},
+				{
+					"x": 179,
+					"y": 230
+				},
+				{
+					"x": 230,
+					"y": 179
+				}
+			],
+			"edges": [
+				[0, 1],
+				[0, 11],
+				[0, 12],
+				[1, 2],
+				[1, 13],
+				[2, 3],
+				[3, 4],
+				[3, 15],
+				[4, 5],
+				[4, 16],
+				[5, 6],
+				[5, 17],
+				[6, 7],
+				[6, 18],
+				[7, 8],
+				[7, 19],
+				[8, 9],
+				[8, 20],
+				[9, 10],
+				[9, 21],
+				[10, 11],
+				[10, 22],
+				[11, 23],
+				[12, 13],
+				[12, 15],
+				[12, 18],
+				[12, 23],
+				[13, 14],
+				[14, 15],
+				[15, 16],
+				[16, 17],
+				[17, 18],
+				[18, 19],
+				[19, 20],
+				[20, 21],
+				[21, 22],
+				[22, 23]
+			],
+			"cops": [
+				2,
+				18,
+				13
+			],
+			"robbers": [4, 16],
+			"exits": [3, 6],
+			"par": 12
+		},
+		{
+			"id": 112,
+			"chapter": 7,
+			"name": "远港合围 012",
+			"tip": "先安排出口接防，再从环路两侧收紧；别让留守队员提前离岗。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 415,
+					"y": 101
+				},
+				{
+					"x": 499,
+					"y": 185
+				},
+				{
+					"x": 530,
+					"y": 300
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 415,
+					"y": 499
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 185,
+					"y": 499
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 70,
+					"y": 300
+				},
+				{
+					"x": 101,
+					"y": 185
+				},
+				{
+					"x": 185,
+					"y": 101
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 370,
+					"y": 179
+				},
+				{
+					"x": 421,
+					"y": 230
+				},
+				{
+					"x": 440,
+					"y": 300
+				},
+				{
+					"x": 421,
+					"y": 370
+				},
+				{
+					"x": 370,
+					"y": 421
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 230,
+					"y": 421
+				},
+				{
+					"x": 179,
+					"y": 370
+				},
+				{
+					"x": 160,
+					"y": 300
+				},
+				{
+					"x": 179,
+					"y": 230
+				},
+				{
+					"x": 230,
+					"y": 179
+				}
+			],
+			"edges": [
+				[0, 1],
+				[0, 11],
+				[0, 12],
+				[1, 2],
+				[1, 13],
+				[2, 3],
+				[2, 14],
+				[3, 4],
+				[3, 15],
+				[4, 5],
+				[4, 16],
+				[5, 6],
+				[5, 17],
+				[6, 7],
+				[6, 18],
+				[7, 8],
+				[8, 9],
+				[8, 20],
+				[9, 10],
+				[10, 11],
+				[10, 22],
+				[11, 23],
+				[12, 13],
+				[12, 16],
+				[12, 17],
+				[12, 22],
+				[12, 23],
+				[13, 14],
+				[14, 15],
+				[15, 16],
+				[16, 17],
+				[17, 18],
+				[18, 19],
+				[19, 20],
+				[20, 21],
+				[21, 22],
+				[22, 23]
+			],
+			"cops": [
+				18,
+				15,
+				4
+			],
+			"robbers": [14, 5],
+			"exits": [6, 3],
+			"par": 12
+		},
+		{
+			"id": 113,
+			"chapter": 7,
+			"name": "远港合围 013",
+			"tip": "先安排出口接防，再从环路两侧收紧；别让留守队员提前离岗。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 415,
+					"y": 101
+				},
+				{
+					"x": 499,
+					"y": 185
+				},
+				{
+					"x": 530,
+					"y": 300
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 415,
+					"y": 499
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 185,
+					"y": 499
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 70,
+					"y": 300
+				},
+				{
+					"x": 101,
+					"y": 185
+				},
+				{
+					"x": 185,
+					"y": 101
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 370,
+					"y": 179
+				},
+				{
+					"x": 421,
+					"y": 230
+				},
+				{
+					"x": 440,
+					"y": 300
+				},
+				{
+					"x": 421,
+					"y": 370
+				},
+				{
+					"x": 370,
+					"y": 421
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 230,
+					"y": 421
+				},
+				{
+					"x": 179,
+					"y": 370
+				},
+				{
+					"x": 160,
+					"y": 300
+				},
+				{
+					"x": 179,
+					"y": 230
+				},
+				{
+					"x": 230,
+					"y": 179
+				}
+			],
+			"edges": [
+				[0, 1],
+				[0, 11],
+				[0, 12],
+				[1, 2],
+				[1, 13],
+				[2, 3],
+				[2, 14],
+				[3, 4],
+				[4, 5],
+				[4, 16],
+				[5, 6],
+				[5, 17],
+				[6, 7],
+				[6, 18],
+				[7, 8],
+				[8, 9],
+				[9, 10],
+				[9, 21],
+				[10, 11],
+				[12, 13],
+				[12, 15],
+				[12, 23],
+				[13, 14],
+				[14, 15],
+				[15, 16],
+				[16, 17],
+				[17, 18],
+				[18, 19],
+				[19, 20],
+				[20, 21],
+				[21, 22],
+				[22, 23]
+			],
+			"cops": [
+				2,
+				12,
+				9
+			],
+			"robbers": [13, 1],
+			"exits": [3, 0],
+			"par": 13
+		},
+		{
+			"id": 114,
+			"chapter": 7,
+			"name": "远港合围 014",
+			"tip": "先安排出口接防，再从环路两侧收紧；别让留守队员提前离岗。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 415,
+					"y": 101
+				},
+				{
+					"x": 499,
+					"y": 185
+				},
+				{
+					"x": 530,
+					"y": 300
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 415,
+					"y": 499
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 185,
+					"y": 499
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 70,
+					"y": 300
+				},
+				{
+					"x": 101,
+					"y": 185
+				},
+				{
+					"x": 185,
+					"y": 101
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 370,
+					"y": 179
+				},
+				{
+					"x": 421,
+					"y": 230
+				},
+				{
+					"x": 440,
+					"y": 300
+				},
+				{
+					"x": 421,
+					"y": 370
+				},
+				{
+					"x": 370,
+					"y": 421
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 230,
+					"y": 421
+				},
+				{
+					"x": 179,
+					"y": 370
+				},
+				{
+					"x": 160,
+					"y": 300
+				},
+				{
+					"x": 179,
+					"y": 230
+				},
+				{
+					"x": 230,
+					"y": 179
+				}
+			],
+			"edges": [
+				[0, 1],
+				[0, 11],
+				[0, 12],
+				[1, 2],
+				[1, 13],
+				[2, 3],
+				[3, 4],
+				[3, 15],
+				[4, 5],
+				[4, 16],
+				[5, 6],
+				[6, 7],
+				[6, 18],
+				[7, 8],
+				[7, 19],
+				[8, 9],
+				[8, 20],
+				[9, 10],
+				[9, 21],
+				[10, 11],
+				[10, 22],
+				[12, 13],
+				[12, 16],
+				[12, 20],
+				[12, 23],
+				[13, 14],
+				[14, 15],
+				[15, 16],
+				[16, 17],
+				[17, 18],
+				[18, 19],
+				[19, 20],
+				[20, 21],
+				[21, 22],
+				[22, 23]
+			],
+			"cops": [
+				5,
+				10,
+				4
+			],
+			"robbers": [0, 8],
+			"exits": [6, 9],
+			"par": 12
+		},
+		{
+			"id": 115,
+			"chapter": 7,
+			"name": "远港合围 015",
+			"tip": "先安排出口接防，再从环路两侧收紧；别让留守队员提前离岗。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 415,
+					"y": 101
+				},
+				{
+					"x": 499,
+					"y": 185
+				},
+				{
+					"x": 530,
+					"y": 300
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 415,
+					"y": 499
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 185,
+					"y": 499
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 70,
+					"y": 300
+				},
+				{
+					"x": 101,
+					"y": 185
+				},
+				{
+					"x": 185,
+					"y": 101
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 370,
+					"y": 179
+				},
+				{
+					"x": 421,
+					"y": 230
+				},
+				{
+					"x": 440,
+					"y": 300
+				},
+				{
+					"x": 421,
+					"y": 370
+				},
+				{
+					"x": 370,
+					"y": 421
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 230,
+					"y": 421
+				},
+				{
+					"x": 179,
+					"y": 370
+				},
+				{
+					"x": 160,
+					"y": 300
+				},
+				{
+					"x": 179,
+					"y": 230
+				},
+				{
+					"x": 230,
+					"y": 179
+				}
+			],
+			"edges": [
+				[0, 1],
+				[0, 11],
+				[0, 12],
+				[1, 2],
+				[2, 3],
+				[3, 4],
+				[4, 5],
+				[5, 6],
+				[5, 17],
+				[6, 7],
+				[6, 18],
+				[7, 8],
+				[7, 19],
+				[8, 9],
+				[8, 20],
+				[9, 10],
+				[9, 21],
+				[10, 11],
+				[10, 22],
+				[11, 23],
+				[12, 13],
+				[12, 19],
+				[12, 22],
+				[12, 23],
+				[13, 14],
+				[14, 15],
+				[15, 16],
+				[16, 17],
+				[17, 18],
+				[18, 19],
+				[19, 20],
+				[20, 21],
+				[21, 22],
+				[22, 23]
+			],
+			"cops": [
+				5,
+				11,
+				14
+			],
+			"robbers": [10, 8],
+			"exits": [6, 0],
+			"par": 13
+		},
+		{
+			"id": 116,
+			"chapter": 7,
+			"name": "远港合围 016",
+			"tip": "先安排出口接防，再从环路两侧收紧；别让留守队员提前离岗。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 415,
+					"y": 101
+				},
+				{
+					"x": 499,
+					"y": 185
+				},
+				{
+					"x": 530,
+					"y": 300
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 415,
+					"y": 499
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 185,
+					"y": 499
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 70,
+					"y": 300
+				},
+				{
+					"x": 101,
+					"y": 185
+				},
+				{
+					"x": 185,
+					"y": 101
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 370,
+					"y": 179
+				},
+				{
+					"x": 421,
+					"y": 230
+				},
+				{
+					"x": 440,
+					"y": 300
+				},
+				{
+					"x": 421,
+					"y": 370
+				},
+				{
+					"x": 370,
+					"y": 421
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 230,
+					"y": 421
+				},
+				{
+					"x": 179,
+					"y": 370
+				},
+				{
+					"x": 160,
+					"y": 300
+				},
+				{
+					"x": 179,
+					"y": 230
+				},
+				{
+					"x": 230,
+					"y": 179
+				}
+			],
+			"edges": [
+				[0, 1],
+				[0, 11],
+				[0, 12],
+				[1, 2],
+				[1, 13],
+				[2, 3],
+				[2, 14],
+				[3, 4],
+				[3, 15],
+				[4, 5],
+				[4, 16],
+				[5, 6],
+				[6, 7],
+				[6, 18],
+				[7, 8],
+				[8, 9],
+				[9, 10],
+				[9, 21],
+				[10, 11],
+				[11, 23],
+				[12, 13],
+				[12, 17],
+				[12, 20],
+				[12, 22],
+				[12, 23],
+				[13, 14],
+				[14, 15],
+				[15, 16],
+				[16, 17],
+				[17, 18],
+				[18, 19],
+				[19, 20],
+				[20, 21],
+				[21, 22],
+				[22, 23]
+			],
+			"cops": [
+				2,
+				1,
+				7
+			],
+			"robbers": [23, 5],
+			"exits": [3, 0],
+			"par": 16
+		},
+		{
+			"id": 117,
+			"chapter": 7,
+			"name": "远港合围 017",
+			"tip": "先安排出口接防，再从环路两侧收紧；别让留守队员提前离岗。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 415,
+					"y": 101
+				},
+				{
+					"x": 499,
+					"y": 185
+				},
+				{
+					"x": 530,
+					"y": 300
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 415,
+					"y": 499
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 185,
+					"y": 499
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 70,
+					"y": 300
+				},
+				{
+					"x": 101,
+					"y": 185
+				},
+				{
+					"x": 185,
+					"y": 101
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 370,
+					"y": 179
+				},
+				{
+					"x": 421,
+					"y": 230
+				},
+				{
+					"x": 440,
+					"y": 300
+				},
+				{
+					"x": 421,
+					"y": 370
+				},
+				{
+					"x": 370,
+					"y": 421
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 230,
+					"y": 421
+				},
+				{
+					"x": 179,
+					"y": 370
+				},
+				{
+					"x": 160,
+					"y": 300
+				},
+				{
+					"x": 179,
+					"y": 230
+				},
+				{
+					"x": 230,
+					"y": 179
+				}
+			],
+			"edges": [
+				[0, 1],
+				[0, 11],
+				[1, 2],
+				[1, 13],
+				[2, 3],
+				[2, 14],
+				[3, 4],
+				[4, 5],
+				[4, 16],
+				[5, 6],
+				[6, 7],
+				[7, 8],
+				[7, 19],
+				[8, 9],
+				[9, 10],
+				[9, 21],
+				[10, 11],
+				[11, 23],
+				[12, 13],
+				[12, 15],
+				[12, 16],
+				[12, 20],
+				[12, 23],
+				[13, 14],
+				[14, 15],
+				[15, 16],
+				[16, 17],
+				[17, 18],
+				[18, 19],
+				[19, 20],
+				[20, 21],
+				[21, 22],
+				[22, 23]
+			],
+			"cops": [
+				11,
+				4,
+				13
+			],
+			"robbers": [22, 1],
+			"exits": [0, 3],
+			"par": 13
+		},
+		{
+			"id": 118,
+			"chapter": 7,
+			"name": "远港合围 018",
+			"tip": "先安排出口接防，再从环路两侧收紧；别让留守队员提前离岗。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 415,
+					"y": 101
+				},
+				{
+					"x": 499,
+					"y": 185
+				},
+				{
+					"x": 530,
+					"y": 300
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 415,
+					"y": 499
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 185,
+					"y": 499
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 70,
+					"y": 300
+				},
+				{
+					"x": 101,
+					"y": 185
+				},
+				{
+					"x": 185,
+					"y": 101
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 370,
+					"y": 179
+				},
+				{
+					"x": 421,
+					"y": 230
+				},
+				{
+					"x": 440,
+					"y": 300
+				},
+				{
+					"x": 421,
+					"y": 370
+				},
+				{
+					"x": 370,
+					"y": 421
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 230,
+					"y": 421
+				},
+				{
+					"x": 179,
+					"y": 370
+				},
+				{
+					"x": 160,
+					"y": 300
+				},
+				{
+					"x": 179,
+					"y": 230
+				},
+				{
+					"x": 230,
+					"y": 179
+				}
+			],
+			"edges": [
+				[0, 1],
+				[0, 11],
+				[1, 2],
+				[1, 13],
+				[2, 3],
+				[3, 4],
+				[3, 15],
+				[4, 5],
+				[4, 16],
+				[5, 6],
+				[5, 17],
+				[6, 7],
+				[6, 18],
+				[7, 8],
+				[7, 19],
+				[8, 9],
+				[8, 20],
+				[9, 10],
+				[10, 11],
+				[12, 13],
+				[12, 21],
+				[12, 22],
+				[12, 23],
+				[13, 14],
+				[14, 15],
+				[15, 16],
+				[16, 17],
+				[17, 18],
+				[18, 19],
+				[19, 20],
+				[20, 21],
+				[21, 22],
+				[22, 23]
+			],
+			"cops": [
+				2,
+				18,
+				9
+			],
+			"robbers": [19, 4],
+			"exits": [3, 6],
+			"par": 16
+		},
+		{
+			"id": 119,
+			"chapter": 7,
+			"name": "远港合围 019",
+			"tip": "先安排出口接防，再从环路两侧收紧；别让留守队员提前离岗。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 415,
+					"y": 101
+				},
+				{
+					"x": 499,
+					"y": 185
+				},
+				{
+					"x": 530,
+					"y": 300
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 415,
+					"y": 499
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 185,
+					"y": 499
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 70,
+					"y": 300
+				},
+				{
+					"x": 101,
+					"y": 185
+				},
+				{
+					"x": 185,
+					"y": 101
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 370,
+					"y": 179
+				},
+				{
+					"x": 421,
+					"y": 230
+				},
+				{
+					"x": 440,
+					"y": 300
+				},
+				{
+					"x": 421,
+					"y": 370
+				},
+				{
+					"x": 370,
+					"y": 421
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 230,
+					"y": 421
+				},
+				{
+					"x": 179,
+					"y": 370
+				},
+				{
+					"x": 160,
+					"y": 300
+				},
+				{
+					"x": 179,
+					"y": 230
+				},
+				{
+					"x": 230,
+					"y": 179
+				}
+			],
+			"edges": [
+				[0, 1],
+				[0, 11],
+				[0, 12],
+				[1, 2],
+				[1, 13],
+				[2, 3],
+				[2, 14],
+				[3, 4],
+				[3, 15],
+				[4, 5],
+				[4, 16],
+				[5, 6],
+				[5, 17],
+				[6, 7],
+				[6, 18],
+				[7, 8],
+				[7, 19],
+				[8, 9],
+				[8, 20],
+				[9, 10],
+				[10, 11],
+				[10, 22],
+				[11, 23],
+				[12, 13],
+				[12, 17],
+				[12, 23],
+				[13, 14],
+				[14, 15],
+				[15, 16],
+				[16, 17],
+				[17, 18],
+				[18, 19],
+				[19, 20],
+				[20, 21],
+				[21, 22],
+				[22, 23]
+			],
+			"cops": [
+				7,
+				1,
+				15
+			],
+			"robbers": [17, 19],
+			"exits": [6, 0],
+			"par": 14
+		},
+		{
+			"id": 120,
+			"chapter": 7,
+			"name": "远港合围 020",
+			"tip": "先安排出口接防，再从环路两侧收紧；别让留守队员提前离岗。",
+			"nodes": [
+				{
+					"x": 300,
+					"y": 70
+				},
+				{
+					"x": 415,
+					"y": 101
+				},
+				{
+					"x": 499,
+					"y": 185
+				},
+				{
+					"x": 530,
+					"y": 300
+				},
+				{
+					"x": 499,
+					"y": 415
+				},
+				{
+					"x": 415,
+					"y": 499
+				},
+				{
+					"x": 300,
+					"y": 530
+				},
+				{
+					"x": 185,
+					"y": 499
+				},
+				{
+					"x": 101,
+					"y": 415
+				},
+				{
+					"x": 70,
+					"y": 300
+				},
+				{
+					"x": 101,
+					"y": 185
+				},
+				{
+					"x": 185,
+					"y": 101
+				},
+				{
+					"x": 300,
+					"y": 160
+				},
+				{
+					"x": 370,
+					"y": 179
+				},
+				{
+					"x": 421,
+					"y": 230
+				},
+				{
+					"x": 440,
+					"y": 300
+				},
+				{
+					"x": 421,
+					"y": 370
+				},
+				{
+					"x": 370,
+					"y": 421
+				},
+				{
+					"x": 300,
+					"y": 440
+				},
+				{
+					"x": 230,
+					"y": 421
+				},
+				{
+					"x": 179,
+					"y": 370
+				},
+				{
+					"x": 160,
+					"y": 300
+				},
+				{
+					"x": 179,
+					"y": 230
+				},
+				{
+					"x": 230,
+					"y": 179
+				}
+			],
+			"edges": [
+				[0, 1],
+				[0, 11],
+				[0, 12],
+				[1, 2],
+				[1, 13],
+				[2, 3],
+				[2, 14],
+				[3, 4],
+				[3, 15],
+				[4, 5],
+				[5, 6],
+				[5, 17],
+				[6, 7],
+				[7, 8],
+				[8, 9],
+				[8, 20],
+				[9, 10],
+				[9, 21],
+				[10, 11],
+				[10, 22],
+				[11, 23],
+				[12, 13],
+				[12, 14],
+				[12, 23],
+				[13, 14],
+				[14, 15],
+				[15, 16],
+				[16, 17],
+				[17, 18],
+				[18, 19],
+				[19, 20],
+				[20, 21],
+				[21, 22],
+				[22, 23]
+			],
+			"cops": [
+				8,
+				1,
+				13
+			],
+			"robbers": [14, 10],
+			"exits": [9, 0],
+			"par": 14
+		}
+	]).map(prepareLevel);
+	//#endregion
+	//#region ../../games/local/cops-robbers/src/duel-levels.js
+	function makeMap(id, mode) {
+		let seed = id * 9137 + (mode === "escape" ? 7183 : 51031);
+		const random = () => (seed = Math.imul(seed, 1664525) + 1013904223 >>> 0) / 4294967296;
+		const size = Math.min(6, 4 + Math.floor((id - 1) / 34)), nodes = Array.from({ length: size * size }, (_, index) => ({
+			x: 65 + index % size * 470 / (size - 1),
+			y: 70 + Math.floor(index / size) * 460 / (size - 1)
+		}));
+		const candidates = [], edges = [], parent = nodes.map((_, index) => index);
+		const root = (node) => {
+			while (node !== parent[node]) node = parent[node];
+			return node;
+		};
+		for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+			const node = y * size + x;
+			if (x + 1 < size) candidates.push([node, node + 1]);
+			if (y + 1 < size) candidates.push([node, node + size]);
+		}
+		const shuffled = candidates.map((edge) => ({
+			edge,
+			weight: random()
+		})).sort((a, b) => a.weight - b.weight);
+		const extras = [];
+		for (const { edge: [a, b] } of shuffled) if (root(a) !== root(b)) {
+			parent[root(a)] = root(b);
+			edges.push([a, b]);
+		} else extras.push([a, b]);
+		edges.push(...extras.slice(0, 2 + Math.floor(id / 9)));
+		edges.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+		const rotation = Math.floor(random() * 4);
+		const rotate = (index) => {
+			let x = index % size, y = Math.floor(index / size);
+			for (let i = 0; i < rotation; i++) [x, y] = [size - 1 - y, x];
+			return y * size + x;
+		};
+		const cops = [
+			1,
+			size * size - 2,
+			...id > 67 ? [size - 1] : []
+		].map(rotate);
+		const robbers = [size * Math.floor(size / 2) + Math.floor(size / 2) - 1].map(rotate);
+		const exits = mode === "escape" ? [0, size * size - 1].map(rotate) : [];
+		for (const pair of [[rotate(0), cops[0]], [rotate(size * size - 1), cops[1]]]) {
+			const edge = pair.sort((a, b) => a - b);
+			if (!edges.some(([a, b]) => a === edge[0] && b === edge[1])) edges.push(edge);
+		}
+		edges.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+		const level = prepareLevel({
+			id,
+			mode,
+			name: `${mode === "escape" ? "出口竞速" : "限步周旋"} ${String(id).padStart(3, "0")}`,
+			nodes,
+			edges,
+			cops,
+			robbers,
+			exits,
+			roundLimit: (mode === "escape" ? 18 : 10) + Math.floor((id - 1) / 5),
+			difficulty: 1 + Math.floor((id - 1) / 20)
+		});
+		const starts = nodes.map((_, index) => index).filter((node) => !cops.includes(node) && !exits.includes(node));
+		starts.sort((a, b) => Math.min(...cops.map((cop) => level.dist[cop][b])) - Math.min(...cops.map((cop) => level.dist[cop][a])) || level.adj[b].length - level.adj[a].length);
+		level.robbers = [starts[0]];
+		return level;
+	}
+	var duelLevels = ["escape", "survival"].flatMap((mode) => Array.from({ length: 120 }, (_, index) => makeMap(index + 1, mode)));
+	var getDuelLevel = (mode, id) => duelLevels.find((level) => level.mode === mode && level.id === Number(id));
+	//#endregion
+	//#region ../../games/local/cops-robbers/src/duel.js
+	function legalDuelTargets(level, state, actor, side = state.side) {
+		if (state.winner || !["pursuer", "runner"].includes(side) || !Number.isInteger(actor)) return [];
+		const positions = side === "pursuer" ? state.cops : state.robbers, from = positions[actor];
+		if (!Number.isInteger(from) || from < 0 || !level.adj[from]) return [];
+		return [from, ...level.adj[from]].filter((node) => !positions.some((position, index) => index !== actor && position === node) && (side === "pursuer" || !state.cops.includes(node)));
+	}
+	//#endregion
+	//#region ../../games/local/cops-robbers/src/role-appearance.js
+	var storageKey = "chase-role-appearance-v1";
+	var presets = {
+		team: {
+			cop: [
+				"#1677bf",
+				"#d9f3ff",
+				"◆"
+			],
+			robber: [
+				"#d65b19",
+				"#fff0b8",
+				"ϟ"
+			]
+		},
+		animals: {
+			cop: [
+				"#176cb0",
+				"#d9f3ff",
+				"🐱"
+			],
+			robber: [
+				"#bc4c17",
+				"#ffe3be",
+				"🦊"
+			]
+		},
+		cosmic: {
+			cop: [
+				"#4d51b8",
+				"#e4e4ff",
+				"✦"
+			],
+			robber: [
+				"#b54920",
+				"#ffdfb4",
+				"☄"
+			]
+		}
+	};
+	var images = /* @__PURE__ */ new Map();
+	var classicRoles = () => globalThis.__CLASSIC_CHASE_ROLES__ === true;
+	var settings;
+	var stored;
+	var side = (role) => [
+		"cop",
+		"pursuer",
+		"chaser"
+	].includes(role) ? "cop" : "robber";
+	var validAvatar = (value) => typeof value === "string" && value.length <= 12e4 && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(value);
+	function read() {
+		try {
+			const value = (globalThis.__chaseRoleStorage || globalThis.localStorage)?.getItem(storageKey) || "{}";
+			if (settings && value === stored) return settings;
+			stored = value;
+			settings = JSON.parse(value);
+		} catch {
+			settings = {};
+		}
+		if (!settings || typeof settings !== "object" || Array.isArray(settings)) settings = {};
+		return settings;
+	}
+	function getRoleAppearance(role) {
+		const key = side(role), value = read()[key];
+		const style = Object.hasOwn(presets, value?.style) ? value.style : "team";
+		const [color, accent, badge] = presets[style][key];
+		return {
+			label: classicRoles() ? key === "cop" ? "警察" : "小偷" : key === "cop" ? "追逐队" : "突围队",
+			style,
+			color,
+			accent,
+			badge,
+			avatar: validAvatar(value?.avatar) ? value.avatar : ""
+		};
+	}
+	function facePaths(role) {
+		const { color, accent, style } = getRoleAppearance(role);
+		const chaser = side(role) === "cop";
+		const animal = style === "animals";
+		const paths = [];
+		const add = (d, fill, stroke = "", width = 3) => paths.push({
+			d,
+			fill,
+			stroke,
+			width
+		});
+		if (classicRoles() && style === "team") {
+			const ink = "#133a55", skin = "#ffcf9d";
+			add("M10 58a10 12 0 1 0 20 0a10 12 0 1 0-20 0M70 58a10 12 0 1 0 20 0a10 12 0 1 0-20 0", skin, ink, 2.8);
+			add("M15 47Q15 20 50 20T85 47V62Q85 95 50 96 15 95 15 62Z", skin, ink, 3.2);
+			add("M22 53Q22 24 50 26T79 54L74 39 63 42 55 34 41 41 29 38Z", "#513329");
+			if (chaser) {
+				add("M8 28 15 13Q50-2 85 13L92 28 80 39H20Z", "#146aa9", ink, 3.2);
+				add("M15 24Q50 10 85 24L82 30Q50 20 18 30Z", "#3199d4");
+				add("M14 31Q50 21 86 31L85 39Q50 53 15 39Z", "#163f63", ink, 2.5);
+				add("M17 32Q50 24 83 32L80 35Q50 29 20 36Z", "#bbecff");
+				add("M50 9 61 15 58 28 50 34 42 28 39 15Z", "#ffdc60", ink, 2.2);
+				add("M50 15 52 20 58 20 54 24 55 29 50 26 45 29 46 24 42 20 48 20Z", "#fff3b1");
+				add("M25 47Q32 43 39 47M61 47Q68 43 75 47", "none", "#513329", 3.2);
+			} else {
+				add("M10 36Q10 4 50 4T90 36Z", "#f89927", ink, 3.2);
+				add("M14 29Q50 16 86 29L89 39Q50 28 11 39Z", "#ffb844", ink, 2.5);
+				add("M23 15 21 27M38 9 37 22M53 8 54 21M68 11 71 24M80 18 82 27", "none", "#ffcd73", 3);
+				add("M17 39 26 37 31 46 46 44 55 38 68 44 79 41 82 51H17Z", "#513329");
+				add("M10 54Q23 43 49 51 77 43 90 54L85 69Q69 77 50 67 31 77 15 69Z", "#203440", ink, 2.7);
+				add("M22 58Q31 49 41 58L39 66H25ZM59 58Q69 49 78 58L75 66H61Z", "#fff8e8");
+			}
+			add("M28 59a5 7 0 1 0 10 0a5 7 0 1 0-10 0M62 59a5 7 0 1 0 10 0a5 7 0 1 0-10 0", "#172f42");
+			add("M30 55a1.7 2 0 1 0 3.4 0a1.7 2 0 1 0-3.4 0M64 55a1.7 2 0 1 0 3.4 0a1.7 2 0 1 0-3.4 0", "#fff");
+			add("M19 75a7 4 0 1 0 14 0a7 4 0 1 0-14 0M67 75a7 4 0 1 0 14 0a7 4 0 1 0-14 0", "#f8947b");
+			add("M46 70Q50 74 54 70", "none", "#cc8462", 2.2);
+			add("M39 80Q50 90 61 80", "none", ink, 3.2);
+			return paths;
+		}
+		if (animal) {
+			add(chaser ? "M9 43 10 6Q12 0 18 6L39 27M61 27 82 6Q88 0 90 6L91 43" : "M6 48 13 5Q15 0 21 7L42 29M58 29 79 7Q85 0 87 5L94 48", color);
+			add("M16 29 17 13 30 30M70 30 83 13 84 29", "#ffb6a2");
+		}
+		add(chaser ? "M8 46Q8 22 31 19H69Q92 22 92 46V65Q92 94 50 96 8 94 8 65Z" : "M5 53Q5 17 50 17T95 53Q95 92 50 97 5 92 5 53Z", animal ? color : accent, color);
+		if (animal) add(chaser ? "M16 58Q27 43 42 57L50 65 58 57Q73 43 84 58V70Q81 89 50 90 19 89 16 70Z" : "M10 50 42 60 50 70 58 60 90 50Q90 87 50 91 10 87 10 50Z", "#fff4df");
+		else {
+			add(chaser ? "M13 34Q19 12 47 17L56 7 59 19Q80 17 88 34L76 39 50 32 24 39Z" : "M16 31Q25 14 48 18L61 6 60 21Q80 20 85 34L67 32 55 39 40 30 25 36Z", color);
+			if (style === "cosmic") add("M50 19 53 25 60 26 55 31 56 38 50 34 44 38 45 31 40 26 47 25Z", "#ffe075");
+		}
+		add("M27 58a5 7 0 1 0 10 0a5 7 0 1 0-10 0M63 58a5 7 0 1 0 10 0a5 7 0 1 0-10 0", "#243d49");
+		add("M29 55a1.5 2 0 1 0 3 0a1.5 2 0 1 0-3 0M65 55a1.5 2 0 1 0 3 0a1.5 2 0 1 0-3 0", "#fff");
+		add("M17 72a7 4 0 1 0 14 0a7 4 0 1 0-14 0M69 72a7 4 0 1 0 14 0a7 4 0 1 0-14 0", "#f49d92");
+		if (animal) add("M45 68Q50 64 55 68L50 73Z", "#9e5149");
+		add("M39 76Q50 90 61 76", "none", "#9e5149", 3.5);
+		return paths;
+	}
+	var portraitOutline = (role) => side(role) === "cop" ? "M28 0H72Q100 0 100 28V72Q100 100 72 100H28Q0 100 0 72V28Q0 0 28 0Z" : "M0 50a50 50 0 1 0 100 0a50 50 0 1 0-100 0";
+	function drawNativeFace(ctx, role) {
+		const { color, accent, style } = getRoleAppearance(role);
+		const cop = side(role) === "cop";
+		const circle = (x, y, radius, fill) => {
+			ctx.beginPath();
+			ctx.arc(x, y, radius, 0, Math.PI * 2);
+			ctx.fillStyle = fill;
+			ctx.fill();
+		};
+		const polygon = (points, fill) => {
+			ctx.beginPath();
+			ctx.moveTo(...points[0]);
+			for (const point of points.slice(1)) ctx.lineTo(...point);
+			ctx.closePath();
+			ctx.fillStyle = fill;
+			ctx.fill();
+		};
+		if (classicRoles() && style === "team") {
+			const ink = "#133a55", skin = "#ffcf9d";
+			circle(17, 57, 10, skin);
+			circle(83, 57, 10, skin);
+			circle(50, 56, 39, ink);
+			circle(50, 56, 36, skin);
+			polygon([
+				[18, 47],
+				[26, 24],
+				[50, 19],
+				[76, 26],
+				[82, 47],
+				[70, 37],
+				[58, 40],
+				[48, 32],
+				[32, 40]
+			], "#513329");
+			if (cop) {
+				polygon([
+					[8, 28],
+					[15, 13],
+					[50, 2],
+					[85, 13],
+					[92, 28],
+					[80, 39],
+					[20, 39]
+				], ink);
+				polygon([
+					[12, 27],
+					[19, 16],
+					[50, 7],
+					[81, 16],
+					[88, 27],
+					[78, 35],
+					[22, 35]
+				], "#146aa9");
+				polygon([
+					[15, 24],
+					[50, 14],
+					[85, 24],
+					[82, 29],
+					[50, 22],
+					[18, 29]
+				], "#3199d4");
+				polygon([
+					[14, 31],
+					[50, 24],
+					[86, 31],
+					[85, 39],
+					[50, 46],
+					[15, 39]
+				], "#163f63");
+				polygon([
+					[18, 32],
+					[50, 28],
+					[82, 32],
+					[79, 35],
+					[50, 32],
+					[21, 36]
+				], "#bbecff");
+				polygon([
+					[50, 9],
+					[61, 15],
+					[58, 28],
+					[50, 34],
+					[42, 28],
+					[39, 15]
+				], "#ffdc60");
+				circle(50, 21, 4, "#fff3b1");
+			} else {
+				polygon([
+					[10, 36],
+					[13, 17],
+					[30, 6],
+					[50, 3],
+					[70, 6],
+					[87, 17],
+					[90, 36]
+				], ink);
+				polygon([
+					[14, 34],
+					[17, 19],
+					[32, 10],
+					[50, 7],
+					[68, 10],
+					[83, 19],
+					[86, 34]
+				], "#f89927");
+				polygon([
+					[13, 29],
+					[50, 21],
+					[87, 29],
+					[89, 39],
+					[50, 32],
+					[11, 39]
+				], "#ffb844");
+				polygon([
+					[10, 54],
+					[25, 47],
+					[50, 52],
+					[75, 47],
+					[90, 54],
+					[85, 69],
+					[69, 74],
+					[50, 67],
+					[31, 74],
+					[15, 69]
+				], "#203440");
+				circle(32, 59, 10, "#fff8e8");
+				circle(68, 59, 10, "#fff8e8");
+			}
+			circle(33, 59, 5.5, "#172f42");
+			circle(67, 59, 5.5, "#172f42");
+			circle(31, 56, 1.8, "#fff");
+			circle(65, 56, 1.8, "#fff");
+			circle(26, 75, 5, "#f8947b");
+			circle(74, 75, 5, "#f8947b");
+			ctx.beginPath();
+			ctx.moveTo(39, 80);
+			ctx.quadraticCurveTo(50, 90, 61, 80);
+			ctx.strokeStyle = ink;
+			ctx.lineWidth = 3.2;
+			ctx.stroke();
+			return;
+		}
+		if (style === "animals") {
+			polygon([
+				[10, 43],
+				[13, 4],
+				[42, 30]
+			], color);
+			polygon([
+				[58, 30],
+				[87, 4],
+				[90, 43]
+			], color);
+		}
+		circle(50, 55, 41, style === "animals" ? color : accent);
+		if (style === "animals") circle(50, 68, 26, "#fff4df");
+		if (style === "cosmic") polygon([
+			[50, 12],
+			[56, 28],
+			[73, 29],
+			[60, 40],
+			[65, 56],
+			[50, 46],
+			[35, 56],
+			[40, 40],
+			[27, 29],
+			[44, 28]
+		], "#ffd671");
+		circle(32, 57, 5, "#243d49");
+		circle(68, 57, 5, "#243d49");
+		circle(30, 55, 1.7, "#fff");
+		circle(66, 55, 1.7, "#fff");
+		circle(22, 72, 5, "#f49d92");
+		circle(78, 72, 5, "#f49d92");
+		ctx.beginPath();
+		ctx.moveTo(39, 76);
+		ctx.quadraticCurveTo(50, 90, 61, 76);
+		ctx.strokeStyle = "#9e5149";
+		ctx.lineWidth = 3.5;
+		ctx.stroke();
+	}
+	function drawRoleAvatar(ctx, role, x, y, size) {
+		const { avatar } = getRoleAppearance(role);
+		let img = images.get(avatar);
+		if (avatar && !img && (globalThis.__chaseRoleImage || typeof Image !== "undefined")) {
+			img = globalThis.__chaseRoleImage ? globalThis.__chaseRoleImage() : new Image();
+			img.onload = () => {
+				img.roleLoaded = true;
+			};
+			img.src = avatar;
+			images.set(avatar, img);
+		}
+		ctx.save();
+		ctx.translate(x, y);
+		ctx.scale(size / 100, size / 100);
+		ctx.lineCap = ctx.lineJoin = "round";
+		if ((img?.complete || img?.roleLoaded) && (img.naturalWidth || img.width)) {
+			if (typeof Path2D !== "undefined") ctx.clip(new Path2D(portraitOutline(role)));
+			else {
+				ctx.beginPath();
+				if (side(role) === "cop") ctx.rect(0, 0, 100, 100);
+				else ctx.arc(50, 50, 50, 0, Math.PI * 2);
+				ctx.clip();
+			}
+			const edge = Math.min(img.naturalWidth || img.width, img.naturalHeight || img.height);
+			ctx.drawImage(img, ((img.naturalWidth || img.width) - edge) / 2, ((img.naturalHeight || img.height) - edge) / 2, edge, edge, 0, 0, 100, 100);
+		} else if (typeof Path2D === "undefined") drawNativeFace(ctx, role);
+		else for (const { d, fill, stroke, width } of facePaths(role)) {
+			const path = new Path2D(d);
+			if (fill !== "none") {
+				ctx.fillStyle = fill;
+				ctx.fill(path);
+			}
+			if (stroke) {
+				ctx.strokeStyle = stroke;
+				ctx.lineWidth = width;
+				ctx.stroke(path);
+			}
+		}
+		ctx.restore();
+	}
+	//#endregion
+	//#region ../../games/local/cops-robbers/src/competition-renderer.js
+	/** Local selection only; authoritative moves and turn ownership come from the server. */
+	function createRenderer() {
+		globalThis.__CLASSIC_CHASE_ROLES__ = true;
+		let selected = 0, hits = [], note = "", previousRole;
+		const contains = (hit, x, y) => x >= hit.x && x <= hit.x + hit.w && y >= hit.y && y <= hit.y + hit.h;
+		const mapFor = (state) => state?.kind === "cops-duel" ? getDuelLevel(state.mode, state.levelId) : levels.find((item) => item.id === state?.levelId);
+		const isEnded = (state) => state.kind === "cops-duel" ? Boolean(state.board.winner) : state.board.robbers.includes(-2) || state.board.robbers.every((node) => node < 0) || state.board.turn >= 200 || state.elapsedMs >= 3e5;
+		const legal = (level, state) => state.kind === "cops-duel" ? state.role === state.board.side ? legalDuelTargets(level, state.board, selected) : [] : legalTargets(level, state.board, selected);
+		return {
+			draw(ctx, width, height, state) {
+				hits = [];
+				const level = mapFor(state), duel = state?.kind === "cops-duel", role = duel ? state.role : "pursuer";
+				ctx.fillStyle = "#e0f5e9";
+				ctx.fillRect(0, 0, width, height);
+				ctx.textAlign = "left";
+				ctx.textBaseline = "middle";
+				const text = (label, x, y, size = 14, color = "#153c53", maxWidth = width - 24) => {
+					ctx.font = `${size}px sans-serif`;
+					ctx.fillStyle = color;
+					ctx.fillText(label, x, y, maxWidth);
+				};
+				if (!level || !state.board) {
+					text("正在等待围捕地图…", 16, 30);
+					return hits;
+				}
+				const board = state.board, ended = isEnded(state), positions = role === "runner" ? board.robbers : board.cops;
+				if (role !== previousRole) {
+					selected = 0;
+					previousRole = role;
+					note = "";
+				}
+				selected = Math.min(selected, positions.length - 1);
+				if (positions[selected] < 0) selected = Math.max(0, positions.findIndex((node) => node >= 0));
+				const targets = ended ? [] : legal(level, state);
+				const sideways = height < 300 && width > height * 1.25;
+				const size = sideways ? Math.max(40, Math.min(height - 40, width * .52, 620)) : Math.max(40, Math.min(width - 16, height - 150, 620));
+				const left = sideways ? 12 : (width - size) / 2, top = sideways ? 24 : 60;
+				const controlsLeft = sideways ? left + size + 18 : 12;
+				const controlsWidth = sideways ? width - controlsLeft - 12 : width - 24;
+				const point = (node) => ({
+					x: left + level.nodes[node].x / 600 * size,
+					y: top + level.nodes[node].y / 600 * size
+				});
+				const circle = (x, y, r, fill, stroke = "") => {
+					ctx.beginPath();
+					ctx.arc(x, y, r, 0, Math.PI * 2);
+					ctx.fillStyle = fill;
+					ctx.fill();
+					if (stroke) {
+						ctx.strokeStyle = stroke;
+						ctx.lineWidth = 2;
+						ctx.stroke();
+					}
+				};
+				const hit = (label, x, y, w, h, action) => hits.push({
+					label,
+					x,
+					y,
+					w,
+					h,
+					action
+				});
+				text(`${level.name}`, controlsLeft, 16, 15, "#153c53", Math.max(40, controlsWidth - 56));
+				text(duel ? `我是${role === "runner" ? "突围队" : "追逐队"} · ${board.side === "runner" ? "突围队" : "追逐队"}行动` : "围堵挑战", controlsLeft, 38, 12, "#153c53", controlsWidth);
+				ctx.textAlign = "right";
+				text(`${duel ? Math.floor(board.turn / 2) + " 回合" : board.turn + " 步"}`, width - 12, 16, 12);
+				ctx.textAlign = "center";
+				ctx.fillStyle = "#bde3a3";
+				ctx.fillRect(left, top, size, size);
+				ctx.lineCap = "round";
+				ctx.lineWidth = Math.max(12, size * .032);
+				ctx.strokeStyle = "#fff9e8";
+				for (const [from, to] of level.edges) {
+					const a = point(from), b = point(to);
+					ctx.beginPath();
+					ctx.moveTo(a.x, a.y);
+					ctx.lineTo(b.x, b.y);
+					ctx.stroke();
+				}
+				level.nodes.forEach((_, index) => {
+					const p = point(index), reachable = targets.includes(index), exit = level.exits.includes(index);
+					circle(p.x, p.y, 11, exit ? "#ffd39e" : "#fbf7e8", reachable ? "#1258c2" : "#aebea6");
+					text(`${index + 1}`, p.x, p.y + 18, 11, reachable ? "#1258c2" : "#566851");
+					if (exit) text("出口", p.x, p.y - 25, 10, "#a44908");
+					hit(`${index + 1} 号路口`, p.x - 20, p.y + 2, 40, 34, { target: index });
+				});
+				for (const side of ["runner", "pursuer"]) (side === "runner" ? board.robbers : board.cops).forEach((node, index) => {
+					if (node < 0) return;
+					const p = point(node), mine = role === side;
+					if (mine && index === selected) circle(p.x, p.y - 10, 21, "#d0e7f8", "#1258c2");
+					drawRoleAvatar(ctx, side === "pursuer" ? "cop" : "robber", p.x - 16, p.y - 29, 32);
+					ctx.textAlign = "center";
+					text(`${index + 1}`, p.x, p.y - 33, 11, side === "pursuer" ? "#1258c2" : "#a44908");
+					hit(`${side === "pursuer" ? "追逐队" : "突围队"} ${index + 1} 号`, p.x - 22, p.y - 35, 44, 40, mine ? { local: index } : { target: node });
+				});
+				const message = ended ? `${duel ? board.winner === "runner" ? "突围队获胜" : "追逐队获胜" : board.robbers.includes(-2) ? "突围成功" : "拦截成功"} · 等待结算` : duel && board.side !== role ? "等待对手行动" : note || `已选 ${selected + 1} 号，点相邻路口数字移动`;
+				const controlCenter = sideways ? controlsLeft + controlsWidth / 2 : width / 2;
+				text(message, controlCenter, sideways ? height / 2 - 16 : top + size + 17, 12, "#153c53", controlsWidth);
+				const buttonY = sideways ? Math.min(height - 52, height / 2 + 8) : top + size + 33;
+				const buttonWidth = Math.min(180, controlsWidth), buttonX = controlCenter - buttonWidth / 2, canAct = !ended && (!duel || board.side === role);
+				ctx.fillStyle = canAct ? "#1687a6" : "#b9c4b8";
+				ctx.fillRect(buttonX, buttonY, buttonWidth, 44);
+				text(ended ? "本局结束" : canAct ? "留守一步" : "对手行动中", controlCenter, buttonY + 22, 14, "#fffdf5", controlsWidth);
+				if (canAct) hit("留守一步", buttonX, buttonY, buttonWidth, 44, { target: positions[selected] });
+				return hits;
+			},
+			tap(x, y, state) {
+				const level = mapFor(state);
+				if (!level || !state?.board || isEnded(state)) return null;
+				const duel = state.kind === "cops-duel";
+				if (duel && state.role !== state.board.side) return null;
+				const item = hits.filter((target) => contains(target, x, y)).sort((a, b) => Math.hypot(x - a.x - a.w / 2, y - a.y - a.h / 2) - Math.hypot(x - b.x - b.w / 2, y - b.y - b.h / 2))[0];
+				if (!item) return null;
+				if ("local" in item.action) {
+					selected = item.action.local;
+					note = "";
+					return null;
+				}
+				const target = item.action.target;
+				if (!legal(level, state).includes(target)) {
+					note = "只能走相邻路口";
+					return null;
+				}
+				note = "";
+				return duel ? {
+					type: "move",
+					side: state.role,
+					actor: selected,
+					target
+				} : {
+					type: "move",
+					cop: selected,
+					target
+				};
+			}
+		};
+	}
+	//#endregion
+	//#region ../../../../../../../tmp/competition-entry-SlNyrY/entry.mjs
+	mountCompetition("cops-robbers", createRenderer);
+	//#endregion
+})();
