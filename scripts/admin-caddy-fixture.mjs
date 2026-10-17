@@ -144,7 +144,14 @@ export async function startAdminCaddy(site, { apiHandler, spawnProcess = spawn }
   try {
     const archive = path.join(directory, archiveName);
     await writeFile(archive, archiveBytes, { flag: 'wx' });
-    execFileSync('tar', ['-xf', archive, '-C', directory, executableName], {
+    // Windows' native bsdtar supports ZIP; Git's GNU tar does not. Hooks may
+    // prepend Git tools to PATH, so select the ZIP-capable system tool explicitly.
+    const extractor =
+      process.platform === 'win32'
+        ? path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe')
+        : 'tar';
+    execFileSync(extractor, ['-xf', archiveName, '-C', directory, executableName], {
+      cwd: directory,
       windowsHide: true,
       timeout: 30000,
       stdio: 'pipe',

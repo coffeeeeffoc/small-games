@@ -1,5 +1,5 @@
 {
-  "testedAt": "2026-10-16T22:35:39.741Z",
+  "testedAt": "2026-10-17T05:03:51.397Z",
   "node": "v24.21.0",
   "browser": "155.0.8059.82",
   "viewportWidths": [320, 390, 1360],
@@ -33,7 +33,7 @@
     "apps/admin-web/tests/browser.mjs": "dbde34877375b180dadc5d5d556842db0d190adc6507633b193a6b829a83d22a",
     "apps/admin-web/tests/control.fixture.mjs": "78505034ad5e259694714bf325daca9b2eaab5c98bf1bc4689e8bc76c0ae4a9f",
     "apps/admin-web/tests/control-browser.mjs": "9cf1607868013e27dd243cb8f1642492b0dc38b003a72bc6ff6bb052ccbde96c",
-    "scripts/admin-caddy-fixture.mjs": "6a23f627223c95c82182b1dd28c283ab56764a2667d4fea1dd7131f85cc58829",
+    "scripts/admin-caddy-fixture.mjs": "1c066ef310881a6eca05bebec8288ddcf9d69bddde102b392e8d81ba40183f3d",
     "scripts/admin-csp.mjs": "940aa2ba8caa47dc26239c0fc570731054072e8c13af78c09c9a374ec372f255",
     "scripts/competition-ingress.mjs": "d09cb06be322e545a26594da02d8d9eba2b517d70c159f89207b0b34a07d64c2"
   },
@@ -44,10 +44,10 @@
     "apps/admin-web/dist/mark.svg": "6a11898990c8f7b2b884d192aad59153c9ad094f6f82e1bac67b17320a4a2d54"
   },
   "screenshots": {
-    "docs/admin-console/qa/control-ui-current/audit-1360.png": "cbf3244a928e6749423f381d876c6406ed7e7c1d51a6a0ca9d9b1f49aa59a0df",
-    "docs/admin-console/qa/control-ui-current/audit-320.png": "f0d71565d440e7c9fb28deb9e85dcc0a1757a4ca7f5ec5fa2748e62e11f4f2bf",
-    "docs/admin-console/qa/control-ui-current/audit-390.png": "4af934a14c5282d19c471d259af80be616f183f386c069b3e119be1b723eb890",
-    "docs/admin-console/qa/control-ui-current/config-1360.png": "3a158b83afe69a63619f24cb1cdfc8c45a2ead8398b11879b60443ec0cffe41f",
+    "docs/admin-console/qa/control-ui-current/audit-1360.png": "68314ad81d19be6ed79e2ab47a6e9da270785542cf52a8218f7df1c533476adf",
+    "docs/admin-console/qa/control-ui-current/audit-320.png": "69af5597f0ec236ab9eb5509a51d6d90b6b3262ae40763d5a0b570e8ee8f9520",
+    "docs/admin-console/qa/control-ui-current/audit-390.png": "563f8292e859a60ac8b0b81bae0ecf2effd03ecc5d91274449eee2f2bf7b19fd",
+    "docs/admin-console/qa/control-ui-current/config-1360.png": "ebc917310abb67cf3e4b4f03814467cea71cd8c11a40b046dbf5564c5114f97e",
     "docs/admin-console/qa/control-ui-current/config-320.png": "94324e7e1c8b94dd893496097144c99246ebc11c390586906d1047ab156aacbe",
     "docs/admin-console/qa/control-ui-current/config-390.png": "1c3842089b05125cb81f32c51a889d522b3124435c1bbb80b77c7e5d0ecfe3f5",
     "docs/admin-console/qa/control-ui-current/games-1360.png": "d0339ea4bb6ed9495fe9ae9e1afc8795b7a3255095a398b10c888f2671624cb9",
