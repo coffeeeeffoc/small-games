@@ -234,14 +234,23 @@ export async function archiveControlBundle(directory, manifest) {
   const checked = await readControlBundle(directory);
   if (JSON.stringify(checked) !== JSON.stringify(manifest)) stop('BUNDLE_UNSAFE');
   const archive = `${directory}.tar.gz`;
+  // Git hooks can resolve GNU tar on Windows, where C: in -f denotes a remote host.
+  // Keep the archive name local for both GNU tar and Windows bsdtar.
+  const archiveDirectory = path.dirname(path.resolve(archive));
+  const archiveName = path.basename(archive);
   const files = ['manifest.json', ...Object.keys(manifest.files).sort()];
   const listFile = `${directory}.tar-files`;
   await writeFile(listFile, files.join('\n') + '\n');
-  await run('tar', ['-czf', archive, '-C', directory, '-T', listFile], { stage: 'archive' });
+  await run(
+    'tar',
+    ['-czf', archiveName, '-C', path.resolve(directory), '-T', path.resolve(listFile)],
+    { stage: 'archive', cwd: archiveDirectory },
+  );
   // Inspect the archive itself, not only the mutable source directory. Never upload
   // bytes that were substituted between validation and tar reading a public file.
   const inspect = (args) => {
     const result = spawnSync('tar', args, {
+      cwd: archiveDirectory,
       shell: false,
       env: childEnvironment(),
       windowsHide: true,
@@ -251,7 +260,7 @@ export async function archiveControlBundle(directory, manifest) {
     if (result.error || result.status !== 0) stop('BUNDLE_UNSAFE');
     return result.stdout;
   };
-  const entries = inspect(['-tzf', archive]).toString('utf8').trimEnd().split(/\r?\n/);
+  const entries = inspect(['-tzf', archiveName]).toString('utf8').trimEnd().split(/\r?\n/);
   if (JSON.stringify(entries.sort()) !== JSON.stringify([...files].sort())) stop('BUNDLE_UNSAFE');
   for (const name of files) {
     const expected =
@@ -262,7 +271,7 @@ export async function archiveControlBundle(directory, manifest) {
         : manifest.files[name];
     if (
       createHash('sha256')
-        .update(inspect(['-xOf', archive, '--', name]))
+        .update(inspect(['-xOf', archiveName, '--', name]))
         .digest('hex') !== expected
     )
       stop('BUNDLE_UNSAFE');
