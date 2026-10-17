@@ -913,7 +913,6 @@
 		}
 		return img;
 	}
-	if (classicRoles() && typeof Image !== "undefined" && !globalThis.__chaseRoleImage) loadPortraitImage(characterSheet);
 	function drawRoleAvatar(ctx, role, x, y, size) {
 		const { avatar, character, style } = getRoleAppearance(role);
 		const useSheet = !avatar && style === "team" && !globalThis.__chaseRoleImage;
@@ -3120,7 +3119,7 @@ body.competition-active #mode-online { position:static; }
 		};
 	}
 	//#endregion
-	//#region ../../../../../../../tmp/competition-entry-0QfkAJ/entry.mjs
+	//#region ../../../../../../../tmp/competition-entry-LBfkMn/entry.mjs
 	mountCompetition("cops-robbers-realtime", createRenderer);
 	//#endregion
 })();

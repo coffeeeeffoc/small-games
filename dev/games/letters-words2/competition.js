@@ -623,7 +623,6 @@
 			}
 		]
 	};
-	var images$1 = /* @__PURE__ */ new Map();
 	var classicRoles = () => globalThis.__CLASSIC_CHASE_ROLES__ === true;
 	var settings;
 	var stored;
@@ -662,20 +661,6 @@
 			avatar: selectedPreset === void 0 && validAvatar(value?.avatar) ? value.avatar : ""
 		};
 	}
-	function loadPortraitImage(source) {
-		if (!source) return null;
-		let img = images$1.get(source);
-		if (!img && (globalThis.__chaseRoleImage || typeof Image !== "undefined")) {
-			img = globalThis.__chaseRoleImage ? globalThis.__chaseRoleImage() : new Image();
-			img.onload = () => {
-				img.roleLoaded = true;
-			};
-			img.src = source;
-			images$1.set(source, img);
-		}
-		return img;
-	}
-	if (classicRoles() && typeof Image !== "undefined" && !globalThis.__chaseRoleImage) loadPortraitImage(characterSheet);
 	//#endregion
 	//#region ../../platforms/competition/avatars.js
 	var avatars = [

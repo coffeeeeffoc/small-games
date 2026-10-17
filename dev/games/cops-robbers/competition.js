@@ -623,7 +623,6 @@
 			}
 		]
 	};
-	var images$2 = /* @__PURE__ */ new Map();
 	var classicRoles$1 = () => globalThis.__CLASSIC_CHASE_ROLES__ === true;
 	var settings$1;
 	var stored$1;
@@ -662,20 +661,6 @@
 			avatar: selectedPreset === void 0 && validAvatar$1(value?.avatar) ? value.avatar : ""
 		};
 	}
-	function loadPortraitImage(source) {
-		if (!source) return null;
-		let img = images$2.get(source);
-		if (!img && (globalThis.__chaseRoleImage || typeof Image !== "undefined")) {
-			img = globalThis.__chaseRoleImage ? globalThis.__chaseRoleImage() : new Image();
-			img.onload = () => {
-				img.roleLoaded = true;
-			};
-			img.src = source;
-			images$2.set(source, img);
-		}
-		return img;
-	}
-	if (classicRoles$1() && typeof Image !== "undefined" && !globalThis.__chaseRoleImage) loadPortraitImage(characterSheet);
 	//#endregion
 	//#region ../../platforms/competition/avatars.js
 	var avatars = [
@@ -17081,7 +17066,7 @@ body.competition-active #mode-online { position:static; }
 		};
 	}
 	//#endregion
-	//#region ../../../../../../../tmp/competition-entry-aKCPIj/entry.mjs
+	//#region ../../../../../../../tmp/competition-entry-8d1cCY/entry.mjs
 	mountCompetition("cops-robbers", createRenderer);
 	//#endregion
 })();
