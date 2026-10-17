@@ -2787,7 +2787,7 @@ body.competition-active #mode-online { position:static; }
 		};
 	}
 	//#endregion
-	//#region ../../../../../../../tmp/competition-entry-mkunsk/entry.mjs
+	//#region ../../../../../../../tmp/competition-entry-ftBW5l/entry.mjs
 	mountCompetition("xiangqi-five", createRenderer);
 	//#endregion
 })();
