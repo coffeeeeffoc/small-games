@@ -17081,7 +17081,7 @@ body.competition-active #mode-online { position:static; }
 		};
 	}
 	//#endregion
-	//#region ../../../../../../../tmp/competition-entry-LE6zkV/entry.mjs
+	//#region ../../../../../../../tmp/competition-entry-aKCPIj/entry.mjs
 	mountCompetition("cops-robbers", createRenderer);
 	//#endregion
 })();
