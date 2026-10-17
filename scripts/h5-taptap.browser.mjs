@@ -885,15 +885,6 @@ try {
     );
     return { panel, input, save: panel.getByRole('button', { name: '保存昵称', exact: true }) };
   }
-  async function closeProfile(player) {
-    await player.surface
-      .locator(
-        player.variant.game === 'cops-robbers-realtime'
-          ? '[data-page-back]'
-          : '[data-details] [data-dismiss]',
-      )
-      .tap();
-  }
   async function profilesCheck(a, b) {
     const evidence = [];
     for (const player of [a, b]) {
@@ -989,11 +980,12 @@ try {
         Object.keys(constructors).indexOf(player.variant.game) +
         (player.variant.adsEnabled ? 1 : 0) +
         player.id.toUpperCase();
-      const { input, save } = await profilePage(player);
+      const { panel, input, save } = await profilePage(player);
       await input.fill(name);
       await save.tap();
       await until(() => player.profile?.name === name, 'Current page owner profile save');
-      await closeProfile(player);
+      await panel.waitFor({ state: 'hidden' });
+      await onlineIdle(player);
     }
     return {
       players: evidence,
