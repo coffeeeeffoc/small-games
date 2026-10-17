@@ -5,6 +5,7 @@ import contextlib
 import hashlib
 import http.client
 import importlib.util
+import ipaddress
 import json
 import os
 from pathlib import Path
@@ -129,7 +130,11 @@ def domain_module():
 
 
 def command(*args, **kwargs):
-    return support('legacy-tools.py').command(*args, **kwargs)
+    legacy = support('legacy-tools.py')
+    try:
+        return legacy.command(*args, **kwargs)
+    except legacy.Stopped as error:
+        raise Stopped('COMMAND_TIMEOUT' if error.args == ('COMMAND_TIMEOUT',) else 'COMMAND_FAILED') from None
 
 
 def scalar(*args, **kwargs):
@@ -289,15 +294,25 @@ def management_config(release, allow_legacy=False):
     expected = support('legacy-tools.py').compose(release, file)
     if 'environment' in item:
         expected['services']['management']['environment'] = PUBLIC_ENV['management']
-    require(value == expected or value == control_compose(release, file, item.get('image')), 'MANAGEMENT_CONFIG')
+    networks = item.get('networks')
+    address = networks.get('existing', {}).get('ipv4_address') if isinstance(networks, dict) else None
+    require(value == expected or value == control_compose(release, file, item.get('image'), address), 'MANAGEMENT_CONFIG')
     require(allow_legacy or item.get('environment') == PUBLIC_ENV['management'], 'CONTROL_FLAG_REQUIRED')
     return file, signature, value
 
 
-def control_compose(release, envfile, image):
+def control_compose(release, envfile, image, management_ip=None):
     value = support('legacy-tools.py').compose(release, envfile)
     value['services']['management']['image'] = image
     value['services']['management']['environment'] = PUBLIC_ENV['management']
+    if management_ip is not None:
+        try:
+            address = ipaddress.IPv4Address(management_ip)
+        except ipaddress.AddressValueError:
+            raise Stopped('MANAGEMENT_ADDRESS') from None
+        require(address.is_private and not address.is_loopback and not address.is_unspecified, 'MANAGEMENT_ADDRESS')
+        # Keep the original address while Nginx is stopped, so its trusted-proxy IP stays free.
+        value['services']['management']['networks'] = {'existing': {'ipv4_address': str(address)}}
     return value
 
 
@@ -603,7 +618,8 @@ def activate_services(release, manifest, journal, names):
                 candidate_boundary(name, target_inventory(name), journal, release)
             module.compose(journal['contexts'][name], file, 'up', '-d', '--no-deps', '--no-build', '--pull', 'never', '--wait', '--wait-timeout', '180', name)
     file = directory / 'compose.json'
-    model = control_compose(release, envfile, image)
+    management_ip = journal['inventory']['management']['networks']['small-games_default']['IPAddress']
+    model = control_compose(release, envfile, image, management_ip)
     if file.exists():
         require(private_json(file) == model, 'MANAGEMENT_CONFIG')
     else:

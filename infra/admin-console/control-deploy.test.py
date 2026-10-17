@@ -7,6 +7,7 @@ import importlib.util
 import json
 import os
 import shutil
+import subprocess
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
@@ -29,6 +30,7 @@ def facts():
                      'networks': {'task': {'NetworkID': 'a' * 64, 'Aliases': [name],
                                            'IPAddress': '172.20.0.' + str(index), 'IPPrefixLen': 24, 'Gateway': '172.20.0.1'}}}
               for index, name in enumerate((*control.SERVICES, 'postgres', 'nginx', 'web'), 1)}
+    result['management']['networks']['small-games_default'] = result['management']['networks'].pop('task')
     result['kart']['networkMode'] = 'container:' + result['runtime']['id']
     result['management']['admin'] = 'previous'
     result['nginx'].update(admin='', restart='unless-stopped')
@@ -52,6 +54,35 @@ def manifest():
 
 
 class ControlContracts(unittest.TestCase):
+    def test_real_legacy_command_errors_retry_without_exposing_output(self):
+        spec = importlib.util.spec_from_file_location('legacy_command_tested', Path(__file__).with_name('deploy.py'))
+        legacy = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(legacy)
+        failed = SimpleNamespace(returncode=1, stdout=b'', stderr=b'private diagnostic')
+        ready = SimpleNamespace(returncode=0, stdout=b'ok', stderr=b'')
+        with patch.object(control, 'support', return_value=legacy), patch.object(legacy.subprocess, 'run', side_effect=[failed, subprocess.TimeoutExpired('docker', 5), ready]) as run, patch.object(control.time, 'sleep'):
+            control.service_health('management', {'id': 'a' * 64})
+            self.assertEqual(run.call_count, 3)
+        with patch.object(control, 'support', return_value=legacy), patch.object(legacy.subprocess, 'run', side_effect=subprocess.TimeoutExpired('docker', 5)):
+            with self.assertRaisesRegex(control.Stopped, '^COMMAND_TIMEOUT$'):
+                control.command('docker', 'start', 'a' * 64)
+
+    def test_management_keeps_its_address_when_nginx_is_stopped(self):
+        spec = importlib.util.spec_from_file_location('legacy_compose_tested', Path(__file__).with_name('deploy.py'))
+        legacy = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(legacy)
+        release, env = Path('/release/candidate'), Path('/opaque/management.env')
+        with patch.object(control, 'support', return_value=legacy):
+            old = control.control_compose(release, env, IMAGE)
+            self.assertEqual(old['services']['management']['networks'], ['existing'])
+            pinned = control.control_compose(release, env, IMAGE, '172.18.0.5')
+            self.assertEqual(pinned['services']['management']['networks'], {'existing': {'ipv4_address': '172.18.0.5'}})
+            old['services']['management']['networks'] = pinned['services']['management']['networks']
+            self.assertEqual(old, pinned)
+            for address in ('bad', '127.0.0.1', '0.0.0.0', '8.8.8.8'):
+                with self.subTest(address=address), self.assertRaisesRegex(control.Stopped, 'MANAGEMENT_ADDRESS'):
+                    control.control_compose(release, env, IMAGE, address)
+
     def test_health_waits_for_ready_and_has_a_deadline(self):
         with patch.object(control, 'command', side_effect=[control.Stopped('COMMAND_FAILED'), None]) as call, patch.object(control.time, 'sleep'):
             control.service_health('runtime', {'id': 'a' * 64})
@@ -241,7 +272,8 @@ class ControlContracts(unittest.TestCase):
         for item in live.values():
             item.pop('admin', None); item.pop('restart', None)
             item['running'] = False
-            item['networks']['task'].update(IPAddress='', IPPrefixLen=0, Gateway='')
+            for network in item['networks'].values():
+                network.update(IPAddress='', IPPrefixLen=0, Gateway='')
         calls = []
         live['runtime']['running'] = True  # This writer was never stopped by this operation.
         def command(*args):
@@ -249,7 +281,8 @@ class ControlContracts(unittest.TestCase):
             for item in live.values():
                 if item['id'] == args[-1]:
                     item['running'] = True
-                    item['networks']['task'].update(IPAddress='172.20.0.99', IPPrefixLen=24, Gateway='172.20.0.1')
+                    for network in item['networks'].values():
+                        network.update(IPAddress='172.20.0.99', IPPrefixLen=24, Gateway='172.20.0.1')
         with patch.object(control, 'database_floor', return_value='absent'), patch.object(control, 'assert_env'), patch.object(control, 'check_protected'), patch.object(control, 'contexts_for', return_value=state['contexts']), patch.object(control, 'target_inventory', side_effect=lambda name: live[name]), patch.object(control, 'command', side_effect=command), patch.object(control, 'service_health'), patch.object(control, 'assert_nginx'), patch.object(control, 'save_journal'):
             control.restore_before_migration(release, state)
             self.assertEqual([call[-1] for call in calls], [state['inventory'][name]['id'] for name in ('kart', 'management', 'nginx')])
