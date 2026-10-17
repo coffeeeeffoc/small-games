@@ -50,6 +50,17 @@ def manifest():
 
 
 class ControlContracts(unittest.TestCase):
+    def test_runtime_public_override_adds_only_the_approved_tap_origin(self):
+        self.assertEqual(control.PUBLIC_ENV['runtime'], {
+            'COMPETITION_CONTROL_ENABLED': 'true',
+            'COMPETITION_CONTROL_INSTANCE_ID': 'small-games-runtime',
+            'COMPETITION_CORS_ORIGINS': 'http://localhost:8080,https://ma-h5-al.tapimg.com',
+            'COMPETITION_CORS_METHODS': 'GET,POST,OPTIONS',
+            'COMPETITION_CORS_HEADERS': 'authorization,content-type',
+            'COMPETITION_CORS_CREDENTIALS': 'false'})
+        self.assertEqual(control.PUBLIC_ENV['management'], {'ADMIN_CONTROL_ENABLED': 'true'})
+        self.assertNotIn('COMPETITION_CORS_ORIGINS', control.PUBLIC_ENV['kart'])
+
     def test_import_is_inert_and_missing_domain_never_becomes_noop(self):
         self.assertEqual(control.MODULES, {})
         with tempfile.TemporaryDirectory() as folder, patch.object(control, '__file__', str(Path(folder) / 'control-deploy.py')):

@@ -104,19 +104,23 @@ export function streetTouchPlans(state) {
   });
 }
 
-// Actor hit boxes can overlap. Verify the selected actor with the actual renderer,
-// rather than assuming that the center of its hit box selects the intended one.
-export function streetActorTouchPoint(create, context, width, height, state, actor) {
-  const renderer = create();
-  const hits = renderer.draw(context, width, height, state);
-  const hit = hits.find((item) => item.action?.local === actor);
-  if (!hit) return null;
-  const ownHits = hits.filter((item) => typeof item.action?.local === 'number');
+// Partition only the hit and intersecting higher-priority hits. Every open cell
+// has a constant hit order, including narrow road strips beneath actor buttons.
+export function touchHitPoints(hit, hits, width, height) {
+  const higher = hits
+    .slice(hits.indexOf(hit) + 1)
+    .filter(
+      (item) =>
+        item.x < hit.x + hit.w &&
+        item.x + item.w > hit.x &&
+        item.y < hit.y + hit.h &&
+        item.y + item.h > hit.y,
+    );
   const intervals = (axis, size, limit) => {
     const start = Math.max(0, hit[axis]),
       end = Math.min(limit, hit[axis] + hit[size]);
     const cuts = [
-      ...new Set([start, end, ...ownHits.flatMap((item) => [item[axis], item[axis] + item[size]])]),
+      ...new Set([start, end, ...higher.flatMap((item) => [item[axis], item[axis] + item[size]])]),
     ]
       .filter((value) => value >= start && value <= end)
       .sort((a, b) => a - b);
@@ -124,12 +128,20 @@ export function streetActorTouchPoint(create, context, width, height, state, act
   };
   const xs = intervals('x', 'w', width),
     ys = intervals('y', 'h', height);
-  // Each cell has a constant overlapping-hit order, including narrow visible strips.
-  for (const point of [
+  return [
     [hit.x + hit.w / 2, hit.y + hit.h / 2],
     ...xs.flatMap((x) => ys.map((y) => [x, y])),
-  ]) {
-    if (point[0] < 0 || point[1] < 0 || point[0] >= width || point[1] >= height) continue;
+  ].filter(([x, y]) => x >= 0 && y >= 0 && x < width && y < height);
+}
+
+// Actor hit boxes can overlap. Verify the selected actor with the actual renderer,
+// rather than assuming that the center of its hit box selects the intended one.
+export function streetActorTouchPoint(create, context, width, height, state, actor) {
+  const renderer = create();
+  const hits = renderer.draw(context, width, height, state);
+  const hit = hits.find((item) => item.action?.local === actor);
+  if (!hit) return null;
+  for (const point of touchHitPoints(hit, hits, width, height)) {
     const probe = create();
     probe.draw(context, width, height, state);
     if (probe.tap(...point, state) === null && probe.getSelected() === actor) return point;

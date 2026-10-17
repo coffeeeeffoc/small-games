@@ -561,6 +561,114 @@ export async function verifyRuntimeIdentity({ request = fetch, now = Date.now } 
     guestRequestsAt,
   };
 }
+/** Real HTTP authorization negatives; only fixed outcomes leave this call. */
+export async function verifyRuntimeOwnership({ snapshot, guestRequestsAt, request = fetch }) {
+  assert.equal(typeof snapshot, 'function');
+  const send = async (endpoint, { token, body, status = 200, error } = {}) => {
+    const response = await request(localCompetitionApi + endpoint, {
+      method: body === undefined ? 'GET' : 'POST',
+      headers: {
+        ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      signal: AbortSignal.timeout(10000),
+    });
+    assert.equal(response.status, status, 'Runtime resource authorization status');
+    const value = await response.json();
+    if (error) assert.equal(value.error, error);
+    return value;
+  };
+  const rooms = [];
+  for (const game of matrixGames) {
+    const sessions = [];
+    for (let index = 0; index < 3; index++) {
+      guestRequestsAt.push(Date.now());
+      sessions.push(
+        await send('/sessions/guest', {
+          body: { identityVersion: 2, identityMode: 'ephemeral', game },
+        }),
+      );
+    }
+    assert.equal(new Set(sessions.map((session) => session.userId)).size, 3);
+    const room = await send('/rooms', {
+      token: sessions[0].token,
+      body: {
+        game,
+        ...(game === 'cops-robbers' ? { mode: 'survival', role: 'pursuer' } : {}),
+      },
+    });
+    assert(/^[A-F0-9]{12}$/.test(room.code));
+    const joined = await send('/rooms/join', {
+      token: sessions[1].token,
+      body: { code: room.code, game },
+    });
+    assert.equal(joined.players.length, 2);
+    assert.equal(new Set(joined.players.map((player) => player.id)).size, 2);
+    rooms.push({ game, code: room.code, sessions });
+  }
+  const street = rooms.find((room) => room.game === 'cops-robbers-realtime');
+  const runQuery =
+    'version=street-solo-v2&mode=challenge&role=cop&level=1&rule=standard&first=simultaneous';
+  const admission = await send('/runs/cops-robbers-realtime/start?' + runQuery, {
+    token: street.sessions[0].token,
+    body: {},
+  });
+  assert(uuidPattern.test(admission.admissionId));
+  const before = snapshot();
+  await send('/me', { status: 401 });
+  for (const room of rooms) {
+    const token = room.sessions[2].token;
+    await send(`/rooms/${room.code}`, { token, status: 403, error: 'NOT_A_MEMBER' });
+    await send('/rooms/join', {
+      token,
+      body: { code: room.code },
+      status: 409,
+      error: 'ROOM_FULL',
+    });
+    for (const operation of ['ready', 'actions', 'leave'])
+      await send(`/rooms/${room.code}/${operation}`, {
+        token,
+        body: operation === 'actions' ? { seq: 1, action: {} } : {},
+        status: 403,
+        error: 'NOT_A_MEMBER',
+      });
+    for (const other of rooms.filter((other) => other.game !== room.game)) {
+      const scoped = other.sessions[0].token;
+      const expected = { token: scoped, status: 403, error: 'IDENTITY_SCOPE_MISMATCH' };
+      await send('/rooms', { ...expected, body: { game: room.game } });
+      await send(`/rooms/${room.code}`, expected);
+      await send('/rooms/join', { ...expected, body: { code: room.code } });
+      await send(`/rooms/${room.code}/actions`, { ...expected, body: { seq: 1, action: {} } });
+    }
+  }
+  const submitted =
+    '/runs/cops-robbers-realtime?' + runQuery + '&admissionId=' + admission.admissionId;
+  await send(submitted, {
+    token: street.sessions[2].token,
+    body: { ticks: 1, orders: [] },
+    status: 403,
+    error: 'RUN_ADMISSION_REQUIRED',
+  });
+  for (const room of rooms.filter((room) => room !== street))
+    await send(submitted, {
+      token: room.sessions[0].token,
+      body: { ticks: 1, orders: [] },
+      status: 403,
+      error: 'IDENTITY_SCOPE_MISMATCH',
+    });
+  assert.equal(snapshot(), before, 'Rejected resource requests must preserve competition rows');
+  for (const room of rooms)
+    await send(`/rooms/${room.code}/leave`, { token: room.sessions[0].token, body: {} });
+  return {
+    crossGameWritesRejected: true,
+    outsiderRoomReadsAndWritesRejected: true,
+    thirdPlayerJoinRejected: true,
+    foreignRunAdmissionRejected: true,
+    rejectedWritesPreserveDatabase: true,
+  };
+}
+
 export function validateRestartRequest(message, names) {
   assert.equal(message?.type, 'h5-owned-restart');
   assert.equal(message.runId, names.runId);
@@ -717,7 +825,7 @@ export async function createOwnedRuntime({
   };
   const snapshot = () =>
     psql(
-      `select md5(jsonb_build_object('players',(select jsonb_agg(t order by id) from runtime.competition_players t),'results',(select jsonb_agg(t order by match_id,player_id) from runtime.competition_results t),'best',(select jsonb_agg(t order by board,player_id) from runtime.competition_best t),'matches',(select jsonb_agg(t order by id) from runtime.competition_matches t))::text)`,
+      `select md5(jsonb_build_object('players',(select jsonb_agg(t order by id) from runtime.competition_players t),'sessions',(select jsonb_agg(t order by token_hash) from runtime.competition_sessions t),'refresh',(select jsonb_agg(t order by token_hash) from runtime.competition_refresh_tokens t),'rooms',(select jsonb_agg(t order by code) from runtime.competition_rooms t),'actions',(select jsonb_agg(t order by room_code,player_id,seq) from runtime.competition_actions t),'results',(select jsonb_agg(t order by match_id,player_id) from runtime.competition_results t),'best',(select jsonb_agg(t order by board,player_id) from runtime.competition_best t),'matches',(select jsonb_agg(t order by id) from runtime.competition_matches t),'duels',(select jsonb_agg(t order by board,day,first_player,second_player) from runtime.competition_duels t))::text)`,
     );
   const replaySummary = (targets) => {
     const rooms = targets.matches.map((match) => `'${match.roomCode}'`).join(','),
@@ -991,8 +1099,9 @@ export async function createOwnedRuntime({
     await start();
     evidence.stage = 'runtime-real-SQL-HTTP';
     const identity = await verifyRuntimeIdentity();
-    evidence.runtimeHttp = identity.evidence;
     guestRequestsAt = identity.guestRequestsAt;
+    const ownership = await verifyRuntimeOwnership({ snapshot, guestRequestsAt });
+    evidence.runtimeHttp = { ...identity.evidence, ...ownership };
     evidence.stage = 'browser-ready';
     return fixture;
   } catch (error) {

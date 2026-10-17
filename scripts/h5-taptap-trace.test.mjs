@@ -7,7 +7,26 @@ import {
   safeApiPath,
   publicMatchEvidence,
   safeDatabaseFailure,
+  safeTouchProgress,
 } from './h5-taptap-trace.mjs';
+test('touch progress exposes a finite phase and sequence without action or credentials', () => {
+  const expected = {
+    sent: true,
+    completed: false,
+    request: { seq: 7, action: 'PRIVATE_CANARY', token: 'PRIVATE_CANARY' },
+  };
+  assert.deepEqual(safeTouchProgress('response-wait', expected), {
+    phase: 'response-wait',
+    sent: true,
+    completed: false,
+    seq: 7,
+  });
+  assert.deepEqual(safeTouchProgress('PRIVATE_CANARY', { request: { seq: 'PRIVATE_CANARY' } }), {
+    sent: false,
+    completed: false,
+  });
+  assert(!JSON.stringify(safeTouchProgress('target-tap', expected)).includes('PRIVATE_CANARY'));
+});
 test('trace is an exact whitelist, including nested secrets, SQL, URL query and userinfo canaries', () => {
   const secret = 'PRIVATE_CANARY';
   const event = traceEvent({

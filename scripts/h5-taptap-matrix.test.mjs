@@ -9,6 +9,7 @@ import {
   completeTouchResponse,
   prepareTouchCanvas,
   streetActorTouchPoint,
+  touchHitPoints,
 } from './h5-taptap-touch.mjs';
 import { createRenderer as streetRenderer } from '../games/local/cops-robbers-realtime/src/competition-renderer.js';
 import { getLevels } from '../games/local/cops-robbers-realtime/src/levels.js';
@@ -284,6 +285,71 @@ test('Street actor touches use a visible selection point when hit boxes overlap'
   Object.assign(state.cops[1], { x: 100, y: 80 });
   assert.equal(streetActorTouchPoint(streetRenderer, context, 390, 844, state, 0), null);
   assert(streetActorTouchPoint(streetRenderer, context, 390, 844, state, 1));
+});
+
+test('Street road touches find a visible strip beneath a higher-priority actor hit', () => {
+  const level = getLevels('classic').find((item) => item.id === 26),
+    target = level.nodes[0];
+  const state = {
+    role: 'pursuer',
+    name: 'fixture',
+    elapsedMs: 0,
+    caught: 0,
+    total: 1,
+    map: { nodes: level.nodes, edges: level.edges },
+    exits: [],
+    cops: [
+      { id: 0, ...target },
+      { id: 1, x: 920, y: 520 },
+    ],
+    robbers: [],
+    openingRemainingMs: 0,
+  };
+  const context = new Proxy(
+    {
+      measureText: () => ({ width: 0 }),
+      createLinearGradient: () => ({ addColorStop() {} }),
+      createRadialGradient: () => ({ addColorStop() {} }),
+    },
+    { get: (object, key) => (key in object ? object[key] : () => {}) },
+  );
+  const selection = streetActorTouchPoint(streetRenderer, context, 390, 844, state, 1);
+  assert(selection);
+  const renderer = streetRenderer();
+  renderer.draw(context, 390, 844, state);
+  renderer.tap(...selection, state);
+  const hits = renderer.draw(context, 390, 844, state);
+  const hit = hits.find(
+    (item) =>
+      item.action?.type === 'move' && item.action.x === target.x && item.action.y === target.y,
+  );
+  const tap = (point) => {
+    const probe = streetRenderer();
+    probe.draw(context, 390, 844, state);
+    probe.tap(...selection, state);
+    probe.draw(context, 390, 844, state);
+    return probe.tap(...point, state);
+  };
+  const oldPoints = [
+    [0.5, 0.5],
+    [0.25, 0.25],
+    [0.75, 0.25],
+    [0.25, 0.75],
+    [0.75, 0.75],
+  ].map(([x, y]) => [hit.x + hit.w * x, hit.y + hit.h * y]);
+  assert(
+    oldPoints.every((point) => tap(point)?.type !== 'move'),
+    'The old five points are all occluded',
+  );
+  const actual = touchHitPoints(hit, hits, 390, 844)
+    .map(tap)
+    .find((action) => action?.type === 'move');
+  assert.deepEqual(actual, { type: 'move', actor: 1, x: target.x, y: target.y });
+  const unrelated = { x: -10000, y: -10000, w: 1, h: 1, action: { local: 99 } };
+  assert.deepEqual(
+    touchHitPoints(hit, hits, 390, 844),
+    touchHitPoints(hit, [...hits, unrelated], 390, 844),
+  );
 });
 
 test('explicit axes constrain matrix output and ordinary builds retain environment defaults', () => {

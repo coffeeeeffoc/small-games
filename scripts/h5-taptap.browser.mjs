@@ -12,7 +12,13 @@ import {
   assertCandidateSource,
   browserEntryContract,
 } from './h5-taptap-matrix.mjs';
-import { traceEvent, safeFailure, safeApiPath, publicMatchEvidence } from './h5-taptap-trace.mjs';
+import {
+  traceEvent,
+  safeFailure,
+  safeApiPath,
+  publicMatchEvidence,
+  safeTouchProgress,
+} from './h5-taptap-trace.mjs';
 import {
   streetTouchPlans,
   reachableStreetMove,
@@ -24,6 +30,7 @@ import {
   guestScheduler,
   soloStreetPlan,
   streetActorTouchPoint,
+  touchHitPoints,
 } from './h5-taptap-touch.mjs';
 import { createRenderer as copsRenderer } from '../games/local/cops-robbers/src/competition-renderer.js';
 import { chooseDuelAction, stepDuel } from '../games/local/cops-robbers/src/duel.js';
@@ -210,6 +217,7 @@ try {
     );
   }
   async function touchAction(player, wanted, planningState) {
+    player.touchPhase = 'layout';
     await rendered(player.page);
     const canvas = player.surface.locator('canvas[data-play]');
     await until(
@@ -227,6 +235,7 @@ try {
     const original = player.room.state;
     const state = projected(player.variant.game, original, dimensions.width, dimensions.height);
     if (player.variant.game === 'cops-robbers-realtime' && wanted.type === 'move') {
+      player.touchPhase = 'state-check';
       const own = original.role === 'runner' ? original.robbers : original.cops;
       const actor = own[wanted.actor];
       const move = state !== original ? { ...wanted, x: wanted.y, y: -wanted.x } : wanted;
@@ -247,6 +256,7 @@ try {
     const mirror = create();
     let hits = mirror.draw(noopContext(), dimensions.width, dimensions.height, state);
     let selection;
+    player.touchPhase = 'actor-planning';
     if (['cops-robbers', 'cops-robbers-realtime'].includes(player.variant.game)) {
       const hit = hits.find((item) => item.action?.local === wanted.actor);
       assert(hit, `Cannot select actor ${wanted.actor}`);
@@ -266,9 +276,14 @@ try {
       hits = mirror.draw(noopContext(), dimensions.width, dimensions.height, state);
     }
     let found;
+    player.touchPhase = 'target-planning';
     for (const hit of hits) {
       if (wanted.type === 'deploy-directly' && hit.index !== wanted.to) continue;
-      for (const point of samples(hit)) {
+      const points =
+        player.variant.game === 'cops-robbers-realtime'
+          ? touchHitPoints(hit, hits, dimensions.width, dimensions.height)
+          : samples(hit);
+      for (const point of points) {
         if (
           point[0] < 0 ||
           point[1] < 0 ||
@@ -324,21 +339,25 @@ try {
     };
     player.expectedTouch = expected;
     if (selection) {
+      player.touchPhase = 'actor-tap';
       if (!(await tap(selection))) {
         player.expectedTouch = null;
         return false;
       }
       await rendered(player.page);
     }
+    player.touchPhase = 'target-tap';
     if (!(await tap(found))) {
       player.expectedTouch = null;
       return false;
     }
     await onlineIdle(player);
+    player.touchPhase = 'response-wait';
     await until(
       () => touchAttemptFinished(expected, player.room.status === 'finished'),
       `${player.variant.name}/${player.id} sent touch response finishes`,
     );
+    player.touchPhase = 'response-check';
     assert(!expected.error, 'Sent touch response processing must succeed');
     assert(
       !expected.sent || expected.status < 400 || expected.rejected || expected.terminal,
@@ -1592,6 +1611,7 @@ try {
           status: player.room?.status,
           seq: player.room?.seq,
           acceptedActions: player.acceptedActions,
+          touch: safeTouchProgress(player.touchPhase, player.expectedTouch),
           inputRejections: player.inputRejections.slice(-24),
           apiFailures: player.apiFailures.slice(-24),
           errors: player.errors.slice(-24),

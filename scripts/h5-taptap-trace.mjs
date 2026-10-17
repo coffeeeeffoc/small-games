@@ -134,6 +134,25 @@ export function safeFailure(error, fallback = 'QA_FAILED') {
   }
   return result;
 }
+export function safeTouchProgress(phase, expected) {
+  const result = { sent: expected?.sent === true, completed: expected?.completed === true };
+  if (
+    [
+      'layout',
+      'state-check',
+      'actor-planning',
+      'target-planning',
+      'actor-tap',
+      'target-tap',
+      'response-wait',
+      'response-check',
+    ].includes(phase)
+  )
+    result.phase = phase;
+  if (Number.isSafeInteger(expected?.request?.seq) && expected.request.seq > 0)
+    result.seq = expected.request.seq;
+  return result;
+}
 /** Explicit projection, not recursive redaction: nested objects, bodies, headers and causes vanish. */
 export function traceEvent(input) {
   const result = { at: new Date().toISOString() };
