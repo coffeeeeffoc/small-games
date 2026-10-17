@@ -207,3 +207,35 @@ test('invalid configuration fails before requests and service failures expose on
     assert.doesNotMatch(f.warnings.join(), /private-secret/);
   }
 });
+
+test('bootstrap and the actual bridge share one identity and authenticated logout even with denied storage', async () => {
+  for (const denied of [false, true])
+    for (const first of ['bootstrap', 'bridge']) {
+      const f = fixture(
+        denied
+          ? {
+              getStorageSync() {
+                throw Error('denied');
+              },
+              setStorageSync() {
+                throw Error('denied');
+              },
+            }
+          : {},
+      );
+      let boot;
+      if (first === 'bootstrap') boot = f.boot(f.sdk, config);
+      f.context.__installCompetition(config, f.sdk);
+      const api = f.context.__competition,
+        pending = api.session();
+      boot ??= f.boot(f.sdk, config);
+      const [a, b] = await Promise.all([boot.ready, pending]);
+      assert.equal(a.token, b.token);
+      assert.equal(f.calls.length, 1);
+      assert.equal((await api.session()).token, a.token);
+      await api.logout();
+      const logout = f.calls.at(-1);
+      assert.equal(logout.url, 'https://api.example.com/v1/sessions/logout');
+      assert.equal(logout.header.Authorization || logout.header.authorization, 'Bearer ' + a.token);
+    }
+});

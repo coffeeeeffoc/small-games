@@ -113,14 +113,18 @@ function startTapTapLogin(tap, config = {}) {
   const identity = globalThis.__createCompetitionIdentity({
     config: { ...config, apiUrl: base },
     sdk: tap,
-    request: async (route, body) => {
+    storage: tap,
+    request: async (route, body, credential) => {
       const response = await nativeCall(
         tap,
         'request',
         {
           url: base + route,
           method: 'POST',
-          header: { 'content-type': 'application/json' },
+          header: {
+            'content-type': 'application/json',
+            ...(credential ? { Authorization: 'Bearer ' + credential.token } : {}),
+          },
           data: body,
           timeout: 8000,
         },
@@ -149,6 +153,11 @@ function startTapTapLogin(tap, config = {}) {
           'name',
           'nickname',
           'avatarId',
+          'avatarUrl',
+          'region',
+          'profileSource',
+          'identityMode',
+          'identityExpiresAt',
           'avatarPolicy',
           'profileUpdatedAt',
         ]
