@@ -240,6 +240,31 @@ test('restart drain waits for its operation and disconnected IPC never sends or 
   assert.deepEqual(await drained, { started: true, failed: true, verified: false });
   assert.equal(sends, 0);
 });
+
+test('restart failures retain only a safe diagnostic and still fail closed', async () => {
+  const evidence = {},
+    sent = [],
+    fixture = {
+      names: { runId },
+      evidence,
+      restart: async () => {
+        throw Object.assign(new Error('PRIVATE_CANARY'), { code: 'PRIVATE_CANARY' });
+      },
+    };
+  const controller = ownedRestartController(fixture, {
+    connected: true,
+    send(message, callback) {
+      sent.push(message);
+      callback();
+    },
+  });
+  controller.handle({ type: 'h5-owned-restart' });
+  assert.deepEqual(await controller.drain(), { started: true, failed: true, verified: false });
+  assert.equal(evidence.restartFailure.code, 'QA_FAILED');
+  assert.match(evidence.restartFailure.location, /^h5-taptap-runtime\.mjs:\d+:\d+$/);
+  assert.deepEqual(sent, [{ type: 'h5-owned-restart-failed', runId }]);
+  assert(!JSON.stringify(evidence).includes('PRIVATE_CANARY'));
+});
 test('partial fresh fixture creation cleans only its verified UUID volume on network creation failure', async () => {
   const names = ownedNames(runId),
     calls = [];

@@ -268,8 +268,9 @@ export function ownedRestartController(fixture, child) {
             assert.equal(proof.type, 'h5-owned-idempotency-verified');
             verified = true;
             await send(proof);
-          } catch {
+          } catch (error) {
             failed = true;
+            if (fixture.evidence) fixture.evidence.restartFailure = safeFailure(error);
             await send({ type: 'h5-owned-restart-failed', runId: fixture.names.runId });
           }
         });
@@ -285,8 +286,9 @@ export function ownedRestartController(fixture, child) {
         try {
           const receipt = await fixture.restart(message);
           await send(receipt);
-        } catch {
+        } catch (error) {
           failed = true;
+          if (fixture.evidence) fixture.evidence.restartFailure = safeFailure(error);
           await send({ type: 'h5-owned-restart-failed', runId: fixture.names.runId });
         }
       })();
@@ -741,10 +743,13 @@ export async function createOwnedRuntime({
       };
     },
     async restart(message) {
+      evidence.stage = 'restart-request-validation';
       replayTargets = validateRestartRequest(message, names);
       guard(true);
+      evidence.stage = 'restart-runtime-stop';
       await runtimeChild.close();
       runtimeChild = undefined;
+      evidence.stage = 'restart-persistence-snapshot';
       const before = snapshot();
       restartSnapshot = before;
       restartCheckpoint = message.checkpointId;
@@ -752,13 +757,19 @@ export async function createOwnedRuntime({
       assert.equal(replayBefore.results, 14);
       assert.equal(replayBefore.rooms, 6);
       assert.equal(replayBefore.admissions, 2);
+      evidence.stage = 'restart-pool-close';
       await closeDatabases();
+      evidence.stage = 'restart-postgres';
       docker(['restart', containerId]);
+      evidence.stage = 'restart-postgres-readiness';
       await ready();
       guard(true);
+      evidence.stage = 'restart-persistence-compare';
       const same = before === snapshot();
       assert(same, 'Owned database rows changed across restart');
+      evidence.stage = 'restart-runtime-start';
       await start();
+      evidence.stage = 'restart-browser-replay';
       return {
         type: 'h5-owned-resumed',
         runId,
@@ -773,6 +784,7 @@ export async function createOwnedRuntime({
       };
     },
     async verifyIdempotency(message) {
+      evidence.stage = 'restart-idempotency-verification';
       assert.equal(message.runId, runId);
       assert.equal(message.checkpointId, restartCheckpoint);
       assert(restartSnapshot);
