@@ -85,7 +85,7 @@ export function reachableStreetMove(state, action) {
 
 // Rebuild after each response: a rejected route can change which actor or road
 // is usable. Moving actors must not starve stationary teammates.
-export function streetTouchPlans(state) {
+export function streetTouchPlans(state, canSelectActor) {
   const runner = state.role === 'runner';
   const own = runner ? state.robbers : state.cops;
   const targets = runner
@@ -95,7 +95,8 @@ export function streetTouchPlans(state) {
   const score = (point) =>
     Math.min(...targets.map((target) => Math.hypot(target.x - point.x, target.y - point.y)));
   return own.flatMap((item, actor) => {
-    if (item.caught || item.escaped || item.moving) return [];
+    if (item.caught || item.escaped || item.moving || (canSelectActor && !canSelectActor(actor)))
+      return [];
     const reachable = reachableStreetNodes(state, actor);
     return state.map.nodes
       .map((node, index) => ({ ...node, index }))

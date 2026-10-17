@@ -238,6 +238,54 @@ test('street planning uses other stationary actors and re-evaluates changed bloc
   assert.deepEqual(streetTouchPlans(state), []);
 });
 
+test('Street plans classify each eligible actor once before expanding its roads', () => {
+  const level = getLevels('classic').find((item) => item.id === 26);
+  const state = {
+    levelId: level.id,
+    mode: 'classic',
+    role: 'pursuer',
+    name: 'fixture',
+    elapsedMs: 0,
+    caught: 0,
+    total: 1,
+    openingRemainingMs: 0,
+    map: { nodes: level.nodes, edges: level.edges },
+    exits: [],
+    cops: [
+      { id: 0, x: 80, y: 80, moving: false },
+      { id: 1, x: 80, y: 80, moving: true },
+      { id: 2, x: 416, y: 80, moving: false },
+    ],
+    robbers: [{ id: 0, x: 920, y: 80, caught: false, escaped: false }],
+  };
+  const original = structuredClone(state);
+  const context = new Proxy(
+    {
+      measureText: () => ({ width: 0 }),
+      createLinearGradient: () => ({ addColorStop() {} }),
+      createRadialGradient: () => ({ addColorStop() {} }),
+    },
+    { get: (object, key) => (key in object ? object[key] : () => {}) },
+  );
+  const attemptedActors = [];
+  assert(streetTouchPlans(state).filter((plan) => plan.actor === 0).length > 1);
+  const plans = streetTouchPlans(state, (actor) => {
+    attemptedActors.push(actor);
+    return streetActorTouchPoint(streetRenderer, context, 390, 844, state, actor);
+  });
+  assert(plans.length > 0);
+  assert(
+    plans.every((plan) => plan.actor === 2),
+    'A covered actor cannot starve a visible teammate',
+  );
+  assert.deepEqual(
+    attemptedActors,
+    [0, 2],
+    'Do not repeat selection for each road or stop a moving actor',
+  );
+  assert.deepEqual(state, original, 'Visibility planning cannot alter authoritative state');
+});
+
 test('Street actor touches use a visible selection point when hit boxes overlap', () => {
   const level = getLevels('classic').find((item) => item.id === 26);
   const state = {

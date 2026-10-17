@@ -1232,9 +1232,17 @@ try {
       if (players.some((p) => p.room.status === 'finished')) break;
       for (const player of players) {
         if (player.room.status !== 'playing') continue;
-        const size = await player.surface
-          .locator('canvas[data-play]')
-          .evaluate((element) => ({ width: element.clientWidth, height: element.clientHeight }));
+        const size = await player.surface.locator('canvas[data-play]').evaluate((element) => {
+          const rect = element.getBoundingClientRect();
+          return {
+            width: element.clientWidth,
+            height: element.clientHeight,
+            x: rect.left,
+            y: rect.top,
+            screenWidth: rect.width,
+            screenHeight: rect.height,
+          };
+        });
         let sent = false;
         const rejectedBefore = player.inputRejections.length;
         // Only recompute following a confirmed rejection, with a finite retry
@@ -1243,7 +1251,20 @@ try {
           const planningState = player.room.state;
           if (player.room.status !== 'playing') break;
           const state = projected(player.variant.game, planningState, size.width, size.height);
-          const plans = streetTouchPlans(planningState);
+          // Classify each eligible actor once for this snapshot and geometry.
+          // Repeating layout waits for every road of a covered actor can consume
+          // all stale-plan retries before a visible teammate is ever attempted.
+          const plans = streetTouchPlans(planningState, (actor) =>
+            streetActorTouchPoint(
+              streetRenderer,
+              noopContext(),
+              size.width,
+              size.height,
+              state,
+              actor,
+              size,
+            ),
+          );
           if (!plans.length) break;
           const before = player.inputRejections.length;
           let stale = false;
