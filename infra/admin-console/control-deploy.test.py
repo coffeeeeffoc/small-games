@@ -239,7 +239,7 @@ class ControlContracts(unittest.TestCase):
                     live['management']['image'] = IMAGE
                 backend = SimpleNamespace(compose=compose, assert_boundaries=Mock())
                 tools = SimpleNamespace(compose_command=management)
-                with patch.object(control, 'PRIVATE', private), patch.object(control, 'target_inventory', side_effect=inspect), patch.object(control, 'support', side_effect=lambda name: backend if name == 'backend-context.py' else tools), patch.object(control, 'authority'), patch.object(control, 'assert_env'), patch.object(control, 'command', side_effect=command), patch.object(control, 'control_compose', return_value={'services': {'management': {}}}), patch.object(control, 'save_journal'), patch.object(control, 'service_health'), patch.object(control, 'assert_live_flags'):
+                with patch.object(control, 'PRIVATE', private), patch.object(control, 'target_inventory', side_effect=inspect), patch.object(control, 'support', side_effect=lambda name: backend if name == 'backend-context.py' else tools), patch.object(control, 'authority'), patch.object(control, 'assert_env'), patch.object(control, 'command', side_effect=command), patch.object(control, 'control_compose', side_effect=lambda _release, _env, _image, ip=None: {'services': {'management': {'networks': {'existing': {'ipv4_address': ip}} if ip else ['existing']}}}), patch.object(control, 'save_journal'), patch.object(control, 'service_health'), patch.object(control, 'assert_live_flags'):
                     if interrupted_runtime:
                         with self.assertRaisesRegex(control.Stopped, 'COMMAND_FAILED'):
                             control.activate_services(release, manifest(), state, control.SERVICES)
@@ -256,6 +256,19 @@ class ControlContracts(unittest.TestCase):
                     control.activate_services(release, manifest(), state, control.SERVICES)
                     self.assertEqual(live['kart']['networkMode'], 'container:' + '9' * 64)
                     backend.assert_boundaries.assert_called()
+                    model_file = private / release.name / 'compose.json'
+                    pinned = json.loads(model_file.read_text())
+                    old = copy.deepcopy(pinned)
+                    old['services']['management']['networks'] = ['existing']
+                    control.write_private(model_file, old, True)
+                    control.activate_services(release, manifest(), state, control.SERVICES)
+                    self.assertEqual(json.loads(model_file.read_text()), pinned)
+                    old['services']['management']['ports'] = ['43001:43001']
+                    control.write_private(model_file, old, True)
+                    with self.assertRaisesRegex(control.Stopped, 'MANAGEMENT_CONFIG'):
+                        control.activate_services(release, manifest(), state, control.SERVICES)
+                    self.assertEqual(json.loads(model_file.read_text()), old)
+                    control.write_private(model_file, pinned, True)
                     override = json.loads((private / release.name / 'kart-control.json').read_text())
                     override['services']['kart']['image'] = 'sha256:' + '0' * 64
                     file = private / release.name / 'kart-control.json'

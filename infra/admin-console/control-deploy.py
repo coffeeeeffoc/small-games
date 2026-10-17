@@ -621,7 +621,10 @@ def activate_services(release, manifest, journal, names):
     management_ip = journal['inventory']['management']['networks']['small-games_default']['IPAddress']
     model = control_compose(release, envfile, image, management_ip)
     if file.exists():
-        require(private_json(file) == model, 'MANAGEMENT_CONFIG')
+        saved = private_json(file)
+        if saved != model:
+            require(saved == control_compose(release, envfile, image), 'MANAGEMENT_CONFIG')
+            write_private(file, model, True)
     else:
         write_private(file, model)
     support('legacy-tools.py').compose_command(file, 'up', '-d', '--no-deps', '--no-build', '--pull', 'never', '--wait', '--wait-timeout', '180', 'management')
