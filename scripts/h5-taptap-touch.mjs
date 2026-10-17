@@ -137,17 +137,50 @@ export function touchHitPoints(hit, hits, width, height) {
   ].filter(([x, y]) => x >= 0 && y >= 0 && x < width && y < height);
 }
 
-// Actor hit boxes can overlap. Verify the selected actor with the actual renderer,
-// rather than assuming that the center of its hit box selects the intended one.
-export function streetActorTouchPoint(create, context, width, height, state, actor) {
+// Stable screen pixels survive the real browser's finite pointer precision.
+// Probe the UI's inverse mapping, then send this same screen point unchanged.
+export function streetScreenPoint(point, view) {
+  assert(
+    [...point, view.x, view.y, view.screenWidth, view.screenHeight, view.width, view.height].every(
+      Number.isFinite,
+    ) &&
+      view.screenWidth > 0 &&
+      view.screenHeight > 0 &&
+      view.width > 0 &&
+      view.height > 0,
+  );
+  const screen = [
+    Math.round(view.x + (point[0] * view.screenWidth) / view.width),
+    Math.round(view.y + (point[1] * view.screenHeight) / view.height),
+  ];
+  return {
+    screen,
+    logical: [
+      ((screen[0] - view.x) * view.width) / view.screenWidth,
+      ((screen[1] - view.y) * view.height) / view.screenHeight,
+    ],
+  };
+}
+
+// Actor hit boxes can overlap. Verify the selected actor with the actual renderer.
+export function streetActorTouchPoint(create, context, width, height, state, actor, view) {
   const renderer = create();
   const hits = renderer.draw(context, width, height, state);
   const hit = hits.find((item) => item.action?.local === actor);
   if (!hit) return null;
-  for (const point of touchHitPoints(hit, hits, width, height)) {
+  const geometry = view ?? { x: 0, y: 0, screenWidth: width, screenHeight: height, width, height };
+  for (const candidate of touchHitPoints(hit, hits, width, height)) {
+    const point = streetScreenPoint(candidate, geometry);
+    if (
+      point.logical[0] < 0 ||
+      point.logical[1] < 0 ||
+      point.logical[0] >= width ||
+      point.logical[1] >= height
+    )
+      continue;
     const probe = create();
     probe.draw(context, width, height, state);
-    if (probe.tap(...point, state) === null && probe.getSelected() === actor) return point;
+    if (probe.tap(...point.logical, state) === null && probe.getSelected() === actor) return point;
   }
   return null;
 }

@@ -31,6 +31,7 @@ import {
   throwStaleStreetPlan,
   soloStreetPlan,
   streetActorTouchPoint,
+  streetScreenPoint,
   touchHitPoints,
 } from './h5-taptap-touch.mjs';
 import { createRenderer as copsRenderer } from '../games/local/cops-robbers/src/competition-renderer.js';
@@ -234,12 +235,19 @@ try {
       if (player.room.status === 'finished') return { finished: true };
       if (street && player.room !== plannedRoom)
         throwStaleStreetPlan(player, plannedRoom, requestsBefore);
-      const view = await canvas.evaluate((element) => ({
-        width: element.clientWidth,
-        height: element.clientHeight,
-        seq: Number(element.dataset.renderedSeq),
-        serverNow: Number(element.dataset.renderedServerNow),
-      }));
+      const view = await canvas.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        return {
+          width: element.clientWidth,
+          height: element.clientHeight,
+          x: rect.left,
+          y: rect.top,
+          screenWidth: rect.width,
+          screenHeight: rect.height,
+          seq: Number(element.dataset.renderedSeq),
+          serverNow: Number(element.dataset.renderedServerNow),
+        };
+      });
       if (street && player.room !== plannedRoom)
         throwStaleStreetPlan(player, plannedRoom, requestsBefore);
       return !street || (view.seq === plannedRoom.seq && view.serverNow === plannedRoom.serverNow)
@@ -285,10 +293,11 @@ try {
               dimensions.height,
               state,
               wanted.actor,
+              dimensions,
             )
-          : samples(hit)[0];
+          : { logical: samples(hit)[0] };
       assert(selection, 'No visible touch point for actor selection');
-      assert.equal(mirror.tap(...selection, state), null);
+      assert.equal(mirror.tap(...selection.logical, state), null);
       hits = mirror.draw(noopContext(), dimensions.width, dimensions.height, state);
     }
     let found;
@@ -299,21 +308,22 @@ try {
         player.variant.game === 'cops-robbers-realtime'
           ? touchHitPoints(hit, hits, dimensions.width, dimensions.height)
           : samples(hit);
-      for (const point of points) {
+      for (const candidate of points) {
+        const point = street ? streetScreenPoint(candidate, dimensions) : { logical: candidate };
         if (
-          point[0] < 0 ||
-          point[1] < 0 ||
-          point[0] >= dimensions.width ||
-          point[1] >= dimensions.height
+          point.logical[0] < 0 ||
+          point.logical[1] < 0 ||
+          point.logical[0] >= dimensions.width ||
+          point.logical[1] >= dimensions.height
         )
           continue;
         const probe = create();
         probe.draw(noopContext(), dimensions.width, dimensions.height, state);
         if (selection) {
-          probe.tap(...selection, state);
+          probe.tap(...selection.logical, state);
           probe.draw(noopContext(), dimensions.width, dimensions.height, state);
         }
-        if (sameAction(probe.tap(...point, state), wanted)) {
+        if (sameAction(probe.tap(...point.logical, state), wanted)) {
           found = point;
           break;
         }
@@ -321,7 +331,7 @@ try {
       if (found) break;
     }
     assert(found, `No visible touch point for ${JSON.stringify(wanted)}`);
-    const tap = async ([x, y], target = false) => {
+    const tap = async (point, target = false) => {
       if (player.room.status === 'finished') return false;
       const box = street
         ? await canvas.evaluate((element) => {
@@ -348,6 +358,10 @@ try {
           box.serverNow !== plannedRoom.serverNow ||
           box.clientWidth !== dimensions.width ||
           box.clientHeight !== dimensions.height ||
+          box.x !== dimensions.x ||
+          box.y !== dimensions.y ||
+          box.width !== dimensions.screenWidth ||
+          box.height !== dimensions.screenHeight ||
           (target && box.selected !== wanted.actor))
       )
         throwStaleStreetPlan(player, plannedRoom, requestsBefore);
@@ -359,8 +373,12 @@ try {
         );
         assert(!player.expectedTouch?.error, 'A mismatched action must remain a failure');
       }
-      const screenX = box.x + (x * box.width) / dimensions.width;
-      const screenY = box.y + (y * box.height) / dimensions.height;
+      const screenX = street
+        ? point.screen[0]
+        : box.x + (point.logical[0] * box.width) / dimensions.width;
+      const screenY = street
+        ? point.screen[1]
+        : box.y + (point.logical[1] * box.height) / dimensions.height;
       const viewport = player.page.viewportSize();
       assert(
         screenX >= 0 && screenY >= 0 && screenX < viewport.width && screenY < viewport.height,

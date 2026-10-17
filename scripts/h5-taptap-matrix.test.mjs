@@ -9,6 +9,7 @@ import {
   completeTouchResponse,
   prepareTouchCanvas,
   streetActorTouchPoint,
+  streetScreenPoint,
   touchHitPoints,
   throwStaleStreetPlan,
 } from './h5-taptap-touch.mjs';
@@ -280,12 +281,42 @@ test('Street actor touches use a visible selection point when hit boxes overlap'
     assert(point, 'A narrow visible strip still selects the intended actor');
     const actual = streetRenderer();
     actual.draw(context, 390, 844, state);
-    assert.equal(actual.tap(...point, state), null);
+    assert.equal(actual.tap(...point.logical, state), null);
     assert.equal(actual.getSelected(), 0);
   }
   Object.assign(state.cops[1], { x: 100, y: 80 });
   assert.equal(streetActorTouchPoint(streetRenderer, context, 390, 844, state, 0), null);
   assert(streetActorTouchPoint(streetRenderer, context, 390, 844, state, 1));
+  Object.assign(state.cops[1], { x: 100.0001, y: 80 });
+  const hits = streetRenderer().draw(context, 390, 844, state),
+    first = hits.find((hit) => hit.action?.local === 0),
+    higher = hits.find((hit) => hit.action?.local === 1);
+  const ideal = [(first.x + higher.x) / 2, first.y + first.h / 2];
+  const probe = streetRenderer();
+  probe.draw(context, 390, 844, state);
+  assert.equal(probe.tap(...ideal, state), null);
+  assert.equal(probe.getSelected(), 0, 'An ideal subpixel sliver can pass a Node-only check');
+  const view = {
+    width: 390,
+    height: 844,
+    x: Math.ceil(first.x) - first.x + 0.25,
+    y: 100.125,
+    screenWidth: 390,
+    screenHeight: 843.75,
+  };
+  assert.equal(
+    streetActorTouchPoint(streetRenderer, context, 390, 844, state, 0, view),
+    null,
+    'A sliver with no stable screen pixel must not be attempted',
+  );
+  const available = streetActorTouchPoint(streetRenderer, context, 390, 844, state, 1, view);
+  assert(available, 'The higher actor remains a normal physical touch candidate');
+  assert(available.screen.every(Number.isInteger));
+  const actual = streetRenderer();
+  actual.draw(context, 390, 844, state);
+  assert.equal(actual.tap(...available.logical, state), null);
+  assert.equal(actual.getSelected(), 1);
+  assert.deepEqual(streetScreenPoint(available.logical, view), available);
 });
 
 test('Street road touches find a visible strip beneath a higher-priority actor hit', () => {
@@ -314,11 +345,19 @@ test('Street road touches find a visible strip beneath a higher-priority actor h
     },
     { get: (object, key) => (key in object ? object[key] : () => {}) },
   );
-  const selection = streetActorTouchPoint(streetRenderer, context, 390, 844, state, 1);
+  const view = {
+    width: 390,
+    height: 844,
+    x: 8.554182,
+    y: 106,
+    screenWidth: 389.75,
+    screenHeight: 632.4375,
+  };
+  const selection = streetActorTouchPoint(streetRenderer, context, 390, 844, state, 1, view);
   assert(selection);
   const renderer = streetRenderer();
   renderer.draw(context, 390, 844, state);
-  renderer.tap(...selection, state);
+  renderer.tap(...selection.logical, state);
   const hits = renderer.draw(context, 390, 844, state);
   const hit = hits.find(
     (item) =>
@@ -327,7 +366,7 @@ test('Street road touches find a visible strip beneath a higher-priority actor h
   const tap = (point) => {
     const probe = streetRenderer();
     probe.draw(context, 390, 844, state);
-    probe.tap(...selection, state);
+    probe.tap(...selection.logical, state);
     probe.draw(context, 390, 844, state);
     return probe.tap(...point, state);
   };
@@ -343,6 +382,7 @@ test('Street road touches find a visible strip beneath a higher-priority actor h
     'The old five points are all occluded',
   );
   const actual = touchHitPoints(hit, hits, 390, 844)
+    .map((point) => streetScreenPoint(point, view).logical)
     .map(tap)
     .find((action) => action?.type === 'move');
   assert.deepEqual(actual, { type: 'move', actor: 1, x: target.x, y: target.y });
