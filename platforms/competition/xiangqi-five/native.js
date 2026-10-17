@@ -26,6 +26,7 @@ import {
   challengeReply,
   decodeChallengeProgress,
 } from '../../../games/submodules/xiangqi-five/challenges.js';
+import { createTapTapRewardedAds } from '../../taptap/rewarded-ads.mjs';
 
 // This adapter owns presentation only. Rules and compatible saves remain in the pinned submodule.
 export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
@@ -73,6 +74,39 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
   let challengeId = '',
     challengeStatus = 'playing',
     hintShown = false;
+  const adsEnabled = config.platform === 'taptap' && Boolean(config.rewardedAdUnitId);
+  const ads = createTapTapRewardedAds(sdk, config.rewardedAdUnitId);
+  let hintRequest = null;
+  function cancelHint() {
+    hintRequest = null;
+    ads.cancel();
+  }
+  async function showHint() {
+    if (!challengeId || page !== 'play' || hidden || stopped || hintRequest) return;
+    if (hintShown || !adsEnabled) {
+      hintShown = true;
+      change('help', 'play');
+      return;
+    }
+    const request = { state };
+    hintRequest = request;
+    gesture = null;
+    message = '正在播放广告…';
+    render();
+    const outcome = await ads.show();
+    if (hintRequest !== request) return;
+    hintRequest = null;
+    if (stopped || hidden || page !== 'play' || state !== request.state) return;
+    if (outcome.status === 'completed') {
+      hintShown = true;
+      message = '';
+      change('help', 'play');
+    } else {
+      message =
+        outcome.status === 'dismissed' ? '广告未看完，本次未获取提示' : '广告暂不可用，请稍后再试';
+      render();
+    }
+  }
   const channel = sdk.channelEntry;
   let channelMessage = '',
     channelHelpBack = 'home';
@@ -120,6 +154,7 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
     return true;
   }
   function change(next, back = 'home') {
+    if (next !== page) cancelHint();
     gesture = null;
     selected = null;
     pageScroll = 0;
@@ -230,12 +265,19 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
       13,
     );
     button(
-      challengeId ? '本题提示' : state.pending ? `已抽到${label(state.pending)}` : '抽一枚棋子',
+      challengeId
+        ? hintRequest
+          ? '观看中…'
+          : hintShown || !adsEnabled
+            ? '本题提示'
+            : '看广告获取提示'
+        : state.pending
+          ? `已抽到${label(state.pending)}`
+          : '抽一枚棋子',
       16,
       height - bottom - 98,
       width - 32,
-      () =>
-        challengeId ? ((hintShown = true), change('help', 'pause')) : action(() => draw(state)),
+      () => (challengeId ? void showHint() : action(() => draw(state))),
       true,
     );
     text(message, 16, height - bottom - 24, 12);
@@ -337,7 +379,7 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
         '拖动棋盘，完整露出的格子可落子。',
         '电脑搜索限制200ms，难度为预算内选择。',
       ].forEach((line, i) => text(line, 24, top + 88 + i * 30, 14));
-      if (challengeId) {
+      if (challengeId && (hintShown || challengeStatus === 'solved')) {
         const item = CHALLENGES.find((item) => item.id === challengeId),
           note = challengeStatus === 'solved' ? item.explanation : item.hint;
         Array.from(note)
@@ -538,7 +580,7 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
     box && p.x >= box.x && p.y >= box.y && p.x < box.x + box.w && p.y < box.y + box.h;
   const hasStart = subscribe('TouchStart', (event) => {
     gesture = null;
-    if (hidden || stopped || page === 'pk' || event.touches?.length > 1) return;
+    if (hidden || stopped || hintRequest || page === 'pk' || event.touches?.length > 1) return;
     const point = event.changedTouches?.[0];
     if (point) {
       const p = position(point);
@@ -572,6 +614,7 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
     if (
       hidden ||
       stopped ||
+      hintRequest ||
       page === 'pk' ||
       event.touches?.length ||
       event.changedTouches?.length !== 1
@@ -591,6 +634,7 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
     hits.find((item) => contains(item, p))?.action();
   });
   subscribe('Hide', () => {
+    cancelHint();
     hidden = true;
     gesture = null;
     clearTimeout(computerTimer);
@@ -636,6 +680,8 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
     },
     stop() {
       stopped = true;
+      cancelHint();
+      ads.dispose();
       clearTimeout(computerTimer);
       gesture = null;
       pk?.stop();

@@ -1,0 +1,11 @@
+{
+  "data": {
+    "status": 1,
+    "ad_spaces": [
+      { "id": "1054323", "type": 1 },
+      { "id": "1054324", "type": 2 }
+    ]
+  },
+  "now": 1792268091,
+  "success": true
+}

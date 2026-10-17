@@ -15,16 +15,18 @@ const canvas=document.querySelector('canvas'),events=new Map();
 const sdk={createCanvas:()=>canvas,getSystemInfoSync:()=>({windowWidth:innerWidth,windowHeight:innerHeight,pixelRatio:devicePixelRatio,safeArea:{top:28,bottom:innerHeight-18}}),getMenuButtonBoundingClientRect:()=>({bottom:54}),getStorageSync:key=>localStorage.getItem(key),setStorageSync:(key,value)=>localStorage.setItem(key,value)};
 for(const name of ['TouchStart','TouchMove','TouchEnd','TouchCancel','Hide','Show','WindowResize']){sdk['on'+name]=fn=>events.set(name,fn);sdk['off'+name]=()=>events.delete(name)}
 for(const [name,event]of [['TouchStart','touchstart'],['TouchMove','touchmove'],['TouchEnd','touchend'],['TouchCancel','touchcancel']])canvas.addEventListener(event,e=>{e.preventDefault();events.get(name)?.({changedTouches:Array.from(e.changedTouches),touches:Array.from(e.touches)})},{passive:false});
-addEventListener('resize',()=>events.get('WindowResize')?.());window.game=startNativeXiangqiGame(sdk,{});window.events=events;
+const withAds=new URL(location.href).searchParams.has('ads');
+if(withAds)sdk.createRewardedVideoAd=()=>({onClose:fn=>window.closeAd=fn,onError:fn=>window.failAd=fn,offClose(){},offError(){},destroy(){},show:async()=>{},load:async()=>{}});
+addEventListener('resize',()=>events.get('WindowResize')?.());window.game=startNativeXiangqiGame(sdk,withAds?{platform:'taptap',rewardedAdUnitId:'test-slot'}:{});window.events=events;
 </script>`;
 const server = createServer(async (req, res) => {
   try {
-    if (req.url === '/') {
+    if (new URL(req.url, 'http://localhost').pathname === '/') {
       res.setHeader('Content-Type', 'text/html');
       res.end(html);
     } else {
       const url = new URL(req.url, 'http://localhost');
-      res.setHeader('Content-Type', url.pathname.endsWith('.js') ? 'text/javascript' : 'text/html');
+      res.setHeader('Content-Type', /\.m?js$/.test(url.pathname) ? 'text/javascript' : 'text/html');
       res.end(await readFile(root + url.pathname));
     }
   } catch {
@@ -112,11 +114,32 @@ try {
     await swipe(100, area.x + area.w / 2, area.y + area.h / 2);
     assert.equal(await page.evaluate(() => game.state.game.ply), before);
     assert(await page.evaluate(() => game.getLayout().panY > 0));
+    await page.goto('http://127.0.0.1:' + server.address().port + '/?ads=1');
+    await page.waitForFunction(() => window.game);
+    await tap('战术练习');
+    await screenshot('training');
+    await tap('01 一车架桥');
+    await screenshot('rewarded-hint');
+    await tap('看广告获取提示');
+    assert(await page.evaluate(() => game.getLayout().hits.some((hit) => hit.label === '观看中…')));
+    await page.evaluate(() => closeAd({ isEnded: false }));
+    await page.waitForFunction(() =>
+      game.getLayout().hits.some((hit) => hit.label === '看广告获取提示'),
+    );
+    assert.equal(await page.evaluate(() => game.state.page), 'play');
+    await tap('看广告获取提示');
+    await page.evaluate(() => closeAd({ isEnded: true }));
+    await page.waitForFunction(() => game.state.page === 'help');
+    await screenshot('earned-hint');
+    await tap('返回');
+    assert.equal(await page.evaluate(() => game.state.page), 'play');
+    await tap('暂停');
+    await tap('返回首页');
     assert.deepEqual(errors, []);
     await page.close();
   }
   console.log(
-    'Actual native Canvas: 320/390/430/844 touch pages, rules, pause/help return, background and 15x15 board drag passed.',
+    'Actual native Canvas: 320/390/430/844 touch pages, rules, pause/help return, background, 15x15 drag and simulated rewarded hints passed (not real Tap playback).',
   );
 } finally {
   await browser.close();

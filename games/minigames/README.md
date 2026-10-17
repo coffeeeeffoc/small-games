@@ -37,7 +37,7 @@ node games/minigames/scripts/build.mjs --game xiangqi-five --platform taptap --r
 node games/minigames/scripts/build.mjs --verify games/minigames/xiangqi-five/build/taptap/game --receipt games/minigames/xiangqi-five/build/taptap.receipt.json
 ```
 
-三款使用不同 AppID 时，设置对应的三个游戏级变量。三款均在允许接入且配置有效服务后启用好友挑战。未配置广告位时，实时警匪仍可正常游玩，广告补充不会假报成功。平台后台的登录、广告、分享、合法域名与真机权限需在各自官方工具验收。
+三款使用不同 AppID 时，设置对应的三个游戏级变量。三款均在允许接入且配置有效服务后启用好友挑战。未配置广告位时，实时警匪仍可正常游玩，广告补充不会假报成功。象五子棋的 TapTap 战术提示在配置广告位后仅于完整观看回调中授权，未配置时保留免费提示；应用 982449 的公开配置、构建与验证见[广告接入记录](../../platforms/competition/xiangqi-five/docs/design/ads-2026-10-18.md)。平台后台的登录、广告、分享、合法域名与真机权限需在各自官方工具验收。
 
 ## 其他渠道
 

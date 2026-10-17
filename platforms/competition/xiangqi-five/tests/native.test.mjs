@@ -1,10 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { startNativeXiangqiGame } from '../native.js';
+import { CHALLENGES } from '../../../../games/submodules/xiangqi-five/challenges.js';
 
-function fixture(width = 390, height = 844, stored = new Map()) {
+function fixture(width = 390, height = 844, stored = new Map(), config = {}, overrides = {}) {
   const listeners = new Map();
   const context = new Proxy({}, { get: (target, key) => target[key] ?? (() => {}) });
+  const texts = [];
+  context.fillText = (value) => texts.push(String(value));
   const info = {
     windowWidth: width,
     windowHeight: height,
@@ -17,6 +20,7 @@ function fixture(width = 390, height = 844, stored = new Map()) {
     getMenuButtonBoundingClientRect: () => ({ bottom: 64 }),
     getStorageSync: (key) => stored.get(key),
     setStorageSync: (key, value) => stored.set(key, value),
+    ...overrides,
   };
   for (const name of [
     'TouchStart',
@@ -34,7 +38,7 @@ function fixture(width = 390, height = 844, stored = new Map()) {
       listeners.delete(name);
     };
   }
-  const game = startNativeXiangqiGame(sdk, {}, () => {
+  const game = startNativeXiangqiGame(sdk, config, () => {
     throw new Error('PK requires a configured service');
   });
   const point = (x, y, identifier = 1) => ({ clientX: x, clientY: y, identifier });
@@ -56,7 +60,7 @@ function fixture(width = 390, height = 844, stored = new Map()) {
     emit('TouchStart', [p]);
     emit('TouchEnd', [p], []);
   };
-  return { game, stored, listeners, info, tap, point, emit };
+  return { game, stored, listeners, info, tap, point, emit, texts };
 }
 
 test('native same-screen games use real rules, old save replay, cancellation and lifecycle', () => {
@@ -203,5 +207,116 @@ test('native tactical training uses pinned fixed positions, settles stars and ke
     assert.equal(f.game.state.page, 'result');
   } finally {
     f.game.stop();
+  }
+});
+
+const tick = () => new Promise((resolve) => setImmediate(resolve));
+function advertisedFixture() {
+  const callbacks = {},
+    calls = [];
+  const f = fixture(
+    390,
+    844,
+    new Map(),
+    { platform: 'taptap', rewardedAdUnitId: 'slot' },
+    {
+      createRewardedVideoAd({ adUnitId }) {
+        assert.equal(adUnitId, 'slot');
+        calls.push('create');
+        return {
+          onClose: (fn) => {
+            callbacks.close = fn;
+          },
+          onError: (fn) => {
+            callbacks.error = fn;
+          },
+          offClose() {},
+          offError() {},
+          destroy() {},
+          show: async () => {},
+          load: async () => {},
+        };
+      },
+    },
+  );
+  f.tap('战术练习');
+  f.tap('01 一车架桥');
+  return { ...f, callbacks, calls };
+}
+
+test('native Tap hint waits for full viewing, freezes board input, and records the one-star limit', async () => {
+  const f = advertisedFixture();
+  try {
+    f.tap('看广告获取提示');
+    const board = JSON.stringify(f.game.state.game);
+    f.tap('棋格14');
+    assert.equal(JSON.stringify(f.game.state.game), board);
+    assert.equal(f.game.state.page, 'play');
+    f.callbacks.close({ isEnded: true });
+    await tick();
+    assert.equal(f.game.state.page, 'help');
+    f.tap('返回');
+    assert.equal(f.game.state.page, 'play');
+    f.tap('本题提示');
+    assert.equal(f.calls.length, 1, 'the same puzzle hint is already earned');
+    f.tap('返回');
+    f.tap('棋格14');
+    f.tap('棋格41');
+    assert.equal(f.game.state.page, 'result');
+    assert.equal(
+      JSON.parse(f.stored.get('xiangqi-five-challenges-v1')).progress['rook-bridge'].stars,
+      1,
+    );
+  } finally {
+    f.game.stop();
+  }
+});
+
+test('native Tap cancellation, SDK failure, background and disposal never reveal a late hint', async () => {
+  for (const operation of ['dismiss', 'error', 'hide', 'stop']) {
+    const f = advertisedFixture();
+    try {
+      f.tap('看广告获取提示');
+      if (operation === 'dismiss') f.callbacks.close({ isEnded: false });
+      if (operation === 'error') f.callbacks.error({ errCode: 1 });
+      if (operation === 'hide') f.emit('Hide');
+      if (operation === 'stop') f.game.stop();
+      const page = f.game.state.page;
+      f.callbacks.close({ isEnded: true });
+      await tick();
+      assert.equal(f.game.state.page, page);
+      if (operation === 'hide') {
+        f.emit('Show');
+        f.tap('继续对局');
+      }
+      if (operation !== 'stop')
+        assert(f.game.getLayout().hits.some((hit) => hit.label === '看广告获取提示'));
+    } finally {
+      if (operation !== 'stop') f.game.stop();
+    }
+  }
+});
+
+test('pause/settings cannot reveal the unpaid tactical hint; non-Tap hints stay free', async () => {
+  const f = advertisedFixture();
+  try {
+    f.tap('暂停');
+    f.texts.length = 0;
+    f.tap('玩法与设置');
+    assert(!f.texts.join('').includes(CHALLENGES[0].hint));
+    assert.equal(f.calls.length, 0);
+  } finally {
+    f.game.stop();
+  }
+  const free = fixture();
+  try {
+    free.tap('战术练习');
+    free.tap('01 一车架桥');
+    free.tap('本题提示');
+    assert.equal(free.game.state.page, 'help');
+    free.tap('返回');
+    assert.equal(free.game.state.page, 'play');
+  } finally {
+    free.game.stop();
   }
 });
