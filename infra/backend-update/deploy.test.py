@@ -137,8 +137,8 @@ class BackendContracts(unittest.TestCase):
 
     def test_receipt_does_not_claim_restore_or_whole_backend_source(self):
         manifest = {'sourceSHA': 'a' * 40, 'release': 'candidate', 'services': ['runtime']}
-        capabilities = {'runtime': {'image': item('runtime')['image'], 'control': 1, 'ephemeralGuestScope': 1},
-                        'kart': {'image': item('kart')['image'], 'control': 1, 'identityRecheck': 1}}
+        capabilities = {'runtime': {'image': item('runtime')['image'], 'control': 1, 'authenticatedGameScope': 1},
+                        'kart': {'image': item('kart')['image'], 'control': 1, 'identityRecheck': 1, 'authenticatedGameScope': 1}}
         with patch.object(backend, 'require_authority', side_effect=AssertionError('UNEXPECTED_PROBE')):
             result = backend.receipt(manifest, 'execute', ['kart'], {'runtime': item('runtime'), 'kart': item('kart')}, capabilities, 'b' * 64)
             empty = backend.receipt(manifest, 'rollback', ['kart'], {}, {})
@@ -157,7 +157,7 @@ class BackendContracts(unittest.TestCase):
         events = []
         def probe(images, *args):
             events.append('probe')
-            return {name: {'image': image, 'control': 1, 'ephemeralGuestScope': 1} for name, image in images.items()}
+            return {name: {'image': image, 'control': 1, 'authenticatedGameScope': 1} for name, image in images.items()}
         def health(*args):
             events.append('health')
             return active

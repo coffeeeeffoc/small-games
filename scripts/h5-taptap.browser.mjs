@@ -1132,21 +1132,22 @@ try {
         (await input.inputValue()) === profile.name,
       'Fresh server profile loads into owner-bound form',
     );
-    return { panel, input, save: panel.getByRole('button', { name: '保存昵称', exact: true }) };
+    return { panel, input, save: panel.getByRole('button', { name: '保存资料', exact: true }) };
   }
   async function profilesCheck(a, b) {
     const evidence = [];
     for (const player of [a, b]) {
       await openOnline(player);
       const initial = player.profile;
-      assert.equal(initial.identityMode, 'ephemeral');
+      assert.equal(initial.identityMode, 'persistent');
       assert.equal(initial.game, player.variant.game);
       assert.equal(initial.userId, initial.playerId);
       assert.equal(initial.avatarUrl, '');
       assert.equal(initial.region, null);
       const { panel, input, save } = await profilePage(player);
       assert.equal(await panel.getByRole('button', { name: '同步已授权的平台资料' }).count(), 0);
-      await input.fill('访客' + player.id.toUpperCase());
+      await input.fill('玩家' + player.id.toUpperCase());
+      await panel.locator('[data-avatar-id="fox"]').tap();
       for (const viewport of [
         { width: 320, height: 568 },
         { width: 844, height: 390 },
@@ -1160,41 +1161,26 @@ try {
       }
       await save.tap();
       await until(
-        () => player.profile?.name === '访客' + player.id.toUpperCase(),
+        () => player.profile?.name === '玩家' + player.id.toUpperCase(),
         'Touch profile save',
       );
       const same = await player.page.evaluate(() => globalThis.__competition.request('/me'));
       assert.equal(same.userId, initial.userId);
-      // Secrets are used only inside this document and never returned to Node or another context.
-      const refresh = await player.page.evaluate(async () => {
-        const client = globalThis.__competition,
-          own = await client.session();
-        const response = await fetch(client.config.apiUrl + '/sessions/refresh', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ refreshToken: own.refreshToken }),
-        });
-        if (!response.ok) return { ok: false, status: response.status };
-        const next = await response.json();
-        return { ok: true, userId: next.userId, identityExpiresAt: next.identityExpiresAt };
-      });
-      assert.equal(refresh.ok, true);
-      assert.equal(refresh.userId, initial.userId);
-      assert.equal(refresh.identityExpiresAt, initial.identityExpiresAt);
+      assert.equal(same.avatarId, 'fox');
       await player.page.reload({ waitUntil: 'networkidle' });
       player.surface = null;
       player.room = null;
       await openOnline(player);
-      assert.notEqual(
+      assert.equal(
         player.profile.userId,
         initial.userId,
-        'Reload must create a new ephemeral owner',
+        'Reload retains the current entrance identity',
       );
+      assert.equal(player.profile.avatarId, 'fox');
       evidence.push({
         sameDocumentOwner: initial.userId,
         reloadedOwner: player.profile.userId,
-        refreshRetainsOwner: true,
-        reloadCreatesNewIdentity: true,
+        reloadRetainsIdentity: true,
       });
     }
     const original = a.variant,
@@ -1221,11 +1207,11 @@ try {
     a.room = null;
     await a.page.goto(gameUrl(original), { waitUntil: 'networkidle' });
     await openOnline(a);
-    assert(!seen.has(a.profile.userId));
+    assert.equal(a.profile.userId, evidence[0].sameDocumentOwner);
     assert.notEqual(a.profile.userId, b.profile.userId);
     for (const player of [a, b]) {
       const name =
-        '访客' +
+        '玩家' +
         Object.keys(constructors).indexOf(player.variant.game) +
         (player.variant.adsEnabled ? 1 : 0) +
         player.id.toUpperCase();
@@ -1239,7 +1225,7 @@ try {
     return {
       players: evidence,
       crossGame,
-      crossGameCreatesNewIdentity: true,
+      crossGameIndependentIdentities: true,
       credentialsTransportedBetweenContexts: false,
       actualSdkProfileSyncAvailable: false,
     };

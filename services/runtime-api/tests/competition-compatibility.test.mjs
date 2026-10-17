@@ -229,10 +229,15 @@ describe('fixed 26756c80 H5 and Runtime wire compatibility (in-memory SQL, no PG
   });
   for (const service of ['old', 'candidate'])
     for (const consumer of ['old', 'candidate']) {
-      it(`${consumer} H5 × ${service} Runtime keeps base identity/profile/board/room contracts`, async () => {
+      it(`${consumer} H5 × ${service} Runtime enforces explicit login while retaining the pinned old wire contract`, async () => {
         const clock = { time: 1_800_000_000_000 };
         const { app } = await server(service, clock);
         const { api } = client(consumer === 'old' ? pinned.client : candidateClient, app, clock);
+        if (service === 'candidate' || consumer === 'candidate') {
+          await expect(api.session()).rejects.toBeDefined();
+          expect((await app.inject('/api/competition/v1/me')).statusCode).toBe(401);
+          return;
+        }
         const credential = await api.session();
         assertCredential(credential);
         const owner = credential.playerId;
@@ -263,11 +268,8 @@ describe('fixed 26756c80 H5 and Runtime wire compatibility (in-memory SQL, no PG
     const clock = { time: 1_800_000_000_000 };
     const { app } = await server('old', clock);
     const { api, calls } = client(candidateClient, app, clock);
-    const first = await api.session();
-    clock.time = first.expiresAt - 30_000;
-    await expect(api.session()).rejects.toBeDefined();
-    expect(calls.filter((call) => call.path.endsWith('/sessions/guest'))).toHaveLength(1);
-    expect(calls.at(-1).path).toContain('/sessions/refresh');
+    await expect(api.session()).rejects.toMatchObject({ code: 'LOGIN_REQUIRED' });
+    expect(calls).toHaveLength(0);
   });
   it('missing fields, changed types and changed HTTP error codes fail the compatibility contract', async () => {
     for (const broken of [
@@ -320,6 +322,7 @@ const rowKeys = [
   'playerId',
   'nickname',
   'name',
+  'avatarId',
   'avatarUrl',
   'region',
   'profileSource',
@@ -400,7 +403,8 @@ describe('explicit public profile white lists and persisted room results', () =>
       total: 102,
     }));
     memory.setRanked(rows);
-    for (const owner of [null, uuid(102), uuid(101)]) {
+    await expect(store.board(rule.id, null)).rejects.toMatchObject({ code: 'LOGIN_REQUIRED' });
+    for (const owner of [uuid(102), uuid(101)]) {
       const board = await store.board(rule.id, owner);
       for (const row of [...board.top, board.me, board.previous, board.threshold].filter(Boolean))
         assertPublicRow(row);

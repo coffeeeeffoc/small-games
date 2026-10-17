@@ -21,8 +21,8 @@ export async function verifyStreetRunHttp(base) {
     assert.equal(response.status, status, JSON.stringify(result));
     return result;
   }
-  const player = await request('/sessions/guest', null, {});
-  const other = await request('/sessions/guest', null, {});
+  const player = await request('/sessions/guest', null, { game: 'cops-robbers-realtime' });
+  const other = await request('/sessions/guest', null, { game: 'cops-robbers-realtime' });
   const config = {
     version: 'street-solo-v2',
     mode: 'quick',

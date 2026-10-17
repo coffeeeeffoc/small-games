@@ -1,19 +1,19 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
-import type { openDatabase } from '@coffeeeeffoc/service-kit';
+import { CONTROL_GAME_IDS, type openDatabase } from '@coffeeeeffoc/service-kit';
 import { CompetitionError } from './types.js';
 import { publicProfile, profilePatchSchema, avatarPolicy, type ProfilePatch } from './profile.js';
+import { z } from 'zod';
+import { anonymousProfile } from './profile.js';
+export const guestSessionSchema = z.object({ game: z.enum(CONTROL_GAME_IDS) }).strict();
 import {
   authenticate,
   assertResourceAuth,
+  assertAuthenticatedPlayer,
+  assertStoredPlayerGame,
   authExpiresAt,
   playerIdOf,
-  guestScope,
-  EPHEMERAL_ACCESS_MS,
-  EPHEMERAL_IDENTITY_MS,
-  EPHEMERAL_GAMES,
   type PlayerAuth,
-  type EphemeralGame,
 } from './auth.js';
 
 type Database = ReturnType<typeof openDatabase>['db'];
@@ -22,63 +22,67 @@ const hash = (value: string) => createHash('sha256').update(value).digest('hex')
 const secret = () => randomBytes(32).toString('hex');
 const day = 86400_000;
 
-/** The existing immutable player UUID is the authority for every competition game. */
 export function createCompetitionIdentities(db: Database, now = Date.now) {
   async function identity(token: string) {
     return (await authenticate(db, token, now())).playerId;
   }
-  async function ownProfile(playerId: string, executor: Database | Tx = db) {
+  async function ownProfile(playerId: string, executor: Database | Tx = db, game?: string) {
     const rows =
       await executor.execute(sql`select id,platform,display_name,profile,app_id,created_at
       from runtime.competition_players where id=${playerId}`);
-    if (!rows[0]) throw new CompetitionError('SESSION_EXPIRED', 401);
-    const provider = String(rows[0].platform);
-    const scope = guestScope(rows[0], now());
+    assertAuthenticatedPlayer(rows[0]);
+    const provider = String(rows[0]!.platform);
     return {
-      ...publicProfile(rows[0]),
+      ...publicProfile(rows[0]!),
       avatarPolicy,
       playerId,
       identityKind: provider === 'guest' ? ('guest' as const) : ('platform' as const),
-      provider: provider === 'guest' ? null : provider,
-      identityMode: scope.game ? ('ephemeral' as const) : ('persistent' as const),
-      game: scope.game,
-      identityExpiresAt: scope.expiresAt,
+      provider,
+      identityMode: 'persistent' as const,
+      game,
+      identityExpiresAt: null,
     };
   }
-  async function issue(tx: Tx, playerId: string, ttl = day) {
-    const profile = await ownProfile(playerId, tx);
+  async function issue(
+    tx: Tx,
+    playerId: string,
+    game: string,
+    refreshExpiresAt = now() + 180 * day,
+    grant = true,
+    familyId: string = randomUUID(),
+  ) {
+    if (!(CONTROL_GAME_IDS as readonly string[]).includes(game))
+      throw new CompetitionError('IDENTITY_SCOPE_MISMATCH', 403);
+    const profile = await ownProfile(playerId, tx, game);
+    if (grant)
+      await tx.execute(sql`insert into runtime.player_game_access(player_id,game)
+      values(${playerId},${game}) on conflict do nothing`);
     const token = secret(),
-      expiresAt = Math.min(
-        now() + (profile.identityMode === 'ephemeral' ? Math.min(ttl, EPHEMERAL_ACCESS_MS) : ttl),
-        profile.identityExpiresAt ?? Infinity,
-      );
-    await tx.execute(sql`insert into runtime.competition_sessions(token_hash,player_id,expires_at)
-      values(${hash(token)},${playerId},${expiresAt})`);
-    return { ...profile, token, expiresAt };
+      refreshToken = secret(),
+      expiresAt = Math.min(now() + 15 * 60_000, refreshExpiresAt);
+    await tx.execute(sql`insert into runtime.competition_sessions(token_hash,player_id,expires_at,game,family_id,family_expires_at)
+      values(${hash(token)},${playerId},${expiresAt},${game},${familyId},${refreshExpiresAt})`);
+    await tx.execute(sql`insert into runtime.competition_refresh_tokens(token_hash,player_id,expires_at,game,session_hash)
+      values(${hash(refreshToken)},${playerId},${refreshExpiresAt},${game},${hash(token)})`);
+    return { ...profile, token, expiresAt, refreshToken, refreshExpiresAt, sessionId: familyId };
   }
-  async function guestSession(installationId?: string, identityVersion?: 2, game?: EphemeralGame) {
-    if (game && (identityVersion !== 2 || !EPHEMERAL_GAMES.includes(game)))
-      throw new CompetitionError('INVALID_INPUT', 422);
+  async function guestSession(input: unknown) {
+    const { game } = guestSessionSchema.parse(input);
     return db.transaction(async (tx) => {
       const playerId = randomUUID(),
-        createdAt = now();
-      await tx.execute(sql`insert into runtime.competition_players(id,platform,app_id,created_at,profile)
-        values(${playerId},'guest',${game ?? ''},${createdAt},'{"source":"default"}'::jsonb)`);
-      const refreshToken = secret(),
-        refreshExpiresAt = createdAt + (game ? EPHEMERAL_IDENTITY_MS : 180 * day);
-      await tx.execute(sql`insert into runtime.competition_refresh_tokens(token_hash,player_id,expires_at,installation_id)
-        values(${hash(refreshToken)},${playerId},${refreshExpiresAt},${game ? null : (installationId ?? null)})`);
-      // Old clients cannot refresh; preserve their existing access lifetime explicitly.
-      return {
-        ...(await issue(tx, playerId, identityVersion === 2 ? day : 180 * day)),
-        refreshToken,
-        refreshExpiresAt,
-      };
+        profile = anonymousProfile();
+      await tx.execute(sql`insert into runtime.competition_players(id,platform,app_id,created_at,display_name,profile)
+        values(${playerId},'guest',${game},${now()},${profile.nickname},${JSON.stringify({ avatarId: profile.avatarId, source: 'default' })}::jsonb)`);
+      return issue(tx, playerId, game);
     });
   }
-  async function session(platform = 'guest', appId = '', subject?: string) {
-    if (platform === 'guest') return guestSession();
-    if (!appId || !subject) throw new CompetitionError('PLATFORM_LOGIN_FAILED', 401);
+  async function session(platform: string, appId: string, subject: string, game: string) {
+    if (
+      !['wechat', 'bilibili', 'douyin', 'kuaishou', 'taptap'].includes(platform) ||
+      !appId ||
+      !subject
+    )
+      throw new CompetitionError('PLATFORM_LOGIN_FAILED', 401);
     return db.transaction(async (tx) => {
       await tx.execute(
         sql`select pg_advisory_xact_lock(hashtext(${JSON.stringify(['identity', platform, appId, subject])}))`,
@@ -87,117 +91,68 @@ export function createCompetitionIdentities(db: Database, now = Date.now) {
         await tx.execute(sql`insert into runtime.competition_players(id,platform,app_id,subject,created_at,profile)
         values(${randomUUID()},${platform},${appId},${subject},${now()},'{"source":"default"}'::jsonb)
         on conflict(platform,app_id,subject) do update set subject=excluded.subject returning id`);
-      return issue(tx, String(rows[0]!.id));
+      return issue(tx, String(rows[0]!.id), game);
     });
   }
   async function refreshSession(refreshToken: string) {
     return db.transaction(async (tx) => {
       const rows = await tx.execute(sql`select p.id from runtime.competition_players p
         join runtime.competition_refresh_tokens r on r.player_id=p.id
-        where r.token_hash=${hash(refreshToken)} for update of p`);
+        where r.token_hash=${hash(refreshToken)} for no key update of p`);
       if (!rows[0]) throw new CompetitionError('REFRESH_EXPIRED', 401);
-      const playerId = String(rows[0].id);
-      // Recheck after the player lock: an upgrade may have revoked the waiting refresh.
+      // Recheck under the same owner lock used by logout; each refresh is single-use.
       const valid =
-        await tx.execute(sql`select r.expires_at,p.platform,p.app_id,p.created_at from runtime.competition_refresh_tokens r
-        join runtime.competition_players p on p.id=r.player_id where r.token_hash=${hash(refreshToken)}
-        and r.expires_at>${now()} and p.platform='guest'`);
-      if (!valid[0]) throw new CompetitionError('REFRESH_EXPIRED', 401);
-      const scope = guestScope(valid[0], now());
-      return {
-        ...(await issue(tx, playerId)),
-        refreshToken,
-        refreshExpiresAt: Math.min(Number(valid[0].expires_at), scope.expiresAt ?? Infinity),
-      };
+        await tx.execute(sql`select r.expires_at,r.game,r.session_hash,p.platform,s.family_id from runtime.competition_refresh_tokens r
+        join runtime.competition_players p on p.id=r.player_id
+        join runtime.competition_sessions s on s.token_hash=r.session_hash and s.player_id=r.player_id and s.game=r.game
+        where r.token_hash=${hash(refreshToken)} and r.expires_at>${now()} and s.family_expires_at>${now()}`);
+      if (!valid[0] || !valid[0].session_hash) throw new CompetitionError('REFRESH_EXPIRED', 401);
+      assertAuthenticatedPlayer(valid[0]);
+      await assertStoredPlayerGame(tx, String(rows[0].id), String(valid[0].game), now());
+      const refreshExpiresAt = now() + 180 * day;
+      await tx.execute(sql`update runtime.competition_sessions set family_expires_at=${refreshExpiresAt}
+        where player_id=${String(rows[0].id)} and family_id=${String(valid[0].family_id)}`);
+      // Old access is unusable for business requests, but remains a logout-only family proof.
+      await tx.execute(
+        sql`update runtime.competition_sessions set expires_at=0 where token_hash=${String(valid[0].session_hash)}`,
+      );
+      await tx.execute(
+        sql`delete from runtime.competition_refresh_tokens where token_hash=${hash(refreshToken)}`,
+      );
+      return issue(
+        tx,
+        String(rows[0].id),
+        String(valid[0].game),
+        refreshExpiresAt,
+        false,
+        String(valid[0].family_id),
+      );
     });
   }
-  async function renewGuestSession(token: string) {
+  async function logout(token: string) {
     return db.transaction(async (tx) => {
       const rows = await tx.execute(sql`select p.id from runtime.competition_players p
         join runtime.competition_sessions s on s.player_id=p.id
-        where s.token_hash=${hash(token)} and s.expires_at>${now()} for update of p`);
+        where s.token_hash=${hash(token)} for no key update of p`);
       if (!rows[0]) throw new CompetitionError('SESSION_EXPIRED', 401);
-      const playerId = String(rows[0].id);
-      const valid =
-        await tx.execute(sql`select p.platform,p.app_id,p.created_at from runtime.competition_sessions s
-        join runtime.competition_players p on p.id=s.player_id
-        where s.token_hash=${hash(token)} and s.expires_at>${now()} and p.platform='guest'`);
+      const valid = await tx.execute(sql`select family_id from runtime.competition_sessions
+        where token_hash=${hash(token)} and player_id=${String(rows[0].id)} and family_expires_at>${now()}`);
       if (!valid[0]) throw new CompetitionError('SESSION_EXPIRED', 401);
-      const scope = guestScope(valid[0], now());
-      const refreshToken = secret(),
-        refreshExpiresAt = scope.expiresAt ?? now() + 180 * day;
-      await tx.execute(sql`insert into runtime.competition_refresh_tokens(token_hash,player_id,expires_at)
-        values(${hash(refreshToken)},${playerId},${refreshExpiresAt})`);
-      return { ...(await issue(tx, playerId)), refreshToken, refreshExpiresAt };
+      await tx.execute(sql`delete from runtime.competition_sessions
+        where player_id=${String(rows[0].id)} and family_id=${String(valid[0].family_id)}`);
+      return { ok: true };
     });
-  }
-  async function upgrade(token: string, platform: string, appId: string, subject: string) {
-    if (platform === 'guest' || !appId || !subject)
-      throw new CompetitionError('PLATFORM_LOGIN_FAILED', 401);
-    return db
-      .transaction(async (tx) => {
-        await tx.execute(
-          sql`select pg_advisory_xact_lock(hashtext(${JSON.stringify(['identity', platform, appId, subject])}))`,
-        );
-        const rows =
-          await tx.execute(sql`select p.id,p.platform,p.app_id,p.created_at from runtime.competition_players p
-        join runtime.competition_sessions s on s.player_id=p.id
-        where s.token_hash=${hash(token)} and s.expires_at>${now()} for update of p`);
-        if (!rows[0]) throw new CompetitionError('SESSION_EXPIRED', 401);
-        const playerId = String(rows[0].id);
-        const valid = await tx.execute(sql`select 1 from runtime.competition_sessions
-        where token_hash=${hash(token)} and expires_at>${now()}`);
-        if (!valid[0]) throw new CompetitionError('SESSION_EXPIRED', 401);
-        if (rows[0].platform !== 'guest')
-          throw new CompetitionError('IDENTITY_UPGRADE_NOT_ALLOWED');
-        guestScope(rows[0], now());
-        const existing = await tx.execute(sql`select id from runtime.competition_players
-        where platform=${platform} and app_id=${appId} and subject=${subject}`);
-        if (existing.length) throw new CompetitionError('IDENTITY_ALREADY_BOUND');
-        await tx.execute(sql`update runtime.competition_players set platform=${platform},app_id=${appId},subject=${subject}
-        where id=${playerId}`);
-        await tx.execute(sql`delete from runtime.competition_sessions where player_id=${playerId}`);
-        await tx.execute(
-          sql`delete from runtime.competition_refresh_tokens where player_id=${playerId}`,
-        );
-        return issue(tx, playerId);
-      })
-      .catch((error: unknown) => {
-        // The unique constraint also protects a rolling deployment with an older writer.
-        let cause = error;
-        for (let depth = 0; depth < 4 && cause && typeof cause === 'object'; depth++) {
-          if (
-            'code' in cause &&
-            cause.code === '23505' &&
-            'constraint' in cause &&
-            cause.constraint === 'competition_players_platform_app_id_subject_key'
-          )
-            throw new CompetitionError('IDENTITY_ALREADY_BOUND');
-          cause = 'cause' in cause ? cause.cause : undefined;
-        }
-        throw error;
-      });
   }
   async function profile(auth: PlayerAuth, patch?: string | ProfilePatch) {
     const playerId = playerIdOf(auth);
     if (patch === undefined)
       return db.transaction(async (tx) => {
-        await assertResourceAuth(
-          tx,
-          auth,
-          typeof auth === 'string' ? '' : (auth.guestGameScope ?? ''),
-          now(),
-        );
-        return ownProfile(playerId, tx);
+        await assertResourceAuth(tx, auth, typeof auth === 'string' ? '' : auth.game, now());
+        return ownProfile(playerId, tx, typeof auth === 'string' ? undefined : auth.game);
       });
     const input = profilePatchSchema.parse(typeof patch === 'string' ? { name: patch } : patch);
     return db.transaction(async (tx) => {
-      await assertResourceAuth(
-        tx,
-        auth,
-        typeof auth === 'string' ? '' : (auth.guestGameScope ?? ''),
-        now(),
-      );
+      await assertResourceAuth(tx, auth, typeof auth === 'string' ? '' : auth.game, now());
       const rows = await tx.execute(
         sql`select profile from runtime.competition_players where id=${playerId} for update`,
       );
@@ -205,14 +160,15 @@ export function createCompetitionIdentities(db: Database, now = Date.now) {
       const previous = rows[0].profile as Record<string, unknown> | null;
       const updated = {
         ...previous,
-        ...(input.avatarUrl !== undefined ? { avatarUrl: input.avatarUrl } : {}),
+        ...(input.avatarId !== undefined ? { avatarId: input.avatarId, avatarUrl: '' } : {}),
+        ...(input.avatarUrl !== undefined ? { avatarUrl: input.avatarUrl, avatarId: null } : {}),
         ...(input.region !== undefined ? { region: input.region } : {}),
         source: input.source ?? 'self-reported',
         updatedAt: now(),
       };
       await tx.execute(sql`update runtime.competition_players set
         display_name=coalesce(${input.nickname ?? input.name ?? null},display_name),profile=${JSON.stringify(updated)}::jsonb where id=${playerId}`);
-      return ownProfile(playerId, tx);
+      return ownProfile(playerId, tx, typeof auth === 'string' ? undefined : auth.game);
     });
   }
   async function identityDetails(auth: PlayerAuth | null) {
@@ -239,9 +195,8 @@ export function createCompetitionIdentities(db: Database, now = Date.now) {
       }),
     session,
     guestSession,
+    logout,
     refreshSession,
-    renewGuestSession,
-    upgrade,
     profile,
     identityDetails,
   };

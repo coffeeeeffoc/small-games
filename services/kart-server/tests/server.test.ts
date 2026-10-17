@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { once } from 'node:events';
 import { WebSocket } from 'ws';
-import { createKartServer } from '../src/server.ts';
+import { createKartServer as realKartServer } from '../src/server.ts';
 import type { ServerMessage, ClientMessage } from '@coffeeeeffoc/carding-car/protocol';
 import { aiInput } from '../../../games/local/carding-car/assets/scripts/KartAI.ts';
 import {
@@ -12,6 +12,18 @@ import {
   type KartControlLease,
 } from '../src/competition.ts';
 
+// Explicit verified identity fixture; production server has no anonymous fallback.
+function createKartServer(options: Parameters<typeof realKartServer>[0] = {}) {
+  return realKartServer({
+    competition: {
+      verify: async (token) => ({ playerId: token }),
+      settle: async () => {},
+      saved: () => false,
+    },
+    ...options,
+  });
+}
+let fixturePlayer = 0;
 const appearance = { name: '小车手', vehicle: 'classic-kart', driver: 'rookie', version: 2 };
 const create: ClientMessage = {
   type: 'create',
@@ -20,111 +32,118 @@ const create: ClientMessage = {
   route: 'seaside',
   bots: 1,
 };
-for (const failure of ['revoked', 'expired', 'transient'])
-  test(`ranked sockets revalidate ${failure} credentials and never expose private member proofs`, async () => {
-    let clock = 100000,
-      revoked = false,
-      settlements = 0;
-    const tokens = ['ranked-member-a-secret-token', 'ranked-member-b-secret-token'];
-    const frames: string[] = [];
-    const server = createKartServer({
-      autoTick: false,
-      now: () => clock,
-      competition: {
-        async verify(token) {
-          if (revoked && failure === 'revoked')
-            throw Object.assign(new Error('SESSION_EXPIRED'), { code: 'SESSION_EXPIRED' });
-          if (revoked && failure === 'transient') throw new Error('fixture transport unavailable');
-          return {
-            playerId: tokens.indexOf(token) === 0 ? 'player-a' : 'player-b',
-            expiresAt: revoked && failure === 'expired' ? clock - 1 : 900000,
-          };
+for (const ranked of [true, false])
+  for (const failure of ['revoked', 'expired', 'transient'])
+    test(`ranked=${ranked} sockets revalidate ${failure} credentials and never expose private member proofs`, async () => {
+      let clock = 100000,
+        revoked = false,
+        settlements = 0;
+      const tokens = ['ranked-member-a-secret-token', 'ranked-member-b-secret-token'];
+      const frames: string[] = [];
+      const server = createKartServer({
+        autoTick: false,
+        now: () => clock,
+        competition: {
+          async verify(token) {
+            if (revoked && failure === 'revoked')
+              throw Object.assign(new Error('SESSION_EXPIRED'), { code: 'SESSION_EXPIRED' });
+            if (revoked && failure === 'transient')
+              throw new Error('fixture transport unavailable');
+            return {
+              playerId: tokens.indexOf(token) === 0 ? 'player-a' : 'player-b',
+              expiresAt: revoked && failure === 'expired' ? clock - 1 : 900000,
+            };
+          },
+          settle: async () => {
+            settlements++;
+          },
+          saved: () => false,
         },
-        settle: async () => {
-          settlements++;
-        },
-        saved: () => false,
-      },
-    });
-    await server.app.listen({ host: '127.0.0.1', port: 0 });
-    const { port } = server.app.server.address() as { port: number };
-    const a = await peer(`ws://127.0.0.1:${port}/kart`),
-      b = await peer(`ws://127.0.0.1:${port}/kart`);
-    for (const connection of [a, b])
-      connection.socket.on('message', (data) => frames.push(data.toString()));
-    try {
-      a.send({ ...create, ranked: true, competitionToken: tokens[0] });
-      const joined = await a.wait('joined');
-      b.send({ type: 'join', ...appearance, code: joined.room.code, competitionToken: tokens[1] });
-      await b.wait('joined');
-      for (const client of [a, b]) {
-        client.send({ type: 'prepared', revision: 1 });
-        client.send({ type: 'ready', ready: true });
-      }
-      await a.wait(
-        'room',
-        (m) => m.room.members.length === 2 && m.room.members.every((p) => p.ready),
-      );
-      a.send({ type: 'start' });
-      await a.wait('room', (m) => m.room.phase === 'loading');
-      a.send({ type: 'loaded', raceId: 1 });
-      b.send({ type: 'loaded', raceId: 1 });
-      await a.wait('room', (m) => m.room.phase === 'racing');
-      const room = server.rooms.get(joined.room.code)!;
-      revoked = true;
-      clock += 10001;
-      server.step();
-      await new Promise((resolve) => setImmediate(resolve));
-      const before = room.race!.time,
-        seq = room.members[0].seq,
-        beforeTick = room.tick;
-      a.send({
-        type: 'input',
-        raceId: 1,
-        seq: seq + 1,
-        input: { steer: 0, throttle: 1, brake: false, drift: false },
       });
-      a.send({ type: 'ready', ready: true });
-      assert.equal(
-        (await a.wait('error')).message,
-        failure === 'transient' ? 'IDENTITY_UNAVAILABLE' : 'SESSION_EXPIRED',
-      );
-      assert.equal(room.members[0].seq, seq);
-      const race = room.race!;
-      server.step();
-      assert.equal(race.time, before);
-      assert.equal(settlements, 0);
-      if (failure === 'transient') {
-        assert.equal(server.rooms.has(joined.room.code), true);
-        assert.equal(room.identityPaused, true);
-        revoked = false;
-        a.send({ type: 'ready', ready: true });
+      await server.app.listen({ host: '127.0.0.1', port: 0 });
+      const { port } = server.app.server.address() as { port: number };
+      const a = await peer(`ws://127.0.0.1:${port}/kart`),
+        b = await peer(`ws://127.0.0.1:${port}/kart`);
+      for (const connection of [a, b])
+        connection.socket.on('message', (data) => frames.push(data.toString()));
+      try {
+        a.send({ ...create, ranked, competitionToken: tokens[0] });
+        const joined = await a.wait('joined');
+        b.send({
+          type: 'join',
+          ...appearance,
+          code: joined.room.code,
+          competitionToken: tokens[1],
+        });
+        await b.wait('joined');
+        for (const client of [a, b]) {
+          client.send({ type: 'prepared', revision: 1 });
+          client.send({ type: 'ready', ready: true });
+        }
         await a.wait(
-          'error',
-          (m) => !['IDENTITY_UNAVAILABLE', 'SESSION_EXPIRED'].includes(m.message),
+          'room',
+          (m) => m.room.members.length === 2 && m.room.members.every((p) => p.ready),
         );
+        a.send({ type: 'start' });
+        await a.wait('room', (m) => m.room.phase === 'loading');
+        a.send({ type: 'loaded', raceId: 1 });
+        b.send({ type: 'loaded', raceId: 1 });
+        await a.wait('room', (m) => m.room.phase === 'racing');
+        const room = server.rooms.get(joined.room.code)!;
+        revoked = true;
+        clock += 10001;
+        server.step();
+        await new Promise((resolve) => setImmediate(resolve));
+        const before = room.race!.time,
+          seq = room.members[0].seq,
+          beforeTick = room.tick;
         a.send({
           type: 'input',
           raceId: 1,
           seq: seq + 1,
           input: { steer: 0, throttle: 1, brake: false, drift: false },
         });
-        await new Promise((resolve) => setImmediate(resolve));
-        server.step();
+        a.send({ type: 'ready', ready: true });
+        assert.equal(
+          (await a.wait('error')).message,
+          failure === 'transient' ? 'IDENTITY_UNAVAILABLE' : 'SESSION_EXPIRED',
+        );
         assert.equal(room.members[0].seq, seq);
-        assert.ok(room.tick > beforeTick);
-      } else assert.equal(server.rooms.has(joined.room.code), false);
-      assert.ok(tokens.every((token) => !frames.join('').includes(token)));
-      assert.doesNotMatch(
-        frames.join(''),
-        /tokenHash|refreshToken|validUntil|checkAt|guestGameScope/,
-      );
-    } finally {
-      a.socket.terminate();
-      b.socket.terminate();
-      await server.app.close();
-    }
-  });
+        const race = room.race!;
+        server.step();
+        assert.equal(race.time, before);
+        assert.equal(settlements, 0);
+        if (failure === 'transient') {
+          assert.equal(server.rooms.has(joined.room.code), true);
+          assert.equal(room.identityPaused, true);
+          revoked = false;
+          a.send({ type: 'ready', ready: true });
+          await a.wait(
+            'error',
+            (m) => !['IDENTITY_UNAVAILABLE', 'SESSION_EXPIRED'].includes(m.message),
+          );
+          a.send({
+            type: 'input',
+            raceId: 1,
+            seq: seq + 1,
+            input: { steer: 0, throttle: 1, brake: false, drift: false },
+          });
+          await new Promise((resolve) => setImmediate(resolve));
+          server.step();
+          assert.equal(room.members[0].seq, seq);
+          assert.ok(room.tick > beforeTick);
+        } else assert.equal(server.rooms.has(joined.room.code), false);
+        assert.ok(tokens.every((token) => !frames.join('').includes(token)));
+        assert.doesNotMatch(
+          frames.join(''),
+          /tokenHash|refreshToken|validUntil|checkAt|guestGameScope/,
+        );
+      } finally {
+        a.socket.terminate();
+        b.socket.terminate();
+        await server.app.close();
+      }
+    });
 test('failed lease acknowledgement cannot extend tick/input/settlement authority', async () => {
   let clock = 100000,
     version = 1,
@@ -470,6 +489,7 @@ test('Nginx clients have separate connection quotas only when proxy trust is exp
   }
 });
 async function peer(url: string) {
+  const fixtureId = ++fixturePlayer;
   const socket = new WebSocket(url);
   const messages: ServerMessage[] = [];
   socket.on('message', (data) => messages.push(JSON.parse(data.toString())));
@@ -477,7 +497,16 @@ async function peer(url: string) {
   return {
     socket,
     messages,
-    send: (value: unknown) => socket.send(JSON.stringify(value)),
+    send: (value: unknown) => {
+      const message = value as Record<string, unknown>;
+      socket.send(
+        JSON.stringify(
+          ['create', 'join'].includes(String(message.type))
+            ? { competitionToken: 'verified-fixture-' + fixtureId, ...message }
+            : message,
+        ),
+      );
+    },
     async wait<T extends ServerMessage['type']>(
       type: T,
       predicate: (m: Extract<ServerMessage, { type: T }>) => boolean = () => true,
@@ -633,11 +662,15 @@ test('real sockets create, join, configure, load, race, reconnect, finish and re
     await once(resumed.socket, 'close');
     clock += 61000;
     server.step();
+    await new Promise((resolve) => setImmediate(resolve));
+    server.step();
     assert.equal(room.state.phase, 'lobby', 'loading cannot hang forever after a friend leaves');
     a.socket.close();
     await once(a.socket, 'close');
     await new Promise((resolve) => setTimeout(resolve, 10));
     clock += 31000;
+    server.step();
+    await new Promise((resolve) => setImmediate(resolve));
     server.step();
     assert.equal(server.rooms.size, 0);
     const expired = await peer(url);
@@ -706,7 +739,7 @@ test('ranked sockets require distinct verified players and settle legal simulate
     duplicate = await peer(url);
   try {
     a.send({ ...create, ranked: true });
-    assert.match((await a.wait('error')).message, /有效玩家身份/);
+    assert.match((await a.wait('error')).message, /LOGIN_REQUIRED|身份验证失败/);
     a.send({ ...create, ranked: true, competitionToken: 'fabricated-token-value' });
     assert.match((await a.wait('error')).message, /身份验证失败/);
     a.send({
@@ -797,6 +830,26 @@ test('ranked sockets require distinct verified players and settle legal simulate
     assert.equal(room.state.settlement, 'saved');
   } finally {
     [a, b, duplicate].forEach((client) => client.socket.terminate());
+    await server.app.close();
+  }
+});
+
+test('casual and ranked admission require verified credentials even with an origin-approved socket', async () => {
+  const server = realKartServer({ autoTick: false });
+  await server.app.listen({ host: '127.0.0.1', port: 0 });
+  const client = await peer(
+    `ws://127.0.0.1:${(server.app.server.address() as { port: number }).port}/kart`,
+  );
+  try {
+    for (const ranked of [false, true]) {
+      client.send({ ...create, ranked, competitionToken: undefined });
+      assert.equal((await client.wait('error')).message, 'LOGIN_REQUIRED');
+      client.send({ ...create, ranked, competitionToken: 'unverified-bearer-token' });
+      assert.equal((await client.wait('error')).message, 'IDENTITY_UNAVAILABLE');
+    }
+    assert.equal(server.rooms.size, 0);
+  } finally {
+    client.socket.terminate();
     await server.app.close();
   }
 });

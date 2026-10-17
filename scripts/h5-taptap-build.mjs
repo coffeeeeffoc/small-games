@@ -370,7 +370,7 @@ export async function buildH5Packages(
           serviceConfig = await prepareH5Service(game, dist, {
             env: buildEnv,
             local: Boolean(values.local),
-            identityMode: 'ephemeral',
+            identityMode: 'persistent',
           }),
           files = await inventory(dist);
         assert(
@@ -389,7 +389,7 @@ export async function buildH5Packages(
         );
         const manifest = {
           profile: selection?.profile ?? null,
-          identityMode: 'ephemeral',
+          identityMode: 'persistent',
           name,
           game,
           platform: 'taptap-h5',

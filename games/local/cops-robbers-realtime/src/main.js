@@ -385,6 +385,10 @@ async function refreshBoard() {
     for (const row of data.top) {
       const item = document.createElement('li'),
         time = document.createElement('b');
+      const avatar = document.createElement('span');
+      avatar.style.cssText = 'display:inline-block;flex:none;width:32px;height:32px;border-radius:50%;margin-right:8px';
+      globalThis.__competition?.renderAvatar?.(avatar, row, globalThis.__competition.avatarPolicy);
+      item.append(avatar);
       item.append(document.createTextNode(row.name || '玩家'));
       time.textContent = formatRecord(row.elapsedMs / 1000);
       item.append(time);

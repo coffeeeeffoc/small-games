@@ -57,6 +57,16 @@ test('outbox survives restart and retries the same result after HTTP failure', a
   };
   let integration = await createCompetition({ url, key, directory });
   try {
+    await assert.rejects(
+      integration.settle({ ...result, token: 'must-never-be-persisted' } as typeof result),
+    );
+    await assert.rejects(
+      integration.settle({
+        ...result,
+        entries: [{ playerId: randomUUID(), elapsedMs: 1500, bearer: 'private' }],
+      } as typeof result),
+    );
+    assert.deepEqual(await readdir(directory), []);
     await integration.settle(result);
     await integration.flush();
     assert.deepEqual(await readdir(directory), [`${result.matchId}.json`]);

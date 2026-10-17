@@ -31,7 +31,12 @@ integration(
     const prefix = `http://127.0.0.1:${address.port}/api/competition/v1/three-choose-two`;
     const credentials: { playerId: string; token: string; expiresAt: number }[] = [];
     const native = async () => {
-      const credential = await identities.session('wechat', `test-${randomUUID()}`, randomUUID());
+      const credential = await identities.session(
+        'wechat',
+        `test-${randomUUID()}`,
+        randomUUID(),
+        'three-choose-two',
+      );
       credentials.push(credential);
       return credential;
     };
@@ -60,8 +65,10 @@ integration(
       const a = await native(),
         b = await native(),
         c = await native();
-      const guest = await identities.session();
-      credentials.push(guest);
+      const guest = await native();
+      await database.db.execute(
+        sql`update runtime.competition_sessions set game='' where player_id=${guest.playerId}`,
+      );
       const [first, resumed] = await Promise.all([
         request('/session', a, {}),
         request('/session', a, {}),
@@ -173,17 +180,8 @@ integration(
       expect(lower.settlement.isPersonalBest).toBe(false);
       expect(lower.settlement.personalBest).toBe(scoringState.score);
       expect((await request('/board', c)).me.achievedAt).toBe(scored.settlement.finishedAt);
-      const guestGame = await request('/session', guest, {});
-      expect(guestGame.eligible).toBe(false);
-      expect((await request(`/session/${guestGame.id}/finish`, guest, {})).settlement.status).toBe(
-        'ineligible',
-      );
-      const guestBoard = await request('/board', guest);
-      expect(guestBoard.me).toBeNull();
-      expect(
-        guestBoard.top.some((entry: { playerId: string }) => entry.playerId === guest.playerId),
-      ).toBe(false);
-      expect(guestBoard.reason).toContain('登录');
+      await request('/session', guest, {}, 401);
+      await request('/board', guest, undefined, 401);
       time += 86_400_001;
       // This probe expires the game run, not the player's authentication.
       for (const credential of [a, b, c]) {
@@ -194,6 +192,7 @@ integration(
           'wechat',
           String(account[0]!.app_id),
           String(account[0]!.subject),
+          'three-choose-two',
         );
         expect(renewed.userId).toBe(credential.playerId);
         Object.assign(credential, renewed);

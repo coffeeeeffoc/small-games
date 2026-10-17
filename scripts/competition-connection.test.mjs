@@ -10,8 +10,15 @@ const source = await readFile(
 function fixture({ cached = true, fail = 'transport' } = {}) {
   let mode = fail;
   const credential = JSON.stringify({
-    token: 'PRIVATE_BEARER',
-    refreshToken: 'PRIVATE_REFRESH',
+    token: 'a'.repeat(64),
+    refreshToken: 'b'.repeat(64),
+    identityKind: 'guest',
+    game: 'cops-robbers',
+    userId: 'player',
+    sessionId: '10000000-0000-4000-8000-000000000001',
+    refreshExpiresAt: Date.now() + 86400000,
+    apiAuthority:
+      'https://PRIVATE_USER:PRIVATE_PASSWORD@api.example.test/small-games/v1?PRIVATE_API_QUERY#PRIVATE_API_HASH|h5||cops-robbers',
     expiresAt: Date.now() + 3600000,
   });
   const context = {
@@ -35,6 +42,7 @@ function fixture({ cached = true, fail = 'transport' } = {}) {
   runInNewContext(source, context);
   context.__installCompetition({
     platform: 'h5',
+    game: 'cops-robbers',
     apiUrl:
       'https://PRIVATE_USER:PRIVATE_PASSWORD@api.example.test/small-games/v1?PRIVATE_API_QUERY#PRIVATE_API_HASH',
   });
@@ -72,9 +80,9 @@ test('request diagnostics retain only fixed safe fields for their own error', as
   assert(Object.isFrozen(f.client.connectionInfo(first)));
   assert(Object.isFrozen(f.client.connectionInfo(first).headerNames));
 });
-test('first guest failure identifies the session stage without claiming CORS', async () => {
+test('automatic identity failure identifies the session stage without claiming CORS', async () => {
   const f = fixture({ cached: false });
-  const error = await f.client.request('/me').catch((value) => value);
+  const error = await f.client.session().catch((value) => value);
   const info = plain(f.client.connectionInfo(error));
   assert.equal(info.stage, 'session_transport');
   assert.equal(info.method, 'POST');

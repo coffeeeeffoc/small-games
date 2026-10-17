@@ -1,7 +1,28 @@
 import { z } from 'zod';
+import { randomInt } from 'node:crypto';
+
+export const AVATAR_IDS = [
+  'cat',
+  'fox',
+  'panda',
+  'rabbit',
+  'bear',
+  'owl',
+  'koala',
+  'tiger',
+] as const;
+export function anonymousProfile() {
+  const adjectives = ['快乐', '勇敢', '灵巧', '悠闲', '机灵', '活力', '自在', '好奇'];
+  const animals = ['小猫', '狐狸', '熊猫', '兔子', '小熊', '猫头鹰', '考拉', '老虎'];
+  return {
+    nickname: adjectives[randomInt(adjectives.length)]! + animals[randomInt(animals.length)]!,
+    avatarId: AVATAR_IDS[randomInt(AVATAR_IDS.length)]!,
+  };
+}
 
 // Only known platform image hosts. Unknown providers keep the default avatar until reviewed.
 export const avatarPolicy = {
+  presets: AVATAR_IDS,
   origins: [
     'https://img.tapimg.net',
     'https://img2.tapimg.com',
@@ -62,6 +83,7 @@ export const profilePatchSchema = z
   .object({
     name: nicknameSchema.optional(),
     nickname: nicknameSchema.optional(),
+    avatarId: z.enum(AVATAR_IDS).optional(),
     avatarUrl: z.string().max(2048).refine(safeAvatarUrl).optional(),
     region: regionSchema.optional(),
     source: z.enum(['self-reported', 'user-authorized']).optional(),
@@ -71,8 +93,11 @@ export const profilePatchSchema = z
     (value) =>
       value.name === undefined || value.nickname === undefined || value.name === value.nickname,
   )
+  .refine((value) => value.avatarId === undefined || value.avatarUrl === undefined)
   .refine((value) =>
-    [value.name, value.nickname, value.avatarUrl, value.region].some((item) => item !== undefined),
+    [value.name, value.nickname, value.avatarId, value.avatarUrl, value.region].some(
+      (item) => item !== undefined,
+    ),
   );
 export type ProfilePatch = z.infer<typeof profilePatchSchema>;
 
@@ -89,6 +114,7 @@ export function publicProfile(row: Record<string, unknown>) {
     userId: String(row.id ?? row.playerId),
     nickname: nickname.success ? nickname.data : '新玩家',
     name: nickname.success ? nickname.data : '新玩家',
+    avatarId: z.enum(AVATAR_IDS).safeParse(stored.avatarId).data ?? null,
     avatarUrl:
       typeof stored.avatarUrl === 'string' &&
       stored.avatarUrl.length <= 2048 &&
@@ -138,6 +164,7 @@ export function publicRankingRow(value: unknown) {
       id: playerId,
       name: row.name ?? row.nickname,
       profile: {
+        avatarId: row.avatarId,
         avatarUrl: row.avatarUrl,
         region: row.region,
         source: row.profileSource,

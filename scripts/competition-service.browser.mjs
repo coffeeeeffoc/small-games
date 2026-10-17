@@ -96,13 +96,74 @@ try {
       page.on('request', (req) => {
         if (/\/api\//.test(req.url())) requests.push(req.url());
       });
-      await page.route('https://fixture.example/**', (route) =>
-        route.fulfill({
-          status: 503,
+      let issued = 0;
+      const player = {
+        userId: '00000000-0000-4000-8000-000000000001',
+        playerId: '00000000-0000-4000-8000-000000000001',
+        sessionId: '10000000-0000-4000-8000-000000000001',
+        game,
+        identityKind: 'guest',
+        identityMode: 'persistent',
+        name: '快乐熊猫',
+        nickname: '快乐熊猫',
+        avatarId: 'panda',
+        avatarUrl: '',
+        region: null,
+        profileUpdatedAt: 1,
+        token: 'a'.repeat(64),
+        refreshToken: 'b'.repeat(64),
+        expiresAt: Date.now() + 900000,
+        refreshExpiresAt: Date.now() + 86400000,
+        avatarPolicy: {
+          presets: ['cat', 'fox', 'panda', 'rabbit', 'bear', 'owl', 'koala', 'tiger'],
+          origins: [],
+          maxBytes: 1048576,
+        },
+      };
+      await page.route('https://fixture.example/**', async (route) => {
+        const path = new URL(route.request().url()).pathname;
+        let result = player;
+        if (path.endsWith('/sessions/guest')) {
+          issued++;
+          assert.deepEqual(route.request().postDataJSON(), { game });
+        } else {
+          assert.equal(route.request().headers().authorization, 'Bearer ' + player.token);
+          if (path.endsWith('/me') && route.request().method() === 'POST') {
+            Object.assign(player, route.request().postDataJSON());
+            player.nickname = player.name;
+            player.profileUpdatedAt++;
+          }
+          if (path.includes('/boards/'))
+            result = {
+              game,
+              total: 2,
+              eligiblePlayers: 2,
+              version:
+                game === 'cops-robbers' ? 'roles-initiative-duel-v2' : 'street-roles-initiative-v3',
+              roles: ['pursuer', 'runner'],
+              modes: (game === 'cops-robbers' ? ['escape', 'survival'] : ['classic', 'escape']).map(
+                (id) => ({ id, title: id }),
+              ),
+              top: [
+                { ...player, rank: 1, score: 30, secondary: 1000 },
+                {
+                  ...player,
+                  playerId: '00000000-0000-4000-8000-000000000002',
+                  rank: 2,
+                  score: 20,
+                  secondary: 2000,
+                },
+              ],
+              me: { ...player, rank: 1, score: 30, secondary: 1000 },
+              gap: null,
+            };
+        }
+        await route.fulfill({
+          status: 200,
           contentType: 'application/json',
-          body: '{"error":"SERVICE_UNAVAILABLE"}',
-        }),
-      );
+          body: JSON.stringify(result),
+        });
+      });
       await page.goto(
         `${origin}/${mode}/${game}/?server=https://legacy.invalid#room=ABCDEF12&server=https://legacy.invalid`,
       );
@@ -120,7 +181,34 @@ try {
       } else {
         await expect(page.locator(selector)).toBeVisible();
         await page.locator(selector).tap();
-        await expect.poll(() => requests.length).toBeGreaterThan(0);
+        await expect(page.locator('[data-profile-name]')).toHaveText('快乐熊猫');
+        assert.equal(issued, 1);
+        await page.locator('[data-profile]').tap();
+        await expect(page.locator('[data-avatar-id]')).toHaveCount(8);
+        await page.locator('[data-avatar-id="fox"]').tap();
+        await page.locator('[name="name"]').fill('机灵狐狸');
+        await page.screenshot({ path: path.join(output, `${game}-profile.png`) });
+        await page
+          .locator(
+            game === 'cops-robbers-realtime'
+              ? '[data-save-name]'
+              : '.pk-profile-form button[type="submit"]',
+          )
+          .tap();
+        await expect(page.locator('[data-profile-name]')).toHaveText('机灵狐狸');
+        await page.locator('[data-board]:visible').first().tap();
+        await expect(page.locator('[data-preset="fox"]:visible').first()).toBeVisible();
+        const visible = await page.locator('body').innerText();
+        assert(!visible.includes(player.userId));
+        assert(!visible.includes('#000000'));
+        assert(!/注册|密码|退出登录/.test(visible));
+        await page.screenshot({ path: path.join(output, `${game}-board.png`) });
+        await page.reload();
+        if (game === 'xiangqi-five') await page.locator('#home-start').tap();
+        await page.locator(selector).tap();
+        await expect(page.locator('[data-profile-name]')).toHaveText('机灵狐狸');
+        assert.equal(issued, 1, 'reload must retain the same identity');
+        await expect(page.locator('[data-avatar][data-preset="fox"]')).toBeVisible();
         assert(
           requests.every((url) => url.startsWith('https://fixture.example/api/competition/v1/')),
         );

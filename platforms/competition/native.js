@@ -1,5 +1,6 @@
 import './client.js';
 import { scoreText, gapText, playerName } from './format.js';
+import { avatars, drawAvatar } from './avatars.js';
 const competitionGames = new Set([
   'cops-robbers',
   'cops-robbers-realtime',
@@ -239,6 +240,7 @@ export function startNativeCompetition(sdk, config, createRenderer) {
     message = '已进入再战房间，邀请好友后请双方准备。';
   }
   let profile = null,
+    choosingAvatar = false,
     keyboardTarget = 'code',
     modes = [],
     modeIndex = 0,
@@ -322,6 +324,35 @@ export function startNativeCompetition(sdk, config, createRenderer) {
     hits = [];
     ctx.font = '14px sans-serif';
     ctx.fillStyle = '#fff';
+    if (choosingAvatar) {
+      ctx.fillText('选择头像', 20, top + 30);
+      const choices = avatars.filter((avatar) => client.avatarPolicy?.presets?.includes(avatar.id));
+      const cell = Math.min(80, (width - 40) / 4);
+      choices.forEach((avatar, index) => {
+        const x = 20 + (index % 4) * cell,
+          y = top + 60 + Math.floor(index / 4) * 86;
+        drawAvatar(ctx, avatar.id, x + 3, y, cell - 6);
+        hits.push({
+          x,
+          y,
+          w: cell,
+          h: Math.max(44, cell),
+          action: () =>
+            void act(async () => {
+              profile = await client.request('/me', {
+                body: JSON.stringify({ avatarId: avatar.id }),
+              });
+              if (board) board = await client.request('/boards/' + config.game);
+              choosingAvatar = false;
+              message = '头像已保存';
+            }),
+        });
+      });
+      button('返回', 20, top + 250, width - 40, () => {
+        choosingAvatar = false;
+      });
+      return;
+    }
     if (street && !invitationPanel && !rulesOpen) {
       if (room?.status === 'playing') {
         renderer.draw(ctx, width, height - 54, room.state);
@@ -357,20 +388,19 @@ export function startNativeCompetition(sdk, config, createRenderer) {
       });
       ctx.fillText(message, 20, 70, width - 40);
       if (board && !room) {
-        board.top
-          .slice(boardPage * 5, boardPage * 5 + 5)
-          .forEach((row, i) =>
-            ctx.fillText(
-              row.rank +
-                '. ' +
-                playerName(row, board.top) +
-                ' ' +
-                scoreText(config.game, row.score, row.secondary),
-              24,
-              108 + i * 32,
-              width - 48,
-            ),
+        board.top.slice(boardPage * 5, boardPage * 5 + 5).forEach((row, i) => {
+          drawAvatar(ctx, row.avatarId, 24, 88 + i * 36, 28);
+          ctx.fillText(
+            row.rank +
+              '. ' +
+              playerName(row, board.top) +
+              (row.playerId === profile?.playerId ? '（你） ' : ' ') +
+              scoreText(config.game, row.score, row.secondary),
+            60,
+            108 + i * 36,
+            width - 84,
           );
+        });
         button('上一页', 20, height - 58, 100, () => {
           boardPage = Math.max(0, boardPage - 1);
         });
@@ -425,6 +455,9 @@ export function startNativeCompetition(sdk, config, createRenderer) {
           initiative = { random: 'pursuer', pursuer: 'runner', runner: 'random' }[initiative];
         });
         button('昵称：' + (profile?.name || '新玩家'), 20, height - 58, 220, editName);
+        button('头像', 252, height - 58, 80, () => {
+          choosingAvatar = true;
+        });
         return;
       }
       room.players.forEach((player, i) =>
@@ -578,9 +611,12 @@ export function startNativeCompetition(sdk, config, createRenderer) {
         '昵称：' + (profile?.name || '新玩家') + ' · 修改',
         12,
         top + 184,
-        width - 24,
+        width - 112,
         editName,
       );
+      button('头像', width - 92, top + 184, 80, () => {
+        choosingAvatar = true;
+      });
       if (modes.length && !board) {
         button('模式：' + modes[modeIndex].title, 12, top + 238, width - 24, () => {
           modeIndex = (modeIndex + 1) % modes.length;
@@ -596,19 +632,20 @@ export function startNativeCompetition(sdk, config, createRenderer) {
         const pageSize = Math.max(1, Math.min(8, Math.floor((height - top - 315 - bottom) / 48)));
         ctx.font = '12px sans-serif';
         board.top.slice(boardPage * pageSize, (boardPage + 1) * pageSize).forEach((row, i) => {
+          drawAvatar(ctx, row.avatarId, 14, top + 236 + i * 48, 32);
           ctx.fillStyle = '#fff';
           ctx.fillText(
             `${row.rank}. ${playerName(row, board.top)}${row.playerId === profile?.playerId ? '（你）' : ''}`,
-            14,
+            54,
             top + 252 + i * 48,
-            width - 28,
+            width - 68,
           );
           ctx.fillStyle = '#a9d1c5';
           ctx.fillText(
             scoreText(config.game, row.score, row.secondary),
-            28,
+            54,
             top + 270 + i * 48,
-            width - 42,
+            width - 68,
           );
         });
         if (!board.top.length)

@@ -9,7 +9,7 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 export function h5ServiceConfig(game, { env = process.env, local = false, identityMode } = {}) {
   if (
     identityMode !== undefined &&
-    (identityMode !== 'ephemeral' ||
+    (identityMode !== 'persistent' ||
       !['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'].includes(game))
   )
     throw new Error('Unknown managed identity mode');

@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import stat
 import subprocess
 import time
@@ -84,13 +85,13 @@ def inspect_container(identifier):
     return json_value(command('docker', 'inspect', '--format', projection, identifier))
 
 
-def check_inventory(items):
+def check_inventory(items, writers_running=False):
     require(isinstance(items, dict) and set(items) == {'runtime','kart','management','postgres','nginx','web'}, 'CONTROL_INVENTORY')
     for name, expected in items.items():
         require(isinstance(expected, dict), 'CONTROL_INVENTORY')
         actual = inspect_container(expected.get('id'))
         require(all(actual.get(key) == expected.get(key) for key in ('id','image','mounts','ports','networkMode')), 'CONTROL_RESOURCE_CHANGED')
-        require(actual['running'] is (name in ('postgres','web')), 'CONTROL_WRITER_RUNNING')
+        require(actual['running'] is (writers_running or name in ('postgres','web')), 'CONTROL_WRITER_RUNNING')
         require(set(actual['networks']) == set(expected['networks']), 'CONTROL_RESOURCE_CHANGED')
     return items['postgres']['id']
 
@@ -413,11 +414,15 @@ def restore_proof(pg, backup, roles, migration, parts, before, directory, observ
         return first['full'], contract
 
 
-def provision_control_database(*, release, source_sha, migration_sha256, inventory):
-    submitted, committed, preserved = False, False, False
-    before, pg, parts = None, None, None
+def preflight_control_database(*, release, source_sha, migration_sha256, inventory, writers_running=False):
+    """Same deployment owner as the coordinator; only metadata reads and READ ONLY SQL."""
     try:
-        require(os.geteuid() == 0, 'CONTROL_OWNER_REQUIRED')
+        private_directory(PRIVATE)
+        private_directory(PRIVATE / release.name)
+        directory = PRIVATE / release.name
+        for file in directory.iterdir():
+            require(file.name == 'control-journal.json', 'CONTROL_PRIVATE_NOT_EMPTY')
+            private_metadata(file)
         require(isinstance(release, Path) and release.parent == BASE and release.resolve(strict=True) == release
                 and re.fullmatch(r'[a-z0-9-]{1,100}', release.name) and digest(source_sha,40), 'CONTROL_RELEASE')
         manifest = json_value((release / 'manifest.json').read_bytes())
@@ -428,11 +433,34 @@ def provision_control_database(*, release, source_sha, migration_sha256, invento
             require(file.resolve(strict=True) == file and manifest['files'].get(name) == hashlib.sha256(file.read_bytes()).hexdigest(), 'CONTROL_RELEASE_HASH')
         migration = migration_file(release, migration_sha256)
         parts = load_sql(release / 'control-fingerprint.sql')
-        pg = check_inventory(inventory)
-        require(psql(pg, "SELECT current_user='platform_owner' AND current_database()='small_games' AND current_setting('server_version_num')='170006' AND EXISTS(SELECT FROM pg_roles WHERE rolname=current_user AND rolsuper AND rolcanlogin) AND to_regnamespace('admin_console') IS NOT NULL AND to_regnamespace('game_control') IS NULL AND NOT EXISTS(SELECT FROM pg_stat_activity WHERE pid<>pg_backend_pid() AND backend_type='client backend');") == 't', 'CONTROL_DATABASE_IDENTITY')
-        private_directory(PRIVATE)
-        directory = PRIVATE / release.name
-        private_directory(directory)
+        scalar('docker', 'compose', 'version')
+        model = {'services': {'probe': {'image': 'unused', 'env_file': [{'path': '/dev/null', 'format': 'raw'}]}}}
+        command('docker', 'compose', '--env-file', '/dev/null', '-f', '-', 'config', '--quiet', input=encoded_json(model))
+        pg = check_inventory(inventory, writers_running=writers_running)
+        for tool in ('pg_dump', 'pg_dumpall', 'pg_restore'):
+            require(re.fullmatch(r'[^\n]+ \(PostgreSQL\) 17\.6(?:\s+[^\n]*)?',
+                    scalar('docker', 'exec', pg, tool, '--version')), 'CONTROL_PG_VERSION')
+        idle = '' if writers_running else " AND NOT EXISTS(SELECT FROM pg_stat_activity WHERE pid<>pg_backend_pid() AND backend_type='client backend')"
+        require(psql(pg, "BEGIN READ ONLY; SELECT current_setting('transaction_read_only')='on' AND current_user='platform_owner' AND current_database()='small_games' AND current_setting('server_version_num')='170006' AND EXISTS(SELECT FROM pg_roles WHERE rolname=current_user AND rolsuper AND rolcanlogin) AND to_regnamespace('admin_console') IS NOT NULL AND to_regnamespace('game_control') IS NULL AND (SELECT count(*) FROM pg_roles WHERE rolname IN ('management_app','runtime_app') AND rolcanlogin AND NOT rolsuper AND NOT rolcreatedb AND NOT rolcreaterole AND NOT rolreplication AND NOT rolbypassrls)=2" + idle + '; COMMIT;') == 't', 'CONTROL_DATABASE_IDENTITY')
+        profile = parts['contract'].replace(SCOPE, "WHERE n.nspname !~ '^pg_' AND n.nspname<>'information_schema'").replace(VERSIONS, "'[]'::jsonb")
+        require(psql(pg, 'BEGIN READ ONLY;\n' + parts['session'] + '\nSELECT supported FROM (' + profile + ') projected; COMMIT;') == 't', 'CONTROL_UNSUPPORTED_PROFILE')
+        size = psql(pg, "BEGIN READ ONLY; SELECT pg_database_size(current_database()); COMMIT;")
+        require(re.fullmatch(r'[0-9]+', size), 'CONTROL_DATABASE_IDENTITY')
+        require(shutil.disk_usage(directory).free >= max(67108864, int(size) * 3), 'CONTROL_DISK_SPACE')
+        return migration, parts, pg, directory
+    except BaseException as original:
+        code = original.code if isinstance(original, ControlDatabaseError) else 'CONTROL_PREFLIGHT_FAILED'
+        error = ControlDatabaseError(code, 'not_committed', True)
+        error.mutationReached = False
+        raise error from None
+
+
+def provision_control_database(*, release, source_sha, migration_sha256, inventory):
+    submitted, committed, preserved = False, False, False
+    before, pg, parts = None, None, None
+    try:
+        migration, parts, pg, directory = preflight_control_database(
+            release=release, source_sha=source_sha, migration_sha256=migration_sha256, inventory=inventory)
         before = state(pg, parts)
         require(state(pg, parts, True) == before, 'CONTROL_UNEXPECTED_SCHEMA')
         write_private(directory / 'control-before.json', encoded_json(before))
@@ -465,14 +493,102 @@ def provision_control_database(*, release, source_sha, migration_sha256, invento
                 'controlContract':contract, 'migrationArtifactSha256':migration_sha256}
     except BaseException as original:
         outcome = 'committed' if committed else ('unknown' if submitted else 'not_committed')
-        if not submitted and before is not None:
+        if not submitted and before is None:
+            preserved = True  # Only preflight reads / temporary fingerprint setup have run.
+        elif not submitted:
             try:
                 preserved = state(pg,parts) == before
             except BaseException:
                 preserved = False
         code = original.code if isinstance(original,ControlDatabaseError) else 'CONTROL_DATABASE_FAILED'
         error = ControlDatabaseError(code,outcome,preserved)
+        error.mutationReached = submitted
         for name in ('ownedContainerId','fixtureUUID','probeUUID','probeName','originalCode','sqlstate'):
             if hasattr(original,name):
                 setattr(error,name,getattr(original,name))
         raise error from None
+
+
+def player_session_migration(release):
+    manifest = json_value((release / 'manifest.json').read_bytes())
+    file = release / 'migrations/014-player-sessions.sql'
+    require(file.is_file() and file.resolve(strict=True) == file, 'CONTROL_MIGRATION_ARTIFACT')
+    migration = file.read_bytes()
+    checksum = hashlib.sha256(migration).hexdigest()
+    require(manifest['files'].get('migrations/014-player-sessions.sql') == checksum, 'CONTROL_RELEASE_HASH')
+    return manifest, checksum, migration_body(migration.decode('utf-8'))
+
+
+def player_session_metadata(pg, parts):
+    query = parts['contract'].replace(SCOPE, "WHERE n.nspname = 'runtime'").replace(VERSIONS, "'[]'::jsonb")
+    result = output_json(psql(pg, "BEGIN READ ONLY;" + parts['session'] + "SELECT '" + MARKER + "'||jsonb_build_object('supported',supported,'metadata',metadata)::text FROM (" + query + ") q;COMMIT;"))
+    require(result['supported'] is True, 'CONTROL_UNSUPPORTED_PROFILE')
+    return hashlib.sha256(encoded_json(result['metadata'])).hexdigest()
+
+
+def player_session_transaction(migration, parts, before, after):
+    guard = "IF EXISTS(SELECT FROM pg_stat_activity WHERE pid<>pg_backend_pid() AND backend_type='client backend') THEN RAISE EXCEPTION 'CONTROL_UNKNOWN_CLIENT'; END IF;"
+    return "BEGIN;" + parts['session'] + parts['fingerprint'] + """
+SET LOCAL lock_timeout='5s';
+SELECT pg_advisory_xact_lock(67602420261016);
+DO $pre$ DECLARE item record; BEGIN
+""" + guard + """
+FOR item IN SELECT n.nspname,c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+WHERE n.nspname !~ '^pg_' AND n.nspname<>'information_schema' AND c.relkind='r'
+ORDER BY n.nspname COLLATE "C",c.relname COLLATE "C" LOOP
+EXECUTE format('LOCK TABLE ONLY %I.%I IN ACCESS EXCLUSIVE MODE',item.nspname,item.relname);
+END LOOP;
+IF pg_temp.sg_control_state(false) IS DISTINCT FROM """ + sql_json(before) + """ THEN RAISE EXCEPTION 'CONTROL_SOURCE_CHANGED'; END IF;
+END $pre$;
+""" + migration + """
+DO $post$ BEGIN
+IF pg_temp.sg_control_state(false) IS DISTINCT FROM """ + sql_json(after) + """ THEN RAISE EXCEPTION 'CONTROL_PRODUCTION_PROOF'; END IF;
+""" + guard + "END $post$;COMMIT;"
+
+
+def provision_player_sessions(release, pg):
+    """014 runs after 002 under the same stopped-writer barrier, with its own restore proof."""
+    directory = PRIVATE / release.name
+    private_directory(directory)
+    manifest, checksum, migration = player_session_migration(release)
+    parts = load_sql(release / 'control-fingerprint.sql')
+    plan_file, completed = directory / 'player-sessions-precommit.json', directory / 'player-sessions-complete.json'
+    if completed.exists():
+        private_metadata(completed)
+        proof = json_value(completed.read_bytes())
+        require(proof.get('migrationSHA256') == checksum and proof.get('sourceSHA') == manifest['sourceSHA'], 'CONTROL_RELEASE_HASH')
+        require(proof.get('metadataSHA256') == player_session_metadata(pg, parts), 'CONTROL_CONTRACT_MISMATCH')
+        return proof
+    if plan_file.exists():
+        private_metadata(plan_file)
+        proof = json_value(plan_file.read_bytes())
+        require(proof.get('migrationSHA256') == checksum and proof.get('sourceSHA') == manifest['sourceSHA'], 'CONTROL_RELEASE_HASH')
+    else:
+        before = state(pg, parts)
+        backup, roles_file = directory / 'player-sessions.dump', directory / 'player-sessions-roles.sql'
+        if not roles_file.exists():
+            write_private(roles_file, command('docker', 'exec', pg, 'pg_dumpall', '-U', 'platform_owner', '--roles-only', '--no-role-passwords'))
+        if not backup.exists():
+            write_private(backup, command('docker', 'exec', pg, 'pg_dump', '-U', 'platform_owner', '-d', 'small_games', '--format=custom'))
+        private_metadata(backup)
+        private_metadata(roles_file)
+        with isolated_postgres(inspect_container(pg)['image']) as clone:
+            psql(clone, restore_roles_sql(roles_file.read_bytes()), 'postgres')
+            command('docker', 'exec', '-i', clone, 'pg_restore', '--exit-on-error', '--create', '-U', 'platform_owner', '-d', 'postgres', input=backup.read_bytes())
+            require(state(clone, parts) == before, 'CONTROL_RESTORE_FINGERPRINT')
+            psql(clone, 'BEGIN;' + migration + 'COMMIT;')
+            after = state(clone, parts)
+            psql(clone, player_session_transaction(migration, parts, after, after))
+            require(state(clone, parts) == after, 'CONTROL_NOT_IDEMPOTENT')
+            metadata = player_session_metadata(clone, parts)
+        proof = {'sourceSHA': manifest['sourceSHA'], 'migrationSHA256': checksum, 'before': before, 'after': after,
+                 'metadataSHA256': metadata, 'backupSHA256': hashlib.sha256(backup.read_bytes()).hexdigest()}
+        write_private(plan_file, encoded_json(proof))
+    actual = state(pg, parts)
+    require(actual in (proof['before'], proof['after']), 'CONTROL_SOURCE_CHANGED')
+    if actual == proof['before']:
+        psql(pg, player_session_transaction(migration, parts, proof['before'], proof['after']))
+    require(state(pg, parts) == proof['after'], 'CONTROL_PRODUCTION_PROOF')
+    require(player_session_metadata(pg, parts) == proof['metadataSHA256'], 'CONTROL_CONTRACT_MISMATCH')
+    write_private(completed, encoded_json(proof))
+    return proof

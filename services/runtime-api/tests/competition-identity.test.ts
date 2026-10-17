@@ -1,6 +1,12 @@
 import Fastify from 'fastify';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { profilePatchSchema, publicProfile, safeAvatarUrl } from '../src/competition/profile.js';
+import {
+  profilePatchSchema,
+  publicProfile,
+  publicRankingRow,
+  publicRoomResults,
+  safeAvatarUrl,
+} from '../src/competition/profile.js';
 import { registerCompetition } from '../src/competition/routes.js';
 import type { createCompetitionStore } from '../src/competition/store.js';
 
@@ -17,12 +23,16 @@ async function setup() {
   const app = Fastify();
   apps.push(app);
   const store = {
-    auth: vi.fn(async () => userId),
+    auth: vi.fn(
+      async (): Promise<string | { playerId: string; game: string }> => ({
+        playerId: userId,
+        game: 'cops-robbers',
+      }),
+    ),
     guestSession: vi.fn(async () => ({ userId, playerId: userId, token, refreshToken })),
     refreshSession: vi.fn(async () => ({ userId, playerId: userId, token, refreshToken })),
-    renewGuestSession: vi.fn(async () => ({ userId, playerId: userId, token, refreshToken })),
-    upgrade: vi.fn(async () => ({ userId, playerId: userId, token })),
     session: vi.fn(async () => ({ userId, playerId: userId, token })),
+    logout: vi.fn(async () => ({ ok: true })),
     profile: vi.fn(async () => ({ userId, playerId: userId, nickname: '玩家甲' })),
   };
   await registerCompetition(app, store as unknown as ReturnType<typeof createCompetitionStore>, {
@@ -34,32 +44,51 @@ async function setup() {
 }
 const auth = { authorization: `Bearer ${token}` };
 describe('shared identity HTTP trust boundary', () => {
-  it('creates guests with optional metadata but never authenticates an installation ID', async () => {
+  it('issues only a strict game-scoped anonymous identity and removes password and upgrade endpoints', async () => {
     const { app, store } = await setup();
-    const path = '/api/competition/v1/sessions/guest';
-    expect((await app.inject({ method: 'POST', url: path })).statusCode).toBe(200);
-    expect(store.guestSession).toHaveBeenLastCalledWith(undefined, undefined);
+    const url = '/api/competition/v1/sessions/guest';
     expect(
-      (await app.inject({ method: 'POST', url: path, payload: { installationId: userId } }))
-        .statusCode,
+      (await app.inject({ method: 'POST', url, payload: { game: 'cops-robbers' } })).statusCode,
     ).toBe(200);
-    expect(store.guestSession).toHaveBeenLastCalledWith(userId, undefined);
-    expect(
-      (await app.inject({ method: 'POST', url: path, payload: { identityVersion: 2 } })).statusCode,
-    ).toBe(200);
-    expect(store.guestSession).toHaveBeenLastCalledWith(undefined, 2);
+    expect(store.guestSession).toHaveBeenCalledWith({ game: 'cops-robbers' });
     for (const payload of [
-      { userId },
-      { playerId: userId },
-      { platformId: 'victim' },
-      { installationId: 'guess' },
-      { identityVersion: 1 },
-      { identityVersion: '2' },
-      { identityVersion: 3 },
-      { refreshToken },
+      {},
+      { game: 'unknown' },
+      { game: 'cops-robbers', userId },
+      { game: 'cops-robbers', installationId: userId },
+      { game: 'cops-robbers', identityVersion: 2 },
     ])
-      expect((await app.inject({ method: 'POST', url: path, payload })).statusCode).toBe(422);
-    expect(store.guestSession).toHaveBeenCalledTimes(3);
+      expect((await app.inject({ method: 'POST', url, payload })).statusCode).toBe(422);
+    expect(store.guestSession).toHaveBeenCalledTimes(1);
+    for (const endpoint of ['account/register', 'account/login', 'upgrade'])
+      expect(
+        (
+          await app.inject({
+            method: 'POST',
+            url: '/api/competition/v1/sessions/' + endpoint,
+            payload: {},
+          })
+        ).statusCode,
+      ).toBe(404);
+  });
+  it('rejects string-only identities on HTTP while logout accepts an old access proof', async () => {
+    const { app, store } = await setup();
+    store.auth.mockResolvedValue(userId);
+    expect((await app.inject({ url: '/api/competition/v1/me', headers: auth })).statusCode).toBe(
+      401,
+    );
+    expect(store.profile).not.toHaveBeenCalled();
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url: '/api/competition/v1/sessions/logout',
+          headers: auth,
+          payload: {},
+        })
+      ).statusCode,
+    ).toBe(200);
+    expect(store.logout).toHaveBeenCalledWith(token);
   });
   it('refresh requires only an opaque server secret and rejects owner overrides', async () => {
     const { app, store } = await setup();
@@ -77,64 +106,19 @@ describe('shared identity HTTP trust boundary', () => {
       expect((await app.inject({ method: 'POST', url: path, payload })).statusCode).toBe(422);
     expect(store.refreshSession).toHaveBeenCalledTimes(1);
   });
-  it('renews a valid legacy guest bearer without accepting a client owner claim', async () => {
+  it('legacy bearer renewal is refused rather than silently issuing a new identity', async () => {
     const { app, store } = await setup();
-    const path = '/api/competition/v1/sessions/refresh';
-    expect((await app.inject({ method: 'POST', url: path, payload: {} })).statusCode).toBe(401);
-    expect(store.renewGuestSession).not.toHaveBeenCalled();
-    expect(
-      (await app.inject({ method: 'POST', url: path, headers: auth, payload: {} })).statusCode,
-    ).toBe(200);
-    expect(store.renewGuestSession).toHaveBeenCalledWith(token);
     expect(
       (
         await app.inject({
           method: 'POST',
-          url: path,
+          url: '/api/competition/v1/sessions/refresh',
           headers: auth,
-          payload: { installationId: userId },
+          payload: {},
         })
       ).statusCode,
     ).toBe(422);
-    expect(store.renewGuestSession).toHaveBeenCalledTimes(1);
-  });
-  it('upgrade verifies both the existing bearer and official platform code without trusting IDs', async () => {
-    const { app, store } = await setup();
-    const fetch = vi.fn(async () => ({
-      ok: true,
-      json: async () => ({ openid: 'verified-subject', session_key: 'private' }),
-    }));
-    vi.stubGlobal('fetch', fetch);
-    const path = '/api/competition/v1/sessions/upgrade';
-    const payload = { platform: 'taptap', appId: 'app-a', code: 'one-use' };
-    expect((await app.inject({ method: 'POST', url: path, payload })).statusCode).toBe(401);
-    expect(fetch).not.toHaveBeenCalled();
-    for (const extra of [{ platformId: 'victim' }, { userId: otherId }, { subject: 'victim' }])
-      expect(
-        (
-          await app.inject({
-            method: 'POST',
-            url: path,
-            headers: auth,
-            payload: { ...payload, ...extra },
-          })
-        ).statusCode,
-      ).toBe(422);
-    const response = await app.inject({ method: 'POST', url: path, headers: auth, payload });
-    expect(response.statusCode).toBe(200);
-    expect(store.upgrade).toHaveBeenCalledWith(token, 'taptap', 'app-a', 'verified-subject');
-    expect(response.body).not.toMatch(/subject|session_key|private/);
-    expect(
-      (
-        await app.inject({
-          method: 'POST',
-          url: path,
-          headers: auth,
-          payload: { ...payload, appId: 'unconfigured' },
-        })
-      ).statusCode,
-    ).toBe(503);
-    expect(store.upgrade).toHaveBeenCalledTimes(1);
+    expect(store.refreshSession).not.toHaveBeenCalled();
   });
   it('keeps legacy name updates and rejects profile attempts to replace identity or claim verification', async () => {
     const { app, store } = await setup();
@@ -149,7 +133,10 @@ describe('shared identity HTTP trust boundary', () => {
         })
       ).statusCode,
     ).toBe(200);
-    expect(store.profile).toHaveBeenLastCalledWith(userId, { name: '玩家 甲' });
+    expect(store.profile).toHaveBeenLastCalledWith(
+      { playerId: userId, game: 'cops-robbers' },
+      { name: '玩家 甲' },
+    );
     const payload = {
       nickname: '玩家乙',
       avatarUrl: 'https://img.tapimg.net/avatar.png',
@@ -159,7 +146,10 @@ describe('shared identity HTTP trust boundary', () => {
     expect(
       (await app.inject({ method: 'POST', url: path, headers: auth, payload })).statusCode,
     ).toBe(200);
-    expect(store.profile).toHaveBeenLastCalledWith(userId, payload);
+    expect(store.profile).toHaveBeenLastCalledWith(
+      { playerId: userId, game: 'cops-robbers' },
+      payload,
+    );
     for (const extra of [
       { userId: otherId },
       { platformId: 'victim' },
@@ -180,6 +170,28 @@ describe('shared identity HTTP trust boundary', () => {
 });
 
 describe('public display profile', () => {
+  it('keeps preset avatars through ranking and persisted room-result projections', () => {
+    const row = {
+      playerId: userId,
+      name: '快乐小猫',
+      avatarId: 'fox',
+      score: 3,
+      secondary: 0,
+      rank: 1,
+      position: 1,
+      total: 1,
+    };
+    expect(
+      publicProfile({ id: userId, display_name: row.name, profile: { avatarId: row.avatarId } }),
+    ).toMatchObject({ avatarId: 'fox', nickname: row.name });
+    expect(publicRankingRow(row)).toMatchObject({ avatarId: 'fox', nickname: row.name });
+    const results = publicRoomResults([
+      { playerId: userId, before: row, after: { top: [row], me: row } },
+    ]);
+    expect(results?.[0]?.before).toMatchObject({ avatarId: 'fox' });
+    expect(results?.[0]?.after?.top[0]).toMatchObject({ avatarId: 'fox' });
+    expect(publicRankingRow({ ...row, avatarId: '../private' })).toMatchObject({ avatarId: null });
+  });
   it.each([
     'javascript:alert(1)',
     'data:image/png;base64,eA==',
@@ -250,6 +262,7 @@ describe('public display profile', () => {
       userId,
       nickname: '玩家甲',
       name: '玩家甲',
+      avatarId: null,
       avatarUrl: '',
       region: null,
       profileSource: 'legacy',
@@ -257,6 +270,7 @@ describe('public display profile', () => {
     });
     expect(publicProfile({ id: userId })).toMatchObject({
       nickname: '新玩家',
+      avatarId: null,
       avatarUrl: '',
       region: null,
       profileSource: 'default',

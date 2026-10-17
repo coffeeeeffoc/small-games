@@ -6,8 +6,8 @@ const failure = (code, message = '排行榜暂不可用，本地挑战仍可继�
 
 export function createGameServices({ gameId, ruleVersion }) {
   if (!/^[A-Za-z0-9][A-Za-z0-9-]{0,79}$/.test(gameId)) throw failure('INVALID_GAME');
-  const config = globalThis.__COMPETITION_CONFIG__ || {};
-  if (config.identityMode === 'ephemeral' && config.game !== gameId)
+  const config = { ...globalThis.__COMPETITION_CONFIG__, game: gameId };
+  if (globalThis.__COMPETITION_CONFIG__?.game && globalThis.__COMPETITION_CONFIG__.game !== gameId)
     throw failure('IDENTITY_SCOPE_MISMATCH');
   const sdk = globalThis[nativeNames[config.platform]];
   const base = (config.apiUrl || '/api/competition/v1').replace(/\/$/, '');
@@ -16,7 +16,7 @@ export function createGameServices({ gameId, ruleVersion }) {
     roomOwners = new Map();
   let storage;
   try {
-    if (config.identityMode === undefined) storage = sdk || globalThis.localStorage;
+    storage = sdk || globalThis.localStorage;
   } catch {
     /* Memory-only identity. */
   }
@@ -24,9 +24,9 @@ export function createGameServices({ gameId, ruleVersion }) {
     config,
     sdk,
     storage,
-    request,
+    request: transport,
   });
-  async function request(url, body, owner = auth.saved()) {
+  async function transport(url, body, owner) {
     const headers = { 'content-type': 'application/json' };
     if (owner?.token) headers.authorization = 'Bearer ' + owner.token;
     let response;
@@ -62,6 +62,16 @@ export function createGameServices({ gameId, ruleVersion }) {
       throw failure(response.data?.error || 'SERVICE_UNAVAILABLE');
     return response.data;
   }
+  async function request(url, body, credential) {
+    credential ||= await auth.current();
+    auth.assertCurrent(credential);
+    const data = await transport(url, body, credential).catch((error) => {
+      auth.invalidate(credential, error);
+      throw error;
+    });
+    auth.assertCurrent(credential);
+    return data;
+  }
   async function owner(id) {
     const value = owners.get(id);
     if (!value) throw failure('SESSION_EXPIRED');
@@ -96,6 +106,13 @@ export function createGameServices({ gameId, ruleVersion }) {
     return room;
   }
   return {
+    config,
+    session: () => auth.current(),
+    logout() {
+      owners.clear();
+      roomOwners.clear();
+      return auth.logout();
+    },
     metadata: () => request(path),
     createRoom: (input = {}) => openRoom('', input),
     joinRoom: ({ code }) => openRoom('/join', { code }),

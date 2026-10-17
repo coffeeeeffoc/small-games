@@ -16,7 +16,12 @@ async function setup() {
   const store = { session } as unknown as ReturnType<typeof createCompetitionStore>;
   await registerCompetition(app, store, {
     COMPETITION_PLATFORM_CONFIG: JSON.stringify([
-      { platform: 'douyin', appId: 'tt-test-app', secret: 'test-server-secret' },
+      {
+        platform: 'douyin',
+        appId: 'tt-test-app',
+        secret: 'test-server-secret',
+        games: ['cops-robbers'],
+      },
     ]),
   });
   return { app, session };
@@ -26,6 +31,7 @@ const login = (app: ReturnType<typeof Fastify>, payload: Record<string, unknown>
     method: 'POST',
     url: '/api/competition/v1/sessions/platform',
     payload: {
+      game: 'cops-robbers',
       platform: 'douyin',
       appId: 'tt-test-app',
       code: 'single-use-login-code',
@@ -49,7 +55,12 @@ describe('Douyin mini-game verified login', () => {
     vi.stubGlobal('fetch', fetch);
     const response = await login(app);
     expect(response.statusCode).toBe(200);
-    expect(session).toHaveBeenCalledWith('douyin', 'tt-test-app', 'official-openid');
+    expect(session).toHaveBeenCalledWith(
+      'douyin',
+      'tt-test-app',
+      'official-openid',
+      'cops-robbers',
+    );
     const [endpoint, options] = fetch.mock.calls[0] as unknown as [URL, RequestInit];
     expect(endpoint.origin + endpoint.pathname).toBe(
       'https://minigame.zijieapi.com/mgplatform/api/apps/jscode2session',

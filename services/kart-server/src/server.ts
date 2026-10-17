@@ -188,9 +188,12 @@ export function createKartServer(options: ServerOptions = {}) {
           error &&
           typeof error === 'object' &&
           'code' in error &&
-          ['SESSION_EXPIRED', 'IDENTITY_EXPIRED', 'IDENTITY_SCOPE_MISMATCH'].includes(
-            String(error.code),
-          )
+          [
+            'SESSION_EXPIRED',
+            'IDENTITY_EXPIRED',
+            'IDENTITY_SCOPE_MISMATCH',
+            'LOGIN_REQUIRED',
+          ].includes(String(error.code))
         )
           auth.revoked = true;
         throw new Error(auth.revoked ? 'SESSION_EXPIRED' : 'IDENTITY_UNAVAILABLE');
@@ -200,7 +203,6 @@ export function createKartServer(options: ServerOptions = {}) {
     })());
   }
   function assertMemberIdentity(room: Room, member: Member) {
-    if (!room.state.ranked) return;
     const auth = memberAuth.get(member);
     if (!auth || auth.revoked) throw new Error('SESSION_EXPIRED');
     if (auth.validUntil <= now()) throw new Error('IDENTITY_UNAVAILABLE');
@@ -398,15 +400,18 @@ export function createKartServer(options: ServerOptions = {}) {
     let binding = bindings.get(socket);
     if (message.type === 'create' || message.type === 'join') {
       if (binding) throw new Error('请先退出当前房间');
+      if (!message.competitionToken) throw new Error('LOGIN_REQUIRED');
+      if (!options.competition) throw new Error('IDENTITY_UNAVAILABLE');
       const identityRequestedAt = now();
-      const identity = message.competitionToken
-        ? await options.competition?.verify(message.competitionToken).catch(() => {
-            throw new Error('排位身份验证失败，请检查服务后重试');
-          })
-        : undefined;
-      if (message.competitionToken && !identity) throw new Error('排位服务尚未配置');
+      const identity = await options.competition.verify(message.competitionToken).catch(() => {
+        throw new Error('身份验证失败，请重新登录');
+      });
+      const validUntil = Math.min(identityRequestedAt + 15000, identity.expiresAt ?? Infinity);
+      if (!identity.playerId || !Number.isFinite(validUntil) || validUntil <= now())
+        throw new Error('SESSION_EXPIRED');
       await refreshControl();
       assertControl(undefined, true);
+      if (validUntil <= now()) throw new Error('SESSION_EXPIRED');
       if (socket.readyState !== WebSocket.OPEN) return;
       let room: Room;
       if (message.type === 'create') {
@@ -476,9 +481,7 @@ export function createKartServer(options: ServerOptions = {}) {
         inputAt: 0,
         seq: -1,
       };
-      if (room.state.ranked && identity && message.competitionToken) {
-        const validUntil = Math.min(identityRequestedAt + 15000, identity.expiresAt ?? Infinity);
-        if (!Number.isFinite(validUntil) || validUntil <= now()) throw new Error('SESSION_EXPIRED');
+      {
         memberAuth.set(member, {
           token: message.competitionToken,
           playerId: identity.playerId,
@@ -505,8 +508,8 @@ export function createKartServer(options: ServerOptions = {}) {
         send(socket, { type: 'error', message: '重连已过期，请重新加入房间', fatal: true });
         return;
       }
+      await refreshMember(member);
       if (!(room.state.phase === 'finished' && room.state.settlement === 'saved')) {
-        if (room.state.ranked) await refreshMember(member);
         await refreshControl();
         assertControl(room, room.state.phase !== 'racing' && room.state.phase !== 'finished');
       }
@@ -530,7 +533,7 @@ export function createKartServer(options: ServerOptions = {}) {
       socket.close(1000);
       return;
     }
-    if (room.state.ranked && ['start', 'ready', 'rematch', 'loaded'].includes(message.type))
+    if (['start', 'ready', 'rematch', 'loaded'].includes(message.type))
       for (const participant of room.members) await refreshMember(participant);
     if (['start', 'ready', 'rematch', 'loaded'].includes(message.type)) await refreshControl();
     if (bindings.get(socket) !== binding || member.socket !== socket)
@@ -708,7 +711,7 @@ export function createKartServer(options: ServerOptions = {}) {
           continue;
         }
       }
-      if (room.state.ranked && !savedRead) {
+      {
         let reason: string | undefined;
         for (const member of room.members) {
           const auth = memberAuth.get(member);
@@ -924,7 +927,7 @@ export function createKartServer(options: ServerOptions = {}) {
           .then(() => {
             if (
               parsed.data.type === 'input' &&
-              (options.controlEnabled || inputRoom?.state.ranked) &&
+              inputRoom &&
               (bindings.get(socket)?.room !== inputRoom ||
                 inputRoom?.inputRevision !== inputRevision)
             )

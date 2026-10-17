@@ -15,6 +15,10 @@ const source = (await readFile(new URL('../platforms/competition/h5.js', import.
     'const mountStreetCompetition = () => {};',
   );
 const files = new Map([
+  [
+    '/avatars.js',
+    await readFile(new URL('../platforms/competition/avatars.js', import.meta.url), 'utf8'),
+  ],
   ['/h5.js', source],
   [
     '/connection-info.js',
@@ -264,7 +268,7 @@ try {
     );
     const point = async (predicate) =>
       page.evaluate((predicate) => {
-        const rect = document.querySelector('canvas').getBoundingClientRect();
+        const rect = document.querySelector('canvas[data-play]').getBoundingClientRect();
         const target = renderer.getLayout().targets.find(Function('target', 'return ' + predicate));
         return (
           target && { x: rect.x + target.x + target.w / 2, y: rect.y + target.y + target.h / 2 }

@@ -1,184 +1,133 @@
 import { createHash } from 'node:crypto';
-import { PgDialect } from 'drizzle-orm/pg-core';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import { CONTROL_GAME_IDS } from '@coffeeeeffoc/service-kit';
 import { createCompetitionIdentities } from '../src/competition/identity-store.js';
-
-const token = 'a'.repeat(64),
-  refreshToken = 'b'.repeat(64);
-const userId = '00000000-0000-4000-8000-000000000001';
-const otherId = '00000000-0000-4000-8000-000000000002';
-
-function database(results: Record<string, unknown>[][]) {
-  const queries: { sql: string; params: unknown[] }[] = [];
-  const execute = vi.fn(async (query) => {
-    queries.push(new PgDialect().sqlToQuery(query));
-    return (results.shift() ?? []).map((row) =>
-      row.platform === 'guest' ? { app_id: '', created_at: 0, ...row } : row,
-    );
-  });
-  const db = {
-    execute,
-    transaction: async (change: (tx: unknown) => unknown) => change({ execute }),
-  };
-  return { identities: createCompetitionIdentities(db as never, () => 1000), queries };
+import { AVATAR_IDS, nicknameSchema } from '../src/competition/profile.js';
+import { fixture } from './competition-ephemeral-fixture.js';
+const input = { game: 'cops-robbers' };
+const digest = (s: string) => createHash('sha256').update(s).digest('hex');
+function setup() {
+  const f = fixture();
+  return { ...f, identity: createCompetitionIdentities(f.db, f.now) };
 }
-describe('identity transaction ordering and credential revocation', () => {
-  it('negotiates legacy 180-day access explicitly and keeps v2 access at one day', async () => {
-    for (const version of [undefined, 2] as const) {
-      const { identities, queries } = database([[], [], [{ id: userId, platform: 'guest' }], []]);
-      const result = await identities.guestSession(undefined, version);
-      expect(result.expiresAt).toBe(1000 + (version === 2 ? 1 : 180) * 86400_000);
-      expect(result.refreshExpiresAt).toBe(1000 + 180 * 86400_000);
-      const insert = queries.find((query) =>
-        query.sql.includes('insert into runtime.competition_sessions'),
-      );
-      expect(insert!.params.at(-1)).toBe(result.expiresAt);
-    }
-  });
-  it('stores only secret digests and treats repeat installation IDs as metadata', async () => {
-    const { identities, queries } = database([
-      [],
-      [],
-      [{ id: userId, platform: 'guest' }],
-      [],
-      [],
-      [],
-      [{ id: otherId, platform: 'guest' }],
-      [],
-    ]);
-    const a = await identities.guestSession(userId),
-      b = await identities.guestSession(userId);
+describe('persistent anonymous scoped credentials', () => {
+  it('creates independent server UUIDs and safe random profiles, storing only token digests', async () => {
+    const f = setup(),
+      a = await f.identity.guestSession(input),
+      b = await f.identity.guestSession(input);
     expect(a.userId).not.toBe(b.userId);
-    expect(a.token).toMatch(/^[a-f0-9]{64}$/);
-    expect(a.refreshToken).toMatch(/^[a-f0-9]{64}$/);
-    const serialized = JSON.stringify(queries);
-    expect(serialized).not.toContain(a.token);
-    expect(serialized).not.toContain(a.refreshToken);
-    expect(serialized).toContain(createHash('sha256').update(a.refreshToken).digest('hex'));
-    expect(
-      queries.filter((query) => query.sql.includes('insert into runtime.competition_players')),
-    ).toHaveLength(2);
-  });
-  it('locks the owner then rechecks refresh and guest status before issuing a token', async () => {
-    const { identities, queries } = database([
-      [{ id: userId }],
-      [{ expires_at: 100000 }],
-      [{ id: userId, platform: 'guest' }],
-      [],
-    ]);
-    const result = await identities.refreshSession(refreshToken);
-    expect(result).toMatchObject({
-      userId,
-      playerId: userId,
-      refreshToken,
-      refreshExpiresAt: 100000,
+    expect(a.sessionId).not.toBe(b.sessionId);
+    expect(a).toMatchObject({
       identityKind: 'guest',
+      identityMode: 'persistent',
+      game: input.game,
+      identityExpiresAt: null,
     });
-    expect(queries[0]!.sql).toContain('for update of p');
-    expect(queries[1]!.sql).toContain("p.platform='guest'");
-    const stale = database([[{ id: userId }], []]);
-    await expect(stale.identities.refreshSession(refreshToken)).rejects.toMatchObject({
-      code: 'REFRESH_EXPIRED',
-      status: 401,
-    });
-    expect(stale.queries).toHaveLength(2);
+    expect(nicknameSchema.safeParse(a.nickname).success).toBe(true);
+    expect(AVATAR_IDS).toContain(a.avatarId);
+    expect(a.avatarPolicy.presets).toEqual(AVATAR_IDS);
+    expect(a.expiresAt - f.now()).toBe(15 * 60_000);
+    expect(a.refreshExpiresAt - f.now()).toBe(180 * 86400_000);
+    expect(f.grants.has(`${a.userId}:${input.game}`)).toBe(true);
+    const written = JSON.stringify(f.queries);
+    for (const secret of [a.token, a.refreshToken]) expect(written).not.toContain(secret);
+    expect(written).toContain(digest(a.token));
   });
-  it('renews only an unexpired legacy guest bearer while retaining the authoritative UUID', async () => {
-    const { identities, queries } = database([
-      [{ id: userId }],
-      [{}],
-      [],
-      [{ id: userId, platform: 'guest' }],
-      [],
-    ]);
-    const renewed = await identities.renewGuestSession(token);
-    expect(renewed).toMatchObject({ userId, playerId: userId, identityKind: 'guest' });
-    expect(renewed.refreshToken).toMatch(/^[a-f0-9]{64}$/);
-    expect(queries[0]!.sql).toContain('for update of p');
-    expect(queries[1]!.sql).toContain("p.platform='guest'");
-    for (const results of [[], [[{ id: userId }], []]]) {
-      const denied = database(results);
-      await expect(denied.identities.renewGuestSession(token)).rejects.toMatchObject({
-        code: 'SESSION_EXPIRED',
-        status: 401,
-      });
-      expect(denied.queries.some((query) => query.sql.startsWith('insert '))).toBe(false);
+  it('accepts only registered games and never client UUIDs, installation IDs or passwords', async () => {
+    const f = setup();
+    for (const bad of [
+      undefined,
+      {},
+      { game: 'invented-game' },
+      { game: 'cops-robbers/' },
+      { ...input, playerId: 'victim' },
+      { ...input, installationId: 'guess' },
+      { ...input, password: 'private' },
+    ])
+      await expect(f.identity.guestSession(bad)).rejects.toThrow();
+    expect(f.players.size).toBe(0);
+    const ids = new Set();
+    for (const game of CONTROL_GAME_IDS) {
+      const scoped = await f.identity.guestSession({ game });
+      ids.add(scoped.userId);
+      expect((await f.identity.auth(scoped.token)).game).toBe(game);
     }
+    expect(ids.size).toBe(CONTROL_GAME_IDS.length);
   });
-  it('upgrades the same UUID only after scoped identity lock and revokes every guest credential', async () => {
-    const { identities, queries } = database([
-      [],
-      [{ id: userId, platform: 'guest' }],
-      [{}],
-      [],
-      [],
-      [],
-      [],
-      [{ id: userId, platform: 'taptap' }],
-      [],
-    ]);
-    const result = await identities.upgrade(token, 'taptap', 'app-a', 'verified');
-    expect(result).toMatchObject({
-      userId,
-      playerId: userId,
-      identityKind: 'platform',
-      provider: 'taptap',
+  it('rotates once with sliding 180 days, keeps UUID/family and makes old access logout-only', async () => {
+    const f = setup(),
+      first = await f.identity.guestSession(input);
+    f.at(first.refreshExpiresAt - 5 * 60_000);
+    const next = await f.identity.refreshSession(first.refreshToken);
+    expect(next.sessionId).toBe(first.sessionId);
+    expect(next.userId).toBe(first.userId);
+    expect(next.token).not.toBe(first.token);
+    expect(next.refreshToken).not.toBe(first.refreshToken);
+    expect(next.expiresAt).toBe(f.now() + 15 * 60_000);
+    expect(next.refreshExpiresAt).toBe(f.now() + 180 * 86400_000);
+    await expect(f.identity.auth(first.token)).rejects.toMatchObject({ code: 'SESSION_EXPIRED' });
+    await expect(f.identity.refreshSession(first.refreshToken)).rejects.toMatchObject({
+      code: 'REFRESH_EXPIRED',
     });
-    expect(result).not.toHaveProperty('refreshToken');
-    expect(queries[0]!.sql).toContain('pg_advisory_xact_lock');
-    expect(queries[1]!.sql).toContain('for update of p');
-    expect(queries[3]!.params).toEqual(['taptap', 'app-a', 'verified']);
-    const update = queries.findIndex((query) =>
-      query.sql.startsWith('update runtime.competition_players'),
-    );
-    const revoke = queries.findIndex((query) =>
-      query.sql.startsWith('delete from runtime.competition_sessions'),
-    );
-    const refresh = queries.findIndex((query) =>
-      query.sql.startsWith('delete from runtime.competition_refresh_tokens'),
-    );
-    const issue = queries.findIndex((query) =>
-      query.sql.startsWith('insert into runtime.competition_sessions'),
-    );
-    expect(update).toBeLessThan(revoke);
-    expect(revoke).toBeLessThan(issue);
-    expect(refresh).toBeLessThan(issue);
-    expect(queries[revoke]!.params).toEqual([userId]);
-  });
-  it.each([
-    {
-      rows: [[], [{ id: userId, platform: 'guest' }], [{}], [{ id: otherId }]],
-      code: 'IDENTITY_ALREADY_BOUND',
-    },
-    {
-      rows: [[], [{ id: userId, platform: 'wechat' }], [{}]],
-      code: 'IDENTITY_UPGRADE_NOT_ALLOWED',
-    },
-    { rows: [[], [{ id: userId, platform: 'guest' }], []], code: 'SESSION_EXPIRED' },
-  ])('rejects unsafe upgrade without modifying any account: $code', async ({ rows, code }) => {
-    const { identities, queries } = database(rows);
-    await expect(identities.upgrade(token, 'taptap', 'app-a', 'verified')).rejects.toMatchObject({
-      code,
+    f.at(first.refreshExpiresAt + 1);
+    await f.identity.logout(first.token);
+    await expect(f.identity.auth(next.token)).rejects.toMatchObject({ code: 'SESSION_EXPIRED' });
+    await expect(f.identity.refreshSession(next.refreshToken)).rejects.toMatchObject({
+      code: 'REFRESH_EXPIRED',
     });
-    expect(queries.some((query) => /^(update|delete|insert) /.test(query.sql))).toBe(false);
   });
-  it('maps a scoped unique-identity race to conflict and preserves unrelated failures', async () => {
-    const conflict = {
-      code: '23505',
-      constraint: 'competition_players_platform_app_id_subject_key',
-    };
-    const failed = (error: unknown) =>
-      createCompetitionIdentities({
-        transaction: async () => {
-          throw error;
-        },
-      } as never);
+  it('expired refresh never revives the identity or family', async () => {
+    const f = setup(),
+      a = await f.identity.guestSession(input);
+    f.at(a.refreshExpiresAt);
+    await expect(f.identity.refreshSession(a.refreshToken)).rejects.toMatchObject({
+      code: 'REFRESH_EXPIRED',
+    });
+    await expect(f.identity.logout(a.token)).rejects.toMatchObject({ code: 'SESSION_EXPIRED' });
+  });
+  it('revokes a whole family without affecting other native device families', async () => {
+    const f = setup(),
+      a = await f.identity.session('wechat', 'fixture', 'verified', input.game),
+      other = await f.identity.session('wechat', 'fixture', 'verified', input.game);
+    expect(other.userId).toBe(a.userId);
+    expect(other.sessionId).not.toBe(a.sessionId);
+    const next = await f.identity.refreshSession(a.refreshToken);
+    await f.identity.logout(a.token);
+    await expect(f.identity.auth(next.token)).rejects.toMatchObject({ code: 'SESSION_EXPIRED' });
+    expect((await f.identity.auth(other.token)).playerId).toBe(a.userId);
+  });
+  it('rejects revoked grants and old unscoped guest tokens, without granting access during refresh', async () => {
+    const f = setup(),
+      a = await f.identity.guestSession(input);
+    f.grants.delete(`${a.userId}:${input.game}`);
+    const offset = f.queries.length;
+    await expect(f.identity.refreshSession(a.refreshToken)).rejects.toMatchObject({
+      code: 'IDENTITY_SCOPE_MISMATCH',
+    });
+    expect(f.queries.slice(offset).some((q) => /^(insert|update|delete)/.test(q.sql))).toBe(false);
+    f.sessions.get(digest(a.token))!.game = '';
+    await expect(f.identity.auth(a.token)).rejects.toMatchObject({ code: 'SESSION_EXPIRED' });
+    await expect(f.identity.refreshSession(a.refreshToken)).rejects.toMatchObject({
+      code: 'REFRESH_EXPIRED',
+    });
+    await f.identity.logout(a.token);
+  });
+  it('persists preset changes and names without changing identity or allowing arbitrary avatars', async () => {
+    const f = setup(),
+      a = await f.identity.guestSession(input),
+      auth = await f.identity.auth(a.token);
+    for (const avatarId of AVATAR_IDS) {
+      const updated = await f.identity.profile(auth, { nickname: '快乐小猫', avatarId });
+      expect(updated).toMatchObject({
+        userId: a.userId,
+        nickname: '快乐小猫',
+        avatarId,
+        avatarUrl: '',
+      });
+    }
+    await expect(f.identity.profile(auth, { avatarId: 'attacker' } as never)).rejects.toThrow();
     await expect(
-      failed({ cause: conflict }).upgrade(token, 'taptap', 'app-a', 'subject'),
-    ).rejects.toMatchObject({ code: 'IDENTITY_ALREADY_BOUND', status: 409 });
-    const unrelated = new Error('database unavailable');
-    await expect(failed(unrelated).upgrade(token, 'taptap', 'app-a', 'subject')).rejects.toBe(
-      unrelated,
-    );
+      f.identity.profile(auth, { avatarId: 'cat', avatarUrl: 'https://img.tapimg.net/a.png' }),
+    ).rejects.toThrow();
   });
 });

@@ -12,7 +12,7 @@ afterEach(async () => {
 async function setup() {
   const app = Fastify();
   apps.push(app);
-  const identity = vi.fn(async () => 'verified-player');
+  const identity = vi.fn(async () => ({ playerId: 'verified-player', game: 'three-choose-two' }));
   const action = vi.fn(async () => ({ seq: 1, state: { score: 0 } }));
   const finish = vi.fn(async () => ({ status: 'finished' }));
   const audit = vi.fn(async () => ({ actions: [] }));
@@ -43,7 +43,11 @@ it('authenticates an ordered placement and passes only server-replay inputs', as
   });
   expect(response.statusCode).toBe(200);
   expect(identity).toHaveBeenCalledWith('a'.repeat(64));
-  expect(action).toHaveBeenCalledWith('verified-player', id, input);
+  expect(action).toHaveBeenCalledWith(
+    { playerId: 'verified-player', game: 'three-choose-two' },
+    id,
+    input,
+  );
 });
 it.each([
   { seq: 1, group: 1, slot: 0, x: 2, y: 3, score: 999999 },

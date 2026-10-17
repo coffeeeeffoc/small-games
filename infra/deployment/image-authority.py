@@ -7,10 +7,10 @@ import uuid
 
 SPECS = {
     'runtime': ('file:///app/services/runtime-api/dist/competition/auth.js',
-                'COMPETITION_AUTHORITY_PROTOCOL', {'control': 1, 'ephemeralGuestScope': 1},
+                'COMPETITION_AUTHORITY_PROTOCOL', {'control': 1, 'authenticatedGameScope': 1},
                 ('authenticate', 'assertGameScope', 'assertResourceAuth', 'assertStoredPlayerGame')),
     'kart': ('file:///app/services/kart-server/src/competition.ts',
-             'KART_AUTHORITY_PROTOCOL', {'control': 1, 'identityRecheck': 1}, ('createCompetition',)),
+             'KART_AUTHORITY_PROTOCOL', {'control': 1, 'identityRecheck': 1, 'authenticatedGameScope': 1}, ('createCompetition',)),
     'management': ('file:///app/services/management-api/dist/admin/rbac-protocol.js',
                    'ADMIN_RBAC_PROTOCOL', {'control': 1, 'dbMemberRecheck': 1},
                    ('readAdminControlFlag', 'readAdminRbacPrincipal')),

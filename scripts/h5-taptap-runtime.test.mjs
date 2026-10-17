@@ -222,6 +222,7 @@ test('bootstrap and Runtime child environment use only owned credentials and req
       '011-competition-profiles.sql',
       '012-three-choose-two.sql',
       '013-competition-identities.sql',
+      '014-player-sessions.sql',
       '001-admin-auth.sql',
       '002-control-center.sql',
     ],
@@ -456,36 +457,59 @@ test('Runtime HTTP preflight drives real request contracts without returning any
   // Transport-only fixture for this unit; the acceptance runner uses unmodified fetch + fresh PG.
   const { verifyRuntimeIdentity } = await import('./h5-taptap-runtime.mjs');
   let counter = 0,
-    current;
+    current,
+    oldToken,
+    oldRefresh,
+    revoked = false;
   const now = Date.now();
   const result = await verifyRuntimeIdentity({
     now: () => now,
     request: async (url, init) => {
       let status = 200,
-        body;
+        body = {};
       const endpoint = new URL(url).pathname.slice(new URL(localCompetitionApi).pathname.length);
       if (endpoint === '/sessions/guest') {
-        const input = JSON.parse(init.body);
+        assert.deepEqual(Object.keys(JSON.parse(init.body)), ['game']);
         current = {
           userId: `${++counter}2345678-1234-1234-1234-123456789012`,
-          game: input.game,
-          identityMode: 'ephemeral',
+          sessionId: `${counter}2345678-1234-1234-1234-123456789012`,
+          game: JSON.parse(init.body).game,
+          identityMode: 'persistent',
+          identityKind: 'guest',
+          avatarId: 'fox',
           expiresAt: now + 900000,
-          identityExpiresAt: now + 28800000,
-          refreshExpiresAt: now + 28800000,
+          identityExpiresAt: null,
+          refreshExpiresAt: now + 180 * 86400000,
           token: 'PRIVATE_CANARY',
-          refreshToken: 'PRIVATE_CANARY',
+          refreshToken: 'PRIVATE_REFRESH',
         };
         body = current;
-      } else if (endpoint === '/sessions/refresh') body = current;
-      else if (endpoint === '/me') body = { ...current, avatarUrl: '', region: null };
-      else if (
+        revoked = false;
+        oldToken = null;
+        oldRefresh = null;
+      } else if (endpoint === '/sessions/refresh') {
+        if (revoked || JSON.parse(init.body).refreshToken === oldRefresh) {
+          status = 401;
+          body = { error: 'REFRESH_EXPIRED' };
+        } else {
+          oldToken = current.token;
+          oldRefresh = current.refreshToken;
+          current = { ...current, token: 'PRIVATE_NEXT', refreshToken: 'PRIVATE_NEXT_REFRESH' };
+          body = current;
+        }
+      } else if (endpoint === '/sessions/logout') revoked = true;
+      else if (endpoint === '/me') {
+        if (revoked || init.headers.authorization === 'Bearer ' + oldToken) {
+          status = 401;
+          body = { error: 'SESSION_EXPIRED' };
+        } else body = { ...current, avatarUrl: '', region: null };
+      } else if (
         (endpoint.startsWith('/boards/') && endpoint !== `/boards/${current.game}`) ||
         endpoint.startsWith('/games/')
       ) {
         status = 403;
         body = { error: 'IDENTITY_SCOPE_MISMATCH' };
-      } else body = {};
+      }
       return { status, json: async () => body };
     },
   });

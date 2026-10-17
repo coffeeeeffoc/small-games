@@ -4,7 +4,7 @@ import styles from './h5.css?inline';
 import { scoreText, gapText, playerName } from './format.js';
 import { mountStreetCompetition } from './street-pages.js';
 import { competitionAvailable } from './service-config.js';
-import { renderAvatar, regionText, profileDetails } from './profile-dom.js';
+import { renderAvatar, regionText, avatarPicker, avatarPickerStyles } from './profile-dom.js';
 
 const titles = {
   'cops-robbers': '围捕小队',
@@ -177,6 +177,7 @@ export function mountCompetition(game, createRenderer) {
     return;
   globalThis.__installCompetition();
   globalThis.__competition.renderConnectionInfo = renderConnectionInfo;
+  globalThis.__competition.renderAvatar = renderAvatar;
   if (game === 'cops-robbers-realtime') return mountStreetCompetition(game, createRenderer);
   const street = game === 'cops-robbers-realtime';
   const xiangqi = game === 'xiangqi-five';
@@ -229,6 +230,7 @@ export function mountCompetition(game, createRenderer) {
           '[data-competition-launch]',
           '[data-competition-launch]:not(#friend-duel)',
         );
+  style.textContent += avatarPickerStyles;
   document.head.append(style);
   const dialog = document.createElement(xiangqi ? 'section' : 'dialog');
   dialog.className = 'competition-dialog';
@@ -243,7 +245,7 @@ export function mountCompetition(game, createRenderer) {
     <p class="pk-status" role="status" data-status>同一规则，和好友认真比一局。</p>
     <main class="pk-content">
       <section data-lobby><div class="pk-hero"><span class="pk-eyebrow">一起玩，更有意思</span><h2>叫上好友，比一局。</h2><p>同样的起点，各自的本事。邀请一位好友，完成挑战，看看谁更胜一筹。</p></div>
-        <div class="pk-profile"><span class="pk-avatar" data-avatar aria-hidden="true">你</span><div class="pk-profile-copy"><strong data-profile-name>正在读取昵称…</strong><small>你的名字会出现在房间和排行榜中</small></div><button class="pk-quiet" data-profile>修改昵称</button></div>
+        <div class="pk-profile"><span class="pk-avatar" data-avatar aria-hidden="true">你</span><div class="pk-profile-copy"><strong data-profile-name>正在读取昵称…</strong><small>你的名字会出现在房间和排行榜中</small></div><button class="pk-quiet" data-profile>修改资料</button></div>
         <div class="pk-options"><section class="pk-option"><h3>我来开一局</h3><p>创建房间，把邀请发给好友。双方准备后开始。</p><div class="pk-match-options" data-match-options hidden><label>对战模式<select data-match-mode></select></label><label>我的角色<select data-match-role><option value="pursuer">追逐队</option><option value="runner">突围队</option></select></label><label>开局顺序<select data-match-initiative><option value="random">系统分配先手</option><option value="pursuer">追逐队先手</option><option value="runner">突围队先手</option></select></label><small>双方独立操控不同队伍，胜负取决于操作。地图从本模式 100 关中抽取。</small></div><button class="pk-primary" data-create>创建好友挑战 <span aria-hidden="true">↗</span></button></section>
           <section class="pk-option"><h3>好友在等我</h3><p>收到邀请链接可直接加入，也可以输入房间码。</p><div class="pk-join"><label>房间码<input data-code maxlength="12" autocomplete="off" spellcheck="false" placeholder="12 位房间码"></label><button data-join>加入</button></div></section></div>
       </section>
@@ -251,7 +253,7 @@ export function mountCompetition(game, createRenderer) {
         <div class="pk-role-actions" data-role-options hidden><span>我的角色</span><button data-role="pursuer">追逐队</button><button data-role="runner">突围队</button><small>切换后交换双方角色，请两人重新准备。</small><label>开局顺序<select data-room-initiative><option value="random">系统分配先手</option><option value="pursuer">追逐队先手</option><option value="runner">突围队先手</option></select></label><small data-initiative-note></small></div><div class="pk-room-actions"><button data-share>复制邀请</button><button class="pk-primary" data-ready>准备</button><button class="pk-primary" data-rematch hidden>再来一局</button><button data-result hidden>查看结果</button></div><p class="pk-room-note">相同规则 · 独立操作 · 服务端确认结果</p></section>
       <canvas data-play hidden aria-label="好友挑战操作区"></canvas>
     </main>
-    <footer class="pk-footer"><p>昵称可以重名，成绩跟随账号。游客身份保存在当前浏览器。</p><button data-board>全站榜 <span aria-hidden="true">↗</span></button></footer>
+    <footer class="pk-footer"><p>昵称可以重名，成绩跟随账号。昵称可重名，资料保存在当前入口。</p><button data-board>全站榜 <span aria-hidden="true">↗</span></button></footer>
     <div class="pk-exit"><button data-close aria-label="退出 PK">退出 PK</button></div>
   </div><section class="pk-overlay" data-details hidden aria-label="比赛详情"></section>`;
   if (!modeEntry) document.body.append(launch);
@@ -325,6 +327,14 @@ export function mountCompetition(game, createRenderer) {
     resultShown = null,
     returnFocus = null,
     modes = [];
+  let pageGeneration = 0;
+  async function request(...args) {
+    const generation = pageGeneration;
+    const value = await client.request(...args);
+    if (generation !== pageGeneration)
+      throw Object.assign(new Error('页面已关闭，请重新进入。'), { code: 'SESSION_CHANGED' });
+    return value;
+  }
   const isOpen = () => (xiangqi ? !dialog.hidden : dialog.open);
   let screenStates = [];
   function closeCompetition() {
@@ -407,7 +417,7 @@ export function mountCompetition(game, createRenderer) {
     renderAvatar(select('[data-avatar]'), value, client.avatarPolicy);
   }
   async function showProfile() {
-    updateProfile(await client.request('/me'));
+    updateProfile(await request('/me'));
     const sheet = detailPanel('让好友认出你', '昵称可修改，成绩和身份不会改变。', 'profile');
     const expectedUserId = profile.userId || profile.playerId;
     const active = () =>
@@ -419,7 +429,6 @@ export function mountCompetition(game, createRenderer) {
     hero.append(
       renderAvatar(text('span', '', 'pk-avatar'), profile, client.avatarPolicy),
       text('strong', profile.name),
-      text('small', profile.identityKind === 'platform' ? '平台身份' : '游客身份 · 当前浏览器保存'),
     );
     sheet.append(hero);
     const form = document.createElement('form');
@@ -435,65 +444,33 @@ export function mountCompetition(game, createRenderer) {
     input.required = true;
     input.setAttribute('aria-label', '你的昵称');
     label.append(input);
-    form.append(
-      label,
-      text('small', '2–16 个中英文字、数字、空格或 · _ -。允许重名；同名时会显示短编号。'),
-    );
+    form.append(label, text('small', '2–16 个中英文字、数字、空格或 · _ -。'));
+    const picker = avatarPicker(profile.avatarId, client.avatarPolicy);
+    form.append(picker.element);
     const message = text('p', '', 'pk-form-message');
     message.setAttribute('role', 'status');
-    const save = text('button', '保存昵称', 'pk-primary');
+    const save = text('button', '保存资料', 'pk-primary');
     save.type = 'submit';
     form.append(message, save);
     sheet.append(form);
-    sheet.append(text('p', profileDetails(profile), 'pk-sheet-note'));
-    if (profile.identityMode === 'ephemeral')
-      sheet.append(
-        text(
-          'p',
-          '本页临时访客仅用于当前游戏，最长 8 小时；刷新页面会开始新身份，原成绩不会转移。页内存储不隔离同源脚本。',
-          'pk-sheet-note',
-        ),
-      );
-    if (client.canSyncProfile?.()) {
-      const sync = action(
-        '同步已授权的平台资料',
-        () =>
-          void run(async () => {
-            const value = await client.syncProfile(expectedUserId);
-            if (!active()) return;
-            updateProfile(value);
-            dismiss();
-            feedback('平台资料已同步。');
-          }),
-        'pk-secondary',
-      );
-      sheet.append(sync);
-    }
-    const identity = document.createElement('details');
-    identity.className = 'pk-profile-id';
-    identity.append(
-      text('summary', '查看我的玩家 ID'),
-      text('code', profile.userId || profile.playerId),
-      text('p', '系统自动生成，只用于识别账号。昵称和短编号不能用来登录或找回游客身份。'),
-    );
-    sheet.append(identity);
+    sheet.append(text('p', '资料保存在当前入口。清除本机数据后会建立新身份。', 'pk-sheet-note'));
     form.onsubmit = async (event) => {
       event.preventDefault();
       if (save.disabled) return;
       save.disabled = true;
       message.textContent = '正在保存…';
       try {
-        const value = await client.request(
+        const value = await request(
           '/me',
-          { body: JSON.stringify({ name: input.value }) },
+          { body: JSON.stringify({ name: input.value, avatarId: picker.value() }) },
           expectedUserId,
         );
         if (!active()) return;
         updateProfile(value);
-        if (room) accept(await client.request(`/rooms/${room.code}`));
+        if (room) accept(await request(`/rooms/${room.code}`));
         if (!active()) return;
         dismiss();
-        feedback('昵称已保存，房间和全站榜会使用新名字。');
+        feedback('资料已保存，房间和全站榜会同步更新。');
       } catch (error) {
         message.textContent = error.message;
       } finally {
@@ -608,12 +585,14 @@ export function mountCompetition(game, createRenderer) {
     } catch {}
   }
   async function run(task) {
-    if (busy) return;
+    if (busy || exiting || !isOpen()) return;
+    const generation = pageGeneration;
     busy = true;
     dialog.setAttribute('aria-busy', 'true');
     try {
       await task();
     } catch (error) {
+      if (generation !== pageGeneration) return;
       if (error.code && error.code !== 'SERVICE_UNAVAILABLE') pending = null;
       feedback(error);
     } finally {
@@ -625,7 +604,7 @@ export function mountCompetition(game, createRenderer) {
     if (!room || busy || !isOpen() || Date.now() - lastPoll < (room.pollMs || 1200)) return;
     lastPoll = Date.now();
     try {
-      accept(await client.request(`/rooms/${room.code}`));
+      accept(await request(`/rooms/${room.code}`));
     } catch (error) {
       feedback(error);
     }
@@ -679,7 +658,7 @@ export function mountCompetition(game, createRenderer) {
     sheet.append(actions);
   }
   async function showBoard() {
-    const board = await client.request(`/boards/${game}`),
+    const board = await request(`/boards/${game}`),
       sheet = detailPanel(
         '全站榜',
         `${board.eligiblePlayers} 位合格玩家 · ${board.roles || game === 'xiangqi-five' ? '好友对战积分' : '每人一条最佳成绩'}`,
@@ -703,19 +682,7 @@ export function mountCompetition(game, createRenderer) {
       const item = text('div', '', 'pk-rank-row');
       item.toggleAttribute('data-self', row.playerId === board.me?.playerId);
       const label = text('span', row.name || '新玩家', 'pk-rank-name');
-      if (board.top.some((other) => other.playerId !== row.playerId && other.name === row.name))
-        label.append(
-          text(
-            'small',
-            playerName(row, board.top)
-              .split(' · #')
-              .slice(1)
-              .map((value) => '#' + value)
-              .join(''),
-          ),
-        );
       if (row.playerId === board.me?.playerId) label.append(text('small', '你'));
-      if (regionText(row)) label.append(text('small', regionText(row), 'pk-region'));
       const name = text('span', '', 'pk-rank-person');
       name.append(renderAvatar(text('span', '', 'pk-avatar'), row, client.avatarPolicy), label);
       item.append(
@@ -740,7 +707,7 @@ export function mountCompetition(game, createRenderer) {
     try {
       const rules =
         room?.state?.rules ||
-        (await client.request(`/boards/${game}`)).description ||
+        (await request(`/boards/${game}`)).description ||
         '双方准备后开始，服务端验证操作与计时。';
       if (!sheet.isConnected || sheet.closest('[data-details]') !== details) return;
       loading.remove();
@@ -785,6 +752,7 @@ export function mountCompetition(game, createRenderer) {
   }
   async function open() {
     if (isOpen() || exiting) return;
+    pageGeneration++;
     window.dispatchEvent(new CustomEvent('competition-visibility', { detail: { open: true } }));
     if (xiangqi) {
       history.pushState(
@@ -811,8 +779,8 @@ export function mountCompetition(game, createRenderer) {
       saved = roomStorage.getItem(`competition-room:${game}`);
     } catch {}
     await run(async () => {
-      updateProfile(await client.request('/me'));
-      const metadata = await client.request(`/boards/${game}`);
+      updateProfile(await request('/me'));
+      const metadata = await request(`/boards/${game}`);
       modes = metadata.modes || [];
       select('[data-match-options]').hidden = !metadata.roles;
       select('[data-match-mode]').replaceChildren(
@@ -825,7 +793,7 @@ export function mountCompetition(game, createRenderer) {
       if (invite && /^[A-F0-9]{12}$/.test(invite)) {
         select('[data-code]').value = invite;
         feedback('已读取邀请，请点击加入。');
-      } else if (saved) accept(await client.request(`/rooms/${saved}`));
+      } else if (saved) accept(await request(`/rooms/${saved}`));
     });
   }
   launch.onclick = () => void open();
@@ -837,7 +805,7 @@ export function mountCompetition(game, createRenderer) {
   select('[data-create]').onclick = () =>
     void run(async () =>
       accept(
-        await client.request('/rooms', {
+        await request('/rooms', {
           body: JSON.stringify({
             game,
             ...(modes.length
@@ -855,7 +823,7 @@ export function mountCompetition(game, createRenderer) {
     button.onclick = () =>
       void run(async () =>
         accept(
-          await client.request(`/rooms/${room.code}/role`, {
+          await request(`/rooms/${room.code}/role`, {
             body: JSON.stringify({ role: button.dataset.role }),
           }),
         ),
@@ -863,7 +831,7 @@ export function mountCompetition(game, createRenderer) {
   select('[data-room-initiative]').onchange = () =>
     void run(async () =>
       accept(
-        await client.request(`/rooms/${room.code}/initiative`, {
+        await request(`/rooms/${room.code}/initiative`, {
           body: JSON.stringify({ initiative: select('[data-room-initiative]').value }),
         }),
       ),
@@ -871,20 +839,18 @@ export function mountCompetition(game, createRenderer) {
   select('[data-join]').onclick = () =>
     void run(async () =>
       accept(
-        await client.request('/rooms/join', {
+        await request('/rooms/join', {
           body: JSON.stringify({ code: select('[data-code]').value.trim().toUpperCase(), game }),
         }),
       ),
     );
   select('[data-ready]').onclick = () =>
-    void run(async () => accept(await client.request(`/rooms/${room.code}/ready`, { body: '{}' })));
+    void run(async () => accept(await request(`/rooms/${room.code}/ready`, { body: '{}' })));
   select('[data-rematch]').onclick = () =>
     void run(async () => {
-      const result = await client.request(`/rooms/${room.code}/rematch`, { body: '{}' });
+      const result = await request(`/rooms/${room.code}/rematch`, { body: '{}' });
       dismiss();
-      accept(
-        await client.request('/rooms/join', { body: JSON.stringify({ code: result.rematch }) }),
-      );
+      accept(await request('/rooms/join', { body: JSON.stringify({ code: result.rematch }) }));
     });
   select('[data-share]').onclick = () =>
     void run(async () => {
@@ -905,28 +871,32 @@ export function mountCompetition(game, createRenderer) {
   select('[data-profile]').onclick = () => void run(showProfile);
   select('[data-rules]').onclick = () => void run(showRules);
   select('[data-result]').onclick = showResults;
-  select('[data-close]').onclick = async () => {
+  function resetRoom() {
+    room = null;
+    pending = null;
+    resultShown = null;
+    select('[data-lobby]').hidden = false;
+    select('[data-room]').hidden = true;
+    canvas.hidden = true;
+    select('.pk-footer').hidden = false;
+    dialog.removeAttribute('data-playing');
+    try {
+      roomStorage.removeItem(`competition-room:${game}`);
+    } catch {}
+    if (!modeEntry) launch.textContent = '好友 PK · 全站榜';
+    launch.removeAttribute('title');
+    feedback('同一规则，和好友认真比一局。');
+  }
+  async function close() {
     if (exiting) return;
     exiting = true;
     launch.disabled = true;
+    pageGeneration++;
     closeCompetition();
     try {
       if (room && ['waiting', 'playing'].includes(room.status))
         await client.request(`/rooms/${room.code}/leave`, { body: '{}' });
-      room = null;
-      pending = null;
-      resultShown = null;
-      select('[data-lobby]').hidden = false;
-      select('[data-room]').hidden = true;
-      canvas.hidden = true;
-      select('.pk-footer').hidden = false;
-      dialog.removeAttribute('data-playing');
-      try {
-        roomStorage.removeItem(`competition-room:${game}`);
-      } catch {}
-      if (!modeEntry) launch.textContent = '好友 PK · 全站榜';
-      launch.removeAttribute('title');
-      feedback('同一规则，和好友认真比一局。');
+      resetRoom();
     } catch {
       if (!modeEntry) launch.textContent = '已退出 · 房间待确认';
       launch.title = '网络不可用，服务端尚未确认退出。重连可查看原房间，否则按时限结束。';
@@ -935,7 +905,8 @@ export function mountCompetition(game, createRenderer) {
       launch.disabled = false;
       if (letters && launch.isConnected && launch.getClientRects().length) launch.focus();
     }
-  };
+  }
+  select('[data-close]').onclick = () => void close();
   dialog.addEventListener('cancel', (event) => {
     event.preventDefault();
     if (!details.hidden) dismiss();
@@ -1016,7 +987,7 @@ export function mountCompetition(game, createRenderer) {
     if (!command) return;
     void run(async () => {
       pending ??= { seq: room.seq + 1, action: command };
-      const next = await client.request(`/rooms/${room.code}/actions`, {
+      const next = await request(`/rooms/${room.code}/actions`, {
         body: JSON.stringify(pending),
       });
       pending = null;

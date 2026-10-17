@@ -580,6 +580,7 @@ export function createCompetitionStore(
         userId: row.userId,
         name: row.name,
         nickname: row.nickname,
+        avatarId: row.avatarId,
         avatarUrl: row.avatarUrl,
         region: row.region,
         profileSource: row.profileSource,

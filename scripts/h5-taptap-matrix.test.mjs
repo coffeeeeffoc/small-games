@@ -598,7 +598,7 @@ function fixture(production) {
       }).modes.map(([ads, service]) => ({
         profile: production ? 'online-ads' : 'qa-matrix',
         sourceDirty: false,
-        identityMode: 'ephemeral',
+        identityMode: 'persistent',
         name: `${game}-ads-${ads ? 'on' : 'off'}-service-${service ? 'on' : 'off'}`,
         game,
         packageType: 'h5',
@@ -661,7 +661,7 @@ test('explicit profiles require twelve local QA variants and only three online-a
     (m) => delete m.profile,
     (m) => (m.sourceDirty = true),
     (m) => (m.variants[0].sourceDirty = true),
-    (m) => (m.variants[0].identityMode = 'persistent'),
+    (m) => (m.variants[0].identityMode = 'ephemeral'),
     (m) => (m.variants[0].profile = 'qa-matrix'),
   ]) {
     const m = fixture(true);

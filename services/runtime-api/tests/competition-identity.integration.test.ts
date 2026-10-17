@@ -1,5 +1,5 @@
 /* eslint-disable max-lines -- One real HTTP/PG fixture owns cleanup and deterministic transaction barriers. */
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import Fastify from 'fastify';
 import { sql } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
@@ -16,7 +16,14 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
 const integration = databaseUrl ? it : it.skip;
 const realFetch = globalThis.fetch;
 type Database = Parameters<typeof createCompetitionStore>[0];
-type Credential = { userId: string; playerId: string; token: string; refreshToken?: string };
+type Credential = {
+  userId: string;
+  playerId: string;
+  token: string;
+  refreshToken?: string;
+  sessionId: string;
+  game: string;
+};
 type ApiResponse = Credential & {
   code: string;
   error?: string;
@@ -28,7 +35,6 @@ type ApiResponse = Credential & {
   players: unknown[];
   me: { userId: string; playerId: string; score: number; nickname: string } | null;
 };
-const digest = (text: string) => createHash('sha256').update(text).digest('hex');
 async function bounded<T>(pending: Promise<T>) {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
@@ -56,6 +62,7 @@ function barrier(point: 'before' | 'after', match: (text: string) => boolean) {
     point,
     match,
     taken: false,
+    pid: 0,
     hit: reached.promise,
     release: released.resolve,
     async pause() {
@@ -82,6 +89,13 @@ function controlledDatabase(database: Database, barriers: Barrier[]): Database {
               );
               if (gate) {
                 gate.taken = true;
+                gate.pid = Number(
+                  (
+                    await (object as unknown as Database).execute(
+                      sql`select pg_backend_pid() as pid`,
+                    )
+                  )[0]!.pid,
+                );
                 await gate.pause();
               }
             };
@@ -150,6 +164,7 @@ async function setup(url: string) {
             platform,
             appId: configuredAppId,
             secret: 'explicit-test-fixture-secret',
+            games: ['cops-robbers', 'three-choose-two', 'carding-car'],
           })),
         ),
       ),
@@ -185,13 +200,8 @@ async function setup(url: string) {
     );
     return operation;
   }
-  const guest = (installationId = randomUUID()) =>
-    request('/sessions/guest', undefined, {
-      installationId,
-      identityVersion: 2,
-    }) as Promise<Credential>;
-  const upgrade = (credential: Credential, code: string = randomUUID()) =>
-    request('/sessions/upgrade', credential, { platform: 'wechat', appId, code });
+  const guest = (game = 'cops-robbers') =>
+    request('/sessions/guest', undefined, { game }) as Promise<Credential>;
   async function close() {
     for (const gate of gates) gate.release();
     await Promise.allSettled([...pending]);
@@ -242,280 +252,242 @@ async function setup(url: string) {
     gates,
     request,
     guest,
-    upgrade,
     appId,
     otherAppId,
     close,
   };
 }
 
+async function waitBlocked(
+  f: Awaited<ReturnType<typeof setup>>,
+  waiting: Barrier,
+  holding: Barrier,
+) {
+  const deadline = Date.now() + 4000;
+  while (Date.now() < deadline) {
+    const rows = await f.database.execute(
+      sql`select ${holding.pid}::int=any(pg_blocking_pids(${waiting.pid}::int)) as blocked`,
+    );
+    if (rows[0]!.blocked) return;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error('PostgreSQL did not observe the expected blocking owner');
+}
+const refreshLock = (text: string) =>
+  text.includes('join runtime.competition_refresh_tokens r') && text.includes('for no key update');
+const logoutLock = (text: string) =>
+  text.includes('join runtime.competition_sessions s') && text.includes('for no key update');
+const resourceLock = (text: string) =>
+  text.includes('select id from runtime.competition_players') && text.includes('for update');
+
 integration(
-  'real HTTP/PG preserves scoped identities, legacy renewal, safe profiles, privacy and upgrade history',
+  'real anonymous issuance scopes games, preserves profile privacy and rejects legacy tokens',
   async () =>
     fixture(async (f) => {
-      const installationId = randomUUID(),
-        a = await f.guest(installationId),
-        b = await f.guest(installationId);
-      expect(a.userId).not.toBe(b.userId);
-      // A valid pre-013 bearer had no refresh row; renewing must retain its original UUID.
-      await f.database.execute(
-        sql`delete from runtime.competition_refresh_tokens where player_id=${a.userId}`,
-      );
-      const renewed = await f.request('/sessions/refresh', a, {});
-      const refreshed = await f.request('/sessions/refresh', undefined, {
-        refreshToken: renewed.refreshToken,
-      });
-      expect(renewed.userId).toBe(a.userId);
-      expect(refreshed.userId).toBe(a.userId);
+      const a = await f.guest('cops-robbers'),
+        b = await f.guest();
+      const same = await f.guest('xiangqi-five');
+      expect(same.userId).not.toBe(a.userId);
+      expect(same.sessionId).not.toBe(a.sessionId);
+      await f.request('/games/cops-robbers', same, undefined, 403);
       const profile = await f.request('/me', a, {
-        nickname: '身份玩家甲',
-        avatarUrl: 'https://img.tapimg.net/test.png',
-        region: { country: '中国', province: '广东' },
+        nickname: '玩家甲',
+        avatarId: 'panda',
+        region: { country: '中国' },
         source: 'user-authorized',
       });
-      expect(profile).toMatchObject({
-        userId: a.userId,
-        nickname: '身份玩家甲',
-        profileSource: 'user-authorized',
-        region: { country: '中国', province: '广东' },
-      });
+      expect(profile.userId).toBe(a.userId);
       for (const patch of [
         { nickname: '<script>' },
         { avatarUrl: 'https://127.0.0.1/x' },
-        { region: { city: '精确城市' } },
-        { nickname: '冒用玩家', userId: b.userId },
-        { nickname: '伪造来源', source: 'platform-verified' },
+        { region: { city: 'precise' } },
+        { userId: b.userId },
+        { source: 'platform-verified' },
       ])
         await f.request('/me', a, patch, 422);
-      await f.request('/sessions/guest', undefined, { userId: a.userId }, 422);
-      await f.request(
-        '/sessions/platform',
-        undefined,
-        { platform: 'wechat', appId: f.appId, code: 'scope', platformId: 'victim' },
-        422,
+      const room = await f.request('/games/cops-robbers/rooms', a, {});
+      await f.request(`/rooms/${room.code}`, b, undefined, 403);
+      const joined = await f.request('/games/cops-robbers/rooms/join', b, { code: room.code });
+      expect(joined.players[0]).toMatchObject({
+        userId: a.userId,
+        nickname: '玩家甲',
+        avatarId: 'panda',
+      });
+      expect(JSON.stringify(joined)).not.toMatch(
+        /password_hash|session_hash|family_id|token_hash|subject/,
       );
-      await f.request(
-        '/sessions/platform',
-        undefined,
-        { platform: 'wechat', appId: 'not-configured', code: 'scope' },
-        503,
-      );
-      const native = await f.request('/sessions/platform', undefined, {
-        platform: 'wechat',
-        appId: f.appId,
-        code: 'scope',
-      });
-      const same = await f.request('/sessions/platform', undefined, {
-        platform: 'wechat',
-        appId: f.appId,
-        code: 'scope',
-      });
-      const otherApp = await f.request('/sessions/platform', undefined, {
-        platform: 'wechat',
-        appId: f.otherAppId,
-        code: 'scope',
-      });
-      const otherProvider = await f.request('/sessions/platform', undefined, {
-        platform: 'taptap',
-        appId: f.appId,
-        code: 'scope',
-      });
-      expect(same.userId).toBe(native.userId);
-      expect(otherApp.userId).not.toBe(native.userId);
-      expect(otherProvider.userId).not.toBe(native.userId);
-      for (const game of ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five']) {
-        const room = await f.request(`/games/${game}/rooms`, a, {});
-        const joined = await f.request(`/games/${game}/rooms/join`, b, { code: room.code });
-        expect(joined.players[0]).toMatchObject({
-          userId: a.userId,
-          nickname: '身份玩家甲',
-          avatarUrl: profile.avatarUrl,
-          region: profile.region,
-        });
-        expect(joined.players[1]).toMatchObject({ userId: b.userId, avatarUrl: '', region: null });
-        expect(JSON.stringify(joined)).not.toMatch(
-          /mock-official|app_id|session_key|subject|token_hash/,
-        );
-      }
-      const board = 'cops-robbers:' + f.store.ruleFor('cops-robbers').version;
-      // Isolated score fixture proves migration/upgrade preservation; it is never a production result.
+      await f.request('/sessions/guest', undefined, {}, 422);
+      await f.request('/sessions/upgrade', a, {}, 404);
+      await f.request('/sessions/refresh', a, {}, 422);
       await f.database.execute(
-        sql`insert into runtime.competition_best values(${board},${a.userId},42,0,${'identity-fixture:' + randomUUID()},${Date.now()})`,
+        sql`update runtime.competition_sessions set game='' where player_id=${a.userId}`,
       );
-      const upgraded = await f.upgrade(a);
-      expect(upgraded).toMatchObject({
-        userId: a.userId,
-        identityKind: 'platform',
-        provider: 'wechat',
-      });
-      for (const old of [a, renewed, refreshed]) await f.request('/me', old, undefined, 401);
-      for (const refreshToken of [a.refreshToken, renewed.refreshToken])
-        await f.request('/sessions/refresh', undefined, { refreshToken }, 401);
-      const ranking = await f.request('/games/cops-robbers/leaderboards/versus', upgraded);
-      expect(ranking.me).toMatchObject({
-        userId: a.userId,
-        playerId: a.userId,
-        score: 42,
-        nickname: '身份玩家甲',
-      });
-      expect(JSON.stringify(ranking)).not.toMatch(
-        /mock-official|app_id|session_key|subject|token_hash/,
+      await f.request('/me', a, undefined, 401);
+      await f.request('/sessions/refresh', undefined, { refreshToken: a.refreshToken }, 401);
+      await f.database.execute(
+        sql`update runtime.competition_players set platform='invalid' where id=${b.userId}`,
       );
-      await f.request(
-        '/sessions/upgrade',
-        b,
-        { platform: 'wechat', appId: f.appId, code: 'scope' },
-        409,
-      );
-      expect((await f.request('/me', b)).identityKind).toBe('guest');
-      expect(
-        (await f.request('/sessions/refresh', undefined, { refreshToken: b.refreshToken })).userId,
-      ).toBe(b.userId);
-      await f.request(
-        '/sessions/upgrade',
-        upgraded,
-        { platform: 'taptap', appId: f.appId, code: 'cross-platform' },
-        409,
-      );
+      await f.request('/me', b, undefined, 401);
     }),
-  30_000,
+  30000,
 );
 
 integration(
-  'two real guest transactions targeting one scoped platform subject cannot merge or overwrite either account',
+  'concurrent anonymous entry requests never merge identities',
   async () =>
     fixture(async (f) => {
-      const a = await f.guest(),
-        b = await f.guest();
-      const first = barrier(
-        'after',
-        (text) =>
-          text.includes('join runtime.competition_sessions s') && text.includes('for update of p'),
-      );
-      f.gates.push(first);
-      const aUpgrade = f.upgrade(a, 'same-subject');
-      await bounded(first.hit);
-      const second = barrier('before', (text) => text.includes('pg_advisory_xact_lock'));
-      f.gates.push(second);
-      const bUpgrade = f.request(
-        '/sessions/upgrade',
-        b,
-        { platform: 'wechat', appId: f.appId, code: 'same-subject' },
-        409,
-      );
-      await bounded(second.hit);
-      second.release();
-      first.release();
-      expect((await aUpgrade).userId).toBe(a.userId);
-      await bUpgrade;
-      expect((await f.request('/me', b)).identityKind).toBe('guest');
-      expect(
-        (await f.request('/sessions/refresh', undefined, { refreshToken: b.refreshToken })).userId,
-      ).toBe(b.userId);
+      const [a, b] = await Promise.all([f.guest(), f.guest()]);
+      expect(a.userId).not.toBe(b.userId);
+      expect(a.sessionId).not.toBe(b.sessionId);
     }),
-  30_000,
+  30000,
 );
 
-integration.each(['refresh', 'upgrade'] as const)(
-  'real player locks serialize %s first against the competing operation',
+integration.each(['refresh', 'logout'] as const)(
+  'real player locks serialize %s first; late old access revokes only its family',
   async (firstOperation) =>
     fixture(async (f) => {
-      const guest = await f.guest();
-      const refreshQuery = (text: string) =>
-        text.includes('join runtime.competition_refresh_tokens r') &&
-        text.includes('for update of p');
-      const upgradeQuery = (text: string) =>
-        text.includes('join runtime.competition_sessions s') && text.includes('for update of p');
-      const first = barrier('after', firstOperation === 'refresh' ? refreshQuery : upgradeQuery);
+      const a = await f.guest('cops-robbers'),
+        other = await f.guest('cops-robbers');
+      const first = barrier('after', firstOperation === 'refresh' ? refreshLock : logoutLock);
       f.gates.push(first);
       const refresh = () =>
         f.request(
           '/sessions/refresh',
           undefined,
-          { refreshToken: guest.refreshToken },
+          { refreshToken: a.refreshToken },
           firstOperation === 'refresh' ? 200 : 401,
         );
-      const a = firstOperation === 'refresh' ? refresh() : f.upgrade(guest);
+      const logout = () => f.request('/sessions/logout', a, {});
+      const left = firstOperation === 'refresh' ? refresh() : logout();
       await bounded(first.hit);
-      const second = barrier('before', firstOperation === 'refresh' ? upgradeQuery : refreshQuery);
+      const second = barrier('before', firstOperation === 'refresh' ? logoutLock : refreshLock);
       f.gates.push(second);
-      const b = firstOperation === 'refresh' ? f.upgrade(guest) : refresh();
+      const right = firstOperation === 'refresh' ? logout() : refresh();
       await bounded(second.hit);
       second.release();
-      first.release();
-      const [left, right] = await Promise.all([a, b]);
-      const upgraded = firstOperation === 'refresh' ? right : left;
-      expect(upgraded.userId).toBe(guest.userId);
-      if (firstOperation === 'refresh') await f.request('/me', left, undefined, 401);
-      await f.request('/me', guest, undefined, 401);
-      await f.request('/sessions/refresh', undefined, { refreshToken: guest.refreshToken }, 401);
+      try {
+        await waitBlocked(f, second, first);
+      } finally {
+        first.release();
+      }
+      const results = await Promise.all([left, right]);
+      await f.request('/me', a, undefined, 401);
+      if (firstOperation === 'refresh') {
+        expect(results[0]!.sessionId).toBe(a.sessionId);
+        await f.request('/me', results[0], undefined, 401);
+        await f.request(
+          '/sessions/refresh',
+          undefined,
+          { refreshToken: results[0]!.refreshToken },
+          401,
+        );
+      }
+      expect((await f.request('/me', other)).userId).toBe(other.userId);
+      expect(
+        (await f.request('/sessions/refresh', undefined, { refreshToken: other.refreshToken }))
+          .sessionId,
+      ).toBe(other.sessionId);
     }),
-  30_000,
+  30000,
 );
 
-integration.each(['upgrade', 'create'] as const)(
-  'three-choose-two rejects revoked guest authority with %s winning the critical section',
+integration(
+  'single-use refresh is rechecked after an actual PostgreSQL owner lock wait',
+  async () =>
+    fixture(async (f) => {
+      const a = await f.guest();
+      const first = barrier('after', refreshLock);
+      f.gates.push(first);
+      const left = f.request('/sessions/refresh', undefined, { refreshToken: a.refreshToken });
+      await bounded(first.hit);
+      const second = barrier('before', refreshLock);
+      f.gates.push(second);
+      const right = f.request(
+        '/sessions/refresh',
+        undefined,
+        { refreshToken: a.refreshToken },
+        401,
+      );
+      await bounded(second.hit);
+      second.release();
+      try {
+        await waitBlocked(f, second, first);
+      } finally {
+        first.release();
+      }
+      const next = await left;
+      await right;
+      expect(next.sessionId).toBe(a.sessionId);
+      await f.request('/sessions/logout', a, {});
+      await f.request('/me', next, undefined, 401);
+    }),
+  30000,
+);
+
+integration.each(['logout', 'create'] as const)(
+  'resource authority rechecks revocation with %s winning the critical section',
   async (firstOperation) =>
     fixture(async (f) => {
-      const guest = await f.guest();
-      if (firstOperation === 'upgrade') {
-        const checked = deferred(),
-          proceed = deferred();
-        const identity = f.store.identity;
-        let intercepted = false;
-        f.store.identity = async (token) => {
-          const owner = await identity(token);
-          if (!intercepted && digest(token) === digest(guest.token)) {
-            intercepted = true;
-            checked.resolve();
-            await proceed.promise;
-          }
-          return owner;
-        };
-        const create = f.request('/three-choose-two/session', guest, {}, 401);
-        try {
-          await bounded(checked.promise);
-          const upgraded = await f.upgrade(guest);
-          proceed.resolve();
-          await create;
-          const rows = await f.database.execute(
-            sql`select count(*)::int as count from runtime.three_choose_two_sessions where player_id=${guest.userId}`,
-          );
-          expect(rows[0]!.count).toBe(0);
-          expect((await f.request('/three-choose-two/session', upgraded, {})).eligible).toBe(true);
-        } finally {
-          proceed.resolve();
-          f.store.identity = identity;
-        }
+      const a = await f.guest('three-choose-two');
+      if (firstOperation === 'logout') {
+        const first = barrier('before', resourceLock);
+        f.gates.push(first);
+        const creating = f.request('/three-choose-two/session', a, {}, 401);
+        await bounded(first.hit);
+        await f.request('/sessions/logout', a, {});
+        first.release();
+        await creating;
+        const rows = await f.database.execute(
+          sql`select count(*)::int as count from runtime.three_choose_two_sessions where player_id=${a.userId}`,
+        );
+        expect(rows[0]!.count).toBe(0);
       } else {
-        const locked = barrier(
-          'after',
-          (text) =>
-            text.includes('select id from runtime.competition_players') &&
-            text.includes('for update'),
-        );
-        f.gates.push(locked);
-        const create = f.request('/three-choose-two/session', guest, {});
-        await bounded(locked.hit);
-        const waiting = barrier(
-          'before',
-          (text) =>
-            text.includes('join runtime.competition_sessions s') &&
-            text.includes('for update of p'),
-        );
-        f.gates.push(waiting);
-        const upgrade = f.upgrade(guest);
-        await bounded(waiting.hit);
-        waiting.release();
-        locked.release();
-        const session = await create,
-          upgraded = await upgrade;
-        expect(session.eligible).toBe(false);
-        expect(
-          (await f.request(`/three-choose-two/session/${session.id}`, upgraded)).eligible,
-        ).toBe(false);
-        await f.request('/three-choose-two/session', guest, {}, 401);
+        const first = barrier('after', resourceLock);
+        f.gates.push(first);
+        const creating = f.request('/three-choose-two/session', a, {});
+        await bounded(first.hit);
+        const second = barrier('before', logoutLock);
+        f.gates.push(second);
+        const loggingOut = f.request('/sessions/logout', a, {});
+        await bounded(second.hit);
+        second.release();
+        try {
+          await waitBlocked(f, second, first);
+        } finally {
+          first.release();
+        }
+        expect((await creating).eligible).toBe(false);
+        await loggingOut;
+        await f.request('/three-choose-two/session', a, {}, 401);
       }
     }),
-  30_000,
+  30000,
+);
+
+integration(
+  'internal kart replay uses durable game authorization without storing or requiring bearer tokens',
+  async () =>
+    fixture(async (f) => {
+      const a = await f.guest('carding-car');
+      const result = {
+        matchId: randomUUID(),
+        board: 'carding-car-seaside-v1',
+        entries: [{ playerId: a.playerId, elapsedMs: 1500 }],
+        startedAt: Date.now() - 2000,
+        finishedAt: Date.now(),
+      };
+      await f.request('/sessions/logout', a, {});
+      await f.store.kartResults(result);
+      await f.database.execute(
+        sql`delete from runtime.player_game_access where player_id=${a.playerId} and game='carding-car'`,
+      );
+      await expect(f.store.kartResults(result)).rejects.toMatchObject({
+        code: 'IDENTITY_SCOPE_MISMATCH',
+      });
+      await expect(f.store.kartResults({ ...result, matchId: randomUUID() })).rejects.toMatchObject(
+        { code: 'IDENTITY_SCOPE_MISMATCH' },
+      );
+    }),
+  30000,
 );

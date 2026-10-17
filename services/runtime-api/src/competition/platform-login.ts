@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CONTROL_GAME_IDS } from '@coffeeeeffoc/service-kit';
 import { CompetitionError } from './types.js';
 import { exchangeDouyinCode } from './douyin-login.js';
 
@@ -6,6 +7,7 @@ export const platformSchema = z.enum(['wechat', 'bilibili', 'douyin', 'kuaishou'
 export const platformLoginSchema = z
   .object({
     platform: platformSchema,
+    game: z.enum(CONTROL_GAME_IDS),
     appId: z.string().min(1).max(100),
     code: z.string().min(1).max(512),
   })
@@ -15,6 +17,7 @@ export const platformConfigSchema = z.array(
     platform: platformSchema,
     appId: z.string().min(1),
     secret: z.string().min(16),
+    games: z.array(z.enum(CONTROL_GAME_IDS)).min(1).optional(),
   }),
 );
 
@@ -27,6 +30,8 @@ export async function verifiedPlatformSubject(
     (p) => p.platform === input.platform && p.appId === input.appId,
   );
   if (!configured) throw new CompetitionError('PLATFORM_NOT_CONFIGURED', 503);
+  if (!configured.games?.includes(input.game))
+    throw new CompetitionError('IDENTITY_SCOPE_MISMATCH', 403);
   if (input.platform === 'kuaishou') throw new CompetitionError('PLATFORM_LOGIN_UNAVAILABLE', 503);
   if (input.platform === 'douyin')
     return exchangeDouyinCode(input.appId, configured.secret, input.code);

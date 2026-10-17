@@ -20,6 +20,7 @@ import {
   controlExecution,
   controlReceipt,
   controlServices,
+  controlDatabaseReasons,
   writeControlBundle,
   readControlBundle,
   archiveControlBundle,
@@ -302,6 +303,13 @@ test('control CLI closes legacy modes before config and prepare never reads SSH 
     mode: '--recover-control',
     bundle: 'old-release',
   });
+  assert.deepEqual(controlInput(['--recover-control=old-release', '--root-precondition']), {
+    mode: '--recover-control',
+    bundle: 'old-release',
+    recoveryEvidence: 'root-precondition-v1',
+  });
+  for (const mode of ['--adopt-control=old-release', '--prepare-control', '--rollback'])
+    assert.throws(() => controlInput([mode, '--root-precondition']), /ARGUMENTS/);
   assert.throws(() => controlInput(['--adopt-control=../release']), /ARGUMENTS/);
 });
 
@@ -315,6 +323,7 @@ async function controlWorkspace(folder) {
     'infra/backend-update/deploy.py',
     'infra/deployment/image-authority.py',
     'infra/admin-console/migrations/002-control-center.sql',
+    'infra/migrations/014-player-sessions.sql',
   ]) {
     await mkdir(path.dirname(path.join(workspace, name)), { recursive: true });
     const realDatabaseSources = new Set([
@@ -559,7 +568,7 @@ test('recover executes the current runner and guards current dev even for an old
       calls = [],
       uploaded = [];
     const directory = path.join(folder, 'current');
-    const result = await main(['--recover-control=historical'], {
+    const result = await main(['--recover-control=historical', '--root-precondition'], {
       prepare: async (options) => {
         assert.equal(options.runnerOnly, true);
         return { directory };
@@ -591,10 +600,41 @@ test('recover executes the current runner and guards current dev even for an old
     const payload = JSON.parse(calls[1][1].input);
     assert.equal(payload.sourceSHA, current.sourceSHA);
     assert.equal(payload.targetRelease, historical.release);
+    assert.equal(payload.recoveryEvidence, 'root-precondition-v1');
     assert.match(payload.targetManifestSHA256, /^[a-f0-9]{64}$/);
   } finally {
     await rm(folder, { recursive: true, force: true });
   }
+});
+
+test('database failures preserve a finite cause and outcome without forwarding raw secrets', async () => {
+  const python = await readFile(
+    new URL('../infra/admin-console/control-deploy.py', import.meta.url),
+    'utf8',
+  );
+  const reasons = [
+    ...python.match(/DATABASE_REASONS = frozenset\(\{([\s\S]*?)\}\)/)[1].matchAll(/'([^']+)'/g),
+  ].map((match) => match[1]);
+  assert.deepEqual([...controlDatabaseReasons].sort(), reasons.sort());
+  for (const outcome of [
+    'DATABASE_PREFLIGHT_FAILED',
+    'DATABASE_NOT_COMMITTED',
+    'DATABASE_OUTCOME_UNKNOWN',
+  ])
+    for (const reason of controlDatabaseReasons) {
+      const code = `${outcome}__${reason}`;
+      assert.deepEqual(remoteDiagnostic(`ADMIN_REMOTE_STOPPED ${code}`, 'ADMIN'), {
+        failure: code,
+      });
+    }
+  assert.deepEqual(
+    remoteDiagnostic('ADMIN_REMOTE_STOPPED DATABASE_PREFLIGHT_FAILED__PRIVATE_CANARY', 'ADMIN'),
+    { failure: 'REMOTE_GUARD_FAILED' },
+  );
+  assert.equal(
+    remoteDiagnostic('ADMIN_REMOTE_STOPPED CONTROL_COMMAND_FAILED secret=value', 'ADMIN'),
+    null,
+  );
 });
 
 test('admin owned-probe diagnostics preserve only strict metadata for the matching caller', async () => {
@@ -666,4 +706,31 @@ test('control database contracts stay finite and never implicitly run PostgreSQL
   );
   assert.ifError(result.error);
   assert.equal(result.status, 0, result.stdout + result.stderr);
+});
+
+test('pre-migration recovery reports restored services without claiming control adoption', () => {
+  const value = {
+    ok: true,
+    mode: 'recover',
+    outcome: 'restored-before-migration',
+    release: 'previous',
+    sourceSHA: 'a'.repeat(40),
+    runnerSourceSHA: 'b'.repeat(40),
+    migrationArtifactSha256: 'c'.repeat(64),
+    controlEnabled: false,
+    internalHealthVerified: true,
+    restoredImages: Object.fromEntries(
+      ['runtime', 'kart', 'management'].map((name) => [name, 'sha256:' + 'd'.repeat(64)]),
+    ),
+  };
+  assert.deepEqual(controlReceipt(JSON.stringify(value), 'recover', value.runnerSourceSHA), value);
+  for (const patch of [
+    { controlEnabled: true },
+    { internalHealthVerified: false },
+    { mode: 'adopt' },
+    { restoredImages: {} },
+  ])
+    assert.throws(() =>
+      controlReceipt(JSON.stringify({ ...value, ...patch }), 'recover', value.runnerSourceSHA),
+    );
 });

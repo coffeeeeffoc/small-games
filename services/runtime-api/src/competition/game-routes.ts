@@ -20,8 +20,6 @@ export function registerGameRoutes(
   ranked: ReturnType<typeof createRankedStore>,
   player: (authorization: string | undefined) => Promise<PlayerAuth>,
 ) {
-  const viewer = (authorization: string | undefined) =>
-    authorization ? player(authorization) : Promise.resolve(null);
   function definition(game: string) {
     const solo = ranked.rules.get(game);
     const multiplayer = store.gameDefinitions().find((rule) => rule.id === game);
@@ -54,7 +52,7 @@ export function registerGameRoutes(
   }
   routes.get('/games/:game', async (request) => {
     const { game } = gameParams(request.params);
-    const auth = await viewer(request.headers.authorization);
+    const auth = await player(request.headers.authorization);
     assertGameScope(auth, game);
     return {
       ...definition(game),
@@ -63,7 +61,7 @@ export function registerGameRoutes(
   });
   routes.get('/games/:game/leaderboards/:board', async (request) => {
     const { game, board } = z.object({ game: gameId, board: gameId }).parse(request.params);
-    const playerId = await viewer(request.headers.authorization);
+    const playerId = await player(request.headers.authorization);
     assertGameScope(playerId, game);
     definition(game);
     if (ranked.rules.get(game)?.boards.some((item) => item.id === board)) {

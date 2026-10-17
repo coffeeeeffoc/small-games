@@ -23,11 +23,23 @@ export async function verifyCompetitionIdentityLocks({ owner, checked }) {
   for (const statement of migration.slice(0, migration.indexOf('GRANT ')).split(';'))
     if (statement.trim() && statement.trim() !== 'BEGIN')
       await owner.db.execute(sql.raw(statement));
+  const grantMigration = await readFile(
+    new URL('../infra/migrations/014-player-sessions.sql', import.meta.url),
+    'utf8',
+  );
+  const grantTable = grantMigration.match(
+    /CREATE TABLE IF NOT EXISTS runtime\.player_game_access[\s\S]*?;/,
+  )[0];
+  await owner.db.execute(sql.raw(grantTable));
   const ids = [randomUUID(), randomUUID()];
-  for (const id of ids)
+  for (const id of ids) {
     await owner.db.execute(
-      sql`insert into runtime.competition_players(id,created_at) values(${id},${Date.now()})`,
+      sql`insert into runtime.competition_players(id,platform,app_id,subject,created_at) values(${id},'guest','lock-fixture',${id},${Date.now()})`,
     );
+    await owner.db.execute(
+      sql`insert into runtime.player_game_access(player_id,game) values(${id},'cops-robbers')`,
+    );
+  }
   async function waitBlocked(pid, blocker) {
     const deadline = performance.now() + 2000;
     while (performance.now() < deadline) {

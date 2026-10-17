@@ -12,7 +12,7 @@ afterEach(async () => {
   await Promise.all(apps.splice(0).map((app) => app.close()));
 });
 const token = 'a'.repeat(64);
-async function setup(dual = false, conflict = false) {
+async function setup(dual = false, conflict = false, scope = 'tower-brake') {
   const url = new URL('../rules/ranked-games.mjs', import.meta.url).href;
   const imported = (await import(url)) as { rankedRules: RankedRule[] };
   const rankedRules = imported.rankedRules.map((rule) => ({ ...rule, boards: [...rule.boards] }));
@@ -24,11 +24,11 @@ async function setup(dual = false, conflict = false) {
   const ranked = createRankedRuns(
     memoryRuns().repository,
     new Map(rankedRules.map((rule) => [rule.id, rule])),
-    async () => ({ authenticated: false }),
+    async () => ({ authenticated: true }),
   );
   const identity = vi.fn(async (value: string) => {
     if (value !== token) throw new CompetitionError('SESSION_EXPIRED', 401);
-    return 'guest-player';
+    return { playerId: 'member-player', game: scope };
   });
   const roomAction = vi.fn(async (_player, _code, _operation, input) => ({ game: input.game }));
   const ranking = vi.fn(async () => ({ top: [], me: null }));
@@ -40,7 +40,7 @@ async function setup(dual = false, conflict = false) {
     board,
     identityDetails: async (id: string | null) => ({
       kind: id ? 'guest' : 'anonymous',
-      authenticated: false,
+      authenticated: true,
       provider: null,
       playerId: id,
     }),
@@ -57,9 +57,10 @@ async function setup(dual = false, conflict = false) {
 it('public metadata and boards distinguish anonymous identity; expired credentials are not silently anonymous', async () => {
   const { app, ranking } = await setup();
   const path = '/api/competition/v1/games/tower-brake';
-  const metadata = await app.inject({ url: path });
+  expect((await app.inject({ url: path })).statusCode).toBe(401);
+  const metadata = await app.inject({ url: path, headers: { authorization: 'Bearer ' + token } });
   expect(metadata.statusCode).toBe(200);
-  expect(metadata.json().identity).toMatchObject({ kind: 'anonymous', authenticated: false });
+  expect(metadata.json().identity).toMatchObject({ kind: 'guest', authenticated: true });
   expect(metadata.json().boards.map((board: { id: string }) => board.id)).toEqual([
     'campaign',
     'endless',
@@ -72,14 +73,31 @@ it('public metadata and boards distinguish anonymous identity; expired credentia
     (await app.inject({ url: path, headers: { authorization: 'Bearer ' + 'b'.repeat(64) } }))
       .statusCode,
   ).toBe(401);
-  expect((await app.inject({ url: path + '/leaderboards/endless' })).statusCode).toBe(200);
-  expect(ranking).toHaveBeenCalledWith('tower-brake:endless:tower-ranked-v1', null);
-  expect((await app.inject({ url: path + '/leaderboards/forged' })).statusCode).toBe(404);
+  expect(
+    (
+      await app.inject({
+        url: path + '/leaderboards/endless',
+        headers: { authorization: 'Bearer ' + token },
+      })
+    ).statusCode,
+  ).toBe(200);
+  expect(ranking).toHaveBeenCalledWith('tower-brake:endless:tower-ranked-v1', {
+    playerId: 'member-player',
+    game: 'tower-brake',
+  });
+  expect(
+    (
+      await app.inject({
+        url: path + '/leaderboards/forged',
+        headers: { authorization: 'Bearer ' + token },
+      })
+    ).statusCode,
+  ).toBe(404);
 });
 it('a game can combine solo boards and multiplayer through one gateway, with explicit board conflict rejection', async () => {
   const { app, board, roomAction } = await setup(true);
   const base = '/api/competition/v1/games/tower-brake';
-  const response = await app.inject({ url: base });
+  const response = await app.inject({ url: base, headers: { authorization: 'Bearer ' + token } });
   expect(response.json().capabilities).toEqual({ leaderboards: true, multiplayer: true });
   expect(response.json().versions).toEqual({ ranked: 'tower-ranked-v1', multiplayer: 'duel-v1' });
   expect(response.json().boards.map((item: { id: string }) => item.id)).toEqual([
@@ -87,8 +105,18 @@ it('a game can combine solo boards and multiplayer through one gateway, with exp
     'endless',
     'versus',
   ]);
-  expect((await app.inject({ url: base + '/leaderboards/versus' })).statusCode).toBe(200);
-  expect(board).toHaveBeenCalledWith('tower-brake', null);
+  expect(
+    (
+      await app.inject({
+        url: base + '/leaderboards/versus',
+        headers: { authorization: 'Bearer ' + token },
+      })
+    ).statusCode,
+  ).toBe(200);
+  expect(board).toHaveBeenCalledWith('tower-brake', {
+    playerId: 'member-player',
+    game: 'tower-brake',
+  });
   expect(
     (
       await app.inject({
@@ -97,11 +125,20 @@ it('a game can combine solo boards and multiplayer through one gateway, with exp
       })
     ).statusCode,
   ).toBe(200);
-  expect(roomAction).toHaveBeenCalledWith('guest-player', 'ABCDEF123456', 'get', {
-    game: 'tower-brake',
-  });
+  expect(roomAction).toHaveBeenCalledWith(
+    { playerId: 'member-player', game: 'tower-brake' },
+    'ABCDEF123456',
+    'get',
+    {
+      game: 'tower-brake',
+    },
+  );
   const conflicting = await setup(true, true);
-  expect((await conflicting.app.inject({ url: base })).json()).toEqual({
+  expect(
+    (
+      await conflicting.app.inject({ url: base, headers: { authorization: 'Bearer ' + token } })
+    ).json(),
+  ).toEqual({
     error: 'BOARD_CONFIGURATION_CONFLICT',
   });
 });
@@ -158,21 +195,26 @@ it('writes require identity, refuse client result fields and expose game-scoped 
     payload: {},
   });
   expect(response.statusCode).toBe(200);
-  expect(roomAction).toHaveBeenCalledWith('guest-player', 'ABCDEF123456', 'ready', {
-    game: 'duel',
-  });
+  expect(roomAction).toHaveBeenCalledWith(
+    { playerId: 'member-player', game: 'tower-brake' },
+    'ABCDEF123456',
+    'ready',
+    {
+      game: 'duel',
+    },
+  );
   expect(
     (await app.inject({ method: 'POST', url: path + '/rooms', headers, payload: {} })).statusCode,
   ).toBe(404);
 });
 
 it('ranked HTTP creation rejects legacy, mismatched and missing versions with an update error', async () => {
-  const { app } = await setup();
   const headers = { authorization: 'Bearer ' + token };
   for (const [game, version] of [
     ['cage-rescue', 'rescue-ranked-v1'],
     ['tower-brake', 'tower-ranked-v1'],
   ]) {
+    const { app } = await setup(false, false, game);
     const url = `/api/competition/v1/games/${game}/runs`;
     for (const clientVersion of [undefined, '', `${version}-old`, `${version}-new`]) {
       const response = await app.inject({

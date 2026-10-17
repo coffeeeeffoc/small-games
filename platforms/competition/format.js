@@ -1,19 +1,5 @@
-export function playerName(player, peers = []) {
-  const name = player.name || '新玩家',
-    id = player.playerId || player.id || '';
-  const duplicates = peers.filter((p) => (p.name || '新玩家') === name);
-  if (duplicates.length < 2) return name;
-  let length = 6;
-  while (
-    length < id.length &&
-    duplicates.some(
-      (p) =>
-        (p.playerId || p.id) !== id &&
-        (p.playerId || p.id || '').slice(0, length) === id.slice(0, length),
-    )
-  )
-    length++;
-  return `${name} · #${id.slice(0, length).toUpperCase()}`;
+export function playerName(player) {
+  return player?.nickname || player?.name || '新玩家';
 }
 
 export function scoreText(game, score, secondary = 0) {

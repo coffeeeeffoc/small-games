@@ -25,6 +25,12 @@ async function launch(t: TestContext, port: number, inheritedPort: number, share
     KART_SERVER_URL: 'wss://rooms.example.test/kart',
   };
   delete env.KART_ALLOWED_ORIGINS;
+  for (const key of [
+    'COMPETITION_API_URL',
+    'COMPETITION_INTERNAL_KEY',
+    'COMPETITION_CONTROL_ENABLED',
+  ])
+    delete env[key];
   const child = spawn(
     process.execPath,
     share ? ['src/share.ts', 'https://rooms.example.test'] : ['src/main.ts'],
@@ -72,7 +78,7 @@ test(
 );
 
 test(
-  'normal launcher permits configured public room creation and rejects other origins',
+  'normal launcher permits configured origins but rejects anonymous room creation and other origins',
   { timeout: 15000 },
   async (t) => {
     const port = await freePort();
@@ -95,7 +101,10 @@ test(
         bots: 0,
       }),
     );
-    assert.equal(JSON.parse(String((await message)[0])).type, 'joined');
+    assert.deepEqual(JSON.parse(String((await message)[0])), {
+      type: 'error',
+      message: 'LOGIN_REQUIRED',
+    });
     socket.send(JSON.stringify({ type: 'leave' }));
     const rejected = new WebSocket(`ws://127.0.0.1:${port}/kart`, {
       origin: 'https://unrelated.example.test',

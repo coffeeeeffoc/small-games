@@ -48,7 +48,7 @@ integration('Flick Arena rooms over real HTTP and PostgreSQL', () => {
   }
 
   async function player(): Promise<Credential> {
-    return request('/sessions/guest', undefined, {});
+    return request('/sessions/guest', undefined, { game: 'flick-arena' });
   }
 
   async function started(mode = 'duel', count = 2) {

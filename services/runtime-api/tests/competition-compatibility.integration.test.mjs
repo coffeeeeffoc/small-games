@@ -103,6 +103,10 @@ integration(
           runInNewContext(source, context);
           context.__installCompetition({ game: rule.id, platform: 'h5', apiUrl: base });
           const api = context.__competition;
+          if (service === 1 || consumer === 'candidate') {
+            await expect(api.session()).rejects.toBeDefined();
+            continue;
+          }
           const credential = await api.session();
           expect(credential.playerId, `${consumer} H5 × service ${service}`).toMatch(
             /^[a-f0-9-]{36}$/,
@@ -126,10 +130,15 @@ integration(
       }
       // Old store performs its actual pre-013 column-list INSERT; no fixture replacement SQL.
       const old = await request(0, '/sessions/guest', null, {});
-      const modern = await request(1, '/sessions/guest', null, { identityVersion: 2 });
+      const modern = await request(1, '/sessions/guest', null, { game: rule.id });
       expect(old.playerId).not.toBe(modern.playerId);
       for (const credential of [old, modern])
         for (const index of [0, 1]) {
+          if (index === 1 && credential === old) {
+            await request(index, '/me', old, undefined, 401);
+            await request(index, '/sessions/refresh', old, {}, 422);
+            continue;
+          }
           const mine = await request(index, '/me', credential);
           expect(mine.playerId).toBe(credential.playerId);
           const renamed = await request(index, '/me', credential, { name: '兼容玩家' });
@@ -137,13 +146,16 @@ integration(
           expect(renamed.name).toBe('兼容玩家');
           const room = await request(index, '/rooms', credential, { game: rule.id });
           expect(room.players[0].id).toBe(credential.playerId);
-          expect((await request(1 - index, `/rooms/${room.code}`, credential)).players[0].id).toBe(
-            credential.playerId,
-          );
+          if (index === 0 && credential === old) {
+            await request(1, `/rooms/${room.code}`, old, undefined, 401);
+          } else {
+            expect(
+              (await request(1 - index, `/rooms/${room.code}`, credential)).players[0].id,
+            ).toBe(credential.playerId);
+          }
           const other = credential === old ? modern : old;
-          expect(
-            (await request(1 - index, `/rooms/${room.code}`, other, undefined, 403)).error,
-          ).toBe('NOT_A_MEMBER');
+          const deniedStatus = 1 - index === 1 && other === old ? 401 : 403;
+          await request(1 - index, `/rooms/${room.code}`, other, undefined, deniedStatus);
         }
       const matchId = `compat-${randomUUID()}`;
       matches.add(matchId);

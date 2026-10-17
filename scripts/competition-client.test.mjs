@@ -17,7 +17,17 @@ for (const [game, [version, modes]] of Object.entries(versions))
       roomVersion = version,
       leaveError;
     const writes = [],
-      token = JSON.stringify({ token: 'a'.repeat(64), expiresAt: Date.now() + 3600000 });
+      token = JSON.stringify({
+        token: 'a'.repeat(64),
+        refreshToken: 'b'.repeat(64),
+        sessionId: '10000000-0000-4000-8000-000000000001',
+        userId: 'player',
+        game,
+        identityKind: platform === 'h5' ? 'guest' : 'platform',
+        apiAuthority: `https://test.invalid/api/competition/v1|${platform}|test-app|${game}`,
+        refreshExpiresAt: Date.now() + 86400000,
+        expiresAt: Date.now() + 3600000,
+      });
     const response = (url, method) => {
       const path = new URL(url).pathname;
       if (path.includes('/boards/')) return metadata;
@@ -90,16 +100,25 @@ for (const platform of ['wechat', 'bilibili', 'douyin', 'kuaishou']) {
   const sent = [],
     stored = [];
   const sdk = {
-    getStorageSync: () => '',
+    getStorageSync: () => stored.at(-1)?.[1] || '',
     setStorageSync: (key, value) => stored.push([key, value]),
-    login: ({ success }) => success({ code: 'official-sdk-code' }),
+    login: () => assert.fail('Anonymous identity needs no platform login'),
     request: ({ url, data, success }) => {
       sent.push({ url, data });
       success({
         statusCode: 200,
-        data: url.endsWith('/sessions/platform')
-          ? { token: 'session-token', expiresAt: Date.now() + 3600000 }
-          : { playerId: 'player' },
+        data: url.endsWith('/sessions/guest')
+          ? {
+              token: 'a'.repeat(64),
+              refreshToken: 'b'.repeat(64),
+              sessionId: '10000000-0000-4000-8000-000000000001',
+              userId: 'player',
+              game: 'letters-words2',
+              identityKind: 'guest',
+              refreshExpiresAt: Date.now() + 86400000,
+              expiresAt: Date.now() + 3600000,
+            }
+          : { userId: 'player', game: 'letters-words2' },
       });
     },
   };
@@ -112,25 +131,13 @@ for (const platform of ['wechat', 'bilibili', 'douyin', 'kuaishou']) {
     apiUrl: 'https://test.invalid/api',
   });
   await context.__competition.request('/me');
-  assert.equal(sent[0].url, 'https://test.invalid/api/sessions/platform');
-  assert.equal(sent[0].data.platform, platform);
-  assert.equal(sent[0].data.appId, 'game-app');
-  assert.equal(sent[0].data.code, 'official-sdk-code');
+  assert.equal(sent[0].url, 'https://test.invalid/api/sessions/guest');
+  assert.equal(JSON.stringify(sent[0].data), JSON.stringify({ game: 'letters-words2' }));
   assert.ok(decodeURIComponent(stored[0][0]).includes(`${platform}|game-app`));
-  assert.ok(sent.every(({ url }) => !url.endsWith('/sessions/guest')));
-
   const missing = {};
   runInNewContext(source, missing);
   assert.throws(() => missing.__installCompetition({ platform }), /原生 SDK/);
-  sdk.login = ({ success }) => success({ code: '' });
-  const invalid = { [sdkName]: sdk, setTimeout, clearTimeout };
-  runInNewContext(source, invalid);
-  invalid.__installCompetition({ platform, appId: 'game-app', apiUrl: 'https://test.invalid/api' });
-  await assert.rejects(
-    invalid.__competition.session(),
-    (error) => error.code === 'PLATFORM_LOGIN_FAILED',
-  );
 }
 console.log(
-  'Four native SDKs send platform codes, isolate sessions, reject empty codes and never fall back to guests.',
+  'Native entrances use SDK transport and scoped anonymous credentials without platform login.',
 );

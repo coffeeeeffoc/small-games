@@ -129,7 +129,7 @@ export function createThreeChooseTwoStore(
         sql`select id from runtime.competition_players where id=${playerId} for update`,
       );
       await assertResourceAuth(tx, auth, 'three-choose-two', now());
-      // Upgrade revokes guest credentials under this same player lock.
+      // Logout revokes session credentials under this same player lock.
       if (token) {
         const valid = await tx.execute(sql`select 1 from runtime.competition_sessions
           where player_id=${playerId} and token_hash=${createHash('sha256').update(token).digest('hex')}

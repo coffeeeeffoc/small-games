@@ -54,7 +54,7 @@ class DockerFixture:
         if args[0] == 'start':
             if self.start_failure:
                 raise authority.AuthorityError('AUTHORITY_PROBE_COMMAND_FAILED')
-            return b'{"control":1,"ephemeralGuestScope":1}'
+            return b'{"control":1,"authenticatedGameScope":1}'
         if args[0] == 'rm':
             if self.cleanup_failure == 'signal':
                 raise RuntimeError('SIGNAL_INTERRUPTED')
@@ -181,11 +181,16 @@ class AuthorityContracts(unittest.TestCase):
                 self.assertIn(function, script)
             self.assertNotIn('process.env', script)
             self.assertNotIn('/main.', script)
-        for output in [b'{"control":true,"ephemeralGuestScope":1}', b'{"control":0,"ephemeralGuestScope":1}',
-                       b'{"control":1}', b'{"control":1,"ephemeralGuestScope":1,"secret":"CANARY"}', b'noise\n{}']:
+        for output in [b'{"control":true,"authenticatedGameScope":1}', b'{"control":0,"authenticatedGameScope":1}',
+                       b'{"control":1}', b'{"control":1,"authenticatedGameScope":1,"secret":"CANARY"}', b'noise\n{}']:
             with patch.object(authority, 'owned_probe_output', return_value=output):
                 with self.assertRaisesRegex(authority.AuthorityError, '^AUTHORITY_FALLBACK_REQUIRED$'):
                     authority.require_images({'runtime': IMAGE}, 'AUTHORITY_FALLBACK_REQUIRED')
+
+    def test_kart_rejects_old_unscoped_identity_protocol(self):
+        with patch.object(authority, 'owned_probe_output', return_value=b'{"control":1,"identityRecheck":1}'):
+            with self.assertRaisesRegex(authority.AuthorityError, '^AUTHORITY_FALLBACK_REQUIRED$'):
+                authority.require_images({'kart': IMAGE}, 'AUTHORITY_FALLBACK_REQUIRED')
 
     def test_cleanup_error_attributes_survive_floor_wrapper(self):
         error = authority.AuthorityError('AUTHORITY_PROBE_CLEANUP_FAILED', ID, str(TOKEN), NAME)

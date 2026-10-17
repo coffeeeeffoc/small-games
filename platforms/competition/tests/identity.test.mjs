@@ -9,48 +9,56 @@ import {
   regionText,
   renderAvatar,
 } from '../profile-dom.js';
-
 const source = await readFile(new URL('../client.js', import.meta.url), 'utf8');
 const id = '00000000-0000-4000-8000-000000000001';
-const ephemeralCredential = (game, now = Date.now(), extra = {}) =>
-  credential({
-    identityMode: 'ephemeral',
-    game,
-    identityExpiresAt: now + 8 * 3600_000,
-    refreshExpiresAt: now + 8 * 3600_000,
-    refreshToken: 'c'.repeat(64),
-    expiresAt: now + 15 * 60_000,
-    ...extra,
-  });
+const family = '10000000-0000-4000-8000-000000000001';
 const credential = (extra = {}) => ({
   userId: id,
   playerId: id,
+  sessionId: family,
+  game: 'cops-robbers',
   identityKind: 'guest',
   token: 'a'.repeat(64),
-  expiresAt: Date.now() + 3600000,
+  refreshToken: 'c'.repeat(64),
+  expiresAt: Date.now() + 900000,
+  refreshExpiresAt: Date.now() + 86400000,
   ...extra,
 });
-function fixture({ config = {}, sdk, storage = new Map(), handler } = {}) {
+const deferred = () => {
+  let resolve, reject;
+  const promise = new Promise((yes, no) => {
+    resolve = yes;
+    reject = no;
+  });
+  return { promise, resolve, reject };
+};
+function fixture({ config = {}, sdk, storage = new Map(), handler, blocked = false } = {}) {
   const calls = [];
   const localStorage = {
-    getItem: (key) => storage.get(key),
-    setItem: (key, value) => storage.set(key, value),
+    getItem(key) {
+      if (blocked) throw Error('blocked');
+      return storage.get(key);
+    },
+    setItem(key, value) {
+      if (blocked) throw Error('blocked');
+      storage.set(key, value);
+    },
   };
   const context = {
     URL,
     setTimeout,
     clearTimeout,
-    location: new URL('https://api.game.test/play'),
-    crypto: { randomUUID: () => id },
+    AbortSignal,
+    location: new URL('https://game.test/play'),
   };
   runInNewContext(source, context);
   const options = {
-    config: { apiUrl: 'https://api.game.test/v1', ...config },
+    config: { apiUrl: 'https://api.game.test/v1', game: 'cops-robbers', ...config },
     sdk,
     storage: localStorage,
     request: async (path, body, owner) => {
       calls.push({ path, body, owner });
-      return handler ? handler(path, body, owner) : credential({ refreshToken: 'c'.repeat(64) });
+      return handler ? handler(path, body, owner) : credential();
     },
   };
   const auth = context.__createCompetitionIdentity(options);
@@ -60,363 +68,178 @@ function fixture({ config = {}, sdk, storage = new Map(), handler } = {}) {
     context,
     options,
     storage,
-    save: (value) => storage.set(auth.storageKey, JSON.stringify(value)),
+    save: (value) =>
+      storage.set(
+        auth.storageKey,
+        JSON.stringify(value && { ...value, apiAuthority: auth.authority }),
+      ),
   };
 }
-test('ephemeral installer chooses page memory before storage getters, migration, installation or listeners', async () => {
-  let reads = 0,
-    writes = 0,
-    listeners = 0,
-    installations = 0;
-  const game = 'cops-robbers',
-    calls = [];
-  const context = {
-    URL,
-    location: new URL('https://game.example/play'),
-    setTimeout,
-    clearTimeout,
-    AbortSignal,
-    addEventListener() {
-      listeners++;
-    },
-    crypto: {
-      randomUUID() {
-        installations++;
-        return id;
-      },
-    },
-    async fetch(url, options) {
-      calls.push({ url, body: JSON.parse(options.body) });
-      return { status: 200, json: async () => ephemeralCredential(game) };
-    },
-  };
-  Object.defineProperty(context, 'localStorage', {
-    get() {
-      reads++;
-      throw new Error('must not read storage');
-    },
-  });
-  runInNewContext(source, context);
-  context.__installCompetition({
-    identityMode: 'ephemeral',
-    game,
-    platform: 'h5',
-    apiUrl: 'https://api.example/v1',
-  });
-  await context.__competition.session();
-  context.__competition.roomStorage.setItem('competition-room:' + game, 'AABBCCDDEEFF');
-  assert.equal(
-    context.__competition.roomStorage.getItem('competition-room:' + game),
-    'AABBCCDDEEFF',
-  );
-  assert.deepEqual(
-    calls.map((c) => JSON.parse(JSON.stringify(c.body))),
-    [{ identityVersion: 2, identityMode: 'ephemeral', game }],
-  );
-  assert.equal(reads + writes + listeners + installations, 0);
-});
-test('ephemeral identity shares only endpoint plus game in the page, while reload starts a new owner', async () => {
-  let count = 0;
-  const game = 'xiangqi-five',
-    storage = new Map([['competition-session-v1:h5', JSON.stringify(credential())]]);
-  const f = fixture({
-    config: { identityMode: 'ephemeral', game },
-    storage,
-    handler: () =>
-      ephemeralCredential(game, Date.now(), {
-        userId: `page-${++count}`,
-        playerId: `page-${count}`,
-      }),
-  });
-  const first = await f.auth.current();
-  assert.equal(f.context.__createCompetitionIdentity(f.options), f.auth);
-  const otherGame = f.context.__createCompetitionIdentity({
-    ...f.options,
-    config: { ...f.options.config, game: 'cops-robbers' },
-  });
-  const otherApi = f.context.__createCompetitionIdentity({
-    ...f.options,
-    config: { ...f.options.config, apiUrl: 'https://other.example/v1' },
-  });
-  assert.notEqual(otherGame, f.auth);
-  assert.notEqual(otherApi, f.auth);
-  assert.equal(storage.size, 1);
-  const reloaded = fixture({
-    config: { identityMode: 'ephemeral', game },
-    storage,
-    handler: () => ephemeralCredential(game, Date.now(), { userId: 'reload', playerId: 'reload' }),
-  });
-  assert.notEqual((await reloaded.auth.current()).userId, first.userId);
-  assert.equal(reloaded.calls[0].path, '/sessions/guest');
-});
-test('ephemeral refresh preserves UUID and absolute expiry, then fails without creating a replacement', async () => {
-  const started = Date.now();
-  let clock = started;
-  const game = 'cops-robbers-realtime',
-    expires = started + 8 * 3600_000;
-  const f = fixture({
-    config: { identityMode: 'ephemeral', game },
-    handler: () =>
-      ephemeralCredential(game, clock, { identityExpiresAt: expires, refreshExpiresAt: expires }),
-  });
-  f.context.Date = class extends Date {
-    static now() {
-      return clock;
-    }
-  };
-  const first = await f.auth.current();
-  clock += 15 * 60_000;
-  assert.equal((await f.auth.current()).userId, first.userId);
-  assert.equal(f.calls[1].path, '/sessions/refresh');
-  clock = expires;
-  await assert.rejects(f.auth.current(), { code: 'IDENTITY_EXPIRED' });
-  assert.equal(f.calls.length, 2);
-  await assert.rejects(f.auth.upgrade({}), { code: 'IDENTITY_UPGRADE_NOT_ALLOWED' });
-});
-test('old services cannot silently downgrade ephemeral identity to a persistent legacy guest', async () => {
-  const f = fixture({
-    config: { identityMode: 'ephemeral', game: 'cops-robbers' },
-    handler: () => credential({ refreshToken: 'c'.repeat(64) }),
-  });
-  await assert.rejects(f.auth.current(), { code: 'IDENTITY_MODE_UNSUPPORTED' });
-  await assert.rejects(f.auth.current(), { code: 'IDENTITY_MODE_UNSUPPORTED' });
+test('first network use creates one scoped anonymous identity and reload reuses it', async () => {
+  const f = fixture();
+  const [a, b] = await Promise.all([f.auth.current(), f.auth.current()]);
+  assert.equal(a.userId, b.userId);
   assert.equal(f.calls.length, 1);
-  assert.equal(f.storage.size, 0);
-  assert.throws(() => fixture({ config: { identityMode: 'ephemeral', game: 'carrom-club' } }), {
-    code: 'IDENTITY_MODE_UNSUPPORTED',
+  assert.equal(f.calls[0].path, '/sessions/guest');
+  assert.equal(JSON.stringify(f.calls[0].body), JSON.stringify({ game: 'cops-robbers' }));
+  assert.equal(f.calls[0].owner, null);
+  const reload = fixture({ storage: f.storage });
+  assert.equal((await reload.auth.current()).userId, id);
+  assert.equal(reload.calls.length, 0);
+  const other = fixture({
+    config: { game: 'xiangqi-five' },
+    storage: f.storage,
+    handler: () => credential({ game: 'xiangqi-five', userId: 'other' }),
   });
+  assert.equal((await other.auth.current()).userId, 'other');
+  assert.equal(other.calls.length, 1);
 });
-test('ephemeral identity remains usable at the final 60s/30s and fails at the exact absolute deadline', async () => {
-  const start = Date.now(),
-    end = start + 8 * 3600_000;
-  let clock = start;
-  const game = 'xiangqi-five';
-  const f = fixture({
-    config: { identityMode: 'ephemeral', game },
-    handler: () =>
-      ephemeralCredential(game, clock, {
-        identityExpiresAt: end,
-        refreshExpiresAt: end,
-        expiresAt: Math.min(clock + 15 * 60_000, end),
-      }),
-  });
-  f.context.Date = class extends Date {
-    static now() {
-      return clock;
-    }
-  };
-  const first = await f.auth.current();
-  clock = end - 60000;
-  const final = await f.auth.current();
-  assert.equal(final.userId, first.userId);
-  assert.equal(final.expiresAt, end);
-  assert.equal(f.calls.length, 2);
-  clock = end - 30000;
-  assert.equal((await f.auth.current()).token, final.token);
-  assert.equal(f.calls.length, 2);
-  clock = end;
-  await assert.rejects(f.auth.current(), { code: 'IDENTITY_EXPIRED' });
-  assert.equal(f.calls.length, 2);
-});
-
-test('unknown native providers fail closed; web-preview retains guest transport', async () => {
-  for (const platform of ['alipay', 'unknown']) {
-    const f = fixture({ config: { platform } });
-    await assert.rejects(f.auth.current(), { code: 'PLATFORM_LOGIN_UNAVAILABLE' });
-    assert.equal(f.calls.length, 0);
+test('legacy unscoped or malformed credentials cannot authenticate a new session', async () => {
+  for (const value of [
+    null,
+    credential({ sessionId: undefined }),
+    credential({ token: 'bad' }),
+    credential({ game: 'xiangqi-five' }),
+  ]) {
+    const f = fixture();
+    f.save(value);
+    await f.auth.current();
+    assert.equal(f.calls[0].path, '/sessions/guest');
+    assert.equal(f.calls[0].owner, null);
   }
-  const f = fixture({ config: { platform: 'web-preview' } });
+});
+test('blocked storage retains the anonymous credential in memory', async () => {
+  const f = fixture({ blocked: true });
+  await f.auth.current();
+  await f.auth.current();
+  assert.equal(f.calls.length, 1);
+});
+test('network failures retain refresh credentials and never create another player', async () => {
+  const f = fixture({
+    handler: () => {
+      throw Object.assign(Error(), { code: 'SERVICE_UNAVAILABLE' });
+    },
+  });
+  f.save(credential({ expiresAt: Date.now() + 1000 }));
+  for (let i = 0; i < 2; i++)
+    await assert.rejects(f.auth.current(), { code: 'SERVICE_UNAVAILABLE' });
+  assert.equal(f.auth.saved().userId, id);
+  assert(f.calls.every((c) => c.path === '/sessions/refresh'));
+});
+test('profile updates and rotating refresh cannot overwrite each other in either arrival order', async () => {
+  for (const first of ['profile', 'refresh']) {
+    const d = deferred(),
+      f = fixture({ handler: () => d.promise });
+    const old = credential({ expiresAt: Date.now() + 1000, profileUpdatedAt: 1 });
+    f.save(old);
+    const refreshing = f.auth.current();
+    const profile = {
+      userId: id,
+      game: old.game,
+      name: '新昵称',
+      profileUpdatedAt: 10,
+      token: 'forged',
+    };
+    if (first === 'profile') f.auth.acceptProfile(profile, old);
+    d.resolve(
+      credential({ token: 'b'.repeat(64), refreshToken: 'd'.repeat(64), profileUpdatedAt: 1 }),
+    );
+    await refreshing;
+    if (first === 'refresh') f.auth.acceptProfile(profile, old);
+    f.auth.acceptProfile({ ...profile, name: '迟到的旧昵称', profileUpdatedAt: 2 }, old);
+    assert.equal(f.auth.saved().token, 'b'.repeat(64));
+    assert.equal(f.auth.saved().name, '新昵称');
+  }
+});
+test('logout immediately invalidates pending login or refresh and uses its original family proof', async () => {
+  for (const operation of ['login', 'refresh']) {
+    const d = deferred(),
+      f = fixture({ handler: (path) => (path === '/sessions/logout' ? { ok: true } : d.promise) });
+    if (operation === 'refresh') f.save(credential({ expiresAt: Date.now() + 1000 }));
+    const pending = operation === 'refresh' ? f.auth.current() : f.auth.current();
+    const rejected = assert.rejects(pending, { code: 'SESSION_CHANGED' });
+    await f.auth.logout();
+    d.resolve(credential({ token: 'b'.repeat(64) }));
+    await rejected;
+    assert.equal(f.auth.saved(), null);
+    if (operation === 'refresh')
+      assert.equal(f.calls.find((c) => c.path === '/sessions/logout').owner.token, 'a'.repeat(64));
+  }
+});
+test('late logout completion cannot clear a newer login', async () => {
+  const d = deferred(),
+    f = fixture({
+      handler: (path) =>
+        path === '/sessions/logout'
+          ? d.promise
+          : credential({ sessionId: '20000000-0000-4000-8000-000000000001' }),
+    });
+  f.save(credential());
+  const exiting = f.auth.logout();
+  await f.auth.current();
+  d.resolve({ ok: true });
+  await exiting;
+  assert.equal(f.auth.saved().sessionId[0], '2');
+});
+test('a losing tab refresh adopts the winning same-family rotation without clearing it', async () => {
+  const d = deferred(),
+    f = fixture({ handler: () => d.promise });
+  f.save(credential({ expiresAt: Date.now() + 1000 }));
+  const refreshing = f.auth.current();
+  f.save(credential({ token: 'b'.repeat(64), refreshToken: 'd'.repeat(64) }));
+  d.reject(Object.assign(Error(), { code: 'REFRESH_EXPIRED' }));
+  assert.equal((await refreshing).token, 'b'.repeat(64));
+});
+test('expired refresh clears this account; old business denials cannot clear a rotated token', async () => {
+  const f = fixture({
+    handler: () => {
+      throw Object.assign(Error(), { code: 'REFRESH_EXPIRED' });
+    },
+  });
+  f.save(credential({ expiresAt: Date.now() + 1000 }));
+  await assert.rejects(f.auth.current(), { code: 'REFRESH_EXPIRED' });
+  assert.equal(f.auth.saved(), null);
+  const old = credential();
+  f.save(credential({ token: 'b'.repeat(64) }));
+  f.auth.invalidate(old, { code: 'SESSION_EXPIRED' });
+  assert(f.auth.saved());
+  f.auth.invalidate(f.auth.saved(), { code: 'SESSION_EXPIRED' });
+  assert.equal(f.auth.saved().expiresAt, 0);
+  assert.equal(f.auth.saved().refreshToken, old.refreshToken);
+});
+test('business responses arriving after account change cannot be accepted or cached', async () => {
+  const f = fixture(),
+    d = deferred();
+  f.save(credential());
+  Object.assign(f.context, {
+    localStorage: f.options.storage,
+    fetch: async () => ({ status: 200, json: () => d.promise }),
+  });
+  f.context.__installCompetition(f.options.config);
+  const pending = f.context.__competition.request('/me');
+  await Promise.resolve();
+  f.save(credential({ userId: 'other', sessionId: '20000000-0000-4000-8000-000000000001' }));
+  d.resolve({ userId: id, game: 'cops-robbers', name: '旧玩家' });
+  await assert.rejects(pending, { code: 'SESSION_CHANGED' });
+});
+test('native entrances create anonymous identities without platform login or AppID', async () => {
+  const bad = fixture({ config: { platform: 'unknown' } });
+  await assert.rejects(bad.auth.current(), { code: 'PLATFORM_LOGIN_UNAVAILABLE' });
+  const storage = new Map(),
+    sdk = {
+      request() {},
+      login() {
+        assert.fail('no platform login');
+      },
+      getStorageSync: (key) => storage.get(key),
+      setStorageSync: (key, value) => storage.set(key, value),
+    };
+  const f = fixture({ config: { platform: 'taptap' }, sdk, storage });
   await f.auth.current();
   assert.equal(f.calls[0].path, '/sessions/guest');
-  assert.deepEqual(Object.keys(f.calls[0].body).sort(), ['identityVersion', 'installationId']);
-  assert.equal(f.calls[0].body.identityVersion, 2);
+  assert.equal(Object.keys(f.calls[0].body).join(), 'game');
 });
-
-test('reload and refresh retain the server UUID; installation ID alone cannot restore it', async () => {
-  const storage = new Map();
-  const first = fixture({ storage });
-  const a = await first.auth.current();
-  const reload = fixture({ storage });
-  assert.equal((await reload.auth.current()).userId, a.userId);
-  assert.equal(reload.calls.length, 0);
-  reload.save({ ...a, expiresAt: 0 });
-  assert.equal((await reload.auth.current()).userId, a.userId);
-  assert.equal(reload.calls[0].path, '/sessions/refresh');
-  assert.equal(reload.calls[0].owner, null);
-  storage.delete(reload.auth.storageKey);
-  const fresh = fixture({ storage, handler: () => credential({ userId: 'new-server-user' }) });
-  assert.equal((await fresh.auth.current()).userId, 'new-server-user');
-  assert.equal(fresh.calls[0].path, '/sessions/guest');
-  assert.equal(fresh.calls[0].body.installationId, id);
-});
-
-test('guest protocol stays explicitly v2 when crypto and storage are unavailable', async () => {
-  const f = fixture();
-  delete f.context.crypto;
-  const auth = f.context.__createCompetitionIdentity({
-    ...f.options,
-    storage: {
-      getItem() {
-        throw new Error('disabled');
-      },
-      setItem() {
-        throw new Error('disabled');
-      },
-    },
-  });
-  await auth.current();
-  assert.equal(f.calls[0].body.identityVersion, 2);
-  assert.equal(f.calls[0].body.installationId, undefined);
-});
-
-test('expired credentials without recovery fail explicitly instead of silently replacing the user', async () => {
-  const f = fixture();
-  f.save(credential({ expiresAt: 0 }));
-  await assert.rejects(f.auth.current(), { code: 'SESSION_EXPIRED' });
-  assert.equal(f.calls.length, 0);
-});
-
-test('authority scope isolates endpoints and platform AppIDs and survives duplicate script loading', async () => {
-  const f = fixture();
-  const same = f.context.__createCompetitionIdentity(f.options);
-  runInNewContext(source, f.context);
-  assert.equal(f.context.__createCompetitionIdentity(f.options), same);
-  const values = await Promise.all([same.current(), f.auth.current()]);
-  assert.equal(values[0], values[1]);
-  assert.equal(f.calls.length, 1);
-  const other = f.context.__createCompetitionIdentity({
-    ...f.options,
-    config: { apiUrl: 'https://other.game.test/v1' },
-  });
-  assert.notEqual(other.storageKey, same.storageKey);
-  assert.equal(other.saved(), null);
-  const a = f.context.__createCompetitionIdentity({
-    ...f.options,
-    config: { platform: 'taptap', appId: 'a' },
-  });
-  const b = f.context.__createCompetitionIdentity({
-    ...f.options,
-    config: { platform: 'taptap', appId: 'b' },
-  });
-  assert.notEqual(a.storageKey, b.storageKey);
-});
-
-test('approved canonical and legacy HTTPS routes retain one scoped identity across reload and refresh', async () => {
-  const endpoints = [
-    'https://api.nenggongzhiren.cn/api/competition/v1',
-    'https://api.nenggongzhiren.cn/small-games/v1',
-  ];
-  for (const firstUrl of endpoints) {
-    const first = fixture({ config: { apiUrl: firstUrl } });
-    const alias = first.context.__createCompetitionIdentity({
-      ...first.options,
-      config: { apiUrl: endpoints.find((url) => url !== firstUrl) },
-    });
-    assert.equal(alias, first.auth);
-    const [a, b] = await Promise.all([first.auth.current(), alias.current()]);
-    assert.equal(a, b);
-    assert.equal(first.calls.length, 1);
-    const reload = fixture({
-      storage: first.storage,
-      config: { apiUrl: endpoints.find((url) => url !== firstUrl) },
-    });
-    assert.equal((await reload.auth.current()).userId, id);
-    assert.equal(reload.calls.length, 0);
-    reload.save({ ...a, expiresAt: 0 });
-    assert.equal((await reload.auth.current()).userId, id);
-    assert.equal(reload.calls[0].path, '/sessions/refresh');
-    assert.equal(reload.calls[0].owner, null);
-    for (const apiUrl of [
-      'https://other.nenggongzhiren.cn/small-games/v1',
-      'http://api.nenggongzhiren.cn/small-games/v1',
-      'https://api.nenggongzhiren.cn/small-games/v2',
-      'https://api.nenggongzhiren.cn/other/v1',
-      'https://api.nenggongzhiren.cn/small-games/v1?tenant=other',
-    ]) {
-      const other = fixture({ storage: first.storage, config: { apiUrl } });
-      assert.notEqual(other.auth.storageKey, first.auth.storageKey);
-      assert.equal(other.auth.saved(), null);
-      await other.auth.current();
-      assert.equal(other.calls[0].path, '/sessions/guest');
-      assert.equal(other.calls[0].owner, null);
-    }
-  }
-});
-
-test('legacy migration needs known API authority and never probes a new API with an old bearer', async () => {
-  for (const proven of [false, true]) {
-    const f = fixture({
-      config: { apiUrl: 'https://foreign.game.test/v1' },
-      handler: (path) =>
-        path === '/me' ? { userId: id } : credential({ refreshToken: 'c'.repeat(64) }),
-    });
-    f.storage.set(
-      'competition-session-v1:h5',
-      JSON.stringify(credential(proven ? { apiAuthority: f.auth.authority } : {})),
-    );
-    if (!proven) {
-      await assert.rejects(f.auth.current(), { code: 'IDENTITY_MIGRATION_REQUIRED' });
-      assert.equal(f.calls.length, 0);
-    } else {
-      assert.equal((await f.auth.current()).userId, id);
-      assert.deepEqual(
-        f.calls.map((call) => call.path),
-        ['/me', '/sessions/refresh'],
-      );
-      assert.equal(f.calls[0].owner.token, 'a'.repeat(64));
-    }
-  }
-});
-
-test('upgrade retains the owner UUID and replaces only credentials for that same user', async () => {
-  const f = fixture({
-    handler: (path) =>
-      credential(
-        path === '/sessions/upgrade' ? { identityKind: 'platform', token: 'b'.repeat(64) } : {},
-      ),
-  });
-  const old = credential();
-  f.save(old);
-  const upgraded = await f.auth.upgrade({ platform: 'taptap', appId: 'app', code: 'one-use' });
-  assert.equal(upgraded.userId, id);
-  assert.equal((await f.auth.forOwner(old)).token, upgraded.token);
-  const someoneElse = credential({ userId: 'another', token: 'd'.repeat(64) });
-  f.save(someoneElse);
-  assert.equal((await f.auth.forOwner(old)).token, old.token);
-});
-
-test('account switching before upgrade or profile continuation sends no stale mutation', async () => {
-  const f = fixture();
-  f.save(credential());
-  const upgrade = f.auth.upgrade({ platform: 'taptap', appId: 'app', code: 'one-use' });
-  f.save(credential({ userId: 'other', token: 'b'.repeat(64) }));
-  await assert.rejects(upgrade, { code: 'SESSION_CHANGED' });
-  assert.equal(f.calls.length, 0);
-  const sdk = {
-    login() {},
-    request() {},
-    getStorageSync: (key) => f.storage.get(key),
-    setStorageSync: (key, value) => f.storage.set(key, value),
-    getSetting({ success }) {
-      success({ authSetting: { 'scope.userInfo': true } });
-    },
-    getUserInfo({ success }) {
-      success({ userInfo: { nickName: '玩家甲' } });
-    },
-  };
-  const platform = fixture({
-    config: { platform: 'taptap', appId: 'app' },
-    sdk,
-    storage: f.storage,
-  });
-  platform.save(credential({ identityKind: 'platform' }));
-  const sync = platform.auth.syncProfile();
-  platform.save(credential({ identityKind: 'platform', userId: 'other', token: 'b'.repeat(64) }));
-  await assert.rejects(sync, { code: 'SESSION_CHANGED' });
-  assert.equal(platform.calls.length, 0);
-});
-
-test('profile sync requires actual prior authorization and keeps unknown avatars/regions empty', async () => {
+test('profile sync requires prior platform authorization and filters unknown avatar and region', async () => {
   let authorized = false;
   const storage = new Map();
   const sdk = {
@@ -424,20 +247,17 @@ test('profile sync requires actual prior authorization and keeps unknown avatars
     request() {},
     getStorageSync: (key) => storage.get(key),
     setStorageSync: (key, value) => storage.set(key, value),
-    getSetting({ success }) {
-      success({ authSetting: { 'scope.userInfo': authorized } });
-    },
-    getUserInfo({ success }) {
+    getSetting: ({ success }) => success({ authSetting: { 'scope.userInfo': authorized } }),
+    getUserInfo: ({ success }) =>
       success({
         userInfo: { nickName: '玩家甲', avatarUrl: 'https://unknown.example/a', city: '不保留' },
-      });
-    },
+      }),
   };
   const f = fixture({
     config: { platform: 'taptap', appId: 'app' },
     sdk,
     storage,
-    handler: (_path, body) => ({ ...credential({ identityKind: 'platform' }), ...body }),
+    handler: (_path, body) => ({ userId: id, game: 'cops-robbers', ...body }),
   });
   f.save(credential({ identityKind: 'platform' }));
   await assert.rejects(f.auth.syncProfile(), { code: 'PLATFORM_PROFILE_NOT_AUTHORIZED' });
@@ -446,80 +266,8 @@ test('profile sync requires actual prior authorization and keeps unknown avatars
   await f.auth.syncProfile();
   assert.equal(f.calls[0].body.avatarUrl, '');
   assert.equal(f.calls[0].body.region, null);
-  assert.equal(f.calls[0].body.source, 'user-authorized');
 });
-
 const policy = { origins: ['https://img.tapimg.net'], maxBytes: 8 };
-test('an old profile form cannot send its input to a newly selected user', async () => {
-  const f = fixture();
-  let requests = 0;
-  Object.assign(f.context, {
-    localStorage: f.options.storage,
-    AbortSignal,
-    fetch: async () => {
-      requests++;
-      throw Error('must not send');
-    },
-  });
-  f.context.__installCompetition(f.options.config);
-  f.save(credential({ userId: 'new-user', playerId: 'new-user' }));
-  await assert.rejects(
-    f.context.__competition.request('/me', { body: JSON.stringify({ name: '旧表单' }) }, id),
-    { code: 'SESSION_CHANGED' },
-  );
-  assert.equal(requests, 0);
-});
-
-test('a profile request paused at session resolution cannot write after an account or token switch', async () => {
-  for (const changed of [
-    credential({ userId: 'new-user', playerId: 'new-user' }),
-    credential({ token: 'b'.repeat(64) }),
-  ]) {
-    const f = fixture();
-    let requests = 0;
-    Object.assign(f.context, {
-      localStorage: f.options.storage,
-      AbortSignal,
-      fetch: async () => {
-        requests++;
-        throw Error('must not send');
-      },
-    });
-    f.context.__installCompetition(f.options.config);
-    f.save(credential());
-    const pending = f.context.__competition.request(
-      '/me',
-      { body: JSON.stringify({ name: '旧表单' }) },
-      id,
-    );
-    f.save(changed);
-    await assert.rejects(pending, { code: 'SESSION_CHANGED' });
-    assert.equal(requests, 0);
-  }
-});
-
-test('an unscoped native legacy account reauthenticates with official code without leaking its old bearer', async () => {
-  const storage = new Map([['competition-session-v1:taptap:app', JSON.stringify(credential())]]);
-  const sdk = {
-    login({ success }) {
-      success({ code: 'official-code' });
-    },
-    request() {},
-    getStorageSync: (key) => storage.get(key),
-    setStorageSync: (key, value) => storage.set(key, value),
-  };
-  const f = fixture({
-    config: { platform: 'taptap', appId: 'app' },
-    sdk,
-    storage,
-    handler: () => credential({ identityKind: 'platform' }),
-  });
-  assert.equal((await f.auth.current()).userId, id);
-  assert.equal(f.calls[0].path, '/sessions/platform');
-  assert.equal(f.calls[0].owner, null);
-  assert.equal(f.calls[0].body.code, 'official-code');
-});
-
 test('one hundred delayed avatars retain their own URL until decoding finishes', async (t) => {
   const live = new Set();
   let next = 0;
