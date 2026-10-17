@@ -1,5 +1,5 @@
 {
-  "runId": "game-control-49abdd2e-bf85-4f08-8c13-1f0d94f8abb4",
+  "runId": "game-control-614b0628-e72f-4696-b4f9-000709d8b9cc",
   "isolated": true,
   "loopbackOnly": true,
   "productionAccess": false,
@@ -15,6 +15,8 @@
     "fail-closed-foreign-key-namespace",
     "one-time-bootstrap-db-disable-and-concurrent-last-administrator",
     "CAS-append-only-rollback-epoch-and-shared-advisory-order",
+    "runtime-control-restores-caller-timeouts-with-shared-lock-held-through-business-sql",
+    "runtime-control-shared-lock-still-fails-closed-within-existing-budget",
     "runtime-control-observation-lock-bounded-rollback-retry",
     "runtime-control-concurrent-cors-and-private-lease",
     "runtime-control-terminated-bound-connection-no-autocommit-reconnect",
@@ -27,15 +29,15 @@
   "migrationSha256": "d16a0a06e9da6531b8140fa196dc0fe2a3d91a74cc2fcf877685fe7346f74451",
   "postgresVersion": "17.6",
   "runtimeControl": {
-    "observationLockMs": 1568,
+    "observationLockMs": 1697,
     "commitInFlight": "unknown-no-rollback-guarantee",
     "sourceSha256": {
       "controlDatabase": "6d9e8ba315cfec14447b64a47f9833f038a77bbedd2f72676ef128ce8e4f21c5",
-      "runtimeControl": "1b35ea19e29e7854e64b3a474d4c2b5779767c0540a0a30944a28c00c5f33e44"
+      "runtimeControl": "863609cf1ad601d16ef217d7414169e7b332259f473df65003557ccc2098162f"
     },
     "executedModuleSha256": {
       "controlDatabase": "5e61c1ca49480997287331c189d87a19a612d1df71fc01718e679d6ffc522a57",
-      "runtimeControl": "7c08506963dcd2dc38240567ca116c6804049a107cf938748ae043f2e395370a"
+      "runtimeControl": "7d74c12cf91c3051516e7aea5f74f626e31388d1ed284894e62e278c35568c2a"
     }
   },
   "identityLocks": {
