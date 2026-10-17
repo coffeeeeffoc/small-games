@@ -176,15 +176,11 @@ try {
   }
   await realtime[0].page.locator('[data-rules]').click();
   await realtime[0].page.locator('[data-dismiss]').click();
-  await realtime[0].page.locator('.competition-dialog [data-game-fullscreen]').click();
-  await expect
-    .poll(() => realtime[0].page.evaluate(() => Boolean(document.fullscreenElement)))
-    .toBe(true);
-  await realtime[0].page.evaluate(() => document.exitFullscreen());
+  await expect(realtime[0].page.locator('[data-game-fullscreen]')).toHaveCount(0);
   await realtime[0].page.locator('.competition-dialog [data-close]').click();
   await expect(realtime[0].page.locator('.competition-dialog')).not.toBeVisible();
   report.checks.push(
-    'realtime: both roles send real Canvas movement, rules return, actual fullscreen enter/exit, leave',
+    'realtime: both roles send real Canvas movement, rules return, no fullscreen entry, leave',
   );
   for (const person of realtime) await person.context.close();
   assert.deepEqual(report.errors, []);

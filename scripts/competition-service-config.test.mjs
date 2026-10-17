@@ -30,6 +30,19 @@ import { tapTapOptions } from '../apps/shell-minigame/scripts/taptap-targets.mjs
 
 const url = 'https://api.example.com/api/competition/v1';
 const online = { COMPETITION_SERVICE_ENABLED: '1', COMPETITION_PUBLIC_API_URL: url };
+test('offline HTML hides online entries before scripts run and reconfiguration removes the offline style', () => {
+  for (const game of serviceGames) {
+    const html = '<html><head></head><body></body></html>';
+    const offline = serviceHtml(html, h5ServiceConfig(game, { env: {} }));
+    assert.match(
+      offline,
+      /<head><style data-competition-service>[^<]*#records-button[^<]*display:none!important/,
+    );
+    const enabled = serviceHtml(offline, h5ServiceConfig(game, { env: online }));
+    assert.doesNotMatch(enabled, /#records-button/);
+    assert.equal(enabled, serviceHtml(html, h5ServiceConfig(game, { env: online })));
+  }
+});
 test('only the three explicit Tap H5 producers select ephemeral mode; generic/native config is unchanged', async () => {
   for (const game of ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five']) {
     assert.equal(h5ServiceConfig(game, { env: online }).identityMode, undefined);

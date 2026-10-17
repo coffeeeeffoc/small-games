@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-17T17:57:13.711Z",
+  "environment": "desktop Chrome with mobile touch emulation",
+  "sdk": "explicit simulated TapTap callback fixture; no real ad playback",
+  "checks": [
+    "320x740: real touch sprint, pause, assisted capture, home/reload and hidden online entry",
+    "390x844: real touch sprint, pause, assisted capture, home/reload and hidden online entry",
+    "844x390: real touch sprint, pause, assisted capture, home/reload and hidden online entry",
+    "history: earlier home share restores its own link and home return",
+    "blocked storage: local play and abilities remain usable for the session",
+    "same-origin stale tabs: starter count is monotonic and the fifth grant is issued once",
+    "legacy personal best survives a slower normal win",
+    "real timeout: free 5-second rewind, advertised refill, frozen failure and per-run cap",
+    "simulated TapTap SDK completed: only completed rewards, explicit continue",
+    "simulated TapTap SDK dismissed: only completed rewards, explicit continue",
+    "simulated TapTap SDK failed: only completed rewards, explicit continue",
+    "iframe: normal home/start and touch support; obsolete invite cannot open PK"
+  ],
+  "errors": [],
+  "onlineRequests": []
+}

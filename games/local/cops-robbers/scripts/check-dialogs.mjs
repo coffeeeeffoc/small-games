@@ -90,8 +90,7 @@ try {
       await activate(page.locator('[data-close-appearance]'));
       await expect(page.locator('[data-role-appearance]')).toHaveCount(0);
     }
-    await activate(page.locator('[data-game-fullscreen]'));
-    await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(true);
+    await expect(page.locator('[data-game-fullscreen]')).toHaveCount(0);
     await activate(page.locator('#settings'));
     await cleanDialog('#settings-dialog');
     await page.screenshot({ path: `outputs/dialogs-${width}.png` });
@@ -99,9 +98,9 @@ try {
     await activate(page.locator('#resume-patrol'));
     await expect(page.getByTestId('board')).toBeVisible();
     await expect(page.locator('[data-game-fullscreen]')).not.toBeVisible();
-    assert.equal(await page.evaluate(() => !!document.fullscreenElement), true, 'The patrol keeps the fullscreen selected from home');
+    assert.equal(await page.evaluate(() => !!document.fullscreenElement), false);
     await activate(page.locator('#focus-toggle'));
-    await activate(page.locator('[data-game-fullscreen]'));
+    await expect(page.locator('[data-game-fullscreen]')).toHaveCount(0);
     await expect.poll(() => page.evaluate(() => document.fullscreenElement === null)).toBe(true);
     await replay(1, solutions[1]);
     await cleanDialog('#win-dialog');
@@ -125,7 +124,7 @@ try {
     await context.close();
   }
   await writeFile('outputs/dialogs.json', JSON.stringify({ passed: true, physicalMobile: false, checks }, null, 2));
-  console.log(`PASS ${checks.length} dialog checks across desktop, touch portrait/landscape, repeated and nested dialogs, results, resume and fullscreen`);
+  console.log(`PASS ${checks.length} dialog checks across desktop, touch portrait/landscape, repeated and nested dialogs, results, resume and no fullscreen controls`);
 } finally {
   await browser?.close();
   if (server) await new Promise(resolve => server.close(resolve));

@@ -289,7 +289,9 @@ function showScreen(next, { history: remember = true } = {}) {
     $(name + '-screen').hidden = name !== (next === 'levels' ? 'level' : next);
   for (const id of pageIds) $(id).hidden = id !== next;
   if (navigationReady && remember && previous !== next)
-    history.pushState({ patrolScreen: next, patrolReturn: pageReturnScreen }, '', location.href);
+    history.pushState({ patrolScreen: next, patrolReturn: pageReturnScreen,
+      ...(next === 'share-dialog' ? { patrolShare: { ...shareContent, returnState: shareReturnState } } : {}),
+    }, '', location.href);
   renderer.resize();
   if (!['game', 'appearance', 'competition'].includes(next)) {
     const page =
@@ -612,6 +614,7 @@ function loadLevel(id, saved = null, opening = {}) {
   $('initiative-select').disabled = mode === 'challenge';
   $('mode-description').textContent = MODES.find((item) => item.id === mode).description;
   $('share-puzzle').disabled = id === 0;
+  document.querySelectorAll('[data-share-level]').forEach(button => { button.disabled = id === 0; });
   $('robber-count').textContent = game.robbers.length;
   $('guide-title').textContent = game.level.name;
   $('guide-hint').textContent = game.level.hint;
@@ -720,12 +723,19 @@ function hold() {
     updateHud();
   }
 }
+let shareReturnState = null, shareContent = null;
+function openShare(puzzle, title) {
+  shareContent = { puzzle, title };
+  fillPuzzleShare(puzzle, title);
+  openDialog('share-dialog');
+}
 function openDialog(id, remember = true) {
   if ($(id).open) return;
+  if (id === 'share-dialog') shareReturnState = { screen, pageReturnScreen, dialogResume };
   clearTimeout(winTimer);
   clearGesture();
   pageReturnScreen =
-    screen === 'game' ? 'game' : screen === 'levels' || screen === 'map-page' ? 'levels' : 'home';
+    id === 'share-dialog' ? screen : screen === 'game' ? 'game' : screen === 'levels' || screen === 'map-page' ? 'levels' : 'home';
   dialogResume = game.phase === 'playing';
   if (dialogResume) pauseGame(game);
   closePages();
@@ -736,6 +746,17 @@ function openDialog(id, remember = true) {
 }
 function closeDialog(page, resume = true, remember = true) {
   if (supportRequest) return;
+  if (page.id === 'share-dialog' && shareReturnState && pageIds.includes(shareReturnState.screen)) {
+    const previous = shareReturnState;
+    closePages();
+    pageReturnScreen = previous.pageReturnScreen;
+    dialogResume = previous.dialogResume;
+    $(previous.screen).open = true;
+    $(previous.screen).setAttribute('open', '');
+    showScreen(previous.screen, { history: remember });
+    updateHud();
+    return;
+  }
   page.open = false;
   page.removeAttribute('open');
   page.hidden = true;
@@ -1242,8 +1263,12 @@ document
   .forEach((button) =>
     button.addEventListener('click', () => enterQuick(Number(button.dataset.quick))),
   );
-$('share-puzzle').addEventListener('click', () => {
-  fillPuzzleShare(
+$('home-share').addEventListener('click', () => {
+  openShare(null, '别跑！街区围捕');
+});
+function shareCurrentLevel() {
+  if (game.level.id <= 0) return;
+  openShare(
     {
       mode,
       level: game.level.id || returnLevel,
@@ -1253,8 +1278,9 @@ $('share-puzzle').addEventListener('click', () => {
     },
     `街区追捕 · ${game.level.name} · ${game.orderRule === 'relay' ? '轮换指挥' : roleLabel()}`,
   );
-  openDialog('share-dialog');
-});
+}
+$('share-puzzle').addEventListener('click', shareCurrentLevel);
+document.querySelectorAll('[data-share-level]').forEach(button => button.addEventListener('click', shareCurrentLevel));
 $('appearance-button').addEventListener('click', () => openAppearanceSettings(renderAvatars));
 $('next-button').addEventListener('click', () => {
   if (mode === 'quick' && game.level.id === 3) {
@@ -1467,7 +1493,19 @@ window.addEventListener('popstate', (event) => {
     return;
   }
   const requested = event.state?.patrolScreen;
+  if (screen === 'share-dialog' && requested === shareReturnState?.screen) {
+    closeDialog($('share-dialog'), true, false);
+    return;
+  }
   let next = ['home', 'levels', 'game', ...pageIds].includes(requested) ? requested : 'home';
+  if (next === 'share-dialog') {
+    const savedShare = event.state?.patrolShare;
+    if (savedShare?.returnState) {
+      shareReturnState = savedShare.returnState;
+      shareContent = { puzzle: savedShare.puzzle, title: savedShare.title };
+      fillPuzzleShare(shareContent.puzzle, shareContent.title);
+    } else next = 'home';
+  }
   if ((next === 'game' || next === 'pause-dialog') && game.phase === 'ready') next = 'levels';
   if (['game', 'pause-dialog'].includes(next) && ['won', 'lost'].includes(game.phase))
     next = playerWon() ? 'win-dialog' : 'lose-dialog';
@@ -1488,7 +1526,7 @@ window.addEventListener('popstate', (event) => {
   if (pageIds.includes(next)) {
     $(next).open = true;
     $(next).setAttribute('open', '');
-    pageReturnScreen = ['home', 'levels', 'game'].includes(event.state?.patrolReturn)
+    pageReturnScreen = ['home', 'levels', 'game', ...pageIds].includes(event.state?.patrolReturn)
       ? event.state.patrolReturn
       : next === 'pause-dialog'
         ? 'game'

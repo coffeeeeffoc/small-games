@@ -173,6 +173,7 @@ function updateChrome() {
   $('hint').querySelector('span:last-child').textContent = adBusy ? '观看中…' : hintAds.pending ? '广告中' : hintBusy ? '想想…' : freeHints ? '提示' : '看广告';
   $('hint').setAttribute('aria-label', freeHints ? '获取提示' : '看广告获取提示');
   $('restart').disabled = false;
+  $('share-level').disabled = pending !== null;
   $('selection-label').textContent = `${selected + 1} 号已选中`;
   [...$('squad').children].forEach((button, i) => {
     button.className = i === selected ? 'selected' : '';
@@ -672,10 +673,13 @@ if (query.has('level')) {
 const savedPatrol = (mode,rule) => { const snapshot = patrols[`${mode}:${rule}`], map = catalogFor(mode,rule).find(item=>item.id===snapshot?.levelId), score = mode === 'quick' ? quickCompleted : rule === 'relay' ? relayCompleted : completed; return map && isUnlocked(mode,rule,map.id,score) && validState(snapshot.state,map) && snapshot.state.robbers.some(node=>node>=0) && !snapshot.state.robbers.includes(-2) && (mode !== 'quick' || snapshot.state.turn < map.turnLimit) ? snapshot : null; };
 const canSelect = (mode, nextRule, id) => isUnlocked(mode,nextRule,id, mode==='quick'?quickCompleted:nextRule==='relay'?relayCompleted:completed);
 duelLobby = setupDuelLobby({ selectLevels: openLevels, sharedPuzzle, savedPatrol, canSelect, stopChallenge: () => { if (pending) finishTurn(runToken); runToken++; pending = null; cancelHintRequest(); document.querySelectorAll('dialog[open]').forEach(dialog => dialog.close()); }, startChallenge: (options = {}) => { const targetMode = options.mode || 'challenge', targetRule = options.rule || 'standard', saved = savedPatrol(targetMode,targetRule), resume = !options.fresh && (targetMode !== playMode || targetRule !== rule || targetMode === 'quick' || targetRule === 'relay') && (!options.id || options.id === saved?.levelId) ? saved : null; loadLevel(options.id || resume?.levelId || level.id,resume,targetRule,targetMode); }, returnLobby: () => focusPatrol(false) });
-$('share-challenge').addEventListener('click', () => {
+$('share-challenge').addEventListener('click', () => showPuzzleShare(null, '围捕小队'));
+function shareCurrentLevel() {
+  if (pending) return;
   if (document.body.dataset.lastGame === 'duel' && duelLobby.sharePuzzle()) return;
   showPuzzleShare({ mode: playMode, level: level.id, rule }, `围捕小队 · ${playMode === 'quick' ? '快速战术试炼' : rule === 'relay' ? '换防接力' : '围堵挑战'} · 第 ${level.id} 关`);
-});
+}
+document.querySelectorAll('[data-share-level]').forEach(button => button.addEventListener('click', shareCurrentLevel));
 $('appearance-settings').addEventListener('click', () => openAppearanceSettings(() => { drawBase(); updatePlanning(); }));
 setupGameShell({ openLevels, startPatrol: () => { const resume = savedPatrol(playMode,rule); loadLevel(resume?.levelId || nextPlayable(availableLevels(),records()).id,resume); } });
 if (!query.has('level')) { document.querySelectorAll('dialog[open]').forEach(dialog => dialog.close()); focusPatrol(false); }

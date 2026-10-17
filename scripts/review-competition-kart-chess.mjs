@@ -130,11 +130,7 @@ try {
       'real copied H5 invitation opens in a second independent browser identity and joins its room',
       { code },
     );
-    await page.locator('dialog[open] [data-game-fullscreen]').tap();
-    await page.waitForFunction(() => Boolean(document.fullscreenElement));
-    await page.screenshot({ path: fileURLToPath(new URL('xiangqi-fullscreen.png', directory)) });
-    await page.evaluate(() => document.exitFullscreen());
-    await page.waitForFunction(() => !document.fullscreenElement);
+    assert.equal(await page.locator('[data-game-fullscreen]').count(), 0);
     assert.equal(
       (await page.evaluate((code) => __competition.request(`/rooms/${code}`), code)).status,
       'waiting',
@@ -152,10 +148,11 @@ try {
       2,
     );
     assert.deepEqual(errors, []);
-    record(
-      'real Chrome Fullscreen API entry and system exit, persistent identity and room rejoin on reload',
-      { code, identity, browser: browser.version() },
-    );
+    record('no fullscreen entry, persistent identity and room rejoin on reload', {
+      code,
+      identity,
+      browser: browser.version(),
+    });
     const wrapper = createServer((_request, response) => {
       response.writeHead(200, {
         'content-type': 'text/html',
@@ -172,10 +169,7 @@ try {
       const frame = denied.frameLocator('iframe');
       await frame.locator('[data-competition-launch]').tap();
       await frame.locator('[data-room-code]').waitFor({ state: 'visible' });
-      await frame.locator('dialog[open] [data-game-fullscreen]').tap();
-      await frame.locator('#game-display-notice').waitFor({ state: 'visible' });
-      const feedback = await frame.locator('#game-display-notice').innerText();
-      assert.match(feedback, /未允许全屏|不支持网页全屏/);
+      assert.equal(await frame.locator('[data-game-fullscreen]').count(), 0);
       assert.equal(
         await frame.locator('body').evaluate(() => Boolean(document.fullscreenElement)),
         false,
@@ -183,12 +177,9 @@ try {
       await frame.locator('[data-ready]').tap();
       await frame.locator('[data-ready]:disabled').waitFor();
       await denied.screenshot({
-        path: fileURLToPath(new URL('xiangqi-fullscreen-denied.png', directory)),
+        path: fileURLToPath(new URL('xiangqi-iframe.png', directory)),
       });
-      record(
-        'real Permissions-Policy denial shows accurate feedback and preserves focus controls',
-        { feedback },
-      );
+      record('iframe without fullscreen permission retains ready controls');
     } finally {
       await new Promise((resolve) => wrapper.close(resolve));
     }

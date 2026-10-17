@@ -7,7 +7,7 @@ import { chromium, expect } from 'playwright/test';
 
 const gameRoot = fileURLToPath(new URL('../', import.meta.url));
 const dist = resolve(gameRoot, 'dist');
-const output = resolve(gameRoot, 'docs/design/rewarded-support-2026-10-13/actual');
+const output = resolve(gameRoot, 'docs/design/home-polish-2026-10-18/actual');
 const mime = { '.html':'text/html', '.js':'text/javascript', '.css':'text/css', '.png':'image/png', '.svg':'image/svg+xml' };
 const server = createServer(async (request,response) => {
   try {
@@ -84,16 +84,12 @@ try {
     await expect(page.locator('#home-screen')).toBeVisible();
     await expect(page.locator('#friends-button')).toBeHidden();
     await expect(page.locator('#records-button')).toBeHidden();
+    await page.locator('#home-share').tap();
+    assert.equal(await page.locator('#share-url').inputValue(), base + '/');
+    await page.locator('#share-dialog [data-close]').tap();
+    await expect(page.locator('#home-screen')).toBeVisible();
     await shot(page,'home-'+viewport.width);
-    if(viewport.width===390) {
-      await page.locator('#settings-button').tap();
-      await page.locator('#fullscreen-button').tap();
-      await expect.poll(()=>page.evaluate(()=>Boolean(document.fullscreenElement))).toBe(true);
-      await page.locator('#fullscreen-button').tap();
-      await expect.poll(()=>page.evaluate(()=>Boolean(document.fullscreenElement))).toBe(false);
-      await page.locator('#settings-page [data-close]').last().tap();
-      checks.push('actual Chromium fullscreen enters and exits through the settings control');
-    }
+    await expect(page.locator('[data-game-fullscreen]')).toHaveCount(0);
     await page.locator('#levels-button').tap();
     await expect(page.locator('#starter-support')).toHaveText(/本局赠/);
     await page.locator('[data-choice-for="mode-select"][data-value="quick"]').tap();
@@ -121,6 +117,15 @@ try {
     assert.equal((await state(page)).support.remaining,paused.support.remaining);
     assert.equal(await page.locator('#i-pause rect').count(),2);
     await shot(page,'pause-'+viewport.width);
+    await page.locator('#pause-dialog [data-share-level]').tap();
+    const shared = new URL(await page.locator('#share-url').inputValue());
+    assert.equal(shared.searchParams.get('mode'), 'quick');
+    assert.equal(shared.searchParams.get('level'), '1');
+    assert.equal(shared.searchParams.has('dev'), false);
+    assert.equal(shared.searchParams.has('pk'), false);
+    await page.locator('#share-dialog [data-close]').tap();
+    await expect(page.locator('#pause-dialog')).toBeVisible();
+    assert.equal((await state(page)).time, paused.time, 'sharing preserves pause');
     await page.locator('#resume-button').tap();
     await tapActor(page,0,{x:500,y:300}); await tapActor(page,1,{x:500,y:300});
     await expect(page.locator('#win-dialog')).toBeVisible({timeout:12000});
@@ -129,6 +134,9 @@ try {
     assert.equal(Object.keys(saved.modeBest).length,0,'assisted run never replaces normal best');
     assert.equal(Object.keys(saved.assistedBest).length,1);
     await shot(page,'win-'+viewport.width);
+    await page.locator('#win-dialog [data-share-level]').tap();
+    await page.goBack();
+    await expect(page.locator('#win-dialog')).toBeVisible();
     await page.locator('#win-dialog [data-home]').tap();
     await page.reload();
     assert.equal((await state(page)).startedRuns,1,'refresh retains the starter counter');
@@ -161,6 +169,26 @@ try {
       assert.equal((await state(page)).support,undefined);
     }
     checks.push(viewport.width+'x'+viewport.height+': real touch sprint, pause, assisted capture, home/reload and hidden online entry');
+    await ctx.close();
+  }
+  {
+    const ctx=await context({width:390,height:844}),page=await ctx.newPage();
+    await page.goto(base+'/?dev=0&token=private');
+    await page.locator('#home-share').tap();
+    await page.locator('#share-dialog [data-close]').tap();
+    await setup(page);
+    await page.locator('#pause-button').tap();
+    await page.locator('#pause-dialog [data-share-level]').tap();
+    await page.locator('#share-dialog [data-close]').tap();
+    for(let i=0;i<10;i++) {
+      await page.goBack();
+      if(await page.evaluate(()=>history.state?.patrolShare?.returnState.screen==='home')) break;
+    }
+    await expect(page.locator('#share-dialog')).toBeVisible();
+    assert.equal(await page.locator('#share-url').inputValue(), base+'/');
+    await page.locator('#share-dialog [data-close]').tap();
+    await expect(page.locator('#home-screen')).toBeVisible();
+    checks.push('history: earlier home share restores its own link and home return');
     await ctx.close();
   }
   {
@@ -281,7 +309,7 @@ try {
   assert.deepEqual(requests,[],'offline edition never requests online competition services');
   assert.deepEqual(errors,[]);
   await writeFile(resolve(output,'verification.json'),JSON.stringify({
-    date:'2026-10-14',environment:'desktop Chrome with mobile touch emulation',
+    date:new Date().toISOString(),environment:'desktop Chrome with mobile touch emulation',
     sdk:'explicit simulated TapTap callback fixture; no real ad playback',checks,errors,onlineRequests:requests,
   },null,2)+'\n');
   console.log(checks.join('\n'));

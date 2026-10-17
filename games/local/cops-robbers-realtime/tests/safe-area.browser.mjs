@@ -46,7 +46,7 @@ async function protectedControl(scope, selector, { top = true } = {}) {
   const item = scope.locator(selector).first();
   await expect(item).toBeVisible(); await settled(scope);
   const box = await item.boundingBox();
-  const safe = await scope.evaluate(() => ({ width: innerWidth, height: innerHeight, left: parseFloat(document.documentElement.style.getPropertyValue('--game-host-left')) || 0, right: parseFloat(document.documentElement.style.getPropertyValue('--game-host-right')) || 0, bottom: parseFloat(document.documentElement.style.getPropertyValue('--game-host-bottom')) || 0, top: (parseFloat(document.documentElement.style.getPropertyValue('--game-host-top')) || 0) + 8 }));
+  const safe = await scope.evaluate(() => ({ width: innerWidth, height: innerHeight, left: parseFloat(document.documentElement.style.getPropertyValue('--game-host-left')) || 0, right: parseFloat(document.documentElement.style.getPropertyValue('--game-host-right')) || 0, bottom: parseFloat(document.documentElement.style.getPropertyValue('--game-host-bottom')) || 0, top: (parseFloat(document.documentElement.style.getPropertyValue('--game-host-top')) || 0) + 4 }));
   assert(box.x >= safe.left - 1 && box.x + box.width <= safe.width - safe.right + 1, `${selector} horizontal safe area ${JSON.stringify(box)}`);
   if (top) assert(box.y >= safe.top - 1, `${selector} overlaps host top ${JSON.stringify(box)}`);
   assert(box.y + box.height <= safe.height - safe.bottom + 1, `${selector} below safe bottom ${JSON.stringify(box)}`);

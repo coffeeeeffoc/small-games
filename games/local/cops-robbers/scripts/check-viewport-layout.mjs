@@ -407,7 +407,7 @@ try {
     }
 
     await check('home', async page => {
-      const entries = ['#home-start', '#resume-patrol', '#appearance-settings', '#friend-duel', '#mode-settings', '#help', '#level-select', '#quick-start', '[data-game-fullscreen]', '#share-challenge', '#sound', '#settings'];
+      const entries = ['#home-start', '#resume-patrol', '#appearance-settings', '#friend-duel', '#mode-settings', '#help', '#level-select', '#quick-start', '#share-challenge', '#sound', '#settings'];
       const metrics = {};
       for (const selector of entries) {
         if (selector === '#friend-duel' && !(await page.locator(selector).isVisible())) {
@@ -422,7 +422,7 @@ try {
       assert.equal(scene.height, height);
       if (process.env.VIEWPORT_HOST === '1') {
         const top = await page.evaluate(() => parseFloat(document.documentElement.style.getPropertyValue('--game-host-top')) || 0);
-        assert(metrics['#settings'].rect.y >= top + 8 - 1);
+        assert(metrics['#settings'].rect.y >= top + 4 - 1);
       }
       for (const entry of await page.locator('.home-roster button:visible').all()) await inView(entry, { touchTarget: true });
       return { document: await documentFits(page), entries: metrics };

@@ -74,8 +74,7 @@
       <section id="home-screen" class="screen home-screen" aria-label="街区围捕首页">
         <header class="home-top">
           <div class="home-greeting">
-            <span class="profile-portrait" data-home-avatar="cop"></span>
-            <div><small>今天，也来一场追逐吧</small><strong>你好，小指挥官！</strong></div>
+            <span class="profile-portrait" data-home-avatar="cop" role="img" aria-label="街区围捕"></span>
           </div>
           <div class="home-tools">
             <button id="settings-button" class="icon-button" aria-label="设置">
@@ -89,11 +88,8 @@
             <span class="hero-sparkle" aria-hidden="true">✦</span>
             <h1>别跑<span>！</span></h1>
             <span class="title-ribbon">街 区 围 捕</span>
-            <p>小小街区，一场机灵的追逐。</p>
           </div>
           <div class="hero-characters" aria-hidden="true">
-            <span class="hero-bubble cop-bubble">站住！一起收网！</span
-            ><span class="hero-bubble robber-bubble">来追我呀～</span>
             <div class="hero-cop" data-character="cop"></div>
             <div class="hero-robber" data-character="robber"></div>
             <span class="hero-dash">✦</span>
@@ -137,6 +133,7 @@
             <svg><use href="#i-help" /></svg><strong>行动手册</strong>
           </button>
         </nav>
+        <button id="home-share" class="button quiet">分享游戏</button>
       </section>
       <section
         id="settings-page"
@@ -167,16 +164,6 @@
           <button id="sound-button" class="button quiet" aria-label="关闭声音" aria-pressed="true">
             已开启
           </button>
-        </div>
-        <div class="settings-card">
-          <span class="settings-icon display-icon"
-            ><svg><use href="#i-map" /></svg
-          ></span>
-          <div>
-            <strong>全屏游玩</strong>
-            <p>把整个屏幕变成你的街区</p>
-          </div>
-          <button id="fullscreen-button" data-game-fullscreen aria-label="全屏">全屏</button>
         </div>
         <p class="settings-note">声音偏好会自动保存，下一次出发也记得。</p>
         <button class="button primary wide" data-close>准备好啦，返回首页</button>
@@ -295,7 +282,7 @@
           </div>
         </div>
         <div class="selection-actions">
-          <button id="share-puzzle" class="button quiet" aria-label="分享同题">分享同题</button
+          <button id="share-puzzle" class="button quiet" aria-label="分享当前关卡">分享当前关卡</button
           ><button id="start-button" class="button primary">
             开始行动<svg><use href="#i-play" /></svg>
           </button>
@@ -381,6 +368,7 @@
         <h2>休息一下，马上回来</h2>
         <p id="pause-reason">准备好后，继续追捕。</p>
         <button class="button primary wide" id="resume-button">继续行动</button>
+        <button class="button quiet wide" data-share-level>分享当前关卡</button>
         <div class="dialog-actions">
           <button class="button quiet" id="pause-restart">重新挑战</button
           ><button class="button quiet" data-levels>返回选关</button
@@ -405,6 +393,7 @@
           <div hidden><span>服务器最快</span><b id="win-world">暂未开放</b></div>
         </div>
         <p id="record-status" role="status"></p>
+        <button class="button quiet wide" data-share-level>分享当前关卡</button>
         <button id="retry-record" class="button quiet" hidden>重试上传</button
         ><button class="button primary wide" id="next-button">下一关</button>
         <div class="dialog-actions">
@@ -430,6 +419,7 @@
         </div>
         <button id="lose-retry" class="button primary wide">重新挑战</button>
         <button id="rewind-button" class="button quiet wide">回溯 5 秒</button>
+        <button class="button quiet wide" data-share-level>分享当前关卡</button>
         <div class="dialog-actions">
           <button id="lose-review" class="button quiet">查看局面</button
           ><button class="button quiet" data-levels>选关</button
@@ -548,12 +538,12 @@
         hidden
         tabindex="-1"
       >
-        <h2 id="share-title">分享同题</h2>
-        <label for="share-url">同题链接</label><input id="share-url" readonly />
+        <h2 id="share-title">分享游戏</h2>
+        <label for="share-url">分享链接</label><input id="share-url" readonly />
         <p id="share-note" role="status"></p>
         <button id="copy-share" class="button primary wide">复制链接</button
         ><button id="native-share" class="button quiet wide" hidden>打开分享面板</button
-        ><button class="button quiet wide" data-close>返回选关</button>
+        ><button class="button quiet wide" data-close>返回</button>
       </section>
     </main>
       <section id="support-page" class="screen game-page small-dialog" data-game-page hidden tabindex="-1">
@@ -564,6 +554,5 @@
         <button id="support-return" class="button quiet wide" hidden>稍后使用</button>
       </section>
     <script type="module" src="./src/main.js"></script>
-    <script defer src="./src/fullscreen.js"></script>
   </body>
 </html>

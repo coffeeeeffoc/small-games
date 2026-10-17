@@ -30,7 +30,7 @@ test('standalone builds carry the canonical safe-area adapter', () => {
     assert.equal(readFileSync(new URL('../../../' + path, import.meta.url), 'utf8'), source, path);
 });
 test('ordinary browsers keep CSS cutout insets without a host-sized blank band', () => {
-  const f = fixture({ wx: { ready() {} } });
+  const f = fixture({ navigator: { userAgent: 'MicroMessenger' }, wx: { ready() {} } });
   assert.equal(f.values.get('--game-host-top'), '0px');
   assert.match(f.values.get('--game-safe-area-top'), /env\(safe-area-inset-top, 0px\)/);
 });
@@ -45,7 +45,7 @@ test('different host window geometry is not projected into an embedded viewport'
       getMenuButtonBoundingClientRect: () => ({ top: 160, bottom: 200 }),
     },
   });
-  assert.equal(f.values.get('--game-host-top'), '92px');
+  assert.equal(f.values.get('--game-host-top'), '0px');
   assert.equal(f.values.get('--game-host-bottom'), '0px');
 });
 test('invalid host safe rectangles cannot collapse the game viewport', () => {
@@ -91,7 +91,7 @@ test('SDK receiver, capsule, cutout and landscape sides survive viewport refresh
   });
   sdk.getMenuButtonBoundingClientRect = () => ({ top: 10, bottom: 42 });
   resize();
-  assert.equal(f.values.get('--game-host-top'), '64px');
+  assert.equal(f.values.get('--game-host-top'), '42px');
   assert.equal(f.values.get('--game-host-left'), '59px');
   assert.equal(f.values.get('--game-host-right'), '34px');
 });
@@ -107,7 +107,7 @@ test('partial, failing or late SDKs and explicit host releases still reserve the
         getMenuButtonBoundingClientRect: () => ({ bottom: NaN }),
       },
     },
-    { navigator: { userAgent: 'MicroMessenger' } },
+    { navigator: { userAgent: 'MicroMessenger miniProgram' } },
     { SmallGamesPublishingConfig: { platform: 'taptap-h5' } },
   ])
     assert.equal(fixture(extra).values.get('--game-host-top'), '92px');
@@ -115,4 +115,20 @@ test('partial, failing or late SDKs and explicit host releases still reserve the
   f.context.tap = {};
   f.events.get('focus')();
   assert.equal(f.values.get('--game-host-top'), '92px');
+});
+
+test('left home rail only reserves the cutout while other controls clear the measured capsule', () => {
+  const f = fixture({
+    tap: {
+      getWindowInfo: () => ({
+        windowWidth: 390,
+        windowHeight: 844,
+        safeArea: { top: 24, bottom: 824 },
+      }),
+      getMenuButtonBoundingClientRect: () => ({ top: 28, bottom: 60 }),
+    },
+  });
+  assert.equal(f.values.get('--game-host-top'), '60px');
+  assert.equal(f.values.get('--game-cutout-top'), '24px');
+  assert.match(f.values.get('--game-safe-area-cutout-top'), /\+ 4px/);
 });

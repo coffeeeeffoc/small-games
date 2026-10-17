@@ -114,6 +114,10 @@ try {
       }[game];
       if (mode === 'offline') {
         await expect(page.locator(selector)).toBeHidden();
+        if (game === 'cops-robbers-realtime') {
+          await expect(page.locator('#records-button')).toBeHidden();
+          await expect(page.locator('.home-shortcuts')).toBeHidden();
+        }
         if (game === 'xiangqi-five') await expect(page.locator('#room-open')).toBeHidden();
         await page.waitForTimeout(1200); // Covers the old room's one-second automatic poll.
         assert.deepEqual(requests, [], `${game}: disabled mode must make no API requests`);

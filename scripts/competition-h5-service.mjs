@@ -28,14 +28,23 @@ export function serviceHtml(html, config) {
     .replace(/<style data-competition-service>[\s\S]*?<\/style>/g, '')
     .replace(/<script[^>]*src=["']\.\/competition\.js["'][^>]*><\/script>/g, '');
   const encoded = JSON.stringify(config).replaceAll('<', '\\u003c');
-  const legacyStyle =
-    config.game === 'xiangqi-five'
-      ? '<style data-competition-service>#room-open,#tools-room{display:none!important}</style>'
-      : '';
+  const hiddenEntries = config.game === 'xiangqi-five' ? ['#room-open', '#tools-room'] : [];
+  if (!config.competitionEnabled)
+    hiddenEntries.push(
+      '[data-competition-launch]',
+      '[data-competition-entry]',
+      '#friends-button',
+      '#records-button',
+      '.home-shortcuts',
+      '#mode-online',
+    );
+  const serviceStyle = hiddenEntries.length
+    ? `<style data-competition-service>${hiddenEntries.join(',')}{display:none!important}</style>`
+    : '';
   const result = clean.replace(
     /<head(?:\s[^>]*)?>/i,
     (head) =>
-      `${head}${legacyStyle}<script data-competition-service>globalThis.__COMPETITION_CONFIG__=${encoded};</script>`,
+      `${head}${serviceStyle}<script data-competition-service>globalThis.__COMPETITION_CONFIG__=${encoded};</script>`,
   );
   return config.competitionEnabled
     ? result.replace('</body>', '<script defer src="./competition.js"></script></body>')
@@ -83,7 +92,10 @@ export async function prepareH5Service(game, directory, options = {}) {
     // uses Runtime competition exclusively, including when restoring old saves.
     const app = path.join(directory, 'app.js');
     let source = await readFile(app, 'utf8');
-    if (!source.includes('// Runtime service bridge')) {
+    if (
+      !source.includes('function roomServiceEnabled()') &&
+      !source.includes('// Runtime service bridge')
+    ) {
       const replacements = [
         [
           'async function roomRequest(server, path, body, token) {',

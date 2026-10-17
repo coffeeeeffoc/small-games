@@ -5,6 +5,7 @@ import { mkdir, readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { chromium } from '@playwright/test';
+import { serviceHtml } from './competition-h5-service.mjs';
 
 const allGames = ['fishing', 'office-slacking', 'tower-defense-game', 'xiangqi-five'];
 const games = process.env.DIALOG_GAMES ? process.env.DIALOG_GAMES.split(',') : allGames;
@@ -20,18 +21,36 @@ for (const [game, files] of [
   for (const file of files) {
     const source = new URL(`../games/submodules/${game}/${file}`, import.meta.url);
     const built = new URL(`../games/submodules/${game}/dist/${file}`, import.meta.url);
-    const builtData = await readFile(built);
-    const copiedData =
-      game === 'xiangqi-five' && file === 'index.html'
-        ? Buffer.from(
-            builtData.toString().replace('<script defer src="./competition.js"></script>', ''),
-          )
-        : builtData;
-    assert.deepEqual(
-      copiedData,
-      await readFile(source),
-      `${game}/${file}: build must match source`,
-    );
+    let builtData = await readFile(built);
+    if (game === 'xiangqi-five' && file === 'index.html')
+      builtData = Buffer.from(
+        builtData
+          .toString()
+          .replace(
+            '<script src="./platform-config.js"></script><script type="module" src="./rewarded-host.js"></script>',
+            '',
+          ),
+      );
+    let expected = await readFile(source);
+    if (game === 'xiangqi-five' && file === 'index.html') {
+      const builtHtml = builtData.toString();
+      const roomFlag = builtHtml.match(
+        /<script>globalThis\.__XIANGQI_ROOM_SERVICE__ = (true|false);<\/script>\s*/,
+      )?.[0];
+      assert(roomFlag, 'build explicitly configures the legacy room service');
+      let html = expected
+        .toString()
+        .replace(
+          '<script type="module" src="./app.js"></script>',
+          roomFlag + '<script type="module" src="./app.js"></script>',
+        );
+      const config = builtHtml.match(
+        /<script data-competition-service>globalThis\.__COMPETITION_CONFIG__=(\{.*?\});<\/script>/,
+      );
+      if (config) html = serviceHtml(html, JSON.parse(config[1]));
+      expected = Buffer.from(html);
+    }
+    assert.deepEqual(builtData, expected, `${game}/${file}: build must match source`);
   }
 const screenshotKeys = new Set();
 if (process.env.DIALOG_SCREENSHOT_DIR)
@@ -116,9 +135,7 @@ try {
         await page.locator('#mode-local')[input]();
         await page.locator('#setup-start')[input]();
         await page.locator('#game-more')[input]();
-        const fullscreen = page.locator('section[data-screen="tools"] [data-game-fullscreen]');
-        await fullscreen[input]();
-        await page.waitForFunction(() => Boolean(document.fullscreenElement));
+        assert.equal(await page.locator('[data-game-fullscreen]').count(), 0);
         for (const [open, panelId, close] of [
           ['tools-rules', 'rules-dialog', 'rules-close'],
           ['history-open', 'history-dialog', 'history-close'],
@@ -132,8 +149,8 @@ try {
             await page.waitForFunction(() => document.body.dataset.screen === 'tools');
             assert.equal(
               await page.evaluate(() => Boolean(document.fullscreenElement)),
-              true,
-              'return to game keeps fullscreen',
+              false,
+              'page navigation does not request browser fullscreen',
             );
           }
         }
@@ -141,7 +158,6 @@ try {
         await page.waitForFunction(() => document.body.dataset.screen === 'game');
         await page.locator('#game-back')[input]();
         for (const [open, panelId, close] of [
-          ['room-open', 'room-dialog', 'room-close'],
           ['challenge-open', 'challenge-dialog', 'challenge-close'],
         ]) {
           await page.locator('#home-start')[input]();
@@ -149,7 +165,7 @@ try {
             await page.locator(`#${open}`)[input]();
             await closePanel(page, page.locator(`#${panelId}`), page.locator(`#${close}`), input);
             await page.waitForFunction(() => document.body.dataset.screen === 'modes');
-            assert.equal(await page.evaluate(() => Boolean(document.fullscreenElement)), true);
+            assert.equal(await page.evaluate(() => Boolean(document.fullscreenElement)), false);
           }
           await page.locator('section[data-screen="modes"] [data-back]')[input]();
           await page.waitForFunction(() => document.body.dataset.screen === 'home');
@@ -158,8 +174,6 @@ try {
         await page.locator('#mode-local')[input]();
         await page.locator('#setup-start')[input]();
         await page.locator('#game-more')[input]();
-        await fullscreen[input]();
-        await page.waitForFunction(() => !document.fullscreenElement);
         await page.locator('#tools-close')[input]();
         await page.waitForFunction(() => document.body.dataset.screen === 'game');
         await page.locator('.cell').first()[input]();

@@ -20,12 +20,11 @@
     <link rel="stylesheet" href="./src/viewport.css" />
     <script type="module" src="./src/main.js"></script>
 
-    <script defer src="./src/fullscreen.js"></script>
   </head>
   <body class="game-shell">
     <header class="topbar">
       <a class="brand" href="./" aria-label="围捕小队首页"
-        ><span class="brand-badge" aria-hidden="true">★</span><span>围捕小队</span></a
+        ><span class="brand-badge" aria-hidden="true">★</span><span class="sr-only">围捕小队</span></a
       >
       <button type="button" id="focus-toggle" class="map-button" aria-label="返回大厅">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7M7 12h13" /></svg>
@@ -121,12 +120,10 @@
             <button type="button" id="level-select">
               街区地图 <strong id="completed-count">0 / 120</strong></button
             ><button type="button" id="quick-start">两步试炼</button
-            ><button type="button" class="fullscreen-button" data-game-fullscreen hidden>
-              全屏
-            </button>
+            >
           </div>
           <div class="home-share">
-            <button type="button" id="share-challenge">分享同题</button>
+            <button type="button" id="share-challenge">分享游戏</button>
             <p id="friend-note" role="status"></p>
           </div>
         </div>
@@ -144,6 +141,7 @@
             <h2><span id="level-number">01</span><span id="level-name">堵住出口</span></h2>
           </div>
           <button id="mobile-level-select" data-testid="level-select" hidden>选择关卡</button>
+          <button id="share-level" class="map-button" data-share-level aria-label="分享当前关卡">分享当前关卡</button>
         </div>
         <div class="board-hud">
           <span class="sr-only" id="phase-label">轮到你了</span>
@@ -210,6 +208,7 @@
       <section id="duel-game" class="duel-game" aria-label="角色对抗" hidden>
         <div class="game-heading">
           <h2 id="duel-title"></h2>
+          <button id="duel-share" class="map-button" aria-label="分享当前关卡">分享当前关卡</button>
           <button id="duel-back" class="map-button" aria-label="返回大厅" hidden>返回大厅</button>
         </div>
         <p id="duel-rules" class="dialog-description sr-only"></p>
@@ -227,7 +226,6 @@
           ><button id="duel-retry" class="secondary-action">重新挑战</button
           ><button id="duel-next" class="secondary-action">下一关</button>
         </div>
-        <button id="duel-share" class="text-button" hidden>分享这张地图与先手</button>
       </section>
     </main>
     <dialog id="level-dialog" aria-labelledby="level-dialog-title">
@@ -300,6 +298,7 @@
       </div>
       <div class="dialog-actions">
         <button type="button" class="secondary-action dialog-close">查看完成局面</button>
+        <button type="button" class="secondary-action" data-share-level>分享当前关卡</button>
       </div>
     </dialog>
     <dialog id="loss-dialog" data-testid="defeat" aria-labelledby="loss-title">
@@ -315,6 +314,7 @@
       </div>
       <div class="dialog-actions">
         <button type="button" class="secondary-action dialog-close">查看失守局面</button>
+        <button type="button" class="secondary-action" data-share-level>分享当前关卡</button>
       </div>
     </dialog>
     <dialog id="help-dialog" aria-labelledby="help-title">
@@ -387,9 +387,9 @@
       </div>
     </dialog>
     <dialog id="share-dialog" aria-labelledby="share-title">
-      <div class="dialog-heading"><h2 id="share-title">分享同题</h2></div>
-      <div class="dialog-body" tabindex="0" aria-label="同题分享信息">
-        <label for="share-url">同题链接</label><input id="share-url" class="share-url" readonly />
+      <div class="dialog-heading"><h2 id="share-title">分享游戏</h2></div>
+      <div class="dialog-body" tabindex="0" aria-label="分享信息">
+        <label for="share-url">分享链接</label><input id="share-url" class="share-url" readonly />
         <p id="share-note" class="dialog-description" role="status"></p>
       </div>
       <div class="duel-controls">

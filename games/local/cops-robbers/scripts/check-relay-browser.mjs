@@ -16,9 +16,10 @@ try {
     if (!localStorage.getItem('cops-robbers-practice-v3')) localStorage.setItem('cops-robbers-practice-v3',JSON.stringify({version:3,completed:{1:{turns:7,stars:3}},settings:{sound:false,teaching:false}}));
   });
   const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem('cops-robbers-practice-v3')));
-  await page.goto(`${base}/?dev=1&mode=challenge&level=1&rule=relay&motion=reduce&token=secret#auth`);
+  await page.goto(`${base}/?dev=1&mode=challenge&level=1&rule=relay&token=secret#auth`);
   let before = (await saved()).current.state, plan = solutions[1][0], actor = movedOfficer(before,plan);
   await page.getByTestId(`cop-${actor}`).tap(); await page.getByTestId(`node-${plan[actor]}`).tap();
+  assert.equal(await page.locator('#share-level').isDisabled(), true, 'sharing waits for the move animation to finish');
   await page.waitForFunction(() => document.body.dataset.turn === '1' && document.body.dataset.phase === 'planning');
   const after = (await saved()).current.state;
   const alternative = legalTargets(levels[0],after,actor).find(node => node !== after.cops[actor]);
@@ -37,8 +38,7 @@ try {
     assert.ok((await saved()).relayCompleted[id]);
     assert.deepEqual((await saved()).completed[id],id === 1 ? {turns:7,stars:3} : undefined,'relay preserves legacy standard stars');
     await page.locator('#win-dialog .dialog-close').click();
-    await page.locator('#focus-toggle').tap();
-    await page.locator('#share-challenge').click();
+    await page.locator('#share-level').click();
     const url = await page.locator('#share-url').inputValue();
     assert.ok(url.includes(`level=${id}`) && url.includes('rule=relay'));
     assert.ok(!/token|auth|motion/.test(url));
@@ -63,9 +63,11 @@ try {
   await page.goto(`${base}/?dev=1&mode=escape&level=100&role=runner&first=pursuer&rule=standard`);
   assert.ok(await page.locator('#duel-game').isVisible());
   assert.deepEqual((await saved()).current,patrol,'a shared duel preserves the unfinished patrol save');
-  await page.locator('#focus-toggle').tap();
-  await page.locator('#share-challenge').tap();
+  await page.locator('#duel-share').tap();
   assert.match(await page.locator('#share-url').inputValue(), /role=runner&first=pursuer/);
+  await page.goto(base + '/?dev=1&token=secret&server=private&pk=abc');
+  await page.locator('#share-challenge').tap();
+  assert.equal(await page.locator('#share-url').inputValue(), new URL('/', base).href);
   assert.deepEqual(errors,[]);
   console.log('PASS 6 touch relay wins, separate records, illegal repeated move, undo, clean same-puzzle/native cancel, 3 mobile layouts and shared duel role/opening');
 } finally { await browser.close(); }

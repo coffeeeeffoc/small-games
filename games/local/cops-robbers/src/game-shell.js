@@ -3,18 +3,6 @@ import { gamePortrait } from './art.js';
 
 export function setupGameShell({ openLevels, startPatrol }) {
   const $ = (id) => document.getElementById(id);
-  const platform =
-    globalThis.__COMPETITION_CONFIG__?.platform ||
-    new URLSearchParams(location.search).get('platform') ||
-    'web';
-  const native =
-    !['web', 'h5'].includes(platform) ||
-    [globalThis.wx, globalThis.tt, globalThis.bl, globalThis.ks].some(
-      (sdk) => typeof sdk?.createCanvas === 'function',
-    );
-  const fullscreen = document.querySelector('[data-game-fullscreen]');
-  fullscreen.hidden = native;
-  if (native) fullscreen.removeAttribute('data-game-fullscreen');
 
   function portraits() {
     $('target-portrait').innerHTML = gamePortrait('robber', 0, 0, 100);
@@ -28,10 +16,8 @@ export function setupGameShell({ openLevels, startPatrol }) {
       .join('<span aria-hidden="true">×</span>');
   }
   function refresh() {
-    const active = document.body.classList.contains('focus-play');
     $('resume-level').textContent =
       `第 ${document.body.dataset.lastGame === 'duel' ? document.body.dataset.duelLevel : document.body.dataset.level || 1} 关`;
-    fullscreen.hidden = native || active;
   }
   function shortPrompt() {
     const text = $('instruction').textContent;

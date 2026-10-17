@@ -125,16 +125,31 @@ try {
         await scope.waitForFunction(() =>
           document.documentElement.style.getPropertyValue('--game-safe-area-top'),
         );
-        const top = host === 'browser' ? 8 : width <= height ? 100 : 72;
+        const top = host === 'browser' ? 4 : host === 'sdk' ? (width <= height ? 89 : 48) : 96;
+        const railTop = host === 'sdk' && width <= height ? 63 : 4;
+        const railSelector =
+          game === 'cops-robbers'
+            ? '.brand'
+            : game === 'cops-robbers-realtime'
+              ? '.profile-portrait'
+              : '.home-icon';
+        await protectedControl(scope, railSelector, railTop, height);
+        assert(
+          Math.abs((await scope.locator(railSelector).boundingBox()).y - railTop) <= 1,
+          'Home icon must sit directly below the cutout',
+        );
+        await expect(scope.locator('[data-fullscreen-toggle]')).toHaveCount(0);
         if (host !== 'browser')
           await page.evaluate((top) => {
             const overlay = document.createElement('div');
-            overlay.style.cssText = `position:fixed;inset:0 0 auto;height:${top - 8}px;z-index:2147483647;background:#122d3b99;color:white;text-align:center;font:12px sans-serif;pointer-events:auto`;
+            overlay.style.cssText = `position:fixed;inset:0 0 auto auto;width:110px;height:${top - 4}px;z-index:2147483647;background:#122d3b99;color:white;text-align:center;font:12px sans-serif;pointer-events:auto`;
             overlay.textContent = '宿主顶部遮挡区（浏览器模拟）';
             document.body.append(overlay);
           }, top);
         if (game === 'cops-robbers') {
-          for (const selector of ['#sound', '#settings', '.home-kicker', '#home-start'])
+          for (const selector of ['#sound', '#settings'])
+            await protectedControl(scope, selector, railTop, height);
+          for (const selector of ['.home-kicker', '#home-start'])
             await protectedControl(scope, selector, top, height);
           await page.screenshot({
             path: path.join(output, `${game}-${width}-${host}-${framed}-home.png`),
@@ -153,11 +168,17 @@ try {
             path: path.join(output, `${game}-${width}-${host}-${framed}-play.png`),
           });
           await scope.locator('#restart').tap();
+          await scope.locator('#share-level').tap();
+          await expect(scope.locator('#share-url')).toHaveValue(/level=1/);
+          await scope
+            .locator('#share-dialog')
+            .getByRole('button', { name: '返回游戏', exact: true })
+            .tap();
           await scope.locator('#focus-toggle').tap();
           await scope.locator('#settings').tap();
           await protectedControl(scope, 'dialog[open]', top, height);
         } else if (game === 'cops-robbers-realtime') {
-          await protectedControl(scope, '#settings-button', top, height);
+          await protectedControl(scope, '#settings-button', railTop, height);
           await page.screenshot({
             path: path.join(output, `${game}-${width}-${host}-${framed}-home.png`),
           });
@@ -170,7 +191,7 @@ try {
             path: path.join(output, `${game}-${width}-${host}-${framed}-play.png`),
           });
           await scope.locator('#pause-button').tap();
-          await protectedControl(scope, '#pause-dialog', top, height);
+          await protectedControl(scope, '#resume-button', top, height);
           await scope.locator('#resume-button').tap();
         } else {
           await protectedControl(scope, '#home-title', top, height);

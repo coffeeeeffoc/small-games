@@ -162,13 +162,12 @@ try {
     }
   });
 
-  await check('home fullscreen preserves patrol and result recovery', async page => {
+  await check('home return preserves patrol and result recovery', async page => {
     await page.setViewportSize({ width: 390, height: 844 });
     await load(page, 1);
     const current = await move(page, 1, initialState(levels[0]), solutions[1][0]);
     await page.locator('#focus-toggle').click();
-    await page.locator('[data-game-fullscreen]:visible').click();
-    await page.waitForFunction(() => document.fullscreenElement === document.documentElement);
+    assert.equal(await page.locator('[data-game-fullscreen]').count(), 0);
     await page.locator('#resume-patrol').click();
     assert.deepEqual(await snapshot(page, 1), expectedView(current));
     await move(page, 1, current, current.cops); // The unguarded other exit is a genuine loss.
@@ -176,7 +175,7 @@ try {
     assert.equal(await page.locator('#loss-dialog [data-game-fullscreen]').count(), 0, 'Results contain no fullscreen tool');
     await page.locator('#loss-dialog .dialog-close').click();
     await page.locator('#focus-toggle').click();
-    await page.locator('[data-game-fullscreen]:visible').click();
+    assert.equal(await page.locator('[data-game-fullscreen]').count(), 0);
     await page.waitForFunction(() => !document.fullscreenElement);
     await page.locator('#resume-patrol').click();
     await page.getByTestId('undo').click();
@@ -184,7 +183,7 @@ try {
     await page.getByRole('button', { name: '选择3号追逐队员', exact: true }).click();
     await page.getByTestId('node-4').click(); await finished(page, 2);
     await page.reload(); await page.locator('#resume-patrol').click(); await finished(page, 2);
-    assert.equal(await page.locator('[data-game-fullscreen]').getAttribute('aria-pressed'), 'false');
+    assert.equal(await page.locator('[data-game-fullscreen]').count(), 0);
   });
   const moving = recordedCase((before, after) => after.robbers.some((n, i) => n >= 0 && before.robbers[i] !== n));
   const partial = recordedCase((_, after) => after.robbers.includes(-1) && after.robbers.some(n => n >= 0));

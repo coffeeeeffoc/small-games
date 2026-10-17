@@ -217,6 +217,10 @@ async function playLetters(player) {
   );
 }
 async function fullscreenCheck(player) {
+  if (player.game === 'cops-robbers') {
+    await expect(player.page.locator('[data-game-fullscreen]')).toHaveCount(0);
+    return;
+  }
   const before = JSON.stringify(player.room.state);
   await player.page.locator('dialog[open] [data-game-fullscreen]').click();
   await expect.poll(() => player.page.evaluate(() => !!document.fullscreenElement)).toBe(true);
@@ -335,11 +339,13 @@ async function focusChecks() {
       await page.locator('#focus-button').click();
       assert.equal(await page.locator('#answer-slots').innerText(), selected);
     }
-    await page.locator('[data-game-fullscreen]').first().click();
-    await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(true);
-    await page.locator('[data-game-fullscreen]').first().click();
-    await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(false);
-    record(`${game}: single-player 390x844 board visibility and fullscreen`, board);
+    if (game === 'letters-words2') {
+      await page.locator('[data-game-fullscreen]').first().click();
+      await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(true);
+      await page.locator('[data-game-fullscreen]').first().click();
+      await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(false);
+    } else await expect(page.locator('[data-game-fullscreen]')).toHaveCount(0);
+    record(`${game}: single-player 390x844 board visibility and display controls`, board);
     if (game === 'letters-words2') {
       await page.locator('#pause-button').click();
       await page.locator('#import-button').click();
@@ -434,6 +440,11 @@ async function focusChecks() {
     );
     await page.goto(`${base}/review-fullscreen-host`);
     const frame = page.frameLocator('iframe');
+    if (game === 'cops-robbers') {
+      await expect(frame.locator('[data-game-fullscreen]')).toHaveCount(0);
+      await context.close();
+      continue;
+    }
     if (game === 'letters-words2') await frame.locator('#focus-button').click();
     await frame.locator('[data-game-fullscreen]').first().click();
     await expect(frame.locator('#game-display-notice')).toContainText('浏览器未允许全屏');
