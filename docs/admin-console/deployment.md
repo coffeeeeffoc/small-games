@@ -48,7 +48,7 @@ pnpm deploy:admin --recover-control=0d7bfdfe4087-1792248271760-eb122d --root-pre
 
 此选项仅适用于[已核实事故](../operations/backend-recovery-2026-10-17.md)：固定 source `0d7bfdfe4087b85139dc525e9a75f3ab792e17f6`、旧 helper SHA256 `55168636acfa30e302489acd96eb99335cf513550e9c62fb64d13f7f7773c536`、执行/私有目录属主 UID 1000、`database-unknown` journal 已停全部旧 writers、没有 activation/Kart 移除/新 Runtime ID、precommit hash 为空且候选私有目录只有 journal。还须核对旧管理指针、同一 PG/官网/旧容器身份、env 元数据、Compose 上下文和 Nginx stopped，并只读确认 schema 不存在。这里的历史 UID 归因来自已审事故证据；不能把任意同属主目录或 schema 缺失当成 root 首守卫失败的证明。历史 Python 只校验哈希，不执行。
 
-核验后，原 journal 内容及摘要作为 `rootPreconditionEvidence` 保留在 journal 中，先 fsync 已证明未提交状态，再恢复精确旧容器；中途启动/健康检查失败可重复 recover。成功以 `PREMIGRATION_RESTORED` 停止并记录 `phase=restored`，不伪造控制中心上线成功 receipt，不删除事故 journal，不迁移数据库。下一次采用须准备新的候选目录。缺少显式选项、任何绑定不符、出现备份/precommit 或已尝试新激活均拒绝此例外，COMMIT unknown 路径继续闭锁。
+核验后，原 journal 内容及摘要作为 `rootPreconditionEvidence` 保留在 journal 中，先 fsync 已证明未提交状态，再恢复精确旧容器；中途启动/健康检查失败可重复 recover。成功返回 `outcome: restored-before-migration`、`controlEnabled:false`，退出码为 0，并记录 `phase=restored`，不伪造控制中心上线成功 receipt，不删除事故 journal，不迁移数据库。下一次采用须准备新的候选目录。缺少显式选项、任何绑定不符、出现备份/precommit 或已尝试新激活均拒绝此例外，COMMIT unknown 路径继续闭锁。
 
 本次有限回归使用 WSL Python `-B`、实际非 root UID 1000 调用真实 helper/coordinator，Docker/数据库传输与服务生命周期为测试替身；覆盖停机前预检、停机后无数据库命令失败的旧容器恢复、COMMIT 超时闭锁、历史证据拒绝/成功和部分恢复重试。此证据不替代真实 PostgreSQL 事务演练、生产维护或公网回归。
 

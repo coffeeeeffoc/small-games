@@ -67,9 +67,9 @@ class BackendContracts(unittest.TestCase):
 
     def test_recreation_names_only_selected_services_and_releases_kart_namespace_first(self):
         calls = []
-        journal = {'selected': ['runtime', 'kart'], 'contexts': {'runtime': {'name': 'runtime'}, 'kart': {'name': 'kart'}},
+        journal = {'selected': ['runtime', 'kart'], 'contexts': {'runtime': {'files': []}, 'kart': {'files': []}},
                    'oldImages': {'runtime': 'sha256:' + 'a' * 64, 'kart': 'sha256:' + 'b' * 64}}
-        with patch.object(backend, 'guard_authority_state'), patch.object(backend, 'guard_control_schema'), patch.object(backend, 'require_authority', return_value={}) as floor, patch.object(backend, 'inventory', return_value=item('kart')), patch.object(backend, 'command', side_effect=lambda *args, **kwargs: calls.append(('command', args))), patch.object(backend, 'compose', side_effect=lambda context, override, *args: calls.append(('compose', args))), patch.object(backend, 'health', return_value={}):
+        with patch.object(backend, 'guard_authority_state'), patch.object(backend, 'guard_control_schema'), patch.object(backend, 'require_authority', return_value={}) as floor, patch.object(backend, 'inventory', side_effect=lambda project, name, **kwargs: {**item(name), 'id': 'a' * 64}), patch.object(backend, 'write_private'), patch.object(backend, 'command', side_effect=lambda *args, **kwargs: calls.append(('command', args))), patch.object(backend, 'compose', side_effect=lambda context, override, *args: calls.append(('compose', args))), patch.object(backend, 'health', return_value={}):
             backend.restore(journal, Path('/private/rollback.json'))
             floor.assert_called_once_with(journal['oldImages'], 'AUTHORITY_FALLBACK_REQUIRED')
         self.assertEqual(calls[0][1][:3], ('docker', 'stop', '--time'))
@@ -80,6 +80,34 @@ class BackendContracts(unittest.TestCase):
                 self.assertIn('--no-deps', value)
                 self.assertIn('--no-build', value)
                 self.assertNotIn('postgres', value)
+
+
+    def test_kart_recreation_appends_live_namespace_after_images_for_update_and_restore(self):
+        for selected in (['runtime', 'kart'], ['kart']):
+            for operation in ('update.json', 'rollback.json', 'reviewed-rollback.json', 'failback.json'):
+                with self.subTest(selected=selected, operation=operation):
+                    calls, writes = [], {}
+                    context = {'files': ['/private/adopt/kart-control.json'], 'working': '/public', 'envfile': '/private/env'}
+                    override = Path('/private/release') / operation
+                    current_id = 'b' * 64
+                    def service(project, name):
+                        self.assertEqual(name, 'runtime')
+                        if 'runtime' in selected:
+                            self.assertEqual(calls[0][2][-1], 'runtime')
+                        return {'running': True, 'id': current_id}
+                    with patch.object(backend, 'inventory', side_effect=service), patch.object(backend, 'write_private', side_effect=lambda file, data: writes.update({file: json.loads(data)})), patch.object(backend, 'compose', side_effect=lambda ctx, file, *args: calls.append((ctx, file, args))):
+                        backend.recreate({name: context for name in selected}, override, selected)
+                    kart_context, kart_file, args = calls[-1]
+                    self.assertEqual(args[-1], 'kart')
+                    self.assertEqual(kart_context['files'], [*context['files'], str(override)])
+                    self.assertEqual(writes[kart_file], {'services': {'kart': {'network_mode': 'container:' + current_id}}})
+                    self.assertEqual(context['files'], ['/private/adopt/kart-control.json'])
+        for runtime in ({'running': False, 'id': 'c' * 64}, {'running': True, 'id': '../invalid'}):
+            with patch.object(backend, 'inventory', return_value=runtime), patch.object(backend, 'write_private') as write, patch.object(backend, 'compose') as compose:
+                with self.assertRaisesRegex(backend.Stopped, 'KART_NAMESPACE'):
+                    backend.recreate({'kart': {}}, Path('/private/update.json'), ['kart'])
+                write.assert_not_called()
+                compose.assert_not_called()
 
     def test_execute_failure_and_signal_restore_old_images_and_keep_private_backup(self):
         for failure in ['COMMAND_TIMEOUT', 'SIGNAL_INTERRUPTED']:
