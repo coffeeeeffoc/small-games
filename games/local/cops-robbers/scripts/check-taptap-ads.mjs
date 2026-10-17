@@ -16,6 +16,8 @@ assert.equal(hash(await readFile(zip)), packageRecord.sha256, 'ZIP must match th
 assert.equal(packageRecord.adPlatform, 'taptap-h5');
 assert.equal(packageRecord.adMode, 'host');
 for (const file of packageRecord.files) assert.equal(hash(await readFile(resolve(root, file.path))), file.sha256, `Extracted resource: ${file.path}`);
+const packagedConfig = JSON.parse((await readFile(resolve(root, 'platform-config.js'), 'utf8')).match(/Object.freeze\((\{.*?\})\)/)[1]);
+assert.ok(packagedConfig.adUnitId, 'The package must contain its configured ad unit');
 const browserEnv = { ...process.env };
 if (browserEnv.BROWSER_EXECUTABLE) {
   browserEnv.PLAYWRIGHT_EXECUTABLE_PATH = browserEnv.BROWSER_EXECUTABLE;
@@ -43,7 +45,7 @@ const server = createServer(async (request, response) => {
 });
 server.listen(0, '127.0.0.1'); await once(server, 'listening');
 const output = new URL('../outputs/taptap-ads/', import.meta.url);
-const report = { zipSha256: packageRecord.sha256, platform: 'taptap-h5', sdkFixture: true, realAdsVerified: false, realDeviceVerified: false, checks: [] };
+const report = { zipSha256: packageRecord.sha256, platform: 'taptap-h5', adUnitId: packagedConfig.adUnitId, sdkFixture: true, realAdsVerified: false, realDeviceVerified: false, checks: [] };
 let browser;
 const ready = page => page.waitForFunction(() => !document.getElementById('hint').disabled);
 async function check(name, run, viewport = { width: 390, height: 844 }) {
@@ -56,6 +58,7 @@ async function check(name, run, viewport = { width: 390, height: 844 }) {
     await page.locator('#home-start').waitFor();
     const config = await page.evaluate(() => globalThis.SmallGamesPublishingConfig);
     assert.equal(config.adMode, 'host'); assert.equal(config.platform, 'taptap-h5');
+    assert.equal(config.adUnitId, packagedConfig.adUnitId);
     await page.locator('#home-start').tap();
     await run(page);
     assert.deepEqual(errors, []);
@@ -64,7 +67,6 @@ async function check(name, run, viewport = { width: 390, height: 844 }) {
 }
 async function inject(page, behavior = 'normal') {
   await page.evaluate(behavior => {
-    globalThis.SmallGamesPublishingConfig = Object.freeze({ adMode: 'host', platform: 'taptap-h5', adUnitId: 'fixture-portrait' });
     globalThis.__tapCalls = [];
     globalThis.tap = { createRewardedVideoAd(options) {
       __tapCalls.push(options);
@@ -112,7 +114,7 @@ try {
       await page.evaluate(() => { __tapClose({ isEnded: true }); __tapClose({ isEnded: true }); });
       await page.locator('.hint-circle').waitFor();
       assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('cops-robbers-v3')).current.state), before);
-      assert.deepEqual(await page.evaluate(() => __tapCalls.filter(call => typeof call === 'object')), [{ adUnitId: 'fixture-portrait' }, { adUnitId: 'fixture-portrait' }]);
+      assert.deepEqual(await page.evaluate(() => __tapCalls.filter(call => typeof call === 'object')), [{ adUnitId: packagedConfig.adUnitId }, { adUnitId: packagedConfig.adUnitId }]);
       await page.screenshot({ path: fileURLToPath(new URL(`tap-hint-${viewport.width}.png`, output)) });
     }, viewport);
   }

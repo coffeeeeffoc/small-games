@@ -1,0 +1,62 @@
+{
+  "zipSha256": "ebc03be09a70dd9b118bdd66c06b769dc06f7de3e404cc1d8d146c058c53c70e",
+  "platform": "taptap-h5",
+  "adUnitId": "1054324",
+  "sdkFixture": true,
+  "realAdsVerified": false,
+  "realDeviceVerified": false,
+  "checks": [
+    {
+      "name": "missing-host-no-mock-320",
+      "passed": true
+    },
+    {
+      "name": "tap-complete-cancel-320",
+      "passed": true
+    },
+    {
+      "name": "missing-host-no-mock-390",
+      "passed": true
+    },
+    {
+      "name": "tap-complete-cancel-390",
+      "passed": true
+    },
+    {
+      "name": "missing-host-no-mock-844",
+      "passed": true
+    },
+    {
+      "name": "tap-complete-cancel-844",
+      "passed": true
+    },
+    {
+      "name": "create-failed",
+      "passed": true
+    },
+    {
+      "name": "load-failed",
+      "passed": true
+    },
+    {
+      "name": "show-failed",
+      "passed": true
+    },
+    {
+      "name": "late-close-after-return",
+      "passed": true
+    },
+    {
+      "name": "late-close-after-timeout",
+      "passed": true
+    },
+    {
+      "name": "late-close-after-background",
+      "passed": true
+    }
+  ],
+  "browser": "155.0.8059.82",
+  "browserExecutable": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "node": "v24.21.0",
+  "passed": true
+}

@@ -1,0 +1,185 @@
+{
+  "capturedAt": "2026-10-17T19:16:17.957Z",
+  "gitHead": "5722b43e5c9c8d63484e430ae1c490952d515530",
+  "browser": "155.0.8059.82",
+  "viewport": {
+    "width": 540,
+    "height": 960
+  },
+  "deviceScaleFactor": 2,
+  "dev": false,
+  "stateInjected": false,
+  "domEdited": false,
+  "source": "Current H5 production build; touch inputs unlock preceding levels; screenshots are unmodified browser PNGs.",
+  "screenshots": [
+    {
+      "filename": "screenshots/01-surround-challenge.png",
+      "title": "围堵挑战",
+      "mode": "challenge",
+      "rule": "standard",
+      "level": 1,
+      "sourceUrl": "http://127.0.0.1:51310/?dev=0&mode=challenge&level=1&rule=standard&motion=reduce",
+      "actions": [
+        {
+          "level": 1,
+          "actor": 0,
+          "target": 1,
+          "turn": 1
+        },
+        {
+          "level": 1,
+          "actor": 2,
+          "target": 4,
+          "turn": 2
+        }
+      ],
+      "width": 1080,
+      "height": 1920,
+      "bytes": 1353500,
+      "sha256": "73110ab824db5640e4913f867e8e9a68cf7cc27883426c905f6b9f88c5d805ab",
+      "errors": [],
+      "failures": []
+    },
+    {
+      "filename": "screenshots/02-quick-dual-targets.png",
+      "title": "快速战术试炼",
+      "mode": "quick",
+      "rule": "standard",
+      "level": 3,
+      "sourceUrl": "http://127.0.0.1:51310/?dev=0&mode=quick&level=1&rule=standard&motion=reduce",
+      "actions": [
+        {
+          "level": 1,
+          "actor": 0,
+          "target": 1,
+          "turn": 1
+        },
+        {
+          "level": 1,
+          "actor": 1,
+          "target": 3,
+          "turn": 2
+        },
+        {
+          "level": 2,
+          "actor": 2,
+          "target": 4,
+          "turn": 1
+        },
+        {
+          "level": 2,
+          "actor": 0,
+          "target": 0,
+          "turn": 2
+        }
+      ],
+      "width": 1080,
+      "height": 1920,
+      "bytes": 1109201,
+      "sha256": "dc406b119625d107eb7751e415f2c8dd76421bfbde0fc4546cfee2fc77bddf2f",
+      "errors": [],
+      "failures": []
+    },
+    {
+      "filename": "screenshots/03-relay-patrol.png",
+      "title": "换防接力",
+      "mode": "challenge",
+      "rule": "relay",
+      "level": 7,
+      "sourceUrl": "http://127.0.0.1:61294/?dev=0&mode=challenge&level=1&rule=relay&motion=reduce",
+      "actions": [
+        {
+          "level": 1,
+          "actor": 0,
+          "target": 1,
+          "turn": 1
+        },
+        {
+          "level": 1,
+          "actor": 2,
+          "target": 4,
+          "turn": 2
+        },
+        {
+          "level": 1,
+          "actor": 1,
+          "target": 9,
+          "turn": 3
+        },
+        {
+          "level": 1,
+          "actor": 2,
+          "target": 0,
+          "turn": 4
+        },
+        {
+          "level": 1,
+          "actor": 0,
+          "target": 1,
+          "turn": 5
+        },
+        {
+          "level": 1,
+          "actor": 0,
+          "target": 6,
+          "turn": 6
+        },
+        {
+          "level": 1,
+          "actor": 1,
+          "target": 8,
+          "turn": 7
+        },
+        {
+          "level": 4,
+          "actor": 2,
+          "target": 4,
+          "turn": 1
+        },
+        {
+          "level": 4,
+          "actor": 1,
+          "target": 7,
+          "turn": 2
+        },
+        {
+          "level": 4,
+          "actor": 0,
+          "target": 1,
+          "turn": 3
+        },
+        {
+          "level": 4,
+          "actor": 2,
+          "target": 9,
+          "turn": 4
+        },
+        {
+          "level": 4,
+          "actor": 0,
+          "target": 6,
+          "turn": 5
+        },
+        {
+          "level": 7,
+          "actor": 2,
+          "target": 4,
+          "turn": 1
+        },
+        {
+          "level": 7,
+          "actor": 0,
+          "target": 7,
+          "turn": 2
+        }
+      ],
+      "width": 1080,
+      "height": 1920,
+      "bytes": 1366438,
+      "sha256": "3c5c3045f68ea9f0f21067918c2b33845db1cae7867d2c5a7e017ad0496e989b",
+      "errors": [],
+      "failures": []
+    }
+  ],
+  "passed": true
+}

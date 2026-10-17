@@ -1,0 +1,30 @@
+{
+  "checkedAt": "2026-10-17T19:05:50.067Z",
+  "developerId": 492506,
+  "appId": 982507,
+  "httpStatus": 200,
+  "response": {
+    "data": {
+      "status": 1,
+      "ad_spaces": [
+        {
+          "id": "1054323",
+          "type": 1
+        },
+        {
+          "id": "1054324",
+          "type": 2
+        }
+      ]
+    },
+    "now": 1792263950,
+    "success": true
+  },
+  "selectedOrientation": "portrait",
+  "selectedAdUnitId": "1054324",
+  "source": "Official MCP 1.24.14 check_ads_status GET /ad/v1/config response",
+  "orientationMetadataVerified": false,
+  "orientationNote": "update_app_info(screenOrientation=1) reported success, but the subsequent server app record still returned screen_orientation=0. The existing H5 game is portrait; selected the returned type=2 portrait placement without modifying MCP cache.",
+  "realAdsVerified": false,
+  "realDeviceVerified": false
+}

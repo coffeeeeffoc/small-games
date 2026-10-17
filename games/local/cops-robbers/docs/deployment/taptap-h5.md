@@ -74,11 +74,11 @@ globalThis.SmallGamesRewardAds = {
 
 ## TapTap H5 广告开通
 
-用户在 2026-10-14 确认已申请，正在审核。按[官方 H5 广告接入指南](https://developer.taptap.cn/minigameapidoc/quick-start/mcp-guide/ad-integration-guide/)的流程等待生效；前端代码不能替代后台审批。
+2026-10-18 已通过官方 MCP 确认应用 `982507` 的广告状态为已生效。本次服务端响应提供的竖屏广告位为 `1054324`，已写入本地 `.env` 并完成 H5 打包。MCP 更新方向后仍读到 `screen_orientation=0`，本次按现有竖屏设计从实时响应选择 `type=2` 广告位，未修改工具缓存；后台方向元数据仍待确认。详见[本次配置与打包记录](../qa/taptap-ads-2026-10-18.md)。
 
 开通后使用官方 MCP 的 `check_ads_status` 查询已选应用，由平台自动返回与竖屏设置对应的广告位，再获取 `get_ad_integration_guide` 接入实际提供方。[官方实现](https://github.com/taptap/instant-games-open-mcp/blob/main/src/features/ads/handlers.ts)区分未开通与已生效，并自动匹配方向；[官方 SDK 示例](https://github.com/taptap/instant-games-open-mcp/blob/main/src/features/ads/docs.ts)使用宿主的 `tap.createRewardedVideoAd` 和 `onClose` 的 `isEnded`。H5 必须在宿主确实注入 `window.tap` 的环境中验证，普通浏览器不能假设拥有该接口。2026-10-14 核查。
 
-已实现游戏核心广告端口 `src/ads.js`、宿主组合 `src/ad-host.js` 和公共 `platforms/h5/platform-ads.js` 的 TapTap H5 适配；公共层还显式区分微信、抖音与 B 站。当前无后台已生效广告位及实际播放回执，**尚未完成真实广告播放或变现验收**。取得广告位后填入环境变量重新打包，并在真实 TapTap H5 宿主验证。平台要求的登录、启动校验或防沉迷能力按该 H5 通道另行验收。
+已实现游戏核心广告端口 `src/ads.js`、宿主组合 `src/ad-host.js` 和公共 `platforms/h5/platform-ads.js` 的 TapTap H5 适配；公共层还显式区分微信、抖音与 B 站。当前已配置平台返回的生效广告位并验证准确解压包的 SDK 流程，**尚未完成真实广告播放或变现验收**。后续在真实 TapTap H5 宿主验证；平台要求的登录、启动校验或防沉迷能力按该 H5 通道另行验收。
 
 ## 一键构建、校验及上传
 

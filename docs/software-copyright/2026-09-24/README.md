@@ -63,7 +63,7 @@
 - [08-夜航守望-软件著作权登记信息](08-夜航守望-软件著作权登记信息.md)
 - [09-乌龙城-软件著作权登记信息](09-乌龙城-软件著作权登记信息.md)
 
-最终材料目录：[software-copyright-2026-09-29](F:/playground/playground-ai/small-games/outputs/software-copyright-2026-09-29)。
+最终材料目录：[software-copyright-2026-09-29](F:/playground/playground-ai/small-games/outputs/archive/formal/software-copyright-2026-09-29)。
 
 ## 主要功能字段扩写
 

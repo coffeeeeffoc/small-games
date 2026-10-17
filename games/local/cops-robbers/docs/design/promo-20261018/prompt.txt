@@ -1,0 +1,11 @@
+Tool: built-in image_gen
+Final export: cops-robbers-promo-square-1440.jpg
+The generator returned 1254 x 1254 pixels. Final image was resampled to 1440 x 1440 using high-quality bicubic interpolation and exported as JPEG quality 96.
+
+Use case: ads-marketing
+Asset type: final square mobile casual game promotional cover.
+Create one polished 1:1 square promotional illustration for the Chinese game 围捕小队. Deliver 2048×2048 pixels PNG or JPG, at least 1440×1440, file under 4 MB.
+Style: cheerful premium cartoon mobile game key art, rounded chibi characters, rich clean 3D-like painted shading. Match the existing game art direction: sunny charming village, blue sky and soft white clouds, cream houses with red and blue roofs, lush rounded trees and flowering hedges, white picket fences, winding gray streets and black classic streetlamps. Cute blue-uniform police officers with navy peaked caps and golden shield badges pursue a mischievous masked thief with an orange beanie, orange hoodie, dark trousers and a tan loot sack. Family-friendly, playful, no guns or violence.
+Composition: bespoke SQUARE cover, not a portrait crop. In the lower and middle area, one large expressive orange-clad thief running toward foreground center-right, with two cute blue officers closing in from the left and right roads, readable teamwork and surround-the-thief theme. All characters have clear distinct silhouettes, natural hands and feet, dynamic running poses and small dust puffs. A small blue-and-white patrol car in the midground. Bright greens and cyan blue with orange accents. Premium cohesive game art, crisp detail, convincing depth, sunny warm light. Artwork full bleed edge to edge.
+Text (verbatim): "围捕小队"
+Place the EXACT four Chinese characters 围 捕 小 队 as a single very large readable game title centered across the upper quarter, warm yellow-to-cream 3D lettering with thick deep-blue outline and subtle shadow, professional playful Chinese display lettering. Keep title fully inside safe margins with ample breathing room. Text must be correct and legible at thumbnail size. Only this title; no other writing, no slogan, no watermark, no platform logos, no UI buttons, no decorative frame.

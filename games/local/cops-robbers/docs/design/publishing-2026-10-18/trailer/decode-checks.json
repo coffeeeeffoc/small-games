@@ -1,0 +1,34 @@
+{
+  "complete_decode": "passed",
+  "black_frames_over_0_3s": "none",
+  "audio_volume": [
+    "[Parsed_volumedetect_0 @ 000002b1d25c9c80] mean_volume: -17.7 dB",
+    "[Parsed_volumedetect_0 @ 000002b1d25c9c80] max_volume: -2.4 dB"
+  ],
+  "mp4_boxes": [
+    {
+      "type": "ftyp",
+      "offset": 0,
+      "size": 32
+    },
+    {
+      "type": "moov",
+      "offset": 32,
+      "size": 21395
+    },
+    {
+      "type": "free",
+      "offset": 21427,
+      "size": 8
+    },
+    {
+      "type": "mdat",
+      "offset": 21435,
+      "size": 18846439
+    }
+  ],
+  "faststart": true,
+  "sha256": "9da337a9dd573fb061fe9ec728a0ddc1f1aed2bdc3b6355556481bb2c6debf68",
+  "size_bytes": 18867874,
+  "visual_review": "source storyboard and final-file decoded contact sheet inspected"
+}
