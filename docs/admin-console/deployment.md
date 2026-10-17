@@ -56,7 +56,7 @@ pnpm deploy:admin --recover-control=0d7bfdfe4087-1792248271760-eb122d --root-pre
 
 ## HTTPS、nonce 与 GitHub 边界
 
-本次已批准在首次采用的 Runtime 公开 Compose override 中保留 `http://localhost:8080` 并仅增加 `https://ma-h5-al.tapimg.com`，不读取或改写既有私有 env。只允许既有 `GET,POST,OPTIONS`、`authorization,content-type`，不携带 Cookie，管理 API 策略保持不变。控制中心版本 0 使用此 fallback；发布过的控制配置继续优先。该 Tap 来源由多个游戏共享，不能按 `/h/...` 区分，也不能以 CORS 或匿名身份断言第三方客户端属于某款游戏；仍须验证服务端身份范围、对局归属、提交权限与跨游戏越权。手机实际 Origin 尚未观测，若不同需另核实。上线后单独记录精确来源的预检、真实 API 调用及未知来源拒绝结果。
+首次采用的 Runtime 公开 Compose override 明确配置三个游戏来源：`http://localhost:8080`、`https://ma-h5-al.tapimg.com`、`https://coffeeeeffoc.github.io`，覆盖本地验收、TapTap H5 与独立 Pages 入口，不读取或改写既有私有 env。只允许既有 `GET,POST,OPTIONS`、`authorization,content-type`，不携带 Cookie，管理 API 策略保持不变。控制中心版本 0 使用此 fallback；发布过的控制配置继续优先。该 Tap 来源由多个游戏共享，不能按 `/h/...` 区分，也不能以 CORS 或匿名身份断言第三方客户端属于某款游戏；仍须验证服务端身份范围、对局归属、提交权限与跨游戏越权。手机实际 Origin 尚未观测，若不同需另核实。上线后单独记录精确来源的预检、真实 API 调用及未知来源拒绝结果。
 
 唯一管理站点为 `https://admin.nenggongzhiren.cn`，唯一 callback 为 `https://admin.nenggongzhiren.cn/api/auth/github/callback`。nonce-v1 逐页核对受信模板、Caddy 的 `<!---->\n` 前缀、canonical 32-byte Base64 nonce、精确 CSP 和 no-store；缺 CSP 不得降级静态验证。历史 v1 仅接受明确无模板的静态 HTML 合同。
 
