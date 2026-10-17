@@ -3120,7 +3120,7 @@ body.competition-active #mode-online { position:static; }
 		};
 	}
 	//#endregion
-	//#region ../../../../../../../tmp/competition-entry-rwHupl/entry.mjs
+	//#region ../../../../../../../tmp/competition-entry-P9EHUp/entry.mjs
 	mountCompetition("cops-robbers-realtime", createRenderer);
 	//#endregion
 })();
