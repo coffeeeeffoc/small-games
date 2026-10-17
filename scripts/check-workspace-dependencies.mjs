@@ -29,6 +29,9 @@ const REPOSITORY_IMPORTS = new Set([
   'games/local/orbit-atelier/src/main.ts -> platforms/h5/publishing.js',
   // The share-handler contract uses the real public adapter; other game tests gain no edge.
   'games/local/wulong-city/tests/game.test.mjs -> platforms/h5/publishing.js',
+  // These two identity fixtures reuse the actual client/session lifecycle only in tests.
+  'apps/shell-minigame/scripts/taptap-login.test.mjs -> platforms/competition/client.js',
+  'games/local/three-choose-two/tests/online.browser.mjs -> services/runtime-api/dist/competition/identity-store.js',
   // Build tooling and browser acceptance helpers, never game runtime dependencies.
   'apps/admin-web/vite.config.ts -> scripts/admin-csp.mjs',
   'apps/admin-web/tests/browser.mjs -> scripts/admin-caddy-fixture.mjs',

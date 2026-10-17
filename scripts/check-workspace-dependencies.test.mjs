@@ -507,3 +507,36 @@ test('ranked authority may import only the reviewed pure rescue and tower inputs
   assert.equal(violations.length, 3);
   assert(violations.every((entry) => entry.code === 'cross-package-relative'));
 });
+
+test('identity fixtures reuse exact implementations without opening runtime or adjacent imports', async (t) => {
+  const root = await createWorkspace([
+    {
+      path: 'apps/shell-minigame',
+      manifest: { name: '@coffeeeeffoc/shell-minigame' },
+      files: Object.fromEntries(
+        ['scripts/taptap-login.test.mjs', 'scripts/unknown.test.mjs', 'src/main.js'].map((file) => [
+          file,
+          "import '../../../platforms/competition/client.js';",
+        ]),
+      ),
+    },
+    {
+      path: 'games/local/three-choose-two',
+      manifest: { name: '@coffeeeeffoc/three-choose-two' },
+      files: Object.fromEntries(
+        ['tests/online.browser.mjs', 'tests/unknown.browser.mjs', 'src/main.js'].map((file) => [
+          file,
+          "import '../../../../services/runtime-api/dist/competition/identity-store.js';",
+        ]),
+      ),
+    },
+  ]);
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const violations = await validateWorkspace(root);
+  assert.equal(violations.length, 4);
+  assert(
+    violations.every(
+      (item) => item.code === 'cross-package-relative' && /unknown|src.main/.test(item.message),
+    ),
+  );
+});
