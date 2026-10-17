@@ -50,4 +50,8 @@ recover 重查精确 Nginx stopped、PG 身份、未变的不透明 env、原 Co
 
 `pnpm deploy:caddy --proxy-only`（也可与 `--prepare` 合用）要求已有 managed ingress，继续保留 source guard、归档哈希、真实配置语法/健康/受保护状态及回滚检查，只跳过最后的 `backupInstall`，不重装既有 systemd 备份服务。远端 `backup.py --preflight` 仍强制执行，会创建/处理私有备份并沿用现有 30 天轮换策略。执行前维护者须核实现有备份目录 0700、timer 健康；不符时停止，不能自动修权限、端口、网络或 CORS。
 
-本轮只验源码/mock/管理单测，不表示统一镜像、真实 DB002、代理切换、首次维护、daemon 重启、生产 OAuth 已验收。缺 domain helper 时本地准备也明确阻塞；后续独立受控集成通过并获部署批准后方可生产执行。
+独立 `control-database.py` 已实现并完成本地缓存 PostgreSQL 17.6 的完整备份/隔离恢复、002 两次执行、实际正负权限和受保护事务验收，见 [数据库验收记录](qa/control-deployment-current.md) 与 [机器记录](qa/control-deployment-current.json)。测试注入服务生命周期清单；真实 Nginx、三应用停启、统一镜像激活、代理切换、首次生产维护、daemon 重启和 GitHub 登录不属于该数据库验收。
+
+helper 只复核既有资源身份与停止状态，不启动或停止服务，不读取私有 env 值，不重放 001。完整备份与隔离克隆预期、10 字段 precommit pair 均在生产事务 COMMIT 前写入受保护目录并 fsync；旧数据/结构/owner/角色/ACL 等投影与克隆预期不一致就回滚。后续 `verify_control_database` 只在实际 `BEGIN READ ONLY` 内比较受信 metadata contract，允许成员、发布和观察业务行正常变化，不从 live 重建基线。002 保持原始字节 SHA256，精确 `.gitattributes` 固定其 LF。
+
+本地通过不代表生产授权或准确发布候选/CI 已通过。生产 002/GRANT 与维护窗口仍须主会话展示具体差异并取得明确批准，随后按既定入口屏障及兼容镜像规则执行。

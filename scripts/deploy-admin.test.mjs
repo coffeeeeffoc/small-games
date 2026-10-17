@@ -317,7 +317,17 @@ async function controlWorkspace(folder) {
     'infra/admin-console/migrations/002-control-center.sql',
   ]) {
     await mkdir(path.dirname(path.join(workspace, name)), { recursive: true });
-    await writeFile(path.join(workspace, name), `# explicit public fixture ${name}\n`);
+    const realDatabaseSources = new Set([
+      'infra/admin-console/control-database.py',
+      'infra/admin-console/control-fingerprint.sql',
+      'infra/admin-console/migrations/002-control-center.sql',
+    ]);
+    await writeFile(
+      path.join(workspace, name),
+      realDatabaseSources.has(name)
+        ? await readFile(new URL('../' + name, import.meta.url))
+        : `# explicit public fixture ${name}\n`,
+    );
   }
   await mkdir(path.join(workspace, 'apps/admin-web/dist/assets'), { recursive: true });
   await writeFile(
@@ -627,6 +637,28 @@ test('control coordinator mocks never operate real services or migrations', () =
           '-c',
           'export PYTHONDONTWRITEBYTECODE=1; exec python3 "$(wslpath -u "$1")"',
           'control-contract',
+          file,
+        ]
+      : ['-B', file],
+    { encoding: 'utf8', timeout: 60000 },
+  );
+  assert.ifError(result.error);
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+});
+
+test('control database contracts stay finite and never implicitly run PostgreSQL', () => {
+  const file = fileURLToPath(
+    new URL('../infra/admin-console/control-database.test.py', import.meta.url),
+  );
+  const result = spawnSync(
+    process.platform === 'win32' ? 'wsl.exe' : 'python3',
+    process.platform === 'win32'
+      ? [
+          '--exec',
+          'bash',
+          '-c',
+          'export PYTHONDONTWRITEBYTECODE=1; exec python3 "$(wslpath -u "$1")"',
+          'control-database-contract',
           file,
         ]
       : ['-B', file],

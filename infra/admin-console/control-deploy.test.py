@@ -376,5 +376,18 @@ class ControlContracts(unittest.TestCase):
                         control.recovery_target(base / 'releases/current', current, bad)
 
 
+class DatabaseDiagnostics(unittest.TestCase):
+    def test_domain_failure_keeps_only_validated_public_ownership(self):
+        original = SimpleNamespace(ownedContainerId='a' * 64,
+            probeUUID='12345678-1234-1234-1234-123456789012',
+            probeProcessId=123, secret='never forward', outcome='unknown')
+        error = control.database_failure('DATABASE_OUTCOME_UNKNOWN', original)
+        self.assertEqual(len(control.diagnostic_markers(error)), 3)
+        self.assertFalse(hasattr(error, 'secret'))
+        self.assertEqual(error.code, 'DATABASE_OUTCOME_UNKNOWN')
+        original.ownedContainerId='bad'; original.probeUUID='bad'; original.probeProcessId=True
+        self.assertEqual(control.diagnostic_markers(control.database_failure('DATABASE_OUTCOME_UNKNOWN', original)), [])
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -3201,6 +3201,7 @@ test('admin infrastructure has exact consumers and unknown neighboring paths fai
     'infra/admin-console/migrations/003-control-center.sql',
     'infra/admin-console/compose.yaml',
     'infra/admin-console/.env.other',
+    'infra/admin-console/.gitattributes.other',
   ]) {
     const context = { packages, games: [], changedPaths: [file] };
     const fileScopes = reviewedSharedFileScopes(context);

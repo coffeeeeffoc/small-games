@@ -1347,6 +1347,7 @@ export const competitionIngressScopePaths = [
   'scripts/deploy-tencent.test.mjs',
 ];
 export const adminControlDeploymentScopePaths = [
+  'infra/admin-console/.gitattributes',
   'scripts/deploy-admin.mjs',
   'scripts/deploy-admin.test.mjs',
   'infra/admin-console/control-deploy.py',

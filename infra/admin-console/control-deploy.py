@@ -44,6 +44,19 @@ class Stopped(Exception):
         self.code, self.stage = code, STAGE
 
 
+def database_failure(code, original):
+    """Forward only validated public ownership diagnostics across the boundary."""
+    error = Stopped(code)
+    owned, token, pid = (getattr(original, key, None) for key in ('ownedContainerId', 'probeUUID', 'probeProcessId'))
+    if isinstance(owned, str) and re.fullmatch(r'[a-f0-9]{64}', owned):
+        error.ownedContainerId = owned
+    if isinstance(token, str) and re.fullmatch(r'[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}', token):
+        error.probeUUID = token
+    if type(pid) is int and 1 <= pid <= 2147483647:
+        error.probeProcessId = pid
+    return error
+
+
 def require(value, code):
     if not value:
         raise Stopped(code)
@@ -751,8 +764,8 @@ def adopt(release, manifest, caddy, recover=False):
             write_private(journal_file, journal, True)
             if known and database_floor(items['postgres']['id']) == 'absent':
                 restore_before_migration(release, journal, explicit_not_committed=True)
-                raise Stopped('DATABASE_NOT_COMMITTED') from None
-            raise Stopped('DATABASE_OUTCOME_UNKNOWN') from None
+                raise database_failure('DATABASE_NOT_COMMITTED', error) from None
+            raise database_failure('DATABASE_OUTCOME_UNKNOWN', error) from None
     # After COMMIT every failure keeps the owned entrypoint closed; no legacy fallback.
     journal['phase'], journal['newActivationAttempted'] = 'activate', True
     write_private(journal_file, journal, True)
