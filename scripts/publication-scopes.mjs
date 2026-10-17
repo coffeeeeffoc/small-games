@@ -186,7 +186,12 @@ export const competitionIdentityMirrorPaths = Object.freeze([
   'games/local/flick-arena/competition-client.js',
   'games/local/three-choose-two/competition.js',
 ]);
+const competitionProtocolTools = {
+  'scripts/review-competition-kart-chess.mjs': 'xiangqi-five',
+  'scripts/street-runs.integration.mjs': 'cops-robbers-realtime',
+};
 export const competitionServiceScopePaths = [
+  ...Object.keys(competitionProtocolTools),
   'scripts/competition-service-config.mjs',
   'scripts/competition-service-config.test.mjs',
   'scripts/competition-service.browser.mjs',
@@ -2128,11 +2133,14 @@ export function reviewedSharedFileScopes({
           'scripts/competition-client.test.mjs',
         ].includes(file);
         const xiangqi = file.startsWith('platforms/competition/xiangqi-five/');
-        const sources = xiangqi
-          ? [competitionConsumers['xiangqi-five']]
-          : native
-            ? Object.values(competitionConsumers)
-            : competitionServiceIds.map((id) => competitionConsumers[id]);
+        const protocolGame = competitionProtocolTools[file];
+        const sources = protocolGame
+          ? [competitionConsumers[protocolGame]]
+          : xiangqi
+            ? [competitionConsumers['xiangqi-five']]
+            : native
+              ? Object.values(competitionConsumers)
+              : competitionServiceIds.map((id) => competitionConsumers[id]);
         const gateway = ['scripts/deploy-tencent.mjs', 'scripts/competition-gateway.mjs'].includes(
           file,
         );
@@ -2143,7 +2151,7 @@ export function reviewedSharedFileScopes({
         scopes.set(file, [
           ...new Set([
             ...sources,
-            ...(native || xiangqi ? [] : ['apps/shell-web']),
+            ...(native || xiangqi || protocolGame ? [] : ['apps/shell-web']),
             ...(file === 'scripts/competition-service-config.mjs' ? ['apps/shell-minigame'] : []),
             ...(native
               ? ['apps/shell-minigame', 'apps/shell-bilibili']
@@ -2151,7 +2159,9 @@ export function reviewedSharedFileScopes({
                 ? ['apps/shell-minigame']
                 : []),
             ...(gateway ? [...Object.values(rankedConsumers), 'services/runtime-api'] : []),
-            ...(file === 'scripts/competition.integration.mjs' ? ['services/runtime-api'] : []),
+            ...(file === 'scripts/competition.integration.mjs' || protocolGame
+              ? ['services/runtime-api']
+              : []),
           ]),
         ]);
         continue;

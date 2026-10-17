@@ -1228,8 +1228,16 @@ test('optional service configuration has finite H5 consumers and rejects unknown
       fileScopes,
       readSource: read,
     });
-    for (const id of ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'])
-      assert(selected.browser_ids.includes(id), file + ': ' + id);
+    const protocolGame = {
+      'scripts/review-competition-kart-chess.mjs': 'xiangqi-five',
+      'scripts/street-runs.integration.mjs': 'cops-robbers-realtime',
+    }[file];
+    if (protocolGame) {
+      assert.deepEqual(selected.browser_ids, [protocolGame]);
+      assert(fileScopes.get(file).includes('services/runtime-api'));
+    } else
+      for (const id of ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'])
+        assert(selected.browser_ids.includes(id), file + ': ' + id);
     assert.equal(selected.competition_service_checks, true);
     if (file === 'scripts/competition.integration.mjs')
       assert(fileScopes.get(file).includes('services/runtime-api'));
@@ -1286,7 +1294,7 @@ test('optional service configuration has finite H5 consumers and rejects unknown
       /scope undefined/,
     );
   }
-  const file = competitionServiceScopePaths[0];
+  const file = 'scripts/competition-service-config.mjs';
   for (const games of [
     [...catalog, catalog.find((game) => game.id === 'xiangqi-five')],
     catalog.filter((game) => game.id !== 'cops-robbers'),
