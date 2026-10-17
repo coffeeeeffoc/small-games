@@ -77,7 +77,11 @@ globalThis.__competition = { request: async (url, options) => {
     return new Promise(resolve => fixture.pendingRooms.push(resolve));
   return room();
 }};
-mountCompetition(new URL(location.href).searchParams.get('game'), () => ({ draw() {}, tap() {} }));
+mountCompetition(new URL(location.href).searchParams.get('game'), () => ({
+  draw(ctx, width, height) { fixture.drawnSize = { width, height }; },
+  tap(x, y) { fixture.lastTap = { x, y }; },
+  getSelected() { return 0; },
+}));
 `;
 const server = createServer((request, response) => {
   if (request.url === '/assets/ui/island.svg') {
@@ -214,6 +218,67 @@ try {
         const canvas = surface.locator('canvas');
         await expect(canvas).toHaveAttribute('data-rendered-seq', '2');
         await expect(canvas).toHaveAttribute('data-rendered-server-now', '1000');
+        const geometry = await canvas.evaluate(async (element) => {
+          fixture.canvasStyle = element.getAttribute('style');
+          element.style.cssText =
+            'width:213.625px;height:327.375px;flex:none;transform:scale(.93);transform-origin:0 0';
+          element.addEventListener('pointerup', (event) => {
+            fixture.lastPointer = { x: event.clientX, y: event.clientY };
+          });
+          await new Promise((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve)),
+          );
+          const rect = element.getBoundingClientRect();
+          return { x: rect.left + rect.width * 0.273, y: rect.top + rect.height * 0.618 };
+        });
+        if (touch) await page.touchscreen.tap(geometry.x, geometry.y);
+        else await page.mouse.click(geometry.x, geometry.y);
+        const input = await canvas.evaluate((element) => {
+          const rect = element.getBoundingClientRect();
+          return {
+            actual: fixture.lastTap,
+            expected: {
+              x: ((fixture.lastPointer.x - rect.left) * fixture.drawnSize.width) / rect.width,
+              y: ((fixture.lastPointer.y - rect.top) * fixture.drawnSize.height) / rect.height,
+            },
+          };
+        });
+        assert(input.actual, 'The real pointer handler must reach its renderer');
+        assert(
+          Math.abs(input.actual.x - input.expected.x) < 0.00001,
+          'Screen X must map back to drawn logical X',
+        );
+        assert(
+          Math.abs(input.actual.y - input.expected.y) < 0.00001,
+          'Screen Y must map back to drawn logical Y',
+        );
+        await canvas.evaluate((element) => {
+          fixture.lastTap = null;
+          element.style.transform = 'scale(0)';
+          element.dispatchEvent(new PointerEvent('pointerup', { clientX: 20, clientY: 20 }));
+        });
+        assert.equal(
+          await page.evaluate(() => fixture.lastTap),
+          null,
+          'Zero-area canvas rejects input',
+        );
+        await canvas.evaluate((element) => {
+          element.style.transform = 'scale(.93)';
+          element.style.width = '240px';
+          element.dispatchEvent(new PointerEvent('pointerup', { clientX: 20, clientY: 20 }));
+        });
+        assert.equal(
+          await page.evaluate(() => fixture.lastTap),
+          null,
+          'Resize before redraw rejects input',
+        );
+        await canvas.evaluate(async (element) => {
+          if (fixture.canvasStyle === null) element.removeAttribute('style');
+          else element.setAttribute('style', fixture.canvasStyle);
+          await new Promise((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve)),
+          );
+        });
         await expect
           .poll(() => page.evaluate(() => fixture.pendingRooms.length))
           .toBeGreaterThanOrEqual(5);

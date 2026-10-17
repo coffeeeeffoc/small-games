@@ -952,7 +952,18 @@ export function mountStreetCompetition(game, createRenderer) {
     )
       return;
     const rect = canvas.getBoundingClientRect();
-    const tapped = renderer.tap(event.clientX - rect.left, event.clientY - rect.top, view.state);
+    if (
+      !Number.isFinite(rect.width) ||
+      !Number.isFinite(rect.height) ||
+      rect.width <= 0 ||
+      rect.height <= 0
+    )
+      return;
+    const tapped = renderer.tap(
+      ((event.clientX - rect.left) * view.width) / rect.width,
+      ((event.clientY - rect.top) * view.height) / rect.height,
+      view.state,
+    );
     const command =
       view.turned && tapped?.type === 'move' ? { ...tapped, x: tapped.y, y: -tapped.x } : tapped;
     if (!command) return;
