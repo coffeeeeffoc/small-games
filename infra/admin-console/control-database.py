@@ -81,7 +81,7 @@ def psql(pg, sql, database='small_games', timeout=600):
 
 def inspect_container(identifier):
     require(isinstance(identifier, str) and re.fullmatch(r'[a-f0-9]{64}', identifier), 'CONTROL_CONTAINER_ID')
-    projection = '{"id":{{json .Id}},"image":{{json .Image}},"running":{{json .State.Running}},"ports":{{json .HostConfig.PortBindings}},"mounts":{{json .Mounts}},"networkMode":{{json .HostConfig.NetworkMode}},"networks":{{json .NetworkSettings.Networks}},"fixture":{{json (index .Config.Labels "io.small-games.control-fixture")}},"name":{{json .Name}},"memory":{{json .HostConfig.Memory}},"cpu":{{json .HostConfig.NanoCpus}},"tmpfs":{{json .HostConfig.Tmpfs}}}'
+    projection = '{"id":{{json .Id}},"image":{{json .Image}},"running":{{json .State.Running}},"ports":{{json .HostConfig.PortBindings}},"mounts":{{json .Mounts}},"networkMode":{{json .HostConfig.NetworkMode}},"networks":{{json .NetworkSettings.Networks}},"fixture":{{json (index .Config.Labels "io.small-games.control-fixture")}},"name":{{json .Name}},"memory":{{json .HostConfig.Memory}},"cpu":{{json .HostConfig.NanoCpus}},"tmpfs":{{json (index .HostConfig "Tmpfs")}}}'
     return json_value(command('docker', 'inspect', '--format', projection, identifier))
 
 
