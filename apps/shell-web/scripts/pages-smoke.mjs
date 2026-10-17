@@ -85,7 +85,7 @@ try {
     headless: true,
   });
   page = await browser.newPage();
-  monitorPagesPage(page, url, failures);
+  await monitorPagesPage(page, url, failures);
   await page.goto(url);
   await expect(page.getByRole('heading', { name: '摸鱼游戏社' })).toBeVisible();
   await expect(page.getByText('云存档账号', { exact: true })).toHaveCount(0);
@@ -102,7 +102,7 @@ try {
     if (immersiveGame(id)) await expect(page.locator('iframe')).toHaveAttribute('title', title);
     else await expect(page.locator('nav strong')).toHaveText(title);
     const shared = await browser.newPage();
-    monitorPagesPage(shared, url, failures, `share/${id}`);
+    await monitorPagesPage(shared, url, failures, `share/${id}`);
     try {
       assert.equal((await shared.goto(sharedUrl)).status(), 200);
       if (immersiveGame(id)) await expect(shared.locator('iframe')).toHaveAttribute('title', title);
@@ -342,7 +342,7 @@ try {
     result.viewport = viewport;
     const mobileContext = await browser.newContext({ ...devices['Pixel 7'], viewport });
     const direct = await mobileContext.newPage();
-    monitorPagesPage(direct, url, failures, `${game.id}/mobile`);
+    await monitorPagesPage(direct, url, failures, `${game.id}/mobile`);
     if (game.id === 'moss-garden')
       await direct.addInitScript(() => {
         // Passive evidence for the CI-only seed regression; never replace native input.

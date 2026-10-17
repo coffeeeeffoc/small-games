@@ -78,11 +78,12 @@ test('rejects assets outside deployment base and missing unvisited game indexes'
   await assert.rejects(verifyPagesArtifacts({ dist, games }), /games\/merge-front\/index.html/);
 });
 
-test('browser monitor scopes browser resource errors and preserves actionable console errors', () => {
+test('browser monitor scopes browser resource errors and preserves actionable console errors', async () => {
   const page = new EventEmitter();
+  page.route = async () => {};
   const failures = [];
   const base = 'http://127.0.0.1:43000/small-games/';
-  monitorPagesPage(page, base, failures);
+  await monitorPagesPage(page, base, failures);
   const consoleError = (text, url) =>
     page.emit('console', {
       type: () => 'error',
@@ -102,4 +103,35 @@ test('browser monitor scopes browser resource errors and preserves actionable co
   assert.match(failures.pop(), /404.*assets\/missing\.js/);
   page.emit('request', { url: () => 'http://localhost:43002/catalog' });
   assert.match(failures.pop(), /local Runtime/);
+});
+
+test('local artifact browsers isolate production competition while public acceptance stays live', async () => {
+  for (const base of [
+    'http://127.0.0.1:41059/small-games/dev/',
+    'https://coffeeeeffoc.github.io/small-games/dev/',
+  ]) {
+    const page = new EventEmitter();
+    const routes = [];
+    page.route = async (...args) => routes.push(args);
+    await monitorPagesPage(page, base, []);
+    if (new URL(base).protocol === 'https:') {
+      assert.equal(routes.length, 0);
+      continue;
+    }
+    assert.equal(routes.length, 1);
+    assert.equal(routes[0][0], 'https://api.nenggongzhiren.cn/small-games/v1/**');
+    for (const method of ['OPTIONS', 'POST', 'GET']) {
+      let response;
+      await routes[0][1]({
+        request: () => ({ method: () => method }),
+        fulfill: async (value) => {
+          response = value;
+        },
+      });
+      assert.equal(response.status, method === 'OPTIONS' ? 204 : 503);
+      assert.equal(response.headers['access-control-allow-origin'], new URL(base).origin);
+      if (method !== 'OPTIONS')
+        assert.deepEqual(JSON.parse(response.body), { error: 'SERVICE_UNAVAILABLE' });
+    }
+  }
 });

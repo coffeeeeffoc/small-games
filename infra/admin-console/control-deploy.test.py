@@ -538,7 +538,7 @@ class RootPreconditionRecovery(unittest.TestCase):
             # Historical bytes are data only; executing this fixture is always a failure.
             helper = b'raise AssertionError("historical code executed")\n'
             (release / 'control-database.py').write_bytes(helper)
-            binding = dict(control.ROOT_PRECONDITION, helperSHA256=hashlib.sha256(helper).hexdigest())
+            binding = dict(control.ROOT_PRECONDITION, deploymentUid=os.geteuid(), helperSHA256=hashlib.sha256(helper).hexdigest())
             value = dict(manifest(), sourceSHA=binding['sourceSHA'], files={'control-database.py': binding['helperSHA256']})
             private.mkdir(mode=0o700)
             directory = private / release.name
