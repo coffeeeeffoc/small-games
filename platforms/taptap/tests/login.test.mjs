@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import fs from 'node:fs';
+import { URL } from 'node:url';
+import { setTimeout, clearTimeout } from 'node:timers';
 
 const source =
   fs.readFileSync(new URL('../../competition/client.js', import.meta.url), 'utf8') +
@@ -66,12 +68,12 @@ function fixture(options = {}) {
       const data = credential();
       Object.defineProperty(data, 'session_key', {
         get() {
-          assert.fail('Do not copy platform secrets');
+          return assert.fail('Do not copy platform secrets');
         },
       });
       Object.defineProperty(data, 'secret', {
         get() {
-          assert.fail('Do not copy secrets');
+          return assert.fail('Do not copy secrets');
         },
       });
       input.success({ statusCode: 200, data });
