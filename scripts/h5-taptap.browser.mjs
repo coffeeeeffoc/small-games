@@ -755,8 +755,9 @@ try {
     await page.locator('[data-choice-for="role-select"][data-value="cop"]').tap();
     await page.locator('#start-button').tap();
     await until(
-      async () => (await streetSnapshot(player)).phase === 'playing',
-      'Natural solo starts after actual admission',
+      async () =>
+        Boolean(player.soloAdmission) && (await streetSnapshot(player)).phase === 'playing',
+      'Natural solo starts after observing the actual admission response',
       90000,
     );
     assert.match(player.soloAdmission?.admissionId, /^[a-f0-9-]{36}$/);
