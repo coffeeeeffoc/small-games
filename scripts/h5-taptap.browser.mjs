@@ -18,6 +18,7 @@ import {
   safeApiPath,
   publicMatchEvidence,
   safeTouchProgress,
+  safeStreetTouchFrame,
 } from './h5-taptap-trace.mjs';
 import {
   streetTouchPlans,
@@ -29,6 +30,7 @@ import {
   prepareTouchCanvas,
   guestScheduler,
   throwStaleStreetPlan,
+  observedStaleStreetTouch,
   soloStreetPlan,
   streetActorTouchPoint,
   streetScreenPoint,
@@ -346,6 +348,7 @@ try {
               seq: Number(element.dataset.renderedSeq),
               serverNow: Number(element.dataset.renderedServerNow),
               selected: Number(element.dataset.selectedActor),
+              pointerOrdinal: globalThis.__h5StreetPointer?.ordinal ?? 0,
             };
           })
         : await canvas.boundingBox();
@@ -385,6 +388,19 @@ try {
         `Touch point outside viewport: ${screenX},${screenY}`,
       );
       await player.page.touchscreen.tap(screenX, screenY);
+      if (street && target) {
+        await rendered(player.page);
+        const frame = await player.page.evaluate(() => globalThis.__h5StreetPointer);
+        assert(
+          frame?.ordinal === box.pointerOrdinal + 1 &&
+            frame.trusted &&
+            frame.pointerType === 'touch',
+          'Exactly one trusted touch pointerup must reach the actual playing canvas',
+        );
+        assert.equal(frame.x, screenX);
+        assert.equal(frame.y, screenY);
+        player.lastTouchFrame = frame;
+      }
       return true;
     };
     const previous = player.room.seq;
@@ -424,6 +440,30 @@ try {
       return false;
     }
     await onlineIdle(player);
+    if (
+      street &&
+      player.room.status === 'playing' &&
+      !expected.sent &&
+      player.actionRequests === requestsBefore &&
+      observedStaleStreetTouch(player.lastTouchFrame, plannedRoom, found.screen)
+    ) {
+      // The event reached the real canvas, selected locally on a newer frame,
+      // and emitted no action. Keep the same strict sequence/request guards.
+      try {
+        throwStaleStreetPlan(player, plannedRoom, requestsBefore);
+      } catch (error) {
+        if (error.code === 'TOUCH_PLAN_STALE') {
+          player.observedStaleTouchCount++;
+          player.observedStaleTouches.push({
+            plannedSeq: plannedRoom.seq,
+            plannedServerNow: plannedRoom.serverNow,
+            ...player.lastTouchFrame,
+          });
+          player.observedStaleTouches = player.observedStaleTouches.slice(-24);
+        }
+        throw error;
+      }
+    }
     player.touchPhase = 'response-wait';
     await until(
       () => touchAttemptFinished(expected, player.room.status === 'finished'),
@@ -507,6 +547,47 @@ try {
       await route.continue();
     });
     const page = await context.newPage();
+    if (variant.game === 'cops-robbers-realtime')
+      await page.addInitScript(() => {
+        let ordinal = 0;
+        const frames = new WeakMap();
+        document.addEventListener(
+          'pointerup',
+          (event) => {
+            const canvas = event.target;
+            if (!(canvas instanceof HTMLCanvasElement) || !canvas.matches('canvas[data-play]'))
+              return;
+            const surface = canvas.closest('[data-street-competition]');
+            if (!surface || !canvas.dataset.renderedSeq) return;
+            const frame = (globalThis.__h5StreetPointer = {
+              ordinal: ++ordinal,
+              trusted: event.isTrusted,
+              pointerType: event.pointerType,
+              x: event.clientX,
+              y: event.clientY,
+              seq: Number(canvas.dataset.renderedSeq),
+              serverNow: Number(canvas.dataset.renderedServerNow),
+              selectedBefore: Number(canvas.dataset.selectedActor),
+              open: surface.open === true,
+              busyBefore: surface.getAttribute('aria-busy') === 'true',
+            });
+            frames.set(event, frame);
+          },
+          true,
+        );
+        document.addEventListener('pointerup', (event) => {
+          const frame = frames.get(event);
+          if (!frame) return;
+          const canvas = event.target;
+          frame.busyAfter =
+            canvas.closest('[data-street-competition]').getAttribute('aria-busy') === 'true';
+          requestAnimationFrame(() => {
+            frame.selectedAfter = Number(canvas.dataset.selectedActor);
+            frame.afterSeq = Number(canvas.dataset.renderedSeq);
+            frame.afterServerNow = Number(canvas.dataset.renderedServerNow);
+          });
+        });
+      });
     page.setDefaultNavigationTimeout(90000);
     const player = {
       context,
@@ -531,6 +612,9 @@ try {
       actionRequests: 0,
       touchRequests: new WeakMap(),
       acceptedActions: 0,
+      lastTouchFrame: null,
+      observedStaleTouchCount: 0,
+      observedStaleTouches: [],
       closing: false,
     };
     page.on('pageerror', (error) => player.errors.push(safeFailure(error, 'PAGE_ERROR')));
@@ -1399,6 +1483,8 @@ try {
       roomCode: code,
       playerIds: players.map((p) => p.profile.playerId),
       acceptedTouchActions: players.map((p) => p.acceptedActions),
+      observedStaleTouchCounts: players.map((p) => p.observedStaleTouchCount),
+      observedStaleTouches: players.map((p) => p.observedStaleTouches),
       duplicateActionsPreserveSettlement: true,
       confirmedLateTerminalInputs: players.map((p) => p.terminalRejections),
       confirmedBlockedRouteInputs: players.map((p) => p.inputRejections),
@@ -1733,6 +1819,9 @@ try {
           seq: player.room?.seq,
           acceptedActions: player.acceptedActions,
           touch: safeTouchProgress(player.touchPhase, player.expectedTouch),
+          lastTouchFrame: safeStreetTouchFrame(player.lastTouchFrame),
+          observedStaleTouchCount: player.observedStaleTouchCount,
+          observedStaleTouches: player.observedStaleTouches.map(safeStreetTouchFrame),
           inputRejections: player.inputRejections.slice(-24),
           apiFailures: player.apiFailures.slice(-24),
           errors: player.errors.slice(-24),

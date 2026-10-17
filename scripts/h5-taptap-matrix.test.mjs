@@ -12,6 +12,7 @@ import {
   streetScreenPoint,
   touchHitPoints,
   throwStaleStreetPlan,
+  observedStaleStreetTouch,
 } from './h5-taptap-touch.mjs';
 import { createRenderer as streetRenderer } from '../games/local/cops-robbers-realtime/src/competition-renderer.js';
 import { getLevels } from '../games/local/cops-robbers-realtime/src/levels.js';
@@ -629,6 +630,50 @@ test('stale visual plans cannot hide an emitted, mismatched or advanced action',
     });
     assert.equal(player.expectedTouch, expected);
   }
+});
+
+test('post-check replanning requires a trusted same-point touch, newer snapshot and local reselection while idle', () => {
+  const planned = { seq: 3, serverNow: 1000 },
+    screen = [125, 700];
+  const frame = {
+    trusted: true,
+    pointerType: 'touch',
+    open: true,
+    busyBefore: false,
+    busyAfter: false,
+    x: 125,
+    y: 700,
+    seq: 3,
+    serverNow: 1001,
+    afterSeq: 3,
+    afterServerNow: 1001,
+    selectedBefore: 1,
+    selectedAfter: 0,
+  };
+  assert.equal(observedStaleStreetTouch(frame, planned, screen), true);
+  assert.equal(observedStaleStreetTouch({ ...frame, selectedBefore: 0 }, planned, screen), false);
+  for (const change of [
+    { trusted: false },
+    { pointerType: 'mouse' },
+    { open: false },
+    { busyBefore: true },
+    { busyAfter: true },
+    { x: 126 },
+    { seq: 4 },
+    { serverNow: 1000 },
+    { serverNow: 999 },
+    { serverNow: NaN },
+    { afterSeq: 4 },
+    { afterServerNow: 1002 },
+    { afterSeq: undefined },
+    { afterServerNow: undefined },
+    { selectedAfter: 1 },
+    { selectedBefore: undefined },
+    { selectedAfter: undefined },
+    { selectedAfter: -1 },
+  ])
+    assert.equal(observedStaleStreetTouch({ ...frame, ...change }, planned, screen), false);
+  assert.equal(observedStaleStreetTouch(null, planned, screen), false);
 });
 test('both browser entrypoints must retain the clean exact main and submodule candidate', () => {
   const matrix = fixture(false),

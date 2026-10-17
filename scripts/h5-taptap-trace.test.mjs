@@ -8,6 +8,7 @@ import {
   publicMatchEvidence,
   safeDatabaseFailure,
   safeTouchProgress,
+  safeStreetTouchFrame,
 } from './h5-taptap-trace.mjs';
 test('touch progress exposes a finite phase and sequence without action or credentials', () => {
   const expected = {
@@ -116,6 +117,23 @@ test('public match evidence never spreads response bodies or private linkage', (
     roomCode: 'AABBCCDDEEFF',
     playerIds: [row.userId],
     acceptedTouchActions: [2],
+    observedStaleTouchCounts: [2, 'PRIVATE_CANARY', 99],
+    observedStaleTouches: [
+      Array.from({ length: 25 }, () => ({
+        seq: 3,
+        plannedSeq: 3,
+        serverNow: 1001,
+        afterServerNow: 1001,
+        selectedBefore: 1,
+        selectedAfter: 0,
+        busyBefore: false,
+        busyAfter: false,
+        trusted: true,
+        pointerType: 'touch',
+        token: 'PRIVATE_CANARY',
+        headers: { authorization: 'PRIVATE_CANARY' },
+      })),
+    ],
     duplicateActionsPreserveSettlement: true,
     results: [
       { ...row, rated: true, result: { score: 1, secondary: 2, privateCanary: 'PRIVATE_CANARY' } },
@@ -124,4 +142,20 @@ test('public match evidence never spreads response bodies or private linkage', (
   });
   assert(!JSON.stringify(evidence).includes('PRIVATE_CANARY'));
   assert.equal(evidence.standings[0].userId, row.userId);
+  assert.deepEqual(evidence.observedStaleTouchCounts, [2, 0]);
+  assert.equal(evidence.observedStaleTouches[0].length, 24);
+  assert.equal(evidence.observedStaleTouches[0][0].selectedAfter, 0);
+  assert.equal(evidence.observedStaleTouches[0][0].busyAfter, false);
+  assert.deepEqual(
+    safeStreetTouchFrame({
+      seq: 'PRIVATE_CANARY',
+      x: NaN,
+      serverNow: Infinity,
+      ordinal: -1,
+      trusted: 'PRIVATE_CANARY',
+      pointerType: 'PRIVATE_CANARY',
+      action: 'PRIVATE_CANARY',
+    }),
+    {},
+  );
 });

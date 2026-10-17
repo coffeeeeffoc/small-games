@@ -183,6 +183,28 @@ export function publicStanding(value) {
     }).filter(([key, item]) => ['userId', 'playerId'].includes(key) || Number.isFinite(item)),
   );
 }
+export function safeStreetTouchFrame(frame) {
+  const result = {};
+  for (const key of [
+    'plannedSeq',
+    'plannedServerNow',
+    'ordinal',
+    'x',
+    'y',
+    'seq',
+    'serverNow',
+    'afterSeq',
+    'afterServerNow',
+    'selectedBefore',
+    'selectedAfter',
+  ])
+    if (Number.isSafeInteger(frame?.[key]) && frame[key] >= 0) result[key] = frame[key];
+  for (const key of ['trusted', 'open', 'busyBefore', 'busyAfter'])
+    if (typeof frame?.[key] === 'boolean') result[key] = frame[key];
+  if (frame?.pointerType === 'touch') result.pointerType = 'touch';
+  return result;
+}
+
 export function publicMatchEvidence(value) {
   return {
     roomCode: /^[A-F0-9]{12}$/.test(value.roomCode) ? value.roomCode : null,
@@ -190,6 +212,12 @@ export function publicMatchEvidence(value) {
     acceptedTouchActions: value.acceptedTouchActions.map((count) =>
       Number.isSafeInteger(count) ? count : 0,
     ),
+    observedStaleTouchCounts: (value.observedStaleTouchCounts ?? [])
+      .slice(0, 2)
+      .map((count) => (Number.isSafeInteger(count) && count >= 0 ? count : 0)),
+    observedStaleTouches: (value.observedStaleTouches ?? [])
+      .slice(0, 2)
+      .map((frames) => frames.slice(-24).map(safeStreetTouchFrame)),
     duplicateActionsPreserveSettlement: value.duplicateActionsPreserveSettlement === true,
     results: value.results.map((row) => ({
       userId: uuid.test(row.userId ?? row.playerId) ? (row.userId ?? row.playerId) : null,

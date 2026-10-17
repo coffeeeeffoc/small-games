@@ -202,6 +202,31 @@ export function throwStaleStreetPlan(player, plannedRoom, requestsBefore) {
   });
 }
 
+// A real touch can arrive after the last layout check. Only a newer rendered
+// snapshot plus an observed local selection change explains a no-command tap.
+export function observedStaleStreetTouch(frame, plannedRoom, screen) {
+  return Boolean(
+    frame &&
+      frame.trusted === true &&
+      frame.pointerType === 'touch' &&
+      frame.open === true &&
+      frame.busyBefore === false &&
+      frame.busyAfter === false &&
+      frame.x === screen[0] &&
+      frame.y === screen[1] &&
+      frame.seq === plannedRoom.seq &&
+      Number.isFinite(frame.serverNow) &&
+      frame.serverNow > plannedRoom.serverNow &&
+      frame.afterSeq === frame.seq &&
+      frame.afterServerNow === frame.serverNow &&
+      Number.isSafeInteger(frame.selectedBefore) &&
+      frame.selectedBefore >= 0 &&
+      Number.isSafeInteger(frame.selectedAfter) &&
+      frame.selectedAfter >= 0 &&
+      frame.selectedAfter !== frame.selectedBefore,
+  );
+}
+
 export function isExpectedTouchRequest({ code, path, method, input, expected }) {
   return (
     expected != null &&
