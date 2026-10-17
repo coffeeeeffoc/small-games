@@ -24,6 +24,7 @@ import {
   competitionIngressScopePaths,
   adminConsoleScopePaths,
   adminDeploymentScopePaths,
+  adminControlDeploymentScopePaths,
   adminCspScopePaths,
   sharedDeploymentScopePaths,
   selectedBackendConsumers,
@@ -110,7 +111,7 @@ test('admin deployment paths select exact consumers, including the control polic
       ...(sharedDeploymentScopePaths.includes(file) ? ['apps/company-web'] : []),
       'services/management-api',
       'apps/admin-web',
-      ...(file === 'infra/admin-console/migrations/002-control-center.sql'
+      ...(adminControlDeploymentScopePaths.includes(file)
         ? ['services/runtime-api', 'services/kart-server']
         : []),
       ...(backendSharedScopePaths.includes(file) ? selectedBackendConsumers : []),
@@ -3176,7 +3177,7 @@ test('admin infrastructure has exact consumers and unknown neighboring paths fai
   for (const file of adminConsoleScopePaths) {
     const context = { packages, games: [], changedPaths: [file], readSource: () => '' };
     const fileScopes = reviewedSharedFileScopes(context);
-    const controlMigration = file === 'infra/admin-console/migrations/002-control-center.sql';
+    const controlMigration = adminControlDeploymentScopePaths.includes(file);
     assert.deepEqual(fileScopes.get(file), [
       ...(sharedDeploymentScopePaths.includes(file) ? ['apps/company-web'] : []),
       'services/management-api',

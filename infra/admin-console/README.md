@@ -1,11 +1,9 @@
-# 现有 management-api 的后管能力
+# 既有 Management 的管理发布
 
-按 [架构说明](../../docs/admin-console/architecture.md) 配置现有管理服务，使用现有数据库的 management_app 凭据。不要创建独立 admin-api 服务、数据库或 PostgreSQL 卷。
+配置中心使用现有 `small_games`、Management、Runtime 与 Kart。新发布入口和维护/恢复限制见 [中文部署说明](../../docs/admin-console/deployment.md)。没有新 DB、Studio、服务、端口、网络或 CORS 扩展。
 
-`migrations/001-admin-auth.sql` 由现有数据库 owner 在已授权目标执行，运行服务不执行迁移。先备份与隔离恢复验证，再串行应用，核对原游戏 schema/ACL/数据不变。迁移不创建角色、不设置密码，不授管理角色游戏权限。
+`control-deploy.py` 是当前审阅 coordinator；历史 release 只作严格数据读取。公开 v2 包精确绑定 002、独立 domain helper、三段 fingerprint、共享实际镜像能力协议及 nonce-v1 HTML。缺真实 helper 失败关闭，不能放置可执行 noop。
 
-一键入口为 `pnpm deploy:admin`，跨 Windows/macOS 使用已有 Node/pnpm/git/ssh/scp；详见[中文部署步骤](../../docs/admin-console/deployment.md)。默认缺 OAuth 字段非零退出；仅用户本人填写根目录被 ignore 的 `.env.admin.local` 并执行。示例是 raw `KEY=value`，不要给值额外包引号，`$`、`#`、引号、反斜杠按字面保留。
+`deploy.py`、`fingerprint.sql`、001 保留历史实现与工具；新 CLI 不再开放旧 `--execute`/`--provision-only`。002 数据库授权只写 SQL 待审批，不由本轮本地 mock 执行。任何 COMMIT/unknown 后的失败保留 Nginx closed 与私有 proof，禁止降级 guardless 镜像。
 
-`pnpm deploy:admin --provision-only` 在读 OAuth 文件之前分流，仅执行已获授权的现库最小角色、备份恢复证明及 001 原子迁移。数据库密码由服务器生成于 `/opt/small-games/admin-private/database.json`（目录 0700、文件 0600）并复用，不通过本机或发布包。用户不需要再次输入数据库密码。
-
-新增角色仍须事先得到明确授权。未知角色/迁移/ACL、PUBLIC 越权、活跃游戏或未知数据库写入者均失败关闭，不替用户修改旧权限。脚本不调用通用 bootstrap、不新建数据库或公开端口。
+私有 `management.env` 仅通过 metadata 验证并交给 Compose raw env_file，coordinator 不读秘密内容。用户原 `.env.admin.local` 不进入新模式。真实 GitHub 登录仍需用户验收。

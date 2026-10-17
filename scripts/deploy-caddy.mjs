@@ -224,6 +224,14 @@ systemctl list-timers company-caddy-backup.timer --all --no-pager
 `;
 }
 
+/** Proxy publication still performs its mandatory private backup/restore preflight. */
+export function finishCaddyDeployment(config, proxyOnly, run = ssh) {
+  if (!proxyOnly) run(config, backupInstall(config));
+  return proxyOnly
+    ? 'Proxy deployment completed; existing backup service and schedule retained.'
+    : 'Independent Caddy and private daily backups deployed. Ordinary website releases no longer update this container.';
+}
+
 export const caddySourceInputs = Object.freeze([
   'scripts/company-deployment.mjs',
   'scripts/deployment-progress.mjs',
@@ -252,7 +260,7 @@ export async function main(args = process.argv.slice(2)) {
   const parsedArgs = parseCaddyArgs(args);
   if (args.includes('--help')) {
     console.log(
-      'pnpm deploy:caddy            Deploy independent Caddy and local daily backups\npnpm deploy:caddy --prepare  Package only\npnpm deploy:caddy --check    Read-only container and volume checks\nUse pnpm deploy:company for ordinary website updates.',
+      'pnpm deploy:caddy            Deploy independent Caddy and local daily backups\npnpm deploy:caddy --prepare  Package only\npnpm deploy:caddy --proxy-only [--prepare]  Retain existing backup service/schedule; mandatory private backup remains\npnpm deploy:caddy --check    Read-only container and volume checks\nUse pnpm deploy:company for ordinary website updates.',
     );
     return;
   }
@@ -263,6 +271,8 @@ export async function main(args = process.argv.slice(2)) {
     active,
     parsedArgs.ingress ? JSON.parse(await readFile(parsedArgs.ingress, 'utf8')) : null,
   );
+  if (parsedArgs.proxyOnly)
+    assert(active, 'Proxy-only publication requires an existing managed ingress');
   if (args.includes('--check')) {
     ssh(
       config,
@@ -303,17 +313,17 @@ export async function main(args = process.argv.slice(2)) {
     config.caddyDirectory,
     `'${config.directory}' '${config.domain}' '${config.www}'`,
   );
-  ssh(config, backupInstall(config));
-  console.log(
-    'Independent Caddy and private daily backups deployed. Ordinary website releases no longer update this container.',
-  );
+  console.log(finishCaddyDeployment(config, parsedArgs.proxyOnly === true));
 }
 
 export function parseCaddyArgs(args) {
   const result = {};
   for (let i = 0; i < args.length; i++) {
     const argument = args[i];
-    if (argument === '--ingress') {
+    if (argument === '--proxy-only') {
+      assert(!result.proxyOnly, 'Provide --proxy-only once');
+      result.proxyOnly = true;
+    } else if (argument === '--ingress') {
       assert(
         !result.ingress && args[i + 1] && !args[i + 1].startsWith('--'),
         'Provide one ingress JSON path',

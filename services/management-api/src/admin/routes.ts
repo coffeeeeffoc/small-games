@@ -8,6 +8,7 @@ import type { AdminSession, AdminStore } from './store.js';
 import { GithubIdentityError, type GithubProvider } from './github.js';
 import { ZodError } from 'zod';
 import type { ControlService } from './control-service.js';
+import { readAdminRbacPrincipal } from './rbac-protocol.js';
 import { ControlError, type Principal } from './control-model.js';
 import { registerControlRoutes } from './control-routes.js';
 
@@ -82,7 +83,7 @@ export async function registerAdminAuthentication(
             : undefined;
         if (!session || Number(session.expiresAt) <= now())
           return reply.code(401).send({ error: 'authentication_required' });
-        const principal = control ? await control.access.session(session) : undefined;
+        const principal = control ? await readAdminRbacPrincipal(control, session) : undefined;
         if (control ? !principal : !config.allowlist.has(session.email)) {
           await store.deleteSession(adminHash(token!));
           reply.clearCookie(sessionCookie, options);

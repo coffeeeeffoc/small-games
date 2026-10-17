@@ -26,12 +26,31 @@ import {
   parseCaddyArgs,
   writeCaddyBundle,
   assertCaddySource,
+  backupInstall,
+  finishCaddyDeployment,
 } from './deploy-caddy.mjs';
 import { companyConfig, fileHashes } from './company-deployment.mjs';
 
 const ingress = JSON.parse(
   await readFile(new URL('../infra/caddy/ingress.example.json', import.meta.url), 'utf8'),
 );
+
+test('proxy-only retains backup installation while preserving preparation and topology guards', () => {
+  assert.deepEqual(parseCaddyArgs(['--proxy-only', '--prepare']), {
+    proxyOnly: true,
+    action: '--prepare',
+  });
+  assert.throws(() => parseCaddyArgs(['--proxy-only', '--proxy-only']));
+  const config = companyConfig();
+  const calls = [];
+  assert.match(
+    finishCaddyDeployment(config, true, (...args) => calls.push(args)),
+    /retained/,
+  );
+  assert.equal(calls.length, 0);
+  finishCaddyDeployment(config, false, (...args) => calls.push(args));
+  assert.deepEqual(calls, [[config, backupInstall(config)]]);
+});
 test('Caddy source guard rejects dirty nonce implementation or declarations at both boundaries', async () => {
   const parent = await realpath(tmpdir());
   const directory = await mkdtemp(path.join(parent, 'small-games-caddy-source-'));

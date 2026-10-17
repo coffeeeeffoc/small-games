@@ -1,13 +1,9 @@
 import { z } from 'zod';
 import { readAdminConfig } from './admin/config.js';
+import { readAdminControlFlag } from './admin/rbac-protocol.js';
 
 export function adminControlEnabled(env: Record<string, string | undefined>) {
-  if (
-    env.ADMIN_CONTROL_ENABLED !== undefined &&
-    !['true', 'false'].includes(env.ADMIN_CONTROL_ENABLED)
-  )
-    throw new Error('Invalid management configuration: ADMIN_CONTROL_ENABLED');
-  return env.ADMIN_CONTROL_ENABLED === 'true';
+  return readAdminControlFlag(env.ADMIN_CONTROL_ENABLED);
 }
 
 /** Reject incomplete configuration before allocating database or object-store clients. */

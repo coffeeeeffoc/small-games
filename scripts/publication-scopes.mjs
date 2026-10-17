@@ -1346,15 +1346,23 @@ export const competitionIngressScopePaths = [
   'infra/caddy/backup.test.py',
   'scripts/deploy-tencent.test.mjs',
 ];
+export const adminControlDeploymentScopePaths = [
+  'scripts/deploy-admin.mjs',
+  'scripts/deploy-admin.test.mjs',
+  'infra/admin-console/control-deploy.py',
+  'infra/admin-console/control-deploy.test.py',
+  'infra/admin-console/control-database.py',
+  'infra/admin-console/control-database.test.py',
+  'infra/admin-console/control-fingerprint.sql',
+  'infra/admin-console/migrations/002-control-center.sql',
+];
 export const adminDeploymentScopePaths = [
+  ...adminControlDeploymentScopePaths,
   'scripts/backend-build.mjs',
   'scripts/deployment-progress.mjs',
   'scripts/company-deployment.mjs',
   'infra/admin-console/.env.example',
   'infra/admin-console/migrations/001-admin-auth.sql',
-  'infra/admin-console/migrations/002-control-center.sql',
-  'scripts/deploy-admin.mjs',
-  'scripts/deploy-admin.test.mjs',
   'infra/admin-console/deploy.py',
   'infra/admin-console/deploy.test.py',
   'infra/admin-console/fingerprint.sql',
@@ -1413,11 +1421,7 @@ export const imageAuthorityConsumers = [
   'services/kart-server',
   'services/management-api',
 ];
-export const backendSharedScopePaths = [
-  'scripts/backend-build.mjs',
-  'scripts/deploy-admin.mjs',
-  ...sharedDeploymentScopePaths,
-];
+export const backendSharedScopePaths = ['scripts/backend-build.mjs', ...sharedDeploymentScopePaths];
 export function targetedCommandsOnly(before, after) {
   try {
     const previous = JSON.parse(before),
@@ -1796,7 +1800,7 @@ export function reviewedSharedFileScopes({
         scopes.set(file, consumers);
         continue;
       }
-      if (file === 'infra/admin-console/migrations/002-control-center.sql') {
+      if (adminControlDeploymentScopePaths.includes(file)) {
         const consumers = [...adminConsumers, 'services/runtime-api', 'services/kart-server'];
         for (const dir of consumers) assert(packages.some((pkg) => pkg.dir === dir));
         scopes.set(file, consumers);

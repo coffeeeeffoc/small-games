@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, mkdir, readFile, writeFile, rm, readdir } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, writeFile, rm, readdir, symlink, link } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -16,7 +16,16 @@ import {
   adminDockerfile,
   remoteReceipt,
   writeAdminBundle,
+  controlInput,
+  controlExecution,
+  controlReceipt,
+  controlServices,
+  writeControlBundle,
+  readControlBundle,
+  archiveControlBundle,
+  main,
 } from './deploy-admin.mjs';
+import { adminTemplatePrefix, adminNonceMetaMarkup } from './admin-csp.mjs';
 import { selectedBackendBuildCommands } from './backend-build.mjs';
 import { deploymentCommand, remoteDiagnostic } from './deployment-progress.mjs';
 
@@ -266,6 +275,361 @@ test('remote Python contract uses no real configuration or production Docker', (
     windows
       ? ['--exec', 'bash', '-c', 'exec python3 "$(wslpath -u "$1")"', 'admin-contract', file]
       : [file],
+    { encoding: 'utf8', timeout: 60000 },
+  );
+  assert.ifError(result.error);
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+});
+
+test('control CLI closes legacy modes before config and prepare never reads SSH or OAuth', async () => {
+  const forbidden = () => {
+    throw new Error('PRIVATE_READER_CALLED');
+  };
+  for (const args of [[], ['--execute'], ['--provision-only'], ['--prepare-control', '--rollback']])
+    await assert.rejects(
+      main(args, { loadConfig: forbidden, prepare: forbidden }),
+      /CONTROL_MODE_REQUIRED/,
+    );
+  const prepared = {
+    directory: '/public/fixture',
+    manifest: { release: 'fixture', sourceSHA: 'a'.repeat(40) },
+  };
+  assert.deepEqual(
+    await main(['--prepare-control'], { loadConfig: forbidden, prepare: async () => prepared }),
+    prepared,
+  );
+  assert.deepEqual(controlInput(['--recover-control=old-release']), {
+    mode: '--recover-control',
+    bundle: 'old-release',
+  });
+  assert.throws(() => controlInput(['--adopt-control=../release']), /ARGUMENTS/);
+});
+
+async function controlWorkspace(folder) {
+  const workspace = path.join(folder, 'source');
+  for (const name of [
+    'infra/admin-console/control-deploy.py',
+    'infra/admin-console/control-database.py',
+    'infra/admin-console/control-fingerprint.sql',
+    'infra/admin-console/deploy.py',
+    'infra/backend-update/deploy.py',
+    'infra/deployment/image-authority.py',
+    'infra/admin-console/migrations/002-control-center.sql',
+  ]) {
+    await mkdir(path.dirname(path.join(workspace, name)), { recursive: true });
+    await writeFile(path.join(workspace, name), `# explicit public fixture ${name}\n`);
+  }
+  await mkdir(path.join(workspace, 'apps/admin-web/dist/assets'), { recursive: true });
+  await writeFile(
+    path.join(workspace, 'apps/admin-web/dist/index.html'),
+    `${adminTemplatePrefix}\n<html>${adminNonceMetaMarkup}</html>`,
+  );
+  await writeFile(path.join(workspace, 'apps/admin-web/dist/assets/app.js'), 'public fixture');
+  return workspace;
+}
+
+test('v2 public bundles bind 002, CSP and exactly three selected backend commands', async () => {
+  const folder = await mkdtemp(path.join(tmpdir(), 'admin-control-bundle-'));
+  try {
+    const workspace = await controlWorkspace(folder);
+    const directory = path.join(folder, 'candidate');
+    const selected = [];
+    const manifest = await writeControlBundle(
+      directory,
+      { head: 'a'.repeat(40), release: 'candidate' },
+      workspace,
+      async (target, services) => {
+        selected.push(services);
+        await mkdir(target);
+        await writeFile(path.join(target, 'public.txt'), 'backend');
+      },
+    );
+    assert.deepEqual(selected, [controlServices]);
+    assert.deepEqual(await readControlBundle(directory), manifest);
+    assert.equal(manifest.controlSchemaVersion, 2);
+    assert(!Object.keys(manifest.files).some((name) => /001|bootstrap|management\.env/.test(name)));
+    const dockerfile = await readFile(path.join(directory, 'Dockerfile'), 'utf8');
+    assert.match(dockerfile, /runtime-api.*kart-server.*management-api/);
+    const archive = await archiveControlBundle(directory, manifest);
+    assert((await readFile(archive)).length > 0);
+    await rm(path.join(workspace, 'infra/admin-console/control-database.py'));
+    await assert.rejects(
+      writeControlBundle(
+        path.join(folder, 'missing'),
+        { head: 'a'.repeat(40), release: 'missing', runnerOnly: true },
+        workspace,
+      ),
+      /DATABASE_HELPER_REQUIRED/,
+    );
+  } finally {
+    await rm(folder, { recursive: true, force: true });
+  }
+});
+
+test('unlisted env/key, nested links and changed public hashes cause zero remote calls', async () => {
+  const folder = await mkdtemp(path.join(tmpdir(), 'admin-control-unsafe-'));
+  try {
+    const workspace = await controlWorkspace(folder);
+    const directory = path.join(folder, 'candidate');
+    await writeControlBundle(
+      directory,
+      { head: 'a'.repeat(40), release: 'candidate', runnerOnly: true },
+      workspace,
+    );
+    let remote = 0;
+    const rejectBeforeRemote = () =>
+      main(['--adopt-control=candidate'], {
+        readBundle: () => readControlBundle(directory),
+        loadConfig: () => {
+          remote++;
+          throw new Error('REMOTE_CALLED');
+        },
+        prepare: () => {
+          throw new Error('BUILD_CALLED');
+        },
+      });
+    for (const name of ['.env', 'private.key', 'unknown.txt']) {
+      await writeFile(path.join(directory, name), 'PRIVATE_CANARY');
+      await assert.rejects(rejectBeforeRemote(), /BUNDLE_UNSAFE/);
+      await rm(path.join(directory, name));
+    }
+    await mkdir(path.join(directory, 'nested'));
+    await symlink(
+      workspace,
+      path.join(directory, 'nested/link'),
+      process.platform === 'win32' ? 'junction' : 'dir',
+    );
+    await assert.rejects(rejectBeforeRemote(), /BUNDLE_UNSAFE/);
+    await rm(path.join(directory, 'nested'), { recursive: true });
+    const manifestFile = path.join(directory, 'manifest.json');
+    const originalManifest = await readFile(manifestFile);
+    const privateFile = path.join(folder, 'private-canary');
+    await writeFile(privateFile, 'PRIVATE_CANARY_NOT_JSON');
+    await rm(manifestFile);
+    // Windows file symlinks require an OS privilege; a directory junction still
+    // proves lstat rejects the manifest before any read. Hardlinks below cover
+    // a regular-file target on every platform, with invalid JSON as the canary.
+    await symlink(
+      process.platform === 'win32' ? folder : privateFile,
+      manifestFile,
+      process.platform === 'win32' ? 'junction' : 'file',
+    );
+    await assert.rejects(rejectBeforeRemote(), /BUNDLE_UNSAFE/);
+    await rm(manifestFile);
+    await link(privateFile, manifestFile);
+    await assert.rejects(rejectBeforeRemote(), /BUNDLE_UNSAFE/);
+    await rm(manifestFile);
+    await writeFile(manifestFile, originalManifest);
+    await writeFile(path.join(directory, 'control-deploy.py'), 'changed');
+    await assert.rejects(rejectBeforeRemote(), /BUNDLE_UNSAFE/);
+    assert.equal(remote, 0);
+  } finally {
+    await rm(folder, { recursive: true, force: true });
+  }
+});
+
+test('recover uses a freshly reviewed runner when dev advanced; historical bundle is data only', async () => {
+  const old = { sourceSHA: 'a'.repeat(40), release: 'old' };
+  const current = { sourceSHA: 'b'.repeat(40), release: 'current' };
+  const options = [];
+  const result = await controlExecution(
+    { mode: '--recover-control', bundle: 'old' },
+    async (option) => {
+      options.push(option);
+      return { directory: '/public/current' };
+    },
+    async (directory) =>
+      directory.endsWith('/old') || directory.endsWith('\\old') ? old : current,
+    '/workspace',
+  );
+  assert.deepEqual(result.target.manifest, old);
+  assert.deepEqual(result.runner.manifest, current);
+  assert.deepEqual(options, [{ services: ['management'], runnerOnly: true }]);
+  const source = await readFile(new URL('./deploy-admin.mjs', import.meta.url), 'utf8');
+  assert.match(source, /payload\.targetRelease = target\.manifest\.release/);
+  assert.match(source, /python3 '\$\{releaseDir\}\/control-deploy\.py'/);
+});
+
+test('control receipt requires complete typed evidence and distinguishes runner from target SHA', () => {
+  const value = {
+    ok: true,
+    mode: 'recover',
+    runnerSourceSHA: 'a'.repeat(40),
+    sourceSHA: 'b'.repeat(40),
+    release: 'target',
+    services: [...controlServices],
+    activeImages: Object.fromEntries(
+      controlServices.map((name) => [name, 'sha256:' + 'c'.repeat(64)]),
+    ),
+    controlContract: {
+      version: 1,
+      schema: 'game_control',
+      schemaVersion: 2,
+      projectionSha256: 'd'.repeat(64),
+      metadataSha256: 'e'.repeat(64),
+    },
+    migrationArtifactSha256: 'f'.repeat(64),
+    controlEnabled: true,
+    remoteConfigReused: true,
+    internalHealthVerified: true,
+    publicHtmlVerified: true,
+    anonymousSessionVerified: true,
+    oauthStartVerified: true,
+    realGithubLoginVerified: false,
+    backupSHA256: '1'.repeat(64),
+    oldStateSHA256: '2'.repeat(64),
+  };
+  assert.deepEqual(controlReceipt(JSON.stringify(value), 'recover', value.runnerSourceSHA), value);
+  for (const key of Object.keys(value)) {
+    const missing = { ...value };
+    delete missing[key];
+    assert.throws(
+      () => controlReceipt(JSON.stringify(missing), 'recover', value.runnerSourceSHA),
+      /REMOTE_FAILED/,
+    );
+  }
+  for (const key of ['sourceSHA', 'migrationArtifactSha256', 'backupSHA256', 'oldStateSHA256'])
+    for (const bad of [[value[key]], { value: value[key] }])
+      assert.throws(
+        () =>
+          controlReceipt(
+            JSON.stringify({ ...value, [key]: bad }),
+            'recover',
+            value.runnerSourceSHA,
+          ),
+        /REMOTE_FAILED/,
+      );
+  assert.throws(() =>
+    controlReceipt(
+      JSON.stringify({ ...value, realGithubLoginVerified: true }),
+      'recover',
+      value.runnerSourceSHA,
+    ),
+  );
+});
+
+test('recover executes the current runner and guards current dev even for an old source target', async () => {
+  const folder = await mkdtemp(path.join(tmpdir(), 'admin-control-runner-'));
+  try {
+    const current = {
+      release: 'current',
+      sourceSHA: 'a'.repeat(40),
+      migrationArtifactSha256: 'f'.repeat(64),
+    };
+    const historical = { ...current, release: 'historical', sourceSHA: 'b'.repeat(40) };
+    const receipt = {
+      ok: true,
+      mode: 'recover',
+      runnerSourceSHA: current.sourceSHA,
+      sourceSHA: historical.sourceSHA,
+      release: historical.release,
+      services: [...controlServices],
+      activeImages: Object.fromEntries(
+        controlServices.map((name) => [name, 'sha256:' + 'c'.repeat(64)]),
+      ),
+      controlContract: {
+        version: 1,
+        schema: 'game_control',
+        schemaVersion: 2,
+        projectionSha256: 'd'.repeat(64),
+        metadataSha256: 'e'.repeat(64),
+      },
+      migrationArtifactSha256: 'f'.repeat(64),
+      controlEnabled: true,
+      remoteConfigReused: true,
+      internalHealthVerified: true,
+      publicHtmlVerified: true,
+      anonymousSessionVerified: true,
+      oauthStartVerified: true,
+      realGithubLoginVerified: false,
+      backupSHA256: '1'.repeat(64),
+      oldStateSHA256: '2'.repeat(64),
+    };
+    const guards = [],
+      calls = [],
+      uploaded = [];
+    const directory = path.join(folder, 'current');
+    const result = await main(['--recover-control=historical'], {
+      prepare: async (options) => {
+        assert.equal(options.runnerOnly, true);
+        return { directory };
+      },
+      readBundle: async (file) => (file === directory ? current : historical),
+      loadConfig: async () => ({
+        host: '192.0.2.10',
+        user: 'fixture',
+        port: '22',
+        caddyDirectory: '/opt/company',
+      }),
+      sameCandidate: (sha) => guards.push(sha),
+      sendBundle: async (_config, file, value) => {
+        uploaded.push([file, value]);
+        return '/opt/public/current';
+      },
+      run: async (_program, args, options) => {
+        calls.push([args, options]);
+        return options.stage === 'protected_remote_transaction' ? JSON.stringify(receipt) : '';
+      },
+    });
+    assert.deepEqual(result, receipt);
+    assert.deepEqual(guards, [current.sourceSHA, current.sourceSHA]);
+    assert.deepEqual(uploaded, [[directory, current]]);
+    assert.match(
+      calls[1][0].at(-1),
+      /^python3 '\/opt\/public\/current\/control-deploy.py' --recover$/,
+    );
+    const payload = JSON.parse(calls[1][1].input);
+    assert.equal(payload.sourceSHA, current.sourceSHA);
+    assert.equal(payload.targetRelease, historical.release);
+    assert.match(payload.targetManifestSHA256, /^[a-f0-9]{64}$/);
+  } finally {
+    await rm(folder, { recursive: true, force: true });
+  }
+});
+
+test('admin owned-probe diagnostics preserve only strict metadata for the matching caller', async () => {
+  const id = 'a'.repeat(64),
+    uuid = '12345678-1234-1234-1234-123456789012';
+  const output = [];
+  await assert.rejects(
+    deploymentCommand(
+      process.execPath,
+      [
+        '-e',
+        `console.error('PRIVATE_CANARY');console.error('BACKEND_REMOTE_PROBE_PID 99');console.error('ADMIN_REMOTE_OWNED_PROBE ${id}');console.error('ADMIN_REMOTE_PROBE_UUID ${uuid}');console.error('ADMIN_REMOTE_PROBE_PID 42');console.error('ADMIN_REMOTE_STOPPED AUTHORITY_PROBE_RECOVERY_REQUIRED');process.exit(1)`,
+      ],
+      { prefix: 'ADMIN', remote: true, output: (line) => output.push(line) },
+    ),
+    (error) =>
+      error.ownedContainerId === id && error.probeUUID === uuid && error.probeProcessId === 42,
+  );
+  assert(!output.join('\n').includes('PRIVATE_CANARY'));
+  for (const line of [
+    'ADMIN_REMOTE_PROBE_PID 2147483648',
+    'ADMIN_REMOTE_PROBE_PID 0',
+    'ADMIN_REMOTE_PROBE_UUID bad',
+    'ADMIN_REMOTE_OWNED_PROBE PRIVATE_CANARY',
+  ])
+    assert.equal(remoteDiagnostic(line, 'ADMIN'), null);
+  assert.equal(remoteDiagnostic('BACKEND_REMOTE_PROBE_PID 42', 'ADMIN'), null);
+});
+
+test('control coordinator mocks never operate real services or migrations', () => {
+  const file = fileURLToPath(
+    new URL('../infra/admin-console/control-deploy.test.py', import.meta.url),
+  );
+  const result = spawnSync(
+    process.platform === 'win32' ? 'wsl.exe' : 'python3',
+    process.platform === 'win32'
+      ? [
+          '--exec',
+          'bash',
+          '-c',
+          'export PYTHONDONTWRITEBYTECODE=1; exec python3 "$(wslpath -u "$1")"',
+          'control-contract',
+          file,
+        ]
+      : ['-B', file],
     { encoding: 'utf8', timeout: 60000 },
   );
   assert.ifError(result.error);

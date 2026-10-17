@@ -1,69 +1,53 @@
-# 用户自行配置 GitHub 并一键启用后管
+# 管理配置中心发布与恢复
 
-仅在准确候选正常推送到 dev、相关 CI 与现有 HTTPS 入口通过验收后执行。真实 Client ID/secret 由用户自己填写、保存并执行；不要粘贴到聊天、Issue 或提交中。
+当前入口为 `pnpm deploy:admin`，只接受下列显式模式。所有模式均不读取本地 `.env.admin.local`，不传输 OAuth 字段，不生成或轮换数据库密码。已有私有配置通过 Compose `env_file` 的 `format: raw` 原样复用；程序只核对规范路径、属主、0700 目录、0600 普通文件、单硬链接和 stat 身份，不读取其内容。
 
-## GitHub 配置
+| 模式                         | 用途                                                                                                               |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `--prepare-control`          | 纯本地构建 Runtime、Kart、Management 统一候选镜像的源码包及 admin-web；不加载 SSH 配置、不查询远端、不读取 OAuth。 |
+| `--adopt-control=<bundle>`   | 经另行明确批准后的首次维护采用；参数为 `outputs/admin-deploy/` 下准备好的目录名。                                  |
+| `--recover-control=<bundle>` | 用当前审阅 runner 恢复该历史候选的未完成 journal；历史 release 只作为数据，不执行其中的 Python。                   |
+| `--reuse-remote-config`      | schema2 已采用后的普通 Management 更新，显式保留 `ADMIN_CONTROL_ENABLED=true`。                                    |
+| `--rollback`                 | 由当前审阅 runner 回退到已证明兼容 schema2 的上一 Management 镜像；不恢复数据库。                                  |
 
-在 Settings → Developer settings → OAuth apps → New OAuth App 创建应用。Homepage URL 填 `https://admin.nenggongzhiren.cn`；唯一 Authorization callback URL 填 `https://admin.nenggongzhiren.cn/api/auth/github/callback`，callback 不使用通配符，不启用 device flow。
+无参数、`--execute` 和 `--provision-only` 在读取配置前返回 `CONTROL_MODE_REQUIRED`。旧 `deploy.py`、001 迁移及历史 v1 manifest 保留用于审计和读取历史状态，不能从新入口触发旧安装、权限回退或重发 001。
 
-GitHub 当前允许多个 callback，本项目只配置一个是入口安全约束。步骤见 [Creating an OAuth app](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app)。只申请读取邮箱的 `user:email`，不需要仓库权限或 GitHub 密码；见 [Scopes for OAuth apps](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps)。只有已验证邮箱 `1521152077@qq.com` 可以建立管理会话；旧 Studio operator、游戏 Bearer、未验证邮箱不能替代。
+## 准确候选与公共制品
 
-## 本机填写并执行
+执行端必须使用正常 hooks 推送并经过相应 CI 的准确候选；执行前后要求本地 HEAD、干净工作树及实时 origin/dev 一致。prepare 仅核对本地候选，清单如实记录 `qualityChecks: not-run`，不能冒充 push/CI 验证。恢复和回滚校验的是当前 runner 候选 SHA；receipt 分别记录 `runnerSourceSHA` 与实际应用目标 `sourceSHA`。
 
-部署命令不再重复执行旧基线候选校验、游戏构建或浏览器测试。正常提交推送和 CI 的相关检查保留；开发验证中的 Linux 权限契约在 Windows 使用 WSL。Docker/Compose 是服务器运行前置，本地 Docker 仅用于显式隔离数据库演练。
+v2 包精确绑定 002、`control-database.py`、三段 `control-fingerprint.sql`、当前 coordinator、共享 image-authority、原 Compose 上下文工具及 nonce-v1 CSP 合同。缺少任何真实数据库 helper 必须在构建或维护前失败，不能使用可执行占位。公开目录的实际文件必须恰好等于 manifest 列表及 manifest 本身，拒绝链接、未知文件和秘密扩展；tar 使用固定文件清单，上传前逐条比对归档实际文件与哈希。receipt、归档及文件清单保存在包目录之外。
 
-使用仓库规定的 Node 24.21.0、pnpm 12.6.0，已有 git、ssh、scp、tar。沿用 `.env.tencent.local` / `.env.company.local` 的 SSH 目标与私钥路径，用户须先核实主机指纹并配置 known_hosts；始终启用 `StrictHostKeyChecking=yes`、`BatchMode=yes`。缺 SSH 前置会在耗时构建前失败，不自动信任主机密钥。
+Runtime/Kart/Management 统一 image 使用三个固定启动命令，不创建 PG、Studio、新服务、端口或网络。所有能力探针均复用 `infra/deployment/image-authority.py`，实际导入运行时模块验证协议；Management 的 `rbac-protocol` 同时被配置解析与每请求 DB 成员重查使用。manifest 中自报数字不能替代实际镜像能力。
 
-Windows PowerShell：
+## 首次采用的维护屏障
 
-```powershell
-Copy-Item infra/admin-console/.env.example .env.admin.local
-# 在本机编辑器自行填写两个 GitHub 字段，然后在仓库根执行：
-pnpm deploy:admin
-```
+首次采用允许现役旧镜像没有控制协议，但兼容三服务候选必须先构建并通过真实模块能力探针，然后才能停精确现役 Nginx ID。Nginx 必须采用 `unless-stopped`，无自动开门或超时放行。停止 Nginx 会关闭现存 WebSocket，并使受控 API、管理 API 和 Nginx 承载的旧游戏静态路由暂时不可用；Caddy 直接挂载的 admin HTML/assets 与官网仍可能打开。未知旁路必须在执行前核实并阻断，不能把入口关闭等同于全部页面下线。
 
-macOS：
+屏障后再次核对公共房间、ranked-run、三选二及 Kart 无活动游戏，再按 Management→Kart→Runtime 停止同一批 writer；只读确认未知 DB 客户端为 0。Street admission-v1 的持久票据不按活动对局阻塞，仍受完整数据保护。迁移调用前的活动变化、停止失败或可恢复中断，只能在 DB 仍无 schema2、原精确 ID/边界/上下文未变且新服务未激活时恢复实际记录停止的旧容器及同一 Nginx。
 
-```sh
-cp infra/admin-console/.env.example .env.admin.local
-chmod 600 .env.admin.local
-# 在本机编辑器自行填写两个 GitHub 字段，然后在仓库根执行：
-pnpm deploy:admin
-```
+domain helper 负责私有备份、完整隔离恢复及旧行/schema/owner/成员/ACL 对比；只有它的已证明 `not_committed` 才允许迁移调用后的旧态恢复。COMMIT、unknown 或无法读 DB 时保持 Nginx 关闭，禁止启动旧 guardless 镜像。数据库结果不能从缺失响应推断。
 
-该文件已被现有 Git ignore 规则覆盖。格式为 **raw KEY=value**：`=` 后原样使用，不加外围引号，不做 `$VAR` 或反斜杠展开，`#` 不开启行尾注释；只有独立注释行以 `#` 开头。接受 CRLF/LF 行尾，拒绝字段内换行、NUL、重复键、未知键、固定策略漂移。不要填写数据库密码或 S3 凭据。默认和 `--execute` 缺 OAuth 必定非零，助手不得运行该真实入口。
+COMMIT 后按 Runtime→Kart→Management 启动，Kart 绑定新 Runtime namespace；三个服务内部健康、完整只读 DB 合同、网络/挂载/端口边界及受保护容器/指针均通过后，才开启同一 Nginx。最终 HTTPS 探针失败立即重闭入口并保留私有 journal/备份，首次采用可能延长维护。
 
-```sh
-# 已获角色创建授权的维护者可先运行；不读取 OAuth 文件：
-pnpm deploy:admin --provision-only
-# 用户完成激活后，需要时只回滚管理服务：
-pnpm deploy:admin --rollback
-```
+## 崩溃恢复与普通回退
 
-## 候选与秘密边界
+coordinator 在迁移调用前持久化固定 precommit 路径。domain 在 COMMIT 前以 O_EXCL 写入 root 0600 的 `control-precommit.json` 与 SHA256 文件，目录 0700、单链接并 fsync。该证明绑定 release、source、002 artifact、旧态/备份哈希和预期 DB 合同；coordinator 返回前崩溃仍可由当前 runner 读取固定 pair，并先把可信哈希持久化 journal 再行动。
 
-要求整个工作树干净、HEAD 等于实时 origin/dev，构建和上传前后重新确认源码及目标未变。只编译 management 的实际运行依赖、cultivation 内容导出和 admin-web，不运行 cultivation UI、其他游戏或 Cocos 构建，不在部署命令里调用 validatePush。公开清单记录本轮 sourceSHA、明确 scope、文件 SHA256 与 `qualityChecks: not-run`，不生成或复用虚构的候选验收 proof。正常 push/CI 仍检查准确增量；远端推进应正常合并并重新推送。
+recover 重查精确 Nginx stopped、PG 身份、未变的不透明 env、原 Compose 上下文、候选镜像能力及预期合同，不从 live 重建 baseline，不重跑迁移。缺失/不匹配的 pair、未知 DB 结果或不兼容镜像保持闭锁并需人工审阅。恢复目标是原已审候选；替换故障候选镜像的 fix-forward 需独立审阅，不能暗换目标。未实测 Docker daemon 重启后的屏障持久性；恢复前始终再次确认精确 Nginx 已停止。
 
-所有 git/pnpm/build 及嵌套子进程剔除 ADMIN*\*、MANAGEMENT*\* 等凭据变量。发布包只含选定 management 后端、公开 admin-web 产物和带 SHA256 的部署源，不含本地 OAuth 文件、私钥、受保护环境。真实配置只经 SSH stdin JSON，不进 argv、日志、前端或制品。镜像以 node 用户运行，COPY 明确归属 node，兼容私有上传目录的 0700/0600 源权限。
+普通更新及回滚在停服务前要求 schema2、可信 control proof、现役三服务实际能力和显式控制 flag；回退目标必须同样兼容。历史 release 只提供 image/env/site 数据，执行逻辑始终来自当前 reviewed runner。失败恢复两个原管理指针，保留控制 flag，不回滚 Runtime、Caddy 或 DB。
 
-命令输出脱敏阶段、每 15 秒等待进度和阶段耗时。远端阶段区分数据库保护/备份/恢复/迁移、游戏恢复、镜像构建、服务启动、HTTPS 和指针切换；失败显示停止阶段、固定原因与退出码，不打印 SQL、URI、原始 stderr、Location、Cookie 或 token。构建、SSH 和远端子步骤都有超时。SSH 断线或超时后不能直接假定零变更或回滚完成，应只读复核容器、指针和备份回执，保留现场后再处理。
+## HTTPS、nonce 与 GitHub 边界
 
-服务端用非秘密 canary 实测 Compose `env_file.format: raw` 对 `$`、引号、`#`、反斜杠的保真能力，失败停止；实际 Compose 仅 `config --quiet`。配置在发布目录外 `/opt/small-games/admin-private/<release>/management.env`，目录 0700、文件 0600。数据库密码由服务器生成于同目录下 database.json 并复用，不要求用户再次输入。
+唯一管理站点为 `https://admin.nenggongzhiren.cn`，唯一 callback 为 `https://admin.nenggongzhiren.cn/api/auth/github/callback`。nonce-v1 逐页核对受信模板、Caddy 的 `<!---->\n` 前缀、canonical 32-byte Base64 nonce、精确 CSP 和 no-store；缺 CSP 不得降级静态验证。历史 v1 仅接受明确无模板的静态 HTML 合同。
 
-## 备份、权限与停启
+公共探针仅验证页面、匿名 `/api/session` 401 和 GitHub 起始 302 的公共结构，不跟随授权、不输出 client ID/state/challenge/cookie/完整 Location，不读取旧 OAuth 值。receipt 固定 `realGithubLoginVerified=false`。真实 GitHub 登录仍由用户亲自执行。
 
-复用 `small_games` / platform_owner，仅追加现有 001 的 admin_console。禁止调用 `infra/deployment/bootstrap.sql`，它含额外旧业务授权。按 Caddy → game 顺序持锁，确认 Runtime 无活动房间、Kart 内部 health.rooms=0，停同一 Kart/Runtime ID（已有受本工具管理的 management 也暂时停），确认没有其他 client backend。发现玩家或未知写入者失败关闭。
+用户创建 OAuth App 可参考 [GitHub 官方创建说明](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app)，只需 [user:email](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps)；平台支持多个 callback，本项目只用上述唯一入口且 callback 不使用通配符。无需 repo 权限或 GitHub 密码。真实秘密不应进入聊天、Issue、Git、日志、前端或公开制品。
 
-完整 pg_dump、无密码的角色/成员关系备份和指纹仅保存在私有备份目录。使用原 PG 精确缓存镜像，在 network none、无端口、独占 tmpfs 容器完整恢复；比对所有旧行、序列 last_value/is_called/配置、schema、owner、ACL、角色及成员关系。clone 迁移幂等与实际权限负例通过后，owner 在一个事务中先关闭敏感 SQL 日志，再创建最小 management_app LOGIN、仅授不可转授 CONNECT、应用 001；旧对象和有效权限检查均在 COMMIT 前。未知状态直接拒绝，不修改旧 PUBLIC ACL。
+## 代理单独交付
 
-管理角色无其他成员关系，仅 admin schema USAGE、两个认证表 SELECT/INSERT/DELETE、账本 SELECT。生产只查询权限，写负例仅 clone。受控异常及 HUP/TERM/INT 尝试恢复所有已停原容器并按精确 ID+标签清理 clone。硬断电/SIGKILL 需维护者按私有记录恢复同一容器，不能用数据库回档替代。
+`pnpm deploy:caddy --proxy-only`（也可与 `--prepare` 合用）要求已有 managed ingress，继续保留 source guard、归档哈希、真实配置语法/健康/受保护状态及回滚检查，只跳过最后的 `backupInstall`，不重装既有 systemd 备份服务。远端 `backup.py --preflight` 仍强制执行，会创建/处理私有备份并沿用现有 30 天轮换策略。执行前维护者须核实现有备份目录 0700、timer 健康；不符时停止，不能自动修权限、端口、网络或 CORS。
 
-## 激活、探针与回滚
-
-只启用原 management service 的 admin-only 能力，加入现有 backend network，无 host ports、无新 PG/DB/网络、无旧内容业务/S3/workers。可信代理由实际 Nginx backend IP 与 ingress.json 一致性确认。全程保护 Runtime、Kart、PG、Nginx、Caddy 及静态/backend/HTTPS 指针。
-
-管理 UI 与 API 使用同一个 admin-console/current 版本指针。已有 Caddy 入口需由维护者一次运行 `pnpm deploy:caddy` 准备公开目录的只读挂载；保留既有 ingress、证书卷、拓扑及双代理事务回滚，不新增端口或网络。尚未激活管理版本时继续使用 Caddy 内原登录页；之后普通 `deploy:admin` 同步切换 UI 与管理服务，HTTPS 不匹配则同时恢复。普通后台更新不重发官网或游戏。
-
-健康通过后有界等待 Nginx 负 DNS 缓存失效，校验 HTTPS 页面 200、匿名 session 401、登录 302 到 GitHub，以及固定 callback/scope、state/PKCE 和 Host-only Cookie 属性。输出仅布尔事实和 source/backup/old-state 哈希，不跟随 GitHub、不记录重定向参数值。**这不是真实 GitHub 登录验收**；用户最后自己在浏览器完成授权、刷新、退出和撤权验证。
-
-激活失败恢复先前 management 镜像/私有环境指针；显式 rollback 也只操作管理服务。追加数据库身份/schema 和私有备份保留，不恢复覆盖现有数据库。不要删除备份或手工重置密码；固定枚举失败应复核，不扩大权限继续。
+本轮只验源码/mock/管理单测，不表示统一镜像、真实 DB002、代理切换、首次维护、daemon 重启、生产 OAuth 已验收。缺 domain helper 时本地准备也明确阻塞；后续独立受控集成通过并获部署批准后方可生产执行。

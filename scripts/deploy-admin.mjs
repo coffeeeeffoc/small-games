@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
-import { cp, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { cp, lstat, mkdir, readFile, readdir, realpath, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { fileHashes, loadConfig, root } from './company-deployment.mjs';
@@ -8,6 +8,13 @@ import { prepareSelectedBackend } from './deployment-bundle.mjs';
 import { selectedBackendBuildCommands } from './backend-build.mjs';
 import { deploymentCommand } from './deployment-progress.mjs';
 import { pnpmInvocation } from './validate-push.mjs';
+import {
+  adminBaseCsp,
+  adminTemplatePrefix,
+  adminNonceMetaMarkup,
+  adminUiPaths,
+  renderAdminDocument,
+} from './admin-csp.mjs';
 
 export const ADMIN_ORIGIN = 'https://admin.nenggongzhiren.cn';
 export const ADMIN_CALLBACK = `${ADMIN_ORIGIN}/api/auth/github/callback`;
@@ -31,6 +38,8 @@ const errors = new Set([
   'REMOTE_FAILED',
   'HTTPS_FAILED',
   'TIMEOUT',
+  'CONTROL_MODE_REQUIRED',
+  'DATABASE_HELPER_REQUIRED',
 ]);
 const stop = (code) => {
   throw new Error(code);
@@ -221,9 +230,50 @@ export async function writeAdminBundle(
   return manifest;
 }
 
-async function sendPublicBundle(config, directory, manifest) {
+export async function archiveControlBundle(directory, manifest) {
+  const checked = await readControlBundle(directory);
+  if (JSON.stringify(checked) !== JSON.stringify(manifest)) stop('BUNDLE_UNSAFE');
   const archive = `${directory}.tar.gz`;
-  await run('tar', ['-czf', archive, '-C', directory, '.'], { stage: 'archive' });
+  const files = ['manifest.json', ...Object.keys(manifest.files).sort()];
+  const listFile = `${directory}.tar-files`;
+  await writeFile(listFile, files.join('\n') + '\n');
+  await run('tar', ['-czf', archive, '-C', directory, '-T', listFile], { stage: 'archive' });
+  // Inspect the archive itself, not only the mutable source directory. Never upload
+  // bytes that were substituted between validation and tar reading a public file.
+  const inspect = (args) => {
+    const result = spawnSync('tar', args, {
+      shell: false,
+      env: childEnvironment(),
+      windowsHide: true,
+      maxBuffer: 128 * 1024 * 1024,
+      timeout: 30000,
+    });
+    if (result.error || result.status !== 0) stop('BUNDLE_UNSAFE');
+    return result.stdout;
+  };
+  const entries = inspect(['-tzf', archive]).toString('utf8').trimEnd().split(/\r?\n/);
+  if (JSON.stringify(entries.sort()) !== JSON.stringify([...files].sort())) stop('BUNDLE_UNSAFE');
+  for (const name of files) {
+    const expected =
+      name === 'manifest.json'
+        ? createHash('sha256')
+            .update(JSON.stringify(manifest, null, 2) + '\n')
+            .digest('hex')
+        : manifest.files[name];
+    if (
+      createHash('sha256')
+        .update(inspect(['-xOf', archive, '--', name]))
+        .digest('hex') !== expected
+    )
+      stop('BUNDLE_UNSAFE');
+  }
+  if (JSON.stringify(await readControlBundle(directory)) !== JSON.stringify(manifest))
+    stop('BUNDLE_UNSAFE');
+  return archive;
+}
+
+async function sendPublicBundle(config, directory, manifest) {
+  const archive = await archiveControlBundle(directory, manifest);
   const digest = createHash('sha256')
     .update(await readFile(archive))
     .digest('hex');
@@ -309,87 +359,453 @@ export function remoteReceipt(text, mode) {
   return value;
 }
 
-export async function main(args = process.argv.slice(2)) {
-  const input = await executionInput(args);
+export const controlServices = Object.freeze(['runtime', 'kart', 'management']);
+export const controlCspContract = Object.freeze({
+  version: 1,
+  kind: 'nonce-v1',
+  prefix: adminTemplatePrefix,
+  meta: adminNonceMetaMarkup,
+  baseCsp: adminBaseCsp,
+  paths: [...adminUiPaths],
+});
+const controlHelpers = {
+  'control-deploy.py': 'infra/admin-console/control-deploy.py',
+  'control-database.py': 'infra/admin-console/control-database.py',
+  'control-fingerprint.sql': 'infra/admin-console/control-fingerprint.sql',
+  'legacy-tools.py': 'infra/admin-console/deploy.py',
+  'backend-context.py': 'infra/backend-update/deploy.py',
+  'image-authority.py': 'infra/deployment/image-authority.py',
+  'migrations/002-control-center.sql': 'infra/admin-console/migrations/002-control-center.sql',
+};
+
+export function controlInput(args) {
+  if (args.length !== 1) stop('CONTROL_MODE_REQUIRED');
+  if (['--prepare-control', '--reuse-remote-config', '--rollback', '--help'].includes(args[0]))
+    return { mode: args[0] };
+  const found = /^(--adopt-control|--recover-control)=([a-z0-9-]{1,100})$/.exec(args[0]);
+  if (found) return { mode: found[1], bundle: found[2] };
+  stop(['--execute', '--provision-only'].includes(args[0]) ? 'CONTROL_MODE_REQUIRED' : 'ARGUMENTS');
+}
+
+export function controlDockerfile(services) {
+  if (
+    JSON.stringify(services) !== JSON.stringify(controlServices) &&
+    JSON.stringify(services) !== '["management"]'
+  )
+    stop('BUNDLE_UNSAFE');
+  const packages = {
+    runtime: '@coffeeeeffoc/runtime-api',
+    kart: '@coffeeeeffoc/kart-server',
+    management: '@coffeeeeffoc/management-api',
+  };
+  return `FROM node:24.21.0-bookworm-slim\nWORKDIR /app\nRUN npm install -g pnpm@12.6.0\nCOPY --chown=node:node backend/ ./\nRUN pnpm ${services.map((name) => '--filter ' + packages[name] + '...').join(' ')} install --prod --frozen-lockfile --ignore-scripts && mkdir -p /app/outbox && chown node:node /app/outbox\nENV NODE_ENV=production\nUSER node\nCMD ["node","services/management-api/dist/main.js"]\n`;
+}
+
+async function requireControlHelpers(workspace) {
+  for (const relative of Object.values(controlHelpers)) {
+    let facts;
+    try {
+      facts = await lstat(path.join(workspace, relative));
+    } catch {
+      stop('DATABASE_HELPER_REQUIRED');
+    }
+    if (!facts.isFile() || facts.isSymbolicLink()) stop('BUNDLE_UNSAFE');
+  }
+}
+
+export async function writeControlBundle(
+  destination,
+  { head, release, services = controlServices, runnerOnly = false },
+  workspace = root,
+  pack = prepareSelectedBackend,
+) {
+  if (!shaPattern.test(head) || !/^[a-z0-9-]{1,100}$/.test(release)) stop('CANDIDATE_FAILED');
+  await requireControlHelpers(workspace);
+  if (!runnerOnly) controlDockerfile(services);
+  await mkdir(destination);
+  for (const [name, relative] of Object.entries(controlHelpers)) {
+    const target = path.join(destination, name);
+    await mkdir(path.dirname(target), { recursive: true });
+    await cp(path.join(workspace, relative), target, { force: false, errorOnExist: true });
+  }
+  await writeFile(
+    path.join(destination, 'admin-csp-contract.json'),
+    JSON.stringify(controlCspContract, null, 2) + '\n',
+  );
+  if (!runnerOnly) {
+    await pack(path.join(destination, 'backend'), services, workspace);
+    const site = path.join(workspace, 'apps/admin-web/dist');
+    const assets = await fileHashes(site);
+    if (
+      !assets['index.html'] ||
+      Object.keys(assets).some(
+        (name) => !/^(?:index\.html|mark\.svg|assets\/[A-Za-z0-9._-]+\.(?:js|css))$/.test(name),
+      )
+    )
+      stop('BUNDLE_UNSAFE');
+    renderAdminDocument(await readFile(path.join(site, 'index.html'), 'utf8'));
+    await cp(site, path.join(destination, 'site'), {
+      recursive: true,
+      force: false,
+      errorOnExist: true,
+      filter: async (file) => {
+        if ((await lstat(file)).isSymbolicLink()) stop('BUNDLE_UNSAFE');
+        return true;
+      },
+    });
+    await writeFile(path.join(destination, 'Dockerfile'), controlDockerfile(services));
+  }
+  const files = await fileHashes(destination);
+  if (Object.keys(files).some((name) => /(?:^|\/)\.env(?:\.|$)|\.(?:pem|key)$/i.test(name)))
+    stop('BUNDLE_UNSAFE');
+  const manifest = {
+    version: 2,
+    release,
+    sourceSHA: head,
+    kind: runnerOnly ? 'control-runner' : 'control-application',
+    services: runnerOnly ? [] : [...services],
+    scope: 'admin-control',
+    qualityChecks: 'not-run',
+    controlSchemaVersion: 2,
+    migrationArtifactSha256: files['migrations/002-control-center.sql'],
+    cspContractSha256: files['admin-csp-contract.json'],
+    adminHtml: runnerOnly
+      ? null
+      : { contract: 'nonce-v1', templateSha256: files['site/index.html'] },
+    files,
+  };
+  await writeFile(
+    path.join(destination, 'manifest.json'),
+    JSON.stringify(manifest, null, 2) + '\n',
+  );
+  return manifest;
+}
+
+function localCandidate(expected) {
+  const head = git(['rev-parse', 'HEAD']);
+  if (!shaPattern.test(head) || (expected && head !== expected)) stop('HEAD_CHANGED');
+  if (git(['status', '--porcelain'])) stop('DIRTY_TREE');
+  return head;
+}
+
+export async function prepareControl({ services = controlServices, runnerOnly = false } = {}) {
+  // This branch deliberately has no loadConfig, SSH, ls-remote or OAuth reader.
+  const head = localCandidate();
+  await requireControlHelpers(root);
+  if (!runnerOnly)
+    for (const command of [
+      ...(await selectedBackendBuildCommands(services, root)),
+      ['--filter', '@coffeeeeffoc/admin-web', 'build'],
+    ]) {
+      const pnpm = pnpmInvocation(childEnvironment());
+      await run(pnpm.command, [...pnpm.prefix, ...command], {
+        stage: 'build_control',
+        timeout: 300000,
+      });
+    }
+  localCandidate(head);
+  const release = `${head.slice(0, 12)}-${Date.now()}-${randomBytes(3).toString('hex')}`;
+  const parent = path.join(root, 'outputs/admin-deploy');
+  await mkdir(parent, { recursive: true });
+  const directory = path.join(parent, release);
+  const manifest = await writeControlBundle(directory, { head, release, services, runnerOnly });
+  localCandidate(head);
+  return { directory, manifest };
+}
+
+export async function readControlBundle(directory) {
+  if (
+    (await lstat(directory)).isSymbolicLink() ||
+    (await realpath(directory)) !== path.resolve(directory)
+  )
+    stop('BUNDLE_UNSAFE');
+  const manifestFacts = await lstat(path.join(directory, 'manifest.json'));
+  if (!manifestFacts.isFile() || manifestFacts.isSymbolicLink() || manifestFacts.nlink !== 1)
+    stop('BUNDLE_UNSAFE');
+  const text = await readFile(path.join(directory, 'manifest.json'), 'utf8');
+  const manifest = JSON.parse(text);
+  const keys = [
+    'version',
+    'release',
+    'sourceSHA',
+    'kind',
+    'services',
+    'scope',
+    'qualityChecks',
+    'controlSchemaVersion',
+    'migrationArtifactSha256',
+    'cspContractSha256',
+    'adminHtml',
+    'files',
+  ];
+  if (
+    !manifest ||
+    Array.isArray(manifest) ||
+    Object.keys(manifest).sort().join() !== keys.sort().join() ||
+    text !== JSON.stringify(manifest, null, 2) + '\n' ||
+    manifest.version !== 2 ||
+    typeof manifest.sourceSHA !== 'string' ||
+    !shaPattern.test(manifest.sourceSHA) ||
+    typeof manifest.release !== 'string' ||
+    !/^[a-z0-9-]{1,100}$/.test(manifest.release) ||
+    manifest.release !== path.basename(directory) ||
+    !manifest.files ||
+    Array.isArray(manifest.files) ||
+    typeof manifest.files !== 'object' ||
+    manifest.scope !== 'admin-control' ||
+    manifest.qualityChecks !== 'not-run' ||
+    manifest.controlSchemaVersion !== 2 ||
+    !['control-application', 'control-runner'].includes(manifest.kind)
+  )
+    stop('BUNDLE_UNSAFE');
+  if (
+    manifest.kind === 'control-runner'
+      ? JSON.stringify(manifest.services) !== '[]' || manifest.adminHtml !== null
+      : ![JSON.stringify(controlServices), '["management"]'].includes(
+          JSON.stringify(manifest.services),
+        ) ||
+        JSON.stringify(manifest.adminHtml) !==
+          JSON.stringify({
+            contract: 'nonce-v1',
+            templateSha256: manifest.files['site/index.html'],
+          }) ||
+        !manifest.files.Dockerfile ||
+        !manifest.files['site/index.html']
+  )
+    stop('BUNDLE_UNSAFE');
+  const actual = [];
+  const walk = async (relative = '') => {
+    for (const entry of await readdir(path.join(directory, relative))) {
+      const name = relative ? `${relative}/${entry}` : entry;
+      const facts = await lstat(path.join(directory, name));
+      if (facts.isSymbolicLink() || /(?:^|\/)\.env(?:\.|$)|\.(?:pem|key)$/i.test(name))
+        stop('BUNDLE_UNSAFE');
+      if (facts.isDirectory()) await walk(name);
+      else if (facts.isFile() && facts.nlink === 1) actual.push(name);
+      else stop('BUNDLE_UNSAFE');
+    }
+  };
+  await walk();
+  if (
+    JSON.stringify(actual.sort()) !==
+    JSON.stringify(['manifest.json', ...Object.keys(manifest.files)].sort())
+  )
+    stop('BUNDLE_UNSAFE');
+  for (const [name, expected] of Object.entries(manifest.files)) {
+    if (
+      !/^[A-Za-z0-9_-][A-Za-z0-9_./-]*$/.test(name) ||
+      name.split('/').some((part) => !part || part === '.' || part === '..') ||
+      path.isAbsolute(name) ||
+      typeof expected !== 'string' ||
+      !/^[a-f0-9]{64}$/.test(expected)
+    )
+      stop('BUNDLE_UNSAFE');
+    let target = directory;
+    for (const part of name.split('/')) {
+      target = path.join(target, part);
+      if ((await lstat(target)).isSymbolicLink()) stop('BUNDLE_UNSAFE');
+    }
+    if (
+      createHash('sha256')
+        .update(await readFile(target))
+        .digest('hex') !== expected
+    )
+      stop('BUNDLE_UNSAFE');
+  }
+  if (
+    Object.keys(controlHelpers).some((name) => !manifest.files[name]) ||
+    manifest.migrationArtifactSha256 !== manifest.files['migrations/002-control-center.sql'] ||
+    manifest.cspContractSha256 !== manifest.files['admin-csp-contract.json'] ||
+    (await readFile(path.join(directory, 'admin-csp-contract.json'), 'utf8')) !==
+      JSON.stringify(controlCspContract, null, 2) + '\n'
+  )
+    stop('BUNDLE_UNSAFE');
+  return manifest;
+}
+
+export async function controlExecution(
+  input,
+  prepare = prepareControl,
+  read = readControlBundle,
+  workspace = root,
+) {
+  const target = input.bundle
+    ? { directory: path.join(workspace, 'outputs/admin-deploy', input.bundle) }
+    : null;
+  if (target) target.manifest = await read(target.directory);
+  const runner =
+    input.mode === '--adopt-control'
+      ? target
+      : await prepare({
+          services: ['management'],
+          runnerOnly: ['--rollback', '--recover-control'].includes(input.mode),
+        });
+  runner.manifest = await read(runner.directory);
+  return { runner, target };
+}
+
+export function controlReceipt(text, mode, runnerSourceSHA) {
+  let value;
+  try {
+    value = JSON.parse(text);
+  } catch {
+    stop('REMOTE_FAILED');
+  }
+  const keys = [
+    'ok',
+    'mode',
+    'runnerSourceSHA',
+    'sourceSHA',
+    'release',
+    'services',
+    'activeImages',
+    'controlContract',
+    'migrationArtifactSha256',
+    'controlEnabled',
+    'remoteConfigReused',
+    'internalHealthVerified',
+    'publicHtmlVerified',
+    'anonymousSessionVerified',
+    'oauthStartVerified',
+    'realGithubLoginVerified',
+    'backupSHA256',
+    'oldStateSHA256',
+  ];
+  const contract = value?.controlContract;
+  if (
+    !value ||
+    Array.isArray(value) ||
+    Object.keys(value).length !== keys.length ||
+    Object.keys(value).some((key) => !keys.includes(key)) ||
+    value.mode !== mode ||
+    value.runnerSourceSHA !== runnerSourceSHA ||
+    typeof value.sourceSHA !== 'string' ||
+    !shaPattern.test(value.sourceSHA) ||
+    typeof value.release !== 'string' ||
+    !/^[a-z0-9-]{1,100}$/.test(value.release) ||
+    [
+      'ok',
+      'controlEnabled',
+      'remoteConfigReused',
+      'internalHealthVerified',
+      'publicHtmlVerified',
+      'anonymousSessionVerified',
+      'oauthStartVerified',
+    ].some((key) => value[key] !== true) ||
+    value.realGithubLoginVerified !== false ||
+    ['backupSHA256', 'oldStateSHA256', 'migrationArtifactSha256'].some(
+      (key) => typeof value[key] !== 'string' || !/^[a-f0-9]{64}$/.test(value[key]),
+    ) ||
+    !contract ||
+    Array.isArray(contract) ||
+    Object.keys(contract).sort().join(',') !==
+      'metadataSha256,projectionSha256,schema,schemaVersion,version' ||
+    contract.version !== 1 ||
+    contract.schema !== 'game_control' ||
+    contract.schemaVersion !== 2 ||
+    ['projectionSha256', 'metadataSha256'].some(
+      (key) => typeof contract[key] !== 'string' || !/^[a-f0-9]{64}$/.test(contract[key]),
+    ) ||
+    !value.activeImages ||
+    Array.isArray(value.activeImages) ||
+    Object.keys(value.activeImages).sort().join(',') !== 'kart,management,runtime' ||
+    Object.values(value.activeImages).some(
+      (image) => typeof image !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(image),
+    ) ||
+    JSON.stringify(value.services) !==
+      JSON.stringify(['adopt', 'recover'].includes(mode) ? controlServices : ['management'])
+  )
+    stop('REMOTE_FAILED');
+  return value;
+}
+
+export async function main(args = process.argv.slice(2), dependencies = {}) {
+  const input = controlInput(args); // No legacy executionInput/OAuth reader on any CLI route.
   if (input.mode === '--help') {
     console.log(
-      'pnpm deploy:admin [--execute|--provision-only|--rollback]\n仅用户本人执行默认入口读取 .env.admin.local；provision-only/rollback 不读取 OAuth 文件。',
+      'pnpm deploy:admin --prepare-control | --adopt-control=<bundle> | --recover-control=<bundle> | --reuse-remote-config | --rollback\nprepare纯本地；首次维护执行须另获明确批准；所有模式均不读取OAuth文件，旧001安装入口关闭。',
     );
     return;
   }
-  const config = await loadConfig();
+  const prepare = dependencies.prepare ?? prepareControl;
+  if (input.mode === '--prepare-control') {
+    const prepared = await prepare();
+    console.log(
+      JSON.stringify({
+        prepared: true,
+        release: prepared.manifest.release,
+        sourceSHA: prepared.manifest.sourceSHA,
+        directory: prepared.directory,
+        remoteExecuted: false,
+      }),
+    );
+    return prepared;
+  }
+  // Validate every local artifact before even a harmless SSH call.
+  const { runner: prepared, target } = await controlExecution(
+    input,
+    prepare,
+    dependencies.readBundle ?? readControlBundle,
+  );
+  const manifest = prepared.manifest;
+  (dependencies.sameCandidate ?? sameCandidate)(manifest.sourceSHA);
+  const execute = dependencies.run ?? run;
+  const config = await (dependencies.loadConfig ?? loadConfig)();
   if (!config.host) stop('SSH_FAILED');
-  if (config.key)
+  if (config.key) {
     try {
       await stat(config.key);
     } catch {
       stop('SSH_FAILED');
     }
-  // Harmless prerequisites fail before candidate builds or remote filesystem writes.
-  await run('ssh', sshArguments(config, 'bash -s'), {
+  }
+  await execute('ssh', sshArguments(config, 'bash -s'), {
     stage: 'preflight',
-    timeout: 60000,
     remote: true,
-    input: `set -eu\ncommand -v docker >/dev/null\ncommand -v python3 >/dev/null\ndocker compose version >/dev/null\ntest -w '/opt/small-games'\ntest -f '${config.caddyDirectory}/current/ingress.json'\ntest -L '/opt/small-games/backend-current'\n${input.mode === '--execute' ? `web=$(docker ps -q --filter label=com.docker.compose.project=company-web --filter label=com.docker.compose.service=web)\ntest "$(docker inspect --format '{{range .Mounts}}{{if eq .Destination "/opt/small-games/admin-console"}}{{.Source}} {{.RW}}{{end}}{{end}}' "$web")" = '/opt/small-games/admin-console false' || { printf 'ADMIN_REMOTE_STOPPED UI_MOUNT_REQUIRED\\n' >&2; exit 1; }\n` : ''}`,
+    timeout: 60000,
+    input: `set -eu\ncommand -v docker >/dev/null\ncommand -v python3 >/dev/null\ndocker compose version >/dev/null\ntest -f '${config.caddyDirectory}/current/ingress.json'\ntest -L '${remoteRoot}/current'\n`,
   });
-  if (input.mode === '--rollback') {
-    const text = await run(
-      'ssh',
-      sshArguments(config, `python3 '${remoteRoot}/current/deploy.py' --rollback`),
-      {
-        stage: 'rollback',
-        timeout: 600000,
-        remote: true,
-        input: JSON.stringify({ caddyDirectory: config.caddyDirectory }),
-      },
-    );
-    console.log(JSON.stringify(remoteReceipt(text, input.mode)));
-    return;
+  const modes = {
+    '--adopt-control': 'adopt',
+    '--recover-control': 'recover',
+    '--reuse-remote-config': 'reuse',
+    '--rollback': 'rollback',
+  };
+  const mode = modes[input.mode];
+  const releaseDir = await (dependencies.sendBundle ?? sendPublicBundle)(
+    config,
+    prepared.directory,
+    manifest,
+  );
+  (dependencies.sameCandidate ?? sameCandidate)(manifest.sourceSHA);
+  const payload = { caddyDirectory: config.caddyDirectory, sourceSHA: manifest.sourceSHA };
+  if (mode === 'recover') {
+    payload.targetRelease = target.manifest.release;
+    payload.targetManifestSHA256 = createHash('sha256')
+      .update(JSON.stringify(target.manifest, null, 2) + '\n')
+      .digest('hex');
   }
-  const head = git(['rev-parse', 'HEAD']);
-  if (!shaPattern.test(head)) stop('HEAD_CHANGED');
-  sameCandidate(head);
-  console.log('ADMIN_SCOPE admin-web,management quality_checks=not-run');
-  const provisionOnly = input.mode === '--provision-only';
-  if (!provisionOnly) {
-    for (const command of [
-      ...(await selectedBackendBuildCommands(['management'], root)),
-      ['--filter', '@coffeeeeffoc/admin-web', 'build'],
-    ]) {
-      const pnpm = pnpmInvocation(childEnvironment());
-      await run(pnpm.command, [...pnpm.prefix, ...command], {
-        stage: `build_${command[1].split('/').at(-1).replaceAll('-', '_')}`,
-        timeout: 300000,
-      });
-    }
-  }
-  sameCandidate(head);
-  const release = `${head.slice(0, 12)}-${Date.now()}-${randomBytes(3).toString('hex')}`;
-  const parent = path.join(root, 'outputs/admin-deploy');
-  await mkdir(parent, { recursive: true });
-  const directory = path.join(parent, release);
-  const manifest = await writeAdminBundle(directory, { head, release, provisionOnly });
-  const releaseDir = await sendPublicBundle(config, directory, manifest);
-  sameCandidate(head);
-  console.log('ADMIN_STAGE protected_remote_transaction');
-  const text = await run(
+  const text = await execute(
     'ssh',
-    sshArguments(config, `python3 '${releaseDir}/deploy.py' ${input.mode}`),
+    sshArguments(config, `python3 '${releaseDir}/control-deploy.py' --${mode}`),
     {
       stage: 'protected_remote_transaction',
       timeout: 2700000,
       remote: true,
-      input: JSON.stringify({
-        caddyDirectory: config.caddyDirectory,
-        sourceSHA: head,
-        oauth: input.oauth,
-      }),
+      input: JSON.stringify(payload),
     },
   );
-  const receipt = remoteReceipt(text, input.mode);
-  if (receipt.sourceSHA !== head) stop('REMOTE_FAILED');
-  await writeFile(path.join(directory, 'receipt.json'), JSON.stringify(receipt, null, 2) + '\n');
+  const receipt = controlReceipt(text, mode, manifest.sourceSHA);
+  if (
+    receipt.migrationArtifactSha256 !== manifest.migrationArtifactSha256 ||
+    (mode !== 'rollback' &&
+      (receipt.sourceSHA !== (target?.manifest.sourceSHA ?? manifest.sourceSHA) ||
+        receipt.release !== (target?.manifest.release ?? manifest.release)))
+  )
+    stop('REMOTE_FAILED');
+  await writeFile(`${prepared.directory}.receipt.json`, JSON.stringify(receipt, null, 2) + '\n');
   console.log(JSON.stringify(receipt));
+  return receipt;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {

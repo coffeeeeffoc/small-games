@@ -60,14 +60,17 @@ export const adminFailures = new Set([
   'AUTHORITY_PROBE_COMMAND_CLEANUP_FAILED',
 ]);
 
-export function remoteDiagnostic(line) {
-  const pid = /^BACKEND_REMOTE_PROBE_PID ([1-9][0-9]{0,9})$/.exec(line);
+export function remoteDiagnostic(line, prefix) {
+  if (prefix && !['ADMIN', 'BACKEND'].includes(prefix)) return null;
+  if (prefix && !line.startsWith(`${prefix}_REMOTE_`)) return null;
+  const pid = /^(?:ADMIN|BACKEND)_REMOTE_PROBE_PID ([1-9][0-9]{0,9})$/.exec(line);
   if (pid && Number(pid[1]) <= 2147483647) return { probeProcessId: Number(pid[1]) };
-  const owned = /^BACKEND_REMOTE_OWNED_PROBE ([a-f0-9]{64})$/.exec(line);
+  const owned = /^(?:ADMIN|BACKEND)_REMOTE_OWNED_PROBE ([a-f0-9]{64})$/.exec(line);
   if (owned) return { ownedContainerId: owned[1] };
-  const probe = /^BACKEND_REMOTE_PROBE_UUID ([a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})$/.exec(
-    line,
-  );
+  const probe =
+    /^(?:ADMIN|BACKEND)_REMOTE_PROBE_UUID ([a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})$/.exec(
+      line,
+    );
   if (probe) return { probeUUID: probe[1] };
   const stage = /^(?:ADMIN|BACKEND)_REMOTE_(?:STAGE|FAILED_STAGE) ([a-z_]+)$/.exec(line);
   if (stage && adminStages.has(stage[1])) return { stage: stage[1] };
@@ -162,7 +165,7 @@ export async function deploymentCommand(
       // Never retain, print, or forward raw diagnostics/headers/configuration.
       for (const character of chunk) {
         if (character === '\n') {
-          const value = remote && remoteDiagnostic(line.replace(/\r$/, ''));
+          const value = remote && remoteDiagnostic(line.replace(/\r$/, ''), prefix);
           if (value?.stage) {
             remoteStage = value.stage;
             output(`${prefix}_REMOTE_STAGE ${remoteStage}`);
