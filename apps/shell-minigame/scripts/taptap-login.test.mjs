@@ -57,7 +57,7 @@ test('the installed entry calls the actual native helper and overrides Creator p
   };
   let request;
   const tap = {
-    login(options) {
+    login() {
       assert.equal(this, tap);
       assert.fail('Anonymous bootstrap must not call platform login');
     },
