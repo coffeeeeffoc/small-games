@@ -83,6 +83,39 @@ class AuthorityContracts(unittest.TestCase):
         self.assertEqual([args for args, _ in fixture.calls if args[0] == 'rm'], [('rm', '-f', ID)])
         self.assertEqual(next(opts['timeout'] for args, opts in fixture.calls if args[0] == 'start'), 15)
 
+    def test_image_projection_keeps_empty_volumes_and_rejects_other_metadata_before_create(self):
+        for volumes in (None, {}):
+            fixture = DockerFixture()
+            with self.subTest(volumes=volumes):
+                def docker(*args, **options):
+                    if args[:2] == ('image', 'inspect'):
+                        return json.dumps({'id': IMAGE, 'volumes': volumes}).encode()
+                    return fixture(*args, **options)
+                with patch.object(authority.uuid, 'uuid4', return_value=TOKEN), patch.object(authority, 'docker', side_effect=docker):
+                    self.assertIn(b'control', authority.owned_probe_output(IMAGE, 'reviewed-script'))
+        for metadata in ({'id': IMAGE, 'volumes': {'/data': {}}},
+                         {'id': IMAGE}, {'id': IMAGE, 'volumes': []},
+                         {'id': IMAGE, 'volumes': None, 'env': 'PRIVATE_CANARY'},
+                         {'id': 'sha256:' + 'c' * 64, 'volumes': None}):
+            fixture = DockerFixture()
+            def docker(*args, **options):
+                if args[:2] == ('image', 'inspect'):
+                    return json.dumps(metadata).encode()
+                return fixture(*args, **options)
+            with self.subTest(metadata=metadata), patch.object(authority, 'docker', side_effect=docker):
+                with self.assertRaisesRegex(authority.AuthorityError, '^AUTHORITY_IMAGE_REQUIRED$'):
+                    authority.owned_probe_output(IMAGE, 'reviewed-script')
+            self.assertEqual(fixture.calls, [])
+
+    def test_image_metadata_command_failure_is_not_retried_or_used_to_create(self):
+        for code in ('AUTHORITY_PROBE_COMMAND_FAILED', 'AUTHORITY_PROBE_COMMAND_CLEANUP_FAILED'):
+            error = authority.AuthorityError(code)
+            with self.subTest(code=code), patch.object(authority, 'docker', side_effect=error) as docker:
+                with self.assertRaises(authority.AuthorityError) as caught:
+                    authority.owned_probe_output(IMAGE, 'reviewed-script')
+                self.assertIs(caught.exception, error)
+            docker.assert_called_once_with('image', 'inspect', IMAGE, '--format', authority.IMAGE_PROJECTION)
+
     def test_start_timeout_removes_only_verified_id(self):
         fixture = DockerFixture(start_failure=True)
         with self.assertRaisesRegex(authority.AuthorityError, '^AUTHORITY_PROBE_COMMAND_FAILED$'):

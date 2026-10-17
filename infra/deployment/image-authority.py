@@ -18,6 +18,12 @@ SPECS = {
 IMAGE_ID = r'sha256:[a-f0-9]{64}'
 CONTAINER_ID = r'[a-f0-9]{64}'
 LABEL = 'io.small-games.image-authority'
+# Docker inspect can omit empty Volumes. Handle map Config without a missing-key
+# access, while keeping typed Config support. Never read the full Config or Env.
+IMAGE_PROJECTION = ('{"id":{{json .Id}},"volumes":'
+                    '{{if eq (printf "%T" .Config) "map[string]interface {}"}}'
+                    '{{json (index .Config "Volumes")}}'
+                    '{{else}}{{json .Config.Volumes}}{{end}}}')
 ACTION_ERRORS = frozenset(('AUTHORITY_PROBE_OWNER_MISMATCH',
                            'AUTHORITY_PROBE_RECOVERY_REQUIRED', 'AUTHORITY_PROBE_CLEANUP_FAILED',
                            'AUTHORITY_PROBE_COMMAND_CLEANUP_FAILED'))
@@ -88,8 +94,7 @@ def docker(*args, timeout=10):
 
 def owned_probe_output(image, script):
     require(isinstance(image, str) and re.fullmatch(IMAGE_ID, image), 'AUTHORITY_IMAGE_REQUIRED')
-    metadata = json.loads(docker('image', 'inspect', image, '--format',
-                               '{"id":{{json .Id}},"volumes":{{json .Config.Volumes}}}'))
+    metadata = json.loads(docker('image', 'inspect', image, '--format', IMAGE_PROJECTION))
     require(metadata == {'id': image, 'volumes': None}
             or metadata == {'id': image, 'volumes': {}}, 'AUTHORITY_IMAGE_REQUIRED')
     token = uuid.uuid4()
