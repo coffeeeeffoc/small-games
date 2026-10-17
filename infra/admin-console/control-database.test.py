@@ -20,6 +20,18 @@ IMAGE = 'sha256:d741b376874687de90374fd34f55c6b2760e8f7bd7e4ae5cd47f50757fc08cf8
 
 
 class Contracts(unittest.TestCase):
+    def test_ready_waits_for_final_tcp_server_before_using_socket(self):
+        with patch.object(db, 'command', side_effect=[db.ControlDatabaseError('CONTROL_COMMAND_FAILED'), None]) as command, patch.object(db, 'psql', return_value='1') as query, patch.object(db.time, 'sleep') as sleep:
+            db.ready('a' * 64)
+            self.assertEqual(command.call_count, 2)
+            command.assert_called_with('docker', 'exec', 'a' * 64, 'pg_isready', '-h', '127.0.0.1', '-U', 'platform_owner', timeout=5)
+            query.assert_called_once()
+            sleep.assert_called_once_with(0.5)
+        with patch.object(db, 'command', side_effect=db.ControlDatabaseError('CONTROL_COMMAND_FAILED')), patch.object(db, 'psql') as query, patch.object(db.time, 'sleep'):
+            with self.assertRaisesRegex(db.ControlDatabaseError, 'CONTROL_CLONE_NOT_READY'):
+                db.ready('a' * 64)
+            query.assert_not_called()
+
     def test_ordered_segments_and_pure_contract(self):
         parts = db.load_sql()
         self.assertTrue(parts['contract'].startswith('WITH '))

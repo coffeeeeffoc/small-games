@@ -276,6 +276,8 @@ def restore_roles_sql(value):
 def ready(identifier):
     for _ in range(45):
         try:
+            # The image's temporary initialization server accepts sockets before the final TCP server.
+            command('docker', 'exec', identifier, 'pg_isready', '-h', '127.0.0.1', '-U', 'platform_owner', timeout=5)
             if psql(identifier, 'SELECT 1;', 'postgres', timeout=5) == '1':
                 return
         except ControlDatabaseError:
