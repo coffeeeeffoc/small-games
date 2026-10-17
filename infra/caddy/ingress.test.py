@@ -1,3 +1,4 @@
+import base64
 import copy
 import hashlib
 import importlib.util
@@ -24,6 +25,21 @@ class HttpsResponseTests(unittest.TestCase):
         result = types.SimpleNamespace(returncode=0, stdout=raw, stderr='')
         with patch.object(ingress.subprocess, 'run', return_value=result):
             return ingress.response(ingress.DOMAIN, '/small-games/v1/me')
+
+    def test_admin_nonce_is_rendered_exactly_and_bound_to_csp(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            contract = {'prefix': '<!--{{ nonce-template }}-->', 'meta': '<meta name="sg-csp-nonce" content="{{ nonce }}">', 'baseCsp': "default-src 'self'; style-src 'self'"}
+            (root / 'admin-csp-contract.json').write_text(json.dumps(contract))
+            template = contract['prefix'] + '\n<html>' + contract['meta'] + '</html>'
+            nonce = base64.b64encode(bytes(range(32))).decode()
+            body = '<!---->\n<html><meta name="sg-csp-nonce" content="' + nonce + '"></html>'
+            headers = {'content-security-policy': contract['baseCsp'].replace("style-src 'self'", "style-src 'self' 'nonce-" + nonce + "'")}
+            with patch.object(ingress, '__file__', str(root / 'ingress.py')):
+                ingress.verify_admin_document(template, headers, body)
+                for wrong_body, wrong_headers in [(body + 'extra', headers), (body.replace(nonce, 'bad'), headers), (body, {}), (template, headers)]:
+                    with self.assertRaises(RuntimeError):
+                        ingress.verify_admin_document(template, wrong_headers, wrong_body)
 
     def test_empty_responses_keep_the_header_terminator(self):
         for status in (204, 302, 404):
@@ -273,12 +289,6 @@ class IngressTests(unittest.TestCase):
                 return '{"service":"runtime","status":"ok"}'
             if '%{http_code}' in args:
                 return '403' if 'Origin: https://unapproved-origin.invalid' in args else '404'
-            if '/leaderboards/versus' in path:
-                game = path.split('/games/')[1].split('/')[0]
-                return json.dumps({'game':game, 'boardType':'versus', 'top':[]})
-            if '/games/' in path:
-                game = path.split('/games/')[1].split('?')[0]
-                return json.dumps({'game':game, 'capabilities':{'multiplayer':True}})
             raise AssertionError((host, path))
         def read_response(host, path, *args):
             seen.append((host, path, args))
@@ -298,9 +308,11 @@ class IngressTests(unittest.TestCase):
                 if 'OPTIONS' in args:
                     self.assertIn('Origin: http://localhost:8080', args)
                     return 204, {'access-control-allow-origin':'http://localhost:8080'}, ''
+                if '/games/' in path:
+                    return 401, {'content-type':'application/json'}, '{"error":"SESSION_EXPIRED"}'
                 if '/me' in path:
                     if 'POST' in args:
-                        self.assertEqual(json.loads(args[-1]), {'nickname':'Ingress probe'})
+                        self.assertEqual(json.loads(args[-1]), {'name':'Ingress probe'})
                     return 401, {'content-type':'application/json'}, '{"error":"SESSION_EXPIRED"}'
             return 404, {}, ''
         with patch.object(ingress, '__file__', str(self.target / 'ingress.py')), patch.object(ingress, 'curl', side_effect=fetch), patch.object(ingress, 'response', side_effect=read_response):
@@ -310,7 +322,7 @@ class IngressTests(unittest.TestCase):
             self.assertEqual(result['gamePrefixes'], ['/small-games/v1', '/api/competition/v1'])
             management_status = 401
             self.assertEqual(ingress.verify_public(self.config, 'nenggongzhiren.cn', 'www.nenggongzhiren.cn', '{"company":"unchanged"}')['management'], 'anonymous-session-only')
-            for failing in ((ingress.DOMAIN, '/small-games/v1/me'), (ingress.ADMIN_DOMAIN, '/login'), (ingress.ADMIN_DOMAIN, '/assets/index.js')):
+            for failing in ((ingress.DOMAIN, '/small-games/v1/games/cops-robbers/leaderboards/versus'), (ingress.DOMAIN, '/small-games/v1/me'), (ingress.ADMIN_DOMAIN, '/login'), (ingress.ADMIN_DOMAIN, '/assets/index.js')):
                 broken.add(failing)
                 with self.assertRaises(RuntimeError):
                     ingress.verify_public(self.config, 'nenggongzhiren.cn', 'www.nenggongzhiren.cn', '{"company":"unchanged"}')

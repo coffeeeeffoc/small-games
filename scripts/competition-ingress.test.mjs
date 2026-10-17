@@ -322,6 +322,7 @@ test('immutable package includes both proxy configs, a first-migration rollback 
     for (const name of [
       'ingress.json',
       'ingress.py',
+      'admin-csp-contract.json',
       'nginx-compose.yaml',
       'nginx-rollback.yaml',
       'nginx/00-legacy.conf',

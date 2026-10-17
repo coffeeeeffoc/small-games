@@ -5,6 +5,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { pnpmInvocation } from './validate-push.mjs';
 import { deploymentCommand } from './deployment-progress.mjs';
+import { adminBaseCsp, adminTemplatePrefix, adminNonceMetaMarkup } from './admin-csp.mjs';
 import {
   validateIngress,
   renderApiCaddy,
@@ -154,6 +155,14 @@ export async function writeCaddyBundle(
       },
     });
     assert.deepEqual(await fileHashes(path.join(destination, 'admin-site')), files);
+    await writeFile(
+      path.join(destination, 'admin-csp-contract.json'),
+      JSON.stringify({
+        prefix: adminTemplatePrefix,
+        meta: adminNonceMetaMarkup,
+        baseCsp: adminBaseCsp,
+      }) + '\n',
+    );
     const ingress = validateIngress(config.ingress);
     await writeFile(
       path.join(destination, 'ingress.json'),
