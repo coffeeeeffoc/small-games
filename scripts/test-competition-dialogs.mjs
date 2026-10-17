@@ -12,6 +12,10 @@ const profileDom = await readFile(
   new URL('../platforms/competition/profile-dom.js', import.meta.url),
   'utf8',
 );
+const connectionInfo = await readFile(
+  new URL('../platforms/competition/connection-info.js', import.meta.url),
+  'utf8',
+);
 const format = await readFile(
   new URL('../platforms/competition/format.js', import.meta.url),
   'utf8',
@@ -49,7 +53,7 @@ const fixture = `
 import { mountCompetition } from '/h5.js';
 globalThis.__installCompetition = () => {};
 globalThis.__COMPETITION_CONFIG__ = { competitionEnabled: true, apiUrl: 'https://fixture.example/api/competition/v1' };
-globalThis.fixture = { status: 'waiting', calls: [], visibility: [] };
+globalThis.fixture = { status: 'waiting', calls: [], visibility: [], pendingRooms: [], roomPatch: {} };
 addEventListener('competition-visibility', event => fixture.visibility.push(event.detail.open));
 const streetGame = new URL(location.href).searchParams.get('game') === 'cops-robbers-realtime';
 const board = { title: '测试榜单', description: '双方准备后开始。独立操作；服务端确认结果。', eligiblePlayers: 0, me: null, top: [], ...(streetGame ? { roles: ['pursuer', 'runner'], modes: [{ id: 'classic', title: '自由追逐' }, { id: 'escape', title: '出口竞速' }] } : {}) };
@@ -59,8 +63,9 @@ function room() {
     serverNow: Date.now(), deadline: Date.now() + 60000, pollMs: 60000,
     players: [{ id: 'player-a', name: profile.name, ready: false, role: 'pursuer' }], roles: board.roles, mode: 'classic', initiative: 'random',
     state: { rules: board.description },
-    results: [{ playerId: 'player-a', result: { eligible: true, score: 10, secondary: 2000 }, before: board, after: board }] };
+    results: [{ playerId: 'player-a', result: { eligible: true, score: 10, secondary: 2000 }, before: board, after: board }], ...fixture.roomPatch };
 }
+fixture.room = room;
 globalThis.__competition = { request: async (url, options) => {
   fixture.calls.push(url);
   if (url === '/me') {
@@ -68,6 +73,8 @@ globalThis.__competition = { request: async (url, options) => {
     return profile;
   }
   if (url.startsWith('/boards/')) return board;
+  if (fixture.deferRooms && /^\\/rooms\\/[A-F0-9]{12}$/.test(url) && !options?.body)
+    return new Promise(resolve => fixture.pendingRooms.push(resolve));
   return room();
 }};
 mountCompetition(new URL(location.href).searchParams.get('game'), () => ({ draw() {}, tap() {} }));
@@ -94,19 +101,21 @@ const server = createServer((request, response) => {
   response.end(
     request.url === '/profile-dom.js'
       ? profileDom
-      : request.url === '/service-config.js'
-        ? serviceConfig
-        : request.url === '/h5.js'
-          ? source
-          : request.url === '/street-pages.js'
-            ? streetSource
-            : request.url.endsWith('/role-appearance.js')
-              ? roleAppearance
-              : request.url === '/format.js'
-                ? format
-                : request.url === '/fixture.js'
-                  ? fixture
-                  : `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body${xiangqiPage ? ' data-screen="modes"' : ''}><button data-game-fullscreen>全屏</button>${xiangqiPage ? '<main class="page"><section data-screen="modes"><button id="mode-online" hidden style="min-height:48px;margin:24px"><strong>好友对弈</strong><small>邀请朋友一起玩</small></button></section></main>' : lettersPage ? '<button id="friend-button" hidden style="min-height:44px;margin:24px">好友同题</button>' : ''}<script type="module" src="/fixture.js"></script></body></html>`,
+      : request.url === '/connection-info.js'
+        ? connectionInfo
+        : request.url === '/service-config.js'
+          ? serviceConfig
+          : request.url === '/h5.js'
+            ? source
+            : request.url === '/street-pages.js'
+              ? streetSource
+              : request.url.endsWith('/role-appearance.js')
+                ? roleAppearance
+                : request.url === '/format.js'
+                  ? format
+                  : request.url === '/fixture.js'
+                    ? fixture
+                    : `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body${xiangqiPage ? ' data-screen="modes"' : ''}><button data-game-fullscreen>全屏</button>${xiangqiPage ? '<main class="page"><section data-screen="modes"><button id="mode-online" hidden style="min-height:48px;margin:24px"><strong>好友对弈</strong><small>邀请朋友一起玩</small></button></section></main>' : lettersPage ? '<button id="friend-button" hidden style="min-height:44px;margin:24px">好友同题</button>' : ''}<script type="module" src="/fixture.js"></script></body></html>`,
   );
 });
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -186,6 +195,8 @@ try {
           .toBe(1);
         await page.evaluate(() => {
           fixture.status = 'playing';
+          fixture.roomPatch = { seq: 2, serverNow: 1000, pollMs: 1 };
+          fixture.deferRooms = true;
         });
         await press(page.locator('[data-competition-launch]'));
         await press(route('lobby').locator('[data-go="create"]'));
@@ -200,14 +211,51 @@ try {
         await press(surface.locator('[data-create]'));
         await expect(route('play')).toBeVisible();
         await expect(surface.locator('canvas')).toBeVisible();
+        const canvas = surface.locator('canvas');
+        await expect(canvas).toHaveAttribute('data-rendered-seq', '2');
+        await expect(canvas).toHaveAttribute('data-rendered-server-now', '1000');
+        await expect
+          .poll(() => page.evaluate(() => fixture.pendingRooms.length))
+          .toBeGreaterThanOrEqual(5);
+        const deliver = async (index, patch) => {
+          await page.evaluate(
+            async ({ index, patch }) => {
+              fixture.pendingRooms[index]({ ...fixture.room(), ...patch });
+              await new Promise((resolve) =>
+                requestAnimationFrame(() => requestAnimationFrame(resolve)),
+              );
+            },
+            { index, patch },
+          );
+        };
+        await deliver(1, { seq: 3, serverNow: 3000 });
+        await expect(canvas).toHaveAttribute('data-rendered-seq', '3');
+        await deliver(0, { seq: 2, serverNow: 4000 });
+        await expect(canvas).toHaveAttribute('data-rendered-seq', '3');
+        await expect(canvas).toHaveAttribute('data-rendered-server-now', '3000');
+        await deliver(2, { seq: 3, serverNow: 2000 });
+        await expect(canvas).toHaveAttribute('data-rendered-server-now', '3000');
+        await deliver(3, { seq: 3, serverNow: 5000 });
+        await expect(canvas).toHaveAttribute('data-rendered-server-now', '5000');
+        await deliver(4, { code: 'BBBBBBBBBBBB', seq: 0, serverNow: 500 });
+        await expect(canvas).toHaveAttribute('data-rendered-seq', '0');
+        await expect(canvas).toHaveAttribute('data-rendered-server-now', '500');
+        await page.evaluate(() => {
+          fixture.deferRooms = false;
+          fixture.roomPatch = { code: 'BBBBBBBBBBBB', seq: 0, serverNow: 500, pollMs: 60000 };
+          for (const resolve of fixture.pendingRooms) resolve(fixture.room());
+        });
         await press(route('play').locator('[data-rules]'));
         await expect(route('rules')).toBeVisible();
+        await expect(canvas).not.toHaveAttribute('data-rendered-seq');
         await press(surface.locator('[data-page-back]'));
         await expect(route('play')).toBeVisible();
         await press(route('play').locator('[data-close]'));
         await expect(surface).toBeHidden();
+        await expect(canvas).not.toHaveAttribute('data-rendered-seq');
         await page.evaluate(() => {
           fixture.status = 'finished';
+          fixture.roomPatch = {};
         });
         await press(page.locator('[data-competition-launch]'));
         await press(route('lobby').locator('[data-go="create"]'));

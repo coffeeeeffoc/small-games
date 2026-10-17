@@ -124,6 +124,7 @@ export function mountStreetCompetition(game, createRenderer) {
   let viewSource = null,
     viewState = null,
     viewTurned = false;
+  let drawnView = null;
   let sessionGeneration = 0,
     busyGeneration = 0;
   let historyDepth = 0,
@@ -361,6 +362,8 @@ export function mountStreetCompetition(game, createRenderer) {
   }
   function accept(value, generation = sessionGeneration) {
     if (!isCurrent(generation)) return;
+    if (room?.code === value.code && (value.seq < room.seq || value.serverNow < room.serverNow))
+      return;
     const oldStatus = room?.status;
     if (room?.code !== value.code) pending = null;
     room = value;
@@ -651,9 +654,16 @@ export function mountStreetCompetition(game, createRenderer) {
     surface.dataset.mapProjection = turned ? 'quarter-turn' : 'normal';
     return { state: viewState, turned };
   }
+  function clearRenderMetadata() {
+    drawnView = null;
+    delete canvas.dataset.renderedSeq;
+    delete canvas.dataset.renderedServerNow;
+    delete canvas.dataset.selectedActor;
+  }
   function draw() {
     if (!surface.open) return;
     if (current === 'play' && room?.state) {
+      const drawnRoom = room;
       const width = canvas.clientWidth,
         height = canvas.clientHeight;
       const ratio = Math.min(devicePixelRatio || 1, 2);
@@ -666,8 +676,18 @@ export function mountStreetCompetition(game, createRenderer) {
       }
       ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
       ctx.clearRect(0, 0, width, height);
-      renderer.draw(ctx, width, height, renderedView(room.state, width, height).state);
-    }
+      const view = renderedView(drawnRoom.state, width, height);
+      renderer.draw(ctx, width, height, view.state);
+      drawnView = { ...view, code: drawnRoom.code, width, height };
+      // Public render metadata permits observation without exposing the room,
+      // player identity, credentials or any way to mutate the simulation.
+      canvas.dataset.renderedSeq = String(drawnRoom.seq);
+      canvas.dataset.renderedServerNow = String(drawnRoom.serverNow);
+      const selected = renderer.getSelected?.();
+      if (Number.isSafeInteger(selected) && selected >= 0)
+        canvas.dataset.selectedActor = String(selected);
+      else delete canvas.dataset.selectedActor;
+    } else clearRenderMetadata();
     frame = requestAnimationFrame(draw);
   }
   async function open(entry) {
@@ -740,6 +760,7 @@ export function mountStreetCompetition(game, createRenderer) {
     historySession = null;
     clearInterval(poll);
     cancelAnimationFrame(frame);
+    clearRenderMetadata();
     if (restoreHistory && depth > 0) {
       // Restore the source route before it resumes: resuming a paused solo game
       // may itself add its pause page to the browser history.
@@ -922,8 +943,15 @@ export function mountStreetCompetition(game, createRenderer) {
   };
   canvas.addEventListener('pointerup', (event) => {
     if (!room || room.status !== 'playing' || current !== 'play') return;
+    const view = drawnView;
+    if (
+      !view ||
+      view.code !== room.code ||
+      view.width !== canvas.clientWidth ||
+      view.height !== canvas.clientHeight
+    )
+      return;
     const rect = canvas.getBoundingClientRect();
-    const view = renderedView(room.state, canvas.clientWidth, canvas.clientHeight);
     const tapped = renderer.tap(event.clientX - rect.left, event.clientY - rect.top, view.state);
     const command =
       view.turned && tapped?.type === 'move' ? { ...tapped, x: tapped.y, y: -tapped.x } : tapped;

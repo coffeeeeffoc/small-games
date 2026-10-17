@@ -10,6 +10,7 @@ import {
   prepareTouchCanvas,
   streetActorTouchPoint,
   touchHitPoints,
+  throwStaleStreetPlan,
 } from './h5-taptap-touch.mjs';
 import { createRenderer as streetRenderer } from '../games/local/cops-robbers-realtime/src/competition-renderer.js';
 import { getLevels } from '../games/local/cops-robbers-realtime/src/levels.js';
@@ -486,11 +487,11 @@ test('explicit profiles require twelve local QA variants and only three online-a
   }
 });
 
-test('guest pacing honors the real server window without lowering its limit', async () => {
+test('guest pacing waits before a variant, then admits each actual request immediately', async () => {
   const { guestScheduler } = await import('./h5-taptap-touch.mjs');
   let now = 1000,
     waited = 0;
-  const schedule = guestScheduler(Array(18).fill(now), {
+  const schedule = guestScheduler(Array(12).fill(now), {
     now: () => now,
     pause: async (ms) => {
       assert(ms <= 1000);
@@ -498,9 +499,48 @@ test('guest pacing honors the real server window without lowering its limit', as
       waited += ms;
     },
   });
-  await Promise.all([schedule(), schedule()]);
+  await schedule.waitForCapacity(9);
   assert(waited >= 60000);
   assert(waited <= 61000);
+  const before = waited;
+  for (let index = 0; index < 18; index++) {
+    now += 100;
+    schedule.admit();
+  }
+  assert.equal(waited, before, 'An active browser fetch must never wait in the route');
+  assert.throws(() => schedule.admit(), /prepared variant budget/);
+  now += 58200;
+  assert.throws(() => schedule.admit(), /prepared variant budget/);
+  now += 100;
+  schedule.admit();
+});
+
+test('stale visual plans cannot hide an emitted, mismatched or advanced action', () => {
+  const plannedRoom = { code: 'ABCDEF123456', seq: 8 };
+  const fresh = () => ({
+    room: { ...plannedRoom },
+    actionRequests: 5,
+    expectedTouch: { sent: false, error: false },
+  });
+  const untouched = fresh();
+  assert.throws(() => throwStaleStreetPlan(untouched, plannedRoom, 5), {
+    code: 'TOUCH_PLAN_STALE',
+  });
+  assert.equal(untouched.expectedTouch, null);
+  for (const change of [
+    { actionRequests: 6 },
+    { room: { ...plannedRoom, seq: 9 } },
+    { expectedTouch: { sent: true } },
+    { expectedTouch: { error: true } },
+    { room: { code: 'FFFFFFFFFFFF', seq: 8 } },
+  ]) {
+    const player = { ...fresh(), ...change },
+      expected = player.expectedTouch;
+    assert.throws(() => throwStaleStreetPlan(player, plannedRoom, 5), {
+      code: 'ERR_ASSERTION',
+    });
+    assert.equal(player.expectedTouch, expected);
+  }
 });
 test('both browser entrypoints must retain the clean exact main and submodule candidate', () => {
   const matrix = fixture(false),

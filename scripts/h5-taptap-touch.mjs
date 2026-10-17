@@ -37,21 +37,24 @@ export function guestScheduler(
   initial = [],
   { now = Date.now, pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms)) } = {},
 ) {
-  const requests = initial.filter((value) => Number.isFinite(value));
-  let pending = Promise.resolve();
-  return () => {
-    const task = pending.then(async () => {
+  const requests = initial.filter((value) => Number.isFinite(value)).sort((a, b) => a - b);
+  const prune = () => {
+    while (requests.length && requests[0] <= now() - 60000) requests.shift();
+  };
+  return {
+    async waitForCapacity(count) {
+      assert(Number.isSafeInteger(count) && count > 0 && count <= 18);
       while (true) {
-        while (requests.length && requests[0] <= now() - 60000) requests.shift();
-        if (requests.length < 18) {
-          requests.push(now());
-          return;
-        }
+        prune();
+        if (requests.length + count <= 18) return;
         await pause(Math.max(1, Math.min(1000, requests[0] + 60001 - now())));
       }
-    });
-    pending = task.catch(() => {});
-    return task;
+    },
+    admit() {
+      prune();
+      assert(requests.length < 18, 'Guest request exceeded the prepared variant budget');
+      requests.push(now());
+    },
   };
 }
 
@@ -147,6 +150,22 @@ export function streetActorTouchPoint(create, context, width, height, state, act
     if (probe.tap(...point, state) === null && probe.getSelected() === actor) return point;
   }
   return null;
+}
+
+/** A stale visual plan can be retried only before any real action was emitted. */
+export function throwStaleStreetPlan(player, plannedRoom, requestsBefore) {
+  assert(
+    player.actionRequests === requestsBefore &&
+      player.room.code === plannedRoom.code &&
+      player.room.seq === plannedRoom.seq &&
+      !player.expectedTouch?.sent &&
+      !player.expectedTouch?.error,
+    'A real or mismatched action cannot be retried as a stale visual plan',
+  );
+  player.expectedTouch = null;
+  throw Object.assign(new Error('Street plan changed before action'), {
+    code: 'TOUCH_PLAN_STALE',
+  });
 }
 
 export function isExpectedTouchRequest({ code, path, method, input, expected }) {

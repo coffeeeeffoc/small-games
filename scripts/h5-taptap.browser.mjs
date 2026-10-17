@@ -28,6 +28,7 @@ import {
   completeTouchResponse,
   prepareTouchCanvas,
   guestScheduler,
+  throwStaleStreetPlan,
   soloStreetPlan,
   streetActorTouchPoint,
   touchHitPoints,
@@ -226,13 +227,28 @@ try {
     );
     if (player.room.status === 'finished') return false;
     if (!(await prepareTouchCanvas(canvas, () => player.room.status === 'finished'))) return false;
-    const dimensions = await canvas.evaluate((element) => ({
-      width: element.clientWidth,
-      height: element.clientHeight,
-    }));
+    const plannedRoom = player.room;
+    const requestsBefore = player.actionRequests;
+    const street = player.variant.game === 'cops-robbers-realtime';
+    const dimensions = await until(async () => {
+      if (player.room.status === 'finished') return { finished: true };
+      if (street && player.room !== plannedRoom)
+        throwStaleStreetPlan(player, plannedRoom, requestsBefore);
+      const view = await canvas.evaluate((element) => ({
+        width: element.clientWidth,
+        height: element.clientHeight,
+        seq: Number(element.dataset.renderedSeq),
+        serverNow: Number(element.dataset.renderedServerNow),
+      }));
+      if (street && player.room !== plannedRoom)
+        throwStaleStreetPlan(player, plannedRoom, requestsBefore);
+      return !street || (view.seq === plannedRoom.seq && view.serverNow === plannedRoom.serverNow)
+        ? view
+        : false;
+    }, 'Actual canvas renders the planned public snapshot');
     if (player.room.status === 'finished') return false;
     assert(dimensions.width > 0 && dimensions.height > 0);
-    const original = player.room.state;
+    const original = plannedRoom.state;
     const state = projected(player.variant.game, original, dimensions.width, dimensions.height);
     if (player.variant.game === 'cops-robbers-realtime' && wanted.type === 'move') {
       player.touchPhase = 'state-check';
@@ -305,11 +321,44 @@ try {
       if (found) break;
     }
     assert(found, `No visible touch point for ${JSON.stringify(wanted)}`);
-    const tap = async ([x, y]) => {
+    const tap = async ([x, y], target = false) => {
       if (player.room.status === 'finished') return false;
-      const box = await canvas.boundingBox();
+      const box = street
+        ? await canvas.evaluate((element) => {
+            const rect = element.getBoundingClientRect();
+            return {
+              x: rect.left,
+              y: rect.top,
+              width: rect.width,
+              height: rect.height,
+              clientWidth: element.clientWidth,
+              clientHeight: element.clientHeight,
+              seq: Number(element.dataset.renderedSeq),
+              serverNow: Number(element.dataset.renderedServerNow),
+              selected: Number(element.dataset.selectedActor),
+            };
+          })
+        : await canvas.boundingBox();
       if (player.room.status === 'finished') return false;
       assert(box, 'Canvas disappeared');
+      if (
+        street &&
+        (player.room !== plannedRoom ||
+          box.seq !== plannedRoom.seq ||
+          box.serverNow !== plannedRoom.serverNow ||
+          box.clientWidth !== dimensions.width ||
+          box.clientHeight !== dimensions.height ||
+          (target && box.selected !== wanted.actor))
+      )
+        throwStaleStreetPlan(player, plannedRoom, requestsBefore);
+      if (street && target) {
+        assert.equal(
+          player.actionRequests,
+          requestsBefore,
+          'Target follows only a local selection',
+        );
+        assert(!player.expectedTouch?.error, 'A mismatched action must remain a failure');
+      }
       const screenX = box.x + (x * box.width) / dimensions.width;
       const screenY = box.y + (y * box.height) / dimensions.height;
       const viewport = player.page.viewportSize();
@@ -345,9 +394,14 @@ try {
         return false;
       }
       await rendered(player.page);
+      assert.equal(
+        player.actionRequests,
+        requestsBefore,
+        'Selecting an actor must not emit an action',
+      );
     }
     player.touchPhase = 'target-tap';
-    if (!(await tap(found))) {
+    if (!(await tap(found, true))) {
       player.expectedTouch = null;
       return false;
     }
@@ -431,7 +485,7 @@ try {
     });
     contexts.add(context);
     await context.route('**/sessions/guest', async (route) => {
-      await scheduleGuest();
+      scheduleGuest.admit();
       await route.continue();
     });
     const page = await context.newPage();
@@ -455,6 +509,8 @@ try {
       terminalRejections: [],
       inputRejections: [],
       expectedTouch: null,
+      expectedReplay: null,
+      actionRequests: 0,
       touchRequests: new WeakMap(),
       acceptedActions: 0,
       closing: false,
@@ -464,14 +520,31 @@ try {
       if (!isApi(request.url())) return;
       const entry = { method: request.method(), path: new URL(request.url()).pathname };
       const expected = player.expectedTouch;
-      if (
-        isExpectedTouchRequest({
-          ...entry,
-          code: expected?.code,
-          input: requestBody(request),
-          expected,
-        })
-      ) {
+      const matches = isExpectedTouchRequest({
+        ...entry,
+        code: expected?.code,
+        input: requestBody(request),
+        expected,
+      });
+      const replay = player.expectedReplay;
+      const matchesReplay = isExpectedTouchRequest({
+        ...entry,
+        code: replay?.code,
+        input: requestBody(request),
+        expected: replay,
+      });
+      if (entry.method === 'POST' && /\/rooms\/[A-F0-9]{12}\/actions$/.test(entry.path)) {
+        player.actionRequests++;
+        if (!matches && !matchesReplay) {
+          player.errors.push({ code: 'ASSERTION_FAILED' });
+          if (expected) expected.error = true;
+        }
+      }
+      if (matchesReplay) {
+        if (replay.sent) player.errors.push({ code: 'ASSERTION_FAILED' });
+        replay.sent = true;
+      }
+      if (matches) {
         if (expected.sent) player.errors.push('A touch emitted duplicate action requests');
         expected.sent = true;
         player.touchRequests.set(request, expected);
@@ -1192,6 +1265,24 @@ try {
       await delay(1500);
     }
   }
+  async function replayAcceptedAction(player, code) {
+    assert(!player.expectedTouch && !player.expectedReplay);
+    const replay = { code, request: structuredClone(player.lastAction), sent: false };
+    player.expectedReplay = replay;
+    try {
+      const result = await player.page.evaluate(
+        ({ code, request }) =>
+          globalThis.__competition.request(`/rooms/${code}/actions`, {
+            body: JSON.stringify(request),
+          }),
+        replay,
+      );
+      assert(replay.sent, 'An explicit replay must emit its exact accepted action');
+      return result;
+    } finally {
+      player.expectedReplay = null;
+    }
+  }
   async function finishMatch(players, code) {
     await until(
       () => players.every((p) => p.room.status === 'finished'),
@@ -1216,13 +1307,7 @@ try {
         (game) => globalThis.__competition.request(`/games/${game}/leaderboards/versus`),
         player.variant.game,
       );
-      const duplicate = await player.page.evaluate(
-        async ({ code, action }) =>
-          globalThis.__competition.request(`/rooms/${code}/actions`, {
-            body: JSON.stringify(action),
-          }),
-        { code, action: player.lastAction },
-      );
+      const duplicate = await replayAcceptedAction(player, code);
       assert.deepEqual(
         duplicate.results,
         results,
@@ -1354,13 +1439,7 @@ try {
         assert.equal(saved.profile.userId, player.profile.userId);
         assert.equal(saved.profile.name, player.profile.name);
         assert.deepEqual(saved.room.results, raw.results);
-        const duplicate = await player.page.evaluate(
-          ({ code, action }) =>
-            globalThis.__competition.request('/rooms/' + code + '/actions', {
-              body: JSON.stringify(action),
-            }),
-          { code: raw.roomCode, action: player.lastAction },
-        );
+        const duplicate = await replayAcceptedAction(player, raw.roomCode);
         assert.deepEqual(
           duplicate.results,
           raw.results,
@@ -1567,6 +1646,9 @@ try {
       const players = [];
       let completedMatch;
       try {
+        // Wait before any fetch exists: profiles use seven guests, Street also
+        // opens a rewarded solo flow and a separate natural solo (nine total).
+        if (variant.serviceEnabled) await scheduleGuest.waitForCapacity(9);
         const a = await newPlayer(variant, 'a');
         players.push(a);
         item.config = a.config;
