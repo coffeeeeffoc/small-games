@@ -1370,6 +1370,10 @@ export const adminDeploymentScopePaths = [
 ];
 export const adminConsoleScopePaths = [...adminDeploymentScopePaths];
 const adminConsumers = ['services/management-api', 'apps/admin-web'];
+export const adminControlIntegrationScopePaths = [
+  'scripts/admin-control-postgres.mjs',
+  'scripts/admin-control-runtime-postgres.mjs',
+];
 export const adminCspScopePaths = [
   'scripts/admin-csp.mjs',
   'scripts/admin-csp.d.mts',
@@ -1788,6 +1792,12 @@ export function reviewedSharedFileScopes({
   const scopes = vitePatchFileScopes({ changedPaths, readBase, readHead });
   for (const file of changedPaths) {
     try {
+      if (adminControlIntegrationScopePaths.includes(file)) {
+        const consumers = ['services/management-api', 'services/runtime-api'];
+        for (const dir of consumers) assert(packages.some((pkg) => pkg.dir === dir));
+        scopes.set(file, consumers);
+        continue;
+      }
       if (
         adminCspScopePaths.includes(file) ||
         (file === 'turbo.json' &&

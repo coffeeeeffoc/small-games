@@ -1,5 +1,5 @@
 {
-  "runId": "game-control-f6ad706c-882b-4ddc-9d47-2d7e6ecac1d8",
+  "runId": "game-control-49abdd2e-bf85-4f08-8c13-1f0d94f8abb4",
   "isolated": true,
   "loopbackOnly": true,
   "productionAccess": false,
@@ -27,7 +27,7 @@
   "migrationSha256": "d16a0a06e9da6531b8140fa196dc0fe2a3d91a74cc2fcf877685fe7346f74451",
   "postgresVersion": "17.6",
   "runtimeControl": {
-    "observationLockMs": 1557,
+    "observationLockMs": 1568,
     "commitInFlight": "unknown-no-rollback-guarantee",
     "sourceSha256": {
       "controlDatabase": "6d9e8ba315cfec14447b64a47f9833f038a77bbedd2f72676ef128ce8e4f21c5",

@@ -18,7 +18,9 @@ API 为 `/api/control` 下的 catalog、state、revisions、members、roles、au
 
 `infra/admin-console/migrations/002-control-center.sql` 仅新建 `game_control`，不修改既有游戏表或 `admin_console`。迁移拒绝未知对象、所有者、外键目标、ACL 和 owner 的全局默认表／函数授权，不自动修复权限。Runtime 只能读取发布投影和游戏策略、追加应用报告，不能读取管理成员或修改开关。
 
-本地验证：管理服务 typecheck、lint、17 个测试文件共 53 项通过。`services/management-api/tests/control-postgres.mjs` 使用全新 UUID 标签的 PostgreSQL 17.6 容器、卷和专用网络，端口仅绑定回环，执行后精确清理；19 项检查覆盖迁移幂等、异常 ACL／外键拒绝、旧数据保护、真实应用角色、管理员并发、发布与 Runtime 锁竞争、重启持久化、控制事务超时及身份锁并发。证据见 `qa/control-postgres-current.json`，其中记录实际执行模块和源码 SHA-256。这些结果不代表生产已迁移或实际 GitHub 已验收。
+本地验证：管理服务 typecheck、lint、17 个测试文件共 53 项通过。`scripts/admin-control-postgres.mjs` 使用全新 UUID 标签的 PostgreSQL 17.6 容器、卷和专用网络，端口仅绑定回环，执行后精确清理；19 项检查覆盖迁移幂等、异常 ACL／外键拒绝、旧数据保护、真实应用角色、管理员并发、发布与 Runtime 锁竞争、重启持久化、控制事务超时及身份锁并发。证据见 `qa/control-postgres-current.json`，其中记录实际执行模块和源码 SHA-256。这些结果不代表生产已迁移或实际 GitHub 已验收。
+
+跨服务 PostgreSQL 验收入口及其 Runtime 辅助位于仓库根 `scripts/`，由根已有依赖组合两项服务的真实构建产物；Management 运行包不依赖 Runtime 私有实现。执行前先构建 service-kit、Management 和 Runtime，再运行 `node scripts/admin-control-postgres.mjs`。
 
 控制数据库使用独立的单连接池，最多排队五项，总预算从入队开始计算；postgres-js 事务客户端固定物理连接。超时主动拒绝并清理当前连接，迟到回调不能再执行 SQL 或更新策略缓存；下一项可重新建立池。真实 PostgreSQL 已验证观察表锁、语句间断线、非 SQL 等待、排队和关闭。COMMIT 已发出后的结果仍可能未知，不能承诺全部超时事务已回滚；结果不确定时不授予控制权、不更新策略缓存。Runtime 额外使用一个控制连接，生产前须核实既有角色连接上限与资源预算。
 

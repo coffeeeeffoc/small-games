@@ -3258,6 +3258,31 @@ test('AntD lock extension preserves all other importers and resolutions and reje
   );
 });
 
+test('cross-service PostgreSQL acceptance selects both real services and rejects adjacent tools', () => {
+  const consumers = ['services/management-api', 'services/runtime-api'];
+  const packages = consumers.map((dir) => ({ dir, name: dir.split('/').at(-1) }));
+  const files = [
+    'scripts/admin-control-postgres.mjs',
+    'scripts/admin-control-runtime-postgres.mjs',
+  ];
+  const context = { changedPaths: files, packages, games: [] };
+  const scopes = reviewedSharedFileScopes(context);
+  for (const file of files) {
+    assert.deepEqual(scopes.get(file), consumers);
+    assert.equal(
+      reviewedSharedFileScopes({ ...context, packages: packages.slice(0, 1) }).has(file),
+      false,
+    );
+  }
+  assert.equal(
+    reviewedSharedFileScopes({
+      ...context,
+      changedPaths: ['scripts/admin-control-postgres-other.mjs'],
+    }).size,
+    0,
+  );
+});
+
 test('CSP tools select only actual admin/company consumers, exact Turbo inputs and mandatory Caddy checks', () => {
   const packages = [
     { dir: 'apps/admin-web', name: '@coffeeeeffoc/admin-web' },

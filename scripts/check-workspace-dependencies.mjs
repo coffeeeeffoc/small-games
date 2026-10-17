@@ -30,6 +30,8 @@ const REPOSITORY_IMPORTS = new Set([
   // The share-handler contract uses the real public adapter; other game tests gain no edge.
   'games/local/wulong-city/tests/game.test.mjs -> platforms/h5/publishing.js',
   // Build tooling and browser acceptance helpers, never game runtime dependencies.
+  'apps/admin-web/vite.config.ts -> scripts/admin-csp.mjs',
+  'apps/admin-web/tests/browser.mjs -> scripts/admin-caddy-fixture.mjs',
   'apps/shell-minigame/scripts/nine-games-build.mjs -> scripts/competition-service-config.mjs',
   'apps/shell-minigame/scripts/nine-games-targets.mjs -> scripts/competition-service-config.mjs',
   'apps/shell-minigame/scripts/taptap-build.mjs -> scripts/competition-service-config.mjs',

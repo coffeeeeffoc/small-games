@@ -91,6 +91,47 @@ test('H5 advertising configuration permits only its two actual build-time caller
   );
 });
 
+test('admin CSP shares only its build and browser fixture callers; adjacent and runtime imports stay forbidden', async (t) => {
+  const root = await createWorkspace([
+    {
+      path: 'apps/admin-web',
+      manifest: { name: '@coffeeeeffoc/admin-web' },
+      files: {
+        'vite.config.ts': "import '../../scripts/admin-csp.mjs';",
+        'tests/browser.mjs': "import '../../../scripts/admin-caddy-fixture.mjs';",
+        'tests/other.mjs': "import '../../../scripts/admin-caddy-fixture.mjs';",
+        'src/main.ts': "import '../../../scripts/admin-csp.mjs';",
+        'src/fixture.ts': "import '../../../scripts/admin-caddy-fixture.mjs';",
+        'vite.other.ts': "import '../../scripts/admin-csp.mjs';",
+      },
+    },
+    {
+      path: 'services/management-api',
+      manifest: { name: '@coffeeeeffoc/management-api' },
+      files: {
+        'src/main.ts': "import '../../runtime-api/dist/competition/control.js';",
+        'tests/control-runtime-postgres.mjs':
+          "import '../../runtime-api/dist/competition/auth.js';",
+      },
+    },
+  ]);
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const violations = await validateWorkspace(root);
+  assert.equal(violations.length, 6);
+  assert(violations.every((item) => item.code === 'cross-package-relative'));
+  assert.deepEqual(
+    violations.map((item) => item.message.replaceAll('\\', '/').split(' imports ')[0]).sort(),
+    [
+      'apps/admin-web/tests/other.mjs',
+      'apps/admin-web/src/main.ts',
+      'apps/admin-web/src/fixture.ts',
+      'apps/admin-web/vite.other.ts',
+      'services/management-api/src/main.ts',
+      'services/management-api/tests/control-runtime-postgres.mjs',
+    ].sort(),
+  );
+});
+
 test('allows workspace dependencies through declared public exports', async (t) => {
   const root = await createWorkspace([
     {

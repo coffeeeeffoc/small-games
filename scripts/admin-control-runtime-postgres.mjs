@@ -3,8 +3,8 @@ import { randomUUID, createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { sql } from 'drizzle-orm';
 import { openControlDatabase } from '@coffeeeeffoc/service-kit';
-import { createCompetitionControl } from '../../runtime-api/dist/competition/control.js';
-import { assertStoredPlayerGame } from '../../runtime-api/dist/competition/auth.js';
+import { createCompetitionControl } from '../services/runtime-api/dist/competition/control.js';
+import { assertStoredPlayerGame } from '../services/runtime-api/dist/competition/auth.js';
 
 const barrier = () => {
   let resolve;
@@ -16,7 +16,7 @@ const barrier = () => {
 /** Equivalent real result/best FK + board order, using the production authorization lock. */
 export async function verifyCompetitionIdentityLocks({ owner, checked }) {
   const migration = await readFile(
-    new URL('../../../infra/migrations/010-competition.sql', import.meta.url),
+    new URL('../infra/migrations/010-competition.sql', import.meta.url),
     'utf8',
   );
   // Exact competition table definitions, deliberately excluding all migration GRANT statements.
@@ -158,11 +158,15 @@ export async function verifyCompetitionIdentityLocks({ owner, checked }) {
     oldLock: '40P01-reproduced',
     productionLock: 'two-settlements-committed-upgrade-lock-serialized',
     sourceSha256: createHash('sha256')
-      .update(await readFile(new URL('../../runtime-api/src/competition/auth.ts', import.meta.url)))
+      .update(
+        await readFile(new URL('../services/runtime-api/src/competition/auth.ts', import.meta.url)),
+      )
       .digest('hex'),
     executedModuleSha256: createHash('sha256')
       .update(
-        await readFile(new URL('../../runtime-api/dist/competition/auth.js', import.meta.url)),
+        await readFile(
+          new URL('../services/runtime-api/dist/competition/auth.js', import.meta.url),
+        ),
       )
       .digest('hex'),
   };
@@ -312,16 +316,16 @@ export async function verifyRuntimeControl({ url, owner, checked }) {
     checked('runtime-control-finite-fifo-and-close-cancel-all-callers');
     const sourceSha256 = {};
     for (const [name, path] of Object.entries({
-      controlDatabase: '../../../packages/service-kit/src/database.ts',
-      runtimeControl: '../../runtime-api/src/competition/control.ts',
+      controlDatabase: '../packages/service-kit/src/database.ts',
+      runtimeControl: '../services/runtime-api/src/competition/control.ts',
     }))
       sourceSha256[name] = createHash('sha256')
         .update(await readFile(new URL(path, import.meta.url)))
         .digest('hex');
     const executedModuleSha256 = {};
     for (const [name, path] of Object.entries({
-      controlDatabase: '../../../packages/service-kit/dist/database.js',
-      runtimeControl: '../../runtime-api/dist/competition/control.js',
+      controlDatabase: '../packages/service-kit/dist/database.js',
+      runtimeControl: '../services/runtime-api/dist/competition/control.js',
     }))
       executedModuleSha256[name] = createHash('sha256')
         .update(await readFile(new URL(path, import.meta.url)))

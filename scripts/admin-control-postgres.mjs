@@ -4,13 +4,13 @@ import { randomBytes, randomUUID, createHash } from 'node:crypto';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { sql } from 'drizzle-orm';
 import { openDatabase } from '@coffeeeeffoc/service-kit';
-import { createControlStore } from '../dist/admin/control-store.js';
-import { createControlService } from '../dist/admin/control-service.js';
-import { CONTROL_GAMES } from '../dist/admin/control-model.js';
+import { createControlStore } from '../services/management-api/dist/admin/control-store.js';
+import { createControlService } from '../services/management-api/dist/admin/control-service.js';
+import { CONTROL_GAMES } from '../services/management-api/dist/admin/control-model.js';
 import {
   verifyRuntimeControl,
   verifyCompetitionIdentityLocks,
-} from './control-runtime-postgres.mjs';
+} from './admin-control-runtime-postgres.mjs';
 
 // Fresh, labelled fixture only. Never connects to an existing container or database.
 const dockerBin = process.env.DOCKER_EXECUTABLE ?? 'H:/setup/Docker/resources/bin/docker.exe';
@@ -38,7 +38,7 @@ let containerId,
 let stage = 'start';
 const receipt = { runId, isolated: true, loopbackOnly: true, productionAccess: false, checks: [] };
 const migration = await readFile(
-  new URL('../../../infra/admin-console/migrations/002-control-center.sql', import.meta.url),
+  new URL('../infra/admin-console/migrations/002-control-center.sql', import.meta.url),
   'utf8',
 );
 receipt.migrationSha256 = createHash('sha256').update(migration).digest('hex');
@@ -412,7 +412,7 @@ try {
   psql(migration);
   checked('publication-members-audit-survive-database-restart');
   const evidence = new URL(
-    '../../../docs/admin-console/qa/control-postgres-current.json',
+    '../docs/admin-console/qa/control-postgres-current.json',
     import.meta.url,
   );
   await mkdir(new URL('.', evidence), { recursive: true });
