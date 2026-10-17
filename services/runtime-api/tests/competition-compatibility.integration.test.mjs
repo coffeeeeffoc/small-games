@@ -103,8 +103,10 @@ integration(
           runInNewContext(source, context);
           context.__installCompetition({ game: rule.id, platform: 'h5', apiUrl: base });
           const api = context.__competition;
-          if (service === 1 || consumer === 'candidate') {
-            await expect(api.session()).rejects.toBeDefined();
+          if ((service === 1) !== (consumer === 'candidate')) {
+            await expect(api.session()).rejects.toMatchObject({
+              code: service === 1 ? 'INVALID_INPUT' : 'SESSION_EXPIRED',
+            });
             continue;
           }
           const credential = await api.session();

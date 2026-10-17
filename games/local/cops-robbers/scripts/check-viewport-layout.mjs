@@ -65,7 +65,7 @@ report.base = base;
 const apiBase = `${fixtureOrigin}/__viewport_api`;
 
 function serviceFixture() {
-  const profile = { playerId: 'viewport-player-a', name: '巡逻队员甲' };
+  const profile = { playerId: 'viewport-player-a', userId: 'viewport-player-a', game: 'cops-robbers', name: '巡逻队员甲', avatarId: 'cat' };
   const top = Array.from({ length: 35 }, (_, index) => ({
     playerId: index ? `viewport-player-${index}` : profile.playerId,
     name: index ? `街区巡逻队员 ${index + 1}` : profile.name,
@@ -109,7 +109,7 @@ function serviceFixture() {
     fixture.calls.push({ path: pathname, method: request.method(), body });
     let status = 200, data;
     if (request.method() === 'OPTIONS') data = {};
-    else if (pathname === '/sessions/guest') data = { token: 'viewport-fixture-token', expiresAt: Date.now() + 3600000 };
+    else if (pathname === '/sessions/guest') data = { ...profile, identityKind: 'guest', sessionId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', token: 'a'.repeat(64), refreshToken: 'b'.repeat(64), expiresAt: Date.now() + 900000, refreshExpiresAt: Date.now() + 180 * 86400000 };
     else if (pathname === '/me') {
       if (body.name && fixture.failName) { status = 400; data = { error: 'INVALID_INPUT' }; }
       else { if (body.name) profile.name = body.name; data = profile; }

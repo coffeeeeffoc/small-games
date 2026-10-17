@@ -284,7 +284,7 @@ try {
       const path = new URL(request.url()).pathname;
       if (request.method() === 'POST') writes.push({ path, body: request.postDataJSON() });
       if (path.endsWith('/sessions/guest'))
-        return route.fulfill({ json: { token: 'a'.repeat(64), expiresAt: Date.now() + 3600000 } });
+        return route.fulfill({ json: { userId: 'fixture-player', game: 'cage-rescue', identityKind: 'guest', sessionId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', token: 'a'.repeat(64), refreshToken: 'b'.repeat(64), expiresAt: Date.now() + 900000, refreshExpiresAt: Date.now() + 180 * 86400000 } });
       if (path.endsWith('/runs')) {
         assert.equal(request.postDataJSON().version, RANKED_RULE_VERSION);
         if (variant === 'legacy-strict' || variant === 'rejected')

@@ -220,6 +220,7 @@ async function importScriptHashes() {
         'night-native-project.mjs',
         'taptap-login.mjs',
         '../../../platforms/taptap/login.cjs',
+        '../../../platforms/competition/client.js',
       ].map(async (file) => [file, digest(await readFile(new URL(file, import.meta.url)))]),
     ),
   );

@@ -66,6 +66,6 @@ pnpm deploy:admin --rollback
 
 截至实施中的本地验证：真实 PostgreSQL 恢复演练 28 项通过（含 14 类结构/权限变异、提交响应丢失和重试），Linux 协调器测试 25 项通过；三游戏手机浏览器自动身份、昵称头像、刷新复用通过；五个共享游戏页面的桌面与触屏对话流程通过。
 
-上述浏览器身份界面检查使用协议夹具，不等于公网验收。真实数据库双人对局、最终发布 SHA、云端恢复、CI/Pages 和公网验证结果在执行后补充。真实广告完成和原生手机宿主验收单独记录，不能用 Web 模拟替代。
+提交 `92c271851ae95089bfabacacfd6f37df689ae841` 的独立 PostgreSQL/H5 验收已通过：12 种组合、6 场双人对局、2 场自然单人流程、真实 runtime_app/management_app 角色、跨游戏与房间越权负例、Runtime/PG 重启及重复提交幂等性。记录位于 `outputs/h5-taptap/anonymous-92c27185/`，fixture `654f7e37-be6c-43d5-afeb-ff2dd5c1407f` 已清理。这是本地浏览器与真实数据库验收，尚不等于公网或真机验收。最终发布 SHA、云端恢复、CI/Pages 和公网验证结果在执行后补充。真实广告完成和原生手机宿主验收单独记录，不能用 Web 模拟替代。
 
 参考：[管理部署详细说明](../admin-console/deployment.md)、[准确候选发布规则](incremental-publication.md)。

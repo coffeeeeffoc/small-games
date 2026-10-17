@@ -2,306 +2,208 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import fs from 'node:fs';
-import { URL } from 'node:url';
-import { startTapTapLogin } from '../login.cjs';
 
+const source =
+  fs.readFileSync(new URL('../../competition/client.js', import.meta.url), 'utf8') +
+  '\n' +
+  fs.readFileSync(new URL('../login.cjs', import.meta.url), 'utf8');
 const config = {
   platform: 'taptap',
-  appId: 'opaque_miniapp',
+  game: 'xiangqi-five',
+  appId: '',
   apiUrl: 'https://api.example.com/v1/',
 };
-const token = 'a'.repeat(64);
-const credential = () => ({ playerId: 'server-player', token, expiresAt: Date.now() + 3600000 });
-
+const family = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 function fixture(options = {}) {
-  const calls = [];
-  const values = new Map();
+  let now = Date.now(),
+    generation = 0,
+    game = config.game;
+  const calls = [],
+    values = new Map(),
+    warnings = [];
+  class ClockDate extends Date {
+    static now() {
+      return now;
+    }
+  }
+  const context = vm.createContext({
+    module: { exports: {} },
+    Date: ClockDate,
+    setTimeout,
+    clearTimeout,
+    console: { warn: (value) => warnings.push(value) },
+  });
+  vm.runInContext(source, context);
+  const credential = () => ({
+    playerId: game + '-player',
+    userId: game + '-player',
+    game,
+    identityKind: 'guest',
+    sessionId: family,
+    token: String(generation).repeat(64),
+    refreshToken: 'b'.repeat(64),
+    expiresAt: now + 900000,
+    refreshExpiresAt: now + 180 * 86400000,
+  });
   const sdk = {
-    login(input) {
-      assert.equal(this, sdk);
-      calls.push(['login']);
-      input.success({ code: 'native-single-use-code' });
-    },
-    request(input) {
-      assert.equal(this, sdk);
-      calls.push(['request', input]);
-      input.success({ statusCode: 200, data: credential() });
+    login() {
+      assert.fail('No platform login is needed');
     },
     getStorageSync(key) {
-      assert.equal(this, sdk);
-      calls.push(['getStorageSync', key]);
       return values.get(key);
     },
     setStorageSync(key, value) {
-      assert.equal(this, sdk);
-      calls.push(['setStorageSync', key, value]);
       values.set(key, value);
     },
-    ...options,
-  };
-  return { sdk, calls, values };
-}
-
-test('unconfigured previews and partial configuration need no SDK or browser APIs', async () => {
-  for (const input of [
-    { platform: 'taptap' },
-    { platform: 'taptap', appId: config.appId },
-    { platform: 'taptap', apiUrl: config.apiUrl },
-  ]) {
-    const state = startTapTapLogin(null, input);
-    assert.equal(state.status, 'unconfigured');
-    assert.equal(state.errorCode, null);
-    assert.equal(await state.ready, null);
-  }
-});
-
-test('native login exchanges only a public AppID and login code and stores the server credential', async () => {
-  const { sdk, calls, values } = fixture();
-  Object.defineProperty(config, 'secret', {
-    get() {
-      return assert.fail('client must not read a platform secret');
+    removeStorageSync(key) {
+      values.delete(key);
     },
-    configurable: true,
-  });
-  const state = startTapTapLogin(sdk, config);
-  assert.equal(state.status, 'authenticating');
-  const result = await state.ready;
-  assert.equal(state.status, 'authenticated');
-  assert.equal(state.errorCode, null);
-  assert.equal(result.token, token);
-  assert.deepEqual(Object.keys(result).sort(), ['expiresAt', 'playerId', 'token']);
-  const request = calls.find(([method]) => method === 'request')[1];
-  assert.equal(request.url, 'https://api.example.com/v1/sessions/platform');
-  assert.equal(request.method, 'POST');
-  assert.deepEqual(request.header, { 'content-type': 'application/json' });
-  assert.deepEqual(request.data, {
-    platform: 'taptap',
-    appId: config.appId,
-    code: 'native-single-use-code',
-  });
-  assert.equal(request.timeout, 8000);
-  assert.deepEqual(JSON.parse(values.get('competition-session-v1:taptap:opaque_miniapp')), result);
-  delete config.secret;
-});
-
-test('valid shared-competition credentials bypass login and only the three public session fields are reused', async () => {
-  const { sdk, calls, values } = fixture();
-  const cached = {
-    ...credential(),
-    session_key: 'never-return-platform-key',
-    secret: 'never-return-secret',
-  };
-  values.set('competition-session-v1:taptap:opaque_miniapp', JSON.stringify(cached));
-  const state = startTapTapLogin(sdk, config);
-  assert.deepEqual(await state.ready, {
-    playerId: cached.playerId,
-    token: cached.token,
-    expiresAt: cached.expiresAt,
-  });
-  assert.deepEqual(
-    calls.map(([method]) => method),
-    ['getStorageSync'],
-  );
-});
-
-test('concurrent boots for one SDK and public identity share exactly one native login', async () => {
-  let complete;
-  const { sdk, calls } = fixture({
-    login(input) {
-      assert.equal(this, sdk);
-      calls.push(['login']);
-      complete = input.success;
-    },
-  });
-  const first = startTapTapLogin(sdk, config);
-  const second = startTapTapLogin(sdk, { ...config, apiUrl: config.apiUrl.replace(/\/$/, '') });
-  assert.equal(first, second);
-  await Promise.resolve();
-  complete({ code: 'one-code' });
-  await Promise.all([first.ready, second.ready]);
-  assert.equal(calls.filter(([method]) => method === 'login').length, 1);
-  assert.equal(calls.filter(([method]) => method === 'request').length, 1);
-});
-
-test('expired, malformed, and denied storage require real login and never create a guest identity', async () => {
-  for (const stored of [
-    'not JSON',
-    JSON.stringify({ ...credential(), expiresAt: Date.now() + 1000 }),
-    JSON.stringify({ ...credential(), token: 'guest' }),
-  ]) {
-    const { sdk, calls, values } = fixture();
-    values.set('competition-session-v1:taptap:opaque_miniapp', stored);
-    await startTapTapLogin(sdk, config).ready;
-    assert.equal(calls.filter(([method]) => method === 'login').length, 1);
-    assert.equal(
-      calls.find(([method]) => method === 'request')[1].url.endsWith('/sessions/platform'),
-      true,
-    );
-  }
-  const { sdk } = fixture({
-    getStorageSync() {
-      throw new Error('denied');
-    },
-    setStorageSync() {
-      throw new Error('denied');
-    },
-  });
-  assert.equal((await startTapTapLogin(sdk, config).ready).token, token);
-});
-
-test('invalid public configuration and configured missing native methods fail without a request', async () => {
-  for (const invalid of [
-    { ...config, platform: 'wechat' },
-    { ...config, appId: 'contains spaces' },
-    { ...config, appId: 'a'.repeat(101) },
-    { ...config, apiUrl: 'http://api.example.com' },
-    { ...config, apiUrl: 'https://user:password@api.example.com' },
-    { ...config, apiUrl: 'https://api.example.com?token=private' },
-    { ...config, apiUrl: 'https://api.example.com/#private' },
-    { ...config, apiUrl: 'https://api.example.com\\@attacker.example' },
-    { ...config, apiUrl: 'https://api.example.com:99999' },
-  ]) {
-    const { sdk, calls } = fixture();
-    const state = startTapTapLogin(sdk, invalid);
-    await assert.rejects(state.ready, (error) => error.code === 'INVALID_INPUT');
-    assert.equal(state.status, 'failed');
-    assert.equal(state.errorCode, 'INVALID_INPUT');
-    assert.deepEqual(calls, []);
-  }
-  const state = startTapTapLogin({}, config);
-  await assert.rejects(state.ready, (error) => error.code === 'PLATFORM_LOGIN_UNAVAILABLE');
-  assert.equal(state.status, 'failed');
-});
-
-test('native failures, failed exchange and invalid credentials reject safely without persistent identity', async () => {
-  const scenarios = [
-    {
-      login(input) {
-        input.fail({ errMsg: 'secret-native-code' });
-      },
-      code: 'PLATFORM_LOGIN_FAILED',
-    },
-    {
-      login(input) {
-        input.success({});
-      },
-      code: 'PLATFORM_LOGIN_FAILED',
-    },
-    {
-      login(input) {
-        input.success({ code: '   ' });
-      },
-      code: 'PLATFORM_LOGIN_FAILED',
-    },
-    {
-      request(input) {
-        input.fail({ errMsg: 'secret-access-token' });
-      },
-      code: 'SERVICE_UNAVAILABLE',
-    },
-    {
-      request(input) {
-        input.success({
-          statusCode: 503,
-          data: { error: 'PLATFORM_NOT_CONFIGURED', secret: 'not-public' },
-        });
-      },
-      code: 'PLATFORM_NOT_CONFIGURED',
-    },
-    {
-      request(input) {
-        input.success({ statusCode: 401, data: { error: 'arbitrary-secret-error' } });
-      },
-      code: 'PLATFORM_LOGIN_FAILED',
-    },
-    {
-      request(input) {
-        input.success({ statusCode: '200', data: credential() });
-      },
-      code: 'PLATFORM_LOGIN_FAILED',
-    },
-    {
-      request(input) {
-        input.success({
-          statusCode: 200,
-          data: { token: 'invalid', expiresAt: Date.now() + 3600000, playerId: 'a' },
-        });
-      },
-      code: 'PLATFORM_LOGIN_FAILED',
-    },
-    {
-      request(input) {
-        input.success({ statusCode: 200, data: { ...credential(), playerId: '' } });
-      },
-      code: 'PLATFORM_LOGIN_FAILED',
-    },
-    {
-      request(input) {
-        input.success({ statusCode: 200, data: { ...credential(), expiresAt: Date.now() } });
-      },
-      code: 'PLATFORM_LOGIN_FAILED',
-    },
-  ];
-  for (const { code, ...methods } of scenarios) {
-    const { sdk, calls, values } = fixture(methods);
-    const state = startTapTapLogin(sdk, config);
-    await assert.rejects(state.ready, (error) => {
-      assert.equal(error.code, code);
-      assert.equal(error.message.includes('secret'), false);
-      return true;
-    });
-    assert.equal(state.status, 'failed');
-    assert.equal(state.errorCode, code);
-    assert.equal(values.size, 0);
-    assert.equal(
-      calls.some(([method]) => method === 'setStorageSync'),
-      false,
-    );
-  }
-});
-
-test('the isolated no-DOM native runtime logs only stable error codes and drops private response fields', async () => {
-  const warnings = [];
-  const context = {
-    module: { exports: {} },
-    console: {
-      warn(value) {
-        warnings.push(value);
-      },
-    },
-  };
-  vm.createContext(context);
-  vm.runInContext(fs.readFileSync(new URL('../login.cjs', import.meta.url), 'utf8'), context);
-  assert.equal(context.fetch, undefined);
-  assert.equal(context.document, undefined);
-  assert.equal(context.URL, undefined);
-  const { sdk } = fixture({
     request(input) {
+      assert.equal(this, sdk);
+      calls.push(input);
+      generation++;
+      if (input.data.game) game = input.data.game;
       const data = credential();
       Object.defineProperty(data, 'session_key', {
         get() {
-          return assert.fail('do not read session_key');
+          assert.fail('Do not copy platform secrets');
         },
       });
       Object.defineProperty(data, 'secret', {
         get() {
-          return assert.fail('do not read secret');
+          assert.fail('Do not copy secrets');
         },
       });
       input.success({ statusCode: 200, data });
     },
-  });
-  const result = await context.module.exports.startTapTapLogin(sdk, config).ready;
-  assert.deepEqual(Object.keys(result).sort(), ['expiresAt', 'playerId', 'token']);
-  const failed = context.module.exports.startTapTapLogin(
-    {
-      login() {
-        throw new Error('private code');
-      },
-      request() {},
+    ...options,
+  };
+  return {
+    sdk,
+    calls,
+    values,
+    warnings,
+    context,
+    boot: context.module.exports.startTapTapLogin,
+    advance: (ms) => {
+      now += ms;
     },
-    config,
+  };
+}
+
+test('no API means local preview; AppID and platform login are unnecessary for anonymous service', async () => {
+  const f = fixture();
+  assert.equal(await f.boot(null, { ...config, apiUrl: '' }).ready, null);
+  const state = f.boot(f.sdk, config),
+    value = await state.ready;
+  assert.equal(state.status, 'authenticated');
+  assert.equal(value.game, config.game);
+  assert.equal(f.calls.length, 1);
+  assert.equal(f.calls[0].url, 'https://api.example.com/v1/sessions/guest');
+  assert.equal(JSON.stringify(f.calls[0].data), JSON.stringify({ game: config.game }));
+  assert.equal(f.calls[0].timeout, 8000);
+  assert.equal(f.context.document, undefined);
+  assert.equal(f.context.fetch, undefined);
+  assert.equal(f.context.URL, undefined);
+  assert.doesNotMatch(JSON.stringify(value), /session_key|secret/);
+});
+
+test('concurrent boot and repeated use reuse the shared game/API identity; expiry refreshes the same owner', async () => {
+  const f = fixture(),
+    first = f.boot(f.sdk, config),
+    second = f.boot(f.sdk, config);
+  assert.equal(first, second);
+  const [a, b] = await Promise.all([first.ready, second.ready]);
+  assert.equal(a.token, b.token);
+  assert.equal(f.calls.length, 1);
+  assert.equal((await f.boot(f.sdk, config).ready).token, a.token);
+  f.advance(900000);
+  const renewed = await f.boot(f.sdk, config).ready;
+  assert.equal(renewed.playerId, a.playerId);
+  assert.equal(renewed.sessionId, family);
+  assert.notEqual(renewed.token, a.token);
+  assert.equal(f.calls.at(-1).url, 'https://api.example.com/v1/sessions/refresh');
+  assert.equal(
+    JSON.stringify(f.calls.at(-1).data),
+    JSON.stringify({ refreshToken: a.refreshToken }),
   );
-  await assert.rejects(failed.ready, (error) => error.code === 'PLATFORM_LOGIN_FAILED');
-  assert.deepEqual(warnings, ['TapTap login failed (PLATFORM_LOGIN_FAILED).']);
+  const key =
+    'competition-session-v3:' +
+    encodeURIComponent('https://api.example.com/v1|taptap||xiangqi-five');
+  assert.equal(JSON.parse(f.values.get(key)).token, renewed.token);
+  await f.boot(f.sdk, { ...config, game: 'cops-robbers' }).ready;
+  await f.boot(f.sdk, { ...config, apiUrl: 'https://other.example.com/v1' }).ready;
+  assert.equal(f.values.size, 3);
+});
+
+test('network failure preserves credentials and retry refreshes instead of changing identity', async () => {
+  const f = fixture();
+  const first = await f.boot(f.sdk, config).ready;
+  const saved = [...f.values.values()][0],
+    request = f.sdk.request;
+  f.advance(900000);
+  f.sdk.request = (input) => input.fail({ errMsg: 'private-token' });
+  await assert.rejects(f.boot(f.sdk, config).ready, { code: 'SERVICE_UNAVAILABLE' });
+  assert.equal([...f.values.values()][0], saved);
+  f.sdk.request = request;
+  assert.equal((await f.boot(f.sdk, config).ready).playerId, first.playerId);
+  assert.doesNotMatch(f.warnings.join(), /private-token/);
+});
+
+test('denied or corrupt storage still allows an in-memory anonymous session', async () => {
+  for (const options of [
+    {},
+    {
+      getStorageSync() {
+        throw Error('denied');
+      },
+      setStorageSync() {
+        throw Error('denied');
+      },
+    },
+  ]) {
+    const f = fixture(options);
+    f.values.set(
+      'competition-session-v3:' +
+        encodeURIComponent('https://api.example.com/v1|taptap||xiangqi-five'),
+      'broken',
+    );
+    const first = await f.boot(f.sdk, config).ready;
+    assert.equal((await f.boot(f.sdk, config).ready).playerId, first.playerId);
+    assert.equal(f.calls.length, 1);
+  }
+});
+
+test('invalid configuration fails before requests and service failures expose only fixed codes', async () => {
+  for (const invalid of [
+    { ...config, platform: 'wechat' },
+    { ...config, game: '' },
+    { ...config, appId: 'contains spaces' },
+    { ...config, appId: 'a'.repeat(101) },
+    ...[
+      'http://api.example.com',
+      'https://user:password@api.example.com',
+      'https://api.example.com?token=private',
+      'https://api.example.com/#private',
+      'https://api.example.com:99999',
+      'https://api.example.com\\@attacker.example',
+    ].map((apiUrl) => ({ ...config, apiUrl })),
+  ]) {
+    const f = fixture();
+    await assert.rejects(f.boot(f.sdk, invalid).ready, { code: 'INVALID_INPUT' });
+    assert.equal(f.calls.length, 0);
+  }
+  const f = fixture();
+  await assert.rejects(f.boot({}, config).ready, { code: 'PLATFORM_LOGIN_UNAVAILABLE' });
+  for (const [response, code] of [
+    [{ statusCode: 503, data: { error: 'RATE_LIMITED' } }, 'RATE_LIMITED'],
+    [{ statusCode: 401, data: { error: 'private-secret' } }, 'SERVICE_UNAVAILABLE'],
+    [{ statusCode: '200', data: {} }, 'SERVICE_UNAVAILABLE'],
+    [{ statusCode: 200, data: { token: 'invalid' } }, 'SESSION_EXPIRED'],
+  ]) {
+    const f = fixture({ request: (input) => input.success(response) });
+    await assert.rejects(f.boot(f.sdk, config).ready, { code });
+    assert.equal(f.values.size, 0);
+    assert.doesNotMatch(f.warnings.join(), /private-secret/);
+  }
 });

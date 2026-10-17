@@ -4,6 +4,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { runInNewContext } from 'node:vm';
+import '../../../platforms/competition/client.js';
 import * as nativeLogin from '@coffeeeeffoc/platform-taptap/login';
 import { installTapTapLogin, verifyTapTapLogin, tapTapLoginPrefix } from './taptap-login.mjs';
 
@@ -58,14 +59,23 @@ test('the installed entry calls the actual native helper and overrides Creator p
   const tap = {
     login(options) {
       assert.equal(this, tap);
-      options.success({ code: 'single-use-code' });
+      assert.fail('Anonymous bootstrap must not call platform login');
     },
     request(options) {
       assert.equal(this, tap);
       request = options;
       options.success({
         statusCode: 200,
-        data: { playerId: 'server-player', token: 'a'.repeat(64), expiresAt: Date.now() + 3600000 },
+        data: {
+          playerId: 'server-player',
+          game: 'carding-car',
+          identityKind: 'guest',
+          sessionId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+          token: 'a'.repeat(64),
+          refreshToken: 'b'.repeat(64),
+          expiresAt: Date.now() + 900000,
+          refreshExpiresAt: Date.now() + 180 * 86400000,
+        },
       });
     },
   };
@@ -87,8 +97,8 @@ test('the installed entry calls the actual native helper and overrides Creator p
   assert.equal(context.__tapTapLogin.status, 'authenticated');
   assert.equal(context.__COMPETITION_CONFIG__.platform, 'taptap');
   assert.equal(context.__COMPETITION_CONFIG__.appId, 'tap-mini-app');
-  assert.equal(request.data.platform, 'taptap');
-  assert.equal(request.data.appId, 'tap-mini-app');
+  assert.deepEqual(request.data, { game: 'carding-car' });
+  assert(request.url.endsWith('/sessions/guest'));
   assert.equal(context.document, undefined);
   assert.equal(context.fetch, undefined);
 });

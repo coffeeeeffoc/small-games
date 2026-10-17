@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import { randomBytes, randomUUID, createHash } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
+import { openDatabase } from '@coffeeeeffoc/service-kit';
+import { createCompetitionIdentities } from '../../../../services/runtime-api/dist/competition/identity-store.js';
 import { spawn } from 'node:child_process';
 import { mkdir, writeFile, access } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -44,11 +46,14 @@ async function sql(query) {
   });
 }
 async function identity(platform, name) {
-  const playerId = randomUUID(), token = randomBytes(32).toString('hex');
-  const expiresAt = Date.now() + 180 * 86400_000;
-  fixtureIds.push(playerId);
-  await sql(`insert into runtime.competition_players(id,platform,app_id,subject,created_at,display_name) values('${playerId}','${platform}','browser-fixture','${randomUUID()}',${Date.now()},'${name}'); insert into runtime.competition_sessions values('${createHash('sha256').update(token).digest('hex')}','${playerId}',${expiresAt});`);
-  return { playerId, token, expiresAt };
+  const database = openDatabase(databaseUrl, 'runtime');
+  try {
+    const identities = createCompetitionIdentities(database.db);
+    const credential = await identities.session(platform, 'browser-fixture', randomUUID(), 'three-choose-two');
+    fixtureIds.push(credential.playerId);
+    await identities.profile(await identities.auth(credential.token), { name });
+    return credential;
+  } finally { await database.close(); }
 }
 async function api(path, credential, body) {
   const response = await fetch(apiURL + path, {
@@ -81,7 +86,10 @@ async function phone(credential) {
   contexts.push(context);
   await context.addInitScript(({ apiURL, credential }) => {
     globalThis.__COMPETITION_CONFIG__ = { apiUrl: apiURL };
-    if (credential) localStorage.setItem('competition-session-v1:h5', JSON.stringify(credential));
+    if (credential) {
+      const apiAuthority = `${apiURL}|h5||three-choose-two`;
+      localStorage.setItem('competition-session-v3:' + encodeURIComponent(apiAuthority), JSON.stringify({ ...credential, apiAuthority }));
+    }
     Object.defineProperty(navigator, 'share', { configurable: true, value: async payload => { window.__onlineSharedPayload = payload; } });
   }, { apiURL, credential });
   const page = await context.newPage();
@@ -129,7 +137,7 @@ async function finish(page) {
   await action(page, 'pause'); await screen(page, 'pause'); await action(page, 'end-run'); await screen(page, 'result');
   await expect.poll(async () => (await snapshot(page)).online.status).toBe('finished');
 }
-async function recordedCredential(page) { return page.evaluate(() => JSON.parse(localStorage.getItem('competition-session-v1:h5'))); }
+async function recordedCredential(page) { return page.evaluate(() => globalThis.__competition.session()); }
 try {
   await startAPI();
   browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || '/usr/bin/chromium', args: ['--no-sandbox'] });
