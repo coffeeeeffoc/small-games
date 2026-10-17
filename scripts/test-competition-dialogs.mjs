@@ -154,7 +154,16 @@ try {
         hasTouch: touch,
         isMobile: touch,
       });
+      if (game === 'cops-robbers')
+        await context.addInitScript(() => {
+          globalThis.__CLASSIC_CHASE_ROLES__ = true;
+        });
       const page = await context.newPage();
+      const streetAssets = [];
+      page.on('request', (request) => {
+        if (/\/src\/assets\/(characters|home-city)\.png$/.test(request.url()))
+          streetAssets.push(request.url());
+      });
       const errors = [];
       page.on('pageerror', (error) => errors.push(error.message));
       await page.goto(`http://127.0.0.1:${server.address().port}/?game=${game}`);
@@ -467,6 +476,7 @@ try {
         await expect(dialog).toBeHidden();
       }
       assert.deepEqual(errors, []);
+      assert.deepEqual(streetAssets, [], 'other games must not load street artwork');
       await expect
         .poll(() => page.evaluate(() => fixture.visibility))
         .toEqual([true, false, true, false, true, false, true, false]);
