@@ -15,9 +15,83 @@ import {
   awaitOwnedExit,
   ownedRestartController,
   compileOwnedBackends,
+  observeRuntimeProcess,
 } from './h5-taptap-runtime.mjs';
 import { localCompetitionApi, matrixGames } from './h5-taptap-matrix.mjs';
 const runId = '12345678-1234-1234-1234-123456789012';
+test('Runtime diagnostics bind the owned child, bound samples and exclude raw stderr and credentials', async () => {
+  const child = new EventEmitter();
+  child.pid = 123;
+  child.killed = false;
+  child.stderr = new EventEmitter();
+  let finish;
+  const owned = {
+    child,
+    done: new Promise((resolve) => {
+      finish = resolve;
+    }),
+  };
+  const evidence = observeRuntimeProcess(owned, 'owned-nonce');
+  child.emit('message', {
+    type: 'h5-runtime-resources',
+    nonce: 'PRIVATE_CANARY',
+    pid: 123,
+    rss: 100,
+  });
+  child.emit('message', { type: 'h5-runtime-resources', nonce: 'owned-nonce', pid: 999, rss: 100 });
+  assert.equal(evidence.samples.length, 0);
+  for (let i = 0; i < 20; i++)
+    child.emit('message', {
+      type: 'h5-runtime-resources',
+      nonce: 'owned-nonce',
+      pid: 123,
+      rss: i,
+      heapUsed: i,
+      heapLimit: 512,
+      external: 'PRIVATE_CANARY',
+      arrayBuffers: Infinity,
+      token: 'PRIVATE_CANARY',
+      headers: { authorization: 'PRIVATE_CANARY' },
+    });
+  assert.equal(evidence.samples.length, 12);
+  assert.equal(evidence.samples[0].rss, 8);
+  assert.equal(evidence.samples[0].external, undefined);
+  assert.equal(evidence.samples[0].arrayBuffers, undefined);
+  child.stderr.emit(
+    'data',
+    Buffer.from('PRIVATE_CANARY JavaScript heap out of memory\nReached heap limit\n'),
+  );
+  assert.equal(evidence.heapLimitReached, false);
+  child.stderr.emit(
+    'data',
+    Buffer.from('PRIVATE_CANARY FATAL ERROR: JavaScript heap out of memory\n'),
+  );
+  assert.equal(evidence.heapLimitReached, false);
+  child.stderr.emit(
+    'data',
+    Buffer.from('FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of '),
+  );
+  child.stderr.emit('data', Buffer.from('memory\nPRIVATE_CANARY'));
+  finish({ code: 134 });
+  await owned.done;
+  assert.equal(evidence.heapLimitReached, true);
+  assert.equal(evidence.exitCode, 134);
+  assert.equal(evidence.stopRequested, false);
+  assert(!JSON.stringify(evidence).includes('PRIVATE_CANARY'));
+  const stoppedChild = new EventEmitter();
+  stoppedChild.pid = 124;
+  stoppedChild.killed = true;
+  stoppedChild.signalCode = 'SIGTERM';
+  const stopped = observeRuntimeProcess(
+    { child: stoppedChild, done: Promise.resolve({ code: null }) },
+    'owned',
+  );
+  await Promise.resolve();
+  assert.equal(stopped.stopRequested, true);
+  assert.equal(stopped.signal, 'SIGTERM');
+  assert.equal(stopped.heapLimitReached, false);
+});
+
 test('candidate backend builds are selected, serial, bounded and source-checked before fresh PG', async () => {
   const events = [],
     planned = [

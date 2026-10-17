@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { getHeapStatistics } from 'node:v8';
 import { setTimeout as delay } from 'node:timers/promises';
 import { compilerEnvironment } from './h5-taptap-build.mjs';
 import {
@@ -93,6 +94,7 @@ export function ownedChild(
   child.stderr?.resume();
   let finished = false,
     outcome;
+  const lifecycle = {};
   const done = new Promise((resolve) => {
     const settle = (value) => {
       if (!finished) {
@@ -109,14 +111,19 @@ export function ownedChild(
   return {
     child,
     done,
+    lifecycle,
     get outcome() {
       return outcome;
     },
     async close() {
       if (finished) return done;
+      lifecycle.closeRequestedAt ??= new Date().toISOString();
       child.kill('SIGTERM');
       const force = setTimeout(() => {
-        if (!finished) child.kill('SIGKILL');
+        if (!finished) {
+          lifecycle.forceKillRequestedAt ??= new Date().toISOString();
+          child.kill('SIGKILL');
+        }
       }, graceMs);
       let deadline;
       try {
@@ -134,6 +141,55 @@ export function ownedChild(
     },
   };
 }
+/** Fixed scalar diagnostics only: never retain or export raw stderr or IPC bodies. */
+export function observeRuntimeProcess(owned, nonce) {
+  const evidence = {
+    pid: Number.isSafeInteger(owned.child.pid) ? owned.child.pid : null,
+    startedAt: new Date().toISOString(),
+    heapLimitReached: false,
+    samples: [],
+  };
+  let tail = '';
+  owned.child.stderr?.on?.('data', (chunk) => {
+    const text = tail + String(chunk);
+    if (
+      /(?:^|[\r\n])FATAL ERROR: [^\r\n]{0,256}JavaScript heap out of memory(?:\r?\n|$)/.test(text)
+    )
+      evidence.heapLimitReached = true;
+    tail = text.slice(-512);
+  });
+  owned.child.on('message', (message) => {
+    if (
+      message?.type !== 'h5-runtime-resources' ||
+      message.nonce !== nonce ||
+      message.pid !== owned.child.pid
+    )
+      return;
+    const sample = { at: new Date().toISOString() };
+    for (const key of ['rss', 'heapTotal', 'heapUsed', 'external', 'arrayBuffers', 'heapLimit'])
+      if (Number.isSafeInteger(message[key]) && message[key] >= 0) sample[key] = message[key];
+    evidence.samples.push(sample);
+    evidence.samples = evidence.samples.slice(-12);
+  });
+  owned.done.then((outcome) => {
+    evidence.closedAt = new Date().toISOString();
+    evidence.exitCode = Number.isSafeInteger(outcome.code) ? outcome.code : null;
+    evidence.signal = ['SIGTERM', 'SIGKILL', 'SIGABRT', 'SIGSEGV', 'SIGINT'].includes(
+      owned.child.signalCode,
+    )
+      ? owned.child.signalCode
+      : null;
+    evidence.stopRequested = owned.child.killed === true;
+    for (const key of ['closeRequestedAt', 'forceKillRequestedAt'])
+      if (
+        typeof owned.lifecycle?.[key] === 'string' &&
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(owned.lifecycle[key])
+      )
+        evidence[key] = owned.lifecycle[key];
+  });
+  return evidence;
+}
+
 export async function cleanupOwnedSteps(steps) {
   const failures = [];
   for (const [name, work] of steps)
@@ -367,10 +423,27 @@ async function runRuntimeChild() {
       nonce: process.env.H5_RUNTIME_BIND_NONCE,
       pid: process.pid,
     });
+    const resources = setInterval(() => {
+      if (!process.connected) return;
+      try {
+        process.send(
+          {
+            type: 'h5-runtime-resources',
+            nonce: process.env.H5_RUNTIME_BIND_NONCE,
+            pid: process.pid,
+            ...process.memoryUsage(),
+            heapLimit: getHeapStatistics().heap_size_limit,
+          },
+          () => {},
+        );
+      } catch {}
+    }, 10000);
+    resources.unref();
     let closing = false;
     const close = async () => {
       if (closing) return;
       closing = true;
+      clearInterval(resources);
       await app.close();
       process.disconnect?.();
     };
@@ -806,6 +879,8 @@ export async function createOwnedRuntime({
         ipc: true,
       },
     );
+    evidence.runtimeProcesses ??= [];
+    evidence.runtimeProcesses.push(observeRuntimeProcess(runtimeChild, nonce));
     runtimeChild.child.on('message', (message) => {
       if (
         message?.type !== 'h5-runtime-error' ||
@@ -918,6 +993,32 @@ export async function createOwnedRuntime({
       };
     },
     async close() {
+      if (containerId) {
+        try {
+          guard(false);
+          const state = JSON.parse(
+            docker([
+              'container',
+              'inspect',
+              '--format',
+              '{"running":{{json .State.Running}},"oomKilled":{{json .State.OOMKilled}},"exitCode":{{json .State.ExitCode}}}',
+              containerId,
+            ]),
+          );
+          if (
+            typeof state.running === 'boolean' &&
+            typeof state.oomKilled === 'boolean' &&
+            Number.isSafeInteger(state.exitCode)
+          )
+            evidence.postgresFinalState = {
+              running: state.running,
+              oomKilled: state.oomKilled,
+              exitCode: state.exitCode,
+            };
+        } catch {
+          evidence.postgresFinalStateUnavailable = true;
+        }
+      }
       const recover = (kind, name) => {
         const values = docker([
           kind,
