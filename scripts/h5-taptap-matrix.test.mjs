@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   reachableStreetNodes,
   streetTouchPlans,
+  streetRecoveryPlans,
   isBlockedStreetTouch,
   isExpectedTouchRequest,
   touchAttemptFinished,
@@ -16,6 +17,7 @@ import {
 } from './h5-taptap-touch.mjs';
 import { createRenderer as streetRenderer } from '../games/local/cops-robbers-realtime/src/competition-renderer.js';
 import { getLevels } from '../games/local/cops-robbers-realtime/src/levels.js';
+import streetRule from '../services/runtime-api/rules/realtime.mjs';
 import {
   matrixContract,
   matrixGames,
@@ -285,6 +287,117 @@ test('Street plans classify each eligible actor once before expanding its roads'
     'Do not repeat selection for each road or stop a moving actor',
   );
   assert.deepEqual(state, original, 'Visibility planning cannot alter authoritative state');
+});
+
+test('a stationary junction recovery is a physical renderer touch accepted by the real rule', () => {
+  const authoritative = streetRule.initial(25, 'classic', 'runner');
+  streetRule.advance(authoritative, 2100);
+  const state = streetRule.view(authoritative, 1),
+    before = structuredClone(state);
+  const plans = streetRecoveryPlans(state);
+  assert(plans.length > 0);
+  const ordinary = streetTouchPlans(state);
+  assert(
+    plans.every(
+      (plan) => !ordinary.some((other) => other.actor === plan.actor && other.node === plan.node),
+    ),
+  );
+  const context = new Proxy(
+    {
+      measureText: () => ({ width: 0 }),
+      createLinearGradient: () => ({ addColorStop() {} }),
+      createRadialGradient: () => ({ addColorStop() {} }),
+    },
+    { get: (object, key) => (key in object ? object[key] : () => {}) },
+  );
+  let actual;
+  for (const { actor, node } of plans) {
+    const selected = streetActorTouchPoint(streetRenderer, context, 390, 844, state, actor);
+    if (!selected) continue;
+    const renderer = streetRenderer();
+    renderer.draw(context, 390, 844, state);
+    assert.equal(renderer.tap(...selected.logical, state), null);
+    const hits = renderer.draw(context, 390, 844, state);
+    const target = hits.find(
+      (hit) =>
+        hit.action?.type === 'move' &&
+        hit.action.x === state.map.nodes[node].x &&
+        hit.action.y === state.map.nodes[node].y,
+    );
+    for (const candidate of touchHitPoints(target, hits, 390, 844)) {
+      const point = streetScreenPoint(candidate, {
+        x: 0,
+        y: 0,
+        width: 390,
+        height: 844,
+        screenWidth: 390,
+        screenHeight: 844,
+      });
+      const probe = streetRenderer();
+      probe.draw(context, 390, 844, state);
+      probe.tap(...selected.logical, state);
+      probe.draw(context, 390, 844, state);
+      const action = probe.tap(...point.logical, state);
+      if (
+        action?.type === 'move' &&
+        action.actor === actor &&
+        action.x === state.map.nodes[node].x &&
+        action.y === state.map.nodes[node].y
+      ) {
+        actual = action;
+        assert(point.screen.every(Number.isInteger));
+        break;
+      }
+    }
+    if (actual) break;
+  }
+  assert(actual, 'Recovery needs a physical road touch, not a constructed request');
+  assert.deepEqual(state, before, 'Planning does not alter the public snapshot');
+  const originalPosition = { ...state.robbers[actual.actor] };
+  streetRule.action(authoritative, actual, 2100, 1);
+  const after = streetRule.view(authoritative, 1);
+  assert.equal(after.commands, state.commands + 1);
+  assert.equal(after.robbers[actual.actor].x, originalPosition.x);
+  assert.equal(after.robbers[actual.actor].y, originalPosition.y);
+  assert.deepEqual(
+    streetRecoveryPlans({
+      ...state,
+      robbers: state.robbers.map((actor) => ({ ...actor, moving: true })),
+    }),
+    [],
+  );
+  assert.deepEqual(
+    streetRecoveryPlans({
+      ...state,
+      robbers: state.robbers.map((actor) => ({ ...actor, caught: true })),
+    }),
+    [],
+  );
+  assert.deepEqual(
+    streetRecoveryPlans(state, () => false),
+    [],
+  );
+  assert.deepEqual(
+    streetRecoveryPlans({
+      ...state,
+      robbers: state.robbers.map((actor) => ({ ...actor, escaped: true })),
+    }),
+    [],
+  );
+  const covered = {
+    ...state,
+    robbers: [
+      { ...state.robbers[0], id: 0, moving: false },
+      { ...state.robbers[0], id: 1, moving: true },
+    ],
+  };
+  assert.deepEqual(
+    streetRecoveryPlans(covered, (actor) =>
+      streetActorTouchPoint(streetRenderer, context, 390, 844, covered, actor),
+    ),
+    [],
+    'A fully covered stationary actor does not invent a recovery touch',
+  );
 });
 
 test('Street actor touches use a visible selection point when hit boxes overlap', () => {

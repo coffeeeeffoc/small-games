@@ -108,6 +108,23 @@ export function streetTouchPlans(state, canSelectActor) {
   });
 }
 
+// After a confirmed rejected route, a visible junction under a stationary
+// teammate is still a real UI command. Standard play accepts its empty path.
+// Keep ordinary pursuit planning separate so it never substitutes idle moves.
+export function streetRecoveryPlans(state, canSelectActor) {
+  const own = state.role === 'runner' ? state.robbers : state.cops;
+  return own.flatMap((item, actor) => {
+    if (item.caught || item.escaped || item.moving || (canSelectActor && !canSelectActor(actor)))
+      return [];
+    const reachable = reachableStreetNodes(state, actor);
+    return state.map.nodes.flatMap((node, index) =>
+      reachable.has(index) && Math.hypot(item.x - node.x, item.y - node.y) <= 1
+        ? [{ actor, node: index }]
+        : [],
+    );
+  });
+}
+
 // Partition only the hit and intersecting higher-priority hits. Every open cell
 // has a constant hit order, including narrow road strips beneath actor buttons.
 export function touchHitPoints(hit, hits, width, height) {

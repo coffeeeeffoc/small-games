@@ -22,6 +22,7 @@ import {
 } from './h5-taptap-trace.mjs';
 import {
   streetTouchPlans,
+  streetRecoveryPlans,
   reachableStreetMove,
   isBlockedStreetTouch,
   isExpectedTouchRequest,
@@ -523,7 +524,19 @@ try {
     );
     player.acceptedActions++;
     for (const rejection of player.inputRejections)
-      if (rejection.seq === player.lastAction.seq) rejection.recoveredUsingUI = true;
+      if (rejection.seq === player.lastAction.seq) {
+        assert(
+          expected.sent && expected.completed && expected.status === 200,
+          'Recovery requires the same sequence to receive its own real UI action response',
+        );
+        rejection.recoveredUsingUI = true;
+        rejection.recovery = {
+          seq: player.lastAction.seq,
+          status: expected.status,
+          actor: authoritative.actor,
+          type: authoritative.type,
+        };
+      }
     player.expectedTouch = null;
     await rendered(player.page);
     return true;
@@ -1338,17 +1351,36 @@ try {
           // Classify each eligible actor once for this snapshot and geometry.
           // Repeating layout waits for every road of a covered actor can consume
           // all stale-plan retries before a visible teammate is ever attempted.
-          const plans = streetTouchPlans(planningState, (actor) =>
-            streetActorTouchPoint(
-              streetRenderer,
-              noopContext(),
-              size.width,
-              size.height,
-              state,
-              actor,
-              size,
-            ),
+          const selectable = new Map();
+          const canSelectActor = (actor) => {
+            if (!selectable.has(actor))
+              selectable.set(
+                actor,
+                streetActorTouchPoint(
+                  streetRenderer,
+                  noopContext(),
+                  size.width,
+                  size.height,
+                  state,
+                  actor,
+                  size,
+                ),
+              );
+            return selectable.get(actor);
+          };
+          const pendingRecovery = player.inputRejections.some(
+            (rejection) =>
+              rejection.seq === player.room.seq + 1 &&
+              rejection.status === 422 &&
+              rejection.error === 'ILLEGAL_ACTION' &&
+              rejection.sequenceUnchanged === true &&
+              !rejection.terminal &&
+              !rejection.recoveredUsingUI,
           );
+          const plans = [
+            ...(pendingRecovery ? streetRecoveryPlans(planningState, canSelectActor) : []),
+            ...streetTouchPlans(planningState, canSelectActor),
+          ];
           if (!plans.length) break;
           const before = player.inputRejections.length;
           let stale = false;

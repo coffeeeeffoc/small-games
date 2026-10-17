@@ -218,6 +218,32 @@ export function publicMatchEvidence(value) {
     observedStaleTouches: (value.observedStaleTouches ?? [])
       .slice(0, 2)
       .map((frames) => frames.slice(-24).map(safeStreetTouchFrame)),
+    confirmedBlockedRouteInputs: (value.confirmedBlockedRouteInputs ?? [])
+      .slice(0, 2)
+      .map((inputs) =>
+        inputs.slice(-24).map((input) => ({
+          seq: Number.isSafeInteger(input.seq) && input.seq > 0 ? input.seq : null,
+          status: input.status === 422 ? 422 : null,
+          error: input.error === 'ILLEGAL_ACTION' ? 'ILLEGAL_ACTION' : null,
+          sequenceUnchanged: input.sequenceUnchanged === true,
+          terminal: input.terminal === true,
+          recoveredUsingUI: input.recoveredUsingUI === true,
+          ...(input.recovery?.seq === input.seq &&
+          input.recovery?.status === 200 &&
+          Number.isSafeInteger(input.recovery.actor) &&
+          input.recovery.actor >= 0 &&
+          ['move', 'hold'].includes(input.recovery.type)
+            ? {
+                recovery: {
+                  seq: input.recovery.seq,
+                  status: 200,
+                  actor: input.recovery.actor,
+                  type: input.recovery.type,
+                },
+              }
+            : {}),
+        })),
+      ),
     duplicateActionsPreserveSettlement: value.duplicateActionsPreserveSettlement === true,
     results: value.results.map((row) => ({
       userId: uuid.test(row.userId ?? row.playerId) ? (row.userId ?? row.playerId) : null,

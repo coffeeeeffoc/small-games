@@ -117,6 +117,26 @@ test('public match evidence never spreads response bodies or private linkage', (
     roomCode: 'AABBCCDDEEFF',
     playerIds: [row.userId],
     acceptedTouchActions: [2],
+    confirmedBlockedRouteInputs: [
+      [
+        {
+          seq: 2,
+          status: 422,
+          error: 'ILLEGAL_ACTION',
+          sequenceUnchanged: true,
+          terminal: false,
+          recoveredUsingUI: true,
+          token: 'PRIVATE_CANARY',
+          recovery: { seq: 2, status: 200, actor: 0, type: 'move', token: 'PRIVATE_CANARY' },
+        },
+        {
+          seq: 3,
+          status: 422,
+          error: 'ILLEGAL_ACTION',
+          recovery: { seq: 4, status: 200, actor: 0, type: 'PRIVATE_CANARY' },
+        },
+      ],
+    ],
     observedStaleTouchCounts: [2, 'PRIVATE_CANARY', 99],
     observedStaleTouches: [
       Array.from({ length: 25 }, () => ({
@@ -142,6 +162,13 @@ test('public match evidence never spreads response bodies or private linkage', (
   });
   assert(!JSON.stringify(evidence).includes('PRIVATE_CANARY'));
   assert.equal(evidence.standings[0].userId, row.userId);
+  assert.deepEqual(evidence.confirmedBlockedRouteInputs[0][0].recovery, {
+    seq: 2,
+    status: 200,
+    actor: 0,
+    type: 'move',
+  });
+  assert.equal(evidence.confirmedBlockedRouteInputs[0][1].recovery, undefined);
   assert.deepEqual(evidence.observedStaleTouchCounts, [2, 0]);
   assert.equal(evidence.observedStaleTouches[0].length, 24);
   assert.equal(evidence.observedStaleTouches[0][0].selectedAfter, 0);
