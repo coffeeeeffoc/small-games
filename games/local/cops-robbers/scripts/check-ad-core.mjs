@@ -32,9 +32,9 @@ test('cancel/timeout recover play but keep unfinished provider requests leased',
   }
 });
 
-test('TapTap build is host-only with blank ads while under review, and excludes credentials', () => {
+test('TapTap builds use free actions for blank units and host ads for real units without credentials', () => {
   assert.deepEqual(adConfiguration(false, {}), { adMode: 'off', adsEnabled: false });
-  assert.deepEqual(adConfiguration(true, {}), { adMode: 'host', adsEnabled: true, platform: 'taptap-h5', adUnitId: '', rewardedAdUnitId: '' });
+  assert.deepEqual(adConfiguration(true, {}), { adMode: 'off', adsEnabled: false, platform: 'taptap-h5', adUnitId: '', rewardedAdUnitId: '' });
   assert.deepEqual(adConfiguration(true, { TAPTAP_COPS_ROBBERS_AD_UNIT_ID: ' slot-1 ', SECRET: 'private-token' }), { adMode: 'host', adsEnabled: true, platform: 'taptap-h5', adUnitId: 'slot-1', rewardedAdUnitId: 'slot-1' });
   assert.ok(!configurationScript(adConfiguration(true, { SECRET: 'private-token' })).includes('private-token'));
   for (const value of ['<YOUR_ID>', 'YOUR_AD_UNIT_ID', 'abc;alert(1)', 'x'.repeat(161)])

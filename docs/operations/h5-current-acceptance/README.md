@@ -27,4 +27,4 @@ $env:COMPETITION_PUBLIC_API_URL='https://api.nenggongzhiren.cn/small-games/v1'
 node scripts/h5-taptap.mjs --profile online-ads --output outputs/h5-taptap/<candidate>-online-ads-<unique>
 ```
 
-该 profile 只生成三款 ads-on/service-on ZIP，拒绝 local、matrix、关闭轴或自定义组合；十二组合不进入最终交付集合。缺少真实 adUnit 时只验 SDK 不可用及明确负向失败/取消不奖励，保持 `adUnitConfigured=false`、`realAdsVerified=false`；不伪造广告完成，不声称真实广告投放已通过。正式包的 API 指向线上不等于已经执行线上验收。
+该 profile 只生成三款 ads-on/service-on ZIP，拒绝 local、matrix、关闭轴或自定义组合；十二组合不进入最终交付集合。`adsEnabled` 记录请求的构建轴，`effectiveAdsEnabled` 与 `adMode` 记录实际模式。广告位环境变量未设置或仅空白时，保留占位但实际生成 `off`，三款提示、重试及支援复用正常免费路径；不调用广告提供方、不模拟观看完成、不上报观看或收益事件。配置有效广告位后才生成 `host`，SDK 不可用、取消、失败或超时均不能当作缺配置而免费发奖；非法非空占位值继续构建失败。保持 `adUnitConfigured=false`、`realAdsVerified=false` 如实记录，真实广告投放不作为本次接口交付前提。正式包的 API 指向线上不等于已经执行线上验收。

@@ -104,6 +104,39 @@ export function streetTouchPlans(state) {
   });
 }
 
+// Actor hit boxes can overlap. Verify the selected actor with the actual renderer,
+// rather than assuming that the center of its hit box selects the intended one.
+export function streetActorTouchPoint(create, context, width, height, state, actor) {
+  const renderer = create();
+  const hits = renderer.draw(context, width, height, state);
+  const hit = hits.find((item) => item.action?.local === actor);
+  if (!hit) return null;
+  const ownHits = hits.filter((item) => typeof item.action?.local === 'number');
+  const intervals = (axis, size, limit) => {
+    const start = Math.max(0, hit[axis]),
+      end = Math.min(limit, hit[axis] + hit[size]);
+    const cuts = [
+      ...new Set([start, end, ...ownHits.flatMap((item) => [item[axis], item[axis] + item[size]])]),
+    ]
+      .filter((value) => value >= start && value <= end)
+      .sort((a, b) => a - b);
+    return cuts.slice(1).map((value, index) => (cuts[index] + value) / 2);
+  };
+  const xs = intervals('x', 'w', width),
+    ys = intervals('y', 'h', height);
+  // Each cell has a constant overlapping-hit order, including narrow visible strips.
+  for (const point of [
+    [hit.x + hit.w / 2, hit.y + hit.h / 2],
+    ...xs.flatMap((x) => ys.map((y) => [x, y])),
+  ]) {
+    if (point[0] < 0 || point[1] < 0 || point[0] >= width || point[1] >= height) continue;
+    const probe = create();
+    probe.draw(context, width, height, state);
+    if (probe.tap(...point, state) === null && probe.getSelected() === actor) return point;
+  }
+  return null;
+}
+
 export function isExpectedTouchRequest({ code, path, method, input, expected }) {
   return (
     expected != null &&

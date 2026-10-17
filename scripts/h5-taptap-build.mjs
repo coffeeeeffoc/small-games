@@ -398,6 +398,7 @@ export async function buildH5Packages(
           orientation: h5Orientations[game],
           orientationVerified: false,
           adsEnabled: ads,
+          effectiveAdsEnabled: adConfig.adsEnabled,
           adMode: adConfig.adMode,
           adUnitConfigured: Boolean(adConfig.adUnitId),
           serviceEnabled: service,

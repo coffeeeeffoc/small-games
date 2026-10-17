@@ -109,6 +109,9 @@ export function matrixContract(matrix, { production = false } = {}) {
   for (const v of matrix.variants) {
     assert(matrixGames.includes(v.game));
     assert.equal(typeof v.adsEnabled, 'boolean');
+    assert.equal(typeof v.adUnitConfigured, 'boolean');
+    assert.equal(v.effectiveAdsEnabled, v.adsEnabled && v.adUnitConfigured);
+    assert.equal(v.adMode, v.effectiveAdsEnabled ? 'host' : 'off');
     assert.equal(typeof v.serviceEnabled, 'boolean');
     assert.equal(
       v.name,

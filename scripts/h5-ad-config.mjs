@@ -15,8 +15,8 @@ export function h5AdConfig(game, { env = process.env, args = [] } = {}) {
   if (adUnitId && (!/^[\w-]{1,160}$/.test(adUnitId) || /^(YOUR_|REPLACE_|TODO)/i.test(adUnitId)))
     throw new Error(`${key} must contain a real advertisement unit ID`);
   return {
-    adMode: 'host',
-    adsEnabled: true,
+    adMode: adUnitId ? 'host' : 'off',
+    adsEnabled: Boolean(adUnitId),
     platform: 'taptap-h5',
     adUnitId,
     rewardedAdUnitId: adUnitId,

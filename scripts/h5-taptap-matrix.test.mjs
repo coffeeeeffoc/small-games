@@ -8,7 +8,9 @@ import {
   touchAttemptFinished,
   completeTouchResponse,
   prepareTouchCanvas,
+  streetActorTouchPoint,
 } from './h5-taptap-touch.mjs';
+import { createRenderer as streetRenderer } from '../games/local/cops-robbers-realtime/src/competition-renderer.js';
 import { getLevels } from '../games/local/cops-robbers-realtime/src/levels.js';
 import {
   matrixContract,
@@ -233,6 +235,57 @@ test('street planning uses other stationary actors and re-evaluates changed bloc
   assert.deepEqual(streetTouchPlans(state), []);
 });
 
+test('Street actor touches use a visible selection point when hit boxes overlap', () => {
+  const level = getLevels('classic').find((item) => item.id === 26);
+  const state = {
+    role: 'pursuer',
+    name: 'fixture',
+    elapsedMs: 0,
+    caught: 0,
+    total: 1,
+    map: { nodes: level.nodes, edges: level.edges },
+    exits: [],
+    cops: [
+      { id: 0, x: 100, y: 80 },
+      { id: 1, x: 140, y: 80 },
+    ],
+    robbers: [],
+    openingRemainingMs: 0,
+  };
+  const context = new Proxy(
+    {
+      measureText: () => ({ width: 0 }),
+      createLinearGradient: () => ({ addColorStop() {} }),
+      createRadialGradient: () => ({ addColorStop() {} }),
+    },
+    { get: (object, key) => (key in object ? object[key] : () => {}) },
+  );
+  for (const position of [
+    { x: 140, y: 80 },
+    { x: 110, y: 80 },
+    { x: 100, y: 90 },
+  ]) {
+    Object.assign(state.cops[1], position);
+    const renderer = streetRenderer();
+    const hit = renderer.draw(context, 390, 844, state).find((item) => item.action?.local === 0);
+    renderer.tap(hit.x + hit.w / 2, hit.y + hit.h / 2, state);
+    assert.equal(
+      renderer.getSelected(),
+      1,
+      'The old center-only choice selects the overlapping actor',
+    );
+    const point = streetActorTouchPoint(streetRenderer, context, 390, 844, state, 0);
+    assert(point, 'A narrow visible strip still selects the intended actor');
+    const actual = streetRenderer();
+    actual.draw(context, 390, 844, state);
+    assert.equal(actual.tap(...point, state), null);
+    assert.equal(actual.getSelected(), 0);
+  }
+  Object.assign(state.cops[1], { x: 100, y: 80 });
+  assert.equal(streetActorTouchPoint(streetRenderer, context, 390, 844, state, 0), null);
+  assert(streetActorTouchPoint(streetRenderer, context, 390, 844, state, 1));
+});
+
 test('explicit axes constrain matrix output and ordinary builds retain environment defaults', () => {
   assert.deepEqual(packageModes({ matrix: true }), [
     [false, false],
@@ -283,6 +336,9 @@ function fixture(production) {
         orientation: h5Orientations[game],
         orientationVerified: false,
         adsEnabled: ads,
+        effectiveAdsEnabled: false,
+        adUnitConfigured: false,
+        adMode: 'off',
         serviceEnabled: service,
         sourceSHA,
         submoduleSHA,
@@ -311,6 +367,13 @@ test('explicit profiles require twelve local QA variants and only three online-a
   });
   assert.equal(fixture(false).variants.length, 12);
   assert.equal(fixture(true).variants.length, 3);
+  const configured = fixture(true);
+  for (const variant of configured.variants) {
+    variant.adUnitConfigured = true;
+    variant.effectiveAdsEnabled = true;
+    variant.adMode = 'host';
+  }
+  assert.equal(matrixContract(configured, { production: true }).api, productionCompetitionApi);
   assert.throws(() => matrixContract(fixture(false), { production: true }));
   assert.throws(() => matrixContract(fixture(true)));
   for (const mutate of [
@@ -319,6 +382,9 @@ test('explicit profiles require twelve local QA variants and only three online-a
     (m) => (m.variants[0].localValidation = true),
     (m) => (m.variants[0].apiUrl = 'http://localhost:43802/api/competition/v1'),
     (m) => (m.variants[0].adsEnabled = 'false'),
+    (m) => (m.variants[0].effectiveAdsEnabled = true),
+    (m) => (m.variants[0].adMode = 'host'),
+    (m) => (m.variants[0].adUnitConfigured = true),
     (m) => (m.variants[0].orientation = 'landscape'),
     (m) => (m.variants[0].orientationVerified = true),
     (m) => (m.variants[0].submoduleSHA = 'c'.repeat(40)),

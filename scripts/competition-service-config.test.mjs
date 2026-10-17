@@ -272,6 +272,7 @@ test('rebuilding and deploying a managed H5 entry never retain an old service ad
             ...online,
             COMPETITION_SERVICE_ENABLED: enabled,
             H5_ADS_ENABLED: ads,
+            TAPTAP_COPS_ROBBERS_AD_UNIT_ID: 'configured-fixture-unit',
           });
           const html = await readFile(path.join(destination, 'index.html'), 'utf8');
           const context = {};

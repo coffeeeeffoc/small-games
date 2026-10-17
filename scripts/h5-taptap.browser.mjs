@@ -23,6 +23,7 @@ import {
   prepareTouchCanvas,
   guestScheduler,
   soloStreetPlan,
+  streetActorTouchPoint,
 } from './h5-taptap-touch.mjs';
 import { createRenderer as copsRenderer } from '../games/local/cops-robbers/src/competition-renderer.js';
 import { chooseDuelAction, stepDuel } from '../games/local/cops-robbers/src/duel.js';
@@ -249,7 +250,18 @@ try {
     if (['cops-robbers', 'cops-robbers-realtime'].includes(player.variant.game)) {
       const hit = hits.find((item) => item.action?.local === wanted.actor);
       assert(hit, `Cannot select actor ${wanted.actor}`);
-      selection = samples(hit)[0];
+      selection =
+        player.variant.game === 'cops-robbers-realtime'
+          ? streetActorTouchPoint(
+              create,
+              noopContext(),
+              dimensions.width,
+              dimensions.height,
+              state,
+              wanted.actor,
+            )
+          : samples(hit)[0];
+      assert(selection, 'No visible touch point for actor selection');
       assert.equal(mirror.tap(...selection, state), null);
       hits = mirror.draw(noopContext(), dimensions.width, dimensions.height, state);
     }
@@ -586,9 +598,9 @@ try {
     }));
     assert.equal(config.service?.competitionEnabled, variant.serviceEnabled);
     assert.equal(config.service?.apiUrl, variant.serviceEnabled ? api : '');
-    assert.equal(config.ads.enabled, variant.adsEnabled);
-    assert.equal(config.ads.mode, variant.adsEnabled ? 'host' : 'off');
-    if (variant.adsEnabled)
+    assert.equal(config.ads.enabled, variant.effectiveAdsEnabled);
+    assert.equal(config.ads.mode, variant.effectiveAdsEnabled ? 'host' : 'off');
+    if (variant.effectiveAdsEnabled)
       assert.equal(config.hasRealAdSdk, false, 'This branch tests unavailable real host SDK only');
     player.config = config;
     await screenshot(player, 'home');
@@ -604,6 +616,7 @@ try {
   }
   async function rewardCheck(player) {
     const { page, variant } = player;
+    const adsEffective = variant.effectiveAdsEnabled;
     let evidence;
     if (variant.game === 'cops-robbers') {
       await page.locator('#home-start').tap();
@@ -611,7 +624,7 @@ try {
       const before = await page.locator('body').getAttribute('data-turn');
       assert.equal(await page.locator('.hint-circle').count(), 0);
       await page.locator('#hint').tap();
-      if (variant.adsEnabled) {
+      if (adsEffective) {
         await until(
           async () =>
             /广告暂不可用|广告加载失败/.test(await page.locator('#instruction').textContent()),
@@ -635,7 +648,7 @@ try {
       await page.locator('#training-help-open').tap();
       assert.equal(await page.locator('#challenge-hint-text').isVisible(), false);
       await page.locator('#challenge-hint').tap();
-      if (variant.adsEnabled) {
+      if (adsEffective) {
         await until(
           async () =>
             /广告暂不可用|未看完/.test(await page.locator('#challenge-hint-status').textContent()),
@@ -649,7 +662,7 @@ try {
         feedback: await page.locator('#challenge-hint-status').textContent(),
         starsRule: await page.locator('#challenge-hint-cost').textContent(),
       };
-      if (variant.adsEnabled) {
+      if (adsEffective) {
         // An unresolved host request checks cancellation without inventing a completed ad.
         await page.evaluate(() => {
           globalThis.SmallGamesRewardAds = { offer: () => new Promise(() => {}), cancel() {} };
@@ -702,7 +715,7 @@ try {
       const granted = await streetSnapshot(player);
       const feedback = await page.locator('#support-status').textContent();
       assert.equal(granted.support.assisted, true, 'Starter sprint remains classified as assisted');
-      if (variant.adsEnabled) {
+      if (adsEffective) {
         assert.equal(granted.support.sprint, 0);
         assert.equal(
           granted.support.refilled.sprint,
@@ -732,7 +745,7 @@ try {
       const after = await streetSnapshot(player);
       assert.equal(after.support.sprint, 0);
       assert.equal(after.support.assisted, true);
-      assert.equal(after.support.refilled.sprint, !variant.adsEnabled);
+      assert.equal(after.support.refilled.sprint, !adsEffective);
       evidence = {
         starter: starter.support,
         granted: granted.support,
@@ -745,7 +758,11 @@ try {
     await page.goto(gameUrl(variant), { waitUntil: 'networkidle' });
     await rendered(page);
     return {
-      mode: variant.adsEnabled ? 'host-unavailable-no-reward' : 'explicit-free-reward',
+      mode: adsEffective
+        ? 'host-unavailable-no-reward'
+        : variant.adsEnabled
+          ? 'missing-ad-unit-free-reward'
+          : 'explicit-free-reward',
       ...evidence,
       realAdvertisementPlayed: false,
     };
@@ -1521,6 +1538,8 @@ try {
         name: variant.name,
         game: variant.game,
         adsEnabled: variant.adsEnabled,
+        effectiveAdsEnabled: variant.effectiveAdsEnabled,
+        adUnitConfigured: variant.adUnitConfigured,
         serviceEnabled: variant.serviceEnabled,
         zipSHA256: variant.sha256,
         passedWithinDeclaredScope: false,
