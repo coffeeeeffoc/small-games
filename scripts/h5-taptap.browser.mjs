@@ -1505,6 +1505,7 @@ try {
       };
       report.variants.push(item);
       const players = [];
+      let completedMatch;
       try {
         const a = await newPlayer(variant, 'a');
         players.push(a);
@@ -1530,7 +1531,7 @@ try {
           else await playStreet(players);
           const rawOnline = await finishMatch(players, code);
           item.online = publicMatchEvidence(rawOnline);
-          if (localRestart) persistence.push({ item, players, raw: rawOnline });
+          if (localRestart) completedMatch = { item, players, raw: rawOnline };
         }
         await Promise.all([...pending]);
         for (const player of players) {
@@ -1540,6 +1541,7 @@ try {
           for (const player of players) {
             await retainDocument(player);
           }
+          persistence.push(completedMatch);
         }
         item.passedWithinDeclaredScope = true;
       } catch (error) {

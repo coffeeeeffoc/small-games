@@ -19,7 +19,36 @@ const errors = new Set([
   'GAME_DISABLED',
   'GAME_CANCELLED',
   'CONTROL_UNAVAILABLE',
+  'SERVICE_UNAVAILABLE',
 ]);
+const diagnosticFiles = new Set([
+  'h5-taptap.browser.mjs',
+  'h5-taptap-runtime.mjs',
+  'h5-taptap-touch.mjs',
+]);
+const databaseErrors = new Set([
+  '40001',
+  '40P01',
+  '57014',
+  '53300',
+  '55P03',
+  '08000',
+  '08003',
+  '08006',
+  '57P01',
+  '57P02',
+  '57P03',
+  'CONNECT_TIMEOUT',
+  'CONNECTION_CLOSED',
+  'CONNECTION_ENDED',
+  'CONNECTION_DESTROYED',
+]);
+/** Only known database codes survive; query text, parameters and messages never do. */
+export function safeDatabaseFailure(error) {
+  for (let depth = 0; error && depth < 4; depth++, error = error.cause)
+    if (databaseErrors.has(error.code)) return { code: error.code };
+  return { code: 'UNCLASSIFIED' };
+}
 const variantPattern = new RegExp(
   `^(?:${matrixGames.join('|')})-ads-(?:on|off)-service-(?:on|off)$`,
 );
@@ -65,7 +94,18 @@ export function safeFailure(error, fallback = 'QA_FAILED') {
       : error?.name === 'TimeoutError'
         ? 'TIMEOUT'
         : fallback;
-  return { code: errors.has(code) ? code : 'QA_FAILED' };
+  const result = { code: errors.has(code) ? code : 'QA_FAILED' };
+  // Export a bounded source location, never a stack or arbitrary path/message.
+  for (const frame of typeof error?.stack === 'string'
+    ? error.stack.split('\n').slice(1, 12)
+    : []) {
+    const match = /(?:[/\\])(h5-taptap[\w.-]*\.mjs):(\d{1,6}):(\d{1,5})\)?$/.exec(frame);
+    if (match && diagnosticFiles.has(match[1])) {
+      result.location = `${match[1]}:${Number(match[2])}:${Number(match[3])}`;
+      break;
+    }
+  }
+  return result;
 }
 /** Explicit projection, not recursive redaction: nested objects, bodies, headers and causes vanish. */
 export function traceEvent(input) {

@@ -6,6 +6,7 @@ import {
   safeUrl,
   safeApiPath,
   publicMatchEvidence,
+  safeDatabaseFailure,
 } from './h5-taptap-trace.mjs';
 test('trace is an exact whitelist, including nested secrets, SQL, URL query and userinfo canaries', () => {
   const secret = 'PRIVATE_CANARY';
@@ -44,6 +45,31 @@ test('trace is an exact whitelist, including nested secrets, SQL, URL query and 
     code: 'QA_FAILED',
   });
   assert.equal(safeUrl('javascript:PRIVATE_CANARY'), '[invalid-url]');
+});
+test('failure diagnostics retain bounded known locations and database codes only', () => {
+  const secret = 'PRIVATE_CANARY';
+  assert.deepEqual(
+    safeFailure({
+      code: 'ERR_ASSERTION',
+      message: secret,
+      stack: `Error: ${secret}\n    at touchAction (file:///private/${secret}/h5-taptap.browser.mjs:351:12)\n    at ${secret}`,
+    }),
+    { code: 'ASSERTION_FAILED', location: 'h5-taptap.browser.mjs:351:12' },
+  );
+  for (const frame of [
+    `at file:///private/${secret}.mjs:10:2`,
+    `at file:///private/h5-taptap.browser.mjs:10:2?${secret}`,
+    'at file:///private/h5-taptap.browser.mjs:1234567:2',
+  ])
+    assert.deepEqual(safeFailure({ stack: `Error\n${frame}` }), { code: 'QA_FAILED' });
+  assert.deepEqual(
+    safeDatabaseFailure({ cause: { code: '40P01', query: secret, message: secret } }),
+    { code: '40P01' },
+  );
+  const cyclic = { code: secret, message: secret };
+  cyclic.cause = cyclic;
+  assert.deepEqual(safeDatabaseFailure(cyclic), { code: 'UNCLASSIFIED' });
+  assert.equal(traceEvent({ errorCode: 'SERVICE_UNAVAILABLE' }).errorCode, 'SERVICE_UNAVAILABLE');
 });
 test('public match evidence never spreads response bodies or private linkage', () => {
   const row = {

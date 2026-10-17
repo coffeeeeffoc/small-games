@@ -16,7 +16,7 @@ import {
 } from './h5-taptap-matrix.mjs';
 import { selectedBackendBuildCommands } from './backend-build.mjs';
 import { pnpmInvocation } from './validate-push.mjs';
-import { safeFailure } from './h5-taptap-trace.mjs';
+import { safeFailure, safeDatabaseFailure, safeApiPath } from './h5-taptap-trace.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const taskLabel = 'h5-current-acceptance';
@@ -344,6 +344,20 @@ async function runRuntimeChild() {
   assert(process.send && /^[a-f0-9]{64}$/.test(process.env.H5_RUNTIME_BIND_NONCE ?? ''));
   const { createRuntimeService } = await import('../services/runtime-api/dist/app.js');
   const app = createRuntimeService(process.env, false);
+  app.addHook('onError', (request, _reply, error, done) => {
+    if (process.connected)
+      process.send(
+        {
+          type: 'h5-runtime-error',
+          nonce: process.env.H5_RUNTIME_BIND_NONCE,
+          pid: process.pid,
+          path: safeApiPath(request.url),
+          database: safeDatabaseFailure(error),
+        },
+        () => {},
+      );
+    done();
+  });
   try {
     await app.listen({ host: '127.0.0.1', port: 43802 });
     process.send({
@@ -682,6 +696,21 @@ export async function createOwnedRuntime({
         ipc: true,
       },
     );
+    runtimeChild.child.on('message', (message) => {
+      if (
+        message?.type !== 'h5-runtime-error' ||
+        message.nonce !== nonce ||
+        message.pid !== runtimeChild.child.pid
+      )
+        return;
+      evidence.runtimeErrors ??= [];
+      if (evidence.runtimeErrors.length < 100)
+        evidence.runtimeErrors.push({
+          at: new Date().toISOString(),
+          path: safeApiPath(message.path),
+          database: safeDatabaseFailure(message.database),
+        });
+    });
     await confirmOwnedRuntime(runtimeChild, nonce, { proofToken, proofPlayer });
   };
   const snapshot = () =>
