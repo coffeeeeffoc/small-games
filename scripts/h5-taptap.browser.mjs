@@ -14,7 +14,7 @@ import {
 } from './h5-taptap-matrix.mjs';
 import { traceEvent, safeFailure, safeApiPath, publicMatchEvidence } from './h5-taptap-trace.mjs';
 import {
-  reachableStreetNodes,
+  streetTouchPlans,
   reachableStreetMove,
   isBlockedStreetTouch,
   isExpectedTouchRequest,
@@ -225,11 +225,28 @@ try {
     assert(dimensions.width > 0 && dimensions.height > 0);
     const original = player.room.state;
     const state = projected(player.variant.game, original, dimensions.width, dimensions.height);
+    if (player.variant.game === 'cops-robbers-realtime' && wanted.type === 'move') {
+      const own = original.role === 'runner' ? original.robbers : original.cops;
+      const actor = own[wanted.actor];
+      const move = state !== original ? { ...wanted, x: wanted.y, y: -wanted.x } : wanted;
+      // Snapshot updates during canvas/layout awaits can invalidate a plan.
+      // This branch runs before any touch or expected request exists.
+      if (
+        !actor ||
+        actor.caught ||
+        actor.escaped ||
+        actor.moving ||
+        !reachableStreetMove(original, move)
+      )
+        throw Object.assign(new Error('Street plan changed before touch'), {
+          code: 'TOUCH_PLAN_STALE',
+        });
+    }
     const create = constructors[player.variant.game];
     const mirror = create();
     let hits = mirror.draw(noopContext(), dimensions.width, dimensions.height, state);
     let selection;
-    if (player.variant.game === 'cops-robbers') {
+    if (['cops-robbers', 'cops-robbers-realtime'].includes(player.variant.game)) {
       const hit = hits.find((item) => item.action?.local === wanted.actor);
       assert(hit, `Cannot select actor ${wanted.actor}`);
       selection = samples(hit)[0];
@@ -340,6 +357,11 @@ try {
         sequenceUnchanged: true,
         terminal,
         recoveredUsingUI: false,
+        actor: authoritative.actor,
+        caught: actor.caught === true,
+        escaped: actor.escaped === true,
+        moving: actor.moving === true,
+        elapsedMs: player.room.state.elapsedMs,
       });
       player.expectedTouch = null;
       return false;
@@ -429,6 +451,7 @@ try {
         player: id,
         kind: 'request',
         ...entry,
+        seq: requestBody(request)?.seq,
       });
     });
     context.on('requestfailed', (request) => {
@@ -459,6 +482,7 @@ try {
           path: pathname,
           status: response.status(),
           errorCode: body?.error,
+          seq: requestBody(response.request())?.seq,
         });
         if (!response.ok()) {
           if (
@@ -1084,50 +1108,48 @@ try {
         const size = await player.surface
           .locator('canvas[data-play]')
           .evaluate((element) => ({ width: element.clientWidth, height: element.clientHeight }));
-        const planningState = player.room.state;
-        const state = projected(player.variant.game, planningState, size.width, size.height);
-        const runner = state.role === 'runner';
-        const own = runner ? state.robbers : state.cops;
-        const actor = own.findIndex((item) => !item.caught && !item.escaped);
-        const targets = runner
-          ? state.cops
-          : state.robbers.filter((item) => !item.caught && !item.escaped);
-        if (actor < 0 || !targets.length) continue;
-        // Wait for this real route to finish. Clicking a moving avatar means hold,
-        // so repeated retargets near it cannot prove a planned map destination.
-        if (own[actor].moving) continue;
-        const reachable = reachableStreetNodes(planningState, actor);
-        const score = (point) =>
-          Math.min(...targets.map((target) => Math.hypot(target.x - point.x, target.y - point.y)));
-        const nodes = state.map.nodes
-          .filter(
-            (node, index) =>
-              reachable.has(index) &&
-              own.every(
-                (item) =>
-                  item.caught || item.escaped || Math.hypot(item.x - node.x, item.y - node.y) > 180,
-              ),
-          )
-          .sort((a, b) => (runner ? score(b) - score(a) : score(a) - score(b)));
-        if (!nodes.length) continue;
         let sent = false;
         const rejectedBefore = player.inputRejections.length;
-        for (const node of nodes) {
-          try {
-            sent = await touchAction(
-              player,
-              { type: 'move', actor, x: node.x, y: node.y },
-              planningState,
-            );
-            if (sent || player.room.status === 'finished') break;
-          } catch (error) {
-            if (!error.message.startsWith('No visible touch point')) throw error;
+        // Only recompute following a confirmed rejection, with a finite retry
+        // count; the natural-match deadline and strict recovery checks stay intact.
+        for (let attempt = 0; attempt < 8 && !sent; attempt++) {
+          const planningState = player.room.state;
+          if (player.room.status !== 'playing') break;
+          const state = projected(player.variant.game, planningState, size.width, size.height);
+          const plans = streetTouchPlans(planningState);
+          if (!plans.length) break;
+          const before = player.inputRejections.length;
+          let stale = false;
+          for (const { actor, node: index } of plans) {
+            const node = state.map.nodes[index];
+            try {
+              sent = await touchAction(
+                player,
+                { type: 'move', actor, x: node.x, y: node.y },
+                planningState,
+              );
+              if (
+                sent ||
+                player.room.status === 'finished' ||
+                player.inputRejections.length > before
+              )
+                break;
+            } catch (error) {
+              if (error.code === 'TOUCH_PLAN_STALE') {
+                stale = true;
+                break;
+              }
+              if (!error.message.startsWith('No visible touch point')) throw error;
+            }
           }
+          if (!stale && player.inputRejections.length === before) break;
         }
+        const waitingForRoute = streetTouchPlans(player.room.state).length === 0;
         assert(
           sent ||
             player.room.status === 'finished' ||
-            player.inputRejections.length > rejectedBefore,
+            player.inputRejections.length > rejectedBefore ||
+            waitingForRoute,
           'No legal street touch target',
         );
       }
@@ -1546,6 +1568,15 @@ try {
         item.passedWithinDeclaredScope = true;
       } catch (error) {
         item.error = safeFailure(error);
+        item.failedPlayers = players.map((player) => ({
+          player: player.id,
+          status: player.room?.status,
+          seq: player.room?.seq,
+          acceptedActions: player.acceptedActions,
+          inputRejections: player.inputRejections.slice(-24),
+          apiFailures: player.apiFailures.slice(-24),
+          errors: player.errors.slice(-24),
+        }));
         process.exitCode = 1;
         for (const player of players) await screenshot(player, 'failure').catch(() => {});
       } finally {

@@ -80,6 +80,30 @@ export function reachableStreetMove(state, action) {
   return index >= 0 && reachableStreetNodes(state, action.actor).has(index);
 }
 
+// Rebuild after each response: a rejected route can change which actor or road
+// is usable. Moving actors must not starve stationary teammates.
+export function streetTouchPlans(state) {
+  const runner = state.role === 'runner';
+  const own = runner ? state.robbers : state.cops;
+  const targets = runner
+    ? state.cops
+    : state.robbers.filter((item) => !item.caught && !item.escaped);
+  if (!targets.length) return [];
+  const score = (point) =>
+    Math.min(...targets.map((target) => Math.hypot(target.x - point.x, target.y - point.y)));
+  return own.flatMap((item, actor) => {
+    if (item.caught || item.escaped || item.moving) return [];
+    const reachable = reachableStreetNodes(state, actor);
+    return state.map.nodes
+      .map((node, index) => ({ ...node, index }))
+      .filter(
+        (node) => reachable.has(node.index) && Math.hypot(item.x - node.x, item.y - node.y) > 1,
+      )
+      .sort((a, b) => (runner ? score(b) - score(a) : score(a) - score(b)))
+      .map((node) => ({ actor, node: node.index }));
+  });
+}
+
 export function isExpectedTouchRequest({ code, path, method, input, expected }) {
   return (
     expected != null &&

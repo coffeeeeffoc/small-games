@@ -117,12 +117,24 @@ export function createCompetitionControl(
     if (!(CONTROL_GAME_IDS as readonly string[]).includes(game)) throw unavailable();
     // EXACT same 64-bit key as Management's sorted exclusive publication locks.
     try {
+      // This executor belongs to the caller's business transaction. The control
+      // budget must not change that transaction's later SQL timeout settings.
+      const [timeouts] =
+        await tx.execute(sql`select current_setting('statement_timeout') as statement,
+        current_setting('lock_timeout') as lock`);
+      remaining();
+      if (typeof timeouts?.statement !== 'string' || typeof timeouts.lock !== 'string')
+        throw unavailable();
       await execute(
         tx,
         sql`select pg_advisory_xact_lock_shared(hashtextextended('game-control:' || ${game},0))`,
         remaining,
       );
       const current = await read(tx, remaining);
+      remaining();
+      await tx.execute(sql`select set_config('statement_timeout',${timeouts.statement},true),
+        set_config('lock_timeout',${timeouts.lock},true)`);
+      remaining();
       return current.policies.find((p) => p.gameId === game)!;
     } catch {
       throw unavailable();

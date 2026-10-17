@@ -45,9 +45,36 @@ const databaseErrors = new Set([
 ]);
 /** Only known database codes survive; query text, parameters and messages never do. */
 export function safeDatabaseFailure(error) {
-  for (let depth = 0; error && depth < 4; depth++, error = error.cause)
-    if (databaseErrors.has(error.code)) return { code: error.code };
-  return { code: 'UNCLASSIFIED' };
+  let code = 'UNCLASSIFIED',
+    phase;
+  for (let depth = 0; error && depth < 4; depth++, error = error.cause) {
+    if (databaseErrors.has(error.code)) code = error.code;
+    if (
+      [
+        'control',
+        'room-lock',
+        'room-read',
+        'room-write',
+        'identity',
+        'settlement',
+        'advisory-lock',
+      ].includes(error.phase)
+    )
+      phase = error.phase;
+    const query = typeof error.query === 'string' ? error.query : '';
+    if (/game_control\./i.test(query)) phase = 'control';
+    else if (/runtime\.competition_rooms/i.test(query))
+      phase = /for update/i.test(query)
+        ? 'room-lock'
+        : /^\s*select/i.test(query)
+          ? 'room-read'
+          : 'room-write';
+    else if (/runtime\.competition_(?:players|refresh_tokens)/i.test(query)) phase = 'identity';
+    else if (/runtime\.competition_(?:best|results|matches|duels)/i.test(query))
+      phase = 'settlement';
+    else if (/pg_advisory_xact_lock/i.test(query)) phase = 'advisory-lock';
+  }
+  return { code, ...(phase ? { phase } : {}) };
 }
 const variantPattern = new RegExp(
   `^(?:${matrixGames.join('|')})-ads-(?:on|off)-service-(?:on|off)$`,

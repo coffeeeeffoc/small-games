@@ -67,6 +67,18 @@ test('failure diagnostics retain bounded known locations and database codes only
     { code: '40P01' },
   );
   const cyclic = { code: secret, message: secret };
+  const failure = safeDatabaseFailure({
+    query: `select data from runtime.competition_rooms where code='${secret}' for update`,
+    cause: { code: '57014', detail: secret },
+  });
+  assert.deepEqual(failure, { code: '57014', phase: 'room-lock' });
+  assert.deepEqual(
+    safeDatabaseFailure(failure),
+    failure,
+    'IPC projection preserves only a known phase',
+  );
+  assert.deepEqual(safeDatabaseFailure({ code: '57014', phase: secret }), { code: '57014' });
+  assert(!JSON.stringify(failure).includes(secret));
   cyclic.cause = cyclic;
   assert.deepEqual(safeDatabaseFailure(cyclic), { code: 'UNCLASSIFIED' });
   assert.equal(traceEvent({ errorCode: 'SERVICE_UNAVAILABLE' }).errorCode, 'SERVICE_UNAVAILABLE');

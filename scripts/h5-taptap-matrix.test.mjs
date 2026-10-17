@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   reachableStreetNodes,
+  streetTouchPlans,
   isBlockedStreetTouch,
   isExpectedTouchRequest,
   touchAttemptFinished,
@@ -196,6 +197,40 @@ test('street touch planning excludes routes blocked by opponents in real public 
     assert.deepEqual(state, before, 'Planning cannot mutate authoritative state');
     assert.equal(reachableStreetNodes({ ...state, role: 'pursuer' }, 0).has(blocked), true);
   }
+});
+
+test('street planning uses other stationary actors and re-evaluates changed blocked routes', () => {
+  const level = getLevels('classic').find((item) => item.id === 26);
+  const state = {
+    levelId: level.id,
+    mode: 'classic',
+    role: 'pursuer',
+    map: { nodes: level.nodes, edges: level.edges },
+    cops: [
+      { id: 0, x: 80, y: 80, moving: true },
+      { id: 1, x: 248, y: 80, moving: false },
+      { id: 2, x: 416, y: 80, moving: false },
+    ],
+    robbers: [{ id: 0, x: 920, y: 80, caught: false, escaped: false }],
+  };
+  const plans = streetTouchPlans(state);
+  assert(plans.some((plan) => plan.actor === 1));
+  assert(plans.some((plan) => plan.actor === 2));
+  assert(plans.every((plan) => plan.actor !== 0));
+  const near = level.nodes.findIndex((node) => node.x === 80 && node.y === 80);
+  assert(
+    plans.some((plan) => plan.actor === 1 && plan.node === near),
+    'Nearby roads remain candidates; renderer hit testing decides visibility',
+  );
+  state.role = 'runner';
+  const before = streetTouchPlans(state);
+  state.cops[0] = { id: 0, x: 752, y: 352.3333333333361 };
+  const after = streetTouchPlans(state);
+  const blocked = level.nodes.findIndex((node) => node.x === 80 && node.y === 520);
+  assert(before.some((plan) => plan.node === blocked));
+  assert(after.every((plan) => plan.node !== blocked));
+  state.robbers[0].caught = true;
+  assert.deepEqual(streetTouchPlans(state), []);
 });
 
 test('explicit axes constrain matrix output and ordinary builds retain environment defaults', () => {

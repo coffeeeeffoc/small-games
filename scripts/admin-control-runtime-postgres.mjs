@@ -172,7 +172,7 @@ export async function verifyCompetitionIdentityLocks({ owner, checked }) {
   };
 }
 /** Runs only inside the caller's fresh labelled fixture, with its existing Runtime role. */
-export async function verifyRuntimeControl({ url, owner, checked }) {
+export async function verifyRuntimeControl({ url, owner, runtime, checked }) {
   const database = openControlDatabase(url);
   const instanceId = `bounded-${randomUUID()}`;
   const control = createCompetitionControl(
@@ -196,6 +196,55 @@ export async function verifyRuntimeControl({ url, owner, checked }) {
       )[0].count,
     );
   try {
+    for (const [statement, lock] of [
+      ['5s', '750ms'],
+      ['500ms', '0'],
+      ['0', '100ms'],
+    ]) {
+      await runtime.db.transaction(async (tx) => {
+        await tx.execute(sql`select set_config('statement_timeout',${statement},true),
+          set_config('lock_timeout',${lock},true)`);
+        const before = (
+          await tx.execute(sql`select current_setting('statement_timeout') as statement,
+          current_setting('lock_timeout') as lock`)
+        )[0];
+        await control.lock(tx, 'cops-robbers');
+        const after = (
+          await tx.execute(sql`select current_setting('statement_timeout') as statement,
+          current_setting('lock_timeout') as lock`)
+        )[0];
+        assert.deepEqual(after, before, 'control success must restore exact caller timeouts');
+        await owner.db.transaction(async (publisher) => {
+          const rows = await publisher.execute(sql`select pg_try_advisory_xact_lock(
+            hashtextextended('game-control:cops-robbers',0)) as acquired`);
+          assert.equal(rows[0].acquired, false, 'restoring settings must retain the shared lock');
+        });
+        if (statement === '5s') await tx.execute(sql`select pg_sleep(2.1)`);
+      });
+    }
+    checked('runtime-control-restores-caller-timeouts-with-shared-lock-held-through-business-sql');
+    const policyEntered = barrier(),
+      policyRelease = barrier();
+    const policyHolder = owner.db.transaction(async (tx) => {
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtextextended('game-control:cops-robbers',0))`,
+      );
+      policyEntered.resolve();
+      await policyRelease.promise;
+    });
+    await policyEntered.promise;
+    try {
+      const started = performance.now();
+      await assert.rejects(
+        runtime.db.transaction((tx) => control.lock(tx, 'cops-robbers')),
+        { code: 'CONTROL_UNAVAILABLE' },
+      );
+      assert.ok(performance.now() - started <= 2300, 'control lock retains its bounded failure');
+    } finally {
+      policyRelease.resolve();
+      await policyHolder;
+    }
+    checked('runtime-control-shared-lock-still-fails-closed-within-existing-budget');
     const entered = barrier(),
       release = barrier();
     const holder = owner.db.transaction(async (tx) => {

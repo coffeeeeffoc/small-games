@@ -22,13 +22,19 @@ function fixture() {
     delayed = false,
     broken = false,
     perQueryDelay = 0,
-    failCommit = false;
+    failCommit = false,
+    statement = '5s',
+    lock = '750ms',
+    failRestore = false;
   let snapshot = normalizeControlSnapshot({
     apiOrigins: ['https://published.example'],
     games: Object.fromEntries(CONTROL_GAME_IDS.map((id) => [id, 'enabled'])),
   });
-  const memory = controlDatabase((text) => {
+  const memory = controlDatabase((text, params) => {
     if (!text.includes('set_config')) time += perQueryDelay;
+    if (text.includes("current_setting('statement_timeout')")) return [{ statement, lock }];
+    if (text.includes('set_config') && params[0] === statement && failRestore)
+      throw new Error('restore failed');
     if (text.includes('pg_advisory_xact_lock_shared') && delayed) time += 2001;
     if (text.includes('from game_control.published_config'))
       return version
@@ -77,6 +83,13 @@ function fixture() {
     failCommit(value: boolean) {
       failCommit = value;
     },
+    timeouts(nextStatement: string, nextLock: string) {
+      statement = nextStatement;
+      lock = nextLock;
+    },
+    failRestore() {
+      failRestore = true;
+    },
     breakDigest() {
       broken = true;
     },
@@ -115,6 +128,31 @@ it('uses env only at version zero, applies a precise version, and heartbeats aft
   expect(f.queries.some((q) => /members|roles|update game_control|for share/i.test(q.sql))).toBe(
     false,
   );
+});
+it('restores the caller timeout settings only after successful bounded control reads', async () => {
+  for (const [statement, lock] of [
+    ['5s', '750ms'],
+    ['500ms', '0'],
+    ['0', '100ms'],
+  ]) {
+    const f = fixture();
+    f.timeouts(statement!, lock!);
+    await f.db.transaction((tx) => f.control.lock(tx, 'cops-robbers'));
+    expect(f.queries.at(-1)!.params).toEqual([statement, lock]);
+    expect(f.queries.filter((q) => q.sql.includes('pg_advisory_xact_lock_shared'))).toHaveLength(1);
+    expect(f.queries.some((q) => q.sql.includes('pg_advisory_unlock'))).toBe(false);
+  }
+  const failed = fixture();
+  failed.failRestore();
+  await expect(
+    failed.db.transaction((tx) => failed.control.lock(tx, 'cops-robbers')),
+  ).rejects.toMatchObject({ code: 'CONTROL_UNAVAILABLE' });
+  const late = fixture();
+  late.queryDelay(600);
+  await expect(
+    late.db.transaction((tx) => late.control.lock(tx, 'cops-robbers')),
+  ).rejects.toMatchObject({ code: 'CONTROL_UNAVAILABLE' });
+  expect(late.queries.some((q) => q.params[0] === '5s')).toBe(false);
 });
 it('shrinks each SQL budget and memoizes observations only after successful commit', async () => {
   const f = fixture();

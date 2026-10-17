@@ -386,6 +386,7 @@ try {
   receipt.runtimeControl = await verifyRuntimeControl({
     url: `postgres://runtime_app:${runtimePassword}@127.0.0.1:${guard()}/control_test`,
     owner,
+    runtime,
     checked,
   });
   step('competition-identity-FK-board-lock-order');
