@@ -8,7 +8,7 @@ export function hintAdProvider(environment = globalThis) {
   const host = environment.SmallGamesRewardAds;
   if (config?.adMode === 'off') return undefined;
   if (typeof host?.offer === 'function') return {
-    show: () => host.offer({ id: 'cops-robbers:hint', reward: { hint: 1 } }),
+    show: request => host.offer({ id: 'cops-robbers:hint', reward: { hint: 1 }, onShown: request.onShown }),
     dispose: () => host.dispose?.(),
   };
   if (config?.provider) return config.provider;

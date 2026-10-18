@@ -1,0 +1,230 @@
+{
+  "profile": null,
+  "identityMode": "ephemeral",
+  "name": "cops-robbers-taptap-h5-ads-on-service-off",
+  "game": "cops-robbers",
+  "platform": "taptap-h5",
+  "packageType": "h5",
+  "entry": "dist/index.html",
+  "orientation": "portrait",
+  "orientationVerified": false,
+  "adsEnabled": true,
+  "effectiveAdsEnabled": true,
+  "adMode": "host",
+  "adUnitConfigured": true,
+  "serviceEnabled": false,
+  "apiUrl": "",
+  "localValidation": false,
+  "sourceSHA": "83b067704a7b510a50a25de5a6b3052aaa57a11b",
+  "sourceDirty": true,
+  "submoduleSHA": null,
+  "zip": "cops-robbers-taptap-h5-ads-on-service-off.zip",
+  "bytes": 969848,
+  "sha256": "f968301cead84ba658d58b0aa9d90d595ad0aea3c627980c179df7f008a5e904",
+  "files": [
+    {
+      "path": "assets/home-chase.webp",
+      "bytes": 222742,
+      "sha256": "d32e258d5b38cc5737db60bd993d5c4dfefbc66218429680e2233b75c5f11472"
+    },
+    {
+      "path": "assets/patrol-characters.svg",
+      "bytes": 257035,
+      "sha256": "a86f7a77068f1b2b950ef773302c3026950d7c82d0b48afdd7fafdb43ce9680a"
+    },
+    {
+      "path": "assets/patrol-garden.webp",
+      "bytes": 171538,
+      "sha256": "ab2805508e6a12d7f7eec503cf6050cf9fbac15cfb61affa2581be8066710ec9"
+    },
+    {
+      "path": "assets/patrol-props.webp",
+      "bytes": 250574,
+      "sha256": "38adfcc6bd8f2065299c3678a4fa7ea5ece0e288f878f8c635655f5795934dd1"
+    },
+    {
+      "path": "dev-mode.js",
+      "bytes": 15134,
+      "sha256": "5633115f12f8f343a16db44c3ee0f10378d109b08392ca7b6fa977b0c6d191b4"
+    },
+    {
+      "path": "favicon.svg",
+      "bytes": 274,
+      "sha256": "b72eb78edd1457735ab690e7c89ee2083a416468584d71401e085f6061408b96"
+    },
+    {
+      "path": "index.html",
+      "bytes": 19802,
+      "sha256": "6626168eed0c9773972507eaab005ad4c41543c52fe78e7719fde341d0f5d101"
+    },
+    {
+      "path": "platform-ads.js",
+      "bytes": 6841,
+      "sha256": "1d40c5132494dd20f0f9d3c1bdfe096393a75f56850a7a246840e2a71b19cd50"
+    },
+    {
+      "path": "platform-config.js",
+      "bytes": 167,
+      "sha256": "4899d709862dac4cb9050a22be69a7dcbf42106837dc0c798060b39d930f7f8a"
+    },
+    {
+      "path": "publishing.js",
+      "bytes": 12289,
+      "sha256": "8d9d43cb1c126118286921018d713e5ee860b7c7b5c13f8e1c1ecdbb0b7d277d"
+    },
+    {
+      "path": "src/ad-host.js",
+      "bytes": 1076,
+      "sha256": "115a6d939b96a527f55c2a916c57c3399d22feb7e2027fc07c85b2b1c615538c"
+    },
+    {
+      "path": "src/ads.js",
+      "bytes": 2270,
+      "sha256": "a92d4046fc74e2b63c37821aa28bea91cc7b8e37f590dade3f130faa2442015b"
+    },
+    {
+      "path": "src/art.js",
+      "bytes": 7002,
+      "sha256": "6012ba376a0b71a2e441560ac25d4219fa7866cd31e1e99d87a103199eb70050"
+    },
+    {
+      "path": "src/board-layout.js",
+      "bytes": 1840,
+      "sha256": "934eba93544127a09ca9857f025d14c8c93d0b76cd3dd71bbbb74824b00815e1"
+    },
+    {
+      "path": "src/competition-renderer.js",
+      "bytes": 7043,
+      "sha256": "321ea4ec08e2f2e6ffdf67d83aa57180a12c22973f22a1428482981398fc1cee"
+    },
+    {
+      "path": "src/duel-levels.js",
+      "bytes": 2955,
+      "sha256": "a729f0ba517943f2dbd3eaaa51bba0fcf96cf837808360fd6979f32fde16d1e5"
+    },
+    {
+      "path": "src/duel-ui.js",
+      "bytes": 17146,
+      "sha256": "aeb3fe0921e5984fdca49fabd266747f729537784ce2c5b667a50ffe60edd915"
+    },
+    {
+      "path": "src/duel.js",
+      "bytes": 4015,
+      "sha256": "facc9d2bb281322402472e7148eee2e8b229527de174967999e81642ab1d0ba0"
+    },
+    {
+      "path": "src/engine.js",
+      "bytes": 7010,
+      "sha256": "3288a386e52e06004b6e95821c7cca8067c0435d9ca910df1e6d33845ca49b11"
+    },
+    {
+      "path": "src/extended-content.js",
+      "bytes": 19861,
+      "sha256": "6676f1446a20700e46714c672d7cf63f338f66c6babd89c1b26ca2adf9aace3c"
+    },
+    {
+      "path": "src/fullscreen.js",
+      "bytes": 6666,
+      "sha256": "1a0ba1255adb38ac82d793ddd8b4a83734c2d9318369b8c39bb3b16997553be4"
+    },
+    {
+      "path": "src/game-shell.css",
+      "bytes": 21901,
+      "sha256": "005fa700724fd1ed505b611a17d5907ad2250a2777701f6527e680436de38d8c"
+    },
+    {
+      "path": "src/game-shell.js",
+      "bytes": 5094,
+      "sha256": "91115ac1374c4e351cf567225de2021273bee84ab2c1f004b92d6b06c2d4621c"
+    },
+    {
+      "path": "src/hint-worker.js",
+      "bytes": 2007,
+      "sha256": "b075904a0af68e02a65d2ba10fdcb0f88bb77ab9ca6b2210dc89320fbfad58ba"
+    },
+    {
+      "path": "src/levels.js",
+      "bytes": 240258,
+      "sha256": "a50448227ad1930f65666caea06a89824b3828f9af1b4ad4bad870ad0e61be54"
+    },
+    {
+      "path": "src/main.js",
+      "bytes": 58859,
+      "sha256": "cac43a0bd19ca9e4aedf3db22c03b6840a6d05444bab9d6023d6fc3dad3d4d3a"
+    },
+    {
+      "path": "src/native.js",
+      "bytes": 17081,
+      "sha256": "c2c592e5fc94b364782a460fa254e70297df38129344fba59bf202f36b857627"
+    },
+    {
+      "path": "src/optimal-solutions.js",
+      "bytes": 12628,
+      "sha256": "ebe5758803c72b1ad2c58b61ad6669f03f06e3ba6ec41085c91cbc6977986d36"
+    },
+    {
+      "path": "src/progress.js",
+      "bytes": 516,
+      "sha256": "697ce467ec2d489a112c321b1e9fff4982bf2d4bfbd5af124582987d34e4c5bd"
+    },
+    {
+      "path": "src/quick-content.js",
+      "bytes": 77634,
+      "sha256": "aa2f7faf1faf80366fcbd07facb76beed159e5da82bcf1529bb86841172c36f7"
+    },
+    {
+      "path": "src/quick-trials.js",
+      "bytes": 2870,
+      "sha256": "867c5551665e30de7cc9870b10da6a0f3dd52ff7a94549ab320a1e420906143e"
+    },
+    {
+      "path": "src/relay-content.js",
+      "bytes": 77621,
+      "sha256": "bb03f379bdca2fb0bfa2c26289830dff4b8b9fa43b4ed69ad87b0a0c3e8ec7b7"
+    },
+    {
+      "path": "src/relay.js",
+      "bytes": 1901,
+      "sha256": "ac750a09ad9eec103b84017e2f330892c3d954d582394b859b6844f931fe0db2"
+    },
+    {
+      "path": "src/role-appearance.js",
+      "bytes": 18844,
+      "sha256": "c98c56fdbbf3d384e5348c8abc95be784d275bd4334c16ff3b674e83d5585262"
+    },
+    {
+      "path": "src/safe-area.js",
+      "bytes": 4857,
+      "sha256": "2e8384e14dc81740854f7d92b8c927634458dea2fc0805273d3f7f79a1428150"
+    },
+    {
+      "path": "src/share.js",
+      "bytes": 3112,
+      "sha256": "b5433f084d2704ebe03925ab19826ca8910b5e77f13071eed7bdb17c962fdc08"
+    },
+    {
+      "path": "src/solutions.js",
+      "bytes": 78704,
+      "sha256": "0fc556f668b69cecb82d55b3c5cc078abb02761bf7d4a7a895632a4409f2745d"
+    },
+    {
+      "path": "src/sound.js",
+      "bytes": 1345,
+      "sha256": "0d2b5a79de5e127b104487c96e166bb39b035db5611a67a2a2a022ce541f4c0a"
+    },
+    {
+      "path": "src/style.css",
+      "bytes": 35288,
+      "sha256": "c28f785564c2f53dd83348075759f979259232c51e470751af93970a0630c100"
+    },
+    {
+      "path": "src/viewport.css",
+      "bytes": 24364,
+      "sha256": "0f72720bac16977eb15afca9340394718ffbbcc52c68062a2065e7501441c9f1"
+    }
+  ],
+  "buildOnly": true,
+  "qualityChecks": "not-run",
+  "realAdsVerified": false,
+  "realDeviceVerified": false
+}

@@ -43,7 +43,9 @@ H5 的 `taptap-h5` 使用宿主注入的 `tap`。普通浏览器没有 SDK 时�
 
 只接受 `isEnded === true`，不能用 `Boolean(isEnded)`、停留时长、页面恢复或 Promise 成功推断完成。缺失或非布尔值应保留类型诊断，不能为了“兼容”一律奖励。
 
-要逐层查找计时器。只修 SDK 适配器，外层 `offer/request` 的总超时仍会提前 `cancel/dispose`。象五子棋已经透传 `onShown`；`publishing.js`、其他游戏包装器及原生适配器需分别审查，不能因复用了 `platform-ads.js` 就宣称所有入口都已修复。
+要逐层查找计时器。只修 SDK 适配器，外层 `offer/request` 的总超时仍会提前 `cancel/dispose`。象五子棋与 cops-robbers 已经透传 `onShown`；`publishing.js`、其他游戏包装器及原生适配器需分别审查，不能因复用了 `platform-ads.js` 就宣称所有入口都已修复。
+
+cops-robbers 曾仍有游戏端 `ads.js` 的 45 秒总超时，以及 `main.js` 隐藏时取消、返回时丢弃结果的逻辑；只升级公共广告层无法消除这三处问题。2026-10-19 已修复，调用链为 `main.js → ads.js → ad-host.js → platform-ads.js → tap`，见[围捕小队整包回归](../../games/local/cops-robbers/docs/qa/taptap-reward-fix-2026-10-19/README.md)。
 
 ### 2. 广告导致页面隐藏，却被当成退出
 

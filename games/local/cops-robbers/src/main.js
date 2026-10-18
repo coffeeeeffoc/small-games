@@ -170,8 +170,8 @@ function updateChrome() {
   $('phase-label').innerHTML = `<i></i>${labels[phase]}`;
   $('undo').disabled = !['planning', 'won', 'lost'].includes(phase) || !history.length;
   $('hint').disabled = phase !== 'planning' || hintBusy || adBusy || hintAds.pending;
-  $('hint').querySelector('span:last-child').textContent = adBusy ? '观看中…' : hintAds.pending ? '广告中' : hintBusy ? '想想…' : freeHints ? '提示' : '看广告';
-  $('hint').setAttribute('aria-label', freeHints ? '获取提示' : '看广告获取提示');
+  $('hint').querySelector('span:last-child').textContent = adBusy ? '观看中…' : hintAds.pending ? '广告中' : hintBusy ? '想想…' : '提示';
+  $('hint').setAttribute('aria-label', '获取提示');
   $('restart').disabled = false;
   $('share-level').disabled = pending !== null;
   $('selection-label').textContent = `${selected + 1} 号已选中`;
@@ -520,7 +520,7 @@ async function showHint() {
     adBusy = false; updateChrome();
     if (document.body.classList.contains('focus-play')) $('hint').focus({ preventScroll: true });
   }
-  if (request !== hintRequest || phase !== 'planning' || hintKey() !== key || document.hidden) return;
+  if (request !== hintRequest || phase !== 'planning' || hintKey() !== key) return;
   if (result?.status !== 'completed') {
     notify(result?.status === 'dismissed' ? '广告未看完，本次未获取提示。' : result?.status === 'failed' ? '广告加载失败，请稍后重试。' : '广告暂不可用，请稍后重试。', 'alert');
     return;
@@ -656,7 +656,8 @@ window.addEventListener('blur', cancelDrag);
 window.addEventListener('resize', resizeBoard);
 document.addEventListener('game-displaychange', resizeBoard);
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) { cancelDrag(); cancelHintRequest(); updateChrome(); if (pending) { const token = runToken; finishTurn(token); runToken++; } }
+  hintAds.setHidden(document.hidden);
+  if (document.hidden) { cancelDrag(); if (!adBusy) cancelHintRequest(); updateChrome(); if (pending) { const token = runToken; finishTurn(token); runToken++; } }
 });
 window.addEventListener('pagehide', () => { cancelHintRequest(); persist(); });
 

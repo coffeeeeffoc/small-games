@@ -215,7 +215,7 @@ try {
     await page.locator('#focus-toggle').tap();
     await page.locator('#resume-patrol').tap();
     assert.ok(await page.getByTestId('hint').isEnabled(), 'A cancelled request never leaves hint disabled');
-    assert.equal((await page.getByTestId('hint').textContent()).trim(), '看广告');
+    assert.equal((await page.getByTestId('hint').textContent()).trim(), '提示');
     assert.deepEqual(await snapshot(page), before, 'Cancelling and resuming a hint preserves the patrol');
   });
   await check('occupied road feedback stays visible in the compact game prompt', async page => {

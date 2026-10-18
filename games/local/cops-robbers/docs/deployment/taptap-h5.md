@@ -55,14 +55,17 @@ pnpm --filter cops-robbers test:ads
 
 ## 激励广告接口
 
-每点一次“看广告”都需要完成一次广告，完成后才求解当前位置。取消、不可用、失败、超时与离开当前局面不提供提示。教学指引保留，手动行棋、撤销与重试免费。
+每点一次“提示”都需要完成一次广告，完成后才求解当前位置。取消、不可用、失败、打开超时与离开当前局面不提供提示。教学指引保留，手动行棋、撤销与重试免费。
+
+2026-10-19 已贯通游戏层和宿主层的 `onShown`：TapTap SDK 的 `show()` Promise 成功后停止打开超时，等待 `onClose({ isEnded: true })` 才发放提示。广告造成页面隐藏时保留请求，隐藏期间收到的结果等恢复前台再处理；主动退出仍取消。详见[本次修复与新包](../qa/taptap-reward-fix-2026-10-19/README.md)和[公共避坑指南](../../../../../docs/operations/taptap-rewarded-ads.md)。
 
 普通 Web build 默认使用明确标注的四秒模拟广告。**模拟广告不是商业广告，也没有收益。** `package:taptap` 固定生成 `adMode: 'host', platform: 'taptap-h5'`，通过公共提供方调用宿主 `tap.createRewardedVideoAd`。TapTap 包中配置或 SDK 缺失时报告不可用，不回退模拟。其他 Game Host 仍可注入已有奖励契约：
 
 ```js
 globalThis.SmallGamesRewardAds = {
   async offer(opportunity) {
-    // opportunity = { id: 'cops-robbers:hint', reward: { hint: 1 } }
+    // opportunity = { id: 'cops-robbers:hint', reward: { hint: 1 }, onShown }
+    // SDK 确认打开成功后调用 opportunity.onShown?.()；这一步不发奖。
     // 调用该 H5 渠道的真实激励广告 SDK；仅完整观看回调可返回 completed。
     return { status: 'unavailable' };
   },
@@ -70,7 +73,7 @@ globalThis.SmallGamesRewardAds = {
 };
 ```
 
-也支持 `SmallGamesPublishingConfig = { adMode: 'host', provider: { show(request), dispose() } }`，`request` 为 `{ opportunityId: 'cops-robbers:hint', kind: 'rewarded' }`。两种接口均返回 `completed / dismissed / unavailable / failed`，未知值不给提示。设置 `adMode: 'host'` 后缺少提供方会报告不可用，不回退到模拟；`adMode: 'off'` 关闭广告获取提示。超时或取消会恢复正常行棋，但尚未结束的宿主广告仍占用提示请求锁，避免重复展示；提供方须让取消后的 Promise 结束。
+也支持 `SmallGamesPublishingConfig = { adMode: 'host', provider: { show(request), dispose() } }`，`request` 为 `{ opportunityId: 'cops-robbers:hint', kind: 'rewarded', onShown }`。两种接口均返回 `completed / dismissed / unavailable / failed`，未知值不给提示。提供方应在确认打开成功后调用 `onShown`，未报告打开成功的请求仍受 45 秒保护。设置 `adMode: 'host'` 后缺少提供方会报告不可用，不回退到模拟；`adMode: 'off'` 关闭广告获取提示。打开超时或取消会恢复正常行棋，但尚未结束的宿主广告仍占用提示请求锁，避免重复展示；提供方须让取消后的 Promise 结束。
 
 ## TapTap H5 广告开通
 

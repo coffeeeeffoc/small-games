@@ -5,15 +5,16 @@ import { once } from 'node:events';
 import { createServer } from 'node:http';
 import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { extname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium } from '@playwright/test';
 
-const root = fileURLToPath(new URL('../../../../outputs/cops-robbers/taptap-h5/dist/', import.meta.url));
-const zip = new URL('../../../../outputs/cops-robbers/cops-robbers-taptap-h5.zip', import.meta.url);
-const packageRecord = JSON.parse(await readFile(new URL('../docs/qa/taptap-h5-package.json', import.meta.url)));
+const receipt = process.argv[2] ? pathToFileURL(resolve(process.argv[2])) : new URL('../docs/qa/taptap-h5-package.json', import.meta.url);
+const packageRecord = JSON.parse(await readFile(receipt));
+const root = fileURLToPath(process.argv[2] ? new URL(`${packageRecord.name}/dist/`, receipt) : new URL('../../../../outputs/cops-robbers/taptap-h5/dist/', import.meta.url));
+const zip = process.argv[2] ? new URL(packageRecord.zip, receipt) : new URL('../../../../outputs/cops-robbers/cops-robbers-taptap-h5.zip', import.meta.url);
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 assert.equal(hash(await readFile(zip)), packageRecord.sha256, 'ZIP must match the package receipt');
-assert.equal(packageRecord.adPlatform, 'taptap-h5');
+assert.equal(packageRecord.platform ?? packageRecord.adPlatform, 'taptap-h5');
 assert.equal(packageRecord.adMode, 'host');
 for (const file of packageRecord.files) assert.equal(hash(await readFile(resolve(root, file.path))), file.sha256, `Extracted resource: ${file.path}`);
 const packagedConfig = JSON.parse((await readFile(resolve(root, 'platform-config.js'), 'utf8')).match(/Object.freeze\((\{.*?\})\)/)[1]);
@@ -44,13 +45,19 @@ const server = createServer(async (request, response) => {
   } catch { response.writeHead(500); response.end(); }
 });
 server.listen(0, '127.0.0.1'); await once(server, 'listening');
-const output = new URL('../outputs/taptap-ads/', import.meta.url);
+const output = process.argv[2] ? new URL('validation/', receipt) : new URL('../outputs/taptap-ads/', import.meta.url);
 const report = { zipSha256: packageRecord.sha256, platform: 'taptap-h5', adUnitId: packagedConfig.adUnitId, sdkFixture: true, realAdsVerified: false, realDeviceVerified: false, checks: [] };
 let browser;
 const ready = page => page.waitForFunction(() => !document.getElementById('hint').disabled);
 async function check(name, run, viewport = { width: 390, height: 844 }) {
   const context = await browser.newContext({ viewport, hasTouch: true, isMobile: true });
   const page = await context.newPage(), errors = [];
+  await page.addInitScript(() => {
+    globalThis.__hintAnalyses = 0; globalThis.__windowVisibility = 0;
+    const Worker = globalThis.Worker;
+    globalThis.Worker = class extends Worker { constructor(url, options) { super(url, options); if (String(url).includes('hint-worker.js')) globalThis.__hintAnalyses++; } };
+    window.addEventListener('visibilitychange', () => { globalThis.__windowVisibility++; });
+  });
   page.on('pageerror', error => errors.push(error.message));
   page.on('requestfailed', request => errors.push(request.failure()?.errorText));
   try {
@@ -60,6 +67,8 @@ async function check(name, run, viewport = { width: 390, height: 844 }) {
     assert.equal(config.adMode, 'host'); assert.equal(config.platform, 'taptap-h5');
     assert.equal(config.adUnitId, packagedConfig.adUnitId);
     await page.locator('#home-start').tap();
+    assert.equal((await page.getByTestId('hint').textContent()).trim(), '提示');
+    assert.equal(await page.getByTestId('hint').getAttribute('aria-label'), '获取提示');
     await run(page);
     assert.deepEqual(errors, []);
     report.checks.push({ name, passed: true }); console.log(`PASS ${name}`);
@@ -75,7 +84,7 @@ async function inject(page, behavior = 'normal') {
         onClose(fn) { globalThis.__tapClose = fn; }, onError(fn) { globalThis.__tapError = fn; },
         offClose() { __tapCalls.push('offClose'); }, offError() { __tapCalls.push('offError'); },
         load() { __tapCalls.push('load'); return behavior === 'load-failed' ? Promise.reject(new Error('load')) : Promise.resolve(); },
-        show() { __tapCalls.push('show'); return behavior === 'show-failed' ? Promise.reject(new Error('show')) : Promise.resolve(); },
+        show() { __tapCalls.push('show'); return behavior === 'show-stalled' ? new Promise(() => {}) : behavior === 'show-failed' ? Promise.reject(new Error('show')) : Promise.resolve(); },
         destroy() { __tapCalls.push('destroy'); },
       };
       return ad;
@@ -83,6 +92,10 @@ async function inject(page, behavior = 'normal') {
     for (const name of ['wx', 'tt', 'bl']) globalThis[name] = { createRewardedVideoAd() { throw new Error(`Wrong channel: ${name}`); } };
   }, behavior);
 }
+const visibility = (page, hidden) => page.evaluate(hidden => {
+  Object.defineProperty(document, 'hidden', { configurable: true, value: hidden });
+  document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+}, hidden);
 try {
   await mkdir(output, { recursive: true });
   browser = await chromium.launch({ channel: 'chromium', executablePath });
@@ -101,18 +114,35 @@ try {
     }, viewport);
     await check(`tap-complete-cancel-${viewport.width}`, async page => {
       await inject(page);
+      await page.clock.install();
       const before = await page.evaluate(() => JSON.parse(localStorage.getItem('cops-robbers-v3')).current.state);
       await page.getByTestId('hint').tap();
       await page.waitForFunction(() => globalThis.__tapCalls.includes('show'));
       assert.equal(await page.locator('.hint-circle').count(), 0, 'show resolution never rewards');
+      assert.equal(await page.evaluate(() => __hintAnalyses), 0, 'No analysis before completed callback');
       await page.locator('#hint').evaluate(button => button.click());
       assert.equal(await page.evaluate(() => __tapCalls.filter(call => typeof call === 'object').length), 1);
-      await page.evaluate(() => __tapClose({ isEnded: false })); await ready(page);
+      await visibility(page, true);
+      await page.evaluate(() => __tapClose({ isEnded: false }));
+      assert.ok(await page.getByTestId('hint').isDisabled());
+      await visibility(page, false); await ready(page);
       assert.equal(await page.locator('.hint-circle').count(), 0);
+      assert.match(await page.locator('#play-prompt').textContent(), /广告未看完/);
       await page.getByTestId('hint').tap();
       await page.waitForFunction(() => __tapCalls.filter(call => call === 'show').length === 2);
+      await visibility(page, true);
+      await page.clock.fastForward(600000);
+      assert.ok(await page.getByTestId('hint').isDisabled());
+      assert.equal(await page.evaluate(() => __tapCalls.filter(call => call === 'destroy').length), 1, 'The playing ad must survive the opening deadline');
+      if (viewport.width === 390) await visibility(page, false);
       await page.evaluate(() => { __tapClose({ isEnded: true }); __tapClose({ isEnded: true }); });
+      if (viewport.width !== 390) {
+        assert.equal(await page.evaluate(() => __hintAnalyses), 0, 'A hidden completion waits for foreground before analysis');
+        await visibility(page, false);
+      }
       await page.locator('.hint-circle').waitFor();
+      assert.equal(await page.evaluate(() => __hintAnalyses), 1, 'Repeated callbacks grant one hint');
+      assert.equal(await page.evaluate(() => __windowVisibility), 4, 'Visibility fixtures also reach Window listeners');
       assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('cops-robbers-v3')).current.state), before);
       assert.deepEqual(await page.evaluate(() => __tapCalls.filter(call => typeof call === 'object')), [{ adUnitId: packagedConfig.adUnitId }, { adUnitId: packagedConfig.adUnitId }]);
       await page.screenshot({ path: fileURLToPath(new URL(`tap-hint-${viewport.width}.png`, output)) });
@@ -123,19 +153,16 @@ try {
     assert.equal(await page.locator('[data-game-ad], .hint-circle').count(), 0);
     assert.match(await page.locator('#play-prompt').textContent(), /广告加载失败/);
   });
-  for (const cause of ['return', 'timeout', 'background']) await check(`late-close-after-${cause}`, async page => {
-    await inject(page); if (cause === 'timeout') await page.clock.install();
+  for (const cause of ['return', 'timeout', 'pagehide']) await check(`late-close-after-${cause}`, async page => {
+    await inject(page, cause === 'timeout' ? 'show-stalled' : 'normal'); if (cause === 'timeout') await page.clock.install();
     await page.getByTestId('hint').tap(); await page.waitForFunction(() => __tapCalls.includes('show'));
     if (cause === 'return') await page.locator('#focus-toggle').evaluate(button => button.click());
     if (cause === 'timeout') await page.clock.fastForward(45001);
-    if (cause === 'background') await page.evaluate(() => {
-      Object.defineProperty(document, 'hidden', { configurable: true, value: true });
-      document.dispatchEvent(new Event('visibilitychange'));
-      Object.defineProperty(document, 'hidden', { configurable: true, value: false });
-    });
+    if (cause === 'pagehide') await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
     await page.waitForFunction(() => !document.querySelector('[inert]'));
     await page.evaluate(() => __tapClose({ isEnded: true }));
     assert.equal(await page.locator('.hint-circle').count(), 0);
+    assert.equal(await page.evaluate(() => __hintAnalyses), 0);
     assert.equal(await page.evaluate(() => __tapCalls.filter(call => call === 'destroy').length), 1);
   });
   report.passed = true;

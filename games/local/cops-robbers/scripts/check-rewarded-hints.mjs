@@ -85,7 +85,7 @@ try {
       assert.equal(await page.locator('.hint-circle').count(), 0);
       assert.match(await page.locator('#play-prompt').textContent(), /广告/);
       assert.deepEqual(await state(page), before);
-      assert.deepEqual(await page.evaluate(() => globalThis.__adRequest), { id: 'cops-robbers:hint', reward: { hint: 1 } });
+      assert.deepEqual(await page.evaluate(() => { const { onShown, ...request } = globalThis.__adRequest; return { ...request, onShown: typeof onShown }; }), { id: 'cops-robbers:hint', reward: { hint: 1 }, onShown: 'function' });
     });
   }
   await check('host-missing-and-throwing', async page => {
@@ -102,7 +102,7 @@ try {
     await start(page); const before = await state(page);
     await page.evaluate(() => {
       globalThis.__offers = 0;
-      globalThis.SmallGamesRewardAds = { offer: () => { globalThis.__offers++; return new Promise(resolve => { globalThis.__finishAd = resolve; }); } };
+      globalThis.SmallGamesRewardAds = { offer: request => { globalThis.__offers++; globalThis.__adShown = request.onShown; return new Promise(resolve => { globalThis.__finishAd = resolve; }); } };
     });
     await page.getByTestId('hint').tap();
     await page.locator('#hint').evaluate(button => button.dispatchEvent(new MouseEvent('click')));
@@ -120,7 +120,7 @@ try {
     await page.clock.install();
     await page.evaluate(cleanup => {
       globalThis.__offers = 0;
-      globalThis.SmallGamesRewardAds = { offer: () => { globalThis.__offers++; return new Promise(resolve => { globalThis.__finishAd = resolve; }); } };
+      globalThis.SmallGamesRewardAds = { offer: request => { globalThis.__offers++; globalThis.__adShown = request.onShown; return new Promise(resolve => { globalThis.__finishAd = resolve; }); } };
       if (cleanup === 'pending') globalThis.SmallGamesRewardAds.dispose = () => { globalThis.__disposed = true; };
     }, cleanup);
     await page.getByTestId('hint').tap();
@@ -136,15 +136,22 @@ try {
     assert.equal(await page.locator('.hint-circle').count(), 0);
     await page.getByTestId('hint').tap();
     await page.evaluate(() => {
+      globalThis.__adShown();
       Object.defineProperty(document, 'hidden', { configurable: true, value: true });
-      document.dispatchEvent(new Event('visibilitychange'));
-      Object.defineProperty(document, 'hidden', { configurable: true, value: false });
-      document.dispatchEvent(new Event('visibilitychange'));
+      document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
     });
-    assert.equal(await page.locator('[inert], .hint-circle').count(), 0);
-    await page.evaluate(() => globalThis.__finishAd({ status: 'completed' }));
-    await ready(page);
+    await page.clock.fastForward(600000);
+    assert.ok(await page.getByTestId('hint').isDisabled());
     assert.equal(await page.locator('.hint-circle').count(), 0);
+    await page.evaluate(() => globalThis.__finishAd({ status: 'completed' }));
+    assert.equal(await page.locator('.hint-circle').count(), 0);
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+      document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+    });
+    await page.locator('.hint-circle').waitFor();
+    await ready(page);
+    assert.equal(await page.locator('[inert]').count(), 0);
   });
   await check('completed-host-hints-and-win', async page => {
     await start(page); let current = initialState(levels[0]);
