@@ -8,6 +8,10 @@ const css = await readFile(new URL('../platforms/competition/h5.css', import.met
 const source = (await readFile(new URL('../platforms/competition/h5.js', import.meta.url), 'utf8'))
   .replace("import './client.js';", '')
   .replace("import styles from './h5.css?inline';", `const styles = ${JSON.stringify(css)};`);
+const avatars = await readFile(
+  new URL('../platforms/competition/avatars.js', import.meta.url),
+  'utf8',
+);
 const profileDom = await readFile(
   new URL('../platforms/competition/profile-dom.js', import.meta.url),
   'utf8',
@@ -57,7 +61,7 @@ globalThis.fixture = { status: 'waiting', calls: [], visibility: [], pendingRoom
 addEventListener('competition-visibility', event => fixture.visibility.push(event.detail.open));
 const streetGame = new URL(location.href).searchParams.get('game') === 'cops-robbers-realtime';
 const board = { title: '测试榜单', description: '双方准备后开始。独立操作；服务端确认结果。', eligiblePlayers: 0, me: null, top: [], ...(streetGame ? { roles: ['pursuer', 'runner'], modes: [{ id: 'classic', title: '自由追逐' }, { id: 'escape', title: '出口竞速' }] } : {}) };
-const profile = { playerId: 'player-a', name: '玩家甲' };
+const profile = { playerId: 'player-a', name: '玩家甲', avatarId:'panda' };
 function room() {
   return { code: 'ABCDEF123456', status: fixture.status, you: 0, seq: 0,
     serverNow: Date.now(), deadline: Date.now() + 60000, pollMs: 60000,
@@ -66,7 +70,7 @@ function room() {
     results: [{ playerId: 'player-a', result: { eligible: true, score: 10, secondary: 2000 }, before: board, after: board }], ...fixture.roomPatch };
 }
 fixture.room = room;
-globalThis.__competition = { request: async (url, options) => {
+globalThis.__competition = { avatarPolicy:{presets:['cat','fox','panda','rabbit','bear','owl','koala','tiger']}, request: async (url, options) => {
   fixture.calls.push(url);
   if (url === '/me') {
     if (options?.body) profile.name = JSON.parse(options.body).name;
@@ -103,23 +107,25 @@ const server = createServer((request, response) => {
   const lettersPage =
     new URL(request.url, 'http://localhost').searchParams.get('game') === 'letters-words2';
   response.end(
-    request.url === '/profile-dom.js'
-      ? profileDom
-      : request.url === '/connection-info.js'
-        ? connectionInfo
-        : request.url === '/service-config.js'
-          ? serviceConfig
-          : request.url === '/h5.js'
-            ? source
-            : request.url === '/street-pages.js'
-              ? streetSource
-              : request.url.endsWith('/role-appearance.js')
-                ? roleAppearance
-                : request.url === '/format.js'
-                  ? format
-                  : request.url === '/fixture.js'
-                    ? fixture
-                    : `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body${xiangqiPage ? ' data-screen="modes"' : ''}><button data-game-fullscreen>全屏</button>${xiangqiPage ? '<main class="page"><section data-screen="modes"><button id="mode-online" hidden style="min-height:48px;margin:24px"><strong>好友对弈</strong><small>邀请朋友一起玩</small></button></section></main>' : lettersPage ? '<button id="friend-button" hidden style="min-height:44px;margin:24px">好友同题</button>' : ''}<script type="module" src="/fixture.js"></script></body></html>`,
+    request.url === '/avatars.js'
+      ? avatars
+      : request.url === '/profile-dom.js'
+        ? profileDom
+        : request.url === '/connection-info.js'
+          ? connectionInfo
+          : request.url === '/service-config.js'
+            ? serviceConfig
+            : request.url === '/h5.js'
+              ? source
+              : request.url === '/street-pages.js'
+                ? streetSource
+                : request.url.endsWith('/role-appearance.js')
+                  ? roleAppearance
+                  : request.url === '/format.js'
+                    ? format
+                    : request.url === '/fixture.js'
+                      ? fixture
+                      : `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body${xiangqiPage ? ' data-screen="modes"' : ''}><button data-game-fullscreen>全屏</button>${xiangqiPage ? '<main class="page"><section data-screen="modes"><button id="mode-online" hidden style="min-height:48px;margin:24px"><strong>好友对弈</strong><small>邀请朋友一起玩</small></button></section></main>' : lettersPage ? '<button id="friend-button" hidden style="min-height:44px;margin:24px">好友同题</button>' : ''}<script type="module" src="/fixture.js"></script></body></html>`,
   );
 });
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -148,7 +154,16 @@ try {
         hasTouch: touch,
         isMobile: touch,
       });
+      if (game === 'cops-robbers')
+        await context.addInitScript(() => {
+          globalThis.__CLASSIC_CHASE_ROLES__ = true;
+        });
       const page = await context.newPage();
+      const streetAssets = [];
+      page.on('request', (request) => {
+        if (/\/src\/assets\/(characters|home-city)\.png$/.test(request.url()))
+          streetAssets.push(request.url());
+      });
       const errors = [];
       page.on('pageerror', (error) => errors.push(error.message));
       await page.goto(`http://127.0.0.1:${server.address().port}/?game=${game}`);
@@ -214,8 +229,8 @@ try {
         await press(route('create').locator('[data-initiative="runner"]'));
         await press(surface.locator('[data-create]'));
         await expect(route('play')).toBeVisible();
-        await expect(surface.locator('canvas')).toBeVisible();
-        const canvas = surface.locator('canvas');
+        await expect(surface.locator('canvas[data-play]')).toBeVisible();
+        const canvas = surface.locator('canvas[data-play]');
         await expect(canvas).toHaveAttribute('data-rendered-seq', '2');
         await expect(canvas).toHaveAttribute('data-rendered-server-now', '1000');
         const geometry = await canvas.evaluate(async (element) => {
@@ -418,7 +433,7 @@ try {
       }
       await press(dialog.locator('[data-profile]'));
       await details.getByRole('textbox', { name: '你的昵称' }).fill('玩家乙');
-      await press(details.getByRole('button', { name: '保存昵称' }));
+      await press(details.getByRole('button', { name: '保存资料' }));
       await expect(details).toBeHidden();
       await expect(dialog.locator('[data-profile-name]')).toHaveText('玩家乙');
       // Start a match, return from details, and leave through the persistent return action.
@@ -426,7 +441,7 @@ try {
         fixture.status = 'playing';
       });
       await press(dialog.locator('[data-create]'));
-      await expect(dialog.locator('canvas')).toBeVisible();
+      await expect(dialog.locator('canvas[data-play]')).toBeVisible();
       await expect(exit).toBeInViewport();
       await press(dialog.locator('[data-rules]'));
       await press(details.locator('[data-dismiss]'));
@@ -461,6 +476,7 @@ try {
         await expect(dialog).toBeHidden();
       }
       assert.deepEqual(errors, []);
+      assert.deepEqual(streetAssets, [], 'other games must not load street artwork');
       await expect
         .poll(() => page.evaluate(() => fixture.visibility))
         .toEqual([true, false, true, false, true, false, true, false]);

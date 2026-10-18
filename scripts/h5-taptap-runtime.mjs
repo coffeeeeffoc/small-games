@@ -27,6 +27,7 @@ export const fixtureMigrations = Object.freeze([
   'infra/migrations/011-competition-profiles.sql',
   'infra/migrations/012-three-choose-two.sql',
   'infra/migrations/013-competition-identities.sql',
+  'infra/migrations/014-player-sessions.sql',
   'infra/admin-console/migrations/001-admin-auth.sql',
   'infra/admin-console/migrations/002-control-center.sql',
 ]);
@@ -594,22 +595,28 @@ export async function verifyRuntimeIdentity({ request = fetch, now = Date.now } 
     const started = now();
     guestRequestsAt.push(started);
     const session = await send('/sessions/guest', {
-      body: { identityVersion: 2, identityMode: 'ephemeral', game },
+      body: { game },
     });
-    assert.equal(session.identityMode, 'ephemeral');
+    assert.equal(session.identityMode, 'persistent');
     assert.equal(session.game, game);
     assert(uuidPattern.test(session.userId));
     assert(session.expiresAt <= started + 15 * 60000 + 1000);
-    assert(session.identityExpiresAt <= started + 8 * 3600000 + 1000);
+    assert.equal(session.identityKind, 'guest');
+    assert.equal(session.identityExpiresAt, null);
+    assert(session.refreshExpiresAt >= started + 179 * 86400000);
+    assert(
+      ['cat', 'fox', 'panda', 'rabbit', 'bear', 'owl', 'koala', 'tiger'].includes(session.avatarId),
+    );
     const refreshed = await send('/sessions/refresh', {
       body: { refreshToken: session.refreshToken },
     });
-    const renewed = await send('/sessions/refresh', { body: {}, token: refreshed.token });
-    for (const value of [refreshed, renewed]) {
-      assert.equal(value.userId, session.userId);
-      assert.equal(value.identityExpiresAt, session.identityExpiresAt);
-      assert.equal(value.refreshExpiresAt, session.identityExpiresAt);
-    }
+    assert.equal(refreshed.userId, session.userId);
+    assert.equal(refreshed.sessionId, session.sessionId);
+    assert.notEqual(refreshed.token, session.token);
+    assert.notEqual(refreshed.refreshToken, session.refreshToken);
+    await send('/sessions/refresh', { body: { refreshToken: session.refreshToken }, status: 401 });
+    await send('/me', { token: session.token, status: 401 });
+    const renewed = refreshed;
     const own = await send('/me', { token: renewed.token });
     assert.equal(own.userId, session.userId);
     assert.equal(own.avatarUrl, '');
@@ -620,6 +627,9 @@ export async function verifyRuntimeIdentity({ request = fetch, now = Date.now } 
       await send(`/games/${other}/leaderboards/versus`, { token: renewed.token, status: 403 });
     }
     await send(`/boards/${game}`, { token: renewed.token });
+    await send('/sessions/logout', { body: {}, token: session.token });
+    await send('/me', { token: renewed.token, status: 401 });
+    await send('/sessions/refresh', { body: { refreshToken: renewed.refreshToken }, status: 401 });
     users.push(session.userId);
   }
   assert.equal(new Set(users).size, 3);
@@ -627,8 +637,8 @@ export async function verifyRuntimeIdentity({ request = fetch, now = Date.now } 
     evidence: {
       realHttp: true,
       realPostgres: true,
-      ephemeralGames: [...matrixGames],
-      refreshAndBearerRenewSameOwner: true,
+      persistentAnonymousGames: [...matrixGames],
+      rotatingRefreshAndFamilyLogout: true,
       crossGameReadsRejected: true,
     },
     guestRequestsAt,
@@ -659,7 +669,7 @@ export async function verifyRuntimeOwnership({ snapshot, guestRequestsAt, reques
       guestRequestsAt.push(Date.now());
       sessions.push(
         await send('/sessions/guest', {
-          body: { identityVersion: 2, identityMode: 'ephemeral', game },
+          body: { game },
         }),
       );
     }
@@ -900,7 +910,7 @@ export async function createOwnedRuntime({
   };
   const snapshot = () =>
     psql(
-      `select md5(jsonb_build_object('players',(select jsonb_agg(t order by id) from runtime.competition_players t),'sessions',(select jsonb_agg(t order by token_hash) from runtime.competition_sessions t),'refresh',(select jsonb_agg(t order by token_hash) from runtime.competition_refresh_tokens t),'rooms',(select jsonb_agg(t order by code) from runtime.competition_rooms t),'actions',(select jsonb_agg(t order by room_code,player_id,seq) from runtime.competition_actions t),'results',(select jsonb_agg(t order by match_id,player_id) from runtime.competition_results t),'best',(select jsonb_agg(t order by board,player_id) from runtime.competition_best t),'matches',(select jsonb_agg(t order by id) from runtime.competition_matches t),'duels',(select jsonb_agg(t order by board,day,first_player,second_player) from runtime.competition_duels t))::text)`,
+      `select md5(jsonb_build_object('players',(select jsonb_agg(t order by id) from runtime.competition_players t),'grants',(select jsonb_agg(t order by player_id,game) from runtime.player_game_access t),'sessions',(select jsonb_agg(t order by token_hash) from runtime.competition_sessions t),'refresh',(select jsonb_agg(t order by token_hash) from runtime.competition_refresh_tokens t),'rooms',(select jsonb_agg(t order by code) from runtime.competition_rooms t),'actions',(select jsonb_agg(t order by room_code,player_id,seq) from runtime.competition_actions t),'results',(select jsonb_agg(t order by match_id,player_id) from runtime.competition_results t),'best',(select jsonb_agg(t order by board,player_id) from runtime.competition_best t),'matches',(select jsonb_agg(t order by id) from runtime.competition_matches t),'duels',(select jsonb_agg(t order by board,day,first_player,second_player) from runtime.competition_duels t))::text)`,
     );
   const replaySummary = (targets) => {
     const rooms = targets.matches.map((match) => `'${match.roomCode}'`).join(','),
@@ -1170,7 +1180,7 @@ export async function createOwnedRuntime({
       psql(bytes);
     }
     psql(
-      `insert into runtime.competition_players(id,created_at) values('${proofPlayer}',${Date.now()}); insert into runtime.competition_sessions values('${hash(proofToken)}','${proofPlayer}',${Date.now() + 8 * 3600000});`,
+      `insert into runtime.competition_players(id,platform,app_id,created_at) values('${proofPlayer}','guest','cops-robbers',${Date.now()}); insert into runtime.player_game_access values('${proofPlayer}','cops-robbers'); insert into runtime.competition_sessions(token_hash,player_id,expires_at,game,family_id,family_expires_at) values('${hash(proofToken)}','${proofPlayer}',${Date.now() + 900000},'cops-robbers','${randomUUID()}',${Date.now() + 180 * 86400000});`,
     );
     ({ openDatabase } = await dependency(
       workspace,

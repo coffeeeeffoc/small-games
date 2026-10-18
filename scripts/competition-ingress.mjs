@@ -55,7 +55,7 @@ export function validateIngress(value) {
 // Keep the public surface finite; arbitrary future /api routes are not published.
 // Methods are also enforced: no DELETE/PUT, no catalog/projection/internal endpoints.
 const internalCompetitionPaths = [
-  '/api/competition/v1/sessions/(?:guest|platform|refresh|upgrade)',
+  '/api/competition/v1/sessions/(?:guest|platform|refresh|upgrade|logout)',
   '/api/competition/v1/me',
   '/api/competition/v1/boards/[A-Za-z0-9][A-Za-z0-9-]{0,79}',
   '/api/competition/v1/rooms(?:/(?:join|[A-F0-9]{12}(?:/(?:ready|leave|rematch|actions|role|initiative))?))?',

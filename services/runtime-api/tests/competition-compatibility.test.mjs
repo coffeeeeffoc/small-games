@@ -14,8 +14,14 @@ const candidateClient = await readFile(
   new URL('../../../platforms/competition/client.js', import.meta.url),
   'utf8',
 );
-const apps = [];
-afterEach(async () => Promise.all(apps.splice(0).map((app) => app.close())));
+const apps = [],
+  unhandledSql = [];
+afterEach(async () => {
+  await Promise.all(apps.splice(0).map((app) => app.close()));
+  expect(unhandledSql.splice(0), 'SQL adapter errors cannot count as expected rejections').toEqual(
+    [],
+  );
+});
 const day = 86400_000;
 const uuid = (index) => `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`;
 const rule = {
@@ -36,59 +42,145 @@ function memoryDatabase(clock) {
     sessions = new Map(),
     refresh = new Map(),
     rooms = new Map();
+  const grants = new Set();
   let ranked = [];
+  const live = (row) => row && Number(row.expires_at) > clock.time;
   const db = {
-    transaction: async (change) => change(db),
-    async execute(query) {
-      const { sql, params: p } = new PgDialect().sqlToQuery(query);
-      if (sql.startsWith('insert into runtime.competition_players')) {
-        const old = sql.includes('subject,created_at');
-        players.set(p[0], {
-          id: p[0],
-          platform: old ? p[1] : 'guest',
-          app_id: old ? p[2] : p[1],
-          created_at: old ? p[4] : p[2],
-          display_name: null,
-          profile: { source: 'default' },
+    async transaction(change) {
+      const maps = [players, sessions, refresh, rooms];
+      const snapshots = maps.map((map) => structuredClone([...map]));
+      const savedGrants = [...grants];
+      try {
+        return await change(db);
+      } catch (error) {
+        maps.forEach((map, index) => {
+          map.clear();
+          for (const [key, value] of snapshots[index]) map.set(key, value);
         });
-        return [{ id: p[0] }];
+        grants.clear();
+        for (const grant of savedGrants) grants.add(grant);
+        throw error;
       }
+    },
+    async execute(query) {
+      const compiled = new PgDialect().sqlToQuery(query);
+      const sql = compiled.sql.replace(/\s+/g, ' ').trim(),
+        p = compiled.params;
+      if (sql.startsWith('insert into runtime.competition_players')) {
+        const guest = sql.includes("'guest'");
+        const row = {
+          id: p[0],
+          platform: guest ? 'guest' : p[1],
+          app_id: guest ? p[1] : p[2],
+          subject: guest ? null : p[3],
+          created_at: guest ? p[2] : p[4],
+          display_name: guest ? p[3] : null,
+          profile: guest ? JSON.parse(p[4]) : { source: 'default' },
+        };
+        const existing =
+          row.subject != null &&
+          [...players.values()].find(
+            (item) =>
+              item.platform === row.platform &&
+              item.app_id === row.app_id &&
+              item.subject === row.subject,
+          );
+        if (existing) return [{ id: existing.id }];
+        players.set(row.id, row);
+        return [{ id: row.id }];
+      }
+      if (sql.startsWith('insert into runtime.player_game_access')) {
+        grants.add(`${p[0]}:${p[1]}`);
+        return [];
+      }
+      if (sql.startsWith('select 1 from runtime.player_game_access'))
+        return grants.has(`${p[0]}:${p[1]}`) ? [{ ok: 1 }] : [];
       if (sql.startsWith('insert into runtime.competition_sessions')) {
-        sessions.set(p[0], { player_id: p[1], expires_at: p[2] });
+        sessions.set(p[0], {
+          player_id: p[1],
+          expires_at: p[2],
+          game: p[3] ?? '',
+          family_id: p[4],
+          family_expires_at: p[5] ?? 0,
+        });
         return [];
       }
       if (sql.startsWith('insert into runtime.competition_refresh_tokens')) {
-        refresh.set(p[0], { id: p[1], expires_at: p[2] });
+        refresh.set(p[0], { player_id: p[1], expires_at: p[2], game: p[3], session_hash: p[4] });
+        return [];
+      }
+      if (sql.startsWith('update runtime.competition_sessions set family_expires_at=')) {
+        for (const row of sessions.values())
+          if (row.player_id === p[1] && row.family_id === p[2]) row.family_expires_at = p[0];
+        return [];
+      }
+      if (sql.startsWith('update runtime.competition_sessions set expires_at=0')) {
+        if (sessions.has(p[0])) sessions.get(p[0]).expires_at = 0;
+        return [];
+      }
+      if (sql.startsWith('delete from runtime.competition_refresh_tokens')) {
+        refresh.delete(p[0]);
+        return [];
+      }
+      if (sql.startsWith('delete from runtime.competition_sessions')) {
+        for (const [key, row] of sessions)
+          if (row.player_id === p[0] && row.family_id === p[1]) {
+            sessions.delete(key);
+            for (const [secret, value] of refresh)
+              if (value.session_hash === key) refresh.delete(secret);
+          }
         return [];
       }
       if (sql.startsWith('select player_id from runtime.competition_sessions')) {
         const found = sessions.get(p[0]);
-        return found?.expires_at > clock.time ? [found] : [];
+        return live(found) ? [found] : [];
       }
       if (sql.includes('from runtime.competition_sessions s join runtime.competition_players p')) {
-        const found = sessions.get(p[0]);
-        return found?.expires_at > clock.time
-          ? [{ ...players.get(found.player_id), expires_at: found.expires_at }]
-          : [];
+        const found = sessions.get(p[0]),
+          player = found && players.get(found.player_id);
+        return player && live(found) ? [{ ...player, ...found }] : [];
       }
       if (sql.startsWith('select 1 from runtime.competition_sessions')) {
         const found = sessions.get(p[0]);
-        return found?.expires_at > clock.time && found.player_id === p[1] ? [{ ok: 1 }] : [];
+        return live(found) && found.player_id === p[1] && found.game === p[2] ? [{ ok: 1 }] : [];
       }
       if (
-        sql.includes('join runtime.competition_refresh_tokens') ||
-        sql.startsWith('select r.expires_at')
+        sql.startsWith('select p.id') &&
+        sql.includes('join runtime.competition_refresh_tokens')
       ) {
         const found = refresh.get(p[0]);
-        return found && found.expires_at > clock.time
-          ? [{ ...found, ...players.get(found.id) }]
+        return found && players.has(found.player_id) ? [{ id: found.player_id }] : [];
+      }
+      if (sql.startsWith('select r.expires_at')) {
+        const found = refresh.get(p[0]),
+          session = found && sessions.get(found.session_hash);
+        const player = found && players.get(found.player_id);
+        return live(found) &&
+          player &&
+          session &&
+          session.player_id === found.player_id &&
+          session.game === found.game &&
+          session.family_expires_at > clock.time
+          ? [{ ...player, ...found, family_id: session.family_id }]
           : [];
       }
-      if (sql.startsWith('select id,platform,display_name,profile'))
-        return [players.get(p[0])].filter(Boolean);
-      if (sql.startsWith('select id,platform,app_id,created_at'))
-        return [players.get(p[0])].filter(Boolean);
-      if (sql.startsWith('select profile from runtime.competition_players'))
+      if (sql.startsWith('select p.id') && sql.includes('join runtime.competition_sessions')) {
+        const found = sessions.get(p[0]);
+        return found && players.has(found.player_id) ? [{ id: found.player_id }] : [];
+      }
+      if (sql.startsWith('select family_id')) {
+        const found = sessions.get(p[0]);
+        return found && found.player_id === p[1] && found.family_expires_at > clock.time
+          ? [found]
+          : [];
+      }
+      if (
+        sql.startsWith('select p.id,p.platform from runtime.competition_players') ||
+        sql.startsWith('select id from runtime.competition_players') ||
+        sql.startsWith('select id,platform,display_name,profile') ||
+        sql.startsWith('select id,platform,app_id,created_at') ||
+        sql.startsWith('select profile from runtime.competition_players')
+      )
         return [players.get(p[0])].filter(Boolean);
       if (sql.startsWith('select id as "playerId"')) {
         const player = players.get(p[0]);
@@ -96,7 +188,7 @@ function memoryDatabase(clock) {
       }
       if (sql.startsWith('update runtime.competition_players set')) {
         const player = players.get(p.at(-1));
-        player.display_name = p[0];
+        player.display_name = p[0] ?? player.display_name;
         if (sql.includes('profile=')) player.profile = JSON.parse(p[1]);
         return [];
       }
@@ -121,12 +213,16 @@ function memoryDatabase(clock) {
         rooms.set(p.at(-1), JSON.parse(p[0]));
         return [];
       }
+      unhandledSql.push(sql);
       throw new Error(`Unimplemented fixture SQL: ${sql}`);
     },
   };
   return {
     db,
     players,
+    sessions,
+    refresh,
+    grants,
     rooms,
     setRanked: (rows) => {
       ranked = rows;
@@ -229,10 +325,17 @@ describe('fixed 26756c80 H5 and Runtime wire compatibility (in-memory SQL, no PG
   });
   for (const service of ['old', 'candidate'])
     for (const consumer of ['old', 'candidate']) {
-      it(`${consumer} H5 × ${service} Runtime keeps base identity/profile/board/room contracts`, async () => {
+      it(`${consumer} H5 × ${service} Runtime accepts matching anonymous protocols and rejects incompatible credentials`, async () => {
         const clock = { time: 1_800_000_000_000 };
         const { app } = await server(service, clock);
         const { api } = client(consumer === 'old' ? pinned.client : candidateClient, app, clock);
+        if (service !== consumer) {
+          await expect(api.session()).rejects.toMatchObject({
+            code: service === 'candidate' ? 'INVALID_INPUT' : 'SESSION_EXPIRED',
+          });
+          expect((await app.inject('/api/competition/v1/me')).statusCode).toBe(401);
+          return;
+        }
         const credential = await api.session();
         assertCredential(credential);
         const owner = credential.playerId;
@@ -263,11 +366,9 @@ describe('fixed 26756c80 H5 and Runtime wire compatibility (in-memory SQL, no PG
     const clock = { time: 1_800_000_000_000 };
     const { app } = await server('old', clock);
     const { api, calls } = client(candidateClient, app, clock);
-    const first = await api.session();
-    clock.time = first.expiresAt - 30_000;
-    await expect(api.session()).rejects.toBeDefined();
-    expect(calls.filter((call) => call.path.endsWith('/sessions/guest'))).toHaveLength(1);
-    expect(calls.at(-1).path).toContain('/sessions/refresh');
+    await expect(api.session()).rejects.toMatchObject({ code: 'SESSION_EXPIRED' });
+    expect(calls).toHaveLength(1);
+    expect(calls[0].path).toBe('/api/competition/v1/sessions/guest');
   });
   it('missing fields, changed types and changed HTTP error codes fail the compatibility contract', async () => {
     for (const broken of [
@@ -320,6 +421,7 @@ const rowKeys = [
   'playerId',
   'nickname',
   'name',
+  'avatarId',
   'avatarUrl',
   'region',
   'profileSource',
@@ -400,7 +502,8 @@ describe('explicit public profile white lists and persisted room results', () =>
       total: 102,
     }));
     memory.setRanked(rows);
-    for (const owner of [null, uuid(102), uuid(101)]) {
+    await expect(store.board(rule.id, null)).rejects.toMatchObject({ code: 'LOGIN_REQUIRED' });
+    for (const owner of [uuid(102), uuid(101)]) {
       const board = await store.board(rule.id, owner);
       for (const row of [...board.top, board.me, board.previous, board.threshold].filter(Boolean))
         assertPublicRow(row);

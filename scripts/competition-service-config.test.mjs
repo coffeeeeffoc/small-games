@@ -43,27 +43,27 @@ test('offline HTML hides online entries before scripts run and reconfiguration r
     assert.equal(enabled, serviceHtml(html, h5ServiceConfig(game, { env: online })));
   }
 });
-test('only the three explicit Tap H5 producers select ephemeral mode; generic/native config is unchanged', async () => {
+test('only the three explicit Tap H5 producers select persistent mode; generic/native config is unchanged', async () => {
   for (const game of ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five']) {
     assert.equal(h5ServiceConfig(game, { env: online }).identityMode, undefined);
-    const config = h5ServiceConfig(game, { env: online, identityMode: 'ephemeral' });
-    assert.equal(config.identityMode, 'ephemeral');
+    const config = h5ServiceConfig(game, { env: online, identityMode: 'persistent' });
+    assert.equal(config.identityMode, 'persistent');
     assert.equal(config.game, game);
     assert.match(
       serviceHtml('<html><head></head><body></body></html>', config),
-      /"identityMode":"ephemeral"/,
+      /"identityMode":"persistent"/,
     );
   }
-  assert.throws(() => h5ServiceConfig('letters-words2', { identityMode: 'ephemeral' }));
+  assert.throws(() => h5ServiceConfig('letters-words2', { identityMode: 'persistent' }));
   assert.throws(() => h5ServiceConfig('cops-robbers', { identityMode: 'unknown' }));
   const source = await readFile(new URL('./h5-taptap-build.mjs', import.meta.url), 'utf8');
   assert.match(
     source,
-    /prepareH5Service\(game, dist, \{\s*env: buildEnv,\s*local: Boolean\(values.local\),\s*identityMode: 'ephemeral'/,
+    /prepareH5Service\(game, dist, \{\s*env: buildEnv,\s*local: Boolean\(values.local\),\s*identityMode: 'persistent'/,
   );
 });
-test('reconfigure keeps explicit ephemeral mode with service disabled without building a game', async () => {
-  const directory = await mkdtemp(path.join(tmpdir(), 'competition-ephemeral-config-'));
+test('reconfigure keeps explicit persistent mode with service disabled without building a game', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'competition-persistent-config-'));
   try {
     const index = path.join(directory, 'index.html');
     await writeFile(
@@ -72,13 +72,13 @@ test('reconfigure keeps explicit ephemeral mode with service disabled without bu
         '<html><head></head><body></body></html>',
         h5ServiceConfig('cops-robbers', {
           env: { COMPETITION_SERVICE_ENABLED: '0' },
-          identityMode: 'ephemeral',
+          identityMode: 'persistent',
         }),
       ),
     );
     await reconfigureH5Service(index, { COMPETITION_SERVICE_ENABLED: '0', H5_ADS_ENABLED: '0' });
     const html = await readFile(index, 'utf8');
-    assert.match(html, /"identityMode":"ephemeral"/);
+    assert.match(html, /"identityMode":"persistent"/);
     assert.match(html, /"competitionEnabled":false/);
   } finally {
     await rm(directory, { recursive: true, force: true });
@@ -171,7 +171,7 @@ test('all three TapTap release configurations work offline and only enable a con
   }
 });
 
-test('Creator web previews use a real guest session without invoking platform login', async () => {
+test('Creator web previews establish an anonymous identity using browser transport', async () => {
   const f = createNativeSDKFixture();
   const saved = { fetch: globalThis.fetch, competition: globalThis.__competition };
   const restore = f.installGlobals();
@@ -185,7 +185,16 @@ test('Creator web previews use a real guest session without invoking platform lo
         status: 200,
         json: async () =>
           target.endsWith('/sessions/guest')
-            ? { token: 'a'.repeat(64), playerId: 'preview-player', expiresAt: Date.now() + 3600000 }
+            ? {
+                token: 'a'.repeat(64),
+                refreshToken: 'b'.repeat(64),
+                sessionId: '10000000-0000-4000-8000-000000000001',
+                identityKind: 'guest',
+                game: 'cops-robbers',
+                playerId: 'preview-player',
+                expiresAt: Date.now() + 900000,
+                refreshExpiresAt: Date.now() + 86400000,
+              }
             : target.endsWith('/me')
               ? { playerId: 'preview-player', name: '测试玩家' }
               : {
@@ -207,7 +216,7 @@ test('Creator web previews use a real guest session without invoking platform lo
     );
     await flushNative();
     assert(requests.some((target) => target.endsWith('/sessions/guest')));
-    assert(requests.some((target) => target.endsWith('/boards/cops-robbers')));
+    assert(requests.some((target) => target.endsWith('/me')));
     assert.equal(f.requests.length, 0);
   } finally {
     instance?.stop();

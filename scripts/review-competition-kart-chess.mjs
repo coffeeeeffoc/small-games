@@ -29,14 +29,14 @@ async function request(path, token, body, status = 200) {
 }
 try {
   const [a, b, outsider] = await Promise.all(
-    [0, 1, 2].map(() => request('/sessions/guest', null, {})),
+    [0, 1, 2].map(() => request('/sessions/guest', null, { game: 'xiangqi-five' })),
   );
   assert.notEqual(a.playerId, b.playerId);
   await request('/me', '0'.repeat(64), undefined, 401);
   await request(
     '/sessions/platform',
     null,
-    { platform: 'wechat', appId: 'review-unconfigured', code: 'test' },
+    { platform: 'wechat', appId: 'review-unconfigured', code: 'test', game: 'xiangqi-five' },
     503,
   );
   for (const path of ['/internal/verify', '/internal/kart-results'])

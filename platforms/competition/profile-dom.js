@@ -1,4 +1,5 @@
-// The API supplies the reviewed image origins; unknown or non-CORS images stay initials.
+import { avatars, drawAvatar } from './avatars.js';
+// Legacy platform images still use the API's reviewed image origins.
 export function regionText(player) {
   return [player?.region?.country, player?.region?.province].filter(Boolean).join(' · ');
 }
@@ -117,6 +118,16 @@ export function renderAvatar(element, player, policy) {
   element.replaceChildren(document.createTextNode(fallback));
   const marker = {};
   element.avatarRequest = marker;
+  if (avatars.some((avatar) => avatar.id === player?.avatarId)) {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 128;
+    canvas.style.cssText = 'width:100%;height:100%;display:block;border-radius:inherit';
+    canvas.setAttribute('aria-hidden', 'true');
+    drawAvatar(canvas.getContext('2d'), player.avatarId, 0, 0, 128);
+    element.dataset.preset = player.avatarId;
+    element.replaceChildren(canvas);
+    return element;
+  }
   void imageUrl(player?.avatarUrl, policy).then((blob) => {
     if (
       !blob ||
@@ -138,3 +149,31 @@ export function renderAvatar(element, player, policy) {
   });
   return element;
 }
+
+export function avatarPicker(selected, policy) {
+  const field = document.createElement('fieldset');
+  field.className = 'player-avatar-picker';
+  const legend = document.createElement('legend');
+  legend.textContent = '选择头像';
+  const grid = document.createElement('div');
+  field.append(legend, grid);
+  for (const avatar of avatars.filter((item) => policy?.presets?.includes(item.id))) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.avatarId = avatar.id;
+    button.setAttribute('aria-label', avatar.name);
+    button.setAttribute('aria-pressed', String(selected === avatar.id));
+    renderAvatar(button, { avatarId: avatar.id }, policy);
+    button.onclick = () => {
+      for (const sibling of grid.children)
+        sibling.setAttribute('aria-pressed', String(sibling === button));
+    };
+    grid.append(button);
+  }
+  return {
+    element: field,
+    value: () => grid.querySelector('[aria-pressed="true"]')?.dataset.avatarId,
+  };
+}
+
+export const avatarPickerStyles = `.player-avatar-picker{border:0;margin:16px 0;padding:0;min-width:0;grid-column:1/-1}.player-avatar-picker legend{font-weight:700;margin-bottom:10px}.player-avatar-picker>div{display:grid;grid-template-columns:repeat(4,minmax(44px,1fr));gap:12px}.player-avatar-picker button{width:100%;height:auto;aspect-ratio:1;min-height:44px;padding:5px!important;border:2px solid transparent!important;border-radius:18px;box-shadow:none!important;background:transparent!important}.player-avatar-picker button[aria-pressed=true]{border-color:currentColor!important;background:#f4e5bd!important}.player-avatar-picker canvas{max-width:52px;height:auto!important;aspect-ratio:1;margin:auto}`;

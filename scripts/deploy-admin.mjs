@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { fileHashes, loadConfig, root } from './company-deployment.mjs';
 import { prepareSelectedBackend } from './deployment-bundle.mjs';
 import { selectedBackendBuildCommands } from './backend-build.mjs';
-import { deploymentCommand } from './deployment-progress.mjs';
+import { adminFailures, deploymentCommand } from './deployment-progress.mjs';
 import { pnpmInvocation } from './validate-push.mjs';
 import {
   adminBaseCsp,
@@ -21,6 +21,48 @@ export const ADMIN_CALLBACK = `${ADMIN_ORIGIN}/api/auth/github/callback`;
 export const ADMIN_EMAIL = '1521152077@qq.com';
 const remoteRoot = '/opt/small-games/admin-console';
 const shaPattern = /^[a-f0-9]{40}$/;
+// Register only this caller's finite database vocabulary with the shared redactor.
+export const controlDatabaseReasons = [
+  'CONTROL_PRIVATE_DIRECTORY',
+  'CONTROL_PRIVATE_FILE',
+  'CONTROL_PRIVATE_NOT_EMPTY',
+  'CONTROL_RELEASE',
+  'CONTROL_MANIFEST',
+  'CONTROL_RELEASE_HASH',
+  'CONTROL_MIGRATION_ARTIFACT',
+  'CONTROL_MIGRATION_BOUNDARIES',
+  'CONTROL_SQL_SEGMENTS',
+  'CONTROL_SQL_SESSION',
+  'CONTROL_SQL_CONTRACT',
+  'CONTROL_CONTAINER_ID',
+  'CONTROL_INVENTORY',
+  'CONTROL_RESOURCE_CHANGED',
+  'CONTROL_WRITER_RUNNING',
+  'CONTROL_DATABASE_IDENTITY',
+  'CONTROL_PG_VERSION',
+  'CONTROL_UNSUPPORTED_PROFILE',
+  'CONTROL_DISK_SPACE',
+  'CONTROL_COMMAND_TIMEOUT',
+  'CONTROL_COMMAND_FAILED',
+  'CONTROL_PREFLIGHT_FAILED',
+  'CONTROL_DATABASE_FAILED',
+  'CONTROL_SOURCE_CHANGED',
+  'CONTROL_POSTCOMMIT_STATE',
+  'CONTROL_FIXTURE_CLEANUP_REQUIRED',
+  'CONTROL_FIXTURE_RECOVERY_REQUIRED',
+];
+for (const code of [
+  'DATABASE_PREFLIGHT_FAILED',
+  'DATABASE_NOT_COMMITTED',
+  'DATABASE_OUTCOME_UNKNOWN',
+])
+  for (const reason of controlDatabaseReasons) adminFailures.add(`${code}__${reason}`);
+for (const code of [
+  'PREMIGRATION_RESTORED',
+  'ROOT_PRECONDITION_UNPROVEN',
+  'DATABASE_OUTCOME_UNKNOWN',
+])
+  adminFailures.add(code);
 const errors = new Set([
   'ARGUMENTS',
   'ADMIN_FILE',
@@ -385,14 +427,22 @@ const controlHelpers = {
   'backend-context.py': 'infra/backend-update/deploy.py',
   'image-authority.py': 'infra/deployment/image-authority.py',
   'migrations/002-control-center.sql': 'infra/admin-console/migrations/002-control-center.sql',
+  'migrations/014-player-sessions.sql': 'infra/migrations/014-player-sessions.sql',
 };
 
 export function controlInput(args) {
-  if (args.length !== 1) stop('CONTROL_MODE_REQUIRED');
+  const rootPrecondition = args.length === 2 && args[1] === '--root-precondition';
+  if (args.length !== 1 && !rootPrecondition) stop('CONTROL_MODE_REQUIRED');
+  if (rootPrecondition && !/^--recover-control=[a-z0-9-]{1,100}$/.test(args[0])) stop('ARGUMENTS');
   if (['--prepare-control', '--reuse-remote-config', '--rollback', '--help'].includes(args[0]))
     return { mode: args[0] };
   const found = /^(--adopt-control|--recover-control)=([a-z0-9-]{1,100})$/.exec(args[0]);
-  if (found) return { mode: found[1], bundle: found[2] };
+  if (found)
+    return {
+      mode: found[1],
+      bundle: found[2],
+      ...(rootPrecondition ? { recoveryEvidence: 'root-precondition-v1' } : {}),
+    };
   stop(['--execute', '--provision-only'].includes(args[0]) ? 'CONTROL_MODE_REQUIRED' : 'ARGUMENTS');
 }
 
@@ -622,7 +672,9 @@ export async function readControlBundle(directory) {
       stop('BUNDLE_UNSAFE');
   }
   if (
-    Object.keys(controlHelpers).some((name) => !manifest.files[name]) ||
+    Object.keys(controlHelpers)
+      .filter((name) => name !== 'migrations/014-player-sessions.sql')
+      .some((name) => !manifest.files[name]) ||
     manifest.migrationArtifactSha256 !== manifest.files['migrations/002-control-center.sql'] ||
     manifest.cspContractSha256 !== manifest.files['admin-csp-contract.json'] ||
     (await readFile(path.join(directory, 'admin-csp-contract.json'), 'utf8')) !==
@@ -659,6 +711,42 @@ export function controlReceipt(text, mode, runnerSourceSHA) {
     value = JSON.parse(text);
   } catch {
     stop('REMOTE_FAILED');
+  }
+  if (value?.outcome === 'restored-before-migration') {
+    const expected = [
+      'ok',
+      'mode',
+      'outcome',
+      'release',
+      'sourceSHA',
+      'runnerSourceSHA',
+      'migrationArtifactSha256',
+      'controlEnabled',
+      'internalHealthVerified',
+      'restoredImages',
+    ];
+    if (
+      mode !== 'recover' ||
+      value.mode !== mode ||
+      value.ok !== true ||
+      value.controlEnabled !== false ||
+      value.internalHealthVerified !== true ||
+      Object.keys(value).sort().join(',') !== expected.sort().join(',') ||
+      value.runnerSourceSHA !== runnerSourceSHA ||
+      typeof value.sourceSHA !== 'string' ||
+      !shaPattern.test(value.sourceSHA) ||
+      typeof value.release !== 'string' ||
+      !/^[a-z0-9-]{1,100}$/.test(value.release) ||
+      typeof value.migrationArtifactSha256 !== 'string' ||
+      !/^[a-f0-9]{64}$/.test(value.migrationArtifactSha256) ||
+      !value.restoredImages ||
+      Object.keys(value.restoredImages).sort().join(',') !== 'kart,management,runtime' ||
+      Object.values(value.restoredImages).some(
+        (image) => typeof image !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(image),
+      )
+    )
+      stop('REMOTE_FAILED');
+    return value;
   }
   const keys = [
     'ok',
@@ -732,7 +820,7 @@ export async function main(args = process.argv.slice(2), dependencies = {}) {
   const input = controlInput(args); // No legacy executionInput/OAuth reader on any CLI route.
   if (input.mode === '--help') {
     console.log(
-      'pnpm deploy:admin --prepare-control | --adopt-control=<bundle> | --recover-control=<bundle> | --reuse-remote-config | --rollback\nprepare纯本地；首次维护执行须另获明确批准；所有模式均不读取OAuth文件，旧001安装入口关闭。',
+      'pnpm deploy:admin --prepare-control | --adopt-control=<bundle> | --recover-control=<bundle> [--root-precondition] | --reuse-remote-config | --rollback\nprepare纯本地；root-precondition仅恢复已核实的2026-10-17首守卫故障；所有模式均不读取OAuth文件，旧001安装入口关闭。',
     );
     return;
   }
@@ -789,6 +877,7 @@ export async function main(args = process.argv.slice(2), dependencies = {}) {
   (dependencies.sameCandidate ?? sameCandidate)(manifest.sourceSHA);
   const payload = { caddyDirectory: config.caddyDirectory, sourceSHA: manifest.sourceSHA };
   if (mode === 'recover') {
+    if (input.recoveryEvidence) payload.recoveryEvidence = input.recoveryEvidence;
     payload.targetRelease = target.manifest.release;
     payload.targetManifestSHA256 = createHash('sha256')
       .update(JSON.stringify(target.manifest, null, 2) + '\n')

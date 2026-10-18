@@ -48,7 +48,8 @@ const databaseUrl = process.env.CARROM_TEST_DATABASE_URL;
       return data;
     }
     try {
-      for (let n = 0; n < 5; n++) people.push(await request('/sessions/guest', undefined, {}));
+      for (let n = 0; n < 5; n++)
+        people.push(await request('/sessions/guest', undefined, { game: 'carrom-club' }));
       const [a, b, c, d, outside] = people;
       let room = await request('/carrom/rooms', a!.token, { mode: 'colors', board: 'random' });
       rooms.push(room.code);

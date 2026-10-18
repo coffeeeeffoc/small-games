@@ -123,7 +123,7 @@ export function matrixContract(matrix, { production = false } = {}) {
     assert.equal(v.sourceSHA, matrix.sourceSHA);
     assert.equal(v.profile, matrix.profile);
     assert.equal(v.sourceDirty, false);
-    assert.equal(v.identityMode, 'ephemeral');
+    assert.equal(v.identityMode, 'persistent');
     assert.equal(v.submoduleSHA, matrix.submoduleSHA);
     assert.equal(v.apiUrl, v.serviceEnabled ? api : '');
     assert.equal(

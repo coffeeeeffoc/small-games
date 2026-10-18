@@ -55,7 +55,7 @@ integration(
     });
     const competition = createCompetitionStore(
       database.db,
-      new Map(['duel-a', 'duel-b'].map((id) => [id, duel(id)])),
+      new Map(['cops-robbers', 'xiangqi-five'].map((id) => [id, duel(id)])),
       now,
     );
     const credentials = [],
@@ -73,7 +73,20 @@ integration(
       await app.listen({ host: '127.0.0.1', port: 0 });
       base = `http://127.0.0.1:${app.server.address().port}/api/competition/v1`;
     }
+    const scoped = new Map();
+    async function guest(game = 'tower-brake') {
+      const value = await competition.guestSession({ game });
+      credentials.push(value);
+      scoped.set(`${value.playerId}:${game}`, value);
+      return value;
+    }
     async function request(path, credential, body, expected = 200) {
+      const game = path.match(/^\/games\/([^/]+)/)?.[1];
+      if (credential && game && game !== credential.game && expected !== 403) {
+        const key = `${credential.playerId}:${game}`;
+        if (!scoped.has(key)) scoped.set(key, await guest(game));
+        credential = scoped.get(key);
+      }
       const response = await fetch(base + path, {
         method: body === undefined ? 'GET' : 'POST',
         headers: {
@@ -114,11 +127,12 @@ integration(
     }
     try {
       await start();
-      const a = await request('/sessions/guest', null, {}),
-        b = await request('/sessions/guest', null, {});
-      const native = await competition.session('wechat', version, randomUUID());
-      credentials.push(a, b, native);
-      expect((await request('/games/tower-brake')).identity.kind).toBe('anonymous');
+      const a = await guest(),
+        b = await guest(),
+        viewer = await guest();
+      const native = await competition.session('wechat', version, randomUUID(), 'tower-brake');
+      credentials.push(native);
+      await request('/games/tower-brake', undefined, undefined, 401);
       expect((await request('/games/tower-brake', a)).identity).toMatchObject({
         kind: 'guest',
         authenticated: false,
@@ -130,7 +144,7 @@ integration(
       });
       const run = await create(a, 'tower-brake', 'campaign', 'first-brake');
       await request(`/games/tower-brake/runs/${run.id}`, b, undefined, 403);
-      await request(`/games/cage-rescue/runs/${run.id}`, a, undefined, 409);
+      await request(`/games/cage-rescue/runs/${run.id}`, a, undefined, 403);
       const trace = towerTrace(rules.get('tower-brake'), run.seed, 'campaign');
       const seq = await upload(a, 'tower-brake', run, trace.frames, true);
       const path = `/games/tower-brake/runs/${run.id}/finish`;
@@ -147,7 +161,7 @@ integration(
       const other = await create(b, 'tower-brake', 'campaign', 'first-brake');
       const secondSeq = await upload(b, 'tower-brake', other, trace.frames);
       await request(`/games/tower-brake/runs/${other.id}/finish`, b, { seq: secondSeq });
-      const publicBoard = await request('/games/tower-brake/leaderboards/campaign');
+      const publicBoard = await request('/games/tower-brake/leaderboards/campaign', viewer);
       expect(publicBoard.me).toBeNull();
       expect(publicBoard.top.map((row) => row.rank)).toEqual([1, 1]);
       expect((await request('/games/tower-brake/leaderboards/campaign', a)).me.playerId).toBe(
@@ -181,11 +195,11 @@ integration(
       expect(
         (await request(`/games/cage-rescue/runs/${rescue.id}/finish`, a, { seq: 1 })).accepted,
       ).toBe(false);
-      const room = await request('/games/duel-a/rooms', a, {});
+      const room = await request('/games/cops-robbers/rooms', a, {});
       rooms.push(room.code);
-      await request(`/games/duel-b/rooms/${room.code}`, a, undefined, 409);
-      await request(`/games/duel-b/rooms/${room.code}/leave`, a, {}, 409);
-      expect((await request(`/games/duel-a/rooms/${room.code}`, a)).status).toBe('waiting');
+      await request(`/games/xiangqi-five/rooms/${room.code}`, a, undefined, 403);
+      await request(`/games/xiangqi-five/rooms/${room.code}/leave`, a, {}, 403);
+      expect((await request(`/games/cops-robbers/rooms/${room.code}`, a)).status).toBe('waiting');
     } finally {
       await app?.close();
       // Match receipts are append-only for runtime_app; unique test versions isolate retained audit rows.

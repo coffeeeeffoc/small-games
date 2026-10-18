@@ -14,8 +14,8 @@ const names = [
   { id: 'abcdef02', name: '海湾旅人' },
 ];
 assert.equal(playerName(names[0]), '海湾旅人');
-assert.equal(playerName(names[0], names), '海湾旅人 · #ABCDEF01');
-assert.notEqual(playerName(names[0], names), playerName(names[1], names));
+assert.equal(playerName(names[0], names), '海湾旅人');
+assert.equal(playerName(names[0], names), playerName(names[1], names));
 const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
 if (!databaseUrl || new URL(databaseUrl).pathname !== '/competition_test')
   throw new Error('Use the isolated competition_test database');
@@ -50,9 +50,10 @@ try {
   await start();
   await verifyStreetRunHttp(base);
   await request('/me', null, undefined, 401);
-  const a = await request('/sessions/guest', null, {}),
-    b = await request('/sessions/guest', null, {}),
-    outsider = await request('/sessions/guest', null, {});
+  let a = await request('/sessions/guest', null, { game: 'cops-robbers' }),
+    b = await request('/sessions/guest', null, { game: 'cops-robbers' });
+  const outsider = await request('/sessions/guest', null, { game: 'cops-robbers' });
+  const copsPlayers = [a, b];
   assert.notEqual(a.playerId, b.playerId);
   assert.equal((await request('/me', a)).playerId, a.playerId);
   await request('/me', null, { name: '不该生效' }, 401);
@@ -192,7 +193,7 @@ try {
   assert.equal(renamed.name, '海湾新名字');
   assert.equal(renamed.playerId, a.playerId);
   for (const field of ['score', 'secondary', 'rank']) assert.equal(renamed[field], improved[field]);
-  assert.equal((await request('/boards/carding-car', a)).game, 'carding-car');
+  await request('/boards/carding-car', a, undefined, 403);
   const names = (await request(`/rooms/${room.code}`, b)).players;
   assert.equal(names.find((p) => p.id === a.playerId).name, '海湾新名字');
   assert.equal((await request('/me', b)).name, '海湾旅人');
@@ -237,6 +238,8 @@ try {
   evidence.checks.push(
     '102 isolated SQL fixtures: Top100 boundary, rank101, tied rank1/1/3, exact count, previous/gap, empty/no-score/version isolation',
   );
+  a = await request('/sessions/guest', null, { game: 'cops-robbers-realtime' });
+  b = await request('/sessions/guest', null, { game: 'cops-robbers-realtime' });
   let street = await request('/rooms', a, {
     game: 'cops-robbers-realtime',
     mode: 'classic',
@@ -346,6 +349,7 @@ try {
   evidence.checks.push(
     'realtime HTTP two-client role authority, human movement, real 2-second opening freeze, illegal actor/side/forged commands, shared state, simulator timeout via isolated clock fixture, consistent one-time settlement and both friend modes',
   );
+  [a, b] = copsPlayers;
   const created = await request('/rooms', a, { game: 'cops-robbers' });
   await database.db.execute(
     sql`update runtime.competition_rooms set data=jsonb_set(data,'{deadline}',to_jsonb(${Date.now() - 1}::bigint)) where code=${created.code}`,

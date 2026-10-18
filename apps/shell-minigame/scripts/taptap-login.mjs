@@ -6,6 +6,9 @@ import { tapTapApiBase } from '@coffeeeeffoc/platform-taptap/login';
 import { serviceGames } from '../../../scripts/competition-service-config.mjs';
 
 const helper = new URL(import.meta.resolve('@coffeeeeffoc/platform-taptap/login'));
+const identityClient = new URL('../../../platforms/competition/client.js', import.meta.url);
+const helperSource = async () =>
+  Buffer.concat([await readFile(identityClient), Buffer.from('\n'), await readFile(helper)]);
 const marker = '// TapTap login bootstrap: install before the official packing step.\n';
 
 export function publicTapTapLoginConfig(config) {
@@ -63,7 +66,7 @@ export async function installTapTapLogin(directory, config) {
     if (thirdLine < 0) throw new Error('Incomplete previous TapTap login bootstrap.');
     source = source.slice(thirdLine + 1);
   }
-  await writeFile(path.join(directory, 'tap-login.js'), await readFile(helper));
+  await writeFile(path.join(directory, 'tap-login.js'), await helperSource());
   await writeFile(entry, tapTapLoginPrefix(config) + source);
   return verifyTapTapLogin(directory, config);
 }
@@ -71,7 +74,7 @@ export async function installTapTapLogin(directory, config) {
 export async function verifyTapTapLogin(directory, config) {
   const [entry, expected, actual] = await Promise.all([
     readFile(path.join(directory, 'game.js'), 'utf8'),
-    readFile(helper),
+    helperSource(),
     readFile(path.join(directory, 'tap-login.js')),
   ]);
   if (!entry.startsWith(tapTapLoginPrefix(config)) || !actual.equals(expected))
@@ -79,7 +82,7 @@ export async function verifyTapTapLogin(directory, config) {
       'TapTap source login bootstrap differs from the current public config or helper.',
     );
   return {
-    configured: Boolean(config.appId && config.apiUrl),
+    configured: Boolean(config.apiUrl),
     platform: 'taptap',
     serverIdentityVerified: false,
     realDeviceVerified: false,

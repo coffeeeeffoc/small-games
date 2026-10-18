@@ -186,7 +186,12 @@ export const competitionIdentityMirrorPaths = Object.freeze([
   'games/local/flick-arena/competition-client.js',
   'games/local/three-choose-two/competition.js',
 ]);
+const competitionProtocolTools = {
+  'scripts/review-competition-kart-chess.mjs': 'xiangqi-five',
+  'scripts/street-runs.integration.mjs': 'cops-robbers-realtime',
+};
 export const competitionServiceScopePaths = [
+  ...Object.keys(competitionProtocolTools),
   'scripts/competition-service-config.mjs',
   'scripts/competition-service-config.test.mjs',
   'scripts/competition-service.browser.mjs',
@@ -345,7 +350,12 @@ function backendInstallerOnly(file, before, after) {
     createHash('sha256').update(source.replaceAll('\r\n', '\n')).digest('hex');
   return expected && digest(before) === expected.before && digest(after) === expected.after;
 }
+const sharedPresentationFiles = [
+  'platforms/competition/avatars.js',
+  'platforms/competition/format.js',
+];
 const h5Files = [
+  ...sharedPresentationFiles,
   'scripts/competition-connection.browser.mjs',
   'platforms/competition/connection-info.js',
   'platforms/competition/h5.js',
@@ -358,7 +368,11 @@ const streetFiles = [
   'platforms/competition/street.css',
   'platforms/competition/tests/street-admission.test.mjs',
 ];
-const nativeFiles = ['platforms/competition/native.js', 'scripts/competition-native-smoke.mjs'];
+const nativeFiles = [
+  ...sharedPresentationFiles,
+  'platforms/competition/native.js',
+  'scripts/competition-native-smoke.mjs',
+];
 const builder = 'scripts/competition-build.mjs';
 const lettersTests = [
   'scripts/letters-words2-competition-mobile.browser.mjs',
@@ -448,6 +462,54 @@ export function threeChooseTwoBackendFileScope(file, before, after) {
     expected = expected.replace(oldText, newText);
   }
   return expected === after;
+}
+
+const playerSessionMigration = 'infra/migrations/014-player-sessions.sql';
+const playerSessionChanges = {
+  'scripts/competition.mjs': [
+    '64c72ea195ed65e748739539f8beab44f058409c4eeb0ac61514922d28ea92da',
+    "  await psql(\n    await readFile(new URL('../infra/migrations/014-player-sessions.sql', import.meta.url)),\n    mode === 'test-db' ? 'competition_test' : 'small_games',\n  );\n",
+  ],
+  'scripts/platform.mjs': [
+    '46ded3328e004801c67707845da131618f5710ce45c454defc9b6dba651212d6',
+    "    '014-player-sessions.sql',\n",
+  ],
+  'scripts/deploy-tencent.mjs': [
+    '157e7c41e678015a743abc54c3d265949b8a5c98ad36e8ca6f7db6c10a5ca2c8',
+    "    '014-player-sessions.sql',\n",
+  ],
+};
+export function playerSessionBackendFileScope(file, before, after) {
+  const normalize = (value) => value?.replaceAll('\r\n', '\n');
+  before = normalize(before);
+  after = normalize(after);
+  const digest = (value) => createHash('sha256').update(value).digest('hex');
+  if (file === playerSessionMigration)
+    return (
+      before == null &&
+      digest(after) === 'db03e89f74f8dd7f04197182d2353f1e59104b6a5f245f34a749743e77cdfaa2'
+    );
+  const review = playerSessionChanges[file];
+  if (!review || typeof before !== 'string' || typeof after !== 'string') return false;
+  const [baseHash, addition] = review;
+  return (
+    digest(before) === baseHash &&
+    after.split(addition).length === 2 &&
+    after.replace(addition, '') === before
+  );
+}
+export function anonymousPagesFileScope(file, before, after) {
+  if (file !== '.github/workflows/pages-validate.yml' || typeof before !== 'string') return false;
+  before = before.replaceAll('\r\n', '\n');
+  after = after.replaceAll('\r\n', '\n');
+  const addition =
+    "      COMPETITION_SERVICE_ENABLED: '1'\n      COMPETITION_PUBLIC_API_URL: 'https://api.nenggongzhiren.cn/small-games/v1'\n";
+  return (
+    createHash('sha256').update(before).digest('hex') ===
+      '195f158be27400dab8f9b73e263d66854375add335df1442cb4464a3495e6809' &&
+    after.split(addition).length === 3 &&
+    after.replaceAll(addition, '') === before
+  );
 }
 
 const identityMigration = 'infra/migrations/013-competition-identities.sql';
@@ -659,6 +721,13 @@ export function identityGatewayFileScope(before, after) {
   after = after.replaceAll('\r\n', '\n');
   const digest = (source) => createHash('sha256').update(source).digest('hex');
   const anchor = String.raw`sessions\/(?:guest|platform)`;
+  const scoped = String.raw`sessions\/(?:guest|platform|refresh|upgrade)`;
+  if (digest(before) === '1b2e94613c2985e2d9f7ac9defe98eba5b001d77150a58c756bb6b9618ad71f6')
+    return (
+      before.split(scoped).length === 2 &&
+      after ===
+        before.replace(scoped, String.raw`sessions\/(?:guest|platform|refresh|upgrade|logout)`)
+    );
   return (
     digest(before) === '35c4d646992f89799a559091f793518f1da72d8c675c0cab73a0a6146e213e51' &&
     digest(after) === '1b2e94613c2985e2d9f7ac9defe98eba5b001d77150a58c756bb6b9618ad71f6' &&
@@ -1970,6 +2039,29 @@ export function reviewedSharedFileScopes({
         );
         continue;
       }
+      if (file === playerSessionMigration || Object.hasOwn(playerSessionChanges, file)) {
+        let before = null;
+        try {
+          before = readBase(file);
+        } catch {}
+        if (playerSessionBackendFileScope(file, before, readHead(file))) {
+          assert(packages.some((pkg) => pkg.dir === 'services/runtime-api'));
+          assert(packages.some((pkg) => pkg.dir === 'services/kart-server'));
+          scopes.set(file, ['services/runtime-api', 'services/kart-server']);
+          continue;
+        }
+      }
+      if (
+        file === '.github/workflows/pages-validate.yml' &&
+        anonymousPagesFileScope(file, readBase(file), readHead(file))
+      ) {
+        scopes.set(file, [
+          'games/local/cops-robbers',
+          'games/local/cops-robbers-realtime',
+          'games/submodules/xiangqi-five',
+        ]);
+        continue;
+      }
       if (file === identityMigration || Object.hasOwn(identityBackendChanges, file)) {
         let before;
         try {
@@ -2042,11 +2134,14 @@ export function reviewedSharedFileScopes({
           'scripts/competition-client.test.mjs',
         ].includes(file);
         const xiangqi = file.startsWith('platforms/competition/xiangqi-five/');
-        const sources = xiangqi
-          ? [competitionConsumers['xiangqi-five']]
-          : native
-            ? Object.values(competitionConsumers)
-            : competitionServiceIds.map((id) => competitionConsumers[id]);
+        const protocolGame = competitionProtocolTools[file];
+        const sources = protocolGame
+          ? [competitionConsumers[protocolGame]]
+          : xiangqi
+            ? [competitionConsumers['xiangqi-five']]
+            : native
+              ? Object.values(competitionConsumers)
+              : competitionServiceIds.map((id) => competitionConsumers[id]);
         const gateway = ['scripts/deploy-tencent.mjs', 'scripts/competition-gateway.mjs'].includes(
           file,
         );
@@ -2057,7 +2152,7 @@ export function reviewedSharedFileScopes({
         scopes.set(file, [
           ...new Set([
             ...sources,
-            ...(native || xiangqi ? [] : ['apps/shell-web']),
+            ...(native || xiangqi || protocolGame ? [] : ['apps/shell-web']),
             ...(file === 'scripts/competition-service-config.mjs' ? ['apps/shell-minigame'] : []),
             ...(native
               ? ['apps/shell-minigame', 'apps/shell-bilibili']
@@ -2065,7 +2160,9 @@ export function reviewedSharedFileScopes({
                 ? ['apps/shell-minigame']
                 : []),
             ...(gateway ? [...Object.values(rankedConsumers), 'services/runtime-api'] : []),
-            ...(file === 'scripts/competition.integration.mjs' ? ['services/runtime-api'] : []),
+            ...(file === 'scripts/competition.integration.mjs' || protocolGame
+              ? ['services/runtime-api']
+              : []),
           ]),
         ]);
         continue;

@@ -86,7 +86,17 @@ try {
   const requests = [];
   await context.route('**/api/competition/v1/**', async (route) => {
     const request = route.request();
-    requests.push({ method: request.method(), url: request.url() });
+    requests.push({ method: request.method(), url: request.url(), authorization: request.headers().authorization });
+    if (request.url().endsWith('/sessions/guest')) {
+      assert.equal(request.method(), 'POST');
+      assert.deepEqual(request.postDataJSON(), { game: gameId });
+      return route.fulfill({ json: {
+        userId: 'fixture-reader', playerId: 'fixture-reader', game: gameId, identityKind: 'guest',
+        sessionId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', token: 'a'.repeat(64),
+        refreshToken: 'b'.repeat(64), expiresAt: Date.now() + 900000,
+        refreshExpiresAt: Date.now() + 180 * 86400000,
+      } });
+    }
     if (request.method() !== 'GET') return route.abort('internetdisconnected');
     const board = request.url().includes('/leaderboards/');
     const row = {
@@ -99,7 +109,7 @@ try {
       json: board
         ? { top: [row], me: { ...row, rank: 2 } }
         : {
-            identity: { kind: 'anonymous', playerId: null, name: null },
+            identity: { kind: 'guest', playerId: 'fixture-reader', name: '测试玩家' },
             boards: ['campaign', 'endless'],
           },
     });
@@ -114,15 +124,17 @@ try {
   await shot(page, 'actual-levels');
   await page.locator(selectors.levelsBack).tap();
   await page.locator(selectors.board).tap();
-  await expect(page.locator('#leaderboard-identity')).toContainText('未登录');
+  await expect(page.locator('#leaderboard-identity')).toContainText('游客');
   await expect(page.locator('#leaderboard-list')).toContainText(cage ? '42 人' : '42 层');
   await page.locator('[data-board="campaign"]').tap();
   await expect(page.locator('#leaderboard-list')).toContainText('第 30 关 · 12.3 秒');
   await expect(page.locator('#leaderboard-list img')).toHaveCount(0);
   await expect(page.locator('#leaderboard-me')).toContainText('2');
+  assert.equal(requests.filter(item => item.url.endsWith('/sessions/guest')).length, 1);
   assert.ok(
-    requests.every((item) => item.method === 'GET'),
-    'reading boards must not create a guest session',
+    requests.filter(item => !item.url.endsWith('/sessions/guest')).every(item =>
+      item.method === 'GET' && item.authorization === 'Bearer ' + 'a'.repeat(64)),
+    'boards reuse one server-issued anonymous credential for authenticated reads',
   );
   await shot(page, 'actual-leaderboard');
   for (const viewport of [
@@ -142,7 +154,7 @@ try {
   await page.setViewportSize({ width: 390, height: 844 });
 
   report.checks.push(
-    '30 routes, 29 locked, last route scrollable; two board types, safe names, milliseconds displayed as seconds, anonymous read has no session mutation',
+    '30 routes, 29 locked, last route scrollable; two board types, safe names, milliseconds displayed as seconds, boards share one anonymous session and use authenticated reads',
   );
   await page.locator(selectors.boardBack).tap();
   const saved = cage
@@ -284,7 +296,7 @@ try {
       const path = new URL(request.url()).pathname;
       if (request.method() === 'POST') writes.push({ path, body: request.postDataJSON() });
       if (path.endsWith('/sessions/guest'))
-        return route.fulfill({ json: { token: 'a'.repeat(64), expiresAt: Date.now() + 3600000 } });
+        return route.fulfill({ json: { userId: 'fixture-player', game: 'cage-rescue', identityKind: 'guest', sessionId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', token: 'a'.repeat(64), refreshToken: 'b'.repeat(64), expiresAt: Date.now() + 900000, refreshExpiresAt: Date.now() + 180 * 86400000 } });
       if (path.endsWith('/runs')) {
         assert.equal(request.postDataJSON().version, RANKED_RULE_VERSION);
         if (variant === 'legacy-strict' || variant === 'rejected')

@@ -218,6 +218,7 @@ test('standalone artifact audit rejects changed native recipes, source fingerpri
           'night-native-project.mjs',
           'taptap-login.mjs',
           '../../../platforms/taptap/login.cjs',
+          '../../../platforms/competition/client.js',
         ].map(async (file) => [file, digest(await readFile(new URL(file, import.meta.url)))]),
       ),
     );

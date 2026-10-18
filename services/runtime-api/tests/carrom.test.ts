@@ -193,7 +193,7 @@ afterEach(async () => {
 it('accepts carrom room creation and joining through the existing authenticated API', async () => {
   const app = Fastify();
   apps.push(app);
-  const identity = vi.fn(async () => 'verified-player');
+  const identity = vi.fn(async () => ({ playerId: 'verified-player', game: 'carrom-club' }));
   const create = vi.fn(async () => ({ code: 'ABCDEF123456' }));
   const roomAction = vi.fn(async () => ({ status: 'waiting' }));
   const store = { auth: identity, create, roomAction } as unknown as ReturnType<
@@ -208,7 +208,11 @@ it('accepts carrom room creation and joining through the existing authenticated 
     payload: { game: 'carrom-club' },
   });
   expect(created.statusCode).toBe(200);
-  expect(create).toHaveBeenCalledWith('verified-player', 'carrom-club', { game: 'carrom-club' });
+  expect(create).toHaveBeenCalledWith(
+    { playerId: 'verified-player', game: 'carrom-club' },
+    'carrom-club',
+    { game: 'carrom-club' },
+  );
   const joined = await app.inject({
     method: 'POST',
     url: '/api/competition/v1/rooms/join',
@@ -216,8 +220,13 @@ it('accepts carrom room creation and joining through the existing authenticated 
     payload: { game: 'carrom-club', code: 'ABCDEF123456' },
   });
   expect(joined.statusCode).toBe(200);
-  expect(roomAction).toHaveBeenCalledWith('verified-player', 'ABCDEF123456', 'join', {
-    game: 'carrom-club',
-    code: 'ABCDEF123456',
-  });
+  expect(roomAction).toHaveBeenCalledWith(
+    { playerId: 'verified-player', game: 'carrom-club' },
+    'ABCDEF123456',
+    'join',
+    {
+      game: 'carrom-club',
+      code: 'ABCDEF123456',
+    },
+  );
 });

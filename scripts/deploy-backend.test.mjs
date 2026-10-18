@@ -142,8 +142,13 @@ test('backend receipt accepts only finite source and image evidence, without fak
     isolatedRestoreVerified: false,
     activeImages: { runtime: 'sha256:' + 'c'.repeat(64), kart: 'sha256:' + 'd'.repeat(64) },
     imageCapabilities: {
-      runtime: { image: 'sha256:' + 'c'.repeat(64), control: 1, ephemeralGuestScope: 1 },
-      kart: { image: 'sha256:' + 'd'.repeat(64), control: 1, identityRecheck: 1 },
+      runtime: { image: 'sha256:' + 'c'.repeat(64), control: 1, authenticatedGameScope: 1 },
+      kart: {
+        image: 'sha256:' + 'd'.repeat(64),
+        control: 1,
+        identityRecheck: 1,
+        authenticatedGameScope: 1,
+      },
     },
   };
   assert.deepEqual(backendReceipt(JSON.stringify(receipt), ['runtime']), receipt);
@@ -161,13 +166,13 @@ test('backend receipt accepts only finite source and image evidence, without fak
     {
       imageCapabilities: {
         ...receipt.imageCapabilities,
-        runtime: { ...receipt.imageCapabilities.runtime, ephemeralGuestScope: true },
+        runtime: { ...receipt.imageCapabilities.runtime, authenticatedGameScope: true },
       },
     },
     {
       imageCapabilities: {
         ...receipt.imageCapabilities,
-        runtime: { ...receipt.imageCapabilities.runtime, ephemeralGuestScope: 0 },
+        runtime: { ...receipt.imageCapabilities.runtime, authenticatedGameScope: 0 },
       },
     },
     {

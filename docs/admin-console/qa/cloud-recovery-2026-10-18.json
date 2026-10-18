@@ -1,0 +1,272 @@
+{
+  "applicationSourceSHA": "bfea2c77ed7f14fc9eb31535d26fd0cc0acde802",
+  "verificationDate": "2026-10-18 Asia/Shanghai",
+  "backendRelease": "bfea2c77ed7f-1792273503270-8a2019",
+  "adminRelease": "bfea2c77ed7f-1792273542776-ce7b23",
+  "recoveredLegacyRelease": "0d7bfdfe4087-1792248271760-eb122d",
+  "completedMigrationRelease": "5f31c5df94e8-1792271769909-d094a4",
+  "rollbackDrills": {
+    "backend": "389e94f1bb73-1792272746484-9b9892",
+    "admin": "389e94f1bb73-1792272885080-2c7c37",
+    "passed": true
+  },
+  "publicBoundaryChecks": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "allowed game origin",
+        "origin": "http://localhost:8080",
+        "status": 204
+      },
+      {
+        "name": "allowed game origin",
+        "origin": "https://ma-h5-al.tapimg.com",
+        "status": 204
+      },
+      {
+        "name": "allowed game origin",
+        "origin": "https://coffeeeeffoc.github.io",
+        "status": 204
+      },
+      {
+        "name": "unlisted game origin denied",
+        "origin": "https://unlisted.invalid",
+        "status": 403
+      },
+      {
+        "name": "unlisted game origin denied",
+        "origin": "http://coffeeeeffoc.github.io",
+        "status": 403
+      },
+      {
+        "name": "unlisted game origin denied",
+        "origin": "https://coffeeeeffoc.github.io:8443",
+        "status": 403
+      },
+      {
+        "name": "unlisted game origin denied",
+        "origin": "https://admin.nenggongzhiren.cn",
+        "status": 403
+      },
+      {
+        "name": "admin session rejects game origin and anonymous access",
+        "wrongOrigin": 403,
+        "anonymous": 401
+      },
+      {
+        "name": "Github authorization redirect",
+        "status": 302
+      },
+      {
+        "name": "admin nonce document",
+        "path": "/",
+        "status": 200
+      },
+      {
+        "name": "admin nonce document",
+        "path": "/forbidden",
+        "status": 403
+      },
+      {
+        "name": "anonymous identity and lifetime",
+        "game": "cops-robbers"
+      },
+      {
+        "name": "cross-game and forged profile rejected",
+        "game": "cops-robbers"
+      },
+      {
+        "name": "foreign room read and operation rejected",
+        "game": "cops-robbers"
+      },
+      {
+        "name": "refresh rotation and whole-family revocation",
+        "game": "cops-robbers"
+      },
+      {
+        "name": "anonymous identity and lifetime",
+        "game": "cops-robbers-realtime"
+      },
+      {
+        "name": "cross-game and forged profile rejected",
+        "game": "cops-robbers-realtime"
+      },
+      {
+        "name": "foreign room read and operation rejected",
+        "game": "cops-robbers-realtime"
+      },
+      {
+        "name": "refresh rotation and whole-family revocation",
+        "game": "cops-robbers-realtime"
+      },
+      {
+        "name": "anonymous identity and lifetime",
+        "game": "xiangqi-five"
+      },
+      {
+        "name": "cross-game and forged profile rejected",
+        "game": "xiangqi-five"
+      },
+      {
+        "name": "foreign room read and operation rejected",
+        "game": "xiangqi-five"
+      },
+      {
+        "name": "refresh rotation and whole-family revocation",
+        "game": "xiangqi-five"
+      }
+    ],
+    "completedAt": "2026-10-17T21:46:58.806Z"
+  },
+  "h5": {
+    "runId": "057c7fc5-692c-4c38-a0d3-a6ac05d6e8fb",
+    "sourceSHA": "bfea2c77ed7f14fc9eb31535d26fd0cc0acde802",
+    "api": "https://api.nenggongzhiren.cn/small-games/v1",
+    "origin": "http://localhost:8080",
+    "browser": "140.0.7339.186",
+    "variants": [
+      {
+        "game": "cops-robbers",
+        "passedWithinDeclaredScope": true,
+        "reward": {
+          "mode": "missing-ad-unit-free-reward",
+          "hintVisible": 1,
+          "feedback": "最短还需 7 步：1 号追逐队员到 2 号路口拦截。点高亮的 2 号数字移动。",
+          "realAdvertisementPlayed": false
+        }
+      },
+      {
+        "game": "cops-robbers-realtime",
+        "passedWithinDeclaredScope": true,
+        "reward": {
+          "mode": "missing-ad-unit-free-reward",
+          "starter": {
+            "sprint": 1,
+            "rewind": 1,
+            "refilled": {
+              "sprint": false,
+              "rewind": false
+            },
+            "assisted": false,
+            "ordinal": 1,
+            "remaining": 0,
+            "busy": false
+          },
+          "granted": {
+            "sprint": 1,
+            "rewind": 1,
+            "refilled": {
+              "sprint": true,
+              "rewind": false
+            },
+            "assisted": true,
+            "ordinal": 1,
+            "remaining": 0,
+            "busy": false
+          },
+          "after": {
+            "sprint": 0,
+            "rewind": 1,
+            "refilled": {
+              "sprint": true,
+              "rewind": false
+            },
+            "assisted": true,
+            "ordinal": 1,
+            "remaining": 0,
+            "busy": false
+          },
+          "feedback": "1 号警察 · 提速 20% · 4 秒",
+          "realAdvertisementPlayed": false
+        }
+      },
+      {
+        "game": "xiangqi-five",
+        "passedWithinDeclaredScope": true,
+        "reward": {
+          "mode": "missing-ad-unit-free-reward",
+          "hintVisible": true,
+          "feedback": "",
+          "starsRule": "查看提示后，本题最高获得一星。",
+          "realAdvertisementPlayed": false
+        }
+      }
+    ],
+    "rooms": ["6416C4CF7BC3", "8028FE644F5B", "C5F70C33535D"]
+  },
+  "cleanup": {
+    "deleted": {
+      "competition_actions": 30,
+      "competition_rooms": 7,
+      "competition_duels": 3,
+      "competition_best": 7,
+      "competition_results": 7,
+      "competition_matches": 7,
+      "competition_refresh_tokens": 20,
+      "competition_sessions": 21,
+      "player_game_access": 26,
+      "competition_players": 26
+    },
+    "remainingOwnedPlayers": 0,
+    "completedAt": "2026-10-17T22:04:40.164Z"
+  },
+  "admin": {
+    "controlEnabled": true,
+    "bootstrapEmailAllowed": true,
+    "membershipInitialized": false,
+    "publishedConfigVersion": 0,
+    "realGithubLoginVerified": false,
+    "publicBrowser": [
+      {
+        "path": "/",
+        "status": 200,
+        "title": "登录 · Small Games",
+        "errors": []
+      },
+      {
+        "path": "/forbidden",
+        "status": 403,
+        "title": "403 · 暂无访问权限 · Small Games",
+        "errors": []
+      }
+    ]
+  },
+  "limits": [
+    "Physical native devices unverified",
+    "Real advertisements unverified",
+    "First GitHub login and first control publication pending"
+  ],
+  "pages": {
+    "sourceSHA": "ba88e46a0f7f7fb5c37c28a20c8eae7a0319eece",
+    "url": "https://coffeeeeffoc.github.io/small-games/dev/",
+    "ciRun": 39074139487,
+    "pagesRun": 39074139519,
+    "cocosRun": 39074139430,
+    "allSucceeded": true,
+    "games": ["cops-robbers", "cops-robbers-realtime", "xiangqi-five"],
+    "scope": [
+      "embedded entry",
+      "390x844 touch gameplay",
+      "return navigation",
+      "network responses",
+      "Runtime isolation"
+    ],
+    "passed": true
+  },
+  "pagesCleanup": {
+    "deleted": {
+      "competition_actions": 0,
+      "competition_rooms": 0,
+      "competition_duels": 0,
+      "competition_best": 0,
+      "competition_results": 0,
+      "competition_matches": 2,
+      "competition_refresh_tokens": 2,
+      "competition_sessions": 2,
+      "player_game_access": 2,
+      "competition_players": 2
+    },
+    "remainingOwnedPlayers": 0,
+    "completedAt": "2026-10-17T22:28:58.817Z"
+  }
+}

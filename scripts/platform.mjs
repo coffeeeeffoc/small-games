@@ -27,6 +27,7 @@ if (mode === 'stop') {
     '011-competition-profiles.sql',
     '012-three-choose-two.sql',
     '013-competition-identities.sql',
+    '014-player-sessions.sql',
   ])
     await run(
       'docker',

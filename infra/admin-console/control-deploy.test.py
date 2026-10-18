@@ -1,10 +1,13 @@
 """Dependency-free control deployment contracts; all service/DB operations are mocks."""
 import base64
 import copy
+import contextlib
 import hashlib
 import importlib.util
 import json
 import os
+import shutil
+import subprocess
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
@@ -27,6 +30,7 @@ def facts():
                      'networks': {'task': {'NetworkID': 'a' * 64, 'Aliases': [name],
                                            'IPAddress': '172.20.0.' + str(index), 'IPPrefixLen': 24, 'Gateway': '172.20.0.1'}}}
               for index, name in enumerate((*control.SERVICES, 'postgres', 'nginx', 'web'), 1)}
+    result['management']['networks']['small-games_default'] = result['management']['networks'].pop('task')
     result['kart']['networkMode'] = 'container:' + result['runtime']['id']
     result['management']['admin'] = 'previous'
     result['nginx'].update(admin='', restart='unless-stopped')
@@ -50,11 +54,48 @@ def manifest():
 
 
 class ControlContracts(unittest.TestCase):
+    def test_real_legacy_command_errors_retry_without_exposing_output(self):
+        spec = importlib.util.spec_from_file_location('legacy_command_tested', Path(__file__).with_name('deploy.py'))
+        legacy = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(legacy)
+        failed = SimpleNamespace(returncode=1, stdout=b'', stderr=b'private diagnostic')
+        ready = SimpleNamespace(returncode=0, stdout=b'ok', stderr=b'')
+        with patch.object(control, 'support', return_value=legacy), patch.object(legacy.subprocess, 'run', side_effect=[failed, subprocess.TimeoutExpired('docker', 5), ready]) as run, patch.object(control.time, 'sleep'):
+            control.service_health('management', {'id': 'a' * 64})
+            self.assertEqual(run.call_count, 3)
+        with patch.object(control, 'support', return_value=legacy), patch.object(legacy.subprocess, 'run', side_effect=subprocess.TimeoutExpired('docker', 5)):
+            with self.assertRaisesRegex(control.Stopped, '^COMMAND_TIMEOUT$'):
+                control.command('docker', 'start', 'a' * 64)
+
+    def test_management_keeps_its_address_when_nginx_is_stopped(self):
+        spec = importlib.util.spec_from_file_location('legacy_compose_tested', Path(__file__).with_name('deploy.py'))
+        legacy = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(legacy)
+        release, env = Path('/release/candidate'), Path('/opaque/management.env')
+        with patch.object(control, 'support', return_value=legacy):
+            old = control.control_compose(release, env, IMAGE)
+            self.assertEqual(old['services']['management']['networks'], ['existing'])
+            pinned = control.control_compose(release, env, IMAGE, '172.18.0.5')
+            self.assertEqual(pinned['services']['management']['networks'], {'existing': {'ipv4_address': '172.18.0.5'}})
+            old['services']['management']['networks'] = pinned['services']['management']['networks']
+            self.assertEqual(old, pinned)
+            for address in ('bad', '127.0.0.1', '0.0.0.0', '8.8.8.8'):
+                with self.subTest(address=address), self.assertRaisesRegex(control.Stopped, 'MANAGEMENT_ADDRESS'):
+                    control.control_compose(release, env, IMAGE, address)
+
+    def test_health_waits_for_ready_and_has_a_deadline(self):
+        with patch.object(control, 'command', side_effect=[control.Stopped('COMMAND_FAILED'), None]) as call, patch.object(control.time, 'sleep'):
+            control.service_health('runtime', {'id': 'a' * 64})
+            self.assertEqual(call.call_count, 2)
+        with patch.object(control, 'command', side_effect=control.Stopped('COMMAND_FAILED')), patch.object(control.time, 'monotonic', side_effect=[0, 46]):
+            with self.assertRaisesRegex(control.Stopped, 'GAME_RESTART_FAILED'):
+                control.service_health('runtime', {'id': 'a' * 64})
+
     def test_runtime_public_override_adds_only_the_approved_tap_origin(self):
         self.assertEqual(control.PUBLIC_ENV['runtime'], {
             'COMPETITION_CONTROL_ENABLED': 'true',
             'COMPETITION_CONTROL_INSTANCE_ID': 'small-games-runtime',
-            'COMPETITION_CORS_ORIGINS': 'http://localhost:8080,https://ma-h5-al.tapimg.com',
+            'COMPETITION_CORS_ORIGINS': 'http://localhost:8080,https://ma-h5-al.tapimg.com,https://coffeeeeffoc.github.io',
             'COMPETITION_CORS_METHODS': 'GET,POST,OPTIONS',
             'COMPETITION_CORS_HEADERS': 'authorization,content-type',
             'COMPETITION_CORS_CREDENTIALS': 'false'})
@@ -81,7 +122,7 @@ class ControlContracts(unittest.TestCase):
                     dict(good, migrationArtifactSha256='0' * 64), dict(good, backupSHA256=['1' * 64])]:
             with self.assertRaises(control.Stopped):
                 control.provision_result(bad, manifest())
-        domain = SimpleNamespace(verify_control_database=Mock(return_value={
+        domain = SimpleNamespace(provision_player_sessions=Mock(), verify_control_database=Mock(return_value={
             'controlContract': CONTRACT, 'readOnly': True, 'migrationArtifactSha256': 'f' * 64}))
         control.verified_database(domain, 'pg', manifest(), CONTRACT)
         domain.verify_control_database.return_value['readOnly'] = 1
@@ -198,7 +239,7 @@ class ControlContracts(unittest.TestCase):
                     live['management']['image'] = IMAGE
                 backend = SimpleNamespace(compose=compose, assert_boundaries=Mock())
                 tools = SimpleNamespace(compose_command=management)
-                with patch.object(control, 'PRIVATE', private), patch.object(control, 'target_inventory', side_effect=inspect), patch.object(control, 'support', side_effect=lambda name: backend if name == 'backend-context.py' else tools), patch.object(control, 'authority'), patch.object(control, 'assert_env'), patch.object(control, 'command', side_effect=command), patch.object(control, 'control_compose', return_value={'services': {'management': {}}}), patch.object(control, 'save_journal'), patch.object(control, 'service_health'), patch.object(control, 'assert_live_flags'):
+                with patch.object(control, 'PRIVATE', private), patch.object(control, 'target_inventory', side_effect=inspect), patch.object(control, 'support', side_effect=lambda name: backend if name == 'backend-context.py' else tools), patch.object(control, 'authority'), patch.object(control, 'assert_env'), patch.object(control, 'command', side_effect=command), patch.object(control, 'control_compose', side_effect=lambda _release, _env, _image, ip=None: {'services': {'management': {'networks': {'existing': {'ipv4_address': ip}} if ip else ['existing']}}}), patch.object(control, 'save_journal'), patch.object(control, 'service_health'), patch.object(control, 'assert_live_flags'):
                     if interrupted_runtime:
                         with self.assertRaisesRegex(control.Stopped, 'COMMAND_FAILED'):
                             control.activate_services(release, manifest(), state, control.SERVICES)
@@ -215,6 +256,19 @@ class ControlContracts(unittest.TestCase):
                     control.activate_services(release, manifest(), state, control.SERVICES)
                     self.assertEqual(live['kart']['networkMode'], 'container:' + '9' * 64)
                     backend.assert_boundaries.assert_called()
+                    model_file = private / release.name / 'compose.json'
+                    pinned = json.loads(model_file.read_text())
+                    old = copy.deepcopy(pinned)
+                    old['services']['management']['networks'] = ['existing']
+                    control.write_private(model_file, old, True)
+                    control.activate_services(release, manifest(), state, control.SERVICES)
+                    self.assertEqual(json.loads(model_file.read_text()), pinned)
+                    old['services']['management']['ports'] = ['43001:43001']
+                    control.write_private(model_file, old, True)
+                    with self.assertRaisesRegex(control.Stopped, 'MANAGEMENT_CONFIG'):
+                        control.activate_services(release, manifest(), state, control.SERVICES)
+                    self.assertEqual(json.loads(model_file.read_text()), old)
+                    control.write_private(model_file, pinned, True)
                     override = json.loads((private / release.name / 'kart-control.json').read_text())
                     override['services']['kart']['image'] = 'sha256:' + '0' * 64
                     file = private / release.name / 'kart-control.json'
@@ -231,7 +285,8 @@ class ControlContracts(unittest.TestCase):
         for item in live.values():
             item.pop('admin', None); item.pop('restart', None)
             item['running'] = False
-            item['networks']['task'].update(IPAddress='', IPPrefixLen=0, Gateway='')
+            for network in item['networks'].values():
+                network.update(IPAddress='', IPPrefixLen=0, Gateway='')
         calls = []
         live['runtime']['running'] = True  # This writer was never stopped by this operation.
         def command(*args):
@@ -239,7 +294,8 @@ class ControlContracts(unittest.TestCase):
             for item in live.values():
                 if item['id'] == args[-1]:
                     item['running'] = True
-                    item['networks']['task'].update(IPAddress='172.20.0.99', IPPrefixLen=24, Gateway='172.20.0.1')
+                    for network in item['networks'].values():
+                        network.update(IPAddress='172.20.0.99', IPPrefixLen=24, Gateway='172.20.0.1')
         with patch.object(control, 'database_floor', return_value='absent'), patch.object(control, 'assert_env'), patch.object(control, 'check_protected'), patch.object(control, 'contexts_for', return_value=state['contexts']), patch.object(control, 'target_inventory', side_effect=lambda name: live[name]), patch.object(control, 'command', side_effect=command), patch.object(control, 'service_health'), patch.object(control, 'assert_nginx'), patch.object(control, 'save_journal'):
             control.restore_before_migration(release, state)
             self.assertEqual([call[-1] for call in calls], [state['inventory'][name]['id'] for name in ('kart', 'management', 'nginx')])
@@ -272,7 +328,7 @@ class ControlContracts(unittest.TestCase):
                 previous = base / 'previous-release'; previous.mkdir()
                 (base / 'current').symlink_to(previous)
                 release = base / 'candidate'
-                domain = SimpleNamespace(provision_control_database=Mock())
+                domain = SimpleNamespace(player_session_migration=Mock(), preflight_control_database=Mock(), provision_control_database=Mock())
                 guards = Mock(side_effect=[None, control.Stopped(failure)] if failure == 'ACTIVE_GAME' else None)
                 def command(*args, **_):
                     if args[-1] == facts()['kart']['id'] and failure in ('COMMAND_FAILED', 'SIGNAL_INTERRUPTED'):
@@ -288,7 +344,7 @@ class ControlContracts(unittest.TestCase):
         release = Path('/fixture/candidate')
         state = journal(release)
         proof = {'controlContract': CONTRACT}
-        domain = SimpleNamespace(provision_control_database=Mock())
+        domain = SimpleNamespace(provision_control_database=Mock(), provision_player_sessions=Mock())
         calls = []
         with patch.object(control, 'domain_module', return_value=domain), patch.object(control, 'private_directory'), patch.object(control, 'private_json', return_value=state), patch.object(control, 'write_private'), patch.object(control, 'assert_nginx'), patch.object(control, 'target_inventory', return_value=state['inventory']['postgres']), patch.object(control, 'database_floor', return_value='schema2'), patch.object(control, 'read_precommit', return_value=(proof, 'f' * 64)), patch.object(control, 'authority'), patch.object(control, 'assert_env'), patch.object(control, 'contexts_for', return_value=state['contexts']), patch.object(control, 'verified_database'), patch.object(control, 'activate_services', side_effect=control.Stopped('COMMAND_FAILED')), patch.object(control, 'command', side_effect=lambda *args: calls.append(args)), patch.object(control, 'restore_before_migration') as restore:
             with self.assertRaisesRegex(control.Stopped, 'COMMAND_FAILED'):
@@ -306,7 +362,7 @@ class ControlContracts(unittest.TestCase):
             release = base / 'candidate'
             failure = control.Stopped('COMMAND_FAILED')
             failure.outcome, failure.oldDataUnchanged = 'not_committed', True
-            domain = SimpleNamespace(provision_control_database=Mock(side_effect=failure))
+            domain = SimpleNamespace(player_session_migration=Mock(), preflight_control_database=Mock(), provision_control_database=Mock(side_effect=failure))
             with patch.object(control, 'PRIVATE', private), patch.object(control, 'BASE', base), patch.object(control, 'domain_module', return_value=domain), patch.object(control, 'inventory', return_value=facts()), patch.object(control, 'database_floor', return_value='absent'), patch.object(control, 'manifest_from', return_value={}), patch.object(control, 'management_config', return_value=(Path('/opaque/management.env'), [1, 2, 3, 4], {})), patch.object(control, 'contexts_for', return_value={'runtime': {}, 'kart': {}}), patch.object(control, 'active_guards'), patch.object(control, 'build_image', return_value=IMAGE), patch.object(control, 'authority'), patch.object(control, 'pointers_for', return_value={}), patch.object(control, 'command'), patch.object(control, 'assert_nginx'), patch.object(control, 'stopped_writers'), patch.object(control, 'restore_before_migration', side_effect=control.Stopped('GAME_RESTART_FAILED')):
                 with self.assertRaisesRegex(control.Stopped, 'GAME_RESTART_FAILED'):
                     control.adopt(release, manifest(), base)
@@ -314,8 +370,7 @@ class ControlContracts(unittest.TestCase):
                 self.assertTrue(saved['verifiedNotCommitted'])
                 self.assertEqual(saved['phase'], 'verified-not-committed')
                 with patch.object(control, 'restore_before_migration') as restore:
-                    with self.assertRaisesRegex(control.Stopped, 'PREMIGRATION_RESTORED'):
-                        control.adopt(release, manifest(), base, True)
+                    self.assertEqual(control.adopt(release, manifest(), base, True)['outcome'], 'restored-before-migration')
                     restore.assert_called_once()
                     self.assertTrue(restore.call_args.kwargs['explicit_not_committed'])
                 self.assertEqual(domain.provision_control_database.call_count, 1)
@@ -395,9 +450,219 @@ class DatabaseDiagnostics(unittest.TestCase):
         error = control.database_failure('DATABASE_OUTCOME_UNKNOWN', original)
         self.assertEqual(len(control.diagnostic_markers(error)), 3)
         self.assertFalse(hasattr(error, 'secret'))
-        self.assertEqual(error.code, 'DATABASE_OUTCOME_UNKNOWN')
+        self.assertEqual(error.code, 'DATABASE_OUTCOME_UNKNOWN__CONTROL_DATABASE_FAILED')
         original.ownedContainerId='bad'; original.probeUUID='bad'; original.probeProcessId=True
         self.assertEqual(control.diagnostic_markers(control.database_failure('DATABASE_OUTCOME_UNKNOWN', original)), [])
+
+    def test_only_enumerated_causes_cross_the_boundary(self):
+        for reason in ('CONTROL_PRIVATE_DIRECTORY', 'PRIVATE_CANARY', None, 'CONTROL_COMMAND_FAILED secret'):
+            error = control.database_failure('DATABASE_PREFLIGHT_FAILED', SimpleNamespace(code=reason))
+            self.assertEqual(error.code, 'DATABASE_PREFLIGHT_FAILED__' + (
+                reason if reason in control.DATABASE_REASONS else 'CONTROL_DATABASE_FAILED'))
+
+
+class HelperBoundary(unittest.TestCase):
+    @contextlib.contextmanager
+    def fixture(self):
+        spec = importlib.util.spec_from_file_location('real_control_database', Path(control.__file__).with_name('control-database.py'))
+        db = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(db)
+        with tempfile.TemporaryDirectory() as folder, contextlib.ExitStack() as stack:
+            base, private = Path(folder) / 'public', Path(folder) / 'private'
+            (base / 'releases/previous').mkdir(parents=True)
+            (base / 'current').symlink_to(base / 'releases/previous')
+            private.mkdir(mode=0o700)
+            release = base / 'releases/candidate'
+            (release / 'migrations').mkdir(parents=True)
+            (private / release.name).mkdir(mode=0o700)
+            files = ('control-database.py', 'control-fingerprint.sql', 'migrations/002-control-center.sql', 'migrations/014-player-sessions.sql')
+            for name in files:
+                shutil.copyfile((Path(control.__file__).parent.parent if name.endswith('014-player-sessions.sql') else Path(control.__file__).parent) / name, release / name)
+            value = dict(manifest(), release=release.name, migrationArtifactSha256=db.MIGRATION_SHA256,
+                         files={name: hashlib.sha256((release / name).read_bytes()).hexdigest() for name in files})
+            (release / 'manifest.json').write_text(json.dumps(value))
+            live, events, sql = facts(), [], []
+            def docker(*args, **kwargs):
+                if args[:2] == ('docker', 'inspect'):
+                    return json.dumps(next(item for item in live.values() if item['id'] == args[-1])).encode()
+                if args[:3] == ('docker', 'compose', 'version'):
+                    return b'Docker Compose version v2.40.0'
+                if args[:2] == ('docker', 'compose') and args[-2:] == ('config', '--quiet'):
+                    self.assertEqual(json.loads(kwargs['input'])['services']['probe']['env_file'], [{'path': '/dev/null', 'format': 'raw'}])
+                    return b''
+                if args[-1] == '--version':
+                    return (args[-2] + ' (PostgreSQL) 17.6').encode()
+                query = kwargs['input'].decode()
+                self.assertTrue(query.startswith('BEGIN READ ONLY;'))
+                self.assertNotIn('CREATE ', query)
+                sql.append(query)
+                return b'1024' if 'pg_database_size' in query else b't'
+            def lifecycle(*args, **kwargs):
+                events.append(args)
+                for item in live.values():
+                    if item['id'] == args[-1]:
+                        item['running'] = args[1] == 'start'
+                return b''
+            stack.enter_context(patch.dict(control.MODULES, {'control-database.py': db}, clear=True))
+            for module, key, replacement in [(db, 'BASE', base / 'releases'), (db, 'PRIVATE', private),
+                                             (control, 'BASE', base), (control, 'PRIVATE', private)]:
+                stack.enter_context(patch.object(module, key, replacement))
+            stack.enter_context(patch.object(db, 'command', side_effect=docker))
+            for name, replacement in {
+                'inventory': lambda: copy.deepcopy(live), 'database_floor': lambda *_: 'absent',
+                'manifest_from': lambda *_: {}, 'management_config': lambda *_: (Path('/opaque/management.env'), [1, 2, 3, 4], {}),
+                'contexts_for': lambda *_: {'runtime': {}, 'kart': {}}, 'active_guards': lambda *_: None,
+                'build_image': lambda *_: IMAGE, 'authority': lambda *_: None, 'pointers_for': lambda *_: {},
+                'command': lifecycle, 'assert_nginx': lambda *_: None, 'stopped_writers': lambda *_: None,
+                'assert_env': lambda *_: None, 'check_protected': lambda *_: None,
+                'target_inventory': lambda name: copy.deepcopy(live[name]), 'service_health': lambda *_: None,
+            }.items():
+                stack.enter_context(patch.object(control, name, side_effect=replacement))
+            yield db, release, value, private, live, events, sql
+
+    def test_real_helper_preflight_under_nonroot_owner_is_readonly_before_stop(self):
+        # Run via WSL/Linux to exercise real uid and 0700/0600 checks, not a mocked helper.
+        self.assertNotEqual(os.geteuid(), 0)
+        with self.fixture() as (db, release, value, private, live, events, sql):
+            with patch.object(control, 'pointers_for', side_effect=control.Stopped('ACTIVE_GAME')):
+                with self.assertRaisesRegex(control.Stopped, 'ACTIVE_GAME'):
+                    control.adopt(release, value, release.parent)
+            self.assertEqual(len(sql), 3)
+            self.assertEqual(events, [])
+            self.assertEqual(list((private / release.name).iterdir()), [])
+            self.assertTrue(all(item['running'] for item in live.values()))
+
+    def test_preflight_permissions_hash_tools_profile_and_disk_fail_without_stopping(self):
+        for failure in ('permissions', 'hash', 'tools', 'profile', 'disk'):
+            with self.subTest(failure=failure), self.fixture() as (db, release, value, private, live, events, sql), contextlib.ExitStack() as stack:
+                if failure == 'permissions':
+                    def permissions_changed(*_):
+                        (private / release.name).chmod(0o755)
+                        return Path('/opaque/management.env'), [1, 2, 3, 4], {}
+                    stack.enter_context(patch.object(control, 'management_config', side_effect=permissions_changed))
+                elif failure == 'hash':
+                    (release / 'control-database.py').write_text('invalid')
+                elif failure == 'tools':
+                    stack.enter_context(patch.object(db, 'command', side_effect=db.ControlDatabaseError('CONTROL_COMMAND_FAILED')))
+                elif failure == 'profile':
+                    stack.enter_context(patch.object(db, 'psql', side_effect=['t', 'f']))
+                else:
+                    stack.enter_context(patch.object(db.shutil, 'disk_usage', return_value=SimpleNamespace(free=0)))
+                with self.assertRaisesRegex(control.Stopped, 'DATABASE_PREFLIGHT_FAILED') as caught:
+                    control.adopt(release, value, release.parent)
+                self.assertIn(caught.exception.reason, control.DATABASE_REASONS)
+                self.assertEqual(events, [])
+                self.assertTrue(all(item['running'] for item in live.values()))
+                self.assertEqual(list((private / release.name).iterdir()), [])
+
+    def test_real_helper_failure_before_any_database_command_restores_exact_old_services(self):
+        with self.fixture() as (db, release, value, private, live, events, sql):
+            def changed_after_stop(_pg):
+                (release / 'control-fingerprint.sql').write_text('changed after preflight')
+            with patch.object(control, 'stopped_writers', side_effect=changed_after_stop):
+                with self.assertRaisesRegex(control.Stopped, 'DATABASE_NOT_COMMITTED') as caught:
+                    control.adopt(release, value, release.parent)
+            self.assertEqual(caught.exception.reason, 'CONTROL_RELEASE_HASH')
+            self.assertEqual(len(sql), 3)  # Only the pre-stop readonly queries; no post-stop DB command.
+            self.assertEqual([call[-1] for call in events if call[1] == 'start'],
+                             [live[name]['id'] for name in ('runtime', 'kart', 'management', 'nginx')])
+            saved = control.private_json(private / release.name / 'control-journal.json')
+            self.assertEqual(saved['phase'], 'restored')
+            self.assertFalse(saved['newActivationAttempted'])
+
+
+class RootPreconditionRecovery(unittest.TestCase):
+    @contextlib.contextmanager
+    def fixture(self):
+        with tempfile.TemporaryDirectory() as folder, contextlib.ExitStack() as stack:
+            base, private = Path(folder) / 'public', Path(folder) / 'private'
+            previous = base / 'releases/previous'
+            previous.mkdir(parents=True)
+            (base / 'current').symlink_to(previous)
+            release = base / 'releases' / control.ROOT_PRECONDITION['release']
+            release.mkdir()
+            # Historical bytes are data only; executing this fixture is always a failure.
+            helper = b'raise AssertionError("historical code executed")\n'
+            (release / 'control-database.py').write_bytes(helper)
+            binding = dict(control.ROOT_PRECONDITION, deploymentUid=os.geteuid(), helperSHA256=hashlib.sha256(helper).hexdigest())
+            value = dict(manifest(), sourceSHA=binding['sourceSHA'], files={'control-database.py': binding['helperSHA256']})
+            private.mkdir(mode=0o700)
+            directory = private / release.name
+            directory.mkdir(mode=0o700)
+            stack.enter_context(patch.object(control, 'PRIVATE', private))
+            stack.enter_context(patch.object(control, 'BASE', base))
+            stack.enter_context(patch.object(control, 'ROOT_PRECONDITION', binding))
+            state = journal(release)
+            state.update(sourceSHA=binding['sourceSHA'], phase='database-unknown', newActivationAttempted=False,
+                         stopped=['management', 'kart', 'runtime'])
+            live = copy.deepcopy(state['inventory'])
+            for name in (*control.SERVICES, 'nginx'):
+                live[name]['running'] = False
+            events = []
+            def command(*args):
+                events.append(args)
+                next(item for item in live.values() if item['id'] == args[-1])['running'] = True
+            for name, replacement in {
+                'domain_module': lambda: SimpleNamespace(provision_control_database=Mock(side_effect=AssertionError('must not migrate'))),
+                'assert_env': lambda *_: None, 'check_protected': lambda *_: None,
+                'contexts_for': lambda *_: state['contexts'], 'assert_nginx': lambda *_: None,
+                'database_floor': lambda *_: 'absent', 'target_inventory': lambda name: copy.deepcopy(live[name]),
+                'command': command, 'service_health': lambda *_: None,
+            }.items():
+                stack.enter_context(patch.object(control, name, side_effect=replacement))
+            yield release, value, state, directory, live, events
+
+    def test_explicit_bound_evidence_restores_and_preserves_original_journal(self):
+        with self.fixture() as (release, value, state, directory, live, events):
+            control.write_private(directory / 'control-journal.json', state)
+            self.assertEqual(control.adopt(release, value, release.parent, True, True)['outcome'], 'restored-before-migration')
+            saved = control.private_json(directory / 'control-journal.json')
+            self.assertEqual(saved['phase'], 'restored')
+            self.assertEqual(saved['rootPreconditionEvidence']['journal'], state)
+            self.assertEqual(len(events), 4)
+            self.assertEqual(control.adopt(release, value, release.parent, True, True)['outcome'], 'restored-before-migration')
+            self.assertTrue(all(item['running'] for item in live.values()))
+
+    def test_absence_alone_and_every_incomplete_binding_refuse_without_start(self):
+        for failure in ('no-option', 'uid', 'source', 'helper-manifest', 'helper-bytes', 'backup', 'precommit',
+                        'activation', 'phase', 'precommit-hash', 'runtime-id', 'kart-removal', 'stopped',
+                        'container', 'schema2', 'pointer'):
+            with self.subTest(failure=failure), self.fixture() as (release, value, state, directory, live, events), contextlib.ExitStack() as stack:
+                if failure == 'uid':
+                    # Ownership checks stay real; only the historical execution-uid claim differs.
+                    stack.enter_context(patch.object(control, 'ROOT_PRECONDITION', dict(control.ROOT_PRECONDITION, deploymentUid=os.geteuid() + 1)))
+                elif failure == 'source': value['sourceSHA'] = state['sourceSHA'] = 'f' * 40
+                elif failure == 'helper-manifest': value['files']['control-database.py'] = 'f' * 64
+                elif failure == 'helper-bytes': (release / 'control-database.py').write_text('changed')
+                elif failure in ('backup', 'precommit'): (directory / ('control-database.dump' if failure == 'backup' else 'control-precommit.json')).touch()
+                elif failure == 'activation': state['newActivationAttempted'] = True
+                elif failure == 'phase': state['phase'] = 'database'
+                elif failure == 'precommit-hash': state['precommitSHA256'] = 'f' * 64
+                elif failure == 'runtime-id': state['runtimeIds'] = ['f' * 64]
+                elif failure == 'kart-removal': state['kartRemovalAttempted'] = True
+                elif failure == 'stopped': state['stopped'] = ['runtime']
+                elif failure == 'container': live['runtime']['id'] = 'f' * 64
+                elif failure == 'schema2': stack.enter_context(patch.object(control, 'database_floor', return_value='schema2'))
+                elif failure == 'pointer': state['previous'] = 'other'
+                control.write_private(directory / 'control-journal.json', state)
+                with self.assertRaises(control.Stopped):
+                    control.adopt(release, value, release.parent, True, failure != 'no-option')
+                self.assertEqual(events, [])
+
+    def test_proven_evidence_survives_partial_restart_and_tampering_is_rejected(self):
+        with self.fixture() as (release, value, state, directory, live, events):
+            control.write_private(directory / 'control-journal.json', state)
+            with patch.object(control, 'service_health', side_effect=control.Stopped('GAME_RESTART_FAILED')):
+                with self.assertRaisesRegex(control.Stopped, 'GAME_RESTART_FAILED'):
+                    control.adopt(release, value, release.parent, True, True)
+            saved = control.private_json(directory / 'control-journal.json')
+            control.adoption_journal(saved, release, value)
+            changed = copy.deepcopy(saved)
+            changed['rootPreconditionEvidence']['journal']['newActivationAttempted'] = True
+            with self.assertRaisesRegex(control.Stopped, 'ROOT_PRECONDITION_UNPROVEN'):
+                control.adoption_journal(changed, release, value)
+            self.assertEqual(control.adopt(release, value, release.parent, True, True)['outcome'], 'restored-before-migration')
+            self.assertTrue(all(item['running'] for item in live.values()))
 
 
 if __name__ == '__main__':

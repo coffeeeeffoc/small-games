@@ -20,7 +20,7 @@ it('applies the registered live policy to preflight and rate-limits before its d
   });
   await registerCompetition(
     app,
-    { guestSession: async () => ({}) } as unknown as ReturnType<typeof createCompetitionStore>,
+    { refreshSession: async () => ({}) } as unknown as ReturnType<typeof createCompetitionStore>,
     {},
     undefined,
     undefined,
@@ -51,15 +51,20 @@ it('applies the registered live policy to preflight and rate-limits before its d
         (
           await app.inject({
             method: 'POST',
-            url: '/api/competition/v1/sessions/guest',
-            payload: {},
+            url: '/api/competition/v1/sessions/refresh',
+            payload: { refreshToken: 'a'.repeat(64) },
           })
         ).statusCode,
       ).toBe(200);
     expect(publicCors.mock.calls.length - before).toBe(20);
     expect(
-      (await app.inject({ method: 'POST', url: '/api/competition/v1/sessions/guest', payload: {} }))
-        .statusCode,
+      (
+        await app.inject({
+          method: 'POST',
+          url: '/api/competition/v1/sessions/refresh',
+          payload: { refreshToken: 'a'.repeat(64) },
+        })
+      ).statusCode,
     ).toBe(429);
     expect(publicCors.mock.calls.length - before).toBe(20);
   } finally {

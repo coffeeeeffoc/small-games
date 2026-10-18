@@ -5,7 +5,11 @@ import { randomUUID } from 'node:crypto';
 
 export const rankedBoard = 'carding-car-seaside-v1';
 export const rankedSeed = 20260923;
-export const KART_AUTHORITY_PROTOCOL = Object.freeze({ control: 1, identityRecheck: 1 });
+export const KART_AUTHORITY_PROTOCOL = Object.freeze({
+  control: 1,
+  identityRecheck: 1,
+  authenticatedGameScope: 1,
+});
 export type KartResult = {
   matchId: string;
   board: string;
@@ -14,6 +18,23 @@ export type KartResult = {
   finishedAt: number;
   killEpoch?: number;
 };
+// Only durable result data may cross the disk boundary; never retain a bearer or refresh token.
+const kartResultSchema = z
+  .object({
+    matchId: z.uuid(),
+    board: z.literal(rankedBoard),
+    entries: z
+      .array(
+        z
+          .object({ playerId: z.uuid(), elapsedMs: z.number().int().min(1000).max(600000) })
+          .strict(),
+      )
+      .max(2),
+    startedAt: z.number().int().nonnegative(),
+    finishedAt: z.number().int().nonnegative(),
+    killEpoch: z.number().int().nonnegative().optional(),
+  })
+  .strict();
 export const kartControlLeaseSchema = z
   .object({
     controlEnabled: z.literal(true),
@@ -94,9 +115,9 @@ export async function createCompetition(options: {
         /^[a-f0-9-]{36}\.json$/.test(name),
       )) {
         try {
-          const result = JSON.parse(
-            await readFile(path.join(directory, filename), 'utf8'),
-          ) as KartResult;
+          const result = kartResultSchema.parse(
+            JSON.parse(await readFile(path.join(directory, filename), 'utf8')),
+          );
           await request('kart-results', result);
           await unlink(path.join(directory, filename));
           completed.add(result.matchId);
@@ -144,10 +165,7 @@ export async function createCompetition(options: {
       const result = await request('verify', { token });
       if (!result || typeof result.playerId !== 'string' || !result.playerId)
         throw new Error('Invalid competition identity response');
-      if (
-        result.expiresAt !== undefined &&
-        (!Number.isSafeInteger(result.expiresAt) || result.expiresAt <= Date.now())
-      )
+      if (!Number.isSafeInteger(result.expiresAt) || result.expiresAt <= Date.now())
         throw new CompetitionRequestError('SESSION_EXPIRED');
       return {
         playerId: result.playerId,
@@ -155,7 +173,7 @@ export async function createCompetition(options: {
       };
     },
     async settle(result) {
-      if (!/^[a-f0-9-]{36}$/.test(result.matchId)) throw new Error('Invalid match ID');
+      result = kartResultSchema.parse(result);
       const filename = path.join(directory, `${result.matchId}.json`);
       const temporary = `${filename}.tmp`;
       const file = await open(temporary, 'w', 0o600);

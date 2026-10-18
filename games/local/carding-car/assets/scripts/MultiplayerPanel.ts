@@ -130,7 +130,6 @@ export class MultiplayerPanel {
         .catch((error: Error) => { client.status=error.message; client.changed(); });
     });
     this.code = edit(this.entry, '输入 8 位房间码', 0, -10, 420, 8);
-    let joiningWithoutIdentity = false;
     const join = async (create: boolean, ranked = false) => {
       if (this.authenticating || client.connecting || client.connected) return;
       const attempt = ++this.authAttempt;
@@ -155,12 +154,12 @@ export class MultiplayerPanel {
       let competitionToken: string | undefined;
       try {
         const bridge = competition();
-        if (bridge && ranked) {
+        if (bridge) {
           client.status = '正在验证玩家身份…';
           client.changed();
           competitionToken = (await bridge.session()).token;
           appearance.name = await this.saveName();
-        } else if (ranked) throw new Error('全站服务尚未配置，请配置后再参加排位');
+        } else throw new Error('联网服务尚未配置，请稍后再试');
       } catch (error) {
         if (attempt === this.authAttempt) {
           this.authenticating = false;
@@ -171,7 +170,6 @@ export class MultiplayerPanel {
       }
       if (attempt !== this.authAttempt) return;
       this.authenticating = false;
-      joiningWithoutIdentity = !create && !ranked;
       client.connect(
         create
           ? { type: 'create', ...appearance, theme: selected.theme, route: selected.route, bots: ranked ? 0 : 3, ranked, competitionToken }
@@ -306,12 +304,7 @@ export class MultiplayerPanel {
     this.root.active = false;
     client.changed = () => {
       this.refresh();
-      // A room code can refer to practice or ranked play; let the server require identity.
-      if (joiningWithoutIdentity && this.root.active && !client.connected && !client.connecting &&
-          client.status === '排位赛需要有效玩家身份') {
-        joiningWithoutIdentity = false;
-        void join(false, true);
-      }
+
     };
     this.refresh();
   }

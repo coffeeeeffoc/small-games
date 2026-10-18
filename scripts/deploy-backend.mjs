@@ -212,8 +212,8 @@ export function backendReceipt(text, selection) {
     'REMOTE_RECEIPT',
   );
   const floors = {
-    runtime: { control: 1, ephemeralGuestScope: 1 },
-    kart: { control: 1, identityRecheck: 1 },
+    runtime: { control: 1, authenticatedGameScope: 1 },
+    kart: { control: 1, identityRecheck: 1, authenticatedGameScope: 1 },
   };
   assert(
     value.imageCapabilities &&

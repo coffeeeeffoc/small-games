@@ -1,12 +1,12 @@
 # 通用游戏服务入口
 
-所有接口复用 Runtime API 的 `/api/competition/v1`、现有身份、来源限制、限流和 PostgreSQL。游戏只提交操作，不提交权威分数。纯玩法模块负责模拟；入口层按 `game` 注册表选择模块。
+所有接口复用 Runtime API、现有身份、来源限制、限流和 PostgreSQL。公网地址为 `https://api.nenggongzhiren.cn/small-games/v1`，内部兼容路径为 `/api/competition/v1`。游戏只提交操作，不提交权威分数。纯玩法模块负责模拟；入口层按 `game` 注册表选择模块。
 
 ## 身份与排行榜
 
 `GET /games/:game` 返回标题、规则版本、`capabilities`、`boards` 与 `identity`。独立的 `versions.ranked` / `versions.multiplayer` 用于双能力游戏的规则版本；房间客户端以房间响应的版本为准。身份包含 `kind`（`anonymous`、`guest`、`platform`）、`authenticated`、`provider`、`playerId`、`name`。仅经过平台官方登录交换的 `platform` 身份标为 `authenticated: true`；游客 token 不代表平台登录。它与 Shell 云存档身份相互独立。
 
-未登录可读游戏信息与 `GET /games/:game/leaderboards/:board`；`me` 为 `null`。携带无效或过期 Bearer token 返回 401，不静默更换用户。写入使用已有 `/sessions/guest` 或 `/sessions/platform` 签发的 Bearer token，不能自报 `playerId`。平台密钥只在服务器配置。
+游戏信息、排行榜、房间和挑战接口均要求有效且绑定当前游戏的 Bearer token，缺失或过期返回 401，跨游戏凭证被拒绝。首次联网由共享客户端调用 `POST /sessions/guest`，服务端签发匿名 ID、随机昵称、内置头像和凭证；玩家无需注册或执行登录操作。匿名凭证缓存按 API、平台、AppID 和游戏隔离，各入口独立，不提供跨平台找回。访问凭证 15 分钟、刷新凭证滚动 180 天；具体恢复与失效行为见[更新说明](../operations/backend-recovery-2026-10-17.md)。保留 `/sessions/platform` 的官方交换协议供兼容调用，平台密钥只在服务器配置。
 
 每个榜定义 `id`、标题、说明、`guestAllowed`、`scoreUnit`、`secondaryUnit`。当前两款游戏的 `campaign` 和 `endless` 允许游客。将某个榜的 `guestAllowed` 设为 `false`，服务器就会拒绝游客创建该榜挑战。榜单按游戏、榜类型、规则版本隔离，响应含 `top`、`me`、`rank`、`score`、`secondary` 等信息。
 
@@ -37,7 +37,7 @@
 
 Recorder 提供 `start({mode,levelId?,practice?})`、`record(input,ticks=1)`、`finish()`、`invalidate(reason)`。开局连接最多等待 1.5 秒，网络失败返回本地模式；迟到响应不能恢复已取消的局。输入按批次串行上传，已确认输入立即丢弃；未确认缓冲上限 4800 ticks / 2400 frames。已进入结算的至多两局允许在下一局开始后继续排空，界面状态仍按当前局隔离。关闭整个页面前未获服务器确认的成绩不保证送达。
 
-Run 始终使用创建时的 credential 快照，401 不触发新游客冒充旧 run。当前页存储不可用时保留内存身份；可读存储里的账号变动影响新局与读榜，不改变旧 run 主体。新连接等待期间身份被清除或损坏，会取消该次连接；下一次明确开局读取最新身份或重新建立会话。共享客户端独立管理同一官方会话协议，不调用旧客户端缓存的登录闭包。并发入口共用一次登录请求；原生登录失败不会降级为游客。离线不伪装全站榜或本地模拟的在线名次。
+Run 始终绑定创建时的玩家；续期只接受同一玩家和游戏，401 不会自动重放写入或创建新身份冒充旧 run。当前页存储不可用时保留内存身份；存储身份变动影响新局与读榜，不改变旧 run 主体。新连接等待期间身份被清除或损坏，会取消该次连接；下一次明确开局读取最新身份或重新建立会话。共享客户端统一管理匿名签发和续期，并发调用共用一次请求，不调用平台 SDK 登录。离线不伪装全站榜或本地模拟的在线名次。
 
 客户端同时提供 `metadata()`、`createRoom({mode?,role?,initiative?})`、`joinRoom({code})`、`getRoom({code})` 和 `roomAction({code,operation,body?})`。操作白名单为 `ready/leave/rematch/actions/role/initiative`；已加入房间及续局邀请固定原身份，换号不会替换它的操作主体。
 
@@ -51,7 +51,7 @@ Run 始终使用创建时的 credential 快照，401 不触发新游客冒充旧
 
 ## 部署与验证
 
-启用 `COMPETITION_ENABLED=true`、`RUNTIME_DATABASE_URL`、`COMPETITION_ORIGINS`，生产设置 `COMPETITION_INTERNAL_KEY`；平台登录另配置 `COMPETITION_PLATFORM_CONFIG`。沿用 010/011/012 迁移，无新增表。部署工具自动带上两款游戏纯规则源。两游戏构建/开发服务支持 `COMPETITION_PUBLIC_API_URL`；页面注入的配置优先。客户端 `__COMPETITION_CONFIG__.apiUrl` 指向包含 `/api/competition/v1` 的服务地址；静态 Pages 单独部署不会提供数据库或比赛 API。
+启用 `COMPETITION_ENABLED=true`、`RUNTIME_DATABASE_URL`、`COMPETITION_ORIGINS`，生产设置 `COMPETITION_INTERNAL_KEY`；平台登录另配置 `COMPETITION_PLATFORM_CONFIG`。初始化包含 010–014 迁移；现有生产数据库通过控制部署流程采用 014，增加游戏范围和会话续期结构，不在日常应用更新时重跑迁移。部署工具自动带上两款游戏纯规则源。两游戏构建/开发服务支持 `COMPETITION_PUBLIC_API_URL`；页面注入的配置优先。客户端 `__COMPETITION_CONFIG__.apiUrl` 指向包含版本路径的上述公网或内部服务地址；静态 Pages 单独部署不会提供数据库或比赛 API。
 
 本地 `pnpm competition:test-db` 准备隔离库；设置 `COMPETITION_TEST_DATABASE_URL=postgres://runtime_app:local-runtime-only@127.0.0.1:15432/competition_test` 后运行 `pnpm --filter @coffeeeeffoc/runtime-api exec vitest run tests/game-services.integration.test.mjs`，会执行真实 HTTP/PostgreSQL 回放、重启、并列、身份/游戏/榜隔离及幂等结算测试。客户端：`node --test platforms/competition/tests/game-services.test.mjs`；网关：`node --test scripts/competition-gateway.test.mjs`。
 

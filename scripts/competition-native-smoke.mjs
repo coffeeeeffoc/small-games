@@ -239,10 +239,7 @@ for (const [game, selected] of Object.entries(competitionGames)) {
           if (audioMode === 'create-failure') throw new Error('audio unavailable');
           return audio;
         },
-        getStorageSync: (key) =>
-          key.startsWith('competition-session-v1:')
-            ? JSON.stringify({ token: 'a'.repeat(64), expiresAt: Date.now() + 3600000 })
-            : records.get(key),
+        getStorageSync: (key) => records.get(key),
         setStorageSync(key, value) {
           if (storageFails) throw new Error('disk unavailable');
           records.set(key, value);
@@ -253,7 +250,23 @@ for (const [game, selected] of Object.entries(competitionGames)) {
           requests.push({ url, data });
           const route = new URL(url, 'https://fixture.invalid').pathname;
           let result;
-          if (route.endsWith('/me')) result = { playerId: 'a', name: '测试玩家' };
+          if (route.endsWith('/sessions/guest')) {
+            assert.equal(data.game, game);
+            result = {
+              playerId: 'a',
+              userId: 'a',
+              game,
+              identityKind: 'guest',
+              sessionId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+              token: 'a'.repeat(64),
+              refreshToken: 'b'.repeat(64),
+              expiresAt: Date.now() + 900000,
+              refreshExpiresAt: Date.now() + 180 * 86400000,
+              name: '测试玩家',
+              avatarId: 'cat',
+            };
+          } else if (route.endsWith('/me'))
+            result = { playerId: 'a', userId: 'a', game, name: '测试玩家', avatarId: 'cat' };
           else if (route.includes('/boards/'))
             result = {
               version: rule.version,

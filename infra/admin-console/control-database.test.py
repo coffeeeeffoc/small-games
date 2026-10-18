@@ -10,7 +10,7 @@ import sys
 import tempfile
 import unittest
 import uuid
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 HERE = Path(__file__).resolve().parent
 spec = importlib.util.spec_from_file_location('control_database', HERE / 'control-database.py')
@@ -20,6 +20,18 @@ IMAGE = 'sha256:d741b376874687de90374fd34f55c6b2760e8f7bd7e4ae5cd47f50757fc08cf8
 
 
 class Contracts(unittest.TestCase):
+    def test_ready_waits_for_final_tcp_server_before_using_socket(self):
+        with patch.object(db, 'command', side_effect=[db.ControlDatabaseError('CONTROL_COMMAND_FAILED'), None]) as command, patch.object(db, 'psql', return_value='1') as query, patch.object(db.time, 'sleep') as sleep:
+            db.ready('a' * 64)
+            self.assertEqual(command.call_count, 2)
+            command.assert_called_with('docker', 'exec', 'a' * 64, 'pg_isready', '-h', '127.0.0.1', '-U', 'platform_owner', timeout=5)
+            query.assert_called_once()
+            sleep.assert_called_once_with(0.5)
+        with patch.object(db, 'command', side_effect=db.ControlDatabaseError('CONTROL_COMMAND_FAILED')), patch.object(db, 'psql') as query, patch.object(db.time, 'sleep'):
+            with self.assertRaisesRegex(db.ControlDatabaseError, 'CONTROL_CLONE_NOT_READY'):
+                db.ready('a' * 64)
+            query.assert_not_called()
+
     def test_ordered_segments_and_pure_contract(self):
         parts = db.load_sql()
         self.assertTrue(parts['contract'].startswith('WITH '))
@@ -111,6 +123,38 @@ class Contracts(unittest.TestCase):
         with patch.object(db,'inspect_container',return_value=dict(items['runtime'],running=True)):
             with self.assertRaises(db.ControlDatabaseError):
                 db.check_inventory(items)
+        with patch.object(db, 'inspect_container', side_effect=lambda identifier: next(item for item in items.values() if item['id'] == identifier)):
+            self.assertEqual(db.check_inventory(items, writers_running=True), items['postgres']['id'])
+            with self.assertRaisesRegex(db.ControlDatabaseError, 'CONTROL_WRITER_RUNNING'):
+                db.check_inventory(items)
+
+    def test_owner_failure_before_database_access_is_provably_not_committed(self):
+        with patch.object(db, 'private_directory', side_effect=db.ControlDatabaseError('CONTROL_PRIVATE_DIRECTORY')), patch.object(db, 'command') as command:
+            with self.assertRaises(db.ControlDatabaseError) as caught:
+                db.provision_control_database(release=Path('/unused/candidate'), source_sha='a' * 40,
+                    migration_sha256=db.MIGRATION_SHA256, inventory={})
+            self.assertEqual(caught.exception.code, 'CONTROL_PRIVATE_DIRECTORY')
+            self.assertEqual(caught.exception.outcome, 'not_committed')
+            self.assertTrue(caught.exception.oldDataUnchanged)
+            self.assertFalse(caught.exception.mutationReached)
+            command.assert_not_called()
+
+    def test_commit_timeout_never_becomes_known_not_committed(self):
+        with tempfile.TemporaryDirectory() as folder:
+            directory = Path(folder)
+            backup = directory / 'control-database.dump'
+            backup.write_bytes(b'fixture-backup')
+            parts = db.load_sql()
+            contract = {'version': 1, 'schema': 'game_control', 'schemaVersion': 2,
+                        'projectionSha256': parts['projection'], 'metadataSha256': 'a' * 64}
+            with patch.object(db, 'preflight_control_database', return_value=('SELECT 1;', parts, 'a' * 64, directory)), patch.object(db, 'state', return_value={}), patch.object(db, 'write_private'), patch.object(db, 'command', return_value=b'fixture'), patch.object(db, 'restore_proof', return_value=({}, contract)), patch.object(db, 'check_inventory'), patch.object(db, 'psql', side_effect=db.ControlDatabaseError('CONTROL_COMMAND_TIMEOUT')) as execute:
+                with self.assertRaises(db.ControlDatabaseError) as caught:
+                    db.provision_control_database(release=directory, source_sha='a' * 40,
+                        migration_sha256=db.MIGRATION_SHA256, inventory={})
+                self.assertEqual(caught.exception.outcome, 'unknown')
+                self.assertTrue(caught.exception.mutationReached)
+                self.assertFalse(caught.exception.oldDataUnchanged)
+                self.assertIn('\nCOMMIT;\n', execute.call_args.args[1])
 
     def test_only_standard_restrict_lines_are_removed(self):
         text = b'\\restrict AbC123\nCREATE ROLE platform_owner;\nCREATE ROLE runtime_app;\n\\unrestrict AbC123\n'
@@ -246,6 +290,55 @@ INSERT INTO admin_console.admin_sessions VALUES(repeat('b',64),repeat('c',64),tr
                 for name in ('control-expected-full.json','control-expected-protected.json','control-expected-contract.json','control-database.dump','control-roles.sql'):
                     db.private_metadata(private/release.name/name)
                 passed.extend(['exact_002_twice_idempotent','actual_positive_and_42501_negative_permissions','protected_precommit_pair','source_same_transaction_full_and_contract_guards','verify_actual_read_only'])
+                # Keep the old canary intact, then exercise real UUID session tables after 002.
+                db.psql(source, 'ALTER TABLE runtime.competition_players RENAME TO canary_players;')
+                for number in ('010-competition.sql','011-competition-profiles.sql','012-three-choose-two.sql','013-competition-identities.sql'):
+                    db.psql(source,(HERE.parent/'migrations'/number).read_text(encoding='utf-8'))
+                session_file = 'migrations/014-player-sessions.sql'
+                shutil.copyfile(HERE.parent/session_file,release/session_file)
+                manifest['files'][session_file] = hashlib.sha256((release/session_file).read_bytes()).hexdigest()
+                (release/'manifest.json').write_bytes(db.encoded_json(manifest))
+                pid = '00000000-0000-4000-8000-000000000014'
+                db.psql(source, "INSERT INTO runtime.competition_players(id,created_at,display_name) VALUES('"+pid+"',1,'保留玩家'); INSERT INTO runtime.competition_sessions(token_hash,player_id,expires_at) VALUES(repeat('a',64),'"+pid+"',100);")
+                before_sessions = db.state(source,parts)
+                real_psql, real_write = db.psql, db.write_private
+                lost = [False]
+                def response_lost(pg, query, *args, **kwargs):
+                    value = real_psql(pg,query,*args,**kwargs)
+                    if pg == source and 'DO $post$' in query and not lost[0]:
+                        lost[0] = True
+                        raise db.ControlDatabaseError('CONTROL_COMMAND_TIMEOUT')
+                    return value
+                with patch.object(db,'PRIVATE',private):
+                    with patch.object(db,'psql',side_effect=response_lost):
+                        with unittest.TestCase().assertRaises(db.ControlDatabaseError):
+                            db.provision_player_sessions(release,source)
+                    db.require(lost[0], 'FIXTURE_COMMIT_LOSS_NOT_REACHED')
+                    def completion_lost(file,data):
+                        if file.name == 'player-sessions-complete.json':
+                            raise db.ControlDatabaseError('CONTROL_PRIVATE_FILE')
+                        return real_write(file,data)
+                    with patch.object(db,'write_private',side_effect=completion_lost):
+                        with unittest.TestCase().assertRaises(db.ControlDatabaseError):
+                            db.provision_player_sessions(release,source)
+                    session_proof = db.provision_player_sessions(release,source)
+                    db.require(db.provision_player_sessions(release,source)==session_proof,'FIXTURE_014_RETRY')
+                    db.require(db.psql(source,"SELECT display_name FROM runtime.competition_players WHERE id='"+pid+"';")=='保留玩家','FIXTURE_PLAYER_CHANGED')
+                    db.require(db.psql(source,'SELECT count(*) FROM runtime.competition_sessions;')=='0','FIXTURE_LEGACY_CREDENTIAL_REMAINED')
+                    db.psql(source,"SET ROLE runtime_app; INSERT INTO runtime.player_game_access VALUES('"+pid+"','cops-robbers'); BEGIN; SELECT player_id FROM runtime.player_game_access FOR KEY SHARE; COMMIT; RESET ROLE;")
+                    db.provision_player_sessions(release,source) # Business rows do not invalidate metadata.
+                    db.psql(source,'REVOKE UPDATE ON runtime.player_game_access FROM runtime_app;')
+                    with unittest.TestCase().assertRaises(db.ControlDatabaseError):
+                        db.provision_player_sessions(release,source)
+                    db.psql(source,'GRANT UPDATE ON runtime.player_game_access TO runtime_app;')
+                    db.provision_player_sessions(release,source)
+                    current = db.state(source,parts)
+                    migration = db.player_session_migration(release)[2]
+                    with unittest.TestCase().assertRaises(db.ControlDatabaseError):
+                        db.psql(source,db.player_session_transaction(migration,parts,current,before_sessions))
+                    db.require(db.state(source,parts)==current,'FIXTURE_014_ROLLBACK')
+                passed.extend(['014_real_uuid_schema_restore_and_idempotence','014_commit_response_loss_retry','014_complete_write_failure_retry','014_preserves_players_invalidates_legacy_credentials','014_runtime_role_locks','014_business_rows_allowed_acl_drift_rejected','014_postcondition_failure_rolls_back'])
+
             for item in owned:
                 db.require(not db.scalar('docker','ps','-aq','--no-trunc','--filter','label='+db.FIXTURE_LABEL+'='+item['uuid']),'FIXTURE_RESOURCE_REMAINED')
         receipt={'version':1,'status':'passed','fixtureUUID':fixture_uuid,'postgresImage':IMAGE,'postgresVersion':'17.6',

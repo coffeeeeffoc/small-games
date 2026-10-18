@@ -15,7 +15,16 @@ async function setup(platform: string, configured = true) {
   const store = { session } as unknown as ReturnType<typeof createCompetitionStore>;
   await registerCompetition(app, store, {
     COMPETITION_PLATFORM_CONFIG: JSON.stringify(
-      configured ? [{ platform, appId: 'test-app', secret: 'test-only-secret-value' }] : [],
+      configured
+        ? [
+            {
+              platform,
+              appId: 'test-app',
+              secret: 'test-only-secret-value',
+              games: ['cops-robbers'],
+            },
+          ]
+        : [],
     ),
   });
   return { app, session };
@@ -24,7 +33,7 @@ function login(app: ReturnType<typeof Fastify>, platform: string) {
   return app.inject({
     method: 'POST',
     url: '/api/competition/v1/sessions/platform',
-    payload: { platform, appId: 'test-app', code: 'one-time-platform-code' },
+    payload: { game: 'cops-robbers', platform, appId: 'test-app', code: 'one-time-platform-code' },
   });
 }
 describe('competition channel identities', () => {
@@ -64,7 +73,7 @@ describe('competition channel identities', () => {
     vi.stubGlobal('fetch', fetch);
     const response = await login(app, platform);
     expect(response.statusCode).toBe(200);
-    expect(session).toHaveBeenCalledWith(platform, 'test-app', 'verified-subject');
+    expect(session).toHaveBeenCalledWith(platform, 'test-app', 'verified-subject', 'cops-robbers');
     const [endpoint, options] = fetch.mock.calls[0] as unknown as [URL, RequestInit];
     expect(endpoint.hostname).toBe(hostname);
     expect(endpoint.searchParams.get('js_code')).toBe('one-time-platform-code');
@@ -83,7 +92,12 @@ describe('competition channel identities', () => {
     vi.stubGlobal('fetch', fetch);
     const response = await login(app, 'taptap');
     expect(response.statusCode).toBe(200);
-    expect(session).toHaveBeenCalledWith('taptap', 'test-app', 'verified-tap-openid');
+    expect(session).toHaveBeenCalledWith(
+      'taptap',
+      'test-app',
+      'verified-tap-openid',
+      'cops-robbers',
+    );
     const [endpoint, options] = fetch.mock.calls[0] as unknown as [URL, RequestInit];
     expect(endpoint.origin + endpoint.pathname).toBe(
       'https://cloud-miniapp.tapapis.cn/auth/v1/jscode2session',
@@ -125,7 +139,7 @@ describe('competition channel identities', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/competition/v1/sessions/platform',
-      payload: { platform: 'taptap', appId: 'another-miniapp', code: 'code' },
+      payload: { game: 'cops-robbers', platform: 'taptap', appId: 'another-miniapp', code: 'code' },
     });
     expect(response.statusCode).toBe(503);
     expect(response.json()).toEqual({ error: 'PLATFORM_NOT_CONFIGURED' });
@@ -167,3 +181,26 @@ describe('competition channel identities', () => {
     },
   );
 });
+
+it.each([undefined, ['xiangqi-five']])(
+  'rejects missing or mismatched native games binding %j before exchange',
+  async (games) => {
+    const app = Fastify();
+    apps.push(app);
+    const session = vi.fn();
+    await registerCompetition(
+      app,
+      { session } as unknown as ReturnType<typeof createCompetitionStore>,
+      {
+        COMPETITION_PLATFORM_CONFIG: JSON.stringify([
+          { platform: 'wechat', appId: 'test-app', secret: 'test-only-secret-value', games },
+        ]),
+      },
+    );
+    const fetch = vi.fn();
+    vi.stubGlobal('fetch', fetch);
+    expect((await login(app, 'wechat')).statusCode).toBe(403);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(session).not.toHaveBeenCalled();
+  },
+);

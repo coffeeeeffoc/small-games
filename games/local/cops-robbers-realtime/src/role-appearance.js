@@ -356,10 +356,6 @@ function loadPortraitImage(source) {
   return img;
 }
 
-// Browser art is preloaded once. Native SDKs keep their DOM-free vector fallback.
-if (classicRoles() && typeof Image !== 'undefined' && !globalThis.__chaseRoleImage)
-  loadPortraitImage(characterSheet);
-
 export function drawRoleAvatar(ctx, role, x, y, size) {
   const { avatar, character, style } = getRoleAppearance(role);
   const useSheet = !avatar && style === 'team' && !globalThis.__chaseRoleImage;

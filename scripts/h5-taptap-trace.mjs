@@ -103,7 +103,7 @@ export function safeApiPath(value) {
   const game =
     '(?:cops-robbers|cops-robbers-realtime|xiangqi-five|carding-car|carrom-club|three-choose-two)';
   const recognized = [
-    /^\/(?:me|sessions\/(?:guest|platform|refresh)|upgrade)$/,
+    /^\/(?:me|sessions\/(?:guest|platform|refresh|logout)|upgrade)$/,
     /^\/rooms(?:\/join|\/[A-F0-9]{12}(?:\/(?:actions|ready|start|leave|rematch|settings))?)?$/,
     new RegExp(`^/boards/${game}$`),
     new RegExp(

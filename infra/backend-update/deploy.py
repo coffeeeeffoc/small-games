@@ -333,7 +333,16 @@ def historical_rollback_labels(release, images):
 def recreate(contexts, override_file, names):
     for name in ['runtime', 'kart', 'tianxia']:
         if name in names:
-            compose(contexts[name], override_file, 'up', '-d', '--no-deps', '--no-build', '--pull', 'never',
+            context, active_override = contexts[name], override_file
+            if name == 'kart':
+                runtime = inventory('small-games', 'runtime')
+                require(runtime['running'] and re.fullmatch(r'[a-f0-9]{64}', runtime['id']), 'KART_NAMESPACE')
+                # Adoption pins a container ID; every update and restore must bind the current Runtime.
+                active_override = override_file.with_name('kart-network-' + os.urandom(6).hex() + '.json')
+                namespace = {'services': {'kart': {'network_mode': 'container:' + runtime['id']}}}
+                write_private(active_override, (json.dumps(namespace) + '\n').encode())
+                context = {**context, 'files': [*context['files'], str(override_file)]}
+            compose(context, active_override, 'up', '-d', '--no-deps', '--no-build', '--pull', 'never',
                     '--force-recreate', '--wait', '--wait-timeout', '180', name)
 
 

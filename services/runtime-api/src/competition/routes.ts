@@ -76,10 +76,12 @@ export async function registerCompetition(
         request.log.warn({ code: 'COMPETITION_UNAVAILABLE' }, 'Competition operation failed');
         return reply.code(503).send({ error: 'SERVICE_UNAVAILABLE' });
       });
-      const player = (authorization: string | undefined) => {
+      const player = async (authorization: string | undefined) => {
         if (!authorization || !/^Bearer [a-f0-9]{64}$/.test(authorization))
           throw new CompetitionError('SESSION_EXPIRED', 401);
-        return store.auth(authorization.slice(7));
+        const auth = await store.auth(authorization.slice(7));
+        if (!auth || typeof auth === 'string') throw new CompetitionError('SESSION_EXPIRED', 401);
+        return auth;
       };
       registerIdentityRoutes(routes, store, platforms, player);
       routes.get('/boards/:game', async (request) => {

@@ -66,6 +66,8 @@ function fixture(pending = false) {
     finishEndless: finish,
   };
   const memory = controlDatabase((text, params) => {
+    if (text.startsWith('select p.id,p.platform')) return [{ id: owner, platform: 'wechat' }];
+    if (text.startsWith('select 1 from runtime.player_game_access')) return [{ ok: 1 }];
     if (text.startsWith('select id from runtime.three_choose_two_sessions'))
       return [...sessions.values()]
         .filter((session) => session.status === 'active')

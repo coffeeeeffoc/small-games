@@ -5,6 +5,7 @@ import contextlib
 import hashlib
 import http.client
 import importlib.util
+import ipaddress
 import json
 import os
 from pathlib import Path
@@ -26,7 +27,7 @@ COMMANDS = {'runtime': ['node', 'services/runtime-api/dist/main.js'],
             'kart': ['node', 'services/kart-server/src/main.ts'],
             'management': ['node', 'services/management-api/dist/main.js']}
 PUBLIC_ENV = {'runtime': {'COMPETITION_CONTROL_ENABLED': 'true', 'COMPETITION_CONTROL_INSTANCE_ID': 'small-games-runtime',
-                          'COMPETITION_CORS_ORIGINS': 'http://localhost:8080,https://ma-h5-al.tapimg.com',
+                          'COMPETITION_CORS_ORIGINS': 'http://localhost:8080,https://ma-h5-al.tapimg.com,https://coffeeeeffoc.github.io',
                           'COMPETITION_CORS_METHODS': 'GET,POST,OPTIONS',
                           'COMPETITION_CORS_HEADERS': 'authorization,content-type',
                           'COMPETITION_CORS_CREDENTIALS': 'false'},
@@ -40,6 +41,22 @@ UI_PATHS = ['/', '/login', '/forbidden', '/config', '/games', '/members', '/role
 CSP_CONTRACT = {'version': 1, 'kind': 'nonce-v1', 'prefix': CSP_PREFIX, 'meta': CSP_META, 'baseCsp': CSP_BASE, 'paths': UI_PATHS}
 MODULES = {}
 STAGE = 'preflight'
+ROOT_PRECONDITION = {
+    'release': '0d7bfdfe4087-1792248271760-eb122d',
+    'sourceSHA': '0d7bfdfe4087b85139dc525e9a75f3ab792e17f6',
+    'helperSHA256': '55168636acfa30e302489acd96eb99335cf513550e9c62fb64d13f7f7773c536',
+    'deploymentUid': 1000,
+}
+DATABASE_REASONS = frozenset({
+    'CONTROL_PRIVATE_DIRECTORY', 'CONTROL_PRIVATE_FILE', 'CONTROL_PRIVATE_NOT_EMPTY',
+    'CONTROL_RELEASE', 'CONTROL_MANIFEST', 'CONTROL_RELEASE_HASH', 'CONTROL_MIGRATION_ARTIFACT',
+    'CONTROL_MIGRATION_BOUNDARIES', 'CONTROL_SQL_SEGMENTS', 'CONTROL_SQL_SESSION', 'CONTROL_SQL_CONTRACT',
+    'CONTROL_CONTAINER_ID', 'CONTROL_INVENTORY', 'CONTROL_RESOURCE_CHANGED', 'CONTROL_WRITER_RUNNING',
+    'CONTROL_DATABASE_IDENTITY', 'CONTROL_PG_VERSION', 'CONTROL_UNSUPPORTED_PROFILE', 'CONTROL_DISK_SPACE',
+    'CONTROL_COMMAND_TIMEOUT', 'CONTROL_COMMAND_FAILED', 'CONTROL_PREFLIGHT_FAILED',
+    'CONTROL_DATABASE_FAILED', 'CONTROL_SOURCE_CHANGED', 'CONTROL_POSTCOMMIT_STATE',
+    'CONTROL_FIXTURE_CLEANUP_REQUIRED', 'CONTROL_FIXTURE_RECOVERY_REQUIRED',
+})
 
 
 class Stopped(Exception):
@@ -51,6 +68,9 @@ class Stopped(Exception):
 def database_failure(code, original):
     """Forward only validated public ownership diagnostics across the boundary."""
     error = Stopped(code)
+    reason = getattr(original, 'code', None)
+    error.reason = reason if reason in DATABASE_REASONS else 'CONTROL_DATABASE_FAILED'
+    error.code = code + '__' + error.reason
     owned, token, pid = (getattr(original, key, None) for key in ('ownedContainerId', 'probeUUID', 'probeProcessId'))
     if isinstance(owned, str) and re.fullmatch(r'[a-f0-9]{64}', owned):
         error.ownedContainerId = owned
@@ -102,12 +122,19 @@ def support(name):
 def domain_module():
     value = support('control-database.py')
     require(callable(getattr(value, 'provision_control_database', None))
-            and callable(getattr(value, 'verify_control_database', None)), 'DATABASE_HELPER_REQUIRED')
+            and callable(getattr(value, 'preflight_control_database', None))
+            and callable(getattr(value, 'verify_control_database', None))
+            and callable(getattr(value, 'provision_player_sessions', None))
+            and callable(getattr(value, 'player_session_migration', None)), 'DATABASE_HELPER_REQUIRED')
     return value
 
 
 def command(*args, **kwargs):
-    return support('legacy-tools.py').command(*args, **kwargs)
+    legacy = support('legacy-tools.py')
+    try:
+        return legacy.command(*args, **kwargs)
+    except legacy.Stopped as error:
+        raise Stopped('COMMAND_TIMEOUT' if error.args == ('COMMAND_TIMEOUT',) else 'COMMAND_FAILED') from None
 
 
 def scalar(*args, **kwargs):
@@ -267,15 +294,25 @@ def management_config(release, allow_legacy=False):
     expected = support('legacy-tools.py').compose(release, file)
     if 'environment' in item:
         expected['services']['management']['environment'] = PUBLIC_ENV['management']
-    require(value == expected or value == control_compose(release, file, item.get('image')), 'MANAGEMENT_CONFIG')
+    networks = item.get('networks')
+    address = networks.get('existing', {}).get('ipv4_address') if isinstance(networks, dict) else None
+    require(value == expected or value == control_compose(release, file, item.get('image'), address), 'MANAGEMENT_CONFIG')
     require(allow_legacy or item.get('environment') == PUBLIC_ENV['management'], 'CONTROL_FLAG_REQUIRED')
     return file, signature, value
 
 
-def control_compose(release, envfile, image):
+def control_compose(release, envfile, image, management_ip=None):
     value = support('legacy-tools.py').compose(release, envfile)
     value['services']['management']['image'] = image
     value['services']['management']['environment'] = PUBLIC_ENV['management']
+    if management_ip is not None:
+        try:
+            address = ipaddress.IPv4Address(management_ip)
+        except ipaddress.AddressValueError:
+            raise Stopped('MANAGEMENT_ADDRESS') from None
+        require(address.is_private and not address.is_loopback and not address.is_unspecified, 'MANAGEMENT_ADDRESS')
+        # Keep the original address while Nginx is stopped, so its trusted-proxy IP stays free.
+        value['services']['management']['networks'] = {'existing': {'ipv4_address': str(address)}}
     return value
 
 
@@ -510,7 +547,14 @@ def stopped_writers(pg):
 
 def service_health(name, item):
     port = {'runtime': 43002, 'kart': 43003, 'management': 43001}[name]
-    command('docker', 'exec', item['id'], 'node', '-e', "fetch('http://127.0.0.1:" + str(port) + "/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))", timeout=8)
+    deadline = time.monotonic() + 45
+    while True:
+        try:
+            command('docker', 'exec', item['id'], 'node', '-e', "fetch('http://127.0.0.1:" + str(port) + "/health',{signal:AbortSignal.timeout(3000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))", timeout=5)
+            return
+        except Stopped:
+            require(time.monotonic() < deadline, 'GAME_RESTART_FAILED')
+            time.sleep(1)
 
 
 def target_inventory(name, optional=False):
@@ -574,9 +618,13 @@ def activate_services(release, manifest, journal, names):
                 candidate_boundary(name, target_inventory(name), journal, release)
             module.compose(journal['contexts'][name], file, 'up', '-d', '--no-deps', '--no-build', '--pull', 'never', '--wait', '--wait-timeout', '180', name)
     file = directory / 'compose.json'
-    model = control_compose(release, envfile, image)
+    management_ip = journal['inventory']['management']['networks']['small-games_default']['IPAddress']
+    model = control_compose(release, envfile, image, management_ip)
     if file.exists():
-        require(private_json(file) == model, 'MANAGEMENT_CONFIG')
+        saved = private_json(file)
+        if saved != model:
+            require(saved == control_compose(release, envfile, image), 'MANAGEMENT_CONFIG')
+            write_private(file, model, True)
     else:
         write_private(file, model)
     support('legacy-tools.py').compose_command(file, 'up', '-d', '--no-deps', '--no-build', '--pull', 'never', '--wait', '--wait-timeout', '180', 'management')
@@ -639,9 +687,9 @@ def adoption_journal(value, release, manifest):
     keys = {'version', 'release', 'sourceSHA', 'phase', 'inventory', 'contexts', 'candidateImage', 'previous',
             'envFile', 'envMetadata', 'pointers', 'precommitPath', 'precommitSHA256', 'newActivationAttempted',
             'stopped', 'runtimeIds', 'kartRemovalAttempted', 'domainInvoked', 'barrierAttempted', 'verifiedNotCommitted'}
-    require(isinstance(value, dict) and set(value) == keys and type(value['version']) is int and value['version'] == 1
+    require(isinstance(value, dict) and set(value) in (keys, keys | {'rootPreconditionEvidence'}) and type(value['version']) is int and value['version'] == 1
             and value['release'] == release.name and value['sourceSHA'] == manifest['sourceSHA']
-            and value['phase'] in ('prepared', 'barrier', 'database', 'database-unknown', 'verified-not-committed', 'activate', 'recovery-required')
+            and value['phase'] in ('prepared', 'barrier', 'database', 'database-unknown', 'verified-not-committed', 'activate', 'recovery-required', 'restored')
             and value['precommitPath'] == str(PRIVATE / release.name / 'control-precommit.json')
             and (value['precommitSHA256'] is None or digest(value['precommitSHA256']))
             and isinstance(value['candidateImage'], str) and re.fullmatch(r'sha256:[a-f0-9]{64}', value['candidateImage'])
@@ -657,13 +705,71 @@ def adoption_journal(value, release, manifest):
             and isinstance(value['pointers'], dict), 'RECOVERY_REQUIRED')
     require(all(isinstance(item, dict) and digest(item.get('id')) and isinstance(item.get('image'), str)
                 and re.fullmatch(r'sha256:[a-f0-9]{64}', item['image']) for item in value['inventory'].values()), 'RECOVERY_REQUIRED')
-    require(not value['verifiedNotCommitted'] or (value['phase'] == 'verified-not-committed'
+    require(not value['verifiedNotCommitted'] or (value['phase'] in ('verified-not-committed', 'restored')
             and value['domainInvoked'] and not value['newActivationAttempted']), 'RECOVERY_REQUIRED')
+    require(value['phase'] != 'restored' or (not value['newActivationAttempted']
+            and (not value['domainInvoked'] or value['verifiedNotCommitted'])), 'RECOVERY_REQUIRED')
+    if 'rootPreconditionEvidence' in value:
+        evidence = value['rootPreconditionEvidence']
+        require(isinstance(evidence, dict) and set(evidence) == {'binding', 'journalSHA256', 'journal'}
+                and evidence['binding'] == ROOT_PRECONDITION and digest(evidence['journalSHA256'])
+                and isinstance(evidence['journal'], dict) and set(evidence['journal']) == keys,
+                'ROOT_PRECONDITION_UNPROVEN')
+        original = evidence['journal']
+        require(hashlib.sha256((json.dumps(original, sort_keys=True) + '\n').encode()).hexdigest() == evidence['journalSHA256'],
+                'ROOT_PRECONDITION_UNPROVEN')
+        root_precondition_journal(original, release, manifest)
+        expected = dict(original, phase=value['phase'], verifiedNotCommitted=True,
+                        rootPreconditionEvidence=evidence)
+        require(value['phase'] in ('verified-not-committed', 'restored'), 'ROOT_PRECONDITION_UNPROVEN')
+        require(value == expected, 'ROOT_PRECONDITION_UNPROVEN')
     return value
+
+
+def root_precondition_journal(journal, release, manifest):
+    require(release.name == ROOT_PRECONDITION['release'] and manifest['sourceSHA'] == ROOT_PRECONDITION['sourceSHA']
+            and manifest.get('files', {}).get('control-database.py') == ROOT_PRECONDITION['helperSHA256']
+            and journal['phase'] == 'database-unknown' and journal['domainInvoked'] is True
+            and journal['barrierAttempted'] is True and journal['verifiedNotCommitted'] is False
+            and journal['newActivationAttempted'] is False and journal['kartRemovalAttempted'] is False
+            and journal['stopped'] == ['management', 'kart', 'runtime'] and journal['runtimeIds'] == []
+            and journal['precommitSHA256'] is None, 'ROOT_PRECONDITION_UNPROVEN')
+
+
+def prove_root_precondition(release, manifest, journal):
+    """One reviewed incident, never a general inference from an absent schema."""
+    root_precondition_journal(journal, release, manifest)
+    directory = PRIVATE / release.name
+    require(os.geteuid() == ROOT_PRECONDITION['deploymentUid']
+            and {file.name for file in directory.iterdir()} == {'control-journal.json'}
+            and hashlib.sha256((release / 'control-database.py').read_bytes()).hexdigest() == ROOT_PRECONDITION['helperSHA256'],
+            'ROOT_PRECONDITION_UNPROVEN')
+    require((BASE / 'current').resolve(strict=True) == BASE / 'releases' / journal['previous']
+            and journal['inventory']['management'].get('admin') == journal['previous'], 'ROOT_PRECONDITION_UNPROVEN')
+    assert_env(Path(journal['envFile']), journal['envMetadata'])
+    check_protected(journal['inventory'], journal['pointers'])
+    require(contexts_for(journal['inventory']) == journal['contexts'], 'COMPOSE_CONTEXT_CHANGED')
+    assert_nginx(journal['inventory'], True)
+    for name in SERVICES:
+        expected = stable_identity(journal['inventory'][name])
+        expected['running'] = False
+        require(stable_identity(target_inventory(name)) == expected, 'RESTORE_IDENTITY')
+    require(database_floor(journal['inventory']['postgres']['id']) == 'absent', 'DATABASE_OUTCOME_UNKNOWN')
+    original = dict(journal)
+    journal['rootPreconditionEvidence'] = {
+        'binding': dict(ROOT_PRECONDITION), 'journal': original,
+        'journalSHA256': hashlib.sha256((json.dumps(original, sort_keys=True) + '\n').encode()).hexdigest(),
+    }
+    journal.update(phase='verified-not-committed', verifiedNotCommitted=True)
+    save_journal(release, journal)  # Durable evidence permits retry after a partial restart.
 
 
 def restore_before_migration(release, journal, *, explicit_not_committed=False):
     require(not journal['newActivationAttempted'] and (not journal['domainInvoked'] or explicit_not_committed), 'DATABASE_OUTCOME_UNKNOWN')
+    if 'rootPreconditionEvidence' in journal:
+        require(os.geteuid() == ROOT_PRECONDITION['deploymentUid']
+                and (BASE / 'current').resolve(strict=True) == BASE / 'releases' / journal['previous'],
+                'ROOT_PRECONDITION_UNPROVEN')
     items = journal['inventory']
     require(database_floor(items['postgres']['id']) == 'absent', 'DATABASE_OUTCOME_UNKNOWN')
     assert_env(Path(journal['envFile']), journal['envMetadata'])
@@ -689,7 +795,7 @@ def restore_before_migration(release, journal, *, explicit_not_committed=False):
     save_journal(release, journal)
 
 
-def adopt(release, manifest, caddy, recover=False):
+def adopt(release, manifest, caddy, recover=False, root_precondition=False):
     require(manifest['kind'] == 'control-application' and manifest['services'] == list(SERVICES), 'ADOPTION_BUNDLE')
     domain = domain_module()  # Missing real implementation stops before maintenance or image build.
     directory = PRIVATE / release.name
@@ -698,9 +804,16 @@ def adopt(release, manifest, caddy, recover=False):
     journal_file = directory / 'control-journal.json'
     if recover:
         journal = adoption_journal(private_json(journal_file), release, manifest)
+        if root_precondition and not journal.get('rootPreconditionEvidence'):
+            prove_root_precondition(release, manifest, journal)
         if not journal['domainInvoked'] or journal['verifiedNotCommitted']:
             restore_before_migration(release, journal, explicit_not_committed=journal['verifiedNotCommitted'])
-            raise Stopped('PREMIGRATION_RESTORED')
+            return {'ok': True, 'mode': 'recover', 'outcome': 'restored-before-migration',
+                    'release': release.name, 'sourceSHA': manifest['sourceSHA'],
+                    'runnerSourceSHA': manifest['sourceSHA'],
+                    'migrationArtifactSha256': manifest['migrationArtifactSha256'],
+                    'controlEnabled': False, 'internalHealthVerified': True,
+                    'restoredImages': {name: journal['inventory'][name]['image'] for name in SERVICES}}
         assert_nginx(journal['inventory'], True)
         require(target_inventory('postgres')['id'] == journal['inventory']['postgres']['id'], 'DATABASE_IDENTITY')
         require(database_floor(journal['inventory']['postgres']['id']) == 'schema2', 'DATABASE_OUTCOME_UNKNOWN')
@@ -714,6 +827,10 @@ def adopt(release, manifest, caddy, recover=False):
         verified_database(domain, journal['inventory']['postgres']['id'], manifest, precommit['controlContract'])
     else:
         require(not journal_file.exists(), 'RECOVERY_REQUIRED')
+        try:
+            domain.player_session_migration(release)
+        except BaseException as error:
+            raise database_failure('DATABASE_PREFLIGHT_FAILED', error) from None
         items = inventory()
         require(database_floor(items['postgres']['id']) == 'absent', 'CONTROL_ALREADY_ADOPTED')
         previous = (BASE / 'current').resolve(strict=True)
@@ -724,6 +841,11 @@ def adopt(release, manifest, caddy, recover=False):
         active_guards(items)
         image = build_image(release)
         authority({name: image for name in SERVICES})
+        try:
+            domain.preflight_control_database(release=release, source_sha=manifest['sourceSHA'],
+                migration_sha256=manifest['migrationArtifactSha256'], inventory=items, writers_running=True)
+        except BaseException as error:
+            raise database_failure('DATABASE_PREFLIGHT_FAILED', error) from None
         journal = {'version': 1, 'release': release.name, 'sourceSHA': manifest['sourceSHA'], 'phase': 'prepared',
                    'inventory': items, 'contexts': contexts, 'candidateImage': image, 'previous': previous.name,
                    'envFile': str(envfile), 'envMetadata': signature, 'pointers': pointers_for(caddy),
@@ -774,6 +896,11 @@ def adopt(release, manifest, caddy, recover=False):
     journal['phase'], journal['newActivationAttempted'] = 'activate', True
     write_private(journal_file, journal, True)
     try:
+        # 014 has a separate restore proof; 002's unchanged-data proof remains exact.
+        try:
+            domain.provision_player_sessions(release, journal['inventory']['postgres']['id'])
+        except BaseException as error:
+            raise database_failure('DATABASE_OUTCOME_UNKNOWN', error) from None
         current = activate_services(release, manifest, journal, SERVICES)
         verified_database(domain, journal['inventory']['postgres']['id'], manifest, precommit['controlContract'])
         check_protected(journal['inventory'], journal['pointers'])
@@ -934,6 +1061,9 @@ def main(args=None, payload=None):
         require(len(data) <= 8192, 'INPUT_TOO_LARGE')
         payload = json_value(data)
     keys = {'caddyDirectory', 'sourceSHA'} | ({'targetRelease', 'targetManifestSHA256'} if args[0] == '--recover' else set())
+    root_precondition = isinstance(payload, dict) and payload.get('recoveryEvidence') == 'root-precondition-v1'
+    if root_precondition and args[0] == '--recover':
+        keys.add('recoveryEvidence')
     require(isinstance(payload, dict) and set(payload) == keys
             and digest(payload['sourceSHA'], 40) and isinstance(payload['caddyDirectory'], str)
             and re.fullmatch(r'/opt/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-]+', payload['caddyDirectory']), 'CONFIG')
@@ -956,7 +1086,7 @@ def main(args=None, payload=None):
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         stage('preflight')
         if args[0] in ('--adopt', '--recover'):
-            receipt = adopt(target, target_manifest, caddy, args[0] == '--recover')
+            receipt = adopt(target, target_manifest, caddy, args[0] == '--recover', root_precondition)
             receipt['runnerSourceSHA'] = manifest['sourceSHA']
         else:
             receipt = update(release, manifest, caddy, args[0] == '--rollback')

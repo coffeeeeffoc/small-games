@@ -39,7 +39,7 @@ try {
   });
   page = await browser.newPage();
   page.setDefaultTimeout(15000);
-  monitorPagesPage(page, url, failures);
+  await monitorPagesPage(page, url, failures);
   async function lobby() {
     await expect(page.getByRole('heading', { name: '摸鱼游戏社' })).toBeVisible();
     await expect(page.getByText('云存档账号', { exact: true })).toHaveCount(0);
@@ -74,7 +74,7 @@ try {
     await ready(page, id, title);
     const shared = await browser.newPage();
     shared.setDefaultTimeout(15000);
-    monitorPagesPage(shared, url, failures, `share/${id}`);
+    await monitorPagesPage(shared, url, failures, `share/${id}`);
     try {
       assert.equal((await shared.goto(sharedUrl)).status(), 200);
       await ready(shared, id, title);
@@ -123,7 +123,7 @@ try {
   try {
     const direct = await mobile.newPage();
     direct.setDefaultTimeout(15000);
-    monitorPagesPage(direct, url, failures, 'merge-front/mobile');
+    await monitorPagesPage(direct, url, failures, 'merge-front/mobile');
     assert.equal(
       (await direct.goto(new URL('games/merge-front/index.html', url).href)).status(),
       200,

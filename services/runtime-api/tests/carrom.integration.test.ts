@@ -39,9 +39,9 @@ integration(
       return data;
     }
     try {
-      const a = await request('/sessions/guest', undefined, {});
-      const b = await request('/sessions/guest', undefined, {});
-      const outsider = await request('/sessions/guest', undefined, {});
+      const a = await request('/sessions/guest', undefined, { game: 'carrom-club' });
+      const b = await request('/sessions/guest', undefined, { game: 'carrom-club' });
+      const outsider = await request('/sessions/guest', undefined, { game: 'carrom-club' });
       credentials.push(a, b, outsider);
       expect(a.playerId).not.toBe(b.playerId);
       let room = await request('/rooms', a.token, { game: 'carrom-club' });

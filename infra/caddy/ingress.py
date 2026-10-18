@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Fail-closed, proxy-only ingress transaction. Never loads a Compose .env or touches a database."""
 
+import base64
 import fcntl
 import hashlib
 import ipaddress
@@ -186,6 +187,23 @@ def response(host, path, *arguments):
     return int(lines[0].split()[1]), {key.lower(): value.strip() for key, value in headers.items()}, body
 
 
+def verify_admin_document(template, headers, body):
+    if 'sg-csp-nonce' not in template:
+        require('{{' not in template and body == template, 'Admin HTTPS page differs from its actual build')
+        return
+    contract = json.loads(Path(__file__).with_name('admin-csp-contract.json').read_text())
+    prefix, meta = contract['prefix'] + '\n', contract['meta']
+    require(template.startswith(prefix) and template[len(prefix):].count(meta) == 1, 'Admin nonce template changed')
+    found = re.findall(r'<meta name="sg-csp-nonce" content="([^"]*)">', body)
+    require(len(found) == 1 and re.fullmatch(r'[A-Za-z0-9+/]{43}=', found[0]), 'Invalid admin nonce')
+    nonce = found[0]
+    decoded = base64.b64decode(nonce, validate=True)
+    require(len(decoded) == 32 and base64.b64encode(decoded).decode() == nonce, 'Invalid admin nonce')
+    expected = '<!---->\n' + template[len(prefix):].replace(meta, '<meta name="sg-csp-nonce" content="' + nonce + '">')
+    require('{{' not in expected and body == expected
+            and headers.get('content-security-policy') == contract['baseCsp'].replace("style-src 'self'", "style-src 'self' 'nonce-" + nonce + "'"), 'Admin nonce response differs from its build')
+
+
 def verify_public(config, domain, www, company_body):
     for host in (domain, www):
         require(curl(host, '/release.json', '--fail', '--location', '--resolve', f'{domain}:443:127.0.0.1') == company_body.strip(), 'Company HTTPS content changed')
@@ -194,14 +212,14 @@ def verify_public(config, domain, www, company_body):
     prefixes = ('/small-games/v1', '/api/competition/v1')
     for prefix in prefixes:
         for game in ('cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'):
-            definition = json.loads(curl(DOMAIN, f'{prefix}/games/{game}?probe=a%2Fb&repeat=one&repeat=two', '--fail'))
-            board = json.loads(curl(DOMAIN, f'{prefix}/games/{game}/leaderboards/versus', '--fail'))
-            require(definition.get('game') == game and definition.get('capabilities', {}).get('multiplayer') is True, 'Game definition changed')
-            require(board.get('game') == game and board.get('boardType') == 'versus' and isinstance(board.get('top'), list), 'Game leaderboard changed')
+            for path in (f'{prefix}/games/{game}?probe=a%2Fb&repeat=one&repeat=two', f'{prefix}/games/{game}/leaderboards/versus'):
+                status, headers, body = response(DOMAIN, path)
+                require(status == 401 and json.loads(body).get('error') == 'SESSION_EXPIRED'
+                        and 'location' not in headers, 'Game identity boundary changed')
         status, headers, body = response(DOMAIN, f'{prefix}/me')
         require(status == 401 and json.loads(body).get('error') == 'SESSION_EXPIRED' and 'location' not in headers, 'Anonymous API contract changed')
-        # A valid profile body reaches authentication; a lost body fails validation. Neither can write without a credential.
-        status, headers, body = response(DOMAIN, f'{prefix}/me?probe=body', '-X', 'POST', '-H', 'Content-Type: application/json', '--data-binary', '{"nickname":"Ingress probe"}')
+        # Protected POST routes must retain JSON authentication failures, without redirects.
+        status, headers, body = response(DOMAIN, f'{prefix}/me?probe=body', '-X', 'POST', '-H', 'Content-Type: application/json', '--data-binary', '{"name":"Ingress probe"}')
         require(status == 401 and json.loads(body).get('error') == 'SESSION_EXPIRED' and 'location' not in headers, 'API POST body or method changed')
         status, headers, _ = response(DOMAIN, f'{prefix}/games/xiangqi-five', '-X', 'OPTIONS', '-H', 'Origin: http://localhost:8080', '-H', 'Access-Control-Request-Method: POST', '-H', 'Access-Control-Request-Headers: authorization,content-type')
         require(status == 204 and headers.get('access-control-allow-origin') == 'http://localhost:8080' and 'access-control-allow-credentials' not in headers, 'Public preflight policy changed')
@@ -224,7 +242,8 @@ def verify_public(config, domain, www, company_body):
     expected = (site / 'index.html').read_text()
     for path, wanted in (('/', 200), ('/login', 200), ('/forbidden', 403)):
         status, headers, body = response(ADMIN_DOMAIN, path)
-        require(status == wanted and body.strip() == expected.strip() and headers.get('cache-control') == 'no-store', 'Admin HTTPS page differs from its actual build')
+        require(status == wanted and headers.get('cache-control') == 'no-store', 'Admin HTTPS page differs from its actual build')
+        verify_admin_document(expected, headers, body)
     assets = set(re.findall(r"""(?:src|href)=["'](/assets/[A-Za-z0-9._-]+\.(?:js|css))["']""", expected))
     require(assets and any(asset.endswith('.js') for asset in assets), 'Admin build has no script asset')
     for asset in sorted(assets):

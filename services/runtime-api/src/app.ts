@@ -55,7 +55,13 @@ export function createRuntimeService(
               );
               await database.db.execute(sql`select 1 from runtime.competition_matches limit 0`);
               await database.db.execute(
-                sql`select 1 from runtime.competition_refresh_tokens limit 0`,
+                sql`select game,session_hash from runtime.competition_refresh_tokens limit 0`,
+              );
+              await database.db.execute(
+                sql`select game,family_id,family_expires_at from runtime.competition_sessions limit 0`,
+              );
+              await database.db.execute(
+                sql`select player_id,game from runtime.player_game_access limit 0`,
               );
               await database.db.execute(
                 sql`select 1 from runtime.three_choose_two_sessions limit 0`,

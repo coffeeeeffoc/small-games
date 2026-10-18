@@ -11,6 +11,8 @@ import {
   h5AcceptanceScopePaths,
   competitionServiceConfigOnly,
   identityGatewayFileScope,
+  playerSessionBackendFileScope,
+  anonymousPagesFileScope,
   threeChooseTwoBackendFileScope,
   flickIntegrationFileScope,
   carromBackendFileScope,
@@ -166,10 +168,9 @@ test('company Pages publication adds only its tested artifact and preserves game
   const before = execFileSync('git', ['show', '4fe9716ce5b9277e42b976e005931f6e8c7dc2f3:' + file], {
     encoding: 'utf8',
   });
-  const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
-    '\r\n',
-    '\n',
-  );
+  const after = execFileSync('git', ['show', '0d7bfdfe4087b85139dc525e9a75f3ab792e17f6:' + file], {
+    encoding: 'utf8',
+  }).replaceAll('\r\n', '\n');
   const packages = [{ dir: 'apps/company-web', name: '@coffeeeeffoc/company-web' }];
   const classify = (old, current, consumers = packages) =>
     reviewedSharedFileScopes({
@@ -1227,8 +1228,16 @@ test('optional service configuration has finite H5 consumers and rejects unknown
       fileScopes,
       readSource: read,
     });
-    for (const id of ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'])
-      assert(selected.browser_ids.includes(id), file + ': ' + id);
+    const protocolGame = {
+      'scripts/review-competition-kart-chess.mjs': 'xiangqi-five',
+      'scripts/street-runs.integration.mjs': 'cops-robbers-realtime',
+    }[file];
+    if (protocolGame) {
+      assert.deepEqual(selected.browser_ids, [protocolGame]);
+      assert(fileScopes.get(file).includes('services/runtime-api'));
+    } else
+      for (const id of ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'])
+        assert(selected.browser_ids.includes(id), file + ': ' + id);
     assert.equal(selected.competition_service_checks, true);
     if (file === 'scripts/competition.integration.mjs')
       assert(fileScopes.get(file).includes('services/runtime-api'));
@@ -1285,7 +1294,7 @@ test('optional service configuration has finite H5 consumers and rejects unknown
       /scope undefined/,
     );
   }
-  const file = competitionServiceScopePaths[0];
+  const file = 'scripts/competition-service-config.mjs';
   for (const games of [
     [...catalog, catalog.find((game) => game.id === 'xiangqi-five')],
     catalog.filter((game) => game.id !== 'cops-robbers'),
@@ -3032,7 +3041,18 @@ test('identity display and security files have their real H5 consumers; unknown 
 
 test('identity migration and registrations are exact additive runtime-only changes', () => {
   const read = (file) =>
-    readFileSync(new URL('../' + file, import.meta.url), 'utf8')
+    ([
+      'scripts/competition.mjs',
+      'scripts/platform.mjs',
+      'scripts/deploy-tencent.mjs',
+      'infra/migrations/013-competition-identities.sql',
+    ].includes(file)
+      ? execFileSync('git', ['show', '0d7bfdfe4087b85139dc525e9a75f3ab792e17f6:' + file], {
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'pipe'],
+        })
+      : readFileSync(new URL('../' + file, import.meta.url), 'utf8')
+    )
       .replaceAll('\r\n', '\n')
       .replace(file === 'scripts/deploy-tencent.mjs' ? ingressPreflightGuard : '\0', '');
   const migration = 'infra/migrations/013-competition-identities.sql';
@@ -3117,7 +3137,12 @@ test('identity migration and registrations are exact additive runtime-only chang
 test('identity gateway routing has exact consumers and rejects any other proxy change', async () => {
   const { workspacePackages } = await import('./validation-plan.mjs');
   const file = 'scripts/competition-gateway.mjs';
-  const read = (name) => readFileSync(new URL('../' + name, import.meta.url), 'utf8');
+  const read = (name) =>
+    name === file
+      ? execFileSync('git', ['show', '0d7bfdfe4087b85139dc525e9a75f3ab792e17f6:' + name], {
+          encoding: 'utf8',
+        })
+      : readFileSync(new URL('../' + name, import.meta.url), 'utf8');
   const before = execFileSync('git', ['show', '26756c80cfa4ddf9bda16269265e353fddeaeeaf:' + file], {
     encoding: 'utf8',
   });
@@ -3677,5 +3702,28 @@ test('shared authority helper selects only its three backend consumers and bound
     });
   } finally {
     await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('anonymous session migration and Pages service defaults admit only the reviewed delta', () => {
+  for (const file of [
+    'scripts/competition.mjs',
+    'scripts/platform.mjs',
+    'scripts/deploy-tencent.mjs',
+    'infra/migrations/014-player-sessions.sql',
+    '.github/workflows/pages-validate.yml',
+  ]) {
+    const before = file.startsWith('infra/')
+      ? null
+      : execFileSync('git', ['show', '0d7bfdfe4087b85139dc525e9a75f3ab792e17f6:' + file], {
+          encoding: 'utf8',
+        });
+    const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+    const check = file.startsWith('.github/')
+      ? anonymousPagesFileScope
+      : playerSessionBackendFileScope;
+    assert(check(file, before, after), file);
+    assert(!check(file, before, after + '\n# unrelated command\n'), file);
+    assert(!check(file + '.other', before, after), file);
   }
 });

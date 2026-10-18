@@ -58,6 +58,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
+      COMPETITION_SERVICE_ENABLED: '1'
+      COMPETITION_PUBLIC_API_URL: 'https://api.nenggongzhiren.cn/small-games/v1'
       KART_PREBUILT_DIR: ${{ github.workspace }}/games/local/carding-car/.prebuilt
       NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt
       PAGES_BASE_PATH: /${{ github.event.repository.name }}/${{ (github.base_ref || github.ref_name) == 'dev' && 'dev/' || (github.base_ref || github.ref_name) == 'test' && 'test/' || '' }}
@@ -123,6 +125,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
+      COMPETITION_SERVICE_ENABLED: '1'
+      COMPETITION_PUBLIC_API_URL: 'https://api.nenggongzhiren.cn/small-games/v1'
       KART_PREBUILT_DIR: ${{ github.workspace }}/games/local/carding-car/.prebuilt
       NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt
       PAGES_FULL_REGRESSION: ${{ inputs.full }}
