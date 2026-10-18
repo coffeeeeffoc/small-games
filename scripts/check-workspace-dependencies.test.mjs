@@ -91,6 +91,36 @@ test('H5 advertising configuration permits only its two actual build-time caller
   );
 });
 
+test('chase acceptance helpers permit exact public tools without granting adjacent or runtime callers', async (t) => {
+  const root = await createWorkspace(
+    [
+      ['cops-robbers', 'scripts/check-ad-core.mjs', ['platforms/h5/platform-ads.js']],
+      [
+        'cops-robbers-realtime',
+        'tests/security-release.test.mjs',
+        ['scripts/build-games.mjs', 'scripts/h5-ad-config.mjs'],
+      ],
+    ].map(([game, caller, imports]) => {
+      const source = imports.map((target) => `import '../../../../${target}';`).join('\n');
+      return {
+        path: `games/local/${game}`,
+        manifest: { name: game },
+        files: { [caller]: source, 'tests/other.mjs': source, 'src/main.js': source },
+      };
+    }),
+  );
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const violations = await validateWorkspace(root);
+  assert.equal(violations.length, 6);
+  assert(
+    violations.every(
+      (item) =>
+        item.code === 'cross-package-relative' &&
+        /(?:tests\/other\.mjs|src\/main\.js) imports /.test(item.message.replaceAll('\\', '/')),
+    ),
+  );
+});
+
 test('admin CSP shares only its build and browser fixture callers; adjacent and runtime imports stay forbidden', async (t) => {
   const root = await createWorkspace([
     {
