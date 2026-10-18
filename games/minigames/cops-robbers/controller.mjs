@@ -605,14 +605,13 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
       ctx.clip();
       art?.cover(ctx, 'home', 0, heroTop, width, heroHeight);
       ctx.restore();
-      text('小区保安出动', center, top + 14, 12, '#247c93');
       ctx.font = '900 40px sans-serif';
       ctx.strokeStyle = '#174861';
       ctx.lineWidth = 6;
       ctx.strokeText('围捕小队', center, top + 54, span);
       ctx.fillStyle = '#ffe774';
       ctx.fillText('围捕小队', center, top + 54, span);
-      button('start', snapshot() ? '继续巡逻 ▶' : '开始巡逻 ▶', base, start);
+      button('start', snapshot() ? '继续巡逻' : '开始巡逻', base, start);
       button('levels', '街区地图 · 选择关卡', base + 56, () => {
         pageIndex = 0;
         changePage('levels');
