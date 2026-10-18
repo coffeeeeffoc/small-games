@@ -422,7 +422,7 @@ export function startTapMultiplayerScreen({ sdk, canvas, services, descriptor, o
   ];
   for (const [name, fn] of subscriptions) sdk[`on${name}`]?.(fn);
   // Rendering can animate at 30 Hz; authority advances only through ordered host commits.
-  timer = setInterval(() => {
+  timer = globalThis.setInterval(() => {
     if (snapshot().phase === 'playing') draw();
   }, 1000 / 30);
   const api = {
@@ -430,7 +430,7 @@ export function startTapMultiplayerScreen({ sdk, canvas, services, descriptor, o
       if (stopped) return;
       stopped = true;
       closeKeyboard();
-      clearInterval(timer);
+      globalThis.clearInterval(timer);
       for (const [name, fn] of subscriptions) sdk[`off${name}`]?.(fn);
       void session?.stop();
     },
@@ -450,7 +450,11 @@ export function startTapMultiplayerScreen({ sdk, canvas, services, descriptor, o
       physicalSafeHeight,
       boardHits,
       boardLayout: renderer?.getLayout?.(),
-      hits: hits.map(({ action, ...value }) => value),
+      hits: hits.map((hit) => {
+        const value = { ...hit };
+        delete value.action;
+        return value;
+      }),
     }),
   };
   draw();

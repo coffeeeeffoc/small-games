@@ -88,7 +88,7 @@ export function createTapMultiplayerSession({
     check();
   }
   function detach() {
-    clearInterval(timer);
+    globalThis.clearInterval(timer);
     timer = null;
     const previous = listener;
     listener = null;
@@ -407,7 +407,7 @@ export function createTapMultiplayerSession({
       }
       adopt(result);
       if (autoPump)
-        timer = setInterval(() => {
+        timer = globalThis.setInterval(() => {
           void api.pump();
         }, 125);
     })();
