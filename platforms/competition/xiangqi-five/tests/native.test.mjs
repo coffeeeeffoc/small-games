@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { startNativeXiangqiGame } from '../native.js';
 import { CHALLENGES } from '../../../../games/submodules/xiangqi-five/challenges.js';
+import { newGame, deployDirectly, deploy } from '../../../../games/submodules/xiangqi-five/game.js';
 
 function fixture(width = 390, height = 844, stored = new Map(), config = {}, overrides = {}) {
   const listeners = new Map();
@@ -155,7 +156,9 @@ test('native computer makes a legal reply using the existing search', async () =
     f.tap('电脑对弈');
     const hit = f.game.getLayout().hits.find((item) => item.label.startsWith('棋格'));
     f.tap(hit.label);
-    await new Promise((resolve) => setTimeout(resolve, 450));
+    const deadline = Date.now() + 6000;
+    while (f.game.state.game.ply === 1 && Date.now() < deadline)
+      await new Promise((resolve) => setTimeout(resolve, 30));
     assert.equal(f.game.state.game.ply, 2);
     assert.equal(f.game.state.game.turn, 'red');
   } finally {
@@ -211,7 +214,7 @@ test('native tactical training uses pinned fixed positions, settles stars and ke
 });
 
 const tick = () => new Promise((resolve) => setImmediate(resolve));
-function advertisedFixture() {
+function advertisedFixture(computer = false) {
   const callbacks = {},
     calls = [];
   const f = fixture(
@@ -239,15 +242,158 @@ function advertisedFixture() {
       },
     },
   );
-  f.tap('战术练习');
-  f.tap('01 一车架桥');
+  if (computer) f.tap('电脑对弈');
+  else {
+    f.tap('战术练习');
+    f.tap('01 一车架桥');
+  }
   return { ...f, callbacks, calls };
 }
+
+test('native human-computer hints reward only completion, reuse this turn and cancel on pause', async () => {
+  for (const status of [
+    'completed',
+    'dismissed',
+    'hide-complete',
+    'hide-dismissed',
+    'show-first',
+    'pause',
+  ]) {
+    const f = advertisedFixture(true);
+    try {
+      // A real immediate winning position keeps this integration test fast and deterministic.
+      for (let i = 0; i < 4; i++) f.game.state.game.board[i] = { side: 'red', type: 'pawn' };
+      f.tap('获取提示');
+      await tick();
+      assert.equal(f.calls.length, 1);
+      const before = JSON.stringify(f.game.state.game);
+      f.tap('棋格4');
+      f.tap('抽一枚棋子');
+      assert.equal(JSON.stringify(f.game.state.game), before);
+      if (status.startsWith('hide') || status === 'show-first') f.emit('Hide');
+      if (status === 'show-first') f.emit('Show');
+      if (status === 'pause') f.tap('暂停');
+      f.callbacks.close({ isEnded: !status.includes('dismissed') });
+      await tick();
+      if (status.startsWith('hide')) {
+        assert.equal(f.game.state.page, 'play');
+        f.emit('Show');
+        await tick();
+      }
+      if (status === 'pause') f.tap('继续对局');
+      if (['completed', 'hide-complete', 'show-first'].includes(status)) {
+        f.tap('重看提示');
+        assert.equal(f.calls.length, 1);
+        assert(f.texts.join('').includes('直接连五'));
+        f.tap('抽一枚棋子');
+        f.tap('更新提示');
+        await tick();
+        assert.equal(f.calls.length, 1, 'revealing the draw must not require a second ad');
+      } else {
+        assert(f.game.getLayout().hits.some((h) => h.label === '获取提示'));
+        assert(f.texts.join('').includes('提示未成功生成'));
+      }
+    } finally {
+      f.game.stop();
+    }
+  }
+});
+
+test('native long analysis can pause, and its retired result cannot cancel a new hint', async () => {
+  const f = advertisedFixture(true);
+  try {
+    f.tap('获取提示');
+    await tick();
+    f.callbacks.close({ isEnded: true });
+    await tick();
+    f.tap('暂停');
+    assert.equal(f.game.state.page, 'pause');
+    assert.equal(f.calls.length, 1, 'analysis starts only after the first ad');
+    f.tap('返回首页');
+    f.tap('电脑对弈');
+    for (let i = 0; i < 4; i++) f.game.state.game.board[i] = { side: 'red', type: 'pawn' };
+    f.tap('获取提示');
+    await tick();
+    f.callbacks.close({ isEnded: true });
+    await tick();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    assert(f.game.getLayout().hits.some((hit) => hit.label === '重看提示'));
+    assert.equal(f.calls.length, 2);
+  } finally {
+    f.game.stop();
+  }
+});
+
+test('native undo is free once, saved, then requires full viewing across Hide/Show', async () => {
+  for (const outcome of ['completed', 'dismissed', 'error', 'pause']) {
+    const f = advertisedFixture(true);
+    try {
+      const state = newGame();
+      for (const to of [0, 18, 2, 20]) deployDirectly(state, to, () => 0);
+      Object.assign(f.game.state.game, state);
+      f.emit('WindowResize');
+      f.tap('悔棋·免费1次');
+      assert.equal(f.calls.length, 0);
+      assert.equal(f.game.state.game.ply, 2);
+      assert.equal(f.game.state.game.freeUndoUsed, true);
+      const resumed = fixture(390, 844, f.stored);
+      assert.equal(resumed.game.state.game.freeUndoUsed, true);
+      resumed.game.stop();
+      deploy(f.game.state.game, 2);
+      deployDirectly(f.game.state.game, 20, () => 0);
+      f.emit('WindowResize');
+      const before = structuredClone(f.game.state.game);
+      f.tap('悔棋');
+      await tick();
+      assert.equal(f.calls.length, 1);
+      f.tap('棋格3');
+      f.tap('抽一枚棋子');
+      assert.deepEqual(f.game.state.game, before);
+      if (outcome === 'pause') f.tap('暂停');
+      else f.emit('Hide');
+      if (outcome === 'error') f.callbacks.error({ errCode: 1 });
+      else f.callbacks.close({ isEnded: outcome !== 'dismissed' });
+      await tick();
+      assert.deepEqual(f.game.state.game, before, 'no application while hidden or cancelled');
+      if (outcome === 'pause') f.tap('继续对局');
+      else f.emit('Show');
+      await tick();
+      if (outcome === 'completed') {
+        assert.equal(f.game.state.game.ply, 2);
+        assert(f.texts.join('').includes('已悔棋'));
+      } else {
+        assert.deepEqual(f.game.state.game, before);
+        assert(f.texts.join('').includes('未成功获得悔棋次数，悔棋失败'));
+      }
+    } finally {
+      f.game.stop();
+    }
+  }
+});
+
+test('a native deploy hint clears a previously selected rook before tapping the destination', async () => {
+  const f = advertisedFixture(true);
+  try {
+    for (let i = 0; i < 4; i++)
+      f.game.state.game.board[i] = { side: 'red', type: i === 3 ? 'rook' : 'pawn' };
+    f.tap('棋格3');
+    f.tap('获取提示');
+    await tick();
+    f.callbacks.close({ isEnded: true });
+    await tick();
+    f.tap('棋格4');
+    assert.equal(f.game.state.game.result, 'red');
+    assert.equal(f.game.state.game.history.at(-1).action, 'deploy');
+  } finally {
+    f.game.stop();
+  }
+});
 
 test('native Tap hint waits for full viewing, freezes board input, and records the one-star limit', async () => {
   const f = advertisedFixture();
   try {
-    f.tap('看广告获取提示');
+    f.tap('获取提示');
+    await tick();
     const board = JSON.stringify(f.game.state.game);
     f.tap('棋格14');
     assert.equal(JSON.stringify(f.game.state.game), board);
@@ -276,10 +422,14 @@ test('native Tap cancellation, SDK failure, background and disposal never reveal
   for (const operation of ['dismiss', 'error', 'hide', 'stop']) {
     const f = advertisedFixture();
     try {
-      f.tap('看广告获取提示');
+      f.tap('获取提示');
+      await tick();
       if (operation === 'dismiss') f.callbacks.close({ isEnded: false });
       if (operation === 'error') f.callbacks.error({ errCode: 1 });
-      if (operation === 'hide') f.emit('Hide');
+      if (operation === 'hide') {
+        f.emit('Hide');
+        f.callbacks.close({ isEnded: false });
+      }
       if (operation === 'stop') f.game.stop();
       const page = f.game.state.page;
       f.callbacks.close({ isEnded: true });
@@ -287,10 +437,10 @@ test('native Tap cancellation, SDK failure, background and disposal never reveal
       assert.equal(f.game.state.page, page);
       if (operation === 'hide') {
         f.emit('Show');
-        f.tap('继续对局');
+        await tick();
       }
       if (operation !== 'stop')
-        assert(f.game.getLayout().hits.some((hit) => hit.label === '看广告获取提示'));
+        assert(f.game.getLayout().hits.some((hit) => hit.label === '获取提示'));
     } finally {
       if (operation !== 'stop') f.game.stop();
     }

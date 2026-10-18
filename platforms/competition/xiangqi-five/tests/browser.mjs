@@ -120,21 +120,81 @@ try {
     await screenshot('training');
     await tap('01 一车架桥');
     await screenshot('rewarded-hint');
-    await tap('看广告获取提示');
+    await tap('获取提示');
     assert(await page.evaluate(() => game.getLayout().hits.some((hit) => hit.label === '观看中…')));
-    await page.evaluate(() => closeAd({ isEnded: false }));
-    await page.waitForFunction(() =>
-      game.getLayout().hits.some((hit) => hit.label === '看广告获取提示'),
-    );
+    await page.evaluate(() => {
+      events.get('Hide')();
+      closeAd({ isEnded: false });
+    });
+    await page.evaluate(() => events.get('Show')());
+    await page.waitForFunction(() => game.getLayout().hits.some((hit) => hit.label === '获取提示'));
     assert.equal(await page.evaluate(() => game.state.page), 'play');
-    await tap('看广告获取提示');
-    await page.evaluate(() => closeAd({ isEnded: true }));
+    await tap('获取提示');
+    await page.evaluate(() => {
+      events.get('Hide')();
+      closeAd({ isEnded: true });
+    });
+    await page.evaluate(() => events.get('Show')());
     await page.waitForFunction(() => game.state.page === 'help');
     await screenshot('earned-hint');
     await tap('返回');
     assert.equal(await page.evaluate(() => game.state.page), 'play');
     await tap('暂停');
     await tap('返回首页');
+    await tap('电脑对弈');
+    await page.evaluate(() => {
+      for (let i = 0; i < 4; i++) game.state.game.board[i] = { side: 'red', type: 'pawn' };
+      window.closeAd = null;
+    });
+    await screenshot('computer-hint-ready');
+    await tap('获取提示');
+    await page.waitForFunction(() => typeof closeAd === 'function');
+    await page.evaluate(() => {
+      events.get('Hide')();
+      closeAd({ isEnded: true });
+    });
+    await page.evaluate(() => events.get('Show')());
+    await page.waitForFunction(() => game.getLayout().hits.some((hit) => hit.label === '重看提示'));
+    await screenshot('computer-hint-earned');
+    await tap('重看提示');
+    assert.equal(await page.evaluate(() => game.state.game.ply), 0);
+    await tap('暂停');
+    await tap('继续对局');
+    assert(
+      await page.evaluate(() => game.getLayout().hits.some((hit) => hit.label === '重看提示')),
+    );
+    await page.evaluate(async () => {
+      const { newGame, deployDirectly } = await import('/games/submodules/xiangqi-five/game.js');
+      const state = newGame();
+      for (const to of [0, 9, 1, 20]) deployDirectly(state, to, () => 0.99);
+      Object.assign(game.state.game, state);
+      events.get('WindowResize')();
+    });
+    await tap('悔棋·免费1次');
+    assert.equal(await page.evaluate(() => game.state.game.ply), 2);
+    await page.evaluate(async () => {
+      const { deploy, deployDirectly } = await import('/games/submodules/xiangqi-five/game.js');
+      deploy(game.state.game, 1);
+      deployDirectly(game.state.game, 20, () => 0.99);
+      events.get('WindowResize')();
+    });
+    await tap('悔棋');
+    await page.evaluate(() => {
+      events.get('Hide')();
+      closeAd({ isEnded: false });
+    });
+    await page.evaluate(() => events.get('Show')());
+    await page.waitForFunction(() => game.getLayout().hits.some((hit) => hit.label === '悔棋'));
+    assert.equal(await page.evaluate(() => game.state.game.ply), 4);
+    await screenshot('undo-dismissed');
+    await tap('悔棋');
+    await page.evaluate(() => {
+      events.get('Hide')();
+      closeAd({ isEnded: true });
+    });
+    await page.evaluate(() => events.get('Show')());
+    await page.waitForFunction(() => game.state.game.ply === 2);
+    await screenshot('undo-earned');
     assert.deepEqual(errors, []);
     await page.close();
   }

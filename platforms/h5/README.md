@@ -1,5 +1,7 @@
 # H5 分享与广告接入
 
+TapTap 真实激励广告的超时、前后台、预加载及整包验收见 [TapTap 激励广告接入避坑指南](../../docs/operations/taptap-rewarded-ads.md)。尤其要检查所有外层请求超时；广告打开成功后，不能再让加载截止时间覆盖播放和结束页停留。
+
 `publishing.js` 为独立 H5 入口提供浏览器适配，不依赖渠道 SDK、服务器密钥或第三方 UI。奖励结果沿用 Game Host 的 `completed / dismissed / unavailable / failed`；已有 Game Host 的游戏继续使用宿主 `ads.offer`，不要并行启动第二个广告来源。`createSimulationAdProvider` 的 `show` 可以作为现有 `createAdRuntime` 的 managed provider。
 
 ```js
@@ -70,7 +72,7 @@ SDK 方法保持原接收者。缺广告位、SDK 或不支持的渠道返回 un
 
 Tap 原生小游戏的 `taptap` 不属于此 H5 接入：其原生构建、登录、广告联盟与 `platforms/taptap` 的支持声明保持独立。本接口不转换 DOM 游戏为原生小游戏；已有 native Game Host 继续使用各自适配。
 
-静态入口构建时复制公共源到 `platform-ads.js`，开发服务器映射同一个源，勿维护手写副本。当前实际消费者为 cops-robbers，发布范围只选择该消费者；后续游戏复用时同时登记实际消费者。
+静态入口构建时复制公共源到 `platform-ads.js`，开发服务器映射同一个源，勿维护手写副本。当前实际消费者包括 cops-robbers 和经 `rewarded-host.js` 接入的 xiangqi-five；后续游戏复用时同时登记实际消费者。TapTap H5 的 provider 在 SDK 显示成功后停止自身打开计时，并通知请求的 `onShown`；象五子棋 host 将通知传至游戏层以停止外层计时。其他 Game Host 或 `createH5Publishing` 包装器需核对自己的超时契约，不能只替换 provider 就认定长广告已修复。
 
 `deploy-taptap.ps1` 是可复用 H5 ZIP 上传脚本，接收 `-ZipPath / -DeveloperId / -AppId / -ScreenOrientation / -DryRun`。上传或预演前通过官方 `package-management get-available-package-types` 确认目标应用包含 `h5`，查询失败、结构无效或只有 `mini_app` 时停止，不上传。随后调用 `taptap-cli upload-h5-package`，保留 ZIP SHA 对应的幂等键和标有 `packageType: 'h5'` 的回执。成功回执对应的相同上传直接复用。CLI 方向为 `1=竖屏、0=横屏`，与小游戏 MCP 的 `1/2` 不同。它只上传并创建 H5 版本，不修改在审资料或提交审核；游戏入口负责先构建和验证包。H5 ZIP 不适用于普通「小游戏包体」上传框，不能靠改 ZIP 目录转换为 Tap 小游戏。
 

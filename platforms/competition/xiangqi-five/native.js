@@ -12,11 +12,15 @@ import {
   encodeGame,
   decodeGame,
   SAVE_KEY,
+  canUndoComputerTurn,
 } from '../../../games/submodules/xiangqi-five/local-game.js';
 import {
-  searchPosition,
+  searchPositionAsync,
   applyComputerAction,
 } from '../../../games/submodules/xiangqi-five/computer.js';
+import { createComputerHints } from '../../../games/submodules/xiangqi-five/computer-hints.js';
+import { createComputerUndo } from '../../../games/submodules/xiangqi-five/computer-undo.js';
+import { createHintAccess } from '../../../games/submodules/xiangqi-five/rewarded-hints.js';
 import { createRenderer } from '../../../games/submodules/xiangqi-five/competition-renderer.js';
 import {
   CHALLENGES,
@@ -55,7 +59,7 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
     selected = null;
   let state = newGame(),
     opponent = 'computer',
-    difficulty = 'practice',
+    difficulty = 'standard',
     mode = 'xiangqi';
   let page = 'home',
     previous = 'home',
@@ -76,10 +80,25 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
     hintShown = false;
   const adsEnabled = config.platform === 'taptap' && Boolean(config.rewardedAdUnitId);
   const ads = createTapTapRewardedAds(sdk, config.rewardedAdUnitId);
+  const hintAccess = createHintAccess(
+    {
+      SmallGamesPublishingConfig: { adMode: adsEnabled ? 'host' : 'off' },
+      SmallGamesRewardAds: { offer: () => ads.show(), cancel: () => ads.cancel() },
+    },
+    120_000,
+  );
+  const computerUndo = createComputerUndo(hintAccess);
+  const computerHints = createComputerHints({
+    analyze: (position, isCancelled) => searchPositionAsync(position, 'hint', { isCancelled }),
+    access: hintAccess,
+  });
+  let computerRequest = null;
   let hintRequest = null;
   function cancelHint() {
     hintRequest = null;
-    ads.cancel();
+    computerHints.cancel();
+    computerUndo.cancel();
+    hintAccess.cancel();
   }
   async function showHint() {
     if (!challengeId || page !== 'play' || hidden || stopped || hintRequest) return;
@@ -93,7 +112,7 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
     gesture = null;
     message = '正在播放广告…';
     render();
-    const outcome = await ads.show();
+    const outcome = await hintAccess.request();
     if (hintRequest !== request) return;
     hintRequest = null;
     if (stopped || hidden || page !== 'play' || state !== request.state) return;
@@ -103,7 +122,9 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
       change('help', 'play');
     } else {
       message =
-        outcome.status === 'dismissed' ? '广告未看完，本次未获取提示' : '广告暂不可用，请稍后再试';
+        outcome.status === 'dismissed'
+          ? '广告未看完，提示未成功生成'
+          : '广告暂不可用，提示未成功生成';
       render();
     }
   }
@@ -159,6 +180,7 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
     selected = null;
     pageScroll = 0;
     clearTimeout(computerTimer);
+    computerRequest = null;
     previous = back;
     page = next;
     render();
@@ -219,7 +241,15 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
     text(title, back ? 108 : 24, top + 24, 22);
   }
   function board() {
-    area = { x: 16, y: top + 66, w: width - 32, h: Math.max(88, height - top - bottom - 194) };
+    const advice = computerHints.sync(state);
+    const undo = computerUndo.sync(state);
+    const hasComputerHint = !challengeId && opponent === 'computer';
+    area = {
+      x: 16,
+      y: top + 66,
+      w: width - 32,
+      h: Math.max(88, height - top - bottom - (hasComputerHint ? 250 : 194)),
+    };
     const unit = 44,
       boardW = state.cols * unit,
       boardH = state.rows * unit;
@@ -252,6 +282,18 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
         ctx.fillStyle = '#365f45';
         ctx.fill();
       }
+      if (
+        hasComputerHint &&
+        advice.result &&
+        [advice.result.action.from, advice.result.action.to].includes(index)
+      ) {
+        ctx.strokeStyle = '#247353';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(x + 22, y + 22, 20, 0, Math.PI * 2);
+        ctx.stroke();
+        text(index === advice.result.action.from ? '1' : '2', x + 2, y + 8, 12, '#164f39');
+      }
       if (x >= area.x && y >= area.y && x + unit <= area.x + area.w && y + unit <= area.y + area.h)
         hits.push({ x, y, w: unit, h: unit, label: `棋格${index}`, action: () => cell(index) });
     }
@@ -270,17 +312,73 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
           ? '观看中…'
           : hintShown || !adsEnabled
             ? '本题提示'
-            : '看广告获取提示'
+            : '获取提示'
         : state.pending
           ? `已抽到${label(state.pending)}`
           : '抽一枚棋子',
       16,
-      height - bottom - 98,
+      height - bottom - (hasComputerHint ? 154 : 98),
       width - 32,
       () => (challengeId ? void showHint() : action(() => draw(state))),
       true,
     );
-    text(message, 16, height - bottom - 24, 12);
+    if (hasComputerHint)
+      button(
+        advice.phase === 'analyzing'
+          ? '分析中…'
+          : advice.phase === 'advertising'
+            ? '观看中…'
+            : advice.result
+              ? '重看提示'
+              : advice.earned
+                ? '更新提示'
+                : '获取提示',
+        16,
+        height - bottom - 98,
+        (width - 40) / 2,
+        () => {
+          if (state.turn !== 'red' || state.result || advice.phase || undo.pending) return;
+          computerUndo.clearMessage();
+          gesture = null;
+          void computerHints.request(state, () => {
+            const hint = computerHints.sync(state).result;
+            if (hint && area) {
+              selected = hint.action.type === 'move' ? hint.action.from : null;
+              panX = (hint.action.to % state.cols) * 44 - area.w / 2 + 22;
+              panY = Math.floor(hint.action.to / state.cols) * 44 - area.h / 2 + 22;
+            }
+            render();
+          });
+        },
+      );
+    if (hasComputerHint)
+      button(
+        undo.pending ? '观看中…' : state.freeUndoUsed ? '悔棋' : '悔棋·免费1次',
+        width / 2 + 4,
+        height - bottom - 98,
+        (width - 40) / 2,
+        () => {
+          if (!canUndoComputerTurn(state) || advice.phase || undo.pending) return;
+          computerHints.cancel();
+          void computerUndo.request(
+            state,
+            (next) => {
+              clearTimeout(computerTimer);
+              computerRequest = null;
+              state = next;
+              selected = null;
+              message = '';
+              save();
+            },
+            render,
+          );
+        },
+      );
+    const status = hasComputerHint ? undo.message || advice.message || message : message;
+    // Two short lines stay inside a narrow phone's safe area.
+    const lineLength = Math.max(12, Math.floor((width - 32) / 12));
+    text(status.slice(0, lineLength), 16, height - bottom - 35, 12);
+    text(status.slice(lineLength), 16, height - bottom - 18, 12);
   }
   function render() {
     if (stopped || hidden || page === 'pk' || !width) return;
@@ -377,7 +475,7 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
         '走法沿用象棋；帅与兵走一格。',
         '炮吃子需要隔一枚，马不能蹩腿。',
         '拖动棋盘，完整露出的格子可落子。',
-        '电脑搜索限制200ms，难度为预算内选择。',
+        '电脑会计算攻防，可随时暂停。',
       ].forEach((line, i) => text(line, 24, top + 88 + i * 30, 14));
       if (challengeId && (hintShown || challengeStatus === 'solved')) {
         const item = CHALLENGES.find((item) => item.id === challengeId),
@@ -461,7 +559,14 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
     } else maxPageScroll = 0;
   }
   function action(fn) {
-    if (page !== 'play' || state.result || (opponent === 'computer' && state.turn === 'black'))
+    if (
+      page !== 'play' ||
+      state.result ||
+      computerHints.sync(state).phase ||
+      computerUndo.sync(state).pending ||
+      hintRequest ||
+      (opponent === 'computer' && state.turn === 'black')
+    )
       return;
     try {
       fn();
@@ -509,7 +614,13 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
     change('result');
   }
   function cell(index) {
-    if (opponent === 'computer' && state.turn === 'black') return;
+    if (
+      computerHints.sync(state).phase ||
+      computerUndo.sync(state).pending ||
+      hintRequest ||
+      (opponent === 'computer' && state.turn === 'black')
+    )
+      return;
     if (state.pending) action(() => deploy(state, index));
     else if (state.board[index]?.side === state.turn) {
       selected = selected === index ? null : index;
@@ -525,17 +636,41 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
       stopped ||
       opponent !== 'computer' ||
       state.turn !== 'black' ||
-      state.result
+      state.result ||
+      computerRequest
     )
       return;
-    computerTimer = setTimeout(() => {
+    computerTimer = setTimeout(async () => {
       if (page !== 'play' || hidden || stopped) return;
-      const result = searchPosition(state, difficulty, { timeMs: 200, nodes: 4000 });
-      applyComputerAction(state, result.action);
-      selected = null;
-      save();
-      if (state.result) change('result');
-      else render();
+      const request = { state, ply: state.ply };
+      computerRequest = request;
+      message = '电脑思考中…';
+      render();
+      const isCancelled = () =>
+        computerRequest !== request ||
+        page !== 'play' ||
+        hidden ||
+        stopped ||
+        state !== request.state ||
+        state.ply !== request.ply;
+      try {
+        const result = await searchPositionAsync(state, difficulty, { isCancelled });
+        if (isCancelled()) return;
+        if (!result.action) throw new Error('no action');
+        applyComputerAction(state, result.action);
+        selected = null;
+        message = '';
+        save();
+        if (state.result) change('result');
+        else render();
+      } catch {
+        if (!isCancelled()) {
+          message = '电脑分析失败，可暂停后继续重试';
+          render();
+        }
+      } finally {
+        if (computerRequest === request) computerRequest = null;
+      }
     }, 100);
   }
   function openPK() {
@@ -634,16 +769,20 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
     hits.find((item) => contains(item, p))?.action();
   });
   subscribe('Hide', () => {
-    cancelHint();
+    const advertising = hintAccess.pending;
+    hintAccess.setHidden(true);
+    if (!advertising) cancelHint();
     hidden = true;
     gesture = null;
     clearTimeout(computerTimer);
+    computerRequest = null;
     safe(() => audio?.stop());
-    if (page === 'play') page = 'pause';
+    if (page === 'play' && !advertising) page = 'pause';
     save();
   });
   subscribe('Show', () => {
     hidden = false;
+    hintAccess.setHidden(false);
     gesture = null;
     resize();
   });
@@ -683,6 +822,7 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
       cancelHint();
       ads.dispose();
       clearTimeout(computerTimer);
+      computerRequest = null;
       gesture = null;
       pk?.stop();
       for (const off of listeners) safe(off);

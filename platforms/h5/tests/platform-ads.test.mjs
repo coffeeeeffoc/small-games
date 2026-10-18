@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createPlatformAdProvider } from '../platform-ads.js';
 
-function fixture(platform = 'taptap-h5', overrides = {}) {
+function fixture(platform = 'taptap-h5', overrides = {}, options = {}) {
   const listeners = {},
     calls = [];
   const ad = {
@@ -45,10 +45,178 @@ function fixture(platform = 'taptap-h5', overrides = {}) {
     environment,
     adUnitId: 'slot-1',
     timeoutMs: 20,
+    ...options,
   });
   return { provider, listeners, calls, environment };
 }
 const tick = () => new Promise((resolve) => setImmediate(resolve));
+
+test('Tap H5 full viewing after 12s loading and 60s playback keeps its reward', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let loaded;
+  const f = fixture(
+    'taptap-h5',
+    {
+      load: () =>
+        new Promise((resolve) => {
+          loaded = resolve;
+        }),
+    },
+    { timeoutMs: 45000 },
+  );
+  const result = f.provider.show();
+  t.mock.timers.tick(12000);
+  loaded();
+  await tick();
+  t.mock.timers.tick(60000);
+  f.listeners.close({ isEnded: true });
+  assert.equal((await result).status, 'completed');
+});
+
+test('Tap H5 preloads without showing and consumes the same loaded instance on click', async () => {
+  const f = fixture();
+  await f.provider.preload();
+  assert.equal(f.calls.filter((call) => call === 'load').length, 1);
+  assert(!f.calls.includes('show'));
+  const result = f.provider.show();
+  await tick();
+  assert.equal(f.calls.filter((call) => call === 'load').length, 1);
+  assert.equal(f.calls.filter((call) => call === 'show').length, 1);
+  f.listeners.close({ isEnded: true });
+  assert.equal((await result).status, 'completed');
+});
+
+test('preload overlaps a click, cancels safely, and failed preloads can retry', async () => {
+  for (const scenario of ['complete', 'cancel', 'load-rejected', 'sdk-error', 'timeout']) {
+    let loaded, reject;
+    const f = fixture('taptap-h5', {
+      load: () =>
+        new Promise((resolve, fail) => {
+          loaded = resolve;
+          reject = fail;
+        }),
+    });
+    const first = f.provider.preload();
+    assert.equal(f.provider.preload(), first, 'reuse in-flight preload');
+    if (scenario === 'complete' || scenario === 'cancel') {
+      const result = f.provider.show();
+      if (scenario === 'cancel') f.provider.dispose();
+      loaded();
+      await tick();
+      if (scenario === 'complete') {
+        assert.equal(f.calls.filter((call) => call === 'show').length, 1);
+        f.listeners.close({ isEnded: true });
+      } else assert(!f.calls.includes('show'), 'cancelled loading never opens an ad');
+      assert.equal((await result).status, scenario === 'complete' ? 'completed' : 'dismissed');
+    } else {
+      if (scenario === 'load-rejected') reject(new Error('no fill'));
+      if (scenario === 'sdk-error') f.listeners.error({ errCode: 1004 });
+      assert.equal(await first, false);
+      const next = f.provider.show();
+      loaded();
+      await tick();
+      f.listeners.close({ isEnded: true });
+      assert.equal((await next).status, 'completed', scenario);
+    }
+    await first;
+  }
+  const f = fixture();
+  await f.provider.preload();
+  f.provider.dispose();
+  assert.equal(f.calls.filter((call) => call === 'destroy').length, 1);
+  assert(!f.calls.includes('show'));
+});
+
+test('opening still times out, diagnostics explain the phase and never affect rewards', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const events = [];
+  const f = fixture(
+    'taptap-h5',
+    { show: () => new Promise(() => {}) },
+    { timeoutMs: 45000, onEvent: (event) => events.push(event) },
+  );
+  const result = f.provider.show();
+  await tick();
+  t.mock.timers.tick(45000);
+  assert.equal((await result).status, 'failed');
+  assert(events.some((event) => event.event === 'timeout' && event.phase === 'opening'));
+  f.listeners.close({ isEnded: true });
+  assert.equal(f.calls.filter((call) => call === 'destroy').length, 1);
+  const other = fixture(
+    'taptap-h5',
+    {},
+    {
+      onEvent() {
+        throw new Error('diagnostics failed');
+      },
+    },
+  );
+  const success = other.provider.show();
+  await tick();
+  other.listeners.close({ isEnded: true });
+  assert.equal((await success).status, 'completed');
+});
+
+test('a displayed Tap ad keeps its reward listener through 10 minutes on its end card', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let settled = false,
+    shown = 0;
+  const f = fixture('taptap-h5', {}, { timeoutMs: 45000 });
+  const result = f.provider
+    .show({
+      onShown() {
+        shown++;
+      },
+    })
+    .then((outcome) => {
+      settled = true;
+      return outcome;
+    });
+  await tick();
+  t.mock.timers.tick(600000);
+  await tick();
+  assert.equal(settled, false, 'display success must cancel the deadline, not extend it');
+  assert.equal(shown, 1);
+  f.listeners.close({ isEnded: true });
+  assert.equal((await result).status, 'completed');
+});
+
+test('unconfirmed or late display success never disables the opening deadline or revives a cancelled ad', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  for (const cancel of [false, true]) {
+    let shown,
+      notified = 0;
+    const f = fixture('taptap-h5', {
+      show: () =>
+        new Promise((resolve) => {
+          shown = resolve;
+        }),
+    });
+    const pending = f.provider.show({
+      onShown() {
+        notified++;
+      },
+    });
+    await tick();
+    if (cancel) f.provider.dispose();
+    else t.mock.timers.tick(20);
+    assert.equal((await pending).status, cancel ? 'dismissed' : 'failed');
+    shown();
+    await tick();
+    f.listeners.close({ isEnded: true });
+    assert.equal(notified, 0);
+    assert.equal(f.calls.filter((call) => call === 'destroy').length, 1);
+  }
+  const f = fixture('taptap-h5', { show: () => undefined });
+  const pending = f.provider.show();
+  await tick();
+  t.mock.timers.tick(20);
+  assert.equal(
+    (await pending).status,
+    'failed',
+    'a missing SDK promise is not display confirmation',
+  );
+});
 
 for (const platform of ['taptap-h5', 'wechat', 'douyin', 'bilibili'])
   test(`${platform}: SDK receiver, parameters, explicit completion and listener cleanup`, async () => {
