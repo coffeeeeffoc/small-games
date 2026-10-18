@@ -1,15 +1,20 @@
 // TapTap H5 supplies tap; ordinary browsers must keep advertising unavailable.
-export function createTapTapAdProvider(sdk, adUnitId, timeoutMs = 44000) {
+export function createTapTapAdProvider(sdk, adUnitId, showTimeoutMs = 44000) {
   let pending, disposed = false, blocked = false;
   return {
     show() {
-      if (disposed || pending || blocked || !sdk?.createRewardedVideoAd || typeof adUnitId !== 'string' || !adUnitId.trim())
+      let currentSdk;
+      try { currentSdk = typeof sdk === 'function' ? sdk() : sdk; } catch {}
+      if (disposed || pending || blocked || !currentSdk?.createRewardedVideoAd || typeof adUnitId !== 'string' || !adUnitId.trim())
         return Promise.resolve({ status: 'unavailable' });
       return new Promise(resolve => {
         let ad, settled = false, closed = false, timer;
-        const finish = status => {
+        const startedAt = Date.now();
+        const trace = (event, detail = {}) => console.info('[TapTapReward]', JSON.stringify({ event, elapsedMs: Date.now() - startedAt, ...detail }));
+        const finish = (status, reason) => {
           if (settled) return;
           settled = true;
+          trace('settled', { status, reason });
           clearTimeout(timer);
           try { ad?.offClose(close); } catch {}
           try { ad?.offError(error); } catch {}
@@ -21,22 +26,41 @@ export function createTapTapAdProvider(sdk, adUnitId, timeoutMs = 44000) {
           }
           resolve({ status });
         };
-        const close = result => { closed = true; finish(result?.isEnded === true ? 'completed' : 'dismissed'); };
-        const error = () => finish('failed');
-        pending = () => finish('dismissed');
+        const close = result => {
+          trace('close', { isEnded: result?.isEnded === true, valueType: typeof result?.isEnded, ignored: settled });
+          closed = true;
+          finish(result?.isEnded === true ? 'completed' : 'dismissed', 'sdk-close');
+        };
+        const error = () => finish('failed', 'sdk-error');
+        const shown = () => { if (settled) return; clearTimeout(timer); trace('shown', { ignored: false }); };
+        const attempt = () => {
+          if (settled) return;
+          const opening = ad.show();
+          // A missing Promise is not evidence that the native video opened.
+          if (typeof opening?.then === 'function') return Promise.resolve(opening).then(shown);
+        };
+        pending = reason => finish('dismissed', reason);
         try {
-          ad = sdk.createRewardedVideoAd({ adUnitId, multiton: false });
+          trace('requested');
+          ad = currentSdk.createRewardedVideoAd({ adUnitId, multiton: false });
           ad.onClose(close);
+          if (settled) return;
           ad.onError(error);
-          timer = setTimeout(() => finish('failed'), timeoutMs);
-          Promise.resolve(ad.show()).catch(async () => {
+          if (settled) return;
+          // Limit opening time only; displayed ads own their duration until the SDK closes them.
+          timer = setTimeout(() => finish('failed', 'open-timeout'), showTimeoutMs);
+          Promise.resolve().then(attempt).catch(async () => {
             if (settled) return;
-            try { await ad.load(); if (!settled) await ad.show(); } catch { error(); }
+            trace('retry-load');
+            try {
+              await ad.load();
+              if (!settled) await attempt();
+            } catch { error(); }
           });
         } catch { error(); }
       });
     },
-    cancel() { pending?.(); },
-    dispose() { disposed = true; pending?.(); },
+    cancel() { pending?.('cancel'); },
+    dispose() { disposed = true; pending?.('dispose'); },
   };
 }

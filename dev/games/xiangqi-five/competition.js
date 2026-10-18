@@ -566,7 +566,7 @@
 	var characters = {
 		cop: [
 			{
-				name: "阳光巡警",
+				name: "阳光保安",
 				description: "正义、勇敢，守护街区的每一天。",
 				crop: [
 					104,
@@ -575,7 +575,7 @@
 				]
 			},
 			{
-				name: "机灵警花",
+				name: "机灵保安",
 				description: "眼疾手快，任何小线索都逃不过她。",
 				crop: [
 					486,
@@ -584,7 +584,7 @@
 				]
 			},
 			{
-				name: "暖心警长",
+				name: "暖心队长",
 				description: "经验满满，总能找到最佳围捕路线。",
 				crop: [
 					904,
@@ -650,7 +650,7 @@
 		const [color, accent, badge] = presets[style][key];
 		const preset = Number.isInteger(selectedPreset) && selectedPreset >= 0 && selectedPreset < 3 ? selectedPreset : Number.isInteger(value?.preset) && value.preset >= 0 && value.preset < 3 ? value.preset : 0;
 		return {
-			label: classicRoles() ? key === "cop" ? "警察" : "小偷" : key === "cop" ? "追逐队" : "突围队",
+			label: classicRoles() ? key === "cop" ? "保安" : "小偷" : key === "cop" ? "追逐队" : "突围队",
 			style,
 			color,
 			accent,
@@ -2634,10 +2634,22 @@ body.competition-active #mode-online { position:static; }
 		ctx.lineWidth = Math.max(1, radius * .075);
 		ctx.stroke();
 	}
-	function createRenderer() {
+	function createRenderer({ touchViewport = false } = {}) {
+		let panX = 0, panY = 0, area = null;
 		let selected = null, lastPly = -1, hits = [], note = "", lastMoveAt = 0, priorBoard = [], lastDestination = null;
 		const ownTurn = (state) => state && !state.result && state.turn === (state.seat === 0 ? "red" : "black");
 		return {
+			getLayout: () => ({
+				area,
+				panX,
+				panY
+			}),
+			canPanAt: (x, y) => touchViewport && area && x >= area.x && x <= area.x + area.w && y >= area.y && y <= area.y + area.h,
+			pan(dx, dy) {
+				if (!touchViewport || !area) return;
+				panX = Math.max(0, Math.min(396 - area.w, panX - dx));
+				panY = Math.max(0, Math.min(440 - area.h, panY - dy));
+			},
 			draw(ctx, width, height, state) {
 				hits = [];
 				ctx.fillStyle = colors.cream;
@@ -2662,16 +2674,30 @@ body.competition-active #mode-online { position:static; }
 					lastMoveAt = Date.now();
 				}
 				if (!ownTurn(state)) selected = null;
-				const unit = Math.max(8, Math.min((width - 12) / 9, (height - 104) / 10, 56));
-				const left = (width - unit * 9) / 2, top = 36;
+				const unit = touchViewport ? 44 : Math.max(8, Math.min((width - 12) / 9, (height - 104) / 10, 56));
+				area = {
+					x: 6,
+					y: 36,
+					w: width - 12,
+					h: Math.min(440, Math.max(88, height - 112))
+				};
+				panX = Math.max(0, Math.min(panX, Math.max(0, unit * 9 - area.w)));
+				panY = Math.max(0, Math.min(panY, Math.max(0, unit * 10 - area.h)));
+				const left = touchViewport ? Math.max(6, (width - unit * 9) / 2) - panX : (width - unit * 9) / 2, top = 36 - (touchViewport ? panY : 0);
 				const me = state.seat === 0 ? "红" : "黑";
 				const seconds = Math.max(0, Math.ceil((9e5 - state.elapsedMs) / 1e3));
 				const time = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-				rounded(ctx, left + 2, 4, unit * 9 - 4, 26, 13, "#eef2da");
+				rounded(ctx, touchViewport ? 6 : left + 2, 4, touchViewport ? width - 12 : unit * 9 - 4, 26, 13, "#eef2da");
 				text(state.result ? state.result === "draw" ? "平局啦，再玩一局！" : `${sideName(state.result)}连五获胜！` : `你执${me} · ${ownTurn(state) ? "轮到你啦" : "等好友落子"} · ${time}`, width / 2, 17, Math.min(13, width / 24), colors.ink, true);
-				rounded(ctx, left - 4, 32, unit * 9 + 8, unit * 10 + 9, 13, "#b9814d", colors.ink);
-				rounded(ctx, left - 2, 32, unit * 9 + 4, unit * 10 + 3, 11, colors.wood, "#aa7546");
-				rounded(ctx, left + 1, 37, unit * 9 - 2, unit * 10 - 2, 7, colors.board, "#9c714a");
+				if (touchViewport) {
+					ctx.save();
+					ctx.beginPath();
+					ctx.rect(area.x, area.y, area.w, area.h);
+					ctx.clip();
+				}
+				rounded(ctx, left - 4, top - 4, unit * 9 + 8, unit * 10 + 9, 13, "#b9814d", colors.ink);
+				rounded(ctx, left - 2, top - 4, unit * 9 + 4, unit * 10 + 3, 11, colors.wood, "#aa7546");
+				rounded(ctx, left + 1, top + 1, unit * 9 - 2, unit * 10 - 2, 7, colors.board, "#9c714a");
 				ctx.strokeStyle = "#9b7a50";
 				ctx.lineWidth = Math.max(.7, unit / 38);
 				for (let x = 0; x < 9; x++) {
@@ -2709,7 +2735,7 @@ body.competition-active #mode-online { position:static; }
 							ctx.fill();
 						}
 					}
-					hits.push({
+					if (!touchViewport || x - unit / 2 >= area.x && y - unit / 2 >= area.y && x + unit / 2 <= area.x + area.w && y + unit / 2 <= area.y + area.h) hits.push({
 						label: `${String.fromCharCode(65 + index % 9)}${Math.floor(index / 9) + 1}${piece ? sideName(piece.side) + label(piece) : "空位"}`,
 						x: x - unit / 2,
 						y: y - unit / 2,
@@ -2718,8 +2744,9 @@ body.competition-active #mode-online { position:static; }
 						index
 					});
 				});
-				const bottom = top + unit * 10;
-				text(note || (!ownTurn(state) ? "好友正在想下一手，马上轮到你" : state.pending ? `抽到「${label(state.pending)}」！点空位放上场` : selected !== null ? "点绿点移动，点红圈吃子" : "点空位落子，点自己的棋子移动"), width / 2, bottom + 15, Math.min(12, width / 27), "#8e7056");
+				if (touchViewport) ctx.restore();
+				const bottom = touchViewport ? area.y + area.h : top + unit * 10;
+				text(note || (!ownTurn(state) ? "好友正在想下一手，马上轮到你" : state.pending ? `抽到「${label(state.pending)}」！点空位放上场` : selected !== null ? "点绿点移动，点红圈吃子" : touchViewport && (area.w < 396 || area.h < 440) ? "拖动棋盘查看，点空位落子" : "点空位落子，点自己的棋子移动"), width / 2, bottom + 15, Math.min(12, width / 27), "#8e7056");
 				const count = Object.values(state.poolCounts?.[state.turn] || {}).reduce((sum, n) => sum + n, 0);
 				const canDraw = ownTurn(state) && !state.pending && count > 0;
 				const buttonWidth = Math.min(width - 16, 240), x = (width - buttonWidth) / 2;
@@ -2772,7 +2799,145 @@ body.competition-active #mode-online { position:static; }
 		};
 	}
 	//#endregion
-	//#region ../../../../../../../tmp/competition-entry-W5Oo9W/entry.mjs
+	//#region ../../platforms/taptap/calls.mjs
+	/** Host callbacks are the authority; optional Promise-style APIs share one settlement. */
+	var tapError = (code, message = "TapTap 暂不可用，请稍后重试。") => Object.assign(new Error(message), { code });
+	function tapCall(target, method, input = {}, { timeoutMs = 12e3, leaderboard = false } = {}) {
+		if (typeof target?.[method] !== "function") return Promise.reject(tapError("TAP_UNAVAILABLE", "请在支持此功能的 TapTap 客户端中打开。"));
+		return new Promise((resolve, reject) => {
+			let settled = false;
+			const finish = (fn, value) => {
+				if (settled) return;
+				settled = true;
+				globalThis.clearTimeout(timer);
+				fn(value);
+			};
+			const timer = globalThis.setTimeout(() => finish(reject, tapError("TAP_TIMEOUT", "连接超时，请稍后重试。")), timeoutMs);
+			const success = (value) => finish(resolve, value);
+			const fail = (value) => {
+				const code = Number.isInteger(value) ? value : Number.isInteger(value?.errno) ? value.errno : "TAP_FAILED";
+				finish(reject, tapError(code, {
+					400001: "云档每分钟可上传一次，请稍后再试。",
+					400002: "这份云档已删除，请重新查看。",
+					400003: "云档数量已达上限，请在 TapTap 中管理旧云档。",
+					400007: "上一项云档操作还未完成。",
+					400100: "TapTap 云档尚未初始化，请稍后重试。",
+					500001: "此应用的排行榜暂不可用。",
+					500002: "排行榜不属于当前应用。"
+				}[code]));
+			};
+			try {
+				const result = target[method](leaderboard ? {
+					...input,
+					callback: {
+						onSuccess: success,
+						onFailure: fail
+					}
+				} : {
+					...input,
+					success,
+					fail
+				});
+				if (result?.then) result.then(success, fail);
+			} catch {
+				fail();
+			}
+		});
+	}
+	function tapLogin(sdk) {
+		return tapCall(sdk, "login", { timeout: 1e4 }).then((result) => {
+			if (typeof result?.code !== "string" || !result.code.trim() || result.code.length > 512) throw tapError("PLATFORM_LOGIN_FAILED");
+			return result.code;
+		});
+	}
+	//#endregion
+	//#region ../../platforms/taptap/competition-identity.mjs
+	var games = /* @__PURE__ */ new Set([
+		"cops-robbers",
+		"cops-robbers-realtime",
+		"xiangqi-five"
+	]);
+	var installed = /* @__PURE__ */ new WeakMap();
+	/** Optional three-game composition. The canonical anonymous identity client stays unchanged. */
+	function installTapCompetitionIdentity(root = globalThis, nativeSdk = root.tap) {
+		const original = root.__createCompetitionIdentity;
+		if (typeof original !== "function") throw tapError("PLATFORM_LOGIN_UNAVAILABLE");
+		if (installed.has(original) || original.__tapPlatformIdentityVersion === 1) return original;
+		const instances = /* @__PURE__ */ new WeakMap();
+		const factory = (options) => {
+			const config = options.config;
+			if (config?.identityProvider !== "taptap") return original(options);
+			if (!games.has(config.game) || !["h5", "taptap"].includes(config.platform) || !/^[A-Za-z0-9_-]{1,100}$/.test(config.appId || "")) throw tapError("IDENTITY_SCOPE_MISMATCH");
+			const appId = config.appId;
+			let generation = 0;
+			const requirePlatform = (value) => {
+				if (value && (value.identityKind !== "platform" || value.game !== config.game)) throw tapError("IDENTITY_SCOPE_MISMATCH");
+				return value;
+			};
+			const request = async (path, body, owner) => {
+				const revision = generation;
+				let result;
+				if (path === "/sessions/guest") {
+					const code = await tapLogin(config.platform === "taptap" ? nativeSdk || options.sdk : root.tap);
+					if (revision !== generation) throw tapError("SESSION_CHANGED");
+					result = await options.request("/sessions/platform", {
+						platform: "taptap",
+						game: config.game,
+						appId,
+						code
+					}, null);
+				} else result = await options.request(path, body, owner);
+				if (path === "/sessions/guest" || path === "/sessions/refresh") {
+					if (revision !== generation) throw tapError("SESSION_CHANGED");
+					if (!result) throw tapError("PLATFORM_LOGIN_FAILED");
+					requirePlatform(result);
+				}
+				return result;
+			};
+			const auth = original({
+				...options,
+				config: {
+					...config,
+					appId: `tap-platform-v1:${appId}`
+				},
+				...config.platform === "taptap" && nativeSdk ? { storage: nativeSdk } : {},
+				request
+			});
+			if (instances.has(auth)) return instances.get(auth);
+			if (auth.saved()) auth.logout().catch(() => {});
+			const wrapped = {
+				...auth,
+				saved: () => requirePlatform(auth.saved()),
+				async current() {
+					requirePlatform(auth.saved());
+					return requirePlatform(await auth.current());
+				},
+				assertCurrent(value) {
+					requirePlatform(value);
+					requirePlatform(auth.saved());
+					return auth.assertCurrent(value);
+				},
+				async forOwner(value) {
+					requirePlatform(value);
+					requirePlatform(auth.saved());
+					return requirePlatform(await auth.forOwner(value));
+				},
+				logout() {
+					generation++;
+					return auth.logout();
+				}
+			};
+			instances.set(auth, wrapped);
+			return wrapped;
+		};
+		Object.defineProperty(factory, "__tapPlatformIdentityVersion", { value: 1 });
+		installed.set(factory, true);
+		root.__createCompetitionIdentity = factory;
+		return factory;
+	}
+	//#endregion
+	//#region ../../../../../../../tmp/competition-entry-I6unP7/entry.mjs
+	if (globalThis.__COMPETITION_CONFIG__?.identityProvider === "taptap") installTapCompetitionIdentity();
 	mountCompetition("xiangqi-five", createRenderer);
 	//#endregion
 })();

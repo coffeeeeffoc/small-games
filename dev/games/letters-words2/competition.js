@@ -566,7 +566,7 @@
 	var characters = {
 		cop: [
 			{
-				name: "阳光巡警",
+				name: "阳光保安",
 				description: "正义、勇敢，守护街区的每一天。",
 				crop: [
 					104,
@@ -575,7 +575,7 @@
 				]
 			},
 			{
-				name: "机灵警花",
+				name: "机灵保安",
 				description: "眼疾手快，任何小线索都逃不过她。",
 				crop: [
 					486,
@@ -584,7 +584,7 @@
 				]
 			},
 			{
-				name: "暖心警长",
+				name: "暖心队长",
 				description: "经验满满，总能找到最佳围捕路线。",
 				crop: [
 					904,
@@ -650,7 +650,7 @@
 		const [color, accent, badge] = presets[style][key];
 		const preset = Number.isInteger(selectedPreset) && selectedPreset >= 0 && selectedPreset < 3 ? selectedPreset : Number.isInteger(value?.preset) && value.preset >= 0 && value.preset < 3 ? value.preset : 0;
 		return {
-			label: classicRoles() ? key === "cop" ? "警察" : "小偷" : key === "cop" ? "追逐队" : "突围队",
+			label: classicRoles() ? key === "cop" ? "保安" : "小偷" : key === "cop" ? "追逐队" : "突围队",
 			style,
 			color,
 			accent,

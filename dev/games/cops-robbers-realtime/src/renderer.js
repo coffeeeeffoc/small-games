@@ -185,6 +185,15 @@ function buildMap(level, rotation = 0) {
   bg.height = H * 2;
   const ctx = bg.getContext('2d');
   ctx.scale(2, 2);
+  drawMapBackground(ctx, level, rotation);
+  return bg;
+}
+
+// Pure drawing shared with native hosts; canvas allocation belongs to the host.
+export function drawMapBackground(ctx, level, rotation = 0) {
+  const W = level.worldWidth || 1000,
+    H = level.worldHeight || 600;
+  ctx.save();
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.fillStyle = '#a7d6b6';
@@ -295,7 +304,7 @@ function buildMap(level, rotation = 0) {
   ctx.fillStyle = '#7d997d';
   ctx.fillText('NEIGHBORHOOD PATROL', 0, 0);
   ctx.restore();
-  return bg;
+  ctx.restore();
 }
 
 export function route(ctx, actor, selected, rotation = 0) {
@@ -633,6 +642,7 @@ export function actorBody(
   celebrating,
   escapedAge,
   rotation = 0,
+  drawAvatar = drawRoleAvatar,
 ) {
   const role = cop ? 'cop' : 'robber',
     { color } = getRoleAppearance(role);
@@ -667,7 +677,7 @@ export function actorBody(
     color,
     7,
   );
-  drawRoleAvatar(ctx, role, -23, -52 - Math.abs(stride) * 0.4, 46);
+  drawAvatar(ctx, role, -23, -52 - Math.abs(stride) * 0.4, 46);
   ellipse(ctx, 22, -49, 10, 10, '#fff9e9', color, 2);
   ctx.font = `bold 12px ${FONT}`;
   ctx.textAlign = 'center';

@@ -17,6 +17,7 @@ export function readPuzzleLink(input) {
 export function puzzleUrl(input, puzzle) {
   const url = new URL(input);
   url.search = ''; url.hash = ''; url.username = ''; url.password = '';
+  if (!puzzle) return url.href;
   url.searchParams.set('mode', puzzle.mode);
   url.searchParams.set('level', String(puzzle.level));
   url.searchParams.set('rule', puzzle.rule || 'standard');
@@ -32,15 +33,15 @@ export function showPuzzleShare(puzzle, title) {
   const note = document.getElementById('share-note');
   field.value = puzzleUrl(location.href, puzzle);
   document.getElementById('share-title').textContent = title;
-  note.textContent = '好友会从同一地图和规则重新开局，自己的成绩由实际游玩产生。';
+  note.textContent = puzzle ? '好友会从当前关卡和规则重新开局，自己的成绩由实际游玩产生。' : '把游戏分享给好友，一起加入围捕小队。';
   document.getElementById('native-share').hidden = typeof navigator.share !== 'function';
   document.getElementById('copy-share').onclick = async () => {
-    try { await navigator.clipboard.writeText(field.value); note.textContent = '同题链接已复制，发给好友试试另一种走法。'; }
+    try { await navigator.clipboard.writeText(field.value); note.textContent = puzzle ? '关卡链接已复制，发给好友试试另一种走法。' : '游戏链接已复制。'; }
     catch { field.focus(); field.select(); note.textContent = '可选中上方链接，手动复制分享。'; }
   };
   document.getElementById('native-share').onclick = async () => {
     try { await navigator.share({ title, text: title, url: field.value }); note.textContent = '分享面板已完成。'; }
-    catch (error) { note.textContent = error?.name === 'AbortError' ? '已取消分享，仍可复制同题链接。' : '暂时无法调用分享面板，可复制同题链接。'; }
+    catch (error) { note.textContent = error?.name === 'AbortError' ? '已取消分享，仍可复制链接。' : '暂时无法调用分享面板，可复制链接。'; }
   };
   if (!dialog.open) dialog.showModal();
 }

@@ -3,18 +3,6 @@ import { gamePortrait } from './art.js';
 
 export function setupGameShell({ openLevels, startPatrol }) {
   const $ = (id) => document.getElementById(id);
-  const platform =
-    globalThis.__COMPETITION_CONFIG__?.platform ||
-    new URLSearchParams(location.search).get('platform') ||
-    'web';
-  const native =
-    !['web', 'h5'].includes(platform) ||
-    [globalThis.wx, globalThis.tt, globalThis.bl, globalThis.ks].some(
-      (sdk) => typeof sdk?.createCanvas === 'function',
-    );
-  const fullscreen = document.querySelector('[data-game-fullscreen]');
-  fullscreen.hidden = native;
-  if (native) fullscreen.removeAttribute('data-game-fullscreen');
 
   function portraits() {
     $('target-portrait').innerHTML = gamePortrait('robber', 0, 0, 100);
@@ -28,10 +16,8 @@ export function setupGameShell({ openLevels, startPatrol }) {
       .join('<span aria-hidden="true">×</span>');
   }
   function refresh() {
-    const active = document.body.classList.contains('focus-play');
     $('resume-level').textContent =
       `第 ${document.body.dataset.lastGame === 'duel' ? document.body.dataset.duelLevel : document.body.dataset.level || 1} 关`;
-    fullscreen.hidden = native || active;
   }
   function shortPrompt() {
     const text = $('instruction').textContent;
@@ -46,7 +32,7 @@ export function setupGameShell({ openLevels, startPatrol }) {
           ? `已封 ${inspected[2]}/${inspected[3]} 条退路`
           : document.body.dataset.phase === 'planning'
             ? document.body.dataset.rule === 'relay'
-              ? '换一位警察，接力包抄！'
+              ? '换一位保安，接力包抄！'
               : '点亮起的路口，出发！'
             : {
                 police: '出发！',
@@ -64,7 +50,7 @@ export function setupGameShell({ openLevels, startPatrol }) {
       message = text
         .split(/[。；]/)[0]
         .replace('全部围捕', '收网')
-        .replace('追逐队员', '警察')
+        .replace('追逐队员', '保安')
         .replace('突围队员', '小偷')
         .slice(0, 36);
     if ($('play-prompt').textContent !== message) $('play-prompt').textContent = message;

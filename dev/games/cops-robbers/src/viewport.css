@@ -686,7 +686,7 @@ body.game-shell:not(.focus-play) {
     max-width: 960px;
   }
   .game-shell:not(.focus-play) .briefing {
-    padding-top: var(--home-bar);
+    padding-top: 0;
     grid-template-columns: minmax(0, 1fr) minmax(280px, 40%);
     grid-template-rows: auto minmax(0, 1fr);
     gap: 0 10px;
@@ -715,6 +715,7 @@ body.game-shell:not(.focus-play) {
     overflow-y: auto;
     gap: 7px;
     padding-left: 0;
+    padding-top: var(--game-safe-area-top, 4px);
   }
   .game-shell .home-roster {
     position: fixed;
@@ -870,7 +871,7 @@ body.game-shell:not(.focus-play) {
   .game-shell.focus-play .duel-game {
     height: calc(100dvh - var(--game-safe-area-top, 0px) - var(--game-safe-area-bottom, 0px) - 16px);
     grid-template-columns: minmax(0, 1fr) minmax(230px, 290px);
-    grid-template-rows: 35px 35px minmax(24px, 1fr) 48px 44px;
+    grid-template-rows: 44px 35px minmax(24px, 1fr) 48px 44px;
     gap: 4px 20px;
   }
   .game-shell.focus-play .board-frame,
@@ -888,7 +889,7 @@ body.game-shell:not(.focus-play) {
     height: 44px;
   }
   .game-shell.focus-play .game-heading {
-    min-height: 35px;
+    min-height: 44px;
   }
   .game-shell.focus-play .play-prompt {
     min-height: 24px;
@@ -902,4 +903,51 @@ body.game-shell:not(.focus-play) {
     width: 36px;
     height: 36px;
   }
+}
+
+/* Left utility rail clears the cutout; the central title still clears the capsule. */
+.game-shell.focus-play .topbar { pointer-events: none; }
+.game-shell.focus-play #focus-toggle { pointer-events: auto; }
+.game-shell:not(.focus-play) .topbar {
+  height: 0;
+  padding: 0;
+  pointer-events: none;
+}
+.game-shell:not(.focus-play) .brand,
+.game-shell:not(.focus-play) .top-actions {
+  position: absolute;
+  left: max(12px, var(--game-safe-area-left, 0px));
+  pointer-events: auto;
+}
+.game-shell:not(.focus-play) .brand {
+  top: var(--game-safe-area-cutout-top, 4px);
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+}
+.game-shell:not(.focus-play) .top-actions {
+  top: calc(var(--game-safe-area-cutout-top, 4px) + 52px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.game-shell:not(.focus-play) .home-title {
+  padding: max(12px, var(--game-safe-area-top, 4px)) 64px 0;
+  margin-top: 0;
+}
+.game-shell:not(.focus-play) .briefing h1 {
+  font-size: clamp(28px, 9vw, 44px);
+}
+.game-shell:not(.focus-play) .home-kicker { font-size: 10px; letter-spacing: 1px; }
+.game-shell:not(.focus-play) .home-tools { grid-template-columns: 1.3fr 1fr; }
+.game-shell:not(.focus-play) .home-portals { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 1fr; }
+.game-shell .game-heading { gap: 8px; }
+.game-shell .game-heading :is(#share-level, #duel-share) {
+  pointer-events: auto;
+  min-width: 44px;
+  min-height: 44px;
+  flex: none;
+  padding: 6px 9px;
+  font-size: 12px;
 }

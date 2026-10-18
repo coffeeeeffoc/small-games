@@ -2,6 +2,7 @@ import { levels } from './levels.js';
 import { initialState, legalTargets, step } from './engine.js';
 import { relayLevels, relayTargets, movedOfficer, lastOfficer } from './relay.js';
 import { quickTrials, quickOutcome } from './quick-trials.js';
+import { campaignRecord } from './progress.js';
 import { createRenderer } from './competition-renderer.js';
 
 const KEY = 'cops-robbers-v3';
@@ -19,9 +20,9 @@ export function startNativeCopsGame(sdk, config = {}, startNativeCompetition) {
   let save = {}, storageOK = true;
   try { const raw = sdk.getStorageSync(KEY); save = typeof raw === 'string' ? JSON.parse(raw || '{}') : raw || {}; } catch { storageOK = false; }
   if (!save || typeof save !== 'object' || Array.isArray(save)) save = {};
-  for (const value of Object.values(modes)) {
+  for (const [mode, value] of Object.entries(modes)) {
     const records = save[value.records];
-    save[value.records] = Object.fromEntries(value.list.filter(level => Number.isInteger(records?.[level.id]?.turns) && records[level.id].turns > 0 && records[level.id].turns < 100000 && [1, 2, 3].includes(records[level.id].stars)).map(level => [level.id, records[level.id]]));
+    save[value.records] = Object.fromEntries(value.list.map(level => [level.id, campaignRecord(level, records?.[level.id], undefined, mode)]).filter(([, record]) => record));
   }
   save.settings = save.settings && typeof save.settings === 'object' ? save.settings : {};
   save.patrols = save.patrols && typeof save.patrols === 'object' ? save.patrols : {};
@@ -37,7 +38,7 @@ export function startNativeCopsGame(sdk, config = {}, startNativeCompetition) {
   const key = () => `${mode === 'quick' ? 'quick' : 'challenge'}:${mode === 'relay' ? 'relay' : 'standard'}`;
   const records = () => save[modes[mode].records];
   const list = () => modes[mode].list;
-  const unlocked = index => index === 0 || Boolean(records()[list()[index]?.id]) || Boolean(records()[list()[index - 1]?.id]);
+  const unlocked = index => index === 0 || Boolean(records()[list()[index]?.id]) || Boolean(records()[list()[index - 1]?.id]) || snapshot()?.levelId === list()[index]?.id;
   const valid = (state, map) => state && Array.isArray(state.cops) && state.cops.length === map.cops.length && new Set(state.cops).size === state.cops.length && state.cops.every(n => Number.isInteger(n) && n >= 0 && n < map.nodes.length) && Array.isArray(state.robbers) && state.robbers.length === map.robbers.length && state.robbers.every(n => Number.isInteger(n) && n >= -2 && n < map.nodes.length && !state.cops.includes(n)) && Number.isInteger(state.turn) && state.turn >= 0 && state.turn < 100000;
   const outcome = () => mode === 'quick' ? quickOutcome(level, board) : board.robbers.includes(-2) ? 'lost' : board.robbers.every(n => n === -1) ? 'won' : board.turn >= 200 ? 'lost' : 'planning';
   const persist = () => {
@@ -48,7 +49,9 @@ export function startNativeCopsGame(sdk, config = {}, startNativeCompetition) {
   const snapshot = () => {
     const current = save.patrols[key()];
     const map = list().find(item => item.id === current?.levelId);
-    return map && unlocked(list().indexOf(map)) && valid(current.state, map) && current.state.robbers.some(n => n >= 0) && !current.state.robbers.includes(-2) && current.state.turn < (map.turnLimit || 200) ? current : null;
+    // Preserve a valid unfinished patrol from the former open catalog without
+    // fabricating completion or unlocking any adjacent, unplayed levels.
+    return map && valid(current.state, map) && current.state.robbers.some(n => n >= 0) && !current.state.robbers.includes(-2) && current.state.turn < (map.turnLimit || 200) ? current : null;
   };
   const load = (id, resume = null) => {
     level = list().find(item => item.id === id) || list()[0];
@@ -68,8 +71,7 @@ export function startNativeCopsGame(sdk, config = {}, startNativeCompetition) {
     if (mode === 'relay') board.relayLast = actor < 0 ? before.relayLast ?? -1 : actor;
     history.push(before); history = history.slice(-100); note = ''; feedback();
     if (outcome() === 'won') {
-      const stars = board.turn <= level.par ? 3 : board.turn <= level.par + 3 ? 2 : 1;
-      if (!records()[level.id] || board.turn < records()[level.id].turns) records()[level.id] = { turns: board.turn, stars };
+      records()[level.id] = campaignRecord(level, records()[level.id], board.turn, mode);
     }
     if (outcome() !== 'planning') page = 'result';
     persist(); draw();
@@ -106,14 +108,14 @@ export function startNativeCopsGame(sdk, config = {}, startNativeCompetition) {
     } else if (page === 'levels') {
       title(`${modes[mode].label} · 选关`);
       const rows = Math.max(1, Math.min(6, Math.floor((height - top - bottom - 210) / 54))), start = pageIndex * rows;
-      list().slice(start, start + rows).forEach((map, i) => { const record = records()[map.id]; button(`${map.id} ${map.name} ${record ? '★'.repeat(record.stars) : unlocked(start + i) ? '' : '· 未解锁'}`, top + 65 + i * 54, () => load(map.id), unlocked(start + i)); });
+      list().slice(start, start + rows).forEach((map, i) => { const record = records()[map.id]; button(`${map.id} ${map.name} ${record ? '★'.repeat(record.stars) : unlocked(start + i) ? '' : '· 未解锁'}`, top + 65 + i * 54, () => { const current = snapshot(); load(map.id, current?.levelId === map.id ? current : null); }, unlocked(start + i)); });
       const y = height - bottom - 112;
       button('上一页', y, () => pageIndex--, pageIndex > 0, 24, (width - 58) / 2);
       button('下一页', y, () => pageIndex++, start + rows < list().length, width / 2 + 5, (width - 58) / 2);
       button('返回主页', y + 56, () => page = 'home');
     } else if (page === 'help') {
       title('学习与设置');
-      ['点蓝色队员，再点相邻空路口。', '每步移动一人，电脑随后行动。', '堵住全部退路完成拦截。', '橙色出口必须优先守住。', '接力：连续移动必须换人。', '快练：在限制步数内收网。'].forEach((line, i) => text(line, width / 2, top + 76 + i * 30, Math.min(16, width / 23)));
+      ['点保安队员，再点相邻空路口。', '每步移动一人，电脑随后行动。', '堵住全部退路完成拦截。', '橙色出口必须优先守住。', '接力：连续移动必须换人。', '快练：在限制步数内收网。'].forEach((line, i) => text(line, width / 2, top + 76 + i * 30, Math.min(16, width / 23)));
       button(`触感反馈：${save.settings.nativeHaptics === false ? '关' : '开'}`, height - bottom - 164, () => { save.settings.nativeHaptics = save.settings.nativeHaptics === false; persist(); }, true, 24, channel ? (width - 58) / 2 : width - 48);
       if (channel) button('B站入口', height - bottom - 164, () => page = 'channel', true, width / 2 + 5, (width - 58) / 2);
       text('本入口无音频素材，声音播放不可用', width / 2, height - bottom - 104, 12);

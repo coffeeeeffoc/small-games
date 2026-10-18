@@ -566,7 +566,7 @@
 	var characters = {
 		cop: [
 			{
-				name: "阳光巡警",
+				name: "阳光保安",
 				description: "正义、勇敢，守护街区的每一天。",
 				crop: [
 					104,
@@ -575,7 +575,7 @@
 				]
 			},
 			{
-				name: "机灵警花",
+				name: "机灵保安",
 				description: "眼疾手快，任何小线索都逃不过她。",
 				crop: [
 					486,
@@ -584,7 +584,7 @@
 				]
 			},
 			{
-				name: "暖心警长",
+				name: "暖心队长",
 				description: "经验满满，总能找到最佳围捕路线。",
 				crop: [
 					904,
@@ -650,7 +650,7 @@
 		const [color, accent, badge] = presets$1[style][key];
 		const preset = Number.isInteger(selectedPreset) && selectedPreset >= 0 && selectedPreset < 3 ? selectedPreset : Number.isInteger(value?.preset) && value.preset >= 0 && value.preset < 3 ? value.preset : 0;
 		return {
-			label: classicRoles$1() ? key === "cop" ? "警察" : "小偷" : key === "cop" ? "追逐队" : "突围队",
+			label: classicRoles$1() ? key === "cop" ? "保安" : "小偷" : key === "cop" ? "追逐队" : "突围队",
 			style,
 			color,
 			accent,
@@ -16578,9 +16578,9 @@ body.competition-active #mode-online { position:static; }
 	var presets = {
 		team: {
 			cop: [
-				"#1677bf",
-				"#d9f3ff",
-				"◆"
+				"#6c6973",
+				"#ece9e5",
+				"●"
 			],
 			robber: [
 				"#d65b19",
@@ -16640,7 +16640,7 @@ body.competition-active #mode-online { position:static; }
 		const style = Object.hasOwn(presets, value?.style) ? value.style : "team";
 		const [color, accent, badge] = presets[style][key];
 		return {
-			label: classicRoles() ? key === "cop" ? "警察" : "小偷" : key === "cop" ? "追逐队" : "突围队",
+			label: classicRoles() ? key === "cop" ? "保安" : "小偷" : key === "cop" ? "追逐队" : "突围队",
 			style,
 			color,
 			accent,
@@ -16665,12 +16665,9 @@ body.competition-active #mode-online { position:static; }
 			add("M15 47Q15 20 50 20T85 47V62Q85 95 50 96 15 95 15 62Z", skin, ink, 3.2);
 			add("M22 53Q22 24 50 26T79 54L74 39 63 42 55 34 41 41 29 38Z", "#513329");
 			if (chaser) {
-				add("M8 28 15 13Q50-2 85 13L92 28 80 39H20Z", "#146aa9", ink, 3.2);
-				add("M15 24Q50 10 85 24L82 30Q50 20 18 30Z", "#3199d4");
-				add("M14 31Q50 21 86 31L85 39Q50 53 15 39Z", "#163f63", ink, 2.5);
-				add("M17 32Q50 24 83 32L80 35Q50 29 20 36Z", "#bbecff");
-				add("M50 9 61 15 58 28 50 34 42 28 39 15Z", "#ffdc60", ink, 2.2);
-				add("M50 15 52 20 58 20 54 24 55 29 50 26 45 29 46 24 42 20 48 20Z", "#fff3b1");
+				add("M13 34Q14 5 48 5Q79 5 83 33L72 39H24Z", "#55525c", ink, 3.2);
+				add("M16 32Q49 22 80 31L93 37Q72 51 43 40L18 40Z", "#41404a", ink, 2.5);
+				add("M48 8Q44 19 47 27", "none", "#797582", 2);
 				add("M25 47Q32 43 39 47M61 47Q68 43 75 47", "none", "#513329", 3.2);
 			} else {
 				add("M10 36Q10 4 50 4T90 36Z", "#f89927", ink, 3.2);
@@ -16741,56 +16738,23 @@ body.competition-active #mode-online { position:static; }
 			], "#513329");
 			if (cop) {
 				polygon([
-					[8, 28],
-					[15, 13],
-					[50, 2],
-					[85, 13],
-					[92, 28],
-					[80, 39],
-					[20, 39]
-				], ink);
+					[13, 34],
+					[16, 17],
+					[29, 7],
+					[48, 5],
+					[67, 10],
+					[80, 23],
+					[83, 34]
+				], "#55525c");
 				polygon([
-					[12, 27],
-					[19, 16],
-					[50, 7],
-					[81, 16],
-					[88, 27],
-					[78, 35],
-					[22, 35]
-				], "#146aa9");
-				polygon([
-					[15, 24],
-					[50, 14],
-					[85, 24],
-					[82, 29],
-					[50, 22],
-					[18, 29]
-				], "#3199d4");
-				polygon([
-					[14, 31],
-					[50, 24],
-					[86, 31],
-					[85, 39],
-					[50, 46],
-					[15, 39]
-				], "#163f63");
-				polygon([
-					[18, 32],
-					[50, 28],
-					[82, 32],
-					[79, 35],
-					[50, 32],
-					[21, 36]
-				], "#bbecff");
-				polygon([
-					[50, 9],
-					[61, 15],
-					[58, 28],
-					[50, 34],
-					[42, 28],
-					[39, 15]
-				], "#ffdc60");
-				circle(50, 21, 4, "#fff3b1");
+					[16, 32],
+					[49, 24],
+					[80, 31],
+					[93, 37],
+					[72, 46],
+					[43, 40],
+					[18, 40]
+				], "#41404a");
 			} else {
 				polygon([
 					[10, 36],
@@ -17066,7 +17030,145 @@ body.competition-active #mode-online { position:static; }
 		};
 	}
 	//#endregion
-	//#region ../../../../../../../tmp/competition-entry-8d1cCY/entry.mjs
+	//#region ../../platforms/taptap/calls.mjs
+	/** Host callbacks are the authority; optional Promise-style APIs share one settlement. */
+	var tapError = (code, message = "TapTap 暂不可用，请稍后重试。") => Object.assign(new Error(message), { code });
+	function tapCall(target, method, input = {}, { timeoutMs = 12e3, leaderboard = false } = {}) {
+		if (typeof target?.[method] !== "function") return Promise.reject(tapError("TAP_UNAVAILABLE", "请在支持此功能的 TapTap 客户端中打开。"));
+		return new Promise((resolve, reject) => {
+			let settled = false;
+			const finish = (fn, value) => {
+				if (settled) return;
+				settled = true;
+				globalThis.clearTimeout(timer);
+				fn(value);
+			};
+			const timer = globalThis.setTimeout(() => finish(reject, tapError("TAP_TIMEOUT", "连接超时，请稍后重试。")), timeoutMs);
+			const success = (value) => finish(resolve, value);
+			const fail = (value) => {
+				const code = Number.isInteger(value) ? value : Number.isInteger(value?.errno) ? value.errno : "TAP_FAILED";
+				finish(reject, tapError(code, {
+					400001: "云档每分钟可上传一次，请稍后再试。",
+					400002: "这份云档已删除，请重新查看。",
+					400003: "云档数量已达上限，请在 TapTap 中管理旧云档。",
+					400007: "上一项云档操作还未完成。",
+					400100: "TapTap 云档尚未初始化，请稍后重试。",
+					500001: "此应用的排行榜暂不可用。",
+					500002: "排行榜不属于当前应用。"
+				}[code]));
+			};
+			try {
+				const result = target[method](leaderboard ? {
+					...input,
+					callback: {
+						onSuccess: success,
+						onFailure: fail
+					}
+				} : {
+					...input,
+					success,
+					fail
+				});
+				if (result?.then) result.then(success, fail);
+			} catch {
+				fail();
+			}
+		});
+	}
+	function tapLogin(sdk) {
+		return tapCall(sdk, "login", { timeout: 1e4 }).then((result) => {
+			if (typeof result?.code !== "string" || !result.code.trim() || result.code.length > 512) throw tapError("PLATFORM_LOGIN_FAILED");
+			return result.code;
+		});
+	}
+	//#endregion
+	//#region ../../platforms/taptap/competition-identity.mjs
+	var games = /* @__PURE__ */ new Set([
+		"cops-robbers",
+		"cops-robbers-realtime",
+		"xiangqi-five"
+	]);
+	var installed = /* @__PURE__ */ new WeakMap();
+	/** Optional three-game composition. The canonical anonymous identity client stays unchanged. */
+	function installTapCompetitionIdentity(root = globalThis, nativeSdk = root.tap) {
+		const original = root.__createCompetitionIdentity;
+		if (typeof original !== "function") throw tapError("PLATFORM_LOGIN_UNAVAILABLE");
+		if (installed.has(original) || original.__tapPlatformIdentityVersion === 1) return original;
+		const instances = /* @__PURE__ */ new WeakMap();
+		const factory = (options) => {
+			const config = options.config;
+			if (config?.identityProvider !== "taptap") return original(options);
+			if (!games.has(config.game) || !["h5", "taptap"].includes(config.platform) || !/^[A-Za-z0-9_-]{1,100}$/.test(config.appId || "")) throw tapError("IDENTITY_SCOPE_MISMATCH");
+			const appId = config.appId;
+			let generation = 0;
+			const requirePlatform = (value) => {
+				if (value && (value.identityKind !== "platform" || value.game !== config.game)) throw tapError("IDENTITY_SCOPE_MISMATCH");
+				return value;
+			};
+			const request = async (path, body, owner) => {
+				const revision = generation;
+				let result;
+				if (path === "/sessions/guest") {
+					const code = await tapLogin(config.platform === "taptap" ? nativeSdk || options.sdk : root.tap);
+					if (revision !== generation) throw tapError("SESSION_CHANGED");
+					result = await options.request("/sessions/platform", {
+						platform: "taptap",
+						game: config.game,
+						appId,
+						code
+					}, null);
+				} else result = await options.request(path, body, owner);
+				if (path === "/sessions/guest" || path === "/sessions/refresh") {
+					if (revision !== generation) throw tapError("SESSION_CHANGED");
+					if (!result) throw tapError("PLATFORM_LOGIN_FAILED");
+					requirePlatform(result);
+				}
+				return result;
+			};
+			const auth = original({
+				...options,
+				config: {
+					...config,
+					appId: `tap-platform-v1:${appId}`
+				},
+				...config.platform === "taptap" && nativeSdk ? { storage: nativeSdk } : {},
+				request
+			});
+			if (instances.has(auth)) return instances.get(auth);
+			if (auth.saved()) auth.logout().catch(() => {});
+			const wrapped = {
+				...auth,
+				saved: () => requirePlatform(auth.saved()),
+				async current() {
+					requirePlatform(auth.saved());
+					return requirePlatform(await auth.current());
+				},
+				assertCurrent(value) {
+					requirePlatform(value);
+					requirePlatform(auth.saved());
+					return auth.assertCurrent(value);
+				},
+				async forOwner(value) {
+					requirePlatform(value);
+					requirePlatform(auth.saved());
+					return requirePlatform(await auth.forOwner(value));
+				},
+				logout() {
+					generation++;
+					return auth.logout();
+				}
+			};
+			instances.set(auth, wrapped);
+			return wrapped;
+		};
+		Object.defineProperty(factory, "__tapPlatformIdentityVersion", { value: 1 });
+		installed.set(factory, true);
+		root.__createCompetitionIdentity = factory;
+		return factory;
+	}
+	//#endregion
+	//#region ../../../../../../../tmp/competition-entry-OyOOIa/entry.mjs
+	if (globalThis.__COMPETITION_CONFIG__?.identityProvider === "taptap") installTapCompetitionIdentity();
 	mountCompetition("cops-robbers", createRenderer);
 	//#endregion
 })();

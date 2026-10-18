@@ -40,8 +40,8 @@ export function character(kind, mood = 'idle', index = 0) {
   const raised = ['caught', 'cheer'].includes(mood),
     ink = '#153c55';
   const classic = globalThis.__CLASSIC_CHASE_ROLES__ === true && appearance.style === 'team';
-  const shirt = classic ? (pursuit ? '#197aba' : '#f39129') : appearance.color;
-  const trousers = pursuit ? '#194d78' : '#33465b';
+  const shirt = classic ? (pursuit ? '#a49da4' : '#f39129') : appearance.color;
+  const trousers = pursuit ? '#45424e' : '#33465b';
   const leftArm = raised
     ? 'M-16-42Q-28-49-28-61'
     : running
@@ -67,7 +67,7 @@ export function character(kind, mood = 'idle', index = 0) {
           [23, -27],
         ];
   return `<g class="paper-person ${kind} mood-${mood}" stroke="${ink}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-    ${pursuit ? '' : '<path d="M19-54Q40-61 43-37Q44-20 24-18L17-34Z" fill="#eccc86"/><path d="m24-52 10 1m-7-6 3 6" fill="none" stroke="#b68d48"/><path d="M27-43q-8 0-4 5l7 3q4 5-5 5m2-15-2 17" fill="none" stroke="#9d7846" stroke-width="2.8"/>'}
+    ${pursuit ? '' : '<path d="M19-54Q40-61 43-37Q44-20 24-18L17-34Z" fill="#eccc86"/><path d="m24-52 10 1m-7-6 3 6" fill="none" stroke="#b68d48"/>'}
     <path d="M-10-19 ${running ? 'l-8 16' : 'l-2 15'}M10-19 ${running ? 'l13 13' : 'l3 15'}" fill="none" stroke="${ink}" stroke-width="13"/>
     <path d="M-10-19 ${running ? 'l-8 14' : 'l-2 13'}M10-19 ${running ? 'l12 11' : 'l3 13'}" fill="none" stroke="${trousers}" stroke-width="9"/>
     <path d="${running ? 'M-24-6q-2 8 8 8h5V-5ZM17-8q1 10 13 8l-3-8Z' : 'M-18-7q-5 10 4 10h9V-6ZM7-7v10h13q6-6-1-9Z'}" fill="#203346"/>
@@ -76,7 +76,7 @@ export function character(kind, mood = 'idle', index = 0) {
     <path d="${leftArm}${rightArm}" fill="none" stroke="${ink}" stroke-width="12"/>
     <path d="${leftArm}${rightArm}" fill="none" stroke="${shirt}" stroke-width="8"/>
     ${hands.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="5.5" fill="#ffcf9d"/>`).join('')}
-    ${pursuit ? '<path d="M-18-24h36v6h-36Z" fill="#203346"/><path d="M-4-25h8v8h-8Z" fill="#ffdc60"/><path d="M7-42h7v7l-3.5 3L7-35Z" fill="#ffdc60" stroke-width="1.3"/><path d="M-13-40h6v7h-6Z" fill="#136093" stroke-width="1.3"/>' : '<path d="M-15-23q15 7 30 0" fill="none" stroke="#dc7124" stroke-width="3"/><path d="m-8-39 1 8m15-8-1 8" fill="none" stroke="#fff0cf" stroke-width="2"/>'}
+    ${pursuit ? '<path d="M-18-24h36v6h-36Z" fill="#203346"/><path d="M-4-25h8v8h-8Z" fill="#9c9ba1"/><path d="M5-42h10v6H5Z" fill="#eee9e0" stroke-width="1.3"/><path d="M-13-40h6v7h-6Z" fill="#807b83" stroke-width="1.3"/>' : '<path d="M-15-23q15 7 30 0" fill="none" stroke="#dc7124" stroke-width="3"/><path d="m-8-39 1 8m15-8-1 8" fill="none" stroke="#fff0cf" stroke-width="2"/>'}
     <text y="-25" text-anchor="middle" font-size="9" font-weight="900" fill="#fff8dd" stroke="none">${index + 1}</text>
     ${roleAvatarSvg(kind, -29, -101, 58)}
   </g>`;

@@ -470,3 +470,40 @@
   }
   .squad-dock .sprint-button { width: 100%; flex: none; }
 }
+
+/* Compact home rail: the capsule occupies the right corner, not the left one. */
+.home-screen .home-top {
+  position: absolute;
+  top: var(--game-safe-area-cutout-top, 4px);
+  left: max(12px, calc(var(--game-safe-area-left, 0px) + 8px));
+  margin: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 48px;
+  z-index: 4;
+}
+.home-screen .home-hero { margin-top: max(0px, calc(var(--game-safe-area-top, 4px) - var(--street-page-edge))); }
+.home-screen .home-title { padding: 4px 64px 0; }
+.home-screen .home-title h1 {
+  font-size: clamp(48px, 16vw, 76px);
+  letter-spacing: -3px;
+  -webkit-text-stroke: 2px #205183;
+  text-shadow: none;
+}
+.home-screen .title-ribbon { font-size: 16px; padding-inline: 14px; }
+.home-screen #home-share {
+  min-height: 44px;
+  width: 100%;
+  margin-top: 10px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: #285b80;
+  font-size: 14px;
+}
+@media (orientation: landscape) and (max-height: 560px) {
+  .home-screen .home-hero { margin-top: 0; }
+  .home-screen .home-title { padding-left: 56px; padding-right: 0; }
+  .home-screen .home-title h1 { font-size: 48px; }
+}
