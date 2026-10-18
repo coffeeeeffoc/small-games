@@ -131,13 +131,14 @@ function nightContext() {
 const catalog = JSON.parse(
   readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url)),
 );
-// Digest proofs use committed Git bytes, independent of Windows checkout EOLs.
+// Pin historical digest fixtures so later edits and Windows checkout EOLs cannot change them.
 const snapshot = (file) =>
   [
     'platforms/competition/client.js',
     'platforms/competition/native.js',
     'platforms/competition/xiangqi-five/native.js',
     'platforms/competition/xiangqi-five/tests/native.test.mjs',
+    'platforms/competition/xiangqi-five/tests/browser.mjs',
   ].includes(file)
     ? execFileSync('git', ['show', 'c010423731cc22fb0657a4a86ac9811e1997bbc1:' + file], {
         encoding: 'utf8',
