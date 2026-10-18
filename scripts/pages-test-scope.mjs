@@ -1,6 +1,7 @@
 import { cocosMinigameFileScopes } from '../games/minigames/scripts/validation-scope.mjs';
 import { appendFile, readFile, readdir, stat } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
@@ -40,6 +41,72 @@ const SHARED_COCOS_SCRIPTS = new Set(
     (name) => `games/local/carding-car/scripts/${name}`,
   ),
 );
+
+// Reviewed removal of obsolete diagnostics/generators and duplicate npm locks.
+// The file bytes are identical at the successful Pages base ba88e46 and dev
+// 457bc63. Keep the deleted paths in normal game regression selection; this
+// proof only permits those exact D records through the global deletion guard.
+const reviewedCleanupDeletions = Object.freeze({
+  'games/local/cops-robbers-realtime/package-lock.json':
+    'b2db36b4a1adac540aed69833bfb66ae1dcab19c507ff51606ccc8d28bc1a017',
+  'games/local/cops-robbers-realtime/scripts/cartoon-playtest.mjs':
+    '59f313e430030ec0f36c5e20ee05962fb894973225f164a068fbf466cf67d6f1',
+  'games/local/cops-robbers-realtime/scripts/guided-playtest.mjs':
+    '3ab6cfe7314c65f334372339489c103e47a618012968b37a67817446a62cd6c4',
+  'games/local/cops-robbers-realtime/scripts/home-playtest.mjs':
+    '434c3b2271e3d51eaed37733df9fb8106d541c0813451372fa8497e488b69b0c',
+  'games/local/cops-robbers-realtime/scripts/input-playtest.mjs':
+    'f1efdc07d84140f6e19953a7c56217273563027def3dec617b90c72e8b7b204a',
+  'games/local/cops-robbers-realtime/scripts/lifecycle-playtest.mjs':
+    '9642b462bd8da03ac69f099b49d00b9df66dac87a17f2c0973c8b15aaa78aa39',
+  'games/local/cops-robbers-realtime/scripts/mobile-pages-playtest.mjs':
+    'c3067fbe80b2d98eadb68e8195b19f22a1ad75ec197bb331fcd720ca727b2add',
+  'games/local/cops-robbers-realtime/scripts/mobile-roster-playtest.mjs':
+    '3af45c8f190945b14ea9f61292dc2e0c07db251a344fb490745ad463e4e41319',
+  'games/local/cops-robbers-realtime/scripts/playtest.mjs':
+    'c876f84b0f61d4e4b971bb3eacf602f58a8a4e95a82848a1db9e450c8553573f',
+  'games/local/cops-robbers-realtime/scripts/quick-playtest.mjs':
+    '49af35cf3e0e45ba5cfc1b38114f704bcac70515c9ec6c39be9b98060a9e271c',
+  'games/local/cops-robbers-realtime/scripts/relay-playtest.mjs':
+    '7b344791f66d0cd8df0a2691ca37f78d7e5ac3c5148937260f3aec6f48ea3f79',
+  'games/local/cops-robbers-realtime/scripts/review-repro.mjs':
+    'e9170221f69268d281106abc15d39b6f9f93bd97201506686ce0fd017dd214d6',
+  'games/local/cops-robbers/package-lock.json':
+    '3ccfb3796e945ff8dc0caba75c0e2891b8bfa1098f77e10fcf0ab4ad447c53bd',
+  'games/local/cops-robbers/scripts/extend-levels.mjs':
+    '45e6d964d670bd9f621d2de58027c915711c8e2bbfbf8dcd266e82af3f8246a1',
+  'games/local/cops-robbers/scripts/generate-levels.mjs':
+    '5792406bf617165e74a34887cb045b582416c657c03b402bd942b00f4e758bc7',
+});
+export function isReviewedCleanupDeletion({
+  change,
+  readBase,
+  headHasPath,
+  standaloneGames,
+  gameSources,
+}) {
+  if (change.status !== 'D' || change.paths.length !== 1) return false;
+  const [file] = change.paths,
+    expected = reviewedCleanupDeletions[file];
+  if (!expected) return false;
+  try {
+    const source = file.split('/').slice(0, 3).join('/'),
+      id = source.split('/').at(-1);
+    if (
+      standaloneGames.filter((game) => game.id === id).length !== 1 ||
+      standaloneGames.filter((game) => game.source === source).length !== 1 ||
+      standaloneGames.filter((game) => game.id === id && game.source === source).length !== 1 ||
+      gameSources.filter((value) => value === source).length !== 1
+    )
+      return false;
+    return (
+      headHasPath(file) === false &&
+      createHash('sha256').update(readBase(file)).digest('hex') === expected
+    );
+  } catch {
+    return false;
+  }
+}
 
 export function isGameSource(value) {
   return typeof value === 'string' && GAME_SOURCE.test(value);
@@ -181,23 +248,28 @@ export function selectPagesScope({
 }
 
 /** --name-status -z represents renames as status, old path, new path. Keep both. */
-export function parseChangedPaths(output) {
+function parseChangedEntries(output) {
   const fields = output.split('\0');
   if (fields.at(-1) === '') fields.pop();
-  const paths = new Set();
+  const changes = [];
   for (let index = 0; index < fields.length; ) {
     const status = fields[index++];
     if (!/^(?:[ACDMRTUXB]|[RC]\d+)$/.test(status)) {
       throw new Error(`Unexpected git diff status: ${status}`);
     }
-    const count = /^[RC]/.test(status) ? 2 : 1;
+    const count = /^[RC]/.test(status) ? 2 : 1,
+      paths = [];
     for (let item = 0; item < count; item++) {
       const file = fields[index++];
       if (!file) throw new Error('Incomplete git diff path');
-      paths.add(file);
+      paths.push(file);
     }
+    changes.push({ status, paths });
   }
-  return [...paths].sort();
+  return changes;
+}
+export function parseChangedPaths(output) {
+  return [...new Set(parseChangedEntries(output).flatMap((change) => change.paths))].sort();
 }
 
 function git(root, args) {
@@ -331,22 +403,49 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
       headCommitForRisk = headCommit;
       diffBaseForRisk = diffBase;
       console.log(`Pages comparison: ${diffBase}..${headCommit}`);
-      const removed = git(root, [
-        'diff',
-        '--no-ext-diff',
-        '--name-only',
-        '-z',
-        '--find-renames',
-        '--diff-filter=DR',
-        diffBase,
-        headCommit,
-        '--',
-      ])
-        .split('\0')
-        .filter(Boolean);
-      if (removed.some((file) => !isDocumentation(file) && !isKnownNonPagesPath(file))) {
+      const removed = parseChangedEntries(
+        git(root, [
+          'diff',
+          '--no-ext-diff',
+          '--name-status',
+          '-z',
+          '--find-renames',
+          '--diff-filter=DR',
+          diffBase,
+          headCommit,
+          '--',
+        ]),
+      );
+      // A successful exact-tree query proves absence. Read failures never count
+      // as absence, and no rename (including a reviewed source) uses this proof.
+      const headPaths = new Set(
+        removed.length
+          ? git(root, [
+              '--literal-pathspecs',
+              'ls-tree',
+              '--name-only',
+              '-z',
+              headCommit,
+              '--',
+              ...removed.flatMap((change) => change.paths),
+            ])
+              .split('\0')
+              .filter(Boolean)
+          : [],
+      );
+      if (
+        removed.some(
+          (change) =>
+            change.paths.some((file) => !isDocumentation(file) && !isKnownNonPagesPath(file)) &&
+            !isReviewedCleanupDeletion({
+              change,
+              ...catalog,
+              readBase: (file) => git(root, ['show', `${diffBase}:${file}`]),
+              headHasPath: (file) => headPaths.has(file),
+            }),
+        )
+      )
         throw new Error('Relevant deletion or rename requires full regression');
-      }
       fileScopes = registrationFileScopes({
         changedPaths,
         gameSources: catalog.gameSources,

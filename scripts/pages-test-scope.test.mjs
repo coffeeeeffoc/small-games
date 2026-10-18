@@ -1608,3 +1608,143 @@ test('accurate base/head admin lock additions select only admin checks and block
       );
     });
 });
+
+const cleanupPaths = [
+  ...[
+    'package-lock.json',
+    'scripts/cartoon-playtest.mjs',
+    'scripts/guided-playtest.mjs',
+    'scripts/home-playtest.mjs',
+    'scripts/input-playtest.mjs',
+    'scripts/lifecycle-playtest.mjs',
+    'scripts/mobile-pages-playtest.mjs',
+    'scripts/mobile-roster-playtest.mjs',
+    'scripts/playtest.mjs',
+    'scripts/quick-playtest.mjs',
+    'scripts/relay-playtest.mjs',
+    'scripts/review-repro.mjs',
+  ].map((file) => 'games/local/cops-robbers-realtime/' + file),
+  ...['package-lock.json', 'scripts/extend-levels.mjs', 'scripts/generate-levels.mjs'].map(
+    (file) => 'games/local/cops-robbers/' + file,
+  ),
+];
+const cleanupCatalog = {
+  standaloneGames: ['cops-robbers', 'cops-robbers-realtime'].map((id) => ({
+    id,
+    source: `games/local/${id}`,
+  })),
+  gameSources: ['games/local/cops-robbers', 'games/local/cops-robbers-realtime'],
+};
+const cleanupOriginal = (file, base = '457bc63c47b631a1f932b35f48e6b166f408ab2d') =>
+  execFileSync('git', ['show', `${base}:${file}`], {
+    cwd: fileURLToPath(new URL('../', import.meta.url)),
+    encoding: 'utf8',
+  });
+
+test('cleanup deletion proof binds exact source bytes at both publication bases and proven HEAD absence', async () => {
+  const { isReviewedCleanupDeletion } = await import('./pages-test-scope.mjs');
+  for (const base of [
+    '457bc63c47b631a1f932b35f48e6b166f408ab2d',
+    'ba88e46a0f7f7fb5c37c28a20c8eae7a0319eece',
+  ]) {
+    for (const file of cleanupPaths) {
+      const options = {
+        ...cleanupCatalog,
+        change: { status: 'D', paths: [file] },
+        readBase: (name) => cleanupOriginal(name, base),
+        headHasPath: () => false,
+      };
+      assert(isReviewedCleanupDeletion(options), `${base}:${file}`);
+      for (const extra of [
+        { headHasPath: () => true },
+        { headHasPath: () => undefined },
+        {
+          headHasPath() {
+            throw Error('tree unavailable');
+          },
+        },
+        { readBase: (name) => cleanupOriginal(name, base) + '\n' },
+        {
+          readBase() {
+            throw Error('blob unavailable');
+          },
+        },
+        { change: { status: 'R100', paths: [file, file + '.renamed'] } },
+        { change: { status: 'M', paths: [file] } },
+        { gameSources: [] },
+        {
+          standaloneGames: [
+            ...cleanupCatalog.standaloneGames,
+            cleanupCatalog.standaloneGames[0],
+            cleanupCatalog.standaloneGames[1],
+          ],
+        },
+      ])
+        assert.equal(isReviewedCleanupDeletion({ ...options, ...extra }), false, file);
+    }
+  }
+  assert.equal(
+    isReviewedCleanupDeletion({
+      ...cleanupCatalog,
+      change: { status: 'D', paths: ['games/local/cops-robbers/scripts/unknown.mjs'] },
+      readBase: () => '',
+      headHasPath: () => false,
+    }),
+    false,
+  );
+});
+
+test('real name-status cleanup keeps both game regressions while unknown deletion, changed baseline and reviewed-source rename remain blocked', async (t) => {
+  const { root, git } = await temporaryRepository(t);
+  await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });
+  await writeFile(path.join(root, REGISTRY), JSON.stringify(cleanupCatalog.standaloneGames));
+  for (const file of cleanupPaths) {
+    await mkdir(path.dirname(path.join(root, file)), { recursive: true });
+    await writeFile(path.join(root, file), cleanupOriginal(file));
+  }
+  for (const { id, source } of cleanupCatalog.standaloneGames)
+    await writeFile(path.join(root, source, 'package.json'), JSON.stringify({ name: id }));
+  await writeFile(
+    path.join(root, 'games/local/cops-robbers/scripts/unknown.mjs'),
+    'export const value = 1;',
+  );
+  git('add', '.');
+  git('commit', '-m', 'reviewed cleanup baseline');
+  const base = git('rev-parse', 'HEAD');
+  git('rm', ...cleanupPaths);
+  git('commit', '-m', 'remove exact obsolete files');
+  const selected = await main({ PAGES_DIFF_BASE: base, VALIDATION_RISK_PLAN: 'true' }, root);
+  assert.equal(selected.full, false);
+  assert.deepEqual(selected.game_sources, cleanupCatalog.gameSources);
+  assert.deepEqual(selected.browser_ids, ['cops-robbers', 'cops-robbers-realtime']);
+  assert.deepEqual(selected.publishing_browser_ids, ['cops-robbers', 'cops-robbers-realtime']);
+  assert.deepEqual(collectChangedPaths({ root, base }), [...cleanupPaths].sort());
+  const deleted = git('rev-parse', 'HEAD');
+  git('rm', 'games/local/cops-robbers/scripts/unknown.mjs');
+  git('commit', '-m', 'unknown deletion');
+  assert.equal((await main({ PAGES_DIFF_BASE: deleted }, root)).full, true);
+  await assert.rejects(
+    main({ PAGES_DIFF_BASE: deleted, VALIDATION_RISK_PLAN: 'true' }, root),
+    /Relevant deletion or rename/,
+  );
+  git('checkout', '--detach', base);
+  const file = 'games/local/cops-robbers/scripts/extend-levels.mjs';
+  git('mv', file, file + '.renamed');
+  git('commit', '-m', 'reviewed source renamed');
+  assert.equal((await main({ PAGES_DIFF_BASE: base }, root)).full, true);
+  await assert.rejects(
+    main({ PAGES_DIFF_BASE: base, VALIDATION_RISK_PLAN: 'true' }, root),
+    /Relevant deletion or rename/,
+  );
+  git('checkout', '--detach', base);
+  await writeFile(path.join(root, file), cleanupOriginal(file) + '\n');
+  git('add', file);
+  git('commit', '-m', 'different obsolete source');
+  const changedBase = git('rev-parse', 'HEAD');
+  git('rm', file);
+  git('commit', '-m', 'delete unreviewed bytes');
+  await assert.rejects(
+    main({ PAGES_DIFF_BASE: changedBase, VALIDATION_RISK_PLAN: 'true' }, root),
+    /Relevant deletion or rename/,
+  );
+});
