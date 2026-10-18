@@ -127,17 +127,17 @@ try {
         );
         const top = host === 'browser' ? 4 : host === 'sdk' ? (width <= height ? 89 : 48) : 96;
         const railTop = host === 'sdk' && width <= height ? 63 : 4;
-        const railSelector =
-          game === 'cops-robbers'
-            ? '.brand'
-            : game === 'cops-robbers-realtime'
-              ? '.profile-portrait'
-              : '.home-icon';
-        await protectedControl(scope, railSelector, railTop, height);
-        assert(
-          Math.abs((await scope.locator(railSelector).boundingBox()).y - railTop) <= 1,
-          'Home icon must sit directly below the cutout',
-        );
+        if (game === 'xiangqi-five') {
+          await expect(scope.locator('#loading-screen')).toBeHidden();
+          await expect(scope.locator('.app-shell')).toHaveJSProperty('inert', false);
+        } else {
+          const railSelector = game === 'cops-robbers' ? '.brand' : '.profile-portrait';
+          await protectedControl(scope, railSelector, railTop, height);
+          assert(
+            Math.abs((await scope.locator(railSelector).boundingBox()).y - railTop) <= 1,
+            'Home icon must sit directly below the cutout',
+          );
+        }
         await expect(scope.locator('[data-fullscreen-toggle]')).toHaveCount(0);
         if (host !== 'browser')
           await page.evaluate((top) => {
@@ -194,10 +194,23 @@ try {
           await protectedControl(scope, '#resume-button', top, height);
           await scope.locator('#resume-button').tap();
         } else {
-          await protectedControl(scope, '#home-title', top, height);
+          for (const selector of [
+            '.home-brand',
+            '#home-title',
+            '#home-start',
+            '#challenge-quick-start',
+            '#rules-open',
+          ])
+            await protectedControl(scope, selector, top, height);
+          // The left settings control can sit beside the host's top-right capsule.
+          await protectedControl(scope, '#home-settings', railTop, height);
           await page.screenshot({
             path: path.join(output, `${game}-${width}-${host}-${framed}-home.png`),
           });
+          await scope.locator('#home-settings').tap();
+          await protectedControl(scope, '.screen[data-screen="setup"] .screen-header', top, height);
+          await scope.locator('.screen[data-screen="setup"] [data-back]').tap();
+          await expect(scope.locator('#home-title')).toBeVisible();
           await scope.locator('#home-start').tap();
           await protectedControl(scope, '.screen[data-screen="modes"] .screen-header', top, height);
           await scope.locator('#mode-local').tap();
