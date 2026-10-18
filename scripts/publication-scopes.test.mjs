@@ -3852,3 +3852,34 @@ test('review tools, submodule dialogs and the realtime preset have finite valida
   });
   assert(hooks.hook_checks && hooks.validation_tools);
 });
+
+test('planning expands only to the four locked game workspaces for both live publication bases', () => {
+  for (const base of [
+    '5e9981c657486eb730419b8d8cb7ae99642c2191',
+    'ba88e46a0f7f7fb5c37c28a20c8eae7a0319eece',
+  ])
+    for (const file of ['.github/workflows/ci.yml', '.github/workflows/pages.yml']) {
+      const before = execFileSync('git', ['show', `${base}:${file}`], { encoding: 'utf8' });
+      const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
+        '\r\n',
+        '\n',
+      );
+      const scoped = classify(file, before, after);
+      assert.deepEqual(scoped.get(file), []);
+      assert.equal(plan([file], scoped).validation_tools, true);
+      assert.deepEqual(plan([file], scoped).nine_native_targets, []);
+      for (const altered of [
+        after + '\n',
+        after.replace('--init --', '--init --remote --'),
+        after.replace('--init --', '--init --recursive --'),
+        after.replace('games/submodules/fishing ', ''),
+        after.replace('games/submodules/fishing ', 'assets '),
+        after.replace('games/submodules/fishing ', 'games/submodules/fishing assets '),
+        after.replace('node scripts/pages-test-scope.mjs', 'echo skipped'),
+        after + '\npermissions:\n  contents: write\n',
+      ])
+        assert.equal(classify(file, before, altered).has(file), false);
+      assert.equal(classify(file, before + '\n', after).has(file), false);
+      assert.equal(classify(file, after, before).has(file), false);
+    }
+});

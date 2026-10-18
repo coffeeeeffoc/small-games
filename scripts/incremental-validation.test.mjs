@@ -1284,7 +1284,6 @@ test('Tap services retain all three H5 consumers alongside genuine native consum
 test('every actual chess H5, native or Cocos consumer retains the standalone build contract', async () => {
   const { readFileSync } = await import('node:fs');
   const { workspacePackages } = await import('./validation-plan.mjs');
-  const { nineNativeFileScopes } = await import('./nine-native-scope.mjs');
   const { cocosMinigameFileScopes } = await import(
     '../games/minigames/scripts/validation-scope.mjs'
   );
@@ -1300,17 +1299,16 @@ test('every actual chess H5, native or Cocos consumer retains the standalone bui
       games,
       packages,
       readHead,
-      readBase: (name) =>
-        execFileSync('git', ['show', '457bc63c47b631a1f932b35f48e6b166f408ab2d:' + name], {
-          cwd: root,
-          encoding: 'utf8',
-          stdio: ['ignore', 'pipe', 'ignore'],
-        }),
       readSource: readHead,
     };
     const fileScopes = new Map([
       ...reviewedSharedFileScopes(context),
-      ...nineNativeFileScopes(context),
+      // This property checks consumer dispatch, not the historical byte proof.
+      // Inject the already-reviewed native scope so shallow CI clones need no
+      // unrelated history; nine-native-scope tests cover the real base proof.
+      ...(file === 'platforms/competition/xiangqi-five/native.js'
+        ? [[file, ['games/submodules/xiangqi-five', 'apps/shell-minigame']]]
+        : []),
       ...cocosMinigameFileScopes(context),
     ]);
     return incrementalPlan({ ...context, fileScopes });

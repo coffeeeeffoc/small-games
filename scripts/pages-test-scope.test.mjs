@@ -1432,7 +1432,7 @@ test('shared competition files keep actual Creator H5 consumers and native Creat
   );
 });
 
-test('planning checks out only the locked Xiangqi workspace and retains complete comparison history', async () => {
+test('planning checks out the four locked game workspaces and retains complete comparison history', async () => {
   for (const [file, job] of [
     ['.github/workflows/ci.yml', 'plan'],
     ['.github/workflows/pages.yml', 'changes'],
@@ -1454,15 +1454,15 @@ test('planning checks out only the locked Xiangqi workspace and retains complete
     assert.doesNotMatch(block, /submodules:\s*recursive|--recursive|--remote/);
     const commands = [...block.matchAll(/^          (git[^\n]+)$/gm)].map((match) => match[1]);
     assert.deepEqual(commands, [
-      'git -c url.https://github.com/.insteadOf=git@github.com: submodule update --init -- games/submodules/xiangqi-five',
+      'git -c url.https://github.com/.insteadOf=git@github.com: submodule update --init -- games/submodules/fishing games/submodules/office-slacking games/submodules/tower-defense-game games/submodules/xiangqi-five',
     ]);
-    assert.equal(block.split('Read locked Xiangqi workspace for planning').length, 2);
+    assert.equal(block.split('Read locked game workspaces for planning').length, 2);
     assert.match(
       block,
-      /- name: Read locked Xiangqi workspace for planning\n        run: \|\n          git[^\n]+\n      - uses: actions\/setup-node@v6/,
+      /- name: Read locked game workspaces for planning\n        run: \|\n          git[^\n]+\n      - uses: actions\/setup-node@v6/,
     );
     assert(
-      block.indexOf('Read locked Xiangqi workspace for planning') <
+      block.indexOf('Read locked game workspaces for planning') <
         block.indexOf('actions/setup-node@v6'),
     );
   }

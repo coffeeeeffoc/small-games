@@ -52,6 +52,18 @@ const planningCheckoutHashes = {
     parser: 'da0f2c9bff3757127328d00834e7b160f2cf4e886035fe588e7a0bd2c91adc1e',
   },
 };
+// Only expand the bare planner's exact gitlink inputs; no recursive assets,
+// remote branch updates, gate changes or other workflow edits are covered.
+const planningGameWorkspaceHashes = {
+  '.github/workflows/ci.yml': [
+    'fbf776770868d3e3b36a7e73de682c736ce42ee21e19dcde6b4ab9edb8763eab',
+    '36d82cd54b6a004616feae0cbf646997ddc6f179ae5627e2d2703fbb410a561e',
+  ],
+  '.github/workflows/pages.yml': [
+    'da0f2c9bff3757127328d00834e7b160f2cf4e886035fe588e7a0bd2c91adc1e',
+    '692cd678a338862699215dccb1bddb6c4478d4f6d5ca310f6579931e62ded34c',
+  ],
+};
 const planningCheckoutAnchor =
   '      - uses: actions/checkout@v5\n        with:\n          fetch-depth: 0\n      - uses: actions/setup-node@v6\n';
 const recursivePlanningAnchor =
@@ -64,6 +76,23 @@ function exactPlanningCheckout(file, before, after) {
   const digest = (text) => createHash('sha256').update(text).digest('hex');
   const oldHash = digest(before),
     newHash = digest(after);
+  const workspaces = planningGameWorkspaceHashes[file];
+  if (workspaces && oldHash === workspaces[0] && newHash === workspaces[1]) {
+    const expanded = lockedPlanningAnchor
+      .replace(
+        'Read locked Xiangqi workspace for planning',
+        'Read locked game workspaces for planning',
+      )
+      .replace(
+        'submodule update --init -- games/submodules/xiangqi-five',
+        'submodule update --init -- games/submodules/fishing games/submodules/office-slacking games/submodules/tower-defense-game games/submodules/xiangqi-five',
+      );
+    return (
+      before.split(lockedPlanningAnchor).length === 2 &&
+      after === before.replace(lockedPlanningAnchor, expanded)
+    );
+  }
+
   // The planning job has no YAML dependency. This exact reviewed 40 -> 60
   // minute quality budget changes no command, condition or permission.
   if (oldHash === hashes.nativeGate && newHash === hashes.qualityBudget) return true;
