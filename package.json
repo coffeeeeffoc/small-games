@@ -80,6 +80,7 @@
     "test:dev-mode": "node --test scripts/game-dev-mode.test.mjs",
     "test:dev-mode:browser": "node scripts/test-game-dev-mode.mjs",
     "validate:push": "node scripts/validate-push.mjs",
+    "validate:candidate": "node scripts/validate-candidate.mjs",
     "push:no-verify": "git push --no-verify",
     "hooks:diagnose": "node scripts/hook-diagnostics.mjs",
     "test:validation:integration": "node scripts/validate-push.integration.mjs",

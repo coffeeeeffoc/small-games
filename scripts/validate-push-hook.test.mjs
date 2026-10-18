@@ -2,10 +2,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, readFile, rm, chmod } from 'node:fs/promises';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { cleanGitEnv, run } from './validate-push.mjs';
 
-test('real Git push runs the production hook and default exact-SHA snapshot validator', async () => {
+test('manual candidate validation checks exact-SHA snapshots and rejects invalid formatting', async () => {
   const temp = await mkdtemp(path.join(tmpdir(), 'push hook with spaces '));
   const root = path.join(temp, 'caller');
   const remote = path.join(temp, 'remote.git');
@@ -28,6 +29,7 @@ test('real Git push runs the production hook and default exact-SHA snapshot vali
     await mkdir(path.join(root, 'scripts'));
     for (const file of [
       'validate-push.mjs',
+      'validate-candidate.mjs',
       'validate-tree.mjs',
       'browser-preparation.mjs',
       'workspace-bootstrap.mjs',
@@ -75,6 +77,7 @@ test('real Git push runs the production hook and default exact-SHA snapshot vali
     git(temp, ['init', '--bare', '-q', remote]);
     git(root, ['remote', 'add', 'origin', remote]);
     git(root, ['push', '-q', 'origin', 'HEAD:refs/heads/dev']);
+    const base = git(root, ['rev-parse', 'HEAD']);
     await writeFile(path.join(root, 'README.md'), 'pushed docs\n');
     git(root, ['commit', '-qam', 'fixture docs']);
     const target = git(root, ['rev-parse', 'HEAD']);
@@ -82,31 +85,91 @@ test('real Git push runs the production hook and default exact-SHA snapshot vali
     await writeFile(path.join(root, 'bad.json'), '{"bad":1}');
     git(root, ['add', 'bad.json']);
     git(root, ['commit', '-qam', 'fixture later HEAD']);
-    await mkdir(path.join(root, '.githooks'));
-    const hook = path.join(root, '.githooks/pre-push');
-    await writeFile(hook, await readFile(new URL('../.githooks/pre-push', import.meta.url)));
-    await chmod(hook, 0o755);
-    git(root, ['config', 'core.hooksPath', '.githooks']);
     await writeFile(path.join(root, 'README.md'), 'dirty caller\n');
     const before = git(root, ['status', '--porcelain']);
-    const output = git(root, ['push', 'origin', `${target}:refs/heads/dev`]);
+    const validate = (head) =>
+      run(
+        process.execPath,
+        ['scripts/validate-candidate.mjs', '--base', base, '--head', head],
+        root,
+        env,
+        true,
+      );
+    const output = validate(target);
     assert.match(output, /Checking formatting/);
     assert.match(output, /All matched files use Prettier/);
     assert.match(output, /fixture registration ran/);
     assert.match(output, new RegExp(`Validate .*${target}`));
-    assert.equal(git(remote, ['rev-parse', 'refs/heads/dev']), target);
-    assert.throws(
-      () => git(root, ['push', 'origin', 'HEAD:refs/heads/dev']),
-      /prettier|formatting/i,
-    );
+    assert.match(output, new RegExp(`CANDIDATE_VALIDATED base=${base} head=${target}`));
+    assert.throws(() => validate('HEAD'), /prettier|formatting/i);
     assert.equal(
       git(remote, ['rev-parse', 'refs/heads/dev']),
-      target,
-      'format failure must not update remote',
+      base,
+      'manual validation must not update remote',
     );
     assert.equal(git(root, ['status', '--porcelain']), before);
     assert.equal(await readFile(path.join(root, 'README.md'), 'utf8'), 'dirty caller\n');
     assert.equal(git(root, ['worktree', 'list', '--porcelain']).match(/^worktree /gm).length, 1);
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
+});
+
+test('real Git push only prints manual validation guidance and keeps remote fast-forward protection', async () => {
+  const temp = await mkdtemp(path.join(tmpdir(), 'manual push hook with spaces '));
+  const root = path.join(temp, 'caller');
+  const remote = path.join(temp, 'remote.git');
+  const env = {
+    ...cleanGitEnv(process.env),
+    GIT_AUTHOR_NAME: 'fixture',
+    GIT_AUTHOR_EMAIL: 'fixture@example.com',
+    GIT_COMMITTER_NAME: 'fixture',
+    GIT_COMMITTER_EMAIL: 'fixture@example.com',
+  };
+  const git = (cwd, args) => run('git', args, cwd, env, true);
+  try {
+    await mkdir(root);
+    git(root, ['init', '-q', '-b', 'dev']);
+    git(root, ['config', 'core.autocrlf', 'false']);
+    git(root, ['config', 'core.hooksPath', '.githooks']);
+    await mkdir(path.join(root, '.githooks'));
+    const hook = path.join(root, '.githooks/pre-push');
+    await writeFile(hook, await readFile(new URL('../.githooks/pre-push', import.meta.url)));
+    await chmod(hook, 0o755);
+    await mkdir(path.join(root, 'scripts'));
+    await writeFile(
+      path.join(root, 'scripts/validate-push.mjs'),
+      'throw Error("automatic validation must not run");\n',
+    );
+    await writeFile(path.join(root, 'bad.json'), '{"bad":1}');
+    git(root, ['add', '.']);
+    git(root, ['commit', '-qm', 'fixture baseline']);
+    const base = git(root, ['rev-parse', 'HEAD']);
+    git(temp, ['init', '--bare', '-q', remote]);
+    git(root, ['remote', 'add', 'origin', remote]);
+    // Git writes hook guidance to stderr; a successful push proves the failing validator was not run.
+    git(root, ['push', 'origin', 'HEAD:refs/heads/dev']);
+    assert.equal(git(remote, ['rev-parse', 'refs/heads/dev']), base);
+    const hookResult = spawnSync('git', ['hook', 'run', 'pre-push'], {
+      cwd: root,
+      env,
+      encoding: 'utf8',
+    });
+    assert.equal(hookResult.status, 0, hookResult.stderr);
+    const guidance = hookResult.stdout + hookResult.stderr;
+    assert.match(guidance, /pnpm validate:candidate --base <remote-SHA> --head <candidate-SHA>/);
+    assert.doesNotMatch(guidance, /Checking formatting|Validate /);
+    await writeFile(path.join(root, 'README.md'), 'next\n');
+    git(root, ['add', '.']);
+    git(root, ['commit', '-qm', 'fixture next']);
+    git(root, ['push', 'origin', 'HEAD:refs/heads/dev']);
+    const head = git(root, ['rev-parse', 'HEAD']);
+    assert.throws(
+      () => git(root, ['push', 'origin', `${base}:refs/heads/dev`]),
+      /non-fast-forward|rejected/i,
+    );
+    assert.equal(git(remote, ['rev-parse', 'refs/heads/dev']), head);
+    assert.equal(git(root, ['config', '--get', 'core.hooksPath']), '.githooks');
   } finally {
     await rm(temp, { recursive: true, force: true });
   }

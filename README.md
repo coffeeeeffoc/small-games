@@ -44,17 +44,18 @@ pnpm build
 `pnpm install --frozen-lockfile` 的 `prepare` 会在当前仓库设置 `core.hooksPath=.githooks`。已有依赖时可运行 `pnpm prepare` 重新启用，使用 `git config --show-origin --get core.hooksPath` 核实应指向 `.githooks`。
 
 - 提交前：`pre-commit` 运行 `pnpm format:staged`，用锁定的 Prettier 检查暂存区内新增、修改和重命名文件的内容，不改写文件或暂存区；未暂存的格式修复不能掩盖即将提交的错误。
-- 推送前：普通 `git push` 的 `pre-push` 对准确的待推送提交创建隔离快照，运行格式、游戏登记及受影响项目的增量检查；检查失败或影响范围未定义都会阻止推送，详见 [增量发布验证](docs/operations/incremental-publication.md)。
+- 推送时：普通 `git push` 的 `pre-push` 仅提示手动校验命令，不自动安装依赖、构建或运行长时检查。提交前的格式检查继续保留。
 - 格式修复：运行 `pnpm exec prettier --write <文件路径>` 后重新 `git add <文件路径>`。`pnpm test:hooks` 验证真实 hooks 的成功与拦截行为，CI 也执行这些回归测试。
 
-需要直接推送、跳过本次本地 pre-push 时，使用以下命令，参数与 `git push` 相同：
+需要完整增量校验时，对已提交的准确候选显式运行以下命令，详见 [增量发布验证](docs/operations/incremental-publication.md)：
 
 ```bash
-pnpm push:no-verify
-pnpm push:no-verify origin dev
+git fetch origin dev
+pnpm validate:candidate --base origin/dev --head HEAD
+git push origin dev
 ```
 
-这等同于 `git push --no-verify`，仅跳过本次 pre-push，不修改 hooks 配置，不影响提交检查；普通 `git push` 仍执行原有校验。远端 CI/Pages 仍独立运行，推送成功不表示这些检查或部署成功。
+校验器按准确 base/head 创建隔离快照并执行检查，失败不产生通过记录。`pnpm validate:push` 仍保留原始 pre-push stdin 协议供工具调用。已有 `pnpm push:no-verify` 兼容命令继续可用，通常直接 `git push` 即可。远端 CI/Pages 独立运行，推送成功不表示检查或部署成功。
 
 提交检查沿用当前工作树的 Prettier 配置和忽略规则，配置修改也应一并暂存。本地 hooks 依赖已安装的依赖、启用的 hooksPath 和正常执行 Git hooks；隔离快照检查不能代替远端 CI。远端 CI 继续独立执行全仓格式检查及后续质量检查。
 

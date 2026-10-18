@@ -49,20 +49,21 @@ test('cache maintenance paths run tooling checks without game consumers; sibling
   assert.throws(() => plan(['scripts/prune-unknown-cache.mjs']), /Incremental scope undefined/);
 });
 
-test('browser preparation is validation tooling with only the existing navigation samples', () => {
-  const selected = incrementalPlan({
-    packages,
-    games: [
-      ...games,
-      { id: 'letters-words2', source: 'games/local/letters-words2' },
-      { id: 'xiangqi-five', source: 'games/submodules/xiangqi-five' },
-    ],
-    changedPaths: ['scripts/browser-preparation.mjs'],
-    readSource: () => '',
+for (const file of ['scripts/browser-preparation.mjs', 'scripts/hook-diagnostics.mjs'])
+  test(`${file} is validation tooling with only the existing navigation samples`, () => {
+    const selected = incrementalPlan({
+      packages,
+      games: [
+        ...games,
+        { id: 'letters-words2', source: 'games/local/letters-words2' },
+        { id: 'xiangqi-five', source: 'games/submodules/xiangqi-five' },
+      ],
+      changedPaths: [file],
+      readSource: () => '',
+    });
+    assert.equal(selected.validation_tools, true);
+    assert.deepEqual(selected.browser_ids, ['letters-words2', 'xiangqi-five']);
   });
-  assert.equal(selected.validation_tools, true);
-  assert.deepEqual(selected.browser_ids, ['letters-words2', 'xiangqi-five']);
-});
 
 test('publishing UI regressions select only reviewed consumer browsers; shared publishing selects every registered consumer', () => {
   const consumerGames = Object.entries(publishingConsumers).map(([id, source]) => ({ id, source }));

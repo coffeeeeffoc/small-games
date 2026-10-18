@@ -1,6 +1,6 @@
 # 准确候选版本的增量发布验证
 
-日常 `deploy:admin` / `deploy:company` 只执行目标构建、制品对应、发布保护、健康与回滚，不从固定历史基线重复调用 validatePush 或测试浏览器。此边界不改变正常 git hooks / CI 对准确 dev 候选的要求。SSH/脱敏进度工具是官网与管理 API/UI 的真实共享消费者，按精确文件分类；后台构建规划仅编译实际运行导出，cultivation 只编译内容配置。管理 UI 的稳定只读挂载通过原有 ingress 事务一次准备，普通后台发布只切管理版本。
+日常 `deploy:admin` / `deploy:company` 只执行目标构建、制品对应、发布保护、健康与回滚，不从固定历史基线重复调用 validatePush 或测试浏览器。本地长时候选校验按需显式触发，CI 继续独立校验。SSH/脱敏进度工具是官网与管理 API/UI 的真实共享消费者，按精确文件分类；后台构建规划仅编译实际运行导出，cultivation 只编译内容配置。管理 UI 的稳定只读挂载通过原有 ingress 事务一次准备，普通后台发布只切管理版本。
 
 可选服务配置仅改变围捕小队、街区追捕和象五子棋的联网策略。六个共享 producer/resolver 文件的已审阅 base/head 摘要及运行时 proof 一起证明卡丁车、夜航的 Creator 源码未变；仅对这一精确增量免除两款的引擎重建，其他 Canvas 制品仍保留真实依赖图。额外字节、不同基线、缺失或复制 proof、同次修改 Creator 输入均恢复完整门禁。TapTap 登录工具摘要会使旧的 native provenance 失效，因此仍运行 importer、官方转换输入及登录契约；正式打包必须按当前工具重新转换和记录，不能把旧 provenance 当成当前验收。
 
@@ -10,27 +10,27 @@ Optional, separately approved competition HTTPS ingress uses the exact `competit
 
 使用 Node 24.21.0 / pnpm 12.6.0。先读取远端 dev 的准确 SHA，获取最新提交，正常合并并保留并行改动。候选必须已经提交；禁止把合并前的验证记录当作合并后结果。
 
-## 按需跳过本地 pre-push
+## 按需运行本地候选校验
 
-日常保存进度、不希望等待本地推送校验时，可显式运行 `pnpm push:no-verify`，或指定目标：`pnpm push:no-verify origin dev`。命令直接执行 `git push --no-verify`，其余参数原样交给 Git；只跳过本次 pre-push，不修改 `core.hooksPath`、提交检查或普通 `git push` 的行为，也不绕过远端的非快进保护与接收检查。
+普通 `git push` 的 `pre-push` 仅提示手动命令，不自动执行长时校验。`core.hooksPath` 与 `pre-commit` 格式检查保留；Git 的非快进保护和远端接收检查仍生效。需要完整增量校验时，先提交并同步远端，再运行 `pnpm validate:candidate --base <远端准确SHA> --head <候选准确SHA>`。原始 `pnpm validate:push` stdin 协议及 `pnpm push:no-verify` 兼容入口继续保留。
 
-跳过后没有本地候选校验通过记录，远端 CI/Pages 仍可能因旧游戏或其他检查失败。正式发布的候选验证及部署验收继续按本文执行；不能把跳过检查的推送当作验证通过。
+未显式执行时没有本地候选校验通过记录，远端 CI/Pages 仍可能失败。正式发布的候选验证及部署验收继续按本文执行；不能把普通推送当作验证通过。
 
 ## 当前 Web 测试阶段与原生发布开关
 
 `MINIGAME_RELEASE_GATES` 默认未设置或为 `0`：保留准确候选、格式、注册、依赖边界、构建、类型、lint、规则及 Web/手机 Web 的真实入口和触屏检查；暂缓各原生小游戏平台的构建、转换、资源包和宿主冒烟门禁。日志明确记录 deferred，不表示原生平台通过。Cocos 的 Web 产物和引擎声明仍须来自 Creator 3.8.8 或源码匹配的真实制品。
 
-正式开始平台接入验收时，本地设置 `$env:MINIGAME_RELEASE_GATES='1'`，再执行候选校验或正常 push；GitHub 仓库 Actions Variable `MINIGAME_RELEASE_GATES=1` 控制 CI 的同一门禁，并启用 TapTap Cocos 专项 workflow。仅接受 `0`/`1`，无效值报错。未配置变量时 dev 的 Web/手机 Web 部署不受未验收原生包阻塞。显式运行原生 build、转换、导入或 ZIP 验证工具仍执行它们自己的完整校验，不受此开关豁免。下面原生验收要求在开启后执行，Web 发布要求始终执行。
+正式开始平台接入验收时，本地设置 `$env:MINIGAME_RELEASE_GATES='1'`，再显式执行候选校验；GitHub 仓库 Actions Variable `MINIGAME_RELEASE_GATES=1` 控制 CI 的同一门禁，并启用 TapTap Cocos 专项 workflow。仅接受 `0`/`1`，无效值报错。未配置变量时 dev 的 Web/手机 Web 部署不受未验收原生包阻塞。显式运行原生 build、转换、导入或 ZIP 验证工具仍执行它们自己的完整校验，不受此开关豁免。下面原生验收要求在开启后执行，Web 发布要求始终执行。
 
 ```sh
 git ls-remote origin refs/heads/dev
 git fetch origin dev
 # 必要时正常合并 FETCH_HEAD，解决冲突后重新提交
-node scripts/validate-candidate.mjs --base <远端准确SHA> --head <合并后的候选准确SHA>
+pnpm validate:candidate --base <远端准确SHA> --head <合并后的候选准确SHA>
 git push origin <已验证候选SHA>:refs/heads/dev
 ```
 
-本地 push 的正常 pre-push hook 与候选命令复用 `validatePush`：每对 base/head 使用独立、准确 SHA 的 worktree，递归固定 gitlinks，安装冻结依赖并检查生成输入；不使用脏工作区文件，不以当前 HEAD 或旧 tracking ref 替代实际推送 SHA。多 ref 分别检查，相同 SHA 对去重。候选命令完成后输出含 base/head 的验证记录；失败不会输出通过记录。保存完整命令、日志、环境和该记录。
+手动候选命令与原始 stdin 校验入口复用 `validatePush`：每对 base/head 使用独立、准确 SHA 的 worktree，递归固定 gitlinks，安装冻结依赖并检查生成输入；不使用脏工作区文件，不以当前 HEAD 或旧 tracking ref 替代实际推送 SHA。原始入口的多 ref 分别检查，相同 SHA 对去重。候选命令完成后输出含 base/head 的验证记录；失败不会输出通过记录。保存完整命令、日志、环境和该记录。
 
 本地候选校验与 CI 共用浏览器准备流程：仅在需要浏览器时，从候选自身的 `node_modules` 使用锁定版本的 Playwright 解析 Chromium，复用默认共享缓存或 `PLAYWRIGHT_BROWSERS_PATH` 指定的位置。已有匹配浏览器时直接检查启动；默认浏览器缺失时才安装完整 Chromium，CI 此时同时安装 Linux 系统依赖。`PLAYWRIGHT_EXECUTABLE_PATH` / `CHROMIUM_PATH` 可显式指定可用浏览器，校验会保留并检查所用路径，不下载替代浏览器，也不自动猜测本机 Chrome 安装位置。H5 浏览器范围确定后先检查浏览器能否启动，再运行构建和测试；下载或启动失败会阻断校验，不跳过断言。Linux 缺系统依赖时在环境初始化阶段运行 `pnpm exec playwright install --with-deps chromium`；云环境需放行下载域名或预装匹配浏览器，安装与校验使用同一共享缓存。纯文档、元数据和无需浏览器的纯规则改动不下载或启动浏览器。
 
@@ -44,7 +44,7 @@ git push origin <已验证候选SHA>:refs/heads/dev
 
 原生冒烟工具的明确消费者为 `shell-minigame` 与 `shell-bilibili`，改动时执行两个宿主的构建、类型、lint、规则测试和实际 smoke。开发模式浏览器工具仅对可证明的游戏 ID 条件与已有乌龙城手机入口断言变化进行定向分类，检查相关注册游戏并保留公共导航样本；共通执行代码变化仍需定义范围。已有注册游戏新增原生 Canvas 接线时，锁文件必须逐块证明新增 workspace 链接及对应 manifest，并要求其余字节与基线一致；外部依赖、resolution、重复块或不能证明的变化继续阻断。
 
-GitHub API 修改分支不会触发本地 hook。云端、worktree、API 发布也必须在更新 ref **之前**用上述命令验证最终候选 SHA；如果 ref 已变化，重新合并、生成候选并重新验证。当前未启用远端分支保护，因此 API/忽略 hook 的发布只能由流程要求约束，不能声称本地 hook 强制保护所有写入方式。最终交付必须核对 CI/Pages 对应 head SHA、状态和部署 URL；本地通过不等于线上发布完成。
+GitHub API 修改分支不会触发本地 hook。正式发布的云端、worktree、API 路径仍须在更新 ref **之前**用上述命令验证最终候选 SHA；如果 ref 已变化，重新合并、生成候选并重新验证。当前未启用远端分支保护，因此 API/忽略 hook 的发布只能由流程要求约束，不能声称本地 hook 强制保护所有写入方式。最终交付必须核对 CI/Pages 对应 head SHA、状态和部署 URL；本地通过不等于线上发布完成。
 
 H5 发布适配 `platforms/h5/publishing.js` 的19个消费者在 `publication-scopes.mjs` 显式登记；公共适配变化检查全部消费者及其浏览器入口，并运行分享清理、广告取消、频控、全屏与超时契约。各游戏只启用适合自身玩法的能力，并非19款均展示广告。直接修改游戏时，执行对应分享浏览器专项；词屿和天下岔路使用独立的交互专项。目录分类变化纳入 Shell 的评估完整性及筛选语义用例，并执行320、390及1280宽度的目录触屏/鼠标检查。新增部署打包和渠道配置脚本按精确路径选择契约测试，根命令只接受两条已审阅部署命令的结构化增量；未知兄弟脚本仍阻断。Game Runtime Service、Management Service、广告运行层和抖音适配的直接修改还运行对应包的完整规则测试。部署包验证不改变 dev/main 仅发布前端的工作流，未触及的 Cocos 画面不因后端打包而重建。
 

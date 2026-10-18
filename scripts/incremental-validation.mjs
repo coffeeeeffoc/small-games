@@ -46,7 +46,7 @@ export const cacheToolPaths = Object.freeze([
 ]);
 
 const validationTool =
-  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|run-selected-(?:shell|browser)|ci-validation|browser-preparation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope|pages-regression-shards|publication-scopes|vite-patch-scope|run-selected-competition)(?:\.[^/]+)?\.mjs|scripts\/nine-(?:native|lock)-scope(?:\.test)?\.mjs|\.githooks\/[^/]+)$/;
+  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|hook-diagnostics|run-selected-(?:shell|browser)|ci-validation|browser-preparation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope|pages-regression-shards|publication-scopes|vite-patch-scope|run-selected-competition)(?:\.[^/]+)?\.mjs|scripts\/nine-(?:native|lock)-scope(?:\.test)?\.mjs|\.githooks\/[^/]+)$/;
 export const workspaceBoundaryScopePaths = Object.freeze([
   'scripts/check-workspace-dependencies.mjs',
   'scripts/check-workspace-dependencies.test.mjs',

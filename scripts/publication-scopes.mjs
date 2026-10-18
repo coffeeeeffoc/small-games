@@ -1437,6 +1437,7 @@ export function targetedCommandsOnly(before, after) {
     let added = false;
     for (const [name, command, targets] of [
       ['push:no-verify', 'git push --no-verify', []],
+      ['validate:candidate', 'node scripts/validate-candidate.mjs', []],
       ['deploy:backend', 'node scripts/deploy-backend.mjs', selectedBackendConsumers],
       [
         'build:games',
