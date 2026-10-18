@@ -7,7 +7,7 @@ import { chromium, expect } from 'playwright/test';
 
 const gameRoot = fileURLToPath(new URL('../', import.meta.url));
 const dist = resolve(gameRoot, 'dist');
-const output = resolve(gameRoot, 'docs/design/home-polish-2026-10-18/actual');
+const output = resolve(process.env.OUTPUT_DIR || resolve(gameRoot, 'outputs/browser'), 'publishing');
 const mime = { '.html':'text/html', '.js':'text/javascript', '.css':'text/css', '.png':'image/png', '.svg':'image/svg+xml' };
 const server = createServer(async (request,response) => {
   try {
@@ -31,6 +31,9 @@ const errors=[], requests=[], checks=[], rewardEvents=[];
 await mkdir(output,{recursive:true});
 const state=page=>page.evaluate(async()=>(await import('./src/main.js')).getSnapshot());
 async function shot(page,name) {
+  await page.evaluate(async()=>Promise.all(document.getAnimations()
+    .filter(animation=>animation.effect.getComputedTiming().iterations!==Infinity)
+    .map(animation=>animation.finished.catch(()=>{}))));
   await page.screenshot({path:resolve(output,name+'.png')});
 }
 async function setup(page,quick=true) {
@@ -97,10 +100,22 @@ try {
         rewardEvents.push(JSON.parse(message.text().slice('[TapTapReward] '.length)));
     });
     await page.goto(base); await setup(page);
+    const config=await page.evaluate(()=>window.SmallGamesPublishingConfig);
+    assert(config && ['off','host'].includes(config.adMode),'production advertising configuration is explicit');
     assert.equal((await state(page)).support.sprint, 0);
     await page.clock.install();
     await page.locator('#sprint-button').tap();
-    await expect.poll(() => page.evaluate(() => window.__configuredAd.options?.adUnitId)).toBe('1054324');
+    if(config.adMode==='off') {
+      await expect.poll(async()=>(await state(page)).support.sprint).toBe(1);
+      assert.equal(await page.evaluate(()=>window.__configuredAd.options),null,'advertising disabled uses free support without creating an SDK ad');
+      assert.equal((await state(page)).support.refilled.sprint,true);
+      assert.equal((await state(page)).support.remaining,0,'free refill waits for a player tap');
+      assert.equal((await state(page)).phase,'playing');
+      checks.push('production platform-config: advertising disabled grants free support without an SDK request');
+    } else {
+      assert.equal(typeof config.rewardedAdUnitId,'string');
+      assert(config.rewardedAdUnitId.trim(),'host advertising requires a configured ad unit');
+      await expect.poll(() => page.evaluate(() => window.__configuredAd.options?.adUnitId)).toBe(config.rewardedAdUnitId);
     assert.equal((await state(page)).support.sprint, 0, 'opening the configured ad does not reward');
     await page.evaluate(() => {
       Object.defineProperty(document, 'hidden', { configurable: true, value: true });
@@ -117,7 +132,8 @@ try {
     await expect.poll(async () => (await state(page)).phase).toBe('playing');
     assert.equal((await state(page)).support.refilled.sprint, true);
     assert.equal((await state(page)).support.remaining, 0, 'a granted sprint waits for the next player tap');
-    checks.push('production platform-config: ad unit 1054324; 60-second background playback retains callback and grants one sprint only on explicit completion');
+    checks.push('production platform-config: configured ad unit '+config.rewardedAdUnitId+'; 60-second background playback retains callback and grants one sprint only on explicit completion');
+    }
     await ctx.close();
   }
   for(const viewport of [{width:320,height:740},{width:390,height:844},{width:844,height:390}]) {
@@ -203,15 +219,69 @@ try {
       await expect(page.locator('#board-toast')).toContainText('广告暂不可用');
       assert.equal((await state(page)).support.refilled.sprint,false);
       await expect.poll(async()=>(await state(page)).phase).toBe('playing');
+      await tapActor(page,0,{x:500,y:300});
       await page.locator('#pause-button').tap();
+      const beforePractice=await state(page);
+      const beforePracticeHint=await page.locator('#capture-message').textContent();
+      assert(beforePractice.ticks>0 && beforePractice.orders.length>0,'the interrupted run has real elapsed ticks and touch orders');
       await page.locator('#pause-dialog [data-home]').tap();
       await page.locator('#help-button').tap();
-      const before=(await state(page)).startedRuns;
       await page.locator('#practice-button').tap();
-      assert.equal((await state(page)).startedRuns,before,'practice does not consume starter eligibility');
+      await expect.poll(async()=>(await state(page)).phase).toBe('playing');
+      assert.equal((await state(page)).startedRuns,beforePractice.startedRuns,'practice does not consume starter eligibility');
       assert.equal((await state(page)).support,undefined);
+      await page.locator('#practice-exit').tap();
+      await expect(page.locator('#pause-dialog')).toBeVisible();
+      const restored=await state(page);
+      assert.equal(await page.locator('#capture-message').textContent(),beforePracticeHint,'practice return preserves the next quick-trial order hint');
+      assert.equal(restored.phase,'paused');
+      for(const key of ['level','mode','role','rule','firstRole','time','ticks','orders','selected','cops','robbers','support','startedRuns'])
+        assert.deepEqual(restored[key],beforePractice[key],`practice return preserves ${key}`);
+      await page.waitForTimeout(300);
+      assert.equal((await state(page)).time,beforePractice.time,'returning from practice stays paused until explicit continue');
+      await page.locator('#resume-button').tap();
+      await expect(page.locator('#game-screen')).toBeVisible();
+      assert.equal((await state(page)).screen,'game','continue returns to the visible game rather than setup');
+      await expect.poll(async()=>(await state(page)).time).toBeGreaterThan(beforePractice.time);
+      assert.equal((await state(page)).startedRuns,beforePractice.startedRuns,'continuing the same run does not grant another starter run');
+      assert.deepEqual((await state(page)).orders,beforePractice.orders,'practice orders do not replace the interrupted run log');
+      checks.push('practice restores the paused run, touch orders, ticks and support; explicit continue shows the game');
     }
     checks.push(viewport.width+'x'+viewport.height+': real touch sprint, pause, assisted capture, home/reload and hidden online entry');
+    await ctx.close();
+  }
+  {
+    const ctx=await context({width:390,height:844}),page=await ctx.newPage();
+    await page.goto(base+'/?dev=0');
+    await page.locator('#levels-button').tap();
+    await page.evaluate(()=>new Promise(resolve=>{
+      window.__startLockHeld=navigator.locks.request('neighborhood-patrol-v1',()=>new Promise(release=>{
+        window.__releaseStartLock=release;
+        resolve();
+      }));
+    }));
+    const before=await state(page);
+    await page.locator('#start-button').tap();
+    await expect(page.locator('#game-screen')).toBeVisible();
+    assert.equal((await state(page)).phase,'ready','another tab holding the starter lock delays starting');
+    await page.goBack();
+    await expect(page.locator('#level-screen')).toBeVisible();
+    await page.evaluate(async()=>{
+      window.__releaseStartLock();
+      await window.__startLockHeld;
+      // This request runs after the queued start callback, without relying on a timer.
+      await navigator.locks.request('neighborhood-patrol-v1',()=>{});
+    });
+    const cancelled=await state(page);
+    assert.equal(cancelled.screen,'levels');
+    assert.equal(cancelled.phase,'ready','a start cancelled by navigation cannot run behind setup');
+    assert.equal(cancelled.time,before.time);
+    assert.equal(cancelled.ticks,before.ticks);
+    assert.equal(cancelled.startedRuns,before.startedRuns,'a cancelled start does not consume starter eligibility');
+    await page.locator('#start-button').tap();
+    await expect.poll(async()=>(await state(page)).phase).toBe('playing');
+    assert.equal((await state(page)).startedRuns,before.startedRuns+1,'a later explicit start still works once');
+    checks.push('navigation invalidates a start waiting for Web Locks without consuming a starter run');
     await ctx.close();
   }
   {

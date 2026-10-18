@@ -3771,3 +3771,84 @@ test('anonymous session migration and Pages service defaults admit only the revi
     assert(!check(file + '.other', before, after), file);
   }
 });
+
+test('review tools, submodule dialogs and the realtime preset have finite validated consumers', async () => {
+  const { workspacePackages } = await import('./validation-plan.mjs');
+  const { competitionReviewScopePaths, submoduleDialogScopePath, submoduleDialogIds } =
+    await import('./publication-scopes.mjs');
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const games = JSON.parse(
+    readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url)),
+  );
+  const packages = await workspacePackages(root);
+  const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const preset = 'infra/builds/cops-robbers-realtime-taptap.json';
+  const changedPaths = [...competitionReviewScopePaths, submoduleDialogScopePath, preset];
+  const context = { games, packages, changedPaths, readHead };
+  const scopes = reviewedSharedFileScopes(context);
+  assert.deepEqual([...scopes.keys()], changedPaths);
+  assert.deepEqual(scopes.get(competitionReviewScopePaths[0]), [
+    'games/local/cops-robbers',
+    'games/local/cops-robbers-realtime',
+    'services/runtime-api',
+  ]);
+  assert.deepEqual(scopes.get(competitionReviewScopePaths[1]), [
+    'games/local/cops-robbers',
+    'games/local/letters-words2',
+    'services/runtime-api',
+  ]);
+  assert.deepEqual(scopes.get(competitionReviewScopePaths[2]), [
+    'games/local/cops-robbers-realtime',
+    'games/local/vibeJam-myself-history-guess',
+    'services/runtime-api',
+  ]);
+  assert.deepEqual(
+    scopes.get(submoduleDialogScopePath),
+    submoduleDialogIds.map((id) => `games/submodules/${id}`),
+  );
+  assert.deepEqual(scopes.get(preset), ['games/local/cops-robbers-realtime']);
+  assert.equal(
+    reviewedSharedFileScopes({
+      ...context,
+      changedPaths: [
+        'scripts/review-competition-unknown.mjs',
+        'scripts/test-submodule-unknown.mjs',
+        'infra/builds/cops-robbers-realtime-extra.json',
+      ],
+    }).size,
+    0,
+  );
+  assert(
+    !reviewedSharedFileScopes({
+      ...context,
+      readHead: (file) =>
+        readHead(file).replace('const allGames = [', "const allGames = ['unreviewed', "),
+    }).has(submoduleDialogScopePath),
+  );
+  for (const transform of [
+    (config) => ({ ...config, games: [...config.games, 'carding-car'] }),
+    (config) => ({ ...config, arbitraryNativeInput: true }),
+    (config) => ({ ...config, version: 2 }),
+  ])
+    assert(
+      !reviewedSharedFileScopes({
+        ...context,
+        readHead: (file) =>
+          file === preset ? JSON.stringify(transform(JSON.parse(readHead(file)))) : readHead(file),
+      }).has(preset),
+    );
+  const selected = incrementalPlan({
+    ...context,
+    changedPaths: [submoduleDialogScopePath],
+    fileScopes: scopes,
+    readSource: readHead,
+  });
+  assert.deepEqual(selected.submodule_dialog_ids, submoduleDialogIds);
+  const hooks = incrementalPlan({
+    ...context,
+    changedPaths: ['scripts/check-staged-format.test.mjs'],
+    fileScopes: new Map(),
+    readSource: readHead,
+  });
+  assert(hooks.hook_checks && hooks.validation_tools);
+});

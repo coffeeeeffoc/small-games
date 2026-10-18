@@ -2,22 +2,37 @@ import { actorBody, route } from './renderer.js';
 import { roadTarget } from './engine.js';
 
 // Shared Canvas surface: selection is local; movement, capture and time are server snapshots.
-export function createRenderer() {
+export function createRenderer({ drawAvatar, drawBackground } = {}) {
   let selected = 0,
     hits = [],
     transform = null,
-    note = '';
+    note = '', preview = null;
   const inside = (hit, x, y) =>
     x >= hit.x && x <= hit.x + hit.w && y >= hit.y && y <= hit.y + hit.h;
   return {
     getSelected: () => selected,
+    getLayout: () => ({ hits: hits.map(hit => ({ ...hit })), transform: transform && { ...transform } }),
+    select(actor, state) {
+      const own = state.role === 'runner' ? state.robbers : state.cops;
+      if (!own[actor] || own[actor].caught || own[actor].escaped || state.finished) return false;
+      selected = actor; return true;
+    },
+    hitActor(x, y) {
+      return hits.filter(hit => 'local' in hit.action && inside(hit, x, y))
+        .sort((a, b) => Math.hypot(x-a.x-a.w/2, y-a.y-a.h/2) - Math.hypot(x-b.x-b.w/2, y-b.y-b.h/2))[0]?.action.local;
+    },
+    toWorld(x, y) {
+      return transform && y >= transform.top && y <= transform.bottom
+        ? { x: (x-transform.x)/transform.scale, y: (y-transform.y)/transform.scale } : null;
+    },
+    setPreview(value) { preview = value; },
     draw(ctx, width, height, state) {
       hits = [];
-      ctx.fillStyle = '#f5f3e9';
+      ctx.fillStyle = '#fff8eb';
       ctx.fillRect(0, 0, width, height);
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
-      const text = (value, x, y, size = 14, color = '#29493f') => {
+      const text = (value, x, y, size = 14, color = '#173a59') => {
         ctx.font = `${size}px sans-serif`;
         ctx.fillStyle = color;
         ctx.fillText(value, x, y);
@@ -34,9 +49,13 @@ export function createRenderer() {
           0,
           own.findIndex((a) => !a.caught && !a.escaped),
         );
-      text(`${state.name} · 抓获 ${state.caught}/${state.total}`, 12, 20, 15);
+      ctx.fillStyle = '#fffbed';
+      ctx.strokeStyle = '#eddfc9';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.roundRect(8, 2, width - 16, 34, 17); ctx.fill(); ctx.stroke();
+      text(`${state.name} · 抓获 ${state.caught}/${state.total}`, 20, 20, 14);
       ctx.textAlign = 'right';
-      text(`${(state.elapsedMs / 1000).toFixed(1)} 秒`, width - 12, 20, 13);
+      text(`${(state.elapsedMs / 1000).toFixed(1)} 秒`, width - 20, 20, 16, '#2471a9');
       const nodes = state.map.nodes;
       const minX = Math.min(...nodes.map((p) => p.x)) - 55,
         minY = Math.min(...nodes.map((p) => p.y)) - 65;
@@ -57,23 +76,29 @@ export function createRenderer() {
       ctx.save();
       ctx.translate(transform.x, transform.y);
       ctx.scale(scale, scale);
-      ctx.fillStyle = '#ccdec0';
-      ctx.fillRect(minX, minY, mapW, mapH);
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      for (const [color, lineWidth] of [
-        ['#a8b58e', 58],
-        ['#fff4dc', 50],
-        ['#efe4cb', 38],
-      ]) {
-        ctx.strokeStyle = color;
-        ctx.lineWidth = lineWidth;
-        ctx.beginPath();
-        for (const [a, b] of state.map.edges) {
-          ctx.moveTo(nodes[a].x, nodes[a].y);
-          ctx.lineTo(nodes[b].x, nodes[b].y);
+      if (drawBackground) {
+        ctx.save(); ctx.beginPath(); ctx.rect(minX, minY, mapW, mapH); ctx.clip();
+        drawBackground(ctx, state.map);
+        ctx.restore();
+      } else {
+        ctx.fillStyle = '#cce9cf';
+        ctx.fillRect(minX, minY, mapW, mapH);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        for (const [color, lineWidth] of [
+          ['#9db6a3', 60],
+          ['#fffae9', 50],
+          ['#f5e9cf', 42],
+        ]) {
+          ctx.strokeStyle = color;
+          ctx.lineWidth = lineWidth;
+          ctx.beginPath();
+          for (const [a, b] of state.map.edges) {
+            ctx.moveTo(nodes[a].x, nodes[a].y);
+            ctx.lineTo(nodes[b].x, nodes[b].y);
+          }
+          ctx.stroke();
         }
-        ctx.stroke();
       }
       nodes.forEach((point, index) => {
         const x = transform.x + point.x * scale,
@@ -86,6 +111,12 @@ export function createRenderer() {
         });
       });
       for (const actor of own) route(ctx, actor, actor.id === selected);
+      if (preview?.length) {
+        ctx.strokeStyle = '#398da0'; ctx.lineWidth = 5; ctx.setLineDash([10, 7]);
+        ctx.beginPath();
+        preview.forEach((point, index) => index ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y));
+        ctx.stroke(); ctx.setLineDash([]);
+      }
       ctx.textAlign = 'center';
       for (const exit of state.exits) {
         ctx.fillStyle = exit.blocked ? '#3a836c' : '#bb5b31';
@@ -117,6 +148,8 @@ export function createRenderer() {
           0,
           false,
           0,
+          0,
+          drawAvatar,
         );
         if (runner && !robber.caught && !robber.escaped)
           hit(
@@ -152,6 +185,8 @@ export function createRenderer() {
           0,
           state.phase === 'won',
           0,
+          0,
+          drawAvatar,
         );
         const x = transform.x + cop.x * scale,
           y = transform.y + (cop.y - 20) * scale;

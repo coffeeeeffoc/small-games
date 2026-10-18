@@ -22,6 +22,10 @@ const DEPENDENCY_FIELDS = [
 // rules on the authoritative server, or exercise those rules from repository tests.
 // Runtime game code must still never import service implementations.
 const REPOSITORY_IMPORTS = new Set([
+  // Three-game optional native portal; standalone H5 uses an injected save port.
+  'games/local/cops-robbers-realtime/src/native.js -> platforms/taptap/native-portal.mjs',
+  'platforms/competition/xiangqi-five/native.js -> platforms/taptap/native-portal.mjs',
+  'platforms/competition/xiangqi-five/native.js -> games/submodules/xiangqi-five/tap-save.js',
   // These standalone H5 entries are bundled by Vite; rules/native entries stay host-only.
   'games/local/game-moss-garden/src/web.ts -> platforms/h5/publishing.js',
   'games/local/fold-the-world/src/main.ts -> platforms/h5/publishing.js',

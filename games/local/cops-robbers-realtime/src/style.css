@@ -2009,6 +2009,9 @@ dialog.help-dialog {
   #lose-dialog > p { grid-row: 2; }
   #lose-dialog > .win-stats { grid-row: 3; }
   #lose-dialog > .dialog-actions { grid-row: 6; }
+  /* Keep sharing beside retry/rewind instead of adding a row on short screens. */
+  #lose-dialog > .result-art { grid-row: 1 / 5; height: 140px; }
+  #lose-dialog > [data-share-level] { grid-column: 1; grid-row: 5; }
   #lose-dialog .win-stats > div { padding: 3px 5px; }
   #lose-dialog .win-stats b { font-size: 22px; }
   #lose-dialog .dialog-actions { margin-top: 2px; }
@@ -2017,4 +2020,10 @@ dialog.help-dialog {
   #lose-dialog .win-stats { padding: 2px 0; }
   #lose-dialog .button { padding: 8px 10px; min-height: 44px; }
   .small-dialog:has(.result-art) .wide { margin-top: 3px; min-height: 44px; font-size: 14px; }
+}
+@media (orientation: landscape) and (max-height: 360px) {
+  #lose-dialog > .result-art { height: 110px; }
+  #lose-dialog h2 { font-size: 20px; }
+  #lose-dialog .win-stats span { margin-bottom: 0; }
+  #lose-dialog .win-stats > div { padding-block: 0; }
 }

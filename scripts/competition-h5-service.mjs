@@ -1,3 +1,4 @@
+import { tapServicesConfig } from './taptap-services-config.mjs';
 import { readFile, writeFile, rm, mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -13,7 +14,10 @@ export function h5ServiceConfig(game, { env = process.env, local = false, identi
       !['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'].includes(game))
   )
     throw new Error('Unknown managed identity mode');
+  const tapServices = tapServicesConfig(game, env);
   return {
+    tapServices,
+    ...(tapServices.enabled ? { appId: tapServices.appId, identityProvider: 'taptap' } : {}),
     game,
     platform: 'h5',
     serviceManaged: true,
@@ -26,7 +30,7 @@ export function serviceHtml(html, config) {
   const clean = html
     .replace(/<script data-competition-service>[\s\S]*?<\/script>/g, '')
     .replace(/<style data-competition-service>[\s\S]*?<\/style>/g, '')
-    .replace(/<script[^>]*src=["']\.\/competition\.js["'][^>]*><\/script>/g, '');
+    .replace(/<script[^>]*src=["']\.\/(?:competition|tap-services)\.js["'][^>]*><\/script>/g, '');
   const encoded = JSON.stringify(config).replaceAll('<', '\\u003c');
   const hiddenEntries = config.game === 'xiangqi-five' ? ['#room-open', '#tools-room'] : [];
   if (!config.competitionEnabled)
@@ -46,9 +50,12 @@ export function serviceHtml(html, config) {
     (head) =>
       `${head}${serviceStyle}<script data-competition-service>globalThis.__COMPETITION_CONFIG__=${encoded};</script>`,
   );
-  return config.competitionEnabled
-    ? result.replace('</body>', '<script defer src="./competition.js"></script></body>')
+  const configured = config.tapServices?.enabled
+    ? result.replace('</body>', '<script defer src="./tap-services.js"></script></body>')
     : result;
+  return config.competitionEnabled
+    ? configured.replace('</body>', '<script defer src="./competition.js"></script></body>')
+    : configured;
 }
 
 export async function serviceBundle(game) {
@@ -57,6 +64,8 @@ export async function serviceBundle(game) {
     game === 'xiangqi-five' ? 'games/submodules/xiangqi-five' : `games/local/${game}/src`;
   const source = `import {mountCompetition} from ${JSON.stringify(path.join(root, 'platforms/competition/h5.js'))};
 import {createRenderer} from ${JSON.stringify(path.join(root, directory, 'competition-renderer.js'))};
+import {installTapCompetitionIdentity} from ${JSON.stringify(path.join(root, 'platforms/taptap/competition-identity.mjs'))};
+if(globalThis.__COMPETITION_CONFIG__?.identityProvider==='taptap') installTapCompetitionIdentity();
 mountCompetition(${JSON.stringify(game)},createRenderer);`;
   const temporary = await mkdtemp(path.join(tmpdir(), 'competition-entry-'));
   try {
@@ -84,6 +93,41 @@ export async function prepareH5Service(game, directory, options = {}) {
   const config = h5ServiceConfig(game, options);
   const index = path.join(directory, 'index.html');
   await writeFile(index, serviceHtml(await readFile(index, 'utf8'), config));
+  const tapBundle = path.join(directory, 'tap-services.js');
+  if (config.tapServices.enabled) {
+    const { build } = await import('vite');
+    const temporary = await mkdtemp(path.join(tmpdir(), 'tap-services-'));
+    try {
+      const entry = path.join(temporary, 'entry.mjs');
+      const gameDirectory =
+        game === 'xiangqi-five' ? 'games/submodules/xiangqi-five' : `games/local/${game}/src`;
+      await writeFile(
+        entry,
+        `import {mountTapBrowserServices} from ${JSON.stringify(path.join(root, 'platforms/taptap/browser-entry.mjs'))};
+import {startTapMultiplayerScreen} from ${JSON.stringify(path.join(root, 'platforms/taptap/multiplayer-screen.mjs'))};
+import {tapMultiplayer} from ${JSON.stringify(path.join(root, gameDirectory, 'tap-multiplayer.js'))};
+mountTapBrowserServices(globalThis.__COMPETITION_CONFIG__, options => startTapMultiplayerScreen({...options, descriptor:tapMultiplayer}));`,
+      );
+      const result = await build({
+        configFile: false,
+        publicDir: false,
+        logLevel: 'warn',
+        build: {
+          write: false,
+          minify: false,
+          lib: { entry, formats: ['iife'], name: 'TapGameServices' },
+        },
+      });
+      await writeFile(
+        tapBundle,
+        (Array.isArray(result) ? result.flatMap((part) => part.output) : result.output).find(
+          (item) => item.type === 'chunk' && item.isEntry,
+        ).code,
+      );
+    } finally {
+      await rm(temporary, { recursive: true, force: true });
+    }
+  } else await rm(tapBundle, { force: true });
   const bundle = path.join(directory, 'competition.js');
   if (config.competitionEnabled) await writeFile(bundle, await serviceBundle(game));
   else await rm(bundle, { force: true });

@@ -1,3 +1,11 @@
+import { openNativeTapPortal } from '../../taptap/native-portal.mjs';
+import {
+  validateTapProgress,
+  mergeTapProgress,
+  writeTapProgress,
+  tapProgressScore,
+  tapProgressSummary,
+} from '../../../games/submodules/xiangqi-five/tap-save.js';
 import {
   newGame,
   draw,
@@ -66,6 +74,7 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
     hidden = false,
     stopped = false,
     pk = null;
+  let tapPortal = null;
   let panX = 0,
     panY = 0,
     message = '',
@@ -77,15 +86,22 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
   let contentBottom = 0;
   let challengeId = '',
     challengeStatus = 'playing',
-    hintShown = false;
+    hintShown = false,
+    challengeReturn = null,
+    setup = null,
+    setupBack = 'modes',
+    restartBack = 'setup';
   const adsEnabled = config.platform === 'taptap' && Boolean(config.rewardedAdUnitId);
   const ads = createTapTapRewardedAds(sdk, config.rewardedAdUnitId);
   const hintAccess = createHintAccess(
     {
       SmallGamesPublishingConfig: { adMode: adsEnabled ? 'host' : 'off' },
-      SmallGamesRewardAds: { offer: () => ads.show(), cancel: () => ads.cancel() },
+      SmallGamesRewardAds: {
+        offer: ({ onShown }) => ads.show({ onShown }),
+        cancel: () => ads.cancel(),
+      },
     },
-    120_000,
+    46_000,
   );
   const computerUndo = createComputerUndo(hintAccess);
   const computerHints = createComputerHints({
@@ -199,7 +215,7 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
     canvas.height = height * ratio;
     render();
   }
-  function text(value, x, y, size = 17, color = '#573626') {
+  function text(value, x, y, size = 17, color = '#343b31') {
     ctx.fillStyle = color;
     ctx.font = `${size}px sans-serif`;
     ctx.textAlign = 'left';
@@ -207,17 +223,22 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
     ctx.fillText(String(value), x, y);
   }
   function button(value, x, y, w, action, primary = false) {
-    ctx.fillStyle = primary ? '#ef795f' : '#dce9bf';
+    ctx.fillStyle = primary ? '#ac493b' : '#e8eddf';
     ctx.beginPath();
     if (ctx.roundRect) ctx.roundRect(x, y, w, 48, 16);
     else ctx.rect(x, y, w, 48);
     ctx.fill();
-    text(value, x + 12, y + 24, 17, primary ? '#fff8e8' : '#365f45');
+    text(value, x + 12, y + 24, 17, primary ? '#fffaf0' : '#456449');
     hits.push({ x, y, w, h: 48, action, label: value });
   }
-  function fresh(nextOpponent) {
+  const hasGame = () => Boolean(state.ply || state.pending);
+  const unfinished = () => hasGame() && !state.result;
+  function fresh(nextOpponent = setup?.opponent || opponent) {
     challengeId = '';
+    challengeReturn = null;
     opponent = nextOpponent;
+    mode = setup?.mode || mode;
+    difficulty = setup?.difficulty || difficulty;
     state = newGame(mode);
     selected = null;
     panX = panY = 0;
@@ -225,7 +246,36 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
     save();
     change('play');
   }
+  function openSetup(nextOpponent, back = 'modes') {
+    setup = { mode, difficulty, opponent: nextOpponent };
+    setupBack = back;
+    change('setup', back);
+  }
+  function submitSetup() {
+    if (unfinished() && (setup.mode !== mode || setup.opponent !== opponent)) {
+      restartBack = 'setup';
+      change('restart');
+    } else if (unfinished()) {
+      difficulty = setup.difficulty;
+      save();
+      change('play');
+    } else fresh();
+  }
+  function leaveTraining(next = 'play') {
+    const saved = challengeReturn;
+    if (!saved) return;
+    cancelHint();
+    ({ state, opponent, difficulty, mode, panX, panY, message } = saved);
+    challengeId = '';
+    challengeReturn = null;
+    setup = null;
+    change(next === 'play' && state.result ? 'result' : next);
+    selected = saved.selected;
+    render();
+  }
   function training(id) {
+    if (!challengeId)
+      challengeReturn = { state, opponent, difficulty, mode, panX, panY, selected, message };
     challengeId = id;
     challengeStatus = 'playing';
     hintShown = false;
@@ -236,13 +286,64 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
     message = CHALLENGES.find((item) => item.id === id).description;
     change('play');
   }
+  function openTap() {
+    if (page !== 'home' || challengeId) {
+      message = '请先返回原棋局，再管理云档';
+      return;
+    }
+    change('tap');
+    save();
+    const savePort = {
+      export: () =>
+        validateTapProgress({
+          local: encodeGame(state, opponent, difficulty),
+          progress: challengeProgress,
+        }),
+      validate: validateTapProgress,
+      summary: tapProgressSummary,
+      score() {
+        return tapProgressScore(this.export());
+      },
+      developer: () => config.developer === true,
+      canRestore: () => page === 'tap',
+      restore(value) {
+        const merged = mergeTapProgress(this.export(), value),
+          restored = merged.local ? decodeGame(merged.local) : null;
+        writeTapProgress(
+          {
+            getItem: (key) => sdk.getStorageSync(key),
+            setItem: (key, value) => sdk.setStorageSync(key, value),
+            removeItem: (key) => sdk.removeStorageSync?.(key),
+          },
+          merged,
+        );
+        Object.assign(challengeProgress, merged.progress);
+        if (restored) {
+          ({ state, opponent, difficulty } = restored);
+          mode = state.mode;
+          selected = null;
+        }
+      },
+    };
+    tapPortal = openNativeTapPortal({
+      sdk,
+      canvas,
+      config,
+      multiplayer: config.tapMultiplayer,
+      savePort,
+      onExit: () => {
+        tapPortal = null;
+        change('home');
+      },
+    });
+  }
   function header(title, back) {
     if (back) button('返回', 16, top, 76, back);
     text(title, back ? 108 : 24, top + 24, 22);
   }
   function board() {
-    const advice = computerHints.sync(state);
-    const undo = computerUndo.sync(state);
+    const advice = !challengeId && opponent === 'computer' ? computerHints.sync(state) : {};
+    const undo = !challengeId && opponent === 'computer' ? computerUndo.sync(state) : {};
     const hasComputerHint = !challengeId && opponent === 'computer';
     area = {
       x: 16,
@@ -259,27 +360,27 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
     ctx.beginPath();
     ctx.rect(area.x, area.y, area.w, area.h);
     ctx.clip();
-    ctx.fillStyle = '#f7dcaa';
+    ctx.fillStyle = '#ead9b3';
     ctx.fillRect(area.x, area.y, area.w, area.h);
     for (let index = 0; index < state.board.length; index++) {
       const x = area.x + (index % state.cols) * unit - panX,
         y = area.y + Math.floor(index / state.cols) * unit - panY;
       if (x + unit < area.x || y + unit < area.y || x > area.x + area.w || y > area.y + area.h)
         continue;
-      ctx.strokeStyle = selected === index ? '#365f45' : '#bd986a';
+      ctx.strokeStyle = selected === index ? '#456449' : '#bd986a';
       ctx.lineWidth = selected === index ? 3 : 1;
       ctx.strokeRect(x, y, unit, unit);
       const piece = state.board[index];
       if (piece) {
         ctx.beginPath();
         ctx.arc(x + 22, y + 22, 18, 0, Math.PI * 2);
-        ctx.fillStyle = piece.side === 'red' ? '#ef795f' : '#88a879';
+        ctx.fillStyle = piece.side === 'red' ? '#ac493b' : '#456449';
         ctx.fill();
-        text(label(piece), x + 13, y + 22, 18, '#fff8e8');
+        text(label(piece), x + 13, y + 22, 18, '#fffaf0');
       } else if (selected !== null && canMove(state.board, selected, index, state.cols)) {
         ctx.beginPath();
         ctx.arc(x + 22, y + 22, 5, 0, Math.PI * 2);
-        ctx.fillStyle = '#365f45';
+        ctx.fillStyle = '#456449';
         ctx.fill();
       }
       if (
@@ -340,7 +441,9 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
           if (state.turn !== 'red' || state.result || advice.phase || undo.pending) return;
           computerUndo.clearMessage();
           gesture = null;
+          const requestedState = state;
           void computerHints.request(state, () => {
+            if (challengeId || state !== requestedState) return;
             const hint = computerHints.sync(state).result;
             if (hint && area) {
               selected = hint.action.type === 'move' ? hint.action.from : null;
@@ -380,14 +483,54 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
     text(status.slice(0, lineLength), 16, height - bottom - 35, 12);
     text(status.slice(lineLength), 16, height - bottom - 18, 12);
   }
+  const visuals = {};
+  function loadVisuals() {
+    if (typeof sdk.createImage !== 'function') return;
+    for (const key of ['pavilion', 'logo']) {
+      const source = config.visualAssets?.[key];
+      if (!source) continue;
+      const image = safe(() => sdk.createImage());
+      if (!image) continue;
+      const entry = { image, ready: false };
+      visuals[key] = entry;
+      image.onload = () => {
+        if (stopped) return;
+        entry.ready = true;
+        render();
+      };
+      image.onerror = () => {
+        entry.ready = false;
+        render();
+      };
+      safe(() => {
+        image.src = source;
+      });
+    }
+  }
+  function background() {
+    ctx.fillStyle = '#f4efdf';
+    ctx.fillRect(0, 0, width, height);
+    const image = visuals.pavilion?.image;
+    if (visuals.pavilion?.ready && image.width && image.height) {
+      const scale = Math.max(width / image.width, height / image.height);
+      ctx.drawImage(
+        image,
+        (width - image.width * scale) / 2,
+        (height - image.height * scale) / 2,
+        image.width * scale,
+        image.height * scale,
+      );
+    }
+    ctx.fillStyle = page === 'home' ? 'rgba(244,239,223,.40)' : 'rgba(244,239,223,.91)';
+    ctx.fillRect(0, 0, width, height);
+  }
   function render() {
-    if (stopped || hidden || page === 'pk' || !width) return;
+    if (stopped || hidden || page === 'pk' || page === 'tap' || !width) return;
     hits = [];
     area = null;
     contentBottom = 0;
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-    ctx.fillStyle = '#fff8e8';
-    ctx.fillRect(0, 0, width, height);
+    background();
     if (page !== 'play') {
       ctx.save();
       ctx.beginPath();
@@ -397,43 +540,129 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
     }
     const w = width - 48;
     if (page === 'home') {
-      text('象五子棋', 24, top + 48, 36);
-      text('象棋走法，连五获胜。', 24, top + 94, 17);
-      let y = top + 130;
-      if (state.ply || state.pending) {
-        button('继续对局', 24, y, w, () => change(state.result ? 'result' : 'play'), true);
+      text('山间棋亭 · 象棋 × 五子棋', 24, top + 24, 14, '#456449');
+      text('象五子棋', width / 2 - 72, top + 84, 36);
+      text('象棋走法，同色连五', width / 2 - 72, top + 122, 16);
+      if (visuals.logo?.ready) ctx.drawImage(visuals.logo.image, 24, top + 58, 48, 48);
+      else {
+        ctx.beginPath();
+        ctx.arc(48, top + 82, 23, 0, Math.PI * 2);
+        ctx.fillStyle = '#ead9b3';
+        ctx.fill();
+        text('帅', 38, top + 82, 21, '#ac493b');
+      }
+      let y = Math.max(top + 180, height - bottom - (hasGame() || challengeId ? 248 : 190));
+      if (hasGame() || challengeId) {
+        button(
+          challengeId ? '继续练习' : '继续对局',
+          24,
+          y,
+          w,
+          () =>
+            change(
+              state.result || (challengeId && challengeStatus !== 'playing') ? 'result' : 'play',
+            ),
+          true,
+        );
         y += 58;
       }
-      button('电脑对弈', 24, y, w, () => fresh('computer'), true);
-      y += 58;
-      button('同屏双人', 24, y, w, () => fresh('local'));
-      y += 58;
-      button(`棋盘：${mode === 'xiangqi' ? '象棋盘' : '五子棋盘'}`, 24, y, w, () => {
-        mode = mode === 'xiangqi' ? 'gomoku' : 'xiangqi';
-        render();
-      });
-      y += 58;
       button(
-        `电脑：${{ practice: '练习', standard: '标准', hard: '挑战' }[difficulty]}`,
+        challengeId ? '返回原棋局' : '开始对弈',
         24,
         y,
         w,
-        () => {
-          difficulty = ['practice', 'standard', 'hard'][
-            (['practice', 'standard', 'hard'].indexOf(difficulty) + 1) % 3
-          ];
-          render();
-        },
+        () => (challengeId ? leaveTraining() : change('modes')),
+        !hasGame(),
       );
       y += 58;
-      if (config.competitionEnabled === true && config.apiUrl) {
-        button('好友挑战', 24, y, w, openPK);
-        y += 58;
-      }
-      button('战术练习', 24, y, w, () => change('training'));
+      button('战术练习', 24, y, (w - 8) / 2, () => change('training'));
+      button('玩法与设置', width / 2 + 4, y, (w - 8) / 2, () => change('help'));
       y += 58;
-      button('玩法与设置', 24, y, w, () => change('help'));
-      text(message, 24, height - bottom - 20, 12);
+      button('设置', 24, y, config.tapServices?.enabled ? (w - 8) / 2 : w, () =>
+        change('settings'),
+      );
+      if (config.tapServices?.enabled)
+        button('TapTap 小站', width / 2 + 4, y, (w - 8) / 2, openTap);
+      contentBottom = y + 62;
+    } else if (page === 'modes') {
+      header('选择玩法', () => change('home'));
+      text('选择对手，再准备棋盘与难度。', 24, top + 88, 15);
+      button('电脑对弈', 24, top + 124, w, () => openSetup('computer'), true);
+      button('同屏双人', 24, top + 182, w, () => openSetup('local'));
+      if (config.competitionEnabled === true && config.apiUrl)
+        button('好友挑战', 24, top + 240, w, openPK);
+    } else if (page === 'setup') {
+      const back = previous;
+      header('对弈准备', () => change(back));
+      text(
+        setup.opponent === 'computer' ? '单人挑战 · 你执红先行' : '双人同屏 · 红黑轮流落子',
+        24,
+        top + 88,
+        17,
+      );
+      text('棋盘', 24, top + 132, 14, '#6f7162');
+      button(
+        '象棋盘 9×10',
+        24,
+        top + 156,
+        w,
+        () => {
+          setup.mode = 'xiangqi';
+          render();
+        },
+        setup.mode === 'xiangqi',
+      );
+      button(
+        '五子棋盘 15×15',
+        24,
+        top + 214,
+        w,
+        () => {
+          setup.mode = 'gomoku';
+          render();
+        },
+        setup.mode === 'gomoku',
+      );
+      let y = top + 286;
+      if (setup.opponent === 'computer') {
+        text('电脑难度', 24, y, 14, '#6f7162');
+        y += 24;
+        const names = { practice: '简易', standard: '标准', hard: '困难' };
+        Object.keys(names).forEach((level, i) =>
+          button(
+            names[level],
+            24 + (i * (w + 8)) / 3,
+            y,
+            (w - 16) / 3,
+            () => {
+              setup.difficulty = level;
+              render();
+            },
+            setup.difficulty === level,
+          ),
+        );
+        y += 70;
+      }
+      const continuing = unfinished() && setup.mode === mode && setup.opponent === opponent;
+      button(continuing ? '继续对局' : '开始对局', 24, y, w, submitSetup, true);
+      text('更换棋盘或对手时，会先确认重开。', 24, y + 76, 13, '#6f7162');
+      contentBottom = y + 94;
+    } else if (page === 'restart') {
+      header('重新开局');
+      text('当前棋局尚未结束。', 24, top + 94, 20);
+      text('重开后将替换本机保存的棋局。', 24, top + 136, 15);
+      button(
+        '取消，保留棋局',
+        24,
+        top + 184,
+        w,
+        () => change(restartBack, restartBack === 'setup' ? setupBack : 'home'),
+        true,
+      );
+      button('确认重开', 24, top + 242, w, () => fresh());
+    } else if (page === 'settings') {
+      header('设置', () => change(previous));
+      button(`声音：${soundEnabled ? '开启' : '关闭'}`, 24, top + 90, w, toggleSound);
     } else if (page === 'training') {
       header('战术练习', () => change('home'));
       CHALLENGES.forEach((item, i) =>
@@ -454,18 +683,28 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
       );
       button('暂停', width - 92, top, 76, () => change('pause'));
       // The pause icon uses two equal solid bars rather than a font glyph.
-      ctx.fillStyle = '#365f45';
+      ctx.fillStyle = '#456449';
       ctx.fillRect(width - 39, top + 14, 4, 20);
       ctx.fillRect(width - 31, top + 14, 4, 20);
       board();
     } else if (page === 'pause') {
       header('暂停');
       button('继续对局', 24, top + 82, w, () => change('play'), true);
-      button('返回首页', 24, top + 140, w, () => {
+      button(challengeId ? '返回原棋局' : '重新开局', 24, top + 140, w, () => {
+        if (challengeId) leaveTraining();
+        else {
+          setup = { mode, difficulty, opponent };
+          restartBack = 'pause';
+          change('restart');
+        }
+      });
+      button('返回首页', 24, top + 198, w, () => {
         save();
         change('home');
       });
-      button('玩法与设置', 24, top + 198, w, () => change('help', 'pause'));
+      button('玩法与设置', 24, top + 256, w, () => change('help', 'pause'));
+      if (!challengeId)
+        button('调整玩法与难度', 24, top + 314, w, () => openSetup(opponent, 'pause'));
     } else if (page === 'help') {
       header('玩法与设置', () => change(previous));
       [
@@ -491,12 +730,7 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
             contentBottom = top + 414 + i * 24;
           });
       }
-      button(`声音：${soundEnabled ? '开启' : '关闭'}`, 24, top + 318, w, () => {
-        soundEnabled = !soundEnabled;
-        safe(() => sdk.setStorageSync('xiangqi-five-native-sound', soundEnabled ? '1' : '0'));
-        if (!soundEnabled) safe(() => audio?.stop());
-        render();
-      });
+      button(`声音：${soundEnabled ? '开启' : '关闭'}`, 24, top + 318, w, toggleSound);
       if (channel)
         button('B站入口', 24, top + 514, w, () => {
           channelHelpBack = previous;
@@ -526,7 +760,9 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
             : '再想一步'
           : state.result === 'draw'
             ? '平局'
-            : `${sideName(state.result)}连五获胜`,
+            : state.resigned
+              ? `${sideName(state.resigned)}认输，${sideName(state.result)}获胜`
+              : `${sideName(state.result)}连五获胜`,
       );
       text(`完成 ${state.ply} 手`, 24, top + 90);
       button(
@@ -534,13 +770,22 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
         24,
         top + 140,
         w,
-        () => (challengeId ? training(challengeId) : fresh(opponent)),
+        () => {
+          setup = null;
+          challengeId ? training(challengeId) : fresh(opponent);
+        },
         true,
       );
       button('返回首页', 24, top + 198, w, () => change('home'));
       if (challengeId) {
         button('战术练习', 24, top + 256, w, () => change('training'));
         button('查看解法', 24, top + 314, w, () => change('help', 'result'));
+        const next =
+          CHALLENGES[
+            (CHALLENGES.findIndex((item) => item.id === challengeId) + 1) % CHALLENGES.length
+          ];
+        button('下一题', 24, top + 372, w, () => training(next.id), true);
+        button('返回原棋局', 24, top + 430, w, () => leaveTraining());
       }
     }
     if (page !== 'play') {
@@ -562,8 +807,8 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
     if (
       page !== 'play' ||
       state.result ||
-      computerHints.sync(state).phase ||
-      computerUndo.sync(state).pending ||
+      (!challengeId && opponent === 'computer' && computerHints.sync(state).phase) ||
+      (!challengeId && opponent === 'computer' && computerUndo.sync(state).pending) ||
       hintRequest ||
       (opponent === 'computer' && state.turn === 'black')
     )
@@ -588,6 +833,12 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
       message = error.message;
       render();
     }
+  }
+  function toggleSound() {
+    soundEnabled = !soundEnabled;
+    safe(() => sdk.setStorageSync('xiangqi-five-native-sound', soundEnabled ? '1' : '0'));
+    if (!soundEnabled) safe(() => audio?.stop());
+    render();
   }
   function settleTraining() {
     challengeStatus = challengeOutcome(challengeId, state);
@@ -615,8 +866,8 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
   }
   function cell(index) {
     if (
-      computerHints.sync(state).phase ||
-      computerUndo.sync(state).pending ||
+      (!challengeId && opponent === 'computer' && computerHints.sync(state).phase) ||
+      (!challengeId && opponent === 'computer' && computerUndo.sync(state).pending) ||
       hintRequest ||
       (opponent === 'computer' && state.turn === 'black')
     )
@@ -715,7 +966,15 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
     box && p.x >= box.x && p.y >= box.y && p.x < box.x + box.w && p.y < box.y + box.h;
   const hasStart = subscribe('TouchStart', (event) => {
     gesture = null;
-    if (hidden || stopped || hintRequest || page === 'pk' || event.touches?.length > 1) return;
+    if (
+      hidden ||
+      stopped ||
+      hintRequest ||
+      page === 'pk' ||
+      page === 'tap' ||
+      event.touches?.length > 1
+    )
+      return;
     const point = event.changedTouches?.[0];
     if (point) {
       const p = position(point);
@@ -751,6 +1010,7 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
       stopped ||
       hintRequest ||
       page === 'pk' ||
+      page === 'tap' ||
       event.touches?.length ||
       event.changedTouches?.length !== 1
     )
@@ -799,6 +1059,8 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
     audio.src = 'competition-action.wav';
     safe(() => audio.onError?.(() => {}));
   }
+  loadVisuals();
+  if (adsEnabled) void ads.preload();
   resize();
   return {
     canvas,
@@ -817,10 +1079,13 @@ export function startNativeXiangqiGame(sdk, config, startNativeCompetition) {
         hits: hits.map(({ action, ...hit }) => hit),
       };
     },
+    getTapServiceState: () => tapPortal?.getSnapshot(),
     stop() {
+      tapPortal?.stop();
       stopped = true;
       cancelHint();
       ads.dispose();
+      for (const { image } of Object.values(visuals)) image.onload = image.onerror = null;
       clearTimeout(computerTimer);
       computerRequest = null;
       gesture = null;

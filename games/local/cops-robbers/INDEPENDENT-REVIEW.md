@@ -1,3 +1,5 @@
+> 历史验收记录（2026-09-23）。下文“当前”指记录当时；现行 120 关、保安美术、联网开关及构建入口以 [README](README.md) 与[文档索引](docs/README.md)为准。
+
 # 2026-09-23 独立联调验收：本地与公网真实双客户端通过
 
 评审者 `/root/review_cops_letters` 未参与实现。先打开当前游戏、点击进入 PK 并完成实际浏览器对局，之后读取 `RELEASE-REVIEW.md`。入口 `http://127.0.0.1:43010/games/cops-robbers/`，真实 PostgreSQL 测试库由协调者运行；测试账号仅进入 `competition_test`。这份记录不把旧报告、接口脚本或 SDK mock 当本轮 UI 通关。

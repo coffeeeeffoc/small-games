@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="zh-CN">
+  <meta charset="utf-8" /><title>象五子棋原生对齐 · 实施前概念</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      background: #d8d1be;
+      color: #343b31;
+      font:
+        16px 'Noto Sans CJK SC',
+        sans-serif;
+    }
+    .sheet {
+      display: grid;
+      grid-template-columns: repeat(2, 390px);
+      gap: 16px;
+      padding: 16px;
+    }
+    .phone {
+      height: 844px;
+      position: relative;
+      background: #f4efdf
+        url('../../../../../../games/submodules/xiangqi-five/assets/pavilion-background.png')
+        center/100% 100%;
+      overflow: hidden;
+      border-radius: 22px;
+    }
+    .veil {
+      position: absolute;
+      inset: 0;
+      background: #fffaf0b0;
+    }
+    .content {
+      position: relative;
+      padding: 72px 24px 28px;
+      height: 100%;
+    }
+    h1 {
+      font: 36px serif;
+      text-align: center;
+      margin: 14px 0;
+    }
+    h2 {
+      font-size: 24px;
+      margin: 12px 0 30px;
+    }
+    p {
+      color: #6f7162;
+      font-size: 14px;
+      line-height: 1.8;
+    }
+    .tag {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      background: #fffaf0e8;
+      border: 1px solid #dcd1b9;
+      padding: 4px 10px;
+      border-radius: 16px;
+      font-size: 12px;
+    }
+    .logo {
+      width: 54px;
+      position: absolute;
+      top: 66px;
+      left: 24px;
+    }
+    .brand {
+      padding-top: 30px;
+      text-align: center;
+    }
+    .brand small {
+      color: #456449;
+    }
+    .actions {
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      bottom: 42px;
+    }
+    .button {
+      height: 48px;
+      border: 1px solid #dcd1b9;
+      border-radius: 14px;
+      background: #fffaf0e8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #456449;
+      margin-top: 12px;
+    }
+    .primary {
+      background: #ac493b;
+      color: #fffaf0;
+      border-color: #ac493b;
+      font-weight: 700;
+    }
+    .row {
+      display: flex;
+      gap: 10px;
+    }
+    .row > * {
+      flex: 1;
+    }
+    .selected {
+      border: 2px solid #456449;
+      background: #e8eddf;
+    }
+    .card {
+      padding: 18px;
+      background: #fffaf0e8;
+      border: 1px solid #dcd1b9;
+      border-radius: 18px;
+      margin: 16px 0;
+    }
+    .board {
+      margin: 16px -8px 0;
+      height: 492px;
+      border: 8px solid #bd9759;
+      border-radius: 8px;
+      background:
+        repeating-linear-gradient(0deg, transparent 0 42px, #bd9759 43px 44px),
+        repeating-linear-gradient(90deg, #efd8aa 0 42px, #bd9759 43px 44px);
+      overflow: hidden;
+    }
+    .hud {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .hud .button {
+      margin: 0;
+      width: 76px;
+    }
+    .chip {
+      display: inline-flex;
+      width: 38px;
+      height: 38px;
+      border: 2px solid #ac493b;
+      border-radius: 50%;
+      color: #ac493b;
+      align-items: center;
+      justify-content: center;
+      background: #fffaf0;
+    }
+    .pause {
+      display: flex;
+      gap: 4px;
+      margin-left: 6px;
+    }
+    .pause i {
+      display: block;
+      width: 4px;
+      height: 18px;
+      background: #456449;
+    }
+    .note {
+      position: absolute;
+      bottom: 12px;
+      left: 24px;
+      font-size: 11px;
+      color: #6f7162;
+    }
+  </style>
+  <main class="sheet">
+    <section class="phone">
+      <span class="tag">概念 · 主页</span>
+      <div class="content">
+        <img
+          class="logo"
+          src="../../../../../../games/submodules/xiangqi-five/assets/five-piece-logo.webp"
+        />
+        <div class="brand">
+          <small>山间棋亭 · 象棋 × 五子棋</small>
+          <h1>象五子棋</h1>
+          <p>象棋走法，同色连五</p>
+        </div>
+        <div class="actions">
+          <div class="button primary">开始对弈</div>
+          <div class="row">
+            <div class="button">战术练习</div>
+            <div class="button">玩法说明</div>
+          </div>
+          <div class="button">设置</div>
+        </div>
+        <span class="note">有存档时优先显示继续棋局</span>
+      </div>
+    </section>
+    <section class="phone">
+      <div class="veil"></div>
+      <span class="tag">概念 · 准备</span>
+      <div class="content">
+        <h2>‹　对弈准备</h2>
+        <p>单人挑战 · 你执红先行</p>
+        <div class="card">
+          <strong>选择棋盘</strong>
+          <div class="row">
+            <div class="button selected">9×10 象棋盘</div>
+            <div class="button">15×15 五子盘</div>
+          </div>
+        </div>
+        <div class="card">
+          <strong>电脑难度</strong>
+          <div class="row">
+            <div class="button">简易</div>
+            <div class="button selected">标准</div>
+            <div class="button">困难</div>
+          </div>
+        </div>
+        <p>改变棋盘或玩法前确认重开；取消保留原局。</p>
+        <div class="button primary">开始对弈</div>
+      </div>
+    </section>
+    <section class="phone">
+      <div class="veil"></div>
+      <span class="tag">概念 · 棋盘</span>
+      <div class="content">
+        <div class="hud">
+          <strong>红方回合</strong>
+          <div class="button">
+            暂停 <span class="pause"><i></i><i></i></span>
+          </div>
+        </div>
+        <div class="board"><span class="chip">車</span></div>
+        <p>拖动棋盘 · 点空位落子 / 点棋子移动</p>
+        <div class="button primary">先抽子，看清再放</div>
+        <div class="row">
+          <div class="button">获取提示</div>
+          <div class="button">悔棋·免费1次</div>
+        </div>
+        <span class="note">保持 44 px 棋格，实际可视范围随安全区调整</span>
+      </div>
+    </section>
+    <section class="phone">
+      <div class="veil"></div>
+      <span class="tag">概念 · 重开确认</span>
+      <div class="content">
+        <h2>‹　重新开局</h2>
+        <div class="card">
+          <strong>当前棋局将被替换</strong>
+          <p>切换到双人同屏 · 15×15 五子棋盘。双方恢复棋池，红方先手。</p>
+          <p>取消后继续保留本局、已抽棋子与存档。</p>
+        </div>
+        <div class="button primary">确认重开</div>
+        <div class="button">取消</div>
+      </div>
+    </section>
+  </main>
+</html>

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { competitionIdentityFileScope } from './publication-scopes.mjs';
+import { competitionIdentityFileScope, tapServiceSharedScopePaths } from './publication-scopes.mjs';
 const formatter = createRequire(import.meta.url);
 const tapWorkflow = '.github/workflows/taptap-cocos.yml';
 const tapWorkflowSha256 = '16b39a784ea6a1f1bc4553e4260d545452214c083aac0a61ba692da59b3c0851';
@@ -163,6 +163,104 @@ const reviewedChannelSelectionBases = {
   'scripts/nine-wulong-smoke.mjs':
     'f2f1bdecd836acc9a1420d60c9bffddba563e8c4adbc85a0ccd7807df3d7472d',
 };
+// Reviewed complete revisions from the last successful Pages tree and the latest
+// dev tree. Earlier immutable proofs remain available; arbitrary intermediate
+// baselines and changed imports cannot borrow a newer revision.
+const nativeRevisionReviews = {
+  [XIANGQI + 'native.js']: {
+    bases: [
+      'ce106bb530030e833ec00cc6ec42b266cd4d568a0abccc627ff6b799c026e9dc',
+      '8533b22c5ff870579ae024a3164e7bbe52c9005be572404f4dc29a654a49664b',
+    ],
+    head: 'c7d945e7c8e305dae6aba52e18fb3419e8fd7d6c6221201e6779d2193040e556',
+    imports: [
+      '../../taptap/native-portal.mjs',
+      '../../../games/submodules/xiangqi-five/tap-save.js',
+      '../../../games/submodules/xiangqi-five/game.js',
+      '../../../games/submodules/xiangqi-five/local-game.js',
+      '../../../games/submodules/xiangqi-five/computer.js',
+      '../../../games/submodules/xiangqi-five/computer-hints.js',
+      '../../../games/submodules/xiangqi-five/computer-undo.js',
+      '../../../games/submodules/xiangqi-five/rewarded-hints.js',
+      '../../../games/submodules/xiangqi-five/competition-renderer.js',
+      '../../../games/submodules/xiangqi-five/challenges.js',
+      '../../taptap/rewarded-ads.mjs',
+    ],
+  },
+  [XIANGQI + 'tests/native.test.mjs']: {
+    bases: [
+      'aa9dd9390d54dc91799ff408cd55d6caa2bfb66a0b8191f4121ae5b28c80a802',
+      '48f088091bb14bd2ece4e20532ed5b8ad11bd7f8e630e12a728bd8832fb4d38d',
+    ],
+    head: 'dc67c05d3611af2007550a9b9f2499ad820ae928cd5d7ea57cd3df16c1ee07f0',
+    imports: [
+      'node:test',
+      'node:assert/strict',
+      '../native.js',
+      '../../../../games/submodules/xiangqi-five/challenges.js',
+      '../../../../games/submodules/xiangqi-five/game.js',
+    ],
+  },
+  [XIANGQI + 'tests/browser.mjs']: {
+    bases: [
+      '089ddfc4ac2340b9c096f172a5a7a32ddd2163b65724d86fc1269109bc992c27',
+      '3754f78da18d2d38b99a562018f13f065025b3371b2f6822a7f2399d3cd5109e',
+    ],
+    head: '1306b5c71be8fff2321c4c328933e351a88f5fa564f91e008a0ddbd63504f61e',
+    imports: reviewed[XIANGQI + 'tests/browser.mjs'][1],
+  },
+  'scripts/nine-canvas-games-smoke.mjs': {
+    bases: ['9dd613d33cad07cca9ea9998778b67e7a3fe7860bd1198cde2e623325a85fec2'],
+    head: '8fcd530956d69e92c989357b1b059d0fa2b0a7ca7d80e33c02c4cda79ab53a3a',
+    imports: reviewed['scripts/nine-canvas-games-smoke.mjs'][1],
+  },
+};
+const TAP_SMOKE = 'apps/shell-minigame/scripts/taptap-smoke.mjs';
+const TAP_SMOKE_BASE = 'ec41bdbc7d2815dfd819f5577940780fd345cdc23ffcca37bda895d9788e6bcd';
+const TAP_SMOKE_HEAD = '55f4fb9ed508cdd78444fca846888fa65d50c3b854b20434734f265adcab93f7';
+const tapSmokeProofValues = new WeakSet();
+function tapSmokeFileScopes({ changedPaths, readBase, readHead, games, packages }) {
+  const scopes = new Map();
+  if (!changedPaths.includes(TAP_SMOKE)) return scopes;
+  try {
+    const before = readBase(TAP_SMOKE),
+      after = readHead(TAP_SMOKE);
+    assert.equal(digest(before), TAP_SMOKE_BASE);
+    assert.equal(digest(after), TAP_SMOKE_HEAD);
+    equal(imports(before), imports(after));
+    const start = "  } else if (game === 'xiangqi-five') {";
+    const end = '\n  }\n}\n\nasync function lettersFlow';
+    const index = before.indexOf(start),
+      last = before.indexOf(end, index + start.length);
+    assert.equal(before.split(start).length, 2);
+    assert(index >= 0 && last > index);
+    const branch = before.slice(index, last);
+    const replacement = branch
+      .replace(
+        "    tap('电脑对弈');",
+        "    tap('开始对弈');\n    tap('电脑对弈');\n    tap('开始对局');",
+      )
+      .replace(
+        "    tap('同屏双人');",
+        "    tap('开始对弈');\n    tap('同屏双人');\n    tap('开始对局');\n    tap('确认重开');",
+      );
+    assert.equal(before.slice(0, index) + replacement + before.slice(last), after);
+    const source = sources['xiangqi-five'];
+    assert.equal(games.filter((game) => game.id === 'xiangqi-five').length, 1);
+    assert.equal(games.filter((game) => game.source === source).length, 1);
+    assert.equal(
+      games.filter((game) => game.id === 'xiangqi-five' && game.source === source).length,
+      1,
+    );
+    const affected = [source, MINIGAME, 'platforms/taptap'];
+    assert(affected.every((dir) => packages.some((pkg) => pkg.dir === dir)));
+    tapSmokeProofValues.add(affected);
+    scopes.set(TAP_SMOKE, affected);
+  } catch {
+    /* Unreviewed bytes, baseline or consumers retain every Creator requirement. */
+  }
+  return scopes;
+}
 const INVENTORY_BUILDER = 'apps/shell-minigame/scripts/nine-games-build.mjs';
 const INVENTORY_BASE_SHA = '6f19a3c8a5e9abcc77c07bd4c0b0182e8ff0129776ca5c6d5716ab475b28f7c8';
 const INVENTORY_HEAD_SHA = '7e71113977277fb08ffbd6368e3d345675f8a1ee7ed40fee6daad23ed393f0bb';
@@ -413,6 +511,9 @@ function inspectReviewed(file, text) {
   assert.equal(typeof text, 'string');
   assert.equal(digest(text), reviewed[file][0], 'Exact reviewed native source bytes required');
   equal(imports(text), reviewed[file][1]);
+  inspectNativeShape(file, text);
+}
+function inspectNativeShape(file, text) {
   if (file === 'scripts/nine-canvas-games-smoke.mjs') {
     const body = text.match(/for \(const game of \[([\s\S]*?)\]\)/)?.[1];
     assert(
@@ -518,7 +619,7 @@ export function nightProtocolFileScopes({ changedPaths, readBase, readHead, game
 
 /** Undefined entries deliberately leave unsupported/unknown changes blocked. */
 export function nineNativeFileScopes({ changedPaths, readBase, readHead, games, packages }) {
-  const scopes = new Map();
+  const scopes = tapSmokeFileScopes({ changedPaths, readBase, readHead, games, packages });
   for (const [file, affected] of optionalServiceNativeFileScopes({
     changedPaths,
     readBase,
@@ -554,22 +655,33 @@ export function nineNativeFileScopes({ changedPaths, readBase, readHead, games, 
         head = readHead(file);
       if (file === COMPETITION) additiveAlipay(readBase(file), head);
       else {
-        inspectReviewed(file, head);
         let base;
         try {
           base = readBase(file);
         } catch {
           /* This exact digest was explicitly reviewed as a new file. */
         }
-        assert(
-          base === undefined ||
-            base === null ||
-            base === head ||
-            (typeof base === 'string' &&
-              reviewedChannelSelectionBases[file] !== undefined &&
-              digest(base) === reviewedChannelSelectionBases[file]),
-          'Unreviewed pre-existing native baseline',
-        );
+        const revision = nativeRevisionReviews[file];
+        if (
+          revision &&
+          typeof base === 'string' &&
+          revision.bases.includes(digest(base)) &&
+          digest(head) === revision.head
+        ) {
+          equal(imports(head), revision.imports);
+          inspectNativeShape(file, head);
+        } else {
+          inspectReviewed(file, head);
+          assert(
+            base === undefined ||
+              base === null ||
+              base === head ||
+              (typeof base === 'string' &&
+                reviewedChannelSelectionBases[file] !== undefined &&
+                digest(base) === reviewedChannelSelectionBases[file]),
+            'Unreviewed pre-existing native baseline',
+          );
+        }
       }
       for (const id of definition.games) {
         assert.equal(
@@ -1317,6 +1429,17 @@ taptapGraph.set(`${TAPTAP}/native-resources.mjs`, [
   'vibeJam-myself-history-guess:taptap',
 ]);
 
+// These exact roots are injected only into H5 and the separate three-game Cocos
+// projects. They have no legacy-nine owner unless a real native import adds one.
+// Empty ownership must never flow into an unreviewed imported sibling.
+const separateTapEntrypoints = [
+  'platforms/taptap/browser-entry.mjs',
+  'platforms/taptap/competition-identity.mjs',
+  'platforms/taptap/multiplayer-screen.mjs',
+  'platforms/taptap/multiplayer-session.mjs',
+];
+for (const file of separateTapEntrypoints) taptapGraph.set(file, []);
+
 /** Reviewed provenance graph, independent of generated/ignored build artifacts. */
 export function nineNativeDependencySources() {
   const combined = new Map([...nativeGraph].map(([file, targets]) => [file, [...targets]]));
@@ -1327,6 +1450,7 @@ export function nineNativeDependencySources() {
 
 export function isNineNativeOnlyPath(file) {
   if (file === tapWorkflow) return true;
+  if (tapServiceSharedScopePaths.includes(file)) return false;
   if (['platforms/competition/client.js', 'platforms/competition/format.js'].includes(file))
     return false;
   if (file.startsWith('platforms/') && (nativeGraph.has(file) || taptapGraph.has(file)))
@@ -1452,6 +1576,14 @@ export function nineNativeDependencyPlan({
       /* A stale or copied proof cannot narrow the candidate. */
     }
   }
+  let tapSmokeOnly = false;
+  if (hasTapTap && tapSmokeProofValues.has(fileScopes.get(TAP_SMOKE)) && readSource) {
+    try {
+      tapSmokeOnly = digest(readSource(TAP_SMOKE)) === TAP_SMOKE_HEAD;
+    } catch {
+      /* Missing source cannot reuse an earlier proof. */
+    }
+  }
   const tapCompetitionOnly = new Map();
   if (hasTapTap && readSource)
     for (const file of Object.keys(tapCompetitionDefinitions)) {
@@ -1487,6 +1619,7 @@ export function nineNativeDependencyPlan({
     while (queue.length) {
       const file = queue.shift(),
         owners = graph.get(file);
+      if (owners.size === 0) continue;
       const signature = [...owners].sort().join(',');
       if (visited.get(file) === signature) continue;
       visited.set(file, signature);
@@ -1568,13 +1701,18 @@ export function nineNativeDependencyPlan({
           if (platform === platformDirectory) selected.add(game + ':' + platform);
         }
     }
-    const fileTargets = optionalServiceOnly.has(file)
-      ? [...(graph.get(file) || [])].filter((target) => !cocosGames.includes(target.split(':')[0]))
-      : tapCompetitionOnly.has(file)
-        ? tapCompetitionOnly.get(file).map((game) => game + ':taptap')
-        : file === INVENTORY_BUILDER && tapNormalizerOnly
-          ? [...competitionGames, 'travel-bund', 'wulong-city'].map((game) => game + ':taptap')
-          : graph.get(file) || [];
+    const fileTargets =
+      file === TAP_SMOKE && tapSmokeOnly
+        ? ['xiangqi-five:taptap']
+        : optionalServiceOnly.has(file)
+          ? [...(graph.get(file) || [])].filter(
+              (target) => !cocosGames.includes(target.split(':')[0]),
+            )
+          : tapCompetitionOnly.has(file)
+            ? tapCompetitionOnly.get(file).map((game) => game + ':taptap')
+            : file === INVENTORY_BUILDER && tapNormalizerOnly
+              ? [...competitionGames, 'travel-bund', 'wulong-city'].map((game) => game + ':taptap')
+              : graph.get(file) || [];
     for (const target of fileTargets) {
       const [game, platform] = target.split(':');
       // Builder provenance includes configuration inputs for every channel. Only

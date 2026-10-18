@@ -22,8 +22,20 @@ export const assetInputs = (game) => [
         name.replace('.svg', '.webp'),
       ])
     : []),
+  ...(game === 'xiangqi-five'
+    ? ['pavilion-background.png', 'five-piece-logo.webp'].map((name) => [
+        `games/submodules/xiangqi-five/assets/${name}`,
+        name,
+      ])
+    : []),
   ...(game === 'cops-robbers-realtime'
-    ? [['games/local/cops-robbers-realtime/src/assets/home-city.png', 'home-city.png']]
+    ? [
+        ['games/local/cops-robbers-realtime/src/assets/home-city.png', 'home-city.png'],
+        [
+          'games/local/cops-robbers-realtime/src/assets/characters-native.webp',
+          'street-characters.webp',
+        ],
+      ]
     : []),
 ];
 const toolInputs = [
@@ -35,6 +47,10 @@ const toolInputs = [
   'apps/shell-minigame/scripts/taptap-login.mjs',
   'apps/shell-minigame/scripts/taptap-cocos-inputs.mjs',
   'platforms/taptap/login.cjs',
+  'platforms/taptap/competition-identity.mjs',
+  'platforms/taptap/calls.mjs',
+  'scripts/taptap-services-config.mjs',
+  'games/minigames/scripts/taptap-services-bootstrap.mjs',
   'scripts/competition-service-config.mjs',
 ];
 const exec = promisify(execFile);
@@ -91,7 +107,16 @@ export async function prepareGame(config) {
   await mkdir(target, { recursive: true });
   await mkdir(path.join(project, 'reports'), { recursive: true });
   const definition = games[config.game];
+  const tapEnabled = Boolean(config.tapServices?.enabled);
+  const tapDirectory =
+    config.game === 'xiangqi-five'
+      ? 'games/submodules/xiangqi-five'
+      : `games/local/${config.game}/src`;
+  const tapImports = tapEnabled
+    ? `import {startTapMultiplayerScreen} from ${JSON.stringify(path.join(repo, 'platforms/taptap/multiplayer-screen.mjs'))};\nimport {tapMultiplayer} from ${JSON.stringify(path.join(repo, tapDirectory, 'tap-multiplayer.js'))};`
+    : '';
   const code = `
+${tapImports}
 import { ${definition.start} as controller } from ${JSON.stringify(path.join(repo, definition.entry).replaceAll('\\', '/'))};
 import { startNativeCompetition } from ${JSON.stringify(path.join(repo, 'platforms/competition/native.js').replaceAll('\\', '/'))};
 import { normalizeTapTapSdk } from ${JSON.stringify(path.join(repo, 'platforms/taptap/normalize.mjs').replaceAll('\\', '/'))};
@@ -99,15 +124,17 @@ import { normalizeAlipaySdk } from ${JSON.stringify(path.join(repo, 'platforms/a
 import { withCompetitionAvailability } from ${JSON.stringify(path.join(repo, 'apps/shell-minigame/src/competition-availability.mjs').replaceAll('\\', '/'))};
 import { attachBilibiliEntry } from ${JSON.stringify(path.join(repo, 'platforms/bilibili/native-entry.mjs').replaceAll('\\', '/'))};
 import { createSdkOverlay } from ${JSON.stringify(path.join(root, 'shared/runtime.js').replaceAll('\\', '/'))};
+import { installTapCompetitionIdentity } from ${JSON.stringify(path.join(repo, 'platforms/taptap/competition-identity.mjs'))};
 export const config = ${JSON.stringify(config)};
 export function prepareSdk(raw) {
+  if (config.identityProvider === 'taptap') installTapCompetitionIdentity(globalThis, raw);
   let sdk = config.platform === 'taptap' ? normalizeTapTapSdk(raw) : config.platform === 'alipay' ? normalizeAlipaySdk(raw) : raw;
   sdk = withCompetitionAvailability(sdk, config);
   if (config.platform === 'bilibili') sdk = createSdkOverlay(sdk, { channelEntry: attachBilibiliEntry(sdk, { gameId: config.game }) });
   return sdk;
 }
 export function start(sdk) {
-  const instance = controller(sdk, config, startNativeCompetition);
+  const instance = controller(sdk, ${tapEnabled ? '{...config, tapMultiplayer: options => startTapMultiplayerScreen({...options, descriptor:tapMultiplayer})}' : 'config'}, startNativeCompetition);
   const dispose = instance.stop || instance.dispose;
   return { ...instance, getState: () => instance.getState?.() ?? instance.state,
     stop() { try { dispose?.call(instance); } finally { sdk.channelEntry?.dispose(); } } };
@@ -193,6 +220,9 @@ export function start(sdk) {
       ...sourcePaths,
       ...localInputs,
       ...assetInputs(config.game).map(([source]) => source),
+      ...(config.game === 'cops-robbers-realtime'
+        ? ['games/local/cops-robbers-realtime/src/assets/characters.png']
+        : []),
     ],
     config,
   );

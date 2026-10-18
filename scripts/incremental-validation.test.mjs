@@ -1216,3 +1216,67 @@ test('admin checks stay separate from game browsers and backend changes include 
   ]);
   assert.equal(select('services/runtime-api/src/main.ts').admin_console_checks, false);
 });
+
+test('Tap services retain all three H5 consumers alongside genuine native consumers and default contracts', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { workspacePackages } = await import('./validation-plan.mjs');
+  const { nineNativeFileScopes } = await import('./nine-native-scope.mjs');
+  const { tapServiceSharedScopePaths } = await import('./publication-scopes.mjs');
+  const { tapServicesChanged } = await import('./incremental-validation.mjs');
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const packages = await workspacePackages(root);
+  const games = JSON.parse(
+    readFileSync(path.join(root, 'apps/shell-web/src/standalone-games.json')),
+  );
+  const read = (file) => readFileSync(path.join(root, file), 'utf8');
+  const expected = ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'];
+  for (const file of [...tapServiceSharedScopePaths, 'scripts/taptap-services-config.mjs']) {
+    const context = {
+      changedPaths: [file],
+      games,
+      packages,
+      readHead: read,
+      readBase: () => null,
+      readSource: read,
+    };
+    const fileScopes = new Map([
+      ...reviewedSharedFileScopes(context),
+      ...nineNativeFileScopes(context),
+    ]);
+    const selected = incrementalPlan({ ...context, fileScopes });
+    assert.deepEqual(selected.browser_ids, expected, file);
+    assert.deepEqual(selected.cocos_minigame_ids, expected, file);
+    assert.equal(selected.tap_services_checks, true);
+    assert(selected.service_rule_sources.includes('platforms/taptap'));
+    assert.deepEqual(selected.nine_native_blocked, []);
+    if (
+      ['calls.mjs', 'game-services.mjs', 'service-screen.mjs'].some((name) =>
+        file.endsWith('/' + name),
+      )
+    ) {
+      assert.equal(selected.nine_native_targets.length, 12);
+      assert(
+        selected.nine_native_targets.every((t) =>
+          ['cops-robbers-realtime', 'xiangqi-five'].includes(t.game),
+        ),
+      );
+    }
+  }
+  for (const file of [
+    'games/local/cops-robbers/src/duel.js',
+    'games/local/cops-robbers/src/duel-levels.js',
+    'games/local/cops-robbers-realtime/src/engine.js',
+    'games/local/cops-robbers-realtime/src/competition-renderer.js',
+    'games/submodules/xiangqi-five/game.js',
+  ])
+    assert(tapServicesChanged([file], read), file);
+  assert.equal(
+    tapServicesChanged(['games/local/cops-robbers/docs/design/evidence.md'], read),
+    false,
+  );
+  assert.equal(tapServicesChanged(['games/local/letters-words2/game.js'], read), false);
+  const sibling = 'platforms/taptap/unreviewed.mjs';
+  const selected = incrementalPlan({ changedPaths: [sibling], games, packages, readSource: read });
+  assert.equal(selected.nine_native_targets.length, 9);
+  assert.equal(selected.nine_native_blocked.length, 2);
+});

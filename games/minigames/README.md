@@ -4,7 +4,7 @@
 
 本目录不属于 pnpm workspace，也不进入 H5 游戏目录。现有 `games/local` / `games/submodules`、Shell 登记、GitHub Pages 构建和存档均沿用原入口。这里导入原有规则、关卡、AI 和联机协议；生成的脚本只写入各 Cocos 工程的 `assets/scripts`，不会覆盖旧游戏。
 
-围捕小队的 Cocos 首页与棋盘直接复用原 H5 的追逃插画、花园背景、角色图集及布局映射，构建记录包含素材指纹；网页 DOM/CSS 仍由各入口分别实现。视觉恢复与实际引擎截图见[原版美术恢复记录](docs/design/cops-original-art-2026-10-16.md)。这项恢复仅覆盖围捕小队，不代表三款的全部界面与功能已经一致。
+围捕小队的 Cocos 首页与棋盘直接复用原 H5 的追逃插画、花园背景、角色图集及布局映射，构建记录包含素材指纹；网页 DOM/CSS 仍由各入口分别实现。视觉恢复与实际引擎截图见[原版美术恢复记录](docs/design/cops-original-art-2026-10-16.md)。三款本轮的菜单、触屏、暂停、练习恢复及存档对齐见[对齐记录](docs/design/h5-parity-2026-10-19.md)；象棋细节另见[山亭界面记录](../../platforms/competition/xiangqi-five/docs/design/h5-parity-2026-10-19/README.md)。Canvas 浏览器证据与真实 Creator／真机验收分别记录。
 
 ## 工具与 TapTap 打包
 
@@ -39,7 +39,7 @@ node games/minigames/scripts/build.mjs --game xiangqi-five --platform taptap --r
 node games/minigames/scripts/build.mjs --verify games/minigames/xiangqi-five/build/taptap/game --receipt games/minigames/xiangqi-five/build/taptap.receipt.json
 ```
 
-三款使用不同 AppID 时，设置对应的三个游戏级变量。三款均在允许接入且配置有效服务后启用好友挑战。未配置广告位时，实时警匪仍可正常游玩，广告补充不会假报成功。象五子棋的 TapTap 战术提示在配置广告位后仅于完整观看回调中授权，未配置时保留免费提示；应用 982449 的公开配置、构建与验证见[广告接入记录](../../platforms/competition/xiangqi-five/docs/design/ads-2026-10-18.md)。平台后台的登录、广告、分享、合法域名与真机权限需在各自官方工具验收。
+三款原生应用分别为围捕小队 `984485`（MiniApp ID `tapmcyeuvshseosntg`）、街区追捕 `984546`（`tapmcfcyjcnccm3pvq`）、象五子棋 `984547`（`tapmcgymnoqi9kdbls`）。旧 H5 应用分别为 `982507`、`980554`、`982449`，不能混用应用、排行榜或广告位配置。公开映射以根目录 `game-build.local.mjs` 为准。Tap 小站及 SDK 好友房独立于共享后端开关；配置和存档边界见[Tap 服务说明](../../platforms/taptap/docs/game-services.md)。原生广告位尚未配置，当前原生目标关闭广告；旧 H5 的[广告验收记录](../../platforms/competition/xiangqi-five/docs/design/ads-2026-10-18.md)不能作为原生广告可用证明。
 
 ## 其他渠道
 

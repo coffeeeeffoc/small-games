@@ -662,7 +662,7 @@ test('catalog and non-publishing interaction checks require explicit affected co
 test('publishing browsers run exact bounded suites with native gates off and failures stop publication', () => {
   const expected = {
     'cops-robbers': ['check-rewarded-hints.mjs'],
-    'cops-robbers-realtime': ['publishing.browser.mjs'],
+    'cops-robbers-realtime': ['publishing.browser.mjs', 'start-lifecycle.browser.mjs'],
     'tower-brake': ['publishing-browser.mjs', 'browser.mjs', 'expansion-browser.mjs'],
     'cage-rescue': [
       'reward-browser.mjs',
@@ -1949,4 +1949,166 @@ test('shared authority helper contracts run once even alongside backend deployme
       /authority canary/,
     );
   }
+});
+
+const tapRestoreConsumers = [
+  {
+    name: 'cops-robbers',
+    dir: 'games/local/cops-robbers',
+    scripts: { build: 'node scripts/build.mjs' },
+  },
+  {
+    name: 'cops-robbers-realtime',
+    dir: 'games/local/cops-robbers-realtime',
+    scripts: { build: 'node scripts/build.mjs' },
+  },
+  {
+    name: '@coffeeeeffoc/xiangqi-five',
+    dir: 'games/submodules/xiangqi-five',
+    scripts: { build: 'node build.js' },
+  },
+];
+test('Tap default contracts stop on failure and always restore all three candidate H5 builds serially', () => {
+  const stages = [
+    [process.execPath, '--test', 'games/minigames/tests/tap-services.test.mjs'],
+    [process.execPath, 'games/minigames/tests/tap-services.browser.mjs'],
+    [process.execPath, 'games/minigames/scripts/check-tap-multiplayer.mjs'],
+  ];
+  const restoration = tapRestoreConsumers.map((pkg) => [
+    'pnpm',
+    '--filter',
+    pkg.name,
+    'run',
+    'build',
+  ]);
+  const rules = ['pnpm', '--filter', '@coffeeeeffoc/platform-taptap', 'test'];
+  const options = {
+    plan: {
+      tap_services_checks: true,
+      service_rule_sources: ['platforms/taptap'],
+      native_consumers: [],
+      developer_mode_ids: [],
+    },
+    packages: [
+      ...tapRestoreConsumers,
+      {
+        name: '@coffeeeeffoc/platform-taptap',
+        dir: 'platforms/taptap',
+        scripts: { test: 'node --test tests/*.test.mjs' },
+      },
+    ],
+    root: '/candidate',
+    env: { MINIGAME_RELEASE_GATES: '0', CANDIDATE_ENV: 'real' },
+  };
+  const calls = [];
+  runIncrementalToolChecks({
+    ...options,
+    execute: (command, args, root, env) => {
+      assert.equal(env, options.env, 'restoration retains the real candidate environment');
+      calls.push([command, ...args]);
+    },
+  });
+  assert.deepEqual(calls, [...stages, ...restoration, rules]);
+  for (let stage = 0; stage < stages.length; stage++) {
+    const calls = [],
+      failure = Error('Tap contract failed');
+    assert.throws(
+      () =>
+        runIncrementalToolChecks({
+          ...options,
+          execute: (command, args) => {
+            calls.push([command, ...args]);
+            if (calls.length === stage + 1) throw failure;
+          },
+        }),
+      (error) => error === failure,
+    );
+    assert.deepEqual(calls, [...stages.slice(0, stage + 1), ...restoration]);
+  }
+  for (const primaryFailure of [false, true]) {
+    const calls = [],
+      primary = Error('original Tap failure'),
+      cleanup = Error('build failed');
+    assert.throws(
+      () =>
+        runIncrementalToolChecks({
+          ...options,
+          execute: (command, args) => {
+            calls.push([command, ...args]);
+            if (primaryFailure && args.includes('games/minigames/tests/tap-services.browser.mjs'))
+              throw primary;
+            if (args.includes('cops-robbers')) throw cleanup;
+          },
+        }),
+      (error) =>
+        error instanceof AggregateError &&
+        (primaryFailure
+          ? error.errors[0] === primary && error.errors[1] === cleanup
+          : error.errors[0] === cleanup),
+    );
+    assert.deepEqual(
+      calls.slice(-3),
+      restoration,
+      'a failed restoration does not skip the other games',
+    );
+    assert(!calls.some((call) => call.includes('@coffeeeeffoc/platform-taptap')));
+  }
+  assert.throws(
+    () => runIncrementalToolChecks({ ...options, packages: [] }),
+    /Missing candidate H5 restoration consumer/,
+  );
+});
+
+test('a native-only Tap bootstrap prepares the browser before mandatory default contracts', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'tap-default-browser-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });
+  await writeFile(path.join(root, 'apps/shell-web/src/standalone-games.json'), '[]');
+  await writeFile(
+    path.join(root, 'package.json'),
+    JSON.stringify({ volta: { node: process.versions.node }, packageManager: 'pnpm@12.6.0' }),
+  );
+  for (const pkg of tapRestoreConsumers) {
+    await mkdir(path.join(root, pkg.dir), { recursive: true });
+    await writeFile(path.join(root, pkg.dir, 'package.json'), JSON.stringify(pkg));
+  }
+  const order = [],
+    env = { MINIGAME_RELEASE_GATES: '0' };
+  const options = {
+    root,
+    incremental: true,
+    env,
+    selectScope: async () => ({ required: true, full: false, risk: 'metadata' }),
+    prepareBrowser() {
+      order.push('prepare');
+      env.PLAYWRIGHT_EXECUTABLE_PATH = '/fixture/chromium';
+    },
+    execute(command, args, cwd, clean) {
+      if (command === 'git') return 'games/minigames/scripts/taptap-services-bootstrap.mjs\0';
+      if (args[0] === '--version') return '12.6.0';
+      if (
+        args.some(
+          (arg) =>
+            arg.includes('tap-services.browser.mjs') || arg.includes('check-tap-multiplayer.mjs'),
+        )
+      ) {
+        assert.equal(order[0], 'prepare');
+        assert.equal(clean.PLAYWRIGHT_EXECUTABLE_PATH, '/fixture/chromium');
+        order.push('browser');
+      }
+    },
+  };
+  const selected = await validateTree(options);
+  assert.equal(selected.browser, false);
+  assert.equal(selected.tap_services_checks, true);
+  assert.deepEqual(order, ['prepare', 'browser', 'browser']);
+  await assert.rejects(
+    validateTree({
+      ...options,
+      prepareBrowser() {
+        throw Error('Tap browser unavailable');
+      },
+    }),
+    /Tap browser unavailable/,
+  );
 });

@@ -3,7 +3,9 @@ export function createTapTapAdProvider(sdk, adUnitId, showTimeoutMs = 44000) {
   let pending, disposed = false, blocked = false;
   return {
     show() {
-      if (disposed || pending || blocked || !sdk?.createRewardedVideoAd || typeof adUnitId !== 'string' || !adUnitId.trim())
+      let currentSdk;
+      try { currentSdk = typeof sdk === 'function' ? sdk() : sdk; } catch {}
+      if (disposed || pending || blocked || !currentSdk?.createRewardedVideoAd || typeof adUnitId !== 'string' || !adUnitId.trim())
         return Promise.resolve({ status: 'unavailable' });
       return new Promise(resolve => {
         let ad, settled = false, closed = false, timer;
@@ -30,21 +32,29 @@ export function createTapTapAdProvider(sdk, adUnitId, showTimeoutMs = 44000) {
           finish(result?.isEnded === true ? 'completed' : 'dismissed', 'sdk-close');
         };
         const error = () => finish('failed', 'sdk-error');
-        const shown = () => { clearTimeout(timer); trace('shown', { ignored: settled }); };
+        const shown = () => { if (settled) return; clearTimeout(timer); trace('shown', { ignored: false }); };
+        const attempt = () => {
+          if (settled) return;
+          const opening = ad.show();
+          // A missing Promise is not evidence that the native video opened.
+          if (typeof opening?.then === 'function') return Promise.resolve(opening).then(shown);
+        };
         pending = reason => finish('dismissed', reason);
         try {
           trace('requested');
-          ad = sdk.createRewardedVideoAd({ adUnitId, multiton: false });
+          ad = currentSdk.createRewardedVideoAd({ adUnitId, multiton: false });
           ad.onClose(close);
+          if (settled) return;
           ad.onError(error);
+          if (settled) return;
           // Limit opening time only; displayed ads own their duration until the SDK closes them.
           timer = setTimeout(() => finish('failed', 'open-timeout'), showTimeoutMs);
-          Promise.resolve(ad.show()).then(shown).catch(async () => {
+          Promise.resolve().then(attempt).catch(async () => {
             if (settled) return;
             trace('retry-load');
             try {
               await ad.load();
-              if (!settled) { await ad.show(); shown(); }
+              if (!settled) await attempt();
             } catch { error(); }
           });
         } catch { error(); }

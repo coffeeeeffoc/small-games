@@ -30,7 +30,8 @@ function fixture({
     writes = [],
     storage = new Map(Object.entries(saved)),
     images = [],
-    draws = [];
+    draws = [],
+    labels = [];
   const context = new Proxy(
     {},
     {
@@ -39,9 +40,11 @@ function fixture({
           ? () => ({ addColorStop() {} })
           : key === 'drawImage'
             ? (...args) => draws.push(args)
-            : key === 'measureText'
-              ? (text) => ({ width: String(text).length * 15 })
-              : () => {},
+            : key === 'fillText'
+              ? (text) => labels.push(String(text))
+              : key === 'measureText'
+                ? (text) => ({ width: String(text).length * 15 })
+                : () => {},
     },
   );
   const canvas = { width: 0, height: 0, getContext: () => context };
@@ -142,6 +145,7 @@ function fixture({
     selectMode,
     images,
     draws,
+    labels,
   };
 }
 
@@ -165,6 +169,47 @@ test('original home, garden and illustrated actors load, redraw and detach on di
   callback();
   assert.equal(f.draws.length, count, 'late image callbacks must not redraw a disposed game');
   assert(f.images.every((image) => image.onload === null && image.onerror === null));
+});
+
+test('synchronous disposal prevents queued hint preloading', async () => {
+  let preloads = 0;
+  const f = fixture({
+    config: {
+      adMode: 'host',
+      rewardProvider: {
+        preload() {
+          preloads++;
+        },
+        dispose() {},
+      },
+    },
+  });
+  f.game.dispose();
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(preloads, 0);
+});
+
+test('an invalid drag immediately paints the feedback without another touch', () => {
+  const f = fixture();
+  try {
+    f.tap('start');
+    const before = f.game.getState().board;
+    const invalid = levels[0].nodes.findIndex(
+      (_, n) => !legalTargets(levels[0], before, 0).includes(n) && !before.cops.includes(n),
+    );
+    assert(invalid >= 0);
+    const from = f.touch('cop0'),
+      to = f.touch(`node${invalid}`);
+    f.emit('TouchStart', { touches: [from] });
+    f.emit('TouchMove', { touches: [to] });
+    f.labels.length = 0;
+    f.emit('TouchEnd', { touches: [], changedTouches: [to] });
+    assert.deepEqual(f.game.getState().board, before);
+    assert(f.labels.includes('只能走到亮起的相邻路口'));
+  } finally {
+    f.game.dispose();
+  }
 });
 
 test('tapping an officer at its feet selects it without consuming a move', () => {
@@ -587,4 +632,91 @@ test('developer saves remain separate from normal progress', () => {
   assert.ok(f.storage.has('cops-robbers-practice-v3'));
   assert.ok(f.storage.has('cops-robbers-duel-practice-v1'));
   assert.deepEqual(f.storage.get('cops-robbers-v3'), { completed: { 1: { turns: 7, stars: 3 } } });
+});
+
+test('selecting the current level resumes its board and repairs legacy stars on read', () => {
+  const f = fixture({
+    saved: { 'cops-robbers-v3': { completed: { 1: { turns: levels[0].par, stars: 1 } } } },
+  });
+  f.tap('start');
+  f.tap('wait');
+  const before = f.game.getState().board;
+  f.tap('pause');
+  f.tap('home');
+  f.tap('levels');
+  f.tap('level:2');
+  assert.deepEqual(f.game.getState().board, before);
+  assert.equal(JSON.parse(f.storage.get('cops-robbers-v3')).completed[1].stars, 3);
+  f.game.dispose();
+});
+
+test('off-route hints use the current board and are cancelled when leaving play', () => {
+  const f = fixture();
+  f.tap('start');
+  f.tap('wait');
+  f.tap('hint');
+  if (f.timers.size) f.runAI();
+  assert(f.game.getState().hintNode >= 0 || /无法|尚未/.test(f.game.getState().note));
+  f.tap('pause');
+  assert.equal(f.game.getState().hintBusy, false);
+  assert.equal(f.timers.size, 0);
+  f.game.dispose();
+});
+
+test('dragging an officer to a legal junction moves once; return and cancellation do not move', () => {
+  const f = fixture();
+  f.tap('start');
+  const before = f.game.getState().board;
+  const actor = before.cops.findIndex((_, i) =>
+    legalTargets(levels[0], before, i).some((n) => n !== before.cops[i]),
+  );
+  const target = legalTargets(levels[0], before, actor).find((n) => n !== before.cops[actor]);
+  const from = f.touch(`cop${actor}`),
+    to = f.touch(`node${target}`);
+  const drag = () => {
+    f.emit('TouchStart', { touches: [from] });
+    f.emit('TouchMove', { touches: [to] });
+  };
+  drag();
+  f.emit('TouchMove', { touches: [from] });
+  f.emit('TouchEnd', { touches: [], changedTouches: [from] });
+  assert.deepEqual(f.game.getState().board, before);
+  drag();
+  f.emit('TouchCancel');
+  f.emit('TouchEnd', { touches: [], changedTouches: [to] });
+  assert.deepEqual(f.game.getState().board, before);
+  drag();
+  f.emit('TouchEnd', { touches: [], changedTouches: [to] });
+  const plan = [...before.cops];
+  plan[actor] = target;
+  assert.deepEqual(f.game.getState().board, step(levels[0], before, plan).state);
+  f.game.dispose();
+});
+
+test('rewarded hints survive close and repeated hide before the host returns', async () => {
+  let resolve;
+  const f = fixture({
+    config: {
+      adMode: 'host',
+      rewardProvider: {
+        show: () =>
+          new Promise((done) => {
+            resolve = done;
+          }),
+      },
+    },
+  });
+  f.tap('start');
+  f.tap('hint');
+  await Promise.resolve();
+  assert.equal(f.game.getState().hintBusy, true);
+  f.emit('Hide');
+  resolve({ status: 'completed' });
+  await new Promise((done) => setTimeout(done, 0));
+  assert.equal(f.game.getState().hintNode, -1);
+  f.emit('Hide'); // Repeated host hide after close must not cancel an earned reward.
+  f.emit('Show');
+  await new Promise((done) => setTimeout(done, 0));
+  assert(f.game.getState().hintNode >= 0);
+  f.game.dispose();
 });

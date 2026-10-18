@@ -43,6 +43,10 @@ export default {
 
       // ads 包含 true 时，每款游戏必须填写本目标的真实广告位 ID。
       // 无广告时可留空；H5 和原生广告位分开填写，不能相互回退。
+      // Tap SDK services work independently of backend. Fill target-owned public IDs.
+      tapServices: {
+        // 'cops-robbers': { enabled: true, appConsoleId: 'YOUR_CONSOLE_ID', appId: 'YOUR_MINIAPP_ID', leaderboardId: 'YOUR_LEADERBOARD_ID' },
+      },
       adUnits: {
         // 'cops-robbers': '',
         // 'cops-robbers-realtime': '',
@@ -60,6 +64,7 @@ export default {
     //   platform: 'taptap',
     //   type: 'h5',
     //   adUnits: {}, // 开广告时按游戏填写 H5 广告位
+    //   tapServices: {}, // H5 应用的 console/app/leaderboard IDs，不能复用原生应用
     // },
 
     // 同时生成微信工程：取消注释并为每款已选游戏填真实 wx... AppID。

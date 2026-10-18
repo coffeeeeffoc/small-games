@@ -1,3 +1,4 @@
+import { tapServicesConfig } from '../../../scripts/taptap-services-config.mjs';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -94,7 +95,12 @@ export function configuration(game, platform, { release = false, env = process.e
   const competitionConfigured = Boolean(
     apiUrl && platform !== 'alipay' && (appId || platform === 'web-preview'),
   );
+  const tapServices = platform === 'taptap' ? tapServicesConfig(game, env) : { enabled: false };
+  if (tapServices.enabled)
+    assert(tapServices.appId === appId, 'TapTap services AppID must match the native target');
   return {
+    tapServices,
+    ...(tapServices.enabled ? { identityProvider: 'taptap' } : {}),
     game,
     title: games[game].title,
     platform,
@@ -102,6 +108,13 @@ export function configuration(game, platform, { release = false, env = process.e
     appId,
     apiUrl,
     rewardedAdUnitId: adUnitId,
+    adMode: adUnitId ? 'host' : 'off',
+    visualAssets:
+      game === 'cops-robbers-realtime'
+        ? { portraits: 'street-characters.webp' }
+        : game === 'xiangqi-five'
+          ? { pavilion: 'pavilion-background.png', logo: 'five-piece-logo.webp' }
+          : {},
     competitionConfigured,
     competitionEnabled: competitionConfigured,
     preview: !release,

@@ -1,5 +1,19 @@
+import { openNativeTapPortal } from '../../../platforms/taptap/native-portal.mjs';
+import {
+  validateTapProgress,
+  mergeTapProgress,
+  tapProgressScore,
+  tapProgressSummary,
+} from '../../local/cops-robbers/src/tap-save.js';
 import { levels } from '../../local/cops-robbers/src/levels.js';
-import { initialState, legalTargets, stateKey, step } from '../../local/cops-robbers/src/engine.js';
+import {
+  initialState,
+  legalTargets,
+  stateKey,
+  step,
+  searchSolution,
+  validatePlan,
+} from '../../local/cops-robbers/src/engine.js';
 import {
   relayLevels,
   relayTargets,
@@ -22,7 +36,9 @@ import {
   stepDuel,
   chooseDuelAction,
 } from '../../local/cops-robbers/src/duel.js';
-import { levelUnlocked } from '../../local/cops-robbers/src/progress.js';
+import { levelUnlocked, campaignRecord } from '../../local/cops-robbers/src/progress.js';
+import { createGameAds } from '../../local/cops-robbers/src/ads.js';
+import { createPlatformAdProvider } from '../../../platforms/h5/platform-ads.js';
 import { createRenderer } from '../../local/cops-robbers/src/competition-renderer.js';
 import {
   presentationLevel,
@@ -37,7 +53,7 @@ const object = (value) => value && typeof value === 'object' && !Array.isArray(v
 const modes = {
   standard: { label: '围堵挑战', list: levels, records: 'completed' },
   relay: { label: '换防接力', list: relayLevels, records: 'relayCompleted' },
-  quick: { label: '短场试炼', list: quickTrials, records: 'quickCompleted' },
+  quick: { label: '快速战术试炼', list: quickTrials, records: 'quickCompleted' },
   escape: { label: '出口竞速', list: duelLevels.filter((level) => level.mode === 'escape') },
   survival: { label: '限步周旋', list: duelLevels.filter((level) => level.mode === 'survival') },
 };
@@ -76,6 +92,7 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
     scheduler.clearTimeout?.bind(scheduler) || globalThis.clearTimeout.bind(globalThis);
   const now = scheduler.now?.bind(scheduler) || Date.now;
   const random = scheduler.random?.bind(scheduler) || Math.random;
+  let tapPortal = null;
   let storageOK = true;
   const read = (key) => {
     try {
@@ -89,19 +106,12 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
   };
   const save = read(campaignKey),
     duelSave = read(duelKey);
-  for (const info of Object.values(modes).filter((info) => info.records)) {
+  for (const [mode, info] of Object.entries(modes).filter(([, info]) => info.records)) {
     const records = save[info.records];
     save[info.records] = Object.fromEntries(
       info.list
-        .filter(
-          (map) =>
-            Number.isInteger(records?.[map.id]?.turns) &&
-            records[map.id].turns > 0 &&
-            records[map.id].turns < 100000 &&
-            (!map.turnLimit || records[map.id].turns <= map.turnLimit) &&
-            [1, 2, 3].includes(records[map.id].stars),
-        )
-        .map((map) => [map.id, records[map.id]]),
+        .map((map) => [map.id, campaignRecord(map, records?.[map.id], undefined, mode)])
+        .filter(([, record]) => record),
     );
   }
   save.settings = object(save.settings) ? save.settings : {};
@@ -154,6 +164,23 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
     generation = 0,
     child;
   let art;
+  let hintBusy = false,
+    hintAdActive = false,
+    hintRequest = 0,
+    hintTimer = null;
+  const adPlatform = config.platform === 'taptap' ? 'taptap-h5' : config.platform;
+  const sdkName = { 'taptap-h5': 'tap', wechat: 'wx', douyin: 'tt', bilibili: 'bl' }[adPlatform];
+  const hintProvider =
+    config.rewardProvider ||
+    createPlatformAdProvider({
+      platform: adPlatform,
+      adUnitId: config.rewardedAdUnitId,
+      environment: sdkName ? { [sdkName]: sdk } : {},
+    });
+  const freeHints =
+    config.adMode === 'off' ||
+    (!config.adMode && !config.rewardProvider && !config.rewardedAdUnitId);
+  const hintAds = createGameAds({ getProvider: () => hintProvider, onPendingChange: () => draw() });
   const subscriptions = [],
     channel = sdk.channelEntry;
   let channelMessage = '';
@@ -272,6 +299,7 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
   }
   function changePage(next) {
     cancelAI();
+    cancelHint();
     pressed = null;
     hintNode = -1;
     page = next;
@@ -331,6 +359,7 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
     const map = list().find((item) => item.id === id);
     if (!map || !unlocked(id)) return;
     cancelAI();
+    cancelHint();
     level = map;
     hintNode = -1;
     if (isDuel()) {
@@ -398,10 +427,7 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
     if (result === 'won') {
       if (isDuel()) duelSave.wins[`${mode}:${role}:${level.id}`] = true;
       else {
-        const par = mode === 'relay' ? optimalRelaySolutions[level.id].length : level.par;
-        const stars = board.turn <= par ? 3 : board.turn <= par + 3 ? 2 : 1;
-        if (!records()[level.id] || board.turn < records()[level.id].turns)
-          records()[level.id] = { turns: board.turn, stars };
+        records()[level.id] = campaignRecord(level, records()[level.id], board.turn, mode);
       }
     }
     if (result !== 'planning') changePage('result');
@@ -416,11 +442,14 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
   }
   function move(target) {
     if (!canAct()) return;
+    if (hintAdActive) return;
     if (!targets().includes(target)) {
       note = mode === 'relay' ? '接力需换人，请点相邻空路口' : '只能走到亮起的相邻路口';
+      draw();
       return;
     }
     hintNode = -1;
+    cancelHint();
     note = '';
     if (isDuel())
       board = stepDuel(level, board, { type: 'move', side: role, actor: selected, target });
@@ -445,8 +474,16 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
     }
     finishMove();
   }
-  function showHint() {
-    if (!canAct() || isDuel()) return;
+  function cancelHint() {
+    hintRequest++;
+    if (hintTimer !== null) clearLater(hintTimer);
+    hintTimer = null;
+    hintBusy = false;
+    hintAdActive = false;
+    hintAds.cancel();
+  }
+  function findHint(request) {
+    if (request !== hintRequest || !canAct() || isDuel()) return;
     const reference = (
       mode === 'quick'
         ? quickSolutions
@@ -456,23 +493,79 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
     )[level.id];
     let cursor = initialState(level),
       last = -1;
-    for (let index = 0; index < reference.length; index++) {
+    const finish = (answer) => {
+      if (request !== hintRequest || !canAct()) return;
+      hintBusy = false;
+      hintTimer = null;
+      const plan = answer.plans?.[0];
+      if (answer.status === 'solved' && plan && validatePlan(level, board, plan) === null) {
+        selected = Math.max(0, movedOfficer(board, plan));
+        hintNode = plan[selected];
+        note = `最短还需 ${answer.plans.length} 步：${selected + 1} 号${hintNode === board.cops[selected] ? '留守一步' : `到 ${hintNode + 1} 号路口`}`;
+      } else {
+        hintNode = -1;
+        note =
+          answer.status === 'unsolvable'
+            ? '当前局面无法全部围捕，请撤销或重试'
+            : '尚未确认最短路线，可重试提示或撤销';
+      }
+      draw();
+    };
+    for (let index = 0; index < (reference?.length || 0); index++) {
       if (
         stateKey(cursor) === stateKey(board) &&
         (mode !== 'relay' || last === lastOfficer(board, history)) &&
         (mode !== 'quick' || reference.length - index <= level.turnLimit - board.turn)
       ) {
-        selected = Math.max(0, movedOfficer(board, reference[index]));
-        hintNode = reference[index][selected];
-        note = `已核验路线：${selected + 1} 号${hintNode === board.cops[selected] ? '留守一步' : `到 ${hintNode + 1} 号路口`}`;
+        finish({ status: 'solved', plans: reference.slice(index) });
         return;
       }
       const actor = movedOfficer(cursor, reference[index]);
       if (actor >= 0) last = actor;
       cursor = step(level, cursor, reference[index]).state;
     }
+    // Native hosts have no portable Worker. Bound the existing pure search and
+    // yield one frame before it; never present a budget limit as proof of failure.
+    hintBusy = true;
+    note = '正在核对最短围捕路线…';
+    draw();
+    hintTimer = later(() => {
+      if (request !== hintRequest || !canAct()) return;
+      const answer = searchSolution(level, board, {
+        maxStates: 3000,
+        maxDepth: mode === 'quick' ? Math.max(0, level.turnLimit - board.turn) : Infinity,
+        relayLast: mode === 'relay' ? lastOfficer(board, history) : null,
+      });
+      if (mode === 'quick' && answer.reason === 'max-depth') answer.status = 'unsolvable';
+      finish(answer);
+    }, 0);
+  }
+  function showHint() {
+    if (!canAct() || isDuel() || hintBusy || hintAds.pending) return;
+    const request = ++hintRequest;
     hintNode = -1;
-    note = '当前局面暂无已核验提示，可撤销或重试';
+    pressed = null;
+    if (freeHints) {
+      findHint(request);
+      return;
+    }
+    hintBusy = true;
+    hintAdActive = true;
+    note = '正在打开广告…';
+    draw();
+    void hintAds.offer({ id: 'cops-robbers:hint', reward: { hint: 1 } }).then((result) => {
+      if (request !== hintRequest || !canAct()) return;
+      hintBusy = false;
+      hintAdActive = false;
+      if (result.status === 'completed') findHint(request);
+      else {
+        note =
+          result.status === 'dismissed'
+            ? '广告未完整观看，本次未获取提示'
+            : '广告暂不可用，可以继续游戏';
+        draw();
+      }
+    });
   }
   const subscribe = (on, off, listener) => {
     if (typeof sdk[on] === 'function' && typeof sdk[off] === 'function') {
@@ -483,6 +576,9 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
   function stopLocal() {
     persist();
     cancelAI();
+    cancelHint();
+    hintAds.dispose();
+    hintProvider.dispose?.();
     stopped = true;
     pressed = null;
     for (const unsubscribe of subscriptions.splice(0)) {
@@ -537,8 +633,40 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
     draw();
   }
+  function openTap() {
+    if (page !== 'home') return;
+    cancelAI();
+    cancelHint();
+    persist();
+    page = 'tap';
+    const savePort = {
+      export: () => validateTapProgress(save),
+      validate: validateTapProgress,
+      summary: tapProgressSummary,
+      score: () => tapProgressScore(save),
+      developer: () => developer,
+      canRestore: () => page === 'tap',
+      restore(value) {
+        const merged = mergeTapProgress(save, value);
+        sdk.setStorageSync(campaignKey, JSON.stringify({ ...save, ...merged, version: 3 }));
+        Object.assign(save, merged, { version: 3 });
+      },
+    };
+    tapPortal = openNativeTapPortal({
+      sdk,
+      canvas,
+      config,
+      multiplayer: config.tapMultiplayer,
+      savePort,
+      onExit: () => {
+        tapPortal = null;
+        page = 'home';
+        resize();
+      },
+    });
+  }
   function draw() {
-    if (stopped || disposed) return;
+    if (stopped || disposed || page === 'tap') return;
     hits = [];
     const sky = ctx.createLinearGradient(0, 0, 0, height);
     sky.addColorStop(0, '#6bc7e5');
@@ -597,7 +725,14 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
         config.competitionEnabled === true &&
         /^https:\/\//.test(config.apiUrl || '') &&
         startNativeCompetition;
-      const base = height - bottom - (isDuel() || competition ? 4 : 3) * 56 - 38;
+      const base =
+        height -
+        bottom -
+        (isDuel() || competition ? 4 : 3) * 56 -
+        38 -
+        (config.tapServices?.enabled ? 56 : 0);
+      if (config.tapServices?.enabled)
+        button('tap-services', 'TapTap 小站', height - bottom - 94, openTap);
       const heroTop = top + 96,
         heroHeight = Math.max(20, base - heroTop - 14);
       ctx.save();
@@ -679,7 +814,9 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
     } else if (page === 'modes') {
       title('选择玩法');
       Object.entries(modes).forEach(([id, info], index) =>
-        button(`mode:${id}`, `${info.label} · 120 关`, top + 70 + index * 54, () => chooseMode(id)),
+        button(`mode:${id}`, `${info.label} · ${info.list.length} 关`, top + 70 + index * 54, () =>
+          chooseMode(id),
+        ),
       );
       button('back', '返回主页', backY, home);
     } else if (page === 'setup') {
@@ -775,7 +912,10 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
             ...p,
             w: cardWidth,
             h: 62,
-            action: () => load(map.id),
+            action: () => {
+              const current = snapshot();
+              load(map.id, current?.levelId === map.id ? current : null);
+            },
           });
       });
       button(
@@ -1024,7 +1164,9 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
             circle(p, 22, '#ffe272');
             ctx.strokeStyle = '#16869c';
             ctx.lineWidth = 3;
+            if (!isDuel() && !legal.some((target) => target !== n)) ctx.setLineDash([4, 4]);
             ctx.stroke();
+            ctx.setLineDash([]);
           }
           if (!art?.actor(ctx, side, p.x, p.y + 3, actorHeight)) {
             circle(p, 17, side === 'pursuer' ? '#1258c2' : '#d65b19');
@@ -1040,6 +1182,7 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
             hits.push({
               id: `${side === 'pursuer' ? 'cop' : 'robber'}${index}`,
               actor: true,
+              actorIndex: index,
               node: n,
               x: p.x - 22,
               y: p.y - actorHeight,
@@ -1052,13 +1195,26 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
               },
             });
         });
+      if (pressed?.dragged && pressed.position) {
+        const origin = point(myPositions()[selected]);
+        ctx.strokeStyle = '#16869c';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([6, 5]);
+        ctx.beginPath();
+        ctx.moveTo(origin.x, origin.y);
+        ctx.lineTo(pressed.position.x, pressed.position.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
       const y = controlsY;
       paperPanel(ctx, leftInset - 5, y - 43, span + 10, 30, '#f4ffdf', '#a7c7a1', 15);
       text(
         note ||
           (isDuel() && board.side !== role
             ? '电脑思考中…'
-            : `已选 ${selected + 1} 号 · 点相邻路口`),
+            : !isDuel() && !legal.some((target) => target !== board.cops[selected])
+              ? `${selected + 1} 号本步只能留守，请换一位队员`
+              : `已选 ${selected + 1} 号 · 点相邻路口`),
         center,
         y - 28,
         13,
@@ -1072,6 +1228,7 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
           '撤销',
           y,
           () => {
+            cancelHint();
             board = history.pop();
             hintNode = -1;
             note = '';
@@ -1081,7 +1238,15 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
           leftInset + third + 8,
           third,
         );
-        button('hint', '提示', y, showHint, canAct(), leftInset + (third + 8) * 2, third);
+        button(
+          'hint',
+          hintBusy ? '核对中' : '提示',
+          y,
+          showHint,
+          canAct() && !hintBusy,
+          leftInset + (third + 8) * 2,
+          third,
+        );
       }
     }
     config.onFrame?.(canvas);
@@ -1105,26 +1270,35 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
   };
   subscribe('onTouchStart', 'offTouchStart', (event) => {
     const touches = event.touches || [];
-    if (!visible || stopped || touches.length !== 1 || pressed) {
+    if (page === 'tap' || !visible || stopped || hintAdActive || touches.length !== 1 || pressed) {
       cancel();
       return;
     }
     const touch = touches[0],
       hit = find(point(touch));
-    pressed = hit ? { hit, identifier: touch.identifier, page } : null;
+    pressed = hit ? { hit, identifier: touch.identifier, page, origin: point(touch) } : null;
     draw();
   });
   subscribe('onTouchMove', 'offTouchMove', (event) => {
     const touches = event.touches || [];
-    if (
-      !pressed ||
-      touches.length !== 1 ||
-      touches[0].identifier !== pressed.identifier ||
-      !inside(point(touches[0]), pressed.hit)
-    ) {
+    if (!pressed || touches.length !== 1 || touches[0].identifier !== pressed.identifier) {
       cancel();
       draw();
+      return;
     }
+    const position = point(touches[0]);
+    if (pressed.hit.actor && canAct()) {
+      if (position.x < 0 || position.y < 0 || position.x > width || position.y > height) cancel();
+      else if (
+        pressed.dragged ||
+        Math.hypot(position.x - pressed.origin.x, position.y - pressed.origin.y) > 8
+      ) {
+        selected = pressed.hit.actorIndex;
+        pressed.dragged = true;
+        pressed.position = position;
+      }
+    } else if (!inside(position, pressed.hit)) cancel();
+    draw();
   });
   subscribe('onTouchCancel', 'offTouchCancel', () => {
     cancel();
@@ -1145,6 +1319,15 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
       prior.page !== page
     )
       return;
+    if (prior.dragged) {
+      const hit = find(point(touches[0]));
+      if (Number.isInteger(hit?.node) && hit.node !== myPositions()[selected]) move(hit.node);
+      else {
+        note = '已取消拖动，没有走出这一步';
+        draw();
+      }
+      return;
+    }
     const hit = find(point(touches[0]));
     if (
       !hit ||
@@ -1161,12 +1344,17 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
     visible = false;
     cancel();
     cancelAI();
-    if (page === 'play') page = 'pause';
+    hintAds.setHidden(true);
+    if (page === 'play' && !hintAdActive) {
+      page = 'pause';
+      cancelHint();
+    }
     persist();
     draw();
   });
   subscribe('onShow', 'offShow', () => {
     visible = true;
+    hintAds.setHidden(false);
     cancel();
     resize();
   });
@@ -1179,6 +1367,7 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
     );
   function dispose() {
     if (disposed) return;
+    tapPortal?.stop();
     disposed = true;
     art?.dispose();
     if (!stopped) stopLocal();
@@ -1187,9 +1376,16 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
   }
   art = createCopsArt(sdk, draw);
   resize();
+  if (!freeHints)
+    void Promise.resolve()
+      .then(() => {
+        if (!stopped && !disposed) return hintProvider.preload?.();
+      })
+      .catch(() => {});
   return {
     canvas,
     dispose,
+    getTapServiceState: () => tapPortal?.getSnapshot(),
     getState: () =>
       child?.getState?.() || {
         page,
@@ -1206,6 +1402,7 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
         outcome: active ? outcome() : null,
         note,
         hintNode,
+        hintBusy,
         art: art.snapshot(),
         hits: hits.map(({ action, ...hit }) => hit),
       },

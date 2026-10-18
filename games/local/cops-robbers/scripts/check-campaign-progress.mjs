@@ -4,7 +4,17 @@ import { relayLevels, legacyRelayLevelIds } from '../src/relay.js';
 import { quickTrials, quickSolutions } from '../src/quick-trials.js';
 import { optimalRelaySolutions } from '../src/optimal-solutions.js';
 import { initialState, step, validatePlan } from '../src/engine.js';
-import { levelUnlocked, nextPlayable } from '../src/progress.js';
+import { levelUnlocked, nextPlayable, campaignRecord, campaignPar } from '../src/progress.js';
+
+for (const [mode, catalog] of [['standard', levels], ['relay', relayLevels], ['quick', quickTrials]]) {
+  const map = catalog[0], par = campaignPar(map, mode);
+  assert.equal(campaignRecord(map, { turns: par, stars: 1 }, par, mode).stars, 3, 'same score repairs legacy stars');
+  assert.equal(campaignRecord(map, { turns: par, stars: 1 }, par + 1, mode).turns, par, 'slower replay cannot replace a best');
+  assert.equal(campaignRecord(map, { turns: par }, undefined, mode).stars, 3, 'valid turns restore a missing star field');
+  assert.equal(campaignRecord(map, { turns: -1 }, undefined, mode), null);
+}
+assert.equal(campaignRecord(quickTrials[0], { turns: quickTrials[0].turnLimit + 1 }, undefined, 'quick'), null);
+assert.throws(() => campaignPar({ id: 99999, par: 4 }, 'relay'), /Missing relay/);
 
 for (const catalog of [levels,relayLevels,quickTrials]) {
   assert.equal(catalog.length,120);

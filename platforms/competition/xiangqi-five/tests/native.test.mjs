@@ -61,7 +61,12 @@ function fixture(width = 390, height = 844, stored = new Map(), config = {}, ove
     emit('TouchStart', [p]);
     emit('TouchEnd', [p], []);
   };
-  return { game, stored, listeners, info, tap, point, emit, texts };
+  const start = (opponent = 'local') => {
+    tap('开始对弈');
+    tap(opponent === 'computer' ? '电脑对弈' : '同屏双人');
+    tap('开始对局');
+  };
+  return { game, stored, listeners, info, tap, point, emit, texts, start };
 }
 
 test('native same-screen games use real rules, old save replay, cancellation and lifecycle', () => {
@@ -77,7 +82,7 @@ test('native same-screen games use real rules, old save replay, cancellation and
       assert.equal(game.state.page, 'home');
       assert(!game.getLayout().hits.some((item) => item.label === '好友挑战'));
       assert.equal(game.state.page, 'home');
-      tap('同屏双人');
+      f.start();
       assert.equal(game.state.game.mode, 'xiangqi');
       const hit = game.getLayout().hits.find((item) => item.label.startsWith('棋格'));
       assert(hit);
@@ -127,13 +132,13 @@ test('native same-screen games use real rules, old save replay, cancellation and
       const restored = fixture(width, height, f.stored);
       assert.equal(JSON.stringify(restored.game.state.game), original);
       restored.game.stop();
-      tap('棋盘：象棋盘');
-      assert.equal(
-        game.state.mode,
-        'gomoku',
-        `mode switch ${width}x${height}: ${JSON.stringify(game.getLayout())}`,
-      );
+      tap('开始对弈');
       tap('同屏双人');
+      tap('五子棋盘 15×15');
+      assert.equal(game.state.mode, 'xiangqi', 'setup is a draft until confirmed');
+      tap('开始对局');
+      assert.equal(game.state.page, 'restart');
+      tap('确认重开');
       assert.equal(game.state.game.board.length, 225);
       const area = game.getLayout().area,
         a = point(area.x + area.w - 20, area.y + area.h - 20),
@@ -153,7 +158,7 @@ test('native same-screen games use real rules, old save replay, cancellation and
 test('native computer makes a legal reply using the existing search', async () => {
   const f = fixture();
   try {
-    f.tap('电脑对弈');
+    f.start('computer');
     const hit = f.game.getLayout().hits.find((item) => item.label.startsWith('棋格'));
     f.tap(hit.label);
     const deadline = Date.now() + 6000;
@@ -169,7 +174,7 @@ test('native computer makes a legal reply using the existing search', async () =
 test('native red five-in-a-row settles once and survives replay', () => {
   const f = fixture();
   try {
-    f.tap('同屏双人');
+    f.start();
     for (const index of [0, 9, 1, 10, 2, 11, 3, 12, 4]) f.tap(`棋格${index}`);
     assert.equal(f.game.state.page, 'result');
     assert.equal(f.game.state.game.result, 'red');
@@ -189,7 +194,7 @@ test('native red five-in-a-row settles once and survives replay', () => {
 test('native tactical training uses pinned fixed positions, settles stars and keeps local save', () => {
   const f = fixture();
   try {
-    f.tap('同屏双人');
+    f.start();
     f.tap('棋格0');
     f.tap('暂停');
     f.tap('返回首页');
@@ -216,7 +221,8 @@ test('native tactical training uses pinned fixed positions, settles stars and ke
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 function advertisedFixture(computer = false) {
   const callbacks = {},
-    calls = [];
+    calls = [],
+    adShows = [];
   const f = fixture(
     390,
     844,
@@ -236,18 +242,20 @@ function advertisedFixture(computer = false) {
           offClose() {},
           offError() {},
           destroy() {},
-          show: async () => {},
+          show: async () => {
+            adShows.push('show');
+          },
           load: async () => {},
         };
       },
     },
   );
-  if (computer) f.tap('电脑对弈');
+  if (computer) f.start('computer');
   else {
     f.tap('战术练习');
     f.tap('01 一车架桥');
   }
-  return { ...f, callbacks, calls };
+  return { ...f, callbacks, calls, adShows };
 }
 
 test('native human-computer hints reward only completion, reuse this turn and cancel on pause', async () => {
@@ -257,6 +265,7 @@ test('native human-computer hints reward only completion, reuse this turn and ca
     'hide-complete',
     'hide-dismissed',
     'show-first',
+    'hide-repeat',
     'pause',
   ]) {
     const f = advertisedFixture(true);
@@ -275,13 +284,14 @@ test('native human-computer hints reward only completion, reuse this turn and ca
       if (status === 'pause') f.tap('暂停');
       f.callbacks.close({ isEnded: !status.includes('dismissed') });
       await tick();
+      if (status === 'hide-repeat') f.emit('Hide');
       if (status.startsWith('hide')) {
         assert.equal(f.game.state.page, 'play');
         f.emit('Show');
         await tick();
       }
       if (status === 'pause') f.tap('继续对局');
-      if (['completed', 'hide-complete', 'show-first'].includes(status)) {
+      if (['completed', 'hide-complete', 'hide-repeat', 'show-first'].includes(status)) {
         f.tap('重看提示');
         assert.equal(f.calls.length, 1);
         assert(f.texts.join('').includes('直接连五'));
@@ -310,7 +320,7 @@ test('native long analysis can pause, and its retired result cannot cancel a new
     assert.equal(f.game.state.page, 'pause');
     assert.equal(f.calls.length, 1, 'analysis starts only after the first ad');
     f.tap('返回首页');
-    f.tap('电脑对弈');
+    f.start('computer');
     for (let i = 0; i < 4; i++) f.game.state.game.board[i] = { side: 'red', type: 'pawn' };
     f.tap('获取提示');
     await tick();
@@ -333,7 +343,8 @@ test('native undo is free once, saved, then requires full viewing across Hide/Sh
       Object.assign(f.game.state.game, state);
       f.emit('WindowResize');
       f.tap('悔棋·免费1次');
-      assert.equal(f.calls.length, 0);
+      assert.equal(f.calls.length, 1, 'only the preloaded instance exists');
+      assert.equal(f.adShows.length, 0, 'the first undo never opens the preloaded ad');
       assert.equal(f.game.state.game.ply, 2);
       assert.equal(f.game.state.game.freeUndoUsed, true);
       const resumed = fixture(390, 844, f.stored);
@@ -454,7 +465,8 @@ test('pause/settings cannot reveal the unpaid tactical hint; non-Tap hints stay 
     f.texts.length = 0;
     f.tap('玩法与设置');
     assert(!f.texts.join('').includes(CHALLENGES[0].hint));
-    assert.equal(f.calls.length, 0);
+    assert.equal(f.calls.length, 1, 'only the preloaded instance exists');
+    assert.equal(f.adShows.length, 0, 'opening rules never starts the preloaded ad');
   } finally {
     f.game.stop();
   }
@@ -468,5 +480,186 @@ test('pause/settings cannot reveal the unpaid tactical hint; non-Tap hints stay 
     assert.equal(free.game.state.page, 'play');
   } finally {
     free.game.stop();
+  }
+});
+
+test('draft setup and cancelled restart preserve pending draw and persisted game', () => {
+  const f = fixture();
+  try {
+    f.start();
+    f.tap('抽一枚棋子');
+    const before = structuredClone(f.game.state.game),
+      saved = new Map(f.stored);
+    f.tap('暂停');
+    f.tap('重新开局');
+    assert.equal(f.game.state.page, 'restart');
+    f.tap('取消，保留棋局');
+    assert.equal(f.game.state.page, 'pause');
+    f.tap('调整玩法与难度');
+    f.tap('五子棋盘 15×15');
+    f.tap('开始对局');
+    f.tap('取消，保留棋局');
+    assert.deepEqual(f.game.state.game, before);
+    assert.deepEqual(f.stored, saved);
+    assert.equal(f.game.state.mode, 'xiangqi');
+    f.tap('开始对局');
+    f.tap('确认重开');
+    assert.equal(f.game.state.game.mode, 'gomoku');
+    assert.equal(f.game.state.game.pending, null);
+  } finally {
+    f.game.stop();
+  }
+});
+
+test('training next puzzle and exit restore opponent, difficulty, pending draw and viewport', () => {
+  const f = fixture();
+  try {
+    f.tap('开始对弈');
+    f.tap('电脑对弈');
+    f.tap('困难');
+    f.tap('五子棋盘 15×15');
+    f.tap('开始对局');
+    f.tap('抽一枚棋子');
+    const area = f.game.getLayout().area,
+      a = f.point(area.x + 150, area.y + 120),
+      b = f.point(area.x + 30, area.y + 30);
+    f.emit('TouchStart', [a]);
+    f.emit('TouchMove', [b]);
+    f.emit('TouchEnd', [b], []);
+    const before = structuredClone(f.game.state),
+      { panX, panY } = f.game.getLayout();
+    const saved = f.stored.get('xiangqi-five-local-v1');
+    f.tap('暂停');
+    f.tap('返回首页');
+    f.tap('战术练习');
+    f.tap('01 一车架桥');
+    f.tap('棋格14');
+    f.tap('棋格41');
+    f.tap('下一题');
+    assert.equal(f.game.state.page, 'play');
+    f.tap('暂停');
+    f.tap('返回原棋局');
+    assert.deepEqual(f.game.state, before);
+    assert.equal(f.game.getLayout().panX, panX);
+    assert.equal(f.game.getLayout().panY, panY);
+    assert.equal(f.stored.get('xiangqi-five-local-v1'), saved);
+  } finally {
+    f.game.stop();
+  }
+});
+
+test('resignation settlement names resignation instead of a nonexistent five-line', () => {
+  const f = fixture();
+  try {
+    f.start();
+    f.tap('棋格0');
+    Object.assign(f.game.state.game, { result: 'red', resigned: 'black' });
+    f.tap('暂停');
+    f.tap('返回首页');
+    f.texts.length = 0;
+    f.tap('继续对局');
+    assert(f.texts.includes('黑方认输，红方获胜'));
+    assert(!f.texts.some((text) => text.includes('连五获胜')));
+  } finally {
+    f.game.stop();
+  }
+});
+
+test('optional visual assets tolerate unavailable APIs, errors and late completion after stop', () => {
+  const images = [];
+  const overrides = {
+    createImage() {
+      const image = { width: 1024, height: 1024 };
+      images.push(image);
+      return image;
+    },
+  };
+  const legacy = fixture(390, 844, new Map(), {}, overrides);
+  assert.equal(images.length, 0, 'legacy packages do not request missing art');
+  legacy.game.stop();
+  const f = fixture(
+    390,
+    844,
+    new Map(),
+    { visualAssets: { pavilion: 'pavilion.png', logo: 'logo.webp' } },
+    overrides,
+  );
+  try {
+    assert.deepEqual(
+      images.map((image) => image.src),
+      ['pavilion.png', 'logo.webp'],
+    );
+    images[0].onerror();
+    images[1].onload();
+    f.start();
+    assert.equal(f.game.state.page, 'play');
+    const late = images[0].onload;
+    f.game.stop();
+    const count = f.texts.length;
+    late();
+    assert.equal(f.texts.length, count);
+    assert.equal(images[1].onload, null);
+  } finally {
+    if (f.listeners.size) f.game.stop();
+  }
+});
+
+test('native onShown clears the game fallback; repeated Hide preserves a completed long ad', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const f = advertisedFixture();
+  try {
+    f.tap('获取提示');
+    await tick();
+    f.emit('Hide');
+    t.mock.timers.tick(600_000);
+    await tick();
+    assert.equal(f.game.state.page, 'play');
+    f.callbacks.close({ isEnded: true });
+    await tick();
+    f.emit('Hide');
+    f.emit('Hide');
+    assert.equal(f.game.state.page, 'play');
+    f.emit('Show');
+    await tick();
+    assert.equal(f.game.state.page, 'help');
+  } finally {
+    f.game.stop();
+  }
+});
+
+test('earned computer hint and first undo survive training, next puzzle and original-turn return', async () => {
+  const f = advertisedFixture(true);
+  try {
+    for (let i = 0; i < 4; i++) f.game.state.game.board[i] = { side: 'red', type: 'pawn' };
+    f.game.state.game.freeUndoUsed = true;
+    f.stored.set(
+      'xiangqi-five-local-v1',
+      JSON.stringify({ ...JSON.parse(f.stored.get('xiangqi-five-local-v1')), freeUndoUsed: true }),
+    );
+    f.tap('获取提示');
+    await tick();
+    f.callbacks.close({ isEnded: true });
+    await tick();
+    assert(f.game.getLayout().hits.some((hit) => hit.label === '重看提示'));
+    const before = structuredClone(f.game.state.game),
+      count = f.adShows.length;
+    f.tap('暂停');
+    const saved = f.stored.get('xiangqi-five-local-v1');
+    f.tap('返回首页');
+    f.tap('战术练习');
+    f.tap('01 一车架桥');
+    f.tap('棋格14');
+    f.tap('棋格41');
+    f.tap('下一题');
+    f.tap('暂停');
+    f.tap('返回原棋局');
+    assert.deepEqual(f.game.state.game, before);
+    assert.equal(f.stored.get('xiangqi-five-local-v1'), saved);
+    f.tap('重看提示');
+    await tick();
+    assert.equal(f.adShows.length, count);
+    assert.equal(f.game.state.game.freeUndoUsed, true);
+  } finally {
+    f.game.stop();
   }
 });

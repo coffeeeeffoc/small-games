@@ -190,6 +190,36 @@ const competitionProtocolTools = {
   'scripts/review-competition-kart-chess.mjs': 'xiangqi-five',
   'scripts/street-runs.integration.mjs': 'cops-robbers-realtime',
 };
+// These diagnostic runners exercise existing game/protocol pairs. They need
+// their real consumers, not a directory-wide exemption for arbitrary scripts.
+const competitionReviewTools = {
+  'scripts/review-chase-update.mjs': ['cops-robbers', 'cops-robbers-realtime'],
+  'scripts/review-competition-cops-letters.mjs': ['cops-robbers', 'letters-words2'],
+  'scripts/review-competition-realtime-history.mjs': [
+    'cops-robbers-realtime',
+    'vibeJam-myself-history-guess',
+  ],
+};
+export const competitionReviewScopePaths = Object.freeze(Object.keys(competitionReviewTools));
+export const submoduleDialogScopePath = 'scripts/test-submodule-dialogs.mjs';
+export const submoduleDialogIds = Object.freeze([
+  'fishing',
+  'office-slacking',
+  'tower-defense-game',
+  'xiangqi-five',
+]);
+// Shared only by the three explicitly configured H5/Cocos entrances. Native
+// discovery separately follows real imports; these mappings preserve H5 checks.
+export const tapServiceSharedScopePaths = Object.freeze([
+  'platforms/taptap/browser-entry.mjs',
+  'platforms/taptap/calls.mjs',
+  'platforms/taptap/competition-identity.mjs',
+  'platforms/taptap/game-services.mjs',
+  'platforms/taptap/service-screen.mjs',
+  'platforms/taptap/multiplayer-screen.mjs',
+  'platforms/taptap/multiplayer-session.mjs',
+]);
+export const tapServiceConfigScopePath = 'scripts/taptap-services-config.mjs';
 export const competitionServiceScopePaths = [
   ...Object.keys(competitionProtocolTools),
   'scripts/competition-service-config.mjs',
@@ -1866,6 +1896,81 @@ export function reviewedSharedFileScopes({
   const scopes = vitePatchFileScopes({ changedPaths, readBase, readHead });
   for (const file of changedPaths) {
     try {
+      if (tapServiceSharedScopePaths.includes(file) || file === tapServiceConfigScopePath) {
+        assert.deepEqual(
+          literalDeclaration(readHead(tapServiceConfigScopePath), 'games'),
+          competitionServiceIds,
+        );
+        const consumers = competitionServiceIds.map((id) => competitionConsumers[id]);
+        for (const [index, id] of competitionServiceIds.entries()) {
+          assert.equal(games.filter((game) => game.id === id).length, 1);
+          assert.equal(games.filter((game) => game.source === consumers[index]).length, 1);
+          assert.equal(
+            games.filter((game) => game.id === id && game.source === consumers[index]).length,
+            1,
+          );
+        }
+        consumers.push('apps/shell-web', 'platforms/taptap');
+        for (const dir of consumers)
+          assert.equal(packages.filter((pkg) => pkg.dir === dir).length, 1);
+        scopes.set(file, consumers);
+        continue;
+      }
+      if (competitionReviewScopePaths.includes(file)) {
+        assertCompetitionRegistry(readHead, games);
+        const consumers = [
+          ...competitionReviewTools[file].map((id) => competitionConsumers[id]),
+          'services/runtime-api',
+        ];
+        for (const dir of consumers)
+          assert.equal(packages.filter((pkg) => pkg.dir === dir).length, 1);
+        scopes.set(file, consumers);
+        continue;
+      }
+      if (file === submoduleDialogScopePath) {
+        assert.deepEqual(literalDeclaration(readHead(file), 'allGames'), submoduleDialogIds);
+        const consumers = submoduleDialogIds.map((id) => {
+          const source = `games/submodules/${id}`;
+          assert.equal(games.filter((game) => game.id === id).length, 1);
+          assert.equal(games.filter((game) => game.source === source).length, 1);
+          assert.equal(games.filter((game) => game.id === id && game.source === source).length, 1);
+          assert.equal(packages.filter((pkg) => pkg.dir === source).length, 1);
+          return source;
+        });
+        scopes.set(file, consumers);
+        continue;
+      }
+      if (file === 'infra/builds/cops-robbers-realtime-taptap.json') {
+        const config = JSON.parse(readHead(file));
+        assert.deepEqual(Object.keys(config).sort(), [
+          'adUnits',
+          'ads',
+          'backend',
+          'games',
+          'version',
+        ]);
+        assert.equal(config.version, 1);
+        assert.deepEqual(config.games, ['cops-robbers-realtime']);
+        for (const key of ['ads', 'backend'])
+          assert(
+            Array.isArray(config[key]) &&
+              config[key].length === 1 &&
+              typeof config[key][0] === 'boolean',
+          );
+        assert.deepEqual(Object.keys(config.adUnits), config.games);
+        assert(/^\d+$/.test(config.adUnits['cops-robbers-realtime']));
+        const source = competitionConsumers['cops-robbers-realtime'];
+        assert.equal(games.filter((game) => game.id === 'cops-robbers-realtime').length, 1);
+        assert.equal(games.filter((game) => game.source === source).length, 1);
+        assert.equal(
+          games.filter((game) => game.id === 'cops-robbers-realtime' && game.source === source)
+            .length,
+          1,
+        );
+        assert.equal(packages.filter((pkg) => pkg.dir === source).length, 1);
+        scopes.set(file, [source]);
+        continue;
+      }
       if (adminControlIntegrationScopePaths.includes(file)) {
         const consumers = ['services/management-api', 'services/runtime-api'];
         for (const dir of consumers) assert(packages.some((pkg) => pkg.dir === dir));

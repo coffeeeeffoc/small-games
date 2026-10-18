@@ -107,3 +107,21 @@ test('TapTap builds use free actions for blank units and host ads for real units
   for (const value of ['<YOUR_ID>', 'YOUR_AD_UNIT_ID', 'abc;alert(1)', 'x'.repeat(161)])
     assert.throws(() => adConfiguration(true, { TAPTAP_COPS_ROBBERS_AD_UNIT_ID: value }));
 });
+
+test('the public host cancel port releases a pending hint and allows another request', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const source = (await readFile(new URL('../src/ad-host.js', import.meta.url), 'utf8'))
+    .replace("'../publishing.js'", JSON.stringify(new URL('../../../../platforms/h5/publishing.js', import.meta.url).href))
+    .replace("'../platform-ads.js'", JSON.stringify(new URL('../../../../platforms/h5/platform-ads.js', import.meta.url).href));
+  const { hintAdProvider } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
+  let pending, cancelled = 0, calls = 0;
+  const host = { offer() { calls++; return new Promise(resolve => { pending = resolve; }); },
+    cancel() { cancelled++; pending?.({ status: 'dismissed' }); pending = null; } };
+  const ads = createGameAds({ getProvider: () => hintAdProvider({ SmallGamesRewardAds: host }) });
+  const first = ads.offer({ id: 'hint' }); await flush(); ads.cancel();
+  assert.deepEqual(await first, { status: 'dismissed' }); await flush();
+  assert.equal(cancelled, 1); assert.equal(ads.pending, false);
+  const next = ads.offer({ id: 'hint' }); await flush();
+  assert.equal(calls, 2); pending({ status: 'completed' });
+  assert.deepEqual(await next, { status: 'completed' });
+});

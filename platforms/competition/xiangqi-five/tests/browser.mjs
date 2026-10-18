@@ -4,20 +4,19 @@ import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || '@playwright/test');
 const root = fileURLToPath(new URL('../../../../', import.meta.url));
-const design = fileURLToPath(new URL('../docs/design/', import.meta.url));
 const output = process.env.NATIVE_SCREENSHOT_ROOT
   ? process.env.NATIVE_SCREENSHOT_ROOT + '/xiangqi-five/'
-  : design;
+  : root + 'outputs/xiangqi-native/';
 await mkdir(output, { recursive: true });
 const html = `<meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;overflow:hidden}canvas{width:100vw;height:100vh;touch-action:none}</style><canvas></canvas><script type="module">
 import {startNativeXiangqiGame}from '/platforms/competition/xiangqi-five/native.js';
-const canvas=document.querySelector('canvas'),events=new Map();
-const sdk={createCanvas:()=>canvas,getSystemInfoSync:()=>({windowWidth:innerWidth,windowHeight:innerHeight,pixelRatio:devicePixelRatio,safeArea:{top:28,bottom:innerHeight-18}}),getMenuButtonBoundingClientRect:()=>({bottom:54}),getStorageSync:key=>localStorage.getItem(key),setStorageSync:(key,value)=>localStorage.setItem(key,value)};
+const canvas=document.querySelector('canvas'),events=new Map();window.visualImages=[];
+const sdk={createCanvas:()=>canvas,createImage:()=>{const image=new Image();visualImages.push(image);return image},getSystemInfoSync:()=>({windowWidth:innerWidth,windowHeight:innerHeight,pixelRatio:devicePixelRatio,safeArea:{top:28,bottom:innerHeight-18}}),getMenuButtonBoundingClientRect:()=>({bottom:54}),getStorageSync:key=>localStorage.getItem(key),setStorageSync:(key,value)=>localStorage.setItem(key,value)};
 for(const name of ['TouchStart','TouchMove','TouchEnd','TouchCancel','Hide','Show','WindowResize']){sdk['on'+name]=fn=>events.set(name,fn);sdk['off'+name]=()=>events.delete(name)}
 for(const [name,event]of [['TouchStart','touchstart'],['TouchMove','touchmove'],['TouchEnd','touchend'],['TouchCancel','touchcancel']])canvas.addEventListener(event,e=>{e.preventDefault();events.get(name)?.({changedTouches:Array.from(e.changedTouches),touches:Array.from(e.touches)})},{passive:false});
 const withAds=new URL(location.href).searchParams.has('ads');
 if(withAds)sdk.createRewardedVideoAd=()=>({onClose:fn=>window.closeAd=fn,onError:fn=>window.failAd=fn,offClose(){},offError(){},destroy(){},show:async()=>{},load:async()=>{}});
-addEventListener('resize',()=>events.get('WindowResize')?.());window.game=startNativeXiangqiGame(sdk,withAds?{platform:'taptap',rewardedAdUnitId:'test-slot'}:{});window.events=events;
+addEventListener('resize',()=>events.get('WindowResize')?.());window.game=startNativeXiangqiGame(sdk,{...(withAds?{platform:'taptap',rewardedAdUnitId:'test-slot'}:{}),visualAssets:{pavilion:'/games/submodules/xiangqi-five/assets/pavilion-background.png',logo:'/games/submodules/xiangqi-five/assets/five-piece-logo.webp'}});window.events=events;
 </script>`;
 const server = createServer(async (req, res) => {
   try {
@@ -26,7 +25,16 @@ const server = createServer(async (req, res) => {
       res.end(html);
     } else {
       const url = new URL(req.url, 'http://localhost');
-      res.setHeader('Content-Type', /\.m?js$/.test(url.pathname) ? 'text/javascript' : 'text/html');
+      res.setHeader(
+        'Content-Type',
+        /\.m?js$/.test(url.pathname)
+          ? 'text/javascript'
+          : /\.png$/.test(url.pathname)
+            ? 'image/png'
+            : /\.webp$/.test(url.pathname)
+              ? 'image/webp'
+              : 'text/html',
+      );
       res.end(await readFile(root + url.pathname));
     }
   } catch {
@@ -37,19 +45,10 @@ const server = createServer(async (req, res) => {
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 const browser = await chromium.launch({
   headless: true,
-  executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
+  executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || process.env.CHROMIUM_PATH || undefined,
   args: ['--no-sandbox'],
 });
 try {
-  const concept = await browser.newPage({ viewport: { width: 390, height: 844 } });
-  await concept.setContent(await readFile(design + 'concept.html', 'utf8'));
-  await concept.screenshot({ path: output + 'concept-home.png' });
-  await concept.evaluate(() => {
-    document.querySelector('.home').style.display = 'none';
-    document.querySelector('.game').style.display = 'block';
-  });
-  await concept.screenshot({ path: output + 'concept-play.png' });
-  await concept.close();
   for (const [width, height] of [
     [320, 568],
     [390, 844],
@@ -91,11 +90,20 @@ try {
       assert(hit.y >= 62 && hit.y + hit.h <= height - 18, `${label} not fully visible`);
       await page.touchscreen.tap(hit.x + hit.w / 2, hit.y + hit.h / 2);
     };
+    await page.waitForFunction(
+      () =>
+        visualImages.length === 2 &&
+        visualImages.every((image) => image.complete && image.naturalWidth > 0),
+    );
     await screenshot('home');
+    await tap('开始对弈');
     await tap('同屏双人');
-    await screenshot('play');
+    await screenshot('setup');
+    await tap('开始对局');
     await tap('棋格0');
     assert.equal(await page.evaluate(() => game.state.game.ply), 1);
+    for (const cell of [9, 1, 10]) await tap(`棋格${cell}`);
+    await screenshot('play');
     await tap('暂停');
     await screenshot('pause');
     await tap('玩法与设置');
@@ -106,8 +114,16 @@ try {
     await page.evaluate(() => events.get('Show')());
     assert.equal(await page.evaluate(() => game.state.page), 'pause');
     await tap('返回首页');
-    await tap('棋盘：象棋盘');
+    const saved = await page.evaluate(() => JSON.stringify(game.state.game));
+    await tap('开始对弈');
     await tap('同屏双人');
+    await tap('五子棋盘 15×15');
+    await tap('开始对局');
+    await screenshot('restart');
+    await tap('取消，保留棋局');
+    assert.equal(await page.evaluate(() => JSON.stringify(game.state.game)), saved);
+    await tap('开始对局');
+    await tap('确认重开');
     const before = await page.evaluate(() => game.state.game.ply);
     await screenshot('gomoku');
     const area = await page.evaluate(() => game.getLayout().area);
@@ -133,6 +149,7 @@ try {
     await page.evaluate(() => {
       events.get('Hide')();
       closeAd({ isEnded: true });
+      events.get('Hide')();
     });
     await page.evaluate(() => events.get('Show')());
     await page.waitForFunction(() => game.state.page === 'help');
@@ -140,8 +157,13 @@ try {
     await tap('返回');
     assert.equal(await page.evaluate(() => game.state.page), 'play');
     await tap('暂停');
+    await tap('返回原棋局');
+    await tap('暂停');
     await tap('返回首页');
+    await tap('开始对弈');
     await tap('电脑对弈');
+    await screenshot('setup-computer');
+    await tap('开始对局');
     await page.evaluate(() => {
       for (let i = 0; i < 4; i++) game.state.game.board[i] = { side: 'red', type: 'pawn' };
       window.closeAd = null;
@@ -152,6 +174,7 @@ try {
     await page.evaluate(() => {
       events.get('Hide')();
       closeAd({ isEnded: true });
+      events.get('Hide')();
     });
     await page.evaluate(() => events.get('Show')());
     await page.waitForFunction(() => game.getLayout().hits.some((hit) => hit.label === '重看提示'));
@@ -191,6 +214,7 @@ try {
     await page.evaluate(() => {
       events.get('Hide')();
       closeAd({ isEnded: true });
+      events.get('Hide')();
     });
     await page.evaluate(() => events.get('Show')());
     await page.waitForFunction(() => game.state.game.ply === 2);
@@ -199,7 +223,7 @@ try {
     await page.close();
   }
   console.log(
-    'Actual native Canvas: 320/390/430/844 touch pages, rules, pause/help return, background, 15x15 drag and simulated rewarded hints passed (not real Tap playback).',
+    'Actual native Canvas: 320/390/430/844 touch pages, rules, pause/help return, background, 15x15 drag and simulated rewarded hints passed (browser Canvas; not Creator, real Tap playback or device validation).',
   );
 } finally {
   await browser.close();

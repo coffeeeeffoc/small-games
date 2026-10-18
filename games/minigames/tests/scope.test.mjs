@@ -86,3 +86,36 @@ test('the unified package entry selects the three actual Cocos consumers', () =>
     [],
   );
 });
+
+test('Tap bootstrap and complete serial test entry have finite three-game scope', () => {
+  const changedPaths = [
+    'scripts/taptap-services-bootstrap.mjs',
+    'scripts/check-tap-multiplayer.mjs',
+    'tests/tap-services.test.mjs',
+    'tests/tap-services.browser.mjs',
+    'tests/tap-multiplayer-fixture.mjs',
+    'tests/tap-multiplayer.test.mjs',
+    'tests/tap-multiplayer.browser.mjs',
+  ].map((file) => 'games/minigames/' + file);
+  const fileScopes = cocosMinigameFileScopes({ changedPaths, readHead });
+  assert.deepEqual([...fileScopes.keys()], changedPaths);
+  assert.deepEqual(cocosMinigamePlan({ changedPaths, fileScopes }).ids, [
+    'cops-robbers',
+    'cops-robbers-realtime',
+    'xiangqi-five',
+  ]);
+  assert.equal(
+    cocosMinigameFileScopes({
+      changedPaths: ['games/minigames/scripts/check-tap-extra.mjs'],
+      readHead,
+    }).size,
+    0,
+  );
+  assert.deepEqual(
+    cocosMinigamePlan({
+      changedPaths: ['scripts/taptap-services-config.mjs'],
+      fileScopes: new Map(),
+    }).ids,
+    ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'],
+  );
+});

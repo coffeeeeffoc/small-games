@@ -1,3 +1,4 @@
+import { validateTapServices, tapServicesVariable } from './taptap-services-config.mjs';
 import assert from 'node:assert/strict';
 import { readFile, mkdir, writeFile, realpath } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
@@ -111,7 +112,16 @@ export function parseGameBuildConfig(config) {
     assert(
       record(target) &&
         Object.keys(target).every((key) =>
-          ['platform', 'type', 'release', 'ads', 'backend', 'appIds', 'adUnits'].includes(key),
+          [
+            'platform',
+            'type',
+            'release',
+            'ads',
+            'backend',
+            'appIds',
+            'adUnits',
+            'tapServices',
+          ].includes(key),
         ),
       'BUILD_TARGET',
     );
@@ -133,8 +143,25 @@ export function parseGameBuildConfig(config) {
         'H5 upload identity is configured in the platform console, not appIds/release',
       );
     assert(target.release === undefined || typeof target.release === 'boolean', 'BUILD_RELEASE');
+    assert(
+      !target.tapServices || platform === 'taptap',
+      'TapTap services cannot be used on another platform',
+    );
+    const tapServices = Object.fromEntries(
+      Object.entries(target.tapServices || {}).map(([game, value]) => {
+        assert(h5AdGames.includes(game), 'Unknown TapTap services game');
+        const service = validateTapServices(value);
+        if (type === 'minigame' && service.enabled)
+          assert(
+            service.appId === target.appIds?.[game],
+            'Native TapTap services AppID must match this target',
+          );
+        return [game, service];
+      }),
+    );
     return {
       ...target,
+      tapServices,
       release: type === 'minigame' && (target.release ?? true),
       appIds: identifiers(target.appIds, h5AdGames, 'APP_IDS'),
       adUnits: identifiers(target.adUnits, h5AdGames, 'AD_UNITS'),
@@ -170,6 +197,9 @@ export function gameBuildPlan(config) {
           env: {
             [`${target.platform.toUpperCase()}_APP_ID`]: target.appIds[game] ?? '',
             [`${target.platform.toUpperCase()}_AD_UNIT_ID`]: ads ? target.adUnits[game] : '',
+            [tapServicesVariable(game)]: JSON.stringify(
+              target.tapServices?.[game] || { enabled: false },
+            ),
             COMPETITION_SERVICE_ENABLED: backend ? '1' : '0',
             COMPETITION_PUBLIC_API_URL: backend ? (config.apiUrl ?? '') : '',
           },
@@ -277,6 +307,10 @@ export async function main(
         for (const game of h5AdGames)
           buildEnv[`TAPTAP_${game.toUpperCase().replaceAll('-', '_')}_AD_UNIT_ID`] =
             target.adUnits[game] ?? '';
+        for (const game of h5AdGames)
+          buildEnv[tapServicesVariable(game)] = JSON.stringify(
+            target.tapServices?.[game] || { enabled: false },
+          );
         result = await build(
           {
             games: config.games,

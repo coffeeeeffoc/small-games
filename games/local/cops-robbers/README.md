@@ -1,8 +1,10 @@
 # 围捕小队
 
-手机友好的街区追逐游戏。默认双方是卡通 **警察 / 小偷**，警帽与徽章、面罩与钱袋，以及蓝橙队色帮助识别。首页可全局更换双方造型，选择猫狐、星际形象或上传本地头像；头像只保存在当前宿主设备浏览器，不发送到服务器。即使双方使用相同头像，队色与角色标记也保留。
+手机友好的街区追逐游戏。默认双方是卡通 **小区保安 / 小偷**，棒球帽、普通工作服、面罩与布袋帮助识别。首页可全局更换双方造型，选择猫狐、星际形象或上传本地头像；头像只保存在当前宿主设备浏览器，不发送到服务器。即使双方使用相同头像，队色与角色标记也保留。
 
-2026-10-13：好友 PK 与全站榜暂未开放，旧邀请不会自动连入；本地巡逻和人机对抗照常可玩。“提示”每次需要完成广告才求解当前局面，取消或失败不给提示。普通网页使用标注清楚的模拟广告，真实渠道广告由宿主接口提供。TapTap 当前产物是 H5 静态包，不能上传到普通「小游戏包体」入口；当前创建页的快速上架也不能当作广告变现已确认通道。常规发布的普通小游戏目标还需移植。打包、两种上架方式、广告接口和后台待办见 [发布准备](docs/deployment/taptap-h5.md)，测试包与实际截图见 [验收记录](docs/qa/taptap-h5-verification-2026-10-14.md)。
+父仓库通过 `game-build.local.mjs` 的 `tapServices` 配置启用首页“TapTap 小站”，提供宿主登录、手动云存档、平台排行榜和 SDK 好友房。这些能力不依赖 `backend` 开关；`backend` 控制原有共享竞赛与纪录服务，后端代码继续保留。SDK 好友房是独立休闲对局，不写单机成绩或正式积分。H5 与原生使用不同应用，云档和排行榜分别保存。普通游戏目录的 `pnpm build` 不等同于该渠道服务包。
+
+[Tap 服务说明](../../../platforms/taptap/docs/game-services.md) · [好友房规则与验证](../../../platforms/taptap/docs/design/multiplayer-2026-10-19/README.md) · [统一构建](../../../docs/operations/game-builds.md)
 
 2026-10-19：提示按钮统一为“提示”；修复 TapTap H5 广告播放超时、页面隐藏取消请求及丢失完成奖励的问题。新包与模拟 SDK 验证见[广告奖励修复记录](docs/qa/taptap-reward-fix-2026-10-19/README.md)，真实广告仍需在 TapTap 客户端验收。
 
@@ -14,7 +16,7 @@
 | 出口竞速     | 120 关          | 人机双方各操控一队、交替行动；追逐队接触对手完成拦截，突围队到任意出口或撑过回合上限获胜                  |
 | 限步周旋     | 120 关          | 不设出口；追逐队须在限步内接触拦截，突围队坚持到回合上限获胜                                                |
 
-自由对抗在人机开局前可选双方角色以及我方先手 / 我方后手 / 系统分配；重试保留该局已分配的先手。好友功能恢复后，房间支持选角色、交换角色，选择追逐队先手 / 突围队先手 / 系统分配，由服务器确定真实行动顺序并校验每一步。对战画面只提交玩家意图，不在客户端结算排名。
+自由对抗在人机开局前可选双方角色以及我方先手 / 我方后手 / 系统分配；重试保留该局已分配的先手。Tap SDK 好友房固定房主为追逐队、加入者为突围队，追逐队先行动。原有共享后端房间协议另行保留。
 
 **解法与胜负边界：**挑战 120 关均有击败固定电脑策略的完整回放见证，不代表对真人任意策略均可强制获胜。自由对抗的 240 图均排除了六步内可证明的强制胜利开局，并排除了双方先手情况下不受追逐队任何潜在走位威胁的出口捷径；这是有界开局审查，不是完整博弈均势证明。没有把它们标成数学保证的五五开地图。
 
@@ -26,7 +28,7 @@
 
 首页“分享游戏”只分享干净的游戏入口；游玩与结算页“分享当前关卡”携带公开地图、玩法和规则，对抗还固定我方角色与该局实际先手。链接不携带开发开关、成绩或好友赛凭证。换防接力的接力棒随撤销和存档恢复，提示也遵守当前接力次序。
 
-- 首页以追逃插画为主；点“开始巡逻”进入街区地图选关，七个街区的一百关均可直接尝试。玩法入口可选试炼、接力、竞速、周旋；换装、详细指南、音效设置、分享和好友入口都在首页。
+- 首页以追逃插画为主；点“开始巡逻”开始或继续当前关，街区地图按八个街区的 120 关顺序解锁。玩法入口可选试炼、接力、竞速、周旋；换装、详细指南、音效设置、分享和好友入口都在首页。
 - 游玩只保留返回、步数与目标、棋盘、短提示、角色头像、撤销、重来和提示。返回不会清空当前进度；选回同一未完成关卡会继续原局，对抗也可从首页继续。
 - 不显示全屏按钮；首页标识靠左上，音效与设置竖排其下，仅避让实际刘海和状态栏。
 - 挑战：点队员后点亮起的相邻路口即走；点脚下数字留守；支持拖动、取消拖动、撤销、提示与重开。提示显示当前局面最短还需几步，点高亮数字执行移动或留守。提示使用经过完整广度优先搜索验证的最短路线；偏离后按当前局面重新求最短解。搜索预算不足或超时时不显示未经确认的落点，只有穷尽可达状态后才判定当前局面无解。
@@ -41,12 +43,12 @@
 需要 Node.js 22+。运行时无第三方依赖，Playwright 用于浏览器验收。
 
 ```sh
-npm install
-npm run dev
-npm test
-npm run build
-npm run package:taptap
-npm run preview
+pnpm install --frozen-lockfile
+pnpm dev
+pnpm test
+pnpm build
+pnpm package:taptap
+pnpm preview
 ```
 
 默认端口为 43420，PowerShell 可先设置 `$env:PORT=43441`。静态服务只提供游戏资源，不暴露源脚本目录或依赖；构建不删除已有其他文件。头像源文件由仓库根的同步脚本从 `platforms/h5/role-appearance.js` 同步。
@@ -54,17 +56,17 @@ npm run preview
 保持本地服务开启，在另一个终端运行（可用 `BASE_URL` 指向对应服务）：
 
 ```sh
-npm run test:browser
-npm run test:hints-browser
-npm run test:ads
-npm run test:interactions
-npm run test:focus
-npm run test:dialogs
-npm run test:viewport
-npm run test:input
-npm run test:duel-browser
-npm run test:ranking
-npm run test:competition-renderer
+pnpm test:browser
+pnpm test:hints-browser
+pnpm test:ads
+pnpm test:interactions
+pnpm test:focus
+pnpm test:dialogs
+pnpm test:viewport
+pnpm test:input
+pnpm test:duel-browser
+pnpm test:ranking
+pnpm test:competition-renderer
 ```
 
 - `test`：120 条挑战合法解回放、出口与失败、当前局面恢复；原 60 图继续穷举检查队员必要性。独立逐层可达性证明 120 关最短解及 1,410 次提示，另验证 120 条接力最短路线、120 条短试炼路线、预算与有序解锁。
@@ -84,7 +86,7 @@ npm run test:competition-renderer
 
 ## 广告与 TapTap H5
 
-游戏核心广告端口为 `src/ads.js`；宿主组合为 `src/ad-host.js`，复用仓库的 `platforms/h5/platform-ads.js`，明确选择 TapTap H5、微信、抖音或 B 站。实际上传目标是 TapTap H5，与原生 Tap 小游戏的构建和广告联盟不同。只有完整观看且当前局面有效时才给提示，失败和未开通不影响正常行棋。
+游戏核心广告端口为 `src/ads.js`；宿主组合为 `src/ad-host.js`，复用仓库的 `platforms/h5/platform-ads.js`，明确选择 TapTap H5、微信、抖音或 B 站。下列专用部署命令上传 TapTap H5 包；原生包通过根目录统一构建，使用独立应用和广告位。只有完整观看且当前局面有效时才给提示，失败和未开通不影响正常行棋。
 
 ```powershell
 pnpm --filter cops-robbers deploy:taptap -PackageOnly # 本地构建、ZIP 校验和解压包触屏检查
@@ -98,7 +100,7 @@ pnpm --filter cops-robbers deploy:taptap             # 上传并创建 H5 版本
 
 ## 关卡维护
 
-`generate-levels.mjs` 维护原 60 关；`extend-levels.mjs` 从其前 60 图构造并验证新 40 关，整批成功后才写入地图与参考路线。修改地图或规则后必须运行 `npm run levels:optimize`，整批精确求解并回放成功后更新 `optimal-solutions.js` 和各关三星步数，再跑规则、最短解与浏览器验收。`solutions.js` 保留原有获胜见证供回放与教学使用；最短提示只使用经过独立审查的 `optimal-solutions.js`，接力步数单独计算。
+当前关卡源由 `levels.js`、`extended-content.js`、`relay-content.js` 与 `quick-content.js` 组成。旧的 60/100 关覆盖式生成器已删除，避免误覆盖现有 120 关目录。`teamwork.mjs`、`generate-review-content.mjs` 与 `optimize-levels.mjs` 继续用于对应内容与解法维护。修改地图或规则后必须运行 `pnpm levels:optimize`，整批精确求解并回放成功后更新 `optimal-solutions.js` 和各关三星步数，再跑规则、最短解与浏览器验收。`solutions.js` 保留原有获胜见证供回放与教学使用；最短提示只使用经过独立审查的 `optimal-solutions.js`，接力步数单独计算。
 
 挑战各街区实际平均最短步数为 **6.1 / 10.1 / 9.0 / 9.1 / 12.6 / 14.3 / 15.8 / 12.3**；第 100 关最短为 **17 步**。原 100 条见证中 78 条比最短路线长，已纠正提示和三星目标。地图仍沿用原布局，最短步数并非逐街区严格递增。自由对抗由前 20 图平均 16 个路口、约 3 条独立环路、6 个分岔路口，增加至末 20 图 36 个路口、约 14 条独立环路、约 22 个分岔路口；电脑由 2 层搜索逐步提升到 4 层。 新街区在保留原地图难度的基础上，围绕双出口换防另起战术节奏，章内最短路线从约 10 步递进至 14–16 步，并非跨章单纯增加步数。
 
@@ -108,4 +110,12 @@ pnpm --filter cops-robbers deploy:taptap             # 上传并创建 H5 版本
 
 2026-10-10 按[四屏效果图与小屏设计](docs/design/viewport-refresh-2026-10-10/README.md)统一首页外围、插画与弹层主题；首页按视口分配空间，短横屏左右布局。弹层固定标题和关键操作，仅长内容滚动。好友大厅与等待房间收紧信息密度，好友对局保留独立退出底栏，短Canvas将棋盘和操作并排。原有玩法和存档保持兼容。
 
-本次多角色复核、普通玩家与生产构建触屏验收见 [2026-10-11 review](docs/design/review-2026-10-11/README.md)。`npm run test:progress` 检查 3 × 120 顺序解锁、旧存档、开发试玩隔离与末关真实触屏胜利。
+历史多角色复核、普通玩家与生产构建触屏验收见 [2026-10-11 review](docs/design/review-2026-10-11/README.md)。`pnpm test:progress` 检查 3 × 120 顺序解锁、旧存档、开发试玩隔离与末关真实触屏胜利。
+
+## H5 与 Cocos
+
+[文档索引](docs/README.md)区分当前设计、验证与历史记录。H5 入口为 `src/main.js`，Cocos 入口为 `games/minigames/cops-robbers/controller.mjs`；旧宿主 Canvas 入口 `src/native.js` 保留。三者复用规则、关卡、存档及 `src/progress.js` 的三星基准，接力按认证接力路线计算，合法旧成绩按实际最佳步数重算星级。选回同一未完成关卡继续原局，重试入口才重置。
+
+Cocos 沿用 H5 花园与保安素材，支持点选、拖动取消、暂停、五模式及当前局面提示。非认证路线的本地提示复用有预算的纯搜索；预算不足时明确告知未确认，不给未经验证的落点。设计和本轮实际验证见 [H5 对齐记录](../../minigames/docs/design/h5-parity-2026-10-19.md)。Creator 浏览器、官方平台与真机验收分别记录。
+
+`src/tap-save.js` 负责云档校验、进度合并和榜单计分；`src/tap-multiplayer.js` 复用对抗规则与绘制器，适配平台好友房。

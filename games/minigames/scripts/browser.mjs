@@ -227,11 +227,57 @@ try {
             'Reload must preserve the current patrol',
           );
         } else if (game === 'cops-robbers-realtime') {
+          await page.waitForFunction(
+            () => globalThis.__cocosMiniGame.getState().state.portraitReady,
+          );
+          await click('角色头像');
+          await click('机灵保安');
+          assert.equal((await snapshot()).state.avatars.cop, 1);
+          await page.screenshot({ path: path.join(evidence, `${tag}-avatars.png`) });
+          await click('首页');
           await click('开始游戏 →');
           await waitPage('levels');
           await click('开始行动 →');
           await waitPage('game');
           await page.waitForFunction(() => globalThis.__cocosMiniGame.getState().state.ticks > 3);
+          const data = await snapshot(),
+            layout = data.layout;
+          const actor = layout.field.hits.find((hit) => hit.action.local === 1);
+          const road = layout.field.hits.find(
+            (hit) =>
+              hit.action.type === 'move' && Math.hypot(hit.x - actor.x, hit.y - actor.y) > 40,
+          );
+          const screen = (hit) => ({
+            x: ((hit.x + hit.w / 2 + layout.originX) * viewport.width) / data.viewport.windowWidth,
+            y:
+              ((hit.y + hit.h / 2 + layout.originY) * viewport.height) / data.viewport.windowHeight,
+          });
+          const from = screen(actor),
+            to = screen(road),
+            orders = data.state.orders.length;
+          if (touch) {
+            const session = await context.newCDPSession(page);
+            await session.send('Input.dispatchTouchEvent', {
+              type: 'touchStart',
+              touchPoints: [{ ...from, id: 1 }],
+            });
+            await session.send('Input.dispatchTouchEvent', {
+              type: 'touchMove',
+              touchPoints: [{ ...to, id: 1 }],
+            });
+            await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+            await session.detach();
+          } else {
+            await page.mouse.move(from.x, from.y);
+            await page.mouse.down();
+            await page.mouse.move(to.x, to.y, { steps: 4 });
+            await page.mouse.up();
+          }
+          await page.waitForFunction(
+            (count) => globalThis.__cocosMiniGame.getState().state.orders.length > count,
+            orders,
+          );
+          assert.equal((await snapshot()).state.orders.at(-1).actor, 1);
           await click('');
           await waitPage('pause');
           const ticks = (await snapshot()).state.ticks;
@@ -240,7 +286,11 @@ try {
           await click('继续行动');
           await waitPage('game');
         } else {
+          await click('开始对弈');
+          await waitPage('modes');
           await click('同屏双人');
+          await waitPage('setup');
+          await click('开始对局');
           await waitPage('play');
           await click('棋格0');
           assert.equal((await snapshot()).state.game.ply, 1);

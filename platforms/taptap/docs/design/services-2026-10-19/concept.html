@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-CN">
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  /><title>TapTap 服务页 · 实现前概念</title
+  ><style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      background: #f4efdf;
+      color: #343b31;
+      font-family: system-ui, sans-serif;
+    }
+    main {
+      max-width: 460px;
+      margin: auto;
+      padding: 24px;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      margin: 10px 0 36px;
+    }
+    button {
+      font: 600 16px system-ui;
+      border: 1px solid #cdd5bf;
+      border-radius: 16px;
+      background: #fffaf0;
+      color: inherit;
+      min-height: 52px;
+      padding: 12px 18px;
+      width: 100%;
+      margin: 7px 0;
+    }
+    header button {
+      width: 48px;
+      border: 0;
+      background: transparent;
+    }
+    h1 {
+      font-size: 24px;
+    }
+    small {
+      color: #6d7868;
+    }
+    article {
+      background: #fffaf0;
+      border-radius: 24px;
+      padding: 22px;
+      margin: 20px 0;
+    }
+    p {
+      line-height: 1.7;
+    }
+    b {
+      font-size: 24px;
+    }
+    .primary {
+      background: #456449;
+      color: #fffaf0;
+    }
+    footer {
+      font-size: 12px;
+      color: #788270;
+      margin-top: 22px;
+      line-height: 1.7;
+    }
+    @media (min-width: 600px) and (max-height: 500px) {
+      main {
+        max-width: 840px;
+        padding: 16px 24px;
+      }
+      header {
+        margin: 0 0 8px;
+      }
+      section {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+      }
+      article {
+        margin: 0;
+      }
+      footer {
+        margin-top: 8px;
+      }
+    }
+  </style>
+  <main>
+    <header>
+      <button aria-label="返回">‹</button>
+      <h1>TapTap 小站</h1>
+    </header>
+    <section>
+      <article>
+        <small>象五子棋</small>
+        <p><b>战术闯关 3 / 8</b></p>
+        <p>连接后，将进度带到另一台设备。</p>
+        <button class="primary">连接 TapTap</button>
+      </article>
+      <div>
+        <button>上传当前进度</button><button>查看云端进度</button><button>查看进度榜</button>
+      </div>
+    </section>
+    <footer>
+      概念图 ·
+      沿用游戏纸色与按钮风格。恢复前展示云档摘要并确认，当前进度另存备份。应用之间分别保存。
+    </footer>
+  </main>
+</html>

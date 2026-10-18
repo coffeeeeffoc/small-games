@@ -1,3 +1,5 @@
+> 历史记录：本页所列旧浏览器脚本依赖当时界面，现已清理。当前在游戏目录执行 `pnpm build && pnpm test:browser`，新报告写入 `outputs/browser/`；下文保留原始设计与验证证据。
+
 # 实时街区围捕 Implementation Plan
 
 **Goal:** 实现可直接在浏览器操作的 48 关实时围堵游戏，包含触屏、动画、声音、本地进度及运行验证。

@@ -7,7 +7,7 @@ import { chromium, expect } from '@playwright/test';
 
 const gameRoot = fileURLToPath(new URL('../', import.meta.url));
 const siteRoot = process.env.STREET_SITE_ROOT || path.join(gameRoot, 'dist');
-const output = path.join(gameRoot, 'docs/design/top-inset-2026-10-16/actual');
+const output = path.resolve(process.env.OUTPUT_DIR || path.join(gameRoot, 'outputs/browser'), 'safe-area');
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp' };
 const server = createServer(async (request, response) => {
   try {
@@ -46,9 +46,11 @@ async function protectedControl(scope, selector, { top = true } = {}) {
   const item = scope.locator(selector).first();
   await expect(item).toBeVisible(); await settled(scope);
   const box = await item.boundingBox();
-  const safe = await scope.evaluate(() => ({ width: innerWidth, height: innerHeight, left: parseFloat(document.documentElement.style.getPropertyValue('--game-host-left')) || 0, right: parseFloat(document.documentElement.style.getPropertyValue('--game-host-right')) || 0, bottom: parseFloat(document.documentElement.style.getPropertyValue('--game-host-bottom')) || 0, top: (parseFloat(document.documentElement.style.getPropertyValue('--game-host-top')) || 0) + 4 }));
+  const safe = await scope.evaluate((top) => ({ width: innerWidth, height: innerHeight, left: parseFloat(document.documentElement.style.getPropertyValue('--game-host-left')) || 0, right: parseFloat(document.documentElement.style.getPropertyValue('--game-host-right')) || 0, bottom: parseFloat(document.documentElement.style.getPropertyValue('--game-host-bottom')) || 0, top: (parseFloat(document.documentElement.style.getPropertyValue(top === 'cutout' ? '--game-cutout-top' : '--game-host-top')) || 0) + 4, capsule: globalThis.tap?.getMenuButtonBoundingClientRect?.() }), top);
   assert(box.x >= safe.left - 1 && box.x + box.width <= safe.width - safe.right + 1, `${selector} horizontal safe area ${JSON.stringify(box)}`);
   if (top) assert(box.y >= safe.top - 1, `${selector} overlaps host top ${JSON.stringify(box)}`);
+  if (top === 'cutout' && safe.capsule)
+    assert(box.x + box.width <= safe.capsule.left || box.x >= safe.capsule.right || box.y >= safe.capsule.bottom || box.y + box.height <= safe.capsule.top, `${selector} overlaps the host capsule`);
   assert(box.y + box.height <= safe.height - safe.bottom + 1, `${selector} below safe bottom ${JSON.stringify(box)}`);
 }
 async function capture(page, name) { await page.screenshot({ path: path.join(output, name + '.png') }); }
@@ -60,7 +62,7 @@ try {
       globalThis.__COMPETITION_CONFIG__ = { competitionEnabled: false, apiUrl: '' };
       if (host === 'sdk') globalThis.tap = {
         getWindowInfo() { return { windowWidth: innerWidth, windowHeight: innerHeight, safeArea: { top: innerWidth > innerHeight ? 0 : 59, left: innerWidth > innerHeight ? 59 : 0, right: innerWidth - (innerWidth > innerHeight ? 34 : 0), bottom: innerHeight - 20 } }; },
-        getMenuButtonBoundingClientRect() { return { top: innerWidth > innerHeight ? 12 : 52, bottom: innerWidth > innerHeight ? 44 : 85 }; },
+        getMenuButtonBoundingClientRect() { return { left: innerWidth - 112, right: innerWidth - 12, top: innerWidth > innerHeight ? 12 : 52, bottom: innerWidth > innerHeight ? 44 : 85 }; },
       };
     }, host);
     const page = await context.newPage(); page.on('pageerror', (error) => errors.push(error.message));
@@ -68,7 +70,8 @@ try {
       await page.goto(`http://127.0.0.1:${server.address().port}/${framed ? 'frame' : ''}`);
       const scope = framed ? page.frames().find((frame) => frame !== page.mainFrame()) : page;
       await expect(scope.locator('#levels-button')).toBeVisible(); await fullBleed(scope);
-      await protectedControl(scope, '#settings-button');
+      // The approved home layout keeps its utility rail left of the capsule.
+      await protectedControl(scope, '#settings-button', { top: 'cutout' });
       await capture(page, `home-${width}-${host}${framed ? '-iframe' : ''}`);
       await scope.locator('#settings-button').tap();
       await protectedControl(scope, '#settings-page [data-close]');
@@ -104,6 +107,10 @@ try {
         for (const viewport of [{ width:390,height:853 },{ width:844,height:390 },{ width:568,height:320 }]) {
           await page.setViewportSize(viewport); await fullBleed(scope);
           await protectedControl(scope, '#lose-title'); await protectedControl(scope, '#lose-retry');
+          await protectedControl(scope, '#rewind-button');
+          await protectedControl(scope, '#lose-dialog [data-share-level]');
+          for (const selector of ['#lose-review', '#lose-dialog [data-levels]', '#lose-dialog [data-home]'])
+            await protectedControl(scope, selector);
           assert.equal((await snapshot(scope)).ticks, failed.ticks, 'orientation keeps the completed round');
           await capture(page, `failure-${viewport.width}`);
         }

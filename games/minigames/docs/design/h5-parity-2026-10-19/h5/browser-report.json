@@ -1,0 +1,27 @@
+{
+  "passed": true,
+  "checks": [
+    "normal home start/resume, locked selection/direct link, widened touch target, touch win, next unlock and saved reload",
+    "old quick maps 1–3 retain touch wins, map 4 follows naturally and saves separately",
+    "developer last-map play and score/save isolation",
+    "standard: map 120 ordinary unlocked touch victory, return/resume and save at 320×568",
+    "relay: map 120 ordinary unlocked touch victory, return/resume and save at 390×844",
+    "quick: map 120 ordinary unlocked touch victory, return/resume and save at 667×375",
+    "legacy open-catalog unfinished level 100 resumes without fabricated completion",
+    "duel direct-link/menu locks and victory-gated next map",
+    "production H5 restores normal/relay/quick stars from their own best-turn reference"
+  ],
+  "errors": [],
+  "environment": "Linux Chromium, phone viewports and touch emulation; no physical-device claim",
+  "streetLifecycle": {
+    "passed": true,
+    "environment": "Linux Chromium production H5, real touch with explicit visibility and SDK fixtures; not a physical device",
+    "checks": [
+      "hide-show-release: queued start cancelled, setup remains actionable, next explicit start consumes once",
+      "hide-release-show: queued start cancelled, setup remains actionable, next explicit start consumes once",
+      "close-before-show: late SDK injection works, background reward retained and consumed only by a new touch",
+      "show-before-close: late SDK injection works, background reward retained and consumed only by a new touch"
+    ],
+    "errors": []
+  }
+}

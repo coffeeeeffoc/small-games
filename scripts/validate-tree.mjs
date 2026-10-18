@@ -388,6 +388,7 @@ export function runNineNativeChecks({
 }
 
 export function runIncrementalToolChecks({ plan, packages, root, env, execute = run }) {
+  if (plan.hook_checks) execute('pnpm', ['test:hooks'], root, env, 'logged');
   if (plan.street_admission_checks)
     execute(
       process.execPath,
@@ -479,6 +480,90 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
     }
     console.log(
       'Cocos mini-game rules and real source bundles checked; engine builds and texture/browser checks run in the separate Windows Creator workflow.',
+    );
+  }
+  // Host SDK fixtures and actual H5/Canvas touch entrances are Web contracts.
+  // Keep these before release-gate deferral, and keep generated builds serial.
+  if (plan.tap_services_checks) {
+    const consumers = [
+      ['cops-robbers', 'games/local/cops-robbers'],
+      ['cops-robbers-realtime', 'games/local/cops-robbers-realtime'],
+      ['@coffeeeeffoc/xiangqi-five', 'games/submodules/xiangqi-five'],
+    ];
+    for (const [name, dir] of consumers)
+      assert.equal(
+        packages.filter((pkg) => pkg.name === name && pkg.dir === dir && pkg.scripts?.build).length,
+        1,
+        'Missing candidate H5 restoration consumer',
+      );
+    let primaryError;
+    try {
+      execute(
+        process.execPath,
+        ['--test', 'games/minigames/tests/tap-services.test.mjs'],
+        root,
+        env,
+        'logged',
+      );
+      execute(
+        process.execPath,
+        ['games/minigames/tests/tap-services.browser.mjs'],
+        root,
+        env,
+        'logged',
+      );
+      // This entry owns unit -> enabled native bundle -> six-entrance browser order.
+      execute(
+        process.execPath,
+        ['games/minigames/scripts/check-tap-multiplayer.mjs'],
+        root,
+        env,
+        'logged',
+      );
+    } catch (error) {
+      primaryError = error;
+      throw error;
+    } finally {
+      // The fixtures deliberately replace three dist trees with SDK-enabled
+      // builds. Restore each real candidate build before subsequent acceptance
+      // checks or publication; preserve both errors if testing and cleanup fail.
+      const restorationErrors = [];
+      for (const [name] of consumers) {
+        try {
+          execute('pnpm', ['--filter', name, 'run', 'build'], root, env, 'logged');
+        } catch (error) {
+          restorationErrors.push(error);
+        }
+      }
+      if (restorationErrors.length)
+        throw new AggregateError(
+          [...(primaryError ? [primaryError] : []), ...restorationErrors],
+          'Tap candidate H5 restoration failed' + (primaryError ? ': ' + primaryError.message : ''),
+        );
+    }
+  }
+  if (plan.submodule_dialog_ids?.length) {
+    assert.deepEqual(plan.submodule_dialog_ids, [
+      'fishing',
+      'office-slacking',
+      'tower-defense-game',
+      'xiangqi-five',
+    ]);
+    for (const id of plan.submodule_dialog_ids)
+      assert(
+        packages.some((pkg) => pkg.dir === `games/submodules/${id}`),
+        'Missing dialog browser consumer',
+      );
+    execute(
+      process.execPath,
+      ['scripts/test-submodule-dialogs.mjs'],
+      root,
+      {
+        ...env,
+        DIALOG_GAMES: plan.submodule_dialog_ids.join(','),
+        PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: env.PLAYWRIGHT_EXECUTABLE_PATH || env.CHROMIUM_PATH,
+      },
+      'logged',
     );
   }
   if (plan.vite_patch) {
@@ -642,7 +727,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
   // Keep them sequential: several own a local server and write candidate evidence.
   const publishingBrowsers = {
     'cops-robbers': ['check-rewarded-hints.mjs'],
-    'cops-robbers-realtime': ['publishing.browser.mjs'],
+    'cops-robbers-realtime': ['publishing.browser.mjs', 'start-lifecycle.browser.mjs'],
     'tower-brake': ['publishing-browser.mjs', 'browser.mjs', 'expansion-browser.mjs'],
     'cage-rescue': [
       'reward-browser.mjs',
@@ -695,6 +780,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
         'packages/service-kit',
         'packages/ad-runtime',
         'platforms/douyin',
+        'platforms/taptap',
       ].includes(source),
     );
     const pkg = packages.find((item) => item.dir === source);
@@ -873,7 +959,12 @@ export async function validateTree({
       })
     : null;
   if (incrementalScope) console.log(`Incremental scope: ${JSON.stringify(incrementalScope)}`);
-  if (incrementalScope?.browser || incrementalScope?.admin_console_checks) {
+  if (
+    incrementalScope?.browser ||
+    incrementalScope?.admin_console_checks ||
+    incrementalScope?.tap_services_checks ||
+    incrementalScope?.submodule_dialog_ids?.length
+  ) {
     prepareBrowser();
     for (const key of ['CHROMIUM_PATH', 'PLAYWRIGHT_EXECUTABLE_PATH'])
       if (env[key]) clean[key] = env[key];

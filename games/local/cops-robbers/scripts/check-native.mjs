@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { startNativeCopsGame } from '../src/native.js';
 import { levels } from '../src/levels.js';
-import { legalTargets } from '../src/engine.js';
+import { initialState, legalTargets } from '../src/engine.js';
 import { quickSolutions } from '../src/quick-trials.js';
 let clock = 1000;
 const originalNow = Date.now; Date.now = () => clock += 200;
@@ -56,5 +56,19 @@ const parent=startNativeCopsGame(pkHost.sdk,{apiUrl:'https://fixture.invalid',co
 tap(parent,pkHost,'好友挑战'); assert.equal(pkHost.listeners.size,0);
 exitPK(); assert.equal(pkStopped,1); assert.ok(pkHost.listeners.size>0);
 parent.dispose(); assert.equal(pkHost.listeners.size,0,'outer dispose also cleans resumed solo child');
+for (const id of [21, 100]) {
+ const board = { ...initialState(levels[id - 1]), turn: 2 };
+ const legacyHost = host({ version: 3, current: { mode: 'challenge', rule: 'standard', levelId: id, state: board, history: [] } });
+ const legacy = startNativeCopsGame(legacyHost.sdk);
+ tap(legacy, legacyHost, '继续巡逻');
+ assert.equal(legacy.getState().levelId, id);
+ assert.deepEqual(legacy.getState().board, board);
+ assert.deepEqual(legacyHost.writes.at(-1).completed, {}, 'resume must not invent cleared maps');
+ tap(legacy, legacyHost, '暂停'); tap(legacy, legacyHost, '返回主页'); tap(legacy, legacyHost, '选择关卡');
+ assert(!legacy.getState().hits.some(hit => /^2 /.test(hit.id)), 'legacy resume cannot unlock other unfinished maps');
+ legacy.dispose();
+}
+const freshHost=host(),fresh=startNativeCopsGame(freshHost.sdk);
+tap(fresh,freshHost,'选择关卡'); assert(!fresh.getState().hits.some(hit=>/^2 /.test(hit.id))); fresh.dispose();
 Date.now=originalNow;
 console.log('native cops: touch cancellation/multitouch, safe-area, resize, pause, quick victory/unlock, v3 preservation, cleanup, storage fallback passed');

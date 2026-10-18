@@ -6,9 +6,11 @@ import { relayLevels, movedOfficer } from '../src/relay.js';
 import { quickTrials,quickSolutions } from '../src/quick-trials.js';
 import { optimalSolutions,optimalRelaySolutions } from '../src/optimal-solutions.js';
 import { initialState,step } from '../src/engine.js';
+import { pathToFileURL } from 'node:url';
+import path from 'node:path';
 
 const base=process.env.BASE_URL||'http://127.0.0.1:43420';
-const output=new URL('../docs/design/review-2026-10-11/',import.meta.url);
+const output=process.env.OUTPUT_DIR ? pathToFileURL(path.resolve(process.env.OUTPUT_DIR) + path.sep) : new URL('../../../../outputs/h5-parity/h5/',import.meta.url);
 mkdirSync(output,{recursive:true});
 const report={passed:false,checks:[],errors:[],environment:'Linux Chromium, phone viewports and touch emulation; no physical-device claim'};
 const browser=await chromium.launch({executablePath:process.env.BROWSER_EXECUTABLE||'/usr/bin/chromium'});
@@ -90,6 +92,14 @@ try {
   assert.equal(await duelPage.locator('#solo-level option[value="120"]').evaluate(option=>option.disabled),true,'duel mode menu preserves normal unlocks');
   await duelContext.close();
   report.checks.push('duel direct-link/menu locks and victory-gated next map');
+  const scoreContext=await browser.newContext({viewport:{width:390,height:844},hasTouch:true}),scorePage=await scoreContext.newPage();
+  await scorePage.addInitScript(({normal,relay,quick})=>localStorage.setItem('cops-robbers-v3',JSON.stringify({version:3,completed:{1:{turns:normal,stars:1}},relayCompleted:{1:{turns:relay,stars:1}},quickCompleted:{1:{turns:quick,stars:1}}})),{normal:levels[0].par,relay:optimalRelaySolutions[1].length,quick:quickTrials[0].par});
+  await scorePage.goto(`${base}/?dev=0&motion=reduce`);
+  await scorePage.locator('#home-start').tap();
+  const repaired=await scorePage.evaluate(()=>JSON.parse(localStorage.getItem('cops-robbers-v3')));
+  assert.deepEqual([repaired.completed[1].stars,repaired.relayCompleted[1].stars,repaired.quickCompleted[1].stars],[3,3,3]);
+  report.checks.push('production H5 restores normal/relay/quick stars from their own best-turn reference');
+  await scoreContext.close();
   assert.deepEqual(report.errors,[]);report.passed=true;
   await context.close();
 } finally {await browser.close();writeFileSync(new URL('browser-report.json',output),JSON.stringify(report,null,2));}

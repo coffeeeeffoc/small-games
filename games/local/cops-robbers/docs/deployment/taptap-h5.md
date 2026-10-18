@@ -1,6 +1,6 @@
 # 围捕小队 · TapTap H5 发布准备
 
-当前产物是 H5，沿用竖屏道路棋盘、手机触屏和本地进度。好友 PK 与全站榜暂时禁用；人机对抗、挑战、接力、快练及同题分享仍可用。此文档和脚本只处理 H5，尚未生成普通 Tap 小游戏包。
+本文说明旧 H5 应用的专用打包与上传链路，保留各日期的配置、截图和验收证据。它不描述原生小游戏包；文中旧好友 PK／全站榜关闭状态不代表当前 TapTap 小站能力。当前登录、云档、排行榜与 SDK 好友房见[Tap 服务说明](../../../../../platforms/taptap/docs/game-services.md)，H5／原生统一构建见[构建说明](../../../../../docs/operations/game-builds.md)。H5 ZIP 只能用于 H5 上传入口。
 
 本工程使用 **H5 包体链路**。普通小游戏与 H5 小游戏在 TapTap 上是两种形态，使用不同的运行环境、包体格式和上传接口；不能仅凭创建页的“小游戏”选项判断 H5 能力。[官方小游戏说明](https://developer.taptap.cn/minigameapidoc/quick-start/guide/minigames-intro/)、[按形态划分的接入指南](https://developer.taptap.cn/agents/)。
 

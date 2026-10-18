@@ -13,6 +13,11 @@ import {
 import {
   competitionToolPlan,
   competitionServiceScopePaths,
+  competitionReviewScopePaths,
+  submoduleDialogScopePath,
+  submoduleDialogIds,
+  tapServiceSharedScopePaths,
+  tapServiceConfigScopePath,
   h5AcceptanceScopePaths,
   competitionIdentityScopePaths,
   competitionIdentityMirrorPaths,
@@ -46,7 +51,63 @@ export const cacheToolPaths = Object.freeze([
 ]);
 
 const validationTool =
-  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|hook-diagnostics|run-selected-(?:shell|browser)|ci-validation|browser-preparation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope|pages-regression-shards|publication-scopes|vite-patch-scope|run-selected-competition)(?:\.[^/]+)?\.mjs|scripts\/nine-(?:native|lock)-scope(?:\.test)?\.mjs|\.githooks\/[^/]+)$/;
+  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|hook-diagnostics|run-selected-(?:shell|browser)|ci-validation|browser-preparation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope|pages-regression-shards|publication-scopes|vite-patch-scope|run-selected-competition)(?:\.[^/]+)?\.mjs|scripts\/nine-(?:native|lock)-scope(?:\.test)?\.mjs|scripts\/check-staged-format(?:\.test)?\.mjs|\.githooks\/[^/]+)$/;
+export const tapServiceCheckPaths = Object.freeze([
+  ...tapServiceSharedScopePaths,
+  tapServiceConfigScopePath,
+  'platforms/taptap/native-portal.mjs',
+  'scripts/competition-h5-service.mjs',
+  'games/minigames/scripts/config.mjs',
+  'games/minigames/scripts/prepare.mjs',
+  'games/minigames/scripts/build.mjs',
+  'games/minigames/scripts/taptap-services-bootstrap.mjs',
+  'games/minigames/scripts/check-tap-multiplayer.mjs',
+  'games/minigames/tests/tap-services.test.mjs',
+  'games/minigames/tests/tap-services.browser.mjs',
+  'games/minigames/tests/tap-multiplayer-fixture.mjs',
+  'games/minigames/tests/tap-multiplayer.test.mjs',
+  'games/minigames/tests/build.test.mjs',
+  'games/minigames/tests/tap-multiplayer.browser.mjs',
+  'games/minigames/cops-robbers/controller.mjs',
+  'platforms/competition/xiangqi-five/native.js',
+  'games/submodules/xiangqi-five',
+  ...['cops-robbers', 'cops-robbers-realtime'].flatMap((id) =>
+    ['main.js', 'native.js', 'tap-save.js', 'tap-multiplayer.js'].map(
+      (file) => `games/local/${id}/src/${file}`,
+    ),
+  ),
+]);
+// Follow the actual three-game entry imports as well as the explicit generated
+// injection inputs. Engine, renderer and level changes must exercise the same
+// Tap contracts; documentation and historical evidence are outside this graph.
+export function tapServicesChanged(changedPaths, readSource) {
+  if (changedPaths.some((file) => tapServiceCheckPaths.includes(file))) return true;
+  if (!readSource) return false;
+  const visited = new Set(),
+    queue = tapServiceCheckPaths.filter((file) => /\.[cm]?js$/.test(file));
+  while (queue.length) {
+    const file = queue.shift();
+    if (visited.has(file)) continue;
+    visited.add(file);
+    if (changedPaths.includes(file)) return true;
+    let text;
+    try {
+      text = readSource(file);
+    } catch {
+      continue;
+    }
+    if (typeof text !== 'string') continue;
+    for (const match of text.matchAll(
+      /(?:\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)['"]([^'"]+)['"]/g,
+    )) {
+      if (!match[1].startsWith('.')) continue;
+      const dependency = path.posix.normalize(path.posix.join(path.posix.dirname(file), match[1]));
+      if (!dependency.startsWith('../') && /\.[cm]?[jt]sx?$/.test(dependency))
+        queue.push(dependency);
+    }
+  }
+  return false;
+}
 export const workspaceBoundaryScopePaths = Object.freeze([
   'scripts/check-workspace-dependencies.mjs',
   'scripts/check-workspace-dependencies.test.mjs',
@@ -262,6 +323,12 @@ export function incrementalPlan({
     browser: ids.size > 0,
     browser_ids: [...ids].sort(),
     admin_console_checks: adminConsoleChecks,
+    tap_services_checks: tapServicesChanged(paths, readSource),
+    hook_checks: paths.some((file) => /^scripts\/check-staged-format(?:\.test)?\.mjs$/.test(file)),
+    submodule_dialog_ids:
+      paths.includes(submoduleDialogScopePath) && fileScopes.has(submoduleDialogScopePath)
+        ? [...submoduleDialogIds]
+        : [],
     ...(paths.some((file) =>
       [
         'platforms/competition/tests/street-admission.test.mjs',
@@ -358,6 +425,7 @@ export function incrementalPlan({
     competition_service_checks: paths.some(
       (file) =>
         competitionServiceScopePaths.includes(file) ||
+        competitionReviewScopePaths.includes(file) ||
         ['scripts/deploy-tencent.mjs', 'scripts/competition-gateway.mjs'].includes(file) ||
         (file === 'scripts/deployment-bundle.mjs' &&
           fileScopes.get(file)?.includes('games/local/cops-robbers')) ||
@@ -401,6 +469,7 @@ export function incrementalPlan({
       'packages/service-kit',
       'packages/ad-runtime',
       'platforms/douyin',
+      'platforms/taptap',
     ].filter((source) => affected.some((pkg) => pkg.dir === source)),
   };
 }

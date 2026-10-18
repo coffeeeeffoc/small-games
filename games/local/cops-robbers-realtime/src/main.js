@@ -1,3 +1,4 @@
+import { validateTapProgress, mergeTapProgress, tapProgressScore, tapProgressSummary } from './tap-save.js';
 import { LEVELS, CHAPTERS, PRACTICE, MODES, getLevels } from './levels.js';
 import {
   createGame,
@@ -49,6 +50,7 @@ let navigationReady = false,
   pageReturnScreen = 'home',
   externalReturnScreen = 'home';
 let screen = 'home',
+  startRequest = 0,
   runTicks = 0,
   runOrders = [],
   recordRequest = 0,
@@ -91,6 +93,7 @@ function readProgress() {
     return {
       ...records,
       modeBest,
+      verifiedBest: validateTapProgress({verified:value?.verifiedBest}).verified,
       assistedBest: Object.fromEntries(Object.entries(value?.assistedBest || {}).filter(([key, seconds]) =>
         /^(challenge|classic|escape|quick)-(cop|robber)-(100|[1-9]\d?)(:relay)?(:(cop|robber|simultaneous))?(:street-solo-v2)?$/.test(key) &&
         Number.isFinite(seconds) && seconds > 0 && seconds < 86400)),
@@ -116,6 +119,7 @@ function readProgress() {
       streetBest: {},
       modeBest: {},
       assistedBest: {},
+      verifiedBest: {},
       startedRuns: 0,
       sound: true,
     };
@@ -188,14 +192,14 @@ if (freeSupport) $('support-help').textContent = '冲刺让选中的队员提速
 // Explicit ability requests use the game's per-run quota instead of interstitial session limits.
 const ads = adConfig.adMode === 'off' ? null : adConfig.adMode === 'mock'
   ? createSimulationAdProvider({ document, root: document.body })
-  : adConfig.provider || createTapTapAdProvider(globalThis.tap, adConfig.rewardedAdUnitId);
+  : adConfig.provider || createTapTapAdProvider(() => globalThis.tap, adConfig.rewardedAdUnitId);
 
 function saveProgress() {
   progress.settings = { mode, role: playerRole, initiative, rule };
   try {
     const latest = readProgress();
     progress.startedRuns = Math.max(progress.startedRuns, latest.startedRuns);
-    for (const field of ['best', 'escapeBest', 'teamworkBest', 'streetBest', 'modeBest', 'assistedBest'])
+    for (const field of ['best', 'escapeBest', 'teamworkBest', 'streetBest', 'modeBest', 'assistedBest', 'verifiedBest'])
       for (const [key, seconds] of Object.entries(latest[field]))
         progress[field][key] = Math.min(progress[field][key] || Infinity, seconds);
     localStorage.setItem(STORAGE, JSON.stringify(progress));
@@ -283,6 +287,7 @@ function showScreen(next, { history: remember = true } = {}) {
   clearGesture();
   const previous = screen;
   screen = next;
+  if (next !== 'game') { startRequest++; admissionPending = false; }
   document.body.dataset.screen = next;
   for (const name of ['home', 'level', 'game'])
     $(name + '-screen').hidden = name !== (next === 'levels' ? 'level' : next);
@@ -593,16 +598,16 @@ function loadLevel(id, saved = null, opening = {}) {
   supportRequest = null;
   if (id !== 0) practiceReturn = null;
   practiceOrders.clear();
-  quickOrders.clear();
+  quickOrders = new Set(saved?.quickOrders || []);
   captureHint = null;
   selected = saved?.selected ?? 0;
   keyboardNode = null;
   accumulator = 0;
-  lastTurnSound = -10;
-  runTicks = 0;
-  runOrders = [];
-  pendingSubmission = null;
-  runAdmission=null;
+  lastTurnSound = saved?.lastTurnSound ?? -10;
+  runTicks = saved?.runTicks ?? 0;
+  runOrders = saved?.runOrders || [];
+  pendingSubmission = saved?.pendingSubmission || null;
+  runAdmission = saved?.runAdmission || null;
   const chapter = CHAPTERS[game.level.chapter];
   chapterTab = game.level.chapter;
   $('chapter-name').textContent = mode === 'quick' ? '战术试炼' : chapter.name;
@@ -630,7 +635,7 @@ function loadLevel(id, saved = null, opening = {}) {
   syncChoices();
   buildRoster();
   canvas.setAttribute('aria-label', game.level.name + '。点击' + roleLabel() + '再点击道路。');
-  showScreen('levels', { history: opening.history !== false });
+  showScreen(saved ? 'game' : 'levels', { history: opening.history !== false });
   updateHud();
   updateCampaign();
   renderLevelGrid();
@@ -658,15 +663,16 @@ async function begin() {
     return;
   }
   const starting = game;
+  const request = ++startRequest;
   let admission=null;
   if(ONLINE_ENABLED && starting.level.id>0 && starting.phase==='ready') {
     admissionPending=true;
     try {admission=await startRun(runConfig(starting));}
-    catch {toast('开局服务暂不可用，本局继续本地挑战，无法提交排行榜。');}
-    finally {admissionPending=false;}
+    catch { if (request === startRequest) toast('开局服务暂不可用，本局继续本地挑战，无法提交排行榜。'); }
+    finally { if (request === startRequest) admissionPending=false; }
   }
   const start = () => {
-    if (game !== starting || supportRequest || document.hidden || !startGame(game)) return;
+    if (request !== startRequest || destroyed || screen !== 'game' || game !== starting || supportRequest || document.hidden || !startGame(game)) return;
     runAdmission=admission;
     progress.startedRuns = startSupport(game, Math.max(progress.startedRuns, readProgress().startedRuns));
     saveProgress();
@@ -901,6 +907,7 @@ function won() {
   const previousBest = bestTime(id);
   const assisted = game.support?.assisted;
   const records = assisted ? progress.assistedBest : progress.modeBest;
+  if (!assisted && !globalThis.SmallGamesDev?.isEnabled()) progress.verifiedBest[recordKey(game.level.id)] = Math.min(progress.verifiedBest[recordKey(game.level.id)] || Infinity, game.time);
   records[recordKey(id)] = Math.min((assisted ? records[recordKey(id)] : previousBest) || Infinity, game.time);
   if (recordEligible && !assisted) {
     progress.streetBest[id] = Math.min(previousBest || Infinity, game.time);
@@ -1168,12 +1175,19 @@ $('start-button').addEventListener('click', begin);
 function practice() {
   if (game.level.id > 0 && ['playing', 'paused'].includes(game.phase)) {
     pauseGame(game);
-    practiceReturn = { game, selected };
+    practiceReturn = {
+      game, selected, mode, playerRole, rule, initiative,
+      runTicks, runOrders: runOrders.slice(), runAdmission, pendingSubmission,
+      quickOrders: [...quickOrders], lastTurnSound,
+    };
   }
   loadLevel(0);
   begin();
 }
 function leavePractice() {
+  if (practiceReturn) {
+    ({ mode, playerRole, rule, initiative } = practiceReturn);
+  }
   loadLevel(returnLevel, practiceReturn);
   if (game.phase === 'paused') {
     $('pause-reason').textContent = '练习结束，原来的布置和用时已保留。准备好后继续。';
@@ -1324,6 +1338,15 @@ document.addEventListener('visibilitychange', () => {
   clearGesture();
   // A native ad can hide the WebView; its SDK close callback still owns the reward.
   if (supportRequest) { finishSupport(); return; }
+  if (document.hidden && screen === 'game' && game.phase === 'ready') {
+    // A queued lock/admission must never start after the player left the page.
+    // Keep setup actionable whether the queue resolves hidden or after return.
+    showScreen('levels', { history: false });
+    history.replaceState({ patrolScreen: 'levels' }, '', location.href);
+    renderLevelGrid();
+    updateHud();
+    return;
+  }
   if (document.hidden) pause('你刚刚离开了页面。准备好后，再继续行动。');
 });
 window.addEventListener('blur', () => {
@@ -1433,6 +1456,7 @@ export function getSnapshot() {
   return {
     screen,
     ticks: runTicks,
+    orders: runOrders.map(order => ({ ...order })),
     level: game.level.id,
     mode,
     role: game.playerRole,
@@ -1594,3 +1618,21 @@ window.addEventListener('pageshow', (event) => {
     updateHud();
   }
 });
+
+const tapPort = {
+  container: document.querySelector('.home-tools'),
+  export: () => validateTapProgress({ records: progress.modeBest, assisted: progress.assistedBest, verified: progress.verifiedBest }),
+  validate: validateTapProgress, summary: tapProgressSummary,
+  score() { return tapProgressScore(this.export()); },
+  developer: () => globalThis.SmallGamesDev?.isEnabled() === true,
+  canRestore: () => screen === 'home',
+  pause() { startRequest++; recordRequest++; pauseGame(game); saveProgress(); },
+  resume() { showScreen('home', { history: false }); },
+  restore(value) {
+    const merged = mergeTapProgress(this.export(), value), next = { ...progress, best: { ...progress.best }, modeBest: merged.records, assistedBest: merged.assisted, verifiedBest: merged.verified };
+    for (const [key, time] of Object.entries(merged.records)) { const id = key.match(/^challenge-cop-(\d+):simultaneous:/)?.[1]; if (id) next.best[id] = Math.min(next.best[id] || Infinity, time); }
+    localStorage.setItem(STORAGE, JSON.stringify(next)); progress = next;
+  },
+};
+globalThis.__tapGamePort = tapPort;
+globalThis.__mountTapGameServices?.(tapPort);

@@ -19,7 +19,7 @@ import {
   verifyPlugin,
   officialPluginSha256,
 } from '../../../apps/shell-minigame/scripts/taptap-cocos-inputs.mjs';
-import { installTapTapLogin } from '../../../apps/shell-minigame/scripts/taptap-login.mjs';
+import { installGameTapLogin } from './taptap-services-bootstrap.mjs';
 import { serviceEnvironment } from '../../../scripts/competition-service-config.mjs';
 
 const json = async (file) => JSON.parse(await readFile(file, 'utf8'));
@@ -191,7 +191,7 @@ export async function buildGame(config, options = {}) {
     await save(path.join(stage, 'game.json'), game);
     await save(path.join(stage, 'project.config.json'), project);
     // Install login BEFORE the official converter packs the archive; never rewrite its ZIP.
-    await installTapTapLogin(stage, config);
+    await installGameTapLogin(stage, config);
     const conversionRoot = path.join(prepared.project, 'build/taptap');
     await rm(conversionRoot, { recursive: true, force: true });
     const { convertWechatToTap } = createRequire(import.meta.url)(

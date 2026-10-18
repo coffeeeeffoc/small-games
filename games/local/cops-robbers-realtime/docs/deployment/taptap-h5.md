@@ -1,6 +1,6 @@
 # 街区追捕 · TapTap H5 接入准备
 
-当前沿用 HTML/Canvas 的 H5 发布形态。好友 PK、全站榜、成绩上传和邀请自动进入已关闭，单机不依赖域名服务。原生 Tap 小游戏没有 DOM/BOM，当前 ZIP 不属于原生 Tap 转换包。
+本文说明旧 H5 应用的专用打包与上传链路，保留各日期的配置、截图和验收证据。它不描述原生小游戏包；文中旧好友 PK／全站榜关闭状态不代表当前 TapTap 小站能力。当前登录、云档、排行榜与 SDK 好友房见[Tap 服务说明](../../../../../platforms/taptap/docs/game-services.md)，H5／原生统一构建见[构建说明](../../../../../docs/operations/game-builds.md)。H5 ZIP 只能用于 H5 上传入口。
 
 ## 构建包体
 

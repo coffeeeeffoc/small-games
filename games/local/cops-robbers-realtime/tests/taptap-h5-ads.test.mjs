@@ -33,9 +33,9 @@ test('shown ads keep their completion listener beyond the opening timeout, inclu
     const pending=provider.show().then(result=>{settled=true; return result;});
     await new Promise(resolve=>setImmediate(resolve));
     assert.equal(shows,retry?2:1); assert.equal(loads,retry?1:0);
-    t.mock.timers.tick(60000);
+    t.mock.timers.tick(600000);
     await Promise.resolve();
-    assert.equal(settled,false,'60-second ad playback must not be classified as a failed request');
+    assert.equal(settled,false,'10-minute ad playback must not be classified as a failed request');
     assert.equal(typeof f.listeners.close,'function');
     const close=f.listeners.close;
     close({isEnded:true}); close({isEnded:true});
@@ -115,4 +115,51 @@ test('confirmed destruction permits a fresh request after cancellation', async()
   await Promise.resolve();
   const next=provider.show(); f.listeners.close({isEnded:false});
   assert.equal((await next).status,'dismissed'); assert.equal(f.config.length,2);
+});
+
+test('missing show promises retain opening deadlines, both initially and after recovery', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  for (const retry of [false, true]) {
+    const f = fixture(); let shows = 0;
+    f.ad.show = () => ++shows === 1 && retry ? Promise.reject(Error('not loaded')) : undefined;
+    const provider = createTapTapAdProvider(f.sdk, 'fixture-only');
+    const pending = provider.show(), close = f.listeners.close;
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(shows, retry ? 2 : 1);
+    t.mock.timers.tick(44000);
+    assert.deepEqual(await pending, { status: 'failed' });
+    close({ isEnded: true });
+    provider.dispose();
+  }
+});
+
+test('late SDK injection is resolved per request with its method receiver intact', async () => {
+  let sdk;
+  const provider = createTapTapAdProvider(() => sdk, 'fixture-only');
+  assert.equal((await provider.show()).status, 'unavailable');
+  const f = fixture();
+  sdk = { createRewardedVideoAd(options) { assert.equal(this, sdk); return f.sdk.createRewardedVideoAd(options); } };
+  const pending = provider.show();
+  f.listeners.close({ isEnded: true });
+  assert.equal((await pending).status, 'completed');
+  provider.dispose();
+});
+
+test('late shown from a retired request cannot cancel the next opening deadline', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const f = fixture(); let opened;
+  f.ad.show = () => new Promise(resolve => { opened = resolve; });
+  f.ad.destroy = async () => {};
+  const provider = createTapTapAdProvider(f.sdk, 'fixture-only');
+  const first = provider.show();
+  await new Promise(resolve => setImmediate(resolve));
+  provider.cancel(); assert.equal((await first).status, 'dismissed');
+  await new Promise(resolve => setImmediate(resolve));
+  f.ad.show = () => undefined;
+  const second = provider.show();
+  opened();
+  await new Promise(resolve => setImmediate(resolve));
+  t.mock.timers.tick(44000);
+  assert.equal((await second).status, 'failed');
+  provider.dispose();
 });

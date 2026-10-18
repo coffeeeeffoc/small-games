@@ -1,21 +1,46 @@
 # 街区追捕
 
-手机优先的警察与小偷实时策略游戏，包含各 100 关的街区挑战、自由追逐、出口竞速，以及 3 关快速战术试炼。点场内角色选中，再点道路设置目的地；再次点击正在移动的已选角色可停下。Web 也支持拖动与键盘补充操作，触摸取消不会提交旧目标。至少两名警察封住小偷全部退路并持续合围才算抓获。
+手机触屏实时策略游戏：保安与小偷在道路上追逐，点角色选中、点道路下令，至少两名保安封住全部退路并持续合围才算抓获。街区挑战、自由追逐、出口竞速各 100 关，另有 3 关战术试炼和不消耗正式局数的夹击练习。
 
-首页保留开始游戏、角色装扮、行动手册。**因域名未就绪，好友 PK、全站榜、服务器纪录与成绩上传暂时禁用**，旧邀请也不会自动进入房间。普通和辅助最佳保存在本机，原有联网实现保留。
+冲刺提速 20%、持续 4 秒，失败可回溯约 5 秒。前 5 个实际开始的正式对局各赠两种支援 1 次；每局每种可补领 1 次。广告完整观看后只增加次数，返回原页面后再次点击使用；取消或失败不消耗补领资格。广告关闭的构建可直接补领。辅助成绩与普通最佳分开保存，回溯不退还已用次数。暂停、切后台和练习返回保留同局，恢复须明确继续；广告关闭则恢复原游玩页面。
 
-冲刺对当前选中的可行动角色提速 20%，持续 4 秒；失败可以回溯约 5 秒重新布局。前 5 个实际开始的正式对局各赠 1 次冲刺和回溯；每局每种还可广告补领 1 次。第 6 局起不赠送，每种可广告领取 1 次。重试算新局，练习、选关和暂停恢复不计；开始局数跨刷新保存。同源页面在 Web Locks 可用时串行发放，保存计数只增不减。存储被禁用时本次会话仍可玩，跨重启计数无法保留。
+默认离线运行，进度与偏好存于本机；原有共享后端的好友房和纪录服务由 `backend` 配置启用。Web 首页提供开始、装扮、手册、设置及分享入口，随实际方向投影地图，不显示全屏按钮；原生/Cocos 配置横屏。存储不可用时仍能继续本次游戏。
 
-广告阶段冻结时间、角色和能力倒计时，只在完整观看回调后发奖，玩家明确选择使用并继续或稍后使用。取消、失败和不可用不消耗补领资格。使用能力即记为辅助通关，辅助最佳与普通最佳分开保存，通关与下一关流程保持可用。回溯恢复双方路线、抓捕/逃脱、AI 目标和随机状态，能力次数不回滚。
+父仓库通过 `game-build.local.mjs` 的 `tapServices` 配置启用首页“TapTap 小站”，提供宿主登录、手动云存档、平台排行榜和 SDK 好友房。这些能力不依赖 `backend` 开关；`backend` 控制原有共享竞赛与纪录服务，后端代码继续保留。SDK 好友房是独立休闲对局，不写单机成绩或正式积分。H5 与原生使用不同应用，云档和排行榜分别保存。普通游戏目录的 `pnpm build` 不等同于该渠道服务包。
 
-自由模式地图逐渐增加环路与路口，小偷始终比警察快，电脑每 1.2 秒重新规划。`tests/runner-wins.test.mjs` 保存全部 300 关的小偷胜利见证，其中自由追逐和出口竞速覆盖两种先手，共 500 次真实引擎复演；另验证 200 张自由地图中不操作的小偷都会被抓获。见证针对普通指挥及固定电脑，不代表任意人类对手或轮换规则的必胜证明。
+[Tap 服务说明](../../../platforms/taptap/docs/game-services.md) · [好友房规则与验证](../../../platforms/taptap/docs/design/multiplayer-2026-10-19/README.md) · [统一构建](../../../docs/operations/game-builds.md)
 
-Web 页面按实际方向投影地图并保持角色直立，不显示全屏按钮；原生小游戏配置横屏。首页头像靠左上，设置位于其下方，只避让实际刘海与状态栏。首页分享游戏入口，选关、暂停和结算页分享当前关卡。前后台切换暂停单机，必须明确继续。头像装扮与存档沿用现有实现。开发模式使用公共 `SmallGamesDev`，默认关闭。
+## 目录
 
-游戏目录执行 `pnpm dev`、`pnpm test`、`pnpm test:levels`、`pnpm build`、`pnpm test:browser`、`pnpm package:taptap`。浏览器验收入口是 `tests/publishing.browser.mjs`，覆盖三种手机尺寸、真实触屏通关/超时、冲刺和回溯、次数边界、广告完成/取消/失败、暂停、辅助成绩、存档及 iframe，并断言无联网请求。旧 `mobile-pages-playtest.mjs` 等联网脚本保留作历史参考。
+| 路径 | 职责 |
+| --- | --- |
+| `index.html`、`src/main.js`、`src/renderer.js`、CSS | H5 页面、输入、生命周期和 Canvas 绘制 |
+| `src/engine.js`、`src/support.js` | 平台无关的道路模拟、胜负、冲刺与回溯 |
+| `src/levels.js`、`challenge-finals.js`、`quick-trials.js`、`layout-variants.js` | 关卡目录及配置；`level-safety.js` 校验逃生路线 |
+| `src/native.js`、`src/competition-renderer.js` | 原生小游戏与 Cocos 共用的 Canvas 玩法入口 |
+| `src/records.js`、`src/taptap-h5-ads.js`、`src/share.js` | 纪录协议、广告回调与公开分享 |
+| `src/tap-save.js`、`src/tap-multiplayer.js` | 云档白名单、榜单计分与平台好友房规则适配 |
+| `tests/`、`scripts/` | 规则测试、浏览器验收、构建与专项工具 |
+| `docs/`、`src/assets/` | 设计、验证、营销证据与运行素材 |
 
-仓库根目录执行 `node scripts/competition-build.mjs --native --game=cops-robbers-realtime` 与 `node scripts/street-native-smoke.mjs`，验证四渠道构建中的真实场内通关、离线请求边界、计数、存档与生命周期。服务端重放协议继续由规则测试验证，当前不上传成绩。
+[Cocos 工程](../../minigames/cops-robbers-realtime/)复用 `src/native.js`，接入与生成文件约定见[原生工程说明](../../minigames/README.md)。H5 与原生共用规则、关卡、装扮和支援实现；页面布局由各自入口适配。内部 `cop`、`robber` 和旧存储键保留兼容，不随角色文案改名。规则还被服务端重放引用，修改时需验证实际消费者。
 
-[本次方案、效果图与验证记录](docs/design/rewarded-support-2026-10-13/README.md) · [TapTap H5 接入和包体说明](docs/deployment/taptap-h5.md)
+## 开发与验证
 
-本地 Chrome 触屏模拟、原生 SDK 夹具和 ZIP 校验均不等同于手机真机、真实广告、TapTap 上传或审核通过。
+依赖使用仓库根 `pnpm-lock.yaml`，从根目录安装后执行：
+
+```sh
+pnpm --filter cops-robbers-realtime dev
+pnpm --filter cops-robbers-realtime test
+pnpm --filter cops-robbers-realtime test:levels
+pnpm --filter cops-robbers-realtime build
+pnpm --filter cops-robbers-realtime test:browser
+```
+
+`test:browser` 自行启动生产产物服务，覆盖手机触屏、分享、暂停、练习恢复、异步开局取消、支援、存档、iframe 与安全区。默认截图/报告写入本游戏忽略目录 `outputs/browser/`；`OUTPUT_DIR` 可指定输出根目录，两个专项分别使用 `publishing/`、`safe-area/`，不会覆盖历史设计证据。`PLAYWRIGHT_EXECUTABLE_PATH` 可指定浏览器。小偷通关见证在 `tests/fixtures/runner-witnesses.json`，由规则测试真实复演；`test:runner-browser` 是需先启动服务的额外浏览器专项。
+
+游戏包统一从仓库根配置 `game-build.local.mjs`，先运行 `pnpm build:games --dry-run`，再按需运行 `pnpm build:games`；渠道、公开 AppID、H5/原生上传包区别见[统一游戏包构建](../../../docs/operations/game-builds.md)。游戏目录 `pnpm build` 仅产生本游戏静态 `dist/`。不要手改生成的 Cocos 入口或公共副本：`dev-mode.js`/类型由根 `pnpm sync:dev-mode` 同步，`src/fullscreen.js` 仍由根 H5 全屏同步清单管理。
+
+[文档与历史证据索引](docs/README.md) · [TapTap H5 接入](docs/deployment/taptap-h5.md)
+
+浏览器手机尺寸模拟、SDK 夹具和打包校验不代表实体手机、真实商业广告或平台审核通过。

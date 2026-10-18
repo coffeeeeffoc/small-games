@@ -14,6 +14,7 @@ import {
   copyRuntimeAssets,
 } from '../scripts/prepare.mjs';
 import { runCheckedConversion } from '../scripts/build.mjs';
+import { tapServicesVariable } from '../../../scripts/taptap-services-config.mjs';
 
 test('Cocos cops packages the original home, garden and character art without changing H5 assets', async () => {
   const output = await mkdtemp(path.join(tmpdir(), 'cocos-cops-art-'));
@@ -41,6 +42,38 @@ test('Cocos cops packages the original home, garden and character art without ch
     assert.deepEqual(
       await readFile(path.join(output, 'patrol-characters.webp')),
       Buffer.from(embedded[1], 'base64'),
+    );
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});
+
+test('Cocos street adds compact H5 portraits only through explicit visual assets', async () => {
+  const output = await mkdtemp(path.join(tmpdir(), 'cocos-street-art-'));
+  try {
+    const config = configuration('cops-robbers-realtime', 'web-preview', { env: {} });
+    assert.equal(config.adMode, 'off');
+    assert.equal(config.visualAssets.portraits, 'street-characters.webp');
+    assert.equal(
+      configuration('cops-robbers', 'taptap', { env: { TAPTAP_AD_UNIT_ID: 'real-slot' } }).adMode,
+      'host',
+    );
+    await copyRuntimeAssets(config, output);
+    const bytes = await readFile(path.join(output, config.visualAssets.portraits));
+    assert.equal(bytes.toString('ascii', 0, 4), 'RIFF');
+    assert.equal(bytes.toString('ascii', 8, 12), 'WEBP');
+    assert(
+      bytes.length < 500000,
+      'portrait sheet must leave room for the engine in the native main package',
+    );
+    assert.deepEqual(
+      bytes,
+      await readFile(
+        new URL(
+          '../../local/cops-robbers-realtime/src/assets/characters-native.webp',
+          import.meta.url,
+        ),
+      ),
     );
   } finally {
     await rm(output, { recursive: true, force: true });
@@ -180,6 +213,11 @@ test('all three entries bundle real rules and stable scene identities without wr
   for (const game of Object.keys(games)) {
     const result = await prepareGame(configuration(game, 'web-preview', { env: {} }));
     assert(result.files.some((f) => f.path === games[game].entry));
+    for (const [source] of assetInputs(game))
+      assert(
+        result.files.some((file) => file.path === source),
+        `Asset missing from source identity: ${source}`,
+      );
     assert(
       result.files.some((f) =>
         f.path.startsWith(
@@ -206,5 +244,66 @@ test('all three entries bundle real rules and stable scene identities without wr
       result.sourceHash,
       'Platform configuration participates in provenance',
     );
+  }
+});
+
+test('Cocos xiangqi explicitly packages and fingerprints the current H5 pavilion and logo', async () => {
+  const output = await mkdtemp(path.join(tmpdir(), 'cocos-xiangqi-art-'));
+  try {
+    const config = configuration('xiangqi-five', 'web-preview', { env: {} });
+    assert.deepEqual(config.visualAssets, {
+      pavilion: 'pavilion-background.png',
+      logo: 'five-piece-logo.webp',
+    });
+    await copyRuntimeAssets(config, output);
+    for (const name of Object.values(config.visualAssets)) {
+      const source = `games/submodules/xiangqi-five/assets/${name}`;
+      assert(
+        assetInputs('xiangqi-five').some(([input, target]) => input === source && target === name),
+      );
+      assert.deepEqual(
+        await readFile(path.join(output, name)),
+        await readFile(new URL(`../../submodules/xiangqi-five/assets/${name}`, import.meta.url)),
+      );
+    }
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});
+
+test('Tap multiplayer build injects only its own rules and fingerprints the complete native runtime', async () => {
+  for (const game of Object.keys(games)) {
+    const appId = `tapfixture_${game}`;
+    const config = configuration(game, 'taptap', {
+      env: {
+        TAPTAP_APP_ID: appId,
+        [tapServicesVariable(game)]: JSON.stringify({
+          enabled: true,
+          appConsoleId: '800001',
+          appId,
+          leaderboardId: 'fixtureboard',
+        }),
+      },
+    });
+    const result = await prepareGame(config);
+    const inputs = result.files.map((file) => file.path);
+    const adapter =
+      game === 'xiangqi-five'
+        ? 'games/submodules/xiangqi-five/tap-multiplayer.js'
+        : `games/local/${game}/src/tap-multiplayer.js`;
+    assert.deepEqual(
+      inputs.filter((file) => file.endsWith('/tap-multiplayer.js')),
+      [adapter],
+    );
+    assert(inputs.includes('platforms/taptap/multiplayer-session.mjs'));
+    assert(inputs.includes('platforms/taptap/multiplayer-screen.mjs'));
+    assert(
+      !inputs.some((file) => file.startsWith('services/')),
+      'native bundle never imports server rules',
+    );
+    const code = await readFile(path.join(root, game, 'assets/scripts/game-entry.js'), 'utf8');
+    assert(code.includes('tapMultiplayer:'));
+    assert(code.includes('startTapMultiplayerScreen'));
+    assert(!code.includes('node:crypto'));
   }
 });

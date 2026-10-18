@@ -56,7 +56,12 @@ for (const [game, selected] of Object.entries(competitionGames)) {
         });
         instance = exports.instance;
         assert(!f.findLabel('好友挑战'));
-        f.tapLabel(game === 'cops-robbers' ? '开始巡逻' : '同屏双人');
+        if (game === 'cops-robbers') f.tapLabel('开始巡逻');
+        else {
+          f.tapLabel('开始对弈');
+          f.tapLabel('同屏双人');
+          f.tapLabel('开始对局');
+        }
         await flushNative();
         assert.equal((instance.getState?.() || instance.state).page, 'play');
         assert.equal(f.requests.length, 0);

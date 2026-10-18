@@ -134,6 +134,7 @@ const catalog = JSON.parse(
 // Pin historical digest fixtures so later edits and Windows checkout EOLs cannot change them.
 const snapshot = (file) =>
   [
+    'scripts/nine-canvas-games-smoke.mjs',
     'platforms/competition/client.js',
     'platforms/competition/native.js',
     'platforms/competition/xiangqi-five/native.js',
@@ -1146,5 +1147,149 @@ test('the independent TapTap login installer and packaged helper select all nine
       ['carding-car', 'night-overwatch'],
     );
     assert.deepEqual(plan.native_only_paths, [file]);
+  }
+});
+
+test('current chess and Canvas revisions bind both real publication baselines, imports and catalog identities', async () => {
+  const { workspacePackages } = await import('./validation-plan.mjs');
+  const packages = await workspacePackages(fileURLToPath(new URL('../', import.meta.url)));
+  const changedPaths = [
+    'platforms/competition/xiangqi-five/native.js',
+    'platforms/competition/xiangqi-five/tests/native.test.mjs',
+    'platforms/competition/xiangqi-five/tests/browser.mjs',
+    'scripts/nine-canvas-games-smoke.mjs',
+  ];
+  const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  for (const base of [
+    'ba88e46a0f7f7fb5c37c28a20c8eae7a0319eece',
+    '96315a0a3351e60607447d8e18d1767b6a1b730b',
+    '457bc63c47b631a1f932b35f48e6b166f408ab2d',
+  ]) {
+    const context = {
+      changedPaths,
+      games: catalog,
+      packages,
+      readHead,
+      readBase: (file) => execFileSync('git', ['show', `${base}:${file}`], { encoding: 'utf8' }),
+    };
+    const scopes = nineNativeFileScopes(context);
+    assert.deepEqual([...scopes.keys()], changedPaths);
+    assert.deepEqual(scopes.get(changedPaths[0]), [
+      'games/submodules/xiangqi-five',
+      'apps/shell-minigame',
+    ]);
+    for (const file of changedPaths) {
+      assert(
+        !nineNativeFileScopes({
+          ...context,
+          readBase: (name) => context.readBase(name) + (name === file ? '\n' : ''),
+        }).has(file),
+      );
+      assert(
+        !nineNativeFileScopes({
+          ...context,
+          readHead: (name) =>
+            readHead(name) + (name === file ? "\nimport './unreviewed.mjs';\n" : ''),
+        }).has(file),
+      );
+    }
+    assert.equal(
+      nineNativeFileScopes({
+        ...context,
+        games: [...catalog, catalog.find((game) => game.id === 'xiangqi-five')],
+      }).size,
+      0,
+    );
+    assert.equal(
+      nineNativeFileScopes({
+        ...context,
+        packages: packages.filter((pkg) => pkg.dir !== 'apps/shell-minigame'),
+      }).size,
+      0,
+    );
+  }
+});
+
+test('only the exact Tap smoke chess branch delta excludes unchanged Creator inputs', async () => {
+  const { nineNativeDependencyPlan } = await import('./nine-native-scope.mjs');
+  const { workspacePackages } = await import('./validation-plan.mjs');
+  const file = 'apps/shell-minigame/scripts/taptap-smoke.mjs';
+  const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const context = {
+    changedPaths: [file],
+    games: catalog,
+    packages: await workspacePackages(fileURLToPath(new URL('../', import.meta.url))),
+    readHead,
+    readBase: (file) =>
+      execFileSync('git', ['show', `ba88e46a0f7f7fb5c37c28a20c8eae7a0319eece:${file}`], {
+        encoding: 'utf8',
+      }),
+  };
+  const fileScopes = nineNativeFileScopes(context);
+  assert(fileScopes.has(file));
+  const select = (extra) =>
+    nineNativeDependencyPlan({ ...context, fileScopes, readSource: readHead, ...extra });
+  assert.deepEqual(
+    select().targets.map((t) => `${t.game}:${t.platform}`),
+    ['xiangqi-five:taptap'],
+  );
+  for (const extra of [
+    { fileScopes: new Map([[file, [...fileScopes.get(file)]]]) },
+    { readSource: (name) => readHead(name) + (name === file ? '\n' : '') },
+    { fileScopes: nineNativeFileScopes({ ...context, readBase: () => 'unknown' }) },
+    { changedPaths: [file, 'games/local/carding-car/assets/scripts/Main.ts'] },
+  ])
+    assert(select(extra).targets.some((t) => t.game === 'carding-car' && t.requiresCreator));
+  for (const game of ['carding-car', 'night-overwatch'])
+    assert(
+      select({
+        changedPaths: [file, `games/local/${game}/assets/scripts/Bootstrap.ts`],
+      }).targets.some((target) => target.game === game && target.requiresCreator),
+    );
+  assert.equal(
+    nineNativeFileScopes({
+      ...context,
+      readHead: (name) => readHead(name) + (name === file ? '\n' : ''),
+    }).size,
+    0,
+  );
+});
+
+test('separate Tap roots preserve H5, never propagate empty ownership, and regain genuine legacy importers', async () => {
+  const { nineNativeDependencyPlan, isNineNativeOnlyPath } = await import(
+    './nine-native-scope.mjs'
+  );
+  const { workspacePackages } = await import('./validation-plan.mjs');
+  const packages = await workspacePackages(fileURLToPath(new URL('../', import.meta.url)));
+  const current = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const roots = [
+    'browser-entry',
+    'competition-identity',
+    'multiplayer-screen',
+    'multiplayer-session',
+  ].map((name) => `platforms/taptap/${name}.mjs`);
+  const sibling = 'platforms/taptap/unreviewed-sibling.mjs';
+  for (const file of roots) {
+    assert.equal(isNineNativeOnlyPath(file), false);
+    const readSource = (name) =>
+      name === sibling
+        ? 'export const value = 1;'
+        : current(name) + (name === file ? "\nimport './unreviewed-sibling.mjs';\n" : '');
+    const options = { games: catalog, packages, readSource };
+    assert.deepEqual(nineNativeDependencyPlan({ ...options, changedPaths: [file] }).targets, []);
+    const unknown = nineNativeDependencyPlan({ ...options, changedPaths: [sibling] });
+    assert.equal(unknown.targets.length, 9);
+    assert(unknown.targets.some((t) => t.requiresCreator));
+    const restored = nineNativeDependencyPlan({
+      ...options,
+      changedPaths: [file, sibling],
+      readSource: (name) =>
+        readSource(name) +
+        (name === 'games/local/cops-robbers-realtime/src/native.js'
+          ? `\nimport '../../../../${file}';\n`
+          : ''),
+    });
+    assert.equal(restored.targets.length, 6);
+    assert(restored.targets.every((t) => t.game === 'cops-robbers-realtime'));
   }
 });

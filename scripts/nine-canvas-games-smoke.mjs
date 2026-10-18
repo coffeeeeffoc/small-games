@@ -178,7 +178,9 @@ for (const game of [
           assert(hit, label);
           fixture.tap(hit.x + hit.w / 2, hit.y + hit.h / 2);
         };
+        tap('开始对弈');
         tap('电脑对弈');
+        tap('开始对局');
         tap('棋格0');
         await fixture.tick(101);
         assert.equal(
@@ -188,7 +190,10 @@ for (const game of [
         );
         tap('暂停');
         tap('返回首页');
+        tap('开始对弈');
         tap('同屏双人');
+        tap('开始对局');
+        tap('确认重开');
         for (const index of [0, 9, 1, 10, 2, 11, 3, 12, 4]) tap(`棋格${index}`);
         assert.equal(instance.state.game.result, 'red');
         assert.equal(instance.state.page, 'result');

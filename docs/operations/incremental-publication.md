@@ -38,7 +38,7 @@ git push origin <已验证候选SHA>:refs/heads/dev
 
 本地 TapTap H5 一键部署显式使用 `browser-preparation.mjs --reuse-installed`：缓存浏览器无法启动时继续尝试本机 Chrome / Edge 的标准安装位置，找到能启动的浏览器即复用，全部不可用时才安装或重装匹配 Chromium；明确配置的无效路径仍阻断。这个可选模式不改变候选校验和 CI 的默认选择规则。
 
-围捕小队已关闭好友 PK，H5 竞赛构建声明 `online: false`，避免离线产物注入旧联机入口。只添加该声明且其余构建器字节不变时，验证范围选择围捕小队；其他构建器变化仍使用原共享范围。两款追捕游戏的离线声明均只接受布尔 `false`，其他游戏不接受此声明。
+围捕小队的 H5 竞赛构建声明 `online: false`，关闭离线包中旧共享后端的好友 PK 入口。TapTap SDK 好友房由独立 `tapServices` 配置启用，保留原生联机能力。只添加该声明且其余构建器字节不变时，验证范围选择围捕小队；其他构建器变化仍使用原共享范围。两款追捕游戏的离线声明均只接受布尔 `false`，其他游戏不接受此声明。
 
 增量层运行格式、注册、依赖边界检查及直接变更项目的构建/规则测试和实际依赖闭包的类型与 lint。Shell 的有限 jsdom 接入契约覆盖目录、模式参数、重载、独立入口及沉浸消息/返回流程。游戏接入使用已有注册结构化 diff；同一 Shell 目录中的单款注册及 workspace wiring 不算通用共享组件。规则模块可证明纯净时不启动浏览器；游戏界面或无法判为纯规则的本游戏代码检查该游戏。共享包按依赖闭包选择真实消费者。通用 Shell 导航检查词屿与象五子棋两个入口家族，使用真实鼠标和手机触屏走通 iframe/独立入口。选择后的构建不调用会准备全部游戏的 Shell `build:pages`。未知仓库级共享路径或无法识别的注册/工具链变化必须定义范围后重试；不能静默改跑全量，也不能伪报通过。新增分支需明确已有比较基线，hook 不猜基线。
 
@@ -57,3 +57,11 @@ Pages 全量回归保持每个游戏的全部阶段在同一片内，以 300000 
 本次前九款新增工具使用 `scripts/nine-native-scope.mjs` 的七个精确路径：共享 competition guard 仅接受原四渠道后增加支付宝且其他字节完全不变；六个新入口或测试文件必须符合人工审阅源码摘要、固定 import 和游戏名单，未知兄弟文件与其他执行代码继续阻塞。范围含真实游戏包与原生宿主，按 workspace 依赖图计算类型和 lint 消费者。原生工具变更运行对应五渠道 preview 构建与实际 CJS 流程，不因原生专属接线自动选择无变化的 H5 浏览器页面；B站入口触屏流程显式启用 `BILIBILI_BROWSER=1`。
 
 `nine-lock-scope.mjs` 单独证明支付宝新 importer、宿主 workspace link 与外滩两项固定直接工具依赖。支付宝工具完全复用基线 importer tuple；外滩 draco3d 1.5.7、esbuild 0.28.2 已在基线唯一 package/snapshot 中锁定，新增直接 tuple 必须匹配 manifest，不得产生新 resolution。移除这些已证明增量后，整个锁文件必须与基线逐字一致；错误 link、重复 importer、额外依赖、外部版本/integrity 更新、manifest 不符或缺基线均不分类。该证明不能覆盖注册结构破坏或同次推送混入的其他未知路径。
+
+三款 TapTap 服务的默认门禁不依赖 `MINIGAME_RELEASE_GATES=1`。`tap-services.test.mjs`、`tap-services.browser.mjs` 和统一 `check-tap-multiplayer.mjs` 串行执行；后者固定运行联机规则、三款启用配置的原生源码 bundle 注入和六个 H5/Canvas 双端浏览器入口。平台包 `platforms/taptap` 的完整规则测试也在默认门禁执行。服务入口、构建注入输入及其实际静态 import 依赖变化会触发这些检查，包括引擎、关卡和渲染器单独变更。原生专属入口即使没有 H5 浏览器范围，也先准备并检查浏览器；准备或任一步失败均阻断。Tap 浏览器 fixture 结束后始终使用候选真实环境串行重建三款 H5，避免后续检查或发布使用 fixture AppID；失败时保留原始测试错误，重建失败同样阻断。追捕实时版的开始/重开、广告及前后台回归 `start-lifecycle.browser.mjs` 已纳入发布浏览器专项。
+
+`browser-entry.mjs`、`competition-identity.mjs`、`multiplayer-screen.mjs`、`multiplayer-session.mjs` 四个准确路径属于三款 H5/新 Cocos 的生成注入入口，旧九款原生依赖图以空消费者登记。空消费者不传递给导入文件；若旧原生入口以后实际导入它们，仍追加真实消费者并继续追踪依赖。未知同级平台模块继续回退九款 TapTap 消费者并恢复 carding-car/night-overwatch 的 Creator 要求。全部七个 H5 服务共享模块保留三款 H5 范围，`native-portal` 及其真实依赖仍选择旧原生追捕实时版/象五子棋的六渠道消费者。Cocos 的新三款与旧九款图分别计算，不能用空 seed 豁免真实源码或编辑器输入变化。
+
+象五子棋原生入口及两个测试、九款 Canvas 冒烟保留早期精确证明，并新增 `ba88e46a0f7f7fb5c37c28a20c8eae7a0319eece`（最后成功 Pages）和 `457bc63c47b631a1f932b35f48e6b166f408ab2d`（最新 dev，相关文件与 `96315a0` 相同）的完整 base/head 摘要、固定 import 与目录身份核查。TapTap 冒烟仅接受象棋准备页新增点击的完整字节差异，以不可复制的证明限定为象棋 TapTap 消费者；其他分支、未知基线、陈旧/复制证明、额外 Creator 输入仍恢复真实范围。固定历史 fixture `c010423731cc22fb0657a4a86ac9811e1997bbc1` 不随工作树更新。
+
+历史评审工具按三个准确路径选择各自游戏对与 runtime-api；子模块弹层脚本核对固定四款名单，选取四款生产构建和实际弹层浏览器。实时追捕 TapTap 预设只接受单游戏、布尔广告/后端开关及公开广告位的已知结构，额外字段或游戏拒绝分类。`check-staged-format` 的实现或测试变化实际触发 `test:hooks`。这些映射不豁免未知同级脚本，也不把开发用后台评审工具视为已完成真实平台验收。
