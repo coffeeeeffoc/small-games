@@ -323,6 +323,20 @@ export function incrementalPlan({
     browser: ids.size > 0,
     browser_ids: [...ids].sort(),
     admin_console_checks: adminConsoleChecks,
+    xiangqi_build_checks:
+      paths.some(
+        (file) =>
+          file === 'games/submodules/xiangqi-five' ||
+          file.startsWith('games/submodules/xiangqi-five/'),
+      ) ||
+      scopedConsumers.includes('games/submodules/xiangqi-five') ||
+      (ids.has('xiangqi-five') &&
+        games.some(
+          (game) => game.id === 'xiangqi-five' && game.source === 'games/submodules/xiangqi-five',
+        )) ||
+      selected.some((game) => game.source === 'games/submodules/xiangqi-five') ||
+      cocosMini.ids.includes('xiangqi-five') ||
+      nineNative.targets.some((target) => target.game === 'xiangqi-five'),
     tap_services_checks: tapServicesChanged(paths, readSource),
     hook_checks: paths.some((file) => /^scripts\/check-staged-format(?:\.test)?\.mjs$/.test(file)),
     submodule_dialog_ids:

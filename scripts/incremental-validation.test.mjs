@@ -1280,3 +1280,53 @@ test('Tap services retain all three H5 consumers alongside genuine native consum
   assert.equal(selected.nine_native_targets.length, 9);
   assert.equal(selected.nine_native_blocked.length, 2);
 });
+
+test('every actual chess H5, native or Cocos consumer retains the standalone build contract', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { workspacePackages } = await import('./validation-plan.mjs');
+  const { nineNativeFileScopes } = await import('./nine-native-scope.mjs');
+  const { cocosMinigameFileScopes } = await import(
+    '../games/minigames/scripts/validation-scope.mjs'
+  );
+  const root = fileURLToPath(new URL('../', import.meta.url)),
+    packages = await workspacePackages(root);
+  const games = JSON.parse(
+    readFileSync(path.join(root, 'apps/shell-web/src/standalone-games.json')),
+  );
+  const readHead = (file) => readFileSync(path.join(root, file), 'utf8');
+  const select = (file) => {
+    const context = {
+      changedPaths: [file],
+      games,
+      packages,
+      readHead,
+      readBase: (name) =>
+        execFileSync('git', ['show', '457bc63c47b631a1f932b35f48e6b166f408ab2d:' + name], {
+          cwd: root,
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'ignore'],
+        }),
+      readSource: readHead,
+    };
+    const fileScopes = new Map([
+      ...reviewedSharedFileScopes(context),
+      ...nineNativeFileScopes(context),
+      ...cocosMinigameFileScopes(context),
+    ]);
+    return incrementalPlan({ ...context, fileScopes });
+  };
+  for (const file of [
+    'games/submodules/xiangqi-five',
+    'games/submodules/xiangqi-five/build.test.js',
+    'games/submodules/xiangqi-five/game.js',
+    'platforms/competition/xiangqi-five/native.js',
+    'platforms/taptap/calls.mjs',
+    'games/minigames/shared/runtime.js',
+  ])
+    assert.equal(select(file).xiangqi_build_checks, true, file);
+  for (const file of [
+    'games/local/cops-robbers/src/engine.js',
+    'games/submodules/xiangqi-five/docs/evidence.md',
+  ])
+    assert.equal(select(file).xiangqi_build_checks, false, file);
+});

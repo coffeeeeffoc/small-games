@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { getRoleAppearance, roleCharacterMarkup, roleAvatarSvg } from '../src/role-appearance.js';
-import { parseGameBuildConfig } from '../../../../scripts/build-games.mjs';
 import { h5AdConfig } from '../../../../scripts/h5-ad-config.mjs';
 
 test('security guard identities keep the existing role and portrait contracts', () => {
@@ -21,10 +20,14 @@ test('security guard identities keep the existing role and portrait contracts', 
 });
 
 test('the saved TapTap preset selects only this game with rewarded ads and no backend', async () => {
-  const config = parseGameBuildConfig(JSON.parse(await readFile(new URL('../../../../infra/builds/cops-robbers-realtime-taptap.json', import.meta.url))));
-  assert.deepEqual(config.games, ['cops-robbers-realtime']);
-  assert.deepEqual(config.ads, [true]);
-  assert.deepEqual(config.backend, [false]);
+  const config = JSON.parse(await readFile(new URL('../../../../infra/builds/cops-robbers-realtime-taptap.json', import.meta.url), 'utf8'));
+  assert.deepEqual(config, {
+    version: 1,
+    games: ['cops-robbers-realtime'],
+    ads: [true],
+    backend: [false],
+    adUnits: { 'cops-robbers-realtime': '1054324' },
+  });
   const ads = h5AdConfig(config.games[0], { args: ['--with-ads'], env: {
     TAPTAP_COPS_ROBBERS_REALTIME_AD_UNIT_ID: config.adUnits[config.games[0]],
   } });

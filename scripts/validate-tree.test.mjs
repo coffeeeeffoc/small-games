@@ -2112,3 +2112,54 @@ test('a native-only Tap bootstrap prepares the browser before mandatory default 
     /Tap browser unavailable/,
   );
 });
+
+test('standalone chess separates the exact subprocess contract without relaxing pure rule traversal', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const { ruleTask, xiangqiRulePolicy } = await import('./rule-tasks.mjs');
+  const dir = path.resolve(xiangqiRulePolicy.source);
+  const pkg = {
+    ...JSON.parse(await readFile(path.join(dir, 'package.json'), 'utf8')),
+    dir: xiangqiRulePolicy.source,
+  };
+  const task = ruleTask(pkg);
+  assert.equal(task.command, xiangqiRulePolicy.command);
+  assert.deepEqual(task.args, ['--filter', pkg.name, 'exec', ...task.command.split(' ')]);
+  await assertNodeOnly(task.command, dir);
+  await assert.rejects(
+    assertNodeOnly(pkg.scripts.test, dir),
+    /Executable test dependency node:child_process/,
+  );
+  for (const extra of [
+    { scripts: { test: pkg.scripts.test + ' future.test.js' } },
+    { name: 'another-chess-package' },
+    { dir: 'games/submodules/other-chess' },
+  ])
+    assert.notEqual(ruleTask({ ...pkg, ...extra }).command, xiangqiRulePolicy.command);
+});
+
+test('chess build subprocess contracts are mandatory with native gates off and propagate failure', () => {
+  const calls = [],
+    options = {
+      plan: { xiangqi_build_checks: true, native_consumers: [], developer_mode_ids: [] },
+      packages: [],
+      root: '/candidate',
+      env: { MINIGAME_RELEASE_GATES: '0' },
+    };
+  runIncrementalToolChecks({
+    ...options,
+    execute: (command, args) => calls.push([command, ...args]),
+  });
+  assert.deepEqual(calls, [
+    [process.execPath, '--test', 'games/submodules/xiangqi-five/build.test.js'],
+  ]);
+  assert.throws(
+    () =>
+      runIncrementalToolChecks({
+        ...options,
+        execute() {
+          throw Error('chess build regression');
+        },
+      }),
+    /chess build regression/,
+  );
+});

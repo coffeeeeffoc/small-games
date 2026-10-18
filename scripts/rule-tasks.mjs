@@ -7,9 +7,31 @@ export const cocosRuleCommands = {
     'node --test tests/core.test.ts tests/balance.test.ts tests/training.test.ts tests/blast.test.ts tests/camera.test.ts',
 };
 
+// The standalone chess package also tests its build subprocess. Keep its seven
+// pure suites in rule traversal and execute build.test.js in the explicit
+// candidate build-contract gate. A changed package test command needs review;
+// it cannot silently lose newly added tests through this finite split.
+export const xiangqiRulePolicy = Object.freeze({
+  source: 'games/submodules/xiangqi-five',
+  name: '@coffeeeeffoc/xiangqi-five',
+  command:
+    'node --test game.test.js rooms.test.js computer.test.js computer-hints.test.js computer-undo.test.js challenges.test.js rewarded-hints.test.js',
+  declared:
+    'node --test build.test.js game.test.js rooms.test.js computer.test.js computer-hints.test.js computer-undo.test.js challenges.test.js rewarded-hints.test.js',
+});
+
 export function ruleTask(pkg) {
   const declared = pkg.scripts?.['test:rules'];
   if (declared) return { command: declared, args: ['--filter', pkg.name, 'test:rules'] };
+  if (
+    pkg.dir === xiangqiRulePolicy.source &&
+    pkg.name === xiangqiRulePolicy.name &&
+    pkg.scripts?.test === xiangqiRulePolicy.declared
+  )
+    return {
+      command: xiangqiRulePolicy.command,
+      args: ['--filter', pkg.name, 'exec', ...xiangqiRulePolicy.command.split(' ')],
+    };
   const reviewed = cocosRuleCommands[pkg.dir];
   if (reviewed)
     return { command: reviewed, args: ['--filter', pkg.name, 'exec', ...reviewed.split(' ')] };

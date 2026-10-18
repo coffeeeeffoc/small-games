@@ -388,6 +388,16 @@ export function runNineNativeChecks({
 }
 
 export function runIncrementalToolChecks({ plan, packages, root, env, execute = run }) {
+  // This subprocess contract owns only temporary fixtures; it is separate from
+  // pure rule traversal and remains required when native release gates are off.
+  if (plan.xiangqi_build_checks)
+    execute(
+      process.execPath,
+      ['--test', 'games/submodules/xiangqi-five/build.test.js'],
+      root,
+      env,
+      'logged',
+    );
   if (plan.hook_checks) execute('pnpm', ['test:hooks'], root, env, 'logged');
   if (plan.street_admission_checks)
     execute(
