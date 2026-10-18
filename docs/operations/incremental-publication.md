@@ -10,6 +10,8 @@ Optional, separately approved competition HTTPS ingress uses the exact `competit
 
 使用 Node 24.21.0 / pnpm 12.6.0。先读取远端 dev 的准确 SHA，获取最新提交，正常合并并保留并行改动。候选必须已经提交；禁止把合并前的验证记录当作合并后结果。
 
+统一包体入口 `scripts/build-games.mjs`、`scripts/native-game-build.mjs`、对应 `build-games.test.mjs`、版本化配置 `game-build.local.mjs` 和 `infra/builds/games.example.mjs`（兼容旧 JSON 模板）按精确路径选择三款 H5 与 Cocos 消费者，未知同级文件仍拒绝。契约测试覆盖完整批次预检、各游戏 AppID 隔离、平台交付类型和官方 ZIP 原样保留；入口不自动上传或运行全量验收。`h5-taptap-build.mjs` 的安全输出目录及显式批次 ID 继续受原 H5 保留/恢复测试约束。
+
 ## 按需运行本地候选校验
 
 普通 `git push` 的 `pre-push` 仅提示手动命令，不自动执行长时校验。`core.hooksPath` 与 `pre-commit` 格式检查保留；Git 的非快进保护和远端接收检查仍生效。需要完整增量校验时，先提交并同步远端，再运行 `pnpm validate:candidate --base <远端准确SHA> --head <候选准确SHA>`。原始 `pnpm validate:push` stdin 协议及 `pnpm push:no-verify` 兼容入口继续保留。

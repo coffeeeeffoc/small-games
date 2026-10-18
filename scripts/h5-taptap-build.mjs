@@ -67,7 +67,7 @@ const git = (workspace, args, optional = false) => {
     throw error;
   }
 };
-async function ordinaryDirectory(base, destination) {
+export async function ordinaryDirectory(base, destination) {
   assert(destination === base || inside(base, destination), 'Directory escaped workspace');
   let current = base;
   for (const component of path.relative(base, destination).split(path.sep).filter(Boolean)) {
@@ -326,7 +326,7 @@ export async function buildH5Packages(
       modes.every((pair) => pair.length === 2 && pair.every((value) => typeof value === 'boolean')),
     'Choose ads and backend variants',
   );
-  const batch = path.basename(output);
+  const batch = values.batch ?? path.basename(output);
   assert(/^[A-Za-z0-9_-]+$/.test(batch), 'Invalid batch');
   for (const game of games) {
     const gameRoot = await realpath(

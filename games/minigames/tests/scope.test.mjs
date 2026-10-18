@@ -64,3 +64,25 @@ test('only the reviewed required engine workflow is classified', () => {
     }).has(file),
   );
 });
+
+test('the unified package entry selects the three actual Cocos consumers', () => {
+  for (const file of [
+    'scripts/build-games.mjs',
+    'scripts/native-game-build.mjs',
+    'scripts/build-games.test.mjs',
+    'game-build.local.mjs',
+    'infra/builds/games.example.json',
+    'infra/builds/games.example.mjs',
+  ]) {
+    const plan = cocosMinigamePlan({ changedPaths: [file], fileScopes: new Map() });
+    assert.deepEqual(plan.ids, ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five']);
+    assert.deepEqual(plan.native_only_paths, []);
+  }
+  assert.deepEqual(
+    cocosMinigamePlan({
+      changedPaths: ['scripts/native-game-build-extra.mjs'],
+      fileScopes: new Map(),
+    }).ids,
+    [],
+  );
+});

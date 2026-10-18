@@ -22,6 +22,8 @@
 
 ## 游戏构建：本地配置，不发布
 
+2026-10-19 起，日常入口仍为 `pnpm build:games`，使用随 Git 管理、带详细注释的 `game-build.local.mjs`（字段模板 `infra/builds/games.example.mjs`）；本机修改试打通过后提交配置，不合适则回退。版本 2 已支持 H5、TapTap 原生及现有 Cocos 渠道目标。新示例、AppID 配置、原始上传 ZIP 与开发者工程的区别见[统一游戏包构建](../game-builds.md)。以下版本 1 JSON 示例及产物规则保留兼容；默认 `.mjs` 不存在时才自动读取旧 `.json`，原有配置不会自动变成原生构建。
+
 复制 `infra/builds/games.example.json` 为仓库根的 `game-build.local.json`；该本地文件被 Git 忽略。模板故意留空 `games`，必须明确选择后才能构建：
 
 ```json

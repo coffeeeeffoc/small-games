@@ -204,8 +204,11 @@ export const competitionServiceScopePaths = [
   'scripts/h5-taptap.mjs',
   'scripts/h5-taptap-build.mjs',
   'scripts/build-games.mjs',
+  'scripts/native-game-build.mjs',
   'scripts/build-games.test.mjs',
+  'game-build.local.mjs',
   'infra/builds/games.example.json',
+  'infra/builds/games.example.mjs',
   'scripts/h5-taptap.browser.mjs',
   'scripts/h5-taptap-matrix.mjs',
   'scripts/h5-taptap-matrix.test.mjs',
@@ -876,6 +879,7 @@ const localIgnores = new Set([
   'opencode.json.backup.*',
   'AGENTS.md.backup.*',
   '/game-build.local.json',
+  '/game-build.local.js',
 ]);
 const ignoreLines = (text) =>
   text

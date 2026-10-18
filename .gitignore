@@ -48,5 +48,6 @@ opencode.json
 opencode.json.backup.*
 AGENTS.md.backup.*
 
-# Local selected H5 build choices
+# Legacy/custom local configurations; game-build.local.mjs is version-controlled
 /game-build.local.json
+/game-build.local.js

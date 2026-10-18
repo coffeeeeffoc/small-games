@@ -34,6 +34,8 @@ pnpm --filter @coffeeeeffoc/shell-web dev
 
 本地使用 `pnpm build:pages` 构建同一静态版本，`pnpm test:pages` 验证仓库子路径访问（需安装 Playwright Chromium）；设置 `PAGES_BASE_PATH=/small-games/dev/` 或 `/small-games/test/` 可验证对应嵌套路径。
 
+按游戏和渠道生成交付包，统一使用随 Git 管理的 `game-build.local.mjs` + `pnpm build:games`；手动修改配置后先用 `--dry-run` 预检，再本地试打，验证通过后提交配置，不合适则回退。H5、TapTap 原生、微信等现有平台的配置、产物类型及其他构建命令区别见[统一游戏包构建](docs/operations/game-builds.md)。
+
 ```bash
 pnpm test
 pnpm build

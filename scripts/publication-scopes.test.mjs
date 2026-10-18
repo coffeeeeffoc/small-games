@@ -49,6 +49,48 @@ import { executeCompetitionChecks } from './run-selected-competition.mjs';
 import { shellContractTargets, shellContractFiles } from './validation-plan.mjs';
 import { ingressPreflightGuard } from './competition-ingress.mjs';
 
+test('unified package tools keep H5 checks and select their actual Cocos consumers', () => {
+  const ids = ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'];
+  const games = ids.map((id) => ({ id, source: competitionConsumers[id] }));
+  const packages = games.map((game) => ({ name: game.id, dir: game.source }));
+  const readSource = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  for (const file of [
+    'scripts/build-games.mjs',
+    'scripts/native-game-build.mjs',
+    'scripts/build-games.test.mjs',
+    'game-build.local.mjs',
+    'infra/builds/games.example.json',
+    'infra/builds/games.example.mjs',
+  ]) {
+    const context = {
+      changedPaths: [file],
+      games,
+      packages,
+      readBase: readSource,
+      readHead: readSource,
+      readSource,
+    };
+    const fileScopes = reviewedSharedFileScopes(context);
+    assert(fileScopes.has(file), file);
+    const selected = incrementalPlan({ ...context, fileScopes });
+    assert.equal(selected.full, false);
+    assert.equal(selected.competition_service_checks, true);
+    assert.deepEqual(selected.cocos_minigame_ids, [
+      'cops-robbers',
+      'cops-robbers-realtime',
+      'xiangqi-five',
+    ]);
+  }
+  assert.equal(
+    reviewedSharedFileScopes({
+      changedPaths: ['scripts/native-game-build-extra.mjs'],
+      games: [],
+      packages: [],
+    }).size,
+    0,
+  );
+});
+
 test('new H5 acceptance helpers have finite unit-only scope and unknown siblings remain blocked', () => {
   for (const file of h5AcceptanceScopePaths.filter(
     (file) => !competitionServiceScopePaths.includes(file),
@@ -3634,6 +3676,8 @@ test('selected backend tools and additive local build commands have finite consu
       readHead: () => current,
     });
   assert(classify('/game-build.local.json\n').has('.gitignore'));
+  assert(classify('/game-build.local.js\n').has('.gitignore'));
+  assert.equal(classify('/game-build.local.mjs\n').size, 0);
   assert.equal(classify('/game-build.local.json\nscripts/\n').size, 0);
 });
 

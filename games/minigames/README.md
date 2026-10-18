@@ -8,6 +8,8 @@
 
 ## 工具与 TapTap 打包
 
+日常打包统一使用仓库根的 `pnpm build:games`，由 `game-build.local.mjs` 版本 2 的 `targets` 选择平台、H5/原生类型及每款 AppID；运行 `pnpm build:games --dry-run` 可先检查计划。使用方法、最终上传文件及其他构建命令的区别见[统一游戏包构建](../../docs/operations/game-builds.md)。下列命令保留为底层工具和 CI 入口，不读取该本地配置。
+
 在仓库根目录使用 Node 24.21.0、pnpm 12.6.0、Python 3.11+（保留官方 ZIP 中的 UTF-8 文件名）：
 
 ```sh

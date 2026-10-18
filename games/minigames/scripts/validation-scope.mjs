@@ -105,6 +105,12 @@ export function cocosMinigamePlan({ changedPaths, fileScopes }) {
         file,
       ) ||
       [
+        'scripts/build-games.mjs',
+        'scripts/native-game-build.mjs',
+        'scripts/build-games.test.mjs',
+        'game-build.local.mjs',
+        'infra/builds/games.example.json',
+        'infra/builds/games.example.mjs',
         'scripts/competition-service-config.mjs',
         'games/local/game-cricket/public/cricket-audio/perfect.wav',
         'games/local/carding-car/scripts/toolchain.mjs',
