@@ -113,7 +113,7 @@ export function startNativeCopsGame(sdk, config = {}, startNativeCompetition) {
       button('返回主页', y + 56, () => page = 'home');
     } else if (page === 'help') {
       title('学习与设置');
-      ['点蓝色队员，再点相邻空路口。', '每步移动一人，电脑随后行动。', '堵住全部退路完成拦截。', '橙色出口必须优先守住。', '接力：连续移动必须换人。', '快练：在限制步数内收网。'].forEach((line, i) => text(line, width / 2, top + 76 + i * 30, Math.min(16, width / 23)));
+      ['点保安队员，再点相邻空路口。', '每步移动一人，电脑随后行动。', '堵住全部退路完成拦截。', '橙色出口必须优先守住。', '接力：连续移动必须换人。', '快练：在限制步数内收网。'].forEach((line, i) => text(line, width / 2, top + 76 + i * 30, Math.min(16, width / 23)));
       button(`触感反馈：${save.settings.nativeHaptics === false ? '关' : '开'}`, height - bottom - 164, () => { save.settings.nativeHaptics = save.settings.nativeHaptics === false; persist(); }, true, 24, channel ? (width - 58) / 2 : width - 48);
       if (channel) button('B站入口', height - bottom - 164, () => page = 'channel', true, width / 2 + 5, (width - 58) / 2);
       text('本入口无音频素材，声音播放不可用', width / 2, height - bottom - 104, 12);

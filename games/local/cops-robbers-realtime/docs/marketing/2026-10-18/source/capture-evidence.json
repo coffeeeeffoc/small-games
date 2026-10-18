@@ -1,0 +1,41 @@
+{
+  "capturedAt": "2026-10-17T21:16:12.046Z",
+  "browser": "153.0.8010.12",
+  "base": "http://127.0.0.1:4190/",
+  "source": "Current working-tree game source, local offline H5 entry; no game/UI code modified.",
+  "viewport": {
+    "width": 432,
+    "height": 768
+  },
+  "deviceScaleFactor": 2.5,
+  "screenshots": "1080x1920, uniform 9:16, unaltered real browser captures",
+  "input": "Real touchscreen taps; no save injection, state injection or simulated clock.",
+  "video": "F:\\playground\\playground-ai\\small-games\\games\\local\\cops-robbers-realtime\\docs\\marketing\\2026-10-18\\source\\page@3e20fb9ee8dd3e58e0dcab78923883e1.webm",
+  "segments": [
+    {
+      "level": 1,
+      "begin": 2.592,
+      "end": 10.406,
+      "phase": "won"
+    },
+    {
+      "level": 2,
+      "begin": 11.158,
+      "end": 18.807,
+      "phase": "won"
+    },
+    {
+      "level": 3,
+      "begin": 19.528,
+      "end": 28.323,
+      "phase": "won"
+    }
+  ],
+  "checks": [
+    "Fresh-save campaign level 1, actual on-field police selection and movement, raw portrait screenshot.",
+    "Quick trial 1: real actor/road taps, normal-speed engine, victory verified.",
+    "Quick trial 2: real actor/road taps, normal-speed engine, victory verified.",
+    "Quick trial 3: real actor/road taps, normal-speed engine, victory verified."
+  ],
+  "errors": []
+}

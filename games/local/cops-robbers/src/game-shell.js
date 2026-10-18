@@ -32,7 +32,7 @@ export function setupGameShell({ openLevels, startPatrol }) {
           ? `已封 ${inspected[2]}/${inspected[3]} 条退路`
           : document.body.dataset.phase === 'planning'
             ? document.body.dataset.rule === 'relay'
-              ? '换一位警察，接力包抄！'
+              ? '换一位保安，接力包抄！'
               : '点亮起的路口，出发！'
             : {
                 police: '出发！',
@@ -50,7 +50,7 @@ export function setupGameShell({ openLevels, startPatrol }) {
       message = text
         .split(/[。；]/)[0]
         .replace('全部围捕', '收网')
-        .replace('追逐队员', '警察')
+        .replace('追逐队员', '保安')
         .replace('突围队员', '小偷')
         .slice(0, 36);
     if ($('play-prompt').textContent !== message) $('play-prompt').textContent = message;

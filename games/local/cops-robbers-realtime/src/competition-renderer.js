@@ -155,7 +155,7 @@ export function createRenderer() {
         );
         const x = transform.x + cop.x * scale,
           y = transform.y + (cop.y - 20) * scale;
-        if (!runner) hit(`选择 ${cop.id + 1} 号警察`, x - 22, y - 22, 44, 44, { local: cop.id });
+        if (!runner) hit(`选择 ${cop.id + 1} 号保安`, x - 22, y - 22, 44, 44, { local: cop.id });
       }
       ctx.restore();
       ctx.textAlign = 'center';

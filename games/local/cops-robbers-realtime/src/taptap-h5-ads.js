@@ -1,5 +1,5 @@
 // TapTap H5 supplies tap; ordinary browsers must keep advertising unavailable.
-export function createTapTapAdProvider(sdk, adUnitId, timeoutMs = 44000) {
+export function createTapTapAdProvider(sdk, adUnitId, showTimeoutMs = 44000) {
   let pending, disposed = false, blocked = false;
   return {
     show() {
@@ -7,9 +7,12 @@ export function createTapTapAdProvider(sdk, adUnitId, timeoutMs = 44000) {
         return Promise.resolve({ status: 'unavailable' });
       return new Promise(resolve => {
         let ad, settled = false, closed = false, timer;
-        const finish = status => {
+        const startedAt = Date.now();
+        const trace = (event, detail = {}) => console.info('[TapTapReward]', JSON.stringify({ event, elapsedMs: Date.now() - startedAt, ...detail }));
+        const finish = (status, reason) => {
           if (settled) return;
           settled = true;
+          trace('settled', { status, reason });
           clearTimeout(timer);
           try { ad?.offClose(close); } catch {}
           try { ad?.offError(error); } catch {}
@@ -21,22 +24,33 @@ export function createTapTapAdProvider(sdk, adUnitId, timeoutMs = 44000) {
           }
           resolve({ status });
         };
-        const close = result => { closed = true; finish(result?.isEnded === true ? 'completed' : 'dismissed'); };
-        const error = () => finish('failed');
-        pending = () => finish('dismissed');
+        const close = result => {
+          trace('close', { isEnded: result?.isEnded === true, valueType: typeof result?.isEnded, ignored: settled });
+          closed = true;
+          finish(result?.isEnded === true ? 'completed' : 'dismissed', 'sdk-close');
+        };
+        const error = () => finish('failed', 'sdk-error');
+        const shown = () => { clearTimeout(timer); trace('shown', { ignored: settled }); };
+        pending = reason => finish('dismissed', reason);
         try {
+          trace('requested');
           ad = sdk.createRewardedVideoAd({ adUnitId, multiton: false });
           ad.onClose(close);
           ad.onError(error);
-          timer = setTimeout(() => finish('failed'), timeoutMs);
-          Promise.resolve(ad.show()).catch(async () => {
+          // Limit opening time only; displayed ads own their duration until the SDK closes them.
+          timer = setTimeout(() => finish('failed', 'open-timeout'), showTimeoutMs);
+          Promise.resolve(ad.show()).then(shown).catch(async () => {
             if (settled) return;
-            try { await ad.load(); if (!settled) await ad.show(); } catch { error(); }
+            trace('retry-load');
+            try {
+              await ad.load();
+              if (!settled) { await ad.show(); shown(); }
+            } catch { error(); }
           });
         } catch { error(); }
       });
     },
-    cancel() { pending?.(); },
-    dispose() { disposed = true; pending?.(); },
+    cancel() { pending?.('cancel'); },
+    dispose() { disposed = true; pending?.('dispose'); },
   };
 }

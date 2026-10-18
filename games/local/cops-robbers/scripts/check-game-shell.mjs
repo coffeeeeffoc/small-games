@@ -65,11 +65,12 @@ try {
   await mkdir('outputs', { recursive: true });
   await check('home owns all levels and global game entries', async page => {
     assert.equal(await page.locator('#board:visible').count(), 0, 'The home does not expose an inactive game board');
-    for (const selector of ['#settings', '#help', '#appearance-settings', '#mode-settings', '#friend-duel']) {
+    for (const selector of ['#settings', '#help', '#appearance-settings', '#mode-settings']) {
       assert.ok(await page.locator(selector).isVisible(), `${selector} must be available on home`);
     }
     assert.ok(await page.locator('.home-scene').isVisible(), 'The illustrated street scene leads the home');
     assert.ok(await page.locator('#friend-duel').isDisabled(), 'Friend PK and the global board are temporarily unavailable');
+    assert.equal(await page.locator('#friend-duel').isVisible(), false, 'Unavailable friend PK stays hidden');
     assert.notEqual(await page.locator('.home-scene').evaluate(scene => getComputedStyle(scene).backgroundImage), 'none',
       'The home scene loads its cartoon art');
     await page.locator('#level-select').tap();
@@ -98,11 +99,11 @@ try {
     await page.screenshot({ path: 'outputs/game-shell-home-mobile.png' });
   });
 
-  await check('both appearances default to police and robber and persist globally', async page => {
+  await check('both appearances default to security guard and thief and persist globally', async page => {
     await page.locator('#appearance-settings').tap();
     const dialog = page.locator('[data-role-appearance]');
     await dialog.waitFor({ state: 'visible' });
-    const police = dialog.getByRole('combobox', { name: '警察样式', exact: true });
+    const police = dialog.getByRole('combobox', { name: '保安样式', exact: true });
     const robber = dialog.getByRole('combobox', { name: '小偷样式', exact: true });
     assert.equal(await police.inputValue(), 'team');
     assert.equal(await robber.inputValue(), 'team');
@@ -115,7 +116,7 @@ try {
     await page.locator('#focus-toggle').tap();
     await page.reload();
     await page.locator('#appearance-settings').tap();
-    assert.equal(await page.getByRole('combobox', { name: '警察样式', exact: true }).inputValue(), 'animals');
+    assert.equal(await page.getByRole('combobox', { name: '保安样式', exact: true }).inputValue(), 'animals');
     assert.equal(await page.getByRole('combobox', { name: '小偷样式', exact: true }).inputValue(), 'cosmic');
     await page.locator('[data-close-appearance]').tap();
     await page.locator('#resume-patrol').tap();
@@ -123,7 +124,7 @@ try {
       'Saved appearance is rendered after reload and resume');
     await page.locator('#focus-toggle').tap();
     await page.locator('#appearance-settings').tap();
-    await page.getByLabel('警察本地头像', { exact: true }).setInputFiles({
+    await page.getByLabel('保安本地头像', { exact: true }).setInputFiles({
       name: 'avatar.png', mimeType: 'image/png',
       buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jX1sAAAAASUVORK5CYII=', 'base64'),
     });
@@ -250,6 +251,7 @@ try {
     for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
       await page.setViewportSize(viewport);
       for (const node of [4, 5]) {
+        await page.locator('#squad [data-cop="2"]').tap();
         assert.equal(await page.getByTestId(`node-${node}`).evaluate(label => label.classList.contains('reachable')), false);
         const p = await nodePoint(page, node);
         await page.touchscreen.tap(p.x, p.y);

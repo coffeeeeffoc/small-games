@@ -27,7 +27,7 @@ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const base='http://127.0.0.1:'+server.address().port;
 const browser=await chromium.launch({ ...(process.env.PLAYWRIGHT_EXECUTABLE_PATH
   ? {executablePath:process.env.PLAYWRIGHT_EXECUTABLE_PATH} : {}) });
-const errors=[], requests=[], checks=[];
+const errors=[], requests=[], checks=[], rewardEvents=[];
 await mkdir(output,{recursive:true});
 const state=page=>page.evaluate(async()=>(await import('./src/main.js')).getSnapshot());
 async function shot(page,name) {
@@ -77,6 +77,49 @@ async function context(viewport,host=false,started=0) {
   return ctx;
 }
 try {
+  {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    await ctx.addInitScript(() => {
+      localStorage.setItem('neighborhood-patrol-v1', JSON.stringify({ startedRuns: 5 }));
+      window.__configuredAd = { options: null, close: null };
+      window.tap = { createRewardedVideoAd: options => {
+        window.__configuredAd.options = options;
+        return { show: async () => {}, load: async () => {},
+          onClose: fn => window.__configuredAd.close = fn,
+          offClose: fn => { if (window.__configuredAd.close === fn) window.__configuredAd.close = null; },
+          onError() {}, offError() {} };
+      } };
+    });
+    const page = await ctx.newPage();
+    page.on('pageerror', error => errors.push(error.message));
+    page.on('console', message => {
+      if (message.text().startsWith('[TapTapReward] '))
+        rewardEvents.push(JSON.parse(message.text().slice('[TapTapReward] '.length)));
+    });
+    await page.goto(base); await setup(page);
+    assert.equal((await state(page)).support.sprint, 0);
+    await page.clock.install();
+    await page.locator('#sprint-button').tap();
+    await expect.poll(() => page.evaluate(() => window.__configuredAd.options?.adUnitId)).toBe('1054324');
+    assert.equal((await state(page)).support.sprint, 0, 'opening the configured ad does not reward');
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'hidden', { configurable: true, value: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await page.clock.fastForward(60000);
+    assert.equal(await page.evaluate(() => typeof window.__configuredAd.close), 'function', 'a displayed 60-second native ad must retain its reward callback while backgrounded');
+    assert.equal((await state(page)).support.sprint, 0, 'elapsed viewing time alone never grants a reward');
+    await page.evaluate(() => window.__configuredAd.close({ isEnded: true }));
+    await expect.poll(async () => (await state(page)).support.sprint).toBe(1);
+    assert.equal((await state(page)).phase, 'paused', 'completion in background keeps the game paused');
+    await expect(page.locator('#support-page')).toHaveCount(0);
+    await page.evaluate(() => { delete document.hidden; document.dispatchEvent(new Event('visibilitychange')); });
+    await expect.poll(async () => (await state(page)).phase).toBe('playing');
+    assert.equal((await state(page)).support.refilled.sprint, true);
+    assert.equal((await state(page)).support.remaining, 0, 'a granted sprint waits for the next player tap');
+    checks.push('production platform-config: ad unit 1054324; 60-second background playback retains callback and grants one sprint only on explicit completion');
+    await ctx.close();
+  }
   for(const viewport of [{width:320,height:740},{width:390,height:844},{width:844,height:390}]) {
     console.log('Touch flow '+viewport.width+'x'+viewport.height);
     const ctx=await context(viewport),page=await ctx.newPage();
@@ -156,9 +199,9 @@ try {
       await page.reload(); await setup(page);
       assert.equal((await state(page)).support.sprint,0);
       await page.locator('#sprint-button').tap();
-      await expect(page.locator('#support-title')).toHaveText('本次未领取');
+      await expect(page.locator('#support-page')).toHaveCount(0);
+      await expect(page.locator('#board-toast')).toContainText('广告暂不可用');
       assert.equal((await state(page)).support.refilled.sprint,false);
-      await page.locator('#support-use').tap();
       await expect.poll(async()=>(await state(page)).phase).toBe('playing');
       await page.locator('#pause-button').tap();
       await page.locator('#pause-dialog [data-home]').tap();
@@ -244,52 +287,73 @@ try {
     await expect.poll(()=>page.evaluate(()=>window.__adFixture.shows)).toBe(1);
     const frozen=await state(page); await page.waitForTimeout(500);
     assert.equal((await state(page)).time,frozen.time);
+    for (const selector of ['#lose-retry', '#lose-review', '#lose-dialog [data-levels]', '#lose-dialog [data-home]']) {
+      await page.locator(selector).tap();
+      const pending = await state(page);
+      assert.equal(pending.screen, frozen.screen, 'loading ad blocks failure-page navigation');
+      assert.equal(pending.phase, frozen.phase, 'loading ad blocks retry/review');
+      assert.equal(pending.startedRuns, frozen.startedRuns);
+      assert.equal(pending.support.busy, true);
+    }
     await page.evaluate(()=>window.__adFixture.close({isEnded:true}));
-    await expect(page.locator('#support-title')).toHaveText('回溯已就绪');
+    await expect.poll(async () => (await state(page)).support.rewind).toBe(1);
+    await expect(page.locator('#lose-dialog')).toBeVisible();
+    await expect(page.locator('#support-page')).toHaveCount(0);
     await shot(page,'rewind-ad-ready-390');
-    await page.locator('#support-use').tap();
+    await page.locator('#rewind-button').tap();
     assert.equal((await state(page)).support.refilled.rewind,true);
     assert.equal((await state(page)).support.rewind,0);
     await expect(page.locator('#lose-dialog')).toBeVisible({timeout:20000});
     await expect(page.locator('#rewind-button')).toBeDisabled();
-    checks.push('real timeout: free 5-second rewind, advertised refill, frozen failure and per-run cap');
+    checks.push('real timeout: free 5-second rewind, direct ad refill to stored charge, frozen failure and per-run cap');
     await ctx.close();
   }
-  for(const outcome of ['completed','dismissed','failed']) {
+  for(const outcome of ['completed','dismissed','failed','cached-page']) {
     const ctx=await context({width:844,height:390},true,5),page=await ctx.newPage();
     await page.goto(base); await setup(page);
     assert.equal((await state(page)).support.sprint,0);
     await page.locator('#sprint-button').tap();
     await expect.poll(()=>page.evaluate(()=>window.__adFixture.shows)).toBe(1);
+    await expect(page.locator('#support-page')).toHaveCount(0);
     const paused=await state(page); await page.waitForTimeout(450);
     assert.equal((await state(page)).time,paused.time);
     assert.equal((await state(page)).phase,'paused');
     await page.goBack();
-    await expect(page.locator('#support-page')).toBeVisible();
+    assert.equal((await state(page)).screen,'game');
     await page.evaluate(()=>document.getElementById('resume-button').click());
     assert.equal((await state(page)).phase,'paused','back navigation and resume cannot bypass an active ad');
     const resumes = await page.evaluate(()=>window.__audioResumes || 0);
-    if(outcome==='completed') await page.evaluate(()=>Object.defineProperty(document,'hidden',{configurable:true,value:true}));
     await page.evaluate(outcome=>{
-      if(outcome==='failed')window.__adFixture.error();
-      else window.__adFixture.close({isEnded:outcome==='completed'});
+      Object.defineProperty(document,'hidden',{configurable:true,value:true});
+      document.dispatchEvent(new Event('visibilitychange'));
+      if(outcome==='cached-page') window.dispatchEvent(new PageTransitionEvent('pagehide',{persisted:true}));
     },outcome);
-    await expect(page.locator('#support-use')).toBeEnabled();
-    assert.equal(await page.evaluate(()=>window.__audioResumes || 0),resumes,'ad completion keeps audio suspended until explicit continue');
-    if(outcome==='completed') {
-      await page.evaluate(()=>document.getElementById('support-use').click());
-      assert.equal((await state(page)).phase,'paused','background continuation is inert');
-      await page.evaluate(()=>delete document.hidden);
-    }
-    assert.equal((await state(page)).support.sprint,outcome==='completed'?1:0);
-    assert.equal((await state(page)).support.refilled.sprint,outcome==='completed');
-    assert.equal((await state(page)).time,paused.time,'ad close never auto-resumes');
+    assert.equal(await page.evaluate(()=>typeof window.__adFixture.close),'function');
+    const completed=['completed','cached-page'].includes(outcome);
+    await page.evaluate(({outcome,completed})=>{
+      if(outcome==='failed')window.__adFixture.error();
+      else window.__adFixture.close({isEnded:completed});
+    },{outcome,completed});
+    await expect.poll(async()=>(await state(page)).support.busy).toBe(false);
+    assert.equal(await page.evaluate(()=>window.__audioResumes || 0),resumes,'background completion keeps audio suspended');
+    assert.equal((await state(page)).support.sprint,completed?1:0);
+    assert.equal((await state(page)).support.refilled.sprint,completed);
+    assert.equal((await state(page)).time,paused.time,'background completion keeps simulation frozen');
+    await page.evaluate(outcome=>{
+      delete document.hidden;
+      if(outcome==='cached-page') window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true}));
+      else document.dispatchEvent(new Event('visibilitychange'));
+    },outcome);
+    await expect.poll(async()=>(await state(page)).phase).toBe('playing');
     await shot(page,'ad-'+outcome+'-844');
-    await page.locator('#support-use').tap();
-    assert.equal((await state(page)).phase,'playing');
     await expect.poll(()=>page.evaluate(()=>window.__audioResumes || 0)).toBeGreaterThan(resumes);
-    if(outcome==='completed') assert((await state(page)).support.remaining>3.6);
-    checks.push('simulated TapTap SDK '+outcome+': only completed rewards, explicit continue');
+    if(completed) {
+      assert.equal((await state(page)).support.remaining,0,'earned sprint is not consumed automatically');
+      await page.locator('#sprint-button').tap();
+      assert.equal((await state(page)).support.sprint,0);
+      assert((await state(page)).support.remaining>3.6);
+    }
+    checks.push('simulated TapTap SDK '+outcome+': no support page, hide/show preserves callback, only completed rewards, player tap consumes sprint');
     await ctx.close();
   }
   {
@@ -310,7 +374,7 @@ try {
   assert.deepEqual(errors,[]);
   await writeFile(resolve(output,'verification.json'),JSON.stringify({
     date:new Date().toISOString(),environment:'desktop Chrome with mobile touch emulation',
-    sdk:'explicit simulated TapTap callback fixture; no real ad playback',checks,errors,onlineRequests:requests,
+    sdk:'explicit simulated TapTap callback fixture; no real ad playback',checks,errors,onlineRequests:requests,rewardEvents,
   },null,2)+'\n');
   console.log(checks.join('\n'));
 } finally { await browser.close(); server.closeAllConnections(); await new Promise(resolve=>server.close(resolve)); }

@@ -1,3 +1,5 @@
+2026-10-18整改更新：以下为旧警察主题生成历史，旧成图已替换，不应作为当前提审提示词。当前保安主题提示词见 ../security-guards-2026-10-18/production-generation.txt 和 image-generation.txt。
+
 Built-in image_gen tool; no fallback CLI.
 Reference: assets/home-chase.webp, existing game character/style reference only.
 Both source generations are 1672x941; final JPEG exports are 1920x1080 using Windows System.Drawing HighQualityBicubic, JPEG quality 94. Screenshots are never resized or edited.

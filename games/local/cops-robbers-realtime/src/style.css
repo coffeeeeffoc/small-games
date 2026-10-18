@@ -1069,7 +1069,7 @@ select[hidden] {
   font-size: 13px;
 }
 .sprint-button svg { width: 20px; height: 20px; }
-#rewind-button, #support-return { margin-top: 10px; }
+#rewind-button { margin-top: 10px; }
 .hold-button svg {
   width: 23px;
   height: 23px;

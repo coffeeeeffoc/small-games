@@ -143,7 +143,7 @@ if (sharedPuzzle) {
   initiative = sharedPuzzle.first === playerRole ? 'first' : 'second';
 }
 const controlled = () => (game.playerRole === 'robber' ? game.robbers : game.cops);
-const roleLabel = () => (game.playerRole === 'robber' ? '小偷' : '警察');
+const roleLabel = () => (game.playerRole === 'robber' ? '小偷' : '保安');
 const playerWon = () =>
   game.playerRole === 'robber' ? game.phase === 'lost' : game.phase === 'won';
 function unlockedLevel() {
@@ -270,7 +270,6 @@ const pageIds = [
   'records-dialog',
   'service-dialog',
   'share-dialog',
-  'support-page',
 ];
 function closePages() {
   for (const id of pageIds) {
@@ -305,6 +304,7 @@ function showScreen(next, { history: remember = true } = {}) {
   }
 }
 function goHome() {
+  if (supportRequest) return;
   clearTimeout(winTimer);
   pauseGame(game);
   closePages();
@@ -330,7 +330,7 @@ function recordDescription() {
     ' · ' +
     (rule === 'relay' ? '轮换指挥' : '自由调动') +
     ' · ' +
-    (game.firstRole ? (game.firstRole === 'cop' ? '警察' : '小偷') + '先动' : '同时开始')
+    (game.firstRole ? (game.firstRole === 'cop' ? '保安' : '小偷') + '先动' : '同时开始')
   );
 }
 async function refreshRecords() {
@@ -338,7 +338,7 @@ async function refreshRecords() {
   $('selection-best').textContent = formatRecord(bestTime(game.level.id));
   $('selection-world').textContent = '正在读取';
   $('record-context').textContent = game.firstRole
-    ? (game.firstRole === 'cop' ? '警察' : '小偷') + '先动 · 同配置比较'
+    ? (game.firstRole === 'cop' ? '保安' : '小偷') + '先动 · 同配置比较'
     : '同时开始 · 同配置比较';
   if (!ONLINE_ENABLED) return;
   try {
@@ -453,7 +453,7 @@ function updateHud() {
   }
   $('phase-badge').lastElementChild.textContent =
     game.phase === 'playing' && game.time < game.openingSeconds
-      ? (game.firstRole === 'cop' ? '警察' : '小偷') + '先动'
+      ? (game.firstRole === 'cop' ? '保安' : '小偷') + '先动'
       : game.phase === 'paused'
         ? '已暂停'
         : '实时行动';
@@ -482,7 +482,7 @@ function updateCaptureHint() {
   captureHint = robber ? { robber, ...captureStatus(game, robber) } : null;
   let message = '队员抵达目标后会停下；换选同伴从另一侧靠近，完成双人合围。';
   if (practice && !practiceOrders.has(0)) {
-    message = '练习 1/3 · 点 1 号警察，再点道路中央的蓝圈。';
+    message = '练习 1/3 · 点 1 号保安，再点道路中央的蓝圈。';
   } else if (practice && !practiceOrders.has(1)) {
     message = '练习 2/3 · 换选 2 号，再点橙色小偷，从另一侧追击。';
   } else if (
@@ -730,7 +730,7 @@ function openShare(puzzle, title) {
   openDialog('share-dialog');
 }
 function openDialog(id, remember = true) {
-  if ($(id).open) return;
+  if (supportRequest || $(id).open) return;
   if (id === 'share-dialog') shareReturnState = { screen, pageReturnScreen, dialogResume };
   clearTimeout(winTimer);
   clearGesture();
@@ -769,7 +769,7 @@ function closeDialog(page, resume = true, remember = true) {
   showScreen(pageReturnScreen, { history: remember });
   updateHud();
 }
-function pause(reason = '警察和小偷都在等你回来。') {
+function pause(reason = '保安和小偷都在等你回来。') {
   if (game.phase !== 'playing') return;
   $('pause-reason').textContent = reason;
   openDialog('pause-dialog');
@@ -796,56 +796,42 @@ function activateSupport(kind, target = selected) {
   return true;
 }
 async function requestSupport(kind) {
-  if (supportBusy || destroyed || document.hidden) return;
+  if (supportRequest || destroyed || document.hidden) return;
   if (game.support?.[kind]) { activateSupport(kind); return; }
   if (!canRefill(game, kind)) return;
-  const request = { game, kind, actor: selected, screen, completed: false, sound: audio.enabled };
+  const request = { game, kind, screen, completed: false, sound: audio.enabled };
   supportRequest = request;
   supportBusy = true;
   clearGesture();
   pauseGame(game);
-  $('support-title').textContent = kind === 'sprint' ? '领取一次冲刺' : '领取一次回溯';
-  $('support-status').textContent = freeSupport ? '行动进度已暂停，正在领取支援。' : '正在打开广告，行动进度已暂停。';
-  $('support-use').disabled = true;
-  $('support-return').disabled = true;
-  openDialog('support-page');
   audio.setEnabled(false);
+  updateHud();
   let outcome;
   try { outcome = freeSupport ? null : ads ? await ads.show({ opportunityId: 'cops-robbers-realtime.' + kind, kind: 'rewarded' }) : { status: 'unavailable' }; }
   catch { outcome = { status: 'failed' }; }
   supportBusy = false;
   if (destroyed || supportRequest !== request || game !== request.game) return;
   request.completed = freeSupport ? grantFreeSupport(game, kind) : grantSupport(game, kind, outcome);
-  $('support-title').textContent = request.completed ? (kind === 'sprint' ? '冲刺已就绪' : '回溯已就绪') : '本次未领取';
-  $('support-status').textContent = request.completed
-    ? (kind === 'sprint' ? `${request.actor + 1} 号${roleLabel()} · 提速 20% · 4 秒` : '回到约 5 秒前，重新布置围堵。')
-    : outcome?.status === 'dismissed' ? '广告已关闭，补领次数保留。'
+  if (!freeSupport) console.info('[TapTapReward]', JSON.stringify({ event: 'grant', kind, status: outcome?.status, granted: request.completed }));
+  request.message = request.completed
+    ? (kind === 'sprint' ? '冲刺次数 +1，点击冲刺使用。' : '回溯次数 +1，点击回溯使用。')
+    : outcome?.status === 'dismissed' ? '广告未完整观看，补领次数保留。'
     : '广告暂不可用，补领次数保留；可以继续正常游戏。';
-  $('support-use').textContent = request.completed ? (kind === 'sprint' ? '使用冲刺并继续' : '回溯并继续')
-    : kind === 'sprint' ? '继续行动' : '返回失败页';
-  $('support-use').disabled = false;
-  $('support-return').disabled = false;
-  $('support-return').hidden = !request.completed;
   updateHud();
-  if (screen === 'support-page') $('support-use').focus({ preventScroll: true });
+  finishSupport();
 }
-function finishSupport(use) {
+function finishSupport() {
   const request = supportRequest;
-  if (!request || supportBusy || document.hidden || game !== request.game) return;
+  if (!request || supportBusy || destroyed || document.hidden || game !== request.game) return;
   supportRequest = null;
+  clearGesture();
   audio.setEnabled(request.sound);
-  closePages();
-  dialogResume = false;
-  if (request.kind === 'rewind') {
-    if (use && request.completed && activateSupport('rewind')) return;
-    openDialog('lose-dialog');
-    return;
+  if (request.kind === 'sprint' && screen === request.screen && game.phase === 'paused') {
+    resumeGame(game);
+    accumulator = 0;
+    lastFrame = performance.now();
   }
-  resumeGame(game);
-  showScreen('game');
-  accumulator = 0;
-  lastFrame = performance.now();
-  if (use && request.completed) activateSupport('sprint', request.actor);
+  toast(request.message);
   updateHud();
 }
 function renderLevelGrid() {
@@ -884,7 +870,7 @@ function renderLevelGrid() {
               `<circle cx="${level.nodes[node].x}" cy="${level.nodes[node].y}" r="22" fill="#cc703c"/>`,
           )
           .join('');
-        button.innerHTML = `<strong>${String(level.id).padStart(2, '0')}</strong><i class="tile-mark">${best ? (best <= level.par ? '★' : '✓') : '↗'}</i><svg class="level-map" viewBox="0 0 ${level.worldWidth || 1000} ${level.worldHeight || 600}" aria-hidden="true"><path d="${roads}" fill="none" stroke="#638770" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>${exits}</svg><span>${level.name}</span><small>${best ? `最佳 ${formatRecord(best)}` : `${level.cops.length} 警察 · ${level.robbers.length} 小偷`}</small>`;
+        button.innerHTML = `<strong>${String(level.id).padStart(2, '0')}</strong><i class="tile-mark">${best ? (best <= level.par ? '★' : '✓') : '↗'}</i><svg class="level-map" viewBox="0 0 ${level.worldWidth || 1000} ${level.worldHeight || 600}" aria-hidden="true"><path d="${roads}" fill="none" stroke="#638770" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>${exits}</svg><span>${level.name}</span><small>${best ? `最佳 ${formatRecord(best)}` : `${level.cops.length} 保安 · ${level.robbers.length} 小偷`}</small>`;
         button.addEventListener('click', () => {
           loadLevel(level.id);
           audio.play('select');
@@ -967,7 +953,7 @@ function lost(event) {
         : `${label}失守了。`;
   $('lose-description').textContent =
     game.playerRole === 'robber'
-      ? '两侧退路被警察封住。复盘时看看能否更早换路。'
+      ? '两侧退路被保安封住。复盘时看看能否更早换路。'
       : event.reason === 'timeout'
         ? '倒计时结束仍有队员未被合围。尝试分头守住岔路，避免同向追赶。'
         : `${event.robberId + 1} 号小偷从 ${label} 越过出口。复盘保留最后局面；可随时返回准备或重新挑战。`;
@@ -1193,12 +1179,15 @@ function leavePractice() {
 }
 $('practice-button').addEventListener('click', practice);
 $('practice-exit').addEventListener('click', leavePractice);
+document.addEventListener('click', (event) => {
+  if (!supportRequest) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+}, true);
 $('pause-button').addEventListener('click', () => pause());
 $('hold-button').addEventListener('click', hold);
 $('sprint-button').addEventListener('click', () => requestSupport('sprint'));
 $('rewind-button').addEventListener('click', () => requestSupport('rewind'));
-$('support-use').addEventListener('click', () => finishSupport(true));
-$('support-return').addEventListener('click', () => finishSupport(false));
 $('map-button').addEventListener('click', () => openDialog('map-page'));
 for (const button of document.querySelectorAll('[data-choice-for]'))
   button.addEventListener('click', () => {
@@ -1329,11 +1318,12 @@ document.querySelectorAll('[data-game-page]').forEach((dialog) =>
 );
 document.addEventListener('visibilitychange', () => {
   clearGesture();
-  if (document.hidden) ads?.cancel?.();
+  // A native ad can hide the WebView; its SDK close callback still owns the reward.
+  if (supportRequest) { finishSupport(); return; }
   if (document.hidden) pause('你刚刚离开了页面。准备好后，再继续行动。');
 });
 window.addEventListener('blur', () => {
-  if (!document.querySelector('[data-game-page][open]'))
+  if (!supportRequest && !document.querySelector('[data-game-page][open]'))
     pause('窗口暂时失去焦点，行动已为你暂停。');
   clearGesture();
 });
@@ -1483,8 +1473,8 @@ navigationReady = true;
 history.replaceState({ patrolScreen: screen }, '', location.href);
 window.addEventListener('popstate', (event) => {
   if (supportRequest) {
-    history.replaceState({ patrolScreen: 'support-page' }, '', location.href);
-    showScreen('support-page', { history: false });
+    history.replaceState({ patrolScreen: supportRequest.screen }, '', location.href);
+    showScreen(supportRequest.screen, { history: false });
     return;
   }
   if (screen === 'competition') return;
@@ -1578,7 +1568,6 @@ document.querySelectorAll('[data-competition-entry]').forEach((button) =>
 animationId = requestAnimationFrame(frame);
 window.addEventListener('pagehide', (event) => {
   clearGesture();
-  ads?.cancel?.();
   pauseGame(game);
   if (!event.persisted) {
     destroyed = true;
@@ -1588,6 +1577,7 @@ window.addEventListener('pagehide', (event) => {
   }
 });
 window.addEventListener('pageshow', (event) => {
+  if (supportRequest) { finishSupport(); return; }
   if (
     event.persisted &&
     game.phase === 'paused' &&

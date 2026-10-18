@@ -1,0 +1,61 @@
+{
+  "checkedAt": "2026-10-18T14:46:27.013738+00:00",
+  "officialMcpPackage": "@taptap/instant-games-open-mcp@1.24.14",
+  "officialToolSequence": [
+    "get_ads_integration_workflow",
+    "get_current_app_info",
+    "list_developers_and_apps",
+    "user confirmed app_id 980554",
+    "select_app",
+    "get_current_app_info(ignore_cache=true)",
+    "check_ads_status",
+    "get_ad_integration_guide"
+  ],
+  "appId": 980554,
+  "appName": "别跑！街区围捕",
+  "developerId": 492506,
+  "miniappId": "tapmc7uoynpdag3hl5",
+  "serverAdsStatus": 1,
+  "screenOrientation": 1,
+  "rewardedAdUnitId": "1054324",
+  "rootCause": "Previous package incorrectly used application ID 980554 as rewarded ad unit ID; official current-app query matched portrait ad unit 1054324.",
+  "regression": "Expected 1054324; old config failed with actual 980554, corrected config passed.",
+  "unitChecks": {
+    "passed": 22,
+    "failed": 0
+  },
+  "realDevicePlaybackVerified": false,
+  "uploaded": false,
+  "package": {
+    "batch": "outputs\\game-builds\\20261018T144342039Z-ac9932",
+    "entry": "dist/index.html",
+    "bytes": 4365295,
+    "sha256": "3c367ca169c44e83264eec2abb630218f126e2d066eace34d9512f28ca47769f",
+    "filesVerified": 27,
+    "changedFromPreviousZip": [
+      "dist/platform-config.js"
+    ]
+  },
+  "browserChecks": {
+    "date": "2026-10-18T14:46:40.580Z",
+    "environment": "desktop Chrome with mobile touch emulation",
+    "sdk": "explicit simulated TapTap callback fixture; no real ad playback",
+    "checks": [
+      "production platform-config: sprint refill calls verified ad unit 1054324, not application ID 980554; reward only after completion",
+      "320x740: real touch sprint, pause, assisted capture, home/reload and hidden online entry",
+      "390x844: real touch sprint, pause, assisted capture, home/reload and hidden online entry",
+      "844x390: real touch sprint, pause, assisted capture, home/reload and hidden online entry",
+      "history: earlier home share restores its own link and home return",
+      "blocked storage: local play and abilities remain usable for the session",
+      "same-origin stale tabs: starter count is monotonic and the fifth grant is issued once",
+      "legacy personal best survives a slower normal win",
+      "real timeout: free 5-second rewind, advertised refill, frozen failure and per-run cap",
+      "simulated TapTap SDK completed: only completed rewards, explicit continue",
+      "simulated TapTap SDK dismissed: only completed rewards, explicit continue",
+      "simulated TapTap SDK failed: only completed rewards, explicit continue",
+      "iframe: normal home/start and touch support; obsolete invite cannot open PK"
+    ],
+    "errors": [],
+    "onlineRequests": []
+  }
+}

@@ -1,0 +1,156 @@
+{
+  "theme": "小区保安抓小偷",
+  "passed": true,
+  "physicalDeviceVerified": false,
+  "uploaded": false,
+  "submitted": false,
+  "files": [
+    {
+      "file": "icon-1024.png",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 1538582,
+      "sha256": "1a3c19ad8f7a1b6496cbbc05da9f49295f4f8a4e2c4256dc456f9129e2dcbd91"
+    },
+    {
+      "file": "promo-1920x1080.jpg",
+      "format": "JPEG",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 684723,
+      "sha256": "42e5fa76b0ad3c177a733066ac83c37cbfdae64407a3289cf62398a1fa7a5caf"
+    },
+    {
+      "file": "promo-1440x1440.jpg",
+      "format": "JPEG",
+      "width": 1440,
+      "height": 1440,
+      "bytes": 596272,
+      "sha256": "5fdd20661b251ca59cad86996cb3f0f6319fe77f3c0ce506dab82edbc98a5a60"
+    },
+    {
+      "file": "01-surround-challenge.png",
+      "format": "PNG",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 1351785,
+      "sha256": "7eb7982ef36f8234c7f8cc5ca867216912f4cd3837e0f93c62fb973a325b091c"
+    },
+    {
+      "file": "02-quick-dual-targets.png",
+      "format": "PNG",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 1106907,
+      "sha256": "36102b075e92d87c15d52ffd54ed596223b823922df6bbe17f1c903dab802106"
+    },
+    {
+      "file": "03-relay-patrol.png",
+      "format": "PNG",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 1363778,
+      "sha256": "3b1c0563dffb978e7fac529eb14928b245f0bcc1560955226fe744628f9672cf"
+    }
+  ],
+  "videos": [
+    {
+      "file": "trailer-1920x1080.mp4",
+      "width": 1920,
+      "height": 1080,
+      "duration": 21,
+      "complete_decode": "passed",
+      "black_frames_over_0_3s": "none",
+      "audio_volume": [
+        "[Parsed_volumedetect_0 @ 000001b54e330080] mean_volume: -17.7 dB",
+        "[Parsed_volumedetect_0 @ 000001b54e330080] max_volume: -2.4 dB"
+      ],
+      "mp4_boxes": [
+        {
+          "type": "ftyp",
+          "offset": 0,
+          "size": 32
+        },
+        {
+          "type": "moov",
+          "offset": 32,
+          "size": 21291
+        },
+        {
+          "type": "free",
+          "offset": 21323,
+          "size": 8
+        },
+        {
+          "type": "mdat",
+          "offset": 21331,
+          "size": 18835145
+        }
+      ],
+      "faststart": true,
+      "sha256": "4181e202e09ab2698c361c41d2681023f1b61efa63c09df3f30861db9752abc3",
+      "size_bytes": 18856476,
+      "visual_review": "final-file decoded contact sheet inspected; security guard costume, plain sack and no police imagery"
+    },
+    {
+      "file": "trailer-1080x1080.mp4",
+      "width": 1080,
+      "height": 1080,
+      "duration": 15,
+      "complete_decode": "passed",
+      "black_frames_over_0_3s": "none",
+      "audio_volume": [
+        "[Parsed_volumedetect_0 @ 000002267f8c7600] mean_volume: -17.8 dB",
+        "[Parsed_volumedetect_0 @ 000002267f8c7600] max_volume: -3.0 dB"
+      ],
+      "mp4_boxes": [
+        {
+          "type": "ftyp",
+          "offset": 0,
+          "size": 32
+        },
+        {
+          "type": "moov",
+          "offset": 32,
+          "size": 17540
+        },
+        {
+          "type": "free",
+          "offset": 17572,
+          "size": 8
+        },
+        {
+          "type": "mdat",
+          "offset": 17580,
+          "size": 4526954
+        }
+      ],
+      "faststart": true,
+      "sha256": "451468f443d536242265a002239dd3b7ff54d169b6e2afaaf276676eb62650f8",
+      "size_bytes": 4544534,
+      "visual_review": "final-file decoded contact sheet inspected; security guard costume, plain sack and no police imagery"
+    }
+  ],
+  "package": {
+    "file": "cops-robbers-taptap-h5-security-20261018.zip",
+    "bytes": 969157,
+    "sha256": "2d7c48bb8fc3379338f5b9da5ff22364e5533bbce271c8eef948aace92d48147",
+    "entry": "dist/index.html",
+    "resources": 40,
+    "zipMatchesCurrentBuild": true,
+    "themeAssetsMatchSources": true,
+    "oldBackendPackageId": "94765"
+  },
+  "checks": {
+    "securityArt": "passed",
+    "gameShellScenarios": 9,
+    "artLayoutAndDeveloperTouchScenarios": 13,
+    "cocosUnitTests": 31,
+    "nativeTouchLifecycle": "passed",
+    "h5PackageContracts": 16,
+    "packagedAdsBrowserScenarios": 12,
+    "reviewer": "no blocking issue found"
+  },
+  "screenshotsAreActualGame": true
+}

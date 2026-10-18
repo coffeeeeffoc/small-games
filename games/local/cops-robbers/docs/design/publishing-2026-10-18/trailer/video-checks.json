@@ -30,7 +30,7 @@
       "start_time": "0.000000",
       "duration_ts": 322560,
       "duration": "21.000000",
-      "bit_rate": "6985601",
+      "bit_rate": "6981299",
       "bits_per_raw_sample": "8",
       "nb_frames": "630",
       "extradata_size": 50,
@@ -115,7 +115,7 @@
     }
   ],
   "format": {
-    "filename": "games\\local\\cops-robbers\\docs\\design\\publishing-2026-10-18\\trailer\\cops-robbers-promo-1080p.mp4",
+    "filename": "F:\\playground\\playground-ai\\small-games\\games\\local\\cops-robbers\\docs\\design\\publishing-2026-10-18\\trailer\\cops-robbers-promo-1080p.mp4",
     "nb_streams": 2,
     "nb_programs": 0,
     "nb_stream_groups": 0,
@@ -123,8 +123,8 @@
     "format_long_name": "QuickTime / MOV",
     "start_time": "0.000000",
     "duration": "21.000000",
-    "size": "18867874",
-    "bit_rate": "7187761",
+    "size": "18856476",
+    "bit_rate": "7183419",
     "probe_score": 100,
     "tags": {
       "major_brand": "isom",

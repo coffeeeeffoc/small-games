@@ -8,9 +8,9 @@ const presets = {
 const characterSheet = './src/assets/characters.png';
 const characters = {
   cop: [
-    { name: '阳光巡警', description: '正义、勇敢，守护街区的每一天。', crop: [104, 12, 282] },
-    { name: '机灵警花', description: '眼疾手快，任何小线索都逃不过她。', crop: [486, 18, 306] },
-    { name: '暖心警长', description: '经验满满，总能找到最佳围捕路线。', crop: [904, 8, 314] },
+    { name: '阳光保安', description: '正义、勇敢，守护街区的每一天。', crop: [104, 12, 282] },
+    { name: '机灵保安', description: '眼疾手快，任何小线索都逃不过她。', crop: [486, 18, 306] },
+    { name: '暖心队长', description: '经验满满，总能找到最佳围捕路线。', crop: [904, 8, 314] },
   ],
   robber: [
     { name: '街头小机灵', description: '一顶橘色帽子，藏着满脑子的鬼点子。', crop: [92, 637, 322] },
@@ -53,7 +53,7 @@ export function getRoleAppearance(role, selectedPreset) {
         ? value.preset
         : 0;
   return {
-    label: classicRoles() ? (key === 'cop' ? '警察' : '小偷') : key === 'cop' ? '追逐队' : '突围队',
+    label: classicRoles() ? (key === 'cop' ? '保安' : '小偷') : key === 'cop' ? '追逐队' : '突围队',
     style,
     color,
     accent,
@@ -95,12 +95,9 @@ function facePaths(role) {
     add('M15 47Q15 20 50 20T85 47V62Q85 95 50 96 15 95 15 62Z', skin, ink, 3.2);
     add('M22 53Q22 24 50 26T79 54L74 39 63 42 55 34 41 41 29 38Z', '#513329');
     if (chaser) {
-      add('M8 28 15 13Q50-2 85 13L92 28 80 39H20Z', '#146aa9', ink, 3.2);
-      add('M15 24Q50 10 85 24L82 30Q50 20 18 30Z', '#3199d4');
-      add('M14 31Q50 21 86 31L85 39Q50 53 15 39Z', '#163f63', ink, 2.5);
-      add('M17 32Q50 24 83 32L80 35Q50 29 20 36Z', '#bbecff');
-      add('M50 9 61 15 58 28 50 34 42 28 39 15Z', '#ffdc60', ink, 2.2);
-      add('M50 15 52 20 58 20 54 24 55 29 50 26 45 29 46 24 42 20 48 20Z', '#fff3b1');
+      add('M15 34Q15 4 50 4T85 34L79 42H21Z', '#263c5b', ink, 3.2);
+      add('M17 30Q50 20 83 30L96 43Q71 50 42 39H17Z', '#1d304b', ink, 2.5);
+      add('M51 8Q63 13 66 28', 'none', '#496483', 2);
       add('M25 47Q32 43 39 47M61 47Q68 43 75 47', 'none', '#513329', 3.2);
     } else {
       add('M10 36Q10 4 50 4T90 36Z', '#f89927', ink, 3.2);
@@ -224,75 +221,8 @@ function drawNativeFace(ctx, role) {
       '#513329',
     );
     if (cop) {
-      polygon(
-        [
-          [8, 28],
-          [15, 13],
-          [50, 2],
-          [85, 13],
-          [92, 28],
-          [80, 39],
-          [20, 39],
-        ],
-        ink,
-      );
-      polygon(
-        [
-          [12, 27],
-          [19, 16],
-          [50, 7],
-          [81, 16],
-          [88, 27],
-          [78, 35],
-          [22, 35],
-        ],
-        '#146aa9',
-      );
-      polygon(
-        [
-          [15, 24],
-          [50, 14],
-          [85, 24],
-          [82, 29],
-          [50, 22],
-          [18, 29],
-        ],
-        '#3199d4',
-      );
-      polygon(
-        [
-          [14, 31],
-          [50, 24],
-          [86, 31],
-          [85, 39],
-          [50, 46],
-          [15, 39],
-        ],
-        '#163f63',
-      );
-      polygon(
-        [
-          [18, 32],
-          [50, 28],
-          [82, 32],
-          [79, 35],
-          [50, 32],
-          [21, 36],
-        ],
-        '#bbecff',
-      );
-      polygon(
-        [
-          [50, 9],
-          [61, 15],
-          [58, 28],
-          [50, 34],
-          [42, 28],
-          [39, 15],
-        ],
-        '#ffdc60',
-      );
-      circle(50, 21, 4, '#fff3b1');
+      polygon([[15,34],[18,16],[34,5],[58,4],[78,15],[85,34],[79,42],[21,42]], '#263c5b');
+      polygon([[17,30],[50,24],[83,30],[96,43],[72,47],[42,39],[17,39]], '#1d304b');
     } else {
       polygon(
         [
@@ -542,7 +472,7 @@ export function openAppearanceSettings(onChange = () => {}) {
   panel.dataset.roleAppearance = '';
   panel.setAttribute('aria-labelledby', 'appearance-page-title');
   panel.innerHTML = `<header class="appearance-header"><button type="button" class="appearance-back" data-close-appearance aria-label="返回上一页">${appearanceIcons.back}</button><div><h1 id="appearance-page-title">${appearanceIcons.shirt}角色装扮</h1><p>选个搭档，今天也要帅气出发！</p></div></header>
-    <div class="appearance-team-tabs" role="group" aria-label="选择装扮阵营"><button type="button" data-appearance-role="cop">警察阵营</button><button type="button" data-appearance-role="robber">小偷阵营</button></div>
+    <div class="appearance-team-tabs" role="group" aria-label="选择装扮阵营"><button type="button" data-appearance-role="cop">保安阵营</button><button type="button" data-appearance-role="robber">小偷阵营</button></div>
     <div class="appearance-showcase"><div class="appearance-preview" data-appearance-preview></div><div class="appearance-gallery" role="group" aria-label="六款角色形象"></div></div>
     <div class="appearance-details"><div class="appearance-description"><h2 data-character-name></h2><p data-character-description></p><span class="appearance-local-badge">本机装扮 · 即选即保存</span></div><button type="button" class="appearance-camera-tile" data-upload-avatar>${appearanceIcons.camera}<span>自定义头像</span></button><input class="appearance-file-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" aria-label="选择本地头像图片" data-avatar-upload></div>
     <div class="appearance-tools"><span>你的两队形象，都会在游戏中出现</span><button type="button" data-reset-avatar>恢复默认</button></div>
@@ -552,7 +482,7 @@ export function openAppearanceSettings(onChange = () => {}) {
     uploading = false;
   const status = panel.querySelector('[data-appearance-status]');
   const previousFocus = document.activeElement;
-  const label = (key) => (key === 'cop' ? '警察' : '小偷');
+  const label = (key) => (key === 'cop' ? '保安' : '小偷');
   const save = (key, update) => {
     const previous = read();
     const next = { ...previous, [key]: { ...previous[key], ...update } };

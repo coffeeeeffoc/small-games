@@ -1,6 +1,6 @@
 {
-  "capturedAt": "2026-10-17T19:16:17.957Z",
-  "gitHead": "5722b43e5c9c8d63484e430ae1c490952d515530",
+  "capturedAt": "2026-10-18T06:48:18.702Z",
+  "gitHead": "32ebc65a64ff413162781f49a8cb9bed9206b874",
   "browser": "155.0.8059.82",
   "viewport": {
     "width": 540,
@@ -18,7 +18,7 @@
       "mode": "challenge",
       "rule": "standard",
       "level": 1,
-      "sourceUrl": "http://127.0.0.1:51310/?dev=0&mode=challenge&level=1&rule=standard&motion=reduce",
+      "sourceUrl": "http://127.0.0.1:49318/?dev=0&mode=challenge&level=1&rule=standard&motion=reduce",
       "actions": [
         {
           "level": 1,
@@ -35,8 +35,8 @@
       ],
       "width": 1080,
       "height": 1920,
-      "bytes": 1353500,
-      "sha256": "73110ab824db5640e4913f867e8e9a68cf7cc27883426c905f6b9f88c5d805ab",
+      "bytes": 1351785,
+      "sha256": "7eb7982ef36f8234c7f8cc5ca867216912f4cd3837e0f93c62fb973a325b091c",
       "errors": [],
       "failures": []
     },
@@ -46,7 +46,7 @@
       "mode": "quick",
       "rule": "standard",
       "level": 3,
-      "sourceUrl": "http://127.0.0.1:51310/?dev=0&mode=quick&level=1&rule=standard&motion=reduce",
+      "sourceUrl": "http://127.0.0.1:49318/?dev=0&mode=quick&level=1&rule=standard&motion=reduce",
       "actions": [
         {
           "level": 1,
@@ -75,8 +75,8 @@
       ],
       "width": 1080,
       "height": 1920,
-      "bytes": 1109201,
-      "sha256": "dc406b119625d107eb7751e415f2c8dd76421bfbde0fc4546cfee2fc77bddf2f",
+      "bytes": 1106907,
+      "sha256": "36102b075e92d87c15d52ffd54ed596223b823922df6bbe17f1c903dab802106",
       "errors": [],
       "failures": []
     },
@@ -86,7 +86,7 @@
       "mode": "challenge",
       "rule": "relay",
       "level": 7,
-      "sourceUrl": "http://127.0.0.1:61294/?dev=0&mode=challenge&level=1&rule=relay&motion=reduce",
+      "sourceUrl": "http://127.0.0.1:49318/?dev=0&mode=challenge&level=1&rule=relay&motion=reduce",
       "actions": [
         {
           "level": 1,
@@ -175,8 +175,8 @@
       ],
       "width": 1080,
       "height": 1920,
-      "bytes": 1366438,
-      "sha256": "3c5c3045f68ea9f0f21067918c2b33845db1cae7867d2c5a7e017ad0496e989b",
+      "bytes": 1363778,
+      "sha256": "3b1c0563dffb978e7fac529eb14928b245f0bcc1560955226fe744628f9672cf",
       "errors": [],
       "failures": []
     }

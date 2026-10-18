@@ -1,0 +1,144 @@
+{
+  "game": "cops-robbers-realtime",
+  "date": "2026-10-18",
+  "package": "outputs\\game-builds\\20261018T132449588Z-9d757e\\cops-robbers-realtime-taptap-h5-ads-on-service-off.zip",
+  "sha256": "bdcf586e1ad5faf5143492942a5cd984274ec7ed4e643f50f53d3a2afdf281ed",
+  "bytes": 4365294,
+  "entry": "dist/index.html",
+  "adUnitId": "980554",
+  "adMode": "host",
+  "backend": false,
+  "zipFilesVerified": 27,
+  "sourceDirty": true,
+  "gameTests": {
+    "passed": 58,
+    "failed": 0
+  },
+  "configBuildAdsSupportTests": {
+    "passed": 22,
+    "failed": 0
+  },
+  "browser": "320x740,390x844,844x390 touch flows and iframe; SDK completion/cancellation/error fixtures; character preset persistence, pause, results, storage",
+  "notVerified": [
+    "physical phone recording/acceptance",
+    "ad unit ownership/activation",
+    "TapTap commercial ad playback",
+    "platform upload/review"
+  ],
+  "userOwnedDeliverables": [
+    "Physical-device recording: user will record it themselves."
+  ],
+  "browserEvidence": {
+    "date": "2026-10-18T13:38:13.336Z",
+    "environment": "desktop Chrome with mobile touch emulation",
+    "sdk": "explicit simulated TapTap callback fixture; no real ad playback",
+    "checks": [
+      "320x740: real touch sprint, pause, assisted capture, home/reload and hidden online entry",
+      "390x844: real touch sprint, pause, assisted capture, home/reload and hidden online entry",
+      "844x390: real touch sprint, pause, assisted capture, home/reload and hidden online entry",
+      "history: earlier home share restores its own link and home return",
+      "blocked storage: local play and abilities remain usable for the session",
+      "same-origin stale tabs: starter count is monotonic and the fifth grant is issued once",
+      "legacy personal best survives a slower normal win",
+      "real timeout: free 5-second rewind, advertised refill, frozen failure and per-run cap",
+      "simulated TapTap SDK completed: only completed rewards, explicit continue",
+      "simulated TapTap SDK dismissed: only completed rewards, explicit continue",
+      "simulated TapTap SDK failed: only completed rewards, explicit continue",
+      "iframe: normal home/start and touch support; obsolete invite cannot open PK"
+    ],
+    "errors": [],
+    "onlineRequests": []
+  },
+  "captureEvidence": {
+    "capturedAt": "2026-10-18T13:40:20.102Z",
+    "browser": "153.0.8010.12",
+    "base": "http://127.0.0.1:4198/",
+    "source": "Production TapTap H5 dist with security-guard assets and configured ad unit 980554; real browser, no physical phone.",
+    "viewport": {
+      "width": 432,
+      "height": 768
+    },
+    "deviceScaleFactor": 2.5,
+    "screenshots": "1080x1920, uniform 9:16, unaltered real browser captures",
+    "input": "Real touchscreen taps; no save injection, state injection or simulated clock.",
+    "video": "F:\\playground\\playground-ai\\small-games\\games\\local\\cops-robbers-realtime\\docs\\marketing\\2026-10-18-security\\source\\page@6b0e95b799a1a5c78f20a6bc49327f3c.webm",
+    "segments": [
+      {
+        "level": 1,
+        "begin": 2.59,
+        "end": 10.415,
+        "phase": "won"
+      },
+      {
+        "level": 2,
+        "begin": 11.156,
+        "end": 18.777,
+        "phase": "won"
+      },
+      {
+        "level": 3,
+        "begin": 19.521,
+        "end": 28.248,
+        "phase": "won"
+      }
+    ],
+    "checks": [
+      "Fresh-save campaign level 1, actual on-field security guard selection and movement, raw portrait screenshot.",
+      "Quick trial 1: real actor/road taps, normal-speed engine, victory verified.",
+      "Quick trial 2: real actor/road taps, normal-speed engine, victory verified.",
+      "Quick trial 3: real actor/road taps, normal-speed engine, victory verified."
+    ],
+    "errors": []
+  },
+  "media": {
+    "files": [
+      {
+        "file": "promo-landscape-1920x1080.png",
+        "width": 1920,
+        "height": 1080,
+        "bytes": 3255413
+      },
+      {
+        "file": "promo-square-1440x1440.png",
+        "width": 1440,
+        "height": 1440,
+        "bytes": 3159899
+      },
+      {
+        "file": "screenshot-01-home-1080x1920.png",
+        "width": 1080,
+        "height": 1920,
+        "bytes": 1545773
+      },
+      {
+        "file": "screenshot-02-gameplay-1080x1920.png",
+        "width": 1080,
+        "height": 1920,
+        "bytes": 286981
+      },
+      {
+        "file": "screenshot-03-victory-1080x1920.png",
+        "width": 1080,
+        "height": 1920,
+        "bytes": 515123
+      },
+      {
+        "file": "promo-video-1280x720.mp4",
+        "width": 1280,
+        "height": 720,
+        "bytes": 2432087,
+        "seconds": 28.9,
+        "fps": 30,
+        "video": "H.264/yuv420p",
+        "audio": "AAC, workspace original synthesized score"
+      },
+      {
+        "file": "icon-1024x1024.png",
+        "width": 1024,
+        "height": 1024,
+        "bytes": 1611170
+      }
+    ],
+    "physicalDeviceRecording": "user-owned"
+  }
+}

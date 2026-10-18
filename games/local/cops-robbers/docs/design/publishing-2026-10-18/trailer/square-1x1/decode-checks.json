@@ -1,0 +1,34 @@
+{
+  "complete_decode": "passed",
+  "black_frames_over_0_3s": "none",
+  "audio_volume": [
+    "[Parsed_volumedetect_0 @ 000002267f8c7600] mean_volume: -17.8 dB",
+    "[Parsed_volumedetect_0 @ 000002267f8c7600] max_volume: -3.0 dB"
+  ],
+  "mp4_boxes": [
+    {
+      "type": "ftyp",
+      "offset": 0,
+      "size": 32
+    },
+    {
+      "type": "moov",
+      "offset": 32,
+      "size": 17540
+    },
+    {
+      "type": "free",
+      "offset": 17572,
+      "size": 8
+    },
+    {
+      "type": "mdat",
+      "offset": 17580,
+      "size": 4526954
+    }
+  ],
+  "faststart": true,
+  "sha256": "451468f443d536242265a002239dd3b7ff54d169b6e2afaaf276676eb62650f8",
+  "size_bytes": 4544534,
+  "visual_review": "final-file decoded contact sheet inspected; security guard costume, plain sack and no police imagery"
+}

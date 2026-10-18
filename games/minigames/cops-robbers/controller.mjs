@@ -44,7 +44,7 @@ const modes = {
 const inside = (point, hit) =>
   point.x >= hit.x && point.y >= hit.y && point.x <= hit.x + hit.w && point.y <= hit.y + hit.h;
 const opposite = (role) => (role === 'pursuer' ? 'runner' : 'pursuer');
-const roleLabel = (role) => (role === 'pursuer' ? '警察' : '小偷');
+const roleLabel = (role) => (role === 'pursuer' ? '保安' : '小偷');
 
 /** Cocos owns the screen; the supplied SDK owns this independent 2D surface. */
 export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
@@ -605,7 +605,7 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
       ctx.clip();
       art?.cover(ctx, 'home', 0, heroTop, width, heroHeight);
       ctx.restore();
-      text('街区追逃计划', center, top + 14, 12, '#247c93');
+      text('小区保安出动', center, top + 14, 12, '#247c93');
       ctx.font = '900 40px sans-serif';
       ctx.strokeStyle = '#174861';
       ctx.lineWidth = 6;
@@ -804,12 +804,12 @@ export function startCocosCopsGame(sdk, config = {}, startNativeCompetition) {
         ? [
             '点自己的队员，再点亮起的路口。',
             '双方轮流移动一人，也可以留守。',
-            '警察走到小偷的位置即可抓捕。',
-            mode === 'escape' ? '小偷到出口即胜，警察要全部抓获。' : `小偷坚持规定回合即胜。`,
+            '保安走到小偷的位置即可抓捕。',
+            mode === 'escape' ? '小偷到出口即胜，保安要全部抓获。' : `小偷坚持规定回合即胜。`,
             '双方角色分别保存通关进度。',
           ]
         : [
-            '点蓝色队员，再点相邻空路口。',
+            '点保安队员，再点相邻空路口。',
             '每步移动一人，电脑随后行动。',
             '堵住全部退路完成拦截。',
             '橙色出口必须优先守住。',

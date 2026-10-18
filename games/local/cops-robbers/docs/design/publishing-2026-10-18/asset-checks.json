@@ -6,40 +6,40 @@
       "format": "JPEG",
       "width": 1920,
       "height": 1080,
-      "bytes": 653006,
-      "sha256": "3116e255e3a397971b95b5f3b70a8e545253f012d6623a6150f39c0e9be18250"
+      "bytes": 684723,
+      "sha256": "42e5fa76b0ad3c177a733066ac83c37cbfdae64407a3289cf62398a1fa7a5caf"
     },
     {
       "file": "promo-v2-1920x1080.jpg",
       "format": "JPEG",
       "width": 1920,
       "height": 1080,
-      "bytes": 633528,
-      "sha256": "8c55f85a56b9f92aaefd80bf62118921cc1aef0bf92b50d48003659780f59507"
+      "bytes": 684723,
+      "sha256": "42e5fa76b0ad3c177a733066ac83c37cbfdae64407a3289cf62398a1fa7a5caf"
     },
     {
       "file": "screenshots/01-surround-challenge.png",
       "format": "PNG",
       "width": 1080,
       "height": 1920,
-      "bytes": 1353500,
-      "sha256": "73110ab824db5640e4913f867e8e9a68cf7cc27883426c905f6b9f88c5d805ab"
+      "bytes": 1351785,
+      "sha256": "7eb7982ef36f8234c7f8cc5ca867216912f4cd3837e0f93c62fb973a325b091c"
     },
     {
       "file": "screenshots/02-quick-dual-targets.png",
       "format": "PNG",
       "width": 1080,
       "height": 1920,
-      "bytes": 1109201,
-      "sha256": "dc406b119625d107eb7751e415f2c8dd76421bfbde0fc4546cfee2fc77bddf2f"
+      "bytes": 1106907,
+      "sha256": "36102b075e92d87c15d52ffd54ed596223b823922df6bbe17f1c903dab802106"
     },
     {
       "file": "screenshots/03-relay-patrol.png",
       "format": "PNG",
       "width": 1080,
       "height": 1920,
-      "bytes": 1366438,
-      "sha256": "3c5c3045f68ea9f0f21067918c2b33845db1cae7867d2c5a7e017ad0496e989b"
+      "bytes": 1363778,
+      "sha256": "3b1c0563dffb978e7fac529eb14928b245f0bcc1560955226fe744628f9672cf"
     }
   ],
   "screenshotsAreActualGame": true,

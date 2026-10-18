@@ -18,8 +18,8 @@ BG = ImageOps.fit(Image.open(ROOT / 'garden-stage.png').convert('RGB'), (W, H))
 END = Image.open(ROOT.parent / 'promo-1920x1080.jpg').convert('RGB')
 ATLAS = Image.open(ROOT / 'character-atlas.png').convert('RGBA')
 SPRITES = {
-    'cop': ATLAS.crop((28, 25, 718, 1000)),
-    'robber': ATLAS.crop((755, 110, 1520, 1010)),
+    'cop': ATLAS.crop((0, 0, 768, 1024)),
+    'robber': ATLAS.crop((768, 0, 1536, 1024)),
 }
 SOFT = ImageEnhance.Brightness(BG.filter(ImageFilter.GaussianBlur(12))).enhance(.64)
 
@@ -144,7 +144,7 @@ def scene(index, t):
         frame = zoom(frame, 1.025 + .045 * clamp(t / 4.5))
         shade(frame)
         text(frame, '这次，他往哪儿跑？', 70 + (1 - ease(t / .45)) * 35, 90)
-        text(frame, '小队出动！', 210, 42, '#ffdc65', alpha=ease((t - .7) / .4))
+        text(frame, '保安出动！', 210, 42, '#ffdc65', alpha=ease((t - .7) / .4))
         if t > 3.25:
             text(frame, '？', 340, 100, '#ffdc65', x=1160, alpha=ease((t - 3.25) / .25))
         return frame

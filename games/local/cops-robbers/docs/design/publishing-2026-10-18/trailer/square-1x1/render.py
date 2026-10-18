@@ -27,7 +27,7 @@ def frame_at(t):
         art.actor(frame, 'cop', art.lerp(40, 350, q), 860, 340, t, True)
         art.actor(frame, 'robber', art.lerp(380, 730, q), 810, 340, t, True, phase=2)
         art.text(frame, '这次，往哪儿跑？', 232, 76)
-        art.text(frame, '小队出动！', 346, 43, '#ffdc65', alpha=art.ease((t - .4) / .4))
+        art.text(frame, '保安出动！', 346, 43, '#ffdc65', alpha=art.ease((t - .4) / .4))
     elif t < 6:
         q = t - 3.5
         shade = Image.new('RGBA', (W, H), (8, 31, 40, 90))
@@ -63,7 +63,6 @@ def frame_at(t):
             art.text(frame, '封住每一条退路', 367, 45)
         else:
             art.text(frame, '围捕小队', 135, 170, '#ffdc65', scale=1 + .025 * math.sin((t - 11.5) * 2))
-            art.text(frame, '封住退路，一起收网', 352, 49)
             art.shade(frame, False)
             art.text(frame, '轮到你指挥！', 950, 61)
     if t < 11.5:

@@ -9,7 +9,7 @@ import { levels } from './levels.js';
 import { quickTrials } from './quick-trials.js';
 
 export function setupDuelLobby({ selectLevels, startChallenge, returnLobby, stopChallenge, sharedPuzzle, savedPatrol, canSelect }) {
-  const $ = id => document.getElementById(id), label = side => side === 'pursuer' ? '警察' : '小偷';
+  const $ = id => document.getElementById(id), label = side => side === 'pursuer' ? '保安' : '小偷';
   let level, sourceLevel, state, role = 'pursuer', selected = 0, timer, serial = 0, firstSide;
   const developer = globalThis.SmallGamesDev?.isEnabled() === true;
   const saveKey = developer ? 'cops-robbers-duel-practice-v1' : 'cops-robbers-duel-v1'; let saved = {};

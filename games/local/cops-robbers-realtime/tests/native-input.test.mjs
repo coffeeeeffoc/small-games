@@ -77,13 +77,17 @@ test('a touch started during a native ad cannot consume the reward after its cal
     tap('开始游戏 →'); tap('开始行动 →'); tap('广告冲刺');
     const frozen=instance.getState().time;
     listeners.get('TouchStart')(event(420,212,true));
+    listeners.get('Hide')();
     finish({status:'completed'}); await Promise.resolve(); await Promise.resolve();
     listeners.get('TouchEnd')(event(420,212,false));
-    assert.equal(instance.getState().page,'support');
+    assert.equal(instance.getState().page,'game');
     assert.equal(instance.getState().phase,'paused');
     assert.equal(instance.getState().support.sprint,1);
     assert.equal(instance.getState().time,frozen);
-    tap('使用并继续'); assert.equal(instance.getState().support.sprint,0);
+    listeners.get('Show')();
     assert.equal(instance.getState().phase,'playing');
+    assert.equal(instance.getState().support.sprint,1);
+    assert.equal(instance.getState().support.remaining,0);
+    tap('冲刺 · 1'); assert.equal(instance.getState().support.sprint,0);
   } finally { instance.stop(); }
 });

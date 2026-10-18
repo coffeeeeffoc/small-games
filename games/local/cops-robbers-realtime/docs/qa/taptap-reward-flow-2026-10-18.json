@@ -1,0 +1,58 @@
+{
+  "generatedAt": "2026-10-18T15:37:29.345754+00:00",
+  "appId": 980554,
+  "rewardedAdUnitId": "1054324",
+  "rootCause": "visibilitychange(hidden=true) unconditionally cancelled the pending native ad request, detached onClose and classified full viewing as dismissed.",
+  "regressionBefore": "publishing.browser.mjs failed: native ad backgrounding must not cancel pending reward callback; actual typeof callback=object(null), expected function.",
+  "behavior": [
+    "Direct native ad launch from sprint/rewind buttons; no intermediate support page",
+    "Strict SDK isEnded===true completion grants one stored charge; never automatically consumes it",
+    "Background callbacks do not resume time/audio; foreground finishes resumption",
+    "Loading ad blocks retry/review/navigation; only a real page exit disposes the request",
+    "Native hide/show keeps a pending charge and clears stale gestures"
+  ],
+  "unitTests": {
+    "passed": 18,
+    "failed": 0
+  },
+  "browser": {
+    "date": "2026-10-18T15:35:29.339Z",
+    "environment": "desktop Chrome with mobile touch emulation",
+    "sdk": "explicit simulated TapTap callback fixture; no real ad playback",
+    "checks": [
+      "production platform-config: sprint refill calls verified ad unit 1054324, not application ID 980554; reward only after completion",
+      "320x740: real touch sprint, pause, assisted capture, home/reload and hidden online entry",
+      "390x844: real touch sprint, pause, assisted capture, home/reload and hidden online entry",
+      "844x390: real touch sprint, pause, assisted capture, home/reload and hidden online entry",
+      "history: earlier home share restores its own link and home return",
+      "blocked storage: local play and abilities remain usable for the session",
+      "same-origin stale tabs: starter count is monotonic and the fifth grant is issued once",
+      "legacy personal best survives a slower normal win",
+      "real timeout: free 5-second rewind, direct ad refill to stored charge, frozen failure and per-run cap",
+      "simulated TapTap SDK completed: no support page, hide/show preserves callback, only completed rewards, player tap consumes sprint",
+      "simulated TapTap SDK dismissed: no support page, hide/show preserves callback, only completed rewards, player tap consumes sprint",
+      "simulated TapTap SDK failed: no support page, hide/show preserves callback, only completed rewards, player tap consumes sprint",
+      "simulated TapTap SDK cached-page: no support page, hide/show preserves callback, only completed rewards, player tap consumes sprint",
+      "iframe: normal home/start and touch support; obsolete invite cannot open PK"
+    ],
+    "errors": [],
+    "onlineRequests": []
+  },
+  "package": {
+    "path": "outputs\\game-builds\\20261018T153255783Z-3b63da\\cops-robbers-realtime-taptap-h5-ads-on-service-off.zip",
+    "entry": "dist/index.html",
+    "sha256": "29aaccf3825fa269894f84a3c6550a64096a7ad46943c78f8256962bac1a2dc4",
+    "bytes": 4364820,
+    "verifiedFiles": 27,
+    "changedFiles": [
+      "dist/index.html",
+      "dist/src/main.js",
+      "dist/src/native.js",
+      "dist/src/style.css"
+    ]
+  },
+  "review": "Read-only review found a failure-page retry/review race; fixed by capture-phase click guard and verified via real touch attempts.",
+  "realAdPlaybackVerified": false,
+  "physicalDeviceVerified": false,
+  "uploaded": false
+}

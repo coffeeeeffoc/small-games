@@ -1,23 +1,15 @@
-围捕小队 · TapTap 上架素材 · 2026-10-18
+围捕小队 · 小区保安抓小偷 · TapTap整改素材 · 2026-10-18
 
-文案字段：
-游戏类型.txt：主类型、细分玩法与推荐标签。
-游戏简介.txt：短简介与详情简介。
-开发者的话.txt：可直接粘贴到对应字段。
+本次完整上传集合统一位于 ../security-guards-2026-10-18/submission/，以该目录README.txt及上一级delivery-checks.json为准。
+已更新主页原图、角色图集、SVG/Canvas兜底头像、角色称呼；原警察设定已改为小区保安围堵小偷。
 
-宣传图：两张任选一张，均为严格的 16:9、1920×1080 JPG。
-promo-1920x1080.jpg：第一版，左侧标题与“封住退路，一起收网”标语，653006 字节。
-promo-v2-1920x1080.jpg：第二版，居中标题与俯视路网合围，无标语，633528 字节。
-宣传图通过内置 image_gen 生成，参考本游戏既有美术；不是实际游戏截图。
+本目录宣传图：promo-1920x1080.jpg与promo-v2-1920x1080.jpg现均为新版保安封面，严格1920×1080，只保留游戏名「围捕小队」。旧标语版已被替换。
+方版1440×1440宣传图与1024×1024图标位于上述submission目录。
 
-游戏截图：按以下顺序上传原始 PNG，均为 1080×1920，每张小于 4 MB。
-1. screenshots/01-surround-challenge.png：围堵挑战，1353500 字节。
-2. screenshots/02-quick-dual-targets.png：双目标限步试炼，1109201 字节。
-3. screenshots/03-relay-patrol.png：换防接力，1366438 字节。
+游戏截图：screenshots下三张PNG已从最终H5构建重新采集，均为1080×1920，小于4 MB。Windows Chrome手机视口触屏模拟，dev=0，通过合法操作解锁，没有注入进度或修改画面，不是真机采集。
 
-截图来自当前 H5 生产构建的实际运行画面，使用 Windows Chrome 155、540×960 手机视口、2 倍设备像素与触屏输入。普通玩家 dev=0，通过合法操作通关前置关卡解锁；未注入进度、修改界面、拼贴或生成截图。属于浏览器触屏模拟，非实体手机采集。
+宣传视频：trailer/cops-robbers-promo-1080p.mp4与trailer/square-1x1/cops-robbers-promo-1080x1080.mp4已替换同源保安角色；横版21秒、方版15秒，均H.264/AAC。解码联系表及decode-checks.json对应本次最终MP4。
 
-screenshot-evidence.json 保存截图与解锁过程；asset-checks.json 保存尺寸、格式、文件大小与哈希；image-generation.txt 保存宣传图工具和提示词。
-截图文字、游戏模式与文案按当前可用功能准备，未宣传未开放的好友联机。
+新H5包体：submission/cops-robbers-taptap-h5-security-20261018.zip，969157字节，SHA256为2d7c48bb8fc3379338f5b9da5ff22364e5533bbce271c8eef948aace92d48147。此处submission指上述完整上传集合目录。
 
-素材已在本地校验，未上传或提交后台审核。平台实际字段长度、图片内容审核结果以后台为准。
+本地检查通过，浏览器上传因ChatGPT扩展尚未开启「允许访问文件网址」暂未完成；尚未提交复审，最终平台结果待实际操作确认。

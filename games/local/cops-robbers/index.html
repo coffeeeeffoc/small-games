@@ -9,9 +9,9 @@
     <meta name="theme-color" content="#b6e8ee" />
     <meta
       name="description"
-      content="突围队员会从出口逃走！点路口立即调动追逐队员，在三种各120关的挑战与对抗中选择双方角色。"
+      content="小区保安协作围堵小偷！点路口立即调动保安队员，在三种各120关的挑战与对抗中选择双方角色。"
     />
-    <title>围捕小队 · 街区追逃计划</title>
+    <title>围捕小队 · 小区保安出动</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="preload" as="image" href="./assets/patrol-characters.svg" />
     <link rel="preload" as="image" href="./assets/patrol-garden.webp" />
@@ -24,7 +24,7 @@
   <body class="game-shell">
     <header class="topbar">
       <a class="brand" href="./" aria-label="围捕小队首页"
-        ><span class="brand-badge" aria-hidden="true">★</span><span class="sr-only">围捕小队</span></a
+        ><span class="brand-badge" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8M6 9v12h12V9M10 21v-7h4v7"/></svg></span><span class="sr-only">围捕小队</span></a
       >
       <button type="button" id="focus-toggle" class="map-button" aria-label="返回大厅">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7M7 12h13" /></svg>
@@ -44,7 +44,7 @@
       <aside class="briefing" aria-label="游戏首页">
         <div class="home-scene" aria-hidden="true"></div>
         <div class="home-title">
-          <span class="home-kicker">街区追逃计划</span>
+          <span class="home-kicker">小区保安出动</span>
           <h1>围捕<span>小队</span></h1>
           <span class="home-tagline">每个路口，都有新主意</span>
         </div>
@@ -266,7 +266,7 @@
         <p id="mode-description"></p>
         <label id="solo-role-row"
           >我的角色<select id="solo-role">
-            <option value="pursuer">警察 · 蓝色盾牌</option>
+            <option value="pursuer">保安 · 灰衣队员</option>
             <option value="runner">小偷 · 橙色闪电</option>
           </select></label
         ><label id="solo-initiative-row"

@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "games": ["cops-robbers-realtime"],
+  "ads": [true],
+  "backend": [false],
+  "adUnits": { "cops-robbers-realtime": "1054324" }
+}

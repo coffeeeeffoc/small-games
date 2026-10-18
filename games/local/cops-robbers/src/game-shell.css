@@ -56,6 +56,10 @@ body.game-shell {
   font-size: 18px;
   background: #1687a6;
   color: #ffe077;
+  clip-path: none;
+  border-radius: 9px;
+  padding: 0;
+  transform: none;
 }
 .game-shell .top-actions {
   gap: 8px;

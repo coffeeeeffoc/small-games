@@ -1,0 +1,93 @@
+{
+  "generatedAt": "2026-10-18T15:55:56.372084+00:00",
+  "status": "local-fix-verified-device-pending",
+  "appId": 980554,
+  "rewardedAdUnitId": "1054324",
+  "confirmedDefect": "The 44-second request timeout remained active after successful ad.show(), detached onClose and returned failed while the advertisement could still be playing.",
+  "userIncident": "User confirms the direct-ad build and says the ad page displays earned reward before closing, but the game does not grant a charge. Duration and real SDK callback payload are not captured; the confirmed timeout defect is not yet proven to be the sole cause of this device incident.",
+  "regressionBefore": [
+    "node --test games/local/cops-robbers-realtime/tests/taptap-h5-ads.test.mjs: 7 passed, 2 failed before the fix; a displayed 60-second ad settled early as failed.",
+    "node games/local/cops-robbers-realtime/tests/publishing.browser.mjs against the previous exact ZIP: failed because the callback was null after simulated 60-second background playback."
+  ],
+  "behavior": [
+    "The 44-second deadline only limits opening/loading; first or retried show success clears the timer.",
+    "Displayed ad requests stay pending for SDK onClose/onError or actual disposal. No reward is inferred from elapsed time.",
+    "Only onClose({isEnded:true}) grants one charge. Cancel/error/missing/false/string flags do not reward.",
+    "Structured TapTapReward console events record displayed/close/settled/grant outcomes without account, token or creative payloads."
+  ],
+  "unitTests": {
+    "passed": 21,
+    "failed": 0
+  },
+  "browser": {
+    "date": "2026-10-18T15:55:31.228Z",
+    "environment": "desktop Chrome with mobile touch emulation",
+    "sdk": "explicit simulated TapTap callback fixture; no real ad playback",
+    "checks": [
+      "production platform-config: ad unit 1054324; 60-second background playback retains callback and grants one sprint only on explicit completion",
+      "320x740: real touch sprint, pause, assisted capture, home/reload and hidden online entry",
+      "390x844: real touch sprint, pause, assisted capture, home/reload and hidden online entry",
+      "844x390: real touch sprint, pause, assisted capture, home/reload and hidden online entry",
+      "history: earlier home share restores its own link and home return",
+      "blocked storage: local play and abilities remain usable for the session",
+      "same-origin stale tabs: starter count is monotonic and the fifth grant is issued once",
+      "legacy personal best survives a slower normal win",
+      "real timeout: free 5-second rewind, direct ad refill to stored charge, frozen failure and per-run cap",
+      "simulated TapTap SDK completed: no support page, hide/show preserves callback, only completed rewards, player tap consumes sprint",
+      "simulated TapTap SDK dismissed: no support page, hide/show preserves callback, only completed rewards, player tap consumes sprint",
+      "simulated TapTap SDK failed: no support page, hide/show preserves callback, only completed rewards, player tap consumes sprint",
+      "simulated TapTap SDK cached-page: no support page, hide/show preserves callback, only completed rewards, player tap consumes sprint",
+      "iframe: normal home/start and touch support; obsolete invite cannot open PK"
+    ],
+    "errors": [],
+    "onlineRequests": [],
+    "rewardEvents": [
+      {
+        "event": "requested",
+        "elapsedMs": 0
+      },
+      {
+        "event": "shown",
+        "elapsedMs": 1,
+        "ignored": false
+      },
+      {
+        "event": "close",
+        "elapsedMs": 60019,
+        "isEnded": true,
+        "valueType": "boolean",
+        "ignored": false
+      },
+      {
+        "event": "settled",
+        "elapsedMs": 60019,
+        "status": "completed",
+        "reason": "sdk-close"
+      },
+      {
+        "event": "grant",
+        "kind": "sprint",
+        "status": "completed",
+        "granted": true
+      }
+    ]
+  },
+  "package": {
+    "path": "outputs\\cops-robbers-realtime\\2026-10-18-reward-timeout-fix\\cops-robbers-realtime-taptap-h5-reward-timeout-fix.zip",
+    "batch": "outputs\\game-builds\\20261018T155332051Z-e74baf",
+    "entry": "dist/index.html",
+    "sha256": "6314180d268e5034f734b6465d6074d59c939f011ad6ac9bd09ac35c36a91e96",
+    "bytes": 4365148,
+    "verifiedFiles": 27,
+    "changedFromPreviousPackage": [
+      "dist/src/main.js",
+      "dist/src/taptap-h5-ads.js"
+    ]
+  },
+  "realAdCallbackCaptured": false,
+  "realAdPlaybackVerified": false,
+  "physicalDeviceVerified": false,
+  "uploaded": false,
+  "committed": false,
+  "pushed": false
+}

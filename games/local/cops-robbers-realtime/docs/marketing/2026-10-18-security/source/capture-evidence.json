@@ -1,0 +1,41 @@
+{
+  "capturedAt": "2026-10-18T13:40:20.102Z",
+  "browser": "153.0.8010.12",
+  "base": "http://127.0.0.1:4198/",
+  "source": "Production TapTap H5 dist with security-guard assets and configured ad unit 980554; real browser, no physical phone.",
+  "viewport": {
+    "width": 432,
+    "height": 768
+  },
+  "deviceScaleFactor": 2.5,
+  "screenshots": "1080x1920, uniform 9:16, unaltered real browser captures",
+  "input": "Real touchscreen taps; no save injection, state injection or simulated clock.",
+  "video": "F:\\playground\\playground-ai\\small-games\\games\\local\\cops-robbers-realtime\\docs\\marketing\\2026-10-18-security\\source\\page@6b0e95b799a1a5c78f20a6bc49327f3c.webm",
+  "segments": [
+    {
+      "level": 1,
+      "begin": 2.59,
+      "end": 10.415,
+      "phase": "won"
+    },
+    {
+      "level": 2,
+      "begin": 11.156,
+      "end": 18.777,
+      "phase": "won"
+    },
+    {
+      "level": 3,
+      "begin": 19.521,
+      "end": 28.248,
+      "phase": "won"
+    }
+  ],
+  "checks": [
+    "Fresh-save campaign level 1, actual on-field security guard selection and movement, raw portrait screenshot.",
+    "Quick trial 1: real actor/road taps, normal-speed engine, victory verified.",
+    "Quick trial 2: real actor/road taps, normal-speed engine, victory verified.",
+    "Quick trial 3: real actor/road taps, normal-speed engine, victory verified."
+  ],
+  "errors": []
+}

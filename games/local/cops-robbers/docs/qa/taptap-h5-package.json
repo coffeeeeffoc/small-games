@@ -6,18 +6,18 @@
     "buildDirectory":  "games/local/cops-robbers/dist",
     "uploadDirectory":  "outputs/cops-robbers/taptap-h5/dist",
     "screenOrientation":  1,
-    "bytes":  936042,
-    "sha256":  "ebc03be09a70dd9b118bdd66c06b769dc06f7de3e404cc1d8d146c058c53c70e",
+    "bytes":  969157,
+    "sha256":  "2d7c48bb8fc3379338f5b9da5ff22364e5533bbce271c8eef948aace92d48147",
     "files":  [
                   {
                       "path":  "assets/home-chase.webp",
-                      "bytes":  195246,
-                      "sha256":  "e3499a2f27be60070ef6eeabef1b29b88ef34408bcf6fedf445f8a782d4686e2"
+                      "bytes":  222742,
+                      "sha256":  "d32e258d5b38cc5737db60bd993d5c4dfefbc66218429680e2233b75c5f11472"
                   },
                   {
                       "path":  "assets/patrol-characters.svg",
-                      "bytes":  249775,
-                      "sha256":  "0dfda21a1086356334430bc3a6736fc9f0b2e3f806302683dac14068110ffd41"
+                      "bytes":  257035,
+                      "sha256":  "a86f7a77068f1b2b950ef773302c3026950d7c82d0b48afdd7fafdb43ce9680a"
                   },
                   {
                       "path":  "assets/patrol-garden.webp",
@@ -36,13 +36,13 @@
                   },
                   {
                       "path":  "favicon.svg",
-                      "bytes":  265,
-                      "sha256":  "e25b0e008d90246e7a6718099cc2c6328bf0ed4c22e532b2da078844335f10b4"
+                      "bytes":  274,
+                      "sha256":  "b72eb78edd1457735ab690e7c89ee2083a416468584d71401e085f6061408b96"
                   },
                   {
                       "path":  "index.html",
-                      "bytes":  20114,
-                      "sha256":  "035355a1e3c20dd4fea96f2c9931faa918f27a3ee82f6e09bb14893c3475df70"
+                      "bytes":  19787,
+                      "sha256":  "5688a9d5865f5c72c41bd0a75b6f1418ab023f0d047ad3df0d1c4c28ef85488c"
                   },
                   {
                       "path":  "platform-ads.js",
@@ -71,8 +71,8 @@
                   },
                   {
                       "path":  "src/art.js",
-                      "bytes":  7242,
-                      "sha256":  "147e8d3ea73b2dbb6a8a2ee87612854ead44e55d4ec6c947a031adeee872f34d"
+                      "bytes":  7002,
+                      "sha256":  "6012ba376a0b71a2e441560ac25d4219fa7866cd31e1e99d87a103199eb70050"
                   },
                   {
                       "path":  "src/board-layout.js",
@@ -96,8 +96,8 @@
                   },
                   {
                       "path":  "src/duel-ui.js",
-                      "bytes":  17303,
-                      "sha256":  "a7160bf2192f532b97cc21e68cb9c09f74b34d3a31653fa24e97702d9f8eb81f"
+                      "bytes":  17146,
+                      "sha256":  "aeb3fe0921e5984fdca49fabd266747f729537784ce2c5b667a50ffe60edd915"
                   },
                   {
                       "path":  "src/engine.js",
@@ -116,13 +116,13 @@
                   },
                   {
                       "path":  "src/game-shell.css",
-                      "bytes":  22807,
-                      "sha256":  "e38ec43fdd105422cb38b5c750b29db71622f266212b946181dbeb33b0fb2f79"
+                      "bytes":  21901,
+                      "sha256":  "005fa700724fd1ed505b611a17d5907ad2250a2777701f6527e680436de38d8c"
                   },
                   {
                       "path":  "src/game-shell.js",
-                      "bytes":  5197,
-                      "sha256":  "37cb8e9346bb8f70e3c4333397a1edb790e5e0e41222ae6256ef0e8ccad2140c"
+                      "bytes":  5094,
+                      "sha256":  "91115ac1374c4e351cf567225de2021273bee84ab2c1f004b92d6b06c2d4621c"
                   },
                   {
                       "path":  "src/hint-worker.js",
@@ -141,8 +141,8 @@
                   },
                   {
                       "path":  "src/native.js",
-                      "bytes":  17250,
-                      "sha256":  "3fa15e46b5f7f7e70a78d107bd056425bc5c7b0c46d5f0c3a59dd200e0640fd4"
+                      "bytes":  17081,
+                      "sha256":  "c2c592e5fc94b364782a460fa254e70297df38129344fba59bf202f36b857627"
                   },
                   {
                       "path":  "src/optimal-solutions.js",
@@ -176,8 +176,8 @@
                   },
                   {
                       "path":  "src/role-appearance.js",
-                      "bytes":  20602,
-                      "sha256":  "0ba7da9447c0a3ecc475ea62a09a2004194f8f35a3eed15e69d8878bddd69c5f"
+                      "bytes":  18844,
+                      "sha256":  "c98c56fdbbf3d384e5348c8abc95be784d275bd4334c16ff3b674e83d5585262"
                   },
                   {
                       "path":  "src/safe-area.js",

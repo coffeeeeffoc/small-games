@@ -1,8 +1,9 @@
 {
-  "date": "2026-10-17T17:57:13.711Z",
+  "date": "2026-10-18T15:55:31.228Z",
   "environment": "desktop Chrome with mobile touch emulation",
   "sdk": "explicit simulated TapTap callback fixture; no real ad playback",
   "checks": [
+    "production platform-config: ad unit 1054324; 60-second background playback retains callback and grants one sprint only on explicit completion",
     "320x740: real touch sprint, pause, assisted capture, home/reload and hidden online entry",
     "390x844: real touch sprint, pause, assisted capture, home/reload and hidden online entry",
     "844x390: real touch sprint, pause, assisted capture, home/reload and hidden online entry",
@@ -10,12 +11,43 @@
     "blocked storage: local play and abilities remain usable for the session",
     "same-origin stale tabs: starter count is monotonic and the fifth grant is issued once",
     "legacy personal best survives a slower normal win",
-    "real timeout: free 5-second rewind, advertised refill, frozen failure and per-run cap",
-    "simulated TapTap SDK completed: only completed rewards, explicit continue",
-    "simulated TapTap SDK dismissed: only completed rewards, explicit continue",
-    "simulated TapTap SDK failed: only completed rewards, explicit continue",
+    "real timeout: free 5-second rewind, direct ad refill to stored charge, frozen failure and per-run cap",
+    "simulated TapTap SDK completed: no support page, hide/show preserves callback, only completed rewards, player tap consumes sprint",
+    "simulated TapTap SDK dismissed: no support page, hide/show preserves callback, only completed rewards, player tap consumes sprint",
+    "simulated TapTap SDK failed: no support page, hide/show preserves callback, only completed rewards, player tap consumes sprint",
+    "simulated TapTap SDK cached-page: no support page, hide/show preserves callback, only completed rewards, player tap consumes sprint",
     "iframe: normal home/start and touch support; obsolete invite cannot open PK"
   ],
   "errors": [],
-  "onlineRequests": []
+  "onlineRequests": [],
+  "rewardEvents": [
+    {
+      "event": "requested",
+      "elapsedMs": 0
+    },
+    {
+      "event": "shown",
+      "elapsedMs": 1,
+      "ignored": false
+    },
+    {
+      "event": "close",
+      "elapsedMs": 60019,
+      "isEnded": true,
+      "valueType": "boolean",
+      "ignored": false
+    },
+    {
+      "event": "settled",
+      "elapsedMs": 60019,
+      "status": "completed",
+      "reason": "sdk-close"
+    },
+    {
+      "event": "grant",
+      "kind": "sprint",
+      "status": "completed",
+      "granted": true
+    }
+  ]
 }

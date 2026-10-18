@@ -8,9 +8,9 @@
     <meta name="theme-color" content="#fff8eb" />
     <meta
       name="description"
-      content="指挥可爱的警察与小偷，封路、包抄、实时收网。100 个街区，叫上好友一起玩！"
+      content="指挥可爱的保安与小偷，封路、包抄、实时收网。100 个街区，试试你的包抄战术！"
     />
-    <title>别跑！街区围捕 · 警察与小偷</title>
+    <title>别跑！街区围捕 · 保安与小偷</title>
     <link rel="stylesheet" href="./src/style.css" />
     <link rel="stylesheet" href="./src/appearance.css" />
     <link rel="stylesheet" href="./src/cartoon.css" />
@@ -188,7 +188,7 @@
             <label class="choice-field role-field"
               ><span>这次，你是哪一队？</span
               ><select id="role-select" hidden aria-hidden="true" tabindex="-1">
-                <option value="cop">警察</option>
+                <option value="cop">保安</option>
                 <option value="robber">小偷</option></select
               ><span class="role-choices"
                 ><button
@@ -197,7 +197,7 @@
                   data-choice-for="role-select"
                   data-value="cop"
                 >
-                  <span data-character="cop"></span><strong>我是警察</strong
+                  <span data-character="cop"></span><strong>我是保安</strong
                   ><small>封住退路，合作收网</small
                   ><i class="choice-check" aria-hidden="true">✓</i></button
                 ><button
@@ -313,7 +313,7 @@
             id="game-canvas"
             tabindex="0"
             role="img"
-            aria-label="街区地图。点击警察，再点击道路设置目的地；再次点击已选角色可停下。"
+            aria-label="街区地图。点击保安，再点击道路设置目的地；再次点击已选角色可停下。"
             >浏览器需要支持 Canvas。</canvas
           >
           <div class="board-top">
@@ -345,7 +345,7 @@
           <div class="squad-dock">
             <div>
               <small id="squad-hint">点队员，再点道路</small>
-              <div id="cop-roster" class="cop-roster" role="group" aria-label="选择警察队员"></div>
+              <div id="cop-roster" class="cop-roster" role="group" aria-label="选择保安队员"></div>
             </div>
             <button id="hold-button" class="button hold-button" aria-label="原地守住">
               <svg><use href="#i-shield" /></svg><span>守住</span>
@@ -443,10 +443,10 @@
           </button>
         </div>
         <ol>
-          <li><b>选人：</b>在街区内点击警察或你控制的小偷。</li>
+          <li><b>选人：</b>在街区内点击保安或你控制的小偷。</li>
           <li><b>下令：</b>再点道路设置目的地，也可以从角色拖到道路。再次点已选角色可停下。</li>
           <li>
-            <b>合作：</b>警察封住所有退路，至少两人持续合围 0.8
+            <b>合作：</b>保安封住所有退路，至少两人持续合围 0.8
             秒才能抓获；小偷利用空档逃走或撑到时间结束。
           </li>
         </ol>
@@ -546,13 +546,6 @@
         ><button class="button quiet wide" data-close>返回</button>
       </section>
     </main>
-      <section id="support-page" class="screen game-page small-dialog" data-game-page hidden tabindex="-1">
-        <div class="result-art" data-character="cop"></div>
-        <h2 id="support-title">战术支援</h2>
-        <p id="support-status" role="status"></p>
-        <button id="support-use" class="button primary wide" disabled>继续行动</button>
-        <button id="support-return" class="button quiet wide" hidden>稍后使用</button>
-      </section>
     <script type="module" src="./src/main.js"></script>
   </body>
 </html>

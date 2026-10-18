@@ -243,15 +243,14 @@ export function startNativeStreetGame(sdk, config, startNativeCompetition) {
     return true;
   }
   async function requestSupport(kind) {
-    if (supportBusy || stopped) return;
+    if (supportRequest || stopped || hidden) return;
     if (game.support?.[kind]) { activateSupport(kind); return; }
     if (!canRefill(game, kind)) return;
-    const request = { game, kind, actor: renderer.getSelected(), completed: false };
+    const request = { game, kind, page };
     supportRequest = request;
     supportBusy = true;
     gesture = null;
     if (game.phase === 'playing') game.phase = 'paused';
-    page = 'support';
     message = '正在打开广告，进度已暂停';
     draw();
     let outcome;
@@ -260,19 +259,18 @@ export function startNativeStreetGame(sdk, config, startNativeCompetition) {
     gesture = null;
     supportBusy = false;
     if (stopped || supportRequest !== request || game !== request.game) return;
-    request.completed = grantSupport(game, kind, outcome);
-    message = request.completed ? '支援已领取，准备好后继续' : '本次未领取，补领次数保留';
+    const completed = grantSupport(game, kind, outcome);
+    message = completed ? (kind === 'sprint' ? '冲刺次数 +1，点击冲刺使用' : '回溯次数 +1，点击回溯使用') : '本次未领取，补领次数保留';
+    finishSupport();
     draw();
   }
-  function finishSupport(use) {
-    if (supportBusy || hidden || !supportRequest) return;
+  function finishSupport() {
+    if (supportBusy || hidden || stopped || !supportRequest) return;
     const request = supportRequest;
     supportRequest = null;
-    if (request.kind === 'sprint') {
-      game.phase = 'playing';
-      page = 'game';
-      if (use && request.completed) activateSupport('sprint', request.actor);
-    } else if (!(use && request.completed && activateSupport('rewind'))) page = 'result';
+    gesture = null;
+    if (game !== request.game) return;
+    if (request.kind === 'sprint' && page === request.page && game.phase === 'paused') game.phase = 'playing';
     last = Date.now();
     accumulated = 0;
   }
@@ -298,7 +296,7 @@ export function startNativeStreetGame(sdk, config, startNativeCompetition) {
     hits = [];
     if (page === 'home') {
       if (art?.width) ctx.drawImage(art, width * 0.34, 0, width * 0.66, height - 52);
-      text('警察 × 小偷', 28, 32, 17);
+      text('保安 × 小偷', 28, 32, 17);
       text('街区追捕', 28, height * 0.32, Math.min(54, width * 0.065));
       text('封住路口，合作抓住小偷。', 28, height * 0.49, 16);
       button(
@@ -344,7 +342,7 @@ export function startNativeStreetGame(sdk, config, startNativeCompetition) {
       {
         levels: '选择街区',
         records: '全站通关纪录',
-        avatars: '警察与小偷 · 全局头像',
+        avatars: '保安与小偷 · 全局头像',
         help: '玩法说明',
         pause: '暂停',
         result: '本局结束',
@@ -389,7 +387,7 @@ export function startNativeStreetGame(sdk, config, startNativeCompetition) {
         prepare();
       });
       if (mode !== 'quick') {
-        button('角色：' + (role === 'cop' ? '警察' : '小偷'), x, 115, w / 2 - 4, () => {
+        button('角色：' + (role === 'cop' ? '保安' : '小偷'), x, 115, w / 2 - 4, () => {
           role = role === 'cop' ? 'robber' : 'cop';
           prepare();
         });
@@ -400,7 +398,7 @@ export function startNativeStreetGame(sdk, config, startNativeCompetition) {
         button(
           mode === 'challenge'
             ? '同时开始'
-            : '先手：' + (first === 'random' ? '系统分配' : first === 'cop' ? '警察' : '小偷'),
+            : '先手：' + (first === 'random' ? '系统分配' : first === 'cop' ? '保安' : '小偷'),
           x,
           165,
           w,
@@ -487,7 +485,7 @@ export function startNativeStreetGame(sdk, config, startNativeCompetition) {
       text(
         MODES.find((item) => item.id === mode).name +
           ' · ' +
-          (role === 'cop' ? '警察' : '小偷') +
+          (role === 'cop' ? '保安' : '小偷') +
           ' · 第 ' +
           level +
           ' 关',
@@ -524,7 +522,7 @@ export function startNativeStreetGame(sdk, config, startNativeCompetition) {
       for (const [i, side] of ['cop', 'robber'].entries()) {
         const x = width * 0.12 + i * width * 0.45;
         drawRoleAvatar(ctx, side, x, 74, 80);
-        text(side === 'cop' ? '警察' : '小偷', x + 92, 114, 22);
+        text(side === 'cop' ? '保安' : '小偷', x + 92, 114, 22);
         ['经典头像', '猫狐头像', '星际头像'].forEach((label, j) =>
           button(label, x, 168 + j * 49, Math.min(240, width * 0.35), () =>
             chooseAvatar(side, ['team', 'animals', 'cosmic'][j]),
@@ -537,21 +535,13 @@ export function startNativeStreetGame(sdk, config, startNativeCompetition) {
       [
         '点场内角色选中，再点道路设置目的地。',
         '点已选中且移动中的角色可停下。',
-        '警察封住退路，至少两人持续合围 0.8 秒。',
+        '保安封住退路，至少两人持续合围 0.8 秒。',
         '小偷到达出口或撑到时间结束即可获胜。',
         '模式、角色、先手和轮换规则在选关页设置。',
         '冲刺提速 20% 持续 4 秒；失败可回溯约 5 秒。',
         '前 5 局各赠 1 次，每局每种可看广告补 1 次。',
       ].forEach((line, i) => text(line, 24, 84 + i * 32, 15));
       if (channel) button('B站入口', width - 190, height - 58, 166, () => { page = 'channel'; });
-    }
-    if (page === 'support') {
-      text(message, 24, 100, 17);
-      text(supportRequest?.kind === 'sprint' ? '当前队员提速 20%，持续 4 秒' : '回到约 5 秒前，重新调整路线', 24, 140, 15);
-      if (!supportBusy) {
-        button(supportRequest?.completed ? '使用并继续' : '返回游戏', width / 2 - 110, 190, 220, () => finishSupport(true), true);
-        if (supportRequest?.completed) button('稍后使用', width / 2 - 110, 245, 220, () => finishSupport(false));
-      }
     }
     if (page === 'channel' && channel) {
       const snapshot = channel.getSnapshot(); text(`收藏签 ${snapshot.count || 0} 枚`, 24, 86);
@@ -622,7 +612,7 @@ export function startNativeStreetGame(sdk, config, startNativeCompetition) {
   const hide = () => {
     gesture = null;
     hidden = true;
-    if (page === 'game') {
+    if (page === 'game' && !supportRequest) {
       game.phase = 'paused';
       page = 'pause';
     }
@@ -630,6 +620,7 @@ export function startNativeStreetGame(sdk, config, startNativeCompetition) {
   const show = () => {
     gesture = null;
     hidden = false;
+    finishSupport();
     last = Date.now();
     draw();
   };
