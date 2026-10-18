@@ -192,13 +192,12 @@ test('the real pre-commit hook rejects bad staged content and succeeds after res
   assert.equal(await readFile(path.join(f.root, 'partially staged.js'), 'utf8'), good);
 });
 
-test('the real pre-push hook forwards Git stdin rather than checking a dirty worktree', async (t) => {
+test('the real pre-push hook leaves validation explicit and does not check a dirty worktree', async (t) => {
   const f = await fixture(t);
   await installRealHooks(f);
   await f.write(
     'scripts/validate-push.mjs',
-    `let input = ''; for await (const chunk of process.stdin) input += chunk;
-console.log(JSON.stringify({ remote: process.argv[2], input }));`,
+    `throw new Error('Automatic validation must not run');`,
   );
   await f.write('bad.js', bad);
   const sha = 'a'.repeat(40),
@@ -216,6 +215,6 @@ console.log(JSON.stringify({ remote: process.argv[2], input }));`,
     },
   );
   assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(JSON.parse(result.stdout + result.stderr), { remote: 'origin', input });
+  assert.match(result.stdout + result.stderr, /pnpm validate:candidate --base/);
   assert.equal(await readFile(path.join(f.root, 'bad.js'), 'utf8'), bad);
 });
