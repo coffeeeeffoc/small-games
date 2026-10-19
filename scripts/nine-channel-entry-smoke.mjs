@@ -6,22 +6,16 @@ import {
 import { tapNativeTarget } from '../games/local/letters-words2/tests/native-test-actions.mjs';
 import { attachBilibiliEntry } from '../platforms/bilibili/native-entry.mjs';
 import '../platforms/competition/native.js';
-import { startNativeCopsGame } from '../games/local/cops-robbers/src/native.js';
-import { startNativeStreetGame } from '../games/local/cops-robbers-realtime/src/native.js';
 import { startNativeLettersGame } from '../games/local/letters-words2/native.js';
 import { startNativeHistoryGame } from '../games/local/vibeJam-myself-history-guess/native.js';
-import { startNativeXiangqiGame } from '../platforms/competition/xiangqi-five/native.js';
 
 for (const [id, start, entry] of [
-  ['cops-robbers', startNativeCopsGame, '学习 / 帮助 / 设置'],
-  ['cops-robbers-realtime', startNativeStreetGame, '玩法说明'],
   ['letters-words2', startNativeLettersGame, '设置'],
   ['vibeJam-myself-history-guess', startNativeHistoryGame, '设置'],
-  ['xiangqi-five', startNativeXiangqiGame, '玩法与设置'],
 ]) {
   const fixture = createNativeSDKFixture({
-    width: id === 'cops-robbers-realtime' ? 844 : 390,
-    height: id === 'cops-robbers-realtime' ? 390 : 844,
+    width: 390,
+    height: 844,
   });
   let navigation = 0,
     desktop = 0;
@@ -94,20 +88,6 @@ if (process.env.BILIBILI_BROWSER === '1') {
   const root = fileURLToPath(new URL('../', import.meta.url));
   const descriptors = [
     [
-      'cops-robbers',
-      'games/local/cops-robbers/src/native.js',
-      'startNativeCopsGame',
-      '学习 / 帮助 / 设置',
-      'games/local/cops-robbers/docs/design/native-2026-10-06',
-    ],
-    [
-      'cops-robbers-realtime',
-      'games/local/cops-robbers-realtime/src/native.js',
-      'startNativeStreetGame',
-      '玩法说明',
-      'games/local/cops-robbers-realtime/docs/design/native-2026-10-06',
-    ],
-    [
       'letters-words2',
       'games/local/letters-words2/native.js',
       'startNativeLettersGame',
@@ -120,13 +100,6 @@ if (process.env.BILIBILI_BROWSER === '1') {
       'startNativeHistoryGame',
       '设置',
       'games/local/vibeJam-myself-history-guess/docs/design/native-2026-10-06',
-    ],
-    [
-      'xiangqi-five',
-      'platforms/competition/xiangqi-five/native.js',
-      'startNativeXiangqiGame',
-      '玩法与设置',
-      'platforms/competition/xiangqi-five/docs/design',
     ],
   ];
   const html = (
@@ -171,8 +144,8 @@ if (process.env.BILIBILI_BROWSER === '1') {
   });
   try {
     for (const item of descriptors) {
-      const width = item[0] === 'cops-robbers-realtime' ? 667 : 390,
-        height = item[0] === 'cops-robbers-realtime' ? 375 : 844;
+      const width = 390,
+        height = 844;
       const page = await browser.newPage({ viewport: { width, height }, hasTouch: true });
       const errors = [];
       page.on('pageerror', (error) => errors.push(error.message));

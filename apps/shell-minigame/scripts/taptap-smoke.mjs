@@ -188,34 +188,13 @@ function canvasFixture(directory, selected) {
   return fixture;
 }
 
-async function canvasFlow(game, fixture, instance) {
+async function canvasFlow(game, fixture) {
   const tapLabel = async (label) => {
     await fixture.tick(140);
     fixture.tapLabel(label);
     await flushNative();
   };
-  if (game === 'cops-robbers') {
-    assert.equal(instance.getState().page, 'home');
-    await tapLabel('开始巡逻');
-    assert.equal(instance.getState().page, 'play');
-    const before = JSON.stringify(instance.getState().board);
-    const node = instance.getState().hits.find((hit) => hit.id.startsWith('node'));
-    fixture.touchStart(node.x + 22, node.y + 22);
-    fixture.touchCancel(node.x + 22, node.y + 22);
-    fixture.touchEnd(node.x + 22, node.y + 22);
-    assert.equal(JSON.stringify(instance.getState().board), before, 'Cancel does not move a piece');
-    await tapLabel('暂停');
-    assert.equal(instance.getState().page, 'pause');
-    await tapLabel('继续');
-  } else if (game === 'cops-robbers-realtime') {
-    assert(fixture.findLabel('街区追捕'));
-    await tapLabel('开始游戏');
-    await tapLabel('开始行动');
-    assert(fixture.findLabel('首页'));
-    await fixture.tick(250);
-    await tapLabel('首页');
-    assert(fixture.findLabel('街区追捕'));
-  } else if (game === 'vibeJam-myself-history-guess') {
+  if (game === 'vibeJam-myself-history-guess') {
     assert(fixture.findLabel('开始五幕旅途'));
     await tapLabel('开始五幕旅途');
     assert(fixture.findLabel('暂停'));
@@ -225,28 +204,6 @@ async function canvasFlow(game, fixture, instance) {
     const stored = [...fixture.storage.values()].find((value) => value?.journey);
     assert.equal(stored.journey.deck.length, 5);
     assert(fixture.imagePaths.size > 0, 'History actually consumes packaged imagery');
-  } else if (game === 'xiangqi-five') {
-    const tap = (label) => {
-      const hit = instance.getLayout().hits.find((item) => item.label === label);
-      assert(hit, label);
-      fixture.tap(hit.x + hit.w / 2, hit.y + hit.h / 2);
-    };
-    assert.equal(instance.state.page, 'home');
-    tap('开始对弈');
-    tap('电脑对弈');
-    tap('开始对局');
-    tap('棋格0');
-    await fixture.tick(101);
-    assert.equal(instance.state.game.ply, 2, 'Real computer move without browser globals');
-    tap('暂停');
-    tap('返回首页');
-    tap('开始对弈');
-    tap('同屏双人');
-    tap('开始对局');
-    tap('确认重开');
-    for (const index of [0, 9, 1, 10, 2, 11, 3, 12, 4]) tap(`棋格${index}`);
-    assert.equal(instance.state.game.result, 'red');
-    assert.equal(instance.state.page, 'result');
   }
 }
 
@@ -413,7 +370,7 @@ export async function smokeCanvas(directory, selected, source) {
     );
     if (selected.id === 'letters-words2') await lettersFlow(directory, fixture, mounted);
     else if (selected.id === 'wulong-city') await wulongFlow(fixture);
-    else await canvasFlow(selected.id, fixture, mounted);
+    else await canvasFlow(selected.id, fixture);
     fixture.hide();
     await fixture.tick(60000);
     fixture.show();

@@ -7,7 +7,7 @@ import path from 'node:path';
 import { chromium } from '@playwright/test';
 import { serviceHtml } from './competition-h5-service.mjs';
 
-const allGames = ['fishing', 'office-slacking', 'tower-defense-game', 'xiangqi-five'];
+const allGames = ['fishing', 'tower-defense-game', 'xiangqi-five'];
 const games = process.env.DIALOG_GAMES ? process.env.DIALOG_GAMES.split(',') : allGames;
 assert.ok(
   games.length && games.every((game) => allGames.includes(game)),
@@ -16,7 +16,6 @@ assert.ok(
 // Copied assets must match source; bundled games are freshly built before this runner.
 for (const [game, files] of [
   ['xiangqi-five', ['index.html', 'app.js', 'style.css', 'fullscreen.js']],
-  ['office-slacking', ['index.html', 'src/main.js', 'src/style.css']],
 ].filter(([game]) => games.includes(game)))
   for (const file of files) {
     const source = new URL(`../games/submodules/${game}/${file}`, import.meta.url);
@@ -182,16 +181,6 @@ try {
           '1',
           'board remains playable after all page round trips',
         );
-      } else if (game === 'office-slacking') {
-        await page.locator('#start')[input]();
-        for (const opener of ['pause', 'help'])
-          for (let repeat = 0; repeat < 2; repeat++) {
-            await page.locator(`#${opener}`)[input]();
-            await closePanel(page, page.locator('#pause-dialog'), page.locator('#resume'), input);
-          }
-        await page.locator('#pause')[input]();
-        await closePanel(page, page.locator('#pause-dialog'), page.locator('#restart'), input);
-        assert.equal(await page.locator('#pause').isVisible(), true);
       } else if (game === 'fishing') {
         await page.getByRole('button', { name: '开始航行' })[input]();
         for (let repeat = 0; repeat < 2; repeat++) {

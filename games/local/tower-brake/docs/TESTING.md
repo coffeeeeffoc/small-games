@@ -21,6 +21,6 @@
 
 ## 环境边界
 
-全仓配置与公共全屏全量检查受四个既有未初始化子模块（fishing、office-slacking、tower-defense-game、xiangqi-five）阻塞。没有更改它们的登记或伪造通过。当前环境未安装完整 monorepo 依赖，未执行完整 Shell 生产构建与全部游戏浏览器回归；新游戏已构建、在 iframe 中运行并验证其正式 Shell 操作用例。
+全仓配置与公共全屏全量检查受三个既有未初始化子模块（fishing、tower-defense-game、xiangqi-five）阻塞。没有更改它们的登记或伪造通过。当前环境未安装完整 monorepo 依赖，未执行完整 Shell 生产构建与全部游戏浏览器回归；新游戏已构建、在 iframe 中运行并验证其正式 Shell 操作用例。
 
 真实 iOS/Android 设备、渠道 WebView、微信/抖音/B站原生平台、广告 SDK 与支付未验收。当前免费续关与三套免费皮肤不模拟广告或付费交易。

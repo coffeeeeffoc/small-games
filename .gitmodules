@@ -6,10 +6,6 @@
 	path = games/submodules/xiangqi-five
 	url = git@github.com:coffeeeeffoc/xiangqi-five.git
 	branch = main
-[submodule "games/office-slacking"]
-	path = games/submodules/office-slacking
-	url = git@github.com:coffeeeeffoc/office-slacking.git
-	branch = main
 [submodule "games/fishing"]
 	path = games/submodules/fishing
 	url = git@github.com:coffeeeeffoc/fishing.git

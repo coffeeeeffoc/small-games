@@ -23,16 +23,10 @@
 | ----------------- | ---- | ---------------------------------------------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---- |
 | 浪湾卡丁车        | 微信 | `games/local/carding-car/build/wechatgame`                       | Cocos 构建成功；语法通过           | CLI `open` 成功；真实模拟器已显示 3D 场景、开始竞速、收起准备面板、计时/车速/碰撞变化，点击暂停进入“休息一下”；未跑完 3 圈 | 本地 AppID 已存在；共享平台登录对应服务端密钥及 API/WSS 配置尚未完成本轮原生联调；双客户端、结算、全站榜未验                    | 未验 |
 | 浪湾卡丁车        | B站  | `games/local/carding-car/build/biligame`                         | Cocos 构建成功；语法通过           | 工具启动到项目列表；本轮目标未导入运行                                                                                     | 当前构建缺有效 B站 AppID/API；工具历史项目的 AppID 不能当成本轮构建配置或权限证明；登录密钥、平台域名及真实两客户端待配置与验证 | 未验 |
-| 围捕小队          | 微信 | `apps/shell-minigame/dist/wechat/cops-robbers`                   | 原生 Canvas 包；语法通过           | 实际 CLI `open` 拒绝：`code: 10`，不存在此 AppID；未到 Canvas 启动                                                         | 本游戏微信 AppID、开发成员权限、API 地址及后端平台密钥均待配置；PK/榜未验                                                       | 未验 |
-| 围捕小队          | B站  | `apps/shell-minigame/dist/bilibili/cops-robbers`                 | 原生 Canvas 包；语法通过           | 未导入；B站窗口捕获失败                                                                                                    | 本游戏 B站 AppID、开发成员权限、API 地址及后端平台密钥均待配置；PK/榜未验                                                       | 未验 |
-| 别跑！街区围捕    | 微信 | `apps/shell-minigame/dist/wechat/cops-robbers-realtime`          | 原生 Canvas 包；语法通过           | 实际 CLI `open` 拒绝：`code: 10`，不存在此 AppID；未到 Canvas 启动                                                         | 本游戏微信 AppID、开发成员权限、API 地址及后端平台密钥均待配置；PK/榜未验                                                       | 未验 |
-| 别跑！街区围捕    | B站  | `apps/shell-minigame/dist/bilibili/cops-robbers-realtime`        | 原生 Canvas 包；语法通过           | 未导入；B站窗口捕获失败                                                                                                    | 本游戏 B站 AppID、开发成员权限、API 地址及后端平台密钥均待配置；PK/榜未验                                                       | 未验 |
 | 词屿 · 字母叠叠乐 | 微信 | `apps/shell-minigame/dist/wechat/letters-words2`                 | 原生 Canvas 包；语法通过           | 实际 CLI `open` 拒绝：`code: 10`，不存在此 AppID；未到 Canvas 启动                                                         | 本游戏微信 AppID、开发成员权限、API 地址及后端平台密钥均待配置；PK/榜未验                                                       | 未验 |
 | 词屿 · 字母叠叠乐 | B站  | `apps/shell-minigame/dist/bilibili/letters-words2`               | 原生 Canvas 包；语法通过           | 未导入；B站窗口捕获失败                                                                                                    | 本游戏 B站 AppID、开发成员权限、API 地址及后端平台密钥均待配置；PK/榜未验                                                       | 未验 |
 | 此时·此地         | 微信 | `apps/shell-minigame/dist/wechat/vibeJam-myself-history-guess`   | 原生 Canvas 包与场景资源；语法通过 | 实际 CLI `open` 拒绝：`code: 10`，不存在此 AppID；未到 Canvas 启动                                                         | 本游戏微信 AppID、开发成员权限、API 地址及后端平台密钥均待配置；PK/榜未验                                                       | 未验 |
 | 此时·此地         | B站  | `apps/shell-minigame/dist/bilibili/vibeJam-myself-history-guess` | 原生 Canvas 包与场景资源；语法通过 | 未导入；B站窗口捕获失败                                                                                                    | 本游戏 B站 AppID、开发成员权限、API 地址及后端平台密钥均待配置；PK/榜未验                                                       | 未验 |
-| 象五子棋          | 微信 | `apps/shell-minigame/dist/wechat/xiangqi-five`                   | 原生 Canvas 包；语法通过           | 实际 CLI `open` 拒绝：`code: 10`，不存在此 AppID；未到 Canvas 启动                                                         | 本游戏微信 AppID、开发成员权限、API 地址及后端平台密钥均待配置；PK/榜未验                                                       | 未验 |
-| 象五子棋          | B站  | `apps/shell-minigame/dist/bilibili/xiangqi-five`                 | 原生 Canvas 包；语法通过           | 未导入；B站窗口捕获失败                                                                                                    | 本游戏 B站 AppID、开发成员权限、API 地址及后端平台密钥均待配置；PK/榜未验                                                       | 未验 |
 
 五款 Canvas 每款每平台分别产生自己的 `game.js`、`game.json`、`project.config.json`、`release.json`，没有使用合集作为交付单位。当前十份 `release.json` 明确 `appId: null`、`apiConfigured: false`、`mode: preview-unverified`。其微信 `touristappid` 在本机真实工具中不能打开小游戏，不能把预览标识写成已可运行。围捕小队/街区围捕/词屿/此时此地/象五子棋对应独立核心玩法渲染器，但未获得平台运行证据之前，其触摸、字体、资源、Canvas API 差异和生命周期均仍待实测。
 
@@ -68,7 +62,7 @@ node games/local/carding-car/scripts/build.mjs bilibili
 
 # 对每个微信目标逐个执行，检查正文而非仅检查 ExitCode。
 & 'D:/微信web开发者工具/cli.bat' islogin
-& 'D:/微信web开发者工具/cli.bat' open --project (Resolve-Path 'apps/shell-minigame/dist/wechat/cops-robbers').Path
+& 'D:/微信web开发者工具/cli.bat' open --project (Resolve-Path 'apps/shell-minigame/dist/wechat/letters-words2').Path
 ```
 
 先将 `platforms/competition/release-config.example.json` 复制到 `.scratch/competition/release-config.local.json`，其中按游戏 ID 和平台分开填入该应用的 `appId` 与本轮 HTTPS 业务 `apiUrl`。必须是六个游戏各自的平台应用，不能临时把卡丁车 AppID 套给其余五款。AppSecret 只从本机安全配置或部署密钥管理注入后端 `COMPETITION_PLATFORM_CONFIG`，不写入这个前端配置、不写入普通文档、不粘贴在聊天中。改变临时域名后重新构建相应平台目标，并按平台要求配置开发/体验环境域名；跳过开发工具域名检查不能视为满足正式平台要求。
@@ -97,3 +91,5 @@ B站选择“小游戏”后导入上表对应的独立目录；确认 `game.jso
 - [微信小游戏开发者工具](https://developers.weixin.qq.com/minigame/dev/devtools/devtools.html)、[服务端 code2Session](https://developers.weixin.qq.com/minigame/dev/api-backend/open-api/login/auth.code2Session.html)：本轮检索未能稳定读取微信官方正文，不能声称已重新核验全部最新政策；工具版本、CLI 行为和上述卡丁运行来自本机实测，正式配置仍须在对应官方后台核对。
 
 这些阻塞不被内部体验分抵消。缺资源的目标应维持“构建通过、原生联调未通过”状态，完成上述证据后再更新矩阵。
+
+围捕小队、街区围捕和象五子棋已退役原生目标，当前仅维护 H5；本记录保留其他游戏的历史验证边界。

@@ -22,10 +22,19 @@ const DEPENDENCY_FIELDS = [
 // rules on the authoritative server, or exercise those rules from repository tests.
 // Runtime game code must still never import service implementations.
 const REPOSITORY_IMPORTS = new Set([
-  // Three-game optional native portal; standalone H5 uses an injected save port.
-  'games/local/cops-robbers-realtime/src/native.js -> platforms/taptap/native-portal.mjs',
-  'platforms/competition/xiangqi-five/native.js -> platforms/taptap/native-portal.mjs',
-  'platforms/competition/xiangqi-five/native.js -> games/submodules/xiangqi-five/tap-save.js',
+  // H5 integration tests exercise the real three-game saves, rules and build inputs.
+  'platforms/taptap/tests/tap-services.browser.mjs -> scripts/competition-h5-service.mjs',
+  'platforms/taptap/tests/tap-services.browser.mjs -> scripts/taptap-services-config.mjs',
+  'platforms/taptap/tests/tap-multiplayer.browser.mjs -> scripts/competition-h5-service.mjs',
+  'platforms/taptap/tests/tap-multiplayer.browser.mjs -> scripts/taptap-services-config.mjs',
+  'platforms/taptap/tests/tap-services.test.mjs -> games/local/cops-robbers/src/tap-save.js',
+  'platforms/taptap/tests/tap-services.test.mjs -> games/local/cops-robbers-realtime/src/tap-save.js',
+  'platforms/taptap/tests/tap-services.test.mjs -> games/submodules/xiangqi-five/game.js',
+  'platforms/taptap/tests/tap-services.test.mjs -> games/submodules/xiangqi-five/local-game.js',
+  'platforms/taptap/tests/tap-services.test.mjs -> games/submodules/xiangqi-five/tap-save.js',
+  'platforms/taptap/tests/tap-multiplayer.test.mjs -> games/local/cops-robbers/src/tap-multiplayer.js',
+  'platforms/taptap/tests/tap-multiplayer.test.mjs -> games/local/cops-robbers-realtime/src/tap-multiplayer.js',
+  'platforms/taptap/tests/tap-multiplayer.test.mjs -> games/submodules/xiangqi-five/tap-multiplayer.js',
   // These standalone H5 entries are bundled by Vite; rules/native entries stay host-only.
   'games/local/game-moss-garden/src/web.ts -> platforms/h5/publishing.js',
   'games/local/fold-the-world/src/main.ts -> platforms/h5/publishing.js',

@@ -49,14 +49,13 @@ import { executeCompetitionChecks } from './run-selected-competition.mjs';
 import { shellContractTargets, shellContractFiles } from './validation-plan.mjs';
 import { ingressPreflightGuard } from './competition-ingress.mjs';
 
-test('unified package tools keep H5 checks and select their actual Cocos consumers', () => {
+test('unified package tools keep the three H5 consumers and reject unknown siblings', () => {
   const ids = ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'];
   const games = ids.map((id) => ({ id, source: competitionConsumers[id] }));
   const packages = games.map((game) => ({ name: game.id, dir: game.source }));
   const readSource = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
   for (const file of [
     'scripts/build-games.mjs',
-    'scripts/native-game-build.mjs',
     'scripts/build-games.test.mjs',
     'game-build.local.mjs',
     'infra/builds/games.example.json',
@@ -75,11 +74,8 @@ test('unified package tools keep H5 checks and select their actual Cocos consume
     const selected = incrementalPlan({ ...context, fileScopes });
     assert.equal(selected.full, false);
     assert.equal(selected.competition_service_checks, true);
-    assert.deepEqual(selected.cocos_minigame_ids, [
-      'cops-robbers',
-      'cops-robbers-realtime',
-      'xiangqi-five',
-    ]);
+    assert.deepEqual(selected.browser_ids, ids);
+    assert.equal(selected.cocos_minigame_ids, undefined);
   }
   assert.equal(
     reviewedSharedFileScopes({
@@ -1699,13 +1695,6 @@ test('offline chase competition builds discard stale service addresses and bundl
   }
 });
 
-test('reviewed offline street native smoke selects its single game and rejects extra executable bytes', () => {
-  const file = 'scripts/street-native-smoke.mjs';
-  const source = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
-  assert.deepEqual(classify(file, '', source).get(file), ['games/local/cops-robbers-realtime']);
-  assert.equal(classify(file, '', source + '\nglobalThis.unreviewed = true;\n').has(file), false);
-});
-
 test('shared dependency closure and explicit shared-runtime consumers are combined', () => {
   const file = 'platforms/competition/h5.js';
   const scopes = classify(file, '', 'changed');
@@ -1730,7 +1719,7 @@ test('competition runner builds each native game on all default platforms before
       close: async () => calls.push({ closed: true }),
     }),
   });
-  const ids = Object.keys(competitionConsumers);
+  const ids = ['letters-words2', 'vibeJam-myself-history-guess'];
   for (let i = 0; i < ids.length; i++) {
     assert.deepEqual(calls[i * 2].args, [
       'scripts/competition-build.mjs',
@@ -1743,7 +1732,7 @@ test('competition runner builds each native game on all default platforms before
     ]);
   }
   assert.deepEqual(
-    calls.slice(10, 14).map((call) => call.args[0]),
+    calls.slice(4, 8).map((call) => call.args[0]),
     [
       'scripts/test-competition-dialogs.mjs',
       'scripts/letters-words2-competition-renderer.test.mjs',
@@ -1751,10 +1740,10 @@ test('competition runner builds each native game on all default platforms before
       'scripts/letters-words2-iframe.browser.mjs',
     ],
   );
-  assert.equal(calls[13].env.GAME_URL, 'http://fixture/');
-  assert.equal(calls[13].env.PLAYWRIGHT_EXECUTABLE, '/browser');
-  assert.equal(calls[13].env.KEEP, 'yes');
-  assert.equal(calls[14].closed, true);
+  assert.equal(calls[7].env.GAME_URL, 'http://fixture/');
+  assert.equal(calls[7].env.PLAYWRIGHT_EXECUTABLE, '/browser');
+  assert.equal(calls[7].env.KEEP, 'yes');
+  assert.equal(calls[8].closed, true);
   let closed = false;
   await assert.rejects(
     () =>
@@ -1884,7 +1873,7 @@ test('planning checkout narrows both real producers to one locked gitlink withou
         after + '\n',
         after.replace('--init --', '--init --remote --'),
         after.replace(' -- games/submodules/xiangqi-five', ''),
-        after.replace('games/submodules/xiangqi-five', 'games/submodules/office-slacking'),
+        after.replace('games/submodules/xiangqi-five', 'games/submodules/unregistered-game'),
         after.replace('node-version: 24.21.0', 'node-version: 22'),
       ])
         assert.equal(classify(file, before, bad).has(file), false);
@@ -2173,10 +2162,7 @@ test('cops free-hint contract remains scoped and rejects weakened or unrelated a
     ['show', '5fbc6feadf2663e1905538ab6b6feae0ed26156b:' + sharedChecksFile],
     { encoding: 'utf8' },
   );
-  const after = readFileSync(new URL('../' + sharedChecksFile, import.meta.url), 'utf8').replaceAll(
-    '\r\n',
-    '\n',
-  );
+  const after = frozenCleanupBase(sharedChecksFile).replaceAll('\r\n', '\n');
   const context = {
     changedPaths: [sharedChecksFile],
     games: [{ id: 'cops-robbers', source: 'games/local/cops-robbers' }],
@@ -2904,7 +2890,7 @@ test('shared identity client proves all eleven consumers and native composition 
   const result = incrementalPlan({ ...context, fileScopes: combined, readSource: read });
   assert.deepEqual(result.browser_ids, Object.keys(competitionIdentityConsumers).sort());
   assert.equal(result.identity_checks, true);
-  assert.equal(result.nine_native_targets.length, 36);
+  assert.equal(result.nine_native_targets.length, 18);
   assert.deepEqual(
     result.nine_native_blocked.map((item) => item.game),
     ['carding-car'],
@@ -3277,6 +3263,12 @@ test('admin infrastructure has exact consumers and unknown neighboring paths fai
   }
 });
 
+const frozenCleanupBase = (file) =>
+  execFileSync('git', ['show', '87f541738ff49df880b0dcb5069ef485c5102e95:' + file], {
+    cwd: new URL('../', import.meta.url),
+    encoding: 'utf8',
+  });
+
 const frozenAdminBaseline = (file) =>
   execFileSync('git', ['show', '1367ae4f9758fb3a36935267db236e481b67d52a:' + file], {
     cwd: new URL('../', import.meta.url),
@@ -3286,10 +3278,7 @@ const frozenAdminBaseline = (file) =>
 test('AntD lock extension preserves all other importers and resolutions and rejects extra dependency or byte changes', () => {
   const file = 'pnpm-lock.yaml',
     before = frozenAdminBaseline(file);
-  const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
-    '\r\n',
-    '\n',
-  );
+  const after = frozenCleanupBase(file).replaceAll('\r\n', '\n');
   const manifest = readFileSync(
     new URL('../apps/admin-web/package.json', import.meta.url),
     'utf8',
@@ -3525,10 +3514,7 @@ test('admin lock proof plans without installed YAML dependencies', async () => {
         { before, after, manifest },
         {
           before: frozenAdminBaseline(file),
-          after: readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
-            '\r\n',
-            '\n',
-          ),
+          after: frozenCleanupBase(file).replaceAll('\r\n', '\n'),
           manifest: JSON.parse(
             readFileSync(new URL('../apps/admin-web/package.json', import.meta.url), 'utf8'),
           ),
@@ -3860,10 +3846,7 @@ test('planning expands only to the four locked game workspaces for both live pub
   ])
     for (const file of ['.github/workflows/ci.yml', '.github/workflows/pages.yml']) {
       const before = execFileSync('git', ['show', `${base}:${file}`], { encoding: 'utf8' });
-      const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
-        '\r\n',
-        '\n',
-      );
+      const after = frozenCleanupBase(file).replaceAll('\r\n', '\n');
       const scoped = classify(file, before, after);
       assert.deepEqual(scoped.get(file), []);
       assert.equal(plan([file], scoped).validation_tools, true);

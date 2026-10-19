@@ -1178,7 +1178,7 @@ test('explicit source targets select only their actual platform and include comp
     nine_native_targets: [
       { game: 'travel-bund', platform: 'alipay' },
       { game: 'travel-bund', platform: 'alipay' },
-      { game: 'cops-robbers', platform: 'bilibili' },
+      { game: 'vibeJam-myself-history-guess', platform: 'bilibili' },
       { game: 'letters-words2', platform: 'wechat' },
     ],
   };
@@ -1201,7 +1201,7 @@ test('explicit source targets select only their actual platform and include comp
     builds.map((call) => [call[1][2], call[1][4]]),
     [
       ['travel-bund', 'alipay'],
-      ['cops-robbers', 'bilibili'],
+      ['vibeJam-myself-history-guess', 'bilibili'],
       ['letters-words2', 'wechat'],
     ],
   );
@@ -1212,7 +1212,7 @@ test('explicit source targets select only their actual platform and include comp
   const canvas = calls.filter((call) => call[1][0] === 'scripts/nine-canvas-games-smoke.mjs');
   assert.equal(canvas.length, 1);
   assert.equal(canvas[0][3].NATIVE_PLATFORMS, 'bilibili');
-  assert.equal(canvas[0][3].NATIVE_GAME_IDS, 'cops-robbers');
+  assert.equal(canvas[0][3].NATIVE_GAME_IDS, 'vibeJam-myself-history-guess');
   assert.equal(
     calls.find(
       (call) => call[1][1] === 'games/local/letters-words2/tests/native-bundle.test.mjs',
@@ -1970,9 +1970,9 @@ const tapRestoreConsumers = [
 ];
 test('Tap default contracts stop on failure and always restore all three candidate H5 builds serially', () => {
   const stages = [
-    [process.execPath, '--test', 'games/minigames/tests/tap-services.test.mjs'],
-    [process.execPath, 'games/minigames/tests/tap-services.browser.mjs'],
-    [process.execPath, 'games/minigames/scripts/check-tap-multiplayer.mjs'],
+    [process.execPath, '--test', 'platforms/taptap/tests/tap-services.test.mjs'],
+    [process.execPath, 'platforms/taptap/tests/tap-services.browser.mjs'],
+    [process.execPath, 'scripts/check-tap-multiplayer.mjs'],
   ];
   const restoration = tapRestoreConsumers.map((pkg) => [
     'pnpm',
@@ -2035,7 +2035,7 @@ test('Tap default contracts stop on failure and always restore all three candida
           ...options,
           execute: (command, args) => {
             calls.push([command, ...args]);
-            if (primaryFailure && args.includes('games/minigames/tests/tap-services.browser.mjs'))
+            if (primaryFailure && args.includes('platforms/taptap/tests/tap-services.browser.mjs'))
               throw primary;
             if (args.includes('cops-robbers')) throw cleanup;
           },
@@ -2059,18 +2059,30 @@ test('Tap default contracts stop on failure and always restore all three candida
   );
 });
 
-test('a native-only Tap bootstrap prepares the browser before mandatory default contracts', async (t) => {
+test('the H5 Tap multiplayer checker prepares the browser before mandatory default contracts', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'tap-default-browser-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });
-  await writeFile(path.join(root, 'apps/shell-web/src/standalone-games.json'), '[]');
+  await writeFile(
+    path.join(root, 'apps/shell-web/src/standalone-games.json'),
+    JSON.stringify(
+      tapRestoreConsumers.map((pkg) => ({
+        id: pkg.dir.split('/').at(-1),
+        source: pkg.dir,
+      })),
+    ),
+  );
   await writeFile(
     path.join(root, 'package.json'),
     JSON.stringify({ volta: { node: process.versions.node }, packageManager: 'pnpm@12.6.0' }),
   );
   for (const pkg of tapRestoreConsumers) {
     await mkdir(path.join(root, pkg.dir), { recursive: true });
-    await writeFile(path.join(root, pkg.dir, 'package.json'), JSON.stringify(pkg));
+    await writeFile(
+      path.join(root, pkg.dir, 'package.json'),
+      JSON.stringify({ ...pkg, scripts: { ...pkg.scripts, test: 'node --test rules.test.js' } }),
+    );
+    await writeFile(path.join(root, pkg.dir, 'rules.test.js'), '// Pure fixture rules.\n');
   }
   const order = [],
     env = { MINIGAME_RELEASE_GATES: '0' };
@@ -2084,7 +2096,17 @@ test('a native-only Tap bootstrap prepares the browser before mandatory default 
       env.PLAYWRIGHT_EXECUTABLE_PATH = '/fixture/chromium';
     },
     execute(command, args, cwd, clean) {
-      if (command === 'git') return 'games/minigames/scripts/taptap-services-bootstrap.mjs\0';
+      if (command === 'git') {
+        if (args[0] === 'show') {
+          const ids = JSON.stringify(['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five']);
+          if (args[1].endsWith(':scripts/competition-service-config.mjs'))
+            return `export const serviceGames = ${ids};`;
+          if (args[1].endsWith(':scripts/h5-ad-config.mjs'))
+            return `export const h5AdGames = ${ids};`;
+          return '';
+        }
+        return 'scripts/check-tap-multiplayer.mjs\0';
+      }
       if (args[0] === '--version') return '12.6.0';
       if (
         args.some(
@@ -2099,9 +2121,11 @@ test('a native-only Tap bootstrap prepares the browser before mandatory default 
     },
   };
   const selected = await validateTree(options);
-  assert.equal(selected.browser, false);
+  assert.equal(selected.browser, true);
   assert.equal(selected.tap_services_checks, true);
-  assert.deepEqual(order, ['prepare', 'browser', 'browser']);
+  assert.deepEqual(order.slice(-2), ['browser', 'browser']);
+  assert(order.slice(0, -2).every((stage) => stage === 'prepare'));
+  assert.equal(order[0], 'prepare');
   await assert.rejects(
     validateTree({
       ...options,

@@ -10,7 +10,7 @@ Optional, separately approved competition HTTPS ingress uses the exact `competit
 
 使用 Node 24.21.0 / pnpm 12.6.0。先读取远端 dev 的准确 SHA，获取最新提交，正常合并并保留并行改动。候选必须已经提交；禁止把合并前的验证记录当作合并后结果。
 
-统一包体入口 `scripts/build-games.mjs`、`scripts/native-game-build.mjs`、对应 `build-games.test.mjs`、版本化配置 `game-build.local.mjs` 和 `infra/builds/games.example.mjs`（兼容旧 JSON 模板）按精确路径选择三款 H5 与 Cocos 消费者，未知同级文件仍拒绝。契约测试覆盖完整批次预检、各游戏 AppID 隔离、平台交付类型和官方 ZIP 原样保留；入口不自动上传或运行全量验收。`h5-taptap-build.mjs` 的安全输出目录及显式批次 ID 继续受原 H5 保留/恢复测试约束。
+统一包体入口 `scripts/build-games.mjs`、对应 `build-games.test.mjs`、版本化配置 `game-build.local.mjs` 和 `infra/builds/games.example.mjs`（兼容旧 JSON 模板）按精确路径选择三款 H5 消费者，未知同级文件仍拒绝。契约测试覆盖完整批次预检、H5 应用配置隔离、原生目标拒绝和 H5 ZIP 保留；入口不自动上传或运行全量验收。`h5-taptap-build.mjs` 的安全输出目录及显式批次 ID 继续受原 H5 保留/恢复测试约束。
 
 ## 按需运行本地候选校验
 
@@ -60,7 +60,7 @@ Pages 全量回归保持每个游戏的全部阶段在同一片内，以 300000 
 
 三款 TapTap 服务的默认门禁不依赖 `MINIGAME_RELEASE_GATES=1`。`tap-services.test.mjs`、`tap-services.browser.mjs` 和统一 `check-tap-multiplayer.mjs` 串行执行；后者固定运行联机规则、三款启用配置的原生源码 bundle 注入和六个 H5/Canvas 双端浏览器入口。平台包 `platforms/taptap` 的完整规则测试也在默认门禁执行。服务入口、构建注入输入及其实际静态 import 依赖变化会触发这些检查，包括引擎、关卡和渲染器单独变更。原生专属入口即使没有 H5 浏览器范围，也先准备并检查浏览器；准备或任一步失败均阻断。Tap 浏览器 fixture 结束后始终使用候选真实环境串行重建三款 H5，避免后续检查或发布使用 fixture AppID；失败时保留原始测试错误，重建失败同样阻断。追捕实时版的开始/重开、广告及前后台回归 `start-lifecycle.browser.mjs` 已纳入发布浏览器专项。
 
-`browser-entry.mjs`、`competition-identity.mjs`、`multiplayer-screen.mjs`、`multiplayer-session.mjs` 四个准确路径属于三款 H5/新 Cocos 的生成注入入口，旧九款原生依赖图以空消费者登记。空消费者不传递给导入文件；若旧原生入口以后实际导入它们，仍追加真实消费者并继续追踪依赖。未知同级平台模块继续回退九款 TapTap 消费者并恢复 carding-car/night-overwatch 的 Creator 要求。全部七个 H5 服务共享模块保留三款 H5 范围，`native-portal` 及其真实依赖仍选择旧原生追捕实时版/象五子棋的六渠道消费者。Cocos 的新三款与旧九款图分别计算，不能用空 seed 豁免真实源码或编辑器输入变化。
+三款 H5 服务的七个共享模块在原生图中显式登记为空消费者；活动原生入口若实际导入这些模块，仍追加并追踪其真实消费者。未知同级平台模块继续选择剩余六款原生消费者并保留 Creator 门禁。
 
 象五子棋原生入口及两个测试、九款 Canvas 冒烟保留早期精确证明，并新增 `ba88e46a0f7f7fb5c37c28a20c8eae7a0319eece`（最后成功 Pages）和 `457bc63c47b631a1f932b35f48e6b166f408ab2d`（最新 dev，相关文件与 `96315a0` 相同）的完整 base/head 摘要、固定 import 与目录身份核查。TapTap 冒烟仅接受象棋准备页新增点击的完整字节差异，以不可复制的证明限定为象棋 TapTap 消费者；其他分支、未知基线、陈旧/复制证明、额外 Creator 输入仍恢复真实范围。固定历史 fixture `c010423731cc22fb0657a4a86ac9811e1997bbc1` 不随工作树更新。
 

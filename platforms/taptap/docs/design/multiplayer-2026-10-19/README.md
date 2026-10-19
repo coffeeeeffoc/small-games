@@ -8,7 +8,7 @@
 
 房间号用 Tap 原生键盘；浏览器适配为真实 DOM 输入与完成按钮。平台屏幕不访问 DOM，不使用 prompt，不模拟登录成功。联机是独立休闲模式，不更新单机存档、云档成绩或后端正式积分。
 
-好友必须从同一版本入口、同一 Tap 应用加入。现有六个 H5/原生应用使用不同 AppID，不承诺跨应用房间互通；既有后端联机路径继续独立保留。
+好友必须从同一版本入口、同一 Tap 应用加入。三款 H5 应用使用不同 AppID，不承诺跨应用房间互通；既有后端联机路径继续独立保留。
 
 实际实现对方向不符的屏幕旋转完整逻辑视口并反向映射触点。象棋好友局使用 44 px 棋格、剪裁视口和拖盘，避免小屏缩盘后无法落子；此选项不改变旧后端渲染器默认行为。
 
@@ -38,20 +38,18 @@
 统一串行入口：
 
 ```sh
-node games/minigames/scripts/check-tap-multiplayer.mjs
+node scripts/check-tap-multiplayer.mjs
 ```
 
 本轮使用显式 `TAP_MULTIPLAYER_EVIDENCE_ROOT=platforms/taptap/docs/design/multiplayer-2026-10-19` 保存实际截图；默认输出到被忽略的 `outputs/taptap-multiplayer/`，正常回归不会改写归档证据。
 
 - 25 项规则、双会话和生命周期测试通过：同 seed 回放、非法动作/RNG 原子性、120 Hz 连续/分批一致、三种已核实事件格式、缺少自回显、重复/缺序、真实待决请求拒绝后重试、晚回调、注销抛错、双向失联、UTF-8 限额与共享速率、终局立即退出且房主回调延迟、原生键盘同步异常、前后台指针清理。
-- 三款启用 Tap 的原生生成入口打包通过，依赖指纹包含各自唯一的薄规则适配和公共联机会话，没有后端服务或 `node:crypto`。
-- 六入口双浏览器全部通过：三款生产 H5 构建和三款实际原生 Canvas controller。每组在两独立浏览器上下文中触摸创建房间、通过正常文本框输入返回的完整房间号加入、双方准备、各自实际行动、比较相同提交序号的状态、退出并清理监听。无页面异常，所有消息不超过 2048 UTF-8 字节。
-- 象棋额外覆盖 320×568 的 I1、568×320 的 A10：真实触摸拖盘后落子，拖盘不落子，棋格命中区域保持 44×44。实时追捕覆盖竖屏旋转后的视口映射。原生/H5 截图均已人工检查，与实施前概念的页面层级一致，棋盘和地图沿用各游戏实际美术。
+- 三个 H5 入口双浏览器通过。每组在两独立浏览器上下文中触摸创建房间、通过正常文本框输入返回的完整房间号加入、双方准备、各自实际行动、比较相同提交序号的状态、退出并清理监听。无页面异常，所有消息不超过 2048 UTF-8 字节。
+- 象棋额外覆盖 320×568 的 I1、568×320 的 A10：真实触摸拖盘后落子，拖盘不落子，棋格命中区域保持 44×44。实时追捕覆盖竖屏旋转后的视口映射。H5 截图均已人工检查，与实施前概念的页面层级一致，棋盘和地图沿用各游戏实际美术。
 - 共享服务的 12 项回归、workspace 依赖边界检查及根仓库/象棋子仓库 `git diff --check` 通过。
 
-| 入口            | 围捕小队                                                                                  | 街区追逐                                                                                                       | 象棋五子棋                                                                                                                          |
-| --------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| H5              | [房间](actual-h5-cops-robbers-room.png) · [游玩](actual-h5-cops-robbers-play.png)         | [游玩](actual-h5-cops-robbers-realtime-play.png) · [旋转](actual-h5-cops-robbers-realtime-rotated.png)         | [游玩](actual-h5-xiangqi-five-play.png) · [320](actual-h5-xiangqi-five-320.png) · [568](actual-h5-xiangqi-five-568.png)             |
-| 原生 controller | [房间](actual-native-cops-robbers-room.png) · [游玩](actual-native-cops-robbers-play.png) | [游玩](actual-native-cops-robbers-realtime-play.png) · [旋转](actual-native-cops-robbers-realtime-rotated.png) | [游玩](actual-native-xiangqi-five-play.png) · [320](actual-native-xiangqi-five-320.png) · [568](actual-native-xiangqi-five-568.png) |
+| 入口 | 围捕小队                                                                          | 街区追逐                                                                                               | 象棋五子棋                                                                                                              |
+| ---- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| H5   | [房间](actual-h5-cops-robbers-room.png) · [游玩](actual-h5-cops-robbers-play.png) | [游玩](actual-h5-cops-robbers-realtime-play.png) · [旋转](actual-h5-cops-robbers-realtime-rotated.png) | [游玩](actual-h5-xiangqi-five-play.png) · [320](actual-h5-xiangqi-five-320.png) · [568](actual-h5-xiangqi-five-568.png) |
 
-测试使用 Chromium 手机触摸输入和显式 OnlineBattle SDK fixture；原生测试运行实际 controller，未运行设备中的 Creator 引擎。尚未验证真实 Tap 双设备房间、线上消息回调顺序、账号/应用权限和宿主键盘；不能据此声称已完成平台真机验收或发布。
+测试使用 Chromium 手机触摸输入和显式 OnlineBattle SDK fixture。尚未验证真实 Tap 双设备房间、线上消息回调顺序、账号/应用权限和宿主键盘；不能据此声称已完成平台真机验收或发布。

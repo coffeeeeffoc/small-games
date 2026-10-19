@@ -11,7 +11,7 @@ import { nineGames } from './nine-games-targets.mjs';
 import { createTapTapRequire, runTapTapSmoke, verifyTapTapPackage } from './taptap-smoke.mjs';
 
 const repo = fileURLToPath(new URL('../../../', import.meta.url));
-const selected = nineGames.find(({ id }) => id === 'cops-robbers');
+const selected = nineGames.find(({ id }) => id === 'letters-words2');
 
 test('CommonJS companions use exact packaged bytes and preserve no-DOM errors and containment', async () => {
   const directory = await mkdtemp(path.join(tmpdir(), 'taptap-commonjs-smoke-'));

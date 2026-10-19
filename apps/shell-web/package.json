@@ -46,7 +46,6 @@
     "tidebreak": "workspace:*",
     "@coffeeeeffoc/tower-defense-game": "workspace:*",
     "@coffeeeeffoc/xiangqi-five": "workspace:*",
-    "@coffeeeeffoc/office-slacking": "workspace:*",
     "@coffeeeeffoc/release-contract": "workspace:*",
     "@coffeeeeffoc/ad-config": "workspace:*",
     "@coffeeeeffoc/ad-runtime": "workspace:*",

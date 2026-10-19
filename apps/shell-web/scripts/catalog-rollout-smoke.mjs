@@ -50,13 +50,13 @@ try {
     const ids = async () =>
       (await articles.evaluateAll((items) => items.map((item) => item.dataset.gameId))).sort();
     await page.goto(`${base}?dev=0`);
-    await expect(articles).toHaveCount(68);
+    await expect(articles).toHaveCount(67);
     assert.deepEqual(await ids(), data.games.map((game) => game.id).sort());
     for (const [schedule, label, count] of [
       ['previous', '上轮已改造', 7],
       ['current', '本轮改造', 13],
       ['later', '有潜力 · 后续改造', 20],
-      ['hold', '暂缓投入', 28],
+      ['hold', '暂缓投入', 27],
     ]) {
       await activate(tab(label));
       await expect(articles).toHaveCount(count);
@@ -84,7 +84,7 @@ try {
     await activate(tab('全部游戏'));
     await activate(page.locator('.catalog-facet').getByRole('button', { name: /^有潜力/ }));
     await expect(articles).toHaveCount(40);
-    await expect(tab('暂缓投入')).toContainText('0 / 28');
+    await expect(tab('暂缓投入')).toContainText('0 / 27');
     await activate(tab('清空筛选'));
     await activate(tab('全部游戏'));
     await activate(page.locator('.catalog-facet').getByRole('button', { name: /^毫无潜力/ }));
@@ -159,12 +159,12 @@ try {
     report.push({
       width,
       input: touch ? 'Chromium touch emulation' : 'mouse',
-      all: 68,
+      all: 67,
       potential: 40,
       previous: 7,
       current: 13,
       later: 20,
-      hold: 28,
+      hold: 27,
       mobileCurrent: 11,
       checks: [
         'all exact IDs',

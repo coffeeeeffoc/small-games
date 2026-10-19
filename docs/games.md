@@ -77,11 +77,10 @@
 
 ## 子模块游戏（4 款）
 
-| 游戏                | Game ID              | 源码                                                          | 简介                                                                       |
-| ------------------- | -------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| 潮汐猎手            | `fishing`            | [fishing](../games/submodules/fishing/)                       | 三分钟深海捕鱼，四种武器迎战鱼潮与巨鲨。                                   |
-| 月森守卫            | `tower-defense-game` | [tower-defense-game](../games/submodules/tower-defense-game/) | 招募、合成守卫，守住月森的八波挑战。                                       |
-| 象五子棋            | `xiangqi-five`       | [xiangqi-five](../games/submodules/xiangqi-five/)             | 象棋走法与五子连线，八道战术题从一手妙招到两步连招，也能同屏或与电脑对弈。 |
-| 工位偷闲 · 第一人称 | `office-slacking`    | [office-slacking](../games/submodules/office-slacking/)       | 坐进三维办公室，在经理巡查间隙偷闲。                                       |
+| 游戏     | Game ID              | 源码                                                          | 简介                                                                       |
+| -------- | -------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| 潮汐猎手 | `fishing`            | [fishing](../games/submodules/fishing/)                       | 三分钟深海捕鱼，四种武器迎战鱼潮与巨鲨。                                   |
+| 月森守卫 | `tower-defense-game` | [tower-defense-game](../games/submodules/tower-defense-game/) | 招募、合成守卫，守住月森的八波挑战。                                       |
+| 象五子棋 | `xiangqi-five`       | [xiangqi-five](../games/submodules/xiangqi-five/)             | 象棋走法与五子连线，八道战术题从一手妙招到两步连招，也能同屏或与电脑对弈。 |
 
 登记信息来源：[独立游戏清单](../apps/shell-web/src/standalone-games.json)、[内置游戏注册表](../apps/shell-web/src/registry.ts)。

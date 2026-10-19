@@ -25,7 +25,6 @@
 | 关卡可完成性   | 游戏目录 `pnpm test:levels`                                                                                                    | 100 关可胜、100 关放置失败、198 项单警不足检查通过                      |
 | 页面与真实触屏 | 游戏目录 `pnpm test:browser`                                                                                                   | 320×740、390×844、844×390 全部通过；无运行时错误                        |
 | 单人服务端记录 | 根目录 `node scripts/street-runs.integration.mjs`                                                                              | HTTP 重放、鉴权、非法输入、幂等与榜单隔离通过                           |
-| 原生兼容       | 根目录 `node scripts/competition-build.mjs --native --game=cops-robbers-realtime`，然后 `node scripts/street-native-smoke.mjs` | 微信、B站、抖音、快手四份构建的场内点击、重放存档、暂停及监听器清理通过 |
 | 共享好友模块   | 根目录 `node scripts/test-competition-dialogs.mjs`                                                                             | 五个游戏的桌面与触屏检查通过                                            |
 | 游戏配置       | 根目录 `pnpm check:games`                                                                                                      | 53 个游戏，0 个问题                                                     |
 | 开发者模式     | 根目录 `pnpm check:dev-mode`、`pnpm test:dev-mode`                                                                             | 53 个游戏一致；5 项测试通过                                             |

@@ -1,6 +1,5 @@
 import { nineGames, appIdVariable, targetOptions } from './nine-games-targets.mjs';
 import { tapTapApiBase } from '@coffeeeeffoc/platform-taptap/login';
-import { serviceGames } from '../../../scripts/competition-service-config.mjs';
 
 // Keep the previously reviewed catalog batch; new featured games do not enter it.
 export const tapTapGames = nineGames;
@@ -24,7 +23,7 @@ export function tapTapOptions(game, { preview = false, env = process.env } = {})
     },
   });
   if (common.apiUrl) common.apiUrl = tapTapApiBase(common.apiUrl);
-  if (!preview && !common.apiUrl && !serviceGames.includes(game))
+  if (!preview && !common.apiUrl)
     throw new Error('Release requires MINIGAME_COMPETITION_API_URL for the TapTap login service.');
   if (!preview && game === 'travel-bund' && !env.MINIGAME_TRAVEL_BUND_ASSET_BASE)
     throw new Error(
@@ -35,7 +34,6 @@ export function tapTapOptions(game, { preview = false, env = process.env } = {})
     platform: 'taptap',
     appId,
     preview,
-    ...(serviceGames.includes(game) ? { competitionEnabled: Boolean(appId && common.apiUrl) } : {}),
     competitionConfigured: Boolean(
       appId && common.apiUrl && !['travel-bund', 'wulong-city'].includes(game),
     ),

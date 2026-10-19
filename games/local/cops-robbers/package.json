@@ -36,8 +36,6 @@
     "test:competition-renderer": "node scripts/check-competition-renderer.mjs",
     "test:duel": "node scripts/check-duel.mjs",
     "test:duel-browser": "node scripts/check-duel-browser.mjs",
-    "test:native": "node scripts/check-native.mjs",
-    "test:native-browser": "node scripts/check-native-browser.mjs",
     "test:progress": "node scripts/check-campaign-progress.mjs && node scripts/check-campaign-browser.mjs"
   },
   "devDependencies": {

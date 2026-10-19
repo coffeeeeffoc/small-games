@@ -1,3 +1,4 @@
+import { hasRetirementFileProof, hasRetirementDeletionProof } from './game-retirement-scope.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
@@ -8,7 +9,6 @@ const tapWorkflow = '.github/workflows/taptap-cocos.yml';
 const tapWorkflowSha256 = '16b39a784ea6a1f1bc4553e4260d545452214c083aac0a61ba692da59b3c0851';
 
 const COMPETITION = 'platforms/competition/native.js';
-const XIANGQI = 'platforms/competition/xiangqi-five/';
 const MINIGAME = 'apps/shell-minigame',
   BILIBILI = 'apps/shell-bilibili';
 const sources = {
@@ -20,37 +20,13 @@ const sources = {
   'wulong-city': 'games/local/wulong-city',
 };
 const competitionGames = Object.keys(sources).filter((id) => id !== 'wulong-city');
-const canvasGames = competitionGames.filter((id) => id !== 'letters-words2');
+const nativeCompetitionGames = ['letters-words2', 'vibeJam-myself-history-guess'];
+const canvasGames = ['vibeJam-myself-history-guess'];
 const definitions = {
   [COMPETITION]: {
     type: 'competition',
-    games: competitionGames,
+    games: nativeCompetitionGames,
     consumer_sources: [MINIGAME, BILIBILI],
-  },
-  [XIANGQI + 'native.js']: {
-    type: 'xiangqi',
-    games: ['xiangqi-five'],
-    consumer_sources: [MINIGAME],
-  },
-  [XIANGQI + 'tests/native.test.mjs']: {
-    type: 'xiangqi',
-    games: ['xiangqi-five'],
-    consumer_sources: [MINIGAME],
-    command: {
-      file: XIANGQI + 'tests/native.test.mjs',
-      args: ['--test', XIANGQI + 'tests/native.test.mjs'],
-      browser: false,
-    },
-  },
-  [XIANGQI + 'tests/browser.mjs']: {
-    type: 'xiangqi',
-    games: ['xiangqi-five'],
-    consumer_sources: [MINIGAME],
-    command: {
-      file: XIANGQI + 'tests/browser.mjs',
-      args: [XIANGQI + 'tests/browser.mjs'],
-      browser: true,
-    },
   },
   'scripts/nine-canvas-games-smoke.mjs': {
     type: 'canvas',
@@ -64,7 +40,7 @@ const definitions = {
   },
   'scripts/nine-channel-entry-smoke.mjs': {
     type: 'entry',
-    games: competitionGames,
+    games: nativeCompetitionGames,
     consumer_sources: [BILIBILI, 'platforms/bilibili'],
     command: {
       file: 'scripts/nine-channel-entry-smoke.mjs',
@@ -85,34 +61,10 @@ const definitions = {
 };
 export const nineNativeScopePaths = Object.freeze(Object.keys(definitions));
 
-// Explicit review of these six NEW files in the 2026-10-06 batch. Missing base is
+// Exact reviewed native helper sources from the 2026-10-06 batch. Missing base is
 // allowed only for these exact paths and exact bytes, never for a sibling path.
 // Updating one of them requires a new source/import/consumer review and digest.
 const reviewed = {
-  [XIANGQI + 'native.js']: [
-    'b1cfc9787be26a3f72471fa929f0a2cf258579df6ee334090662fb6affba98a6',
-    [
-      '../../../games/submodules/xiangqi-five/game.js',
-      '../../../games/submodules/xiangqi-five/local-game.js',
-      '../../../games/submodules/xiangqi-five/computer.js',
-      '../../../games/submodules/xiangqi-five/competition-renderer.js',
-      '../../../games/submodules/xiangqi-five/challenges.js',
-    ],
-  ],
-  [XIANGQI + 'tests/native.test.mjs']: [
-    '79aae92d0c368a95ec88bd1eff10d51156b4cd1d97170536ead1d5414baaa9e2',
-    ['node:test', 'node:assert/strict', '../native.js'],
-  ],
-  [XIANGQI + 'tests/browser.mjs']: [
-    '089ddfc4ac2340b9c096f172a5a7a32ddd2163b65724d86fc1269109bc992c27',
-    [
-      'node:http',
-      'node:fs/promises',
-      'node:url',
-      'node:assert/strict',
-      '/platforms/competition/xiangqi-five/native.js',
-    ],
-  ],
   'scripts/nine-canvas-games-smoke.mjs': [
     '9dd613d33cad07cca9ea9998778b67e7a3fe7860bd1198cde2e623325a85fec2',
     [
@@ -132,11 +84,8 @@ const reviewed = {
       '../games/local/letters-words2/tests/native-test-actions.mjs',
       '../platforms/bilibili/native-entry.mjs',
       '../platforms/competition/native.js',
-      '../games/local/cops-robbers/src/native.js',
-      '../games/local/cops-robbers-realtime/src/native.js',
       '../games/local/letters-words2/native.js',
       '../games/local/vibeJam-myself-history-guess/native.js',
-      '../platforms/competition/xiangqi-five/native.js',
       '/platforms/bilibili/native-entry.mjs',
     ],
   ],
@@ -167,100 +116,30 @@ const reviewedChannelSelectionBases = {
 // dev tree. Earlier immutable proofs remain available; arbitrary intermediate
 // baselines and changed imports cannot borrow a newer revision.
 const nativeRevisionReviews = {
-  [XIANGQI + 'native.js']: {
-    bases: [
-      'ce106bb530030e833ec00cc6ec42b266cd4d568a0abccc627ff6b799c026e9dc',
-      '8533b22c5ff870579ae024a3164e7bbe52c9005be572404f4dc29a654a49664b',
-    ],
-    head: 'c7d945e7c8e305dae6aba52e18fb3419e8fd7d6c6221201e6779d2193040e556',
-    imports: [
-      '../../taptap/native-portal.mjs',
-      '../../../games/submodules/xiangqi-five/tap-save.js',
-      '../../../games/submodules/xiangqi-five/game.js',
-      '../../../games/submodules/xiangqi-five/local-game.js',
-      '../../../games/submodules/xiangqi-five/computer.js',
-      '../../../games/submodules/xiangqi-five/computer-hints.js',
-      '../../../games/submodules/xiangqi-five/computer-undo.js',
-      '../../../games/submodules/xiangqi-five/rewarded-hints.js',
-      '../../../games/submodules/xiangqi-five/competition-renderer.js',
-      '../../../games/submodules/xiangqi-five/challenges.js',
-      '../../taptap/rewarded-ads.mjs',
-    ],
+  'scripts/nine-channel-entry-smoke.mjs': {
+    bases: ['d1a42f2b6f427601bad573416d7b3b5357521139511a251d2bbcfb9d3ef6e91a'],
+    head: 'ad4117daf11fc9d4d196e01e436b36c1d58bc6defef41e006d28dd4b0f2947b5',
+    imports: reviewed['scripts/nine-channel-entry-smoke.mjs'][1],
   },
-  [XIANGQI + 'tests/native.test.mjs']: {
-    bases: [
-      'aa9dd9390d54dc91799ff408cd55d6caa2bfb66a0b8191f4121ae5b28c80a802',
-      '48f088091bb14bd2ece4e20532ed5b8ad11bd7f8e630e12a728bd8832fb4d38d',
-    ],
-    head: 'dc67c05d3611af2007550a9b9f2499ad820ae928cd5d7ea57cd3df16c1ee07f0',
-    imports: [
-      'node:test',
-      'node:assert/strict',
-      '../native.js',
-      '../../../../games/submodules/xiangqi-five/challenges.js',
-      '../../../../games/submodules/xiangqi-five/game.js',
-    ],
+  'scripts/nine-canvas-games-smoke.mjs': {
+    bases: ['8fcd530956d69e92c989357b1b059d0fa2b0a7ca7d80e33c02c4cda79ab53a3a'],
+    head: 'fcbec68e6027f31e6232b8ce89bf78bd32e664ae2128d0625b7312148c928546',
+    imports: reviewed['scripts/nine-canvas-games-smoke.mjs'][1],
   },
-  [XIANGQI + 'tests/browser.mjs']: {
-    bases: [
-      '089ddfc4ac2340b9c096f172a5a7a32ddd2163b65724d86fc1269109bc992c27',
-      '3754f78da18d2d38b99a562018f13f065025b3371b2f6822a7f2399d3cd5109e',
-    ],
-    head: '1306b5c71be8fff2321c4c328933e351a88f5fa564f91e008a0ddbd63504f61e',
-    imports: reviewed[XIANGQI + 'tests/browser.mjs'][1],
-  },
+};
+// Historical complete Canvas revisions retain their immutable input proofs;
+// their verified owners are still projected onto the current native batch.
+const nativeHistoricalRevisionReviews = {
   'scripts/nine-canvas-games-smoke.mjs': {
     bases: ['9dd613d33cad07cca9ea9998778b67e7a3fe7860bd1198cde2e623325a85fec2'],
     head: '8fcd530956d69e92c989357b1b059d0fa2b0a7ca7d80e33c02c4cda79ab53a3a',
     imports: reviewed['scripts/nine-canvas-games-smoke.mjs'][1],
   },
 };
-const TAP_SMOKE = 'apps/shell-minigame/scripts/taptap-smoke.mjs';
-const TAP_SMOKE_BASE = 'ec41bdbc7d2815dfd819f5577940780fd345cdc23ffcca37bda895d9788e6bcd';
-const TAP_SMOKE_HEAD = '55f4fb9ed508cdd78444fca846888fa65d50c3b854b20434734f265adcab93f7';
-const tapSmokeProofValues = new WeakSet();
-function tapSmokeFileScopes({ changedPaths, readBase, readHead, games, packages }) {
-  const scopes = new Map();
-  if (!changedPaths.includes(TAP_SMOKE)) return scopes;
-  try {
-    const before = readBase(TAP_SMOKE),
-      after = readHead(TAP_SMOKE);
-    assert.equal(digest(before), TAP_SMOKE_BASE);
-    assert.equal(digest(after), TAP_SMOKE_HEAD);
-    equal(imports(before), imports(after));
-    const start = "  } else if (game === 'xiangqi-five') {";
-    const end = '\n  }\n}\n\nasync function lettersFlow';
-    const index = before.indexOf(start),
-      last = before.indexOf(end, index + start.length);
-    assert.equal(before.split(start).length, 2);
-    assert(index >= 0 && last > index);
-    const branch = before.slice(index, last);
-    const replacement = branch
-      .replace(
-        "    tap('电脑对弈');",
-        "    tap('开始对弈');\n    tap('电脑对弈');\n    tap('开始对局');",
-      )
-      .replace(
-        "    tap('同屏双人');",
-        "    tap('开始对弈');\n    tap('同屏双人');\n    tap('开始对局');\n    tap('确认重开');",
-      );
-    assert.equal(before.slice(0, index) + replacement + before.slice(last), after);
-    const source = sources['xiangqi-five'];
-    assert.equal(games.filter((game) => game.id === 'xiangqi-five').length, 1);
-    assert.equal(games.filter((game) => game.source === source).length, 1);
-    assert.equal(
-      games.filter((game) => game.id === 'xiangqi-five' && game.source === source).length,
-      1,
-    );
-    const affected = [source, MINIGAME, 'platforms/taptap'];
-    assert(affected.every((dir) => packages.some((pkg) => pkg.dir === dir)));
-    tapSmokeProofValues.add(affected);
-    scopes.set(TAP_SMOKE, affected);
-  } catch {
-    /* Unreviewed bytes, baseline or consumers retain every Creator requirement. */
-  }
-  return scopes;
-}
+const historicalCanvasHeads = new Set([
+  reviewed['scripts/nine-canvas-games-smoke.mjs'][0],
+  nativeHistoricalRevisionReviews['scripts/nine-canvas-games-smoke.mjs'].head,
+]);
 const INVENTORY_BUILDER = 'apps/shell-minigame/scripts/nine-games-build.mjs';
 const INVENTORY_BASE_SHA = '6f19a3c8a5e9abcc77c07bd4c0b0182e8ff0129776ca5c6d5716ab475b28f7c8';
 const INVENTORY_HEAD_SHA = '7e71113977277fb08ffbd6368e3d345675f8a1ee7ed40fee6daad23ed393f0bb';
@@ -287,7 +166,7 @@ export function nativeSourceInventoryFileScopes({
     assert.equal(before.split(oldExpression).length, 2);
     assert.equal(after.split(newExpression).length, 2);
     assert.equal(before.replace(oldExpression, newExpression), after);
-    const ids = [...competitionGames, 'travel-bund', 'wulong-city'];
+    const ids = [...nativeCompetitionGames, 'travel-bund', 'wulong-city'];
     const affected = ids.map((id) => nativeGameSources[id]);
     for (const [index, id] of ids.entries()) {
       assert.equal(games.filter((game) => game.id === id).length, 1);
@@ -403,7 +282,7 @@ export function tapNormalizerFileScopes({ changedPaths, readBase, readHead, game
     for (const addition of [variable, imported, newSdk])
       assert.equal(after.split(addition).length, 2);
     assert.equal(after.replace(variable, '').replace(imported, '').replace(newSdk, oldSdk), before);
-    const affected = [...competitionGames, 'travel-bund', 'wulong-city'].map((id) => {
+    const affected = [...nativeCompetitionGames, 'travel-bund', 'wulong-city'].map((id) => {
       const source = nativeGameSources[id];
       assert.equal(games.filter((game) => game.id === id).length, 1);
       assert.equal(games.filter((game) => game.source === source).length, 1);
@@ -428,7 +307,7 @@ const tapCompetitionDefinitions = {
       "  const nativePlatforms = { wechat: 'wx', bilibili: 'bl', douyin: 'tt', kuaishou: 'ks' };\n",
     replacement:
       "  const nativePlatforms = {\n    wechat: 'wx',\n    bilibili: 'bl',\n    douyin: 'tt',\n    kuaishou: 'ks',\n    taptap: 'tap',\n  };\n",
-    games: [...competitionGames, 'carding-car'],
+    games: [...nativeCompetitionGames, 'carding-car'],
   },
   'platforms/kart-sharing.js': {
     base: 'f90719f0ee923af4180d94e96b785354ad86c12f7198e93756e9245d1043b0a6',
@@ -459,7 +338,7 @@ const tapCompetitionDefinitions = {
       "if (!['wechat', 'bilibili', 'douyin', 'kuaishou', 'alipay'].includes(config?.platform))",
     replacement:
       "if (!['wechat', 'bilibili', 'douyin', 'kuaishou', 'alipay', 'taptap'].includes(config?.platform))",
-    games: competitionGames,
+    games: nativeCompetitionGames,
   },
 };
 const tapCompetitionProofValues = new WeakMap();
@@ -515,22 +394,25 @@ function inspectReviewed(file, text) {
 }
 function inspectNativeShape(file, text) {
   if (file === 'scripts/nine-canvas-games-smoke.mjs') {
+    const expectedGames = historicalCanvasHeads.has(digest(text))
+      ? ['cops-robbers', 'cops-robbers-realtime', 'vibeJam-myself-history-guess', 'xiangqi-five']
+      : canvasGames;
     const body = text.match(/for \(const game of \[([\s\S]*?)\]\)/)?.[1];
     assert(
-      body && /^\s*(?:'[A-Za-z0-9-]+'\s*,\s*)+$/.test(body),
+      body && /^\s*'[A-Za-z0-9-]+'\s*(?:,\s*'[A-Za-z0-9-]+'\s*)*,?\s*$/.test(body),
       'Literal fixed game loop required',
     );
     equal(
       [...body.matchAll(/'([A-Za-z0-9-]+)'/g)].map((match) => match[1]),
-      canvasGames,
+      expectedGames,
     );
     const subset = text.match(
       /selectedGames\.every\(\(id\) =>\s*\[([\s\S]*?)\]\.includes\(id\)/,
     )?.[1];
-    assert(subset && /^\s*(?:'[A-Za-z0-9-]+'\s*,\s*)+$/.test(subset));
+    assert(subset && /^\s*'[A-Za-z0-9-]+'\s*(?:,\s*'[A-Za-z0-9-]+'\s*)*,?\s*$/.test(subset));
     equal(
       [...subset.matchAll(/'([A-Za-z0-9-]+)'/g)].map((match) => match[1]),
-      canvasGames,
+      expectedGames,
     );
     assert(text.includes('new Set(selectedGames).size === selectedGames.length'));
     assert(text.includes('selectedGames.length > 0'));
@@ -544,17 +426,11 @@ function inspectNativeShape(file, text) {
     assert(/^[\s,]*$/.test(body.replace(tuple, '')), 'No dynamic entry expressions');
     equal(
       entries.map((match) => match[1]),
-      competitionGames,
+      nativeCompetitionGames,
     );
     equal(
       entries.map((match) => match[2]),
-      [
-        'startNativeCopsGame',
-        'startNativeStreetGame',
-        'startNativeLettersGame',
-        'startNativeHistoryGame',
-        'startNativeXiangqiGame',
-      ],
+      ['startNativeLettersGame', 'startNativeHistoryGame'],
     );
   }
   if (file === 'scripts/nine-wulong-smoke.mjs') {
@@ -619,7 +495,7 @@ export function nightProtocolFileScopes({ changedPaths, readBase, readHead, game
 
 /** Undefined entries deliberately leave unsupported/unknown changes blocked. */
 export function nineNativeFileScopes({ changedPaths, readBase, readHead, games, packages }) {
-  const scopes = tapSmokeFileScopes({ changedPaths, readBase, readHead, games, packages });
+  const scopes = new Map();
   for (const [file, affected] of optionalServiceNativeFileScopes({
     changedPaths,
     readBase,
@@ -661,13 +537,14 @@ export function nineNativeFileScopes({ changedPaths, readBase, readHead, games, 
         } catch {
           /* This exact digest was explicitly reviewed as a new file. */
         }
-        const revision = nativeRevisionReviews[file];
-        if (
-          revision &&
-          typeof base === 'string' &&
-          revision.bases.includes(digest(base)) &&
-          digest(head) === revision.head
-        ) {
+        const revision = [nativeRevisionReviews[file], nativeHistoricalRevisionReviews[file]].find(
+          (entry) =>
+            entry &&
+            typeof base === 'string' &&
+            entry.bases.includes(digest(base)) &&
+            digest(head) === entry.head,
+        );
+        if (revision) {
           equal(imports(head), revision.imports);
           inspectNativeShape(file, head);
         } else {
@@ -912,42 +789,10 @@ export function nineNativeChecks(changedPaths, fileScopes) {
 const nativeSourceGroups = [
   {
     paths: [
-      'games/local/cops-robbers-realtime/src/challenge-finals.js',
-      'games/local/cops-robbers-realtime/src/competition-renderer.js',
-      'games/local/cops-robbers-realtime/src/engine.js',
-      'games/local/cops-robbers-realtime/src/layout-variants.js',
-      'games/local/cops-robbers-realtime/src/level-safety.js',
-      'games/local/cops-robbers-realtime/src/levels.js',
-      'games/local/cops-robbers-realtime/src/native.js',
-      'games/local/cops-robbers-realtime/src/quick-trials.js',
-      'games/local/cops-robbers-realtime/src/records.js',
-      'games/local/cops-robbers-realtime/src/renderer.js',
-      'games/local/cops-robbers-realtime/src/role-appearance.js',
-    ],
-    targets: [
-      'cops-robbers-realtime:alipay',
-      'cops-robbers-realtime:bilibili',
-      'cops-robbers-realtime:douyin',
-      'cops-robbers-realtime:kuaishou',
-      'cops-robbers-realtime:wechat',
-    ],
-  },
-  {
-    paths: [
       'apps/shell-minigame/scripts/nine-games-build.mjs',
       'apps/shell-minigame/scripts/nine-games-targets.mjs',
     ],
     targets: [
-      'cops-robbers-realtime:alipay',
-      'cops-robbers-realtime:bilibili',
-      'cops-robbers-realtime:douyin',
-      'cops-robbers-realtime:kuaishou',
-      'cops-robbers-realtime:wechat',
-      'cops-robbers:alipay',
-      'cops-robbers:bilibili',
-      'cops-robbers:douyin',
-      'cops-robbers:kuaishou',
-      'cops-robbers:wechat',
       'letters-words2:alipay',
       'letters-words2:bilibili',
       'letters-words2:douyin',
@@ -968,26 +813,11 @@ const nativeSourceGroups = [
       'wulong-city:douyin',
       'wulong-city:kuaishou',
       'wulong-city:wechat',
-      'xiangqi-five:alipay',
-      'xiangqi-five:bilibili',
-      'xiangqi-five:douyin',
-      'xiangqi-five:kuaishou',
-      'xiangqi-five:wechat',
     ],
   },
   {
     paths: ['apps/shell-minigame/src/competition-availability.mjs'],
     targets: [
-      'cops-robbers-realtime:alipay',
-      'cops-robbers-realtime:bilibili',
-      'cops-robbers-realtime:douyin',
-      'cops-robbers-realtime:kuaishou',
-      'cops-robbers-realtime:wechat',
-      'cops-robbers:alipay',
-      'cops-robbers:bilibili',
-      'cops-robbers:douyin',
-      'cops-robbers:kuaishou',
-      'cops-robbers:wechat',
       'letters-words2:alipay',
       'letters-words2:bilibili',
       'letters-words2:douyin',
@@ -1003,11 +833,6 @@ const nativeSourceGroups = [
       'vibeJam-myself-history-guess:douyin',
       'vibeJam-myself-history-guess:kuaishou',
       'vibeJam-myself-history-guess:wechat',
-      'xiangqi-five:alipay',
-      'xiangqi-five:bilibili',
-      'xiangqi-five:douyin',
-      'xiangqi-five:kuaishou',
-      'xiangqi-five:wechat',
     ],
   },
   {
@@ -1017,16 +842,6 @@ const nativeSourceGroups = [
       'platforms/competition/native.js',
     ],
     targets: [
-      'cops-robbers-realtime:alipay',
-      'cops-robbers-realtime:bilibili',
-      'cops-robbers-realtime:douyin',
-      'cops-robbers-realtime:kuaishou',
-      'cops-robbers-realtime:wechat',
-      'cops-robbers:alipay',
-      'cops-robbers:bilibili',
-      'cops-robbers:douyin',
-      'cops-robbers:kuaishou',
-      'cops-robbers:wechat',
       'letters-words2:alipay',
       'letters-words2:bilibili',
       'letters-words2:douyin',
@@ -1037,102 +852,59 @@ const nativeSourceGroups = [
       'vibeJam-myself-history-guess:douyin',
       'vibeJam-myself-history-guess:kuaishou',
       'vibeJam-myself-history-guess:wechat',
-      'xiangqi-five:alipay',
-      'xiangqi-five:bilibili',
-      'xiangqi-five:douyin',
-      'xiangqi-five:kuaishou',
-      'xiangqi-five:wechat',
     ],
   },
   {
     paths: ['platforms/alipay/build.mjs', 'platforms/alipay/normalize.mjs'],
     targets: [
-      'cops-robbers-realtime:alipay',
-      'cops-robbers:alipay',
       'letters-words2:alipay',
       'travel-bund:alipay',
       'vibeJam-myself-history-guess:alipay',
       'wulong-city:alipay',
-      'xiangqi-five:alipay',
     ],
   },
   {
     paths: ['platforms/bilibili/build.mjs'],
     targets: [
-      'cops-robbers-realtime:bilibili',
-      'cops-robbers:bilibili',
       'letters-words2:bilibili',
       'travel-bund:bilibili',
       'vibeJam-myself-history-guess:bilibili',
       'wulong-city:bilibili',
-      'xiangqi-five:bilibili',
     ],
   },
   {
     paths: ['platforms/bilibili/native-entry.mjs'],
     targets: [
-      'cops-robbers-realtime:bilibili',
-      'cops-robbers:bilibili',
       'letters-words2:bilibili',
       'travel-bund:bilibili',
       'vibeJam-myself-history-guess:bilibili',
-      'xiangqi-five:bilibili',
     ],
   },
   {
     paths: ['platforms/douyin/build.mjs'],
     targets: [
-      'cops-robbers-realtime:douyin',
-      'cops-robbers:douyin',
       'letters-words2:douyin',
       'travel-bund:douyin',
       'vibeJam-myself-history-guess:douyin',
       'wulong-city:douyin',
-      'xiangqi-five:douyin',
     ],
   },
   {
     paths: ['platforms/kuaishou/build.mjs'],
     targets: [
-      'cops-robbers-realtime:kuaishou',
-      'cops-robbers:kuaishou',
       'letters-words2:kuaishou',
       'travel-bund:kuaishou',
       'vibeJam-myself-history-guess:kuaishou',
       'wulong-city:kuaishou',
-      'xiangqi-five:kuaishou',
     ],
   },
   {
     paths: ['platforms/wechat/build.mjs'],
     targets: [
-      'cops-robbers-realtime:wechat',
-      'cops-robbers:wechat',
       'letters-words2:wechat',
       'travel-bund:wechat',
       'vibeJam-myself-history-guess:wechat',
       'wulong-city:wechat',
-      'xiangqi-five:wechat',
-    ],
-  },
-  {
-    paths: [
-      'games/local/cops-robbers/src/competition-renderer.js',
-      'games/local/cops-robbers/src/duel-levels.js',
-      'games/local/cops-robbers/src/duel.js',
-      'games/local/cops-robbers/src/engine.js',
-      'games/local/cops-robbers/src/levels.js',
-      'games/local/cops-robbers/src/native.js',
-      'games/local/cops-robbers/src/quick-trials.js',
-      'games/local/cops-robbers/src/relay.js',
-      'games/local/cops-robbers/src/role-appearance.js',
-    ],
-    targets: [
-      'cops-robbers:alipay',
-      'cops-robbers:bilibili',
-      'cops-robbers:douyin',
-      'cops-robbers:kuaishou',
-      'cops-robbers:wechat',
     ],
   },
   {
@@ -1355,28 +1127,11 @@ const nativeSourceGroups = [
     paths: ['platforms/wechat/src/index.ts'],
     targets: ['wulong-city:wechat'],
   },
-  {
-    paths: [
-      'games/submodules/xiangqi-five/challenges.js',
-      'games/submodules/xiangqi-five/competition-renderer.js',
-      'games/submodules/xiangqi-five/computer.js',
-      'games/submodules/xiangqi-five/game.js',
-      'games/submodules/xiangqi-five/local-game.js',
-      'platforms/competition/xiangqi-five/native.js',
-    ],
-    targets: [
-      'xiangqi-five:alipay',
-      'xiangqi-five:bilibili',
-      'xiangqi-five:douyin',
-      'xiangqi-five:kuaishou',
-      'xiangqi-five:wechat',
-    ],
-  },
 ];
 
 const nativePlatforms = ['wechat', 'bilibili', 'douyin', 'kuaishou', 'alipay'];
 const nativeGameSources = {
-  ...sources,
+  ...Object.fromEntries([...nativeCompetitionGames, 'wulong-city'].map((id) => [id, sources[id]])),
   'travel-bund': 'games/local/travel-bund',
   'carding-car': 'games/local/carding-car',
   'night-overwatch': 'games/local/night-overwatch',
@@ -1429,15 +1184,10 @@ taptapGraph.set(`${TAPTAP}/native-resources.mjs`, [
   'vibeJam-myself-history-guess:taptap',
 ]);
 
-// These exact roots are injected only into H5 and the separate three-game Cocos
-// projects. They have no legacy-nine owner unless a real native import adds one.
+// These exact roots are injected into H5. They have no legacy native owner
+// unless an active native entry imports them.
 // Empty ownership must never flow into an unreviewed imported sibling.
-const separateTapEntrypoints = [
-  'platforms/taptap/browser-entry.mjs',
-  'platforms/taptap/competition-identity.mjs',
-  'platforms/taptap/multiplayer-screen.mjs',
-  'platforms/taptap/multiplayer-session.mjs',
-];
+const separateTapEntrypoints = [...tapServiceSharedScopePaths];
 for (const file of separateTapEntrypoints) taptapGraph.set(file, []);
 
 /** Reviewed provenance graph, independent of generated/ignored build artifacts. */
@@ -1576,14 +1326,6 @@ export function nineNativeDependencyPlan({
       /* A stale or copied proof cannot narrow the candidate. */
     }
   }
-  let tapSmokeOnly = false;
-  if (hasTapTap && tapSmokeProofValues.has(fileScopes.get(TAP_SMOKE)) && readSource) {
-    try {
-      tapSmokeOnly = digest(readSource(TAP_SMOKE)) === TAP_SMOKE_HEAD;
-    } catch {
-      /* Missing source cannot reuse an earlier proof. */
-    }
-  }
   const tapCompetitionOnly = new Map();
   if (hasTapTap && readSource)
     for (const file of Object.keys(tapCompetitionDefinitions)) {
@@ -1684,7 +1426,21 @@ export function nineNativeDependencyPlan({
   }
   const selected = new Set(),
     blocked = new Set();
+  // Exact reviewed removal of the three retired registrations/branches leaves
+  // all six remaining game implementations unchanged. Unit/type/lint still run.
+  const retirementOnly = new Set(
+    changedPaths.filter(
+      (file) =>
+        [
+          'apps/shell-minigame/scripts/nine-games-targets.mjs',
+          'apps/shell-minigame/scripts/taptap-targets.mjs',
+          'apps/shell-minigame/scripts/taptap-smoke.mjs',
+        ].includes(file) && hasRetirementFileProof(file, fileScopes.get(file), readSource),
+    ),
+  );
   for (const file of changedPaths) {
+    if (retirementOnly.has(file) || hasRetirementDeletionProof(file, fileScopes.get(file)))
+      continue;
     const platformDirectory = file.match(
       /^platforms\/(wechat|bilibili|douyin|kuaishou|alipay|taptap)\//,
     )?.[1];
@@ -1701,18 +1457,15 @@ export function nineNativeDependencyPlan({
           if (platform === platformDirectory) selected.add(game + ':' + platform);
         }
     }
-    const fileTargets =
-      file === TAP_SMOKE && tapSmokeOnly
-        ? ['xiangqi-five:taptap']
-        : optionalServiceOnly.has(file)
-          ? [...(graph.get(file) || [])].filter(
-              (target) => !cocosGames.includes(target.split(':')[0]),
+    const fileTargets = optionalServiceOnly.has(file)
+      ? [...(graph.get(file) || [])].filter((target) => !cocosGames.includes(target.split(':')[0]))
+      : tapCompetitionOnly.has(file)
+        ? tapCompetitionOnly.get(file).map((game) => game + ':taptap')
+        : file === INVENTORY_BUILDER && tapNormalizerOnly
+          ? [...nativeCompetitionGames, 'travel-bund', 'wulong-city'].map(
+              (game) => game + ':taptap',
             )
-          : tapCompetitionOnly.has(file)
-            ? tapCompetitionOnly.get(file).map((game) => game + ':taptap')
-            : file === INVENTORY_BUILDER && tapNormalizerOnly
-              ? [...competitionGames, 'travel-bund', 'wulong-city'].map((game) => game + ':taptap')
-              : graph.get(file) || [];
+          : graph.get(file) || [];
     for (const target of fileTargets) {
       const [game, platform] = target.split(':');
       // Builder provenance includes configuration inputs for every channel. Only

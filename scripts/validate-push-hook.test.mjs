@@ -44,6 +44,7 @@ test('manual candidate validation checks exact-SHA snapshots and rejects invalid
       'vite-patch-scope.mjs',
       'pages-test-scope.mjs',
       'pages-registration-scope.mjs',
+      'game-retirement-scope.mjs',
       'rule-tasks.mjs',
     ]) {
       await writeFile(
@@ -51,12 +52,6 @@ test('manual candidate validation checks exact-SHA snapshots and rejects invalid
         await readFile(new URL(file, import.meta.url)),
       );
     }
-    const miniScope = 'games/minigames/scripts/validation-scope.mjs';
-    await mkdir(path.join(root, 'games/minigames/scripts'), { recursive: true });
-    await writeFile(
-      path.join(root, miniScope),
-      await readFile(new URL('../' + miniScope, import.meta.url)),
-    );
     await writeFile(
       path.join(root, 'package.json'),
       JSON.stringify({

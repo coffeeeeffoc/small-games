@@ -104,7 +104,6 @@ apps/
 games/              独立 pnpm Game（Git submodule）
   tower-defense-game/
   xiangqi-five/
-  office-slacking/
 packages/
   config-eslint/     共享 ESLint 规则
   config-typescript/ 共享 TypeScript 配置

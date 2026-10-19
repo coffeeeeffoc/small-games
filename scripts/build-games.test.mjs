@@ -15,9 +15,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { crc32 } from 'node:zlib';
 import { main, parseGameBuildConfig, gameBuildPlan } from './build-games.mjs';
-import { buildNativePackages } from './native-game-build.mjs';
 import {
   buildH5Packages,
   compilerEnvironment,
@@ -33,231 +31,18 @@ const configuration = {
   backend: [false, true],
   apiUrl: 'https://api.nenggongzhiren.cn/small-games/v1',
 };
-const nativeConfiguration = {
+const h5Configuration = {
   version: 2,
   games: ['cops-robbers', 'cops-robbers-realtime'],
   ads: [false],
   backend: [false],
-  targets: [
-    {
-      platform: 'taptap',
-      type: 'minigame',
-      appIds: { 'cops-robbers': 'tap-test-cops', 'cops-robbers-realtime': 'tap-test-street' },
-    },
-  ],
+  targets: [{ platform: 'taptap', type: 'h5' }],
 };
-
-// Synthetic stored ZIP for delivery tests; no engine or official-tool acceptance is claimed.
-function nativeZip(entries) {
-  const local = [],
-    central = [];
-  let offset = 0;
-  for (const [name, value] of entries) {
-    const filename = Buffer.from(name),
-      bytes = Buffer.from(value);
-    const header = Buffer.alloc(30),
-      record = Buffer.alloc(46);
-    header.writeUInt32LE(0x04034b50);
-    header.writeUInt16LE(20, 4);
-    header.writeUInt32LE(crc32(bytes), 14);
-    header.writeUInt32LE(bytes.length, 18);
-    header.writeUInt32LE(bytes.length, 22);
-    header.writeUInt16LE(filename.length, 26);
-    record.writeUInt32LE(0x02014b50);
-    record.writeUInt16LE(20, 4);
-    record.writeUInt16LE(20, 6);
-    record.writeUInt32LE(crc32(bytes), 16);
-    record.writeUInt32LE(bytes.length, 20);
-    record.writeUInt32LE(bytes.length, 24);
-    record.writeUInt16LE(filename.length, 28);
-    record.writeUInt32LE(offset, 42);
-    local.push(header, filename, bytes);
-    central.push(record, filename);
-    offset += header.length + filename.length + bytes.length;
-  }
-  const index = Buffer.concat(central),
-    end = Buffer.alloc(22);
-  end.writeUInt32LE(0x06054b50);
-  end.writeUInt16LE(entries.length, 8);
-  end.writeUInt16LE(entries.length, 10);
-  end.writeUInt32LE(index.length, 12);
-  end.writeUInt32LE(offset, 16);
-  return Buffer.concat([...local, index, end]);
-}
-
-async function nativeFixture(folder, config, { badZip = false } = {}) {
-  const base = path.join(folder, 'games/minigames', config.game, 'build', config.platform);
-  const directory = path.join(base, 'game');
-  await mkdir(directory, { recursive: true });
-  const entries = [
-    ['game.js', 'tap.createCanvas();'],
-    ['game.json', JSON.stringify({ appId: config.appId, deviceOrientation: config.orientation })],
-    ['project.config.json', JSON.stringify({ appid: config.appId })],
-    ['texture.bin', Buffer.from([0, 255, 128])],
-  ];
-  for (const [name, bytes] of entries) await writeFile(path.join(directory, name), bytes);
-  const archive = nativeZip(
-    entries.map(([name, bytes]) => [badZip ? 'outer/' + name : name, bytes]),
-  );
-  await writeFile(path.join(base, 'game.zip'), archive);
-  const receipt = {
-    schema: 1,
-    creator: '3.8.8',
-    config,
-    files: await inventory(directory),
-    gitSha: 'fixture',
-    sourceHash: 'fixture',
-    conversion: { packageSha256: digest(archive) },
-    status: config.preview ? 'preview-build' : 'build-awaiting-platform-acceptance',
-  };
-  const receiptPath = path.join(base, 'receipt.json');
-  await writeFile(receiptPath, JSON.stringify(receipt));
-  return { directory, receiptPath, ...receipt };
-}
-
-test('native delivery copies the original ZIP byte-for-byte and keeps variants before scratch overwrite', async () => {
-  const folder = await mkdtemp(path.join(tmpdir(), 'native-delivery-'));
-  try {
-    const config = parseGameBuildConfig({
-      ...nativeConfiguration,
-      games: ['cops-robbers'],
-      backend: [false, true],
-      apiUrl: 'https://api.example.test/v1',
-      targets: [{ ...nativeConfiguration.targets[0], appIds: { 'cops-robbers': 'tap-test-cops' } }],
-    });
-    const archives = [];
-    const result = await buildNativePackages(
-      { jobs: gameBuildPlan(config), output: 'outputs/batch' },
-      {
-        workspace: folder,
-        compile: async (native) => {
-          const built = await nativeFixture(folder, native);
-          archives.push(await readFile(path.join(path.dirname(built.directory), 'game.zip')));
-          return built;
-        },
-      },
-    );
-    assert.equal(result.variants.length, 2);
-    for (const [i, item] of result.variants.entries()) {
-      assert.equal(item.uploadFile, item.zip);
-      assert.equal(item.delivery, 'upload-zip');
-      assert.equal(item.realDeviceVerified, false);
-      assert.deepEqual(await readFile(path.join(result.output, item.zip)), archives[i]);
-      const receipt = JSON.parse(await readFile(path.join(result.output, item.receipt), 'utf8'));
-      assert.equal(receipt.config.competitionEnabled, Boolean(i));
-    }
-    await assert.rejects(
-      buildNativePackages(
-        { jobs: gameBuildPlan(config), output: 'outputs/batch' },
-        { workspace: folder },
-      ),
-      { code: 'EEXIST' },
-    );
-    await assert.rejects(
-      buildNativePackages(
-        { jobs: gameBuildPlan(config).slice(0, 1), output: 'outputs/invalid' },
-        {
-          workspace: folder,
-          compile: (native) => nativeFixture(folder, native, { badZip: true }),
-        },
-      ),
-      /ZIP inventory mismatch/,
-    );
-  } finally {
-    await rm(folder, { recursive: true, force: true });
-  }
-});
-
-test('native previews and platform projects never claim to be release-upload ZIPs', async () => {
-  const folder = await mkdtemp(path.join(tmpdir(), 'native-projects-'));
-  try {
-    for (const platform of ['taptap', 'wechat', 'douyin', 'bilibili', 'alipay', 'kuaishou']) {
-      const jobs = gameBuildPlan(
-        parseGameBuildConfig({
-          ...nativeConfiguration,
-          games: ['cops-robbers'],
-          targets: [{ platform, type: 'minigame', release: false }],
-        }),
-      );
-      const result = await buildNativePackages(
-        { jobs, output: 'outputs/' + platform },
-        {
-          workspace: folder,
-          compile: async (config, options) => {
-            assert.equal(options.prepareSource, platform === 'kuaishou');
-            return nativeFixture(folder, config);
-          },
-        },
-      );
-      const item = result.variants[0];
-      assert.equal(item.uploadFile, null);
-      assert.equal(Boolean(item.zip), platform === 'taptap');
-      assert.equal(
-        item.delivery,
-        platform === 'taptap'
-          ? 'preview-zip'
-          : platform === 'kuaishou'
-            ? 'conversion-source'
-            : 'developer-project',
-      );
-      assert((await readdir(path.join(result.output, item.project))).includes('game.js'));
-    }
-    const outside = path.join(folder, 'outside');
-    await mkdir(outside);
-    await symlink(outside, path.join(folder, 'outputs', 'linked'), 'junction');
-    await assert.rejects(
-      buildNativePackages({ jobs: [], output: 'outputs/linked/batch' }, { workspace: folder }),
-      /cannot be a link/,
-    );
-    assert.deepEqual(await readdir(outside), []);
-  } finally {
-    await rm(folder, { recursive: true, force: true });
-  }
-});
-
-test('native write paths reject junctions before any destructive compiler work', async () => {
-  const folder = await mkdtemp(path.join(tmpdir(), 'native-paths-'));
-  const outside = await mkdtemp(path.join(tmpdir(), 'native-preserve-'));
-  const jobs = gameBuildPlan(parseGameBuildConfig(nativeConfiguration));
-  const project = path.join(folder, 'games/minigames/cops-robbers');
-  const build = path.join(project, 'build');
-  try {
-    await mkdir(project, { recursive: true });
-    await writeFile(path.join(outside, 'keep.txt'), 'KEEP');
-    await symlink(outside, build, 'junction');
-    let compiled = false;
-    const options = {
-      workspace: folder,
-      compile: async () => {
-        compiled = true;
-      },
-    };
-    await assert.rejects(
-      buildNativePackages({ jobs, output: 'outputs/top-link' }, options),
-      /cannot be a link/,
-    );
-    assert.equal(compiled, false);
-    await unlink(build);
-    await mkdir(build);
-    await symlink(outside, path.join(build, 'taptap-source'), 'junction');
-    await assert.rejects(
-      buildNativePackages({ jobs, output: 'outputs/nested-link' }, options),
-      /cannot be a link/,
-    );
-    assert.equal(compiled, false);
-    assert.equal(await readFile(path.join(outside, 'keep.txt'), 'utf8'), 'KEEP');
-    await unlink(path.join(build, 'taptap-source'));
-  } finally {
-    await rm(folder, { recursive: true, force: true });
-    await rm(outside, { recursive: true, force: true });
-  }
-});
 
 test('commented JavaScript config takes precedence, supports explicit .js, and falls back only when absent', async () => {
   const folder = await mkdtemp(path.join(tmpdir(), 'game-config-'));
   const module = path.join(folder, 'game-build.local.mjs');
-  const source =
-    '// 每款游戏独立选择\nexport default ' + JSON.stringify(nativeConfiguration) + ';\n';
+  const source = '// 每款游戏独立选择\nexport default ' + JSON.stringify(h5Configuration) + ';\n';
   try {
     await writeFile(module, source);
     await writeFile(
@@ -267,7 +52,7 @@ test('commented JavaScript config takes precedence, supports explicit .js, and f
     const result = await main(['--dry-run'], { workspace: folder });
     assert.deepEqual(
       result.jobs.map((job) => job.game),
-      nativeConfiguration.games,
+      h5Configuration.games,
     );
     await writeFile(path.join(folder, 'custom.js'), source);
     assert.equal(
@@ -308,64 +93,27 @@ test('commented JavaScript config takes precedence, supports explicit .js, and f
 
 test('target backend overrides and legacy nullable adUnits preserve the requested effective jobs', () => {
   const config = parseGameBuildConfig({
-    ...nativeConfiguration,
+    ...h5Configuration,
     backend: [true],
-    targets: nativeConfiguration.targets.map((target) => ({ ...target, backend: [false] })),
+    targets: h5Configuration.targets.map((target) => ({ ...target, backend: [false] })),
   });
-  assert(gameBuildPlan(config).every((job) => !job.backend && !job.config.apiUrl));
+  assert(gameBuildPlan(config).every((job) => !job.backend));
   assert.deepEqual(parseGameBuildConfig({ ...configuration, adUnits: null }).adUnits, {});
   assert.throws(
-    () => gameBuildPlan(parseGameBuildConfig({ ...nativeConfiguration, backend: [true] })),
+    () => gameBuildPlan(parseGameBuildConfig({ ...h5Configuration, backend: [true] })),
     /BUILD_API_URL_REQUIRED/,
   );
   assert.throws(
     () =>
       gameBuildPlan(
         parseGameBuildConfig({
-          ...nativeConfiguration,
+          ...h5Configuration,
           backend: [true],
           apiUrl: 'https://user:CANARY@example.test',
         }),
       ),
     /BUILD_API_URL_INVALID/,
   );
-});
-
-test('version 2 plans per-game native identities, mixed package types and explicit previews', () => {
-  const subset = gameBuildPlan(
-    parseGameBuildConfig({
-      ...nativeConfiguration,
-      games: ['cops-robbers'],
-      targets: [
-        {
-          ...nativeConfiguration.targets[0],
-          appIds: { 'cops-robbers': 'tap-test-cops', 'cops-robbers-realtime': '' },
-        },
-      ],
-    }),
-  );
-  assert.deepEqual(
-    subset.map((job) => job.game),
-    ['cops-robbers'],
-  );
-  const config = parseGameBuildConfig({
-    ...nativeConfiguration,
-    targets: [
-      { platform: 'taptap', type: 'h5' },
-      ...nativeConfiguration.targets,
-      { platform: 'wechat', type: 'minigame', release: false },
-    ],
-  });
-  const jobs = gameBuildPlan(config);
-  assert.equal(jobs.length, 6);
-  assert.equal(jobs[0].delivery, 'upload-zip');
-  assert.equal(jobs[2].config.appId, 'tap-test-cops');
-  assert.equal(jobs[3].config.appId, 'tap-test-street');
-  assert.equal(jobs[2].config.preview, false);
-  assert.equal(jobs[2].config.apiUrl, '');
-  assert.equal(jobs[4].config.preview, true);
-  assert.equal(jobs[4].config.appId, '');
-  assert.equal(jobs[4].delivery, 'developer-project');
 });
 
 test('the complete batch rejects missing release IDs and unsupported or ambiguous targets', async () => {
@@ -385,13 +133,10 @@ test('the complete batch rejects missing release IDs and unsupported or ambiguou
       main(['--config', 'test.json'], {
         read: async () =>
           JSON.stringify({
-            ...nativeConfiguration,
+            ...h5Configuration,
             targets: [{ platform: 'taptap', type: 'h5' }, target],
           }),
         build: async () => {
-          compiled = true;
-        },
-        buildNative: async () => {
           compiled = true;
         },
       }),
@@ -400,8 +145,8 @@ test('the complete batch rejects missing release IDs and unsupported or ambiguou
   }
   assert.throws(() =>
     parseGameBuildConfig({
-      ...nativeConfiguration,
-      targets: [...nativeConfiguration.targets, ...nativeConfiguration.targets],
+      ...h5Configuration,
+      targets: [...h5Configuration.targets, ...h5Configuration.targets],
     }),
   );
 });
@@ -425,11 +170,8 @@ test('dry-run validates without building or creating output, with no inherited I
     const result = await main(['--config', 'test.json', '--dry-run'], {
       workspace: folder,
       env,
-      read: async () => JSON.stringify(nativeConfiguration),
+      read: async () => JSON.stringify(h5Configuration),
       build: async () => {
-        throw Error('MUST_NOT_BUILD');
-      },
-      buildNative: async () => {
         throw Error('MUST_NOT_BUILD');
       },
     });
@@ -440,42 +182,32 @@ test('dry-run validates without building or creating output, with no inherited I
   }
 });
 
-test('mixed targets dispatch serially, isolate H5/native IDs and retain a combined batch index', async () => {
-  const folder = await mkdtemp(path.join(tmpdir(), 'game-dispatch-'));
+test('H5 targets isolate public IDs and retain the batch index', async () => {
+  const folder = await mkdtemp(path.join(tmpdir(), 'h5-dispatch-'));
   try {
-    const calls = [];
+    let calls = 0;
     const result = await main(['--config', 'test.json'], {
       workspace: folder,
       read: async () =>
         JSON.stringify({
-          ...nativeConfiguration,
-          targets: [
-            { platform: 'taptap', type: 'h5', adUnits: { 'cops-robbers': 'h5-ad' } },
-            {
-              ...nativeConfiguration.targets[0],
-              ads: [true],
-              adUnits: { 'cops-robbers': 'native-ad', 'cops-robbers-realtime': 'street-ad' },
-            },
-          ],
+          ...h5Configuration,
+          targets: [{ platform: 'taptap', type: 'h5', adUnits: { 'cops-robbers': 'h5-ad' } }],
         }),
-      env: { TAPTAP_COPS_ROBBERS_AD_UNIT_ID: 'wrong-ad' },
+      env: { TAPTAP_COPS_ROBBERS_AD_UNIT_ID: 'old-ad' },
       build: async (values, options) => {
-        calls.push('h5');
+        calls++;
         assert.equal(options.env.TAPTAP_COPS_ROBBERS_AD_UNIT_ID, 'h5-ad');
         assert.equal(options.env.TAPTAP_COPS_ROBBERS_REALTIME_AD_UNIT_ID, '');
         assert(values.batch);
-        return { output: path.join(folder, values.output), variants: [] };
-      },
-      buildNative: async (values) => {
-        assert.deepEqual(calls, ['h5']);
-        calls.push('native');
-        assert.equal(values.jobs[0].config.rewardedAdUnitId, 'native-ad');
-        return { output: path.join(folder, values.output), variants: [] };
+        return { variants: [] };
       },
     });
-    assert.deepEqual(calls, ['h5', 'native']);
+    assert.equal(calls, 1);
     const summary = JSON.parse(await readFile(path.join(result.output, 'builds.json'), 'utf8'));
-    assert.equal(summary.targets.length, 2);
+    assert.deepEqual(
+      summary.targets.map(({ platform, type }) => [platform, type]),
+      [['taptap', 'h5']],
+    );
     assert.equal(summary.platformAcceptance, 'not-run');
   } finally {
     await rm(folder, { recursive: true, force: true });
