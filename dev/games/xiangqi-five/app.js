@@ -255,7 +255,8 @@ function renderSetup() {
   }[setupDraft?.difficulty || difficulty];
   setChevronLabel(
     'setup-start',
-    setupDraft?.mode === state.mode &&
+    !state.result &&
+      setupDraft?.mode === state.mode &&
       setupDraft?.opponent === opponent &&
       (state.ply || state.pending)
       ? '继续这一局'
@@ -264,6 +265,7 @@ function renderSetup() {
 }
 $('home-start').addEventListener('click', () => showScreen('modes'));
 $('home-continue').addEventListener('click', () => {
+  if (state.result && !challenge) resultAnnounced = true;
   showScreen('game');
   render();
 });
@@ -924,6 +926,12 @@ function render() {
       : room.restartVotes.length
         ? '同意重开'
         : '申请再来一局';
+  if (ended && !challenge) {
+    const restartLabel = room ? $('result-restart').textContent : '重新开局';
+    $('draw-button').disabled = $('result-restart').disabled;
+    $('draw-button').firstElementChild.textContent = restartLabel;
+    $('draw-button').setAttribute('aria-label', restartLabel);
+  }
   if (challenge) {
     $('result-restart').textContent = challenge.status === 'solved' ? '下一题' : '重试本题';
     const next = CHALLENGES[(CHALLENGES.indexOf(challenge.definition) + 1) % CHALLENGES.length];
@@ -1189,6 +1197,7 @@ $('challenge-result-share').addEventListener('click', () => shareChallenge());
 document.querySelectorAll('[data-share-game]').forEach(button => button.addEventListener('click', () => shareChallenge(button.id === 'home-share' ? null : challenge)));
 
 $('draw-button').addEventListener('click', () => {
+  if (state.result && !challenge) return restartResult();
   if (inputLocked()) return;
   setFocus(true);
   if (room) {
@@ -1274,10 +1283,10 @@ document.querySelectorAll('[data-board], [data-difficulty]').forEach((button) =>
 $('setup-start').addEventListener('click', () => {
   if (busy || networkBusy || room || challenge || !setupDraft) return;
   const changed = setupDraft.mode !== state.mode || setupDraft.opponent !== opponent;
-  if (changed && (state.ply || state.pending)) requestRestart(setupDraft.mode, setupDraft.opponent);
+  if (!state.result && changed && (state.ply || state.pending)) requestRestart(setupDraft.mode, setupDraft.opponent);
   else {
     difficulty = setupDraft.difficulty;
-    if (changed) resetGame(setupDraft.mode, setupDraft.opponent);
+    if (changed || state.result) resetGame(setupDraft.mode, setupDraft.opponent);
     else saveLocal();
     showScreen('game');
     render();
