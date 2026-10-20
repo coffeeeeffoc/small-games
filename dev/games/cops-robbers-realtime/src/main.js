@@ -1414,17 +1414,21 @@ function frame(now) {
       lastTurnSound = game.time;
     }
   }
-  updateHover();
-  renderer.draw(game, {
-    selected,
-    preview,
-    pointer,
-    hover,
-    captureHint,
-    practiceTarget: game.level.id === 0 && game.phase === 'playing' && !practiceOrders.has(0),
-    reducedMotion: reducedMotion.matches,
-    now,
-  });
+  // Keep the existing simulation/RAF chain; hidden pages need no Canvas work.
+  // Visible won/lost/review phases still draw their final capture/escape animation.
+  if (screen === 'game' && !document.hidden) {
+    updateHover();
+    renderer.draw(game, {
+      selected,
+      preview,
+      pointer,
+      hover,
+      captureHint,
+      practiceTarget: game.level.id === 0 && game.phase === 'playing' && !practiceOrders.has(0),
+      reducedMotion: reducedMotion.matches,
+      now,
+    });
+  }
   if (now - lastHud > 120) {
     updateHud();
     lastHud = now;

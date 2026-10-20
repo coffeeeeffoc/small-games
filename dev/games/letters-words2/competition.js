@@ -562,7 +562,7 @@
 			]
 		}
 	};
-	var characterSheet = "./src/assets/characters.png";
+	var characterSheet = "./src/assets/characters.webp";
 	var characters = {
 		cop: [
 			{

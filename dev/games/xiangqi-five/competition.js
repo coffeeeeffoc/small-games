@@ -562,7 +562,7 @@
 			]
 		}
 	};
-	var characterSheet = "./src/assets/characters.png";
+	var characterSheet = "./src/assets/characters.webp";
 	var characters = {
 		cop: [
 			{
@@ -2936,7 +2936,7 @@ body.competition-active #mode-online { position:static; }
 		return factory;
 	}
 	//#endregion
-	//#region ../../../../../../../tmp/competition-entry-SIFQ4N/entry.mjs
+	//#region ../../../../../../../tmp/competition-entry-PDV1ux/entry.mjs
 	if (globalThis.__COMPETITION_CONFIG__?.identityProvider === "taptap") installTapCompetitionIdentity();
 	mountCompetition("xiangqi-five", createRenderer);
 	//#endregion
