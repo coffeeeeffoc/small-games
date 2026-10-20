@@ -1,0 +1,23 @@
+{
+  "baselineSha": "f3881ea5004177f81a946f3a939efc8dbdcd1c9b",
+  "sourceHashes": {
+    "src/main.js": "a3d3a8783201c00aeec5321fc653e7bf96f2af670eb892f36865bac590e321c2",
+    "src/role-appearance.js": "83f2586b1626d288cff32c6e263fe0c784a4c54d2ea14617de61f170817f25d0",
+    "index.html": "2dd8236415cb16625f0bb78a599c1151aac0b9448a5a92a26a3fdb653093dce4",
+    "scripts/build.mjs": "8ede15072af72c6b533400dc99f43c2d081da338dfc20860aa2d0ef73250e8ee",
+    "tests/performance.browser.mjs": "ae22079d8e15fdbc78bf81610796e217adab38ef44d82c2f3b8b06440aef9934",
+    "scripts/optimize-images.py": "949e48eeeb4f52ee1be46e7e7515aeb77447ad28aa09adf2a4d81149384100d3"
+  },
+  "distBytes": {
+    "baseline": 4680306,
+    "release": 3468462
+  },
+  "screenshotComparison": {
+    "homeMaxChannelDifference": 2,
+    "homePSNRDb": 57.67714909703682,
+    "dimensions": [
+      390,
+      844
+    ]
+  }
+}

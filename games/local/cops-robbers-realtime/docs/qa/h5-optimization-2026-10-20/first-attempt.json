@@ -1,0 +1,256 @@
+{
+  "passed": false,
+  "environment": "win32; isolated headless Chromium; emulated phone/touch, not a physical device",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "network": {
+    "offline": false,
+    "latency": 80,
+    "downloadThroughput": 500000,
+    "uploadThroughput": 500000
+  },
+  "coldRuns": 5,
+  "cpuThrottle": 4,
+  "staticObservationMs": 30000,
+  "gameplayObservationMs": 10000,
+  "longFrameThresholdMs": 50,
+  "variants": [
+    {
+      "name": "baseline",
+      "cold": {
+        "runs": [
+          {
+            "readyMs": 9651.800000011921,
+            "loadMs": 9590,
+            "imageBytes": 4288316,
+            "images": [
+              {
+                "path": "/src/assets/home-city.png",
+                "bytes": 2445871,
+                "durationMs": 9455.5
+              },
+              {
+                "path": "/src/assets/characters.png",
+                "bytes": 1842445,
+                "durationMs": 7490.799999982119
+              }
+            ]
+          },
+          {
+            "readyMs": 9670.300000011921,
+            "loadMs": 9593.600000023842,
+            "imageBytes": 4288316,
+            "images": [
+              {
+                "path": "/src/assets/home-city.png",
+                "bytes": 2445871,
+                "durationMs": 9455.800000011921
+              },
+              {
+                "path": "/src/assets/characters.png",
+                "bytes": 1842445,
+                "durationMs": 7498.699999988079
+              }
+            ]
+          },
+          {
+            "readyMs": 9677.09999999404,
+            "loadMs": 9600.800000011921,
+            "imageBytes": 4288316,
+            "images": [
+              {
+                "path": "/src/assets/home-city.png",
+                "bytes": 2445871,
+                "durationMs": 9464.40000000596
+              },
+              {
+                "path": "/src/assets/characters.png",
+                "bytes": 1842445,
+                "durationMs": 7487.300000011921
+              }
+            ]
+          },
+          {
+            "readyMs": 9652.09999999404,
+            "loadMs": 9588.90000000596,
+            "imageBytes": 4288316,
+            "images": [
+              {
+                "path": "/src/assets/home-city.png",
+                "bytes": 2445871,
+                "durationMs": 9461.300000011921
+              },
+              {
+                "path": "/src/assets/characters.png",
+                "bytes": 1842445,
+                "durationMs": 7488.4000000059605
+              }
+            ]
+          },
+          {
+            "readyMs": 9674.199999988079,
+            "loadMs": 9615.799999982119,
+            "imageBytes": 4288316,
+            "images": [
+              {
+                "path": "/src/assets/home-city.png",
+                "bytes": 2445871,
+                "durationMs": 9482.199999988079
+              },
+              {
+                "path": "/src/assets/characters.png",
+                "bytes": 1842445,
+                "durationMs": 7506.199999988079
+              }
+            ]
+          }
+        ],
+        "ready": {
+          "count": 5,
+          "medianMs": 9670.300000011921,
+          "p95Ms": 9677.09999999404,
+          "maxMs": 9677.09999999404
+        },
+        "load": {
+          "count": 5,
+          "medianMs": 9593.600000023842,
+          "p95Ms": 9615.799999982119,
+          "maxMs": 9615.799999982119
+        }
+      },
+      "canvas": {
+        "home": {
+          "elapsedMs": 30006.30000001192,
+          "draws": 1801
+        },
+        "levels": {
+          "elapsedMs": 30012.80000001192,
+          "draws": 1798
+        },
+        "fixedScene": {
+          "level": 1,
+          "mode": "quick",
+          "input": "no orders during 10-second observation",
+          "elapsedMs": 10020.299999982119,
+          "draws": 601,
+          "intervals": {
+            "count": 600,
+            "medianMs": 16.69999998807907,
+            "p95Ms": 16.900000005960464,
+            "maxMs": 17.30000001192093
+          },
+          "longFrames": 0
+        }
+      }
+    },
+    {
+      "name": "release",
+      "cold": {
+        "runs": [
+          {
+            "readyMs": 7267.899999976158,
+            "loadMs": 7159,
+            "imageBytes": 3076228,
+            "images": [
+              {
+                "path": "/src/assets/home-city.webp",
+                "bytes": 1826598,
+                "durationMs": 7014.0999999940395
+              },
+              {
+                "path": "/src/assets/characters.webp",
+                "bytes": 1249630,
+                "durationMs": 5106
+              }
+            ]
+          },
+          {
+            "readyMs": 7259.800000011921,
+            "loadMs": 7181.0999999940395,
+            "imageBytes": 3076228,
+            "images": [
+              {
+                "path": "/src/assets/home-city.webp",
+                "bytes": 1826598,
+                "durationMs": 7039.100000023842
+              },
+              {
+                "path": "/src/assets/characters.webp",
+                "bytes": 1249630,
+                "durationMs": 5128.199999988079
+              }
+            ]
+          },
+          {
+            "readyMs": 7275.300000011921,
+            "loadMs": 7203.5999999940395,
+            "imageBytes": 3076228,
+            "images": [
+              {
+                "path": "/src/assets/home-city.webp",
+                "bytes": 1826598,
+                "durationMs": 7040.5
+              },
+              {
+                "path": "/src/assets/characters.webp",
+                "bytes": 1249630,
+                "durationMs": 5116.5
+              }
+            ]
+          },
+          {
+            "readyMs": 7271.9000000059605,
+            "loadMs": 7169.800000011921,
+            "imageBytes": 3076228,
+            "images": [
+              {
+                "path": "/src/assets/home-city.webp",
+                "bytes": 1826598,
+                "durationMs": 7039.200000017881
+              },
+              {
+                "path": "/src/assets/characters.webp",
+                "bytes": 1249630,
+                "durationMs": 5129.399999976158
+              }
+            ]
+          },
+          {
+            "readyMs": 7213.100000023842,
+            "loadMs": 7149.700000017881,
+            "imageBytes": 3076228,
+            "images": [
+              {
+                "path": "/src/assets/home-city.webp",
+                "bytes": 1826598,
+                "durationMs": 7018.700000017881
+              },
+              {
+                "path": "/src/assets/characters.webp",
+                "bytes": 1249630,
+                "durationMs": 5092.700000017881
+              }
+            ]
+          }
+        ],
+        "ready": {
+          "count": 5,
+          "medianMs": 7267.899999976158,
+          "p95Ms": 7275.300000011921,
+          "maxMs": 7275.300000011921
+        },
+        "load": {
+          "count": 5,
+          "medianMs": 7169.800000011921,
+          "p95Ms": 7203.5999999940395,
+          "maxMs": 7203.5999999940395
+        }
+      }
+    }
+  ],
+  "errors": [],
+  "browser": "155.0.8059.82",
+  "failure": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n'playing' !== 'won'\n\n    at canvasChecks (file:///C:/Users/15211/AppData/Local/Temp/small-games-h5-optimizations-20261020/games/local/cops-robbers-realtime/tests/performance.browser.mjs:183:14)\n    at async file:///C:/Users/15211/AppData/Local/Temp/small-games-h5-optimizations-20261020/games/local/cops-robbers-realtime/tests/performance.browser.mjs:211:21"
+}

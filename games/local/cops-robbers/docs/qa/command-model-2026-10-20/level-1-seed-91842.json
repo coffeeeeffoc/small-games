@@ -1,0 +1,1093 @@
+{
+  "algorithm": "observed-history-lcg-v1",
+  "levelId": 1,
+  "seed": 91842,
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "candidateSha": null,
+  "sourceHashes": {
+    "src/main.js": "1ce180ad67b05700b7a3afafd89800f8ecd9fa2d23605ff971287aeb8184cd1d",
+    "src/engine.js": "3288a386e52e06004b6e95821c7cca8067c0435d9ca910df1e6d33845ca49b11",
+    "src/levels.js": "a50448227ad1930f65666caea06a89824b3828f9af1b4ad4bad870ad0e61be54",
+    "src/solutions.js": "0fc556f668b69cecb82d55b3c5cc078abb02761bf7d4a7a895632a4409f2745d",
+    "scripts/check-command-model.mjs": "48e05b850b11f11ac791be72ffc8100c15c358e8b2d4acce95b8b74108847e2b",
+    "scripts/command-model.mjs": "ba6bec70581413afb650c1fc76fb903a4b7727412dd8a47f95f61855c15ef7f0",
+    "scripts/browser-helpers.mjs": "68e0334412dd551ef22338a38ebe8ad766eefe7f654e57cdc546f63f57bdea0b"
+  },
+  "commands": [
+    {
+      "type": "move",
+      "cop": 0,
+      "from": 2,
+      "to": 1
+    },
+    {
+      "type": "hint"
+    },
+    {
+      "type": "undo"
+    },
+    {
+      "type": "move",
+      "cop": 0,
+      "from": 2,
+      "to": 1
+    },
+    {
+      "type": "restart"
+    },
+    {
+      "type": "hint"
+    },
+    {
+      "type": "hint"
+    },
+    {
+      "type": "restart"
+    },
+    {
+      "type": "restart"
+    },
+    {
+      "type": "hint"
+    },
+    {
+      "type": "restart"
+    },
+    {
+      "type": "move",
+      "cop": 1,
+      "from": 8,
+      "to": 8
+    },
+    {
+      "type": "hint"
+    },
+    {
+      "type": "restart"
+    },
+    {
+      "type": "hint"
+    },
+    {
+      "type": "hint"
+    },
+    {
+      "type": "move",
+      "cop": 2,
+      "from": 9,
+      "to": 4
+    },
+    {
+      "type": "move",
+      "cop": 1,
+      "from": 8,
+      "to": 8
+    },
+    {
+      "type": "restart"
+    },
+    {
+      "type": "restart"
+    },
+    {
+      "type": "move",
+      "cop": 0,
+      "from": 2,
+      "to": 2
+    },
+    {
+      "type": "move",
+      "cop": 0,
+      "from": 2,
+      "to": 3
+    },
+    {
+      "type": "undo"
+    },
+    {
+      "type": "restart"
+    }
+  ],
+  "result": {
+    "status": "passed",
+    "commands": [
+      {
+        "type": "move",
+        "cop": 0,
+        "from": 2,
+        "to": 1
+      },
+      {
+        "type": "hint"
+      },
+      {
+        "type": "undo"
+      },
+      {
+        "type": "move",
+        "cop": 0,
+        "from": 2,
+        "to": 1
+      },
+      {
+        "type": "restart"
+      },
+      {
+        "type": "hint"
+      },
+      {
+        "type": "hint"
+      },
+      {
+        "type": "restart"
+      },
+      {
+        "type": "restart"
+      },
+      {
+        "type": "hint"
+      },
+      {
+        "type": "restart"
+      },
+      {
+        "type": "move",
+        "cop": 1,
+        "from": 8,
+        "to": 8
+      },
+      {
+        "type": "hint"
+      },
+      {
+        "type": "restart"
+      },
+      {
+        "type": "hint"
+      },
+      {
+        "type": "hint"
+      },
+      {
+        "type": "move",
+        "cop": 2,
+        "from": 9,
+        "to": 4
+      },
+      {
+        "type": "move",
+        "cop": 1,
+        "from": 8,
+        "to": 8
+      },
+      {
+        "type": "restart"
+      },
+      {
+        "type": "restart"
+      },
+      {
+        "type": "move",
+        "cop": 0,
+        "from": 2,
+        "to": 2
+      },
+      {
+        "type": "move",
+        "cop": 0,
+        "from": 2,
+        "to": 3
+      },
+      {
+        "type": "undo"
+      },
+      {
+        "type": "restart"
+      }
+    ],
+    "trace": [
+      {
+        "index": 0,
+        "command": {
+          "type": "move",
+          "cop": 0,
+          "from": 2,
+          "to": 1
+        },
+        "before": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        },
+        "after": {
+          "cops": [
+            1,
+            8,
+            9
+          ],
+          "robbers": [
+            0
+          ],
+          "turn": 1,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        }
+      },
+      {
+        "index": 1,
+        "command": {
+          "type": "hint"
+        },
+        "before": {
+          "cops": [
+            1,
+            8,
+            9
+          ],
+          "robbers": [
+            0
+          ],
+          "turn": 1,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        },
+        "hintRequest": 1,
+        "hintActivity": {
+          "requested": 1,
+          "completed": 1
+        },
+        "after": {
+          "cops": [
+            1,
+            8,
+            9
+          ],
+          "robbers": [
+            0
+          ],
+          "turn": 1,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        }
+      },
+      {
+        "index": 2,
+        "command": {
+          "type": "undo"
+        },
+        "before": {
+          "cops": [
+            1,
+            8,
+            9
+          ],
+          "robbers": [
+            0
+          ],
+          "turn": 1,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        },
+        "after": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        }
+      },
+      {
+        "index": 3,
+        "command": {
+          "type": "move",
+          "cop": 0,
+          "from": 2,
+          "to": 1
+        },
+        "before": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        },
+        "after": {
+          "cops": [
+            1,
+            8,
+            9
+          ],
+          "robbers": [
+            0
+          ],
+          "turn": 1,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        }
+      },
+      {
+        "index": 4,
+        "command": {
+          "type": "restart"
+        },
+        "before": {
+          "cops": [
+            1,
+            8,
+            9
+          ],
+          "robbers": [
+            0
+          ],
+          "turn": 1,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        },
+        "after": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        }
+      },
+      {
+        "index": 5,
+        "command": {
+          "type": "hint"
+        },
+        "before": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        },
+        "hintRequest": 2,
+        "hintActivity": {
+          "requested": 2,
+          "completed": 2
+        },
+        "after": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        }
+      },
+      {
+        "index": 6,
+        "command": {
+          "type": "hint"
+        },
+        "before": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        },
+        "hintRequest": 3,
+        "hintActivity": {
+          "requested": 3,
+          "completed": 3
+        },
+        "after": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        }
+      },
+      {
+        "index": 7,
+        "command": {
+          "type": "restart"
+        },
+        "before": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        },
+        "after": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        }
+      },
+      {
+        "index": 8,
+        "command": {
+          "type": "restart"
+        },
+        "before": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        },
+        "after": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        }
+      },
+      {
+        "index": 9,
+        "command": {
+          "type": "hint"
+        },
+        "before": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        },
+        "hintRequest": 4,
+        "hintActivity": {
+          "requested": 4,
+          "completed": 4
+        },
+        "after": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        }
+      },
+      {
+        "index": 10,
+        "command": {
+          "type": "restart"
+        },
+        "before": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        },
+        "after": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        }
+      },
+      {
+        "index": 11,
+        "command": {
+          "type": "move",
+          "cop": 1,
+          "from": 8,
+          "to": 8
+        },
+        "before": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        },
+        "after": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            0
+          ],
+          "turn": 1,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        }
+      },
+      {
+        "index": 12,
+        "command": {
+          "type": "hint"
+        },
+        "before": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            0
+          ],
+          "turn": 1,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        },
+        "hintRequest": 5,
+        "hintActivity": {
+          "requested": 5,
+          "completed": 5
+        },
+        "after": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            0
+          ],
+          "turn": 1,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        }
+      },
+      {
+        "index": 13,
+        "command": {
+          "type": "restart"
+        },
+        "before": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            0
+          ],
+          "turn": 1,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        },
+        "after": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        }
+      },
+      {
+        "index": 14,
+        "command": {
+          "type": "hint"
+        },
+        "before": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        },
+        "hintRequest": 6,
+        "hintActivity": {
+          "requested": 6,
+          "completed": 6
+        },
+        "after": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        }
+      },
+      {
+        "index": 15,
+        "command": {
+          "type": "hint"
+        },
+        "before": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        },
+        "hintRequest": 7,
+        "hintActivity": {
+          "requested": 7,
+          "completed": 7
+        },
+        "after": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        }
+      },
+      {
+        "index": 16,
+        "command": {
+          "type": "move",
+          "cop": 2,
+          "from": 9,
+          "to": 4
+        },
+        "before": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        },
+        "after": {
+          "cops": [
+            2,
+            8,
+            4
+          ],
+          "robbers": [
+            6
+          ],
+          "turn": 1,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        }
+      },
+      {
+        "index": 17,
+        "command": {
+          "type": "move",
+          "cop": 1,
+          "from": 8,
+          "to": 8
+        },
+        "before": {
+          "cops": [
+            2,
+            8,
+            4
+          ],
+          "robbers": [
+            6
+          ],
+          "turn": 1,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        },
+        "after": {
+          "cops": [
+            2,
+            8,
+            4
+          ],
+          "robbers": [
+            null
+          ],
+          "turn": 2,
+          "phase": "lost",
+          "remaining": 0,
+          "escaped": 1
+        }
+      },
+      {
+        "index": 18,
+        "command": {
+          "type": "restart"
+        },
+        "before": {
+          "cops": [
+            2,
+            8,
+            4
+          ],
+          "robbers": [
+            null
+          ],
+          "turn": 2,
+          "phase": "lost",
+          "remaining": 0,
+          "escaped": 1
+        },
+        "after": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        }
+      },
+      {
+        "index": 19,
+        "command": {
+          "type": "restart"
+        },
+        "before": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        },
+        "after": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        }
+      },
+      {
+        "index": 20,
+        "command": {
+          "type": "move",
+          "cop": 0,
+          "from": 2,
+          "to": 2
+        },
+        "before": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        },
+        "after": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            0
+          ],
+          "turn": 1,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        }
+      },
+      {
+        "index": 21,
+        "command": {
+          "type": "move",
+          "cop": 0,
+          "from": 2,
+          "to": 3
+        },
+        "before": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            0
+          ],
+          "turn": 1,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        },
+        "after": {
+          "cops": [
+            3,
+            8,
+            9
+          ],
+          "robbers": [
+            null
+          ],
+          "turn": 2,
+          "phase": "lost",
+          "remaining": 0,
+          "escaped": 1
+        }
+      },
+      {
+        "index": 22,
+        "command": {
+          "type": "undo"
+        },
+        "before": {
+          "cops": [
+            3,
+            8,
+            9
+          ],
+          "robbers": [
+            null
+          ],
+          "turn": 2,
+          "phase": "lost",
+          "remaining": 0,
+          "escaped": 1
+        },
+        "after": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            0
+          ],
+          "turn": 1,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        }
+      },
+      {
+        "index": 23,
+        "command": {
+          "type": "restart"
+        },
+        "before": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            0
+          ],
+          "turn": 1,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        },
+        "after": {
+          "cops": [
+            2,
+            8,
+            9
+          ],
+          "robbers": [
+            5
+          ],
+          "turn": 0,
+          "phase": "planning",
+          "remaining": 1,
+          "escaped": 0
+        }
+      }
+    ],
+    "counts": {
+      "move": 7,
+      "hint": 7,
+      "undo": 2,
+      "restart": 8
+    },
+    "errors": []
+  }
+}

@@ -1,0 +1,289 @@
+{
+  "passed": true,
+  "environment": "win32; isolated headless Chromium; emulated phone/touch, not a physical device",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "coldNetwork": {
+    "offline": false,
+    "latency": 80,
+    "downloadThroughput": 500000,
+    "uploadThroughput": 500000
+  },
+  "coldRuns": 5,
+  "coldCpuThrottle": 4,
+  "staticObservationMs": 30000,
+  "gameplayObservationMs": 10000,
+  "longFrameThresholdMs": 50,
+  "variants": [
+    {
+      "name": "baseline",
+      "cold": {
+        "runs": [
+          {
+            "readyMs": 9695.59999999404,
+            "loadMs": 9600.90000000596,
+            "imageBytes": 4288316,
+            "images": [
+              {
+                "path": "/src/assets/home-city.png",
+                "bytes": 2445871,
+                "durationMs": 9479.5
+              },
+              {
+                "path": "/src/assets/characters.png",
+                "bytes": 1842445,
+                "durationMs": 7474.9000000059605
+              }
+            ]
+          },
+          {
+            "readyMs": 9657,
+            "loadMs": 9601.799999982119,
+            "imageBytes": 4288316,
+            "images": [
+              {
+                "path": "/src/assets/home-city.png",
+                "bytes": 2445871,
+                "durationMs": 9467.799999982119
+              },
+              {
+                "path": "/src/assets/characters.png",
+                "bytes": 1842445,
+                "durationMs": 7513.5
+              }
+            ]
+          },
+          {
+            "readyMs": 9666.59999999404,
+            "loadMs": 9606.200000017881,
+            "imageBytes": 4288316,
+            "images": [
+              {
+                "path": "/src/assets/home-city.png",
+                "bytes": 2445871,
+                "durationMs": 9471
+              },
+              {
+                "path": "/src/assets/characters.png",
+                "bytes": 1842445,
+                "durationMs": 7498.199999988079
+              }
+            ]
+          },
+          {
+            "readyMs": 9710.90000000596,
+            "loadMs": 9587,
+            "imageBytes": 4288316,
+            "images": [
+              {
+                "path": "/src/assets/home-city.png",
+                "bytes": 2445871,
+                "durationMs": 9446.90000000596
+              },
+              {
+                "path": "/src/assets/characters.png",
+                "bytes": 1842445,
+                "durationMs": 7478.4000000059605
+              }
+            ]
+          },
+          {
+            "readyMs": 9697.59999999404,
+            "loadMs": 9586,
+            "imageBytes": 4288316,
+            "images": [
+              {
+                "path": "/src/assets/home-city.png",
+                "bytes": 2445871,
+                "durationMs": 9454.90000000596
+              },
+              {
+                "path": "/src/assets/characters.png",
+                "bytes": 1842445,
+                "durationMs": 7478.5999999940395
+              }
+            ]
+          }
+        ],
+        "ready": {
+          "count": 5,
+          "medianMs": 9695.59999999404,
+          "p95Ms": 9710.90000000596,
+          "maxMs": 9710.90000000596
+        },
+        "load": {
+          "count": 5,
+          "medianMs": 9600.90000000596,
+          "p95Ms": 9606.200000017881,
+          "maxMs": 9606.200000017881
+        }
+      },
+      "canvas": {
+        "home": {
+          "elapsedMs": 30010.29999998212,
+          "draws": 1801
+        },
+        "levels": {
+          "elapsedMs": 30003.80000001192,
+          "draws": 1797
+        },
+        "fixedScene": {
+          "level": 1,
+          "mode": "quick",
+          "cpuThrottle": 1,
+          "networkThrottle": false,
+          "input": "no orders during 10-second observation",
+          "elapsedMs": 10007.899999976158,
+          "draws": 600,
+          "intervals": {
+            "count": 599,
+            "medianMs": 16.69999998807907,
+            "p95Ms": 17,
+            "maxMs": 23.5
+          },
+          "longFrames": 0
+        }
+      }
+    },
+    {
+      "name": "release",
+      "cold": {
+        "runs": [
+          {
+            "readyMs": 7308.700000017881,
+            "loadMs": 7166,
+            "imageBytes": 3076228,
+            "images": [
+              {
+                "path": "/src/assets/home-city.webp",
+                "bytes": 1826598,
+                "durationMs": 7023.9000000059605
+              },
+              {
+                "path": "/src/assets/characters.webp",
+                "bytes": 1249630,
+                "durationMs": 5110.0999999940395
+              }
+            ]
+          },
+          {
+            "readyMs": 7222.300000011921,
+            "loadMs": 7161.5,
+            "imageBytes": 3076228,
+            "images": [
+              {
+                "path": "/src/assets/home-city.webp",
+                "bytes": 1826598,
+                "durationMs": 7030.800000011921
+              },
+              {
+                "path": "/src/assets/characters.webp",
+                "bytes": 1249630,
+                "durationMs": 5109.699999988079
+              }
+            ]
+          },
+          {
+            "readyMs": 7249.0999999940395,
+            "loadMs": 7173.5999999940395,
+            "imageBytes": 3076228,
+            "images": [
+              {
+                "path": "/src/assets/home-city.webp",
+                "bytes": 1826598,
+                "durationMs": 7032.699999988079
+              },
+              {
+                "path": "/src/assets/characters.webp",
+                "bytes": 1249630,
+                "durationMs": 5126.199999988079
+              }
+            ]
+          },
+          {
+            "readyMs": 7267,
+            "loadMs": 7169.5999999940395,
+            "imageBytes": 3076228,
+            "images": [
+              {
+                "path": "/src/assets/home-city.webp",
+                "bytes": 1826598,
+                "durationMs": 7046.5999999940395
+              },
+              {
+                "path": "/src/assets/characters.webp",
+                "bytes": 1249630,
+                "durationMs": 5127.300000011921
+              }
+            ]
+          },
+          {
+            "readyMs": 7304.199999988079,
+            "loadMs": 7196.5,
+            "imageBytes": 3076228,
+            "images": [
+              {
+                "path": "/src/assets/home-city.webp",
+                "bytes": 1826598,
+                "durationMs": 7048.700000017881
+              },
+              {
+                "path": "/src/assets/characters.webp",
+                "bytes": 1249630,
+                "durationMs": 5128.5999999940395
+              }
+            ]
+          }
+        ],
+        "ready": {
+          "count": 5,
+          "medianMs": 7267,
+          "p95Ms": 7308.700000017881,
+          "maxMs": 7308.700000017881
+        },
+        "load": {
+          "count": 5,
+          "medianMs": 7169.5999999940395,
+          "p95Ms": 7196.5,
+          "maxMs": 7196.5
+        }
+      },
+      "canvas": {
+        "home": {
+          "elapsedMs": 30015.70000001788,
+          "draws": 0
+        },
+        "levels": {
+          "elapsedMs": 30007.30000001192,
+          "draws": 0
+        },
+        "fixedScene": {
+          "level": 1,
+          "mode": "quick",
+          "cpuThrottle": 1,
+          "networkThrottle": false,
+          "input": "no orders during 10-second observation",
+          "elapsedMs": 10014.199999988079,
+          "draws": 600,
+          "intervals": {
+            "count": 599,
+            "medianMs": 16.69999998807907,
+            "p95Ms": 16.900000005960464,
+            "maxMs": 17.600000023841858
+          },
+          "longFrames": 0
+        },
+        "lifecycle": {
+          "terminal": "won",
+          "visibleTerminalDraws": 16,
+          "maxPending": 1,
+          "duplicateTimestamps": 0
+        }
+      }
+    }
+  ],
+  "errors": [],
+  "browser": "155.0.8059.82"
+}

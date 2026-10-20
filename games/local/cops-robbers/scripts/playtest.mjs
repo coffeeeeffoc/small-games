@@ -7,6 +7,7 @@ import { chromium } from '@playwright/test';
 import { levels, chapters } from '../src/levels.js';
 import { solutions } from '../src/solutions.js';
 import { initialState, step } from '../src/engine.js';
+import { loadPatrol, patrolSnapshot, completedHintFixture } from './browser-helpers.mjs';
 
 const output = resolve(dirname(fileURLToPath(import.meta.url)), '../outputs');
 const base = (process.env.BASE_URL || 'http://127.0.0.1:43420').replace(/\/$/, '');
@@ -19,24 +20,8 @@ function observe(page) {
   page.on('requestfailed', request => report.errors.push(`request: ${request.url()} ${request.failure()?.errorText}`));
   page.on('response', response => { if (response.status() >= 400) report.errors.push(`http ${response.status()}: ${response.url()}`); });
 }
-async function load(page, id, reduced = true) {
-  await page.goto(`${base}/?dev=1&level=${id}${reduced ? '&motion=reduce' : ''}`, { waitUntil: 'networkidle' });
-  assert.match(await page.title(), /围捕小队/, '端口没有返回围捕小队');
-  await page.getByTestId('board').waitFor({ state: 'visible' });
-  await page.waitForFunction(id => document.body.dataset.level === String(id) && document.body.dataset.phase === 'planning', id);
-  assert.equal(await page.getByTestId('execute').count(), 0, '点击即移动，页面不应保留行动确认按钮');
-}
-async function snapshot(page, id) {
-  return page.evaluate(({ cops, robbers }) => ({
-    cops: cops.map((_, i) => Number(document.getElementById(`cop-actor-${i}`).dataset.node)),
-    robbers: robbers.map((_, i) => {
-      const actor = document.getElementById(`robber-actor-${i}`);
-      return actor ? Number(actor.dataset.node) : null;
-    }),
-    turn: Number(document.body.dataset.turn), phase: document.body.dataset.phase,
-    remaining: Number(document.body.dataset.remaining), escaped: Number(document.body.dataset.escaped),
-  }), levels[id - 1]);
-}
+const load = (page, id, reduced = true) => loadPatrol(page, base, id, reduced);
+const snapshot = (page, id) => patrolSnapshot(page, levels[id - 1]);
 async function move(page, id, state, targets, touch = false) {
   const changed = targets.flatMap((node, i) => node !== state.cops[i] ? [i] : []);
   assert.ok(changed.length <= 1, `关卡 ${id} 的每一步最多只能移动一名追逐队员`);
@@ -91,7 +76,7 @@ try {
   browser = await chromium.launch(executablePath ? { executablePath } : process.env.BROWSER_CHANNEL ? { channel: process.env.BROWSER_CHANNEL } : {});
   const desktop = await browser.newContext({ viewport: { width: 1366, height: 900 } }), page = await desktop.newPage();
   observe(page);
-  await page.addInitScript(() => { globalThis.SmallGamesPublishingConfig = { adMode: 'host' }; globalThis.SmallGamesRewardAds = { offer: async () => ({ status: 'completed' }) }; });
+  await completedHintFixture(page);
   await load(page, 1, false); await win(page, 1);
   assert.ok(await page.evaluate(() => localStorage.getItem('cops-robbers-practice-v3')), '胜利后应保存新版本地记录');
   await page.getByTestId('next-level').click();

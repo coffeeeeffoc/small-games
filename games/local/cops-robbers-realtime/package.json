@@ -12,7 +12,10 @@
     "test:browser": "node tests/publishing.browser.mjs && node tests/safe-area.browser.mjs",
     "test:mobile-pages": "node tests/publishing.browser.mjs",
     "package:taptap": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-taptap.ps1",
-    "test:runner-browser": "node scripts/runner-playtest.mjs"
+    "test:runner-browser": "node scripts/runner-playtest.mjs",
+    "test:performance": "node tests/performance.browser.mjs",
+    "assets:optimize": "python scripts/optimize-images.py",
+    "test:assets": "python scripts/optimize-images.py --check"
   },
   "engines": {
     "node": ">=20"

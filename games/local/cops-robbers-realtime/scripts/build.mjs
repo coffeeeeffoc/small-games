@@ -9,7 +9,9 @@ await mkdir("dist", { recursive: true });
 await copyFile("index.html", "dist/index.html");
 await copyFile("dev-mode.js", "dist/dev-mode.js");
 await copyFile(new URL("../../../../platforms/h5/publishing.js", import.meta.url), "dist/publishing.js");
-await cp("src", "dist/src", { recursive: true });
+// Keep the original PNG artwork in source control, but ship only its WebP copies.
+const originalArt = new Set(["src/assets/home-city.png", "src/assets/characters.png"].map(path => resolve(path)));
+await cp("src", "dist/src", { recursive: true, filter: source => !originalArt.has(resolve(source)) });
 await prepareH5Ads('cops-robbers-realtime', resolve('dist'), { args: process.argv.slice(2) });
 await prepareH5Service('cops-robbers-realtime', resolve('dist'), { env: serviceEnvironment(process.argv.slice(2)), local: !process.argv.includes('--taptap') });
 console.log("Built static game → dist/");
