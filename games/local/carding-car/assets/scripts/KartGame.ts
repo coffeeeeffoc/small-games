@@ -699,6 +699,7 @@ export class KartGame extends Component {
     client!.send({ type: 'prepared', revision: room.revision });
   }
   setupMultiplayer() {
+    if ((globalThis as typeof globalThis & { SmallGamesH5Package?: { offline: boolean } }).SmallGamesH5Package?.offline) return;
     resources.load('multiplayer', JsonAsset, (error, asset) => {
       if (!this.isValid) return;
       const query = sys.isBrowser ? new URLSearchParams(location.search) : undefined;
@@ -844,6 +845,8 @@ export class KartGame extends Component {
   saveFinishedRace() {
     const p = this.race.drivers[0].progress;
     if (this.race.networked || this.race.phase !== 'finished' || !p.finishedAt || p.laps < this.race.laps || this.race.mode !== this.mode) return;
+    (globalThis as typeof globalThis & { SmallGamesRewardAds?: { atBreak(id: string, current: () => boolean): void } })
+      .SmallGamesRewardAds?.atBreak?.(this.raceRewardId, () => this.race.phase === 'finished' && !this.race.networked);
     this.pendingRewards.push({
       id: this.raceRewardId, position: this.race.order.indexOf(0) + 1,
       entrants: this.race.drivers.length, time: p.finishedAt, route: this.selection.route,

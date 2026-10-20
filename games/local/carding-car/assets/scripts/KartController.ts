@@ -1,7 +1,7 @@
 import { EventKeyboard, EventTouch, input, Input, KeyCode, sys, view } from 'cc';
 import { clamp, type KartInput } from './KartConfig';
 import { selectionRows, type Selection } from './Selection';
-import { readyLayout, settingsLayout, contains } from './HUDLayout';
+import { readyLayout, pauseLayout, settingsLayout, contains } from './HUDLayout';
 import type { RaceManager } from './RaceManager';
 export class KartController {
   keys = new Set<number>();
@@ -183,16 +183,18 @@ export class KartController {
       }
       return;
     }
-    if (r.phase === 'finished' || r.phase === 'paused') {
+    if (r.phase === 'paused') {
+      this.clear();
+      if (contains(pauseLayout.resume, x, y)) r.resume();
+      else if (contains(pauseLayout.restart, x, y)) this.restart();
+      else if (contains(pauseLayout.home, x, y)) this.home ? this.home() : this.garage();
+      return;
+    }
+    if (r.phase === 'finished') {
       if (p.x > 0.135 && p.x < 0.315 && p.y > 0.22 && p.y < 0.32) {
         this.clear();
         if (!r.networked && this.home) this.home();
         else this.garage();
-        return;
-      }
-      if (r.phase === 'paused' && p.x > 0.685 && p.x < 0.865 && p.y > 0.22 && p.y < 0.32) {
-        this.clear();
-        this.restart();
         return;
       }
       if (r.phase === 'finished' && !r.networked && p.x > 0.685 && p.x < 0.865 && p.y > 0.22 && p.y < 0.32) {
@@ -201,8 +203,7 @@ export class KartController {
       }
       if (p.x > 0.35 && p.x < 0.65 && p.y > 0.22 && p.y < 0.32) {
         this.clear();
-        if (r.phase === 'paused') r.resume();
-        else if (r.phase === 'finished') this.restart();
+        this.restart();
       }
       return;
     }

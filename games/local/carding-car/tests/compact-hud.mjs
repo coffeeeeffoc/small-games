@@ -14,6 +14,7 @@ const browser = await startBrowser(url, { args: local ? ['--host-resolver-rules=
 const evidence = { build, environment: 'Chromium with Android UA and CDP touch; physical Android/iOS unverified', cases: [], errors: [], engineWarnings: [] };
 const state = (page) => page.evaluate(() => __kart.snapshot());
 const screenshot = (page, name) => page.screenshot({ path: fileURLToPath(new URL(`compact-${name}.png`, reportsURL)) });
+let offlinePackage = false;
 try {
   for (const [name, viewport] of [
     ['landscape', { width: 844, height: 390 }],
@@ -30,6 +31,7 @@ try {
     });
     await page.goto(url);
     await waitForReady(page);
+    offlinePackage = await page.evaluate(() => Boolean(globalThis.SmallGamesH5Package?.offline));
     const geometry = await displayGeometry(page);
     assert.ok(geometry.visible.width > geometry.visible.height, 'game remains landscape in either physical orientation');
     assert.equal(geometry.rotated, name === 'portrait-held');
@@ -189,7 +191,8 @@ try {
     assert.equal((await state(page)).seed, paused.seed);
     await tapDesign(page, 56, 126);
     await page.waitForFunction(() => __kart.snapshot().phase === 'paused');
-    await tapDesign(page, 480, 395);
+    await screenshot(page, `${name}-pause`);
+    await tapDesign(page, 480, 282);
     await page.waitForFunction(() => __kart.snapshot().phase === 'racing');
     await page.reload();
     await waitForReady(page);
@@ -202,7 +205,7 @@ try {
     evidence.cases.push({ name, viewport, geometry, ready, drive, rendered, paused, restored });
     await context.close();
   }
-  if (local && !new URL(url).pathname.startsWith('/play/')) {
+  if (local && !offlinePackage && !new URL(url).pathname.startsWith('/play/')) {
     const context = await browser.newContext({ ...mobileOptions, viewport: { width: 844, height: 390 } });
     const page = await context.newPage(), offline = new URL(url); offline.hostname = 'kart-offline.test';
     page.on('pageerror', error => evidence.errors.push(error.message));

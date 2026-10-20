@@ -9,6 +9,16 @@ const defer = () => {
   return { promise, resolve };
 };
 const turn = () => new Promise((resolve) => setImmediate(resolve));
+test('profile reads and updates reuse the same game-scoped owner', async (t) => {
+  const f = authFixture(t, { initial: null });
+  const api = createGameServices({ gameId: 'tower-brake' });
+  await api.profile();
+  await api.profile({ nickname: '旅人' });
+  assert.equal(f.calls.filter((call) => call.url.endsWith('/sessions/guest')).length, 1);
+  assert.equal(f.calls.at(-2).url, '/api/competition/v1/me');
+  assert.equal(f.calls.at(-1).token, f.calls.at(-2).token);
+  assert.deepEqual(f.calls.at(-1).body, { nickname: '旅人' });
+});
 function recorderFixture(options = {}) {
   const calls = [],
     statuses = [];

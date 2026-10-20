@@ -4,6 +4,8 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { editor, runCreator } from '../../carding-car/scripts/toolchain.mjs';
 import { sourceHash, verifyPrebuilt } from './artifact.mjs';
+import { brandCocos } from '../../carding-car/scripts/cocos-branding.mjs';
+import { setTimeout as delay } from 'node:timers/promises';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const target = process.argv[2] || 'web-mobile';
 if (['wechatgame', 'bilibili', 'douyin'].includes(target)) {
@@ -97,6 +99,7 @@ html = html.replace(
 await writeFile(out + 'index.html', html);
 await cp(new URL('./dev-mode.js', import.meta.url), out + 'dev-mode.js');
 const { installStartup } = await import('../startup/install.mjs');
+await brandCocos(out);
 await installStartup(out, target);
 await writeFile(
   out + 'build-info.json',
@@ -111,8 +114,14 @@ if (target === 'web-mobile') {
 let bytes = 0;
 for (const entry of await readdir(out, { recursive: true, withFileTypes: true }))
   if (entry.isFile()) bytes += (await stat(entry.parentPath + '/' + entry.name)).size;
-await writeFile(
-  root + `reports/${target}-size.json`,
-  JSON.stringify({ creator: '3.8.8', target, bytes }, null, 2),
-);
+// Creator's Windows watcher can briefly retain the existing report after exit.
+for (let attempt = 0; ; attempt++) {
+  try {
+    await writeFile(root + `reports/${target}-size.json`, JSON.stringify({ creator: '3.8.8', target, bytes }, null, 2));
+    break;
+  } catch (error) {
+    if (process.platform !== 'win32' || !['UNKNOWN', 'EPERM', 'EBUSY', 'EACCES'].includes(error.code) || attempt === 5) throw error;
+    await delay(250);
+  }
+}
 console.log(`Built ${target}: ${bytes} bytes`);

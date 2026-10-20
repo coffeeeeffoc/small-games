@@ -25,6 +25,28 @@ function race(id: string, changes: Partial<CareerFinish> = {}): CareerFinish {
     coins: 2, boosts: 3, driftBoosts: 2, ...changes };
 }
 
+test('supply is transactional, survives reload and rejects duplicate or stale claims', () => {
+  const s = storage(), career = new Career(s);
+  assert.equal(career.supplyAvailable, false);
+  assert.equal(career.claimSupply(0), false);
+  career.finish(race('supply-race-one'));
+  const before = structuredClone(career.profile);
+  s.failWrite = true;
+  assert.equal(career.claimSupply(1), false);
+  assert.deepEqual(career.profile, before);
+  s.failWrite = false;
+  assert.equal(career.claimSupply(1), true);
+  assert.deepEqual(career.profile, { ...before, coins: before.coins + 100 });
+  assert.equal(career.claimSupply(1), false);
+  const restored = new Career(s);
+  assert.equal(restored.supplyAvailable, false);
+  assert.equal(restored.claimSupply(1), false);
+  restored.finish(race('supply-race-two'));
+  assert.equal(restored.supplyAvailable, true);
+  assert.equal(restored.claimSupply(1), false);
+  assert.equal(restored.claimSupply(2), true);
+});
+
 test('fresh careers own the defaults; every vehicle/driver model and procedural cosmetic is in the shop', () => {
   const s = storage(), career = new Career(s), other = new Career(storage());
   assert.deepEqual(career.profile, {

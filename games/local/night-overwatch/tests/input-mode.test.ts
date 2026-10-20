@@ -94,16 +94,19 @@ test('browser mouse-generated touches with simulate=false never replace or cance
 test('supply completion earns one choice, ammo grants two once, and inventory never blocks ads', async () => {
   const g = mission();
   g.hud.t = (zh: string) => zh;
+  let complete: any;
+  g.platform.rewardProvider = () => new Promise(resolve => { complete = resolve; });
   cc.sys.isBrowser = true;
   try {
     g.sim.setFire('touch:1', true);
     g.action('supply');
     assert(g.sim.paused); assert(g.hud.supplyOpen);
-    await g.requestReward('supply');
-    assert.equal(g.hud.advert.mock, true);
+    const request = g.requestReward('supply');
+    assert.equal(g.hud.advert.mock, false);
     assert(g.sim.pauses.has('advert')); assert.equal(g.sim.held.size, 0);
     await g.requestReward('supply');
-    g.action('adClose'); g.action('adClose');
+    complete({ status: 'completed' }); await request;
+    g.finishReward(true);
     assert.equal(g.sim.homingAmmo, 0); assert(g.platform.rewards.pendingSupply);
     assert(!g.sim.pauses.has('advert'));
     g.action('supplyLater'); assert(g.sim.pauses.has('manual'));
@@ -117,7 +120,8 @@ test('supply completion earns one choice, ammo grants two once, and inventory ne
     assert.equal(g.sim.held.size, 0);
     for (let i = 0; i < 181; i++) g.sim.stepCountdown(1 / 60);
     assert(!g.sim.paused);
-    await g.requestReward('zoom'); g.action('adClose');
+    g.platform.rewardProvider = async () => ({ status: 'completed' });
+    await g.requestReward('zoom');
     assert.equal(g.world.zoomLimit, 10); assert.equal(g.sim.resumeCountdown, 3);
     for (let i = 0; i < 181; i++) g.sim.stepCountdown(1 / 60);
     g.retry(); assert.equal(g.sim.homingAmmo, 2);
@@ -158,12 +162,15 @@ test('timed buffs block supply and zoom providers; cancellation never grants and
     g.platform.dispose();
   }
   const g = mission(); g.hud.t = (zh: string) => zh; cc.sys.isBrowser = true;
+  let complete: any;
+  g.platform.rewardProvider = () => new Promise(resolve => { complete = resolve; });
+  g.platform.cancelReward = () => complete({ status: 'dismissed' });
   try {
-    await g.requestReward('supply'); g.action('adCancel'); g.action('adClose');
+    const request = g.requestReward('supply'); g.action('adCancel'); g.action('adClose'); await request;
     assert(!g.platform.rewards.pendingSupply); assert(g.sim.pauses.has('manual'));
     g.action('resume'); assert(!g.sim.paused);
-    await g.requestReward('supply'); g.action('close');
-    assert(!g.platform.rewards.pendingSupply, 'Escape is cancellation, not mock completion');
+    const next = g.requestReward('supply'); g.action('close'); await next;
+    assert(!g.platform.rewards.pendingSupply, 'Escape cancels without granting a reward');
   } finally { cc.sys.isBrowser = false; g.platform.dispose(); }
 });
 
@@ -211,6 +218,37 @@ test('storage failure preserves in-session choice and completion after disposal 
     complete({ status: 'completed' }); await request;
     assert(g.platform.rewards.pendingSupply);
   } finally { cc.sys.localStorage = original; g.platform.dispose(); }
+});
+
+test('practice rewards stay in their startup namespace when developer mode changes', async () => {
+  const globals = globalThis as any, saved = new Map<string, string>();
+  const previous = { window: globals.window, document: globals.document, dev: globals.SmallGamesDev,
+    storage: cc.sys.localStorage, browser: cc.sys.isBrowser };
+  let developer = true;
+  globals.window = Object.assign(new EventTarget(), { matchMedia: () => ({ matches: false }) });
+  globals.document = Object.assign(new EventTarget(), { querySelector: () => null });
+  globals.SmallGamesDev = { isEnabled: () => developer };
+  cc.sys.isBrowser = true;
+  cc.sys.localStorage = { getItem: key => saved.get(key) ?? null, setItem: (key, value) => saved.set(key, value) } as any;
+  let practice: any, normal: any;
+  try {
+    practice = new Platform(new Node(), () => {}, () => {});
+    assert.equal(await practice.offerReward('supply'), 'mock');
+    developer = false;
+    practice.grantReward('supply');
+    assert(saved.has('night-overwatch-rewards-dev-v1'));
+    assert(!saved.has('night-overwatch-rewards-v1'));
+    normal = new Platform(new Node(), () => {}, () => {});
+    assert.equal(normal.rewards.pendingSupply, false);
+    developer = true;
+    assert.equal(await normal.offerReward('supply'), 'unavailable', 'runtime dev switch cannot grant practice rewards into a normal session');
+  } finally {
+    practice?.dispose(); normal?.dispose();
+    for (const [key, value] of [['window', previous.window], ['document', previous.document], ['SmallGamesDev', previous.dev]]) {
+      if (value === undefined) delete globals[key as string]; else globals[key as string] = value;
+    }
+    cc.sys.localStorage = previous.storage; cc.sys.isBrowser = previous.browser;
+  }
 });
 
 test('a real touch activates initially desktop-classified native devices and trigger release stays safe', () => {

@@ -56,11 +56,15 @@ export function HuntBrief({
   playing,
   onStart,
   onMenu,
+  onGuide,
+  guidePending = false,
 }: {
   hunt: PhotoHunt;
   playing: boolean;
   onStart: () => void;
   onMenu: () => void;
+  onGuide?: () => void;
+  guidePending?: boolean;
 }) {
   return (
     <>
@@ -83,6 +87,9 @@ export function HuntBrief({
           <button className="hunt-menu-link" onClick={onMenu}>
             查看关卡
           </button>
+          {onGuide && <button className="hunt-menu-link reward-guide" disabled={guidePending} onClick={onGuide}>
+            {guidePending ? '正在引路…' : '到观景点'}
+          </button>}
         </div>
       </div>
     </>

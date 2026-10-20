@@ -32,7 +32,7 @@ test('shown ads keep their completion listener beyond the opening timeout, inclu
     const provider=createTapTapAdProvider(f.sdk,'fixture-only');
     const pending=provider.show().then(result=>{settled=true; return result;});
     await new Promise(resolve=>setImmediate(resolve));
-    assert.equal(shows,retry?2:1); assert.equal(loads,retry?1:0);
+    assert.equal(shows,retry?2:1); assert.equal(loads,retry?2:1);
     t.mock.timers.tick(600000);
     await Promise.resolve();
     assert.equal(settled,false,'10-minute ad playback must not be classified as a failed request');

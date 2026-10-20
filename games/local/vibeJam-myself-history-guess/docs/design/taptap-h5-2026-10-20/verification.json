@@ -1,0 +1,49 @@
+{
+  "environment": {
+    "browser": "Chromium",
+    "input": "Playwright touch + CDP touch gestures",
+    "base": "http://127.0.0.1:4586/vibeJam-myself-history-guess/",
+    "api": "Local practice; no online sessions created",
+    "nativeDevice": false
+  },
+  "limitation": "Desktop browser mobile emulation only. Native WeChat, iOS, Android and physical devices were not exercised by these scripts.",
+  "reference": "local-adjustments.svg and ../mobile-pk-2026-10-09/concept.png",
+  "suites": {
+    "core": {
+      "startedAt": "2026-10-19T19:12:09.546Z",
+      "completedAt": "2026-10-19T19:13:04.341Z",
+      "status": "passed",
+      "observations": [
+        "390px touch flow: home/help/settings/fullscreen, panorama drag/cancel, true map tap, invalid year/BCE, pause/resume, persisted guesses/results, one-time score, three-round completion, retry and private journal",
+        "320×568, 390×844, 430×932 and 844×390: no horizontal overflow and all visible controls at least 44 CSS px",
+        "Real elapsed 45-second introductory timeout submits exactly one zero-score result without disclosing an answer"
+      ],
+      "screenshots": [
+        "actual-home-390.png",
+        "actual-help-390.png",
+        "actual-journal-390.png",
+        "actual-settings-390.png",
+        "actual-prepare-390.png",
+        "actual-play-390.png",
+        "actual-pause-390.png",
+        "actual-map-390.png",
+        "actual-score-390.png",
+        "actual-summary-390.png",
+        "actual-home-320.png",
+        "actual-play-320.png",
+        "actual-map-320.png",
+        "actual-score-320.png",
+        "actual-home-430.png",
+        "actual-play-430.png",
+        "actual-map-430.png",
+        "actual-score-430.png",
+        "actual-home-landscape.png",
+        "actual-play-landscape.png",
+        "actual-map-landscape.png",
+        "actual-score-landscape.png",
+        "actual-timeout-390.png"
+      ],
+      "errors": []
+    }
+  }
+}

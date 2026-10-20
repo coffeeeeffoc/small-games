@@ -12,6 +12,32 @@ afterEach(async () => {
   await Promise.all(apps.splice(0).map((app) => app.close()));
 });
 const token = 'a'.repeat(64);
+it.each(['carding-car', 'wulong-city', 'night-overwatch'])(
+  'basic %s metadata does not invent ranked rules',
+  async (game) => {
+    const { app } = await setup(false, false, game);
+    const headers = { authorization: 'Bearer ' + token };
+    const result = await app.inject({ url: '/api/competition/v1/games/' + game, headers });
+    expect(result.statusCode).toBe(200);
+    expect(result.json()).toMatchObject({
+      game,
+      boards: [],
+      capabilities: { identity: true, leaderboards: false, multiplayer: false },
+    });
+    const board = await app.inject({
+      url: `/api/competition/v1/games/${game}/leaderboards/versus`,
+      headers,
+    });
+    expect(board.statusCode).toBe(404);
+    const run = await app.inject({
+      method: 'POST',
+      url: `/api/competition/v1/games/${game}/runs`,
+      headers,
+      payload: { board: 'versus' },
+    });
+    expect(run.statusCode).toBe(404);
+  },
+);
 async function setup(dual = false, conflict = false, scope = 'tower-brake') {
   const url = new URL('../rules/ranked-games.mjs', import.meta.url).href;
   const imported = (await import(url)) as { rankedRules: RankedRule[] };
@@ -98,7 +124,11 @@ it('a game can combine solo boards and multiplayer through one gateway, with exp
   const { app, board, roomAction } = await setup(true);
   const base = '/api/competition/v1/games/tower-brake';
   const response = await app.inject({ url: base, headers: { authorization: 'Bearer ' + token } });
-  expect(response.json().capabilities).toEqual({ leaderboards: true, multiplayer: true });
+  expect(response.json().capabilities).toEqual({
+    identity: true,
+    leaderboards: true,
+    multiplayer: true,
+  });
   expect(response.json().versions).toEqual({ ranked: 'tower-ranked-v1', multiplayer: 'duel-v1' });
   expect(response.json().boards.map((item: { id: string }) => item.id)).toEqual([
     'campaign',

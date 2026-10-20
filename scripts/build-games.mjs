@@ -16,8 +16,9 @@ import {
   configuration as nativeConfiguration,
   platforms,
 } from '../games/minigames/scripts/config.mjs';
-import { h5AdGames } from './h5-ad-config.mjs';
+import { h5AdGames, h5PackageGames, additionalH5Games } from './h5-ad-config.mjs';
 import { competitionService } from './competition-service-config.mjs';
+import { h5BasicServiceGames } from './h5-game-services.mjs';
 import { packageModes } from './h5-taptap-matrix.mjs';
 
 export const localConfig = 'game-build.local.mjs';
@@ -86,7 +87,7 @@ export function parseGameBuildConfig(config) {
     Array.isArray(config.games) &&
       config.games.length &&
       new Set(config.games).size === config.games.length &&
-      Array.from(config.games).every((game) => h5AdGames.includes(game)),
+      Array.from(config.games).every((game) => h5PackageGames.includes(game)),
     'BUILD_GAMES',
   );
   const modes = variants(config.ads, config.backend);
@@ -163,8 +164,8 @@ export function parseGameBuildConfig(config) {
       ...target,
       tapServices,
       release: type === 'minigame' && (target.release ?? true),
-      appIds: identifiers(target.appIds, h5AdGames, 'APP_IDS'),
-      adUnits: identifiers(target.adUnits, h5AdGames, 'AD_UNITS'),
+      appIds: identifiers(target.appIds, h5PackageGames, 'APP_IDS'),
+      adUnits: identifiers(target.adUnits, h5PackageGames, 'AD_UNITS'),
       modes: variants(target.ads ?? config.ads, target.backend ?? config.backend),
     };
   });
@@ -183,13 +184,27 @@ export function gameBuildPlan(config) {
           ads,
           backend,
         };
-        if (config.version === 2 && ads)
+        if (
+          config.version === 2 &&
+          ads &&
+          !(target.type === 'h5' && additionalH5Games.includes(game))
+        )
           assert(
             target.adUnits[game],
             `BUILD_AD_UNIT_REQUIRED: ${game}/${target.platform}/${target.type}`,
           );
         if (backend) validateService(config, target.type === 'h5' && Boolean(config.localBackend));
-        if (target.type === 'h5') return { ...job, delivery: 'upload-zip' };
+        if (target.type === 'h5') {
+          assert(
+            !backend || h5AdGames.includes(game) || h5BasicServiceGames.includes(game),
+            `BUILD_SERVICE_UNSUPPORTED: ${game}/taptap/h5`,
+          );
+          return {
+            ...job,
+            delivery: 'upload-zip',
+            effectiveAdsEnabled: ads && Boolean(target.adUnits[game]),
+          };
+        }
         if (target.release)
           assert(target.appIds[game], `BUILD_APP_ID_REQUIRED: ${game}/${target.platform}`);
         const native = nativeConfiguration(game, target.platform, {
@@ -304,7 +319,7 @@ export async function main(
           ...compilerEnvironment(env),
           COMPETITION_PUBLIC_API_URL: config.apiUrl ?? '',
         };
-        for (const game of h5AdGames)
+        for (const game of h5PackageGames)
           buildEnv[`TAPTAP_${game.toUpperCase().replaceAll('-', '_')}_AD_UNIT_ID`] =
             target.adUnits[game] ?? '';
         for (const game of h5AdGames)

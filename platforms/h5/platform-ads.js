@@ -17,9 +17,9 @@ export function createPlatformAdProvider({
       /* Diagnostics cannot interrupt rewards. */
     }
   };
-  const sdkAvailable = () =>
+  const sdkAvailable = (sdk) =>
     Boolean(globalName) &&
-    typeof environment[globalName]?.createRewardedVideoAd === 'function' &&
+    typeof sdk?.createRewardedVideoAd === 'function' &&
     typeof adUnitId === 'string' &&
     /^[\w-]{1,160}$/.test(adUnitId) &&
     !/^(YOUR_|REPLACE_|TODO)/i.test(adUnitId);
@@ -41,14 +41,15 @@ export function createPlatformAdProvider({
       /* Failed destruction keeps the old operation leased. */
     }
   };
-  return {
+  const provider = {
     timeoutMs: timeoutMs + 1000,
     preload() {
-      if (platform !== 'taptap-h5' || active || blocked || !sdkAvailable())
+      const sdk = globalName && environment[globalName];
+      if (platform !== 'taptap-h5' || active || blocked || !sdkAvailable(sdk))
         return Promise.resolve(false);
       if (prepared) return prepared.loaded;
       try {
-        const item = { ad: environment[globalName].createRewardedVideoAd({ adUnitId }) };
+        const item = { ad: sdk.createRewardedVideoAd({ adUnitId }), pending: true };
         prepared = item;
         trace('preload');
         item.loaded = new Promise((resolve) => {
@@ -57,7 +58,8 @@ export function createPlatformAdProvider({
           const finish = (loaded) => {
             if (done) return;
             done = true;
-            clearTimeout(timer);
+            item.pending = false;
+            clearTimeout(item.timer);
             item.detach();
             trace(loaded ? 'loaded' : 'preload-failed');
             if (!loaded && prepared === item) {
@@ -66,7 +68,7 @@ export function createPlatformAdProvider({
             }
             resolve(loaded);
           };
-          const timer = setTimeout(() => finish(false), timeoutMs);
+          item.timer = setTimeout(() => finish(false), timeoutMs);
           item.cancel = () => finish(false);
           const error = (cause) => {
             if (done) return;
@@ -86,8 +88,9 @@ export function createPlatformAdProvider({
             }
           };
           try {
-            item.ad.onError(error);
             listening = true;
+            item.ad.onError(error);
+            if (done) return;
             Promise.resolve(item.ad.load()).then(() => finish(true), error);
           } catch (cause) {
             error(cause);
@@ -101,7 +104,7 @@ export function createPlatformAdProvider({
     },
     show(request = {}) {
       const sdk = globalName && environment[globalName];
-      if (active || blocked || request.kind === 'interstitial' || !sdkAvailable()) {
+      if (active || blocked || request.kind === 'interstitial' || !sdkAvailable(sdk)) {
         trace('unavailable');
         return Promise.resolve({ status: 'unavailable' });
       }
@@ -132,6 +135,7 @@ export function createPlatformAdProvider({
           resolve({ status });
         };
         const close = (result) => {
+          if (done) return;
           trace('close', {
             isEnded: typeof result?.isEnded === 'boolean' ? result.isEnded : null,
             completionType: typeof result?.isEnded,
@@ -151,51 +155,74 @@ export function createPlatformAdProvider({
           trace('timeout', { phase });
           finish('failed');
         };
-        let timer = setTimeout(expired, timeoutMs);
+        const timer = setTimeout(expired, timeoutMs);
         active = () => {
           trace('cancel', { phase });
           finish('dismissed');
+        };
+        const attempt = () => {
+          if (done) return;
+          phase = 'opening';
+          trace('show');
+          const showing = ad.show();
+          if (platform !== 'taptap-h5' || typeof showing?.then !== 'function') return showing;
+          return Promise.resolve(showing).then(() => {
+            if (done) return;
+            // Only opening has a deadline; playback/end-card duration belongs to the SDK.
+            clearTimeout(timer);
+            phase = 'playing';
+            trace('shown');
+            try {
+              request.onShown?.();
+            } catch {
+              /* Observer failures cannot turn an opened ad into a retry. */
+            }
+          });
         };
         try {
           warmup = prepared;
           prepared = undefined;
           warmup?.detach();
+          clearTimeout(warmup?.timer);
           ad =
             warmup?.ad ||
             sdk.createRewardedVideoAd(
               platform === 'douyin' ? { adUnitId, multiton: false } : { adUnitId },
             );
           ad.onClose(close);
+          if (done) return;
           ad.onError(error);
-          trace('load', { preloaded: Boolean(warmup) });
-          const loaded = warmup
-            ? warmup.loaded
-            : platform === 'douyin'
-              ? Promise.resolve()
-              : Promise.resolve(ad.load());
-          void loaded
-            .then((ready) => {
-              if (done) return;
-              if (warmup && !ready) return error();
-              phase = 'opening';
-              trace('show');
-              const showing = ad.show();
-              if (platform !== 'taptap-h5' || typeof showing?.then !== 'function') return showing;
-              return showing.then(() => {
+          if (done) return;
+          if (platform === 'taptap-h5') {
+            void Promise.resolve()
+              .then(attempt)
+              .catch(async () => {
                 if (done) return;
-                // Only opening has a deadline; playback/end-card duration belongs to the SDK.
-                clearTimeout(timer);
-                phase = 'playing';
-                trace('shown');
-                request.onShown?.();
+                phase = 'loading';
+                trace('retry-load');
+                try {
+                  if (warmup?.pending) {
+                    if (!(await warmup.loaded)) throw new Error('Preload failed');
+                  } else await ad.load();
+                  if (!done) await attempt();
+                } catch (cause) {
+                  error(cause);
+                }
               });
-            })
-            .catch(error);
+          } else {
+            trace('load');
+            const loaded = platform === 'douyin' ? Promise.resolve() : Promise.resolve(ad.load());
+            void loaded.then(attempt).catch(error);
+          }
         } catch {
           error();
         }
       });
     },
+    cancel() {
+      active?.();
+    },
+    // Legacy game ports use dispose as a reusable cancellation operation.
     dispose() {
       active?.();
       if (prepared) {
@@ -206,4 +233,6 @@ export function createPlatformAdProvider({
       }
     },
   };
+  void provider.preload();
+  return provider;
 }

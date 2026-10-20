@@ -4,6 +4,7 @@ import { CompetitionError } from './types.js';
 import type { createCompetitionStore } from './store.js';
 import type { createRankedStore } from './ranked-store.js';
 import { assertGameScope, type PlayerAuth } from './auth.js';
+import { basicServiceGames } from './service-games.js';
 
 const gameId = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9-]{0,79}$/);
 const roomCode = z.string().regex(/^[A-F0-9]{12}$/);
@@ -23,7 +24,8 @@ export function registerGameRoutes(
   function definition(game: string) {
     const solo = ranked.rules.get(game);
     const multiplayer = store.gameDefinitions().find((rule) => rule.id === game);
-    if (!solo && !multiplayer) throw new CompetitionError('GAME_UNAVAILABLE', 404);
+    const basic = Object.hasOwn(basicServiceGames, game) ? basicServiceGames[game] : undefined;
+    if (!solo && !multiplayer && !basic) throw new CompetitionError('GAME_UNAVAILABLE', 404);
     const boards = [
       ...(solo?.boards ?? []),
       ...(multiplayer && !multiplayer.unrated
@@ -43,10 +45,10 @@ export function registerGameRoutes(
       throw new CompetitionError('BOARD_CONFIGURATION_CONFLICT', 500);
     return {
       game,
-      title: solo?.title ?? multiplayer!.title,
-      version: solo?.version ?? multiplayer!.version,
+      title: solo?.title ?? multiplayer?.title ?? basic,
+      version: solo?.version ?? multiplayer?.version ?? 'identity-v1',
       versions: { ranked: solo?.version ?? null, multiplayer: multiplayer?.version ?? null },
-      capabilities: { leaderboards: boards.length > 0, multiplayer: !!multiplayer },
+      capabilities: { identity: true, leaderboards: boards.length > 0, multiplayer: !!multiplayer },
       boards,
     };
   }

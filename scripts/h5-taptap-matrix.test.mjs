@@ -626,6 +626,12 @@ test('explicit profiles require twelve local QA variants and only three online-a
     'cops-robbers': 'portrait',
     'cops-robbers-realtime': 'preserve',
     'xiangqi-five': 'portrait',
+    'carding-car': 'landscape',
+    'vibeJam-myself-history-guess': 'portrait',
+    'wulong-city': 'landscape',
+    'night-overwatch': 'landscape',
+    'travel-bund': 'landscape',
+    'letters-words2': 'portrait',
   });
   assert.equal(productionCompetitionApi, 'https://api.nenggongzhiren.cn/small-games/v1');
   assert.equal(matrixContract(fixture(false)).port, 43810);

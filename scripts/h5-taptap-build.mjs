@@ -18,8 +18,9 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { deflateRawSync, crc32 } from 'node:zlib';
 import { setTimeout as delay } from 'node:timers/promises';
 import path from 'node:path';
-import { h5AdGames, prepareH5Ads } from './h5-ad-config.mjs';
+import { h5AdGames, h5PackageGames, additionalH5Games, prepareH5Ads } from './h5-ad-config.mjs';
 import { prepareH5Service } from './competition-h5-service.mjs';
+import { h5BasicServiceGames, prepareGameServices } from './h5-game-services.mjs';
 import {
   packageModes,
   h5Orientations,
@@ -30,10 +31,13 @@ import {
 import { inventory, zipInventory, digest } from '../apps/shell-minigame/scripts/taptap-package.mjs';
 
 export const root = fileURLToPath(new URL('../', import.meta.url));
+// Local ZIP-bomb protection for H5 verification. This is not a platform upload
+// allowance; the native mini-game verifier keeps its separate 20 MiB budget.
+export const h5ExpandedBudgetBytes = 256 * 1024 * 1024;
 const retained = 'h5-packages';
 export function compilerEnvironment(env = process.env) {
   const allowed =
-    /^(?:PATH|PATHEXT|SYSTEMROOT|WINDIR|COMSPEC|HOME|USERPROFILE|APPDATA|LOCALAPPDATA|TEMP|TMP|TMPDIR|LANG|LC_[A-Z_]+|CI|H5_ADS_ENABLED|COMPETITION_SERVICE_ENABLED|COMPETITION_PUBLIC_API_URL|TAPTAP_(?:COPS_ROBBERS|COPS_ROBBERS_REALTIME|XIANGQI_FIVE)_(?:AD_UNIT_ID|SERVICES))$/i;
+    /^(?:PATH|PATHEXT|SYSTEMROOT|WINDIR|COMSPEC|HOME|USERPROFILE|APPDATA|LOCALAPPDATA|TEMP|TMP|TMPDIR|LANG|LC_[A-Z_]+|CI|COCOS_CREATOR|KART_PREBUILT_DIR|NIGHT_OVERWATCH_PREBUILT_DIR|H5_ADS_ENABLED|COMPETITION_SERVICE_ENABLED|COMPETITION_PUBLIC_API_URL|TAPTAP_(?:COPS_ROBBERS|COPS_ROBBERS_REALTIME|XIANGQI_FIVE|CARDING_CAR|VIBEJAM_MYSELF_HISTORY_GUESS|WULONG_CITY|NIGHT_OVERWATCH|TRAVEL_BUND|LETTERS_WORDS2)_(?:AD_UNIT_ID|SERVICES))$/i;
   return {
     ...Object.fromEntries(
       Object.keys(env)
@@ -297,13 +301,19 @@ export async function buildH5Packages(
   assert(
     games.length &&
       new Set(games).size === games.length &&
-      games.every((game) => h5AdGames.includes(game)),
+      games.every((game) => h5PackageGames.includes(game)),
     'Unknown or empty H5 game selection',
   );
   const sourceSHA = git(workspace, ['rev-parse', 'HEAD'], allowDirty),
     dirty = git(workspace, ['status', '--porcelain', '--ignore-submodules=none'], allowDirty);
   if (!allowDirty) assert.equal(dirty, '', 'Commit source changes before packaging');
   const sourceDirty = dirty === null ? 'unknown' : Boolean(dirty);
+  const requestedModes = selection?.modes ?? values.modes ?? packageModes(values, env);
+  assert(
+    !requestedModes.some(([, service]) => service) ||
+      games.every((game) => h5AdGames.includes(game) || h5BasicServiceGames.includes(game)),
+    'Selected H5 games do not support the competition backend',
+  );
   let submoduleSHA = null;
   if (games.includes('xiangqi-five')) {
     const child = path.join(workspace, 'games/submodules/xiangqi-five'),
@@ -336,6 +346,33 @@ export async function buildH5Packages(
       ),
     );
     assert(inside(workspace, gameRoot), 'Game directory escaped workspace');
+    const prebuiltKey = {
+      'carding-car': 'KART_PREBUILT_DIR',
+      'night-overwatch': 'NIGHT_OVERWATCH_PREBUILT_DIR',
+    }[game];
+    let prebuilt;
+    if (prebuiltKey && env[prebuiltKey]) {
+      // Snapshot a verified artifact before cleaning dist, including when the
+      // caller reuses this very project. Later variants reuse this immutable copy.
+      const { verifyPrebuilt } = await import(
+        pathToFileURL(path.join(gameRoot, 'scripts/artifact.mjs'))
+      );
+      const source = await verifyPrebuilt(path.resolve(env[prebuiltKey]));
+      prebuilt = path.join(output, `verified-prebuilt-${game}`);
+      await mkdir(prebuilt);
+      await cp(source, path.join(prebuilt, 'dist'), {
+        recursive: true,
+        filter: async (file) => {
+          assert(!(await lstat(file)).isSymbolicLink(), 'Prebuilt output cannot contain links');
+          return path.relative(source, file).split(path.sep)[0] !== retained;
+        },
+      });
+      if (game === 'night-overwatch')
+        await cp(
+          path.join(path.resolve(env[prebuiltKey]), 'cc.d.ts'),
+          path.join(prebuilt, 'cc.d.ts'),
+        );
+    }
     const restorePackages = await retainPackages(workspace, gameRoot, output, game);
     const gameManifests = [];
     try {
@@ -347,14 +384,17 @@ export async function buildH5Packages(
           ...compilerEnvironment(env),
           H5_ADS_ENABLED: ads ? '1' : '0',
           COMPETITION_SERVICE_ENABLED: service ? '1' : '0',
+          ...(prebuilt ? { [prebuiltKey]: prebuilt } : {}),
         });
         const buildOutput = await cleanGeneratedOutput(gameRoot);
         if (compile) await compile({ game, gameRoot, buildOutput, env: buildEnv });
         else
           execFileSync(
             process.execPath,
-            [game === 'xiangqi-five' ? 'build.js' : 'scripts/build.mjs'],
-            { cwd: gameRoot, env: buildEnv, stdio: 'inherit', timeout: 300000 },
+            additionalH5Games.includes(game)
+              ? [path.join(workspace, 'scripts/h5-game-build.mjs'), game]
+              : [game === 'xiangqi-five' ? 'build.js' : 'scripts/build.mjs'],
+            { cwd: gameRoot, env: buildEnv, stdio: 'inherit', timeout: 1200000 },
           );
         await mkdir(directory);
         await cp(buildOutput, dist, {
@@ -367,11 +407,18 @@ export async function buildH5Packages(
           },
         });
         const adConfig = await prepareH5Ads(game, dist, { env: buildEnv }),
-          serviceConfig = await prepareH5Service(game, dist, {
-            env: buildEnv,
-            local: Boolean(values.local),
-            identityMode: 'persistent',
-          }),
+          serviceConfig = h5AdGames.includes(game)
+            ? await prepareH5Service(game, dist, {
+                env: buildEnv,
+                local: Boolean(values.local),
+                identityMode: 'persistent',
+              })
+            : h5BasicServiceGames.includes(game)
+              ? await prepareGameServices(game, dist, {
+                  env: buildEnv,
+                  local: Boolean(values.local),
+                })
+              : { apiUrl: '' },
           files = await inventory(dist);
         assert(
           files.some((file) => file.path === 'index.html'),
@@ -381,7 +428,7 @@ export async function buildH5Packages(
         await zip(dist, files, zipPath);
         const bytes = await readFile(zipPath);
         assert.deepEqual(
-          zipInventory(bytes),
+          zipInventory(bytes, { maxBytes: h5ExpandedBudgetBytes }),
           files
             .map((file) => ({ ...file, path: 'dist/' + file.path }))
             .sort((a, b) => a.path.localeCompare(b.path)),

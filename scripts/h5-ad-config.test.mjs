@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { h5AdConfig, h5AdGames } from './h5-ad-config.mjs';
+import { h5AdConfig, h5AdGames, prepareH5Ads } from './h5-ad-config.mjs';
+import { mkdtemp, mkdir, readFile, writeFile, copyFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { createHintAccess } from '../games/submodules/xiangqi-five/rewarded-hints.js';
 test('missing ad units use the free path; configured host failures never select it', () => {
   for (const game of h5AdGames) {
@@ -18,6 +22,56 @@ test('missing ad units use the free path; configured host failures never select 
     assert(!JSON.stringify(h5AdConfig(game, { env })).includes(env.SECRET));
     assert.throws(() => h5AdConfig(game, { env: { H5_ADS_ENABLED: 'yes' } }));
     assert.throws(() => h5AdConfig(game, { args: ['--with-ads', '--without-ads'] }));
+  }
+});
+
+test('realtime packages copy the common provider and resolve the adapter inside the package', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'realtime-ad-wiring-'));
+  try {
+    await mkdir(path.join(directory, 'src'));
+    await writeFile(path.join(directory, 'index.html'), '<html><head></head><body></body></html>');
+    const adapter = path.join(directory, 'src/taptap-h5-ads.js');
+    await copyFile(
+      new URL('../games/local/cops-robbers-realtime/src/taptap-h5-ads.js', import.meta.url),
+      adapter,
+    );
+    await prepareH5Ads('cops-robbers-realtime', directory, { env: {} });
+    const source = await readFile(adapter, 'utf8');
+    assert.match(source, /from '\.\.\/platform-ads\.js'/);
+    assert(!source.includes('../../../../platforms'));
+    assert.equal(
+      await readFile(path.join(directory, 'platform-ads.js'), 'utf8'),
+      await readFile(new URL('../platforms/h5/platform-ads.js', import.meta.url), 'utf8'),
+    );
+    await prepareH5Ads('cops-robbers-realtime', directory, { env: {} });
+    assert.equal(await readFile(adapter, 'utf8'), source, 'repeated preparation is idempotent');
+    const { createTapTapAdProvider } = await import(pathToFileURL(adapter));
+    let close;
+    const provider = createTapTapAdProvider(
+      {
+        createRewardedVideoAd() {
+          return {
+            onClose(fn) {
+              close = fn;
+            },
+            onError() {},
+            offClose() {},
+            offError() {},
+            load: async () => {},
+            show: async () => {},
+            destroy() {},
+          };
+        },
+      },
+      'test-slot',
+    );
+    const pending = provider.show();
+    await new Promise((resolve) => setImmediate(resolve));
+    close({ isEnded: true });
+    assert.equal((await pending).status, 'completed');
+    provider.dispose();
+  } finally {
+    await rm(directory, { recursive: true, force: true });
   }
 });
 

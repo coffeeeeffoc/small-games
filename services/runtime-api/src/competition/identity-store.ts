@@ -1,11 +1,12 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
-import { CONTROL_GAME_IDS, type openDatabase } from '@coffeeeeffoc/service-kit';
+import { type openDatabase } from '@coffeeeeffoc/service-kit';
+import { IDENTITY_GAME_IDS } from './service-games.js';
 import { CompetitionError } from './types.js';
 import { publicProfile, profilePatchSchema, avatarPolicy, type ProfilePatch } from './profile.js';
 import { z } from 'zod';
 import { anonymousProfile } from './profile.js';
-export const guestSessionSchema = z.object({ game: z.enum(CONTROL_GAME_IDS) }).strict();
+export const guestSessionSchema = z.object({ game: z.enum(IDENTITY_GAME_IDS) }).strict();
 import {
   authenticate,
   assertResourceAuth,
@@ -51,7 +52,7 @@ export function createCompetitionIdentities(db: Database, now = Date.now) {
     grant = true,
     familyId: string = randomUUID(),
   ) {
-    if (!(CONTROL_GAME_IDS as readonly string[]).includes(game))
+    if (!(IDENTITY_GAME_IDS as readonly string[]).includes(game))
       throw new CompetitionError('IDENTITY_SCOPE_MISMATCH', 403);
     const profile = await ownProfile(playerId, tx, game);
     if (grant)

@@ -18,11 +18,13 @@ export class Platform {
   missions: MissionProgress = newMissionProgress();
   // Install before launch; this may delegate directly to an authorized GameHost.ads.offer.
   rewardProvider?: RewardProvider;
+  private readonly rewardPractice = this.developer;
+  private readonly rewardStorageKey = this.rewardPractice ? 'night-overwatch-rewards-dev-v1' : 'night-overwatch-rewards-v1';
   private clear: () => void;
   constructor(parent: Node, pause: (reason: PauseReason, on: boolean) => void, clear: () => void) {
     this.clear = clear;
     try {
-      this.rewards = readRewards(sys.localStorage.getItem('night-overwatch-rewards-v1'));
+      this.rewards = readRewards(sys.localStorage.getItem(this.rewardStorageKey));
       this.muted = sys.localStorage.getItem('night-overwatch-muted') === 'true';
       const preference = sys.localStorage.getItem('night-overwatch-reduced-effects');
       this.reducedEffects =
@@ -161,14 +163,24 @@ export class Platform {
       return true;
     }
   }
+  get rewardsAvailable() {
+    const bridge = (globalThis as typeof globalThis & {
+      SmallGamesRewardAds?: { available?: boolean; offer?: RewardProvider };
+      SmallGamesPublishingConfig?: { adsEnabled?: boolean };
+    });
+    if (bridge.SmallGamesPublishingConfig?.adsEnabled === false) return false;
+    return Boolean(this.rewardProvider || (bridge.SmallGamesRewardAds?.available !== false && bridge.SmallGamesRewardAds?.offer) ||
+      (!bridge.SmallGamesPublishingConfig && this.rewardPractice && this.developer));
+  }
   async offerReward(kind: RewardKind) {
+    if (!this.rewardsAvailable) return 'unavailable' as const;
     const next = nextZoomLimit(this.rewards.zoomLimit);
     if (kind === 'zoom' && !next) return 'unavailable' as const;
     const bridge = (globalThis as typeof globalThis & {
       SmallGamesRewardAds?: { offer: RewardProvider };
     }).SmallGamesRewardAds;
     const provider = this.rewardProvider ?? bridge?.offer.bind(bridge);
-    if (!provider) return sys.isBrowser ? 'mock' as const : 'unavailable' as const;
+    if (!provider) return this.rewardPractice && this.developer ? 'mock' as const : 'unavailable' as const;
     try {
       const outcome = await provider({ id: 'night-overwatch:' + kind,
         reward: kind === 'supply' ? { supplyChoice: 1 } : { zoomLimit: next! } });
@@ -189,8 +201,11 @@ export class Platform {
     return true;
   }
   saveRewards() {
-    try { sys.localStorage.setItem('night-overwatch-rewards-v1', JSON.stringify(this.rewards)); }
+    try { sys.localStorage.setItem(this.rewardStorageKey, JSON.stringify(this.rewards)); }
     catch { /* The current session remains playable without storage. */ }
+  }
+  cancelReward() {
+    (globalThis as typeof globalThis & { SmallGamesRewardAds?: { cancel(): void } }).SmallGamesRewardAds?.cancel();
   }
   saveCoach() {
     try {

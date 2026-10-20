@@ -19,6 +19,7 @@ import {
   tapServiceSharedScopePaths,
   tapServiceConfigScopePath,
   h5AcceptanceScopePaths,
+  sixH5ScopePaths,
   competitionIdentityScopePaths,
   competitionIdentityMirrorPaths,
   gameServiceScopePaths,
@@ -448,6 +449,23 @@ export function incrementalPlan({
     ),
     h5_acceptance_checks: paths.some(
       (file) => h5AcceptanceScopePaths.includes(file) && fileScopes.has(file),
+    ),
+    six_h5_checks: paths.some(
+      (file) =>
+        sixH5ScopePaths.includes(file) ||
+        file === 'infra/builds/five-taptap-h5.mjs' ||
+        (platformAdsScopePaths.includes(file) && !file.includes('deploy-taptap')) ||
+        [
+          'scripts/h5-ad-config.mjs',
+          'scripts/h5-taptap-build.mjs',
+          'scripts/h5-taptap-matrix.mjs',
+          'scripts/build-games.mjs',
+          'scripts/competition-service-config.mjs',
+          'games/local/carding-car/scripts/cocos-branding.mjs',
+          'games/local/carding-car/tests/cocos-branding.test.mjs',
+        ].includes(file) ||
+        (file === 'package.json' &&
+          fileScopes.get(file)?.includes('games/local/vibeJam-myself-history-guess')),
     ),
     ranked_deployment_checks:
       paths.includes('scripts/deploy-tencent.mjs') &&

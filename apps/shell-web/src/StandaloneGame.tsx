@@ -32,6 +32,7 @@ export function StandaloneGame({
     id === 'flick-arena' ||
     id === 'xiangqi-five' ||
     id === 'letters-words2' ||
+    id === 'vibeJam-myself-history-guess' ||
     id === 'wulong-city';
   useEffect(() => {
     window.SmallGamesDev.setPanelHidden(true);

@@ -1,0 +1,50 @@
+/* Phone-first scene/answer flow, matching docs/design/taptap-h5-2026-10-20. */
+.home-page .mobile-shell { min-height: 100dvh; }
+.home-page .page-header { height: 68px; padding-top: max(12px, env(safe-area-inset-top)); }
+.home-page .edition { display: none; }
+.home-page .page-content { padding-top: 4px; padding-bottom: 90px; }
+.home-page .hero-postcard { height: clamp(230px, 48dvh, 520px); margin: 0 0 18px; border-radius: 22px 22px 8px 8px; }
+.home-page .hero-postcard figcaption { font-size: 28px; }
+.home-page .start-button { margin: 0 0 12px; min-height: 56px; }
+.home-page .home-progress { margin: 8px 0; gap: 10px; }
+.home-page .online-shortcuts { display: flex; justify-content: center; gap: 24px; }
+.bottom-nav { grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); }
+.game-shell { min-height: 0; height: 100dvh; grid-template-rows: 54px 3px minmax(0, 1fr) auto; }
+.game-top #round-label, .game-top #round-label b { font-size: 13px; }
+.scene-caption { padding: 16px; pointer-events: none; }
+.scene-caption p { font-size: 13px; max-width: 34em; line-height: 1.6; }
+.scene-controls { left: 16px; right: 16px; bottom: 16px; }
+.scene-controls .reward-hint { margin-left: auto; width: auto; min-width: 72px; padding: 0 16px; color: var(--paper-light); background: #203f35ed; }
+.answer-dock { padding: 12px 18px max(12px, env(safe-area-inset-bottom)); }
+.answer-top { margin-bottom: 0; }
+.game-shell:not(.show-map) .answer-dock > :not(.answer-top) { display: none; }
+.game-shell:not(.show-map) #year-range { display: none; }
+.game-shell:not(.show-map) .tab-switch { width: 100%; }
+.game-shell:not(.show-map) #scene-tab { display: none; }
+.game-shell:not(.show-map) #map-tab { width: 100%; min-height: 54px; border-radius: 12px; background: var(--red); color: white; font-size: 18px; }
+.game-shell:not(.show-map) .answer-top { gap: 18px; }
+.game-shell.show-map .scene-panel { visibility: hidden; pointer-events: none; }
+.game-shell .year-row { gap: 8px; }
+.game-shell .year-row > label { font-size: 13px; }
+.game-shell .year-input select { font-size: 13px; }
+.game-shell .year-input input { font-size: 21px; }
+.game-shell .location-status { font-size: 13px; }
+.game-shell .year-marks { font-size: 10px; }
+.game-shell #year-range { min-height: 44px; margin: 0; }
+.game-shell .answer-dock .primary { min-height: 48px; }
+.pause-card { max-height: calc(100dvh - 32px); overflow-y: auto; }
+.pause-card h1 { font-size: 27px; }
+.pause-card p { font-size: 15px; line-height: 1.7; }
+@media (max-height: 680px) and (orientation: portrait) {
+  .home-page .hero-postcard { height: 38dvh; }
+  .home-page .page-content { padding-bottom: 72px; }
+  .game-shell.show-map .answer-dock { padding-top: 6px; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+  .game-shell .location-status { margin: 3px 0; }
+  .game-shell .year-marks { margin-bottom: 4px; }
+}
+@media (orientation: landscape) and (max-height: 600px) {
+  .game-shell { grid-template-columns: minmax(0, 1fr) 300px; grid-template-rows: 48px 3px minmax(0, 1fr); }
+  .game-shell:not(.show-map) .scene-panel { grid-column: 1 / 3; }
+  .game-shell:not(.show-map) .answer-dock { align-self: end; border-radius: 18px 0 0 0; z-index: 5; }
+  .game-shell.show-map .answer-dock { overflow-y: auto; }
+}

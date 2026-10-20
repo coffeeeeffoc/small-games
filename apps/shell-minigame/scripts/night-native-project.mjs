@@ -8,7 +8,7 @@ const normalize = (text) => text.replaceAll('\r\n', '\n');
 const recipe = [
   {
     file: 'assets/scripts/HUD.ts',
-    originalSha256: 'fe959844a92846cd8becbe1c244ee7a3eb1ed5d51ce882b510a632618187b233',
+    originalSha256: '6a35a831c21cc9c95640f0bb18ec6c9956027dabd51e8140d5067d3e8731f9a1',
     changes: [
       {
         before:
@@ -20,7 +20,7 @@ const recipe = [
   },
   {
     file: 'assets/scripts/Platform.ts',
-    originalSha256: 'a2794123b6eb49e052573458f22f7fc7bc3beae04a117f65c3e18dd4418672c0',
+    originalSha256: '24eef8e158453c4ac027b2a87afde68fd8fd6c86d3bce34a6dfde2f83b102fc7',
     changes: [
       {
         before: '    return screen.fullScreen();',
@@ -125,7 +125,12 @@ export async function prepareNativeProject(gameRoot, { stageBase } = {}) {
     for (const file of ['package.json', 'tsconfig.json'])
       copied[file] = await copyFile(path.join(gameRoot, file), path.join(projectRoot, file));
     const cardRoot = path.resolve(gameRoot, '../carding-car');
-    for (const file of ['toolchain.mjs', 'native-targets.mjs', 'clear-output.mjs'])
+    for (const file of [
+      'toolchain.mjs',
+      'native-targets.mjs',
+      'clear-output.mjs',
+      'cocos-branding.mjs',
+    ])
       copied['carding-car/scripts/' + file] = await copyFile(
         path.join(cardRoot, 'scripts', file),
         path.join(session, 'games/local/carding-car/scripts', file),

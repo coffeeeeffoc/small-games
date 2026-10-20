@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium } from '@playwright/test';
-import { acceptanceBuild, snapshot, assertLayout } from './flight-browser.mjs';
+import { acceptanceBuild, snapshot, assertLayout, evidenceDirectory } from './flight-browser.mjs';
 import { MAP } from '../assets/scripts/core/Data.ts';
 
 const base = process.env.NIGHT_URL, build = await acceptanceBuild(base);
-const dir = new URL('../reports/combat-supply/regression-mobile/', import.meta.url);
+const dir = pathToFileURL(evidenceDirectory('taptap-h5-mobile') + '/');
 await mkdir(dir, { recursive: true });
 const browser = await chromium.launch({ headless: true,
   executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe' });
@@ -15,6 +15,17 @@ try {
   for (const [width, height] of [[844, 390], [568, 320], [390, 844]]) {
     const page = await browser.newPage({ viewport: { width, height }, hasTouch: true, isMobile: true,
       userAgent: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36' });
+    // Exercise the production TapTap bridge with a controlled SDK, never a real ad.
+    await page.addInitScript(() => {
+      globalThis.SmallGamesPublishingConfig = { adsEnabled: true, adMode: 'host', platform: 'taptap-h5', adUnitId: 'browser-fixture-slot' };
+      globalThis.tap = { createRewardedVideoAd() {
+        let close;
+        return { onClose(fn) { close=fn; }, offClose() { close=undefined; },
+          onError() {}, offError() {}, load: async()=>{},
+          show: async()=>{ globalThis.__testAdClose = value=>close?.({isEnded:value}); },
+          destroy() { close=undefined; } };
+      } };
+    });
     page.on('pageerror', e => errors.push(e.message));
     const capture = name => page.screenshot({ path: fileURLToPath(new URL(`${width}-${name}.png`, dir)) });
     const screenPoint = async (x, y) => page.evaluate(({ x, y }) => {
@@ -30,6 +41,8 @@ try {
       await tap(b.x + b.w / 2, b.y + b.h / 2);
     };
     const layout = async () => { const s = await snapshot(page); assertLayout(s, s.ui.width, s.ui.height); };
+    // Keep the explicit SDK fixture when testing an ads-off delivery package.
+    await page.route('**/platform-config.js', route => route.fulfill({ contentType: 'text/javascript', body: '' }));
     await page.goto(base);
     await page.waitForFunction(() => globalThis.__night && !document.getElementById('night-startup'));
     assert.equal((await snapshot(page)).modal, 'home');
@@ -53,7 +66,10 @@ try {
     await press('close'); await press('close'); assert.equal((await snapshot(page)).modal, 'pause');
     await press('home'); await press('missions'); await press('training'); await press('start');
     await press('supply'); await layout(); await capture('supply');
-    await press('supplyWatch'); await press('adClose');
+    await press('supplyWatch');
+    await page.waitForFunction(() => typeof globalThis.__testAdClose === 'function');
+    await page.evaluate(() => globalThis.__testAdClose(true));
+    await page.waitForFunction(() => __night.snapshot().pendingSupply);
     assert.equal((await snapshot(page)).homingAmmo, 0);
     assert.equal((await snapshot(page)).pendingSupply, true);
     await layout(); await capture('reward-choice'); await press('reward:ammo');

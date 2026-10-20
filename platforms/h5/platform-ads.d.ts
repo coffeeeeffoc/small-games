@@ -14,5 +14,7 @@ export function createPlatformAdProvider(options: {
     onShown?: () => void;
   }): Promise<AdOutcome>;
   preload(): Promise<boolean>;
+  cancel(): void;
+  /** Releases current resources; legacy callers may reuse this provider afterwards. */
   dispose(): void;
 };

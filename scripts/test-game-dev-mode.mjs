@@ -143,7 +143,8 @@ try {
           game.id === 'flick-arena' ||
           game.id === 'xiangqi-five' ||
           game.id === 'letters-words2' ||
-          game.id === 'wulong-city'
+          game.id === 'wulong-city' ||
+          game.id === 'vibeJam-myself-history-guess'
         ) {
           await expect(page.locator('.standalone-page')).toHaveAttribute('data-immersive', 'true');
           await expect(page.getByRole('button', { name: '返回目录', exact: true })).toHaveCount(1);

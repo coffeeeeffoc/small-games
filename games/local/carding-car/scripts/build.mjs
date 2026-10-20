@@ -10,6 +10,7 @@ import { instrumentWechatStartup } from './wechat-startup.mjs';
 import { nativeTarget, nativePackages, verifyNativeOutput } from './native-targets.mjs';
 import { installLoading } from './loading.mjs';
 import { installDisplay } from './display.mjs';
+import { brandCocos } from './cocos-branding.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const target = process.argv[2] || 'web-mobile';
 if (!['web-mobile', 'wechatgame', 'bilibili', 'douyin'].includes(target))
@@ -90,6 +91,7 @@ const competitionClient = await readFile(
   'utf8',
 );
 const competitionConfig = {
+  game: 'carding-car',
   platform: native?.channel || 'h5',
   appId:
     native ? native.appId : process.env.WECHAT_APP_ID || release.wechatAppId || '',
@@ -244,6 +246,7 @@ if (platform === 'wechatgame' || platform === 'bytedance-mini-game') {
   }
   if (!(game.subpackages || game.subPackages)?.some((bundle) => bundle.name === 'resources'))
     throw new Error('Mini-game art must be exported as the resources subpackage.');
+  await brandCocos(directory, new URL('./startup-logo.png', import.meta.url));
   await writeFile(path.join(directory, 'build-info.json'), JSON.stringify({
     creator: '3.8.8', target, sourceHash: await sourceHash(),
   }));
@@ -275,6 +278,7 @@ if (target === 'web-mobile') {
       'id="GameCanvas" aria-label="浪湾卡丁车：Enter 开跑，W/上键前进，A/D/左右键转向，S/下键刹车倒车，空格漂移，Shift 氮气加速，P 暂停，M 声音"',
     );
   await writeFile(index, html);
+  await brandCocos(outputDir);
   await installLoading(outputDir);
   await installDisplay(outputDir);
   await writeFile(path.join(outputDir, 'competition-session.js'), competitionBridge);

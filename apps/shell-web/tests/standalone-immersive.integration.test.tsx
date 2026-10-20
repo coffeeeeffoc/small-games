@@ -44,6 +44,7 @@ it.each([
   'flick-arena',
   'xiangqi-five',
   'letters-words2',
+  'vibeJam-myself-history-guess',
   'wulong-city',
 ])(
   'lets the %s frame hide its navigation during play, restore home exit, and exit normally',

@@ -30,6 +30,11 @@ createServer(async (req, res) => {
       res.end(await readFile(new URL("../../../../platforms/h5/publishing.js", import.meta.url)));
       return;
     }
+    if (!process.argv.includes('--dist') && url.pathname === '/platforms/h5/platform-ads.js') {
+      res.writeHead(200, { "Content-Type": mime[".js"], "Cache-Control": "no-store" });
+      res.end(await readFile(new URL("../../../../platforms/h5/platform-ads.js", import.meta.url)));
+      return;
+    }
     const file = resolve(root, "." + decodeURIComponent(url.pathname));
     if (file !== root && !file.startsWith(root + sep)) {
       res.writeHead(403).end();

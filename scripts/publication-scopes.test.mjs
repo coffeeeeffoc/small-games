@@ -9,6 +9,9 @@ import {
   competitionToolPlan,
   competitionServiceScopePaths,
   h5AcceptanceScopePaths,
+  sixH5Ids,
+  sixH5ScopePaths,
+  sixH5PresetOnly,
   competitionServiceConfigOnly,
   identityGatewayFileScope,
   playerSessionBackendFileScope,
@@ -51,11 +54,15 @@ import { ingressPreflightGuard } from './competition-ingress.mjs';
 
 test('unified package tools keep H5 checks and select their actual Cocos consumers', () => {
   const ids = ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'];
-  const games = ids.map((id) => ({ id, source: competitionConsumers[id] }));
+  const games = [
+    ...ids.map((id) => ({ id, source: competitionConsumers[id] })),
+    ...sixH5Ids.map((id) => ({ id, source: `games/local/${id}` })),
+  ];
   const packages = games.map((game) => ({ name: game.id, dir: game.source }));
   const readSource = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
   for (const file of [
     'scripts/build-games.mjs',
+    'scripts/competition-service-config.mjs',
     'scripts/native-game-build.mjs',
     'scripts/build-games.test.mjs',
     'game-build.local.mjs',
@@ -75,6 +82,12 @@ test('unified package tools keep H5 checks and select their actual Cocos consume
     const selected = incrementalPlan({ ...context, fileScopes });
     assert.equal(selected.full, false);
     assert.equal(selected.competition_service_checks, true);
+    if (file === 'scripts/competition-service-config.mjs') {
+      assert.equal(selected.six_h5_checks, true);
+      for (const id of sixH5Ids.filter((id) => id !== 'travel-bund'))
+        assert(selected.browser_ids.includes(id), `service config consumer: ${id}`);
+      assert(!selected.browser_ids.includes('travel-bund'));
+    }
     assert.deepEqual(selected.cocos_minigame_ids, [
       'cops-robbers',
       'cops-robbers-realtime',
@@ -89,6 +102,44 @@ test('unified package tools keep H5 checks and select their actual Cocos consume
     }).size,
     0,
   );
+});
+
+test('six H5 tools declare exact consumers and preserve fail-closed configuration scope', () => {
+  const games = sixH5Ids.map((id) => ({ id, source: `games/local/${id}` }));
+  const packages = games.map((g) => ({ name: g.id, dir: g.source }));
+  const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  for (const file of sixH5ScopePaths) {
+    const ctx = { changedPaths: [file], games, packages, readHead, readSource: readHead };
+    const fileScopes = reviewedSharedFileScopes(ctx);
+    assert.deepEqual(
+      fileScopes.get(file),
+      file.endsWith('.test.mjs') ? [] : games.map((g) => g.source),
+    );
+    const plan = incrementalPlan({ ...ctx, fileScopes });
+    assert.equal(plan.full, false);
+    assert.equal(plan.six_h5_checks, true);
+    assert.equal(plan.competition_service_checks, false);
+    assert.deepEqual(plan.cocos_minigame_ids || [], []);
+  }
+  const preset = readHead('infra/builds/six-taptap-h5.mjs');
+  assert(sixH5PresetOnly(preset));
+  assert(!sixH5PresetOnly(preset.replace("type: 'h5'", "type: 'minigame'")));
+  assert(!sixH5PresetOnly(preset + '\nprocess.exit(0);'));
+  assert(!sixH5PresetOnly(preset.replace('backend: [false]', 'backend: [true]')));
+});
+
+test('Cocos branding implementation and its test trigger the actual branding contract', () => {
+  const games = sixH5Ids.map((id) => ({ id, source: `games/local/${id}` }));
+  const packages = games.map((game) => ({ name: game.id, dir: game.source }));
+  const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  for (const file of [
+    'games/local/carding-car/scripts/cocos-branding.mjs',
+    'games/local/carding-car/tests/cocos-branding.test.mjs',
+  ]) {
+    const context = { changedPaths: [file], games, packages, readHead, readSource: readHead };
+    const fileScopes = reviewedSharedFileScopes(context);
+    assert.equal(incrementalPlan({ ...context, fileScopes }).six_h5_checks, true, file);
+  }
 });
 
 test('new H5 acceptance helpers have finite unit-only scope and unknown siblings remain blocked', () => {
@@ -548,20 +599,28 @@ test('H5 safe areas select the three standalone consumers and require their geom
   );
 });
 
-test('channel advertising selects only its real game consumer and mandatory contract checks', () => {
+test('shared channel advertising covers all nine consumers; the uploader stays chase-only', () => {
   const games = [
     { id: 'cops-robbers', source: 'games/local/cops-robbers' },
-    { id: 'other', source: 'games/local/other' },
+    { id: 'cops-robbers-realtime', source: 'games/local/cops-robbers-realtime' },
+    { id: 'xiangqi-five', source: 'games/submodules/xiangqi-five' },
+    ...sixH5Ids.map((id) => ({ id, source: `games/local/${id}` })),
   ];
   const packages = games.map((game) => ({ name: game.id, dir: game.source }));
+  const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
   for (const file of platformAdsScopePaths) {
-    const context = { games, packages, changedPaths: [file], readSource: () => '' };
+    const adapter = !file.includes('deploy-taptap');
+    const context = { games, packages, changedPaths: [file], readHead, readSource: readHead };
     const fileScopes = reviewedSharedFileScopes(context);
-    assert.deepEqual(fileScopes.get(file), ['games/local/cops-robbers']);
+    const expected = adapter ? games : games.slice(0, 1);
+    assert.deepEqual(
+      fileScopes.get(file),
+      expected.map((g) => g.source),
+    );
     const plan = incrementalPlan({ ...context, fileScopes });
-    assert.deepEqual(plan.browser_ids, ['cops-robbers']);
+    assert.deepEqual(plan.browser_ids, expected.map((g) => g.id).sort());
     assert.equal(plan.platform_ads_checks, true);
-    assert.equal(plan.publishing_checks, false);
+    assert.equal(plan.six_h5_checks, adapter);
     assert.equal(reviewedSharedFileScopes({ ...context, games: games.slice(1) }).size, 0);
   }
 });
@@ -2802,10 +2861,14 @@ test('shared game services select only their proven game consumers and fail clos
   const plan = incrementalPlan({ ...context, fileScopes: scopes, readSource: read });
   assert.deepEqual(plan.browser_ids, [
     'cage-rescue',
+    'carding-car',
     'cops-robbers',
     'cops-robbers-realtime',
     'letters-words2',
+    'night-overwatch',
     'tower-brake',
+    'vibeJam-myself-history-guess',
+    'wulong-city',
     'xiangqi-five',
   ]);
   assert.deepEqual(plan.developer_mode_ids, ['cage-rescue', 'tower-brake']);
@@ -2814,6 +2877,7 @@ test('shared game services select only their proven game consumers and fail clos
     'cops-robbers',
     'cops-robbers-realtime',
     'tower-brake',
+    'wulong-city',
   ]);
   assert.deepEqual(plan.service_rule_sources, ['services/runtime-api']);
   assert.equal(plan.game_services_checks, true);
@@ -2874,7 +2938,7 @@ test('shared game services select only their proven game consumers and fail clos
   }
 });
 
-test('shared identity client proves all eleven consumers and native composition never loses any', async () => {
+test('shared identity client proves all thirteen consumers and native composition never loses any', async () => {
   const { competitionIdentityConsumers, competitionIdentityFileScope } = await import(
     './publication-scopes.mjs'
   );
@@ -2893,7 +2957,7 @@ test('shared identity client proves all eleven consumers and native composition 
     readHead: read,
   };
   const expected = Object.values(competitionIdentityConsumers);
-  assert.equal(expected.length, 11);
+  assert.equal(expected.length, 13);
   assert.deepEqual(competitionIdentityFileScope(context), expected);
   const general = reviewedSharedFileScopes(context),
     native = nineNativeFileScopes(context);
@@ -3206,7 +3270,7 @@ test('identity gateway routing has exact consumers and rejects any other proxy c
   };
   const consumers = reviewedSharedFileScopes(context).get(file);
   assert(consumers);
-  assert.equal(new Set(consumers).size, 13);
+  assert.equal(new Set(consumers).size, 15);
   for (const source of [
     'games/local/cops-robbers',
     'games/local/flick-arena',

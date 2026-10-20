@@ -6,6 +6,7 @@ import { nativeTarget, nativePackages, verifyNativeOutput } from '../../carding-
 import { clearOutput } from '../../carding-car/scripts/clear-output.mjs';
 import { editor, runCreator } from '../../carding-car/scripts/toolchain.mjs';
 import { sourceHash } from './artifact.mjs';
+import { brandCocos } from '../../carding-car/scripts/cocos-branding.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 export async function buildNative(target, { configOnly = false, checkOutput = false } = {}) {
@@ -73,6 +74,7 @@ export async function buildNative(target, { configOnly = false, checkOutput = fa
     const adapterSource = (await Promise.all(adapters.map((match) => readFile(path.join(directory, match[1]), 'utf8')))).join('\n');
     if (!/\bwx\s*=\s*bl\b/.test(adapterSource)) throw new Error('Official Bilibili bl-to-wx engine binding is missing.');
   }
+  await brandCocos(directory, new URL('./startup-logo.png', import.meta.url));
   await writeFile(path.join(directory, 'build-info.json'), JSON.stringify({
     creator: '3.8.8', target, sourceHash: await sourceHash(),
   }));

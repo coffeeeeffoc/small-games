@@ -1758,7 +1758,7 @@ export function nineNativeDependencyPlan({
     )
       blocked.add('carding-car');
     if (
-      /^games\/local\/carding-car\/scripts\/(?:toolchain|native-targets|clear-output)\.mjs$/.test(
+      /^games\/local\/carding-car\/scripts\/(?:toolchain|native-targets|clear-output|cocos-branding)\.mjs$/.test(
         file,
       )
     )

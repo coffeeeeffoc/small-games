@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { sql } from 'drizzle-orm';
-import { CONTROL_GAME_IDS, type openDatabase } from '@coffeeeeffoc/service-kit';
+import { type openDatabase } from '@coffeeeeffoc/service-kit';
+import { IDENTITY_GAME_IDS } from './service-games.js';
 import { CompetitionError } from './types.js';
 
 export const COMPETITION_AUTHORITY_PROTOCOL = Object.freeze({
@@ -43,7 +44,7 @@ export async function authenticate(
     where s.token_hash=${tokenHash} and s.expires_at>${now}`);
   if (!rows[0]) throw new CompetitionError('SESSION_EXPIRED', 401);
   assertAuthenticatedPlayer(rows[0]);
-  if (!(CONTROL_GAME_IDS as readonly string[]).includes(String(rows[0].game)))
+  if (!(IDENTITY_GAME_IDS as readonly string[]).includes(String(rows[0].game)))
     throw new CompetitionError('SESSION_EXPIRED', 401);
   const auth = Object.freeze({ playerId: String(rows[0].id), game: String(rows[0].game) });
   proofs.set(auth, Object.freeze({ tokenHash, expiresAt: Number(rows[0].expires_at) }));
@@ -76,7 +77,7 @@ export async function assertStoredPlayerGame(
   const rows = await executor.execute(sql`select p.id,p.platform from runtime.competition_players p
     where p.id=${playerId} for no key update of p`);
   assertAuthenticatedPlayer(rows[0]);
-  if (!(CONTROL_GAME_IDS as readonly string[]).includes(game))
+  if (!(IDENTITY_GAME_IDS as readonly string[]).includes(game))
     throw new CompetitionError('IDENTITY_SCOPE_MISMATCH', 403);
   // Fresh snapshot after waiting for the owner; retain the grant until this operation commits.
   const grants = await executor.execute(sql`select 1 from runtime.player_game_access

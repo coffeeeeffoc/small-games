@@ -30,6 +30,7 @@ apps/shell-web/public/games/
 __pycache__/
 .tmp/arena/
 outputs/
+outputs_backup*/
 /test-results/building-power/
 /test-results/game-meta/
 /test-results/surprise-kept/

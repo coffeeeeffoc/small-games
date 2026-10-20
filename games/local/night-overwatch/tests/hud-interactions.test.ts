@@ -162,6 +162,7 @@ test('HUD: persistent global actions, compact modal layout, focus markers and zo
       inset = safe;
       const hud = new HUD(new SceneNode()), sim = new Simulation();
       hud.lang = lang;
+      hud.rewardsAvailable = true;
       hud.resize();
       const globals = hud.buttons.filter((b: any) => hud.isGlobalAction(b.id));
       assert.equal(globals.length, cc.sys.isBrowser ? 2 : 1);
@@ -404,6 +405,7 @@ test('HUD: rewards, zoom panel and mock ads fit small phones with safe areas and
   for (const [width, height] of [[568, 320], [844, 390], [1366, 768]]) for (const safe of [0, 12]) {
     Object.assign(frame, { width, height }); inset = safe;
     const hud = new HUD(new SceneNode()), sim = new Simulation('training-60'); sim.start();
+    hud.rewardsAvailable = true;
     for (const zoomOpen of [false, true]) {
       hud.zoomOpen = zoomOpen; hud.update(sim, world);
       const buttons = hud.buttons.filter((b: any) => b.label.node.activeInHierarchy);
@@ -442,7 +444,7 @@ test('HUD: combat supply, choices and buff countdown fit phones and the rotated 
         const width = Math.max(physicalWidth, physicalHeight), height = Math.min(physicalWidth, physicalHeight);
         Object.assign(frame, { width, height }); inset = safe;
         const hud = new HUD(new SceneNode()), sim = new Simulation();
-        hud.lang = lang; hud.touch = width < 900; hud.resize(); sim.start();
+        hud.lang = lang; hud.rewardsAvailable = true; hud.touch = width < 900; hud.resize(); sim.start();
         const visible = () => hud.buttons.filter((b: any) => b.label.node.activeInHierarchy);
         const control = (id: string) => visible().find((b: any) => b.id === id);
         const panelText = () => hud.modal.children.map((n: any) => n.getComponent(cc.Label)?.string).filter(Boolean).join('\n');
@@ -506,7 +508,7 @@ test('HUD: combat supply, choices and buff countdown fit phones and the rotated 
         }
         sim.pause('countdown', false); hud.update(sim, world); checkLayout();
         assert.equal(hud.modalKey, '');
-        assert.match(control('supply').label.string, lang === 'zh' ? /增益中.*广告暂停/s : /BUFF.*ADS PAUSED/s);
+        assert.match(control('supply').label.string, lang === 'zh' ? /增益生效中/ : /BUFF ACTIVE/);
         assert.equal(control('supply').label.color.hex, '#a2b5b5');
         assert.equal(hud.labels.get('buff').color.hex, '#91e6cb');
         sim.buff.remaining = 4.2; hud.update(sim, world); checkLayout();
@@ -514,7 +516,7 @@ test('HUD: combat supply, choices and buff countdown fit phones and the rotated 
         assert.match(hud.labels.get('buff').string, /5/);
         hud.zoomOpen = true; hud.update(sim, world); checkLayout();
         assert.equal(control('zoomUpgrade').label.color.hex, '#a2b5b5');
-        assert.match(control('zoomUpgrade').label.string, lang === 'zh' ? /增益中.*广告暂停/ : /BUFF ACTIVE.*ADS PAUSED/);
+        assert.match(control('zoomUpgrade').label.string, lang === 'zh' ? /增益生效中/ : /BUFF ACTIVE/);
         hud.zoomOpen = false; hud.supplyOpen = true; sim.pause('supply', true); hud.update(sim, world); checkLayout();
         assert.equal(hud.modalKey, 'supply:offer', 'buff still allows opening the offer');
         assert.equal(control('supplyWatch').label.color.hex, '#a2b5b5');

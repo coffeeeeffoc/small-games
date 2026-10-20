@@ -51,7 +51,7 @@ function fixture(platform = 'taptap-h5', overrides = {}, options = {}) {
 }
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 
-test('Tap H5 full viewing after 12s loading and 60s playback keeps its reward', async (t) => {
+test('Tap H5 shows during a slow startup preload and preserves long playback rewards', async (t) => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   let loaded;
   const f = fixture(
@@ -65,6 +65,8 @@ test('Tap H5 full viewing after 12s loading and 60s playback keeps its reward', 
     { timeoutMs: 45000 },
   );
   const result = f.provider.show();
+  await tick();
+  assert.ok(f.calls.includes('show'), 'click does not wait for startup preload');
   t.mock.timers.tick(12000);
   loaded();
   await tick();
@@ -280,13 +282,21 @@ test('errors, load/show rejection and timeout settle without a reward', async ()
       load: async () => {
         throw new Error('no fill');
       },
+      show: async () => {
+        throw new Error('not ready');
+      },
     },
     {
       show: async () => {
         throw new Error('show failed');
       },
     },
-    { load: () => new Promise(() => {}) },
+    {
+      load: () => new Promise(() => {}),
+      show: async () => {
+        throw new Error('not ready');
+      },
+    },
   ])
     assert.equal((await fixture('taptap-h5', overrides).provider.show()).status, 'failed');
   const f = fixture(),
@@ -350,4 +360,138 @@ test('host SDK injected after initial launch is picked up on the next explicit r
   const shown = provider.show();
   f.listeners.close({ isEnded: true });
   assert.equal((await shown).status, 'completed');
+});
+
+test('Tap starts preloading at creation, then clicks show first and recover only once', async () => {
+  for (const failure of ['none', 'first', 'both', 'throw']) {
+    let shows = 0,
+      loads = 0;
+    const f = fixture('taptap-h5', {
+      load: async () => {
+        loads++;
+      },
+      show() {
+        shows++;
+        if (failure === 'throw' && shows === 1) throw new Error('not ready');
+        return failure === 'both' || (failure === 'first' && shows === 1)
+          ? Promise.reject(new Error('not ready'))
+          : Promise.resolve();
+      },
+    });
+    assert.equal(loads, 1, 'startup preload requires no click');
+    await tick();
+    const pending = f.provider.show();
+    await tick();
+    assert.equal(shows, failure === 'none' ? 1 : 2);
+    assert.equal(loads, failure === 'none' ? 1 : 2);
+    if (failure !== 'both') f.listeners.close({ isEnded: true });
+    assert.equal((await pending).status, failure === 'both' ? 'failed' : 'completed');
+  }
+});
+
+test('recovery reuses an in-flight preload and cancellation prevents the second show', async () => {
+  for (const cancel of [false, true]) {
+    let loaded,
+      loads = 0,
+      shows = 0;
+    const f = fixture('taptap-h5', {
+      load: () => {
+        loads++;
+        return new Promise((resolve) => {
+          loaded = resolve;
+        });
+      },
+      show: async () => {
+        if (++shows === 1) throw new Error('not ready');
+      },
+    });
+    const pending = f.provider.show();
+    await tick();
+    assert.equal(loads, 1);
+    if (cancel) f.provider.cancel();
+    loaded();
+    await tick();
+    assert.equal(shows, cancel ? 1 : 2);
+    if (!cancel) f.listeners.close({ isEnded: true });
+    assert.equal((await pending).status, cancel ? 'dismissed' : 'completed');
+  }
+});
+
+test('show rejection with onError never retries an already released instance', async () => {
+  let shows = 0;
+  const g = fixture('taptap-h5', {
+    show() {
+      shows++;
+      g.listeners.error({ errCode: 1004 });
+      return Promise.reject(new Error('SDK reported failure'));
+    },
+  });
+  const pending = g.provider.show();
+  assert.equal((await pending).status, 'failed');
+  await tick();
+  assert.equal(shows, 1);
+  assert.equal(g.calls.filter((call) => call === 'load').length, 1);
+  assert.equal(g.calls.filter((call) => call === 'destroy').length, 1);
+});
+
+test('synchronous close/error registration settles without later loading or showing', async () => {
+  for (const event of ['close', 'error']) {
+    const f = fixture('wechat', {
+      onClose(fn) {
+        if (event === 'close') fn({ isEnded: true });
+      },
+      onError(fn) {
+        fn({ errCode: 1004 });
+      },
+    });
+    assert.equal((await f.provider.show()).status, event === 'close' ? 'completed' : 'failed');
+    await tick();
+    assert(!f.calls.includes('load'));
+    assert(!f.calls.includes('show'));
+    assert.equal(f.calls.filter((call) => call === 'destroy').length, 1);
+  }
+  let detached = 0,
+    loads = 0;
+  const f = fixture('taptap-h5', {
+    onError(fn) {
+      fn({ errCode: 1004 });
+    },
+    offError() {
+      detached++;
+    },
+    load() {
+      loads++;
+    },
+  });
+  await tick();
+  assert.equal(loads, 0, 'synchronous preload failure must not load the retired ad');
+  assert.equal(detached, 1);
+  f.provider.dispose();
+});
+
+test('throwing onShown observers never retry, fail or reward a displayed ad', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const f = fixture();
+  let settled = false,
+    notifications = 0;
+  const pending = f.provider
+    .show({
+      onShown() {
+        notifications++;
+        throw new Error('observer failure');
+      },
+    })
+    .then((result) => {
+      settled = true;
+      return result;
+    });
+  await tick();
+  t.mock.timers.tick(600000);
+  await tick();
+  assert.equal(settled, false);
+  assert.equal(notifications, 1);
+  assert.equal(f.calls.filter((call) => call === 'show').length, 1);
+  assert.equal(f.calls.filter((call) => call === 'load').length, 1);
+  f.listeners.close({ isEnded: true });
+  assert.equal((await pending).status, 'completed');
 });

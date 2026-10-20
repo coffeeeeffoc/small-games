@@ -16,7 +16,7 @@ import type { RaceManager } from './RaceManager';
 import { formatTime as time, recordFeedback, type RaceRecord } from './RankingSystem';
 import { DrivingCoach } from './DrivingCoach';
 import { defaultSelection, vehicles, drivers, selectionRows, type Selection } from './Selection';
-import { readyLayout, settingsLayout, type HitRect } from './HUDLayout';
+import { readyLayout, pauseLayout, settingsLayout, type HitRect } from './HUDLayout';
 import { themes } from './ThemeCatalog';
 import { routes } from './RouteCatalog';
 import { STAMPS, stampCount, passportCount, earnedStamps, sprintNextGoal, type RoutePassport, type KartChallenge } from './RouteChallenges';
@@ -294,7 +294,7 @@ export class HUD {
     l.verticalAlign = Label.VerticalAlign.CENTER;
     return l;
   }
-  layoutMenu(ready: boolean) {
+  layoutMenu(ready: boolean, paused = false) {
     const staged = ready && this.staged;
     const start = readyLayout.start;
     const draw = (g: Graphics, rect: HitRect, hex: string) => {
@@ -306,6 +306,20 @@ export class HUD {
       label.node.getComponent(UITransform)!.setContentSize(width, height);
       label.fontSize = size; label.lineHeight = size * 1.35;
     };
+    const restart = this.restartButton.getChildByName('Panel')!.getComponent(Graphics)!;
+    const restartRect = paused ? pauseLayout.restart : { x: 263, y: -125, width: 170, height: 52 };
+    draw(restart, restartRect, '#295870');
+    place(this.restartLabel, restartRect.x, restartRect.y, restartRect.width, restartRect.height, 20);
+    if (paused) {
+      draw(this.menuBackground, pauseLayout.panel, '#163b55f2');
+      draw(this.startBackground, pauseLayout.resume, '#ffd15a');
+      draw(this.garageBackground, pauseLayout.home, '#295870');
+      place(this.title, 0, 112, 336, 54, 32);
+      place(this.detail, 0, 61, 336, 40, 18);
+      place(this.button, 0, pauseLayout.resume.y, 336, 68, 25);
+      place(this.garageLabel, pauseLayout.home.x, pauseLayout.home.y, 162, 64, 20);
+      return;
+    }
     draw(this.menuBackground, ready ? { x: -282, y: 2, width: 332, height: 456 } : { x: 0, y: -6, width: 710, height: 390 }, '#163b55e8');
     if (staged) this.menuBackground.clear();
     draw(this.startBackground, ready ? start : { x: 0, y: -125, width: 286, height: 52 }, '#ffd15a');
@@ -361,15 +375,16 @@ export class HUD {
       !this.root.getChildByName('HomePanel')?.active && !this.settingsVisible;
     this.picker.active = r.phase === 'ready' && !this.staged;
     this.title.node.active = this.tagline.node.active = this.footer.node.active = !(r.phase === 'ready' && this.staged);
+    if (r.phase === 'paused') this.tagline.node.active = this.footer.node.active = false;
     this.garageButton.active = !r.networked && r.phase === 'ready' || r.phase === 'paused' || r.phase === 'finished';
     this.garageLabel.string = r.phase === 'ready'
       ? r.mode === 'sprint' ? '选 3 圈竞速' : '选一圈冲刺'
       : !r.networked && this.staged ? '返回主页' : r.phase === 'finished' && !r.networked ? '退出本局' : '更换配置';
-    this.standings.node.active = this.leaderboard.node.active = r.phase !== 'ready';
+    this.standings.node.active = this.leaderboard.node.active = r.phase === 'finished';
     this.standings.fontSize = r.drivers.length > 4 ? 14 : 18;
     this.standings.lineHeight = r.drivers.length > 4 ? 16 : 24;
     if (r.phase !== this.lastPhase || r.phase === 'finished' || this.lastStaged !== this.staged) {
-      this.layoutMenu(r.phase === 'ready');
+      this.layoutMenu(r.phase === 'ready', r.phase === 'paused');
       this.lastPhase = r.phase;
       this.lastStaged = this.staged;
       this.restartButton.active = r.phase === 'paused' || (r.phase === 'finished' && !r.networked && p.finishedAt > 0);
@@ -395,13 +410,11 @@ export class HUD {
           : 'W/↑ 前进 · S/↓ 倒车 · A D/← → 转向 · 空格漂移 · Shift 氮气';
       }
       if (r.phase === 'paused') {
-        this.title.string = '休息一下';
-        this.detail.string = '计时已停止\n两手就位，再来一个漂亮的漂移';
-        this.button.string = '继续比赛  →';
-        this.standings.string = `当前第 ${place} 名\n总计 ${time(r.time)}\n本圈 ${time(r.currentLapTime)}\n最快圈 ${r.bestLapTime ? time(r.bestLapTime) : '—'}`;
-        this.footer.string = keyboardHints
-          ? 'Enter / P 继续   ·   R 重新开跑   ·   本机成绩仅保存在当前设备'
-          : '本机成绩仅保存在当前设备';
+        this.title.string = '已暂停';
+        this.detail.string = `第 ${place} 名  ·  ${time(r.time)}`;
+        this.button.string = '继续比赛';
+        this.restartLabel.string = '重开';
+        this.footer.string = '';
       }
       if (r.phase === 'finished') {
         this.title.string = place === 1 ? '冠军，漂亮！' : `第 ${place} 名，冲线！`;
@@ -430,6 +443,7 @@ export class HUD {
       }
     }
     const theme = themes.find((t) => t.id === this.selection.theme)!;
+    if (r.phase === 'paused') this.garageLabel.string = '主页';
     const selectedRoute = routes.find((r) => r.id === this.selection.route)!;
     this.tagline.string =
       r.phase === 'finished'

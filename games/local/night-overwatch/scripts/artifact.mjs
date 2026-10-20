@@ -28,7 +28,7 @@ export async function sourceHash(directory = fileURLToPath(root)) {
     );
   }
   // The shared Creator launcher also affects the build and its cache identity.
-  for (const file of ['toolchain.mjs', 'native-targets.mjs', 'clear-output.mjs'])
+  for (const file of ['toolchain.mjs', 'native-targets.mjs', 'clear-output.mjs', 'cocos-branding.mjs'])
     hash.update(await readFile(new URL('../../carding-car/scripts/' + file, import.meta.url), 'utf8')
       .then((source) => source.replaceAll('\r\n', '\n')));
   return hash.digest('hex');

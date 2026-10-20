@@ -114,6 +114,7 @@ export function createGameServices({ gameId, ruleVersion }) {
       return auth.logout();
     },
     metadata: () => request(path),
+    profile: (patch) => request('/me', patch),
     createRoom: (input = {}) => openRoom('', input),
     joinRoom: ({ code }) => openRoom('/join', { code }),
     getRoom: ({ code }) => roomRequest(code, '', undefined),

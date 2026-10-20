@@ -1,4 +1,5 @@
 import './style.css';
+import './mobile-h5.css';
 import '../dev-mode.js';
 import { rounds, cities } from './rounds.js';
 import { scoreGuess, clamp, formatYear, MIN_YEAR, MAX_YEAR, restoreJourney } from './game.js';
@@ -17,6 +18,12 @@ import { restorePracticeJourney } from './progress.js';
 validateChapters(rounds);
 const $ = (selector) => document.querySelector(selector);
 const app = $('#app');
+const offlinePackage = globalThis.SmallGamesH5Package?.offline === true;
+const rewardPort = () => globalThis.SmallGamesRewardAds;
+let rewardPending = false;
+function notifyHost(screen) {
+  try { if (parent !== window && document.referrer) parent.postMessage({type:'small-games:display-state',gameId:'vibeJam-myself-history-guess',screen}, new URL(document.referrer).origin); } catch {}
+}
 const esc = (text) =>
   String(text ?? '').replace(
     /[&<>"']/g,
@@ -166,6 +173,7 @@ function chime() {
   } catch {}
 }
 function cleanup() {
+  if (rewardPending) rewardPort()?.cancel();
   generation++;
   clearInterval(clock);
   events.abort();
@@ -219,7 +227,8 @@ function shell(title, content, { nav = '', back = null, eyebrow = '山河有迹 
   cleanup();
   state.screen = title;
   state.phase = 'idle';
-  document.body.className = 'paper-page';
+  document.body.className = `paper-page ${title === 'home' ? 'home-page' : ''}`;
+  notifyHost(title === 'home' ? 'home' : 'playing');
   app.innerHTML = `<div class="mobile-shell"><header class="page-header">${back ? `<button class="icon-button" id="back" aria-label="返回">${icon('back')}</button><span class="page-header-title">${esc(title)}</span>` : `<button class="brand" id="brand-home">${brand}</button><span class="edition">旅行手记<br>No. ${String(saved.visited.length + 1).padStart(3, '0')}</span>`}${back ? `<button class="icon-button" data-nav="settings" aria-label="设置">${icon('settings')}</button>` : ''}</header><main class="page-content">${title === 'home' ? '' : `<p class="eyebrow">${esc(eyebrow)}</p>`}${content}</main>${nav ? navigation(nav) : ''}</div>`;
   on('#back', 'click', back);
   on('#brand-home', 'click', home);
@@ -233,6 +242,7 @@ function navigation(active) {
     ['challenge', 'duel', '挑战'],
     ['journal', 'book', '手记'],
   ]
+    .filter(([id]) => !offlinePackage || id !== 'challenge')
     .map(
       ([id, symbol, label]) =>
         `<button data-nav="${id}" ${id === active ? 'aria-current="page"' : ''}>${icon(symbol)}<span>${label}</span>${id === active ? '<i></i>' : ''}</button>`,
@@ -249,7 +259,7 @@ function home() {
   const target = nextLevel(saved.records);
   shell(
     'home',
-    `<section class="home-intro"><p class="eyebrow"><span class="red-line"></span>一场关于时间与地点的游戏</p><h1>你能认出，<br>这是<em>何时何地？</em></h1><p class="intro-caption">一幅画，一段时光。凭直觉，赴一场相遇。</p></section><figure class="hero-postcard"><img src="${art('kaifeng')}" alt="山水与街巷交织的历史想象画面" fetchpriority="high"><div class="image-shade"></div><span class="photo-tag">卷一 · 人间烟火</span><span class="postmark" aria-hidden="true">山河<br>来信</span><figcaption>某年，某地。<br><strong>故事等你落笔。</strong></figcaption></figure><button class="primary start-button" id="start">${journey ? '继续未完的旅途' : '开启旅途'}${icon('arrow')}</button><div class="start-footnote"><span>${journey ? `第 ${journey.index + 1} 幕 · 进度已留存` : '三幕一小关 · 从第一封来信开始'}</span><button class="text-button" data-nav="help">怎么玩${icon('arrow')}</button></div><section class="play-modes" aria-label="挑战入口"><button class="mode-card" id="friend-entry"><span class="mode-symbol">${icon('duel')}</span><span class="eyebrow">一封战书</span><h2>好友 PK</h2><p>同样五幕，谁更懂历史？</p><span class="card-link">向好友下战书 ${icon('arrow')}</span></button><button class="mode-card dark" id="daily-entry"><span class="mode-symbol">${icon('crown')}</span><span class="eyebrow">今日山河</span><h2>全站竞逐</h2><p>每日一局，把名字留在榜上。</p><span class="card-link">赴今日之约 ${icon('arrow')}</span></button></section><div class="home-progress"><span>${icon('book')}已行 ${completed()} / ${LEVELS.length} 关</span><button class="text-button" data-nav="chapters">继续探索 ${icon('arrow')}</button></div><p class="art-note">场景为 AI 历史想象复原，不作为史料。</p>`,
+    `<figure class="hero-postcard"><img src="${art('kaifeng')}" alt="历史河畔街景" fetchpriority="high"><div class="image-shade"></div><figcaption><strong>一眼千年</strong></figcaption></figure><button class="primary start-button" id="start">${journey ? '继续旅途' : '开启旅途'}${icon('arrow')}</button><button class="secondary full-width" data-nav="chapters">选择关卡</button><div class="home-progress"><span>已探索 ${completed()} / ${LEVELS.length} 关</span><button class="text-button" data-nav="help">${icon('book')}玩法</button><button class="icon-button" data-nav="settings" aria-label="设置">${icon('settings')}</button></div>${offlinePackage ? '' : '<div class="online-shortcuts"><button id="friend-entry" class="text-button">好友 PK</button><button id="daily-entry" class="text-button">全站竞逐</button></div>'}`,
     { nav: 'home' },
   );
   on('#start', 'click', () => (journey ? resumeLocal(journey) : prepare(target.id)));
@@ -326,6 +336,12 @@ function settings() {
     busy('#save-nickname', async () => {
       const nickname = $('#nickname').value.trim();
       if (!nickname) return toast('请先写下你的旅人名字。');
+      if (offlinePackage) {
+        saved.nickname = nickname;
+        save();
+        $('#nickname-status').textContent = '落款已保存在本机。';
+        return;
+      }
       const token = generation;
       const result = await historyApi.profile(nickname);
       saved.nickname = result.player.nickname;
@@ -564,12 +580,14 @@ async function renderGame(restored = false) {
   state.phase = 'loading';
   state.view = 'scene';
   document.body.className = 'game-page';
+  notifyHost('playing');
   const token = generation;
-  app.innerHTML = `<main class="game-shell"><header class="game-top"><button id="pause" class="icon-button" aria-label="${state.mode === 'practice' ? '暂停' : '离开本局'}">${icon(state.mode === 'practice' ? 'pause' : 'close')}</button><span id="round-label">${state.mode === 'practice' ? '探索' : state.mode === 'daily' ? '全站竞逐' : '好友 PK'}<b>第 ${state.index + 1} / ${roundCount()} 幕</b></span><span class="game-score">${fmt(sumScore())}<small>分</small></span></header><div class="timer-track"><span id="timer-progress"></span></div><section class="scene-panel"><div id="panorama" tabindex="0" aria-label="历史全景，拖动观察四周"></div><div class="scene-caption"><span>此刻，你身在何方？</span><p id="clue">${esc((state.mode === 'practice' ? levelById(state.level)?.objective : '') || currentRound()?.clue || '观察建筑、衣着和街景，寻找历史留下的线索。')}</p></div><div class="scene-controls"><button class="scene-control" id="scene-reset" aria-label="重置视角">${icon('compass')}</button><span>拖动环顾 · 双指缩放</span></div></section><section class="map-panel" aria-label="选择地点"><div class="map-search"><label class="search-field">${icon('search')}<input id="city-search" type="search" placeholder="搜索城市或古地名" autocomplete="off" role="combobox" aria-label="搜索城市" aria-autocomplete="list" aria-controls="search-results" aria-expanded="false"></label><div id="search-results" role="listbox" hidden></div></div><div id="guess-map"></div><div class="map-controls"><button id="map-plus" aria-label="放大地图">+</button><button id="map-minus" aria-label="缩小地图">−</button></div><button id="center-pin" class="center-pin">${icon('pin')}标记地图中心</button></section><section class="answer-dock"><div class="answer-top"><div class="tab-switch"><button id="scene-tab" class="active" aria-pressed="true">${icon('eye')}观察</button><button id="map-tab" aria-pressed="false">${icon('pin')}地图<span id="pin-dot"></span></button></div><span class="timer" id="timer" role="timer">${roundSeconds()}<small>秒</small></span></div><div id="location-status" class="location-status">${icon('pin')}<span>地图上标记你的猜测</span></div><div class="year-row"><label for="year-range">这是哪一年？</label><div class="year-input"><select id="era-select" aria-label="公元前后"><option value="ce">公元</option><option value="bce">公元前</option></select><input id="year-number" inputmode="numeric" type="number" min="1" max="${MAX_YEAR}" value="1000" aria-label="年份"><span>年</span></div></div><input id="year-range" type="range" min="${MIN_YEAR}" max="${MAX_YEAR}" step="1" value="1000" aria-label="选择年代"><div class="year-marks"><span>公元前 3000</span><span id="year-status">请选择年代</span><span>${MAX_YEAR}</span></div><button class="primary full-width" id="submit" disabled>先选一个地点 ${icon('arrow')}</button></section><div id="load-cover" class="load-cover"><span class="loading-compass">${icon('compass')}</span><h2>正在翻开历史的一页</h2><p>一场相遇，即将发生。</p></div></main>`;
+  app.innerHTML = `<main class="game-shell"><header class="game-top"><button id="pause" class="icon-button" aria-label="${state.mode === 'practice' ? '暂停' : '离开本局'}">${icon(state.mode === 'practice' ? 'pause' : 'close')}</button><span id="round-label">${state.mode === 'practice' ? '探索' : state.mode === 'daily' ? '全站竞逐' : '好友 PK'}<b>第 ${state.index + 1} / ${roundCount()} 幕</b></span><span class="game-score">${fmt(sumScore())}<small>分</small></span></header><div class="timer-track"><span id="timer-progress"></span></div><section class="scene-panel"><div id="panorama" tabindex="0" aria-label="历史全景，拖动观察四周"></div><div class="scene-caption"><p id="clue">${esc((state.mode === 'practice' ? levelById(state.level)?.objective : '') || currentRound()?.clue || '观察建筑、衣着和街景，寻找历史留下的线索。')}</p></div><div class="scene-controls"><button class="scene-control" id="scene-reset" aria-label="重置视角">${icon('compass')}</button><span>拖动环顾</span>${state.mode === 'practice' && !state.dev && rewardPort()?.available ? '<button class="scene-control reward-hint" id="reward-hint">提示</button>' : ''}</div></section><section class="map-panel" aria-label="选择地点"><div class="map-search"><label class="search-field">${icon('search')}<input id="city-search" type="search" placeholder="搜索城市或古地名" autocomplete="off" role="combobox" aria-label="搜索城市" aria-autocomplete="list" aria-controls="search-results" aria-expanded="false"></label><div id="search-results" role="listbox" hidden></div></div><div id="guess-map"></div><div class="map-controls"><button id="map-plus" aria-label="放大地图">+</button><button id="map-minus" aria-label="缩小地图">−</button></div><button id="center-pin" class="center-pin">${icon('pin')}标记地图中心</button></section><section class="answer-dock"><div class="answer-top"><div class="tab-switch"><button id="scene-tab" class="active" aria-pressed="true">${icon('eye')}观察</button><button id="map-tab" aria-pressed="false">${icon('pin')}去作答<span id="pin-dot"></span></button></div><span class="timer" id="timer" role="timer">${roundSeconds()}<small>秒</small></span></div><div id="location-status" class="location-status">${icon('pin')}<span>地图上标记你的猜测</span></div><div class="year-row"><label for="year-range">这是哪一年？</label><div class="year-input"><select id="era-select" aria-label="公元前后"><option value="ce">公元</option><option value="bce">公元前</option></select><input id="year-number" inputmode="numeric" type="number" min="1" max="${MAX_YEAR}" value="1000" aria-label="年份"><span>年</span></div></div><input id="year-range" type="range" min="${MIN_YEAR}" max="${MAX_YEAR}" step="1" value="1000" aria-label="选择年代"><div class="year-marks"><span>公元前 3000</span><span id="year-status">请选择年代</span><span>${MAX_YEAR}</span></div><button class="primary full-width" id="submit" disabled>先选一个地点 ${icon('arrow')}</button></section><div id="load-cover" class="load-cover"><span class="loading-compass">${icon('compass')}</span><h2>正在翻开历史的一页</h2><p>一场相遇，即将发生。</p></div></main>`;
   on('#pause', 'click', pause);
   on('#scene-tab', 'click', () => setView('scene'));
   on('#map-tab', 'click', () => setView('map'));
   on('#scene-reset', 'click', () => viewer?.reset());
+  on('#reward-hint', 'click', requestHint);
   on('#map-plus', 'click', () => guessMap?.zoom(1));
   on('#map-minus', 'click', () => guessMap?.zoom(-1));
   on('#center-pin', 'click', () => guessMap?.center());
@@ -837,6 +855,37 @@ async function submit(timedOut) {
     }
   }
 }
+async function requestHint() {
+  const port = rewardPort(), round = currentRound(), token = generation;
+  if (!port?.available || rewardPending || state.mode !== 'practice' || state.dev || state.phase !== 'guessing') return;
+  pause();
+  const card = $('.pause-card'), resume = $('#resume');
+  if (Array.isArray(saved.hintScenes) && saved.hintScenes.includes(round.id)) {
+    card.querySelector('h1').textContent = '历史线索';
+    card.querySelector('p').textContent = round.hint || round.clue;
+    return;
+  }
+  rewardPending = true;
+  resume.disabled = true;
+  card.querySelector('h1').textContent = '寻找线索';
+  card.querySelector('p').textContent = '完整观看后解锁本幕提示，计时已暂停。';
+  const cancel = document.createElement('button');
+  cancel.className = 'text-button'; cancel.textContent = '取消领取';
+  cancel.onclick = () => port.cancel(); card.append(cancel);
+  try {
+    const result = await port.offer({id: `history:hint:${round.id}`});
+    if (token !== generation || !card.isConnected) return;
+    if (result.status === 'completed') {
+      saved.hintScenes = [...new Set([...(Array.isArray(saved.hintScenes) ? saved.hintScenes : []), round.id])];
+      save();
+      card.querySelector('h1').textContent = '历史线索';
+      card.querySelector('p').textContent = round.hint || round.clue;
+    } else card.querySelector('p').textContent = result.status === 'dismissed' ? '观看已中断，未获得线索。' : '线索暂不可用，仍可继续作答。';
+  } finally {
+    rewardPending = false;
+    if (card.isConnected) { resume.disabled = false; cancel.remove(); }
+  }
+}
 function pause() {
   if (state.phase !== 'guessing') return;
   if (state.mode === 'practice') {
@@ -923,6 +972,8 @@ function finish() {
     { back: home },
   );
   state.phase = 'finished';
+  const resultGeneration = generation;
+  globalThis.SmallGamesRewardAds?.atBreak?.(state, () => generation === resultGeneration && state.phase === 'finished');
   on('#finish-next', 'click', () => (next ? prepare(next.id) : chapters()));
   on('#again', 'click', () => (level ? startLocal(level) : chapters()));
   on('#share-result', 'click', () =>
@@ -1026,5 +1077,5 @@ window.SmallGamesDev?.registerSnapshot(() => ({
   practiceUnlocked: devUnlock,
 }));
 const invite = new URLSearchParams(location.search).get('invite');
-if (invite && /^[a-zA-Z0-9_-]{8,100}$/.test(invite)) invitation(invite);
+if (!offlinePackage && invite && /^[a-zA-Z0-9_-]{8,100}$/.test(invite)) invitation(invite);
 else home();

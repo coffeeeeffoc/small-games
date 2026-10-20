@@ -22,6 +22,9 @@ const DEPENDENCY_FIELDS = [
 // rules on the authoritative server, or exercise those rules from repository tests.
 // Runtime game code must still never import service implementations.
 const REPOSITORY_IMPORTS = new Set([
+  'games/local/cops-robbers-realtime/src/taptap-h5-ads.js -> platforms/h5/platform-ads.js',
+  'games/local/night-overwatch/scripts/build.mjs -> games/local/carding-car/scripts/cocos-branding.mjs',
+  'games/local/night-overwatch/scripts/build-native.mjs -> games/local/carding-car/scripts/cocos-branding.mjs',
   // Three-game optional native portal; standalone H5 uses an injected save port.
   'games/local/cops-robbers-realtime/src/native.js -> platforms/taptap/native-portal.mjs',
   'platforms/competition/xiangqi-five/native.js -> platforms/taptap/native-portal.mjs',

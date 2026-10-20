@@ -22,7 +22,7 @@ if (config.adMode === 'host' && !globalThis.SmallGamesRewardAds) {
     timeoutMs: provider.timeoutMs,
     diagnostics,
     offer: ({ id, onShown }) => provider.show({ opportunityId: id, kind: 'rewarded', onShown }),
-    cancel: () => provider.dispose(),
+    cancel: () => provider.cancel(),
   };
   void provider.preload();
   addEventListener('visibilitychange', () =>

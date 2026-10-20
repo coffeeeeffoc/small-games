@@ -6,6 +6,12 @@ export const h5Orientations = Object.freeze({
   'cops-robbers': 'portrait',
   'cops-robbers-realtime': 'preserve',
   'xiangqi-five': 'portrait',
+  'carding-car': 'landscape',
+  'vibeJam-myself-history-guess': 'portrait',
+  'wulong-city': 'landscape',
+  'night-overwatch': 'landscape',
+  'travel-bund': 'landscape',
+  'letters-words2': 'portrait',
 });
 export const productionCompetitionApi = 'https://api.nenggongzhiren.cn/small-games/v1';
 export const localCompetitionApi = 'http://127.0.0.1:43802/api/competition/v1';

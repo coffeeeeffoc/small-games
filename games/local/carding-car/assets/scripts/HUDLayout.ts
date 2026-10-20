@@ -1,5 +1,11 @@
 // Design-space rectangles, shared by drawing and touch hit testing.
 export type HitRect = { x: number; y: number; width: number; height: number };
+export const pauseLayout = {
+  panel: { x: 0, y: 0, width: 400, height: 330 },
+  resume: { x: 0, y: -12, width: 336, height: 68 },
+  home: { x: -87, y: -100, width: 162, height: 64 },
+  restart: { x: 87, y: -100, width: 162, height: 64 },
+};
 export const readyLayout = {
   x: -282,
   width: 284,

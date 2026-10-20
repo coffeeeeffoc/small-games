@@ -66,6 +66,7 @@ it.each(games)('opens standalone Game $id and removes its frame on exit', async 
       id === 'flick-arena' ||
       id === 'xiangqi-five' ||
       id === 'letters-words2' ||
+      id === 'vibeJam-myself-history-guess' ||
       id === 'wulong-city'
     ) {
       expect(container.querySelector('nav a')).toBeNull();

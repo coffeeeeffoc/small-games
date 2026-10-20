@@ -993,8 +993,10 @@ test('shared competition protocol modules select all actual H5 consumers and nat
       'cops-robbers-realtime',
       ...(file.endsWith('client.js') ? ['flick-arena'] : []),
       'letters-words2',
+      ...(file.endsWith('client.js') ? ['night-overwatch'] : []),
       ...(file.endsWith('client.js') ? ['three-choose-two', 'tower-brake'] : []),
       'vibeJam-myself-history-guess',
+      ...(file.endsWith('client.js') ? ['wulong-city'] : []),
       'xiangqi-five',
     ]);
     assert.equal(result.nine_native_targets.length, file.endsWith('client.js') ? 36 : 30);

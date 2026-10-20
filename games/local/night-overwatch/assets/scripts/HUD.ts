@@ -84,6 +84,7 @@ export class HUD {
   toolsOpen = false;
   zoomOpen = false;
   zoomLimit = 5;
+  rewardsAvailable = false;
   supplyOpen = false;
   pendingSupply = false;
   advert?: { kind: RewardKind; mock: boolean };
@@ -521,7 +522,7 @@ export class HUD {
           : this.t('看完广告，三选一', 'COMPLETE AN AD · CHOOSE ONE'), px + pw / 2, py + 74, 14, pw - 32, 32, s.buff ? C.amber : C.white);
         const watchY = py + ph - 108, backY = py + ph - 56;
         this.rect(g, px + 24, watchY, pw - 48, 44, s.buff ? '#1b3038' : C.mint, s.buff ? C.line : undefined, 10);
-        const watch = this.button('supplyWatch', this.t('观看广告', 'WATCH AD'), px + 24, watchY, pw - 48, 44, n);
+        const watch = this.button('supplyWatch', this.t('领取补给', 'GET SUPPLIES'), px + 24, watchY, pw - 48, 44, n);
         watch.color = col(s.buff ? C.dim : '#10252a'); watch.isBold = !s.buff;
         this.rect(g, px + 24, backY, pw - 48, 44, '#0c171daa', '#91e6cb88', 10);
         this.button('supplyLater', this.t('返回暂停', 'BACK TO PAUSE'), px + 24, backY, pw - 48, 44, n);
@@ -547,7 +548,7 @@ export class HUD {
         b.color = col('#10252a'); b.isBold = true;
         this.rect(g, px + 32 + bw, y, bw, 44, '#1b3038', C.line, 5);
         this.button('adCancel', this.t('取消 · 返回暂停', 'CANCEL · PAUSE'), px + 32 + bw, y, bw, 44, n);
-      }
+      } else this.button('adCancel', this.t('取消领取', 'CANCEL'), px + 24, py + ph - 76, pw - 48, 44, n);
       this.label(n, this.advert?.mock ? this.t('本次为网页模拟 · 无需等待', 'WEB SIMULATION · NO WAIT') : this.t('完成广告后领取奖励', 'COMPLETE THE AD TO CLAIM'),
         px + pw / 2, py + ph - 17, 11, pw - 32, 22, C.dim);
       return;
@@ -913,7 +914,8 @@ export class HUD {
         `ALLIES ${allies - s.friendlyLosses}/${allies} · THREATS ${s.threatsRemaining} · ${Math.ceil(s.remaining)}s`,
       ), px + pw / 2, summaryY, tight ? 12 : 14, pw - 48, 28, C.dim);
       this.rect(g, px + 24, summaryY + 30, pw - 48, 1, '#91e6cb33');
-      this.button('supply', this.supplyLabel(s), px + 24, bottom - 52, pw - 48, 44, n).lineHeight = 16;
+      if (this.rewardsAvailable || this.pendingSupply)
+        this.button('supply', this.supplyLabel(s), px + 24, bottom - 52, pw - 48, 44, n).lineHeight = 16;
       this.button('resume', this.t('继续  →', 'RESUME  →'),
         px + 24, bottom, (pw - 56) / 2, 44, n);
       this.button('home', this.t('结束任务 · 主页', 'END · HOME'), px + 32 + (pw - 56) / 2, bottom, (pw - 56) / 2, 44, n);
@@ -942,7 +944,7 @@ export class HUD {
   }
   supplyLabel(s: Simulation) {
     return this.pendingSupply ? this.t('战斗补给 · 待领取', 'SUPPLY · CLAIM')
-      : s.buff ? this.t('战斗补给\n增益中 · 广告暂停', 'COMBAT SUPPLY\nBUFF · ADS PAUSED')
+      : s.buff ? this.t('战斗补给\n增益生效中', 'COMBAT SUPPLY\nBUFF ACTIVE')
       : this.t('战斗补给', 'COMBAT SUPPLY');
   }
   update(s: Simulation, world: World) {
@@ -967,6 +969,15 @@ export class HUD {
     for (const l of this.labels.values()) l.node.active = !key;
     for (const l of this.unitLabels.values()) l.node.active = false;
     for (const b of this.buttons) {
+      if (b.id === 'homing' && !s.homingAmmo && !this.rewardsAvailable && !this.pendingSupply) {
+        b.label.node.active = false;
+        continue;
+      }
+      if (['supply', 'homingReward', 'supplyWatch', 'zoomUpgrade'].includes(b.id) &&
+          !this.rewardsAvailable && !(this.pendingSupply && b.id === 'supply')) {
+        b.label.node.active = false;
+        continue;
+      }
       if (b.label.node.parent === this.root)
         b.label.node.active = !key && (b.id !== 'fire' || this.touch || s.homingSelected) && (!panelActions.includes(b.id) || this.toolsOpen || this.desktop && flightActions.includes(b.id));
       if (['lensOut', 'lensIn', 'homingReward', 'zoomUpgrade'].includes(b.id))
@@ -1031,9 +1042,9 @@ export class HUD {
       if (b.id === 'lensIn') b.label.string = this.t('放大 +', 'ZOOM +');
       if (b.id === 'supply' || b.id === 'homingReward') b.label.string = this.supplyLabel(s);
       if (b.id === 'homingReward') b.label.lineHeight = 16;
-      if (b.id === 'zoomUpgrade') b.label.string = s.buff ? this.t('增益中 · 广告暂停', 'BUFF ACTIVE · ADS PAUSED')
+      if (b.id === 'zoomUpgrade') b.label.string = s.buff ? this.t('增益生效中', 'BUFF ACTIVE')
         : this.pendingSupply ? this.t('请先领取战斗补给', 'CLAIM SUPPLY FIRST') : nextZoomLimit(this.zoomLimit)
-        ? this.t(`广告 · 升至 ${nextZoomLimit(this.zoomLimit)}×`, `AD · UNLOCK ${nextZoomLimit(this.zoomLimit)}×`)
+        ? this.t(`升至 ${nextZoomLimit(this.zoomLimit)}×`, `UNLOCK ${nextZoomLimit(this.zoomLimit)}×`)
         : this.t('已解锁 160×', '160× UNLOCKED');
     }
     const plane = s.aircraft;

@@ -23,6 +23,9 @@ const color = (hex: string) => new Color().fromHEX(hex);
 const categoryNames: Record<Category, string> = { vehicle: '赛车', decoration: '装饰', pet: '宠物', driver: '车手服', parts: '零部件' };
 const partNames = { engine: '引擎', grip: '轮胎抓地', nitro: '氮气系统' } as const;
 const ink = '#704d35';
+const rewardPort = () => (globalThis as typeof globalThis & {
+  SmallGamesRewardAds?: { available: boolean; offer(request: { id: string }): Promise<{ status: string }>; cancel(): void };
+}).SmallGamesRewardAds;
 
 /** A Cocos-only menu over the live scene: opening a page never loads a catalog. */
 export class HomePanel {
@@ -42,6 +45,24 @@ export class HomePanel {
   private time = 0;
   private motion: { node: Node; x: number; y: number; kind: 'pulse' | 'float'; phase: number }[] = [];
   private pressed = new Set<Node>();
+  private rewardPending = false;
+  private async requestSupply() {
+    const port = rewardPort(), races = this.career.profile.races;
+    if (!port?.available || this.rewardPending || !this.career.supplyAvailable) return;
+    this.rewardPending = true;
+    this.notice = '正在领取补给…';
+    this.render();
+    try {
+      const outcome = await port.offer({ id: `carding-car:supply:${races}` });
+      if (!this.root.isValid || !this.root.active) return;
+      this.notice = outcome.status === 'completed'
+        ? this.career.claimSupply(races) ? '金币 +100' : this.career.saveError || '本场补给已领取'
+        : outcome.status === 'dismissed' ? '观看已中断，未获得金币' : '未获得补给，请稍后再试';
+    } finally {
+      this.rewardPending = false;
+      if (this.root.isValid) { this.setInputEnabled(true); this.signature = ''; if (this.root.active) this.render(); }
+    }
+  }
 
   constructor(parent: Node, private career: Career, private callbacks: Callbacks) {
     this.root = new Node('HomePanel');
@@ -86,6 +107,7 @@ export class HomePanel {
     this.render();
   }
   hide() {
+    if (this.rewardPending) rewardPort()?.cancel();
     if (this.page === 'shop') this.callbacks.equip();
     this.root.active = false;
   }
@@ -220,6 +242,7 @@ export class HomePanel {
     return label;
   }
   private button(text: string, x: number, y: number, width: number, action: () => void, enabled = true, height = 52, accent = false, display = text) {
+    enabled = enabled && (!this.rewardPending || text === '取消领取');
     const node = new Node(text);
     node.layer = Layers.Enum.UI_2D;
     this.content.addChild(node);
@@ -263,7 +286,7 @@ export class HomePanel {
     return node;
   }
   private render() {
-    const signature = JSON.stringify([this.page, this.advanced, this.category, this.itemIndex, this.milestonePage, this.showingEquipped, this.notice, this.state, this.career.profile]);
+    const signature = JSON.stringify([this.page, this.advanced, this.category, this.itemIndex, this.milestonePage, this.showingEquipped, this.notice, this.state, this.career.profile, rewardPort()?.available, this.rewardPending]);
     if (signature === this.signature) return;
     this.signature = signature;
     for (const child of [...this.content.children]) { child.removeFromParent(); child.destroy(); }
@@ -300,11 +323,9 @@ export class HomePanel {
     const logo = this.graphics(this.content, 'PlayfulLogo');
     logo.fillColor = color('#203e56'); logo.roundRect(-453, 129, 285, 100, 36); logo.fill();
     logo.strokeColor = color('#ffffff'); logo.lineWidth = 7; logo.roundRect(-453, 129, 285, 100, 36); logo.stroke();
-    for (const [i, letter] of ['咔', '叮', '唓'].entries()) {
-      const x = -399 + i * 79, y = 178 + (i === 1 ? 7 : 0);
-      this.label(letter, x + 3, y - 5, 95, 96, 70, '#153e55');
-      this.label(letter, x, y, 95, 96, 70, ['#ff913b', '#ffd84d', '#55c8f3'][i]);
-    }
+    this.label('浪湾卡丁车', -310, 174, 266, 92, 45, '#ffd84d');
+    if (rewardPort()?.available && this.career.supplyAvailable)
+      this.button(this.rewardPending ? '取消领取' : '金币补给 +100', 280, -65, 270, () => { if (this.rewardPending) rewardPort()?.cancel(); else void this.requestSupply(); }, true, 64);
     this.flag(logo, -193, 225, 27);
     this.star(logo, -321, 224, 13, '#fff2ac');
     const go = this.button('选择比赛  →', 280, -160, 300, () => this.show('setup'), true, 100, true, '');
@@ -322,8 +343,10 @@ export class HomePanel {
       this.label(short, 0, -35, 90, 28, 21, '#236384', button);
     }
     // The actual room button belongs to KartGame and overlays this reserved shortcut.
-    this.box(-160, -180, 100, 94);
-    this.icon('friends', this.content, -160, -160);
+    if (!(globalThis as typeof globalThis & { SmallGamesH5Package?: { offline: boolean } }).SmallGamesH5Package?.offline) {
+      this.box(-160, -180, 100, 94);
+      this.icon('friends', this.content, -160, -160);
+    }
     const sparkle = this.graphics(this.content, 'GoSparkle');
     sparkle.node.setPosition(446, -213);
     this.star(sparkle, 0, 0, 15, '#ffe36b');

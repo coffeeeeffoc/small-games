@@ -786,6 +786,8 @@ test('publishing and deployment contracts run with native gates deferred and ser
       'platforms/h5/tests/platform-ads.test.mjs',
       'platforms/h5/tests/deploy-taptap.test.mjs',
       'games/local/cops-robbers/scripts/check-ad-core.mjs',
+      'games/local/cops-robbers-realtime/tests/taptap-h5-ads.test.mjs',
+      'games/submodules/xiangqi-five/rewarded-hints.test.js',
     ],
     ['node', '--test', 'platforms/tests/publication-config.test.mjs'],
     ['node', '--test', 'scripts/deployment-bundle.test.mjs'],

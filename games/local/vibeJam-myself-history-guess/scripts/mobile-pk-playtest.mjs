@@ -352,6 +352,7 @@ async function coreSuite() {
   assert.equal(await page.locator('#submit').isDisabled(), true);
   assert.ok(Number((await page.locator('#timer').innerText()).match(/\d+/)[0]) <= 45);
   await capture(page, 'play-390');
+  assert.equal(await page.locator('#year-range').isVisible(), false, 'year control stays on the answer page');
   await touchTargets(page);
   await gesture(page);
   await page.locator('#pause').tap();

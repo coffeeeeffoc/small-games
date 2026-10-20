@@ -420,6 +420,23 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
       env,
       'logged',
     );
+  if (plan.six_h5_checks)
+    execute(
+      process.execPath,
+      [
+        '--test',
+        '--test-concurrency=1',
+        'scripts/six-taptap-h5.test.mjs',
+        'platforms/h5/tests/game-rewards.test.mjs',
+        'platforms/h5/tests/interstitial.test.mjs',
+        'scripts/h5-game-services.test.mjs',
+        'platforms/competition/tests/game-bootstrap.test.mjs',
+        'games/local/carding-car/tests/cocos-branding.test.mjs',
+      ],
+      root,
+      env,
+      'logged',
+    );
   if (plan.h5_acceptance_checks)
     execute(
       process.execPath,
@@ -671,6 +688,8 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
         'platforms/h5/tests/platform-ads.test.mjs',
         'platforms/h5/tests/deploy-taptap.test.mjs',
         'games/local/cops-robbers/scripts/check-ad-core.mjs',
+        'games/local/cops-robbers-realtime/tests/taptap-h5-ads.test.mjs',
+        'games/submodules/xiangqi-five/rewarded-hints.test.js',
       ],
       root,
       env,

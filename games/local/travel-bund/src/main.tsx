@@ -53,6 +53,9 @@ import { clientDelta, setupDisplay } from './display';
 import panelArt from './assets/panels-art.webp';
 
 const KEY = 'travel-bund.visits.v1';
+const rewardPort = () => (globalThis as typeof globalThis & {
+  SmallGamesRewardAds?: { available: boolean; offer(request: {id: string}): Promise<{status: string}>; cancel(): void };
+}).SmallGamesRewardAds;
 const Tour = React.lazy(() => import('./Scene').then((module) => ({ default: module.Tour })));
 class SceneBoundary extends React.Component<
   { children: React.ReactNode; onError: () => void },
@@ -279,6 +282,8 @@ function App() {
     [huntPractice, setHuntPractice] = useState(false),
     [huntPhoto, setHuntPhoto] = useState(''),
     [huntStored, setHuntStored] = useState(true);
+  const [guidePending, setGuidePending] = useState(false);
+  const guideRequest = useRef(0);
   const hunt = photoHunts.find((item) => item.id === huntId),
     previewHunt = photoHunts.find((item) => item.id === previewId)!,
     nextHunt = hunt && photoHunts[photoHunts.indexOf(hunt) + 1];
@@ -741,6 +746,25 @@ function App() {
     if (!isPhotoHuntUnlocked(huntSave, selected.id)) return;
     setPreviewId(selected.id);
     open('hunt-preview');
+  }
+  useEffect(() => {
+    guideRequest.current++;
+    return () => { guideRequest.current++; rewardPort()?.cancel(); };
+  }, [panel, previewId]);
+  async function requestPhotoGuide() {
+    const port = rewardPort(), selected = previewHunt;
+    if (!port?.available || guidePending || huntPractice || !isPhotoHuntUnlocked(huntSave, selected.id)) return;
+    const token = ++guideRequest.current;
+    setGuidePending(true);
+    try {
+      const result = await port.offer({id:`travel-bund:photo-guide:${selected.id}`});
+      if (token !== guideRequest.current || !mounted.current) return;
+      if (result.status === 'completed') {
+        beginPhotoHunt(selected);
+        setTeleport(previous => ({...selected.start, position: selected.station.position, serial: previous.serial + 1}));
+        notify('已到观景点，调整视角后拍下照片吧。');
+      } else notify(result.status === 'dismissed' ? '已取消引路，仍可自由探索。' : '引路暂不可用，可以查看免费找景提示。');
+    } finally { if (mounted.current) setGuidePending(false); }
   }
   function endPhotoHunt(resume = false) {
     setHuntId(null);
@@ -1506,6 +1530,8 @@ function App() {
                 started && huntId === previewHunt.id ? start(false) : beginPhotoHunt(previewHunt)
               }
               onMenu={() => setPanel('hunts')}
+              onGuide={rewardPort()?.available && !huntPractice ? () => { void requestPhotoGuide(); } : undefined}
+              guidePending={guidePending}
             />
           )}
           {panel === 'hunt-result' && hunt && huntPhoto && (

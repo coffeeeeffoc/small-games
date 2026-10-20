@@ -270,6 +270,14 @@ export class Career {
     return this.lastReward;
   }
 
+  get supplyAvailable(): boolean {
+    return this.profile.races > 0 && !this.rewarded.includes(`supply:${this.profile.races}`);
+  }
+  claimSupply(races: number): boolean {
+    if (races !== this.profile.races || !this.supplyAvailable) return false;
+    return this.save({ ...this.profile, coins: bounded(this.profile.coins + 100) },
+      [...this.rewarded, `supply:${races}`]);
+  }
   get level(): number {
     return Math.floor(Math.sqrt(this.profile.xp / 100)) + 1;
   }

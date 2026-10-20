@@ -1,0 +1,50 @@
+{
+  "batch": "outputs/game-builds/20261020T165925679Z-a93dd9",
+  "artifacts": [
+    {
+      "game": "carding-car",
+      "zip": "carding-car-taptap-h5-ads-on-service-on.zip",
+      "bytes": 14424430,
+      "sha256": "848f45ab5d2181d3070c24d4a1fde22f34d69ba195cee91e7ec78be0a0466852",
+      "sourceSHA": "87f541738ff49df880b0dcb5069ef485c5102e95",
+      "sourceDirty": true,
+      "orientation": "landscape"
+    },
+    {
+      "game": "vibeJam-myself-history-guess",
+      "zip": "vibeJam-myself-history-guess-taptap-h5-ads-on-service-on.zip",
+      "bytes": 11733255,
+      "sha256": "0daa0baf490feb5c9bf55bb7955a824abbaad16a60370eee3fb0b2b0e5eccb2b",
+      "sourceSHA": "87f541738ff49df880b0dcb5069ef485c5102e95",
+      "sourceDirty": true,
+      "orientation": "portrait"
+    },
+    {
+      "game": "wulong-city",
+      "zip": "wulong-city-taptap-h5-ads-on-service-on.zip",
+      "bytes": 2400643,
+      "sha256": "332bb4b86b983c5708c81b8b891d073becd9238faf4fcade87b88ddf9dc25834",
+      "sourceSHA": "87f541738ff49df880b0dcb5069ef485c5102e95",
+      "sourceDirty": true,
+      "orientation": "landscape"
+    },
+    {
+      "game": "night-overwatch",
+      "zip": "night-overwatch-taptap-h5-ads-on-service-on.zip",
+      "bytes": 957657,
+      "sha256": "8d57264cbc3b1f293d5fd51adaef2effd9855bb86b0f5b40e093b86f3a33794a",
+      "sourceSHA": "87f541738ff49df880b0dcb5069ef485c5102e95",
+      "sourceDirty": true,
+      "orientation": "landscape"
+    },
+    {
+      "game": "letters-words2",
+      "zip": "letters-words2-taptap-h5-ads-on-service-on.zip",
+      "bytes": 596016,
+      "sha256": "7b50d4f1b136a1010365f6d2ed5b21456df657b8437e746226e089cb3ef24b1c",
+      "sourceSHA": "87f541738ff49df880b0dcb5069ef485c5102e95",
+      "sourceDirty": true,
+      "orientation": "portrait"
+    }
+  ]
+}

@@ -204,6 +204,8 @@ export const competitionIdentityConsumers = Object.freeze({
   'three-choose-two': 'games/local/three-choose-two',
   'cage-rescue': 'games/local/cage-rescue',
   'tower-brake': 'games/local/tower-brake',
+  'wulong-city': 'games/local/wulong-city',
+  'night-overwatch': 'games/local/night-overwatch',
 });
 export const competitionIdentityScopePaths = Object.freeze([
   'scripts/competition-connection.test.mjs',
@@ -290,6 +292,97 @@ export const h5AcceptanceScopePaths = Object.freeze([
   'scripts/h5-taptap-trace.test.mjs',
 ]);
 const competitionServiceIds = ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'];
+export const sixH5Ids = [
+  'carding-car',
+  'vibeJam-myself-history-guess',
+  'wulong-city',
+  'night-overwatch',
+  'travel-bund',
+  'letters-words2',
+];
+const sixH5Sources = sixH5Ids.map((id) => `games/local/${id}`);
+export const sixH5ScopePaths = [
+  'scripts/h5-game-build.mjs',
+  'scripts/six-taptap-h5.test.mjs',
+  'scripts/five-taptap-rewards.browser.mjs',
+  'platforms/h5/interstitial.js',
+  'platforms/h5/tests/interstitial.test.mjs',
+  'scripts/h5-game-services.mjs',
+  'scripts/h5-game-services.test.mjs',
+  'platforms/competition/game-bootstrap.js',
+  'platforms/competition/tests/game-bootstrap.test.mjs',
+  'platforms/h5/game-rewards.js',
+  'platforms/h5/tests/game-rewards.test.mjs',
+  'infra/builds/six-taptap-h5.mjs',
+];
+const sharedH5PackagePaths = [
+  'scripts/h5-ad-config.mjs',
+  'scripts/h5-taptap-build.mjs',
+  'scripts/h5-taptap-matrix.mjs',
+  'scripts/build-games.mjs',
+  'game-build.local.mjs',
+];
+function assertSixH5(games, packages, readHead) {
+  assert.deepEqual(
+    literalDeclaration(readHead('scripts/h5-ad-config.mjs'), 'additionalH5Games'),
+    sixH5Ids,
+  );
+  for (const [i, id] of sixH5Ids.entries()) {
+    assert.equal(games.filter((g) => g.id === id && g.source === sixH5Sources[i]).length, 1);
+    assert.equal(packages.filter((p) => p.dir === sixH5Sources[i]).length, 1);
+  }
+}
+export function sixH5PresetOnly(source, five = false) {
+  try {
+    const ast = loadDependency('prettier/plugins/babel').parsers.babel.parse(source, {}).program
+      .body;
+    assert.equal(ast.length, 1);
+    assert.equal(ast[0].type, 'ExportDefaultDeclaration');
+    const literal = (node) => {
+      if (['StringLiteral', 'BooleanLiteral', 'NumericLiteral'].includes(node.type))
+        return node.value;
+      if (node.type === 'ArrayExpression') return node.elements.map(literal);
+      assert.equal(node.type, 'ObjectExpression');
+      const result = {};
+      for (const p of node.properties) {
+        assert(p.type === 'ObjectProperty' && !p.computed && !p.shorthand);
+        const key = p.key.name ?? p.key.value;
+        assert(!Object.hasOwn(result, key));
+        result[key] = literal(p.value);
+      }
+      return result;
+    };
+    const cfg = literal(ast[0].declaration);
+    assert.deepEqual(Object.keys(cfg).sort(), [
+      'ads',
+      ...(five ? ['apiUrl'] : []),
+      'backend',
+      'games',
+      'targets',
+      'version',
+    ]);
+    if (five) assert.equal(cfg.apiUrl, 'https://api.nenggongzhiren.cn/small-games/v1');
+    assert.equal(cfg.version, 2);
+    const ids = five ? sixH5Ids.filter((id) => id !== 'travel-bund') : sixH5Ids;
+    assert.deepEqual(cfg.games, ids);
+    assert.deepEqual(cfg.backend, [five]);
+    assert(
+      cfg.ads.length > 0 && cfg.ads.length <= 2 && cfg.ads.every((x) => typeof x === 'boolean'),
+    );
+    assert.equal(cfg.targets.length, 1);
+    const target = cfg.targets[0];
+    assert.deepEqual(Object.keys(target).sort(), ['adUnits', 'platform', 'type']);
+    assert.equal(target.platform, 'taptap');
+    assert.equal(target.type, 'h5');
+    assert.deepEqual(Object.keys(target.adUnits).sort(), [...ids].sort());
+    assert(
+      Object.values(target.adUnits).every((x) => typeof x === 'string' && /^[\w-]{0,160}$/.test(x)),
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
 export function competitionServiceConfigOnly(file, before, after) {
   try {
     const previous = JSON.parse(before),
@@ -939,6 +1032,7 @@ const localIgnores = new Set([
   'AGENTS.md.backup.*',
   '/game-build.local.json',
   '/game-build.local.js',
+  'outputs_backup*/',
 ]);
 const ignoreLines = (text) =>
   text
@@ -1444,7 +1538,7 @@ export const safeAreaScopePaths = [
   'platforms/h5/tests/safe-area.test.mjs',
   'platforms/h5/tests/safe-area.browser.mjs',
 ];
-// Only cops-robbers currently packages the explicit channel adapter and H5 uploader.
+// The SDK adapter is shared by nine H5 entries; the uploader remains chase-only.
 export const platformAdsScopePaths = [
   'platforms/h5/platform-ads.js',
   'platforms/h5/platform-ads.d.ts',
@@ -1570,6 +1664,11 @@ export function targetedCommandsOnly(before, after) {
     for (const [name, command, targets] of [
       ['push:no-verify', 'git push --no-verify', []],
       ['validate:candidate', 'node scripts/validate-candidate.mjs', []],
+      [
+        'build:taptap:h5',
+        'node scripts/build-games.mjs --config infra/builds/six-taptap-h5.mjs',
+        sixH5Sources,
+      ],
       ['deploy:backend', 'node scripts/deploy-backend.mjs', selectedBackendConsumers],
       [
         'build:games',
@@ -2054,6 +2153,8 @@ export function reviewedSharedFileScopes({
         const consumers = targetedCommandsOnly(readBase(file), readHead(file));
         if (consumers) {
           for (const dir of consumers) assert(packages.some((pkg) => pkg.dir === dir));
+          if (consumers.some((dir) => sixH5Sources.includes(dir)))
+            assertSixH5(games, packages, readHead);
           for (const id of competitionServiceIds.filter((id) =>
             consumers.includes(competitionConsumers[id]),
           ))
@@ -2237,6 +2338,28 @@ export function reviewedSharedFileScopes({
         scopes.set(file, consumers);
         continue;
       }
+      if (file === 'infra/builds/five-taptap-h5.mjs') {
+        assert(sixH5PresetOnly(readHead(file), true));
+        assertSixH5(games, packages, readHead);
+        scopes.set(
+          file,
+          sixH5Sources.filter((source) => !source.endsWith('/travel-bund')),
+        );
+        continue;
+      }
+      if (file === 'games/local/carding-car/scripts/cocos-branding.mjs') {
+        scopes.set(file, ['games/local/carding-car', 'games/local/night-overwatch']);
+        continue;
+      }
+      if (sixH5ScopePaths.includes(file)) {
+        if (file.endsWith('.test.mjs')) scopes.set(file, []);
+        else {
+          assertSixH5(games, packages, readHead);
+          if (file === 'infra/builds/six-taptap-h5.mjs') assert(sixH5PresetOnly(readHead(file)));
+          scopes.set(file, sixH5Sources);
+        }
+        continue;
+      }
       if (h5AcceptanceScopePaths.includes(file) && !competitionServiceScopePaths.includes(file)) {
         scopes.set(file, []);
         continue;
@@ -2283,6 +2406,17 @@ export function reviewedSharedFileScopes({
         const gateway = ['scripts/deploy-tencent.mjs', 'scripts/competition-gateway.mjs'].includes(
           file,
         );
+        if (
+          sharedH5PackagePaths.includes(file) &&
+          readHead('scripts/h5-ad-config.mjs').includes('additionalH5Games')
+        ) {
+          assertSixH5(games, packages, readHead);
+          sources.push(...sixH5Sources);
+        }
+        if (file === 'scripts/competition-service-config.mjs') {
+          assertSixH5(games, packages, readHead);
+          sources.push(...sixH5Sources.filter((source) => !source.endsWith('/travel-bund')));
+        }
         if (gateway) {
           assertRankedConsumers(games, packages, readHead);
           assertGameServiceCopies(readHead);
@@ -2318,6 +2452,7 @@ export function reviewedSharedFileScopes({
         if (gateway) assert(packages.some((pkg) => pkg.dir === 'apps/shell-web'));
         scopes.set(file, [
           ...Object.values(rankedConsumers),
+          ...sixH5Sources.filter((source) => !source.endsWith('/travel-bund')),
           ...(gateway ? ['services/runtime-api', 'apps/shell-web'] : []),
         ]);
         continue;
@@ -2409,7 +2544,19 @@ export function reviewedSharedFileScopes({
           games.filter((game) => game.id === 'cops-robbers' && game.source === source).length === 1,
         );
         assert(packages.some((pkg) => pkg.dir === source));
-        scopes.set(file, [source]);
+        const adapter = !file.includes('deploy-taptap');
+        if (adapter) assertSixH5(games, packages, readHead);
+        scopes.set(
+          file,
+          adapter
+            ? [
+                source,
+                'games/local/cops-robbers-realtime',
+                'games/submodules/xiangqi-five',
+                ...sixH5Sources,
+              ]
+            : [source],
+        );
       } else if (safeAreaScopePaths.includes(file)) {
         for (const [id, source] of Object.entries(safeAreaConsumers)) {
           assert(games.filter((game) => game.id === id && game.source === source).length === 1);
