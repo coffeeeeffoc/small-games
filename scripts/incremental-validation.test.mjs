@@ -1254,8 +1254,22 @@ test('Tap services retain three H5 consumers and contracts without retired nativ
   assert.equal(tapServicesChanged(['games/local/letters-words2/game.js'], read), false);
   const sibling = 'platforms/taptap/unreviewed.mjs';
   const selected = incrementalPlan({ changedPaths: [sibling], games, packages, readSource: read });
-  assert.equal(selected.nine_native_targets.length, 6);
-  assert.equal(selected.nine_native_blocked.length, 2);
+  assert.deepEqual(
+    selected.nine_native_targets.map(({ game, platform }) => `${game}:${platform}`).sort(),
+    [
+      'carding-car:taptap',
+      'homebound-station:taptap',
+      'letters-words2:taptap',
+      'night-overwatch:taptap',
+      'travel-bund:taptap',
+      'vibeJam-myself-history-guess:taptap',
+      'wulong-city:taptap',
+    ],
+  );
+  assert.deepEqual(
+    selected.nine_native_blocked.map(({ game }) => game),
+    ['carding-car', 'homebound-station', 'night-overwatch'],
+  );
 });
 
 test('every actual chess H5 or shared Canvas consumer retains the standalone build contract', async () => {
