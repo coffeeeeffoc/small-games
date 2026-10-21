@@ -3,8 +3,9 @@
 ## 实际引擎与构建来源
 
 - Creator 3.8.8；bolanggu 的真实编辑器和 Windows CI 均已完成 Web 构建。首次导入产生的元数据已规范化提交，构建前后输入指纹必须保持一致。
-- 本次运行验证采用 CI `39666540005` 的真实制品 `12377288970`，producer SHA 为 `0a9754ff6702388ddae9e53c29ec05256417049c`（PR 合并候选）。
-- 当前游戏源提交 `607015470d33b4d7a1a172ad9389d67d2dab5f28` 的指纹为 `7333fb2be1d80a792246951c0609bf290326d7e4e905191038c1ba58bbbaba11`，与制品完全一致，已由原始 `verifyPrebuilt()` 校验。ZIP SHA-256：`a49c638a38aad6ab847f7db100f1fbd0c4b5a75a3029fda48bc51e98a62f27a6`。
+- 最终运行验证采用 bolanggu 隔离 worktree 的真实构建，producer SHA 为 `2857dca86e6c2ec2ddee33839ad9c742d48486a6`，命令 `node games/local/homebound-station/scripts/build.mjs web-mobile`，真实编辑器 `D:\\tools\\cocos\\CocosCreator.exe`，退出码 0。
+- 当前游戏源指纹为 `b4daff73ddce11f8e35f0d68909ac5aac2542664ad9bb441a4569c04f4395a00`，与制品完全一致，已由原始 `verifyPrebuilt()` 校验。ZIP 两端 SHA-256：`cc86b75ae3b1d54210e20860e8cbbb9ddd72190ca97dd920f1da2e41d0322ccc`。归档保存真实 `cc.d.ts`、构建日志与 `local-producer.json`；这是本机构建记录，不冒充 CI receipt。
+- 前一版 CI `39666540005`、制品 `12377288970` 亦通过完整触屏流程。最终版将浏览器加载/分享资源与 Node 安装器分离后，重新真实构建并完成同一整套验证。
 - 类型检查使用同一真实 Creator 制品的 `cc.d.ts`，通过。没有以旧 Vite 页面或伪造引擎声明代替。
 
 ## 手机尺寸触屏验证

@@ -3,7 +3,7 @@
   "creator": {
     "creator": "3.8.8",
     "target": "web-mobile",
-    "sourceHash": "7333fb2be1d80a792246951c0609bf290326d7e4e905191038c1ba58bbbaba11"
+    "sourceHash": "b4daff73ddce11f8e35f0d68909ac5aac2542664ad9bb441a4569c04f4395a00"
   },
   "checks": [
     "settings, sound persistence, help return and fullscreen gesture/fallback",

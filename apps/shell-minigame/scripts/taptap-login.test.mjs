@@ -21,6 +21,11 @@ test('TapTap login is installed in source before packing, preserving the origina
   try {
     await writeFile(path.join(directory, 'game.js'), source);
     assert.equal((await installTapTapLogin(directory, config)).configured, false);
+    assert.doesNotMatch(
+      await readFile(path.join(directory, 'tap-login.js'), 'utf8'),
+      /\r\n/,
+      'Windows and Linux must pack the same canonical helper bytes',
+    );
     assert.equal(
       await readFile(path.join(directory, 'game.js'), 'utf8'),
       tapTapLoginPrefix(config) + source,

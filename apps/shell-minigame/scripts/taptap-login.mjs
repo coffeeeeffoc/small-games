@@ -8,7 +8,11 @@ import { serviceGames } from '../../../scripts/competition-service-config.mjs';
 const helper = new URL(import.meta.resolve('@coffeeeeffoc/platform-taptap/login'));
 const identityClient = new URL('../../../platforms/competition/client.js', import.meta.url);
 const helperSource = async () =>
-  Buffer.concat([await readFile(identityClient), Buffer.from('\n'), await readFile(helper)]);
+  Buffer.from(
+    (await readFile(identityClient, 'utf8')).replaceAll('\r\n', '\n') +
+      '\n' +
+      (await readFile(helper, 'utf8')).replaceAll('\r\n', '\n'),
+  );
 const marker = '// TapTap login bootstrap: install before the official packing step.\n';
 
 export function publicTapTapLoginConfig(config) {
