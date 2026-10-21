@@ -13,7 +13,16 @@ export interface LevelView {
 export interface View {
   width: number;
   height: number;
-  page: 'home' | 'levels' | 'play' | 'pause' | 'help' | 'settings' | 'result';
+  page:
+    | 'home'
+    | 'levels'
+    | 'play'
+    | 'pause'
+    | 'help'
+    | 'settings'
+    | 'result'
+    | 'hint'
+    | 'dev-levels';
   level: LevelView;
   levels: LevelView[];
   puzzle: {
@@ -35,6 +44,9 @@ export interface View {
   continueLevel?: LevelView;
   levelChapter?: number;
   dev: boolean;
+  practice?: boolean;
+  hintBusy?: boolean;
+  jumpNumber?: string;
   notice?: string;
   levelPage?: number;
   native?: boolean;
@@ -626,18 +638,19 @@ export function renderGame(ctx: Ink, view: View): HitArea[] {
       ctx,
       view.invitationNumber && view.challengeGoal
         ? `好友自报 ${view.challengeGoal.hints} 提示 / ${view.challengeGoal.mistakes} 调整 / ${time(view.challengeGoal.elapsedMs)}`
-        : '让每一颗微光，找到自己的花圃',
+        : '每行、每列、每片花圃各一颗',
       195,
       526,
       14,
       MID,
       SANS,
     );
+    text(ctx, '彼此留空，种满就开花', 195, 546, 12, MID);
     const done = view.levels.filter((l) => view.completed[l.id]).length;
-    rounded(ctx, 106, 552, 178, 34, 17);
+    rounded(ctx, 106, 564, 178, 30, 15);
     ctx.fillStyle = '#e5ead7';
     ctx.fill();
-    text(ctx, `已通关 ${done} / ${view.levels.length}`, 195, 569, 14, MOSS);
+    text(ctx, `已通关 ${done} / ${view.levels.length}`, 195, 579, 14, MOSS);
     button(
       'home:start',
       view.invitationNumber ? `挑战第 ${view.invitationNumber} 关` : continueLabel(view),
@@ -704,7 +717,8 @@ export function renderGame(ctx: Ink, view: View): HitArea[] {
     text(ctx, '已通关', 134, 618, 12, MID);
     icon(ctx, 'lock', 223, 618, 17, '#959c85');
     text(ctx, '未解锁', 260, 618, 12, MID);
-    text(ctx, '通关后解锁下一关', 195, 658, 13, MID);
+    if (view.dev) button('dev:select', '输入关卡号 · 试玩', 67, 650, 256, 54);
+    else text(ctx, '通关后解锁下一关', 195, 658, 13, MID);
     button('levels:continue', continueLabel(view), 36, 732, 318, 60, true);
   } else if (view.page === 'play') {
     circleButton('nav:back', '返回花园', 'back', 25, 84);
@@ -726,14 +740,26 @@ export function renderGame(ctx: Ink, view: View): HitArea[] {
     drawBoard(ctx, view, boardX, 220, boardWidth, hit);
     const message =
       view.puzzle.message ||
-      (view.level.number === 1 ? '每行、每列、每片花圃各一颗' : view.level.title);
+      (view.level.number === 1
+        ? view.puzzle.placed.length === 0
+          ? '先点金框：这片花圃只有一格'
+          : '每行、每列、每片花圃各一颗'
+        : '每行、每列、每片花圃各一颗');
+    text(ctx, '种子不能紧挨，斜角也要留空', 195, 607, 12, MID);
     const danger = view.puzzle.message && /冲突|相邻|已有|不能|错误/.test(view.puzzle.message);
     text(ctx, message, 195, 585, message.length > 23 ? 12 : 14, danger ? '#a24d41' : MID, SERIF);
     const tools: Array<[string, string, Icon, number, number, boolean]> = [
       ['play:seed', '种子', 'seed', 31, 624, view.mode === 'seed'],
       ['play:mark', '标记', 'mark', 201, 624, view.mode === 'mark'],
       ['play:undo', '撤回', 'undo', 31, 714, false],
-      ['play:hint', '提示', 'hint', 201, 714, false],
+      [
+        'play:hint',
+        view.practice || view.puzzle.hints === 0 ? '免费提示' : '视频提示',
+        'hint',
+        201,
+        714,
+        false,
+      ],
     ];
     tools.forEach(([id, label, symbol, x, y, selected]) => {
       rounded(ctx, x, y, 158, 76, 22);
@@ -767,9 +793,9 @@ export function renderGame(ctx: Ink, view: View): HitArea[] {
     cornerGarden(ctx, true);
     header('玩法手册', '用观察与排除，点亮整座花园');
     const rules = [
-      ['每行、每列，各一颗', '让微光种子分散在不同的行与列。'],
+      ['每行、每列，各一颗', '把光种均匀散开，让整片花园都亮起来。'],
       ['每片花圃，各一颗', '相同颜色与边界组成一片独立花圃。'],
-      ['种子彼此不相邻', '上下、左右和斜角都要留出一个空位。'],
+      ['种子彼此不相邻', '给嫩芽留空间；上下左右、斜角不能紧挨。'],
       ['标记帮助你推理', '切到标记排除空格；再次点击可取消。'],
     ];
     rules.forEach(([title, desc], i) => {
@@ -781,8 +807,35 @@ export function renderGame(ctx: Ink, view: View): HitArea[] {
       text(ctx, title, 84, yy + 28, 19, MOSS, SERIF, 'left');
       text(ctx, desc, 54, yy + 62, 13, MID, SANS, 'left');
     });
-    text(ctx, '撤回不会扣分，提示会标记本关的完成记录。', 195, 711, 12, MID);
+    text(ctx, '首次提示免费；之后完整看视频获得一次提示。', 195, 711, 12, MID);
     button('nav:back', '返回花园', 67, 751, 256, 50, true);
+  } else if (view.page === 'hint') {
+    cornerGarden(ctx, true);
+    header('让园丁帮一步');
+    icon(ctx, 'hint', 195, 257, 56);
+    strong(ctx, '本局免费提示已用完', 195, 348, 23);
+    text(ctx, '完整观看视频，获得 1 次提示', 195, 395, 18);
+    text(ctx, '帮你种下一颗，或取回一颗错种', 195, 433, 14, MID);
+    text(ctx, '未看完不会改变棋盘', 195, 469, 14, MID);
+    if (view.hintBusy) text(ctx, '正在准备或播放视频…', 195, 592, 19);
+    else button('hint:watch', '看视频 · 获得提示', 36, 560, 318, 60, true);
+    button('hint:cancel', view.hintBusy ? '取消 · 返回棋盘' : '返回棋盘', 36, 662, 318, 60);
+  } else if (view.page === 'dev-levels' && view.dev) {
+    header('开发选关');
+    text(ctx, `输入 1–${view.levels.length} · 试玩不计进度`, 195, 167, 14, MID);
+    strong(ctx, view.jumpNumber || '关卡号', 195, 243, 32);
+    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'clear', '0', 'backspace'];
+    keys.forEach((key, i) =>
+      button(
+        `jump:${key}`,
+        key === 'clear' ? '清空' : key === 'backspace' ? '退格' : key,
+        36 + (i % 3) * 110,
+        304 + Math.floor(i / 3) * 82,
+        98,
+        64,
+      ),
+    );
+    button('jump:start', '进入关卡 · 试玩', 36, 688, 318, 64, true);
   } else if (view.page === 'settings') {
     cornerGarden(ctx);
     header('花园设置');
@@ -821,7 +874,7 @@ export function renderGame(ctx: Ink, view: View): HitArea[] {
     leaf(ctx, 246, 157, 25, 0.7, '#91a578');
     strong(ctx, resultTitle(view), 195, 214, 29);
     text(ctx, `${chapterTitle(view.level.chapter)} · ${view.level.title}`, 195, 253, 14, MID, SANS);
-    garden(ctx, 195, 379, 0.76);
+    drawBoard(ctx, view, 107, 280, 176, () => {});
     const goal = view.challenge ? view.challengeGoal : undefined;
     const improved =
       goal &&
@@ -836,8 +889,8 @@ export function renderGame(ctx: Ink, view: View): HitArea[] {
           ? '已达成好友自报目标，再分享新战绩'
           : '先减少提示和调整，再挑战更快用时'
         : view.puzzle.hints === 0 && view.puzzle.mistakes === 0
-          ? '零提示、零调整，漂亮地点亮花圃'
-          : '每一颗微光，都有自己的位置',
+          ? '零提示、零调整，你的花圃开花了'
+          : '你种下的光种，让这片花圃开花了',
       195,
       478,
       13,
@@ -911,7 +964,7 @@ function drawLevelChip(
   hit: (id: string, x: number, y: number, width: number, height: number, label: string) => void,
 ): void {
   const completed = Boolean(view.completed[level.id]);
-  const playable = level.number <= view.unlocked;
+  const playable = view.dev || level.number <= view.unlocked;
   const current = level.id === (view.continueLevel?.id ?? view.level.id);
   rounded(ctx, x, y + 4, size, size, 22);
   ctx.fillStyle = current ? '#a6b68e' : '#d0d5bd';
@@ -931,7 +984,14 @@ function drawLevelChip(
     text(ctx, view.activeLevelId === level.id ? '继续' : '当前', x + size / 2, y + 80, 11, color);
   else {
     icon(ctx, completed ? 'check' : playable ? 'seed' : 'lock', x + 25, y + 80, 13, color);
-    text(ctx, completed ? '已通关' : playable ? '可挑战' : '未解锁', x + 57, y + 80, 10, color);
+    text(
+      ctx,
+      view.dev ? '试玩' : completed ? '已通关' : playable ? '可挑战' : '未解锁',
+      x + 57,
+      y + 80,
+      10,
+      color,
+    );
   }
   if (playable)
     hit(
@@ -1049,9 +1109,22 @@ function drawBoard(
         ctx.lineWidth = 2.6;
         ctx.stroke();
       }
-      seed(ctx, xx + cell / 2, yy + cell / 2, Math.min(17, cell * 0.24), true);
+      if (view.puzzle.completed) {
+        leaf(ctx, xx + cell / 2, yy + cell * 0.76, cell * 0.32, -0.8);
+        flower(ctx, xx + cell / 2, yy + cell / 2, cell * 0.24);
+      } else seed(ctx, xx + cell / 2, yy + cell / 2, Math.min(17, cell * 0.24), true);
     } else if (excluded.has(i))
       icon(ctx, 'mark', xx + cell / 2, yy + cell / 2, Math.min(22, cell * 0.4), '#667461');
+    if (
+      view.level.number === 1 &&
+      !selected.size &&
+      regions.filter((r) => r === regions[i]).length === 1
+    ) {
+      rounded(ctx, xx + 4, yy + 4, cell - 8, cell - 8, 6);
+      ctx.strokeStyle = '#ae7e25';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
     hit(`cell:${i}`, xx, yy, cell, cell, `花圃 第${r + 1}行 第${c + 1}列`);
   }
   ctx.restore();

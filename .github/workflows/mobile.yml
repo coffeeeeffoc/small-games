@@ -23,6 +23,7 @@ jobs:
     env:
       KART_PREBUILT_DIR: ${{ github.workspace }}/games/local/carding-car/.prebuilt
       NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt
+      ORBIT_ATELIER_PREBUILT_DIR: ${{ github.workspace }}/games/local/orbit-atelier/.prebuilt
       HOMEBOUND_STATION_PREBUILT_DIR: ${{ github.workspace }}/games/local/homebound-station/.prebuilt
       GOMAXPROCS: '1'
       APP_VERSION: '0.2.0'
@@ -47,6 +48,10 @@ jobs:
         with:
           name: night-overwatch-${{ github.sha }}
           path: games/local/night-overwatch/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: orbit-atelier-${{ github.sha }}
+          path: games/local/orbit-atelier/.prebuilt
       - uses: actions/download-artifact@v8
         with:
           name: homebound-station-${{ github.sha }}
@@ -107,6 +112,7 @@ jobs:
     env:
       KART_PREBUILT_DIR: ${{ github.workspace }}/games/local/carding-car/.prebuilt
       NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt
+      ORBIT_ATELIER_PREBUILT_DIR: ${{ github.workspace }}/games/local/orbit-atelier/.prebuilt
       HOMEBOUND_STATION_PREBUILT_DIR: ${{ github.workspace }}/games/local/homebound-station/.prebuilt
       GOMAXPROCS: '1'
       APP_VERSION: '0.2.0'
@@ -130,6 +136,10 @@ jobs:
         with:
           name: night-overwatch-${{ github.sha }}
           path: games/local/night-overwatch/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: orbit-atelier-${{ github.sha }}
+          path: games/local/orbit-atelier/.prebuilt
       - uses: actions/download-artifact@v8
         with:
           name: homebound-station-${{ github.sha }}

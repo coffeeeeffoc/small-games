@@ -62,6 +62,7 @@ jobs:
       COMPETITION_PUBLIC_API_URL: 'https://api.nenggongzhiren.cn/small-games/v1'
       KART_PREBUILT_DIR: ${{ github.workspace }}/games/local/carding-car/.prebuilt
       NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt
+      ORBIT_ATELIER_PREBUILT_DIR: ${{ github.workspace }}/games/local/orbit-atelier/.prebuilt
       HOMEBOUND_STATION_PREBUILT_DIR: ${{ github.workspace }}/games/local/homebound-station/.prebuilt
       PAGES_BASE_PATH: /${{ github.event.repository.name }}/${{ (github.base_ref || github.ref_name) == 'dev' && 'dev/' || (github.base_ref || github.ref_name) == 'test' && 'test/' || '' }}
     steps:
@@ -94,6 +95,10 @@ jobs:
         with:
           name: night-overwatch-${{ github.sha }}
           path: games/local/night-overwatch/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: orbit-atelier-${{ github.sha }}
+          path: games/local/orbit-atelier/.prebuilt
       - uses: actions/download-artifact@v8
         with:
           name: homebound-station-${{ github.sha }}
@@ -134,6 +139,7 @@ jobs:
       COMPETITION_PUBLIC_API_URL: 'https://api.nenggongzhiren.cn/small-games/v1'
       KART_PREBUILT_DIR: ${{ github.workspace }}/games/local/carding-car/.prebuilt
       NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt
+      ORBIT_ATELIER_PREBUILT_DIR: ${{ github.workspace }}/games/local/orbit-atelier/.prebuilt
       HOMEBOUND_STATION_PREBUILT_DIR: ${{ github.workspace }}/games/local/homebound-station/.prebuilt
       PAGES_FULL_REGRESSION: ${{ inputs.full }}
       PAGES_GAME_SOURCES: ${{ inputs.game_sources }}
@@ -168,6 +174,10 @@ jobs:
         with:
           name: night-overwatch-${{ github.sha }}
           path: games/local/night-overwatch/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: orbit-atelier-${{ github.sha }}
+          path: games/local/orbit-atelier/.prebuilt
       - uses: actions/download-artifact@v8
         with:
           name: homebound-station-${{ github.sha }}

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844">
+<rect width="390" height="844" fill="#101815"/>
+<g font-family="sans-serif" fill="#e8efe5"><text x="24" y="40" font-size="17">回声实验室</text><text x="316" y="40">••• ◯</text>
+<text x="24" y="91" font-size="24">让空间回应你。</text><text x="24" y="120" font-size="13" fill="#a0afa5">一声回应 · 72 × 40 m</text>
+<rect x="16" y="144" width="358" height="268" rx="16" fill="#19271f"/>
+<path d="M38 177H351V380H38Z M38 228H351 M38 278H351 M38 329H351 M100 177V380 M163 177V380 M226 177V380 M288 177V380" fill="none" stroke="#35483a"/>
+<path d="M84 264L306 228L115 317" stroke="#b7ee81" opacity=".7" fill="none"/><path d="M306 202V320" stroke="#b7ee81" stroke-width="7" stroke-linecap="round"/>
+<circle cx="84" cy="264" r="12" fill="#ed9b89"/><circle cx="115" cy="317" r="12" fill="#8ab8dc"/>
+<text x="64" y="244" font-size="12">声源</text><text x="95" y="350" font-size="12">收音点</text>
+<text x="24" y="440" font-size="13">最强回声 193 ms · 拖动对象改变声音</text>
+<rect x="16" y="460" width="228" height="50" rx="12" fill="#b7ee81"/><text x="65" y="491" fill="#101815">试听空间效果</text>
+<rect x="255" y="460" width="119" height="50" rx="12" fill="#28372c"/><text x="290" y="491">原声</text>
+<rect x="16" y="530" width="358" height="190" rx="16" fill="#19271f"/><text x="32" y="563">反射板</text><text x="32" y="598" font-size="13">角度 90°</text><path d="M32 620H350" stroke="#52654f" stroke-width="4"/><circle cx="122" cy="620" r="10" fill="#b7ee81"/>
+<text x="32" y="657" font-size="13">长度 · 反射率 · 扩散</text><text x="32" y="698" font-size="13">＋ 反射板　　　＋ 吸音屏　　　移除</text>
+<path d="M16 758H374" stroke="#35483a"/><text x="40" y="793" fill="#b7ee81">实验</text><text x="130" y="793">声音</text><text x="218" y="793">配置</text><text x="306" y="793">帮助</text></g></svg>

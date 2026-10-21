@@ -3,9 +3,11 @@ import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
+import { browserEntry } from './scripts/browser-entry.mjs';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT || 4173);
+const target = process.argv.includes('h5') ? 'h5' : 'web';
 const types = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -17,7 +19,13 @@ export const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://localhost');
     const pathname = decodeURIComponent(url.pathname);
-    const filename = path.resolve(root, '.' + (pathname === '/' ? '/index.html' : pathname));
+    const entry = pathname.match(/^\/(web|h5)(?:\/index\.html|\/)?$/);
+    if (pathname === '/' || pathname === '/index.html' || entry) {
+      res.writeHead(200, { 'Content-Type': types['.html'], 'Cache-Control': 'no-store' });
+      res.end(await browserEntry(entry?.[1] || target, entry ? '../' : './'));
+      return;
+    }
+    const filename = path.resolve(root, '.' + pathname);
     if (!filename.startsWith(root + path.sep) || pathname.includes('\0')) {
       res.writeHead(403).end('Forbidden');
       return;

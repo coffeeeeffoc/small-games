@@ -47,10 +47,4 @@ Origin, also rebuild the Artifact with matching `VITE_SHELL_ORIGIN` and set `SHE
 for the services. Use HTTPS for non-loopback delivery. `CANARY_PERCENT` accepts 0–100.
 
 `pnpm infra:up` applies migration 005. After the normal build, run
-`node scripts/catalog.integration.mjs [gated-artifact-id]`. Without an ID it runs the full
-Artifact build gate first. The test creates and drops only a UUID-named isolated database,
-uses real publication/outbox/Runtime routes, and launches the actual iframe Game in a
-headless browser. It needs free port 5173 and Chromium (Windows defaults to installed Edge;
-override `PLAYWRIGHT_EXECUTABLE_PATH` if needed). It covers explicit pins, sticky canary,
-session immutability, response corruption fallback and Runtime-offline local startup.
-S3 bytes, existing databases and user publication pointers remain untouched.
+The Runtime, release and loader suites verify catalog selection, immutable sessions, integrity and fallback with independent fixtures.

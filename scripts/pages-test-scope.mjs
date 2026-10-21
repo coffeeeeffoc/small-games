@@ -1,3 +1,10 @@
+import {
+  localRetirementFileScopes,
+  localRetirementHeadQueryPaths,
+  isReviewedLocalRetirementDeletion,
+  hasLocalRetirementFileProof,
+  hasLocalRetirementDeletionProof,
+} from './local-game-retirement-scope.mjs';
 import { appendFile, readFile, readdir, stat } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import assert from 'node:assert/strict';
@@ -33,7 +40,6 @@ const NON_PAGES_APPS = new Set([
   'admin-web',
   'company-web',
   'shell-android',
-  'shell-bilibili',
   'shell-ios',
   'shell-minigame',
   'studio-web',
@@ -328,10 +334,26 @@ export function collectChangedPaths(options) {
 }
 
 /** Reviewed shared files can reach Creator games without changing their package paths. */
-export function requiresIncrementalCocos({ packages, games, changedPaths, scope, risk }) {
+export function requiresIncrementalCocos({
+  packages,
+  games,
+  changedPaths,
+  scope,
+  risk,
+  fileScopes = new Map(),
+  readSource,
+}) {
   const creatorSources = new Set(packages.filter((pkg) => pkg.creator).map((pkg) => pkg.dir));
   return (
-    requiresCocos(packages, changedPaths, { ...scope, risk }) ||
+    requiresCocos(
+      packages,
+      changedPaths.filter(
+        (file) =>
+          !hasLocalRetirementFileProof(file, fileScopes.get(file), readSource) &&
+          !hasLocalRetirementDeletionProof(file, fileScopes.get(file)),
+      ),
+      { ...scope, risk },
+    ) ||
     scope.game_sources.some((source) => creatorSources.has(source)) ||
     scope.nine_native_targets.some((target) => Boolean(target.requiresCreator)) ||
     scope.nine_native_blocked.some((blocked) =>
@@ -423,7 +445,12 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
       );
       // A successful exact-tree query proves absence. Read failures never count
       // as absence, and no rename (including a reviewed source) uses this proof.
-      const headQueries = retirementHeadQueryPaths(changedPaths);
+      const headQueries = [
+        ...new Set([
+          ...retirementHeadQueryPaths(changedPaths),
+          ...localRetirementHeadQueryPaths(changedPaths),
+        ]),
+      ];
       const headPaths = new Set(
         headQueries.length
           ? git(root, [
@@ -443,14 +470,20 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
         assert(headQueries.includes(file), 'Unqueried candidate path');
         return headPaths.has(file);
       };
-      const retiredScopes = retirementFileScopes({
+      const retirementContext = {
         changedPaths,
         readBase: (file) => git(root, ['show', `${diffBase}:${file}`]),
         readBaseEntry: (file) =>
           git(root, ['--literal-pathspecs', 'ls-tree', diffBase, '--', file]),
         readHead: (file) => git(root, ['show', `${headCommit}:${file}`]),
+        readHeadEntry: (file) =>
+          git(root, ['--literal-pathspecs', 'ls-tree', headCommit, '--', file]),
         headHasPath,
-      });
+      };
+      const retiredScopes = new Map([
+        ...retirementFileScopes(retirementContext),
+        ...localRetirementFileScopes(retirementContext),
+      ]);
       if (
         removed.some(
           (change) =>
@@ -461,7 +494,8 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
               readBase: (file) => git(root, ['show', `${diffBase}:${file}`]),
               headHasPath,
             }) &&
-            !isReviewedRetirementDeletion(change, retiredScopes),
+            !isReviewedRetirementDeletion(change, retiredScopes) &&
+            !isReviewedLocalRetirementDeletion(change, retiredScopes),
         )
       )
         throw new Error('Relevant deletion or rename requires full regression');
@@ -528,7 +562,14 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
       nineNativeFileScopes,
       nineLockFileScopes,
     ])
-      for (const [file, sources] of classify(context)) fileScopes.set(file, sources);
+      for (const [file, sources] of classify(context)) {
+        const existing = fileScopes.get(file);
+        if (
+          !hasLocalRetirementFileProof(file, existing, context.readHead) &&
+          !hasLocalRetirementDeletionProof(file, existing)
+        )
+          fileScopes.set(file, sources);
+      }
     const incremental = incrementalPlan({
       packages,
       games: catalog.standaloneGames,
@@ -547,6 +588,8 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
         .map((game) => game.id)
         .sort(),
       cocos: requiresIncrementalCocos({
+        fileScopes,
+        readSource: context.readHead,
         packages,
         games: catalog.standaloneGames,
         changedPaths: sourcePaths,

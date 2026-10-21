@@ -10,7 +10,7 @@ export const markers = {
   'flick-arena': '#start',
   'tower-brake': '#start-game',
   'chase-thief': '#game[data-ready="true"]',
-  'orbit-atelier': '#orbit-app[data-ready="true"]',
+  'orbit-atelier': '#GameCanvas',
   'moss-garden': '[data-action="start"]',
   'ball-roguelite': '#start',
   'castle-cannon': '.castle-root[data-ready="true"]',
@@ -78,7 +78,6 @@ export const homeControls = {
   tetracube: '#start-game',
   'chase-thief': '#start',
   'wulong-city': '#start-game',
-  'orbit-atelier': '[data-action="start"]',
   'moss-garden': '[data-action="start"]',
   'ball-roguelite': '#start',
   'castle-cannon': '[data-action="start"]',
@@ -101,6 +100,7 @@ export const homeControls = {
 
 // Explicit compatibility list: these existing assertions still own their setup flow.
 export const legacyEntryIds = [
+  'orbit-atelier',
   'homebound-station',
   'echo-lab',
   'bullet-garden',

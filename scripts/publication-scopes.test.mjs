@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import {
   reviewedSharedFileScopes,
   homeboundCocosWiringOnly,
+  orbitCreatorIntegrationFileScope,
   competitionConsumers,
   competitionToolPlan,
   competitionServiceScopePaths,
@@ -1350,7 +1351,6 @@ test('optional service configuration has finite H5 consumers and rejects unknown
         'games/local/letters-words2',
         'games/local/vibeJam-myself-history-guess',
         'apps/shell-minigame',
-        'apps/shell-bilibili',
       ])
         assert(fileScopes.get(file).includes(source));
     }
@@ -3826,9 +3826,15 @@ test('anonymous session migration and Pages service defaults admit only the revi
       : execFileSync('git', ['show', '0d7bfdfe4087b85139dc525e9a75f3ab792e17f6:' + file], {
           encoding: 'utf8',
         });
-    const after = file.startsWith('.github/')
-      ? frozenHomeboundBaseline(file)
-      : readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+    const after = ['scripts/platform.mjs', 'scripts/deploy-tencent.mjs'].includes(file)
+      ? execFileSync('git', ['show', '0459b0cb3c89a748f3a6bd252858951ba1ca073d:' + file], {
+          encoding: 'utf8',
+        })
+      : file.startsWith('.github/')
+        ? execFileSync('git', ['show', 'f62716c317b391b89e78eec220abc053f874f981:' + file], {
+            encoding: 'utf8',
+          })
+        : readFileSync(new URL('../' + file, import.meta.url), 'utf8');
     const check = file.startsWith('.github/')
       ? anonymousPagesFileScope
       : playerSessionBackendFileScope;
@@ -3947,10 +3953,12 @@ test('planning expands only to the four locked game workspaces for both live pub
     }
 });
 
-test('third Creator wiring admits only the reviewed additive compiler change', () => {
+test('Homebound Creator wiring admits only the reviewed additive compiler change', () => {
   const file = 'scripts/h5-game-build.mjs';
   const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
-  const before = after.replace(", 'homebound-station'", '');
+  const before = execFileSync('git', ['show', '4224be0a1a3c9c108e34c39d996642765cfdca54:' + file], {
+    encoding: 'utf8',
+  });
   assert(homeboundCocosWiringOnly(file, before, after));
   assert(!homeboundCocosWiringOnly(file, before, after.replace("'carding-car'", "'other-game'")));
   assert(!homeboundCocosWiringOnly(file, before, after + '\nprocess.exit(0);'));
@@ -3965,4 +3973,125 @@ test('third Creator wiring admits only the reviewed additive compiler change', (
     readHead: () => after,
   });
   assert.deepEqual(scope.get(file), [games[0].source]);
+});
+
+test('Orbit Creator routing permits its exact new consumer and rejects altered existing gates', () => {
+  const file = '.github/workflows/ci.yml';
+  const env =
+    '      NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt\n';
+  const download =
+    "      - uses: actions/download-artifact@v8\n        if: needs.plan.outputs.cocos == 'true'\n        with:\n          name: night-overwatch-${{ github.sha }}\n          path: games/local/night-overwatch/.prebuilt\n";
+  const before = 'existing-gate\n' + env + download + 'existing-assertion\n';
+  const after = before
+    .replace(
+      env,
+      env +
+        env
+          .replaceAll('NIGHT_OVERWATCH', 'ORBIT_ATELIER')
+          .replaceAll('night-overwatch', 'orbit-atelier'),
+    )
+    .replace(download, download + download.replaceAll('night-overwatch', 'orbit-atelier'));
+  assert(orbitCreatorIntegrationFileScope(file, before, after));
+  for (const invalid of [
+    after.replace('existing-gate', 'skip-gate'),
+    after.replace('orbit-atelier/.prebuilt', 'other/.prebuilt'),
+    after + 'extra-command\n',
+    after.replace("if: needs.plan.outputs.cocos == 'true'", 'if: always()'),
+  ])
+    assert.equal(orbitCreatorIntegrationFileScope(file, before, invalid), false);
+  assert.equal(
+    orbitCreatorIntegrationFileScope('.github/workflows/unknown.yml', before, after),
+    false,
+  );
+});
+
+test('Orbit Creator Turbo routing retains every previous input and task', () => {
+  const before = {
+    globalPassThroughEnv: ['COCOS_CREATOR'],
+    tasks: { build: { dependsOn: ['^build'] } },
+  };
+  const after = structuredClone(before);
+  after.globalPassThroughEnv.push('ORBIT_ATELIER_PREBUILT_DIR');
+  after.tasks['@coffeeeeffoc/orbit-atelier#build'] = {
+    dependsOn: ['^build'],
+    outputs: ['dist/**'],
+    env: ['COCOS_CREATOR', 'ORBIT_ATELIER_PREBUILT_DIR'],
+    inputs: ['$TURBO_DEFAULT$', '$TURBO_ROOT$/games/local/orbit-atelier/.prebuilt/**'],
+  };
+  const accepts = () =>
+    orbitCreatorIntegrationFileScope('turbo.json', JSON.stringify(before), JSON.stringify(after));
+  assert(accepts());
+  after.tasks.build.dependsOn = [];
+  assert.equal(accepts(), false);
+});
+
+test('Orbit Cocos gameplay scope isolates the real exported branch without admitting other game changes', () => {
+  const file = 'apps/shell-web/scripts/standalone-game-checks.mjs';
+  const before =
+    "export async function assertStandaloneGameplay(frame, id) { if (id === 'orbit-atelier') { await oldOrbit(frame); } else if (id === 'other') { await keepOther(frame); } }";
+  const after = before.replace('await oldOrbit(frame);', 'await actualTouch(frame);');
+  assert(orbitCreatorIntegrationFileScope(file, before, after));
+  assert.equal(
+    orbitCreatorIntegrationFileScope(file, before, after.replace('keepOther', 'skipOther')),
+    false,
+  );
+  assert.equal(
+    orbitCreatorIntegrationFileScope(
+      file,
+      before,
+      after.replace("id === 'orbit-atelier'", "id === 'other'"),
+    ),
+    false,
+  );
+  assert.equal(orbitCreatorIntegrationFileScope(file, before, after + '\nrunUnrelated();'), false);
+  const nested =
+    "export async function assertStandaloneGameplay(frame, id) { async function nested() { if (id === 'orbit-atelier') { await oldOrbit(frame); } } }";
+  assert.equal(
+    orbitCreatorIntegrationFileScope(file, nested, nested.replace('oldOrbit', 'actualTouch')),
+    false,
+  );
+});
+
+test('merged Homebound Creator routes preserve Orbit and reject changes to existing gates', () => {
+  const files = [
+    '.github/workflows/carding-car.yml',
+    '.github/workflows/ci.yml',
+    '.github/workflows/pages-validate.yml',
+    '.github/workflows/mobile.yml',
+    'turbo.json',
+    'scripts/check-workspace-dependencies.mjs',
+    'scripts/deployment-bundle.mjs',
+    'scripts/deployment-bundle.test.mjs',
+    'scripts/h5-game-build.mjs',
+    'scripts/h5-taptap-build.mjs',
+    'scripts/h5-ad-config.mjs',
+    'scripts/h5-taptap-matrix.mjs',
+  ];
+  const games = [{ id: 'homebound-station', source: 'games/local/homebound-station' }];
+  const packages = [{ name: 'homebound', dir: games[0].source }];
+  for (const file of files) {
+    const before = execFileSync(
+      'git',
+      ['show', '4224be0a1a3c9c108e34c39d996642765cfdca54:' + file],
+      { encoding: 'utf8' },
+    );
+    const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+    assert(homeboundCocosWiringOnly(file, before, after), file);
+    assert.equal(homeboundCocosWiringOnly(file, before + '\n', after), false, file);
+    assert.equal(homeboundCocosWiringOnly(file, before, after + '\n// extra command'), false, file);
+    if (after.includes('orbit-atelier'))
+      assert.equal(
+        homeboundCocosWiringOnly(file, before, after.replaceAll('orbit-atelier', 'missing-orbit')),
+        false,
+        file,
+      );
+    const scopes = reviewedSharedFileScopes({
+      changedPaths: [file],
+      games,
+      packages,
+      readBase: () => before,
+      readHead: () => after,
+    });
+    assert.deepEqual(scopes.get(file), [games[0].source], file);
+  }
 });

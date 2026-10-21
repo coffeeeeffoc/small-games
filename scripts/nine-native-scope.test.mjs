@@ -146,7 +146,7 @@ const reviewedSnapshot = (file) =>
       : snapshot(file);
 const packages = [
   ...catalog.map((game) => ({ dir: game.source })),
-  ...['apps/shell-minigame', 'apps/shell-bilibili', 'platforms/bilibili'].map((dir) => ({ dir })),
+  ...['apps/shell-minigame', 'platforms/bilibili'].map((dir) => ({ dir })),
 ];
 function context(changedPaths = nineNativeScopePaths) {
   return {
@@ -339,7 +339,7 @@ test('overlapping competition proof retains both native runners and all actual h
     'letters-words2',
     'vibeJam-myself-history-guess',
   ]);
-  assert(plan.consumer_sources.includes('apps/shell-bilibili'));
+  assert(plan.consumer_sources.includes('apps/shell-minigame'));
   assert(plan.consumer_sources.includes('services/runtime-api'));
   assert(plan.consumer_sources.includes('platforms/wechat'));
   assert.throws(

@@ -1,3 +1,7 @@
+import {
+  localRetirementFileScopes,
+  localRetirementHeadQueryPaths,
+} from './local-game-retirement-scope.mjs';
 import assert from 'node:assert/strict';
 import { readFile, stat, glob } from 'node:fs/promises';
 import path from 'node:path';
@@ -788,17 +792,6 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
       env,
       'logged',
     );
-  if (nativeConsumers.length) {
-    // The native replay consumes this rule suite's generated action witness.
-    // Generate it inside the exact candidate snapshot before either host smoke.
-    const producer = packages.find((pkg) => pkg.dir === 'games/local/game-building-power');
-    assert(
-      producer?.name === '@coffeeeeffoc/game-building-power' &&
-        producer.scripts?.['test:rules'] === 'vitest run src/simulation.test.ts',
-      'Unreviewed native replay evidence producer: game-building-power test:rules',
-    );
-    execute('pnpm', ['--filter', producer.name, 'test:rules'], root, env, 'logged');
-  }
   for (const dir of nativeConsumers) {
     const pkg = packages.find((item) => item.dir === dir);
     const consumer = nativeToolConsumers.find((item) => item.dir === dir);
@@ -900,7 +893,12 @@ export async function validateTree({
       })
     : new Map();
   if (incremental) {
-    const headQueries = retirementHeadQueryPaths(sourcePaths);
+    const headQueries = [
+      ...new Set([
+        ...retirementHeadQueryPaths(sourcePaths),
+        ...localRetirementHeadQueryPaths(sourcePaths),
+      ]),
+    ];
     const headPaths = new Set(
       execute(
         'git',
@@ -920,6 +918,8 @@ export async function validateTree({
       readBaseEntry: (file) =>
         execute('git', ['--literal-pathspecs', 'ls-tree', base, '--', file], root, clean, 'raw'),
       readHead: (file) => execute('git', ['show', `${head}:${file}`], root, clean, 'raw'),
+      readHeadEntry: (file) =>
+        execute('git', ['--literal-pathspecs', 'ls-tree', head, '--', file], root, clean, 'raw'),
       headHasPath: (file) => {
         assert(headQueries.includes(file), 'Unqueried candidate path');
         return headPaths.has(file);
@@ -934,6 +934,7 @@ export async function validateTree({
       reviewedSharedFileScopes,
       nineNativeFileScopes,
       nineLockFileScopes,
+      localRetirementFileScopes,
     ])
       for (const [file, sources] of classify(context)) fileScopes.set(file, sources);
   }
@@ -975,6 +976,7 @@ export async function validateTree({
         '--test',
         'scripts/incremental-validation.test.mjs',
         'scripts/game-retirement-scope.test.mjs',
+        'scripts/local-game-retirement-scope.test.mjs',
         'scripts/nine-native-scope.test.mjs',
         'scripts/nine-lock-scope.test.mjs',
         'scripts/publication-scopes.test.mjs',

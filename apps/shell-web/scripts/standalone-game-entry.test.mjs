@@ -53,3 +53,21 @@ test('street chase waits for the game and enters through the home start button',
   assert.equal(homeControls['chase-thief'], '#start');
   assert.equal(entryMode('chase-thief'), 'adapter');
 });
+
+test('Orbit Creator owns its native home and interaction checks instead of clicking invisible DOM controls', async () => {
+  assert.equal(markers['orbit-atelier'], '#GameCanvas');
+  assert.equal(homeControls['orbit-atelier'], undefined);
+  assert.equal(entryMode('orbit-atelier'), 'legacy');
+  assert.equal(
+    await enterStandalone(
+      {
+        locator() {
+          throw Error('No DOM click for Creator');
+        },
+      },
+      'orbit-atelier',
+      true,
+    ),
+    'legacy',
+  );
+});

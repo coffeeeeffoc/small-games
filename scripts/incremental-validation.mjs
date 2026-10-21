@@ -1,3 +1,4 @@
+import { hasLocalRetirementFileProof } from './local-game-retirement-scope.mjs';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { createRequire } from 'node:module';
@@ -51,7 +52,7 @@ export const cacheToolPaths = Object.freeze([
 ]);
 
 const validationTool =
-  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|hook-diagnostics|run-selected-(?:shell|browser)|ci-validation|browser-preparation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope|game-retirement-scope|pages-regression-shards|publication-scopes|vite-patch-scope|run-selected-competition)(?:\.[^/]+)?\.mjs|scripts\/nine-(?:native|lock)-scope(?:\.test)?\.mjs|scripts\/check-staged-format(?:\.test)?\.mjs|\.githooks\/[^/]+)$/;
+  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|hook-diagnostics|run-selected-(?:shell|browser)|ci-validation|browser-preparation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope|local-game-retirement-(?:scope|reviews)|game-retirement-scope|pages-regression-shards|publication-scopes|vite-patch-scope|run-selected-competition)(?:\.[^/]+)?\.mjs|scripts\/nine-(?:native|lock)-scope(?:\.test)?\.mjs|scripts\/check-staged-format(?:\.test)?\.mjs|\.githooks\/[^/]+)$/;
 export const tapServiceCheckPaths = Object.freeze([
   ...tapServiceSharedScopePaths,
   tapServiceConfigScopePath,
@@ -111,10 +112,6 @@ export const nativeToolConsumers = [
   {
     dir: 'apps/shell-minigame',
     smoke: 'node ../../scripts/native-game-smoke.mjs --standalone',
-  },
-  {
-    dir: 'apps/shell-bilibili',
-    smoke: 'node ../../scripts/native-game-smoke.mjs --catalog',
   },
 ];
 export function reviewedNativeTest(pkg, consumer) {
@@ -191,6 +188,12 @@ export function incrementalPlan({
     `Incremental registration scope undefined for: ${unclassifiedRegistration.join(', ')}. Define a reviewed structural comparison before publishing.`,
   );
   const competitionScopes = new Map(fileScopes);
+  // An exact byte-preserving sound relocation changes no competition output.
+  const competitionBuilder = 'scripts/competition-build.mjs';
+  if (
+    hasLocalRetirementFileProof(competitionBuilder, fileScopes.get(competitionBuilder), readSource)
+  )
+    competitionScopes.delete(competitionBuilder);
   for (const file of nineNative.taptap_only_paths) competitionScopes.delete(file);
   const competition = competitionToolPlan({
     paths,
@@ -204,7 +207,11 @@ export function incrementalPlan({
   const nativeCompetition = 'platforms/competition/native.js';
   if (
     nineScopes.has(nativeCompetition) &&
-    !nineScopes.get(nativeCompetition).includes('apps/shell-bilibili')
+    !isDeepStrictEqual(nineScopes.get(nativeCompetition), [
+      'games/local/letters-words2',
+      'games/local/vibeJam-myself-history-guess',
+      'apps/shell-minigame',
+    ])
   )
     nineScopes.delete(nativeCompetition);
   const scopedConsumers = [...new Set([...fileScopes.values()].flat())].filter((dir) =>

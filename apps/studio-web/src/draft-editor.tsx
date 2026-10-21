@@ -1,13 +1,19 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { normalizeCultivationContent } from '@coffeeeeffoc/game-cultivation/content';
+import type { StudioContentTarget } from './content-target.js';
 import type { DynamicContentEnvelope } from '@coffeeeeffoc/content-schema';
 import { createDraftClient, DraftError, type Draft, type DraftClient } from './draft-client.js';
 import { DraftPreview } from './draft-preview.js';
 
 const client = createDraftClient();
 /** JSON editing stays local until an explicit successful optimistic save. */
-export function DraftEditor({ api = client }: { api?: DraftClient }) {
+export function DraftEditor({
+  api = client,
+  target,
+}: {
+  api?: DraftClient;
+  target: StudioContentTarget;
+}) {
   const queryClient = useQueryClient();
   const drafts = useQuery({ queryKey: ['drafts'], queryFn: () => api.list(), retry: false });
   const trash = useQuery({
@@ -16,7 +22,7 @@ export function DraftEditor({ api = client }: { api?: DraftClient }) {
     retry: false,
   });
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [name, setName] = useState('修仙内容草稿');
+  const [name, setName] = useState('游戏内容草稿');
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<DraftError | null>(null);
@@ -55,11 +61,8 @@ export function DraftEditor({ api = client }: { api?: DraftClient }) {
     <section className="draft-workspace">
       <header>
         <p className="eyebrow">DYNAMIC CONTENT</p>
-        <h2>修仙内容草稿</h2>
-        <p>
-          编辑与预览不会更改玩家版本。当前 schema v3
-          配置实时试炼；旧版事件内容经校验后迁移为试炼设置。
-        </p>
+        <h2>游戏内容草稿</h2>
+        <p>编辑与预览不会更改玩家版本。内容由当前游戏的 schema 校验。</p>
       </header>
       <div className="draft-toolbar">
         <label>
@@ -207,7 +210,7 @@ export function DraftEditor({ api = client }: { api?: DraftClient }) {
               disabled={busy}
               onClick={() =>
                 void run(async () => {
-                  const result = normalizeCultivationContent(JSON.parse(text));
+                  const result = target.validate(JSON.parse(text));
                   if (!result.success) throw new DraftError('内容校验失败。', result.issues);
                   setPreview(result.data);
                   setStatus('预览使用当前编辑内容，不会自动保存。');
@@ -233,7 +236,13 @@ export function DraftEditor({ api = client }: { api?: DraftClient }) {
         </div>
       )}
       <p role="status">{busy ? '正在处理…' : status}</p>
-      {preview && <DraftPreview key={JSON.stringify(preview)} envelope={preview} />}
+      {preview && (
+        <DraftPreview
+          key={JSON.stringify(preview)}
+          envelope={preview}
+          definition={target.definition}
+        />
+      )}
     </section>
   );
 }

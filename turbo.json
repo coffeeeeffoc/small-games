@@ -21,6 +21,7 @@
     "COCOS_CREATOR",
     "KART_PREBUILT_DIR",
     "NIGHT_OVERWATCH_PREBUILT_DIR",
+    "ORBIT_ATELIER_PREBUILT_DIR",
     "HOMEBOUND_STATION_PREBUILT_DIR"
   ],
   "tasks": {
@@ -53,10 +54,7 @@
         "TAPTAP_COPS_ROBBERS_REALTIME_AD_UNIT_ID",
         "TAPTAP_XIANGQI_FIVE_AD_UNIT_ID",
         "BILIBILI_AD_UNIT_ID",
-        "VITE_SHELL_ORIGIN",
-        "VITE_CULTIVATION_ARTIFACT_URL",
-        "VITE_CULTIVATION_ARTIFACT_VERSION",
-        "VITE_CULTIVATION_ARTIFACT_INTEGRITY"
+        "VITE_SHELL_ORIGIN"
       ]
     },
     "@coffeeeeffoc/admin-web#build": {
@@ -98,10 +96,6 @@
       "dependsOn": ["^build"],
       "outputs": []
     },
-    "@coffeeeeffoc/game-building-power#test": {
-      "dependsOn": ["^build"],
-      "outputs": ["$TURBO_ROOT$/test-results/building-power/shift-witness.json"]
-    },
     "test:contract": {
       "dependsOn": ["^build"],
       "outputs": []
@@ -124,18 +118,9 @@
       "outputs": []
     },
     "@coffeeeeffoc/shell-minigame#smoke": {
-      "dependsOn": ["build", "@coffeeeeffoc/game-building-power#test"],
-      "outputs": [],
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/scripts/native-game-smoke.mjs"]
-    },
-    "@coffeeeeffoc/shell-bilibili#smoke": {
       "dependsOn": ["build"],
       "outputs": [],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/scripts/native-game-smoke.mjs"]
-    },
-    "@coffeeeeffoc/game-building-power#smoke": {
-      "dependsOn": ["build", "test"],
-      "outputs": []
     },
     "@coffeeeeffoc/travel-bund#build": {
       "dependsOn": ["^build"],
@@ -162,6 +147,12 @@
     "test:rules": {
       "dependsOn": ["^build"],
       "outputs": []
+    },
+    "@coffeeeeffoc/orbit-atelier#build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"],
+      "env": ["COCOS_CREATOR", "ORBIT_ATELIER_PREBUILT_DIR"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/games/local/orbit-atelier/.prebuilt/**"]
     },
     "@coffeeeeffoc/homebound-station#build": {
       "dependsOn": ["^build"],

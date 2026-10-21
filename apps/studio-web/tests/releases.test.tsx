@@ -15,8 +15,8 @@ it('requires impact confirmation, cancels without writes, and retains event iden
       createdAt: 1,
       snapshot: {
         id: versionId,
-        gameId: 'cultivation',
-        content: { gameId: 'cultivation', schemaVersion: 2, revision: 1, payload: {} },
+        gameId: 'fixture-game',
+        content: { gameId: 'fixture-game', schemaVersion: 2, revision: 1, payload: {} },
         artifact: {
           id: artifactId,
           signature: 'c'.repeat(128),
@@ -25,14 +25,14 @@ it('requires impact confirmation, cancels without writes, and retains event iden
             signingKeyId: 'd'.repeat(64),
             remoteEntry: 'remote-entry.js',
             game: {
-              gameId: 'cultivation',
+              gameId: 'fixture-game',
               version: '1.1.0',
               gameContractVersion: 1,
               contentSchemaVersion: 2,
               capabilities: ['content'],
               loadModes: ['iframe'],
               entry: 'index.html',
-              integrity: 'builtin:cultivation@1.1.0',
+              integrity: 'builtin:fixture-game@1.1.0',
             },
             resources: ['index.html', 'remote-entry.js'].map((path) => ({
               path,
@@ -52,7 +52,7 @@ it('requires impact confirmation, cancels without writes, and retains event iden
           String(url).endsWith('/ad-drafts')
             ? [{ id: adDraftId, name: '运营广告', revision: 2, envelope: {} }]
             : String(url).endsWith('/drafts')
-              ? [{ id: crypto.randomUUID(), name: '修仙草稿', revision: 3, envelope: {} }]
+              ? [{ id: crypto.randomUUID(), name: '游戏草稿', revision: 3, envelope: {} }]
               : {
                   channels: [],
                   versions,

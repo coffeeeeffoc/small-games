@@ -1,53 +1,9 @@
-# Cultivation Dynamic Content drafts
+# Dynamic Content drafts
 
-Run `pnpm infra:up` to apply the idempotent Management draft migration, then start
-`pnpm dev:platform` and `pnpm --filter @coffeeeeffoc/studio-web dev`. Sign in with a
-creator account initialized using [Studio authentication](studio-authentication.md).
+Management Service and Creator Studio use an explicitly configured content target. Each Game owns its default envelope, manifest and validation/migration implementation, following ADR-0007. Management receives a `ContentTarget`; Studio receives the matching `StudioContentTarget` including its trusted preview definition. No Game is configured by default.
 
-The workspace can create, select, read, edit, validate and save named cultivation
-drafts. The JSON editor contains the public envelope (`gameId`, `schemaVersion`,
-`revision`, `payload`). Validation errors include full field paths. Invalid edits
-stay in the editor and cannot be saved or previewed. A failed save leaves the local
-buffer intact. A conflict requires explicitly re-reading and merging; copying the
-local JSON first preserves edits. Switching drafts asks before discarding edits.
-Closing or reloading the page discards unsaved edits; no player storage is used.
+Without a target, draft inventory and historical reads remain available. Content creation, validation, saving, AI generation, publication and rollback return `503 CONTENT_TARGET_NOT_CONFIGURED`. No generation worker starts, and Studio hides the content editor, generation and publication panels. Existing stored records are preserved.
 
-Game Version 1.1.0 owns schema v2 and its v1 migration; its built-in integrity
-identity is `builtin:cultivation@1.1.0`, distinct from 1.0.0. v2 makes the previously fixed title
-editable. Old v1 documents are validated before adding that title. Both the Web
-and native Canvas Game entries normalize old content, without changing game rules
-or mutating the source document. Unsupported future versions are rejected.
-The Game's public `./content` entry and common envelope package emit Node-compatible
-JavaScript and declarations so Management and Studio use the same implementation.
-Turbo builds these public dependencies before consumers.
+Configured drafts retain optimistic revision checks, full validation paths, creator/publisher role checks and exact Origin protection. Preview uses a disposable in-memory Game Host with content/storage capabilities and `adAuthority: none`; it never uses player storage or real ads. The preview definition is trusted bundled code.
 
-Management owns `management.content_drafts`; Runtime has no grants on that table.
-Every endpoint below requires an authenticated `creator` role, and writes require
-the configured exact Studio Origin. An `admin` role alone is not a creator grant.
-
-| Endpoint                    | Behavior                                                                |
-| --------------------------- | ----------------------------------------------------------------------- |
-| `GET /api/drafts/`          | List current drafts                                                     |
-| `POST /api/drafts/`         | Create from defaults with `{name}` and revision 0                       |
-| `GET /api/drafts/:id`       | Read a draft; 404 if absent                                             |
-| `POST /api/drafts/validate` | Validate/migrate an envelope without persistence; 422 with field errors |
-| `PUT /api/drafts/:id`       | Save `{name, revision, envelope}` using the last read revision          |
-
-Saving uses one conditional SQL UPDATE against the expected revision. Exactly one
-concurrent writer succeeds; a stale or removed draft returns 409 without overwrite.
-The server increments both draft and envelope revision together, ignoring the edited
-envelope revision. The migration and save do not write release pointers or published
-content. Publishing is separate future work.
-
-Preview explicitly snapshots the current editor content, even before saving. It
-mounts the actual bundled Game entry with a fresh in-memory Game Host, a unique
-preview session, content/storage capabilities only, and `adAuthority: none`. Game
-progress is discarded on close or replacement; previews never use localStorage,
-Runtime saves, real ads or player navigation. Source code is trusted built-in code;
-this is not a sandbox for arbitrary uploaded executable code. No publication or
-recompilation is needed to preview a new draft.
-
-Focused verification: Game migration/contract tests; Management authenticated API
-tests; Studio editor/actual Game isolation tests. `pnpm test:platform` additionally
-tests real PostgreSQL persistence and concurrent HTTP writes, with uniquely named
-temporary drafts/accounts removed afterward.
+Run the Management and Studio unit suites to verify target injection, unavailable targets, validation, conflicts and preview cleanup. `scripts/auth.integration.mjs` exercises a separate fixture target with real SQL; it is not a production Game.

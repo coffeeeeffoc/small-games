@@ -1,5 +1,7 @@
 import type { GameHost, JsonValue } from '@coffeeeeffoc/game-contract';
 import type { CanvasPointerEvent } from '@coffeeeeffoc/canvas-game-adapter';
+import { createHintRewards } from './rewards.ts';
+import '../dev-mode.js';
 import { createMossGame } from './controller.ts';
 import { isAccessibleActionClick } from './web-input.ts';
 import { defaultMossGardenEnvelope, mossGardenManifest, validateMossContent } from './canvas.ts';
@@ -14,6 +16,9 @@ const status = document.querySelector<HTMLElement>('#status')!;
 const abort = new AbortController();
 const options = { signal: abort.signal };
 let memory: JsonValue | null = null;
+const hintRewards = createHintRewards(
+  globalThis as typeof globalThis & Parameters<typeof createHintRewards>[0],
+);
 const host: GameHost = {
   session: {
     gameId: 'moss-garden',
@@ -22,7 +27,7 @@ const host: GameHost = {
     adAuthority: 'none',
     sessionId: 'moss-garden-local',
     locale: 'zh-CN',
-    capabilities: ['content', 'storage'],
+    capabilities: ['content', 'storage', 'advertising'],
   },
   content: {
     async load() {
@@ -49,11 +54,7 @@ const host: GameHost = {
       return { value, version: 'local' };
     },
   },
-  ads: {
-    async offer() {
-      return { status: 'unavailable' };
-    },
-  },
+  ads: hintRewards,
   telemetry: { async track() {} },
   navigation: { async navigate() {} },
 };
@@ -194,7 +195,7 @@ function mirror(view: View, hits: HitArea[]) {
   status.textContent =
     view.page === 'result'
       ? `${title}，${view.level.title}`
-      : view.puzzle.message || view.notice || '';
+      : view.notice || view.puzzle.message || '';
   root.dataset.page = view.page;
 }
 function feedback(kind: 'place' | 'mark' | 'win', sound: boolean, vibration: boolean) {
@@ -258,6 +259,7 @@ window.addEventListener(
   'pagehide',
   () => {
     cancel();
+    game?.cancelPendingHint();
     game?.pause();
   },
   options,
@@ -279,6 +281,7 @@ try {
       native: false,
       challengeLevel: challengeParams.get('level') ?? undefined,
       challengeGoal,
+      cancelHint: () => hintRewards.cancel(),
       minimumTouchSize: () => 44 * Math.min(window.devicePixelRatio || 1, 2),
       async naturalBreak() {
         await publishing.interstitial({ placement: 'result-exit', naturalBreak: true });
@@ -325,6 +328,7 @@ try {
   );
   if (window.SmallGamesDev?.isEnabled()) {
     window.SmallGamesDev.registerActions([
+      { id: 'moss-select', label: '任意选关（1–1000）', run: () => game?.act('dev:select') },
       { id: 'moss-next', label: '下一关（试玩）', run: () => game?.act('dev:next') },
       { id: 'moss-solve', label: '完成本关（试玩）', run: () => game?.act('dev:solve') },
     ]);

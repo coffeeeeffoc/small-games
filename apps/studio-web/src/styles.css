@@ -264,7 +264,7 @@ form button {
 .draft-preview > p {
   color: var(--muted);
 }
-.draft-preview .cultivation {
+.draft-preview > div {
   max-width: 38rem;
   padding: 1.5rem;
   background: #172d2a;

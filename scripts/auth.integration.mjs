@@ -1,3 +1,4 @@
+import { fixtureTarget } from '../services/management-api/tests/content.fixture.ts';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { execFile } from 'node:child_process';
@@ -18,7 +19,7 @@ const owner = openDatabase(
 );
 const database = openDatabase(managementEnvironment.MANAGEMENT_DATABASE_URL, 'management');
 const store = createAuthStore(database.db);
-const app = createManagementService(managementEnvironment, false);
+const app = createManagementService(managementEnvironment, false, undefined, fixtureTarget);
 const username = `integration-${randomUUID()}`;
 const password = randomUUID();
 let accountId;
@@ -93,10 +94,10 @@ try {
   assert.equal((await draftRequest(`/${draft.id}`)).status, 200);
   assert((await (await draftRequest('/')).json()).some((value) => value.id === draft.id));
   const invalid = structuredClone(draft);
-  invalid.envelope.payload.events[0].title = '';
+  invalid.envelope.payload.count = -1;
   const invalidSave = await draftRequest(`/${draft.id}`, 'PUT', invalid);
   assert.equal(invalidSave.status, 422);
-  assert.deepEqual((await invalidSave.json()).issues[0].path, ['payload', 'events', 0, 'title']);
+  assert.deepEqual((await invalidSave.json()).issues[0].path, ['payload', 'count']);
   const legacy = structuredClone(draft);
   legacy.envelope.schemaVersion = 1;
   delete legacy.envelope.payload.title;
@@ -114,7 +115,7 @@ try {
   legacy.revision = winner.revision;
   const migration = await draftRequest(`/${draft.id}`, 'PUT', legacy);
   assert.equal(migration.status, 200);
-  assert.equal((await migration.json()).envelope.payload.title, '三分钟修仙');
+  assert.equal((await migration.json()).envelope.payload.title, 'Fixture game');
   console.log(
     'Live authenticated draft CRUD, field validation, v1 migration and atomic two-writer SQL conflict passed.',
   );

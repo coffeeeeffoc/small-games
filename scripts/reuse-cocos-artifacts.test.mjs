@@ -26,6 +26,14 @@ const jobs = games.map((game) => ({
 test('reuse waits only for all successful producer gates, not downstream CI', () => {
   assert.equal(inspectProducer(run, jobs, expected), 'ready');
   assert.equal(inspectProducer(run, jobs.slice(0, 1), expected), 'waiting');
+  assert.equal(
+    inspectProducer(
+      run,
+      jobs.filter((job) => !job.name.includes('orbit-atelier')),
+      expected,
+    ),
+    'waiting',
+  );
   for (const conclusion of ['failure', 'cancelled', 'skipped', 'timed_out'])
     assert.throws(
       () => inspectProducer(run, [{ ...jobs[0], conclusion }], expected),
@@ -146,6 +154,7 @@ test('reuse verifies and republishes every Creator game before skipping the prod
     );
     assert.equal(upload?.if, "steps.verify.outcome == 'success'");
     assert.equal(upload.with['if-no-files-found'], 'error');
+    assert.equal(upload.with.path, `.scratch/ci-cocos/${game}`);
   }
   assert.equal(inspectProducer(run, jobs.slice(0, -1), expected), 'waiting');
   assert.throws(

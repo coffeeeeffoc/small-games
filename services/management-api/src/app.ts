@@ -18,9 +18,7 @@ import { registerGenerationJobs } from './generation/routes.js';
 import { createHttpAiProvider } from './generation/provider.js';
 import { startGenerationWorker } from './generation/worker.js';
 import type { AiProvider } from './generation/model.js';
-import { normalizeCultivationContent } from '@coffeeeeffoc/game-cultivation/content';
-import cultivationManifestJson from '@coffeeeeffoc/game-cultivation/manifest' with { type: 'json' };
-import { gameManifestSchema } from '@coffeeeeffoc/game-contract';
+import type { ContentTarget } from './content-target.js';
 import { createProtectionStore, registerProtection } from './protection.js';
 import { adminControlEnabled, validateManagementEnvironment } from './config.js';
 import { sql } from 'drizzle-orm';
@@ -36,6 +34,7 @@ export function createManagementService(
   env: Record<string, string | undefined> = process.env,
   logger = true,
   telemetry?: RequestSpanExporter,
+  contentTarget?: ContentTarget,
 ): ReturnType<typeof createService> {
   validateManagementEnvironment(env);
   const databaseUrl = z.url().parse(env.MANAGEMENT_DATABASE_URL);
@@ -152,36 +151,34 @@ export function createManagementService(
       );
     const auth = createAuthStore(database.db);
     await registerAuthentication(instance, auth, origin);
-    await registerDrafts(instance, auth, createDraftStore(database.db), origin);
+    await registerDrafts(instance, auth, createDraftStore(database.db), origin, contentTarget);
     const generationJobs = createGenerationJobStore(database.db);
-    const generationTarget = {
-      manifest: gameManifestSchema.parse(cultivationManifestJson),
-      validate: normalizeCultivationContent,
-    };
-    await registerGenerationJobs(instance, auth, generationJobs, origin, generationTarget);
-    let provider: AiProvider = {
-      model: env.AI_PROVIDER_MODEL ?? 'unconfigured',
-      generate: async () => {
-        throw new Error('AI provider is not configured');
-      },
-    };
-    if (env.AI_PROVIDER_URL || env.AI_PROVIDER_KEY || env.AI_PROVIDER_MODEL) {
-      provider = createHttpAiProvider({
-        endpoint: z
-          .url()
-          .refine(
-            (value) =>
-              /^https:/.test(value) ||
-              (/^http:/.test(value) &&
-                ['127.0.0.1', 'localhost', '[::1]'].includes(new URL(value).hostname)),
-          )
-          .parse(env.AI_PROVIDER_URL),
-        apiKey: z.string().min(1).parse(env.AI_PROVIDER_KEY),
-        model: z.string().min(1).parse(env.AI_PROVIDER_MODEL),
-      });
+    await registerGenerationJobs(instance, auth, generationJobs, origin, contentTarget);
+    if (contentTarget) {
+      let provider: AiProvider = {
+        model: env.AI_PROVIDER_MODEL ?? 'unconfigured',
+        generate: async () => {
+          throw new Error('AI provider is not configured');
+        },
+      };
+      if (env.AI_PROVIDER_URL || env.AI_PROVIDER_KEY || env.AI_PROVIDER_MODEL) {
+        provider = createHttpAiProvider({
+          endpoint: z
+            .url()
+            .refine(
+              (value) =>
+                /^https:/.test(value) ||
+                (/^http:/.test(value) &&
+                  ['127.0.0.1', 'localhost', '[::1]'].includes(new URL(value).hostname)),
+            )
+            .parse(env.AI_PROVIDER_URL),
+          apiKey: z.string().min(1).parse(env.AI_PROVIDER_KEY),
+          model: z.string().min(1).parse(env.AI_PROVIDER_MODEL),
+        });
+      }
+      const stopGenerationWorker = startGenerationWorker(generationJobs, provider, contentTarget);
+      instance.addHook('onClose', () => stopGenerationWorker());
     }
-    const stopGenerationWorker = startGenerationWorker(generationJobs, provider, generationTarget);
-    instance.addHook('onClose', () => stopGenerationWorker());
     const adDrafts = createAdDraftStore(database.db);
     await registerAdDrafts(instance, auth, adDrafts, origin);
     const publications = createPublicationStore(database.db);
@@ -226,7 +223,7 @@ export function createManagementService(
           shellOrigin,
         );
       }
-      startPublicationWorker(instance, publications, url, token);
+      if (contentTarget) startPublicationWorker(instance, publications, url, token);
     }
     await registerPublications(
       instance,
@@ -236,6 +233,7 @@ export function createManagementService(
       origin,
       artifacts,
       adDrafts,
+      contentTarget,
     );
     await registerProtection(instance, auth, createProtectionStore(database.db, objects), origin);
   });

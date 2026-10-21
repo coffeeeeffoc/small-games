@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { FastifyInstance } from 'fastify';
-import { normalizeCultivationContent } from '@coffeeeeffoc/game-cultivation/content';
+import type { GenerationTarget } from '../generation/model.js';
 import { normalizeManagedAdConfig } from '@coffeeeeffoc/ad-config';
 import {
   createPublishedVersion,
@@ -43,6 +43,7 @@ export async function registerPublications(
   origin: string,
   artifacts?: Pick<ReturnType<typeof createArtifactRepository>, 'read'>,
   adDrafts?: AdDraftStore,
+  target?: GenerationTarget,
 ) {
   await app.register(
     async (routes) => {
@@ -57,11 +58,16 @@ export async function registerPublications(
           error: error instanceof ReleaseConflict ? 'CONFLICT' : 'PUBLICATION_UNAVAILABLE',
         }),
       );
-      routes.get('/', () => store.status('cultivation'));
+      routes.get('/', (_request, reply) =>
+        target
+          ? store.status(target.manifest.gameId)
+          : reply.code(503).send({ error: 'CONTENT_TARGET_NOT_CONFIGURED' }),
+      );
       // Publishing does not imply creator rights; this is the saved, publishable draft inventory.
       routes.get('/drafts', () => drafts.list());
       routes.get('/ad-drafts', () => adDrafts?.list() ?? []);
       routes.post('/publish', async (request, reply) => {
+        if (!target) return reply.code(503).send({ error: 'CONTENT_TARGET_NOT_CONFIGURED' });
         if (!artifacts) return reply.code(503).send({ error: 'PUBLICATION_NOT_CONFIGURED' });
         const parsed = publish.safeParse(request.body);
         if (!parsed.success) return reply.code(422).send({ error: 'INVALID_INPUT' });
@@ -74,7 +80,7 @@ export async function registerPublications(
         const draft = await drafts.get(input.draftId);
         if (!draft) return reply.code(404).send({ error: 'DRAFT_NOT_FOUND' });
         if (draft.revision !== input.draftRevision) throw new ReleaseConflict('Draft changed');
-        const content = normalizeCultivationContent(draft.envelope);
+        const content = target.validate(draft.envelope);
         if (!content.success) return reply.code(422).send(content);
         let advertising;
         let adDraft;
@@ -118,6 +124,7 @@ export async function registerPublications(
         );
       });
       routes.post('/rollback', async (request, reply) => {
+        if (!target) return reply.code(503).send({ error: 'CONTENT_TARGET_NOT_CONFIGURED' });
         if (!artifacts) return reply.code(503).send({ error: 'PUBLICATION_NOT_CONFIGURED' });
         const parsed = rollback.safeParse(request.body);
         if (!parsed.success) return reply.code(422).send({ error: 'INVALID_INPUT' });
@@ -127,7 +134,7 @@ export async function registerPublications(
         const previous = await store.getRequest(parsed.data.eventId, actor.id, parsed.data);
         if (previous) return reply.code(202).send(previous);
         const version = await store.getVersion(parsed.data.versionId);
-        if (!version || version.gameId !== 'cultivation')
+        if (!version || version.gameId !== target.manifest.gameId)
           return reply.code(404).send({ error: 'VERSION_NOT_FOUND' });
         await artifacts.read(version.artifact.id);
         const input = transition.parse(parsed.data);

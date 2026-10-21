@@ -1,19 +1,51 @@
 import assert from 'node:assert/strict';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
 import { createObjectStore, createArtifactRepository } from '@coffeeeeffoc/management-api';
-import { unhex, readArtifact } from '@coffeeeeffoc/game-artifact';
-import { childEnvironment } from './platform-process.mjs';
+import { buildArtifact, hex, unhex, readArtifact } from '@coffeeeeffoc/game-artifact';
 import { managementEnvironment } from './platform-config.mjs';
 
+const keys = await crypto.subtle.generateKey('Ed25519', true, ['sign', 'verify']);
+const trustedPublicKey = hex(await crypto.subtle.exportKey('spki', keys.publicKey));
 const build = async () => {
-  const result = await promisify(execFile)(process.execPath, ['scripts/build-artifact.mjs'], {
-    env: childEnvironment(),
-    timeout: 300_000,
-    maxBuffer: 2 * 1024 * 1024,
-    windowsHide: true,
+  const objectsForBuild = createObjectStore({
+    endpoint: managementEnvironment.S3_ENDPOINT,
+    region: managementEnvironment.S3_REGION,
+    bucket: managementEnvironment.S3_BUCKET,
+    accessKeyId: managementEnvironment.S3_ACCESS_KEY_ID,
+    secretAccessKey: managementEnvironment.S3_SECRET_ACCESS_KEY,
   });
-  return JSON.parse(result.stdout.trim().split(/\r?\n/).at(-1));
+
+  const resources = new Map(
+    ['index.html', 'remote-entry.js', 'style.css', 'data.json'].map((name) => [
+      name,
+      new TextEncoder().encode(name),
+    ]),
+  );
+  const artifact = await buildArtifact(
+    {
+      gameId: 'artifact-fixture',
+      version: '1.0.0',
+      gameContractVersion: 1,
+      contentSchemaVersion: 1,
+      capabilities: [],
+      loadModes: ['iframe'],
+      entry: 'index.html',
+      integrity: 'fixture',
+    },
+    resources,
+    keys.privateKey,
+    keys.publicKey,
+  );
+  try {
+    await objectsForBuild.initialize();
+    await createArtifactRepository(objectsForBuild, keys.publicKey).commit(artifact, resources);
+  } finally {
+    objectsForBuild.close();
+  }
+  return {
+    artifactId: artifact.id,
+    signingKeyId: artifact.manifest.signingKeyId,
+    trustedPublicKey,
+  };
 };
 const first = await build();
 const second = await build();

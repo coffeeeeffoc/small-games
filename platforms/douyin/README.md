@@ -5,12 +5,10 @@
 ```sh
 pnpm install --no-frozen-lockfile
 pnpm --filter @coffeeeeffoc/platform-douyin test
-pnpm minigame:build --platform douyin --game building-power --preview
+pnpm minigame:build --platform douyin --game moss-garden --preview
 ```
 
-预览输出：`apps/shell-minigame/dist/douyin/building-power/`。`--preview` 只允许生成本地检查制品，空 AppID 不代表可以在官方工具中免登录预览。正式构建去掉 `--preview`，传入该游戏的 `--app-id tt...` 或现有 `--config` 文件中的 `building-power.douyin.appId`。`--ad-unit-id` 可选；未配置时广告返回 unavailable，不发奖励。
-
-新增 workspace 依赖为 Web/原生 Shell 的 `@coffeeeeffoc/game-building-power`，原生 Shell 的 `@coffeeeeffoc/platform-douyin`。本包只复用已有 native-game-shell/game-contract 和仓库现有版本的 TypeScript、ESLint、Vitest；依赖统一记录在根 pnpm-lock.yaml。
+预览输出：`apps/shell-minigame/dist/douyin/moss-garden/`。`--preview` 只允许生成本地检查制品，空 AppID 不代表可以在官方工具中免登录预览。正式构建去掉 `--preview`，传入该游戏的 `--app-id tt...` 或现有 `--config` 文件中的 `moss-garden.douyin.appId`。`--ad-unit-id` 可选；未配置时广告返回 unavailable，不发奖励。
 
 ## SDK 差异与来源
 

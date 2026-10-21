@@ -44,7 +44,7 @@ it('shows game-organized files safely and retains read-only source when disconne
       async (): Promise<RepositoryTree> => ({
         games: [
           {
-            id: 'game-cultivation',
+            id: 'fixture-game',
             files: [
               {
                 name: 'src',
@@ -60,7 +60,7 @@ it('shows game-organized files safely and retains read-only source when disconne
     read: vi
       .fn()
       .mockResolvedValueOnce({
-        gameId: 'game-cultivation',
+        gameId: 'fixture-game',
         path: 'src/evil&name.ts',
         source: 'export const safe = true;\n',
         version: 'a'.repeat(64),
@@ -90,7 +90,7 @@ it('shows game-organized files safely and retains read-only source when disconne
     target.querySelector<HTMLButtonElement>('button')!.click();
   });
   await settle();
-  expect(target.textContent).toContain('game-cultivation');
+  expect(target.textContent).toContain('fixture-game');
   expect(target.querySelector('img')).toBeNull();
   const file = Array.from(target.querySelectorAll('button')).find((button) =>
     button.textContent?.includes('evil&name.ts'),
@@ -111,13 +111,11 @@ it('reviews a diff and saves only after explicit confirmation', async () => {
     pair: vi.fn(async () => undefined),
     tree: vi.fn(
       async (): Promise<RepositoryTree> => ({
-        games: [
-          { id: 'game-cultivation', files: [{ name: 'a.ts', path: 'src/a.ts', type: 'file' }] },
-        ],
+        games: [{ id: 'fixture-game', files: [{ name: 'a.ts', path: 'src/a.ts', type: 'file' }] }],
       }),
     ),
     read: vi.fn(async () => ({
-      gameId: 'game-cultivation',
+      gameId: 'fixture-game',
       path: 'src/a.ts',
       source: 'export const a = 1;\n',
       version,
@@ -125,7 +123,7 @@ it('reviews a diff and saves only after explicit confirmation', async () => {
     })),
     diff: vi.fn(async (request) => ({
       ...request,
-      repositoryPath: 'games/local/game-cultivation/src/a.ts',
+      repositoryPath: 'games/local/fixture-game/src/a.ts',
       before: 'export const a = 1;\n',
       version,
       stale: false,
@@ -141,11 +139,11 @@ it('reviews a diff and saves only after explicit confirmation', async () => {
           ],
         },
       ],
-      files: [{ path: 'games/local/game-cultivation/src/a.ts', added: 1, removed: 1 }],
+      files: [{ path: 'games/local/fixture-game/src/a.ts', added: 1, removed: 1 }],
     })),
     write: vi.fn(async (request) => ({
       ...request,
-      repositoryPath: 'games/local/game-cultivation/src/a.ts',
+      repositoryPath: 'games/local/fixture-game/src/a.ts',
       source: request.source,
       version: nextVersion,
       format: { ok: true, issues: [] },
@@ -189,7 +187,7 @@ it('reviews a diff and saves only after explicit confirmation', async () => {
       .click(),
   );
   await settle();
-  expect(target.textContent).toContain('games/local/game-cultivation/src/a.ts');
+  expect(target.textContent).toContain('games/local/fixture-game/src/a.ts');
   expect(api.write).not.toHaveBeenCalled();
   await act(async () =>
     Array.from(target.querySelectorAll('button'))

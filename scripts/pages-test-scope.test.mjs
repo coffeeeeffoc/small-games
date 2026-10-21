@@ -31,7 +31,7 @@ const catalog = {
     'games/local/travel-bund-2.5D',
     'games/submodules/fishing',
     'games/local/echo-lab',
-    'games/local/game-cultivation',
+    'games/local/game-fixture',
   ],
 };
 const scope = (options) => selectPagesScope({ ...catalog, ...options });
@@ -717,11 +717,11 @@ test('dev and PR game changes select the registry ID and exact package directory
 });
 
 test('built-in game changes retain logical package tests without a standalone ID', () => {
-  assert.deepEqual(scope({ changedPaths: ['games/local/game-cultivation/src/game.ts'] }), {
+  assert.deepEqual(scope({ changedPaths: ['games/local/game-fixture/src/game.ts'] }), {
     required: true,
     full: false,
     game_ids: [],
-    game_sources: ['games/local/game-cultivation'],
+    game_sources: ['games/local/game-fixture'],
   });
 });
 
@@ -1073,14 +1073,14 @@ test('CLI output is valid GitHub output and an empty or unknown base selects ful
   const { root, git } = await temporaryRepository(t);
   await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });
   await mkdir(path.join(root, 'games/local/echo-lab'), { recursive: true });
-  await mkdir(path.join(root, 'games/local/game-cultivation'), { recursive: true });
+  await mkdir(path.join(root, 'games/local/game-fixture'), { recursive: true });
   await mkdir(path.join(root, 'games/submodules/fishing'), { recursive: true });
   await writeFile(
     path.join(root, 'apps/shell-web/src/standalone-games.json'),
     JSON.stringify(catalog.standaloneGames.filter((game) => game.id !== 'travel-bund-25d')),
   );
   await writeFile(path.join(root, 'games/local/echo-lab/package.json'), '{}');
-  await writeFile(path.join(root, 'games/local/game-cultivation/package.json'), '{}');
+  await writeFile(path.join(root, 'games/local/game-fixture/package.json'), '{}');
   await writeFile(path.join(root, 'README.md'), 'initial');
   git('add', '.');
   git('commit', '-m', 'initial');
@@ -1090,11 +1090,7 @@ test('CLI output is valid GitHub output and an empty or unknown base selects ful
   git('commit', '-m', 'docs');
   assert.deepEqual(await loadGameCatalog(root), {
     standaloneGames: catalog.standaloneGames.filter((game) => game.id !== 'travel-bund-25d'),
-    gameSources: [
-      'games/local/echo-lab',
-      'games/local/game-cultivation',
-      'games/submodules/fishing',
-    ],
+    gameSources: ['games/local/echo-lab', 'games/local/game-fixture', 'games/submodules/fishing'],
   });
   const outputPath = path.join(root, 'github-output');
   const result = await main(
@@ -1235,7 +1231,7 @@ test('affected logical test command uses exact filters and safely rejects invali
     gameTestCommand({
       PAGES_GAME_SOURCES: JSON.stringify([
         'games/local/echo-lab',
-        'games/local/game-cultivation',
+        'games/local/game-fixture',
         'games/local/echo-lab',
       ]),
     }),
@@ -1247,10 +1243,10 @@ test('affected logical test command uses exact filters and safely rejects invali
         'run',
         'test',
         '--filter=./games/local/echo-lab',
-        '--filter=./games/local/game-cultivation',
+        '--filter=./games/local/game-fixture',
         '--concurrency=1',
       ],
-      sources: ['games/local/echo-lab', 'games/local/game-cultivation'],
+      sources: ['games/local/echo-lab', 'games/local/game-fixture'],
     },
   );
   assert.deepEqual(gameTestCommand({ PAGES_FULL_REGRESSION: 'true' }), {
@@ -1751,5 +1747,74 @@ test('real name-status cleanup keeps both game regressions while unknown deletio
   await assert.rejects(
     main({ PAGES_DIFF_BASE: changedBase, VALIDATION_RISK_PLAN: 'true' }, root),
     /Relevant deletion or rename/,
+  );
+});
+
+test('Echo Lab native compiler reuses only its exact existing esbuild tuple', () => {
+  const source = 'games/local/echo-lab';
+  const manifest = `${source}/package.json`;
+  const tuple = '      esbuild:\n        specifier: 0.28.2\n        version: 0.28.2\n';
+  const empty = `\n  ${source}: {}\n\n`;
+  const compiler = `\n  ${source}:\n    devDependencies:\n${tuple}\n`;
+  const before = {
+    [REGISTRY]: JSON.stringify([registration('echo-lab')]),
+    [SHELL]: JSON.stringify({ name: '@games/shell', dependencies: {} }),
+    [manifest]: JSON.stringify({
+      name: '@coffeeeeffoc/echo-lab',
+      scripts: { build: 'node build.mjs' },
+      coffeeeeffoc: { role: 'game' },
+    }),
+    [LOCK]: `lockfileVersion: '9.0'\n\nimporters:\n\n  tools/existing:\n    devDependencies:\n${tuple}${empty}packages:\n  esbuild@0.28.2: {}\n\nsnapshots:\n  esbuild@0.28.2: {}\n`,
+  };
+  const after = {
+    ...before,
+    [manifest]: JSON.stringify({
+      ...JSON.parse(before[manifest]),
+      scripts: { build: 'node build.mjs', 'build:wechat': 'node build.mjs wechat' },
+      devDependencies: { esbuild: '0.28.2' },
+    }),
+    [LOCK]: before[LOCK].replace(empty, compiler),
+  };
+  const classify = (old, next) =>
+    registrationFileScopes({
+      changedPaths: [LOCK, manifest],
+      gameSources: [source],
+      readBase: (file) => {
+        assert.ok(Object.hasOwn(old, file));
+        return old[file];
+      },
+      readHead: (file) => {
+        assert.ok(Object.hasOwn(next, file));
+        return next[file];
+      },
+    });
+  assert.deepEqual(classify(before, after).get(LOCK), [source]);
+  const mutate = (value) => ({ ...after, [manifest]: JSON.stringify(value) });
+  const pkg = JSON.parse(after[manifest]);
+  for (const candidate of [
+    { ...after, [LOCK]: after[LOCK].replace(compiler, compiler.replaceAll('0.28.2', '0.28.3')) },
+    { ...after, [LOCK]: after[LOCK].replace(compiler, compiler + empty) },
+    { ...after, [LOCK]: after[LOCK] + '\n# unrelated bytes\n' },
+    {
+      ...after,
+      [LOCK]: after[LOCK].replace('esbuild@0.28.2: {}', 'esbuild@0.28.2: {resolution: changed}'),
+    },
+    mutate({ ...pkg, devDependencies: { esbuild: '^0.28.2' } }),
+    mutate({ ...pkg, devDependencies: { esbuild: '0.28.2', another: '1.0.0' } }),
+    mutate({ ...pkg, dependencies: { esbuild: '0.28.2' } }),
+    mutate({ ...pkg, name: '@games/another' }),
+    mutate({ ...pkg, coffeeeeffoc: { role: 'shared' } }),
+  ])
+    assert.equal(classify(before, candidate).has(LOCK), false);
+  const noManifest = { ...before };
+  delete noManifest[manifest];
+  assert.equal(classify(noManifest, after).has(LOCK), false);
+  const noTuple = {
+    ...before,
+    [LOCK]: before[LOCK].replace(tuple, tuple.replaceAll('0.28.2', '0.28.1')),
+  };
+  assert.equal(
+    classify(noTuple, { ...after, [LOCK]: noTuple[LOCK].replace(empty, compiler) }).has(LOCK),
+    false,
   );
 });

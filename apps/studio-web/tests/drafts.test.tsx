@@ -1,4 +1,3 @@
-import { canvasContext } from './canvas.fixture.js';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -12,17 +11,13 @@ import {
   type DraftClient,
   type Draft,
 } from '@coffeeeeffoc/studio-web';
-import { defaultCultivationEnvelope } from '@coffeeeeffoc/game-cultivation/content';
+import { fixtureEnvelope, fixtureDefinition, studioFixtureTarget } from './content.fixture.js';
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 let target: HTMLDivElement;
 let root: Root;
 let queryClient: QueryClient;
 beforeEach(() => {
-  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => canvasContext());
-  vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
-  vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
-  vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
   target = document.createElement('div');
   document.body.append(target);
   root = createRoot(target);
@@ -64,9 +59,9 @@ async function edit(value: string) {
 it('creates and edits drafts, displays field errors, previews unsaved text, and retains conflicting edits', async () => {
   let saved: Draft = {
     id: crypto.randomUUID(),
-    name: '修仙内容草稿',
+    name: '游戏内容草稿',
     revision: 0,
-    envelope: structuredClone(defaultCultivationEnvelope),
+    envelope: structuredClone(fixtureEnvelope),
   };
   const api: DraftClient = {
     list: async () => [saved],
@@ -87,20 +82,20 @@ it('creates and edits drafts, displays field errors, previews unsaved text, and 
   await act(async () => {
     root.render(
       <QueryClientProvider client={queryClient}>
-        <DraftEditor api={api} />
+        <DraftEditor api={api} target={studioFixtureTarget} />
       </QueryClientProvider>,
     );
   });
   await settle();
   await click('新建草稿');
-  const changed = structuredClone(defaultCultivationEnvelope);
+  const changed = structuredClone(fixtureEnvelope);
   changed.payload.title = '只在预览中';
   const text = JSON.stringify(changed);
   await edit(text);
   await click('校验内容');
   expect(target.querySelector('[role=alert]')?.textContent).toContain('payload.title');
   await click('预览当前编辑');
-  expect(target.querySelector('.cultivation h1')?.textContent).toBe('只在预览中');
+  expect(target.querySelector('.fixture-game h1')?.textContent).toBe('只在预览中');
   expect(api.save).not.toHaveBeenCalled();
   await click('保存草稿');
   expect(target.querySelector('[role=alert]')?.textContent).toContain('保存冲突');
@@ -112,28 +107,28 @@ it('creates and edits drafts, displays field errors, previews unsaved text, and 
   await click('重新读取');
   expect(api.read).toHaveBeenCalledWith(saved.id);
 });
-it('runs the actual Game with disposable storage and no real player writes or ads', async () => {
+it('runs an injected Game with disposable storage and no real player writes or ads', async () => {
   localStorage.setItem('bili-pocket-arcade:v1', 'player-save-sentinel');
-  const original = structuredClone(defaultCultivationEnvelope);
-  const first = createDraftPreviewHost(original);
-  const second = createDraftPreviewHost(original);
+  const original = structuredClone(fixtureEnvelope);
+  const first = createDraftPreviewHost(original, fixtureDefinition.manifest.version);
+  const second = createDraftPreviewHost(original, fixtureDefinition.manifest.version);
   expect(first.session.adAuthority).toBe('none');
   expect(first.session.capabilities).toEqual(['content', 'storage']);
   expect(first.session.sessionId).not.toBe(second.session.sessionId);
   await first.storage.write('probe', { value: 1 }, null);
   expect(await second.storage.read('probe')).toBeNull();
   await act(async () => {
-    root.render(<DraftPreview envelope={original} />);
+    root.render(<DraftPreview envelope={original} definition={fixtureDefinition} />);
   });
   await settle();
-  expect(target.querySelector('.cultivation')).not.toBeNull();
+  expect(target.querySelector('.fixture-game')).not.toBeNull();
   await act(async () => {
-    target.querySelector<HTMLButtonElement>('[aria-label="点香 · 开始修行"]')!.click();
+    target.querySelector<HTMLButtonElement>('[aria-label="开始预览"]')!.click();
   });
   await settle();
-  expect(target.querySelector('.cultivation')?.getAttribute('data-phase')).toBe('explore');
+  expect(target.querySelector('.fixture-game')?.getAttribute('data-phase')).toBe('started');
   expect(localStorage.getItem('bili-pocket-arcade:v1')).toBe('player-save-sentinel');
-  expect(original).toEqual(defaultCultivationEnvelope);
+  expect(original).toEqual(fixtureEnvelope);
 });
 it('preserves structured server errors and sends the original revision with cookies', async () => {
   const transport = vi
@@ -144,7 +139,7 @@ it('preserves structured server errors and sends the original revision with cook
     id: crypto.randomUUID(),
     name: 'test',
     revision: 4,
-    envelope: defaultCultivationEnvelope,
+    envelope: fixtureEnvelope,
   };
   await expect(client.save(draft)).rejects.toThrow('保存冲突');
   expect(transport.mock.calls[0][1]?.credentials).toBe('same-origin');

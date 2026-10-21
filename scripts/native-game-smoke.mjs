@@ -7,7 +7,7 @@ import vm from 'node:vm';
 
 export async function verifyNativeArtifact({
   root,
-  standalone = false,
+  standalone = true,
   platform = 'bilibili',
   game,
 }) {
@@ -22,11 +22,13 @@ export async function verifyNativeArtifact({
     return filename;
   };
   const config = JSON.parse(readFileSync(path.join(root, 'game.json'), 'utf8'));
+  assert.ok(standalone, 'Only independent native artifacts are supported');
   const games = [
-    ['cultivation', '三分钟修仙'],
-    ['office', '打工人摸鱼记'],
-    ['cricket', '秋声斗蟋'],
-    ['arena', '电子斗蛐蛐'],
+    ['flick-arena', '弹指擂台'],
+    ['retreat-rally', '收兵再冲'],
+    ['moss-garden', '苔光花园'],
+    ['wulong-city', '乌龙城'],
+    ['three-choose-two', '三块选两块'],
   ];
   if (standalone) {
     assert.equal(config.deviceOrientation, game === 'retreat-rally' ? 'landscape' : 'portrait');
@@ -40,11 +42,6 @@ export async function verifyNativeArtifact({
       'three-choose-two': 'assets',
       'retreat-rally': 'rally-assets',
       'flick-arena': 'audio',
-      cricket: 'cricket-audio',
-      cultivation: 'trial-audio',
-      arena: 'arena-audio',
-      office: 'office-scene',
-      'building-power': 'building-power-audio',
       'moss-garden': 'moss-garden-audio',
       'wulong-city': 'assets',
     };
@@ -57,15 +54,8 @@ export async function verifyNativeArtifact({
       if (id !== game)
         assert.ok(!code.includes(title), 'Single-game Artifact must exclude sibling Games');
   }
-  if (!standalone)
-    assert.deepEqual(
-      config.subpackages,
-      games.map(([name]) => ({ name, root: `${name}/` })),
-    );
 
-  async function launch(gameIndex, [gameId, title]) {
-    const subpackages = config.subpackages ?? [];
-    let packageLoaded;
+  async function launch([gameId, title]) {
     const rendered = [];
     const labels = new Map();
     const labelPositions = new Map();
@@ -137,7 +127,6 @@ export async function verifyNativeArtifact({
       },
       fillRect(x, y, width, height) {
         if (y === 0 && drawingDepth <= 1) {
-          if (gameId === 'building-power') paths.length = 0;
           labels.clear();
           labelPositions.clear();
           rendered.length = 0;
@@ -151,19 +140,11 @@ export async function verifyNativeArtifact({
         labelPositions.set(text, { x, y });
       },
       measureText(text) {
-        const width =
-          gameId === 'building-power'
-            ? Number.parseFloat(this.font?.match(/[\d.]+px/)?.[0] ?? '17')
-            : 17;
+        const width = 17;
         return { width: text.length * width };
       },
     };
     const sdk = {
-      loadSubpackage(options) {
-        packageLoaded = options.name;
-        options.success();
-        options.complete();
-      },
       createCanvas: () => {
         canvases += 1;
         return { width: 390, height: 844, getContext: () => drawing };
@@ -291,9 +272,6 @@ export async function verifyNativeArtifact({
       },
     });
     const context = vm.createContext({
-      ...(gameId === 'building-power'
-        ? { Math: Object.assign(Object.create(Math), { random: () => 0 }) }
-        : {}),
       [{ wechat: 'wx', bilibili: 'bl', douyin: 'tt', kuaishou: 'ks' }[platform]]: sdk,
       setTimeout,
       clearTimeout,
@@ -337,12 +315,6 @@ export async function verifyNativeArtifact({
     const modules = new Map();
     function requireLocal(filename) {
       const resolved = localPath(filename);
-      if (
-        subpackages.some(({ root: subRoot }) =>
-          resolved.includes(`${path.sep}${subRoot.replaceAll('/', path.sep)}`),
-        )
-      )
-        if (!standalone) assert.equal(packageLoaded, gameId);
       if (modules.has(resolved)) return modules.get(resolved).exports;
       const module = { exports: {} };
       modules.set(resolved, module);
@@ -365,8 +337,8 @@ export async function verifyNativeArtifact({
     }
     const entry = requireLocal(path.join(root, 'game.js'));
     if (standalone && platform !== 'bilibili') await entry.ready;
-    const button = rectangles[standalone ? 0 : gameIndex];
-    if (!standalone || platform === 'bilibili') {
+    const button = rectangles[0];
+    if (platform === 'bilibili') {
       assert.ok(button, `Launch screen must render ${gameId}`);
       // The shared launch surface draws in 390 × 844 logical coordinates.
       const size = sdk.getSystemInfoSync();
@@ -376,17 +348,9 @@ export async function verifyNativeArtifact({
       );
     }
     if (standalone) await entry.ready;
-    const ready =
-      gameId === 'three-choose-two'
-        ? '继续闯关'
-        : gameId === 'building-power'
-          ? '忙碌的电工'
-          : gameId === 'office'
-            ? '周一 09:08 · 迟到潜入'
-            : title;
+    const ready = gameId === 'three-choose-two' ? '继续闯关' : title;
     for (let index = 0; index < 50 && !rendered.includes(ready); index++)
       await new Promise(setImmediate);
-    if (!standalone) assert.equal(packageLoaded, gameId);
     assert.ok(rendered.includes(ready), `${gameId} Artifact must launch without a DOM`);
     assert.equal(canvases, 1, 'Native Game must reuse the first visible Canvas');
     if (standalone && platform === 'bilibili') assert.equal(launches, 1);
@@ -449,7 +413,7 @@ export async function verifyNativeArtifact({
         assert.ok(labels.has(label), 'Missing control: ' + label);
         tap(x, labels.get(label) + 32);
       };
-      click('练习摆位', 140);
+      click('练习场', 79);
       assert.ok(rendered.includes('初入江湖'));
       tap(195, 228 + 36 + 32);
       advance(1500);
@@ -746,7 +710,7 @@ export async function verifyNativeArtifact({
       };
       const expectSeeds = (count) =>
         assert.ok(rendered.includes(`光种 ${count} / 4`), 'Expected seed count: ' + count);
-      click('开始播种');
+      click('开始第 1 关');
       expectSeeds(0);
       // The native SDK and Canvas share the same 390 × 844 portrait coordinates.
       tap(72, 261);
@@ -770,217 +734,6 @@ export async function verifyNativeArtifact({
       advance(2000);
       assert.equal(JSON.stringify(rendered), paused, 'Background time must not advance the puzzle');
       for (const show of shown) show();
-    }
-    if (gameId === 'building-power') {
-      assert.ok(standalone);
-      const click = (label, x = 195) => {
-        assert.ok(labels.has(label), 'Missing control: ' + label);
-        tap(x, labels.get(label));
-      };
-      const room = (id, mode = false) => {
-        const slot = (Number(id.split('-r')[1]) - 1) % 14;
-        return slot < 12
-          ? [mode ? 344 : 109 + (slot % 3) * 79, 355 + Math.floor(slot / 3) * 84]
-          : [slot === 12 ? 101 : 288, 696];
-      };
-      const touch = (listeners, position, identifier = 1) => {
-        for (const fn of [...listeners])
-          fn({ changedTouches: [{ identifier, clientX: position[0], clientY: position[1] }] });
-      };
-      const expectLoad = (watts) =>
-        assert.ok(
-          rendered.some((t) => t.startsWith((watts / 1000).toFixed(2) + ' / ')),
-          'Expected ' + watts + 'W',
-        );
-      click('开始第1班  →');
-      expectLoad(80);
-      tap(...room('l1-r1'));
-      expectLoad(780);
-      advance(2100);
-      touch(presses, room('l1-r1'));
-      touch(moves, room('l1-r4'));
-      expectLoad(780);
-      touch(touches, room('l1-r4'), 2);
-      expectLoad(780);
-      touch(cancels, room('l1-r4'));
-      expectLoad(780);
-      touch(presses, room('l1-r1'));
-      touch(moves, room('l1-r4'));
-      touch(touches, room('l1-r4'));
-      expectLoad(1380);
-      tap(...room('l1-r2', true));
-      tap(...room('l1-r2'));
-      expectLoad(1435);
-      assert.ok(audio.some((sound) => sound.playing));
-      for (const hide of hidden) hide();
-      const paused = JSON.stringify(rendered);
-      advance(120000);
-      assert.equal(JSON.stringify(rendered), paused);
-      for (const show of shown) show();
-      assert.equal(JSON.stringify(rendered), paused);
-      click('继续值班');
-      expectLoad(1435);
-      click('暂停', 39);
-      click('同天气重试', 104);
-      advance(44100);
-      assert.ok(rendered.includes('这班还差一点'));
-      click('同天气重试', 104);
-      const witness = JSON.parse(
-        readFileSync(
-          new URL('../test-results/building-power/shift-witness.json', import.meta.url),
-          'utf8',
-        ),
-      );
-      advance(34);
-      let elapsed = 0;
-      for (const { tick, action } of witness.actions) {
-        advance(tick * 50 - elapsed);
-        elapsed = tick * 50;
-        if (action.type === 'connect' || action.type === 'disconnect')
-          tap(...room(action.requestId));
-        else if (action.type === 'cooling') tap(...room(action.requestId, true));
-        else if (action.type === 'defer') {
-          click('错峰 ×2', 99);
-          tap(...room(action.requestId));
-        } else if (action.type === 'battery') click('应急 1.5kW · 8秒', 288);
-      }
-      advance(90100 - elapsed);
-      assert.ok(rendered.includes('灯火有你，值班完成'), rendered.join(' | '));
-      await new Promise(setImmediate);
-      const saved = () =>
-        JSON.parse(records.get(platform + ':building-power:building-power:progress')).value;
-      assert.equal(saved().unlocked, 1);
-      assert.equal(saved().best[0], witness.summary.score);
-      const coins = saved().coins;
-      advance(5000);
-      assert.equal(saved().coins, coins);
-      await (await entry.ready).dispose();
-      assert.equal(
-        presses.size + touches.size + moves.size + cancels.size + hidden.size + shown.size,
-        0,
-      );
-      assert.equal(intervals.size, 0);
-      assert.ok(audio.every((sound) => !sound.playing));
-      assert.ok(logs.some((value) => value.name === 'building_power_result'));
-      return;
-    }
-    if (gameId === 'cultivation') {
-      tap((240 * 390) / 480, (545 * 844) / 800);
-      const hold = {
-        changedTouches: [{ identifier: 2, clientX: (240 * 390) / 480, clientY: (680 * 844) / 800 }],
-      };
-      for (const press of presses) press(hold);
-      advance(1100);
-      for (const release of touches) release(hold);
-      assert.ok(
-        rendered.some((text) => text.includes('灵气入体')),
-        'Native breath must bank only on release',
-      );
-      assert.ok(
-        audio.some((sound) => sound.playing),
-        'Cultivation must play its packaged sounds',
-      );
-      for (const hide of hidden) hide();
-      const paused = JSON.stringify(rendered);
-      advance(2000);
-      assert.equal(JSON.stringify(rendered), paused);
-      assert.ok(audio.every((sound) => !sound.playing));
-      for (const show of shown) show();
-      assert.ok(rendered.includes('山腰洞府'));
-    }
-    if (gameId === 'arena') {
-      tap(60, 670);
-      tap(60, 670);
-      tap(60, 670);
-      tap(60, 670);
-      assert.ok(rendered.includes('按住拨草'));
-      const touch = { changedTouches: [{ identifier: 2, clientX: 60, clientY: 670 }] };
-      for (const press of presses) press(touch);
-      advance(900);
-      for (const release of touches) release(touch);
-      assert.ok(
-        rendered.some((text) => text.includes('咬准了')),
-        'Native hold/release must damage the opponent',
-      );
-      assert.ok(
-        audio.some((sound) => sound.playing),
-        'Arena must play packaged audio',
-      );
-      for (const hide of hidden) hide();
-      const paused = JSON.stringify(rendered);
-      advance(2000);
-      assert.equal(JSON.stringify(rendered), paused);
-      assert.ok(audio.every((sound) => !sound.playing));
-      for (const show of shown) show();
-      assert.ok(rendered.includes('按住拨草'));
-    }
-    if (gameId === 'office') {
-      assert.ok(paths.length > 100, 'Office must draw its 3D room without a DOM');
-      assert.ok(paths.every((point) => point.every(Number.isFinite)));
-      tap(195, 844 * 0.65 + 28);
-      assert.ok(rendered.includes('暂停'), 'The player must be able to start the scene');
-      const beforeLook = JSON.stringify(paths);
-      for (const press of presses)
-        press({ changedTouches: [{ identifier: 2, clientX: 285, clientY: 410 }] });
-      for (const move of moves)
-        move({ changedTouches: [{ identifier: 2, clientX: 345, clientY: 430 }] });
-      for (const release of touches)
-        release({ changedTouches: [{ identifier: 2, clientX: 345, clientY: 430 }] });
-      advance(50);
-      assert.notEqual(JSON.stringify(paths), beforeLook, 'Dragging must rotate the camera');
-      const beforeMove = JSON.stringify(paths);
-      for (const press of presses)
-        press({ changedTouches: [{ identifier: 3, clientX: 80, clientY: 720 }] });
-      for (const move of moves)
-        move({ changedTouches: [{ identifier: 3, clientX: 80, clientY: 655 }] });
-      advance(350);
-      assert.notEqual(JSON.stringify(paths), beforeMove, 'The stick must move through the room');
-      assert.ok(
-        audio.some((sound) => sound.playing),
-        'The scene must play packaged audio after input',
-      );
-      for (const hide of hidden) hide();
-      const paused = JSON.stringify([rendered, paths]);
-      advance(1000);
-      assert.equal(
-        JSON.stringify([rendered, paths]),
-        paused,
-        'Background time must not advance Office',
-      );
-      assert.ok(
-        audio.every((sound) => !sound.playing),
-        'Background transition must stop audio',
-      );
-      for (const show of shown) show();
-      assert.ok(rendered.includes('暂停'), 'Office must remain playable after resuming');
-    }
-    if (gameId === 'cricket') {
-      choose('揭盖');
-      choose('开始蓄力');
-      advance(700);
-      choose('出击');
-      assert.ok(
-        rendered.some((text) => text.includes('恰到好处')),
-        'A timed attack must damage the opponent',
-      );
-      assert.ok(
-        audio.some((sound) => sound.playing),
-        'Cricket must play its packaged audio',
-      );
-      for (const hide of hidden) hide();
-      const paused = JSON.stringify(rendered);
-      advance(2000);
-      assert.equal(JSON.stringify(rendered), paused);
-      assert.ok(audio.every((sound) => !sound.playing));
-      for (const show of shown) show();
-      advance(45000);
-      assert.ok(rendered.includes('重新上擂'), 'Cricket must settle and allow retry');
-      await new Promise(setImmediate);
-      const save = JSON.parse(records.get(`${platform}:cricket:progress`));
-      assert.equal(save.value.runs, 1);
-      assert.equal(save.value.bestHits, 1);
-      choose('重新上擂');
-      assert.ok(rendered.includes('揭盖 · 开斗'));
     }
     if (standalone && platform === 'bilibili') {
       const key = `bilibili:${gameId}:entry-gifts`;
@@ -1010,24 +763,10 @@ export async function verifyNativeArtifact({
     assert.deepEqual(logs, []);
   }
 
-  const selected = standalone
-    ? [
-        ...games,
-        ['flick-arena', '弹指擂台'],
-        ['building-power', '忙碌的电工'],
-        ['retreat-rally', '收兵再冲'],
-        ['moss-garden', '苔光花园'],
-        ['wulong-city', '乌龙城'],
-        ['three-choose-two', '三块选两块'],
-      ].filter(([id]) => id === game)
-    : games;
+  const selected = games.filter(([id]) => id === game);
   assert.ok(selected.length, 'Unknown game');
   for (const item of selected) {
-    if (!standalone) assert.ok(readdirSync(path.join(root, item[0])).includes('manifest.json'));
-    await launch(
-      games.findIndex(([id]) => id === item[0]),
-      item,
-    );
+    await launch(item);
   }
   console.log(`${platform}/${game ?? 'catalog'} passed native artifact checks.`);
 }
@@ -1035,45 +774,31 @@ export async function verifyNativeArtifact({
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const { values } = parseArgs({
     options: {
-      catalog: { type: 'boolean' },
       standalone: { type: 'boolean' },
       game: { type: 'string' },
       platform: { type: 'string' },
     },
   });
-  assert.ok(
-    !values.catalog || !values.game,
-    '--game selects standalone Artifacts, not the catalog',
-  );
-  if (values.catalog) {
-    await verifyNativeArtifact({
-      root: fileURLToPath(new URL('../apps/shell-bilibili/dist/', import.meta.url)),
-    });
-  } else {
-    const platforms = ['wechat', 'bilibili', 'douyin', 'kuaishou'];
-    assert.ok(!values.platform || platforms.includes(values.platform), 'Unknown native platform');
-    const originalGames = ['cricket', 'cultivation', 'arena', 'office'];
-    const standaloneGames = [
-      ...originalGames,
-      'building-power',
-      'moss-garden',
-      'wulong-city',
-      'retreat-rally',
-      'flick-arena',
-      'three-choose-two',
-    ];
-    assert.ok(!values.game || standaloneGames.includes(values.game), 'Unknown game');
-    for (const game of values.game ? [values.game] : standaloneGames) {
-      for (const platform of values.platform ? [values.platform] : platforms) {
-        await verifyNativeArtifact({
-          root: fileURLToPath(
-            new URL(`../apps/shell-minigame/dist/${platform}/${game}/`, import.meta.url),
-          ),
-          standalone: true,
-          platform,
-          game,
-        });
-      }
+  const platforms = ['wechat', 'bilibili', 'douyin', 'kuaishou'];
+  assert.ok(!values.platform || platforms.includes(values.platform), 'Unknown native platform');
+  const standaloneGames = [
+    'moss-garden',
+    'wulong-city',
+    'retreat-rally',
+    'flick-arena',
+    'three-choose-two',
+  ];
+  assert.ok(!values.game || standaloneGames.includes(values.game), 'Unknown game');
+  for (const game of values.game ? [values.game] : standaloneGames) {
+    for (const platform of values.platform ? [values.platform] : platforms) {
+      await verifyNativeArtifact({
+        root: fileURLToPath(
+          new URL(`../apps/shell-minigame/dist/${platform}/${game}/`, import.meta.url),
+        ),
+        standalone: true,
+        platform,
+        game,
+      });
     }
   }
 }

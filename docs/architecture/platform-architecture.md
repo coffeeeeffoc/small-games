@@ -34,12 +34,9 @@ flowchart LR
 ```text
 apps/
   shell-web/                 Web 合集与远程 Game 宿主
-  shell-bilibili/            B 站适配、分包与平台审核入口
   studio-web/                目录树、Monaco 编辑器、内容与发布后管
-  games/
-    cultivation/             @coffeeeeffoc/game-cultivation
-    office/                  @coffeeeeffoc/game-office
-    arena/                   @coffeeeeffoc/game-arena
+games/local/                 本仓库维护的独立 Game
+games/submodules/            固定提交的独立仓库 Game
 services/
   management-api/            @coffeeeeffoc/management-api
   runtime-api/               @coffeeeeffoc/runtime-api

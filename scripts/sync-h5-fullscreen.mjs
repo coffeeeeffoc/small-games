@@ -12,6 +12,7 @@ const copies = [
   'games/local/flick-arena/fullscreen.js',
   'games/local/chase-thief/fullscreen.js',
   'games/local/orbit-atelier/src/fullscreen.js',
+  'games/local/orbit-atelier/scripts/fullscreen.js',
   'games/local/out-of-frame/fullscreen.js',
   'games/local/two-sided-box/fullscreen.js',
   'games/local/fold-the-world/src/fullscreen.js',

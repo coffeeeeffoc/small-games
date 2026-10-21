@@ -11,8 +11,7 @@ import { monitorPagesPage } from './pages-browser-monitor.mjs';
 const games = JSON.parse(await readFile(new URL('../src/standalone-games.json', import.meta.url)));
 // Parse before starting either the preview server or Chromium: invalid CI selection must fail fast.
 const selectedGames = selectPagesGames(games, process.env.PAGES_GAME_IDS);
-// The registry now also includes building-power; its own suite covers that game.
-const builtInCount = 5;
+const builtInCount = 0;
 const basePath = process.env.PAGES_BASE_PATH ?? '/small-games/';
 const immersiveGame = (id) =>
   [
@@ -112,49 +111,6 @@ try {
     } finally {
       await shared.close();
     }
-  }
-  for (const title of process.env.PAGES_SKIP_BUILTINS === '1'
-    ? []
-    : ['三分钟修仙', '秋声斗蟋', '打工人摸鱼记', '电子斗蛐蛐']) {
-    await page
-      .locator('article')
-      .filter({ has: page.getByRole('heading', { name: title, exact: true }) })
-      .getByRole('button', { name: '进入游戏', exact: true })
-      .click();
-    if (title === '三分钟修仙') {
-      await verifySharedRoute('cultivation', title);
-      await page.getByRole('button', { name: '点香 · 开始修行' }).click();
-      await expect(page.getByRole('button', { name: '御剑', exact: true })).toBeVisible();
-      await page.getByRole('button', { name: '暂停', exact: true }).click();
-      await page.getByRole('button', { name: '继续修行' }).click();
-    } else if (title === '秋声斗蟋') {
-      await page.getByRole('button', { name: '揭盖 · 开斗 →' }).click();
-      await page.getByRole('button', { name: '暂停对局' }).click();
-      await page.getByRole('button', { name: '继续斗蟋' }).click();
-    } else if (title === '打工人摸鱼记') {
-      await page.getByRole('button', { name: '悄悄进入办公室' }).click();
-      await page.getByRole('button', { name: '蹲下', exact: false }).click();
-      await expect(page.getByRole('button', { name: '站起来', exact: false })).toBeVisible();
-      await page.getByRole('button', { name: '暂停', exact: true }).click();
-      await page.getByRole('button', { name: '继续潜入' }).click();
-    } else {
-      await page.locator('.arena-picks button').first().click();
-      await expect(page.locator('.arena')).toHaveAttribute('data-phase', 'mutate');
-      while (await page.locator('.arena-traits button').count())
-        await page.locator('.arena-traits button').first().click();
-      await page.getByRole('button', { name: '开盆，迎战！', exact: false }).click();
-      await expect(page.locator('.arena')).toHaveAttribute('data-phase', 'battle');
-      await page.getByRole('button', { name: '闪身避锋', exact: false }).click();
-      await expect(page.getByRole('progressbar', { name: '体力' })).not.toHaveAttribute(
-        'value',
-        '100',
-      );
-      await page.getByRole('button', { name: '暂停游戏' }).click();
-      await page.getByRole('button', { name: '准备好了，继续' }).click();
-    }
-    await page.getByRole('button', { name: '← 返回目录', exact: true }).click();
-    await expect(page).toHaveURL(url);
-    await expect(page.locator('.catalog-grid article')).toHaveCount(builtInCount + games.length);
   }
   for (const game of selectedGames) {
     const result = {

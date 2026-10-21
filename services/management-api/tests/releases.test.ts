@@ -2,7 +2,7 @@ import { randomUUID, webcrypto } from 'node:crypto';
 import { expect, it, vi } from 'vitest';
 import { createService } from '@coffeeeeffoc/service-kit';
 import { buildArtifact } from '@coffeeeeffoc/game-artifact';
-import { defaultCultivationEnvelope } from '@coffeeeeffoc/game-cultivation/content';
+import { fixtureEnvelope, fixtureTarget } from './content.fixture.js';
 import { normalizeManagedAdConfig, type ManagedAdConfig } from '@coffeeeeffoc/ad-config';
 import { createPublishedVersion, projectionSchema } from '@coffeeeeffoc/release-contract';
 import {
@@ -23,7 +23,7 @@ it('requires publisher, Origin, saved revision and explicit confirmation before 
     id: randomUUID(),
     name: 'release',
     revision: 0,
-    envelope: { ...defaultCultivationEnvelope, revision: 0 },
+    envelope: { ...fixtureEnvelope, revision: 0 },
   };
   const drafts: DraftStore = {
     list: async () => [draft],
@@ -58,7 +58,7 @@ it('requires publisher, Origin, saved revision and explicit confirmation before 
   const app = createService('management', {}, false);
   const origin = 'http://127.0.0.1:5174';
   await registerAuthentication(app, auth, origin);
-  await registerPublications(app, auth, drafts, store, origin, { read });
+  await registerPublications(app, auth, drafts, store, origin, { read }, undefined, fixtureTarget);
   try {
     const login = await app.inject({
       method: 'POST',
@@ -67,6 +67,24 @@ it('requires publisher, Origin, saved revision and explicit confirmation before 
       payload: { username: 'publisher', password: 'publication-test-password' },
     });
     const cookie = login.cookies.map((entry) => `${entry.name}=${entry.value}`).join('; ');
+    const unconfigured = createService('management', {}, false);
+    await registerAuthentication(unconfigured, auth, origin);
+    await registerPublications(unconfigured, auth, drafts, store, origin, { read });
+    try {
+      for (const [method, url] of [
+        ['GET', '/api/releases/'],
+        ['POST', '/api/releases/publish'],
+        ['POST', '/api/releases/rollback'],
+      ] as const) {
+        const result = await unconfigured.inject({ method, url, headers: { cookie, origin } });
+        expect(result.statusCode).toBe(503);
+        expect(result.json()).toEqual({ error: 'CONTENT_TARGET_NOT_CONFIGURED' });
+      }
+      expect(read).not.toHaveBeenCalled();
+      expect(store.enqueue).not.toHaveBeenCalled();
+    } finally {
+      await unconfigured.close();
+    }
     const input = {
       eventId: randomUUID(),
       channel: 'stable',
@@ -131,14 +149,14 @@ async function signedArtifact() {
   ]);
   const descriptor = await buildArtifact(
     {
-      gameId: 'cultivation',
+      gameId: 'fixture-game',
       version: '1.1.0',
       gameContractVersion: 1,
-      contentSchemaVersion: defaultCultivationEnvelope.schemaVersion,
+      contentSchemaVersion: fixtureEnvelope.schemaVersion,
       capabilities: ['content'],
       loadModes: ['iframe'],
       entry: 'index.html',
-      integrity: 'builtin:cultivation@1.1.0',
+      integrity: 'builtin:fixture-game@1.1.0',
     },
     resources,
     keys.privateKey,
@@ -150,13 +168,13 @@ async function signedArtifact() {
 const plan = (overrides: Record<string, unknown> = {}): ManagedAdConfig => {
   const result = normalizeManagedAdConfig({
     formatVersion: 1,
-    gameId: 'cultivation',
+    gameId: 'fixture-game',
     enabled: true,
     policy: {},
     creatives: [{ id: 'spring', title: '春日礼包', ctaLabel: '查看', durationMs: 5000 }],
     placements: [
       {
-        opportunityId: 'cultivation.reincarnate',
+        opportunityId: 'fixture-game.reward',
         creativeId: 'spring',
         policy: {},
         reward: { enabled: true, maxPerSession: 1 },
@@ -175,7 +193,7 @@ it('projects a saved Managed Ad draft into the immutable snapshot and rejects a 
     id: randomUUID(),
     name: 'release',
     revision: 0,
-    envelope: { ...defaultCultivationEnvelope, revision: 0 },
+    envelope: { ...fixtureEnvelope, revision: 0 },
   };
   const drafts: DraftStore = {
     list: async () => [draft],
@@ -220,6 +238,7 @@ it('projects a saved Managed Ad draft into the immutable snapshot and rejects a 
     origin,
     { read: async () => ({ descriptor, resources }) },
     adDrafts,
+    fixtureTarget,
   );
   try {
     const login = await app.inject({
@@ -269,7 +288,7 @@ it('projects a saved Managed Ad draft into the immutable snapshot and rejects a 
       ...plan(),
       placements: [
         {
-          opportunityId: 'cultivation.reincarnate',
+          opportunityId: 'fixture-game.reward',
           creativeId: 'missing',
           policy: {},
           reward: { enabled: true, maxPerSession: 1 },

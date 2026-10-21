@@ -1,6 +1,6 @@
 # Immutable Game Artifacts
 
-With local infrastructure running (`pnpm infra:up`), run `pnpm artifact:build`.
+With local infrastructure running (`pnpm infra:up`), run the `@coffeeeeffoc/game-artifact` build API.
 It checks repository formatting, package boundaries and their tests, process-secret
 tests, and every workspace's lint, types, unit/contract/integration tests, build and
 smoke gates before signing or uploading anything. Tasks use two concurrent workers

@@ -28,7 +28,7 @@ second. The single local worker attempts one row per tick, with a three-second H
 
 ## Configuration and verification
 
-`pnpm artifact:build` exports the development signer's public key to ignored
+the `@coffeeeeffoc/game-artifact` build API exports the development signer's public key to ignored
 `.scratch/artifact-signing/public-key.txt` after successful verification. The local runner
 reads only that public file, never `local-key.json`. Restart services after the first build.
 Without publication configuration, health/auth/draft routes still work and writes return 503.

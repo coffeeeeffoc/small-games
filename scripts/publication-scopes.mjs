@@ -7,16 +7,16 @@ import { ingressShellGuard, ingressPreflightGuard } from './competition-ingress.
 
 const loadDependency = createRequire(import.meta.url);
 
-// Exact additive wiring for the third Creator Web game. Existing compiler paths,
+// Exact additive wiring for Homebound after the Orbit Creator integration. Existing compiler paths,
 // workflow gates, permissions and presets remain byte-for-byte unchanged.
 const homeboundCocosWiring = {
   'scripts/check-workspace-dependencies.mjs': [
-    '152acc7e318df5fd105b6d9f2bb5e3f226dbdf4dbd866f18432cd464831cfa34',
-    'd3d15bd1c635be844d969d4b4f6621554f959566d33cc56d9af5bde0d2b9faa9',
+    '7799f1bed87e0cd2041c30aac44779c6e2013b765401f6358e7eef5ec25f4c29',
+    'a4970a45e8721bb7ac50ef37397a13876b21f21f399695e30991dab61508b417',
   ],
   'scripts/deployment-bundle.mjs': [
-    '83fc0070d115e7a4501a82943714b9b5cf239e0db6fc6cdde6e6ea20c4ec6a90',
-    'e5b3a7e7e774cd9be903df8723096887fb433277db04b8b86d813030faecf6b5',
+    'c5f934e35dc618739626d904a4c642b6e68683edf52dd856d69fa38e05819858',
+    'c345987270dbbbb1afa801499c903c283a75313d61336208ab9a7973f663150e',
   ],
   'scripts/deployment-bundle.test.mjs': [
     '3e5ca2e1bc48c1fa363fdf5f91b9b981a611f2aac4b759a6e338b171b02c5212',
@@ -24,24 +24,24 @@ const homeboundCocosWiring = {
   ],
 
   '.github/workflows/carding-car.yml': [
-    '79c7e62376cb93cfcf894fcbb6518f88d68a83f6dd22f161539a381a73fe119e',
-    '1ec5e18d4e44c2697dd09f766fe351845790322e643a0dde7b20937cd8337955',
+    'e73f43102d5f00631bef10b21b19c84a775ea1da884fc503b510797b821e53b8',
+    '45aa975fa27118de1fa8e90af1240b039c488cb7a50238b8eb3d6d301aa3726e',
   ],
   '.github/workflows/ci.yml': [
-    '7dc23c17a7b8180c0abc4eb5869b872d41e466a755da9757cae56235bcd2bf12',
-    '8f9cd0c0d167f1d680747db443e59fcd255efc461458cd666c7f7c40ac735301',
+    '8ec42971a72e5dec8bdde2800105522b428170925bea489c910a3f2f8b0790a9',
+    'a35c396202c059492a3579d15c132e58705620bb001e2df25fc65dddfc0a05f1',
   ],
   '.github/workflows/pages-validate.yml': [
-    'c4766cd65e637f9baadea7659184e154bfe5fb9951a0f97d95d1bcc4010de244',
-    '2f39c975fe8f769a3e4fe5cbc6f6dd0c2c3f5896dab6115ad82563506a75ba5c',
+    'b893b9ff0bf2259c6eef14fcc1c6a8419bff8f4a079ea68ab4f1a40fa728cfe4',
+    '5b90715c598a9d8817693d47b71b01d8964a7920d22f59b316990bb872f5f4a2',
   ],
   '.github/workflows/mobile.yml': [
-    '860a6b07cc7b9acf17033726fd44c6f768b58ef9e316a48bce55fb05ff80f3c3',
-    '22fc4727906e75f1ff8a17f4f53131e7ca8710bd3519e237b9965feb5ebd3564',
+    'a8333e893c73d915e2f2e5f189c86c2a9d1a3e9fab346db8d28d2015691d91df',
+    '603be20dc1705bcaf382135ce471320b46fc6b9acca4ef1a97ef2ac7a246f351',
   ],
   'turbo.json': [
-    '87cffb64731a1e510934645439f1f23e3ecbbd60e3e076c7237caeddb22268c9',
-    '37812812d2fe4e0d408e6a32663cf63500675f97d816a36eab57c48b23a0bebd',
+    '31739afb50a0d9fe9dab24010b299dd9cf2b3b561575353059e0236b60b9c6fb',
+    'b28b98593931251dec5140ce1681090c30eb322b789bce290851bedfc32bf8e9',
   ],
   'scripts/h5-game-build.mjs': [
     '81d761755a2fb16ed85a8704dc102901f4e375fae50a7b9fa008295dee228d2f',
@@ -67,9 +67,183 @@ export function homeboundCocosWiringOnly(file, before, after) {
     createHash('sha256').update(value.replaceAll('\r\n', '\n')).digest('hex');
   return digest(before) === hashes[0] && digest(after) === hashes[1];
 }
-const cocosWebSources = ['carding-car', 'night-overwatch', 'homebound-station'].map(
-  (id) => `games/local/${id}`,
-);
+const cocosWebSources = [
+  'carding-car',
+  'night-overwatch',
+  'orbit-atelier',
+  'homebound-station',
+].map((id) => `games/local/${id}`);
+
+// The third Creator project adds one artifact route. Prove that every existing
+// producer, consumer and build gate is byte-for-byte unchanged outside that route.
+export const orbitCreatorIntegrationPaths = [
+  '.github/workflows/carding-car.yml',
+  '.github/workflows/ci.yml',
+  '.github/workflows/pages-validate.yml',
+  '.github/workflows/mobile.yml',
+  'turbo.json',
+  'scripts/reuse-cocos-artifacts.mjs',
+  'apps/shell-web/scripts/standalone-game-checks.mjs',
+];
+export function orbitCreatorIntegrationFileScope(file, before, after) {
+  if (!orbitCreatorIntegrationPaths.includes(file)) return false;
+  try {
+    const replace = (source, old, value, count = 1) => {
+      assert.equal(source.split(old).length - 1, count, 'Unexpected Creator integration anchor');
+      return source.replaceAll(old, value);
+    };
+    if (file === 'turbo.json') {
+      const previous = JSON.parse(before),
+        current = JSON.parse(after);
+      const variable = 'ORBIT_ATELIER_PREBUILT_DIR';
+      assert(!previous.globalPassThroughEnv.includes(variable));
+      assert.equal(current.globalPassThroughEnv.filter((item) => item === variable).length, 1);
+      current.globalPassThroughEnv = current.globalPassThroughEnv.filter(
+        (item) => item !== variable,
+      );
+      const key = '@coffeeeeffoc/orbit-atelier#build';
+      assert(!Object.hasOwn(previous.tasks, key));
+      assert.deepEqual(current.tasks[key], {
+        dependsOn: ['^build'],
+        outputs: ['dist/**'],
+        env: ['COCOS_CREATOR', variable],
+        inputs: ['$TURBO_DEFAULT$', '$TURBO_ROOT$/games/local/orbit-atelier/.prebuilt/**'],
+      });
+      delete current.tasks[key];
+      return isDeepStrictEqual(previous, current);
+    }
+    if (file === 'scripts/reuse-cocos-artifacts.mjs')
+      return (
+        after ===
+        replace(
+          before,
+          "export const games = ['carding-car', 'night-overwatch'];",
+          "export const games = ['carding-car', 'night-overwatch', 'orbit-atelier'];",
+        )
+      );
+    if (file === 'apps/shell-web/scripts/standalone-game-checks.mjs') {
+      const isolate = (source) => {
+        const program = parsedSource(source);
+        const exported = program.body.filter(
+          (node) =>
+            node.type === 'ExportNamedDeclaration' &&
+            node.declaration?.id?.name === 'assertStandaloneGameplay',
+        );
+        assert.equal(exported.length, 1);
+        const matches = [];
+        const visit = (node, owner = exported[0].declaration) => {
+          if (!node || typeof node !== 'object') return;
+          if (Array.isArray(node)) {
+            node.forEach((child) => visit(child, owner));
+            return;
+          }
+          if (
+            ['FunctionDeclaration', 'FunctionExpression', 'ArrowFunctionExpression'].includes(
+              node.type,
+            )
+          )
+            owner = node;
+          if (
+            node.type === 'IfStatement' &&
+            node.test?.type === 'BinaryExpression' &&
+            node.test.operator === '===' &&
+            node.test.left?.type === 'Identifier' &&
+            node.test.left.name === 'id' &&
+            node.test.right?.type === 'StringLiteral' &&
+            node.test.right.value === 'orbit-atelier'
+          )
+            matches.push({ node, owner });
+          for (const [key, value] of Object.entries(node))
+            if (!['loc', 'comments', 'tokens', 'extra'].includes(key)) visit(value, owner);
+        };
+        visit(exported[0].declaration);
+        assert.equal(matches.length, 1);
+        assert.equal(matches[0].owner, exported[0].declaration);
+        const body = matches[0].node.consequent;
+        assert.equal(body.type, 'BlockStatement');
+        return source.slice(0, body.start) + 'ORBIT_GAMEPLAY_BODY' + source.slice(body.end);
+      };
+      return before !== after && isolate(before) === isolate(after);
+    }
+    let expected = before;
+    if (file === '.github/workflows/carding-car.yml') {
+      expected = replace(
+        expected,
+        '        game: [carding-car, night-overwatch]',
+        '        game: [carding-car, night-overwatch, orbit-atelier]',
+      );
+      const env =
+        "          NIGHT_OVERWATCH_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/night-overwatch', github.workspace) || '' }}\n";
+      expected = replace(
+        expected,
+        env,
+        env +
+          env
+            .replaceAll('NIGHT_OVERWATCH', 'ORBIT_ATELIER')
+            .replaceAll('night-overwatch', 'orbit-atelier'),
+      );
+      const download =
+        "      - name: Download CI night-overwatch artifact\n        id: night\n        if: steps.producer.outputs.run_id != ''\n        continue-on-error: true\n        uses: actions/download-artifact@v8\n        with:\n          name: night-overwatch-${{ github.sha }}\n          path: .scratch/ci-cocos/night-overwatch\n          run-id: ${{ steps.producer.outputs.run_id }}\n          github-token: ${{ github.token }}\n";
+      expected = replace(
+        expected,
+        download,
+        download +
+          download.replaceAll('night-overwatch', 'orbit-atelier').replace('id: night', 'id: orbit'),
+      );
+      expected = replace(
+        expected,
+        '      - name: Verify both downloaded artifacts or rebuild',
+        '      - name: Verify all downloaded artifacts or rebuild',
+      );
+      expected = replace(
+        expected,
+        "        if: steps.kart.outcome == 'success' && steps.night.outcome == 'success'",
+        "        if: steps.kart.outcome == 'success' && steps.night.outcome == 'success' && steps.orbit.outcome == 'success'",
+      );
+      const verify =
+        '          node scripts/reuse-cocos-artifacts.mjs verify night-overwatch .scratch/ci-cocos/night-overwatch\n';
+      expected = replace(
+        expected,
+        verify,
+        verify + verify.replaceAll('night-overwatch', 'orbit-atelier'),
+      );
+      const upload =
+        "      - uses: actions/upload-artifact@v7\n        if: steps.verify.outcome == 'success'\n        with:\n          name: night-overwatch-${{ github.sha }}\n          path: .scratch/ci-cocos/night-overwatch\n          if-no-files-found: error\n";
+      expected = replace(
+        expected,
+        upload,
+        upload + upload.replaceAll('night-overwatch', 'orbit-atelier'),
+      );
+    } else {
+      const ci = file === '.github/workflows/ci.yml',
+        count = ci ? 1 : 2;
+      const env =
+        '      NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt\n';
+      expected = replace(
+        expected,
+        env,
+        env +
+          env
+            .replaceAll('NIGHT_OVERWATCH', 'ORBIT_ATELIER')
+            .replaceAll('night-overwatch', 'orbit-atelier'),
+        count,
+      );
+      const download =
+        '      - uses: actions/download-artifact@v8\n' +
+        (ci ? "        if: needs.plan.outputs.cocos == 'true'\n" : '') +
+        '        with:\n          name: night-overwatch-${{ github.sha }}\n          path: games/local/night-overwatch/.prebuilt\n';
+      expected = replace(
+        expected,
+        download,
+        download + download.replaceAll('night-overwatch', 'orbit-atelier'),
+        count,
+      );
+    }
+    return expected === after;
+  } catch {
+    return false;
+  }
+}
 
 // Exact reviewed cache-only workflow changes. This proof works in bare planning
 // jobs without YAML dependencies and cannot admit unrelated gates or permissions.
@@ -2108,7 +2282,7 @@ export function reviewedSharedFileScopes({
       ) {
         assert.deepEqual(
           literalDeclaration(readHead('scripts/reuse-cocos-artifacts.mjs'), 'games'),
-          ['carding-car', 'night-overwatch', 'homebound-station'],
+          ['carding-car', 'night-overwatch', 'orbit-atelier', 'homebound-station'],
         );
         for (const dir of cocosWebSources) assert(packages.some((pkg) => pkg.dir === dir));
         scopes.set(file, file.endsWith('.test.mjs') ? [] : cocosWebSources);
@@ -2187,6 +2361,26 @@ export function reviewedSharedFileScopes({
         );
         assert.equal(packages.filter((pkg) => pkg.dir === source).length, 1);
         scopes.set(file, [source]);
+        continue;
+      }
+      if (
+        packages.some(
+          (pkg) => pkg.dir === 'games/local/orbit-atelier' && pkg.creator?.version === '3.8.8',
+        ) &&
+        ((orbitCreatorIntegrationPaths.includes(file) &&
+          orbitCreatorIntegrationFileScope(file, readBase(file), readHead(file))) ||
+          file === 'scripts/reuse-cocos-artifacts.test.mjs')
+      ) {
+        const source = 'games/local/orbit-atelier';
+        assert(
+          games.filter((game) => game.id === 'orbit-atelier' && game.source === source).length ===
+            1,
+        );
+        assert(
+          packages.filter((pkg) => pkg.dir === source && pkg.creator?.version === '3.8.8')
+            .length === 1,
+        );
+        scopes.set(file, file.endsWith('.test.mjs') ? [] : [source]);
         continue;
       }
       if (adminControlIntegrationScopePaths.includes(file)) {
@@ -2356,7 +2550,7 @@ export function reviewedSharedFileScopes({
       ) {
         const consumers = competitionIdentityFileScope({ games, packages, readBase, readHead });
         if (file === 'scripts/competition-client.test.mjs')
-          for (const host of ['apps/shell-minigame', 'apps/shell-bilibili']) {
+          for (const host of ['apps/shell-minigame']) {
             assert.equal(packages.filter((pkg) => pkg.dir === host).length, 1);
             consumers.push(host);
           }
@@ -2532,11 +2726,7 @@ export function reviewedSharedFileScopes({
             ...sources,
             ...(native || xiangqi || protocolGame ? [] : ['apps/shell-web']),
             ...(file === 'scripts/competition-service-config.mjs' ? ['apps/shell-minigame'] : []),
-            ...(native
-              ? ['apps/shell-minigame', 'apps/shell-bilibili']
-              : xiangqi
-                ? ['apps/shell-minigame']
-                : []),
+            ...(native ? ['apps/shell-minigame'] : xiangqi ? ['apps/shell-minigame'] : []),
             ...(gateway ? [...Object.values(rankedConsumers), 'services/runtime-api'] : []),
             ...(file === 'scripts/competition.integration.mjs' || protocolGame
               ? ['services/runtime-api']

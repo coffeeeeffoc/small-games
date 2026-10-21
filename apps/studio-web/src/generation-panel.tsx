@@ -1,3 +1,4 @@
+import type { StudioContentTarget } from './content-target.js';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createDraftClient, type DraftClient } from './draft-client.js';
@@ -17,9 +18,11 @@ const statusNames = {
 export function GenerationPanel({
   api = client,
   drafts = draftClient,
+  target,
 }: {
   api?: GenerationClient;
   drafts?: DraftClient;
+  target: StudioContentTarget;
 }) {
   const queryClient = useQueryClient();
   const [input, setInput] = useState('');
@@ -49,7 +52,7 @@ export function GenerationPanel({
     <section className="draft-workspace">
       <header>
         <p className="eyebrow">AI DYNAMIC CONTENT</p>
-        <h2>生成修仙内容草稿</h2>
+        <h2>生成游戏内容草稿</h2>
         <p>输出通过 Game schema 校验后只进入草稿，不会自动发布。</p>
       </header>
       <form
@@ -80,7 +83,7 @@ export function GenerationPanel({
           </li>
         ))}
       </ul>
-      {preview && <DraftPreview envelope={preview} />}
+      {preview && <DraftPreview envelope={preview} definition={target.definition} />}
     </section>
   );
 }

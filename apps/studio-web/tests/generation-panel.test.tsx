@@ -1,9 +1,8 @@
 import { act } from 'react';
-import { canvasContext } from './canvas.fixture.js';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { defaultCultivationEnvelope } from '@coffeeeeffoc/game-cultivation/content';
+import { fixtureEnvelope, studioFixtureTarget } from './content.fixture.js';
 import {
   GenerationPanel,
   createGenerationClient,
@@ -17,7 +16,6 @@ let target: HTMLDivElement;
 let root: Root;
 let queryClient: QueryClient;
 beforeEach(() => {
-  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => canvasContext());
   target = document.createElement('div');
   document.body.append(target);
   root = createRoot(target);
@@ -80,13 +78,13 @@ it('shows input, progress, error, retry attempt, result, and draft preview', asy
       id: succeeded.draftId!,
       name: 'AI',
       revision: 0,
-      envelope: defaultCultivationEnvelope,
+      envelope: fixtureEnvelope,
     })),
   } as unknown as DraftClient;
   await act(async () =>
     root.render(
       <QueryClientProvider client={queryClient}>
-        <GenerationPanel api={api} drafts={drafts} />
+        <GenerationPanel api={api} drafts={drafts} target={studioFixtureTarget} />
       </QueryClientProvider>,
     ),
   );
@@ -106,5 +104,5 @@ it('shows input, progress, error, retry attempt, result, and draft preview', asy
   )!;
   await act(async () => preview.click());
   await act(async () => new Promise((resolve) => setTimeout(resolve, 10)));
-  expect(target.querySelector('.cultivation')).not.toBeNull();
+  expect(target.querySelector('.fixture-game')).not.toBeNull();
 });

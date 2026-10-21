@@ -89,6 +89,9 @@ it('submits credentials, shows role grants, and clears the workspace on logout',
   await waitForText('当前账号权限');
   expect(auth.login).toHaveBeenCalledWith('creator', 'test-password');
   expect(target.textContent).toContain('审核');
+  expect(target.textContent).not.toContain('游戏内容草稿');
+  expect(target.textContent).not.toContain('提交生成任务');
+  expect(target.textContent).not.toContain('发布与回滚');
   await act(async () => {
     target.querySelector<HTMLButtonElement>('button.logout')!.click();
   });

@@ -179,9 +179,6 @@ importers:
       '@coffeeeeffoc/game-artifact':
         specifier: workspace:*
         version: link:packages/game-artifact
-      '@coffeeeeffoc/game-cultivation':
-        specifier: workspace:*
-        version: link:games/local/game-cultivation
       '@coffeeeeffoc/management-api':
         specifier: workspace:*
         version: link:services/management-api
@@ -259,64 +256,6 @@ importers:
         specifier: 1.55.1
         version: 1.55.1
 
-  apps/shell-bilibili:
-    dependencies:
-      '@coffeeeeffoc/ad-runtime':
-        specifier: workspace:*
-        version: link:../../packages/ad-runtime
-      '@coffeeeeffoc/canvas-game-adapter':
-        specifier: workspace:*
-        version: link:../../packages/canvas-game-adapter
-      '@coffeeeeffoc/content-schema':
-        specifier: workspace:*
-        version: link:../../packages/content-schema
-      '@coffeeeeffoc/game-arena':
-        specifier: workspace:*
-        version: link:../../games/local/game-arena
-      '@coffeeeeffoc/game-contract':
-        specifier: workspace:*
-        version: link:../../packages/game-contract
-      '@coffeeeeffoc/game-cricket':
-        specifier: workspace:*
-        version: link:../../games/local/game-cricket
-      '@coffeeeeffoc/game-cultivation':
-        specifier: workspace:*
-        version: link:../../games/local/game-cultivation
-      '@coffeeeeffoc/game-host':
-        specifier: workspace:*
-        version: link:../../packages/game-host
-      '@coffeeeeffoc/game-office':
-        specifier: workspace:*
-        version: link:../../games/local/game-office
-      '@coffeeeeffoc/native-game-shell':
-        specifier: workspace:*
-        version: link:../../packages/native-game-shell
-    devDependencies:
-      '@coffeeeeffoc/config-eslint':
-        specifier: workspace:*
-        version: link:../../packages/config-eslint
-      '@coffeeeeffoc/config-typescript':
-        specifier: workspace:*
-        version: link:../../packages/config-typescript
-      '@coffeeeeffoc/game-contract-test':
-        specifier: workspace:*
-        version: link:../../packages/game-contract-test
-      '@types/node':
-        specifier: 24.3.1
-        version: 24.3.1
-      eslint:
-        specifier: 9.35.0
-        version: 9.35.0(jiti@2.7.0)(supports-color@10.2.2)
-      typescript:
-        specifier: 7.0.2
-        version: 7.0.2
-      vite:
-        specifier: 8.2.4
-        version: 8.2.4(@types/node@24.3.1)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)
-      vitest:
-        specifier: 5.0.0
-        version: 5.0.0(@types/node@24.3.1)(jsdom@26.1.0(supports-color@10.2.2))(vite@8.2.4(@types/node@24.3.1)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13))
-
   apps/shell-ios: {}
 
   apps/shell-minigame:
@@ -327,30 +266,15 @@ importers:
       '@coffeeeeffoc/flick-arena':
         specifier: workspace:*
         version: link:../../games/local/flick-arena
-      '@coffeeeeffoc/game-arena':
-        specifier: workspace:*
-        version: link:../../games/local/game-arena
-      '@coffeeeeffoc/game-building-power':
-        specifier: workspace:*
-        version: link:../../games/local/game-building-power
       '@coffeeeeffoc/game-castle-cannon':
         specifier: workspace:*
         version: link:../../games/local/game-castle-cannon
       '@coffeeeeffoc/game-contract':
         specifier: workspace:*
         version: link:../../packages/game-contract
-      '@coffeeeeffoc/game-cricket':
-        specifier: workspace:*
-        version: link:../../games/local/game-cricket
-      '@coffeeeeffoc/game-cultivation':
-        specifier: workspace:*
-        version: link:../../games/local/game-cultivation
       '@coffeeeeffoc/game-moss-garden':
         specifier: workspace:*
         version: link:../../games/local/game-moss-garden
-      '@coffeeeeffoc/game-office':
-        specifier: workspace:*
-        version: link:../../games/local/game-office
       '@coffeeeeffoc/native-game-shell':
         specifier: workspace:*
         version: link:../../packages/native-game-shell
@@ -457,24 +381,12 @@ importers:
       '@coffeeeeffoc/fold-the-world':
         specifier: workspace:*
         version: link:../../games/local/fold-the-world
-      '@coffeeeeffoc/game-arena':
-        specifier: workspace:*
-        version: link:../../games/local/game-arena
-      '@coffeeeeffoc/game-building-power':
-        specifier: workspace:*
-        version: link:../../games/local/game-building-power
       '@coffeeeeffoc/game-castle-cannon':
         specifier: workspace:*
         version: link:../../games/local/game-castle-cannon
       '@coffeeeeffoc/game-contract':
         specifier: workspace:*
         version: link:../../packages/game-contract
-      '@coffeeeeffoc/game-cricket':
-        specifier: workspace:*
-        version: link:../../games/local/game-cricket
-      '@coffeeeeffoc/game-cultivation':
-        specifier: workspace:*
-        version: link:../../games/local/game-cultivation
       '@coffeeeeffoc/game-host':
         specifier: workspace:*
         version: link:../../packages/game-host
@@ -484,9 +396,6 @@ importers:
       '@coffeeeeffoc/game-moss-garden':
         specifier: workspace:*
         version: link:../../games/local/game-moss-garden
-      '@coffeeeeffoc/game-office':
-        specifier: workspace:*
-        version: link:../../games/local/game-office
       '@coffeeeeffoc/ghost-shift-manager':
         specifier: workspace:*
         version: link:../../games/local/ghost-shift-manager
@@ -683,9 +592,6 @@ importers:
       '@coffeeeeffoc/game-contract':
         specifier: workspace:*
         version: link:../../packages/game-contract
-      '@coffeeeeffoc/game-cultivation':
-        specifier: workspace:*
-        version: link:../../games/local/game-cultivation
       '@coffeeeeffoc/game-host':
         specifier: workspace:*
         version: link:../../packages/game-host
@@ -816,7 +722,11 @@ importers:
         specifier: ^1.63.0
         version: 1.63.0
 
-  games/local/echo-lab: {}
+  games/local/echo-lab:
+    devDependencies:
+      esbuild:
+        specifier: 0.28.2
+        version: 0.28.2
 
   games/local/echo-weaver: {}
 
@@ -845,110 +755,6 @@ importers:
       vite:
         specifier: 6.4.4
         version: 6.4.4(@types/node@22.15.30)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.51.2)(tsx@4.19.4)
-
-  games/local/game-arena:
-    dependencies:
-      '@coffeeeeffoc/canvas-game-adapter':
-        specifier: workspace:*
-        version: link:../../../packages/canvas-game-adapter
-      '@coffeeeeffoc/content-schema':
-        specifier: workspace:*
-        version: link:../../../packages/content-schema
-      '@coffeeeeffoc/game-contract':
-        specifier: workspace:*
-        version: link:../../../packages/game-contract
-      '@coffeeeeffoc/react-game-adapter':
-        specifier: workspace:*
-        version: link:../../../packages/react-game-adapter
-      react:
-        specifier: 19.2.8
-        version: 19.2.8
-      react-dom:
-        specifier: 19.2.8
-        version: 19.2.8(react@19.2.8)
-      zod:
-        specifier: 4.1.5
-        version: 4.1.5
-    devDependencies:
-      '@coffeeeeffoc/config-eslint':
-        specifier: workspace:*
-        version: link:../../../packages/config-eslint
-      '@coffeeeeffoc/config-typescript':
-        specifier: workspace:*
-        version: link:../../../packages/config-typescript
-      '@coffeeeeffoc/game-contract-test':
-        specifier: workspace:*
-        version: link:../../../packages/game-contract-test
-      '@coffeeeeffoc/game-host':
-        specifier: workspace:*
-        version: link:../../../packages/game-host
-      '@coffeeeeffoc/vite-smoke-test':
-        specifier: workspace:*
-        version: link:../../../packages/vite-smoke-test
-      '@types/react':
-        specifier: 19.2.14
-        version: 19.2.14
-      '@types/react-dom':
-        specifier: 19.2.3
-        version: 19.2.3(@types/react@19.2.14)
-      '@vitejs/plugin-react':
-        specifier: 6.1.1
-        version: 6.1.1(vite@8.2.4(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13))
-      eslint:
-        specifier: 9.35.0
-        version: 9.35.0(jiti@2.7.0)(supports-color@10.2.2)
-      jsdom:
-        specifier: 26.1.0
-        version: 26.1.0(supports-color@10.2.2)
-      typescript:
-        specifier: 7.0.2
-        version: 7.0.2
-      vite:
-        specifier: 8.2.4
-        version: 8.2.4(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)
-      vitest:
-        specifier: 5.0.0
-        version: 5.0.0(@types/node@24.10.4)(jsdom@26.1.0(supports-color@10.2.2))(vite@8.2.4(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13))
-
-  games/local/game-building-power:
-    dependencies:
-      '@coffeeeeffoc/canvas-game-adapter':
-        specifier: workspace:*
-        version: link:../../../packages/canvas-game-adapter
-      '@coffeeeeffoc/content-schema':
-        specifier: workspace:*
-        version: link:../../../packages/content-schema
-      '@coffeeeeffoc/game-contract':
-        specifier: workspace:*
-        version: link:../../../packages/game-contract
-      '@coffeeeeffoc/game-host':
-        specifier: workspace:*
-        version: link:../../../packages/game-host
-    devDependencies:
-      '@coffeeeeffoc/config-eslint':
-        specifier: workspace:*
-        version: link:../../../packages/config-eslint
-      '@coffeeeeffoc/config-typescript':
-        specifier: workspace:*
-        version: link:../../../packages/config-typescript
-      '@playwright/test':
-        specifier: 1.55.1
-        version: 1.55.1
-      eslint:
-        specifier: 9.35.0
-        version: 9.35.0(jiti@2.7.0)(supports-color@10.2.2)
-      jsdom:
-        specifier: 26.1.0
-        version: 26.1.0(supports-color@10.2.2)
-      typescript:
-        specifier: 7.0.2
-        version: 7.0.2
-      vite:
-        specifier: 8.2.4
-        version: 8.2.4(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)
-      vitest:
-        specifier: 5.0.0
-        version: 5.0.0(@types/node@24.10.4)(jsdom@26.1.0(supports-color@10.2.2))(vite@8.2.4(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13))
 
   games/local/game-castle-cannon:
     dependencies:
@@ -996,140 +802,6 @@ importers:
         specifier: 5.0.0
         version: 5.0.0(@types/node@24.10.4)(jsdom@26.1.0(supports-color@10.2.2))(vite@8.2.4(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13))
 
-  games/local/game-cricket:
-    dependencies:
-      '@coffeeeeffoc/canvas-game-adapter':
-        specifier: workspace:*
-        version: link:../../../packages/canvas-game-adapter
-      '@coffeeeeffoc/content-schema':
-        specifier: workspace:*
-        version: link:../../../packages/content-schema
-      '@coffeeeeffoc/game-contract':
-        specifier: workspace:*
-        version: link:../../../packages/game-contract
-      '@coffeeeeffoc/game-loader':
-        specifier: workspace:*
-        version: link:../../../packages/game-loader
-      '@coffeeeeffoc/react-game-adapter':
-        specifier: workspace:*
-        version: link:../../../packages/react-game-adapter
-      react:
-        specifier: 19.2.8
-        version: 19.2.8
-      react-dom:
-        specifier: 19.2.8
-        version: 19.2.8(react@19.2.8)
-      zod:
-        specifier: 4.1.5
-        version: 4.1.5
-    devDependencies:
-      '@coffeeeeffoc/config-eslint':
-        specifier: workspace:*
-        version: link:../../../packages/config-eslint
-      '@coffeeeeffoc/config-typescript':
-        specifier: workspace:*
-        version: link:../../../packages/config-typescript
-      '@coffeeeeffoc/game-contract-test':
-        specifier: workspace:*
-        version: link:../../../packages/game-contract-test
-      '@coffeeeeffoc/game-host':
-        specifier: workspace:*
-        version: link:../../../packages/game-host
-      '@coffeeeeffoc/vite-smoke-test':
-        specifier: workspace:*
-        version: link:../../../packages/vite-smoke-test
-      '@types/react':
-        specifier: 19.2.14
-        version: 19.2.14
-      '@types/react-dom':
-        specifier: 19.2.3
-        version: 19.2.3(@types/react@19.2.14)
-      '@vitejs/plugin-react':
-        specifier: 6.1.1
-        version: 6.1.1(vite@8.2.4(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13))
-      eslint:
-        specifier: 9.35.0
-        version: 9.35.0(jiti@2.7.0)(supports-color@10.2.2)
-      jsdom:
-        specifier: 26.1.0
-        version: 26.1.0(supports-color@10.2.2)
-      typescript:
-        specifier: 7.0.2
-        version: 7.0.2
-      vite:
-        specifier: 8.2.4
-        version: 8.2.4(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)
-      vitest:
-        specifier: 5.0.0
-        version: 5.0.0(@types/node@24.10.4)(jsdom@26.1.0(supports-color@10.2.2))(vite@8.2.4(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13))
-
-  games/local/game-cultivation:
-    dependencies:
-      '@coffeeeeffoc/canvas-game-adapter':
-        specifier: workspace:*
-        version: link:../../../packages/canvas-game-adapter
-      '@coffeeeeffoc/content-schema':
-        specifier: workspace:*
-        version: link:../../../packages/content-schema
-      '@coffeeeeffoc/game-contract':
-        specifier: workspace:*
-        version: link:../../../packages/game-contract
-      '@coffeeeeffoc/game-loader':
-        specifier: workspace:*
-        version: link:../../../packages/game-loader
-      '@coffeeeeffoc/react-game-adapter':
-        specifier: workspace:*
-        version: link:../../../packages/react-game-adapter
-      react:
-        specifier: 19.2.8
-        version: 19.2.8
-      react-dom:
-        specifier: 19.2.8
-        version: 19.2.8(react@19.2.8)
-      zod:
-        specifier: 4.1.5
-        version: 4.1.5
-    devDependencies:
-      '@coffeeeeffoc/config-eslint':
-        specifier: workspace:*
-        version: link:../../../packages/config-eslint
-      '@coffeeeeffoc/config-typescript':
-        specifier: workspace:*
-        version: link:../../../packages/config-typescript
-      '@coffeeeeffoc/game-contract-test':
-        specifier: workspace:*
-        version: link:../../../packages/game-contract-test
-      '@coffeeeeffoc/game-host':
-        specifier: workspace:*
-        version: link:../../../packages/game-host
-      '@coffeeeeffoc/vite-smoke-test':
-        specifier: workspace:*
-        version: link:../../../packages/vite-smoke-test
-      '@types/react':
-        specifier: 19.2.14
-        version: 19.2.14
-      '@types/react-dom':
-        specifier: 19.2.3
-        version: 19.2.3(@types/react@19.2.14)
-      '@vitejs/plugin-react':
-        specifier: 6.1.1
-        version: 6.1.1(vite@8.2.4(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13))
-      eslint:
-        specifier: 9.35.0
-        version: 9.35.0(jiti@2.7.0)(supports-color@10.2.2)
-      jsdom:
-        specifier: 26.1.0
-        version: 26.1.0(supports-color@10.2.2)
-      typescript:
-        specifier: 7.0.2
-        version: 7.0.2
-      vite:
-        specifier: 8.2.4
-        version: 8.2.4(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)
-      vitest:
-        specifier: 5.0.0
-        version: 5.0.0(@types/node@24.10.4)(jsdom@26.1.0(supports-color@10.2.2))(vite@8.2.4(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13))
-
   games/local/game-moss-garden:
     dependencies:
       '@coffeeeeffoc/canvas-game-adapter':
@@ -1154,70 +826,6 @@ importers:
       vite:
         specifier: 8.2.4
         version: 8.2.4(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)
-
-  games/local/game-office:
-    dependencies:
-      '@coffeeeeffoc/canvas-game-adapter':
-        specifier: workspace:*
-        version: link:../../../packages/canvas-game-adapter
-      '@coffeeeeffoc/content-schema':
-        specifier: workspace:*
-        version: link:../../../packages/content-schema
-      '@coffeeeeffoc/game-contract':
-        specifier: workspace:*
-        version: link:../../../packages/game-contract
-      '@coffeeeeffoc/react-game-adapter':
-        specifier: workspace:*
-        version: link:../../../packages/react-game-adapter
-      react:
-        specifier: 19.2.8
-        version: 19.2.8
-      react-dom:
-        specifier: 19.2.8
-        version: 19.2.8(react@19.2.8)
-      zod:
-        specifier: 4.1.5
-        version: 4.1.5
-    devDependencies:
-      '@coffeeeeffoc/config-eslint':
-        specifier: workspace:*
-        version: link:../../../packages/config-eslint
-      '@coffeeeeffoc/config-typescript':
-        specifier: workspace:*
-        version: link:../../../packages/config-typescript
-      '@coffeeeeffoc/game-contract-test':
-        specifier: workspace:*
-        version: link:../../../packages/game-contract-test
-      '@coffeeeeffoc/game-host':
-        specifier: workspace:*
-        version: link:../../../packages/game-host
-      '@coffeeeeffoc/vite-smoke-test':
-        specifier: workspace:*
-        version: link:../../../packages/vite-smoke-test
-      '@types/react':
-        specifier: 19.2.14
-        version: 19.2.14
-      '@types/react-dom':
-        specifier: 19.2.3
-        version: 19.2.3(@types/react@19.2.14)
-      '@vitejs/plugin-react':
-        specifier: 6.1.1
-        version: 6.1.1(vite@8.2.4(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13))
-      eslint:
-        specifier: 9.35.0
-        version: 9.35.0(jiti@2.7.0)(supports-color@10.2.2)
-      jsdom:
-        specifier: 26.1.0
-        version: 26.1.0(supports-color@10.2.2)
-      typescript:
-        specifier: 7.0.2
-        version: 7.0.2
-      vite:
-        specifier: 8.2.4
-        version: 8.2.4(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)
-      vitest:
-        specifier: 5.0.0
-        version: 5.0.0(@types/node@24.10.4)(jsdom@26.1.0(supports-color@10.2.2))(vite@8.2.4(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13))
 
   games/local/ghost-shift-manager: {}
 
@@ -2443,9 +2051,6 @@ importers:
       '@coffeeeeffoc/game-contract':
         specifier: workspace:*
         version: link:../../packages/game-contract
-      '@coffeeeeffoc/game-cultivation':
-        specifier: workspace:*
-        version: link:../../games/local/game-cultivation
       '@coffeeeeffoc/release-contract':
         specifier: workspace:*
         version: link:../../packages/release-contract

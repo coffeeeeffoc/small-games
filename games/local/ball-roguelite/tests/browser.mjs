@@ -1,316 +1,899 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { readFile, stat, writeFile, mkdir } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
+import { readFile, stat, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { chromium, expect } from '@playwright/test';
-import { createGame, fire, update, brickCenter, FIELD } from '../core.mjs';
+import { createGame, checkpoint, fire, update, brickCenter, FIELD, PHYSICS } from '../core.mjs';
+import { LEVELS } from '../levels.mjs';
 import { STORAGE_KEY } from '../storage.mjs';
 
 const root = fileURLToPath(new URL('../dist/', import.meta.url));
-const evidence = fileURLToPath(new URL('../docs/design/rhythm/', import.meta.url));
+const evidence = fileURLToPath(new URL('../docs/design/prism-carnival/actual/', import.meta.url));
 await mkdir(evidence, { recursive: true });
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
-const server = createServer(async (request, response) => {
+const mime = {
+  '.html': 'text/html',
+  '.js': 'text/javascript',
+  '.mjs': 'text/javascript',
+  '.css': 'text/css',
+  '.png': 'image/png',
+  '.svg': 'image/svg+xml',
+  '.json': 'application/json',
+  '.webp': 'image/webp',
+};
+const server = createServer(async (req, res) => {
   try {
-    const url = new URL(request.url, 'http://localhost');
-    if (url.pathname === '/iframe') { response.writeHead(200, { 'Content-Type': 'text/html' }).end('<meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0}iframe{border:0;width:100vw;height:100dvh}</style><iframe allow="fullscreen; autoplay" src="/index.html?dev=0"></iframe>'); return; }
-    let file = path.resolve(root, '.' + decodeURIComponent(url.pathname));
-    const relative = path.relative(root, file);
-    assert(!relative.startsWith('..') && !path.isAbsolute(relative));
-    if ((await stat(file)).isDirectory()) file = path.join(file, 'index.html');
-    response.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream' }); response.end(await readFile(file));
-  } catch { response.writeHead(404).end(); }
+    const url = new URL(req.url, 'http://localhost');
+    if (url.pathname === '/favicon.ico') {
+      res.writeHead(204).end();
+      return;
+    }
+    if (url.pathname === '/iframe') {
+      res
+        .writeHead(200, { 'Content-Type': 'text/html' })
+        .end(
+          '<link rel="icon" href="/favicon.svg"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0}iframe{border:0;width:100vw;height:100dvh}</style><iframe allow="fullscreen; autoplay" src="/index.html?dev=0"></iframe>',
+        );
+      return;
+    }
+    const file = path.resolve(root, '.' + decodeURIComponent(url.pathname));
+    assert(!path.relative(root, file).startsWith('..'));
+    const target = (await stat(file)).isDirectory() ? path.join(file, 'index.html') : file;
+    res
+      .writeHead(200, { 'Content-Type': mime[path.extname(target)] || 'application/octet-stream' })
+      .end(await readFile(target));
+  } catch {
+    res.writeHead(404).end();
+  }
 });
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 const origin = `http://127.0.0.1:${server.address().port}`;
-const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || '/usr/bin/chromium' });
-const report = { browser: browser.version(), environment: `${process.platform} Chromium mobile touch emulation`, checks: [], errors: [], passed: false };
-function monitor(page) { page.on('pageerror', (error) => report.errors.push(error.message)); page.on('response', (response) => { if (response.url().startsWith(origin) && response.status() >= 400) report.errors.push(`${response.status()}: ${response.url()}`); }); }
-async function inspectRendering(context) {
-  // Observe the real browser APIs, without adding debug controls to the game.
-  await context.addInitScript(() => {
-    window.__audioContexts = [];
-    const Audio = window.AudioContext || window.webkitAudioContext;
-    if (Audio) window.AudioContext = class extends Audio { constructor(...args) { super(...args); window.__audioContexts.push(this); } };
-    window.__ballDraws = [];
-    const prototype = CanvasRenderingContext2D.prototype;
-    const drawImage = prototype.drawImage, silhouettes = new WeakMap();
-    prototype.drawImage = function (source, ...args) {
-      if (this.canvas.id === 'arena' && source.getContext && args.length === 4) {
-        let silhouette = silhouettes.get(source);
-        if (!silhouette) {
-          const { data } = source.getContext('2d').getImageData(0, 0, source.width, source.height);
-          let left = source.width, right = -1, top = source.height, bottom = -1, area = 0;
-          for (let y = 0; y < source.height; y++) for (let x = 0; x < source.width; x++) {
-            if (data[(y * source.width + x) * 4 + 3] < 200) continue;
-            left = Math.min(left, x); right = Math.max(right, x); top = Math.min(top, y); bottom = Math.max(bottom, y); area++;
-          }
-          silhouette = { width: right - left + 1, height: bottom - top + 1, area };
-          silhouettes.set(source, silhouette);
-        }
-        const m = this.getTransform();
-        window.__ballDraws.push({ ...silhouette, scaleX: Math.hypot(m.a, m.b) * args[2] / source.width, scaleY: Math.hypot(m.c, m.d) * args[3] / source.height, skew: m.a * m.c + m.b * m.d });
-        if (window.__ballDraws.length > 200) window.__ballDraws.shift();
-      }
-      return drawImage.call(this, source, ...args);
-    };
-  });
-}
-const audioState = (page) => page.evaluate(() => window.__audioContexts.at(-1)?.state || 'unavailable');
-async function tapTargets(page, selectors, label, scroll = false) {
-  for (const selector of selectors) {
-    const target = page.locator(selector);
-    if (scroll) await target.scrollIntoViewIfNeeded();
-    const box = await target.boundingBox();
-    const viewport = page.viewportSize();
-    assert(box && box.width >= 43.5 && box.height >= 43.5, `${label}: ${selector} has a 44px touch target`);
-    assert(box.x >= -0.5 && box.y >= -0.5 && box.x + box.width <= viewport.width + 0.5 && box.y + box.height <= viewport.height + 0.5, `${label}: ${selector} stays within the viewport`);
-    assert.equal(await target.evaluate((button) => { const b = button.getBoundingClientRect(); return button.contains(document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2)); }), true, `${label}: ${selector} is unobstructed`);
-  }
-}
-async function roundBalls(page) {
-  const shape = await page.locator('#arena').evaluate((canvas) => {
-    const b = canvas.getBoundingClientRect();
-    return { cssScaleX: b.width / 390, cssScaleY: b.height / 620, circles: window.__ballDraws };
-  });
-  assert(Math.abs(shape.cssScaleX / shape.cssScaleY - 1) < 0.005, 'the canvas keeps circular objects round at the displayed size');
-  assert(shape.circles.length > 0, 'visible balls are rendered');
-  assert(shape.circles.every((circle) => Math.abs(circle.width / circle.height - 1) < 0.05 && circle.area / (circle.width * circle.height) > 0.68 && circle.area / (circle.width * circle.height) < 0.88), 'the actual ball sprite pixels form a round silhouette');
-  assert(shape.circles.every((circle) => Math.abs(circle.scaleX / circle.scaleY - 1) < 0.005 && Math.abs(circle.skew) < 0.005), 'ball bodies remain circles during launch and impact effects');
-}
-const snapshot = (page) => page.locator('#arena').evaluate((canvas) => canvas.getOrbitSnapshot());
-const runState = (state) => Object.fromEntries(['phase', 'levelId', 'turn', 'score', 'count', 'damage', 'cards', 'shots', 'waveIndex', 'launchX', 'upgrades', 'bricks'].map((key) => [key, state[key]]));
-async function chooseCard(page) {
-  const state = await snapshot(page);
-  const preferred = ['power', 'extra', 'pierce', 'chain', 'blast', 'critical'].find((id) => state.cards.includes(id));
-  await page.locator(`[data-upgrade="${preferred}"]`).tap();
-}
-const shot = async (page, touch, dx, dy, cancel = false) => {
-  const state = await snapshot(page), bounds = await page.locator('#arena').boundingBox();
-  const map = (x, y) => ({ x: bounds.x + x * bounds.width / 390, y: bounds.y + y * bounds.height / 620 });
-  const start = map(state.launchX, FIELD.floor - FIELD.radius - 1);
-  const amount = Math.min(1, 450 / Math.abs(dy || 1));
-  const target = map(Math.max(12, Math.min(378, state.launchX + dx * amount)), Math.max(45, FIELD.floor - FIELD.radius - 1 + dy * amount));
-  await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [start] });
-  await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [target] });
-  if (cancel) await touch.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
-  else await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+const browser = await chromium.launch({
+  channel: 'chromium',
+  executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || process.env.CHROMIUM_PATH,
+});
+const report = {
+  environment:
+    'Linux Chromium mobile touch emulation, production dist; not physical-device validation',
+  fixtures:
+    'Explicit saved-board fixtures test rare states; ad callbacks use a declared local SDK fixture, never a real advertising SDK.',
+  browser: browser.version(),
+  checks: [],
+  errors: [],
+  passed: false,
 };
-function planShot(state) {
-  const game = createGame(state.levelId);
-  for (const key of ['turn', 'score', 'count', 'damage', 'seed', 'nextId', 'waveIndex', 'launchX', 'upgrades', 'bricks']) game[key] = structuredClone(state[key]);
-  let best;
-  // Real touch aim stays inside the board; simulate only those actual coordinates.
-  const targets = game.bricks.filter((b) => b.kind !== 'pickup').map(brickCenter);
-  const candidates = [...targets, ...Array.from({ length: 17 }, (_, i) => ({ x: 27 + i * 21, y: 75 + (i % 3) * 80 }))];
-  for (const point of candidates) {
-    const direction = { x: point.x - game.launchX, y: point.y - FIELD.floor + FIELD.radius + 1 };
-    const trial = structuredClone(game); fire(trial, direction.x, direction.y);
-    for (let i = 0; trial.phase === 'flight' && i < 16 * 30; i++) update(trial, 1 / 30);
-    const danger = trial.bricks.filter((b) => b.hp > 0 && b.kind !== 'pickup').reduce((sum, b) => sum + b.hp * (1 + b.r * b.r), 0);
-    const value = trial.phase === 'won' ? 1e9 : trial.phase === 'lost' ? -1e9 : trial.score * 100 - danger + trial.count * 25;
-    if (!best || value > best.value) best = { value, direction };
+let active;
+const snap = (page) => page.locator('#arena').evaluate((element) => element.getOrbitSnapshot());
+const saved = (page) => page.evaluate((key) => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
+const busy = (phase) => ['flight', 'recall'].includes(phase);
+const screenIs = (page, name) => expect(page.locator('body')).toHaveAttribute('data-screen', name);
+const settle = (page) =>
+  expect.poll(async () => busy((await snap(page)).phase), { timeout: 27000 }).toBe(false);
+const identity = (state) =>
+  Object.fromEntries(
+    [
+      'levelId',
+      'initialSeed',
+      'seed',
+      'turn',
+      'shots',
+      'score',
+      'count',
+      'damage',
+      'waveIndex',
+      'upgrades',
+      'rewards',
+    ].map((key) => [key, state[key]]),
+  );
+const simulation = (state) => ({
+  ...identity(state),
+  phase: state.phase,
+  flight: state.flight,
+  elapsed: state.elapsed,
+  emitted: state.emitted,
+  volley: state.volley,
+  absorbed: state.absorbed,
+  balls: state.balls,
+  bricks: state.bricks,
+  cards: state.cards,
+  launchX: state.launchX,
+});
+async function frozen(page, name) {
+  await screenIs(page, name);
+  const before = await snap(page);
+  await page.waitForTimeout(160);
+  assert.deepEqual(
+    simulation(await snap(page)),
+    simulation(before),
+    `${name} must freeze the authoritative simulation`,
+  );
+  return before;
+}
+async function noFullscreen(page) {
+  await expect(
+    page.locator('[data-game-fullscreen], #home-fullscreen, #pause-fullscreen'),
+  ).toHaveCount(0);
+}
+async function centered(page) {
+  const box = await page.locator('#choice-panel').boundingBox();
+  const stage = await page.locator('#GameDiv').boundingBox();
+  assert(box && stage, 'dialog has measurable geometry');
+  assert(
+    Math.abs(box.x + box.width / 2 - stage.x - stage.width / 2) < 2,
+    'dialog horizontally centered',
+  );
+  assert(
+    Math.abs(box.y + box.height / 2 - stage.y - stage.height / 2) < 2,
+    'dialog vertically centered',
+  );
+  assert(box.height < stage.height * 0.88, 'dialog leaves surrounding scene visible');
+  assert(
+    box.y > stage.y && box.y + box.height < stage.y + stage.height,
+    'dialog is inside the stage',
+  );
+}
+async function shot(page, dx, dy, cancel = false) {
+  const state = await snap(page),
+    box = await page.locator('#arena').boundingBox();
+  assert.equal(state.phase, 'aim', 'only aim may launch a real gesture');
+  const baseY = FIELD.floor - FIELD.radius - 1;
+  const scale = Math.min(
+    1,
+    dx < 0
+      ? (state.launchX - FIELD.left - 3) / -dx
+      : dx > 0
+        ? (FIELD.right - 3 - state.launchX) / dx
+        : 1,
+    dy < 0 ? (baseY - FIELD.top - 3) / -dy : 1,
+  );
+  assert(scale > 0 && dy * scale < -6, 'planned direction remains valid within the touch board');
+  const map = (x, y) => ({ x: box.x + (x * box.width) / 390, y: box.y + (y * box.height) / 620 });
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await cdp.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [map(state.launchX, baseY)],
+    });
+    await cdp.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [map(state.launchX + dx * scale, baseY + dy * scale)],
+    });
+    await cdp.send('Input.dispatchTouchEvent', {
+      type: cancel ? 'touchCancel' : 'touchEnd',
+      touchPoints: [],
+    });
+  } finally {
+    await cdp.detach();
   }
+}
+async function capture(page, name) {
+  await page.screenshot({ path: path.join(evidence, `${name}.png`) });
+}
+async function targets(page, selector) {
+  for (const element of await page.locator(selector).all()) {
+    if (!(await element.isVisible())) continue;
+    const box = await element.boundingBox(),
+      viewport = page.viewportSize();
+    const id = await element.getAttribute('id');
+    assert(box.width >= 43.5 && box.height >= 43.5, `44px ${id} ${JSON.stringify(box)}`);
+    assert(
+      box.x >= -0.5 &&
+        box.y >= -0.5 &&
+        box.x + box.width <= viewport.width + 0.5 &&
+        box.y + box.height <= viewport.height + 0.5,
+      `inbounds ${id}`,
+    );
+    assert(
+      await element.evaluate((el) => {
+        const rect = el.getBoundingClientRect();
+        return el.contains(
+          document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2),
+        );
+      }),
+      `not obscured ${id}`,
+    );
+  }
+}
+function data(run = null) {
+  return {
+    schemaVersion: 2,
+    completed: {},
+    bestEndless: 0,
+    lastLevel: 'stardust',
+    lastMode: run?.levelId === 'endless' ? 'endless' : 'campaign',
+    sound: true,
+    haptics: false,
+    runs: {
+      campaign: run && run.levelId !== 'endless' ? checkpoint(run) : null,
+      endless: run?.levelId === 'endless' ? checkpoint(run) : null,
+    },
+  };
+}
+async function open({
+  run = null,
+  storage = null,
+  viewport = { width: 390, height: 844 },
+  ads = false,
+  query = '',
+  blocked = false,
+} = {}) {
+  if (active) await active.close();
+  active = await browser.newContext({
+    viewport,
+    isMobile: true,
+    hasTouch: true,
+    deviceScaleFactor: 2,
+  });
+  await active.addInitScript(
+    ({ initial, key, ads, blocked }) => {
+      if (blocked)
+        Object.defineProperty(window, 'localStorage', {
+          get() {
+            throw new Error('storage blocked');
+          },
+        });
+      else if (initial && !sessionStorage.getItem('orbit-fixture')) {
+        localStorage.setItem(key, JSON.stringify(initial));
+        sessionStorage.setItem('orbit-fixture', '1');
+      }
+      window.__contexts = [];
+      const Original = window.AudioContext;
+      if (Original)
+        window.AudioContext = class extends Original {
+          constructor(...args) {
+            super(...args);
+            window.__contexts.push(this);
+          }
+        };
+      window.__adRequests = 0;
+      if (ads)
+        window.SmallGamesPublishingConfig = {
+          adMode: 'host',
+          provider: {
+            show: () =>
+              new Promise((resolve) => {
+                window.__adRequests++;
+                window.__finishAd = resolve;
+              }),
+            cancel() {},
+          },
+        };
+    },
+    { initial: storage || (run ? data(run) : null), key: STORAGE_KEY, ads, blocked },
+  );
+  const page = await active.newPage();
+  page.setDefaultTimeout(15000);
+  page.on('pageerror', (error) => report.errors.push(error.message));
+  page.on('console', (message) => {
+    if (
+      message.type() === 'error' &&
+      !message.text().startsWith('Ignored attempt to cancel a touchcancel event')
+    )
+      report.errors.push(message.text());
+  });
+  page.on('response', (response) => {
+    if (response.url().startsWith(origin) && response.status() >= 400)
+      report.errors.push(`${response.status()} ${response.url()}`);
+  });
+  await page.goto(origin + query);
+  await expect(page.locator('#start')).toBeVisible();
+  await noFullscreen(page);
+  return page;
+}
+async function leave(page, trigger = '#back-home') {
+  await page.locator(trigger).tap();
+  await screenIs(page, 'confirm');
+  await page.locator('#confirm-accept').tap();
+  await expect(page.locator('#start')).toBeVisible();
+}
+async function requestAd(page, button, result) {
+  const previous = await page.evaluate(() => window.__adRequests);
+  await page.locator(button).tap();
+  await expect.poll(() => page.evaluate(() => window.__adRequests)).toBe(previous + 1);
+  await page.evaluate((status) => window.__finishAd({ status }), result);
+}
+// Same independent trajectory search as the rules regression: no live rule/board mutation.
+function plan(state) {
+  const game = createGame(state.levelId, {
+    seed: state.initialSeed || state.seed,
+    practice: state.practice,
+    challenge: state.challenge,
+  });
+  for (const key of [
+    'turn',
+    'score',
+    'count',
+    'damage',
+    'seed',
+    'initialSeed',
+    'nextId',
+    'waveIndex',
+    'launchX',
+    'upgrades',
+    'bricks',
+    'rewards',
+    'elapsed',
+    'bestCombo',
+    'shots',
+    'cards',
+  ])
+    if (state[key] !== undefined) game[key] = structuredClone(state[key]);
+  const angles = Array.from(
+    { length: 25 },
+    (_, index) => -Math.PI + PHYSICS.minAngle + (index * (Math.PI - 2 * PHYSICS.minAngle)) / 24,
+  );
+  const directions = [
+    ...angles.map((angle) => ({ x: Math.cos(angle) * 500, y: Math.sin(angle) * 500 })),
+    ...game.bricks
+      .filter((brick) => brick.hp > 0 && brick.kind !== 'pickup')
+      .map(brickCenter)
+      .map((point) => ({ x: point.x - game.launchX, y: point.y - FIELD.floor + FIELD.radius + 1 })),
+  ];
+  let best;
+  for (const direction of directions) {
+    const scale = Math.min(
+      1,
+      direction.x < 0
+        ? (game.launchX - FIELD.left - 3) / -direction.x
+        : direction.x > 0
+          ? (FIELD.right - 3 - game.launchX) / direction.x
+          : 1,
+    );
+    if (direction.y * scale >= -6) continue;
+    const trial = structuredClone(game);
+    trial.events = [];
+    if (!fire(trial, direction.x, direction.y)) continue;
+    for (let frame = 0; busy(trial.phase) && frame < 60 * 27; frame++) update(trial, 1 / 60);
+    assert(!busy(trial.phase), 'candidate trajectory respects the flight/return deadline');
+    const danger = trial.bricks
+      .filter((brick) => brick.hp > 0 && brick.kind !== 'pickup')
+      .reduce((sum, brick) => sum + brick.hp * (1 + brick.r * brick.r), 0);
+    const value =
+      trial.phase === 'lost'
+        ? -1e9
+        : trial.phase === 'won'
+          ? 1e9
+          : trial.score * 100 - danger + trial.count * 25;
+    if (!best || value > best.value) best = { direction, value };
+  }
+  assert(best, 'a real touch-accessible aim exists');
   return best.direction;
 }
-async function capture(page, name) { await page.screenshot({ path: path.join(evidence, `${name}.png`) }); }
+
 try {
-  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
-  await inspectRendering(context);
-  const page = await context.newPage(); monitor(page); const touch = await context.newCDPSession(page);
-  await page.goto(origin); await expect(page.locator('#start')).toBeVisible();
-  await expect(page.locator('#levels-button')).toContainText('关卡模式'); await expect(page.locator('#endless-button')).toContainText('无尽模式');
-  await expect(page.locator('#start')).toContainText('关卡模式');
-  await tapTargets(page, ['#start', '#levels-button', '#endless-button'], '390x844 home');
-  assert.equal(await page.evaluate(() => window.__orbit), undefined); await capture(page, 'mobile-home');
-  await page.locator('#levels-button').tap(); await expect(page.locator('.level-card:enabled')).toHaveCount(1); await expect(page.locator('.level-card:disabled')).toHaveCount(5); await capture(page, 'mobile-levels');
-  await page.locator('[data-level="stardust"]').tap();
-  await expect(page.locator('#level-name')).toContainText('关卡模式');
-  await tapTargets(page, ['#pause', '#recall'], '390x844 playing');
-  const pauseBars = await page.locator('#pause rect').evaluateAll((bars) => bars.map((bar) => { const b = bar.getBoundingClientRect(); return { x: b.x, y: b.y, width: b.width, height: b.height }; }));
-  assert.equal(pauseBars.length, 2); assert.equal(pauseBars[0].width, pauseBars[1].width); assert.equal(pauseBars[0].height, pauseBars[1].height); assert.equal(pauseBars[0].y, pauseBars[1].y); assert(pauseBars[1].x > pauseBars[0].x + pauseBars[0].width);
-  const before = await snapshot(page); await shot(page, touch, -50, -430, true);
-  assert.equal((await snapshot(page)).shots, before.shots); assert.equal((await snapshot(page)).aiming, false);
-  report.checks.push('explicit campaign and endless home entries / 390x844 touch targets / real two-bar pause icon / unlock-gated levels / cancelled touch');
-  const bounds = await page.locator('#arena').boundingBox();
-  await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: bounds.x + bounds.width * .5, y: bounds.y + bounds.height * .93 }] });
-  await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: bounds.x + bounds.width * .28, y: bounds.y + bounds.height * .3 }] });
-  await capture(page, 'mobile-aim'); await touch.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
-  await shot(page, touch, -60, -420); await page.waitForTimeout(330); await roundBalls(page); await capture(page, 'mobile-rhythm-volley');
-  await expect.poll(async () => (await snapshot(page)).score).toBeGreaterThan(0);
-  await roundBalls(page); await capture(page, 'mobile-impact');
-  await page.locator('#pause').tap(); await expect(page.locator('#paused')).toBeVisible(); const paused = await snapshot(page); await page.waitForTimeout(150);
-  assert.deepEqual((await snapshot(page)).balls, paused.balls); await capture(page, 'mobile-paused');
-  await expect.poll(() => audioState(page)).toBe('suspended');
-  await page.locator('#paused [data-action="sound"]').tap(); await expect(page.locator('#paused [data-action="sound"]')).toHaveAttribute('aria-pressed', 'false');
-  await page.locator('#resume').tap(); await expect.poll(() => audioState(page)).toBe('suspended');
-  await page.locator('#pause').tap(); await page.locator('#paused [data-action="sound"]').tap(); await page.locator('#resume').tap();
-  await expect.poll(() => audioState(page)).toBe('running'); await page.locator('#pause').tap(); await expect.poll(() => audioState(page)).toBe('suspended');
-  await page.locator('#pause-help').tap(); await expect(page.locator('#help')).toBeVisible(); await page.locator('#help-back').tap(); await expect(page.locator('#paused')).toBeVisible();
-  await page.locator('#back-home').tap(); await page.reload(); await page.locator('#start').tap();
-  assert.equal((await snapshot(page)).turn, 0); assert.equal((await snapshot(page)).phase, 'aim');
-  report.checks.push('round ball body under real canvas transforms / in-flight pause freezes positions / sound off remains suspended on resume / sound on resumes / help return / reload restores pre-shot checkpoint');
-  let upgradeSeen = false, independentModesChecked = false;
-  for (let round = 0; round < 20; round++) {
-    if (await page.locator('#result').isVisible()) break;
-    if (await page.locator('#upgrade').isVisible()) {
-      upgradeSeen = true; await capture(page, 'mobile-upgrade');
-      if (!independentModesChecked) {
-        const campaignPending = runState(await snapshot(page));
-        await page.locator('#upgrade-home').tap(); await page.locator('#endless-button').tap();
-        await expect(page.locator('#level-name')).toHaveText('无尽模式');
-        for (let turn = 0; turn < 3; turn++) { await shot(page, touch, 0, -400); await page.locator('#recall').tap(); }
-        await expect(page.locator('#upgrade')).toBeVisible();
-        const endlessPending = runState(await snapshot(page));
-        assert.equal(endlessPending.levelId, 'endless'); assert.equal(endlessPending.turn, 3);
-        await page.locator('#upgrade-home').tap(); await capture(page, 'mobile-two-saved-modes'); await page.reload();
-        await expect(page.locator('#start')).toContainText('继续无尽模式');
-        await page.locator('#levels-button').tap(); await page.locator('#campaign-continue').tap();
-        assert.deepEqual(runState(await snapshot(page)), campaignPending, 'campaign pending upgrade survives playing and reloading endless');
-        await chooseCard(page); const campaignUpgraded = runState(await snapshot(page));
-        assert(Object.values(campaignUpgraded.upgrades).some((count) => count > 0));
-        await page.locator('#pause').tap(); await page.locator('#back-home').tap(); await page.locator('#endless-button').tap();
-        assert.deepEqual(runState(await snapshot(page)), endlessPending, 'endless resumes its own pending upgrade after campaign play');
-        await chooseCard(page); const endlessUpgraded = runState(await snapshot(page));
-        await page.locator('#pause').tap(); await page.locator('#back-home').tap(); await page.reload();
-        await page.locator('#levels-button').tap(); await page.locator('#campaign-continue').tap();
-        assert.deepEqual(runState(await snapshot(page)), campaignUpgraded, 'selected campaign upgrade and board survive reload');
-        await page.locator('#pause').tap(); await page.locator('#back-home').tap(); await page.locator('#endless-button').tap();
-        assert.deepEqual(runState(await snapshot(page)), endlessUpgraded, 'selected endless upgrade and board survive reload');
-        await capture(page, 'mobile-endless');
-        for (let turn = 0; turn < 14; turn++) {
-          if (await page.locator('#result').isVisible()) break;
-          if (await page.locator('#upgrade').isVisible()) await chooseCard(page);
-          await shot(page, touch, 0, -400); await page.locator('#recall').tap();
-        }
-        await expect(page.locator('#result-title')).toHaveText('航行结束'); await expect(page.locator('#result-kicker')).toContainText('无尽模式');
-        await capture(page, 'mobile-endless-result');
-        await page.locator('#retry').tap(); assert.equal((await snapshot(page)).turn, 0); assert.equal((await snapshot(page)).levelId, 'endless');
-        await page.locator('#pause').tap(); await page.locator('#back-home').tap(); await page.reload();
-        await page.locator('#levels-button').tap(); await page.locator('#campaign-continue').tap();
-        assert.deepEqual(runState(await snapshot(page)), campaignUpgraded, 'finishing and retrying endless preserves the complete campaign run');
-        independentModesChecked = true;
-        report.checks.push('independent campaign / endless boards, pending upgrade choices and selected upgrades survive mode switching and reload / endless loss and retry preserve campaign');
-      } else await chooseCard(page);
-    }
-    const state = await snapshot(page), direction = planShot(state);
-    await shot(page, touch, direction.x, direction.y);
-    await expect.poll(async () => (await snapshot(page)).phase, { timeout: 18000 }).not.toBe('flight');
-  }
-  await expect(page.locator('#result-title')).toHaveText('星域已点亮'); await capture(page, 'mobile-victory');
-  await page.evaluate(() => {
-    Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
-    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (text) => { window.__sharedUrl = text; } } });
+  let page = await open({ run: createGame('stardust', { seed: 20261006 }) });
+  await targets(page, '#home button');
+  await capture(page, 'home-390');
+  assert.equal(await page.locator('body').getAttribute('data-engine'), 'cocos-3.8.8');
+  assert.equal(await page.evaluate(() => document.querySelector('canvas').getContext('2d')), null);
+  const engine = await page.evaluate(async () => {
+    const { cc } = await import('/vendor/cocos/bootstrap.mjs');
+    return {
+      version: cc.VERSION,
+      sprites: cc.director.getScene().getComponentsInChildren(cc.Sprite).length,
+      labels: cc.director.getScene().getComponentsInChildren(cc.Label).length,
+    };
   });
-  await page.locator('#share-orbit').tap();
-  await expect(page.locator('#share-status')).toHaveText('同场挑战链接已复制');
-  const shared = new URL(await page.evaluate(() => window.__sharedUrl));
-  assert.equal(shared.searchParams.get('challenge'), 'orbit-v1');
-  assert.equal(Number(shared.searchParams.get('targetScore')), (await snapshot(page)).score);
-  assert.equal(Number(shared.searchParams.get('seed')), (await snapshot(page)).initialSeed);
-  assert.equal(shared.searchParams.has('dev'), false);
-  await page.screenshot({ path: path.join(evidence, '../publishing/mobile-result-share.png') });
-  assert.equal(upgradeSeen, true); assert.equal(independentModesChecked, true); await page.locator('#next').tap(); assert.equal((await snapshot(page)).levelId, 'prism');
-  await page.locator('#pause').tap(); await page.locator('#back-home').tap(); await page.locator('#levels-button').tap();
-  await expect(page.locator('.level-card:enabled')).toHaveCount(2); await page.locator('[data-action="home"]').filter({ visible: true }).tap();
-  report.checks.push('natural first-level victory / genuine three-card upgrade / next level unlock and saved progression');
-  await page.locator('[data-game-fullscreen]').filter({ visible: true }).tap();
-  await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(true);
-  await page.locator('[data-game-fullscreen]').filter({ visible: true }).tap(); await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(false);
-  await page.setViewportSize({ width: 844, height: 390 }); await tapTargets(page, ['#start', '#levels-button', '#endless-button'], '844x390 home'); await capture(page, 'landscape-home');
-  await page.setViewportSize({ width: 320, height: 568 }); await tapTargets(page, ['#start', '#levels-button', '#endless-button'], '320x568 home'); await capture(page, 'small-home');
-  await page.locator('#start').tap(); const resizeBefore = await snapshot(page);
-  await tapTargets(page, ['#pause', '#recall'], '320x568 playing');
-  await page.setViewportSize({ width: 844, height: 390 }); await tapTargets(page, ['#pause', '#recall'], '844x390 playing'); await capture(page, 'mobile-landscape'); assert.equal((await snapshot(page)).turn, resizeBefore.turn);
-  await shot(page, touch, 30, -400); assert.equal((await snapshot(page)).shots, resizeBefore.shots + 1);
-  await page.locator('#pause').tap(); await page.setViewportSize({ width: 320, height: 568 }); await page.locator('#resume').tap(); await capture(page, 'mobile-small');
-  await roundBalls(page);
-  await page.evaluate(() => window.dispatchEvent(new Event('blur'))); await expect(page.locator('#paused')).toBeVisible();
-  report.checks.push('enter / exit full screen / resize without reset / landscape touch mapping / 320x568 / blur pause');
-  await touch.detach(); await context.close();
+  assert.equal(engine.version, '3.8.8');
+  assert(engine.sprites > 5 && engine.labels > 5);
+  await page.locator('#settings-button').tap();
+  await centered(page);
+  await targets(page, '#settings button');
+  await expect(page.locator('#settings-sound')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#settings-haptics')).toHaveAttribute('aria-pressed', 'false');
+  await page.locator('#settings-haptics').tap();
+  await expect(page.locator('#settings-haptics')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('#settings-help').tap();
+  await centered(page);
+  await capture(page, 'help-390');
+  await page.locator('#help-back').tap();
+  await screenIs(page, 'settings');
+  await page.locator('#settings-close').tap();
+  await screenIs(page, 'home');
+  assert.equal((await saved(page)).haptics, true);
+  await page.locator('#levels-button').tap();
+  await expect(page.locator('.level-card')).toHaveCount(4);
+  await expect(page.locator('.level-card:disabled')).toHaveCount(3);
+  await expect(page.locator('#levels-page')).toHaveText('1 / 2');
+  await targets(page, '#levels button');
+  await capture(page, 'levels-390');
+  const firstPage = await page
+    .locator('.level-card')
+    .evaluateAll((cards) => cards.map((card) => card.dataset.level));
+  await page.locator('#levels-next').tap();
+  await expect(page.locator('.level-card')).toHaveCount(4);
+  await expect(page.locator('.level-card:disabled')).toHaveCount(4);
+  await expect(page.locator('#levels-next')).toBeDisabled();
+  const secondPage = await page
+    .locator('.level-card')
+    .evaluateAll((cards) => cards.map((card) => card.dataset.level));
+  assert.deepEqual(
+    [...firstPage, ...secondPage],
+    LEVELS.map((level) => level.id),
+  );
+  assert.equal(new Set([...firstPage, ...secondPage]).size, 8);
+  await capture(page, 'levels-page2-390');
+  await page.locator('#settings-button').tap();
+  await page.locator('#settings-close').tap();
+  await expect(page.locator('#levels-page')).toHaveText('2 / 2');
+  await page.locator('#levels-prev').tap();
+  await page.locator('[data-level="stardust"]').tap();
+  await targets(page, '#playing button');
+  await capture(page, 'play-390');
+  const before = await snap(page);
+  await shot(page, -65, -410, true);
+  assert.equal((await snap(page)).shots, before.shots);
+  assert.equal((await snap(page)).aiming, false);
+  await shot(page, -65, -410);
+  await expect.poll(async () => (await snap(page)).collisionCount).toBeGreaterThan(0);
+  await capture(page, 'impact-390');
+  await page.locator('#settings-button').tap();
+  const inSettings = await frozen(page, 'settings');
+  await centered(page);
+  await expect.poll(() => page.evaluate(() => window.__contexts.at(-1)?.state)).toBe('suspended');
+  await page.locator('#settings-sound').tap();
+  await expect(page.locator('#settings-sound')).toHaveAttribute('aria-pressed', 'false');
+  await page.locator('#settings-help').tap();
+  await frozen(page, 'help');
+  await page.locator('#help-back').tap();
+  assert.deepEqual(simulation(await snap(page)), simulation(inSettings));
+  await capture(page, 'settings-390');
+  await page.locator('#settings-close').tap();
+  await screenIs(page, 'playing');
+  await expect.poll(() => page.evaluate(() => window.__contexts.at(-1)?.state)).toBe('suspended');
+  await page.locator('#pause').tap();
+  await frozen(page, 'paused');
+  await centered(page);
+  await targets(page, '#paused button');
+  await noFullscreen(page);
+  await capture(page, 'paused-390');
+  await page.locator('#resume').tap();
+  await screenIs(page, 'playing');
+  await expect.poll(() => page.evaluate(() => window.__contexts.at(-1)?.state)).toBe('suspended');
+  await page.locator('#back-home').tap();
+  const confirmation = await frozen(page, 'confirm');
+  await centered(page);
+  await capture(page, 'leave-confirm-390');
+  await page.locator('#confirm-cancel').tap();
+  await screenIs(page, 'playing');
+  const continued = await snap(page);
+  assert.equal(continued.initialSeed, confirmation.initialSeed);
+  assert.equal(continued.shots, confirmation.shots);
+  assert.equal(continued.levelId, confirmation.levelId);
+  await leave(page);
+  const savedTurn = (await saved(page)).runs.campaign.turn;
+  await page.reload();
+  await page.locator('#settings-button').tap();
+  await expect(page.locator('#settings-sound')).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.locator('#settings-haptics')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('#settings-close').tap();
+  await page.locator('#start').tap();
+  assert.equal((await snap(page)).phase, 'aim');
+  assert.equal((await snap(page)).turn, savedTurn);
+  report.checks.push(
+    'real Cocos WebGL Sprite/Label scene; eight levels in two locked pages; cancelled touch; global settings/help back paths; settings/pause/confirmation freeze; mute survives resume/reload; pre-volley checkpoint; no fullscreen controls',
+  );
 
-  const embedded = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
-  const host = await embedded.newPage(); monitor(host); await host.goto(`${origin}/iframe`);
-  const frame = await host.locator('iframe').contentFrame();
-  await frame.locator('#start').tap();
-  await expect(frame.locator('body')).toHaveAttribute('data-screen', 'playing');
-  const embeddedTouch = await embedded.newCDPSession(host);
-  await shot(frame, embeddedTouch, -60, -430);
-  await expect.poll(async () => (await snapshot(frame)).shots).toBe(1);
-  await frame.locator('#pause').tap(); await expect(frame.locator('#paused')).toBeVisible();
-  await frame.locator('#back-home').tap(); await expect(frame.locator('#start')).toBeVisible();
-  await capture(host, 'iframe-home'); await embeddedTouch.detach();
-  report.checks.push('production same-origin iframe actual-touch play / pause / home'); await embedded.close();
-
-  const reduced = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' });
-  await inspectRendering(reduced);
-  const calm = await reduced.newPage(); monitor(calm); const calmTouch = await reduced.newCDPSession(calm);
-  await calm.goto(origin); await expect(calm.locator('#start')).toBeVisible(); await calm.waitForTimeout(100);
-  const stillHero = await calm.locator('#hero').evaluate((canvas) => canvas.toDataURL());
-  await calm.waitForTimeout(250);
-  assert.equal(await calm.locator('#hero').evaluate((canvas) => canvas.toDataURL()), stillHero, 'reduced-motion home animation stays still');
-  await calm.locator('#start').tap(); await shot(calm, calmTouch, -60, -420); await calm.waitForTimeout(400);
-  assert.equal((await snapshot(calm)).shots, 1); await roundBalls(calm); await capture(calm, 'mobile-reduced-motion');
-  await calm.locator('#pause').tap(); const calmPaused = await snapshot(calm); await calm.waitForTimeout(150);
-  assert.deepEqual((await snapshot(calm)).balls, calmPaused.balls);
-  await calm.locator('#resume').tap(); await expect.poll(async () => (await snapshot(calm)).balls).not.toEqual(calmPaused.balls);
-  await calmTouch.detach(); await reduced.close();
-  report.checks.push('reduced-motion home stays pixel-still / touch shot remains playable with circular balls / pause and resume');
-
-  for (const mode of [
-    { query: '', stored: null, enabled: false },
-    { query: '?dev=1', stored: null, enabled: true },
-    { query: '', stored: '1', enabled: true },
-    { query: '?dev=0', stored: '1', enabled: false },
-  ]) {
-    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
-    await context.addInitScript((value) => { if (value) localStorage.setItem('dev', value); }, mode.stored);
-    const page = await context.newPage(); monitor(page); await page.goto(origin + mode.query);
-    assert.equal(await page.evaluate(() => window.SmallGamesDev.isEnabled()), mode.enabled);
-    assert.equal(await page.evaluate(() => !!window.__orbit), mode.enabled);
-    if (mode.enabled) {
-      const saved = await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY);
-      await page.evaluate(() => window.__orbit.startPractice('orbit'));
-      assert.equal((await snapshot(page)).practice, true);
-      await page.locator('#pause').tap(); await page.locator('#back-home').tap();
-      assert.equal(await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY), saved);
+  // Natural first-starfield completion: only production touchscreen inputs and upgrade buttons.
+  for (let round = 0; round < 40; round++) {
+    const state = await snap(page);
+    if (['won', 'lost'].includes(state.phase)) break;
+    if (state.phase === 'upgrade') {
+      await centered(page);
+      const id = ['power', 'pierce', 'extra', 'chain', 'blast', 'critical'].find((value) =>
+        state.cards.includes(value),
+      );
+      await page.locator(`[data-upgrade="${id}"]`).tap();
+    } else if (busy(state.phase)) await settle(page);
+    else {
+      const direction = plan(state);
+      await shot(page, direction.x, direction.y);
+      await settle(page);
     }
-    await context.close();
   }
-  report.checks.push('production URL / storage / explicit-off / default-off developer mode and practice isolation');
-  const blocked = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
-  await blocked.addInitScript(() => Object.defineProperty(window, 'localStorage', { get() { throw new Error('blocked'); } }));
-  const noStorage = await blocked.newPage(); monitor(noStorage); await noStorage.goto(`${origin}?dev=0`); await noStorage.locator('#start').tap();
-  assert.equal((await snapshot(noStorage)).phase, 'aim'); await blocked.close(); report.checks.push('blocked storage still starts normally');
-  const challengeContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
-  const challengePage = await challengeContext.newPage(); monitor(challengePage);
-  await challengePage.goto(shared.href);
-  await expect(challengePage.locator('#challenge-orbit')).toContainText('自报');
-  await challengePage.locator('#challenge-orbit').tap();
-  const opening = await snapshot(challengePage);
-  assert.equal(opening.challenge, true);
-  assert.equal(opening.initialSeed, Number(shared.searchParams.get('seed')));
-  const expected = createGame(opening.levelId, { seed: opening.initialSeed });
-  assert.deepEqual(opening.bricks, expected.bricks);
-  assert.equal(await challengePage.evaluate((key) => localStorage.getItem(key), STORAGE_KEY), null);
-  await challengePage.screenshot({ path: path.join(evidence, '../publishing/mobile-challenge.png') });
-  const challengeTouch = await challengeContext.newCDPSession(challengePage);
-  for (let turn = 0; turn < 16 && !(await challengePage.locator('#result').isVisible()); turn++) {
-    if (await challengePage.locator('#upgrade').isVisible()) await chooseCard(challengePage);
-    await shot(challengePage, challengeTouch, 0, -400); await challengePage.locator('#recall').tap();
+  assert.equal((await snap(page)).phase, 'won');
+  await capture(page, 'victory-390');
+  await page.locator('#next').tap();
+  assert.equal((await snap(page)).levelId, 'prism');
+  await leave(page);
+  await page.locator('#endless-button').tap();
+  await leave(page);
+  const completed = await saved(page);
+  assert.equal(completed.runs.campaign.levelId, 'prism');
+  assert.equal(completed.runs.endless.levelId, 'endless');
+  assert(completed.completed.stardust);
+  report.checks.push(
+    'unmodified first campaign naturally won through actual touch trajectories; next level unlocked; campaign and endless checkpoints stay independent',
+  );
+
+  // Explicit progress fixture makes preservation of both saves and a nonzero record observable.
+  const restartData = structuredClone(completed);
+  const endless = createGame('endless', { seed: 3021 });
+  endless.turn = 3;
+  endless.shots = 3;
+  endless.score = 17;
+  restartData.runs.endless = checkpoint(endless);
+  restartData.bestEndless = 487;
+  restartData.lastMode = 'endless';
+  page = await open({ storage: restartData });
+  const beforeNew = await saved(page);
+  await page.locator('#endless-new').tap();
+  await screenIs(page, 'confirm');
+  await centered(page);
+  await page.locator('#confirm-cancel').tap();
+  await screenIs(page, 'home');
+  assert.deepEqual(await saved(page), beforeNew, 'cancelling home restart changes neither save');
+  await page.locator('#endless-new').tap();
+  await page.locator('#confirm-accept').tap();
+  await screenIs(page, 'playing');
+  let fresh = await snap(page);
+  assert.equal(fresh.levelId, 'endless');
+  assert.equal(fresh.turn, 0);
+  assert.equal(fresh.shots, 0);
+  assert.equal(fresh.score, 0);
+  let progress = await saved(page);
+  assert.deepEqual(progress.runs.campaign, beforeNew.runs.campaign);
+  assert.deepEqual(progress.completed, beforeNew.completed);
+  assert.equal(progress.bestEndless, 487);
+  assert.equal(progress.sound, beforeNew.sound);
+  assert.equal(progress.haptics, beforeNew.haptics);
+  const unchangedSave = structuredClone(progress);
+  await page.locator('#restart-run').tap();
+  await frozen(page, 'confirm');
+  await page.locator('#confirm-cancel').tap();
+  assert.deepEqual(simulation(await snap(page)), simulation(fresh));
+  assert.deepEqual(await saved(page), unchangedSave);
+  await shot(page, 0, -400);
+  await page.locator('#recall').tap();
+  await settle(page);
+  const previousRun = await snap(page);
+  assert.equal(previousRun.turn, 1);
+  await page.locator('#restart-run').tap();
+  await page.locator('#confirm-accept').tap();
+  fresh = await snap(page);
+  assert.equal(fresh.turn, 0);
+  assert.equal(fresh.shots, 0);
+  assert.equal(fresh.score, 0);
+  progress = await saved(page);
+  assert.deepEqual(progress.runs.campaign, beforeNew.runs.campaign);
+  assert.deepEqual(progress.completed, beforeNew.completed);
+  assert.equal(progress.bestEndless, 487);
+  assert.equal(progress.runs.endless.turn, 0);
+  await capture(page, 'endless-restarted-390');
+  report.checks.push(
+    'explicit two-mode save fixture: home endless-new and in-game restart require confirmation, cancellation preserves state/save, acceptance resets only current endless run and retains campaign, record and settings',
+  );
+
+  const upgrade = createGame('endless', { seed: 41 });
+  upgrade.turn = 5;
+  upgrade.phase = 'upgrade';
+  upgrade.cards = ['power', 'pierce', 'chain'];
+  upgrade.bricks.forEach((brick) => {
+    brick.r += 3;
+  });
+  page = await open({ run: upgrade });
+  await page.locator('#start').tap();
+  await expect(page.locator('#upgrade')).toBeVisible();
+  await centered(page);
+  await targets(page, '#upgrade button');
+  assert(await page.locator('#arena').isVisible());
+  await capture(page, 'reward-390');
+  await page.locator('#settings-button').tap();
+  const upgrading = await frozen(page, 'settings');
+  await page.locator('#settings-close').tap();
+  await screenIs(page, 'upgrade');
+  assert.deepEqual(simulation(await snap(page)), simulation(upgrading));
+  await page.locator('[data-upgrade="power"]').tap();
+  assert.equal((await snap(page)).damage, 2);
+  await page.locator('#supply').tap();
+  await centered(page);
+  await expect(page.locator('#reward-status')).toContainText('广告暂未就绪');
+  assert(await page.locator('#reward-resonance').isDisabled());
+  await capture(page, 'supply-unavailable');
+  await page.locator('#supply-back').tap();
+  report.checks.push(
+    'explicit fifth-turn upgrade fixture: centered choice region preserves visible board; settings returns to pending upgrade; absent SDK never grants simulated production rewards',
+  );
+
+  for (const viewport of [
+    { width: 320, height: 568 },
+    { width: 844, height: 390 },
+  ]) {
+    page = await open({ viewport, run: upgrade });
+    await targets(page, '#home button');
+    await capture(page, `home-${viewport.width}`);
+    await page.locator('#settings-button').tap();
+    await centered(page);
+    await targets(page, '#settings button');
+    await page.locator('#settings-help').tap();
+    await centered(page);
+    await targets(page, '#help button');
+    await capture(page, `help-${viewport.width}`);
+    await page.locator('#help-back').tap();
+    await page.locator('#settings-close').tap();
+    await page.locator('#levels-button').tap();
+    await targets(page, '#levels button');
+    await capture(page, `levels-${viewport.width}`);
+    await page.locator('#levels-next').tap();
+    await targets(page, '#levels button');
+    await page.locator('#levels-home').tap();
+    await page.locator('#start').tap();
+    await centered(page);
+    await targets(page, '#upgrade button');
+    await capture(page, `reward-${viewport.width}`);
+    await page.locator('[data-upgrade="pierce"]').tap();
+    await targets(page, '#playing button');
+    await page.locator('#supply').tap();
+    await centered(page);
+    await targets(page, '#supply-panel button');
+    await capture(page, `supply-${viewport.width}`);
+    await page.locator('#supply-back').tap();
+    await page.locator('#back-home').tap();
+    await centered(page);
+    await targets(page, '#confirm button');
+    await page.locator('#confirm-cancel').tap();
+    await shot(page, -30, -400);
+    assert.equal((await snap(page)).shots, 1);
+    await page.locator('#pause').tap();
+    const paused = await frozen(page, 'paused');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(200);
+    assert.deepEqual(simulation(await snap(page)), simulation(paused));
+    await centered(page);
+    await noFullscreen(page);
+    await page.locator('#resume').tap();
+    await capture(page, `rotated-from-${viewport.width}`);
   }
-  await expect(challengePage.locator('#result')).toBeVisible();
-  await expect(challengePage.locator('#result-detail')).toContainText('好友自报目标');
-  await challengePage.screenshot({ path: path.join(evidence, '../publishing/mobile-challenge-result.png') });
-  await challengePage.locator('#retry').tap();
-  assert.deepEqual((await snapshot(challengePage)).bricks, opening.bricks);
-  assert.equal(await challengePage.evaluate((key) => localStorage.getItem(key), STORAGE_KEY), null);
-  await challengeContext.close();
-  report.checks.push('Public seed challenge opens the exact same board; real-touch loss/retry repeats it without writing normal progress');
-  assert.deepEqual(report.errors, []); report.passed = true;
+  report.checks.push(
+    '320x568 and 844x390 touch targets, both level pages, centered settings/help/upgrade/supply/confirmation, real gestures and rotation preserve paused volley',
+  );
+
+  // Explicit durable-target fixture: show damage cracks, then real polygon shards and return feedback.
+  const glass = createGame('endless', { seed: 62 });
+  glass.count = 1;
+  glass.bricks = [
+    // Keep the damaged glass above the centered pause panel so its evidence stays visible.
+    { id: 99, c: 3, r: 0, kind: 'brick', hp: 2, maxHp: 2 },
+    { id: 100, c: 0, r: 1, kind: 'brick', hp: 90, maxHp: 90 },
+  ];
+  glass.nextId = 101;
+  page = await open({ run: glass });
+  await page.locator('#start').tap();
+  await shot(page, 0, -400);
+  await expect
+    .poll(async () => (await snap(page)).visuals.cracked, { intervals: [20, 20, 20] })
+    .toBeGreaterThan(0);
+  await page.locator('#pause').tap();
+  await capture(page, 'damage-cracks-390');
+  assert((await snap(page)).visuals.cracked > 0);
+  await page.locator('#resume').tap();
+  await settle(page);
+  assert((await snap(page)).visuals.returns > 0);
+  const glassPauseBox = await page.locator('#pause').boundingBox();
+  await shot(page, 0, -400);
+  await expect
+    .poll(async () => (await snap(page)).visuals.shards, { intervals: [16, 16, 16] })
+    .toBeGreaterThan(0);
+  await page.touchscreen.tap(
+    glassPauseBox.x + glassPauseBox.width / 2,
+    glassPauseBox.y + glassPauseBox.height / 2,
+  );
+  const shattered = await frozen(page, 'paused');
+  assert(shattered.visuals.shatters > 0 && shattered.visuals.maxShards >= 6);
+  assert(shattered.visuals.shards > 0 && shattered.visuals.shardNodes <= 48);
+  assert(shattered.audio.shatters > 0);
+  await capture(page, 'crystal-shards-390');
+  await page.locator('#resume').tap();
+  await settle(page);
+  report.checks.push(
+    'explicit two-hit glass fixture uses real launches: visible cracks, six-piece crystal shatter, clear breaking audio and animated natural returns reported by scene statistics',
+  );
+
+  // Explicit absorber fixture: every actual projectile is consumed, while permanent inventory stays.
+  const absorber = createGame('endless', { seed: 63 });
+  absorber.bricks = [{ id: 99, c: 3, r: 6, kind: 'absorber', hp: 99, maxHp: 99 }];
+  absorber.nextId = 100;
+  page = await open({ run: absorber });
+  await page.locator('#start').tap();
+  const inventory = (await snap(page)).count;
+  await shot(page, 0, -400);
+  await expect
+    .poll(async () => (await snap(page)).visuals.absorptions, { intervals: [20, 20, 20] })
+    .toBeGreaterThan(0);
+  await page.locator('#pause').tap();
+  const consumed = await frozen(page, 'paused');
+  assert.equal(consumed.count, inventory);
+  assert(consumed.visuals.absorptions > 0);
+  assert(consumed.absorbed > 0 && consumed.emitted >= consumed.absorbed);
+  assert.equal(consumed.volley, inventory);
+  assert(
+    consumed.volley - consumed.absorbed < consumed.count,
+    'absorbed marbles reduce this volley, not permanent inventory',
+  );
+  await capture(page, 'absorber-impact-390');
+  await page.locator('#resume').tap();
+  await settle(page);
+  const absorbed = await snap(page);
+  assert.equal(absorbed.visuals.absorptions, inventory);
+  assert.equal(absorbed.absorbed, inventory);
+  assert.equal(absorbed.emitted, inventory);
+  assert.equal(absorbed.count, inventory);
+  assert.equal(absorbed.bricks.find((brick) => brick.id === 99).hp, 99 - inventory);
+  report.checks.push(
+    'explicit absorber fixture consumes actual emitted marbles and reduces this volley while permanent ball count remains unchanged',
+  );
+
+  // Empty-board fixture isolates shallow launch and visible accelerating manual recall.
+  const returning = createGame('endless', { seed: 64 });
+  returning.bricks = [];
+  page = await open({ run: returning });
+  await page.locator('#start').tap();
+  await shot(page, 150, -12);
+  await expect.poll(async () => (await snap(page)).shots).toBe(1);
+  const pauseBox = await page.locator('#pause').boundingBox();
+  await page.locator('#pause').tap();
+  const shallow = await frozen(page, 'paused');
+  assert.equal(shallow.phase, 'flight');
+  assert(shallow.balls.some((ball) => Math.abs(ball.vx) > 0 && Math.abs(ball.vy / ball.vx) < 0.25));
+  await capture(page, 'shallow-angle-390');
+  await page.locator('#resume').tap();
+  await page.locator('#recall').tap();
+  // Observe the short return in one browser round trip, then send a real touch immediately.
+  // Repeated locator/actionability waits can otherwise outlive the one-second animation.
+  const { recalling, movingBack, hint } = await page.evaluate(async () => {
+    const arena = document.querySelector('#arena');
+    const recalling = arena.getOrbitSnapshot();
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    return {
+      recalling,
+      movingBack: arena.getOrbitSnapshot(),
+      hint: document.querySelector('#shot-hint').textContent,
+    };
+  });
+  await page.touchscreen.tap(pauseBox.x + pauseBox.width / 2, pauseBox.y + pauseBox.height / 2);
+  const pausedRecall = await frozen(page, 'paused');
+  assert.equal(recalling.phase, 'recall');
+  assert(
+    recalling.balls.length > 0 && recalling.balls.some((ball) => ball.returning),
+    'recall visibly retains returning marbles',
+  );
+  assert(hint.includes('召回'));
+  assert.equal(movingBack.phase, 'recall');
+  assert(
+    movingBack.balls.some((ball) => {
+      const previous = recalling.balls.find((other) => other.id === ball.id);
+      return previous && Math.hypot(ball.x - previous.x, ball.y - previous.y) > 0.1;
+    }),
+    'returning marbles visibly travel before settlement',
+  );
+  assert.equal(pausedRecall.phase, 'recall');
+  assert(pausedRecall.balls.length > 0, 'manual recall is not instant deletion');
+  await capture(page, 'manual-recall-390');
+  await page.locator('#resume').tap();
+  await settle(page);
+  const returned = await snap(page);
+  assert.equal(returned.turn, 1);
+  assert(returned.visuals.recalls > 0 && returned.visuals.returns > 0);
+  assert.equal(returned.balls.length, 0);
+  await capture(page, 'marbles-returned-390');
+  report.checks.push(
+    'actual shallow-angle touch is accepted; recall remains visible with moving marbles, pauses exactly, resumes and settles only after return animation',
+  );
+
+  const rescue = createGame('endless', { seed: 88 });
+  rescue.bricks = [
+    { id: 1, c: 0, r: 9, kind: 'brick', hp: 999, maxHp: 999 },
+    { id: 2, c: 3, r: 8, kind: 'brick', hp: 99, maxHp: 99 },
+    { id: 3, c: 1, r: 3, kind: 'brick', hp: 80, maxHp: 80 },
+  ];
+  rescue.nextId = 4;
+  page = await open({ run: rescue, ads: true });
+  await page.locator('#start').tap();
+  await page.locator('#supply').tap();
+  await requestAd(page, '#reward-resonance', 'dismissed');
+  await expect(page.locator('#reward-status')).toContainText('未领取');
+  assert.equal((await snap(page)).rewards.resonance, 0);
+  await requestAd(page, '#reward-resonance', 'completed');
+  await expect(page.locator('#reward-status')).toContainText('已生效');
+  assert.equal((await snap(page)).rewards.resonance, 1);
+  assert(await page.locator('#reward-resonance').isDisabled());
+  await capture(page, 'reward-ad-completed');
+  await page.locator('#supply-back').tap();
+  await shot(page, 0, -400);
+  await page.locator('#recall').tap();
+  await settle(page);
+  await expect(page.locator('#result')).toBeVisible();
+  await capture(page, 'failure-390');
+  const loss = await snap(page);
+  await page.locator('#result-supply').tap();
+  await requestAd(page, '#reward-rescue', 'completed');
+  await expect(page.locator('#reward-status')).toContainText('两行已清除');
+  const cleared = await snap(page);
+  assert.equal(cleared.score, loss.score);
+  assert.equal(cleared.turn, loss.turn);
+  assert.equal(cleared.rewards.rescue, 1);
+  assert.equal(cleared.phase, 'aim');
+  await page.locator('#supply-back').tap();
+  await page.reload();
+  await page.locator('#start').tap();
+  assert.equal((await snap(page)).rewards.rescue, 1);
+  assert.equal((await snap(page)).rewards.resonance, 1);
+  report.checks.push(
+    'declared local SDK fixture: dismissed/completed callbacks, once-only resonance, animated-recall loss, rescue without score/turn awards, persisted grants; no real SDK claimed',
+  );
+
+  page = await open({ ads: true });
+  await page.locator('#start').tap();
+  await page.locator('#supply').tap();
+  await page.locator('#reward-resonance').tap();
+  await expect.poll(() => page.evaluate(() => window.__adRequests)).toBe(1);
+  await page.locator('#supply-back').tap();
+  await page.evaluate(() => window.__finishAd({ status: 'completed' }));
+  assert.equal((await snap(page)).rewards.resonance, 0);
+  await leave(page);
+  page = await open({ query: '/?challenge=orbit-v3&level=stardust&seed=88&targetScore=12&dev=0' });
+  await page.locator('#challenge-orbit').tap();
+  assert.equal((await snap(page)).challenge, true);
+  assert(await page.locator('#supply').isDisabled());
+  report.checks.push(
+    'late ad completion after cancellation is ignored; current same-seed challenge disables advertising buffs',
+  );
+  page = await open({ blocked: true, query: '/?dev=0' });
+  await page.locator('#start').tap();
+  await shot(page, 0, -400);
+  assert.equal((await snap(page)).shots, 1);
+  report.checks.push('blocked storage remains playable');
+  page = await open({ query: '/?dev=1' });
+  assert.equal(await page.evaluate(() => typeof window.__orbit.startPractice), 'function');
+  await page.evaluate(() => window.__orbit.startPractice('orbit'));
+  assert.equal((await snap(page)).practice, true);
+  assert(await page.locator('#supply').isDisabled());
+  await page.goto(origin + '/iframe');
+  const frame = page.frameLocator('iframe');
+  await frame.locator('#start').tap();
+  await screenIs(frame, 'playing');
+  await frame.locator('#settings-button').tap();
+  await screenIs(frame, 'settings');
+  await frame.locator('#settings-close').tap();
+  await screenIs(frame, 'playing');
+  await frame.locator('#pause').tap();
+  await screenIs(frame, 'paused');
+  await frame.locator('#resume').tap();
+  await frame.locator('#back-home').tap();
+  await frame.locator('#confirm-cancel').tap();
+  await screenIs(frame, 'playing');
+  await leave(frame);
+  await noFullscreen(frame);
+  await capture(page, 'iframe-home');
+  report.checks.push(
+    'dev practice isolation and production iframe settings/play/pause/direct-return cancellation and confirmation',
+  );
+  const popupReady = page.waitForEvent('popup');
+  await page.evaluate(() => window.open('/?dev=0', '_blank'));
+  const popup = await popupReady;
+  popup.on('pageerror', (error) => report.errors.push(error.message));
+  await expect(popup.locator('#start')).toBeVisible();
+  await popup.evaluate(() =>
+    window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: false })),
+  );
+  assert.equal(popup.isClosed(), false);
+  const teardown = await popup.evaluate(async () => {
+    const { cc } = await import('/vendor/cocos/bootstrap.mjs');
+    return { paused: cc.game.isPaused(), scene: cc.director.getScene() === null };
+  });
+  assert.deepEqual(teardown, { paused: true, scene: true });
+  await popup.close();
+  report.checks.push(
+    'non-BFCache teardown releases the scene and pauses Cocos without closing the script-opened window',
+  );
+  assert.deepEqual(report.errors, []);
+  report.passed = true;
 } finally {
-  await writeFile(path.join(evidence, 'browser-report.json'), JSON.stringify(report, null, 2) + '\n');
-  await browser.close(); await new Promise((resolve) => server.close(resolve));
+  await writeFile(
+    path.join(evidence, 'browser-report.json'),
+    JSON.stringify(report, null, 2) + '\n',
+  );
+  await browser.close();
+  await new Promise((resolve) => server.close(resolve));
 }
 console.log(JSON.stringify(report, null, 2));

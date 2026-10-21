@@ -30,3 +30,4 @@ export {
   type GenerationClient,
   type GenerationJob,
 } from './generation-client.js';
+export type { StudioContentTarget } from './content-target.js';

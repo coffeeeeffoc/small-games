@@ -24,18 +24,18 @@ function solvedBoard(item: Level) {
   );
 }
 
-test('30 original boards have connected flower plots, exactly one solution, and coherent chapter references', () => {
-  assert.equal(LEVELS.length, 30);
-  assert.equal(CHAPTERS.length, 5);
+test('1000 original boards have connected flower plots, exactly one solution, and coherent chapter references', () => {
+  assert.equal(LEVELS.length, 1000);
+  assert.equal(CHAPTERS.length, 167);
   validateCatalog();
-  assert.equal(new Set(LEVELS.map((item) => `${item.size}:${item.regions.join(',')}`)).size, 30);
+  assert.equal(new Set(LEVELS.map((item) => `${item.size}:${item.regions.join(',')}`)).size, 1000);
   for (const item of LEVELS) {
     validateLevel(item);
     const solutions = solve(item, 2);
     assert.equal(solutions.length, 1, item.id);
     assert.equal(solutions[0].length, item.size);
     assert.equal(solvedBoard(item).completed, true, item.id);
-    assert.equal(item.size, item.chapter + 3);
+    if (item.number <= 30) assert.equal(item.size, item.chapter + 3);
   }
 });
 
@@ -216,7 +216,18 @@ test('normal progression unlocks each next level exactly once and refuses unfini
       'Repeated settlement is idempotent',
     );
   }
-  assert.equal(Object.keys(save.completed).length, 30);
+  assert.equal(Object.keys(save.completed).length, 1000);
+});
+
+test('a completed version 1 catalog continues at level 31 without changing old records', () => {
+  const completed = Object.fromEntries(
+    LEVELS.slice(0, 30).map((item) => [item.id, { hints: 1, mistakes: 2, timeMs: 3000 }]),
+  );
+  const save = parseSave({ ...createSave(), completed });
+  assert.deepEqual(save.completed, completed);
+  assert.equal(unlocked(save, LEVELS[30]), true);
+  assert.equal(unlocked(save, LEVELS[31]), false);
+  assert.equal(unlocked(save, { ...LEVELS[0], id: 'unknown' }), false);
 });
 
 test('save parsing restores an unlocked active game, drops unknown content, and survives corrupt or future saves', () => {

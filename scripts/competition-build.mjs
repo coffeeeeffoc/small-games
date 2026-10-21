@@ -156,7 +156,7 @@ export async function buildCompetition({
       if (native) {
         // Reuse the repository's short confirmation sound instead of another audio dependency.
         await cp(
-          new URL('../games/local/game-cricket/public/cricket-audio/perfect.wav', import.meta.url),
+          new URL('../platforms/competition/assets/action.wav', import.meta.url),
           path.join(outDir, 'competition-action.wav'),
         );
         if (lettersNative)

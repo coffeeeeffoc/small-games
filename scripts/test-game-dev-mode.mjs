@@ -179,10 +179,6 @@ try {
           (enabled) => window.__bulletGarden?.snapshot().controls.developerMode === enabled,
           mode.enabled,
         );
-      if (game.id === 'cultivation' && mode.enabled)
-        await surface.waitForFunction(
-          () => typeof document.querySelector('canvas')?.getCultivationSnapshot === 'function',
-        );
       if (game.id === 'tower-defense-game')
         await expect(surface.getByRole('switch', { name: /开发调参/ })).toHaveCount(
           mode.enabled ? 1 : 0,

@@ -4,7 +4,7 @@
 
 ```sh
 pnpm --filter @coffeeeeffoc/platform-kuaishou test
-pnpm minigame:build --platform kuaishou --game cultivation --preview
+pnpm minigame:build --platform kuaishou --game moss-garden --preview
 node scripts/competition-build.mjs --native --platform=kuaishou
 node scripts/competition-native-smoke.mjs
 ```

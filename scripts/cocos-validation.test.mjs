@@ -106,6 +106,47 @@ test('Creator preflight follows only actual builds, type consumers and source-ma
     assert.throws(() => select({ nativeTargets }), /Unresolved native Creator/);
 });
 
+test('Orbit Creator accepts only complete source-matching prebuilt inputs and never an unrelated artifact variable', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'orbit-cocos-input-'));
+  const pkg = { dir: 'games/local/orbit-atelier', name: 'orbit', creator: { version: '3.8.8' } };
+  try {
+    const scriptDir = path.join(root, pkg.dir, 'scripts');
+    await mkdir(scriptDir, { recursive: true });
+    await writeFile(
+      path.join(scriptDir, 'artifact.mjs'),
+      `import {readFile} from 'node:fs/promises';import path from 'node:path';export async function verifyPrebuilt(dir){if(await readFile(path.join(dir,'hash'),'utf8')!=='orbit-source-match')throw Error('Orbit source mismatch');return path.join(dir,'dist');}`,
+    );
+    const toolchainDir = path.join(root, 'games/local/carding-car/scripts');
+    await mkdir(toolchainDir, { recursive: true });
+    await writeFile(
+      path.join(toolchainDir, 'toolchain.mjs'),
+      `export const editor=${JSON.stringify(path.join(root, 'missing-Creator'))};`,
+    );
+    const artifact = path.join(root, 'orbit-artifact');
+    await mkdir(path.join(artifact, 'dist'), { recursive: true });
+    const env = { ORBIT_ATELIER_PREBUILT_DIR: artifact };
+    await writeFile(path.join(artifact, 'hash'), 'wrong-source');
+    await assert.rejects(verifyCocosBuildInputs(root, [pkg], env), /Orbit source mismatch/);
+    await writeFile(path.join(artifact, 'hash'), 'orbit-source-match');
+    await assert.rejects(verifyCocosBuildInputs(root, [pkg], env), /index.html/);
+    await writeFile(path.join(artifact, 'dist/index.html'), 'test fixture entry');
+    await assert.rejects(verifyCocosBuildInputs(root, [pkg], env), /cc.d.ts/);
+    await writeFile(path.join(artifact, 'cc.d.ts'), 'test fixture types');
+    await verifyCocosBuildInputs(root, [pkg], env);
+    assert(
+      (await readFile(path.join(root, pkg.dir, 'reports/engine.d.ts'), 'utf8')).includes(
+        path.join(artifact, 'cc.d.ts').replaceAll('\\', '/'),
+      ),
+    );
+    await assert.rejects(
+      verifyCocosBuildInputs(root, [pkg], { KART_PREBUILT_DIR: artifact }),
+      /requires Creator/,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('homebound uses its own verified Creator artifact and rejects missing or stale inputs', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'homebound-cocos-input-'));
   const pkg = {

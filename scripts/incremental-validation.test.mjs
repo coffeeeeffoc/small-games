@@ -305,12 +305,7 @@ test('unrecognized Shell registry or task graph edits cannot silently become gen
     assert.throws(() => plan([file]), /registration scope undefined/);
 });
 
-const nativeEvidenceProducer = {
-  name: '@coffeeeeffoc/game-building-power',
-  dir: 'games/local/game-building-power',
-  scripts: { 'test:rules': 'vitest run src/simulation.test.ts' },
-};
-test('native smoke selects both actual native hosts and generates candidate replay evidence once before host smoke', async () => {
+test('native smoke selects the current native host without retired game evidence', async () => {
   const nativePackages = nativeToolConsumers.map(({ dir, smoke }) => ({
     name: dir.split('/').at(-1),
     dir,
@@ -319,13 +314,13 @@ test('native smoke selects both actual native hosts and generates candidate repl
   const result = plan(['scripts/native-game-smoke.mjs'], {
     packages: [...packages, ...nativePackages],
   });
-  assert.deepEqual(result.consumer_sources, ['apps/shell-minigame', 'apps/shell-bilibili']);
+  assert.deepEqual(result.consumer_sources, ['apps/shell-minigame']);
   assert.deepEqual(result.browser_ids, []);
   const { runIncrementalToolChecks } = await import('./validate-tree.mjs');
   const calls = [];
   runIncrementalToolChecks({
     plan: result,
-    packages: [...nativePackages, nativeEvidenceProducer],
+    packages: nativePackages,
     root: '/snapshot',
     env: { MINIGAME_RELEASE_GATES: '1' },
     execute: (...args) => calls.push(args),
@@ -333,11 +328,8 @@ test('native smoke selects both actual native hosts and generates candidate repl
   assert.deepEqual(
     calls.map((call) => call[1]),
     [
-      ['--filter', '@coffeeeeffoc/game-building-power', 'test:rules'],
       ['--filter', 'shell-minigame', 'test'],
       ['--filter', 'shell-minigame', 'smoke'],
-      ['--filter', 'shell-bilibili', 'test'],
-      ['--filter', 'shell-bilibili', 'smoke'],
     ],
   );
   assert.throws(() => plan(['scripts/native-game-smoke.mjs']), /Unreviewed native tool consumer/);
@@ -355,43 +347,24 @@ test('native smoke selects both actual native hosts and generates candidate repl
     /Unreviewed native tool consumer/,
   );
   assert.throws(() => plan(['scripts/new-game-smoke.mjs']), /scope undefined/);
-  for (const evidencePackages of [
-    nativePackages,
-    [...nativePackages, { ...nativeEvidenceProducer, scripts: { 'test:rules': 'vitest run' } }],
-    [...nativePackages, { ...nativeEvidenceProducer, name: 'unreviewed-producer' }],
-  ]) {
-    const rejectedCalls = [];
-    assert.throws(
-      () =>
-        runIncrementalToolChecks({
-          plan: result,
-          packages: evidencePackages,
-          root: '/snapshot',
-          env: { MINIGAME_RELEASE_GATES: '1' },
-          execute: (...args) => rejectedCalls.push(args),
-        }),
-      /Unreviewed native replay evidence producer/,
-    );
-    assert.deepEqual(rejectedCalls, []);
-  }
   const failedCalls = [];
   assert.throws(
     () =>
       runIncrementalToolChecks({
         plan: result,
-        packages: [...nativePackages, nativeEvidenceProducer],
+        packages: nativePackages,
         root: '/snapshot',
         env: { MINIGAME_RELEASE_GATES: '1' },
         execute: (...args) => {
           failedCalls.push(args);
-          throw new Error('Rule witness generation failed');
+          throw new Error('Native host test failed');
         },
       }),
-    /Rule witness generation failed/,
+    /Native host test failed/,
   );
   assert.deepEqual(
     failedCalls.map((call) => call[1]),
-    [['--filter', '@coffeeeeffoc/game-building-power', 'test:rules']],
+    [['--filter', 'shell-minigame', 'test']],
   );
 });
 
@@ -1127,13 +1100,13 @@ test('native smoke accepts the current platform test aggregate and rejects incom
   const calls = [];
   runIncrementalToolChecks({
     plan: result,
-    packages: [...nativePackages, nativeEvidenceProducer],
+    packages: nativePackages,
     root: '/snapshot',
     env: { MINIGAME_RELEASE_GATES: '1' },
     execute: (...args) => calls.push(args),
   });
   assert.deepEqual(
-    calls.slice(1).map((call) => call[1]),
+    calls.map((call) => call[1]),
     nativePackages.flatMap((pkg) => [
       ['--filter', pkg.name, 'test'],
       ['--filter', pkg.name, 'smoke'],

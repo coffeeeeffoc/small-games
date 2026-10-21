@@ -1,7 +1,8 @@
+import { createRoomLink, readRoomLink } from '../shared/browser/room-link.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cloneScene, presets, computePaths } from '../src/acoustics.js';
-import { createLayout, createRoomLink, readRoomLink, validateLayout } from '../src/layout.js';
+import { cloneScene, presets, computePaths } from '../shared/core/acoustics.js';
+import { createLayout, validateLayout } from '../shared/core/layout.js';
 
 test('shared rooms reproduce geometry, per-wall overrides and listening settings', () => {
   const scene = cloneScene(presets.hall);

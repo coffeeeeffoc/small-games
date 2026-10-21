@@ -1,3 +1,7 @@
+import {
+  hasLocalRetirementFileProof,
+  hasLocalRetirementDeletionProof,
+} from './local-game-retirement-scope.mjs';
 import { hasRetirementFileProof, hasRetirementDeletionProof } from './game-retirement-scope.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
@@ -9,8 +13,7 @@ const tapWorkflow = '.github/workflows/taptap-cocos.yml';
 const tapWorkflowSha256 = '16b39a784ea6a1f1bc4553e4260d545452214c083aac0a61ba692da59b3c0851';
 
 const COMPETITION = 'platforms/competition/native.js';
-const MINIGAME = 'apps/shell-minigame',
-  BILIBILI = 'apps/shell-bilibili';
+const MINIGAME = 'apps/shell-minigame';
 const sources = {
   'cops-robbers': 'games/local/cops-robbers',
   'cops-robbers-realtime': 'games/local/cops-robbers-realtime',
@@ -26,7 +29,7 @@ const definitions = {
   [COMPETITION]: {
     type: 'competition',
     games: nativeCompetitionGames,
-    consumer_sources: [MINIGAME, BILIBILI],
+    consumer_sources: [MINIGAME],
   },
   'scripts/nine-canvas-games-smoke.mjs': {
     type: 'canvas',
@@ -41,7 +44,7 @@ const definitions = {
   'scripts/nine-channel-entry-smoke.mjs': {
     type: 'entry',
     games: nativeCompetitionGames,
-    consumer_sources: [BILIBILI, 'platforms/bilibili'],
+    consumer_sources: [MINIGAME, 'platforms/bilibili'],
     command: {
       file: 'scripts/nine-channel-entry-smoke.mjs',
       args: ['scripts/nine-channel-entry-smoke.mjs'],
@@ -1439,7 +1442,17 @@ export function nineNativeDependencyPlan({
     ),
   );
   for (const file of changedPaths) {
-    if (retirementOnly.has(file) || hasRetirementDeletionProof(file, fileScopes.get(file)))
+    if (
+      retirementOnly.has(file) ||
+      hasRetirementDeletionProof(file, fileScopes.get(file)) ||
+      hasLocalRetirementDeletionProof(file, fileScopes.get(file)) ||
+      ([
+        'apps/shell-minigame/scripts/nine-games-build.mjs',
+        'scripts/competition-build.mjs',
+        'platforms/competition/assets/action.wav',
+      ].includes(file) &&
+        hasLocalRetirementFileProof(file, fileScopes.get(file), readSource))
+    )
       continue;
     const platformDirectory = file.match(
       /^platforms\/(wechat|bilibili|douyin|kuaishou|alipay|taptap)\//,

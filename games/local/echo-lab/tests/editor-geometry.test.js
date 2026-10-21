@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { panelEndpoints } from '../src/acoustics.js';
+import { panelEndpoints } from '../shared/core/acoustics.js';
 import {
   movePanel,
   resizePanel,
   resizeRoom,
   adjustPanelAcoustics,
   layoutPanelHandles,
-} from '../src/editor-geometry.js';
+} from '../shared/core/editor-geometry.js';
 
 const room = { width: 24, height: 18 };
 const start = { x: 12, y: 9, angle: 35, length: 8 };

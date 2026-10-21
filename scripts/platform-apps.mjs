@@ -19,11 +19,6 @@ export function developmentEntries(node, root) {
       env: { ...process.env, ...runtimeEnvironment, PORT: '43002' },
     },
     { name: 'shell-web', command: node, args: [vite, 'apps/shell-web', '--port', '5173'] },
-    {
-      name: 'shell-bilibili',
-      command: node,
-      args: [vite, 'apps/shell-bilibili', '--port', '5175'],
-    },
     { name: 'studio-web', command: node, args: [vite, 'apps/studio-web', '--port', '5174'] },
     { name: 'workspace-agent', command: node, args: [tsx, 'apps/workspace-agent/src/main.ts'] },
   ];

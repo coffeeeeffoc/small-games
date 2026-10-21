@@ -32,3 +32,4 @@ export type {
   GenerationJobStore,
   GenerationTarget,
 } from './generation/model.js';
+export type { ContentTarget } from './content-target.js';

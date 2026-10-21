@@ -63,12 +63,11 @@ try {
       `${width}: card remains within the viewport`,
     );
     await first.screenshot({ path: `${evidence}/card-${width}.png` });
-    await page.getByRole('searchbox').fill('三分钟修仙');
+    await page.getByRole('searchbox').fill('神机合阵');
     await expect(page.locator('.game-history')).toHaveCount(1);
-    await press(page.getByRole('button', { name: '进入游戏', exact: true }));
-    await expect(page.locator('.game-slot > *').first()).toBeVisible();
-    await press(page.getByRole('button', { name: '点香 · 开始修行', exact: true }));
-    await press(page.getByRole('button', { name: '← 返回目录', exact: true }));
+    await press(page.getByRole('link', { name: '进入游戏', exact: true }));
+    await expect(page.frameLocator('iframe').locator('#start-defense')).toBeVisible();
+    await press(page.getByRole('button', { name: '返回目录', exact: true }));
     await expect(page.locator('.game-history')).toHaveCount(1);
     await press(page.getByRole('button', { name: '简洁一览', exact: true }));
     await expect(page.locator('.game-history')).toHaveCount(0);

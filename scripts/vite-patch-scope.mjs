@@ -25,18 +25,12 @@ export const viteVersions = Object.freeze({
 const audited = {
   direct: [
     'apps/company-web',
-    'apps/shell-bilibili',
     'apps/shell-minigame',
     'apps/shell-web',
     'apps/studio-web',
     'games/local/fold-the-world',
-    'games/local/game-arena',
-    'games/local/game-building-power',
     'games/local/game-castle-cannon',
-    'games/local/game-cricket',
-    'games/local/game-cultivation',
     'games/local/game-moss-garden',
-    'games/local/game-office',
     'games/local/hold-tight-acrobats',
     'games/local/homebound-station',
     'games/local/luban-workshop',
@@ -58,17 +52,11 @@ const audited = {
     'packages/vite-smoke-test',
   ],
   vitest: [
-    'apps/shell-bilibili',
     'apps/shell-minigame',
     'apps/shell-web',
     'apps/studio-web',
     'apps/workspace-agent',
-    'games/local/game-arena',
-    'games/local/game-building-power',
     'games/local/game-castle-cannon',
-    'games/local/game-cricket',
-    'games/local/game-cultivation',
-    'games/local/game-office',
     'packages/ad-config',
     'packages/ad-runtime',
     'packages/canvas-game-adapter',
@@ -128,12 +116,8 @@ export const viteNativeNodeTests = Object.freeze(
     'taptap-smoke',
   ].map((name) => 'apps/shell-minigame/scripts/' + name + '.test.mjs'),
 );
-export const viteBuiltinSources = Object.freeze(
-  ['arena', 'building-power', 'cricket', 'cultivation', 'office'].map(
-    (id) => 'games/local/game-' + id,
-  ),
-);
-export const viteNativeSources = Object.freeze(['apps/shell-minigame', 'apps/shell-bilibili']);
+export const viteBuiltinSources = Object.freeze([]);
+export const viteNativeSources = Object.freeze(['apps/shell-minigame']);
 export const viteSmokeSources = Object.freeze([
   ...viteBuiltinSources,
   'apps/shell-web',

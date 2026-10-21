@@ -14,7 +14,7 @@ afterEach(async () => {
 
 async function fixture() {
   const root = await mkdtemp(path.join(tmpdir(), 'workspace-agent-'));
-  const game = path.join(root, 'games', 'local', 'game-cultivation');
+  const game = path.join(root, 'games', 'local', 'game-fixture');
   await mkdir(path.join(game, 'src'), { recursive: true });
   await writeFile(path.join(game, 'src', 'evil&name.ts'), 'export const safe = true;');
   return { root, game };
@@ -98,7 +98,7 @@ describe('Workspace Agent trust boundary', () => {
     });
     const token = String(((await (await pair(running.url)).json()) as { token: string }).token);
     const get = (file: string) =>
-      fetch(`${running!.url}/repository/file?gameId=game-cultivation&path=${file}`, {
+      fetch(`${running!.url}/repository/file?gameId=game-fixture&path=${file}`, {
         headers: { Origin: origin, Authorization: `Bearer ${token}` },
       });
     expect((await get('../package.json')).status).toBe(400);
@@ -121,7 +121,7 @@ describe('Workspace Agent trust boundary', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
       games: [
-        { id: 'game-cultivation', files: [{ name: 'src', children: [{ name: 'evil&name.ts' }] }] },
+        { id: 'game-fixture', files: [{ name: 'src', children: [{ name: 'evil&name.ts' }] }] },
       ],
     });
   });
@@ -129,13 +129,11 @@ describe('Workspace Agent trust boundary', () => {
   it('reviews and saves an allowed source with optimistic concurrency', async () => {
     const { root, game } = await fixture();
     const request = await pairedAgent(root);
-    const file = await request(
-      '/repository/file?gameId=game-cultivation&path=src%2Fevil%26name.ts',
-    );
+    const file = await request('/repository/file?gameId=game-fixture&path=src%2Fevil%26name.ts');
     expect(file.status).toBe(200);
     const current = (await file.json()) as { version: string };
     const change = {
-      gameId: 'game-cultivation',
+      gameId: 'game-fixture',
       path: 'src/evil&name.ts',
       source: 'export const safe = false;\n',
       baseVersion: current.version,
@@ -148,7 +146,7 @@ describe('Workspace Agent trust boundary', () => {
     expect(review.status).toBe(200);
     expect(await review.json()).toMatchObject({
       stale: false,
-      files: [{ path: 'games/local/game-cultivation/src/evil&name.ts', added: 1, removed: 1 }],
+      files: [{ path: 'games/local/game-fixture/src/evil&name.ts', added: 1, removed: 1 }],
     });
 
     const saved = await request('/repository/file', {
@@ -180,17 +178,17 @@ describe('Workspace Agent trust boundary', () => {
     const source = 'export const safe = true;\n';
     const version = (
       (await (
-        await request('/repository/file?gameId=game-cultivation&path=src%2Fevil%26name.ts')
+        await request('/repository/file?gameId=game-fixture&path=src%2Fevil%26name.ts')
       ).json()) as { version: string }
     ).version;
     for (const [body, error] of [
       [
-        { gameId: 'game-cultivation', path: 'src/evil&name.ts', source, baseVersion: version },
+        { gameId: 'game-fixture', path: 'src/evil&name.ts', source, baseVersion: version },
         'CONFIRMATION_REQUIRED',
       ],
       [
         {
-          gameId: 'game-cultivation',
+          gameId: 'game-fixture',
           path: 'src/evil&name.ts',
           source: 'binary\u0000',
           baseVersion: version,
@@ -200,7 +198,7 @@ describe('Workspace Agent trust boundary', () => {
       ],
       [
         {
-          gameId: 'game-cultivation',
+          gameId: 'game-fixture',
           path: 'src/evil&name.ts',
           source: 'no newline',
           baseVersion: version,
@@ -210,7 +208,7 @@ describe('Workspace Agent trust boundary', () => {
       ],
       [
         {
-          gameId: 'game-cultivation',
+          gameId: 'game-fixture',
           path: 'src/evil&name.ts',
           source: 'export const safe=true;\n',
           baseVersion: version,
@@ -227,7 +225,7 @@ describe('Workspace Agent trust boundary', () => {
       expect(await response.json()).toMatchObject({ error });
     }
     const linked = await request(
-      '/repository/file?gameId=game-cultivation&path=src%2Flinked%2Ftarget.ts',
+      '/repository/file?gameId=game-fixture&path=src%2Flinked%2Ftarget.ts',
     );
     expect(linked.status).toBe(400);
   });
@@ -236,13 +234,13 @@ describe('Workspace Agent trust boundary', () => {
     const { root } = await fixture();
     const request = await pairedAgent(root);
     const current = (await (
-      await request('/repository/file?gameId=game-cultivation&path=src%2Fevil%26name.ts')
+      await request('/repository/file?gameId=game-fixture&path=src%2Fevil%26name.ts')
     ).json()) as { version: string };
     const save = (source: string) =>
       request('/repository/file', {
         method: 'POST',
         body: JSON.stringify({
-          gameId: 'game-cultivation',
+          gameId: 'game-fixture',
           path: 'src/evil&name.ts',
           source,
           baseVersion: current.version,
@@ -261,12 +259,12 @@ describe('Workspace Agent trust boundary', () => {
     await writeFile(path.join(root, '.prettierrc.json'), '{ "singleQuote": true }\n');
     const request = await pairedAgent(root);
     const current = (await (
-      await request('/repository/file?gameId=game-cultivation&path=src%2Fevil%26name.ts')
+      await request('/repository/file?gameId=game-fixture&path=src%2Fevil%26name.ts')
     ).json()) as { version: string };
     const response = await request('/repository/file', {
       method: 'POST',
       body: JSON.stringify({
-        gameId: 'game-cultivation',
+        gameId: 'game-fixture',
         path: 'src/evil&name.ts',
         source: "export const quote = 'ok';\n",
         baseVersion: current.version,

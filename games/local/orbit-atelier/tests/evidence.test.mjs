@@ -14,7 +14,7 @@ import {
 
 test('coverage requires execution receipts, valid dimensions and executable assertions', async () => {
   const spec = await readCoverage();
-  const source = await readFile(new URL('./browser.mjs', import.meta.url), 'utf8');
+  const source = await readFile(new URL('./legacy-browser.mjs', import.meta.url), 'utf8');
   const empty = coverageSummary(spec, [], source);
   assert.equal(empty.covered.length, 0);
   assert.equal(empty.missing.length, spec.cases.length);

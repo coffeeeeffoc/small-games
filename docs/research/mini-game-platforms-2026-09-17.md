@@ -92,21 +92,17 @@ UC/夸克存在官方小游戏服务协议，但服务协议不证明开发者�
 
 - `packages/game-contract/src/ports.ts` 定义内容、存档、奖励广告、遥测与导航契约；`GameDefinition` 支持带类型的挂载目标，默认Web目标，也能传入原生Canvas目标。
 - `packages/canvas-game-adapter/src/index.ts` 已定义触摸、取消、图片、音频等绘制目标能力。
-- `apps/shell-bilibili/src/host.ts`、`shell.ts`、`media.ts`、`ads.ts` 已实现 `bl` 对接、存档命名空间、前后台暂停、媒体和激励视频完成判定；只在SDK明确完整观看时授奖。
-- 三分钟修仙、打工人摸鱼记、秋声斗蟋、电子斗蛐蛐均已有原生Canvas入口，并非所有游戏都只有网页版本。
 
 本轮实际验证：
 
 ```sh
-pnpm --filter @coffeeeeffoc/shell-bilibili build
-pnpm --filter @coffeeeeffoc/shell-bilibili smoke
+
 ```
 
 两项通过。构建输出42个文件，未压缩总计约2.51MiB；smoke执行实际CommonJS制品，验证四款在无DOM环境下启动，以及已有操作、媒体和生命周期断言。该体积不是平台工具最终上传统计，也不是所有H5游戏的体积。尚未执行官方开发工具导入、平台真机、真实广告库存或上线审核。
 
 明确需要补的部分：
 
-1. **单款发行入口。** `apps/shell-bilibili/src/native.ts` 当前先展示四款目录；`vite.native.config.ts` 固定输出四款分包及其素材。应增加按选定游戏构建的独立启动入口，仅包含该款代码及使用到的资源，每款分别配置AppID、名称、广告位和版本。单款独立制品不能简单复制当前四款大厅四次。
 2. **B站上线配置与必接能力。** 当前生成的 `game.json` 只有方向及分包，未生成官方配置表列为必填的 `version`、`appId`；需在发行配置中补齐。源码未声明或调用 `bl.launchSuccess`，也未实现侧边栏复访、桌面快捷方式每日奖励和对应启动参数处理。普通日志及暂停/恢复不能代替这些审核流程。[配置要求](https://miniapp.bilibili.com/small-game-doc/framework/config)、[启动上报](https://miniapp.bilibili.com/small-game-doc/api/base/launchSuccess)、[侧边栏](https://miniapp.bilibili.com/small-game-doc/open/sidebar)、[桌面快捷方式](https://miniapp.bilibili.com/small-game-doc/open/shortcut)
 3. **微信宿主。** 当前apps目录没有微信Shell；需接入微信画布、输入、音频、存档、广告和生命周期，并构建微信工程。复用已有游戏核心与Canvas入口，不把B站SDK整体替换名字后视为完成。
 4. **其余H5逐款适配。** 独立H5目前保留自己的DOM、浏览器存档与音频，没有自动获得 Game Host 能力。`localStorage`、网页下载、HTML按钮、CSS动画、DOM事件、浏览器音频与资源加载均需检查；纯逻辑与关卡数据优先复用。新增宿主也不会自动让React DOM界面可在小游戏中运行。
@@ -116,18 +112,14 @@ pnpm --filter @coffeeeeffoc/shell-bilibili smoke
 
 | 当前游戏/技术                                            | 微信/B站迁移成本判断 | 原因与优先顺序                                                                                                          |
 | -------------------------------------------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| 三分钟修仙、秋声斗蟋、电子斗蛐蛐、打工人摸鱼记           | 较低                 | 已有原生Canvas入口；先完成单款打包和平台宿主，仍需验证玩法、设备与审核                                                  |
 | 合成守夜人、别跑！街区围捕                               | 中等                 | 有Canvas绘制，但菜单/HUD、离屏Canvas创建、触摸与音频仍使用网页能力；需迁移这些接口                                      |
 | 词了个词、词屿、神机合阵、万象旅团、来电之间、雨停之前等 | 中到高               | HTML按钮、布局、弹窗或DOM动画占较大比例；通常复用规则数据、重做原生显示与交互                                           |
 | 橘风速递、零域、工位偷闲                                 | 中到高               | 原生Three.js渲染有复用机会，必须验证WebGL版本、资源加载、浏览器HUD/输入/音频和性能                                      |
 | 江风入境、外滩空中漫游、外滩一江入梦                     | 高                   | 使用React DOM和Three.js/Pixi等组合；React Three Fiber/drei/物理/Wasm等依赖需逐项验证，不能把React库本身有JS代码视作兼容 |
 | 此时·此地                                                | 高                   | Three.js全景之外还有Leaflet及CSS/DOM地图交互；地图界面需重做或采用渠道允许的方案                                        |
 
-这些分级针对迁移到小游戏运行时；保留浏览器的H5渠道通常能复用更多现有界面，仍需按渠道SDK、资源路径、包体和审核规则检查。其他游戏也应按同样方式评估，不能用代表样本保证全部兼容。`docs/architecture/bilibili-shell.md` 仍主要描述修仙一款，当前实际构建已是四款；以本次源码和制品检查为准。
-
 ## 建议执行顺序：企业主体、广告优先
 
-1. 选择三分钟修仙或秋声斗蟋一款，取得微信/B站应用身份与该款资质清单，完成单款构建、真机操作、存档、广告完整观看/提前关闭/失败和前后台恢复。先取得可发行样本，再估算后续游戏的实际成本。
 2. 用相同单款流程覆盖已有四款Canvas游戏。复用现有Game Host和Canvas目标；每个平台的宿主负责SDK与必接能力，游戏负责自己的渲染与玩法。不先建设覆盖所有未知渠道的通用发布系统。
 3. 扩展抖音、快手；支付宝、QQ先核实后台当前准入和广告权限；快游戏联盟按统一链路单独验证，华为另行确认发行形态与资质。
 4. 保留H5线，联系4399，按需要评估芒果TV及海外CrazyGames/GamePix。Poki有独占冲突，不作为默认全渠道同步发行对象。

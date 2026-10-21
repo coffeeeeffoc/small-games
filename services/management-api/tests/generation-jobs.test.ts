@@ -1,12 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { createService } from '@coffeeeeffoc/service-kit';
-import {
-  defaultCultivationEnvelope,
-  normalizeCultivationContent,
-} from '@coffeeeeffoc/game-cultivation/content';
-import cultivationManifestJson from '@coffeeeeffoc/game-cultivation/manifest' with { type: 'json' };
-import { gameManifestSchema } from '@coffeeeeffoc/game-contract';
+import { fixtureEnvelope, fixtureTarget as target } from './content.fixture.js';
 import {
   initializeOperator,
   registerAuthentication,
@@ -20,18 +15,15 @@ import {
 import { memoryAuthStore } from './auth.fixture.js';
 
 const origin = 'http://127.0.0.1:5174';
-const target = {
-  manifest: gameManifestSchema.parse(cultivationManifestJson),
-  validate: normalizeCultivationContent,
-};
 let app: ReturnType<typeof createService>;
 let headers: { origin: string; cookie: string };
+let auth: ReturnType<typeof memoryAuthStore>;
 let jobs: Map<string, GenerationJob>;
 let drafts: Map<string, ContentDraft>;
 let store: GenerationJobStore;
 
 beforeEach(async () => {
-  const auth = memoryAuthStore();
+  auth = memoryAuthStore();
   await initializeOperator(auth, 'creator', 'generation-password');
   jobs = new Map();
   drafts = new Map();
@@ -96,11 +88,11 @@ it('queues, lists, and retries persisted attempts without exposing provider cred
     method: 'POST',
     url: '/api/generation-jobs',
     headers,
-    payload: { input: '生成三个修仙事件' },
+    payload: { input: '生成三个测试关卡' },
   });
   expect(created.statusCode).toBe(202);
   const first = created.json<GenerationJob>();
-  expect(first).toMatchObject({ status: 'queued', attempt: 1, input: '生成三个修仙事件' });
+  expect(first).toMatchObject({ status: 'queued', attempt: 1, input: '生成三个测试关卡' });
   expect(first.inputHash).toBe(createHash('sha256').update(first.input).digest('hex'));
   expect(JSON.stringify(first)).not.toContain('API_KEY');
   await store.fail(first.id, { model: 'test-model', error: 'temporary', disposition: 'failed' });
@@ -115,7 +107,7 @@ it('queues, lists, and retries persisted attempts without exposing provider cred
 });
 
 it('validates provider output before atomically creating a previewable draft', async () => {
-  const valid = structuredClone(defaultCultivationEnvelope);
+  const valid = structuredClone(fixtureEnvelope);
   const provider: AiProvider = {
     model: 'fake-1',
     generate: vi.fn(async () => ({ output: valid })),
@@ -123,8 +115,8 @@ it('validates provider output before atomically creating a previewable draft', a
   const job: GenerationJob = {
     id: randomUUID(),
     operatorId: randomUUID(),
-    gameId: 'cultivation',
-    schemaVersion: defaultCultivationEnvelope.schemaVersion,
+    gameId: 'fixture-game',
+    schemaVersion: fixtureEnvelope.schemaVersion,
     input: '有效内容',
     inputHash: createHash('sha256').update('有效内容').digest('hex'),
     attempt: 1,
@@ -153,8 +145,8 @@ it('records invalid output and creates no draft', async () => {
   const job: GenerationJob = {
     id: randomUUID(),
     operatorId: randomUUID(),
-    gameId: 'cultivation',
-    schemaVersion: defaultCultivationEnvelope.schemaVersion,
+    gameId: 'fixture-game',
+    schemaVersion: fixtureEnvelope.schemaVersion,
     input: '坏内容',
     inputHash: createHash('sha256').update('坏内容').digest('hex'),
     attempt: 1,
@@ -170,4 +162,25 @@ it('records invalid output and creates no draft', async () => {
     validationResult: { success: false },
   });
   expect(drafts.size).toBe(0);
+});
+
+it('rejects queueing or retrying content without an installed target', async () => {
+  const unconfigured = createService('management', {}, false);
+  await registerAuthentication(unconfigured, auth, origin);
+  await registerGenerationJobs(unconfigured, auth, store, origin);
+  try {
+    for (const url of ['/api/generation-jobs', `/api/generation-jobs/${randomUUID()}/retry`]) {
+      const result = await unconfigured.inject({
+        method: 'POST',
+        url,
+        headers,
+        payload: { input: 'test' },
+      });
+      expect(result.statusCode).toBe(503);
+      expect(result.json()).toEqual({ error: 'CONTENT_TARGET_NOT_CONFIGURED' });
+    }
+    expect(jobs.size).toBe(0);
+  } finally {
+    await unconfigured.close();
+  }
 });
