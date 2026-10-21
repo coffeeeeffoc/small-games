@@ -1,4 +1,4 @@
-import{c as es}from"./index-CKa4a4GH.js";/**
+import{c as es}from"./index-CbYMg3E5.js";/**
  * @license
  * Copyright 2010-2024 Three.js Authors
  * SPDX-License-Identifier: MIT

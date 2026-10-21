@@ -1,4 +1,4 @@
-globalThis.__COMPETITION_CONFIG__ = Object.assign({"platform":"h5","appId":"","apiUrl":""}, globalThis.__COMPETITION_CONFIG__ || {});
+globalThis.__COMPETITION_CONFIG__ = Object.assign({"game":"carding-car","platform":"h5","appId":"","apiUrl":""}, globalThis.__COMPETITION_CONFIG__ || {});
 // Classic script: browser and native producers embed the same authenticated identity client.
 (() => {
   const root = globalThis;

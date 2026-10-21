@@ -88,7 +88,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
 .clue-card:has(#meaning-details:not([hidden])) { height: 142px; min-height: 142px; max-height: 142px; }
 .clue-body p { display: none; margin-top: 8px; font-size: 12px; line-height: 1.5; color: #819079; }
 #switch-word { position: absolute; right: 10px; top: 36px; min-height: 44px; padding: 0 12px; background: #eaf0df; color: var(--ink); font-size: 13px; border-radius: 13px; }
-#meaning-details { position: absolute; right: 12px; bottom: 4px; min-height: 32px; color: #597152; font-size: 12px; }
+#meaning-details { position: absolute; right: 12px; bottom: 4px; min-height: 44px; color: #597152; font-size: 12px; }
 .clue-bottom { margin-top: 8px; color: #819079; font-size: 11px; line-height: 1.5; }
 .clue-body p:not([hidden]) + .clue-bottom { margin-top: 0; }
 .clue-spark, .board-heading, .scene-label, .gentle-note, #word-list-home { display: none; }
