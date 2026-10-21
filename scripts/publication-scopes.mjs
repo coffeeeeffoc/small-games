@@ -62,8 +62,8 @@ export const mergeCreatorIntegrationHashes = Object.freeze({
     '66a660486b89310d99115babec194df529b3f362814e43acd05645c55abb7397',
   ],
   'apps/shell-web/scripts/standalone-game-checks.mjs': [
-    '895deb1ad37dd28850139cfefd23d6178813a40e2d3dca0670bf9a1bc74fd65d',
-    '9efdd56f9232baf58dda48972f8f4132a0a0bece91f35b00810fe8471dc8eb2b',
+    '2d44211054098f6446474773aafc241438fb37c85ce1f4ec61c8b58b3cb3f764',
+    '446d0917a29f714b34e437721cee961390fefba16fb0e3012b99a6ce10911b39',
   ],
   'apps/shell-web/scripts/pages-host-smoke.mjs': [
     '30b47a586c2ad818a8b86465bd1f98390389cd61ec2eb5cd49fe5cafebcc5ebd',
@@ -1670,6 +1670,25 @@ function tianxiaWiringOnly(file, before, after) {
   } catch {
     return false;
   }
+}
+function exactHomeboundReadyGuard(before, after) {
+  // The exported diagnostic API exists only after Creator starts the scene.
+  // Bind this readiness assertion to the reviewed complete file, preserving every gameplay check.
+  const previous = before.replaceAll('\r\n', '\n');
+  const current = after.replaceAll('\r\n', '\n');
+  const anchor = "  } else if (id === 'homebound-station') {\n";
+  return (
+    createHash('sha256').update(previous).digest('hex') ===
+      '895deb1ad37dd28850139cfefd23d6178813a40e2d3dca0670bf9a1bc74fd65d' &&
+    current ===
+      previous.replace(
+        anchor,
+        anchor +
+          "    await expect(frame.locator('body')).toHaveAttribute('data-homebound-ready', 'true', {\n" +
+          '      timeout: 60_000,\n' +
+          '    });\n',
+      )
+  );
 }
 function exactOrbitBoundsGuard(before, after) {
   // Only the reviewed masked-SVG offset fix; all input and behavior assertions stay fixed.
@@ -3384,6 +3403,17 @@ export function reviewedSharedFileScopes({
         }
         assert(threeChooseTwoBackendFileScope(file, before, readHead(file)));
         scopes.set(file, ['games/local/three-choose-two', 'services/runtime-api']);
+      } else if (
+        file === standaloneChecksFile &&
+        exactHomeboundReadyGuard(readBase(file), readHead(file))
+      ) {
+        assert(
+          games.filter(
+            (game) =>
+              game.id === 'homebound-station' && game.source === 'games/local/homebound-station',
+          ).length === 1,
+        );
+        scopes.set(file, ['games/local/homebound-station']);
       } else if (
         file === standaloneChecksFile &&
         exactOrbitBoundsGuard(readBase(file), readHead(file))
