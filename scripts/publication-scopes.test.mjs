@@ -53,7 +53,7 @@ import { executeCompetitionChecks } from './run-selected-competition.mjs';
 import { shellContractTargets, shellContractFiles, requiresCocos } from './validation-plan.mjs';
 import { ingressPreflightGuard } from './competition-ingress.mjs';
 
-const tianxiaBase = '4224be0a1a3c9c108e34c39d996642765cfdca54';
+const tianxiaBase = 'd4a677542c5a034c4fef21798845dbf16e5bcfdd';
 const tianxiaSource = 'games/local/tianxia-chalu';
 const tianxiaWiring = [
   '.github/workflows/carding-car.yml',
