@@ -143,7 +143,10 @@ export class StationGame extends Component {
   private changePage(page: Page) {
     if (this.page === 'ad' && page !== 'ad') this.gate.cancel(this.platform.ads);
     this.page = page;
-    this.platform.display(!['home', 'levels', 'settings', 'help'].includes(page));
+    this.platform.display(
+      !['home', 'levels', 'settings', 'help'].includes(page),
+      page === 'levels',
+    );
     this.state.paused = page !== 'playing' || this.hidden;
     this.clear();
     this.hud.invalidate();

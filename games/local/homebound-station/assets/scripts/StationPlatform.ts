@@ -4,6 +4,7 @@ const KEY = 'homebound-station.progress.v2';
 type Bridge = typeof globalThis & {
   SmallGamesDev?: {
     isEnabled(): boolean;
+    setPanelHidden?(value: boolean): void;
     registerActions?(actions: { id: string; label: string; run: () => void }[]): () => void;
   };
   SmallGamesRewardAds?: RewardProvider;
@@ -54,7 +55,8 @@ export class StationPlatform {
       });
     }
   }
-  display(playing: boolean) {
+  display(playing: boolean, levelSelection = false) {
+    (globalThis as Bridge).SmallGamesDev?.setPanelHidden?.(levelSelection);
     if (!sys.isBrowser || window.parent === window) return;
     try {
       window.parent.postMessage(

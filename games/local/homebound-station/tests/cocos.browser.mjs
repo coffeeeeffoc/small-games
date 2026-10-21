@@ -251,6 +251,15 @@ try {
       assert.ok(x.w >= 44 && x.h >= 44);
       assert.ok(x.x >= 0 && x.y >= 0 && x.x + x.w <= width + 1 && x.y + x.h <= height + 1);
     }
+    if (width === 320) {
+      await tap('chapter:4');
+      assert.equal(
+        (await screen()).chapter,
+        4,
+        'The developer launcher must not cover chapter five.',
+      );
+      await tap('chapter:9');
+    }
     await shot(`levels-${width}`);
   }
   assert.equal(
