@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 import { canDispatch } from '../assets/scripts/core/simulation.ts';
+import { sourceHash } from '../scripts/artifact.mjs';
 const root = path.resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
 const out = fileURLToPath(
   new URL(
@@ -21,6 +22,11 @@ if (!existsSync(path.join(root, 'build-info.json')))
   );
 const info = JSON.parse(await readFile(path.join(root, 'build-info.json'), 'utf8'));
 assert.equal(info.creator, '3.8.8');
+assert.equal(
+  info.sourceHash,
+  await sourceHash(),
+  'Browser verification requires the current Creator source fingerprint.',
+);
 await mkdir(out, { recursive: true });
 const mime = {
   '.html': 'text/html; charset=utf-8',
@@ -93,6 +99,9 @@ const tap = async (id) => {
   );
   const b = (await screen()).buttons.find((b) => b.id === id);
   await page.touchscreen.tap(b.x + b.w / 2, b.y + b.h / 2);
+  await page.evaluate(
+    () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+  );
 };
 const shot = async (name) => page.screenshot({ path: path.join(out, name + '.png') });
 const fixture = async (status) =>
