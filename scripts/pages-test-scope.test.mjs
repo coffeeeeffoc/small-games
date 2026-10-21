@@ -1312,7 +1312,8 @@ test('actual dcf to e48 selects twenty active native targets and two H5 navigati
   assert.equal(result.diff_base, base);
   assert.equal(result.diff_head, head);
   assert.equal(result.full, false);
-  assert.equal(result.cocos, false);
+  // Current Shell metadata consumes Tianxia's emitted dist, now built by Creator.
+  assert.equal(result.cocos, true);
   assert.deepEqual(result.browser_ids, ['letters-words2', 'xiangqi-five']);
   assert.deepEqual(
     result.nine_native_targets.map(({ game, platform }) => `${game}:${platform}`).sort(),
