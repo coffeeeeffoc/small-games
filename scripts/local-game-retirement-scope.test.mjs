@@ -82,7 +82,11 @@ test('production review binds current file bytes, retained consumers and unforge
   const retired = Object.keys(localRetirementTrees)[0] + '/package.json';
   const readHead = (file) => readFileSync(root + file, 'utf8');
   const context = {
-    changedPaths: [retired, ...Object.keys(localRetirementReviews)],
+    changedPaths: [
+      retired,
+      'games/local/game-cricket/public/cricket-audio/perfect.wav',
+      ...Object.keys(localRetirementReviews),
+    ],
     readBase: (file) => git('show', `${localRetirementBase}:${file}`),
     readBaseEntry: (file) => git('--literal-pathspecs', 'ls-tree', localRetirementBase, '--', file),
     readHead,
@@ -105,6 +109,19 @@ test('production review binds current file bytes, retained consumers and unforge
     false,
   );
   const audio = 'platforms/competition/assets/action.wav';
+  const originalAudio = 'games/local/game-cricket/public/cricket-audio/perfect.wav';
+  assert.equal(
+    isReviewedLocalRetirementDeletion({ status: 'R100', paths: [originalAudio, audio] }, scopes),
+    true,
+  );
+  assert.equal(
+    isReviewedLocalRetirementDeletion({ status: 'R90', paths: [originalAudio, audio] }, scopes),
+    false,
+  );
+  assert.equal(
+    isReviewedLocalRetirementDeletion({ status: 'R100', paths: [retired, audio] }, scopes),
+    false,
+  );
   assert.equal(
     localRetirementFileScopes({ ...context, readHeadEntry: () => 'different blob' }).size,
     0,

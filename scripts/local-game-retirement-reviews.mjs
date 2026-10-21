@@ -60,6 +60,11 @@ export const localRetirementReviews = Object.freeze({
     after: '26223cf649a2c2eba9a7f3048b7715ba7237d9e1546698a20b272442f6367e28',
     sources: ['apps/shell-web'],
   },
+  'apps/shell-web/scripts/catalog-rollout-smoke.mjs': {
+    before: '8c960e90de3bb937d03a933b1ea6c6822548c5045e1b22935b4fdbed3302f86c',
+    after: '7b596aef11323bc220cc64ea7052463b7ab356da07caa3960ce595b768e72cf4',
+    sources: ['apps/shell-web'],
+  },
   'apps/shell-web/scripts/game-meta-smoke.mjs': {
     before: 'abd8d859280bf5f5e3654f6e37c5ad461e40130f291336793be172694f1ff5b0',
     after: 'ede49bc2d8ac556d83158dc4ff423c741e8736db2353ce4dc7b7e736b0a9f50b',
@@ -281,6 +286,7 @@ export const localRetirementReviews = Object.freeze({
     sources: [],
     afterEntry:
       '100644 blob 93d1978b99333a0cfdb9781ea2c79432d625b8de\tplatforms/competition/assets/action.wav\n',
+    movedFrom: 'games/local/game-cricket/public/cricket-audio/perfect.wav',
   },
   'pnpm-lock.yaml': {
     before: '39b5be38d1b6e2b421a7cbf88a3e954db69ef4bef397b82d2a3a9a9324bcc9e9',

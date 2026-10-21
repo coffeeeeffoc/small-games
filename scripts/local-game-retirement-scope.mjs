@@ -24,6 +24,12 @@ export function localRetirementScopesForReview(context, trees, reviews) {
     for (const [file, review] of Object.entries(reviews)) {
       if (review.afterEntry && readHeadEntry(file) !== review.afterEntry) return scopes;
       if (
+        review.movedFrom &&
+        (!Object.keys(trees).some((root) => review.movedFrom.startsWith(root + '/')) ||
+          readBaseEntry(review.movedFrom).split('\t')[0] + '\t' + file + '\n' !== review.afterEntry)
+      )
+        return scopes;
+      if (
         review.before === null
           ? readBaseEntry(file) !== ''
           : digest(readBase(file)) !== review.before
@@ -50,7 +56,12 @@ export function localRetirementScopesForReview(context, trees, reviews) {
       const value = Object.freeze([...(review?.sources ?? [])]);
       scopes.set(file, value);
       if (trees === localRetirementTrees && reviews === localRetirementReviews)
-        proofs.set(value, { file, deleted: !!root || review.after === null, after: review?.after });
+        proofs.set(value, {
+          file,
+          deleted: !!root || review.after === null,
+          after: review?.after,
+          movedFrom: review?.movedFrom,
+        });
     }
   } catch {
     return new Map();
@@ -76,5 +87,16 @@ export function hasLocalRetirementFileProof(file, value, readSource) {
 export function isReviewedLocalRetirementDeletion(change, scopes) {
   if (change.status === 'D' && change.paths.length === 1)
     return hasLocalRetirementDeletionProof(change.paths[0], scopes.get(change.paths[0]));
+  if (change.status === 'R100' && change.paths.length === 2) {
+    const [before, after] = change.paths;
+    const destination = proofs.get(scopes.get(after));
+    return (
+      hasLocalRetirementDeletionProof(before, scopes.get(before)) &&
+      !!destination &&
+      !destination.deleted &&
+      destination.file === after &&
+      destination.movedFrom === before
+    );
+  }
   return false;
 }
