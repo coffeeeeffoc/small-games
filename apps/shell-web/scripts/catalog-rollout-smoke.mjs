@@ -54,9 +54,9 @@ try {
     assert.deepEqual(await ids(), data.games.map((game) => game.id).sort());
     for (const [schedule, label, count] of [
       ['previous', '上轮已改造', 7],
-      ['current', '本轮改造', 13],
+      ['current', '本轮改造', 14],
       ['later', '有潜力 · 后续改造', 20],
-      ['hold', '暂缓投入', 3],
+      ['hold', '暂缓投入', 2],
     ]) {
       await activate(tab(label));
       await expect(articles).toHaveCount(count);
@@ -83,8 +83,8 @@ try {
     }
     await activate(tab('全部游戏'));
     await activate(page.locator('.catalog-facet').getByRole('button', { name: /^有潜力/ }));
-    await expect(articles).toHaveCount(40);
-    await expect(tab('暂缓投入')).toContainText('0 / 3');
+    await expect(articles).toHaveCount(41);
+    await expect(tab('暂缓投入')).toContainText('0 / 2');
     await activate(tab('清空筛选'));
     await activate(tab('全部游戏'));
     await activate(page.locator('.catalog-facet').getByRole('button', { name: /^毫无潜力/ }));
@@ -93,13 +93,13 @@ try {
     await activate(tab('清空筛选'));
     await activate(tab('本轮改造'));
     await activate(page.locator('.catalog-facet').getByRole('button', { name: /^移动端小游戏/ }));
-    await expect(articles).toHaveCount(11);
-    await expect(tab('本轮改造')).toContainText('11 / 13');
+    await expect(articles).toHaveCount(12);
+    await expect(tab('本轮改造')).toContainText('12 / 14');
     await activate(page.getByRole('button', { name: '详情卡片', exact: true }));
     const selectedIds = await ids();
     const savedUrl = page.url();
     await page.reload();
-    await expect(articles).toHaveCount(11);
+    await expect(articles).toHaveCount(12);
     assert.deepEqual(await ids(), selectedIds);
     assert.equal(new URL(page.url()).searchParams.get('catalogTab'), 'current');
     assert.equal(new URL(page.url()).searchParams.get('catalog_platforms'), 'mobile');
@@ -117,12 +117,12 @@ try {
     await activate(chase.getByRole('link', { name: '进入游戏', exact: true }));
     await expect(page.frameLocator('iframe').getByText('目录往返导航验证')).toBeVisible();
     await activate(page.getByRole('button', { name: '返回目录', exact: true }));
-    await expect(articles).toHaveCount(11);
+    await expect(articles).toHaveCount(12);
     assert.deepEqual(await ids(), selectedIds);
     await page.goBack(); // Return to the game entry in browser history.
     await expect(page.locator('iframe')).toHaveCount(1);
     await page.goBack(); // Return to the filtered catalog before launch.
-    await expect(articles).toHaveCount(11);
+    await expect(articles).toHaveCount(12);
     assert.deepEqual(await ids(), selectedIds);
     assert.equal(page.url(), savedUrl);
     assert(
@@ -160,12 +160,12 @@ try {
       width,
       input: touch ? 'Chromium touch emulation' : 'mouse',
       all: 43,
-      potential: 40,
+      potential: 41,
       previous: 7,
-      current: 13,
+      current: 14,
       later: 20,
-      hold: 3,
-      mobileCurrent: 11,
+      hold: 2,
+      mobileCurrent: 12,
       checks: [
         'all exact IDs',
         'exclusive schedule groups',

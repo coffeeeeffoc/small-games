@@ -40,6 +40,7 @@ it.each([
   'cage-rescue',
   'chase-thief',
   'orbit-atelier',
+  'merge-front',
   'ink-is-everything',
   'ball-roguelite',
   'flick-arena',
@@ -170,12 +171,12 @@ it('keeps other games navigation and sharing controls after an ink display messa
   try {
     await send(displayState());
     await act(async () =>
-      root.render(<StandaloneGame id="merge-front" title="神机合阵" onExit={exit} />),
+      root.render(<StandaloneGame id="night-overwatch" title="夜航守望" onExit={exit} />),
     );
     expect(container.querySelector('main')?.hasAttribute('data-immersive')).toBe(false);
     const nav = container.querySelector('nav')!;
     expect(nav.hidden).toBe(false);
-    expect(nav.querySelector('strong')?.textContent).toBe('神机合阵');
+    expect(nav.querySelector('strong')?.textContent).toBe('夜航守望');
     expect(nav.querySelector('[data-game-fullscreen]')).not.toBeNull();
     expect(nav.querySelector('a')?.textContent).toBe('独立打开');
     expect(

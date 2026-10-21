@@ -13,9 +13,9 @@ import {
   rolloutGroups,
 } from '../src/catalog-assessments.js';
 
-const heldIds = ['merge-front', 'chase-thief', 'retreat-rally'];
+const heldIds = ['chase-thief', 'retreat-rally'];
 
-it('covers every registered and on-disk Game once and preserves all 3 user decisions', () => {
+it('covers every registered and on-disk Game once and preserves the two remaining hold decisions and resumed Merge Front', () => {
   const ids = [...builtInGameRegistry, ...standalone].map((g) => g.id).sort();
   expect(ids).toHaveLength(43);
   expect(assessmentData.games.map((g) => g.id).sort()).toEqual(ids);
@@ -55,11 +55,11 @@ it('covers every registered and on-disk Game once and preserves all 3 user decis
   expect(assessments['travel-bund'].disposition).toBe('potential');
 });
 
-it('exhaustively partitions 43 games into 7 previous, 13 current, 20 later and 3 held with the latest user decisions', () => {
+it('exhaustively partitions 43 games into 7 previous, 14 current, 20 later and 2 held with the latest user decisions', () => {
   const games = Object.values(assessments);
   const scheduled = rolloutGroups.flatMap(([tab]) => {
     const matches = games.filter((game) => matchesAssessment(game, { ...emptyFilters(), tab }));
-    expect(matches).toHaveLength({ previous: 7, current: 13, later: 20, hold: 3 }[tab]);
+    expect(matches).toHaveLength({ previous: 7, current: 14, later: 20, hold: 2 }[tab]);
     return matches.map((game) => game.id);
   });
   expect(scheduled.sort()).toEqual(games.map((game) => game.id).sort());
@@ -68,14 +68,14 @@ it('exhaustively partitions 43 games into 7 previous, 13 current, 20 later and 3
     games.filter((game) =>
       matchesAssessment(game, { ...emptyFilters(), potential: ['potential'] }),
     ),
-  ).toHaveLength(40);
+  ).toHaveLength(41);
   expect(
     games
       .filter((game) => game.schedule === 'current')
       .map((game) => game.id)
       .sort(),
   ).toEqual(
-    'ashfall-front tiny-signals orbit-atelier letters-words2 wulong-city surprise-kept homebound-station waterline-station rescue-team tianxia-chalu out-of-frame fold-the-world two-sided-box'
+    'merge-front ashfall-front tiny-signals orbit-atelier letters-words2 wulong-city surprise-kept homebound-station waterline-station rescue-team tianxia-chalu out-of-frame fold-the-world two-sided-box'
       .split(' ')
       .sort(),
   );
@@ -99,10 +99,10 @@ it('combines OR selections inside facets with AND across facets and tabs', () =>
   expect(matchesAssessment(assessments['carding-car'], filters)).toBe(true);
   expect(matchesAssessment(assessments['cage-rescue'], filters)).toBe(false);
   expect(matchesAssessment(assessments['carding-car'], { ...filters, tab: 'hold' })).toBe(false);
-  expect(matchesAssessment(assessments['merge-front'], { ...filters, tab: 'hold' })).toBe(true);
+  expect(matchesAssessment(assessments['merge-front'], { ...filters, tab: 'hold' })).toBe(false);
   expect(
     matchesAssessment(assessments['merge-front'], { ...filters, potential: ['potential'] }),
-  ).toBe(false);
+  ).toBe(true);
 });
 
 it('round-trips filters without losing unrelated parameters or game routes', () => {

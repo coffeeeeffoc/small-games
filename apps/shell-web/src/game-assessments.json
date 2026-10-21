@@ -368,11 +368,18 @@
       "schedule": "current",
       "implementationStatus": "implemented",
       "scheduleReason": "按本次用户要求重构为 Cocos 移动端合成出兵；完成 Web 验证后继续安排真机与对战接入。",
-      "strengths": ["拼字唤将、合成与攻防有多层组合"],
-      "weaknesses": ["拼字、养成、布阵三套规则竞争注意力，爽点不集中"],
+      "strengths": ["残字拼装与扩军、升级形成取舍，双方自由行军攻晶"],
+      "weaknesses": ["真机表现、真人难度和联机平衡尚待验证"],
       "improvements": ["通过真机试玩校准抽字节奏与关卡难度，再接权威服务器对战"],
-      "evidence": ["games/local/merge-front/README.md"],
-      "delivered": []
+      "evidence": [
+        "games/local/merge-front/README.md",
+        "games/local/merge-front/docs/design/cocos-2026-10-22/validation/README.md"
+      ],
+      "delivered": [
+        "Cocos移动端完整页面、六章30关与16种配方",
+        "同规则AI、自由移动战斗、无封顶等级累加",
+        "可选激励助力、断局恢复与真实触屏回归"
+      ]
     },
     {
       "id": "xiangqi-five",

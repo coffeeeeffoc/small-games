@@ -77,6 +77,10 @@ export const mergeCreatorIntegrationHashes = Object.freeze({
     'ed4397135869b47ec8e031a7c603a85336f024b58184edc2b7cb18af5bf67724',
     '44a2bb44d79998cea3e2750d72726e04ef6c2a5e095ad4d491f3a5143f432f06',
   ],
+  'apps/shell-web/scripts/pages-smoke.mjs': [
+    'f1a1a2295772498305b5766d530aa55e774887333b76029de951033bae9b4424',
+    '6bc6598846c67d8bb86e398d88b49a075c94ace61d8e8ed78bcd48a856c0cad6',
+  ],
 });
 export function mergeCreatorIntegrationFileScope(file, before, after) {
   const pair = mergeCreatorIntegrationHashes[file];
