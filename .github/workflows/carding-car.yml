@@ -45,9 +45,19 @@ jobs:
           path: .scratch/ci-cocos/night-overwatch
           run-id: ${{ steps.producer.outputs.run_id }}
           github-token: ${{ github.token }}
-      - name: Verify both downloaded artifacts or rebuild
+      - name: Download CI orbit-atelier artifact
+        id: orbit
+        if: steps.producer.outputs.run_id != ''
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: orbit-atelier-${{ github.sha }}
+          path: .scratch/ci-cocos/orbit-atelier
+          run-id: ${{ steps.producer.outputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Verify all downloaded artifacts or rebuild
         id: verify
-        if: steps.kart.outcome == 'success' && steps.night.outcome == 'success'
+        if: steps.kart.outcome == 'success' && steps.night.outcome == 'success' && steps.orbit.outcome == 'success'
         continue-on-error: true
         env:
           PRODUCER_RUN_ID: ${{ steps.producer.outputs.run_id }}
@@ -55,6 +65,7 @@ jobs:
         run: |
           node scripts/reuse-cocos-artifacts.mjs verify carding-car .scratch/ci-cocos/carding-car
           node scripts/reuse-cocos-artifacts.mjs verify night-overwatch .scratch/ci-cocos/night-overwatch
+          node scripts/reuse-cocos-artifacts.mjs verify orbit-atelier .scratch/ci-cocos/orbit-atelier
       - uses: actions/upload-artifact@v7
         if: steps.verify.outcome == 'success'
         with:
@@ -67,13 +78,19 @@ jobs:
           name: night-overwatch-${{ github.sha }}
           path: .scratch/ci-cocos/night-overwatch
           if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: steps.verify.outcome == 'success'
+        with:
+          name: orbit-atelier-${{ github.sha }}
+          path: .scratch/ci-cocos/orbit-atelier
+          if-no-files-found: error
   creator:
     needs: reuse
     if: always() && !cancelled() && (needs.reuse.result == 'skipped' || (needs.reuse.result == 'success' && needs.reuse.outputs.available != 'true'))
     strategy:
       fail-fast: false
       matrix:
-        game: [carding-car, night-overwatch]
+        game: [carding-car, night-overwatch, orbit-atelier]
     runs-on: windows-latest
     timeout-minutes: 25
     steps:
@@ -125,6 +142,7 @@ jobs:
         env:
           KART_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/carding-car', github.workspace) || '' }}
           NIGHT_OVERWATCH_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/night-overwatch', github.workspace) || '' }}
+          ORBIT_ATELIER_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/orbit-atelier', github.workspace) || '' }}
       - run: pnpm --filter @coffeeeeffoc/${{ matrix.game }} test
       - run: pnpm --filter @coffeeeeffoc/${{ matrix.game }} build
         if: steps.artifact.outputs.cache-hit != 'true'

@@ -23,9 +23,17 @@ const jobs = games.map((game) => ({
   status: 'completed',
   conclusion: 'success',
 }));
-test('reuse waits only for both successful producer gates, not downstream CI', () => {
+test('reuse waits only for all successful producer gates, not downstream CI', () => {
   assert.equal(inspectProducer(run, jobs, expected), 'ready');
   assert.equal(inspectProducer(run, jobs.slice(0, 1), expected), 'waiting');
+  assert.equal(
+    inspectProducer(
+      run,
+      jobs.filter((job) => !job.name.includes('orbit-atelier')),
+      expected,
+    ),
+    'waiting',
+  );
   for (const conclusion of ['failure', 'cancelled', 'skipped', 'timed_out'])
     assert.throws(
       () => inspectProducer(run, [{ ...jobs[0], conclusion }], expected),
@@ -124,4 +132,29 @@ test('CI is the sole producer direction and fallback retains original gates', as
       (step) => step.run?.includes('verify carding-car') && step['continue-on-error'] === true,
     ),
   );
+});
+
+test('all three downloaded artifacts must verify before reuse publishes any of them', async () => {
+  const producer = yaml.load(
+    await readFile(new URL('../.github/workflows/carding-car.yml', import.meta.url), 'utf8'),
+  );
+  const steps = producer.jobs.reuse.steps;
+  const verify = steps.find((step) => step.id === 'verify');
+  for (const [game, id] of [
+    ['carding-car', 'kart'],
+    ['night-overwatch', 'night'],
+    ['orbit-atelier', 'orbit'],
+  ]) {
+    assert(verify.if.includes(`steps.${id}.outcome == 'success'`));
+    assert(verify.run.includes(`verify ${game} .scratch/ci-cocos/${game}`));
+    const download = steps.find((step) => step.id === id);
+    assert.equal(download.with.name, game + '-${{ github.sha }}');
+    const upload = steps.find(
+      (step) =>
+        step.uses?.startsWith('actions/upload-artifact@') &&
+        step.with.name === game + '-${{ github.sha }}',
+    );
+    assert.equal(upload.if, "steps.verify.outcome == 'success'");
+    assert.equal(upload.with.path, `.scratch/ci-cocos/${game}`);
+  }
 });

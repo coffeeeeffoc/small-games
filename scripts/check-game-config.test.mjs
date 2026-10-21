@@ -150,27 +150,34 @@ test('Shell Vitest discovery includes every application test and excludes Node s
   assert.deepEqual(actual, expected);
 });
 
-test('all Cocos consumers download both source-verified artifacts and pass them through Turbo', async () => {
+test('all Cocos consumers download every source-verified artifact and pass them through Turbo', async () => {
   const read = async (name) => yaml.load(await readFile(path.join(repo, name), 'utf8'));
+  const games = [
+    ['carding-car', 'KART_PREBUILT_DIR'],
+    ['night-overwatch', 'NIGHT_OVERWATCH_PREBUILT_DIR'],
+    ['orbit-atelier', 'ORBIT_ATELIER_PREBUILT_DIR'],
+  ];
   const producer = await read('.github/workflows/carding-car.yml');
-  assert.deepEqual(producer.jobs.creator.strategy.matrix.game, ['carding-car', 'night-overwatch']);
+  assert.deepEqual(
+    producer.jobs.creator.strategy.matrix.game,
+    games.map(([game]) => game),
+  );
   const turbo = await read('turbo.json');
-  for (const variable of ['KART_PREBUILT_DIR', 'NIGHT_OVERWATCH_PREBUILT_DIR'])
-    assert(turbo.globalPassThroughEnv.includes(variable));
+  for (const [, variable] of games) assert(turbo.globalPassThroughEnv.includes(variable));
   for (const workflow of ['ci', 'pages-validate', 'mobile']) {
     const config = await read(`.github/workflows/${workflow}.yml`);
     const consumers = Object.values(config.jobs).filter((job) => job.env?.KART_PREBUILT_DIR);
     assert(consumers.length > 0, `${workflow} must consume the verified Cocos artifacts`);
     for (const job of consumers) {
-      assert.equal(
-        job.env.NIGHT_OVERWATCH_PREBUILT_DIR,
-        '${{ github.workspace }}/games/local/night-overwatch/.prebuilt',
-      );
-      const download = job.steps.find(
-        (step) => step.with?.name === 'night-overwatch-${{ github.sha }}',
-      );
-      assert(download?.uses.startsWith('actions/download-artifact@'), workflow);
-      assert.equal(download.with.path, 'games/local/night-overwatch/.prebuilt');
+      for (const [game, variable] of games) {
+        assert.equal(
+          job.env[variable],
+          '${{ github.workspace }}/games/local/' + game + '/.prebuilt',
+        );
+        const download = job.steps.find((step) => step.with?.name === game + '-${{ github.sha }}');
+        assert(download?.uses.startsWith('actions/download-artifact@'), workflow);
+        assert.equal(download.with.path, 'games/local/' + game + '/.prebuilt');
+      }
     }
   }
 });

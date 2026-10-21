@@ -5,6 +5,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
   reviewedSharedFileScopes,
+  orbitCreatorIntegrationFileScope,
   competitionConsumers,
   competitionToolPlan,
   competitionServiceScopePaths,
@@ -3819,7 +3820,11 @@ test('anonymous session migration and Pages service defaults admit only the revi
       ? execFileSync('git', ['show', '0459b0cb3c89a748f3a6bd252858951ba1ca073d:' + file], {
           encoding: 'utf8',
         })
-      : readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+      : file.startsWith('.github/')
+        ? execFileSync('git', ['show', 'f62716c317b391b89e78eec220abc053f874f981:' + file], {
+            encoding: 'utf8',
+          })
+        : readFileSync(new URL('../' + file, import.meta.url), 'utf8');
     const check = file.startsWith('.github/')
       ? anonymousPagesFileScope
       : playerSessionBackendFileScope;
@@ -3936,4 +3941,81 @@ test('planning expands only to the four locked game workspaces for both live pub
       assert.equal(classify(file, before + '\n', after).has(file), false);
       assert.equal(classify(file, after, before).has(file), false);
     }
+});
+
+test('Orbit Creator routing permits its exact new consumer and rejects altered existing gates', () => {
+  const file = '.github/workflows/ci.yml';
+  const env =
+    '      NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt\n';
+  const download =
+    "      - uses: actions/download-artifact@v8\n        if: needs.plan.outputs.cocos == 'true'\n        with:\n          name: night-overwatch-${{ github.sha }}\n          path: games/local/night-overwatch/.prebuilt\n";
+  const before = 'existing-gate\n' + env + download + 'existing-assertion\n';
+  const after = before
+    .replace(
+      env,
+      env +
+        env
+          .replaceAll('NIGHT_OVERWATCH', 'ORBIT_ATELIER')
+          .replaceAll('night-overwatch', 'orbit-atelier'),
+    )
+    .replace(download, download + download.replaceAll('night-overwatch', 'orbit-atelier'));
+  assert(orbitCreatorIntegrationFileScope(file, before, after));
+  for (const invalid of [
+    after.replace('existing-gate', 'skip-gate'),
+    after.replace('orbit-atelier/.prebuilt', 'other/.prebuilt'),
+    after + 'extra-command\n',
+    after.replace("if: needs.plan.outputs.cocos == 'true'", 'if: always()'),
+  ])
+    assert.equal(orbitCreatorIntegrationFileScope(file, before, invalid), false);
+  assert.equal(
+    orbitCreatorIntegrationFileScope('.github/workflows/unknown.yml', before, after),
+    false,
+  );
+});
+
+test('Orbit Creator Turbo routing retains every previous input and task', () => {
+  const before = {
+    globalPassThroughEnv: ['COCOS_CREATOR'],
+    tasks: { build: { dependsOn: ['^build'] } },
+  };
+  const after = structuredClone(before);
+  after.globalPassThroughEnv.push('ORBIT_ATELIER_PREBUILT_DIR');
+  after.tasks['@coffeeeeffoc/orbit-atelier#build'] = {
+    dependsOn: ['^build'],
+    outputs: ['dist/**'],
+    env: ['COCOS_CREATOR', 'ORBIT_ATELIER_PREBUILT_DIR'],
+    inputs: ['$TURBO_DEFAULT$', '$TURBO_ROOT$/games/local/orbit-atelier/.prebuilt/**'],
+  };
+  const accepts = () =>
+    orbitCreatorIntegrationFileScope('turbo.json', JSON.stringify(before), JSON.stringify(after));
+  assert(accepts());
+  after.tasks.build.dependsOn = [];
+  assert.equal(accepts(), false);
+});
+
+test('Orbit Cocos gameplay scope isolates the real exported branch without admitting other game changes', () => {
+  const file = 'apps/shell-web/scripts/standalone-game-checks.mjs';
+  const before =
+    "export async function assertStandaloneGameplay(frame, id) { if (id === 'orbit-atelier') { await oldOrbit(frame); } else if (id === 'other') { await keepOther(frame); } }";
+  const after = before.replace('await oldOrbit(frame);', 'await actualTouch(frame);');
+  assert(orbitCreatorIntegrationFileScope(file, before, after));
+  assert.equal(
+    orbitCreatorIntegrationFileScope(file, before, after.replace('keepOther', 'skipOther')),
+    false,
+  );
+  assert.equal(
+    orbitCreatorIntegrationFileScope(
+      file,
+      before,
+      after.replace("id === 'orbit-atelier'", "id === 'other'"),
+    ),
+    false,
+  );
+  assert.equal(orbitCreatorIntegrationFileScope(file, before, after + '\nrunUnrelated();'), false);
+  const nested =
+    "export async function assertStandaloneGameplay(frame, id) { async function nested() { if (id === 'orbit-atelier') { await oldOrbit(frame); } } }";
+  assert.equal(
+    orbitCreatorIntegrationFileScope(file, nested, nested.replace('oldOrbit', 'actualTouch')),
+    false,
+  );
 });

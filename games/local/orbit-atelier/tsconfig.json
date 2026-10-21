@@ -2,17 +2,20 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "moduleResolution": "bundler",
     "strict": true,
-    "noEmit": true,
     "skipLibCheck": true,
+    "noEmit": true,
+    "experimentalDecorators": true,
     "allowImportingTsExtensions": true,
-    "allowJs": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "types": ["vite/client"]
+    "types": [],
+    "lib": [
+      "ES2023",
+      "DOM"
+    ]
   },
-  "include": ["src", "dev-mode.d.ts", "vite.config.ts"],
-  "exclude": ["src/**/*.test.ts"]
+  "include": [
+    "assets/scripts/**/*.ts",
+    "reports/engine.d.ts"
+  ]
 }
