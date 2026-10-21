@@ -157,6 +157,7 @@ test('all Cocos consumers download every source-verified artifact and pass them 
     ['night-overwatch', 'NIGHT_OVERWATCH_PREBUILT_DIR'],
     ['orbit-atelier', 'ORBIT_ATELIER_PREBUILT_DIR'],
     ['tianxia-chalu', 'TIANXIA_PREBUILT_DIR'],
+    ['merge-front', 'MERGE_FRONT_PREBUILT_DIR'],
   ];
   const producer = await read('.github/workflows/carding-car.yml');
   assert.deepEqual(
@@ -165,12 +166,15 @@ test('all Cocos consumers download every source-verified artifact and pass them 
   );
   const turbo = await read('turbo.json');
   const typecheck = producer.jobs.creator.steps.find(
-    (step) => step.run === 'pnpm --filter @coffeeeeffoc/${{ matrix.game }} typecheck',
+    (step) => step.run === 'pnpm --dir games/local/${{ matrix.game }} run typecheck',
   );
   for (const [game, variable] of games) {
+    const manifest = JSON.parse(
+      await readFile(path.join(repo, 'games/local', game, 'package.json'), 'utf8'),
+    );
     assert(turbo.globalPassThroughEnv.includes(variable));
     assert(typecheck.env[variable].includes('/games/local/' + game));
-    assert(turbo.tasks['@coffeeeeffoc/' + game + '#build'].env.includes(variable));
+    assert(turbo.tasks[manifest.name + '#build'].env.includes(variable));
   }
   for (const workflow of ['ci', 'pages-validate', 'mobile']) {
     const config = await read(`.github/workflows/${workflow}.yml`);
