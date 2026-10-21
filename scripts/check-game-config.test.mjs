@@ -156,11 +156,15 @@ test('all Cocos consumers download every source-verified artifact and pass them 
     'carding-car': 'KART_PREBUILT_DIR',
     'night-overwatch': 'NIGHT_OVERWATCH_PREBUILT_DIR',
     'orbit-atelier': 'ORBIT_ATELIER_PREBUILT_DIR',
+    'tianxia-chalu': 'TIANXIA_PREBUILT_DIR',
     'homebound-station': 'HOMEBOUND_STATION_PREBUILT_DIR',
   };
   const producer = await read('.github/workflows/carding-car.yml');
   assert.deepEqual(producer.jobs.creator.strategy.matrix.game, Object.keys(artifacts));
   const turbo = await read('turbo.json');
+  const typecheck = producer.jobs.creator.steps.find(
+    (step) => step.run === 'pnpm --filter @coffeeeeffoc/${{ matrix.game }} typecheck',
+  );
   for (const [game, variable] of Object.entries(artifacts)) {
     assert(turbo.globalPassThroughEnv.includes(variable));
     assert(turbo.tasks[`@coffeeeeffoc/${game}#build`].env.includes(variable));
@@ -169,9 +173,7 @@ test('all Cocos consumers download every source-verified artifact and pass them 
         `$TURBO_ROOT$/games/local/${game}/.prebuilt/**`,
       ),
     );
-    assert(
-      producer.jobs.creator.steps.find((step) => step.run?.endsWith(' typecheck')).env[variable],
-    );
+    assert(typecheck.env[variable].includes('/games/local/' + game));
   }
   assert.equal(turbo.tasks['@coffeeeeffoc/homebound-station#build'].cache, false);
   for (const workflow of ['ci', 'pages-validate', 'mobile']) {
@@ -184,7 +186,15 @@ test('all Cocos consumers download every source-verified artifact and pass them 
           job.env[variable],
           '${{ github.workspace }}/games/local/' + game + '/.prebuilt',
         );
-        const download = job.steps.find((step) => step.with?.name === game + '-${{ github.sha }}');
+        const downloads = job.steps.filter(
+          (step) => step.with?.name === game + '-${{ github.sha }}',
+        );
+        assert.equal(downloads.length, 1);
+        const download = downloads[0];
+        assert.equal(
+          download.if,
+          workflow === 'ci' ? "needs.plan.outputs.cocos == 'true'" : undefined,
+        );
         assert(download?.uses.startsWith('actions/download-artifact@'), workflow);
         assert.equal(download.with.path, `games/local/${game}/.prebuilt`);
       }

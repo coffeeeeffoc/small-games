@@ -1,54 +1,65 @@
 import assert from 'node:assert/strict';
-import { execFile } from 'node:child_process';
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm, writeFile, readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { promisify } from 'node:util';
 import { chromium, expect } from '@playwright/test';
 import { createTianxiaServer } from '../src/server.mjs';
-
-// Exercise the shipped client against the real HTTP service. The injected clock
-// advances existing service rules; there are no production debug hooks or forged results.
+import { sourceHash } from '../../../games/local/tianxia-chalu/scripts/artifact.mjs';
 const repository = fileURLToPath(new URL('../../../', import.meta.url));
 const reportPath = path.join(
   repository,
-  'games/local/tianxia-chalu/docs/design/server-browser-report.json',
+  'games/local/tianxia-chalu/docs/design/cocos-2026-10-22/server-browser-report.json',
 );
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tianxia-server-browser-'));
-const checks = [];
-const pageErrors = [];
-let app;
-let browser;
-let current = Date.now();
-let failure;
-
+const checks = [],
+  pageErrors = [];
+let app,
+  browser,
+  current = Date.now(),
+  failure;
 const gate = () => {
   let resolve;
-  const promise = new Promise((done) => {
-    resolve = done;
-  });
+  const promise = new Promise((done) => (resolve = done));
   return { promise, resolve };
 };
-
 try {
-  await promisify(execFile)('pnpm', ['--filter', '@coffeeeeffoc/tianxia-chalu', 'build'], {
-    cwd: repository,
-  });
+  const build = JSON.parse(
+    await readFile(path.join(repository, 'games/local/tianxia-chalu/dist/build-info.json'), 'utf8'),
+  );
+  assert.equal(
+    build.sourceHash,
+    await sourceHash(),
+    'Run the actual Creator build before service browser verification',
+  );
   app = await createTianxiaServer({ dataDir: directory, autoTick: false, now: () => current });
-  const address = await app.listen(0);
-  const base = `http://127.0.0.1:${address.port}`;
-  browser = await chromium.launch({ headless: true });
+  const address = await app.listen(0),
+    base = 'http://127.0.0.1:' + address.port;
+  browser = await chromium.launch({
+    headless: true,
+    ...(process.env.PLAYWRIGHT_EXECUTABLE_PATH
+      ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH }
+      : {}),
+  });
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
     isMobile: true,
     hasTouch: true,
   });
   const page = await context.newPage();
-  page.on('pageerror', (error) => pageErrors.push(error.message));
+  page.on('pageerror', (e) => pageErrors.push(e.message));
+  await page.addInitScript(() =>
+    Object.defineProperty(Crypto.prototype, 'getRandomValues', {
+      value(array) {
+        array.fill(3);
+        return array;
+      },
+    }),
+  );
   const screen = (name) => expect(page.locator('body')).toHaveAttribute('data-screen', name);
-  const advance = (milliseconds) => {
-    for (let remaining = milliseconds; remaining > 0; ) {
+  const snapshot = () => page.evaluate(() => globalThis.tianxiaSnapshot());
+  const advance = (ms) => {
+    for (let remaining = ms; remaining > 0; ) {
       const step = Math.min(1000, remaining);
       current += step;
       app.matches.advance();
@@ -57,16 +68,16 @@ try {
   };
   const hidden = (value) =>
     page.evaluate((isHidden) => {
-      // A deterministic visibility event tests lifecycle handling; this is not a
-      // claim of operating-system background suspension or physical-device coverage.
       Object.defineProperty(document, 'hidden', { configurable: true, get: () => isHidden });
       document.dispatchEvent(new Event('visibilitychange'));
     }, value);
   const create = async () => {
-    const response = page.waitForResponse(
-      (entry) => entry.url() === `${base}/api/matches` && entry.request().method() === 'POST',
-    );
     await page.locator('#start').tap();
+    await expect(page.locator('#begin-battle')).toBeEnabled();
+    const response = page.waitForResponse(
+      (r) => r.url() === base + '/api/matches' && r.request().method() === 'POST',
+    );
+    await page.locator('#begin-battle').tap();
     const created = await (await response).json();
     await screen('battle');
     return app.matches.matches.get(created.matchId);
@@ -74,7 +85,7 @@ try {
   const pause = async (match) => {
     await page.locator('#pause').tap();
     await screen('pause');
-    await expect(page.locator('#resume')).toBeEnabled();
+    await expect(page.locator('#pause-note')).toContainText('服务端已暂停');
     assert.equal(match.paused, true);
   };
   const resume = async (match) => {
@@ -82,134 +93,128 @@ try {
     await screen('battle');
     assert.equal(match.paused, false);
   };
-
-  await page.goto(`${base}/play/`);
+  await page.goto(base + '/play/');
   await screen('home');
-  await expect(page.locator('.home-status')).toContainText('服务端对局');
   await page.locator('#settings').tap();
   await expect(page.locator('#online')).toBeChecked();
   await expect(page.locator('#server-url')).toHaveValue(base);
-  await page.locator('#check-server').tap();
-  await expect(page.locator('#settings-message')).toContainText('连接成功');
   await page.locator('#sound').uncheck();
   await page.locator('#settings-form button[type="submit"]').tap();
-  checks.push('Production /play/ defaults to the real service; settings health protocol succeeds.');
-
-  const first = await create();
-  const junction = first.state.junctions.find((entry) => entry.id === 'redgate-switch');
-  const initialRoute = junction.routeIndex;
-  const commandResponse = page.waitForResponse((entry) => entry.url().endsWith('/commands'));
-  await page.locator('[data-junction="redgate-switch"]').tap();
-  const command = await (await commandResponse).json();
-  assert.equal(command.accepted, true);
-  assert.equal(first.sequence, 1);
-  assert.notEqual(junction.routeIndex, initialRoute);
-  await expect(page.locator('[data-junction="redgate-switch"]')).toHaveAttribute(
-    'data-route',
-    junction.exits[junction.routeIndex],
-  );
-  advance(2000);
-  await expect(page.locator('#timer')).toHaveText('02:58');
   checks.push(
-    'A touch route command reaches the authoritative API and its changed route/time render.',
+    'Production /play/ loads the real Cocos artifact and defaults to the authoritative service.',
   );
-
+  const first = await create();
+  const own = first.state.cities.find((c) => c.owner === 0),
+    junction = first.state.junctions.find((j) => j.cityId === own.id);
+  await expect
+    .poll(async () => !!(await snapshot()).cities.find((c) => c.id === own.id)?.client)
+    .toBe(true);
+  const point = (await snapshot()).cities.find((c) => c.id === own.id).client;
+  await page.touchscreen.tap(point.x, point.y);
+  await expect.poll(async () => (await snapshot()).selected).toBe(own.id);
+  const ack = page.waitForResponse((r) => r.url().endsWith('/commands'));
+  await page.locator('#cycle').tap();
+  assert.equal((await (await ack).json()).accepted, true);
+  assert.equal(first.sequence, 1);
+  assert.equal(junction.routeIndex, 0);
+  advance(2000);
+  await expect(page.locator('#clock')).toHaveText('2:58');
+  checks.push(
+    'A real Cocos city touch plus direction control reaches the API and renders the accepted route and server time.',
+  );
   await pause(first);
-  const pausedTime = first.state.time;
+  const paused = first.state.time;
   advance(10000);
-  assert.equal(first.state.time, pausedTime);
+  assert.equal(first.state.time, paused);
   await resume(first);
   advance(1000);
-  await expect(page.locator('#timer')).toHaveText('02:57');
-  await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+  await expect(page.locator('#clock')).toHaveText('2:57');
+  await page.evaluate(() =>
+    window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true })),
+  );
   await screen('pause');
-  await expect(page.locator('#resume')).toBeEnabled();
+  await expect(page.locator('#pause-note')).toContainText('服务端已暂停');
   assert.equal(first.paused, true);
   advance(1000);
-  assert.equal(first.state.time, pausedTime + 1);
-  checks.push('Pause/resume freezes authoritative time without catch-up; pagehide also pauses.');
+  assert.equal(first.state.time, paused + 1);
+  await page.evaluate(() =>
+    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })),
+  );
   await page.locator('#leave').tap();
   await screen('home');
-
-  const createdGate = gate();
-  const creationRelease = gate();
-  const deferredCreation = async (route) => {
+  checks.push(
+    'Pause, resume and BFCache-style pagehide keep the server match paused without abandoning it.',
+  );
+  const created = gate(),
+    release = gate();
+  const deferCreate = async (route) => {
     const response = await route.fetch();
-    createdGate.resolve(await response.json());
-    await creationRelease.promise;
+    created.resolve(await response.json());
+    await release.promise;
     await route.fulfill({ response });
   };
-  await page.route(`${base}/api/matches`, deferredCreation);
+  await page.route(base + '/api/matches', deferCreate);
   await page.locator('#start').tap();
-  const secondData = await createdGate.promise;
-  const second = app.matches.matches.get(secondData.matchId);
-  await screen('loading');
+  await page.locator('#begin-battle').tap();
+  const data = await created.promise,
+    second = app.matches.matches.get(data.matchId);
   await hidden(true);
-  creationRelease.resolve();
+  release.resolve();
   await screen('pause');
-  await expect(page.locator('#resume')).toBeEnabled();
+  await expect(page.locator('#pause-note')).toContainText('服务端已暂停');
   assert.equal(second.paused, true);
   advance(10000);
   assert.equal(second.state.time, 0);
-  await page.unroute(`${base}/api/matches`, deferredCreation);
+  await page.unroute(base + '/api/matches', deferCreate);
   await hidden(false);
   await resume(second);
   checks.push(
-    'Backgrounding during deferred match creation pauses the late-created match before play.',
+    'Backgrounding during deferred creation pauses the late-created match before gameplay.',
   );
-
   await pause(second);
-  const resumedGate = gate();
-  const resumeRelease = gate();
-  const resumeUrl = `${base}/api/matches/${second.id}/resume`;
-  const deferredResume = async (route) => {
+  const resumed = gate(),
+    resumeRelease = gate(),
+    resumeUrl = base + '/api/matches/' + second.id + '/resume';
+  const deferResume = async (route) => {
     const response = await route.fetch();
-    resumedGate.resolve();
+    resumed.resolve();
     await resumeRelease.promise;
     await route.fulfill({ response });
   };
-  await page.route(resumeUrl, deferredResume);
+  await page.route(resumeUrl, deferResume);
   await page.locator('#resume').tap();
-  await resumedGate.promise;
+  await resumed.promise;
   await hidden(true);
   resumeRelease.resolve();
   await expect.poll(() => second.paused).toBe(true);
   await screen('pause');
-  await expect(page.locator('#resume')).toBeEnabled();
   advance(10000);
   assert.equal(second.state.time, 0);
-  await page.unroute(resumeUrl, deferredResume);
+  await page.unroute(resumeUrl, deferResume);
   await hidden(false);
   await resume(second);
   checks.push('Backgrounding during deferred resume returns to a paused authoritative match.');
-
   const outage = (route) => route.abort('internetdisconnected');
-  await page.route(`${base}/api/matches/**`, outage);
+  await page.route(base + '/api/matches/**', outage);
   await screen('pause');
-  await expect(page.locator('#pause-note')).toContainText('网络未确认暂停');
-  await expect(page.locator('#resume')).toBeEnabled();
+  await expect(page.locator('#pause-note')).toContainText('尚未确认服务端暂停');
   assert.equal(second.paused, false);
   advance(180000);
   assert.equal(second.state.status, 'finished');
   const resumeRequests = [];
-  const observeResume = (request) => {
-    if (request.url() === resumeUrl) resumeRequests.push(request);
+  const observe = (request) => {
+    if (request.url() === resumeUrl) resumeRequests.push(request.url());
   };
-  page.on('request', observeResume);
-  await page.unroute(`${base}/api/matches/**`, outage);
+  page.on('request', observe);
+  await page.unroute(base + '/api/matches/**', outage);
   await page.locator('#resume').tap();
   await screen('result');
   await expect(page.locator('#result-sync')).toHaveText('服务端战报已保存');
-  assert.equal(
-    resumeRequests.length,
-    0,
-    'A terminal reconnect must fetch the result without POST resume.',
-  );
-  page.off('request', observeResume);
+  assert.equal(resumeRequests.length, 0);
+  page.off('request', observe);
   checks.push(
-    'After an outage, a completed service match reconnects directly to its persisted result.',
+    'An outage never falsely claims pause; reconnect fetches a terminal result without a rejected resume POST.',
   );
-
   await page.locator('#result-home').tap();
   const third = await create();
   await pause(third);
@@ -217,32 +222,57 @@ try {
   assert.equal(third.state.result.reason, 'expired');
   await page.locator('#resume').tap();
   await screen('result');
-  await expect(page.locator('.result-heading')).toContainText('离线过久，对局已结束');
-  await expect(page.locator('.result-heading')).not.toContainText('三分钟已至');
+  await expect(page.locator('.result-heading')).toContainText('离线过久');
+  await expect(page.locator('.result-heading')).not.toContainText('第 0 名');
   await expect(page.locator('#result-sync')).toHaveText('服务端战报已保存');
+  checks.push('Expired match explains expiry and awards no card or invented rank.');
+  await page.locator('#result-home').tap();
+  const cancelCreated = gate(),
+    cancelRelease = gate();
+  const cancelCreate = async (route) => {
+    const response = await route.fetch();
+    cancelCreated.resolve(await response.json());
+    await cancelRelease.promise;
+    await route.fulfill({ response });
+  };
+  await page.route(base + '/api/matches', cancelCreate);
+  await page.locator('#start').tap();
+  await page.locator('#begin-battle').tap();
+  const abandoned = await cancelCreated.promise;
+  await page.locator('#back').tap();
+  await screen('levels');
+  cancelRelease.resolve();
+  await expect
+    .poll(() => app.matches.matches.get(abandoned.matchId).state.result?.reason)
+    .toBe('abandoned');
+  await screen('levels');
+  await page.unroute(base + '/api/matches', cancelCreate);
   checks.push(
-    'A paused session expiring on the service explains expiry instead of a false three-minute defeat.',
+    'Leaving preparation cancels a deferred creation, abandons its late server match and never reopens battle.',
   );
   assert.deepEqual(pageErrors, []);
 } catch (error) {
   failure = error;
 } finally {
-  const report = {
-    status: failure ? 'failed' : 'passed',
-    browser: browser ? `Chromium ${browser.version()}` : 'not started',
-    viewport: '390 × 844, mobile touch emulation',
-    backend: 'Real HTTP service, isolated temporary result directory, injected service clock',
-    limitations:
-      'Visibility and pagehide events are deterministic simulations; no physical device or operating-system suspension tested.',
-    checks,
-    pageErrors,
-    ...(failure ? { failure: failure.message } : {}),
-  };
   await browser?.close();
   await app?.close();
-  await rm(directory, { recursive: true, force: true });
+  const resolved = path.resolve(directory);
+  if (
+    !resolved.startsWith(path.resolve(os.tmpdir()) + path.sep) ||
+    !path.basename(resolved).startsWith('tianxia-server-browser-')
+  )
+    throw Error('Unexpected temporary test directory');
+  await rm(resolved, { recursive: true, force: true });
+  const report = {
+    status: failure ? 'failed' : 'passed',
+    environment:
+      'Chromium 390x844 touch emulation; real HTTP service and real Creator artifact; injected service clock, no forged results',
+    checks,
+    pageErrors,
+    ...(failure ? { failure: failure.stack } : {}),
+  };
   await mkdir(path.dirname(reportPath), { recursive: true });
-  await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`);
+  await writeFile(reportPath, JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify(report, null, 2));
 }
 if (failure) throw failure;

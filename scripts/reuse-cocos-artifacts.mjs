@@ -3,7 +3,13 @@ import { appendFile, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-export const games = ['carding-car', 'night-overwatch', 'orbit-atelier', 'homebound-station'];
+export const games = [
+  'carding-car',
+  'night-overwatch',
+  'orbit-atelier',
+  'tianxia-chalu',
+  'homebound-station',
+];
 const creator = '3.8.8';
 const platform = 'web-mobile';
 
@@ -67,7 +73,12 @@ export async function findProducer({
 }
 
 export function verifyProvenance(info, expected) {
-  for (const [key, value] of Object.entries({ ...expected, creator, platform, runner: 'Windows' }))
+  for (const [key, value] of Object.entries({
+    ...expected,
+    creator,
+    platform,
+    runner: 'Windows',
+  }))
     assert.equal(info[key], value, 'Cocos artifact provenance mismatch: ' + key);
 }
 

@@ -21,6 +21,7 @@ export function StandaloneGame({
   const playing = display.entry === entry && display.playing;
   const immersive =
     id === 'homebound-station' ||
+    id === 'tianxia-chalu' ||
     id === 'ashfall-front' ||
     id === 'carrom-club' ||
     id === 'three-choose-two' ||

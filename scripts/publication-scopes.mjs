@@ -7,28 +7,28 @@ import { ingressShellGuard, ingressPreflightGuard } from './competition-ingress.
 
 const loadDependency = createRequire(import.meta.url);
 
-// Exact additive wiring for Homebound after the Orbit Creator integration. Existing compiler paths,
+// Exact additive wiring for Homebound after the Orbit and Tianxia Creator integrations. Existing compiler paths,
 // workflow gates, permissions and presets remain byte-for-byte unchanged.
 const homeboundCocosWiring = {
   'apps/shell-web/src/StandaloneGame.tsx': [
-    'f88ada43b1b3b3774d2dfe1a7d77de230814ae45925ff8be7d49b24c311fb318',
-    '73c1a522c76edb60540a030e2dda024fb69b654634b7c1825ba2c23274a42a40',
+    'ed4397135869b47ec8e031a7c603a85336f024b58184edc2b7cb18af5bf67724',
+    'b384f736f48a38816ba2c69c498dcf914f199dd7486861aacedabc3bd5a1c099',
   ],
   'apps/shell-web/scripts/pages-smoke.mjs': [
-    '61c2dbe3091718f70df0903b783f8046abb35c26a841c3885319d0cfba59a7d0',
-    'e726f05a9ec92ffe6c82f014daeeddbc6e5ab7e8d68388e8210a96c9e7dd5ac6',
+    'f1a1a2295772498305b5766d530aa55e774887333b76029de951033bae9b4424',
+    '73ac8e1e77bc2f057fa0f27a24b7a2099c2b5c12b7d91b97ef89067883436b49',
   ],
   'apps/shell-web/tests/standalone-immersive.integration.test.tsx': [
-    '18fedcd00f1c6653acfcd223a932744ef8e1fb48c05acf360f914e8f3e22b388',
-    'd68326de5e68c68e46cd43e43abd8fc9ec41d25ae4cdeacc6dd32b4cab2ed7b1',
+    '9a0071ba38e725b7bb672e8d06b73167340bec9c3fdab22a792c6f45865818a5',
+    'f7e26ca16c0c5dfc587437eeb28e4ff93be9a1b72a58b9996b6aa1270e81219d',
   ],
   'apps/shell-web/tests/standalone.integration.test.tsx': [
-    '24377f3162a190c60c1ec6470f0cace35474a89b33a491e4dbc9240f1b626b07',
-    'fde093fdda3db81c0f4d1b2f378da12dee880275cd5800d32923348e04552aea',
+    '9bb0d0095ba2cdcced396e56114a1db42a7e531a4a5c787a9865120ee54fb245',
+    'c19a2313195d70419d987e0a5ce9e7839b96951cdda88edadb25976431873b53',
   ],
   'scripts/check-workspace-dependencies.mjs': [
-    '7799f1bed87e0cd2041c30aac44779c6e2013b765401f6358e7eef5ec25f4c29',
-    'a4970a45e8721bb7ac50ef37397a13876b21f21f399695e30991dab61508b417',
+    '73dc48694ca96af93c54b09fb5d3d78b118e90ef67da63e94d4896aa1cba200d',
+    'b5d862a8b982f0afd861c8096ce3a60230f01f1433e738c54086ad1f2581b470',
   ],
   'scripts/deployment-bundle.mjs': [
     'c5f934e35dc618739626d904a4c642b6e68683edf52dd856d69fa38e05819858',
@@ -40,24 +40,24 @@ const homeboundCocosWiring = {
   ],
 
   '.github/workflows/carding-car.yml': [
-    'e73f43102d5f00631bef10b21b19c84a775ea1da884fc503b510797b821e53b8',
-    '45aa975fa27118de1fa8e90af1240b039c488cb7a50238b8eb3d6d301aa3726e',
+    '47f0097106baf378c851c8c5314721dce979053f04a31accb0cacdc37ce71a83',
+    'ee77322f7414ab0a398af5c2d10763757ea679dbfa452520a653aacf43bdf05b',
   ],
   '.github/workflows/ci.yml': [
-    '21ee0e1a07b780ab17efc4290ee58d58dec409e30adc61e3ad11918141f317b1',
-    'c2091dbe223e3fbc136f44a69f2ca458985e272408d858e2b6c30d3a1743a790',
+    'afe7f1175b964bf22719623a404307f62134156687c87f029dd55903b4252952',
+    '6d1e55268d42feda5767a6e95c5986239a53b9bd8f922a231ba24f0d69cd2e29',
   ],
   '.github/workflows/pages-validate.yml': [
-    'b893b9ff0bf2259c6eef14fcc1c6a8419bff8f4a079ea68ab4f1a40fa728cfe4',
-    '5b90715c598a9d8817693d47b71b01d8964a7920d22f59b316990bb872f5f4a2',
+    '00fe3a8822311ee9faebcb20c32436b39ad612e482fb86ca86a90b3d202be713',
+    '7a89794f444b282c995d86ddb8970c3e3ca8f9f4cea40fbf9d984a25348bcbc2',
   ],
   '.github/workflows/mobile.yml': [
-    'a8333e893c73d915e2f2e5f189c86c2a9d1a3e9fab346db8d28d2015691d91df',
-    '603be20dc1705bcaf382135ce471320b46fc6b9acca4ef1a97ef2ac7a246f351',
+    '6cb0350243edbf7a21c23e346fbc3d74da50464096866db09319364015e6933e',
+    'a91039605ebf6eaa455d4159df9f061fcbb28c0dc14304d0c817d6d23766c7d4',
   ],
   'turbo.json': [
-    '31739afb50a0d9fe9dab24010b299dd9cf2b3b561575353059e0236b60b9c6fb',
-    'b28b98593931251dec5140ce1681090c30eb322b789bce290851bedfc32bf8e9',
+    'ed165c08070ddd40672167a48ca2d472f385a797813c8c08957aa76c1f8cc0d3',
+    'ffa105c8ac861d36457df2da83998e2be0e35f6cb19cdf86e46d85844a997d75',
   ],
   'scripts/h5-game-build.mjs': [
     '81d761755a2fb16ed85a8704dc102901f4e375fae50a7b9fa008295dee228d2f',
@@ -87,6 +87,7 @@ const cocosWebSources = [
   'carding-car',
   'night-overwatch',
   'orbit-atelier',
+  'tianxia-chalu',
   'homebound-station',
 ].map((id) => `games/local/${id}`);
 
@@ -1321,6 +1322,263 @@ function exactCopsOfflineBuild(before, after) {
 const cageRescueSource = 'games/local/cage-rescue';
 const cageRescueGameplayFile = 'apps/shell-web/scripts/game-checks/cage-rescue.mjs';
 const standaloneChecksFile = 'apps/shell-web/scripts/standalone-game-checks.mjs';
+const tianxiaSource = 'games/local/tianxia-chalu';
+const tianxiaWorkflowFiles = [
+  '.github/workflows/carding-car.yml',
+  '.github/workflows/ci.yml',
+  '.github/workflows/pages-validate.yml',
+  '.github/workflows/mobile.yml',
+];
+const tianxiaImmersiveFiles = {
+  'apps/shell-web/src/StandaloneGame.tsx': [
+    '  const immersive =\n',
+    "    id === 'tianxia-chalu' ||\n",
+  ],
+  'apps/shell-web/scripts/pages-smoke.mjs': [
+    'const immersiveGame = (id) =>\n  [\n',
+    "    'tianxia-chalu',\n",
+  ],
+  'apps/shell-web/tests/standalone-immersive.integration.test.tsx': [
+    'it.each([\n',
+    "  'tianxia-chalu',\n",
+  ],
+  'apps/shell-web/tests/standalone.integration.test.tsx': [
+    '    if (\n',
+    "      id === 'tianxia-chalu' ||\n",
+  ],
+  'scripts/test-game-dev-mode.mjs': [
+    '        if (\n',
+    "          game.id === 'tianxia-chalu' ||\n",
+  ],
+};
+
+// Reproduce only fixed additions. Comparing the whole result preserves every old
+// workflow byte and requires no YAML dependency in the bare CI planning job.
+function tianxiaWorkflowOnly(file, before, after) {
+  assert(!before.includes('tianxia-chalu') && !before.includes('TIANXIA_PREBUILT_DIR'));
+  const hasOrbit = before.includes('orbit-atelier');
+  let expected = before;
+  const replace = (anchor, replacement, count = 1) => {
+    assert.equal(expected.split(anchor).length, count + 1);
+    expected = expected.replaceAll(anchor, replacement);
+  };
+  const clone = (anchor, count = 1) => {
+    if (hasOrbit)
+      anchor = anchor
+        .replaceAll('night-overwatch', 'orbit-atelier')
+        .replaceAll('NIGHT_OVERWATCH', 'ORBIT_ATELIER')
+        .replace('id: night', 'id: orbit');
+    replace(
+      anchor,
+      anchor +
+        anchor
+          .replaceAll('night-overwatch', 'tianxia-chalu')
+          .replaceAll('NIGHT_OVERWATCH', 'TIANXIA')
+          .replace('id: night', 'id: tianxia')
+          .replaceAll('orbit-atelier', 'tianxia-chalu')
+          .replaceAll('ORBIT_ATELIER', 'TIANXIA')
+          .replace('id: orbit', 'id: tianxia'),
+      count,
+    );
+  };
+  if (file === '.github/workflows/carding-car.yml') {
+    replace(
+      hasOrbit
+        ? 'game: [carding-car, night-overwatch, orbit-atelier]'
+        : 'game: [carding-car, night-overwatch]',
+      hasOrbit
+        ? 'game: [carding-car, night-overwatch, orbit-atelier, tianxia-chalu]'
+        : 'game: [carding-car, night-overwatch, tianxia-chalu]',
+    );
+    clone(
+      "          NIGHT_OVERWATCH_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/night-overwatch', github.workspace) || '' }}\n",
+    );
+    clone(
+      '      - name: Download CI night-overwatch artifact\n' +
+        "        id: night\n        if: steps.producer.outputs.run_id != ''\n" +
+        '        continue-on-error: true\n        uses: actions/download-artifact@v8\n        with:\n' +
+        '          name: night-overwatch-${{ github.sha }}\n          path: .scratch/ci-cocos/night-overwatch\n' +
+        '          run-id: ${{ steps.producer.outputs.run_id }}\n          github-token: ${{ github.token }}\n',
+    );
+    replace(
+      "        if: steps.kart.outcome == 'success' && steps.night.outcome == 'success'" +
+        (hasOrbit ? " && steps.orbit.outcome == 'success'" : '') +
+        '\n',
+      "        if: steps.kart.outcome == 'success' && steps.night.outcome == 'success'" +
+        (hasOrbit ? " && steps.orbit.outcome == 'success'" : '') +
+        " && steps.tianxia.outcome == 'success'\n",
+    );
+    clone(
+      '          node scripts/reuse-cocos-artifacts.mjs verify night-overwatch .scratch/ci-cocos/night-overwatch\n',
+    );
+    clone(
+      "      - uses: actions/upload-artifact@v7\n        if: steps.verify.outcome == 'success'\n" +
+        '        with:\n          name: night-overwatch-${{ github.sha }}\n' +
+        '          path: .scratch/ci-cocos/night-overwatch\n          if-no-files-found: error\n',
+    );
+  } else {
+    const count = file === '.github/workflows/ci.yml' ? 1 : 2;
+    clone(
+      '      NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt\n',
+      count,
+    );
+    clone(
+      '      - uses: actions/download-artifact@v8\n' +
+        (count === 1 ? "        if: needs.plan.outputs.cocos == 'true'\n" : '') +
+        '        with:\n          name: night-overwatch-${{ github.sha }}\n' +
+        '          path: games/local/night-overwatch/.prebuilt\n',
+      count,
+    );
+  }
+  assert.equal(after, expected, 'Other workflow bytes changed');
+}
+
+function tianxiaTurboOnly(before, after) {
+  function uniqueKeys(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'ObjectExpression') {
+      const keys = node.properties.map((property) => property.key.value ?? property.key.name);
+      assert.equal(new Set(keys).size, keys.length, 'Duplicate Turbo key');
+    }
+    for (const child of Object.values(node))
+      if (Array.isArray(child)) child.forEach(uniqueKeys);
+      else if (child && typeof child === 'object') uniqueKeys(child);
+  }
+  uniqueKeys(parsedSource(`const config = ${after};`));
+  const previous = JSON.parse(before),
+    current = JSON.parse(after);
+  const key = '@coffeeeeffoc/tianxia-chalu#build';
+  assert(!Object.hasOwn(previous.tasks, key));
+  assert(!previous.globalPassThroughEnv.includes('TIANXIA_PREBUILT_DIR'));
+  assert.deepEqual(current.globalPassThroughEnv, [
+    ...previous.globalPassThroughEnv,
+    'TIANXIA_PREBUILT_DIR',
+  ]);
+  assert.deepEqual(current.tasks[key], {
+    dependsOn: ['^build'],
+    outputs: ['dist/**'],
+    env: ['COCOS_CREATOR', 'TIANXIA_PREBUILT_DIR'],
+    inputs: ['$TURBO_DEFAULT$', '$TURBO_ROOT$/games/local/tianxia-chalu/.prebuilt/**'],
+  });
+  delete current.tasks[key];
+  current.globalPassThroughEnv.pop();
+  assert.deepEqual(current, previous);
+}
+
+function tianxiaLiteralOnly(file, before, after) {
+  const mapping = file === 'scripts/cocos-validation.mjs';
+  const name = mapping ? 'prebuiltVariables' : 'games';
+  const previous = literalDeclaration(before, name),
+    current = literalDeclaration(after, name);
+  const hasOrbit = mapping
+    ? Object.hasOwn(previous, 'games/local/orbit-atelier')
+    : previous.includes('orbit-atelier');
+  assert.deepEqual(
+    previous,
+    mapping
+      ? {
+          'games/local/carding-car': 'KART_PREBUILT_DIR',
+          'games/local/night-overwatch': 'NIGHT_OVERWATCH_PREBUILT_DIR',
+          ...(hasOrbit ? { 'games/local/orbit-atelier': 'ORBIT_ATELIER_PREBUILT_DIR' } : {}),
+        }
+      : ['carding-car', 'night-overwatch', ...(hasOrbit ? ['orbit-atelier'] : [])],
+  );
+  assert.deepEqual(
+    current,
+    mapping
+      ? { ...previous, [tianxiaSource]: 'TIANXIA_PREBUILT_DIR' }
+      : [...previous, 'tianxia-chalu'],
+  );
+  const strip = (source) => {
+    const node = namedVariable(parsedSource(source), name).init;
+    return source.slice(0, node.start) + 'LITERAL' + source.slice(node.end);
+  };
+  assert.equal(strip(before), strip(after), 'Other Cocos declaration bytes changed');
+}
+
+function tianxiaImmersiveOnly(file, before, after) {
+  const [anchor, addition] = tianxiaImmersiveFiles[file];
+  assert(!before.includes("'tianxia-chalu'"));
+  assert.equal(before.split(anchor).length, 2);
+  let expected = before.replace(anchor, anchor + addition);
+  const program = parsedSource(after, file.endsWith('.tsx'));
+  if (file.endsWith('StandaloneGame.tsx')) {
+    assert.equal(namedVariable(program, 'immersive').init.start, after.indexOf(addition) + 4);
+  } else if (file.endsWith('pages-smoke.mjs')) {
+    const declaration = namedVariable(program, 'immersiveGame');
+    assert.equal(declaration.start, after.indexOf('immersiveGame'));
+    const guard = "      } else if (\n        game.id === 'ashfall-front' ||\n";
+    assert.equal(before.split(guard).length, 2);
+    expected = expected.replace(
+      guard,
+      guard.replace('        game.id', "        game.id === 'tianxia-chalu' ||\n        game.id"),
+    );
+    const offset = after.indexOf("      } else if (\n        game.id === 'tianxia-chalu'");
+    ifStatementAt(program, offset + '      } else '.length);
+  } else if (file.endsWith('standalone-immersive.integration.test.tsx')) {
+    const statement = program.body.find((node) => node.start === after.indexOf(anchor));
+    assert.equal(statement?.expression?.callee?.callee?.property?.name, 'each');
+    assert.equal(statement.expression.callee.callee.object.name, 'it');
+    const ids = statement.expression.callee.arguments[0].elements.map((node) => {
+      assert.equal(node.type, 'StringLiteral');
+      return node.value;
+    });
+    assert.equal(new Set(ids).size, ids.length);
+  } else {
+    ifStatementAt(program, after.indexOf(anchor) + anchor.indexOf('if'));
+  }
+  assert.equal(after, expected, 'Other immersion bytes changed');
+}
+
+function tianxiaGameplayOnly(before, after) {
+  const strip = (source) => {
+    const program = parsedSource(source);
+    const exported = program.body.filter(
+      (node) =>
+        node.type === 'ExportNamedDeclaration' &&
+        node.declaration?.type === 'FunctionDeclaration' &&
+        node.declaration.id.name === 'assertStandaloneGameplay',
+    );
+    assert.equal(exported.length, 1);
+    const branches = [];
+    for (let node of exported[0].declaration.body.body) {
+      while (node?.type === 'IfStatement') {
+        const test = node.test;
+        if (
+          test.type === 'BinaryExpression' &&
+          test.operator === '===' &&
+          test.left.type === 'Identifier' &&
+          test.left.name === 'id' &&
+          test.right.type === 'StringLiteral' &&
+          test.right.value === 'tianxia-chalu'
+        )
+          branches.push(node);
+        node = node.alternate;
+      }
+    }
+    assert.equal(branches.length, 1);
+    const body = branches[0].consequent;
+    assert.equal(body.type, 'BlockStatement');
+    return source.slice(0, body.start) + 'GAME_BODY' + source.slice(body.end);
+  };
+  assert.notEqual(before, after);
+  assert.equal(strip(before), strip(after), 'Other gameplay branch bytes changed');
+}
+
+function tianxiaWiringOnly(file, before, after) {
+  try {
+    if (tianxiaWorkflowFiles.includes(file)) tianxiaWorkflowOnly(file, before, after);
+    else if (file === 'turbo.json') tianxiaTurboOnly(before, after);
+    else if (['scripts/cocos-validation.mjs', 'scripts/reuse-cocos-artifacts.mjs'].includes(file))
+      tianxiaLiteralOnly(file, before, after);
+    else if (Object.hasOwn(tianxiaImmersiveFiles, file)) tianxiaImmersiveOnly(file, before, after);
+    else if (file === standaloneChecksFile) tianxiaGameplayOnly(before, after);
+    else return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
 function exactOrbitBoundsGuard(before, after) {
   // Only the reviewed masked-SVG offset fix; all input and behavior assertions stay fixed.
   return (
@@ -2270,16 +2528,86 @@ export function reviewedSharedFileScopes({
         continue;
       }
       if (
+        [
+          ...tianxiaWorkflowFiles,
+          ...Object.keys(tianxiaImmersiveFiles),
+          standaloneChecksFile,
+          'turbo.json',
+          'scripts/cocos-validation.mjs',
+          'scripts/reuse-cocos-artifacts.mjs',
+        ].includes(file) &&
+        readBase &&
+        readHead &&
+        tianxiaWiringOnly(
+          file,
+          (() => {
+            try {
+              return readBase(file);
+            } catch {
+              return undefined;
+            }
+          })(),
+          readHead(file),
+        )
+      ) {
+        const entries = games.filter(
+          (game) => game.id === 'tianxia-chalu' || game.source === tianxiaSource,
+        );
+        assert.equal(entries.length, 1);
+        assert.equal(entries[0].id, 'tianxia-chalu');
+        assert.equal(entries[0].source, tianxiaSource);
+        const targets = packages.filter(
+          (pkg) => pkg.dir === tianxiaSource || pkg.name === '@coffeeeeffoc/tianxia-chalu',
+        );
+        assert.equal(targets.length, 1);
+        assert.equal(targets[0].dir, tianxiaSource);
+        assert.equal(targets[0].name, '@coffeeeeffoc/tianxia-chalu');
+        assert.equal(targets[0].creator?.version, '3.8.8');
+        assert.equal(targets[0].scripts?.build, 'node scripts/build.mjs web-mobile');
+        scopes.set(file, [
+          tianxiaSource,
+          ...(file === 'scripts/test-game-dev-mode.mjs' ? ['games/local/wulong-city'] : []),
+        ]);
+        continue;
+      }
+      if (
         file === 'scripts/reuse-cocos-artifacts.mjs' ||
         file === 'scripts/reuse-cocos-artifacts.test.mjs'
       ) {
         assert.deepEqual(
           literalDeclaration(readHead('scripts/reuse-cocos-artifacts.mjs'), 'games'),
-          ['carding-car', 'night-overwatch', 'orbit-atelier', 'homebound-station'],
+          ['carding-car', 'night-overwatch', 'orbit-atelier', 'tianxia-chalu', 'homebound-station'],
         );
         for (const dir of cocosWebSources) assert(packages.some((pkg) => pkg.dir === dir));
         scopes.set(file, file.endsWith('.test.mjs') ? [] : cocosWebSources);
         continue;
+      }
+      if (file === 'package.json') {
+        const before = readBase(file),
+          after = readHead(file);
+        const previous = JSON.parse(before),
+          current = JSON.parse(after);
+        const old = previous.scripts?.['test:validation'];
+        const addition = ' scripts/reuse-cocos-artifacts.test.mjs';
+        const anchor = 'scripts/cocos-validation.test.mjs';
+        if (
+          typeof old === 'string' &&
+          old.split(anchor).length === 2 &&
+          !old.includes(addition) &&
+          current.scripts?.['test:validation'] === old.replace(anchor, anchor + addition)
+        ) {
+          current.scripts['test:validation'] = old;
+          assert.deepEqual(current, previous);
+          assert.equal(
+            after,
+            before.replace(
+              JSON.stringify(old),
+              JSON.stringify(old.replace(anchor, anchor + addition)),
+            ),
+          );
+          scopes.set(file, []);
+          continue;
+        }
       }
       if (tapServiceSharedScopePaths.includes(file) || file === tapServiceConfigScopePath) {
         assert.deepEqual(
@@ -2630,6 +2958,7 @@ export function reviewedSharedFileScopes({
         scopes.set(file, [
           'games/local/carding-car',
           'games/local/night-overwatch',
+          tianxiaSource,
           'games/local/homebound-station',
         ]);
         continue;

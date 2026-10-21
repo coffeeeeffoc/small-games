@@ -1,6 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { createRequire } from 'node:module';
 
 const WORKSPACE_DIRECTORIES = [
   'apps',
@@ -69,6 +70,16 @@ const REPOSITORY_IMPORTS = new Set([
   'games/local/cops-robbers-realtime/tests/security-release.test.mjs -> scripts/build-games.mjs',
   'games/local/cops-robbers-realtime/tests/security-release.test.mjs -> scripts/h5-ad-config.mjs',
   'games/local/cops-robbers/scripts/check-ad-core.mjs -> platforms/h5/platform-ads.js',
+  'games/local/tianxia-chalu/scripts/build.mjs -> games/local/carding-car/scripts/toolchain.mjs',
+  'games/local/tianxia-chalu/scripts/build.mjs -> games/local/carding-car/scripts/cocos-branding.mjs',
+  'games/local/tianxia-chalu/scripts/typecheck.mjs -> games/local/carding-car/scripts/toolchain.mjs',
+  'games/local/tianxia-chalu/scripts/typecheck.mjs -> games/local/carding-car/package.json',
+  'games/local/tianxia-chalu/scripts/artifact.mjs -> games/local/carding-car/scripts/toolchain.mjs',
+  'games/local/tianxia-chalu/scripts/artifact.mjs -> games/local/carding-car/scripts/native-targets.mjs',
+  'games/local/tianxia-chalu/scripts/artifact.mjs -> games/local/carding-car/scripts/clear-output.mjs',
+  'games/local/tianxia-chalu/scripts/artifact.mjs -> games/local/carding-car/scripts/cocos-branding.mjs',
+  'games/local/tianxia-chalu/tests/rewards.test.mjs -> platforms/h5/publishing.js',
+  'services/tianxia-server/tests/browser.mjs -> games/local/tianxia-chalu/scripts/artifact.mjs',
   'games/local/night-overwatch/scripts/build.mjs -> games/local/carding-car/scripts/toolchain.mjs',
   'games/local/night-overwatch/scripts/build-native.mjs -> games/local/carding-car/scripts/toolchain.mjs',
   'games/local/night-overwatch/scripts/build-native.mjs -> games/local/carding-car/scripts/native-targets.mjs',
@@ -222,6 +233,58 @@ function importSpecifiers(source) {
   return [...specifiers];
 }
 
+// Tianxia hashes shared build inputs via URL as well as importing them. Resolve
+// only literals and its finite for-of lists; unknown hash inputs stay rejected.
+function tianxiaResourceSpecifiers(source, typescript, artifact) {
+  const { parsers } = createRequire(import.meta.url)('prettier/plugins/babel');
+  const program = parsers[typescript ? 'babel-ts' : 'babel'].parse(source, {}).program;
+  const result = [];
+  const values = (node, bindings) => {
+    if (node?.type === 'StringLiteral') return [node.value];
+    if (node?.type === 'Identifier') return bindings[node.name] ?? [];
+    if (node?.type === 'BinaryExpression' && node.operator === '+')
+      return values(node.left, bindings).flatMap((a) =>
+        values(node.right, bindings).map((b) => a + b),
+      );
+    return [];
+  };
+  function visit(node, bindings = {}) {
+    if (!node || typeof node !== 'object') return;
+    if (
+      node.type === 'ForOfStatement' &&
+      node.left.type === 'VariableDeclaration' &&
+      node.left.kind === 'const' &&
+      node.left.declarations.length === 1 &&
+      node.left.declarations[0].id.type === 'Identifier' &&
+      node.right.type === 'ArrayExpression' &&
+      node.right.elements.every((item) => item?.type === 'StringLiteral')
+    ) {
+      visit(node.body, {
+        ...bindings,
+        [node.left.declarations[0].id.name]: node.right.elements.map((item) => item.value),
+      });
+      return;
+    }
+    if (
+      node.type === 'NewExpression' &&
+      node.callee.type === 'Identifier' &&
+      node.callee.name === 'URL' &&
+      node.arguments[1]?.type === 'MemberExpression' &&
+      node.arguments[1].object.type === 'MetaProperty' &&
+      node.arguments[1].property.name === 'url'
+    ) {
+      const paths = values(node.arguments[0], bindings);
+      // Fail closed without granting a directory-wide exception to dynamic URLs.
+      result.push(...(paths.length ? paths : artifact ? [null] : []));
+    }
+    for (const child of Object.values(node))
+      if (Array.isArray(child)) child.forEach((item) => visit(item, bindings));
+      else if (child && typeof child === 'object') visit(child, bindings);
+  }
+  visit(program);
+  return result;
+}
+
 function findCycles(packagesByName) {
   const state = new Map();
   const stack = [];
@@ -274,7 +337,24 @@ export async function validateWorkspace(root = process.cwd()) {
 
     for (const file of await discoverSourceFiles(workspacePackage.root)) {
       const source = await readFile(file, 'utf8');
-      for (const specifier of importSpecifiers(source)) {
+      const resources =
+        path.relative(root, workspacePackage.root).replaceAll('\\', '/') ===
+        'games/local/tianxia-chalu'
+          ? tianxiaResourceSpecifiers(
+              source,
+              /\.[cm]?tsx?$/.test(file),
+              path.relative(workspacePackage.root, file).replaceAll('\\', '/') ===
+                'scripts/artifact.mjs',
+            )
+          : [];
+      for (const specifier of [...importSpecifiers(source), ...resources]) {
+        if (specifier === null) {
+          violations.push({
+            code: 'cross-package-relative',
+            message: `${path.relative(root, file)} has an unresolved module-relative resource URL`,
+          });
+          continue;
+        }
         if (specifier.startsWith('.')) {
           const resolved = path.resolve(path.dirname(file), specifier);
           const edge = [file, resolved]

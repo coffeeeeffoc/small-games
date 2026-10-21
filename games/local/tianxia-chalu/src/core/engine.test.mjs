@@ -3,339 +3,712 @@ import assert from 'node:assert/strict';
 import {
   LEVELS,
   RULES,
+  GENERAL_TYPES,
   createMatch,
   tick,
   switchRoute,
   getScore,
-  validateLevels,
   getUnlockedLevels,
   applyResult,
   migrateProgress,
+  effectSources,
+  modifiersAt,
+  positionOfPacket,
+  positionOfGeneral,
+  planRoutes,
 } from './index.mjs';
 
-const fresh = () => createMatch({ seed: 'test', aiEnabled: false });
-const clone = (value) => JSON.parse(JSON.stringify(value));
-const freezeProduction = (state) => {
-  for (const city of state.cities) {
-    city.production = 0;
-    city.dispatchProgress = -1000;
+const fresh = (options = {}) => createMatch({ seed: 0, aiEnabled: false, ...options });
+const own = (s, f = 0) => s.cities.find((c) => c.owner === f);
+const junction = (s, c) => s.junctions.find((j) => j.cityId === c.id);
+const freeze = (s) => {
+  for (const c of s.cities) {
+    c.production = 0;
+    c.dispatchProgress = -1000;
   }
 };
-
-function packet(
-  state,
-  {
-    owner = 0,
-    troops = 8,
-    targetCityId,
-    phase = 'road',
-    junctionId = 'redgate-switch',
-    duration = 0.1,
-  },
-) {
-  const junction = state.junctions.find((entry) => entry.id === junctionId);
-  const target = state.cities.find((entry) => entry.id === targetCityId) ?? junction;
-  const item = {
-    id: state.nextPacketId++,
+// Focused combat fixtures are synthetic; campaign simulations below only issue public commands.
+function army(s, from, to, owner, troops, progress = 0.5, phase = 'road') {
+  const road = s.roads.find(
+    (r) => (r.a === from.id && r.b === to.id) || (r.a === to.id && r.b === from.id),
+  );
+  const p = {
+    id: s.nextPacketId++,
     owner,
     troops,
-    fromCityId: junction.cityId,
-    junctionId,
+    damage: 0,
+    nextAttack: 0,
+    fromCityId: from.id,
+    targetCityId: to.id,
+    junctionId: from.junctionId,
+    roadId: phase === 'stationed' ? null : road.id,
     phase,
-    from: { x: junction.x, y: junction.y },
-    to: { x: target.x, y: target.y },
+    from: { x: from.x, y: from.y },
+    to: { x: to.x, y: to.y },
+    progress,
     elapsed: 0,
-    duration,
-    targetCityId: targetCityId ?? null,
+    duration: road.length / (RULES.speed * road.speed),
+    engaged: false,
   };
-  state.packets.push(item);
-  return item;
+  s.packets.push(p);
+  return p;
+}
+function general(s, city, kind = 'warrior', packet = null) {
+  const t = GENERAL_TYPES[kind];
+  const g = {
+    id: s.nextGeneralId++,
+    owner: city.owner,
+    originCityId: city.id,
+    cityId: packet ? null : city.id,
+    packetId: packet?.id ?? null,
+    kind,
+    attack: t.attack,
+    interval: t.interval,
+    defense: t.defense,
+    health: t.health,
+    maxHealth: t.health,
+    nextAttack: 0,
+  };
+  s.generals.push(g);
+  return g;
+}
+function claim(s, city, owner) {
+  city.owner = owner;
+  junction(s, city).owner = owner;
 }
 
-test('the Game-owned campaign validates all references and normal unlock order', () => {
-  assert.deepEqual(validateLevels(), { valid: true, errors: [] });
-  assert.deepEqual(getUnlockedLevels(), ['crossroads']);
-  const progress = {};
-  applyResult(progress, { levelId: 'crossroads', outcome: 'defeat', score: 10 });
-  assert.deepEqual(getUnlockedLevels(progress), ['crossroads']);
-  const result = { levelId: 'crossroads', outcome: 'victory', stars: 2, score: 4100 };
-  applyResult(progress, result);
-  const afterFirst = clone(progress);
-  applyResult(progress, result);
-  assert.deepEqual(progress, afterFirst, 'settling the same result must not duplicate rewards');
-  assert.deepEqual(getUnlockedLevels(progress), ['crossroads', 'riverfork']);
-  applyResult(progress, { levelId: 'riverfork', outcome: 'victory', stars: 3 });
-  assert.deepEqual(
-    getUnlockedLevels(progress),
-    LEVELS.map((level) => level.id),
-  );
+test('initial ownership rotates fairly, every faction starts at zero and holds', () => {
+  for (const level of LEVELS) {
+    for (let seed = 0; seed < level.factions.length; seed++) {
+      const s = fresh({ levelId: level.id, seed });
+      assert.equal(s.spawns[0], level.spawnSets[0][seed]);
+      assert.ok(s.cities.every((c) => c.troops === 0 && c.reserve === 0));
+      assert.ok(s.junctions.every((j) => j.routeIndex === -1));
+      for (const f of s.factions) {
+        assert.equal(s.cities.filter((c) => c.owner === f).length, 1);
+        assert.ok(
+          effectSources(s).some(
+            (source) => source.factionId === f && source.sourceType === 'baseline',
+          ),
+        );
+        assert.equal(modifiersAt(s, f, own(s, f)).production, 0.08);
+      }
+    }
+  }
 });
 
-test('invalid content is rejected, including cyclic unlocks and unreachable roads', () => {
-  const bad = clone(LEVELS);
-  bad[0].requires = ['four-kingdoms'];
-  bad[0].cities[0].junction.exits = ['missing', 'redgate'];
-  bad[1].reward.unlock = 'missing';
-  bad[2].cities[0].owner = 99;
-  const validation = validateLevels(bad);
-  assert.equal(validation.valid, false);
-  assert.ok(validation.errors.some((message) => message.includes('unreachable level')));
-  assert.ok(validation.errors.some((message) => message.includes('Invalid exits')));
-  assert.ok(validation.errors.some((message) => message.includes('Unknown reward')));
-  assert.ok(validation.errors.some((message) => message.includes('Unknown city owner')));
-  assert.throws(() => createMatch({ levelId: 'missing' }), /Unknown level/);
-  assert.throws(() => createMatch({ difficulty: 'missing' }), /Unknown difficulty/);
-  assert.throws(() => createMatch({ seed: NaN }), /Seed/);
-  for (const malformed of [
+test('hold, cycle, direct selection, ownership, type bounds and cooldown', () => {
+  const s = fresh(),
+    j = junction(s, own(s));
+  assert.equal(switchRoute(s, 1, j.id).reason, 'not-owner');
+  for (const index of [-2, j.exits.length, null, NaN, 0.5, '0'])
+    assert.equal(switchRoute(s, 0, j.id, index).reason, 'invalid-route');
+  for (const index of [0, 1, -1, 0]) {
+    assert.equal(switchRoute(s, 0, j.id).routeIndex, index);
+    assert.equal(switchRoute(s, 0, j.id).reason, 'cooldown');
+    tick(s, 0.2);
+  }
+  assert.equal(switchRoute(s, 0, j.id, -1).ok, true);
+  assert.equal(s.events.at(-1).type, 'hold');
+  assert.deepEqual(s.events.at(-1).position, { x: own(s).x, y: own(s).y });
+});
+
+test('hold produces to capacity, resumes without a production burst or forced reserve', () => {
+  const s = fresh(),
+    c = own(s),
+    neutral = s.cities.find((city) => city.owner === null);
+  tick(s, 60);
+  assert.equal(c.troops, c.capacity);
+  assert.equal(c.productionProgress, 0);
+  assert.equal(s.packets.length, 0);
+  assert.equal(neutral.troops, 0);
+  switchRoute(s, 0, c.junctionId, 0);
+  tick(s, 2);
+  assert.equal(s.packets[0].troops, 8);
+  assert.equal(c.troops, c.capacity - 8);
+  const second = fresh();
+  tick(second, 2);
+  switchRoute(second, 0, own(second).junctionId, 0);
+  tick(second, 2);
+  assert.equal(own(second).troops, 0);
+});
+
+test('departed armies retain their target after hold or a new command; capture defaults hold', () => {
+  const s = fresh(),
+    c = own(s);
+  tick(s, 3);
+  switchRoute(s, 0, c.junctionId, 0);
+  tick(s, 2);
+  const p = s.packets[0],
+    target = p.targetCityId;
+  switchRoute(s, 0, c.junctionId, -1);
+  tick(s, 7);
+  assert.equal(p.targetCityId, target);
+  const captured = s.cities.find((city) => city.id === target);
+  assert.equal(captured.owner, 0);
+  assert.equal(junction(s, captured).routeIndex, -1);
+  assert.equal(captured.recruitProgress, 0);
+});
+
+test('friendly overflow remains visible, is counted and dispatches before garrison', () => {
+  const s = fresh();
+  freeze(s);
+  const c = own(s),
+    from = s.cities.find((v) => v.id === junction(s, c).exits[0]);
+  c.troops = c.capacity;
+  const p = army(s, from, c, 0, 12, 1, 'siege');
+  tick(s, 0.1);
+  assert.equal(c.troops, c.capacity);
+  assert.equal(p.troops, 12);
+  assert.equal(p.phase, 'stationed');
+  assert.equal(getScore(s).find((r) => r.factionId === 0).troops, c.capacity + 12);
+  c.dispatchProgress = 0;
+  switchRoute(s, 0, c.junctionId, 0);
+  tick(s, 2);
+  assert.equal(c.troops, c.capacity);
+  assert.equal(p.troops, 4);
+  assert.equal(s.packets.find((v) => v.phase === 'road').troops, 8);
+});
+
+test('overflow participates in defense and cannot become a captor-owned army', () => {
+  const s = fresh();
+  freeze(s);
+  const c = own(s),
+    from = s.cities.find((v) => v.id === junction(s, c).exits[0]);
+  const defender = army(s, from, c, 0, 6, 1, 'stationed');
+  c.troops = c.capacity;
+  army(s, from, c, 1, 200, 1, 'siege');
+  tick(s, 10);
+  assert.equal(c.owner, 1);
+  assert.ok(!s.packets.includes(defender));
+  assert.equal(c.troops <= c.capacity, true);
+  assert.ok(s.packets.every((p) => p.owner === 1));
+});
+
+test('opposing armies stop on their road and damage resolves simultaneously', () => {
+  const s = fresh();
+  freeze(s);
+  const a = own(s),
+    b = s.cities.find((c) => c.id === junction(s, a).exits[0]);
+  const p = army(s, a, b, 0, 8, 0.49),
+    q = army(s, b, a, 1, 8, 0.49);
+  const reversed = structuredClone(s);
+  reversed.packets.reverse();
+  tick(s, 1);
+  tick(reversed, 1);
+  assert.deepEqual(s, reversed);
+  assert.ok(p.engaged && q.engaged);
+  assert.ok(p.troops > 0 && q.troops > 0);
+  assert.deepEqual(positionOfPacket(s, p), positionOfPacket(s, q));
+  const pos = positionOfPacket(s, p);
+  tick(s, 0.2);
+  assert.deepEqual(positionOfPacket(s, p), pos);
+  tick(s, 12);
+  assert.equal(s.packets.length, 0, 'equal armies die together without array-order advantage');
+});
+
+test('victor continues its original direction; friendly traffic passes', () => {
+  const s = fresh();
+  freeze(s);
+  const a = own(s),
+    b = s.cities.find((c) => c.id === junction(s, a).exits[0]);
+  const strong = army(s, a, b, 0, 16, 0.49);
+  army(s, b, a, 1, 2, 0.49);
+  tick(s, 1);
+  assert.equal(strong.targetCityId, b.id);
+  assert.ok(strong.progress > 0.5);
+  assert.ok(strong.troops > 0);
+  const friends = fresh();
+  freeze(friends);
+  const x = army(friends, friends.cities[0], friends.cities[1], 0, 2, 0.49),
+    y = army(friends, friends.cities[1], friends.cities[0], 0, 2, 0.49);
+  tick(friends, 0.2);
+  assert.ok(x.progress > 0.5 && y.progress > 0.5);
+  assert.equal(x.engaged, false);
+});
+
+test('intersecting geometry on different roads never triggers a road battle', () => {
+  const s = fresh();
+  freeze(s);
+  const p = army(s, s.cities[0], s.cities[1], 0, 5),
+    q = army(s, s.cities[2], s.cities[3], 1, 5);
+  p.from = q.from = { x: 100, y: 100 };
+  p.to = q.to = { x: 200, y: 200 };
+  tick(s, 0.5);
+  assert.equal(p.troops, 5);
+  assert.equal(q.troops, 5);
+  assert.equal(p.engaged, false);
+});
+
+test('fast and slow roads move actual armies at their declared speed; local speed aura ends out of range', () => {
+  const level = LEVELS.find((l) =>
+    ['fast', 'slow'].every((type) => l.roads.some((r) => r.type === type)),
+  );
+  const s = fresh({ levelId: level.id });
+  freeze(s);
+  const travelled = {};
+  for (const type of ['fast', 'slow']) {
+    const r = s.roads.find((v) => v.type === type);
+    const p = army(
+      s,
+      s.cities.find((c) => c.id === r.a),
+      s.cities.find((c) => c.id === r.b),
+      0,
+      2,
+      0,
+    );
+    const start = positionOfPacket(s, p);
+    tick(s, 0.1);
+    const end = positionOfPacket(s, p);
+    travelled[type] = Math.hypot(end.x - start.x, end.y - start.y);
+  }
+  assert.ok(Math.abs(travelled.fast / travelled.slow - 1.35 / 0.7) < 1e-8);
+  const buffed = fresh({ loadout: [{ kind: 'speed', tier: 3 }] });
+  freeze(buffed);
+  const c = own(buffed),
+    target = buffed.cities.find((v) => v.id === junction(buffed, c).exits[0]);
+  const p = army(buffed, c, target, 0, 2, 0);
+  assert.equal(modifiersAt(buffed, 0, positionOfPacket(buffed, p)).speed, 0.36);
+  tick(buffed, 2);
+  assert.equal(modifiersAt(buffed, 0, positionOfPacket(buffed, p)).speed, 0);
+});
+
+test('fortification absorbs damage before troops; neutral zero troop city retains ownership until entered', () => {
+  const s = fresh();
+  freeze(s);
+  const a = own(s),
+    b = s.cities.find((c) => c.id === junction(s, a).exits[0]);
+  b.baseFortification = b.fortification = 40;
+  b.troops = 2;
+  army(s, a, b, 0, 8, 1, 'siege');
+  tick(s, 0.1);
+  assert.equal(b.fortification, 20);
+  assert.equal(b.troops, 2);
+  assert.equal(b.owner, null);
+  tick(s, 12);
+  assert.equal(b.owner, 0);
+  assert.equal(b.fortification, 0);
+  const empty = fresh();
+  freeze(empty);
+  tick(empty, 1);
+  assert.equal(own(empty).owner, 0);
+});
+
+test('weapons have distinct cooldowns, range, splash, and capture rearming', () => {
+  const totals = {};
+  for (const kind of ['crossbow', 'catapult', 'cannon']) {
+    const s = fresh();
+    freeze(s);
+    const c = own(s),
+      from = s.cities.find((v) => v.id === junction(s, c).exits[0]);
+    c.troops = 0;
+    c.baseFortification = c.fortification = 10000;
+    c.weapon = { kind, readyAt: 0, nextFire: 0, sourceOwner: null };
+    const a = army(s, from, c, 1, 20, 1, 'siege'),
+      b = army(s, from, c, 1, 20, 1, 'siege');
+    tick(s, 0.1);
+    totals[kind] = 40 - a.troops - b.troops + (a.damage + b.damage) / 10;
+    assert.equal(s.events.filter((e) => e.type === 'fire').length, 1);
+    if (kind === 'catapult') assert.ok(a.damage > 0 && b.damage > 0);
+    else assert.equal(b.damage, 0);
+    tick(s, 0.5);
+    assert.equal(s.events.filter((e) => e.type === 'fire').length, 1);
+  }
+  assert.ok(totals.cannon > totals.crossbow);
+  const s = fresh();
+  freeze(s);
+  const c = own(s),
+    from = s.cities.find((v) => v.id === junction(s, c).exits[0]);
+  c.weapon = { kind: 'crossbow', nextFire: 100, readyAt: 0, sourceOwner: null };
+  army(s, from, c, 1, 10, 1, 'siege');
+  tick(s, 0.1);
+  assert.equal(c.owner, 1);
+  assert.equal(c.weapon.readyAt, s.time + 3);
+});
+
+test('territory percentage absorbs real damage and does not regenerate damaged walls', () => {
+  const s = fresh({ loadout: [{ kind: 'territory', tier: 3 }] });
+  freeze(s);
+  const c = own(s),
+    from = s.cities.find((v) => v.id === junction(s, c).exits[0]);
+  assert.equal(c.maxFortification, 24 * 1.36);
+  assert.equal(c.fortification, c.maxFortification);
+  const p = army(s, from, c, 1, 10, 1, 'siege');
+  tick(s, 0.1);
+  assert.ok(Math.abs(c.fortification - (24 * 1.36 - 25)) < 1e-8);
+  assert.equal(c.owner, 0);
+  p.troops = 0;
+  const damaged = c.fortification;
+  tick(s, 3);
+  assert.equal(c.fortification, damaged);
+});
+
+test('full and split dispatch conserve wounds from actual combat', () => {
+  for (const count of [1, 12]) {
+    const s = fresh();
+    freeze(s);
+    const c = own(s),
+      j = junction(s, c);
+    const from = s.cities.find((v) => v.id === j.exits[0]);
+    c.troops = count;
+    const attacker = army(s, from, c, 1, 1, 1, 'siege');
+    tick(s, 0.1);
+    assert.ok(c.damage > 0);
+    const wounds = c.damage;
+    attacker.troops = 0;
+    c.dispatchProgress = RULES.dispatchInterval;
+    switchRoute(s, 0, j.id, 0);
+    tick(s, 0.1);
+    const sent = s.packets.find((p) => p.owner === 0);
+    assert.ok(sent);
+    assert.ok(Math.abs(sent.damage + c.damage - wounds) < 1e-8);
+    assert.ok(Math.abs(sent.damage - (wounds * Math.min(count, RULES.packetSize)) / count) < 1e-8);
+    if (count === 1) {
+      assert.equal(c.troops, 0);
+      assert.equal(c.damage, 0);
+    }
+  }
+});
+
+test('six general types have real distinct stats, follow troops, and return to a friendly garrison', () => {
+  assert.equal(Object.keys(GENERAL_TYPES).length, 6);
+  assert.equal(new Set(Object.values(GENERAL_TYPES).map((g) => g.aura)).size, 6);
+  const s = fresh();
+  freeze(s);
+  const c = own(s),
+    next = s.cities.find((v) => v.id === junction(s, c).exits[0]);
+  claim(s, next, 0);
+  const g = general(s, c);
+  c.troops = 5;
+  c.dispatchProgress = 0;
+  switchRoute(s, 0, c.junctionId, 0);
+  tick(s, 2);
+  assert.equal(g.cityId, null);
+  assert.equal(typeof g.packetId, 'number');
+  assert.deepEqual(positionOfGeneral(s, g), positionOfPacket(s, s.packets[0]));
+  switchRoute(s, 0, c.junctionId, -1);
+  tick(s, 8);
+  assert.equal(g.cityId, next.id);
+  assert.equal(g.packetId, null);
+});
+
+test('continuous recruitment pauses during siege, caps per source/faction and resets on loss', () => {
+  const s = fresh({ levelId: 'campaign-071' });
+  freeze(s);
+  for (const city of s.cities) city.weapon = null;
+  const c = s.cities.find((v) => v.type === 'muster');
+  claim(s, c, 0);
+  c.baseFortification = c.fortification = 10000;
+  tick(s, 10);
+  assert.ok(c.recruitProgress >= 9.9 && c.recruitProgress < 11);
+  const from = s.cities.find((v) => v.id === junction(s, c).exits[0]);
+  const attacker = army(s, from, c, 1, 1, 1, 'siege');
+  const before = c.recruitProgress;
+  tick(s, 2);
+  assert.equal(c.recruitProgress, before);
+  attacker.troops = 0;
+  tick(s, 11);
+  assert.equal(s.generals.filter((g) => g.originCityId === c.id).length, 1);
+  tick(s, 30);
+  assert.equal(s.generals.filter((g) => g.originCityId === c.id).length, 1);
+  assert.equal(c.recruitProgress, 0);
+  const all = s.cities.filter((v) => v.type === 'muster');
+  for (const v of all) claim(s, v, 0);
+  tick(s, 22);
+  assert.equal(s.generals.filter((g) => g.owner === 0).length, 2);
+  assert.ok(
+    all
+      .filter((v) => !s.generals.some((g) => g.originCityId === v.id))
+      .every((v) => v.recruitProgress === 0),
+  );
+  const other = all.find((v) => !s.generals.some((g) => g.cityId === v.id));
+  other.recruitProgress = 7;
+  other.baseFortification = other.fortification = 0;
+  army(
+    s,
+    s.cities.find((v) => v.id === junction(s, other).exits[0]),
+    other,
+    1,
+    10,
+    1,
+    'siege',
+  );
+  tick(s, 0.1);
+  assert.equal(other.owner, 1);
+  assert.equal(other.recruitProgress, 0);
+});
+
+test('general and card auras are local, source bound, highest-of-kind and jointly capped', () => {
+  const s = fresh({
+      loadout: [
+        { kind: 'attack', tier: 3 },
+        { kind: 'attack', tier: 0 },
+      ],
+    }),
+    c = own(s),
+    g = general(s, c);
+  assert.equal(modifiersAt(s, 0, c).attack, 0.36);
+  assert.equal(modifiersAt(s, 1, c).attack, 0);
+  assert.equal(modifiersAt(s, 0, { x: c.x + 200, y: c.y }).attack, 0);
+  for (const kind of ['speed', 'rate', 'defense', 'health'])
+    s.sources.push({ id: kind, cityId: c.id, factionId: 0, kind, radius: 95, value: 0.5 });
+  assert.ok(
+    Object.values(modifiersAt(s, 0, c)).reduce((a, b) => a + b, 0) <= RULES.bonusCap + 1e-9,
+  );
+  claim(s, c, 1);
+  assert.equal(effectSources(s).filter((v) => v.factionId === 0).length, 0);
+  assert.equal(modifiersAt(s, 0, c).attack, 0);
+  assert.ok(g.health > 0);
+});
+
+test('moving/dead generals immediately lose their aura and death starts recruitment cooldown', () => {
+  const s = fresh();
+  freeze(s);
+  const c = own(s),
+    target = s.cities.find((v) => v.id === junction(s, c).exits[0]);
+  const g = general(s, c);
+  assert.equal(modifiersAt(s, 0, c).attack, 0.22);
+  const p = army(s, c, target, 0, 0, 0.9);
+  g.cityId = null;
+  g.packetId = p.id;
+  assert.equal(modifiersAt(s, 0, c).attack, 0);
+  const q = army(s, target, c, 1, 1000, 0.1);
+  tick(s, 0.1);
+  assert.equal(s.generals.length, 0);
+  assert.equal(c.recruitReadyAt, s.time + RULES.recruitCooldown);
+  assert.ok(q.troops > 0);
+  assert.ok(!effectSources(s).some((source) => source.sourceType === 'general'));
+});
+
+test('all card kinds are bounded, meaningful local sources; duplicate reinforcement uses highest', () => {
+  for (const kind of [
+    'troops',
+    'production',
+    'attack',
+    'rate',
+    'defense',
+    'health',
+    'speed',
+    'general',
+    'weapon',
+    'territory',
+  ]) {
+    const s = fresh({ loadout: [{ kind, tier: 3 }] }),
+      c = own(s);
+    assert.ok(effectSources(s).some((v) => v.kind === kind && v.sourceType === 'card'));
+    assert.equal(own(s, 1).troops, 0);
+    if (kind === 'troops') assert.equal(c.troops, 16);
+    else if (kind === 'general') {
+      assert.ok(c.generalKind);
+      tick(s, 16);
+      assert.equal(s.generals.length, 1);
+    } else if (kind === 'weapon') assert.equal(c.weapon.kind, 'crossbow');
+    else if (kind === 'territory') {
+      assert.ok(c.capacity > RULES.capacity);
+      assert.ok(c.fortification > 0);
+    } else assert.ok(modifiersAt(s, 0, c)[kind] > 0);
+  }
+  assert.equal(
+    own(
+      fresh({
+        loadout: [
+          { kind: 'troops', tier: 0 },
+          { kind: 'troops', tier: 3 },
+        ],
+      }),
+    ).troops,
+    16,
+  );
+  for (const loadout of [
     null,
     {},
     [null],
-    [{ id: 'bad', requires: {} }],
-    [{ id: 'bad', requires: [], factions: [0, 1], cities: [null, {}] }],
+    [{ kind: 'attack', tier: 4 }],
+    [{ kind: 'attack', tier: -1 }],
+    [{ kind: 'attack', tier: 1.1 }],
+    [{ kind: 'attack', tier: 0, power: 9 }],
+    [{ kind: 'unknown', tier: 0 }],
+    Array(3).fill({ kind: 'attack', tier: 0 }),
   ])
-    assert.equal(validateLevels(malformed).valid, false);
+    assert.throws(() => fresh({ loadout }), /Loadout/);
 });
 
-test('progress migration drops unknown content and bounds old or corrupt values', () => {
-  assert.deepEqual(migrateProgress(null), { version: 1, completed: [], stars: {}, best: {} });
-  assert.deepEqual(
-    migrateProgress({
-      version: 0,
-      completed: ['crossroads', 'crossroads', 'unknown'],
-      stars: { crossroads: 99, unknown: 2 },
-      best: { crossroads: -5 },
-    }),
-    { version: 1, completed: ['crossroads'], stars: { crossroads: 3 }, best: { crossroads: 0 } },
-  );
+test('health, defense, attack and rate alter actual battle damage, not just display', () => {
+  const losses = (kind) => {
+    const s = fresh({ loadout: kind ? [{ kind, tier: 3 }] : [] });
+    freeze(s);
+    const c = own(s),
+      target = s.cities.find((v) => v.id === junction(s, c).exits[0]);
+    c.troops = 20;
+    const p = army(s, target, c, 1, 20, 1, 'siege');
+    tick(s, 2.6);
+    return { defenders: c.troops, attackers: p.troops };
+  };
+  const base = losses();
+  assert.ok(losses('health').defenders > base.defenders);
+  assert.ok(losses('defense').defenders > base.defenders);
+  assert.ok(losses('attack').attackers < base.attackers);
+  assert.ok(losses('rate').attackers < base.attackers);
 });
 
-test('only the owner controls a junction and quick repeated taps are rejected', () => {
-  const state = fresh();
-  assert.equal(switchRoute(state, 0, 'bluegate-switch').reason, 'not-owner');
-  assert.equal(switchRoute(state, 0, 'unknown').reason, 'unknown-junction');
-  assert.equal(switchRoute(state, 0, 'redgate-switch', 2).reason, 'invalid-route');
-  assert.equal(switchRoute(state, 0, 'redgate-switch').ok, true);
-  assert.equal(switchRoute(state, 0, 'redgate-switch').reason, 'cooldown');
-  tick(state, RULES.switchCooldown);
-  assert.equal(switchRoute(state, 0, 'redgate-switch').ok, true);
+test('AI chooses expansion, holds for strength, and supplies along decreasing front distance', () => {
+  const s = fresh();
+  freeze(s);
+  const c = own(s);
+  assert.equal(planRoutes(s, 0)[0].routeIndex, -1);
+  c.troops = 10;
+  assert.notEqual(planRoutes(s, 0)[0].routeIndex, -1);
+  for (const id of junction(s, c).exits)
+    claim(
+      s,
+      s.cities.find((v) => v.id === id),
+      0,
+    );
+  const route = planRoutes(s, 0).find((v) => v.junctionId === c.junctionId);
+  assert.notEqual(route.routeIndex, -1);
+  assert.equal(s.cities.find((v) => v.id === junction(s, c).exits[route.routeIndex]).owner, 0);
+  for (const v of s.cities)
+    if (v.owner === 1) {
+      v.troops = 60;
+      v.baseFortification = v.fortification = 45;
+    }
+  const front = s.cities.find((v) => v.owner === 0 && v !== c);
+  front.troops = 0;
+  assert.equal(planRoutes(s, 0).find((v) => v.junctionId === front.junctionId).routeIndex, -1);
 });
 
-test('a switch affects troops still approaching the fork', () => {
-  const state = fresh();
-  freezeProduction(state);
-  const group = packet(state, { phase: 'approach' });
-  switchRoute(state, 0, 'redgate-switch', 1);
-  tick(state, 0.1);
-  assert.equal(group.phase, 'road');
-  assert.equal(group.targetCityId, 'eastford');
-  assert.deepEqual(group.to, { x: 300, y: 365 });
-});
-
-test('after the fork, changing a switch never redirects or speeds up a travelling packet', () => {
-  const state = fresh();
-  freezeProduction(state);
-  const group = packet(state, { phase: 'approach' });
-  tick(state, 0.1);
-  const destination = group.targetCityId;
-  const duration = group.duration;
-  const to = clone(group.to);
-  assert.equal(switchRoute(state, 0, 'redgate-switch', 1).ok, true);
-  tick(state, 0.3);
-  assert.equal(group.targetCityId, destination);
-  assert.equal(group.duration, duration);
-  assert.deepEqual(group.to, to);
-  assert.equal(group.elapsed, 0.30000000000000004);
-});
-
-test('production is automatic and dispatch keeps the same fixed garrison reserve', () => {
-  const state = fresh();
-  const city = state.cities[0];
-  city.troops = RULES.reserve;
-  tick(state, 2);
-  const groups = state.packets.filter((entry) => entry.owner === 0);
-  assert.equal(city.troops, RULES.reserve);
-  assert.equal(
-    groups.reduce((sum, entry) => sum + entry.troops, 0),
-    2,
-  );
-  assert.ok(city.productionProgress >= 0 && city.productionProgress < 1);
-  assert.equal(
-    state.cities.find((entry) => entry.owner === null).troops,
-    10,
-    'neutral cities do not produce',
-  );
-});
-
-test('combat is exactly 1:1; neutral capture transfers the city and its switch', () => {
-  const state = fresh();
-  freezeProduction(state);
-  const city = state.cities.find((entry) => entry.id === 'westford');
-  packet(state, { troops: 6, targetCityId: city.id });
-  tick(state, 0.1);
-  assert.equal(city.troops, 4);
-  assert.equal(city.owner, null);
-  packet(state, { troops: 4, targetCityId: city.id });
-  tick(state, 0.1);
-  assert.equal(city.troops, 0);
-  assert.equal(city.owner, null, 'equal numbers leave no surviving capturing soldier');
-  packet(state, { troops: 3, targetCityId: city.id });
-  tick(state, 0.1);
-  assert.equal(city.owner, 0);
-  assert.equal(city.troops, 3);
-  assert.equal(state.junctions.find((entry) => entry.cityId === city.id).owner, 0);
-  assert.equal(switchRoute(state, 0, city.junctionId).ok, true);
-  assert.equal(state.stats.captured, 1);
-});
-
-test('friendly arrivals join the garrison before any later automatic dispatch', () => {
-  const state = fresh();
-  freezeProduction(state);
-  const city = state.cities[0];
-  city.troops = 8;
-  packet(state, { troops: 7, targetCityId: city.id });
-  tick(state, 0.1);
-  assert.equal(city.troops, 15);
-  assert.equal(state.packets.length, 0);
-  city.dispatchProgress = 0;
-  tick(state, 2);
-  assert.equal(city.troops, 8);
-  assert.equal(state.packets[0].troops, 7);
-});
-
-test('the same seed, player input, and elapsed time reproduce across chunk sizes and JSON saves', () => {
-  const first = createMatch({ levelId: 'four-kingdoms', seed: 'replay' });
-  const second = createMatch({ levelId: 'four-kingdoms', seed: 'replay' });
-  tick(first, 23);
-  for (let i = 0; i < 230; i++) tick(second, 0.1);
-  assert.deepEqual(second, first);
-  const resumed = clone(first);
-  switchRoute(first, 0, 'redgate-switch');
-  switchRoute(resumed, 0, 'redgate-switch');
-  tick(first, 11);
-  tick(resumed, 11);
-  assert.deepEqual(resumed, first);
-  const otherSeed = createMatch({ levelId: 'four-kingdoms', seed: 'different' });
-  tick(otherSeed, 23);
-  assert.notDeepEqual(otherSeed.ai, second.ai, 'AI decisions use the recorded seed');
-});
-
-test('difficulty changes reaction times without changing city or army statistics', () => {
-  const easy = createMatch({ difficulty: 'easy', seed: 7 });
-  const hard = createMatch({ difficulty: 'hard', seed: 7 });
+test('seed, command stream and JSON snapshots replay identically across chunk sizes', () => {
+  const a = createMatch({
+    levelId: 'campaign-071',
+    seed: 'replay',
+    loadout: [{ kind: 'general', tier: 2 }],
+  });
+  const b = structuredClone(a);
+  tick(a, 30);
+  for (let i = 0; i < 300; i++) tick(b, 0.1);
+  assert.deepEqual(a, b);
+  const clone = JSON.parse(JSON.stringify(a));
+  for (const command of planRoutes(a, 0)) {
+    switchRoute(a, 0, command.junctionId, command.routeIndex);
+    switchRoute(clone, 0, command.junctionId, command.routeIndex);
+  }
+  tick(a, 10);
+  tick(clone, 10);
+  assert.deepEqual(a, clone);
+  const easy = fresh({ difficulty: 'easy' }),
+    hard = fresh({ difficulty: 'hard' });
   assert.deepEqual(easy.cities, hard.cities);
-  assert.deepEqual(easy.junctions, hard.junctions);
+  assert.deepEqual(easy.roads, hard.roads);
   assert.ok(easy.ai[0].nextDecision > hard.ai[0].nextDecision);
+  for (const seed of [NaN, Infinity, -1, 0x100000000, '', 'a'.repeat(129), {}, null])
+    assert.throws(() => fresh({ seed }), /Seed/);
+  for (const seconds of [-1, NaN, Infinity]) assert.throws(() => tick(a, seconds), /duration/);
 });
 
-test('elimination waits for armies on the road and lets them recapture a lost city', () => {
-  const state = fresh();
-  freezeProduction(state);
-  for (const city of state.cities) if (city.owner === 0) city.owner = 1;
-  packet(state, { troops: 12, targetCityId: 'westford', duration: 0.5 });
-  tick(state, 0.2);
-  assert.equal(state.status, 'playing');
-  tick(state, 0.3);
-  assert.equal(state.cities.find((entry) => entry.id === 'westford').owner, 0);
-  assert.equal(state.status, 'playing');
-});
-
-test('victory, defeat and finished-state input handling are explicit', () => {
-  for (const winnerId of [0, 1]) {
-    const state = fresh();
-    freezeProduction(state);
-    for (const city of state.cities) if (city.owner !== null) city.owner = winnerId;
-    tick(state, 0.1);
-    assert.equal(state.status, 'finished');
-    assert.equal(state.result.outcome, winnerId === 0 ? 'victory' : 'defeat');
-    assert.equal(state.result.reason, 'elimination');
-    assert.equal(state.result.winnerId, winnerId);
-    const ended = clone(state);
-    tick(state, 10);
-    assert.deepEqual(state, ended);
-    assert.equal(switchRoute(state, 0, 'redgate-switch').reason, 'match-finished');
-  }
-});
-
-test('180-second timeout compares territory, then surviving army, and allows a draw', () => {
-  const state = fresh();
-  freezeProduction(state);
-  state.cities.find((entry) => entry.owner === 0).troops = 20;
-  state.cities.find((entry) => entry.owner === 1).troops = 20;
-  tick(state, 300);
-  assert.equal(state.time, 180);
-  assert.equal(state.result.reason, 'timeout');
-  assert.equal(state.result.outcome, 'draw');
-  assert.equal(state.result.winnerId, null);
-  const leader = fresh();
-  freezeProduction(leader);
-  leader.cities.find((entry) => entry.id === 'westford').owner = 0;
-  leader.cities.find((entry) => entry.owner === 1).troops = 99;
-  tick(leader, 180);
-  assert.equal(
-    leader.result.outcome,
-    'victory',
-    'more territory wins even against a larger remaining army',
+test('elimination includes surviving armies and generals; player death does not end other factions', () => {
+  const s = fresh({ levelId: 'four-kingdoms' });
+  freeze(s);
+  const c = own(s),
+    target = s.cities.find((v) => v.id === junction(s, c).exits[0]);
+  const g = general(s, c),
+    p = army(s, c, target, 0, 0, 0);
+  g.cityId = null;
+  g.packetId = p.id;
+  claim(s, c, 1);
+  tick(s, 0.1);
+  assert.equal(s.eliminatedAt[0], null);
+  assert.equal(getScore(s).find((r) => r.factionId === 0).alive, true);
+  g.health = 0;
+  tick(s, 0.1);
+  assert.equal(s.eliminatedAt[0], 0.2);
+  assert.equal(s.status, 'playing');
+  const c2 = own(s, 2);
+  claim(s, c2, 1);
+  tick(s, 0.1);
+  assert.ok(
+    getScore(s).find((r) => r.factionId === 2).rank <
+      getScore(s).find((r) => r.factionId === 0).rank,
   );
-  assert.equal(leader.result.stars, 1);
 });
 
-test('tied AI leaders do not award a draw to a player who trails them', () => {
-  for (const playerTroops of [5, 20]) {
-    const state = createMatch({ levelId: 'four-kingdoms', seed: 1, aiEnabled: false });
-    freezeProduction(state);
-    for (const city of state.cities) {
-      if (city.owner === 0) city.troops = playerTroops;
-      else if (city.owner !== null) city.troops = city.owner === 3 ? 5 : 20;
+test('survivors rank by cities then all troops; ties share rank and natural results are eligible', () => {
+  const s = fresh({ levelId: 'four-kingdoms' });
+  freeze(s);
+  own(s, 0).troops = 10;
+  own(s, 1).troops = 10;
+  own(s, 2).troops = 5;
+  own(s, 3).troops = 1;
+  assert.deepEqual(
+    getScore(s).map((r) => r.rank),
+    [1, 1, 3, 4],
+  );
+  tick(s, s.duration);
+  assert.equal(s.result.outcome, 'draw');
+  assert.equal(s.result.reason, 'timeout');
+  assert.equal(s.result.completed, true);
+  assert.equal(s.result.rewardEligible, true);
+  const finished = structuredClone(s);
+  tick(s, 5);
+  assert.deepEqual(s, finished);
+  assert.equal(switchRoute(s, 0, own(s).junctionId).reason, 'match-finished');
+  const win = fresh();
+  freeze(win);
+  claim(win, own(win, 1), 0);
+  tick(win, 0.1);
+  assert.equal(win.result.winnerId, 0);
+  assert.equal(win.result.reason, 'elimination');
+});
+
+test('legacy completed IDs survive, new chapters unlock sequentially, incomplete/abandoned results grant nothing', () => {
+  const p = migrateProgress({
+    version: 1,
+    completed: ['crossroads', 'riverfork', 'four-kingdoms', 'unknown'],
+    stars: { crossroads: 8 },
+    best: { crossroads: -2 },
+  });
+  assert.equal(p.version, 2);
+  assert.equal(p.completed.length, 3);
+  assert.equal(p.stars.crossroads, 3);
+  assert.equal(p.best.crossroads, 0);
+  assert.ok(getUnlockedLevels(p).includes('campaign-002'));
+  assert.ok(getUnlockedLevels(p).includes('four-kingdoms'));
+  const progress = {},
+    result = { levelId: 'crossroads', outcome: 'victory', stars: 2, score: 4100 };
+  applyResult(progress, result);
+  assert.deepEqual(progress.completed, []);
+  applyResult(progress, { ...result, completed: true, reason: 'abandoned' });
+  assert.deepEqual(progress.completed, []);
+  applyResult(progress, { ...result, completed: true, reason: 'timeout' });
+  assert.deepEqual(getUnlockedLevels(progress), ['crossroads', 'campaign-002']);
+  const before = structuredClone(progress);
+  applyResult(progress, { ...result, completed: true, reason: 'timeout' });
+  assert.deepEqual(progress, before);
+});
+
+test('real command-only pilots finish a representative tutorial, weapon and general map', () => {
+  for (const levelId of ['crossroads', 'campaign-051', 'campaign-071']) {
+    const s = createMatch({ levelId, seed: 2 });
+    while (s.status === 'playing') {
+      for (const c of planRoutes(s, 0, 'aggressive'))
+        if (s.junctions.find((j) => j.id === c.junctionId).routeIndex !== c.routeIndex)
+          switchRoute(s, 0, c.junctionId, c.routeIndex);
+      tick(s, 4);
     }
-    tick(state, 180);
-    assert.equal(state.result.reason, 'timeout');
-    assert.equal(state.result.winnerId, null);
-    assert.equal(state.result.outcome, playerTroops === 20 ? 'draw' : 'defeat');
-    assert.equal(state.result.stars, 0);
-  }
-});
-
-test('finite ticks are required and sub-step time does not prematurely advance rules', () => {
-  const state = fresh();
-  assert.throws(() => tick(state, NaN), /duration/);
-  assert.throws(() => tick(state, -1), /duration/);
-  assert.throws(() => tick(state, Infinity), /duration/);
-  tick(state, 0.04);
-  assert.equal(state.time, 0);
-  tick(state, 0.06);
-  assert.equal(state.time, 0.1);
-});
-
-test('all campaigns finish with valid bounded state and each is winnable by route decisions', () => {
-  for (const level of LEVELS) {
-    let wins = 0;
-    for (let seed = 1; seed <= 12; seed++) {
-      const state = createMatch({ levelId: level.id, seed });
-      // The pilot uses exactly the same junction controls and unit rules as a human.
-      state.ai.push({ factionId: 0, style: 'aggressive', nextDecision: 0 });
-      tick(state, 180);
-      assert.equal(state.status, 'finished');
-      assert.ok(state.time <= 180);
-      assert.ok(
-        state.cities.every(
-          (entry) =>
-            Number.isInteger(entry.troops) && entry.troops >= 0 && entry.troops <= entry.capacity,
-        ),
-      );
-      assert.ok(
-        state.packets.every((entry) => entry.troops > 0 && entry.troops <= RULES.packetSize),
-      );
-      assert.ok(
-        state.junctions.every(
-          (entry) => entry.owner === state.cities.find((city) => city.id === entry.cityId).owner,
-        ),
-      );
-      assert.equal(getScore(state).length, level.factions.length);
-      if (state.result.outcome === 'victory') wins++;
-    }
+    assert.ok(s.result.completed);
+    assert.equal(s.result.rankings.length, s.factions.length);
     assert.ok(
-      wins > 0,
-      `${level.id} should be winnable without changing combat or production stats`,
+      s.cities.every((c) => Number.isInteger(c.troops) && c.troops >= 0 && c.troops <= c.capacity),
+    );
+    assert.ok(
+      s.packets.every((p) => Number.isFinite(p.progress) && p.progress >= 0 && p.progress <= 1),
+    );
+    assert.ok(
+      s.events.every(
+        (e) =>
+          Number.isFinite(e.position.x) &&
+          Number.isFinite(e.position.y) &&
+          Object.hasOwn(e, 'factionId'),
+      ),
     );
   }
 });

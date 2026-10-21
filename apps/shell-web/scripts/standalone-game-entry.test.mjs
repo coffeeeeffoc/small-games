@@ -54,6 +54,12 @@ test('street chase waits for the game and enters through the home start button',
   assert.equal(entryMode('chase-thief'), 'adapter');
 });
 
+test('Tianxia enters its ready Creator battlefield through preparation', () => {
+  assert.equal(markers['tianxia-chalu'], '#start');
+  assert.deepEqual(homeControls['tianxia-chalu'], ['#start', '#begin-battle']);
+  assert.equal(entryMode('tianxia-chalu'), 'adapter');
+});
+
 test('Orbit Creator owns its native home and interaction checks instead of clicking invisible DOM controls', async () => {
   assert.equal(markers['orbit-atelier'], '#GameCanvas');
   assert.equal(homeControls['orbit-atelier'], undefined);

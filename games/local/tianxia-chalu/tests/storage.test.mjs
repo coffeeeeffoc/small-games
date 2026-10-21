@@ -22,6 +22,7 @@ test('missing, corrupt and unsupported save versions start a clean campaign', ()
   assert.deepEqual(getUnlockedLevels(fallback), ['crossroads']);
   assert.deepEqual(fallback.settings, {
     sound: true,
+    music: true,
     difficulty: 'normal',
     serverUrl: '',
     online: false,
@@ -34,7 +35,7 @@ test('missing, corrupt and unsupported save versions start a clean campaign', ()
     '[]',
     '{}',
     JSON.stringify({ version: 0, completed: ['crossroads'] }),
-    JSON.stringify({ version: 2, completed: ['crossroads'] }),
+    JSON.stringify({ version: 99, completed: ['crossroads'] }),
   ]) {
     assert.deepEqual(readSave(memoryStorage(raw)), fallback);
   }
@@ -59,6 +60,7 @@ test('corrupt progress is bounded to prevent level UI crashes and unknown unlock
   assert.equal(save.tutorial, false);
   assert.deepEqual(save.settings, {
     sound: false,
+    music: true,
     difficulty: 'normal',
     online: false,
     serverUrl: '',
@@ -107,12 +109,20 @@ test('a successful result survives a save/reload without losing tutorial or sett
   save.tutorial = true;
   save.settings = {
     sound: false,
+    music: false,
     difficulty: 'hard',
     online: true,
     serverUrl: 'https://example.test/matches',
   };
   const settings = structuredClone(save.settings);
-  const result = { levelId: 'crossroads', outcome: 'victory', stars: 2, score: 4200 };
+  const result = {
+    levelId: 'crossroads',
+    completed: true,
+    reason: 'elimination',
+    outcome: 'victory',
+    stars: 2,
+    score: 4200,
+  };
   const progress = applyResult(save, result);
   save = { ...save, ...progress };
   assert.equal(writeSave(save, storage), true);
@@ -120,7 +130,7 @@ test('a successful result survives a save/reload without losing tutorial or sett
   assert.deepEqual(loaded.settings, settings);
   assert.equal(loaded.tutorial, true);
   assert.deepEqual(loaded.completed, ['crossroads']);
-  assert.deepEqual(getUnlockedLevels(loaded), ['crossroads', 'riverfork']);
+  assert.deepEqual(getUnlockedLevels(loaded), ['crossroads', 'campaign-002']);
   assert.equal(loaded.stars.crossroads, 2);
   assert.equal(loaded.best.crossroads, 4200);
 });
@@ -128,7 +138,14 @@ test('a successful result survives a save/reload without losing tutorial or sett
 test('duplicate result settlement and later lower results cannot duplicate or downgrade progress', () => {
   const storage = memoryStorage();
   const save = readSave(storage);
-  const victory = { levelId: 'crossroads', outcome: 'victory', stars: 3, score: 4321 };
+  const victory = {
+    levelId: 'crossroads',
+    completed: true,
+    reason: 'timeout',
+    outcome: 'victory',
+    stars: 3,
+    score: 4321,
+  };
   applyResult(save, victory);
   writeSave(save, storage);
   const reloaded = readSave(storage);

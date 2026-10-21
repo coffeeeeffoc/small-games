@@ -1,5 +1,12 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
-import { createMatch, getLevel, switchRoute, tick } from '@coffeeeeffoc/tianxia-chalu/engine';
+import {
+  createMatch,
+  getLevel,
+  switchRoute,
+  tick,
+  validateSeed,
+  validateLoadout,
+} from '@coffeeeeffoc/tianxia-chalu/engine';
 import { ApiError, objectBody } from './errors.mjs';
 
 const STEP_MS = 100;
@@ -33,7 +40,7 @@ export class MatchService {
   }
 
   create(body) {
-    objectBody(body, ['levelId', 'difficulty']);
+    objectBody(body, ['levelId', 'difficulty', 'seed', 'loadout']);
     const { levelId = 'crossroads', difficulty = 'normal' } = body;
     let level;
     try {
@@ -46,6 +53,13 @@ export class MatchService {
     }
     if (!['normal', 'easy', 'hard'].includes(difficulty)) {
       throw new ApiError(400, 'invalid-difficulty', '难度无效');
+    }
+    let seed, loadout;
+    try {
+      seed = validateSeed(body.seed === undefined ? randomBytes(4).readUInt32LE(0) : body.seed);
+      loadout = validateLoadout(body.loadout === undefined ? [] : body.loadout);
+    } catch {
+      throw new ApiError(400, 'invalid-setup', '布阵种子或局部装备参数无效');
     }
     this.advance();
     if (this.matches.size >= this.maxMatches) {
@@ -62,7 +76,8 @@ export class MatchService {
       state: createMatch({
         levelId,
         difficulty,
-        seed: randomBytes(4).readUInt32LE(0),
+        seed,
+        loadout,
         aiEnabled: true,
       }),
       revision: 0,
@@ -116,7 +131,7 @@ export class MatchService {
       !Number.isSafeInteger(sequence) ||
       sequence < 1 ||
       (routeIndex !== undefined &&
-        (!Number.isInteger(routeIndex) || routeIndex < 0 || routeIndex > 32))
+        (!Number.isInteger(routeIndex) || routeIndex < -1 || routeIndex > 32))
     ) {
       throw new ApiError(400, 'invalid-command', '岔路指令格式无效');
     }
@@ -182,6 +197,8 @@ export class MatchService {
     if (match.state.status !== 'finished') {
       match.state.status = 'finished';
       match.state.result = {
+        completed: false,
+        rewardEligible: false,
         levelId: match.state.levelId,
         outcome: 'defeat',
         winnerId: null,

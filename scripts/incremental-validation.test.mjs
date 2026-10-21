@@ -49,6 +49,50 @@ test('cache maintenance paths run tooling checks without game consumers; sibling
   assert.throws(() => plan(['scripts/prune-unknown-cache.mjs']), /Incremental scope undefined/);
 });
 
+test('Tianxia engine changes retain the actual service dependency and complete rule suite', () => {
+  const source = 'games/local/tianxia-chalu';
+  const consumer = {
+    name: 'tianxia-server',
+    dir: 'services/tianxia-server',
+    dependencies: { tianxia: 'workspace:*' },
+  };
+  const context = {
+    packages: [
+      { name: 'tianxia', dir: source },
+      consumer,
+      { name: 'unrelated-server', dir: 'services/other' },
+    ],
+    games: [{ id: 'tianxia-chalu', source }],
+    readSource: () => 'export const rules = 1;',
+  };
+  for (const file of [source + '/src/core/index.mjs', 'services/tianxia-server/src/matches.mjs']) {
+    const selected = incrementalPlan({ ...context, changedPaths: [file] });
+    assert.deepEqual(selected.service_rule_sources, ['services/tianxia-server']);
+  }
+  assert.deepEqual(
+    incrementalPlan({
+      ...context,
+      packages: [context.packages[0]],
+      changedPaths: [source + '/src/core/index.mjs'],
+    }).service_rule_sources,
+    [],
+  );
+});
+
+test('reuse artifact tests are in the validation execution path and keep navigation samples', () => {
+  const games = ['letters-words2', 'xiangqi-five', 'wulong-city'].map((id) => ({
+    id,
+    source: `games/local/${id}`,
+  }));
+  const selected = plan(['scripts/reuse-cocos-artifacts.test.mjs'], { games });
+  assert(selected.validation_tools);
+  assert.deepEqual(selected.browser_ids, ['letters-words2', 'xiangqi-five']);
+  assert.throws(
+    () => plan(['scripts/reuse-cocos-artifacts-extra.mjs']),
+    /Incremental scope undefined/,
+  );
+});
+
 for (const file of ['scripts/browser-preparation.mjs', 'scripts/hook-diagnostics.mjs'])
   test(`${file} is validation tooling with only the existing navigation samples`, () => {
     const selected = incrementalPlan({

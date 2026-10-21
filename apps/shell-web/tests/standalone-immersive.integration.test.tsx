@@ -33,6 +33,7 @@ async function mounted(id = ink) {
 
 it.each([
   'homebound-station',
+  'tianxia-chalu',
   'ashfall-front',
   'carrom-club',
   'three-choose-two',

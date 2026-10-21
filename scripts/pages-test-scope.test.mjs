@@ -1069,6 +1069,29 @@ test('real git diff uses a merge base for PRs and keeps rename and gitlink paths
   assert.throws(() => collectChangedPaths({ root, base: 'missing-sha' }));
 });
 
+test('exact candidate tree checks support path lists beyond Windows command-line limits', async (t) => {
+  const { root, git } = await temporaryRepository(t);
+  await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });
+  await mkdir(path.join(root, 'docs'), { recursive: true });
+  await writeFile(path.join(root, 'apps/shell-web/src/standalone-games.json'), '[]');
+  git('add', '.');
+  git('commit', '-m', 'base');
+  const base = git('rev-parse', 'HEAD');
+  await Promise.all(
+    Array.from({ length: 400 }, (_, index) =>
+      writeFile(path.join(root, 'docs', `${index}-${'long-path-'.repeat(9)}.md`), 'content'),
+    ),
+  );
+  git('add', '.');
+  git('commit', '-m', 'many paths');
+  const result = await main(
+    { PAGES_DIFF_BASE: base, PAGES_DIFF_HEAD: git('rev-parse', 'HEAD') },
+    root,
+  );
+  assert.equal(result.full, false);
+  assert.equal(result.required, false);
+});
+
 test('CLI output is valid GitHub output and an empty or unknown base selects full', async (t) => {
   const { root, git } = await temporaryRepository(t);
   await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });
@@ -1316,7 +1339,8 @@ test('actual dcf to e48 selects twenty active native targets and two H5 navigati
   assert.equal(result.diff_base, base);
   assert.equal(result.diff_head, head);
   assert.equal(result.full, false);
-  assert.equal(result.cocos, false);
+  // Current Shell metadata consumes Tianxia's emitted dist, now built by Creator.
+  assert.equal(result.cocos, true);
   assert.deepEqual(result.browser_ids, ['letters-words2', 'xiangqi-five']);
   assert.deepEqual(
     result.nine_native_targets.map(({ game, platform }) => `${game}:${platform}`).sort(),
@@ -1697,6 +1721,31 @@ test('cleanup deletion proof binds exact source bytes at both publication bases 
     }),
     false,
   );
+});
+
+test('Tianxia Cocos cleanup binds exact former renderer/build/test, absence and retained identity', async () => {
+  const { isReviewedCleanupDeletion } = await import('./pages-test-scope.mjs');
+  const source = 'games/local/tianxia-chalu';
+  for (const name of ['build.mjs', 'render.mjs', 'tests/route-feedback.test.mjs']) {
+    const file = source + '/' + name;
+    const options = {
+      change: { status: 'D', paths: [file] },
+      readBase: (name) => cleanupOriginal(name, 'ba3f3966082a24861e1a05c1e1e293ae1f032136'),
+      headHasPath: () => false,
+      standaloneGames: [{ id: 'tianxia-chalu', source }],
+      gameSources: [source],
+    };
+    assert(isReviewedCleanupDeletion(options));
+    for (const extra of [
+      { headHasPath: () => true },
+      { headHasPath: () => undefined },
+      { readBase: (name) => options.readBase(name) + '\n' },
+      { gameSources: [] },
+      { change: { status: 'D', paths: [source + '/unknown.mjs'] } },
+      { change: { status: 'R100', paths: [file, file + '.moved'] } },
+    ])
+      assert.equal(isReviewedCleanupDeletion({ ...options, ...extra }), false);
+  }
 });
 
 test('real name-status cleanup keeps both game regressions while unknown deletion, changed baseline and reviewed-source rename remain blocked', async (t) => {
