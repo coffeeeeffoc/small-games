@@ -108,6 +108,40 @@ test('production review binds current file bytes, retained consumers and unforge
     hasLocalRetirementFileProof(builder, scopes.get(builder), () => 'drift'),
     false,
   );
+  const { requiresIncrementalCocos } = await import('./pages-test-scope.mjs');
+  const creator = {
+    dir: 'games/local/creator-fixture',
+    name: 'creator',
+    creator: { version: '3.8.8' },
+  };
+  const packages = [
+    creator,
+    { dir: 'apps/shell-web', name: 'shell', dependencies: { creator: 'workspace:*' } },
+  ];
+  const scoped = {
+    full: false,
+    required: true,
+    game_sources: [],
+    nine_native_targets: [],
+    nine_native_blocked: [],
+  };
+  const candidate = {
+    packages,
+    games: [],
+    changedPaths: ['apps/shell-web/package.json'],
+    scope: scoped,
+    risk: 'incremental',
+    fileScopes: scopes,
+    readSource: readHead,
+  };
+  assert.equal(requiresIncrementalCocos(candidate), false);
+  assert.equal(
+    requiresIncrementalCocos({
+      ...candidate,
+      changedPaths: [...candidate.changedPaths, 'apps/shell-web/src/unreviewed.ts'],
+    }),
+    true,
+  );
   const audio = 'platforms/competition/assets/action.wav';
   const originalAudio = 'games/local/game-cricket/public/cricket-audio/perfect.wav';
   assert.equal(

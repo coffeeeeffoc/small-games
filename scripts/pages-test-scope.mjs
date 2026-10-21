@@ -334,10 +334,26 @@ export function collectChangedPaths(options) {
 }
 
 /** Reviewed shared files can reach Creator games without changing their package paths. */
-export function requiresIncrementalCocos({ packages, games, changedPaths, scope, risk }) {
+export function requiresIncrementalCocos({
+  packages,
+  games,
+  changedPaths,
+  scope,
+  risk,
+  fileScopes = new Map(),
+  readSource,
+}) {
   const creatorSources = new Set(packages.filter((pkg) => pkg.creator).map((pkg) => pkg.dir));
   return (
-    requiresCocos(packages, changedPaths, { ...scope, risk }) ||
+    requiresCocos(
+      packages,
+      changedPaths.filter(
+        (file) =>
+          !hasLocalRetirementFileProof(file, fileScopes.get(file), readSource) &&
+          !hasLocalRetirementDeletionProof(file, fileScopes.get(file)),
+      ),
+      { ...scope, risk },
+    ) ||
     scope.game_sources.some((source) => creatorSources.has(source)) ||
     scope.nine_native_targets.some((target) => Boolean(target.requiresCreator)) ||
     scope.nine_native_blocked.some((blocked) =>
@@ -572,6 +588,8 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
         .map((game) => game.id)
         .sort(),
       cocos: requiresIncrementalCocos({
+        fileScopes,
+        readSource: context.readHead,
         packages,
         games: catalog.standaloneGames,
         changedPaths: sourcePaths,

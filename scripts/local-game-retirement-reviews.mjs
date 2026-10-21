@@ -390,7 +390,7 @@ export const localRetirementReviews = Object.freeze({
   },
   'scripts/pages-test-scope.mjs': {
     before: '676f79d500e378dd90d17fcdb2f35ca6df52c8092915df1266bc9d0cd69ec2bc',
-    after: 'e371ed08f55ad834cadc5254261c5a683bfc134dbd2365d0701e0e057a665e35',
+    after: 'fe2d1fe8b75fd69cf743547a589ba830b8b2e1a12450578ee03adfb7d48bf38a',
     sources: [],
   },
   'scripts/pages-test-scope.test.mjs': {
