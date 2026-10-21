@@ -47,6 +47,30 @@ import {
 } from './validation-plan.mjs';
 import { main as selectScope, collectChangedPaths } from './pages-test-scope.mjs';
 import { publishingConsumers } from './publication-scopes.mjs';
+import { parsers } from 'prettier/plugins/babel';
+
+function dependencyText(source) {
+  const fragments = [];
+  function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (
+      (['ImportDeclaration', 'ExportNamedDeclaration', 'ExportAllDeclaration'].includes(
+        node.type,
+      ) &&
+        node.source) ||
+      ['ImportExpression', 'TSImportType', 'TSExternalModuleReference'].includes(node.type) ||
+      (node.type === 'CallExpression' &&
+        (node.callee.type === 'Import' || node.callee.name === 'require'))
+    )
+      fragments.push(source.slice(node.start, node.end));
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  }
+  visit(parsers['babel-ts'].parse(source, {}));
+  return fragments.join('\n');
+}
 
 // Fail closed on test commands without a demonstrably browser-free entry/import graph.
 export async function assertNodeOnly(command, dir, visited = new Set()) {
@@ -93,7 +117,9 @@ export async function assertNodeOnly(command, dir, visited = new Set()) {
       !/from\s*['"](?:@playwright|playwright|puppeteer)|\beval\s*\(/.test(text),
       `Unreviewed executable dependency: ${file}`,
     );
-    for (const match of text.matchAll(
+    // Generated source and comments are data; imports inside template expressions remain code.
+    const dependencies = dependencyText(text);
+    for (const match of dependencies.matchAll(
       /(?:import|require)\s*\(\s*(?:'([^']+)'|"([^"]+)"|`([^`]+)`|([^\n)]+))\s*\)/g,
     )) {
       if (match[1] || match[2]) continue;
@@ -114,7 +140,7 @@ export async function assertNodeOnly(command, dir, visited = new Set()) {
       for (const match of setup[1].matchAll(/['"](\.[^'"]+)['"]/g))
         await visit(path.resolve(path.dirname(file), match[1]));
     }
-    for (const match of text.matchAll(
+    for (const match of dependencies.matchAll(
       /(?:import|export)\s+(?:[^;"']*?from\s*)?["']([^"']+)["']|(?:import|require)\s*\(\s*["']([^"']+)["']/g,
     )) {
       const ref = match[1] || match[2];
