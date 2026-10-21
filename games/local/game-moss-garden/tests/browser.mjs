@@ -8,8 +8,15 @@ import { chromium, expect } from '@playwright/test';
 // `pnpm build && pnpm test:browser`, or supply an already-running GAME_URL.
 const root = fileURLToPath(new URL('../', import.meta.url));
 const output = fileURLToPath(
-  new URL('../docs/design/mobile-levels-2026-10-11/actual/', import.meta.url),
+  new URL('../docs/design/expansion-2026-10-21/actual/', import.meta.url),
 );
+const useHint = async (page) => {
+  await action(page, 'play:hint').tap();
+  if ((await page.locator('#garden').getAttribute('data-page')) === 'hint') {
+    await action(page, 'hint:watch').tap();
+    await expect(page.locator('#garden')).not.toHaveAttribute('data-page', 'hint');
+  }
+};
 const saveKey = 'moss-garden.save.v1';
 const failures = [];
 const checks = [];
@@ -135,6 +142,9 @@ try {
   const context = await mobileContext();
   const page = await context.newPage();
   monitor(page, 'normal-mobile');
+  await context.addInitScript(() => {
+    window.SmallGamesRewardAds = { offer: async () => ({ status: 'completed' }) };
+  });
   await page.goto(url);
   await screen(page, 'home');
   await expect(action(page, 'home:start')).toHaveAttribute('aria-label', '开始第 1 关');
@@ -165,7 +175,7 @@ try {
     );
     await expect(page.locator('[data-hit-id^="level:"]')).toHaveCount(0);
   }
-  await expect(action(page, 'levels:next')).toHaveCount(0);
+  await expect(action(page, 'levels:next')).toHaveCount(1);
   await shot(page, 'levels-locked-chapter');
   for (let chapter = 4; chapter >= 1; chapter--) await action(page, 'levels:prev').tap();
   await expect(action(page, 'levels:prev')).toHaveCount(0);
@@ -273,7 +283,7 @@ try {
     hintTaps < 8 && (await page.locator('#garden').getAttribute('data-page')) === 'play';
     hintTaps++
   )
-    await action(page, 'play:hint').tap();
+    await useHint(page);
   await screen(page, 'result');
   await expect(page.locator('#scene')).toHaveAttribute('aria-label', '第 1 关 · 已通关');
   await expect(page.getByRole('status')).toContainText('第 1 关 · 已通关');
@@ -299,7 +309,7 @@ try {
   await expect(action(page, 'level:moss-02')).toHaveAttribute('aria-label', /可挑战/);
   await shot(page, 'levels-replay');
   await action(page, 'level:moss-01').tap();
-  for (let tap = 0; tap < 4; tap++) await action(page, 'play:hint').tap();
+  for (let tap = 0; tap < 4; tap++) await useHint(page);
   await screen(page, 'result');
   assert.deepEqual(
     (await save(page)).completed['moss-01'],
@@ -340,13 +350,16 @@ try {
   await context.close();
 
   const finalContext = await mobileContext();
+  await finalContext.addInitScript(() => {
+    window.SmallGamesRewardAds = { offer: async () => ({ status: 'completed' }) };
+  });
   await finalContext.addInitScript((key) => {
     localStorage.setItem(
       key,
       JSON.stringify({
         version: 1,
         completed: Object.fromEntries(
-          Array.from({ length: 29 }, (_, i) => [
+          Array.from({ length: 999 }, (_, i) => [
             `moss-${String(i + 1).padStart(2, '0')}`,
             { hints: 0, mistakes: 0, timeMs: 1000 },
           ]),
@@ -360,22 +373,22 @@ try {
   const finalPage = await finalContext.newPage();
   monitor(finalPage, 'last-level');
   await finalPage.goto(url);
-  await expect(action(finalPage, 'home:start')).toHaveAttribute('aria-label', '开始第 30 关');
+  await expect(action(finalPage, 'home:start')).toHaveAttribute('aria-label', '开始第 1000 关');
   await action(finalPage, 'home:levels').tap();
-  await expect(finalPage.locator('#scene')).toHaveAttribute('aria-label', '关卡选择 · 第 5 章');
-  await action(finalPage, 'level:moss-30').tap();
-  for (let tap = 0; tap < 8; tap++) await action(finalPage, 'play:hint').tap();
+  await expect(finalPage.locator('#scene')).toHaveAttribute('aria-label', '关卡选择 · 第 167 章');
+  await action(finalPage, 'level:moss-1000').tap();
+  for (let tap = 0; tap < 8; tap++) await useHint(finalPage);
   await screen(finalPage, 'result');
-  await expect(finalPage.locator('#scene')).toHaveAttribute('aria-label', '第 30 关 · 已通关');
+  await expect(finalPage.locator('#scene')).toHaveAttribute('aria-label', '第 1000 关 · 已通关');
   await expect(action(finalPage, 'result:next')).toHaveAttribute(
     'aria-label',
     '全部通关 · 查看关卡',
   );
-  assert.equal(Object.keys((await save(finalPage)).completed).length, 30);
+  assert.equal(Object.keys((await save(finalPage)).completed).length, 1000);
   await shot(finalPage, 'result-final');
   await action(finalPage, 'result:replay').tap();
   await screen(finalPage, 'play');
-  for (let tap = 0; tap < 8; tap++) await action(finalPage, 'play:hint').tap();
+  for (let tap = 0; tap < 8; tap++) await useHint(finalPage);
   await action(finalPage, 'result:next').tap();
   await screen(finalPage, 'levels');
   await action(finalPage, 'nav:back').tap();
@@ -482,7 +495,7 @@ try {
         'moss-02',
       );
       assert.deepEqual((await save(modePage)).completed, {});
-      await modePage.reload();
+      await modePage.goto(new URL('?dev=0', url).href);
       await screen(modePage, 'home');
       await action(modePage, 'home:levels').tap();
       assert.equal(

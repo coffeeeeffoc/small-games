@@ -1,0 +1,11 @@
+{
+  "environment": "Chromium touch simulation; shared game-rewards with mock Tap SDK; not real ads",
+  "checks": [
+    "shared SDK adapter: dismissed, error, cancelled late completion preserve board",
+    "reward close/foreground in both orders; duplicate close grants only once",
+    "ten-minute video/end card does not expire after show; reward solves final seed",
+    "dev=1 directly selects 1000 without progress writes; dev=0 restores locks",
+    "absent SDK does not grant hints or block ordinary puzzle play"
+  ],
+  "errors": []
+}

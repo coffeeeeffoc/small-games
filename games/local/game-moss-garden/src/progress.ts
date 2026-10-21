@@ -1,4 +1,4 @@
-import { getLevel, LEVELS } from './content.ts';
+import { getLevel, getLevelIndex, LEVELS } from './content.ts';
 import type { Level } from './content.ts';
 import { restorePuzzle, safeCount } from './rules.ts';
 import type { PuzzleState } from './rules.ts';
@@ -29,7 +29,7 @@ function validStat(value: unknown): value is number {
 }
 
 export function unlocked(save: Save, level: Level): boolean {
-  const index = LEVELS.findIndex((item) => item.id === level.id);
+  const index = getLevelIndex(level.id);
   return index === 0 || (index > 0 && !!save.completed[LEVELS[index - 1].id]);
 }
 

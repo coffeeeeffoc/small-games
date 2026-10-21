@@ -10,7 +10,7 @@ export const mossGardenManifest = manifest as GameManifest;
 export const defaultMossGardenEnvelope: DynamicContentEnvelope = {
   gameId: 'moss-garden',
   schemaVersion: 1,
-  revision: 1,
+  revision: 2,
   payload: { levels: LEVELS },
 };
 
