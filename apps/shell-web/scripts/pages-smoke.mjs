@@ -15,6 +15,7 @@ const builtInCount = 0;
 const basePath = process.env.PAGES_BASE_PATH ?? '/small-games/';
 const immersiveGame = (id) =>
   [
+    'tianxia-chalu',
     'ashfall-front',
     'carrom-club',
     'three-choose-two',
@@ -139,20 +140,6 @@ try {
       // Static controls can appear before module scripts attach their event listeners.
       const gameFrame = await (await page.locator('iframe').elementHandle()).contentFrame();
       await gameFrame.waitForLoadState();
-      if (game.id === 'hold-tight-acrobats') {
-        // Reproduce slow CI frames: charging may safely cancel, but walking must remain usable.
-        await gameFrame.evaluate(() => {
-          const raf = globalThis.requestAnimationFrame.bind(globalThis);
-          globalThis.requestAnimationFrame = (callback) =>
-            raf(() => {
-              const until = performance.now() + 140;
-              while (performance.now() < until) {
-                /* Sustained slow rendering must not freeze physics. */
-              }
-              callback(performance.now());
-            });
-        });
-      }
     });
     await phase(result, 'embedded-gameplay', () => exerciseStandalone(frame, game.id));
     result.embedded = 'passed';
@@ -241,6 +228,7 @@ try {
         await expect(page.locator('.standalone-page nav')).toBeVisible();
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
       } else if (
+        game.id === 'tianxia-chalu' ||
         game.id === 'ashfall-front' ||
         game.id === 'cage-rescue' ||
         game.id === 'ball-roguelite' ||

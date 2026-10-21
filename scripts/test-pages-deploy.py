@@ -34,7 +34,7 @@ with tempfile.TemporaryDirectory() as directory:
     (source / "company/style.css").write_text("body{margin:0}", encoding="utf-8")
     (source / "mobile").mkdir()
     (source / "mobile/web.zip").write_bytes(b"old native bundle")
-    layers = pathlib.Path("games/travel/assets/journey/layers")
+    layers = pathlib.Path("games/fixture/assets/journey/layers")
     (source / layers).mkdir(parents=True)
     drafts = [f"source-{name}.png" for name in ("cafe", "foreground", "meadow", "oldtown", "pagodas", "pier", "village")]
     for name in drafts:
@@ -52,12 +52,18 @@ with tempfile.TemporaryDirectory() as directory:
     prepare(source, state, site, "main", "a" * 40)
     production_zip = (site / "mobile/web.zip").read_bytes()
 
+    retired_output = state / "dev/games/retired-fixture/index.html"
     for branch, letter in (("dev", "b"), ("test", "c"), ("dev", "d"), ("main", "e")):
         (source / "index.html").write_text(branch + letter, encoding="utf-8")
         (source / "company/index.html").write_text("company " + branch + letter, encoding="utf-8")
         (source / "old.js").unlink(missing_ok=True)
         (source / "new.js").write_text(letter, encoding="utf-8")
+        if branch == "dev" and letter == "d":
+            retired_output.parent.mkdir(parents=True)
+            retired_output.write_text("retired game")
         prepare(source, state, site, branch, letter * 40)
+        assert not retired_output.exists()
+        assert not (site / "dev/games/retired-fixture").exists()
         if branch != "main":
             assert (site / "mobile/web.zip").read_bytes() == production_zip
             assert (site / "index.html").read_text() == "main v1"

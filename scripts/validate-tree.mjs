@@ -520,7 +520,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
     }
   }
   if (plan.submodule_dialog_ids?.length) {
-    assert.deepEqual(plan.submodule_dialog_ids, ['fishing', 'tower-defense-game', 'xiangqi-five']);
+    assert.deepEqual(plan.submodule_dialog_ids, ['xiangqi-five']);
     for (const id of plan.submodule_dialog_ids)
       assert(
         packages.some((pkg) => pkg.dir === `games/submodules/${id}`),
@@ -750,6 +750,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
       [
         'services/runtime-api',
         'services/kart-server',
+        'services/tianxia-server',
         'services/management-api',
         'packages/service-kit',
         'packages/ad-runtime',

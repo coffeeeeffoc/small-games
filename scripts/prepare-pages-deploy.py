@@ -20,8 +20,9 @@ def files(root):
 
 
 def unpublished_art(directory, names):
-    # These seven retained drafts are unused by Travel; apply to saved previews too.
-    if pathlib.Path(directory).parts[-5:] == ("games", "travel", "assets", "journey", "layers"):
+    # Exclude unused authoring layers from runtime bundles, including saved previews.
+    parts = pathlib.Path(directory).parts
+    if len(parts) >= 5 and parts[-5] == "games" and parts[-3:] == ("assets", "journey", "layers"):
         return {f"source-{name}.png" for name in ("cafe", "foreground", "meadow", "oldtown", "pagodas", "pier", "village")}
     return set()
 

@@ -30,9 +30,7 @@ try {
   page.on('request', (request) => {
     if (
       /^https?:/.test(request.url()) &&
-      !request.url().startsWith('https://appassets.androidplatform.net/') &&
-      // The bundled tower-defense CSS has optional fonts; native WebView blocks them.
-      !['fonts.googleapis.com', 'fonts.gstatic.com'].includes(new URL(request.url()).hostname)
+      !request.url().startsWith('https://appassets.androidplatform.net/')
     )
       errors.push(`Unexpected network request: ${request.url()}`);
   });
@@ -60,9 +58,6 @@ try {
         await frame.locator('#draw-button').click();
         await frame.locator('.cell').first().click();
         await expect(frame.locator('.cell.last-play')).toHaveCount(1);
-      } else if (title === '月森守卫') {
-        await frame.getByRole('button', { name: '切换速度，当前1倍' }).click();
-        await expect(frame.getByRole('button', { name: '切换速度，当前2倍' })).toBeVisible();
       } else {
         await frame.locator('#start').click();
         await expect(frame.locator('.game')).toHaveAttribute('data-phase', 'playing');

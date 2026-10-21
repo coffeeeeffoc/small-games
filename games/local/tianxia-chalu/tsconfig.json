@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "experimentalDecorators": true,
+    "allowImportingTsExtensions": true,
+    "types": []
+  },
+  "include": ["assets/scripts/**/*.ts", "reports/engine.d.ts"]
+}

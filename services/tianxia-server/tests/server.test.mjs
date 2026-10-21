@@ -51,7 +51,7 @@ async function fixture(t, options = {}) {
   };
 }
 
-test('API validates creation, rejects forged scores/seeds and protects every match operation', async (t) => {
+test('API validates creation, rejects forged scores/invalid seeds and protects every match operation', async (t) => {
   const f = await fixture(t);
   const created = await f.request('/api/matches', {
     method: 'POST',
@@ -82,7 +82,7 @@ test('API validates creation, rejects forged scores/seeds and protects every mat
   for (const body of [
     { levelId: 'missing' },
     { difficulty: 'god' },
-    { seed: 123 },
+    { seed: -1 },
     { score: 1000000 },
     [],
   ]) {
@@ -118,6 +118,48 @@ test('authoritative route commands enforce ownership, cooldown, order and idempo
     (await f.request(`/api/matches/${matchId}`, { token })).body.snapshot.lastSequence,
     2,
   );
+  f.advance(200);
+  const hold = { junctionId: own.id, sequence: 3, routeIndex: -1 };
+  const held = await command(hold);
+  assert.equal(held.status, 200);
+  assert.equal(held.body.snapshot.state.junctions.find((j) => j.id === own.id).routeIndex, -1);
+  assert.equal((await command(hold)).body.duplicate, true);
+  assert.equal((await command({ ...hold, routeIndex: 0 })).status, 409);
+  assert.equal((await command({ ...hold, sequence: 4, routeIndex: -2 })).status, 400);
+  assert.equal((await command({ ...hold, sequence: 4, routeIndex: null })).status, 400);
+});
+
+test('PVE creation accepts bounded loadout and seed for exact retries, without asserting card ownership', async (t) => {
+  const f = await fixture(t);
+  const body = {
+    levelId: 'campaign-071',
+    seed: 'same-layout',
+    difficulty: 'hard',
+    loadout: [
+      { kind: 'general', tier: 3 },
+      { kind: 'troops', tier: 1 },
+    ],
+  };
+  const first = await f.create(body),
+    second = await f.create(body);
+  assert.notEqual(first.matchId, second.matchId);
+  assert.notEqual(first.token, second.token);
+  assert.deepEqual(first.snapshot.state, second.snapshot.state);
+  assert.deepEqual(first.snapshot.state, createMatch(body));
+  const own = first.snapshot.state.cities.find((c) => c.owner === 0);
+  assert.equal(own.troops, 8);
+  assert.ok(own.generalKind);
+  for (const invalid of [
+    { seed: '' },
+    { seed: 'x'.repeat(129) },
+    { seed: 4294967296 },
+    { seed: 1.5 },
+    { loadout: [{ kind: 'attack', tier: 4 }] },
+    { loadout: [{ kind: 'attack', tier: 0, inventoryId: 'forged' }] },
+    { loadout: Array(3).fill({ kind: 'troops', tier: 0 }) },
+    { loadout: null },
+  ])
+    assert.equal((await f.request('/api/matches', { method: 'POST', body: invalid })).status, 400);
 });
 
 test('server advances only fixed 100 ms steps, pause freezes time and resume does not jump', async (t) => {
@@ -177,6 +219,8 @@ test('abandon is terminal; inactive matches expire and free bounded capacity aft
   const expired = await f.app.matches.result(first.matchId, first.token);
   assert.equal(expired.result.reason, 'expired');
   assert.equal(expired.result.outcome, 'defeat');
+  assert.equal(expired.result.completed, false);
+  assert.equal(expired.result.rewardEligible, false);
   f.advance(100);
   assert.equal(f.app.matches.matches.size, 0);
   const next = await f.create();
@@ -187,6 +231,8 @@ test('abandon is terminal; inactive matches expire and free bounded capacity aft
     body: {},
   });
   assert.equal(abandoned.body.snapshot.state.result.reason, 'abandoned');
+  assert.equal(abandoned.body.snapshot.state.result.completed, false);
+  assert.equal(abandoned.body.snapshot.state.result.rewardEligible, false);
   assert.equal(
     (await f.request(`${path}/resume`, { token: next.token, method: 'POST', body: {} })).status,
     409,

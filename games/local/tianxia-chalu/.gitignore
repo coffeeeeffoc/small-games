@@ -1,0 +1,11 @@
+library/
+temp/
+local/
+profiles/
+build/
+.prebuilt/
+cc.d.ts
+reports/*.log
+reports/build-*.json
+reports/engine.d.ts
+reports/*-trace.zip

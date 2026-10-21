@@ -71,11 +71,10 @@ apps/
   shell-minigame/    单款原生小游戏构建
 games/local/        本仓库维护的游戏
 games/submodules/   独立仓库 Game
-  tower-defense-game/
   xiangqi-five/
 packages/
   config-eslint/     共享 ESLint 规则
   config-typescript/ 共享 TypeScript 配置
 ```
 
-根命令由 Turborepo 分发到各 workspace。首次运行前执行 `pnpm games:init` 初始化独立 Game，或使用 `git clone --recurse-submodules` 克隆。Web 大厅已集成月森守卫、象五子棋和潮汐猎手；它们也各自使用 npm/pnpm 独立构建并自动部署 GitHub Pages。详见[独立 Game 开发、版本更新与发布](docs/standalone-games.md)。
+根命令由 Turborepo 分发到各 workspace。首次运行前执行 `pnpm games:init` 初始化独立 Game，或使用 `git clone --recurse-submodules` 克隆。Web 大厅已集成象五子棋；它也使用 pnpm 独立构建并自动部署 GitHub Pages。详见[独立 Game 开发、版本更新与发布](docs/standalone-games.md)。

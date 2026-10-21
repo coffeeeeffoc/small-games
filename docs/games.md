@@ -1,12 +1,12 @@
 # 游戏一览
 
-当前共登记 **62 款游戏**（59 款本地游戏、3 款子模块游戏），与 Shell 登记和磁盘目录一致。全部游戏的标签、优缺点、改进方向和优先级见[产品评估](plans/2026-10-11-game-portfolio-assessment.md)，也可直接在游戏目录按标签筛选并展开评估。
+当前共登记 **43 款游戏**（42 款本地游戏、1 款子模块游戏），与 Shell 登记和磁盘目录一致。全部游戏的标签、优缺点、改进方向和优先级见[产品评估](plans/2026-10-11-game-portfolio-assessment.md)，也可直接在游戏目录按标签筛选并展开评估。
 
-潜力判断与改造排期独立：**40 款有趣 / 有潜力**，并非只有7款。完整排期为 **上轮已改造7 + 本轮改造13 + 有潜力后续改造20 + 用户暂缓22 = 62**；每款只属于一个排期组，仍可同时拥有多个玩法、平台与拓展标签。游戏目录显示各组总数、筛选匹配数和逐款实施状态，全部名单与排期理由见[完整排期索引](plans/2026-10-11-game-portfolio-assessment.md#全量排期索引)。
+潜力判断与改造排期独立：**40 款有趣 / 有潜力**，并非只有7款。完整排期为 **上轮已改造7 + 本轮改造13 + 有潜力后续改造20 + 用户暂缓3 = 43**；每款只属于一个排期组，仍可同时拥有多个玩法、平台与拓展标签。游戏目录显示各组总数、筛选匹配数和逐款实施状态，全部名单与排期理由见[完整排期索引](plans/2026-10-11-game-portfolio-assessment.md#全量排期索引)。
 
 标题和描述来自 Shell 登记；新增目录仍以 `pnpm check:games` 的磁盘发现结果为准。
 
-## 本地游戏（59 款）
+## 本地游戏（42 款）
 
 | 游戏                     | Game ID                        | 源码                                                                         | 简介                                                                                                                         |
 | ------------------------ | ------------------------------ | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
@@ -26,34 +26,17 @@
 | 归途站                   | `homebound-station`            | [homebound-station](../games/local/homebound-station/)                       | 看箭头解开密集出租车阵，点击或滑动车辆出库，自动接上旅客，让整片车场有序清空。                                               |
 | 浪湾卡丁车               | `carding-car`                  | [carding-car](../games/local/carding-car/)                                   | 在海湾赛道漂移蓄力，挑战一圈冲刺或三圈冠军，收集路线印章，邀请朋友挑战同一条赛道。                                           |
 | 神机合阵                 | `merge-front`                  | [merge-front](../games/local/merge-front/)                                   | 拼字唤醒神将，合成神机武装，布阵守城或开动生产线攻破敌方水晶。                                                               |
-| 合成守夜人               | `night-merge`                  | [night-merge](../games/local/night-merge/)                                   | 拖动合成守卫，调兵守住城门，用随机祝福迎战十波长夜。                                                                         |
 | 围捕小队                 | `cops-robbers`                 | [cops-robbers](../games/local/cops-robbers/)                                 | 先用三张短场试炼练夹击与封路，再挑战百关街区、换防接力，或切换角色与好友对抗。                                               |
 | 街区追捕                 | `cops-robbers-realtime`        | [cops-robbers-realtime](../games/local/cops-robbers-realtime/)               | 点选警察封住路口，合作抓住小偷。横屏街区百关挑战、个人与全站通关纪录、好友 PK。                                              |
-| 来电之间                 | `h5-security`                  | [h5-security](../games/local/h5-security/)                                   | 在一部模拟手机中处理日常事务，核验来电和支付请求。                                                                           |
-| 词了个词 · 单词消消乐    | `letters-words`                | [letters-words](../games/local/letters-words/)                               | 看中文释义，点选字母拼出英文单词，清空共享棋盘。                                                                             |
 | 词屿 · 字母叠叠乐        | `letters-words2`               | [letters-words2](../games/local/letters-words2/)                             | 从三词早餐、海岸与星空小岛开始，揭开层叠字母，再挑战八大主题与每日同题。                                                     |
-| 万象旅团                 | `multi-battle`                 | [multi-battle](../games/local/multi-battle/)                                 | 购买、合成和部署角色，搭配六大流派挑战七支旅团。                                                                             |
-| 雨停之前                 | `puzzle`                       | [puzzle](../games/local/puzzle/)                                             | 调查望潮档案馆的悬案，核对证据并推理嫌疑人。                                                                                 |
-| 去野 · 大理漫游记        | `travel`                       | [travel](../games/local/travel/)                                             | 走进大理微缩风景，探索旅程，收藏印章与明信片。                                                                               |
 | 江风入境 · 外滩漫游      | `travel-bund`                  | [travel-bund](../games/local/travel-bund/)                                   | 沿建筑、桥畔与天际三条路线收集地标足迹，第一视角漫游外滩两岸，留下旅行明信片。                                               |
-| 外滩 · 空中漫游          | `travel-bund-25d`              | [travel-bund-2.5D](../games/local/travel-bund-2.5D/)                         | 滑动穿行外滩与浦东天际线，自由掌控飞行进度，在空中俯瞰黄浦江两岸。                                                           |
-| 外滩·一江入梦            | `travel2`                      | [travel2](../games/local/travel2/)                                           | 沿黄浦江展开一卷外滩，滑动看暮色，探索地标并收集旅行印章。                                                                   |
 | 橘风速递                 | `vibeJam-myself-delivery`      | [vibeJam-myself-delivery](../games/local/vibeJam-myself-delivery/)           | 驾驶小摩托穿越海滨小岛，采购货物并完成配送。                                                                                 |
 | 此时 · 此地              | `vibeJam-myself-history-guess` | [vibeJam-myself-history-guess](../games/local/vibeJam-myself-history-guess/) | 观察历史全景，猜测地点与年份，走三幕主题旅途、五幕普通旅途或每日同题，揭晓时空中的故事。                                     |
 | 零域 · NULL RANGE        | `vibeJam-myself-nullrange`     | [vibeJam-myself-nullrange](../games/local/vibeJam-myself-nullrange/)         | 低空飞行、迎击敌机，在三波空战中回收残骸。                                                                                   |
 | 折叠世界                 | `fold-the-world`               | [fold-the-world](../games/local/fold-the-world/)                             | 在100个手工关卡中折起远处的平台，安排取物与回程，逐步解开更复杂的空间谜题。                                                  |
-| 一笔造关                 | `one-stroke-course`            | [one-stroke-course](../games/local/one-stroke-course/)                       | 一笔画出赛道，亲手控制小球跳跃、收星、穿过机关，挑战十二关和自由实验。                                                       |
-| 抱紧了！杂技探险队       | `hold-tight-acrobats`          | [hold-tight-acrobats](../games/local/hold-tight-acrobats/)                   | 带领三位杂技队员蓄力跳跃、抓环摆荡、牵手换支点，一起抵达五关终点。                                                           |
 | 乌龙城                   | `wulong-city`                  | [wulong-city](../games/local/wulong-city/)                                   | 走进青瓦小城，用点按、拖放和转身解开100个喜剧机关；独立主页与十章选关，支持移动触屏和原生小游戏。                            |
-| 气球搬家公司             | `balloon-movers`               | [balloon-movers](../games/local/balloon-movers/)                             | 绑好气球，控制左右排气，让沙发、冰箱和钢琴穿过窄窗，稳稳落到收货垫上。                                                       |
-| 天气指挥部               | `weather-command`              | [weather-command](../games/local/weather-command/)                           | 用雨、风、太阳和雪改变航道，在三次天气指令内把补给船送进码头。                                                               |
-| 镜头外发生了什么         | `off-camera`                   | [off-camera](../games/local/off-camera/)                                     | 观察深夜小店的前后画面，排列事件卡重演盲区里的动作，还原三个喜剧谜案。                                                       |
 | 小城救援队               | `rescue-team`                  | [rescue-team](../games/local/rescue-team/)                                   | 调度三辆救援车，接报后开始计时，选择路线、疏通道路，及时赶到现场完成救援。                                                   |
-| 一分钟拆对墙             | `precision-demolition`         | [precision-demolition](../games/local/precision-demolition/)                 | 按住接缝凿击，安排卸重顺序和倒塌方向，拆掉目标墙板并保护承重柱与花瓶。                                                       |
-| Afterimage Arena         | `afterimage-arena`             | [afterimage-arena](../games/local/afterimage-arena/)                         | 留下二十秒的真实动作，与过去的自己协作破盾、躲避红环，击穿机械核心。                                                         |
-| Ghost Shift Manager      | `ghost-shift-manager`          | [ghost-shift-manager](../games/local/ghost-shift-manager/)                   | 安排鬼员工出场时机，用引信和安抚铃照顾三层酒店的客人，完成三夜夜班。                                                         |
 | 夜航守望                 | `night-overwatch`              | [night-overwatch](../games/local/night-overwatch/)                           | 先用60秒火控热身练三档火力，再在护送、伏击与巡逻任务中为救援车队清理前路。                                                   |
-| Rule Thief               | `rule-thief`                   | [rule-thief](../games/local/rule-thief/)                                     | 把穿墙、直行和北漂规则转交给身边目标，改变每一拍的位移，解开三幕机关。                                                       |
 | 水位联动站               | `waterline-station`            | [waterline-station](../games/local/waterline-station/)                       | 开关闸门，让相连水槽共享水位，落箱压开关、抬船进出口、溢流转水轮，解开连锁机关。                                             |
 | 同频归航                 | `tiny-signals`                 | [tiny-signals](../games/local/tiny-signals/)                                 | 一次方向输入引导四位机械信使，利用风门、罗盘和折叶桥，解开六关同步归航谜题。                                                 |
 | 子弹花园 · Bullet Garden | `bullet-garden`                | [bullet-garden](../games/local/bullet-garden/)                               | 在庭院守住五分钟：经验升级选中地形增益后才生成灌木、沟渠、冻土或毒素，积蓄能量，手动瞄准释放爆破、大风、冲锋车、战马与激光。 |
@@ -70,12 +53,10 @@
 | 弹指擂台                 | `flick-arena`                  | [flick-arena](../games/local/flick-arena/)                                   | 向后拉，松手弹！和两位系统对手轮流出招，把圆盘撞出木质擂台，守住最后的落点。                                                 |
 | 三块选两块               | `three-choose-two`             | [three-choose-two](../games/local/three-choose-two/)                         | 拖动三块，摆下两块。留住棋盘空间，完成三十关取舍挑战，或在无尽练习中追逐交叉消除与连续高分。                                 |
 
-## 子模块游戏（3 款）
+## 子模块游戏（1 款）
 
-| 游戏     | Game ID              | 源码                                                          | 简介                                                                       |
-| -------- | -------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| 潮汐猎手 | `fishing`            | [fishing](../games/submodules/fishing/)                       | 三分钟深海捕鱼，四种武器迎战鱼潮与巨鲨。                                   |
-| 月森守卫 | `tower-defense-game` | [tower-defense-game](../games/submodules/tower-defense-game/) | 招募、合成守卫，守住月森的八波挑战。                                       |
-| 象五子棋 | `xiangqi-five`       | [xiangqi-five](../games/submodules/xiangqi-five/)             | 象棋走法与五子连线，八道战术题从一手妙招到两步连招，也能同屏或与电脑对弈。 |
+| 游戏     | Game ID        | 源码                                              | 简介                                                                       |
+| -------- | -------------- | ------------------------------------------------- | -------------------------------------------------------------------------- |
+| 象五子棋 | `xiangqi-five` | [xiangqi-five](../games/submodules/xiangqi-five/) | 象棋走法与五子连线，八道战术题从一手妙招到两步连招，也能同屏或与电脑对弈。 |
 
 登记信息来源：[独立游戏清单](../apps/shell-web/src/standalone-games.json)、[内置游戏注册表](../apps/shell-web/src/registry.ts)。

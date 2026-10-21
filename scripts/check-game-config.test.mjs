@@ -156,6 +156,7 @@ test('all Cocos consumers download every source-verified artifact and pass them 
     ['carding-car', 'KART_PREBUILT_DIR'],
     ['night-overwatch', 'NIGHT_OVERWATCH_PREBUILT_DIR'],
     ['orbit-atelier', 'ORBIT_ATELIER_PREBUILT_DIR'],
+    ['tianxia-chalu', 'TIANXIA_PREBUILT_DIR'],
   ];
   const producer = await read('.github/workflows/carding-car.yml');
   assert.deepEqual(
@@ -163,7 +164,14 @@ test('all Cocos consumers download every source-verified artifact and pass them 
     games.map(([game]) => game),
   );
   const turbo = await read('turbo.json');
-  for (const [, variable] of games) assert(turbo.globalPassThroughEnv.includes(variable));
+  const typecheck = producer.jobs.creator.steps.find(
+    (step) => step.run === 'pnpm --filter @coffeeeeffoc/${{ matrix.game }} typecheck',
+  );
+  for (const [game, variable] of games) {
+    assert(turbo.globalPassThroughEnv.includes(variable));
+    assert(typecheck.env[variable].includes('/games/local/' + game));
+    assert(turbo.tasks['@coffeeeeffoc/' + game + '#build'].env.includes(variable));
+  }
   for (const workflow of ['ci', 'pages-validate', 'mobile']) {
     const config = await read(`.github/workflows/${workflow}.yml`);
     const consumers = Object.values(config.jobs).filter((job) => job.env?.KART_PREBUILT_DIR);
@@ -174,7 +182,15 @@ test('all Cocos consumers download every source-verified artifact and pass them 
           job.env[variable],
           '${{ github.workspace }}/games/local/' + game + '/.prebuilt',
         );
-        const download = job.steps.find((step) => step.with?.name === game + '-${{ github.sha }}');
+        const downloads = job.steps.filter(
+          (step) => step.with?.name === game + '-${{ github.sha }}',
+        );
+        assert.equal(downloads.length, 1);
+        const download = downloads[0];
+        assert.equal(
+          download.if,
+          workflow === 'ci' ? "needs.plan.outputs.cocos == 'true'" : undefined,
+        );
         assert(download?.uses.startsWith('actions/download-artifact@'), workflow);
         assert.equal(download.with.path, 'games/local/' + game + '/.prebuilt');
       }

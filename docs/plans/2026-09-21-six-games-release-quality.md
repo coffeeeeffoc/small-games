@@ -46,7 +46,7 @@ Pass: weighted score >= 8, no dimension below 6, and no unresolved severe gamepl
 ## Work ownership
 
 - Kart agent: `games/local/carding-car/**` and necessary `services/kart-server/**`. Preserve the pre-existing `MultiplayerPanel.ts` edit and untracked `tests/bilibili-keyboard.mjs`.
-- Word agent: `games/local/letters-words2/**`; dictionary data work under `assets/english-dict/**` may be transferred explicitly to a specialist. Reuse `letters-words` library patterns without changing that Game.
+- Word agent: `games/local/letters-words2/**`; dictionary data work under `assets/english-dict/**` may be transferred explicitly to a specialist.
 - Chess agent: `games/submodules/xiangqi-five/**`.
 - Turn-based pursuit agent: `games/local/cops-robbers/**`.
 - Real-time pursuit agent: `games/local/cops-robbers-realtime/**`.

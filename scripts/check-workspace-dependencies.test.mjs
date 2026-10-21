@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm, writeFile, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -342,6 +342,84 @@ test('allows shared Creator tooling only in declared build scripts', async (t) =
   assert(violations.some((entry) => entry.message.includes('native.ts')));
 });
 
+test('Tianxia admits exact Creator imports and finite hash URLs, rejecting adjacent runtime and resources', async (t) => {
+  const root = await createWorkspace([
+    {
+      path: 'games/local/tianxia-chalu',
+      manifest: { name: '@coffeeeeffoc/tianxia-chalu' },
+      files: {
+        'scripts/build.mjs':
+          "import '../../carding-car/scripts/toolchain.mjs';\nimport '../../carding-car/scripts/cocos-branding.mjs';",
+        'scripts/typecheck.mjs':
+          "import '../../carding-car/scripts/toolchain.mjs';\nconst pkg = new URL('../../carding-car/package.json', import.meta.url);",
+        'scripts/artifact.mjs':
+          "for (const file of ['toolchain.mjs', 'native-targets.mjs', 'clear-output.mjs', 'cocos-branding.mjs']) readFile(new URL('../../carding-car/scripts/' + file, import.meta.url));",
+        'scripts/other.mjs': "import '../../carding-car/scripts/toolchain.mjs';",
+        'scripts/other-url.mjs':
+          "readFile(new URL('../../carding-car/scripts/toolchain.mjs', import.meta.url));",
+        'assets/scripts/main.ts': "import '../../../carding-car/scripts/cocos-branding.mjs';",
+        'assets/scripts/url.ts':
+          "readFile(new URL('../../../carding-car/package.json', import.meta.url));",
+      },
+    },
+  ]);
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const result = await validateWorkspace(root);
+  assert.equal(result.length, 4);
+  assert(result.every((entry) => entry.code === 'cross-package-relative'));
+  for (const bad of [
+    "for (const file of ['toolchain.mjs', 'runtime.mjs']) readFile(new URL('../../carding-car/scripts/' + file, import.meta.url));",
+    "readFile(new URL('../../carding-car/scripts/' + unknown, import.meta.url));",
+    "readFile(new URL('../../carding-car/private.mjs', import.meta.url));",
+  ]) {
+    await writeFile(path.join(root, 'games/local/tianxia-chalu/scripts/artifact.mjs'), bad);
+    assert.equal((await validateWorkspace(root)).length, 5);
+  }
+});
+
+test('current Tianxia Creator build, typecheck and source hash scripts use only the reviewed edges', async (t) => {
+  const files = {};
+  for (const name of ['build', 'typecheck', 'artifact']) {
+    const entry = `scripts/${name}.mjs`;
+    files[entry] = await readFile(
+      new URL(`../games/local/tianxia-chalu/${entry}`, import.meta.url),
+      'utf8',
+    );
+  }
+  const root = await createWorkspace([
+    { path: 'games/local/tianxia-chalu', manifest: { name: '@coffeeeeffoc/tianxia-chalu' }, files },
+  ]);
+  t.after(() => rm(root, { recursive: true, force: true }));
+  assert.deepEqual(await validateWorkspace(root), []);
+});
+
+test('only the Tianxia service browser test can verify the game source hash', async (t) => {
+  const dependency =
+    "import { sourceHash } from '../../../games/local/tianxia-chalu/scripts/artifact.mjs';";
+  const root = await createWorkspace([
+    {
+      path: 'services/tianxia-server',
+      manifest: { name: '@coffeeeeffoc/tianxia-server' },
+      files: {
+        'tests/browser.mjs': dependency,
+        'tests/browser-extra.mjs': dependency,
+        'src/main.mjs': dependency,
+        'tests/other.mjs': dependency.replace('artifact.mjs', 'build.mjs'),
+      },
+    },
+  ]);
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const failures = await validateWorkspace(root);
+  assert.equal(failures.length, 3);
+  assert(failures.every((entry) => entry.code === 'cross-package-relative'));
+  assert(!failures.some((entry) => /tests[/\\]browser\.mjs/.test(entry.message)));
+  await writeFile(
+    path.join(root, 'services/tianxia-server/tests/browser.mjs'),
+    dependency.replace('artifact.mjs', 'build.mjs'),
+  );
+  assert.equal((await validateWorkspace(root)).length, 4);
+});
+
 test('TapTap acceptance reuses only three exact fixture edges, never runtime or adjacent scripts', async (t) => {
   const imports = ['tests/native-sdk-fixture.mjs', 'tests/native-test-actions.mjs', 'library.js']
     .map((file) => `import '../../../games/local/letters-words2/${file}';\n`)
@@ -354,7 +432,7 @@ test('TapTap acceptance reuses only three exact fixture edges, never runtime or 
         'scripts/taptap-smoke.mjs':
           imports +
           "import '../../../games/local/letters-words2/tests/other-fixture.mjs';\n" +
-          "import '../../../games/local/letters-words/library.js';\n",
+          "import '../../../games/local/merge-front/library.js';\n",
         'scripts/taptap-smoke-extra.mjs': imports,
         'src/runtime.mjs': imports,
       },
@@ -369,7 +447,7 @@ test('TapTap acceptance reuses only three exact fixture edges, never runtime or 
   );
   assert.equal(smoke.length, 2);
   assert(smoke.some((entry) => entry.message.includes('other-fixture.mjs')));
-  assert(smoke.some((entry) => entry.message.includes('letters-words/library.js')));
+  assert(smoke.some((entry) => entry.message.includes('merge-front/library.js')));
   for (const file of ['scripts/taptap-smoke-extra.mjs', 'src/runtime.mjs'])
     assert.equal(
       violations.filter((entry) => entry.message.replaceAll('\\', '/').includes(file)).length,

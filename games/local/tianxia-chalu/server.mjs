@@ -29,6 +29,7 @@ const mime = {
   '.woff2': 'font/woff2',
   '.ogg': 'audio/ogg',
   '.wav': 'audio/wav',
+  '.wasm': 'application/wasm',
 };
 const server = http.createServer(async (request, response) => {
   try {

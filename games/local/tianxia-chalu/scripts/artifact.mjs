@@ -1,0 +1,67 @@
+import { createHash } from 'node:crypto';
+import { access, readdir, readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+const root = new URL('../', import.meta.url);
+export async function sourceHash(directory = fileURLToPath(root)) {
+  const files = [
+    'package.json',
+    'tsconfig.json',
+    'index.html',
+    'style.css',
+    'main.mjs',
+    'storage.mjs',
+    'remote.mjs',
+    'audio.mjs',
+    'rewards.mjs',
+    'publishing.js',
+    'fullscreen.js',
+    'favicon.svg',
+  ];
+  for (const dir of ['assets', 'scripts', 'settings', 'art', 'src'])
+    for (const entry of await readdir(path.join(directory, dir), {
+      recursive: true,
+      withFileTypes: true,
+    }))
+      if (entry.isFile() && !entry.name.endsWith('.test.mjs'))
+        files.push(
+          path.relative(directory, path.join(entry.parentPath, entry.name)).replaceAll('\\', '/'),
+        );
+  const hash = createHash('sha256');
+  for (const file of files.sort()) {
+    const bytes = await readFile(path.join(directory, file));
+    hash.update(file + '\0');
+    hash.update(
+      /\.(ts|js|mjs|json|meta|scene|html|css|svg|md)$/.test(file)
+        ? bytes.toString('utf8').replaceAll('\r\n', '\n')
+        : bytes,
+    );
+  }
+  for (const file of [
+    'toolchain.mjs',
+    'native-targets.mjs',
+    'clear-output.mjs',
+    'cocos-branding.mjs',
+  ])
+    hash.update(
+      (
+        await readFile(new URL('../../carding-car/scripts/' + file, import.meta.url), 'utf8')
+      ).replaceAll('\r\n', '\n'),
+    );
+  return hash.digest('hex');
+}
+export async function verifyPrebuilt(directory) {
+  const dist = path.resolve(directory, 'dist'),
+    info = JSON.parse(await readFile(path.join(dist, 'build-info.json'), 'utf8'));
+  if (
+    info.creator !== '3.8.8' ||
+    info.target !== 'web-mobile' ||
+    info.sourceHash !== (await sourceHash())
+  )
+    throw Error(
+      'Tianxia Chalu artifact does not match current sources; rebuild it with Creator 3.8.8.',
+    );
+  await access(path.join(dist, 'index.html'));
+  await access(path.resolve(directory, 'cc.d.ts'));
+  return dist;
+}

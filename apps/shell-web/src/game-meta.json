@@ -1,17 +1,6 @@
 {
   "schemaVersion": 1,
   "games": {
-    "afterimage-arena": {
-      "source": "games/local/afterimage-arena",
-      "created": {
-        "commit": "49c334f7884dd2b2af6a547559c4a0033f14bd0a",
-        "time": "2026-09-27T21:54:05+08:00"
-      },
-      "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
-      }
-    },
     "ashfall-front": {
       "source": "games/local/ashfall-front",
       "created": {
@@ -32,17 +21,6 @@
       "updated": {
         "commit": "53aa67112f887101a0540ec52f49ee89d060fd96",
         "time": "2026-10-12T01:46:12+08:00"
-      }
-    },
-    "balloon-movers": {
-      "source": "games/local/balloon-movers",
-      "created": {
-        "commit": "49c334f7884dd2b2af6a547559c4a0033f14bd0a",
-        "time": "2026-09-27T21:54:05+08:00"
-      },
-      "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
       }
     },
     "bullet-garden": {
@@ -166,17 +144,6 @@
         "time": "2026-10-10T19:37:21Z"
       }
     },
-    "fishing": {
-      "source": "games/submodules/fishing",
-      "created": {
-        "commit": "b82972daa0736cb1b0375131e7950375e8b04584",
-        "time": "2026-09-11T00:08:56+08:00"
-      },
-      "updated": {
-        "commit": "57423097cc62f6544455ca791e1a77c1ee3e7545",
-        "time": "2026-10-05T03:18:12+08:00"
-      }
-    },
     "flick-arena": {
       "source": "games/local/flick-arena",
       "created": {
@@ -199,39 +166,6 @@
         "time": "2026-10-12T02:18:18+08:00"
       }
     },
-    "ghost-shift-manager": {
-      "source": "games/local/ghost-shift-manager",
-      "created": {
-        "commit": "49c334f7884dd2b2af6a547559c4a0033f14bd0a",
-        "time": "2026-09-27T21:54:05+08:00"
-      },
-      "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
-      }
-    },
-    "h5-security": {
-      "source": "games/local/h5-security",
-      "created": {
-        "commit": "af3fa2dd0c3581fa2b44bf50710b1605c783b967",
-        "time": "2026-09-14T01:49:09+08:00"
-      },
-      "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
-      }
-    },
-    "hold-tight-acrobats": {
-      "source": "games/local/hold-tight-acrobats",
-      "created": {
-        "commit": "5058b4df65edfb2da1ae98dbec68ce60b8270d4a",
-        "time": "2026-09-27T00:07:35+08:00"
-      },
-      "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
-      }
-    },
     "homebound-station": {
       "source": "games/local/homebound-station",
       "created": {
@@ -252,17 +186,6 @@
       "updated": {
         "commit": "f452174ee273bf684ec417ffe9efce9429bbcf0b",
         "time": "2026-10-06T05:26:46Z"
-      }
-    },
-    "letters-words": {
-      "source": "games/local/letters-words",
-      "created": {
-        "commit": "af3fa2dd0c3581fa2b44bf50710b1605c783b967",
-        "time": "2026-09-14T01:49:09+08:00"
-      },
-      "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
       }
     },
     "letters-words2": {
@@ -320,28 +243,6 @@
         "time": "2026-10-12T02:18:18+08:00"
       }
     },
-    "multi-battle": {
-      "source": "games/local/multi-battle",
-      "created": {
-        "commit": "af3fa2dd0c3581fa2b44bf50710b1605c783b967",
-        "time": "2026-09-14T01:49:09+08:00"
-      },
-      "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
-      }
-    },
-    "night-merge": {
-      "source": "games/local/night-merge",
-      "created": {
-        "commit": "f81046435c9b86c5ac17866eaae1f94cb30ae1e0",
-        "time": "2026-09-16T02:36:04+08:00"
-      },
-      "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
-      }
-    },
     "night-overwatch": {
       "source": "games/local/night-overwatch",
       "created": {
@@ -351,28 +252,6 @@
       "updated": {
         "commit": "c765ae563cc77a664d0caa08844b5f159f15ccc7",
         "time": "2026-10-10T09:28:19+08:00"
-      }
-    },
-    "off-camera": {
-      "source": "games/local/off-camera",
-      "created": {
-        "commit": "49c334f7884dd2b2af6a547559c4a0033f14bd0a",
-        "time": "2026-09-27T21:54:05+08:00"
-      },
-      "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
-      }
-    },
-    "one-stroke-course": {
-      "source": "games/local/one-stroke-course",
-      "created": {
-        "commit": "5058b4df65edfb2da1ae98dbec68ce60b8270d4a",
-        "time": "2026-09-27T00:07:35+08:00"
-      },
-      "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
       }
     },
     "orbit-atelier": {
@@ -397,28 +276,6 @@
         "time": "2026-10-12T02:18:18+08:00"
       }
     },
-    "precision-demolition": {
-      "source": "games/local/precision-demolition",
-      "created": {
-        "commit": "49c334f7884dd2b2af6a547559c4a0033f14bd0a",
-        "time": "2026-09-27T21:54:05+08:00"
-      },
-      "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
-      }
-    },
-    "puzzle": {
-      "source": "games/local/puzzle",
-      "created": {
-        "commit": "af3fa2dd0c3581fa2b44bf50710b1605c783b967",
-        "time": "2026-09-14T01:49:09+08:00"
-      },
-      "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
-      }
-    },
     "rescue-team": {
       "source": "games/local/rescue-team",
       "created": {
@@ -439,17 +296,6 @@
       "updated": {
         "commit": "7446f42f0937565c310e0261a4db9ecc17ef2ff2",
         "time": "2026-10-12T02:18:18+08:00"
-      }
-    },
-    "rule-thief": {
-      "source": "games/local/rule-thief",
-      "created": {
-        "commit": "49c334f7884dd2b2af6a547559c4a0033f14bd0a",
-        "time": "2026-09-27T21:54:05+08:00"
-      },
-      "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
       }
     },
     "surprise-kept": {
@@ -518,28 +364,6 @@
         "time": "2026-10-12T01:46:12+08:00"
       }
     },
-    "tower-defense-game": {
-      "source": "games/submodules/tower-defense-game",
-      "created": {
-        "commit": "560d8cbc0023303a004cebf59c19f5fc65a9ed87",
-        "time": "2026-09-08T23:20:08+08:00"
-      },
-      "updated": {
-        "commit": "75ac87f7be6e1a7d603571c2114f4a69d914fd7f",
-        "time": "2026-10-05T03:18:13+08:00"
-      }
-    },
-    "travel": {
-      "source": "games/local/travel",
-      "created": {
-        "commit": "af3fa2dd0c3581fa2b44bf50710b1605c783b967",
-        "time": "2026-09-14T01:49:09+08:00"
-      },
-      "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
-      }
-    },
     "travel-bund": {
       "source": "games/local/travel-bund",
       "created": {
@@ -549,28 +373,6 @@
       "updated": {
         "commit": "23dc50162fe53ba2d588e871218a169a551faa33",
         "time": "2026-10-07T23:29:06+08:00"
-      }
-    },
-    "travel-bund-25d": {
-      "source": "games/local/travel-bund-2.5D",
-      "created": {
-        "commit": "7c41edd767ad24bb14fdc5e64aeb56f392a0aaf7",
-        "time": "2026-09-16T02:17:13+08:00"
-      },
-      "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
-      }
-    },
-    "travel2": {
-      "source": "games/local/travel2",
-      "created": {
-        "commit": "ef149c17631460a610cef21afa1d30bddb0b9b87",
-        "time": "2026-09-14T03:09:21+08:00"
-      },
-      "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
       }
     },
     "two-sided-box": {
@@ -648,17 +450,6 @@
       "updated": {
         "commit": "b0cb8b691d85327a67f5b1cec4d544b1a020552d",
         "time": "2026-10-11T13:23:08+08:00"
-      }
-    },
-    "weather-command": {
-      "source": "games/local/weather-command",
-      "created": {
-        "commit": "49c334f7884dd2b2af6a547559c4a0033f14bd0a",
-        "time": "2026-09-27T21:54:05+08:00"
-      },
-      "updated": {
-        "commit": "bda489fd9d2b6c9c6e7ca1ed78108ebed88fd7e2",
-        "time": "2026-10-05T03:18:51+08:00"
       }
     },
     "wulong-city": {

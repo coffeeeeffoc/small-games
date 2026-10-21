@@ -112,27 +112,6 @@
     "output": "dist"
   },
   {
-    "id": "night-merge",
-    "source": "games/local/night-merge",
-    "title": "合成守夜人",
-    "description": "拖动合成守卫，调兵守住城门，用随机祝福迎战十波长夜。",
-    "output": "dist"
-  },
-  {
-    "id": "fishing",
-    "source": "games/submodules/fishing",
-    "title": "潮汐猎手",
-    "description": "三分钟深海捕鱼，四种武器迎战鱼潮与巨鲨。",
-    "output": "dist"
-  },
-  {
-    "id": "tower-defense-game",
-    "source": "games/submodules/tower-defense-game",
-    "title": "月森守卫",
-    "description": "招募、合成守卫，守住月森的八波挑战。",
-    "output": "dist-pages"
-  },
-  {
     "id": "xiangqi-five",
     "source": "games/submodules/xiangqi-five",
     "title": "象五子棋",
@@ -154,20 +133,6 @@
     "output": "dist"
   },
   {
-    "id": "h5-security",
-    "source": "games/local/h5-security",
-    "title": "来电之间",
-    "description": "在一部模拟手机中处理日常事务，核验来电和支付请求。",
-    "output": "dist"
-  },
-  {
-    "id": "letters-words",
-    "source": "games/local/letters-words",
-    "title": "词了个词 · 单词消消乐",
-    "description": "看中文释义，点选字母拼出英文单词，清空共享棋盘。",
-    "output": "dist"
-  },
-  {
     "id": "letters-words2",
     "source": "games/local/letters-words2",
     "title": "词屿 · 字母叠叠乐",
@@ -175,45 +140,10 @@
     "output": "dist"
   },
   {
-    "id": "multi-battle",
-    "source": "games/local/multi-battle",
-    "title": "万象旅团",
-    "description": "购买、合成和部署角色，搭配六大流派挑战七支旅团。",
-    "output": "dist"
-  },
-  {
-    "id": "puzzle",
-    "source": "games/local/puzzle",
-    "title": "雨停之前",
-    "description": "调查望潮档案馆的悬案，核对证据并推理嫌疑人。",
-    "output": "dist"
-  },
-  {
-    "id": "travel",
-    "source": "games/local/travel",
-    "title": "去野 · 大理漫游记",
-    "description": "走进大理微缩风景，探索旅程，收藏印章与明信片。",
-    "output": "dist"
-  },
-  {
     "id": "travel-bund",
     "source": "games/local/travel-bund",
     "title": "江风入境 · 外滩漫游",
     "description": "沿建筑、桥畔与天际三条路线收集地标足迹，第一视角漫游外滩两岸，留下旅行明信片。",
-    "output": "dist"
-  },
-  {
-    "id": "travel-bund-25d",
-    "source": "games/local/travel-bund-2.5D",
-    "title": "外滩 · 空中漫游",
-    "description": "滑动穿行外滩与浦东天际线，自由掌控飞行进度，在空中俯瞰黄浦江两岸。",
-    "output": "dist"
-  },
-  {
-    "id": "travel2",
-    "source": "games/local/travel2",
-    "title": "外滩·一江入梦",
-    "description": "沿黄浦江展开一卷外滩，滑动看暮色，探索地标并收集旅行印章。",
     "output": "dist"
   },
   {
@@ -245,45 +175,10 @@
     "output": "dist"
   },
   {
-    "id": "one-stroke-course",
-    "title": "一笔造关",
-    "description": "一笔画出赛道，亲手控制小球跳跃、收星、穿过机关，挑战十二关和自由实验。",
-    "source": "games/local/one-stroke-course",
-    "output": "dist"
-  },
-  {
-    "id": "hold-tight-acrobats",
-    "title": "抱紧了！杂技探险队",
-    "description": "带领三位杂技队员蓄力跳跃、抓环摆荡、牵手换支点，一起抵达五关终点。",
-    "source": "games/local/hold-tight-acrobats",
-    "output": "dist"
-  },
-  {
     "id": "wulong-city",
     "title": "乌龙城",
     "description": "走进青瓦小城，用点按、拖放和转身解开100个喜剧机关；独立主页与十章选关，支持移动触屏和原生小游戏。",
     "source": "games/local/wulong-city",
-    "output": "dist"
-  },
-  {
-    "id": "balloon-movers",
-    "source": "games/local/balloon-movers",
-    "title": "气球搬家公司",
-    "description": "绑好气球，控制左右排气，让沙发、冰箱和钢琴穿过窄窗，稳稳落到收货垫上。",
-    "output": "dist"
-  },
-  {
-    "id": "weather-command",
-    "source": "games/local/weather-command",
-    "title": "天气指挥部",
-    "description": "用雨、风、太阳和雪改变航道，在三次天气指令内把补给船送进码头。",
-    "output": "dist"
-  },
-  {
-    "id": "off-camera",
-    "source": "games/local/off-camera",
-    "title": "镜头外发生了什么",
-    "description": "观察深夜小店的前后画面，排列事件卡重演盲区里的动作，还原三个喜剧谜案。",
     "output": "dist"
   },
   {
@@ -294,38 +189,10 @@
     "output": "dist"
   },
   {
-    "id": "precision-demolition",
-    "source": "games/local/precision-demolition",
-    "title": "一分钟拆对墙",
-    "description": "按住接缝凿击，安排卸重顺序和倒塌方向，拆掉目标墙板并保护承重柱与花瓶。",
-    "output": "dist"
-  },
-  {
-    "id": "afterimage-arena",
-    "source": "games/local/afterimage-arena",
-    "title": "Afterimage Arena",
-    "description": "留下二十秒的真实动作，与过去的自己协作破盾、躲避红环，击穿机械核心。",
-    "output": "dist"
-  },
-  {
-    "id": "ghost-shift-manager",
-    "source": "games/local/ghost-shift-manager",
-    "title": "Ghost Shift Manager",
-    "description": "安排鬼员工出场时机，用引信和安抚铃照顾三层酒店的客人，完成三夜夜班。",
-    "output": "dist"
-  },
-  {
     "id": "night-overwatch",
     "source": "games/local/night-overwatch",
     "title": "夜航守望",
     "description": "先用60秒火控热身练三档火力，再挑战120场护送、伏击与巡逻任务，为救援车队清理前路。",
-    "output": "dist"
-  },
-  {
-    "id": "rule-thief",
-    "source": "games/local/rule-thief",
-    "title": "Rule Thief",
-    "description": "把穿墙、直行和北漂规则转交给身边目标，改变每一拍的位移，解开三幕机关。",
     "output": "dist"
   },
   {

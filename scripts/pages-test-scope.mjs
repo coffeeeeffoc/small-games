@@ -78,6 +78,13 @@ const reviewedCleanupDeletions = Object.freeze({
     'b6a2263662449b2a894e174d71f1579923afc31d4fb5359aebe020661110facb',
   'games/local/merge-front/vite.config.mjs':
     'e93f7ca0ec71b277ef4b6826d6ab00abd43ab23c68213457e13e7e95aec7864d',
+  // Cocos replaces the Canvas renderer/build and its source-string feedback test at ba3f396.
+  'games/local/tianxia-chalu/build.mjs':
+    '76cc094e11d696453d5cecd705b47983b7d6de746e7750915f2a03ecbe000f81',
+  'games/local/tianxia-chalu/render.mjs':
+    'b399ea8683fa6176ca29a143a3069c5852c64120cba6aa5611ef027e8a74501c',
+  'games/local/tianxia-chalu/tests/route-feedback.test.mjs':
+    '41ab1335014b2801cf4dcd1ddde5fc65487d21c377b97f3b8b788cce1ae6e363',
   'games/local/cops-robbers-realtime/package-lock.json':
     'b2db36b4a1adac540aed69833bfb66ae1dcab19c507ff51606ccc8d28bc1a017',
   'games/local/cops-robbers-realtime/scripts/cartoon-playtest.mjs':
@@ -474,15 +481,8 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
       ];
       const headPaths = new Set(
         headQueries.length
-          ? git(root, [
-              '--literal-pathspecs',
-              'ls-tree',
-              '--name-only',
-              '-z',
-              headCommit,
-              '--',
-              ...headQueries,
-            ])
+          ? // Read directories, files and gitlinks once without a path-sized command line.
+            git(root, ['ls-tree', '-r', '-t', '--name-only', '-z', headCommit])
               .split('\0')
               .filter(Boolean)
           : [],

@@ -1,0 +1,257 @@
+{
+  "environment": "Production Cocos Creator 3.8.8 web-mobile; desktop Chromium mobile/touch emulation, not a physical device",
+  "checks": [
+    {
+      "name": "Home, 100-level catalogue and zero-troop preparation use actual Cocos art",
+      "passed": true,
+      "durationMs": 1801,
+      "maps": 100,
+      "initial": [
+        {
+          "id": "redgate",
+          "owner": 1,
+          "troops": 0
+        },
+        {
+          "id": "westford",
+          "owner": null,
+          "troops": 0
+        },
+        {
+          "id": "eastford",
+          "owner": null,
+          "troops": 0
+        },
+        {
+          "id": "bluegate",
+          "owner": 0,
+          "troops": 0
+        }
+      ],
+      "creator": "3.8.8",
+      "artReady": true
+    },
+    {
+      "name": "Tap and drag orders, hold, gesture cancellation and multitouch preserve intentions",
+      "passed": true,
+      "durationMs": 4207,
+      "gestureChecks": [
+        "select",
+        "tap-target",
+        "hold",
+        "departed route fixed",
+        "drag preview",
+        "touchcancel",
+        "multitouch",
+        "drag commit"
+      ]
+    },
+    {
+      "name": "Military intelligence pauses simulation, exposes every faction and restores a visible local radius",
+      "passed": true,
+      "durationMs": 18515,
+      "pausedSeconds": 2.1,
+      "range": {
+        "id": "baseline-0",
+        "x": 195,
+        "y": 185,
+        "radius": 95,
+        "factionId": 0
+      }
+    },
+    {
+      "name": "Real touch pilot wins, persists unlock and grants one free card; an injected ad upgrades only that card",
+      "passed": true,
+      "durationMs": 35596,
+      "seed": 3,
+      "touchCommands": 13,
+      "result": {
+        "completed": true,
+        "rewardEligible": true,
+        "levelId": "crossroads",
+        "seed": 3,
+        "outcome": "victory",
+        "winnerId": 0,
+        "reason": "elimination",
+        "elapsed": 51.1,
+        "score": 4078,
+        "stars": 3,
+        "rankings": [
+          {
+            "factionId": 0,
+            "cities": 4,
+            "troops": 78,
+            "generals": 0,
+            "score": 4078,
+            "eliminatedAt": null,
+            "alive": true,
+            "rank": 1
+          },
+          {
+            "factionId": 1,
+            "cities": 0,
+            "troops": 0,
+            "generals": 0,
+            "score": 0,
+            "eliminatedAt": 51.1,
+            "alive": false,
+            "rank": 2
+          }
+        ]
+      },
+      "adEvidence": "Injected host provider only; no live SDK advertisement",
+      "freeCard": {
+        "id": "reward:8ad088d8-e770-4ea1-b1e1-cd3015612944",
+        "kind": "rate",
+        "tier": 1,
+        "duration": "single",
+        "expiresAt": 0
+      },
+      "upgraded": {
+        "id": "reward:8ad088d8-e770-4ea1-b1e1-cd3015612944",
+        "kind": "rate",
+        "tier": 2,
+        "duration": "single",
+        "expiresAt": 0
+      }
+    },
+    {
+      "name": "Ordinary defeat also grants its ranking card, and retry preserves the seed",
+      "passed": true,
+      "durationMs": 113005,
+      "result": {
+        "completed": true,
+        "rewardEligible": true,
+        "levelId": "crossroads",
+        "seed": 0,
+        "outcome": "defeat",
+        "winnerId": 1,
+        "reason": "elimination",
+        "elapsed": 86,
+        "score": 0,
+        "stars": 0,
+        "rankings": [
+          {
+            "factionId": 1,
+            "cities": 4,
+            "troops": 117,
+            "generals": 0,
+            "score": 4117,
+            "eliminatedAt": null,
+            "alive": true,
+            "rank": 1
+          },
+          {
+            "factionId": 0,
+            "cities": 0,
+            "troops": 0,
+            "generals": 0,
+            "score": 0,
+            "eliminatedAt": 86,
+            "alive": false,
+            "rank": 2
+          }
+        ]
+      },
+      "retrySeed": 0
+    },
+    {
+      "name": "Developer map trials, advanced weapons/generals and codex keep formal progress isolated",
+      "passed": true,
+      "durationMs": 21424,
+      "trialLevel": "campaign-071",
+      "formalProgress": []
+    },
+    {
+      "name": "Equipped weapons and automatically recruited generals render, expose local effects and persist codex mastery",
+      "passed": true,
+      "durationMs": 16040,
+      "fixture": "Inventory supplied only to exercise equipment rendering; not progression evidence",
+      "generals": [
+        {
+          "id": 1,
+          "kind": "warrior",
+          "owner": 0,
+          "originCityId": "bluegate",
+          "cityId": "bluegate",
+          "packetId": null,
+          "attack": 14,
+          "interval": 1.2,
+          "defense": 0.1,
+          "health": 65,
+          "maxHealth": 65,
+          "nextAttack": 15.7
+        }
+      ]
+    },
+    {
+      "name": "Small portrait, landscape and restored portrait retain canvas coordinates, 44px controls and match time",
+      "passed": true,
+      "durationMs": 3220,
+      "checks": [
+        {
+          "viewport": {
+            "width": 320,
+            "height": 568
+          },
+          "time": 1.1,
+          "canvas": {
+            "x": 0,
+            "y": 0,
+            "width": 320,
+            "height": 568
+          }
+        },
+        {
+          "viewport": {
+            "width": 844,
+            "height": 390
+          },
+          "time": 2,
+          "canvas": {
+            "x": 0,
+            "y": 0,
+            "width": 844,
+            "height": 390
+          }
+        },
+        {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "time": 3,
+          "canvas": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 844
+          }
+        }
+      ]
+    },
+    {
+      "name": "Background and fullscreen preserve pause; blocked storage and fullscreen refusal remain playable",
+      "passed": true,
+      "durationMs": 7290,
+      "background": "simulated visibility event",
+      "fullscreen": "entered/exited actual browser fullscreen; refusal injected",
+      "storage": "SecurityError getter; play continued"
+    },
+    {
+      "name": "Daily equipment expires while preparing, preserving seed and planned orders",
+      "passed": true,
+      "durationMs": 40216,
+      "seed": 3,
+      "expiredCardRemoved": true
+    }
+  ],
+  "errors": [],
+  "passed": true,
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "67353b6c23e73e8152a97cae76bd336e307bd52c33ac651cfa901774522ad571"
+  },
+  "browser": "155.0.8059.85"
+}

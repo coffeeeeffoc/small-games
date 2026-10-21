@@ -52,8 +52,333 @@ import {
   entryAdapterFileScopes,
 } from './incremental-validation.mjs';
 import { executeCompetitionChecks } from './run-selected-competition.mjs';
-import { shellContractTargets, shellContractFiles } from './validation-plan.mjs';
+import { shellContractTargets, shellContractFiles, requiresCocos } from './validation-plan.mjs';
 import { ingressPreflightGuard } from './competition-ingress.mjs';
+
+const tianxiaBase = 'd4a677542c5a034c4fef21798845dbf16e5bcfdd';
+const tianxiaSource = 'games/local/tianxia-chalu';
+const tianxiaWiring = [
+  '.github/workflows/carding-car.yml',
+  '.github/workflows/ci.yml',
+  '.github/workflows/pages-validate.yml',
+  '.github/workflows/mobile.yml',
+  'turbo.json',
+  'scripts/cocos-validation.mjs',
+  'scripts/reuse-cocos-artifacts.mjs',
+  'apps/shell-web/src/StandaloneGame.tsx',
+  'apps/shell-web/scripts/pages-smoke.mjs',
+  'apps/shell-web/scripts/standalone-game-checks.mjs',
+  'apps/shell-web/tests/standalone-immersive.integration.test.tsx',
+  'apps/shell-web/tests/standalone.integration.test.tsx',
+  'scripts/test-game-dev-mode.mjs',
+];
+// Keep the fourth-Creator proof fixture fixed when later games add new routes.
+const tianxiaAfter = new Map();
+const tianxiaRead = (file) => {
+  if (
+    ![
+      ...tianxiaWiring,
+      'package.json',
+      'apps/shell-web/scripts/standalone-game-entry.mjs',
+    ].includes(file)
+  )
+    return readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll('\r\n', '\n');
+  if (!tianxiaAfter.has(file))
+    tianxiaAfter.set(
+      file,
+      execFileSync('git', ['show', '22c95185813177bd860127563cf2eddbfe573e7e:' + file], {
+        encoding: 'utf8',
+      }).replaceAll('\r\n', '\n'),
+    );
+  return tianxiaAfter.get(file);
+};
+const tianxiaBefore = new Map();
+function tianxiaContext(file, overrides = {}) {
+  if (!tianxiaBefore.has(file))
+    tianxiaBefore.set(
+      file,
+      execFileSync('git', ['show', `${tianxiaBase}:${file}`], { encoding: 'utf8' }).replaceAll(
+        '\r\n',
+        '\n',
+      ),
+    );
+  const games = [
+    'tianxia-chalu',
+    'carding-car',
+    'night-overwatch',
+    'orbit-atelier',
+    'letters-words2',
+    'xiangqi-five',
+    'wulong-city',
+  ].map((id) => ({ id, source: `games/${id === 'xiangqi-five' ? 'submodules' : 'local'}/${id}` }));
+  const packages = games.map((game) => ({
+    dir: game.source,
+    ...JSON.parse(tianxiaRead(game.source + '/package.json')),
+  }));
+  packages.push({
+    name: 'shell',
+    dir: 'apps/shell-web',
+    coffeeeeffoc: { role: 'shell' },
+    dependencies: { '@coffeeeeffoc/tianxia-chalu': 'workspace:*' },
+  });
+  packages.push({
+    name: 'server',
+    dir: 'services/tianxia-server',
+    dependencies: { '@coffeeeeffoc/tianxia-chalu': 'workspace:*' },
+  });
+  return {
+    changedPaths: [file],
+    games,
+    packages,
+    readBase: (name) => tianxiaBefore.get(name),
+    readHead: tianxiaRead,
+    readSource: tianxiaRead,
+    ...overrides,
+  };
+}
+
+test('fourth Creator wiring is proved against the handoff base without expanding to the old producers', () => {
+  for (const file of tianxiaWiring) {
+    const context = tianxiaContext(file);
+    const scopes = reviewedSharedFileScopes(context);
+    assert.deepEqual(
+      scopes.get(file),
+      [
+        tianxiaSource,
+        ...(file === 'scripts/test-game-dev-mode.mjs' ? ['games/local/wulong-city'] : []),
+      ],
+      file,
+    );
+    const plan = incrementalPlan({ ...context, fileScopes: scopes });
+    assert.equal(plan.full, false);
+    assert(plan.game_sources.includes(tianxiaSource), file);
+    assert(!plan.game_sources.includes('games/local/carding-car'), file);
+    assert(!plan.game_sources.includes('games/local/night-overwatch'), file);
+    assert(plan.service_rule_sources.includes('services/tianxia-server'), file);
+    assert.equal(
+      requiresCocos(context.packages, [file, tianxiaSource + '/package.json'], plan),
+      true,
+    );
+    if (file === 'scripts/cocos-validation.mjs') {
+      assert(plan.validation_tools);
+      assert(plan.browser_ids.includes('letters-words2'));
+      assert(plan.browser_ids.includes('xiangqi-five'));
+    }
+    if (file === 'scripts/test-game-dev-mode.mjs')
+      assert(plan.developer_mode_ids.includes('wulong-city'));
+    for (const after of [
+      ...(file === 'turbo.json' ? [] : [context.readHead(file) + '\n']),
+      context.readHead(file) + '\nconsole.log("extra instruction");\n',
+    ])
+      assert(!reviewedSharedFileScopes({ ...context, readHead: () => after }).has(file), file);
+  }
+});
+
+test('fourth artifact workflow proofs reject changed old steps, duplicate IDs, wrong env/path, conditions and omissions', () => {
+  for (const file of tianxiaWiring.filter((file) => file.endsWith('.yml'))) {
+    const context = tianxiaContext(file),
+      after = context.readHead(file);
+    for (const bad of [
+      after.replace('pnpm check:games', 'echo bypass'),
+      after.replace('actions/download-artifact@v8', 'actions/download-artifact@v7'),
+      after.replace('TIANXIA_PREBUILT_DIR', 'TIANXIA_WRONG_DIR'),
+      after
+        .replace(
+          'path: games/local/tianxia-chalu/.prebuilt',
+          'path: games/local/night-overwatch/.prebuilt',
+        )
+        .replace('path: .scratch/ci-cocos/tianxia-chalu', 'path: .scratch/ci-cocos/other'),
+      after.replace(/^(\s+TIANXIA_PREBUILT_DIR:.*\n)/m, '$1$1'),
+      after.replace(/\s*&& steps.tianxia.outcome == 'success'/, ''),
+      after.replace(
+        '[carding-car, night-overwatch, orbit-atelier, tianxia-chalu]',
+        '[carding-car, night-overwatch, orbit-atelier, tianxia-chalu, tianxia-chalu]',
+      ),
+      after.replace('id: tianxia', 'id: night'),
+    ].filter((text) => text !== after))
+      assert(!reviewedSharedFileScopes({ ...context, readHead: () => bad }).has(file), file);
+    assert(
+      !reviewedSharedFileScopes({ ...context, readBase: () => context.readBase(file) + '\n' }).has(
+        file,
+      ),
+    );
+  }
+});
+
+test('fourth Creator literal/Turbo proofs reject duplicate registrations and executable changes outside the declaration', () => {
+  for (const file of [
+    'scripts/cocos-validation.mjs',
+    'scripts/reuse-cocos-artifacts.mjs',
+    'turbo.json',
+  ]) {
+    const context = tianxiaContext(file),
+      after = context.readHead(file);
+    for (const bad of [
+      after.replace('TIANXIA_PREBUILT_DIR', 'KART_PREBUILT_DIR'),
+      after.replace("'tianxia-chalu']", "'tianxia-chalu', 'tianxia-chalu']"),
+      after.replace(
+        "  'games/local/tianxia-chalu': 'TIANXIA_PREBUILT_DIR',",
+        "  'games/local/tianxia-chalu': 'TIANXIA_PREBUILT_DIR',\n  'games/local/tianxia-chalu': 'TIANXIA_PREBUILT_DIR',",
+      ),
+      after.replace('3.8.8', '3.8.9'),
+      after.replace('"dependsOn": ["^build"]', '"dependsOn": []'),
+      after.replace('"outputs": ["dist/**"]', '"outputs": ["dist/**"], "outputs": ["dist/**"]'),
+      after.replace(
+        "const platform = 'web-mobile';",
+        "const platform = 'web-mobile'; console.log('extra');",
+      ),
+    ].filter((text) => text !== after))
+      assert(!reviewedSharedFileScopes({ ...context, readHead: () => bad }).has(file), file);
+    for (const games of [
+      [],
+      [...context.games, { id: 'tianxia-chalu', source: tianxiaSource }],
+      [...context.games, { id: 'alias', source: tianxiaSource }],
+    ])
+      assert(!reviewedSharedFileScopes({ ...context, games }).has(file));
+    assert(
+      !reviewedSharedFileScopes({
+        ...context,
+        packages: context.packages.filter((pkg) => pkg.dir !== tianxiaSource),
+      }).has(file),
+    );
+  }
+});
+
+test('Tianxia semantic checks change only its real AST branch and exact immersive ID additions', () => {
+  const file = 'apps/shell-web/scripts/standalone-game-checks.mjs';
+  const context = tianxiaContext(file),
+    after = context.readHead(file);
+  for (const bad of [
+    after.replace("id === 'voiceprint-case'", "id === 'other'"),
+    after.replace('const click = (locator)', 'const changed = (locator)'),
+    after.replace("id === 'tianxia-chalu'", "id === 'other'"),
+    after + '\nexport const leaked = true;\n',
+  ])
+    assert(!reviewedSharedFileScopes({ ...context, readHead: () => bad }).has(file));
+  for (const name of tianxiaWiring.filter((name) =>
+    /StandaloneGame|pages-smoke|integration|test-game-dev-mode/.test(name),
+  )) {
+    const entry = tianxiaContext(name),
+      text = entry.readHead(name);
+    const addition = text.split('\n').find((line) => line.includes("'tianxia-chalu'")) + '\n';
+    for (const bad of [
+      text.replace(addition, addition + addition),
+      text.replace("'tianxia-chalu'", "'other'"),
+      text.replace("'ashfall-front'", "'other'"),
+    ])
+      assert(!reviewedSharedFileScopes({ ...entry, readHead: () => bad }).has(name), name);
+    const before = 'const lookalike = ' + JSON.stringify(entry.readBase(name)) + ';\n';
+    const fakeAfter = 'const lookalike = ' + JSON.stringify(text) + ';\n';
+    assert(
+      !reviewedSharedFileScopes({
+        ...entry,
+        readBase: () => before,
+        readHead: () => fakeAfter,
+      }).has(name),
+    );
+  }
+});
+
+test('the local validation aggregate includes reuse tests without allowing other root command changes', () => {
+  const file = 'package.json',
+    context = tianxiaContext(file);
+  assert.deepEqual(reviewedSharedFileScopes(context).get(file), []);
+  const after = context.readHead(file);
+  for (const bad of [
+    after.replace('scripts/reuse-cocos-artifacts.test.mjs', 'scripts/unknown.test.mjs'),
+    after.replace(
+      'scripts/reuse-cocos-artifacts.test.mjs',
+      'scripts/reuse-cocos-artifacts.test.mjs scripts/reuse-cocos-artifacts.test.mjs',
+    ),
+    after.replace('git push --no-verify', 'git push --force'),
+  ])
+    assert(!reviewedSharedFileScopes({ ...context, readHead: () => bad }).has(file));
+});
+
+test('combined Tianxia wiring keeps only its entry, navigation samples, tooling and real server checks', () => {
+  const entry = 'apps/shell-web/scripts/standalone-game-entry.mjs';
+  const paths = [
+    ...tianxiaWiring,
+    entry,
+    'scripts/reuse-cocos-artifacts.test.mjs',
+    'scripts/publication-scopes.mjs',
+  ];
+  for (const file of paths) tianxiaContext(file);
+  const context = tianxiaContext(entry, { changedPaths: paths });
+  const fileScopes = new Map([
+    ...entryAdapterFileScopes(context),
+    ...developerModeFileScopes(context),
+    ...reviewedSharedFileScopes(context),
+  ]);
+  assert.deepEqual(fileScopes.get(entry), [tianxiaSource]);
+  const plan = incrementalPlan({ ...context, fileScopes });
+  assert.equal(plan.full, false);
+  assert.equal(plan.validation_tools, true);
+  assert.deepEqual(plan.browser_ids, [
+    'letters-words2',
+    'tianxia-chalu',
+    'wulong-city',
+    'xiangqi-five',
+  ]);
+  assert.deepEqual(plan.developer_mode_ids, ['tianxia-chalu', 'wulong-city']);
+  assert.deepEqual(plan.service_rule_sources, ['services/tianxia-server']);
+  assert.deepEqual(
+    shellContractTargets(context.packages, paths).map((pkg) => pkg.dir),
+    ['apps/shell-web'],
+  );
+});
+
+test('fourth Creator classification works in a bare planner with only Prettier and no YAML package', async (t) => {
+  const { mkdtemp, copyFile, writeFile, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { createRequire } = await import('node:module');
+  const directory = await mkdtemp(join(tmpdir(), 'tianxia-bare-plan-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  for (const module of [
+    'publication-scopes.mjs',
+    'vite-patch-scope.mjs',
+    'competition-ingress.mjs',
+    'admin-csp.mjs',
+  ])
+    await copyFile(new URL(module, import.meta.url), join(directory, module));
+  const fixtures = tianxiaWiring.map((file) => {
+    const context = tianxiaContext(file);
+    return {
+      file,
+      before: context.readBase(file),
+      after: context.readHead(file),
+      games: context.games,
+      packages: context.packages,
+    };
+  });
+  await writeFile(join(directory, 'fixture.json'), JSON.stringify(fixtures));
+  const parser = createRequire(import.meta.url).resolve('prettier/plugins/babel');
+  await writeFile(
+    join(directory, 'probe.mjs'),
+    `
+    import assert from 'node:assert/strict';
+    import Module, { createRequire } from 'node:module';
+    import { readFileSync } from 'node:fs';
+    import { reviewedSharedFileScopes } from './publication-scopes.mjs';
+    assert.throws(() => createRequire(import.meta.url).resolve('js-yaml'));
+    const originalLoad = Module._load;
+    Module._load = function(name, ...args) {
+      assert.notEqual(name, 'js-yaml');
+      return originalLoad.call(this, name === 'prettier/plugins/babel' ? ${JSON.stringify(parser)} : name, ...args);
+    };
+    for (const { file, before, after, games, packages } of JSON.parse(readFileSync('fixture.json', 'utf8'))) {
+      assert(reviewedSharedFileScopes({ changedPaths: [file], games, packages,
+        readBase: () => before, readHead: () => after }).has(file), file);
+    }
+  `,
+  );
+  execFileSync(process.execPath, ['probe.mjs'], {
+    cwd: directory,
+    env: { ...process.env, NODE_PATH: '' },
+    stdio: 'pipe',
+  });
+});
 
 test('unified package tools keep the three H5 consumers and reject unknown siblings', () => {
   const ids = ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'];
@@ -141,7 +466,7 @@ test('six H5 tools declare exact consumers and preserve fail-closed configuratio
 });
 
 test('Cocos branding implementation and its test trigger the actual branding contract', () => {
-  const games = sixH5Ids.map((id) => ({ id, source: `games/local/${id}` }));
+  const games = [...sixH5Ids, 'tianxia-chalu'].map((id) => ({ id, source: `games/local/${id}` }));
   const packages = games.map((game) => ({ name: game.id, dir: game.source }));
   const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
   for (const file of [
@@ -151,6 +476,8 @@ test('Cocos branding implementation and its test trigger the actual branding con
     const context = { changedPaths: [file], games, packages, readHead, readSource: readHead };
     const fileScopes = reviewedSharedFileScopes(context);
     assert.equal(incrementalPlan({ ...context, fileScopes }).six_h5_checks, true, file);
+    if (file.endsWith('/scripts/cocos-branding.mjs'))
+      assert(fileScopes.get(file).includes(tianxiaSource));
   }
 });
 
@@ -312,13 +639,15 @@ test('company Pages publication adds only its tested artifact and preserves game
   assert.equal(classify(before, after, []).has(file), false);
 });
 
-test('viewport extraction selects all nine real consumers and rejects any unreviewed bytes', () => {
+test('viewport retirement selects all remaining real consumers and rejects any unreviewed bytes', () => {
   const file = mobileViewportScopeFile;
   const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
     '\r\n',
     '\n',
   );
-  const before = after.replace(/\n\/\/ Shared by the Pages[\s\S]*?(?=\nfunction attributes)/, '');
+  const before = execFileSync('git', ['show', '4224be0a1a3c9c108e34c39d996642765cfdca54:' + file], {
+    encoding: 'utf8',
+  });
   assert.notEqual(before, after);
   const games = JSON.parse(
     readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url), 'utf8'),
@@ -342,11 +671,8 @@ test('viewport extraction selects all nine real consumers and rejects any unrevi
   });
   assert.deepEqual(plan.browser_ids, [
     'carding-car',
-    'fishing',
     'fold-the-world',
-    'hold-tight-acrobats',
     'night-overwatch',
-    'one-stroke-course',
     'vibeJam-myself-delivery',
     'vibeJam-myself-nullrange',
     'wulong-city',
@@ -360,7 +686,7 @@ test('viewport extraction selects all nine real consumers and rejects any unrevi
     classify(
       before,
       after,
-      games.filter((game) => game.id !== 'fishing'),
+      games.filter((game) => game.id !== 'fold-the-world'),
     ),
   ]) {
     assert(!rejected.has(file));
@@ -378,13 +704,13 @@ test('viewport extraction selects all nine real consumers and rejects any unrevi
   }
 });
 
-test('independent preview selects nine viewport consumers plus Tower Defense and fails closed', async () => {
+test('independent preview selects retained viewport consumers and fails closed', async () => {
   const { execFileSync } = await import('node:child_process');
   const files = [mobileViewportScopeFile, independentPreviewScopeFile];
   const before = Object.fromEntries(
     files.map((file) => [
       file,
-      execFileSync('git', ['show', 'e37783aef3042289d9cfbb7f4b0badb6a106f6d8:' + file], {
+      execFileSync('git', ['show', '4224be0a1a3c9c108e34c39d996642765cfdca54:' + file], {
         encoding: 'utf8',
       }),
     ]),
@@ -408,8 +734,8 @@ test('independent preview selects nine viewport consumers plus Tower Defense and
       readHead: (file) => current[file],
     });
   const scopes = classify();
-  assert.equal(scopes.get(independentPreviewScopeFile).length, 10);
-  assert(scopes.get(independentPreviewScopeFile).includes('games/submodules/tower-defense-game'));
+  assert.equal(scopes.get(independentPreviewScopeFile).length, 6);
+  assert(scopes.get(independentPreviewScopeFile).includes('games/local/fold-the-world'));
   const plan = incrementalPlan({
     packages,
     games,
@@ -421,13 +747,9 @@ test('independent preview selects nine viewport consumers plus Tower Defense and
   assert.equal(plan.validation_tools, true);
   assert.deepEqual(plan.browser_ids, [
     'carding-car',
-    'fishing',
     'fold-the-world',
-    'hold-tight-acrobats',
     'letters-words2',
     'night-overwatch',
-    'one-stroke-course',
-    'tower-defense-game',
     'vibeJam-myself-delivery',
     'vibeJam-myself-nullrange',
     'wulong-city',
@@ -445,7 +767,7 @@ test('independent preview selects nine viewport consumers plus Tower Defense and
     classify({ ...after, [mobileViewportScopeFile]: after[mobileViewportScopeFile] + '\n' }),
     classify(
       after,
-      games.filter((game) => game.id !== 'tower-defense-game'),
+      games.filter((game) => game.id !== 'fold-the-world'),
     ),
   ]) {
     assert(!rejected.has(independentPreviewScopeFile));
@@ -3326,6 +3648,7 @@ test('admin infrastructure has exact consumers and unknown neighboring paths fai
       ...(backendSharedScopePaths.includes(file) || controlMigration
         ? ['services/runtime-api', 'services/kart-server']
         : []),
+      ...(backendSharedScopePaths.includes(file) ? ['services/tianxia-server'] : []),
       'services/management-api',
     ]);
   }
@@ -3832,15 +4155,16 @@ test('anonymous session migration and Pages service defaults admit only the revi
       : execFileSync('git', ['show', '0d7bfdfe4087b85139dc525e9a75f3ab792e17f6:' + file], {
           encoding: 'utf8',
         });
-    const after = ['scripts/platform.mjs', 'scripts/deploy-tencent.mjs'].includes(file)
-      ? execFileSync('git', ['show', '0459b0cb3c89a748f3a6bd252858951ba1ca073d:' + file], {
-          encoding: 'utf8',
-        })
-      : file.startsWith('.github/')
-        ? execFileSync('git', ['show', 'f62716c317b391b89e78eec220abc053f874f981:' + file], {
+    const after =
+      file === '.github/workflows/pages-validate.yml'
+        ? execFileSync('git', ['show', 'ba3f3966082a24861e1a05c1e1e293ae1f032136:' + file], {
             encoding: 'utf8',
           })
-        : readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+        : ['scripts/platform.mjs', 'scripts/deploy-tencent.mjs'].includes(file)
+          ? execFileSync('git', ['show', '0459b0cb3c89a748f3a6bd252858951ba1ca073d:' + file], {
+              encoding: 'utf8',
+            })
+          : readFileSync(new URL('../' + file, import.meta.url), 'utf8');
     const check = file.startsWith('.github/')
       ? anonymousPagesFileScope
       : playerSessionBackendFileScope;
@@ -3931,34 +4255,6 @@ test('review tools, submodule dialogs and the realtime preset have finite valida
   assert(hooks.hook_checks && hooks.validation_tools);
 });
 
-test('planning expands only to the four locked game workspaces for both live publication bases', () => {
-  for (const base of [
-    '5e9981c657486eb730419b8d8cb7ae99642c2191',
-    'ba88e46a0f7f7fb5c37c28a20c8eae7a0319eece',
-  ])
-    for (const file of ['.github/workflows/ci.yml', '.github/workflows/pages.yml']) {
-      const before = execFileSync('git', ['show', `${base}:${file}`], { encoding: 'utf8' });
-      const after = frozenCleanupBase(file).replaceAll('\r\n', '\n');
-      const scoped = classify(file, before, after);
-      assert.deepEqual(scoped.get(file), []);
-      assert.equal(plan([file], scoped).validation_tools, true);
-      assert.deepEqual(plan([file], scoped).nine_native_targets, []);
-      for (const altered of [
-        after + '\n',
-        after.replace('--init --', '--init --remote --'),
-        after.replace('--init --', '--init --recursive --'),
-        after.replace('games/submodules/fishing ', ''),
-        after.replace('games/submodules/fishing ', 'assets '),
-        after.replace('games/submodules/fishing ', 'games/submodules/fishing assets '),
-        after.replace('node scripts/pages-test-scope.mjs', 'echo skipped'),
-        after + '\npermissions:\n  contents: write\n',
-      ])
-        assert.equal(classify(file, before, altered).has(file), false);
-      assert.equal(classify(file, before + '\n', after).has(file), false);
-      assert.equal(classify(file, after, before).has(file), false);
-    }
-});
-
 test('Orbit Creator routing permits its exact new consumer and rejects altered existing gates', () => {
   const file = '.github/workflows/ci.yml';
   const env =
@@ -4042,7 +4338,7 @@ test('merge Creator routes bind exact reviewed base/head bytes and reject extra 
   for (const file of Object.keys(mergeCreatorIntegrationHashes)) {
     const before = execFileSync(
       'git',
-      ['show', '4224be0a1a3c9c108e34c39d996642765cfdca54:' + file],
+      ['show', '22c95185813177bd860127563cf2eddbfe573e7e:' + file],
       { encoding: 'utf8' },
     );
     const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8');

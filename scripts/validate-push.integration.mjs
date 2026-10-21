@@ -43,8 +43,8 @@ try {
   const docs = git(root, ['rev-parse', 'HEAD']);
   const metaFile = path.join(root, 'apps/shell-web/src/game-meta.json');
   const meta = JSON.parse(await readFile(metaFile));
-  meta.games['afterimage-arena'].updated.time = new Date(
-    meta.games['afterimage-arena'].updated.time,
+  meta.games['merge-front'].updated.time = new Date(
+    meta.games['merge-front'].updated.time,
   ).toISOString();
   await writeFile(metaFile, JSON.stringify(meta, null, 2) + '\n');
   git(root, ['add', 'apps/shell-web/src/game-meta.json']);

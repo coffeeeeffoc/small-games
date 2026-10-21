@@ -25,7 +25,7 @@ jobs:
           fetch-depth: 0
       - name: Read locked game workspaces for planning
         run: |
-          git -c url.https://github.com/.insteadOf=git@github.com: submodule update --init -- games/submodules/fishing games/submodules/tower-defense-game games/submodules/xiangqi-five
+          git -c url.https://github.com/.insteadOf=git@github.com: submodule update --init -- games/submodules/xiangqi-five
       - uses: actions/setup-node@v6
         with:
           node-version: 24.21.0
@@ -83,6 +83,7 @@ jobs:
       KART_PREBUILT_DIR: ${{ github.workspace }}/games/local/carding-car/.prebuilt
       NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt
       ORBIT_ATELIER_PREBUILT_DIR: ${{ github.workspace }}/games/local/orbit-atelier/.prebuilt
+      TIANXIA_PREBUILT_DIR: ${{ github.workspace }}/games/local/tianxia-chalu/.prebuilt
       MERGE_FRONT_PREBUILT_DIR: ${{ github.workspace }}/games/local/merge-front/.prebuilt
       TURBO_SCM_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
       TURBO_SCM_HEAD: ${{ github.sha }}
@@ -133,6 +134,11 @@ jobs:
         with:
           name: orbit-atelier-${{ github.sha }}
           path: games/local/orbit-atelier/.prebuilt
+      - uses: actions/download-artifact@v8
+        if: needs.plan.outputs.cocos == 'true'
+        with:
+          name: tianxia-chalu-${{ github.sha }}
+          path: games/local/tianxia-chalu/.prebuilt
       - uses: actions/download-artifact@v8
         if: needs.plan.outputs.cocos == 'true'
         with:
