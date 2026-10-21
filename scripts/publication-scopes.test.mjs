@@ -4587,7 +4587,10 @@ test('Homebound Creator readiness guard preserves gameplay and scopes only its r
 
 test('ordinary Creator reuse changes include Bullet while preserving the historical five-game fixture', () => {
   const file = 'scripts/reuse-cocos-artifacts.mjs';
-  const current = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const current = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
+    '\r\n',
+    '\n',
+  );
   for (const includeBullet of [false, true]) {
     const ids = [
       'carding-car',
