@@ -428,6 +428,11 @@ export const localRetirementReviews = Object.freeze({
     after: '5ec2f000318a181cacc5160aa5c24d9158526a7d7204b059a0878e6f5d121d26',
     sources: ['apps/shell-web'],
   },
+  'scripts/validate-push-hook.test.mjs': {
+    before: 'a66e2053edea0d5030e0f13ccf89b42f4b8eca20d706ac3daedecc7847375df4',
+    after: '65e341a5ae0ea0491e014248ffa71389d3ff080daf8b4c97016d6e70fa8528ce',
+    sources: [],
+  },
   'scripts/validate-tree.mjs': {
     before: '4bece2fa09b5a8c7d38145d353b1f00f7ab70f7694e1cd704a40e66f5bf8f003',
     after: '52cff6a2cb4c0c51bb69d0f1c9effb1ba9a0217cf298d9a690ac74998f6a49aa',

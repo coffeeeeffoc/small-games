@@ -45,6 +45,8 @@ test('manual candidate validation checks exact-SHA snapshots and rejects invalid
       'pages-test-scope.mjs',
       'pages-registration-scope.mjs',
       'game-retirement-scope.mjs',
+      'local-game-retirement-scope.mjs',
+      'local-game-retirement-reviews.mjs',
       'rule-tasks.mjs',
     ]) {
       await writeFile(
