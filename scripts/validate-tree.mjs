@@ -465,6 +465,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
         'scripts/build-games.test.mjs',
         'apps/shell-minigame/scripts/taptap-cocos.test.mjs',
         'apps/shell-minigame/scripts/taptap-cocos-inputs.test.mjs',
+        'apps/shell-minigame/scripts/taptap-conversion.test.mjs',
         'apps/shell-minigame/scripts/taptap-login.test.mjs',
       ],
       root,

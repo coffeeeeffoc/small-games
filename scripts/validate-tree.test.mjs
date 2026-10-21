@@ -126,6 +126,11 @@ test('optional service and importer contracts still run with native release gate
   assert(
     calls.some(([, args]) => args.includes('apps/shell-minigame/scripts/taptap-cocos.test.mjs')),
   );
+  assert(
+    calls.some(([, args]) =>
+      args.includes('apps/shell-minigame/scripts/taptap-conversion.test.mjs'),
+    ),
+  );
   assert(calls.some(([, args]) => args[0] === 'scripts/competition-service.browser.mjs'));
   assert.throws(
     () =>
