@@ -47,9 +47,10 @@ import {
 } from './validation-plan.mjs';
 import { main as selectScope, collectChangedPaths } from './pages-test-scope.mjs';
 import { publishingConsumers } from './publication-scopes.mjs';
-import { parsers } from 'prettier/plugins/babel';
+import { createRequire } from 'node:module';
 
 function dependencyText(source) {
+  const { parsers } = createRequire(import.meta.url)('prettier/plugins/babel');
   const fragments = [];
   function visit(node) {
     if (!node || typeof node !== 'object') return;
