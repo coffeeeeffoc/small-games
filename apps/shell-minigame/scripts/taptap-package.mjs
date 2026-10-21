@@ -249,7 +249,7 @@ function crc32(bytes) {
 /** Non-extracting ZIP audit. Supports standard stored/deflated single-disk ZIPs.
  * Unsupported/encrypted/ZIP64 outputs require explicit review, never relabeling. */
 export function zipInventory(bytes, options = {}) {
-  return zipEntries(bytes, options).map(({ data, ...file }) => file);
+  return zipEntries(bytes, options).map(({ path, bytes, sha256 }) => ({ path, bytes, sha256 }));
 }
 
 // Returns bytes only after every entry has passed the same complete ZIP audit.
