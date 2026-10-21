@@ -190,6 +190,20 @@ export class StationWorld {
       tree(-20, z, i);
       tree(20, z, i + 1);
     }
+    // A rear street and foreground garden remain visible in the narrow phone framing.
+    for (const side of [-1, 1]) {
+      const x = side * 10.5;
+      b.box('#e6c6a4', x, 1.55, -16.4, 7.6, 3.1, 4.5);
+      b.box('#b87860', x, 3.25, -16.4, 8.1, 0.4, 5);
+      b.box('#d39270', x, 3.54, -16.4, 7.4, 0.18, 4.3);
+      for (const dx of [-2.3, 0, 2.3]) b.box('#527e76', x + dx, 1.9, -14.1, 1.2, 1.3, 0.08);
+      tree(side * 16, -14.5, side + 2);
+      tree(side * 12.5, 33.5, side + 3);
+      b.box('#d6c8a4', side * 6.4, 0.1, 33.2, 6, 0.2, 2.5);
+      b.box('#a97850', side * 6.4, 0.7, 33.2, 3.7, 0.2, 0.85);
+      b.box('#a97850', side * 6.4, 1.1, 33.6, 3.7, 0.6, 0.12);
+      for (const dx of [-1.4, 1.4]) b.box(INK, side * 6.4 + dx, 0.35, 33.2, 0.14, 0.7, 0.6);
+    }
     // Side streets and small terracotta shops frame the playfield without filling it.
     for (const side of [-1, 1])
       for (let j = 0; j < 3; j++) {
@@ -265,9 +279,9 @@ export class StationWorld {
   }
   resize(w: number, h: number, home = false) {
     const aspect = w / h;
-    this.camera.orthoHeight = Math.max(24, 18.5 / aspect);
-    this.camera.node.setPosition(0, 45, 42);
-    this.camera.node.lookAt(new Vec3(0, 0, home ? 3 : 8));
+    this.camera.orthoHeight = Math.max(24, (home ? 22 : 18.5) / aspect);
+    this.camera.node.setPosition(home ? 9 : 0, home ? 38 : 45, home ? 46 : 42);
+    this.camera.node.lookAt(new Vec3(0, 0, home ? 6 : 8));
   }
   project(p: Point, height = 1.5) {
     const q = this.camera.worldToScreen(new Vec3(p.x, height, p.z));

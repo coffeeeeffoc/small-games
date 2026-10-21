@@ -64,6 +64,7 @@ if (!existsSync(editor))
   throw Error(
     '需要真实 Cocos Creator 3.8.8。请在 bolanggu 设置 COCOS_CREATOR 后运行 build；不会用旧 Web 产物替代。',
   );
+const inputHash = await sourceHash();
 const out = path.join(root, 'build', target);
 await rm(out, { recursive: true, force: true });
 const result = await runCreator(
@@ -75,6 +76,10 @@ if (
   /Missing class:|attached to .+ is missing or invalid|Build failed/i.test(result.output)
 )
   throw Error('Creator build failed; inspect reports.');
+if ((await sourceHash()) !== inputHash)
+  throw Error(
+    'Creator changed source inputs during import. Review and commit the canonical metadata/settings, then rebuild.',
+  );
 if (target === 'web-mobile') {
   await brandCocos(out);
   await installStartup(out);
@@ -90,7 +95,7 @@ if (target === 'web-mobile') {
 }
 await writeFile(
   path.join(out, 'build-info.json'),
-  JSON.stringify({ creator: '3.8.8', target, sourceHash: await sourceHash() }, null, 2),
+  JSON.stringify({ creator: '3.8.8', target, sourceHash: inputHash }, null, 2),
 );
 if (target === 'web-mobile') {
   await rm(path.join(root, 'dist'), { recursive: true, force: true });

@@ -7,7 +7,6 @@ type Bridge = typeof globalThis & {
     registerActions?(actions: { id: string; label: string; run: () => void }[]): () => void;
   };
   SmallGamesRewardAds?: RewardProvider;
-  SmallGamesPublishingConfig?: { adsEnabled?: boolean };
 };
 export class StationPlatform {
   async share(level: number) {
@@ -63,9 +62,8 @@ export class StationPlatform {
     }
   }
   get ads() {
-    return (globalThis as Bridge).SmallGamesPublishingConfig?.adsEnabled === false
-      ? undefined
-      : (globalThis as Bridge).SmallGamesRewardAds;
+    // The configured host installs one AdvertisingPort for this build target.
+    return (globalThis as Bridge).SmallGamesRewardAds;
   }
   activate() {
     this.active = true;

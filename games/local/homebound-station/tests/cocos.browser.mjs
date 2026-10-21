@@ -80,8 +80,12 @@ page.on('pageerror', (e) => errors.push(e.message));
 page.setDefaultTimeout(60000);
 const screen = () => page.evaluate(() => window.homeboundView());
 const snap = () => page.evaluate(() => window.homeboundSnapshot());
-const mode = async (name) =>
-  page.waitForFunction((name) => window.homeboundView?.().page === name, name);
+const mode = async (name) => {
+  await page.waitForFunction((name) => window.homeboundView?.().page === name, name);
+  await page.evaluate(
+    () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+  );
+};
 const tap = async (id) => {
   await page.waitForFunction(
     (id) => window.homeboundView?.().buttons.some((b) => b.id === id && !b.disabled),
@@ -105,6 +109,26 @@ try {
   await shot('loading-390');
   await mode('home');
   await shot('home-390');
+  await tap('settings');
+  await mode('settings');
+  const sound = (await screen()).progress.sound;
+  await tap('sound');
+  assert.equal((await screen()).progress.sound, !sound);
+  await tap('sound');
+  await shot('settings-390');
+  await tap('help');
+  await mode('help');
+  await shot('help-390');
+  await tap('back');
+  await mode('settings');
+  await tap('fullscreen');
+  await page.waitForTimeout(200);
+  if (await page.evaluate(() => !!document.fullscreenElement)) {
+    await tap('fullscreen');
+    await page.waitForFunction(() => !document.fullscreenElement);
+  }
+  await tap('home');
+  checks.push('settings, sound persistence, help return and fullscreen gesture/fallback');
   await tap('levels');
   await mode('levels');
   assert.equal((await screen()).buttons.find((b) => b.id === 'level:1').disabled, true);
@@ -131,6 +155,22 @@ try {
   assert.equal((await snap()).time, frozen);
   await shot('pause-390');
   await tap('resume');
+  // A genuine pointer focus transfer triggers browser blur without synthetic lifecycle events.
+  await page.evaluate(() => {
+    const frame = document.createElement('iframe');
+    frame.id = 'host-focus-probe';
+    frame.srcdoc = '<button style="width:100%;height:100%">Host control</button>';
+    frame.style.cssText = 'position:fixed;left:0;top:0;width:140px;height:50px;z-index:99999';
+    document.body.appendChild(frame);
+  });
+  await page.frameLocator('#host-focus-probe').getByRole('button').tap();
+  await mode('pause');
+  const backgroundTime = (await snap()).time;
+  await page.waitForTimeout(200);
+  assert.equal((await snap()).time, backgroundTime);
+  await page.evaluate(() => document.querySelector('#host-focus-probe').remove());
+  await tap('resume');
+  checks.push('browser focus loss pauses; explicit resume restores play');
   await fixture('dismissed');
   await tap('speed:2');
   await mode('playing');

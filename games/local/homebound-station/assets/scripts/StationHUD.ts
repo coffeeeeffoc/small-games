@@ -114,7 +114,7 @@ export class StationHUD {
     if (!l) {
       const n = this.node(id);
       l = n.addComponent(Label);
-      l.fontFamily = 'Microsoft YaHei';
+      l.fontFamily = 'sans-serif';
       l.horizontalAlign = Label.HorizontalAlign.CENTER;
       l.verticalAlign = Label.VerticalAlign.CENTER;
       l.overflow = Label.Overflow.CLAMP;
@@ -186,7 +186,7 @@ export class StationHUD {
       v.practice,
       v.developer,
       v.gate.speed,
-      [...v.gate.unlocked].join(),
+      Array.from(v.gate.unlocked).join(),
       v.progress.sound,
       v.progress.stars.join(),
       this.w,
@@ -319,6 +319,31 @@ export class StationHUD {
           cols = this.h < 740 ? 5 : 2;
         const stepY = (mapBottom - mapTop) / rows,
           stepX = width / cols;
+        // Paths end outside each button and status label, keeping every stop legible.
+        if (rows === 5) {
+          this.g.strokeColor = col('#b9ccba');
+          this.g.lineWidth = 2.5;
+          for (let i = 0; i < 9; i++) {
+            const point = (n: number) => {
+              const row = Math.floor(n / cols);
+              const column = row % 2 === 0 ? n % cols : cols - 1 - (n % cols);
+              return { x: left + stepX * (column + 0.5), y: mapTop + stepY * (row + 0.5) };
+            };
+            const from = point(i),
+              to = point(i + 1);
+            const horizontal = from.y === to.y;
+            const direction = Math.sign(to.x - from.x);
+            this.g.moveTo(
+              from.x + (horizontal ? direction * 28 : 0) - this.w / 2,
+              this.h / 2 - from.y - (horizontal ? 0 : 48),
+            );
+            this.g.lineTo(
+              to.x - (horizontal ? direction * 28 : 0) - this.w / 2,
+              this.h / 2 - to.y + (horizontal ? 0 : 28),
+            );
+            this.g.stroke();
+          }
+        }
         for (let i = 0; i < 10; i++) {
           const index = v.chapter * 10 + i,
             l = LEVELS[index]!,
@@ -340,19 +365,6 @@ export class StationHUD {
               25,
               done ? C.gold : C.dim,
             );
-          if (i < 9 && rows === 5) {
-            const ni = i + 1,
-              nr = Math.floor(ni / cols),
-              nc = nr % 2 === 0 ? ni % cols : cols - 1 - (ni % cols);
-            this.g.strokeColor = col('#b9ccba');
-            this.g.lineWidth = 3;
-            this.g.moveTo(x - this.w / 2, this.h / 2 - y);
-            this.g.lineTo(
-              left + stepX * (nc + 0.5) - this.w / 2,
-              this.h / 2 - (mapTop + stepY * (nr + 0.5)),
-            );
-            this.g.stroke();
-          }
         }
         this.button('home', '返回首页', left, bottom - 48, width, 48);
       } else if (v.page === 'playing') {
@@ -527,7 +539,7 @@ export class StationHUD {
           String(vehicle.passengerCapacity),
           p.x + 18.5,
           p.y + 17,
-          11,
+          13,
           19,
           18,
           C.ink,

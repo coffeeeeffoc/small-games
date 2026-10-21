@@ -305,7 +305,7 @@ export function splitPlans(s: Simulation, groupId: string): SplitPlan[] {
         !blocker(s, v, first.id),
     );
   if (!first || !second) return [];
-  return [...new Set([Math.ceil(g.passengers.length / 2), first.passengerCapacity])]
+  return Array.from(new Set([Math.ceil(g.passengers.length / 2), first.passengerCapacity]))
     .filter(
       (n) =>
         n < g.passengers.length &&
@@ -646,7 +646,7 @@ export function snapshot(s: Simulation) {
     paused: s.paused,
     won: s.won,
     level: s.config.id,
-    delivered: [...s.delivered],
+    delivered: Array.from(s.delivered),
     target: s.target,
     roadOwner: s.roadOwner,
     groups: s.groups,

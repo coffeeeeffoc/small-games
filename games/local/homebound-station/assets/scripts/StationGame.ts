@@ -400,7 +400,7 @@ export class StationGame extends Component {
       practice: this.practice,
       chapter: this.chapter,
       speed: this.gate.speed,
-      unlockedSpeeds: [...this.gate.unlocked],
+      unlockedSpeeds: Array.from(this.gate.unlocked),
       adPending: this.gate.pending,
       buttons: structuredClone(this.hud.buttons),
       cars: this.state.vehicles

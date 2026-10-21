@@ -5,9 +5,14 @@ export { normalizeTapTapSdk } from '../normalize.mjs';
 export type { TapTapSdk } from '../normalize.mjs';
 
 /** Starts on the host's tap Canvas and lifecycle, with no DOM or other-platform aliases. */
-export function startTapTapGame(sdk: TapTapSdk | undefined, game: ReviewedModule) {
+export function startTapTapGame(
+  sdk: TapTapSdk | undefined,
+  game: ReviewedModule,
+  adUnitId?: string,
+) {
   return startNativeGame(normalizeTapTapSdk(sdk), async () => game, {
     platformId: 'taptap',
+    adUnitId,
     sessionId: `taptap-${Date.now()}-${Math.random().toString(36).slice(2)}`,
   });
 }

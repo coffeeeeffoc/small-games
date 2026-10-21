@@ -8,6 +8,7 @@
   "userData": {
     "isBundle": true,
     "bundleName": "resources",
-    "priority": 8
+    "priority": 8,
+    "bundleConfigID": "homebound-audio"
   }
 }
