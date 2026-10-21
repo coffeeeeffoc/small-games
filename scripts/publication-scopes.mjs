@@ -63,7 +63,7 @@ export const mergeCreatorIntegrationHashes = Object.freeze({
   ],
   'apps/shell-web/scripts/standalone-game-checks.mjs': [
     'eacdc79b67024c15833fb62485c51daf7a1371319a965ed244a8187b1b399725',
-    '5b5f9a456e3f11a46f75ce4e166b7b898c029b175b3d31e1aef378e86e23d382',
+    '962afd93d3a3a0bc662100fd8298d3bc3898cd43511259fd38b5347b2d63da3c',
   ],
   'apps/shell-web/scripts/pages-host-smoke.mjs': [
     '30b47a586c2ad818a8b86465bd1f98390389cd61ec2eb5cd49fe5cafebcc5ebd',

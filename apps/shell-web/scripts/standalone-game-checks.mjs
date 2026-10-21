@@ -1427,7 +1427,9 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       expect(c, id).toBeTruthy();
       const box = await canvas.boundingBox();
       const rotated = await canvas.evaluate(() =>
-        getComputedStyle(document.getElementById('GameDiv')).transform.startsWith('matrix(0, 1'),
+        globalThis
+          .getComputedStyle(globalThis.document.getElementById('GameDiv'))
+          .transform.startsWith('matrix(0, 1'),
       );
       const width = rotated ? box.height : box.width,
         height = rotated ? box.width : box.height;
