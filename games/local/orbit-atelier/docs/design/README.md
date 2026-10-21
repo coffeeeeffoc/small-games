@@ -1,8 +1,10 @@
 # 星扣工坊 · Orbit Atelier
 
+**2026-10-22 当前重构：** [Cocos玩法](cocos-rebuild-2026-10-21/01-gameplay.md) · [效果图](cocos-rebuild-2026-10-21/02-concept.png) · [24关设计](cocos-rebuild-2026-10-21/03-levels.md) · [实际验证记录](cocos-rebuild-2026-10-21/05-verification.md) · [Cocos运行截图](cocos-rebuild-2026-10-21/actual/mobile-home.png)。已完成真实Creator构建和桌面触屏模拟。下文及旧子目录均为历史SVG版本记录，不是新版本验收证据。
+
 `concept.png` 是原创视觉概念板，包含主页、游玩和选关三种手机页面，作为 UI 实现前的方向参考。目标视口为 390 × 844；概念图中的设备外框、纹理和插画细节不要求逐像素实现。
 
-2026-10-13 新增可见穿扣及 50 关，现为八章 74 关。当前设计与运行证据见 [穿扣扩展](real-interlock-2026-10-13/README.md)，下文三章和原截图保留为初版设计记录。
+2026-10-13 新增可见穿扣及 50 关，现为八章 74 关。该历史版本的设计与运行证据见 [穿扣扩展](real-interlock-2026-10-13/README.md)，下文三章和原截图保留为初版设计记录。
 
 ## 视觉方向
 

@@ -23,8 +23,8 @@ const jobs = games.map((game) => ({
   status: 'completed',
   conclusion: 'success',
 }));
-test('reuse waits for all three successful producer gates, not downstream CI', () => {
-  assert.deepEqual(games, ['carding-car', 'night-overwatch', 'tianxia-chalu']);
+test('reuse waits for all four successful producer gates, not downstream CI', () => {
+  assert.deepEqual(games, ['carding-car', 'night-overwatch', 'orbit-atelier', 'tianxia-chalu']);
   assert.equal(inspectProducer(run, jobs, expected), 'ready');
   for (let i = 0; i < games.length; i++) {
     const missing = jobs.filter((_, index) => index !== i);
@@ -164,4 +164,30 @@ test('CI is the sole producer direction and fallback retains original gates', as
       (step) => step.run?.includes('verify carding-car') && step['continue-on-error'] === true,
     ),
   );
+});
+
+test('all four downloaded artifacts must verify before reuse publishes any of them', async () => {
+  const producer = yaml.load(
+    await readFile(new URL('../.github/workflows/carding-car.yml', import.meta.url), 'utf8'),
+  );
+  const steps = producer.jobs.reuse.steps;
+  const verify = steps.find((step) => step.id === 'verify');
+  for (const [game, id] of [
+    ['carding-car', 'kart'],
+    ['night-overwatch', 'night'],
+    ['orbit-atelier', 'orbit'],
+    ['tianxia-chalu', 'tianxia'],
+  ]) {
+    assert(verify.if.includes(`steps.${id}.outcome == 'success'`));
+    assert(verify.run.includes(`verify ${game} .scratch/ci-cocos/${game}`));
+    const download = steps.find((step) => step.id === id);
+    assert.equal(download.with.name, game + '-${{ github.sha }}');
+    const upload = steps.find(
+      (step) =>
+        step.uses?.startsWith('actions/upload-artifact@') &&
+        step.with.name === game + '-${{ github.sha }}',
+    );
+    assert.equal(upload.if, "steps.verify.outcome == 'success'");
+    assert.equal(upload.with.path, `.scratch/ci-cocos/${game}`);
+  }
 });

@@ -10,12 +10,22 @@
   "scripts": {
     "dev": "node server.js",
     "start": "node server.js",
-    "check": "node --check src/app.js && node --check src/acoustics.js && node --check src/audio.js && node --check src/layout.js && node --check src/archive.js && node --check src/editor-geometry.js && node --check server.js",
+    "check": "node scripts/check.mjs",
     "test": "node --test tests/*.test.js",
-    "test:browser": "node tests/audio.browser.js && node tests/ui.browser.js",
-    "build": "node build.mjs"
+    "test:browser": "node tests/audio.browser.js && node tests/ui.browser.js && node tests/platforms.browser.js",
+    "build": "node build.mjs",
+    "dev:web": "node server.js web",
+    "dev:h5": "node server.js h5",
+    "build:web": "node build.mjs web",
+    "build:h5": "node build.mjs h5",
+    "build:wechat": "node build.mjs wechat",
+    "build:all": "node build.mjs web && node build.mjs h5 && node build.mjs wechat",
+    "test:platforms": "node --test tests/platforms.integration.js"
   },
   "coffeeeeffoc": {
     "role": "game"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
   }
 }

@@ -1,0 +1,70 @@
+<view class="app">
+  <view class="hero"><text class="eyebrow">ECHO LAB</text><text class="title">让空间回应你。</text></view>
+  <view class="tabs" role="tablist">
+    <button wx:for="{{tabs}}" wx:key="id" class="tab {{tab === item.id ? 'active' : ''}}" data-tab="{{item.id}}" bindtap="switchTab">{{item.label}}</button>
+  </view>
+  <view wx:if="{{tab === 'experiment'}}">
+    <view class="row">
+      <picker range="{{presetNames}}" value="{{presetIndex}}" bindchange="changePreset" disabled="{{busy || recording}}"><view class="picker">{{presetNames[presetIndex]}} ▾</view></picker>
+      <text class="muted">{{scene.width}} × {{scene.height}} m</text>
+      <button class="small" bindtap="reset" disabled="{{busy || recording}}">重置</button>
+    </view>
+    <canvas id="room" class="room" type="2d" bindtouchstart="touchStart" catchtouchmove="touchMove" bindtouchend="touchCancel" bindtouchcancel="touchCancel" aria-label="房间声场，拖动声源、收音点和板材" />
+    <view class="metrics">最强回声 {{echoMs}} ms · {{pathCount}} 条到达声路</view>
+    <view class="row actions">
+      <button class="primary grow" bindtap="play" data-dry="false" disabled="{{busy || recording}}">{{busy ? '处理中…' : '试听空间效果'}}</button>
+      <button bindtap="play" data-dry="true" disabled="{{busy || recording}}">原声</button>
+      <button wx:if="{{playing || busy}}" bindtap="stop">停止</button>
+    </view>
+    <view class="row"><button class="grow" bindtap="togglePaths">路径 {{pathsVisible ? '开' : '关'}}</button><button class="grow" bindtap="toggleDelay" disabled="{{busy || recording}}">延迟 ×{{scene.delayScale}}</button></view>
+    <view class="card">
+      <view class="row"><text class="heading">{{selectionName}}</text><text class="muted">拖动对象，或在下方调节</text></view>
+      <scroll-view scroll-x class="object-list"><view class="object-buttons">
+        <button data-id="source" bindtap="selectObject" class="{{selected === 'source' ? 'active' : ''}}" disabled="{{busy || recording}}">声源</button>
+        <button data-id="listener" bindtap="selectObject" class="{{selected === 'listener' ? 'active' : ''}}" disabled="{{busy || recording}}">收音点</button>
+        <button wx:for="{{scene.panels}}" wx:key="id" data-id="{{item.id}}" bindtap="selectObject" class="{{selected === item.id ? 'active' : ''}}" disabled="{{busy || recording}}">{{item.type === 'absorber' ? '吸音屏' : '反射板'}} {{index + 1}}</button>
+      </view></scroll-view>
+      <text class="label">X {{object.x}} m</text><slider activeColor="#b7ee81" backgroundColor="#3a4b3b" min="0" max="{{scene.width}}" step="0.1" value="{{object.x}}" data-field="x" bindchange="edit" disabled="{{busy || recording}}" />
+      <text class="label">Y {{object.y}} m</text><slider activeColor="#b7ee81" backgroundColor="#3a4b3b" min="0" max="{{scene.height}}" step="0.1" value="{{object.y}}" data-field="y" bindchange="edit" disabled="{{busy || recording}}" />
+      <block wx:if="{{isPanel}}">
+        <picker range="{{movementNames}}" value="{{movementIndex}}" bindchange="movement"><view class="picker">{{movementNames[movementIndex]}} ▾</view></picker>
+        <text class="label">角度 {{object.angle}}°</text><slider activeColor="#b7ee81" backgroundColor="#3a4b3b" min="0" max="360" value="{{object.angle}}" data-field="angle" bindchange="edit" disabled="{{busy || recording}}" />
+        <text class="label">长度 {{object.length}} m</text><slider activeColor="#b7ee81" backgroundColor="#3a4b3b" min="0.8" max="120" step="0.1" value="{{object.length}}" data-field="length" bindchange="edit" disabled="{{busy || recording}}" />
+        <text class="label">反射率 {{object.reflectionPercent}}%</text><slider activeColor="#b7ee81" backgroundColor="#3a4b3b" min="0" max="{{object.type === 'absorber' ? 20 : 95}}" value="{{object.reflectionPercent}}" data-field="reflection" data-divisor="100" bindchange="edit" disabled="{{busy || recording}}" />
+        <text class="label">扩散角度 ±{{object.scatter}}°</text><slider activeColor="#b7ee81" backgroundColor="#3a4b3b" min="0" max="90" value="{{object.scatter}}" data-field="scatter" bindchange="edit" disabled="{{busy || recording}}" />
+        <button class="danger" bindtap="removePanel" disabled="{{busy || recording}}">移除{{selectionName}}</button>
+      </block>
+      <view class="row"><button class="grow" data-type="reflector" bindtap="addPanel" disabled="{{scene.panels.length >= 8 || busy || recording}}">＋ 反射板</button><button class="grow" data-type="absorber" bindtap="addPanel" disabled="{{scene.panels.length >= 8 || busy || recording}}">＋ 吸音屏</button></view>
+      <text class="muted">{{scene.panels.length}} / 8 个装置</text>
+    </view>
+  </view>
+  <view wx:elif="{{tab === 'sound'}}">
+    <view class="card">
+      <text class="heading">你的声音</text><text class="muted block">当前：{{inputName}}</text>
+      <picker range="{{soundNames}}" value="{{soundIndex}}" bindchange="chooseSound" disabled="{{busy || recording}}"><view class="picker">测试音 · {{soundNames[soundIndex]}} ▾</view></picker>
+      <text class="label">音量 {{volume}}%</text><slider activeColor="#b7ee81" backgroundColor="#3a4b3b" min="0" max="100" value="{{volume}}" data-scope="volume" bindchange="edit" disabled="{{busy || recording}}" />
+      <view class="row"><button class="grow primary" bindtap="record" disabled="{{busy}}">{{recording ? '结束录音' : '录制声音'}}</button><button class="grow" bindtap="importAudio" disabled="{{busy || recording}}">导入音频</button></view>
+      <text class="muted block">{{recording ? '正在录音，15 秒自动结束。' : busy ? '正在处理声音…' : '录音仅在授权后开启；导入最多 20 MB，取前 15 秒。'}}</text>
+      <view class="row"><button class="grow" bindtap="play" data-dry="false" disabled="{{busy || recording}}">试听效果</button><button class="grow" bindtap="play" data-dry="true" disabled="{{busy || recording}}">原声</button><button wx:if="{{playing || busy}}" bindtap="stop">停止</button></view>
+    </view>
+    <view class="card"><text class="heading">导出 WAV</text><text class="muted block">通过微信文件分享导出；包含当前音量与完整回声尾音。</text><button class="primary" bindtap="exportAudio" data-dry="false" disabled="{{busy || recording}}">导出空间效果</button><button bindtap="exportAudio" data-dry="true" disabled="{{busy || recording}}">导出原声</button></view>
+  </view>
+  <view wx:elif="{{tab === 'layout'}}">
+    <view class="card"><text class="heading">房间尺寸</text>
+      <text class="label">长度 {{scene.width}} m</text><slider activeColor="#b7ee81" backgroundColor="#3a4b3b" min="8" max="120" value="{{scene.width}}" data-scope="scene" data-field="width" bindchange="edit" />
+      <text class="label">宽度 {{scene.height}} m</text><slider activeColor="#b7ee81" backgroundColor="#3a4b3b" min="8" max="100" value="{{scene.height}}" data-scope="scene" data-field="height" bindchange="edit" />
+      <text class="label">默认墙面反射率 {{wallPercent}}%</text><slider activeColor="#b7ee81" backgroundColor="#3a4b3b" min="0" max="95" value="{{wallPercent}}" data-scope="scene" data-field="wallReflection" data-divisor="100" bindchange="edit" />
+      <text class="label">墙面扩散角度 ±{{scene.wallScatter}}°</text><slider activeColor="#b7ee81" backgroundColor="#3a4b3b" min="0" max="90" value="{{scene.wallScatter}}" data-scope="scene" data-field="wallScatter" bindchange="edit" />
+      <view wx:for="{{walls}}" wx:key="id" class="wall"><view class="row"><text>{{item.name}}独立调节</text><switch checked="{{item.override}}" data-id="{{item.id}}" bindchange="wallOverride" color="#7a9f53" /></view><text class="label">{{item.value}}% {{item.override ? '' : '· 跟随默认值'}}</text><slider activeColor="#b7ee81" backgroundColor="#3a4b3b" min="0" max="95" value="{{item.value}}" disabled="{{!item.override}}" data-scope="wall" data-field="{{item.id}}" data-divisor="100" bindchange="edit" /></view>
+    </view>
+    <view class="card"><text class="heading">保存与复用</text><text class="muted block">房间自动保存在本机。JSON 配置可在 Web、H5 和微信小程序之间互相导入；不包含录音。</text>
+      <button class="primary" bindtap="exportLayout" disabled="{{busy}}">导出 / 分享配置文件</button><button bindtap="importLayout" disabled="{{busy}}">导入 JSON 配置</button>
+      <view class="row"><button class="grow" bindtap="copyLayout" disabled="{{busy}}">复制配置</button><button class="grow" bindtap="pasteLayout" disabled="{{busy}}">粘贴配置</button></view>
+    </view>
+  </view>
+  <view wx:else class="card help"><text class="heading">先听，再改变房间</text>
+    <text>1. 在实验页试听空间效果，再听原声。</text><text>2. 拖动珊瑚色声源、蓝色收音点或绿色反射板，重新试听。</text><text>3. 选中板材后，调角度、长度、反射率和扩散；添加吸音屏可阻挡声路。</text><text>4. 配置页可调整房间与每面墙，导出 JSON 后可在其他端继续。</text><text>5. 声音页支持录音、导入音频及 WAV 导出。录音授权被拒时，可在微信小程序设置中重新开启。</text>
+    <text class="muted">延迟 ×4 会放大传播时间，音量不变。此二维声音沙盒不模拟绕射、驻波及完整混响，不能用于建筑声学测量。声音仅在本机处理，关闭页面前请导出需要保留的录音。</text>
+    <button class="primary" data-tab="experiment" bindtap="switchTab">返回实验</button>
+  </view>
+</view>

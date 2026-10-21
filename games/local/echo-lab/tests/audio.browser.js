@@ -6,13 +6,11 @@
  */
 import { createRequire } from 'node:module';
 import { readFile } from 'node:fs/promises';
-import { createServer } from 'node:http';
 import { once } from 'node:events';
-import { computePaths } from '../src/acoustics.js';
+import { computePaths } from '../shared/core/acoustics.js';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || '@playwright/test');
-const code = await readFile(new URL('../src/audio.js', import.meta.url), 'utf8');
 const dispersionScene = {
   width: 40,
   height: 24,
@@ -38,12 +36,9 @@ const mirrorGeometry = computePaths({
   ...dispersionScene,
   panels: [{ ...dispersionScene.panels[0], scatter: 0 }],
 });
-const server = createServer((request, response) => {
-  response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-  response.end('<!doctype html><title>Echo Lab audio regression</title>');
-});
-server.listen(0, '127.0.0.1');
-await once(server, 'listening');
+process.env.PORT = '0';
+const { server } = await import('../server.js');
+if (!server.listening) await once(server, 'listening');
 
 let browser;
 try {
@@ -59,11 +54,11 @@ try {
   });
   const page = await browser.newPage();
   await page.goto(`http://127.0.0.1:${server.address().port}`);
-  await page.addScriptTag({
-    type: 'module',
-    content: `${code}\nglobalThis.Engine=AudioEngine;globalThis.toWav=encodeWav;`,
+  await page.evaluate(async () => {
+    const { AudioEngine, encodeWav } = await import('/shared/browser/audio.js');
+    globalThis.Engine = AudioEngine;
+    globalThis.toWav = encodeWav;
   });
-  await page.waitForFunction(() => Boolean(globalThis.Engine));
   const result = await page.evaluate(
     async ({ dispersedGeometry, mirrorGeometry }) => {
       const assert = (condition, message) => {
@@ -264,6 +259,50 @@ try {
     },
     { dispersedGeometry, mirrorGeometry },
   );
+  const pcmComparison = await page.evaluate(async () => {
+    const { renderPcm } = await import('/shared/core/pcm.js');
+    const { createGraph, audioPaths, softLimitCurve } = await import('/shared/core/audio.js');
+    let maximumError = 0;
+    for (const paths of [
+      [],
+      [
+        { delay: 0.02025, gain: 0.8, pan: -1 },
+        { delay: 0.04731, gain: 0.4, pan: 0.6 },
+      ],
+      [{ delay: 0.001, gain: 20, pan: 0 }],
+    ]) {
+      const rate = 22050;
+      const duration = 0.01 + Math.max(0, ...paths.map((path) => path.delay)) + 0.05;
+      const offline = new OfflineAudioContext(2, Math.ceil(duration * rate), rate);
+      const input = offline.createBuffer(1, Math.round(rate * 0.01), rate);
+      input.getChannelData(0)[0] = 0.8;
+      input.getChannelData(0)[1] = -0.8;
+      const graph = createGraph(
+        offline,
+        input,
+        audioPaths({ paths }, false),
+        0.65,
+        softLimitCurve(),
+      );
+      graph.source.start(0);
+      const browser = await offline.startRendering();
+      graph.disconnect();
+      const native = await renderPcm(input, { paths }, { volume: 0.65 });
+      for (let channel = 0; channel < 2; channel += 1) {
+        for (let index = 0; index < Math.min(browser.length, native.length); index += 1) {
+          maximumError = Math.max(
+            maximumError,
+            Math.abs(
+              browser.getChannelData(channel)[index] - native.getChannelData(channel)[index],
+            ),
+          );
+        }
+      }
+    }
+    if (maximumError > 0.0002) throw new Error(`Native PCM and Web Audio differ: ${maximumError}`);
+    return { maximumError };
+  });
+  console.log('PASS: native PCM matches real OfflineAudioContext', pcmComparison);
   console.log(
     'PASS: native Web Audio timing, pan, absorption, dispersed arrivals, complete WAV tail, silence, headroom, imports, cancellation and recording',
   );

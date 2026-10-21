@@ -1,0 +1,5 @@
+page { background:#101815; color:#e8efe5; font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif; font-size:15px; }
+button { font:inherit; color:#e8efe5; background:#28372c; border:1px solid #3a4b3b; border-radius:12px; min-height:44px; line-height:1.35; padding:12px; margin:8px 0; display:flex; align-items:center; justify-content:center; }
+button::after { border:none; }
+button[disabled] { color:#87958a; background:#253128; }
+slider { margin:8px 4px 22px; min-height:44px; }

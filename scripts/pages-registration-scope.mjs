@@ -386,6 +386,37 @@ function lockWiringSources(before, after, additions, games, context) {
       throw new Error('Unproven source service importer');
     current = current.replace(importer, '\n');
   }
+  // Echo Lab's native compiler reuses an already locked build tool. This proof
+  // accepts only this existing game's empty importer -> one pinned dev tuple;
+  // arbitrary existing-game dependencies and new resolutions remain unproven.
+  const echoSource = 'games/local/echo-lab';
+  const echoManifest = `${echoSource}/package.json`;
+  const echoBefore = `\n  ${echoSource}: {}\n\n`;
+  const compilerTuple = '      esbuild:\n        specifier: 0.28.2\n        version: 0.28.2\n';
+  const echoAfter = `\n  ${echoSource}:\n    devDependencies:\n${compilerTuple}\n`;
+  if (
+    changedPaths.includes(echoManifest) &&
+    games.filter((game) => game.id === 'echo-lab' && game.source === echoSource).length === 1 &&
+    importerBlock(base, echoSource) === echoBefore &&
+    importerBlock(current, echoSource) === echoAfter &&
+    proof.existingTuples.has(compilerTuple)
+  ) {
+    const oldPackage = JSON.parse(readBase(echoManifest));
+    const newPackage = JSON.parse(readHead(echoManifest));
+    const { scripts: oldScripts, ...oldRest } = oldPackage;
+    const { scripts: newScripts, devDependencies, ...newRest } = newPackage;
+    if (
+      oldPackage.name !== '@coffeeeeffoc/echo-lab' ||
+      oldPackage.coffeeeeffoc?.role !== 'game' ||
+      !object(oldScripts) ||
+      !object(newScripts) ||
+      !isDeepStrictEqual(devDependencies, { esbuild: '0.28.2' }) ||
+      !isDeepStrictEqual(oldRest, newRest)
+    )
+      throw new Error('Unproven Echo Lab compiler manifest');
+    current = current.replace(echoAfter, echoBefore);
+    sources.add(echoSource);
+  }
   if (current !== base) throw new Error('Unproven remaining lock changes');
   return [...sources];
 }

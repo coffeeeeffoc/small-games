@@ -1,0 +1,25 @@
+.app { padding:16px 16px max(24px,env(safe-area-inset-bottom)); max-width:720px; margin:0 auto; }
+.hero { padding:8px 4px 20px; }
+.eyebrow { display:block; color:#b7ee81; letter-spacing:3px; font-size:11px; margin-bottom:10px; }
+.title { font-size:27px; font-weight:700; }
+.tabs { display:flex; gap:6px; margin-bottom:14px; }
+.tab { flex:1; min-width:0; background:transparent; }
+.active { color:#c1f295; border-color:#8faf6d; background:#263824; }
+.row { display:flex; align-items:center; gap:8px; justify-content:space-between; flex-wrap:wrap; }
+.grow { flex:1; }
+.primary { color:#101815; background:#b7ee81; font-weight:600; border-color:#b7ee81; }
+.small { padding:8px 12px; }
+.room { display:block; width:100%; height:290px; border-radius:16px; overflow:hidden; }
+.metrics { color:#b4c2ae; font-size:12px; padding:12px 2px; }
+.card { background:#19271f; padding:16px; border:1px solid #2a3d2f; border-radius:16px; margin:16px 0; }
+.heading { display:block; font-size:18px; font-weight:600; margin-bottom:8px; }
+.label { display:block; margin-top:18px; font-size:13px; color:#cfdbc8; }
+.muted { font-size:12px; color:#a3b09e; line-height:1.7; }
+.block { display:block; margin:10px 0; }
+.picker { border:1px solid #496045; border-radius:10px; padding:13px 12px; min-height:18px; }
+.object-list { width:100%; margin:10px 0; white-space:nowrap; }
+.object-buttons { display:flex; gap:8px; }
+.object-buttons button { flex-shrink:0; font-size:12px; }
+.danger { color:#f1b098; }
+.wall { border-top:1px solid #324733; padding-top:16px; margin-top:16px; }
+.help text { display:block; margin:0 0 18px; line-height:1.8; }

@@ -5,6 +5,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
   reviewedSharedFileScopes,
+  orbitCreatorIntegrationFileScope,
   competitionConsumers,
   competitionToolPlan,
   competitionServiceScopePaths,
@@ -52,7 +53,7 @@ import { executeCompetitionChecks } from './run-selected-competition.mjs';
 import { shellContractTargets, shellContractFiles, requiresCocos } from './validation-plan.mjs';
 import { ingressPreflightGuard } from './competition-ingress.mjs';
 
-const tianxiaBase = 'ba3f3966082a24861e1a05c1e1e293ae1f032136';
+const tianxiaBase = '4224be0a1a3c9c108e34c39d996642765cfdca54';
 const tianxiaSource = 'games/local/tianxia-chalu';
 const tianxiaWiring = [
   '.github/workflows/carding-car.yml',
@@ -85,6 +86,7 @@ function tianxiaContext(file, overrides = {}) {
     'tianxia-chalu',
     'carding-car',
     'night-overwatch',
+    'orbit-atelier',
     'letters-words2',
     'xiangqi-five',
     'wulong-city',
@@ -115,7 +117,7 @@ function tianxiaContext(file, overrides = {}) {
   };
 }
 
-test('third Creator wiring is proved against the handoff base without expanding to the old producers', () => {
+test('fourth Creator wiring is proved against the handoff base without expanding to the old producers', () => {
   for (const file of tianxiaWiring) {
     const context = tianxiaContext(file);
     const scopes = reviewedSharedFileScopes(context);
@@ -152,7 +154,7 @@ test('third Creator wiring is proved against the handoff base without expanding 
   }
 });
 
-test('third artifact workflow proofs reject changed old steps, duplicate IDs, wrong env/path, conditions and omissions', () => {
+test('fourth artifact workflow proofs reject changed old steps, duplicate IDs, wrong env/path, conditions and omissions', () => {
   for (const file of tianxiaWiring.filter((file) => file.endsWith('.yml'))) {
     const context = tianxiaContext(file),
       after = context.readHead(file);
@@ -169,8 +171,8 @@ test('third artifact workflow proofs reject changed old steps, duplicate IDs, wr
       after.replace(/^(\s+TIANXIA_PREBUILT_DIR:.*\n)/m, '$1$1'),
       after.replace(/\s*&& steps.tianxia.outcome == 'success'/, ''),
       after.replace(
-        '[carding-car, night-overwatch, tianxia-chalu]',
-        '[carding-car, night-overwatch, tianxia-chalu, tianxia-chalu]',
+        '[carding-car, night-overwatch, orbit-atelier, tianxia-chalu]',
+        '[carding-car, night-overwatch, orbit-atelier, tianxia-chalu, tianxia-chalu]',
       ),
       after.replace('id: tianxia', 'id: night'),
     ].filter((text) => text !== after))
@@ -183,7 +185,7 @@ test('third artifact workflow proofs reject changed old steps, duplicate IDs, wr
   }
 });
 
-test('third Creator literal/Turbo proofs reject duplicate registrations and executable changes outside the declaration', () => {
+test('fourth Creator literal/Turbo proofs reject duplicate registrations and executable changes outside the declaration', () => {
   for (const file of [
     'scripts/cocos-validation.mjs',
     'scripts/reuse-cocos-artifacts.mjs',
@@ -306,7 +308,7 @@ test('combined Tianxia wiring keeps only its entry, navigation samples, tooling 
   );
 });
 
-test('third Creator classification works in a bare planner with only Prettier and no YAML package', async (t) => {
+test('fourth Creator classification works in a bare planner with only Prettier and no YAML package', async (t) => {
   const { mkdtemp, copyFile, writeFile, rm } = await import('node:fs/promises');
   const { tmpdir } = await import('node:os');
   const { join } = await import('node:path');
@@ -4126,7 +4128,9 @@ test('anonymous session migration and Pages service defaults admit only the revi
         });
     const after =
       file === '.github/workflows/pages-validate.yml'
-        ? execFileSync('git', ['show', `${tianxiaBase}:${file}`], { encoding: 'utf8' })
+        ? execFileSync('git', ['show', 'ba3f3966082a24861e1a05c1e1e293ae1f032136:' + file], {
+            encoding: 'utf8',
+          })
         : ['scripts/platform.mjs', 'scripts/deploy-tencent.mjs'].includes(file)
           ? execFileSync('git', ['show', '0459b0cb3c89a748f3a6bd252858951ba1ca073d:' + file], {
               encoding: 'utf8',
@@ -4248,4 +4252,81 @@ test('planning expands only to the four locked game workspaces for both live pub
       assert.equal(classify(file, before + '\n', after).has(file), false);
       assert.equal(classify(file, after, before).has(file), false);
     }
+});
+
+test('Orbit Creator routing permits its exact new consumer and rejects altered existing gates', () => {
+  const file = '.github/workflows/ci.yml';
+  const env =
+    '      NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt\n';
+  const download =
+    "      - uses: actions/download-artifact@v8\n        if: needs.plan.outputs.cocos == 'true'\n        with:\n          name: night-overwatch-${{ github.sha }}\n          path: games/local/night-overwatch/.prebuilt\n";
+  const before = 'existing-gate\n' + env + download + 'existing-assertion\n';
+  const after = before
+    .replace(
+      env,
+      env +
+        env
+          .replaceAll('NIGHT_OVERWATCH', 'ORBIT_ATELIER')
+          .replaceAll('night-overwatch', 'orbit-atelier'),
+    )
+    .replace(download, download + download.replaceAll('night-overwatch', 'orbit-atelier'));
+  assert(orbitCreatorIntegrationFileScope(file, before, after));
+  for (const invalid of [
+    after.replace('existing-gate', 'skip-gate'),
+    after.replace('orbit-atelier/.prebuilt', 'other/.prebuilt'),
+    after + 'extra-command\n',
+    after.replace("if: needs.plan.outputs.cocos == 'true'", 'if: always()'),
+  ])
+    assert.equal(orbitCreatorIntegrationFileScope(file, before, invalid), false);
+  assert.equal(
+    orbitCreatorIntegrationFileScope('.github/workflows/unknown.yml', before, after),
+    false,
+  );
+});
+
+test('Orbit Creator Turbo routing retains every previous input and task', () => {
+  const before = {
+    globalPassThroughEnv: ['COCOS_CREATOR'],
+    tasks: { build: { dependsOn: ['^build'] } },
+  };
+  const after = structuredClone(before);
+  after.globalPassThroughEnv.push('ORBIT_ATELIER_PREBUILT_DIR');
+  after.tasks['@coffeeeeffoc/orbit-atelier#build'] = {
+    dependsOn: ['^build'],
+    outputs: ['dist/**'],
+    env: ['COCOS_CREATOR', 'ORBIT_ATELIER_PREBUILT_DIR'],
+    inputs: ['$TURBO_DEFAULT$', '$TURBO_ROOT$/games/local/orbit-atelier/.prebuilt/**'],
+  };
+  const accepts = () =>
+    orbitCreatorIntegrationFileScope('turbo.json', JSON.stringify(before), JSON.stringify(after));
+  assert(accepts());
+  after.tasks.build.dependsOn = [];
+  assert.equal(accepts(), false);
+});
+
+test('Orbit Cocos gameplay scope isolates the real exported branch without admitting other game changes', () => {
+  const file = 'apps/shell-web/scripts/standalone-game-checks.mjs';
+  const before =
+    "export async function assertStandaloneGameplay(frame, id) { if (id === 'orbit-atelier') { await oldOrbit(frame); } else if (id === 'other') { await keepOther(frame); } }";
+  const after = before.replace('await oldOrbit(frame);', 'await actualTouch(frame);');
+  assert(orbitCreatorIntegrationFileScope(file, before, after));
+  assert.equal(
+    orbitCreatorIntegrationFileScope(file, before, after.replace('keepOther', 'skipOther')),
+    false,
+  );
+  assert.equal(
+    orbitCreatorIntegrationFileScope(
+      file,
+      before,
+      after.replace("id === 'orbit-atelier'", "id === 'other'"),
+    ),
+    false,
+  );
+  assert.equal(orbitCreatorIntegrationFileScope(file, before, after + '\nrunUnrelated();'), false);
+  const nested =
+    "export async function assertStandaloneGameplay(frame, id) { async function nested() { if (id === 'orbit-atelier') { await oldOrbit(frame); } } }";
+  assert.equal(
+    orbitCreatorIntegrationFileScope(file, nested, nested.replace('oldOrbit', 'actualTouch')),
+    false,
+  );
 });

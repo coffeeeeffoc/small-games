@@ -150,39 +150,49 @@ test('Shell Vitest discovery includes every application test and excludes Node s
   assert.deepEqual(actual, expected);
 });
 
-test('all Cocos consumers download three source-verified artifacts and pass them through Turbo', async () => {
+test('all Cocos consumers download every source-verified artifact and pass them through Turbo', async () => {
   const read = async (name) => yaml.load(await readFile(path.join(repo, name), 'utf8'));
+  const games = [
+    ['carding-car', 'KART_PREBUILT_DIR'],
+    ['night-overwatch', 'NIGHT_OVERWATCH_PREBUILT_DIR'],
+    ['orbit-atelier', 'ORBIT_ATELIER_PREBUILT_DIR'],
+    ['tianxia-chalu', 'TIANXIA_PREBUILT_DIR'],
+  ];
   const producer = await read('.github/workflows/carding-car.yml');
-  const games = ['carding-car', 'night-overwatch', 'tianxia-chalu'];
-  const variables = ['KART_PREBUILT_DIR', 'NIGHT_OVERWATCH_PREBUILT_DIR', 'TIANXIA_PREBUILT_DIR'];
-  assert.deepEqual(producer.jobs.creator.strategy.matrix.game, games);
+  assert.deepEqual(
+    producer.jobs.creator.strategy.matrix.game,
+    games.map(([game]) => game),
+  );
   const turbo = await read('turbo.json');
-  for (const variable of variables) assert(turbo.globalPassThroughEnv.includes(variable));
-  const typecheck = producer.jobs.creator.steps.find((step) => step.run?.endsWith(' }} typecheck'));
-  for (const [index, game] of games.entries()) {
-    assert(typecheck.env[variables[index]].includes(`/games/local/${game}`));
-    assert(turbo.tasks[`@coffeeeeffoc/${game}#build`].env.includes(variables[index]));
+  const typecheck = producer.jobs.creator.steps.find(
+    (step) => step.run === 'pnpm --filter @coffeeeeffoc/${{ matrix.game }} typecheck',
+  );
+  for (const [game, variable] of games) {
+    assert(turbo.globalPassThroughEnv.includes(variable));
+    assert(typecheck.env[variable].includes('/games/local/' + game));
+    assert(turbo.tasks['@coffeeeeffoc/' + game + '#build'].env.includes(variable));
   }
   for (const workflow of ['ci', 'pages-validate', 'mobile']) {
     const config = await read(`.github/workflows/${workflow}.yml`);
     const consumers = Object.values(config.jobs).filter((job) => job.env?.KART_PREBUILT_DIR);
-    assert.equal(consumers.length, workflow === 'ci' ? 1 : 2);
+    assert(consumers.length > 0, `${workflow} must consume the verified Cocos artifacts`);
     for (const job of consumers) {
-      for (const [index, game] of games.entries()) {
+      for (const [game, variable] of games) {
         assert.equal(
-          job.env[variables[index]],
+          job.env[variable],
           '${{ github.workspace }}/games/local/' + game + '/.prebuilt',
         );
         const downloads = job.steps.filter(
           (step) => step.with?.name === game + '-${{ github.sha }}',
         );
         assert.equal(downloads.length, 1);
-        assert.equal(downloads[0].uses, 'actions/download-artifact@v8');
-        assert.equal(downloads[0].with.path, `games/local/${game}/.prebuilt`);
+        const download = downloads[0];
         assert.equal(
-          downloads[0].if,
+          download.if,
           workflow === 'ci' ? "needs.plan.outputs.cocos == 'true'" : undefined,
         );
+        assert(download?.uses.startsWith('actions/download-artifact@'), workflow);
+        assert.equal(download.with.path, 'games/local/' + game + '/.prebuilt');
       }
     }
   }

@@ -21,6 +21,7 @@
     "COCOS_CREATOR",
     "KART_PREBUILT_DIR",
     "NIGHT_OVERWATCH_PREBUILT_DIR",
+    "ORBIT_ATELIER_PREBUILT_DIR",
     "TIANXIA_PREBUILT_DIR"
   ],
   "tasks": {
@@ -143,15 +144,21 @@
       "env": ["COCOS_CREATOR", "NIGHT_OVERWATCH_PREBUILT_DIR"],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/games/local/night-overwatch/.prebuilt/**"]
     },
+    "test:rules": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "@coffeeeeffoc/orbit-atelier#build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"],
+      "env": ["COCOS_CREATOR", "ORBIT_ATELIER_PREBUILT_DIR"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/games/local/orbit-atelier/.prebuilt/**"]
+    },
     "@coffeeeeffoc/tianxia-chalu#build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"],
       "env": ["COCOS_CREATOR", "TIANXIA_PREBUILT_DIR"],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/games/local/tianxia-chalu/.prebuilt/**"]
-    },
-    "test:rules": {
-      "dependsOn": ["^build"],
-      "outputs": []
     }
   }
 }

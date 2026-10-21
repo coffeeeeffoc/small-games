@@ -66,9 +66,8 @@ test('missing inputs, byte drift, surviving roots and unreviewed deletions fail 
   );
 });
 
-test('production review binds current file bytes, retained consumers and unforgeable deletion proofs', async () => {
+test('production review binds historical file bytes, retained consumers and unforgeable deletion proofs', async () => {
   const { execFileSync } = await import('node:child_process');
-  const { existsSync, readFileSync } = await import('node:fs');
   const { fileURLToPath } = await import('node:url');
   const { localRetirementBase, localRetirementTrees, localRetirementReviews } = await import(
     './local-game-retirement-reviews.mjs'
@@ -80,7 +79,11 @@ test('production review binds current file bytes, retained consumers and unforge
   const git = (...args) =>
     execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
   const retired = Object.keys(localRetirementTrees)[0] + '/package.json';
-  const readHead = (file) => readFileSync(root + file, 'utf8');
+  // The reviewed deletion is a historical transition. Later valid game changes
+  // must not become part of its fixed byte proof or its positive fixture.
+  const reviewedHead = 'f62716c317b391b89e78eec220abc053f874f981';
+  const readHead = (file) => git('show', `${reviewedHead}:${file}`);
+  const readHeadEntry = (file) => git('--literal-pathspecs', 'ls-tree', reviewedHead, '--', file);
   const context = {
     changedPaths: [
       retired,
@@ -90,8 +93,8 @@ test('production review binds current file bytes, retained consumers and unforge
     readBase: (file) => git('show', `${localRetirementBase}:${file}`),
     readBaseEntry: (file) => git('--literal-pathspecs', 'ls-tree', localRetirementBase, '--', file),
     readHead,
-    readHeadEntry: (file) => `100644 blob ${git('hash-object', '--', file).trim()}\t${file}\n`,
-    headHasPath: (file) => existsSync(root + file),
+    readHeadEntry,
+    headHasPath: (file) => readHeadEntry(file) !== '',
   };
   const scopes = localRetirementFileScopes(context);
   assert.equal(scopes.size, context.changedPaths.length);
@@ -103,6 +106,13 @@ test('production review binds current file bytes, retained consumers and unforge
     false,
   );
   const builder = 'apps/shell-minigame/scripts/nine-games-build.mjs';
+  assert.equal(
+    localRetirementFileScopes({
+      ...context,
+      readHead: (file) => readHead(file) + (file === builder ? '\n// extra executable change' : ''),
+    }).size,
+    0,
+  );
   assert.equal(hasLocalRetirementFileProof(builder, scopes.get(builder), readHead), true);
   assert.equal(
     hasLocalRetirementFileProof(builder, scopes.get(builder), () => 'drift'),

@@ -1,52 +1,39 @@
 # 星扣工坊 · Orbit Atelier
 
-原创竖屏旋转解环益智游戏：按住圆环的实心部分沿圆周拖动，让缺口覆盖与其他圆环的两处交点，松手解开。先拆外围，再解分岔；没有连接的圆环可以点按收起。
+这轮将游戏重做为 **Cocos Creator 3.8.8 的星仪修复谜题**：拖动互相穿扣的金属环，让缺口同时越过两处接点，松手抽离。新主线以释放指定星核为目标，可以留下无关支路；选择更短的解法会获得更高星级。
 
-八章共 74 张独立设计的星盘，保留前 24 关并新增 50 关：**初光、星栓、星图**学习基本旋转与锁栓；**穿针、枝路、接力、微隙、织星**逐步组合弯链、宽口转角、分岔、递进星栓与不同半径。每关均由求解器验证可达；关卡数据和配置校验与 DOM、渲染、渠道代码分离。
+**当前状态：已通过真实 Creator 3.8.8 Web Mobile 构建、24 关触屏通关和分享专项。** 2026-10-22 在 Windows 设备 bolanggu 完成构建与桌面 Chromium 触屏模拟，生产画面见 [主页](docs/design/cocos-rebuild-2026-10-21/actual/mobile-home.png)、[游玩](docs/design/cocos-rebuild-2026-10-21/actual/mobile-playing.png) 和 [验证记录](docs/design/cocos-rebuild-2026-10-21/05-verification.md)。物理手机与原生小游戏平台尚未验收。
 
-## 运行
+## 设计与内容
+
+按玩法 → 效果图 → 关卡 → 实现推进：
+
+1. [玩法方案](docs/design/cocos-rebuild-2026-10-21/01-gameplay.md)：核心循环、操作、成长与验收要求。
+2. [视觉效果图](docs/design/cocos-rebuild-2026-10-21/02-concept.png)：手机比例的主页、核心玩法、星图选关。
+3. [24 关设计](docs/design/cocos-rebuild-2026-10-21/03-levels.md)：四章依次引入路线取舍、指定钥环、宽口、大小环及组合机关。
+4. [视觉与交互实现](docs/design/cocos-rebuild-2026-10-21/04-implementation.md)：原生渲染、素材来源及与概念图的核对项。
+
+四章分别修复晨光罗盘、月相仪、折光镜和天穹星仪。每章六关，配置独立、无随机拼关。无提示完成得二星，释放数达到该关最短路线得三星。提示提供下一只可解环和方向，撤回保留已使用的提示次数。
+
+原有 74 关保留为“经典星盘”，仍需释放全部圆环。`orbit-atelier.v2` 存档只读迁移 `orbit-atelier.v1`，两套主线各自解锁，保留旧星级与设置。挑战邀请、开发试玩不写玩家进度。
+
+## 工程与运行
+
+在 Cocos Creator **3.8.8** 中打开本目录，启动场景为 `assets/scenes/main.scene`。运行层为原生 `Component`、`Graphics`、`Sprite`、`Label`、`Input` 和 `AudioSource`；DOM 仅用于无障碍按钮、分享降级和公共平台适配，不承担棋盘渲染。
 
 ```sh
-pnpm --filter @coffeeeeffoc/orbit-atelier dev
+# 在仓库根目录执行；使用仓库指定的 Node / pnpm
+# Windows 构建机可设置 COCOS_CREATOR 为真实 Creator 可执行文件
+pnpm --filter @coffeeeeffoc/orbit-atelier typecheck
 pnpm --filter @coffeeeeffoc/orbit-atelier test
 pnpm --filter @coffeeeeffoc/orbit-atelier build
+pnpm --filter @coffeeeeffoc/orbit-atelier dev
 pnpm --filter @coffeeeeffoc/orbit-atelier test:browser
+pnpm --filter @coffeeeeffoc/orbit-atelier test:publishing:browser
 ```
 
-开发服务端口为 4340。大厅访问 ID 为 `orbit-atelier`，独立静态入口为 `/games/orbit-atelier/index.html`；可在同源 Shell iframe 中沉浸游玩。
+`dev` 仅服务 Creator 已生成的 `dist`，端口 4340；不自动回退运行旧版 Vite 页面。`ORBIT_ATELIER_PREBUILT_DIR` 可指定真实构建制品目录，目录须含 `dist/` 和 Creator 导出的 `cc.d.ts`；引擎版本、源摘要和所有运行文件摘要必须匹配。浏览器脚本默认自行启动临时端口，也可用 `ORBIT_URL` 指向已运行的同版本服务。
 
-## 操作与进度
+`assets/scripts/core` 为无引擎依赖的规则、关卡与存档层；`AtelierView.ts` 负责场景与视觉，`OrbitAtelier.ts` 负责输入、流程和生命周期。`src/`、`tests/legacy-*` 及旧设计目录作为历史实现和迁移参考保留，不是当前运行入口或本轮验收证据。
 
-- 触屏或鼠标直接拖动圆环；重叠时选择最接近触点的实心圆周。松手判断是否解开，取消手势恢复本次拖动前的状态。
-- 撤回恢复上一次转动和解环；提示仅标出可解环及目标方向，不自动操作。首次教学在场景底部出现，完整规则位于设置内的解扣指南。
-- 解锁关卡按目录顺序推进。独立完成且转动次数不超过圆环数两倍得三颗星，其他独立完成得两颗星，使用提示得一颗星；重玩仅保留最高星数。
-- 当前星盘、转动、提示、星级和声音／震动／减少动态设置保存到当前 origin 的 `localStorage`，版本键为 `orbit-atelier.v1`。恢复时用现有关卡配置重建几何并校验存档；存储损坏或被禁用时可以在内存中继续游玩。
-- 暂停、失焦和进入后台停止输入；最后一环的解锁结算在释放时同步完成，切后台不会丢失奖励。尺寸及全屏变化保留对局。
-- 键盘补充操作：棋盘获得焦点后，上／下选择圆环，左／右每次旋转 10°，空格／回车尝试解开。
-- 使用统一 `SmallGamesDev` 的 URL／存储开关。调试跳关与全关试玩不会写入玩家进度，退出试玩恢复原来的存档。普通启用调试面板后，从玩家入口进行的正常游玩仍按正常规则记录。
-
-## 独立创作与实现
-
-只参考旋转开口圆环、按顺序解开的抽象玩法。名称、工坊主题、SVG 图形、界面、音效、规则代码和 74 关配置独立创作，未导入 Rotate Rings 的源码、素材、界面截图、品牌或关卡。参考玩法不等于对第三方知识产权作法律结论。
-
-`src/core.ts` 管理圆交点、缺口安全余量、星栓、释放与求解；`src/levels.ts` 管理稳定关卡 ID 和原创配置；`src/storage.ts` 校验存档与结算；`src/art.ts` 绘制圆环；`src/main.ts` 连接页面、原生 Pointer Events、音效和生命周期。运行时无第三方游戏引擎或远程资源依赖，公共开发者模式和全屏功能复用仓库实现。
-
-设计稿和生产运行截图在 [docs/design](docs/design/README.md)。浏览器验证使用 Chromium、CDP 原生触屏与鼠标，覆盖 390×844、320×640、844×390、1280×900，以及 sandbox iframe。具体执行结果见 [browser-report.json](docs/design/browser-report.json)。这些是桌面浏览器移动模拟记录，尚未完成 Android／iOS 真机和原生小游戏平台验收。
-
-可执行组合清单、已有覆盖与缺口、失败报告和固定复现入口见 [组合覆盖与失败证据](docs/testing/coverage-and-failures.md)，独立复现证据见 [2026-10-13 验证记录](docs/testing/verification-2026-10-13.md)。
-
-## 2026-10-11 扩大优化
-
-本轮补充重叠圆环的拇指选中容错：交点优先继续已选可动环、锁环不抢占可动环触点，6 px 内漂移不算转动。撤回保留已经看过的提示次数。结算可分享转动/提示成绩，链接只带 `challenge=orbit-01` 至 `orbit-24`，来访同盘试玩不改主线存档，返回工坊恢复原安排。
-
-共享 H5 发布适配器在普通第三次自然结算提供可关闭的模拟广告（至少 60 秒冷却、每会话最多 6 次），挑战与开发试玩不出广告。入口加载前可配置 `globalThis.SmallGamesPublishingConfig = { adMode: 'off', publicUrl: 'https://your-domain/game/' }`；真实宿主使用 `adMode: 'host'` 与 `provider`，不将密钥写入游戏。
-
-局部设计、实际手机尺寸截图与验证记录见 [本轮验收](docs/design/expansion-2026-10-11/verification.md)。
-
-## 2026-10-13 穿扣与 50 关扩展
-
-相邻环加深交叠，两处交点交替上穿、下穿，并保留接触阴影。选中环在连接处显示叉号或勾号，两个连接位置都让开才可解扣；缺口按双方环带和圆头保留实际净空。松手成功后沿缺口反方向平移滑离，取消和失焦恢复原状态。这是具有穿扣质感的几何谜题，未实现完整 3D 刚体仿真。
-
-25–34 关练习弯链与不对称分岔；35–44 关用宽口打开放在转角的回窗；45–54 关规划多枚星栓的接力顺序；55–64 关比较大小环与有效开口；65–74 关组合上述机制。每关独立配置，不随机拼关；所有关卡可撤回、按需提示。旧关 ID、星级与设置保持兼容，完成旧 24 关后直接解锁第 25 关，同盘邀请支持至第 74 关。
-
-产品方案、效果图与实际生产运行证据见 [穿扣扩展设计](docs/design/real-interlock-2026-10-13/README.md) 和 [验收记录](docs/design/real-interlock-2026-10-13/verification.md)。
+Web 采用竖屏优先，并提供横屏布局、暂停恢复、撤回、提示、全屏和声音/触感/减少动态设置。公共开发工具通过 `?dev=1` 显式开启，`?dev=0` 显式关闭。分享链接只携带关卡挑战参数，广告默认关闭。本轮仅配置 Web Mobile / Web Desktop 构建，未完成微信、抖音、B 站或 Android/iOS 真机验收。

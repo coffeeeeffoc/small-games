@@ -13,6 +13,7 @@ for (const file of [
   'storage.mjs',
   'render.mjs',
   'src',
+  'assets',
   'vendor',
   'favicon.svg',
   'dev-mode.js',

@@ -1774,3 +1774,72 @@ test('real name-status cleanup keeps both game regressions while unknown deletio
     /Relevant deletion or rename/,
   );
 });
+
+test('Echo Lab native compiler reuses only its exact existing esbuild tuple', () => {
+  const source = 'games/local/echo-lab';
+  const manifest = `${source}/package.json`;
+  const tuple = '      esbuild:\n        specifier: 0.28.2\n        version: 0.28.2\n';
+  const empty = `\n  ${source}: {}\n\n`;
+  const compiler = `\n  ${source}:\n    devDependencies:\n${tuple}\n`;
+  const before = {
+    [REGISTRY]: JSON.stringify([registration('echo-lab')]),
+    [SHELL]: JSON.stringify({ name: '@games/shell', dependencies: {} }),
+    [manifest]: JSON.stringify({
+      name: '@coffeeeeffoc/echo-lab',
+      scripts: { build: 'node build.mjs' },
+      coffeeeeffoc: { role: 'game' },
+    }),
+    [LOCK]: `lockfileVersion: '9.0'\n\nimporters:\n\n  tools/existing:\n    devDependencies:\n${tuple}${empty}packages:\n  esbuild@0.28.2: {}\n\nsnapshots:\n  esbuild@0.28.2: {}\n`,
+  };
+  const after = {
+    ...before,
+    [manifest]: JSON.stringify({
+      ...JSON.parse(before[manifest]),
+      scripts: { build: 'node build.mjs', 'build:wechat': 'node build.mjs wechat' },
+      devDependencies: { esbuild: '0.28.2' },
+    }),
+    [LOCK]: before[LOCK].replace(empty, compiler),
+  };
+  const classify = (old, next) =>
+    registrationFileScopes({
+      changedPaths: [LOCK, manifest],
+      gameSources: [source],
+      readBase: (file) => {
+        assert.ok(Object.hasOwn(old, file));
+        return old[file];
+      },
+      readHead: (file) => {
+        assert.ok(Object.hasOwn(next, file));
+        return next[file];
+      },
+    });
+  assert.deepEqual(classify(before, after).get(LOCK), [source]);
+  const mutate = (value) => ({ ...after, [manifest]: JSON.stringify(value) });
+  const pkg = JSON.parse(after[manifest]);
+  for (const candidate of [
+    { ...after, [LOCK]: after[LOCK].replace(compiler, compiler.replaceAll('0.28.2', '0.28.3')) },
+    { ...after, [LOCK]: after[LOCK].replace(compiler, compiler + empty) },
+    { ...after, [LOCK]: after[LOCK] + '\n# unrelated bytes\n' },
+    {
+      ...after,
+      [LOCK]: after[LOCK].replace('esbuild@0.28.2: {}', 'esbuild@0.28.2: {resolution: changed}'),
+    },
+    mutate({ ...pkg, devDependencies: { esbuild: '^0.28.2' } }),
+    mutate({ ...pkg, devDependencies: { esbuild: '0.28.2', another: '1.0.0' } }),
+    mutate({ ...pkg, dependencies: { esbuild: '0.28.2' } }),
+    mutate({ ...pkg, name: '@games/another' }),
+    mutate({ ...pkg, coffeeeeffoc: { role: 'shared' } }),
+  ])
+    assert.equal(classify(before, candidate).has(LOCK), false);
+  const noManifest = { ...before };
+  delete noManifest[manifest];
+  assert.equal(classify(noManifest, after).has(LOCK), false);
+  const noTuple = {
+    ...before,
+    [LOCK]: before[LOCK].replace(tuple, tuple.replaceAll('0.28.2', '0.28.1')),
+  };
+  assert.equal(
+    classify(noTuple, { ...after, [LOCK]: noTuple[LOCK].replace(empty, compiler) }).has(LOCK),
+    false,
+  );
+});

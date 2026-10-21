@@ -228,83 +228,117 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect(frame.locator('#start')).toBeVisible();
     await expect(frame.locator('#choose-levels')).toBeVisible();
   } else if (id === 'orbit-atelier') {
-    const app = frame.locator('#orbit-app');
-    await expect(app).toHaveAttribute('data-screen', 'playing');
-    const board = frame.locator('#ring-board');
-    const ring = board.locator('[data-ring-id]').first();
-    await expect(ring).toBeVisible();
-    const initialAngle = await ring.getAttribute('data-angle');
-    const points = await ring.evaluate((node) => {
-      const matrix = node.getScreenCTM();
-      if (!matrix) throw new Error('Ring has no SVG screen transform');
-      const radius = Number(node.getAttribute('data-radius'));
-      const angle = Number(node.getAttribute('data-angle')) + Math.PI;
-      if (!(radius > 0) || !Number.isFinite(angle)) throw new Error('Invalid ring geometry');
-      const point = (theta) => {
-        const transformed = new globalThis.DOMPoint(
-          radius * Math.cos(theta),
-          radius * Math.sin(theta),
-        ).matrixTransform(matrix);
-        return { x: transformed.x, y: transformed.y };
-      };
-      const bounds = node.ownerSVGElement.getBoundingClientRect();
+    const canvas = frame.locator('#GameCanvas');
+    const page = canvas.page();
+    const snapshot = () => canvas.evaluate(() => globalThis.__orbit?.snapshot());
+    await expect.poll(async () => (await snapshot())?.assetReady, { timeout: 60000 }).toBe(true);
+    await expect.poll(async () => (await snapshot())?.screen).toBe('home');
+    await expect.poll(async () => (await snapshot())?.engine).toBe('Cocos Creator 3.8.8');
+    const point = async (x, y) => {
+      const state = await snapshot();
+      const bounds = await canvas.boundingBox();
+      expect(bounds).toBeTruthy();
       return {
-        start: point(angle),
-        middle: point(angle + 0.3),
-        end: point(angle + 0.65),
-        bounds: { x: bounds.x, y: bounds.y },
+        x: bounds.x + (x / state.width) * bounds.width,
+        y: bounds.y + (y / state.height) * bounds.height,
       };
-    });
-    // Masked ring bounds differ between DOM/CDP; the board gives a stable iframe offset.
-    const bounds = await board.boundingBox();
-    const offset = { x: bounds.x - points.bounds.x, y: bounds.y - points.bounds.y };
-    const absolute = (point) => ({ x: point.x + offset.x, y: point.y + offset.y });
-    const page = board.page();
-    if (mobile) {
-      const touch = await page.context().newCDPSession(page);
-      try {
-        await touch.send('Input.dispatchTouchEvent', {
-          type: 'touchStart',
-          touchPoints: [absolute(points.start)],
-        });
-        await touch.send('Input.dispatchTouchEvent', {
-          type: 'touchMove',
-          touchPoints: [absolute(points.middle)],
-        });
-        await touch.send('Input.dispatchTouchEvent', {
-          type: 'touchMove',
-          touchPoints: [absolute(points.end)],
-        });
-        await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-      } finally {
-        await touch.detach();
-      }
-    } else {
-      const start = absolute(points.start);
-      const middle = absolute(points.middle);
-      const end = absolute(points.end);
-      await page.mouse.move(start.x, start.y);
-      await page.mouse.down();
-      await page.mouse.move(middle.x, middle.y, { steps: 3 });
-      await page.mouse.move(end.x, end.y, { steps: 3 });
-      await page.mouse.up();
-    }
-    await expect(ring).not.toHaveAttribute('data-angle', initialAngle);
-    await expect(frame.locator('[data-action="undo"]')).toBeEnabled();
-    await page.evaluate(
-      () =>
-        new Promise((resolve) =>
-          globalThis.requestAnimationFrame(() => globalThis.requestAnimationFrame(resolve)),
+    };
+    const tap = async (name) => {
+      const state = await snapshot();
+      const control = state.controls.find((item) => item.id === name && !item.disabled);
+      expect(control, `Enabled Cocos control: ${name}`).toBeTruthy();
+      const position = await point(control.x + control.w / 2, control.y + control.h / 2);
+      if (mobile) await page.touchscreen.tap(position.x, position.y);
+      else await page.mouse.click(position.x, position.y);
+    };
+    await tap('start');
+    await expect.poll(async () => (await snapshot())?.screen).toBe('playing');
+    const initial = await snapshot();
+    const ring = initial.state.rings.find(
+      (item) =>
+        !item.removed &&
+        initial.state.releasedCount >= (item.unlockAfter || 0) &&
+        (item.requires || []).every(
+          (key) => initial.state.rings.find((r) => r.id === key)?.removed,
         ),
     );
-    await click(frame.getByRole('button', { name: '暂停', exact: true }));
-    await expect(app).toHaveAttribute('data-screen', 'paused');
-    await click(frame.getByRole('button', { name: '继续解扣', exact: true }));
-    await expect(app).toHaveAttribute('data-screen', 'playing');
-    await click(frame.getByRole('button', { name: '暂停', exact: true }));
-    await click(frame.getByRole('button', { name: '返回工坊', exact: true }));
-    await expect(app).toHaveAttribute('data-screen', 'home');
-    await expect(frame.locator('[data-action="start"]')).toBeVisible();
+    expect(ring, 'A playable ring must be present').toBeTruthy();
+    // Choose an exposed solid arc, then rotate through native input. No game action is invoked.
+    const angles = Array.from({ length: 48 }, (_, index) => (index * Math.PI) / 24).filter(
+      (angle) =>
+        Math.abs(Math.atan2(Math.sin(angle - ring.angle), Math.cos(angle - ring.angle))) >
+        ring.gap / 2 + 0.12,
+    );
+    const clearance = (angle) =>
+      Math.min(
+        1000,
+        ...initial.state.rings
+          .filter((item) => item.id !== ring.id && !item.removed)
+          .map((item) =>
+            Math.abs(
+              Math.hypot(
+                ring.x + Math.cos(angle) * ring.r - item.x,
+                ring.y + Math.sin(angle) * ring.r - item.y,
+              ) - item.r,
+            ),
+          ),
+      );
+    angles.sort((a, b) => clearance(b) - clearance(a));
+    const positions = [];
+    for (let index = 0; index <= 8; index++) {
+      const angle = angles[0] + index * 0.065;
+      positions.push(
+        await point(
+          initial.fit.x + (ring.x - initial.fit.cx + Math.cos(angle) * ring.r) * initial.fit.scale,
+          initial.fit.y + (ring.y - initial.fit.cy + Math.sin(angle) * ring.r) * initial.fit.scale,
+        ),
+      );
+    }
+    const touch = mobile ? await page.context().newCDPSession(page) : undefined;
+    try {
+      if (touch) {
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints: [positions[0]],
+        });
+        for (const position of positions.slice(1))
+          await touch.send('Input.dispatchTouchEvent', {
+            type: 'touchMove',
+            touchPoints: [position],
+          });
+      } else {
+        await page.mouse.move(positions[0].x, positions[0].y);
+        await page.mouse.down();
+        for (const position of positions.slice(1)) await page.mouse.move(position.x, position.y);
+      }
+      await expect.poll(async () => (await snapshot()).selectedRingId).toBe(ring.id);
+      await expect
+        .poll(async () => (await snapshot()).state.rings.find((item) => item.id === ring.id).angle)
+        .not.toBe(ring.angle);
+    } finally {
+      if (touch) {
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await touch.detach();
+      } else await page.mouse.up();
+    }
+    await expect.poll(async () => (await snapshot()).moves).toBeGreaterThan(initial.moves);
+    if ((await snapshot()).screen === 'result') {
+      await tap('retry');
+      await expect.poll(async () => (await snapshot()).screen).toBe('playing');
+    }
+    await tap('pause');
+    await expect.poll(async () => (await snapshot()).screen).toBe('paused');
+    const paused = (await snapshot()).state;
+    await tap('resume');
+    await expect.poll(async () => (await snapshot()).screen).toBe('playing');
+    expect((await snapshot()).state).toEqual(paused);
+    await tap('pause');
+    await expect.poll(async () => (await snapshot()).screen).toBe('paused');
+    await tap('home');
+    await expect.poll(async () => (await snapshot()).screen).toBe('home');
+    expect((await snapshot()).controls.some((item) => item.id === 'start' && !item.disabled)).toBe(
+      true,
+    );
   } else if (id === 'moss-garden') {
     const seed = frame.getByRole('button', { name: '花圃 第1行 第1列', exact: true });
     await expect(seed).toBeVisible();
@@ -350,8 +384,17 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     expect((await snapshot()).balls).toEqual(paused.balls);
     await click(frame.locator('#resume'));
     await expect(frame.locator('body')).toHaveAttribute('data-screen', 'playing');
-    await click(frame.locator('#pause'));
     await click(frame.locator('#back-home'));
+    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'confirm');
+    const confirming = await snapshot();
+    await page.waitForTimeout(120);
+    expect((await snapshot()).balls).toEqual(confirming.balls);
+    await click(frame.locator('#confirm-cancel'));
+    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'playing');
+    expect((await snapshot()).shots).toBe(confirming.shots);
+    expect((await snapshot()).levelId).toBe(initial.levelId);
+    await click(frame.locator('#back-home'));
+    await click(frame.locator('#confirm-accept'));
     await expect(frame.locator('#start')).toBeVisible();
   } else if (id === 'castle-cannon') {
     const { assertCastleDuelEntry } = await import('./game-checks/castle-cannon.mjs');

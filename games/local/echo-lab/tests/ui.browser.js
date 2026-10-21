@@ -4,9 +4,9 @@ import { createRequire } from 'node:module';
 import { readFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { computePaths, panelEndpoints } from '../src/acoustics.js';
-import { encodeWav } from '../src/audio.js';
-import { readRoomLink } from '../src/layout.js';
+import { computePaths, panelEndpoints } from '../shared/core/acoustics.js';
+import { encodeWav } from '../shared/browser/audio.js';
+import { readRoomLink } from '../shared/browser/room-link.js';
 import { once } from 'node:events';
 
 const require = createRequire(import.meta.url);
@@ -522,7 +522,8 @@ try {
     'source callout must drag the actual emission point',
   );
   await nativeTap(mobilePage, '#resetLayout');
-  await nativeTap(mobilePage, '#scene [data-object="reflector-1"] circle[r="4"]');
+  // The selected panel's 44px move target intentionally overlays its visual center.
+  await nativeTap(mobilePage, '#scene [data-move-panel="reflector-1"]');
   await mobilePage
     .locator('#scene [data-object="reflector-1"] circle[r="4"]')
     .scrollIntoViewIfNeeded();

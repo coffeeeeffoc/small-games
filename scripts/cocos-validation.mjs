@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 const prebuiltVariables = {
   'games/local/carding-car': 'KART_PREBUILT_DIR',
   'games/local/night-overwatch': 'NIGHT_OVERWATCH_PREBUILT_DIR',
+  'games/local/orbit-atelier': 'ORBIT_ATELIER_PREBUILT_DIR',
   'games/local/tianxia-chalu': 'TIANXIA_PREBUILT_DIR',
 };
 /** Native consumers need engine types even when their H5 build is unchanged. */

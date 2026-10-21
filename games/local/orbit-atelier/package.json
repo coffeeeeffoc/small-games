@@ -1,16 +1,16 @@
 {
   "name": "@coffeeeeffoc/orbit-atelier",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host 0.0.0.0 --port 4340 --strictPort",
-    "preview": "vite preview --host 0.0.0.0 --port 4340 --strictPort",
-    "typecheck": "tsc --noEmit",
-    "test": "node --test tests/core.test.ts tests/evidence.test.mjs",
-    "test:browser": "node tests/browser.mjs",
-    "build": "tsc --noEmit && vite build",
-    "test:publishing:browser": "node tests/publishing.browser.mjs"
+    "dev": "node scripts/serve.mjs",
+    "preview": "node scripts/serve.mjs",
+    "typecheck": "node scripts/typecheck.mjs",
+    "test": "node --test tests/core.test.ts tests/evidence.test.mjs tests/nova-core.test.ts tests/cocos-build.test.mjs",
+    "test:browser": "node tests/cocos.browser.mjs",
+    "build": "node scripts/build.mjs web-mobile",
+    "test:publishing:browser": "node tests/cocos.browser.mjs --publishing"
   },
   "devDependencies": {
     "@playwright/test": "1.55.1",
@@ -19,5 +19,9 @@
   },
   "coffeeeeffoc": {
     "role": "game"
+  },
+  "uuid": "68a22a56-ebf6-4fc4-966a-e20ee62eec29",
+  "creator": {
+    "version": "3.8.8"
   }
 }
