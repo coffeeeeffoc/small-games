@@ -7,24 +7,25 @@
     "adUnitId": "",
     "adsEnabled": false
   },
-  "sourceHash": "c71f99d51c0439b0e834f25c21f22789c940f8900f026a222198a0dba3462e29",
-  "sourceInventorySha256": "7f942222f80506c44b69a76cd2229652286ce870e7ce8c374b8156dc17a60136",
+  "sourceHash": "3c4c0f1cf5f231a5443343ff2e07590b4a818be77cc925be728be4df7b4074eb",
+  "productVersion": "1.0.0",
+  "sourceInventorySha256": "fec33f8c913a81d95d0379bc688815436c6ba2ed88f558b650cad847593b529d",
   "pluginVersion": "1.2.2",
   "pluginArchiveSha256": "6b8a9a3cc62b6c54cefab397097babb771d9d99f90442cddff06310a4c9ed73f",
   "pluginInventorySha256": "2590867c8d450bda52180958d39454c57ea44e60fafcecc1bc4da44e6d8fafbc",
-  "packageSha256": "a8198508300e805840d0ed109f1deec9a098eca05f0fed3172b3e77dad63b837",
-  "packageBytes": 11708624,
+  "packageSha256": "c800ac3b4bca50cdff1b40012c41c637e6fd4258ef245337d037f30ee0f3b497",
+  "packageBytes": 11708625,
   "unpackedBytes": 13316998,
-  "packageFile": "F:\\playground\\playground-ai\\bullet-garden-mobile\\games\\local\\bullet-garden\\build\\taptap-dtI34B\\converted\\game.zip",
-  "projectDirectory": "F:\\playground\\playground-ai\\bullet-garden-mobile\\games\\local\\bullet-garden\\build\\taptap-dtI34B\\converted\\game",
+  "packageFile": "F:\\playground\\playground-ai\\bullet-garden-mobile\\games\\local\\bullet-garden\\build\\taptap-CjAFVW\\converted\\game.zip",
+  "projectDirectory": "F:\\playground\\playground-ai\\bullet-garden-mobile\\games\\local\\bullet-garden\\build\\taptap-CjAFVW\\converted\\game",
   "deviceOrientation": "portrait",
   "officialConverterExecuted": true,
   "conversionReceipt": {
     "schemaVersion": 1,
     "pluginSha256": "6b8a9a3cc62b6c54cefab397097babb771d9d99f90442cddff06310a4c9ed73f",
-    "sourceInventorySha256": "7f942222f80506c44b69a76cd2229652286ce870e7ce8c374b8156dc17a60136",
-    "rawInventorySha256": "db8c930cf05ada07ee7f39bd8f4aa57645029d3dd8c7ff582ae5d071c353b219",
-    "configuredInventorySha256": "db8c930cf05ada07ee7f39bd8f4aa57645029d3dd8c7ff582ae5d071c353b219",
+    "sourceInventorySha256": "fec33f8c913a81d95d0379bc688815436c6ba2ed88f558b650cad847593b529d",
+    "rawInventorySha256": "082be0075c0cf42d88e7545cfae815a6f7d031aa30ce3c8e2ecb526cded9b90c",
+    "configuredInventorySha256": "082be0075c0cf42d88e7545cfae815a6f7d031aa30ce3c8e2ecb526cded9b90c",
     "options": {
       "gameVersion": "0.1.0",
       "useSubpackage": false
@@ -38,9 +39,9 @@
   "platformReviewVerified": false,
   "files": [
     {
-      "path": "application.3a5f5.js",
+      "path": "application.d18b7.js",
       "bytes": 3805,
-      "sha256": "41e75a99affb9c10dfe89daf9148d3c8f53ff512940582cda6d7745d04f0c6d5"
+      "sha256": "639ba4782b9b7751c28fa8aa39467af84b8c58a8a8e39bf007d3db1c647fe3a3"
     },
     {
       "path": "assets/internal/config.7aac6.json",
@@ -58,14 +59,14 @@
       "sha256": "81ef0ec917c17abaae522aa02c9f198ae9a2dd792eafebd462b32bb8690cbd51"
     },
     {
-      "path": "assets/main/config.9bc74.json",
+      "path": "assets/main/config.03610.json",
       "bytes": 609,
-      "sha256": "089e33be6f0944bd085cff8e2821258f0c74e5c3c656e91f67652c536ba5b6af"
+      "sha256": "83042c2c76060307acb09fae98395a2c2ca9e136f9d17debc52b7646a149c4e7"
     },
     {
-      "path": "assets/main/import/72/727a052e-3331-4130-a1d4-f35a67322cba.bd3da.json",
+      "path": "assets/main/import/72/727a052e-3331-4130-a1d4-f35a67322cba.cfd75.json",
       "bytes": 795,
-      "sha256": "bd69bd8e82c1079beebc81ed8ebd818ecb3640d033af7f60754bc715f3f7299a"
+      "sha256": "077bff8aa775e810c9bd02a0c05690734024e7ca68eb0f2c7141d7ce95cab4b5"
     },
     {
       "path": "assets/main/import/ba/ba21476f-2866-4f81-9c4d-6e359316e448.8bce7.json",
@@ -78,7 +79,7 @@
       "sha256": "c2eee4552a460ed97591f527e127b95c811d5f796b9448f3f705974af9beba9d"
     },
     {
-      "path": "assets/main/index.9bc74.js",
+      "path": "assets/main/index.03610.js",
       "bytes": 252712,
       "sha256": "d254a4fd12db6aef40bbe34701b6529417d92ee23ce35676377bc070fd469d17"
     },
@@ -160,7 +161,7 @@
     {
       "path": "build-info.json",
       "bytes": 4692,
-      "sha256": "31ebc64602e77bd234428f306df8e43d70462cdc15318d4db24d60a0ed026779"
+      "sha256": "ee664ce8d8dda8cb9d524b6148ded20dd12ea9b8e1eb38852a3a9cd5928f4059"
     },
     {
       "path": "check-version.js",
@@ -185,12 +186,12 @@
     {
       "path": "game.js",
       "bytes": 3099,
-      "sha256": "875ae2627dc6fc0d27fc01f60a8ee26433960809bcaa057c29162a107ab2c879"
+      "sha256": "daf7e56d29f726332740d6147da15e4a906fe2ea9198ee31a5fbe32d73d8a30f"
     },
     {
       "path": "game.json",
       "bytes": 246,
-      "sha256": "acddc51e78863d00500792e6f11f4c2e1995e62dea3798c53ee4dffe1ea0f7e5"
+      "sha256": "6cde78979815922b74dbc65d5696f81718415ae778def16b1a343d10288fc4cc"
     },
     {
       "path": "garden-tap-runtime.js",
@@ -223,9 +224,9 @@
       "sha256": "622497b91ed78ba92c2a26db2f70df8a6bb501e5ddeb1375d98e94a51a3680c3"
     },
     {
-      "path": "src/settings.4ad77.json",
+      "path": "src/settings.aed0b.json",
       "bytes": 1856,
-      "sha256": "6840e1a3bee59303fe32b6e9839fdef6290e31ddc6bf8963fff151a7af7dfd9c"
+      "sha256": "0e3bbb4c219c1f2488b2cf422bcde7331f5f3f8041acf6c078a26bfd626ee5d9"
     },
     {
       "path": "src/system.bundle.f45da.js",

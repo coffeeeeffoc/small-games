@@ -60,6 +60,7 @@ const conversion = await replayOfficialConversion({
   pluginArchive: archive,
   outputDirectory: project,
 });
+const { version } = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
 await cp(path.join(root, 'startup/taptap.cjs'), path.join(project, 'garden-tap-runtime.js'));
 const entry = path.join(project, 'game.js');
 await writeFile(entry, "require('./garden-tap-runtime.js');\n" + await readFile(entry, 'utf8'));
@@ -72,6 +73,7 @@ for (const [file, key] of [
   value[key] = config.appId;
   if (file === 'game.json') {
     value.deviceOrientation = 'portrait';
+    value.productVersion = version;
     if ('appid' in value) value.appid = config.appId;
   }
   await writeFile(filename, JSON.stringify(value, null, 2) + '\n');
@@ -109,6 +111,7 @@ const receipt = {
   creator: '3.8.8',
   channel: config,
   sourceHash: info.sourceHash,
+  productVersion: version,
   sourceInventorySha256: digest(JSON.stringify(sourceFiles)),
   pluginVersion: '1.2.2',
   pluginArchiveSha256: officialPluginSha256,
