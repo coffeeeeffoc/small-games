@@ -1,11 +1,19 @@
 // Production bundles, actual mobile touch and fullscreen (not a WeChat runtime).
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
+import { execFileSync } from 'node:child_process';
 import { mkdir } from 'node:fs/promises';
 import { once } from 'node:events';
 import { fileURLToPath } from 'node:url';
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || '@playwright/test');
+// Keep test:browser runnable from a clean checkout without prebuilt H5 output.
+for (const target of ['web', 'h5']) {
+  execFileSync(process.execPath, ['build.mjs', target], {
+    cwd: fileURLToPath(new URL('../', import.meta.url)),
+    stdio: 'pipe',
+  });
+}
 process.env.PORT = '0';
 const { server } = await import('../server.js');
 if (!server.listening) await once(server, 'listening');
