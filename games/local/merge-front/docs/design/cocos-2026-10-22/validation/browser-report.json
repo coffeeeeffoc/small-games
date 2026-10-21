@@ -1,0 +1,65 @@
+{
+  "evidence": [
+    {
+      "case": "touch-campaign",
+      "result": "passed",
+      "winSeconds": 38.85,
+      "unlocked": 2
+    },
+    {
+      "case": "restore-defeat-retry",
+      "result": "passed",
+      "fixture": "legal simulation before final hit"
+    },
+    {
+      "case": "fullscreen-enter-exit-denial",
+      "result": "passed"
+    },
+    {
+      "case": "orientation-touch",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "result": "passed"
+    },
+    {
+      "case": "orientation-touch",
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "result": "passed"
+    },
+    {
+      "case": "orientation-touch",
+      "viewport": {
+        "width": 568,
+        "height": 320
+      },
+      "result": "passed"
+    },
+    {
+      "case": "reward-sdk-fixture",
+      "status": "completed",
+      "result": "passed"
+    },
+    {
+      "case": "reward-sdk-fixture",
+      "status": "dismissed",
+      "result": "passed"
+    },
+    {
+      "case": "reward-sdk-fixture",
+      "status": "unavailable",
+      "result": "passed"
+    },
+    {
+      "case": "reward-sdk-fixture",
+      "status": "failed",
+      "result": "passed"
+    }
+  ],
+  "errors": [],
+  "environment": "Chromium phone emulation; no physical device or real ad fill"
+}

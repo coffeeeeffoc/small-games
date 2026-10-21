@@ -106,6 +106,7 @@ try {
     });
     await tap(page, 'fullscreen');
     await tap(page, 'back');
+    await page.waitForTimeout(3000);
     await tap(page, 'levels');
     await screen(page, 'levels');
     await shot(page, 'levels');
@@ -141,6 +142,7 @@ try {
     await expect
       .poll(() => state(page).then((s) => s.match.tutorialStep), { timeout: 20000 })
       .toBe(3);
+    await shot(page, 'tutorial');
     await tap(page, 'fill');
     await expect.poll(() => state(page).then((s) => s.match.tutorialStep)).toBe(4);
     await tap(page, 'fill');
@@ -161,6 +163,7 @@ try {
     await tap(page, 'start');
     // All actions go through actual touch input. Use the default two-recipe deck.
     const started = Date.now();
+    let capturedCombat = false;
     while ((await state(page)).screen === 'playing' && Date.now() - started < 160000) {
       try {
         let s = await state(page),
@@ -178,6 +181,10 @@ try {
         }
         s = await state(page);
         if (s.screen !== 'playing') break;
+        if (!capturedCombat && s.match.tick > 400 && s.match.units.length > 5) {
+          await shot(page, 'combat');
+          capturedCombat = true;
+        }
         if (s.match.sides[0].coins >= 30)
           await tap(page, s.match.tick % 80 < 40 ? 'draw:hero' : 'draw:weapon');
         await page.waitForTimeout(180);
