@@ -2264,7 +2264,17 @@ export function reviewedSharedFileScopes({
         Object.hasOwn(homeboundCocosWiring, file) &&
         readBase &&
         readHead &&
-        homeboundCocosWiringOnly(file, readBase(file), readHead(file))
+        homeboundCocosWiringOnly(
+          file,
+          (() => {
+            try {
+              return readBase(file);
+            } catch {
+              return undefined;
+            }
+          })(),
+          readHead(file),
+        )
       ) {
         assert(
           games.some(
