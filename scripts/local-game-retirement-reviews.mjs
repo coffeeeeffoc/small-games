@@ -1,5 +1,5 @@
 // Reviewed removal of five local games; precise snapshots and finite surviving consumers.
-export const localRetirementBase = '0459b0cb3c89a748f3a6bd252858951ba1ca073d';
+export const localRetirementBase = 'aa7e30777290989ac8a48f854f65eb1c8f242a8b';
 export const localRetirementTrees = Object.freeze({
   'games/local/game-cultivation':
     '040000 tree 6be4907f141c4245de4588dfd382f6b651ff72cd\tgames/local/game-cultivation\n',
