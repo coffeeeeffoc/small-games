@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 import {
   reviewedSharedFileScopes,
   orbitCreatorIntegrationFileScope,
+  mergeCreatorIntegrationFileScope,
+  mergeCreatorIntegrationHashes,
   competitionConsumers,
   competitionToolPlan,
   competitionServiceScopePaths,
@@ -58,6 +60,7 @@ test('unified package tools keep the three H5 consumers and reject unknown sibli
   const games = [
     ...ids.map((id) => ({ id, source: competitionConsumers[id] })),
     ...sixH5Ids.map((id) => ({ id, source: `games/local/${id}` })),
+    { id: 'merge-front', source: 'games/local/merge-front' },
   ];
   const packages = games.map((game) => ({ name: game.id, dir: game.source }));
   const readSource = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
@@ -102,7 +105,7 @@ test('unified package tools keep the three H5 consumers and reject unknown sibli
 });
 
 test('six H5 tools declare exact consumers and preserve fail-closed configuration scope', () => {
-  const games = sixH5Ids.map((id) => ({ id, source: `games/local/${id}` }));
+  const games = [...sixH5Ids, 'merge-front'].map((id) => ({ id, source: `games/local/${id}` }));
   const packages = games.map((g) => ({ name: g.id, dir: g.source }));
   const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
   for (const file of sixH5ScopePaths) {
@@ -110,7 +113,19 @@ test('six H5 tools declare exact consumers and preserve fail-closed configuratio
     const fileScopes = reviewedSharedFileScopes(ctx);
     assert.deepEqual(
       fileScopes.get(file),
-      file.endsWith('.test.mjs') ? [] : games.map((g) => g.source),
+      file.endsWith('.test.mjs')
+        ? []
+        : games
+            .filter(
+              (g) =>
+                g.id !== 'merge-front' ||
+                [
+                  'platforms/h5/game-rewards.js',
+                  'platforms/h5/interstitial.js',
+                  'scripts/h5-game-build.mjs',
+                ].includes(file),
+            )
+            .map((g) => g.source),
     );
     const plan = incrementalPlan({ ...ctx, fileScopes });
     assert.equal(plan.full, false);
@@ -596,12 +611,13 @@ test('H5 safe areas select the three standalone consumers and require their geom
   );
 });
 
-test('shared channel advertising covers all nine consumers; the uploader stays chase-only', () => {
+test('shared channel advertising covers all ten consumers; the uploader stays chase-only', () => {
   const games = [
     { id: 'cops-robbers', source: 'games/local/cops-robbers' },
     { id: 'cops-robbers-realtime', source: 'games/local/cops-robbers-realtime' },
     { id: 'xiangqi-five', source: 'games/submodules/xiangqi-five' },
     ...sixH5Ids.map((id) => ({ id, source: `games/local/${id}` })),
+    { id: 'merge-front', source: 'games/local/merge-front' },
   ];
   const packages = games.map((game) => ({ name: game.id, dir: game.source }));
   const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
@@ -4018,4 +4034,30 @@ test('Orbit Cocos gameplay scope isolates the real exported branch without admit
     orbitCreatorIntegrationFileScope(file, nested, nested.replace('oldOrbit', 'actualTouch')),
     false,
   );
+});
+
+test('merge Creator routes bind exact reviewed base/head bytes and reject extra changes', () => {
+  const games = [{ id: 'merge-front', source: 'games/local/merge-front' }];
+  const packages = [{ dir: games[0].source, creator: { version: '3.8.8' } }];
+  for (const file of Object.keys(mergeCreatorIntegrationHashes)) {
+    const before = execFileSync(
+      'git',
+      ['show', '4224be0a1a3c9c108e34c39d996642765cfdca54:' + file],
+      { encoding: 'utf8' },
+    );
+    const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+    assert(mergeCreatorIntegrationFileScope(file, before, after), file);
+    assert(!mergeCreatorIntegrationFileScope(file, before, after + '\nextra();'), file);
+    assert(!mergeCreatorIntegrationFileScope(file, before + '\n', after), file);
+    assert(!mergeCreatorIntegrationFileScope('unknown.mjs', before, after));
+    const ctx = {
+      changedPaths: [file],
+      games,
+      packages,
+      readBase: () => before,
+      readHead: () => after,
+    };
+    assert.deepEqual(reviewedSharedFileScopes(ctx).get(file), [games[0].source]);
+    assert(!reviewedSharedFileScopes({ ...ctx, packages: [] }).has(file));
+  }
 });

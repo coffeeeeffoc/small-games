@@ -61,6 +61,7 @@ it.each(games)('opens standalone Game $id and removes its frame on exit', async 
       id === 'cage-rescue' ||
       id === 'chase-thief' ||
       id === 'orbit-atelier' ||
+      id === 'merge-front' ||
       id === 'ink-is-everything' ||
       id === 'ball-roguelite' ||
       id === 'flick-arena' ||

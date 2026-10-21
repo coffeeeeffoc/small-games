@@ -7,6 +7,85 @@ import { ingressShellGuard, ingressPreflightGuard } from './competition-ingress.
 
 const loadDependency = createRequire(import.meta.url);
 
+// Reviewed merge-front migration: only these exact artifact, ad and entry routes changed.
+export const mergeCreatorIntegrationHashes = Object.freeze({
+  '.github/workflows/carding-car.yml': [
+    'e73f43102d5f00631bef10b21b19c84a775ea1da884fc503b510797b821e53b8',
+    '79f8d68d25d22682551cde5e71747a600aa783f9060d053848a8bc1043a60049',
+  ],
+  '.github/workflows/ci.yml': [
+    '8ec42971a72e5dec8bdde2800105522b428170925bea489c910a3f2f8b0790a9',
+    '91bf4e681d149250a9b7fb9fd39bdba990fcfa48b5b35b3519fa8fcd1a3585ab',
+  ],
+  '.github/workflows/pages-validate.yml': [
+    'b893b9ff0bf2259c6eef14fcc1c6a8419bff8f4a079ea68ab4f1a40fa728cfe4',
+    '613881438872a15d3b00ad7198e1a3caf83588e5b0b2a1b4c55919b9fec1c204',
+  ],
+  '.github/workflows/mobile.yml': [
+    'a8333e893c73d915e2f2e5f189c86c2a9d1a3e9fab346db8d28d2015691d91df',
+    'dd4652ddb19e137cf834879dd8b4afb58043e66b73c2b3b2ab791e354b73e9fe',
+  ],
+  'turbo.json': [
+    '31739afb50a0d9fe9dab24010b299dd9cf2b3b561575353059e0236b60b9c6fb',
+    'a4d40252fcb7176a12e703f06c94722de907f08167ef03b3a5ce4dd01ac447d1',
+  ],
+  'pnpm-lock.yaml': [
+    'c030eb6778a401a42b4baa8dccb2cec9fe3e4fb8cd28ff5a4e44e4882669eec4',
+    '26789d50824bcaff64f81a47845b135e7f25f5d2d4e31ecadffadefafe40ddbd',
+  ],
+  'scripts/reuse-cocos-artifacts.mjs': [
+    '7adf627a781d754ef06c0d31d97180c625964623929a305823bb6f7767210ffd',
+    '04a438b2c0e572ed77f586b3f9d65513c9abdb5b661f9ce8bdf417fcb6e59cf4',
+  ],
+  'scripts/sync-h5-fullscreen.mjs': [
+    'e957ed27a35195484dc23d1de7e0762924e65d42c567a1ebfbd20ac23fb009a7',
+    '13c2e80cb9bdcee4cdfbdf7d502c0e1a51f2f4e4070230eaccbe091e22a84d47',
+  ],
+  'scripts/h5-ad-config.mjs': [
+    'fa85c578995d4a7972d75a336493546eb4fc6d9fe1e634ef4b405b14478a258a',
+    'da9ec7b0462071706f77accdc62ad921e25550686266a61dc7f0ee16eee05991',
+  ],
+  'scripts/h5-game-build.mjs': [
+    '81d761755a2fb16ed85a8704dc102901f4e375fae50a7b9fa008295dee228d2f',
+    '12634510bb9222c2155f1dcd0f34b3d3acb9a11dea8be74316b5c317cae66476',
+  ],
+  'scripts/h5-taptap-build.mjs': [
+    'c7f3a83a2758605f8e51e51783bc5d181b05851ba9095b9f867cbe9d9c609749',
+    'f269f1dbba5e754a112d693d14cd838881e493bef9b5d69dad213c1bf80a6b6a',
+  ],
+  'scripts/h5-taptap-matrix.mjs': [
+    '7c50260480d71f034281c53e78d145fb7d679055698c898902a5a32aa1c02d3a',
+    'bfbf0a969ddbaecd31e78663f9d8d2cf3b33a58e9a13e0896574d2bebb8433de',
+  ],
+  'scripts/test-game-dev-mode.mjs': [
+    '5ec2f000318a181cacc5160aa5c24d9158526a7d7204b059a0878e6f5d121d26',
+    '3e373001fd579bcab47b92a522d7d89c63654aa3ca5b71320c627762ccab2a78',
+  ],
+  'apps/shell-web/scripts/standalone-game-checks.mjs': [
+    '31eaab8b99cb0fadacaa41a8026880fc8b2c6318d8511593f44f0fe56dc9144d',
+    'f5d90e77237b1aca202438c55e51bdacc8594ecb71d3fa060a01fa0f50143b96',
+  ],
+  'apps/shell-web/scripts/pages-host-smoke.mjs': [
+    '30b47a586c2ad818a8b86465bd1f98390389cd61ec2eb5cd49fe5cafebcc5ebd',
+    '9de23cd0bee7692dd2d48d0c32fa7ec891893941392eaec78b624992b581ac21',
+  ],
+  'apps/shell-web/scripts/standalone-game-entry.mjs': [
+    '6a57f5526993ab65efe680307f041cffd80cf433b84d3eb601db071cc56bd793',
+    '3574fa6d869b6e5f6a11b3a30f1d1bc4ce84d950b98679e9656fa910ff8908a6',
+  ],
+  'apps/shell-web/src/StandaloneGame.tsx': [
+    'f88ada43b1b3b3774d2dfe1a7d77de230814ae45925ff8be7d49b24c311fb318',
+    '032dfb64bfae90075c060ed6bf7f94d40961f0bf3edfc5cd517ae15cc32cc419',
+  ],
+});
+export function mergeCreatorIntegrationFileScope(file, before, after) {
+  const pair = mergeCreatorIntegrationHashes[file];
+  if (!pair || typeof before !== 'string' || typeof after !== 'string') return false;
+  const digest = (value) =>
+    createHash('sha256').update(value.replaceAll('\r\n', '\n')).digest('hex');
+  return digest(before) === pair[0] && digest(after) === pair[1];
+}
+
 // The third Creator project adds one artifact route. Prove that every existing
 // producer, consumer and build gate is byte-for-byte unchanged outside that route.
 export const orbitCreatorIntegrationPaths = [
@@ -489,10 +568,19 @@ const sharedH5PackagePaths = [
   'game-build.local.mjs',
 ];
 function assertSixH5(games, packages, readHead) {
+  const registered = literalDeclaration(readHead('scripts/h5-ad-config.mjs'), 'additionalH5Games');
   assert.deepEqual(
-    literalDeclaration(readHead('scripts/h5-ad-config.mjs'), 'additionalH5Games'),
+    registered.filter((id) => id !== 'merge-front'),
     sixH5Ids,
   );
+  if (registered.includes('merge-front')) {
+    assert.equal(registered.filter((id) => id === 'merge-front').length, 1);
+    assert.equal(
+      games.filter((g) => g.id === 'merge-front' && g.source === 'games/local/merge-front').length,
+      1,
+    );
+    assert.equal(packages.filter((p) => p.dir === 'games/local/merge-front').length, 1);
+  }
   for (const [i, id] of sixH5Ids.entries()) {
     assert.equal(games.filter((g) => g.id === id && g.source === sixH5Sources[i]).length, 1);
     assert.equal(packages.filter((p) => p.dir === sixH5Sources[i]).length, 1);
@@ -2189,7 +2277,29 @@ export function reviewedSharedFileScopes({
 }) {
   const scopes = vitePatchFileScopes({ changedPaths, readBase, readHead });
   for (const file of changedPaths) {
+    let mergeIntegration = false;
+    if (Object.hasOwn(mergeCreatorIntegrationHashes, file)) {
+      try {
+        mergeIntegration = mergeCreatorIntegrationFileScope(
+          file,
+          readBase?.(file),
+          readHead?.(file),
+        );
+      } catch {
+        // Historical baselines may predate this file; retain the shared consumer checks below.
+      }
+    }
     try {
+      if (mergeIntegration) {
+        const source = 'games/local/merge-front';
+        assert.equal(games.filter((g) => g.id === 'merge-front' && g.source === source).length, 1);
+        assert.equal(
+          packages.filter((p) => p.dir === source && p.creator?.version === '3.8.8').length,
+          1,
+        );
+        scopes.set(file, [source]);
+        continue;
+      }
       if (tapServiceSharedScopePaths.includes(file) || file === tapServiceConfigScopePath) {
         assert.deepEqual(
           literalDeclaration(readHead(tapServiceConfigScopePath), 'games'),
@@ -2542,7 +2652,16 @@ export function reviewedSharedFileScopes({
         else {
           assertSixH5(games, packages, readHead);
           if (file === 'infra/builds/six-taptap-h5.mjs') assert(sixH5PresetOnly(readHead(file)));
-          scopes.set(file, sixH5Sources);
+          const mergeConsumer =
+            [
+              'platforms/h5/game-rewards.js',
+              'platforms/h5/interstitial.js',
+              'scripts/h5-game-build.mjs',
+            ].includes(file) && games.some((g) => g.id === 'merge-front');
+          scopes.set(
+            file,
+            mergeConsumer ? [...sixH5Sources, 'games/local/merge-front'] : sixH5Sources,
+          );
         }
         continue;
       }
@@ -2598,6 +2717,12 @@ export function reviewedSharedFileScopes({
         ) {
           assertSixH5(games, packages, readHead);
           sources.push(...sixH5Sources);
+          if (
+            literalDeclaration(readHead('scripts/h5-ad-config.mjs'), 'additionalH5Games').includes(
+              'merge-front',
+            )
+          )
+            sources.push('games/local/merge-front');
         }
         if (file === 'scripts/competition-service-config.mjs') {
           assertSixH5(games, packages, readHead);
@@ -2736,6 +2861,7 @@ export function reviewedSharedFileScopes({
                 'games/local/cops-robbers-realtime',
                 'games/submodules/xiangqi-five',
                 ...sixH5Sources,
+                ...(games.some((g) => g.id === 'merge-front') ? ['games/local/merge-front'] : []),
               ]
             : [source],
         );

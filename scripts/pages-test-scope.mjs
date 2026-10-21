@@ -58,6 +58,26 @@ const SHARED_COCOS_SCRIPTS = new Set(
 // 457bc63. Keep the deleted paths in normal game regression selection; this
 // proof only permits those exact D records through the global deletion guard.
 const reviewedCleanupDeletions = Object.freeze({
+  'games/local/merge-front/favicon.svg':
+    'c17665fab3504b77fce9b6b107f46e4250ed704deb5848f5c07088194cad4489',
+  'games/local/merge-front/index.html':
+    '7f0df17ce765c5cc9c0a183c9b3dd5bc59c7e1fec45a98b3f3a3933d15fce9a2',
+  'games/local/merge-front/src/content.mjs':
+    '88b4fbd04a117f0dd7524d1ac0800cd8dbdd6d9d543159eaf53f4dc9bcb11bde',
+  'games/local/merge-front/src/engine.mjs':
+    'ab26fb6bbc566dc87c2e36aa2ddf69805caafe95f63f1b4a2b24c9082c7708af',
+  'games/local/merge-front/src/main.mjs':
+    '8aa1f05e6f0602d573633d45f377d9c44b1c7b41d09f8d603594e96bc0935f0e',
+  'games/local/merge-front/src/render.mjs':
+    'adf178ac883ffdac5bf5baadb8f8246e68f9abee9319c21cb37f3aee0c8e9197',
+  'games/local/merge-front/src/style.css':
+    '117a098bc15458c2358fd66205dfa10983333a492f314b1429d75ac6fb402903',
+  'games/local/merge-front/tests/browser.mjs':
+    '19eaeccd918551943a841021bb1790ea0820c68c45d5661e58aa86bdec914da7',
+  'games/local/merge-front/tests/engine.test.mjs':
+    'b6a2263662449b2a894e174d71f1579923afc31d4fb5359aebe020661110facb',
+  'games/local/merge-front/vite.config.mjs':
+    'e93f7ca0ec71b277ef4b6826d6ab00abd43ab23c68213457e13e7e95aec7864d',
   'games/local/cops-robbers-realtime/package-lock.json':
     'b2db36b4a1adac540aed69833bfb66ae1dcab19c507ff51606ccc8d28bc1a017',
   'games/local/cops-robbers-realtime/scripts/cartoon-playtest.mjs':
@@ -447,6 +467,7 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
       // as absence, and no rename (including a reviewed source) uses this proof.
       const headQueries = [
         ...new Set([
+          ...changedPaths.filter((file) => Object.hasOwn(reviewedCleanupDeletions, file)),
           ...retirementHeadQueryPaths(changedPaths),
           ...localRetirementHeadQueryPaths(changedPaths),
         ]),

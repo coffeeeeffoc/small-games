@@ -1,1 +1,13 @@
-artifacts/
+library/
+temp/
+local/
+profiles/
+build/
+.prebuilt/
+reports/
+node_modules
+
+release-config.local.json
+cc.d.ts
+cocos-provenance.json
+extensions/

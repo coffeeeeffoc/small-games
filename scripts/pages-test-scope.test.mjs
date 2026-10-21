@@ -1818,3 +1818,40 @@ test('Echo Lab native compiler reuses only its exact existing esbuild tuple', ()
     false,
   );
 });
+
+test('merge-front replaces only the exact reviewed legacy runtime files', async () => {
+  const { isReviewedCleanupDeletion } = await import('./pages-test-scope.mjs');
+  const source = 'games/local/merge-front';
+  const paths = [
+    'favicon.svg',
+    'index.html',
+    'src/content.mjs',
+    'src/engine.mjs',
+    'src/main.mjs',
+    'src/render.mjs',
+    'src/style.css',
+    'tests/browser.mjs',
+    'tests/engine.test.mjs',
+    'vite.config.mjs',
+  ];
+  const readBase = (file) => cleanupOriginal(file, '4224be0a1a3c9c108e34c39d996642765cfdca54');
+  for (const relative of paths) {
+    const file = source + '/' + relative;
+    const options = {
+      standaloneGames: [{ id: 'merge-front', source }],
+      gameSources: [source],
+      change: { status: 'D', paths: [file] },
+      readBase,
+      headHasPath: () => false,
+    };
+    assert(isReviewedCleanupDeletion(options), file);
+    for (const extra of [
+      { headHasPath: () => true },
+      { readBase: (file) => readBase(file) + '\n' },
+      { change: { status: 'R100', paths: [file, file + '.old'] } },
+      { gameSources: [] },
+      { change: { status: 'D', paths: [source + '/unknown.mjs'] } },
+    ])
+      assert.equal(isReviewedCleanupDeletion({ ...options, ...extra }), false, file);
+  }
+});

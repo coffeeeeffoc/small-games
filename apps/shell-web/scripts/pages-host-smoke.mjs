@@ -123,7 +123,14 @@ try {
       (await direct.goto(new URL('games/merge-front/index.html', url).href)).status(),
       200,
     );
-    await expect(direct.locator('#start-defense')).toBeVisible();
+    await expect
+      .poll(() => direct.evaluate(() => globalThis.__mergeFront?.snapshot().ready), {
+        timeout: 60000,
+      })
+      .toBe(true);
+    await expect
+      .poll(() => direct.evaluate(() => globalThis.__mergeFront?.snapshot().screen))
+      .toBe('home');
     await expect(direct.locator('canvas').first()).toBeVisible();
     assert(
       await direct.evaluate(

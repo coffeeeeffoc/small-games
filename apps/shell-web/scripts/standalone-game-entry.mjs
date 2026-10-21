@@ -45,7 +45,7 @@ export const markers = {
   'fold-the-world': '[data-action="start"]',
   'carding-car': 'body[data-kart-ready="true"]',
   'night-overwatch': '#GameCanvas',
-  'merge-front': '#start-defense',
+  'merge-front': '#GameCanvas',
   'night-merge': '#start-night',
   fishing: '.overlay.start .primary',
   'tower-defense-game': '[aria-label="塔防战场"]',
@@ -88,7 +88,6 @@ export const homeControls = {
   'urban-breakout': '#start',
   'homebound-station': '[data-level="0"]',
   'fold-the-world': '[data-action="start"]',
-  'merge-front': '#start-defense',
   'xiangqi-five': '#home-start',
   'cops-robbers': '#home-start',
   'cops-robbers-realtime': '#levels-button',
@@ -101,6 +100,7 @@ export const homeControls = {
 
 // Explicit compatibility list: these existing assertions still own their setup flow.
 export const legacyEntryIds = [
+  'merge-front',
   'orbit-atelier',
   'echo-lab',
   'bullet-garden',

@@ -123,7 +123,7 @@ test('CI is the sole producer direction and fallback retains original gates', as
     assert(
       producer.jobs.creator.steps.some(
         (step) =>
-          step.run === 'pnpm --filter @coffeeeeffoc/${{ matrix.game }} ' + command &&
+          step.run === 'pnpm --dir games/local/${{ matrix.game }} run ' + command &&
           !step['continue-on-error'],
       ),
     );
@@ -134,7 +134,7 @@ test('CI is the sole producer direction and fallback retains original gates', as
   );
 });
 
-test('all three downloaded artifacts must verify before reuse publishes any of them', async () => {
+test('all four downloaded artifacts must verify before reuse publishes any of them', async () => {
   const producer = yaml.load(
     await readFile(new URL('../.github/workflows/carding-car.yml', import.meta.url), 'utf8'),
   );
@@ -144,6 +144,7 @@ test('all three downloaded artifacts must verify before reuse publishes any of t
     ['carding-car', 'kart'],
     ['night-overwatch', 'night'],
     ['orbit-atelier', 'orbit'],
+    ['merge-front', 'merge'],
   ]) {
     assert(verify.if.includes(`steps.${id}.outcome == 'success'`));
     assert(verify.run.includes(`verify ${game} .scratch/ci-cocos/${game}`));
