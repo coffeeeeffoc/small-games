@@ -1069,6 +1069,29 @@ test('real git diff uses a merge base for PRs and keeps rename and gitlink paths
   assert.throws(() => collectChangedPaths({ root, base: 'missing-sha' }));
 });
 
+test('exact candidate tree checks support path lists beyond Windows command-line limits', async (t) => {
+  const { root, git } = await temporaryRepository(t);
+  await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });
+  await mkdir(path.join(root, 'docs'), { recursive: true });
+  await writeFile(path.join(root, 'apps/shell-web/src/standalone-games.json'), '[]');
+  git('add', '.');
+  git('commit', '-m', 'base');
+  const base = git('rev-parse', 'HEAD');
+  await Promise.all(
+    Array.from({ length: 400 }, (_, index) =>
+      writeFile(path.join(root, 'docs', `${index}-${'long-path-'.repeat(9)}.md`), 'content'),
+    ),
+  );
+  git('add', '.');
+  git('commit', '-m', 'many paths');
+  const result = await main(
+    { PAGES_DIFF_BASE: base, PAGES_DIFF_HEAD: git('rev-parse', 'HEAD') },
+    root,
+  );
+  assert.equal(result.full, false);
+  assert.equal(result.required, false);
+});
+
 test('CLI output is valid GitHub output and an empty or unknown base selects full', async (t) => {
   const { root, git } = await temporaryRepository(t);
   await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });

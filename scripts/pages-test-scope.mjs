@@ -460,15 +460,8 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
       ];
       const headPaths = new Set(
         headQueries.length
-          ? git(root, [
-              '--literal-pathspecs',
-              'ls-tree',
-              '--name-only',
-              '-z',
-              headCommit,
-              '--',
-              ...headQueries,
-            ])
+          ? // Read directories, files and gitlinks once without a path-sized command line.
+            git(root, ['ls-tree', '-r', '-t', '--name-only', '-z', headCommit])
               .split('\0')
               .filter(Boolean)
           : [],
