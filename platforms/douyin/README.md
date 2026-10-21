@@ -15,7 +15,7 @@ pnpm minigame:build --platform douyin --game moss-garden --preview
 - [开发指南](https://developer.open-douyin.com/docs/resource/zh-CN/mini-game/develop/guide/dev-guide/bytedance-mini-game)：首个 `tt.createCanvas()` 是上屏画布，输入/前后台/音频由共享原生运行时管理。
 - [小游戏存储](https://developer.open-douyin.com/docs/resource/zh-CN/mini-game/develop/api/javascript-api/data-caching/tt-get-storage-sync)：缺失键返回空字符串；读写异常继续上抛。存档使用 `douyin:<gameId>:` 前缀。
 - [激励视频指南](https://developer.open-douyin.com/docs/resource/zh-CN/mini-game/develop/guide/open-ability/ad/incentive-ads)及 [API](https://developer.open-douyin.com/docs/resource/zh-CN/mini-game/develop/api/javascript-api/ads/tt-create-rewarded-video-ad)：显式 `multiton: false`，直接 show；仅 `isEnded === true` 算完成，count/重复回调不增加奖励。单例同一时刻只允许一个请求，每次解绑自己的监听。
-- [广告 destroy](https://developer.open-douyin.com/docs/resource/zh-CN/mini-game/develop/api/javascript-api/ads/rewarded-video-ad/rewarded-video-ad-destroy)返回 Promise，重建需要等待。每个请求结束（包括超时）都会销毁 SDK 实例，只有销毁成功才释放租约；等待期间的新请求返回 failed。销毁失败或抛错时继续阻止后续请求，避免旧广告回调误发新请求的奖励。
+- [广告 destroy](https://developer.open-douyin.com/docs/resource/zh-CN/mini-game/develop/api/javascript-api/ads/rewarded-video-ad/rewarded-video-ad-destroy)返回 Promise，重建需要等待。每个请求结束（包括超时）都会销毁 SDK 实例，只有销毁成功才释放租约；等待期间的新请求返回 `unavailable`，已开始播放的请求超时返回 `failed`。销毁失败或抛错时继续阻止后续请求，避免旧广告回调误发新请求的奖励。
 - [反馈日志](https://developer.open-douyin.com/docs/resource/zh-CN/mini-game/develop/guide/performance-optimization-both/performance-optimization/performance-tuning-tool/feedback-log-capability)要求登录，本地单人游戏使用 console 记录，不隐式申请账号。
 
 ## 服务端登录协议核验（2026-10-11）

@@ -1,60 +1,62 @@
-# 归途站
+# 归途站 · Cocos 移动版
 
-火车站出租车出库解谜。观察箭头，点击或滑动车辆，先移走挡路的车；出库后自动分配空闲上车位，旅客步行上车，车辆驶离。**全部旅客接走且所有车辆离场**才过关。
+点击前方畅通的出租车解开车阵，接走所有旅客并让全部车辆离场。**有效点击当下即按点击顺序预订乘客，锁定其位置；多辆车并行出发，只在实际路口冲突和停靠位处自动让行。**
 
-初始需求基线是 [继续开发提示词](../../../prompts/new-games/归途站_GPT6_Astra_Ultra_继续开发提示词.md)。2026-10-03 用户后续明确调整玩法：移除网约车和订单，取消指定目标车位，增加密集车阵、乘客和车位，以箭头阻挡关系和出车顺序为主要解谜内容。因此不再保留旧版双渠道、车辆先来后到队列；乘客仍按排队顺序接客。
+本轮从 Three.js 迁移到 Creator 3.8.8：真实 Cocos 的场景、界面、输入、声音和生命周期在 `assets/scripts/`，引擎无关规则在 `assets/scripts/core/`。`src/simulation.ts`、`src/levels.ts` 只作为旧规则消费者的兼容导出。旧 Vite 源码只留作历史迁移参考，默认 build/dev 不会发布或运行它。
 
-## 启动
+产品方案、先行效果图和验证记录见 [移动版设计](docs/design/cocos-mobile-2026-10-22/design.md)。效果图不是运行截图。当前阶段与实际验证范围见 [验收记录](docs/design/cocos-mobile-2026-10-22/verification.md)。
 
-仓库根目录，Node 24.21.0 / pnpm 12.6.0：
+## Creator 构建
 
-```sh
+仓库环境为 Node 24.21.0 / pnpm 12.6.0。Windows（例如 bolanggu）安装真实 Creator 3.8.8 后：
+
+```powershell
+$env:COCOS_CREATOR = 'D:\tools\cocos\CocosCreator.exe' # 按本机实际路径设置
+pnpm install --frozen-lockfile
+pnpm --filter @coffeeeeffoc/homebound-station test
+pnpm --filter @coffeeeeffoc/homebound-station typecheck
+pnpm --filter @coffeeeeffoc/homebound-station build
+pnpm --filter @coffeeeeffoc/homebound-station test:browser
 pnpm --filter @coffeeeeffoc/homebound-station dev
 ```
 
-打开 `http://localhost:4326/`。大厅入口 `#/games/homebound-station`。修改后更新大厅资源需重新构建并执行大厅的 standalone 准备流程。
+打开 `http://localhost:4326/`。`build -- --config-only` 只生成配置，不代表引擎构建成功。`HOMEBOUND_STATION_PREBUILT_DIR` 可指向含 `dist/` 和真实 `cc.d.ts` 的源码匹配制品；指纹不匹配直接拒绝。默认 `build` 使用真实 Creator，缺引擎不会降级成旧 Web 版本。
 
-```sh
-pnpm --filter @coffeeeeffoc/homebound-station typecheck
-pnpm --filter @coffeeeeffoc/homebound-station test
-pnpm --filter @coffeeeeffoc/homebound-station build
-pnpm --filter @coffeeeeffoc/homebound-station test:browser
-pnpm check:games
+`build:wechat` / `build:douyin` 提供原生目标构建入口，方向为竖屏；原生宿主广告、正式 AppID、包体门禁与真机尚需单独验收，不能把 H5 构建当作原生平台发布。
+
+## 玩法与100关
+
+100 个稳定 ID（1–100），10章，从6辆到20辆车。每关车阵不同；车辆密度、复合难度分逐步上升。固定种子生成的方向依赖图经过可解性验证，增加同类关卡只调整关卡层。乘客每组1–4人，防止任意合法出车顺序下用完大车后无解；旧的5/6人分乘API保留并有测试，但当前100关不强制分乘。
+
+点击时预订乘客ID、任务序号及固定等候位置。前一辆尚未接客不会阻止其他车辆接单或出发；同车道跟车、交汇路线和同一停靠位自动让行。重复点击不会重复预订。所有乘客已分配后会提示；全部送达后可继续派空车收班。
+
+首页 → 继续/关卡 → 游戏 → 暂停/重开/设置 → 结算/下一关。存档沿用 `homebound-station.progress.v2` 并扩展到100项；旧三星记录和声音设置保留，存储不可用时仍可在本次会话游玩。分享 `?station=N` 为独立挑战，不写正常进度。
+
+## 开发模式和倍速
+
+公共 `SmallGamesDev` 支持 `?dev=1`、`?dev=true` 和 `localStorage.dev`；显式 `?dev=0` 优先关闭。开发模式下自由选100关，`?dev=1&level=100` 可直接测试末关。开发试玩不写正常星级或解锁进度。普通模式即使加 `level=100` 也不能绕过解锁。
+
+**只有1×免费；2×、3×、5×分别完成一次激励广告解锁当前局，不连带解锁其他档。** 取消、失败、无库存和迟到回调不发奖励；重开或换关重置。广告播放暂停模拟，退出取消本次请求；后台恢复不会覆盖玩家的暂停。
+
+游戏只调用通用 `SmallGamesRewardAds.offer` 广告端口，不读取平台 SDK 或广告位。原生构建复用 `@coffeeeeffoc/native-game-shell/creator-ads`，由配置选择 TapTap / 微信 / 抖音 / B站适配器，并复用仓库的 `createAdRuntime`。这里只安装广告端口，不另建 Canvas 或游戏生命周期。未来渠道只需扩展适配器与构建配置，关卡和倍速逻辑不变。
+
+TapTap 小游戏 `game.zip` 已加入独立目标，竖屏，不扩充旧批量游戏名单。它与 Android APK 的 SDK 和打包目标不同：
+
+```powershell
+# 以下均为本游戏的公开配置，不是 App Secret；不要借用其他游戏的标识。
+$env:MINIGAME_HOMEBOUND_STATION_TAPTAP_APP_ID = '<本游戏 AppID>'
+$env:MINIGAME_HOMEBOUND_STATION_TAPTAP_AD_UNIT_ID = '<本游戏激励广告位>'
+node apps/shell-minigame/scripts/taptap-cocos.mjs --game homebound-station --prepare-source
 ```
 
-浏览器测试使用本机 Chrome，`BROWSER_CHANNEL=msedge` 可换 Edge；自动启动构建产物预览（4327/4329），不读取开发热更新。也可用 `GAME_URL` 指定已有服务。截图、断言报告保存在忽略目录 `test-results/`。
+该命令校验已有真实 Creator 3.8.8 的 WeChat 转换源，不会执行引擎构建；先运行 `build:wechat`。需继续使用官方 TapTap 1.2.2 转换和打包流程，见根目录 `docs/plans/2026-10-07-taptap-cocos.md`。转换后、官方最终打包前，由 `--prepare-login` 阶段注入通用广告端口和公开配置。配置改变后必须重新打包，转换器最初生成的 ZIP 不能代替最终包。主包不超过4 MiB，总资源和最终 ZIP 均小于20 MiB。归途站离线玩法无需登录后端，正式包仍要求本游戏有效 AppID。
 
-## 操作和关卡
+普通小游戏与 APK 的广告均来自 Dirichlet，但 SDK 不同：[普通小游戏官方教程](https://developer.taptap.cn/minigameapidoc/dev/tutorial/open-capabilities/ad/rewarded-video-ad/)使用宿主 `tap.createRewardedVideoAd`，当前通用适配器按 `onClose.isEnded === true` 发奖，广告位必须来自 Dirichlet 的“小游戏”媒体；Android APK 则需要 Java SDK 与 Cocos JSB 适配，当前 `game.zip` 接线不代表 APK 接入完成。缺少匹配 SDK 时返回不可用，不跨平台回退或模拟成功。
 
-- 直接点车身、车顶箭头或滑动车辆即可出库，无需再点上车位。车只能沿固定箭头离开车阵；阻挡时保留原位，标出挡路车辆并显示原因。
-- 数字 4/6 表示可载乘客数，车辆总座位 5/7，已扣除司机。四个上车位 T1—T4 始终开放；满位时暂不能继续出车。
-- 三关分别为 **12 辆 / 33 人、16 辆 / 44 人、20 辆 / 59 人**。所有车和旅客都是实际实体，没有背景假车或假队列。
-- 旅客每组 1—6 人，分别在 T1—T4 排队。车辆依次寻找空闲且队首人数不超过容量的上车位；例如 T1 有 6 人、T2 有 2 人，4 人车自动去 T2，不要求坐满，也不越过同一队列内的大组。上车点标签直接显示队首人数。
-- 第二关的大组可以点“安排分乘”或对应上车点，确认同意后使用已落实出库路线的两辆车，原组变成汇总项，成员 ID 守恒；也可用可载 6 人的车整组接走。分车预留 120 秒，到期释放绑定，子组仍在原上车点的队列。
-- 车尾脱离上车位即释放车位、累计接驳人数，车辆仍在画面内行驶时下一辆就能预留。道路通行权保持到车辆离场，避免相交；旧车辆离场不会误清新车辆的车位。
-- 如果大车整组接走而省下车辆，旅客全部接走后，剩余空车需由玩家继续解开并收班离场。
-- 中文暂停、重试、关卡结算、本地解锁、1×/2×/3×速度、可关闭声音和浏览器全屏。新玩法使用独立进度键 `homebound-station.progress.v2`；不保存局中状态。
+原生广告位与 H5 广告位独立。H5 继续通过 `H5_ADS_ENABLED=1`、`TAPTAP_HOMEBOUND_STATION_AD_UNIT_ID` 配置其端口。未配置或宿主无广告能力时默认不可用，1×仍正常游玩。开发/测试中的 SDK 回调仅验证奖励契约，不代表真实广告投放或宿主验收。
 
-## 实现与验证
+## 验证
 
-沿用 TypeScript + Vite + Three.js、上车动画、存档和游戏壳。站房、车辆和人物继续使用原创几何，加入圆滑车身、玻璃、车灯、轮毂、人物关节、石材立面、时钟、雨棚和排队护栏；树木与柏油贴图复用现有素材库，来源见 [美术说明](art/README.md)。[效果图](art/station-concept-v2.png) 仅为美术方向，实际运行画面见测试截图。
+规则测试包含100关正向/反向/固定随机顺序共300次完整清场，逐tick独立SAT碰撞检测、乘客ID守恒、固定接客位置、8车同tick出发、暂停和1/2/3/5×一致性；另验证存档迁移、奖励完成/失败/取消/重开及加载品牌。
 
-首次进入关卡才加载 Three.js；树木 GLB 和柏油贴图在进入可玩场景后加载，失败可重试，已加载资源在重开关卡时复用。站名和队首人数使用清晰的屏幕文字。乘客有按 ID 错开的转头、手势和小范围踱步，推进队列时平滑前移；这些动作不改变模拟队列，且跟随暂停冻结。声音开关移到暂停菜单。
-
-`simulation.ts` 以 50ms 固定步长运行，与渲染分离；DOM 标签节点稳定，修复了按下文字到松开之间目标被每帧替换、导致点击无效的问题。
-
-`tests/simulation.test.ts` 检查真实容量、箭头图可解性、拒绝穿越、四车位限制、重复点击、提前释放车位、分车守恒、暂停、重试、不同帧率一致、正反两种选车顺序完整清场；每个模拟步另外使用有向矩形几何检查车辆碰撞。
-
-`tests/dispatch-click.mjs` 在 1500px、390px、360px 下按住按钮子节点 180/450ms、滑动、取消触控，检查节点存活、真实接客、暂停冻结、重试、触控目标和字号；同时检查菜单不加载场景资源、资源失败降级/重试、跨关卡缓存、待机动作、暂停动作冻结及声音开关。`tests/browser.mjs` 通过鼠标/触控各完成三关，检查所有车辆真实离场、T1 容量不足自动去 T2、分乘、全屏、存档解锁、横竖屏布局及页面错误。测试只有只读快照，没有直接派车、跳关或修改模拟时间的后门。实际结果见最近生成的报告，不把仅配置检查当成浏览器验证。
-
-2026-10-03 细节优化：17 项规则/动作测试、类型检查与生产构建通过；1500/390/360px 交互与异步素材测试通过。桌面/触控各完整通关三关（33/44/59 人），第二关验证自动跳过 T1 和两次大组分乘，页面错误为零；大厅 iframe 内桌面/手机出车、暂停、重试、返回均通过。全库配置检查 44 个游戏、0 问题；Shell standalone 集成测试 40/40 通过。菜单逻辑包 gzip 约 10kB，按需加载的 Three.js 场景包 gzip 约 142kB（原始约 554kB，构建仍提示大于 500kB），两项异步美术资源合计约 793KiB。报告见本轮 `test-results/`。
-
-当前交通采用一把道路通行锁，多车位可同时上客；暂未实现路段并行通行。箭头控制停车场内的出库方向，离开车阵后沿外围道路自动进入上车位。后续优先增加布局独立、阻挡链有梯度的关卡，并根据实际等待时间决定是否增加路段预留。
-
-未实现雨夜、设施经营、儿童照护分车、地铁换乘及原生小游戏。行李仅为装饰。尚未验证手机实机、iOS Safari、低端设备性能和线上部署；浏览器触控模拟不等于真机验收。
-
-## 2026-10-11 局部体验扩展
-
-车阵顶部新增可出库车辆计数，阻挡车加“先移这辆”文字反馈；模拟速度可在 1×/2×/3× 切换。取消触摸、丢失指针捕获和窗口失焦清理按压态。结算可邀请好友接同一班，邀请链接不携带开发参数；接受邀请后关卡不受正常解锁限制，但通关不写入正常接驳进度。出车数量固定，仅邀请同班，不制作少步榜。
-
-规则测试、类型检查、生产构建与浏览器触屏专项：`node games/local/homebound-station/tests/publishing.browser.mjs`（从仓库根运行，支持 `CHROMIUM_PATH` / `PLAYWRIGHT_EXECUTABLE_PATH`）。[局部设计与验收](docs/design/expansion-2026-10-11/README.md)。
+`test:browser` 必须使用真实 Creator `dist`，以触屏经过首页、选关、派车、暂停、重试、结算、解锁、存档、开发模式和广告回调，记录390×844、320×568及844×390截图。`CAPTURE_GAME_EVIDENCE=1` 把证据存入本轮设计目录。浏览器触屏模拟不等于手机实机验收。

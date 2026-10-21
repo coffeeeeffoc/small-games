@@ -8,6 +8,7 @@ export const additionalH5Games = [
   'vibeJam-myself-history-guess',
   'wulong-city',
   'night-overwatch',
+  'homebound-station',
   'travel-bund',
   'letters-words2',
 ];

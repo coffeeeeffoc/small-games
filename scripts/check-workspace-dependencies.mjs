@@ -23,6 +23,10 @@ const DEPENDENCY_FIELDS = [
 // rules on the authoritative server, or exercise those rules from repository tests.
 // Runtime game code must still never import service implementations.
 const REPOSITORY_IMPORTS = new Set([
+  'games/local/homebound-station/scripts/build.mjs -> games/local/carding-car/scripts/cocos-branding.mjs',
+  'games/local/homebound-station/scripts/build.mjs -> games/local/carding-car/scripts/toolchain.mjs',
+  'games/local/homebound-station/scripts/typecheck.mjs -> games/local/carding-car/scripts/toolchain.mjs',
+  'games/local/homebound-station/scripts/build.mjs -> scripts/h5-ad-config.mjs',
   'games/local/merge-front/scripts/build-native.mjs -> games/local/carding-car/scripts/toolchain.mjs',
   'games/local/merge-front/scripts/build-native.mjs -> games/local/carding-car/scripts/native-targets.mjs',
   'games/local/merge-front/scripts/build-native.mjs -> games/local/carding-car/scripts/clear-output.mjs',
@@ -62,6 +66,7 @@ const REPOSITORY_IMPORTS = new Set([
   'apps/shell-minigame/scripts/taptap-build.mjs -> scripts/competition-service-config.mjs',
   'apps/shell-minigame/scripts/taptap-login.mjs -> scripts/competition-service-config.mjs',
   'apps/shell-minigame/scripts/taptap-targets.mjs -> scripts/competition-service-config.mjs',
+  'apps/shell-minigame/scripts/taptap-targets.mjs -> platforms/publication-config.mjs',
   'games/local/cops-robbers/scripts/build.mjs -> scripts/competition-h5-service.mjs',
   'games/local/cops-robbers/scripts/serve.mjs -> scripts/competition-h5-service.mjs',
   'games/local/cops-robbers-realtime/scripts/build.mjs -> scripts/competition-h5-service.mjs',

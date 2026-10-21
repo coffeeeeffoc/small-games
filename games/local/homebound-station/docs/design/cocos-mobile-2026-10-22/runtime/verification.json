@@ -1,0 +1,20 @@
+{
+  "browser": "151.0.7922.173",
+  "creator": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "b4daff73ddce11f8e35f0d68909ac5aac2542664ad9bb441a4569c04f4395a00"
+  },
+  "checks": [
+    "settings, sound persistence, help return and fullscreen gesture/fallback",
+    "touch cancellation",
+    "browser focus loss pauses; explicit resume restores play",
+    "rewarded speed completion/cancellation/failure; no premature grant",
+    "real touch solve with concurrent taxis; settlement and unlock",
+    "public invitation sharing removes developer mode",
+    "URL dev free selection, explicit-off precedence, saved progress, portrait/landscape",
+    "invited level 100 is practice and does not bypass normal progression"
+  ],
+  "errors": [],
+  "environment": "Chromium touch emulation of real Creator web build, not physical-device certification"
+}

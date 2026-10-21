@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { buildTarget, inventory, verifyArtifact } from './nine-games-build.mjs';
 import { scopeCommit } from './nine-games-targets.mjs';
-import { tapTapGames, tapTapOptions, tapTapToolOptions } from './taptap-targets.mjs';
+import { tapTapGames, tapTapTarget, tapTapOptions, tapTapToolOptions } from './taptap-targets.mjs';
 import { installTapTapLogin, tapTapLoginHelperPath } from './taptap-login.mjs';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
@@ -38,7 +38,7 @@ async function preflightOutput(selected, outputRoot, env) {
       env[`${prefix}_${suffix}`],
       true,
     ]),
-    ...['SOURCE_INVENTORY', 'PACKAGE_FILE', 'PACKAGE_RECEIPT'].map((suffix) => [
+    ...['SOURCE_INVENTORY', 'PLUGIN_ARCHIVE', 'PACKAGE_FILE', 'PACKAGE_RECEIPT'].map((suffix) => [
       suffix,
       env[`${prefix}_${suffix}`],
       false,
@@ -62,13 +62,14 @@ export async function buildTapTap({
   outputRoot = path.join(root, 'apps/shell-minigame/dist/nine-games'),
   env = process.env,
 } = {}) {
-  if ((all && game) || (!all && !tapTapGames.some((item) => item.id === game)))
+  if ((all && game) || (!all && !tapTapTarget(game)))
     throw new Error(
-      'Select --all or one frozen --game; the TapTap route never selects another platform.',
+      'Select --all for the frozen batch or an explicit --game; the TapTap route never selects another platform.',
     );
-  const targets = (all ? tapTapGames : tapTapGames.filter((item) => item.id === game)).map(
-    (selected) => ({ selected, config: tapTapOptions(selected.id, { preview, env }) }),
-  ); // Preflight every requested AppID/URL before writing an artifact.
+  const targets = (all ? tapTapGames : [tapTapTarget(game)]).map((selected) => ({
+    selected,
+    config: tapTapOptions(selected.id, { preview, env }),
+  })); // Preflight every requested AppID/URL before writing an artifact.
   for (const { selected } of targets) await preflightOutput(selected, outputRoot, env);
   const results = [];
   for (const { selected, config } of targets) {
@@ -93,6 +94,7 @@ export async function buildTapTap({
             'taptap-build.mjs',
             'taptap-targets.mjs',
             'taptap-package.mjs',
+            'taptap-conversion.mjs',
             'taptap-login.mjs',
           ].map((name) => path.join(root, 'apps/shell-minigame/scripts', name)),
           tapTapLoginHelperPath,

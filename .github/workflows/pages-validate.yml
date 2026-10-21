@@ -64,6 +64,7 @@ jobs:
       NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt
       ORBIT_ATELIER_PREBUILT_DIR: ${{ github.workspace }}/games/local/orbit-atelier/.prebuilt
       TIANXIA_PREBUILT_DIR: ${{ github.workspace }}/games/local/tianxia-chalu/.prebuilt
+      HOMEBOUND_STATION_PREBUILT_DIR: ${{ github.workspace }}/games/local/homebound-station/.prebuilt
       MERGE_FRONT_PREBUILT_DIR: ${{ github.workspace }}/games/local/merge-front/.prebuilt
       PAGES_BASE_PATH: /${{ github.event.repository.name }}/${{ (github.base_ref || github.ref_name) == 'dev' && 'dev/' || (github.base_ref || github.ref_name) == 'test' && 'test/' || '' }}
     steps:
@@ -106,6 +107,10 @@ jobs:
           path: games/local/tianxia-chalu/.prebuilt
       - uses: actions/download-artifact@v8
         with:
+          name: homebound-station-${{ github.sha }}
+          path: games/local/homebound-station/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
           name: merge-front-${{ github.sha }}
           path: games/local/merge-front/.prebuilt
       - run: pnpm check:games
@@ -146,6 +151,7 @@ jobs:
       NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt
       ORBIT_ATELIER_PREBUILT_DIR: ${{ github.workspace }}/games/local/orbit-atelier/.prebuilt
       TIANXIA_PREBUILT_DIR: ${{ github.workspace }}/games/local/tianxia-chalu/.prebuilt
+      HOMEBOUND_STATION_PREBUILT_DIR: ${{ github.workspace }}/games/local/homebound-station/.prebuilt
       MERGE_FRONT_PREBUILT_DIR: ${{ github.workspace }}/games/local/merge-front/.prebuilt
       PAGES_FULL_REGRESSION: ${{ inputs.full }}
       PAGES_GAME_SOURCES: ${{ inputs.game_sources }}
@@ -188,6 +194,10 @@ jobs:
         with:
           name: tianxia-chalu-${{ github.sha }}
           path: games/local/tianxia-chalu/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: homebound-station-${{ github.sha }}
+          path: games/local/homebound-station/.prebuilt
       - uses: actions/download-artifact@v8
         with:
           name: merge-front-${{ github.sha }}

@@ -633,6 +633,7 @@ test('explicit profiles require twelve local QA variants and only three online-a
     'night-overwatch': 'landscape',
     'travel-bund': 'landscape',
     'letters-words2': 'portrait',
+    'homebound-station': 'portrait',
   });
   assert.equal(productionCompetitionApi, 'https://api.nenggongzhiren.cn/small-games/v1');
   assert.equal(matrixContract(fixture(false)).port, 43810);

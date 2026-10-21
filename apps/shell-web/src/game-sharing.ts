@@ -78,7 +78,7 @@ const challengeProtocols: Readonly<Record<string, ChallengeProtocol>> = {
     required: ['challenge'],
   },
   'homebound-station': {
-    fields: { station: integer(3, 1) },
+    fields: { station: integer(100, 1) },
     required: ['station'],
   },
   // Slug syntax is public; each Game resolves authored content IDs and validates

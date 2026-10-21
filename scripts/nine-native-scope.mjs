@@ -10,7 +10,7 @@ import { createRequire } from 'node:module';
 import { competitionIdentityFileScope, tapServiceSharedScopePaths } from './publication-scopes.mjs';
 const formatter = createRequire(import.meta.url);
 const tapWorkflow = '.github/workflows/taptap-cocos.yml';
-const tapWorkflowSha256 = '16b39a784ea6a1f1bc4553e4260d545452214c083aac0a61ba692da59b3c0851';
+const tapWorkflowSha256 = '7b0765e44f885ace8ee4f9e97b63eac89470b7722d70e05ad7030e2d8adea95d';
 
 const COMPETITION = 'platforms/competition/native.js';
 const MINIGAME = 'apps/shell-minigame';
@@ -1138,6 +1138,7 @@ const nativeGameSources = {
   'travel-bund': 'games/local/travel-bund',
   'carding-car': 'games/local/carding-car',
   'night-overwatch': 'games/local/night-overwatch',
+  'homebound-station': 'games/local/homebound-station',
 };
 const nativeGraph = new Map(
   nativeSourceGroups.flatMap((group) => group.paths.map((file) => [file, group.targets])),
@@ -1151,15 +1152,18 @@ const taptapScripts = [
   'apps/shell-minigame/scripts/taptap-targets.mjs',
   'apps/shell-minigame/scripts/taptap-package.mjs',
   'apps/shell-minigame/scripts/taptap-cocos.mjs',
+  'apps/shell-minigame/scripts/taptap-conversion.mjs',
   'apps/shell-minigame/scripts/taptap-cocos-inputs.mjs',
   'apps/shell-minigame/scripts/taptap-smoke.mjs',
   'apps/shell-minigame/scripts/taptap-travel-smoke.mjs',
   'apps/shell-minigame/scripts/taptap-cocos-import.mjs',
   'apps/shell-minigame/scripts/taptap-login.mjs',
 ];
-const cocosGames = ['carding-car', 'night-overwatch'];
+const cocosGames = ['carding-car', 'night-overwatch', 'homebound-station'];
 const taptapTargets = Object.keys(nativeGameSources).map((game) => `${game}:taptap`);
 const taptapGraph = new Map();
+for (const file of ['build.mjs', 'artifact.mjs'])
+  taptapGraph.set(`games/local/homebound-station/scripts/${file}`, ['homebound-station:taptap']);
 taptapGraph.set(
   tapWorkflow,
   cocosGames.map((game) => game + ':taptap'),
@@ -1168,6 +1172,22 @@ for (const [file, targets] of nativeGraph) {
   if (/^platforms\/(?:wechat|bilibili|douyin|kuaishou|alipay)\//.test(file)) continue;
   taptapGraph.set(file, [...new Set(targets.map((target) => target.split(':')[0] + ':taptap'))]);
 }
+// Creator's advertising-only entry is bundled after conversion, without a Canvas host.
+for (const file of [
+  'packages/native-game-shell/package.json',
+  'packages/native-game-shell/src/creator-ads.ts',
+  'packages/native-game-shell/src/douyin-ads.ts',
+  'packages/native-game-shell/src/ads.ts',
+  'packages/ad-runtime/package.json',
+  'packages/ad-runtime/src/index.ts',
+  'packages/ad-runtime/src/runtime.ts',
+  'packages/ad-runtime/src/adapters.ts',
+  'packages/ad-config/package.json',
+  'packages/ad-config/src/index.ts',
+  'packages/ad-config/src/policy.ts',
+  'packages/ad-config/src/managed.ts',
+])
+  taptapGraph.set(file, [...(taptapGraph.get(file) || []), 'homebound-station:taptap']);
 for (const file of taptapScripts) taptapGraph.set(file, taptapTargets);
 for (const file of ['taptap-cocos.mjs', 'taptap-cocos-import.mjs', 'taptap-cocos-inputs.mjs'])
   taptapGraph.set(
@@ -1492,7 +1512,7 @@ export function nineNativeDependencyPlan({
     }
     for (const [id, source] of Object.entries(nativeGameSources)) {
       if (
-        !['carding-car', 'night-overwatch'].includes(id) &&
+        !cocosGames.includes(id) &&
         (file.startsWith(source + '/native/') ||
           (id === 'letters-words2' && file === source + '/tests/native-bundle.test.mjs') ||
           file === source + '/package.json' ||
@@ -1511,6 +1531,16 @@ export function nineNativeDependencyPlan({
     )
       for (const platform of [...nativePlatforms, ...(hasTapTap ? ['taptap'] : [])])
         selected.add('travel-bund:' + platform);
+    // Homebound is an explicit TapTap Creator target; the frozen five-platform batch is unchanged.
+    const homebound = nativeGameSources['homebound-station'];
+    if (
+      hasTapTap &&
+      (file === homebound + '/package.json' ||
+        file === homebound + '/tsconfig.json' ||
+        (file.startsWith(homebound + '/') &&
+          /^(?:assets|scripts|settings|startup)\//.test(file.slice(homebound.length + 1))))
+    )
+      selected.add('homebound-station:taptap');
     for (const id of ['carding-car', 'night-overwatch']) {
       const source = 'games/local/' + id;
       if (

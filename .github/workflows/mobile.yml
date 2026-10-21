@@ -25,6 +25,7 @@ jobs:
       NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt
       ORBIT_ATELIER_PREBUILT_DIR: ${{ github.workspace }}/games/local/orbit-atelier/.prebuilt
       TIANXIA_PREBUILT_DIR: ${{ github.workspace }}/games/local/tianxia-chalu/.prebuilt
+      HOMEBOUND_STATION_PREBUILT_DIR: ${{ github.workspace }}/games/local/homebound-station/.prebuilt
       MERGE_FRONT_PREBUILT_DIR: ${{ github.workspace }}/games/local/merge-front/.prebuilt
       GOMAXPROCS: '1'
       APP_VERSION: '0.2.0'
@@ -57,6 +58,10 @@ jobs:
         with:
           name: tianxia-chalu-${{ github.sha }}
           path: games/local/tianxia-chalu/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: homebound-station-${{ github.sha }}
+          path: games/local/homebound-station/.prebuilt
       - uses: actions/download-artifact@v8
         with:
           name: merge-front-${{ github.sha }}
@@ -119,6 +124,7 @@ jobs:
       NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt
       ORBIT_ATELIER_PREBUILT_DIR: ${{ github.workspace }}/games/local/orbit-atelier/.prebuilt
       TIANXIA_PREBUILT_DIR: ${{ github.workspace }}/games/local/tianxia-chalu/.prebuilt
+      HOMEBOUND_STATION_PREBUILT_DIR: ${{ github.workspace }}/games/local/homebound-station/.prebuilt
       MERGE_FRONT_PREBUILT_DIR: ${{ github.workspace }}/games/local/merge-front/.prebuilt
       GOMAXPROCS: '1'
       APP_VERSION: '0.2.0'
@@ -150,6 +156,10 @@ jobs:
         with:
           name: tianxia-chalu-${{ github.sha }}
           path: games/local/tianxia-chalu/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: homebound-station-${{ github.sha }}
+          path: games/local/homebound-station/.prebuilt
       - uses: actions/download-artifact@v8
         with:
           name: merge-front-${{ github.sha }}

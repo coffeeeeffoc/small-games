@@ -152,36 +152,40 @@ test('Shell Vitest discovery includes every application test and excludes Node s
 
 test('all Cocos consumers download every source-verified artifact and pass them through Turbo', async () => {
   const read = async (name) => yaml.load(await readFile(path.join(repo, name), 'utf8'));
-  const games = [
-    ['carding-car', 'KART_PREBUILT_DIR'],
-    ['night-overwatch', 'NIGHT_OVERWATCH_PREBUILT_DIR'],
-    ['orbit-atelier', 'ORBIT_ATELIER_PREBUILT_DIR'],
-    ['tianxia-chalu', 'TIANXIA_PREBUILT_DIR'],
-    ['merge-front', 'MERGE_FRONT_PREBUILT_DIR'],
-  ];
+  const artifacts = {
+    'carding-car': 'KART_PREBUILT_DIR',
+    'night-overwatch': 'NIGHT_OVERWATCH_PREBUILT_DIR',
+    'orbit-atelier': 'ORBIT_ATELIER_PREBUILT_DIR',
+    'tianxia-chalu': 'TIANXIA_PREBUILT_DIR',
+    'homebound-station': 'HOMEBOUND_STATION_PREBUILT_DIR',
+    'merge-front': 'MERGE_FRONT_PREBUILT_DIR',
+  };
   const producer = await read('.github/workflows/carding-car.yml');
-  assert.deepEqual(
-    producer.jobs.creator.strategy.matrix.game,
-    games.map(([game]) => game),
-  );
+  assert.deepEqual(producer.jobs.creator.strategy.matrix.game, Object.keys(artifacts));
   const turbo = await read('turbo.json');
   const typecheck = producer.jobs.creator.steps.find(
     (step) => step.run === 'pnpm --dir games/local/${{ matrix.game }} run typecheck',
   );
-  for (const [game, variable] of games) {
+  for (const [game, variable] of Object.entries(artifacts)) {
     const manifest = JSON.parse(
       await readFile(path.join(repo, 'games/local', game, 'package.json'), 'utf8'),
     );
     assert(turbo.globalPassThroughEnv.includes(variable));
-    assert(typecheck.env[variable].includes('/games/local/' + game));
     assert(turbo.tasks[manifest.name + '#build'].env.includes(variable));
+    assert(
+      turbo.tasks[manifest.name + '#build'].inputs.includes(
+        `$TURBO_ROOT$/games/local/${game}/.prebuilt/**`,
+      ),
+    );
+    assert(typecheck.env[variable].includes('/games/local/' + game));
   }
+  assert.equal(turbo.tasks['@coffeeeeffoc/homebound-station#build'].cache, false);
   for (const workflow of ['ci', 'pages-validate', 'mobile']) {
     const config = await read(`.github/workflows/${workflow}.yml`);
     const consumers = Object.values(config.jobs).filter((job) => job.env?.KART_PREBUILT_DIR);
     assert(consumers.length > 0, `${workflow} must consume the verified Cocos artifacts`);
-    for (const job of consumers) {
-      for (const [game, variable] of games) {
+    for (const job of consumers)
+      for (const [game, variable] of Object.entries(artifacts)) {
         assert.equal(
           job.env[variable],
           '${{ github.workspace }}/games/local/' + game + '/.prebuilt',
@@ -196,9 +200,8 @@ test('all Cocos consumers download every source-verified artifact and pass them 
           workflow === 'ci' ? "needs.plan.outputs.cocos == 'true'" : undefined,
         );
         assert(download?.uses.startsWith('actions/download-artifact@'), workflow);
-        assert.equal(download.with.path, 'games/local/' + game + '/.prebuilt');
+        assert.equal(download.with.path, `games/local/${game}/.prebuilt`);
       }
-    }
   }
 });
 

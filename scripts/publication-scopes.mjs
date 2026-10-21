@@ -10,76 +10,76 @@ const loadDependency = createRequire(import.meta.url);
 // Reviewed merge-front migration: only these exact artifact, ad and entry routes changed.
 export const mergeCreatorIntegrationHashes = Object.freeze({
   '.github/workflows/carding-car.yml': [
-    '47f0097106baf378c851c8c5314721dce979053f04a31accb0cacdc37ce71a83',
-    '67f20ab0441a4e93c36cc4b6aad8b7338641628b1bc04be1c61a39fefdc1ebcf',
+    'ee77322f7414ab0a398af5c2d10763757ea679dbfa452520a653aacf43bdf05b',
+    '1ef11a9cf351cbee63f5f2bf20f5738e132a006db32aaf16aae5b67e3b3193fe',
   ],
   '.github/workflows/ci.yml': [
-    'afe7f1175b964bf22719623a404307f62134156687c87f029dd55903b4252952',
-    'ca943d2ce5a12f8f71bc4138f0dcf41eeccfb84fd5583d0b33c742678865fa15',
+    '6d1e55268d42feda5767a6e95c5986239a53b9bd8f922a231ba24f0d69cd2e29',
+    '5510611e680bba157680b097e8377250cb406779c0a8cb76ffc12f682edb83bd',
   ],
   '.github/workflows/pages-validate.yml': [
-    '00fe3a8822311ee9faebcb20c32436b39ad612e482fb86ca86a90b3d202be713',
-    '2ada5ef631a8090b77b4688f4bc9db385c60d0b83de1f773dda0ad85d8d3a53b',
+    '7a89794f444b282c995d86ddb8970c3e3ca8f9f4cea40fbf9d984a25348bcbc2',
+    '47aa8fba216a73f7d2ea069be9a5c556240a5bfd9c6ed062c0ec7f62add37987',
   ],
   '.github/workflows/mobile.yml': [
-    '6cb0350243edbf7a21c23e346fbc3d74da50464096866db09319364015e6933e',
-    '70e5ec6d5a7e5c481d7e88c342de8e1db8afa485bca254f4697535e5113c5ced',
+    'a91039605ebf6eaa455d4159df9f061fcbb28c0dc14304d0c817d6d23766c7d4',
+    '3246698d6c39c0ae44df20006c068d2821a11a74f4cd3b7bb16b57b4219c2de7',
   ],
   'turbo.json': [
-    'ed165c08070ddd40672167a48ca2d472f385a797813c8c08957aa76c1f8cc0d3',
-    '3a2b748871c8e7d667b6a629ac3168eaebb54d58419ceb380c33a819f416ba9a',
+    'ffa105c8ac861d36457df2da83998e2be0e35f6cb19cdf86e46d85844a997d75',
+    'e8c3d619e5de1b4b1dd871bc880b5985c76cc9e1b63447e6e2aefda9f2366c94',
   ],
   'pnpm-lock.yaml': [
     '959125ee6a824b1a1b820f12dde14b8f2aad9f99080afefe70ca3c2584d94379',
     '6d0947a09773bbd9b905d79abdb073d212f67adb00b5bb02fe4c88249c276fac',
   ],
   'scripts/reuse-cocos-artifacts.mjs': [
-    'fadf691cec2d5c8863eb5728938bc7d3f93948dbb4805b05111d3fcf6539abae',
-    'c9947af0912e2b3784d602dfddc3f8c14e0c110ff75e2308a8e570270f63e06c',
+    '6a6014b181ffb9ee2b04044eb74b0d9bea0a25f7567776b253abcf71a97e0d4d',
+    '661cd9742e592cc4f57d5c48e55d2da4505945e1dfcb25b548e3e39050af4cfc',
   ],
   'scripts/sync-h5-fullscreen.mjs': [
     'e957ed27a35195484dc23d1de7e0762924e65d42c567a1ebfbd20ac23fb009a7',
     '13c2e80cb9bdcee4cdfbdf7d502c0e1a51f2f4e4070230eaccbe091e22a84d47',
   ],
   'scripts/h5-ad-config.mjs': [
-    'fa85c578995d4a7972d75a336493546eb4fc6d9fe1e634ef4b405b14478a258a',
-    'da9ec7b0462071706f77accdc62ad921e25550686266a61dc7f0ee16eee05991',
+    'a501f7acb287811727d3868cade43a442260e5ebe426fe8ab7c3cab6db3ea5dd',
+    '3619e524dfb5ecd4ddcc5e9939a2ef243685150beb063913a7cbf5af236f385c',
   ],
   'scripts/h5-game-build.mjs': [
-    '81d761755a2fb16ed85a8704dc102901f4e375fae50a7b9fa008295dee228d2f',
-    '12634510bb9222c2155f1dcd0f34b3d3acb9a11dea8be74316b5c317cae66476',
+    '7f8263e69185ccedb4ce2d89b0678535a9ee5c1be13f6c8c179be023a1557fc3',
+    '5a76a4e6e968193b244177c2c268becc14a1c022107045bebe719a2c2fd2380f',
   ],
   'scripts/h5-taptap-build.mjs': [
-    'c7f3a83a2758605f8e51e51783bc5d181b05851ba9095b9f867cbe9d9c609749',
-    'f269f1dbba5e754a112d693d14cd838881e493bef9b5d69dad213c1bf80a6b6a',
+    '167851290dd00ba94817494e8549f8852e72a232ffe2f82aff13bfdff70d8df7',
+    'ccbbf960a1f33c8fda6f7d447ad06a2234f306db478f06c18bc4df69b7c57a89',
   ],
   'scripts/h5-taptap-matrix.mjs': [
-    '7c50260480d71f034281c53e78d145fb7d679055698c898902a5a32aa1c02d3a',
-    'bfbf0a969ddbaecd31e78663f9d8d2cf3b33a58e9a13e0896574d2bebb8433de',
+    'b6cf3de496f6eeccf26a64c1c68c6dafbf2be06b0653db208c075a3f69a483fd',
+    '71257b7d52add72213aff79dfd05b0d4a4a240d42a0a2c292fb64a958fc78cac',
   ],
   'scripts/test-game-dev-mode.mjs': [
-    '11771ac3adfc778806d56ea7f55c86cb4bfb410fd66879fc948cb3f6c62fda85',
-    '9da0b2eb25d738045554d66d6c50d0a7d33fce12a699d4af0d9bd8a424856fe6',
+    '3deb5108ff5f83733c42d28bbaa50151e47c8ff0169aa939d1870072cc5b25c5',
+    '66a660486b89310d99115babec194df529b3f362814e43acd05645c55abb7397',
   ],
   'apps/shell-web/scripts/standalone-game-checks.mjs': [
-    'eacdc79b67024c15833fb62485c51daf7a1371319a965ed244a8187b1b399725',
-    '962afd93d3a3a0bc662100fd8298d3bc3898cd43511259fd38b5347b2d63da3c',
+    '895deb1ad37dd28850139cfefd23d6178813a40e2d3dca0670bf9a1bc74fd65d',
+    '9efdd56f9232baf58dda48972f8f4132a0a0bece91f35b00810fe8471dc8eb2b',
   ],
   'apps/shell-web/scripts/pages-host-smoke.mjs': [
     '30b47a586c2ad818a8b86465bd1f98390389cd61ec2eb5cd49fe5cafebcc5ebd',
     '9de23cd0bee7692dd2d48d0c32fa7ec891893941392eaec78b624992b581ac21',
   ],
   'apps/shell-web/scripts/standalone-game-entry.mjs': [
-    'b5fe4b00a7d6f1a043a38c5c883cf7411190cb12fea6f413d5cd2d11bbe784c3',
-    '03ee90f888f8e72b2d5ac6594fa85707165c2bd98189696dbb88552bd729a976',
+    'cf533318eae2d05db18d2a83087b00d62b123ae3e306671933477c62afd5b4a7',
+    '2b6221a2e3989e3b2a5372fd04326bff16b4e358ae459c1ab561bfe4cc4f7e07',
   ],
   'apps/shell-web/src/StandaloneGame.tsx': [
-    'ed4397135869b47ec8e031a7c603a85336f024b58184edc2b7cb18af5bf67724',
-    '44a2bb44d79998cea3e2750d72726e04ef6c2a5e095ad4d491f3a5143f432f06',
+    'b384f736f48a38816ba2c69c498dcf914f199dd7486861aacedabc3bd5a1c099',
+    '398a6a9cf1f2a90f3e7cd1b8118522b6eafe098fc3ad2ceaa57adc07d0cfd86f',
   ],
   'apps/shell-web/scripts/pages-smoke.mjs': [
-    'f1a1a2295772498305b5766d530aa55e774887333b76029de951033bae9b4424',
-    '6bc6598846c67d8bb86e398d88b49a075c94ace61d8e8ed78bcd48a856c0cad6',
+    '0e22c3fabf195d177d75ae60c4066a027e302511f9d251a79816c493b5934460',
+    '7c10e7500a7472cd860c3fb508f73e0d043355a8b2c285b85f1db1a4e5a522ea',
   ],
 });
 export function mergeCreatorIntegrationFileScope(file, before, after) {
@@ -89,6 +89,90 @@ export function mergeCreatorIntegrationFileScope(file, before, after) {
     createHash('sha256').update(value.replaceAll('\r\n', '\n')).digest('hex');
   return digest(before) === pair[0] && digest(after) === pair[1];
 }
+// Exact additive wiring for Homebound after the Orbit and Tianxia Creator integrations. Existing compiler paths,
+// workflow gates, permissions and presets remain byte-for-byte unchanged.
+const homeboundCocosWiring = {
+  'apps/shell-web/src/StandaloneGame.tsx': [
+    'ed4397135869b47ec8e031a7c603a85336f024b58184edc2b7cb18af5bf67724',
+    'b384f736f48a38816ba2c69c498dcf914f199dd7486861aacedabc3bd5a1c099',
+  ],
+  'apps/shell-web/scripts/pages-smoke.mjs': [
+    'f1a1a2295772498305b5766d530aa55e774887333b76029de951033bae9b4424',
+    '0e22c3fabf195d177d75ae60c4066a027e302511f9d251a79816c493b5934460',
+  ],
+  'apps/shell-web/tests/standalone-immersive.integration.test.tsx': [
+    '9a0071ba38e725b7bb672e8d06b73167340bec9c3fdab22a792c6f45865818a5',
+    'f7e26ca16c0c5dfc587437eeb28e4ff93be9a1b72a58b9996b6aa1270e81219d',
+  ],
+  'apps/shell-web/tests/standalone.integration.test.tsx': [
+    '9bb0d0095ba2cdcced396e56114a1db42a7e531a4a5c787a9865120ee54fb245',
+    'c19a2313195d70419d987e0a5ce9e7839b96951cdda88edadb25976431873b53',
+  ],
+  'scripts/check-workspace-dependencies.mjs': [
+    '73dc48694ca96af93c54b09fb5d3d78b118e90ef67da63e94d4896aa1cba200d',
+    '747c3c83428003489abb997b4b3358d4f27b0d4c4d5113f18988023ff408fc83',
+  ],
+  'scripts/deployment-bundle.mjs': [
+    'c5f934e35dc618739626d904a4c642b6e68683edf52dd856d69fa38e05819858',
+    'c345987270dbbbb1afa801499c903c283a75313d61336208ab9a7973f663150e',
+  ],
+  'scripts/deployment-bundle.test.mjs': [
+    '3e5ca2e1bc48c1fa363fdf5f91b9b981a611f2aac4b759a6e338b171b02c5212',
+    'b68715bf1c1fde6a5941e4df75fd840fcdbe02daf4996f33851e667cd9be16f8',
+  ],
+
+  '.github/workflows/carding-car.yml': [
+    '47f0097106baf378c851c8c5314721dce979053f04a31accb0cacdc37ce71a83',
+    'ee77322f7414ab0a398af5c2d10763757ea679dbfa452520a653aacf43bdf05b',
+  ],
+  '.github/workflows/ci.yml': [
+    'afe7f1175b964bf22719623a404307f62134156687c87f029dd55903b4252952',
+    '6d1e55268d42feda5767a6e95c5986239a53b9bd8f922a231ba24f0d69cd2e29',
+  ],
+  '.github/workflows/pages-validate.yml': [
+    '00fe3a8822311ee9faebcb20c32436b39ad612e482fb86ca86a90b3d202be713',
+    '7a89794f444b282c995d86ddb8970c3e3ca8f9f4cea40fbf9d984a25348bcbc2',
+  ],
+  '.github/workflows/mobile.yml': [
+    '6cb0350243edbf7a21c23e346fbc3d74da50464096866db09319364015e6933e',
+    'a91039605ebf6eaa455d4159df9f061fcbb28c0dc14304d0c817d6d23766c7d4',
+  ],
+  'turbo.json': [
+    'ed165c08070ddd40672167a48ca2d472f385a797813c8c08957aa76c1f8cc0d3',
+    'ffa105c8ac861d36457df2da83998e2be0e35f6cb19cdf86e46d85844a997d75',
+  ],
+  'scripts/h5-game-build.mjs': [
+    '81d761755a2fb16ed85a8704dc102901f4e375fae50a7b9fa008295dee228d2f',
+    '7f8263e69185ccedb4ce2d89b0678535a9ee5c1be13f6c8c179be023a1557fc3',
+  ],
+  'scripts/h5-taptap-build.mjs': [
+    'c7f3a83a2758605f8e51e51783bc5d181b05851ba9095b9f867cbe9d9c609749',
+    '167851290dd00ba94817494e8549f8852e72a232ffe2f82aff13bfdff70d8df7',
+  ],
+  'scripts/h5-ad-config.mjs': [
+    'fa85c578995d4a7972d75a336493546eb4fc6d9fe1e634ef4b405b14478a258a',
+    'a501f7acb287811727d3868cade43a442260e5ebe426fe8ab7c3cab6db3ea5dd',
+  ],
+  'scripts/h5-taptap-matrix.mjs': [
+    '7c50260480d71f034281c53e78d145fb7d679055698c898902a5a32aa1c02d3a',
+    'b6cf3de496f6eeccf26a64c1c68c6dafbf2be06b0653db208c075a3f69a483fd',
+  ],
+};
+export function homeboundCocosWiringOnly(file, before, after) {
+  const hashes = homeboundCocosWiring[file];
+  if (!hashes || typeof before !== 'string' || typeof after !== 'string') return false;
+  const digest = (value) =>
+    createHash('sha256').update(value.replaceAll('\r\n', '\n')).digest('hex');
+  return digest(before) === hashes[0] && digest(after) === hashes[1];
+}
+const cocosWebSources = [
+  'carding-car',
+  'night-overwatch',
+  'orbit-atelier',
+  'tianxia-chalu',
+  'homebound-station',
+  'merge-front',
+].map((id) => `games/local/${id}`);
 
 // The third Creator project adds one artifact route. Prove that every existing
 // producer, consumer and build gate is byte-for-byte unchanged outside that route.
@@ -519,9 +603,12 @@ export const sixH5Ids = [
   'vibeJam-myself-history-guess',
   'wulong-city',
   'night-overwatch',
+  'homebound-station',
   'travel-bund',
   'letters-words2',
 ];
+// Historical six/five-game presets retain their existing exact membership.
+const presetH5Ids = sixH5Ids.filter((id) => id !== 'homebound-station');
 const sixH5Sources = sixH5Ids.map((id) => `games/local/${id}`);
 export const sixH5ScopePaths = [
   'scripts/h5-game-build.mjs',
@@ -594,7 +681,7 @@ export function sixH5PresetOnly(source, five = false) {
     ]);
     if (five) assert.equal(cfg.apiUrl, 'https://api.nenggongzhiren.cn/small-games/v1');
     assert.equal(cfg.version, 2);
-    const ids = five ? sixH5Ids.filter((id) => id !== 'travel-bund') : sixH5Ids;
+    const ids = five ? presetH5Ids.filter((id) => id !== 'travel-bund') : presetH5Ids;
     assert.deepEqual(cfg.games, ids);
     assert.deepEqual(cfg.backend, [five]);
     assert(
@@ -2155,7 +2242,7 @@ export function targetedCommandsOnly(before, after) {
       [
         'build:taptap:h5',
         'node scripts/build-games.mjs --config infra/builds/six-taptap-h5.mjs',
-        sixH5Sources,
+        presetH5Ids.map((id) => `games/local/${id}`),
       ],
       ['deploy:backend', 'node scripts/deploy-backend.mjs', selectedBackendConsumers],
       [
@@ -2529,6 +2616,32 @@ export function reviewedSharedFileScopes({
         continue;
       }
       if (
+        Object.hasOwn(homeboundCocosWiring, file) &&
+        readBase &&
+        readHead &&
+        homeboundCocosWiringOnly(
+          file,
+          (() => {
+            try {
+              return readBase(file);
+            } catch {
+              return undefined;
+            }
+          })(),
+          readHead(file),
+        )
+      ) {
+        assert(
+          games.some(
+            (game) =>
+              game.id === 'homebound-station' && game.source === 'games/local/homebound-station',
+          ),
+        );
+        assert(packages.some((pkg) => pkg.dir === 'games/local/homebound-station'));
+        scopes.set(file, ['games/local/homebound-station']);
+        continue;
+      }
+      if (
         [
           ...tianxiaWorkflowFiles,
           ...Object.keys(tianxiaImmersiveFiles),
@@ -2537,7 +2650,19 @@ export function reviewedSharedFileScopes({
           'scripts/cocos-validation.mjs',
           'scripts/reuse-cocos-artifacts.mjs',
         ].includes(file) &&
-        tianxiaWiringOnly(file, readBase(file), readHead(file))
+        readBase &&
+        readHead &&
+        tianxiaWiringOnly(
+          file,
+          (() => {
+            try {
+              return readBase(file);
+            } catch {
+              return undefined;
+            }
+          })(),
+          readHead(file),
+        )
       ) {
         const entries = games.filter(
           (game) => game.id === 'tianxia-chalu' || game.source === tianxiaSource,
@@ -2557,6 +2682,25 @@ export function reviewedSharedFileScopes({
           tianxiaSource,
           ...(file === 'scripts/test-game-dev-mode.mjs' ? ['games/local/wulong-city'] : []),
         ]);
+        continue;
+      }
+      if (
+        file === 'scripts/reuse-cocos-artifacts.mjs' ||
+        file === 'scripts/reuse-cocos-artifacts.test.mjs'
+      ) {
+        assert.deepEqual(
+          literalDeclaration(readHead('scripts/reuse-cocos-artifacts.mjs'), 'games'),
+          [
+            'carding-car',
+            'night-overwatch',
+            'orbit-atelier',
+            'tianxia-chalu',
+            'homebound-station',
+            'merge-front',
+          ],
+        );
+        for (const dir of cocosWebSources) assert(packages.some((pkg) => pkg.dir === dir));
+        scopes.set(file, file.endsWith('.test.mjs') ? [] : cocosWebSources);
         continue;
       }
       if (file === 'package.json') {
@@ -2925,12 +3069,19 @@ export function reviewedSharedFileScopes({
         assertSixH5(games, packages, readHead);
         scopes.set(
           file,
-          sixH5Sources.filter((source) => !source.endsWith('/travel-bund')),
+          sixH5Sources.filter(
+            (source) => !source.endsWith('/travel-bund') && !source.endsWith('/homebound-station'),
+          ),
         );
         continue;
       }
       if (file === 'games/local/carding-car/scripts/cocos-branding.mjs') {
-        scopes.set(file, ['games/local/carding-car', 'games/local/night-overwatch', tianxiaSource]);
+        scopes.set(file, [
+          'games/local/carding-car',
+          'games/local/night-overwatch',
+          tianxiaSource,
+          'games/local/homebound-station',
+        ]);
         continue;
       }
       if (sixH5ScopePaths.includes(file)) {
@@ -2946,7 +3097,11 @@ export function reviewedSharedFileScopes({
             ].includes(file) && games.some((g) => g.id === 'merge-front');
           scopes.set(
             file,
-            mergeConsumer ? [...sixH5Sources, 'games/local/merge-front'] : sixH5Sources,
+            file === 'infra/builds/six-taptap-h5.mjs'
+              ? presetH5Ids.map((id) => `games/local/${id}`)
+              : mergeConsumer
+                ? [...sixH5Sources, 'games/local/merge-front']
+                : sixH5Sources,
           );
         }
         continue;
@@ -3012,7 +3167,12 @@ export function reviewedSharedFileScopes({
         }
         if (file === 'scripts/competition-service-config.mjs') {
           assertSixH5(games, packages, readHead);
-          sources.push(...sixH5Sources.filter((source) => !source.endsWith('/travel-bund')));
+          sources.push(
+            ...sixH5Sources.filter(
+              (source) =>
+                !source.endsWith('/travel-bund') && !source.endsWith('/homebound-station'),
+            ),
+          );
         }
         if (gateway) {
           assertRankedConsumers(games, packages, readHead);
@@ -3045,7 +3205,9 @@ export function reviewedSharedFileScopes({
         if (gateway) assert(packages.some((pkg) => pkg.dir === 'apps/shell-web'));
         scopes.set(file, [
           ...Object.values(rankedConsumers),
-          ...sixH5Sources.filter((source) => !source.endsWith('/travel-bund')),
+          ...sixH5Sources.filter(
+            (source) => !source.endsWith('/travel-bund') && !source.endsWith('/homebound-station'),
+          ),
           ...(gateway ? ['services/runtime-api', 'apps/shell-web'] : []),
         ]);
         continue;

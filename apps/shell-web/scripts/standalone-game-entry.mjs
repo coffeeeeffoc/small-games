@@ -21,8 +21,7 @@ export const markers = {
   'bullet-garden': '#start',
   'maze-wander': '#start',
   'urban-breakout': '#start',
-  'homebound-station': '[data-level="0"]',
-
+  'homebound-station': 'body[data-homebound-ready="true"]',
   'rescue-team': '#fleet-1',
 
   'waterline-station': '#board[data-level="1"]',
@@ -73,7 +72,6 @@ export const homeControls = {
   'voiceprint-case': '#start',
   'maze-wander': ['#start', '#enter'],
   'urban-breakout': '#start',
-  'homebound-station': '[data-level="0"]',
   'fold-the-world': '[data-action="start"]',
   'xiangqi-five': '#home-start',
   'cops-robbers': '#home-start',
@@ -89,6 +87,7 @@ export const homeControls = {
 export const legacyEntryIds = [
   'merge-front',
   'orbit-atelier',
+  'homebound-station',
   'echo-lab',
   'bullet-garden',
 

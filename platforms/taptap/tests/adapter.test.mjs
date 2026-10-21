@@ -6,7 +6,9 @@ import { taptapPlatform } from '../build.mjs';
 test('TapTap source configuration uses the documented AppID fields without preview identities', () => {
   const files = taptapPlatform.files({ game: 'history', appId: '', version: '1.2.3' });
   assert.equal(taptapPlatform.sdk, 'tap');
-  assert.equal(taptapPlatform.advertising, false);
+  assert.equal(taptapPlatform.advertising, true);
+  assert.equal(taptapPlatform.entryArguments({}), '""');
+  assert.equal(taptapPlatform.entryArguments({ adUnitId: 'native-adunit' }), '"native-adunit"');
   assert.equal(files['game.json'].appId, '');
   assert.equal(files['project.config.json'].appid, '');
   assert.deepEqual(files['project.config.json'].setting, { es6: true });
@@ -49,6 +51,8 @@ test('the adapter preserves native receiver, frozen SDK, touch identity and stor
     },
   });
   const normalized = normalizeTapTapSdk(sdk);
+  assert.equal(normalizeTapTapSdk(sdk), normalized);
+  assert.notEqual(normalizeTapTapSdk({ ...sdk }), normalized);
   assert.equal(normalized.createCanvas(), 'native-canvas');
   assert.equal({ ...normalized }.createCanvas(), 'native-canvas');
   assert.equal(normalized.createCanvas, normalized.createCanvas);
@@ -104,4 +108,17 @@ test('unavailable optional exit fails instead of reporting an invented success',
     },
   };
   assert.equal(normalizeTapTapSdk(sdk).getLogManager(), logger);
+});
+
+test('native advertising preserves the Tap receiver and the explicitly configured placement', () => {
+  const ad = { native: true };
+  const sdk = Object.freeze({
+    createCanvas() {},
+    createRewardedVideoAd(options) {
+      assert.equal(this, sdk);
+      assert.deepEqual(options, { adUnitId: 'native-placement' });
+      return ad;
+    },
+  });
+  assert.equal(normalizeTapTapSdk(sdk).createRewardedVideoAd({ adUnitId: 'native-placement' }), ad);
 });

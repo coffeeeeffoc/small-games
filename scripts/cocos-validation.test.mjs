@@ -158,3 +158,37 @@ test('Orbit Creator accepts only complete source-matching prebuilt inputs and ne
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('homebound uses its own verified Creator artifact and rejects missing or stale inputs', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'homebound-cocos-input-'));
+  const pkg = {
+    dir: 'games/local/homebound-station',
+    name: 'homebound',
+    creator: { version: '3.8.8' },
+  };
+  const artifact = path.join(root, 'prebuilt');
+  try {
+    const scripts = path.join(root, pkg.dir, 'scripts');
+    await mkdir(scripts, { recursive: true });
+    await writeFile(
+      path.join(scripts, 'artifact.mjs'),
+      `import {readFile} from 'node:fs/promises';import path from 'node:path';export async function verifyPrebuilt(dir){if(await readFile(path.join(dir,'hash'),'utf8')!=='source-match')throw Error('source mismatch');return path.join(dir,'dist');}`,
+    );
+    await mkdir(path.join(artifact, 'dist'), { recursive: true });
+    await writeFile(path.join(artifact, 'hash'), 'source-match');
+    await writeFile(path.join(artifact, 'dist/index.html'), 'real-artifact-fixture');
+    const env = { HOMEBOUND_STATION_PREBUILT_DIR: artifact };
+    await assert.rejects(verifyCocosBuildInputs(root, [pkg], env), /cc.d.ts/);
+    await writeFile(path.join(artifact, 'cc.d.ts'), 'engine fixture');
+    await verifyCocosBuildInputs(root, [pkg], env);
+    assert(
+      (await readFile(path.join(root, pkg.dir, 'reports/engine.d.ts'), 'utf8')).includes(
+        path.join(artifact, 'cc.d.ts').replaceAll('\\', '/'),
+      ),
+    );
+    await writeFile(path.join(artifact, 'hash'), 'old-source');
+    await assert.rejects(verifyCocosBuildInputs(root, [pkg], env), /source mismatch/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

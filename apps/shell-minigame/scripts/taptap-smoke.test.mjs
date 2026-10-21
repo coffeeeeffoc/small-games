@@ -8,7 +8,12 @@ import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 import { inventory } from './nine-games-build.mjs';
 import { nineGames } from './nine-games-targets.mjs';
-import { createTapTapRequire, runTapTapSmoke, verifyTapTapPackage } from './taptap-smoke.mjs';
+import {
+  createTapTapRequire,
+  runTapTapSmoke,
+  verifyTapTapPackage,
+  smokeOptions,
+} from './taptap-smoke.mjs';
 
 const repo = fileURLToPath(new URL('../../../', import.meta.url));
 const selected = nineGames.find(({ id }) => id === 'letters-words2');
@@ -144,4 +149,11 @@ test('A Cocos blocker never hides an unknown missing build or a stale package di
   } finally {
     await rm(output, { recursive: true, force: true });
   }
+});
+
+test('smoke accepts explicit Homebound without extending the frozen default selection', () => {
+  assert.equal(smokeOptions([]).games.length, 6);
+  assert.equal(smokeOptions([]).games.includes('homebound-station'), false);
+  assert.deepEqual(smokeOptions(['--game', 'homebound-station']).games, ['homebound-station']);
+  assert.throws(() => smokeOptions(['--game', 'unknown']), /Unknown/);
 });

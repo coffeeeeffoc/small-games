@@ -8,7 +8,11 @@ import {
   verifyProvenance,
   games,
 } from './reuse-cocos-artifacts.mjs';
-const expected = { sha: 'a'.repeat(40), branch: 'dev', repository: 'owner/repo' };
+const expected = {
+  sha: 'a'.repeat(40),
+  branch: 'dev',
+  repository: 'owner/repo',
+};
 const run = {
   id: 9,
   head_sha: expected.sha,
@@ -23,12 +27,13 @@ const jobs = games.map((game) => ({
   status: 'completed',
   conclusion: 'success',
 }));
-test('reuse waits for all five successful producer gates, not downstream CI', () => {
+test('reuse waits for all six successful producer gates, not downstream CI', () => {
   assert.deepEqual(games, [
     'carding-car',
     'night-overwatch',
     'orbit-atelier',
     'tianxia-chalu',
+    'homebound-station',
     'merge-front',
   ]);
   assert.equal(inspectProducer(run, jobs, expected), 'ready');
@@ -114,7 +119,12 @@ test('provenance rejects wrong source, platform, engine, run, or repository', ()
     runId: '9',
     runAttempt: '1',
   };
-  const info = { ...source, creator: '3.8.8', platform: 'web-mobile', runner: 'Windows' };
+  const info = {
+    ...source,
+    creator: '3.8.8',
+    platform: 'web-mobile',
+    runner: 'Windows',
+  };
   verifyProvenance(info, source);
   for (const key of Object.keys(info))
     assert.throws(() => verifyProvenance({ ...info, [key]: 'wrong' }, source));
@@ -132,7 +142,7 @@ test('CI is the sole producer direction and fallback retains original gates', as
   const verify = producer.jobs.reuse.steps.find((step) => step.id === 'verify');
   assert.equal(
     verify.if,
-    "steps.kart.outcome == 'success' && steps.night.outcome == 'success' && steps.orbit.outcome == 'success' && steps.tianxia.outcome == 'success' && steps.merge.outcome == 'success'",
+    "steps.kart.outcome == 'success' && steps.night.outcome == 'success' && steps.orbit.outcome == 'success' && steps.tianxia.outcome == 'success' && steps.homebound.outcome == 'success' && steps.merge.outcome == 'success'",
   );
   for (const game of games) {
     const transfers = producer.jobs.reuse.steps.filter(
@@ -172,29 +182,42 @@ test('CI is the sole producer direction and fallback retains original gates', as
   );
 });
 
-test('all five downloaded artifacts must verify before reuse publishes any of them', async () => {
-  const producer = yaml.load(
+test('reuse verifies and republishes every Creator game before skipping the producer', async () => {
+  const workflow = yaml.load(
     await readFile(new URL('../.github/workflows/carding-car.yml', import.meta.url), 'utf8'),
   );
-  const steps = producer.jobs.reuse.steps;
-  const verify = steps.find((step) => step.id === 'verify');
-  for (const [game, id] of [
-    ['carding-car', 'kart'],
-    ['night-overwatch', 'night'],
-    ['orbit-atelier', 'orbit'],
-    ['merge-front', 'merge'],
-    ['tianxia-chalu', 'tianxia'],
-  ]) {
-    assert(verify.if.includes(`steps.${id}.outcome == 'success'`));
-    assert(verify.run.includes(`verify ${game} .scratch/ci-cocos/${game}`));
-    const download = steps.find((step) => step.id === id);
-    assert.equal(download.with.name, game + '-${{ github.sha }}');
-    const upload = steps.find(
-      (step) =>
-        step.uses?.startsWith('actions/upload-artifact@') &&
-        step.with.name === game + '-${{ github.sha }}',
+  assert.deepEqual(workflow.jobs.creator.strategy.matrix.game, games);
+  const steps = workflow.jobs.reuse.steps,
+    verify = steps.find((step) => step.id === 'verify');
+  for (const game of games) {
+    const name = game + '-${{ github.sha }}';
+    const download = steps.find(
+      (step) => step.uses?.startsWith('actions/download-artifact@') && step.with.name === name,
     );
-    assert.equal(upload.if, "steps.verify.outcome == 'success'");
+    assert(download, `missing download ${game}`);
+    assert.equal(
+      download.id,
+      {
+        'carding-car': 'kart',
+        'night-overwatch': 'night',
+        'orbit-atelier': 'orbit',
+        'tianxia-chalu': 'tianxia',
+        'homebound-station': 'homebound',
+        'merge-front': 'merge',
+      }[game],
+    );
+    assert(verify.if.includes(`steps.${download.id}.outcome == 'success'`));
+    assert(verify.run.includes(`verify ${game} .scratch/ci-cocos/${game}`));
+    const upload = steps.find(
+      (step) => step.uses?.startsWith('actions/upload-artifact@') && step.with.name === name,
+    );
+    assert.equal(upload?.if, "steps.verify.outcome == 'success'");
+    assert.equal(upload.with['if-no-files-found'], 'error');
     assert.equal(upload.with.path, `.scratch/ci-cocos/${game}`);
   }
+  assert.equal(inspectProducer(run, jobs.slice(0, -1), expected), 'waiting');
+  assert.throws(
+    () => inspectProducer({ ...run, status: 'completed' }, jobs.slice(0, -1), expected),
+    /lacks successful/,
+  );
 });

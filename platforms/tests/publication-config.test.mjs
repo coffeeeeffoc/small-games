@@ -52,3 +52,27 @@ test('six configured hosts and six reserved channels never imply every game has 
     );
   }
 });
+
+test('TapTap native advertising uses only the selected public native placement', () => {
+  assert.equal(domesticChannels.taptap.rewardedAds, true);
+  const config = publicReleaseConfiguration('homebound-station', 'taptap', {
+    release: true,
+    env: {
+      MINIGAME_HOMEBOUND_STATION_TAPTAP_APP_ID: 'native-miniapp',
+      MINIGAME_HOMEBOUND_STATION_TAPTAP_AD_UNIT_ID: 'native-placement',
+      TAPTAP_HOMEBOUND_STATION_AD_UNIT_ID: 'unrelated-h5-placement',
+      TAPTAP_APP_SECRET: 'never-ship',
+    },
+  });
+  assert.deepEqual(config, {
+    'homebound-station': { taptap: { appId: 'native-miniapp', adUnitId: 'native-placement' } },
+  });
+  assert.deepEqual(
+    publicReleaseConfiguration('homebound-station', 'taptap', {
+      env: {
+        TAPTAP_HOMEBOUND_STATION_AD_UNIT_ID: 'unrelated-h5-placement',
+      },
+    }),
+    { 'homebound-station': { taptap: { appId: '', adUnitId: '' } } },
+  );
+});

@@ -13,6 +13,7 @@ export const h5Orientations = Object.freeze({
   'night-overwatch': 'landscape',
   'travel-bund': 'landscape',
   'letters-words2': 'portrait',
+  'homebound-station': 'portrait',
 });
 export const productionCompetitionApi = 'https://api.nenggongzhiren.cn/small-games/v1';
 export const localCompetitionApi = 'http://127.0.0.1:43802/api/competition/v1';
