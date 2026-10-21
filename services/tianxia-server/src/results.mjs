@@ -68,11 +68,14 @@ export class ResultStore {
         }
         await rename(temporary, filename);
         // fsync the directory makes the rename durable on filesystems that support it.
-        const directory = await open(this.directory, 'r');
-        try {
-          await directory.sync();
-        } finally {
-          await directory.close();
+        // Windows cannot fsync directory handles; file fsync and atomic rename still apply.
+        if (process.platform !== 'win32') {
+          const directory = await open(this.directory, 'r');
+          try {
+            await directory.sync();
+          } finally {
+            await directory.close();
+          }
         }
         this.records.set(record.matchId, record);
         await this.prune(record.finishedAt);

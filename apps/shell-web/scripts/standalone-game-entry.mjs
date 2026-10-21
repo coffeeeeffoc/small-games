@@ -83,7 +83,7 @@ export const homeControls = {
   'ball-roguelite': '#start',
   'castle-cannon': '[data-action="start"]',
   'ember-bounce': '#start',
-  'tianxia-chalu': '#start',
+  'tianxia-chalu': ['#start', '#begin-battle'],
   'voiceprint-case': '#start',
   'maze-wander': ['#start', '#enter'],
   'urban-breakout': '#start',

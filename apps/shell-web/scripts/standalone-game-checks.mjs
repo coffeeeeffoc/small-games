@@ -401,16 +401,47 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'home');
   } else if (id === 'tianxia-chalu') {
     await expect(frame.locator('body')).toHaveAttribute('data-screen', 'battle');
-    const junction = frame.locator('button[data-junction]:enabled').first();
-    await expect(junction).toBeVisible();
-    const route = await junction.getAttribute('data-route');
-    expect(route).not.toBeNull();
-    await click(junction);
-    await expect(junction).not.toHaveAttribute('data-route', route);
+    const canvas = frame.locator('#GameCanvas');
+    await expect(canvas).toBeVisible();
+    const snapshot = () => canvas.evaluate(() => globalThis.tianxiaSnapshot());
+    await expect
+      .poll(async () => {
+        const state = await snapshot();
+        return state.ready && state.artReady;
+      })
+      .toBe(true);
+    const state = await snapshot();
+    const city = state.cities.find((entry) => entry.owner === 0 && entry.client);
+    expect(city).toBeTruthy();
+    const junction = state.junctions.find((entry) => entry.cityId === city.id);
+    expect(junction).toBeTruthy();
+    // Snapshot coordinates belong to the child viewport; native input is page-wide.
+    const local = await canvas.evaluate((node) => {
+      const bounds = node.getBoundingClientRect();
+      return { x: bounds.x, y: bounds.y };
+    });
+    const bounds = await canvas.boundingBox();
+    const x = bounds.x - local.x + city.client.x;
+    const y = bounds.y - local.y + city.client.y;
+    const page = canvas.page();
+    if (mobile) await page.touchscreen.tap(x, y);
+    else await page.mouse.click(x, y);
+    await expect.poll(async () => (await snapshot()).selected).toBe(city.id);
+    await click(frame.locator('#cycle'));
+    await expect
+      .poll(
+        async () =>
+          (await snapshot()).junctions.find((entry) => entry.id === junction.id).routeIndex,
+      )
+      .not.toBe(junction.routeIndex);
     await click(frame.locator('#pause'));
     await expect(frame.locator('body')).toHaveAttribute('data-screen', 'pause');
     await click(frame.locator('#resume'));
     await expect(frame.locator('body')).toHaveAttribute('data-screen', 'battle');
+    await click(frame.locator('#pause'));
+    await click(frame.locator('#leave'));
+    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'home');
+    await expect(frame.locator('#start')).toBeVisible();
   } else if (id === 'voiceprint-case') {
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing', {
       timeout: 20_000,

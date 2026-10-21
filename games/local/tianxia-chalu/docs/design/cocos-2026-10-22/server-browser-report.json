@@ -1,0 +1,15 @@
+{
+  "status": "passed",
+  "environment": "Chromium 390x844 touch emulation; real HTTP service and real Creator artifact; injected service clock, no forged results",
+  "checks": [
+    "Production /play/ loads the real Cocos artifact and defaults to the authoritative service.",
+    "A real Cocos city touch plus direction control reaches the API and renders the accepted route and server time.",
+    "Pause, resume and BFCache-style pagehide keep the server match paused without abandoning it.",
+    "Backgrounding during deferred creation pauses the late-created match before gameplay.",
+    "Backgrounding during deferred resume returns to a paused authoritative match.",
+    "An outage never falsely claims pause; reconnect fetches a terminal result without a rejected resume POST.",
+    "Expired match explains expiry and awards no card or invented rank.",
+    "Leaving preparation cancels a deferred creation, abandons its late server match and never reopens battle."
+  ],
+  "pageErrors": []
+}

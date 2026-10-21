@@ -1788,6 +1788,7 @@ test('admin gate executes the actual browser entry and finite service suites, pr
         'packages/service-kit',
         'services/management-api',
         'services/kart-server',
+        'services/tianxia-server',
       ],
     },
     packages: [
@@ -1799,6 +1800,11 @@ test('admin gate executes the actual browser entry and finite service suites, pr
         dir: 'services/kart-server',
         scripts: { test: 'node --test tests/*.test.ts' },
       },
+      {
+        name: 'tianxia',
+        dir: 'services/tianxia-server',
+        scripts: { test: 'node --test tests/*.test.mjs' },
+      },
     ],
     execute: (command, args) =>
       calls.push([command === process.execPath ? 'node' : command, ...args]),
@@ -1807,6 +1813,7 @@ test('admin gate executes the actual browser entry and finite service suites, pr
     ['pnpm', '--filter', 'kit', 'test'],
     ['pnpm', '--filter', 'management', 'test'],
     ['pnpm', '--filter', 'kart', 'test'],
+    ['pnpm', '--filter', 'tianxia', 'test'],
     ['node', 'apps/admin-web/tests/browser.mjs'],
   ]);
   assert.throws(() =>

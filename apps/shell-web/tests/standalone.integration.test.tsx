@@ -54,6 +54,7 @@ it.each(games)('opens standalone Game $id and removes its frame on exit', async 
     expect(frame?.title).toBe(title);
     expect(launch?.getAttribute('href')).toBe(frame?.getAttribute('src'));
     if (
+      id === 'tianxia-chalu' ||
       id === 'ashfall-front' ||
       id === 'carrom-club' ||
       id === 'three-choose-two' ||

@@ -3,17 +3,22 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "uuid": "db5e92b1-f2de-499f-9935-a206a747ecb2",
+  "creator": {
+    "version": "3.8.8"
+  },
   "exports": {
     "./engine": "./src/core/index.mjs",
     "./levels": "./src/content/levels.mjs",
     "./dist/*": "./dist/*"
   },
   "scripts": {
-    "dev": "node server.mjs",
-    "start": "node server.mjs",
-    "build": "node build.mjs",
+    "dev": "node server.mjs --dist",
+    "start": "node server.mjs --dist",
+    "build": "node scripts/build.mjs web-mobile",
     "preview": "node server.mjs --dist",
-    "test": "node --test src/core/engine.test.mjs tests/*.test.mjs",
+    "test": "node --test --test-concurrency=1 src/core/engine.test.mjs tests/*.test.mjs",
+    "typecheck": "node scripts/typecheck.mjs",
     "test:browser": "node tests/browser.mjs"
   },
   "coffeeeeffoc": {

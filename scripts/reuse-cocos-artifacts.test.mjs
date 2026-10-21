@@ -23,9 +23,23 @@ const jobs = games.map((game) => ({
   status: 'completed',
   conclusion: 'success',
 }));
-test('reuse waits only for both successful producer gates, not downstream CI', () => {
+test('reuse waits for all three successful producer gates, not downstream CI', () => {
+  assert.deepEqual(games, ['carding-car', 'night-overwatch', 'tianxia-chalu']);
   assert.equal(inspectProducer(run, jobs, expected), 'ready');
-  assert.equal(inspectProducer(run, jobs.slice(0, 1), expected), 'waiting');
+  for (let i = 0; i < games.length; i++) {
+    const missing = jobs.filter((_, index) => index !== i);
+    assert.equal(inspectProducer(run, missing, expected), 'waiting');
+    assert.throws(() => inspectProducer({ ...run, status: 'completed' }, missing, expected));
+    assert.throws(
+      () =>
+        inspectProducer(
+          run,
+          jobs.map((job, index) => (index === i ? { ...job, conclusion: 'failure' } : job)),
+          expected,
+        ),
+      /gate failed/,
+    );
+  }
   for (const conclusion of ['failure', 'cancelled', 'skipped', 'timed_out'])
     assert.throws(
       () => inspectProducer(run, [{ ...jobs[0], conclusion }], expected),
@@ -109,6 +123,32 @@ test('CI is the sole producer direction and fallback retains original gates', as
   assert.equal(pages.jobs.kart.with.reuse_ci, "${{ github.event_name == 'push' && inputs.cocos }}");
   assert.equal(producer.jobs.reuse.if, 'inputs.reuse_ci');
   assert.equal(producer.jobs.reuse['continue-on-error'], undefined);
+  const verify = producer.jobs.reuse.steps.find((step) => step.id === 'verify');
+  assert.equal(
+    verify.if,
+    "steps.kart.outcome == 'success' && steps.night.outcome == 'success' && steps.tianxia.outcome == 'success'",
+  );
+  for (const game of games) {
+    const transfers = producer.jobs.reuse.steps.filter(
+      (step) => step.with?.name === game + '-${{ github.sha }}',
+    );
+    assert.equal(transfers.length, 2);
+    assert.equal(transfers[0].uses, 'actions/download-artifact@v8');
+    assert.equal(transfers[0].with.path, `.scratch/ci-cocos/${game}`);
+    assert.equal(transfers[0].with['run-id'], '${{ steps.producer.outputs.run_id }}');
+    assert.equal(transfers[1].uses, 'actions/upload-artifact@v7');
+    assert.equal(transfers[1].with.path, transfers[0].with.path);
+    assert.equal(transfers[1].if, "steps.verify.outcome == 'success'");
+    assert(
+      verify.run.includes(
+        `node scripts/reuse-cocos-artifacts.mjs verify ${game} .scratch/ci-cocos/${game}`,
+      ),
+    );
+  }
+  const root = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+  assert(
+    root.scripts['test:validation'].split(' ').includes('scripts/reuse-cocos-artifacts.test.mjs'),
+  );
   assert(producer.jobs.creator.if.includes("needs.reuse.result == 'success'"));
   assert(producer.jobs.creator.if.includes("needs.reuse.result == 'skipped'"));
   for (const command of ['typecheck', 'test', 'build'])

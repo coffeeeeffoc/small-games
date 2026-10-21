@@ -750,6 +750,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
       [
         'services/runtime-api',
         'services/kart-server',
+        'services/tianxia-server',
         'services/management-api',
         'packages/service-kit',
         'packages/ad-runtime',

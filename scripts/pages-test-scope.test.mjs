@@ -1695,6 +1695,31 @@ test('cleanup deletion proof binds exact source bytes at both publication bases 
   );
 });
 
+test('Tianxia Cocos cleanup binds exact former renderer/build/test, absence and retained identity', async () => {
+  const { isReviewedCleanupDeletion } = await import('./pages-test-scope.mjs');
+  const source = 'games/local/tianxia-chalu';
+  for (const name of ['build.mjs', 'render.mjs', 'tests/route-feedback.test.mjs']) {
+    const file = source + '/' + name;
+    const options = {
+      change: { status: 'D', paths: [file] },
+      readBase: (name) => cleanupOriginal(name, 'ba3f3966082a24861e1a05c1e1e293ae1f032136'),
+      headHasPath: () => false,
+      standaloneGames: [{ id: 'tianxia-chalu', source }],
+      gameSources: [source],
+    };
+    assert(isReviewedCleanupDeletion(options));
+    for (const extra of [
+      { headHasPath: () => true },
+      { headHasPath: () => undefined },
+      { readBase: (name) => options.readBase(name) + '\n' },
+      { gameSources: [] },
+      { change: { status: 'D', paths: [source + '/unknown.mjs'] } },
+      { change: { status: 'R100', paths: [file, file + '.moved'] } },
+    ])
+      assert.equal(isReviewedCleanupDeletion({ ...options, ...extra }), false);
+  }
+});
+
 test('real name-status cleanup keeps both game regressions while unknown deletion, changed baseline and reviewed-source rename remain blocked', async (t) => {
   const { root, git } = await temporaryRepository(t);
   await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });
