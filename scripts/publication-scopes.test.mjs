@@ -11,6 +11,8 @@ import {
   orbitCreatorIntegrationFileScope,
   mergeCreatorIntegrationFileScope,
   mergeCreatorIntegrationHashes,
+  mergeBulletCreatorIntegrationFileScope,
+  mergeBulletCreatorIntegrationHashes,
   competitionConsumers,
   competitionToolPlan,
   competitionServiceScopePaths,
@@ -57,6 +59,7 @@ import {
 import { executeCompetitionChecks } from './run-selected-competition.mjs';
 import { shellContractTargets, shellContractFiles, requiresCocos } from './validation-plan.mjs';
 import { ingressPreflightGuard } from './competition-ingress.mjs';
+import { requiresIncrementalCocos } from './pages-test-scope.mjs';
 
 const tianxiaBase = 'd4a677542c5a034c4fef21798845dbf16e5bcfdd';
 const tianxiaSource = 'games/local/tianxia-chalu';
@@ -3831,12 +3834,11 @@ test('admin lock proof accepts only the 11 reviewed complete blocks, manifest tu
       packages,
       games: [],
       readBase: () => old,
-      readHead: (name) =>
-        name === file
-          ? current
-          : typeof pkg === 'string'
-            ? pkg
-            : JSON.stringify(pkg, null, 2) + '\n',
+      readHead: (name) => {
+        if (name === file) return current;
+        assert.equal(name, 'apps/admin-web/package.json', 'manifest absent from this tree');
+        return typeof pkg === 'string' ? pkg : JSON.stringify(pkg, null, 2) + '\n';
+      },
     });
   assert.equal((before.match(/^---$/gm) || []).length, 2);
   assert.equal((after.match(/^---$/gm) || []).length, 2);
@@ -4405,6 +4407,111 @@ test('merge Creator routes bind exact reviewed base/head bytes and reject extra 
     };
     assert.deepEqual(reviewedSharedFileScopes(ctx).get(file), [games[0].source]);
     assert(!reviewedSharedFileScopes({ ...ctx, packages: [] }).has(file));
+  }
+});
+
+test('cumulative Merge/Bullet wiring proves exact bytes and both Creator consumers', () => {
+  const games = ['merge-front', 'bullet-garden'].map((id) => ({
+    id,
+    source: `games/local/${id}`,
+  }));
+  const packages = games.map(({ id, source }) => ({
+    dir: source,
+    name: `${id === 'merge-front' ? '@small-games' : '@coffeeeeffoc'}/${id}`,
+    creator: { version: '3.8.8' },
+    scripts: { build: 'node scripts/build.mjs web-mobile' },
+  }));
+  const changedPaths = Object.keys(mergeBulletCreatorIntegrationHashes);
+  const historical = (ref, file) =>
+    execFileSync('git', ['show', `${ref}:${file}`], { encoding: 'utf8' });
+  const before = new Map(
+    changedPaths.map((file) => [
+      file,
+      historical('39388e3a89df1b1a0d573bb800016fdbfbc4ac86', file),
+    ]),
+  );
+  const after = new Map(
+    changedPaths.map((file) => [
+      file,
+      historical('b652c346dfdee952194c2ab267c167894b7718e4', file),
+    ]),
+  );
+  const context = {
+    changedPaths,
+    games,
+    packages,
+    readBase: (file) => before.get(file),
+    readHead: (file) => after.get(file),
+  };
+  const consumers = games.map((game) => game.source);
+  const scopes = reviewedSharedFileScopes(context);
+  for (const file of changedPaths) {
+    assert(mergeBulletCreatorIntegrationFileScope(file, before.get(file), after.get(file)), file);
+    assert.deepEqual(scopes.get(file), consumers, file);
+    for (const side of ['readBase', 'readHead']) {
+      assert.equal(
+        reviewedSharedFileScopes({
+          ...context,
+          changedPaths: [file],
+          [side]: (name) => context[side](name) + '\n# unreviewed',
+        }).has(file),
+        false,
+        `${file}: extra ${side} bytes`,
+      );
+      assert.equal(
+        reviewedSharedFileScopes({
+          ...context,
+          changedPaths: [file],
+          [side]: () => {
+            throw new Error('tree unavailable');
+          },
+        }).has(file),
+        false,
+        `${file}: unavailable ${side}`,
+      );
+    }
+    assert.equal(
+      mergeBulletCreatorIntegrationFileScope(
+        file,
+        historical('53eb4b69bd1c2c3bbfe01349624235a1636b121e', file),
+        after.get(file),
+      ),
+      false,
+      `${file}: a different transition needs its own proof`,
+    );
+  }
+  for (let index = 0; index < games.length; index++) {
+    for (const mutate of [
+      (ctx) => ctx.games.splice(index, 1),
+      (ctx) => ctx.games.push({ ...ctx.games[index], source: 'games/local/alias' }),
+      (ctx) => ctx.games.push({ ...ctx.games[index], id: 'alias' }),
+      (ctx) => (ctx.games[index].id = 'alias'),
+      (ctx) => (ctx.games[index].source = 'games/local/alias'),
+      (ctx) => ctx.packages.splice(index, 1),
+      (ctx) => (ctx.packages[index].name = '@unknown/game'),
+      (ctx) => (ctx.packages[index].dir = 'games/local/alias'),
+      (ctx) => ctx.packages.push({ ...ctx.packages[index], name: '@unknown/alias' }),
+      (ctx) => ctx.packages.push({ ...ctx.packages[index], dir: 'games/local/alias' }),
+      (ctx) => (ctx.packages[index].creator.version = '3.8.9'),
+      (ctx) => (ctx.packages[index].scripts.build = 'node bypass.mjs'),
+    ]) {
+      const identities = structuredClone({ games, packages });
+      mutate(identities);
+      assert.equal(reviewedSharedFileScopes({ ...context, ...identities }).size, 0);
+    }
+  }
+  const plan = incrementalPlan({ ...context, fileScopes: scopes });
+  assert.equal(plan.full, false);
+  assert.deepEqual([...plan.consumer_sources].sort(), [...consumers].sort());
+  assert.deepEqual([...plan.game_sources].sort(), [...consumers].sort());
+  assert.deepEqual(plan.browser_ids, games.map((game) => game.id).sort());
+  assert.equal(requiresIncrementalCocos({ ...context, fileScopes: scopes, scope: plan }), true);
+  for (const unknown of ['.github/workflows/unknown.yml', 'scripts/unknown.mjs']) {
+    const extra = { ...context, changedPaths: [...changedPaths, unknown] };
+    assert.throws(
+      () => incrementalPlan({ ...extra, fileScopes: reviewedSharedFileScopes(extra) }),
+      /Incremental scope undefined/,
+    );
   }
 });
 

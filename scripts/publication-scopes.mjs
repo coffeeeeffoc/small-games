@@ -89,6 +89,42 @@ export function mergeCreatorIntegrationFileScope(file, before, after) {
     createHash('sha256').update(value.replaceAll('\r\n', '\n')).digest('hex');
   return digest(before) === pair[0] && digest(after) === pair[1];
 }
+
+// Reviewed cumulative Merge/Bullet wiring from the last successful Pages tree
+// (39388e3a) to b652c346. Both consumers remain subject to Creator/browser checks.
+export const mergeBulletCreatorIntegrationHashes = Object.freeze({
+  '.github/workflows/carding-car.yml': [
+    'ee77322f7414ab0a398af5c2d10763757ea679dbfa452520a653aacf43bdf05b',
+    '420192e8c991ff7166a1828e48b3087cdbf65604b8d659393c4802bdad6ac2c7',
+  ],
+  '.github/workflows/ci.yml': [
+    '6d1e55268d42feda5767a6e95c5986239a53b9bd8f922a231ba24f0d69cd2e29',
+    '073903ff62e45572e1b2f07a25d64ca19ad381800f7859bd73b3c6bb3da96e9f',
+  ],
+  '.github/workflows/mobile.yml': [
+    'a91039605ebf6eaa455d4159df9f061fcbb28c0dc14304d0c817d6d23766c7d4',
+    '046cada0323b6b92a6d95a894acc8a9c31881faa874e98d9f25f5b47ff7ed5f5',
+  ],
+  '.github/workflows/pages-validate.yml': [
+    '7a89794f444b282c995d86ddb8970c3e3ca8f9f4cea40fbf9d984a25348bcbc2',
+    'f7c119db7da3a46f682da323558a38214f3fed2f7cb79b8b9cbfbcf16378d258',
+  ],
+  'pnpm-lock.yaml': [
+    '959125ee6a824b1a1b820f12dde14b8f2aad9f99080afefe70ca3c2584d94379',
+    'b23918aa79186aa5922438925c7df51d6433d07eec54cc0af3f3996d47b8c9c7',
+  ],
+  'turbo.json': [
+    'ffa105c8ac861d36457df2da83998e2be0e35f6cb19cdf86e46d85844a997d75',
+    '8e715b054f404963935c195b1fb8dccc4d90ccab8a40c826411f033e810ca6fa',
+  ],
+});
+export function mergeBulletCreatorIntegrationFileScope(file, before, after) {
+  const pair = mergeBulletCreatorIntegrationHashes[file];
+  if (!pair || typeof before !== 'string' || typeof after !== 'string') return false;
+  const digest = (value) =>
+    createHash('sha256').update(value.replaceAll('\r\n', '\n')).digest('hex');
+  return digest(before) === pair[0] && digest(after) === pair[1];
+}
 // Exact additive wiring for Homebound after the Orbit and Tianxia Creator integrations. Existing compiler paths,
 // workflow gates, permissions and presets remain byte-for-byte unchanged.
 const homeboundCocosWiring = {
@@ -2724,6 +2760,18 @@ export function reviewedSharedFileScopes({
 }) {
   const scopes = vitePatchFileScopes({ changedPaths, readBase, readHead });
   for (const file of changedPaths) {
+    let mergeBulletIntegration = false;
+    if (Object.hasOwn(mergeBulletCreatorIntegrationHashes, file)) {
+      try {
+        mergeBulletIntegration = mergeBulletCreatorIntegrationFileScope(
+          file,
+          readBase?.(file),
+          readHead?.(file),
+        );
+      } catch {
+        // Missing history cannot establish this cumulative proof.
+      }
+    }
     let mergeIntegration = false;
     if (Object.hasOwn(mergeCreatorIntegrationHashes, file)) {
       try {
@@ -2736,7 +2784,41 @@ export function reviewedSharedFileScopes({
         // Historical baselines may predate this file; retain the shared consumer checks below.
       }
     }
+    let bulletLock = false;
+    if (file === 'pnpm-lock.yaml') {
+      try {
+        bulletLock = bulletGardenLockOnly(
+          readBase?.(file),
+          readHead?.(file),
+          JSON.parse(readHead?.('games/local/bullet-garden/package.json')),
+        );
+      } catch {
+        // Other/historical workspaces may lack Bullet; try their lock proofs below.
+      }
+    }
     try {
+      if (mergeBulletIntegration) {
+        const consumers = [];
+        for (const [id, name] of [
+          ['merge-front', '@small-games/merge-front'],
+          ['bullet-garden', '@coffeeeeffoc/bullet-garden'],
+        ]) {
+          const source = `games/local/${id}`;
+          const entries = games.filter((game) => game.id === id || game.source === source);
+          assert.equal(entries.length, 1);
+          assert.equal(entries[0].id, id);
+          assert.equal(entries[0].source, source);
+          const targets = packages.filter((pkg) => pkg.dir === source || pkg.name === name);
+          assert.equal(targets.length, 1);
+          assert.equal(targets[0].dir, source);
+          assert.equal(targets[0].name, name);
+          assert.equal(targets[0].creator?.version, '3.8.8');
+          assert.equal(targets[0].scripts?.build, 'node scripts/build.mjs web-mobile');
+          consumers.push(source);
+        }
+        scopes.set(file, consumers);
+        continue;
+      }
       if (mergeIntegration) {
         const source = 'games/local/merge-front';
         assert.equal(games.filter((g) => g.id === 'merge-front' && g.source === source).length, 1);
@@ -2747,14 +2829,7 @@ export function reviewedSharedFileScopes({
         scopes.set(file, [source]);
         continue;
       }
-      if (
-        file === 'pnpm-lock.yaml' &&
-        bulletGardenLockOnly(
-          readBase(file),
-          readHead(file),
-          JSON.parse(readHead('games/local/bullet-garden/package.json')),
-        )
-      ) {
+      if (bulletLock) {
         scopes.set(file, ['games/local/bullet-garden']);
         continue;
       }
