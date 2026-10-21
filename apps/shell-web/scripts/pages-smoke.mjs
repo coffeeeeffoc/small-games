@@ -15,6 +15,7 @@ const builtInCount = 0;
 const basePath = process.env.PAGES_BASE_PATH ?? '/small-games/';
 const immersiveGame = (id) =>
   [
+    'homebound-station',
     'ashfall-front',
     'carrom-club',
     'three-choose-two',

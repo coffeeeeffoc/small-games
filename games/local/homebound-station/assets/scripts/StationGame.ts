@@ -116,6 +116,7 @@ export class StationGame extends Component {
       document.body.dataset.homeboundReady = 'true';
       window.dispatchEvent(new Event('homebound-ready'));
     }
+    this.platform.display(this.page !== 'home');
     this.render();
   }
   private startLevel(index: number, invitation = false) {
@@ -142,6 +143,7 @@ export class StationGame extends Component {
   private changePage(page: Page) {
     if (this.page === 'ad' && page !== 'ad') this.gate.cancel(this.platform.ads);
     this.page = page;
+    this.platform.display(!['home', 'levels', 'settings', 'help'].includes(page));
     this.state.paused = page !== 'playing' || this.hidden;
     this.clear();
     this.hud.invalidate();

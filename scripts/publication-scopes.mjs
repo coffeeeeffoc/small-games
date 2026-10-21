@@ -10,6 +10,22 @@ const loadDependency = createRequire(import.meta.url);
 // Exact additive wiring for Homebound after the Orbit Creator integration. Existing compiler paths,
 // workflow gates, permissions and presets remain byte-for-byte unchanged.
 const homeboundCocosWiring = {
+  'apps/shell-web/src/StandaloneGame.tsx': [
+    'f88ada43b1b3b3774d2dfe1a7d77de230814ae45925ff8be7d49b24c311fb318',
+    '73c1a522c76edb60540a030e2dda024fb69b654634b7c1825ba2c23274a42a40',
+  ],
+  'apps/shell-web/scripts/pages-smoke.mjs': [
+    '9b8d9e3b859c9c03f72fe7d6f4f3de511df3b24f4dbcfa9aaf8a693f9f841ddc',
+    'ad385f3087396c5171e20d3d19f3632aefd5b7d81a410636d709c1593914374d',
+  ],
+  'apps/shell-web/tests/standalone-immersive.integration.test.tsx': [
+    '3ca9d37e923bfb6daf7d03fe01907dd1e4cea844ab78affac642da078dedb21a',
+    '2ddb74faa214e91cc627dc30914e205ecc87dead39263868504a22b42553f64a',
+  ],
+  'apps/shell-web/tests/standalone.integration.test.tsx': [
+    '24377f3162a190c60c1ec6470f0cace35474a89b33a491e4dbc9240f1b626b07',
+    'fde093fdda3db81c0f4d1b2f378da12dee880275cd5800d32923348e04552aea',
+  ],
   'scripts/check-workspace-dependencies.mjs': [
     '7799f1bed87e0cd2041c30aac44779c6e2013b765401f6358e7eef5ec25f4c29',
     'a4970a45e8721bb7ac50ef37397a13876b21f21f399695e30991dab61508b417',

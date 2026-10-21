@@ -4054,6 +4054,10 @@ test('Orbit Cocos gameplay scope isolates the real exported branch without admit
 
 test('merged Homebound Creator routes preserve Orbit and reject changes to existing gates', () => {
   const files = [
+    'apps/shell-web/src/StandaloneGame.tsx',
+    'apps/shell-web/scripts/pages-smoke.mjs',
+    'apps/shell-web/tests/standalone-immersive.integration.test.tsx',
+    'apps/shell-web/tests/standalone.integration.test.tsx',
     '.github/workflows/carding-car.yml',
     '.github/workflows/ci.yml',
     '.github/workflows/pages-validate.yml',

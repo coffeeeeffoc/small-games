@@ -54,6 +54,21 @@ export class StationPlatform {
       });
     }
   }
+  display(playing: boolean) {
+    if (!sys.isBrowser || window.parent === window) return;
+    try {
+      window.parent.postMessage(
+        {
+          type: 'small-games:display-state',
+          gameId: 'homebound-station',
+          screen: playing ? 'playing' : 'home',
+        },
+        new URL(document.referrer).origin,
+      );
+    } catch {
+      /* Unrelated embeds have no Shell host. */
+    }
+  }
   get developer() {
     try {
       return sys.isBrowser && !!(globalThis as Bridge).SmallGamesDev?.isEnabled();
