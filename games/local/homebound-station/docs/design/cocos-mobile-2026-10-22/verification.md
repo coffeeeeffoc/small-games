@@ -40,4 +40,4 @@
 
 以上是桌面 Chromium 的手机尺寸与触屏模拟，不是手机实机验收。广告 fixture 仅验证奖励契约，不代表真实广告播放；仍需本游戏正式广告配置和对应平台宿主验证。
 
-TapTap 小游戏 `game.zip` 与 Android APK 是不同构建目标。官方要求普通小游戏与 APK 接 Dirichlet 广告联盟，现有 `tap` 广告 API 不能作为这些包体广告接入成功的证明。实际 SDK、广告位和对应宿主适配仍须完成平台验收，游戏继续复用同一个激励广告端口。
+TapTap 小游戏 `game.zip` 与 Android APK 是不同构建目标。[Dirichlet 官方小游戏接入说明](https://ssp.dirichlet.cn/docs/mini-program-guide/)链接到 Tap 宿主广告 API，普通小游戏沿用 `tap.createRewardedVideoAd` 和 `onClose.isEnded`，但必须配置 Dirichlet“小游戏”媒体的广告位，不能借用 H5 位。当前适配符合此文档；仍未在实际 Tap 宿主播放验证。APK 使用独立 Java SDK 与 Cocos JSB，尚未接入，游戏继续复用同一个激励广告端口。

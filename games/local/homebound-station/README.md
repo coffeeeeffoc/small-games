@@ -51,7 +51,7 @@ node apps/shell-minigame/scripts/taptap-cocos.mjs --game homebound-station --pre
 
 该命令校验已有真实 Creator 3.8.8 的 WeChat 转换源，不会执行引擎构建；先运行 `build:wechat`。需继续使用官方 TapTap 1.2.2 转换和打包流程，见根目录 `docs/plans/2026-10-07-taptap-cocos.md`。转换后、官方最终打包前，由 `--prepare-login` 阶段注入通用广告端口和公开配置。配置改变后必须重新打包，转换器最初生成的 ZIP 不能代替最终包。主包不超过4 MiB，总资源和最终 ZIP 均小于20 MiB。归途站离线玩法无需登录后端，正式包仍要求本游戏有效 AppID。
 
-普通小游戏与 APK 的广告应按官方要求接 Dirichlet 广告联盟；现有 `tap` API 适配不等于已完成这些包体的 SDK 接入。实际包体须安装对应广告 provider，缺少匹配 SDK 时返回不可用，不跨平台回退或模拟成功。
+普通小游戏与 APK 的广告均来自 Dirichlet，但 SDK 不同：[普通小游戏官方教程](https://developer.taptap.cn/minigameapidoc/dev/tutorial/open-capabilities/ad/rewarded-video-ad/)使用宿主 `tap.createRewardedVideoAd`，当前通用适配器按 `onClose.isEnded === true` 发奖，广告位必须来自 Dirichlet 的“小游戏”媒体；Android APK 则需要 Java SDK 与 Cocos JSB 适配，当前 `game.zip` 接线不代表 APK 接入完成。缺少匹配 SDK 时返回不可用，不跨平台回退或模拟成功。
 
 原生广告位与 H5 广告位独立。H5 继续通过 `H5_ADS_ENABLED=1`、`TAPTAP_HOMEBOUND_STATION_AD_UNIT_ID` 配置其端口。未配置或宿主无广告能力时默认不可用，1×仍正常游玩。开发/测试中的 SDK 回调仅验证奖励契约，不代表真实广告投放或宿主验收。
 
