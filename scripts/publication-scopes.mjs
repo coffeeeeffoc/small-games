@@ -1579,6 +1579,25 @@ function tianxiaWiringOnly(file, before, after) {
     return false;
   }
 }
+function exactHomeboundReadyGuard(before, after) {
+  // The exported diagnostic API exists only after Creator starts the scene.
+  // Bind this readiness assertion to the reviewed complete file, preserving every gameplay check.
+  const previous = before.replaceAll('\r\n', '\n');
+  const current = after.replaceAll('\r\n', '\n');
+  const anchor = "  } else if (id === 'homebound-station') {\n";
+  return (
+    createHash('sha256').update(previous).digest('hex') ===
+      '895deb1ad37dd28850139cfefd23d6178813a40e2d3dca0670bf9a1bc74fd65d' &&
+    current ===
+      previous.replace(
+        anchor,
+        anchor +
+          "    await expect(frame.locator('body')).toHaveAttribute('data-homebound-ready', 'true', {\n" +
+          '      timeout: 60_000,\n' +
+          '    });\n',
+      )
+  );
+}
 function exactOrbitBoundsGuard(before, after) {
   // Only the reviewed masked-SVG offset fix; all input and behavior assertions stay fixed.
   return (
@@ -3248,6 +3267,17 @@ export function reviewedSharedFileScopes({
         }
         assert(threeChooseTwoBackendFileScope(file, before, readHead(file)));
         scopes.set(file, ['games/local/three-choose-two', 'services/runtime-api']);
+      } else if (
+        file === standaloneChecksFile &&
+        exactHomeboundReadyGuard(readBase(file), readHead(file))
+      ) {
+        assert(
+          games.filter(
+            (game) =>
+              game.id === 'homebound-station' && game.source === 'games/local/homebound-station',
+          ).length === 1,
+        );
+        scopes.set(file, ['games/local/homebound-station']);
       } else if (
         file === standaloneChecksFile &&
         exactOrbitBoundsGuard(readBase(file), readHead(file))

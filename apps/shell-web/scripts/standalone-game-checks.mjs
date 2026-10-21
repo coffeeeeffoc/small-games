@@ -745,6 +745,9 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await click(frame.locator('#resume'));
     await expect(frame.locator('.stage')).toHaveAttribute('data-playing', 'true');
   } else if (id === 'homebound-station') {
+    await expect(frame.locator('body')).toHaveAttribute('data-homebound-ready', 'true', {
+      timeout: 60_000,
+    });
     const canvas = frame.locator('#GameCanvas');
     const state = () => frame.locator('body').evaluate(() => globalThis.homeboundSnapshot());
     const view = () => frame.locator('body').evaluate(() => globalThis.homeboundView());

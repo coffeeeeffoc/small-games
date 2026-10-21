@@ -4411,3 +4411,36 @@ test('merged Homebound Creator routes preserve Orbit and Tianxia and reject chan
     assert.deepEqual(scopes.get(file), [games[0].source], file);
   }
 });
+
+test('Homebound Creator readiness guard preserves gameplay and scopes only its registered game', () => {
+  const file = 'apps/shell-web/scripts/standalone-game-checks.mjs';
+  const before = execFileSync('git', ['show', '8a3c141a6b2ef83913c97a58832261cc113e4375:' + file], {
+    encoding: 'utf8',
+  });
+  const anchor = "  } else if (id === 'homebound-station') {\n";
+  const ready =
+    "    await expect(frame.locator('body')).toHaveAttribute('data-homebound-ready', 'true', {\n" +
+    '      timeout: 60_000,\n' +
+    '    });\n';
+  const after = before.replace(anchor, anchor + ready);
+  const context = {
+    changedPaths: [file],
+    games: [{ id: 'homebound-station', source: 'games/local/homebound-station' }],
+    readBase: () => before,
+    readHead: () => after,
+  };
+  assert.deepEqual(
+    [...reviewedSharedFileScopes(context)],
+    [[file, ['games/local/homebound-station']]],
+  );
+  for (const invalid of [
+    after + '\nrunUnrelated();',
+    after.replace(ready, ready + ready),
+    after.replace('timeout: 60_000', 'timeout: 0'),
+    after.replace("id === 'urban-breakout'", "id === 'other'"),
+  ]) {
+    assert.equal(reviewedSharedFileScopes({ ...context, readHead: () => invalid }).size, 0);
+  }
+  assert.equal(reviewedSharedFileScopes({ ...context, readBase: () => before + '\n' }).size, 0);
+  assert.equal(reviewedSharedFileScopes({ ...context, games: [] }).size, 0);
+});
