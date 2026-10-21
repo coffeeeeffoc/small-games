@@ -19,12 +19,12 @@
 | 关卡可达性 | 24新关和74经典关按真实rotate/release规则求解；24关最短释放数与配置一致 |
 | Creator/发布接入契约 | 135/135：publication-scopes、cocos-validation、reuse-cocos-artifacts、check-game-config、standalone-game-entry |
 | 统一开发工具 | 扫描62款游戏，0不同步问题；fullscreen的26份副本匹配；工作区依赖边界通过 |
-| 原生Canvas触屏 | [10项流程通过](actual/verification.json)：24关真实手势三星通关、经典74关、存档、设置、开发试玩、iframe、存储不可用 |
+| 原生Canvas触屏 | [10项流程通过](actual/verification.json)：24关真实手势三星通关、经典第74关、存档、设置、开发试玩、iframe、存储不可用 |
 | Shell生产入口 | Linux Chromium140：嵌入鼠标、390×844触屏、拖环、暂停恢复与返回目录通过 |
 | 开发模式浏览器 | [10项通过](actual/dev-mode-verification.json)：独立/Shell的默认、URL、存储、显式关闭，以及共享控件手势与iframe传递 |
 | 分享专项 | [4项通过](actual/publishing-verification.json)：提示/撤回代价、挑战进度隔离、公开URL清理、系统分享取消、无效挑战参数 |
 
-输入通过Chromium CDP touch注入，测试用只读快照定位Cocos原生控件，没有调用接口直接改局面。逐次旋转和松手均断言实际释放，24关走正常解锁；经典74关同时比较编译后几何与原始配置。取消完整恢复局面，慢拖能离开磁吸点，前一环飞离时可操作下一环。
+输入通过Chromium CDP touch注入，测试用只读快照定位Cocos原生控件，没有调用接口直接改局面。逐次旋转和松手均断言实际释放，24关走正常解锁；经典第74关同时比较编译后几何与原始配置。取消完整恢复局面，慢拖能离开磁吸点，前一环飞离时可操作下一环。
 
 ## 实际画面
 
@@ -34,7 +34,7 @@
 
 ## 实际运行中修复的问题
 
-1. Creator编译器对Map/Set迭代器展开生成错误数组，导致素材就绪状态与部分经典配置失真。相关展开改为`Array.from`后，重新使用真实Creator构建，并验证编译后经典74关几何和触屏通关。
+1. Creator编译器对Map/Set迭代器展开生成错误数组，导致素材就绪状态与部分经典配置失真。相关展开改为`Array.from`后，重新使用真实Creator构建，并验证编译后经典第74关几何和触屏通关。
 2. Creator默认模板样式覆盖隐藏元素，使全屏提示在底部留下空圆形。加入隐藏状态的明确样式，浏览器断言提示确实不可见。
 3. 经典复杂关的测试完成器原先固定12次释放上限，改为当前剩余环数；保留每次真实输入和释放断言。
 
