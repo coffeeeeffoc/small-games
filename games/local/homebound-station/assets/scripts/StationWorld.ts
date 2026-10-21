@@ -34,10 +34,13 @@ class Batch {
     sy: number,
     sz: number,
   ) {
-    let g = this.groups.get(hex);
+    const paint = color(hex);
+    // Bake palette and light into vertex colours: one draw call per town/car/person.
+    const materialKey = '#ffffff';
+    let g = this.groups.get(materialKey);
     if (!g) {
       g = { positions: [], normals: [], colors: [], indices: [] };
-      this.groups.set(hex, g);
+      this.groups.set(materialKey, g);
     }
     const base = g.positions.length / 3;
     for (let i = 0; i < geo.positions.length; i += 3) {
@@ -51,7 +54,7 @@ class Batch {
         nz = geo.normals?.[i + 2] ?? 0;
       const light = 0.67 + 0.33 * Math.max(0, -nx * 0.35 + ny * 0.8 + nz * 0.4);
       g.normals.push(nx, ny, nz);
-      g.colors.push(light, light, light, 1);
+      g.colors.push((paint.r / 255) * light, (paint.g / 255) * light, (paint.b / 255) * light, 1);
     }
     g.indices.push(...(geo.indices ?? []).map((i) => i + base));
   }
