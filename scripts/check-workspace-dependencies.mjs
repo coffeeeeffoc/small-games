@@ -61,6 +61,7 @@ const REPOSITORY_IMPORTS = new Set([
   'apps/shell-minigame/scripts/taptap-build.mjs -> scripts/competition-service-config.mjs',
   'apps/shell-minigame/scripts/taptap-login.mjs -> scripts/competition-service-config.mjs',
   'apps/shell-minigame/scripts/taptap-targets.mjs -> scripts/competition-service-config.mjs',
+  'apps/shell-minigame/scripts/taptap-targets.mjs -> platforms/publication-config.mjs',
   'games/local/cops-robbers/scripts/build.mjs -> scripts/competition-h5-service.mjs',
   'games/local/cops-robbers/scripts/serve.mjs -> scripts/competition-h5-service.mjs',
   'games/local/cops-robbers-realtime/scripts/build.mjs -> scripts/competition-h5-service.mjs',

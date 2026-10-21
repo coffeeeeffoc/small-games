@@ -28,7 +28,7 @@ const homeboundCocosWiring = {
   ],
   'scripts/check-workspace-dependencies.mjs': [
     '73dc48694ca96af93c54b09fb5d3d78b118e90ef67da63e94d4896aa1cba200d',
-    'b5d862a8b982f0afd861c8096ce3a60230f01f1433e738c54086ad1f2581b470',
+    '747c3c83428003489abb997b4b3358d4f27b0d4c4d5113f18988023ff408fc83',
   ],
   'scripts/deployment-bundle.mjs': [
     'c5f934e35dc618739626d904a4c642b6e68683edf52dd856d69fa38e05819858',

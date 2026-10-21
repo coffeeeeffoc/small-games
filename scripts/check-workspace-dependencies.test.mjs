@@ -668,3 +668,27 @@ test('homebound Creator reuse is limited to the declared build and typecheck too
   assert.equal(violations.length, 2);
   assert(violations.every((entry) => entry.code === 'cross-package-relative'));
 });
+
+test('Tap target configuration permits the public build configuration without opening runtime or adjacent imports', async (t) => {
+  const root = await createWorkspace([
+    {
+      path: 'apps/shell-minigame',
+      manifest: { name: '@coffeeeeffoc/shell-minigame' },
+      files: {
+        'scripts/taptap-targets.mjs':
+          "import '../../../platforms/publication-config.mjs';\nimport '../../../platforms/unknown.mjs';",
+        'scripts/unknown.mjs': "import '../../../platforms/publication-config.mjs';",
+        'src/main.js': "import '../../../platforms/publication-config.mjs';",
+      },
+    },
+  ]);
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const violations = await validateWorkspace(root);
+  assert.equal(violations.length, 3);
+  assert(violations.every((entry) => entry.code === 'cross-package-relative'));
+  assert(
+    violations.some((entry) =>
+      /taptap-targets.*platforms\/unknown/.test(entry.message.replaceAll('\\', '/')),
+    ),
+  );
+});
