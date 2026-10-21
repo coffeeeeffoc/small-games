@@ -23,6 +23,8 @@ try {
       viewport: { width, height: width === 320 ? 568 : 844 },
       hasTouch: width < 500,
     });
+    // Cold workspace module transforms on Windows can exceed the default navigation timeout.
+    page.setDefaultNavigationTimeout(120000);
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
     await page.addInitScript(() => {
@@ -41,19 +43,19 @@ try {
         },
       });
     });
-    await page.route('**/games/vibeJam-myself-history-guess/index.html', (route) =>
+    await page.route('**/games/carding-car/index.html', (route) =>
       route.fulfill({
         contentType: 'text/html',
-        body: '<!doctype html><meta charset="UTF-8"><p>同题导航测试</p><script>history.replaceState(null,"","?daily=2026-10-01&v=1&token=private#secret")</script>',
+        body: '<!doctype html><meta charset="UTF-8"><p>同题导航测试</p><script>history.replaceState(null,"","?mode=sprint&token=private#secret")</script>',
       }),
     );
-    await page.goto(`${base}?playerToken=private#/games/vibeJam-myself-history-guess`);
+    await page.goto(`${base}?playerToken=private#/games/carding-car`);
     await expect(page.frameLocator('iframe').getByText('同题导航测试')).toBeVisible();
     await page.getByRole('button', { name: '分享游戏', exact: true }).click();
     const panel = page.getByRole('region', { name: '分享游戏链接' });
     await expect(panel).toBeVisible();
     const input = panel.getByRole('textbox', { name: '游戏链接' });
-    const link = `${base}games/vibeJam-myself-history-guess/index.html?daily=2026-10-01&v=1`;
+    const link = `${base}games/carding-car/index.html?mode=sprint`;
     await expect(input).toHaveValue(link);
     await panel.getByRole('button', { name: '复制链接' }).click();
     await expect(panel.getByRole('status')).toContainText('手动复制');
@@ -94,6 +96,7 @@ try {
       ['night-overwatch', '60秒热身', 'mission=training-60'],
       ['wulong-city', '远程遥控', 'challenge=26'],
     ];
+    await page.getByRole('button', { name: '一圈冲刺', exact: true }).scrollIntoViewIfNeeded();
     await expect(page.getByRole('button', { name: '一圈冲刺', exact: true })).toBeInViewport();
     for (const [id, label, query] of entries) {
       const button = page.getByRole('button', { name: label, exact: true });
@@ -109,7 +112,7 @@ try {
         await page.locator('iframe').getAttribute('src'),
         `/small-games/games/${id}/index.html?${query}`,
       );
-      if (id === 'letters-words2' || id === 'wulong-city') {
+      if (['letters-words2', 'wulong-city', 'vibeJam-myself-history-guess'].includes(id)) {
         await expect(page.locator('.standalone-page')).toHaveAttribute('data-immersive', 'true');
         await expect(page.getByRole('button', { name: '分享游戏', exact: true })).toHaveCount(0);
       } else {

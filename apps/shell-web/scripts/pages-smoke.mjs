@@ -28,6 +28,7 @@ const immersiveGame = (id) =>
     'flick-arena',
     'xiangqi-five',
     'letters-words2',
+    'vibeJam-myself-history-guess',
     'wulong-city',
   ].includes(id);
 const server = await preview({
@@ -293,6 +294,17 @@ try {
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
       } else if (game.id === 'xiangqi-five') {
         await frame.locator('#game-back').click();
+        await expect(page.locator('.standalone-page nav')).toBeVisible();
+        await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
+      } else if (game.id === 'vibeJam-myself-history-guess') {
+        await expect(page.locator('.standalone-page nav')).toBeHidden();
+        await frame.getByRole('button', { name: '前往下一幕' }).click();
+        await expect(frame.locator('#load-cover')).toBeHidden({ timeout: 20000 });
+        await frame.getByRole('button', { name: '暂停', exact: true }).click();
+        await expect(frame.locator('.pause-overlay')).toBeVisible();
+        await expect(page.locator('.standalone-page nav')).toBeHidden();
+        await frame.getByRole('button', { name: '保存并返回首页' }).click();
+        await expect(frame.locator('#start')).toBeVisible();
         await expect(page.locator('.standalone-page nav')).toBeVisible();
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
       } else if (game.id === 'wulong-city') {
