@@ -2272,3 +2272,27 @@ test('chess build subprocess contracts are mandatory with native gates off and p
     /chess build regression/,
   );
 });
+
+test('node-only dependency scanning distinguishes generated modules from executable imports', async (t) => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'generated-node-deps-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const file = path.join(dir, 'rules.test.mjs');
+  await writeFile(
+    file,
+    "import assert from 'node:assert/strict';\nconst generated = `require('./generated-output.js');`;\n// require('./missing-comment.js')\nassert(generated);\n",
+  );
+  await assertNodeOnly('node --test rules.test.mjs', dir);
+  for (const code of [
+    "require('./missing-real.js');",
+    "const value = `${require('node:child_process')}`;",
+    "const value = `${import('node:child_process')}`;",
+    "export * from './missing-export.js';",
+    'import(modName);',
+  ]) {
+    await writeFile(file, code);
+    await assert.rejects(
+      assertNodeOnly('node --test rules.test.mjs', dir),
+      /Missing|Executable|Unreviewed/,
+    );
+  }
+});

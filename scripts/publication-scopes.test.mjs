@@ -9,6 +9,8 @@ import {
   bulletGardenCreatorFileScope,
   bulletGardenLockOnly,
   orbitCreatorIntegrationFileScope,
+  mergeCreatorIntegrationFileScope,
+  mergeCreatorIntegrationHashes,
   competitionConsumers,
   competitionToolPlan,
   competitionServiceScopePaths,
@@ -76,22 +78,21 @@ const tianxiaWiring = [
 // Keep the already reviewed Tianxia delta fixed when later games add shared wiring.
 const tianxiaHead = '22c95185813177bd860127563cf2eddbfe573e7e';
 const tianxiaAfter = new Map();
-const tianxiaMissing = new Map();
 const tianxiaRead = (file) => {
-  if (tianxiaMissing.has(file)) throw tianxiaMissing.get(file);
   if (!tianxiaAfter.has(file)) {
-    let cwd = new URL('../', import.meta.url);
-    let reference = `${tianxiaHead}:${file}`;
-    const submodule = /^(games\/submodules\/[^/]+)\/(.+)$/.exec(file);
-    if (submodule) {
-      const revision = execFileSync('git', ['rev-parse', `${tianxiaHead}:${submodule[1]}`], {
-        cwd,
-        encoding: 'utf8',
-      }).trim();
-      cwd = new URL('../' + submodule[1] + '/', import.meta.url);
-      reference = `${revision}:${submodule[2]}`;
-    }
     try {
+      let cwd = new URL('../', import.meta.url);
+      let reference = `${tianxiaHead}:${file}`;
+      const submodule = /^(games\/submodules\/[^/]+)\/(.+)$/.exec(file);
+      if (submodule) {
+        const revision = execFileSync('git', ['rev-parse', `${tianxiaHead}:${submodule[1]}`], {
+          cwd,
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'pipe'],
+        }).trim();
+        cwd = new URL('../' + submodule[1] + '/', import.meta.url);
+        reference = `${revision}:${submodule[2]}`;
+      }
       tianxiaAfter.set(
         file,
         execFileSync('git', ['show', reference], {
@@ -101,11 +102,13 @@ const tianxiaRead = (file) => {
         }).replaceAll('\r\n', '\n'),
       );
     } catch (error) {
-      tianxiaMissing.set(file, error);
-      throw error;
+      // Missing historical candidates are queried repeatedly by import resolution.
+      tianxiaAfter.set(file, error);
     }
   }
-  return tianxiaAfter.get(file);
+  const value = tianxiaAfter.get(file);
+  if (value instanceof Error) throw value;
+  return value;
 };
 const tianxiaBefore = new Map();
 function tianxiaContext(file, overrides = {}) {
@@ -400,6 +403,7 @@ test('unified package tools keep the three H5 consumers and reject unknown sibli
   const games = [
     ...ids.map((id) => ({ id, source: competitionConsumers[id] })),
     ...sixH5Ids.map((id) => ({ id, source: `games/local/${id}` })),
+    { id: 'merge-front', source: 'games/local/merge-front' },
   ];
   const packages = games.map((game) => ({ name: game.id, dir: game.source }));
   const readSource = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
@@ -444,7 +448,7 @@ test('unified package tools keep the three H5 consumers and reject unknown sibli
 });
 
 test('six H5 tools declare exact consumers and preserve fail-closed configuration scope', () => {
-  const games = sixH5Ids.map((id) => ({ id, source: `games/local/${id}` }));
+  const games = [...sixH5Ids, 'merge-front'].map((id) => ({ id, source: `games/local/${id}` }));
   const packages = games.map((g) => ({ name: g.id, dir: g.source }));
   const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
   for (const file of sixH5ScopePaths) {
@@ -456,7 +460,14 @@ test('six H5 tools declare exact consumers and preserve fail-closed configuratio
         ? []
         : games
             .filter(
-              (g) => file !== 'infra/builds/six-taptap-h5.mjs' || g.id !== 'homebound-station',
+              (g) =>
+                (file !== 'infra/builds/six-taptap-h5.mjs' || g.id !== 'homebound-station') &&
+                (g.id !== 'merge-front' ||
+                  [
+                    'platforms/h5/game-rewards.js',
+                    'platforms/h5/interstitial.js',
+                    'scripts/h5-game-build.mjs',
+                  ].includes(file)),
             )
             .map((g) => g.source),
     );
@@ -941,12 +952,13 @@ test('H5 safe areas select the three standalone consumers and require their geom
   );
 });
 
-test('shared channel advertising covers all nine consumers; the uploader stays chase-only', () => {
+test('shared channel advertising covers all ten consumers; the uploader stays chase-only', () => {
   const games = [
     { id: 'cops-robbers', source: 'games/local/cops-robbers' },
     { id: 'cops-robbers-realtime', source: 'games/local/cops-robbers-realtime' },
     { id: 'xiangqi-five', source: 'games/submodules/xiangqi-five' },
     ...sixH5Ids.map((id) => ({ id, source: `games/local/${id}` })),
+    { id: 'merge-front', source: 'games/local/merge-front' },
   ];
   const packages = games.map((game) => ({ name: game.id, dir: game.source }));
   const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
@@ -4267,7 +4279,9 @@ test('review tools, submodule dialogs and the realtime preset have finite valida
 
 test('Homebound Creator wiring admits only the reviewed additive compiler change', () => {
   const file = 'scripts/h5-game-build.mjs';
-  const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const after = execFileSync('git', ['show', '8a3c141a6b2ef83913c97a58832261cc113e4375:' + file], {
+    encoding: 'utf8',
+  });
   const before = execFileSync('git', ['show', '22c95185813177bd860127563cf2eddbfe573e7e:' + file], {
     encoding: 'utf8',
   });
@@ -4364,6 +4378,36 @@ test('Orbit Cocos gameplay scope isolates the real exported branch without admit
   );
 });
 
+test('merge Creator routes bind exact reviewed base/head bytes and reject extra changes', () => {
+  const games = [{ id: 'merge-front', source: 'games/local/merge-front' }];
+  const packages = [{ dir: games[0].source, creator: { version: '3.8.8' } }];
+  for (const file of Object.keys(mergeCreatorIntegrationHashes)) {
+    const before = execFileSync(
+      'git',
+      ['show', '39388e3a89df1b1a0d573bb800016fdbfbc4ac86:' + file],
+      { encoding: 'utf8' },
+    );
+    const after = execFileSync(
+      'git',
+      ['show', '53eb4b69bd1c2c3bbfe01349624235a1636b121e:' + file],
+      { encoding: 'utf8' },
+    );
+    assert(mergeCreatorIntegrationFileScope(file, before, after), file);
+    assert(!mergeCreatorIntegrationFileScope(file, before, after + '\nextra();'), file);
+    assert(!mergeCreatorIntegrationFileScope(file, before + '\n', after), file);
+    assert(!mergeCreatorIntegrationFileScope('unknown.mjs', before, after));
+    const ctx = {
+      changedPaths: [file],
+      games,
+      packages,
+      readBase: () => before,
+      readHead: () => after,
+    };
+    assert.deepEqual(reviewedSharedFileScopes(ctx).get(file), [games[0].source]);
+    assert(!reviewedSharedFileScopes({ ...ctx, packages: [] }).has(file));
+  }
+});
+
 test('merged Homebound Creator routes preserve Orbit and Tianxia and reject changes to existing gates', () => {
   const files = [
     'apps/shell-web/src/StandaloneGame.tsx',
@@ -4437,7 +4481,7 @@ test('Bullet Garden Creator routing preserves every old producer and consumer ga
       '\r\n',
       '\n',
     );
-    const base = execFileSync('git', ['show', '8a3c141a6b2ef83913c97a58832261cc113e4375:' + file], {
+    const base = execFileSync('git', ['show', '53eb4b69bd1c2c3bbfe01349624235a1636b121e:' + file], {
       encoding: 'utf8',
     }).replaceAll('\r\n', '\n');
     assert.equal(bulletGardenCreatorFileScope(file, base, head), true, file);
@@ -4504,7 +4548,7 @@ test('Bullet Garden routes preserve fixed predecessors, identity and config-sens
   const read = (file) =>
     readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll('\r\n', '\n');
   const base = (file) =>
-    execFileSync('git', ['show', '39388e3a89df1b1a0d573bb800016fdbfbc4ac86:' + file], {
+    execFileSync('git', ['show', '53eb4b69bd1c2c3bbfe01349624235a1636b121e:' + file], {
       encoding: 'utf8',
     }).replaceAll('\r\n', '\n');
   const source = 'games/local/bullet-garden';
@@ -4591,16 +4635,22 @@ test('ordinary Creator reuse changes include Bullet while preserving the histori
     '\r\n',
     '\n',
   );
-  for (const includeBullet of [false, true]) {
+  for (const [includeMerge, includeBullet] of [
+    [false, false],
+    [true, false],
+    [true, true],
+  ]) {
     const ids = [
       'carding-car',
       'night-overwatch',
       'orbit-atelier',
       'tianxia-chalu',
       'homebound-station',
+      ...(includeMerge ? ['merge-front'] : []),
       ...(includeBullet ? ['bullet-garden'] : []),
     ];
-    const source = includeBullet ? current : current.replace("  'bullet-garden',\n", '');
+    let source = includeBullet ? current : current.replace("  'bullet-garden',\n", '');
+    if (!includeMerge) source = source.replace("  'merge-front',\n", '');
     const packages = ids.map((id) => ({ dir: 'games/local/' + id }));
     const scopes = reviewedSharedFileScopes({
       changedPaths: [file],

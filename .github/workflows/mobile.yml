@@ -27,6 +27,7 @@ jobs:
       BULLET_GARDEN_PREBUILT_DIR: ${{ github.workspace }}/games/local/bullet-garden/.prebuilt
       TIANXIA_PREBUILT_DIR: ${{ github.workspace }}/games/local/tianxia-chalu/.prebuilt
       HOMEBOUND_STATION_PREBUILT_DIR: ${{ github.workspace }}/games/local/homebound-station/.prebuilt
+      MERGE_FRONT_PREBUILT_DIR: ${{ github.workspace }}/games/local/merge-front/.prebuilt
       GOMAXPROCS: '1'
       APP_VERSION: '0.2.0'
       # Reserve the first 1000 codes for local builds; reruns retain the same application version.
@@ -66,6 +67,10 @@ jobs:
         with:
           name: homebound-station-${{ github.sha }}
           path: games/local/homebound-station/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: merge-front-${{ github.sha }}
+          path: games/local/merge-front/.prebuilt
       - run: pnpm check:games
       - uses: actions/setup-java@v5
         with:
@@ -126,6 +131,7 @@ jobs:
       BULLET_GARDEN_PREBUILT_DIR: ${{ github.workspace }}/games/local/bullet-garden/.prebuilt
       TIANXIA_PREBUILT_DIR: ${{ github.workspace }}/games/local/tianxia-chalu/.prebuilt
       HOMEBOUND_STATION_PREBUILT_DIR: ${{ github.workspace }}/games/local/homebound-station/.prebuilt
+      MERGE_FRONT_PREBUILT_DIR: ${{ github.workspace }}/games/local/merge-front/.prebuilt
       GOMAXPROCS: '1'
       APP_VERSION: '0.2.0'
       IOS_BUILD_NUMBER: ${{ github.run_number }}
@@ -164,6 +170,10 @@ jobs:
         with:
           name: homebound-station-${{ github.sha }}
           path: games/local/homebound-station/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: merge-front-${{ github.sha }}
+          path: games/local/merge-front/.prebuilt
       - run: pnpm check:games
       - run: pnpm ios:simulator
       - run: python3 apps/shell-ios/scripts/test-install-manifest.py

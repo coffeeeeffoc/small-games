@@ -30,6 +30,7 @@ export function StandaloneGame({
     id === 'cage-rescue' ||
     id === 'chase-thief' ||
     id === 'orbit-atelier' ||
+    id === 'merge-front' ||
     id === 'ink-is-everything' ||
     id === 'ball-roguelite' ||
     id === 'flick-arena' ||

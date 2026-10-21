@@ -27,13 +27,14 @@ const jobs = games.map((game) => ({
   status: 'completed',
   conclusion: 'success',
 }));
-test('reuse waits for all six successful producer gates, not downstream CI', () => {
+test('reuse waits for all seven successful producer gates, not downstream CI', () => {
   assert.deepEqual(games, [
     'carding-car',
     'night-overwatch',
     'orbit-atelier',
     'tianxia-chalu',
     'homebound-station',
+    'merge-front',
     'bullet-garden',
   ]);
   assert.equal(inspectProducer(run, jobs, expected), 'ready');
@@ -142,7 +143,7 @@ test('CI is the sole producer direction and fallback retains original gates', as
   const verify = producer.jobs.reuse.steps.find((step) => step.id === 'verify');
   assert.equal(
     verify.if,
-    "steps.kart.outcome == 'success' && steps.night.outcome == 'success' && steps.orbit.outcome == 'success' && steps.tianxia.outcome == 'success' && steps.homebound.outcome == 'success' && steps.garden.outcome == 'success'",
+    "steps.kart.outcome == 'success' && steps.night.outcome == 'success' && steps.orbit.outcome == 'success' && steps.tianxia.outcome == 'success' && steps.homebound.outcome == 'success' && steps.merge.outcome == 'success' && steps.garden.outcome == 'success'",
   );
   for (const game of games) {
     const transfers = producer.jobs.reuse.steps.filter(
@@ -171,7 +172,7 @@ test('CI is the sole producer direction and fallback retains original gates', as
     assert(
       producer.jobs.creator.steps.some(
         (step) =>
-          step.run === 'pnpm --filter @coffeeeeffoc/${{ matrix.game }} ' + command &&
+          step.run === 'pnpm --dir games/local/${{ matrix.game }} run ' + command &&
           !step['continue-on-error'],
       ),
     );
@@ -203,6 +204,7 @@ test('reuse verifies and republishes every Creator game before skipping the prod
         'orbit-atelier': 'orbit',
         'tianxia-chalu': 'tianxia',
         'homebound-station': 'homebound',
+        'merge-front': 'merge',
         'bullet-garden': 'garden',
       }[game],
     );

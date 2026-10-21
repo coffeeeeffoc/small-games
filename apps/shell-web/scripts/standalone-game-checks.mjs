@@ -1391,12 +1391,65 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       if (!mobile) await canvas.page().keyboard.up('ArrowUp');
     }
   } else if (id === 'merge-front') {
-    await expect(frame.locator('#board [data-zone="board"][data-index]')).toHaveCount(12);
-    await expect(frame.locator('#launch')).toBeVisible();
-    const reserve = frame.locator('[data-zone="reserve"].occupied');
-    const recruited = await reserve.count();
-    await click(frame.locator('[data-offer="nezha:哪"]'));
-    await expect(reserve).toHaveCount(recruited + 1);
+    const canvas = frame.locator('#GameCanvas');
+    await expect
+      .poll(() => canvas.evaluate(() => globalThis.__mergeFront?.snapshot().ready), {
+        timeout: 60000,
+      })
+      .toBe(true);
+    const tap = async (id) => {
+      const c = await canvas.evaluate(
+        (_, id) =>
+          globalThis.__mergeFront.snapshot().controls.find((c) => c.id === id && !c.disabled),
+        id,
+      );
+      expect(c, id).toBeTruthy();
+      const box = await canvas.boundingBox();
+      const rotated = await canvas.evaluate(() =>
+        globalThis
+          .getComputedStyle(globalThis.document.getElementById('GameDiv'))
+          .transform.startsWith('matrix(0, 1'),
+      );
+      const width = rotated ? box.height : box.width,
+        height = rotated ? box.width : box.height;
+      const scale = Math.min(width / 960, height / 540);
+      const x = (width - 960 * scale) / 2 + (c.x + c.w / 2) * scale;
+      const y = (height - 540 * scale) / 2 + (c.y + c.h / 2) * scale;
+      const point = rotated
+        ? { x: box.x + box.width - y, y: box.y + x }
+        : { x: box.x + x, y: box.y + y };
+      if (mobile) await canvas.page().touchscreen.tap(point.x, point.y);
+      else await canvas.page().mouse.click(point.x, point.y);
+    };
+    await tap('start');
+    await tap('begin');
+    await expect
+      .poll(() => canvas.evaluate(() => globalThis.__mergeFront.snapshot().screen))
+      .toBe('playing');
+    await tap('draw:hero');
+    await tap('fill');
+    await expect
+      .poll(() =>
+        canvas.evaluate(() => globalThis.__mergeFront.snapshot().match.sides[0].slots[0].level),
+      )
+      .toBe(1);
+    await expect
+      .poll(
+        () =>
+          canvas.evaluate(() =>
+            globalThis.__mergeFront.snapshot().match.units.some((u) => u.side === 0),
+          ),
+        { timeout: 15000 },
+      )
+      .toBe(true);
+    await tap('pause');
+    await expect
+      .poll(() => canvas.evaluate(() => globalThis.__mergeFront.snapshot().screen))
+      .toBe('paused');
+    await tap('home');
+    await expect
+      .poll(() => canvas.evaluate(() => globalThis.__mergeFront.snapshot().screen))
+      .toBe('home');
   } else if (id === 'xiangqi-five') {
     await expect(frame.locator('body')).toHaveAttribute('data-screen', 'modes');
     await click(frame.locator('#mode-local'));

@@ -85,9 +85,19 @@ jobs:
           path: .scratch/ci-cocos/homebound-station
           run-id: ${{ steps.producer.outputs.run_id }}
           github-token: ${{ github.token }}
+      - name: Download CI merge-front artifact
+        id: merge
+        if: steps.producer.outputs.run_id != ''
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: merge-front-${{ github.sha }}
+          path: .scratch/ci-cocos/merge-front
+          run-id: ${{ steps.producer.outputs.run_id }}
+          github-token: ${{ github.token }}
       - name: Verify all downloaded artifacts or rebuild
         id: verify
-        if: steps.kart.outcome == 'success' && steps.night.outcome == 'success' && steps.orbit.outcome == 'success' && steps.tianxia.outcome == 'success' && steps.homebound.outcome == 'success' && steps.garden.outcome == 'success'
+        if: steps.kart.outcome == 'success' && steps.night.outcome == 'success' && steps.orbit.outcome == 'success' && steps.tianxia.outcome == 'success' && steps.homebound.outcome == 'success' && steps.merge.outcome == 'success' && steps.garden.outcome == 'success'
         continue-on-error: true
         env:
           PRODUCER_RUN_ID: ${{ steps.producer.outputs.run_id }}
@@ -99,6 +109,7 @@ jobs:
           node scripts/reuse-cocos-artifacts.mjs verify bullet-garden .scratch/ci-cocos/bullet-garden
           node scripts/reuse-cocos-artifacts.mjs verify tianxia-chalu .scratch/ci-cocos/tianxia-chalu
           node scripts/reuse-cocos-artifacts.mjs verify homebound-station .scratch/ci-cocos/homebound-station
+          node scripts/reuse-cocos-artifacts.mjs verify merge-front .scratch/ci-cocos/merge-front
       - uses: actions/upload-artifact@v7
         if: steps.verify.outcome == 'success'
         with:
@@ -135,6 +146,12 @@ jobs:
           name: homebound-station-${{ github.sha }}
           path: .scratch/ci-cocos/homebound-station
           if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: steps.verify.outcome == 'success'
+        with:
+          name: merge-front-${{ github.sha }}
+          path: .scratch/ci-cocos/merge-front
+          if-no-files-found: error
   creator:
     needs: reuse
     if: always() && !cancelled() && (needs.reuse.result == 'skipped' || (needs.reuse.result == 'success' && needs.reuse.outputs.available != 'true'))
@@ -148,6 +165,7 @@ jobs:
             orbit-atelier,
             tianxia-chalu,
             homebound-station,
+            merge-front,
             bullet-garden,
           ]
     runs-on: windows-latest
@@ -197,7 +215,7 @@ jobs:
             ${{ matrix.game == 'carding-car' && 'kart' || matrix.game }}-import-3.8.8-v1-${{ runner.os }}-
       - run: pnpm --filter @coffeeeeffoc/carding-car run setup
         if: steps.artifact.outputs.cache-hit != 'true'
-      - run: pnpm --filter @coffeeeeffoc/${{ matrix.game }} typecheck
+      - run: pnpm --dir games/local/${{ matrix.game }} run typecheck
         env:
           KART_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/carding-car', github.workspace) || '' }}
           NIGHT_OVERWATCH_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/night-overwatch', github.workspace) || '' }}
@@ -205,8 +223,9 @@ jobs:
           BULLET_GARDEN_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/bullet-garden', github.workspace) || '' }}
           TIANXIA_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/tianxia-chalu', github.workspace) || '' }}
           HOMEBOUND_STATION_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/homebound-station', github.workspace) || '' }}
-      - run: pnpm --filter @coffeeeeffoc/${{ matrix.game }} test
-      - run: pnpm --filter @coffeeeeffoc/${{ matrix.game }} build
+          MERGE_FRONT_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/merge-front', github.workspace) || '' }}
+      - run: pnpm --dir games/local/${{ matrix.game }} run test
+      - run: pnpm --dir games/local/${{ matrix.game }} run build
         if: steps.artifact.outputs.cache-hit != 'true'
         timeout-minutes: 18
       - name: Include engine types for Linux and macOS checks

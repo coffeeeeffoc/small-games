@@ -4,6 +4,7 @@ import path from 'node:path';
 export const h5AdGames = ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'];
 export const additionalH5Games = [
   'carding-car',
+  'merge-front',
   'vibeJam-myself-history-guess',
   'wulong-city',
   'night-overwatch',

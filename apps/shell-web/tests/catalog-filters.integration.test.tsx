@@ -20,12 +20,12 @@ it('filters, explains evaluations, restores shared URLs, and retains selections 
   }
   try {
     await act(async () => root.render(<ShellApp runtimeClient={false} />));
-    expect(ids()).toHaveLength(3);
-    expect(ids()).toContain('merge-front');
+    expect(ids()).toHaveLength(2);
+    expect(ids()).not.toContain('merge-front');
     expect(ids()).not.toContain('travel-bund');
     await click('全部游戏');
     await click('有潜力');
-    expect(ids()).toHaveLength(40);
+    expect(ids()).toHaveLength(41);
     await click('潜力低');
     expect(ids()).toHaveLength(41);
     await click('上轮已改造');
@@ -64,7 +64,7 @@ it('filters, explains evaluations, restores shared URLs, and retains selections 
       window.history.replaceState(null, '', '/?catalogTab=hold');
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
-    expect(ids()).toHaveLength(3);
+    expect(ids()).toHaveLength(2);
   } finally {
     await act(async () => root.unmount());
     window.history.replaceState(null, '', '/');
@@ -96,18 +96,18 @@ it('shows every exclusive rollout, visible implementation states, and filtered c
       tabs()
         .slice(0, 5)
         .map((button) => button.textContent),
-    ).toEqual(['全部游戏43', '上轮已改造7', '本轮改造13', '有潜力 · 后续改造20', '暂缓投入3']);
+    ).toEqual(['全部游戏43', '上轮已改造7', '本轮改造14', '有潜力 · 后续改造20', '暂缓投入2']);
     for (const article of articles()) {
       expect(article.querySelector('.game-rollout strong')?.textContent).toBeTruthy();
       expect(article.querySelector('.game-rollout span')?.textContent).toBeTruthy();
       expect(article.querySelector('.game-rollout')?.closest('details')).toBeNull();
     }
     await click('本轮改造');
-    expect(articles()).toHaveLength(13);
+    expect(articles()).toHaveLength(14);
     await click('移动端小游戏');
-    expect(articles()).toHaveLength(11);
+    expect(articles()).toHaveLength(12);
     expect(tabs().find((button) => button.textContent?.startsWith('本轮改造'))?.textContent).toBe(
-      '本轮改造11 / 13',
+      '本轮改造12 / 14',
     );
     expect(window.location.search).toContain('catalogTab=current');
     expect(window.location.search).toContain('catalog_platforms=mobile');
@@ -117,9 +117,9 @@ it('shows every exclusive rollout, visible implementation states, and filtered c
     await click('有潜力');
     expect(articles()).toHaveLength(20);
     await click('全部游戏');
-    expect(articles()).toHaveLength(40);
+    expect(articles()).toHaveLength(41);
     expect(tabs().find((button) => button.textContent?.startsWith('暂缓投入'))?.textContent).toBe(
-      '暂缓投入0 / 3',
+      '暂缓投入0 / 2',
     );
   } finally {
     await act(async () => root.unmount());

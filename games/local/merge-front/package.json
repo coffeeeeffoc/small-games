@@ -1,20 +1,30 @@
 {
   "name": "@small-games/merge-front",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host 0.0.0.0 --port 4197 --strictPort",
-    "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0 --port 4197 --strictPort",
-    "test": "node --test tests/engine.test.mjs",
-    "test:browser": "node tests/browser.mjs"
+    "dev": "node scripts/serve.mjs",
+    "preview": "node scripts/serve.mjs",
+    "typecheck": "node scripts/typecheck.mjs",
+    "test": "node --test --test-concurrency=1 tests/core.test.ts tests/rewards.test.ts tests/cocos-build.test.mjs tests/native-rewards.test.mjs",
+    "test:browser": "node tests/cocos.browser.mjs",
+    "build": "node scripts/build.mjs web-mobile",
+    "test:publishing:browser": "node tests/cocos.browser.mjs --publishing",
+    "build:wechat": "node scripts/build-native.mjs wechatgame",
+    "build:douyin": "node scripts/build-native.mjs douyin",
+    "build:bilibili": "node scripts/build-native.mjs bilibili"
   },
   "devDependencies": {
     "@playwright/test": "1.55.1",
+    "typescript": "7.0.2",
     "vite": "8.2.4"
   },
   "coffeeeeffoc": {
     "role": "game"
+  },
+  "uuid": "7a3aa141-a1f6-4b1e-8141-2c168da97231",
+  "creator": {
+    "version": "3.8.8"
   }
 }

@@ -9,6 +9,7 @@ export const games = [
   'orbit-atelier',
   'tianxia-chalu',
   'homebound-station',
+  'merge-front',
   'bullet-garden',
 ];
 const creator = '3.8.8';

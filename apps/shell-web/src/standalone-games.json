@@ -108,7 +108,7 @@
     "id": "merge-front",
     "source": "games/local/merge-front",
     "title": "神机合阵",
-    "description": "拼字唤醒神将，合成神机武装，布阵守城或开动生产线攻破敌方水晶。",
+    "description": "抽取残字、拼装神将与机关，自由行军攻破敌晶，挑战六章三十关。",
     "output": "dist"
   },
   {

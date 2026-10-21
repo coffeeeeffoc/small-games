@@ -7,6 +7,88 @@ import { ingressShellGuard, ingressPreflightGuard } from './competition-ingress.
 
 const loadDependency = createRequire(import.meta.url);
 
+// Reviewed merge-front migration: only these exact artifact, ad and entry routes changed.
+export const mergeCreatorIntegrationHashes = Object.freeze({
+  '.github/workflows/carding-car.yml': [
+    'ee77322f7414ab0a398af5c2d10763757ea679dbfa452520a653aacf43bdf05b',
+    '1ef11a9cf351cbee63f5f2bf20f5738e132a006db32aaf16aae5b67e3b3193fe',
+  ],
+  '.github/workflows/ci.yml': [
+    '6d1e55268d42feda5767a6e95c5986239a53b9bd8f922a231ba24f0d69cd2e29',
+    '5510611e680bba157680b097e8377250cb406779c0a8cb76ffc12f682edb83bd',
+  ],
+  '.github/workflows/pages-validate.yml': [
+    '7a89794f444b282c995d86ddb8970c3e3ca8f9f4cea40fbf9d984a25348bcbc2',
+    '47aa8fba216a73f7d2ea069be9a5c556240a5bfd9c6ed062c0ec7f62add37987',
+  ],
+  '.github/workflows/mobile.yml': [
+    'a91039605ebf6eaa455d4159df9f061fcbb28c0dc14304d0c817d6d23766c7d4',
+    '3246698d6c39c0ae44df20006c068d2821a11a74f4cd3b7bb16b57b4219c2de7',
+  ],
+  'turbo.json': [
+    'ffa105c8ac861d36457df2da83998e2be0e35f6cb19cdf86e46d85844a997d75',
+    'e8c3d619e5de1b4b1dd871bc880b5985c76cc9e1b63447e6e2aefda9f2366c94',
+  ],
+  'pnpm-lock.yaml': [
+    '959125ee6a824b1a1b820f12dde14b8f2aad9f99080afefe70ca3c2584d94379',
+    '6d0947a09773bbd9b905d79abdb073d212f67adb00b5bb02fe4c88249c276fac',
+  ],
+  'scripts/reuse-cocos-artifacts.mjs': [
+    '6a6014b181ffb9ee2b04044eb74b0d9bea0a25f7567776b253abcf71a97e0d4d',
+    '661cd9742e592cc4f57d5c48e55d2da4505945e1dfcb25b548e3e39050af4cfc',
+  ],
+  'scripts/sync-h5-fullscreen.mjs': [
+    'e957ed27a35195484dc23d1de7e0762924e65d42c567a1ebfbd20ac23fb009a7',
+    '13c2e80cb9bdcee4cdfbdf7d502c0e1a51f2f4e4070230eaccbe091e22a84d47',
+  ],
+  'scripts/h5-ad-config.mjs': [
+    'a501f7acb287811727d3868cade43a442260e5ebe426fe8ab7c3cab6db3ea5dd',
+    '3619e524dfb5ecd4ddcc5e9939a2ef243685150beb063913a7cbf5af236f385c',
+  ],
+  'scripts/h5-game-build.mjs': [
+    '7f8263e69185ccedb4ce2d89b0678535a9ee5c1be13f6c8c179be023a1557fc3',
+    '5a76a4e6e968193b244177c2c268becc14a1c022107045bebe719a2c2fd2380f',
+  ],
+  'scripts/h5-taptap-build.mjs': [
+    '167851290dd00ba94817494e8549f8852e72a232ffe2f82aff13bfdff70d8df7',
+    'ccbbf960a1f33c8fda6f7d447ad06a2234f306db478f06c18bc4df69b7c57a89',
+  ],
+  'scripts/h5-taptap-matrix.mjs': [
+    'b6cf3de496f6eeccf26a64c1c68c6dafbf2be06b0653db208c075a3f69a483fd',
+    '71257b7d52add72213aff79dfd05b0d4a4a240d42a0a2c292fb64a958fc78cac',
+  ],
+  'scripts/test-game-dev-mode.mjs': [
+    '3deb5108ff5f83733c42d28bbaa50151e47c8ff0169aa939d1870072cc5b25c5',
+    '66a660486b89310d99115babec194df529b3f362814e43acd05645c55abb7397',
+  ],
+  'apps/shell-web/scripts/standalone-game-checks.mjs': [
+    '2d44211054098f6446474773aafc241438fb37c85ce1f4ec61c8b58b3cb3f764',
+    '446d0917a29f714b34e437721cee961390fefba16fb0e3012b99a6ce10911b39',
+  ],
+  'apps/shell-web/scripts/pages-host-smoke.mjs': [
+    '30b47a586c2ad818a8b86465bd1f98390389cd61ec2eb5cd49fe5cafebcc5ebd',
+    '9de23cd0bee7692dd2d48d0c32fa7ec891893941392eaec78b624992b581ac21',
+  ],
+  'apps/shell-web/scripts/standalone-game-entry.mjs': [
+    'cf533318eae2d05db18d2a83087b00d62b123ae3e306671933477c62afd5b4a7',
+    '2b6221a2e3989e3b2a5372fd04326bff16b4e358ae459c1ab561bfe4cc4f7e07',
+  ],
+  'apps/shell-web/src/StandaloneGame.tsx': [
+    'b384f736f48a38816ba2c69c498dcf914f199dd7486861aacedabc3bd5a1c099',
+    '398a6a9cf1f2a90f3e7cd1b8118522b6eafe098fc3ad2ceaa57adc07d0cfd86f',
+  ],
+  'apps/shell-web/scripts/pages-smoke.mjs': [
+    '0e22c3fabf195d177d75ae60c4066a027e302511f9d251a79816c493b5934460',
+    '7c10e7500a7472cd860c3fb508f73e0d043355a8b2c285b85f1db1a4e5a522ea',
+  ],
+});
+export function mergeCreatorIntegrationFileScope(file, before, after) {
+  const pair = mergeCreatorIntegrationHashes[file];
+  if (!pair || typeof before !== 'string' || typeof after !== 'string') return false;
+  const digest = (value) =>
+    createHash('sha256').update(value.replaceAll('\r\n', '\n')).digest('hex');
+  return digest(before) === pair[0] && digest(after) === pair[1];
+}
 // Exact additive wiring for Homebound after the Orbit and Tianxia Creator integrations. Existing compiler paths,
 // workflow gates, permissions and presets remain byte-for-byte unchanged.
 const homeboundCocosWiring = {
@@ -549,10 +631,19 @@ const sharedH5PackagePaths = [
   'game-build.local.mjs',
 ];
 function assertSixH5(games, packages, readHead) {
+  const registered = literalDeclaration(readHead('scripts/h5-ad-config.mjs'), 'additionalH5Games');
   assert.deepEqual(
-    literalDeclaration(readHead('scripts/h5-ad-config.mjs'), 'additionalH5Games'),
+    registered.filter((id) => id !== 'merge-front'),
     sixH5Ids,
   );
+  if (registered.includes('merge-front')) {
+    assert.equal(registered.filter((id) => id === 'merge-front').length, 1);
+    assert.equal(
+      games.filter((g) => g.id === 'merge-front' && g.source === 'games/local/merge-front').length,
+      1,
+    );
+    assert.equal(packages.filter((p) => p.dir === 'games/local/merge-front').length, 1);
+  }
   for (const [i, id] of sixH5Ids.entries()) {
     assert.equal(games.filter((g) => g.id === id && g.source === sixH5Sources[i]).length, 1);
     assert.equal(packages.filter((p) => p.dir === sixH5Sources[i]).length, 1);
@@ -1389,9 +1480,13 @@ function tianxiaWorkflowOnly(
     );
   };
   if (file === '.github/workflows/carding-car.yml') {
-    const matrix = before.match(/game: \[([-a-z, ]+)\]/g);
+    const matrix = before.match(/game:\s*\[([-a-z,\s]+)\]/g);
     assert.equal(matrix?.length, 1);
-    const ids = matrix[0].slice(7, -1).split(', ');
+    const ids = matrix[0]
+      .slice(matrix[0].indexOf('[') + 1, -1)
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean);
     assert.deepEqual(ids, [
       'carding-car',
       'night-overwatch',
@@ -1400,6 +1495,7 @@ function tianxiaWorkflowOnly(
       ...(game === 'bullet-garden' && before.includes('homebound-station')
         ? ['homebound-station']
         : []),
+      ...(game === 'bullet-garden' && before.includes('merge-front') ? ['merge-front'] : []),
     ]);
     replace(
       matrix[0],
@@ -1423,7 +1519,8 @@ function tianxiaWorkflowOnly(
       "        if: steps.kart.outcome == 'success' && steps.night.outcome == 'success'" +
       (hasOrbit ? " && steps.orbit.outcome == 'success'" : '') +
       (before.includes('tianxia-chalu') ? " && steps.tianxia.outcome == 'success'" : '') +
-      (before.includes('homebound-station') ? " && steps.homebound.outcome == 'success'" : '');
+      (before.includes('homebound-station') ? " && steps.homebound.outcome == 'success'" : '') +
+      (before.includes('merge-front') ? " && steps.merge.outcome == 'success'" : '');
     replace(gates + '\n', gates + ' && steps.' + step + ".outcome == 'success'\n");
     clone(
       '          node scripts/reuse-cocos-artifacts.mjs verify night-overwatch .scratch/ci-cocos/night-overwatch\n',
@@ -1523,6 +1620,9 @@ function tianxiaLiteralOnly(
     ...(game === 'bullet-garden' ? { 'games/local/tianxia-chalu': 'TIANXIA_PREBUILT_DIR' } : {}),
     ...(game === 'bullet-garden' && before.includes('homebound-station')
       ? { 'games/local/homebound-station': 'HOMEBOUND_STATION_PREBUILT_DIR' }
+      : {}),
+    ...(game === 'bullet-garden' && before.includes('merge-front')
+      ? { 'games/local/merge-front': 'MERGE_FRONT_PREBUILT_DIR' }
       : {}),
   };
   assert.deepEqual(
@@ -2624,7 +2724,29 @@ export function reviewedSharedFileScopes({
 }) {
   const scopes = vitePatchFileScopes({ changedPaths, readBase, readHead });
   for (const file of changedPaths) {
+    let mergeIntegration = false;
+    if (Object.hasOwn(mergeCreatorIntegrationHashes, file)) {
+      try {
+        mergeIntegration = mergeCreatorIntegrationFileScope(
+          file,
+          readBase?.(file),
+          readHead?.(file),
+        );
+      } catch {
+        // Historical baselines may predate this file; retain the shared consumer checks below.
+      }
+    }
     try {
+      if (mergeIntegration) {
+        const source = 'games/local/merge-front';
+        assert.equal(games.filter((g) => g.id === 'merge-front' && g.source === source).length, 1);
+        assert.equal(
+          packages.filter((p) => p.dir === source && p.creator?.version === '3.8.8').length,
+          1,
+        );
+        scopes.set(file, [source]);
+        continue;
+      }
       if (
         file === 'pnpm-lock.yaml' &&
         bulletGardenLockOnly(
@@ -2745,6 +2867,7 @@ export function reviewedSharedFileScopes({
         const ids = literalDeclaration(readHead('scripts/reuse-cocos-artifacts.mjs'), 'games');
         const consumers = [
           ...cocosWebSources,
+          ...(ids.includes('merge-front') ? ['games/local/merge-front'] : []),
           ...(ids.includes('bullet-garden') ? ['games/local/bullet-garden'] : []),
         ];
         assert.deepEqual(
@@ -3146,11 +3269,19 @@ export function reviewedSharedFileScopes({
         else {
           assertSixH5(games, packages, readHead);
           if (file === 'infra/builds/six-taptap-h5.mjs') assert(sixH5PresetOnly(readHead(file)));
+          const mergeConsumer =
+            [
+              'platforms/h5/game-rewards.js',
+              'platforms/h5/interstitial.js',
+              'scripts/h5-game-build.mjs',
+            ].includes(file) && games.some((g) => g.id === 'merge-front');
           scopes.set(
             file,
             file === 'infra/builds/six-taptap-h5.mjs'
               ? presetH5Ids.map((id) => `games/local/${id}`)
-              : sixH5Sources,
+              : mergeConsumer
+                ? [...sixH5Sources, 'games/local/merge-front']
+                : sixH5Sources,
           );
         }
         continue;
@@ -3207,6 +3338,12 @@ export function reviewedSharedFileScopes({
         ) {
           assertSixH5(games, packages, readHead);
           sources.push(...sixH5Sources);
+          if (
+            literalDeclaration(readHead('scripts/h5-ad-config.mjs'), 'additionalH5Games').includes(
+              'merge-front',
+            )
+          )
+            sources.push('games/local/merge-front');
         }
         if (file === 'scripts/competition-service-config.mjs') {
           assertSixH5(games, packages, readHead);
@@ -3357,6 +3494,7 @@ export function reviewedSharedFileScopes({
                       pkg.dir === 'games/local/bullet-garden' && pkg.creator?.version === '3.8.8',
                   )
                   .map((pkg) => pkg.dir),
+                ...(games.some((g) => g.id === 'merge-front') ? ['games/local/merge-front'] : []),
               ]
             : [source],
         );

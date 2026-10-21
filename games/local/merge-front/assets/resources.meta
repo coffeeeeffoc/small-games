@@ -1,0 +1,14 @@
+{
+  "ver": "1.2.0",
+  "importer": "directory",
+  "imported": true,
+  "uuid": "ceb56314-8d7d-41e6-b53a-e688cc4ab19a",
+  "files": [],
+  "subMetas": {},
+  "userData": {
+    "isBundle": true,
+    "bundleConfigID": "merge-art",
+    "bundleName": "resources",
+    "priority": 8
+  }
+}

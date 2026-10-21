@@ -86,6 +86,7 @@ jobs:
       BULLET_GARDEN_PREBUILT_DIR: ${{ github.workspace }}/games/local/bullet-garden/.prebuilt
       TIANXIA_PREBUILT_DIR: ${{ github.workspace }}/games/local/tianxia-chalu/.prebuilt
       HOMEBOUND_STATION_PREBUILT_DIR: ${{ github.workspace }}/games/local/homebound-station/.prebuilt
+      MERGE_FRONT_PREBUILT_DIR: ${{ github.workspace }}/games/local/merge-front/.prebuilt
       TURBO_SCM_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
       TURBO_SCM_HEAD: ${{ github.sha }}
       CI_VALIDATION_PLAN: ${{ needs.plan.outputs.plan }}
@@ -151,6 +152,12 @@ jobs:
         with:
           name: homebound-station-${{ github.sha }}
           path: games/local/homebound-station/.prebuilt
+
+      - uses: actions/download-artifact@v8
+        if: needs.plan.outputs.cocos == 'true'
+        with:
+          name: merge-front-${{ github.sha }}
+          path: games/local/merge-front/.prebuilt
 
       - name: Check all game registrations
         run: pnpm check:games

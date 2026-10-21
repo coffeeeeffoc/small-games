@@ -8,7 +8,7 @@ import { additionalH5Games } from './h5-ad-config.mjs';
 const game = process.argv[2];
 assert(additionalH5Games.includes(game), 'Unknown H5 compiler');
 const root = fileURLToPath(new URL(`../games/local/${game}/`, import.meta.url));
-if (['carding-car', 'night-overwatch', 'homebound-station'].includes(game)) {
+if (['carding-car', 'night-overwatch', 'homebound-station', 'merge-front'].includes(game)) {
   execFileSync(process.execPath, ['scripts/build.mjs', 'web-mobile'], {
     cwd: root,
     stdio: 'inherit',
