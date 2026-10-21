@@ -1,3 +1,6 @@
 node_modules/
 test-results/
 *.log
+dist-h5/
+dist-wechat/
+wechat/project.private.config.json

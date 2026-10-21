@@ -8,7 +8,7 @@ import {
   validateScene,
   MAX_SOUND_PATHS,
   MAX_PROPAGATION_RAYS,
-} from '../src/acoustics.js';
+} from '../shared/core/acoustics.js';
 
 const close = (actual, expected, tolerance = 1e-7) =>
   assert.ok(Math.abs(actual - expected) < tolerance, `${actual} should be close to ${expected}`);

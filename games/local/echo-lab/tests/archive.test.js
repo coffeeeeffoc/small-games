@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { crc32 } from 'node:zlib';
-import { createZip } from '../src/archive.js';
+import { createZip } from '../shared/browser/archive.js';
 
 test('paired ZIP has independent CRCs, intact files and central directory offsets', async () => {
   const files = [

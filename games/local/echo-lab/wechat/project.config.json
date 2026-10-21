@@ -1,0 +1,9 @@
+{
+  "appid": "touristappid",
+  "projectname": "echo-lab",
+  "compileType": "miniprogram",
+  "miniprogramRoot": "./",
+  "libVersion": "3.6.6",
+  "setting": { "es6": true, "minified": true, "urlCheck": true },
+  "packOptions": { "ignore": [{ "type": "file", "value": "README.md" }] }
+}

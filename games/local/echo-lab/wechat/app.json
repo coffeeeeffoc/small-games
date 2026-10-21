@@ -1,0 +1,17 @@
+{
+  "pages": ["pages/lab/index"],
+  "window": {
+    "navigationBarTitleText": "回声实验室",
+    "navigationBarBackgroundColor": "#101815",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#101815",
+    "pageOrientation": "portrait"
+  },
+  "permission": {
+    "scope.record": {
+      "desc": "录制你主动选择的声音，在设备上试听回声效果"
+    }
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}
