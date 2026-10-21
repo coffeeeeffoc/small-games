@@ -1,0 +1,164 @@
+{
+  "environment": "Node deterministic fixed-step simulation; no advertisements",
+  "healthCurve": ".65*t + .5*max(t-30,0) + .18*max(t-40,0)^2 + 1",
+  "maxTurns": 250,
+  "records": [
+    {
+      "strategy": "fixed",
+      "seed": 1234,
+      "turn": 8,
+      "phase": "lost",
+      "score": 3,
+      "count": 6,
+      "damage": 1,
+      "upgrades": {
+        "pierce": 1
+      },
+      "contacts": 47,
+      "maxRow": 10
+    },
+    {
+      "strategy": "fixed",
+      "seed": 20261006,
+      "turn": 8,
+      "phase": "lost",
+      "score": 5,
+      "count": 5,
+      "damage": 1,
+      "upgrades": {
+        "chain": 1
+      },
+      "contacts": 40,
+      "maxRow": 10
+    },
+    {
+      "strategy": "fixed",
+      "seed": 998811,
+      "turn": 23,
+      "phase": "lost",
+      "score": 54,
+      "count": 18,
+      "damage": 1,
+      "upgrades": {
+        "extra": 2,
+        "pierce": 2
+      },
+      "contacts": 715,
+      "maxRow": 10
+    },
+    {
+      "strategy": "direct",
+      "seed": 1234,
+      "turn": 178,
+      "phase": "lost",
+      "score": 532,
+      "count": 36,
+      "damage": 4,
+      "upgrades": {
+        "power": 3,
+        "extra": 2,
+        "chain": 3,
+        "pierce": 2,
+        "blast": 3,
+        "critical": 3
+      },
+      "contacts": 77140,
+      "maxRow": 10
+    },
+    {
+      "strategy": "direct",
+      "seed": 20261006,
+      "turn": 155,
+      "phase": "lost",
+      "score": 447,
+      "count": 36,
+      "damage": 4,
+      "upgrades": {
+        "pierce": 2,
+        "power": 3,
+        "chain": 3,
+        "extra": 3,
+        "blast": 3,
+        "critical": 3
+      },
+      "contacts": 47325,
+      "maxRow": 10
+    },
+    {
+      "strategy": "direct",
+      "seed": 998811,
+      "turn": 131,
+      "phase": "lost",
+      "score": 377,
+      "count": 36,
+      "damage": 4,
+      "upgrades": {
+        "power": 3,
+        "pierce": 2,
+        "chain": 3,
+        "extra": 3,
+        "blast": 3,
+        "critical": 3
+      },
+      "contacts": 29835,
+      "maxRow": 10
+    },
+    {
+      "strategy": "search",
+      "seed": 1234,
+      "turn": 232,
+      "phase": "lost",
+      "score": 600,
+      "count": 36,
+      "damage": 4,
+      "upgrades": {
+        "pierce": 2,
+        "extra": 4,
+        "power": 3,
+        "chain": 3,
+        "blast": 3,
+        "critical": 3
+      },
+      "contacts": 229884,
+      "maxRow": 10
+    },
+    {
+      "strategy": "search",
+      "seed": 20261006,
+      "turn": 237,
+      "phase": "lost",
+      "score": 589,
+      "count": 36,
+      "damage": 4,
+      "upgrades": {
+        "power": 3,
+        "pierce": 2,
+        "extra": 3,
+        "chain": 3,
+        "blast": 3,
+        "critical": 3
+      },
+      "contacts": 230946,
+      "maxRow": 10
+    },
+    {
+      "strategy": "search",
+      "seed": 998811,
+      "turn": 194,
+      "phase": "lost",
+      "score": 490,
+      "count": 36,
+      "damage": 4,
+      "upgrades": {
+        "power": 3,
+        "pierce": 2,
+        "extra": 3,
+        "chain": 3,
+        "blast": 3,
+        "critical": 3
+      },
+      "contacts": 144811,
+      "maxRow": 10
+    }
+  ]
+}

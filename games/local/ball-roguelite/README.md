@@ -1,33 +1,55 @@
 # 星轨弹珠 · Orbit Breaker
 
-基于用户提供的 `ball-roguelite.zip` 原型实现的弹珠肉鸽游戏。保留七列砖阵、底部向上弹射、加球、爆裂砖，以及分裂、重击、穿透、爆裂、闪电和暴击六种可叠加强化。原始脚本留在 `docs/reference/original-game.js` 供核对，不进入运行制品。
+移动端竖屏弹珠肉鸽，运行层完全使用 **Cocos Engine 3.8.8**：Scene、Node、Camera、Sprite、Label、Graphics、Button、触屏输入与帧循环均由引擎承担。旧 Canvas 游戏渲染器已移除；HTML 仅承载启动/失败状态、全屏宿主与无障碍按钮镜像。玻璃素材离屏烘焙一次后作为 Cocos 纹理复用，不使用 Canvas 帧循环。
 
-新增六个逐关解锁星域、无尽挑战、完整主页/选关/帮助/暂停/强化/结算流程、触屏瞄准、回收、局内检查点及进度存档。强化每三轮三选一；回收会放弃本轮剩余伤害并推进砖阵。通关必须清空所有波次。砖块进入最底一行仍有一次清理机会，再下降越过警戒区即失败。球数最多99，概率强化有明确上限，避免无限叠加溢出。
+这是官方 Cocos 源码的 Web 构建，**不是 Creator 编辑器导出工程**。固定官方提交、源码压缩包、依赖锁、编译器和产物摘要见 [引擎说明](vendor/cocos/README.md)。正常构建离线校验已提交的 1.50 MB 引擎；运行时无 CDN 请求。原生平台工程和 TapTap 真机 SDK 验收尚未执行。
 
-主页明确提供**关卡模式**与**无尽模式**。关卡模式逐关解锁六片星域，无尽模式持续生成砖阵并记录最高成绩；两种模式各自保留回合检查点，切换模式不会覆盖另一边的对局。旧版单检查点自动迁移至对应模式，通关进度、纪录和设置保留。
+## 游玩与平衡
 
-弹珠采用带高光的圆形球体，碰撞按圆球表面计算，擦过砖角会产生斜向折返。120 BPM 双连发、重拍出球、碰撞后最多 28% 的短促提速与回落，以及记录真实拐点的渐隐拖尾，让弹射有清楚的轻重和停顿。音效跟随出球与碰撞事件，不使用后台节拍定时器；暂停、静音和离开会清理声音。系统开启减少动态效果时关闭拖尾、震屏和跳动装饰，保留玩法与圆球辨识。
+保留六个逐关解锁星域、无尽模式、双模式独立检查点、好友同种子挑战与开发试玩。按住场地拖动瞄准，松手连发；回收放弃本轮剩余伤害并推进珠群。最低一行仍可清理，再次越过警戒区结束。
+
+目标现在是三种尺寸、多色透明玻璃珠、珍珠及六边形水晶。圆面和棱面分别使用连续扫掠碰撞；玻璃最多 4°、水晶最多 8° 的邻近目标折射只在出射半面内生效。碰撞速度短促增加后衰减，拖尾保留真实碰撞拐点，球体压缩回弹不改变物理轮廓。实际碰撞计数推进音阶；碎裂音独立于接触声节流。系统减少动态设置关闭拖尾、粒子和缩放反馈。
+
+每 **5 轮**选择一次强化，底部局部面板保留上方战场。球数最多 36；每轮击碎 10 颗只赠 1 球；强化各有上限，重击三阶分别在第 5/20/40 轮开放，满级奖励不再出现。无尽耐久在第 40 轮之后平滑增长，避免固定能力封顶后无限无压力。无广告固定种子模拟中：固定直射 8–23 轮，危险目标优先 131–178 轮，搜索反弹路线 194–237 轮；这属于规则模拟，不代表普通玩家必然达到该轮数。
+
+## 通用激励广告
+
+默认无广告 SDK 时显示“广告暂未就绪”，不发模拟奖励，不自动插屏。玩家在回合间或失败后主动选择补给：
+
+- 晶体共鸣：本局命中有 8% 概率额外造成 1 点伤害，不被暴击或连锁放大，每局一次。
+- 应急清行：危险时清除最靠近底部的两排目标，不加分、不加球、不再下降，每局一次。
+
+完整观看且 SDK 返回 `status: 'completed'` 才发奖；取消、失败、重复、迟到、退出及换局不发奖。奖励次数与局内状态保存。挑战和试玩禁用；使用广告增益的成绩不生成同场分享。广告结束停留在补给页，玩家主动返回，后台不会自动恢复对局。
+
+在游戏模块加载前配置即可使用公共 `platforms/h5/platform-ads.js` 的 TapTap H5 支持：
+
+```js
+globalThis.SmallGamesPublishingConfig = {
+  adMode: 'host',
+  adsEnabled: true,
+  platform: 'taptap-h5',
+  adUnitId: '实际广告位ID',
+};
+```
+
+需由宿主提前加载真实 TapTap SDK 并提供 `globalThis.tap.createRewardedVideoAd`。同一适配器也支持 `wechat` / `douyin` / `bilibili`。可注入 `SmallGamesRewardAds.offer()` 宿主接口，或显式 `adMode:'host', provider:{show(request),cancel(),dispose()}`；provider 负责真实完成回调，游戏负责资格、暂停、次数和防重。平台 SDK、账号及广告位未配置时不能声称真实广告已验收。
+
+## 构建与验证
+
+仓库工具链：Node 24.21.0 / pnpm 12.6.0。
 
 ```sh
 pnpm --filter @coffeeeeffoc/ball-roguelite dev
 pnpm --filter @coffeeeeffoc/ball-roguelite test
 pnpm --filter @coffeeeeffoc/ball-roguelite build
 PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium pnpm --filter @coffeeeeffoc/ball-roguelite test:browser
+pnpm --filter @coffeeeeffoc/ball-roguelite test:balance
+# 可选：从固定官方源码重建引擎
+node games/local/ball-roguelite/scripts/build-cocos-engine.mjs --rebuild
 ```
 
-开发地址 `http://localhost:4420/`；`node server.mjs --dist` 预览正式输出。Shell ID `ball-roguelite`，独立入口 `/games/ball-roguelite/index.html`，大厅路由 `#/games/ball-roguelite`。运行零外部依赖，仅复制明确列出的文件，效果图、原型、测试均不发布。
+开发地址 `http://localhost:4420/`；正式输出 `dist/`；Shell ID `ball-roguelite`。关卡配置在 `levels.mjs`，纯规则在 `core.mjs`，Cocos 呈现在 `render.mjs`，生命周期在 `main.mjs`，平台音效与领奖端口独立。构建从公共源复制广告、分享能力，不维护平台适配副本。
 
-`levels.mjs` 持有稳定关卡ID与内容 schema，`core.mjs` 是不依赖 DOM/平台的规则与连续碰撞计算，`render.mjs` 负责绘制和有界反馈，`storage.mjs` 负责存档校验与版本迁移，`main.mjs` 连接 Web 输入、页面和生命周期。
+存储 key 仍为 `ball-roguelite:save:v1`；外层 schema 2 保留双模式槽及设置，核心检查点 schema 2 兼容旧 schema 1。旧超限能力归入新上限，现有目标 HP 同比例折算，避免迁移瞬间难度突变。飞行中退出恢复发射前检查点；存储不可用时会话内继续。新分享使用 `orbit-v2`；旧 `orbit-v1` 链接明确提示按新规则重试，不比较旧规则成绩。
 
-沿用仓库独立 H5 的本地存档边界，不接入 Game Host 云存档。回合开始与强化页保存检查点，离开飞行中对局后回到该轮发射前；存储异常时会话内正常继续。存档格式为 v2，沿用旧存储 key，自动迁移 v0/v1；核心检查点仍为 v1。试玩不写成绩、正常进度或检查点。Web 复用公共 `SmallGamesDev`（`?dev=1/0` 或 `localStorage.dev`）和全屏机制；无广告 SDK 时不提供看广告复活奖励。原型的微信脚手架不直接打包为原生工程，微信、抖音和 B 站 Canvas 运行需另行适配。
-
-初版设计与截图见 `docs/design/`；本次圆球、节拍与双模式改版的设计和实际运行证据见 [`docs/design/rhythm/`](docs/design/rhythm/README.md)，规则和存档验证见 `tests/`。浏览器验证使用 Linux Chromium 手机触屏模拟，未执行手机真机或原生小游戏验收。
-
-
-## 同场分享与发布配置
-
-结算页提供真实同关挑战链接；打开后从主页的好友挑战入口进入。塔和救援使用稳定关卡配置，弹珠同时保留初始随机种子，挑战结果不改普通关卡解锁和存档。链接剥离 `dev` 等参数；分享不代表服务器认证成绩，尚未提供实时在线对战。弹珠旧存档缺少初始种子时隐藏分享，避免误称复现。
-
-构建复制 `platforms/h5/publishing.js` 公共源，开发服务器映射同一公共文件；不维护游戏副本。默认显式 `mock` 模式，弹层标记“模拟广告”，每三次自然转场最多触发一次插屏，并受公共冷却和会话上限约束。生产入口可以在模块加载前配置 `globalThis.SmallGamesPublishingConfig = { adMode: 'off' }`；真实渠道由统一平台层接入，不把密钥放入页面。救援外部 GameHost 的广告接口保留优先权，只在本地使用公共模拟奖励。塔原免费续关与各款免费重试保留。
-
-本轮规则与触屏校验记录见 [发布改进](docs/design/publishing/README.md)。
+设计图、引擎来源、平衡模拟和生产浏览器截图见 [Cocos 改版记录](docs/design/cocos-crystal/README.md)。验证使用 Linux Chromium 手机触屏模拟，不等同手机真机、原生包或线上部署验收。

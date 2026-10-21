@@ -1,6 +1,6 @@
 # 星轨弹珠 · 移动端设计
 
-最新圆球、节拍与双模式改版见 [rhythm/README.md](rhythm/README.md)，该目录包含改版前效果图及改版后触屏验证截图。以下保留初版设计与验收记录。
+最新 Cocos 晶体改版见 [cocos-crystal/README.md](cocos-crystal/README.md)，包含先行效果图、规则方案及实际触屏验证。前一轮圆球与节拍改版保留在 [rhythm/README.md](rhythm/README.md)。以下仅为初版历史设计与验收记录，不代表当前实现。
 
 先生成 `concept.png`，再实现主页、核心游玩和选关界面。视觉采用午夜蓝星空、薄荷青与紫色倒角砖、发光弹珠及轨道线，场景对象使用 Canvas 2D 几何绘制，菜单使用原生按钮。概念图用于风格和信息层级参考，运行界面以实际截图为准。
 
