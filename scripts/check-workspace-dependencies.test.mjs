@@ -432,7 +432,7 @@ test('TapTap acceptance reuses only three exact fixture edges, never runtime or 
         'scripts/taptap-smoke.mjs':
           imports +
           "import '../../../games/local/letters-words2/tests/other-fixture.mjs';\n" +
-          "import '../../../games/local/letters-words/library.js';\n",
+          "import '../../../games/local/merge-front/library.js';\n",
         'scripts/taptap-smoke-extra.mjs': imports,
         'src/runtime.mjs': imports,
       },
@@ -447,7 +447,7 @@ test('TapTap acceptance reuses only three exact fixture edges, never runtime or 
   );
   assert.equal(smoke.length, 2);
   assert(smoke.some((entry) => entry.message.includes('other-fixture.mjs')));
-  assert(smoke.some((entry) => entry.message.includes('letters-words/library.js')));
+  assert(smoke.some((entry) => entry.message.includes('merge-front/library.js')));
   for (const file of ['scripts/taptap-smoke-extra.mjs', 'src/runtime.mjs'])
     assert.equal(
       violations.filter((entry) => entry.message.replaceAll('\\', '/').includes(file)).length,

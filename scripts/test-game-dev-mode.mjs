@@ -164,10 +164,8 @@ try {
         mode.enabled,
       );
       const debugField = {
-        fishing: '__tidebreak',
         'maze-wander': 'mazeDebug',
-        'hold-tight-acrobats': '__acroDev',
-        'one-stroke-course': '__course',
+
         'vibeJam-myself-nullrange': '__flight',
       }[game.id];
       if (debugField)
@@ -180,10 +178,7 @@ try {
           (enabled) => window.__bulletGarden?.snapshot().controls.developerMode === enabled,
           mode.enabled,
         );
-      if (game.id === 'tower-defense-game')
-        await expect(surface.getByRole('switch', { name: /开发调参/ })).toHaveCount(
-          mode.enabled ? 1 : 0,
-        );
+
       const tools = surface.locator('small-games-devtools');
       await expect(tools).toHaveCount(mode.enabled ? 1 : 0);
       if (mode.enabled) {

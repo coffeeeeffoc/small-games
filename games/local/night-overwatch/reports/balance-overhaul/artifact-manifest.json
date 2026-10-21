@@ -28,11 +28,6 @@
       "sha256": "0eb1efb4908181878c5f14994b4fa8da5feb1f7dbee31a1492fa098571db83fc"
     },
     {
-      "path": "reports/balance-overhaul/game-config.log",
-      "bytes": 6885,
-      "sha256": "7b4ac39a518d6dba02add402c27cc451677c96ed150dc13429d0b43dc62150ec"
-    },
-    {
       "path": "reports/balance-overhaul/tree-geometry.log",
       "bytes": 1362,
       "sha256": "fb9d217892ed7cf51cc447f006a43a2f27f2b2c6af6c4de3d30bddaa8723c481"

@@ -12,25 +12,17 @@
 
 ## 父仓库直接管理的 Game
 
-| 源码目录（相对 games/local） | Game                  | workspace 包名                | 装载方式 |
-| ---------------------------- | --------------------- | ----------------------------- | -------- |
-| tianxia-chalu                | 天下岔路              | @coffeeeeffoc/tianxia-chalu   | iframe   |
-| cops-robbers                 | 围捕小队              | cops-robbers                  | iframe   |
-| cops-robbers-realtime        | 别跑！街区围捕        | cops-robbers-realtime         | iframe   |
-| h5-security                  | 来电之间              | between-calls                 | iframe   |
-| letters-words                | 词了个词 · 单词消消乐 | letters-words                 | iframe   |
-| letters-words2               | 词屿 · 字母叠叠乐     | ciyu-word-tiles               | iframe   |
-| multi-battle                 | 万象旅团              | multi-battle                  | iframe   |
-| puzzle                       | 雨停之前              | before-the-rain-stops         | iframe   |
-| travel                       | 去野 · 大理漫游记     | quye-travel                   | iframe   |
-| travel2                      | 外滩·一江入梦         | @coffeeeeffoc/travel2         | iframe   |
-| merge-front                  | 神机合阵              | @small-games/merge-front      | iframe   |
-| night-merge                  | 合成守夜人            | @small-games/night-merge      | iframe   |
-| travel-bund                  | 江风入境 · 外滩漫游   | @coffeeeeffoc/travel-bund     | iframe   |
-| travel-bund-2.5D             | 外滩 · 空中漫游       | @coffeeeeffoc/travel-bund-25d | iframe   |
-| vibeJam-myself-delivery      | 橘风速递              | tangerine-express             | iframe   |
-| vibeJam-myself-history-guess | 此时 · 此地           | here-and-then                 | iframe   |
-| vibeJam-myself-nullrange     | 零域 · NULL RANGE     | null-range-mobile-cn          | iframe   |
+| 源码目录（相对 games/local） | Game                | workspace 包名              | 装载方式 |
+| ---------------------------- | ------------------- | --------------------------- | -------- |
+| tianxia-chalu                | 天下岔路            | @coffeeeeffoc/tianxia-chalu | iframe   |
+| cops-robbers                 | 围捕小队            | cops-robbers                | iframe   |
+| cops-robbers-realtime        | 别跑！街区围捕      | cops-robbers-realtime       | iframe   |
+| letters-words2               | 词屿 · 字母叠叠乐   | ciyu-word-tiles             | iframe   |
+| merge-front                  | 神机合阵            | @small-games/merge-front    | iframe   |
+| travel-bund                  | 江风入境 · 外滩漫游 | @coffeeeeffoc/travel-bund   | iframe   |
+| vibeJam-myself-delivery      | 橘风速递            | tangerine-express           | iframe   |
+| vibeJam-myself-history-guess | 此时 · 此地         | here-and-then               | iframe   |
+| vibeJam-myself-nullrange     | 零域 · NULL RANGE   | null-range-mobile-cn        | iframe   |
 
 《天下岔路》由两个子应用组成：`games/local/tianxia-chalu` 提供移动端 H5 游戏，`services/tianxia-server` 提供独立对局后端。游戏以适合单拇指点击岔路的竖屏地图为主，通过 iframe 装载，独立地址为 `/games/tianxia-chalu/index.html`。核心规则和关卡配置独立维护，后端复用游戏公开导出的规则；离线游玩不依赖服务器。开发与验证见 [游戏 README](../games/local/tianxia-chalu/README.md) 和 [后端 README](../services/tianxia-server/README.md)。
 
@@ -60,13 +52,11 @@
 
 《星轨弹珠》位于 `games/local/ball-roguelite`，workspace 包名为 `@coffeeeeffoc/ball-roguelite`，通过 iframe 装载，独立地址为 `/games/ball-roguelite/index.html`。基于上传的弹珠肉鸽原型，提供六个依次解锁星域、无尽挑战与六种组合强化；竖屏触控瞄准、回合存档及运行边界见 [游戏 README](../games/local/ball-roguelite/README.md)。
 
-| 源码目录                            | Game     | workspace 包名                   | 静态输出    |
-| ----------------------------------- | -------- | -------------------------------- | ----------- |
-| games/submodules/fishing            | 潮汐猎手 | tidebreak                        | dist/       |
-| games/submodules/tower-defense-game | 月森守卫 | @coffeeeeffoc/tower-defense-game | dist-pages/ |
-| games/submodules/xiangqi-five       | 象五子棋 | @coffeeeeffoc/xiangqi-five       | dist/       |
+| 源码目录                      | Game     | workspace 包名             | 静态输出 |
+| ----------------------------- | -------- | -------------------------- | -------- |
+| games/submodules/xiangqi-five | 象五子棋 | @coffeeeeffoc/xiangqi-five | dist/    |
 
-四个子模块也通过 `git mv` 迁移，保留子仓库历史及原 commit。`.gitmodules` 的 `path` 指向新目录；section 名称保留为已有子模块的内部标识。
+子模块通过 `git mv` 迁移，保留子仓库历史及原 commit。`.gitmodules` 的 `path` 指向新目录；section 名称保留为已有子模块的内部标识。
 
 首次取得完整仓库：
 
@@ -82,7 +72,7 @@ pnpm install --frozen-lockfile
 
 ```sh
 # 指定一个游戏开发；不同游戏原有端口可能相同，按需单独启动
-pnpm --filter multi-battle dev
+pnpm --filter @small-games/merge-front dev
 
 # 全部游戏，复用 Turbo 的依赖构建和缓存
 pnpm games:build
@@ -105,11 +95,11 @@ python scripts/test-mobile-assets.py
 python scripts/mobile-assets.py
 ```
 
-`letters-words`、`letters-words2` 和 `travel` 的 `build.mjs` 只复制明确列出的运行文件到 `dist/`，不引入打包依赖，也不发布测试、服务器代码或开发配置。其余游戏沿用各自构建脚本。`puzzle` 的 `test` 复用原有规则检查。
+`letters-words2` 的 `build.mjs` 只复制明确列出的运行文件到 `dist/`，不引入打包依赖，也不发布测试、服务器代码或开发配置。其余游戏沿用各自构建脚本。
 
 静态 H5 的注册信息在 `apps/shell-web/src/standalone-games.json`：`id` 为稳定访问标识，`source` 为相对仓库根的源码目录，`output` 为该游戏构建输出目录。准备脚本按清单构建，再复制到 `apps/shell-web/public/games/<id>/`。
 
-Web Shell 最终部署目录是 `apps/shell-web/dist/`。源码迁移不改变现有 `/games/<id>/index.html` 地址。新增游戏采用同样地址，例如 `/games/multi-battle/index.html`。大厅开发服务启动时生成静态副本；修改独立 H5 后需重新执行准备流程，或直接使用该游戏的 dev 服务调试。
+Web Shell 最终部署目录是 `apps/shell-web/dist/`。源码迁移不改变现有 `/games/<id>/index.html` 地址。新增游戏采用同样地址，例如 `/games/merge-front/index.html`。大厅开发服务启动时生成静态副本；修改独立 H5 后需重新执行准备流程，或直接使用该游戏的 dev 服务调试。
 
 导入的独立 H5 沿用各自格式。lint 排除 Git 子模块，普通游戏中存在 lint 命令的包仍参与检查。测试和依赖边界检查覆盖两类游戏目录。
 
@@ -142,23 +132,23 @@ git commit -m "chore(shell): refresh game commit metadata"
 # 快速检查全部目录；适合提交前与 CI
 pnpm check:games
 
-# 检查四款游戏；仍报告其他目录的接入遗漏
-pnpm check:games merge-front night-merge travel-bund travel-bund-2.5D
+# 检查两款游戏；仍报告其他目录的接入遗漏
+pnpm check:games merge-front travel-bund
 
 # 检查现有制品的资源路径和源 dist / 大厅副本逐文件一致性
 pnpm check:games --artifacts
 
 # 实际执行选中游戏测试构建、B 站 SDK 强制构建与 smoke、
 # 全量 Pages 构建与浏览器操作回归、移动端 Web ZIP 打包
-pnpm check:games merge-front night-merge travel-bund travel-bund-2.5D --verify
+pnpm check:games merge-front travel-bund --verify
 
 # 机器可读结果（不与 --verify 同用）
 pnpm check:games --json
 ```
 
-参数接受目录名、目录路径、访问 id 或包名。`travel-bund-2.5D` 的访问 id 为 `travel-bund-25d`。不传游戏参数时，`--verify` 构建与测试全部游戏。运行浏览器检查前安装 Chromium：`pnpm exec playwright install chromium`。Pages 回归使用完整 Chromium 的 headless 模式；可用 `PLAYWRIGHT_EXECUTABLE_PATH` 指定浏览器，或用 `PLAYWRIGHT_BROWSERS_PATH` 指定 Playwright 缓存目录。
+参数接受目录名、目录路径、访问 id 或包名。不传游戏参数时，`--verify` 构建与测试全部游戏。运行浏览器检查前安装 Chromium：`pnpm exec playwright install chromium`。Pages 回归使用完整 Chromium 的 headless 模式；可用 `PLAYWRIGHT_EXECUTABLE_PATH` 指定浏览器，或用 `PLAYWRIGHT_BROWSERS_PATH` 指定 Playwright 缓存目录。
 
-CI 执行配置检查及脚本回归测试；Pages 构建前检查配置，构建后检查制品；Android 和 iOS 工作流安装依赖后先检查配置。`--verify` 的移动端检查覆盖 Web 资源包；APK 编译、iOS 模拟器启动及设备归档由 mobile 工作流验证，也可分别运行 `pnpm android:apk`、`pnpm ios:simulator`（需对应 SDK）。四款独立 H5 随 Web/原生 WebView 大厅打包，B 站 Canvas SDK 继续验证其现有 Game Host 游戏。
+CI 执行配置检查及脚本回归测试；Pages 构建前检查配置，构建后检查制品；Android 和 iOS 工作流安装依赖后先检查配置。`--verify` 的移动端检查覆盖 Web 资源包；APK 编译、iOS 模拟器启动及设备归档由 mobile 工作流验证，也可分别运行 `pnpm android:apk`、`pnpm ios:simulator`（需对应 SDK）。独立 H5 随 Web/原生 WebView 大厅打包，B 站 Canvas SDK 继续验证其现有 Game Host 游戏。
 
 ## 提交与锁文件
 
@@ -174,7 +164,7 @@ git commit -m "Update xiangqi-five"
 
 修改前检查父仓库与子仓库状态；子模块初始化后可能处于 detached HEAD，需要先切换分支。父仓库不会自动跟随远端最新提交。
 
-根 `pnpm-lock.yaml` 用于整体安装与 CI。子模块自己的锁文件用于独立开发和 CI，fishing 使用 npm 锁文件，其余三个使用 pnpm。导入的普通 H5 保留原有独立锁文件；修改依赖时也要同步相应独立锁文件，避免独立运行与父仓库安装不一致。
+根 `pnpm-lock.yaml` 用于整体安装与 CI。象五子棋子模块自己的 pnpm 锁文件用于独立开发和 CI。导入的普通 H5 保留原有独立锁文件；修改依赖时也要同步相应独立锁文件，避免独立运行与父仓库安装不一致。
 
 ## 平台边界
 
@@ -206,7 +196,7 @@ Android 的 Web 素材流程复用大厅制品。B 站原生 Canvas Shell 继续
 
 原四款游戏额外执行了修仙、斗蟋与办公室的现有完整浏览器回归，覆盖通关/失败、重开、存档、暂停/恢复及相应触控操作；Arena 在正式大厅中验证挑虫、调养、开战、闪避和暂停。
 
-手机回归使用 390×844 竖屏；捕鱼、橘风速递和零域按其玩法使用 844×390 横屏。浏览器报告和截图生成到 `.scratch/game-integration/`，修仙、斗蟋的详细输出位于各自 `.scratch/` 子目录，办公室输出位于游戏的 `test-results/`。
+手机回归使用 390×844 竖屏；橘风速递和零域按其玩法使用 844×390 横屏。浏览器报告和截图生成到 `.scratch/game-integration/`，修仙、斗蟋的详细输出位于各自 `.scratch/` 子目录，办公室输出位于游戏的 `test-results/`。
 
 这里验证的是本机浏览器模拟手机与 Web 资源包；没有执行真机 APK/iOS 安装、远端 GitHub Actions 或线上发布。全部运行入口保留原玩法，测试适配了横屏提示、不可选字母牌和旅游风景画卷的实际行为。
 

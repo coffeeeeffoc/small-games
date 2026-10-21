@@ -27,11 +27,8 @@ export function mobileGameViewport(id, fallback = { width: 390, height: 844 }) {
   if (id === 'wulong-city') return { width: 360, height: 900 };
   return [
     'fold-the-world',
-    'one-stroke-course',
-    'hold-tight-acrobats',
     'carding-car',
     'night-overwatch',
-    'fishing',
     'vibeJam-myself-delivery',
     'vibeJam-myself-nullrange',
   ].includes(id)

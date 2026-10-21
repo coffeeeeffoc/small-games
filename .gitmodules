@@ -1,14 +1,6 @@
-[submodule "games/tower-defense-game"]
-	path = games/submodules/tower-defense-game
-	url = git@github.com:coffeeeeffoc/tower-defense-game.git
-	branch = main
 [submodule "games/xiangqi-five"]
 	path = games/submodules/xiangqi-five
 	url = git@github.com:coffeeeeffoc/xiangqi-five.git
-	branch = main
-[submodule "games/fishing"]
-	path = games/submodules/fishing
-	url = git@github.com:coffeeeeffoc/fishing.git
 	branch = main
 [submodule "assets"]
 	path = assets

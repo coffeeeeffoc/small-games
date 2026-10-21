@@ -28,7 +28,7 @@
 ## 4. Import the eleven standalone games
 
 - Copy source, assets, tests and documentation into `games/local/`; exclude dependencies, caches, build output and generated test artifacts. Keep original sibling directories intact during verification.
-- Reuse each game's build/test scripts. Add minimal static-copy builds to `letters-words`, `letters-words2` and `travel`.
+- Reuse each game's build/test scripts. Add minimal static-copy builds to `letters-words2`.
 - Add the eleven entries to the existing standalone catalog and Shell workspace dependencies; regenerate the root lockfile.
 - Extend the existing Pages interaction checks to all 19 games, including direct URLs and return navigation.
 
