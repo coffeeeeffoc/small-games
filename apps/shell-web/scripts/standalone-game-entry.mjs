@@ -18,7 +18,7 @@ export const markers = {
   'tianxia-chalu': '#start',
   'voiceprint-case': '#start',
   'echo-lab': '#scene [data-object="reflector-1"]',
-  'bullet-garden': '#start',
+  'bullet-garden': '#GameCanvas',
   'maze-wander': '#start',
   'urban-breakout': '#start',
   'homebound-station': '[data-level="0"]',

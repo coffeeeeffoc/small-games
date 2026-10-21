@@ -63,6 +63,7 @@ jobs:
       KART_PREBUILT_DIR: ${{ github.workspace }}/games/local/carding-car/.prebuilt
       NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt
       ORBIT_ATELIER_PREBUILT_DIR: ${{ github.workspace }}/games/local/orbit-atelier/.prebuilt
+      BULLET_GARDEN_PREBUILT_DIR: ${{ github.workspace }}/games/local/bullet-garden/.prebuilt
       TIANXIA_PREBUILT_DIR: ${{ github.workspace }}/games/local/tianxia-chalu/.prebuilt
       PAGES_BASE_PATH: /${{ github.event.repository.name }}/${{ (github.base_ref || github.ref_name) == 'dev' && 'dev/' || (github.base_ref || github.ref_name) == 'test' && 'test/' || '' }}
     steps:
@@ -99,6 +100,10 @@ jobs:
         with:
           name: orbit-atelier-${{ github.sha }}
           path: games/local/orbit-atelier/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: bullet-garden-${{ github.sha }}
+          path: games/local/bullet-garden/.prebuilt
       - uses: actions/download-artifact@v8
         with:
           name: tianxia-chalu-${{ github.sha }}
@@ -140,6 +145,7 @@ jobs:
       KART_PREBUILT_DIR: ${{ github.workspace }}/games/local/carding-car/.prebuilt
       NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt
       ORBIT_ATELIER_PREBUILT_DIR: ${{ github.workspace }}/games/local/orbit-atelier/.prebuilt
+      BULLET_GARDEN_PREBUILT_DIR: ${{ github.workspace }}/games/local/bullet-garden/.prebuilt
       TIANXIA_PREBUILT_DIR: ${{ github.workspace }}/games/local/tianxia-chalu/.prebuilt
       PAGES_FULL_REGRESSION: ${{ inputs.full }}
       PAGES_GAME_SOURCES: ${{ inputs.game_sources }}
@@ -178,6 +184,10 @@ jobs:
         with:
           name: orbit-atelier-${{ github.sha }}
           path: games/local/orbit-atelier/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: bullet-garden-${{ github.sha }}
+          path: games/local/bullet-garden/.prebuilt
       - uses: actions/download-artifact@v8
         with:
           name: tianxia-chalu-${{ github.sha }}

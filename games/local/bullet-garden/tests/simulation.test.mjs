@@ -253,16 +253,17 @@ test('enemy contact can end the run and a lost run cannot keep advancing', () =>
 
 test('movement and dashes stay inside arena bounds and dash has a cooldown', () => {
   const state = isolatedGame();
-  state.player.x = 1320;
-  state.player.y = 730;
+  const bounds = LEVELS[state.mapId].bounds;
+  state.player.x = bounds.right - 20;
+  state.player.y = bounds.bottom - 20;
   assert.equal(dash(state, { x: 1, y: 1 }), true);
   assert.equal(dash(state, { x: 1, y: 1 }), false);
   advance(state, 2, { ...idle, moveX: 1, moveY: 1 });
-  assert.ok(state.player.x <= 1340 - state.player.radius);
-  assert.ok(state.player.y <= 750 - state.player.radius);
+  assert.ok(state.player.x <= bounds.right - state.player.radius);
+  assert.ok(state.player.y <= bounds.bottom - state.player.radius);
   advance(state, 10, { ...idle, moveX: -1, moveY: -1 });
-  assert.ok(state.player.x >= 100 + state.player.radius);
-  assert.ok(state.player.y >= 150 + state.player.radius);
+  assert.ok(state.player.x >= bounds.left + state.player.radius);
+  assert.ok(state.player.y >= bounds.top + state.player.radius);
 });
 
 test('restarting clears experience, upgrades, skill energy and combat entities', () => {
@@ -717,12 +718,12 @@ test('blast advertises its delay, damages only its area, and its stun expires', 
 
 test('gale pushes away from its center, slows temporarily, and leaves outside targets alone', () => {
   const state = isolatedGame();
-  const victim = enemy(state, { x: 1000, y: 400 });
+  const victim = enemy(state, { x: 850, y: 400 });
   const outside = enemy(state, { x: 200, y: 650 });
   readySkill(state, 'gale');
-  castSkill(state, { x: 950, y: 400 });
+  castSkill(state, { x: 800, y: 400 });
   advance(state, 0.3);
-  assert.ok(victim.x > 1000);
+  assert.ok(victim.x > 850);
   assert.ok(victim.hp < victim.maxHp);
   assert.ok(victim.windSlow > 0);
   assert.equal(outside.hp, outside.maxHp);
@@ -735,10 +736,11 @@ test('gale pushes away from its center, slows temporarily, and leaves outside ta
 for (const kind of ['cart', 'horse']) {
   test(`${kind} travels along its path, affects each target once and its control expires`, () => {
     const state = isolatedGame(42, [kind, 'blast']);
-    const victim = enemy(state, { x: 1000, y: state.player.y });
-    const outside = enemy(state, { x: 1000, y: state.player.y - 180 });
+    state.player.x = 600;
+    const victim = enemy(state, { x: 820, y: state.player.y });
+    const outside = enemy(state, { x: 820, y: state.player.y - 180 });
     readySkill(state, kind);
-    castSkill(state, { x: 1200, y: state.player.y });
+    castSkill(state, { x: 920, y: state.player.y });
     advance(state, 0.1);
     assert.equal(victim.hp, victim.maxHp, 'travel takes time');
     advance(state, 0.3);
@@ -933,22 +935,22 @@ test('a circle skill can target the exact player position without a directional 
 });
 
 test('optimized swept shots retain tangent hits at the beginning, middle and end of a full-crowd path', () => {
-  for (const hitX of [200, 800, 1200]) {
+  for (const hitX of [520, 720, 920]) {
     const state = isolatedGame();
     for (let index = 0; index < 47; index += 1)
       enemy(state, {
-        x: 180 + (index % 12) * 95,
+        x: 510 + (index % 12) * 35,
         y: 570 + Math.floor(index / 12) * 35,
       });
     const victim = enemy(state, { kind: 'brute', x: hitX, y: 337, radius: 33 });
     state.bullets.push({
       id: ++state.nextId,
       kind: 'normal',
-      x: 200,
+      x: 520,
       y: 300,
-      vx: 60000,
+      vx: 24000,
       vy: 0,
-      remaining: 1000,
+      remaining: 400,
       radius: 4,
       damage: 19,
       life: 1,

@@ -1,0 +1,180 @@
+{
+  "engine": "Cocos Creator 3.8.8",
+  "screen": "playing",
+  "phase": "playing",
+  "art": {
+    "ready": true,
+    "loaded": [
+      {}
+    ]
+  },
+  "controls": {
+    "developerMode": false,
+    "practice": false,
+    "joystickActive": false,
+    "skillAiming": false,
+    "move": {
+      "x": 0,
+      "y": 0
+    }
+  },
+  "viewport": {
+    "width": 390,
+    "height": 844,
+    "safeTop": 12,
+    "safeBottom": 10,
+    "battle": {
+      "x": 0,
+      "y": 77,
+      "w": 390,
+      "h": 554.44
+    },
+    "camera": {
+      "x": 720,
+      "y": 470,
+      "zoom": 0.86
+    }
+  },
+  "buttons": [
+    {
+      "id": "pause",
+      "label": "暂停",
+      "rect": {
+        "x": 330,
+        "y": 12,
+        "w": 48,
+        "h": 48
+      },
+      "disabled": false,
+      "clientRect": {
+        "x": 330,
+        "y": 12,
+        "w": 48,
+        "h": 48
+      }
+    },
+    {
+      "id": "move",
+      "label": "移动摇杆",
+      "disabled": false,
+      "rect": {
+        "x": 30.799999999999997,
+        "y": 677.72,
+        "w": 110,
+        "h": 110
+      },
+      "clientRect": {
+        "x": 30.799999999999997,
+        "y": 677.72,
+        "w": 110,
+        "h": 110
+      }
+    },
+    {
+      "id": "dash",
+      "label": "冲刺",
+      "rect": {
+        "x": 292,
+        "y": 748.1064,
+        "w": 82,
+        "h": 60
+      },
+      "disabled": false,
+      "clientRect": {
+        "x": 292,
+        "y": 748.1064,
+        "w": 82,
+        "h": 60
+      }
+    }
+  ],
+  "profile": {
+    "version": 1,
+    "xp": 0,
+    "coins": 0,
+    "completed": [],
+    "settledRuns": [],
+    "upgrades": {
+      "attack": 0,
+      "fireRate": 0,
+      "health": 0,
+      "armor": 0,
+      "seedMastery": 0,
+      "pet": 0,
+      "weaponDamage": 0,
+      "weaponRate": 0,
+      "weaponPierce": 0
+    },
+    "equippedWeapon": "bloom-rifle",
+    "equippedPet": "sprout-helper",
+    "selectedLevelId": "ruins"
+  },
+  "ads": {
+    "configured": false,
+    "platform": "preview",
+    "pending": false,
+    "used": {
+      "revive": false,
+      "supply": false
+    },
+    "status": ""
+  },
+  "state": {
+    "levelId": "ruins",
+    "mapId": "ruins",
+    "phase": "playing",
+    "time": 6.433099999964233,
+    "duration": 60,
+    "kills": 1,
+    "coins": 2,
+    "player": {
+      "x": 720,
+      "y": 470,
+      "hp": 100,
+      "maxHp": 100,
+      "armor": 0,
+      "layer": "ground",
+      "radius": 18,
+      "angle": -0.0995151888929866,
+      "invulnerable": 0,
+      "dashCooldown": 0,
+      "dashTime": 0,
+      "dashX": 0,
+      "dashY": 0,
+      "terrainSlipCooldown": 0,
+      "terrainLastX": 720,
+      "terrainLastY": 470,
+      "terrainContacts": []
+    },
+    "enemies": [
+      {
+        "id": 27,
+        "kind": "sprout",
+        "x": 1176.491622888682,
+        "y": 178.7670596758512,
+        "hp": 40
+      }
+    ],
+    "skills": [],
+    "stats": {
+      "shots": 26,
+      "plantsGrown": 0,
+      "plantKills": 0,
+      "terrainDamage": 0,
+      "damageTaken": 0,
+      "misses": 21,
+      "reflections": 0,
+      "splitShots": 0,
+      "autoPlants": 0,
+      "skillCasts": 0,
+      "skillDamage": 0,
+      "skillKills": 0,
+      "petShots": 0,
+      "petKills": 0,
+      "hostileShots": 0,
+      "shieldDamage": 0
+    },
+    "upgrades": [],
+    "boons": []
+  }
+}

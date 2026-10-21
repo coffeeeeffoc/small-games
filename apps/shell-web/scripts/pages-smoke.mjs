@@ -15,6 +15,7 @@ const builtInCount = 0;
 const basePath = process.env.PAGES_BASE_PATH ?? '/small-games/';
 const immersiveGame = (id) =>
   [
+    'bullet-garden',
     'tianxia-chalu',
     'ashfall-front',
     'carrom-club',
@@ -228,6 +229,7 @@ try {
         await expect(page.locator('.standalone-page nav')).toBeVisible();
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
       } else if (
+        game.id === 'bullet-garden' ||
         game.id === 'tianxia-chalu' ||
         game.id === 'ashfall-front' ||
         game.id === 'cage-rescue' ||

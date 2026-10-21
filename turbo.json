@@ -22,7 +22,9 @@
     "KART_PREBUILT_DIR",
     "NIGHT_OVERWATCH_PREBUILT_DIR",
     "ORBIT_ATELIER_PREBUILT_DIR",
-    "TIANXIA_PREBUILT_DIR"
+    "TIANXIA_PREBUILT_DIR",
+    "BULLET_GARDEN_PREBUILT_DIR",
+    "BULLET_GARDEN_PLATFORM_CONFIG"
   ],
   "tasks": {
     "dev": {
@@ -159,6 +161,19 @@
       "outputs": ["dist/**"],
       "env": ["COCOS_CREATOR", "TIANXIA_PREBUILT_DIR"],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/games/local/tianxia-chalu/.prebuilt/**"]
+    },
+    "@coffeeeeffoc/bullet-garden#build": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "outputs": ["dist/**"],
+      "env": ["COCOS_CREATOR", "BULLET_GARDEN_PREBUILT_DIR", "BULLET_GARDEN_PLATFORM_CONFIG"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/games/local/bullet-garden/.prebuilt/**"]
+    },
+    "@coffeeeeffoc/bullet-garden#typecheck": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "outputs": [],
+      "env": ["COCOS_CREATOR", "BULLET_GARDEN_PREBUILT_DIR", "BULLET_GARDEN_PLATFORM_CONFIG"]
     }
   }
 }

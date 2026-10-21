@@ -1,0 +1,12 @@
+{
+  "mockSDK": true,
+  "platformAcceptance": false,
+  "sourceHash": "719e5f28894c6418842d177a0aaa51528d848942d0d0733f7f98bcc693ddb6e3",
+  "checks": [
+    "supply hidden completion deferred to focus; 30 percent once; full HP hidden; duplicate ignored",
+    "revive dismiss/error/complete; 50 percent HP and 3 seconds protection; failure not settled; late callback cannot affect restart",
+    "focus lost before SDK shown cancels opening; delayed completion does not grant"
+  ],
+  "errors": [],
+  "passed": true
+}

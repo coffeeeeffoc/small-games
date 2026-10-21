@@ -718,7 +718,7 @@
       "potential": ["fun", "potential"],
       "platforms": ["mobile", "app"],
       "primaryPlatform": "mobile",
-      "orientation": "landscape",
+      "orientation": "portrait",
       "genres": ["action", "roguelite"],
       "opportunities": ["challenge", "share"],
       "schedule": "later",
@@ -727,7 +727,10 @@
       "strengths": ["14关、怪物渐进引入与可主动释放能量技能形成成长"],
       "weaknesses": ["首页图鉴入口多，战场粒子与地形会遮住威胁"],
       "improvements": ["收敛首局入口，强化危险预警与技能清场高光，增加同波次挑战"],
-      "evidence": ["games/local/bullet-garden/README.md"],
+      "evidence": [
+        "games/local/bullet-garden/README.md",
+        "games/local/bullet-garden/docs/design/cocos-mobile-2026-10-22/01-plan.md"
+      ],
       "delivered": []
     },
     {

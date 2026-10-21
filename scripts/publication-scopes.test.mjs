@@ -5,6 +5,8 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
   reviewedSharedFileScopes,
+  bulletGardenCreatorFileScope,
+  bulletGardenLockOnly,
   orbitCreatorIntegrationFileScope,
   competitionConsumers,
   competitionToolPlan,
@@ -70,8 +72,26 @@ const tianxiaWiring = [
   'apps/shell-web/tests/standalone.integration.test.tsx',
   'scripts/test-game-dev-mode.mjs',
 ];
-const tianxiaRead = (file) =>
-  readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll('\r\n', '\n');
+// Freeze historical routing fixtures when later Creator projects join the same files.
+const tianxiaFixture = new Map();
+const tianxiaRead = (file) => {
+  if (
+    ![
+      ...tianxiaWiring,
+      'apps/shell-web/scripts/standalone-game-entry.mjs',
+      'package.json',
+    ].includes(file)
+  )
+    return readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll('\r\n', '\n');
+  if (!tianxiaFixture.has(file))
+    tianxiaFixture.set(
+      file,
+      execFileSync('git', ['show', '22c95185813177bd860127563cf2eddbfe573e7e:' + file], {
+        encoding: 'utf8',
+      }).replaceAll('\r\n', '\n'),
+    );
+  return tianxiaFixture.get(file);
+};
 const tianxiaBefore = new Map();
 function tianxiaContext(file, overrides = {}) {
   if (!tianxiaBefore.has(file))
@@ -4295,5 +4315,138 @@ test('Orbit Cocos gameplay scope isolates the real exported branch without admit
   assert.equal(
     orbitCreatorIntegrationFileScope(file, nested, nested.replace('oldOrbit', 'actualTouch')),
     false,
+  );
+});
+
+test('Bullet Garden Creator routing preserves every old producer and consumer gate', () => {
+  for (const file of [
+    '.github/workflows/carding-car.yml',
+    '.github/workflows/ci.yml',
+    '.github/workflows/pages-validate.yml',
+    '.github/workflows/mobile.yml',
+  ]) {
+    const head = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
+      '\r\n',
+      '\n',
+    );
+    const base = head
+      .replace(/      - [\s\S]*?(?=      - |^  [a-z]|$(?![\s\S]))/gm, (block) =>
+        block.includes('name: bullet-garden-') || block.includes('name: Download CI bullet-garden')
+          ? ''
+          : block,
+      )
+      .replace(/^ +BULLET_GARDEN_PREBUILT_DIR:[^\n]*\n/gm, '')
+      .replace(/^ +node scripts\/reuse-cocos-artifacts.mjs verify bullet-garden[^\n]*\n/gm, '')
+      .replace(', bullet-garden]', ']')
+      .replace(" && steps.garden.outcome == 'success'", '');
+    assert.equal(bulletGardenCreatorFileScope(file, base, head), true, file);
+    assert.equal(
+      bulletGardenCreatorFileScope(file, base, head + '\n# unrelated change\n'),
+      false,
+      file,
+    );
+    assert.equal(
+      bulletGardenCreatorFileScope(
+        file,
+        base,
+        head.replaceAll('actions/checkout@v5', 'actions/checkout@v6'),
+      ),
+      false,
+      file,
+    );
+  }
+});
+test('Bullet Garden lock scope only adds three existing exact importer tuples', () => {
+  const manifest = {
+    name: '@coffeeeeffoc/bullet-garden',
+    devDependencies: { '@playwright/test': '1.55.1', esbuild: '0.28.2', typescript: '7.0.2' },
+  };
+  const tuples = Object.entries(manifest.devDependencies)
+    .map(
+      ([name, version]) =>
+        '      ' +
+        (name.startsWith('@') ? "'" + name + "'" : name) +
+        ':\n        specifier: ' +
+        version +
+        '\n        version: ' +
+        version +
+        '\n',
+    )
+    .join('');
+  const base =
+    'importers:\n  fixture:\n    devDependencies:\n' +
+    tuples +
+    '\n  games/local/bullet-garden: {}\n\npackages:\n';
+  const head = base.replace(
+    '  games/local/bullet-garden: {}\n',
+    '  games/local/bullet-garden:\n    devDependencies:\n' + tuples,
+  );
+  assert.equal(bulletGardenLockOnly(base, head, manifest), true);
+  const tooling = 'importers:\n  .: {}\npackages:\n  tool: {}\nsnapshots: {}\n---\n';
+  assert.equal(bulletGardenLockOnly(tooling + base, tooling + head, manifest), true);
+  assert.equal(
+    bulletGardenLockOnly(tooling + base, tooling.replace('tool:', 'changed:') + head, manifest),
+    false,
+  );
+  assert.equal(bulletGardenLockOnly(base, head + '  unrelated: {}\n', manifest), false);
+  assert.equal(
+    bulletGardenLockOnly(base, head.replace('specifier: 1.55.1', 'specifier: latest'), manifest),
+    false,
+  );
+  assert.equal(
+    bulletGardenLockOnly(base, head, { ...manifest, dependencies: { unexpected: '1' } }),
+    false,
+  );
+});
+
+test('Bullet Garden routes preserve fixed predecessors, identity and config-sensitive validation', () => {
+  const read = (file) =>
+    readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll('\r\n', '\n');
+  const base = (file) =>
+    execFileSync('git', ['show', '22c95185813177bd860127563cf2eddbfe573e7e:' + file], {
+      encoding: 'utf8',
+    }).replaceAll('\r\n', '\n');
+  const source = 'games/local/bullet-garden';
+  const manifest = JSON.parse(read(source + '/package.json'));
+  const games = [
+    { id: 'bullet-garden', source },
+    { id: 'wulong-city', source: 'games/local/wulong-city' },
+  ];
+  const packages = [{ dir: source, ...manifest }];
+  for (const file of tianxiaWiring) {
+    const context = { changedPaths: [file], readBase: base, readHead: read, games, packages };
+    assert.equal(bulletGardenCreatorFileScope(file, base(file), read(file)), true, file);
+    assert(reviewedSharedFileScopes(context).get(file)?.includes(source), file);
+    assert(
+      !reviewedSharedFileScopes({ ...context, games: [...games, { id: 'alias', source }] }).has(
+        file,
+      ),
+      file,
+    );
+    assert(
+      !reviewedSharedFileScopes({
+        ...context,
+        packages: [...packages, { dir: 'other', name: manifest.name }],
+      }).has(file),
+      file,
+    );
+  }
+  const turbo = read('turbo.json');
+  const unsafe = JSON.parse(turbo);
+  unsafe.tasks['@coffeeeeffoc/bullet-garden#build'].cache = true;
+  assert(!bulletGardenCreatorFileScope('turbo.json', base('turbo.json'), JSON.stringify(unsafe)));
+  const file = 'scripts/cocos-validation.mjs';
+  assert(
+    !bulletGardenCreatorFileScope(
+      file,
+      base(file).replace('KART_PREBUILT_DIR', 'WRONG'),
+      read(file).replace('KART_PREBUILT_DIR', 'WRONG'),
+    ),
+  );
+  const branding = 'games/local/carding-car/scripts/cocos-branding.mjs';
+  assert(
+    reviewedSharedFileScopes({ changedPaths: [branding], games, packages })
+      .get(branding)
+      .includes(source),
   );
 });

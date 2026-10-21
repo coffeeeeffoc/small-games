@@ -572,145 +572,91 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await click(frame.locator('#back-home'));
     await expect(frame.locator('#home')).toBeVisible();
   } else if (id === 'bullet-garden') {
-    const snapshot = () =>
-      frame.locator('body').evaluate(() => globalThis.__bulletGarden.snapshot());
-    const page = frame.locator('#arena').page();
-    const clearHudTargets = () =>
-      expect
-        .poll(() =>
-          frame.locator('#game').evaluate((game) => {
-            const pause = game.querySelector('#pause');
-            const fullscreen = game.querySelector('#fullscreen');
-            const a = pause.getBoundingClientRect();
-            const b = fullscreen.getBoundingClientRect();
-            const separated =
-              a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top;
-            return (
-              separated &&
-              [pause, fullscreen].every((button) => {
-                const rect = button.getBoundingClientRect();
-                return (
-                  rect.width >= 44 &&
-                  rect.height >= 44 &&
-                  button.contains(
-                    globalThis.document.elementFromPoint(
-                      rect.left + rect.width / 2,
-                      rect.top + rect.height / 2,
-                    ),
-                  )
-                );
-              })
-            );
-          }),
+    const canvas = frame.locator('#GameCanvas');
+    const page = canvas.page();
+    const snapshot = () => canvas.evaluate(() => globalThis.__bulletGarden?.snapshot());
+    await expect.poll(async () => (await snapshot())?.art.ready, { timeout: 60000 }).toBe(true);
+    expect((await snapshot()).engine).toBe('Cocos Creator 3.8.8');
+    const point = async (x, y) => {
+      const state = await snapshot(),
+        bounds = await canvas.boundingBox();
+      expect(bounds).toBeTruthy();
+      return {
+        x: bounds.x + (x / state.viewport.width) * bounds.width,
+        y: bounds.y + (y / state.viewport.height) * bounds.height,
+      };
+    };
+    const tap = async (id) => {
+      await expect
+        .poll(async () =>
+          (await snapshot()).buttons.some((item) => item.id === id && !item.disabled),
         )
         .toBe(true);
-    // Normal play draws the stage setup automatically from unlocked content.
-    await click(frame.locator('#start'));
-    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
-    expect((await snapshot()).progression.nextXp).toBeGreaterThan(0);
-    // Energy skills are introduced after the first clear, keeping onboarding focused.
-    expect((await snapshot()).skillSlots).toEqual([]);
-    await expect(frame.locator('[data-skill-slot="0"]')).toBeHidden();
-    await expect(frame.locator('[data-skill-slot="1"]')).toBeHidden();
-    // Keep the middle of the battlefield available for direct touch targeting.
-    if (mobile) {
-      await expect
-        .poll(() =>
-          frame.locator('body').evaluate(() => {
-            const target = globalThis.document.elementFromPoint(
-              globalThis.innerWidth / 2,
-              globalThis.innerHeight * 0.45,
-            );
-            return target?.id;
-          }),
-        )
-        .toBe('arena');
-    }
-    expect((await snapshot()).boons).toEqual([]);
-    expect((await snapshot()).plants).toEqual([]);
-    expect((await snapshot()).stats.skillCasts).toBe(0);
-
-    const initialPlayer = (await snapshot()).player;
-    const touch = mobile ? await page.context().newCDPSession(page) : undefined;
+      const button = (await snapshot()).buttons.find((item) => item.id === id && !item.disabled);
+      expect(button, 'Enabled Cocos button: ' + id).toBeTruthy();
+      const pos = await point(button.rect.x + button.rect.w / 2, button.rect.y + button.rect.h / 2);
+      if (mobile) await page.touchscreen.tap(pos.x, pos.y);
+      else await page.mouse.click(pos.x, pos.y);
+    };
+    await tap('levels');
+    await expect.poll(async () => (await snapshot()).screen).toBe('levels');
+    await tap('back');
+    await tap('start');
+    await expect.poll(async () => (await snapshot()).screen).toBe('playing');
+    await expect
+      .poll(async () => (await snapshot()).buttons.some((item) => item.id === 'move'))
+      .toBe(true);
+    const initial = await snapshot();
+    expect(initial.state.boons).toEqual([]);
+    const joystick = initial.buttons.find((item) => item.id === 'move');
+    expect(joystick).toBeTruthy();
+    const from = await point(
+      joystick.rect.x + joystick.rect.w / 2,
+      joystick.rect.y + joystick.rect.h / 2,
+    );
+    const to = await point(
+      joystick.rect.x + joystick.rect.w / 2 + 32,
+      joystick.rect.y + joystick.rect.h / 2,
+    );
+    const cdp = mobile ? await page.context().newCDPSession(page) : null;
     try {
-      if (touch) {
-        const bounds = await frame.locator('#joystick').boundingBox();
-        const start = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
-        const rotated = (await frame.locator('#game').getAttribute('data-rotated')) === 'true';
-        await touch.send('Input.dispatchTouchEvent', {
+      if (cdp) {
+        await cdp.send('Input.dispatchTouchEvent', {
           type: 'touchStart',
-          touchPoints: [{ id: 1, ...start }],
+          touchPoints: [{ id: 1, ...from }],
         });
-        await touch.send('Input.dispatchTouchEvent', {
+        await cdp.send('Input.dispatchTouchEvent', {
           type: 'touchMove',
-          touchPoints: [
-            { id: 1, x: start.x + (rotated ? 0 : 32), y: start.y + (rotated ? 32 : 0) },
-          ],
+          touchPoints: [{ id: 1, ...to }],
         });
       } else {
-        await page.keyboard.down('d');
+        await page.mouse.move(from.x, from.y);
+        await page.mouse.down();
+        await page.mouse.move(to.x, to.y);
       }
       await expect
-        .poll(async () => Math.abs((await snapshot()).player.x - initialPlayer.x))
+        .poll(async () => (await snapshot()).state.player.x - initial.state.player.x)
         .toBeGreaterThan(12);
     } finally {
-      if (touch) {
-        await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-        await touch.detach();
-      } else {
-        await page.keyboard.up('d');
-      }
+      if (cdp) {
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+        await cdp.detach();
+      } else await page.mouse.up();
     }
-    // Chromium can change the primary pointer when the touch CDP session ends.
-    // A phone must retain its logical landscape layout and both complete hit areas.
-    if (mobile)
-      await expect(frame.locator('#game')).toHaveAttribute(
-        'data-rotated',
-        String(page.viewportSize().height > page.viewportSize().width),
-      );
-    await clearHudTargets();
-    await click(frame.locator('#pause'));
-    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'paused');
-    const pausedTime = (await snapshot()).time;
+    await expect.poll(async () => (await snapshot()).controls.joystickActive).toBe(false);
+    await tap('pause');
+    await expect.poll(async () => (await snapshot()).screen).toBe('paused');
+    const time = (await snapshot()).state.time;
     await page.waitForTimeout(150);
-    expect((await snapshot()).time).toBe(pausedTime);
-    await click(frame.locator('#resume'));
-    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
-    await expect.poll(async () => (await snapshot()).time).toBeGreaterThan(pausedTime);
-    await click(frame.locator('#dash'));
-    await expect.poll(async () => (await snapshot()).player.dashCooldown).toBeGreaterThan(0);
-    const arena = frame.locator('#arena');
-    const bounds = await arena.boundingBox();
-    // Native battlefield targeting remains available before energy skills unlock.
-    const target = { position: { x: bounds.width * 0.65, y: bounds.height * 0.6 } };
-    expect(
-      await arena.evaluate((element, { x, y }) => {
-        const rect = element.getBoundingClientRect();
-        return globalThis.document.elementFromPoint(rect.left + x, rect.top + y) === element;
-      }, target.position),
-    ).toBe(true);
-    if (mobile) await arena.tap(target);
-    else await arena.click(target);
-    expect((await snapshot()).stats.skillCasts).toBe(0);
-    await expect
-      .poll(async () => (await snapshot()).stats.shots, { timeout: 10000 })
-      .toBeGreaterThan(0);
-    // Longer exit text, host fullscreen resize, pause recovery and a second run.
-    await click(frame.locator('#pause'));
-    await click(frame.locator('#fullscreen'));
-    await expect(frame.locator('#fullscreen')).toHaveAttribute('aria-pressed', 'true');
-    await click(frame.locator('#resume'));
-    await clearHudTargets();
-    await click(frame.locator('#pause'));
-    await click(frame.locator('#fullscreen'));
-    await expect(frame.locator('#fullscreen')).toHaveAttribute('aria-pressed', 'false');
-    await click(frame.locator('#pause-home'));
-    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'ready');
-    await click(frame.locator('#start'));
-    await clearHudTargets();
-    await click(frame.locator('#pause'));
-    await click(frame.locator('#resume'));
-    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
+    expect((await snapshot()).state.time).toBe(time);
+    await tap('resume');
+    await expect.poll(async () => (await snapshot()).state.time).toBeGreaterThan(time);
+    await tap('dash');
+    await expect.poll(async () => (await snapshot()).state.player.dashCooldown).toBeGreaterThan(0);
+    await tap('pause');
+    await tap('abandon');
+    await expect.poll(async () => (await snapshot()).screen).toBe('home');
+    expect((await snapshot()).buttons.some((item) => /fullscreen/i.test(item.id))).toBe(false);
   } else if (id === 'maze-wander') {
     await expect(frame.locator('#maze-game')).toHaveAttribute('data-screen', 'playing');
     if (mobile) {

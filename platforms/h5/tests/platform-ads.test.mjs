@@ -262,7 +262,7 @@ test('TapTap missing SDK/slot and native Tap selector cannot fall back to anothe
     },
     { platform: 'taptap-h5', environment: fixture().environment },
     { platform: 'taptap-h5', adUnitId: 'YOUR_AD_UNIT_ID', environment: fixture().environment },
-    { platform: 'taptap', adUnitId: 'slot', environment: fixture().environment },
+    { platform: 'unknown-channel', adUnitId: 'slot', environment: fixture().environment },
   ])
     assert.equal((await createPlatformAdProvider(options).show()).status, 'unavailable');
 });
@@ -495,3 +495,25 @@ test('throwing onShown observers never retry, fail or reward a displayed ad', as
   f.listeners.close({ isEnded: true });
   assert.equal((await pending).status, 'completed');
 });
+
+for (const ended of [true, false, undefined, 'true'])
+  test('Tap native has a separate cancellable lease and strict completion: ' + ended, async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const f = fixture('taptap');
+    let shown = false;
+    const pending = f.provider.show({
+      onShown: () => {
+        shown = true;
+      },
+    });
+    await tick();
+    assert.deepEqual(f.calls[0], { adUnitId: 'slot-1', multiton: true });
+    assert.equal(shown, true);
+    t.mock.timers.tick(90000);
+    f.listeners.close({ isEnded: ended });
+    assert.equal((await pending).status, ended === true ? 'completed' : 'dismissed');
+    const next = f.provider.show();
+    await tick();
+    f.provider.cancel();
+    assert.equal((await next).status, 'dismissed');
+  });

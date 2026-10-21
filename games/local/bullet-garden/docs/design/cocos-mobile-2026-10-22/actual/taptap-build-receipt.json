@@ -1,0 +1,230 @@
+{
+  "game": "bullet-garden",
+  "creator": "3.8.8",
+  "channel": {
+    "platform": "preview",
+    "appId": "",
+    "adUnitId": "",
+    "adsEnabled": false
+  },
+  "sourceHash": "0e189be9f63281174000469343d63a1549d525fae3e739182059f9d72d8af728",
+  "sourceInventorySha256": "a7b86efec0f4ce11f126b582beb939bcb784c07a0ee3ba6502b61b1b313263f1",
+  "pluginVersion": "1.2.2",
+  "pluginArchiveSha256": "6b8a9a3cc62b6c54cefab397097babb771d9d99f90442cddff06310a4c9ed73f",
+  "pluginInventorySha256": "5ac795fd2c8b9cb048457cb69810b5b3a51b581b79b98e100b2ddc4adf5eefec",
+  "packageSha256": "7b382b53627ca06556c2ea929671ad5100295802430c79195d46045f63e4fc7c",
+  "packageBytes": 11707319,
+  "unpackedBytes": 13312326,
+  "packageFile": "F:\\playground\\playground-ai\\bullet-garden-mobile\\games\\local\\bullet-garden\\build\\taptap-Pc4YCh\\converted\\game.zip",
+  "projectDirectory": "F:\\playground\\playground-ai\\bullet-garden-mobile\\games\\local\\bullet-garden\\build\\taptap-Pc4YCh\\converted\\game",
+  "deviceOrientation": "portrait",
+  "officialConverterExecuted": true,
+  "runtimeSdkBridge": "startup/taptap.cjs",
+  "manifestBound": true,
+  "zipMatchesDirectory": true,
+  "loginIntegrated": false,
+  "realDeviceVerified": false,
+  "platformReviewVerified": false,
+  "files": [
+    {
+      "path": "application.ae953.js",
+      "bytes": 3805,
+      "sha256": "a3f2672431d0cde02c760592d1b8b64cc9f36a9a4e7656eeb74cf374746eadf7"
+    },
+    {
+      "path": "assets/internal/config.7aac6.json",
+      "bytes": 1679,
+      "sha256": "689d3c86c2520770988d0bb4bebb76401d4f0e67f362b01932bd1281d170f673"
+    },
+    {
+      "path": "assets/internal/import/0a/0a93f2575.945df.json",
+      "bytes": 88838,
+      "sha256": "188a28bfb3e07c6059094aead0e3b18764a3e70350fb26bc0970c1be4b906008"
+    },
+    {
+      "path": "assets/internal/index.7aac6.js",
+      "bytes": 10457,
+      "sha256": "81ef0ec917c17abaae522aa02c9f198ae9a2dd792eafebd462b32bb8690cbd51"
+    },
+    {
+      "path": "assets/main/config.104f9.json",
+      "bytes": 609,
+      "sha256": "5bdfc335f34769b1cbd1cf719007afe19455363240c8fe5029db05485933b4ec"
+    },
+    {
+      "path": "assets/main/import/72/727a052e-3331-4130-a1d4-f35a67322cba.3f8f5.json",
+      "bytes": 795,
+      "sha256": "25623920da880af71a494f82146bbd7dfde683d049bb91305d2720bc9c65e2a5"
+    },
+    {
+      "path": "assets/main/import/ba/ba21476f-2866-4f81-9c4d-6e359316e448.8bce7.json",
+      "bytes": 192,
+      "sha256": "0a34e9263b215bb661d6334db6a255497c6cdac1f1c40b130f50bf9d91f4dd39"
+    },
+    {
+      "path": "assets/main/import/fd/fd8ec536-a354-4a17-9c74-4f3883c378c8.731f4.json",
+      "bytes": 480,
+      "sha256": "c2eee4552a460ed97591f527e127b95c811d5f796b9448f3f705974af9beba9d"
+    },
+    {
+      "path": "assets/main/index.104f9.js",
+      "bytes": 248040,
+      "sha256": "6759ec25140047703e00d94d40b7a077acda3e16995293eeaa30ffa2d30db8d7"
+    },
+    {
+      "path": "assets/resources/config.2302d.json",
+      "bytes": 1068,
+      "sha256": "60f09e74e52cbc49e80cea883785aca1acb422b9c7534fc6e558bc5cad6ce89d"
+    },
+    {
+      "path": "assets/resources/import/05/059f7318-b7d6-4c13-ad39-c3f1cafbbb1b.a2533.json",
+      "bytes": 72,
+      "sha256": "60928632edcd22b5694a8c22de01de0d2cbb6f374103242a99a4394cc767f44d"
+    },
+    {
+      "path": "assets/resources/import/09/09a9875b1.04701.json",
+      "bytes": 248,
+      "sha256": "e25ce392090066f00c197352fe97ef74f16847c92e95eebd7194cc04a2c81d6f"
+    },
+    {
+      "path": "assets/resources/import/75/758f505b-e64d-4204-83ac-506f739abe42.a2533.json",
+      "bytes": 72,
+      "sha256": "60928632edcd22b5694a8c22de01de0d2cbb6f374103242a99a4394cc767f44d"
+    },
+    {
+      "path": "assets/resources/import/7e/7e34b7c4-e10a-43c9-80ad-e35f58dc94cd.73a5c.json",
+      "bytes": 123,
+      "sha256": "5a45748e6ef3b3b75883e1076785582f87d35792e617dca1a13b4799bdaf2038"
+    },
+    {
+      "path": "assets/resources/import/85/85234e65-bd1f-4c56-b030-3cd6c9cc2c66.a2533.json",
+      "bytes": 72,
+      "sha256": "60928632edcd22b5694a8c22de01de0d2cbb6f374103242a99a4394cc767f44d"
+    },
+    {
+      "path": "assets/resources/import/89/891d9c51-7ca6-464f-98f4-4fdab76acaec.a2533.json",
+      "bytes": 72,
+      "sha256": "60928632edcd22b5694a8c22de01de0d2cbb6f374103242a99a4394cc767f44d"
+    },
+    {
+      "path": "assets/resources/import/a6/a6532d11-3806-4b18-b323-9119350dfda7.a2533.json",
+      "bytes": 72,
+      "sha256": "60928632edcd22b5694a8c22de01de0d2cbb6f374103242a99a4394cc767f44d"
+    },
+    {
+      "path": "assets/resources/index.2302d.js",
+      "bytes": 600,
+      "sha256": "e6608b5301389ad99594f9319bb27632ab076be91200dab989fab2082296bb50"
+    },
+    {
+      "path": "assets/resources/native/05/059f7318-b7d6-4c13-ad39-c3f1cafbbb1b.8da84.png",
+      "bytes": 2883401,
+      "sha256": "d7e2a83a2f1e722c71861ee77318dde41d715842258bf624fee6d34907a5da54"
+    },
+    {
+      "path": "assets/resources/native/75/758f505b-e64d-4204-83ac-506f739abe42.136aa.png",
+      "bytes": 2968328,
+      "sha256": "cf75585f96be71129b223a4ec3d088a56ae389f1caa7b6c17727ae46af398ee1"
+    },
+    {
+      "path": "assets/resources/native/7e/7e34b7c4-e10a-43c9-80ad-e35f58dc94cd.13800.wav",
+      "bytes": 28708,
+      "sha256": "5ae2e9ca247f35a0827a23cdf69dacaae8be1ba91ef12dd7bc8d54a91f03ff1c"
+    },
+    {
+      "path": "assets/resources/native/85/85234e65-bd1f-4c56-b030-3cd6c9cc2c66.5f136.png",
+      "bytes": 147720,
+      "sha256": "85d6839f4fe0d8c54f461208e11308e17c89db148db89c4a9dc201c7d9074178"
+    },
+    {
+      "path": "assets/resources/native/89/891d9c51-7ca6-464f-98f4-4fdab76acaec.f0c0c.png",
+      "bytes": 2736254,
+      "sha256": "b35cd20bb26d15ed138330fb32473e51dd46556ce10506719b482d01e84b7c59"
+    },
+    {
+      "path": "assets/resources/native/a6/a6532d11-3806-4b18-b323-9119350dfda7.44f5f.png",
+      "bytes": 2529306,
+      "sha256": "5e245bf437ff1b6c278cc8616746d9e2815ce7ea1eb8c2c5a6eedac4ea27d130"
+    },
+    {
+      "path": "build-info.json",
+      "bytes": 4692,
+      "sha256": "8ace164b5b90a132b323e6e8ee22824bc376e5935b4fdaf77f399538d7673f38"
+    },
+    {
+      "path": "check-version.js",
+      "bytes": 1565,
+      "sha256": "15e98d0e9456ce5bcfa8169b920a07809533f07c783166278673578926837ca8"
+    },
+    {
+      "path": "cocos-js/cc.e78b5.js",
+      "bytes": 1280014,
+      "sha256": "5be606f7b465ba42b183fe6d2114807412d13ef50b426354418bf9fb40b12491"
+    },
+    {
+      "path": "engine-adapter.js",
+      "bytes": 30326,
+      "sha256": "8109ec1925089af233bbba1cc7840b0dbd93742fdfa93cb34bef23b6a247eda9"
+    },
+    {
+      "path": "first-screen.js",
+      "bytes": 17252,
+      "sha256": "ed7b1c0c304ed75f6ee59b3fafc112068ed227ae82755b0e92cb295cb6162ad2"
+    },
+    {
+      "path": "game.js",
+      "bytes": 3099,
+      "sha256": "685aac072f1f27aa303f4e636fedc00bc2ec88cb6cd74e12eb6802b7b76870de"
+    },
+    {
+      "path": "game.json",
+      "bytes": 246,
+      "sha256": "6cde78979815922b74dbc65d5696f81718415ae778def16b1a343d10288fc4cc"
+    },
+    {
+      "path": "garden-tap-runtime.js",
+      "bytes": 489,
+      "sha256": "2de29e59a7e6cc881d9be5bcce6ede8c3a9ae890bd16bcda1cf1c6f3ccf5b991"
+    },
+    {
+      "path": "logo.png",
+      "bytes": 147720,
+      "sha256": "85d6839f4fe0d8c54f461208e11308e17c89db148db89c4a9dc201c7d9074178"
+    },
+    {
+      "path": "project.config.json",
+      "bytes": 633,
+      "sha256": "c10360614bfc98b595e600f7f7005ed56150bcd8cf5d59646a2c7fcedbc5fe3a"
+    },
+    {
+      "path": "src/chunks/bundle.2264a.js",
+      "bytes": 6924,
+      "sha256": "3dbcf3ce9123187a46665c3e873987372b796deab6325f67e9167dca8c3148dc"
+    },
+    {
+      "path": "src/import-map.7d961.js",
+      "bytes": 216,
+      "sha256": "e943dca00740855fa9b47ae5929615a832e831a60c7681b15914c633252c76a7"
+    },
+    {
+      "path": "src/polyfills.bundle.43263.js",
+      "bytes": 15382,
+      "sha256": "622497b91ed78ba92c2a26db2f70df8a6bb501e5ddeb1375d98e94a51a3680c3"
+    },
+    {
+      "path": "src/settings.dac2a.json",
+      "bytes": 1856,
+      "sha256": "22ce6348e1f5c2a092fe69bbe720081011e2ec437c962471b4a20f183376428f"
+    },
+    {
+      "path": "src/system.bundle.f45da.js",
+      "bytes": 14419,
+      "sha256": "99d72549ce1f33a1ab486e16e67491078e2593e23ef9d9a796aeaa8d9c6f47a7"
+    },
+    {
+      "path": "web-adapter.js",
+      "bytes": 136482,
+      "sha256": "0c831d4478533d9b9316b5773222166fed9509f268c5ab035f8aa6495e9408b9"
+    }
+  ]
+}

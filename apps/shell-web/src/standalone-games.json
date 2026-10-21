@@ -213,7 +213,7 @@
     "id": "bullet-garden",
     "source": "games/local/bullet-garden",
     "title": "子弹花园 · Bullet Garden",
-    "description": "在庭院守住五分钟：经验升级选中地形增益后才生成灌木、沟渠、冻土或毒素，积蓄能量，手动瞄准释放爆破、大风、冲锋车、战马与激光。",
+    "description": "在花园遗迹中移动射击，选择成长与花园祝福，击退虫潮并逐关开拓。",
     "output": "dist"
   },
   {

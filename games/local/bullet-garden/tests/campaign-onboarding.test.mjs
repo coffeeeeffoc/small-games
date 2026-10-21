@@ -77,7 +77,7 @@ test('introductory stage is short and naturally survivable without skills or per
   }
 });
 
-test('normal entry rolls only unlocked weather, maps, and skills and rejects preparation overrides', () => {
+test('normal entry binds chapter map and weather, rolls unlocked skills and rejects overrides', () => {
   const override = {
     weather: { kind: 'hail', wind: 1, thunder: true },
     map: 'skyreach',
@@ -101,13 +101,13 @@ test('normal entry rolls only unlocked weather, maps, and skills and rejects pre
     );
     assert.ok(WEATHER[state.weather.kind].unlockLevel <= 4);
     assert.equal(state.weather.thunder, false);
-    assert.ok(LEVELS[state.mapId].unlockLevel <= 4);
+    assert.equal(state.mapId, 'skyreach');
     assert.equal(state.skillSlots.length, 2);
     assert.equal(new Set(state.runConfig.skills).size, 2);
     assert.ok(state.runConfig.skills.every((kind) => SKILLS[kind].unlockPlayerLevel <= 4));
     variety.add(JSON.stringify(state.runConfig));
   }
-  assert.ok(variety.size > 5);
+  assert.ok(variety.size > 1);
 });
 
 test('developer settings are validated, remain stable on retry, and keep the campaign enemy gate', () => {

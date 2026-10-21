@@ -1,107 +1,73 @@
-# 子弹花园 · Bullet Garden
+# 子弹花园 · Cocos Creator 3.8.8
 
-Canvas 2D 战术射击 Game，支持独立运行与 Web Shell iframe。首页提供关卡入口、通关进度，以及怪物图鉴、成长增益、枪械工坊、能量技能、植物图鉴、成长路线六类入口。保留原有十一关并追加深根秘境、坚盾花环、云上花庭，共十四关；第4、8关为首领关，第11关为章节BOSS。第一关只出现芽怪，从60秒的轻松挑战开始；后续每关最多新增一种怪物。
+竖屏、触屏优先的花园射击游戏。正式入口是 `assets/scenes/main.scene`；页面与战场由原生 Sprite、Graphics、Label 绘制。原 `src` 纯规则模块经 esbuild 生成 Creator 模块，始终只有一套战斗模拟。历史 `index.html`、`src/main.mjs`、旧网页 renderer/server 仅作参考，不是开发、构建或正式验收入口。游戏无全屏按钮。
 
-## 运行与验证
+## 构建与预览
 
-无需安装运行依赖，Node.js 20+：
+仓库根安装锁定依赖后，在本目录执行：
 
-```sh
-node server.mjs
-# http://127.0.0.1:4410
-npm test
-npm run test:balance
-npm run test:campaign-balance
-node build.mjs
-node server.mjs --root dist --port 4411
+```powershell
+node scripts/typecheck.mjs
+pnpm test
+node scripts/build.mjs web-mobile
+pnpm dev
+# http://localhost:4356，仅预览生产 dist
+node scripts/build.mjs web-desktop
+node scripts/serve.mjs --desktop
+node scripts/build.mjs wechatgame
 ```
 
-浏览器和绘制验收需要 Playwright 与 Chromium；可用仓库依赖或指定 `PLAYWRIGHT_MODULE`、`CHROMIUM_PATH`。通过 `GAME_URL` 指向开发服务或构建制品，`QA_OUTPUT` 指定证据目录。
+要求真实 Creator 3.8.8（使用 carding-car 的 toolchain 查找）；根 `build.mjs` 保留薄转发。typecheck/build 都先 prepare，clean checkout 可按 typecheck → test → build 执行。`assets/scripts/generated/`、构建和导入缓存不提交。每目标输出 `build-info.json`，包含 Creator版本、渠道配置、源码 SHA-256、逐文件 inventory；移动目标另复制到 `dist`。
 
-```sh
-npm run test:browser
-npm run test:campaign-browser
-npm run test:rendering
-npm run test:screens
-GAME_URL=http://127.0.0.1:4410 npm run test:home-browser
+`BULLET_GARDEN_PREBUILT_DIR` 指向含 `dist/` 和真实 `cc.d.ts` 的游戏制品目录。恢复必须通过当前源码、渠道和完整 inventory 校验；错配直接失败，不降级为旧包。物理路径相同直接复用，目标内的源目录和目标 junction/symlink 被拒绝。`sourceHash` 只用 Node 内建模块，CI 安装依赖前可以运行；生成 core/channel 及其自动 meta 不参与源哈希。
+
+## 渠道配置与广告
+
+没有配置时固定 `{platform:"preview",appId:"",adUnitId:"",adsEnabled:false}`，默认隐藏广告并正常免费游玩。复制 `platform-build.example.json` 到自己的配置文件，只接受 `platform/appId/adUnitId/adsEnabled` 四字段；platform 为 `preview`、`taptap` 或 `taptap-h5`。真实 ID 必须属于本游戏。
+
+```powershell
+$env:BULLET_GARDEN_PLATFORM_CONFIG='F:/configs/bullet-garden-h5.json'
+node scripts/build.mjs web-mobile
+# 该文件必须声明 taptap-h5（或 preview）；原生使用 taptap（或 preview）。
 ```
 
-`test:browser`、`test:campaign-browser` 和 `test:home-browser` 当前都执行 `tests/home-browser.mjs`，覆盖本次首页与逐步解锁。`QA_ONLY=desktop|natural|touch|dev` 可分组执行，报告默认写入 `/tmp/bullet-garden-home-qa`。通过 `GAME_URL=http://127.0.0.1:4411` 可对构建产物运行同一检查。旧 `tests/browser.mjs` / `tests/campaign-browser.mjs` 保留为历史脚本，不是当前界面的验收入口。
+配置编译进运行模块，typecheck/build/预制品验证使用相同配置；不通过 URL 或调试 API 注入。修改配置必须重建。公共 provider 为 `platforms/h5/platform-ads.js`。只在 completed 授予：每局一次50%生命复活并保护3秒，暂停页一次30%生命补给，满血不出现。SDK onShown 后的遮挡冻结游戏，隐藏中完成延后到可见时授予且保持暂停；离开、重开、销毁使迟到回调失效。原生允许 hide 先于 onShown。
 
-## 战斗与成长
+本轮没有配置真实广告 ID、登录或访问平台后台。`tests/cocos-ads.browser.mjs` 明确标记 mockSDK，验证真实生产 JS bundle 与公共 provider 回调契约，不代表 TapTap SDK/真机/审核通过。
 
-普通枪械自动攻击附近怪物，击杀积累**局内经验**，升级时从当前永久等级已解锁的内容中抽取候选，通常三选一，局内等级5起最多四选一。初始只开放基础枪械、生命与灌木路线，每局开始不拥有自动植物；只有选中对应祝福后才会自动生长。灌木在永久Lv.1开放，沟渠与暖阳花Lv.2、霜花与寒冰柱Lv.3、毒花与爆炸蘑菇Lv.4、引雷芦Lv.5、花瓣炮Lv.6逐步开放，解锁后仍须在局内选到对应祝福。
+## TapTap 原生转换
 
-普通模式点击开始时自动随机天气、地图和最多两个不同的已解锁能量技能，无需手动配置；随机地图不超过当前关卡进度。新玩家Lv.1没有能量技能，只学习移动与自动射击；Lv.2开放花火爆破、回旋大风，Lv.3开放冲锋花车，Lv.4开放踏风战马，Lv.5开放日光射线。天气也从晴天开始，随等级逐步开放阴天、雨、风、雾、冰雹与雷暴。每次重新出发重新随机。
+```powershell
+$env:TAPTAP_PLUGIN_DIR='F:/path/taptap-minigame-tools'
+$env:TAPTAP_PLUGIN_ARCHIVE='F:/path/tap-minigame-ts-1.2.2.zip'
+# 可选：BULLET_GARDEN_PLATFORM_CONFIG 指向本游戏 native 配置；无配置为空ID预览。
+node scripts/build-taptap.mjs
+```
 
-已配发技能的能量来自战斗时间与击杀，每槽最多储存3次（300能量）；每次释放消耗100能量，保留剩余储存与下一次充能进度。选中技能并瞄准施放，若还有储存则保持瞄准，释放间隔0.3秒。技能卡显示储存次数及充能进度，底部操作区位于战场Canvas之外。五种现有技能和武器多发/连发/反弹/元素弹/分裂均保留并按等级开放，1/2/3/5倍速也继续保留。触屏使用左下摇杆移动，右侧技能卡准备技能，在场地瞄准、松手施放；取消触点不消耗能量。键盘WASD移动，1/2选择已配发技能，E或右键确认，空格冲刺，Escape取消瞄准或暂停。
+wrapper 校验官方1.2.2归档及安装目录，先真实构建 wechatgame，再调用官方 `convertWechatToTap`，输出到本游戏 `build/taptap-*/converted/` 的新目录。随后注入 `startup/taptap.cjs`，将真实 TapTap SDK 提供给广告模块，并在宿主没有 wx 兼容入口时提供 Creator 所需入口；已有宿主兼容实现保留。不会执行高层两游戏封装、登录或后台操作。插件依赖必须事先安装，wrapper 不在缓存目录执行安装。
 
-通关获得金币、**永久经验**；下一关同时要求通关前一关和达到对应永久等级，首次通关奖励可连续满足后续关卡门槛，无需为解锁额外刷关。首关首次奖励115永久经验，达到Lv.2。在营地消费金币升级攻击力、攻速、生命、护甲、种植精通、宠物及枪械伤害/连发/穿透。玩家等级5自动解锁金蜂助手，金币用于提升助手。原有永久经验曲线、金币商店和存档结构保留；永久成长跨关、重试和刷新保留，局内祝福每局重置。
+实际 `game.json.appId`、`project.config.json.appid` 与配置绑定，`deviceOrientation` 固定 portrait；manifest 修改后重新生成 `game.zip`，核对 ZIP 与目录逐文件一致，压缩和解压内容均受20MiB门禁约束。`receipt.json` 和 `build/taptap-latest.json` 记录源码、Creator输入、官方插件与包体哈希以及真实验收边界。无真实ID的结果仅用于预览，不声称可直接提交平台审核。
 
-首次通关发放完整地图奖励和击杀金币；重玩奖励按35%，失败保留25%击杀金币及按存活比例计算的部分经验。挑战编号使同一次结算只到账一次。存档位于 `bullet-garden.profile.v1`；保存不可用时显示提示，仍可在内存中继续玩。
+## 操作与存档
 
-主页直接展示附近关卡的“已通关”“可挑战”“未解锁”状态，并提供完整选关、六类成长入口与金币营地。主页、选关、图鉴、营地、玩法指南、强化选择与结算概览均独占画面，各自滚动，战场不会显示在页面背后。战斗保留轻量的返回主页入口。结束后立即显示本局概览并返回主页；“上一局概览”保留当前页面会话内数据，重复查看不重复发奖。
+左摇杆移动，自动瞄准射击；右侧冲刺。永久等级2起解锁技能，拖到战场瞄准并松手施放，回到操作带或取消区、触点取消均不耗能，最多三蓄力。倒计时后清空余敌才胜利。局内经验选择植物祝福或武器强化；营地永久成长、植物及武器技能图鉴可达。
 
-## 开发者模式
+十四关稳定 ID、旧 `bullet-garden.profile.v1` 存档保留。地图身份绑定关卡；敌人从数据定义的竖屏范围出生。失败先进入可复活阶段，点击“结束本次冒险”才提交失败奖励；胜利结算一次。旧 `bullet-garden.sound` 设置先迁移，再读取新设置。
 
-URL 加 `?dev=1`（已有查询参数时用 `&dev=1`）开启开发模式；`?dev`、`?dev=true` 也可开启。统一存储开关 `localStorage.setItem('dev', '1')` 刷新后生效，独立页面和 Shell iframe 均支持；`?dev=0` 优先于存储并显式关闭。删除 URL 参数和 `localStorage.dev` 恢复默认关闭；旧的 `bullet-garden.dev` 不再使用。
+Web 开机加载公共 `scripts/dev-mode.js`；`?dev=1` / `localStorage.dev` 统一判断，全关试玩不结算正式奖励。原生使用 `sys.localStorage`，无 DOM/fullscreen 调用。Shell 同源 iframe 启动及映射状态变化发送精确 origin 的 `small-games:display-state`：菜单 home；游戏、暂停、强化、失败、结算 playing。
 
-开发模式开放全部关卡及手动天气、地图、技能配置，不提升永久属性。主页和选关页显示提示，试玩不发放金币、永久经验、正式通关记录或最佳成绩；`settleLevel` 也会拒绝开发局，避免绕过界面导致发奖。普通模式忽略传入的手动配置。
+## 验证与证据
 
-## 手机横屏与全屏
+```powershell
+pnpm test
+pnpm test:balance
+$env:QA_OUTPUT='docs/design/cocos-mobile-2026-10-22/actual/campaign'
+pnpm test:campaign-balance
+Remove-Item Env:QA_OUTPUT
+node tests/movement-comparison.mjs
+pnpm test:browser
+```
 
-手机触屏入口自动尝试锁定横屏；浏览器不允许或不支持时，在竖向视口中自动旋转整个游戏为横向布局，并同步转换摇杆、瞄准与释放技能的坐标。已处于横屏的设备直接使用横向布局。
+所有正式 browser/rendering/screens/display package scripts 都进入生产 Creator 验收，浏览器串行1个worker。默认自建短期 dist 静态服务器；`GAME_URL` 可指定同一生产产物，`QA_OUTPUT` 可改证据目录。覆盖320/390/430及横屏、菜单/选关、真实多指摇杆与冲刺、技能拖动取消、暂停/失焦/resize、60秒自然首关胜利与存档重载。后期技能/自然失败使用明确的历史进度存档 fixture，战斗仍由真实输入驱动，没有可写游戏调试注入。
 
-所有Web入口提供全屏/退出全屏按钮，包括普通手机浏览器和微信内置浏览器。点击后请求浏览器全屏；失败时显示提示，仍可继续横向游玩。同源Shell的游戏显示容器可同步全屏，跨域嵌入需要宿主允许。原生小游戏API或 `?runtime=minigame` 等明确小游戏入口不显示该按钮；微信网页SDK的 `wx` 对象本身不会误判为小游戏。网页不能强制设备系统旋转或绕过浏览器全屏权限。
-
-## 地图与生态
-
-| 关  | 关卡     | 最低永久等级 | 倒计时时长 | 唯一新增怪物 |
-| --- | -------- | ------------ | ---------- | ------------ |
-| 1   | 失落庭院 | Lv.1         | 60秒       | 芽怪         |
-| 2   | 复苏花径 | Lv.2         | 90秒       | 疾行芽       |
-| 3   | 雨苔池畔 | Lv.2         | 120秒      | 岩壳巨芽     |
-| 4   | 岩根隘口 | Lv.3         | 150秒      | 岩根首领     |
-| 5   | 逐风回廊 | Lv.4         | 150秒      | 坚根卫       |
-| 6   | 裂荚温室 | Lv.5         | 150秒      | 吐籽花       |
-| 7   | 潮根苔阶 | Lv.6         | 150秒      | 逐风芽       |
-| 8   | 盾苔古堡 | Lv.6         | 180秒      | 苔堡统领     |
-| 9   | 雾翼林庭 | Lv.7         | 180秒      | 荚芽小兵     |
-| 10  | 冰雹花台 | Lv.8         | 180秒      | 裂荚母株     |
-| 11  | 雷鸣心圃 | Lv.9         | 210秒      | 花园之心     |
-| 12  | 深根秘境 | Lv.10        | 210秒      | 钻根兽       |
-| 13  | 坚盾花环 | Lv.11        | 210秒      | 盾苔卫       |
-| 14  | 云上花庭 | Lv.12        | 240秒      | 翼叶精       |
-
-首关60秒/3波，后续关卡6波。怪物受关卡顺序和玩家等级双重限制；高等级重玩首关也只出现芽怪。母株前一关先引入小兵，首领自身也计入新增怪物，确保每关最多增加一种。表格描述关卡难度与引入顺序，实际地图外观与天气由开局自动随机。所有关卡在计时结束后停止普通刷怪并进入清场，HUD显示剩余敌人数；必须清空所有存活敌人才能获胜，首领与BOSS关也必须击败指定目标。清场期间仍可移动、攻击、充能、强化、暂停和死亡，时间与动画继续运行，因此实际通关用时可能长于倒计时。
-
-战斗地形仅在选中对应局内增益后生成。灌木、沟渠、霜花与毒花不阻挡角色或子弹；寒冰柱保留阻挡双方移动与子弹的掩体作用，怪物可绕行或击碎，卡片明确提示该代价。花叶灌木卡片使用带花的灌木图标。地图目录保留原有地形定义和校验供内容工具使用，当前战斗不自动加载这些障碍。天气影响植物伤害/治疗/耐久、自动生长、敌人移速/攻击和有效射程；大风与雷暴可叠加。冰雹和雷击先画地面预警再产生伤害。钻地与升空具有可见阶段，地面植物和枪械/对空电击按攻击层级判断。
-
-## 扩展结构
-
-| 模块                                   | 职责                                                    |
-| -------------------------------------- | ------------------------------------------------------- |
-| `config.mjs`、`catalog.mjs`            | 地图、怪物、植物、天气、祝福、技能和数值定义            |
-| `content-schema.mjs`                   | Dynamic Content的版本、引用、数值、处理器和地图连通校验 |
-| `progression.mjs`                      | 永久成长、经验、解锁、原子购买、幂等奖励和存档净化      |
-| `loadout.mjs`                          | 双槽配置、局内经验、祝福所有权与升级候选                |
-| `combat.mjs`、`world.mjs`              | 攻击层级、伤害修饰、地形移动与天气倍率                  |
-| `simulation.mjs`                       | 确定性模拟、技能、怪物能力、植物生命周期与遭遇流程      |
-| `renderer.mjs`、`ecology-renderer.mjs` | 相同几何数据的Canvas绘制与特效                          |
-| `main.mjs`                             | 触屏/键鼠、战役/商店、保存适配与界面                    |
-| `home.mjs`、`home.css`                 | 首页关卡状态、六类成长图鉴与开发入口                    |
-| `display.mjs`、`display.css`           | 小游戏识别、Web全屏、自动横屏和触控坐标转换             |
-
-`registerContentPack({version:1, levels, enemies, plants, weather, buffs})` 接受纯JSON数据：整包成功才追加，失败不改变已加载目录；稳定ID、关卡序号不得重复，未知技能处理器被拒绝，地图检查安全出生点与连通性。定义不可变，目录引用稳定。可在启动Game前载入数百关，模拟、解锁、结算与关卡列表不依赖十一关硬编码。
-
-`registerGrowthDefinitions(definitions)` 可追加现有数值处理器支持的成长项，商店、费用、保存与属性聚合自动读取同一注册表。全新行为需要添加处理器并完成测试，内容包不执行任意代码。动态内容schema由本Game拥有，遵循仓库ADR-0007。
-
-原有六类成长、三项枪械升级、植物/增益、怪物外形以及十一张独立地图参考图保留，生成时间与SHA-256见 [效果图清单](docs/design/concepts/manifest.json)。追加三关沿用既有视觉与生态资源。概念图用于视觉设计，运行时使用Canvas绘制，不加载大图。
-
-详细规则：[架构设计](docs/design/architecture.md)、[关卡生态设计](docs/design/encounters.md)、[模块契约](docs/CONTRACT.md)。旧的[验收报告](docs/qa/campaign/verification-report.md)记录此前版本，不能用作本次首页、十四关进度或横屏变更的通过证据。
-
-本次结果见[新版验收报告](docs/qa/onboarding-report.json)：154项规则测试通过；3个固定种子使用正常资源与金币成长完成十四关，共42次通关，另有12次开发配装重放通过。成长回归覆盖连续首次通关无需刷关即可解锁全部后续关卡、永久商店兼容及开发模式结算隔离。
-
-源码浏览器通过桌面首页与六类图鉴、关卡状态、Web全屏、正常首关通关升至Lv.2及刷新保留、开发配置检查。最终构建产物在390×844和844×390触屏模拟中通过双指移动、已解锁技能充能/释放与取消；页面布局和绘制各通过四种尺寸，绘制检查包含Canvas上下文恢复。Web Shell桌面/触屏iframe检查通过；提交前格式和游戏配置审计通过（53个游戏、0个问题）。报告区分源码、构建产物和高级存档fixture。
-
-触屏验收使用桌面Chromium模拟，不能代替Android/iOS真机上的方向锁定、全屏、后台恢复、性能或原生小游戏宿主测试。浏览器自然首关流程使用原生输入与只读快照；高级内容场景可以使用明确标注的合法存档fixture，不通过修改战斗状态伪造通关。独立游戏检查不代表整个仓库的Pages、APK或iOS构建已验证。
+只读快照契约见 [03-runtime-contract.md](docs/design/cocos-mobile-2026-10-22/03-runtime-contract.md)。效果图、实际截图和执行记录位于 `docs/design/cocos-mobile-2026-10-22/`。桌面 Chromium 手机视口不等于手机真机，官方转换成功不等于平台审核通过。

@@ -1,0 +1,149 @@
+{
+  "policy": "same earned campaign save/seed/upgrade priority, no casts; only movement differs; deterministic core replay, not device input",
+  "results": [
+    {
+      "levelId": "meadow",
+      "seed": 42,
+      "profile": {
+        "version": 1,
+        "xp": 115,
+        "coins": 0,
+        "completed": [
+          "ruins"
+        ],
+        "settledRuns": [],
+        "upgrades": {
+          "attack": 1,
+          "fireRate": 1,
+          "health": 1,
+          "armor": 0,
+          "seedMastery": 0,
+          "pet": 0,
+          "weaponDamage": 0,
+          "weaponRate": 0,
+          "weaponPierce": 0
+        },
+        "equippedWeapon": "bloom-rifle",
+        "equippedPet": "sprout-helper",
+        "selectedLevelId": "ruins"
+      },
+      "active": false,
+      "phase": "won",
+      "hp": 115,
+      "damageTaken": 6.1080000000000005,
+      "kills": 92,
+      "time": 90.36666666666282,
+      "enemyVisibleFraction": 1
+    },
+    {
+      "levelId": "meadow",
+      "seed": 42,
+      "profile": {
+        "version": 1,
+        "xp": 115,
+        "coins": 0,
+        "completed": [
+          "ruins"
+        ],
+        "settledRuns": [],
+        "upgrades": {
+          "attack": 1,
+          "fireRate": 1,
+          "health": 1,
+          "armor": 0,
+          "seedMastery": 0,
+          "pet": 0,
+          "weaponDamage": 0,
+          "weaponRate": 0,
+          "weaponPierce": 0
+        },
+        "equippedWeapon": "bloom-rifle",
+        "equippedPet": "sprout-helper",
+        "selectedLevelId": "ruins"
+      },
+      "active": true,
+      "phase": "won",
+      "hp": 115,
+      "damageTaken": 0,
+      "kills": 90,
+      "time": 90.01666666666284,
+      "enemyVisibleFraction": 1
+    },
+    {
+      "levelId": "hollow",
+      "seed": 42,
+      "profile": {
+        "version": 1,
+        "xp": 755,
+        "coins": 0,
+        "completed": [
+          "ruins",
+          "meadow",
+          "wetland",
+          "quarry",
+          "windpass"
+        ],
+        "settledRuns": [],
+        "upgrades": {
+          "attack": 5,
+          "fireRate": 5,
+          "health": 5,
+          "armor": 3,
+          "seedMastery": 4,
+          "pet": 0,
+          "weaponDamage": 1,
+          "weaponRate": 1,
+          "weaponPierce": 0
+        },
+        "equippedWeapon": "bloom-rifle",
+        "equippedPet": "sprout-helper",
+        "selectedLevelId": "ruins"
+      },
+      "active": false,
+      "phase": "won",
+      "hp": 99.66972477064223,
+      "damageTaken": 96.33027522935778,
+      "kills": 91,
+      "time": 150.03333333334487,
+      "enemyVisibleFraction": 1
+    },
+    {
+      "levelId": "hollow",
+      "seed": 42,
+      "profile": {
+        "version": 1,
+        "xp": 755,
+        "coins": 0,
+        "completed": [
+          "ruins",
+          "meadow",
+          "wetland",
+          "quarry",
+          "windpass"
+        ],
+        "settledRuns": [],
+        "upgrades": {
+          "attack": 5,
+          "fireRate": 5,
+          "health": 5,
+          "armor": 3,
+          "seedMastery": 4,
+          "pet": 0,
+          "weaponDamage": 1,
+          "weaponRate": 1,
+          "weaponPierce": 0
+        },
+        "equippedWeapon": "bloom-rifle",
+        "equippedPet": "sprout-helper",
+        "selectedLevelId": "ruins"
+      },
+      "active": true,
+      "phase": "won",
+      "hp": 200,
+      "damageTaken": 0,
+      "kills": 92,
+      "time": 150.183333333345,
+      "enemyVisibleFraction": 0.9966543994647039
+    }
+  ]
+}

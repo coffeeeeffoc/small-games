@@ -109,22 +109,20 @@ export function getAvailableEnemies(levelId, permanentLevel = 1, dev = false) {
 function rollRunConfiguration(state, options) {
   const allowed = (entry) =>
     state.dev || (entry.unlockPlayerLevel ?? entry.unlockLevel ?? 1) <= state.permanent.level;
-  const draw = (pool) => pool[Math.floor(random(state) * pool.length)];
-  const weatherPool = Object.values(WEATHER).filter(allowed);
+  const chapter = LEVELS[state.levelId];
   const requestedWeather =
     typeof options.weather === 'string' ? { kind: options.weather } : options.weather;
-  const weather = { kind: draw(weatherPool).id, wind: 0, thunder: false };
-  if (allowed(WEATHER_MODIFIERS.wind)) weather.wind = draw([0, 0.25, 0.5]);
-  if (allowed(WEATHER_MODIFIERS.thunder)) weather.thunder = random(state) < 0.25;
+  const weather = {
+    kind: allowed(WEATHER[chapter.weather.kind]) ? chapter.weather.kind : 'sunny',
+    wind: allowed(WEATHER_MODIFIERS.wind) ? chapter.weather.wind : 0,
+    thunder: allowed(WEATHER_MODIFIERS.thunder) && chapter.weather.thunder,
+  };
   if (state.dev && Object.hasOwn(WEATHER, requestedWeather?.kind)) {
     weather.kind = requestedWeather.kind;
     weather.wind = clamp(finite(requestedWeather.wind), 0, 1);
     weather.thunder = requestedWeather.thunder === true;
   }
-  const maps = Object.values(LEVELS).filter(
-    (entry) => allowed(entry) && (state.dev || entry.order <= LEVELS[state.levelId].order),
-  );
-  const map = state.dev && Object.hasOwn(LEVELS, options.map) ? options.map : draw(maps).id;
+  const map = state.dev && Object.hasOwn(LEVELS, options.map) ? options.map : chapter.id;
   const skills = [];
   const skillPool = Object.values(SKILLS)
     .filter(allowed)
@@ -478,21 +476,9 @@ export function castSeed() {
   return false;
 }
 
-export function castSkill(state, target, index = state.selectedSkill) {
-  const slot = state.skillSlots[index];
-  const definition = SKILLS[slot?.kind];
-  if (
-    state.phase !== 'playing' ||
-    !Number.isInteger(index) ||
-    !Object.hasOwn(SKILLS, slot?.kind) ||
-    (!state.dev && state.permanent.level < (definition.unlockPlayerLevel ?? 1)) ||
-    slot.energy < definition.energyMax ||
-    state.skillCooldown > 0 ||
-    state.skillEffects.length >= MAX_SKILL_EFFECTS ||
-    !Number.isFinite(target?.x) ||
-    !Number.isFinite(target?.y)
-  )
-    return false;
+export function skillTarget(state, target, index = state.selectedSkill) {
+  const definition = SKILLS[state.skillSlots[index]?.kind];
+  if (!definition || !Number.isFinite(target?.x) || !Number.isFinite(target?.y)) return null;
   const origin = state.player;
   let dx = target.x - origin.x,
     dy = target.y - origin.y;
@@ -515,6 +501,26 @@ export function castSkill(state, target, index = state.selectedSkill) {
   if (dy > 0) travel = Math.min(travel, (bounds.bottom - origin.y) / dy);
   if (dy < 0) travel = Math.min(travel, (bounds.top - origin.y) / dy);
   const point = { x: origin.x + dx * travel, y: origin.y + dy * travel };
+  return { point, dx, dy, travel };
+}
+
+export function castSkill(state, target, index = state.selectedSkill) {
+  const slot = state.skillSlots[index];
+  const definition = SKILLS[slot?.kind];
+  if (
+    state.phase !== 'playing' ||
+    !Number.isInteger(index) ||
+    !Object.hasOwn(SKILLS, slot?.kind) ||
+    (!state.dev && state.permanent.level < (definition.unlockPlayerLevel ?? 1)) ||
+    slot.energy < definition.energyMax ||
+    state.skillCooldown > 0 ||
+    state.skillEffects.length >= MAX_SKILL_EFFECTS ||
+    !Number.isFinite(target?.x) ||
+    !Number.isFinite(target?.y)
+  )
+    return false;
+  const { point, dx, dy, travel } = skillTarget(state, target, index);
+  const origin = state.player;
   state.skillEffects.push({
     id: id(state),
     kind: slot.kind,
@@ -742,7 +748,15 @@ function hurtPlayer(state, damage) {
 
 function spawnEnemy(state, forcedKind = null) {
   const level = levelOf(state);
-  const bounds = level.bounds;
+  const window = level.spawn.window;
+  const bounds = window
+    ? {
+        left: Math.max(level.bounds.left, state.player.x - window.halfWidth),
+        right: Math.min(level.bounds.right, state.player.x + window.halfWidth),
+        top: Math.max(level.bounds.top, state.player.y - window.halfHeight),
+        bottom: Math.min(level.bounds.bottom, state.player.y + window.halfHeight),
+      }
+    : level.bounds;
   const tier = level.spawn.composition.filter((entry) => entry.fromWave <= state.wave).at(-1);
   const weights = Object.entries(tier.weights).filter(
     ([kind, weight]) => weight > 0 && state.availableEnemies.includes(kind),
@@ -780,7 +794,10 @@ function spawnEnemy(state, forcedKind = null) {
             x: bounds.left + radius + along * (bounds.right - bounds.left - radius * 2),
             y: edge === 2 ? bounds.top + radius : bounds.bottom - radius,
           };
-    if (distance(candidate, state.player) > 250 && legal(candidate)) {
+    if (
+      distance(candidate, state.player) > (level.spawn.minimumDistance ?? 250) &&
+      legal(candidate)
+    ) {
       point = candidate;
       break;
     }
@@ -2224,7 +2241,12 @@ function tick(state, dt, input) {
   updateEncounter(state);
   state.spawnTimer -= dt;
   if (state.spawnTimer <= 0 && state.time < state.duration) {
-    if (aliveEnemies(state) < enemyCapacity(state)) spawnEnemy(state);
+    for (
+      let i = 0;
+      i < (level.spawn.batchSize ?? 1) && aliveEnemies(state) < enemyCapacity(state);
+      i++
+    )
+      spawnEnemy(state);
     state.spawnTimer =
       Math.max(
         level.spawn.minimumInterval,

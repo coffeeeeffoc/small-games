@@ -72,10 +72,7 @@ async function inspectCampaignPages(page, developerMode) {
 async function setup(viewport, stored = null, query = '') {
   const context = await browser.newContext({ viewport, hasTouch: true, isMobile: true });
   if (stored !== null)
-    await context.addInitScript(
-      (value) => localStorage.setItem('dev', value),
-      stored,
-    );
+    await context.addInitScript((value) => localStorage.setItem('dev', value), stored);
   const page = await context.newPage();
   page.on('pageerror', (error) => report.errors.push(error.message));
   await page.clock.install({ time: new Date('2026-10-04T00:00:00Z') });

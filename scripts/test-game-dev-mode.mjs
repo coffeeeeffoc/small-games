@@ -131,6 +131,7 @@ try {
           mode.name === 'default' ? null : mode.enabled ? '1' : '0',
         );
         if (
+          game.id === 'bullet-garden' ||
           game.id === 'tianxia-chalu' ||
           game.id === 'ashfall-front' ||
           game.id === 'carrom-club' ||

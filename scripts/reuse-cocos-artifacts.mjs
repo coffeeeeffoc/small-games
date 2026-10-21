@@ -3,7 +3,13 @@ import { appendFile, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-export const games = ['carding-car', 'night-overwatch', 'orbit-atelier', 'tianxia-chalu'];
+export const games = [
+  'carding-car',
+  'night-overwatch',
+  'orbit-atelier',
+  'tianxia-chalu',
+  'bullet-garden',
+];
 const creator = '3.8.8';
 const platform = 'web-mobile';
 

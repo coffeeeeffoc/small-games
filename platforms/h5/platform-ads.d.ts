@@ -1,7 +1,7 @@
 import type { AdOutcome, AdProvider } from './publishing.js';
 
 export function createPlatformAdProvider(options: {
-  platform: 'taptap-h5' | 'wechat' | 'douyin' | 'bilibili';
+  platform: 'taptap' | 'taptap-h5' | 'wechat' | 'douyin' | 'bilibili';
   adUnitId?: string;
   environment?: object;
   timeoutMs?: number;

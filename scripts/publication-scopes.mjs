@@ -1267,8 +1267,15 @@ const tianxiaImmersiveFiles = {
 
 // Reproduce only fixed additions. Comparing the whole result preserves every old
 // workflow byte and requires no YAML dependency in the bare CI planning job.
-function tianxiaWorkflowOnly(file, before, after) {
-  assert(!before.includes('tianxia-chalu') && !before.includes('TIANXIA_PREBUILT_DIR'));
+function tianxiaWorkflowOnly(
+  file,
+  before,
+  after,
+  game = 'tianxia-chalu',
+  variable = 'TIANXIA',
+  step = 'tianxia',
+) {
+  assert(!before.includes(game) && !before.includes(`${variable}_PREBUILT_DIR`));
   const hasOrbit = before.includes('orbit-atelier');
   let expected = before;
   const replace = (anchor, replacement, count = 1) => {
@@ -1285,24 +1292,26 @@ function tianxiaWorkflowOnly(file, before, after) {
       anchor,
       anchor +
         anchor
-          .replaceAll('night-overwatch', 'tianxia-chalu')
-          .replaceAll('NIGHT_OVERWATCH', 'TIANXIA')
-          .replace('id: night', 'id: tianxia')
-          .replaceAll('orbit-atelier', 'tianxia-chalu')
-          .replaceAll('ORBIT_ATELIER', 'TIANXIA')
-          .replace('id: orbit', 'id: tianxia'),
+          .replaceAll('night-overwatch', game)
+          .replaceAll('NIGHT_OVERWATCH', variable)
+          .replace('id: night', `id: ${step}`)
+          .replaceAll('orbit-atelier', game)
+          .replaceAll('ORBIT_ATELIER', variable)
+          .replace('id: orbit', `id: ${step}`),
       count,
     );
   };
   if (file === '.github/workflows/carding-car.yml') {
-    replace(
-      hasOrbit
-        ? 'game: [carding-car, night-overwatch, orbit-atelier]'
-        : 'game: [carding-car, night-overwatch]',
-      hasOrbit
-        ? 'game: [carding-car, night-overwatch, orbit-atelier, tianxia-chalu]'
-        : 'game: [carding-car, night-overwatch, tianxia-chalu]',
-    );
+    const matrix = before.match(/game: \[([-a-z, ]+)\]/g);
+    assert.equal(matrix?.length, 1);
+    const ids = matrix[0].slice(7, -1).split(', ');
+    assert.deepEqual(ids, [
+      'carding-car',
+      'night-overwatch',
+      ...(hasOrbit ? ['orbit-atelier'] : []),
+      ...(game === 'bullet-garden' ? ['tianxia-chalu'] : []),
+    ]);
+    replace(matrix[0], 'game: [' + [...ids, game].join(', ') + ']');
     clone(
       "          NIGHT_OVERWATCH_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/night-overwatch', github.workspace) || '' }}\n",
     );
@@ -1313,14 +1322,11 @@ function tianxiaWorkflowOnly(file, before, after) {
         '          name: night-overwatch-${{ github.sha }}\n          path: .scratch/ci-cocos/night-overwatch\n' +
         '          run-id: ${{ steps.producer.outputs.run_id }}\n          github-token: ${{ github.token }}\n',
     );
-    replace(
+    const gates =
       "        if: steps.kart.outcome == 'success' && steps.night.outcome == 'success'" +
-        (hasOrbit ? " && steps.orbit.outcome == 'success'" : '') +
-        '\n',
-      "        if: steps.kart.outcome == 'success' && steps.night.outcome == 'success'" +
-        (hasOrbit ? " && steps.orbit.outcome == 'success'" : '') +
-        " && steps.tianxia.outcome == 'success'\n",
-    );
+      (hasOrbit ? " && steps.orbit.outcome == 'success'" : '') +
+      (before.includes('tianxia-chalu') ? " && steps.tianxia.outcome == 'success'" : '');
+    replace(gates + '\n', gates + ' && steps.' + step + ".outcome == 'success'\n");
     clone(
       '          node scripts/reuse-cocos-artifacts.mjs verify night-overwatch .scratch/ci-cocos/night-overwatch\n',
     );
@@ -1346,7 +1352,12 @@ function tianxiaWorkflowOnly(file, before, after) {
   assert.equal(after, expected, 'Other workflow bytes changed');
 }
 
-function tianxiaTurboOnly(before, after) {
+function tianxiaTurboOnly(
+  before,
+  after,
+  game = 'tianxia-chalu',
+  variable = 'TIANXIA_PREBUILT_DIR',
+) {
   function uniqueKeys(node) {
     if (!node || typeof node !== 'object') return;
     if (node.type === 'ObjectExpression') {
@@ -1360,47 +1371,66 @@ function tianxiaTurboOnly(before, after) {
   uniqueKeys(parsedSource(`const config = ${after};`));
   const previous = JSON.parse(before),
     current = JSON.parse(after);
-  const key = '@coffeeeeffoc/tianxia-chalu#build';
+  const key = `@coffeeeeffoc/${game}#build`;
+  const config = 'BULLET_GARDEN_PLATFORM_CONFIG';
+  const garden = game === 'bullet-garden';
   assert(!Object.hasOwn(previous.tasks, key));
-  assert(!previous.globalPassThroughEnv.includes('TIANXIA_PREBUILT_DIR'));
+  assert(!previous.globalPassThroughEnv.includes(variable));
   assert.deepEqual(current.globalPassThroughEnv, [
     ...previous.globalPassThroughEnv,
-    'TIANXIA_PREBUILT_DIR',
+    variable,
+    ...(garden ? [config] : []),
   ]);
   assert.deepEqual(current.tasks[key], {
     dependsOn: ['^build'],
+    ...(garden ? { cache: false } : {}),
     outputs: ['dist/**'],
-    env: ['COCOS_CREATOR', 'TIANXIA_PREBUILT_DIR'],
-    inputs: ['$TURBO_DEFAULT$', '$TURBO_ROOT$/games/local/tianxia-chalu/.prebuilt/**'],
+    env: ['COCOS_CREATOR', variable, ...(garden ? [config] : [])],
+    inputs: ['$TURBO_DEFAULT$', `$TURBO_ROOT$/games/local/${game}/.prebuilt/**`],
   });
+  if (garden) {
+    const typecheck = `@coffeeeeffoc/${game}#typecheck`;
+    assert(!Object.hasOwn(previous.tasks, typecheck));
+    assert.deepEqual(current.tasks[typecheck], {
+      dependsOn: ['^build'],
+      cache: false,
+      outputs: [],
+      env: ['COCOS_CREATOR', variable, config],
+    });
+    delete current.tasks[typecheck];
+    current.globalPassThroughEnv.pop();
+  }
   delete current.tasks[key];
   current.globalPassThroughEnv.pop();
   assert.deepEqual(current, previous);
 }
 
-function tianxiaLiteralOnly(file, before, after) {
+function tianxiaLiteralOnly(
+  file,
+  before,
+  after,
+  game = 'tianxia-chalu',
+  variable = 'TIANXIA_PREBUILT_DIR',
+) {
   const mapping = file === 'scripts/cocos-validation.mjs';
   const name = mapping ? 'prebuiltVariables' : 'games';
   const previous = literalDeclaration(before, name),
     current = literalDeclaration(after, name);
-  const hasOrbit = mapping
-    ? Object.hasOwn(previous, 'games/local/orbit-atelier')
-    : previous.includes('orbit-atelier');
+  const expected = {
+    'games/local/carding-car': 'KART_PREBUILT_DIR',
+    'games/local/night-overwatch': 'NIGHT_OVERWATCH_PREBUILT_DIR',
+    ...(before.includes('orbit-atelier')
+      ? { 'games/local/orbit-atelier': 'ORBIT_ATELIER_PREBUILT_DIR' }
+      : {}),
+    ...(game === 'bullet-garden' ? { 'games/local/tianxia-chalu': 'TIANXIA_PREBUILT_DIR' } : {}),
+  };
   assert.deepEqual(
     previous,
-    mapping
-      ? {
-          'games/local/carding-car': 'KART_PREBUILT_DIR',
-          'games/local/night-overwatch': 'NIGHT_OVERWATCH_PREBUILT_DIR',
-          ...(hasOrbit ? { 'games/local/orbit-atelier': 'ORBIT_ATELIER_PREBUILT_DIR' } : {}),
-        }
-      : ['carding-car', 'night-overwatch', ...(hasOrbit ? ['orbit-atelier'] : [])],
+    mapping ? expected : Object.keys(expected).map((dir) => dir.slice('games/local/'.length)),
   );
   assert.deepEqual(
     current,
-    mapping
-      ? { ...previous, [tianxiaSource]: 'TIANXIA_PREBUILT_DIR' }
-      : [...previous, 'tianxia-chalu'],
+    mapping ? { ...previous, [`games/local/${game}`]: variable } : [...previous, game],
   );
   const strip = (source) => {
     const node = namedVariable(parsedSource(source), name).init;
@@ -1409,9 +1439,10 @@ function tianxiaLiteralOnly(file, before, after) {
   assert.equal(strip(before), strip(after), 'Other Cocos declaration bytes changed');
 }
 
-function tianxiaImmersiveOnly(file, before, after) {
-  const [anchor, addition] = tianxiaImmersiveFiles[file];
-  assert(!before.includes("'tianxia-chalu'"));
+function tianxiaImmersiveOnly(file, before, after, game = 'tianxia-chalu') {
+  const [anchor, template] = tianxiaImmersiveFiles[file];
+  const addition = template.replaceAll('tianxia-chalu', game);
+  assert(!before.includes(game === 'bullet-garden' ? addition : "'" + game + "'"));
   assert.equal(before.split(anchor).length, 2);
   let expected = before.replace(anchor, anchor + addition);
   const program = parsedSource(after, file.endsWith('.tsx'));
@@ -1420,13 +1451,16 @@ function tianxiaImmersiveOnly(file, before, after) {
   } else if (file.endsWith('pages-smoke.mjs')) {
     const declaration = namedVariable(program, 'immersiveGame');
     assert.equal(declaration.start, after.indexOf('immersiveGame'));
-    const guard = "      } else if (\n        game.id === 'ashfall-front' ||\n";
+    const guard =
+      "      } else if (\n        game.id === '" +
+      (game === 'bullet-garden' ? 'tianxia-chalu' : 'ashfall-front') +
+      "' ||\n";
     assert.equal(before.split(guard).length, 2);
     expected = expected.replace(
       guard,
-      guard.replace('        game.id', "        game.id === 'tianxia-chalu' ||\n        game.id"),
+      guard.replace('        game.id', "        game.id === '" + game + "' ||\n        game.id"),
     );
-    const offset = after.indexOf("      } else if (\n        game.id === 'tianxia-chalu'");
+    const offset = after.indexOf("      } else if (\n        game.id === '" + game + "'");
     ifStatementAt(program, offset + '      } else '.length);
   } else if (file.endsWith('standalone-immersive.integration.test.tsx')) {
     const statement = program.body.find((node) => node.start === after.indexOf(anchor));
@@ -1443,7 +1477,7 @@ function tianxiaImmersiveOnly(file, before, after) {
   assert.equal(after, expected, 'Other immersion bytes changed');
 }
 
-function tianxiaGameplayOnly(before, after) {
+function tianxiaGameplayOnly(before, after, game = 'tianxia-chalu') {
   const strip = (source) => {
     const program = parsedSource(source);
     const exported = program.body.filter(
@@ -1463,7 +1497,7 @@ function tianxiaGameplayOnly(before, after) {
           test.left.type === 'Identifier' &&
           test.left.name === 'id' &&
           test.right.type === 'StringLiteral' &&
-          test.right.value === 'tianxia-chalu'
+          test.right.value === game
         )
           branches.push(node);
         node = node.alternate;
@@ -1486,6 +1520,57 @@ function tianxiaWiringOnly(file, before, after) {
       tianxiaLiteralOnly(file, before, after);
     else if (Object.hasOwn(tianxiaImmersiveFiles, file)) tianxiaImmersiveOnly(file, before, after);
     else if (file === standaloneChecksFile) tianxiaGameplayOnly(before, after);
+    else return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+export function bulletGardenLockOnly(before, after, manifest) {
+  try {
+    const source = 'games/local/bullet-garden';
+    const deps = { '@playwright/test': '1.55.1', esbuild: '0.28.2', typescript: '7.0.2' };
+    assert.equal(manifest.name, '@coffeeeeffoc/bullet-garden');
+    assert.deepEqual(manifest.devDependencies, deps);
+    for (const field of ['dependencies', 'optionalDependencies', 'peerDependencies'])
+      assert(!manifest[field]);
+    const empty = '  ' + source + ': {}\n';
+    assert.equal(before.split(empty).length, 2);
+    let addition = '  ' + source + ':\n    devDependencies:\n';
+    for (const [name, version] of Object.entries(deps)) {
+      const key = name.startsWith('@') ? "'" + name + "'" : name;
+      const tuple =
+        '      ' +
+        key +
+        ':\n        specifier: ' +
+        version +
+        '\n        version: ' +
+        version +
+        '\n';
+      assert(
+        (before.match(/^importers:\n(?:[ \t].*\n|\n)*/gm) || []).some((block) =>
+          block.includes(tuple),
+        ),
+        'Only already resolved importer tuples are reusable',
+      );
+      addition += tuple;
+    }
+    return before.replace(empty, addition) === after;
+  } catch {
+    return false;
+  }
+}
+export function bulletGardenCreatorFileScope(file, before, after) {
+  try {
+    if (tianxiaWorkflowFiles.includes(file))
+      tianxiaWorkflowOnly(file, before, after, 'bullet-garden', 'BULLET_GARDEN', 'garden');
+    else if (file === 'turbo.json')
+      tianxiaTurboOnly(before, after, 'bullet-garden', 'BULLET_GARDEN_PREBUILT_DIR');
+    else if (['scripts/cocos-validation.mjs', 'scripts/reuse-cocos-artifacts.mjs'].includes(file))
+      tianxiaLiteralOnly(file, before, after, 'bullet-garden', 'BULLET_GARDEN_PREBUILT_DIR');
+    else if (Object.hasOwn(tianxiaImmersiveFiles, file))
+      tianxiaImmersiveOnly(file, before, after, 'bullet-garden');
+    else if (file === standaloneChecksFile) tianxiaGameplayOnly(before, after, 'bullet-garden');
     else return false;
     return true;
   } catch {
@@ -2415,6 +2500,49 @@ export function reviewedSharedFileScopes({
   for (const file of changedPaths) {
     try {
       if (
+        file === 'pnpm-lock.yaml' &&
+        bulletGardenLockOnly(
+          readBase(file),
+          readHead(file),
+          JSON.parse(readHead('games/local/bullet-garden/package.json')),
+        )
+      ) {
+        scopes.set(file, ['games/local/bullet-garden']);
+        continue;
+      }
+      if (
+        [
+          ...tianxiaWorkflowFiles,
+          ...Object.keys(tianxiaImmersiveFiles),
+          'turbo.json',
+          'scripts/cocos-validation.mjs',
+          'scripts/reuse-cocos-artifacts.mjs',
+          standaloneChecksFile,
+        ].includes(file) &&
+        bulletGardenCreatorFileScope(file, readBase(file), readHead(file))
+      ) {
+        const source = 'games/local/bullet-garden';
+        const entries = games.filter(
+          (game) => game.id === 'bullet-garden' || game.source === source,
+        );
+        assert.equal(entries.length, 1);
+        assert.equal(entries[0].id, 'bullet-garden');
+        assert.equal(entries[0].source, source);
+        const targets = packages.filter(
+          (pkg) => pkg.dir === source || pkg.name === '@coffeeeeffoc/bullet-garden',
+        );
+        assert.equal(targets.length, 1);
+        assert.equal(targets[0].dir, source);
+        assert.equal(targets[0].name, '@coffeeeeffoc/bullet-garden');
+        assert.equal(targets[0].creator?.version, '3.8.8');
+        assert.equal(targets[0].scripts?.build, 'node scripts/build.mjs web-mobile');
+        scopes.set(file, [
+          source,
+          ...(file === 'scripts/test-game-dev-mode.mjs' ? ['games/local/wulong-city'] : []),
+        ]);
+        continue;
+      }
+      if (
         [
           ...tianxiaWorkflowFiles,
           ...Object.keys(tianxiaImmersiveFiles),
@@ -2816,7 +2944,16 @@ export function reviewedSharedFileScopes({
         continue;
       }
       if (file === 'games/local/carding-car/scripts/cocos-branding.mjs') {
-        scopes.set(file, ['games/local/carding-car', 'games/local/night-overwatch', tianxiaSource]);
+        scopes.set(file, [
+          'games/local/carding-car',
+          'games/local/night-overwatch',
+          tianxiaSource,
+          ...(packages.some(
+            (pkg) => pkg.dir === 'games/local/bullet-garden' && pkg.creator?.version === '3.8.8',
+          )
+            ? ['games/local/bullet-garden']
+            : []),
+        ]);
         continue;
       }
       if (sixH5ScopePaths.includes(file)) {
@@ -3017,6 +3154,12 @@ export function reviewedSharedFileScopes({
                 'games/local/cops-robbers-realtime',
                 'games/submodules/xiangqi-five',
                 ...sixH5Sources,
+                ...packages
+                  .filter(
+                    (pkg) =>
+                      pkg.dir === 'games/local/bullet-garden' && pkg.creator?.version === '3.8.8',
+                  )
+                  .map((pkg) => pkg.dir),
               ]
             : [source],
         );

@@ -329,7 +329,7 @@ test('explosions amplify shield damage while only the unabsorbed raw damage reac
 
 test('shield-break stun prevents movement and biting nearby ice even with an overlapping enemy', () => {
   const state = isolated();
-  const lord = enemy(state, 'bastionlord', { x: 960 });
+  const lord = enemy(state, 'bastionlord', { x: 880 });
   const ice = plant(state, 'ice', {
     x: lord.x - lord.radius - 28 - 5,
     hp: 1000,
@@ -352,8 +352,8 @@ test('shield-break stun prevents movement and biting nearby ice even with an ove
 test('control resistance weakens thorn slowing but does not grant control immunity', () => {
   const ordinary = isolated();
   const resistant = isolated();
-  const first = enemy(ordinary, 'sprout');
-  const second = enemy(resistant, 'sentinel');
+  const first = enemy(ordinary, 'sprout', { x: 880 });
+  const second = enemy(resistant, 'sentinel', { x: 880 });
   const startX = first.x;
   for (const state of [ordinary, resistant]) plant(state, 'thorn', { radius: 300 });
   advance(ordinary, 0.1);

@@ -38,7 +38,7 @@ test('all fourteen authored maps are connected, referenced and safe around playe
   for (const level of Object.values(LEVELS)) {
     const state = { levelId: level.id, terrain: structuredClone(level.terrain) };
     assert.equal(
-      terrainPointBlocked(state, level.playerStart.x, level.playerStart.y, 120),
+      terrainPointBlocked(state, level.playerStart.x, level.playerStart.y, 72),
       false,
       level.id,
     );

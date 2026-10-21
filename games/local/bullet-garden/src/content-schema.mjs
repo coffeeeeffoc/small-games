@@ -360,6 +360,11 @@ export function validateContentPack(pack, current = {}) {
     if (terrainValid) connectedArena(level, errors, prefix);
     const spawn = level.spawn;
     if (
+      spawn?.batchSize !== undefined &&
+      (!Number.isInteger(spawn.batchSize) || spawn.batchSize < 1 || spawn.batchSize > 4)
+    )
+      errors.push(`${prefix}.spawn.batchSize: integer from 1 to 4 required`);
+    if (
       !spawn ||
       !finite(spawn.interval, 0.1) ||
       !finite(spawn.minimumInterval, 0.1) ||
@@ -374,6 +379,13 @@ export function validateContentPack(pack, current = {}) {
     }
     if (spawn.composition[0].fromWave !== 1)
       errors.push(`${prefix}.spawn: first wave needs an enemy pool`);
+    if (
+      spawn.window &&
+      (!finite(spawn.window.halfWidth, 100) || !finite(spawn.window.halfHeight, 100))
+    )
+      errors.push(`${prefix}.spawn.window: bounded positive portrait extents required`);
+    if (spawn.minimumDistance !== undefined && !finite(spawn.minimumDistance, 60))
+      errors.push(`${prefix}.spawn.minimumDistance: safe separation required`);
     let lastWave = 0;
     for (const tier of spawn.composition) {
       if (

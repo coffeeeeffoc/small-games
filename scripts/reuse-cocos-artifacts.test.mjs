@@ -23,8 +23,14 @@ const jobs = games.map((game) => ({
   status: 'completed',
   conclusion: 'success',
 }));
-test('reuse waits for all four successful producer gates, not downstream CI', () => {
-  assert.deepEqual(games, ['carding-car', 'night-overwatch', 'orbit-atelier', 'tianxia-chalu']);
+test('reuse waits for all five successful producer gates, not downstream CI', () => {
+  assert.deepEqual(games, [
+    'carding-car',
+    'night-overwatch',
+    'orbit-atelier',
+    'tianxia-chalu',
+    'bullet-garden',
+  ]);
   assert.equal(inspectProducer(run, jobs, expected), 'ready');
   for (let i = 0; i < games.length; i++) {
     const missing = jobs.filter((_, index) => index !== i);
@@ -126,7 +132,7 @@ test('CI is the sole producer direction and fallback retains original gates', as
   const verify = producer.jobs.reuse.steps.find((step) => step.id === 'verify');
   assert.equal(
     verify.if,
-    "steps.kart.outcome == 'success' && steps.night.outcome == 'success' && steps.orbit.outcome == 'success' && steps.tianxia.outcome == 'success'",
+    "steps.kart.outcome == 'success' && steps.night.outcome == 'success' && steps.orbit.outcome == 'success' && steps.tianxia.outcome == 'success' && steps.garden.outcome == 'success'",
   );
   for (const game of games) {
     const transfers = producer.jobs.reuse.steps.filter(
@@ -166,7 +172,7 @@ test('CI is the sole producer direction and fallback retains original gates', as
   );
 });
 
-test('all four downloaded artifacts must verify before reuse publishes any of them', async () => {
+test('all five downloaded artifacts must verify before reuse publishes any of them', async () => {
   const producer = yaml.load(
     await readFile(new URL('../.github/workflows/carding-car.yml', import.meta.url), 'utf8'),
   );

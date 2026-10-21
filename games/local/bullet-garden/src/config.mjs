@@ -186,7 +186,7 @@ export const ENEMIES = catalog({
     unlockLevel: 1,
     visual: { color: '#344f45', accent: '#a3cf59' },
   }),
-  runner: enemy('runner', '疾行芽', 34, 14, 114, 6, 3, 11, {
+  runner: enemy('runner', '疾行芽', 48, 14, 150, 6, 3, 11, {
     unlockStage: 2,
     unlockLevel: 2,
     visual: { color: '#4ba889', accent: '#83f2c5', eye: '#75eaff' },
@@ -377,7 +377,7 @@ export const WEATHER_MODIFIERS = freeze({
   },
 });
 
-const BOUNDS = freeze({ left: 100, right: 1340, top: 150, bottom: 750 });
+const BOUNDS = freeze({ left: 480, right: 960, top: 150, bottom: 790 });
 const PLAYER_START = freeze({ x: 720, y: 470 });
 const wall = (id, x, y, radius) => ({ id, kind: 'wall', x, y, radius, blocksProjectiles: true });
 const mud = (id, x, y, radius) => ({
@@ -815,6 +815,8 @@ export const ENEMY_INTRODUCTIONS = freeze([
 ]);
 export const LEVEL_ORDER = freeze(campaign.map((entry) => entry.id));
 const chapterDurations = [60, 90, 120, 150, 150, 150, 150, 180, 180, 180, 210, 210, 210, 240];
+const chapterSpawnWindows = [null, { halfWidth: 140, halfHeight: 190 }];
+const chapterSpawnBatches = [1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
 const chapterUnlocks = [1, 2, 2, 3, 4, 5, 6, 6, 7, 8, 9, 10, 11, 12];
 const chapterLessons = [
   '先学习移动与自动射击；第一关只会出现芽怪，升级后可激活灌木祝福。',
@@ -884,7 +886,12 @@ export const LEVELS = catalog(
             damageScale: order === 1 ? 0.75 : 1 + index * 0.018,
             speedScale: order === 1 ? 0.85 : 1 + index * 0.009,
           },
-          terrain: layouts[entry.id],
+          terrain: layouts[entry.id].map((region) => ({
+            ...region,
+            x: 720 + (region.x - 720) * 0.34,
+            y: 470 + (region.y - 450) * 0.95,
+            radius: region.radius * 0.6,
+          })),
           art,
           visual: {
             palette,
@@ -893,6 +900,10 @@ export const LEVELS = catalog(
             designReference: art,
           },
           spawn: {
+            // A moving portrait encounter window keeps threats visible without shrinking actors.
+            window: chapterSpawnWindows[index] ?? { halfWidth: 180, halfHeight: 260 },
+            minimumDistance: 130,
+            batchSize: chapterSpawnBatches[index],
             initialDelay: order === 1 ? 2.5 : 1.5,
             interval: order === 1 ? 3.2 : Math.max(1.4, 2.4 - index * 0.08),
             acceleration: order === 1 ? 0.15 : 0.13,

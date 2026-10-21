@@ -32,6 +32,7 @@ async function mounted(id = ink) {
 }
 
 it.each([
+  'bullet-garden',
   'tianxia-chalu',
   'ashfall-front',
   'carrom-club',

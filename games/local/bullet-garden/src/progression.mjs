@@ -129,7 +129,9 @@ const freezeGrowth = (definition) =>
     ...definition,
     description: definition.description ?? '',
     icon: definition.icon ?? 'leaf',
-    displayStats: Object.freeze([...new Set(definition.effects.map((effect) => effect.stat))]),
+    displayStats: Object.freeze(
+      Array.from(new Set(definition.effects.map((effect) => effect.stat))),
+    ),
     effects: Object.freeze(definition.effects.map((effect) => Object.freeze({ ...effect }))),
   });
 
@@ -250,13 +252,13 @@ export function createProfile(raw = null) {
   const knownLevels = new Set(levels.map((level) => level.id));
   const completed = new Set(Array.isArray(source.completed) ? source.completed : []);
   const settledRuns = Array.isArray(source.settledRuns)
-    ? [
-        ...new Set(
+    ? Array.from(
+        new Set(
           source.settledRuns.filter(
             (runId) => typeof runId === 'string' && runId.length > 0 && runId.length <= 128,
           ),
         ),
-      ].slice(-MAX_SETTLED_RUNS)
+      ).slice(-MAX_SETTLED_RUNS)
     : [];
   return {
     version: PROFILE_VERSION,
