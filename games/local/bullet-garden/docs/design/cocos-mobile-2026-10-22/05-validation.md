@@ -26,6 +26,8 @@
 
 最终包 `productVersion` 为本游戏版本1.0.0；原始官方转换步骤的0.1.0保留在转换receipt中，绑定后的ZIP记录最终版本。
 
+最后一次生产包完整触屏复测通过，记录已更新。自然失败用例修正了自动选择回血成长及忽略剩余飞行敌人的测试策略；仍使用真实触屏、正常模拟速度和真实碰撞，不直接改战斗状态。
+
 ## 配置与验收边界
 
 最终Web发布包必须为 `preview`、空AppID/广告位、`adsEnabled:false`，广告fixture不参与发布。配置文件只接受platform、appId、adUnitId、adsEnabled四项，native/H5不能混用；Turbo对配置读取的build/typecheck关闭缓存，预制品仍核验相同配置。

@@ -114,7 +114,9 @@ export async function upgrade(page) {
   const s = await snapshot(page);
   if (s.screen !== 'upgrade') return false;
   const b = s.buttons.filter((b) => b.id.startsWith('upgrade:'));
-  const choice = b.find((b) => b.id === 'upgrade:boon-shrub') || b[0];
+  // Collision acceptance must not pick healing that cancels the observed damage.
+  const choice = b.find((b) => b.id === 'upgrade:boon-shrub') ||
+    b.find((b) => !/wild-heart|sunflower|boon-ice/.test(b.id)) || b[0];
   await tap(page, choice.id);
   return true;
 }
@@ -154,7 +156,7 @@ export async function collideUntil(session, predicate, timeout = 120000) {
     const heavy = grounded.filter((e) =>
       ['brute', 'shield', 'bastionlord', 'overgrowth', 'warden'].includes(e.kind),
     );
-    const nearest = (heavy.length ? heavy : grounded).sort(
+    const nearest = (heavy.length ? heavy : grounded.length ? grounded : s.state.enemies).sort(
       (a, b) =>
         Math.hypot(a.x - s.state.player.x, a.y - s.state.player.y) -
         Math.hypot(b.x - s.state.player.x, b.y - s.state.player.y),
@@ -168,7 +170,7 @@ export async function collideUntil(session, predicate, timeout = 120000) {
         dy = nearest.y - s.state.player.y,
         d = Math.max(1, Math.hypot(dx, dy));
       await touch('touchMove', 1, { x: j.x + (dx / d) * 42, y: j.y + (dy / d) * 42 });
-    }
+    } else await touch('touchMove', 1, j);
     await page.waitForTimeout(180);
   }
   await page.screenshot({ path: path.join(output, 'collision-timeout.png') });
