@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createMossGame } from '../src/controller.ts';
 import { LEVELS } from '../src/content.ts';
 import { createSave } from '../src/progress.ts';
-import { createPuzzle } from '../src/rules.ts';
+import { createPuzzle, solve } from '../src/rules.ts';
 
 // The challenge path must not unlock a locked level or replace a normal in-progress board.
 test('same-level invitations isolate progression and replay exactly the invited level', async () => {
@@ -39,8 +39,7 @@ test('same-level invitations isolate progression and replay exactly the invited 
     game.act('home:start');
     assert.equal(game.snapshot().levelId, LEVELS[8].id);
     assert.equal(game.snapshot().challenge, true);
-    for (let count = 0; count < 20 && game.snapshot().page === 'play'; count++)
-      game.act('play:hint');
+    for (const cell of solve(LEVELS[8], 1)[0]) game.act(`cell:${cell}`);
     assert.equal(game.snapshot().page, 'result');
     game.act('result:next');
     assert.equal(game.snapshot().levelId, LEVELS[8].id);
@@ -90,8 +89,7 @@ test('leaving an invitation restores the ordinary continue route and current-lev
       game.act('home:start');
       assert.equal(game.snapshot().levelId, LEVELS[8].id);
       if (route === 'result-selection') {
-        for (let count = 0; count < 20 && game.snapshot().page === 'play'; count++)
-          game.act('play:hint');
+        for (const cell of solve(LEVELS[8], 1)[0]) game.act(`cell:${cell}`);
         game.act('result:levels');
       } else {
         game.act('play:pause');

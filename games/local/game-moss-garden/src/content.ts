@@ -1,3 +1,5 @@
+import { GENERATED_BOARDS } from './generated-levels.ts';
+
 /** Original seeded region partitions, generated offline and checked for connected plots and a unique solution. */
 export type Level = {
   id: string;
@@ -8,7 +10,7 @@ export type Level = {
   regions: number[];
 };
 
-export const LEVELS: Level[] = [
+export const INTRODUCTORY_LEVELS: Level[] = [
   {
     id: 'moss-01',
     number: 1,
@@ -311,6 +313,26 @@ export const LEVELS: Level[] = [
   },
 ];
 
+const GARDEN_NAMES = ['溪畔', '蕨影', '月露', '星苔'];
+const PLOT_NAMES = ['新芽', '叶语', '花径', '清露', '微光', '满庭'];
+
+export const LEVELS: Level[] = [
+  ...INTRODUCTORY_LEVELS,
+  ...GENERATED_BOARDS.map(([size, cells], index) => {
+    const number = INTRODUCTORY_LEVELS.length + index + 1;
+    return {
+      id: `moss-${String(number).padStart(2, '0')}`,
+      number,
+      chapter: Math.floor((number - 1) / 6) + 1,
+      title: `${GARDEN_NAMES[size - 5]}${PLOT_NAMES[index % PLOT_NAMES.length]}`,
+      size,
+      regions: Array.from(cells, Number),
+    };
+  }),
+];
+
+const LEVEL_INDEX = new Map(LEVELS.map((level, index) => [level.id, index]));
+
 export type Chapter = {
   id: number;
   number: number;
@@ -361,16 +383,50 @@ export const CHAPTERS: Chapter[] = [
     size: 8,
     levelIds: LEVELS.filter((level) => level.chapter === 5).map((level) => level.id),
   },
+  ...Array.from({ length: Math.ceil(GENERATED_BOARDS.length / 6) }, (_, index) => {
+    const id = index + 6;
+    const levels = LEVELS.slice(30 + index * 6, 36 + index * 6);
+    const size = levels[0].size;
+    return {
+      id,
+      number: id,
+      title: `${GARDEN_NAMES[size - 5]}花园 ${id - 5}`,
+      subtitle: '给每片花圃留一颗种子，也为生长留出空间。',
+      size,
+      levelIds: levels.map((level) => level.id),
+    };
+  }),
 ];
 
 export function getLevel(id: string): Level | undefined {
-  return LEVELS.find((level) => level.id === id);
+  return LEVELS[getLevelIndex(id)];
+}
+
+/** Stable lookup keeps progression linear even with a thousand plots. */
+export function getLevelIndex(id: string): number {
+  return LEVEL_INDEX.get(id) ?? -1;
 }
 
 /** Catalog references are validated alongside individual boards in the content test. */
 export function validateCatalog(): void {
   if (new Set(LEVELS.map((level) => level.id)).size !== LEVELS.length)
     throw new Error('Duplicate level IDs');
+  if (new Set(CHAPTERS.map((chapter) => chapter.id)).size !== CHAPTERS.length)
+    throw new Error('Duplicate chapter IDs');
+  if (
+    CHAPTERS.flatMap((chapter) => chapter.levelIds).join(',') !==
+    LEVELS.map((level) => level.id).join(',')
+  )
+    throw new Error('Chapter order must cover each level exactly once');
+  for (const [index, chapter] of CHAPTERS.entries()) {
+    if (
+      chapter.id !== index + 1 ||
+      chapter.number !== chapter.id ||
+      chapter.levelIds.length < 1 ||
+      chapter.levelIds.length > 6
+    )
+      throw new Error(`Invalid chapter: ${chapter.id}`);
+  }
   for (const [index, level] of LEVELS.entries()) {
     if (
       level.number !== index + 1 ||

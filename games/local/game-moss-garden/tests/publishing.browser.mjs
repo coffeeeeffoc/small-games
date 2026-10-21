@@ -23,7 +23,7 @@ await new Promise((resolve, reject) => {
 const browser = await chromium.launch({
   executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || '/usr/bin/chromium',
 });
-const output = new URL('../docs/design/mobile-levels-2026-10-11/actual/', import.meta.url);
+const output = new URL('../docs/design/expansion-2026-10-21/actual/', import.meta.url);
 await mkdir(output, { recursive: true });
 const errors = [];
 try {
@@ -35,6 +35,7 @@ try {
   });
   page.on('pageerror', (error) => errors.push(error.message));
   await page.addInitScript(() => {
+    window.SmallGamesRewardAds = { offer: async () => ({ status: 'completed' }) };
     window.SmallGamesPublishingConfig = { publicUrl: 'https://games.example/moss-garden/' };
     window.__shares = [];
     navigator.share = async (request) => {
@@ -62,8 +63,13 @@ try {
       let hint = 0;
       hint < 20 && (await page.locator('#garden').getAttribute('data-page')) === 'play';
       hint++
-    )
+    ) {
       await action('play:hint');
+      if ((await page.locator('#garden').getAttribute('data-page')) === 'hint') {
+        await action('hint:watch');
+        await expect(page.locator('#garden')).not.toHaveAttribute('data-page', 'hint');
+      }
+    }
     await expect(page.locator('#garden')).toHaveAttribute('data-page', 'result');
     if (round === 0) {
       await action('result:share');

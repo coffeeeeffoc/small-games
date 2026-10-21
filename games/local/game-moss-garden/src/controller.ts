@@ -1,5 +1,5 @@
 import type { CanvasGameTarget, CanvasPointerEvent } from '@coffeeeeffoc/canvas-game-adapter';
-import type { GameHost, JsonValue } from '@coffeeeeffoc/game-contract';
+import type { GameHost, JsonValue, RewardOutcome } from '@coffeeeeffoc/game-contract';
 import { CHAPTERS, LEVELS } from './content.ts';
 import {
   createPuzzle,
@@ -26,6 +26,7 @@ export type MossTarget = CanvasGameTarget & {
     hints: number;
     mistakes: number;
   }): Promise<string>;
+  cancelHint?(): void;
   dev?: boolean;
   onView?(view: View, hits: HitArea[]): void;
   onAction?(listener: (id: string) => void): () => void;
@@ -56,6 +57,10 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
   let practice = false;
   let challenge = false;
   let publicationBusy = false;
+  let hintBusy = false;
+  let hintToken = 0;
+  let hintResult: RewardOutcome | undefined;
+  let jumpNumber = '';
   let invitation = LEVELS.find((item) => item.id === target.challengeLevel);
   let notice = '';
   let hits: HitArea[] = [];
@@ -72,7 +77,12 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
   const callbacks: Array<() => void> = [];
 
   function checkpoint() {
-    if (!practice && !challenge && !puzzle.completed && (page === 'play' || page === 'pause')) {
+    if (
+      !practice &&
+      !challenge &&
+      !puzzle.completed &&
+      (page === 'play' || page === 'pause' || page === 'hint')
+    ) {
       save = { ...save, active: { levelId: level.id, puzzle, elapsedMs } };
     }
     const snapshot = JSON.parse(JSON.stringify(save)) as JsonValue;
@@ -129,6 +139,9 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
       continueLevel: continueLevel(),
       levelChapter,
       dev: !!target.dev,
+      practice,
+      hintBusy,
+      jumpNumber,
       native: !!target.native,
       notice:
         notice ||
@@ -136,7 +149,7 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
       challenge,
       challengeGoal: target.challengeGoal,
       invitationNumber: invitation?.number,
-      canShare: typeof target.shareChallenge === 'function',
+      canShare: !practice && typeof target.shareChallenge === 'function',
       minimumTouchSize: target.minimumTouchSize?.(),
     };
     hits = renderGame(context!, view);
@@ -175,6 +188,68 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
     }
     checkpoint();
   }
+  function applyHint() {
+    const previous = puzzle;
+    puzzle = hint(level, puzzle);
+    notice = '';
+    page = 'play';
+    lastTime = Date.now();
+    afterMove(previous, 'place');
+  }
+  function cancelHint() {
+    hintToken++;
+    hintBusy = false;
+    hintResult = undefined;
+    try {
+      target.cancelHint?.();
+    } catch {
+      /* Optional host cleanup. */
+    }
+  }
+  function finishHint() {
+    if (!hintResult || suspended || disposed || page !== 'hint') return;
+    const result = hintResult;
+    hintResult = undefined;
+    hintBusy = false;
+    if (result.status === 'completed') applyHint();
+    else
+      notice =
+        result.status === 'dismissed'
+          ? '视频未看完，未获得提示'
+          : result.status === 'unavailable'
+            ? '暂时没有可用视频，请稍后再试'
+            : '视频加载失败，请重试';
+    draw();
+  }
+  function requestHint() {
+    if (hintBusy) return;
+    hintBusy = true;
+    notice = '';
+    const token = ++hintToken;
+    const requestedPuzzle = puzzle;
+    const requestedLevel = level;
+    void Promise.resolve()
+      .then(() => {
+        if (disposed || token !== hintToken) return { status: 'dismissed' as const };
+        return host.ads.offer({
+          id: 'moss-garden.hint',
+          reward: { kind: 'hint', count: 1, levelId: level.id },
+        });
+      })
+      .catch(() => ({ status: 'failed' as const }))
+      .then((result) => {
+        if (
+          disposed ||
+          token !== hintToken ||
+          page !== 'hint' ||
+          puzzle !== requestedPuzzle ||
+          level !== requestedLevel
+        )
+          return;
+        hintResult = result;
+        finishHint();
+      });
+  }
   function act(id: string, afterBreak = false) {
     if (disposed || suspended || publicationBusy) return;
     if (
@@ -194,7 +269,7 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
         });
       return;
     }
-    if (id === 'result:share' && page === 'result' && target.shareChallenge) {
+    if (id === 'result:share' && page === 'result' && !practice && target.shareChallenge) {
       const sharedPuzzle = puzzle;
       void target
         .shareChallenge({
@@ -220,7 +295,32 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
     }
     tick();
     pointer = null;
-    if (id.startsWith('cell:') && page === 'play') {
+    if (page === 'hint') {
+      if (id === 'hint:cancel' || id === 'nav:back') {
+        cancelHint();
+        notice = '';
+        page = 'play';
+        lastTime = Date.now();
+      } else if (id === 'hint:watch') requestHint();
+      draw();
+      return;
+    }
+    if (id === 'dev:select' && target.dev) {
+      checkpoint();
+      jumpNumber = '';
+      page = 'dev-levels';
+      notice = '';
+    } else if (page === 'dev-levels' && target.dev && id.startsWith('jump:')) {
+      const key = id.slice(5);
+      if (/^\d$/.test(key)) jumpNumber = (jumpNumber + key).replace(/^0+/, '').slice(0, 4);
+      else if (key === 'clear') jumpNumber = '';
+      else if (key === 'backspace') jumpNumber = jumpNumber.slice(0, -1);
+      else if (key === 'start') {
+        const selected = LEVELS[Number(jumpNumber) - 1];
+        if (selected) start(selected, false, true);
+        else notice = `请输入 1–${LEVELS.length} 的关卡号`;
+      }
+    } else if (id.startsWith('cell:') && page === 'play') {
       const index = Number(id.slice(5)),
         previous = puzzle;
       puzzle =
@@ -228,9 +328,9 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
       afterMove(previous, mode === 'mark' ? 'mark' : 'place');
     } else if (id.startsWith('level:') && page === 'levels') {
       const selected = LEVELS.find((item) => item.id === id.slice(6));
-      if (selected && unlocked(save, selected)) {
+      if (selected && (target.dev || unlocked(save, selected))) {
         invitation = undefined;
-        start(selected, save.active?.levelId === selected.id);
+        start(selected, !target.dev && save.active?.levelId === selected.id, !!target.dev);
       }
     } else if (id === 'home:start' && invitation) {
       const selected = invitation;
@@ -280,9 +380,12 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
       puzzle = undo(level, puzzle);
       checkpoint();
     } else if (id === 'play:hint' && page === 'play') {
-      const previous = puzzle;
-      puzzle = hint(level, puzzle);
-      afterMove(previous, 'place');
+      if (practice || puzzle.hints === 0) applyHint();
+      else {
+        checkpoint();
+        page = 'hint';
+        notice = '';
+      }
     } else if (id === 'settings:sound') {
       save = { ...save, sound: !save.sound };
       checkpoint();
@@ -373,7 +476,16 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
     act,
     redraw: draw,
     isSuspended: () => suspended,
-    snapshot: () => ({ page, levelId: level.id, puzzle, elapsedMs, practice, challenge }),
+    cancelPendingHint() {
+      if (page === 'hint') {
+        cancelHint();
+        page = 'play';
+        notice = '';
+        lastTime = Date.now();
+        draw();
+      }
+    },
+    snapshot: () => ({ page, levelId: level.id, puzzle, elapsedMs, practice, challenge, hintBusy }),
     pause() {
       tick();
       suspended = true;
@@ -382,6 +494,7 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
     },
     resume() {
       suspended = false;
+      finishHint();
       lastTime = Date.now();
       draw();
     },
@@ -390,6 +503,7 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
       tick();
       checkpoint();
       disposed = true;
+      cancelHint();
       pointer = null;
       clearInterval(interval);
       callbacks.forEach((stop) => stop());
