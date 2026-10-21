@@ -150,7 +150,28 @@ try {
         await page.evaluate(() => globalThis.document.querySelector('iframe')?.src),
         standaloneUrl,
       );
-      if (game.id === 'carrom-club') {
+      if (game.id === 'homebound-station') {
+        const view = () => frame.locator('body').evaluate(() => globalThis.homeboundView());
+        const control = async (id) => {
+          await expect
+            .poll(async () =>
+              (await view()).buttons.some((button) => button.id === id && !button.disabled),
+            )
+            .toBe(true);
+          const button = (await view()).buttons.find((item) => item.id === id);
+          await frame.locator('#GameCanvas').click({
+            position: { x: button.x + button.w / 2, y: button.y + button.h / 2 },
+          });
+        };
+        await expect(page.locator('.standalone-page nav')).toBeHidden();
+        await control('pause');
+        await expect.poll(async () => (await view()).page).toBe('pause');
+        await expect(page.locator('.standalone-page nav')).toBeHidden();
+        await control('home');
+        await expect.poll(async () => (await view()).page).toBe('home');
+        await expect(page.locator('.standalone-page nav')).toBeVisible();
+        await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
+      } else if (game.id === 'carrom-club') {
         await expect(page.locator('.standalone-page nav')).toBeHidden();
         await frame.locator('#pause').click();
         await expect(frame.locator('#pause-screen')).toBeVisible();

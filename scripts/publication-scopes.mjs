@@ -16,7 +16,7 @@ const homeboundCocosWiring = {
   ],
   'apps/shell-web/scripts/pages-smoke.mjs': [
     'f1a1a2295772498305b5766d530aa55e774887333b76029de951033bae9b4424',
-    '73ac8e1e77bc2f057fa0f27a24b7a2099c2b5c12b7d91b97ef89067883436b49',
+    '0e22c3fabf195d177d75ae60c4066a027e302511f9d251a79816c493b5934460',
   ],
   'apps/shell-web/tests/standalone-immersive.integration.test.tsx': [
     '9a0071ba38e725b7bb672e8d06b73167340bec9c3fdab22a792c6f45865818a5',
