@@ -1,16 +1,24 @@
-import { glassTexture, backgroundTexture, panelTexture } from './src/art.mjs';
-import { FIELD, WIDTH, HEIGHT, brickCenter, targetProfile, aimDirection } from './core.mjs';
+import { glassTexture, backgroundTexture, panelTexture, shardTexture } from './src/art.mjs';
+import {
+  FIELD,
+  PHYSICS,
+  WIDTH,
+  HEIGHT,
+  brickCenter,
+  targetProfile,
+  aimDirection,
+} from './core.mjs';
 import { LEVELS, UPGRADES } from './levels.mjs';
 const TAU = Math.PI * 2;
 const C = {
-  ink: '#091725',
-  panel: '#142a3b',
-  mint: '#98f5dd',
+  ink: '#111a50',
+  panel: '#20245c',
+  mint: '#72f4ff',
   text: '#e9f9f7',
-  muted: '#8eaab9',
+  muted: '#bcc8ee',
   rose: '#f497ae',
-  gold: '#efc18b',
-  purple: '#bda6f6',
+  gold: '#ffda7b',
+  purple: '#cd9aff',
 };
 export function createView(cc, root, dimensions, actions) {
   const {
@@ -36,6 +44,10 @@ export function createView(cc, root, dimensions, actions) {
     targetNodes = new Map(),
     ballNodes = new Map(),
     time = 0;
+  let shards = [],
+    collectorPulse = 0;
+  const spareShards = [];
+  const stats = { shatters: 0, absorptions: 0, returns: 0, recalls: 0, maxShards: 0 };
   const textures = new Map(),
     cleanup = [],
     hud = {},
@@ -105,6 +117,7 @@ export function createView(cc, root, dimensions, actions) {
     label.overflow = Label.Overflow.SHRINK;
     label.enableWrapText = true;
     label.fontFamily = 'sans-serif';
+    label.isBold = size >= 20;
     return label;
   }
   function graphics(parent) {
@@ -126,7 +139,14 @@ export function createView(cc, root, dimensions, actions) {
     else g.stroke();
   }
   function orb(parent, x, y, radius, profile = {}) {
-    const p = { color: C.mint, material: 'glass', shape: 'circle', ...profile };
+    const {
+      color: tint = C.mint,
+      material = 'glass',
+      shape = 'circle',
+      opacity = 0.75,
+      rotation = Math.PI / 6,
+    } = profile;
+    const p = { color: tint, material, shape, opacity, rotation };
     return sprite(
       parent,
       frame(JSON.stringify(p), () => glassTexture(p)),
@@ -147,6 +167,8 @@ export function createView(cc, root, dimensions, actions) {
     overlay = node(origin, 'Interface');
   const launcher = orb(projectiles, 195, FIELD.floor - FIELD.radius, FIELD.radius + 1);
   const aimGraphic = graphics(arena);
+  const collector = graphics(arena);
+  const fragmentRoot = node(arena, 'Glass fragments');
   const arenaAccess = document.createElement('div');
   arenaAccess.id = 'arena';
   arenaAccess.setAttribute('aria-label', '弹珠场地：按住拖动瞄准，松手发射');
@@ -160,7 +182,7 @@ export function createView(cc, root, dimensions, actions) {
     access.style.width = `${W}px`;
     access.style.height = `${H}px`;
     access.style.transform = `scale(${scale})`;
-    board = { scale: Math.min(1, (H - 164) / HEIGHT), y: 76 };
+    board = { scale: Math.min(1, (H - 184) / HEIGHT), y: 92 };
     board.x = (W - WIDTH * board.scale) / 2;
     arena.setPosition(board.x, -board.y);
     arena.setScale(board.scale, board.scale, 1);
@@ -180,17 +202,32 @@ export function createView(cc, root, dimensions, actions) {
       H,
     );
     arenaStatic.clear();
+    arenaStatic.fillColor = color('#101944', 185);
+    arenaStatic.roundRect(
+      FIELD.left,
+      -FIELD.floor,
+      FIELD.right - FIELD.left,
+      FIELD.floor - FIELD.top,
+      8,
+    );
+    arenaStatic.fill();
+    const wall = [
+      { x: FIELD.left, y: FIELD.floor },
+      { x: FIELD.left, y: FIELD.top },
+      { x: FIELD.right, y: FIELD.top },
+      { x: FIELD.right, y: FIELD.floor },
+    ];
+    line(arenaStatic, wall, C.purple, 7, 60);
+    line(arenaStatic, wall, C.mint, 2, 235);
     line(
       arenaStatic,
       [
-        { x: FIELD.left, y: FIELD.top - 18 },
         { x: FIELD.left, y: FIELD.floor },
         { x: FIELD.right, y: FIELD.floor },
-        { x: FIELD.right, y: FIELD.top - 18 },
       ],
-      '#54929d',
-      1,
-      75,
+      C.purple,
+      2,
+      160,
     );
     for (let x = FIELD.left; x < FIELD.right; x += 14)
       line(
@@ -229,6 +266,11 @@ export function createView(cc, root, dimensions, actions) {
     arena.active = battle;
     arenaAccess.hidden = !battle;
     homeArt.active = name === 'home';
+    if (!['settings', 'help', 'confirm'].includes(name))
+      button('settings-button', '', W - touch() - 16, 14, touch(), touch(), 'settings', {
+        icon: 'settings',
+        aria: '设置',
+      });
   }
   function semantic(id, value, x, y, width, height, tag = 'span') {
     const el = document.createElement(tag);
@@ -267,8 +309,8 @@ export function createView(cc, root, dimensions, actions) {
       y,
       w,
       h,
-      primary ? '#98e7d3' : '#152b3d',
-      primary ? '#d5fff3' : '#39596b',
+      primary ? '#ffcf68' : '#262565',
+      primary ? '#fff4c0' : '#727be1',
     );
     n.name = `Button ${id || value}`;
     if (disabled) n.addComponent(UIOpacity).opacity = 100;
@@ -279,6 +321,36 @@ export function createView(cc, root, dimensions, actions) {
         g.rect(bx, -y - h / 2 - 8, 4, 16);
         g.fill();
       }
+    } else if (icon === 'settings') {
+      const g = graphics(menu),
+        cx = x + w / 2,
+        cy = y + h / 2;
+      circle(g, cx, cy, 10, C.text, 255, 2);
+      circle(g, cx, cy, 4, C.text, 255, 2);
+      for (let i = 0; i < 8; i++) {
+        const a = (i * TAU) / 8;
+        line(
+          g,
+          [
+            { x: cx + Math.cos(a) * 10, y: cy + Math.sin(a) * 10 },
+            { x: cx + Math.cos(a) * 14, y: cy + Math.sin(a) * 14 },
+          ],
+          C.text,
+          3,
+        );
+      }
+    } else if (icon === 'back') {
+      const g = graphics(menu);
+      line(
+        g,
+        [
+          { x: x + w * 0.58, y: y + h * 0.3 },
+          { x: x + w * 0.38, y: y + h * 0.5 },
+          { x: x + w * 0.58, y: y + h * 0.7 },
+        ],
+        C.text,
+        3,
+      );
     } else
       text(
         menu,
@@ -286,7 +358,7 @@ export function createView(cc, root, dimensions, actions) {
         x + w / 2,
         y + h / 2,
         h > 90 ? 15 : 16,
-        tint || (primary ? '#0c3434' : disabled ? '#607a8b' : C.text),
+        tint || (primary ? '#33245c' : disabled ? '#607a8b' : C.text),
         w - 20,
       );
     const b = n.addComponent(cc.Button);
@@ -316,210 +388,217 @@ export function createView(cc, root, dimensions, actions) {
     if (subtitle) label(null, subtitle, 195, at + 42, 13, C.muted);
   }
   const touch = () => Math.max(48, 44 / scale);
-  const fullscreenLabel = () => {
-    try {
-      return document.fullscreenElement ||
-        document.webkitFullscreenElement ||
-        parent.document.fullscreenElement ||
-        parent.document.webkitFullscreenElement
-        ? '退出'
-        : '全屏';
-    } catch {
-      return document.fullscreenElement ? '退出' : '全屏';
-    }
-  };
+  function backButton(action = 'leave', id = 'back-home') {
+    return button(id, '', 16, 14, touch(), touch(), action, { icon: 'back', aria: '返回退出' });
+  }
+  function modal(height, tint = C.purple) {
+    const top = (H - height) / 2;
+    panel(menu, 9, top - 6, 372, height + 12, '#111638aa', '#c28aff55');
+    panel(menu, 15, top, 360, height, '#25205bea', tint);
+    const el = semantic('choice-panel', '', 15, top, 360, height);
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-modal', 'true');
+    return top;
+  }
   function home(data, saved, challenge) {
     begin('home');
     homeArt.children.slice().forEach((n) => n.destroy());
     hero.length = 0;
     const min = touch(),
       compact = H < 740;
-    button('home-help', '?', 20, 14, min, min, 'help', { aria: '玩法帮助' });
-    button('home-sound', data.sound ? '♪' : '静', W - 20 - min * 2 - 8, 14, min, min, 'sound', {
-      aria: data.sound ? '关闭音效' : '开启音效',
-      data: { action: 'sound' },
-    });
-    button('home-fullscreen', fullscreenLabel(), W - 20 - min, 14, min, min, 'fullscreen');
-    label(null, '星轨弹珠', 195, compact ? 110 : 132, 42);
-    label(null, 'O R B I T   B R E A K E R', 195, compact ? 151 : 178, 11, C.mint);
-    const center = compact ? H * 0.43 : H * 0.44,
-      orbitGraphics = graphics(homeArt);
-    for (let j = 0; j < 3; j++) {
-      const points = Array.from({ length: 81 }, (_, i) => {
-        const a = (i / 80) * TAU;
-        return {
-          x: 195 + Math.cos(a) * (143 + j * 10),
-          y: center + Math.sin(a) * (65 + j * 14) + Math.cos(a) * 30,
-        };
-      });
-      line(orbitGraphics, points, j === 1 ? C.gold : C.mint, 0.8, 80 - j * 15);
-    }
-    const s = compact ? 0.84 : 1;
-    for (const [dx, dy, radius, colorHex, shape] of [
+    label(null, '星轨弹珠', 195, compact ? 108 : 132, 42);
+    label(null, '折射 · 碎裂 · 连击', 195, compact ? 148 : 175, 13, C.mint);
+    const center = H * (compact ? 0.365 : 0.405),
+      g = graphics(homeArt);
+    for (let j = 0; j < 3; j++)
+      line(
+        g,
+        Array.from({ length: 81 }, (_, i) => {
+          const a = (i / 80) * TAU;
+          return {
+            x: 195 + Math.cos(a) * (140 + j * 8),
+            y: center + Math.sin(a) * (57 + j * 12) + Math.cos(a) * 35,
+          };
+        }),
+        j === 1 ? C.gold : C.mint,
+        1.5,
+        155 - j * 30,
+      );
+    const size = compact ? 0.66 : 0.92;
+    for (const [dx, dy, r, tint, shape] of [
       [-25, 10, 84, C.mint, 'circle'],
       [73, -63, 43, C.purple, 'circle'],
       [70, 78, 48, C.gold, 'circle'],
-      [-100, -73, 19, '#c8ecff', 'circle'],
+      [-100, -73, 19, '#ff9bd5', 'circle'],
       [-100, 99, 23, C.purple, 'hexagon'],
       [119, 6, 12, '#e7fff7', 'circle'],
     ]) {
-      const n = orb(homeArt, 195 + dx * s, center + dy * s, radius * s, { color: colorHex, shape });
-      hero.push({ n, x: 195 + dx * s, y: center + dy * s, phase: dx });
+      const n = orb(homeArt, 195 + dx * size, center + dy * size, r * size, { color: tint, shape });
+      hero.push({ n, x: 195 + dx * size, y: center + dy * size, phase: dx });
     }
-    const bottom = H - 30,
-      modeH = min + 18,
-      startH = min + 10,
-      startY = bottom - modeH - 14 - startH - (challenge ? min + 10 : 0);
+    const bottom = H - 18,
+      modeH = min + 12,
+      startH = min + 8,
+      startY = bottom - min - 10 - modeH - 12 - startH - (challenge ? min + 8 : 0);
     label(
       'home-progress',
       saved
         ? `继续第 ${saved.turn + 1} 轮 · ${saved.levelId === 'endless' ? '无尽航行' : '星域旅程'}`
-        : `${Object.keys(data.completed).length} / 6 星域已点亮`,
+        : `${Object.keys(data.completed).length} / ${LEVELS.length} 星域已点亮`,
       195,
-      startY - 22,
+      startY - 20,
       12,
       C.muted,
     );
-    button(
-      'start',
-      `${saved ? '继续' : '开始'}${data.lastMode === 'endless' ? '无尽' : '关卡'}模式  →`,
-      24,
-      startY,
-      342,
-      startH,
-      'continue',
-      { primary: true },
-    );
-    if (challenge)
-      button('challenge-orbit', challenge, 24, startY + startH + 10, 342, min, 'challenge');
-    button('levels-button', '关卡模式\n选择星域 →', 24, bottom - modeH, 165, modeH, 'levels');
-    button('endless-button', '无尽模式\n继续探索 →', 201, bottom - modeH, 165, modeH, 'endless');
-  }
-  function levels(data, saved, unlocked) {
-    begin('levels');
-    const min = touch();
-    button('levels-home', '←', 20, 14, min, min, 'home', {
-      aria: '返回主页',
-      data: { action: 'home' },
+    button('start', `${saved ? '继续旅程' : '开启旅程'} →`, 24, startY, 342, startH, 'continue', {
+      primary: true,
     });
-    label(null, '星域图鉴', 220, 40, 25, C.text, 230);
+    if (challenge)
+      button('challenge-orbit', challenge, 24, startY + startH + 8, 342, min, 'challenge');
+    button('levels-button', '星域挑战', 24, bottom - min - 10 - modeH, 165, modeH, 'levels');
+    button(
+      'endless-button',
+      data.runs?.endless ? '继续无尽' : '无尽模式',
+      201,
+      bottom - min - 10 - modeH,
+      165,
+      modeH,
+      'endless',
+    );
+    button('endless-new', '无尽 · 重新开局', 24, bottom - min, 342, min, 'restart-endless', {
+      tint: C.gold,
+    });
+  }
+  function levels(data, saved, unlocked, page = 0) {
+    begin('levels');
+    backButton('home', 'levels-home');
+    const min = touch();
+    label(null, '星域挑战', 195, 38, 23, C.text, 180);
     label(
       'levels-progress',
-      `${Object.keys(data.completed).length} / 6 星域已点亮`,
+      `${Object.keys(data.completed).length} / ${LEVELS.length} 星域 · 侧面切入，绕开吸收器`,
       195,
-      94,
-      13,
+      99,
+      12,
       C.muted,
     );
-    const compact = scale < 0.72,
-      top = saved ? 123 + min : 127;
+    const top = saved ? 126 + min : 135;
     if (saved)
-      button('campaign-continue', `继续 · 第 ${saved.turn + 1} 轮`, 24, 113, 342, min, 'campaign');
-    const row = Math.min(compact ? 140 : 99, (H - top - 18) / (compact ? 3 : 6)),
-      height = row - 9;
-    LEVELS.forEach((level, index) => {
-      const y = top + (compact ? Math.floor(index / 2) : index) * row,
+      button('campaign-continue', `继续 · 第 ${saved.turn + 1} 轮`, 24, 116, 342, min, 'campaign');
+    const row = (H - top - min - 36) / 2;
+    LEVELS.slice(page * 4, page * 4 + 4).forEach((level, i) => {
+      const index = page * 4 + i,
+        x = 24 + (i % 2) * 177,
+        y = top + Math.floor(i / 2) * row,
+        h = row - 10,
         enabled = unlocked(level.id),
-        result = data.completed[level.id],
-        x = compact ? 24 + (index % 2) * 177 : 24,
-        width = compact ? 165 : 342;
-      const el = button(null, '', x, y, width, height, `level:${level.id}`, {
+        result = data.completed[level.id];
+      const el = button(null, '', x, y, 165, h, `level:${level.id}`, {
         disabled: !enabled,
         data: { level: level.id },
         aria: `${index + 1}. ${level.title}${enabled ? '，开始关卡' : '，未解锁'}`,
       });
       el.className = 'level-card';
-      orb(
-        menu,
-        compact ? x + 127 : 318,
-        y + height / 2,
-        Math.min(compact ? 22 : 33, height * 0.39),
-        { color: level.color, opacity: enabled ? 0.8 : 0.4 },
-      );
+      orb(menu, x + 82, y + h * 0.3, Math.min(28, h * 0.22), {
+        color: level.color,
+        material: index > 2 ? 'absorber' : 'glass',
+      });
       text(
         menu,
-        `0${index + 1}`,
-        compact ? x + 28 : 57,
-        y + height / 2,
-        compact ? 17 : 21,
-        enabled ? C.mint : C.muted,
-        42,
-      );
-      text(
-        menu,
-        level.title,
-        compact ? x + 82 : 174,
-        y + height * 0.3,
-        compact ? 14 : 18,
+        `${index + 1} · ${level.title}`,
+        x + 82,
+        y + h * 0.61,
+        14,
         enabled ? C.text : C.muted,
-        compact ? 145 : 170,
-        compact ? 'center' : 'left',
+        155,
       );
       text(
         menu,
-        result ? '★'.repeat(result.stars) : enabled ? '启程  →' : '尚未解锁',
-        compact ? x + 82 : 174,
-        y + height * 0.75,
-        11,
+        result
+          ? '★'.repeat(result.stars)
+          : enabled
+            ? level.hint || '借墙反弹 · 寻找切入角'
+            : '完成前一关解锁',
+        x + 82,
+        y + h * 0.83,
+        10,
         result ? C.gold : C.muted,
-        compact ? 145 : 170,
-        compact ? 'center' : 'left',
+        150,
       );
+    });
+    button('levels-prev', '←', 24, H - min - 15, 86, min, 'levels-prev', {
+      disabled: page === 0,
+      aria: '上一页关卡',
+    });
+    label(
+      'levels-page',
+      `${page + 1} / ${Math.ceil(LEVELS.length / 4)}`,
+      195,
+      H - min / 2 - 15,
+      14,
+      C.text,
+      130,
+    );
+    button('levels-next', '→', 280, H - min - 15, 86, min, 'levels-next', {
+      disabled: (page + 1) * 4 >= LEVELS.length,
+      aria: '下一页关卡',
     });
   }
   function battleHeader(game) {
     const min = touch();
+    backButton();
     label(
       'level-name',
-      game.challenge
-        ? '好友同场'
-        : game.level.endless
-          ? '无尽模式'
-          : `关卡模式 · ${game.level.title}`,
-      148,
-      28,
-      15,
+      game.challenge ? '好友同场' : game.level.endless ? '无尽航行' : game.level.title,
+      149,
+      32,
+      14,
       C.text,
-      246,
+      140,
     );
     label(
       'wave-progress',
-      `第 ${game.turn + 1} 轮${game.level.endless ? '' : ` · ${game.waveIndex} / ${game.level.waves.length} 波`}${game.practice ? ' · 试玩' : ''}`,
-      125,
-      52,
+      `第 ${game.turn + 1} 轮${game.practice ? ' · 试玩' : ''}`,
+      119,
+      64,
       11,
       C.muted,
-      200,
+      70,
     );
-    label('score', game.score, 285, 34, 21, C.mint, 60);
-    button('pause', '', W - min - 12, 12, min, min, 'pause', { aria: '暂停', icon: 'pause' });
+    label('score', `${game.score} 分`, 189, 64, 11, C.gold, 70);
+    button('pause', '', W - min * 2 - 24, 14, min, min, 'pause', {
+      aria: '暂停',
+      icon: 'pause',
+      disabled: screen !== 'playing',
+    });
   }
   function playing(game) {
     begin('playing', true);
     battleHeader(game);
     const min = touch(),
-      y = H - min - 18;
-    label('ball-count', `${game.count} 颗`, 60, y + 13, 23, C.mint, 90);
+      y = H - min - 16,
+      w = Math.max(72, min);
+    panel(menu, 12, y - 36, 366, min + 48, '#151c55dc', '#697cd0');
+    label('ball-count', `${game.count} 颗`, 49, y + min * 0.5, 20, C.mint, 66);
     label(
       'shot-hint',
-      game.phase === 'flight' ? '折射连击中' : '拖动瞄准 · 松手发射',
-      130,
-      y + min - 10,
+      game.phase === 'recall'
+        ? '星轨召回中'
+        : game.phase === 'flight'
+          ? '折射连击中'
+          : '拖动瞄准 · 松手发射',
+      195,
+      y - 18,
       11,
       C.muted,
-      210,
+      340,
     );
-    button(
-      'supply',
-      '补给',
-      W - 24 - Math.max(68, min) * 2 - 9,
-      y,
-      Math.max(68, min),
-      min,
-      'supply',
-      { disabled: game.phase === 'flight' || game.practice || game.challenge, tint: C.gold },
-    );
-    button('recall', '回收', W - 14 - Math.max(68, min), y, Math.max(68, min), min, 'recall', {
+    button('restart-run', '重开', W - 14 - w * 3 - 16, y, w, min, 'restart-run');
+    button('supply', '补给', W - 14 - w * 2 - 8, y, w, min, 'supply', {
+      disabled: ['flight', 'recall'].includes(game.phase) || game.practice || game.challenge,
+      tint: C.gold,
+    });
+    button('recall', game.phase === 'recall' ? '归位中' : '收回', W - 14 - w, y, w, min, 'recall', {
       disabled: game.phase !== 'flight',
     });
   }
@@ -527,8 +606,8 @@ export function createView(cc, root, dimensions, actions) {
     begin('upgrade', true);
     battleHeader(game);
     const sheetH = Math.min(330, Math.max(285, H * 0.41)),
-      top = H - sheetH;
-    panel(menu, 9, top, 372, sheetH + 12, '#122b3b', '#5a8b99');
+      top = (H - sheetH) / 2;
+    modal(sheetH, C.purple);
     label(null, '星光共鸣', 195, top + 33, 25);
     label(null, '选择一项 · 本局生效', 195, top + 62, 12, C.muted);
     const gap = 10,
@@ -551,7 +630,7 @@ export function createView(cc, root, dimensions, actions) {
       text(
         menu,
         {
-          extra: '每轮 +2 颗\n最多 36 颗',
+          extra: '每轮 +2 颗\n最多 22 颗',
           power: '伤害 +1\n最多 3 阶',
           pierce: '额外穿透 1 颗\n最多 2 颗',
           blast: '爆裂概率 +10%\n最多 30%',
@@ -565,68 +644,127 @@ export function createView(cc, root, dimensions, actions) {
         width - 12,
       );
     });
-    button('upgrade-home', '保存离开', 24, H - touch() - 12, 128, touch(), 'home');
-    button('upgrade-supply', '激励补给  ▷', 165, H - touch() - 12, 201, touch(), 'supply', {
-      disabled: game.practice || game.challenge,
-      tint: C.gold,
+    button('upgrade-home', '保存离开', 24, top + sheetH - touch() - 12, 128, touch(), 'leave');
+    button(
+      'upgrade-supply',
+      '激励补给  ▷',
+      165,
+      top + sheetH - touch() - 12,
+      201,
+      touch(),
+      'supply',
+      {
+        disabled: game.practice || game.challenge,
+        tint: C.gold,
+      },
+    );
+  }
+  function paused() {
+    begin('paused', true);
+    backButton();
+    const h = 220 + touch(),
+      top = modal(h);
+    smallTitle('星光暂歇', '已暂停', '你的弹珠会在这里等你', top + 80);
+    button('resume', '继续弹射 →', 38, top + h - touch() - 30, 314, touch(), 'resume', {
+      primary: true,
     });
   }
-  function paused(data) {
-    begin('paused', true);
-    panel(menu, 18, H * 0.2, 354, H * 0.64, '#102637', '#395d6c');
-    smallTitle('星光暂歇', '已暂停', '你的弹珠会在这里等你', H * 0.31);
+  function settings(data, battle, canRestart) {
+    begin('settings', battle);
     const min = touch(),
-      y = H * 0.46;
-    button('resume', '继续弹射  →', 38, y, 314, min + 5, 'resume', { primary: true });
-    button('pause-sound', `音效${data.sound ? '开' : '关'}`, 38, y + min + 18, 96, min, 'sound', {
-      data: { action: 'sound' },
-      aria: data.sound ? '关闭音效' : '开启音效',
-    }).setAttribute('aria-pressed', String(data.sound));
-    button('haptics', `震动${data.haptics ? '开' : '关'}`, 147, y + min + 18, 96, min, 'haptics');
-    button('pause-fullscreen', fullscreenLabel(), 256, y + min + 18, 96, min, 'fullscreen');
-    button('pause-help', '玩法帮助', 38, y + min * 2 + 30, 314, min, 'help');
-    button('back-home', '保存并返回主页', 38, y + min * 3 + 42, 314, min, 'home');
+      h = 180 + min * 3,
+      top = modal(h);
+    button('settings-close', '×', W - min - 20, top + 12, min, min, 'overlay-back', {
+      aria: '关闭设置',
+    });
+    label(null, '星轨设置', 170, top + 40, 25, C.text, 220);
+    button(
+      'settings-sound',
+      `音效 · ${data.sound ? '开' : '关'}`,
+      38,
+      top + 92,
+      151,
+      min,
+      'sound',
+      { data: { action: 'sound' } },
+    ).setAttribute('aria-pressed', String(data.sound));
+    button(
+      'settings-haptics',
+      `振动 · ${data.haptics ? '开' : '关'}`,
+      201,
+      top + 92,
+      151,
+      min,
+      'haptics',
+    ).setAttribute('aria-pressed', String(data.haptics));
+    button('settings-help', '玩法与特殊球珠', 38, top + 108 + min, 314, min, 'help');
+    if (canRestart)
+      button('settings-restart', '重新挑战本局', 38, top + 124 + min * 2, 314, min, 'restart-run', {
+        tint: C.gold,
+      });
+    else label(null, '从不同角度切入，发现更长的连击', 195, top + 144 + min * 2, 12, C.muted);
   }
-  function help(persistent) {
-    begin('help');
-    button('help-back', '← 返回', 22, 16, 106, touch(), 'help-back');
-    smallTitle('轻轻瞄准，让连击发生', '让弹珠飞起来', '', 122);
+  function confirm(kind, battle) {
+    begin('confirm', battle);
+    const min = touch(),
+      top = modal(210 + min);
+    label(null, kind === 'leave' ? '返回主页？' : '重新开局？', 195, top + 44, 25);
+    label(
+      null,
+      kind === 'leave'
+        ? '已完成回合会保留。\n飞行中的本轮将从发射前继续。'
+        : '当前这局会重新开始。\n已解锁关卡与最高纪录会保留。',
+      195,
+      top + 105,
+      14,
+      C.muted,
+    );
+    button('confirm-cancel', '继续当前对局', 35, top + 164, 154, min, 'overlay-back');
+    button(
+      'confirm-accept',
+      kind === 'leave' ? '保存并返回' : '确认重开',
+      201,
+      top + 164,
+      154,
+      min,
+      'confirm-accept',
+      { primary: true },
+    );
+  }
+  function help(persistent, battle) {
+    begin('help', battle);
+    const min = touch(),
+      h = Math.min(H - 96, 430 + min),
+      top = modal(h);
+    button('help-back', '←', 28, top + 12, min, min, 'overlay-back', { aria: '返回设置' });
+    label(null, '折射指南', 214, top + 38, 24, C.text, 200);
     const entries = [
       [
-        '01',
-        '拖动瞄准，松手发射',
-        '借墙反弹，从珠群侧面切入。\n玻璃曲面与水晶棱面会改变折返方向。',
+        '找角度，别只直射',
+        '浅角贴墙切入珠群，弱重力让轨迹微弯。\n多次撞击会略微损能，侧面更容易连弹。',
       ],
-      ['02', '留意底部警戒线', '回合结束，珠群下降一行。\n先拆低处目标，回收会放弃剩余伤害。'],
-      [
-        '03',
-        '组合有限的强化',
-        '每五轮选择一次强化，每项都有上限。\n每轮击碎 10 颗赠 1 球，球数最多 36。',
-      ],
-      [
-        '04',
-        '需要时，再使用补给',
-        '可选择观看广告，获得本局共鸣或清行。\n每种限一次，好友挑战和试玩不使用。',
-      ],
+      ['紫色漩涡会吞球', '未击碎的吸收器会吞掉当前弹珠。\n本轮减少连弹机会，永久球数不变。'],
+      ['收回也有代价', '主动或超时召回，弹珠沿弧线加速归仓。\n全部归位后珠群下降，先拆低处目标。'],
+      ['成长有上限', '每五轮选一次强化；无尽加球点每四波。\n需要时可看广告领取共鸣或应急清行。'],
     ];
-    const step = (H - 230) / entries.length;
-    entries.forEach(([index, title, body], i) => {
-      const y = 195 + i * step;
-      label(null, index, 42, y, 13, C.mint, 40);
-      text(menu, title, 224, y, 17, C.text, 280, 'left');
-      text(menu, body, 224, y + 39, 12, C.muted, 280, 'left');
+    const step = (h - min - 105) / 4;
+    entries.forEach(([title, body], i) => {
+      const y = top + min + 42 + i * step;
+      label(null, title, 195, y, 15, C.mint);
+      label(null, body, 195, y + 31, 11, C.muted);
     });
     label(
       'storage-notice',
-      persistent ? '两种模式独立存档，回合开始自动保存' : '存储不可用，本次会话仍可继续游玩',
+      persistent ? '关卡与无尽各自存档' : '存储不可用，本次会话仍可继续',
       195,
-      H - 30,
-      11,
+      top + h - 22,
+      10,
       C.muted,
     );
   }
   function result(game, next, record, shareStatus = '') {
     begin('result', true);
+    backButton();
     panel(menu, 18, H * 0.17, 354, H * 0.72, '#102637', '#3c5e6c');
     orb(menu, 195, H * 0.26, 36, { color: game.phase === 'won' ? C.mint : C.purple });
     label('result-title', game.phase === 'won' ? '星域已点亮' : '航行结束', 195, H * 0.36, 29);
@@ -637,7 +775,7 @@ export function createView(cc, root, dimensions, actions) {
         : game.phase === 'won'
           ? next
             ? '下一片星域已解锁'
-            : '六片星域已点亮'
+            : '全部星域已点亮'
           : `珠群越过了警戒线${game.level.endless ? ` · 纪录 ${record}` : ''}`,
       195,
       H * 0.41,
@@ -670,7 +808,7 @@ export function createView(cc, root, dimensions, actions) {
       'retry',
       { primary: true },
     );
-    button('result-home', '返回主页', 201, y + min + 10, 151, min, 'home', {
+    button('result-home', '返回主页', 201, y + min + 10, 151, min, 'leave', {
       data: { action: 'home' },
     });
     if (!game.practice && game.initialSeed && !game.rewards?.resonance && !game.rewards?.rescue)
@@ -682,8 +820,8 @@ export function createView(cc, root, dimensions, actions) {
     const min = touch(),
       cardH = 110,
       sh = 90 + cardH + 36 + min + 16,
-      top = H - sh;
-    panel(menu, 9, top, 372, sh + 12, '#142b3b', '#8b795c');
+      top = (H - sh) / 2;
+    modal(sh, C.gold);
     label(null, pending ? '等待广告结束' : '星光补给', 195, top + 34, 25, C.gold);
     label(
       null,
@@ -718,7 +856,7 @@ export function createView(cc, root, dimensions, actions) {
       'reward-status',
       message || (available ? '也可以直接继续旅程' : '广告暂未就绪，可直接继续'),
       195,
-      H - min - 37,
+      top + sh - min - 37,
       11,
       C.muted,
     );
@@ -726,34 +864,115 @@ export function createView(cc, root, dimensions, actions) {
       'supply-back',
       pending ? '取消等待并返回' : '返回旅程',
       24,
-      H - min - 16,
+      top + sh - min - 16,
       342,
       min,
       'supply-back',
     );
   }
+  function shatter(event) {
+    const profile = event.profile || targetProfile({ id: event.id, kind: event.kind || 'brick' });
+    for (let i = 0; i < 6; i++) {
+      const reusable = spareShards.pop() || (shards.length >= 48 ? shards.shift() : null);
+      const a = i * 2.399 + (event.id || 0) * 0.7,
+        speed = 55 + i * 16,
+        size = 6 + (i % 3) * 3;
+      const n =
+        reusable?.n ||
+        sprite(
+          fragmentRoot,
+          frame(`shard:${i % 2}`, () => shardTexture(i % 2)),
+          event.x,
+          event.y,
+          size,
+          size * 1.35,
+        );
+      n.active = true;
+      n.getComponent(UITransform).setContentSize(size, size * 1.35);
+      n.getComponent(Sprite).color = color(profile.color);
+      const opacity = reusable?.opacity || n.addComponent(UIOpacity);
+      opacity.opacity = 220;
+      shards.push({
+        n,
+        opacity,
+        x: event.x + Math.cos(a) * profile.radius * 0.25,
+        y: event.y + Math.sin(a) * profile.radius * 0.25,
+        vx: Math.cos(a) * speed,
+        vy: Math.sin(a) * speed - 65,
+        spin: (i % 2 ? 1 : -1) * (140 + i * 30),
+        angle: (a * 180) / Math.PI,
+        age: 0,
+        duration: 0.56 + (i % 3) * 0.08,
+      });
+    }
+    stats.maxShards = Math.max(stats.maxShards, shards.length);
+  }
   function consume(events, reduced) {
+    let bursts = 0;
     for (const e of events) {
-      if (e.type === 'hit') {
-        const entry = targetNodes.get(e.id);
-        if (entry) {
-          entry.hit = 0.22;
-          entry.nx = e.nx || 0;
-          entry.ny = e.ny || 1;
+      if (e.type === 'hit' || e.type === 'absorb') {
+        const target = targetNodes.get(e.id);
+        if (target) {
+          target.hit = 0.22;
+          target.nx = e.nx || 0;
+          target.ny = e.ny || 1;
         }
       }
       if (e.type === 'bounce') {
-        const entry = ballNodes.get(e.ballId);
-        if (entry) {
-          entry.hit = 0.16;
-          entry.nx = e.nx;
-          entry.ny = e.ny;
+        const ball = ballNodes.get(e.ballId);
+        if (ball) {
+          ball.hit = 0.16;
+          ball.nx = e.nx;
+          ball.ny = e.ny;
         }
       }
-      if (!reduced && ['bounce', 'break', 'blast', 'pickup'].includes(e.type))
-        effects.push({ ...e, age: 0, duration: e.type === 'break' ? 0.46 : 0.26 });
+      if (e.type === 'break') {
+        stats.shatters++;
+        if (!reduced && bursts++ < 4) shatter(e);
+      }
+      if (e.type === 'absorb') stats.absorptions++;
+      if (e.type === 'returned') {
+        stats.returns++;
+        collectorPulse = 0.32;
+      }
+      if (e.type === 'recall') {
+        stats.recalls++;
+        collectorPulse = 0.7;
+      }
+      if (['bounce', 'break', 'blast', 'pickup', 'absorb', 'returned'].includes(e.type))
+        effects.push({
+          ...e,
+          age: 0,
+          duration: e.type === 'break' ? 0.42 : e.type === 'absorb' ? 0.4 : 0.28,
+        });
     }
-    effects = effects.slice(-42);
+    effects = effects.slice(-18);
+  }
+  function crack(entry, brick, profile) {
+    const stage =
+      brick.kind === 'pickup' ? 0 : Math.min(3, Math.floor((1 - brick.hp / brick.maxHp) * 4));
+    if (entry.crackStage === stage) return;
+    entry.crackStage = stage;
+    const g = entry.cracks;
+    g.clear();
+    for (let j = 0; j < stage; j++) {
+      const a = (brick.id % 7) * 0.6 + j * 2.1,
+        r = profile.radius;
+      const points = [
+        { x: Math.cos(a) * r * 0.85, y: Math.sin(a) * r * 0.85 },
+        { x: Math.cos(a + 0.15) * r * 0.51, y: Math.sin(a + 0.15) * r * 0.51 },
+        { x: Math.cos(a - 0.25) * r * 0.27, y: Math.sin(a - 0.25) * r * 0.27 },
+        { x: 0, y: 0 },
+      ];
+      line(g, points, '#f5efff', 0.8, 170);
+      line(
+        g,
+        [points[1], { x: Math.cos(a + 0.65) * r * 0.55, y: Math.sin(a + 0.65) * r * 0.55 }],
+        '#addefe',
+        0.65,
+        160,
+      );
+    }
   }
   function draw(game, aim, dt, reduced) {
     time += dt;
@@ -774,7 +993,8 @@ export function createView(cc, root, dimensions, actions) {
         center = brickCenter(b);
       if (!entry) {
         const n = node(targets, `target-${b.id}`);
-        orb(n, 0, 0, p.radius, p);
+        const body = orb(n, 0, 0, p.radius, p),
+          cracks = graphics(n);
         const label = text(
           n,
           b.kind === 'pickup' ? '+' : b.hp,
@@ -784,14 +1004,15 @@ export function createView(cc, root, dimensions, actions) {
           C.text,
           p.radius * 1.65,
         );
-        entry = { n, label, hit: 0 };
+        entry = { n, body, cracks, label, hit: 0, crackStage: -1 };
         targetNodes.set(b.id, entry);
       }
       entry.label.string = b.kind === 'pickup' ? '+' : String(b.hp);
+      crack(entry, b, p);
       entry.n.setPosition(center.x, -center.y);
       entry.hit = Math.max(0, entry.hit - dt);
       const squash = !reduced ? Math.sin((entry.hit / 0.22) * Math.PI) * 0.065 : 0;
-      entry.n.setScale(1 + squash, 1 - squash, 1);
+      entry.body.setScale(1 + squash, 1 - squash, 1);
     }
     for (const [id, entry] of targetNodes)
       if (!liveTargets.has(id)) {
@@ -813,7 +1034,11 @@ export function createView(cc, root, dimensions, actions) {
       entry.n.setPosition(ball.x, -ball.y);
       entry.hit = Math.max(0, entry.hit - dt);
       const s = !reduced ? Math.sin((entry.hit / 0.16) * Math.PI) * 0.15 : 0;
-      entry.n.setScale(1 + s, 1 - s, 1);
+      const returningScale =
+        ball.returning && !reduced
+          ? 1 - Math.pow(ball.returnElapsed / ball.returnDuration, 3) * 0.6
+          : 1;
+      entry.n.setScale((1 + s) * returningScale, (1 - s) * returningScale, 1);
       entry.n.angle = entry.hit > 0 ? (-Math.atan2(entry.ny, entry.nx) * 180) / Math.PI : 0;
       if (!reduced) {
         const points = [...(ball.trail || []), ball];
@@ -821,7 +1046,7 @@ export function createView(cc, root, dimensions, actions) {
           line(
             trail,
             [points[i - 1], points[i]],
-            C.mint,
+            ball.returning ? C.gold : C.mint,
             0.5 + (i / points.length) * 2.0,
             Math.round((i / points.length) * 90),
           );
@@ -832,8 +1057,24 @@ export function createView(cc, root, dimensions, actions) {
         entry.n.destroy();
         ballNodes.delete(id);
       }
-    launcher.active = game.phase !== 'flight' || game.nextX !== null;
+    launcher.active = game.phase === 'aim';
     launcher.setPosition(game.nextX ?? game.launchX, -FIELD.floor + FIELD.radius);
+    collectorPulse = Math.max(0, collectorPulse - dt);
+    collector.clear();
+    const cx = game.nextX ?? game.launchX,
+      cy = FIELD.floor + 5;
+    circle(collector, cx, cy, 12, C.mint, 180, 2);
+    circle(collector, cx, cy, 18 + (!reduced ? Math.sin(time * 5) * 2 : 0), C.purple, 100, 1);
+    if (collectorPulse > 0 && !reduced)
+      circle(
+        collector,
+        cx,
+        cy,
+        12 + (1 - collectorPulse / 0.7) * 20,
+        C.gold,
+        Math.round(collectorPulse * 250),
+        2,
+      );
     aimGraphic.clear();
     if (aim && game.phase === 'aim') {
       const dir = aimDirection(aim.x - game.launchX, aim.y - FIELD.floor + FIELD.radius + 1);
@@ -842,9 +1083,11 @@ export function createView(cc, root, dimensions, actions) {
           y = FIELD.floor - FIELD.radius - 1,
           dx = dir.x * 12,
           dy = dir.y * 12;
+        const previewStep = 12 / FIELD.speed;
         for (let i = 0; i < 65; i++) {
           x += dx;
           y += dy;
+          dy += PHYSICS.gravity * previewStep * previewStep;
           if (x < FIELD.left + FIELD.radius || x > FIELD.right - FIELD.radius) {
             x =
               x < FIELD.left + FIELD.radius
@@ -870,32 +1113,41 @@ export function createView(cc, root, dimensions, actions) {
     fx.clear();
     for (const e of effects) {
       e.age += dt;
+      const p = e.age / e.duration,
+        fade = Math.round(Math.max(0, 1 - p) * 185),
+        tint =
+          e.type === 'absorb' ? C.purple : e.type === 'break' ? e.profile?.color || C.gold : C.mint;
       if (reduced) continue;
-      const progress = e.age / e.duration,
-        fade = Math.round(Math.max(0, 1 - progress) * 180),
-        tint = e.type === 'break' ? C.gold : C.mint;
-      circle(fx, e.x, e.y, 4 + progress * (e.type === 'blast' ? 52 : 20), tint, fade, 1);
-      if (e.type === 'break')
-        for (let i = 0; i < 6; i++) {
-          const a = i * 2.399,
-            distance = progress * (24 + i * 4),
-            x = e.x + Math.cos(a) * distance,
-            y = e.y + Math.sin(a) * distance + progress * progress * 15;
-          line(
-            fx,
-            [
-              { x: x - 2, y },
-              { x, y: y - 3 },
-              { x: x + 2, y: y + 2 },
-              { x: x - 2, y },
-            ],
-            tint,
-            1,
-            fade,
-          );
-        }
+      circle(
+        fx,
+        e.x,
+        e.y,
+        e.type === 'absorb' ? 23 * (1 - p) : 4 + p * (e.type === 'blast' ? 52 : 20),
+        tint,
+        fade,
+        e.type === 'absorb' ? 2 : 1,
+      );
     }
     effects = effects.filter((e) => e.age < e.duration);
+    for (const shard of shards) {
+      shard.age += dt;
+      shard.vy += 260 * dt;
+      shard.x += shard.vx * dt;
+      shard.y += shard.vy * dt;
+      shard.angle += shard.spin * dt;
+      shard.n.active = !reduced;
+      shard.n.setPosition(shard.x, -shard.y);
+      shard.n.angle = shard.angle;
+      shard.opacity.opacity = Math.max(0, Math.round((1 - shard.age / shard.duration) * 220));
+    }
+    shards = shards.filter((s) => {
+      if (s.age >= s.duration || reduced) {
+        s.n.active = false;
+        spareShards.push(s);
+        return false;
+      }
+      return true;
+    });
   }
   function reset() {
     for (const collection of [targetNodes, ballNodes]) {
@@ -903,17 +1155,26 @@ export function createView(cc, root, dimensions, actions) {
       collection.clear();
     }
     effects = [];
+    shards.forEach((s) => {
+      s.n.active = false;
+      spareShards.push(s);
+    });
+    shards = [];
+    collectorPulse = 0;
+    Object.keys(stats).forEach((k) => (stats[k] = 0));
     fx.clear();
     trail.clear();
   }
   function updateHud(game) {
     const values = {
-      score: String(game.score),
+      score: `${game.score} 分`,
       'ball-count': `${game.count} 颗`,
       'shot-hint':
-        game.phase === 'flight'
-          ? `${game.collisionCount || 0} 次碰撞 · ${game.combo} 连碎`
-          : '拖动瞄准 · 松手发射',
+        game.phase === 'recall'
+          ? '星轨召回 · 全部归位后进入下一轮'
+          : game.phase === 'flight'
+            ? `${game.collisionCount || 0} 次碰撞 · ${game.combo} 连碎${game.absorbed ? ' · 吞噬 ' + game.absorbed + ' 颗' : ''}`
+            : '拖动瞄准 · 松手发射',
     };
     for (const [id, value] of Object.entries(values))
       if (hud[id] && hud[id].label.isValid && hud[id].label.string !== value) {
@@ -928,6 +1189,8 @@ export function createView(cc, root, dimensions, actions) {
     playing,
     upgrade,
     paused,
+    settings,
+    confirm,
     help,
     result,
     supply,
@@ -943,6 +1206,14 @@ export function createView(cc, root, dimensions, actions) {
       return H;
     },
     arenaAccess,
+    get stats() {
+      return {
+        ...stats,
+        shards: shards.length,
+        shardNodes: shards.length + spareShards.length,
+        cracked: [...targetNodes.values()].filter((e) => e.crackStage > 0).length,
+      };
+    },
     dispose() {
       origin.destroy();
       cleanup.forEach((asset) => asset.destroy());

@@ -1,7 +1,7 @@
 :root {
   color-scheme: dark;
   font-family: system-ui, sans-serif;
-  background: #060f19;
+  background: #101b55;
   color: #e9f9f7;
 }
 * {
@@ -85,7 +85,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 25px;
-  background: #091725;
+  background: #17256a;
   text-align: center;
   padding: 28px;
 }
@@ -111,8 +111,4 @@ body {
   border-radius: 14px;
   color: #0c3434;
   font: inherit;
-}
-.semantic-screen button[data-game-fullscreen] {
-  min-width: 0 !important;
-  min-height: 0 !important;
 }
