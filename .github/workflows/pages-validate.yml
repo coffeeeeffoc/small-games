@@ -65,6 +65,7 @@ jobs:
       ORBIT_ATELIER_PREBUILT_DIR: ${{ github.workspace }}/games/local/orbit-atelier/.prebuilt
       BULLET_GARDEN_PREBUILT_DIR: ${{ github.workspace }}/games/local/bullet-garden/.prebuilt
       TIANXIA_PREBUILT_DIR: ${{ github.workspace }}/games/local/tianxia-chalu/.prebuilt
+      HOMEBOUND_STATION_PREBUILT_DIR: ${{ github.workspace }}/games/local/homebound-station/.prebuilt
       PAGES_BASE_PATH: /${{ github.event.repository.name }}/${{ (github.base_ref || github.ref_name) == 'dev' && 'dev/' || (github.base_ref || github.ref_name) == 'test' && 'test/' || '' }}
     steps:
       - uses: actions/checkout@v5
@@ -108,6 +109,10 @@ jobs:
         with:
           name: tianxia-chalu-${{ github.sha }}
           path: games/local/tianxia-chalu/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: homebound-station-${{ github.sha }}
+          path: games/local/homebound-station/.prebuilt
       - run: pnpm check:games
       - run: pnpm build:pages
       - name: Build and validate the company website
@@ -147,6 +152,7 @@ jobs:
       ORBIT_ATELIER_PREBUILT_DIR: ${{ github.workspace }}/games/local/orbit-atelier/.prebuilt
       BULLET_GARDEN_PREBUILT_DIR: ${{ github.workspace }}/games/local/bullet-garden/.prebuilt
       TIANXIA_PREBUILT_DIR: ${{ github.workspace }}/games/local/tianxia-chalu/.prebuilt
+      HOMEBOUND_STATION_PREBUILT_DIR: ${{ github.workspace }}/games/local/homebound-station/.prebuilt
       PAGES_FULL_REGRESSION: ${{ inputs.full }}
       PAGES_GAME_SOURCES: ${{ inputs.game_sources }}
     steps:
@@ -192,6 +198,10 @@ jobs:
         with:
           name: tianxia-chalu-${{ github.sha }}
           path: games/local/tianxia-chalu/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: homebound-station-${{ github.sha }}
+          path: games/local/homebound-station/.prebuilt
       - run: pnpm check:games
       - run: pnpm test:game-config
       - run: node --test scripts/pages-test-scope.test.mjs apps/shell-web/scripts/pages-validation.test.mjs

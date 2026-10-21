@@ -23,6 +23,10 @@ const DEPENDENCY_FIELDS = [
 // rules on the authoritative server, or exercise those rules from repository tests.
 // Runtime game code must still never import service implementations.
 const REPOSITORY_IMPORTS = new Set([
+  'games/local/homebound-station/scripts/build.mjs -> games/local/carding-car/scripts/cocos-branding.mjs',
+  'games/local/homebound-station/scripts/build.mjs -> games/local/carding-car/scripts/toolchain.mjs',
+  'games/local/homebound-station/scripts/typecheck.mjs -> games/local/carding-car/scripts/toolchain.mjs',
+  'games/local/homebound-station/scripts/build.mjs -> scripts/h5-ad-config.mjs',
   'games/local/cops-robbers-realtime/src/taptap-h5-ads.js -> platforms/h5/platform-ads.js',
   'games/local/night-overwatch/scripts/build.mjs -> games/local/carding-car/scripts/cocos-branding.mjs',
   'games/local/night-overwatch/scripts/build-native.mjs -> games/local/carding-car/scripts/cocos-branding.mjs',
@@ -57,6 +61,7 @@ const REPOSITORY_IMPORTS = new Set([
   'apps/shell-minigame/scripts/taptap-build.mjs -> scripts/competition-service-config.mjs',
   'apps/shell-minigame/scripts/taptap-login.mjs -> scripts/competition-service-config.mjs',
   'apps/shell-minigame/scripts/taptap-targets.mjs -> scripts/competition-service-config.mjs',
+  'apps/shell-minigame/scripts/taptap-targets.mjs -> platforms/publication-config.mjs',
   'games/local/cops-robbers/scripts/build.mjs -> scripts/competition-h5-service.mjs',
   'games/local/cops-robbers/scripts/serve.mjs -> scripts/competition-h5-service.mjs',
   'games/local/cops-robbers-realtime/scripts/build.mjs -> scripts/competition-h5-service.mjs',
@@ -71,6 +76,7 @@ const REPOSITORY_IMPORTS = new Set([
   'games/local/bullet-garden/scripts/typecheck.mjs -> games/local/carding-car/scripts/toolchain.mjs',
   'games/local/bullet-garden/src/cocos-core.mjs -> platforms/h5/platform-ads.js',
   'games/local/bullet-garden/scripts/build-taptap.mjs -> apps/shell-minigame/scripts/taptap-cocos-inputs.mjs',
+  'games/local/bullet-garden/scripts/build-taptap.mjs -> apps/shell-minigame/scripts/taptap-conversion.mjs',
   'games/local/bullet-garden/scripts/build-taptap.mjs -> apps/shell-minigame/scripts/taptap-package.mjs',
   'games/local/tianxia-chalu/scripts/build.mjs -> games/local/carding-car/scripts/toolchain.mjs',
   'games/local/tianxia-chalu/scripts/build.mjs -> games/local/carding-car/scripts/cocos-branding.mjs',

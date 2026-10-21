@@ -23,6 +23,7 @@
     "NIGHT_OVERWATCH_PREBUILT_DIR",
     "ORBIT_ATELIER_PREBUILT_DIR",
     "TIANXIA_PREBUILT_DIR",
+    "HOMEBOUND_STATION_PREBUILT_DIR",
     "BULLET_GARDEN_PREBUILT_DIR",
     "BULLET_GARDEN_PLATFORM_CONFIG"
   ],
@@ -161,6 +162,17 @@
       "outputs": ["dist/**"],
       "env": ["COCOS_CREATOR", "TIANXIA_PREBUILT_DIR"],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/games/local/tianxia-chalu/.prebuilt/**"]
+    },
+    "@coffeeeeffoc/homebound-station#build": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "outputs": ["dist/**"],
+      "env": ["COCOS_CREATOR", "HOMEBOUND_STATION_PREBUILT_DIR"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/games/local/homebound-station/.prebuilt/**",
+        "$TURBO_ROOT$/scripts/h5-ad-config.mjs"
+      ]
     },
     "@coffeeeeffoc/bullet-garden#build": {
       "dependsOn": ["^build"],

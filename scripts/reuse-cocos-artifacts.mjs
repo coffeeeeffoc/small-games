@@ -8,6 +8,7 @@ export const games = [
   'night-overwatch',
   'orbit-atelier',
   'tianxia-chalu',
+  'homebound-station',
   'bullet-garden',
 ];
 const creator = '3.8.8';
@@ -73,7 +74,12 @@ export async function findProducer({
 }
 
 export function verifyProvenance(info, expected) {
-  for (const [key, value] of Object.entries({ ...expected, creator, platform, runner: 'Windows' }))
+  for (const [key, value] of Object.entries({
+    ...expected,
+    creator,
+    platform,
+    runner: 'Windows',
+  }))
     assert.equal(info[key], value, 'Cocos artifact provenance mismatch: ' + key);
 }
 

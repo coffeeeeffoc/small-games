@@ -7,6 +7,90 @@ import { ingressShellGuard, ingressPreflightGuard } from './competition-ingress.
 
 const loadDependency = createRequire(import.meta.url);
 
+// Exact additive wiring for Homebound after the Orbit and Tianxia Creator integrations. Existing compiler paths,
+// workflow gates, permissions and presets remain byte-for-byte unchanged.
+const homeboundCocosWiring = {
+  'apps/shell-web/src/StandaloneGame.tsx': [
+    'ed4397135869b47ec8e031a7c603a85336f024b58184edc2b7cb18af5bf67724',
+    'b384f736f48a38816ba2c69c498dcf914f199dd7486861aacedabc3bd5a1c099',
+  ],
+  'apps/shell-web/scripts/pages-smoke.mjs': [
+    'f1a1a2295772498305b5766d530aa55e774887333b76029de951033bae9b4424',
+    '0e22c3fabf195d177d75ae60c4066a027e302511f9d251a79816c493b5934460',
+  ],
+  'apps/shell-web/tests/standalone-immersive.integration.test.tsx': [
+    '9a0071ba38e725b7bb672e8d06b73167340bec9c3fdab22a792c6f45865818a5',
+    'f7e26ca16c0c5dfc587437eeb28e4ff93be9a1b72a58b9996b6aa1270e81219d',
+  ],
+  'apps/shell-web/tests/standalone.integration.test.tsx': [
+    '9bb0d0095ba2cdcced396e56114a1db42a7e531a4a5c787a9865120ee54fb245',
+    'c19a2313195d70419d987e0a5ce9e7839b96951cdda88edadb25976431873b53',
+  ],
+  'scripts/check-workspace-dependencies.mjs': [
+    '73dc48694ca96af93c54b09fb5d3d78b118e90ef67da63e94d4896aa1cba200d',
+    '747c3c83428003489abb997b4b3358d4f27b0d4c4d5113f18988023ff408fc83',
+  ],
+  'scripts/deployment-bundle.mjs': [
+    'c5f934e35dc618739626d904a4c642b6e68683edf52dd856d69fa38e05819858',
+    'c345987270dbbbb1afa801499c903c283a75313d61336208ab9a7973f663150e',
+  ],
+  'scripts/deployment-bundle.test.mjs': [
+    '3e5ca2e1bc48c1fa363fdf5f91b9b981a611f2aac4b759a6e338b171b02c5212',
+    'b68715bf1c1fde6a5941e4df75fd840fcdbe02daf4996f33851e667cd9be16f8',
+  ],
+
+  '.github/workflows/carding-car.yml': [
+    '47f0097106baf378c851c8c5314721dce979053f04a31accb0cacdc37ce71a83',
+    'ee77322f7414ab0a398af5c2d10763757ea679dbfa452520a653aacf43bdf05b',
+  ],
+  '.github/workflows/ci.yml': [
+    'afe7f1175b964bf22719623a404307f62134156687c87f029dd55903b4252952',
+    '6d1e55268d42feda5767a6e95c5986239a53b9bd8f922a231ba24f0d69cd2e29',
+  ],
+  '.github/workflows/pages-validate.yml': [
+    '00fe3a8822311ee9faebcb20c32436b39ad612e482fb86ca86a90b3d202be713',
+    '7a89794f444b282c995d86ddb8970c3e3ca8f9f4cea40fbf9d984a25348bcbc2',
+  ],
+  '.github/workflows/mobile.yml': [
+    '6cb0350243edbf7a21c23e346fbc3d74da50464096866db09319364015e6933e',
+    'a91039605ebf6eaa455d4159df9f061fcbb28c0dc14304d0c817d6d23766c7d4',
+  ],
+  'turbo.json': [
+    'ed165c08070ddd40672167a48ca2d472f385a797813c8c08957aa76c1f8cc0d3',
+    'ffa105c8ac861d36457df2da83998e2be0e35f6cb19cdf86e46d85844a997d75',
+  ],
+  'scripts/h5-game-build.mjs': [
+    '81d761755a2fb16ed85a8704dc102901f4e375fae50a7b9fa008295dee228d2f',
+    '7f8263e69185ccedb4ce2d89b0678535a9ee5c1be13f6c8c179be023a1557fc3',
+  ],
+  'scripts/h5-taptap-build.mjs': [
+    'c7f3a83a2758605f8e51e51783bc5d181b05851ba9095b9f867cbe9d9c609749',
+    '167851290dd00ba94817494e8549f8852e72a232ffe2f82aff13bfdff70d8df7',
+  ],
+  'scripts/h5-ad-config.mjs': [
+    'fa85c578995d4a7972d75a336493546eb4fc6d9fe1e634ef4b405b14478a258a',
+    'a501f7acb287811727d3868cade43a442260e5ebe426fe8ab7c3cab6db3ea5dd',
+  ],
+  'scripts/h5-taptap-matrix.mjs': [
+    '7c50260480d71f034281c53e78d145fb7d679055698c898902a5a32aa1c02d3a',
+    'b6cf3de496f6eeccf26a64c1c68c6dafbf2be06b0653db208c075a3f69a483fd',
+  ],
+};
+export function homeboundCocosWiringOnly(file, before, after) {
+  const hashes = homeboundCocosWiring[file];
+  if (!hashes || typeof before !== 'string' || typeof after !== 'string') return false;
+  const digest = (value) =>
+    createHash('sha256').update(value.replaceAll('\r\n', '\n')).digest('hex');
+  return digest(before) === hashes[0] && digest(after) === hashes[1];
+}
+const cocosWebSources = [
+  'carding-car',
+  'night-overwatch',
+  'orbit-atelier',
+  'tianxia-chalu',
+  'homebound-station',
+].map((id) => `games/local/${id}`);
+
 // The third Creator project adds one artifact route. Prove that every existing
 // producer, consumer and build gate is byte-for-byte unchanged outside that route.
 export const orbitCreatorIntegrationPaths = [
@@ -436,9 +520,12 @@ export const sixH5Ids = [
   'vibeJam-myself-history-guess',
   'wulong-city',
   'night-overwatch',
+  'homebound-station',
   'travel-bund',
   'letters-words2',
 ];
+// Historical six/five-game presets retain their existing exact membership.
+const presetH5Ids = sixH5Ids.filter((id) => id !== 'homebound-station');
 const sixH5Sources = sixH5Ids.map((id) => `games/local/${id}`);
 export const sixH5ScopePaths = [
   'scripts/h5-game-build.mjs',
@@ -502,7 +589,7 @@ export function sixH5PresetOnly(source, five = false) {
     ]);
     if (five) assert.equal(cfg.apiUrl, 'https://api.nenggongzhiren.cn/small-games/v1');
     assert.equal(cfg.version, 2);
-    const ids = five ? sixH5Ids.filter((id) => id !== 'travel-bund') : sixH5Ids;
+    const ids = five ? presetH5Ids.filter((id) => id !== 'travel-bund') : presetH5Ids;
     assert.deepEqual(cfg.games, ids);
     assert.deepEqual(cfg.backend, [five]);
     assert(
@@ -1310,8 +1397,18 @@ function tianxiaWorkflowOnly(
       'night-overwatch',
       ...(hasOrbit ? ['orbit-atelier'] : []),
       ...(game === 'bullet-garden' ? ['tianxia-chalu'] : []),
+      ...(game === 'bullet-garden' && before.includes('homebound-station')
+        ? ['homebound-station']
+        : []),
     ]);
-    replace(matrix[0], 'game: [' + [...ids, game].join(', ') + ']');
+    replace(
+      matrix[0],
+      ids.includes('homebound-station')
+        ? 'game:\n          [\n' +
+            [...ids, game].map((id) => '            ' + id + ',\n').join('') +
+            '          ]'
+        : 'game: [' + [...ids, game].join(', ') + ']',
+    );
     clone(
       "          NIGHT_OVERWATCH_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/night-overwatch', github.workspace) || '' }}\n",
     );
@@ -1325,7 +1422,8 @@ function tianxiaWorkflowOnly(
     const gates =
       "        if: steps.kart.outcome == 'success' && steps.night.outcome == 'success'" +
       (hasOrbit ? " && steps.orbit.outcome == 'success'" : '') +
-      (before.includes('tianxia-chalu') ? " && steps.tianxia.outcome == 'success'" : '');
+      (before.includes('tianxia-chalu') ? " && steps.tianxia.outcome == 'success'" : '') +
+      (before.includes('homebound-station') ? " && steps.homebound.outcome == 'success'" : '');
     replace(gates + '\n', gates + ' && steps.' + step + ".outcome == 'success'\n");
     clone(
       '          node scripts/reuse-cocos-artifacts.mjs verify night-overwatch .scratch/ci-cocos/night-overwatch\n',
@@ -1423,6 +1521,9 @@ function tianxiaLiteralOnly(
       ? { 'games/local/orbit-atelier': 'ORBIT_ATELIER_PREBUILT_DIR' }
       : {}),
     ...(game === 'bullet-garden' ? { 'games/local/tianxia-chalu': 'TIANXIA_PREBUILT_DIR' } : {}),
+    ...(game === 'bullet-garden' && before.includes('homebound-station')
+      ? { 'games/local/homebound-station': 'HOMEBOUND_STATION_PREBUILT_DIR' }
+      : {}),
   };
   assert.deepEqual(
     previous,
@@ -2153,7 +2254,7 @@ export function targetedCommandsOnly(before, after) {
       [
         'build:taptap:h5',
         'node scripts/build-games.mjs --config infra/builds/six-taptap-h5.mjs',
-        sixH5Sources,
+        presetH5Ids.map((id) => `games/local/${id}`),
       ],
       ['deploy:backend', 'node scripts/deploy-backend.mjs', selectedBackendConsumers],
       [
@@ -2549,6 +2650,32 @@ export function reviewedSharedFileScopes({
         continue;
       }
       if (
+        Object.hasOwn(homeboundCocosWiring, file) &&
+        readBase &&
+        readHead &&
+        homeboundCocosWiringOnly(
+          file,
+          (() => {
+            try {
+              return readBase(file);
+            } catch {
+              return undefined;
+            }
+          })(),
+          readHead(file),
+        )
+      ) {
+        assert(
+          games.some(
+            (game) =>
+              game.id === 'homebound-station' && game.source === 'games/local/homebound-station',
+          ),
+        );
+        assert(packages.some((pkg) => pkg.dir === 'games/local/homebound-station'));
+        scopes.set(file, ['games/local/homebound-station']);
+        continue;
+      }
+      if (
         [
           ...tianxiaWorkflowFiles,
           ...Object.keys(tianxiaImmersiveFiles),
@@ -2557,7 +2684,19 @@ export function reviewedSharedFileScopes({
           'scripts/cocos-validation.mjs',
           'scripts/reuse-cocos-artifacts.mjs',
         ].includes(file) &&
-        tianxiaWiringOnly(file, readBase(file), readHead(file))
+        readBase &&
+        readHead &&
+        tianxiaWiringOnly(
+          file,
+          (() => {
+            try {
+              return readBase(file);
+            } catch {
+              return undefined;
+            }
+          })(),
+          readHead(file),
+        )
       ) {
         const entries = games.filter(
           (game) => game.id === 'tianxia-chalu' || game.source === tianxiaSource,
@@ -2577,6 +2716,18 @@ export function reviewedSharedFileScopes({
           tianxiaSource,
           ...(file === 'scripts/test-game-dev-mode.mjs' ? ['games/local/wulong-city'] : []),
         ]);
+        continue;
+      }
+      if (
+        file === 'scripts/reuse-cocos-artifacts.mjs' ||
+        file === 'scripts/reuse-cocos-artifacts.test.mjs'
+      ) {
+        assert.deepEqual(
+          literalDeclaration(readHead('scripts/reuse-cocos-artifacts.mjs'), 'games'),
+          ['carding-car', 'night-overwatch', 'orbit-atelier', 'tianxia-chalu', 'homebound-station'],
+        );
+        for (const dir of cocosWebSources) assert(packages.some((pkg) => pkg.dir === dir));
+        scopes.set(file, file.endsWith('.test.mjs') ? [] : cocosWebSources);
         continue;
       }
       if (file === 'package.json') {
@@ -2945,7 +3096,9 @@ export function reviewedSharedFileScopes({
         assertSixH5(games, packages, readHead);
         scopes.set(
           file,
-          sixH5Sources.filter((source) => !source.endsWith('/travel-bund')),
+          sixH5Sources.filter(
+            (source) => !source.endsWith('/travel-bund') && !source.endsWith('/homebound-station'),
+          ),
         );
         continue;
       }
@@ -2959,6 +3112,7 @@ export function reviewedSharedFileScopes({
           )
             ? ['games/local/bullet-garden']
             : []),
+          'games/local/homebound-station',
         ]);
         continue;
       }
@@ -2967,7 +3121,12 @@ export function reviewedSharedFileScopes({
         else {
           assertSixH5(games, packages, readHead);
           if (file === 'infra/builds/six-taptap-h5.mjs') assert(sixH5PresetOnly(readHead(file)));
-          scopes.set(file, sixH5Sources);
+          scopes.set(
+            file,
+            file === 'infra/builds/six-taptap-h5.mjs'
+              ? presetH5Ids.map((id) => `games/local/${id}`)
+              : sixH5Sources,
+          );
         }
         continue;
       }
@@ -3026,7 +3185,12 @@ export function reviewedSharedFileScopes({
         }
         if (file === 'scripts/competition-service-config.mjs') {
           assertSixH5(games, packages, readHead);
-          sources.push(...sixH5Sources.filter((source) => !source.endsWith('/travel-bund')));
+          sources.push(
+            ...sixH5Sources.filter(
+              (source) =>
+                !source.endsWith('/travel-bund') && !source.endsWith('/homebound-station'),
+            ),
+          );
         }
         if (gateway) {
           assertRankedConsumers(games, packages, readHead);
@@ -3059,7 +3223,9 @@ export function reviewedSharedFileScopes({
         if (gateway) assert(packages.some((pkg) => pkg.dir === 'apps/shell-web'));
         scopes.set(file, [
           ...Object.values(rankedConsumers),
-          ...sixH5Sources.filter((source) => !source.endsWith('/travel-bund')),
+          ...sixH5Sources.filter(
+            (source) => !source.endsWith('/travel-bund') && !source.endsWith('/homebound-station'),
+          ),
           ...(gateway ? ['services/runtime-api', 'apps/shell-web'] : []),
         ]);
         continue;

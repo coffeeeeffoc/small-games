@@ -27,7 +27,7 @@ export type InnerAudioContext = {
 export interface RewardedVideoAd {
   load(): Promise<void>;
   show(): Promise<void>;
-  destroy(): void;
+  destroy(): void | Promise<void>;
   onClose(listener: (result?: { isEnded?: boolean }) => void): void;
   offClose(listener: (result?: { isEnded?: boolean }) => void): void;
   onError(listener: () => void): void;

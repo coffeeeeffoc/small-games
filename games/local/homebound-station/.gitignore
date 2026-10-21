@@ -1,1 +1,11 @@
-/test-results/
+library/
+temp/
+local/
+profiles/
+build/
+.prebuilt/
+cc.d.ts
+reports/
+dist-legacy/
+test-results/
+release-config.local.json

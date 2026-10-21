@@ -6,8 +6,8 @@ export const taptapPlatform = {
   // The public docs do not specify an AppID length. Validate a safe opaque identifier,
   // without mistaking the developer-centre numeric game ID for a runtime MiniApp ID.
   appId: /^[A-Za-z0-9_-]+$/,
-  advertising: false,
-  entryArguments: () => '',
+  advertising: true,
+  entryArguments: ({ adUnitId }) => JSON.stringify(adUnitId || ''),
   files({ game, appId, version }) {
     return {
       'game.json': {

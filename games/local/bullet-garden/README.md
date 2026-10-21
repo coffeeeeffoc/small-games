@@ -44,7 +44,7 @@ $env:TAPTAP_PLUGIN_ARCHIVE='F:/path/tap-minigame-ts-1.2.2.zip'
 node scripts/build-taptap.mjs
 ```
 
-wrapper 校验官方1.2.2归档及安装目录，先真实构建 wechatgame，再调用官方 `convertWechatToTap`，输出到本游戏 `build/taptap-*/converted/` 的新目录。随后注入 `startup/taptap.cjs`，将真实 TapTap SDK 提供给广告模块，并在宿主没有 wx 兼容入口时提供 Creator 所需入口；已有宿主兼容实现保留。不会执行高层两游戏封装、登录或后台操作。插件依赖必须事先安装，wrapper 不在缓存目录执行安装。
+wrapper 校验官方1.2.2归档及完整安装目录（包括归档自带依赖），先真实构建 wechatgame，再复用共享 `replayOfficialConversion`，在隔离环境中执行官方转换并确认 Babel 零失败，输出到本游戏 `build/taptap-*/converted/` 的新目录。随后注入 `startup/taptap.cjs`，将真实 TapTap SDK 提供给广告模块，并在宿主没有 wx 兼容入口时提供 Creator 所需入口；已有宿主兼容实现保留。不会执行登录或后台操作。插件目录必须来自原始归档，不执行额外依赖安装。
 
 实际 `game.json.appId`、`project.config.json.appid` 与配置绑定，`deviceOrientation` 固定 portrait；manifest 修改后重新生成 `game.zip`，核对 ZIP 与目录逐文件一致，压缩和解压内容均受20MiB门禁约束。`receipt.json` 和 `build/taptap-latest.json` 记录源码、Creator输入、官方插件与包体哈希以及真实验收边界。无真实ID的结果仅用于预览，不声称可直接提交平台审核。
 

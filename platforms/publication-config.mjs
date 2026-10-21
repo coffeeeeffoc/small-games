@@ -21,7 +21,7 @@ export const domesticChannels = Object.freeze({
   bilibili: { nativeHost: true, rewardedAds: true, platformLogin: true },
   kuaishou: { nativeHost: true, rewardedAds: false, platformLogin: false },
   alipay: { nativeHost: true, rewardedAds: false, platformLogin: false },
-  taptap: { nativeHost: true, rewardedAds: false, platformLogin: true },
+  taptap: { nativeHost: true, rewardedAds: true, platformLogin: true },
   qq: { nativeHost: false, rewardedAds: false, platformLogin: false },
   baidu: { nativeHost: false, rewardedAds: false, platformLogin: false },
   oppo: { nativeHost: false, rewardedAds: false, platformLogin: false },

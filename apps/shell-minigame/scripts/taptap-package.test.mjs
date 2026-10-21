@@ -350,3 +350,64 @@ test('unsafe filesystem paths, identity mismatch and unsafe subpackages are reje
     );
     await assert.rejects(verifyTapProject({ directory: linked }), /symlink/);
   }));
+
+test('Homebound release ZIP binds the portrait project and configured rewarded bridge before official packing', () =>
+  withFixture(async (options) => {
+    const config = {
+      platform: 'taptap',
+      game: 'homebound-station',
+      appId: 'homebound-app',
+      apiUrl: '',
+      preview: false,
+      adsEnabled: true,
+      adUnitId: 'homebound-reward',
+    };
+    await writeFile(
+      path.join(options.projectDirectory, 'game.json'),
+      JSON.stringify({ deviceOrientation: 'portrait', appId: config.appId }),
+    );
+    await writeFile(
+      path.join(options.projectDirectory, 'project.config.json'),
+      JSON.stringify({ appid: config.appId }),
+    );
+    await installTapTapLogin(options.projectDirectory, config);
+    const files = await inventory(options.projectDirectory);
+    const input = {
+      ...options,
+      game: config.game,
+      appId: config.appId,
+      mode: 'release',
+      orientation: 'portrait',
+      adsEnabled: config.adsEnabled,
+      adUnitId: config.adUnitId,
+      verifiedProjectInventory: files,
+    };
+    await assert.rejects(
+      verifyOfficialPackage(input),
+      /ZIP does not match/,
+      'The converter raw ZIP predating the rewarded stage is never accepted as the final package',
+    );
+    await writeFile(
+      options.packageFile,
+      zip(
+        await Promise.all(
+          files.map(async (file) => [
+            file.path,
+            await readFile(path.join(options.projectDirectory, file.path)),
+          ]),
+        ),
+      ),
+    );
+    const verified = await verifyOfficialPackage(input);
+    assert.equal(verified.login.configured, false);
+    assert.equal(verified.login.rewarded.adUnitId, 'homebound-reward');
+    assert(verified.files.some((file) => file.path === 'tap-rewarded-ads.js'));
+    await assert.rejects(
+      verifyOfficialPackage({ ...input, adUnitId: 'foreign-slot' }),
+      /login bootstrap differs/,
+    );
+    await assert.rejects(
+      verifyOfficialPackage({ ...input, orientation: 'landscape' }),
+      /orientation mismatch/,
+    );
+  }));

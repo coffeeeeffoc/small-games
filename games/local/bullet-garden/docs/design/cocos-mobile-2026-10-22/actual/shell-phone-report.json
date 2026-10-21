@@ -1,0 +1,18 @@
+{
+  "environment": "Chromium 390x844 touch emulation, production Shell and Creator",
+  "errors": [],
+  "passed": true,
+  "navigation": {
+    "x": 12,
+    "y": 8,
+    "width": 103,
+    "height": 44
+  },
+  "game": {
+    "x": 0,
+    "y": 60,
+    "width": 390,
+    "height": 784
+  },
+  "touchGameplayAndReturn": true
+}

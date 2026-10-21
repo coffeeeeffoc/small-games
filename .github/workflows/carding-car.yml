@@ -75,9 +75,19 @@ jobs:
           path: .scratch/ci-cocos/tianxia-chalu
           run-id: ${{ steps.producer.outputs.run_id }}
           github-token: ${{ github.token }}
+      - name: Download CI homebound-station artifact
+        id: homebound
+        if: steps.producer.outputs.run_id != ''
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: homebound-station-${{ github.sha }}
+          path: .scratch/ci-cocos/homebound-station
+          run-id: ${{ steps.producer.outputs.run_id }}
+          github-token: ${{ github.token }}
       - name: Verify all downloaded artifacts or rebuild
         id: verify
-        if: steps.kart.outcome == 'success' && steps.night.outcome == 'success' && steps.orbit.outcome == 'success' && steps.tianxia.outcome == 'success' && steps.garden.outcome == 'success'
+        if: steps.kart.outcome == 'success' && steps.night.outcome == 'success' && steps.orbit.outcome == 'success' && steps.tianxia.outcome == 'success' && steps.homebound.outcome == 'success' && steps.garden.outcome == 'success'
         continue-on-error: true
         env:
           PRODUCER_RUN_ID: ${{ steps.producer.outputs.run_id }}
@@ -88,6 +98,7 @@ jobs:
           node scripts/reuse-cocos-artifacts.mjs verify orbit-atelier .scratch/ci-cocos/orbit-atelier
           node scripts/reuse-cocos-artifacts.mjs verify bullet-garden .scratch/ci-cocos/bullet-garden
           node scripts/reuse-cocos-artifacts.mjs verify tianxia-chalu .scratch/ci-cocos/tianxia-chalu
+          node scripts/reuse-cocos-artifacts.mjs verify homebound-station .scratch/ci-cocos/homebound-station
       - uses: actions/upload-artifact@v7
         if: steps.verify.outcome == 'success'
         with:
@@ -118,13 +129,27 @@ jobs:
           name: tianxia-chalu-${{ github.sha }}
           path: .scratch/ci-cocos/tianxia-chalu
           if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: steps.verify.outcome == 'success'
+        with:
+          name: homebound-station-${{ github.sha }}
+          path: .scratch/ci-cocos/homebound-station
+          if-no-files-found: error
   creator:
     needs: reuse
     if: always() && !cancelled() && (needs.reuse.result == 'skipped' || (needs.reuse.result == 'success' && needs.reuse.outputs.available != 'true'))
     strategy:
       fail-fast: false
       matrix:
-        game: [carding-car, night-overwatch, orbit-atelier, tianxia-chalu, bullet-garden]
+        game:
+          [
+            carding-car,
+            night-overwatch,
+            orbit-atelier,
+            tianxia-chalu,
+            homebound-station,
+            bullet-garden,
+          ]
     runs-on: windows-latest
     timeout-minutes: 25
     steps:
@@ -179,6 +204,7 @@ jobs:
           ORBIT_ATELIER_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/orbit-atelier', github.workspace) || '' }}
           BULLET_GARDEN_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/bullet-garden', github.workspace) || '' }}
           TIANXIA_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/tianxia-chalu', github.workspace) || '' }}
+          HOMEBOUND_STATION_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/homebound-station', github.workspace) || '' }}
       - run: pnpm --filter @coffeeeeffoc/${{ matrix.game }} test
       - run: pnpm --filter @coffeeeeffoc/${{ matrix.game }} build
         if: steps.artifact.outputs.cache-hit != 'true'

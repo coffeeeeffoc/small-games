@@ -26,6 +26,7 @@ jobs:
       ORBIT_ATELIER_PREBUILT_DIR: ${{ github.workspace }}/games/local/orbit-atelier/.prebuilt
       BULLET_GARDEN_PREBUILT_DIR: ${{ github.workspace }}/games/local/bullet-garden/.prebuilt
       TIANXIA_PREBUILT_DIR: ${{ github.workspace }}/games/local/tianxia-chalu/.prebuilt
+      HOMEBOUND_STATION_PREBUILT_DIR: ${{ github.workspace }}/games/local/homebound-station/.prebuilt
       GOMAXPROCS: '1'
       APP_VERSION: '0.2.0'
       # Reserve the first 1000 codes for local builds; reruns retain the same application version.
@@ -61,6 +62,10 @@ jobs:
         with:
           name: tianxia-chalu-${{ github.sha }}
           path: games/local/tianxia-chalu/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: homebound-station-${{ github.sha }}
+          path: games/local/homebound-station/.prebuilt
       - run: pnpm check:games
       - uses: actions/setup-java@v5
         with:
@@ -120,6 +125,7 @@ jobs:
       ORBIT_ATELIER_PREBUILT_DIR: ${{ github.workspace }}/games/local/orbit-atelier/.prebuilt
       BULLET_GARDEN_PREBUILT_DIR: ${{ github.workspace }}/games/local/bullet-garden/.prebuilt
       TIANXIA_PREBUILT_DIR: ${{ github.workspace }}/games/local/tianxia-chalu/.prebuilt
+      HOMEBOUND_STATION_PREBUILT_DIR: ${{ github.workspace }}/games/local/homebound-station/.prebuilt
       GOMAXPROCS: '1'
       APP_VERSION: '0.2.0'
       IOS_BUILD_NUMBER: ${{ github.run_number }}
@@ -154,6 +160,10 @@ jobs:
         with:
           name: tianxia-chalu-${{ github.sha }}
           path: games/local/tianxia-chalu/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: homebound-station-${{ github.sha }}
+          path: games/local/homebound-station/.prebuilt
       - run: pnpm check:games
       - run: pnpm ios:simulator
       - run: python3 apps/shell-ios/scripts/test-install-manifest.py

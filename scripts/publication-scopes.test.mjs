@@ -5,6 +5,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
   reviewedSharedFileScopes,
+  homeboundCocosWiringOnly,
   bulletGardenCreatorFileScope,
   bulletGardenLockOnly,
   orbitCreatorIntegrationFileScope,
@@ -72,25 +73,39 @@ const tianxiaWiring = [
   'apps/shell-web/tests/standalone.integration.test.tsx',
   'scripts/test-game-dev-mode.mjs',
 ];
-// Freeze historical routing fixtures when later Creator projects join the same files.
-const tianxiaFixture = new Map();
+// Keep the already reviewed Tianxia delta fixed when later games add shared wiring.
+const tianxiaHead = '22c95185813177bd860127563cf2eddbfe573e7e';
+const tianxiaAfter = new Map();
+const tianxiaMissing = new Map();
 const tianxiaRead = (file) => {
-  if (
-    ![
-      ...tianxiaWiring,
-      'apps/shell-web/scripts/standalone-game-entry.mjs',
-      'package.json',
-    ].includes(file)
-  )
-    return readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll('\r\n', '\n');
-  if (!tianxiaFixture.has(file))
-    tianxiaFixture.set(
-      file,
-      execFileSync('git', ['show', '22c95185813177bd860127563cf2eddbfe573e7e:' + file], {
+  if (tianxiaMissing.has(file)) throw tianxiaMissing.get(file);
+  if (!tianxiaAfter.has(file)) {
+    let cwd = new URL('../', import.meta.url);
+    let reference = `${tianxiaHead}:${file}`;
+    const submodule = /^(games\/submodules\/[^/]+)\/(.+)$/.exec(file);
+    if (submodule) {
+      const revision = execFileSync('git', ['rev-parse', `${tianxiaHead}:${submodule[1]}`], {
+        cwd,
         encoding: 'utf8',
-      }).replaceAll('\r\n', '\n'),
-    );
-  return tianxiaFixture.get(file);
+      }).trim();
+      cwd = new URL('../' + submodule[1] + '/', import.meta.url);
+      reference = `${revision}:${submodule[2]}`;
+    }
+    try {
+      tianxiaAfter.set(
+        file,
+        execFileSync('git', ['show', reference], {
+          cwd,
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'pipe'],
+        }).replaceAll('\r\n', '\n'),
+      );
+    } catch (error) {
+      tianxiaMissing.set(file, error);
+      throw error;
+    }
+  }
+  return tianxiaAfter.get(file);
 };
 const tianxiaBefore = new Map();
 function tianxiaContext(file, overrides = {}) {
@@ -411,7 +426,7 @@ test('unified package tools keep the three H5 consumers and reject unknown sibli
     assert.equal(selected.competition_service_checks, true);
     if (file === 'scripts/competition-service-config.mjs') {
       assert.equal(selected.six_h5_checks, true);
-      for (const id of sixH5Ids.filter((id) => id !== 'travel-bund'))
+      for (const id of sixH5Ids.filter((id) => id !== 'travel-bund' && id !== 'homebound-station'))
         assert(selected.browser_ids.includes(id), `service config consumer: ${id}`);
       assert(!selected.browser_ids.includes('travel-bund'));
     }
@@ -437,7 +452,13 @@ test('six H5 tools declare exact consumers and preserve fail-closed configuratio
     const fileScopes = reviewedSharedFileScopes(ctx);
     assert.deepEqual(
       fileScopes.get(file),
-      file.endsWith('.test.mjs') ? [] : games.map((g) => g.source),
+      file.endsWith('.test.mjs')
+        ? []
+        : games
+            .filter(
+              (g) => file !== 'infra/builds/six-taptap-h5.mjs' || g.id !== 'homebound-station',
+            )
+            .map((g) => g.source),
     );
     const plan = incrementalPlan({ ...ctx, fileScopes });
     assert.equal(plan.full, false);
@@ -3658,6 +3679,13 @@ const frozenCleanupBase = (file) =>
     encoding: 'utf8',
   });
 
+// Freeze the reviewed pre-Cocos wiring when exercising older, exact delta proofs.
+const frozenHomeboundBaseline = (file) =>
+  execFileSync('git', ['show', '0459b0cb3c89a748f3a6bd252858951ba1ca073d:' + file], {
+    cwd: new URL('../', import.meta.url),
+    encoding: 'utf8',
+  }).replaceAll('\r\n', '\n');
+
 const frozenAdminBaseline = (file) =>
   execFileSync('git', ['show', '1367ae4f9758fb3a36935267db236e481b67d52a:' + file], {
     cwd: new URL('../', import.meta.url),
@@ -3751,11 +3779,7 @@ test('CSP tools select only actual admin/company consumers, exact Turbo inputs a
     assert.equal(reviewedSharedFileScopes({ ...context, packages: [] }).has(file), false);
   }
   const before = frozenAdminBaseline('turbo.json');
-  const after = execFileSync(
-    'git',
-    ['show', '0459b0cb3c89a748f3a6bd252858951ba1ca073d:turbo.json'],
-    { encoding: 'utf8' },
-  );
+  const after = frozenHomeboundBaseline('turbo.json');
   const classify = (value) =>
     reviewedSharedFileScopes({
       changedPaths: ['turbo.json'],
@@ -4241,6 +4265,28 @@ test('review tools, submodule dialogs and the realtime preset have finite valida
   assert(hooks.hook_checks && hooks.validation_tools);
 });
 
+test('Homebound Creator wiring admits only the reviewed additive compiler change', () => {
+  const file = 'scripts/h5-game-build.mjs';
+  const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const before = execFileSync('git', ['show', '22c95185813177bd860127563cf2eddbfe573e7e:' + file], {
+    encoding: 'utf8',
+  });
+  assert(homeboundCocosWiringOnly(file, before, after));
+  assert(!homeboundCocosWiringOnly(file, before, after.replace("'carding-car'", "'other-game'")));
+  assert(!homeboundCocosWiringOnly(file, before, after + '\nprocess.exit(0);'));
+  assert(!homeboundCocosWiringOnly('scripts/unreviewed-build.mjs', before, after));
+  const games = [{ id: 'homebound-station', source: 'games/local/homebound-station' }];
+  const packages = [{ name: 'homebound', dir: games[0].source }];
+  const scope = reviewedSharedFileScopes({
+    changedPaths: [file],
+    games,
+    packages,
+    readBase: () => before,
+    readHead: () => after,
+  });
+  assert.deepEqual(scope.get(file), [games[0].source]);
+});
+
 test('Orbit Creator routing permits its exact new consumer and rejects altered existing gates', () => {
   const file = '.github/workflows/ci.yml';
   const env =
@@ -4318,6 +4364,68 @@ test('Orbit Cocos gameplay scope isolates the real exported branch without admit
   );
 });
 
+test('merged Homebound Creator routes preserve Orbit and Tianxia and reject changes to existing gates', () => {
+  const files = [
+    'apps/shell-web/src/StandaloneGame.tsx',
+    'apps/shell-web/scripts/pages-smoke.mjs',
+    'apps/shell-web/tests/standalone-immersive.integration.test.tsx',
+    'apps/shell-web/tests/standalone.integration.test.tsx',
+    '.github/workflows/carding-car.yml',
+    '.github/workflows/ci.yml',
+    '.github/workflows/pages-validate.yml',
+    '.github/workflows/mobile.yml',
+    'turbo.json',
+    'scripts/check-workspace-dependencies.mjs',
+    'scripts/deployment-bundle.mjs',
+    'scripts/deployment-bundle.test.mjs',
+    'scripts/h5-game-build.mjs',
+    'scripts/h5-taptap-build.mjs',
+    'scripts/h5-ad-config.mjs',
+    'scripts/h5-taptap-matrix.mjs',
+  ];
+  const games = [{ id: 'homebound-station', source: 'games/local/homebound-station' }];
+  const packages = [{ name: 'homebound', dir: games[0].source }];
+  for (const file of files) {
+    const before = execFileSync(
+      'git',
+      ['show', '22c95185813177bd860127563cf2eddbfe573e7e:' + file],
+      { encoding: 'utf8' },
+    );
+    const after = execFileSync(
+      'git',
+      ['show', '8a3c141a6b2ef83913c97a58832261cc113e4375:' + file],
+      { encoding: 'utf8' },
+    );
+    assert(homeboundCocosWiringOnly(file, before, after), file);
+    assert.equal(homeboundCocosWiringOnly(file, before + '\n', after), false, file);
+    assert.equal(homeboundCocosWiringOnly(file, before, after + '\n// extra command'), false, file);
+    if (after.includes('orbit-atelier'))
+      assert.equal(
+        homeboundCocosWiringOnly(file, before, after.replaceAll('orbit-atelier', 'missing-orbit')),
+        false,
+        file,
+      );
+    if (after.includes('tianxia-chalu'))
+      assert.equal(
+        homeboundCocosWiringOnly(
+          file,
+          before,
+          after.replaceAll('tianxia-chalu', 'missing-tianxia'),
+        ),
+        false,
+        file,
+      );
+    const scopes = reviewedSharedFileScopes({
+      changedPaths: [file],
+      games,
+      packages,
+      readBase: () => before,
+      readHead: () => after,
+    });
+    assert.deepEqual(scopes.get(file), [games[0].source], file);
+  }
+});
+
 test('Bullet Garden Creator routing preserves every old producer and consumer gate', () => {
   for (const file of [
     '.github/workflows/carding-car.yml',
@@ -4329,16 +4437,9 @@ test('Bullet Garden Creator routing preserves every old producer and consumer ga
       '\r\n',
       '\n',
     );
-    const base = head
-      .replace(/      - [\s\S]*?(?=      - |^  [a-z]|$(?![\s\S]))/gm, (block) =>
-        block.includes('name: bullet-garden-') || block.includes('name: Download CI bullet-garden')
-          ? ''
-          : block,
-      )
-      .replace(/^ +BULLET_GARDEN_PREBUILT_DIR:[^\n]*\n/gm, '')
-      .replace(/^ +node scripts\/reuse-cocos-artifacts.mjs verify bullet-garden[^\n]*\n/gm, '')
-      .replace(', bullet-garden]', ']')
-      .replace(" && steps.garden.outcome == 'success'", '');
+    const base = execFileSync('git', ['show', '8a3c141a6b2ef83913c97a58832261cc113e4375:' + file], {
+      encoding: 'utf8',
+    }).replaceAll('\r\n', '\n');
     assert.equal(bulletGardenCreatorFileScope(file, base, head), true, file);
     assert.equal(
       bulletGardenCreatorFileScope(file, base, head + '\n# unrelated change\n'),
@@ -4403,7 +4504,7 @@ test('Bullet Garden routes preserve fixed predecessors, identity and config-sens
   const read = (file) =>
     readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll('\r\n', '\n');
   const base = (file) =>
-    execFileSync('git', ['show', '22c95185813177bd860127563cf2eddbfe573e7e:' + file], {
+    execFileSync('git', ['show', '8a3c141a6b2ef83913c97a58832261cc113e4375:' + file], {
       encoding: 'utf8',
     }).replaceAll('\r\n', '\n');
   const source = 'games/local/bullet-garden';

@@ -1,10 +1,34 @@
 import { nineGames, appIdVariable, targetOptions } from './nine-games-targets.mjs';
+import { publicReleaseConfiguration } from '../../../platforms/publication-config.mjs';
 import { tapTapApiBase } from '@coffeeeeffoc/platform-taptap/login';
 
 // Keep the previously reviewed catalog batch; new featured games do not enter it.
 export const tapTapGames = nineGames;
+// Explicit standalone targets never expand the reviewed --all catalog batch.
+export const tapTapStandaloneGames = Object.freeze([
+  Object.freeze({
+    id: 'homebound-station',
+    directory: 'games/local/homebound-station',
+    cocos: true,
+    orientation: 'portrait',
+    login: 'offline',
+    nativeRewards: true,
+    nativeBudget: { mainBytes: 4 * 1024 * 1024, totalBytes: 20 * 1024 * 1024 },
+  }),
+]);
+export const tapTapTargets = Object.freeze([...tapTapGames, ...tapTapStandaloneGames]);
+export const tapTapCocosGames = Object.freeze(tapTapTargets.filter((game) => game.cocos));
+export function tapTapTarget(id) {
+  return tapTapTargets.find((game) => game.id === id);
+}
+export function tapTapOrientation(id) {
+  const game = tapTapTarget(id);
+  if (!game) throw Error('Unknown TapTap game.');
+  return game.orientation || 'landscape';
+}
 export function tapTapOptions(game, { preview = false, env = process.env } = {}) {
-  if (!tapTapGames.some((item) => item.id === game)) throw new Error('Unknown frozen TapTap game.');
+  const selected = tapTapTarget(game);
+  if (!selected) throw new Error('Unknown TapTap game.');
   const key = appIdVariable(game, 'taptap');
   const appId = env[key] || '';
   // Tap AppIDs are opaque public identifiers, distinct from developer-center game IDs.
@@ -13,6 +37,21 @@ export function tapTapOptions(game, { preview = false, env = process.env } = {})
   if (!preview && !appId)
     throw new Error(`Release requires ${key}; use --preview for local checks.`);
   // The login service and assets use the existing public HTTPS URL checks.
+  if (selected.login === 'offline') {
+    const native = publicReleaseConfiguration(game, 'taptap', { env, release: !preview })[game]
+      .taptap;
+    return {
+      game,
+      platform: 'taptap',
+      appId: native.appId,
+      apiUrl: '',
+      preview,
+      competitionEnabled: false,
+      competitionConfigured: false,
+      adsEnabled: Boolean(native.adUnitId),
+      adUnitId: native.adUnitId,
+    };
+  }
   const common = targetOptions(game, 'wechat', {
     preview: true,
     env: {

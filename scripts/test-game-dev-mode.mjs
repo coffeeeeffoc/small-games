@@ -132,6 +132,7 @@ try {
         );
         if (
           game.id === 'bullet-garden' ||
+          game.id === 'homebound-station' ||
           game.id === 'tianxia-chalu' ||
           game.id === 'ashfall-front' ||
           game.id === 'carrom-club' ||

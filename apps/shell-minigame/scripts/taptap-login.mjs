@@ -1,20 +1,24 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { nineGames } from './nine-games-targets.mjs';
+import { tapTapTarget } from './taptap-targets.mjs';
 import { tapTapApiBase } from '@coffeeeeffoc/platform-taptap/login';
 import { serviceGames } from '../../../scripts/competition-service-config.mjs';
 
 const helper = new URL(import.meta.resolve('@coffeeeeffoc/platform-taptap/login'));
 const identityClient = new URL('../../../platforms/competition/client.js', import.meta.url);
 const helperSource = async () =>
-  Buffer.concat([await readFile(identityClient), Buffer.from('\n'), await readFile(helper)]);
+  Buffer.from(
+    (await readFile(identityClient, 'utf8')).replaceAll('\r\n', '\n') +
+      '\n' +
+      (await readFile(helper, 'utf8')).replaceAll('\r\n', '\n'),
+  );
 const marker = '// TapTap login bootstrap: install before the official packing step.\n';
 
 export function publicTapTapLoginConfig(config) {
   if (config?.platform !== 'taptap') throw new Error('TapTap login requires the TapTap platform.');
-  if (!nineGames.some((game) => game.id === config.game))
-    throw new Error('Unknown frozen TapTap login game.');
+  const selected = tapTapTarget(config.game);
+  if (!selected) throw new Error('Unknown TapTap login game.');
   if (
     typeof config.appId !== 'string' ||
     (config.appId && !/^[A-Za-z0-9_-]{1,100}$/.test(config.appId))
@@ -35,7 +39,11 @@ export function publicTapTapLoginConfig(config) {
       );
   }
   const managed = serviceGames.includes(config.game);
-  const offline = managed && !config.apiUrl && config.competitionEnabled !== true;
+  const offline =
+    selected.login === 'offline' ||
+    (managed && !config.apiUrl && config.competitionEnabled !== true);
+  if (selected.login === 'offline' && config.apiUrl)
+    throw new Error('This standalone TapTap game has no server login consumer.');
   if (managed && config.competitionEnabled === false && config.apiUrl)
     throw new Error('Disabled competition must not contain an API URL.');
   if (!config.preview && (!config.appId || (!config.apiUrl && !offline)))
@@ -48,11 +56,57 @@ export function publicTapTapLoginConfig(config) {
   };
 }
 
+export function publicTapTapAdConfig(config) {
+  if (!tapTapTarget(config.game)?.nativeRewards) return null;
+  const adUnitId = config.adUnitId || '';
+  if (
+    typeof adUnitId !== 'string' ||
+    (adUnitId && (!/^[\w-]{1,160}$/.test(adUnitId) || /^(YOUR_|REPLACE_|TODO)/i.test(adUnitId)))
+  )
+    throw new Error('Invalid public TapTap rewarded ad unit.');
+  if (config.adsEnabled !== undefined && typeof config.adsEnabled !== 'boolean')
+    throw new Error('Invalid public TapTap rewarded enable flag.');
+  return { platform: 'taptap', adsEnabled: config.adsEnabled === true, adUnitId };
+}
+
+async function creatorAdsSource() {
+  // Build the shared advertising-only entry; never instantiate a second Canvas host.
+  const { build } = await import('vite');
+  const result = await build({
+    configFile: false,
+    publicDir: false,
+    logLevel: 'silent',
+    root: fileURLToPath(new URL('../../../', import.meta.url)),
+    build: {
+      write: false,
+      minify: true,
+      sourcemap: false,
+      lib: {
+        entry: fileURLToPath(
+          new URL('../../../packages/native-game-shell/src/creator-ads.ts', import.meta.url),
+        ),
+        formats: ['cjs'],
+        fileName: () => 'tap-rewarded-ads.js',
+      },
+    },
+  });
+  const chunks = (Array.isArray(result) ? result : [result])
+    .flatMap((item) => item.output)
+    .filter((item) => item.type === 'chunk');
+  if (chunks.length !== 1 || chunks[0].imports.length || chunks[0].dynamicImports.length)
+    throw new Error('Creator rewarded bridge must be one self-contained CommonJS file.');
+  return Buffer.from(chunks[0].code);
+}
+
 export function tapTapLoginPrefix(config) {
   const encoded = JSON.stringify(publicTapTapLoginConfig(config));
+  const ads = publicTapTapAdConfig(config);
+  const rewarded = ads
+    ? `require('./tap-rewarded-ads.js').installCreatorAdBridge(${JSON.stringify(ads)});`
+    : '';
   return (
     `${marker}globalThis.__COMPETITION_CONFIG__=Object.assign({},globalThis.__COMPETITION_CONFIG__||{},${encoded});\n` +
-    `globalThis.__tapTapLogin=require('./tap-login.js').startTapTapLogin(typeof tap==='undefined'?undefined:tap,${encoded});\n`
+    `globalThis.__tapTapLogin=require('./tap-login.js').startTapTapLogin(typeof tap==='undefined'?undefined:tap,${encoded});${rewarded}\n`
   );
 }
 
@@ -67,6 +121,8 @@ export async function installTapTapLogin(directory, config) {
     source = source.slice(thirdLine + 1);
   }
   await writeFile(path.join(directory, 'tap-login.js'), await helperSource());
+  if (publicTapTapAdConfig(config))
+    await writeFile(path.join(directory, 'tap-rewarded-ads.js'), await creatorAdsSource());
   await writeFile(entry, tapTapLoginPrefix(config) + source);
   return verifyTapTapLogin(directory, config);
 }
@@ -81,8 +137,15 @@ export async function verifyTapTapLogin(directory, config) {
     throw new Error(
       'TapTap source login bootstrap differs from the current public config or helper.',
     );
+  const ads = publicTapTapAdConfig(config);
+  if (
+    ads &&
+    !(await readFile(path.join(directory, 'tap-rewarded-ads.js'))).equals(await creatorAdsSource())
+  )
+    throw new Error('TapTap Creator rewarded bridge differs from current shared source.');
   return {
     configured: Boolean(config.apiUrl),
+    ...(ads ? { rewarded: ads } : {}),
     platform: 'taptap',
     serverIdentityVerified: false,
     realDeviceVerified: false,

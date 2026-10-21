@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import vm from 'node:vm';
-import { nineGames } from './nine-games-targets.mjs';
+import { tapTapGames, tapTapTarget } from './taptap-targets.mjs';
 import { verifyArtifact } from './nine-games-build.mjs';
 import {
   createNativeSDKFixture,
@@ -33,10 +33,10 @@ export function smokeOptions(args = process.argv.slice(2)) {
     },
     allowPositionals: false,
   });
-  const games = values.game || nineGames.map(({ id }) => id);
+  const games = values.game || tapTapGames.map(({ id }) => id);
   assert(games.length && new Set(games).size === games.length, 'Duplicate TapTap game selection');
   assert(
-    games.every((id) => nineGames.some((game) => game.id === id)),
+    games.every((id) => Boolean(tapTapTarget(id))),
     'Unknown TapTap game',
   );
   return {
@@ -406,7 +406,7 @@ export async function smokeCanvas(directory, selected, source) {
 export async function runTapTapSmoke(options = smokeOptions()) {
   const results = [];
   for (const game of options.games) {
-    const selected = nineGames.find(({ id }) => id === game);
+    const selected = tapTapTarget(game);
     const directory = path.join(options.output, 'taptap', game);
     let result;
     if (selected.cocos) {

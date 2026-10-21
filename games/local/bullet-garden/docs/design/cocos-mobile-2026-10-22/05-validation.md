@@ -9,14 +9,20 @@
 ## 已执行
 
 - Windows / Node 24.21.0 / pnpm 12.6.0，真实 Creator 3.8.8 构建；没有自制引擎替身或网页 iframe 冒充 Cocos。
-- 164项规则、存档、广告租约、配置边界、预制品物理路径和原生启动桥接测试全部通过，typecheck通过；结果见 `reports/unit-final.txt`。
+- 165项规则、存档、广告租约、配置边界、预制品物理路径和原生启动桥接测试全部通过，typecheck通过；结果见 `reports/unit-final.txt`。
 - 12种正常血量流派回放通过；3个seed各14关，按正常奖励购买成长后通过。`actual/campaign/balance-report.json` 是核心回放，非手机真机证据。
 - 同存档/seed/升级策略的移动对照：第二关站桩受伤6.108、移动0；中期关96.33、移动0，均可通关。`actual/movement-comparison.json`。
 - Chromium触屏模拟320×568、390×844、430×932、844×390：主页/选关/营地/帮助、摇杆与冲刺多指、技能拖拽取消、暂停与失焦、旋转继续、自然60秒首关胜利、保存重载解锁，以及后期存档fixture中的自然碰撞失败、手动结算和重试。`actual/browser-report.json` 记录最终运行结果。
 - 真实生产Creator广告fixture加模拟TapTap SDK：治疗/复活完整观看才奖励、取消和错误不扣机会、重复和换局后的迟到回调无效、隐藏中完成待返回前台发奖且保持暂停。`actual/ads-mockSDK-report.json` 标记 `mockSDK:true`、`platformAcceptance:false`；对应源码哈希记录在报告中。
 - Shell沉浸入口与导航113项测试通过；统一开发开关源检查及5项语义测试通过。
-- 仓库正式独立入口检查在鼠标和触屏模式均通过。最终默认Web包和原生转换包的源码哈希一致，为 `0e189be9f63281174000469343d63a1549d525fae3e739182059f9d72d8af728`。
-- 官方TapTap插件1.2.2的归档和安装目录验证后执行真实转换，随后注入真实SDK启动连接、绑定manifest并重打ZIP。包11,707,319字节，ZIP与目录逐文件相同，压缩与解压大小均低于20MiB；完整receipt归档为 `actual/taptap-build-receipt.json`。
+- 仓库正式独立入口检查在鼠标和触屏模式均通过。最终默认Web包和原生转换包的源码哈希一致，为 `c71f99d51c0439b0e834f25c21f22789c940f8900f026a222198a0dba3462e29`。
+- 官方TapTap插件1.2.2的归档和完整安装目录（含原始自带依赖）验证后，使用共享隔离回放执行真实转换并确认Babel零失败，随后注入真实SDK启动连接、绑定manifest并重打ZIP。包11,708,624字节，ZIP与目录逐文件相同，压缩与解压大小均低于20MiB；完整receipt归档为 `actual/taptap-build-receipt.json`。
+
+## 最终集成修复
+
+- Shell菜单为返回目录预留独立行，进入战斗后场景恢复占满视口，避免覆盖Cocos返回控件。
+- Web启动层仅对不可取消的GameCanvas touchcancel事件关闭无效preventDefault调用，原事件继续交给引擎清理输入；没有过滤错误日志或吞掉手势取消。
+- 合并远端Homebound Cocos接入和共享原生广告修复后，六款Creator制品路由12项与发布范围96项测试通过。旧候选f4a43850因真实入口问题未通过，不作为最终发布依据。
 
 ## 配置与验收边界
 

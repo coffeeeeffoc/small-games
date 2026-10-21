@@ -707,21 +707,35 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await click(frame.locator('#resume'));
     await expect(frame.locator('.stage')).toHaveAttribute('data-playing', 'true');
   } else if (id === 'homebound-station') {
-    await click(frame.locator('[data-vehicle="巡01"]'));
-    await expect
-      .poll(() =>
-        frame.locator('body').evaluate(() => globalThis.homeboundSnapshot().services.length),
-      )
-      .toBe(1);
-    await click(frame.locator('#pause'));
-    await expect(frame.locator('#dialog')).toContainText('已暂停');
-    await click(frame.locator('[data-action="retry"]'));
-    await expect(frame.locator('#remaining')).toHaveText('12');
-    await expect
-      .poll(() =>
-        frame.locator('body').evaluate(() => globalThis.homeboundSnapshot().services.length),
-      )
-      .toBe(0);
+    const canvas = frame.locator('#GameCanvas');
+    const state = () => frame.locator('body').evaluate(() => globalThis.homeboundSnapshot());
+    const view = () => frame.locator('body').evaluate(() => globalThis.homeboundView());
+    // Read semantic control bounds, then send genuine pointer/touch input to Cocos.
+    const at = (position) => (mobile ? canvas.tap({ position }) : canvas.click({ position }));
+    const control = async (id) => {
+      await expect
+        .poll(async () => (await view()).buttons.some((b) => b.id === id && !b.disabled))
+        .toBe(true);
+      const b = (await view()).buttons.find((b) => b.id === id);
+      await at({ x: b.x + b.w / 2, y: b.y + b.h / 2 });
+    };
+    await expect.poll(async () => (await view()).page).toBe('home');
+    await control('continue');
+    await expect.poll(async () => (await view()).page).toBe('playing');
+    const total = (await state()).vehicles.length;
+    await expect.poll(async () => (await view()).cars.some((c) => c.available)).toBe(true);
+    const car = (await view()).cars.find((c) => c.available);
+    await at({ x: car.x, y: car.y });
+    await expect.poll(async () => (await state()).services.length).toBe(1);
+    await control('pause');
+    await expect.poll(async () => (await view()).page).toBe('pause');
+    const frozen = (await state()).time;
+    await canvas.page().waitForTimeout(200);
+    expect((await state()).time).toBe(frozen);
+    await control('retry');
+    await expect.poll(async () => (await view()).page).toBe('playing');
+    expect((await state()).vehicles.length).toBe(total);
+    expect((await state()).services.length).toBe(0);
   } else if (id === 'out-of-frame') {
     const snapshot = () => frame.locator('body').evaluate(() => globalThis.__outOfFrameSnapshot());
     const restart = frame.locator(mobile ? '#touch-restart' : '#restart');

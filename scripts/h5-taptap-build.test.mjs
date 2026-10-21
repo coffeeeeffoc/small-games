@@ -48,3 +48,14 @@ test('profile conflicts fail before inspecting a workspace or creating package o
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('homebound H5 compiler receives only its explicit Creator artifact and advertisement slot', () => {
+  const env = compilerEnvironment({
+    HOMEBOUND_STATION_PREBUILT_DIR: '/verified/homebound',
+    TAPTAP_HOMEBOUND_STATION_AD_UNIT_ID: 'homebound-slot',
+    OTHER_PRIVATE_TOKEN: 'omit',
+  });
+  assert.equal(env.HOMEBOUND_STATION_PREBUILT_DIR, '/verified/homebound');
+  assert.equal(env.TAPTAP_HOMEBOUND_STATION_AD_UNIT_ID, 'homebound-slot');
+  assert.equal(env.OTHER_PRIVATE_TOKEN, undefined);
+});

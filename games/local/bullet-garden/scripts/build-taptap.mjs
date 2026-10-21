@@ -11,6 +11,7 @@ import {
   verifyPlugin,
   officialPluginSha256,
 } from '../../../../apps/shell-minigame/scripts/taptap-cocos-inputs.mjs';
+import { replayOfficialConversion } from '../../../../apps/shell-minigame/scripts/taptap-conversion.mjs';
 import {
   digest,
   inventory,
@@ -52,12 +53,13 @@ const workspace = await mkdtemp(path.join(root, 'build/taptap-'));
 // Converter removes target; this brand-new child is contained in the authorized game directory.
 const target = path.join(workspace, 'converted');
 assert(target.startsWith(path.resolve(root) + path.sep));
-const require = createRequire(import.meta.url);
 const converterFile = path.join(plugin, 'dist/converter-ts.js');
-const converter = require(converterFile);
-const { version } = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
-await converter.convertWechatToTap({ source, target, useSubpackage: false, gameVersion: version });
 const project = path.join(target, 'game');
+const conversion = await replayOfficialConversion({
+  sourceDirectory: source,
+  pluginArchive: archive,
+  outputDirectory: project,
+});
 await cp(path.join(root, 'startup/taptap.cjs'), path.join(project, 'garden-tap-runtime.js'));
 const entry = path.join(project, 'game.js');
 await writeFile(entry, "require('./garden-tap-runtime.js');\n" + await readFile(entry, 'utf8'));
@@ -118,6 +120,7 @@ const receipt = {
   projectDirectory: project,
   deviceOrientation: 'portrait',
   officialConverterExecuted: true,
+  conversionReceipt: conversion.receipt,
   runtimeSdkBridge: 'startup/taptap.cjs',
   manifestBound: true,
   zipMatchesDirectory: true,

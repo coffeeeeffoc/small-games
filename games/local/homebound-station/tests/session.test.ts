@@ -1,0 +1,120 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import {
+  SpeedGate,
+  complete,
+  continueIndex,
+  readProgress,
+  unlocked,
+  type AdStatus,
+  type RewardProvider,
+} from '../assets/scripts/core/session.ts';
+test('100-level progress migrates v2 and rejects corrupt entries', () => {
+  const p = readProgress(JSON.stringify({ stars: [3, 2, 0, 9, -1, '3'], sound: false }), 100);
+  assert.equal(p.stars.length, 100);
+  assert.deepEqual(p.stars.slice(0, 6), [3, 2, 0, 0, 0, 0]);
+  assert.equal(p.sound, false);
+  assert.equal(continueIndex(p), 2);
+  assert.equal(unlocked(p, 2), true);
+  assert.equal(unlocked(p, 99), false);
+  assert.equal(unlocked(p, 100), false);
+  assert.equal(readProgress('invalid', 100).stars.length, 100);
+});
+test('only normal unlocked completions update progress; replay preserves better stars', () => {
+  const p = readProgress(null, 100);
+  assert.equal(complete(p, 99, 3, true), false);
+  assert.equal(complete(p, 99, 3, false), false);
+  assert.equal(complete(p, 0, 3, false), true);
+  assert.equal(complete(p, 0, 1, false), true);
+  assert.equal(p.stars[0], 3);
+  assert.equal(unlocked(p, 1), true);
+  assert.equal(complete(p, 1, 2, true), false);
+  assert.equal(p.stars[1], 0);
+});
+test('only 1x starts free; each advertised speed grants independently after completion', async () => {
+  const g = new SpeedGate();
+  assert.deepEqual([...g.unlocked], [1]);
+  let offers = 0;
+  const provider: RewardProvider = {
+    offer: async (request) => {
+      offers++;
+      assert.match(request.id, /homebound-station:speed:/);
+      return { status: 'completed' };
+    },
+  };
+  for (const speed of [2, 3, 5] as const) {
+    assert.equal(g.unlocked.has(speed), false);
+    assert.equal(await g.choose(speed, provider), 'completed');
+    assert.equal(g.speed, speed);
+  }
+  assert.equal(offers, 3);
+  assert.equal(await g.choose(2, provider), 'selected');
+  assert.equal(offers, 3);
+  assert.deepEqual([...new SpeedGate().unlocked], [1]);
+});
+for (const status of ['dismissed', 'failed', 'unavailable'] as AdStatus[])
+  test(`ad ${status} never grants speed`, async () => {
+    const g = new SpeedGate();
+    assert.equal(await g.choose(5, { offer: async () => ({ status }) }), status);
+    assert.equal(g.speed, 1);
+    assert.deepEqual([...g.unlocked], [1]);
+  });
+test('unconfigured or throwing provider keeps basic speed playable', async () => {
+  const g = new SpeedGate();
+  assert.equal(await g.choose(2), 'unavailable');
+  assert.equal(
+    await g.choose(2, {
+      offer: async () => {
+        throw Error('sdk failure');
+      },
+    }),
+    'failed',
+  );
+  assert.equal(await g.choose(1), 'selected');
+  assert.equal(g.pending, false);
+});
+test('duplicate offer, cancellation, late reward and new-run isolation', async () => {
+  let resolve!: (v: { status: AdStatus }) => void,
+    offers = 0;
+  const provider: RewardProvider = {
+    offer: () => {
+      offers++;
+      return new Promise((r) => {
+        resolve = r;
+      });
+    },
+    cancel: () => {
+      throw Error('optional SDK cancellation failed');
+    },
+  };
+  const old = new SpeedGate(),
+    result = old.choose(5, provider);
+  assert.equal(old.speed, 1);
+  assert.equal(old.pending, true);
+  assert.equal(await old.choose(3, provider), 'busy');
+  old.cancel(provider);
+  const next = new SpeedGate();
+  assert.equal(await next.choose(5, provider), 'unavailable');
+  assert.equal(offers, 1);
+  resolve({ status: 'completed' });
+  assert.equal(await result, 'stale');
+  assert.equal(old.unlocked.has(5), false);
+  assert.equal(next.speed, 1);
+  const second = next.choose(3, provider);
+  resolve({ status: 'completed' });
+  assert.equal(await second, 'completed');
+  assert.equal(next.speed, 3);
+});
+test('completed offers are not cancelled by normal page navigation', async () => {
+  let cancellations = 0;
+  const p: RewardProvider = {
+    offer: async () => ({ status: 'completed' }),
+    cancel: () => {
+      cancellations++;
+    },
+  };
+  const g = new SpeedGate();
+  await g.choose(2, p);
+  g.cancel(p);
+  assert.equal(cancellations, 0);
+});

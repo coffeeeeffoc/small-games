@@ -38,6 +38,7 @@ export async function sourceHash(directory = root) {
     '../../carding-car/scripts/cocos-branding.mjs',
     '../../../../platforms/h5/platform-ads.js',
     '../../../../apps/shell-minigame/scripts/taptap-cocos-inputs.mjs',
+    '../../../../apps/shell-minigame/scripts/taptap-conversion.mjs',
     '../../../../apps/shell-minigame/scripts/taptap-package.mjs',
   ]) {
     hash.update(file + '\0');

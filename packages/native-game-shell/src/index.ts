@@ -3,3 +3,5 @@ export * from './shell.js';
 export * from './host.js';
 export * from './media.js';
 export * from './ads.js';
+export * from './creator-ads.js';
+export * from './douyin-ads.js';
