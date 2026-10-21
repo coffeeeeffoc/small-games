@@ -1,121 +1,15 @@
-import test, { before } from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, access } from 'node:fs/promises';
-import { execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
-import vm from 'node:vm';
+import { readFile } from 'node:fs/promises';
 import { cloneScene, presets } from '../shared/core/acoustics.js';
 import { createLayout } from '../shared/core/layout.js';
 import { roomViewport } from '../wechat/canvas.js';
-const root = fileURLToPath(new URL('../', import.meta.url));
+import { createLabPage } from '../wechat/pages/lab/page.js';
+import { nativeFixture } from './native-fixture.js';
 const read = (name) => readFile(new URL(`../${name}`, import.meta.url), 'utf8');
-let bundle;
-before(async () => {
-  for (const target of ['h5', 'wechat', 'web'])
-    execFileSync(process.execPath, ['build.mjs', target], { cwd: root, stdio: 'pipe' });
-  execFileSync(process.execPath, ['build.mjs'], { cwd: root, stdio: 'pipe' });
-  bundle = await read('dist-wechat/pages/lab/index.js');
-});
-function fixture({ storageFails = false } = {}) {
-  let definition;
-  const saved = new Map(),
-    files = new Map(),
-    notices = [];
-  let pick;
-  const context = new Proxy(
-    {},
-    {
-      get: (target, key) => target[key] || (() => {}),
-      set: (target, key, value) => ((target[key] = value), true),
-    },
-  );
-  const canvas = { getContext: () => context };
-  const fs = {
-    unlinkSync: (path) => files.delete(path),
-    writeFileSync: (path, value) => files.set(path, value),
-    readFileSync: (path) => files.get(path),
-  };
-  const host = {
-    env: { USER_DATA_PATH: '/user' },
-    getFileSystemManager: () => fs,
-    getStorageSync: (key) => saved.get(key),
-    setStorageSync: (key, value) => {
-      if (storageFails) throw new Error('denied');
-      saved.set(key, value);
-    },
-    showToast: (value) => notices.push(value.title),
-    getWindowInfo: () => ({ pixelRatio: 3 }),
-    createSelectorQuery: () => ({
-      in() {
-        return this;
-      },
-      select() {
-        return this;
-      },
-      fields() {
-        return this;
-      },
-      exec(fn) {
-        fn([{ node: canvas, width: 358, height: 290 }]);
-      },
-    }),
-    chooseMessageFile(options) {
-      pick = options;
-    },
-    shareFileMessage({ success }) {
-      success();
-    },
-    setClipboardData({ success }) {
-      success();
-    },
-    getClipboardData({ success }) {
-      success({ data: '{}' });
-    },
-  };
-  // No DOM, Blob, URL, TextEncoder or Node module loader in the native VM.
-  vm.runInNewContext(bundle, {
-    wx: host,
-    Page: (value) => {
-      definition = value;
-    },
-    setTimeout,
-    clearTimeout,
-  });
-  const page = {
-    ...definition,
-    data: JSON.parse(JSON.stringify(definition.data)),
-    setData(values, callback) {
-      assert.notEqual(this.alive, false, 'no setData after unload');
-      Object.assign(this.data, values);
-      callback?.();
-    },
-  };
-  page.onLoad();
-  page.onReady();
-  return { page, host, saved, files, notices, canvas, pick: () => pick, definition };
-}
+const fixture = (options) => nativeFixture(createLabPage, options);
 const event = (dataset, value) => ({ currentTarget: { dataset }, detail: { value } });
-test('default Web, H5 and native packages stay isolated and portable', async () => {
-  assert.match(await read('dist/index.html'), /data-platform="web"/);
-  assert.match(await read('dist-h5/index.html'), /data-platform="h5"/);
-  assert.match(await read('dist-h5/index.html'), /h5\/styles.css/);
-  await access(new URL('../dist/web/entry.js', import.meta.url));
-  await assert.rejects(access(new URL('../dist/wechat', import.meta.url)));
-  await assert.rejects(access(new URL('../dist/h5', import.meta.url)));
-  const config = JSON.parse(await read('dist-wechat/project.config.json'));
-  assert.equal(config.compileType, 'miniprogram');
-  assert.equal(config.miniprogramRoot, './');
-  assert.doesNotMatch(
-    bundle,
-    /\b(?:document|window|Blob|TextEncoder|OfflineAudioContext)\b|\bimport\s/,
-  );
-  assert.doesNotMatch(await read('dist-wechat/pages/lab/index.wxml'), /web-view|fullscreen/);
-  assert.equal(
-    await read('shared/browser/fullscreen.js'),
-    await read('../../../platforms/h5/fullscreen.js'),
-  );
-});
-test('native bundle starts without browser globals, persists and maps touch with DPR', () => {
+test('native page persists and maps touch with DPR', () => {
   const { page, saved, canvas } = fixture();
   assert.equal(canvas.width, 1074);
   assert.equal(page.data.scene.width, 72);
@@ -212,5 +106,4 @@ test('legacy browser module URLs forward to the shared implementations', async (
   assert.equal(typeof layout.createRoomLink, 'function');
   const audio = await import('../src/audio.js');
   assert.equal(audio.AudioEngine, (await import('../shared/browser/audio.js')).AudioEngine);
-  await access(new URL('../dist/src/audio.js', import.meta.url));
 });

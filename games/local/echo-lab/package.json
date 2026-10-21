@@ -19,7 +19,8 @@
     "build:web": "node build.mjs web",
     "build:h5": "node build.mjs h5",
     "build:wechat": "node build.mjs wechat",
-    "build:all": "node build.mjs web && node build.mjs h5 && node build.mjs wechat"
+    "build:all": "node build.mjs web && node build.mjs h5 && node build.mjs wechat",
+    "test:platforms": "node --test tests/platforms.integration.js"
   },
   "coffeeeeffoc": {
     "role": "game"

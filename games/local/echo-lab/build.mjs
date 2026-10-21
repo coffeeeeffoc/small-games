@@ -26,6 +26,7 @@ if (target === 'wechat') {
   });
   await rm(new URL('audio.js', output), { force: true });
   await rm(new URL('canvas.js', output), { force: true });
+  await rm(new URL('pages/lab/page.js', output), { force: true });
   const config = JSON.parse(await readFile(new URL('project.config.json', output), 'utf8'));
   if (process.env.WECHAT_APP_ID) {
     if (!/^wx[\da-f]{16}$/i.test(process.env.WECHAT_APP_ID))

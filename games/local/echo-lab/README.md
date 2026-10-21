@@ -135,8 +135,8 @@ npm run build
 
 在 small-games workspace 中，还可运行 `pnpm --filter @coffeeeeffoc/echo-lab test:browser`，使用已有 `@playwright/test` 与 Chromium 验证实际音频、导出、链接跨浏览器复用和手机触屏拖动/旋转/取消。独立复制目录时需另行提供 Playwright 开发依赖或设置 `PLAYWRIGHT_MODULE`；应用本身不依赖它。
 
-浏览器测试会自动启动并关闭临时本地服务；设置 `ECHO_LAB_URL` 可检查已运行或已部署的站点。本次自动化验收使用 Node.js 24.21.0、Linux 上的 Chromium、360/390 px 手机视口与 844 × 390 横屏视口，通过原生触屏事件检查尺寸手柄、短板编辑、斜板定向移动、声学手柄、手势取消和配置复用。单元测试覆盖声学、编辑几何、布局、ZIP、PCM、微信录音生命周期及三端构建；Web Audio 测试还检查扩散回声在立体声 WAV 中的真实到达时间与尾音。麦克风使用浏览器模拟设备；尚未完成实体手机及真实麦克风验收。
+浏览器测试会自动启动并关闭临时本地服务；设置 `ECHO_LAB_URL` 可检查已运行或已部署的站点。本次自动化验收使用 Node.js 24.21.0、Linux 上的 Chromium、360/390 px 手机视口与 844 × 390 横屏视口，通过原生触屏事件检查尺寸手柄、短板编辑、斜板定向移动、声学手柄、手势取消和配置复用。单元测试覆盖声学、编辑几何、布局、ZIP、PCM、微信录音与页面生命周期；`pnpm --filter @coffeeeeffoc/echo-lab test:platforms` 单独检查三端构建隔离和微信 bundle 在无浏览器全局环境下的启动；Web Audio 测试还检查扩散回声在立体声 WAV 中的真实到达时间与尾音。麦克风使用浏览器模拟设备；尚未完成实体手机及真实麦克风验收。
 
 声学测试覆盖镜面反射位置与延时、有限板材、二次反射、遮挡、吸音屏位置和材料变化、倍率、确定性、布局校验及边界。若某些受限执行环境不能创建测试子进程，可用 `node tests/acoustics.test.js` 单独运行声学测试；普通本地运行无需此替代方式。
 
-主要文件：`shared/core/acoustics.js` 声学几何；`shared/core/editor-geometry.js` 拖拽与尺寸约束；`shared/core/audio.js` 与 `pcm.js` 共享音频；`shared/browser/app.js` 浏览器交互；`wechat/pages/lab/index.js` 小程序页面；`server.js` 本地静态服务。本次改造方案与验证见 [三端适配记录](docs/design/multiplatform/README.md)。
+主要文件：`shared/core/acoustics.js` 声学几何；`shared/core/editor-geometry.js` 拖拽与尺寸约束；`shared/core/audio.js` 与 `pcm.js` 共享音频；`shared/browser/app.js` 浏览器交互；`wechat/pages/lab/page.js` 小程序页面与宿主注入；`server.js` 本地静态服务。本次改造方案与验证见 [三端适配记录](docs/design/multiplatform/README.md)。
