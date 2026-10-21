@@ -132,10 +132,12 @@ it.each(['reject', 'error', 'timeout'] as const)(
     f.sdk.createRewardedVideoAd = () => ad;
     const provider = createNativeAdProvider(createDouyinSdk(f.sdk), 'placement', 50);
     const pending = provider.show({ opportunityId: 'revive' });
-    await expect(provider.show({ opportunityId: 'bonus' })).resolves.toEqual({ status: 'failed' });
+    await expect(provider.show({ opportunityId: 'bonus' })).resolves.toEqual({
+      status: 'unavailable',
+    });
     await vi.advanceTimersByTimeAsync(50);
     await expect(pending).resolves.toEqual({
-      status: mode === 'timeout' ? 'unavailable' : 'failed',
+      status: 'failed',
     });
     expect(ad.offClose).toHaveBeenCalledOnce();
     expect(ad.offError).toHaveBeenCalledOnce();
@@ -171,14 +173,18 @@ it('blocks B until timed-out A is destroyed, then isolates B from A late complet
   const a = makeAd();
   let singleton = a;
   f.sdk.createRewardedVideoAd = vi.fn(() => singleton);
-  const provider = createNativeAdProvider(createDouyinSdk(f.sdk), 'placement', 50);
+  const adapter = createDouyinSdk(f.sdk);
+  expect(createDouyinSdk(f.sdk)).toBe(adapter);
+  const provider = createNativeAdProvider(adapter, 'placement', 50);
   const first = provider.show({ opportunityId: 'A' });
   await vi.advanceTimersByTimeAsync(50);
-  await expect(first).resolves.toEqual({ status: 'unavailable' });
-  const blocked = provider.show({ opportunityId: 'B' });
+  await expect(first).resolves.toEqual({ status: 'failed' });
+  provider.dispose();
+  const recreated = createNativeAdProvider(createDouyinSdk(f.sdk), 'placement', 50);
+  const blocked = recreated.show({ opportunityId: 'B' });
   await Promise.resolve();
   a.emit(); // Old code delivers A's late completion to B on the same singleton.
-  await expect(blocked).resolves.toEqual({ status: 'failed' });
+  await expect(blocked).resolves.toEqual({ status: 'unavailable' });
   expect(f.sdk.createRewardedVideoAd).toHaveBeenCalledOnce();
   expect(a.destroy).toHaveBeenCalledOnce();
 
@@ -188,7 +194,7 @@ it('blocks B until timed-out A is destroyed, then isolates B from A late complet
   const b = makeAd();
   singleton = b; // The SDK can now provide a genuinely new instance.
   const settled = vi.fn();
-  const next = provider.show({ opportunityId: 'B' });
+  const next = recreated.show({ opportunityId: 'B' });
   void next.then(settled);
   await Promise.resolve();
   a.emit();
@@ -231,14 +237,15 @@ it.each(['resolve', 'reject', 'throw'] as const)(
     f.sdk.createRewardedVideoAd = vi.fn(() => ad);
     const provider = createNativeAdProvider(createDouyinSdk(f.sdk), 'placement');
     await expect(provider.show({ opportunityId: 'A' })).resolves.toEqual({ status: 'completed' });
-    await expect(provider.show({ opportunityId: 'B' })).resolves.toEqual({ status: 'failed' });
+    await expect(provider.show({ opportunityId: 'B' })).resolves.toEqual({ status: 'unavailable' });
     expect(f.sdk.createRewardedVideoAd).toHaveBeenCalledOnce();
     expect(ad.destroy).toHaveBeenCalledOnce();
     if (mode === 'reject') reject(new Error('destroy rejected'));
     else resolve();
-    await Promise.resolve();
+    if (mode === 'resolve') await vi.waitFor(() => expect(provider.available).toBe(true));
+    else await Promise.resolve();
     await expect(provider.show({ opportunityId: 'B' })).resolves.toEqual({
-      status: mode === 'resolve' ? 'completed' : 'failed',
+      status: mode === 'resolve' ? 'completed' : 'unavailable',
     });
     expect(f.sdk.createRewardedVideoAd).toHaveBeenCalledTimes(mode === 'resolve' ? 2 : 1);
   },

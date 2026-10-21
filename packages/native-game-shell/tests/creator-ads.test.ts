@@ -83,7 +83,6 @@ describe('Creator advertising composition', () => {
   it.each([
     ['taptap', 'tap'],
     ['wechat', 'wx'],
-    ['douyin', 'tt'],
     ['bilibili', 'bl'],
   ] as const)('uses only the explicitly selected %s SDK', async (platform, key) => {
     const f = fixture();
@@ -92,6 +91,42 @@ describe('Creator advertising composition', () => {
     await start(f.ad);
     f.end({ isEnded: true });
     await expect(result).resolves.toEqual({ status: 'completed' });
+  });
+
+  it('normalizes tt direct show and retains its singleton across recreated Creator hosts', async () => {
+    const f = fixture();
+    let destroyed!: () => void;
+    const destruction = new Promise<void>((resolve) => {
+      destroyed = resolve;
+    });
+    const ad = { ...f.ad, load: undefined, destroy: vi.fn(() => destruction) };
+    const tt = {
+      createRewardedVideoAd: vi.fn(function (this: unknown, options: unknown) {
+        expect(this).toBe(tt);
+        expect(options).toEqual({ adUnitId: 'native-placement', multiton: false });
+        return ad;
+      }),
+    };
+    const config = { ...configuration, platform: 'douyin' as const };
+    const first = createCreatorAdBridge(config, { tt });
+    const result = first.offer(opportunity);
+    await start(f.ad);
+    first.dispose();
+    await expect(result).resolves.toEqual({ status: 'dismissed' });
+    const next = createCreatorAdBridge(config, { tt });
+    await expect(next.offer(opportunity)).resolves.toEqual({ status: 'unavailable' });
+    f.end({ isEnded: true });
+    expect(next.available).toBe(false);
+    expect(ad.destroy).toHaveBeenCalledOnce();
+    destroyed();
+    await vi.waitFor(() => expect(next.available).toBe(true));
+    const second = next.offer(opportunity);
+    await vi.waitFor(() => expect(f.ad.show).toHaveBeenCalledTimes(2));
+    f.end({ isEnded: false });
+    await expect(second).resolves.toEqual({ status: 'dismissed' });
+    expect(tt.createRewardedVideoAd).toHaveBeenCalledTimes(2);
+    expect(f.ad.load).not.toHaveBeenCalled();
+    expect(f.sdk.createCanvas).not.toHaveBeenCalled();
   });
 
   it('fails closed for missing, disabled, placeholder or mismatched platform configuration', async () => {

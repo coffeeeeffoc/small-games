@@ -540,8 +540,10 @@ test('Homebound requires local resources and enforces 4 MiB main plus strict 20 
 });
 
 test('Creator bridge source fingerprints belong to their actual target consumer', () => {
-  const bridge = '../../../packages/native-game-shell/src/creator-ads.ts';
-  assert(tapTapImportSourceFiles('homebound-station').includes(bridge));
-  assert.equal(tapTapImportSourceFiles('carding-car').includes(bridge), false);
-  assert.equal(tapTapImportSourceFiles('night-overwatch').includes(bridge), false);
+  for (const file of ['creator-ads.ts', 'douyin-ads.ts']) {
+    const bridge = '../../../packages/native-game-shell/src/' + file;
+    assert(tapTapImportSourceFiles('homebound-station').includes(bridge));
+    assert.equal(tapTapImportSourceFiles('carding-car').includes(bridge), false);
+    assert.equal(tapTapImportSourceFiles('night-overwatch').includes(bridge), false);
+  }
 });

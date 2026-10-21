@@ -1,7 +1,11 @@
+const normalized = new WeakMap();
+
 /** Small NativeSdk overlay. Every native method retains its actual tap receiver. */
 export function normalizeTapTapSdk(sdk) {
   if (!sdk || typeof sdk.createCanvas !== 'function')
     throw new Error('TapTap mini-game tap.createCanvas is unavailable');
+  const cached = normalized.get(sdk);
+  if (cached) return cached;
   const overrides = {
     getSystemInfoSync() {
       // TapTap recommends the synchronous getWindowInfo API for window/safe-area data.
@@ -24,7 +28,7 @@ export function normalizeTapTapSdk(sdk) {
     },
   };
   const bound = new Map();
-  return new Proxy(Object.create(null), {
+  const adapter = new Proxy(Object.create(null), {
     get(_target, key) {
       if (Object.hasOwn(overrides, key)) return overrides[key];
       const value = Reflect.get(sdk, key, sdk);
@@ -47,4 +51,6 @@ export function normalizeTapTapSdk(sdk) {
       return Reflect.set(sdk, key, value, sdk);
     },
   });
+  normalized.set(sdk, adapter);
+  return adapter;
 }

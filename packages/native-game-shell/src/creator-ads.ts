@@ -1,6 +1,7 @@
 import { createAdRuntime, type AdRuntimeOptions } from '@coffeeeeffoc/ad-runtime';
 import type { AdvertisingPort, RewardOpportunity } from '@coffeeeeffoc/game-contract';
 import { createNativeAdProvider, type NativeAdvertisingSdk } from './ads.js';
+import { normalizeDouyinAdvertisingSdk, type DouyinAdvertisingSdk } from './douyin-ads.js';
 
 const globals = { taptap: 'tap', wechat: 'wx', douyin: 'tt', bilibili: 'bl' } as const;
 export type CreatorAdPlatform = keyof typeof globals;
@@ -16,9 +17,10 @@ export type CreatorAdBridge = AdvertisingPort & {
   cancel(): void;
   dispose(): void;
 };
-export type CreatorAdEnvironment = Partial<
-  Record<(typeof globals)[CreatorAdPlatform], NativeAdvertisingSdk>
-> & { SmallGamesRewardAds?: CreatorAdBridge };
+export type CreatorAdEnvironment = Partial<Record<'tap' | 'wx' | 'bl', NativeAdvertisingSdk>> & {
+  tt?: DouyinAdvertisingSdk;
+  SmallGamesRewardAds?: CreatorAdBridge;
+};
 
 /** Shared Creator composition: no DOM, Canvas creation, or duplicated game lifecycle. */
 export function createCreatorAdBridge(
@@ -30,7 +32,10 @@ export function createCreatorAdBridge(
     ? globals[configuration.platform]
     : undefined;
   // Target selection is explicit; a missing Tap SDK can never fall through to wx/tt/bl.
-  const sdk = globalName && environment[globalName];
+  const sdk =
+    globalName === 'tt'
+      ? environment.tt && normalizeDouyinAdvertisingSdk(environment.tt)
+      : globalName && environment[globalName];
   const provider = createNativeAdProvider(
     sdk || {},
     configuration.adsEnabled === true ? configuration.adUnitId : undefined,

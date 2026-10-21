@@ -300,6 +300,7 @@ const tapTapImportCommonFiles = Object.freeze([
 const creatorAdsSourceFiles = Object.freeze([
   '../../../packages/native-game-shell/package.json',
   '../../../packages/native-game-shell/src/creator-ads.ts',
+  '../../../packages/native-game-shell/src/douyin-ads.ts',
   '../../../packages/native-game-shell/src/ads.ts',
   '../../../packages/ad-runtime/package.json',
   '../../../packages/ad-runtime/src/index.ts',

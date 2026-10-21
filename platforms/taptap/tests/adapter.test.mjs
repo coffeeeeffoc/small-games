@@ -51,6 +51,8 @@ test('the adapter preserves native receiver, frozen SDK, touch identity and stor
     },
   });
   const normalized = normalizeTapTapSdk(sdk);
+  assert.equal(normalizeTapTapSdk(sdk), normalized);
+  assert.notEqual(normalizeTapTapSdk({ ...sdk }), normalized);
   assert.equal(normalized.createCanvas(), 'native-canvas');
   assert.equal({ ...normalized }.createCanvas(), 'native-canvas');
   assert.equal(normalized.createCanvas, normalized.createCanvas);

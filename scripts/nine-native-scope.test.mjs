@@ -1224,6 +1224,7 @@ test('Homebound source and Creator-only ad bridge select TapTap without entering
     'games/local/homebound-station/assets/scripts/StationGame.ts',
     'games/local/homebound-station/settings/v2/packages/builder.json',
     'packages/native-game-shell/src/creator-ads.ts',
+    'packages/native-game-shell/src/douyin-ads.ts',
   ]) {
     const plan = nineNativeDependencyPlan({ ...input, changedPaths: [file] });
     assert.deepEqual(plan.targets, [

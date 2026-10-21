@@ -3,21 +3,22 @@ import {
   startNativeGame,
   type NativeSdk,
   type ReviewedModule,
-  type RewardedVideoAd,
+  normalizeDouyinAdvertisingSdk,
+  type DouyinAdvertisingSdk,
 } from '@coffeeeeffoc/native-game-shell';
 
 /** Only the tt capabilities used by the shared runtime; no wx/bl globals or DOM. */
-export interface DouyinSdk extends Omit<NativeSdk, 'getLogManager' | 'createRewardedVideoAd'> {
-  createRewardedVideoAd?(options: {
-    adUnitId: string;
-    multiton: false;
-  }): Omit<RewardedVideoAd, 'load' | 'destroy'> & { destroy(): Promise<void> };
-}
+export interface DouyinSdk
+  extends Omit<NativeSdk, 'getLogManager' | 'createRewardedVideoAd'>,
+    DouyinAdvertisingSdk {}
+
+const normalized = new WeakMap<DouyinSdk, NativeSdk>();
 
 /** Translate tt's singleton ad ownership without changing the shared native runtime. */
 export function createDouyinSdk(sdk: DouyinSdk): NativeSdk {
-  let adActive = false;
-  return {
+  const cached = normalized.get(sdk);
+  if (cached) return cached;
+  const adapter: NativeSdk = {
     createCanvas: () => sdk.createCanvas(),
     createImage: sdk.createImage?.bind(sdk),
     createInnerAudioContext: sdk.createInnerAudioContext?.bind(sdk),
@@ -41,41 +42,10 @@ export function createDouyinSdk(sdk: DouyinSdk): NativeSdk {
     // tt feedback logs require login; local single-player sessions do not request an account.
     getLogManager: () => ({ info: (...values) => console.info(...values) }),
     exitMiniProgram: (options) => sdk.exitMiniProgram(options),
-    createRewardedVideoAd: sdk.createRewardedVideoAd
-      ? ({ adUnitId }) => {
-          if (adActive) throw new Error('Douyin rewarded video is already active');
-          const ad = sdk.createRewardedVideoAd!({ adUnitId, multiton: false });
-          adActive = true;
-          let destroying = false;
-          return {
-            // tt recommends show directly; the shared provider still owns completion and cleanup.
-            load: async () => undefined,
-            show: () => ad.show(),
-            onClose: (listener) => ad.onClose(listener),
-            offClose: (listener) => ad.offClose(listener),
-            onError: (listener) => ad.onError(listener),
-            offError: (listener) => ad.offError(listener),
-            destroy() {
-              if (destroying) return;
-              destroying = true;
-              // Detaching listeners does not stop an old ad from notifying the next request.
-              try {
-                void ad.destroy().then(
-                  () => {
-                    adActive = false;
-                  },
-                  () => {
-                    /* Keep the lease: the old SDK operation may still be alive. */
-                  },
-                );
-              } catch {
-                // Missing/throwing destroy is also fail-closed, never a reusable singleton.
-              }
-            },
-          };
-        }
-      : undefined,
+    createRewardedVideoAd: normalizeDouyinAdvertisingSdk(sdk).createRewardedVideoAd,
   };
+  normalized.set(sdk, adapter);
+  return adapter;
 }
 
 export async function startDouyinGame(
