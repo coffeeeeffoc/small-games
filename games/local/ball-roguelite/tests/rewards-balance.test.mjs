@@ -9,6 +9,7 @@ import {
   targetProfile,
   FIELD,
   LIMITS,
+  PHYSICS,
   upgradeAvailable,
   chooseUpgrade,
   canReward,
@@ -63,7 +64,10 @@ test('hex face and vertex hits use the visible polygon normal and surface', () =
       assert.ok(Math.abs(hit.ny - Math.sqrt(3) / 2) < 1e-6);
       assert.ok(Math.abs(hit.y - c.y - (r - (hit.x - c.x) / Math.sqrt(3))) < 1e-6);
     }
-    assert.ok(Math.abs(Math.hypot(game.balls[0].vx, game.balls[0].vy) - FIELD.speed) < 1e-6);
+    assert.ok(
+      Math.hypot(game.balls[0].vx, game.balls[0].vy) >= PHYSICS.minSpeed &&
+        Math.hypot(game.balls[0].vx, game.balls[0].vy) <= PHYSICS.maxSpeed,
+    );
   }
 });
 
@@ -76,10 +80,10 @@ test('refraction only makes a small departing correction toward a nearby forward
   update(game, 0.25);
   const bounces = drainEvents(game).filter((e) => e.type === 'bounce');
   assert.ok(bounces.length);
-  assert.ok(bounces.every((e) => Math.abs(e.refraction) <= (8 * Math.PI) / 180 + 1e-10));
+  assert.ok(bounces.every((e) => Math.abs(e.refraction) <= (18 * Math.PI) / 180 + 1e-10));
   const first = bounces[0];
   assert.equal(first.brickId, 99);
-  assert.ok(Math.abs(first.refraction) <= (4 * Math.PI) / 180 + 1e-10);
+  assert.ok(Math.abs(first.refraction) <= (12 * Math.PI) / 180 + 1e-10);
   assert.ok(Math.abs(first.refraction) > 0);
   assert.ok(game.balls[0].vx * first.nx + game.balls[0].vy * first.ny > 0);
 });
@@ -192,11 +196,11 @@ test('legacy uncapped builds migrate their existing board effort and preserve id
   old.nextId = 101;
   const restored = restoreGame(old);
   assert.ok(restored);
-  assert.equal(restored.count, 36);
+  assert.equal(restored.count, 22);
   assert.equal(restored.damage, 4);
   assert.equal(restored.upgrades.power, 3);
   assert.equal(restored.upgrades.extra, 5);
-  assert.equal(restored.bricks[0].hp, Math.ceil((1000 * 144) / 1980));
+  assert.equal(restored.bricks[0].hp, Math.ceil((1000 * 88) / 1980));
   assert.equal(restored.seed, old.seed);
   assert.equal(restored.initialSeed, 1234);
   assert.deepEqual(restored.rewards, { resonance: 0, rescue: 0 });

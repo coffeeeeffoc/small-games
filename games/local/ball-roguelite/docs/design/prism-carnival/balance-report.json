@@ -1,0 +1,8090 @@
+{
+  "base": "ba3f3966",
+  "environment": "Node deterministic 240 Hz simulation; no advertisements; legal mobile aim directions",
+  "scope": "8 campaign levels and endless; three fixed seeds per strategy. Campaign final eclipse configuration uses 9 starting balls / 5 initial rows.",
+  "seeds": [
+    1234,
+    20261006,
+    998811
+  ],
+  "campaignRecords": [
+    {
+      "mode": "stardust",
+      "strategy": "fixed",
+      "seed": 1234,
+      "phase": "lost",
+      "turn": 9,
+      "score": 7,
+      "count": 6,
+      "damage": 1,
+      "contacts": 112,
+      "absorbed": 0,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 7,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 8,
+          "dx": 0,
+          "dy": -500
+        }
+      ]
+    },
+    {
+      "mode": "stardust",
+      "strategy": "fixed",
+      "seed": 20261006,
+      "phase": "lost",
+      "turn": 9,
+      "score": 7,
+      "count": 6,
+      "damage": 2,
+      "contacts": 112,
+      "absorbed": 0,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 7,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 8,
+          "dx": 0,
+          "dy": -500
+        }
+      ]
+    },
+    {
+      "mode": "stardust",
+      "strategy": "fixed",
+      "seed": 998811,
+      "phase": "lost",
+      "turn": 9,
+      "score": 7,
+      "count": 6,
+      "damage": 2,
+      "contacts": 112,
+      "absorbed": 0,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 7,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 8,
+          "dx": 0,
+          "dy": -500
+        }
+      ]
+    },
+    {
+      "mode": "stardust",
+      "strategy": "direct",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 10,
+      "score": 15,
+      "count": 6,
+      "damage": 1,
+      "contacts": 136,
+      "absorbed": 0,
+      "maxRow": 6,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -150,
+          "dy": -463
+        },
+        {
+          "turn": 1,
+          "dx": 170.4,
+          "dy": -413
+        },
+        {
+          "turn": 2,
+          "dx": -49.28,
+          "dy": -363
+        },
+        {
+          "turn": 3,
+          "dx": 53.901,
+          "dy": -313
+        },
+        {
+          "turn": 4,
+          "dx": -99.094,
+          "dy": -313
+        },
+        {
+          "turn": 5,
+          "dx": -267.724,
+          "dy": -263
+        },
+        {
+          "turn": 6,
+          "dx": -3.345,
+          "dy": -213
+        },
+        {
+          "turn": 7,
+          "dx": 51.74,
+          "dy": -213
+        },
+        {
+          "turn": 8,
+          "dx": -104.248,
+          "dy": -213
+        },
+        {
+          "turn": 9,
+          "dx": -31.828,
+          "dy": -213
+        }
+      ]
+    },
+    {
+      "mode": "stardust",
+      "strategy": "direct",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 10,
+      "score": 15,
+      "count": 6,
+      "damage": 2,
+      "contacts": 77,
+      "absorbed": 0,
+      "maxRow": 6,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -150,
+          "dy": -463
+        },
+        {
+          "turn": 1,
+          "dx": 170.4,
+          "dy": -413
+        },
+        {
+          "turn": 2,
+          "dx": -49.28,
+          "dy": -363
+        },
+        {
+          "turn": 3,
+          "dx": 53.901,
+          "dy": -313
+        },
+        {
+          "turn": 4,
+          "dx": -99.094,
+          "dy": -313
+        },
+        {
+          "turn": 5,
+          "dx": -267.724,
+          "dy": -263
+        },
+        {
+          "turn": 6,
+          "dx": 119.769,
+          "dy": -213
+        },
+        {
+          "turn": 7,
+          "dx": 116.259,
+          "dy": -263
+        },
+        {
+          "turn": 8,
+          "dx": -39.189,
+          "dy": -263
+        },
+        {
+          "turn": 9,
+          "dx": 61.973,
+          "dy": -213
+        }
+      ]
+    },
+    {
+      "mode": "stardust",
+      "strategy": "direct",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 10,
+      "score": 15,
+      "count": 6,
+      "damage": 2,
+      "contacts": 77,
+      "absorbed": 0,
+      "maxRow": 6,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -150,
+          "dy": -463
+        },
+        {
+          "turn": 1,
+          "dx": 170.4,
+          "dy": -413
+        },
+        {
+          "turn": 2,
+          "dx": -49.28,
+          "dy": -363
+        },
+        {
+          "turn": 3,
+          "dx": 53.901,
+          "dy": -313
+        },
+        {
+          "turn": 4,
+          "dx": -99.094,
+          "dy": -313
+        },
+        {
+          "turn": 5,
+          "dx": -267.724,
+          "dy": -263
+        },
+        {
+          "turn": 6,
+          "dx": 119.769,
+          "dy": -213
+        },
+        {
+          "turn": 7,
+          "dx": 116.259,
+          "dy": -263
+        },
+        {
+          "turn": 8,
+          "dx": -39.189,
+          "dy": -263
+        },
+        {
+          "turn": 9,
+          "dx": 61.973,
+          "dy": -213
+        }
+      ]
+    },
+    {
+      "mode": "stardust",
+      "strategy": "bank",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 5,
+      "score": 15,
+      "count": 6,
+      "damage": 1,
+      "contacts": 280,
+      "absorbed": 0,
+      "maxRow": 2,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -119.549,
+          "dy": -485.498
+        },
+        {
+          "turn": 1,
+          "dx": 411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 2,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 3,
+          "dx": 60.213,
+          "dy": -496.361
+        },
+        {
+          "turn": 4,
+          "dx": -467.309,
+          "dy": -177.825
+        }
+      ]
+    },
+    {
+      "mode": "stardust",
+      "strategy": "bank",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 5,
+      "score": 15,
+      "count": 6,
+      "damage": 1,
+      "contacts": 280,
+      "absorbed": 0,
+      "maxRow": 2,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -119.549,
+          "dy": -485.498
+        },
+        {
+          "turn": 1,
+          "dx": 411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 2,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 3,
+          "dx": 60.213,
+          "dy": -496.361
+        },
+        {
+          "turn": 4,
+          "dx": -467.309,
+          "dy": -177.825
+        }
+      ]
+    },
+    {
+      "mode": "stardust",
+      "strategy": "bank",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 5,
+      "score": 15,
+      "count": 6,
+      "damage": 1,
+      "contacts": 280,
+      "absorbed": 0,
+      "maxRow": 2,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -119.549,
+          "dy": -485.498
+        },
+        {
+          "turn": 1,
+          "dx": 411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 2,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 3,
+          "dx": 60.213,
+          "dy": -496.361
+        },
+        {
+          "turn": 4,
+          "dx": -467.309,
+          "dy": -177.825
+        }
+      ]
+    },
+    {
+      "mode": "prism",
+      "strategy": "fixed",
+      "seed": 1234,
+      "phase": "lost",
+      "turn": 8,
+      "score": 3,
+      "count": 7,
+      "damage": 1,
+      "contacts": 55,
+      "absorbed": 3,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 7,
+          "dx": 0,
+          "dy": -500
+        }
+      ]
+    },
+    {
+      "mode": "prism",
+      "strategy": "fixed",
+      "seed": 20261006,
+      "phase": "lost",
+      "turn": 8,
+      "score": 3,
+      "count": 7,
+      "damage": 2,
+      "contacts": 55,
+      "absorbed": 3,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 7,
+          "dx": 0,
+          "dy": -500
+        }
+      ]
+    },
+    {
+      "mode": "prism",
+      "strategy": "fixed",
+      "seed": 998811,
+      "phase": "lost",
+      "turn": 8,
+      "score": 3,
+      "count": 9,
+      "damage": 1,
+      "contacts": 61,
+      "absorbed": 3,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 7,
+          "dx": 0,
+          "dy": -500
+        }
+      ]
+    },
+    {
+      "mode": "prism",
+      "strategy": "direct",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 11,
+      "score": 21,
+      "count": 7,
+      "damage": 2,
+      "contacts": 259,
+      "absorbed": 9,
+      "maxRow": 7,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -413
+        },
+        {
+          "turn": 1,
+          "dx": -150,
+          "dy": -363
+        },
+        {
+          "turn": 2,
+          "dx": 163.058,
+          "dy": -313
+        },
+        {
+          "turn": 3,
+          "dx": 95.32,
+          "dy": -263
+        },
+        {
+          "turn": 4,
+          "dx": -8.378,
+          "dy": -213
+        },
+        {
+          "turn": 5,
+          "dx": -58.248,
+          "dy": -213
+        },
+        {
+          "turn": 6,
+          "dx": -111.044,
+          "dy": -213
+        },
+        {
+          "turn": 7,
+          "dx": -128.963,
+          "dy": -163
+        },
+        {
+          "turn": 8,
+          "dx": -113.38,
+          "dy": -163
+        },
+        {
+          "turn": 9,
+          "dx": 5.863,
+          "dy": -163
+        },
+        {
+          "turn": 10,
+          "dx": 67.392,
+          "dy": -163
+        }
+      ]
+    },
+    {
+      "mode": "prism",
+      "strategy": "direct",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 11,
+      "score": 21,
+      "count": 7,
+      "damage": 1,
+      "contacts": 259,
+      "absorbed": 9,
+      "maxRow": 7,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -413
+        },
+        {
+          "turn": 1,
+          "dx": -150,
+          "dy": -363
+        },
+        {
+          "turn": 2,
+          "dx": 163.058,
+          "dy": -313
+        },
+        {
+          "turn": 3,
+          "dx": 95.32,
+          "dy": -263
+        },
+        {
+          "turn": 4,
+          "dx": -8.378,
+          "dy": -213
+        },
+        {
+          "turn": 5,
+          "dx": -58.248,
+          "dy": -213
+        },
+        {
+          "turn": 6,
+          "dx": -111.044,
+          "dy": -213
+        },
+        {
+          "turn": 7,
+          "dx": -128.963,
+          "dy": -163
+        },
+        {
+          "turn": 8,
+          "dx": -113.38,
+          "dy": -163
+        },
+        {
+          "turn": 9,
+          "dx": 5.863,
+          "dy": -163
+        },
+        {
+          "turn": 10,
+          "dx": 67.392,
+          "dy": -163
+        }
+      ]
+    },
+    {
+      "mode": "prism",
+      "strategy": "direct",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 10,
+      "score": 21,
+      "count": 7,
+      "damage": 2,
+      "contacts": 188,
+      "absorbed": 5,
+      "maxRow": 7,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -413
+        },
+        {
+          "turn": 1,
+          "dx": -150,
+          "dy": -363
+        },
+        {
+          "turn": 2,
+          "dx": 163.058,
+          "dy": -313
+        },
+        {
+          "turn": 3,
+          "dx": 95.32,
+          "dy": -263
+        },
+        {
+          "turn": 4,
+          "dx": -8.378,
+          "dy": -213
+        },
+        {
+          "turn": 5,
+          "dx": -58.248,
+          "dy": -213
+        },
+        {
+          "turn": 6,
+          "dx": -106.943,
+          "dy": -213
+        },
+        {
+          "turn": 7,
+          "dx": -36.449,
+          "dy": -163
+        },
+        {
+          "turn": 8,
+          "dx": 63.85,
+          "dy": -163
+        },
+        {
+          "turn": 9,
+          "dx": 13.245,
+          "dy": -213
+        }
+      ]
+    },
+    {
+      "mode": "prism",
+      "strategy": "bank",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 5,
+      "score": 21,
+      "count": 7,
+      "damage": 1,
+      "contacts": 382,
+      "absorbed": 9,
+      "maxRow": 5,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 1,
+          "dx": 373.996,
+          "dy": -331.854
+        },
+        {
+          "turn": 2,
+          "dx": 177.146,
+          "dy": -467.568
+        },
+        {
+          "turn": 3,
+          "dx": -331.31,
+          "dy": -374.478
+        },
+        {
+          "turn": 4,
+          "dx": -485.323,
+          "dy": -120.255
+        }
+      ]
+    },
+    {
+      "mode": "prism",
+      "strategy": "bank",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 5,
+      "score": 21,
+      "count": 7,
+      "damage": 1,
+      "contacts": 382,
+      "absorbed": 9,
+      "maxRow": 5,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 1,
+          "dx": 373.996,
+          "dy": -331.854
+        },
+        {
+          "turn": 2,
+          "dx": 177.146,
+          "dy": -467.568
+        },
+        {
+          "turn": 3,
+          "dx": -331.31,
+          "dy": -374.478
+        },
+        {
+          "turn": 4,
+          "dx": -485.323,
+          "dy": -120.255
+        }
+      ]
+    },
+    {
+      "mode": "prism",
+      "strategy": "bank",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 5,
+      "score": 21,
+      "count": 7,
+      "damage": 1,
+      "contacts": 382,
+      "absorbed": 9,
+      "maxRow": 5,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 1,
+          "dx": 373.996,
+          "dy": -331.854
+        },
+        {
+          "turn": 2,
+          "dx": 177.146,
+          "dy": -467.568
+        },
+        {
+          "turn": 3,
+          "dx": -331.31,
+          "dy": -374.478
+        },
+        {
+          "turn": 4,
+          "dx": -485.323,
+          "dy": -120.255
+        }
+      ]
+    },
+    {
+      "mode": "flare",
+      "strategy": "fixed",
+      "seed": 1234,
+      "phase": "lost",
+      "turn": 8,
+      "score": 4,
+      "count": 10,
+      "damage": 1,
+      "contacts": 73,
+      "absorbed": 5,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 7,
+          "dx": 0,
+          "dy": -500
+        }
+      ]
+    },
+    {
+      "mode": "flare",
+      "strategy": "fixed",
+      "seed": 20261006,
+      "phase": "lost",
+      "turn": 8,
+      "score": 4,
+      "count": 10,
+      "damage": 1,
+      "contacts": 73,
+      "absorbed": 5,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 7,
+          "dx": 0,
+          "dy": -500
+        }
+      ]
+    },
+    {
+      "mode": "flare",
+      "strategy": "fixed",
+      "seed": 998811,
+      "phase": "lost",
+      "turn": 8,
+      "score": 4,
+      "count": 8,
+      "damage": 1,
+      "contacts": 69,
+      "absorbed": 5,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 7,
+          "dx": 0,
+          "dy": -500
+        }
+      ]
+    },
+    {
+      "mode": "flare",
+      "strategy": "direct",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 10,
+      "score": 26,
+      "count": 8,
+      "damage": 1,
+      "contacts": 278,
+      "absorbed": 17,
+      "maxRow": 9,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -50,
+          "dy": -413
+        },
+        {
+          "turn": 1,
+          "dx": 54.706,
+          "dy": -363
+        },
+        {
+          "turn": 2,
+          "dx": -99.209,
+          "dy": -313
+        },
+        {
+          "turn": 3,
+          "dx": 106.384,
+          "dy": -263
+        },
+        {
+          "turn": 4,
+          "dx": -97.945,
+          "dy": -263
+        },
+        {
+          "turn": 5,
+          "dx": -7.439,
+          "dy": -213
+        },
+        {
+          "turn": 6,
+          "dx": 77.871,
+          "dy": -163
+        },
+        {
+          "turn": 7,
+          "dx": -142.623,
+          "dy": -113
+        },
+        {
+          "turn": 8,
+          "dx": 139.531,
+          "dy": -63
+        },
+        {
+          "turn": 9,
+          "dx": -17.297,
+          "dy": -213
+        }
+      ]
+    },
+    {
+      "mode": "flare",
+      "strategy": "direct",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 13,
+      "score": 26,
+      "count": 8,
+      "damage": 2,
+      "contacts": 248,
+      "absorbed": 15,
+      "maxRow": 8,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -50,
+          "dy": -413
+        },
+        {
+          "turn": 1,
+          "dx": 54.706,
+          "dy": -363
+        },
+        {
+          "turn": 2,
+          "dx": -99.209,
+          "dy": -313
+        },
+        {
+          "turn": 3,
+          "dx": 106.384,
+          "dy": -263
+        },
+        {
+          "turn": 4,
+          "dx": -97.945,
+          "dy": -263
+        },
+        {
+          "turn": 5,
+          "dx": -7.439,
+          "dy": -213
+        },
+        {
+          "turn": 6,
+          "dx": -6.124,
+          "dy": -163
+        },
+        {
+          "turn": 7,
+          "dx": -156.08,
+          "dy": -113
+        },
+        {
+          "turn": 8,
+          "dx": -202.869,
+          "dy": -163
+        },
+        {
+          "turn": 9,
+          "dx": -93.8,
+          "dy": -113
+        },
+        {
+          "turn": 10,
+          "dx": -43.449,
+          "dy": -113
+        },
+        {
+          "turn": 11,
+          "dx": 219.957,
+          "dy": -113
+        },
+        {
+          "turn": 12,
+          "dx": -185.645,
+          "dy": -113
+        }
+      ]
+    },
+    {
+      "mode": "flare",
+      "strategy": "direct",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 13,
+      "score": 26,
+      "count": 8,
+      "damage": 2,
+      "contacts": 193,
+      "absorbed": 15,
+      "maxRow": 8,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -50,
+          "dy": -413
+        },
+        {
+          "turn": 1,
+          "dx": 54.706,
+          "dy": -363
+        },
+        {
+          "turn": 2,
+          "dx": -99.209,
+          "dy": -313
+        },
+        {
+          "turn": 3,
+          "dx": 106.384,
+          "dy": -263
+        },
+        {
+          "turn": 4,
+          "dx": -97.945,
+          "dy": -263
+        },
+        {
+          "turn": 5,
+          "dx": -7.439,
+          "dy": -213
+        },
+        {
+          "turn": 6,
+          "dx": -6.124,
+          "dy": -163
+        },
+        {
+          "turn": 7,
+          "dx": -156.08,
+          "dy": -113
+        },
+        {
+          "turn": 8,
+          "dx": -202.869,
+          "dy": -163
+        },
+        {
+          "turn": 9,
+          "dx": -93.8,
+          "dy": -113
+        },
+        {
+          "turn": 10,
+          "dx": -43.449,
+          "dy": -113
+        },
+        {
+          "turn": 11,
+          "dx": 6.476,
+          "dy": -113
+        },
+        {
+          "turn": 12,
+          "dx": -243.503,
+          "dy": -113
+        }
+      ]
+    },
+    {
+      "mode": "flare",
+      "strategy": "bank",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 6,
+      "score": 26,
+      "count": 8,
+      "damage": 2,
+      "contacts": 360,
+      "absorbed": 9,
+      "maxRow": 3,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -283.802,
+          "dy": -411.651
+        },
+        {
+          "turn": 1,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 2,
+          "dx": 331.31,
+          "dy": -374.478
+        },
+        {
+          "turn": 3,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": -442.494,
+          "dy": -232.807
+        }
+      ]
+    },
+    {
+      "mode": "flare",
+      "strategy": "bank",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 6,
+      "score": 26,
+      "count": 10,
+      "damage": 1,
+      "contacts": 395,
+      "absorbed": 9,
+      "maxRow": 3,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -283.802,
+          "dy": -411.651
+        },
+        {
+          "turn": 1,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 2,
+          "dx": 331.31,
+          "dy": -374.478
+        },
+        {
+          "turn": 3,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": -442.494,
+          "dy": -232.807
+        }
+      ]
+    },
+    {
+      "mode": "flare",
+      "strategy": "bank",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 6,
+      "score": 26,
+      "count": 8,
+      "damage": 2,
+      "contacts": 360,
+      "absorbed": 9,
+      "maxRow": 3,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -283.802,
+          "dy": -411.651
+        },
+        {
+          "turn": 1,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 2,
+          "dx": 331.31,
+          "dy": -374.478
+        },
+        {
+          "turn": 3,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": -442.494,
+          "dy": -232.807
+        }
+      ]
+    },
+    {
+      "mode": "frost",
+      "strategy": "fixed",
+      "seed": 1234,
+      "phase": "lost",
+      "turn": 7,
+      "score": 4,
+      "count": 9,
+      "damage": 1,
+      "contacts": 86,
+      "absorbed": 8,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": -500
+        }
+      ]
+    },
+    {
+      "mode": "frost",
+      "strategy": "fixed",
+      "seed": 20261006,
+      "phase": "lost",
+      "turn": 7,
+      "score": 4,
+      "count": 9,
+      "damage": 2,
+      "contacts": 86,
+      "absorbed": 8,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": -500
+        }
+      ]
+    },
+    {
+      "mode": "frost",
+      "strategy": "fixed",
+      "seed": 998811,
+      "phase": "lost",
+      "turn": 7,
+      "score": 4,
+      "count": 9,
+      "damage": 2,
+      "contacts": 86,
+      "absorbed": 8,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": -500
+        }
+      ]
+    },
+    {
+      "mode": "frost",
+      "strategy": "direct",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 14,
+      "score": 27,
+      "count": 11,
+      "damage": 1,
+      "contacts": 590,
+      "absorbed": 26,
+      "maxRow": 9,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -100,
+          "dy": -363
+        },
+        {
+          "turn": 1,
+          "dx": -142.267,
+          "dy": -313
+        },
+        {
+          "turn": 2,
+          "dx": 117.02,
+          "dy": -263
+        },
+        {
+          "turn": 3,
+          "dx": 11.918,
+          "dy": -213
+        },
+        {
+          "turn": 4,
+          "dx": 161.684,
+          "dy": -163
+        },
+        {
+          "turn": 5,
+          "dx": -192.71,
+          "dy": -163
+        },
+        {
+          "turn": 6,
+          "dx": 142.649,
+          "dy": -113
+        },
+        {
+          "turn": 7,
+          "dx": -154.956,
+          "dy": -113
+        },
+        {
+          "turn": 8,
+          "dx": -108.613,
+          "dy": -63
+        },
+        {
+          "turn": 9,
+          "dx": 62.586,
+          "dy": -63
+        },
+        {
+          "turn": 10,
+          "dx": 115.03,
+          "dy": -63
+        },
+        {
+          "turn": 11,
+          "dx": -233.088,
+          "dy": -63
+        },
+        {
+          "turn": 12,
+          "dx": -56.766,
+          "dy": -63
+        },
+        {
+          "turn": 13,
+          "dx": -145.897,
+          "dy": -63
+        }
+      ]
+    },
+    {
+      "mode": "frost",
+      "strategy": "direct",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 11,
+      "score": 27,
+      "count": 9,
+      "damage": 2,
+      "contacts": 285,
+      "absorbed": 19,
+      "maxRow": 9,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -100,
+          "dy": -363
+        },
+        {
+          "turn": 1,
+          "dx": -142.267,
+          "dy": -313
+        },
+        {
+          "turn": 2,
+          "dx": 117.02,
+          "dy": -263
+        },
+        {
+          "turn": 3,
+          "dx": 11.918,
+          "dy": -213
+        },
+        {
+          "turn": 4,
+          "dx": 161.684,
+          "dy": -163
+        },
+        {
+          "turn": 5,
+          "dx": -192.71,
+          "dy": -163
+        },
+        {
+          "turn": 6,
+          "dx": -33.738,
+          "dy": -113
+        },
+        {
+          "turn": 7,
+          "dx": 66.161,
+          "dy": -113
+        },
+        {
+          "turn": 8,
+          "dx": -133.753,
+          "dy": -63
+        },
+        {
+          "turn": 9,
+          "dx": -232.592,
+          "dy": -113
+        },
+        {
+          "turn": 10,
+          "dx": -219.013,
+          "dy": -163
+        }
+      ]
+    },
+    {
+      "mode": "frost",
+      "strategy": "direct",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 14,
+      "score": 27,
+      "count": 11,
+      "damage": 1,
+      "contacts": 550,
+      "absorbed": 29,
+      "maxRow": 9,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -100,
+          "dy": -363
+        },
+        {
+          "turn": 1,
+          "dx": -142.267,
+          "dy": -313
+        },
+        {
+          "turn": 2,
+          "dx": 117.02,
+          "dy": -263
+        },
+        {
+          "turn": 3,
+          "dx": 11.918,
+          "dy": -213
+        },
+        {
+          "turn": 4,
+          "dx": 161.684,
+          "dy": -163
+        },
+        {
+          "turn": 5,
+          "dx": -192.71,
+          "dy": -163
+        },
+        {
+          "turn": 6,
+          "dx": -33.738,
+          "dy": -113
+        },
+        {
+          "turn": 7,
+          "dx": -233.839,
+          "dy": -113
+        },
+        {
+          "turn": 8,
+          "dx": 80.018,
+          "dy": -63
+        },
+        {
+          "turn": 9,
+          "dx": -19.165,
+          "dy": -63
+        },
+        {
+          "turn": 10,
+          "dx": 80.555,
+          "dy": -63
+        },
+        {
+          "turn": 11,
+          "dx": -206.268,
+          "dy": -113
+        },
+        {
+          "turn": 12,
+          "dx": 250.427,
+          "dy": -63
+        },
+        {
+          "turn": 13,
+          "dx": 67.329,
+          "dy": -63
+        }
+      ]
+    },
+    {
+      "mode": "frost",
+      "strategy": "bank",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 7,
+      "score": 27,
+      "count": 9,
+      "damage": 1,
+      "contacts": 846,
+      "absorbed": 26,
+      "maxRow": 5,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -373.996,
+          "dy": -331.854
+        },
+        {
+          "turn": 1,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 2,
+          "dx": 232.163,
+          "dy": -442.832
+        },
+        {
+          "turn": 3,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 4,
+          "dx": -373.996,
+          "dy": -331.854
+        },
+        {
+          "turn": 5,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 6,
+          "dx": -496.273,
+          "dy": -60.935
+        }
+      ]
+    },
+    {
+      "mode": "frost",
+      "strategy": "bank",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 7,
+      "score": 27,
+      "count": 11,
+      "damage": 1,
+      "contacts": 826,
+      "absorbed": 26,
+      "maxRow": 5,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -373.996,
+          "dy": -331.854
+        },
+        {
+          "turn": 1,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 2,
+          "dx": 232.163,
+          "dy": -442.832
+        },
+        {
+          "turn": 3,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 4,
+          "dx": -373.996,
+          "dy": -331.854
+        },
+        {
+          "turn": 5,
+          "dx": 177.146,
+          "dy": -467.568
+        },
+        {
+          "turn": 6,
+          "dx": -496.273,
+          "dy": -60.935
+        }
+      ]
+    },
+    {
+      "mode": "frost",
+      "strategy": "bank",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 7,
+      "score": 27,
+      "count": 9,
+      "damage": 1,
+      "contacts": 783,
+      "absorbed": 26,
+      "maxRow": 5,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -373.996,
+          "dy": -331.854
+        },
+        {
+          "turn": 1,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 2,
+          "dx": 232.163,
+          "dy": -442.832
+        },
+        {
+          "turn": 3,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 4,
+          "dx": -373.996,
+          "dy": -331.854
+        },
+        {
+          "turn": 5,
+          "dx": 177.146,
+          "dy": -467.568
+        },
+        {
+          "turn": 6,
+          "dx": -496.273,
+          "dy": -60.935
+        }
+      ]
+    },
+    {
+      "mode": "void",
+      "strategy": "fixed",
+      "seed": 1234,
+      "phase": "lost",
+      "turn": 7,
+      "score": 8,
+      "count": 12,
+      "damage": 1,
+      "contacts": 107,
+      "absorbed": 20,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": -500
+        }
+      ]
+    },
+    {
+      "mode": "void",
+      "strategy": "fixed",
+      "seed": 20261006,
+      "phase": "lost",
+      "turn": 7,
+      "score": 8,
+      "count": 10,
+      "damage": 2,
+      "contacts": 86,
+      "absorbed": 17,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": -500
+        }
+      ]
+    },
+    {
+      "mode": "void",
+      "strategy": "fixed",
+      "seed": 998811,
+      "phase": "lost",
+      "turn": 7,
+      "score": 8,
+      "count": 10,
+      "damage": 2,
+      "contacts": 86,
+      "absorbed": 17,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": -500
+        }
+      ]
+    },
+    {
+      "mode": "void",
+      "strategy": "direct",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 13,
+      "score": 30,
+      "count": 12,
+      "damage": 2,
+      "contacts": 368,
+      "absorbed": 25,
+      "maxRow": 9,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -363
+        },
+        {
+          "turn": 1,
+          "dx": -100,
+          "dy": -313
+        },
+        {
+          "turn": 2,
+          "dx": -94.349,
+          "dy": -263
+        },
+        {
+          "turn": 3,
+          "dx": 109.296,
+          "dy": -213
+        },
+        {
+          "turn": 4,
+          "dx": -44.006,
+          "dy": -213
+        },
+        {
+          "turn": 5,
+          "dx": -315.695,
+          "dy": -163
+        },
+        {
+          "turn": 6,
+          "dx": -76.049,
+          "dy": -113
+        },
+        {
+          "turn": 7,
+          "dx": 24.081,
+          "dy": -63
+        },
+        {
+          "turn": 8,
+          "dx": -25.57,
+          "dy": -63
+        },
+        {
+          "turn": 9,
+          "dx": -75.939,
+          "dy": -113
+        },
+        {
+          "turn": 10,
+          "dx": -225.925,
+          "dy": -113
+        },
+        {
+          "turn": 11,
+          "dx": 198.162,
+          "dy": -63
+        },
+        {
+          "turn": 12,
+          "dx": 57.375,
+          "dy": -113
+        }
+      ]
+    },
+    {
+      "mode": "void",
+      "strategy": "direct",
+      "seed": 20261006,
+      "phase": "lost",
+      "turn": 8,
+      "score": 19,
+      "count": 10,
+      "damage": 1,
+      "contacts": 251,
+      "absorbed": 31,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -363
+        },
+        {
+          "turn": 1,
+          "dx": -100,
+          "dy": -313
+        },
+        {
+          "turn": 2,
+          "dx": -94.349,
+          "dy": -263
+        },
+        {
+          "turn": 3,
+          "dx": 109.296,
+          "dy": -213
+        },
+        {
+          "turn": 4,
+          "dx": -44.006,
+          "dy": -213
+        },
+        {
+          "turn": 5,
+          "dx": -315.695,
+          "dy": -163
+        },
+        {
+          "turn": 6,
+          "dx": 30.225,
+          "dy": -113
+        },
+        {
+          "turn": 7,
+          "dx": 113.092,
+          "dy": -63
+        }
+      ]
+    },
+    {
+      "mode": "void",
+      "strategy": "direct",
+      "seed": 998811,
+      "phase": "lost",
+      "turn": 10,
+      "score": 22,
+      "count": 12,
+      "damage": 1,
+      "contacts": 285,
+      "absorbed": 28,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -363
+        },
+        {
+          "turn": 1,
+          "dx": -100,
+          "dy": -313
+        },
+        {
+          "turn": 2,
+          "dx": -94.349,
+          "dy": -263
+        },
+        {
+          "turn": 3,
+          "dx": 109.296,
+          "dy": -213
+        },
+        {
+          "turn": 4,
+          "dx": -44.006,
+          "dy": -213
+        },
+        {
+          "turn": 5,
+          "dx": -315.695,
+          "dy": -163
+        },
+        {
+          "turn": 6,
+          "dx": -76.049,
+          "dy": -113
+        },
+        {
+          "turn": 7,
+          "dx": 24.081,
+          "dy": -63
+        },
+        {
+          "turn": 8,
+          "dx": -25.57,
+          "dy": -63
+        },
+        {
+          "turn": 9,
+          "dx": -25.939,
+          "dy": -63
+        }
+      ]
+    },
+    {
+      "mode": "void",
+      "strategy": "bank",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 7,
+      "score": 30,
+      "count": 10,
+      "damage": 1,
+      "contacts": 581,
+      "absorbed": 31,
+      "maxRow": 5,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 1,
+          "dx": -62.699,
+          "dy": -363
+        },
+        {
+          "turn": 2,
+          "dx": 168.221,
+          "dy": -513
+        },
+        {
+          "turn": 3,
+          "dx": 144.453,
+          "dy": -463
+        },
+        {
+          "turn": 4,
+          "dx": 331.31,
+          "dy": -374.478
+        },
+        {
+          "turn": 5,
+          "dx": 216.463,
+          "dy": -413
+        },
+        {
+          "turn": 6,
+          "dx": -485.323,
+          "dy": -120.255
+        }
+      ]
+    },
+    {
+      "mode": "void",
+      "strategy": "bank",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 7,
+      "score": 30,
+      "count": 10,
+      "damage": 1,
+      "contacts": 581,
+      "absorbed": 31,
+      "maxRow": 5,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 1,
+          "dx": -62.699,
+          "dy": -363
+        },
+        {
+          "turn": 2,
+          "dx": 168.221,
+          "dy": -513
+        },
+        {
+          "turn": 3,
+          "dx": 144.453,
+          "dy": -463
+        },
+        {
+          "turn": 4,
+          "dx": 331.31,
+          "dy": -374.478
+        },
+        {
+          "turn": 5,
+          "dx": 216.463,
+          "dy": -413
+        },
+        {
+          "turn": 6,
+          "dx": -485.323,
+          "dy": -120.255
+        }
+      ]
+    },
+    {
+      "mode": "void",
+      "strategy": "bank",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 7,
+      "score": 30,
+      "count": 10,
+      "damage": 2,
+      "contacts": 537,
+      "absorbed": 30,
+      "maxRow": 5,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 1,
+          "dx": -62.699,
+          "dy": -363
+        },
+        {
+          "turn": 2,
+          "dx": 168.221,
+          "dy": -513
+        },
+        {
+          "turn": 3,
+          "dx": 144.453,
+          "dy": -463
+        },
+        {
+          "turn": 4,
+          "dx": 331.31,
+          "dy": -374.478
+        },
+        {
+          "turn": 5,
+          "dx": 216.463,
+          "dy": -413
+        },
+        {
+          "turn": 6,
+          "dx": -485.323,
+          "dy": -120.255
+        }
+      ]
+    },
+    {
+      "mode": "orbit",
+      "strategy": "fixed",
+      "seed": 1234,
+      "phase": "lost",
+      "turn": 7,
+      "score": 5,
+      "count": 11,
+      "damage": 1,
+      "contacts": 86,
+      "absorbed": 13,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": -500
+        }
+      ]
+    },
+    {
+      "mode": "orbit",
+      "strategy": "fixed",
+      "seed": 20261006,
+      "phase": "lost",
+      "turn": 7,
+      "score": 22,
+      "count": 12,
+      "damage": 2,
+      "contacts": 156,
+      "absorbed": 18,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": -500
+        }
+      ]
+    },
+    {
+      "mode": "orbit",
+      "strategy": "fixed",
+      "seed": 998811,
+      "phase": "lost",
+      "turn": 7,
+      "score": 5,
+      "count": 11,
+      "damage": 1,
+      "contacts": 86,
+      "absorbed": 13,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": -500
+        }
+      ]
+    },
+    {
+      "mode": "orbit",
+      "strategy": "direct",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 13,
+      "score": 37,
+      "count": 13,
+      "damage": 2,
+      "contacts": 368,
+      "absorbed": 28,
+      "maxRow": 9,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -50,
+          "dy": -363
+        },
+        {
+          "turn": 1,
+          "dx": 53.56,
+          "dy": -313
+        },
+        {
+          "turn": 2,
+          "dx": -149.2,
+          "dy": -263
+        },
+        {
+          "turn": 3,
+          "dx": 158.306,
+          "dy": -213
+        },
+        {
+          "turn": 4,
+          "dx": -97.907,
+          "dy": -213
+        },
+        {
+          "turn": 5,
+          "dx": -145.071,
+          "dy": -163
+        },
+        {
+          "turn": 6,
+          "dx": 35.542,
+          "dy": -113
+        },
+        {
+          "turn": 7,
+          "dx": 135.621,
+          "dy": -63
+        },
+        {
+          "turn": 8,
+          "dx": 184.644,
+          "dy": -63
+        },
+        {
+          "turn": 9,
+          "dx": 54.342,
+          "dy": -113
+        },
+        {
+          "turn": 10,
+          "dx": 4.432,
+          "dy": -113
+        },
+        {
+          "turn": 11,
+          "dx": -195.549,
+          "dy": -113
+        },
+        {
+          "turn": 12,
+          "dx": 62.395,
+          "dy": -163
+        }
+      ]
+    },
+    {
+      "mode": "orbit",
+      "strategy": "direct",
+      "seed": 20261006,
+      "phase": "lost",
+      "turn": 8,
+      "score": 7,
+      "count": 11,
+      "damage": 1,
+      "contacts": 123,
+      "absorbed": 19,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -50,
+          "dy": -363
+        },
+        {
+          "turn": 1,
+          "dx": 53.56,
+          "dy": -313
+        },
+        {
+          "turn": 2,
+          "dx": -149.2,
+          "dy": -263
+        },
+        {
+          "turn": 3,
+          "dx": 158.306,
+          "dy": -213
+        },
+        {
+          "turn": 4,
+          "dx": -97.907,
+          "dy": -213
+        },
+        {
+          "turn": 5,
+          "dx": -145.071,
+          "dy": -163
+        },
+        {
+          "turn": 6,
+          "dx": 35.542,
+          "dy": -113
+        },
+        {
+          "turn": 7,
+          "dx": 135.621,
+          "dy": -63
+        }
+      ]
+    },
+    {
+      "mode": "orbit",
+      "strategy": "direct",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 13,
+      "score": 37,
+      "count": 13,
+      "damage": 2,
+      "contacts": 368,
+      "absorbed": 28,
+      "maxRow": 9,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -50,
+          "dy": -363
+        },
+        {
+          "turn": 1,
+          "dx": 53.56,
+          "dy": -313
+        },
+        {
+          "turn": 2,
+          "dx": -149.2,
+          "dy": -263
+        },
+        {
+          "turn": 3,
+          "dx": 158.306,
+          "dy": -213
+        },
+        {
+          "turn": 4,
+          "dx": -97.907,
+          "dy": -213
+        },
+        {
+          "turn": 5,
+          "dx": -145.071,
+          "dy": -163
+        },
+        {
+          "turn": 6,
+          "dx": 35.542,
+          "dy": -113
+        },
+        {
+          "turn": 7,
+          "dx": 135.621,
+          "dy": -63
+        },
+        {
+          "turn": 8,
+          "dx": 184.644,
+          "dy": -63
+        },
+        {
+          "turn": 9,
+          "dx": 54.342,
+          "dy": -113
+        },
+        {
+          "turn": 10,
+          "dx": 4.432,
+          "dy": -113
+        },
+        {
+          "turn": 11,
+          "dx": -195.549,
+          "dy": -113
+        },
+        {
+          "turn": 12,
+          "dx": 62.395,
+          "dy": -163
+        }
+      ]
+    },
+    {
+      "mode": "orbit",
+      "strategy": "bank",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 7,
+      "score": 37,
+      "count": 11,
+      "damage": 2,
+      "contacts": 526,
+      "absorbed": 45,
+      "maxRow": 7,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 283.802,
+          "dy": -411.651
+        },
+        {
+          "turn": 1,
+          "dx": 70.313,
+          "dy": -513
+        },
+        {
+          "turn": 2,
+          "dx": 232.163,
+          "dy": -442.832
+        },
+        {
+          "turn": 3,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 4,
+          "dx": 187.455,
+          "dy": -463
+        },
+        {
+          "turn": 5,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 6,
+          "dx": -283.802,
+          "dy": -411.651
+        }
+      ]
+    },
+    {
+      "mode": "orbit",
+      "strategy": "bank",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 7,
+      "score": 37,
+      "count": 11,
+      "damage": 2,
+      "contacts": 526,
+      "absorbed": 45,
+      "maxRow": 7,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 283.802,
+          "dy": -411.651
+        },
+        {
+          "turn": 1,
+          "dx": 70.313,
+          "dy": -513
+        },
+        {
+          "turn": 2,
+          "dx": 232.163,
+          "dy": -442.832
+        },
+        {
+          "turn": 3,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 4,
+          "dx": 187.455,
+          "dy": -463
+        },
+        {
+          "turn": 5,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 6,
+          "dx": -283.802,
+          "dy": -411.651
+        }
+      ]
+    },
+    {
+      "mode": "orbit",
+      "strategy": "bank",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 9,
+      "score": 37,
+      "count": 11,
+      "damage": 1,
+      "contacts": 757,
+      "absorbed": 49,
+      "maxRow": 7,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 283.802,
+          "dy": -411.651
+        },
+        {
+          "turn": 1,
+          "dx": 70.313,
+          "dy": -513
+        },
+        {
+          "turn": 2,
+          "dx": 232.163,
+          "dy": -442.832
+        },
+        {
+          "turn": 3,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 4,
+          "dx": 187.455,
+          "dy": -463
+        },
+        {
+          "turn": 5,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 6,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 7,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 8,
+          "dx": -177.146,
+          "dy": -467.568
+        }
+      ]
+    },
+    {
+      "mode": "lattice",
+      "strategy": "fixed",
+      "seed": 1234,
+      "phase": "lost",
+      "turn": 7,
+      "score": 8,
+      "count": 11,
+      "damage": 1,
+      "contacts": 142,
+      "absorbed": 25,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": -500
+        }
+      ]
+    },
+    {
+      "mode": "lattice",
+      "strategy": "fixed",
+      "seed": 20261006,
+      "phase": "lost",
+      "turn": 7,
+      "score": 8,
+      "count": 11,
+      "damage": 1,
+      "contacts": 142,
+      "absorbed": 25,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": -500
+        }
+      ]
+    },
+    {
+      "mode": "lattice",
+      "strategy": "fixed",
+      "seed": 998811,
+      "phase": "lost",
+      "turn": 7,
+      "score": 11,
+      "count": 13,
+      "damage": 1,
+      "contacts": 176,
+      "absorbed": 38,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": -500
+        }
+      ]
+    },
+    {
+      "mode": "lattice",
+      "strategy": "direct",
+      "seed": 1234,
+      "phase": "lost",
+      "turn": 8,
+      "score": 16,
+      "count": 10,
+      "damage": 1,
+      "contacts": 282,
+      "absorbed": 42,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -100,
+          "dy": -363
+        },
+        {
+          "turn": 1,
+          "dx": 107.739,
+          "dy": -313
+        },
+        {
+          "turn": 2,
+          "dx": 1.401,
+          "dy": -263
+        },
+        {
+          "turn": 3,
+          "dx": 1.361,
+          "dy": -213
+        },
+        {
+          "turn": 4,
+          "dx": -148.66,
+          "dy": -213
+        },
+        {
+          "turn": 5,
+          "dx": -143.245,
+          "dy": -163
+        },
+        {
+          "turn": 6,
+          "dx": 156.755,
+          "dy": -113
+        },
+        {
+          "turn": 7,
+          "dx": 156.755,
+          "dy": -63
+        }
+      ]
+    },
+    {
+      "mode": "lattice",
+      "strategy": "direct",
+      "seed": 20261006,
+      "phase": "lost",
+      "turn": 8,
+      "score": 18,
+      "count": 11,
+      "damage": 2,
+      "contacts": 182,
+      "absorbed": 27,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -100,
+          "dy": -363
+        },
+        {
+          "turn": 1,
+          "dx": 107.739,
+          "dy": -313
+        },
+        {
+          "turn": 2,
+          "dx": 1.401,
+          "dy": -263
+        },
+        {
+          "turn": 3,
+          "dx": 1.361,
+          "dy": -213
+        },
+        {
+          "turn": 4,
+          "dx": -148.66,
+          "dy": -213
+        },
+        {
+          "turn": 5,
+          "dx": -143.245,
+          "dy": -163
+        },
+        {
+          "turn": 6,
+          "dx": 160.195,
+          "dy": -113
+        },
+        {
+          "turn": 7,
+          "dx": 56.635,
+          "dy": -63
+        }
+      ]
+    },
+    {
+      "mode": "lattice",
+      "strategy": "direct",
+      "seed": 998811,
+      "phase": "lost",
+      "turn": 8,
+      "score": 16,
+      "count": 10,
+      "damage": 1,
+      "contacts": 282,
+      "absorbed": 42,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -100,
+          "dy": -363
+        },
+        {
+          "turn": 1,
+          "dx": 107.739,
+          "dy": -313
+        },
+        {
+          "turn": 2,
+          "dx": 1.401,
+          "dy": -263
+        },
+        {
+          "turn": 3,
+          "dx": 1.361,
+          "dy": -213
+        },
+        {
+          "turn": 4,
+          "dx": -148.66,
+          "dy": -213
+        },
+        {
+          "turn": 5,
+          "dx": -143.245,
+          "dy": -163
+        },
+        {
+          "turn": 6,
+          "dx": 156.755,
+          "dy": -113
+        },
+        {
+          "turn": 7,
+          "dx": 156.755,
+          "dy": -63
+        }
+      ]
+    },
+    {
+      "mode": "lattice",
+      "strategy": "bank",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 8,
+      "score": 35,
+      "count": 11,
+      "damage": 1,
+      "contacts": 717,
+      "absorbed": 48,
+      "maxRow": 6,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -232.163,
+          "dy": -442.832
+        },
+        {
+          "turn": 1,
+          "dx": 94.066,
+          "dy": -513
+        },
+        {
+          "turn": 2,
+          "dx": 283.802,
+          "dy": -411.651
+        },
+        {
+          "turn": 3,
+          "dx": -221.902,
+          "dy": -513
+        },
+        {
+          "turn": 4,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 5,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 6,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 7,
+          "dx": -467.309,
+          "dy": -177.825
+        }
+      ]
+    },
+    {
+      "mode": "lattice",
+      "strategy": "bank",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 8,
+      "score": 35,
+      "count": 11,
+      "damage": 2,
+      "contacts": 758,
+      "absorbed": 42,
+      "maxRow": 6,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -232.163,
+          "dy": -442.832
+        },
+        {
+          "turn": 1,
+          "dx": 94.066,
+          "dy": -513
+        },
+        {
+          "turn": 2,
+          "dx": 283.802,
+          "dy": -411.651
+        },
+        {
+          "turn": 3,
+          "dx": -221.902,
+          "dy": -513
+        },
+        {
+          "turn": 4,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 5,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 6,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 7,
+          "dx": -485.323,
+          "dy": -120.255
+        }
+      ]
+    },
+    {
+      "mode": "lattice",
+      "strategy": "bank",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 8,
+      "score": 35,
+      "count": 11,
+      "damage": 1,
+      "contacts": 717,
+      "absorbed": 48,
+      "maxRow": 6,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -232.163,
+          "dy": -442.832
+        },
+        {
+          "turn": 1,
+          "dx": 94.066,
+          "dy": -513
+        },
+        {
+          "turn": 2,
+          "dx": 283.802,
+          "dy": -411.651
+        },
+        {
+          "turn": 3,
+          "dx": -221.902,
+          "dy": -513
+        },
+        {
+          "turn": 4,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 5,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 6,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 7,
+          "dx": -467.309,
+          "dy": -177.825
+        }
+      ]
+    },
+    {
+      "mode": "eclipse",
+      "strategy": "fixed",
+      "seed": 1234,
+      "phase": "lost",
+      "turn": 6,
+      "score": 9,
+      "count": 11,
+      "damage": 2,
+      "contacts": 170,
+      "absorbed": 20,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": -500
+        }
+      ]
+    },
+    {
+      "mode": "eclipse",
+      "strategy": "fixed",
+      "seed": 20261006,
+      "phase": "lost",
+      "turn": 6,
+      "score": 9,
+      "count": 13,
+      "damage": 1,
+      "contacts": 172,
+      "absorbed": 20,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": -500
+        }
+      ]
+    },
+    {
+      "mode": "eclipse",
+      "strategy": "fixed",
+      "seed": 998811,
+      "phase": "lost",
+      "turn": 6,
+      "score": 9,
+      "count": 11,
+      "damage": 1,
+      "contacts": 172,
+      "absorbed": 20,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": -500
+        }
+      ]
+    },
+    {
+      "mode": "eclipse",
+      "strategy": "direct",
+      "seed": 1234,
+      "phase": "lost",
+      "turn": 7,
+      "score": 7,
+      "count": 10,
+      "damage": 1,
+      "contacts": 120,
+      "absorbed": 32,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -50,
+          "dy": -313
+        },
+        {
+          "turn": 1,
+          "dx": 52.406,
+          "dy": -263
+        },
+        {
+          "turn": 2,
+          "dx": -149.271,
+          "dy": -213
+        },
+        {
+          "turn": 3,
+          "dx": -143.808,
+          "dy": -163
+        },
+        {
+          "turn": 4,
+          "dx": 159.668,
+          "dy": -113
+        },
+        {
+          "turn": 5,
+          "dx": 156.154,
+          "dy": -63
+        },
+        {
+          "turn": 6,
+          "dx": -120.795,
+          "dy": -63
+        }
+      ]
+    },
+    {
+      "mode": "eclipse",
+      "strategy": "direct",
+      "seed": 20261006,
+      "phase": "lost",
+      "turn": 7,
+      "score": 6,
+      "count": 9,
+      "damage": 2,
+      "contacts": 85,
+      "absorbed": 23,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -50,
+          "dy": -313
+        },
+        {
+          "turn": 1,
+          "dx": 52.406,
+          "dy": -263
+        },
+        {
+          "turn": 2,
+          "dx": -149.271,
+          "dy": -213
+        },
+        {
+          "turn": 3,
+          "dx": -143.808,
+          "dy": -163
+        },
+        {
+          "turn": 4,
+          "dx": 159.668,
+          "dy": -113
+        },
+        {
+          "turn": 5,
+          "dx": 156.154,
+          "dy": -63
+        },
+        {
+          "turn": 6,
+          "dx": 103.356,
+          "dy": -63
+        }
+      ]
+    },
+    {
+      "mode": "eclipse",
+      "strategy": "direct",
+      "seed": 998811,
+      "phase": "lost",
+      "turn": 7,
+      "score": 6,
+      "count": 9,
+      "damage": 2,
+      "contacts": 85,
+      "absorbed": 23,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -50,
+          "dy": -313
+        },
+        {
+          "turn": 1,
+          "dx": 52.406,
+          "dy": -263
+        },
+        {
+          "turn": 2,
+          "dx": -149.271,
+          "dy": -213
+        },
+        {
+          "turn": 3,
+          "dx": -143.808,
+          "dy": -163
+        },
+        {
+          "turn": 4,
+          "dx": 159.668,
+          "dy": -113
+        },
+        {
+          "turn": 5,
+          "dx": 156.154,
+          "dy": -63
+        },
+        {
+          "turn": 6,
+          "dx": 103.356,
+          "dy": -63
+        }
+      ]
+    },
+    {
+      "mode": "eclipse",
+      "strategy": "bank",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 8,
+      "score": 42,
+      "count": 11,
+      "damage": 2,
+      "contacts": 670,
+      "absorbed": 41,
+      "maxRow": 9,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 100,
+          "dy": -413
+        },
+        {
+          "turn": 1,
+          "dx": 331.31,
+          "dy": -374.478
+        },
+        {
+          "turn": 2,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 3,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 4,
+          "dx": 139.007,
+          "dy": -513
+        },
+        {
+          "turn": 5,
+          "dx": 232.163,
+          "dy": -442.832
+        },
+        {
+          "turn": 6,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 7,
+          "dx": 485.323,
+          "dy": -120.255
+        }
+      ]
+    },
+    {
+      "mode": "eclipse",
+      "strategy": "bank",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 8,
+      "score": 42,
+      "count": 11,
+      "damage": 2,
+      "contacts": 670,
+      "absorbed": 41,
+      "maxRow": 9,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 100,
+          "dy": -413
+        },
+        {
+          "turn": 1,
+          "dx": 331.31,
+          "dy": -374.478
+        },
+        {
+          "turn": 2,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 3,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 4,
+          "dx": 139.007,
+          "dy": -513
+        },
+        {
+          "turn": 5,
+          "dx": 232.163,
+          "dy": -442.832
+        },
+        {
+          "turn": 6,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 7,
+          "dx": 485.323,
+          "dy": -120.255
+        }
+      ]
+    },
+    {
+      "mode": "eclipse",
+      "strategy": "bank",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 8,
+      "score": 42,
+      "count": 11,
+      "damage": 2,
+      "contacts": 670,
+      "absorbed": 41,
+      "maxRow": 9,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 100,
+          "dy": -413
+        },
+        {
+          "turn": 1,
+          "dx": 331.31,
+          "dy": -374.478
+        },
+        {
+          "turn": 2,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 3,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 4,
+          "dx": 139.007,
+          "dy": -513
+        },
+        {
+          "turn": 5,
+          "dx": 232.163,
+          "dy": -442.832
+        },
+        {
+          "turn": 6,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 7,
+          "dx": 485.323,
+          "dy": -120.255
+        }
+      ]
+    }
+  ],
+  "endlessRecords": [
+    {
+      "mode": "endless",
+      "strategy": "fixed",
+      "seed": 1234,
+      "phase": "lost",
+      "turn": 8,
+      "score": 2,
+      "count": 7,
+      "damage": 1,
+      "contacts": 46,
+      "absorbed": 0,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 7,
+          "dx": 0,
+          "dy": -500
+        }
+      ]
+    },
+    {
+      "mode": "endless",
+      "strategy": "fixed",
+      "seed": 20261006,
+      "phase": "lost",
+      "turn": 8,
+      "score": 3,
+      "count": 5,
+      "damage": 1,
+      "contacts": 40,
+      "absorbed": 0,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 7,
+          "dx": 0,
+          "dy": -500
+        }
+      ]
+    },
+    {
+      "mode": "endless",
+      "strategy": "fixed",
+      "seed": 998811,
+      "phase": "lost",
+      "turn": 19,
+      "score": 53,
+      "count": 14,
+      "damage": 1,
+      "contacts": 555,
+      "absorbed": 0,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 7,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 8,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 9,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 10,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 11,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 12,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 13,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 14,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 15,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 16,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 17,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 18,
+          "dx": 0,
+          "dy": -500
+        }
+      ]
+    },
+    {
+      "mode": "endless",
+      "strategy": "direct",
+      "seed": 1234,
+      "phase": "lost",
+      "turn": 99,
+      "score": 287,
+      "count": 22,
+      "damage": 4,
+      "contacts": 9676,
+      "absorbed": 601,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -100,
+          "dy": -413
+        },
+        {
+          "turn": 1,
+          "dx": 59.173,
+          "dy": -363
+        },
+        {
+          "turn": 2,
+          "dx": 154.572,
+          "dy": -313
+        },
+        {
+          "turn": 3,
+          "dx": -156.014,
+          "dy": -413
+        },
+        {
+          "turn": 4,
+          "dx": -37.054,
+          "dy": -463
+        },
+        {
+          "turn": 5,
+          "dx": 67.003,
+          "dy": -413
+        },
+        {
+          "turn": 6,
+          "dx": -39.944,
+          "dy": -463
+        },
+        {
+          "turn": 7,
+          "dx": -85.564,
+          "dy": -413
+        },
+        {
+          "turn": 8,
+          "dx": -77.238,
+          "dy": -413
+        },
+        {
+          "turn": 9,
+          "dx": -20.391,
+          "dy": -413
+        },
+        {
+          "turn": 10,
+          "dx": -82.872,
+          "dy": -363
+        },
+        {
+          "turn": 11,
+          "dx": 261.339,
+          "dy": -313
+        },
+        {
+          "turn": 12,
+          "dx": 99.109,
+          "dy": -313
+        },
+        {
+          "turn": 13,
+          "dx": -160.908,
+          "dy": -363
+        },
+        {
+          "turn": 14,
+          "dx": 190.546,
+          "dy": -463
+        },
+        {
+          "turn": 15,
+          "dx": -187.987,
+          "dy": -413
+        },
+        {
+          "turn": 16,
+          "dx": 301.515,
+          "dy": -413
+        },
+        {
+          "turn": 17,
+          "dx": 194.865,
+          "dy": -463
+        },
+        {
+          "turn": 18,
+          "dx": 117.633,
+          "dy": -413
+        },
+        {
+          "turn": 19,
+          "dx": -250.888,
+          "dy": -363
+        },
+        {
+          "turn": 20,
+          "dx": -127.51,
+          "dy": -313
+        },
+        {
+          "turn": 21,
+          "dx": -70.519,
+          "dy": -263
+        },
+        {
+          "turn": 22,
+          "dx": 271.617,
+          "dy": -263
+        },
+        {
+          "turn": 23,
+          "dx": -125.889,
+          "dy": -313
+        },
+        {
+          "turn": 24,
+          "dx": 33.449,
+          "dy": -263
+        },
+        {
+          "turn": 25,
+          "dx": -31.771,
+          "dy": -363
+        },
+        {
+          "turn": 26,
+          "dx": -38.169,
+          "dy": -363
+        },
+        {
+          "turn": 27,
+          "dx": 313.687,
+          "dy": -363
+        },
+        {
+          "turn": 28,
+          "dx": -137.571,
+          "dy": -463
+        },
+        {
+          "turn": 29,
+          "dx": 257.591,
+          "dy": -413
+        },
+        {
+          "turn": 30,
+          "dx": -207.962,
+          "dy": -463
+        },
+        {
+          "turn": 31,
+          "dx": -134.734,
+          "dy": -413
+        },
+        {
+          "turn": 32,
+          "dx": 163.285,
+          "dy": -363
+        },
+        {
+          "turn": 33,
+          "dx": -69.666,
+          "dy": -463
+        },
+        {
+          "turn": 34,
+          "dx": 146.688,
+          "dy": -413
+        },
+        {
+          "turn": 35,
+          "dx": -254.623,
+          "dy": -363
+        },
+        {
+          "turn": 36,
+          "dx": -79.018,
+          "dy": -313
+        },
+        {
+          "turn": 37,
+          "dx": -50.673,
+          "dy": -413
+        },
+        {
+          "turn": 38,
+          "dx": 180.553,
+          "dy": -413
+        },
+        {
+          "turn": 39,
+          "dx": 99.384,
+          "dy": -363
+        },
+        {
+          "turn": 40,
+          "dx": -194.431,
+          "dy": -363
+        },
+        {
+          "turn": 41,
+          "dx": -91.228,
+          "dy": -413
+        },
+        {
+          "turn": 42,
+          "dx": -141.228,
+          "dy": -363
+        },
+        {
+          "turn": 43,
+          "dx": 214.491,
+          "dy": -413
+        },
+        {
+          "turn": 44,
+          "dx": -46.447,
+          "dy": -413
+        },
+        {
+          "turn": 45,
+          "dx": 164.163,
+          "dy": -363
+        },
+        {
+          "turn": 46,
+          "dx": 32.053,
+          "dy": -313
+        },
+        {
+          "turn": 47,
+          "dx": 10.219,
+          "dy": -313
+        },
+        {
+          "turn": 48,
+          "dx": 175.303,
+          "dy": -413
+        },
+        {
+          "turn": 49,
+          "dx": -275.333,
+          "dy": -413
+        },
+        {
+          "turn": 50,
+          "dx": -65.648,
+          "dy": -363
+        },
+        {
+          "turn": 51,
+          "dx": 160.198,
+          "dy": -313
+        },
+        {
+          "turn": 52,
+          "dx": -70.263,
+          "dy": -363
+        },
+        {
+          "turn": 53,
+          "dx": 237.764,
+          "dy": -413
+        },
+        {
+          "turn": 54,
+          "dx": 47.307,
+          "dy": -363
+        },
+        {
+          "turn": 55,
+          "dx": -142.076,
+          "dy": -313
+        },
+        {
+          "turn": 56,
+          "dx": -142.076,
+          "dy": -313
+        },
+        {
+          "turn": 57,
+          "dx": 151.513,
+          "dy": -363
+        },
+        {
+          "turn": 58,
+          "dx": 62.664,
+          "dy": -463
+        },
+        {
+          "turn": 59,
+          "dx": 67.904,
+          "dy": -463
+        },
+        {
+          "turn": 60,
+          "dx": -149.046,
+          "dy": -413
+        },
+        {
+          "turn": 61,
+          "dx": 165.202,
+          "dy": -413
+        },
+        {
+          "turn": 62,
+          "dx": 124.882,
+          "dy": -363
+        },
+        {
+          "turn": 63,
+          "dx": -144.79,
+          "dy": -413
+        },
+        {
+          "turn": 64,
+          "dx": 57.7,
+          "dy": -363
+        },
+        {
+          "turn": 65,
+          "dx": 57.7,
+          "dy": -313
+        },
+        {
+          "turn": 66,
+          "dx": -135.345,
+          "dy": -263
+        },
+        {
+          "turn": 67,
+          "dx": -5.881,
+          "dy": -263
+        },
+        {
+          "turn": 68,
+          "dx": 230.725,
+          "dy": -413
+        },
+        {
+          "turn": 69,
+          "dx": 19.87,
+          "dy": -363
+        },
+        {
+          "turn": 70,
+          "dx": -188.673,
+          "dy": -363
+        },
+        {
+          "turn": 71,
+          "dx": -179.994,
+          "dy": -313
+        },
+        {
+          "turn": 72,
+          "dx": -229.994,
+          "dy": -263
+        },
+        {
+          "turn": 73,
+          "dx": -29.994,
+          "dy": -263
+        },
+        {
+          "turn": 74,
+          "dx": 130.36,
+          "dy": -313
+        },
+        {
+          "turn": 75,
+          "dx": 27.402,
+          "dy": -263
+        },
+        {
+          "turn": 76,
+          "dx": -133.55,
+          "dy": -313
+        },
+        {
+          "turn": 77,
+          "dx": -135.145,
+          "dy": -463
+        },
+        {
+          "turn": 78,
+          "dx": 60.845,
+          "dy": -413
+        },
+        {
+          "turn": 79,
+          "dx": -46.724,
+          "dy": -363
+        },
+        {
+          "turn": 80,
+          "dx": -59.036,
+          "dy": -363
+        },
+        {
+          "turn": 81,
+          "dx": -59.036,
+          "dy": -313
+        },
+        {
+          "turn": 82,
+          "dx": 240.964,
+          "dy": -263
+        },
+        {
+          "turn": 83,
+          "dx": 131.892,
+          "dy": -213
+        },
+        {
+          "turn": 84,
+          "dx": -226.989,
+          "dy": -313
+        },
+        {
+          "turn": 85,
+          "dx": -176.989,
+          "dy": -263
+        },
+        {
+          "turn": 86,
+          "dx": 308.35,
+          "dy": -313
+        },
+        {
+          "turn": 87,
+          "dx": -164.677,
+          "dy": -313
+        },
+        {
+          "turn": 88,
+          "dx": -114.677,
+          "dy": -313
+        },
+        {
+          "turn": 89,
+          "dx": 314.868,
+          "dy": -363
+        },
+        {
+          "turn": 90,
+          "dx": 314.868,
+          "dy": -313
+        },
+        {
+          "turn": 91,
+          "dx": 314.868,
+          "dy": -263
+        },
+        {
+          "turn": 92,
+          "dx": 314.868,
+          "dy": -213
+        },
+        {
+          "turn": 93,
+          "dx": 164.868,
+          "dy": -213
+        },
+        {
+          "turn": 94,
+          "dx": -4.035,
+          "dy": -163
+        },
+        {
+          "turn": 95,
+          "dx": 49.848,
+          "dy": -163
+        },
+        {
+          "turn": 96,
+          "dx": -0.152,
+          "dy": -113
+        },
+        {
+          "turn": 97,
+          "dx": 49.848,
+          "dy": -113
+        },
+        {
+          "turn": 98,
+          "dx": 49.848,
+          "dy": -63
+        }
+      ]
+    },
+    {
+      "mode": "endless",
+      "strategy": "direct",
+      "seed": 20261006,
+      "phase": "lost",
+      "turn": 111,
+      "score": 322,
+      "count": 22,
+      "damage": 4,
+      "contacts": 13328,
+      "absorbed": 692,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 50,
+          "dy": -413
+        },
+        {
+          "turn": 1,
+          "dx": -104.3,
+          "dy": -413
+        },
+        {
+          "turn": 2,
+          "dx": 116.897,
+          "dy": -363
+        },
+        {
+          "turn": 3,
+          "dx": -141.661,
+          "dy": -463
+        },
+        {
+          "turn": 4,
+          "dx": -24.13,
+          "dy": -413
+        },
+        {
+          "turn": 5,
+          "dx": -9.701,
+          "dy": -413
+        },
+        {
+          "turn": 6,
+          "dx": -108.732,
+          "dy": -363
+        },
+        {
+          "turn": 7,
+          "dx": 136.455,
+          "dy": -363
+        },
+        {
+          "turn": 8,
+          "dx": 75.933,
+          "dy": -363
+        },
+        {
+          "turn": 9,
+          "dx": 119.875,
+          "dy": -463
+        },
+        {
+          "turn": 10,
+          "dx": -95.624,
+          "dy": -463
+        },
+        {
+          "turn": 11,
+          "dx": -306.029,
+          "dy": -463
+        },
+        {
+          "turn": 12,
+          "dx": -73.911,
+          "dy": -413
+        },
+        {
+          "turn": 13,
+          "dx": 167.537,
+          "dy": -413
+        },
+        {
+          "turn": 14,
+          "dx": -71.396,
+          "dy": -413
+        },
+        {
+          "turn": 15,
+          "dx": 68.232,
+          "dy": -413
+        },
+        {
+          "turn": 16,
+          "dx": -158.074,
+          "dy": -463
+        },
+        {
+          "turn": 17,
+          "dx": 30.757,
+          "dy": -413
+        },
+        {
+          "turn": 18,
+          "dx": 1.111,
+          "dy": -363
+        },
+        {
+          "turn": 19,
+          "dx": -99.845,
+          "dy": -363
+        },
+        {
+          "turn": 20,
+          "dx": 117.909,
+          "dy": -413
+        },
+        {
+          "turn": 21,
+          "dx": -287.598,
+          "dy": -363
+        },
+        {
+          "turn": 22,
+          "dx": 194.423,
+          "dy": -363
+        },
+        {
+          "turn": 23,
+          "dx": 264.445,
+          "dy": -363
+        },
+        {
+          "turn": 24,
+          "dx": -40.308,
+          "dy": -363
+        },
+        {
+          "turn": 25,
+          "dx": 159.539,
+          "dy": -413
+        },
+        {
+          "turn": 26,
+          "dx": -34.135,
+          "dy": -363
+        },
+        {
+          "turn": 27,
+          "dx": 166.437,
+          "dy": -363
+        },
+        {
+          "turn": 28,
+          "dx": -13.767,
+          "dy": -313
+        },
+        {
+          "turn": 29,
+          "dx": 32.013,
+          "dy": -263
+        },
+        {
+          "turn": 30,
+          "dx": 252.696,
+          "dy": -363
+        },
+        {
+          "turn": 31,
+          "dx": -60.93,
+          "dy": -313
+        },
+        {
+          "turn": 32,
+          "dx": -2.672,
+          "dy": -313
+        },
+        {
+          "turn": 33,
+          "dx": 56.458,
+          "dy": -313
+        },
+        {
+          "turn": 34,
+          "dx": -236.514,
+          "dy": -313
+        },
+        {
+          "turn": 35,
+          "dx": 312.771,
+          "dy": -313
+        },
+        {
+          "turn": 36,
+          "dx": -83.293,
+          "dy": -463
+        },
+        {
+          "turn": 37,
+          "dx": -40.88,
+          "dy": -413
+        },
+        {
+          "turn": 38,
+          "dx": -163.606,
+          "dy": -413
+        },
+        {
+          "turn": 39,
+          "dx": 27.645,
+          "dy": -363
+        },
+        {
+          "turn": 40,
+          "dx": 146.194,
+          "dy": -313
+        },
+        {
+          "turn": 41,
+          "dx": 15.825,
+          "dy": -363
+        },
+        {
+          "turn": 42,
+          "dx": 269.202,
+          "dy": -363
+        },
+        {
+          "turn": 43,
+          "dx": 77.865,
+          "dy": -313
+        },
+        {
+          "turn": 44,
+          "dx": -99.751,
+          "dy": -363
+        },
+        {
+          "turn": 45,
+          "dx": 294.234,
+          "dy": -313
+        },
+        {
+          "turn": 46,
+          "dx": -160.919,
+          "dy": -363
+        },
+        {
+          "turn": 47,
+          "dx": 124.409,
+          "dy": -313
+        },
+        {
+          "turn": 48,
+          "dx": 62.983,
+          "dy": -413
+        },
+        {
+          "turn": 49,
+          "dx": -0.158,
+          "dy": -413
+        },
+        {
+          "turn": 50,
+          "dx": -149.749,
+          "dy": -363
+        },
+        {
+          "turn": 51,
+          "dx": -53.84,
+          "dy": -363
+        },
+        {
+          "turn": 52,
+          "dx": 204.789,
+          "dy": -313
+        },
+        {
+          "turn": 53,
+          "dx": 229.901,
+          "dy": -263
+        },
+        {
+          "turn": 54,
+          "dx": -55.769,
+          "dy": -363
+        },
+        {
+          "turn": 55,
+          "dx": 158.563,
+          "dy": -363
+        },
+        {
+          "turn": 56,
+          "dx": 70.874,
+          "dy": -313
+        },
+        {
+          "turn": 57,
+          "dx": -271.393,
+          "dy": -363
+        },
+        {
+          "turn": 58,
+          "dx": 28.243,
+          "dy": -363
+        },
+        {
+          "turn": 59,
+          "dx": -83.03,
+          "dy": -363
+        },
+        {
+          "turn": 60,
+          "dx": -121.772,
+          "dy": -313
+        },
+        {
+          "turn": 61,
+          "dx": -121.772,
+          "dy": -413
+        },
+        {
+          "turn": 62,
+          "dx": 244.324,
+          "dy": -363
+        },
+        {
+          "turn": 63,
+          "dx": 244.324,
+          "dy": -313
+        },
+        {
+          "turn": 64,
+          "dx": -55.676,
+          "dy": -313
+        },
+        {
+          "turn": 65,
+          "dx": 144.324,
+          "dy": -263
+        },
+        {
+          "turn": 66,
+          "dx": -196.865,
+          "dy": -263
+        },
+        {
+          "turn": 67,
+          "dx": 20.835,
+          "dy": -413
+        },
+        {
+          "turn": 68,
+          "dx": 170.835,
+          "dy": -413
+        },
+        {
+          "turn": 69,
+          "dx": 233.763,
+          "dy": -363
+        },
+        {
+          "turn": 70,
+          "dx": 14.831,
+          "dy": -363
+        },
+        {
+          "turn": 71,
+          "dx": -78.874,
+          "dy": -363
+        },
+        {
+          "turn": 72,
+          "dx": 139.262,
+          "dy": -313
+        },
+        {
+          "turn": 73,
+          "dx": 89.262,
+          "dy": -313
+        },
+        {
+          "turn": 74,
+          "dx": -300,
+          "dy": -313
+        },
+        {
+          "turn": 75,
+          "dx": -300,
+          "dy": -263
+        },
+        {
+          "turn": 76,
+          "dx": -300,
+          "dy": -263
+        },
+        {
+          "turn": 77,
+          "dx": -82.805,
+          "dy": -213
+        },
+        {
+          "turn": 78,
+          "dx": -132.805,
+          "dy": -163
+        },
+        {
+          "turn": 79,
+          "dx": -132.805,
+          "dy": -113
+        },
+        {
+          "turn": 80,
+          "dx": -132.805,
+          "dy": -163
+        },
+        {
+          "turn": 81,
+          "dx": 235.644,
+          "dy": -113
+        },
+        {
+          "turn": 82,
+          "dx": 67.846,
+          "dy": -263
+        },
+        {
+          "turn": 83,
+          "dx": -129.907,
+          "dy": -313
+        },
+        {
+          "turn": 84,
+          "dx": 49.904,
+          "dy": -413
+        },
+        {
+          "turn": 85,
+          "dx": -79.336,
+          "dy": -363
+        },
+        {
+          "turn": 86,
+          "dx": 133.487,
+          "dy": -313
+        },
+        {
+          "turn": 87,
+          "dx": 85.004,
+          "dy": -263
+        },
+        {
+          "turn": 88,
+          "dx": 85.004,
+          "dy": -213
+        },
+        {
+          "turn": 89,
+          "dx": 185.004,
+          "dy": -163
+        },
+        {
+          "turn": 90,
+          "dx": 165.816,
+          "dy": -113
+        },
+        {
+          "turn": 91,
+          "dx": 50.433,
+          "dy": -263
+        },
+        {
+          "turn": 92,
+          "dx": -199.567,
+          "dy": -213
+        },
+        {
+          "turn": 93,
+          "dx": 98.506,
+          "dy": -213
+        },
+        {
+          "turn": 94,
+          "dx": 58.518,
+          "dy": -163
+        },
+        {
+          "turn": 95,
+          "dx": 158.518,
+          "dy": -113
+        },
+        {
+          "turn": 96,
+          "dx": 166.183,
+          "dy": -63
+        },
+        {
+          "turn": 97,
+          "dx": 274.191,
+          "dy": -113
+        },
+        {
+          "turn": 98,
+          "dx": -245.616,
+          "dy": -363
+        },
+        {
+          "turn": 99,
+          "dx": -246.472,
+          "dy": -313
+        },
+        {
+          "turn": 100,
+          "dx": -246.472,
+          "dy": -263
+        },
+        {
+          "turn": 101,
+          "dx": 53.528,
+          "dy": -313
+        },
+        {
+          "turn": 102,
+          "dx": -297.223,
+          "dy": -263
+        },
+        {
+          "turn": 103,
+          "dx": -301.39,
+          "dy": -213
+        },
+        {
+          "turn": 104,
+          "dx": -264.142,
+          "dy": -163
+        },
+        {
+          "turn": 105,
+          "dx": -216.805,
+          "dy": -113
+        },
+        {
+          "turn": 106,
+          "dx": -116.805,
+          "dy": -113
+        },
+        {
+          "turn": 107,
+          "dx": 45.075,
+          "dy": -163
+        },
+        {
+          "turn": 108,
+          "dx": 45.075,
+          "dy": -163
+        },
+        {
+          "turn": 109,
+          "dx": 24.714,
+          "dy": -113
+        },
+        {
+          "turn": 110,
+          "dx": -209.243,
+          "dy": -63
+        }
+      ]
+    },
+    {
+      "mode": "endless",
+      "strategy": "direct",
+      "seed": 998811,
+      "phase": "lost",
+      "turn": 103,
+      "score": 312,
+      "count": 22,
+      "damage": 4,
+      "contacts": 10072,
+      "absorbed": 475,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -50,
+          "dy": -413
+        },
+        {
+          "turn": 1,
+          "dx": 4.3,
+          "dy": -363
+        },
+        {
+          "turn": 2,
+          "dx": 53.979,
+          "dy": -313
+        },
+        {
+          "turn": 3,
+          "dx": -111.241,
+          "dy": -363
+        },
+        {
+          "turn": 4,
+          "dx": -16.356,
+          "dy": -313
+        },
+        {
+          "turn": 5,
+          "dx": -179.391,
+          "dy": -413
+        },
+        {
+          "turn": 6,
+          "dx": -9.817,
+          "dy": -363
+        },
+        {
+          "turn": 7,
+          "dx": -18.868,
+          "dy": -313
+        },
+        {
+          "turn": 8,
+          "dx": 31.971,
+          "dy": -363
+        },
+        {
+          "turn": 9,
+          "dx": 29.942,
+          "dy": -413
+        },
+        {
+          "turn": 10,
+          "dx": -122.597,
+          "dy": -363
+        },
+        {
+          "turn": 11,
+          "dx": -107.972,
+          "dy": -313
+        },
+        {
+          "turn": 12,
+          "dx": 52.081,
+          "dy": -363
+        },
+        {
+          "turn": 13,
+          "dx": -186.593,
+          "dy": -413
+        },
+        {
+          "turn": 14,
+          "dx": -82.43,
+          "dy": -363
+        },
+        {
+          "turn": 15,
+          "dx": -284.48,
+          "dy": -413
+        },
+        {
+          "turn": 16,
+          "dx": 27.515,
+          "dy": -363
+        },
+        {
+          "turn": 17,
+          "dx": 53.341,
+          "dy": -363
+        },
+        {
+          "turn": 18,
+          "dx": -153.822,
+          "dy": -363
+        },
+        {
+          "turn": 19,
+          "dx": -258.009,
+          "dy": -413
+        },
+        {
+          "turn": 20,
+          "dx": 164.549,
+          "dy": -363
+        },
+        {
+          "turn": 21,
+          "dx": 82.801,
+          "dy": -363
+        },
+        {
+          "turn": 22,
+          "dx": -176.803,
+          "dy": -413
+        },
+        {
+          "turn": 23,
+          "dx": 6.524,
+          "dy": -413
+        },
+        {
+          "turn": 24,
+          "dx": -160.37,
+          "dy": -413
+        },
+        {
+          "turn": 25,
+          "dx": -17.183,
+          "dy": -413
+        },
+        {
+          "turn": 26,
+          "dx": -22.687,
+          "dy": -363
+        },
+        {
+          "turn": 27,
+          "dx": 194.155,
+          "dy": -313
+        },
+        {
+          "turn": 28,
+          "dx": -47.652,
+          "dy": -313
+        },
+        {
+          "turn": 29,
+          "dx": 122.815,
+          "dy": -363
+        },
+        {
+          "turn": 30,
+          "dx": -148.8,
+          "dy": -363
+        },
+        {
+          "turn": 31,
+          "dx": 147.968,
+          "dy": -363
+        },
+        {
+          "turn": 32,
+          "dx": 100.212,
+          "dy": -363
+        },
+        {
+          "turn": 33,
+          "dx": -92.871,
+          "dy": -363
+        },
+        {
+          "turn": 34,
+          "dx": 80.869,
+          "dy": -363
+        },
+        {
+          "turn": 35,
+          "dx": -207.441,
+          "dy": -313
+        },
+        {
+          "turn": 36,
+          "dx": -32.832,
+          "dy": -263
+        },
+        {
+          "turn": 37,
+          "dx": 163.766,
+          "dy": -263
+        },
+        {
+          "turn": 38,
+          "dx": 22.73,
+          "dy": -363
+        },
+        {
+          "turn": 39,
+          "dx": 105.759,
+          "dy": -313
+        },
+        {
+          "turn": 40,
+          "dx": 10.227,
+          "dy": -313
+        },
+        {
+          "turn": 41,
+          "dx": -224.716,
+          "dy": -263
+        },
+        {
+          "turn": 42,
+          "dx": 66.107,
+          "dy": -263
+        },
+        {
+          "turn": 43,
+          "dx": -2.779,
+          "dy": -363
+        },
+        {
+          "turn": 44,
+          "dx": -255.288,
+          "dy": -313
+        },
+        {
+          "turn": 45,
+          "dx": -218.115,
+          "dy": -363
+        },
+        {
+          "turn": 46,
+          "dx": 52.442,
+          "dy": -313
+        },
+        {
+          "turn": 47,
+          "dx": -26.797,
+          "dy": -263
+        },
+        {
+          "turn": 48,
+          "dx": 132.171,
+          "dy": -263
+        },
+        {
+          "turn": 49,
+          "dx": -175.823,
+          "dy": -313
+        },
+        {
+          "turn": 50,
+          "dx": -250.201,
+          "dy": -413
+        },
+        {
+          "turn": 51,
+          "dx": -127.39,
+          "dy": -413
+        },
+        {
+          "turn": 52,
+          "dx": 235.378,
+          "dy": -363
+        },
+        {
+          "turn": 53,
+          "dx": 216.57,
+          "dy": -363
+        },
+        {
+          "turn": 54,
+          "dx": 3.461,
+          "dy": -363
+        },
+        {
+          "turn": 55,
+          "dx": 143.263,
+          "dy": -313
+        },
+        {
+          "turn": 56,
+          "dx": -91.281,
+          "dy": -313
+        },
+        {
+          "turn": 57,
+          "dx": 17.225,
+          "dy": -313
+        },
+        {
+          "turn": 58,
+          "dx": -149.376,
+          "dy": -313
+        },
+        {
+          "turn": 59,
+          "dx": 26.479,
+          "dy": -313
+        },
+        {
+          "turn": 60,
+          "dx": -173.991,
+          "dy": -413
+        },
+        {
+          "turn": 61,
+          "dx": 161.072,
+          "dy": -463
+        },
+        {
+          "turn": 62,
+          "dx": -26.876,
+          "dy": -413
+        },
+        {
+          "turn": 63,
+          "dx": -57.267,
+          "dy": -413
+        },
+        {
+          "turn": 64,
+          "dx": 196.967,
+          "dy": -363
+        },
+        {
+          "turn": 65,
+          "dx": 196.967,
+          "dy": -313
+        },
+        {
+          "turn": 66,
+          "dx": 146.967,
+          "dy": -313
+        },
+        {
+          "turn": 67,
+          "dx": -69.029,
+          "dy": -313
+        },
+        {
+          "turn": 68,
+          "dx": -169.029,
+          "dy": -263
+        },
+        {
+          "turn": 69,
+          "dx": -169.029,
+          "dy": -213
+        },
+        {
+          "turn": 70,
+          "dx": 16.653,
+          "dy": -313
+        },
+        {
+          "turn": 71,
+          "dx": -290.26,
+          "dy": -313
+        },
+        {
+          "turn": 72,
+          "dx": 308.669,
+          "dy": -263
+        },
+        {
+          "turn": 73,
+          "dx": -151.936,
+          "dy": -263
+        },
+        {
+          "turn": 74,
+          "dx": -209.375,
+          "dy": -263
+        },
+        {
+          "turn": 75,
+          "dx": -5.019,
+          "dy": -363
+        },
+        {
+          "turn": 76,
+          "dx": -41.088,
+          "dy": -413
+        },
+        {
+          "turn": 77,
+          "dx": -17.384,
+          "dy": -363
+        },
+        {
+          "turn": 78,
+          "dx": -16.156,
+          "dy": -313
+        },
+        {
+          "turn": 79,
+          "dx": 298.733,
+          "dy": -313
+        },
+        {
+          "turn": 80,
+          "dx": 104.829,
+          "dy": -313
+        },
+        {
+          "turn": 81,
+          "dx": 65.494,
+          "dy": -413
+        },
+        {
+          "turn": 82,
+          "dx": 107.241,
+          "dy": -413
+        },
+        {
+          "turn": 83,
+          "dx": -230.511,
+          "dy": -363
+        },
+        {
+          "turn": 84,
+          "dx": -26.343,
+          "dy": -363
+        },
+        {
+          "turn": 85,
+          "dx": 101.287,
+          "dy": -363
+        },
+        {
+          "turn": 86,
+          "dx": 101.287,
+          "dy": -313
+        },
+        {
+          "turn": 87,
+          "dx": 156.998,
+          "dy": -313
+        },
+        {
+          "turn": 88,
+          "dx": 156.998,
+          "dy": -263
+        },
+        {
+          "turn": 89,
+          "dx": -79.517,
+          "dy": -213
+        },
+        {
+          "turn": 90,
+          "dx": 142.601,
+          "dy": -163
+        },
+        {
+          "turn": 91,
+          "dx": 142.601,
+          "dy": -113
+        },
+        {
+          "turn": 92,
+          "dx": 142.601,
+          "dy": -63
+        },
+        {
+          "turn": 93,
+          "dx": -68.785,
+          "dy": -163
+        },
+        {
+          "turn": 94,
+          "dx": -56.002,
+          "dy": -313
+        },
+        {
+          "turn": 95,
+          "dx": 93.998,
+          "dy": -263
+        },
+        {
+          "turn": 96,
+          "dx": 93.998,
+          "dy": -213
+        },
+        {
+          "turn": 97,
+          "dx": 93.998,
+          "dy": -163
+        },
+        {
+          "turn": 98,
+          "dx": 193.998,
+          "dy": -263
+        },
+        {
+          "turn": 99,
+          "dx": 193.998,
+          "dy": -213
+        },
+        {
+          "turn": 100,
+          "dx": 193.998,
+          "dy": -163
+        },
+        {
+          "turn": 101,
+          "dx": -79.609,
+          "dy": -113
+        },
+        {
+          "turn": 102,
+          "dx": -79.609,
+          "dy": -63
+        }
+      ]
+    },
+    {
+      "mode": "endless",
+      "strategy": "bank",
+      "seed": 1234,
+      "phase": "lost",
+      "turn": 139,
+      "score": 340,
+      "count": 22,
+      "damage": 4,
+      "contacts": 47076,
+      "absorbed": 585,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 1,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 2,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 3,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 4,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 5,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 6,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 7,
+          "dx": 232.163,
+          "dy": -442.832
+        },
+        {
+          "turn": 8,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 9,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 10,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 11,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 12,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 13,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 14,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 15,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 16,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 17,
+          "dx": -283.802,
+          "dy": -411.651
+        },
+        {
+          "turn": 18,
+          "dx": 411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 19,
+          "dx": -373.996,
+          "dy": -331.854
+        },
+        {
+          "turn": 20,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 21,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 22,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 23,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 24,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 25,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 26,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 27,
+          "dx": 411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 28,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 29,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 30,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 31,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 32,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 33,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 34,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 35,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 36,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 37,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 38,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 39,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 40,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 41,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 42,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 43,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 44,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 45,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 46,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 47,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 48,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 49,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 50,
+          "dx": -496.273,
+          "dy": -60.935
+        },
+        {
+          "turn": 51,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 52,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 53,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 54,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 55,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 56,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 57,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 58,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 59,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 60,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 61,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 62,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 63,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 64,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 65,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 66,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 67,
+          "dx": 60.213,
+          "dy": -496.361
+        },
+        {
+          "turn": 68,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 69,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 70,
+          "dx": 442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 71,
+          "dx": 411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 72,
+          "dx": -496.273,
+          "dy": -60.935
+        },
+        {
+          "turn": 73,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 74,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 75,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 76,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 77,
+          "dx": 373.996,
+          "dy": -331.854
+        },
+        {
+          "turn": 78,
+          "dx": -60.213,
+          "dy": -496.361
+        },
+        {
+          "turn": 79,
+          "dx": -331.31,
+          "dy": -374.478
+        },
+        {
+          "turn": 80,
+          "dx": -496.273,
+          "dy": -60.935
+        },
+        {
+          "turn": 81,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 82,
+          "dx": 119.549,
+          "dy": -485.498
+        },
+        {
+          "turn": 83,
+          "dx": 14.352,
+          "dy": -513
+        },
+        {
+          "turn": 84,
+          "dx": 184.426,
+          "dy": -413
+        },
+        {
+          "turn": 85,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 86,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 87,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 88,
+          "dx": 119.549,
+          "dy": -485.498
+        },
+        {
+          "turn": 89,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 90,
+          "dx": 373.996,
+          "dy": -331.854
+        },
+        {
+          "turn": 91,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 92,
+          "dx": -60.213,
+          "dy": -496.361
+        },
+        {
+          "turn": 93,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 94,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 95,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 96,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 97,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 98,
+          "dx": 373.996,
+          "dy": -331.854
+        },
+        {
+          "turn": 99,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 100,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 101,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 102,
+          "dx": -160.026,
+          "dy": -513
+        },
+        {
+          "turn": 103,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 104,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 105,
+          "dx": 60.213,
+          "dy": -496.361
+        },
+        {
+          "turn": 106,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 107,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 108,
+          "dx": 331.31,
+          "dy": -374.478
+        },
+        {
+          "turn": 109,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 110,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 111,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 112,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 113,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 114,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 115,
+          "dx": 411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 116,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 117,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 118,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 119,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 120,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 121,
+          "dx": 60.213,
+          "dy": -496.361
+        },
+        {
+          "turn": 122,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 123,
+          "dx": 60.213,
+          "dy": -496.361
+        },
+        {
+          "turn": 124,
+          "dx": 442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 125,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 126,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 127,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 128,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 129,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 130,
+          "dx": -232.163,
+          "dy": -442.832
+        },
+        {
+          "turn": 131,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 132,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 133,
+          "dx": -177.146,
+          "dy": -467.568
+        },
+        {
+          "turn": 134,
+          "dx": -331.31,
+          "dy": -374.478
+        },
+        {
+          "turn": 135,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 136,
+          "dx": 232.163,
+          "dy": -442.832
+        },
+        {
+          "turn": 137,
+          "dx": 2.409,
+          "dy": -513
+        },
+        {
+          "turn": 138,
+          "dx": -496.273,
+          "dy": -60.935
+        }
+      ]
+    },
+    {
+      "mode": "endless",
+      "strategy": "bank",
+      "seed": 20261006,
+      "phase": "aim",
+      "turn": 160,
+      "score": 406,
+      "count": 22,
+      "damage": 4,
+      "contacts": 66295,
+      "absorbed": 538,
+      "maxRow": 8,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 1,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 2,
+          "dx": 331.31,
+          "dy": -374.478
+        },
+        {
+          "turn": 3,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 4,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 5,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 6,
+          "dx": -331.31,
+          "dy": -374.478
+        },
+        {
+          "turn": 7,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 8,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 9,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 10,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 11,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 12,
+          "dx": 411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 13,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 14,
+          "dx": -177.146,
+          "dy": -467.568
+        },
+        {
+          "turn": 15,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 16,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 17,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 18,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 19,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 20,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 21,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 22,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 23,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 24,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 25,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 26,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 27,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 28,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 29,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 30,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 31,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 32,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 33,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 34,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 35,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 36,
+          "dx": 411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 37,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 38,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 39,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 40,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 41,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 42,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 43,
+          "dx": -373.996,
+          "dy": -331.854
+        },
+        {
+          "turn": 44,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 45,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 46,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 47,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 48,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 49,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 50,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 51,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 52,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 53,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 54,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 55,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 56,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 57,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 58,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 59,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 60,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 61,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 62,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 63,
+          "dx": -496.273,
+          "dy": -60.935
+        },
+        {
+          "turn": 64,
+          "dx": 442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 65,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 66,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 67,
+          "dx": 442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 68,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 69,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 70,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 71,
+          "dx": -147.464,
+          "dy": -463
+        },
+        {
+          "turn": 72,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 73,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 74,
+          "dx": -86.924,
+          "dy": -463
+        },
+        {
+          "turn": 75,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 76,
+          "dx": 411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 77,
+          "dx": -283.802,
+          "dy": -411.651
+        },
+        {
+          "turn": 78,
+          "dx": 119.549,
+          "dy": -485.498
+        },
+        {
+          "turn": 79,
+          "dx": -56.027,
+          "dy": -413
+        },
+        {
+          "turn": 80,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 81,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 82,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 83,
+          "dx": 411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 84,
+          "dx": -57.964,
+          "dy": -463
+        },
+        {
+          "turn": 85,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 86,
+          "dx": -373.996,
+          "dy": -331.854
+        },
+        {
+          "turn": 87,
+          "dx": -496.273,
+          "dy": -60.935
+        },
+        {
+          "turn": 88,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 89,
+          "dx": -159.582,
+          "dy": -463
+        },
+        {
+          "turn": 90,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 91,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 92,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 93,
+          "dx": 46.523,
+          "dy": -363
+        },
+        {
+          "turn": 94,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 95,
+          "dx": 232.163,
+          "dy": -442.832
+        },
+        {
+          "turn": 96,
+          "dx": -496.273,
+          "dy": -60.935
+        },
+        {
+          "turn": 97,
+          "dx": 442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 98,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 99,
+          "dx": -177.146,
+          "dy": -467.568
+        },
+        {
+          "turn": 100,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 101,
+          "dx": 331.31,
+          "dy": -374.478
+        },
+        {
+          "turn": 102,
+          "dx": 144.468,
+          "dy": -463
+        },
+        {
+          "turn": 103,
+          "dx": -113.025,
+          "dy": -513
+        },
+        {
+          "turn": 104,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 105,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 106,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 107,
+          "dx": 373.996,
+          "dy": -331.854
+        },
+        {
+          "turn": 108,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 109,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 110,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 111,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 112,
+          "dx": 442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 113,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 114,
+          "dx": 442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 115,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 116,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 117,
+          "dx": -331.31,
+          "dy": -374.478
+        },
+        {
+          "turn": 118,
+          "dx": -187.353,
+          "dy": -413
+        },
+        {
+          "turn": 119,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 120,
+          "dx": -283.802,
+          "dy": -411.651
+        },
+        {
+          "turn": 121,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 122,
+          "dx": -496.273,
+          "dy": -60.935
+        },
+        {
+          "turn": 123,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 124,
+          "dx": 373.996,
+          "dy": -331.854
+        },
+        {
+          "turn": 125,
+          "dx": 373.996,
+          "dy": -331.854
+        },
+        {
+          "turn": 126,
+          "dx": -373.996,
+          "dy": -331.854
+        },
+        {
+          "turn": 127,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 128,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 129,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 130,
+          "dx": 331.31,
+          "dy": -374.478
+        },
+        {
+          "turn": 131,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 132,
+          "dx": 442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 133,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 134,
+          "dx": -496.273,
+          "dy": -60.935
+        },
+        {
+          "turn": 135,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 136,
+          "dx": 177.146,
+          "dy": -467.568
+        },
+        {
+          "turn": 137,
+          "dx": -177.146,
+          "dy": -467.568
+        },
+        {
+          "turn": 138,
+          "dx": 60.213,
+          "dy": -496.361
+        },
+        {
+          "turn": 139,
+          "dx": -96.507,
+          "dy": -513
+        },
+        {
+          "turn": 140,
+          "dx": 442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 141,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 142,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 143,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 144,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 145,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 146,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 147,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 148,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 149,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 150,
+          "dx": -496.273,
+          "dy": -60.935
+        },
+        {
+          "turn": 151,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 152,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 153,
+          "dx": 60.213,
+          "dy": -496.361
+        },
+        {
+          "turn": 154,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 155,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 156,
+          "dx": -496.273,
+          "dy": -60.935
+        },
+        {
+          "turn": 157,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 158,
+          "dx": 53.857,
+          "dy": -463
+        },
+        {
+          "turn": 159,
+          "dx": 467.309,
+          "dy": -177.825
+        }
+      ]
+    },
+    {
+      "mode": "endless",
+      "strategy": "bank",
+      "seed": 998811,
+      "phase": "lost",
+      "turn": 133,
+      "score": 329,
+      "count": 22,
+      "damage": 4,
+      "contacts": 40466,
+      "absorbed": 404,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 1,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 2,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 3,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 4,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 5,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 6,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 7,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 8,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 9,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 10,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 11,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 12,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 13,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 14,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 15,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 16,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 17,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 18,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 19,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 20,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 21,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 22,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 23,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 24,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 25,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 26,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 27,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 28,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 29,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 30,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 31,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 32,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 33,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 34,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 35,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 36,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 37,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 38,
+          "dx": 411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 39,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 40,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 41,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 42,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 43,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 44,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 45,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 46,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 47,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 48,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 49,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 50,
+          "dx": -496.273,
+          "dy": -60.935
+        },
+        {
+          "turn": 51,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 52,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 53,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 54,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 55,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 56,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 57,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 58,
+          "dx": -496.273,
+          "dy": -60.935
+        },
+        {
+          "turn": 59,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 60,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 61,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 62,
+          "dx": 290.616,
+          "dy": -463
+        },
+        {
+          "turn": 63,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 64,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 65,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 66,
+          "dx": 232.163,
+          "dy": -442.832
+        },
+        {
+          "turn": 67,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 68,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 69,
+          "dx": -49.883,
+          "dy": -463
+        },
+        {
+          "turn": 70,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 71,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 72,
+          "dx": -251.428,
+          "dy": -513
+        },
+        {
+          "turn": 73,
+          "dx": 442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 74,
+          "dx": -60.213,
+          "dy": -496.361
+        },
+        {
+          "turn": 75,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 76,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 77,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 78,
+          "dx": 232.163,
+          "dy": -442.832
+        },
+        {
+          "turn": 79,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 80,
+          "dx": -60.213,
+          "dy": -496.361
+        },
+        {
+          "turn": 81,
+          "dx": -60.213,
+          "dy": -496.361
+        },
+        {
+          "turn": 82,
+          "dx": 411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 83,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 84,
+          "dx": 442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 85,
+          "dx": -442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 86,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 87,
+          "dx": -119.549,
+          "dy": -485.498
+        },
+        {
+          "turn": 88,
+          "dx": 442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 89,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 90,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 91,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 92,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 93,
+          "dx": -119.549,
+          "dy": -485.498
+        },
+        {
+          "turn": 94,
+          "dx": -113.182,
+          "dy": -513
+        },
+        {
+          "turn": 95,
+          "dx": 283.802,
+          "dy": -411.651
+        },
+        {
+          "turn": 96,
+          "dx": 60.213,
+          "dy": -496.361
+        },
+        {
+          "turn": 97,
+          "dx": 177.146,
+          "dy": -467.568
+        },
+        {
+          "turn": 98,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 99,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 100,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 101,
+          "dx": 373.996,
+          "dy": -331.854
+        },
+        {
+          "turn": 102,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 103,
+          "dx": -411.238,
+          "dy": -284.401
+        },
+        {
+          "turn": 104,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 105,
+          "dx": -60.213,
+          "dy": -496.361
+        },
+        {
+          "turn": 106,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 107,
+          "dx": 496.273,
+          "dy": -60.935
+        },
+        {
+          "turn": 108,
+          "dx": -178.615,
+          "dy": -463
+        },
+        {
+          "turn": 109,
+          "dx": 177.146,
+          "dy": -467.568
+        },
+        {
+          "turn": 110,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 111,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 112,
+          "dx": -138.078,
+          "dy": -463
+        },
+        {
+          "turn": 113,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 114,
+          "dx": -485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 115,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 116,
+          "dx": 442.494,
+          "dy": -232.807
+        },
+        {
+          "turn": 117,
+          "dx": -496.273,
+          "dy": -60.935
+        },
+        {
+          "turn": 118,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 119,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 120,
+          "dx": 0,
+          "dy": -500
+        },
+        {
+          "turn": 121,
+          "dx": 496.273,
+          "dy": -60.935
+        },
+        {
+          "turn": 122,
+          "dx": -373.996,
+          "dy": -331.854
+        },
+        {
+          "turn": 123,
+          "dx": 485.323,
+          "dy": -120.255
+        },
+        {
+          "turn": 124,
+          "dx": 496.273,
+          "dy": -60.935
+        },
+        {
+          "turn": 125,
+          "dx": -113.055,
+          "dy": -413
+        },
+        {
+          "turn": 126,
+          "dx": 467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 127,
+          "dx": -177.146,
+          "dy": -467.568
+        },
+        {
+          "turn": 128,
+          "dx": -123.087,
+          "dy": -463
+        },
+        {
+          "turn": 129,
+          "dx": 232.163,
+          "dy": -442.832
+        },
+        {
+          "turn": 130,
+          "dx": 331.31,
+          "dy": -374.478
+        },
+        {
+          "turn": 131,
+          "dx": -467.309,
+          "dy": -177.825
+        },
+        {
+          "turn": 132,
+          "dx": -496.273,
+          "dy": -60.935
+        }
+      ]
+    }
+  ],
+  "shallowAngleFixture": [
+    {
+      "degrees": 8,
+      "wallBounces": 25,
+      "targetHits": 3,
+      "flightSeconds": 15.70417
+    },
+    {
+      "degrees": 10,
+      "wallBounces": 3,
+      "targetHits": 2,
+      "flightSeconds": 2.40833
+    },
+    {
+      "degrees": 12,
+      "wallBounces": 10,
+      "targetHits": 2,
+      "flightSeconds": 5.30417
+    }
+  ],
+  "limits": {
+    "ballCap": 22,
+    "gravity": 8,
+    "physicsStep": 0.004166666666666667,
+    "maxFlight": 24,
+    "recallDuration": [
+      0.88,
+      1.09
+    ],
+    "pickupEveryWaves": 4
+  },
+  "notes": [
+    "A turn-cap result marked aim is censored, not a failure.",
+    "Search chooses the strongest simulated legal aim; it is evidence of reachability, not measured human win rate.",
+    "Older per-shot direction values in source reports were rounded for presentation; success results were simulated with full precision."
+  ]
+}

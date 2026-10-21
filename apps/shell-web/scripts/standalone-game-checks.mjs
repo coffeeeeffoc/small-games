@@ -384,8 +384,17 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     expect((await snapshot()).balls).toEqual(paused.balls);
     await click(frame.locator('#resume'));
     await expect(frame.locator('body')).toHaveAttribute('data-screen', 'playing');
-    await click(frame.locator('#pause'));
     await click(frame.locator('#back-home'));
+    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'confirm');
+    const confirming = await snapshot();
+    await page.waitForTimeout(120);
+    expect((await snapshot()).balls).toEqual(confirming.balls);
+    await click(frame.locator('#confirm-cancel'));
+    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'playing');
+    expect((await snapshot()).shots).toBe(confirming.shots);
+    expect((await snapshot()).levelId).toBe(initial.levelId);
+    await click(frame.locator('#back-home'));
+    await click(frame.locator('#confirm-accept'));
     await expect(frame.locator('#start')).toBeVisible();
   } else if (id === 'castle-cannon') {
     const { assertCastleDuelEntry } = await import('./game-checks/castle-cannon.mjs');

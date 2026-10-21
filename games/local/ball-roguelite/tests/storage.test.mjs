@@ -1,8 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, checkpoint, restoreGame, fire, recall } from '../core.mjs';
+import {
+  createGame,
+  checkpoint,
+  restoreGame,
+  fire,
+  update,
+  recall as requestRecall,
+} from '../core.mjs';
 import { createStorage, STORAGE_KEY } from '../storage.mjs';
 
+const recall = (game) => {
+  const accepted = requestRecall(game);
+  for (let i = 0; game.phase === 'recall' && i < 400; i++) update(game, 1 / 120);
+  return accepted;
+};
 function memory(value) {
   const values = new Map(value ? [[STORAGE_KEY, JSON.stringify(value)]] : []);
   return { getItem: (key) => values.get(key), setItem: (key, next) => values.set(key, next) };
