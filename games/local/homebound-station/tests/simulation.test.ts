@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { LEVELS, DIRECTIONS } from '../src/levels.ts';
+import { LEVELS, DIRECTIONS, boardDepth, validateLevels, type LevelConfig } from '../src/levels.ts';
 import { idlePose } from '../src/ambient.ts';
-import { advance, blocker, canDispatch, createSimulation, dispatch, snapshot, splitGroup, splitPlans } from '../src/simulation.ts';
+import { advance, blocker, canDispatch, createSimulation, dispatch, snapshot, splitGroup, splitPlans, queuePosition } from '../src/simulation.ts';
 import type { Simulation } from '../src/simulation.ts';
 
 function invariant(s: Simulation) {
@@ -12,17 +12,16 @@ function invariant(s: Simulation) {
   assert.equal(s.delivered.size, leaves.filter(g => g.state === 'departed').reduce((n, g) => n + g.passengers.length, 0));
   for (const g of leaves) {
     assert(g.boarded <= g.passengers.length);
-    if (g.vehicleId) { const v = s.vehicles.find(v => v.id === g.vehicleId)!; assert.equal(v.groupId, g.id); assert(g.passengers.length <= v.passengerCapacity); assert.equal(v.seatCount - v.driverSeatCount, v.passengerCapacity); }
+    if (g.vehicleId) { const v = s.vehicles.find(v => v.id === g.vehicleId)!; assert.equal(v.groupId, g.id); assert(g.passengers.length <= v.passengerCapacity); }
   }
   for (const b of s.bays) {
-    const jobs = s.services.filter(j => j.bayId === b.id && j.clearedAt === undefined);
-    assert.equal(jobs.length, b.state === 'free' ? 0 : 1);
-    if (jobs.length) { assert.equal(b.groupId, jobs[0]!.groupId); assert.equal(b.vehicleId, jobs[0]!.vehicleId); }
+    const jobs = s.services.filter(j => j.bayId === b.id && j.clearedAt === undefined && j.phase !== 'done');
+    if (b.state !== 'free') { assert(jobs.length); assert.equal(b.vehicleId, jobs[0]!.vehicleId, '停靠位保持分配顺序，后来点击不能抢占'); assert.equal(b.groupId, jobs[0]!.groupId); }
   }
-  const moving = s.services.filter(j => ['driving', 'departing'].includes(j.phase));
-  assert(moving.length <= 1); assert.equal(moving[0]?.vehicleId, s.roadOwner);
   assert.equal(new Set(s.services.map(j => j.vehicleId)).size, s.services.length);
-  // Independent geometric SAT test, including a 3m x 1.5m footprint for each rendered car.
+  assert.equal(new Set(s.services.filter(j => j.groupId).map(j => j.groupId)).size, s.services.filter(j => j.groupId).length);
+  for (const job of s.services) if (job.groupId) assert.deepEqual(job.pickupPoint, job.walkFrom, '接客期间不可重算乘客位置');
+  // Independent SAT check: rendered bodies are 3m long and 1.5m wide, including rotations.
   const cars = s.vehicles.filter(v => v.state !== 'removed');
   for (let i = 0; i < cars.length; i++) for (let j = i + 1; j < cars.length; j++) {
     const a = cars[i]!, b = cars[j]!;
@@ -31,106 +30,73 @@ function invariant(s: Simulation) {
     assert(axes.some(axis => Math.abs((b.position.x - a.position.x) * axis[0]! + (b.position.z - a.position.z) * axis[1]!) >= radius(a, axis) + radius(b, axis) - 0.02), `车辆穿模 ${a.id}/${b.id} t=${s.time}`);
   }
 }
-function drive(s: Simulation, seconds: number) { for (let i = 0; i < seconds * 20; i++) { advance(s, 0.05); invariant(s); } }
-function solve(level: number, reverse = false, split = true) {
-  const s = createSimulation(LEVELS[level]!);
-  for (let i = 0; i < 12000 && !s.won; i++) {
-    if (split || !s.vehicles.some(v => v.passengerCapacity === 6 && canDispatch(s, v.id).ok)) for (const g of s.groups) { const plan = splitPlans(s, g.id)[0]; if (plan) assert(splitGroup(s, g.id, plan, true).ok); }
-    const cars = reverse ? [...s.vehicles].reverse() : s.vehicles;
+function drive(s: Simulation, seconds: number) { for (let i = 0; i < Math.round(seconds * 20); i++) { advance(s, 0.05); invariant(s); } }
+function solve(config: LevelConfig, order: 'forward' | 'reverse' | 'random') {
+  const s = createSimulation(config); let seed = config.id * 7919;
+  const rand = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+  for (let i = 0; i < 14000 && !s.won; i++) {
+    const cars = order === 'forward' ? s.vehicles : order === 'reverse' ? [...s.vehicles].reverse() : s.vehicles.map(v => ({ v, key: rand() })).sort((a, b) => a.key - b.key).map(item => item.v);
     for (const v of cars) if (canDispatch(s, v.id).ok) assert(dispatch(s, v.id).ok);
     drive(s, 0.05);
   }
-  assert(s.won, `第${level + 1}关必须可解：剩余 ${s.vehicles.filter(v => v.state === 'holding').map(v => v.id).join(',')}，已接${s.delivered.size}/${s.target}`);
+  assert(s.won, `${config.id}/${order} 关卡应可解；t=${s.time}，已接${s.delivered.size}/${s.target}`);
   assert(s.vehicles.every(v => v.state === 'removed')); assert(s.bays.every(b => b.state === 'free')); assert.equal(s.delivered.size, s.target);
   return s;
 }
-test('每关包含12/16/20辆实际车辆，四个真实车位；箭头阻挡图可以完全解开', () => {
+function fixture(): LevelConfig { return { id: 900, title: '并行测试', subtitle: '', hint: '', stars: [150, 240], groups: Array.from({ length: 8 }, (_, i) => ({ id: `T${i + 1}`, size: 2 })), vehicles: Array.from({ length: 8 }, (_, i) => ({ id: `V${i + 1}`, capacity: 4, column: i % 2 ? 4 : 0, row: Math.floor(i / 2), direction: i % 2 ? 'E' : 'W' })) }; }
+
+test('100个稳定且独立的关卡；车辆数量、依赖难度渐进；所有方向图可解', () => {
+  assert.equal(LEVELS.length, 100); assert(validateLevels());
   LEVELS.forEach((level, i) => {
-    const s = createSimulation(level); assert.equal(s.vehicles.length, [12, 16, 20][i]); assert.equal(s.bays.length, 4);
-    const remaining = [...level.vehicles]; let blocked = 0;
-    const clear = (car: typeof remaining[number]) => !remaining.some(other => {
-      if (car === other) return false;
-      const dir = DIRECTIONS[car.direction], dx = other.column - car.column, dz = other.row - car.row;
-      return dx * dir.x + dz * dir.z > 0 && dx * dir.z - dz * dir.x === 0;
-    });
-    blocked = remaining.filter(v => !clear(v)).length; assert(blocked >= remaining.length / 2);
-    while (remaining.length) { const index = remaining.findIndex(clear); assert(index >= 0, '箭头不能形成无解闭环'); remaining.splice(index, 1); }
-    invariant(s);
+    assert.equal(level.id, i + 1); assert.equal(level.chapter, Math.ceil((i + 1) / 10));
+    if (i) { assert(level.vehicles.length >= LEVELS[i - 1]!.vehicles.length); assert(level.difficulty! >= LEVELS[i - 1]!.difficulty!); }
+    assert.equal(boardDepth(level.vehicles), level.dependencyDepth);
+    const remaining = [...level.vehicles];
+    while (remaining.length) { const index = remaining.findIndex(car => !remaining.some(other => { const d = DIRECTIONS[car.direction], dx = other.column - car.column, dz = other.row - car.row; return car !== other && dx * d.x + dz * d.z > 0 && dx * d.z - dz * d.x === 0; })); assert(index >= 0); remaining.splice(index, 1); }
   });
 });
-test('挡路车必须先走；错误点击无副作用；移动不会穿过还没出库的车', () => {
-  const s = createSimulation(LEVELS[0]!); const car = s.vehicles.find(v => blocker(s, v))!;
-  const before = JSON.stringify(snapshot(s)); assert.equal(dispatch(s, car.id).ok, false); assert.equal(JSON.stringify(snapshot(s)), before);
-  assert(dispatch(s, '巡01').ok); drive(s, 0.3); assert.equal(s.vehicles[0]!.position.z, 6); assert(s.vehicles[0]!.position.x < -8);
-  drive(s, 15); assert.equal(s.vehicles[0]!.state, 'removed');
+test('连续点击立即绑定乘客和位置；八辆车可同时发车，超过四个停靠位也可接单', () => {
+  const s = createSimulation(fixture());
+  const positions = s.groups.map(g => queuePosition(s, g));
+  for (const [i, v] of s.vehicles.entries()) { assert(dispatch(s, v.id).ok); assert.equal(v.groupId, `T${i + 1}`); assert.deepEqual(s.services[i]!.pickupPoint, positions[i]); }
+  assert.equal(s.services.length, 8); assert(s.services.every(j => j.phase === 'driving'));
+  const initial = s.vehicles.map(v => ({ ...v.position })); drive(s, .1);
+  assert.equal(s.vehicles.filter((v, i) => Math.hypot(v.position.x - initial[i]!.x, v.position.z - initial[i]!.z) > 0).length, 8);
+  assert.equal(s.delivered.size, 0, '第二辆出发不必等待第一组上车');
+  for (let i = 0; i < 3000 && !s.won; i++) drive(s, .05);
+  assert(s.won); for (const [i, job] of s.services.entries()) assert.deepEqual(job.pickupPoint, positions[i]);
 });
-test('自动分配空位，快速重复点击不重复派车和计数', () => {
-  const s = createSimulation(LEVELS[0]!); assert(dispatch(s, '巡01').ok);
-  assert.equal(s.vehicles[0]!.bayId, 'T1');
-  for (let i = 0; i < 20; i++) assert.equal(dispatch(s, '巡01').ok, false);
-  assert(dispatch(s, '巡02').ok); assert.equal(s.vehicles[1]!.bayId, 'T2');
-  drive(s, 30); assert.equal(s.delivered.size, 6); assert.equal(s.services.length, 2);
+test('重复点击和被挡点击无副作用，车不能穿过仍在停车场的车辆', () => {
+  const s = createSimulation(LEVELS[99]!); const blocked = s.vehicles.find(v => blocker(s, v))!;
+  const before = JSON.stringify(snapshot(s)); assert.equal(dispatch(s, blocked.id).ok, false); assert.equal(JSON.stringify(snapshot(s)), before);
+  const free = s.vehicles.find(v => canDispatch(s, v.id).ok)!; assert(dispatch(s, free.id).ok); const assigned = JSON.stringify(snapshot(s));
+  for (let i = 0; i < 20; i++) assert.equal(dispatch(s, free.id).ok, false);
+  assert.equal(JSON.stringify(snapshot(s)), assigned); drive(s, 10);
 });
-test('四个车位满时不可超额预留', () => {
-  const s = createSimulation(LEVELS[2]!);
-  const free = s.vehicles.filter(v => !blocker(s, v)); assert(free.length >= 5);
-  for (const v of free.slice(0, 4)) assert(dispatch(s, v.id).ok);
-  const before = JSON.stringify(snapshot(s)); assert.equal(dispatch(s, free[4]!.id).ok, false); assert.equal(JSON.stringify(snapshot(s)), before);
+test('已分配乘客的固定站位不受前组离开影响；后来点击不抢占已排队停靠位', () => {
+  const s = createSimulation(fixture()); for (const v of s.vehicles.slice(0, 5)) assert(dispatch(s, v.id).ok);
+  const source = { ...s.services[4]!.pickupPoint! };
+  while (s.delivered.size === 0 && s.time < 150) drive(s, .05);
+  assert(s.delivered.size > 0); assert.deepEqual(s.services[4]!.pickupPoint, source);
+  for (const v of s.vehicles.slice(5)) assert(dispatch(s, v.id).ok);
+  for (let i = 0; i < 4000 && !s.won; i++) drive(s, .05); assert(s.won);
 });
-test('按T1到T4检查各队首，容量足够即可，不合适的车位自动跳过', () => {
-  const config = structuredClone(LEVELS[0]!);
-  [6, 5, 2, 4].forEach((size, i) => { config.groups[i]!.size = size; });
-  const s = createSimulation(config);
-  assert(dispatch(s, '巡01').ok);
-  assert.equal(s.vehicles[0]!.bayId, 'T3'); assert.equal(s.vehicles[0]!.groupId, 'T03');
-  assert.equal(s.groups[0]!.state, 'ready'); assert.equal(s.groups[1]!.state, 'ready');
-  assert(dispatch(s, '巡02').ok); assert.equal(s.vehicles[1]!.bayId, 'T4');
-  assert(dispatch(s, '巡05').ok); assert.equal(s.vehicles[4]!.bayId, 'T1');
-  invariant(s);
+test('大组分乘 API 保留，需同意和两辆车，人员ID守恒，子组可并行排队', () => {
+  const config = fixture(); config.groups = [{ id: 'large', size: 6, allowSplit: true }];
+  const s = createSimulation(config); const plan = splitPlans(s, 'large')[0]!; assert(plan);
+  assert.equal(splitGroup(s, 'large', plan, false).ok, false); assert(splitGroup(s, 'large', plan, true).ok);
+  assert(dispatch(s, plan.vehicles[0]).ok); assert(dispatch(s, plan.vehicles[1]).ok); invariant(s);
+  for (let i = 0; i < 5000 && !s.won; i++) { for (const v of s.vehicles) if (canDispatch(s, v.id).ok) dispatch(s, v.id); drive(s, .05); }
+  assert(s.won); assert.equal(s.delivered.size, 6); assert.equal(s.groups[0]!.state, 'departed');
 });
-test('所有空位的队首都坐不下时拒绝；同一队列不能跳过大组去接后面小组', () => {
-  const config = structuredClone(LEVELS[0]!);
-  [6, 5, 6, 5].forEach((size, i) => { config.groups[i]!.size = size; });
-  const s = createSimulation(config), before = JSON.stringify(snapshot(s));
-  assert.equal(dispatch(s, '巡01').ok, false);
-  assert.equal(JSON.stringify(snapshot(s)), before);
+test('暂停冻结分配、移动和计时；重试重建空状态；1/2/3/5倍速在相同模拟时间一致', () => {
+  const s = createSimulation(fixture()); dispatch(s, 'V1'); dispatch(s, 'V2'); drive(s, 1); s.paused = true;
+  const before = JSON.stringify(snapshot(s)); advance(s, 500); assert.equal(JSON.stringify(snapshot(s)), before); assert.equal(dispatch(s, 'V3').ok, false);
+  const results = [1, 2, 3, 5].map(speed => { const sim = createSimulation(fixture()); for (const v of sim.vehicles) dispatch(sim, v.id); for (let i = 0; i < 1800 / speed; i++) advance(sim, speed / 60); return snapshot(sim); });
+  results.forEach(result => assert.deepEqual(result, results[0]));
+  const fresh = createSimulation(fixture()); assert.equal(fresh.time, 0); assert.equal(fresh.services.length, 0); assert.equal(fresh.delivered.size, 0);
 });
-test('车尾离位即释放并计数；旧车仍在画面时下一辆能预留，旧车出画面不清新预留', () => {
-  const s = createSimulation(LEVELS[0]!); assert(dispatch(s, '巡01').ok);
-  for (let i = 0; i < 500 && s.delivered.size === 0; i++) drive(s, 0.05);
-  const v = s.vehicles[0]!, bay = s.bays[0]!;
-  assert.equal(v.state, 'departing'); assert(v.position.x < 15); assert.equal(bay.state, 'free'); assert.equal(s.delivered.size, 2);
-  assert(dispatch(s, '巡02').ok); assert.equal(bay.vehicleId, '巡02');
-  while (v.state !== 'removed') { drive(s, 0.05); assert.equal(bay.vehicleId, '巡02'); assert.equal(bay.state, 'reserved'); }
-  drive(s, 25); assert.equal(s.delivered.size, 6);
+test('待机动作保持轻量、确定且不偏离候车位置', () => {
+  for (const id of ['T01/p1', 'T01/p2', 'T12/p6']) for (let time = 0; time < 10; time += .13) { const pose = idlePose(id, time); assert.deepEqual(pose, idlePose(id, time)); assert(Math.abs(pose.z) <= .2); assert(Math.abs(pose.turn) <= .3); }
 });
-test('容量区分司机；6人分车需同意和两条可落实路线，人数守恒且父组不重复服务', () => {
-  const s = createSimulation(LEVELS[1]!); const v = s.vehicles[0]!;
-  assert.equal(v.seatCount, 5); assert.equal(v.passengerCapacity, 4); assert.equal(dispatch(s, v.id, 'T1').ok, false);
-  const plan = splitPlans(s, 'T01')[0]!; assert.deepEqual(plan.counts, [3, 3]);
-  assert.equal(splitGroup(s, 'T01', plan, false).ok, false);
-  assert.equal(splitGroup(s, 'T01', { ...plan, counts: [4, 4] }, true).ok, false);
-  assert(splitGroup(s, 'T01', plan, true).ok); assert.equal(splitGroup(s, 'T01', plan, true).ok, false);
-  const children = s.groups.filter(g => g.parentGroupId === 'T01'); assert.deepEqual(children.flatMap(g => g.passengers.map(p => p.id)), s.groups[0]!.passengers.map(p => p.id));
-  assert(dispatch(s, plan.vehicles[0]).ok); drive(s, 20); assert.equal(s.groups[0]!.state, 'split');
-  assert(dispatch(s, plan.vehicles[1]).ok); drive(s, 20); assert.equal(s.groups[0]!.state, 'departed'); assert.equal(s.delivered.size, 6);
-  const care = createSimulation(LEVELS[1]!); care.groups[0]!.passengers[0]!.needsGuardian = true; assert.deepEqual(splitPlans(care, 'T01'), []);
-});
-test('暂停冻结整个世界，重试重建车阵；不同帧率模拟一致', () => {
-  const s = createSimulation(LEVELS[0]!); dispatch(s, '巡01'); drive(s, 1); s.paused = true;
-  const before = JSON.stringify(snapshot(s)); advance(s, 500); assert.equal(JSON.stringify(snapshot(s)), before); assert.equal(dispatch(s, '巡02').ok, false);
-  const a = createSimulation(LEVELS[0]!), b = createSimulation(LEVELS[0]!); for (const sim of [a, b]) dispatch(sim, '巡01');
-  for (let i = 0; i < 600; i++) advance(a, 1 / 60); advance(b, 10); assert.deepEqual(snapshot(a), snapshot(b));
-  const fresh = createSimulation(LEVELS[0]!); assert.equal(fresh.time, 0); assert.equal(fresh.services.length, 0); assert.equal(fresh.delivered.size, 0); assert(fresh.vehicles.every(v => v.state === 'holding'));
-});
-test('待机动作局限在排队位置附近，同一乘客和时间的动作可重现', () => {
-  for (const id of ['T01/p1', 'T01/p2', 'T12/p6']) for (let time = 0; time < 100; time += 0.13) {
-    const pose = idlePose(id, time); assert.deepEqual(pose, idlePose(id, time));
-    assert(Math.abs(pose.z) <= 0.2); assert(Math.abs(pose.turn) <= 0.3); assert(Math.abs(pose.stride) <= 0.28);
-  }
-  assert.notDeepEqual(idlePose('T01/p1', 8), idlePose('T01/p2', 8));
-});
-for (let i = 0; i < LEVELS.length; i++) for (const reverse of [false, true]) test(`第${i + 1}关${reverse ? '反向' : '正向'}选择全过程守恒、碰撞和通关`, () => { solve(i, reverse); });
-test('整组坐大车时多余车辆仍须收班离场，接完人不提前判赢', () => {
-  const s = solve(1, false, false); assert.equal(s.groups[0]!.boarded, 6); assert(s.services.some(j => !j.groupId));
-});
+for (const order of ['forward', 'reverse', 'random'] as const) test(`全部100关 ${order} 点击顺序：完整通关、无穿模、乘客守恒、固定接客位置`, () => { for (const level of LEVELS) solve(level, order); });

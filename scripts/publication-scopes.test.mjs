@@ -5,6 +5,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
   reviewedSharedFileScopes,
+  homeboundCocosWiringOnly,
   competitionConsumers,
   competitionToolPlan,
   competitionServiceScopePaths,
@@ -83,7 +84,7 @@ test('unified package tools keep the three H5 consumers and reject unknown sibli
     assert.equal(selected.competition_service_checks, true);
     if (file === 'scripts/competition-service-config.mjs') {
       assert.equal(selected.six_h5_checks, true);
-      for (const id of sixH5Ids.filter((id) => id !== 'travel-bund'))
+      for (const id of sixH5Ids.filter((id) => id !== 'travel-bund' && id !== 'homebound-station'))
         assert(selected.browser_ids.includes(id), `service config consumer: ${id}`);
       assert(!selected.browser_ids.includes('travel-bund'));
     }
@@ -109,7 +110,13 @@ test('six H5 tools declare exact consumers and preserve fail-closed configuratio
     const fileScopes = reviewedSharedFileScopes(ctx);
     assert.deepEqual(
       fileScopes.get(file),
-      file.endsWith('.test.mjs') ? [] : games.map((g) => g.source),
+      file.endsWith('.test.mjs')
+        ? []
+        : games
+            .filter(
+              (g) => file !== 'infra/builds/six-taptap-h5.mjs' || g.id !== 'homebound-station',
+            )
+            .map((g) => g.source),
     );
     const plan = incrementalPlan({ ...ctx, fileScopes });
     assert.equal(plan.full, false);
@@ -3333,6 +3340,13 @@ const frozenCleanupBase = (file) =>
     encoding: 'utf8',
   });
 
+// Freeze the reviewed pre-Cocos wiring when exercising older, exact delta proofs.
+const frozenHomeboundBaseline = (file) =>
+  execFileSync('git', ['show', '0459b0cb3c89a748f3a6bd252858951ba1ca073d:' + file], {
+    cwd: new URL('../', import.meta.url),
+    encoding: 'utf8',
+  }).replaceAll('\r\n', '\n');
+
 const frozenAdminBaseline = (file) =>
   execFileSync('git', ['show', '1367ae4f9758fb3a36935267db236e481b67d52a:' + file], {
     cwd: new URL('../', import.meta.url),
@@ -3426,7 +3440,7 @@ test('CSP tools select only actual admin/company consumers, exact Turbo inputs a
     assert.equal(reviewedSharedFileScopes({ ...context, packages: [] }).has(file), false);
   }
   const before = frozenAdminBaseline('turbo.json');
-  const after = readFileSync(new URL('../turbo.json', import.meta.url), 'utf8');
+  const after = frozenHomeboundBaseline('turbo.json');
   const classify = (value) =>
     reviewedSharedFileScopes({
       changedPaths: ['turbo.json'],
@@ -3812,7 +3826,9 @@ test('anonymous session migration and Pages service defaults admit only the revi
       : execFileSync('git', ['show', '0d7bfdfe4087b85139dc525e9a75f3ab792e17f6:' + file], {
           encoding: 'utf8',
         });
-    const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+    const after = file.startsWith('.github/')
+      ? frozenHomeboundBaseline(file)
+      : readFileSync(new URL('../' + file, import.meta.url), 'utf8');
     const check = file.startsWith('.github/')
       ? anonymousPagesFileScope
       : playerSessionBackendFileScope;
@@ -3929,4 +3945,24 @@ test('planning expands only to the four locked game workspaces for both live pub
       assert.equal(classify(file, before + '\n', after).has(file), false);
       assert.equal(classify(file, after, before).has(file), false);
     }
+});
+
+test('third Creator wiring admits only the reviewed additive compiler change', () => {
+  const file = 'scripts/h5-game-build.mjs';
+  const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const before = after.replace(", 'homebound-station'", '');
+  assert(homeboundCocosWiringOnly(file, before, after));
+  assert(!homeboundCocosWiringOnly(file, before, after.replace("'carding-car'", "'other-game'")));
+  assert(!homeboundCocosWiringOnly(file, before, after + '\nprocess.exit(0);'));
+  assert(!homeboundCocosWiringOnly('scripts/unreviewed-build.mjs', before, after));
+  const games = [{ id: 'homebound-station', source: 'games/local/homebound-station' }];
+  const packages = [{ name: 'homebound', dir: games[0].source }];
+  const scope = reviewedSharedFileScopes({
+    changedPaths: [file],
+    games,
+    packages,
+    readBase: () => before,
+    readHead: () => after,
+  });
+  assert.deepEqual(scope.get(file), [games[0].source]);
 });

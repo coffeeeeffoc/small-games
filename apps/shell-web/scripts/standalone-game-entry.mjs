@@ -21,7 +21,7 @@ export const markers = {
   'bullet-garden': '#start',
   'maze-wander': '#start',
   'urban-breakout': '#start',
-  'homebound-station': '[data-level="0"]',
+  'homebound-station': 'body[data-homebound-ready="true"]',
   'balloon-movers': '#launch',
   'weather-command': '#board[data-level="1"]',
   'off-camera': '#bank [data-card]',
@@ -87,7 +87,6 @@ export const homeControls = {
   'voiceprint-case': '#start',
   'maze-wander': ['#start', '#enter'],
   'urban-breakout': '#start',
-  'homebound-station': '[data-level="0"]',
   'fold-the-world': '[data-action="start"]',
   'merge-front': '#start-defense',
   'xiangqi-five': '#home-start',
@@ -102,6 +101,7 @@ export const homeControls = {
 
 // Explicit compatibility list: these existing assertions still own their setup flow.
 export const legacyEntryIds = [
+  'homebound-station',
   'echo-lab',
   'bullet-garden',
   'balloon-movers',

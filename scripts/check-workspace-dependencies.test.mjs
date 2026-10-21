@@ -570,3 +570,23 @@ test('identity fixtures reuse exact implementations without opening runtime or a
     ),
   );
 });
+
+test('homebound Creator reuse is limited to the declared build and typecheck tools', async (t) => {
+  const root = await createWorkspace([
+    {
+      path: 'games/local/homebound-station',
+      manifest: { name: '@coffeeeeffoc/homebound-station' },
+      files: {
+        'scripts/build.mjs':
+          "import '../../carding-car/scripts/toolchain.mjs';\nimport '../../carding-car/scripts/cocos-branding.mjs';\nimport '../../../../scripts/h5-ad-config.mjs';\n",
+        'scripts/typecheck.mjs': "import '../../carding-car/scripts/toolchain.mjs';\n",
+        'scripts/other.mjs': "import '../../carding-car/scripts/toolchain.mjs';\n",
+        'assets/scripts/main.ts': "import '../../../carding-car/scripts/toolchain.mjs';\n",
+      },
+    },
+  ]);
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const violations = await validateWorkspace(root);
+  assert.equal(violations.length, 2);
+  assert(violations.every((entry) => entry.code === 'cross-package-relative'));
+});

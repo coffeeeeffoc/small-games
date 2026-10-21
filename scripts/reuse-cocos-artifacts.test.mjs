@@ -23,7 +23,7 @@ const jobs = games.map((game) => ({
   status: 'completed',
   conclusion: 'success',
 }));
-test('reuse waits only for both successful producer gates, not downstream CI', () => {
+test('reuse waits only for all successful producer gates, not downstream CI', () => {
   assert.equal(inspectProducer(run, jobs, expected), 'ready');
   assert.equal(inspectProducer(run, jobs.slice(0, 1), expected), 'waiting');
   for (const conclusion of ['failure', 'cancelled', 'skipped', 'timed_out'])
@@ -123,5 +123,33 @@ test('CI is the sole producer direction and fallback retains original gates', as
     producer.jobs.reuse.steps.some(
       (step) => step.run?.includes('verify carding-car') && step['continue-on-error'] === true,
     ),
+  );
+});
+
+test('reuse verifies and republishes every Creator game before skipping the producer', async () => {
+  const workflow = yaml.load(
+    await readFile(new URL('../.github/workflows/carding-car.yml', import.meta.url), 'utf8'),
+  );
+  assert.deepEqual(workflow.jobs.creator.strategy.matrix.game, games);
+  const steps = workflow.jobs.reuse.steps,
+    verify = steps.find((step) => step.id === 'verify');
+  for (const game of games) {
+    const name = game + '-${{ github.sha }}';
+    const download = steps.find(
+      (step) => step.uses?.startsWith('actions/download-artifact@') && step.with.name === name,
+    );
+    assert(download, `missing download ${game}`);
+    assert(verify.if.includes(`steps.${download.id}.outcome == 'success'`));
+    assert(verify.run.includes(`verify ${game} .scratch/ci-cocos/${game}`));
+    const upload = steps.find(
+      (step) => step.uses?.startsWith('actions/upload-artifact@') && step.with.name === name,
+    );
+    assert.equal(upload?.if, "steps.verify.outcome == 'success'");
+    assert.equal(upload.with['if-no-files-found'], 'error');
+  }
+  assert.equal(inspectProducer(run, jobs.slice(0, -1), expected), 'waiting');
+  assert.throws(
+    () => inspectProducer({ ...run, status: 'completed' }, jobs.slice(0, -1), expected),
+    /lacks successful/,
   );
 });

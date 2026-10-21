@@ -7,6 +7,70 @@ import { ingressShellGuard, ingressPreflightGuard } from './competition-ingress.
 
 const loadDependency = createRequire(import.meta.url);
 
+// Exact additive wiring for the third Creator Web game. Existing compiler paths,
+// workflow gates, permissions and presets remain byte-for-byte unchanged.
+const homeboundCocosWiring = {
+  'scripts/check-workspace-dependencies.mjs': [
+    '152acc7e318df5fd105b6d9f2bb5e3f226dbdf4dbd866f18432cd464831cfa34',
+    'd3d15bd1c635be844d969d4b4f6621554f959566d33cc56d9af5bde0d2b9faa9',
+  ],
+  'scripts/deployment-bundle.mjs': [
+    '83fc0070d115e7a4501a82943714b9b5cf239e0db6fc6cdde6e6ea20c4ec6a90',
+    'e5b3a7e7e774cd9be903df8723096887fb433277db04b8b86d813030faecf6b5',
+  ],
+  'scripts/deployment-bundle.test.mjs': [
+    '3e5ca2e1bc48c1fa363fdf5f91b9b981a611f2aac4b759a6e338b171b02c5212',
+    'b68715bf1c1fde6a5941e4df75fd840fcdbe02daf4996f33851e667cd9be16f8',
+  ],
+
+  '.github/workflows/carding-car.yml': [
+    '79c7e62376cb93cfcf894fcbb6518f88d68a83f6dd22f161539a381a73fe119e',
+    '1ec5e18d4e44c2697dd09f766fe351845790322e643a0dde7b20937cd8337955',
+  ],
+  '.github/workflows/ci.yml': [
+    '7dc23c17a7b8180c0abc4eb5869b872d41e466a755da9757cae56235bcd2bf12',
+    '8f9cd0c0d167f1d680747db443e59fcd255efc461458cd666c7f7c40ac735301',
+  ],
+  '.github/workflows/pages-validate.yml': [
+    'c4766cd65e637f9baadea7659184e154bfe5fb9951a0f97d95d1bcc4010de244',
+    '2f39c975fe8f769a3e4fe5cbc6f6dd0c2c3f5896dab6115ad82563506a75ba5c',
+  ],
+  '.github/workflows/mobile.yml': [
+    '860a6b07cc7b9acf17033726fd44c6f768b58ef9e316a48bce55fb05ff80f3c3',
+    '22fc4727906e75f1ff8a17f4f53131e7ca8710bd3519e237b9965feb5ebd3564',
+  ],
+  'turbo.json': [
+    '87cffb64731a1e510934645439f1f23e3ecbbd60e3e076c7237caeddb22268c9',
+    '37812812d2fe4e0d408e6a32663cf63500675f97d816a36eab57c48b23a0bebd',
+  ],
+  'scripts/h5-game-build.mjs': [
+    '81d761755a2fb16ed85a8704dc102901f4e375fae50a7b9fa008295dee228d2f',
+    '7f8263e69185ccedb4ce2d89b0678535a9ee5c1be13f6c8c179be023a1557fc3',
+  ],
+  'scripts/h5-taptap-build.mjs': [
+    'c7f3a83a2758605f8e51e51783bc5d181b05851ba9095b9f867cbe9d9c609749',
+    '167851290dd00ba94817494e8549f8852e72a232ffe2f82aff13bfdff70d8df7',
+  ],
+  'scripts/h5-ad-config.mjs': [
+    'fa85c578995d4a7972d75a336493546eb4fc6d9fe1e634ef4b405b14478a258a',
+    'a501f7acb287811727d3868cade43a442260e5ebe426fe8ab7c3cab6db3ea5dd',
+  ],
+  'scripts/h5-taptap-matrix.mjs': [
+    '7c50260480d71f034281c53e78d145fb7d679055698c898902a5a32aa1c02d3a',
+    'b6cf3de496f6eeccf26a64c1c68c6dafbf2be06b0653db208c075a3f69a483fd',
+  ],
+};
+export function homeboundCocosWiringOnly(file, before, after) {
+  const hashes = homeboundCocosWiring[file];
+  if (!hashes || typeof before !== 'string' || typeof after !== 'string') return false;
+  const digest = (value) =>
+    createHash('sha256').update(value.replaceAll('\r\n', '\n')).digest('hex');
+  return digest(before) === hashes[0] && digest(after) === hashes[1];
+}
+const cocosWebSources = ['carding-car', 'night-overwatch', 'homebound-station'].map(
+  (id) => `games/local/${id}`,
+);
+
 // Exact reviewed cache-only workflow changes. This proof works in bare planning
 // jobs without YAML dependencies and cannot admit unrelated gates or permissions.
 const cacheWorkflowHashes = {
@@ -292,9 +356,12 @@ export const sixH5Ids = [
   'vibeJam-myself-history-guess',
   'wulong-city',
   'night-overwatch',
+  'homebound-station',
   'travel-bund',
   'letters-words2',
 ];
+// Historical six/five-game presets retain their existing exact membership.
+const presetH5Ids = sixH5Ids.filter((id) => id !== 'homebound-station');
 const sixH5Sources = sixH5Ids.map((id) => `games/local/${id}`);
 export const sixH5ScopePaths = [
   'scripts/h5-game-build.mjs',
@@ -358,7 +425,7 @@ export function sixH5PresetOnly(source, five = false) {
     ]);
     if (five) assert.equal(cfg.apiUrl, 'https://api.nenggongzhiren.cn/small-games/v1');
     assert.equal(cfg.version, 2);
-    const ids = five ? sixH5Ids.filter((id) => id !== 'travel-bund') : sixH5Ids;
+    const ids = five ? presetH5Ids.filter((id) => id !== 'travel-bund') : presetH5Ids;
     assert.deepEqual(cfg.games, ids);
     assert.deepEqual(cfg.backend, [five]);
     assert(
@@ -1662,7 +1729,7 @@ export function targetedCommandsOnly(before, after) {
       [
         'build:taptap:h5',
         'node scripts/build-games.mjs --config infra/builds/six-taptap-h5.mjs',
-        sixH5Sources,
+        presetH5Ids.map((id) => `games/local/${id}`),
       ],
       ['deploy:backend', 'node scripts/deploy-backend.mjs', selectedBackendConsumers],
       [
@@ -2019,6 +2086,34 @@ export function reviewedSharedFileScopes({
   const scopes = vitePatchFileScopes({ changedPaths, readBase, readHead });
   for (const file of changedPaths) {
     try {
+      if (
+        Object.hasOwn(homeboundCocosWiring, file) &&
+        readBase &&
+        readHead &&
+        homeboundCocosWiringOnly(file, readBase(file), readHead(file))
+      ) {
+        assert(
+          games.some(
+            (game) =>
+              game.id === 'homebound-station' && game.source === 'games/local/homebound-station',
+          ),
+        );
+        assert(packages.some((pkg) => pkg.dir === 'games/local/homebound-station'));
+        scopes.set(file, ['games/local/homebound-station']);
+        continue;
+      }
+      if (
+        file === 'scripts/reuse-cocos-artifacts.mjs' ||
+        file === 'scripts/reuse-cocos-artifacts.test.mjs'
+      ) {
+        assert.deepEqual(
+          literalDeclaration(readHead('scripts/reuse-cocos-artifacts.mjs'), 'games'),
+          ['carding-car', 'night-overwatch', 'homebound-station'],
+        );
+        for (const dir of cocosWebSources) assert(packages.some((pkg) => pkg.dir === dir));
+        scopes.set(file, file.endsWith('.test.mjs') ? [] : cocosWebSources);
+        continue;
+      }
       if (tapServiceSharedScopePaths.includes(file) || file === tapServiceConfigScopePath) {
         assert.deepEqual(
           literalDeclaration(readHead(tapServiceConfigScopePath), 'games'),
@@ -2338,12 +2433,18 @@ export function reviewedSharedFileScopes({
         assertSixH5(games, packages, readHead);
         scopes.set(
           file,
-          sixH5Sources.filter((source) => !source.endsWith('/travel-bund')),
+          sixH5Sources.filter(
+            (source) => !source.endsWith('/travel-bund') && !source.endsWith('/homebound-station'),
+          ),
         );
         continue;
       }
       if (file === 'games/local/carding-car/scripts/cocos-branding.mjs') {
-        scopes.set(file, ['games/local/carding-car', 'games/local/night-overwatch']);
+        scopes.set(file, [
+          'games/local/carding-car',
+          'games/local/night-overwatch',
+          'games/local/homebound-station',
+        ]);
         continue;
       }
       if (sixH5ScopePaths.includes(file)) {
@@ -2351,7 +2452,12 @@ export function reviewedSharedFileScopes({
         else {
           assertSixH5(games, packages, readHead);
           if (file === 'infra/builds/six-taptap-h5.mjs') assert(sixH5PresetOnly(readHead(file)));
-          scopes.set(file, sixH5Sources);
+          scopes.set(
+            file,
+            file === 'infra/builds/six-taptap-h5.mjs'
+              ? presetH5Ids.map((id) => `games/local/${id}`)
+              : sixH5Sources,
+          );
         }
         continue;
       }
@@ -2410,7 +2516,12 @@ export function reviewedSharedFileScopes({
         }
         if (file === 'scripts/competition-service-config.mjs') {
           assertSixH5(games, packages, readHead);
-          sources.push(...sixH5Sources.filter((source) => !source.endsWith('/travel-bund')));
+          sources.push(
+            ...sixH5Sources.filter(
+              (source) =>
+                !source.endsWith('/travel-bund') && !source.endsWith('/homebound-station'),
+            ),
+          );
         }
         if (gateway) {
           assertRankedConsumers(games, packages, readHead);
@@ -2447,7 +2558,9 @@ export function reviewedSharedFileScopes({
         if (gateway) assert(packages.some((pkg) => pkg.dir === 'apps/shell-web'));
         scopes.set(file, [
           ...Object.values(rankedConsumers),
-          ...sixH5Sources.filter((source) => !source.endsWith('/travel-bund')),
+          ...sixH5Sources.filter(
+            (source) => !source.endsWith('/travel-bund') && !source.endsWith('/homebound-station'),
+          ),
           ...(gateway ? ['services/runtime-api', 'apps/shell-web'] : []),
         ]);
         continue;

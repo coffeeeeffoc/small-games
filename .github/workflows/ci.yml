@@ -82,6 +82,7 @@ jobs:
       MINIGAME_RELEASE_GATES: ${{ vars.MINIGAME_RELEASE_GATES || '0' }}
       KART_PREBUILT_DIR: ${{ github.workspace }}/games/local/carding-car/.prebuilt
       NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt
+      HOMEBOUND_STATION_PREBUILT_DIR: ${{ github.workspace }}/games/local/homebound-station/.prebuilt
       TURBO_SCM_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
       TURBO_SCM_HEAD: ${{ github.sha }}
       CI_VALIDATION_PLAN: ${{ needs.plan.outputs.plan }}
@@ -126,6 +127,11 @@ jobs:
         with:
           name: night-overwatch-${{ github.sha }}
           path: games/local/night-overwatch/.prebuilt
+      - uses: actions/download-artifact@v8
+        if: needs.plan.outputs.cocos == 'true'
+        with:
+          name: homebound-station-${{ github.sha }}
+          path: games/local/homebound-station/.prebuilt
 
       - name: Check all game registrations
         run: pnpm check:games

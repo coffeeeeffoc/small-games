@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 const prebuiltVariables = {
   'games/local/carding-car': 'KART_PREBUILT_DIR',
   'games/local/night-overwatch': 'NIGHT_OVERWATCH_PREBUILT_DIR',
+  'games/local/homebound-station': 'HOMEBOUND_STATION_PREBUILT_DIR',
 };
 /** Native consumers need engine types even when their H5 build is unchanged. */
 export function cocosPreflightTargets({ packages, buildTargets, affected, nativeTargets = [] }) {
