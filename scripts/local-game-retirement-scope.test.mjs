@@ -211,3 +211,110 @@ test('production review binds historical file bytes, retained consumers and unfo
     0,
   );
 });
+
+test('portfolio retirement binds the selected games, retained catalog and exact snapshot deletions', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  const {
+    portfolioRetirementBase: base,
+    portfolioRetirementHead: head,
+    portfolioRetirementTrees: trees,
+    portfolioRetirementReviews: reviews,
+  } = await import('./local-game-retirement-reviews.mjs');
+  const { localRetirementFileScopes, hasLocalRetirementFileProof } = await import(
+    './local-game-retirement-scope.mjs'
+  );
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' });
+  const read = (revision, file) => git('show', `${revision}:${file}`);
+  const entry = (revision, file) => git('--literal-pathspecs', 'ls-tree', revision, '--', file);
+  const before = JSON.parse(read(base, 'apps/shell-web/src/game-assessments.json')).games;
+  const removed = before.filter(
+    (game) => game.id !== 'merge-front' && game.potential.includes('low'),
+  );
+  assert.equal(removed.length, 19);
+  assert.deepEqual(
+    Object.keys(trees)
+      .filter((source) => source.startsWith('games/'))
+      .sort(),
+    removed.map((game) => game.source).sort(),
+  );
+  const ids = new Set(removed.map((game) => game.id));
+  assert.deepEqual(
+    JSON.parse(read(head, 'apps/shell-web/src/game-assessments.json')).games,
+    before.filter((game) => !ids.has(game.id)),
+  );
+  assert.deepEqual(
+    JSON.parse(read(head, 'apps/shell-web/src/standalone-games.json')),
+    JSON.parse(read(base, 'apps/shell-web/src/standalone-games.json')).filter(
+      (game) => !ids.has(game.id),
+    ),
+  );
+  assert.equal(entry(base, 'games/local/merge-front'), entry(head, 'games/local/merge-front'));
+  const changedPaths = git('diff', '--no-renames', '--name-only', base, head).trim().split('\n');
+  const context = {
+    changedPaths,
+    readBase: (file) => read(base, file),
+    readBaseEntry: (file) => entry(base, file),
+    readHead: (file) => read(head, file),
+    readHeadEntry: (file) => entry(head, file),
+    headHasPath: (file) => entry(head, file) !== '',
+  };
+  const scopes = localRetirementFileScopes(context);
+  for (const file of changedPaths.filter((file) => entry(head, file) === '')) {
+    assert(hasLocalRetirementDeletionProof(file, scopes.get(file)), file);
+    assert(isReviewedLocalRetirementDeletion({ status: 'D', paths: [file] }, scopes), file);
+    assert(!hasLocalRetirementDeletionProof(file, [...scopes.get(file)]), file);
+  }
+  for (const [file, review] of Object.entries(reviews)) {
+    if (review.after !== null)
+      assert(hasLocalRetirementFileProof(file, scopes.get(file), context.readHead), file);
+    if (review.movedFrom)
+      assert(
+        isReviewedLocalRetirementDeletion(
+          { status: 'R100', paths: [review.movedFrom, file] },
+          scopes,
+        ),
+      );
+  }
+  const library = 'games/local/letters-words2/library.js';
+  const beforeLibrary = read(base, library);
+  const afterLibrary = read(head, library);
+  assert(beforeLibrary.startsWith('// ') && afterLibrary.startsWith('// '));
+  assert.equal(
+    beforeLibrary.slice(beforeLibrary.indexOf('\n')),
+    afterLibrary.slice(afterLibrary.indexOf('\n')),
+  );
+  const { nineNativeDependencyPlan } = await import('./nine-native-scope.mjs');
+  const { readFileSync } = await import('node:fs');
+  const { workspacePackages } = await import('./validation-plan.mjs');
+  const nativeContext = {
+    changedPaths: [library],
+    games: JSON.parse(read(head, 'apps/shell-web/src/standalone-games.json')),
+    packages: await workspacePackages(root),
+    readSource: (file) =>
+      file === library
+        ? afterLibrary
+        : readFileSync(new URL('../' + file, import.meta.url), 'utf8'),
+    fileScopes: scopes,
+  };
+  assert.deepEqual(nineNativeDependencyPlan(nativeContext).targets, []);
+  for (const override of [
+    { fileScopes: new Map([[library, [...scopes.get(library)]]]) },
+    {
+      readSource: (file) =>
+        nativeContext.readSource(file) + (file === library ? '\nexport const changed = true;' : ''),
+    },
+  ])
+    assert(
+      nineNativeDependencyPlan({ ...nativeContext, ...override }).targets.some(
+        (target) => target.requiresCreator,
+      ),
+    );
+  assert.equal(localRetirementFileScopes({ ...context, headHasPath: () => undefined }).size, 0);
+  assert.equal(
+    localRetirementFileScopes({ ...context, readHead: (file) => read(head, file) + 'drift' }).size,
+    0,
+  );
+  assert(!scopes.has('unreviewed-file.mjs'));
+});

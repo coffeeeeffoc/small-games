@@ -515,5 +515,333 @@ export const localRetirementReviews = Object.freeze({
   },
 });
 
-export const portfolioRetirementTrees = Object.freeze({});
-export const portfolioRetirementReviews = Object.freeze({});
+// Exact retirement snapshots; retained game code remains independently validated.
+export const portfolioRetirementBase = '4224be0a1a3c9c108e34c39d996642765cfdca54';
+export const portfolioRetirementHead = 'e6f871ecc0074fa93ac5c0f5c8bcfe807d421f70';
+export const portfolioRetirementTrees = Object.freeze({
+  'games/local/night-merge':
+    '040000 tree fbcf86f12f4b8c4b5863441a2a80834c3c9f8f52\tgames/local/night-merge\n',
+  'games/submodules/fishing':
+    '160000 commit 57423097cc62f6544455ca791e1a77c1ee3e7545\tgames/submodules/fishing\n',
+  'games/submodules/tower-defense-game':
+    '160000 commit 75ac87f7be6e1a7d603571c2114f4a69d914fd7f\tgames/submodules/tower-defense-game\n',
+  'games/local/h5-security':
+    '040000 tree 3f5e59bdc6417d491ee217e00a30a9f96fd0d9de\tgames/local/h5-security\n',
+  'games/local/letters-words':
+    '040000 tree 663e079ac91f80fa8867dfa8558bf5e26f8e2323\tgames/local/letters-words\n',
+  'games/local/multi-battle':
+    '040000 tree 90091de4ec687dc35e159e7eca7f11c94895b557\tgames/local/multi-battle\n',
+  'games/local/puzzle':
+    '040000 tree 556d1d3d194ddb88381f212c8aef1813d3e8554d\tgames/local/puzzle\n',
+  'games/local/travel':
+    '040000 tree fc2d2e05d625875929b6e2fa068062cdd9724d8d\tgames/local/travel\n',
+  'games/local/travel-bund-2.5D':
+    '040000 tree b27b9010f2cc91069ded0e8798e78a10a5f17033\tgames/local/travel-bund-2.5D\n',
+  'games/local/travel2':
+    '040000 tree e5289b0f74b06bc3e3670825ce57d3fdd1c14293\tgames/local/travel2\n',
+  'games/local/one-stroke-course':
+    '040000 tree fa9a7d6d4bffe24e20b2abb8716d062a608ef292\tgames/local/one-stroke-course\n',
+  'games/local/hold-tight-acrobats':
+    '040000 tree b1867af8b0656d29d834ed6d478b7663c4a76860\tgames/local/hold-tight-acrobats\n',
+  'games/local/balloon-movers':
+    '040000 tree 09964dd039e1650e863655f87973419571eb9a20\tgames/local/balloon-movers\n',
+  'games/local/weather-command':
+    '040000 tree 8e7deb4a15a0f08504706f413e3bd5ed7f753f05\tgames/local/weather-command\n',
+  'games/local/off-camera':
+    '040000 tree fa56040043dbc7d58b3e0e93419a7dac0948ba19\tgames/local/off-camera\n',
+  'games/local/precision-demolition':
+    '040000 tree fff15c61c044f38cdffa4f6de9e7c068ad374f30\tgames/local/precision-demolition\n',
+  'games/local/afterimage-arena':
+    '040000 tree 78d6d92a74a19db920a1e715a91b4ed89089f99a\tgames/local/afterimage-arena\n',
+  'games/local/ghost-shift-manager':
+    '040000 tree e77268ec5ff1db5b274fe1237cd5c44065c3ed93\tgames/local/ghost-shift-manager\n',
+  'games/local/rule-thief':
+    '040000 tree a6cf68f4ce00054223d934726e4486994be1520e\tgames/local/rule-thief\n',
+  'docs/plans/2026-10-11-catalog-verification':
+    '040000 tree 13403c1af36ccec32aed2fb2201a667202e91a3f\tdocs/plans/2026-10-11-catalog-verification\n',
+  'docs/plans/2026-10-11-catalog-complete-verification':
+    '040000 tree 0b52631057dce932153400b76bef3125f0b44a50\tdocs/plans/2026-10-11-catalog-complete-verification\n',
+});
+export const portfolioRetirementReviews = Object.freeze({
+  '.github/workflows/ci.yml': {
+    before: '8ec42971a72e5dec8bdde2800105522b428170925bea489c910a3f2f8b0790a9',
+    after: '21ee0e1a07b780ab17efc4290ee58d58dec409e30adc61e3ad11918141f317b1',
+    sources: [],
+  },
+  '.github/workflows/pages.yml': {
+    before: '013b6713eab6344a5ec2d77ff88542c825874c1888eb6b1b1f3dcf5c9010989e',
+    after: '228364b8559ed1ff24890594999d8c4adfff46af57b7f11a2861fb305a5e5419',
+    sources: [],
+  },
+  '.gitmodules': {
+    before: 'fd6fee180db917e510df608c4620ee5227aea7d85fc54473a677b5bc2e1cfdfd',
+    after: '7148d0cc476f0c5f8cf45156c60a4bd5360010a2a6aa4909b5ae1d0e1895d47b',
+    sources: ['apps/shell-web'],
+  },
+  'README.md': {
+    before: 'a9eb1dfbb94d76c8ba7edcc4cf4401c31e4c6f5433c0d0df2ea220760d092c3b',
+    after: 'b4c48db7f5c0b1f29d9fb24dcc10d576b9bb1b88d26cf1af376e6698e21ee07b',
+    sources: [],
+  },
+  'apps/shell-android/scripts/device-smoke.mjs': {
+    before: '14fce9bf68e18a03b5061b6aa42ef0e1e6015d7408d8eb5eb95f9168a012a35e',
+    after: '1b4952bd271282c2ff4e458d4c7325370b04147342580c60d35779975ed09e01',
+    sources: [],
+  },
+  'apps/shell-web/package.json': {
+    before: '26223cf649a2c2eba9a7f3048b7715ba7237d9e1546698a20b272442f6367e28',
+    after: '12633e0d00275065080519b5ad1372e3827999a1a4acde6b71af48e9b5091ddd',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/scripts/catalog-rollout-smoke.mjs': {
+    before: '7b596aef11323bc220cc64ea7052463b7ab356da07caa3960ce595b768e72cf4',
+    after: '2547f23c242a7aad072bda975433eab9de5e3e36699f669f3c279e8ade5099a0',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/scripts/pages-smoke.mjs': {
+    before: '9b8d9e3b859c9c03f72fe7d6f4f3de511df3b24f4dbcfa9aaf8a693f9f841ddc',
+    after: '61c2dbe3091718f70df0903b783f8046abb35c26a841c3885319d0cfba59a7d0',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/scripts/pages-validation.mjs': {
+    before: '9842e1dd43a69e8abd7067bd4bb1a126775a0c57f7df0733c98acec3a6ecc272',
+    after: '5926ba1cbaca0e5f2706bd7ac68dee3faf5d0ea3605f941bfdceed496edbefed',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/scripts/pages-validation.test.mjs': {
+    before: '944ec5b6c4db7f844e87e2588044c19e2a326f7531025cae3ae83bbc854025e4',
+    after: 'c18edf50ec02a5ad289a17a8b495e85c794be5243f413105ee481e65365908c6',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/scripts/standalone-game-checks.mjs': {
+    before: '31eaab8b99cb0fadacaa41a8026880fc8b2c6318d8511593f44f0fe56dc9144d',
+    after: '102f2520f1677456ffd13bbb8a3c008b173f68d52fb3dd03d53ebd85bb2c674d',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/scripts/standalone-game-entry.mjs': {
+    before: '6a57f5526993ab65efe680307f041cffd80cf433b84d3eb601db071cc56bd793',
+    after: 'c7ca792124759b2a72588b432c2be5f8e0c6e902287ff14e9c62ed3c6272a436',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/src/game-assessments.json': {
+    before: '3bd431c46376bab6f0ae3633f58ee4e027c1aabd2974ead21c9e4c3fde4f6634',
+    after: '16efb76c09b10cd813718f4cce3622df7c388ba83f5acb6496098e43872a4cff',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/src/game-meta.json': {
+    before: '66ede3f5978020247adcfa39d0e1381f2a3ceb31b1ebc0561a1d36e0b0edb70a',
+    after: '80a8683eb547705a488145b71976ccf6ecfcb02faa64f84ea68a56265595758b',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/src/standalone-games.json': {
+    before: '0b0ddec4114d335ba88fb95ba74f0624c8e1e299611d742869405e83020894fa',
+    after: '91aad8166ea5e4d7d034a400e5494aa9fd6818f6f89405229babcb2348769c22',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/tests/catalog-assessments.test.ts': {
+    before: '16f732547aec33f676e905765c88f0e043305baefb3055432c551c8cac05ca78',
+    after: '96cb2c59a97cd502471010e70da2ab00eb2044974bf82a7d332fe3bca8dc32b8',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/tests/catalog-filters.integration.test.tsx': {
+    before: 'b2ea506e0021c6183199945768915c92b8da3ecb060b7b7314a8cbd9b0a29ad6',
+    after: 'd088e3fee833f956790d8ee0cae4a040145c1c5522a7265b87e39c7a4f7e581d',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/tests/standalone-immersive.integration.test.tsx': {
+    before: '3ca9d37e923bfb6daf7d03fe01907dd1e4cea844ab78affac642da078dedb21a',
+    after: '18fedcd00f1c6653acfcd223a932744ef8e1fb48c05acf360f914e8f3e22b388',
+    sources: ['apps/shell-web'],
+  },
+  'docs/adr/0009-independent-game-submodules.md': {
+    before: '69c1282bf5359b4a9b734bb02bc4c9aa1cd5d1dae6171cd9aa79913d5c4ed549',
+    after: '10d112b093b3a36d94d5aa2fef25fb932448ad08f8c2cee2b4b0b3cb223d3ccd',
+    sources: [],
+  },
+  'docs/games.md': {
+    before: '1c12bef793e1be71ac214a103b2626bd2261668d8d18177fd64749be01ad8ad5',
+    after: '354478c06ba52cbb3148800b7d0f3dc5e15d9beff74efdf471ad0449f1fec661',
+    sources: [],
+  },
+  'docs/operations/pnpm-12-migration.md': {
+    before: 'ed6c11f1274609b0c7a67589903870b4e419e7cda413b5a998ea637159c52b1e',
+    after: 'dc31ee2cd1522759298fb5b9b5e5cdff9c19cf67775d511da4f718fb152b783c',
+    sources: [],
+  },
+  'docs/operations/vite-rotation-2026-10-12.md': {
+    before: '51c62c76130a2dd4bfd666ef9f1657a2917adca2bc5aafeb8ca9b54e2efa7606',
+    after: 'dc4b4e21eddc7ffd690f179684d14a5fde04c34e3512db588c3c951cd73a6184',
+    sources: [],
+  },
+  'docs/plans/2026-09-14-game-directory-integration.md': {
+    before: 'a5aa081b1c5dca72b8235d2616af98ef7cd230d90c07ebdefbb1a9a738f0d7b4',
+    after: '4fc100ce5ad7d4ee7a05a3585cfb0bacafb77b801a16dc2cd9d45531008fed01',
+    sources: [],
+  },
+  'docs/plans/2026-09-16-night-merge.md': {
+    before: '0453d2b83a6f3c083ce34926bc5f7d1757eefd761151211cbd97e8b25b112504',
+    after: null,
+    sources: [],
+  },
+  'docs/plans/2026-09-21-six-games-release-quality.md': {
+    before: '86c16831e9aab630f423c526203be94784c2fbcf431389df0aff9dac4fcaa4ae',
+    after: '2f6af8494f23f080fbdb517785781d52f076eb3226dafd4b5fffff983c7c1210',
+    sources: [],
+  },
+  'docs/plans/2026-10-11-game-portfolio-assessment.md': {
+    before: 'f9daf8325612916422e062e1c8ef3e339af762debd34a7b95718efef2bcd071d',
+    after: 'a4ebb3306e34cd15af4b67d67af41f5478325a728f77b83428c85ac7e583506e',
+    sources: [],
+  },
+  'docs/research/mini-game-platforms-2026-09-17.md': {
+    before: 'b537346e2b49e4ad2b01b66f3748589c9c8d2ffabb63c1f44f81a4170f17f063',
+    after: '58844e6d54900b9ce07fdfd27a38d3c42d587692e17e2f7c2be2b75ad444a25e',
+    sources: [],
+  },
+  'docs/standalone-games.md': {
+    before: 'f71e88a6824e6f6b8d3e90f6e18b6e056d0d594f317fb4e7d335ee2da9bb51fe',
+    after: '88f98c74778dc4d91609b22ad37cec89978c6c570217b64906c9d19e825b934c',
+    sources: [],
+  },
+  'games/local/cops-robbers-realtime/docs/design/cartoon-refresh-2026-10-05/README.md': {
+    before: '33f497d62bf58227d43ef556779952f1bde51ffe111ac2314cba3062c254eb0a',
+    after: '9c50ef00c9b80b5253468519d126661ca2360b28fa8c8cdd5cabac66eca1f362',
+    sources: [],
+  },
+  'games/local/letters-words2/RELEASE-REVIEW.md': {
+    before: '924b192473b6a80c408e10c314508e215f3c173b482d141e496dda691a63dae5',
+    after: '547b49237efe2e62fbf4dc705226f3a14efd361adcaca4af82e908b273600af1',
+    sources: [],
+  },
+  'games/local/letters-words2/library.js': {
+    before: '949bd40a2869b3268b8b225702d21b1be795ee7040cddc0bb892f76e66649a73',
+    after: '718557981b1a2d8e72ae2543276c2f7c4729cc88147647d674011747782c173f',
+    sources: ['games/local/letters-words2'],
+  },
+  'games/local/letters-words2/scripts/export-vocabulary.py': {
+    before: null,
+    after: '7d7cb8c00e2a08e8b403218ac42bb5a11be7b7f9510a8da65589ce06f7078bb3',
+    sources: ['games/local/letters-words2'],
+    afterEntry:
+      '100644 blob 4e533642d524c890425dea6c4e57af933991f5fe\tgames/local/letters-words2/scripts/export-vocabulary.py\n',
+    movedFrom: 'games/local/letters-words/scripts/export-vocabulary.py',
+  },
+  'games/local/letters-words2/scripts/sync-vocabulary.py': {
+    before: '392e70e03446a259eb98b1bc13cf354746be0b67e721a4bf7c26162fb55c0530',
+    after: '44f172a9707ee8597828ed9239287345a9d58cb22ca83c65dc6602e9a8d2329e',
+    sources: ['games/local/letters-words2'],
+  },
+  'games/local/letters-words2/scripts/test-export.py': {
+    before: null,
+    after: '714c9c4ccf76e56e7c0fc3a11d9fdfbffda8a8e0c98aa401816528078a46b87d',
+    sources: ['games/local/letters-words2'],
+    afterEntry:
+      '100644 blob 4a10bfc2dbdfcae3f10787005dabd1145a8dc5bf\tgames/local/letters-words2/scripts/test-export.py\n',
+    movedFrom: 'games/local/letters-words/scripts/test-export.py',
+  },
+  'games/local/night-overwatch/reports/balance-overhaul/artifact-manifest.json': {
+    before: 'c7af136cb13de2bbfd00602b08fd9893ee7a625f9a4b9b8a5b4a57d3334bba47',
+    after: '09df358fa35496c0f4a1aebf515310e45609774c23b113770c82d847e7446c96',
+    sources: [],
+  },
+  'games/local/night-overwatch/reports/balance-overhaul/game-config.log': {
+    before: '34d4c59957197fe611984e2fc81e07880dc51c10f06220fa60318494f583b63d',
+    after: null,
+    sources: [],
+  },
+  'games/local/night-overwatch/reports/interaction-overhaul/previous-verification.json': {
+    before: 'db314f3edf8b18817804bb66f58db49b4984bf53f0c7b8c9b21b965342ed2af3',
+    after: '5356b1ac9b6537873355a2f24272971ba692c63e16be2e2d6a9a527aa22c583b',
+    sources: [],
+  },
+  'games/local/tower-brake/docs/TESTING.md': {
+    before: 'a6657e94d2c42b99ed6bb294c7e66dd2a08b43ce3c48ad5a4dc23f85813aca13',
+    after: '395902bf80c1c3331a4a2ba83c3b4befcde886a8e7da3907b3d384ce66d679e5',
+    sources: [],
+  },
+  'pnpm-lock.yaml': {
+    before: 'c030eb6778a401a42b4baa8dccb2cec9fe3e4fb8cd28ff5a4e44e4882669eec4',
+    after: '959125ee6a824b1a1b820f12dde14b8f2aad9f99080afefe70ca3c2584d94379',
+    sources: ['apps/shell-web'],
+  },
+  'scripts/check-workspace-dependencies.test.mjs': {
+    before: '32ffca66f16ce51a765405e311da98ef36ccff994777da6b82dbf0368eefa291',
+    after: '239d846127645b0e4181a0eab823c34772aff5f1ab58a90f70d45952026450ff',
+    sources: [],
+  },
+  'scripts/pages-regression-timings.json': {
+    before: '594635ad9e1c0305587c378df53fb8755c9f773c8ae7c06ec1c98dce53536a0f',
+    after: '6ff73ec46ad86847af61c52efae06de06d1d541964464d5731b86e97e177a74d',
+    sources: [],
+  },
+  'scripts/pages-test-scope.test.mjs': {
+    before: 'cdf618a18d39feb65200ab53932e66051824c7a9401f6fbeb1a5003516a01494',
+    after: '2335fb482cee9b74af0d70ee11c123ddb519f1157da592d7f03a1a1dacf51b68',
+    sources: [],
+  },
+  'scripts/prepare-pages-deploy.py': {
+    before: '92a101d2ca4cd226f023c879c65ae44265a5a21debfb6db04d071cd5827a228b',
+    after: '92360beb8d4127e9261faa6338ae82d7c2dcac632f186d45d377d0291c862a0d',
+    sources: [],
+  },
+  'scripts/publication-scopes.mjs': {
+    before: '326258bee04519d2278a499d3cad80e2c69cea89f07da340a8eb4b52a6ca268f',
+    after: '1c559971c47972cdc2e9c5cb4fe2a700b2a07f1f7ca39f6689e4c2eee5a66718',
+    sources: [],
+  },
+  'scripts/publication-scopes.test.mjs': {
+    before: 'f515fa13e8d94726fe3c2b4e781011cb42834054982bcc752c5fc182baed247c',
+    after: '5de6ef05ade4d7cfd5fb30bad548e384d2be0648deb8de90500b7d29b8499c2f',
+    sources: [],
+  },
+  'scripts/rule-tasks.mjs': {
+    before: '25eb7faf0f55868a2ae74593dc5b4d0ba1436e7499fed1793c963c9839e62665',
+    after: 'beaa1a20bdd19dbe5a77660062b6bea3c55852af035657a00cbbaa500d7b6f8b',
+    sources: [],
+  },
+  'scripts/run-selected-browser.mjs': {
+    before: '40b88c9a89b30e8622f5521aec578cbbdf585d8dacf01492729c28c0a2527b6f',
+    after: 'bd72ed4fe39dc75aaa5994a21c8a41735225b3e9aa29d01a44af67167865008c',
+    sources: [],
+  },
+  'scripts/test-game-dev-mode.mjs': {
+    before: '5ec2f000318a181cacc5160aa5c24d9158526a7d7204b059a0878e6f5d121d26',
+    after: '2d8159944b02d193c921d02c403be5d11135aeacb195ba9560e683e2907cdb50',
+    sources: ['games/local/letters-words2', 'games/submodules/xiangqi-five'],
+  },
+  'scripts/test-pages-deploy.py': {
+    before: '526cf35acf7679f5f57aca9b668110c9ef0bedefcaf6e265f7293907b02c2239',
+    after: '89d4bf68f5617e1fca9018729289ea77e64e091789d19cb62be1241b65d0a2c0',
+    sources: [],
+  },
+  'scripts/test-submodule-dialogs.mjs': {
+    before: '750310b232aea5ec03ee17b0258074bdab6884dc5c111daba7b1221112474e4b',
+    after: 'c8a66b32c2983074cdd9a7068e69984810ac973f55deb1d263b63d87ae512a4b',
+    sources: ['games/submodules/xiangqi-five'],
+  },
+  'scripts/validate-push.integration.mjs': {
+    before: '75b75b2bdcfdc7a9c053a55c2ec451331a2b81d5eab582d7c9347cd953b79bfb',
+    after: 'b57eadeb914c93e0b033a0cb4e677b1458031274a224473626c77fbf410b130d',
+    sources: [],
+  },
+  'scripts/validate-tree.mjs': {
+    before: '52cff6a2cb4c0c51bb69d0f1c9effb1ba9a0217cf298d9a690ac74998f6a49aa',
+    after: '718bbfae77c8a376a9a6aa1b739001b966aae39961f5dcfad769d6cfb40169c4',
+    sources: [],
+  },
+  'scripts/validate-tree.test.mjs': {
+    before: '5343860874831d18cac867bd916254205a72cb8c9916b588d31e0ebf32d9dde7',
+    after: 'b0566305f0105b7bf42a4531ed34c05abd754850514c4476e4ead03509c0d6f8',
+    sources: [],
+  },
+  'scripts/vite-patch-scope.mjs': {
+    before: '2cd5f2773873c4fc8852d81b8250fe13b129e2c347e627e8c4fdc618a098ad39',
+    after: 'f447b4026fb11161df97fd297099ac13c4934301267c463cbbc3e96bec1a18aa',
+    sources: [],
+  },
+  'scripts/vite-patch-scope.test.mjs': {
+    before: '34a7e2cb9777f3f7fae6a730c030101a49d3187fe27ec2a88daa31763ece95a2',
+    after: 'e00e5e9d135cbc78144382b68f233567f66fcd1090677e9ca6c85b8f0dfebf1e',
+    sources: [],
+  },
+});
