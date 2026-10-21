@@ -1217,6 +1217,95 @@ test('explicit source targets select only their actual platform and include comp
   );
 });
 
+test('Homebound standalone Tap target retains strict selection, deferral, build and smoke gates', async () => {
+  const { runNineNativeChecks } = await import('./validate-tree.mjs');
+  const target = {
+    game: 'homebound-station',
+    platform: 'taptap',
+    source: 'games/local/homebound-station',
+    requiresCreator: '3.8.8',
+  };
+  const packages = [
+    {
+      name: '@coffeeeeffoc/shell-minigame',
+      dir: 'apps/shell-minigame',
+      scripts: {
+        test: 'vitest run tests && node --test scripts/*.test.mjs',
+        'build:nine': 'node scripts/nine-games-build.mjs',
+        'build:taptap': 'node scripts/taptap-build.mjs',
+        'test:taptap': 'node scripts/taptap-smoke.mjs',
+      },
+    },
+    { name: '@coffeeeeffoc/platform-taptap', dir: 'platforms/taptap' },
+  ];
+  const options = {
+    plan: { nine_native_targets: [target] },
+    packages,
+    root: '/candidate',
+  };
+  for (const env of [{}, { MINIGAME_RELEASE_GATES: '0' }])
+    runNineNativeChecks({
+      ...options,
+      env,
+      execute: () => assert.fail('Deferred native targets must not execute'),
+    });
+  const calls = [];
+  runNineNativeChecks({
+    ...options,
+    env: { MINIGAME_RELEASE_GATES: '1' },
+    execute: (command, args) => calls.push(args),
+  });
+  assert.deepEqual(calls, [
+    [
+      'apps/shell-minigame/scripts/taptap-build.mjs',
+      '--game',
+      'homebound-station',
+      '--preview',
+      '--output',
+      path.join('/candidate', 'apps/shell-minigame/dist/nine-games'),
+    ],
+    ['--filter', '@coffeeeeffoc/shell-minigame', 'test'],
+    ['--filter', '@coffeeeeffoc/platform-taptap', 'test'],
+    [
+      'apps/shell-minigame/scripts/taptap-smoke.mjs',
+      '--game',
+      'homebound-station',
+      '--output',
+      path.join('/candidate', 'apps/shell-minigame/dist/nine-games'),
+    ],
+  ]);
+  for (const invalid of [
+    { ...target, platform: 'wechat' },
+    { ...target, game: 'unknown' },
+    { ...target, source: 'games/local/other' },
+    { ...target, requiresCreator: undefined },
+  ])
+    assert.throws(
+      () =>
+        runNineNativeChecks({
+          ...options,
+          plan: { nine_native_targets: [invalid] },
+          env: { MINIGAME_RELEASE_GATES: '0' },
+          execute: () => assert.fail('Invalid selection must not execute'),
+        }),
+      /Unknown/,
+    );
+  let attempted = 0;
+  assert.throws(
+    () =>
+      runNineNativeChecks({
+        ...options,
+        env: { MINIGAME_RELEASE_GATES: '1' },
+        execute: () => {
+          attempted++;
+          throw Error('Creator native input missing');
+        },
+      }),
+    /Creator native input missing/,
+  );
+  assert.equal(attempted, 1);
+});
+
 test('selected Cocos targets attempt the genuine native builder and missing tools block', async () => {
   const { runNineNativeChecks } = await import('./validate-tree.mjs');
   const host = {

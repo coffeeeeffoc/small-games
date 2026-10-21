@@ -232,8 +232,14 @@ export function runNineNativeChecks({
   ];
   const targets = new Map();
   for (const target of plan.nine_native_targets || []) {
+    const standaloneTapTarget =
+      target.game === 'homebound-station' &&
+      target.platform === 'taptap' &&
+      target.source === 'games/local/homebound-station' &&
+      target.requiresCreator === '3.8.8';
     assert(
-      games.includes(target.game) && [...platforms, 'taptap'].includes(target.platform),
+      standaloneTapTarget ||
+        (games.includes(target.game) && [...platforms, 'taptap'].includes(target.platform)),
       'Unknown first-nine native target',
     );
     targets.set(`${target.game}/${target.platform}`, target);
@@ -267,7 +273,9 @@ export function runNineNativeChecks({
     NATIVE_SCREENSHOT_ROOT: path.join(root, '.scratch/nine-native-validation/screenshots'),
     TRAVEL_NATIVE_EVIDENCE_ROOT: path.join(root, '.scratch/nine-native-validation/travel'),
   };
-  const tapGames = games.filter((game) => targets.has(`${game}/taptap`));
+  const tapGames = [...targets.values()]
+    .filter((target) => target.platform === 'taptap')
+    .map((target) => target.game);
   if (tapGames.length) {
     assert(
       host.scripts['build:taptap'] === 'node scripts/taptap-build.mjs' &&
