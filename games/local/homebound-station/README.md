@@ -38,7 +38,20 @@ pnpm --filter @coffeeeeffoc/homebound-station dev
 
 **只有1×免费；2×、3×、5×分别完成一次激励广告解锁当前局，不连带解锁其他档。** 取消、失败、无库存和迟到回调不发奖励；重开或换关重置。广告播放暂停模拟，退出取消本次请求；后台恢复不会覆盖玩家的暂停。
 
-复用 `SmallGamesRewardAds.offer` / 通用 H5 广告运行时。生产 TapTap H5 通过 `H5_ADS_ENABLED=1`、`TAPTAP_HOMEBOUND_STATION_AD_UNIT_ID` 配置真实广告位，未配置默认不可用且1×仍正常游玩。开发/测试注入的广告结果仅验证回调契约，不代表真实广告投放验收。禁止借用其他游戏的 AppID/广告位。
+游戏只调用通用 `SmallGamesRewardAds.offer` 广告端口，不读取平台 SDK 或广告位。原生构建复用 `@coffeeeeffoc/native-game-shell/creator-ads`，由配置选择 TapTap / 微信 / 抖音 / B站适配器，并复用仓库的 `createAdRuntime`。这里只安装广告端口，不另建 Canvas 或游戏生命周期。未来渠道只需扩展适配器与构建配置，关卡和倍速逻辑不变。
+
+TapTap 正常小游戏 `game.zip` 已加入独立目标，竖屏，不扩充旧批量游戏名单：
+
+```powershell
+# 以下均为本游戏的公开配置，不是 App Secret；不要借用其他游戏的标识。
+$env:MINIGAME_HOMEBOUND_STATION_TAPTAP_APP_ID = '<本游戏 AppID>'
+$env:MINIGAME_HOMEBOUND_STATION_TAPTAP_AD_UNIT_ID = '<本游戏激励广告位>'
+node apps/shell-minigame/scripts/taptap-cocos.mjs --game homebound-station --prepare-source
+```
+
+该命令准备真实 Creator 3.8.8 的 WeChat 转换源；需继续使用仓库已验证的官方 TapTap 1.2.2 转换和打包流程，见根目录 `docs/plans/2026-10-07-taptap-cocos.md`。转换后、官方最终打包前，由 `--prepare-login` 阶段注入当前平台的通用广告桥和公开配置。配置改变后必须重新打包，转换器最初生成的 ZIP 不能代替最终包。主包不超过4 MiB，总资源和最终 ZIP 均小于20 MiB。归途站离线玩法无需登录后端，正式包仍要求本游戏有效 AppID。
+
+原生广告位与 H5 广告位独立。H5 继续通过 `H5_ADS_ENABLED=1`、`TAPTAP_HOMEBOUND_STATION_AD_UNIT_ID` 配置其端口。未配置或宿主无广告能力时默认不可用，1×仍正常游玩。开发/测试中的 SDK 回调仅验证奖励契约，不代表真实广告投放或宿主验收。
 
 ## 验证
 

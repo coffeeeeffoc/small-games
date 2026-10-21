@@ -26,7 +26,7 @@ export function createCreatorAdBridge(
   environment: CreatorAdEnvironment = globalThis as CreatorAdEnvironment,
   options: Pick<AdRuntimeOptions, 'config' | 'telemetry' | 'now' | 'timeoutMs'> = {},
 ): CreatorAdBridge {
-  const globalName = Object.hasOwn(globals, configuration.platform)
+  const globalName = Object.prototype.hasOwnProperty.call(globals, configuration.platform)
     ? globals[configuration.platform]
     : undefined;
   // Target selection is explicit; a missing Tap SDK can never fall through to wx/tt/bl.

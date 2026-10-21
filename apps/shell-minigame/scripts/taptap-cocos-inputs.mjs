@@ -6,13 +6,14 @@ import { parseArgs } from 'node:util';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
 import { prepareNativeProject } from './night-native-project.mjs';
+import { tapTapCocosGames, tapTapTarget } from './taptap-targets.mjs';
 import { digest, inventory, localPath, zipInventory } from './taptap-package.mjs';
 import { prepareTapTapCocosLogin, buildTapTapCocosTarget } from './taptap-cocos.mjs';
 
 const repo = fileURLToPath(new URL('../../../', import.meta.url));
 export const officialPluginSha256 =
   '6b8a9a3cc62b6c54cefab397097babb771d9d99f90442cddff06310a4c9ed73f';
-const games = ['carding-car', 'night-overwatch'];
+const games = tapTapCocosGames.map((game) => game.id);
 const json = async (file) => JSON.parse(await readFile(file, 'utf8'));
 const save = (file, value) =>
   writeFile(file, JSON.stringify(value, null, 2) + '\n', { flag: 'wx' });
@@ -209,7 +210,7 @@ export async function verifyInputs(directory, plugin, archive, env = process.env
     [prefix + 'PACKAGE_FILE']: '',
   };
   return buildTapTapCocosTarget(
-    { id: manifest.game, directory: `games/local/${manifest.game}`, cocos: true },
+    tapTapTarget(manifest.game),
     { platform: 'taptap', game: manifest.game, appId: '', apiUrl: '', preview: true },
     { env: inputs, outputRoot: path.join(repo, '.scratch/taptap-ci-import') },
   );

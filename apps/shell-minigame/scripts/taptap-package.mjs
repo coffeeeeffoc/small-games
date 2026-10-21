@@ -376,6 +376,8 @@ export async function verifyOfficialPackage({
   orientation,
   game,
   apiUrl = '',
+  adsEnabled = false,
+  adUnitId = '',
 } = {}) {
   if (!/^[a-f0-9]{64}$/.test(currentSourceHash || ''))
     throw Error('Current TapTap source fingerprint required.');
@@ -396,6 +398,8 @@ export async function verifyOfficialPackage({
       appId,
       apiUrl,
       preview: false,
+      adsEnabled,
+      adUnitId,
     });
   }
   if (!officialToolPath)
@@ -443,6 +447,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       release: { type: 'boolean' },
       game: { type: 'string' },
       'api-url': { type: 'string' },
+      'ad-unit-id': { type: 'string' },
     },
   });
   const options = {
@@ -451,6 +456,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     mode: values.release ? 'release' : 'preview',
     game: values.game,
     apiUrl: values['api-url'] || '',
+    adsEnabled: Boolean(values['ad-unit-id']),
+    adUnitId: values['ad-unit-id'] || '',
   };
   if (values.package) {
     if (!values.inventory)

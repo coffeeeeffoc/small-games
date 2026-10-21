@@ -12,10 +12,15 @@ import {
   verifyTapTapCocosArtifact,
   tapCocosPlugin,
   prepareTapTapCocosLogin,
+  tapTapImportSourceFiles,
+  verifyCreatorPackageBudget,
 } from './taptap-cocos.mjs';
 
 // These are synthetic integrity fixtures, not an official plugin or Creator run.
-async function withFixture(fn) {
+async function withFixture(
+  fn,
+  { game = 'carding-car', orientation = 'landscape', resources = false } = {},
+) {
   const base = await mkdtemp(path.join(os.tmpdir(), 'tap-cocos-audit-'));
   try {
     const gameRoot = path.join(base, 'game'),
@@ -32,7 +37,12 @@ async function withFixture(fn) {
           sourceHash: currentSourceHash,
         }),
         'game.js': "require('./settings.js');require('./engine.js');wx.createCanvas();",
-        'game.json': JSON.stringify({ deviceOrientation: 'landscape' }),
+        'game.json': JSON.stringify({
+          deviceOrientation: orientation,
+          ...(resources
+            ? { subpackages: [{ name: 'resources', root: 'subpackages/resources' }] }
+            : {}),
+        }),
         'project.config.json': JSON.stringify({ appid: '' }),
         'settings.js': '/* synthetic settings fixture */',
         'engine.js': '/* synthetic engine fixture */',
@@ -41,6 +51,13 @@ async function withFixture(fn) {
       };
     for (const [name, bytes] of Object.entries(files))
       await writeFile(path.join(sourceDirectory, name), bytes);
+    if (resources) {
+      await mkdir(path.join(sourceDirectory, 'subpackages/resources'), { recursive: true });
+      await writeFile(
+        path.join(sourceDirectory, 'subpackages/resources/game.js'),
+        '// local resource bundle',
+      );
+    }
     await cp(sourceDirectory, convertedDirectory, { recursive: true });
     await writeFile(
       path.join(convertedDirectory, 'game.js'),
@@ -56,7 +73,7 @@ async function withFixture(fn) {
     );
     await installTapTapLogin(convertedDirectory, {
       platform: 'taptap',
-      game: 'carding-car',
+      game,
       appId: '',
       apiUrl: '',
       preview: true,
@@ -68,7 +85,7 @@ async function withFixture(fn) {
       convertedDirectory,
       pluginDirectory,
       currentSourceHash,
-      game: 'carding-car',
+      game,
       verifiedSourceInventory: await inventory(sourceDirectory),
     });
   } finally {
@@ -212,14 +229,10 @@ test('standalone artifact audit rejects changed native recipes, source fingerpri
     await cp(options.convertedDirectory, path.join(target, 'game'), { recursive: true });
     const hashes = Object.fromEntries(
       await Promise.all(
-        [
-          'taptap-cocos.mjs',
-          'taptap-package.mjs',
-          'night-native-project.mjs',
-          'taptap-login.mjs',
-          '../../../platforms/taptap/login.cjs',
-          '../../../platforms/competition/client.js',
-        ].map(async (file) => [file, digest(await readFile(new URL(file, import.meta.url)))]),
+        tapTapImportSourceFiles('night-overwatch').map(async (file) => [
+          file,
+          digest(await readFile(new URL(file, import.meta.url))),
+        ]),
       ),
     );
     const manifest = {
@@ -434,4 +447,101 @@ test('receipt-derived source and linked output ancestors are checked before clea
   } finally {
     await rm(outputRoot, { recursive: true, force: true });
   }
+});
+
+test('portrait Homebound source and login staging remain portrait and reject another target orientation', () =>
+  withFixture(
+    async (options) => {
+      const result = await verifyConvertedCocosPackage(options);
+      assert.equal(result.orientation, 'portrait');
+      assert(result.sourceBudget.mainBytes > 0);
+      const output = path.join(options.base, 'portrait-release');
+      const config = {
+        platform: 'taptap',
+        game: 'homebound-station',
+        appId: 'homebound-app',
+        apiUrl: '',
+        preview: false,
+        adsEnabled: true,
+        adUnitId: 'homebound-reward',
+      };
+      await prepareTapTapCocosLogin({
+        convertedDirectory: options.convertedDirectory,
+        outputDirectory: output,
+        config,
+      });
+      const verified = await verifyConvertedCocosPackage({
+        ...options,
+        convertedDirectory: output,
+        appId: config.appId,
+        mode: 'release',
+        adsEnabled: true,
+        adUnitId: config.adUnitId,
+      });
+      assert.equal(verified.orientation, 'portrait');
+      assert.equal(verified.rewarded.adUnitId, 'homebound-reward');
+      await assert.rejects(
+        verifyConvertedCocosPackage({ ...options, orientation: 'landscape' }),
+        /orientation mismatch/,
+      );
+      await writeFile(
+        path.join(options.convertedDirectory, 'game.json'),
+        JSON.stringify({ deviceOrientation: 'landscape' }),
+      );
+      await assert.rejects(verifyConvertedCocosPackage(options), /orientation mismatch/);
+    },
+    { game: 'homebound-station', orientation: 'portrait', resources: true },
+  ));
+
+test('existing reviewed Creator games retain landscape, even if a caller asks for portrait', () =>
+  withFixture(async (options) => {
+    assert.equal((await verifyConvertedCocosPackage(options)).orientation, 'landscape');
+    await assert.rejects(
+      verifyConvertedCocosPackage({ ...options, orientation: 'portrait' }),
+      /orientation mismatch/,
+    );
+  }));
+
+test('Homebound requires local resources and enforces 4 MiB main plus strict 20 MiB total', () => {
+  const game = { subpackages: [{ name: 'resources', root: 'subpackages/resources' }] };
+  const files = [
+    { path: 'game.js', bytes: 4 * 1024 * 1024 },
+    { path: 'subpackages/resources/game.js', bytes: 1 },
+  ];
+  assert.equal(
+    verifyCreatorPackageBudget('homebound-station', game, files).mainBytes,
+    4 * 1024 * 1024,
+  );
+  assert.throws(
+    () => verifyCreatorPackageBudget('homebound-station', {}, files),
+    /local resources subpackage/,
+  );
+  assert.throws(
+    () =>
+      verifyCreatorPackageBudget('homebound-station', game, [
+        { ...files[0], bytes: files[0].bytes + 1 },
+        files[1],
+      ]),
+    /budget exceeded/,
+  );
+  assert.throws(
+    () =>
+      verifyCreatorPackageBudget('homebound-station', game, [
+        files[0],
+        { ...files[1], bytes: 16 * 1024 * 1024 },
+      ]),
+    /budget exceeded/,
+  );
+  assert.equal(
+    verifyCreatorPackageBudget('carding-car', {}, files),
+    null,
+    'Existing target contracts are preserved',
+  );
+});
+
+test('Creator bridge source fingerprints belong to their actual target consumer', () => {
+  const bridge = '../../../packages/native-game-shell/src/creator-ads.ts';
+  assert(tapTapImportSourceFiles('homebound-station').includes(bridge));
+  assert.equal(tapTapImportSourceFiles('carding-car').includes(bridge), false);
+  assert.equal(tapTapImportSourceFiles('night-overwatch').includes(bridge), false);
 });

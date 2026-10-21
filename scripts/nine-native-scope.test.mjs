@@ -779,7 +779,7 @@ test('only exact reviewed source-inventory filter repair exempts unchanged Cocos
     assert.equal(nativeSourceInventoryFileScopes({ ...c, ...override }).size, 0);
 });
 
-test('TapTap tools select exactly six sixth-channel consumers and retain real Creator gates', async () => {
+test('TapTap tools select the frozen six plus explicit standalone consumers and retain real Creator gates', async () => {
   const { nineNativeDependencyPlan } = await import('./nine-native-scope.mjs');
   const select = (changedPaths) =>
     nineNativeDependencyPlan({
@@ -794,15 +794,15 @@ test('TapTap tools select exactly six sixth-channel consumers and retain real Cr
     'apps/shell-minigame/scripts/taptap-smoke.mjs',
   ]) {
     const result = select([file]);
-    assert.equal(result.targets.length, 6);
+    assert.equal(result.targets.length, 7);
     assert(result.targets.every((target) => target.platform === 'taptap'));
     assert.deepEqual(
       result.targets.filter((target) => target.requiresCreator).map((target) => target.game),
-      ['carding-car', 'night-overwatch'],
+      ['carding-car', 'homebound-station', 'night-overwatch'],
     );
     assert.deepEqual(
       result.blocked.map((target) => target.game),
-      ['carding-car', 'night-overwatch'],
+      ['carding-car', 'homebound-station', 'night-overwatch'],
     );
     assert.deepEqual(result.native_only_paths, [file]);
   }
@@ -810,7 +810,7 @@ test('TapTap tools select exactly six sixth-channel consumers and retain real Cr
     const result = select(['apps/shell-minigame/scripts/' + file]);
     assert.deepEqual(
       result.targets.map((target) => target.game),
-      ['carding-car', 'night-overwatch'],
+      ['carding-car', 'homebound-station', 'night-overwatch'],
     );
     assert(
       result.targets.every(
@@ -842,7 +842,7 @@ test('TapTap tools select exactly six sixth-channel consumers and retain real Cr
   );
 });
 
-test('the exact TapTap CI workflow selects two Cocos consumers and rejects changed execution', () => {
+test('the exact TapTap CI workflow selects three Cocos consumers and rejects changed execution', () => {
   const file = '.github/workflows/taptap-cocos.yml';
   const text = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
   const context = {
@@ -888,13 +888,13 @@ test('TapTap conditional dependency ownership parses execution branches and fail
   const guarded =
     "if (selected.cocos) {\n  const { build } = await import('./taptap-cocos.mjs');\n}";
   for (const [source, count] of [
-    [guarded, 2],
-    [guarded.replace('selected.cocos', 'true'), 6],
-    [guarded + "\nawait import('./taptap-cocos.mjs');", 6],
-    ["// if (selected.cocos) {\nconst { build } = await import('./taptap-cocos.mjs');", 6],
+    [guarded, 3],
+    [guarded.replace('selected.cocos', 'true'), 7],
+    [guarded + "\nawait import('./taptap-cocos.mjs');", 7],
+    ["// if (selected.cocos) {\nconst { build } = await import('./taptap-cocos.mjs');", 7],
     [
       "const misleading = 'if (selected.cocos) {';\nconst { build } = await import('./taptap-cocos.mjs');",
-      6,
+      7,
     ],
   ]) {
     const files = new Map([
@@ -957,7 +957,7 @@ test('only the exact TapTap normalizer generator additions select four TapTap fl
     assert(plan.targets.some((target) => target.platform === 'wechat'));
     assert.deepEqual(
       plan.blocked.map((target) => target.game),
-      ['carding-car', 'night-overwatch'],
+      ['carding-car', 'homebound-station', 'night-overwatch'],
     );
   }
   for (const override of [
@@ -1119,7 +1119,7 @@ test('only exact TapTap kart-sharing wiring and fixture additions select the gen
   }
 });
 
-test('the independent TapTap login installer and packaged helper select all six TapTap consumers', async () => {
+test('the independent TapTap login installer and packaged helper select all seven TapTap consumers', async () => {
   const { nineNativeDependencyPlan } = await import('./nine-native-scope.mjs');
   for (const file of [
     'apps/shell-minigame/scripts/taptap-login.mjs',
@@ -1130,11 +1130,11 @@ test('the independent TapTap login installer and packaged helper select all six 
       games: catalog,
       packages: [...packages, { dir: 'platforms/taptap' }],
     });
-    assert.equal(plan.targets.length, 6);
+    assert.equal(plan.targets.length, 7);
     assert(plan.targets.every((target) => target.platform === 'taptap'));
     assert.deepEqual(
       plan.blocked.map((target) => target.game),
-      ['carding-car', 'night-overwatch'],
+      ['carding-car', 'homebound-station', 'night-overwatch'],
     );
     assert.deepEqual(plan.native_only_paths, [file]);
   }
@@ -1163,7 +1163,7 @@ test('separate Tap roots preserve H5, never propagate empty ownership, and regai
     const options = { games: catalog, packages, readSource };
     assert.deepEqual(nineNativeDependencyPlan({ ...options, changedPaths: [file] }).targets, []);
     const unknown = nineNativeDependencyPlan({ ...options, changedPaths: [sibling] });
-    assert.equal(unknown.targets.length, 6);
+    assert.equal(unknown.targets.length, 7);
     assert(unknown.targets.some((t) => t.requiresCreator));
     const restored = nineNativeDependencyPlan({
       ...options,
@@ -1212,5 +1212,52 @@ test('retired games retain H5 scopes and have no native dependency targets', asy
       'vibeJam-myself-history-guess',
       'xiangqi-five',
     ].map((id) => catalog.find((game) => game.id === id).source),
+  );
+});
+
+test('Homebound source and Creator-only ad bridge select TapTap without entering the frozen five-platform batch', async () => {
+  const { nineNativeDependencyPlan } = await import('./nine-native-scope.mjs');
+  const input = { games: catalog, packages: [...packages, { dir: 'platforms/taptap' }] };
+  for (const file of [
+    'games/local/homebound-station/package.json',
+    'games/local/homebound-station/tsconfig.json',
+    'games/local/homebound-station/assets/scripts/StationGame.ts',
+    'games/local/homebound-station/settings/v2/packages/builder.json',
+    'packages/native-game-shell/src/creator-ads.ts',
+  ]) {
+    const plan = nineNativeDependencyPlan({ ...input, changedPaths: [file] });
+    assert.deepEqual(plan.targets, [
+      {
+        game: 'homebound-station',
+        platform: 'taptap',
+        source: 'games/local/homebound-station',
+        requiresCreator: '3.8.8',
+      },
+    ]);
+  }
+  const shared = nineNativeDependencyPlan({
+    ...input,
+    changedPaths: ['packages/native-game-shell/src/ads.ts'],
+  });
+  assert(
+    shared.targets.some(
+      (target) => target.game === 'homebound-station' && target.platform === 'taptap',
+    ),
+  );
+  assert(
+    shared.targets.some((target) => target.game === 'wulong-city' && target.platform === 'wechat'),
+  );
+  assert(
+    shared.targets.every(
+      (target) => target.game !== 'homebound-station' || target.platform === 'taptap',
+    ),
+  );
+  assert.deepEqual(
+    nineNativeDependencyPlan({
+      games: catalog,
+      packages,
+      changedPaths: ['games/local/homebound-station/assets/scripts/StationGame.ts'],
+    }).targets,
+    [],
   );
 });

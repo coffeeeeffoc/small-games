@@ -2,12 +2,14 @@ import { cp, lstat, mkdir, readdir, readFile, rm, rmdir, writeFile } from 'node:
 import { parseArgs } from 'node:util';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
+import { tapTapTarget, tapTapOrientation, tapTapOptions } from './taptap-targets.mjs';
 import { prepareNativeProject, adaptationRecipeSha256 } from './night-native-project.mjs';
 import {
   installTapTapLogin,
   publicTapTapLoginConfig,
   tapTapLoginPrefix,
   verifyTapTapLogin,
+  publicTapTapAdConfig,
 } from './taptap-login.mjs';
 import {
   digest,
@@ -53,10 +55,22 @@ export async function verifyConvertedCocosPackage({
   apiUrl = '',
   appId = '',
   mode = 'preview',
-  orientation = 'landscape',
+  orientation = tapTapOrientation(game),
+  adsEnabled = false,
+  adUnitId = '',
 } = {}) {
   tapIdentity(appId, mode);
-  const loginConfig = { platform: 'taptap', game, appId, apiUrl, preview: mode === 'preview' };
+  if (orientation !== tapTapOrientation(game))
+    throw Error('Reviewed Creator target orientation mismatch.');
+  const loginConfig = {
+    platform: 'taptap',
+    game,
+    appId,
+    apiUrl,
+    preview: mode === 'preview',
+    adsEnabled,
+    adUnitId,
+  };
   const loginPublicConfig = publicTapTapLoginConfig(loginConfig);
   if (!/^[a-f0-9]{64}$/.test(currentSourceHash || ''))
     throw Error('Current Creator source fingerprint required.');
@@ -88,6 +102,7 @@ export async function verifyConvertedCocosPackage({
   const sourceGame = await json(source, 'game.json');
   if (sourceGame.deviceOrientation !== orientation)
     throw Error('Creator source orientation mismatch.');
+  const sourceBudget = verifyCreatorPackageBudget(game, sourceGame, sourceFiles);
   const sourceEntry = await readFile(path.join(source, 'game.js'), 'utf8');
   if (
     !/\brequire\s*\(/.test(sourceEntry) ||
@@ -168,9 +183,39 @@ export async function verifyConvertedCocosPackage({
     apiUrl,
     login,
     loginPublicConfig,
+    ...(publicTapTapAdConfig(loginConfig) ? { rewarded: publicTapTapAdConfig(loginConfig) } : {}),
+    ...(sourceBudget ? { sourceBudget } : {}),
     officialToolVerified: false,
     realDeviceVerified: false,
   };
+}
+
+export function verifyCreatorPackageBudget(game, gameConfig, files) {
+  const budget = tapTapTarget(game)?.nativeBudget;
+  if (!budget) return null;
+  const declared = gameConfig.subPackages || gameConfig.subpackages || [];
+  if (!Array.isArray(declared) || (gameConfig.subPackages && gameConfig.subpackages))
+    throw Error('Invalid Creator source subpackage configuration.');
+  const roots = declared.map(
+    (item) => relativeFile(String(item.root || item.name || '').replace(/\/$/, '')) + '/',
+  );
+  if (
+    new Set(roots).size !== roots.length ||
+    roots.some((root, i) => roots.some((other, j) => i !== j && root.startsWith(other)))
+  )
+    throw Error('Overlapping Creator source subpackages.');
+  const resources = declared.findIndex((item) => item.name === 'resources');
+  if (resources < 0 || !files.some((file) => file.path.startsWith(roots[resources])))
+    throw Error('Homebound native resources must exist in a local resources subpackage.');
+  const totalBytes = files.reduce((sum, file) => sum + file.bytes, 0);
+  const mainBytes = files
+    .filter((file) => !roots.some((root) => file.path.startsWith(root)))
+    .reduce((sum, file) => sum + file.bytes, 0);
+  if (mainBytes > budget.mainBytes || totalBytes >= budget.totalBytes)
+    throw Error(
+      `Homebound native package budget exceeded: main=${mainBytes}, total=${totalBytes}.`,
+    );
+  return { mainBytes, totalBytes };
 }
 
 function environmentInputs(game, env) {
@@ -211,17 +256,42 @@ async function managedOutputPath(output) {
     current = parent;
   }
 }
-async function importScriptHashes() {
+const tapTapImportCommonFiles = Object.freeze([
+  'taptap-cocos.mjs',
+  'taptap-package.mjs',
+  'night-native-project.mjs',
+  'taptap-login.mjs',
+  'taptap-targets.mjs',
+  '../../../platforms/publication-config.mjs',
+  '../../../platforms/taptap/login.cjs',
+  '../../../platforms/competition/client.js',
+]);
+const creatorAdsSourceFiles = Object.freeze([
+  '../../../packages/native-game-shell/package.json',
+  '../../../packages/native-game-shell/src/creator-ads.ts',
+  '../../../packages/native-game-shell/src/ads.ts',
+  '../../../packages/ad-runtime/package.json',
+  '../../../packages/ad-runtime/src/index.ts',
+  '../../../packages/ad-runtime/src/runtime.ts',
+  '../../../packages/ad-runtime/src/adapters.ts',
+  '../../../packages/ad-config/package.json',
+  '../../../packages/ad-config/src/index.ts',
+  '../../../packages/ad-config/src/policy.ts',
+  '../../../packages/ad-config/src/managed.ts',
+]);
+export function tapTapImportSourceFiles(game) {
+  return [
+    ...tapTapImportCommonFiles,
+    ...(tapTapTarget(game)?.nativeRewards ? creatorAdsSourceFiles : []),
+  ];
+}
+async function importScriptHashes(game) {
   return Object.fromEntries(
     await Promise.all(
-      [
-        'taptap-cocos.mjs',
-        'taptap-package.mjs',
-        'night-native-project.mjs',
-        'taptap-login.mjs',
-        '../../../platforms/taptap/login.cjs',
-        '../../../platforms/competition/client.js',
-      ].map(async (file) => [file, digest(await readFile(new URL(file, import.meta.url)))]),
+      tapTapImportSourceFiles(game).map(async (file) => [
+        file,
+        digest(await readFile(new URL(file, import.meta.url))),
+      ]),
     ),
   );
 }
@@ -287,14 +357,14 @@ export async function prepareTapTapCocosLogin({
       directory: output,
       appId: publicConfig.appId,
       mode: config.preview ? 'preview' : 'release',
-      orientation: 'landscape',
+      orientation: tapTapOrientation(config.game),
     });
     const login = await installTapTapLogin(output, config);
     const project = await verifyTapProject({
       directory: output,
       appId: publicConfig.appId,
       mode: config.preview ? 'preview' : 'release',
-      orientation: 'landscape',
+      orientation: tapTapOrientation(config.game),
     });
     if (JSON.stringify(sourceFiles) !== JSON.stringify(await inventory(source)))
       throw Error('Original TapTap converted inputs changed during login staging.');
@@ -349,11 +419,12 @@ export async function buildTapTapCocosTarget(
   } = {},
 ) {
   if (
-    !['carding-car', 'night-overwatch'].includes(selected?.id) ||
+    !tapTapTarget(selected?.id)?.cocos ||
+    tapTapTarget(selected?.id)?.directory !== selected.directory ||
     !selected.cocos ||
     config?.platform !== 'taptap'
   )
-    throw Error('Select one of the two reviewed Creator TapTap targets.');
+    throw Error('Select a reviewed Creator TapTap target.');
   const mode = config.preview ? 'preview' : 'release';
   tapIdentity(config.appId, mode);
   const gameRoot = path.join(repositoryRoot, selected.directory),
@@ -429,6 +500,9 @@ export async function buildTapTapCocosTarget(
       apiUrl: config.apiUrl || '',
       appId: config.appId,
       mode,
+      orientation: tapTapOrientation(selected.id),
+      adsEnabled: config.adsEnabled,
+      adUnitId: config.adUnitId,
     });
     await mkdir(targetRoot, { recursive: true });
     const directory = path.join(targetRoot, 'game');
@@ -437,7 +511,7 @@ export async function buildTapTapCocosTarget(
       directory,
       appId: config.appId,
       mode,
-      orientation: 'landscape',
+      orientation: tapTapOrientation(selected.id),
       verifiedSourceInventory: result.files,
     });
     let packageEvidence;
@@ -451,8 +525,10 @@ export async function buildTapTapCocosTarget(
         appId: config.appId,
         game: selected.id,
         apiUrl: config.apiUrl || '',
+        adsEnabled: config.adsEnabled,
+        adUnitId: config.adUnitId,
         mode,
-        orientation: 'landscape',
+        orientation: tapTapOrientation(selected.id),
       });
       // Byte copy of the independently supplied output; this does not generate
       // or rename any APK/WeChat package and retains an integrity-only claim.
@@ -471,6 +547,9 @@ export async function buildTapTapCocosTarget(
       apiUrl: config.apiUrl || '',
       loginPublicConfig: result.loginPublicConfig,
       login: result.login,
+      orientation: result.orientation,
+      ...(result.rewarded ? { rewarded: result.rewarded } : {}),
+      ...(result.sourceBudget ? { sourceBudget: result.sourceBudget } : {}),
       canonicalSourceHash: provenance.canonicalSourceHash,
       sourceHash: provenance.sourceHash,
       adaptationRecipeSha256: provenance.adaptationRecipeSha256,
@@ -481,7 +560,7 @@ export async function buildTapTapCocosTarget(
       sourceFiles: result.sourceFiles,
       sourceBuildInfo: result.sourceBuildInfo,
       plugin: result.plugin,
-      importScriptHashes: await importScriptHashes(),
+      importScriptHashes: await importScriptHashes(selected.id),
       ...(packageEvidence ? { package: packageEvidence } : {}),
       conversionReceipt: 'unverified',
       integrityVerified: true,
@@ -514,10 +593,11 @@ export async function verifyTapTapCocosArtifact(directory) {
     manifest = await json(root, 'cocos-provenance.json');
   if (
     manifest.platform !== 'taptap' ||
-    !['carding-car', 'night-overwatch'].includes(manifest.game) ||
+    !tapTapTarget(manifest.game)?.cocos ||
     manifest.officialToolVerified !== false ||
     manifest.realDeviceVerified !== false ||
-    manifest.conversionReceipt !== 'unverified'
+    manifest.conversionReceipt !== 'unverified' ||
+    manifest.orientation !== tapTapOrientation(manifest.game)
   )
     throw Error('Invalid TapTap Creator provenance or unsupported verification claim.');
   const files = trustedInventory(manifest.files);
@@ -539,7 +619,8 @@ export async function verifyTapTapCocosArtifact(directory) {
     JSON.parse(manifest.sourceBuildInfo).sourceHash !== manifest.sourceHash ||
     manifest.sourceFiles.find((file) => file.path === 'build-info.json')?.sha256 !==
       digest(manifest.sourceBuildInfo) ||
-    JSON.stringify(manifest.importScriptHashes) !== JSON.stringify(await importScriptHashes()) ||
+    JSON.stringify(manifest.importScriptHashes) !==
+      JSON.stringify(await importScriptHashes(manifest.game)) ||
     (manifest.game === 'night-overwatch'
       ? manifest.adaptationRecipeSha256 !== adaptationRecipeSha256
       : manifest.adaptationRecipeSha256 !== undefined ||
@@ -550,7 +631,7 @@ export async function verifyTapTapCocosArtifact(directory) {
     directory: path.join(root, 'game'),
     appId: manifest.appId,
     mode: manifest.mode,
-    orientation: 'landscape',
+    orientation: tapTapOrientation(manifest.game),
     verifiedSourceInventory: files,
     entryPrefixToIgnore: tapTapLoginPrefix({
       platform: 'taptap',
@@ -558,6 +639,8 @@ export async function verifyTapTapCocosArtifact(directory) {
       appId: manifest.appId,
       apiUrl: manifest.apiUrl || '',
       preview: manifest.mode === 'preview',
+      adsEnabled: manifest.rewarded?.adsEnabled,
+      adUnitId: manifest.rewarded?.adUnitId,
     }),
   });
   await verifyTapTapLogin(path.join(root, 'game'), {
@@ -566,6 +649,8 @@ export async function verifyTapTapCocosArtifact(directory) {
     appId: manifest.appId,
     apiUrl: manifest.apiUrl || '',
     preview: manifest.mode === 'preview',
+    adsEnabled: manifest.rewarded?.adsEnabled,
+    adUnitId: manifest.rewarded?.adUnitId,
   });
   if (
     JSON.stringify(manifest.loginPublicConfig) !==
@@ -576,6 +661,8 @@ export async function verifyTapTapCocosArtifact(directory) {
         appId: manifest.appId,
         apiUrl: manifest.apiUrl || '',
         preview: manifest.mode === 'preview',
+        adsEnabled: manifest.rewarded?.adsEnabled,
+        adUnitId: manifest.rewarded?.adUnitId,
       }),
     )
   )
@@ -618,19 +705,32 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       'prepare-login': { type: 'boolean' },
       'converted-dir': { type: 'string' },
       'api-url': { type: 'string' },
+      'ad-unit-id': { type: 'string' },
       verify: { type: 'string' },
     },
   });
+  const configFor = () => {
+    const prefix = `MINIGAME_${values.game}_TAPTAP`.toUpperCase().replaceAll('-', '_');
+    return tapTapOptions(values.game, {
+      preview: !values.release,
+      env: {
+        ...process.env,
+        ...(values.appid !== undefined ? { [prefix + '_APP_ID']: values.appid } : {}),
+        ...(values['ad-unit-id'] !== undefined
+          ? { [prefix + '_AD_UNIT_ID']: values['ad-unit-id'] }
+          : {}),
+        ...(values['api-url'] !== undefined
+          ? { MINIGAME_COMPETITION_API_URL: values['api-url'] }
+          : {}),
+      },
+    });
+  };
   if (values.verify)
     console.log(
       JSON.stringify(await verifyTapTapCocosArtifact(path.resolve(values.verify)), null, 2),
     );
   else if (values['prepare-login']) {
-    if (
-      !['carding-car', 'night-overwatch'].includes(values.game) ||
-      !values['converted-dir'] ||
-      !values.output
-    )
+    if (!tapTapTarget(values.game)?.cocos || !values['converted-dir'] || !values.output)
       throw Error(
         'Login staging requires a reviewed --game, --converted-dir and independent --output.',
       );
@@ -639,35 +739,18 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
         await prepareTapTapCocosLogin({
           convertedDirectory: path.resolve(values['converted-dir']),
           outputDirectory: path.resolve(values.output),
-          config: {
-            platform: 'taptap',
-            game: values.game,
-            appId: values.appid || '',
-            apiUrl: values['api-url'] || '',
-            preview: !values.release,
-          },
+          config: configFor(),
         }),
         null,
         2,
       ),
     );
   } else {
-    const { nineGames } = await import('./nine-games-targets.mjs');
-    const selected = nineGames.find((game) => game.id === values.game);
-    const result = await buildTapTapCocosTarget(
-      selected,
-      {
-        platform: 'taptap',
-        game: selected?.id,
-        appId: values.appid || '',
-        apiUrl: values['api-url'] || '',
-        preview: !values.release,
-      },
-      {
-        prepareSource: values['prepare-source'],
-        outputRoot: values.output ? path.resolve(values.output) : undefined,
-      },
-    );
+    const selected = tapTapTarget(values.game);
+    const result = await buildTapTapCocosTarget(selected, configFor(), {
+      prepareSource: values['prepare-source'],
+      outputRoot: values.output ? path.resolve(values.output) : undefined,
+    });
     console.log(JSON.stringify(result, null, 2));
   }
 }

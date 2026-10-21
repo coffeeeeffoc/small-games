@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readdir, rm, mkdir, writeFile, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { tapTapGames, tapTapOptions, tapTapToolOptions } from './taptap-targets.mjs';
+import { tapTapGames, tapTapTarget, tapTapOptions, tapTapToolOptions } from './taptap-targets.mjs';
 import { buildTapTap } from './taptap-build.mjs';
 
 test('TapTap keeps the remaining six-game batch, public identifiers and local tool paths separate', () => {
@@ -145,4 +145,50 @@ test('output overlap is rejected before the builder can delete original conversi
   } finally {
     await rm(outputRoot, { recursive: true, force: true });
   }
+});
+
+test('Homebound is an explicit portrait Creator target outside the frozen --all batch', () => {
+  assert.equal(tapTapGames.length, 6);
+  assert.equal(
+    tapTapGames.some((game) => game.id === 'homebound-station'),
+    false,
+  );
+  assert.equal(tapTapTarget('homebound-station').orientation, 'portrait');
+  assert.equal(tapTapTarget('homebound-station').cocos, true);
+  const config = tapTapOptions('homebound-station', {
+    env: {
+      MINIGAME_HOMEBOUND_STATION_TAPTAP_APP_ID: 'homebound-app',
+      MINIGAME_HOMEBOUND_STATION_TAPTAP_AD_UNIT_ID: 'homebound-reward',
+      // The standalone game does not inherit an unrelated backend or another channel's ad slot.
+      MINIGAME_COMPETITION_API_URL: 'https://other.example.com/v1',
+      MINIGAME_HOMEBOUND_STATION_WECHAT_AD_UNIT_ID: 'foreign-wx-slot',
+      TAPTAP_APP_SECRET: 'never-client-secret',
+    },
+  });
+  assert.equal(config.apiUrl, '');
+  assert.equal(config.competitionConfigured, false);
+  assert.equal(config.adsEnabled, true);
+  assert.equal(config.adUnitId, 'homebound-reward');
+  assert.doesNotMatch(JSON.stringify(config), /never-client-secret|foreign-wx-slot|other.example/);
+  assert.equal(tapTapOptions('homebound-station', { preview: true, env: {} }).adsEnabled, false);
+  assert.throws(() => tapTapOptions('homebound-station', { env: {} }), /APP_ID/);
+  assert.throws(
+    () =>
+      tapTapOptions('homebound-station', {
+        preview: true,
+        env: {
+          MINIGAME_HOMEBOUND_STATION_TAPTAP_AD_UNIT_ID: '../foreign',
+        },
+      }),
+    /AD_UNIT_ID/,
+  );
+  assert.throws(
+    () =>
+      tapTapOptions('carding-car', {
+        env: {
+          MINIGAME_CARDING_CAR_TAPTAP_APP_ID: 'legacy-app',
+        },
+      }),
+    /login service/,
+  );
 });
