@@ -617,7 +617,10 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       })
       .toBe(true);
     await canvas.evaluate(
-      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+      () =>
+        new Promise((resolve) =>
+          globalThis.requestAnimationFrame(() => globalThis.requestAnimationFrame(resolve)),
+        ),
     );
     await expect
       .poll(async () => (await snapshot()).buttons.some((item) => item.id === 'move'))
