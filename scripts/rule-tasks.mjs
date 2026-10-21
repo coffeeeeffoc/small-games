@@ -58,17 +58,8 @@ export function rulesCoveredByAggregate(pkg, manifest, tasks = new Map()) {
   );
 }
 
-// The imported browser game's ESLint globals omit this standard browser API.
-// Declare it read-only for its validator invocation without changing upstream files or rules.
 export function staticTaskArgs(pkg, task) {
-  const args = ['--filter', pkg.name, task];
-  if (
-    task === 'lint' &&
-    pkg.dir === 'games/submodules/fishing' &&
-    /^eslint(?:\s|$)/.test(pkg.scripts?.lint ?? '')
-  )
-    args.push('--global', 'URLSearchParams');
-  return args;
+  return ['--filter', pkg.name, task];
 }
 
 export function lintExcludedByRepository(pkg, manifest) {

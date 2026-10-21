@@ -7,7 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT.parents[2] / 'assets/english-dict'
 OUTPUT = ROOT / 'assets/english-dict'
-spec = importlib.util.spec_from_file_location('vocabulary_export', ROOT.parent / 'letters-words/scripts/export-vocabulary.py')
+spec = importlib.util.spec_from_file_location('vocabulary_export', ROOT / 'scripts/export-vocabulary.py')
 exporter = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(exporter)
 catalog = exporter.export(SOURCE / '精简词库/英语词库.sqlite', OUTPUT)

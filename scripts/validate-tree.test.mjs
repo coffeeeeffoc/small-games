@@ -955,27 +955,9 @@ test('Cocos pure rule policy retains exact files without modifying Creator packa
   }
 });
 
-test('imported browser lint retains rules and declares URLSearchParams read-only', async () => {
-  const { staticTaskArgs } = await import('./rule-tasks.mjs');
-  const pkg = { dir: 'games/submodules/fishing', name: 'tidebreak', scripts: { lint: 'eslint .' } };
-  assert.deepEqual(staticTaskArgs(pkg, 'lint'), [
-    '--filter',
-    'tidebreak',
-    'lint',
-    '--global',
-    'URLSearchParams',
-  ]);
-  assert.deepEqual(staticTaskArgs(pkg, 'typecheck'), ['--filter', 'tidebreak', 'typecheck']);
-  assert.deepEqual(staticTaskArgs({ ...pkg, dir: 'games/local/a' }, 'lint'), [
-    '--filter',
-    'tidebreak',
-    'lint',
-  ]);
-});
-
 test('lint follows explicit tracked repository scope; absent or unknown exclusions never skip', async () => {
   const { lintExcludedByRepository } = await import('./rule-tasks.mjs');
-  const external = { dir: 'games/submodules/tower-defense-game' };
+  const external = { dir: 'games/submodules/xiangqi-five' };
   const manifest = { scripts: { lint: 'turbo run lint --filter=!./games/submodules/*' } };
   assert.equal(lintExcludedByRepository(external, manifest), true);
   assert.equal(lintExcludedByRepository({ dir: 'games/local/a' }, manifest), false);

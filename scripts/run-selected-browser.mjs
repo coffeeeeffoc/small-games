@@ -21,10 +21,6 @@ for (const game of selectPagesGames(games, JSON.stringify(plan.browser_ids))) {
     `Missing built browser target: ${game.id}`,
   );
   const server = await preview({
-    configFile:
-      game.id === 'tower-defense-game'
-        ? path.join(root, game.source, 'vite.pages.config.ts')
-        : undefined,
     root: path.join(root, game.source),
     build: { outDir: game.output },
     preview: { host: '127.0.0.1', port: 0 },

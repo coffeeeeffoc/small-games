@@ -1,4 +1,4 @@
-// Run after building the four games/submodules packages.
+// Run after building the standalone chess package.
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { mkdir, readFile } from 'node:fs/promises';
@@ -7,7 +7,7 @@ import path from 'node:path';
 import { chromium } from '@playwright/test';
 import { serviceHtml } from './competition-h5-service.mjs';
 
-const allGames = ['fishing', 'tower-defense-game', 'xiangqi-five'];
+const allGames = ['xiangqi-five'];
 const games = process.env.DIALOG_GAMES ? process.env.DIALOG_GAMES.split(',') : allGames;
 assert.ok(
   games.length && games.every((game) => allGames.includes(game)),
@@ -69,7 +69,7 @@ const server = createServer(async (request, response) => {
       .slice(1)
       .split('/');
     assert.ok(games.includes(game));
-    const output = game === 'tower-defense-game' ? 'dist-pages' : 'dist';
+    const output = 'dist';
     const root = fileURLToPath(new URL(`../games/submodules/${game}/${output}/`, import.meta.url));
     const file = path.resolve(root, parts.join('/') || 'index.html');
     assert.ok(file.startsWith(root), 'asset path stays within its built game');
@@ -181,48 +181,6 @@ try {
           '1',
           'board remains playable after all page round trips',
         );
-      } else if (game === 'fishing') {
-        await page.getByRole('button', { name: '开始航行' })[input]();
-        for (let repeat = 0; repeat < 2; repeat++) {
-          await page.getByRole('button', { name: '暂停', exact: true })[input]();
-          for (const [name, panel, close] of [
-            ['设置', '航行设置', '完成'],
-            ['海域手册', '海域手册', '返回航行'],
-          ]) {
-            await page.getByRole('button', { name, exact: true })[input]();
-            await closePanel(
-              page,
-              page.getByRole('dialog', { name: panel }),
-              page.getByRole('button', { name: close }),
-              input,
-            );
-            assert.equal(
-              await page.locator('.overlay.modal:not(.sheet)').isVisible(),
-              true,
-              'closing nested sheet returns to paused game',
-            );
-          }
-          await page.getByRole('button', { name: '继续航行' })[input]();
-        }
-        assert.equal(
-          await page.getByRole('button', { name: '暂停', exact: true }).isVisible(),
-          true,
-        );
-      } else {
-        for (let repeat = 0; repeat < 2; repeat++) {
-          await page.getByRole('button', { name: '玩法说明', exact: true })[input]();
-          const dialog = page.getByRole('dialog');
-          await closePanel(
-            page,
-            dialog,
-            page.getByRole('button', { name: '明白了，安排它们！' }),
-            input,
-          );
-          assert.equal(
-            await page.getByRole('button', { name: '玩法说明', exact: true }).isVisible(),
-            true,
-          );
-        }
       }
       assert.deepEqual(errors, [], `${game}: no browser errors`);
       console.log(

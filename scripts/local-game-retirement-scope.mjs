@@ -1,5 +1,10 @@
 import { createHash } from 'node:crypto';
-import { localRetirementReviews, localRetirementTrees } from './local-game-retirement-reviews.mjs';
+import {
+  localRetirementReviews,
+  localRetirementTrees,
+  portfolioRetirementReviews,
+  portfolioRetirementTrees,
+} from './local-game-retirement-reviews.mjs';
 
 const proofs = new WeakMap();
 const digest = (value) => createHash('sha256').update(value).digest('hex');
@@ -9,6 +14,8 @@ export function localRetirementHeadQueryPaths(changedPaths) {
       ...changedPaths,
       ...Object.keys(localRetirementTrees),
       ...Object.keys(localRetirementReviews),
+      ...Object.keys(portfolioRetirementTrees),
+      ...Object.keys(portfolioRetirementReviews),
     ]),
   ];
 }
@@ -43,19 +50,24 @@ export function localRetirementScopesForReview(context, trees, reviews) {
         return scopes;
     }
     for (const file of changedPaths) {
-      const root = Object.keys(trees).find((dir) => file.startsWith(dir + '/'));
+      const root = Object.keys(trees).find((dir) => file === dir || file.startsWith(dir + '/'));
       const review = reviews[file];
       if (root) {
         const entry = readBaseEntry(file);
         if (
-          !/^(?:100644|100755) blob [a-f\d]{40}\t[^\n]+\n$/.test(entry) ||
+          !(file === root
+            ? /^160000 commit [a-f\d]{40}\t[^\n]+\n$/.test(entry)
+            : /^(?:100644|100755) blob [a-f\d]{40}\t[^\n]+\n$/.test(entry)) ||
           headHasPath(file) !== false
         )
           return new Map();
       } else if (!review) continue;
       const value = Object.freeze([...(review?.sources ?? [])]);
       scopes.set(file, value);
-      if (trees === localRetirementTrees && reviews === localRetirementReviews)
+      if (
+        (trees === localRetirementTrees && reviews === localRetirementReviews) ||
+        (trees === portfolioRetirementTrees && reviews === portfolioRetirementReviews)
+      )
         proofs.set(value, {
           file,
           deleted: !!root || review.after === null,
@@ -69,7 +81,14 @@ export function localRetirementScopesForReview(context, trees, reviews) {
   return scopes;
 }
 export function localRetirementFileScopes(context) {
-  return localRetirementScopesForReview(context, localRetirementTrees, localRetirementReviews);
+  return new Map([
+    ...localRetirementScopesForReview(context, localRetirementTrees, localRetirementReviews),
+    ...localRetirementScopesForReview(
+      context,
+      portfolioRetirementTrees,
+      portfolioRetirementReviews,
+    ),
+  ]);
 }
 export function hasLocalRetirementDeletionProof(file, value) {
   const proof = proofs.get(value);

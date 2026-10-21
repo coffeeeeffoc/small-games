@@ -82,7 +82,7 @@ test('manifest proof accepts only minimum repaired release lines', () => {
 test('Vite tests are separate from runtime consumers, and unknown locks do not activate them', () => {
   assert.equal(viteBuildSources.includes('packages/game-host'), false);
   assert.equal(viteTestSources.includes('packages/game-host'), true);
-  assert.equal(viteBuildSources.includes('games/submodules/tower-defense-game'), true);
+  assert.equal(viteBuildSources.includes('games/local/travel-bund'), true);
   assert.equal(viteBuildSources.includes('games/local/letters-words2'), true);
   assert.equal(hasVitePatch(['pnpm-lock.yaml'], new Map()), false);
   assert.equal(

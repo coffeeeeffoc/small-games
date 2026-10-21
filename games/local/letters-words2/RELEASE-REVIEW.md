@@ -24,7 +24,7 @@
 
 | 项目 | 当前实现与核验 |
 | --- | --- |
-| 游戏目录 / 引擎 | `games/local/letters-words2`，原生 DOM/JS 与 `engine.js` 纯规则；`letters-words` 是教材来源，未改 |
+| 游戏目录 / 引擎 | `games/local/letters-words2`，原生 DOM/JS 与 `engine.js` 纯规则；教材数据由本游戏的词库导出流程维护 |
 | H5 / 桌面 | `index.html` + `server.mjs`；独立产物 `dist/index.html`；Shell ID `letters-words2` iframe |
 | 专注界面 | 开始拾词、导入词单、教材开始、继续下一批自动进入；暂停/返回保留同一棋盘与未完成拼写；词单切换与完整释义使用可关闭对话框 |
 | 全屏 | 继续复用已有 `fullscreen.js`，未复制另一套实现；本游戏四视口实际浏览器全屏、旋转及退出通过；拒绝/不支持是显式模拟分支测试 |

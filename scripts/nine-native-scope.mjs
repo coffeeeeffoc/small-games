@@ -1450,6 +1450,8 @@ export function nineNativeDependencyPlan({
         'apps/shell-minigame/scripts/nine-games-build.mjs',
         'scripts/competition-build.mjs',
         'platforms/competition/assets/action.wav',
+        // Exact retirement review changes only the first-line provenance comment.
+        'games/local/letters-words2/library.js',
       ].includes(file) &&
         hasLocalRetirementFileProof(file, fileScopes.get(file), readSource))
     )

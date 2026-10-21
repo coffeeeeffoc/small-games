@@ -15,9 +15,9 @@
 | Shell Web、Workspace Agent、游戏检查、腾讯部署脚本 | 直接执行 pnpm 原生可执行文件，移除用 Node 解释 pnpm 的旧调用方式                                  |
 | 根四份 GitHub Actions 工作流                       | Node 统一至 24.21.0，pnpm 从根 `packageManager` 读取                                              |
 | 腾讯 Dockerfile                                    | Node 24.21.0、pnpm 12.6.0、独立的 pnpm 12 BuildKit 缓存；保留 frozen/prod/ignore-scripts 安装约束 |
-| 本地 Game 与三个 pnpm 子模块                       | 同步现有版本声明、独立锁文件、CI 与启动文档；tower-defense-game 增加依赖构建许可                  |
+| 本地 Game 与 pnpm 子模块                           | 同步现有版本声明、独立锁文件、CI 与启动文档                                                       |
 
-根锁文件迁移前后的直接依赖解析版本比较，只有 Turbo 发生版本变化。未批量升级游戏依赖。`fishing` 的独立 npm 安装流程、历史测试报告和软著材料保持原样。
+根锁文件迁移前后的直接依赖解析版本比较，只有 Turbo 发生版本变化。未批量升级游戏依赖。
 
 ## 验证
 
@@ -36,7 +36,7 @@
 | 六份嵌套锁文件的独立 frozen 检查                      | 通过                                          |
 | 腾讯后端打包上下文及生产依赖 frozen 安装              | 通过，安装 228 个生产依赖包                   |
 
-Pages 浏览器验证中懒加载检查通过；33/34 个独立 Game 的桌面嵌入及手机触控通过，其中 rule-thief 在前一项失败后单独补验通过。
+Pages 浏览器验证中懒加载检查通过；33/34 个独立 Game 的桌面嵌入及手机触控通过。
 
 ### 未通过与未验证项
 
@@ -45,15 +45,14 @@ Pages 浏览器验证中懒加载检查通过；33/34 个独立 Game 的桌面�
 - Docker Desktop 的 Linux engine 管道不可用，因此没有完成 Linux Docker 镜像构建。Windows 下后端生产依赖安装通过不能替代此项。
 - 本地验证使用匹配源码的卡丁车预构建产物，以及当前夜航源码经本机 Cocos Creator 构建的产物。没有执行远程 CI、部署或原生手机验收。
 - 详细本地日志位于忽略目录 `.scratch/pnpm12/`。
-- 自动审批策略拒绝了清理验证产物的命令，未提供具体原因。以下文件因此保留，不属于迁移源码：carding-car 与 night-overwatch 的 `cc.d.ts`，night-overwatch 的 `CameraMath.ts.meta`、`Flight.ts.meta`、`reports/web-mobile-size.json`，ghost-shift-manager 的 `docs/rules-report.json`，rule-thief 的 `docs/rules-check.json`。提交迁移时应与原有夜航开发改动一起排除。
+- 自动审批策略拒绝了清理验证产物的命令，未提供具体原因。以下文件因此保留，不属于迁移源码：carding-car 与 night-overwatch 的 `cc.d.ts`，night-overwatch 的 `CameraMath.ts.meta`、`Flight.ts.meta`、`reports/web-mobile-size.json`。提交迁移时应与原有夜航开发改动一起排除。
 
 ## 子模块发布顺序
 
-三个子模块已各自建立本地 `codex/pnpm-12` 分支及提交，尚未推送：
+子模块已建立本地 `codex/pnpm-12` 分支及提交，尚未推送：
 
-| 子模块             | 本地提交                                   |
-| ------------------ | ------------------------------------------ |
-| tower-defense-game | `b3966ed4c0b59061ed03d0e1738b1713977e8b6e` |
-| xiangqi-five       | `6634abaa161f35bce360311634cc24ac8b1e7920` |
+| 子模块       | 本地提交                                   |
+| ------------ | ------------------------------------------ |
+| xiangqi-five | `6634abaa161f35bce360311634cc24ac8b1e7920` |
 
 发布时先让子模块提交在远端可获取，再推送父仓库的 gitlink，避免递归克隆找不到提交。

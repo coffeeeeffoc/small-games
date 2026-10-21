@@ -304,13 +304,15 @@ test('company Pages publication adds only its tested artifact and preserves game
   assert.equal(classify(before, after, []).has(file), false);
 });
 
-test('viewport extraction selects all nine real consumers and rejects any unreviewed bytes', () => {
+test('viewport retirement selects all remaining real consumers and rejects any unreviewed bytes', () => {
   const file = mobileViewportScopeFile;
   const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
     '\r\n',
     '\n',
   );
-  const before = after.replace(/\n\/\/ Shared by the Pages[\s\S]*?(?=\nfunction attributes)/, '');
+  const before = execFileSync('git', ['show', '4224be0a1a3c9c108e34c39d996642765cfdca54:' + file], {
+    encoding: 'utf8',
+  });
   assert.notEqual(before, after);
   const games = JSON.parse(
     readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url), 'utf8'),
@@ -334,11 +336,8 @@ test('viewport extraction selects all nine real consumers and rejects any unrevi
   });
   assert.deepEqual(plan.browser_ids, [
     'carding-car',
-    'fishing',
     'fold-the-world',
-    'hold-tight-acrobats',
     'night-overwatch',
-    'one-stroke-course',
     'vibeJam-myself-delivery',
     'vibeJam-myself-nullrange',
     'wulong-city',
@@ -352,7 +351,7 @@ test('viewport extraction selects all nine real consumers and rejects any unrevi
     classify(
       before,
       after,
-      games.filter((game) => game.id !== 'fishing'),
+      games.filter((game) => game.id !== 'fold-the-world'),
     ),
   ]) {
     assert(!rejected.has(file));
@@ -370,13 +369,13 @@ test('viewport extraction selects all nine real consumers and rejects any unrevi
   }
 });
 
-test('independent preview selects nine viewport consumers plus Tower Defense and fails closed', async () => {
+test('independent preview selects retained viewport consumers and fails closed', async () => {
   const { execFileSync } = await import('node:child_process');
   const files = [mobileViewportScopeFile, independentPreviewScopeFile];
   const before = Object.fromEntries(
     files.map((file) => [
       file,
-      execFileSync('git', ['show', 'e37783aef3042289d9cfbb7f4b0badb6a106f6d8:' + file], {
+      execFileSync('git', ['show', '4224be0a1a3c9c108e34c39d996642765cfdca54:' + file], {
         encoding: 'utf8',
       }),
     ]),
@@ -400,8 +399,8 @@ test('independent preview selects nine viewport consumers plus Tower Defense and
       readHead: (file) => current[file],
     });
   const scopes = classify();
-  assert.equal(scopes.get(independentPreviewScopeFile).length, 10);
-  assert(scopes.get(independentPreviewScopeFile).includes('games/submodules/tower-defense-game'));
+  assert.equal(scopes.get(independentPreviewScopeFile).length, 6);
+  assert(scopes.get(independentPreviewScopeFile).includes('games/local/fold-the-world'));
   const plan = incrementalPlan({
     packages,
     games,
@@ -413,13 +412,9 @@ test('independent preview selects nine viewport consumers plus Tower Defense and
   assert.equal(plan.validation_tools, true);
   assert.deepEqual(plan.browser_ids, [
     'carding-car',
-    'fishing',
     'fold-the-world',
-    'hold-tight-acrobats',
     'letters-words2',
     'night-overwatch',
-    'one-stroke-course',
-    'tower-defense-game',
     'vibeJam-myself-delivery',
     'vibeJam-myself-nullrange',
     'wulong-city',
@@ -437,7 +432,7 @@ test('independent preview selects nine viewport consumers plus Tower Defense and
     classify({ ...after, [mobileViewportScopeFile]: after[mobileViewportScopeFile] + '\n' }),
     classify(
       after,
-      games.filter((game) => game.id !== 'tower-defense-game'),
+      games.filter((game) => game.id !== 'fold-the-world'),
     ),
   ]) {
     assert(!rejected.has(independentPreviewScopeFile));
@@ -3925,38 +3920,10 @@ test('review tools, submodule dialogs and the realtime preset have finite valida
   assert(hooks.hook_checks && hooks.validation_tools);
 });
 
-test('planning expands only to the four locked game workspaces for both live publication bases', () => {
-  for (const base of [
-    '5e9981c657486eb730419b8d8cb7ae99642c2191',
-    'ba88e46a0f7f7fb5c37c28a20c8eae7a0319eece',
-  ])
-    for (const file of ['.github/workflows/ci.yml', '.github/workflows/pages.yml']) {
-      const before = execFileSync('git', ['show', `${base}:${file}`], { encoding: 'utf8' });
-      const after = frozenCleanupBase(file).replaceAll('\r\n', '\n');
-      const scoped = classify(file, before, after);
-      assert.deepEqual(scoped.get(file), []);
-      assert.equal(plan([file], scoped).validation_tools, true);
-      assert.deepEqual(plan([file], scoped).nine_native_targets, []);
-      for (const altered of [
-        after + '\n',
-        after.replace('--init --', '--init --remote --'),
-        after.replace('--init --', '--init --recursive --'),
-        after.replace('games/submodules/fishing ', ''),
-        after.replace('games/submodules/fishing ', 'assets '),
-        after.replace('games/submodules/fishing ', 'games/submodules/fishing assets '),
-        after.replace('node scripts/pages-test-scope.mjs', 'echo skipped'),
-        after + '\npermissions:\n  contents: write\n',
-      ])
-        assert.equal(classify(file, before, altered).has(file), false);
-      assert.equal(classify(file, before + '\n', after).has(file), false);
-      assert.equal(classify(file, after, before).has(file), false);
-    }
-});
-
 test('Homebound Creator wiring admits only the reviewed additive compiler change', () => {
   const file = 'scripts/h5-game-build.mjs';
   const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
-  const before = execFileSync('git', ['show', '4224be0a1a3c9c108e34c39d996642765cfdca54:' + file], {
+  const before = execFileSync('git', ['show', 'd4a677542c5a034c4fef21798845dbf16e5bcfdd:' + file], {
     encoding: 'utf8',
   });
   assert(homeboundCocosWiringOnly(file, before, after));
@@ -4076,7 +4043,7 @@ test('merged Homebound Creator routes preserve Orbit and reject changes to exist
   for (const file of files) {
     const before = execFileSync(
       'git',
-      ['show', '4224be0a1a3c9c108e34c39d996642765cfdca54:' + file],
+      ['show', 'd4a677542c5a034c4fef21798845dbf16e5bcfdd:' + file],
       { encoding: 'utf8' },
     );
     const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8');

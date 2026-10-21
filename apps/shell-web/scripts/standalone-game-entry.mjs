@@ -22,14 +22,8 @@ export const markers = {
   'maze-wander': '#start',
   'urban-breakout': '#start',
   'homebound-station': 'body[data-homebound-ready="true"]',
-  'balloon-movers': '#launch',
-  'weather-command': '#board[data-level="1"]',
-  'off-camera': '#bank [data-card]',
   'rescue-team': '#fleet-1',
-  'precision-demolition': '#primary',
-  'afterimage-arena': '#continue',
-  'ghost-shift-manager': '#start',
-  'rule-thief': '#actors .actor',
+
   'waterline-station': '#board[data-level="1"]',
   'tiny-signals': '#game-root[data-status="playing"]',
   'echo-weaver': '#emit',
@@ -39,28 +33,21 @@ export const markers = {
   'luban-workshop': '#home-level-list [data-level-id="first-lift-v1"]',
   'surprise-kept': '#game[data-ready="true"]',
   tetracube: '#start-game',
-  'one-stroke-course': 'body[data-phase="drawing"]',
-  'hold-tight-acrobats': '#start',
+
   'wulong-city': '#start-game',
   'fold-the-world': '[data-action="start"]',
   'carding-car': 'body[data-kart-ready="true"]',
   'night-overwatch': '#GameCanvas',
   'merge-front': '#start-defense',
-  'night-merge': '#start-night',
-  fishing: '.overlay.start .primary',
-  'tower-defense-game': '[aria-label="塔防战场"]',
+
   'xiangqi-five': '#home-start',
   'cops-robbers': '#home-start',
   'cops-robbers-realtime': '#levels-button',
-  'h5-security': '[data-action="start"]',
-  'letters-words': '#board button',
+
   'letters-words2': '#focus-button',
-  'multi-battle': '[data-action="new"]',
-  puzzle: '.cover',
-  travel: '#travel-button',
-  travel2: '[data-testid="begin-journey"]',
+
   'travel-bund': '#enter-world',
-  'travel-bund-25d': 'main[data-ready="true"]',
+
   'vibeJam-myself-delivery': '#start',
   'vibeJam-myself-history-guess': '#start',
   'vibeJam-myself-nullrange': '#deploy',
@@ -91,9 +78,9 @@ export const homeControls = {
   'xiangqi-five': '#home-start',
   'cops-robbers': '#home-start',
   'cops-robbers-realtime': '#levels-button',
-  'h5-security': '[data-action="start"]',
+
   'letters-words2': '#focus-button',
-  'multi-battle': '[data-action="new"]',
+
   'vibeJam-myself-history-guess': ['#start', '#begin-level'],
   'vibeJam-myself-nullrange': '#deploy',
 };
@@ -104,14 +91,9 @@ export const legacyEntryIds = [
   'homebound-station',
   'echo-lab',
   'bullet-garden',
-  'balloon-movers',
-  'weather-command',
-  'off-camera',
+
   'rescue-team',
-  'precision-demolition',
-  'afterimage-arena',
-  'ghost-shift-manager',
-  'rule-thief',
+
   'waterline-station',
   'tiny-signals',
   'echo-weaver',
@@ -120,19 +102,12 @@ export const legacyEntryIds = [
   'two-sided-box',
   'luban-workshop',
   'surprise-kept',
-  'one-stroke-course',
-  'hold-tight-acrobats',
+
   'carding-car',
   'night-overwatch',
-  'night-merge',
-  'fishing',
-  'tower-defense-game',
-  'letters-words',
-  'puzzle',
-  'travel',
-  'travel2',
+
   'travel-bund',
-  'travel-bund-25d',
+
   'vibeJam-myself-delivery',
 ];
 
