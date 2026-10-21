@@ -1,0 +1,58 @@
+{
+  "at": "2026-10-21T02:09:31.861Z",
+  "base": "https://api.nenggongzhiren.cn/small-games/v1",
+  "origin": "https://ma-h5-al.tapimg.com",
+  "checks": [
+    {
+      "game": "vibeJam-myself-history-guess",
+      "guest": true,
+      "metadata": true,
+      "profileReadWrite": true,
+      "refreshPreservesIdentity": true,
+      "crossGameRejected": true,
+      "unauthenticatedRejected": true,
+      "boards": ["versus"]
+    },
+    {
+      "game": "wulong-city",
+      "guest": true,
+      "metadata": true,
+      "profileReadWrite": true,
+      "refreshPreservesIdentity": true,
+      "crossGameRejected": true,
+      "unauthenticatedRejected": true,
+      "boards": []
+    },
+    {
+      "game": "night-overwatch",
+      "guest": true,
+      "metadata": true,
+      "profileReadWrite": true,
+      "refreshPreservesIdentity": true,
+      "crossGameRejected": true,
+      "unauthenticatedRejected": true,
+      "boards": []
+    },
+    {
+      "game": "carding-car",
+      "guest": true,
+      "metadata": true,
+      "profileReadWrite": true,
+      "refreshPreservesIdentity": true,
+      "crossGameRejected": true,
+      "unauthenticatedRejected": true,
+      "boards": []
+    },
+    {
+      "game": "letters-words2",
+      "guest": true,
+      "metadata": true,
+      "profileReadWrite": true,
+      "refreshPreservesIdentity": true,
+      "crossGameRejected": true,
+      "unauthenticatedRejected": true,
+      "boards": ["versus"]
+    }
+  ],
+  "cors": true
+}
