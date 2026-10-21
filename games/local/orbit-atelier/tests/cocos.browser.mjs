@@ -113,8 +113,9 @@ async function touch(type, p) {
   });
 }
 async function gesture(hint, mode = 'release', expectFlight = false) {
-  const s = await snapshot(),
-    r = s.state.rings.find((r) => r.id === hint.ringId),
+  const [s, bounds] = await Promise.all([snapshot(), target.locator('#GameCanvas').boundingBox()]);
+  assert(bounds);
+  const r = s.state.rings.find((r) => r.id === hint.ringId),
     fit = s.fit;
   assert(r && !r.removed);
   const candidates = Array.from({ length: 48 }, (_, i) => (i * Math.PI) / 24).filter((a) =>
@@ -132,11 +133,16 @@ async function gesture(hint, mode = 'release', expectFlight = false) {
   candidates.sort((a, b) => clearance(b) - clearance(a));
   const start = candidates[0],
     delta = normalizeAngle(hint.angle - r.angle);
-  const coord = async (angle) =>
-    point(
-      fit.x + (r.x - fit.cx + Math.cos(angle) * r.r) * fit.scale,
-      fit.y + (r.y - fit.cy + Math.sin(angle) * r.r) * fit.scale,
-    );
+  // Layout is stable throughout one gesture. Read the transform once so protocol
+  // round trips do not consume the flight window before the next touch starts.
+  const coord = (angle) => ({
+    x:
+      bounds.x +
+      ((fit.x + (r.x - fit.cx + Math.cos(angle) * r.r) * fit.scale) / s.width) * bounds.width,
+    y:
+      bounds.y +
+      ((fit.y + (r.y - fit.cy + Math.sin(angle) * r.r) * fit.scale) / s.height) * bounds.height,
+  });
   await touch('touchStart', await coord(start));
   if (expectFlight) {
     const started = await snapshot();
@@ -348,12 +354,11 @@ try {
           if (moves === 1 && index === 1) {
             // A successful flight is presentation-only: immediately grab another ring.
             const next = findHint((await snapshot()).state);
-            if (next) {
-              assert((await snapshot()).flights > 0);
-              await gesture(next, 'hold', true);
-              assert.equal((await snapshot()).selectedRingId, next.ringId);
-              await touch('touchCancel');
-            }
+            assert(next, 'The second level supplies another ring during flight');
+            assert((await snapshot()).flights > 0);
+            await gesture(next, 'hold', true);
+            assert.equal((await snapshot()).selectedRingId, next.ringId);
+            await touch('touchCancel');
           }
           s = await snapshot();
           assert(moves < 12);

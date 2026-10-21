@@ -1,0 +1,51 @@
+{
+  "status": "passed",
+  "sourceHash": "e38e21bb13a0c17bcc1e47b3cedbc318585f80c8f00e1f7dd4f988144d458bcb",
+  "engine": "Cocos Creator 3.8.8",
+  "environment": "Chromium desktop mobile emulation; native CDP touch; not physical-device acceptance",
+  "browser": "140.0.7339.186",
+  "url": "http://127.0.0.1:38731/",
+  "results": [
+    {
+      "name": "native Cocos engine, home and locked map",
+      "status": "passed"
+    },
+    {
+      "name": "touch cancellation restores the complete pre-gesture state",
+      "status": "passed"
+    },
+    {
+      "name": "slow dragging can leave magnetic alignment without sticking",
+      "status": "passed"
+    },
+    {
+      "name": "pause, resume and the blur handler keep the attempt",
+      "status": "passed"
+    },
+    {
+      "name": "all 24 main levels complete through native touch and normal unlocks",
+      "status": "passed"
+    },
+    {
+      "name": "settings, classic preservation and responsive screens",
+      "status": "passed"
+    },
+    {
+      "name": "explicit developer mode stays isolated from player progress",
+      "status": "passed"
+    },
+    {
+      "name": "compiled classic final map retains authored geometry and completes by touch",
+      "status": "passed"
+    },
+    {
+      "name": "sandbox iframe plays through native touch, pause and resume",
+      "status": "passed"
+    },
+    {
+      "name": "disabled storage still allows a complete touch-played level",
+      "status": "passed"
+    }
+  ],
+  "errors": []
+}
