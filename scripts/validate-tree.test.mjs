@@ -960,6 +960,20 @@ test('Cocos pure rule policy retains exact files without modifying Creator packa
   }
 });
 
+test('node-only traversal validates imported JSON as data and rejects invalid JSON', async (t) => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'json-node-deps-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  await writeFile(
+    path.join(dir, 'rules.test.mjs'),
+    "import levels from './levels.json' with { type: 'json' };",
+  );
+  const data = path.join(dir, 'levels.json');
+  await writeFile(data, JSON.stringify({ label: "import('node:child_process')", browser: true }));
+  await assertNodeOnly('node --test rules.test.mjs', dir);
+  await writeFile(data, '{"level": 1}; import(\'node:child_process\');');
+  await assert.rejects(assertNodeOnly('node --test rules.test.mjs', dir), SyntaxError);
+});
+
 test('lint follows explicit tracked repository scope; absent or unknown exclusions never skip', async () => {
   const { lintExcludedByRepository } = await import('./rule-tasks.mjs');
   const external = { dir: 'games/submodules/xiangqi-five' };

@@ -110,6 +110,10 @@ export async function assertNodeOnly(command, dir, visited = new Set()) {
     if (visited.has(file)) return;
     visited.add(file);
     const text = await readFile(file, 'utf8');
+    if (path.extname(file) === '.json') {
+      JSON.parse(text);
+      return;
+    }
     assert(
       !/globalSetup|browser\s*:|projects\s*:/.test(text),
       `Unreviewed test configuration: ${file}`,
