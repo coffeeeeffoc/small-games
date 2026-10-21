@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { spawn } from 'node:child_process';
 import { childEnvironment } from './platform-process.mjs';
 import { competitionConsumers } from './publication-scopes.mjs';
+import { nativeCompetitionGames } from './competition-build.mjs';
 
 export async function executeCompetitionChecks({
   plan,
@@ -43,7 +44,7 @@ export async function executeCompetitionChecks({
       : {}),
   };
   if (plan.native) {
-    for (const id of Object.keys(competitionConsumers)) {
+    for (const id of nativeCompetitionGames) {
       await execute(['scripts/competition-build.mjs', '--native', `--game=${id}`], environment);
       await execute(['scripts/competition-native-smoke.mjs', `--game=${id}`], environment);
     }

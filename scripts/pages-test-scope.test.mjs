@@ -1305,7 +1305,7 @@ test('actual e48 to c68 CI changes select two H5 navigation games without native
   assert.deepEqual(result.nine_native_targets, local.nine_native_targets);
 });
 
-test('actual dcf to e48 preserves thirty-five native targets and only two H5 navigation samples', async () => {
+test('actual dcf to e48 selects twenty active native targets and two H5 navigation samples', async () => {
   const root = fileURLToPath(new URL('../', import.meta.url));
   const base = 'dcf778794c36562634a969b8b8975889c4001d0c';
   const head = 'e48a4c8b5c82311683611c9a5fe1f6786d6ebed2';
@@ -1318,9 +1318,16 @@ test('actual dcf to e48 preserves thirty-five native targets and only two H5 nav
   assert.equal(result.full, false);
   assert.equal(result.cocos, false);
   assert.deepEqual(result.browser_ids, ['letters-words2', 'xiangqi-five']);
-  assert.equal(result.nine_native_targets.length, 35);
-  assert.equal(new Set(result.nine_native_targets.map(({ game }) => game)).size, 7);
-  assert.equal(new Set(result.nine_native_targets.map(({ platform }) => platform)).size, 5);
+  assert.deepEqual(
+    result.nine_native_targets.map(({ game, platform }) => `${game}:${platform}`).sort(),
+    ['letters-words2', 'vibeJam-myself-history-guess', 'travel-bund', 'wulong-city']
+      .flatMap((game) =>
+        ['alipay', 'bilibili', 'douyin', 'kuaishou', 'wechat'].map(
+          (platform) => `${game}:${platform}`,
+        ),
+      )
+      .sort(),
+  );
   assert(result.nine_native_travel_contract);
   assert(
     !result.nine_native_targets.some(({ game }) =>
@@ -1432,7 +1439,7 @@ test('shared competition files keep actual Creator H5 consumers and native Creat
   );
 });
 
-test('planning checks out the four locked game workspaces and retains complete comparison history', async () => {
+test('planning checks out the three locked game workspaces and retains complete comparison history', async () => {
   for (const [file, job] of [
     ['.github/workflows/ci.yml', 'plan'],
     ['.github/workflows/pages.yml', 'changes'],
@@ -1454,7 +1461,7 @@ test('planning checks out the four locked game workspaces and retains complete c
     assert.doesNotMatch(block, /submodules:\s*recursive|--recursive|--remote/);
     const commands = [...block.matchAll(/^          (git[^\n]+)$/gm)].map((match) => match[1]);
     assert.deepEqual(commands, [
-      'git -c url.https://github.com/.insteadOf=git@github.com: submodule update --init -- games/submodules/fishing games/submodules/office-slacking games/submodules/tower-defense-game games/submodules/xiangqi-five',
+      'git -c url.https://github.com/.insteadOf=git@github.com: submodule update --init -- games/submodules/fishing games/submodules/tower-defense-game games/submodules/xiangqi-five',
     ]);
     assert.equal(block.split('Read locked game workspaces for planning').length, 2);
     assert.match(
@@ -1468,7 +1475,7 @@ test('planning checks out the four locked game workspaces and retains complete c
   }
 });
 
-test('actual dcf to 9180 canvas proof rejects a missing Xiangqi workspace identity', async () => {
+test('actual dcf to 9180 canvas proof rejects a missing active history workspace identity', async () => {
   const root = fileURLToPath(new URL('../', import.meta.url));
   const { standaloneGames: games } = await loadGameCatalog(root);
   const packages = await workspacePackages(root);
@@ -1487,11 +1494,11 @@ test('actual dcf to 9180 canvas proof rejects a missing Xiangqi workspace identi
         encoding: 'utf8',
       }),
   };
-  assert(packages.some((pkg) => pkg.dir === 'games/submodules/xiangqi-five'));
+  assert(packages.some((pkg) => pkg.dir === 'games/local/vibeJam-myself-history-guess'));
   assert(nineNativeFileScopes(context).has(context.changedPaths[0]));
   const missing = {
     ...context,
-    packages: packages.filter((pkg) => pkg.dir !== 'games/submodules/xiangqi-five'),
+    packages: packages.filter((pkg) => pkg.dir !== 'games/local/vibeJam-myself-history-guess'),
   };
   const failedProof = nineNativeFileScopes(missing);
   assert.equal(failedProof.has(context.changedPaths[0]), false);
@@ -1531,11 +1538,9 @@ test('accurate base/head admin lock additions select only admin checks and block
   const original = historical('6e9c1f7246090c7009e9519a8cda6e8efab956d5', lock);
   const initial = historical('1367ae4f9758fb3a36935267db236e481b67d52a', lock);
   const initialManifest = historical('1367ae4f9758fb3a36935267db236e481b67d52a', manifestFile);
-  const antd = readFileSync(new URL('../' + lock, import.meta.url), 'utf8').replaceAll(
-    '\r\n',
-    '\n',
-  );
-  const antdManifest = readFileSync(new URL('../' + manifestFile, import.meta.url), 'utf8');
+  const antdRevision = '87f541738ff49df880b0dcb5069ef485c5102e95';
+  const antd = historical(antdRevision, lock);
+  const antdManifest = historical(antdRevision, manifestFile);
   // The classifier proves these two transitions separately; their composition is not approved.
   for (const [name, baseline, current, baseManifest, manifest, accepted] of [
     ['initial admin addition', original, initial, undefined, initialManifest, true],

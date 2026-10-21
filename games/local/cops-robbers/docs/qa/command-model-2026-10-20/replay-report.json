@@ -1,0 +1,33 @@
+{
+  "algorithm": "observed-history-lcg-v1",
+  "base": "http://127.0.0.1:61643",
+  "started": "2026-10-20T07:16:28.385Z",
+  "passed": true,
+  "cases": [
+    {
+      "levelId": 1,
+      "seed": 91842,
+      "status": "passed",
+      "counts": {
+        "move": 7,
+        "hint": 7,
+        "undo": 2,
+        "restart": 8
+      },
+      "replayPath": "C:\\Users\\15211\\AppData\\Local\\Temp\\small-games-h5-optimizations-20261020\\games\\local\\cops-robbers\\outputs\\command-model\\replay-1792480588758-level-1-seed-91842.json"
+    }
+  ],
+  "sourceHashes": {
+    "src/main.js": "1ce180ad67b05700b7a3afafd89800f8ecd9fa2d23605ff971287aeb8184cd1d",
+    "src/engine.js": "3288a386e52e06004b6e95821c7cca8067c0435d9ca910df1e6d33845ca49b11",
+    "src/levels.js": "a50448227ad1930f65666caea06a89824b3828f9af1b4ad4bad870ad0e61be54",
+    "src/solutions.js": "0fc556f668b69cecb82d55b3c5cc078abb02761bf7d4a7a895632a4409f2745d",
+    "scripts/check-command-model.mjs": "48e05b850b11f11ac791be72ffc8100c15c358e8b2d4acce95b8b74108847e2b",
+    "scripts/command-model.mjs": "ba6bec70581413afb650c1fc76fb903a4b7727412dd8a47f95f61855c15ef7f0",
+    "scripts/browser-helpers.mjs": "68e0334412dd551ef22338a38ebe8ad766eefe7f654e57cdc546f63f57bdea0b"
+  },
+  "candidateSha": null,
+  "browser": "155.0.8059.82",
+  "replaySource": "C:\\Users\\15211\\AppData\\Local\\Temp\\small-games-h5-optimizations-20261020\\games\\local\\cops-robbers\\outputs\\command-model\\level-1-seed-91842.json",
+  "finished": "2026-10-20T07:16:31.815Z"
+}

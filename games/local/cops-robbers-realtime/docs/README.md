@@ -20,7 +20,6 @@
 
 ## 历史方案与评审
 
-- [原生接入验证](design/native-2026-10-06/VALIDATION.md)
 - [手机页面方案](design/mobile-2026-10-05/README.md)及[验证记录](design/mobile-2026-10-05/verification.md)
 - [卡通风格调整](design/cartoon-refresh-2026-10-05/README.md)
 - [早期产品与实施方案](plans/)

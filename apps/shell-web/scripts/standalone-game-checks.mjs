@@ -1492,9 +1492,6 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect(frame.getByTestId('timer')).not.toHaveText('3:00');
     await click(frame.getByRole('button', { name: '暂停', exact: true }));
     await expect(frame.getByRole('button', { name: '继续航行' })).toBeVisible();
-  } else if (id === 'office-slacking') {
-    await expect(frame.locator('.game')).toHaveAttribute('data-phase', 'playing');
-    await expect(frame.locator('#asset-error')).toBeHidden();
   } else if (id === 'cops-robbers') {
     await expect(frame.locator('#level-dialog')).toBeHidden();
     await expect(frame.locator('body')).toHaveAttribute('data-level', '1');

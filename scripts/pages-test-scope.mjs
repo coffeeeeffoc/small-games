@@ -1,6 +1,6 @@
-import { cocosMinigameFileScopes } from '../games/minigames/scripts/validation-scope.mjs';
 import { appendFile, readFile, readdir, stat } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
+import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -11,6 +11,11 @@ import {
   isDocumentation as isValidationDocumentation,
 } from './validation-plan.mjs';
 import { registrationFileScopes } from './pages-registration-scope.mjs';
+import {
+  retirementFileScopes,
+  retirementHeadQueryPaths,
+  isReviewedRetirementDeletion,
+} from './game-retirement-scope.mjs';
 import { nineNativeFileScopes } from './nine-native-scope.mjs';
 import { nineLockFileScopes } from './nine-lock-scope.mjs';
 import {
@@ -418,8 +423,9 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
       );
       // A successful exact-tree query proves absence. Read failures never count
       // as absence, and no rename (including a reviewed source) uses this proof.
+      const headQueries = retirementHeadQueryPaths(changedPaths);
       const headPaths = new Set(
-        removed.length
+        headQueries.length
           ? git(root, [
               '--literal-pathspecs',
               'ls-tree',
@@ -427,12 +433,24 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
               '-z',
               headCommit,
               '--',
-              ...removed.flatMap((change) => change.paths),
+              ...headQueries,
             ])
               .split('\0')
               .filter(Boolean)
           : [],
       );
+      const headHasPath = (file) => {
+        assert(headQueries.includes(file), 'Unqueried candidate path');
+        return headPaths.has(file);
+      };
+      const retiredScopes = retirementFileScopes({
+        changedPaths,
+        readBase: (file) => git(root, ['show', `${diffBase}:${file}`]),
+        readBaseEntry: (file) =>
+          git(root, ['--literal-pathspecs', 'ls-tree', diffBase, '--', file]),
+        readHead: (file) => git(root, ['show', `${headCommit}:${file}`]),
+        headHasPath,
+      });
       if (
         removed.some(
           (change) =>
@@ -441,17 +459,21 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
               change,
               ...catalog,
               readBase: (file) => git(root, ['show', `${diffBase}:${file}`]),
-              headHasPath: (file) => headPaths.has(file),
-            }),
+              headHasPath,
+            }) &&
+            !isReviewedRetirementDeletion(change, retiredScopes),
         )
       )
         throw new Error('Relevant deletion or rename requires full regression');
-      fileScopes = registrationFileScopes({
-        changedPaths,
-        gameSources: catalog.gameSources,
-        readBase: (file) => git(root, ['show', `${diffBase}:${file}`]),
-        readHead: (file) => git(root, ['show', `${headCommit}:${file}`]),
-      });
+      fileScopes = new Map([
+        ...registrationFileScopes({
+          changedPaths,
+          gameSources: catalog.gameSources,
+          readBase: (file) => git(root, ['show', `${diffBase}:${file}`]),
+          readHead: (file) => git(root, ['show', `${headCommit}:${file}`]),
+        }),
+        ...retiredScopes,
+      ]);
       for (const [file, sources] of fileScopes) {
         console.log(
           `Pages scoped registration: ${file} -> ${sources.length ? sources.join(', ') : 'host checks'}`,
@@ -505,7 +527,6 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
       reviewedSharedFileScopes,
       nineNativeFileScopes,
       nineLockFileScopes,
-      cocosMinigameFileScopes,
     ])
       for (const [file, sources] of classify(context)) fileScopes.set(file, sources);
     const incremental = incrementalPlan({

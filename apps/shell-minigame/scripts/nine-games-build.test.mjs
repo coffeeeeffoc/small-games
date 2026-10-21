@@ -60,7 +60,7 @@ test('unconfigured competition ignores old credentials and never performs real l
   );
 });
 
-test('batch is the catalog first nine at the frozen dev commit, across five distinct SDKs', async () => {
+test('remaining native batch preserves frozen catalog membership across five distinct SDKs', async () => {
   const catalog = execFileSync(
     'git',
     ['show', `${scopeCommit}:apps/shell-web/src/GameCatalog.tsx`],
@@ -69,13 +69,19 @@ test('batch is the catalog first nine at the frozen dev commit, across five dist
       encoding: 'utf8',
     },
   );
-  for (const [index, game] of nineGames.entries())
-    assert.match(catalog, new RegExp(`'${game.id}': ${index}`));
-  assert.equal(new Set(nineGames.map((game) => game.id)).size, 9);
+  for (const game of nineGames) assert.match(catalog, new RegExp(`'${game.id}': [0-9]+`));
+  for (const game of ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five']) {
+    assert(!nineGames.some((entry) => entry.id === game));
+    assert.throws(
+      () => targetOptions(game, 'wechat', { preview: true, env: {} }),
+      /Unknown native game/,
+    );
+  }
+  assert.equal(new Set(nineGames.map((game) => game.id)).size, 6);
   assert.equal(
     nineGames.flatMap((game) => fivePlatforms.map((platform) => appIdVariable(game.id, platform)))
       .length,
-    45,
+    30,
   );
 });
 test('all release targets preflight before writing any package; preview has no fake AppID', async () => {

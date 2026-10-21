@@ -32,23 +32,11 @@ const selectedGames = process.env.NATIVE_GAME_IDS?.split(',').filter(Boolean);
 if (selectedGames) {
   assert(selectedGames.length > 0 && new Set(selectedGames).size === selectedGames.length);
   assert(
-    selectedGames.every((id) =>
-      [
-        'cops-robbers',
-        'cops-robbers-realtime',
-        'vibeJam-myself-history-guess',
-        'xiangqi-five',
-      ].includes(id),
-    ),
+    selectedGames.every((id) => ['vibeJam-myself-history-guess'].includes(id)),
     'Unknown native Canvas CJS game selection',
   );
 }
-for (const game of [
-  'cops-robbers',
-  'cops-robbers-realtime',
-  'vibeJam-myself-history-guess',
-  'xiangqi-five',
-]) {
+for (const game of ['vibeJam-myself-history-guess']) {
   if (selectedGames && !selectedGames.includes(game)) continue;
   for (const [platform, sdkName] of channels) {
     if (selectedPlatforms && !selectedPlatforms.includes(platform)) continue;
@@ -60,8 +48,8 @@ for (const game of [
     assert.equal(release.deviceVerified, false);
     assert.doesNotMatch(source, /document\.|window\.|createElement\(|iframe/);
     const fixture = createNativeSDKFixture({
-      width: game === 'cops-robbers-realtime' ? 844 : 390,
-      height: game === 'cops-robbers-realtime' ? 390 : 844,
+      width: 390,
+      height: 844,
     });
     const loadedPackages = new Set(),
       decodedImagePaths = new Set();
@@ -142,27 +130,7 @@ for (const game of [
         fixture.tapLabel(label);
         await flushNative();
       };
-      if (game === 'cops-robbers') {
-        assert.equal(instance.getState().page, 'home');
-        await tapLabel('开始巡逻');
-        assert.equal(instance.getState().page, 'play');
-        const before = JSON.stringify(instance.getState().board);
-        const node = instance.getState().hits.find((hit) => hit.id.startsWith('node'));
-        fixture.touchStart(node.x + 22, node.y + 22);
-        fixture.touchCancel(node.x + 22, node.y + 22);
-        fixture.touchEnd(node.x + 22, node.y + 22);
-        assert.equal(JSON.stringify(instance.getState().board), before);
-        await tapLabel('暂停');
-        assert.equal(instance.getState().page, 'pause');
-        await tapLabel('继续');
-      } else if (game === 'cops-robbers-realtime') {
-        await tapLabel('开始游戏');
-        await tapLabel('开始行动');
-        assert(fixture.findLabel('首页'));
-        await fixture.tick(250);
-        await tapLabel('首页');
-        assert(fixture.findLabel('街区追捕'));
-      } else if (game === 'vibeJam-myself-history-guess') {
+      if (game === 'vibeJam-myself-history-guess') {
         await tapLabel('开始五幕旅途');
         assert(fixture.findLabel('暂停'));
         await tapLabel('暂停');
@@ -172,31 +140,6 @@ for (const game of [
           (value) => value && typeof value === 'object' && value.journey,
         );
         assert.equal(stored.journey.deck.length, 5);
-      } else {
-        const tap = (label) => {
-          const hit = instance.getLayout().hits.find((item) => item.label === label);
-          assert(hit, label);
-          fixture.tap(hit.x + hit.w / 2, hit.y + hit.h / 2);
-        };
-        tap('开始对弈');
-        tap('电脑对弈');
-        tap('开始对局');
-        tap('棋格0');
-        await fixture.tick(101);
-        assert.equal(
-          instance.state.game.ply,
-          2,
-          'real pinned computer runs without browser cloning/clock globals',
-        );
-        tap('暂停');
-        tap('返回首页');
-        tap('开始对弈');
-        tap('同屏双人');
-        tap('开始对局');
-        tap('确认重开');
-        for (const index of [0, 9, 1, 10, 2, 11, 3, 12, 4]) tap(`棋格${index}`);
-        assert.equal(instance.state.game.result, 'red');
-        assert.equal(instance.state.page, 'result');
       }
       if (game === 'vibeJam-myself-history-guess')
         assert(decodedImagePaths.size > 0, 'real packaged history imagery loaded');

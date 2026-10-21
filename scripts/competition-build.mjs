@@ -49,6 +49,10 @@ export const competitionGames = {
     title: '象五子棋',
   },
 };
+export const nativeCompetitionGames = Object.freeze([
+  'letters-words2',
+  'vibeJam-myself-history-guess',
+]);
 export async function buildCompetition({
   native = false,
   only,
@@ -59,6 +63,8 @@ export async function buildCompetition({
 } = {}) {
   if (only && !Object.hasOwn(competitionGames, only))
     throw new Error(`Unknown competition game: ${only}`);
+  if (native && only && !nativeCompetitionGames.includes(only))
+    throw new Error(`Native game is unavailable: ${only}; use its H5 entry.`);
   if (onlyPlatform && (!native || !Object.hasOwn(competitionPlatforms, onlyPlatform)))
     throw new Error(`Choose a native platform: ${Object.keys(competitionPlatforms).join('|')}`);
   const targets = native
@@ -68,6 +74,7 @@ export async function buildCompetition({
     : ['h5'];
   for (const [game, selected] of Object.entries(competitionGames)) {
     if (only && game !== only) continue;
+    if (native && !nativeCompetitionGames.includes(game)) continue;
     if (!native && serviceGames.includes(game)) {
       await prepareH5Service(
         game,
@@ -105,16 +112,11 @@ export async function buildCompetition({
         : native
           ? path.join(root, 'apps/shell-minigame/dist', platform, game)
           : path.join(root, selected.directory, 'dist');
-      const streetNative = native && game === 'cops-robbers-realtime';
       const lettersNative = native && game === 'letters-words2';
       const module = path
         .join(
           root,
-          streetNative
-            ? 'games/local/cops-robbers-realtime/src'
-            : lettersNative
-              ? selected.directory
-              : 'platforms/competition',
+          lettersNative ? selected.directory : 'platforms/competition',
           native ? 'native.js' : 'h5.js',
         )
         .replaceAll('\\', '/');
@@ -127,21 +129,10 @@ export async function buildCompetition({
         ...(service || {}),
       };
       const nativeHost = path.join(root, 'platforms/competition/native.js').replaceAll('\\', '/');
-      const localControllers = {
-        'cops-robbers': ['games/local/cops-robbers/src/native.js', 'startNativeCopsGame'],
-        'cops-robbers-realtime': [
-          'games/local/cops-robbers-realtime/src/native.js',
-          'startNativeStreetGame',
-        ],
-        'xiangqi-five': ['platforms/competition/xiangqi-five/native.js', 'startNativeXiangqiGame'],
-      };
-      const localController = localControllers[game];
       const source = native
-        ? localController && (streetNative || !service.competitionEnabled)
-          ? `import{${localController[1]}}from ${JSON.stringify(path.join(root, localController[0]).replaceAll('\\', '/'))};import{startNativeCompetition}from ${JSON.stringify(nativeHost)};export const instance=${localController[1]}(typeof ${adapter.sdk}==='undefined'?undefined:${adapter.sdk},${JSON.stringify(configValue)},startNativeCompetition);`
-          : lettersNative
-            ? `import{startNativeLettersGame}from ${JSON.stringify(module)};import{startNativeCompetition}from ${JSON.stringify(nativeHost)};export const instance=startNativeLettersGame(typeof ${adapter.sdk}==='undefined'?undefined:${adapter.sdk},${JSON.stringify(configValue)},startNativeCompetition);`
-            : `import{startNativeCompetition}from ${JSON.stringify(module)};import{createRenderer}from ${JSON.stringify(renderer)};export const instance=startNativeCompetition(typeof ${adapter.sdk}==='undefined'?undefined:${adapter.sdk},${JSON.stringify(configValue)},createRenderer);`
+        ? lettersNative
+          ? `import{startNativeLettersGame}from ${JSON.stringify(module)};import{startNativeCompetition}from ${JSON.stringify(nativeHost)};export const instance=startNativeLettersGame(typeof ${adapter.sdk}==='undefined'?undefined:${adapter.sdk},${JSON.stringify(configValue)},startNativeCompetition);`
+          : `import{startNativeCompetition}from ${JSON.stringify(module)};import{createRenderer}from ${JSON.stringify(renderer)};export const instance=startNativeCompetition(typeof ${adapter.sdk}==='undefined'?undefined:${adapter.sdk},${JSON.stringify(configValue)},createRenderer);`
         : `globalThis.__COMPETITION_CONFIG__=Object.assign(${JSON.stringify(configValue)},globalThis.__COMPETITION_CONFIG__||{});import{mountCompetition}from ${JSON.stringify(module)};import{createRenderer}from ${JSON.stringify(renderer)};mountCompetition(${JSON.stringify(game)},createRenderer);`;
       const entry = path.join(root, '.scratch/competition', `${platform}-${game}.js`);
       await mkdir(path.dirname(entry), { recursive: true });
@@ -168,11 +159,6 @@ export async function buildCompetition({
           new URL('../games/local/game-cricket/public/cricket-audio/perfect.wav', import.meta.url),
           path.join(outDir, 'competition-action.wav'),
         );
-        if (streetNative)
-          await cp(
-            path.join(root, selected.directory, 'src/assets/home-city.png'),
-            path.join(outDir, 'home-city.png'),
-          );
         if (lettersNative)
           await cp(path.join(root, selected.directory, 'assets'), path.join(outDir, 'assets'), {
             recursive: true,
@@ -186,16 +172,7 @@ export async function buildCompetition({
         for (const [name, value] of Object.entries(
           adapter.files({ game, appId: platformConfig.appId || '', version: '1.0.0' }),
         ))
-          await writeFile(
-            path.join(outDir, name),
-            JSON.stringify(
-              name === 'game.json' && game === 'cops-robbers-realtime'
-                ? { ...value, deviceOrientation: 'landscape' }
-                : value,
-              null,
-              2,
-            ),
-          );
+          await writeFile(path.join(outDir, name), JSON.stringify(value, null, 2));
         await writeFile(
           path.join(outDir, 'release.json'),
           JSON.stringify(
@@ -206,14 +183,9 @@ export async function buildCompetition({
               apiConfigured: !!apiUrl,
               mode: platformConfig.appId ? 'configured-unverified' : 'preview-unverified',
               rendering: 'native Canvas 2D',
-              gameplayScope:
-                localController && !service.competitionEnabled && !streetNative
-                  ? 'native local solo; service disabled'
-                  : streetNative
-                    ? 'solo campaign and server-authoritative friend competition'
-                    : lettersNative
-                      ? 'solo vocabulary islands, textbooks and server-authoritative friend competition'
-                      : 'server-authoritative friend competition only',
+              gameplayScope: lettersNative
+                ? 'solo vocabulary islands, textbooks and server-authoritative friend competition'
+                : 'server-authoritative friend competition only',
               nativeRuntimeVerified: false,
               platformLoginVerified: false,
               builtAt: new Date().toISOString(),

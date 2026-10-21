@@ -1,0 +1,49 @@
+{
+  "browser": "155.0.8059.82",
+  "realDeviceVerified": false,
+  "siteRoot": "C:\\Users\\15211\\AppData\\Local\\Temp\\small-games-h5-optimizations-20261020\\games\\local\\cops-robbers-realtime\\dist",
+  "checks": [
+    {
+      "width": 320,
+      "height": 568,
+      "host": "ua",
+      "framed": false,
+      "passed": true
+    },
+    {
+      "width": 390,
+      "height": 853,
+      "host": "sdk",
+      "framed": false,
+      "passed": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "host": "sdk",
+      "framed": false,
+      "passed": true
+    },
+    {
+      "width": 568,
+      "height": 320,
+      "host": "sdk",
+      "framed": false,
+      "passed": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "host": "browser",
+      "framed": false,
+      "passed": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "host": "sdk",
+      "framed": true,
+      "passed": true
+    }
+  ]
+}

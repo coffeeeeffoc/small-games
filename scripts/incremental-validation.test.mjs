@@ -936,7 +936,7 @@ test('Word native bundle contract and native entry select native without H5', as
   }
 });
 
-test('all five competition renderers select their actual H5 consumer and all five native channels', async () => {
+test('five competition renderers retain H5 consumers and only active games select native channels', async () => {
   const { readFileSync } = await import('node:fs');
   const actual = JSON.parse(
     readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url)),
@@ -957,13 +957,14 @@ test('all five competition renderers select their actual H5 consumer and all fiv
       changedPaths: [game.source + '/' + relative],
     });
     assert.deepEqual(result.browser_ids, [id]);
-    assert.deepEqual(result.nine_native_targets.map((target) => target.platform).sort(), [
-      'alipay',
-      'bilibili',
-      'douyin',
-      'kuaishou',
-      'wechat',
-    ]);
+    const nativePlatforms = ['letters-words2', 'vibeJam-myself-history-guess'].includes(id)
+      ? ['alipay', 'bilibili', 'douyin', 'kuaishou', 'wechat']
+      : [];
+    assert.deepEqual(
+      result.nine_native_targets.map((target) => target.platform).sort(),
+      nativePlatforms,
+      id,
+    );
     assert(result.nine_native_targets.every((target) => target.game === id));
   }
 });
@@ -999,7 +1000,22 @@ test('shared competition protocol modules select all actual H5 consumers and nat
       ...(file.endsWith('client.js') ? ['wulong-city'] : []),
       'xiangqi-five',
     ]);
-    assert.equal(result.nine_native_targets.length, file.endsWith('client.js') ? 36 : 30);
+    const nativeGames = [
+      ...(file.endsWith('client.js') ? ['carding-car'] : []),
+      'letters-words2',
+      'vibeJam-myself-history-guess',
+    ];
+    assert.deepEqual(
+      result.nine_native_targets.map(({ game, platform }) => `${game}:${platform}`).sort(),
+      nativeGames
+        .flatMap((game) =>
+          ['alipay', 'bilibili', 'douyin', 'kuaishou', 'taptap', 'wechat'].map(
+            (platform) => `${game}:${platform}`,
+          ),
+        )
+        .sort(),
+      file,
+    );
     assert.equal(result.nine_native_blocked.length, file.endsWith('client.js') ? 1 : 0);
     for (const variant of [
       {
@@ -1154,9 +1170,6 @@ test('fullscreen registration planning works in a checkout without installed for
       if (file.endsWith('.mjs') && !file.endsWith('.test.mjs'))
         await copyFile(new URL(file, import.meta.url), path.join(scripts, file));
     }
-    const miniScope = 'games/minigames/scripts/validation-scope.mjs';
-    await mkdir(path.join(directory, 'games/minigames/scripts'), { recursive: true });
-    await copyFile(new URL('../' + miniScope, import.meta.url), path.join(directory, miniScope));
     const fixture = {
       changedPaths: [fullscreenFile],
       games: h5Games,
@@ -1219,7 +1232,7 @@ test('admin checks stay separate from game browsers and backend changes include 
   assert.equal(select('services/runtime-api/src/main.ts').admin_console_checks, false);
 });
 
-test('Tap services retain all three H5 consumers alongside genuine native consumers and default contracts', async () => {
+test('Tap services retain three H5 consumers and contracts without retired native targets', async () => {
   const { readFileSync } = await import('node:fs');
   const { workspacePackages } = await import('./validation-plan.mjs');
   const { nineNativeFileScopes } = await import('./nine-native-scope.mjs');
@@ -1247,22 +1260,11 @@ test('Tap services retain all three H5 consumers alongside genuine native consum
     ]);
     const selected = incrementalPlan({ ...context, fileScopes });
     assert.deepEqual(selected.browser_ids, expected, file);
-    assert.deepEqual(selected.cocos_minigame_ids, expected, file);
+    assert.equal(Object.hasOwn(selected, 'cocos_minigame_ids'), false, file);
     assert.equal(selected.tap_services_checks, true);
     assert(selected.service_rule_sources.includes('platforms/taptap'));
     assert.deepEqual(selected.nine_native_blocked, []);
-    if (
-      ['calls.mjs', 'game-services.mjs', 'service-screen.mjs'].some((name) =>
-        file.endsWith('/' + name),
-      )
-    ) {
-      assert.equal(selected.nine_native_targets.length, 12);
-      assert(
-        selected.nine_native_targets.every((t) =>
-          ['cops-robbers-realtime', 'xiangqi-five'].includes(t.game),
-        ),
-      );
-    }
+    assert.deepEqual(selected.nine_native_targets, [], file);
   }
   for (const file of [
     'games/local/cops-robbers/src/duel.js',
@@ -1279,16 +1281,13 @@ test('Tap services retain all three H5 consumers alongside genuine native consum
   assert.equal(tapServicesChanged(['games/local/letters-words2/game.js'], read), false);
   const sibling = 'platforms/taptap/unreviewed.mjs';
   const selected = incrementalPlan({ changedPaths: [sibling], games, packages, readSource: read });
-  assert.equal(selected.nine_native_targets.length, 9);
+  assert.equal(selected.nine_native_targets.length, 6);
   assert.equal(selected.nine_native_blocked.length, 2);
 });
 
-test('every actual chess H5, native or Cocos consumer retains the standalone build contract', async () => {
+test('every actual chess H5 or shared Canvas consumer retains the standalone build contract', async () => {
   const { readFileSync } = await import('node:fs');
   const { workspacePackages } = await import('./validation-plan.mjs');
-  const { cocosMinigameFileScopes } = await import(
-    '../games/minigames/scripts/validation-scope.mjs'
-  );
   const root = fileURLToPath(new URL('../', import.meta.url)),
     packages = await workspacePackages(root);
   const games = JSON.parse(
@@ -1303,25 +1302,14 @@ test('every actual chess H5, native or Cocos consumer retains the standalone bui
       readHead,
       readSource: readHead,
     };
-    const fileScopes = new Map([
-      ...reviewedSharedFileScopes(context),
-      // This property checks consumer dispatch, not the historical byte proof.
-      // Inject the already-reviewed native scope so shallow CI clones need no
-      // unrelated history; nine-native-scope tests cover the real base proof.
-      ...(file === 'platforms/competition/xiangqi-five/native.js'
-        ? [[file, ['games/submodules/xiangqi-five', 'apps/shell-minigame']]]
-        : []),
-      ...cocosMinigameFileScopes(context),
-    ]);
+    const fileScopes = new Map([...reviewedSharedFileScopes(context)]);
     return incrementalPlan({ ...context, fileScopes });
   };
   for (const file of [
     'games/submodules/xiangqi-five',
     'games/submodules/xiangqi-five/build.test.js',
     'games/submodules/xiangqi-five/game.js',
-    'platforms/competition/xiangqi-five/native.js',
     'platforms/taptap/calls.mjs',
-    'games/minigames/shared/runtime.js',
   ])
     assert.equal(select(file).xiangqi_build_checks, true, file);
   for (const file of [

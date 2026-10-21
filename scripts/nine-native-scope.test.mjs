@@ -63,13 +63,7 @@ test('exact service-tool edits retain Canvas provenance consumers while unchange
   const selected = nineNativeDependencyPlan({ ...context, fileScopes, readSource: read });
   assert(selected.targets.length > 0);
   assert(selected.targets.every((target) => !target.requiresCreator));
-  for (const id of [
-    'cops-robbers',
-    'cops-robbers-realtime',
-    'xiangqi-five',
-    'letters-words2',
-    'wulong-city',
-  ])
+  for (const id of ['letters-words2', 'wulong-city'])
     assert(
       selected.targets.some((target) => target.game === id),
       id,
@@ -133,14 +127,7 @@ const catalog = JSON.parse(
 );
 // Pin historical digest fixtures so later edits and Windows checkout EOLs cannot change them.
 const snapshot = (file) =>
-  [
-    'scripts/nine-canvas-games-smoke.mjs',
-    'platforms/competition/client.js',
-    'platforms/competition/native.js',
-    'platforms/competition/xiangqi-five/native.js',
-    'platforms/competition/xiangqi-five/tests/native.test.mjs',
-    'platforms/competition/xiangqi-five/tests/browser.mjs',
-  ].includes(file)
+  ['platforms/competition/client.js', 'platforms/competition/native.js'].includes(file)
     ? execFileSync('git', ['show', 'c010423731cc22fb0657a4a86ac9811e1997bbc1:' + file], {
         encoding: 'utf8',
       })
@@ -169,26 +156,28 @@ function context(changedPaths = nineNativeScopePaths) {
     readHead: reviewedSnapshot,
     readBase: (file) => {
       if (file === competition) return beforeCompetition;
+      if (
+        ['scripts/nine-canvas-games-smoke.mjs', 'scripts/nine-channel-entry-smoke.mjs'].includes(
+          file,
+        )
+      )
+        return execFileSync('git', ['show', `87f541738ff49df880b0dcb5069ef485c5102e95:${file}`], {
+          encoding: 'utf8',
+        });
       throw new Error('No such file in reviewed base');
     },
   };
 }
-test('exact seven code paths map reviewed games and actual native hosts; unrelated games are excluded', () => {
+test('exact four code paths map reviewed games and actual native hosts; unrelated games are excluded', () => {
   const scopes = nineNativeFileScopes(context());
-  assert.equal(scopes.size, 7);
+  assert.equal(scopes.size, 4);
   const checks = nineNativeChecks(nineNativeScopePaths, scopes);
   assert.deepEqual(checks.find((item) => item.type === 'canvas').games, [
-    'cops-robbers',
-    'cops-robbers-realtime',
     'vibeJam-myself-history-guess',
-    'xiangqi-five',
   ]);
   assert.deepEqual(checks.find((item) => item.type === 'entry').games, [
-    'cops-robbers',
-    'cops-robbers-realtime',
     'letters-words2',
     'vibeJam-myself-history-guess',
-    'xiangqi-five',
   ]);
   assert.deepEqual(checks.find((item) => item.type === 'wulong').games, ['wulong-city']);
   assert(
@@ -209,7 +198,7 @@ test('only explicit reviewed new-file bytes may classify without base; missing c
     throw new Error('missing base');
   };
   const scopes = nineNativeFileScopes(c);
-  assert.equal(scopes.size, 6);
+  assert.equal(scopes.size, 1);
   assert(!scopes.has(competition));
   c.readHead = () => {
     throw new Error('missing head');
@@ -262,7 +251,11 @@ test('source/import/slug additions require new review and do not execute candida
     'scripts/nine-channel-entry-smoke.mjs',
   ]) {
     const c = context([file]);
-    c.readHead = () => snapshot(file).replace("'cops-robbers'", "'unrelated-game'");
+    const slug =
+      file === 'scripts/nine-canvas-games-smoke.mjs'
+        ? 'vibeJam-myself-history-guess'
+        : 'letters-words2';
+    c.readHead = () => snapshot(file).replace(`'${slug}'`, "'unrelated-game'");
     assert.equal(nineNativeFileScopes(c).size, 0);
     c.readHead = () => snapshot(file) + "\nawait import('unreviewed-module');\n";
     assert.equal(nineNativeFileScopes(c).size, 0);
@@ -305,14 +298,17 @@ test('root execution descriptors use real script commands and browser is never n
   );
 });
 
-test('reviewed CJS subset guard retains exact four slugs and rejects whitelist expansion', () => {
+test('reviewed CJS subset guard retains the remaining Canvas slug and rejects whitelist expansion', () => {
   const file = 'scripts/nine-canvas-games-smoke.mjs',
     c = context([file]);
   assert.equal(nineNativeFileScopes(c).size, 1);
   for (const source of [
     snapshot(file).replace('selectedGames.length > 0', 'true'),
     snapshot(file).replace('if (selectedGames && !selectedGames.includes(game)) continue;', ''),
-    snapshot(file).replace("'xiangqi-five',", "'xiangqi-five', 'carding-car',"),
+    snapshot(file).replace(
+      "'vibeJam-myself-history-guess'",
+      "'vibeJam-myself-history-guess', 'carding-car'",
+    ),
   ]) {
     c.readHead = () => source;
     assert.equal(nineNativeFileScopes(c).size, 0);
@@ -340,11 +336,8 @@ test('overlapping competition proof retains both native runners and all actual h
   assert.equal(plan.competition.letters, true);
   assert.equal(plan.nine_native_checks.length, 1);
   assert.deepEqual(plan.nine_native_checks[0].games, [
-    'cops-robbers',
-    'cops-robbers-realtime',
     'letters-words2',
     'vibeJam-myself-history-guess',
-    'xiangqi-five',
   ]);
   assert(plan.consumer_sources.includes('apps/shell-bilibili'));
   assert(plan.consumer_sources.includes('services/runtime-api'));
@@ -365,7 +358,7 @@ test('reviewed Night protocol body maps only its unique canonical game source', 
   assert.deepEqual([...nightProtocolFileScopes(nightContext())], [[nightHelper, [nightSource]]]);
   const c = { ...context([nightHelper]), readBase: () => nightBase };
   assert.deepEqual([...nineNativeFileScopes(c)], [[nightHelper, [nightSource]]]);
-  assert.equal(nineNativeScopePaths.length, 7);
+  assert.equal(nineNativeScopePaths.length, 4);
   assert.deepEqual(nineNativeChecks([nightHelper], nineNativeFileScopes(c)), []);
 });
 
@@ -581,8 +574,8 @@ test('native source discovery honors actual generated Scene boundary and audio p
   }
 });
 
-test('real dcf publication base to candidate preserves both reviewed channel-selection scope mappings', () => {
-  const files = ['scripts/nine-canvas-games-smoke.mjs', 'scripts/nine-wulong-smoke.mjs'];
+test('historical Wulong channel-selection proof retains its exact source and consumer', () => {
+  const files = ['scripts/nine-wulong-smoke.mjs'];
   const readBase = (file) =>
     execFileSync('git', ['show', `dcf778794c36562634a969b8b8975889c4001d0c:${file}`], {
       encoding: 'utf8',
@@ -593,13 +586,10 @@ test('real dcf publication base to candidate preserves both reviewed channel-sel
     });
   const c = { ...context(files), readBase, readHead };
   const scopes = nineNativeFileScopes(c);
-  assert.equal(scopes.size, 2);
+  assert.equal(scopes.size, 1);
   assert.deepEqual(
     nineNativeChecks(files, scopes).map((check) => check.games),
-    [
-      ['cops-robbers', 'cops-robbers-realtime', 'vibeJam-myself-history-guess', 'xiangqi-five'],
-      ['wulong-city'],
-    ],
+    [['wulong-city']],
   );
   for (const file of files) {
     const one = { ...c, changedPaths: [file] };
@@ -628,7 +618,7 @@ test('real dcf publication base to candidate preserves both reviewed channel-sel
   }
 });
 
-test('real publication diff with all classifiers keeps navigation H5 and all 35 native pairs including Travel', async () => {
+test('historical publication diff keeps navigation H5 and the remaining 20 native pairs including Travel', async () => {
   const base = 'dcf778794c36562634a969b8b8975889c4001d0c',
     head = '6e356b17cf69502052ea8a694f6ea9bc308a54bd';
   const paths = execFileSync('git', ['diff', '--name-only', base, head], { encoding: 'utf8' })
@@ -696,7 +686,7 @@ test('real publication diff with all classifiers keeps navigation H5 and all 35 
     for (const game of check.games)
       for (const platform of ['wechat', 'bilibili', 'douyin', 'kuaishou', 'alipay'])
         effective.add(game + ':' + platform);
-  assert.equal(effective.size, 35);
+  assert.equal(effective.size, 20);
   assert.equal([...effective].filter((pair) => pair.startsWith('travel-bund:')).length, 5);
   assert(![...effective].some((pair) => /^(carding-car|night-overwatch):/.test(pair)));
   assert.deepEqual(result.nine_native_blocked, []);
@@ -738,7 +728,7 @@ test('only exact reviewed source-inventory filter repair exempts unchanged Cocos
   const c = { ...context([file]), readBase: () => original, readHead: () => repaired };
   const fileScopes = nativeSourceInventoryFileScopes(c);
   assert.equal(fileScopes.size, 1);
-  assert.equal(fileScopes.get(file).length, 7);
+  assert.equal(fileScopes.get(file).length, 4);
   assert.deepEqual([...nineNativeFileScopes(c)], [...fileScopes]);
   const plan = (overrides = {}) =>
     nineNativeDependencyPlan({
@@ -749,7 +739,7 @@ test('only exact reviewed source-inventory filter repair exempts unchanged Cocos
       ...overrides,
     });
   const exact = plan();
-  assert.equal(exact.targets.length, 35);
+  assert.equal(exact.targets.length, 20);
   assert.deepEqual(exact.blocked, []);
   assert(!exact.targets.some((target) => ['carding-car', 'night-overwatch'].includes(target.game)));
   const { incrementalPlan } = await import('./incremental-validation.mjs');
@@ -758,7 +748,7 @@ test('only exact reviewed source-inventory filter repair exempts unchanged Cocos
     fileScopes,
     readSource: (source) => (source === file ? repaired : snapshot(source)),
   });
-  assert.equal(integrated.nine_native_targets.length, 35);
+  assert.equal(integrated.nine_native_targets.length, 20);
   assert.deepEqual(integrated.nine_native_blocked, []);
   assert.deepEqual(integrated.browser_ids, []);
   for (const override of [
@@ -769,7 +759,7 @@ test('only exact reviewed source-inventory filter repair exempts unchanged Cocos
     { readSource: () => original },
   ]) {
     const result = plan(override);
-    assert.equal(result.targets.length, 45);
+    assert.equal(result.targets.length, 30);
     assert.equal(result.blocked.length, 2);
   }
   for (const override of [
@@ -789,7 +779,7 @@ test('only exact reviewed source-inventory filter repair exempts unchanged Cocos
     assert.equal(nativeSourceInventoryFileScopes({ ...c, ...override }).size, 0);
 });
 
-test('TapTap tools select exactly nine sixth-channel consumers and retain real Creator gates', async () => {
+test('TapTap tools select exactly six sixth-channel consumers and retain real Creator gates', async () => {
   const { nineNativeDependencyPlan } = await import('./nine-native-scope.mjs');
   const select = (changedPaths) =>
     nineNativeDependencyPlan({
@@ -804,7 +794,7 @@ test('TapTap tools select exactly nine sixth-channel consumers and retain real C
     'apps/shell-minigame/scripts/taptap-smoke.mjs',
   ]) {
     const result = select([file]);
-    assert.equal(result.targets.length, 9);
+    assert.equal(result.targets.length, 6);
     assert(result.targets.every((target) => target.platform === 'taptap'));
     assert.deepEqual(
       result.targets.filter((target) => target.requiresCreator).map((target) => target.game),
@@ -899,12 +889,12 @@ test('TapTap conditional dependency ownership parses execution branches and fail
     "if (selected.cocos) {\n  const { build } = await import('./taptap-cocos.mjs');\n}";
   for (const [source, count] of [
     [guarded, 2],
-    [guarded.replace('selected.cocos', 'true'), 9],
-    [guarded + "\nawait import('./taptap-cocos.mjs');", 9],
-    ["// if (selected.cocos) {\nconst { build } = await import('./taptap-cocos.mjs');", 9],
+    [guarded.replace('selected.cocos', 'true'), 6],
+    [guarded + "\nawait import('./taptap-cocos.mjs');", 6],
+    ["// if (selected.cocos) {\nconst { build } = await import('./taptap-cocos.mjs');", 6],
     [
       "const misleading = 'if (selected.cocos) {';\nconst { build } = await import('./taptap-cocos.mjs');",
-      9,
+      6,
     ],
   ]) {
     const files = new Map([
@@ -926,7 +916,7 @@ test('TapTap conditional dependency ownership parses execution branches and fail
   }
 });
 
-test('only the exact TapTap normalizer generator additions select seven TapTap flows without unchanged Creator builds', async () => {
+test('only the exact TapTap normalizer generator additions select four TapTap flows without unchanged Creator builds', async () => {
   const { tapNormalizerFileScopes, nineNativeDependencyPlan } = await import(
     './nine-native-scope.mjs'
   );
@@ -945,7 +935,7 @@ test('only the exact TapTap normalizer generator additions select seven TapTap f
   assert.equal(fileScopes.size, 1);
   assert.deepEqual([...nineNativeFileScopes(c)], [...fileScopes]);
   const result = incrementalPlan({ ...c, fileScopes, readSource: reviewedSource });
-  assert.equal(result.nine_native_targets.length, 7);
+  assert.equal(result.nine_native_targets.length, 4);
   assert(
     result.nine_native_targets.every(
       (target) => target.platform === 'taptap' && !target.requiresCreator,
@@ -996,8 +986,8 @@ test('exact TapTap competition recognition selects only its native consumers and
   const { incrementalPlan } = await import('./incremental-validation.mjs');
   const tapPackages = [...packages, { dir: 'platforms/taptap' }];
   for (const [file, count, creators] of [
-    ['platforms/competition/client.js', 6, ['carding-car']],
-    ['platforms/competition/native.js', 5, []],
+    ['platforms/competition/client.js', 3, ['carding-car']],
+    ['platforms/competition/native.js', 2, []],
   ]) {
     const before = execFileSync('git', ['show', `f96e909:${file}`], { encoding: 'utf8' });
     const after = snapshot(file);
@@ -1059,7 +1049,7 @@ test('exact TapTap competition recognition selects only its native consumers and
           after.replace("'tap'", "'wx'").replace("'alipay', 'taptap'", "'taptap', 'alipay'"),
       },
       { readHead: () => after + '\nglobalThis.unreviewed = true;\n' },
-      { games: catalog.filter((game) => game.id !== 'xiangqi-five') },
+      { games: catalog.filter((game) => game.id !== 'letters-words2') },
       { packages },
       { changedPaths: [file + '.unknown'] },
     ])
@@ -1129,7 +1119,7 @@ test('only exact TapTap kart-sharing wiring and fixture additions select the gen
   }
 });
 
-test('the independent TapTap login installer and packaged helper select all nine TapTap consumers', async () => {
+test('the independent TapTap login installer and packaged helper select all six TapTap consumers', async () => {
   const { nineNativeDependencyPlan } = await import('./nine-native-scope.mjs');
   for (const file of [
     'apps/shell-minigame/scripts/taptap-login.mjs',
@@ -1140,7 +1130,7 @@ test('the independent TapTap login installer and packaged helper select all nine
       games: catalog,
       packages: [...packages, { dir: 'platforms/taptap' }],
     });
-    assert.equal(plan.targets.length, 9);
+    assert.equal(plan.targets.length, 6);
     assert(plan.targets.every((target) => target.platform === 'taptap'));
     assert.deepEqual(
       plan.blocked.map((target) => target.game),
@@ -1148,111 +1138,6 @@ test('the independent TapTap login installer and packaged helper select all nine
     );
     assert.deepEqual(plan.native_only_paths, [file]);
   }
-});
-
-test('current chess and Canvas revisions bind both real publication baselines, imports and catalog identities', async () => {
-  const { workspacePackages } = await import('./validation-plan.mjs');
-  const packages = await workspacePackages(fileURLToPath(new URL('../', import.meta.url)));
-  const changedPaths = [
-    'platforms/competition/xiangqi-five/native.js',
-    'platforms/competition/xiangqi-five/tests/native.test.mjs',
-    'platforms/competition/xiangqi-five/tests/browser.mjs',
-    'scripts/nine-canvas-games-smoke.mjs',
-  ];
-  const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
-  for (const base of [
-    'ba88e46a0f7f7fb5c37c28a20c8eae7a0319eece',
-    '96315a0a3351e60607447d8e18d1767b6a1b730b',
-    '457bc63c47b631a1f932b35f48e6b166f408ab2d',
-  ]) {
-    const context = {
-      changedPaths,
-      games: catalog,
-      packages,
-      readHead,
-      readBase: (file) => execFileSync('git', ['show', `${base}:${file}`], { encoding: 'utf8' }),
-    };
-    const scopes = nineNativeFileScopes(context);
-    assert.deepEqual([...scopes.keys()], changedPaths);
-    assert.deepEqual(scopes.get(changedPaths[0]), [
-      'games/submodules/xiangqi-five',
-      'apps/shell-minigame',
-    ]);
-    for (const file of changedPaths) {
-      assert(
-        !nineNativeFileScopes({
-          ...context,
-          readBase: (name) => context.readBase(name) + (name === file ? '\n' : ''),
-        }).has(file),
-      );
-      assert(
-        !nineNativeFileScopes({
-          ...context,
-          readHead: (name) =>
-            readHead(name) + (name === file ? "\nimport './unreviewed.mjs';\n" : ''),
-        }).has(file),
-      );
-    }
-    assert.equal(
-      nineNativeFileScopes({
-        ...context,
-        games: [...catalog, catalog.find((game) => game.id === 'xiangqi-five')],
-      }).size,
-      0,
-    );
-    assert.equal(
-      nineNativeFileScopes({
-        ...context,
-        packages: packages.filter((pkg) => pkg.dir !== 'apps/shell-minigame'),
-      }).size,
-      0,
-    );
-  }
-});
-
-test('only the exact Tap smoke chess branch delta excludes unchanged Creator inputs', async () => {
-  const { nineNativeDependencyPlan } = await import('./nine-native-scope.mjs');
-  const { workspacePackages } = await import('./validation-plan.mjs');
-  const file = 'apps/shell-minigame/scripts/taptap-smoke.mjs';
-  const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
-  const context = {
-    changedPaths: [file],
-    games: catalog,
-    packages: await workspacePackages(fileURLToPath(new URL('../', import.meta.url))),
-    readHead,
-    readBase: (file) =>
-      execFileSync('git', ['show', `ba88e46a0f7f7fb5c37c28a20c8eae7a0319eece:${file}`], {
-        encoding: 'utf8',
-      }),
-  };
-  const fileScopes = nineNativeFileScopes(context);
-  assert(fileScopes.has(file));
-  const select = (extra) =>
-    nineNativeDependencyPlan({ ...context, fileScopes, readSource: readHead, ...extra });
-  assert.deepEqual(
-    select().targets.map((t) => `${t.game}:${t.platform}`),
-    ['xiangqi-five:taptap'],
-  );
-  for (const extra of [
-    { fileScopes: new Map([[file, [...fileScopes.get(file)]]]) },
-    { readSource: (name) => readHead(name) + (name === file ? '\n' : '') },
-    { fileScopes: nineNativeFileScopes({ ...context, readBase: () => 'unknown' }) },
-    { changedPaths: [file, 'games/local/carding-car/assets/scripts/Main.ts'] },
-  ])
-    assert(select(extra).targets.some((t) => t.game === 'carding-car' && t.requiresCreator));
-  for (const game of ['carding-car', 'night-overwatch'])
-    assert(
-      select({
-        changedPaths: [file, `games/local/${game}/assets/scripts/Bootstrap.ts`],
-      }).targets.some((target) => target.game === game && target.requiresCreator),
-    );
-  assert.equal(
-    nineNativeFileScopes({
-      ...context,
-      readHead: (name) => readHead(name) + (name === file ? '\n' : ''),
-    }).size,
-    0,
-  );
 });
 
 test('separate Tap roots preserve H5, never propagate empty ownership, and regain genuine legacy importers', async () => {
@@ -1278,18 +1163,54 @@ test('separate Tap roots preserve H5, never propagate empty ownership, and regai
     const options = { games: catalog, packages, readSource };
     assert.deepEqual(nineNativeDependencyPlan({ ...options, changedPaths: [file] }).targets, []);
     const unknown = nineNativeDependencyPlan({ ...options, changedPaths: [sibling] });
-    assert.equal(unknown.targets.length, 9);
+    assert.equal(unknown.targets.length, 6);
     assert(unknown.targets.some((t) => t.requiresCreator));
     const restored = nineNativeDependencyPlan({
       ...options,
       changedPaths: [file, sibling],
       readSource: (name) =>
         readSource(name) +
-        (name === 'games/local/cops-robbers-realtime/src/native.js'
-          ? `\nimport '../../../../${file}';\n`
+        (name === 'games/local/vibeJam-myself-history-guess/native.js'
+          ? `\nimport '../../../${file}';\n`
           : ''),
     });
     assert.equal(restored.targets.length, 6);
-    assert(restored.targets.every((t) => t.game === 'cops-robbers-realtime'));
+    assert(restored.targets.every((t) => t.game === 'vibeJam-myself-history-guess'));
   }
+});
+
+test('retired games retain H5 scopes and have no native dependency targets', async () => {
+  const { nineNativeDependencyPlan, nineNativeDependencySources } = await import(
+    './nine-native-scope.mjs'
+  );
+  const retired = ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'];
+  for (const { targets } of nineNativeDependencySources())
+    assert(targets.every((target) => !retired.includes(target.split(':')[0])));
+  for (const [id, file] of [
+    ['cops-robbers', 'games/local/cops-robbers/src/engine.js'],
+    ['cops-robbers-realtime', 'games/local/cops-robbers-realtime/src/engine.js'],
+    ['xiangqi-five', 'games/submodules/xiangqi-five/game.js'],
+  ]) {
+    assert.deepEqual(
+      nineNativeDependencyPlan({ changedPaths: [file], games: catalog, packages }).targets,
+      [],
+    );
+    assert(catalog.some((game) => game.id === id));
+  }
+  const file = 'platforms/competition/format.js';
+  const scopes = nineNativeFileScopes({
+    ...context([file]),
+    readHead: snapshot,
+    readBase: snapshot,
+  });
+  assert.deepEqual(
+    scopes.get(file),
+    [
+      'cops-robbers',
+      'cops-robbers-realtime',
+      'letters-words2',
+      'vibeJam-myself-history-guess',
+      'xiangqi-five',
+    ].map((id) => catalog.find((game) => game.id === id).source),
+  );
 });

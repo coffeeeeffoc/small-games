@@ -1,27 +1,8 @@
-// Scope frozen from dev e07dc064 GameCatalog.featuredGameOrder on 2026-10-06.
-import { competitionService, serviceGames } from '../../../scripts/competition-service-config.mjs';
+// Remaining native targets from the 2026-10-06 catalog batch.
 // New catalog registrations must not change this release batch.
 export const scopeCommit = 'e07dc06483bd7fe0b9fdfe219e06362fce3c0caf';
 export const nineGames = [
   { id: 'carding-car', title: '浪湾卡丁车', directory: 'games/local/carding-car', cocos: true },
-  {
-    id: 'cops-robbers',
-    title: '围捕小队',
-    directory: 'games/local/cops-robbers',
-    entry: 'src/native.js',
-    start: 'startNativeCopsGame',
-    orientation: 'portrait',
-    assets: [],
-  },
-  {
-    id: 'cops-robbers-realtime',
-    title: '别跑！街区围捕',
-    directory: 'games/local/cops-robbers-realtime',
-    entry: 'src/native.js',
-    start: 'startNativeStreetGame',
-    orientation: 'landscape',
-    assets: [['src/assets/home-city.png', 'home-city.png']],
-  },
   {
     id: 'letters-words2',
     title: '词屿 · 字母叠叠乐',
@@ -41,15 +22,6 @@ export const nineGames = [
     assets: [],
     resources: true,
     subpackageImages: true,
-  },
-  {
-    id: 'xiangqi-five',
-    title: '象五子棋',
-    directory: 'platforms/competition/xiangqi-five',
-    entry: 'native.js',
-    start: 'startNativeXiangqiGame',
-    orientation: 'portrait',
-    assets: [],
   },
   {
     id: 'travel-bund',
@@ -92,6 +64,7 @@ export function appIdVariable(game, platform) {
   return `MINIGAME_${game}_${platform}_APP_ID`.toUpperCase().replaceAll('-', '_');
 }
 export function targetOptions(game, platform, { preview = false, env = process.env } = {}) {
+  if (!nineGames.some((item) => item.id === game)) throw new Error('Unknown native game.');
   const key = appIdVariable(game, platform);
   const appId = env[key] || '';
   const formats = {
@@ -107,10 +80,7 @@ export function targetOptions(game, platform, { preview = false, env = process.e
     throw new Error(
       `Release requires ${key}; explicitly use --preview for unconfigured local builds.`,
     );
-  const service = serviceGames.includes(game)
-    ? competitionService({ env, apiUrl: env.MINIGAME_COMPETITION_API_URL || undefined })
-    : null;
-  const apiUrl = service ? service.apiUrl : env.MINIGAME_COMPETITION_API_URL || '';
+  const apiUrl = env.MINIGAME_COMPETITION_API_URL || '';
   if (apiUrl) {
     let url;
     try {
@@ -150,11 +120,6 @@ export function targetOptions(game, platform, { preview = false, env = process.e
     platform,
     appId,
     apiUrl,
-    ...(service
-      ? {
-          competitionEnabled: service.competitionEnabled && Boolean(appId) && platform !== 'alipay',
-        }
-      : {}),
     ...(assetBase ? { assetBase } : {}),
     preview,
     competitionConfigured: Boolean(

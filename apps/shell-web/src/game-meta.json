@@ -419,17 +419,6 @@
         "time": "2026-10-05T10:25:40Z"
       }
     },
-    "office-slacking": {
-      "source": "games/submodules/office-slacking",
-      "created": {
-        "commit": "2276ae1b5c47ee20b9d2338f7a11eb9c8a9c838b",
-        "time": "2026-09-09T07:33:57+08:00"
-      },
-      "updated": {
-        "commit": "32002e401f52e7a507a62aaa3ef55368798eaa03",
-        "time": "2026-10-05T03:18:13+08:00"
-      }
-    },
     "one-stroke-course": {
       "source": "games/local/one-stroke-course",
       "created": {

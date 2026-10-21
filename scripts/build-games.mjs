@@ -11,11 +11,6 @@ import {
   compilerEnvironment,
   ordinaryDirectory,
 } from './h5-taptap-build.mjs';
-import { buildNativePackages } from './native-game-build.mjs';
-import {
-  configuration as nativeConfiguration,
-  platforms,
-} from '../games/minigames/scripts/config.mjs';
 import { h5AdGames, h5PackageGames, additionalH5Games } from './h5-ad-config.mjs';
 import { competitionService } from './competition-service-config.mjs';
 import { h5BasicServiceGames } from './h5-game-services.mjs';
@@ -127,14 +122,7 @@ export function parseGameBuildConfig(config) {
       'BUILD_TARGET',
     );
     const { platform, type } = target;
-    assert(
-      (type === 'h5' && platform === 'taptap') ||
-        (type === 'minigame' &&
-          Object.hasOwn(platforms, platform) &&
-          platforms[platform] &&
-          platform !== 'web-preview'),
-      'BUILD_PLATFORM_TYPE',
-    );
+    assert(type === 'h5' && platform === 'taptap', 'BUILD_PLATFORM_TYPE');
     const key = `${platform}-${type}`;
     assert(!seen.has(key), 'BUILD_DUPLICATE_TARGET');
     seen.add(key);
@@ -152,19 +140,13 @@ export function parseGameBuildConfig(config) {
       Object.entries(target.tapServices || {}).map(([game, value]) => {
         assert(h5AdGames.includes(game), 'Unknown TapTap services game');
         const service = validateTapServices(value);
-        if (type === 'minigame' && service.enabled)
-          assert(
-            service.appId === target.appIds?.[game],
-            'Native TapTap services AppID must match this target',
-          );
         return [game, service];
       }),
     );
     return {
       ...target,
       tapServices,
-      release: type === 'minigame' && (target.release ?? true),
-      appIds: identifiers(target.appIds, h5PackageGames, 'APP_IDS'),
+      release: false,
       adUnits: identifiers(target.adUnits, h5PackageGames, 'AD_UNITS'),
       modes: variants(target.ads ?? config.ads, target.backend ?? config.backend),
     };
@@ -194,44 +176,15 @@ export function gameBuildPlan(config) {
             `BUILD_AD_UNIT_REQUIRED: ${game}/${target.platform}/${target.type}`,
           );
         if (backend) validateService(config, target.type === 'h5' && Boolean(config.localBackend));
-        if (target.type === 'h5') {
-          assert(
-            !backend || h5AdGames.includes(game) || h5BasicServiceGames.includes(game),
-            `BUILD_SERVICE_UNSUPPORTED: ${game}/taptap/h5`,
-          );
-          return {
-            ...job,
-            delivery: 'upload-zip',
-            effectiveAdsEnabled: ads && Boolean(target.adUnits[game]),
-          };
-        }
-        if (target.release)
-          assert(target.appIds[game], `BUILD_APP_ID_REQUIRED: ${game}/${target.platform}`);
-        const native = nativeConfiguration(game, target.platform, {
-          release: target.release,
-          env: {
-            [`${target.platform.toUpperCase()}_APP_ID`]: target.appIds[game] ?? '',
-            [`${target.platform.toUpperCase()}_AD_UNIT_ID`]: ads ? target.adUnits[game] : '',
-            [tapServicesVariable(game)]: JSON.stringify(
-              target.tapServices?.[game] || { enabled: false },
-            ),
-            COMPETITION_SERVICE_ENABLED: backend ? '1' : '0',
-            COMPETITION_PUBLIC_API_URL: backend ? (config.apiUrl ?? '') : '',
-          },
-        });
         assert(
-          native.competitionEnabled === backend,
-          `BUILD_SERVICE_UNSUPPORTED: ${game}/${target.platform}`,
+          !backend || h5AdGames.includes(game) || h5BasicServiceGames.includes(game),
+          `BUILD_SERVICE_UNSUPPORTED: ${game}/taptap/h5`,
         );
-        const delivery =
-          target.platform === 'taptap'
-            ? target.release
-              ? 'upload-zip'
-              : 'preview-zip'
-            : target.platform === 'kuaishou'
-              ? 'conversion-source'
-              : 'developer-project';
-        return { ...job, config: native, delivery };
+        return {
+          ...job,
+          delivery: 'upload-zip',
+          effectiveAdsEnabled: ads && Boolean(target.adUnits[game]),
+        };
       }),
     ),
   );
@@ -239,13 +192,7 @@ export function gameBuildPlan(config) {
 
 export async function main(
   args = process.argv.slice(2),
-  {
-    workspace = root,
-    build = buildH5Packages,
-    buildNative = buildNativePackages,
-    read = readFile,
-    env = process.env,
-  } = {},
+  { workspace = root, build = buildH5Packages, read = readFile, env = process.env } = {},
 ) {
   const { values } = parseArgs({
     args,
@@ -257,7 +204,7 @@ export async function main(
   });
   if (values.help) {
     console.log(
-      'pnpm build:games [--config path.mjs] [--dry-run]\n按带注释的 game-build.local.mjs 选择 H5/原生包、平台及每款 AppID；配置使用 export default。\n兼容 --config path.js / path.json；默认 mjs 不存在时才读取旧 game-build.local.json。\n--dry-run 仅校验并列出构建计划。构建串行执行，不自动上传、提审或部署。\n说明：docs/operations/game-builds.md；模板：infra/builds/games.example.mjs。',
+      'pnpm build:games [--config path.mjs] [--dry-run]\n按带注释的 game-build.local.mjs 选择三款游戏的 TapTap H5 包；配置使用 export default。\n兼容 --config path.js / path.json；默认 mjs 不存在时才读取旧 game-build.local.json。\n--dry-run 仅校验并列出构建计划。构建串行执行，不自动上传、提审或部署。\n说明：docs/operations/game-builds.md；模板：infra/builds/games.example.mjs。',
     );
     return;
   }
@@ -289,10 +236,7 @@ export async function main(
   const jobs = gameBuildPlan(config);
   if (values['dry-run']) {
     const plan = {
-      jobs: jobs.map(({ config: native, ...job }) => ({
-        ...job,
-        ...(native ? { appIdConfigured: Boolean(native.appId) } : {}),
-      })),
+      jobs,
     };
     console.log(JSON.stringify(plan, null, 2));
     return plan;
@@ -314,7 +258,7 @@ export async function main(
         `GAME_BUILD_SCOPE ${config.games.join(',')} target=${key} packages=${selected.length} quality_checks=not-run deployment=none`,
       );
       let result;
-      if (target.type === 'h5') {
+      {
         const buildEnv = {
           ...compilerEnvironment(env),
           COMPETITION_PUBLIC_API_URL: config.apiUrl ?? '',
@@ -336,7 +280,7 @@ export async function main(
           },
           { workspace, env: buildEnv, allowDirty: true, perGame: true, buildOnly: true },
         );
-      } else result = await buildNative({ jobs: selected, output: targetOutput }, { workspace });
+      }
       targets.push({
         platform: target.platform,
         type: target.type,

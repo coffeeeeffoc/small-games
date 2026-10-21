@@ -5,7 +5,7 @@ const presets = {
   animals: { cop: ['#176cb0', '#d9f3ff', '🐱'], robber: ['#bc4c17', '#ffe3be', '🦊'] },
   cosmic: { cop: ['#4d51b8', '#e4e4ff', '✦'], robber: ['#b54920', '#ffdfb4', '☄'] },
 };
-const characterSheet = './src/assets/characters.png';
+const characterSheet = './src/assets/characters.webp';
 const characters = {
   cop: [
     { name: '阳光保安', description: '正义、勇敢，守护街区的每一天。', crop: [104, 12, 282] },

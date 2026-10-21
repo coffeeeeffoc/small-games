@@ -1,4 +1,3 @@
-import { cocosMinigamePlan } from '../games/minigames/scripts/validation-scope.mjs';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { createRequire } from 'node:module';
@@ -52,30 +51,20 @@ export const cacheToolPaths = Object.freeze([
 ]);
 
 const validationTool =
-  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|hook-diagnostics|run-selected-(?:shell|browser)|ci-validation|browser-preparation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope|pages-regression-shards|publication-scopes|vite-patch-scope|run-selected-competition)(?:\.[^/]+)?\.mjs|scripts\/nine-(?:native|lock)-scope(?:\.test)?\.mjs|scripts\/check-staged-format(?:\.test)?\.mjs|\.githooks\/[^/]+)$/;
+  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|hook-diagnostics|run-selected-(?:shell|browser)|ci-validation|browser-preparation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope|game-retirement-scope|pages-regression-shards|publication-scopes|vite-patch-scope|run-selected-competition)(?:\.[^/]+)?\.mjs|scripts\/nine-(?:native|lock)-scope(?:\.test)?\.mjs|scripts\/check-staged-format(?:\.test)?\.mjs|\.githooks\/[^/]+)$/;
 export const tapServiceCheckPaths = Object.freeze([
   ...tapServiceSharedScopePaths,
   tapServiceConfigScopePath,
-  'platforms/taptap/native-portal.mjs',
   'scripts/competition-h5-service.mjs',
-  'games/minigames/scripts/config.mjs',
-  'games/minigames/scripts/prepare.mjs',
-  'games/minigames/scripts/build.mjs',
-  'games/minigames/scripts/taptap-services-bootstrap.mjs',
-  'games/minigames/scripts/check-tap-multiplayer.mjs',
-  'games/minigames/tests/tap-services.test.mjs',
-  'games/minigames/tests/tap-services.browser.mjs',
-  'games/minigames/tests/tap-multiplayer-fixture.mjs',
-  'games/minigames/tests/tap-multiplayer.test.mjs',
-  'games/minigames/tests/build.test.mjs',
-  'games/minigames/tests/tap-multiplayer.browser.mjs',
-  'games/minigames/cops-robbers/controller.mjs',
-  'platforms/competition/xiangqi-five/native.js',
+  'scripts/check-tap-multiplayer.mjs',
+  'platforms/taptap/tests/tap-services.test.mjs',
+  'platforms/taptap/tests/tap-services.browser.mjs',
+  'platforms/taptap/tests/tap-multiplayer-fixture.mjs',
+  'platforms/taptap/tests/tap-multiplayer.test.mjs',
+  'platforms/taptap/tests/tap-multiplayer.browser.mjs',
   'games/submodules/xiangqi-five',
   ...['cops-robbers', 'cops-robbers-realtime'].flatMap((id) =>
-    ['main.js', 'native.js', 'tap-save.js', 'tap-multiplayer.js'].map(
-      (file) => `games/local/${id}/src/${file}`,
-    ),
+    ['main.js', 'tap-save.js', 'tap-multiplayer.js'].map((file) => `games/local/${id}/src/${file}`),
   ),
 ]);
 // Follow the actual three-game entry imports as well as the explicit generated
@@ -161,11 +150,7 @@ export function incrementalPlan({
     readSource,
     fileScopes,
   });
-  const cocosMini = cocosMinigamePlan({ changedPaths: paths, fileScopes });
-  const nativeOnlyPaths = new Set([
-    ...nineNative.native_only_paths,
-    ...cocosMini.native_only_paths,
-  ]);
+  const nativeOnlyPaths = new Set(nineNative.native_only_paths);
   const h5Paths = paths.filter((file) => !nativeOnlyPaths.has(file));
   const nativeConsumers = paths.includes(nativeSmoke) ? nativeToolConsumers : [];
   for (const consumer of nativeConsumers) {
@@ -319,7 +304,6 @@ export function incrementalPlan({
     });
   return {
     full: false,
-    ...(cocosMini.ids.length ? { cocos_minigame_ids: cocosMini.ids } : {}),
     ...(hasVitePatch(paths, fileScopes) ? { vite_patch: true } : {}),
     browser: ids.size > 0,
     browser_ids: [...ids].sort(),
@@ -336,7 +320,6 @@ export function incrementalPlan({
           (game) => game.id === 'xiangqi-five' && game.source === 'games/submodules/xiangqi-five',
         )) ||
       selected.some((game) => game.source === 'games/submodules/xiangqi-five') ||
-      cocosMini.ids.includes('xiangqi-five') ||
       nineNative.targets.some((target) => target.game === 'xiangqi-five'),
     tap_services_checks: tapServicesChanged(paths, readSource),
     hook_checks: paths.some((file) => /^scripts\/check-staged-format(?:\.test)?\.mjs$/.test(file)),
@@ -348,7 +331,6 @@ export function incrementalPlan({
       [
         'platforms/competition/tests/street-admission.test.mjs',
         'games/local/cops-robbers-realtime/src/main.js',
-        'games/local/cops-robbers-realtime/src/native.js',
         'games/local/cops-robbers-realtime/src/records.js',
       ].includes(file),
     )
@@ -418,7 +400,10 @@ export function incrementalPlan({
     nine_native_travel_contract: nineNative.travel_contract,
     native_consumers: nativeConsumers.map((consumer) => consumer.dir),
     developer_mode_ids: [...new Set(devModeIds)].sort(),
-    catalog_rollout_checks: shellChanged,
+    catalog_rollout_checks:
+      shellChanged ||
+      paths.includes('apps/shell-web/src/game-assessments.json') ||
+      paths.includes('apps/shell-web/scripts/catalog-rollout-smoke.mjs'),
     interaction_browser_ids: ['letters-words2', 'tianxia-chalu'].filter(
       (id) => ids.has(id) && directGames.some((game) => game.id === id),
     ),

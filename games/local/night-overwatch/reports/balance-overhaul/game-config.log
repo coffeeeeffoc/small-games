@@ -41,7 +41,6 @@
 │ 33      │ 'games/local/weather-command'              │ '@coffeeeeffoc/weather-command'      │ 'standalone' │ '已登记' │
 │ 34      │ 'games/local/wulong-city'                  │ '@coffeeeeffoc/wulong-city'          │ 'standalone' │ '已登记' │
 │ 35      │ 'games/submodules/fishing'                 │ 'tidebreak'                          │ 'standalone' │ '已登记' │
-│ 36      │ 'games/submodules/office-slacking'         │ '@coffeeeeffoc/office-slacking'      │ 'standalone' │ '已登记' │
 │ 37      │ 'games/submodules/tower-defense-game'      │ '@coffeeeeffoc/tower-defense-game'   │ 'standalone' │ '已登记' │
 │ 38      │ 'games/submodules/xiangqi-five'            │ '@coffeeeeffoc/xiangqi-five'         │ 'standalone' │ '已登记' │
 └─────────┴────────────────────────────────────────────┴──────────────────────────────────────┴──────────────┴──────────┘

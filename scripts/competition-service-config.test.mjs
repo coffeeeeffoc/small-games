@@ -9,8 +9,6 @@ import {
   serviceEnvironment,
   serviceGames,
 } from './competition-service-config.mjs';
-import { configuration } from '../games/minigames/scripts/config.mjs';
-import { publicTapTapLoginConfig } from '../apps/shell-minigame/scripts/taptap-login.mjs';
 import {
   prepareH5Service,
   h5ServiceConfig,
@@ -19,12 +17,6 @@ import {
 } from './competition-h5-service.mjs';
 import { prepareSite } from './deploy-tencent.mjs';
 import { prepareBundleSite, buildEnvironment } from './deployment-bundle.mjs';
-import {
-  createNativeSDKFixture,
-  flushNative,
-} from '../games/local/letters-words2/tests/native-sdk-fixture.mjs';
-import { startNativeCompetition } from '../platforms/competition/native.js';
-import { buildCompetition } from './competition-build.mjs';
 import { targetOptions } from '../apps/shell-minigame/scripts/nine-games-targets.mjs';
 import { tapTapOptions } from '../apps/shell-minigame/scripts/taptap-targets.mjs';
 
@@ -152,125 +144,6 @@ test('optional services require permission and an address; explicit disabling di
     competitionService({ env: local, local: true }).apiUrl,
     local.COMPETITION_PUBLIC_API_URL.slice(0, -1),
   );
-});
-
-test('all three TapTap release configurations work offline and only enable a configured service', () => {
-  for (const game of serviceGames) {
-    const env = { TAPTAP_APP_ID: 'real-public-app-id', TAPTAP_API_URL: url };
-    const offline = configuration(game, 'taptap', { release: true, env });
-    assert.equal(offline.apiUrl, '');
-    assert.equal(offline.competitionEnabled, false);
-    assert.equal(publicTapTapLoginConfig(offline).apiUrl, '');
-    const configured = configuration(game, 'taptap', { release: true, env: { ...env, ...online } });
-    assert.equal(configured.competitionEnabled, true);
-    assert.equal(publicTapTapLoginConfig(configured).apiUrl, url);
-    const local = configuration(game, 'web-preview', {
-      env: { ...online, COMPETITION_PUBLIC_API_URL: 'http://localhost:43010/api/competition/v1' },
-    });
-    assert.equal(local.competitionConfigured, true);
-  }
-});
-
-test('Creator web previews establish an anonymous identity using browser transport', async () => {
-  const f = createNativeSDKFixture();
-  const saved = { fetch: globalThis.fetch, competition: globalThis.__competition };
-  const restore = f.installGlobals();
-  const requests = [];
-  let instance;
-  try {
-    delete globalThis.__competition;
-    globalThis.fetch = async (target) => {
-      requests.push(target);
-      return {
-        status: 200,
-        json: async () =>
-          target.endsWith('/sessions/guest')
-            ? {
-                token: 'a'.repeat(64),
-                refreshToken: 'b'.repeat(64),
-                sessionId: '10000000-0000-4000-8000-000000000001',
-                identityKind: 'guest',
-                game: 'cops-robbers',
-                playerId: 'preview-player',
-                expiresAt: Date.now() + 900000,
-                refreshExpiresAt: Date.now() + 86400000,
-              }
-            : target.endsWith('/me')
-              ? { playerId: 'preview-player', name: '测试玩家' }
-              : {
-                  version: 'roles-initiative-duel-v2',
-                  roles: ['pursuer', 'runner'],
-                  modes: [{ id: 'escape' }, { id: 'survival' }],
-                },
-      };
-    };
-    instance = startNativeCompetition(
-      f.sdk,
-      {
-        game: 'cops-robbers',
-        platform: 'web-preview',
-        competitionEnabled: true,
-        apiUrl: 'http://127.0.0.1:43010/api/competition/v1',
-      },
-      () => ({ draw() {}, tap() {} }),
-    );
-    await flushNative();
-    assert(requests.some((target) => target.endsWith('/sessions/guest')));
-    assert(requests.some((target) => target.endsWith('/me')));
-    assert.equal(f.requests.length, 0);
-  } finally {
-    instance?.stop();
-    globalThis.fetch = saved.fetch;
-    if (saved.competition === undefined) delete globalThis.__competition;
-    else globalThis.__competition = saved.competition;
-    restore();
-  }
-});
-
-test('legacy native build commands produce playable solo controllers without service requests', async () => {
-  const outputRoot = await mkdtemp(path.join(tmpdir(), 'competition-native-offline-'));
-  try {
-    for (const game of serviceGames) {
-      await buildCompetition({
-        native: true,
-        only: game,
-        platform: 'wechat',
-        outputRoot,
-        env: { COMPETITION_SERVICE_ENABLED: '0', COMPETITION_PUBLIC_API_URL: url },
-      });
-      const f = createNativeSDKFixture();
-      const restore = f.installGlobals();
-      const exports = {};
-      const context = {
-        wx: f.sdk,
-        exports,
-        module: { exports },
-        console,
-        Date,
-        setTimeout,
-        clearTimeout,
-        setInterval,
-        clearInterval,
-        requestAnimationFrame,
-        cancelAnimationFrame,
-      };
-      try {
-        vm.runInNewContext(
-          await readFile(path.join(outputRoot, 'wechat', game, 'game.js'), 'utf8'),
-          context,
-        );
-        await flushNative();
-        assert(f.labels.length > 0, `${game} must render its solo home`);
-        assert.equal(f.requests.length, 0, `${game} must not log in or request the service`);
-        const instance = exports.instance;
-        (instance.stop || instance.dispose).call(instance);
-      } finally {
-        restore();
-      }
-    }
-  } finally {
-    await rm(outputRoot, { recursive: true, force: true });
-  }
 });
 
 test('rebuilding and deploying a managed H5 entry never retain an old service address or bundle', async () => {

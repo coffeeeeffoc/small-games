@@ -555,26 +555,6 @@
       "delivered": []
     },
     {
-      "id": "office-slacking",
-      "title": "工位偷闲 · 第一人称",
-      "source": "games/submodules/office-slacking",
-      "disposition": "hold",
-      "potential": ["low"],
-      "platforms": ["web"],
-      "primaryPlatform": "web",
-      "orientation": "landscape",
-      "genres": ["stealth", "simulation"],
-      "opportunities": ["share"],
-      "schedule": "hold",
-      "implementationStatus": "held",
-      "scheduleReason": "遵循用户暂缓决定；第一人称需要WebGL2，转头和物件操作占用注意力，核账阅读较重。保留入口，先验证改进方向中的最小闭环，再决定是否重新投入。",
-      "strengths": ["90秒内核账和休息双目标、收好手机与巡查方位形成具体潜行风险"],
-      "weaknesses": ["第一人称需要WebGL2，转头和物件操作占用注意力，核账阅读较重"],
-      "improvements": ["暂缓扩展，验证一个巡查循环是否有清晰的危险预兆"],
-      "evidence": ["games/submodules/office-slacking/README.md"],
-      "delivered": []
-    },
-    {
       "id": "cops-robbers",
       "title": "围捕小队",
       "source": "games/local/cops-robbers",

@@ -140,13 +140,6 @@
     "output": "dist"
   },
   {
-    "id": "office-slacking",
-    "source": "games/submodules/office-slacking",
-    "title": "工位偷闲 · 第一人称",
-    "description": "坐进三维办公室，在经理巡查间隙偷闲。",
-    "output": "dist"
-  },
-  {
     "id": "cops-robbers",
     "source": "games/local/cops-robbers",
     "title": "围捕小队",

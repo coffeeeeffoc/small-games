@@ -68,8 +68,6 @@ H5 的 `taptap-h5` 使用宿主注入的 `tap`。普通浏览器没有 SDK 时�
 → tap.createRewardedVideoAd
 ```
 
-原生入口另走 `platforms/competition/xiangqi-five/native.js → platforms/taptap/rewarded-ads.mjs`。另一款游戏的实机成功、同名 `tap` 对象或相似按钮，不能作为本调用链的验收记录。
-
 ## 最容易丢奖励的两个问题
 
 ### 1. 超时计时覆盖了视频和广告结束页
@@ -141,7 +139,7 @@ cops-robbers 曾仍有游戏端 `ads.js` 的 45 秒总超时，以及 `main.js` 
 从仓库根运行相关逻辑检查：
 
 ```powershell
-node --test --test-concurrency=1 platforms/h5/tests/platform-ads.test.mjs platforms/taptap/tests/rewarded-ads.test.mjs scripts/h5-ad-config.test.mjs games/submodules/xiangqi-five/rewarded-hints.test.js games/submodules/xiangqi-five/computer-hints.test.js games/submodules/xiangqi-five/computer-undo.test.js platforms/competition/xiangqi-five/tests/native.test.mjs games/local/cops-robbers/scripts/check-ad-core.mjs
+
 ```
 
 整包浏览器检查需把 `HINT_AD_HOST_CHECK` 设为 `1`，`HINT_DIST_DIR` 指向该批 H5 包的绝对 `dist` 路径，再运行 `node games/submodules/xiangqi-five/computer-hints-check.mjs`。生成新交付批次时使用新目录，保留旧包用于回溯；核对 manifest、ZIP 和测试文件哈希，不能只测源码后上传另一个包。
@@ -155,7 +153,3 @@ node --test --test-concurrency=1 platforms/h5/tests/platform-ads.test.mjs platfo
 - 未完成本包的 TapTap 上传、真机真实广告和平台验收。不能把其他会话截图中的“实机成功”移用为本包证据；发布时另按[增量发布验证](incremental-publication.md)执行。
 
 ## 原生 Canvas 适配回归（2026-10-19）
-
-`platforms/taptap/rewarded-ads.mjs` 与象棋 native 已使用同一打开/播放/关闭约定：45 秒仅约束打开阶段，`show()` Promise 成功后转发 `onShown`，清除游戏侧 46 秒兜底；预加载复用同一实例，空闲取消保留预加载。同步回放错误、迟到显示/关闭、销毁失败占用和连续 Hide 都有回归。10 分钟案例使用虚拟时钟，不是实际播放时长。
-
-[本轮设计与验证](../../platforms/competition/xiangqi-five/docs/design/h5-parity-2026-10-19/README.md)记录实际 Canvas 触屏与模拟 SDK 检查。本轮没有填入 H5 广告位，也没有据此宣称原生真实广告可用；平台身份、广告配置与设备验收须另行核对。

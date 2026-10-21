@@ -20,6 +20,7 @@
     "test:quick": "node scripts/check-quick.mjs",
     "test:quick-browser": "node scripts/check-quick-browser.mjs",
     "test:browser": "node scripts/playtest.mjs",
+    "test:commands": "node --test scripts/command-model.test.mjs && node scripts/check-command-model.mjs",
     "test:interactions": "node scripts/check-interactions.mjs",
     "test:dialogs": "node scripts/check-dialogs.mjs && node scripts/check-viewport-layout.mjs",
     "test:viewport": "node scripts/check-viewport-layout.mjs",
@@ -36,8 +37,6 @@
     "test:competition-renderer": "node scripts/check-competition-renderer.mjs",
     "test:duel": "node scripts/check-duel.mjs",
     "test:duel-browser": "node scripts/check-duel-browser.mjs",
-    "test:native": "node scripts/check-native.mjs",
-    "test:native-browser": "node scripts/check-native-browser.mjs",
     "test:progress": "node scripts/check-campaign-progress.mjs && node scripts/check-campaign-browser.mjs"
   },
   "devDependencies": {

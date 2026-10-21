@@ -6,8 +6,8 @@ import path from 'node:path';
 import { tapTapGames, tapTapOptions, tapTapToolOptions } from './taptap-targets.mjs';
 import { buildTapTap } from './taptap-build.mjs';
 
-test('TapTap keeps the fixed nine-game batch, public identifiers and local tool paths separate', () => {
-  assert.equal(tapTapGames.length, 9);
+test('TapTap keeps the remaining six-game batch, public identifiers and local tool paths separate', () => {
+  assert.equal(tapTapGames.length, 6);
   for (const game of tapTapGames) {
     const prefix = `MINIGAME_${game.id}_TAPTAP`.toUpperCase().replaceAll('-', '_');
     const env = {
@@ -37,7 +37,8 @@ test('release preflight rejects missing configuration before creating any source
 });
 
 test('TapTap release validates public URLs and has no fallback to another game or platform', () => {
-  assert.throws(() => tapTapOptions('unknown', { preview: true, env: {} }), /Unknown/);
+  for (const game of ['unknown', 'cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'])
+    assert.throws(() => tapTapOptions(game, { preview: true, env: {} }), /Unknown/);
   for (const appId of ['../wx', 'app id', 'app?id=secret'])
     assert.throws(
       () =>

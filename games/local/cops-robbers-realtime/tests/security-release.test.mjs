@@ -12,8 +12,8 @@ test('security guard identities keep the existing role and portrait contracts', 
       assert.equal(appearance.label, '保安');
       assert.match(appearance.character.name, /保安|队长/);
       assert.equal(appearance.character.crop.length, 3);
-      assert.match(roleCharacterMarkup('cop', preset), /characters\.png/);
-      assert.match(roleAvatarSvg('cop', 0, 0, 44, preset), /characters\.png/);
+      assert.match(roleCharacterMarkup('cop', preset), /characters\.webp/);
+      assert.match(roleAvatarSvg('cop', 0, 0, 44, preset), /characters\.webp/);
     }
     assert.equal(getRoleAppearance('robber').label, '小偷');
   } finally { delete globalThis.__CLASSIC_CHASE_ROLES__; }

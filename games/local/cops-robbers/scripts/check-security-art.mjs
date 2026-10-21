@@ -31,7 +31,7 @@ for (const id of ['cop', 'robber', 'cop-face', 'robber-face'])
 const bitmap = Buffer.from(atlas.match(/data:image\/webp;base64,([A-Za-z0-9+/=]+)/)[1], 'base64');
 assert.equal(bitmap.toString('ascii', 0, 4), 'RIFF');
 assert.equal(bitmap.toString('ascii', 8, 12), 'WEBP');
-for (const file of ['index.html', 'src/role-appearance.js', 'src/game-shell.js', 'src/duel-ui.js', '../../minigames/cops-robbers/controller.mjs']) {
+for (const file of ['index.html', 'src/role-appearance.js', 'src/game-shell.js', 'src/duel-ui.js']) {
   const source = await readFile(new URL(`../${file}`, import.meta.url), 'utf8');
   assert.doesNotMatch(source, /警察|警官|警徽|警帽|警车/, `${file} has no old police-facing text`);
 }

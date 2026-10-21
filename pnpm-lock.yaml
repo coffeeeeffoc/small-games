@@ -511,9 +511,6 @@ importers:
       '@coffeeeeffoc/off-camera':
         specifier: workspace:*
         version: link:../../games/local/off-camera
-      '@coffeeeeffoc/office-slacking':
-        specifier: workspace:*
-        version: link:../../games/submodules/office-slacking
       '@coffeeeeffoc/one-stroke-course':
         specifier: workspace:*
         version: link:../../games/local/one-stroke-course
@@ -1712,12 +1709,6 @@ importers:
       vite:
         specifier: 7.3.7
         version: 7.3.7(@types/node@24.10.4)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.51.2)(tsx@4.23.13)
-
-  games/submodules/office-slacking:
-    dependencies:
-      three:
-        specifier: 0.180.0
-        version: 0.180.0
 
   games/submodules/tower-defense-game:
     dependencies:

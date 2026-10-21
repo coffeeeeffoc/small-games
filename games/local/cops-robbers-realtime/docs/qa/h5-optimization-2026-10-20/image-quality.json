@@ -1,0 +1,63 @@
+{
+  "pillow": "10.3.0",
+  "libwebp": "1.3.2",
+  "checkOnly": false,
+  "images": [
+    {
+      "name": "home-city",
+      "dimensions": [
+        1672,
+        941
+      ],
+      "options": {
+        "lossless": true,
+        "quality": 100,
+        "method": 6
+      },
+      "originalBytes": 2445871,
+      "releaseBytes": 1826598,
+      "sourceSha256": "48ba65bcee01eddaece98ae95e4afca56e44ca889062bb4bcff0eb5bbadbbd98",
+      "releaseSha256": "a4ead2ee575eecb672efc170add7e9444cab65b64733055808368721c742f6e6",
+      "alphaIdentical": true,
+      "composites": {
+        "white": {
+          "pixelIdentical": true,
+          "psnrDb": null
+        },
+        "black": {
+          "pixelIdentical": true,
+          "psnrDb": null
+        }
+      }
+    },
+    {
+      "name": "characters",
+      "dimensions": [
+        1280,
+        1280
+      ],
+      "options": {
+        "lossless": true,
+        "quality": 100,
+        "method": 6
+      },
+      "originalBytes": 1842445,
+      "releaseBytes": 1249630,
+      "sourceSha256": "8b3acea185d3275257964a4844ae8f80252029ba4eece18fab42f3af2ed9d200",
+      "releaseSha256": "255690d5473704b674ffbab6f79b63661bd0acffe2ba00ea671fc25cf379247a",
+      "alphaIdentical": true,
+      "composites": {
+        "white": {
+          "pixelIdentical": true,
+          "psnrDb": null
+        },
+        "black": {
+          "pixelIdentical": true,
+          "psnrDb": null
+        }
+      }
+    }
+  ],
+  "originalBytes": 4288316,
+  "releaseBytes": 3076228
+}

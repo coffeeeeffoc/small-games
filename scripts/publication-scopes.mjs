@@ -233,13 +233,8 @@ const competitionReviewTools = {
 };
 export const competitionReviewScopePaths = Object.freeze(Object.keys(competitionReviewTools));
 export const submoduleDialogScopePath = 'scripts/test-submodule-dialogs.mjs';
-export const submoduleDialogIds = Object.freeze([
-  'fishing',
-  'office-slacking',
-  'tower-defense-game',
-  'xiangqi-five',
-]);
-// Shared only by the three explicitly configured H5/Cocos entrances. Native
+export const submoduleDialogIds = Object.freeze(['fishing', 'tower-defense-game', 'xiangqi-five']);
+// Shared only by the three explicitly configured H5 entrances. Native
 // discovery separately follows real imports; these mappings preserve H5 checks.
 export const tapServiceSharedScopePaths = Object.freeze([
   'platforms/taptap/browser-entry.mjs',
@@ -264,8 +259,8 @@ export const competitionServiceScopePaths = [
   'scripts/h5-ad-config.test.mjs',
   'scripts/h5-taptap.mjs',
   'scripts/h5-taptap-build.mjs',
+  'scripts/check-tap-multiplayer.mjs',
   'scripts/build-games.mjs',
-  'scripts/native-game-build.mjs',
   'scripts/build-games.test.mjs',
   'game-build.local.mjs',
   'infra/builds/games.example.json',
@@ -2774,18 +2769,6 @@ export function reviewedSharedFileScopes({
         scopes.set(file, [...sources]);
       } else if (file === 'scripts/check-game-config.test.mjs') {
         scopes.set(file, []);
-      } else if (file === 'scripts/street-native-smoke.mjs') {
-        assert(
-          games.filter(
-            (game) =>
-              game.id === 'cops-robbers-realtime' && game.source === competitionConsumers[game.id],
-          ).length === 1,
-        );
-        assert.equal(
-          createHash('sha256').update(readHead(file).replaceAll('\r\n', '\n')).digest('hex'),
-          'ccf421e8a4fee57645b4d1476bdad24b03ef12d1f4a0b20f08553cb56a336462',
-        );
-        scopes.set(file, [competitionConsumers['cops-robbers-realtime']]);
       } else if (competitionFiles.includes(file)) {
         assertCompetitionRegistry(readHead, games);
         if (

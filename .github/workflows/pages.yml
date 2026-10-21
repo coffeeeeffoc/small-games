@@ -31,7 +31,7 @@ jobs:
           fetch-depth: 0
       - name: Read locked game workspaces for planning
         run: |
-          git -c url.https://github.com/.insteadOf=git@github.com: submodule update --init -- games/submodules/fishing games/submodules/office-slacking games/submodules/tower-defense-game games/submodules/xiangqi-five
+          git -c url.https://github.com/.insteadOf=git@github.com: submodule update --init -- games/submodules/fishing games/submodules/tower-defense-game games/submodules/xiangqi-five
       - uses: actions/setup-node@v6
         with:
           node-version: 24.21.0

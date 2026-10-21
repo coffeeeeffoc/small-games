@@ -1,0 +1,52 @@
+{
+  "status": "passed",
+  "browserVersion": "155.0.8059.82",
+  "builtIn": 5,
+  "selected": [
+    "cops-robbers",
+    "cops-robbers-realtime"
+  ],
+  "standalone": [
+    {
+      "id": "cops-robbers",
+      "entryMode": "adapter",
+      "status": "passed",
+      "phase": "complete",
+      "timings": {
+        "embedded-load": 470,
+        "embedded-gameplay": 1458,
+        "embedded-return": 58,
+        "mobile-load": 206,
+        "mobile-gameplay": 1263
+      },
+      "embedded": "passed",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "directMobile": "passed",
+      "durationMs": 3558
+    },
+    {
+      "id": "cops-robbers-realtime",
+      "entryMode": "adapter",
+      "status": "passed",
+      "phase": "complete",
+      "timings": {
+        "embedded-load": 356,
+        "embedded-gameplay": 1789,
+        "embedded-return": 71,
+        "mobile-load": 260,
+        "mobile-gameplay": 1438
+      },
+      "embedded": "passed",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "directMobile": "passed",
+      "durationMs": 4030
+    }
+  ],
+  "failures": []
+}

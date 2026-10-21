@@ -9,11 +9,8 @@
 | 游戏                | Web / H5 入口                                               | 微信小游戏                                           | B站小游戏                                                     | 抖音小游戏                                              | 快手小游戏                                                  |
 | ------------------- | ----------------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------- |
 | 浪湾卡丁车          | `games/local/carding-car`，Cocos Web                        | 现有 Cocos `wechatgame` 构建入口；本轮缺引擎制品未验 | 现有 Cocos `biligame` 构建入口；本轮制品未验                  | 新增 `bytedance-mini-game` 配置与构建入口；配置检查通过 | 缺 Creator 3.8.8 已验证适配插件，未注册假目标               |
-| 围捕小队            | `games/local/cops-robbers`                                  | Canvas 好友赛制品 / VM 通过                          | Canvas 好友赛制品 / VM 通过                                   | Canvas 好友赛制品 / VM 通过；服务端登录待接入           | Canvas 好友赛制品 / VM 通过；SDK/工具配置及服务端登录待核验 |
-| 别跑！街区围捕      | `games/local/cops-robbers-realtime`                         | Canvas 好友赛制品 / VM 通过                          | Canvas 好友赛制品 / VM 通过                                   | Canvas 好友赛制品 / VM 通过；服务端登录待接入           | Canvas 好友赛制品 / VM 通过；SDK/工具配置及服务端登录待核验 |
 | 词屿 · 字母叠叠乐   | `games/local/letters-words2`                                | Canvas 好友赛制品 / VM 通过                          | Canvas 好友赛制品 / VM 通过                                   | Canvas 好友赛制品 / VM 通过；服务端登录待接入           | Canvas 好友赛制品 / VM 通过；SDK/工具配置及服务端登录待核验 |
 | 此时·此地           | `games/local/vibeJam-myself-history-guess`                  | Canvas 好友赛及本地场景制品 / VM 通过                | Canvas 好友赛及本地场景制品 / VM 通过                         | Canvas 好友赛制品 / VM 通过；服务端登录待接入           | Canvas 好友赛制品 / VM 通过；SDK/工具配置及服务端登录待核验 |
-| 象五子棋            | `games/submodules/xiangqi-five`                             | Canvas 好友赛制品 / VM 通过                          | Canvas 好友赛制品 / VM 通过                                   | Canvas 好友赛制品 / VM 通过；服务端登录待接入           | Canvas 好友赛制品 / VM 通过；SDK/工具配置及服务端登录待核验 |
 | 江风入境 · 外滩漫游 | `games/local/travel-bund`，React Three Fiber/Three/物理场景 | 需原生场景、输入、界面与音频适配                     | 同左                                                          | 同左                                                    | 同左                                                        |
 | 夜航守望            | `games/local/night-overwatch`，Cocos Web                    | 新增 Cocos 构建入口；配置检查通过，制品未验          | 新增 Cocos 构建入口及官方 B站插件复用；配置检查通过，制品未验 | 新增 Cocos 构建入口；配置检查通过，制品未验             | 缺 Creator 3.8.8 已验证适配插件，未注册假目标               |
 | 乌龙城              | `games/local/wulong-city`，Canvas 场景及 DOM 界面           | 需原生界面、输入、媒体与宿主适配                     | 同左                                                          | 同左                                                    | 同左                                                        |
@@ -25,7 +22,7 @@
 ## 复现本轮 Canvas 制品检查
 
 ```sh
-# 五款 × 四原生渠道；也可加 --game=xiangqi-five --platform=kuaishou。
+# 词屿与此时·此地 × 四原生渠道；也可加 --game=letters-words2 --platform=kuaishou。
 node scripts/competition-build.mjs --native
 node scripts/competition-native-smoke.mjs
 node scripts/competition-client.test.mjs
@@ -49,3 +46,5 @@ pnpm --filter @coffeeeeffoc/shell-minigame test
 快手基础 SDK 运行端口与配置边界见 [快手接入说明](../../platforms/kuaishou/README.md)。快手广告尚未核验，配置广告位会被构建器拒绝。Cocos 两款的快手目标需可信适配插件；江风入境和乌龙城需原生玩法渲染及界面迁移，H5 iframe 不提供此能力。
 
 取得官方资料、各游戏平台应用权限、后端认证绑定与设备后，逐款逐渠道完成启动、实际玩法、音频、存档、前后台、邀请参数、两独立身份同局、结算与榜单、断线恢复；真实广告完整观看/提前关闭/失败另行验收。当前状态均不表示已经上传、提审或上线。
+
+围捕小队、街区围捕和象五子棋现仅保留 H5，已移除它们的原生构建目标；旧报告中的平台验证只描述当时版本。

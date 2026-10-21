@@ -7,7 +7,7 @@
 | `COMPETITION_SERVICE_ENABLED` | 仅接受 `0` / `1`，默认 `0`。关闭时丢弃地址，不显示好友服务入口。                                                      |
 | `COMPETITION_PUBLIC_API_URL`  | 完整比赛 API 基址，如 `http://127.0.0.1:43010/api/competition/v1` 或 `https://games.example.com/api/competition/v1`。 |
 
-`--with-service` / `--without-service` 优先于环境变量。启用但没有地址直接报错。本地 H5、Creator Web 预览和内部部署允许 loopback HTTP；正式原生包与公网部署要求 HTTPS。地址不带账号密码、查询参数或片段，客户端不注入服务端密钥。
+`--with-service` / `--without-service` 优先于环境变量。启用但没有地址直接报错。本地 H5 和内部部署允许 loopback HTTP；公网部署要求 HTTPS。地址不带账号密码、查询参数或片段，客户端不注入服务端密钥。
 
 ## 本地有服务测试
 
@@ -29,14 +29,7 @@ pnpm competition:game --game cops-robbers --dev --with-service
 
 ## TapTap 无服务端包
 
-按 [Cocos 工程说明](../../games/minigames/README.md) 准备 Creator 3.8.8、官方转换插件和真实 AppID。无服务端正式包不再要求 code2Session API：
-
-```powershell
-$env:TAPTAP_APP_ID='你的真实MiniAppID'
-node games/minigames/scripts/build.mjs --game all --platform taptap --release --without-service
-```
-
-需要接服务时，设置公网 HTTPS 地址并使用 `--with-service`。Cocos 保留 `TAPTAP_API_URL` 及游戏级 `MINIGAME_<GAME>_<PLATFORM>_API_URL` 覆盖；旧 Canvas 构建保留 `MINIGAME_COMPETITION_API_URL`。所有地址都受统一开关约束。
+按[统一 H5 构建说明](game-builds.md)配置离线变体并运行 `pnpm build:games`。需要后端时设置公开 HTTPS 地址并开启服务变体。
 
 两款追捕的 TapTap **H5** 打包脚本接受 PowerShell `-WithService` / `-WithoutService`：
 
@@ -46,7 +39,7 @@ pnpm --filter cops-robbers deploy:taptap -PackageOnly -WithoutService
 pnpm --filter cops-robbers-realtime package:taptap -WithoutService
 ```
 
-H5 ZIP 和原生 MiniApp ZIP 沿用各自官方上传入口。围捕一键上传可从游戏 `.env` 加载公开服务配置。
+H5 ZIP 使用 H5 官方上传入口。围捕一键上传可从游戏 `.env` 加载公开服务配置。
 
 ## 云部署
 

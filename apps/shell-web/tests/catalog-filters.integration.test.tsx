@@ -20,14 +20,14 @@ it('filters, explains evaluations, restores shared URLs, and retains selections 
   }
   try {
     await act(async () => root.render(<ShellApp runtimeClient={false} />));
-    expect(ids()).toHaveLength(28);
+    expect(ids()).toHaveLength(27);
     expect(ids()).toContain('rule-thief');
     expect(ids()).not.toContain('travel-bund');
     await click('全部游戏');
     await click('有潜力');
     expect(ids()).toHaveLength(40);
     await click('潜力低');
-    expect(ids()).toHaveLength(66);
+    expect(ids()).toHaveLength(65);
     await click('上轮已改造');
     expect(ids()).toHaveLength(7);
     await click('毫无潜力');
@@ -64,7 +64,7 @@ it('filters, explains evaluations, restores shared URLs, and retains selections 
       window.history.replaceState(null, '', '/?catalogTab=hold');
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
-    expect(ids()).toHaveLength(28);
+    expect(ids()).toHaveLength(27);
   } finally {
     await act(async () => root.unmount());
     window.history.replaceState(null, '', '/');
@@ -96,7 +96,7 @@ it('shows every exclusive rollout, visible implementation states, and filtered c
       tabs()
         .slice(0, 5)
         .map((button) => button.textContent),
-    ).toEqual(['全部游戏68', '上轮已改造7', '本轮改造13', '有潜力 · 后续改造20', '暂缓投入28']);
+    ).toEqual(['全部游戏67', '上轮已改造7', '本轮改造13', '有潜力 · 后续改造20', '暂缓投入27']);
     for (const article of articles()) {
       expect(article.querySelector('.game-rollout strong')?.textContent).toBeTruthy();
       expect(article.querySelector('.game-rollout span')?.textContent).toBeTruthy();
@@ -119,7 +119,7 @@ it('shows every exclusive rollout, visible implementation states, and filtered c
     await click('全部游戏');
     expect(articles()).toHaveLength(40);
     expect(tabs().find((button) => button.textContent?.startsWith('暂缓投入'))?.textContent).toBe(
-      '暂缓投入0 / 28',
+      '暂缓投入0 / 27',
     );
   } finally {
     await act(async () => root.unmount());

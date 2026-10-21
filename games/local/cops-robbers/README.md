@@ -112,10 +112,8 @@ pnpm --filter cops-robbers deploy:taptap             # 上传并创建 H5 版本
 
 历史多角色复核、普通玩家与生产构建触屏验收见 [2026-10-11 review](docs/design/review-2026-10-11/README.md)。`pnpm test:progress` 检查 3 × 120 顺序解锁、旧存档、开发试玩隔离与末关真实触屏胜利。
 
-## H5 与 Cocos
+## H5 入口
 
-[文档索引](docs/README.md)区分当前设计、验证与历史记录。H5 入口为 `src/main.js`，Cocos 入口为 `games/minigames/cops-robbers/controller.mjs`；旧宿主 Canvas 入口 `src/native.js` 保留。三者复用规则、关卡、存档及 `src/progress.js` 的三星基准，接力按认证接力路线计算，合法旧成绩按实际最佳步数重算星级。选回同一未完成关卡继续原局，重试入口才重置。
 
-Cocos 沿用 H5 花园与保安素材，支持点选、拖动取消、暂停、五模式及当前局面提示。非认证路线的本地提示复用有预算的纯搜索；预算不足时明确告知未确认，不给未经验证的落点。设计和本轮实际验证见 [H5 对齐记录](../../minigames/docs/design/h5-parity-2026-10-19.md)。Creator 浏览器、官方平台与真机验收分别记录。
 
 `src/tap-save.js` 负责云档校验、进度合并和榜单计分；`src/tap-multiplayer.js` 复用对抗规则与绘制器，适配平台好友房。

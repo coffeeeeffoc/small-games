@@ -3,13 +3,13 @@ import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
-import { runStreetNativeSmoke } from './street-native-smoke.mjs';
-import { competitionGames, competitionPlatforms } from '../scripts/competition-build.mjs';
-import cops from '../services/runtime-api/rules/cops.mjs';
-import realtime from '../services/runtime-api/rules/realtime.mjs';
+import {
+  competitionGames,
+  competitionPlatforms,
+  nativeCompetitionGames,
+} from '../scripts/competition-build.mjs';
 import letters from '../services/runtime-api/rules/letters.mjs';
 import history from '../services/runtime-api/rules/history.mjs';
-import chess from '../services/runtime-api/rules/chess.mjs';
 import { findSpelling } from '../games/local/letters-words2/engine.js';
 import { createRenderer as createLettersRenderer } from '../games/local/letters-words2/competition-renderer.js';
 import {
@@ -17,9 +17,9 @@ import {
   flushNative,
 } from '../games/local/letters-words2/tests/native-sdk-fixture.mjs';
 
-const rules = new Map([cops, realtime, letters, history, chess].map((rule) => [rule.id, rule]));
+const rules = new Map([letters, history].map((rule) => [rule.id, rule]));
 const selectedGame = process.argv.find((argument) => argument.startsWith('--game='))?.slice(7);
-if (selectedGame && !Object.hasOwn(competitionGames, selectedGame))
+if (selectedGame && !nativeCompetitionGames.includes(selectedGame))
   throw new Error(`Unknown game: ${selectedGame}`);
 const root = fileURLToPath(new URL('../apps/shell-minigame/dist/', import.meta.url));
 const flush = async () => {
@@ -28,53 +28,10 @@ const flush = async () => {
 
 // Execute the actual reviewed bundles without document/window/fetch, against the real game rules.
 // This SDK fixture verifies contracts and build isolation, not official SDK/device compatibility.
-if (!selectedGame || selectedGame === 'cops-robbers-realtime') await runStreetNativeSmoke();
 for (const [game, selected] of Object.entries(competitionGames)) {
+  if (!nativeCompetitionGames.includes(game)) continue;
   if (selectedGame && game !== selectedGame) continue;
-  if (game === 'cops-robbers-realtime') continue; // Campaign shell tested above using real replay-verified field input.
   for (const [platform, adapter] of Object.entries(competitionPlatforms)) {
-    const soloDirectory = path.join(root, platform, game);
-    const soloRelease = JSON.parse(readFileSync(path.join(soloDirectory, 'release.json'), 'utf8'));
-    if (['cops-robbers', 'xiangqi-five'].includes(game) && !soloRelease.apiConfigured) {
-      const f = createNativeSDKFixture();
-      const restore = f.installGlobals();
-      const exports = {};
-      let instance;
-      try {
-        vm.runInNewContext(readFileSync(path.join(soloDirectory, 'game.js'), 'utf8'), {
-          [adapter.sdk]: f.sdk,
-          exports,
-          module: { exports },
-          console,
-          Date,
-          setTimeout,
-          clearTimeout,
-          setInterval,
-          clearInterval,
-          requestAnimationFrame,
-          cancelAnimationFrame,
-        });
-        instance = exports.instance;
-        assert(!f.findLabel('好友挑战'));
-        if (game === 'cops-robbers') f.tapLabel('开始巡逻');
-        else {
-          f.tapLabel('开始对弈');
-          f.tapLabel('同屏双人');
-          f.tapLabel('开始对局');
-        }
-        await flushNative();
-        assert.equal((instance.getState?.() || instance.state).page, 'play');
-        assert.equal(f.requests.length, 0);
-        assert.equal(soloRelease.gameplayScope, 'native local solo; service disabled');
-      } finally {
-        (instance?.stop || instance?.dispose)?.call(instance);
-        restore();
-      }
-      console.log(
-        `${platform}/${game}: offline solo entry, touch start and zero service requests passed`,
-      );
-      continue;
-    }
     for (const audioMode of ['normal', 'create-failure', 'initialize-failure', 'play-failure']) {
       const directory = path.join(root, platform, game);
       const source = readFileSync(path.join(directory, 'game.js'), 'utf8');
@@ -390,23 +347,7 @@ for (const [game, selected] of Object.entries(competitionGames)) {
       await flush();
       const touchPoint = (x, y) =>
         emit('TouchEnd', { changedTouches: [{ clientX: x, clientY: y }] });
-      if (game === 'cops-robbers') {
-        const view = rule.view(state, 0),
-          from = view.board.cops[0];
-        const target = view.map.edges
-          .flatMap(([a, b]) => (a === from ? [b] : b === from ? [a] : []))
-          .find((node) => !view.board.cops.includes(node));
-        assert.ok(Number.isInteger(target));
-        tap(String(target + 1));
-        await flush();
-        assert.equal(state.board.cops[0], target, 'tapping a road node moves the selected pursuer');
-      } else if (game === 'cops-robbers-realtime') {
-        const segment = paths.find(([a, b]) => Math.hypot(a.x - b.x, a.y - b.y) > 40);
-        assert.ok(segment, 'street renderer must draw a road');
-        touchPoint((segment[0].x + segment[1].x) / 2, (segment[0].y + segment[1].y) / 2);
-        await flush();
-        assert.equal(requests.at(-1).data.action.type, 'move', 'tapping a street issues a move');
-      } else if (game === 'letters-words2') {
+      if (game === 'letters-words2') {
         const reference = createLettersRenderer();
         const referenceContext = new Proxy(
           { measureText: (text) => ({ width: String(text).length * 8 }) },
@@ -474,19 +415,6 @@ for (const [game, selected] of Object.entries(competitionGames)) {
           labels.some(({ text }) => text.includes('本幕 ')),
           'the scene reveals scored feedback',
         );
-      } else {
-        tap('抽一枚');
-        await flush();
-        assert.equal(
-          requests.at(-1).data.action.type,
-          'draw',
-          'visible draw button submits the draw action',
-        );
-        assert.ok(state.pending);
-        touchPoint(39, 180 + 36 + 20);
-        await flush();
-        assert.equal(state.board[0]?.side, 'red', 'physical board touch deploys the drawn piece');
-        assert.equal(state.pending, null);
       }
       assert.ok(seq >= 1, `${platform}/${game} must send legal gameplay actions`);
       assert.equal(stack.length, 0, 'gameplay renderer balances Canvas save/restore');

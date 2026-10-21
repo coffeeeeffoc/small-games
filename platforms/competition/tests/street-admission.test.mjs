@@ -56,8 +56,8 @@ test('Street obtains admission at start and retries the original body with owner
     globalThis.__competition = previous;
   }
 });
-test('both actual Street entrypoints start admission before startGame and carry the same ticket to upload', async () => {
-  for (const name of ['main', 'native']) {
+test('the Street H5 entrypoint starts admission before startGame and carries its ticket to upload', async () => {
+  for (const name of ['main']) {
     const source = await readFile(
       new URL(`../../../games/local/cops-robbers-realtime/src/${name}.js`, import.meta.url),
       'utf8',

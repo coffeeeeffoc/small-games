@@ -1,4 +1,3 @@
-import { cocosMinigameFileScopes } from '../games/minigames/scripts/validation-scope.mjs';
 import assert from 'node:assert/strict';
 import { readFile, stat, glob } from 'node:fs/promises';
 import path from 'node:path';
@@ -11,6 +10,7 @@ import {
   aggregateRunsAllTests,
 } from './rule-tasks.mjs';
 import { registrationFileScopes } from './pages-registration-scope.mjs';
+import { retirementFileScopes, retirementHeadQueryPaths } from './game-retirement-scope.mjs';
 import { nineNativeFileScopes, isNineNativeOnlyPath } from './nine-native-scope.mjs';
 import { nineLockFileScopes } from './nine-lock-scope.mjs';
 import {
@@ -220,11 +220,8 @@ export function runNineNativeChecks({
   const platforms = ['wechat', 'bilibili', 'douyin', 'kuaishou', 'alipay'];
   const games = [
     'carding-car',
-    'cops-robbers',
-    'cops-robbers-realtime',
     'letters-words2',
     'vibeJam-myself-history-guess',
-    'xiangqi-five',
     'travel-bund',
     'night-overwatch',
     'wulong-city',
@@ -334,8 +331,6 @@ export function runNineNativeChecks({
   const selectedFor = (game) => platforms.filter((platform) => targets.has(`${game}/${platform}`));
   const executeScript = (args, extra = {}) =>
     execute(process.execPath, args, root, { ...nativeEnv, ...extra }, 'logged');
-  if (selectedFor('xiangqi-five').length)
-    executeScript(['--test', 'platforms/competition/xiangqi-five/tests/native.test.mjs']);
   if (selectedFor('letters-words2').length)
     executeScript(['--test', 'games/local/letters-words2/tests/native-bundle.test.mjs'], {
       NATIVE_PLATFORMS: selectedFor('letters-words2').join(','),
@@ -344,12 +339,7 @@ export function runNineNativeChecks({
     executeScript(['scripts/nine-wulong-smoke.mjs'], {
       NATIVE_PLATFORMS: selectedFor('wulong-city').join(','),
     });
-  const canvasGames = [
-    'cops-robbers',
-    'cops-robbers-realtime',
-    'vibeJam-myself-history-guess',
-    'xiangqi-five',
-  ];
+  const canvasGames = ['vibeJam-myself-history-guess'];
   for (const platform of platforms) {
     const ids = canvasGames.filter((game) => targets.has(`${game}/${platform}`));
     if (ids.length)
@@ -471,45 +461,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
     );
     execute(process.execPath, ['scripts/competition-service.browser.mjs'], root, env, 'logged');
   }
-  if (plan.cocos_minigame_ids?.length) {
-    execute(
-      process.execPath,
-      [
-        '--test',
-        'games/minigames/tests/runtime.test.mjs',
-        'games/minigames/tests/cops.test.mjs',
-        'games/minigames/tests/build.test.mjs',
-        'games/minigames/tests/scope.test.mjs',
-      ],
-      root,
-      env,
-      'logged',
-    );
-    for (const id of plan.cocos_minigame_ids) {
-      assert(
-        ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'].includes(id),
-        'Unreviewed Cocos mini-game consumer',
-      );
-      execute(
-        process.execPath,
-        [
-          'games/minigames/scripts/build.mjs',
-          '--game',
-          id,
-          '--platform',
-          'web-preview',
-          '--prepare-only',
-        ],
-        root,
-        env,
-        'logged',
-      );
-    }
-    console.log(
-      'Cocos mini-game rules and real source bundles checked; engine builds and texture/browser checks run in the separate Windows Creator workflow.',
-    );
-  }
-  // Host SDK fixtures and actual H5/Canvas touch entrances are Web contracts.
+  // Host SDK fixtures and actual H5 touch entrances are Web contracts.
   // Keep these before release-gate deferral, and keep generated builds serial.
   if (plan.tap_services_checks) {
     const consumers = [
@@ -527,26 +479,20 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
     try {
       execute(
         process.execPath,
-        ['--test', 'games/minigames/tests/tap-services.test.mjs'],
+        ['--test', 'platforms/taptap/tests/tap-services.test.mjs'],
         root,
         env,
         'logged',
       );
       execute(
         process.execPath,
-        ['games/minigames/tests/tap-services.browser.mjs'],
+        ['platforms/taptap/tests/tap-services.browser.mjs'],
         root,
         env,
         'logged',
       );
-      // This entry owns unit -> enabled native bundle -> six-entrance browser order.
-      execute(
-        process.execPath,
-        ['games/minigames/scripts/check-tap-multiplayer.mjs'],
-        root,
-        env,
-        'logged',
-      );
+      // This entry owns multiplayer rules and all three enabled H5 touch entrances.
+      execute(process.execPath, ['scripts/check-tap-multiplayer.mjs'], root, env, 'logged');
     } catch (error) {
       primaryError = error;
       throw error;
@@ -570,12 +516,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
     }
   }
   if (plan.submodule_dialog_ids?.length) {
-    assert.deepEqual(plan.submodule_dialog_ids, [
-      'fishing',
-      'office-slacking',
-      'tower-defense-game',
-      'xiangqi-five',
-    ]);
+    assert.deepEqual(plan.submodule_dialog_ids, ['fishing', 'tower-defense-game', 'xiangqi-five']);
     for (const id of plan.submodule_dialog_ids)
       assert(
         packages.some((pkg) => pkg.dir === `games/submodules/${id}`),
@@ -959,14 +900,33 @@ export async function validateTree({
       })
     : new Map();
   if (incremental) {
+    const headQueries = retirementHeadQueryPaths(sourcePaths);
+    const headPaths = new Set(
+      execute(
+        'git',
+        ['--literal-pathspecs', 'ls-tree', '--name-only', '-z', head, '--', ...headQueries],
+        root,
+        clean,
+        'raw',
+      )
+        .split('\0')
+        .filter(Boolean),
+    );
     const context = {
       changedPaths: sourcePaths,
       games: catalog,
       packages,
       readBase: (file) => execute('git', ['show', `${base}:${file}`], root, clean, 'raw'),
+      readBaseEntry: (file) =>
+        execute('git', ['--literal-pathspecs', 'ls-tree', base, '--', file], root, clean, 'raw'),
       readHead: (file) => execute('git', ['show', `${head}:${file}`], root, clean, 'raw'),
+      headHasPath: (file) => {
+        assert(headQueries.includes(file), 'Unqueried candidate path');
+        return headPaths.has(file);
+      },
     };
     for (const classify of [
+      retirementFileScopes,
       entryAdapterFileScopes,
       h5AdapterFileScopes,
       developerModeFileScopes,
@@ -974,7 +934,6 @@ export async function validateTree({
       reviewedSharedFileScopes,
       nineNativeFileScopes,
       nineLockFileScopes,
-      cocosMinigameFileScopes,
     ])
       for (const [file, sources] of classify(context)) fileScopes.set(file, sources);
   }
@@ -1015,6 +974,7 @@ export async function validateTree({
       [
         '--test',
         'scripts/incremental-validation.test.mjs',
+        'scripts/game-retirement-scope.test.mjs',
         'scripts/nine-native-scope.test.mjs',
         'scripts/nine-lock-scope.test.mjs',
         'scripts/publication-scopes.test.mjs',
