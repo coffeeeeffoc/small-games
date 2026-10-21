@@ -66,6 +66,39 @@ test('missing inputs, byte drift, surviving roots and unreviewed deletions fail 
   );
 });
 
+test('retired gitlinks require the exact recorded commit and confirmed absence', () => {
+  const source = 'games/submodules/retired-fixture';
+  const gitlink = `160000 commit ${'c'.repeat(40)}\t${source}\n`;
+  const fixture = context({
+    changedPaths: [source],
+    readBaseEntry: () => gitlink,
+    headHasPath: () => false,
+  });
+  assert.deepEqual(
+    [...localRetirementScopesForReview(fixture, { [source]: gitlink }, {})],
+    [[source, []]],
+  );
+  for (const override of [
+    { readBaseEntry: () => gitlink.replace('c'.repeat(40), 'd'.repeat(40)) },
+    { headHasPath: () => true },
+    { headHasPath: () => undefined },
+    { readBaseEntry: () => '' },
+  ])
+    assert.equal(
+      localRetirementScopesForReview({ ...fixture, ...override }, { [source]: gitlink }, {}).size,
+      0,
+    );
+  const directory = `040000 tree ${'c'.repeat(40)}\t${source}\n`;
+  assert.equal(
+    localRetirementScopesForReview(
+      { ...fixture, readBaseEntry: () => directory },
+      { [source]: directory },
+      {},
+    ).size,
+    0,
+  );
+});
+
 test('production review binds historical file bytes, retained consumers and unforgeable deletion proofs', async () => {
   const { execFileSync } = await import('node:child_process');
   const { fileURLToPath } = await import('node:url');

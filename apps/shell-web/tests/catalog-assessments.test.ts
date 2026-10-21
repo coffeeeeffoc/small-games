@@ -13,14 +13,11 @@ import {
   rolloutGroups,
 } from '../src/catalog-assessments.js';
 
-const heldIds =
-  'night-merge fishing h5-security letters-words tower-defense-game multi-battle puzzle travel travel-bund-25d travel2 one-stroke-course hold-tight-acrobats balloon-movers weather-command merge-front off-camera precision-demolition afterimage-arena ghost-shift-manager rule-thief chase-thief retreat-rally'.split(
-    ' ',
-  );
+const heldIds = ['merge-front', 'chase-thief', 'retreat-rally'];
 
-it('covers every registered and on-disk Game once and preserves all 22 user decisions', () => {
+it('covers every registered and on-disk Game once and preserves all 3 user decisions', () => {
   const ids = [...builtInGameRegistry, ...standalone].map((g) => g.id).sort();
-  expect(ids).toHaveLength(62);
+  expect(ids).toHaveLength(43);
   expect(assessmentData.games.map((g) => g.id).sort()).toEqual(ids);
   expect(Object.keys(assessments).sort()).toEqual(ids);
   expect(new Set(ids).size).toBe(ids.length);
@@ -58,15 +55,15 @@ it('covers every registered and on-disk Game once and preserves all 22 user deci
   expect(assessments['travel-bund'].disposition).toBe('potential');
 });
 
-it('exhaustively partitions 62 games into 7 previous, 13 current, 20 later and 22 held with the latest user decisions', () => {
+it('exhaustively partitions 43 games into 7 previous, 13 current, 20 later and 3 held with the latest user decisions', () => {
   const games = Object.values(assessments);
   const scheduled = rolloutGroups.flatMap(([tab]) => {
     const matches = games.filter((game) => matchesAssessment(game, { ...emptyFilters(), tab }));
-    expect(matches).toHaveLength({ previous: 7, current: 13, later: 20, hold: 22 }[tab]);
+    expect(matches).toHaveLength({ previous: 7, current: 13, later: 20, hold: 3 }[tab]);
     return matches.map((game) => game.id);
   });
   expect(scheduled.sort()).toEqual(games.map((game) => game.id).sort());
-  expect(new Set(scheduled).size).toBe(62);
+  expect(new Set(scheduled).size).toBe(43);
   expect(
     games.filter((game) =>
       matchesAssessment(game, { ...emptyFilters(), potential: ['potential'] }),
@@ -96,15 +93,15 @@ it('combines OR selections inside facets with AND across facets and tabs', () =>
   const filters = {
     ...emptyFilters(),
     potential: ['low', 'potential'],
-    genres: ['word', 'racing'],
+    genres: ['strategy', 'racing'],
   };
-  expect(matchesAssessment(assessments['letters-words'], filters)).toBe(true);
+  expect(matchesAssessment(assessments['merge-front'], filters)).toBe(true);
   expect(matchesAssessment(assessments['carding-car'], filters)).toBe(true);
   expect(matchesAssessment(assessments['cage-rescue'], filters)).toBe(false);
   expect(matchesAssessment(assessments['carding-car'], { ...filters, tab: 'hold' })).toBe(false);
-  expect(matchesAssessment(assessments['letters-words'], { ...filters, tab: 'hold' })).toBe(true);
+  expect(matchesAssessment(assessments['merge-front'], { ...filters, tab: 'hold' })).toBe(true);
   expect(
-    matchesAssessment(assessments['letters-words'], { ...filters, potential: ['potential'] }),
+    matchesAssessment(assessments['merge-front'], { ...filters, potential: ['potential'] }),
   ).toBe(false);
 });
 

@@ -225,16 +225,6 @@ const planningCheckoutHashes = {
 };
 // Only expand the bare planner's exact gitlink inputs; no recursive assets,
 // remote branch updates, gate changes or other workflow edits are covered.
-const planningGameWorkspaceHashes = {
-  '.github/workflows/ci.yml': [
-    'fbf776770868d3e3b36a7e73de682c736ce42ee21e19dcde6b4ab9edb8763eab',
-    '36d82cd54b6a004616feae0cbf646997ddc6f179ae5627e2d2703fbb410a561e',
-  ],
-  '.github/workflows/pages.yml': [
-    'da0f2c9bff3757127328d00834e7b160f2cf4e886035fe588e7a0bd2c91adc1e',
-    '692cd678a338862699215dccb1bddb6c4478d4f6d5ca310f6579931e62ded34c',
-  ],
-};
 const planningCheckoutAnchor =
   '      - uses: actions/checkout@v5\n        with:\n          fetch-depth: 0\n      - uses: actions/setup-node@v6\n';
 const recursivePlanningAnchor =
@@ -247,23 +237,6 @@ function exactPlanningCheckout(file, before, after) {
   const digest = (text) => createHash('sha256').update(text).digest('hex');
   const oldHash = digest(before),
     newHash = digest(after);
-  const workspaces = planningGameWorkspaceHashes[file];
-  if (workspaces && oldHash === workspaces[0] && newHash === workspaces[1]) {
-    const expanded = lockedPlanningAnchor
-      .replace(
-        'Read locked Xiangqi workspace for planning',
-        'Read locked game workspaces for planning',
-      )
-      .replace(
-        'submodule update --init -- games/submodules/xiangqi-five',
-        'submodule update --init -- games/submodules/fishing games/submodules/office-slacking games/submodules/tower-defense-game games/submodules/xiangqi-five',
-      );
-    return (
-      before.split(lockedPlanningAnchor).length === 2 &&
-      after === before.replace(lockedPlanningAnchor, expanded)
-    );
-  }
-
   // The planning job has no YAML dependency. This exact reviewed 40 -> 60
   // minute quality budget changes no command, condition or permission.
   if (oldHash === hashes.nativeGate && newHash === hashes.qualityBudget) return true;
@@ -404,7 +377,7 @@ const competitionReviewTools = {
 };
 export const competitionReviewScopePaths = Object.freeze(Object.keys(competitionReviewTools));
 export const submoduleDialogScopePath = 'scripts/test-submodule-dialogs.mjs';
-export const submoduleDialogIds = Object.freeze(['fishing', 'tower-defense-game', 'xiangqi-five']);
+export const submoduleDialogIds = Object.freeze(['xiangqi-five']);
 // Shared only by the three explicitly configured H5 entrances. Native
 // discovery separately follows real imports; these mappings preserve H5 checks.
 export const tapServiceSharedScopePaths = Object.freeze([
@@ -2163,19 +2136,13 @@ export const mobileViewportScopeFile = 'apps/shell-web/scripts/pages-validation.
 export const independentPreviewScopeFile = 'scripts/run-selected-browser.mjs';
 const mobileViewportConsumers = {
   'fold-the-world': 'games/local/fold-the-world',
-  'one-stroke-course': 'games/local/one-stroke-course',
-  'hold-tight-acrobats': 'games/local/hold-tight-acrobats',
   'carding-car': 'games/local/carding-car',
   'night-overwatch': 'games/local/night-overwatch',
-  fishing: 'games/submodules/fishing',
   'vibeJam-myself-delivery': 'games/local/vibeJam-myself-delivery',
   'vibeJam-myself-nullrange': 'games/local/vibeJam-myself-nullrange',
   'wulong-city': 'games/local/wulong-city',
 };
-const independentPreviewConsumers = {
-  ...mobileViewportConsumers,
-  'tower-defense-game': 'games/submodules/tower-defense-game',
-};
+const independentPreviewConsumers = mobileViewportConsumers;
 
 /** Structural proofs for config-only changes; explicit consumers for known tools.
  * No prefix wildcard accepts a new workflow, shared runtime or test script.
@@ -2653,20 +2620,19 @@ export function reviewedSharedFileScopes({
         continue;
       }
       if (file === independentPreviewScopeFile) {
-        // The reviewed runner changes only nine mobile viewports and the static
-        // Pages config for Tower Defense. Bind its imported helper as well.
+        // Bind the reviewed independent runner and its retained viewport helper.
         const digest = (text) => createHash('sha256').update(text).digest('hex');
         assert.equal(
           digest(readBase(file)),
-          '790e82ca9e5a2402af68264950835cb51fa209366ec2a2be40cc5ae0db7f00eb',
-        );
-        assert.equal(
-          digest(readHead(file)),
           '40b88c9a89b30e8622f5521aec578cbbdf585d8dacf01492729c28c0a2527b6f',
         );
         assert.equal(
+          digest(readHead(file)),
+          'bd72ed4fe39dc75aaa5994a21c8a41735225b3e9aa29d01a44af67167865008c',
+        );
+        assert.equal(
           digest(readHead(mobileViewportScopeFile)),
-          '9842e1dd43a69e8abd7067bd4bb1a126775a0c57f7df0733c98acec3a6ecc272',
+          '5926ba1cbaca0e5f2706bd7ac68dee3faf5d0ea3605f941bfdceed496edbefed',
         );
         for (const [id, source] of Object.entries(independentPreviewConsumers))
           assert(
@@ -2682,11 +2648,11 @@ export function reviewedSharedFileScopes({
         const digest = (text) => createHash('sha256').update(text).digest('hex');
         assert.equal(
           digest(readBase(file)),
-          'da88c72eea1d129b416d24510a701054116829f010478c856420cb0e7df45a33',
+          '9842e1dd43a69e8abd7067bd4bb1a126775a0c57f7df0733c98acec3a6ecc272',
         );
         assert.equal(
           digest(readHead(file)),
-          '9842e1dd43a69e8abd7067bd4bb1a126775a0c57f7df0733c98acec3a6ecc272',
+          '5926ba1cbaca0e5f2706bd7ac68dee3faf5d0ea3605f941bfdceed496edbefed',
         );
         for (const [id, source] of Object.entries(mobileViewportConsumers))
           assert(games.filter((game) => game.id === id && game.source === source).length === 1);

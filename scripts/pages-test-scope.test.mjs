@@ -23,13 +23,13 @@ import { nineNativeFileScopes } from './nine-native-scope.mjs';
 
 const catalog = {
   standaloneGames: [
-    { id: 'travel-bund-25d', source: 'games/local/travel-bund-2.5D' },
-    { id: 'fishing', source: 'games/submodules/fishing' },
+    { id: 'z-fixture-25d', source: 'games/local/z-fixture-2.5D' },
+    { id: 'fixture-chess', source: 'games/submodules/fixture-chess' },
     { id: 'echo-lab', source: 'games/local/echo-lab' },
   ],
   gameSources: [
-    'games/local/travel-bund-2.5D',
-    'games/submodules/fishing',
+    'games/local/z-fixture-2.5D',
+    'games/submodules/fixture-chess',
     'games/local/echo-lab',
     'games/local/game-fixture',
   ],
@@ -705,12 +705,12 @@ test('dev and PR game changes select the registry ID and exact package directory
     { eventName: 'pull_request', refName: '123/merge', baseRef: 'test' },
   ]) {
     assert.deepEqual(
-      scope({ ...options, changedPaths: ['games/local/travel-bund-2.5D/src/main.ts'] }),
+      scope({ ...options, changedPaths: ['games/local/z-fixture-2.5D/src/main.ts'] }),
       {
         required: true,
         full: false,
-        game_ids: ['travel-bund-25d'],
-        game_sources: ['games/local/travel-bund-2.5D'],
+        game_ids: ['z-fixture-25d'],
+        game_sources: ['games/local/z-fixture-2.5D'],
       },
     );
   }
@@ -726,11 +726,11 @@ test('built-in game changes retain logical package tests without a standalone ID
 });
 
 test('submodule gitlink updates select the corresponding game', () => {
-  assert.deepEqual(scope({ changedPaths: ['games/submodules/fishing'] }), {
+  assert.deepEqual(scope({ changedPaths: ['games/submodules/fixture-chess'] }), {
     required: true,
     full: false,
-    game_ids: ['fishing'],
-    game_sources: ['games/submodules/fishing'],
+    game_ids: ['fixture-chess'],
+    game_sources: ['games/submodules/fixture-chess'],
   });
 });
 
@@ -757,7 +757,7 @@ test('Shell, shared dependencies, assets and build configuration select all game
     const result = scope({ changedPaths: [file] });
     assert.equal(result.full, true, file);
     assert.equal(result.required, true, file);
-    assert.deepEqual(result.game_ids, ['echo-lab', 'fishing', 'travel-bund-25d']);
+    assert.deepEqual(result.game_ids, ['echo-lab', 'fixture-chess', 'z-fixture-25d']);
     assert.deepEqual(result.game_sources, [...catalog.gameSources].sort());
   }
 });
@@ -852,26 +852,26 @@ test('unknown sources, removed packages and unknown application groups expand co
 test('changed paths and selected games are deduplicated and sorted deterministically', () => {
   const result = scope({
     changedPaths: [
-      'games/submodules/fishing',
+      'games/submodules/fixture-chess',
       'games/local/echo-lab/src/main.ts',
       'games/local/echo-lab/src/style.css',
       'README.md',
     ],
   });
-  assert.deepEqual(result.game_ids, ['echo-lab', 'fishing']);
-  assert.deepEqual(result.game_sources, ['games/local/echo-lab', 'games/submodules/fishing']);
+  assert.deepEqual(result.game_ids, ['echo-lab', 'fixture-chess']);
+  assert.deepEqual(result.game_sources, ['games/local/echo-lab', 'games/submodules/fixture-chess']);
 });
 
 test('NUL-delimited diff preserves rename sides, deletions and unusual filenames', () => {
   assert.deepEqual(
     parseChangedPaths(
-      'R100\0games/local/echo-lab/old.ts\0games/local/echo-lab/new.ts\0D\0apps/shell-web/deleted.ts\0M\0games/submodules/fishing\0A\0name with\nnewline.ts\0',
+      'R100\0games/local/echo-lab/old.ts\0games/local/echo-lab/new.ts\0D\0apps/shell-web/deleted.ts\0M\0games/submodules/fixture-chess\0A\0name with\nnewline.ts\0',
     ),
     [
       'apps/shell-web/deleted.ts',
       'games/local/echo-lab/new.ts',
       'games/local/echo-lab/old.ts',
-      'games/submodules/fishing',
+      'games/submodules/fixture-chess',
       'name with\nnewline.ts',
     ],
   );
@@ -1045,7 +1045,7 @@ test('real git diff uses a merge base for PRs and keeps rename and gitlink paths
   const initial = git('rev-parse', 'HEAD');
   git('checkout', '-b', 'feature');
   git('mv', 'old.txt', 'new.txt');
-  git('update-index', '--add', '--cacheinfo', `160000,${initial},games/submodules/fishing`);
+  git('update-index', '--add', '--cacheinfo', `160000,${initial},games/submodules/fixture-chess`);
   git('commit', '-m', 'feature');
   const feature = git('rev-parse', 'HEAD');
   git('checkout', 'main');
@@ -1056,7 +1056,7 @@ test('real git diff uses a merge base for PRs and keeps rename and gitlink paths
   const currentBase = git('rev-parse', 'HEAD');
   assert.deepEqual(
     collectChangedPaths({ root, base: currentBase, head: feature, eventName: 'pull_request' }),
-    ['games/submodules/fishing', 'new.txt', 'old.txt'],
+    ['games/submodules/fixture-chess', 'new.txt', 'old.txt'],
   );
   assert.deepEqual(collectChangedPaths({ root, base: initial, head: currentBase }), [
     'packages/shared/index.ts',
@@ -1074,10 +1074,10 @@ test('CLI output is valid GitHub output and an empty or unknown base selects ful
   await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });
   await mkdir(path.join(root, 'games/local/echo-lab'), { recursive: true });
   await mkdir(path.join(root, 'games/local/game-fixture'), { recursive: true });
-  await mkdir(path.join(root, 'games/submodules/fishing'), { recursive: true });
+  await mkdir(path.join(root, 'games/submodules/fixture-chess'), { recursive: true });
   await writeFile(
     path.join(root, 'apps/shell-web/src/standalone-games.json'),
-    JSON.stringify(catalog.standaloneGames.filter((game) => game.id !== 'travel-bund-25d')),
+    JSON.stringify(catalog.standaloneGames.filter((game) => game.id !== 'z-fixture-25d')),
   );
   await writeFile(path.join(root, 'games/local/echo-lab/package.json'), '{}');
   await writeFile(path.join(root, 'games/local/game-fixture/package.json'), '{}');
@@ -1089,8 +1089,12 @@ test('CLI output is valid GitHub output and an empty or unknown base selects ful
   git('add', '.');
   git('commit', '-m', 'docs');
   assert.deepEqual(await loadGameCatalog(root), {
-    standaloneGames: catalog.standaloneGames.filter((game) => game.id !== 'travel-bund-25d'),
-    gameSources: ['games/local/echo-lab', 'games/local/game-fixture', 'games/submodules/fishing'],
+    standaloneGames: catalog.standaloneGames.filter((game) => game.id !== 'z-fixture-25d'),
+    gameSources: [
+      'games/local/echo-lab',
+      'games/local/game-fixture',
+      'games/submodules/fixture-chess',
+    ],
   });
   const outputPath = path.join(root, 'github-output');
   const result = await main(
@@ -1166,7 +1170,7 @@ test('saved dev baseline reads validated deployment metadata and rejects missing
 
 test('new dev pushes include pending changes from cancelled earlier runs and docs successors', async (t) => {
   const { root, git } = await temporaryRepository(t);
-  const games = catalog.standaloneGames.filter((game) => game.id !== 'fishing');
+  const games = catalog.standaloneGames.filter((game) => game.id !== 'fixture-chess');
   await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });
   await writeFile(
     path.join(root, 'apps/shell-web/src/standalone-games.json'),
@@ -1185,7 +1189,7 @@ test('new dev pushes include pending changes from cancelled earlier runs and doc
   git('add', '.');
   git('commit', '-m', 'pending game A');
   const pendingA = git('rev-parse', 'HEAD');
-  await writeFile(path.join(root, 'games/local/travel-bund-2.5D/src/index.ts'), 'pending game B\n');
+  await writeFile(path.join(root, 'games/local/z-fixture-2.5D/src/index.ts'), 'pending game B\n');
   git('add', '.');
   git('commit', '-m', 'pending game B');
   const pendingB = git('rev-parse', 'HEAD');
@@ -1205,8 +1209,8 @@ test('new dev pushes include pending changes from cancelled earlier runs and doc
   const expected = {
     required: true,
     full: false,
-    game_ids: ['echo-lab', 'travel-bund-25d'],
-    game_sources: ['games/local/echo-lab', 'games/local/travel-bund-2.5D'],
+    game_ids: ['echo-lab', 'z-fixture-25d'],
+    game_sources: ['games/local/echo-lab', 'games/local/z-fixture-2.5D'],
   };
   assert.deepEqual(await main(env, root, savedBaseline), expected);
   await writeFile(path.join(root, 'README.md'), 'docs successor cancels pending runs\n');
@@ -1435,7 +1439,7 @@ test('shared competition files keep actual Creator H5 consumers and native Creat
   );
 });
 
-test('planning checks out the three locked game workspaces and retains complete comparison history', async () => {
+test('planning checks out the retained locked game workspace and retains complete comparison history', async () => {
   for (const [file, job] of [
     ['.github/workflows/ci.yml', 'plan'],
     ['.github/workflows/pages.yml', 'changes'],
@@ -1457,7 +1461,7 @@ test('planning checks out the three locked game workspaces and retains complete 
     assert.doesNotMatch(block, /submodules:\s*recursive|--recursive|--remote/);
     const commands = [...block.matchAll(/^          (git[^\n]+)$/gm)].map((match) => match[1]);
     assert.deepEqual(commands, [
-      'git -c url.https://github.com/.insteadOf=git@github.com: submodule update --init -- games/submodules/fishing games/submodules/tower-defense-game games/submodules/xiangqi-five',
+      'git -c url.https://github.com/.insteadOf=git@github.com: submodule update --init -- games/submodules/xiangqi-five',
     ]);
     assert.equal(block.split('Read locked game workspaces for planning').length, 2);
     assert.match(

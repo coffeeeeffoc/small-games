@@ -514,3 +514,6 @@ export const localRetirementReviews = Object.freeze({
     sources: ['apps/shell-minigame'],
   },
 });
+
+export const portfolioRetirementTrees = Object.freeze({});
+export const portfolioRetirementReviews = Object.freeze({});
