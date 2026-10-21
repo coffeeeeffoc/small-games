@@ -7,16 +7,16 @@
     "adUnitId": "",
     "adsEnabled": false
   },
-  "sourceHash": "0e189be9f63281174000469343d63a1549d525fae3e739182059f9d72d8af728",
-  "sourceInventorySha256": "a7b86efec0f4ce11f126b582beb939bcb784c07a0ee3ba6502b61b1b313263f1",
+  "sourceHash": "53955672773c1baa789c10c59625ca2f73cfafc6de21740dd728eadaa322d4bd",
+  "sourceInventorySha256": "41051fd1f684d5dd021cc1705b16575ed3bd7c529ea71d71d6d629c82642f9b6",
   "pluginVersion": "1.2.2",
   "pluginArchiveSha256": "6b8a9a3cc62b6c54cefab397097babb771d9d99f90442cddff06310a4c9ed73f",
   "pluginInventorySha256": "5ac795fd2c8b9cb048457cb69810b5b3a51b581b79b98e100b2ddc4adf5eefec",
-  "packageSha256": "7b382b53627ca06556c2ea929671ad5100295802430c79195d46045f63e4fc7c",
-  "packageBytes": 11707319,
+  "packageSha256": "36c8ab26ff7657929ed4a12e9c6691a364d30c3b7a72cc3cf194ed2f047f8858",
+  "packageBytes": 11707315,
   "unpackedBytes": 13312326,
-  "packageFile": "F:\\playground\\playground-ai\\bullet-garden-mobile\\games\\local\\bullet-garden\\build\\taptap-Pc4YCh\\converted\\game.zip",
-  "projectDirectory": "F:\\playground\\playground-ai\\bullet-garden-mobile\\games\\local\\bullet-garden\\build\\taptap-Pc4YCh\\converted\\game",
+  "packageFile": "F:\\playground\\playground-ai\\bullet-garden-mobile\\games\\local\\bullet-garden\\build\\taptap-DaZ9uU\\converted\\game.zip",
+  "projectDirectory": "F:\\playground\\playground-ai\\bullet-garden-mobile\\games\\local\\bullet-garden\\build\\taptap-DaZ9uU\\converted\\game",
   "deviceOrientation": "portrait",
   "officialConverterExecuted": true,
   "runtimeSdkBridge": "startup/taptap.cjs",
@@ -27,9 +27,9 @@
   "platformReviewVerified": false,
   "files": [
     {
-      "path": "application.ae953.js",
+      "path": "application.be3f8.js",
       "bytes": 3805,
-      "sha256": "a3f2672431d0cde02c760592d1b8b64cc9f36a9a4e7656eeb74cf374746eadf7"
+      "sha256": "dba769324328dcf5ec6100c6b459df0db76daf9c88e2ae99ca8327cd755e985a"
     },
     {
       "path": "assets/internal/config.7aac6.json",
@@ -47,14 +47,14 @@
       "sha256": "81ef0ec917c17abaae522aa02c9f198ae9a2dd792eafebd462b32bb8690cbd51"
     },
     {
-      "path": "assets/main/config.104f9.json",
+      "path": "assets/main/config.073ae.json",
       "bytes": 609,
-      "sha256": "5bdfc335f34769b1cbd1cf719007afe19455363240c8fe5029db05485933b4ec"
+      "sha256": "0fee98c778b7b57264ae8fdf5761e15e7249634f783f29af23c2800418ebdf81"
     },
     {
-      "path": "assets/main/import/72/727a052e-3331-4130-a1d4-f35a67322cba.3f8f5.json",
+      "path": "assets/main/import/72/727a052e-3331-4130-a1d4-f35a67322cba.dd99d.json",
       "bytes": 795,
-      "sha256": "25623920da880af71a494f82146bbd7dfde683d049bb91305d2720bc9c65e2a5"
+      "sha256": "07d59395972b2589d74906201f93161750dd28bab482502f4c4c6eda71fb14f9"
     },
     {
       "path": "assets/main/import/ba/ba21476f-2866-4f81-9c4d-6e359316e448.8bce7.json",
@@ -67,7 +67,7 @@
       "sha256": "c2eee4552a460ed97591f527e127b95c811d5f796b9448f3f705974af9beba9d"
     },
     {
-      "path": "assets/main/index.104f9.js",
+      "path": "assets/main/index.073ae.js",
       "bytes": 248040,
       "sha256": "6759ec25140047703e00d94d40b7a077acda3e16995293eeaa30ffa2d30db8d7"
     },
@@ -149,7 +149,7 @@
     {
       "path": "build-info.json",
       "bytes": 4692,
-      "sha256": "8ace164b5b90a132b323e6e8ee22824bc376e5935b4fdaf77f399538d7673f38"
+      "sha256": "ec8d00625c90e6a56bbc20c552a9a139e5799f33a3ca5a6232e82fefb228b091"
     },
     {
       "path": "check-version.js",
@@ -174,7 +174,7 @@
     {
       "path": "game.js",
       "bytes": 3099,
-      "sha256": "685aac072f1f27aa303f4e636fedc00bc2ec88cb6cd74e12eb6802b7b76870de"
+      "sha256": "426a091dfe6319c5c3c7e9c968047ed558d6e28eee0e27bd3c17773613b55417"
     },
     {
       "path": "game.json",
@@ -212,9 +212,9 @@
       "sha256": "622497b91ed78ba92c2a26db2f70df8a6bb501e5ddeb1375d98e94a51a3680c3"
     },
     {
-      "path": "src/settings.dac2a.json",
+      "path": "src/settings.12e06.json",
       "bytes": 1856,
-      "sha256": "22ce6348e1f5c2a092fe69bbe720081011e2ec437c962471b4a20f183376428f"
+      "sha256": "8af2102a5e12c36535c2784b7ead13bd02ed9f7d796bb1b4bceaf4b7bdbed740"
     },
     {
       "path": "src/system.bundle.f45da.js",

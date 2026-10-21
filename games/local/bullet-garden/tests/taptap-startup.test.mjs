@@ -16,3 +16,19 @@ test('converted Creator and rewarded ads share the actual TapTap SDK without rep
   }
   assert.throws(() => vm.runInNewContext(source, {}), /TapTap runtime/);
 });
+
+test('Web startup preserves cancellation delivery and guards only noncancelable canvas events', () => {
+  const listeners = new Map();
+  vm.runInNewContext(readFileSync(new URL('../startup/loading.js', import.meta.url), 'utf8'), {
+    window: { addEventListener: (type, callback) => listeners.set(type, callback) },
+    document: { getElementById: () => ({}) },
+    setTimeout: () => 1,
+  });
+  for (const [id, cancelable] of [['GameCanvas', false], ['GameCanvas', true], ['other', false]]) {
+    const original = () => {};
+    const event = { target: { id }, cancelable, preventDefault: original };
+    listeners.get('touchcancel')(event);
+    assert.equal(event.preventDefault === original, id !== 'GameCanvas' || cancelable);
+    assert.equal(event.stopPropagation, undefined);
+  }
+});

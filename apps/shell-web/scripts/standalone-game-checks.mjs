@@ -603,6 +603,22 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await tap('back');
     await tap('start');
     await expect.poll(async () => (await snapshot()).screen).toBe('playing');
+    const host = page.locator('[data-game-display-host][data-game-id="bullet-garden"]');
+    if (await host.count()) await expect(host).toHaveAttribute('data-screen', 'playing');
+    // The Shell hides navigation, then Creator lays out the resized canvas before input.
+    await expect
+      .poll(async () => {
+        const state = await snapshot(),
+          bounds = await canvas.boundingBox();
+        return (
+          Math.abs(state.viewport.width - bounds.width) < 1 &&
+          Math.abs(state.viewport.height - bounds.height) < 1
+        );
+      })
+      .toBe(true);
+    await canvas.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+    );
     await expect
       .poll(async () => (await snapshot()).buttons.some((item) => item.id === 'move'))
       .toBe(true);

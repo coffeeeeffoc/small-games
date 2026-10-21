@@ -4413,7 +4413,7 @@ test('Bullet Garden routes preserve fixed predecessors, identity and config-sens
     { id: 'wulong-city', source: 'games/local/wulong-city' },
   ];
   const packages = [{ dir: source, ...manifest }];
-  for (const file of tianxiaWiring) {
+  for (const file of [...tianxiaWiring, 'apps/shell-web/src/styles.css']) {
     const context = { changedPaths: [file], readBase: base, readHead: read, games, packages };
     assert.equal(bulletGardenCreatorFileScope(file, base(file), read(file)), true, file);
     assert(reviewedSharedFileScopes(context).get(file)?.includes(source), file);

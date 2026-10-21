@@ -1,4 +1,8 @@
 (() => {
+  // Creator 3.8.8 calls preventDefault even when native touchcancel is not cancelable.
+  window.addEventListener('touchcancel', (event) => {
+    if (event.target?.id === 'GameCanvas' && !event.cancelable) event.preventDefault = () => {};
+  }, { capture: true });
   const overlay = document.getElementById('garden-loading');
   const progress = document.getElementById('garden-progress');
   const status = document.getElementById('garden-status');

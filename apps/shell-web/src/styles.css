@@ -650,3 +650,13 @@ select {
     font-size: 13px;
   }
 }
+
+.standalone-page[data-game-id='bullet-garden'][data-immersive='true'] > nav {
+  top: calc(8px + env(safe-area-inset-top, 0px));
+  left: calc(12px + env(safe-area-inset-left, 0px));
+  transform: none;
+}
+.standalone-page[data-game-id='bullet-garden'][data-immersive='true'][data-screen='home'] iframe {
+  top: calc(60px + env(safe-area-inset-top, 0px));
+  height: calc(100% - 60px - env(safe-area-inset-top, 0px));
+}

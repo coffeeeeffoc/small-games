@@ -1560,9 +1560,14 @@ export function bulletGardenLockOnly(before, after, manifest) {
     return false;
   }
 }
+const bulletGardenShellCss =
+  "\n.standalone-page[data-game-id='bullet-garden'][data-immersive='true'] > nav {\n  top: calc(8px + env(safe-area-inset-top, 0px));\n  left: calc(12px + env(safe-area-inset-left, 0px));\n  transform: none;\n}\n.standalone-page[data-game-id='bullet-garden'][data-immersive='true'][data-screen='home'] iframe {\n  top: calc(60px + env(safe-area-inset-top, 0px));\n  height: calc(100% - 60px - env(safe-area-inset-top, 0px));\n}\n";
 export function bulletGardenCreatorFileScope(file, before, after) {
   try {
-    if (tianxiaWorkflowFiles.includes(file))
+    if (file === 'apps/shell-web/src/styles.css') {
+      assert(!before.includes("data-game-id='bullet-garden'"));
+      assert.equal(after, before + bulletGardenShellCss);
+    } else if (tianxiaWorkflowFiles.includes(file))
       tianxiaWorkflowOnly(file, before, after, 'bullet-garden', 'BULLET_GARDEN', 'garden');
     else if (file === 'turbo.json')
       tianxiaTurboOnly(before, after, 'bullet-garden', 'BULLET_GARDEN_PREBUILT_DIR');
@@ -2514,6 +2519,7 @@ export function reviewedSharedFileScopes({
         [
           ...tianxiaWorkflowFiles,
           ...Object.keys(tianxiaImmersiveFiles),
+          'apps/shell-web/src/styles.css',
           'turbo.json',
           'scripts/cocos-validation.mjs',
           'scripts/reuse-cocos-artifacts.mjs',
