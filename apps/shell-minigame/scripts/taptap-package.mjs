@@ -4,6 +4,7 @@ import { inflateRawSync } from 'node:zlib';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { acceptsOfficialConversionProof } from './taptap-conversion.mjs';
 
 // The review guide says below 20 MB; the overview also mentions 60 MB. Use the
 // stricter local ceiling until the actual official tool validates the project.
@@ -108,6 +109,7 @@ export async function verifyTapProject({
   verifiedSourceInventory,
   maxBytes = tapPackageBudgetBytes,
   entryPrefixToIgnore = '',
+  officialConversionProof,
 } = {}) {
   tapIdentity(appId, mode);
   const root = await localPath(directory),
@@ -212,7 +214,9 @@ export async function verifyTapProject({
     }
   }
   await visit('game.js');
-  if (!runtimeBoundary)
+  // Only a proof minted by a complete pinned-plugin replay can authorize the
+  // official Cocos converter's wx-compatible runtime. JSON flags cannot.
+  if (!runtimeBoundary && !acceptsOfficialConversionProof(officialConversionProof, files))
     throw Error(
       'TapTap entry has no reachable tap API boundary; renaming another platform package is not conversion.',
     );
@@ -244,7 +248,12 @@ function crc32(bytes) {
 }
 /** Non-extracting ZIP audit. Supports standard stored/deflated single-disk ZIPs.
  * Unsupported/encrypted/ZIP64 outputs require explicit review, never relabeling. */
-export function zipInventory(bytes, { maxBytes = tapPackageBudgetBytes } = {}) {
+export function zipInventory(bytes, options = {}) {
+  return zipEntries(bytes, options).map(({ data, ...file }) => file);
+}
+
+// Returns bytes only after every entry has passed the same complete ZIP audit.
+export function zipEntries(bytes, { maxBytes = tapPackageBudgetBytes } = {}) {
   if (!Buffer.isBuffer(bytes) || bytes.length < 22 || bytes.readUInt32LE(0) !== 0x04034b50)
     throw Error(
       'TapTap output must be a ZIP with mini game entries, not a renamed APK or foreign package.',
@@ -356,7 +365,8 @@ export function zipInventory(bytes, { maxBytes = tapPackageBudgetBytes } = {}) {
       method === 0 ? encoded : inflateRawSync(encoded, { maxOutputLength: Math.max(1, length) });
     if (decoded.length !== length || crc32(decoded) !== crc || (isDirectory && length))
       throw Error('TapTap ZIP entry CRC or size mismatch.');
-    if (!isDirectory) files.push({ path: file, bytes: length, sha256: digest(decoded) });
+    if (!isDirectory)
+      files.push({ path: file, bytes: length, sha256: digest(decoded), data: decoded });
     cursor = next;
   }
   if (cursor !== end) throw Error('Unexpected TapTap ZIP directory data.');
@@ -378,6 +388,7 @@ export async function verifyOfficialPackage({
   apiUrl = '',
   adsEnabled = false,
   adUnitId = '',
+  officialConversionProof,
 } = {}) {
   if (!/^[a-f0-9]{64}$/.test(currentSourceHash || ''))
     throw Error('Current TapTap source fingerprint required.');
@@ -388,6 +399,7 @@ export async function verifyOfficialPackage({
     mode,
     orientation,
     verifiedSourceInventory: expected,
+    officialConversionProof,
   });
   let login;
   if (mode === 'release') {

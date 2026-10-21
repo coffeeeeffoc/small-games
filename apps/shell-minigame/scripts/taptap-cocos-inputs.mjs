@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
-import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
 import { parseArgs } from 'node:util';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -10,9 +9,10 @@ import { tapTapCocosGames, tapTapTarget } from './taptap-targets.mjs';
 import { digest, inventory, localPath, zipInventory } from './taptap-package.mjs';
 import { prepareTapTapCocosLogin, buildTapTapCocosTarget } from './taptap-cocos.mjs';
 
+import { officialPluginSha256, replayOfficialConversion } from './taptap-conversion.mjs';
+export { officialPluginSha256 };
+
 const repo = fileURLToPath(new URL('../../../', import.meta.url));
-export const officialPluginSha256 =
-  '6b8a9a3cc62b6c54cefab397097babb771d9d99f90442cddff06310a4c9ed73f';
 const games = tapTapCocosGames.map((game) => game.id);
 const json = async (file) => JSON.parse(await readFile(file, 'utf8'));
 const save = (file, value) =>
@@ -24,18 +24,17 @@ const git = (...args) => {
 };
 
 /** Authenticate distribution bytes before executing any downloaded plugin code.
- * npm dependencies are installed separately from the archive's frozen locks. */
+ * Execution dependencies are bundled in the fixed archive and also authenticated. */
 export async function verifyPlugin(archive, directory) {
   const bytes = await readFile(await localPath(archive, 'file'));
   assert.equal(digest(bytes), officialPluginSha256, 'Official TapTap v1.2.2 archive changed');
   // The editor extension contains bundled dependencies (~51 MB expanded).
   // This tooling limit does not change the game's strict <20 MiB package gate.
-  const expected = zipInventory(bytes, { maxBytes: 128 * 1024 * 1024 })
-    .filter((file) => !file.path.includes('/node_modules/'))
-    .map((file) => ({ ...file, path: file.path.replace(/^taptap-minigame-tools\//, '') }));
-  const actual = (await inventory(await localPath(directory))).filter(
-    (file) => !/(^|\/)node_modules\//.test(file.path),
-  );
+  const expected = zipInventory(bytes, { maxBytes: 128 * 1024 * 1024 }).map((file) => ({
+    ...file,
+    path: file.path.replace(/^taptap-minigame-tools\//, ''),
+  }));
+  const actual = await inventory(await localPath(directory));
   assert.deepEqual(actual, expected, 'Installed official plugin distribution changed');
   return expected;
 }
@@ -124,24 +123,22 @@ export async function captureInputs({
     'Conversion copy changed',
   );
   await save(path.join(output, 'source-inventory.json'), receipt);
-  let loginError;
-  try {
-    await prepareTapTapCocosLogin({
-      convertedDirectory: path.join(output, 'converted'),
-      outputDirectory: path.join(output, 'login'),
-      config: { platform: 'taptap', game, appId: '', apiUrl: '', preview: true },
-    });
-  } catch (error) {
-    loginError = error.message;
-  }
+  const staged = await prepareTapTapCocosLogin({
+    convertedDirectory: path.join(output, 'converted'),
+    outputDirectory: path.join(output, 'login'),
+    sourceDirectory: path.join(output, 'source'),
+    pluginArchive: path.join(output, 'plugin.zip'),
+    config: { platform: 'taptap', game, appId: '', apiUrl: '', preview: true },
+  });
   const prefix = `MINIGAME_${game.toUpperCase().replaceAll('-', '_')}_TAPTAP_`;
   const inputs = {
     [prefix + 'SOURCE_DIR']: path.join(output, 'source'),
     [prefix + 'SOURCE_INVENTORY']: path.join(output, 'source-inventory.json'),
-    [prefix + 'CONVERTED_DIR']: path.join(output, loginError ? 'converted' : 'login'),
+    [prefix + 'CONVERTED_DIR']: path.join(output, 'login'),
     [prefix + 'PLUGIN_DIR']: plugin,
-    // Raw ZIP predates the login stage. Never offer it as that stage's package.
-    [prefix + 'PACKAGE_FILE']: '',
+    [prefix + 'PLUGIN_ARCHIVE']: path.join(output, 'plugin.zip'),
+    // This is a new official pack of the exactly verified configured stage.
+    [prefix + 'PACKAGE_FILE']: staged.packageFile,
   };
   await save(path.join(output, 'inputs.json'), inputs);
   await writeFile(
@@ -167,7 +164,8 @@ export async function captureInputs({
     sourceHash: receipt.sourceHash,
     adaptationRecipeSha256: receipt.adaptationRecipeSha256,
     rawPackageSha256: digest(await readFile(packageFile)),
-    loginError: loginError || null,
+    loginError: null,
+    conversionReceipt: staged.conversionReceipt,
     files: await inventory(output),
     officialToolVerified: false,
     realDeviceVerified: false,
@@ -205,9 +203,10 @@ export async function verifyInputs(directory, plugin, archive, env = process.env
     ...env,
     [prefix + 'SOURCE_DIR']: path.join(directory, 'source'),
     [prefix + 'SOURCE_INVENTORY']: path.join(directory, 'source-inventory.json'),
-    [prefix + 'CONVERTED_DIR']: path.join(directory, manifest.loginError ? 'converted' : 'login'),
+    [prefix + 'CONVERTED_DIR']: path.join(directory, 'login'),
     [prefix + 'PLUGIN_DIR']: plugin,
-    [prefix + 'PACKAGE_FILE']: '',
+    [prefix + 'PLUGIN_ARCHIVE']: path.join(directory, 'plugin.zip'),
+    [prefix + 'PACKAGE_FILE']: path.join(directory, 'game.zip'),
   };
   return buildTapTapCocosTarget(
     tapTapTarget(manifest.game),
@@ -257,14 +256,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
       );
       assert.equal(result.status, 0, 'Real Creator build failed');
       source = path.join(stage.projectRoot, 'build/wechatgame');
-      const { convertWechatToTap } = createRequire(import.meta.url)(
-        path.join(plugin, 'dist/converter-ts.js'),
-      );
-      await convertWechatToTap({
-        source,
-        target: path.join(work, 'TapBuild'),
-        useSubpackage: false,
-        gameVersion: '0.1.0',
+      await replayOfficialConversion({
+        sourceDirectory: source,
+        pluginArchive: archive,
+        outputDirectory: path.join(work, 'TapBuild/game'),
       });
       converted = path.join(work, 'TapBuild/game');
     }

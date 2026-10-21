@@ -121,6 +121,7 @@ test('output overlap is rejected before the builder can delete original conversi
       'SOURCE_DIR',
       'CONVERTED_DIR',
       'PLUGIN_DIR',
+      'PLUGIN_ARCHIVE',
       'PACKAGE_FILE',
       'PACKAGE_RECEIPT',
     ]) {

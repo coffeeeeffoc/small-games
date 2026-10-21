@@ -2,6 +2,7 @@ import { cp, lstat, mkdir, readdir, readFile, rm, rmdir, writeFile } from 'node:
 import { parseArgs } from 'node:util';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
+import { replayOfficialConversion, officialPluginSha256 } from './taptap-conversion.mjs';
 import { tapTapTarget, tapTapOrientation, tapTapOptions } from './taptap-targets.mjs';
 import { prepareNativeProject, adaptationRecipeSha256 } from './night-native-project.mjs';
 import {
@@ -41,13 +42,14 @@ const mutableSourceFiles = new Set([
 const json = async (directory, file) =>
   JSON.parse(await readFile(path.join(directory, file), 'utf8'));
 
-/** Imports an explicit converted Creator output. The public docs do not expose
- * conversion CLI parameters, so this never invents an Editor option or SDK. */
+/** Imports explicit Creator output. A supplied pinned archive enables complete
+ * official conversion replay; the legacy helper only checks structural integrity. */
 export async function verifyConvertedCocosPackage({
   gameRoot,
   sourceDirectory,
   convertedDirectory,
   pluginDirectory,
+  pluginArchive,
   currentSourceHash,
   verifiedSourceInventory,
   resourceMappings = {},
@@ -112,14 +114,21 @@ export async function verifyConvertedCocosPackage({
   const pluginFiles = await inventory(plugin);
   if (!pluginFiles.length)
     throw Error('Supply the actual official TapTap plugin directory, not an empty placeholder.');
-  // The public archive cannot be inspected here. The docs show the extension's
-  // UI name, not its package.json schema or package name. Preserve actual local
-  // metadata when present without treating that metadata as authentication.
+  // Local installation metadata is descriptive. Executable authenticity comes
+  // from the separate fixed archive used by the isolated replay runner.
   const pluginInfo = pluginFiles.some((file) => file.path === 'package.json')
     ? await json(plugin, 'package.json')
     : {};
   if (pluginInfo.version && pluginInfo.version !== tapCocosPlugin.version)
     throw Error('TapTap supplied plugin version differs from the documented v1.2.2.');
+  const replay = pluginArchive
+    ? await replayOfficialConversion({
+        sourceDirectory: source,
+        pluginArchive,
+        config: loginConfig,
+        expectedFinalDirectory: converted,
+      })
+    : null;
   const login = await verifyTapTapLogin(converted, loginConfig);
   const prefix = tapTapLoginPrefix(loginConfig);
   const convertedEntry = await readFile(path.join(converted, 'game.js'), 'utf8');
@@ -136,6 +145,7 @@ export async function verifyConvertedCocosPackage({
     mode,
     orientation,
     entryPrefixToIgnore: prefix,
+    officialConversionProof: replay?.proof,
   });
   const byPath = new Map(project.files.map((file) => [file.path, file]));
   if (!resourceMappings || typeof resourceMappings !== 'object' || Array.isArray(resourceMappings))
@@ -144,6 +154,19 @@ export async function verifyConvertedCocosPackage({
     destinations = new Set();
   for (const file of sourceFiles) {
     if (mutableSourceFiles.has(file.path)) continue;
+    if (replay) {
+      // All transformed bytes were compared with an actual pinned-plugin replay.
+      // This legacy list records only resources that also remained byte-identical.
+      const counterpart = byPath.get(file.path);
+      if (counterpart?.bytes === file.bytes && counterpart.sha256 === file.sha256)
+        preserved.push({
+          source: file.path,
+          destination: file.path,
+          bytes: file.bytes,
+          sha256: file.sha256,
+        });
+      continue;
+    }
     const destination = relativeFile(resourceMappings[file.path] || file.path),
       counterpart = byPath.get(destination);
     if (destinations.has(destination)) throw Error('Duplicate converted Creator resource mapping.');
@@ -155,6 +178,7 @@ export async function verifyConvertedCocosPackage({
     preserved.push({ source: file.path, destination, bytes: file.bytes, sha256: file.sha256 });
   }
   if (
+    (replay && Object.keys(resourceMappings).length) ||
     Object.keys(resourceMappings).some(
       (file) => mutableSourceFiles.has(file) || !sourceFiles.some((item) => item.path === file),
     )
@@ -179,7 +203,8 @@ export async function verifyConvertedCocosPackage({
       files: pluginFiles,
       authenticityVerified: false,
     },
-    conversionReceipt: 'unverified',
+    conversionReceipt: replay?.receipt || 'unverified',
+    officialConversionProof: replay?.proof,
     apiUrl,
     login,
     loginPublicConfig,
@@ -221,9 +246,14 @@ export function verifyCreatorPackageBudget(game, gameConfig, files) {
 function environmentInputs(game, env) {
   const prefix = `MINIGAME_${game.toUpperCase().replaceAll('-', '_')}_TAPTAP_`;
   return Object.fromEntries(
-    ['SOURCE_DIR', 'SOURCE_INVENTORY', 'CONVERTED_DIR', 'PLUGIN_DIR', 'PACKAGE_FILE'].map(
-      (suffix) => [suffix, env[prefix + suffix] || ''],
-    ),
+    [
+      'SOURCE_DIR',
+      'SOURCE_INVENTORY',
+      'CONVERTED_DIR',
+      'PLUGIN_DIR',
+      'PLUGIN_ARCHIVE',
+      'PACKAGE_FILE',
+    ].map((suffix) => [suffix, env[prefix + suffix] || '']),
   );
 }
 async function currentFingerprint(gameRoot) {
@@ -259,6 +289,7 @@ async function managedOutputPath(output) {
 const tapTapImportCommonFiles = Object.freeze([
   'taptap-cocos.mjs',
   'taptap-package.mjs',
+  'taptap-conversion.mjs',
   'night-native-project.mjs',
   'taptap-login.mjs',
   'taptap-targets.mjs',
@@ -302,10 +333,41 @@ export async function prepareTapTapCocosLogin({
   convertedDirectory,
   outputDirectory,
   config,
+  sourceDirectory,
+  pluginArchive,
 } = {}) {
   const publicConfig = publicTapTapLoginConfig(config);
   tapIdentity(publicConfig.appId, config.preview ? 'preview' : 'release');
   const source = await localPath(convertedDirectory);
+  if (sourceDirectory || pluginArchive) {
+    if (!sourceDirectory || !pluginArchive)
+      throw Error('Official login staging requires both Creator source and pinned plugin archive.');
+    const replay = await replayOfficialConversion({
+      sourceDirectory,
+      pluginArchive,
+      config,
+      expectedRawDirectory: source,
+      outputDirectory,
+    });
+    const project = await verifyTapProject({
+      directory: replay.directory,
+      appId: publicConfig.appId,
+      mode: config.preview ? 'preview' : 'release',
+      orientation: tapTapOrientation(config.game),
+      officialConversionProof: replay.proof,
+    });
+    return {
+      ...project,
+      status: 'official-conversion-replayed-and-packed',
+      publicConfig,
+      login: await verifyTapTapLogin(replay.directory, config),
+      sourceFiles: replay.rawFiles,
+      sourceDirectory: source,
+      packageFile: replay.packageFile,
+      conversionReceipt: replay.receipt,
+      officialConversionProof: replay.proof,
+    };
+  }
   if (typeof outputDirectory !== 'string' || !path.isAbsolute(outputDirectory))
     throw Error('Explicit absolute TapTap login staging output required.');
   const output = path.resolve(outputDirectory);
@@ -460,8 +522,8 @@ export async function buildTapTapCocosTarget(
         'Select the WeChat mini game build target.',
         'Enable the official plugin option 转换为Tap小游戏 and build.',
         'Capture the WeChat source inventory before conversion.',
-        'Run --prepare-login against build/TapBuild/game/ to create an independent configured login stage.',
-        'Run the official packing tool on that login stage; supply the unchanged stage and newly packed ZIP through scoped TapTap inputs.',
+        'Run --prepare-login with --source-dir, --plugin-archive and --converted-dir to replay conversion and create a configured stage.',
+        'The verified official pack_game function packs that exact stage; supply the stage, archive and its game.zip through scoped TapTap inputs.',
       ],
       creatorBuildVerified: false,
       officialToolVerified: false,
@@ -473,9 +535,14 @@ export async function buildTapTapCocosTarget(
     );
     return plan;
   }
-  if (!inputs.PLUGIN_DIR || !inputs.CONVERTED_DIR || !inputs.SOURCE_INVENTORY)
+  if (
+    !inputs.PLUGIN_DIR ||
+    !inputs.PLUGIN_ARCHIVE ||
+    !inputs.CONVERTED_DIR ||
+    !inputs.SOURCE_INVENTORY
+  )
     throw Error(
-      `TapTap ${selected.id} requires Creator 3.8.x with official tap-minigame-ts v1.2.2 conversion: configure scoped TAPTAP_PLUGIN_DIR, SOURCE_INVENTORY, SOURCE_DIR and CONVERTED_DIR from build/TapBuild/game/. No TapTap artifact was built; undocumented plugin CLI options are not invented.`,
+      `TapTap ${selected.id} requires Creator 3.8.x with official tap-minigame-ts v1.2.2 conversion: configure scoped TAPTAP_PLUGIN_DIR, PLUGIN_ARCHIVE, SOURCE_INVENTORY, SOURCE_DIR and CONVERTED_DIR from build/TapBuild/game/. No TapTap artifact was built; undocumented plugin CLI options are not invented.`,
     );
   try {
     const provenance = await prepareNativeProject(gameRoot);
@@ -493,6 +560,7 @@ export async function buildTapTapCocosTarget(
       sourceDirectory: inputs.SOURCE_DIR || receipt.sourceDirectory,
       convertedDirectory: inputs.CONVERTED_DIR,
       pluginDirectory: inputs.PLUGIN_DIR,
+      pluginArchive: inputs.PLUGIN_ARCHIVE || undefined,
       currentSourceHash: provenance.sourceHash,
       verifiedSourceInventory: receipt.files,
       resourceMappings: receipt.resourceMappings || {},
@@ -513,6 +581,7 @@ export async function buildTapTapCocosTarget(
       mode,
       orientation: tapTapOrientation(selected.id),
       verifiedSourceInventory: result.files,
+      officialConversionProof: result.officialConversionProof,
     });
     let packageEvidence;
     if (inputs.PACKAGE_FILE) {
@@ -529,6 +598,7 @@ export async function buildTapTapCocosTarget(
         adUnitId: config.adUnitId,
         mode,
         orientation: tapTapOrientation(selected.id),
+        officialConversionProof: result.officialConversionProof,
       });
       // Byte copy of the independently supplied output; this does not generate
       // or rename any APK/WeChat package and retains an integrity-only claim.
@@ -537,6 +607,17 @@ export async function buildTapTapCocosTarget(
     }
     if ((await currentFingerprint(gameRoot)) !== provenance.canonicalSourceHash)
       throw Error('Canonical Creator inputs changed during TapTap verification.');
+    if (inputs.PLUGIN_ARCHIVE) {
+      await mkdir(path.join(targetRoot, 'audit'));
+      await cp(
+        inputs.SOURCE_DIR || receipt.sourceDirectory,
+        path.join(targetRoot, 'audit/source'),
+        {
+          recursive: true,
+        },
+      );
+      await cp(inputs.PLUGIN_ARCHIVE, path.join(targetRoot, 'audit/plugin.zip'));
+    }
     const manifest = {
       schemaVersion: 1,
       game: selected.id,
@@ -562,7 +643,10 @@ export async function buildTapTapCocosTarget(
       plugin: result.plugin,
       importScriptHashes: await importScriptHashes(selected.id),
       ...(packageEvidence ? { package: packageEvidence } : {}),
-      conversionReceipt: 'unverified',
+      conversionReceipt: result.conversionReceipt,
+      ...(inputs.PLUGIN_ARCHIVE
+        ? { audit: { source: 'audit/source', pluginArchive: 'audit/plugin.zip' } }
+        : {}),
       integrityVerified: true,
       officialToolVerified: false,
       realDeviceVerified: false,
@@ -596,7 +680,8 @@ export async function verifyTapTapCocosArtifact(directory) {
     !tapTapTarget(manifest.game)?.cocos ||
     manifest.officialToolVerified !== false ||
     manifest.realDeviceVerified !== false ||
-    manifest.conversionReceipt !== 'unverified' ||
+    (manifest.conversionReceipt !== 'unverified' &&
+      manifest.conversionReceipt?.pluginSha256 !== officialPluginSha256) ||
     manifest.orientation !== tapTapOrientation(manifest.game)
   )
     throw Error('Invalid TapTap Creator provenance or unsupported verification claim.');
@@ -627,8 +712,39 @@ export async function verifyTapTapCocosArtifact(directory) {
         manifest.sourceHash !== manifest.canonicalSourceHash)
   )
     throw Error('TapTap Creator native source fingerprint, adaptation recipe or importer changed.');
+  if (manifest.conversionReceipt === 'unverified')
+    throw Error('Standalone Creator artifact requires pinned official conversion replay evidence.');
+  let replay;
+  if (manifest.conversionReceipt !== 'unverified') {
+    if (
+      manifest.audit?.source !== 'audit/source' ||
+      manifest.audit?.pluginArchive !== 'audit/plugin.zip'
+    )
+      throw Error('Official conversion audit inputs missing.');
+    replay = await replayOfficialConversion({
+      sourceDirectory: path.join(root, 'audit/source'),
+      pluginArchive: path.join(root, 'audit/plugin.zip'),
+      expectedFinalDirectory: path.join(root, 'game'),
+      config: {
+        platform: 'taptap',
+        game: manifest.game,
+        appId: manifest.appId,
+        apiUrl: manifest.apiUrl || '',
+        preview: manifest.mode === 'preview',
+        adsEnabled: manifest.rewarded?.adsEnabled,
+        adUnitId: manifest.rewarded?.adUnitId,
+      },
+    });
+    if (
+      JSON.stringify(replay.sourceFiles) !==
+        JSON.stringify(trustedInventory(manifest.sourceFiles)) ||
+      JSON.stringify(replay.receipt) !== JSON.stringify(manifest.conversionReceipt)
+    )
+      throw Error('Official conversion replay receipt mismatch.');
+  }
   await verifyTapProject({
     directory: path.join(root, 'game'),
+    officialConversionProof: replay?.proof,
     appId: manifest.appId,
     mode: manifest.mode,
     orientation: tapTapOrientation(manifest.game),
@@ -704,6 +820,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       'prepare-source': { type: 'boolean' },
       'prepare-login': { type: 'boolean' },
       'converted-dir': { type: 'string' },
+      'source-dir': { type: 'string' },
+      'plugin-archive': { type: 'string' },
       'api-url': { type: 'string' },
       'ad-unit-id': { type: 'string' },
       verify: { type: 'string' },
@@ -738,6 +856,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       JSON.stringify(
         await prepareTapTapCocosLogin({
           convertedDirectory: path.resolve(values['converted-dir']),
+          sourceDirectory: values['source-dir'] && path.resolve(values['source-dir']),
+          pluginArchive: values['plugin-archive'] && path.resolve(values['plugin-archive']),
           outputDirectory: path.resolve(values.output),
           config: configFor(),
         }),

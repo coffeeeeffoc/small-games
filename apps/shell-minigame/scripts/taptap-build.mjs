@@ -38,7 +38,7 @@ async function preflightOutput(selected, outputRoot, env) {
       env[`${prefix}_${suffix}`],
       true,
     ]),
-    ...['SOURCE_INVENTORY', 'PACKAGE_FILE', 'PACKAGE_RECEIPT'].map((suffix) => [
+    ...['SOURCE_INVENTORY', 'PLUGIN_ARCHIVE', 'PACKAGE_FILE', 'PACKAGE_RECEIPT'].map((suffix) => [
       suffix,
       env[`${prefix}_${suffix}`],
       false,
@@ -94,6 +94,7 @@ export async function buildTapTap({
             'taptap-build.mjs',
             'taptap-targets.mjs',
             'taptap-package.mjs',
+            'taptap-conversion.mjs',
             'taptap-login.mjs',
           ].map((name) => path.join(root, 'apps/shell-minigame/scripts', name)),
           tapTapLoginHelperPath,

@@ -34,13 +34,6 @@ jobs:
           Invoke-WebRequest 'https://app-res.tapimg.com/file/2026-04-14/67e7d94f5e586596dab061816d1c509d.zip' -OutFile .scratch/tap-tools/plugin.zip
           if ((Get-FileHash .scratch/tap-tools/plugin.zip).Hash.ToLowerInvariant() -ne '6b8a9a3cc62b6c54cefab397097babb771d9d99f90442cddff06310a4c9ed73f') { throw 'Official plugin checksum changed' }
           Expand-Archive .scratch/tap-tools/plugin.zip .scratch/tap-tools/extension
-      - name: Install frozen extension dependencies without lifecycle scripts
-        shell: pwsh
-        run: |
-          npm ci --ignore-scripts --no-audit --no-fund --prefix .scratch/tap-tools/extension/taptap-minigame-tools
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          npm ci --ignore-scripts --no-audit --no-fund --prefix .scratch/tap-tools/extension/taptap-minigame-tools/converter
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build real Creator sources and capture actual official conversion
         run: node apps/shell-minigame/scripts/taptap-cocos-inputs.mjs --build --game ${{ matrix.game }} --plugin-dir .scratch/tap-tools/extension/taptap-minigame-tools --plugin-archive .scratch/tap-tools/plugin.zip --output .scratch/tap-inputs
       - uses: actions/upload-artifact@v7

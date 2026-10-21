@@ -10,7 +10,7 @@ import { createRequire } from 'node:module';
 import { competitionIdentityFileScope, tapServiceSharedScopePaths } from './publication-scopes.mjs';
 const formatter = createRequire(import.meta.url);
 const tapWorkflow = '.github/workflows/taptap-cocos.yml';
-const tapWorkflowSha256 = 'e2d2d81dbf5e273febaf4de1201d65bf2efe27eac026de4699f0629d7fe43110';
+const tapWorkflowSha256 = '7b0765e44f885ace8ee4f9e97b63eac89470b7722d70e05ad7030e2d8adea95d';
 
 const COMPETITION = 'platforms/competition/native.js';
 const MINIGAME = 'apps/shell-minigame';
@@ -1152,6 +1152,7 @@ const taptapScripts = [
   'apps/shell-minigame/scripts/taptap-targets.mjs',
   'apps/shell-minigame/scripts/taptap-package.mjs',
   'apps/shell-minigame/scripts/taptap-cocos.mjs',
+  'apps/shell-minigame/scripts/taptap-conversion.mjs',
   'apps/shell-minigame/scripts/taptap-cocos-inputs.mjs',
   'apps/shell-minigame/scripts/taptap-smoke.mjs',
   'apps/shell-minigame/scripts/taptap-travel-smoke.mjs',
