@@ -1,5 +1,12 @@
 // Static texture baking only. Every visible instance is a Cocos Sprite/Node;
 // there is no Canvas rendering loop or DOM game renderer.
+let sceneArt;
+export async function prepareArt() {
+  const image = new Image();
+  image.src = new URL('../assets/nebula.png', import.meta.url).href;
+  await image.decode();
+  sceneArt = image;
+}
 const TAU = Math.PI * 2;
 const surface = (w, h = w) => {
   const c = document.createElement('canvas');
@@ -53,7 +60,7 @@ export function glassTexture({
   );
   body.addColorStop(0, rgba('#ecfff9', 0.46));
   body.addColorStop(0.21, rgba(color, 0.3));
-  body.addColorStop(0.48, rgba('#102a39', material === 'pearl' ? 0.9 : 0.38));
+  body.addColorStop(0.48, rgba('#17225a', material === 'pearl' ? 0.78 : 0.25));
   body.addColorStop(0.7, rgba(color, 0.12));
   body.addColorStop(0.88, rgba(color, opacity));
   body.addColorStop(1, rgba('#e6fffa', 0.9));
@@ -67,7 +74,7 @@ export function glassTexture({
     y + r * 0.55,
     r * 0.65,
   );
-  caustic.addColorStop(0, rgba(color, 0.68));
+  caustic.addColorStop(0, rgba(color, 0.88));
   caustic.addColorStop(0.4, rgba(color, 0.2));
   caustic.addColorStop(1, rgba(color, 0));
   ctx.fillStyle = caustic;
@@ -100,6 +107,30 @@ export function glassTexture({
     ctx.ellipse(x - 3, y, r * 0.61, r * 0.84, 0.5, 0.1, 2.4);
     ctx.stroke();
   }
+  if (material === 'absorber') {
+    const hole = ctx.createRadialGradient(x, y, 3, x, y, r * 0.78);
+    hole.addColorStop(0, '#0d0624');
+    hole.addColorStop(0.4, '#311071');
+    hole.addColorStop(0.72, '#a542ff');
+    hole.addColorStop(1, '#dd9aff00');
+    ctx.fillStyle = hole;
+    ctx.fillRect(0, 0, 192, 192);
+    for (let j = 0; j < 3; j++) {
+      ctx.beginPath();
+      for (let i = 0; i <= 60; i++) {
+        const t = i / 60,
+          a = t * 4.2 + (j * TAU) / 3,
+          rr = 12 + t * 55;
+        const px = x + Math.cos(a) * rr,
+          py = y + Math.sin(a) * rr;
+        if (i) ctx.lineTo(px, py);
+        else ctx.moveTo(px, py);
+      }
+      ctx.strokeStyle = j === 1 ? '#f7c7ff' : '#c876ff';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+  }
   // Soft crescent reflection, never a flat square shine.
   const shine = ctx.createRadialGradient(x - 29, y - 45, 1, x - 29, y - 45, 40);
   shine.addColorStop(0, '#ffffff');
@@ -128,6 +159,7 @@ export function glassTexture({
   return canvas;
 }
 export function backgroundTexture(width, height) {
+  if (sceneArt) return sceneArt;
   const c = surface(width, height),
     ctx = c.getContext('2d');
   const g = ctx.createLinearGradient(0, 0, width, height);
@@ -174,6 +206,38 @@ export function panelTexture(fill, border, radius = 22) {
   ctx.fillStyle = g;
   ctx.fill();
   ctx.strokeStyle = border;
+  ctx.lineWidth = 1.3;
+  ctx.stroke();
+  return c;
+}
+
+export function shardTexture(variant = 0) {
+  const c = surface(48),
+    ctx = c.getContext('2d');
+  const points =
+    variant % 2
+      ? [
+          [6, 5],
+          [42, 12],
+          [27, 43],
+          [15, 27],
+        ]
+      : [
+          [8, 5],
+          [43, 35],
+          [17, 43],
+        ];
+  ctx.beginPath();
+  points.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+  ctx.closePath();
+  const g = ctx.createLinearGradient(8, 4, 40, 43);
+  g.addColorStop(0, '#ffffffff');
+  g.addColorStop(0.42, '#c5eaff55');
+  g.addColorStop(0.65, '#ffffffbb');
+  g.addColorStop(1, '#bfd6ff33');
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.strokeStyle = '#ffffffd0';
   ctx.lineWidth = 1.3;
   ctx.stroke();
   return c;
