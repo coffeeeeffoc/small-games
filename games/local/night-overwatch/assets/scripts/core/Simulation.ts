@@ -119,6 +119,26 @@ export class Simulation {
   private flight = new Flight();
   readonly aircraft = this.flight.aircraft;
   private serial = 0;
+  checkpoint() {
+    const { flight, height: _height, mission, aircraft: _aircraft,
+      pauses, spawned, completed, held, ...state } = this;
+    const value = { ...state, missionId: mission.id, flight: flight.checkpoint(),
+      pauses: [...pauses], spawned: [...spawned], completed: [...completed], held: [...held] };
+    return JSON.parse(JSON.stringify(value)) as typeof value;
+  }
+  static restore(value: ReturnType<Simulation['checkpoint']>) {
+    const { missionId, flight, pauses, spawned, completed, held, ...state } = value;
+    const sim = new Simulation(missionId);
+    Object.assign(sim, state);
+    // JSON stores unlimited ammunition as null; its value comes from the weapon rules.
+    sim.guns.forEach((gun, index) => { if (!Number.isFinite(WEAPONS[index].ammo)) gun.ammo = Infinity; });
+    sim.flight.restore(flight);
+    sim.pauses = new Set(pauses);
+    sim.spawned = new Set(spawned);
+    sim.completed = new Set(completed);
+    sim.held = new Set(held);
+    return sim;
+  }
   constructor(missionId: MissionId = 'corridor-01') {
     validateData();
     this.mission = missionDefinition(missionId);
@@ -274,7 +294,7 @@ export class Simulation {
   setAim(p: Point) {
     if (!Number.isFinite(p.x) || !Number.isFinite(p.z)) return;
     if (distance(p, this.aim) > 0.2) this.completed.add('aim');
-    this.aim = { ...p };
+    this.aim = { x: p.x, z: p.z };
     this.homingTargetId = undefined;
   }
   setFire(source: string, on: boolean) {

@@ -20,6 +20,15 @@ export class Flight {
   private altitude: number = FLIGHT.altitude;
   private radius: number = FLIGHT.radius;
 
+  checkpoint() {
+    return { aircraft: { ...this.aircraft }, altitude: this.altitude, radius: this.radius };
+  }
+  restore(value: ReturnType<Flight['checkpoint']>) {
+    Object.assign(this.aircraft, value.aircraft);
+    this.altitude = value.altitude;
+    this.radius = value.radius;
+  }
+
   setDirection(direction: -1 | 1) {
     if (direction === -1 || direction === 1) this.aircraft.direction = direction;
   }
