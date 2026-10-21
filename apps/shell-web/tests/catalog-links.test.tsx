@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { afterEach, expect, it, vi } from 'vitest';
 
 import { GameCatalog } from '../src/GameCatalog.js';
-import { builtInGameRegistry } from '../src/registry.js';
+import { fixtureRegistry as builtInGameRegistry } from './game.fixture.js';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 const mountedRoots: Array<ReturnType<typeof createRoot>> = [];
@@ -46,7 +46,7 @@ it.each(['list', 'cards'] as const)(
   async (view) => {
     const { container, launch, onLaunch } = await renderCatalog(view, true);
     expect(
-      container.querySelector<HTMLButtonElement>('[data-game-id="cultivation"] button.game-launch')
+      container.querySelector<HTMLButtonElement>('[data-game-id="fixture-game"] button.game-launch')
         ?.disabled,
     ).toBe(true);
     expect(launch.getAttribute('href')).toBe('/games/carding-car/index.html');

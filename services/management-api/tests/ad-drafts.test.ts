@@ -17,13 +17,13 @@ import { memoryAuthStore } from './auth.fixture.js';
 const origin = 'http://127.0.0.1:5174';
 const base = {
   formatVersion: 1,
-  gameId: 'cultivation',
+  gameId: 'fixture-game',
   enabled: true,
   policy: { maxPerSession: 2 },
   creatives: [{ id: 'spring', title: '春日礼包', ctaLabel: '查看', durationMs: 5000 }],
   placements: [
     {
-      opportunityId: 'cultivation.reincarnate',
+      opportunityId: 'fixture-game.reward',
       creativeId: 'spring',
       policy: { cooldownMs: 1000 },
       reward: { enabled: true, maxPerSession: 1 },
@@ -80,7 +80,7 @@ const create = () =>
     method: 'POST',
     url: '/api/ad-drafts/',
     headers,
-    payload: { name: '运营广告' },
+    payload: { name: '运营广告', gameId: 'fixture-game' },
   });
 
 it('creates a disabled plan, validates it, and rejects a stale writer without overwriting', async () => {
@@ -88,7 +88,7 @@ it('creates a disabled plan, validates it, and rejects a stale writer without ov
   expect(created.statusCode).toBe(201);
   const draft = created.json();
   // A fresh draft can never serve advertisements, and it holds no placement at all.
-  expect(draft.envelope).toEqual(defaultManagedAdConfig('cultivation'));
+  expect(draft.envelope).toEqual(defaultManagedAdConfig('fixture-game'));
   expect((await app.inject({ url: '/api/ad-drafts/', headers })).json()).toEqual([draft]);
   expect((await app.inject({ url: `/api/ad-drafts/${draft.id}`, headers })).json()).toEqual(draft);
   expect((await app.inject({ url: '/api/ad-drafts/not-a-uuid', headers })).statusCode).toBe(400);

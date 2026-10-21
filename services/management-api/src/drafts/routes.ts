@@ -1,10 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import type { FastifyInstance } from 'fastify';
-import {
-  defaultCultivationEnvelope,
-  normalizeCultivationContent,
-} from '@coffeeeeffoc/game-cultivation/content';
+import type { ContentTarget } from '../content-target.js';
 import type { AuthStore } from '../auth/model.js';
 import { authenticatedOperator, requireRole } from '../auth/access.js';
 import { draftSchema, type DraftStore } from './model.js';
@@ -15,6 +12,7 @@ export async function registerDrafts(
   auth: AuthStore,
   store: DraftStore,
   origin: string,
+  target?: ContentTarget,
 ) {
   await app.register(
     async (routes) => {
@@ -36,10 +34,12 @@ export async function registerDrafts(
         return (await store.get(input.data.id)) ?? reply.code(404).send({ error: 'NOT_FOUND' });
       });
       routes.post('/validate', async (request, reply) => {
-        const result = normalizeCultivationContent(request.body);
+        if (!target) return reply.code(503).send({ error: 'CONTENT_TARGET_NOT_CONFIGURED' });
+        const result = target.validate(request.body);
         return result.success ? result : reply.code(422).send(result);
       });
       routes.post('/', async (request, reply) => {
+        if (!target) return reply.code(503).send({ error: 'CONTENT_TARGET_NOT_CONFIGURED' });
         const input = draftSchema.pick({ name: true }).safeParse(request.body);
         if (!input.success) return reply.code(422).send({ issues: input.error.issues });
         return reply.code(201).send(
@@ -47,11 +47,12 @@ export async function registerDrafts(
             id: randomUUID(),
             name: input.data.name,
             revision: 0,
-            envelope: { ...structuredClone(defaultCultivationEnvelope), revision: 0 },
+            envelope: { ...structuredClone(target.defaultEnvelope), revision: 0 },
           }),
         );
       });
       routes.put('/:id', async (request, reply) => {
+        if (!target) return reply.code(503).send({ error: 'CONTENT_TARGET_NOT_CONFIGURED' });
         const params = z.object({ id: z.uuid() }).safeParse(request.params);
         const input = draftSchema.omit({ id: true }).safeParse(request.body);
         if (!params.success || !input.success)
@@ -60,7 +61,7 @@ export async function registerDrafts(
               ? input.error.issues
               : [{ path: ['id'], message: 'Invalid draft ID' }],
           });
-        const result = normalizeCultivationContent(input.data.envelope);
+        const result = target.validate(input.data.envelope);
         if (!result.success) return reply.code(422).send(result);
         const saved = await store.save({
           ...input.data,

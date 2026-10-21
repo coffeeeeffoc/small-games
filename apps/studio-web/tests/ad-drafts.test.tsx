@@ -19,7 +19,7 @@ import {
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 const base = {
   formatVersion: 1,
-  gameId: 'cultivation',
+  gameId: 'fixture-game',
   enabled: true,
   policy: { maxPerSession: 3 },
   creatives: [
@@ -27,7 +27,7 @@ const base = {
   ],
   placements: [
     {
-      opportunityId: 'cultivation.reincarnate',
+      opportunityId: 'fixture-game.reward',
       creativeId: 'spring',
       policy: { cooldownMs: 1500 },
       reward: { enabled: true, maxPerSession: 1 },
@@ -88,7 +88,7 @@ it('validates, previews, and saves Managed Ad drafts without publishing them', a
     id: crypto.randomUUID(),
     name: 'Managed Ad 草稿',
     revision: 0,
-    envelope: defaultManagedAdConfig('cultivation'),
+    envelope: defaultManagedAdConfig('fixture-game'),
   };
   const api: AdDraftClient = {
     list: async () => [saved],
@@ -106,7 +106,7 @@ it('validates, previews, and saves Managed Ad drafts without publishing them', a
   await act(async () => {
     root.render(
       <QueryClientProvider client={queryClient}>
-        <AdEditor api={api} />
+        <AdEditor api={api} initialGameId="fixture-game" />
       </QueryClientProvider>,
     );
   });
@@ -127,7 +127,7 @@ it('validates, previews, and saves Managed Ad drafts without publishing them', a
   expect(preview.textContent).toContain('春日礼包 · 限时开放 · 查看 · 完整观看 5 秒');
   // Shell frequency caps the placement rule while the placement keeps its own cooldown.
   expect(preview.textContent).toContain(
-    'cultivation.reincarnate → spring · 奖励开启 · 每会话 1 次 · 频控 3 次 / 冷却 1500ms',
+    'fixture-game.reward → spring · 奖励开启 · 每会话 1 次 · 频控 3 次 / 冷却 1500ms',
   );
   expect(api.save).not.toHaveBeenCalled();
   await click('保存草稿');
@@ -142,7 +142,7 @@ it('validates, previews, and saves Managed Ad drafts without publishing them', a
 });
 
 it('previews an unpublished plan as inert and explains why nothing would be served', async () => {
-  const disabled = defaultManagedAdConfig('cultivation');
+  const disabled = defaultManagedAdConfig('fixture-game');
   await act(async () => {
     root.render(<AdPreview config={disabled} />);
   });

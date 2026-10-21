@@ -1,3 +1,10 @@
+import {
+  localRetirementFileScopes,
+  localRetirementHeadQueryPaths,
+  isReviewedLocalRetirementDeletion,
+  hasLocalRetirementFileProof,
+  hasLocalRetirementDeletionProof,
+} from './local-game-retirement-scope.mjs';
 import { appendFile, readFile, readdir, stat } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import assert from 'node:assert/strict';
@@ -33,7 +40,6 @@ const NON_PAGES_APPS = new Set([
   'admin-web',
   'company-web',
   'shell-android',
-  'shell-bilibili',
   'shell-ios',
   'shell-minigame',
   'studio-web',
@@ -423,7 +429,12 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
       );
       // A successful exact-tree query proves absence. Read failures never count
       // as absence, and no rename (including a reviewed source) uses this proof.
-      const headQueries = retirementHeadQueryPaths(changedPaths);
+      const headQueries = [
+        ...new Set([
+          ...retirementHeadQueryPaths(changedPaths),
+          ...localRetirementHeadQueryPaths(changedPaths),
+        ]),
+      ];
       const headPaths = new Set(
         headQueries.length
           ? git(root, [
@@ -443,14 +454,20 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
         assert(headQueries.includes(file), 'Unqueried candidate path');
         return headPaths.has(file);
       };
-      const retiredScopes = retirementFileScopes({
+      const retirementContext = {
         changedPaths,
         readBase: (file) => git(root, ['show', `${diffBase}:${file}`]),
         readBaseEntry: (file) =>
           git(root, ['--literal-pathspecs', 'ls-tree', diffBase, '--', file]),
         readHead: (file) => git(root, ['show', `${headCommit}:${file}`]),
+        readHeadEntry: (file) =>
+          git(root, ['--literal-pathspecs', 'ls-tree', headCommit, '--', file]),
         headHasPath,
-      });
+      };
+      const retiredScopes = new Map([
+        ...retirementFileScopes(retirementContext),
+        ...localRetirementFileScopes(retirementContext),
+      ]);
       if (
         removed.some(
           (change) =>
@@ -461,7 +478,8 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
               readBase: (file) => git(root, ['show', `${diffBase}:${file}`]),
               headHasPath,
             }) &&
-            !isReviewedRetirementDeletion(change, retiredScopes),
+            !isReviewedRetirementDeletion(change, retiredScopes) &&
+            !isReviewedLocalRetirementDeletion(change, retiredScopes),
         )
       )
         throw new Error('Relevant deletion or rename requires full regression');
@@ -528,7 +546,14 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
       nineNativeFileScopes,
       nineLockFileScopes,
     ])
-      for (const [file, sources] of classify(context)) fileScopes.set(file, sources);
+      for (const [file, sources] of classify(context)) {
+        const existing = fileScopes.get(file);
+        if (
+          !hasLocalRetirementFileProof(file, existing, context.readHead) &&
+          !hasLocalRetirementDeletionProof(file, existing)
+        )
+          fileScopes.set(file, sources);
+      }
     const incremental = incrementalPlan({
       packages,
       games: catalog.standaloneGames,

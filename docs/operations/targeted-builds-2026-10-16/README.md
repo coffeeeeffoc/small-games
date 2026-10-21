@@ -2,7 +2,7 @@
 
 ## 后台与官网
 
-- `pnpm deploy:admin`：仅编译管理 API 的运行依赖、cultivation 内容导出及管理前端，发布管理包。用户本人执行以读取本机已忽略的 `.env.admin.local`。默认命令不执行旧基线候选验证或游戏检查。
+- `pnpm deploy:admin`：仅编译管理 API 的运行依赖及管理前端，发布管理包。用户本人执行以读取本机已忽略的 `.env.admin.local`。默认命令不执行旧基线候选验证或游戏检查。
 - `pnpm deploy:company`：仅构建、打包、发布官网，保留 SSH/DNS、ICP备案、制品摘要、HTTPS 对应和静态版本回滚，不重启入口或游戏。
 - 维护者一次执行 `pnpm deploy:caddy`，准备后台公开父目录的同路径只读挂载；尚未启用管理版本时，继续显示原登录页。沿用当前入口和完整保护事务，不增加端口、网络或 API。
 

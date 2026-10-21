@@ -31,7 +31,7 @@ const catalog = {
     'games/local/travel-bund-2.5D',
     'games/submodules/fishing',
     'games/local/echo-lab',
-    'games/local/game-cultivation',
+    'games/local/game-fixture',
   ],
 };
 const scope = (options) => selectPagesScope({ ...catalog, ...options });
@@ -717,11 +717,11 @@ test('dev and PR game changes select the registry ID and exact package directory
 });
 
 test('built-in game changes retain logical package tests without a standalone ID', () => {
-  assert.deepEqual(scope({ changedPaths: ['games/local/game-cultivation/src/game.ts'] }), {
+  assert.deepEqual(scope({ changedPaths: ['games/local/game-fixture/src/game.ts'] }), {
     required: true,
     full: false,
     game_ids: [],
-    game_sources: ['games/local/game-cultivation'],
+    game_sources: ['games/local/game-fixture'],
   });
 });
 
@@ -1073,14 +1073,14 @@ test('CLI output is valid GitHub output and an empty or unknown base selects ful
   const { root, git } = await temporaryRepository(t);
   await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });
   await mkdir(path.join(root, 'games/local/echo-lab'), { recursive: true });
-  await mkdir(path.join(root, 'games/local/game-cultivation'), { recursive: true });
+  await mkdir(path.join(root, 'games/local/game-fixture'), { recursive: true });
   await mkdir(path.join(root, 'games/submodules/fishing'), { recursive: true });
   await writeFile(
     path.join(root, 'apps/shell-web/src/standalone-games.json'),
     JSON.stringify(catalog.standaloneGames.filter((game) => game.id !== 'travel-bund-25d')),
   );
   await writeFile(path.join(root, 'games/local/echo-lab/package.json'), '{}');
-  await writeFile(path.join(root, 'games/local/game-cultivation/package.json'), '{}');
+  await writeFile(path.join(root, 'games/local/game-fixture/package.json'), '{}');
   await writeFile(path.join(root, 'README.md'), 'initial');
   git('add', '.');
   git('commit', '-m', 'initial');
@@ -1090,11 +1090,7 @@ test('CLI output is valid GitHub output and an empty or unknown base selects ful
   git('commit', '-m', 'docs');
   assert.deepEqual(await loadGameCatalog(root), {
     standaloneGames: catalog.standaloneGames.filter((game) => game.id !== 'travel-bund-25d'),
-    gameSources: [
-      'games/local/echo-lab',
-      'games/local/game-cultivation',
-      'games/submodules/fishing',
-    ],
+    gameSources: ['games/local/echo-lab', 'games/local/game-fixture', 'games/submodules/fishing'],
   });
   const outputPath = path.join(root, 'github-output');
   const result = await main(
@@ -1235,7 +1231,7 @@ test('affected logical test command uses exact filters and safely rejects invali
     gameTestCommand({
       PAGES_GAME_SOURCES: JSON.stringify([
         'games/local/echo-lab',
-        'games/local/game-cultivation',
+        'games/local/game-fixture',
         'games/local/echo-lab',
       ]),
     }),
@@ -1247,10 +1243,10 @@ test('affected logical test command uses exact filters and safely rejects invali
         'run',
         'test',
         '--filter=./games/local/echo-lab',
-        '--filter=./games/local/game-cultivation',
+        '--filter=./games/local/game-fixture',
         '--concurrency=1',
       ],
-      sources: ['games/local/echo-lab', 'games/local/game-cultivation'],
+      sources: ['games/local/echo-lab', 'games/local/game-fixture'],
     },
   );
   assert.deepEqual(gameTestCommand({ PAGES_FULL_REGRESSION: 'true' }), {

@@ -62,8 +62,8 @@ export function createAdDraftClient(transport: typeof fetch = fetch) {
     async read(id: string) {
       return adDraftSchema.parse(await request(`/${encodeURIComponent(id)}`));
     },
-    async create(name: string) {
-      return adDraftSchema.parse(await request('/', 'POST', { name }));
+    async create(name: string, gameId: string) {
+      return adDraftSchema.parse(await request('/', 'POST', { name, gameId }));
     },
     async save(draft: AdDraft) {
       return adDraftSchema.parse(await request(`/${encodeURIComponent(draft.id)}`, 'PUT', draft));

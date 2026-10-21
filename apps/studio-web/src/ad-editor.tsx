@@ -14,10 +14,17 @@ import {
 
 const client = createAdDraftClient();
 /** Managed Ad editing stays local until an explicit successful optimistic save. */
-export function AdEditor({ api = client }: { api?: AdDraftClient }) {
+export function AdEditor({
+  api = client,
+  initialGameId = '',
+}: {
+  api?: AdDraftClient;
+  initialGameId?: string;
+}) {
   const queryClient = useQueryClient();
   const drafts = useQuery({ queryKey: ['ad-drafts'], queryFn: () => api.list(), retry: false });
   const [draft, setDraft] = useState<AdDraft | null>(null);
+  const [gameId, setGameId] = useState(initialGameId);
   const [name, setName] = useState('Managed Ad 草稿');
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -62,6 +69,15 @@ export function AdEditor({ api = client }: { api?: AdDraftClient }) {
       </header>
       <div className="draft-toolbar">
         <label>
+          游戏 ID
+          <input
+            aria-label="Managed Ad 游戏 ID"
+            value={gameId}
+            disabled={busy}
+            onChange={(event) => setGameId(event.target.value)}
+          />
+        </label>
+        <label>
           草稿名称
           <input
             aria-label="Managed Ad 草稿名称"
@@ -71,11 +87,11 @@ export function AdEditor({ api = client }: { api?: AdDraftClient }) {
           />
         </label>
         <button
-          disabled={busy}
+          disabled={busy || !gameId.trim()}
           onClick={() => {
             if (mayReplace())
               void run(async () => {
-                select(await api.create(name));
+                select(await api.create(name, gameId.trim()));
                 await queryClient.invalidateQueries({ queryKey: ['ad-drafts'] });
               });
           }}

@@ -43,13 +43,11 @@ try {
   async function lobby() {
     await expect(page.getByRole('heading', { name: '摸鱼游戏社' })).toBeVisible();
     await expect(page.getByText('云存档账号', { exact: true })).toHaveCount(0);
-    await expect(page.locator('.catalog-grid article')).toHaveCount(5 + games.length);
+    await expect(page.locator('.catalog-grid article')).toHaveCount(games.length);
   }
   async function ready(target, id, title) {
     await expect(target.locator('nav strong')).toHaveText(title);
-    if (id === 'cultivation')
-      await expect(target.getByRole('button', { name: '点香 · 开始修行' })).toBeVisible();
-    else {
+    {
       await expect(target.frameLocator('iframe').locator('#start-defense')).toBeVisible();
       const standaloneUrl = new URL(`games/${id}/index.html`, url).href;
       assert.equal(
@@ -84,10 +82,7 @@ try {
   }
   assert.equal((await page.goto(url)).status(), 200);
   await lobby();
-  for (const game of [
-    { id: 'cultivation', title: '三分钟修仙' },
-    games.find((game) => game.id === 'merge-front'),
-  ]) {
+  for (const game of [games.find((game) => game.id === 'merge-front')]) {
     assert(game, 'Missing representative standalone game merge-front');
     console.log(`Pages host: route and startup / ${game.id}`);
     await page
@@ -98,7 +93,7 @@ try {
     await sharing(game.id, game.title);
     await page
       .getByRole('button', {
-        name: game.id === 'cultivation' ? '← 返回目录' : '返回目录',
+        name: '返回目录',
         exact: true,
       })
       .click();

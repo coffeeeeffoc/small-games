@@ -58,8 +58,8 @@ it('filters both catalog views and keeps the search when returning from a game',
     await click('返回目录');
     expect(titles()).toEqual(['浪湾卡丁车']);
     expect(container.querySelector('.catalog-list')).not.toBeNull();
-    await search('games/local/game-building');
-    expect(titles()).toEqual(['忙碌的电工']);
+    await search('games/local/game-moss');
+    expect(titles()).toEqual(['苔光花园']);
     for (const query of ['双线连招', '两步连招']) {
       await search(query);
       expect(titles()).toEqual(['象五子棋']);

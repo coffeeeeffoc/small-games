@@ -36,14 +36,17 @@ export async function registerAdDrafts(
         return result.success ? result : reply.code(422).send(result);
       });
       routes.post('/', async (request, reply) => {
-        const input = adDraftSchema.pick({ name: true }).safeParse(request.body);
+        const input = adDraftSchema
+          .pick({ name: true })
+          .extend({ gameId: z.string().trim().min(1).max(128) })
+          .safeParse(request.body);
         if (!input.success) return reply.code(422).send({ issues: input.error.issues });
         return reply.code(201).send(
           await store.create({
             id: randomUUID(),
             name: input.data.name,
             revision: 0,
-            envelope: defaultManagedAdConfig('cultivation'),
+            envelope: defaultManagedAdConfig(input.data.gameId),
           }),
         );
       });

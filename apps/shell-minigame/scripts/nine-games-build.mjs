@@ -251,7 +251,7 @@ export async function buildTarget(selected, config, outputRoot) {
       });
     if (!selected.nativeHost)
       await cp(
-        path.join(root, 'games/local/game-cricket/public/cricket-audio/perfect.wav'),
+        path.join(root, 'platforms/competition/assets/action.wav'),
         path.join(outDir, 'competition-action.wav'),
       );
     for (const [name, value] of Object.entries(

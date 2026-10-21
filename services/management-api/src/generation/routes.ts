@@ -12,7 +12,7 @@ export async function registerGenerationJobs(
   auth: AuthStore,
   store: GenerationJobStore,
   origin: string,
-  target: GenerationTarget,
+  target?: GenerationTarget,
 ) {
   await app.register(
     async (routes) => {
@@ -24,6 +24,7 @@ export async function registerGenerationJobs(
       routes.addHook('onRequest', requireRole(auth, 'creator'));
       routes.get('/', () => store.list());
       routes.post('/', async (request, reply) => {
+        if (!target) return reply.code(503).send({ error: 'CONTENT_TARGET_NOT_CONFIGURED' });
         const input = requestSchema.safeParse(request.body);
         if (!input.success) return reply.code(422).send({ error: 'INVALID_INPUT' });
         const operator = await authenticatedOperator(auth, request);
@@ -47,6 +48,7 @@ export async function registerGenerationJobs(
         );
       });
       routes.post('/:id/retry', async (request, reply) => {
+        if (!target) return reply.code(503).send({ error: 'CONTENT_TARGET_NOT_CONFIGURED' });
         const id = z.uuid().safeParse((request.params as { id?: unknown }).id);
         if (!id.success) return reply.code(422).send({ error: 'INVALID_INPUT' });
         const previous = await store.get(id.data);

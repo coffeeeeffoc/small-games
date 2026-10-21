@@ -35,11 +35,7 @@ const sources = {
     'games/local/vibeJam-myself-history-guess/public',
     'games/submodules/xiangqi-five/game.js',
   ],
-  management: [
-    'services/management-api/dist',
-    'games/local/game-cultivation/dist-content',
-    'games/local/game-cultivation/src/manifest.json',
-  ],
+  management: ['services/management-api/dist'],
   kart: ['services/kart-server/src', 'games/local/carding-car/assets/scripts'],
   tianxia: [
     'services/tianxia-server/src',

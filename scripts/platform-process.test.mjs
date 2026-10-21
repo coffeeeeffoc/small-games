@@ -6,7 +6,7 @@ import { developmentEntries } from './platform-apps.mjs';
 test('the platform command owns every local application process', () => {
   assert.deepEqual(
     developmentEntries(process.execPath, 'F:\\workspace').map(({ name }) => name),
-    ['management', 'runtime', 'shell-web', 'shell-bilibili', 'studio-web', 'workspace-agent'],
+    ['management', 'runtime', 'shell-web', 'studio-web', 'workspace-agent'],
   );
 });
 

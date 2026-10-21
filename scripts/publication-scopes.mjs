@@ -2261,7 +2261,7 @@ export function reviewedSharedFileScopes({
       ) {
         const consumers = competitionIdentityFileScope({ games, packages, readBase, readHead });
         if (file === 'scripts/competition-client.test.mjs')
-          for (const host of ['apps/shell-minigame', 'apps/shell-bilibili']) {
+          for (const host of ['apps/shell-minigame']) {
             assert.equal(packages.filter((pkg) => pkg.dir === host).length, 1);
             consumers.push(host);
           }
@@ -2421,11 +2421,7 @@ export function reviewedSharedFileScopes({
             ...sources,
             ...(native || xiangqi || protocolGame ? [] : ['apps/shell-web']),
             ...(file === 'scripts/competition-service-config.mjs' ? ['apps/shell-minigame'] : []),
-            ...(native
-              ? ['apps/shell-minigame', 'apps/shell-bilibili']
-              : xiangqi
-                ? ['apps/shell-minigame']
-                : []),
+            ...(native ? ['apps/shell-minigame'] : xiangqi ? ['apps/shell-minigame'] : []),
             ...(gateway ? [...Object.values(rankedConsumers), 'services/runtime-api'] : []),
             ...(file === 'scripts/competition.integration.mjs' || protocolGame
               ? ['services/runtime-api']

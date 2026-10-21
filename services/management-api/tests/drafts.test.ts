@@ -1,4 +1,4 @@
-import { legacyCultivationEnvelope } from '@coffeeeeffoc/game-cultivation/content';
+import { fixtureEnvelope, fixtureTarget } from './content.fixture.js';
 import { afterEach, beforeEach, expect, it } from 'vitest';
 import { createService } from '@coffeeeeffoc/service-kit';
 import {
@@ -55,7 +55,7 @@ beforeEach(async () => {
   };
   app = createService('management', {}, false);
   await registerAuthentication(app, auth, origin);
-  await registerDrafts(app, auth, store, origin);
+  await registerDrafts(app, auth, store, origin, fixtureTarget);
   const login = await app.inject({
     method: 'POST',
     url: '/api/auth/login',
@@ -123,7 +123,7 @@ it('creates, lists, reads, validates, saves, and rejects a stale writer without 
 });
 it('rejects invalid fields without saving and migrates v1 on save', async () => {
   const draft = (await create()).json();
-  draft.envelope.payload.balance.moveSpeed = 0;
+  draft.envelope.payload.count = 0;
   const invalid = await app.inject({
     method: 'PUT',
     url: `/api/drafts/${draft.id}`,
@@ -131,9 +131,9 @@ it('rejects invalid fields without saving and migrates v1 on save', async () => 
     payload: draft,
   });
   expect(invalid.statusCode).toBe(422);
-  expect(invalid.json().issues[0].path).toEqual(['payload', 'balance', 'moveSpeed']);
+  expect(invalid.json().issues[0].path).toEqual(['payload', 'count']);
   expect((await store.get(draft.id))?.revision).toBe(0);
-  draft.envelope = structuredClone(legacyCultivationEnvelope);
+  draft.envelope = structuredClone(fixtureEnvelope);
   draft.envelope.schemaVersion = 1;
   delete draft.envelope.payload.title;
   const migrated = await app.inject({
@@ -143,8 +143,8 @@ it('rejects invalid fields without saving and migrates v1 on save', async () => 
     payload: draft,
   });
   expect(migrated.statusCode).toBe(200);
-  expect(migrated.json().envelope.schemaVersion).toBe(3);
-  expect(migrated.json().envelope.payload.title).toBe('三分钟修仙');
+  expect(migrated.json().envelope.schemaVersion).toBe(2);
+  expect(migrated.json().envelope.payload.title).toBe('Fixture game');
 });
 it('requires creator and trusted origin and does not expose database errors', async () => {
   expect((await app.inject('/api/drafts/')).statusCode).toBe(401);
@@ -168,4 +168,25 @@ it('requires creator and trusted origin and does not expose database errors', as
   const failure = await app.inject({ url: '/api/drafts/', headers });
   expect(failure.statusCode).toBe(503);
   expect(failure.body).not.toContain('private-secret');
+});
+
+it('keeps stored draft reads available but rejects content writes without an installed target', async () => {
+  const unconfigured = createService('management', {}, false);
+  await registerAuthentication(unconfigured, auth, origin);
+  await registerDrafts(unconfigured, auth, store, origin);
+  try {
+    expect((await unconfigured.inject({ url: '/api/drafts/', headers })).statusCode).toBe(200);
+    for (const [method, url] of [
+      ['POST', '/api/drafts/'],
+      ['POST', '/api/drafts/validate'],
+      ['PUT', `/api/drafts/${crypto.randomUUID()}`],
+    ] as const) {
+      const result = await unconfigured.inject({ method, url, headers, payload: {} });
+      expect(result.statusCode).toBe(503);
+      expect(result.json()).toEqual({ error: 'CONTENT_TARGET_NOT_CONFIGURED' });
+    }
+    expect(await store.list()).toEqual([]);
+  } finally {
+    await unconfigured.close();
+  }
 });

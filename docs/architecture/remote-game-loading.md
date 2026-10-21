@@ -1,12 +1,10 @@
 # Remote Game loading
 
-Web Shell can select a remote Cultivation release from its static Catalog. Without remote configuration it keeps using the built-in Game.
+Web Shell retains its verified remote loader and trusted fallback contract. The default catalog currently contains independent game entries.
 
 ## Build and serve
 
-Build `@coffeeeeffoc/game-cultivation` with `VITE_SHELL_ORIGIN` set to the exact Shell origin. The iframe build produces `dist-iframe/remote-entry.js`, a self-contained ES module including styles and the child Host bridge. Serve this file from an origin different from Shell, with no redirect, and compute its SHA-256 after building.
-
-Configure the Shell build with `VITE_CULTIVATION_ARTIFACT_URL`, `VITE_CULTIVATION_ARTIFACT_VERSION` (currently `1.0.0`) and `VITE_CULTIVATION_ARTIFACT_INTEGRITY` (`sha256-` followed by the Base64 digest). The Catalog is the trusted source of the expected digest; never derive it from the downloaded response.
+A trusted registry integration supplies a `RemoteGameArtifact` with its expected manifest, version, entry URL and integrity (`sha256-` plus the Base64 digest). The default registry has no remote target. Expected identity and digest must come from trusted configuration, never from the downloaded response.
 
 The Artifact server must allow CORS from Shell and expose `Content-Security-Policy`. Its required CSP is:
 

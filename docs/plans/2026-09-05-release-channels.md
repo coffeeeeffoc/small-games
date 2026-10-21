@@ -96,7 +96,6 @@ Files: create `apps/studio-web/src/release-client.ts`, `release-panel.tsx`,
 ## Task 5: Local wiring and fault verification
 
 Files: modify `scripts/platform-config.mjs`, `scripts/platform.mjs`,
-`scripts/build-artifact.mjs`; create `scripts/releases.integration.mjs` and
 `docs/architecture/release-channels.md`.
 
 1. Export only the local signer's public key to a separate ignored file after a verified

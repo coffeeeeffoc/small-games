@@ -80,7 +80,7 @@ export function LoginPage() {
 /** Protected landing view exposes the current operator and their granted roles. */
 export function WorkspacePage() {
   const router = useRouter();
-  const { auth, queryClient } = router.options.context as StudioContext;
+  const { auth, queryClient, contentTarget } = router.options.context as StudioContext;
   const session = useQuery({
     queryKey: ['session'],
     queryFn: () => auth.session(),
@@ -122,11 +122,15 @@ export function WorkspacePage() {
             {logout.error.message}
           </p>
         )}
-        {operator?.roles.includes('creator') && <DraftEditor />}
-        {operator?.roles.includes('creator') && <GenerationPanel />}
+        {contentTarget && operator?.roles.includes('creator') && (
+          <DraftEditor target={contentTarget} />
+        )}
+        {contentTarget && operator?.roles.includes('creator') && (
+          <GenerationPanel target={contentTarget} />
+        )}
         {operator?.roles.includes('creator') && <AdEditor />}
         {operator?.roles.includes('creator') && <RepositoryBrowser />}
-        {operator?.roles.includes('publisher') && <ReleasePanel />}
+        {contentTarget && operator?.roles.includes('publisher') && <ReleasePanel />}
         {operator?.roles.includes('admin') && <ProtectionPanel />}
       </section>
     </main>

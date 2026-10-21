@@ -1,5 +1,0 @@
-{
-  "extends": "@coffeeeeffoc/config-typescript/base.json",
-  "compilerOptions": { "lib": ["ES2022", "DOM"], "types": ["node"] },
-  "include": ["src", "tests", "vite.native.config.ts"]
-}

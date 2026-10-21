@@ -1,3 +1,4 @@
+import type { StudioContentTarget } from './content-target.js';
 import {
   createRootRouteWithContext,
   createRoute,
@@ -14,6 +15,7 @@ import { LoginPage, WorkspacePage } from './views.js';
 export interface StudioContext {
   auth: AuthClient;
   queryClient: QueryClient;
+  contentTarget?: StudioContentTarget;
 }
 const rootRoute = createRootRouteWithContext<StudioContext>()({
   component: Outlet,

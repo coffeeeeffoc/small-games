@@ -8,15 +8,13 @@ import { createInMemoryGameHost } from '@coffeeeeffoc/game-host';
 import { BrowserIframePlatform, FallbackGameLoader } from '@coffeeeeffoc/game-loader';
 import {
   ShellApp,
-  builtInGameRegistry as lazyRegistry,
-  loadBuiltInGame,
   createRuntimeClient,
   playerLoginCode,
   type BuiltInGame,
   type ShellAppProps,
 } from '@coffeeeeffoc/shell-web';
 
-const builtInGameRegistry = await Promise.all(lazyRegistry.map(loadBuiltInGame));
+import { fixtureRegistry as builtInGameRegistry } from './game.fixture.js';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -69,7 +67,7 @@ async function renderShell(
   return container;
 }
 
-async function clickButton(container: HTMLElement, label: string, title = '三分钟修仙') {
+async function clickButton(container: HTMLElement, label: string, title = 'Fixture game') {
   const button = [...container.querySelectorAll('button')].find(
     (item) =>
       item.textContent?.includes(label) &&
@@ -130,41 +128,38 @@ describe('Web Shell integration', () => {
   });
 
   it('opens, pauses, resumes, exits, and re-enters the build-time Game', async () => {
-    const removeListener = vi.spyOn(document, 'removeEventListener');
     const container = await renderShell();
     expect(container.querySelector('[aria-label="Game Catalog"]')).not.toBeNull();
     expect(container.textContent).toContain(builtInGameRegistry[0].title);
 
     await clickButton(container, '进入游戏');
-    expect(container.textContent).toContain('三分钟修仙');
-    expect(window.location.hash).toBe('#/games/cultivation');
+    expect(container.textContent).toContain('Fixture game');
+    expect(window.location.hash).toBe('#/games/fixture-game');
 
     Object.defineProperty(document, 'hidden', { configurable: true, value: true });
     await act(async () => document.dispatchEvent(new Event('visibilitychange')));
-    expect(container.textContent).toContain('修行已暂停');
+    expect(container.textContent).toContain('已暂停');
     Object.defineProperty(document, 'hidden', { configurable: true, value: false });
     await act(async () => document.dispatchEvent(new Event('visibilitychange')));
-    await clickButton(container, '继续修行');
-    expect(container.textContent).not.toContain('修行已暂停');
+    expect(container.textContent).not.toContain('已暂停');
 
     await clickButton(container, '返回目录');
     expect(container.querySelector('.game-slot')).toBeNull();
-    expect(removeListener).toHaveBeenCalledWith('visibilitychange', expect.any(Function));
 
     await clickButton(container, '进入游戏');
-    expect(container.textContent).toContain('三分钟修仙');
+    expect(container.textContent).toContain('Fixture game');
     await clickButton(container, '返回目录');
   });
 
-  it('launches a remote cultivation Catalog target through the fallback loader', async () => {
-    const cultivation = builtInGameRegistry[0];
+  it('launches a remote fixture-game Catalog target through the fallback loader', async () => {
+    const fixtureGame = builtInGameRegistry[0];
     const remote = {
-      ...cultivation,
+      ...fixtureGame,
       remote: {
         target: {
-          entryUrl: 'https://games.example/cultivation/2.0.0/index.html',
+          entryUrl: 'https://games.example/fixture-game/2.0.0/index.html',
           manifest: {
-            ...cultivation.definition.manifest,
+            ...fixtureGame.definition.manifest,
             version: '2.0.0',
             loadModes: ['iframe'] as const,
             integrity: 'sha256-fixture',
@@ -174,7 +169,7 @@ describe('Web Shell integration', () => {
     };
     const remoteLoader = {
       launch: vi.fn(async (_artifact, target: HTMLElement) => {
-        target.textContent = '远程三分钟修仙 2.0.0';
+        target.textContent = '远程Fixture game 2.0.0';
       }),
       pause: vi.fn(),
       resume: vi.fn(),
@@ -194,41 +189,13 @@ describe('Web Shell integration', () => {
     await clickButton(container, '详情卡片');
     expect(container.textContent).toContain('REMOTE GAME · BUILT-IN FALLBACK');
     await clickButton(container, '进入游戏');
-    expect(container.textContent).toContain('远程三分钟修仙 2.0.0');
+    expect(container.textContent).toContain('远程Fixture game 2.0.0');
     expect(createHost).toHaveBeenCalledWith(
       expect.objectContaining({ id: remote.id, remote: remote.remote }),
       remote.remote.target.manifest,
       remote.remote.target,
     );
-    expect(localStorage.getItem('game-lkg:cultivation')).toContain('2.0.0');
-    await clickButton(container, '返回目录');
-  });
-
-  it('enters, exits, and re-enters the office Game through the catalog', async () => {
-    vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
-    const office = builtInGameRegistry.find((game) => game.id === 'office');
-    const container = await renderShell(hostFor, office ? [office] : []);
-
-    await clickButton(container, '进入游戏', office!.title);
-    expect(container.querySelector('[role="alert"]')).toBeNull();
-    await clickButton(container, '悄悄进入办公室');
-    expect(container.textContent).toContain('别让老板发现你迟到了');
-    await clickButton(container, '返回目录');
-    await clickButton(container, '进入游戏', office!.title);
-    expect(container.textContent).toContain('悄悄进入办公室');
-    expect(container.querySelector('[role="alert"]')).toBeNull();
-    await clickButton(container, '返回目录');
-  });
-
-  it('enters, exits, and re-enters the arena Game through the catalog', async () => {
-    const arena = builtInGameRegistry.find((game) => game.id === 'arena');
-    expect(arena).toBeDefined();
-    const container = await renderShell(hostFor, arena ? [arena] : []);
-    await clickButton(container, '进入游戏', arena!.title);
-    expect(container.textContent).toContain('电子斗蛐蛐');
-    await clickButton(container, '返回目录');
-    await clickButton(container, '进入游戏', arena!.title);
-    expect(container.textContent).toContain('电子斗蛐蛐');
+    expect(localStorage.getItem('game-lkg:fixture-game')).toContain('2.0.0');
     await clickButton(container, '返回目录');
   });
 

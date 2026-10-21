@@ -28,6 +28,7 @@ if (mode === 'stop') {
     '012-three-choose-two.sql',
     '013-competition-identities.sql',
     '014-player-sessions.sql',
+    '015-generic-content-drafts.sql',
   ])
     await run(
       'docker',
@@ -72,7 +73,6 @@ if (mode === 'stop') {
       await run(process.execPath, ['scripts/auth.integration.mjs']);
       await run(process.execPath, ['scripts/artifact.integration.mjs']);
       await run(process.execPath, ['scripts/releases.integration.mjs']);
-      await run(process.execPath, ['scripts/catalog.integration.mjs']);
     } else {
       const controller = new AbortController();
       const stop = () => controller.abort();

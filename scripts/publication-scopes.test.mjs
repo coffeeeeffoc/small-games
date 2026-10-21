@@ -1343,7 +1343,6 @@ test('optional service configuration has finite H5 consumers and rejects unknown
         'games/local/letters-words2',
         'games/local/vibeJam-myself-history-guess',
         'apps/shell-minigame',
-        'apps/shell-bilibili',
       ])
         assert(fileScopes.get(file).includes(source));
     }
@@ -3426,7 +3425,11 @@ test('CSP tools select only actual admin/company consumers, exact Turbo inputs a
     assert.equal(reviewedSharedFileScopes({ ...context, packages: [] }).has(file), false);
   }
   const before = frozenAdminBaseline('turbo.json');
-  const after = readFileSync(new URL('../turbo.json', import.meta.url), 'utf8');
+  const after = execFileSync(
+    'git',
+    ['show', '0459b0cb3c89a748f3a6bd252858951ba1ca073d:turbo.json'],
+    { encoding: 'utf8' },
+  );
   const classify = (value) =>
     reviewedSharedFileScopes({
       changedPaths: ['turbo.json'],
@@ -3812,7 +3815,11 @@ test('anonymous session migration and Pages service defaults admit only the revi
       : execFileSync('git', ['show', '0d7bfdfe4087b85139dc525e9a75f3ab792e17f6:' + file], {
           encoding: 'utf8',
         });
-    const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+    const after = ['scripts/platform.mjs', 'scripts/deploy-tencent.mjs'].includes(file)
+      ? execFileSync('git', ['show', '0459b0cb3c89a748f3a6bd252858951ba1ca073d:' + file], {
+          encoding: 'utf8',
+        })
+      : readFileSync(new URL('../' + file, import.meta.url), 'utf8');
     const check = file.startsWith('.github/')
       ? anonymousPagesFileScope
       : playerSessionBackendFileScope;

@@ -2,21 +2,19 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { normalizeManagedAdConfig, type ManagedAdConfig } from '@coffeeeeffoc/ad-config';
 import { publishedSessionSchema } from '@coffeeeeffoc/release-contract';
 import {
-  builtInGameRegistry as lazyRegistry,
-  loadBuiltInGame,
   createManagedAdProvider,
   createWebGameHost,
   withPublishedSession,
 } from '@coffeeeeffoc/shell-web';
 
-const builtInGameRegistry = await Promise.all(lazyRegistry.map(loadBuiltInGame));
+import { fixtureRegistry as builtInGameRegistry } from './game.fixture.js';
 
-const opportunity = { id: 'cultivation.reincarnate', reward: { luck: 2 } };
+const opportunity = { id: 'fixture-game.reincarnate', reward: { luck: 2 } };
 
 function plan(): ManagedAdConfig {
   const result = normalizeManagedAdConfig({
     formatVersion: 1,
-    gameId: 'cultivation',
+    gameId: 'fixture-game',
     enabled: true,
     policy: {},
     creatives: [{ id: 'spring', title: '春日礼包', ctaLabel: '查看', durationMs: 1000 }],

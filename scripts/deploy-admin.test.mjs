@@ -112,22 +112,17 @@ test('SSH uses exact host checking, no secrets in argv and rejects missing host'
   assert.throws(() => sshArguments({ host: '' }, ''), /SSH_FAILED/);
 });
 
-test('admin compiles only runtime exports and its API, without cultivation UI, Cocos or quality gates', async () => {
+test('admin compiles only runtime exports and its API, without game UI, Cocos or quality gates', async () => {
   const root = fileURLToPath(new URL('../', import.meta.url));
   const commands = await selectedBackendBuildCommands(['management'], root);
-  assert(
-    commands.some(
-      (command) =>
-        command.join(' ') ===
-        '--filter @coffeeeeffoc/game-cultivation exec tsc -p tsconfig.content.json',
-    ),
-  );
   assert(
     commands.some((command) => command.join(' ') === '--filter @coffeeeeffoc/management-api build'),
   );
   assert(
     !commands.some((command) =>
-      /turbo|test|lint|validate|carding|overwatch|game-cultivation build/.test(command.join(' ')),
+      /turbo|test|lint|validate|carding|overwatch|game-(cultivation|cricket|office|arena|building-power)/.test(
+        command.join(' '),
+      ),
     ),
   );
   const source = await readFile(new URL('./deploy-admin.mjs', import.meta.url), 'utf8');

@@ -61,5 +61,3 @@ node games/local/three-choose-two/native/recovery-check.mjs --platform wechat
 ```
 
 ## 公共消费者
-
-公共原生冒烟工具的消费者仍为 `shell-minigame` 和 `shell-bilibili`。本次 shell-minigame 全部普通 preview 构建、完整四渠道 CJS 冒烟、类型、lint、28 项 Vitest 和 107 项 Node 脚本测试通过；building-power 冒烟使用其现有 28 项规则测试生成的真实整班输入见证。shell-bilibili 构建、类型、lint、28 项测试与目录 CJS 冒烟通过。准确候选增量验证保留两个消费者，并只选择可证明的本游戏 H5 接入范围。

@@ -26,11 +26,7 @@ export async function selectedBackendBuildCommands(services, root) {
     for (const [dependency, version] of Object.entries(pkg.dependencies ?? {}))
       if (version.startsWith('workspace:')) visit(dependency);
     if (!pkg.scripts?.build || (!entry && !emitted(pkg.exports))) return;
-    commands.push(
-      pkg.dir === 'games/local/game-cultivation'
-        ? ['--filter', name, 'exec', 'tsc', '-p', 'tsconfig.content.json']
-        : ['--filter', name, 'build'],
-    );
+    commands.push(['--filter', name, 'build']);
   };
   for (const name of services) visit(backendPackages[name], true);
   return commands;

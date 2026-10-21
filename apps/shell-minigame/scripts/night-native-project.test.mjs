@@ -48,14 +48,14 @@ test('actual native guards preserve canonical source and independently compute t
     const platform = await readFile(path.join(gameRoot, 'assets/scripts/Platform.ts'));
     assert.equal(
       await artifact.sourceHash(gameRoot),
-      '1112f9ca274058aecc279c63e3c57d54cead1d77b7b7069de77c751e8cd1fac1',
+      '93e91ce2d5194118e25757c08d1dbbb4543cd51beab166588f539dc5be76ee93',
     );
     const result = await prepareNativeProject(gameRoot, { stageBase });
     assert.equal(result.canonicalSourceHash, await artifact.sourceHash(gameRoot));
     assert.equal(result.sourceHash, await artifact.sourceHash(result.projectRoot));
     assert.equal(
       result.sourceHash,
-      'a5eab8fde78b2df9b8b76e2b4d18662758a407fcf313dba1400d3ec2794d163c',
+      'c39b6456eeb65fa56a1e036d58b517df586dd02883759d2175c5ab10709205ab',
     );
     assert.equal(result.adaptationRecipeSha256, adaptationRecipeSha256);
     assert.equal(result.adaptation.creatorBuildVerified, false);
@@ -133,7 +133,7 @@ test('normalized CRLF input has an honest raw receipt and unchanged source hash'
     const result = await prepareNativeProject(gameRoot, { stageBase });
     assert.equal(
       result.canonicalSourceHash,
-      '1112f9ca274058aecc279c63e3c57d54cead1d77b7b7069de77c751e8cd1fac1',
+      '93e91ce2d5194118e25757c08d1dbbb4543cd51beab166588f539dc5be76ee93',
     );
     assert.notEqual(
       result.adaptation.inputs[0].canonicalSha256,
@@ -151,7 +151,7 @@ test('all legitimate hash inputs are copied and mutations produce their real nat
     assert.equal(result.sourceHash, await artifact.sourceHash(result.projectRoot));
     assert.notEqual(
       result.sourceHash,
-      'a5eab8fde78b2df9b8b76e2b4d18662758a407fcf313dba1400d3ec2794d163c',
+      'c39b6456eeb65fa56a1e036d58b517df586dd02883759d2175c5ab10709205ab',
     );
   }));
 test('existing extension is copied with digest evidence but no authenticity claim', () =>

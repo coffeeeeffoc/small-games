@@ -17,7 +17,7 @@ describe('Repository Bridge diff review', () => {
       })),
     );
     expect(createDiffHunks(before, before)).toEqual([]);
-    expect(renderUnifiedDiff('games/local/game-arena/src/a.ts', [])).toBe('');
+    expect(renderUnifiedDiff('games/local/game-fixture/src/a.ts', [])).toBe('');
   });
 
   it('shows inserted, removed, and changed lines in order', () => {
@@ -68,11 +68,11 @@ describe('Repository Bridge diff review', () => {
       '\n',
     );
     expect(
-      renderUnifiedDiff('games/local/game-arena/src/a.ts', createDiffHunks(before, after)),
+      renderUnifiedDiff('games/local/game-fixture/src/a.ts', createDiffHunks(before, after)),
     ).toBe(
       [
-        '--- a/games/local/game-arena/src/a.ts',
-        '+++ b/games/local/game-arena/src/a.ts',
+        '--- a/games/local/game-fixture/src/a.ts',
+        '+++ b/games/local/game-fixture/src/a.ts',
         '@@ -1,3 +1,3 @@',
         ' export const a = 1;',
         '-export const b = 2;',

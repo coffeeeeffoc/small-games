@@ -2,8 +2,6 @@ import { expect, it, vi } from 'vitest';
 import { publishedSessionSchema } from '@coffeeeeffoc/release-contract';
 import { gameSessionContextSchema } from '@coffeeeeffoc/game-contract';
 import {
-  builtInGameRegistry as lazyRegistry,
-  loadBuiltInGame,
   withPublishedSession,
   createWebGameHost,
   createRuntimeClient,
@@ -16,7 +14,7 @@ import {
 import { FallbackGameLoader } from '@coffeeeeffoc/game-loader';
 import { createInMemoryGameHost } from '@coffeeeeffoc/game-host';
 
-const builtInGameRegistry = await Promise.all(lazyRegistry.map(loadBuiltInGame));
+import { fixtureRegistry as builtInGameRegistry } from './game.fixture.js';
 
 it('stores a transferable cloud-save credential atomically', () => {
   localStorage.clear();
@@ -35,7 +33,7 @@ it('maps Runtime cloud-save responses to StoragePort without exposing transport 
   const transport = vi
     .fn<typeof fetch>()
     .mockResolvedValueOnce(new Response(null, { status: 404 }))
-    .mockResolvedValueOnce(Response.json({ value: { cultivationChapter: 2 }, version: '1' }))
+    .mockResolvedValueOnce(Response.json({ value: { chapter: 2 }, version: '1' }))
     .mockResolvedValueOnce(
       Response.json({ error: 'SAVE_CONFLICT', actualVersion: '2' }, { status: 409 }),
     );
@@ -43,11 +41,11 @@ it('maps Runtime cloud-save responses to StoragePort without exposing transport 
   const storage = createRuntimeClient('https://runtime.example', transport).storage(sessionId);
 
   await expect(storage.read('save')).resolves.toBeNull();
-  await expect(storage.write('save', { cultivationChapter: 2 }, null)).resolves.toEqual({
-    value: { cultivationChapter: 2 },
+  await expect(storage.write('save', { chapter: 2 }, null)).resolves.toEqual({
+    value: { chapter: 2 },
     version: '1',
   });
-  await expect(storage.write('save', { cultivationChapter: 3 }, '1')).rejects.toMatchObject({
+  await expect(storage.write('save', { chapter: 3 }, '1')).rejects.toMatchObject({
     code: 'CONFLICT',
     details: { actualVersion: '2' },
   });
@@ -66,7 +64,7 @@ it('isolates local fallback by player and syncs a write made before Runtime reco
     playerId,
     runtimeStorage: unavailableRuntimeStorage,
   });
-  await offline.storage.write('save', { cultivationChapter: 2 }, null);
+  await offline.storage.write('save', { chapter: 2 }, null);
 
   const otherPlayer = createWebGameHost({
     ...game,
@@ -78,17 +76,14 @@ it('isolates local fallback by player and syncs a write made before Runtime reco
   const remote = createInMemoryGameHost().storage;
   const recovered = createWebGameHost({ ...game, playerId, runtimeStorage: remote });
   await expect(recovered.storage.read('save')).resolves.toMatchObject({
-    value: { cultivationChapter: 2 },
+    value: { chapter: 2 },
     version: '1',
   });
 });
 
 it('moves an existing unscoped browser save into the first player account and cloud', async () => {
   localStorage.clear();
-  localStorage.setItem(
-    'small-games:save',
-    JSON.stringify({ value: { cultivationChapter: 7 }, version: '3' }),
-  );
+  localStorage.setItem('small-games:save', JSON.stringify({ value: { chapter: 7 }, version: '3' }));
   const playerId = crypto.randomUUID();
   const remote = createInMemoryGameHost().storage;
   const host = createWebGameHost({
@@ -98,7 +93,7 @@ it('moves an existing unscoped browser save into the first player account and cl
   });
 
   await expect(host.storage.read('save')).resolves.toMatchObject({
-    value: { cultivationChapter: 7 },
+    value: { chapter: 7 },
     version: 'local:1',
   });
   const otherPlayer = createWebGameHost({
@@ -109,7 +104,7 @@ it('moves an existing unscoped browser save into the first player account and cl
   await expect(otherPlayer.storage.read('save')).resolves.toBeNull();
   await expect(host.storage.read('save')).resolves.toMatchObject({ version: '1' });
   await expect(remote.read('save')).resolves.toMatchObject({
-    value: { cultivationChapter: 7 },
+    value: { chapter: 7 },
   });
 });
 

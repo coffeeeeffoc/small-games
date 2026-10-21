@@ -4,37 +4,33 @@
 
 - `games/local/*`：父仓库直接管理源码，普通 clone 即可取得；`local` 不代表忽略提交。
 - `games/submodules/*`：独立 Git 仓库，父仓库固定其 commit。两类目录均属于 pnpm workspace。
-- `apps/*`：Web、Android、iOS、B 站 Shell、Creator Studio 和 Workspace Agent。
+- `apps/*`：Web、Android、iOS、原生小游戏 Shell、Creator Studio 和 Workspace Agent。
 - `services/*`：独立运行的后端子应用，包括游戏对局服务。
 - `platforms/*`：各渠道 SDK 适配入口与工程配置；由 Shell 选择并组装。
 
-目录归属与装载方式分开。原四个 Game Host 游戏保留包名、Game ID、公开导出和存档命名空间；独立 H5 游戏通过同源 iframe 运行，静态制品随 Web Shell 打包。
+目录归属与装载方式分开。当前独立 H5 游戏通过同源 iframe 运行，静态制品随 Web Shell 打包。
 
 ## 父仓库直接管理的 Game
 
-| 源码目录（相对 games/local） | Game                  | workspace 包名                 | 装载方式  |
-| ---------------------------- | --------------------- | ------------------------------ | --------- |
-| game-arena                   | 电子斗蛐蛐            | @coffeeeeffoc/game-arena       | Game Host |
-| game-cricket                 | 秋声斗蟋              | @coffeeeeffoc/game-cricket     | Game Host |
-| game-cultivation             | 三分钟修仙            | @coffeeeeffoc/game-cultivation | Game Host |
-| game-office                  | 打工人摸鱼记          | @coffeeeeffoc/game-office      | Game Host |
-| tianxia-chalu                | 天下岔路              | @coffeeeeffoc/tianxia-chalu    | iframe    |
-| cops-robbers                 | 围捕小队              | cops-robbers                   | iframe    |
-| cops-robbers-realtime        | 别跑！街区围捕        | cops-robbers-realtime          | iframe    |
-| h5-security                  | 来电之间              | between-calls                  | iframe    |
-| letters-words                | 词了个词 · 单词消消乐 | letters-words                  | iframe    |
-| letters-words2               | 词屿 · 字母叠叠乐     | ciyu-word-tiles                | iframe    |
-| multi-battle                 | 万象旅团              | multi-battle                   | iframe    |
-| puzzle                       | 雨停之前              | before-the-rain-stops          | iframe    |
-| travel                       | 去野 · 大理漫游记     | quye-travel                    | iframe    |
-| travel2                      | 外滩·一江入梦         | @coffeeeeffoc/travel2          | iframe    |
-| merge-front                  | 神机合阵              | @small-games/merge-front       | iframe    |
-| night-merge                  | 合成守夜人            | @small-games/night-merge       | iframe    |
-| travel-bund                  | 江风入境 · 外滩漫游   | @coffeeeeffoc/travel-bund      | iframe    |
-| travel-bund-2.5D             | 外滩 · 空中漫游       | @coffeeeeffoc/travel-bund-25d  | iframe    |
-| vibeJam-myself-delivery      | 橘风速递              | tangerine-express              | iframe    |
-| vibeJam-myself-history-guess | 此时 · 此地           | here-and-then                  | iframe    |
-| vibeJam-myself-nullrange     | 零域 · NULL RANGE     | null-range-mobile-cn           | iframe    |
+| 源码目录（相对 games/local） | Game                  | workspace 包名                | 装载方式 |
+| ---------------------------- | --------------------- | ----------------------------- | -------- |
+| tianxia-chalu                | 天下岔路              | @coffeeeeffoc/tianxia-chalu   | iframe   |
+| cops-robbers                 | 围捕小队              | cops-robbers                  | iframe   |
+| cops-robbers-realtime        | 别跑！街区围捕        | cops-robbers-realtime         | iframe   |
+| h5-security                  | 来电之间              | between-calls                 | iframe   |
+| letters-words                | 词了个词 · 单词消消乐 | letters-words                 | iframe   |
+| letters-words2               | 词屿 · 字母叠叠乐     | ciyu-word-tiles               | iframe   |
+| multi-battle                 | 万象旅团              | multi-battle                  | iframe   |
+| puzzle                       | 雨停之前              | before-the-rain-stops         | iframe   |
+| travel                       | 去野 · 大理漫游记     | quye-travel                   | iframe   |
+| travel2                      | 外滩·一江入梦         | @coffeeeeffoc/travel2         | iframe   |
+| merge-front                  | 神机合阵              | @small-games/merge-front      | iframe   |
+| night-merge                  | 合成守夜人            | @small-games/night-merge      | iframe   |
+| travel-bund                  | 江风入境 · 外滩漫游   | @coffeeeeffoc/travel-bund     | iframe   |
+| travel-bund-2.5D             | 外滩 · 空中漫游       | @coffeeeeffoc/travel-bund-25d | iframe   |
+| vibeJam-myself-delivery      | 橘风速递              | tangerine-express             | iframe   |
+| vibeJam-myself-history-guess | 此时 · 此地           | here-and-then                 | iframe   |
+| vibeJam-myself-nullrange     | 零域 · NULL RANGE     | null-range-mobile-cn          | iframe   |
 
 《天下岔路》由两个子应用组成：`games/local/tianxia-chalu` 提供移动端 H5 游戏，`services/tianxia-server` 提供独立对局后端。游戏以适合单拇指点击岔路的竖屏地图为主，通过 iframe 装载，独立地址为 `/games/tianxia-chalu/index.html`。核心规则和关卡配置独立维护，后端复用游戏公开导出的规则；离线游玩不依赖服务器。开发与验证见 [游戏 README](../games/local/tianxia-chalu/README.md) 和 [后端 README](../services/tianxia-server/README.md)。
 
@@ -55,8 +51,6 @@
 《榫间 · 鲁班锁》位于 `games/local/luban-workshop`，workspace 包名为 `@coffeeeeffoc/luban-workshop`，通过 iframe 装载，独立地址为 `/games/luban-workshop/index.html`。玩家选中彩色零件后沿轨道拖动，观察受阻反馈，逐步拆解再复原机关；空白区域用于转动观察视角。关卡数据、运动与碰撞规则、三维渲染及触屏交互分别维护。开发运行 `pnpm --filter @coffeeeeffoc/luban-workshop dev`，构建和规则验证分别使用 `build`、`test`；交互与架构说明见 [游戏 README](../games/local/luban-workshop/README.md)。
 
 《重力方舱》位于 `games/local/tetracube`，workspace 包名为 `@coffeeeeffoc/tetracube`，通过 iframe 装载，独立地址为 `/games/tetracube/index.html`。玩家移动并三轴旋转四连立方体，观察落点填满平面，再颠倒 6×6×12 容器，让所有小方块统一向下落定并形成连锁。开发运行 `pnpm --filter @coffeeeeffoc/tetracube dev`（端口 4178），规则验证、构建和触屏验收见 [游戏 README](../games/local/tetracube/README.md)。
-
-原 `apps/game-*` 通过 `git mv` 迁移，使用 `git log --follow -- games/local/game-cultivation/src/domain/trial.ts` 可以追溯迁移前的提交。
 
 新增十一款从同级目录导入源码、素材、测试及文档，排除 `node_modules`、构建输出、缓存和生成的测试截图。原同级目录保留作核对；后续统一在本仓库的新目录开发，避免维护两份未同步源码。
 
@@ -89,7 +83,6 @@ pnpm install --frozen-lockfile
 ```sh
 # 指定一个游戏开发；不同游戏原有端口可能相同，按需单独启动
 pnpm --filter multi-battle dev
-pnpm --filter @coffeeeeffoc/game-cultivation dev
 
 # 全部游戏，复用 Turbo 的依赖构建和缓存
 pnpm games:build
@@ -118,7 +111,7 @@ python scripts/mobile-assets.py
 
 Web Shell 最终部署目录是 `apps/shell-web/dist/`。源码迁移不改变现有 `/games/<id>/index.html` 地址。新增游戏采用同样地址，例如 `/games/multi-battle/index.html`。大厅开发服务启动时生成静态副本；修改独立 H5 后需重新执行准备流程，或直接使用该游戏的 dev 服务调试。
 
-父仓库的格式化保留四个 Game Host 包的检查，导入的独立 H5 沿用各自格式。lint 排除 Git 子模块，普通游戏中存在 lint 命令的包仍参与检查。测试和依赖边界检查覆盖两类游戏目录。
+导入的独立 H5 沿用各自格式。lint 排除 Git 子模块，普通游戏中存在 lint 命令的包仍参与检查。测试和依赖边界检查覆盖两类游戏目录。
 
 ## 游戏接入检查
 

@@ -626,17 +626,6 @@ async function main(args) {
     '--concurrency=1',
     '--output-logs=errors-only',
   ]);
-  await pnpm([
-    'exec',
-    'turbo',
-    'run',
-    'build',
-    'smoke',
-    '--filter=@coffeeeeffoc/shell-bilibili',
-    '--concurrency=1',
-    '--force',
-    '--output-logs=errors-only',
-  ]);
   await pnpm(['build:pages', '--output-logs=errors-only']);
   const built = await auditGameConfig(ROOT, { artifacts: true });
   if (built.errors.length)
