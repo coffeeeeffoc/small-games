@@ -1,0 +1,104 @@
+{
+  "evidence": [
+    {
+      "case": "touch-shop-buy-refresh-pair-cast-sell-deploy-merge-recall-hidden-source-cancel-lock-pause-reload",
+      "result": "passed"
+    },
+    {
+      "case": "legal-third-round-showcase",
+      "result": "passed"
+    },
+    {
+      "case": "crystal-effect-pause-once-damage",
+      "style": 2,
+      "result": "passed"
+    },
+    {
+      "case": "crystal-effect-pause-once-damage",
+      "style": 3,
+      "result": "passed"
+    },
+    {
+      "case": "crystal-effect-pause-once-damage",
+      "style": 1,
+      "result": "passed"
+    },
+    {
+      "case": "crystal-effect-pause-once-damage",
+      "style": 0,
+      "result": "passed"
+    },
+    {
+      "case": "crystal-effect-pause-once-damage",
+      "style": 4,
+      "result": "passed"
+    },
+    {
+      "case": "crystal-effect-pause-once-damage",
+      "style": 5,
+      "result": "passed"
+    },
+    {
+      "case": "legacy-match-keys-preserved",
+      "result": "passed"
+    },
+    {
+      "case": "fullscreen-enter-exit-denial",
+      "result": "passed"
+    },
+    {
+      "case": "orientation-touch",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "result": "passed"
+    },
+    {
+      "case": "orientation-touch",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "result": "passed"
+    },
+    {
+      "case": "orientation-touch",
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "result": "passed"
+    },
+    {
+      "case": "orientation-touch",
+      "viewport": {
+        "width": 568,
+        "height": 320
+      },
+      "result": "passed"
+    },
+    {
+      "case": "reward-sdk-fixture",
+      "status": "completed",
+      "result": "passed"
+    },
+    {
+      "case": "reward-sdk-fixture",
+      "status": "dismissed",
+      "result": "passed"
+    },
+    {
+      "case": "reward-sdk-fixture",
+      "status": "unavailable",
+      "result": "passed"
+    },
+    {
+      "case": "reward-sdk-fixture",
+      "status": "failed",
+      "result": "passed"
+    }
+  ],
+  "errors": [],
+  "environment": "Chromium phone emulation; no physical device or real ad fill"
+}

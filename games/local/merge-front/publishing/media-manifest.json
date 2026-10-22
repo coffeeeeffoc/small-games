@@ -1,14 +1,5 @@
 [
   {
-    "path": "icon/nezha-1254-square.png",
-    "bytes": 2850942,
-    "sha256": "ba500517034224024b0112a037e118846adfd6d655332a37bf462cf0a50b4950",
-    "info": {
-      "width": 1254,
-      "height": 1254
-    }
-  },
-  {
     "path": "gameplay/screenshots/battle-1152x540.png",
     "bytes": 1141191,
     "sha256": "1fac40e6ba8bfd14f42cafd56275d860e0254d34adc43a157ebc68aef01c5ac5",
@@ -63,21 +54,125 @@
     }
   },
   {
+    "path": "gameplay/screenshots/shop-battle.png",
+    "bytes": 1131833,
+    "sha256": "03aa274f43e5fec31be9fb9d8d6b117c4e4987c1579a3991d854a8323496d5bc",
+    "info": {
+      "width": 1152,
+      "height": 540
+    }
+  },
+  {
+    "path": "gameplay/screenshots/shop-crystal-lotus.png",
+    "bytes": 1061795,
+    "sha256": "a7a05eff179ba12bfac93c27e575774e736ca6794b98b5bca6090a9480a474bc",
+    "info": {
+      "width": 1152,
+      "height": 540
+    }
+  },
+  {
+    "path": "gameplay/screenshots/shop-crystal-sword.png",
+    "bytes": 1065819,
+    "sha256": "5c412e76509cacbbdeaabdfccfaff50b5ff5ee51bc2a45b72aac4085e98c47d8",
+    "info": {
+      "width": 1152,
+      "height": 540
+    }
+  },
+  {
+    "path": "gameplay/screenshots/shop-drag-hidden.png",
+    "bytes": 786413,
+    "sha256": "93c079379a83f498078717168308f3419c53c3a17d1663b62b8897082f0c077a",
+    "info": {
+      "width": 1152,
+      "height": 540
+    }
+  },
+  {
+    "path": "gameplay/screenshots/shop-home.png",
+    "bytes": 869880,
+    "sha256": "7ec2b2eb0fe8014597cc8d9bb2c4a05afe231a89e5daf0837acbb29db14a6bcb",
+    "info": {
+      "width": 1152,
+      "height": 540
+    }
+  },
+  {
+    "path": "gameplay/screenshots/shop-next-round.png",
+    "bytes": 802914,
+    "sha256": "983782f977ba88cde1b5d52a4cf01c935845d1111cd49ef4e88f0fad60b2fbd7",
+    "info": {
+      "width": 1152,
+      "height": 540
+    }
+  },
+  {
+    "path": "gameplay/screenshots/shop-pause.png",
+    "bytes": 675004,
+    "sha256": "1a0e1f2f1e6208414b743896069bb9938623031535464a7909e98cf40da38fa2",
+    "info": {
+      "width": 1152,
+      "height": 540
+    }
+  },
+  {
+    "path": "gameplay/screenshots/shop-planning.png",
+    "bytes": 845172,
+    "sha256": "159ecd32b94f851b33e7a27a2ce330b23248596f4749d298ca2e698b6d644a41",
+    "info": {
+      "width": 1152,
+      "height": 540
+    }
+  },
+  {
+    "path": "gameplay/screenshots/shop-result-won.png",
+    "bytes": 257355,
+    "sha256": "936e74ab7762e94dc1f4140abedc70820e37e1274c73a8db3fe3d32f4da30743",
+    "info": {
+      "width": 844,
+      "height": 390
+    }
+  },
+  {
     "path": "gameplay/videos/round-formation-1152x540.mp4",
     "bytes": 3478635,
     "sha256": "49df8fe1f3ac0cd9ffe7e9be17947a3d6a6cfd6cc44bb3b321651f48bc7dd704",
     "info": {
-      "programs": [],
-      "stream_groups": [],
+      "duration": 24.8,
       "streams": [
         {
+          "codec_name": "h264",
+          "codec_type": "video",
           "width": 1152,
           "height": 540
         }
-      ],
-      "format": {
-        "duration": "24.800000"
-      }
+      ]
+    }
+  },
+  {
+    "path": "gameplay/videos/shop-synergies-1152x540.mp4",
+    "bytes": 3700887,
+    "sha256": "5fc5f1158795c955ba7f4a442488b6cade4bd22a15219f1efca6fb2657c7fc4c",
+    "info": {
+      "duration": 26.04,
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 1152,
+          "height": 540
+        }
+      ]
+    }
+  },
+  {
+    "path": "icon/nezha-1254-square.png",
+    "bytes": 2850942,
+    "sha256": "ba500517034224024b0112a037e118846adfd6d655332a37bf462cf0a50b4950",
+    "info": {
+      "width": 1254,
+      "height": 1254
     }
   },
   {
@@ -94,17 +189,31 @@
     "bytes": 3504553,
     "sha256": "c1a36ace8618c9b4027bfc0090de5312e0543e3f518fcb7e45d414d14c7edf3e",
     "info": {
-      "programs": [],
-      "stream_groups": [],
+      "duration": 21,
       "streams": [
         {
+          "codec_name": "h264",
+          "codec_type": "video",
           "width": 1280,
           "height": 720
         }
-      ],
-      "format": {
-        "duration": "21.000000"
-      }
+      ]
+    }
+  },
+  {
+    "path": "promo/videos/shop-synergies-1280x720.mp4",
+    "bytes": 4734982,
+    "sha256": "e165aea584032499bddc24da9f0611c92b47a4893135ffa61197baa2d977622d",
+    "info": {
+      "duration": 21.12,
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 1280,
+          "height": 720
+        }
+      ]
     }
   }
 ]

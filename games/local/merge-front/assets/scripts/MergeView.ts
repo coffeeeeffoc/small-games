@@ -95,7 +95,7 @@ export class MergeView {
   }
   load() {
     this.error = '';
-    for (const key of ['units', 'world', 'arena', 'crystals']) {
+    for (const key of ['units', 'world', 'arena', 'crystals', 'impacts']) {
       if (this.assets.has(key)) continue;
       resources.load(key, ImageAsset, (error, asset) => {
         if (this.disposed) return;
@@ -121,20 +121,23 @@ export class MergeView {
         } else if (key === 'crystals') {
           frame('crystal0', 0, 0, asset.width / 2, asset.height);
           frame('crystal1', asset.width / 2, 0, asset.width / 2, asset.height);
+        } else if (key === 'impacts') {
+          for(let i=0;i<6;i++) frame('impact'+i,(i%3)*asset.width/3,Math.floor(i/3)*asset.height/2,asset.width/3,asset.height/2);
         } else {
-          const rows = [0, 297, 599, 836, 1086];
+          const rows = [0, 315, 638, 928, 1254];
+          const columns = [0, 320, 641, 955, 1254];
           for (let i = 0; i < 16; i++) {
             const r = Math.floor(i / 4);
             frame(
               'unit' + i,
-              ((i % 4) * asset.width) / 4,
+              columns[i % 4],
               rows[r],
-              asset.width / 4,
+              columns[(i % 4) + 1] - columns[i % 4],
               rows[r + 1] - rows[r],
             );
           }
         }
-        this.ready = this.assets.size === 4;
+        this.ready = this.assets.size === 5;
       });
     }
   }
@@ -204,6 +207,49 @@ export class MergeView {
     g.lineTo(tx + this.offsetX - W / 2, H / 2 - ty);
     g.stroke();
   }
+  ellipse(x: number, y: number, rx: number, ry: number, fill: string, stroke = '', layer = 1) {
+    const g = this.graphics[layer];
+    g.fillColor = color(fill);
+    g.ellipse(x + this.offsetX - W / 2, H / 2 - y, rx, ry);
+    g.fill();
+    if (stroke) {
+      g.strokeColor = color(stroke);
+      g.lineWidth = 2;
+      g.stroke();
+    }
+  }
+  polygon(points: Array<{ x: number; y: number }>, fill: string, stroke = '', layer = 2) {
+    const g = this.graphics[layer];
+    g.fillColor = color(fill);
+    points.forEach((p, i) =>
+      i
+        ? g.lineTo(p.x + this.offsetX - W / 2, H / 2 - p.y)
+        : g.moveTo(p.x + this.offsetX - W / 2, H / 2 - p.y),
+    );
+    g.close();
+    g.fill();
+    if (stroke) {
+      g.strokeColor = color(stroke);
+      g.lineWidth = 2;
+      g.stroke();
+    }
+  }
+  arc(
+    x: number,
+    y: number,
+    r: number,
+    start: number,
+    end: number,
+    stroke: string,
+    width = 3,
+    layer = 2,
+  ) {
+    const g = this.graphics[layer];
+    g.strokeColor = color(stroke);
+    g.lineWidth = width;
+    g.arc(x + this.offsetX - W / 2, H / 2 - y, r, start, end, false);
+    g.stroke();
+  }
   text(
     id: string,
     value: string,
@@ -246,6 +292,8 @@ export class MergeView {
     angle = 0,
   ) {
     const n = this.cached('image:' + id, layer);
+    // Cached nodes must follow the current foot-Y order after units cross.
+    if (layer === 1) n.setSiblingIndex(n.parent!.children.length - 1);
     n.setPosition(x + this.offsetX - W / 2, H / 2 - y);
     n.setScale(flip ? -1 : 1, 1, 1);
     n.angle = angle;

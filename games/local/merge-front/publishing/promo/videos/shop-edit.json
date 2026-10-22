@@ -1,0 +1,53 @@
+{
+  "date": "2026-10-23",
+  "sourceHash": "312ff45582619a9bc5a152aba7742a2d8904385ef77b0972dd283c293aad0076",
+  "method": "Title illustration followed by actual touch-driven Creator Web recordings; no audio; legal seeded save fixtures",
+  "clips": [
+    {
+      "file": "publishing/promo/images/round-formation-landscape.png",
+      "start": 0,
+      "duration": 3,
+      "still": true
+    },
+    {
+      "file": "reports/browser/videos/shop-flow.webm",
+      "start": 7,
+      "duration": 5
+    },
+    {
+      "file": "reports/browser/videos/shop-showcase.webm",
+      "start": 3.5,
+      "duration": 3.5
+    },
+    {
+      "file": "reports/browser/videos/crystal-0.webm",
+      "start": 3,
+      "duration": 1.6
+    },
+    {
+      "file": "reports/browser/videos/crystal-1.webm",
+      "start": 3,
+      "duration": 1.6
+    },
+    {
+      "file": "reports/browser/videos/crystal-2.webm",
+      "start": 3,
+      "duration": 1.6
+    },
+    {
+      "file": "reports/browser/videos/crystal-3.webm",
+      "start": 3,
+      "duration": 1.6
+    },
+    {
+      "file": "reports/browser/videos/crystal-4.webm",
+      "start": 3,
+      "duration": 1.6
+    },
+    {
+      "file": "reports/browser/videos/crystal-5.webm",
+      "start": 3,
+      "duration": 1.6
+    }
+  ]
+}

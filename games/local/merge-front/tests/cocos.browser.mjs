@@ -1,7 +1,15 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import { chromium, devices, expect } from '@playwright/test';
-import { createMatch, command, runAI, step, snapshot } from '../assets/scripts/core/engine.ts';
+import {
+  createMatch,
+  command,
+  runAI,
+  step,
+  snapshot,
+  crystalStyle,
+} from '../assets/scripts/core/engine.ts';
 import { createProgress } from '../assets/scripts/core/progress.ts';
 const url = process.env.GAME_URL || 'http://localhost:4197';
 const output = new URL('../reports/browser/', import.meta.url);
@@ -13,6 +21,9 @@ const browser = await chromium.launch({
 const evidence = [],
   errors = [];
 let active;
+async function saveVideo(page, name) {
+  if (page.video()) await page.video().saveAs(fileURLToPath(new URL('videos/' + name + '.webm', output)));
+}
 async function open(viewport = { width: 844, height: 390 }, fixture, fixtureArg) {
   const context = await browser.newContext({
     ...devices['Pixel 7'],
@@ -83,10 +94,12 @@ async function drag(page, source, target, cancel = false) {
       type: 'touchMove',
       touchPoints: [{ ...b, id: 1 }],
     });
+    await page.waitForTimeout(100);
     await session.send('Input.dispatchTouchEvent', {
       type: cancel ? 'touchCancel' : 'touchEnd',
       touchPoints: [],
     });
+    await page.waitForTimeout(100);
   } finally {
     await session.detach();
   }
@@ -108,7 +121,7 @@ const cards = (s) => s.controls.filter((c) => c.id.startsWith('card:'));
 const fixture = (m) => ({ m: snapshot(m), p: createProgress() });
 function loadFixture(data) {
   if (!localStorage.getItem('merge-front:progress:v2')) {
-    localStorage.setItem('merge-front:match:v3', JSON.stringify(data.m));
+    localStorage.setItem('merge-front:match:v4', JSON.stringify(data.m));
     localStorage.setItem('merge-front:progress:v2', JSON.stringify(data.p));
   }
 }
@@ -116,74 +129,125 @@ try {
   const { context, page } = await open(
     { width: 1152, height: 540 },
     loadFixture,
-    fixture(createMatch('level-01', 1)),
+    fixture(createMatch('level-01', 18)),
   );
   await shot(page, 'home');
   await tap(page, 'start');
   await screen(page, 'playing');
-  let s = await state(page);
-  const first = cards(s)[0].id;
+  let s = await state(page),
+    first = cards(s)[0].id;
   await tap(page, first);
-  assert.equal((await state(page)).match.sides[0].formation.length, 0, 'tap does not deploy');
-  await drag(page, first, world(s, 250, 60), true);
-  assert.equal((await state(page)).match.sides[0].formation.length, 0, 'cancel does not consume');
-  await drag(page, first, world(s, 750, 60));
-  assert.equal((await state(page)).match.sides[0].formation.length, 0, 'enemy zone rejects drop');
-  await drag(page, first, world(s, 390, 60));
+  assert.equal((await state(page)).match.sides[0].formation.length, 0);
+  await tap(page, 'info-close');
+  await drag(page, first, world(s, 390, 70), true);
+  assert.equal((await state(page)).match.sides[0].formation.length, 0);
+  await drag(page, first, world(s, 750, 70));
+  assert.equal((await state(page)).match.sides[0].formation.length, 0);
+  await drag(page, first, world(s, 390, 70));
   s = await state(page);
   const deployed = s.match.sides[0].formation[0];
-  assert.equal(deployed.level, 1);
-  await drag(page, cards(s).find((c) => c.label.includes('哪吒')).id, world(s, 390, 300));
+  await drag(page, cards(s)[0].id, world(s, 200, 290));
   s = await state(page);
   assert.equal(s.match.sides[0].formation.length, 2);
-  await drag(page, 'unit:' + s.match.sides[0].formation[1].id, 'unit:' + deployed.id);
+  await drag(page, 'unit:' + deployed.id, world(s, 302, 30));
+  await tap(page, 'trait:flame');
+  assert.equal(
+    (await state(page)).detailTitle,
+    '烈焰',
+    'HUD must win over overlapping unit hot area',
+  );
+  await tap(page, 'info-close');
+  await drag(page, 'unit:' + deployed.id, world(s, 390, 70));
+  const handDrop = { x: 740, y: 470 },
+    sellDrop = { x: 1070, y: 325 };
+  const fort = s.match.sides[0].shop.find((o) => o.key === 'fortify');
+  await drag(page, 'offer:' + fort.id, handDrop, true);
+  assert.equal((await state(page)).match.sides[0].coins, 6);
+  await drag(page, 'offer:' + fort.id, handDrop);
   s = await state(page);
-  assert.equal(s.match.sides[0].formation.length, 1);
-  assert.equal(s.match.sides[0].formation[0].level, 2);
-  await drag(page, 'unit:' + deployed.id, { x: 600, y: 490 });
+  assert.equal(s.match.sides[0].coins, 4);
+  assert.equal(s.match.sides[0].shop.length, 2);
+  await drag(page, 'spell:' + s.match.sides[0].spells[0].id, world(s, 390, 70));
   s = await state(page);
-  assert.equal(s.match.sides[0].formation.length, 0);
-  await drag(page, cards(s).find((c) => c.label.includes('哪吒')).id, world(s, 390, 60));
+  assert.equal(s.match.sides[0].formation[0].bonusHp, 35);
+  const part = s.match.sides[0].shop.find((o) => o.kind === 'part');
+  await drag(page, 'offer:' + part.id, handDrop);
   s = await state(page);
-  await drag(page, cards(s).find((c) => c.label.includes('离火铳')).id, world(s, 200, 300));
+  const before = JSON.stringify(s.match.sides[0]);
+  await drag(page, 'part:nezha:0', world(s, 300, 180));
+  assert.equal(JSON.stringify((await state(page)).match.sides[0]), before);
+  await tap(page, 'refresh');
   s = await state(page);
-  assert.equal(cards(s).length, 0, 'empty hand has no fixed placeholder cards');
-  for (const kind of ['hero', 'hero', 'weapon', 'hero']) await tap(page, 'draw:' + kind);
+  assert.equal(s.match.sides[0].coins, 2);
+  assert.equal(s.match.sides[0].shop[0].part, 'nezha:1');
+  await drag(page, 'offer:' + s.match.sides[0].shop[0].id, handDrop);
   s = await state(page);
-  const fragments = s.controls.filter((c) => c.id.startsWith('part:'));
-  if (fragments.length) {
-    const before = JSON.stringify(s.match.sides[0]);
-    await drag(page, fragments[0].id, world(s, 200, 180));
-    assert.equal(JSON.stringify((await state(page)).match.sides[0]), before);
-  }
+  assert.equal(s.match.sides[0].hand[0].key, 'nezha');
+  assert.deepEqual(s.match.sides[0].bag, {});
+  await drag(page, cards(s)[0].id, world(s, 390, 290));
+  s = await state(page);
+  assert.equal(s.match.sides[0].formation.length, 3);
+  // Hold a real touch drag and inspect the actual visible nodes, then cancel.
+  const session = await page.context().newCDPSession(page),
+    a = await point(page, 'unit:' + deployed.id),
+    b = await point(page, world(s, 280, 180));
+  await session.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [{ ...a, id: 1 }],
+  });
+  await session.send('Input.dispatchTouchEvent', {
+    type: 'touchMove',
+    touchPoints: [{ ...b, id: 1 }],
+  });
+  await page.waitForTimeout(120);
+  assert(
+    !(await state(page)).visibleTroops.includes('image:plan:' + deployed.id),
+    'drag source is absent',
+  );
+  await shot(page, 'drag-source-hidden');
+  await session.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+  await session.detach();
+  await page.waitForTimeout(100);
+  assert(
+    (await state(page)).visibleTroops.includes('image:plan:' + deployed.id),
+    'cancel restores source',
+  );
+  const second = s.match.sides[0].formation.find((c) => c.key === 'nezha' && c.id !== deployed.id);
+  await drag(page, 'unit:' + deployed.id, world(s, 300, 150));
+  await drag(
+    page,
+    'unit:' + s.match.sides[0].formation.find((c) => c.key === 'fire').id,
+    world(s, 300, 200),
+  );
+  await drag(page, 'unit:' + second.id, world(s, 300, 150));
+  s = await state(page);
+  assert.equal(s.match.sides[0].formation.find((c) => c.id === deployed.id).level, 2);
+  const rearHead=world(s,300,150);rearHead.y-=55;
+  await drag(page,rearHead,world(s,390,70));
+  await drag(page, 'unit:' + deployed.id, handDrop);
+  s = await state(page);
+  assert.equal(s.match.sides[0].hand[0].bonusHp, 35);
+  await drag(page, cards(s)[0].id, world(s, 390, 70));
+  s = await state(page);
+  const fire = s.match.sides[0].formation.find((c) => c.key === 'fire'),
+    coins = s.match.sides[0].coins;
+  await drag(page, 'unit:' + fire.id, sellDrop);
+  s = await state(page);
+  assert.equal(s.match.sides[0].coins, coins);
+  assert.equal(s.match.sides[0].spells[0].key, 'sharpen');
+  await drag(page, 'spell:' + s.match.sides[0].spells[0].id, world(s, 390, 70));
+  s = await state(page);
+  assert.equal(s.match.sides[0].formation[0].bonusDamage, 5);
+  assert.equal(cards(s).length, 0, 'empty hand has no slot controls');
+  const expensive = s.match.sides[0].shop.find((o) => o.cost > s.match.sides[0].coins),
+    snapshotBefore = JSON.stringify(s.match);
+  await drag(page, 'offer:' + expensive.id, handDrop);
+  assert.equal(
+    JSON.stringify((await state(page)).match),
+    snapshotBefore,
+    'unaffordable buy is atomic',
+  );
   await page.waitForTimeout(3100);
-  await shot(page, 'planning-hand');
-  // Place every complete card via touch, preserving separate units until the shared cap.
-  for (let n = 0; n < 30; n++) {
-    s = await state(page);
-    const c = cards(s)[0];
-    if (!c) break;
-    const side = s.match.sides[0],
-      id = Number(c.id.slice(5)),
-      card = side.hand.find((c) => c.id === id);
-    if (side.formation.length >= 6) {
-      const target = side.formation.find((c) => c.key === card.key);
-      if (!target) break;
-      await drag(page, c.id, 'unit:' + target.id);
-    } else {
-      const pos = [
-        { x: 390, y: 60 },
-        { x: 390, y: 180 },
-        { x: 390, y: 300 },
-        { x: 200, y: 60 },
-        { x: 200, y: 180 },
-        { x: 200, y: 300 },
-      ].find((p) => !side.formation.some((c) => Math.hypot(c.x - p.x, c.y - p.y) < 46));
-      await drag(page, c.id, world(s, pos.x, pos.y));
-    }
-  }
-  s = await state(page);
-  assert.ok(s.match.sides[0].formation.length >= 3);
   await shot(page, 'planning');
   await tap(page, 'pause');
   await shot(page, 'pause');
@@ -198,7 +262,7 @@ try {
   await tap(page, 'start-round');
   s = await state(page);
   assert.equal(s.match.roundStage, 'battle');
-  assert.ok(!s.controls.some((c) => c.id.startsWith('draw:') || c.id.startsWith('card:')));
+  assert.ok(!s.controls.some((c) => c.id.startsWith('offer:') || c.id.startsWith('card:')));
   await page.waitForTimeout(2000);
   await shot(page, 'battle');
   await tap(page, 'pause');
@@ -216,12 +280,98 @@ try {
   await screen(page, 'paused');
   await tap(page, 'resume');
   evidence.push({
-    case: 'touch-assembly-deploy-split-merge-recall-lock-pause-reload-next-round',
+    case: 'touch-shop-buy-refresh-pair-cast-sell-deploy-merge-recall-hidden-source-cancel-lock-pause-reload',
     result: 'passed',
   });
   await tap(page, 'pause');
   await tap(page, 'home');
   await context.close();
+  await saveVideo(page, 'shop-flow');
+
+  const showcase = createMatch('level-01', 37, ['juling', 'fire']);
+  for (let round = 0; round < 2; round++) {
+    for (let n = 0; n < 128 && runAI(showcase, 0)?.ok; n++);
+    assert(command(showcase, 0, { type: 'startRound' }).ok);
+    while (showcase.roundStage !== 'planning' && showcase.phase === 'running') step(showcase);
+  }
+  for (const offer of [...showcase.sides[0].shop].slice(0, 2))
+    command(showcase, 0, { type: 'buy', offer: offer.id });
+  {
+    const { context, page } = await open(
+      { width: 1152, height: 540 },
+      loadFixture,
+      fixture(showcase),
+    );
+    await tap(page, 'start');
+    await shot(page, 'shop-showcase');
+    await tap(page, 'start-round');
+    await page.waitForTimeout(4200);
+    await shot(page, 'battle-showcase');
+    await tap(page, 'pause');
+    await shot(page, 'pause-showcase');
+    await context.close();
+    await saveVideo(page, 'shop-showcase');
+    evidence.push({ case: 'legal-third-round-showcase', result: 'passed' });
+  }
+  const effects = new Map();
+  for (let seed = 0; seed < 100 && effects.size < 6; seed++) {
+    const m = createMatch('level-01', seed);
+    for (let n = 0; n < 128 && runAI(m, 0)?.ok; n++);
+    command(m, 0, { type: 'startRound' });
+    while (m.roundStage === 'battle') step(m);
+    if (m.roundWinner !== null && !effects.has(crystalStyle(seed, 1)))
+      effects.set(crystalStyle(seed, 1), snapshot(m));
+  }
+  assert.equal(effects.size, 6);
+  for (const [style, m] of effects) {
+    const { context, page } = await open({ width: 1152, height: 540 }, loadFixture, fixture(m));
+    await tap(page, 'start');
+    await expect
+      .poll(() => state(page).then((s) => s.match.roundTicks), { timeout: 5000, intervals: [30] })
+      .toBeGreaterThanOrEqual(26);
+    assert.equal((await state(page)).crystalStyle, style);
+    await shot(page, 'crystal-' + style);
+    await tap(page, 'pause');
+    const saved = (await state(page)).match;
+    await page.waitForTimeout(140);
+    assert.deepEqual((await state(page)).match, saved);
+    if (style === 0) {
+      await tap(page, 'settings');
+      await tap(page, 'motion');
+      assert((await state(page)).reducedMotion);
+      assert.deepEqual((await state(page)).match, saved);
+      await tap(page, 'back');
+    }
+    await tap(page, 'resume');
+    await expect
+      .poll(() => state(page).then((s) => s.match.roundNumber), { timeout: 5000 })
+      .toBe(2);
+    const after = (await state(page)).match,
+      loser = m.roundWinner === 0 ? 1 : 0;
+    assert.equal(after.sides[loser].crystalHp, m.sides[loser].crystalHp - m.roundDamage);
+    await context.close();
+    await saveVideo(page, 'crystal-' + style);
+    evidence.push({ case: 'crystal-effect-pause-once-damage', style, result: 'passed' });
+  }
+  {
+    const { context, page } = await open(undefined, () => {
+      localStorage.setItem('merge-front:match:v2', 'old-v2-evidence');
+      localStorage.setItem('merge-front:match:v3', 'old-v3-evidence');
+    });
+    await tap(page, 'start');
+    await tap(page, 'begin');
+    await tap(page, 'pause');
+    await tap(page, 'home');
+    assert.deepEqual(
+      await page.evaluate(() => [
+        localStorage.getItem('merge-front:match:v2'),
+        localStorage.getItem('merge-front:match:v3'),
+      ]),
+      ['old-v2-evidence', 'old-v3-evidence'],
+    );
+    await context.close();
+    evidence.push({ case: 'legacy-match-keys-preserved', result: 'passed' });
+  }
 
   for (const viewport of [
     { width: 844, height: 390 },
@@ -231,6 +381,9 @@ try {
   ]) {
     const { context, page } = await open(viewport);
     await tap(page, 'start');
+    assert.equal((await state(page)).supplyChoices.length, 3);
+    await shot(page, 'starter-' + viewport.width);
+    await tap(page, 'supply:2');
     await tap(page, 'begin');
     const s = await state(page);
     await drag(page, cards(s)[0].id, world(s, 250, 180));
@@ -274,13 +427,13 @@ try {
     await tap(page, 'start');
     await screen(page, 'result');
     assert.equal((await state(page)).match.phase, m.phase);
+    await shot(page, 'result-' + m.phase);
     if (m.phase === 'lost') {
       assert.equal((await state(page)).progress.unlockedLevel, 1);
       await tap(page, 'retry');
       assert.equal((await state(page)).match.roundStage, 'planning');
       assert.equal((await state(page)).match.roundNumber, 1);
     }
-    await shot(page, 'result-' + m.phase);
     await context.close();
   }
   for (const status of ['completed', 'dismissed', 'unavailable', 'failed']) {
@@ -343,7 +496,7 @@ try {
     }
     await expect.poll(() => state(page).then((s) => s.rewardPending)).toBe(false);
     const s = await state(page);
-    assert.equal(s.match.sides[0].coins, status === 'completed' ? 150 : 120);
+    assert.equal(s.match.sides[0].coins, status === 'completed' ? 8 : 6);
     assert(s.match.paused);
     await tap(page, 'back');
     await tap(page, 'resume');

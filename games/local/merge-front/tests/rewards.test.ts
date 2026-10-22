@@ -12,15 +12,15 @@ function deferred() {
   return { promise, resolve };
 }
 
-test('completed grants one extra draw once per match, survives pause and restore', async () => {
+test('completed grants two supply coins once per match, survives pause and restore', async () => {
   const match = createMatch('level-01', 1),
     coins = match.sides[0].coins;
   const rewards = createRewardController(match, async () => ({ status: 'completed' }));
   command(match, 0, { type: 'pause', paused: true });
   assert.equal((await rewards.request()).status, 'completed');
-  assert.equal(match.sides[0].coins, coins + 30);
+  assert.equal(match.sides[0].coins, coins + 2);
   step(match, 600);
-  assert.equal(match.sides[0].coins, coins + 30);
+  assert.equal(match.sides[0].coins, coins + 2);
   assert.equal(match.assisted, true);
   assert.equal((await rewards.request()).status, 'unavailable');
   assert.equal(
@@ -94,7 +94,7 @@ test('concurrent controllers cannot overwrite pending requests or grant twice; c
   provider.resolve({ status: 'completed' });
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal((await b.request()).status, 'completed');
-  assert.equal(match.sides[0].coins, 150);
+  assert.equal(match.sides[0].coins, 8);
   assert.equal((await a.request()).status, 'unavailable');
 });
 

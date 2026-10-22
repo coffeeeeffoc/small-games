@@ -1,0 +1,101 @@
+{
+  "method": "256 deterministic legal AI games, 8 starting packs, paired seeds across levels 1/8/16/30; no player telemetry",
+  "results": [
+    {
+      "starter": "flame",
+      "matches": 32,
+      "won": 15,
+      "lost": 17,
+      "draw": 0,
+      "rounds": 294,
+      "fourTraitRounds": 101,
+      "planningRounds": 294,
+      "winRate": 0.46875,
+      "averageRounds": 9.1875
+    },
+    {
+      "starter": "thunder",
+      "matches": 32,
+      "won": 16,
+      "lost": 14,
+      "draw": 2,
+      "rounds": 281,
+      "fourTraitRounds": 69,
+      "planningRounds": 281,
+      "winRate": 0.5,
+      "averageRounds": 8.78125
+    },
+    {
+      "starter": "armor",
+      "matches": 32,
+      "won": 21,
+      "lost": 10,
+      "draw": 1,
+      "rounds": 310,
+      "fourTraitRounds": 104,
+      "planningRounds": 310,
+      "winRate": 0.65625,
+      "averageRounds": 9.6875
+    },
+    {
+      "starter": "spirit",
+      "matches": 32,
+      "won": 15,
+      "lost": 17,
+      "draw": 0,
+      "rounds": 281,
+      "fourTraitRounds": 95,
+      "planningRounds": 281,
+      "winRate": 0.46875,
+      "averageRounds": 8.78125
+    },
+    {
+      "starter": "guard-fire",
+      "matches": 32,
+      "won": 16,
+      "lost": 15,
+      "draw": 1,
+      "rounds": 304,
+      "fourTraitRounds": 102,
+      "planningRounds": 304,
+      "winRate": 0.5,
+      "averageRounds": 9.5
+    },
+    {
+      "starter": "lotus-drone",
+      "matches": 32,
+      "won": 17,
+      "lost": 15,
+      "draw": 0,
+      "rounds": 289,
+      "fourTraitRounds": 76,
+      "planningRounds": 289,
+      "winRate": 0.53125,
+      "averageRounds": 9.03125
+    },
+    {
+      "starter": "eye-guard",
+      "matches": 32,
+      "won": 21,
+      "lost": 10,
+      "draw": 1,
+      "rounds": 282,
+      "fourTraitRounds": 50,
+      "planningRounds": 282,
+      "winRate": 0.65625,
+      "averageRounds": 8.8125
+    },
+    {
+      "starter": "moon-ram",
+      "matches": 32,
+      "won": 18,
+      "lost": 14,
+      "draw": 0,
+      "rounds": 285,
+      "fourTraitRounds": 72,
+      "planningRounds": 285,
+      "winRate": 0.5625,
+      "averageRounds": 8.90625
+    }
+  ]
+}
