@@ -1,24 +1,24 @@
 # 归途站上架基础资料
 
 - 游戏：`homebound-station` / 归途站；更新日期：2026-10-23（北京时间）。
-- 运行源码：`86d93d6d781650cdd1528567bb8085e5f5a0a66e`；真实Creator 3.8.8 Web Mobile输入指纹：`a483af6a5b1ddb2db83c2b9e4a848b5e5986404407d6633baf127864a092beef`。
-- 53个制品文件校验一致，12组实际浏览器触屏检查通过、页面零错误。另录制1×完整流程，18.5模拟秒通关。详见[验收记录](../docs/design/screen-flow-2026-10-23/verification.md)。
+- 运行源码：`298cc06f64af826512b9f60a0e96a48e8bd37925`；真实Creator 3.8.8 Web Mobile输入指纹：`7319832c0632d06fe9418f77da23d9a273f70cd8c02294d17da98dea3e21b715`。
+- 方向牌更新为开放线条箭头；53个制品文件校验一致，12组实际浏览器触屏检查通过、页面零错误。另录制1×完整流程，18.95模拟秒通关。详见[本次验收记录](../docs/design/line-arrows-2026-10-23/verification.md)。
 - 当前为手机Web基础资料，未向商店上传或提审；原生渠道另行验收。
 
 ## 八类资料
 
-| 类别         | 文件                                                          | 核验                                                                      |
-| ------------ | ------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| 游戏简介     | [introduction.md](copy/introduction.md)                       | 已核对100关、3×3至6×9、最高50车和固定站门排队规则                         |
-| 一句话推荐语 | [tagline.md](copy/tagline.md)                                 | 简体中文，突出箭头移车                                                    |
-| 开发者的话   | [developer-note.md](copy/developer-note.md)                   | 并行、拖动与可选激励，不承诺未验收渠道                                    |
-| 图标         | [homebound-1254.png](icon/homebound-1254.png)                 | 1254×1254 RGB；与源码及当前包体station-icon.png一致；加载画面已检查       |
-| 宣传图       | [竖屏主视觉](promo/images/homebound-keyart-portrait.png)      | 保留852×1846历史原创插画；不是当前实时首页或运行截图                      |
-| 宣传视频     | [手机预告](promo/videos/homebound-mobile-preview-390x844.mp4) | 当前录屏前18秒片段，390×844，未变速、无音轨，完整解码通过                 |
-| 游戏内截图   | [截图目录](gameplay/screenshots/)                             | 当前首页、低/高关、暂停、倍速、并行、结算、小屏拖动和横屏实图，已人工核对 |
-| 游戏内视频   | [第1关1×录屏](gameplay/videos/level01-1x-390x844.mp4)         | 首页到派车、接客、清场结算，未剪辑、未变速、无音轨，完整解码及抽帧通过    |
+| 类别         | 文件                                                          | 核验                                                                              |
+| ------------ | ------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| 游戏简介     | [introduction.md](copy/introduction.md)                       | 已提供；已核对100关、3×3至6×9、最高50车和固定站门排队规则                         |
+| 一句话推荐语 | [tagline.md](copy/tagline.md)                                 | 已提供；简体中文，突出箭头移车                                                    |
+| 开发者的话   | [developer-note.md](copy/developer-note.md)                   | 已提供；并行、拖动与可选激励，不承诺未验收渠道                                    |
+| 图标         | [homebound-1254.png](icon/homebound-1254.png)                 | 已提供；1254×1254 RGB；与源码及当前包体station-icon.png一致；加载画面已检查       |
+| 宣传图       | [竖屏主视觉](promo/images/homebound-keyart-portrait.png)      | 已提供；保留852×1846历史原创插画；不是当前实时首页或运行截图                      |
+| 宣传视频     | [手机预告](promo/videos/homebound-mobile-preview-390x844.mp4) | 已提供；当前录屏前18秒片段，390×844，未变速、无音轨，完整解码通过                 |
+| 游戏内截图   | [截图目录](gameplay/screenshots/)                             | 已提供；当前首页、低/高关、暂停、倍速、并行、结算、小屏拖动和横屏实图，已人工核对 |
+| 游戏内视频   | [第1关1×录屏](gameplay/videos/level01-1x-390x844.mp4)         | 已提供；首页到派车、接客、清场结算，未剪辑、未变速、无音轨，完整解码及抽帧通过    |
 
-[媒体清单](media-verification.json)记录当前文件的尺寸、时长、字节数、SHA-256及来源。真实输入和结算保留于[录屏证据](../docs/design/screen-flow-2026-10-23/runtime/recording-input.json)。静音录屏不用于证明手机音频质量。前版资料与通关时间见[历史验收](../docs/design/dispatch-polish-2026-10-22/verification.md)，不代替本轮结果。
+[媒体清单](media-verification.json)记录当前文件的尺寸、时长、字节数、SHA-256及来源。真实输入和结算保留于[录屏证据](../docs/design/line-arrows-2026-10-23/recording-input.json)。静音录屏不用于证明手机音频质量。前版布局与并行派车记录见[历史验收](../docs/design/screen-flow-2026-10-23/verification.md)，不代替本轮箭头截图。
 
 ## 渠道与广告
 
