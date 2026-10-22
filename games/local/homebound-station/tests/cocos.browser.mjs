@@ -46,7 +46,9 @@ const server = http.createServer(async (req, res) => {
       );
     if (!file.startsWith(root + path.sep)) return res.writeHead(403).end();
     res
-      .writeHead(200, { 'Content-Type': mime[path.extname(file)] || 'application/octet-stream' })
+      .writeHead(200, {
+        'Content-Type': mime[path.extname(file)] || 'application/octet-stream',
+      })
       .end(await readFile(file));
   } catch {
     res.writeHead(404).end();
@@ -72,7 +74,10 @@ const context = await browser.newContext({
   errors = [],
   checks = [];
 await context.addInitScript(() => {
-  Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
+  Object.defineProperty(navigator, 'share', {
+    configurable: true,
+    value: undefined,
+  });
   Object.defineProperty(navigator, 'clipboard', {
     configurable: true,
     value: {
@@ -104,6 +109,62 @@ const tap = async (id) => {
   );
 };
 const shot = async (name) => page.screenshot({ path: path.join(out, name + '.png') });
+// Level 1: the old full-route reservation leaves the second northbound taxi parked.
+const parallelEvidence = { clickOrder: ['巡02', '巡01'], snapshots: {} };
+const parallelFrame = async (label) => {
+  const frame = await page.evaluate(() => {
+    const view = window.homeboundView();
+    return {
+      wallTimeMs: performance.now(),
+      state: window.homeboundSnapshot(),
+      view: {
+        page: view.page,
+        speed: view.speed,
+        unlockedSpeeds: view.unlockedSpeeds,
+        practice: view.practice,
+        adPending: view.adPending,
+        cars: view.cars,
+      },
+    };
+  });
+  parallelEvidence.snapshots[label] = frame;
+  return frame;
+};
+const expectedAssignments = [
+  {
+    vehicleId: '巡02',
+    groupId: 'T01',
+    bayId: 'T1',
+    assignmentOrder: 0,
+    pickupPoint: { x: -7.5, z: -3.3 },
+  },
+  {
+    vehicleId: '巡01',
+    groupId: 'T02',
+    bayId: 'T2',
+    assignmentOrder: 1,
+    pickupPoint: { x: -2.5, z: -3.3 },
+  },
+];
+const assertParallelAssignments = (state, count = 2) => {
+  for (const expected of expectedAssignments.slice(0, count)) {
+    const job = state.services.find((job) => job.vehicleId === expected.vehicleId);
+    assert.ok(job, `Touch must dispatch ${expected.vehicleId}.`);
+    for (const key of Object.keys(expected)) assert.deepEqual(job[key], expected[key]);
+    assert.deepEqual(job.walkFrom, expected.pickupPoint);
+    assert.equal(state.vehicles.find((v) => v.id === expected.vehicleId).groupId, expected.groupId);
+    assert.equal(state.groups.find((g) => g.id === expected.groupId).vehicleId, expected.vehicleId);
+  }
+};
+const touchParallelCar = async (frame, id) => {
+  const car = frame.view.cars.find((car) => car.id === id);
+  assert.equal(car?.available, true, `${id} must be legally dispatchable in the real level.`);
+  await page.touchscreen.tap(car.x, car.y);
+  await page.waitForFunction(
+    (id) => window.homeboundSnapshot().services.some((job) => job.vehicleId === id),
+    id,
+  );
+};
 const fixture = async (status) =>
   page.evaluate((status) => {
     window.SmallGamesPublishingConfig = { adsEnabled: true };
@@ -153,10 +214,71 @@ try {
     type: 'touchStart',
     touchPoints: [{ x: car.x, y: car.y }],
   });
-  await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: 'touchCancel',
+    touchPoints: [],
+  });
   await cdp.detach();
   assert.equal((await snap()).services.length, before);
   checks.push('touch cancellation');
+  // Run before any ad fixture: genuine level 1, real touches and ordinary 1× time.
+  const initialParallel = await parallelFrame('before');
+  assert.equal(initialParallel.state.level, 1);
+  assert.equal(initialParallel.state.services.length, 0);
+  assert.equal(initialParallel.view.practice, false);
+  assert.equal(initialParallel.view.speed, 1);
+  assert.deepEqual(initialParallel.view.unlockedSpeeds, [1]);
+  await touchParallelCar(initialParallel, '巡02');
+  const afterFirst = await parallelFrame('afterFirst');
+  assertParallelAssignments(afterFirst.state, 1);
+  // Observe the real clock; do not inject simulation steps or alter time scale.
+  await page.waitForFunction(
+    (time) => window.homeboundSnapshot().time >= time,
+    afterFirst.state.time + 0.5,
+  );
+  const beforeSecond = await parallelFrame('beforeSecond');
+  await touchParallelCar(beforeSecond, '巡01');
+  const afterSecond = await parallelFrame('afterSecond');
+  assertParallelAssignments(afterSecond.state);
+  await page.waitForFunction(
+    (time) => window.homeboundSnapshot().time >= time,
+    afterSecond.state.time + 0.5,
+  );
+  const movedTogether = await parallelFrame('movedTogether');
+  parallelEvidence.clickIntervalSeconds = afterSecond.state.time - afterFirst.state.time;
+  parallelEvidence.sharedWindowSeconds = movedTogether.state.time - afterSecond.state.time;
+  const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+  parallelEvidence.movement = parallelEvidence.clickOrder.map((id) => {
+    const position = (frame) => frame.state.vehicles.find((v) => v.id === id).position;
+    return {
+      vehicleId: id,
+      fromParking: distance(position(initialParallel), position(movedTogether)),
+      duringSharedWindow: distance(position(afterSecond), position(movedTogether)),
+    };
+  });
+  // Preserve diagnostics even if the old implementation fails the displacement check.
+  await writeFile(
+    path.join(out, 'parallel-departure.json'),
+    JSON.stringify(parallelEvidence, null, 2),
+  );
+  assert.equal(movedTogether.view.speed, 1);
+  assert.deepEqual(movedTogether.view.unlockedSpeeds, [1]);
+  assert.equal(movedTogether.state.delivered.length, 0);
+  assert.ok(movedTogether.state.groups.every((group) => group.boarded === 0));
+  assertParallelAssignments(movedTogether.state);
+  for (const movement of parallelEvidence.movement) {
+    assert.ok(
+      movement.fromParking >= 3,
+      `${movement.vehicleId} must leave its parking position by at least one car length before anyone boards.`,
+    );
+    assert.ok(
+      movement.duringSharedWindow >= 1,
+      `${movement.vehicleId} must physically move while the other taxi is also en route.`,
+    );
+  }
+  checks.push(
+    'level 1 at 1×: two real touches about 0.5 simulated seconds apart; both leave parking before first boarding; fixed passenger/pickup bindings',
+  );
   await tap('pause');
   await mode('pause');
   const frozen = (await snap()).time;
@@ -198,11 +320,10 @@ try {
   assert.equal((await screen()).speed, 5);
   checks.push('rewarded speed completion/cancellation/failure; no premature grant');
   const deadline = Date.now() + 180000;
-  let parallel = false;
   while (!(await snap()).won && Date.now() < deadline) {
     const raw = await snap(),
       s = { ...raw, delivered: new Set(raw.delivered) };
-    parallel ||= raw.services.filter((j) => j.phase === 'driving').length > 1;
+    assertParallelAssignments(raw);
     const next = s.vehicles.find((v) => canDispatch(s, v.id).ok);
     if (next) {
       const c = (await screen()).cars.find((v) => v.id === next.id);
@@ -211,7 +332,7 @@ try {
     await page.waitForTimeout(65);
   }
   assert.equal((await snap()).won, true);
-  assert.equal(parallel, true);
+  assertParallelAssignments((await parallelFrame('completed')).state);
   await mode('result');
   await shot('result-390');
   assert.ok((await screen()).progress.stars[0] > 0);
@@ -299,6 +420,7 @@ try {
         browser: await browser.version(),
         creator: info,
         checks,
+        parallelDeparture: parallelEvidence,
         errors,
         environment:
           'Chromium touch emulation of real Creator web build, not physical-device certification',

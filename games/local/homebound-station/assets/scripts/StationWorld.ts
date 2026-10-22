@@ -323,8 +323,8 @@ export class StationWorld {
     const width = visual?.width ?? this.taxiSize * 0.55;
     const height = visual?.height ?? this.taxiSize * 0.7;
     return {
-      x: ground.x + width * 0.18,
-      y: ground.y - height / 2 - 11,
+      x: ground.x + (this.landscape ? width / 2 + 12 : width * 0.18),
+      y: this.landscape ? ground.y - 8 : ground.y - height / 2 - 11,
       angle: Math.atan2(toward.y - ground.y, toward.x - ground.x),
     };
   }
@@ -470,8 +470,8 @@ export class StationWorld {
           { x: -17, z },
           { x: 17, z },
         ],
-        '#c7bba341',
-        0.7,
+        '#b9a98b88',
+        1,
       );
     for (let x = -16; x < 17; x += 2.4)
       this.worldLine(
@@ -479,13 +479,24 @@ export class StationWorld {
           { x, z: -10 },
           { x, z: 2.4 },
         ],
-        '#cabda037',
-        0.65,
+        '#b9a98b66',
+        0.85,
       );
 
     const curb = this.box(-18.2, 2.4, 18.2, 30.1);
     this.rect(g, { ...curb, x: curb.x - 2, y: curb.y + 5, w: curb.w + 4 }, '#29495125', 21);
     this.rect(g, curb, PALETTE.paving, 19);
+    for (const side of [-1, 1]) {
+      for (let z = 4; z < 29; z += 1.6)
+        this.worldLine(
+          [
+            { x: side * 17.4, z },
+            { x: side * 18.2, z },
+          ],
+          '#b1a17b99',
+          1,
+        );
+    }
     const road = this.box(-17.6, 2.7, 17.6, 29.6);
     this.rect(g, road, '#3c535e', 16);
     this.rect(g, { ...road, y: road.y + 1.5, h: road.h - 4 }, PALETTE.road, 15);
@@ -504,10 +515,10 @@ export class StationWorld {
       '#a2b1af55',
     );
     // Road grain is static and restrained; all objects come from real art assets.
-    for (let i = 0; i < 54; i++) {
+    for (let i = 0; i < 180; i++) {
       const x = road.x + 7 + ((i * 71) % Math.max(1, Math.floor(road.w - 14)));
       const y = road.y + 7 + ((i * 107) % Math.max(1, Math.floor(road.h - 14)));
-      this.rect(g, { x, y, w: 1.2, h: 0.7 }, '#c6d0ce17');
+      this.rect(g, { x, y, w: 1.6, h: 0.85 }, '#c6d0ce2c');
     }
     this.dashed({ x: -16, z: 6 }, { x: -16, z: 26.5 });
     this.dashed({ x: 16, z: 6 }, { x: 16, z: 26.5 });
