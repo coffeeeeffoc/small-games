@@ -3215,6 +3215,10 @@ export function mainIntegrationFileScopes(context) {
 
 // Saved Pages cbee0202 and migration base a0b4e324 have identical inputs here.
 export const towerCreatorIntegrationHashes = Object.freeze({
+  'scripts/sync-h5-fullscreen.mjs': [
+    '444c0792a85d7cf3713555abfc12904972b26c2c7d03ca4330a9b03478c161cf',
+    '1aba61eef265f7c0dfffb1af7b463e351a6a8799efe0e9c5243b106ef88fe731',
+  ],
   '.github/workflows/carding-car.yml': [
     '420192e8c991ff7166a1828e48b3087cdbf65604b8d659393c4802bdad6ac2c7',
     '35a72e638feb6d5d698cce35fd28f3be805d4613d68a64840b3d6279f93276b1',
@@ -3243,6 +3247,8 @@ export const towerCreatorIntegrationHashes = Object.freeze({
 
 // Exact combined Tower/Tetracube wiring; retain both original single-game proofs.
 export const towerTetracubeIntegrationHashes = Object.freeze({
+  'scripts/sync-h5-fullscreen.mjs':
+    '13ba2904af89e73207f2809fa861b7d5c23b72ff6df77ebdb73dfd27e332c363',
   '.github/workflows/carding-car.yml':
     'ed37f62fe6afb8bc23154cf5449dec571577000238a9e7af256548a18f6e27c0',
   '.github/workflows/ci.yml': 'eb409c1e039a2f9c1b689c5edf0d740783be64e93a5a9886e83e55d4e2fd7da7',

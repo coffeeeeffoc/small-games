@@ -89,4 +89,4 @@ Tower Brake 改为第八款 Creator 工程。四个既有工作流、Turbo 与�
 
 重力方舱的 Creator 迁移按 90aae860 基线逐文件绑定构建工作流、广告配置及入口路由的完整字节；锁文件只增加既有的 Playwright/TypeScript tuple，保留其余 resolution。三项旧 DOM 入口删除和三项公共脚本原样搬迁分别校验原文件、目标文件、Git 状态与游戏唯一身份。游戏仍执行真实 Creator 构建和画布触控；公共广告配置的摘要变化同时保留归途站消费者，未知改动不能沿用本次证明。
 
-Tower 与并行合入的 Tetracube 构成九款 Creator Producer。组合证明绑定六个工作流/Turbo/锁文件的最终完整摘要：从保存的 Pages 基线比较选择两款，从 `731dfd1188fc6a5a0f444bd0f1bb2d9a4c966d74` 比较选择 Tower；两种情况都校验两款完整身份与锁文件 manifest。原单款证明和 Tetracube 精确迁移证明保留，额外字节与未知基线继续阻断。
+Tower 与并行合入的 Tetracube 构成九款 Creator Producer。组合证明绑定工作流、Turbo、锁文件与全屏副本路由共七个文件的最终完整摘要：从保存的 Pages 基线比较选择两款，从 `731dfd1188fc6a5a0f444bd0f1bb2d9a4c966d74` 比较选择 Tower；两种情况都校验两款完整身份与锁文件 manifest。原单款证明和 Tetracube 精确迁移证明保留，额外字节与未知基线继续阻断。
