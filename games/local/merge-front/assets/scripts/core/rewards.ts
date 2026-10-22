@@ -1,5 +1,5 @@
 import type { Match } from './engine.ts';
-import { DRAW_COST } from './engine.ts';
+export const SUPPLY_COINS = 2;
 
 export type RewardStatus = 'completed' | 'dismissed' | 'unavailable' | 'failed';
 export interface RewardResult {
@@ -43,7 +43,7 @@ export function createRewardController(match: Match, offer?: RewardOffer): Rewar
             if (match.sides[0].boostUsed) status = 'unavailable';
             else {
               match.sides[0].boostUsed = true;
-              match.sides[0].coins += DRAW_COST;
+              match.sides[0].coins += SUPPLY_COINS;
               match.assisted = true;
             }
           }
