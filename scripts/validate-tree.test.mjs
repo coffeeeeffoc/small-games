@@ -700,7 +700,7 @@ test('publishing browsers run exact bounded suites with native gates off and fai
   const expected = {
     'cops-robbers': ['check-rewarded-hints.mjs'],
     'cops-robbers-realtime': ['publishing.browser.mjs', 'start-lifecycle.browser.mjs'],
-    'tower-brake': ['publishing-browser.mjs', 'browser.mjs', 'expansion-browser.mjs'],
+    'tower-brake': ['browser.mjs'],
     'cage-rescue': [
       'reward-browser.mjs',
       'browser.mjs',

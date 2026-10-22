@@ -26,6 +26,7 @@ const immersiveGame = (id) =>
     'chase-thief',
     'orbit-atelier',
     'merge-front',
+    'tower-brake',
     'tetracube',
     'ink-is-everything',
     'ball-roguelite',
@@ -252,6 +253,7 @@ try {
         game.id === 'ball-roguelite' ||
         game.id === 'orbit-atelier' ||
         game.id === 'merge-front' ||
+        game.id === 'tower-brake' ||
         game.id === 'tetracube'
       ) {
         await expect(page.locator('.standalone-page nav')).toBeVisible();

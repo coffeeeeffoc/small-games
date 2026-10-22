@@ -151,24 +151,45 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await click(frame.locator('#resume'));
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
   } else if (id === 'tower-brake') {
-    const play = frame.locator('#play-screen');
-    const scene = frame.locator('#scene');
-    await expect(play).toBeVisible();
-    await expect(play).toHaveAttribute('data-phase', 'playing');
-    await expect(scene).toBeVisible();
-    const initialAngle = await play.getAttribute('data-angle');
-    await click(frame.locator('#brake-button'));
-    await expect(frame.locator('#brake-button')).toHaveAttribute('data-charges', '0');
-    const page = scene.page();
-    const bounds = await scene.boundingBox();
-    const start = { x: bounds.x + bounds.width * 0.35, y: bounds.y + bounds.height * 0.5 };
-    const end = { x: bounds.x + bounds.width * 0.7, y: start.y };
+    const canvas = frame.locator('#GameCanvas'),
+      page = canvas.page();
+    const snapshot = () => canvas.evaluate(() => globalThis.__tower?.snapshot());
+    await expect.poll(async () => (await snapshot())?.assetReady, { timeout: 60000 }).toBe(true);
+    await expect.poll(async () => (await snapshot())?.screen).toBe('home');
+    expect((await snapshot()).engine).toBe('Cocos Creator 3.8.8');
+    const point = async (x, y) => {
+      const state = await snapshot(),
+        bounds = await canvas.boundingBox();
+      const scale = Math.min(bounds.width / state.width, bounds.height / state.height);
+      return {
+        x: bounds.x + (bounds.width - state.width * scale) / 2 + x * scale,
+        y: bounds.y + (bounds.height - state.height * scale) / 2 + y * scale,
+      };
+    };
+    const tap = async (id) => {
+      const c = (await snapshot()).controls.find((item) => item.id === id && !item.disabled);
+      expect(c, id).toBeTruthy();
+      const p = await point(c.x + c.w / 2, c.y + c.h / 2);
+      if (mobile) await page.touchscreen.tap(p.x, p.y);
+      else await page.mouse.click(p.x, p.y);
+    };
+    await tap('levels');
+    expect((await snapshot()).controls.filter((c) => c.id.startsWith('level-')).length).toBe(8);
+    expect((await snapshot()).controls.find((c) => c.id === 'level-7').disabled).toBe(true);
+    await tap('home');
+    await tap('start');
+    await expect.poll(async () => (await snapshot())?.screen).toBe('playing');
+    const before = await snapshot();
+    await tap('brake');
+    await expect.poll(async () => (await snapshot()).state.charge).toBe(0);
+    const start = await point(110, 350),
+      end = await point(190, 350);
     if (mobile) {
       const touch = await page.context().newCDPSession(page);
       try {
         await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [start] });
         await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [end] });
-        await touch.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
       } finally {
         await touch.detach();
       }
@@ -178,22 +199,18 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       await page.mouse.move(end.x, end.y, { steps: 3 });
       await page.mouse.up();
     }
-    await click(frame.locator('#pause-button'));
-    await expect(play).toHaveAttribute('data-phase', 'paused');
-    expect(await play.getAttribute('data-angle')).not.toBe(initialAngle);
-    await expect(frame.locator('#pause-screen')).toBeVisible();
-    await click(frame.locator('#resume-game'));
-    await expect(play).toHaveAttribute('data-phase', 'playing');
-    await click(frame.locator('#pause-button'));
-    await click(frame.locator('#pause-home'));
-    await expect(frame.locator('#home')).toBeVisible();
-    await click(frame.locator('#choose-level'));
-    await expect(frame.locator('#levels-screen')).toBeVisible();
-    await expect(frame.locator('#levels-screen button[data-level]')).toHaveCount(30);
-    await expect(frame.locator('#levels-screen button[data-level="0"]')).toBeEnabled();
-    await expect(frame.locator('#levels-screen button[data-level="29"]')).toBeDisabled();
-    await click(frame.locator('#levels-home'));
-    await expect(frame.locator('#start-game')).toBeVisible();
+    expect((await snapshot()).state.rotation).not.toBe(before.state.rotation);
+    expect((await snapshot()).pointerActive).toBe(false);
+    await tap('pause');
+    await expect.poll(async () => (await snapshot()).screen).toBe('paused');
+    const frozen = (await snapshot()).state.elapsed;
+    await page.waitForTimeout(150);
+    expect((await snapshot()).state.elapsed).toBe(frozen);
+    await tap('resume');
+    await expect.poll(async () => (await snapshot()).screen).toBe('playing');
+    await tap('pause');
+    await tap('home');
+    await expect.poll(async () => (await snapshot()).screen).toBe('home');
   } else if (id === 'chase-thief') {
     await assertChaseGameplay(frame, mobile);
   } else if (id === 'orbit-atelier') {

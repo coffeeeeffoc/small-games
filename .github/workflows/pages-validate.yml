@@ -67,6 +67,7 @@ jobs:
       TIANXIA_PREBUILT_DIR: ${{ github.workspace }}/games/local/tianxia-chalu/.prebuilt
       HOMEBOUND_STATION_PREBUILT_DIR: ${{ github.workspace }}/games/local/homebound-station/.prebuilt
       MERGE_FRONT_PREBUILT_DIR: ${{ github.workspace }}/games/local/merge-front/.prebuilt
+      TOWER_BRAKE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tower-brake/.prebuilt
       TETRACUBE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tetracube/.prebuilt
       PAGES_BASE_PATH: /${{ github.event.repository.name }}/${{ (github.base_ref || github.ref_name) == 'dev' && 'dev/' || (github.base_ref || github.ref_name) == 'test' && 'test/' || '' }}
     steps:
@@ -121,6 +122,10 @@ jobs:
           path: games/local/merge-front/.prebuilt
       - uses: actions/download-artifact@v8
         with:
+          name: tower-brake-${{ github.sha }}
+          path: games/local/tower-brake/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
           name: tetracube-${{ github.sha }}
           path: games/local/tetracube/.prebuilt
       - run: pnpm check:games
@@ -164,6 +169,7 @@ jobs:
       TIANXIA_PREBUILT_DIR: ${{ github.workspace }}/games/local/tianxia-chalu/.prebuilt
       HOMEBOUND_STATION_PREBUILT_DIR: ${{ github.workspace }}/games/local/homebound-station/.prebuilt
       MERGE_FRONT_PREBUILT_DIR: ${{ github.workspace }}/games/local/merge-front/.prebuilt
+      TOWER_BRAKE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tower-brake/.prebuilt
       TETRACUBE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tetracube/.prebuilt
       PAGES_FULL_REGRESSION: ${{ inputs.full }}
       PAGES_GAME_SOURCES: ${{ inputs.game_sources }}
@@ -218,6 +224,10 @@ jobs:
         with:
           name: merge-front-${{ github.sha }}
           path: games/local/merge-front/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: tower-brake-${{ github.sha }}
+          path: games/local/tower-brake/.prebuilt
       - uses: actions/download-artifact@v8
         with:
           name: tetracube-${{ github.sha }}

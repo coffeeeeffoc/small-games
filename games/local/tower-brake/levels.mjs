@@ -4,6 +4,67 @@ export const LEVEL_HEIGHT = 115;
 export const FIRST_LAYER_Y = 120;
 export const LAYER_COUNT = 12;
 
+export const CHAPTERS = [
+  { name: '星际空间', from: 1, to: 8, radius: 12, speed: 1, color: '#172947' },
+  { name: '稀薄大气', from: 9, to: 15, radius: 9.6, speed: 1.16, color: '#397cba' },
+  { name: '中层大气', from: 16, to: 22, radius: 11, speed: 0.96, color: '#7cbbd1' },
+  { name: '表层大气', from: 23, to: 30, radius: 13.8, speed: 0.82, color: '#e7c498' },
+];
+export const ENVIRONMENT = { span: 72, transition: 24, windStart: 9, windMax: 0.055 };
+const SKY_ROUTE = [0, 1, 2, 3, 2, 1];
+export const PICKUPS = [
+  { kind: 'shield', start: 5, ring: 2, label: '护盾', duration: 0 },
+  { kind: 'brake', start: 13, ring: 5, label: '刹车补给', duration: 0 },
+  { kind: 'slow', start: 17, ring: 8, label: '缓降', duration: 4 },
+];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+export const biomeForStage = (stage) => CHAPTERS.findIndex((chapter) => stage <= chapter.to);
+
+/** Short routes keep one climate; endless returns through adjacent skies without a hard cut. */
+export function environmentAt(level, y = FIRST_LAYER_Y) {
+  const depth = Math.max(0, (y - FIRST_LAYER_Y) / LEVEL_HEIGHT);
+  const stage = level.order || Math.min(30, Math.floor(depth / 12) + 1);
+  const endless = level.id === 'endless';
+  const segment = Math.floor(depth / ENVIRONMENT.span);
+  const from = endless ? SKY_ROUTE[segment % SKY_ROUTE.length] : biomeForStage(stage);
+  const to = endless ? SKY_ROUTE[(segment + 1) % SKY_ROUTE.length] : from;
+  const blend = endless
+    ? clamp(
+        ((depth % ENVIRONMENT.span) - (ENVIRONMENT.span - ENVIRONMENT.transition)) /
+          ENVIRONMENT.transition,
+        0,
+        1,
+      )
+    : 0;
+  const mix = blend * blend * (3 - 2 * blend);
+  const a = CHAPTERS[from],
+    b = CHAPTERS[to];
+  const weather =
+    from < 2
+      ? 'clear'
+      : (level.order || Math.floor(depth / 60)) % 4 === 0
+        ? 'snow'
+        : (level.order || Math.floor(depth / 60)) % 3 === 0
+          ? 'rain'
+          : 'cloud';
+  return {
+    from,
+    to,
+    blend: mix,
+    depth,
+    stage,
+    name: mix > 0.5 ? b.name : a.name,
+    radius: a.radius + (b.radius - a.radius) * mix,
+    speed: a.speed + (b.speed - a.speed) * mix,
+    wind:
+      stage >= ENVIRONMENT.windStart
+        ? Math.min(1, from + (to - from) * mix) *
+          Math.min(ENVIRONMENT.windMax, 0.018 + (stage - 9) * 0.002)
+        : 0,
+    weather,
+  };
+}
+
 const TAU = Math.PI * 2;
 const radians = (degrees) => (degrees * Math.PI) / 180;
 const norm = (angle) => ((angle % TAU) + TAU) % TAU;
@@ -171,11 +232,13 @@ const designs = [
 ];
 
 function ringMechanics(stage, index) {
-  if (stage < 9) return {};
+  const pickup = PICKUPS.find((item) => stage >= item.start && index === item.ring)?.kind;
+  if (stage < 9) return pickup ? { pickup } : {};
   const active = index > 0 && index < 11;
   const spin = active && stage !== 13 && stage !== 19 && index >= 3;
   const accelerated = active && stage >= 13 && stage !== 19 && index % 3 !== 0;
   return {
+    ...(pickup ? { pickup } : {}),
     spinSpeed: spin
       ? (Math.floor(index / 3) % 2 ? 1 : -1) * (0.075 + Math.min(0.055, (stage - 9) * 0.003))
       : 0,
@@ -262,6 +325,7 @@ export const LEVELS = designs.map(({ rows, ...description }, order) => ({
   ...description,
   schemaVersion: LEVEL_SCHEMA_VERSION,
   order: order + 1,
+  biome: biomeForStage(order + 1),
   mechanicHint: mechanicHint(order + 1),
   unlockAfter: order === 0 ? null : designs[order - 1].id,
   layers: [
@@ -305,6 +369,8 @@ export function validateLevel(level) {
       throw new Error(`Invalid acceleration: ${level.id}/${index}`);
     if (layer.fog !== undefined && typeof layer.fog !== 'boolean')
       throw new Error(`Invalid fog: ${level.id}/${index}`);
+    if (layer.pickup !== undefined && !PICKUPS.some((item) => item.kind === layer.pickup))
+      throw new Error(`Invalid pickup: ${level.id}/${index}`);
     if (index === 0 && layer.spinSpeed)
       throw new Error(`Initial platform must stay still: ${level.id}`);
     if (index === 11) {

@@ -8,6 +8,7 @@ const defaults = () => ({
   unlocked: 1,
   selected: 0,
   sound: true,
+  reducedMotion: false,
   skin: 'mint',
   best: {},
   continuedBest: {},

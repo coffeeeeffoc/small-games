@@ -1,0 +1,125 @@
+{
+  "engine": "Cocos Creator 3.8.8",
+  "date": "2026-10-22T18:16:16.423Z",
+  "checks": [
+    "Native Cocos home, locked chapter grid, help and persisted settings; offline play has no leaderboard button",
+    "Touch brake, drag, touchcancel, pause freeze and simulated browser blur preserve input and timer boundaries",
+    "First route completed through real touch input, result and second-route unlock saved",
+    "Failure, one free continue, second failure and retry form a complete loop",
+    "Thin, middle, snow and rain routes completed through shared-challenge touch input; returning home restores camera and normal progress",
+    "Blur while a delayed start request is pending requires explicit resume and preserves zero elapsed time",
+    "Endless passes 80 floors through the first natural atmosphere transition; failed-run buttons have unique, visible labels and retry works",
+    "Development mode snapshot remains read-only; developer actions are isolated from saved progress",
+    "320px narrow screen and landscape letterbox retain playable native controls with at least 44px hit areas"
+  ],
+  "errors": [],
+  "screenshots": [
+    "01-home-390x844.png",
+    "02-chapters-390x844.png",
+    "03-guide-390x844.png",
+    "04-space-390x844.png",
+    "05-pause-390x844.png",
+    "06-result-390x844.png",
+    "07-thin-air-390x844.png",
+    "08-middle-clouds-390x844.png",
+    "09-low-snow-390x844.png",
+    "09b-low-rain-390x844.png",
+    "10-endless-first-transition-390x844.png",
+    "10b-endless-result-390x844.png",
+    "11-endless-transition-fixture-390x844.png",
+    "cycle-1-to-2-fixture-390x844.png",
+    "cycle-2-to-3-fixture-390x844.png",
+    "cycle-3-to-2-fixture-390x844.png",
+    "cycle-2-to-1-fixture-390x844.png",
+    "cycle-1-to-0-fixture-390x844.png",
+    "responsive-320x568.png",
+    "responsive-844x390.png"
+  ],
+  "sourceHash": "1b6c1e1c815806623a1a27a9ace60257ee2baaaa75c2a1fc4cd06b89b67e28cc",
+  "videoCues": [
+    {
+      "name": "01-home-390x844",
+      "timeSeconds": 1.1872367
+    },
+    {
+      "name": "02-chapters-390x844",
+      "timeSeconds": 1.399766
+    },
+    {
+      "name": "03-guide-390x844",
+      "timeSeconds": 2.354609
+    },
+    {
+      "name": "04-space-390x844",
+      "timeSeconds": 2.6512951000000005
+    },
+    {
+      "name": "05-pause-390x844",
+      "timeSeconds": 3.4140317999999996
+    },
+    {
+      "name": "06-result-390x844",
+      "timeSeconds": 7.7099895
+    },
+    {
+      "name": "07-thin-air-390x844",
+      "timeSeconds": 10.75939
+    },
+    {
+      "name": "08-middle-clouds-390x844",
+      "timeSeconds": 15.225266
+    },
+    {
+      "name": "09-low-snow-390x844",
+      "timeSeconds": 20.8365052
+    },
+    {
+      "name": "09b-low-rain-390x844",
+      "timeSeconds": 26.211299
+    },
+    {
+      "name": "10-endless-first-transition-390x844",
+      "timeSeconds": 54.1647449
+    },
+    {
+      "name": "10b-endless-result-390x844",
+      "timeSeconds": 54.9200769
+    },
+    {
+      "name": "11-endless-transition-fixture-390x844",
+      "timeSeconds": 56.0136219
+    },
+    {
+      "name": "cycle-1-to-2-fixture-390x844",
+      "timeSeconds": 56.306231499999996
+    },
+    {
+      "name": "cycle-2-to-3-fixture-390x844",
+      "timeSeconds": 56.590650800000006
+    },
+    {
+      "name": "cycle-3-to-2-fixture-390x844",
+      "timeSeconds": 56.84697070000001
+    },
+    {
+      "name": "cycle-2-to-1-fixture-390x844",
+      "timeSeconds": 57.098686799999996
+    },
+    {
+      "name": "cycle-1-to-0-fixture-390x844",
+      "timeSeconds": 57.352019799999994
+    },
+    {
+      "name": "responsive-320x568",
+      "timeSeconds": 58.8270065
+    },
+    {
+      "name": "responsive-844x390",
+      "timeSeconds": 60.0626743
+    }
+  ],
+  "video": "publishing/gameplay/videos/tower-brake-cocos-touch-390x844.webm",
+  "engineWarnings": [
+    "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted."
+  ]
+}

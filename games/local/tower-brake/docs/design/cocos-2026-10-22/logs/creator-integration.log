@@ -1,0 +1,73 @@
+✔ every registered standalone has one explicit adapter or legacy mode and a gameplay branch (4.8386ms)
+✔ explicit legacy mode leaves the original native interaction flow in charge (0.3332ms)
+✔ entry adapters never force clicks and have only stable semantic selectors (3.2948ms)
+✔ word island readiness is home, with an explicit start adapter before board assertions (0.222ms)
+✔ street chase waits for the game and enters through the home start button (0.0894ms)
+✔ Tianxia enters its ready Creator battlefield through preparation (0.5291ms)
+✔ Orbit Creator owns its native home and interaction checks instead of clicking invisible DOM controls (0.0888ms)
+✔ Tower Creator owns its native menu and touch flow (0.0715ms)
+✔ Pages publishes three branches through one queued publisher with read-only PR builds (10.6749ms)
+✔ Pages summary propagates selected validation failures and permits only explicit skips (772.9608ms)
+✔ parallel Pages logic builds Shell dependencies and keeps Node test gates (3.4831ms)
+✔ Shell Vitest discovery includes every application test and excludes Node script tests (424.9678ms)
+✔ all Cocos consumers download every source-verified artifact and pass them through Turbo (7.4885ms)
+✔ discovers lazy builtins and rejects an import without a registered definition (113.094ms)
+✔ discovers standalone and imported builtin games, including their built artifacts (66.4961ms)
+✔ reads the dependency graph after pnpm toolchain metadata and still rejects a missing link (88.6208ms)
+✔ finds an omitted game and an incomplete directory instead of only following the catalog (63.3667ms)
+✔ tree validation blocks missing registration or metadata after formatting (8226.0535ms)
+✔ blocks missing metadata for both standalone and builtin games (108.1144ms)
+✔ tree validation rejects bad formatting before running the game checker (4162.2205ms)
+✔ rejects duplicate ids, sources, package names and escaping catalog paths (77.6634ms)
+✔ requires the dependency, lock importer, game scripts and both smoke hooks (80.0495ms)
+✔ honors pnpm workspace exclusions (75.9462ms)
+✔ checks artifacts only when requested and detects a missing emitted entry (75.3084ms)
+✔ detects missing relative assets in emitted HTML (68.1388ms)
+✔ rejects origin-absolute asset paths that break nested Pages URLs (68.1473ms)
+✔ commented workflow gates do not satisfy the CI requirement (65.6519ms)
+✔ requires game build output to be covered by the Turbo cache (63.0568ms)
+✔ disabled workflow gates (false) do not count as checks (61.6415ms)
+✔ disabled workflow gates (${{ false }}) do not count as checks (66.368ms)
+✔ a shell comment inside a workflow run block is not an executed gate (67.6603ms)
+✔ echoed command names and allowed failures are not workflow gates (100.8505ms)
+✔ requires both split Pages gates or the complete legacy browser command (99.5574ms)
+✔ coordination jobs gain normal registration gates if they start building sources (141.7712ms)
+✔ scoped game logic must execute the runner and its job cannot ignore failures (112.0856ms)
+✔ disabled reusable callers cannot supply required Pages gates (76.9513ms)
+✔ rejects missing, cyclic and escaping local reusable workflow references (108.6423ms)
+﹣ rejects a reusable workflow symlink outside the workflow directory (47.9439ms) # Windows file symlink creation requires a privilege unavailable to this process
+✔ requires a shell-to-game lockfile dependency in addition to the game importer (65.826ms)
+✔ rejects a builtin lockfile dependency linked to the wrong game directory (97.4032ms)
+✔ requires the built hall entry in artifact mode (320.8298ms)
+✔ treats a CSS data URL as one asset instead of parsing its embedded SVG url() (378.9866ms)
+✔ does not require assets from commented HTML tags (300.0614ms)
+Verified carding-car prebuilt sources, Creator version, entry and declarations before cache lookup.
+✔ carding-car: required Cocos inputs are checked before cache reuse (139.381ms)
+Verified night-overwatch prebuilt sources, Creator version, entry and declarations before cache lookup.
+✔ night-overwatch: required Cocos inputs are checked before cache reuse (232.7598ms)
+Verified tianxia-chalu prebuilt sources, Creator version, entry and declarations before cache lookup.
+✔ tianxia-chalu: required Cocos inputs are checked before cache reuse (233.6204ms)
+Verified merge-front prebuilt sources, Creator version, entry and declarations before cache lookup.
+✔ merge-front: required Cocos inputs are checked before cache reuse (111.4831ms)
+Verified tower-brake prebuilt sources, Creator version, entry and declarations before cache lookup.
+✔ tower-brake: required Cocos inputs are checked before cache reuse (200.4844ms)
+✔ Creator preflight follows only actual builds, type consumers and source-matching native targets (2.2045ms)
+Verified orbit prebuilt sources, Creator version, entry and declarations before cache lookup.
+✔ Orbit Creator accepts only complete source-matching prebuilt inputs and never an unrelated artifact variable (64.5127ms)
+Verified homebound prebuilt sources, Creator version, entry and declarations before cache lookup.
+✔ homebound uses its own verified Creator artifact and rejects missing or stale inputs (61.2911ms)
+No matching CI producer found; rebuilding with the normal Creator gates.
+✔ reuse waits for all eight successful producer gates, not downstream CI (2.6688ms)
+✔ missing producer falls back, active producer has a finite deadline (0.6662ms)
+✔ discovery ignores other commits and branches and uses completed producer jobs (0.1774ms)
+✔ provenance rejects wrong source, platform, engine, run, or repository (1.0555ms)
+✔ CI is the sole producer direction and fallback retains original gates (10.5373ms)
+✔ reuse verifies and republishes every Creator game before skipping the producer (3.1106ms)
+ℹ tests 57
+ℹ suites 0
+ℹ pass 56
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 18607.087

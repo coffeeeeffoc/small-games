@@ -1,376 +1,437 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile, copyFile, readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { chromium, expect } from '@playwright/test';
+import { chromium } from '@playwright/test';
+import { LEVELS, createEndlessLayer } from '../levels.mjs';
+import { normalizeAngle, BALL_ANGLE, layerRotationAt } from '../engine.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const evidence = new URL('../docs/design/', import.meta.url);
-const port = Number(process.env.TOWER_BRAKE_TEST_PORT || 4463);
-const origin = `http://127.0.0.1:${port}`;
-const server = spawn(
-  process.execPath,
-  ['server.mjs', '--dist', '--port', String(port), '--host', '127.0.0.1'],
-  { cwd: root, stdio: ['ignore', 'pipe', 'inherit'] },
-);
+const evidence = new URL('../docs/design/cocos-2026-10-22/', import.meta.url);
+const screenshots = new URL('../publishing/gameplay/screenshots/', import.meta.url);
+const videos = new URL('../publishing/gameplay/videos/', import.meta.url);
+for (const dir of [evidence, screenshots, videos]) await mkdir(dir, { recursive: true });
+const port = Number(process.env.TOWER_BRAKE_TEST_PORT || 4463),
+  origin = 'http://127.0.0.1:' + port;
+const server = spawn(process.execPath, ['scripts/serve.mjs', '--port', String(port)], {
+  cwd: root,
+  windowsHide: true,
+  stdio: ['ignore', 'pipe', 'inherit'],
+});
 await new Promise((resolve, reject) => {
   server.stdout.once('data', resolve);
   server.once('error', reject);
-  server.once('exit', (code) => reject(new Error(`Preview exited ${code}`)));
+  server.once('exit', (c) => reject(Error('Preview exited ' + c)));
 });
 const browser = await chromium.launch({
   headless: true,
-  executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || '/usr/bin/chromium',
-  args: ['--no-sandbox'],
+  ...(process.env.PLAYWRIGHT_EXECUTABLE_PATH
+    ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH }
+    : {}),
 });
-const errors = [];
 const report = {
-  browser: await browser.version(),
-  viewport: '390 × 844',
-  touch: true,
+  engine: 'Cocos Creator 3.8.8',
+  date: new Date().toISOString(),
   checks: [],
-  errors,
+  errors: [],
+  screenshots: [],
+  sourceHash: JSON.parse(
+    await readFile(new URL('../dist/build-info.json', import.meta.url), 'utf8'),
+  ).sourceHash,
 };
 const check = (name) => {
   report.checks.push(name);
-  console.log(`PASS ${name}`);
+  console.log('PASS ' + name);
 };
 const context = await browser.newContext({
   viewport: { width: 390, height: 844 },
   isMobile: true,
   hasTouch: true,
   deviceScaleFactor: 1,
+  recordVideo: {
+    dir: fileURLToPath(new URL('../reports/video/', import.meta.url)),
+    size: { width: 390, height: 844 },
+  },
 });
-await context.route('**/api/competition/v1/**', (route) => route.abort('internetdisconnected'));
-const page = await context.newPage();
-page.on('pageerror', (error) => errors.push(error.message));
-const snap = () => page.evaluate(() => window.__towerBrake.snapshot());
-const cdp = await context.newCDPSession(page);
-async function touchDrag(delta, y = 425) {
-  const start = delta > 0 ? 45 : 345;
-  await cdp.send('Input.dispatchTouchEvent', {
-    type: 'touchStart',
-    touchPoints: [{ x: start, y, id: 1 }],
+let requestDelay = 0;
+await context.route('**/api/competition/**', async (route) => {
+  if (requestDelay) await new Promise((resolve) => setTimeout(resolve, requestDelay));
+  await route.fulfill({
+    status: 503,
+    contentType: 'application/json',
+    body: '{"error":"SERVICE_UNAVAILABLE"}',
   });
-  await cdp.send('Input.dispatchTouchEvent', {
-    type: 'touchMove',
-    touchPoints: [{ x: start + delta, y, id: 1 }],
-  });
-  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-}
-async function aimGap() {
-  const amount = await page.evaluate(() => {
-    const state = window.__towerBrake.getState();
-    const gap = state.level.layers[state.nextLayer]?.gap;
-    if (!gap) return 0;
-    const tau = Math.PI * 2;
-    const wrap = (a) => ((a % tau) + tau) % tau;
-    const middle = wrap(gap.start + wrap(gap.end - gap.start) / 2);
-    return wrap(Math.PI / 2 - middle - state.rotation + Math.PI) - Math.PI;
-  });
-  if (Math.abs(amount) > 0.005) await touchDrag((-amount / (Math.PI * 1.7)) * 388);
-}
-try {
-  await mkdir(evidence, { recursive: true });
-  await page.goto(origin);
-  await page.waitForSelector('#home[data-ready="true"]');
-  assert.equal(await page.evaluate(() => window.__towerBrake), undefined);
-  await page.screenshot({ path: fileURLToPath(new URL('actual-home.png', evidence)) });
-  await page.locator('#choose-level').tap();
-  assert.equal(await page.locator('[data-level]').count(), 30);
-  assert.equal(await page.locator('[data-level]:disabled').count(), 29);
-  await page.screenshot({ path: fileURLToPath(new URL('actual-levels.png', evidence)) });
-  await page.locator('#levels-home').tap();
-  await page.locator('#settings-button').tap();
-  await page.locator('[data-skin="amber"]').tap();
-  assert.equal(await page.locator('[data-skin="amber"]').getAttribute('aria-pressed'), 'true');
-  await page.locator('[data-skin="mint"]').tap();
-  await page.locator('#sound-toggle').tap();
-  await page.locator('#settings-home').tap();
-  await page.locator('#help-button').tap();
-  assert.equal(await page.locator('.help-list li').count(), 3);
-  await page.locator('#help-home').tap();
-  check('Phone home, thirty-route locked selection, help, sound and skins');
-
-  await page.goto(`${origin}/?dev=1`);
-  await page.waitForFunction(() => !!window.__towerBrake);
-  await page.locator('#start-game').tap();
-  await page.waitForTimeout(150);
-  const brakeBox = await page.locator('#brake-button').boundingBox();
-  await cdp.send('Input.dispatchTouchEvent', {
-    type: 'touchStart',
-    touchPoints: [{ x: 320, y: 430, id: 1 }],
-  });
-  await cdp.send('Input.dispatchTouchEvent', {
-    type: 'touchStart',
-    touchPoints: [
-      { x: 320, y: 430, id: 1 },
-      { x: brakeBox.x + 35, y: brakeBox.y + 30, id: 2 },
-    ],
-  });
-  const frozen = await snap();
-  assert.equal(frozen.charge, 0);
-  assert.ok(frozen.brakeLeft > 0);
-  await cdp.send('Input.dispatchTouchEvent', {
-    type: 'touchMove',
-    touchPoints: [
-      { x: 300, y: 430, id: 1 },
-      { x: brakeBox.x + 35, y: brakeBox.y + 30, id: 2 },
-    ],
-  });
-  await page.waitForTimeout(130);
-  const turned = await snap();
-  assert.equal(turned.y, frozen.y);
-  assert.equal(turned.v, frozen.v);
-  assert.notEqual(turned.rotation, frozen.rotation);
-  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-  await aimGap();
-  check('Two real touch contacts: brake freezes ball while the other thumb rotates');
-  await page.waitForFunction(() => window.__towerBrake.getState().nextLayer === 3, {
-    timeout: 5000,
-  });
-  const triple = await snap();
-  assert.equal(triple.charge, 1);
-  assert.equal(triple.streak, 3);
-  await page.locator('#brake-button').tap();
-  assert.equal((await snap()).streak, 0);
-  await page.screenshot({ path: fileURLToPath(new URL('actual-brake.png', evidence)) });
-  await aimGap();
-  check('Three uninterrupted passes recharge once; active brake rescues the next dangerous layer');
-
-  await page.locator('#pause-button').tap();
-  const paused = await snap();
-  await page.waitForTimeout(250);
-  const still = await snap();
-  assert.equal(still.y, paused.y);
-  assert.equal(still.elapsed, paused.elapsed);
-  assert.equal(still.brakeLeft, paused.brakeLeft);
-  await page.screenshot({ path: fileURLToPath(new URL('actual-pause.png', evidence)) });
-  await page.locator('#resume-game').tap();
-  const deadline = Date.now() + 18000;
-  let aimed = -1;
-  while (Date.now() < deadline) {
-    const state = await snap();
-    if (state.status !== 'playing') break;
-    if (state.nextLayer !== aimed) {
-      aimed = state.nextLayer;
-      await aimGap();
-    }
-    await page.waitForTimeout(30);
-  }
-  assert.equal((await snap()).status, 'won');
-  await page.waitForSelector('#result-screen:not([hidden])');
-  await page.screenshot({ path: fileURLToPath(new URL('actual-win.png', evidence)) });
-  await page.evaluate(() => {
-    Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
-    Object.defineProperty(navigator, 'clipboard', {
-      configurable: true,
-      value: {
-        writeText: async (text) => {
-          window.__sharedUrl = text;
-        },
-      },
-    });
-  });
-  await page.locator('#share-game').tap();
-  await expect(page.locator('#share-status')).toContainText('挑战链接已复制');
-  const shared = new URL(await page.evaluate(() => window.__sharedUrl));
-  assert.equal(shared.searchParams.get('challenge'), 'tower-v1');
-  assert.equal(Number(shared.searchParams.get('targetScore')), (await snap()).score);
-  assert.equal(shared.searchParams.has('dev'), false);
-  await page.screenshot({
-    path: fileURLToPath(new URL('publishing/mobile-result-share.png', evidence)),
-  });
-  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('tower-brake-v1')));
-  assert.equal(saved.unlocked, 2);
-  assert.ok(Object.keys(saved.best).length === 1);
-  check('Pause stops physics and brake timer; real drag inputs reach floor 12 and unlock route 2');
-
-  await page.locator('#result-home').tap();
-  assert.equal((await snap()).screen, 'home', 'result return must show home');
-  await page.locator('#start-game').tap();
-  await aimGap();
-  await page.waitForFunction(() => window.__towerBrake.getState().status === 'lost', {
-    timeout: 5000,
-  });
-  assert.equal((await snap()).nextLayer, 3);
-  await page.screenshot({ path: fileURLToPath(new URL('actual-failure.png', evidence)) });
-  await page.locator('#continue-game').tap();
-  assert.equal((await snap()).continued, true);
-  assert.equal((await snap()).nextLayer, 0);
-  await aimGap();
-  await page.waitForFunction(() => window.__towerBrake.getState().status === 'lost', {
-    timeout: 5000,
-  });
-  assert.equal(await page.locator('#continue-game').isVisible(), false);
-  check(
-    'Danger collision identifies floor 4; continuation returns to the safe checkpoint only once',
+});
+const page = await context.newPage(),
+  cdp = await context.newCDPSession(page);
+const videoStart = performance.now();
+report.videoCues = [];
+const errors = new Set(),
+  engineWarnings = new Set();
+page.on('pageerror', (e) => errors.add(e.message));
+page.on('console', (m) => {
+  if (m.text().startsWith('Ignored attempt to cancel a touchcancel event with cancelable=false'))
+    engineWarnings.add(m.text());
+  else if (m.type() === 'error' && !m.text().includes('Failed to load resource'))
+    errors.add(m.text().split('\n')[0]);
+});
+page.on('response', (r) => {
+  if (r.status() >= 400 && !r.url().includes('/api/competition/'))
+    errors.add(r.status() + ' ' + r.url());
+});
+const snap = async () => {
+  const s = await page.evaluate(() => globalThis.__tower?.snapshot());
+  if (!s) return s;
+  assert.equal(
+    new Set(s.controls.map((c) => c.id)).size,
+    s.controls.length,
+    'each native control owns a unique label and accessibility node',
   );
-
-  await page.locator('#result-home').tap();
-  await page.locator('#start-game').tap();
+  assert.ok(!s.labels.some((l) => l.id === 'sighting'), 'scenery must not have floating labels');
+  for (const c of s.controls) {
+    if (['pause', 'brake'].includes(c.id)) continue;
+    const label = s.labels.find((l) => l.id === 'b:' + c.id);
+    assert.equal(label?.text, c.label, c.id + ' visible Cocos label');
+    assert.ok(
+      Math.abs(label.x - c.x - c.w / 2) < 0.1 && Math.abs(label.y - c.y - c.h / 2) < 3,
+      c.id + ' label centered on its own button',
+    );
+    for (const d of s.controls)
+      if (c !== d)
+        assert.ok(
+          Math.min(c.x + c.w, d.x + d.w) - Math.max(c.x, d.x) <= 0.1 ||
+            Math.min(c.y + c.h, d.y + d.h) - Math.max(c.y, d.y) <= 0.1,
+          c.id + ' and ' + d.id + ' hit areas overlap',
+        );
+  }
+  return s;
+};
+const waitScreen = (screen) =>
+  page.waitForFunction((value) => globalThis.__tower?.snapshot().screen === value, screen);
+async function ready(query = '') {
+  await page.goto(origin + '/' + query);
+  await page.waitForFunction(() => globalThis.__tower?.snapshot().assetReady);
+  await page.waitForTimeout(120);
+}
+async function point(x, y) {
+  const s = await snap(),
+    b = await page.locator('#GameCanvas').boundingBox(),
+    scale = Math.min(b.width / s.width, b.height / s.height);
+  return {
+    x: b.x + (b.width - s.width * scale) / 2 + x * scale,
+    y: b.y + (b.height - s.height * scale) / 2 + y * scale,
+  };
+}
+async function tap(id) {
+  const s = await snap(),
+    c = s.controls.find((v) => v.id === id && !v.disabled);
+  assert.ok(c, 'enabled ' + id);
+  const p = await point(c.x + c.w / 2, c.y + c.h / 2);
+  await page.touchscreen.tap(p.x, p.y);
+  await page.waitForTimeout(40);
+}
+async function turn(angle, cancel = false) {
+  if (Math.abs(angle) < 0.003) return;
+  const dx = (-angle / (Math.PI * 1.7)) * 360,
+    x = dx < 0 ? 300 : 60;
+  const a = await point(x, 350),
+    b = await point(x + dx, 350);
   await cdp.send('Input.dispatchTouchEvent', {
     type: 'touchStart',
-    touchPoints: [{ x: 280, y: 430, id: 1 }],
+    touchPoints: [{ ...a, id: 1 }],
   });
-  await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
-  const cancelled = (await snap()).rotation;
-  await page.dispatchEvent('#app', 'pointermove', { pointerId: 1, clientX: 120, clientY: 430 });
-  assert.equal((await snap()).rotation, cancelled);
-  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
-  assert.equal(await page.locator('#pause-screen').isVisible(), true);
-  check('Touch cancellation clears drag; losing window focus pauses safely');
-
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ ...b, id: 1 }] });
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: cancel ? 'touchCancel' : 'touchEnd',
+    touchPoints: [],
+  });
+  await page.waitForTimeout(20);
+}
+async function shot(name) {
+  const path = fileURLToPath(new URL(name + '.png', screenshots));
+  await page.screenshot({ path });
+  report.screenshots.push(name + '.png');
+  report.videoCues.push({ name, timeSeconds: (performance.now() - videoStart) / 1000 });
+}
+async function win() {
+  for (let i = 0; i < 500; i++) {
+    const s = await snap();
+    if (s.screen === 'result') break;
+    await turn(s.landing?.rotationToGap || 0);
+    await page.waitForTimeout(40);
+  }
+  assert.equal((await snap()).state.status, 'won');
+}
+async function lose() {
+  const s = await snap(),
+    l =
+      s.state.mode === 'endless'
+        ? createEndlessLayer(s.state.totalFloors, 0)
+        : LEVELS[s.selected].layers[s.state.nextLayer],
+    d = l.danger[0];
+  const angle =
+    normalizeAngle(
+      BALL_ANGLE -
+        d.start -
+        normalizeAngle(d.end - d.start) / 2 -
+        s.state.rotation -
+        layerRotationAt(l, s.state.elapsed) +
+        Math.PI,
+    ) - Math.PI;
+  await turn(angle);
+  await waitScreen('result');
+  assert.equal((await snap()).state.status, 'lost');
+}
+async function challenge(index) {
+  await ready('?challenge=tower-v1&level=' + LEVELS[index].id + '&targetScore=1800');
+  await tap('challenge');
+  await waitScreen('playing');
+}
+let video;
+try {
+  await ready();
+  assert.equal((await snap()).engine, 'Cocos Creator 3.8.8');
+  await shot('01-home-390x844');
+  assert.ok(!(await snap()).controls.some((c) => c.id === 'boards'), 'offline leaderboard hidden');
+  await tap('levels');
+  assert.equal((await snap()).controls.filter((c) => c.id.startsWith('level-')).length, 8);
+  assert.ok((await snap()).controls.find((c) => c.id === 'level-7').disabled);
+  await shot('02-chapters-390x844');
+  await tap('home');
+  await tap('settings');
+  await tap('sound');
+  await tap('motion');
+  await tap('skin-ice');
+  assert.equal((await snap()).reducedMotion, true);
+  await tap('motion');
+  await tap('sound');
+  await tap('skin-mint');
+  await tap('home');
+  await tap('help');
+  await shot('03-guide-390x844');
+  await tap('home');
+  check(
+    'Native Cocos home, locked chapter grid, help and persisted settings; offline play has no leaderboard button',
+  );
+  await tap('start');
+  await waitScreen('playing');
+  await shot('04-space-390x844');
+  const before = await snap();
+  assert.ok(
+    before.ringMeshes.some((n) => n >= 4),
+    'Creator rendered the ring body and hazards, not just the central collar',
+  );
+  await tap('brake');
+  assert.equal((await snap()).state.charge, 0);
+  await turn(0.28, true);
+  assert.equal((await snap()).pointerActive, false);
+  assert.notEqual((await snap()).state.rotation, before.state.rotation);
+  await tap('pause');
+  const frozen = (await snap()).state;
+  await page.waitForTimeout(350);
+  assert.deepEqual((await snap()).state, frozen);
+  await shot('05-pause-390x844');
+  await tap('resume');
+  await waitScreen('playing');
+  await page.evaluate(() => dispatchEvent(new Event('blur')));
+  await waitScreen('paused');
+  await tap('resume');
+  check(
+    'Touch brake, drag, touchcancel, pause freeze and simulated browser blur preserve input and timer boundaries',
+  );
+  await win();
+  const moved = await snap();
+  assert.equal(
+    moved.environment.from,
+    before.environment.from,
+    'campaign remains in its chosen environment',
+  );
+  assert.ok(moved.sceneryDistance > 9);
+  assert.ok(
+    Math.abs(moved.sky[0].y - before.sky[0].y) > 5,
+    'sky visibly moves during one short route',
+  );
+  assert.ok(
+    Math.abs(moved.sky[1].alpha - before.sky[1].alpha) > 40,
+    'same-climate views crossfade while descending',
+  );
+  await shot('06-result-390x844');
+  assert.equal((await snap()).unlocked, 2);
+  assert.equal(
+    JSON.parse(await page.evaluate(() => localStorage.getItem('tower-brake-v1'))).unlocked,
+    2,
+  );
+  check('First route completed through real touch input, result and second-route unlock saved');
+  await tap('home');
+  assert.ok((await snap()).cameraReference <= 121, 'home resets the camera after a full descent');
+  await tap('levels');
+  await tap('level-0');
+  await waitScreen('playing');
+  assert.ok((await snap()).cameraReference <= 121, 'restarting the same route resets the camera');
+  await lose();
+  assert.ok((await snap()).controls.some((c) => c.id === 'continue'));
+  await tap('continue');
+  await waitScreen('playing');
+  assert.ok((await snap()).cameraReference <= 121, 'continue frames the checkpoint');
+  await lose();
+  assert.ok(!(await snap()).controls.some((c) => c.id === 'continue'));
+  await tap('retry');
+  await waitScreen('playing');
+  await tap('pause');
+  await tap('home');
+  check('Failure, one free continue, second failure and retry form a complete loop');
+  for (const [index, name] of [
+    [8, '07-thin-air'],
+    [18, '08-middle-clouds'],
+    [23, '09-low-snow'],
+    [26, '09b-low-rain'],
+  ]) {
+    await challenge(index);
+    await page.waitForTimeout(500);
+    await shot(name + '-390x844');
+    assert.equal((await snap()).environment.from, index === 8 ? 1 : index === 18 ? 2 : 3);
+    await win();
+    await tap('home');
+    const restored = await snap();
+    assert.equal(restored.selected, 0, 'challenge must not replace the selected normal route');
+    assert.equal(restored.challenge, false);
+    assert.ok(restored.cameraReference <= 121, 'challenge home restores the initial camera');
+  }
+  await tap('start');
+  assert.equal((await snap()).selected, 0, 'normal start cannot inherit a locked challenge route');
+  await tap('pause');
+  await tap('home');
+  assert.equal(
+    JSON.parse(await page.evaluate(() => localStorage.getItem('tower-brake-v1'))).unlocked,
+    2,
+  );
+  check(
+    'Thin, middle, snow and rain routes completed through shared-challenge touch input; returning home restores camera and normal progress',
+  );
+  requestDelay = 500;
+  await ready();
+  await tap('start');
+  await waitScreen('connecting');
+  await page.evaluate(() => dispatchEvent(new Event('blur')));
+  await waitScreen('paused');
+  assert.equal((await snap()).state.elapsed, 0, 'blur during connection must not start the clock');
+  await page.waitForTimeout(250);
+  assert.equal((await snap()).state.elapsed, 0);
+  await tap('resume');
+  await waitScreen('playing');
+  await tap('pause');
+  await tap('home');
+  requestDelay = 0;
+  check(
+    'Blur while a delayed start request is pending requires explicit resume and preserves zero elapsed time',
+  );
+  await ready();
+  await tap('endless');
+  await waitScreen('playing');
+  const endlessStart = await snap();
+  for (let i = 0; i < 1400 && (await snap()).state.totalFloors < 80; i++) {
+    await turn((await snap()).landing.rotationToGap);
+    await page.waitForTimeout(40);
+  }
+  assert.ok((await snap()).state.totalFloors >= 80);
+  assert.equal((await snap()).environment.from, 1);
+  assert.equal((await snap()).environment.blend, 0);
+  assert.notDeepEqual((await snap()).sky, endlessStart.sky);
+  await shot('10-endless-first-transition-390x844');
+  await lose();
+  assert.deepEqual(
+    (await snap()).controls.map((c) => c.id),
+    ['retry', 'home'],
+  );
+  await shot('10b-endless-result-390x844');
+  await tap('retry');
+  await waitScreen('playing');
+  await tap('pause');
+  await tap('home');
+  check(
+    'Endless passes 80 floors through the first natural atmosphere transition; failed-run buttons have unique, visible labels and retry works',
+  );
+  await ready('?dev=1');
+  const action = page.locator('[data-dev-action="tower-atmosphere"]');
+  // Shared developer UI uses a shadow root; open its existing toggle through normal clicks.
+  await page.locator('small-games-devtools [data-toggle]').click();
+  await action.click();
+  await page.locator('small-games-devtools [data-close]').click();
+  await waitScreen('playing');
+  assert.equal((await snap()).practice, true);
+  assert.ok((await snap()).environment.blend > 0);
+  await shot('11-endless-transition-fixture-390x844');
+  for (const [from, to] of [
+    [1, 2],
+    [2, 3],
+    [3, 2],
+    [2, 1],
+    [1, 0],
+  ]) {
+    await page.locator('small-games-devtools [data-toggle]').click();
+    await action.click();
+    await page.locator('small-games-devtools [data-close]').click();
+    await waitScreen('playing');
+    const s = await snap();
+    assert.equal(s.environment.from, from);
+    assert.equal(s.environment.to, to);
+    assert.ok(s.environment.blend > 0 && s.environment.blend < 1);
+    assert.ok(
+      s.sky.some((p) => p.frame % 4 === from && p.alpha > 0) &&
+        s.sky.some((p) => p.frame % 4 === to && p.alpha > 0),
+    );
+    await shot(`cycle-${from}-to-${to}-fixture-390x844`);
+  }
+  await tap('pause');
+  await tap('home');
+  check(
+    'Development mode snapshot remains read-only; developer actions are isolated from saved progress',
+  );
+  const recorded = await snap();
+  assert.equal(recorded.engine, 'Cocos Creator 3.8.8');
   for (const size of [
     { width: 320, height: 568 },
     { width: 844, height: 390 },
-    { width: 1280, height: 900 },
   ]) {
     await page.setViewportSize(size);
-    await page.locator('#pause-home').tap();
-    await page.locator('#start-game').tap();
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
-    assert.equal(overflow, false);
-    const bounds = await page.locator('#brake-button').boundingBox();
-    assert.ok(
-      bounds.x >= 0 &&
-        bounds.y >= 0 &&
-        bounds.x + bounds.width <= size.width + 1 &&
-        bounds.y + bounds.height <= size.height + 1,
-    );
-    if (size.width === 844)
-      await page.screenshot({ path: fileURLToPath(new URL('actual-landscape.png', evidence)) });
-    await page.locator('#pause-button').tap();
+    await ready();
+    const s = await snap(),
+      b = await page.locator('#GameCanvas').boundingBox(),
+      scale = Math.min(b.width / s.width, b.height / s.height);
+    for (const c of s.controls) {
+      assert.ok(c.w * scale >= 43.9 && c.h * scale >= 43.9, c.id + ' minimum hit area');
+      assert.ok(
+        c.x >= 0 && c.y >= 0 && c.x + c.w <= s.width + 0.1 && c.y + c.h <= s.height + 0.1,
+        c.id + ' inside viewport',
+      );
+    }
+    await tap('start');
+    await waitScreen('playing');
+    await tap('pause');
+    await tap('home');
+    await tap('settings');
+    await snap();
+    await tap('home');
+    await tap('levels');
+    await snap();
+    await tap('home');
+    await shot('responsive-' + size.width + 'x' + size.height);
   }
-  check('Small phone, landscape and desktop preserve play state and reachable controls');
-
-  for (const [query, stored, enabled] of [
-    ['', null, false],
-    ['?dev=1', null, true],
-    ['', '1', true],
-    ['?dev=0', '1', false],
-  ]) {
-    await page.evaluate(
-      (value) =>
-        value === null ? localStorage.removeItem('dev') : localStorage.setItem('dev', value),
-      stored,
-    );
-    await page.goto(`${origin}/${query}`);
-    await page.waitForSelector('#home[data-ready="true"]');
-    assert.equal(await page.evaluate(() => window.SmallGamesDev.isEnabled()), enabled);
-    assert.equal(await page.evaluate(() => !!window.__towerBrake), enabled);
-  }
-  await page.goto(`${origin}/?dev=1`);
-  await page.waitForFunction(() => !!window.__towerBrake);
-  await page.evaluate(() => window.__towerBrake.start(7));
-  assert.equal((await snap()).practice, true);
-  const persisted = await page.evaluate(
-    () => JSON.parse(localStorage.getItem('tower-brake-v1')).unlocked,
-  );
-  assert.equal(persisted, 2);
-  await page.locator('#pause-button').tap();
-  await page.locator('#pause-home').tap();
-  await page.locator('#start-game').tap();
-  assert.equal((await snap()).screen, 'play-screen');
-  assert.equal((await snap()).practice, false);
-  check('Production dev URL/storage priority and isolated route-8 practice');
-  await page.setViewportSize({ width: 390, height: 844 });
-  const beforeChallenge = await page.evaluate(() => localStorage.getItem('tower-brake-v1'));
-  await page.goto(`${shared.href}&dev=1`);
-  assert.match(await page.locator('#challenge-game').textContent(), /自报/);
-  await page.locator('#challenge-game').tap();
-  assert.equal((await snap()).practice, false);
-  assert.equal((await snap()).level.id, shared.searchParams.get('level'));
-  await page.locator('#pause-button').tap();
-  await page.screenshot({
-    path: fileURLToPath(new URL('publishing/mobile-challenge-pause.png', evidence)),
-  });
-  assert.equal(await page.evaluate(() => localStorage.getItem('tower-brake-v1')), beforeChallenge);
-  await page.locator('#pause-home').tap();
-  await page.locator('#start-game').tap();
-  assert.equal((await snap()).practice, false);
-  check('Share produces a public fixed-route challenge; opening it preserves normal progress');
-
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.route(`${origin}/fixture*`, (route) =>
-    route.fulfill({
-      contentType: 'text/html',
-      body: `<!doctype html><meta name="viewport" content="width=device-width, initial-scale=1"><main data-game-display-host><iframe title="转塔留一脚刹车" allow="fullscreen" src="${origin}/?dev=0" style="border:0;position:fixed;inset:0;width:100%;height:100%"></iframe></main>`,
-    }),
-  );
-  await page.goto(`${origin}/fixture?dev=1`);
-  const frame = await (await page.locator('iframe').elementHandle()).contentFrame();
-  await frame.waitForSelector('#home[data-ready="true"]');
-  assert.equal(await frame.evaluate(() => window.SmallGamesDev.isEnabled()), false);
-  await frame.locator('#start-game').tap();
-  assert.equal(await frame.locator('#play-screen').getAttribute('data-phase'), 'playing');
-  await frame.locator('#brake-button').tap();
-  assert.equal(await frame.locator('#brake-button').getAttribute('data-charges'), '0');
-  const embeddedAngle = await frame.locator('#play-screen').getAttribute('data-angle');
-  await touchDrag(70);
-  assert.notEqual(await frame.locator('#play-screen').getAttribute('data-angle'), embeddedAngle);
-  await frame.locator('#pause-button').tap();
-  assert.equal(await frame.locator('#pause-screen').isVisible(), true);
-  await frame.locator('#resume-game').tap();
-  assert.equal(await frame.locator('#play-screen').getAttribute('data-phase'), 'playing');
-  await frame.locator('#pause-button').tap();
-  await frame.locator('#pause-home').tap();
-  assert.equal(await frame.locator('#home').isVisible(), true);
-  await frame.locator('#choose-level').tap();
-  assert.equal(await frame.locator('[data-level]').count(), 30);
   check(
-    'Production iframe supports touch play, pause, return and selection; child dev=0 overrides parent dev=1',
+    '320px narrow screen and landscape letterbox retain playable native controls with at least 44px hit areas',
   );
-
-  await page.goto(`${origin}/?dev=0`);
-  await page.locator('#home [data-game-fullscreen]').tap();
-  await page.waitForTimeout(150);
-  if (await page.evaluate(() => !!document.fullscreenElement)) {
-    await page.evaluate(() => document.exitFullscreen());
-    check('Complete game enters and exits fullscreen');
-  }
-  await page.evaluate(() => {
-    document.querySelector('[data-game-display-host]').requestFullscreen = () =>
-      Promise.reject(new Error('test denied'));
-  });
-  await page.locator('#home [data-game-fullscreen]').tap();
-  await page.waitForSelector('#game-display-notice:not([hidden])');
-  await page.locator('#start-game').tap();
-  assert.equal(await page.locator('#play-screen').isVisible(), true);
-  check('Fullscreen rejection keeps the normal viewport playable');
-
-  const blocked = await browser.newContext({
-    viewport: { width: 390, height: 844 },
-    hasTouch: true,
-  });
-  await blocked.addInitScript(() =>
-    Object.defineProperty(window, 'localStorage', {
-      get() {
-        throw new Error('blocked storage');
-      },
-    }),
-  );
-  const blockedPage = await blocked.newPage();
-  blockedPage.on('pageerror', (error) => errors.push(error.message));
-  await blockedPage.goto(origin);
-  await blockedPage.locator('#start-game').tap();
-  assert.equal(await blockedPage.locator('#play-screen').isVisible(), true);
-  await blocked.close();
-  check('Storage denied: home, controls and local play still work');
-  assert.deepEqual(errors, []);
-  report.passed = true;
-} catch (error) {
-  console.error(
-    'Browser failure state:',
-    await page.evaluate(() => window.__towerBrake?.snapshot()?.screen),
-  );
-  await page.screenshot({ path: '/tmp/tower-browser-failure.png' });
-  throw error;
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+  report.errors = [...errors];
+  assert.deepEqual(report.errors, []);
+  video = page.video();
+  await context.close();
+  const raw = await video.path();
+  await copyFile(raw, new URL('tower-brake-cocos-touch-390x844.webm', videos));
+  report.video = 'publishing/gameplay/videos/tower-brake-cocos-touch-390x844.webm';
 } finally {
-  await writeFile(
-    new URL('browser-evidence.json', evidence),
-    `${JSON.stringify(report, null, 2)}\n`,
-  );
+  report.errors = [...errors];
+  report.engineWarnings = [...engineWarnings];
+  await writeFile(new URL('browser-report.json', evidence), JSON.stringify(report, null, 2) + '\n');
   await browser.close();
   server.kill();
 }

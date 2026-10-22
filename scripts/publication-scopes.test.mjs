@@ -126,6 +126,116 @@ import { executeCompetitionChecks } from './run-selected-competition.mjs';
 import { shellContractTargets, shellContractFiles, requiresCocos } from './validation-plan.mjs';
 import { ingressPreflightGuard } from './competition-ingress.mjs';
 
+test('Tower Creator wiring and Canvas retirement bind exact historical bytes and unique consumers', async () => {
+  const { towerCreatorIntegrationHashes } = await import('./publication-scopes.mjs');
+  const { isReviewedCleanupDeletion } = await import('./pages-test-scope.mjs');
+  const source = 'games/local/tower-brake';
+  const game = { id: 'tower-brake', source, output: 'dist' };
+  const cache = new Map();
+  const historical = (ref, file) => {
+    const key = `${ref}:${file}`;
+    if (!cache.has(key)) cache.set(key, execFileSync('git', ['show', key], { encoding: 'utf8' }));
+    return cache.get(key);
+  };
+  const head = 'c58c265617101ea6862a2ff8dfe490f0b7bf9190';
+  const readHead = (file) => historical(head, file);
+  const pkg = { ...JSON.parse(readHead(source + '/package.json')), dir: source };
+  const changedPaths = Object.keys(towerCreatorIntegrationHashes);
+  for (const base of [
+    'cbee0202b8cd6ea3f5dd626851a10e6dd602dd75',
+    'a0b4e324c26655fabcb049d40ba0c4508b051621',
+  ]) {
+    const context = {
+      changedPaths,
+      games: [game],
+      packages: [pkg],
+      readBase: (file) => historical(base, file),
+      readHead,
+    };
+    const scopes = reviewedSharedFileScopes(context);
+    for (const file of changedPaths) {
+      assert.deepEqual(scopes.get(file), [source], file);
+      for (const side of ['readBase', 'readHead']) {
+        assert.equal(
+          reviewedSharedFileScopes({
+            ...context,
+            changedPaths: [file],
+            [side]: (name) => context[side](name) + '\n# unreviewed',
+          }).has(file),
+          false,
+        );
+        assert.equal(
+          reviewedSharedFileScopes({
+            ...context,
+            changedPaths: [file],
+            [side]: () => {
+              throw Error('tree unavailable');
+            },
+          }).has(file),
+          false,
+        );
+      }
+    }
+    for (const extra of [
+      { games: [] },
+      { games: [game, { ...game, id: 'alias' }] },
+      { games: [{ ...game, output: 'other' }] },
+      { packages: [] },
+      { packages: [pkg, { ...pkg, name: 'alias' }] },
+      { packages: [{ ...pkg, creator: { version: '3.8.9' } }] },
+      { packages: [{ ...pkg, scripts: { build: 'node bypass.mjs' } }] },
+    ])
+      assert.equal(reviewedSharedFileScopes({ ...context, ...extra }).size, 0);
+    assert.equal(
+      reviewedSharedFileScopes({ ...context, changedPaths: ['.github/workflows/unknown.yml'] })
+        .size,
+      0,
+    );
+    assert.equal(
+      reviewedSharedFileScopes({
+        ...context,
+        changedPaths: ['pnpm-lock.yaml'],
+        readHead: (file) =>
+          file.endsWith('/package.json')
+            ? JSON.stringify({ ...pkg, dependencies: { extra: '1' } })
+            : readHead(file),
+      }).size,
+      0,
+    );
+    for (const name of [
+      'leaderboard.mjs',
+      'main.mjs',
+      'render.mjs',
+      'style.css',
+      'tests/expansion-browser.mjs',
+      'tests/publishing-browser.mjs',
+    ]) {
+      const file = source + '/' + name;
+      const options = {
+        change: { status: 'D', paths: [file] },
+        readBase: context.readBase,
+        headHasPath: () => false,
+        standaloneGames: [game],
+        gameSources: [source],
+      };
+      assert(isReviewedCleanupDeletion(options), file);
+      for (const extra of [
+        { change: { status: 'R100', paths: [file, file + '.old'] } },
+        { headHasPath: () => true },
+        {
+          headHasPath: () => {
+            throw Error('tree unavailable');
+          },
+        },
+        { readBase: (name) => context.readBase(name) + '\n' },
+        { standaloneGames: [game, game] },
+        { gameSources: [] },
+      ])
+        assert.equal(isReviewedCleanupDeletion({ ...options, ...extra }), false, file);
+    }
+  }
+});
+
 test('current main integration proves each exact shared file and rejects unrelated bytes, identities and lock changes', async () => {
   const {
     mainIntegrationBase: base,
@@ -3773,10 +3883,17 @@ test('shared identity client proves all thirteen consumers and native compositio
       ),
     ],
     [
-      'games/local/tower-brake/build.mjs',
-      read('games/local/tower-brake/build.mjs').replace(
-        "new URL('../../../platforms/competition/client.js', import.meta.url)",
-        "new URL('../../../platforms/competition/other.js', import.meta.url)",
+      'games/local/tower-brake/scripts/build.mjs',
+      read('games/local/tower-brake/scripts/build.mjs').replace(
+        "new URL('../../../../platforms/competition/client.js', import.meta.url)",
+        "new URL('../../../../platforms/competition/other.js', import.meta.url)",
+      ),
+    ],
+    [
+      'games/local/tower-brake/startup/host.js',
+      read('games/local/tower-brake/startup/host.js').replace(
+        "from './game-services.js'",
+        "from './wrong.js'",
       ),
     ],
     [
@@ -5051,16 +5168,14 @@ test('merged Homebound Creator routes preserve Orbit and Tianxia and reject chan
   }
 });
 
-test('Bullet Garden Creator routing preserves every old producer and consumer gate', () => {
+test('historical Bullet Garden Creator routing preserves every old producer and consumer gate', () => {
   for (const file of [
     '.github/workflows/carding-car.yml',
     '.github/workflows/ci.yml',
     '.github/workflows/pages-validate.yml',
     '.github/workflows/mobile.yml',
   ]) {
-    // Later Creator integrations legitimately change these workflows. Keep this proof
-    // bound to the reviewed Bullet transition, as in the fixed-predecessors test below.
-    const head = execFileSync('git', ['show', '0885df730b4d68798e278e916d0e407fd4fdaa82:' + file], {
+    const head = execFileSync('git', ['show', 'a0b4e324c26655fabcb049d40ba0c4508b051621:' + file], {
       encoding: 'utf8',
     }).replaceAll('\r\n', '\n');
     const base = execFileSync('git', ['show', '53eb4b69bd1c2c3bbfe01349624235a1636b121e:' + file], {
@@ -5214,17 +5329,19 @@ test('Homebound Creator readiness guard preserves gameplay and scopes only its r
   assert.equal(reviewedSharedFileScopes({ ...context, games: [] }).size, 0);
 });
 
-test('ordinary Creator reuse includes Tetracube while preserving historical producer fixtures', () => {
+test('ordinary Creator reuse includes Tower and Tetracube while preserving historical producer fixtures', () => {
   const file = 'scripts/reuse-cocos-artifacts.mjs';
   const current = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
     '\r\n',
     '\n',
   );
-  for (const [includeMerge, includeBullet, includeTetracube] of [
-    [false, false, false],
-    [true, false, false],
-    [true, true, false],
-    [true, true, true],
+  for (const [includeMerge, includeBullet, includeTower, includeTetracube] of [
+    [false, false, false, false],
+    [true, false, false, false],
+    [true, true, false, false],
+    [true, true, true, false],
+    [true, true, false, true],
+    [true, true, true, true],
   ]) {
     const ids = [
       'carding-car',
@@ -5234,10 +5351,12 @@ test('ordinary Creator reuse includes Tetracube while preserving historical prod
       'homebound-station',
       ...(includeMerge ? ['merge-front'] : []),
       ...(includeBullet ? ['bullet-garden'] : []),
+      ...(includeTower ? ['tower-brake'] : []),
       ...(includeTetracube ? ['tetracube'] : []),
     ];
     let source = includeBullet ? current : current.replace("  'bullet-garden',\n", '');
     if (!includeMerge) source = source.replace("  'merge-front',\n", '');
+    if (!includeTower) source = source.replace("  'tower-brake',\n", '');
     if (!includeTetracube) source = source.replace("  'tetracube',\n", '');
     const packages = ids.map((id) => ({ dir: 'games/local/' + id }));
     const scopes = reviewedSharedFileScopes({
@@ -5259,6 +5378,80 @@ test('ordinary Creator reuse includes Tetracube while preserving historical prod
         readBase: () => source,
         readHead: () => source,
       }).size,
+      0,
+    );
+  }
+});
+
+test('combined Tower and Tetracube wiring selects exact cumulative consumers and rejects drift', async () => {
+  const { towerTetracubeIntegrationHashes } = await import('./publication-scopes.mjs');
+  const head = 'eb4951870887deb16428e0e7bb3e540a60b6bcc3';
+  const ids = ['tower-brake', 'tetracube'];
+  const games = ids.map((id) => ({ id, source: 'games/local/' + id, output: 'dist' }));
+  const cache = new Map();
+  const historical = (ref, file) => {
+    const key = ref + ':' + file;
+    if (!cache.has(key)) cache.set(key, execFileSync('git', ['show', key], { encoding: 'utf8' }));
+    return cache.get(key);
+  };
+  const readHead = (file) => historical(head, file);
+  const packages = games.map((game) => ({
+    ...JSON.parse(readHead(game.source + '/package.json')),
+    dir: game.source,
+  }));
+  const changedPaths = Object.keys(towerTetracubeIntegrationHashes);
+  for (const base of [
+    'cbee0202b8cd6ea3f5dd626851a10e6dd602dd75',
+    '731dfd1188fc6a5a0f444bd0f1bb2d9a4c966d74',
+  ]) {
+    const context = {
+      changedPaths,
+      games,
+      packages,
+      readBase: (file) => historical(base, file),
+      readHead,
+    };
+    const expected = base.startsWith('cbee') ? games.map((g) => g.source) : [games[0].source];
+    const scopes = reviewedSharedFileScopes(context);
+    for (const file of changedPaths) {
+      assert.deepEqual(scopes.get(file), expected, file);
+      for (const side of ['readBase', 'readHead'])
+        assert.equal(
+          reviewedSharedFileScopes({
+            ...context,
+            changedPaths: [file],
+            [side]: (name) => context[side](name) + '\n# unreviewed',
+          }).has(file),
+          false,
+        );
+    }
+    for (const index of [0, 1]) {
+      assert.equal(
+        reviewedSharedFileScopes({ ...context, games: games.filter((_, i) => i !== index) }).size,
+        0,
+      );
+      assert.equal(
+        reviewedSharedFileScopes({
+          ...context,
+          packages: [...packages, { ...packages[index], name: 'alias' }],
+        }).size,
+        0,
+      );
+      assert.equal(
+        reviewedSharedFileScopes({
+          ...context,
+          changedPaths: ['pnpm-lock.yaml'],
+          readHead: (file) =>
+            file === games[index].source + '/package.json'
+              ? JSON.stringify({ ...packages[index], dependencies: { extra: '1' } })
+              : readHead(file),
+        }).size,
+        0,
+      );
+    }
+    assert.equal(
+      reviewedSharedFileScopes({ ...context, changedPaths: ['.github/workflows/unknown.yml'] })
+        .size,
       0,
     );
   }
