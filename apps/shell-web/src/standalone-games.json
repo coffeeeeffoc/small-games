@@ -58,7 +58,7 @@
   {
     "id": "tianxia-chalu",
     "source": "games/local/tianxia-chalu",
-    "title": "天下岔路",
+    "title": "夺城令",
     "description": "四方城寨自动出兵，轻点岔路切换行军方向，抢占村镇、截断援军，在一张山水战图上统一天下。",
     "output": "dist"
   },

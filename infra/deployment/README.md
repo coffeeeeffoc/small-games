@@ -1,6 +1,6 @@
 # 可选择服务的部署包
 
-仓库根目录运行 `pnpm deployment:bundle`：默认真实构建 Pages 前端、Runtime API、卡丁车和天下岔路服务，输出到 `.scratch/deployment/<版本>/`。此命令只构建本地文件，不上传、不启动服务器；dev/main 的 GitHub Actions 保持前端发布。腾讯云上传与 SSH 部署继续使用原有 `pnpm deploy:tencent`。
+仓库根目录运行 `pnpm deployment:bundle`：默认真实构建 Pages 前端、Runtime API、卡丁车和夺城令服务，输出到 `.scratch/deployment/<版本>/`。此命令只构建本地文件，不上传、不启动服务器；dev/main 的 GitHub Actions 保持前端发布。腾讯云上传与 SSH 部署继续使用原有 `pnpm deploy:tencent`。
 
 构建环境为 Node 24.21.0、pnpm 12.6.0，先初始化递归子模块并安装冻结依赖。全站前端中的 Cocos 游戏仍需要真实 Creator 3.8.8 或匹配源码的预构建制品，不能拿旧 dist 代替。
 
@@ -9,7 +9,7 @@
 pnpm deployment:bundle --check
 # 按环境选择要打包的已有服务。kart 必须同时带 runtime。
 DEPLOY_SERVICES=runtime,kart,tianxia DEPLOY_FRONTEND=1 pnpm deployment:bundle
-# 只构建独立天下岔路后端，供现有前端连接；同样生成部署文件。
+# 只构建独立夺城令后端，供现有前端连接；同样生成部署文件。
 DEPLOY_SERVICES=tianxia DEPLOY_FRONTEND=0 pnpm deployment:bundle
 # 后管是明确选择项，默认不打包。
 DEPLOY_SERVICES=runtime,management,kart,tianxia pnpm deployment:bundle
@@ -38,13 +38,13 @@ docker compose --project-name small-games-bundle ps
 
 `deploy.sh` 不 source 环境文件；先验证字段，构建镜像，备份现有数据库，执行幂等迁移，等待全部应用健康，再切换网关。密钥不进入 Docker build context。数据库凭证只用于自己的 schema，应用没有建库、建角色权限。角色只在首次创建时设置密码；改 `.env` 不会轮换既有数据库角色密码。失败命令非零退出、保留旧卷和备份，不宣称已部署；多服务更新不是原子切换，运行中的房间可能中断，需在维护窗口执行。
 
-只有网关 `127.0.0.1:8080` 和显式选择的后管 `127.0.0.1:43001` 发布主机端口，数据库不发布。Compose 项目固定 `small-games-bundle`，与旧腾讯云项目隔离，不会自动接管旧数据。数据库、卡丁车 outbox、天下战报分别用持久卷。旧环境迁移必须先备份恢复到新卷，不要误把空新库当数据丢失。
+只有网关 `127.0.0.1:8080` 和显式选择的后管 `127.0.0.1:43001` 发布主机端口，数据库不发布。Compose 项目固定 `small-games-bundle`，与旧腾讯云项目隔离，不会自动接管旧数据。数据库、卡丁车 outbox、夺城令战报分别用持久卷。旧环境迁移必须先备份恢复到新卷，不要误把空新库当数据丢失。
 
 成功切换网关时会停止并移除同一项目中本次未选择的旧服务容器，保留它们的数据卷；例如不再选择 management 后不会残留旧管理监听端口。这会结束被移除服务的活跃会话。
 
 公网用受控的 HTTPS 反向代理转发到 `127.0.0.1:8080`，把 `.env` 的 `APP_ORIGIN` 改为真实 HTTPS origin；不要直接公开后端端口。网关有 API 速率限制、请求体上限并拒绝内部结算/投影路径，清除调用方注入的内部密钥头。只有这一受控网关可给 Runtime/Kart 提供代理来源；接多层代理时需在外层另配真实客户端 IP 与限流。本地 SSH 隧道可转发到 8080 后从 `http://localhost:8080` 测试。
 
-路由：`/` 为可选前端，`/api/competition/v1/` 为已启用的比赛接口，`/kart` 为权威 WebSocket，`/tianxia/` 为天下岔路服务（客户端设置的服务地址填 `https://域名/tianxia`）。`/health/gateway` 只说明网关存活，Runtime 的依赖就绪见 `/health/runtime`；请结合 `docker compose ps` 检查每个服务，而非只探测静态入口。
+路由：`/` 为可选前端，`/api/competition/v1/` 为已启用的比赛接口，`/kart` 为权威 WebSocket，`/tianxia/` 为夺城令服务（客户端设置的服务地址填 `https://域名/tianxia`）。`/health/gateway` 只说明网关存活，Runtime 的依赖就绪见 `/health/runtime`；请结合 `docker compose ps` 检查每个服务，而非只探测静态入口。
 
 `COMPETITION_PLATFORM_CONFIG` 留在服务器，用于现有平台登录换取本服务凭证。平台 AppID/secret 不得进入前端变量。并非所有渠道的真实登录均已核验，配置存在不等于渠道已可发布；具体能力以平台矩阵及服务错误为准。网页访客、平台身份、房间/排行仍复用现有服务。
 
@@ -58,6 +58,6 @@ docker compose exec -e STUDIO_ADMIN_PASSWORD -e STUDIO_ADMIN_USERNAME management
 
 此包默认发布静态游戏及现有比赛接口。后管动态制品发布、签名投影和云存档链路默认关闭，若使用，需在 Compose override 中按现有运行手册成组配置 `RELEASE_PROJECTION_TOKEN`、`ARTIFACT_TRUSTED_PUBLIC_KEY`、`RUNTIME_PROJECTION_URL`、`SHELL_ORIGIN`、`ARTIFACT_DELIVERY_URL`，并单独配置受保护的管理/制品路由；AI 生成同样需显式提供完整 provider 配置。没有捆绑对象存储或绕过签名校验。
 
-卡丁车和天下岔路活跃对局仍在单进程内存，重启不能恢复活跃快照；已结算成绩/重试 outbox/战报持久保存。天下服务不信任代理头，反向代理后共享其 IP 速率配额，当前适合小规模验证；大规模运营前应加入可信代理身份并压测。包不提供跨进程房间扩容。生产运营需要真实平台验证、TLS、监控告警、异地备份和恢复演练，不能把本地打包或 HTTP 冒烟当作公网发布验收。
+卡丁车和夺城令活跃对局仍在单进程内存，重启不能恢复活跃快照；已结算成绩/重试 outbox/战报持久保存。夺城令服务不信任代理头，反向代理后共享其 IP 速率配额，当前适合小规模验证；大规模运营前应加入可信代理身份并压测。包不提供跨进程房间扩容。生产运营需要真实平台验证、TLS、监控告警、异地备份和恢复演练，不能把本地打包或 HTTP 冒烟当作公网发布验收。
 
 备份位于当前包的 `../backups/`，另备份未发送 outbox 与战报卷。应用回退应在维护窗口进入旧包运行 `bash deploy.sh`；数据库迁移不会自动逆转，需先检查版本兼容。不要执行 `docker compose down -v`，也不要自动删除旧包与备份。

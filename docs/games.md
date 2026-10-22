@@ -18,7 +18,7 @@
 | 苔光花园                 | `moss-garden`                  | [game-moss-garden](../games/local/game-moss-garden/)                         | 在彩色花圃中安放光种，每行、每列和每片花圃各一颗，彼此不能相邻。三十关原创竖屏逻辑谜题。                                     |
 | 星轨弹珠                 | `ball-roguelite`               | [ball-roguelite](../games/local/ball-roguelite/)                             | 拖动瞄准，松手弹射。组合穿透、爆裂、闪电与暴击，击穿六片星域的砖阵，或挑战无尽星空。                                         |
 | 熔光弹珠                 | `ember-bounce`                 | [ember-bounce](../games/local/ember-bounce/)                                 | 拖动瞄准一束熔光弹珠，借墙面连锁反弹击碎熔晶，收集更多弹珠与祝福，挑战逐步解锁的熔炉关卡。                                   |
-| 天下岔路                 | `tianxia-chalu`                | [tianxia-chalu](../games/local/tianxia-chalu/)                               | 四方城寨自动出兵，轻点岔路切换行军方向，抢占村镇、截断援军，在一张山水战图上统一天下。                                       |
+| 夺城令                   | `tianxia-chalu`                | [tianxia-chalu](../games/local/tianxia-chalu/)                               | 四方城寨自动出兵，轻点岔路切换行军方向，抢占村镇、截断援军，在一张山水战图上统一天下。                                       |
 | 声纹疑案                 | `voiceprint-case`              | [voiceprint-case](../games/local/voiceprint-case/)                           | 听取嘈杂现场的一句话，对照三位虚构成年人的同句录音，辨认同一个声音，挑战十二关渐进听觉谜案。                                 |
 | 回声实验室 · Echo Lab    | `echo-lab`                     | [echo-lab](../games/local/echo-lab/)                                         | 拖动和旋转反射板、消音板，分别调节四面墙的反射率，听见空间改变声音；导出原声与调制声，分享房间链接邀请朋友一起实验。         |
 | 迷境漫游                 | `maze-wander`                  | [maze-wander](../games/local/maze-wander/)                                   | 在五种风景、二十个手工迷宫中第一人称探索，留下标记，辨认回环与倒影，慢慢找到归途。支持电脑与手机网页。                       |

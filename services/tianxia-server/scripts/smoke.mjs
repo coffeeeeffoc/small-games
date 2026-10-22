@@ -39,7 +39,7 @@ try {
   const report = await (await fetch(`${base}/api/matches/${matchId}/result`, { headers })).json();
   assert.equal(report.result.reason, 'abandoned');
   assert.equal(report.persisted, true);
-  console.log('天下岔路 HTTP 实测：建局、鉴权、切路、暂停、继续、结束与持久化查询通过');
+  console.log('夺城令 HTTP 实测：建局、鉴权、切路、暂停、继续、结束与持久化查询通过');
 } finally {
   await app.close();
   await rm(directory, { recursive: true, force: true });
