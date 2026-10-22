@@ -105,16 +105,61 @@ async function begin(page) {
   assert.equal((await snapshot(page)).screen, 'battle');
   return prepared;
 }
+async function mapForInput(page, timeout = 10000) {
+  let map;
+  await expect
+    .poll(
+      async () => {
+        map = await page.evaluate(() => {
+          const s = globalThis.tianxiaSnapshot(),
+            board = document.querySelector('#board'),
+            rect = board?.getBoundingClientRect(),
+            points = globalThis.Tianxia.cityPoints;
+          return {
+            s,
+            r:
+              rect?.width > 0 && rect.height > 0 && getComputedStyle(board).visibility === 'visible'
+                ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+                : null,
+            missingCityIds: (s.cities ?? [])
+              .filter((c) => !Number.isFinite(points?.[c.id]?.x) || !Number.isFinite(points?.[c.id]?.y))
+              .map((c) => c.id),
+          };
+        });
+        if (
+          ['prepare', 'battle'].includes(map.s.screen) &&
+          map.s.ready &&
+          map.s.artReady &&
+          map.r &&
+          map.s.cities?.length &&
+          map.missingCityIds.length === 0
+        )
+          return null;
+        // The paused browser clock must advance for Creator to project its first map frame.
+        await advance(page, 50);
+        return {
+          screen: map.s.screen,
+          ready: map.s.ready,
+          artReady: map.s.artReady,
+          boardVisible: !!map.r,
+          cityCount: map.s.cities?.length ?? 0,
+          missingCityIds: map.missingCityIds,
+        };
+      },
+      { timeout, intervals: [25], message: 'Map must be visible with every city projected before input' },
+    )
+    .toBeNull();
+  return map;
+}
 async function tapCity(page, id) {
-  const s = await snapshot(page),
+  const { s } = await mapForInput(page),
     c = s.cities.find((c) => c.id === id);
   assert(c?.client, 'city has a camera-projected client coordinate');
   await page.touchscreen.tap(c.client.x, c.client.y);
   await advance(page, 50);
 }
 async function clearSelection(page) {
-  const s = await snapshot(page),
-    r = await page.locator('#board').boundingBox();
+  const { s, r } = await mapForInput(page);
   const points = [
     { x: r.x + 8, y: r.y + r.height * 0.55 },
     { x: r.x + r.width - 8, y: r.y + r.height * 0.65 },
@@ -625,6 +670,23 @@ try {
       };
     },
   );
+  await check('Coordinate input waits for a real Creator map and rejects unavailable maps', async () => {
+    const page = await session();
+    await assert.rejects(mapForInput(page, 250), /home/);
+    await page.evaluate(async () => (await globalThis.System.import('cc')).director.pause());
+    await page.locator('#start').tap();
+    await advance(page, 150);
+    assert((await snapshot(page)).cities.every((c) => c.client === null));
+    await assert.rejects(mapForInput(page, 250), /missingCityIds/);
+    await page.evaluate(() => {
+      setTimeout(async () => (await globalThis.System.import('cc')).director.resume(), 600);
+    });
+    const { s } = await mapForInput(page);
+    const city = s.cities.find((c) => c.owner === 0);
+    await select(page, city.id);
+    assert.equal((await snapshot(page)).selected, city.id);
+    return { delayedCreatorFrameMs: 600, unavailableMapsRejected: ['home', 'unprojected prepare'] };
+  });
   await check(
     'Daily equipment expires while preparing, preserving seed and planned orders',
     async () => {
@@ -651,8 +713,7 @@ try {
           ),
       });
       await page.locator('#start').tap();
-      await advance(page, 150);
-      const before = await snapshot(page),
+      const { s: before } = await mapForInput(page),
         c = before.cities.find((c) => c.owner === 0);
       assert.equal(c.troops, 16);
       await select(page, c.id);
