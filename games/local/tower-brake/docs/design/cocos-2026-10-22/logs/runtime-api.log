@@ -1,14 +1,12 @@
-$ pnpm build && vitest run "--" "--maxWorkers=1" "--no-file-parallelism"
 $ tsc -p tsconfig.build.json
 
  RUN  v5.0.0 F:/playground/playground-ai/small-games/services/runtime-api
 
 
  Test Files  29 passed | 7 skipped (36)
-      Tests  198 passed | 20 skipped (218)
-   Start at  00:46:38
-   Duration  5.74s (import 64%, transform 25%, tests 10%)
+      Tests  199 passed | 20 skipped (219)
+   Start at  02:39:49
+   Duration  16.03s (import 78%, tests 17%, transform 4%, worker 1%)
 
-  Transform  transforming modules took 18.80s · 25% of tracked time, re-done on every run
-             persist transforms across runs with fsModuleCache: true
-             learn more: https://vitest.dev/guide/improving-performance#caching-between-reruns
+    Isolate  36 workers spawned · ~141ms startup each (spawn + environment, per file)
+             at least ~2.40s faster with isolate: false — reuses workers across files instead of one per file

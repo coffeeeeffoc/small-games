@@ -60,6 +60,116 @@ import { executeCompetitionChecks } from './run-selected-competition.mjs';
 import { shellContractTargets, shellContractFiles, requiresCocos } from './validation-plan.mjs';
 import { ingressPreflightGuard } from './competition-ingress.mjs';
 
+test('Tower Creator wiring and Canvas retirement bind exact historical bytes and unique consumers', async () => {
+  const { towerCreatorIntegrationHashes } = await import('./publication-scopes.mjs');
+  const { isReviewedCleanupDeletion } = await import('./pages-test-scope.mjs');
+  const source = 'games/local/tower-brake';
+  const game = { id: 'tower-brake', source, output: 'dist' };
+  const cache = new Map();
+  const historical = (ref, file) => {
+    const key = `${ref}:${file}`;
+    if (!cache.has(key)) cache.set(key, execFileSync('git', ['show', key], { encoding: 'utf8' }));
+    return cache.get(key);
+  };
+  const head = 'c58c265617101ea6862a2ff8dfe490f0b7bf9190';
+  const readHead = (file) => historical(head, file);
+  const pkg = { ...JSON.parse(readHead(source + '/package.json')), dir: source };
+  const changedPaths = Object.keys(towerCreatorIntegrationHashes);
+  for (const base of [
+    'cbee0202b8cd6ea3f5dd626851a10e6dd602dd75',
+    'a0b4e324c26655fabcb049d40ba0c4508b051621',
+  ]) {
+    const context = {
+      changedPaths,
+      games: [game],
+      packages: [pkg],
+      readBase: (file) => historical(base, file),
+      readHead,
+    };
+    const scopes = reviewedSharedFileScopes(context);
+    for (const file of changedPaths) {
+      assert.deepEqual(scopes.get(file), [source], file);
+      for (const side of ['readBase', 'readHead']) {
+        assert.equal(
+          reviewedSharedFileScopes({
+            ...context,
+            changedPaths: [file],
+            [side]: (name) => context[side](name) + '\n# unreviewed',
+          }).has(file),
+          false,
+        );
+        assert.equal(
+          reviewedSharedFileScopes({
+            ...context,
+            changedPaths: [file],
+            [side]: () => {
+              throw Error('tree unavailable');
+            },
+          }).has(file),
+          false,
+        );
+      }
+    }
+    for (const extra of [
+      { games: [] },
+      { games: [game, { ...game, id: 'alias' }] },
+      { games: [{ ...game, output: 'other' }] },
+      { packages: [] },
+      { packages: [pkg, { ...pkg, name: 'alias' }] },
+      { packages: [{ ...pkg, creator: { version: '3.8.9' } }] },
+      { packages: [{ ...pkg, scripts: { build: 'node bypass.mjs' } }] },
+    ])
+      assert.equal(reviewedSharedFileScopes({ ...context, ...extra }).size, 0);
+    assert.equal(
+      reviewedSharedFileScopes({ ...context, changedPaths: ['.github/workflows/unknown.yml'] })
+        .size,
+      0,
+    );
+    assert.equal(
+      reviewedSharedFileScopes({
+        ...context,
+        changedPaths: ['pnpm-lock.yaml'],
+        readHead: (file) =>
+          file.endsWith('/package.json')
+            ? JSON.stringify({ ...pkg, dependencies: { extra: '1' } })
+            : readHead(file),
+      }).size,
+      0,
+    );
+    for (const name of [
+      'leaderboard.mjs',
+      'main.mjs',
+      'render.mjs',
+      'style.css',
+      'tests/expansion-browser.mjs',
+      'tests/publishing-browser.mjs',
+    ]) {
+      const file = source + '/' + name;
+      const options = {
+        change: { status: 'D', paths: [file] },
+        readBase: context.readBase,
+        headHasPath: () => false,
+        standaloneGames: [game],
+        gameSources: [source],
+      };
+      assert(isReviewedCleanupDeletion(options), file);
+      for (const extra of [
+        { change: { status: 'R100', paths: [file, file + '.old'] } },
+        { headHasPath: () => true },
+        {
+          headHasPath: () => {
+            throw Error('tree unavailable');
+          },
+        },
+        { readBase: (name) => context.readBase(name) + '\n' },
+        { standaloneGames: [game, game] },
+        { gameSources: [] },
+      ])
+        assert.equal(isReviewedCleanupDeletion({ ...options, ...extra }), false, file);
+    }
+  }
+});
+
 test('current main integration proves each exact shared file and rejects unrelated bytes, identities and lock changes', async () => {
   const {
     mainIntegrationBase: base,

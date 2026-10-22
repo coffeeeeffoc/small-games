@@ -27,7 +27,7 @@
     "passed": true
   },
   "runtimeAPI": {
-    "passed": 198,
+    "passed": 199,
     "skipped": 20,
     "failed": 0
   },
@@ -131,5 +131,12 @@
     "Native mini-game targets and live backend not verified",
     "Deep endless transition shown using isolated developer fixture; natural touch play reached 80 floors and completed the first transition",
     "Local evidence only; remote CI/deployment checked separately; no platform review"
-  ]
+  ],
+  "integrationCommit": "57be6fb75ac7f9c44fcc82c3785bb87ec78062ab",
+  "runtimeCommit": "c58c265617101ea6862a2ff8dfe490f0b7bf9190",
+  "mergedIntegration": {
+    "passed": 274,
+    "failed": 0
+  },
+  "exactCandidateValidation": "not run; scoped local evidence and remote CI are separate"
 }
