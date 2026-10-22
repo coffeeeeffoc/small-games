@@ -1,7 +1,7 @@
 import { cp, mkdir, rm, readFile, readdir, writeFile } from 'node:fs/promises';
 import { stripTypeScriptTypes } from 'node:module';
 import { createHash } from 'node:crypto';
-import { verifyEngine } from './scripts/build-cocos-engine.mjs';
+import { verifyEngine } from './scripts/cocos-engine-integrity.mjs';
 const root = new URL('./', import.meta.url),
   output = new URL('dist/', root);
 const provenance = await verifyEngine();

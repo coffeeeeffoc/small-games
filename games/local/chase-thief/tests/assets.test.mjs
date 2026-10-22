@@ -1,11 +1,49 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import { verifyEngine } from '../scripts/build-cocos-engine.mjs';
+import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { verifyEngine } from '../scripts/cocos-engine-integrity.mjs';
 test('runtime is pinned official Cocos, including 3D and skeletal features', async () => {
   const info = await verifyEngine();
   assert(info.features.includes('3d'));
   assert(info.features.includes('skeletal-animation'));
+});
+test('offline integrity verification rejects changed provenance, missing entries and modified bytes', async (t) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'chase-integrity-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  await cp(new URL('../vendor/cocos/', import.meta.url), directory, { recursive: true });
+  const manifest = path.join(directory, 'provenance.json');
+  const original = JSON.parse(await readFile(manifest, 'utf8'));
+  const license = await readFile(path.join(directory, 'LICENSE'));
+  for (const mutate of [
+    (info) => {
+      info.sourceCommit = 'unreviewed-source';
+    },
+    (info) => {
+      info.builder = '@cocos/ccbuild@unreviewed';
+    },
+    (info) => {
+      info.features.pop();
+    },
+    (info) => {
+      delete info.files['cc.js'];
+    },
+    (info) => {
+      info.files['../outside'] = info.files.LICENSE;
+    },
+  ]) {
+    const changed = structuredClone(original);
+    mutate(changed);
+    await writeFile(manifest, JSON.stringify(changed));
+    await assert.rejects(verifyEngine(directory));
+  }
+  await writeFile(manifest, JSON.stringify(original));
+  await writeFile(
+    path.join(directory, 'LICENSE'),
+    Buffer.concat([license, Buffer.from('changed')]),
+  );
+  await assert.rejects(verifyEngine(directory), /Cocos integrity mismatch: LICENSE/);
 });
 test('Blender export has finite indexed meshes and a valid parent-first skeleton', async () => {
   const art = JSON.parse(
