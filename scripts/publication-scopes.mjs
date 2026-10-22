@@ -3351,7 +3351,7 @@ export const threeChooseTwoCreatorReviews = Object.freeze({
         sources: ['apps/shell-web', 'games/local/three-choose-two'],
       },
     ],
-    after: 'f1d36fc3f37c22009e04894d5728634fef31abd24016e5a4667a257208ca1f57',
+    after: 'ac6e7418d1f7b3f672287e6847e83729c18770695fecf4abe77ecd76384ee9ec',
   },
   'apps/shell-web/scripts/standalone-game-entry.mjs': {
     before: [

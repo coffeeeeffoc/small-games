@@ -126,7 +126,8 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect.poll(async () => (await snapshot()).screen).toBe('home');
     expect(
       await canvas.evaluate(
-        () => JSON.parse(localStorage.getItem('three-choose-two-progress-v1')).currentGame,
+        () =>
+          JSON.parse(globalThis.localStorage.getItem('three-choose-two-progress-v1')).currentGame,
       ),
     ).toBeNull();
     await control('levels');
