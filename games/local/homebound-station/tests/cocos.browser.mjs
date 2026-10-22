@@ -11,7 +11,7 @@ const root = path.resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
 const out = fileURLToPath(
   new URL(
     process.env.CAPTURE_GAME_EVIDENCE === '1'
-      ? '../docs/design/dispatch-polish-2026-10-22/runtime/'
+      ? '../docs/design/screen-flow-2026-10-23/runtime/'
       : '../test-results/cocos/',
     import.meta.url,
   ),
@@ -98,6 +98,7 @@ const mode = async (name) => {
   );
 };
 const tap = async (id) => {
+  if (id.startsWith('speed:') && !(await screen()).speedExpanded) await tap('speed-menu');
   await page.waitForFunction(
     (id) => window.homeboundView?.().buttons.some((b) => b.id === id && !b.disabled),
     id,
@@ -109,7 +110,7 @@ const tap = async (id) => {
   );
 };
 const shot = async (name) => page.screenshot({ path: path.join(out, name + '.png') });
-// Level 1: the old full-route reservation leaves the second northbound taxi parked.
+// Level 1: two unobstructed cars must move concurrently before the first boarding.
 const parallelEvidence = { clickOrder: ['巡02', '巡01'], snapshots: {} };
 const parallelFrame = async (label) => {
   const frame = await page.evaluate(() => {
@@ -136,14 +137,14 @@ const expectedAssignments = [
     groupId: 'T01',
     bayId: 'T1',
     assignmentOrder: 0,
-    pickupPoint: { x: -7.5, z: -3.3 },
+    pickupPoint: { x: -6, z: -6 },
   },
   {
     vehicleId: '巡01',
     groupId: 'T02',
     bayId: 'T2',
     assignmentOrder: 1,
-    pickupPoint: { x: -2.5, z: -3.3 },
+    pickupPoint: { x: -2, z: -6 },
   },
 ];
 const assertParallelAssignments = (state, count = 2) => {
@@ -179,6 +180,14 @@ try {
   await shot('loading-390');
   await mode('home');
   await shot('home-390');
+  assert.equal((await screen()).demoTime, 0, 'Reduced motion keeps the home demonstration still');
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.reload();
+  await mode('home');
+  await page.waitForFunction(() => window.homeboundView().demoTime > 2);
+  assert.equal((await snap()).time, 0, 'Home demonstration must not advance the real run');
+  assert.equal((await snap()).services.length, 0);
+  checks.push('home has an independent moving arrow-puzzle demonstration; respects reduced motion');
   await tap('settings');
   await mode('settings');
   const sound = (await screen()).progress.sound;
@@ -191,14 +200,12 @@ try {
   await shot('help-390');
   await tap('back');
   await mode('settings');
-  await tap('fullscreen');
-  await page.waitForTimeout(200);
-  if (await page.evaluate(() => !!document.fullscreenElement)) {
-    await tap('fullscreen');
-    await page.waitForFunction(() => !document.fullscreenElement);
-  }
+  assert.equal(
+    (await screen()).buttons.some((button) => button.id === 'fullscreen'),
+    false,
+  );
   await tap('home');
-  checks.push('settings, sound persistence, help return and fullscreen gesture/fallback');
+  checks.push('settings, sound persistence and help return; no fullscreen control');
   await tap('levels');
   await mode('levels');
   assert.equal((await screen()).buttons.find((b) => b.id === 'level:1').disabled, true);
@@ -207,6 +214,17 @@ try {
   await tap('continue');
   await mode('playing');
   await shot('playing-390');
+  assert.equal((await screen()).buttons.filter((b) => b.id.startsWith('speed:')).length, 0);
+  await tap('speed-menu');
+  assert.equal((await screen()).buttons.filter((b) => b.id.startsWith('speed:')).length, 4);
+  await shot('speed-menu-390');
+  await page.touchscreen.tap(18, 290);
+  assert.equal((await screen()).speedExpanded, false);
+  assert.equal(
+    (await snap()).services.length,
+    0,
+    'Dismissing speed menu must not dispatch a car behind it',
+  );
   const car = (await screen()).cars[0],
     before = (await snap()).services.length,
     cdp = await context.newCDPSession(page);
@@ -281,6 +299,10 @@ try {
   );
   await tap('pause');
   await mode('pause');
+  assert.equal(
+    (await screen()).buttons.some((button) => button.id === 'fullscreen'),
+    false,
+  );
   const frozen = (await snap()).time;
   await page.waitForTimeout(250);
   assert.equal((await snap()).time, frozen);
@@ -355,6 +377,9 @@ try {
   await mode('playing');
   assert.equal((await snap()).level, 100);
   assert.equal((await screen()).practice, true);
+  assert.ok((await snap()).vehicles.length >= 48);
+  assert.equal((await screen()).layout.columns, 6);
+  assert.ok((await screen()).layout.rows >= 8);
   await shot('level100-390');
   await tap('pause');
   await tap('home');

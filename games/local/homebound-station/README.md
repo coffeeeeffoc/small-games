@@ -34,6 +34,8 @@ pnpm --filter @coffeeeeffoc/homebound-station dev
 
 首页 → 继续/关卡 → 游戏 → 暂停/重开/设置 → 结算/下一关。存档沿用 `homebound-station.progress.v2` 并扩展到100项；旧三星记录和声音设置保留，存储不可用时仍可在本次会话游玩。分享 `?station=N` 为独立挑战，不写正常进度。
 
+浏览器版在普通页面和嵌入视口中游玩，设置与暂停页不提供全屏按钮。方向适配、安全区、暂停恢复和开发模式保留；原生平台由宿主承载画面。
+
 ## 开发模式和倍速
 
 公共 `SmallGamesDev` 支持 `?dev=1`、`?dev=true` 和 `localStorage.dev`；显式 `?dev=0` 优先关闭。开发模式下自由选100关，`?dev=1&level=100` 可直接测试末关。开发试玩不写正常星级或解锁进度。普通模式即使加 `level=100` 也不能绕过解锁。
