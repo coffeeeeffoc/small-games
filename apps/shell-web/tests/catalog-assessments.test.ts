@@ -53,11 +53,11 @@ it('covers every registered and on-disk Game once and includes the resumed city 
   expect(assessments['travel-bund'].disposition).toBe('potential');
 });
 
-it('exhaustively partitions 42 games into 7 previous, 15 current, 20 later and 0 held with the latest user decisions', () => {
+it('exhaustively partitions 42 games into 7 previous, 16 current, 19 later and 0 held with the latest user decisions', () => {
   const games = Object.values(assessments);
   const scheduled = rolloutGroups.flatMap(([tab]) => {
     const matches = games.filter((game) => matchesAssessment(game, { ...emptyFilters(), tab }));
-    expect(matches).toHaveLength({ previous: 7, current: 15, later: 20, hold: 0 }[tab]);
+    expect(matches).toHaveLength({ previous: 7, current: 16, later: 19, hold: 0 }[tab]);
     return matches.map((game) => game.id);
   });
   expect(scheduled.sort()).toEqual(games.map((game) => game.id).sort());
@@ -73,7 +73,7 @@ it('exhaustively partitions 42 games into 7 previous, 15 current, 20 later and 0
       .map((game) => game.id)
       .sort(),
   ).toEqual(
-    'chase-thief merge-front ashfall-front tiny-signals orbit-atelier letters-words2 wulong-city surprise-kept homebound-station waterline-station rescue-team tianxia-chalu out-of-frame fold-the-world two-sided-box'
+    'chase-thief merge-front ashfall-front tiny-signals orbit-atelier letters-words2 wulong-city surprise-kept homebound-station waterline-station rescue-team tianxia-chalu out-of-frame fold-the-world two-sided-box tetracube'
       .split(' ')
       .sort(),
   );

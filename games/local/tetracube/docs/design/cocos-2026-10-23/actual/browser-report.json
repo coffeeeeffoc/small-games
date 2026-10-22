@@ -14,7 +14,9 @@
     "persisted revive quota 1",
     "persisted revive quota 2",
     "unconfigured result and restart",
-    "late completion after cancellation"
+    "late completion after cancellation",
+    "simulated visibility during advertisement completed",
+    "simulated visibility during advertisement failed"
   ],
   "errors": []
 }

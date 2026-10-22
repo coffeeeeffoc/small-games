@@ -4,10 +4,11 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 import { Game } from '../src/engine.mjs';
+const publish = process.env.TETRACUBE_CAPTURE === '1';
 const root = fileURLToPath(new URL('../', import.meta.url)),
-  out = root + 'docs/design/cocos-2026-10-23/actual/';
+  out = root + (publish ? 'docs/design/cocos-2026-10-23/actual/' : 'reports/browser/');
 await mkdir(out, { recursive: true });
-await mkdir(root + 'publishing/gameplay/screenshots', { recursive: true });
+if (publish) await mkdir(root + 'publishing/gameplay/screenshots', { recursive: true });
 const server = spawn(process.execPath, ['server.mjs', '--dist', '--port', '4189'], {
   cwd: root,
   stdio: ['ignore', 'pipe', 'pipe'],
@@ -130,7 +131,12 @@ try {
     [844, 390, true],
     [1280, 800, false],
   ]) {
-    const { page: p, context } = await open({ width, height, mobile, video: width === 390 });
+    const { page: p, context } = await open({
+      width,
+      height,
+      mobile,
+      video: publish && width === 390,
+    });
     try {
       await fits(p);
       await capture(p, 'home-' + width);
@@ -201,7 +207,8 @@ try {
           await p.waitForTimeout(500);
         }
         await capture(p, 'stack-390');
-        await p.screenshot({ path: root + 'publishing/gameplay/screenshots/play-390x844.png' });
+        if (publish)
+          await p.screenshot({ path: root + 'publishing/gameplay/screenshots/play-390x844.png' });
       }
       if ((await snap(p)).screen === 'playing') await press(p, 'pause', mobile);
       await press(p, 'home', mobile);

@@ -10,7 +10,7 @@
 | 游戏简介     | 已提供 | [introduction.md](copy/introduction.md)，UTF-8，可直接粘贴                                                                                                                        |
 | 一句话推荐语 | 已提供 | [tagline.md](copy/tagline.md)，UTF-8                                                                                                                                              |
 | 开发者的话   | 已提供 | [developer-note.md](copy/developer-note.md)，UTF-8                                                                                                                                |
-| 游戏图标     | 已提供 | [tetracube.png](icon/tetracube.png)，PNG，本次生成的方舱标识                                                                                                                      |
+| 游戏图标     | 已提供 | [tetracube.png](icon/tetracube.png)，1254×1254 PNG，本次生成的方舱标识                                                                                                                      |
 | 宣传图       | 已提供 | [首页宣传图](promo/images/tetracube-home-390x844.png)，390×844 PNG，实际首页标题与游戏画面                                                                                        |
 | 宣传视频     | 已提供 | [预览短片](promo/videos/tetracube-preview-390x844.mp4)，390×844，11 秒 H.264 MP4，由实际录像剪辑并淡入淡出                                                                        |
 | 游戏内截图   | 已提供 | [首页](gameplay/screenshots/home-390x844.png)、[游戏](gameplay/screenshots/play-390x844.png)、[暂停](gameplay/screenshots/paused-390x844.png)，390×844 PNG，来自当前 Creator 构建 |
