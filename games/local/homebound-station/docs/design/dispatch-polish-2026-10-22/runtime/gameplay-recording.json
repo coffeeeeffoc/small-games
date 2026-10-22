@@ -1,0 +1,1000 @@
+{
+  "environment": "Actual Creator 3.8.8 Web, Chromium touch emulation; no ad fixture, speed 1; video has no recorded audio",
+  "source": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "b86bdc9a2234c57c39066e5a8e9ac7279d4b9b4889ae8b1ea436484c6c33568a"
+  },
+  "parallel": {
+    "time": 1.7000000000000002,
+    "paused": false,
+    "won": false,
+    "level": 1,
+    "delivered": [],
+    "target": 16,
+    "groups": [
+      {
+        "id": "T01",
+        "sequence": 0,
+        "queueBayId": "T1",
+        "passengers": [
+          {
+            "id": "T01/p1",
+            "adult": true,
+            "needsGuardian": false
+          },
+          {
+            "id": "T01/p2",
+            "adult": true,
+            "needsGuardian": false
+          }
+        ],
+        "state": "reserved",
+        "allowSplit": false,
+        "splitOrder": 0,
+        "boarded": 0,
+        "waitSeconds": 0,
+        "vehicleId": "巡02",
+        "bayId": "T1"
+      },
+      {
+        "id": "T02",
+        "sequence": 1,
+        "queueBayId": "T2",
+        "passengers": [
+          {
+            "id": "T02/p1",
+            "adult": true,
+            "needsGuardian": false
+          },
+          {
+            "id": "T02/p2",
+            "adult": true,
+            "needsGuardian": false
+          },
+          {
+            "id": "T02/p3",
+            "adult": true,
+            "needsGuardian": false
+          },
+          {
+            "id": "T02/p4",
+            "adult": true,
+            "needsGuardian": false
+          }
+        ],
+        "state": "reserved",
+        "allowSplit": false,
+        "splitOrder": 0,
+        "boarded": 0,
+        "waitSeconds": 0,
+        "vehicleId": "巡01",
+        "bayId": "T2"
+      },
+      {
+        "id": "T03",
+        "sequence": 2,
+        "queueBayId": "T3",
+        "passengers": [
+          {
+            "id": "T03/p1",
+            "adult": true,
+            "needsGuardian": false
+          },
+          {
+            "id": "T03/p2",
+            "adult": true,
+            "needsGuardian": false
+          },
+          {
+            "id": "T03/p3",
+            "adult": true,
+            "needsGuardian": false
+          },
+          {
+            "id": "T03/p4",
+            "adult": true,
+            "needsGuardian": false
+          }
+        ],
+        "state": "ready",
+        "allowSplit": false,
+        "splitOrder": 0,
+        "boarded": 0,
+        "waitSeconds": 0
+      },
+      {
+        "id": "T04",
+        "sequence": 3,
+        "queueBayId": "T4",
+        "passengers": [
+          {
+            "id": "T04/p1",
+            "adult": true,
+            "needsGuardian": false
+          }
+        ],
+        "state": "ready",
+        "allowSplit": false,
+        "splitOrder": 0,
+        "boarded": 0,
+        "waitSeconds": 0
+      },
+      {
+        "id": "T05",
+        "sequence": 4,
+        "queueBayId": "T1",
+        "passengers": [
+          {
+            "id": "T05/p1",
+            "adult": true,
+            "needsGuardian": false
+          },
+          {
+            "id": "T05/p2",
+            "adult": true,
+            "needsGuardian": false
+          }
+        ],
+        "state": "ready",
+        "allowSplit": false,
+        "splitOrder": 0,
+        "boarded": 0,
+        "waitSeconds": 0
+      },
+      {
+        "id": "T06",
+        "sequence": 5,
+        "queueBayId": "T2",
+        "passengers": [
+          {
+            "id": "T06/p1",
+            "adult": true,
+            "needsGuardian": false
+          },
+          {
+            "id": "T06/p2",
+            "adult": true,
+            "needsGuardian": false
+          },
+          {
+            "id": "T06/p3",
+            "adult": true,
+            "needsGuardian": false
+          }
+        ],
+        "state": "ready",
+        "allowSplit": false,
+        "splitOrder": 0,
+        "boarded": 0,
+        "waitSeconds": 0
+      }
+    ],
+    "vehicles": [
+      {
+        "id": "巡01",
+        "capacity": 4,
+        "column": 4,
+        "row": 0,
+        "direction": "N",
+        "sequence": 0,
+        "seatCount": 5,
+        "driverSeatCount": 1,
+        "passengerCapacity": 4,
+        "state": "movingToBay",
+        "position": {
+          "x": 8.549999999999986,
+          "z": 4.5
+        },
+        "angle": 1.5707963267948966,
+        "groupId": "T02",
+        "bayId": "T2"
+      },
+      {
+        "id": "巡02",
+        "capacity": 4,
+        "column": 0,
+        "row": 1,
+        "direction": "N",
+        "sequence": 1,
+        "seatCount": 5,
+        "driverSeatCount": 1,
+        "passengerCapacity": 4,
+        "state": "movingToBay",
+        "position": {
+          "x": -7.400000000000002,
+          "z": 4.5
+        },
+        "angle": 1.5707963267948966,
+        "groupId": "T01",
+        "bayId": "T1"
+      },
+      {
+        "id": "巡03",
+        "capacity": 4,
+        "column": 4,
+        "row": 1,
+        "direction": "E",
+        "sequence": 2,
+        "seatCount": 5,
+        "driverSeatCount": 1,
+        "passengerCapacity": 4,
+        "state": "holding",
+        "position": {
+          "x": 8,
+          "z": 12
+        },
+        "angle": 1.5707963267948966
+      },
+      {
+        "id": "巡04",
+        "capacity": 4,
+        "column": 0,
+        "row": 2,
+        "direction": "W",
+        "sequence": 3,
+        "seatCount": 5,
+        "driverSeatCount": 1,
+        "passengerCapacity": 4,
+        "state": "holding",
+        "position": {
+          "x": -8,
+          "z": 16
+        },
+        "angle": -1.5707963267948966
+      },
+      {
+        "id": "巡05",
+        "capacity": 6,
+        "column": 3,
+        "row": 2,
+        "direction": "N",
+        "sequence": 4,
+        "seatCount": 7,
+        "driverSeatCount": 1,
+        "passengerCapacity": 6,
+        "state": "holding",
+        "position": {
+          "x": 4,
+          "z": 16
+        },
+        "angle": 3.141592653589793
+      },
+      {
+        "id": "巡06",
+        "capacity": 4,
+        "column": 2,
+        "row": 3,
+        "direction": "N",
+        "sequence": 5,
+        "seatCount": 5,
+        "driverSeatCount": 1,
+        "passengerCapacity": 4,
+        "state": "holding",
+        "position": {
+          "x": 0,
+          "z": 20
+        },
+        "angle": 3.141592653589793
+      }
+    ],
+    "bays": [
+      {
+        "id": "T1",
+        "state": "reserved",
+        "vehicleId": "巡02",
+        "groupId": "T01"
+      },
+      {
+        "id": "T2",
+        "state": "reserved",
+        "vehicleId": "巡01",
+        "groupId": "T02"
+      },
+      {
+        "id": "T3",
+        "state": "free"
+      },
+      {
+        "id": "T4",
+        "state": "free"
+      }
+    ],
+    "services": [
+      {
+        "vehicleId": "巡02",
+        "groupId": "T01",
+        "bayId": "T1",
+        "phase": "driving",
+        "elapsed": 0.9000000000000002,
+        "duration": 0,
+        "path": [
+          {
+            "x": -8,
+            "z": 12
+          },
+          {
+            "x": -8,
+            "z": 4.5
+          },
+          {
+            "x": 16,
+            "z": 4.5
+          },
+          {
+            "x": 16,
+            "z": 28
+          },
+          {
+            "x": -16,
+            "z": 28
+          },
+          {
+            "x": -16,
+            "z": 4.5
+          },
+          {
+            "x": -9.6,
+            "z": 4.5
+          },
+          {
+            "x": -8.6,
+            "z": 0.5
+          },
+          {
+            "x": -7.5,
+            "z": 0.5
+          }
+        ],
+        "pathIndex": 2,
+        "assignmentOrder": 0,
+        "pickupPoint": {
+          "x": -7.5,
+          "z": -3.3
+        },
+        "walkFrom": {
+          "x": -7.5,
+          "z": -3.3
+        },
+        "waitingForTraffic": false,
+        "travelled": 8.099999999999987
+      },
+      {
+        "vehicleId": "巡01",
+        "groupId": "T02",
+        "bayId": "T2",
+        "phase": "driving",
+        "elapsed": 0.44999999999999996,
+        "duration": 0,
+        "path": [
+          {
+            "x": 8,
+            "z": 8
+          },
+          {
+            "x": 8,
+            "z": 4.5
+          },
+          {
+            "x": 16,
+            "z": 4.5
+          },
+          {
+            "x": 16,
+            "z": 28
+          },
+          {
+            "x": -16,
+            "z": 28
+          },
+          {
+            "x": -16,
+            "z": 4.5
+          },
+          {
+            "x": -4.6,
+            "z": 4.5
+          },
+          {
+            "x": -3.6,
+            "z": 0.5
+          },
+          {
+            "x": -2.5,
+            "z": 0.5
+          }
+        ],
+        "pathIndex": 2,
+        "assignmentOrder": 1,
+        "pickupPoint": {
+          "x": -2.5,
+          "z": -3.3
+        },
+        "walkFrom": {
+          "x": -2.5,
+          "z": -3.3
+        },
+        "waitingForTraffic": false,
+        "travelled": 4.050000000000001
+      }
+    ],
+    "splits": 0
+  },
+  "actions": [
+    {
+      "time": 0.7000000000000001,
+      "id": "巡02"
+    },
+    {
+      "time": 1.2000000000000002,
+      "id": "巡01"
+    },
+    {
+      "time": 1.9500000000000002,
+      "id": "巡03"
+    },
+    {
+      "time": 2.5500000000000003,
+      "id": "巡04"
+    },
+    {
+      "time": 3.2,
+      "id": "巡05"
+    },
+    {
+      "time": 3.8000000000000003,
+      "id": "巡06"
+    }
+  ],
+  "result": {
+    "time": 49,
+    "paused": true,
+    "won": true,
+    "level": 1,
+    "delivered": [
+      "T04/p1",
+      "T03/p1",
+      "T03/p2",
+      "T03/p3",
+      "T03/p4",
+      "T01/p1",
+      "T01/p2",
+      "T02/p1",
+      "T02/p2",
+      "T02/p3",
+      "T02/p4",
+      "T05/p1",
+      "T05/p2",
+      "T06/p1",
+      "T06/p2",
+      "T06/p3"
+    ],
+    "target": 16,
+    "groups": [
+      {
+        "id": "T01",
+        "sequence": 0,
+        "queueBayId": "T1",
+        "passengers": [
+          {
+            "id": "T01/p1",
+            "adult": true,
+            "needsGuardian": false
+          },
+          {
+            "id": "T01/p2",
+            "adult": true,
+            "needsGuardian": false
+          }
+        ],
+        "state": "departed",
+        "allowSplit": false,
+        "splitOrder": 0,
+        "boarded": 2,
+        "waitSeconds": 15.25,
+        "vehicleId": "巡02"
+      },
+      {
+        "id": "T02",
+        "sequence": 1,
+        "queueBayId": "T2",
+        "passengers": [
+          {
+            "id": "T02/p1",
+            "adult": true,
+            "needsGuardian": false
+          },
+          {
+            "id": "T02/p2",
+            "adult": true,
+            "needsGuardian": false
+          },
+          {
+            "id": "T02/p3",
+            "adult": true,
+            "needsGuardian": false
+          },
+          {
+            "id": "T02/p4",
+            "adult": true,
+            "needsGuardian": false
+          }
+        ],
+        "state": "departed",
+        "allowSplit": false,
+        "splitOrder": 0,
+        "boarded": 4,
+        "waitSeconds": 26.5,
+        "vehicleId": "巡01"
+      },
+      {
+        "id": "T03",
+        "sequence": 2,
+        "queueBayId": "T3",
+        "passengers": [
+          {
+            "id": "T03/p1",
+            "adult": true,
+            "needsGuardian": false
+          },
+          {
+            "id": "T03/p2",
+            "adult": true,
+            "needsGuardian": false
+          },
+          {
+            "id": "T03/p3",
+            "adult": true,
+            "needsGuardian": false
+          },
+          {
+            "id": "T03/p4",
+            "adult": true,
+            "needsGuardian": false
+          }
+        ],
+        "state": "departed",
+        "allowSplit": false,
+        "splitOrder": 0,
+        "boarded": 4,
+        "waitSeconds": 14.100000000000001,
+        "vehicleId": "巡03"
+      },
+      {
+        "id": "T04",
+        "sequence": 3,
+        "queueBayId": "T4",
+        "passengers": [
+          {
+            "id": "T04/p1",
+            "adult": true,
+            "needsGuardian": false
+          }
+        ],
+        "state": "departed",
+        "allowSplit": false,
+        "splitOrder": 0,
+        "boarded": 1,
+        "waitSeconds": 8.65,
+        "vehicleId": "巡04"
+      },
+      {
+        "id": "T05",
+        "sequence": 4,
+        "queueBayId": "T1",
+        "passengers": [
+          {
+            "id": "T05/p1",
+            "adult": true,
+            "needsGuardian": false
+          },
+          {
+            "id": "T05/p2",
+            "adult": true,
+            "needsGuardian": false
+          }
+        ],
+        "state": "departed",
+        "allowSplit": false,
+        "splitOrder": 0,
+        "boarded": 2,
+        "waitSeconds": 29.8,
+        "vehicleId": "巡05"
+      },
+      {
+        "id": "T06",
+        "sequence": 5,
+        "queueBayId": "T2",
+        "passengers": [
+          {
+            "id": "T06/p1",
+            "adult": true,
+            "needsGuardian": false
+          },
+          {
+            "id": "T06/p2",
+            "adult": true,
+            "needsGuardian": false
+          },
+          {
+            "id": "T06/p3",
+            "adult": true,
+            "needsGuardian": false
+          }
+        ],
+        "state": "departed",
+        "allowSplit": false,
+        "splitOrder": 0,
+        "boarded": 3,
+        "waitSeconds": 44.150000000000006,
+        "vehicleId": "巡06"
+      }
+    ],
+    "vehicles": [
+      {
+        "id": "巡01",
+        "capacity": 4,
+        "column": 4,
+        "row": 0,
+        "direction": "N",
+        "sequence": 0,
+        "seatCount": 5,
+        "driverSeatCount": 1,
+        "passengerCapacity": 4,
+        "state": "removed",
+        "position": {
+          "x": 22,
+          "z": 4.5
+        },
+        "angle": 1.5707963267948966,
+        "groupId": "T02"
+      },
+      {
+        "id": "巡02",
+        "capacity": 4,
+        "column": 0,
+        "row": 1,
+        "direction": "N",
+        "sequence": 1,
+        "seatCount": 5,
+        "driverSeatCount": 1,
+        "passengerCapacity": 4,
+        "state": "removed",
+        "position": {
+          "x": 22,
+          "z": 4.5
+        },
+        "angle": 1.5707963267948966,
+        "groupId": "T01"
+      },
+      {
+        "id": "巡03",
+        "capacity": 4,
+        "column": 4,
+        "row": 1,
+        "direction": "E",
+        "sequence": 2,
+        "seatCount": 5,
+        "driverSeatCount": 1,
+        "passengerCapacity": 4,
+        "state": "removed",
+        "position": {
+          "x": 22,
+          "z": 4.5
+        },
+        "angle": 1.5707963267948966,
+        "groupId": "T03"
+      },
+      {
+        "id": "巡04",
+        "capacity": 4,
+        "column": 0,
+        "row": 2,
+        "direction": "W",
+        "sequence": 3,
+        "seatCount": 5,
+        "driverSeatCount": 1,
+        "passengerCapacity": 4,
+        "state": "removed",
+        "position": {
+          "x": 22,
+          "z": 4.5
+        },
+        "angle": 1.5707963267948966,
+        "groupId": "T04"
+      },
+      {
+        "id": "巡05",
+        "capacity": 6,
+        "column": 3,
+        "row": 2,
+        "direction": "N",
+        "sequence": 4,
+        "seatCount": 7,
+        "driverSeatCount": 1,
+        "passengerCapacity": 6,
+        "state": "removed",
+        "position": {
+          "x": 22,
+          "z": 4.5
+        },
+        "angle": 1.5707963267948966,
+        "groupId": "T05"
+      },
+      {
+        "id": "巡06",
+        "capacity": 4,
+        "column": 2,
+        "row": 3,
+        "direction": "N",
+        "sequence": 5,
+        "seatCount": 5,
+        "driverSeatCount": 1,
+        "passengerCapacity": 4,
+        "state": "removed",
+        "position": {
+          "x": 22,
+          "z": 4.5
+        },
+        "angle": 1.5707963267948966,
+        "groupId": "T06"
+      }
+    ],
+    "bays": [
+      {
+        "id": "T1",
+        "state": "free"
+      },
+      {
+        "id": "T2",
+        "state": "free"
+      },
+      {
+        "id": "T3",
+        "state": "free"
+      },
+      {
+        "id": "T4",
+        "state": "free"
+      }
+    ],
+    "services": [
+      {
+        "vehicleId": "巡02",
+        "groupId": "T01",
+        "bayId": "T1",
+        "phase": "done",
+        "elapsed": 3.649999999999995,
+        "duration": 0.8285714285714285,
+        "path": [
+          {
+            "x": -7.5,
+            "z": 0.5
+          },
+          {
+            "x": -6.2,
+            "z": 0.5
+          },
+          {
+            "x": -5.4,
+            "z": 4.5
+          },
+          {
+            "x": 22,
+            "z": 4.5
+          }
+        ],
+        "pathIndex": 4,
+        "assignmentOrder": 0,
+        "pickupPoint": {
+          "x": -7.5,
+          "z": -3.3
+        },
+        "walkFrom": {
+          "x": -7.5,
+          "z": -3.3
+        },
+        "waitingForTraffic": false,
+        "travelled": 154.90232123648772,
+        "clearedAt": 17.2
+      },
+      {
+        "vehicleId": "巡01",
+        "groupId": "T02",
+        "bayId": "T2",
+        "phase": "done",
+        "elapsed": 3.099999999999997,
+        "duration": 0.8285714285714285,
+        "path": [
+          {
+            "x": -2.5,
+            "z": 0.5
+          },
+          {
+            "x": -1.2,
+            "z": 0.5
+          },
+          {
+            "x": -0.3999999999999999,
+            "z": 4.5
+          },
+          {
+            "x": 22,
+            "z": 4.5
+          }
+        ],
+        "pathIndex": 4,
+        "assignmentOrder": 1,
+        "pickupPoint": {
+          "x": -2.5,
+          "z": -3.3
+        },
+        "walkFrom": {
+          "x": -2.5,
+          "z": -3.3
+        },
+        "waitingForTraffic": false,
+        "travelled": 245.90232123648508,
+        "clearedAt": 29.25
+      },
+      {
+        "vehicleId": "巡03",
+        "groupId": "T03",
+        "bayId": "T3",
+        "phase": "done",
+        "elapsed": 2.549999999999999,
+        "duration": 0.8285714285714285,
+        "path": [
+          {
+            "x": 2.5,
+            "z": 0.5
+          },
+          {
+            "x": 3.8,
+            "z": 0.5
+          },
+          {
+            "x": 4.6,
+            "z": 4.5
+          },
+          {
+            "x": 22,
+            "z": 4.5
+          }
+        ],
+        "pathIndex": 4,
+        "assignmentOrder": 2,
+        "pickupPoint": {
+          "x": 2.5,
+          "z": -3.3
+        },
+        "walkFrom": {
+          "x": 2.5,
+          "z": -3.3
+        },
+        "waitingForTraffic": false,
+        "travelled": 123.90232123648859,
+        "clearedAt": 16.85
+      },
+      {
+        "vehicleId": "巡04",
+        "groupId": "T04",
+        "bayId": "T4",
+        "phase": "done",
+        "elapsed": 2.000000000000001,
+        "duration": 0.8285714285714285,
+        "path": [
+          {
+            "x": 7.5,
+            "z": 0.5
+          },
+          {
+            "x": 8.8,
+            "z": 0.5
+          },
+          {
+            "x": 9.6,
+            "z": 4.5
+          },
+          {
+            "x": 22,
+            "z": 4.5
+          }
+        ],
+        "pathIndex": 4,
+        "assignmentOrder": 3,
+        "pickupPoint": {
+          "x": 7.5,
+          "z": -3.3
+        },
+        "walkFrom": {
+          "x": 7.5,
+          "z": -3.3
+        },
+        "waitingForTraffic": false,
+        "travelled": 63.90232123649223,
+        "clearedAt": 10.25
+      },
+      {
+        "vehicleId": "巡05",
+        "groupId": "T05",
+        "bayId": "T1",
+        "phase": "done",
+        "elapsed": 3.649999999999995,
+        "duration": 1.1999999999999997,
+        "path": [
+          {
+            "x": -7.5,
+            "z": 0.5
+          },
+          {
+            "x": -6.2,
+            "z": 0.5
+          },
+          {
+            "x": -5.4,
+            "z": 4.5
+          },
+          {
+            "x": 22,
+            "z": 4.5
+          }
+        ],
+        "pathIndex": 4,
+        "assignmentOrder": 4,
+        "pickupPoint": {
+          "x": -7.5,
+          "z": -4.6
+        },
+        "walkFrom": {
+          "x": -7.5,
+          "z": -4.6
+        },
+        "waitingForTraffic": false,
+        "travelled": 257.90232123648525,
+        "clearedAt": 31.75
+      },
+      {
+        "vehicleId": "巡06",
+        "groupId": "T06",
+        "bayId": "T2",
+        "phase": "done",
+        "elapsed": 3.099999999999997,
+        "duration": 1.1999999999999997,
+        "path": [
+          {
+            "x": -2.5,
+            "z": 0.5
+          },
+          {
+            "x": -1.2,
+            "z": 0.5
+          },
+          {
+            "x": -0.3999999999999999,
+            "z": 4.5
+          },
+          {
+            "x": 22,
+            "z": 4.5
+          }
+        ],
+        "pathIndex": 4,
+        "assignmentOrder": 5,
+        "pickupPoint": {
+          "x": -2.5,
+          "z": -4.6
+        },
+        "walkFrom": {
+          "x": -2.5,
+          "z": -4.6
+        },
+        "waitingForTraffic": false,
+        "travelled": 376.9023212365119,
+        "clearedAt": 46.5
+      }
+    ],
+    "splits": 0
+  },
+  "errors": []
+}

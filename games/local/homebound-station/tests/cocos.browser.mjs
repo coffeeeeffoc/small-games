@@ -11,7 +11,7 @@ const root = path.resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
 const out = fileURLToPath(
   new URL(
     process.env.CAPTURE_GAME_EVIDENCE === '1'
-      ? '../docs/design/cocos-mobile-2026-10-22/runtime/'
+      ? '../docs/design/dispatch-polish-2026-10-22/runtime/'
       : '../test-results/cocos/',
     import.meta.url,
   ),

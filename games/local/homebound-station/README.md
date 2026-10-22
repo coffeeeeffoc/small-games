@@ -4,7 +4,9 @@
 
 本轮从 Three.js 迁移到 Creator 3.8.8：真实 Cocos 的场景、界面、输入、声音和生命周期在 `assets/scripts/`，引擎无关规则在 `assets/scripts/core/`。`src/simulation.ts`、`src/levels.ts` 只作为旧规则消费者的兼容导出。旧 Vite 源码只留作历史迁移参考，默认 build/dev 不会发布或运行它。
 
-产品方案、先行效果图和验证记录见 [移动版设计](docs/design/cocos-mobile-2026-10-22/design.md)。效果图不是运行截图。当前阶段与实际验证范围见 [验收记录](docs/design/cocos-mobile-2026-10-22/verification.md)。
+当前改版使用真实透明图集构成 Cocos 2.5D 场景：八方向出租车、旅客、站房、花草与页面插画均随工程打包；方向牌和座位票签与车身分开。最新方案见 [并行与美术修正](docs/design/dispatch-polish-2026-10-22/plan.md)，上架基础资料见 [publishing/STATUS.md](publishing/STATUS.md)。
+
+前版产品方案、先行效果图和验证记录见 [移动版设计](docs/design/cocos-mobile-2026-10-22/design.md)。效果图不是运行截图。当前阶段与实际验证范围见 [本轮验收记录](docs/design/dispatch-polish-2026-10-22/verification.md)，旧验收单保留历史语境。
 
 ## Creator 构建
 
@@ -72,7 +74,7 @@ pnpm --filter @coffeeeeffoc/homebound-station diagnose --replay reports/dispatch
 
 报告包含 300 条结果、每次派车的模拟 tick 和车辆 ID、配置与最终状态摘要、异常排行及 10 个优先复核案例。报告不写入墙钟时间，因此相同源码与参数生成的 JSON 可逐字节比较。生成时会把全部动作日志重新输入真实规则模拟，逐 tick 推进并核对最终状态、计时、星级与峰值；单独回放也会拒绝源码/配置漂移、同一拍多次输入、非法派车或被改写的结果。
 
-本次 [0.5 秒基线报告](docs/diagnostics/dispatch-0.5s.json) 为 300/300 通关、300/300 三星，通关时间 22.8–203.35 秒。最小三星余量为 6.75 秒（`90/random`、`90/reverse`），未触发上述异常标记；真实交互优先复核这两个最接近阈值的案例。全表最大排队峰值为 14 辆，道路受阻峰值为 17 辆。该报告是规则模拟结果，浏览器复核结果单独保存。
+前版 [0.5 秒基线报告](docs/diagnostics/dispatch-0.5s.json) 为 300/300 通关、300/300 三星，通关时间 22.8–203.35 秒。最小三星余量为 6.75 秒（`90/random`、`90/reverse`），未触发上述异常标记；真实交互优先复核这两个最接近阈值的案例。全表最大排队峰值为 14 辆，道路受阻峰值为 17 辆。该报告是规则模拟结果，浏览器复核结果单独保存。
 
 - **通关时间**是最后完成时的模拟秒数；超出默认 700 秒限额则标记未完成，不能算作通关。
 - **星级余量**按生产规则的 `maxWait` 计算：最大登车等待时间距离三星、二星阈值各还剩多少秒。它不是“星级阈值减通关时间”；负值表示已超出该档阈值，未完成时为 `null`。
@@ -91,4 +93,4 @@ pnpm --filter @coffeeeeffoc/homebound-station diagnose:browser --report reports/
 
 规则测试包含100关正向/反向/固定随机顺序共300次完整清场，逐tick独立SAT碰撞检测、乘客ID守恒、固定接客位置、8车同tick出发、暂停和1/2/3/5×一致性；另验证存档迁移、奖励完成/失败/取消/重开及加载品牌。
 
-`test:browser` 必须使用真实 Creator `dist`，以触屏经过首页、选关、派车、暂停、重试、结算、解锁、存档、开发模式和广告回调，记录390×844、320×568及844×390截图。`CAPTURE_GAME_EVIDENCE=1` 把证据存入本轮设计目录。浏览器触屏模拟不等于手机实机验收。
+`test:browser` 必须使用真实 Creator `dist`，以触屏经过首页、选关、派车、暂停、重试、结算、解锁、存档、开发模式和广告回调，记录390×844、320×568及844×390截图。触屏证据和1×真实并行位移记录归档于本轮设计目录。浏览器触屏模拟不等于手机实机验收。

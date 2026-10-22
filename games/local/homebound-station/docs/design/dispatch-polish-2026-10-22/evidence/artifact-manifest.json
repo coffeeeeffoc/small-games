@@ -1,0 +1,267 @@
+﻿[
+    {
+        "path":  "cc.d.ts",
+        "sha256":  "88fa33fe074ccd5471fb1bea6779a37d025dbf9570a195fc0d9f684a3608dcc9",
+        "bytes":  3365341
+    },
+    {
+        "path":  "creator-build.log",
+        "sha256":  "5897937a85074613f2e9e90c2fa705027a9c9d6e31fa956023603be0a654faeb",
+        "bytes":  61749
+    },
+    {
+        "path":  "local-producer.json",
+        "sha256":  "678bba9a2af13c7df740c76ddf7d6d637d9e66fe34356c05de35f50742b69c78",
+        "bytes":  207
+    },
+    {
+        "path":  "dist/application.3aee3.js",
+        "sha256":  "61746c8b6027a7dd40b3d3307257b8f4a1d219b5ebc276facc56aa152556bd1c",
+        "bytes":  3308
+    },
+    {
+        "path":  "dist/build-info.json",
+        "sha256":  "55ff17e83c038752fda829ee8e7d09d15f32076040e53411f317d4fb2e6c2010",
+        "bytes":  134
+    },
+    {
+        "path":  "dist/dev-mode.js",
+        "sha256":  "5633115f12f8f343a16db44c3ee0f10378d109b08392ca7b6fa977b0c6d191b4",
+        "bytes":  15134
+    },
+    {
+        "path":  "dist/game-rewards.js",
+        "sha256":  "a25868d9b66110b8b24cc5d82709bbe12c8fa87ede374de29f22932f61facffd",
+        "bytes":  3071
+    },
+    {
+        "path":  "dist/index.68e06.js",
+        "sha256":  "8df992307d40049e081b1c015b1f3e538e032f965574eb062a59b6454c56449e",
+        "bytes":  824
+    },
+    {
+        "path":  "dist/index.html",
+        "sha256":  "c6884669ed94abacf14a7689fbe3aea3695714772a9005efb20823427a0c5b18",
+        "bytes":  5990
+    },
+    {
+        "path":  "dist/interstitial.js",
+        "sha256":  "90ae7173339f1bbb32af77c1390e8a6fb190ef3cce16a31a6a8bd4cdc15d6522",
+        "bytes":  3913
+    },
+    {
+        "path":  "dist/platform-ads.js",
+        "sha256":  "2bb32dcac730da5102a03d59bd4b8a408bf8fe9f7a5569f6a9fbcbac8e6f399e",
+        "bytes":  8033
+    },
+    {
+        "path":  "dist/platform-config.js",
+        "sha256":  "a13afea11f84e6da1f5ff2cbb0d4e426b34bbb5607203947523169198aadda8f",
+        "bytes":  187
+    },
+    {
+        "path":  "dist/publishing.js",
+        "sha256":  "8d9d43cb1c126118286921018d713e5ee860b7c7b5c13f8e1c1ecdbb0b7d277d",
+        "bytes":  12289
+    },
+    {
+        "path":  "dist/station-icon.png",
+        "sha256":  "0e16a2645ea4a1016f605dc0ebdb37128faa3541a0cec2e20e58b89198495452",
+        "bytes":  2207946
+    },
+    {
+        "path":  "dist/station-share.js",
+        "sha256":  "56a7f8d09923551f4f75018d320744b03e413ef345c1a70b961513020f9392d9",
+        "bytes":  204
+    },
+    {
+        "path":  "dist/style.f76d1.css",
+        "sha256":  "b9dac5de1b7792243a6432dfe553901f0a235f41edb42c719d482d1c17016a2f",
+        "bytes":  1283
+    },
+    {
+        "path":  "dist/assets/internal/config.b2716.json",
+        "sha256":  "cf400c1b1b1e79cfb2df2ff6eb33ea8beb2225c57576494c8fc32fc8089004f2",
+        "bytes":  1931
+    },
+    {
+        "path":  "dist/assets/internal/index.b2716.js",
+        "sha256":  "54d10312c212d05a8ebfdbd260a0e71e9490e33e6a45cb95fe5bca71a82bea01",
+        "bytes":  8287
+    },
+    {
+        "path":  "dist/assets/internal/import/01/018c3997e.1e47f.json",
+        "sha256":  "bd0ec738665d37ea063895ad12f935fd0fc37a59160b6a2f7cd9c4a2c5562442",
+        "bytes":  376845
+    },
+    {
+        "path":  "dist/assets/main/config.411d3.json",
+        "sha256":  "91b2fe1672bf973f8608d7a0abb61bc746740d1fd21efa81c1169621c6323997",
+        "bytes":  609
+    },
+    {
+        "path":  "dist/assets/main/index.411d3.js",
+        "sha256":  "16d7c2392fc2fb13a18aaaa185052ce39982d21ff4f0987140c7d0f43c514c1f",
+        "bytes":  68322
+    },
+    {
+        "path":  "dist/assets/main/import/ac/acdd05a5-ffde-4181-b0ec-721b34e9934e.eb110.json",
+        "sha256":  "a6ffd934288b8d22f214eb126de145f609f029aef086bc1f98872955a1a5b475",
+        "bytes":  799
+    },
+    {
+        "path":  "dist/assets/main/import/ba/ba21476f-2866-4f81-9c4d-6e359316e448.8bce7.json",
+        "sha256":  "0a34e9263b215bb661d6334db6a255497c6cdac1f1c40b130f50bf9d91f4dd39",
+        "bytes":  192
+    },
+    {
+        "path":  "dist/assets/main/import/fd/fd8ec536-a354-4a17-9c74-4f3883c378c8.731f4.json",
+        "sha256":  "c2eee4552a460ed97591f527e127b95c811d5f796b9448f3f705974af9beba9d",
+        "bytes":  480
+    },
+    {
+        "path":  "dist/assets/resources/config.e4ea2.json",
+        "sha256":  "59a613717e86cf4aa3ce3d253000de2374fe3cd787e10a9e0d19cd99b2d4a1f1",
+        "bytes":  1351
+    },
+    {
+        "path":  "dist/assets/resources/index.e4ea2.js",
+        "sha256":  "51a07ab61ee49561d29734ff6ee095b0d8a47998bbe30a6f1973bf3c8b7faa25",
+        "bytes":  605
+    },
+    {
+        "path":  "dist/assets/resources/import/06/06ef6a44-2eb7-56d3-b28f-ecbcb1173328.94b07.json",
+        "sha256":  "e59a71c9ee81a87812db3d21d3234cdf9ac4fd6b74aca2ce81b2fea6d43a80d9",
+        "bytes":  123
+    },
+    {
+        "path":  "dist/assets/resources/import/08/08957effe.5035e.json",
+        "sha256":  "d7317f41bbf7555d9e26dc9bea3499e0521f8ee839767bbfef1ab882533031f3",
+        "bytes":  248
+    },
+    {
+        "path":  "dist/assets/resources/import/13/132f7ed9-d0ab-50cf-9343-6966518d7db6.c0792.json",
+        "sha256":  "7659ed59423605121a3e11bdbe00824483640084f74fd58ca921823f05f640df",
+        "bytes":  119
+    },
+    {
+        "path":  "dist/assets/resources/import/3f/3fa35bad-054b-5e51-ba7a-a9a8dfab27dc.ffcee.json",
+        "sha256":  "092a7e4f6085aded4ca2ed2fa681db46075eabe2b043f93aa3e8b1f5531a42c0",
+        "bytes":  121
+    },
+    {
+        "path":  "dist/assets/resources/import/8e/8e550148-13ae-559c-8841-63b4e4367757.a2533.json",
+        "sha256":  "60928632edcd22b5694a8c22de01de0d2cbb6f374103242a99a4394cc767f44d",
+        "bytes":  72
+    },
+    {
+        "path":  "dist/assets/resources/import/96/964c15da-646f-5d40-a582-d3f1976b3958.13c0a.json",
+        "sha256":  "2f3d1769eff547b0c39e7965d2493a6a6647eac7bd685c5e646d31d29b7ddb1f",
+        "bytes":  119
+    },
+    {
+        "path":  "dist/assets/resources/import/ae/ae9d7ac7-dd40-55ea-970c-aaecfd917b1a.a2533.json",
+        "sha256":  "60928632edcd22b5694a8c22de01de0d2cbb6f374103242a99a4394cc767f44d",
+        "bytes":  72
+    },
+    {
+        "path":  "dist/assets/resources/import/bb/bb263117-e641-5f11-b3a4-eff0f3212136.a2533.json",
+        "sha256":  "60928632edcd22b5694a8c22de01de0d2cbb6f374103242a99a4394cc767f44d",
+        "bytes":  72
+    },
+    {
+        "path":  "dist/assets/resources/import/cb/cba8f4b4-aa82-5669-9c4e-154042adbdf4.bce78.json",
+        "sha256":  "29badd21f2ca8db60666fc2d27107cb8bb52e9222423ad3882cb3810c8d544fb",
+        "bytes":  122
+    },
+    {
+        "path":  "dist/assets/resources/import/e7/e7905c0e-4924-5236-8a1f-f890dec0c609.a2533.json",
+        "sha256":  "60928632edcd22b5694a8c22de01de0d2cbb6f374103242a99a4394cc767f44d",
+        "bytes":  72
+    },
+    {
+        "path":  "dist/assets/resources/import/ef/efa41473-b36a-55f4-b284-ef603402eaac.a2533.json",
+        "sha256":  "60928632edcd22b5694a8c22de01de0d2cbb6f374103242a99a4394cc767f44d",
+        "bytes":  72
+    },
+    {
+        "path":  "dist/assets/resources/native/06/06ef6a44-2eb7-56d3-b28f-ecbcb1173328.a1255.wav",
+        "sha256":  "0bb5d92f3a3d1dd51f899b8f3a1089f87086284830648d02b9a9fe24e49ac498",
+        "bytes":  9744
+    },
+    {
+        "path":  "dist/assets/resources/native/13/132f7ed9-d0ab-50cf-9343-6966518d7db6.f76aa.wav",
+        "sha256":  "da1cfa135bdbd1a047bc9ab9e82ba534b11d4502eb8570644d4029979f277714",
+        "bytes":  4894
+    },
+    {
+        "path":  "dist/assets/resources/native/3f/3fa35bad-054b-5e51-ba7a-a9a8dfab27dc.bcd93.wav",
+        "sha256":  "f5978e0d3633e5d0b37c41a403c9c171b6439efcf66097380c020e5af1ecae51",
+        "bytes":  9744
+    },
+    {
+        "path":  "dist/assets/resources/native/8e/8e550148-13ae-559c-8841-63b4e4367757.50933.png",
+        "sha256":  "0bd55da47567ddd385a7f4b8cc9c7d09704c16ecff7fa7c81805bde572b3eb89",
+        "bytes":  1465607
+    },
+    {
+        "path":  "dist/assets/resources/native/96/964c15da-646f-5d40-a582-d3f1976b3958.fe7ea.wav",
+        "sha256":  "84063710413bde327d4455fb1fd7640d817f025906c81f0d0f47095de3d33e34",
+        "bytes":  19444
+    },
+    {
+        "path":  "dist/assets/resources/native/ae/ae9d7ac7-dd40-55ea-970c-aaecfd917b1a.258e9.png",
+        "sha256":  "ae6d35df5d03b09b78d3f9d0dfec20853ffe39f283fef3b5a5454a3a33feaa89",
+        "bytes":  1670828
+    },
+    {
+        "path":  "dist/assets/resources/native/bb/bb263117-e641-5f11-b3a4-eff0f3212136.6c84e.png",
+        "sha256":  "0d6c88ac4d863ab964d130f8238605ab29f7a411a38838fa94f0a907ad203a61",
+        "bytes":  2100460
+    },
+    {
+        "path":  "dist/assets/resources/native/cb/cba8f4b4-aa82-5669-9c4e-154042adbdf4.30c28.wav",
+        "sha256":  "03de59aa593b51e8a5cd83744a3e2076e03f234832440b7dfdc8adffdffa2256",
+        "bytes":  9744
+    },
+    {
+        "path":  "dist/assets/resources/native/e7/e7905c0e-4924-5236-8a1f-f890dec0c609.f9724.png",
+        "sha256":  "9d7f3fe6bae829a84f6d502c1d6fc9c221ff72e41ac4184314ad845ef8cb7005",
+        "bytes":  2377793
+    },
+    {
+        "path":  "dist/assets/resources/native/ef/efa41473-b36a-55f4-b284-ef603402eaac.21005.png",
+        "sha256":  "5a189ed9c43579ec566689469bd46a60963e9c595e283c0b73c0fce5a6dfa103",
+        "bytes":  2546442
+    },
+    {
+        "path":  "dist/cocos-js/cc.da7e2.js",
+        "sha256":  "fc5bfb78a3156e14c16e06e3cf8212cf4837d92ff326a8806c294e2e628e5e09",
+        "bytes":  1550109
+    },
+    {
+        "path":  "dist/src/import-map.9cc60.json",
+        "sha256":  "91863e4e7875ddcb9479530705c1c5b70f0be30a919675b4b4931e27afa0b74f",
+        "bytes":  46
+    },
+    {
+        "path":  "dist/src/polyfills.bundle.5adbf.js",
+        "sha256":  "f1e4ced3322168d6b9915e782e4c1cf1055d75f66f2b38e7fcd60f48cf89082b",
+        "bytes":  14750
+    },
+    {
+        "path":  "dist/src/settings.e8d17.json",
+        "sha256":  "d7c039f549661e70d56cc0535a87e89eed4531138083b716d750ffb1b80c1609",
+        "bytes":  1965
+    },
+    {
+        "path":  "dist/src/system.bundle.543e6.js",
+        "sha256":  "90f192f3b04f7fcb5bba9c15745cdd1a798d9b855f752c5ee7e48bb526dd543d",
+        "bytes":  12259
+    },
+    {
+        "path":  "dist/src/chunks/bundle.5227e.js",
+        "sha256":  "676505eab615bbe3437148994a411977623dbdd52c4336a00f17df52f3527e26",
+        "bytes":  10116
+    }
+]

@@ -1,0 +1,8 @@
+{"mode":"v4","seed":1,"count":100,"maximum":119.55000000000001,"failures":0}
+{"mode":"v4","seed":2,"count":200,"maximum":128.45000000000002,"failures":0}
+{"mode":"v4","seed":3,"count":300,"maximum":128.45000000000002,"failures":0}
+{"mode":"v4","seed":4,"count":400,"maximum":135.9,"failures":0}
+{"mode":"v4","seed":5,"count":500,"maximum":135.9,"failures":0}
+{"mode":"v4","seed":6,"count":600,"maximum":135.9,"failures":0}
+{"mode":"v4","seed":7,"count":700,"maximum":135.9,"failures":0}
+{"done":true,"mode":"v4","count":700,"maximum":135.9,"failures":0}
