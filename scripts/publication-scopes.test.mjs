@@ -5348,3 +5348,77 @@ test('ordinary Creator reuse includes Tower and Tetracube while preserving histo
     );
   }
 });
+
+test('combined Tower and Tetracube wiring selects exact cumulative consumers and rejects drift', async () => {
+  const { towerTetracubeIntegrationHashes } = await import('./publication-scopes.mjs');
+  const head = 'eb4951870887deb16428e0e7bb3e540a60b6bcc3';
+  const ids = ['tower-brake', 'tetracube'];
+  const games = ids.map((id) => ({ id, source: 'games/local/' + id, output: 'dist' }));
+  const cache = new Map();
+  const historical = (ref, file) => {
+    const key = ref + ':' + file;
+    if (!cache.has(key)) cache.set(key, execFileSync('git', ['show', key], { encoding: 'utf8' }));
+    return cache.get(key);
+  };
+  const readHead = (file) => historical(head, file);
+  const packages = games.map((game) => ({
+    ...JSON.parse(readHead(game.source + '/package.json')),
+    dir: game.source,
+  }));
+  const changedPaths = Object.keys(towerTetracubeIntegrationHashes);
+  for (const base of [
+    'cbee0202b8cd6ea3f5dd626851a10e6dd602dd75',
+    '731dfd1188fc6a5a0f444bd0f1bb2d9a4c966d74',
+  ]) {
+    const context = {
+      changedPaths,
+      games,
+      packages,
+      readBase: (file) => historical(base, file),
+      readHead,
+    };
+    const expected = base.startsWith('cbee') ? games.map((g) => g.source) : [games[0].source];
+    const scopes = reviewedSharedFileScopes(context);
+    for (const file of changedPaths) {
+      assert.deepEqual(scopes.get(file), expected, file);
+      for (const side of ['readBase', 'readHead'])
+        assert.equal(
+          reviewedSharedFileScopes({
+            ...context,
+            changedPaths: [file],
+            [side]: (name) => context[side](name) + '\n# unreviewed',
+          }).has(file),
+          false,
+        );
+    }
+    for (const index of [0, 1]) {
+      assert.equal(
+        reviewedSharedFileScopes({ ...context, games: games.filter((_, i) => i !== index) }).size,
+        0,
+      );
+      assert.equal(
+        reviewedSharedFileScopes({
+          ...context,
+          packages: [...packages, { ...packages[index], name: 'alias' }],
+        }).size,
+        0,
+      );
+      assert.equal(
+        reviewedSharedFileScopes({
+          ...context,
+          changedPaths: ['pnpm-lock.yaml'],
+          readHead: (file) =>
+            file === games[index].source + '/package.json'
+              ? JSON.stringify({ ...packages[index], dependencies: { extra: '1' } })
+              : readHead(file),
+        }).size,
+        0,
+      );
+    }
+    assert.equal(
+      reviewedSharedFileScopes({ ...context, changedPaths: ['.github/workflows/unknown.yml'] })
+        .size,
+      0,
+    );
+  }
+});
