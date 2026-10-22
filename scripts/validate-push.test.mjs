@@ -150,6 +150,43 @@ test('Windows resolves pnpm through a Node CLI without shell quoting', async () 
   );
 });
 
+test('Windows uses installed pnpm before a Corepack download shim while preserving PATH order', async () => {
+  const { pnpmInvocation } = await import('./validate-push.mjs');
+  const nodeDir = 'C:\\Node Tools';
+  const shim = path.win32.join(nodeDir, 'node_modules/corepack/dist/pnpm.js');
+  const bin = 'C:\\setup pnpm\\node_modules\\.bin';
+  const native = path.win32.join(bin, 'pnpm.exe');
+  const cli = path.win32.resolve(bin, '../pnpm/bin/pnpm.cjs');
+  const modern = path.win32.resolve(bin, '../pnpm/bin/pnpm.mjs');
+  const env = { PATH: `${nodeDir};${bin}` };
+  const resolve = (files, overrides = {}) =>
+    pnpmInvocation({ ...env, ...overrides }, 'win32', (file) => files.includes(file));
+  assert.deepEqual(resolve([shim, native]), { command: native, prefix: [] });
+  for (const entry of [cli, modern]) {
+    assert.deepEqual(resolve([shim, entry]), { command: process.execPath, prefix: [entry] });
+    assert.deepEqual(resolve([shim, entry], { npm_execpath: entry }), {
+      command: process.execPath,
+      prefix: [entry],
+    });
+  }
+  const earlier = path.win32.join(nodeDir, 'node_modules/pnpm/bin/pnpm.cjs');
+  assert.deepEqual(resolve([shim, earlier, native]), {
+    command: process.execPath,
+    prefix: [earlier],
+  });
+  assert.deepEqual(resolve([shim, earlier, native], { npm_execpath: native }), {
+    command: native,
+    prefix: [],
+  });
+  const secondShim = path.win32.resolve(bin, 'node_modules/corepack/dist/pnpm.js');
+  assert.deepEqual(resolve([shim, secondShim]), { command: process.execPath, prefix: [shim] });
+  assert.deepEqual(resolve([shim], { npm_execpath: native }), {
+    command: process.execPath,
+    prefix: [shim],
+  });
+  assert.throws(() => resolve([]), /Cannot resolve/);
+});
+
 test('advertised remote advancement is fetched by SHA; tracking refs do not choose the base', async () => {
   const temp = await mkdtemp(path.join(os.tmpdir(), 'push-remote-'));
   const root = path.join(temp, 'local'),

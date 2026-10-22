@@ -47,20 +47,37 @@ export function pnpmInvocation(
 ) {
   if (platform !== 'win32') return { command: 'pnpm', prefix: [] };
   const dirs = (env.Path || env.PATH || '').split(';');
-  if (env.npm_execpath && /pnpm\.(?:cjs|js)$/.test(env.npm_execpath) && exists(env.npm_execpath))
+  if (
+    env.npm_execpath &&
+    /pnpm\.(?:cjs|mjs|js)$/.test(env.npm_execpath) &&
+    exists(env.npm_execpath)
+  )
     return { command: process.execPath, prefix: [env.npm_execpath] };
+  if (
+    env.npm_execpath &&
+    path.win32.basename(env.npm_execpath).toLowerCase() === 'pnpm.exe' &&
+    exists(env.npm_execpath)
+  )
+    return { command: env.npm_execpath, prefix: [] };
+  let corepack;
   for (const dir of dirs) {
     const native = path.win32.join(dir, 'pnpm.exe');
     if (exists(native)) return { command: native, prefix: [] };
     for (const relative of [
       'node_modules/pnpm/bin/pnpm.cjs',
-      'node_modules/corepack/dist/pnpm.js',
+      'node_modules/pnpm/bin/pnpm.mjs',
       '../pnpm/bin/pnpm.cjs',
+      '../pnpm/bin/pnpm.mjs',
     ]) {
       const cli = path.win32.resolve(dir, relative);
       if (exists(cli)) return { command: process.execPath, prefix: [cli] };
     }
+    const shim = path.win32.resolve(dir, 'node_modules/corepack/dist/pnpm.js');
+    if (!corepack && exists(shim)) corepack = shim;
   }
+  // setup-node may put its Corepack shim before action-setup's installed pnpm.
+  // Prefer the installed manager over a shim that can download it again.
+  if (corepack) return { command: process.execPath, prefix: [corepack] };
   throw new Error(
     'Cannot resolve a Windows pnpm Node CLI or pnpm.exe; reinstall pnpm. No shell fallback.',
   );
