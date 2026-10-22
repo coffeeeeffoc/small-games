@@ -1,3 +1,4 @@
+import { assertChaseGameplay } from './game-checks/chase-thief.mjs';
 import { expect } from '@playwright/test';
 import { enterStandalone } from './standalone-game-entry.mjs';
 export { markers } from './standalone-game-entry.mjs';
@@ -194,28 +195,7 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await click(frame.locator('#levels-home'));
     await expect(frame.locator('#start-game')).toBeVisible();
   } else if (id === 'chase-thief') {
-    const game = frame.locator('#game');
-    const body = frame.locator('body');
-    await expect(body).toHaveAttribute('data-phase', 'running');
-    await click(frame.locator('[data-action="left"]'));
-    await expect(game).toHaveAttribute('data-lane', '0');
-    await click(frame.locator('[data-action="right"]'));
-    await expect(game).toHaveAttribute('data-lane', '1');
-    await click(frame.locator('[data-action="jump"]'));
-    await expect(game).toHaveAttribute('data-action', 'jump');
-    await expect(game).toHaveAttribute('data-action', 'run');
-    await click(frame.locator('[data-action="slide"]'));
-    await expect(game).toHaveAttribute('data-action', 'slide');
-    await click(frame.locator('#pause'));
-    await expect(body).toHaveAttribute('data-phase', 'paused');
-    await click(frame.locator('#resume'));
-    await expect(body).toHaveAttribute('data-phase', 'running');
-    await click(frame.locator('#pause'));
-    await click(frame.locator('#pause-home'));
-    await expect(body).toHaveAttribute('data-phase', 'home');
-    await expect(frame.locator('#home')).toBeVisible();
-    await expect(frame.locator('#start')).toBeVisible();
-    await expect(frame.locator('#choose-levels')).toBeVisible();
+    await assertChaseGameplay(frame, mobile);
   } else if (id === 'orbit-atelier') {
     const canvas = frame.locator('#GameCanvas');
     const page = canvas.page();

@@ -1,0 +1,7 @@
+{
+  "sourceCommit": "86d93d6d781650cdd1528567bb8085e5f5a0a66e",
+  "sourceHash": "a483af6a5b1ddb2db83c2b9e4a848b5e5986404407d6633baf127864a092beef",
+  "verifiedFiles": 53,
+  "transportZipSha256": "df4bc91be4255d0c70498e7c41910391a9811ba8b11be9252343a2875dbffb0d",
+  "verification": "Every artifact manifest entry matched byte length and SHA-256; cached files reused only by exact SHA-256. verifyPrebuilt accepted the current source."
+}

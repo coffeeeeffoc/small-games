@@ -1,0 +1,45 @@
+{
+  "capturedAt": "2026-10-22T15:21:11.316Z",
+  "browser": "140.0.7339.186",
+  "environment": "Desktop Chromium, mobile viewport and touch emulation; real Creator web-mobile; normal clock and randomness; no state/advertisement fixtures",
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "86de06a489c21eb1751241bd0336996bfc4e6e924ba33107790cf641cd6ed675"
+  },
+  "checks": [
+    {
+      "name": "title and home 320px",
+      "bounds": {
+        "x": 20,
+        "right": 300,
+        "scrollWidth": 280,
+        "clientWidth": 280,
+        "pageWidth": 320,
+        "viewport": 320
+      },
+      "passed": true
+    },
+    {
+      "name": "title and home 390px",
+      "bounds": {
+        "x": 20,
+        "right": 370,
+        "scrollWidth": 350,
+        "clientWidth": 350,
+        "pageWidth": 390,
+        "viewport": 390
+      },
+      "passed": true
+    },
+    {
+      "name": "real-time touch route gameplay capture",
+      "passed": true,
+      "commands": 31,
+      "elapsedSeconds": 31.4,
+      "screen": "battle",
+      "captures": 2
+    }
+  ],
+  "errors": []
+}

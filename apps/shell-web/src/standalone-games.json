@@ -24,7 +24,7 @@
     "id": "chase-thief",
     "source": "games/local/chase-thief",
     "title": "追贼别撞墙",
-    "description": "穿过老城三条街巷，跳路障、钻低杆、换道躲箱子；连续稳住三段就冲刺追近，抓住前方的小偷。",
+    "description": "沿着起伏弯曲的老城街道一路追逐，跳栏、滑铲、换道与分路选择，挑战无尽距离纪录。",
     "output": "dist"
   },
   {
@@ -58,7 +58,7 @@
   {
     "id": "tianxia-chalu",
     "source": "games/local/tianxia-chalu",
-    "title": "天下岔路",
+    "title": "夺城令",
     "description": "四方城寨自动出兵，轻点岔路切换行军方向，抢占村镇、截断援军，在一张山水战图上统一天下。",
     "output": "dist"
   },

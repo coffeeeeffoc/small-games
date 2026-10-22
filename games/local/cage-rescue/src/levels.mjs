@@ -127,125 +127,370 @@ export const LEVELS = [
   ),
 ];
 
-/** Chapter mechanics are content; the simulation never branches on a level ID. */
-function withMechanics(level, stage) {
-  if (stage < 7) return level;
-  const wind = stage >= 13 && stage !== 19;
-  const beam = stage >= 19;
-  const engineer = stage !== 13 && stage !== 19;
-  const medic = stage >= 25;
-  const names = [
-    engineer && '工程师',
-    wind && '阵风',
-    beam && '金属横梁',
-    medic && '医疗员',
-  ].filter(Boolean);
+/** Reusable geometry; campaign blueprints choose routes instead of mirroring training. */
+const steel = (id, x, y, w, h = 14, group) => ({
+  id,
+  x,
+  y,
+  w,
+  h,
+  material: 'steel',
+  ...(group ? { group } : {}),
+});
+const armor = (id, x, y, w = 70, hp = 6) => ({ ...brick(id, x, y, w), hp });
+const device = (id, kind, x, y, extra = {}) => ({
+  id,
+  kind,
+  x,
+  y,
+  w: 32,
+  h: 26,
+  charges: 1,
+  ...extra,
+});
+const formation = (points) =>
+  points.map(([x, y], i) => cage(String.fromCharCode(97 + i), x, y, i % 2 ? 1 : 2));
+
+function buildRoute(route, variant) {
+  const v = variant;
+  if (route === 'vault') {
+    const left = 112 - v * 5,
+      right = 278 + v * 5,
+      floor = 274 + v * 8;
+    const gap = 38 - v * 4,
+      middle = [195, 215, 175][v];
+    return {
+      cages: formation([
+        [40, 105],
+        [300, 105],
+        [40, 237],
+        [300, 237],
+        [170, 335],
+        [170, 121],
+      ]),
+      bricks: [
+        armor('vault-armor', 45, v === 2 ? 340 : 390, 78, 4 + v * 2),
+        armor('vault-armor-r', 267, v === 2 ? 340 : 390, 78, 4),
+      ],
+      barriers: [
+        steel('roof', left, 86, right - left),
+        steel('west', left, 100, 14, floor - 100),
+        steel('east', right - 14, 100, 14, floor - 100),
+        steel('lip-l', left, floor, middle - gap / 2 - left),
+        steel('lip-r', middle + gap / 2, floor, right - middle - gap / 2),
+      ],
+      devices: [device('vault-core', v === 2 ? 'pulse' : 'splitter', 179, 211, { radius: 150 })],
+    };
+  }
+  if (route === 'gallery') {
+    // An actual side entrance: the lower half of the right wall is separated by a slit.
+    const floor = 286 + v * 10,
+      slit = 42 - v * 4;
+    return {
+      cages: formation([
+        [42, 110],
+        [163, 110],
+        [292, 110],
+        [42, 223],
+        [163, 223],
+        [285, 326],
+      ]),
+      bricks: [
+        armor('gallery-plug', 35, v === 1 ? 340 : 366, 108, 4 + v * 2),
+        brick('gallery-step', 190, 396, 60),
+      ],
+      barriers: [
+        steel('gallery-roof', 28, 82, 214),
+        steel('gallery-wall', 28, 96, 12, floor - 96),
+        steel('gallery-floor', 28, floor, 214),
+        steel('gallery-top', 230, 96, 12, 84),
+        steel('gallery-bottom', 230, 180 + slit, 12, floor - 180 - slit),
+      ],
+      devices: [device('gallery-core', v === 1 ? 'pulse' : 'splitter', 111, 181, { radius: 155 })],
+    };
+  }
+  if (route === 'towers') {
+    return {
+      cages: formation([
+        [48, 107],
+        [292, 107],
+        [48, 221],
+        [292, 221],
+        [133, 320],
+        [211, 320],
+      ]),
+      bricks: [
+        armor('tower-l', 42, 298, 72, 4 + v * 2),
+        armor('tower-r', 276, 298, 72, 6),
+        armor('tower-base', 156, 408, 78, 4),
+      ],
+      barriers: [
+        steel('tower-left', 128, 90, 14, 190 + v * 10),
+        steel('tower-right', 248, 90, 14, 190 + v * 10),
+      ],
+      devices: [
+        device('tower-core', v === 0 ? 'splitter' : 'pulse', 179, 177 + v * 15, { radius: 160 }),
+      ],
+    };
+  }
+  if (route === 'switchback') {
+    const shift = v * 12;
+    return {
+      cages: formation([
+        [40, 108],
+        [170, 108],
+        [300, 108],
+        [40, 236],
+        [170, 236],
+        [300, 236],
+      ]),
+      bricks: [
+        armor('gate-shield', 30 + shift, 398, 90, 4 + v * 2),
+        armor('gate-shield-r', 270 - shift, 398, 90, 4),
+      ],
+      barriers: [
+        steel('gate-l', 26, 190, 139, 14, 'A'),
+        steel('gate-r', 199, 190, 165, 14, 'A'),
+        steel('gate-step', 140 + shift, 321, 105, 14),
+      ],
+      devices: [
+        device('gate-key', 'switch', 180 - shift, 374, { group: 'A' }),
+        device('gate-split', 'splitter', 114, 118),
+      ],
+    };
+  }
+  if (route === 'stairwell') {
+    return {
+      cages: formation([
+        [34, 108],
+        [156, 108],
+        [287, 108],
+        [49, 220],
+        [173, 253],
+        [293, 307],
+      ]),
+      bricks: [
+        armor('step-a', 34, 300, 72, 4),
+        armor('step-b', 144, 351, 72, 4 + v * 2),
+        armor('step-c', 270, 396, 72, 6),
+      ],
+      barriers: [steel('stair-a', 102, 192, 66 + v * 6), steel('stair-b', 229, 239, 66 + v * 6)],
+      devices: [
+        device(
+          'stair-core',
+          v === 1 ? 'switch' : 'pulse',
+          44,
+          370,
+          v === 1 ? { group: 'A' } : { radius: 160 },
+        ),
+      ],
+    };
+  }
+  if (route === 'well') {
+    const gap = 42 - v * 4;
+    return {
+      cages: formation([
+        [44, 107],
+        [296, 107],
+        [44, 228],
+        [296, 228],
+        [170, 112],
+        [170, 220],
+      ]),
+      bricks: [armor('well-l', 35, 381, 82, 6), armor('well-r', 273, 381, 82, 4 + v * 2)],
+      barriers: [
+        steel('well-left', 119, 90, 14, 248),
+        steel('well-right', 257, 90, 14, 248),
+        steel('well-roof', 133, 90, 124),
+        steel('well-lip-l', 133, 338, 62 - gap / 2),
+        steel('well-lip-r', 195 + gap / 2, 338, 62 - gap / 2),
+      ],
+      devices: [device('well-core', 'splitter', 179, 293)],
+    };
+  }
+  if (route === 'crossfire') {
+    return {
+      cages: formation([
+        [42, 106],
+        [170, 141],
+        [298, 106],
+        [42, 252],
+        [170, 286],
+        [298, 252],
+      ]),
+      bricks: [
+        armor('cross-a', 27, 205, 92, 4 + v * 2),
+        armor('cross-b', 271, 205, 92, 6),
+        armor('cross-c', 146, 230, 98, 6),
+        armor('cross-d', 95, 389, 86, 4),
+        armor('cross-e', 209, 389, 86, 4),
+      ],
+      barriers: [steel('cross-post', 187, 365, 16, 66)],
+      devices: [
+        device('cross-pulse', 'pulse', 179, 91, { radius: 160 }),
+        device('cross-split', 'splitter', v === 1 ? 310 : 48, 337),
+      ],
+    };
+  }
+  // Armor is the first introduction: clear alternatives around a broad barricade.
   return {
-    ...level,
-    chapter:
-      stage < 13 ? '小队支援' : stage < 19 ? '风中接力' : stage < 25 ? '钢梁迷阵' : '极夜协作',
-    subtitle: names.join(' · '),
-    hint:
-      stage === 7
-        ? '蓝色工具标记是工程师，接住后挡板加宽 8 秒。'
-        : stage === 13
-          ? '阵风会吹动队友，跟着下方的预计落点接人。'
-          : stage === 19
-            ? '铆钉钢梁无法打碎，让球从两边绕过去。'
-            : stage === 25
-              ? '绿色十字是医疗员，接住补回一次球机会，最多三次。'
-              : '先接支援队员，再绕过钢梁；留意阵风中的接人落点。',
-    // New mechanics get reaction room instead of stacking with maximum raw speed.
-    ballSpeed: Math.min(level.ballSpeed, 282 + Math.max(0, stage - 7) * 0.85),
-    personSpeed: Math.min(level.personSpeed, 39 + Math.max(0, stage - 7) * 0.22),
-    releaseGap: Math.max(1.9, level.releaseGap),
-    bricks: level.bricks.map((item) => ({ ...item, hp: beam ? 1 : item.hp })),
-    cages: level.cages.map((item, index) => ({
-      ...item,
-      role: engineer && index === 0 ? 'engineer' : medic && index === 4 ? 'medic' : 'teammate',
-    })),
-    wind: wind
-      ? { amplitude: 12 + Math.min(10, (stage - 13) * 0.6), period: 8, phase: stage % 3 }
-      : null,
-    barriers: beam ? [{ id: 'steel-beam', x: 159, y: 424, w: 72, h: 16, material: 'steel' }] : [],
+    cages: formation(
+      v === 0
+        ? [
+            [40, 108],
+            [170, 108],
+            [300, 108],
+            [73, 226],
+            [247, 226],
+            [170, 307],
+          ]
+        : v === 1
+          ? [
+              [34, 110],
+              [152, 148],
+              [294, 110],
+              [34, 272],
+              [176, 253],
+              [294, 272],
+            ]
+          : [
+              [49, 110],
+              [170, 180],
+              [291, 110],
+              [49, 290],
+              [170, 303],
+              [291, 290],
+            ],
+    ),
+    bricks: [
+      armor('armor-a', 30, 381, 94, 4 + v * 2),
+      armor('armor-b', 148, 402, 94, 6),
+      armor('armor-c', 266, 381, 94, 4 + v * 2),
+      armor('armor-high', 157, v === 2 ? 250 : 245 - v * 18, 76, 4),
+    ],
+    barriers: [],
+    devices: v ? [device('armor-pulse', 'pulse', 179, 92, { radius: 160 })] : [],
   };
 }
 
-// Keep the first six rescue IDs and layouts stable for existing saves.
-const training = LEVELS.slice();
-const chapters = ['街区接力', '高塔穿梭', '夜幕突围', '黎明营救'];
-for (let index = 6; index < 30; index++) {
-  const base = training[index % training.length];
-  const tier = (index - 6) / 23;
-  const mirror = Math.floor(index / 6) % 2 === 1;
-  const transform = (entity, position, reinforced = false) => ({
-    ...entity,
-    x: Math.max(
-      20,
-      Math.min(
-        370 - entity.w,
-        (mirror ? VIEWPORT.width - entity.x - entity.w : entity.x) + ((index % 4) - 1.5) * 2,
-      ),
-    ),
-    hp: reinforced || position < Math.max(1, Math.floor(tier * 6)) ? 2 : entity.hp,
-  });
+const blueprints = [
+  ['装甲工地', 'armor', 0, '橙色装甲要反复撞击，数字是剩余次数。也可以从两侧绕行。'],
+  ['分球密室', 'vault', 0, '从下方窄缝钻进密室，撞中三球标记，放出两颗新球。'],
+  ['侧门回廊', 'gallery', 0, '沿右墙反弹进入侧门；回廊里的分球器能帮你清理笼子。'],
+  ['双塔夹击', 'towers', 0, '两道竖墙分开三条路线，先撞中央分球器，再击穿两侧装甲。'],
+  ['开闸救援', 'switchback', 0, '先撞钥匙机关，带 A 标记的闸门会永久打开。'],
+  ['阶梯爆破', 'stairwell', 0, '橙色爆破器能震掉附近装甲两层，沿台阶逐层推进。'],
+  ['风井探入', 'well', 0, '瞄准中央井口，把球送进分球舱；接人时留意风中落点。'],
+  ['交叉火力', 'crossfire', 0, '侧翼分球、顶部爆破，选择先打通哪一条装甲路线。'],
+  ['厚壁仓库', 'armor', 1, '耐心凿穿厚甲，或绕上方触发爆破，削弱周围装甲。'],
+  ['偏门机房', 'vault', 1, '入口偏在右边，利用挡板边缘改变角度，钻进去再分球。'],
+  ['侧廊震荡', 'gallery', 1, '从侧缝进入，撞亮爆破器；装甲每次受击都保留损伤。'],
+  ['双塔共振', 'towers', 1, '把球送入中间长廊，撞击爆破器削弱两边塔脚。'],
+  ['钢梁捷径', 'switchback', 1, '钢梁不能撞碎，先击中下方钥匙，打开上层捷径。'],
+  ['错层钥匙', 'stairwell', 1, '左下钥匙打开阶梯钢梁，接着沿空出的路线营救。'],
+  ['深井分裂', 'well', 1, '长井入口更窄；在井内分出三球，一次打开更多锁扣。'],
+  ['火力走廊', 'crossfire', 1, '右侧分球器在装甲之外，先取得多球再向中心推进。'],
+  ['重甲堡垒', 'armor', 2, '八层装甲需要持续撞击。绕到顶层爆破器可以节省次数。'],
+  ['爆破暗室', 'vault', 2, '穿过左偏窄缝，命中暗室爆破器；再沿两翼救援。'],
+  ['医疗回廊', 'gallery', 2, '狭小侧门通向分球器；先救医疗员补充球机会。'],
+  ['双塔拆解', 'towers', 2, '高墙分路、重甲封底；中央爆破器可以同时削弱两翼。'],
+  ['连锁开闸', 'switchback', 2, '下方钥匙打开闸门，继续向顶层分球器推进。'],
+  ['阶梯突围', 'stairwell', 2, '从低处爆破器开路，再在错层障碍之间反弹救人。'],
+  ['极夜深井', 'well', 2, '瞄准最窄井口，取得多球；外侧队友要跟随风向接应。'],
+  ['黎明协作', 'crossfire', 2, '分球、爆破、重甲和小队支援组合，规划两翼与中央的救援顺序。'],
+];
+
+for (const [offset, [name, route, variant, hint]] of blueprints.entries()) {
+  const stage = offset + 7;
+  const geometry = buildRoute(route, variant);
+  if (route === 'stairwell' && variant === 1)
+    geometry.barriers.forEach((item) => {
+      item.group = 'A';
+    });
+  geometry.cages = geometry.cages.map((item, i) => ({
+    ...item,
+    role: i === 0 ? 'engineer' : stage >= 25 && i === 4 ? 'medic' : 'teammate',
+  }));
   LEVELS.push(
-    withMechanics(
-      makeLevel(
-        index,
-        `${chapters[Math.floor((index - 6) / 6)]} ${(index % 6) + 1}`,
-        index < 18 ? '观察锁扣，分配救援顺序' : '狭窄挡板，稳住连续救援',
-        '两侧切换前先判断球与队友的落点，连续救援能短暂拓宽挡板。',
-        base.cages.map((item, i) => transform(item, i, index >= 18)),
-        base.bricks.map((item, i) => transform(item, i, index >= 24)),
-        {
-          ballSpeed: 281 + tier * 34,
-          personSpeed: 40 + tier * 6,
-          paddleWidth: 100 - tier * 4,
-          releaseGap: 2 - tier * 0.45,
-          initialAngle: [12, 29].includes(index)
-            ? -0.22
-            : (mirror ? -1 : 1) * (0.38 + (index % 4) * 0.015),
-        },
-      ),
-      index + 1,
+    makeLevel(
+      stage - 1,
+      name,
+      {
+        armor: '持续破甲',
+        vault: '窄缝机关室',
+        gallery: '侧门回廊',
+        towers: '双塔分路',
+        switchback: '钥匙开闸',
+        stairwell: '错层路线',
+        well: '深井分球',
+        crossfire: '组合火力',
+      }[route],
+      hint,
+      geometry.cages,
+      geometry.bricks,
+      {
+        ...geometry,
+        route,
+        chapter:
+          stage < 13 ? '机关入门' : stage < 19 ? '路线挑战' : stage < 25 ? '重甲突围' : '协作终章',
+        ballSpeed: 265 + variant * 8,
+        personSpeed: 38,
+        paddleWidth: 108,
+        releaseGap: 2.2,
+        wind:
+          stage >= 13 && stage !== 19
+            ? { amplitude: 12 + variant * 3, period: 8, phase: stage % 3 }
+            : null,
+        initialAngle: route === 'well' || route === 'vault' ? -0.08 : -0.38,
+      },
     ),
   );
 }
 
-/** A fresh, deterministic wave; difficulty levels off, the wave count does not. */
+/** Mirror the entire assembly together: apertures and device links stay intact. */
 export function createEndlessLevel(wave = 1, seed = 0) {
   if (!Number.isSafeInteger(wave) || wave < 1) throw new RangeError('Invalid endless wave.');
-  const difficulty = Math.min(29, wave - 1);
   const hash = Math.imul((seed >>> 0) ^ wave, 2654435761) >>> 0;
-  const layout = LEVELS[(wave - 1) % Math.min(LEVELS.length, Math.max(1, wave))];
-  const shiftX = (hash % 7) - 3;
-  const shiftY = ((hash >>> 8) % 7) - 3;
+  const layout = LEVELS[(wave - 1) % LEVELS.length];
+  const shiftX = (hash % 5) - 2;
+  const all = [
+    ...layout.cages,
+    ...layout.bricks,
+    ...(layout.barriers || []),
+    ...(layout.devices || []),
+  ];
+  const shiftY = Math.max(80 - Math.min(...all.map((item) => item.y)), ((hash >>> 8) % 5) - 2);
+  const advanced = wave > LEVELS.length;
   const shape = (item) => ({
     ...item,
     x: (hash & 128 ? VIEWPORT.width - item.x - item.w : item.x) + shiftX,
     y: item.y + shiftY,
   });
-  const tuning = LEVELS[difficulty];
-  return withMechanics(
-    {
-      ...structuredClone(layout),
-      id: `endless-${wave}`,
-      name: `无尽救援 · 第 ${wave} 波`,
-      unlockAfter: null,
-      wave,
-      ballSpeed: tuning.ballSpeed,
-      personSpeed: tuning.personSpeed,
-      paddleWidth: tuning.paddleWidth,
-      releaseGap: tuning.releaseGap,
-      cages: layout.cages.map((item, i) => ({
-        ...shape(item),
-        hp: difficulty >= 17 || (i + hash) % 6 < difficulty / 5 ? 2 : 1,
-      })),
-      bricks: layout.bricks.map((item) => ({ ...shape(item), hp: difficulty >= 23 ? 2 : 1 })),
-    },
-    Math.min(30, wave),
-  );
+  return {
+    ...structuredClone(layout),
+    id: `endless-${wave}`,
+    name: `无尽救援 · 第 ${wave} 波`,
+    unlockAfter: null,
+    wave,
+    hint:
+      hash & 128
+        ? layout.hint.replace(/[左右]/g, (direction) => (direction === '左' ? '右' : '左'))
+        : layout.hint,
+    initialAngle: (hash & 128 ? -1 : 1) * layout.initialAngle,
+    ballSpeed: advanced ? Math.max(281, layout.ballSpeed) : layout.ballSpeed,
+    wind: advanced ? layout.wind || { amplitude: 18, period: 8, phase: wave % 3 } : layout.wind,
+    cages: layout.cages.map((item, i) => ({
+      ...shape(item),
+      hp: advanced ? 2 : item.hp,
+      role: advanced ? (i === 0 ? 'engineer' : i === 4 ? 'medic' : 'teammate') : item.role,
+    })),
+    bricks: layout.bricks.map((item) => ({
+      ...shape(item),
+      hp: advanced ? Math.max(2, item.hp) : item.hp,
+    })),
+    barriers: (layout.barriers || []).map(shape),
+    devices: (layout.devices || []).map(shape),
+  };
 }
 
 /** Return all content errors, keeping validation usable by tests and content tooling. */
@@ -286,13 +531,53 @@ export function validateLevels(levels = LEVELS) {
     for (const member of level.cages || [])
       if (member.role && !['teammate', 'engineer', 'medic'].includes(member.role))
         errors.push(`${prefix}: unknown teammate role.`);
-    if (level.barriers && (!Array.isArray(level.barriers) || level.barriers.length > 2))
+    if (level.barriers && (!Array.isArray(level.barriers) || level.barriers.length > 16))
       errors.push(`${prefix}: invalid barriers.`);
+    if (level.devices && (!Array.isArray(level.devices) || level.devices.length > 4))
+      errors.push(`${prefix}: invalid devices.`);
+    for (const item of Array.isArray(level.devices) ? level.devices : []) {
+      if (
+        !['splitter', 'switch', 'pulse'].includes(item.kind) ||
+        !Number.isInteger(item.charges) ||
+        item.charges < 1 ||
+        item.charges > 2
+      )
+        errors.push(`${prefix}: invalid device.`);
+      if (
+        item.kind === 'switch' &&
+        (!item.group || !level.barriers?.some((wall) => wall.group === item.group))
+      )
+        errors.push(`${prefix}: missing gate group.`);
+      if (
+        item.kind === 'pulse' &&
+        (!Number.isFinite(item.radius) || item.radius < 40 || item.radius > 180)
+      )
+        errors.push(`${prefix}: invalid pulse radius.`);
+      if (
+        item.kind === 'pulse' &&
+        !level.bricks?.some(
+          (brick) =>
+            Math.hypot(
+              Math.max(brick.x - (item.x + item.w / 2), 0, item.x + item.w / 2 - brick.x - brick.w),
+              Math.max(brick.y - (item.y + item.h / 2), 0, item.y + item.h / 2 - brick.y - brick.h),
+            ) <= item.radius,
+        )
+      )
+        errors.push(`${prefix}: pulse has no reachable armor target.`);
+    }
+    for (const wall of Array.isArray(level.barriers) ? level.barriers : [])
+      if (
+        wall.material !== 'steel' ||
+        (wall.group &&
+          !level.devices?.some((item) => item.kind === 'switch' && item.group === wall.group))
+      )
+        errors.push(`${prefix}: invalid barrier or unlinked gate.`);
     const ids = new Set();
     const entities = [
       ...(level.cages || []),
       ...(level.bricks || []),
       ...(Array.isArray(level.barriers) ? level.barriers : []),
+      ...(Array.isArray(level.devices) ? level.devices : []),
     ];
     for (const entity of entities) {
       if (!entity.id || ids.has(entity.id))
@@ -308,9 +593,18 @@ export function validateLevels(levels = LEVELS) {
         entity.y + entity.h > 440
       )
         errors.push(`${prefix}: entity outside the upper playfield.`);
-      if (entity.material === 'steel' && (entity.w > 96 || entity.h > 20))
+      if (
+        entity.material === 'steel' &&
+        (Math.min(entity.w, entity.h) > 20 || Math.max(entity.w, entity.h) > 300)
+      )
         errors.push(`${prefix}: unsafe barrier size.`);
-      if (entity.material !== 'steel' && ![1, 2].includes(entity.hp))
+      if (
+        entity.material !== 'steel' &&
+        !entity.kind &&
+        (!Number.isInteger(entity.hp) ||
+          entity.hp < 1 ||
+          entity.hp > (level.cages?.includes(entity) ? 2 : 8))
+      )
         errors.push(`${prefix}: unsupported durability.`);
     }
     for (let i = 0; i < entities.length; i++)

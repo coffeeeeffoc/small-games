@@ -9,3 +9,5 @@ reports/*.log
 reports/build-*.json
 reports/engine.d.ts
 reports/*-trace.zip
+reports/browser/
+reports/server-browser-report.json

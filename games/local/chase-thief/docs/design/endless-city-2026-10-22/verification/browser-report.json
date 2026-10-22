@@ -1,0 +1,36 @@
+{
+  "engine": "Cocos Engine 3.8.8",
+  "pipeline": "official-engine-source-web",
+  "date": "2026-10-22T16:40:44.986Z",
+  "browser": "151.0.7922.173",
+  "checks": [
+    "normal touch menu/actions/pause/settings/resume/background/failure/retry/persist; dev API absent",
+    {
+      "name": "20km render streaming, origin rebasing, practice isolation",
+      "distance": 21407.3,
+      "world": {
+        "chunks": 5,
+        "objects": 20,
+        "renderers": 75
+      }
+    },
+    {
+      "name": "all menu controls inside design bounds",
+      "viewport": {
+        "width": 360,
+        "height": 640
+      }
+    },
+    {
+      "name": "all menu controls inside design bounds",
+      "viewport": {
+        "width": 430,
+        "height": 932
+      }
+    },
+    "desktop mouse activates each control exactly once",
+    "v1 retained, old challenge retired, storage-denied playable"
+  ],
+  "errors": [],
+  "status": "passed"
+}

@@ -1,0 +1,104 @@
+{
+  "date": "2026-10-23",
+  "source": {
+    "core.mjs": "de0e3812d0c8a8e1516cff2af222a9e34a171a59e6d9bbfed3115148b5e32acd",
+    "render.mjs": "a4e46ba3f341123dde79abc9cbae303d59e3544b35e13b2e21eafe7784dba8de"
+  },
+  "files": [
+    {
+      "file": "STATUS.md",
+      "bytes": 6139,
+      "sha256": "b0428af26bdda8b50646af06d6948b5fb9caa5125ac7e8502288395eba1c6877"
+    },
+    {
+      "file": "capture-report.json",
+      "bytes": 10641,
+      "sha256": "282802afaaf00f26f076f2fab6f1e8ef21a7da134274e1dfd561bfbc252132f1"
+    },
+    {
+      "file": "copy/developer-note.md",
+      "bytes": 598,
+      "sha256": "c64474b511c797a6e4580529353e90187aa16a2c358b8cc83c9627d2f64641c0"
+    },
+    {
+      "file": "copy/introduction.md",
+      "bytes": 638,
+      "sha256": "5fb3dadae4ce394509eed372c53c6a641787d129cc22a4b7bdaee8f02d014d61"
+    },
+    {
+      "file": "copy/tagline.md",
+      "bytes": 40,
+      "sha256": "23f80f5e7ab64b93e863032fe0ea4be9bf91cc5238692fbf3bf9eecc84ab9137"
+    },
+    {
+      "file": "gameplay/screenshots/endless-390x844.png",
+      "bytes": 451525,
+      "sha256": "a402a499676e5841b4a1dbd00a95ef16da4fe5086234df79a3fadcf9dc3325e5",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "gameplay/screenshots/flight-390x844.png",
+      "bytes": 450952,
+      "sha256": "240b85c0f8e0f8bf2028ef51579cc419fe223ec0e4a664c99f28eb7799ab10d9",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "gameplay/screenshots/home-390x844.png",
+      "bytes": 504667,
+      "sha256": "8837b9cc1dc08221a1d1554fa571c47bc597ac23e39eceadacaba717818af842",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "gameplay/screenshots/levels-390x844.png",
+      "bytes": 499200,
+      "sha256": "6d6456454e707827d569217a53339338fe48a5fafc70cdc0af5856172c2f5b0f",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "gameplay/screenshots/next-turn-390x844.png",
+      "bytes": 456398,
+      "sha256": "9767f04054b7d3256e98f4b6c494a654bba12abfb3c817372e42dbcc91b7e8b5",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "gameplay/screenshots/paused-390x844.png",
+      "bytes": 442508,
+      "sha256": "b3df7c50b0e0c6d806c883cb49c7b80bc4de0bce6d5964af1dfa0e686a033e19",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "gameplay/videos/endless-390x844.webm",
+      "bytes": 1547045,
+      "sha256": "5e0914247ae6bf365f2b75067ae368852b603d1144c507750a8641314959b5df",
+      "width": 390,
+      "height": 844,
+      "durationSeconds": 15.8
+    },
+    {
+      "file": "icon/orbit.svg",
+      "bytes": 356,
+      "sha256": "e305d9aa44807bd4222e78aa5a7e7480b4139d20258e65d42727bc508645abae"
+    },
+    {
+      "file": "promo/images/orbit-home-390x844.png",
+      "bytes": 504667,
+      "sha256": "8837b9cc1dc08221a1d1554fa571c47bc597ac23e39eceadacaba717818af842",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "promo/videos/orbit-preview-390x844.mp4",
+      "bytes": 770224,
+      "sha256": "11ab01ac105f7662d85851de4e120dbe4723e1ecd0d1f0251e1165d3efa1e308",
+      "width": 390,
+      "height": 844,
+      "durationSeconds": 15.8
+    }
+  ]
+}

@@ -1,8 +1,10 @@
-# 天下岔路 · 百战山河
+# 夺城令
 
 竖屏优先的架空古代兵流策略游戏。Cocos Creator 3.8.8 绘制沙盘、城池、部队、将领与武器，并处理触屏；页面菜单复用 Web 的可访问控件。100 张独立地图按 10 章推进，保留旧三关进度。
 
-完整规则与 13 项需求追踪见 [设计文档](docs/design/cocos-2026-10-22/design.md)，效果图和生成记录见 [视觉记录](docs/design/cocos-2026-10-22/prompts.md)。实际截图和验证结果在同目录，概念图不作为运行证据。
+本游戏现名《夺城令》，曾用名“天下岔路”，更早称“天下插旗”。技术标识与旧进度保持兼容，详见[更名与历史资料说明](docs/name-change-2026-10-22.md)。当前名称对应的文案、截图和录屏统一见[上架资料状态](publishing/STATUS.md)。
+
+完整规则与 13 项需求追踪见[更名前的设计文档](docs/design/cocos-2026-10-22/design.md)，效果图和生成记录见[历史视觉记录](docs/design/cocos-2026-10-22/prompts.md)。该目录保留当时的名称、截图与验证结果，概念图不作为运行证据。
 
 ## 运行与构建
 
@@ -49,4 +51,4 @@ node games/local/tianxia-chalu/scripts/generate-campaign.mjs --check
 node games/local/tianxia-chalu/scripts/generate-campaign.mjs --simulate
 ```
 
-生产浏览器测试串行运行，使用真实画布触屏操作和只读快照；测试注入的广告 provider、库存夹具均在报告中标明。自动地图模拟只发送公开军令，不修改战局设胜。桌面 Chromium 手机模拟不能替代真机或渠道广告 SDK 验收。
+生产浏览器测试串行运行，使用真实画布触屏操作和只读快照；测试注入的广告 provider、库存夹具均在报告中标明。当前运行报告输出到 `reports/browser/` 和 `reports/server-browser-report.json`，不覆盖历史验证资料。自动地图模拟只发送公开军令，不修改战局设胜。桌面 Chromium 手机模拟不能替代真机或渠道广告 SDK 验收。
