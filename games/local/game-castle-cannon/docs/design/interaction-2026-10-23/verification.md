@@ -19,6 +19,7 @@ Linux，Node 24.21.0，pnpm 12.6.0。运行范围仅本游戏及构建所需的�
 - `pnpm --filter @coffeeeeffoc/game-castle-cannon test`：19 个测试文件、82 项测试通过；最后的连接计时器清理改动另跑 12 项会话测试通过。
 - `pnpm --filter @coffeeeeffoc/game-castle-cannon lint`：通过。
 - `pnpm --filter @coffeeeeffoc/game-castle-cannon build`：类型检查、前端生产构建和对战服务构建通过。仍有原有资源分包大小提示。
+- 推送候选检查发现旧规则测试沿 `definition.ts` 导入 CSS，被纯规则依赖检查器当作 TypeScript 解析。现将 DOM 实现放入 `definition-dom.ts`，Web 入口继续加载同一 CSS 并导出同一实现；测试直接检查该实现，保留原有断言与覆盖范围。
 - 120 关可达性验证保留混合攻城策略，并统一加入爆破弹瞄准炮手策略，每关必须至少一种合法策略获胜。第 98 关在新节奏下使用后者获胜，未修改关卡血量、补给、弹道或敌人参数。
 
 ## 浏览器验证
