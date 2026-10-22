@@ -4410,6 +4410,78 @@ test('merge Creator routes bind exact reviewed base/head bytes and reject extra 
   }
 });
 
+test('Creator host smoke repair binds both real baselines and retains its game consumer', () => {
+  const file = 'apps/shell-web/scripts/pages-host-smoke.mjs';
+  const source = 'games/local/merge-front';
+  const games = [{ id: 'merge-front', source }];
+  const packages = [
+    { dir: 'apps/shell-web', name: '@coffeeeeffoc/shell-web' },
+    {
+      dir: source,
+      name: '@small-games/merge-front',
+      creator: { version: '3.8.8' },
+      scripts: { build: 'node scripts/build.mjs web-mobile' },
+    },
+  ];
+  const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  for (const ref of [
+    '39388e3a89df1b1a0d573bb800016fdbfbc4ac86',
+    '5af700e8b0b7a82b42e3caab3475c3923de02665',
+  ]) {
+    const before = execFileSync('git', ['show', `${ref}:${file}`], { encoding: 'utf8' });
+    const context = {
+      changedPaths: [file],
+      games,
+      packages,
+      readBase: () => before,
+      readHead: () => after,
+    };
+    const scopes = reviewedSharedFileScopes(context);
+    assert.deepEqual(scopes.get(file), ['apps/shell-web', source]);
+    const plan = incrementalPlan({ ...context, fileScopes: scopes });
+    assert.equal(plan.full, false);
+    assert(plan.game_sources.includes(source));
+    assert(plan.browser_ids.includes('merge-front'));
+    assert.equal(requiresIncrementalCocos({ ...context, fileScopes: scopes, scope: plan }), true);
+    for (const side of ['readBase', 'readHead']) {
+      assert.equal(
+        reviewedSharedFileScopes({ ...context, [side]: () => context[side]() + '\nextra();' }).has(
+          file,
+        ),
+        false,
+      );
+      assert.equal(
+        reviewedSharedFileScopes({
+          ...context,
+          [side]: () => {
+            throw new Error('missing tree');
+          },
+        }).has(file),
+        false,
+      );
+    }
+    for (const mutate of [
+      (ctx) => ctx.games.splice(0, 1),
+      (ctx) => ctx.games.push({ id: 'alias', source }),
+      (ctx) => ctx.games.push({ id: 'merge-front', source: 'games/local/alias' }),
+      (ctx) => ctx.packages.splice(1, 1),
+      (ctx) => ctx.packages.push({ ...ctx.packages[1], dir: 'games/local/alias' }),
+      (ctx) => (ctx.packages[1].name = '@unknown/game'),
+      (ctx) => (ctx.packages[1].creator.version = '3.8.9'),
+      (ctx) => (ctx.packages[1].scripts.build = 'node bypass.mjs'),
+    ]) {
+      const identities = structuredClone({ games, packages });
+      mutate(identities);
+      assert.equal(reviewedSharedFileScopes({ ...context, ...identities }).has(file), false);
+    }
+    const unknown = { ...context, changedPaths: [file, 'scripts/unreviewed.mjs'] };
+    assert.throws(
+      () => incrementalPlan({ ...unknown, fileScopes: reviewedSharedFileScopes(unknown) }),
+      /Incremental scope undefined/,
+    );
+  }
+});
+
 test('cumulative Merge/Bullet wiring proves exact bytes and both Creator consumers', () => {
   const games = ['merge-front', 'bullet-garden'].map((id) => ({
     id,

@@ -2797,6 +2797,39 @@ export function reviewedSharedFileScopes({
       }
     }
     try {
+      if (file === 'apps/shell-web/scripts/pages-host-smoke.mjs') {
+        const digest = (value) =>
+          createHash('sha256').update(value.replaceAll('\r\n', '\n')).digest('hex');
+        // The last successful Pages tree and the immediate repair parent differ
+        // only in the already reviewed mobile Creator startup check.
+        const before = digest(readBase(file));
+        const after = digest(readHead(file));
+        if (
+          [
+            '30b47a586c2ad818a8b86465bd1f98390389cd61ec2eb5cd49fe5cafebcc5ebd',
+            '9de23cd0bee7692dd2d48d0c32fa7ec891893941392eaec78b624992b581ac21',
+          ].includes(before) &&
+          after === '0080de8bd5a61712c72f9489e786c7a7318a152f568ac017a2d70300f45ed6e1'
+        ) {
+          const source = 'games/local/merge-front';
+          const entries = games.filter(
+            (game) => game.id === 'merge-front' || game.source === source,
+          );
+          assert.equal(entries.length, 1);
+          assert.equal(entries[0].id, 'merge-front');
+          assert.equal(entries[0].source, source);
+          const targets = packages.filter(
+            (pkg) => pkg.dir === source || pkg.name === '@small-games/merge-front',
+          );
+          assert.equal(targets.length, 1);
+          assert.equal(targets[0].dir, source);
+          assert.equal(targets[0].name, '@small-games/merge-front');
+          assert.equal(targets[0].creator?.version, '3.8.8');
+          assert.equal(targets[0].scripts?.build, 'node scripts/build.mjs web-mobile');
+          scopes.set(file, ['apps/shell-web', source]);
+          continue;
+        }
+      }
       if (mergeBulletIntegration) {
         const consumers = [];
         for (const [id, name] of [

@@ -46,19 +46,36 @@ try {
     await expect(page.locator('.catalog-grid article')).toHaveCount(games.length);
   }
   async function ready(target, id, title) {
-    await expect(target.locator('nav strong')).toHaveText(title);
-    {
-      await expect(target.frameLocator('iframe').locator('#start-defense')).toBeVisible();
-      const standaloneUrl = new URL(`games/${id}/index.html`, url).href;
-      assert.equal(
-        await target.locator('iframe').evaluate((element) => element.src),
-        standaloneUrl,
-      );
-      assert.equal(
-        await target.getByRole('link', { name: '独立打开' }).evaluate((element) => element.href),
-        standaloneUrl,
-      );
-    }
+    const host = target.locator('[data-game-display-host]');
+    await expect(host).toHaveAttribute('data-game-id', id);
+    await expect(host).toHaveAttribute('data-immersive', 'true');
+    await expect(host).toHaveAttribute('data-screen', 'home');
+    const frame = target.locator('iframe');
+    await expect(frame).toHaveAttribute('title', title);
+    const standaloneUrl = new URL(`games/${id}/index.html`, url).href;
+    assert.equal(await frame.evaluate((element) => element.src), standaloneUrl);
+    await expect(target.frameLocator('iframe').locator('#GameCanvas')).toBeVisible();
+    await expect
+      .poll(
+        () =>
+          target
+            .frameLocator('iframe')
+            .locator('body')
+            .evaluate(() => {
+              const snapshot = globalThis.__mergeFront?.snapshot();
+              return (
+                snapshot?.engine === 'Cocos Creator 3.8.8' &&
+                snapshot.ready === true &&
+                snapshot.screen === 'home' &&
+                snapshot.controls.some((control) => control.id === 'start' && !control.disabled)
+              );
+            }),
+        { timeout: 60000 },
+      )
+      .toBe(true);
+    const back = target.getByRole('button', { name: '返回目录', exact: true });
+    await expect(back).toBeVisible();
+    await expect(back).toBeEnabled();
   }
   async function sharing(id, title) {
     const sharedUrl = `${url}#/games/${id}`;

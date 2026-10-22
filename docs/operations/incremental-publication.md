@@ -75,3 +75,5 @@ Pages 全量回归保持每个游戏的全部阶段在同一片内，以 300000 
 merge-front 改为第六款 Creator 工程。CI Producer 保留已有五款的校验并增加本款；通用矩阵用目录执行脚本以兼容不同包名。针对 `39388e3a89df1b1a0d573bb800016fdbfbc4ac86` 的准确字节证明只覆盖本次广告、制品与入口接线；额外改动恢复既有消费者检查。旧Canvas入口等10个文件的删除绑定原始摘要和HEAD不存在证明。`MERGE_FRONT_PREBUILT_DIR` 与其余Creator产物一样，须同时通过源码和输出摘要校验。
 
 最后成功 Pages 的 `39388e3a89df1b1a0d573bb800016fdbfbc4ac86` 到 `b652c346dfdee952194c2ab267c167894b7718e4` 同时包含 Merge 与 Bullet 接线。四个已有工作流、`pnpm-lock.yaml`、`turbo.json` 的累计证明分别绑定完整前后字节，核对两款唯一 registry/package 身份、Creator 版本及构建命令，并选择两款实际消费者及 Creator/浏览器验证。原单步证明保留；额外字节、未知路径或身份冲突仍阻断。历史树缺少 Bullet manifest 时只放弃 Bullet 锁文件证明，继续尝试原有 Admin 等独立证明，不改变未知范围的最终拒绝。
+
+Merge 宿主冒烟检查使用沉浸式 Creator 契约：准确 iframe 地址与标题、可见画布、已就绪首页及可用开始控件、可用返回目录按钮。分享、前进后退、刷新、手机独立入口、资源完整性和 Runtime 隔离检查保留。修复范围分别绑定最后成功 Pages 与 `5af700e8` 的原脚本及修复后完整字节，核对唯一 Merge 身份并选择 Shell 和 Merge 消费者；额外编辑不能沿用该证明。
