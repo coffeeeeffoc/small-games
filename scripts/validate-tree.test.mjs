@@ -4,6 +4,38 @@ import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { assertNodeOnly, validateTree, runIncrementalToolChecks } from './validate-tree.mjs';
+test('main integration tool contracts execute independently and propagate regressions', () => {
+  for (const [flag, command, args] of [
+    ['platform_process_checks', process.execPath, ['--test', 'scripts/platform-process.test.mjs']],
+    ['game_config_checks', process.execPath, ['--test', 'scripts/check-game-config.test.mjs']],
+    [
+      'vocabulary_export_checks',
+      process.platform === 'win32' ? 'python' : 'python3',
+      ['games/local/letters-words2/scripts/test-export.py'],
+    ],
+  ]) {
+    const calls = [];
+    const options = {
+      root: '/candidate',
+      env: {},
+      packages: [],
+      plan: { [flag]: true, native_consumers: [], developer_mode_ids: [] },
+      execute: (...call) => calls.push(call),
+    };
+    runIncrementalToolChecks(options);
+    assert.deepEqual(calls, [[command, args, '/candidate', options.env, 'logged']]);
+    assert.throws(
+      () =>
+        runIncrementalToolChecks({
+          ...options,
+          execute: () => {
+            throw new Error(flag);
+          },
+        }),
+      new RegExp(flag),
+    );
+  }
+});
 
 test('H5 acceptance hooks execute only bounded unit contracts, never PG or the matrix browser', () => {
   const calls = [],

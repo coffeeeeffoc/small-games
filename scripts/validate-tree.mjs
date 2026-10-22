@@ -421,6 +421,24 @@ export function runNineNativeChecks({
 }
 
 export function runIncrementalToolChecks({ plan, packages, root, env, execute = run }) {
+  if (plan.platform_process_checks)
+    execute(process.execPath, ['--test', 'scripts/platform-process.test.mjs'], root, env, 'logged');
+  if (plan.game_config_checks)
+    execute(
+      process.execPath,
+      ['--test', 'scripts/check-game-config.test.mjs'],
+      root,
+      env,
+      'logged',
+    );
+  if (plan.vocabulary_export_checks)
+    execute(
+      process.platform === 'win32' ? 'python' : 'python3',
+      ['games/local/letters-words2/scripts/test-export.py'],
+      root,
+      env,
+      'logged',
+    );
   // This subprocess contract owns only temporary fixtures; it is separate from
   // pure rule traversal and remains required when native release gates are off.
   if (plan.xiangqi_build_checks)
@@ -941,17 +959,12 @@ export async function validateTree({
       ]),
     ];
     const headPaths = new Set(
-      execute(
-        'git',
-        ['--literal-pathspecs', 'ls-tree', '--name-only', '-z', head, '--', ...headQueries],
-        root,
-        clean,
-        'raw',
-      )
+      execute('git', ['ls-tree', '-r', '-t', '--name-only', '-z', head], root, clean, 'raw')
         .split('\0')
         .filter(Boolean),
     );
     const context = {
+      baseCommit: base,
       changedPaths: sourcePaths,
       games: catalog,
       packages,

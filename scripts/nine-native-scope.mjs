@@ -791,6 +791,15 @@ export function nineNativeChecks(changedPaths, fileScopes) {
 // map to their canonical TypeScript sources; native/generated inputs are regenerated.
 const nativeSourceGroups = [
   {
+    // Both native builders copy this shared sound into these three game bundles.
+    paths: ['platforms/competition/assets/action.wav'],
+    targets: ['letters-words2', 'vibeJam-myself-history-guess', 'travel-bund'].flatMap((game) =>
+      ['alipay', 'bilibili', 'douyin', 'kuaishou', 'wechat'].map(
+        (platform) => `${game}:${platform}`,
+      ),
+    ),
+  },
+  {
     paths: [
       'apps/shell-minigame/scripts/nine-games-build.mjs',
       'apps/shell-minigame/scripts/nine-games-targets.mjs',

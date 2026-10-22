@@ -7,6 +7,204 @@ import {
   isReviewedLocalRetirementDeletion,
 } from './local-game-retirement-scope.mjs';
 const hash = (value) => createHash('sha256').update(value).digest('hex');
+test('current main retirement binds the real Git deletions and moves without lending proofs to surviving files', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  const {
+    mainIntegrationBase: base,
+    mainIntegrationFixture: head,
+    mainRetirementTrees,
+    mainRetirementMoves,
+  } = await import('./local-game-retirement-reviews.mjs');
+  const { mainRetirementDeletionScopes, mainRetirementTreesMatch, hasLocalRetirementFileProof } =
+    await import('./local-game-retirement-scope.mjs');
+  const { isDocumentation } = await import('./validation-plan.mjs');
+  const cwd = fileURLToPath(new URL('../', import.meta.url));
+  const git = (...args) =>
+    execFileSync('git', args, {
+      cwd,
+      encoding: 'utf8',
+      maxBuffer: 32 * 1024 * 1024,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+  const tree = (ref) =>
+    new Map(
+      git('ls-tree', '-r', '-t', ref)
+        .trimEnd()
+        .split('\n')
+        .map((line) => [line.split('\t')[1], line + '\n']),
+    );
+  const before = tree(base),
+    after = tree(head),
+    cache = new Map();
+  const read = (ref, file) => {
+    const key = ref + ':' + file;
+    if (!cache.has(key)) cache.set(key, git('show', key));
+    return cache.get(key);
+  };
+  const tokens = git('diff', '--find-renames', '--name-status', '-z', base, head)
+    .split('\0')
+    .filter(Boolean);
+  const changes = [];
+  while (tokens.length) {
+    const status = tokens.shift();
+    changes.push({ status, paths: tokens.splice(0, /^[RC]/.test(status) ? 2 : 1) });
+  }
+  const context = {
+    baseCommit: base,
+    changedPaths: changes.flatMap((change) => change.paths),
+    readBaseEntry: (file) => before.get(file) ?? '',
+    readHeadEntry: (file) => after.get(file) ?? '',
+    readBase: (file) => read(base, file),
+    readHead: (file) => read(head, file),
+    headHasPath: (file) => after.has(file),
+  };
+  const scopes = mainRetirementDeletionScopes(context);
+  assert.equal(Object.keys(mainRetirementTrees).length, 27);
+  assert.equal(Object.keys(mainRetirementMoves).length, 16);
+  assert(scopes.size > 700, 'Actual historical deletion set must be exercised');
+  const underRetired = (file) =>
+    Object.keys(mainRetirementTrees).some((root) => file === root || file.startsWith(root + '/'));
+  for (const change of changes.filter(
+    (change) =>
+      /^[DR]/.test(change.status) &&
+      underRetired(change.paths[0]) &&
+      !change.paths.every(isDocumentation),
+  )) {
+    assert(isReviewedLocalRetirementDeletion(change, scopes), JSON.stringify(change));
+    const value = scopes.get(change.paths[0]);
+    assert(!isReviewedLocalRetirementDeletion(change, new Map([[change.paths[0], [...value]]])));
+  }
+  for (const [from, move] of Object.entries(mainRetirementMoves)) {
+    assert(!scopes.has(move.to), move.to);
+    assert(!hasLocalRetirementFileProof(move.to, scopes.get(from), context.readHead));
+    assert(
+      !isReviewedLocalRetirementDeletion(
+        { status: move.status, paths: [from, move.to + '.extra'] },
+        scopes,
+      ),
+    );
+    assert(!isReviewedLocalRetirementDeletion({ status: 'C100', paths: [from, move.to] }, scopes));
+    assert(!isReviewedLocalRetirementDeletion({ status: 'R099', paths: [from, move.to] }, scopes));
+  }
+  const [from, move] = Object.entries(mainRetirementMoves)[0];
+  const retiredRoot = Object.keys(mainRetirementTrees)[0];
+  const overrides = [
+    { baseCommit: head },
+    { readBaseEntry: (file) => (file === retiredRoot ? '' : context.readBaseEntry(file)) },
+    { headHasPath: (file) => file === retiredRoot || context.headHasPath(file) },
+    { headHasPath: () => undefined },
+    {
+      headHasPath: () => {
+        throw new Error('query failed');
+      },
+    },
+    { readHead: () => JSON.stringify([{ id: 'revived', source: retiredRoot }]) },
+    { readBaseEntry: (file) => (file === move.to ? move.afterEntry : context.readBaseEntry(file)) },
+    {
+      readHeadEntry: (file) =>
+        file === move.to
+          ? move.afterEntry.replace(/blob [a-f\d]{40}/, 'blob ' + '0'.repeat(40))
+          : context.readHeadEntry(file),
+    },
+    { readBaseEntry: (file) => (file === from ? '' : context.readBaseEntry(file)) },
+  ];
+  for (const override of overrides)
+    assert.equal(mainRetirementDeletionScopes({ ...context, ...override }).size, 0);
+  for (const override of [
+    {
+      readHeadEntry: (file) =>
+        file === move.to
+          ? move.afterEntry.replace('100644', '100755')
+          : context.readHeadEntry(file),
+    },
+    { headHasPath: (file) => file === from || context.headHasPath(file) },
+  ])
+    assert.equal(mainRetirementDeletionScopes({ ...context, ...override }).size, 0);
+  assert(mainRetirementTreesMatch(context));
+  for (const file of ['scripts/unknown-deletion.mjs', retiredRoot + '/unknown-extra.mjs']) {
+    const additional = mainRetirementDeletionScopes({
+      ...context,
+      changedPaths: [...context.changedPaths, file],
+    });
+    assert(!isReviewedLocalRetirementDeletion({ status: 'D', paths: [file] }, additional));
+  }
+  const standalone = 'scripts/build-artifact.mjs';
+  assert(scopes.has(standalone));
+  assert.equal(
+    mainRetirementDeletionScopes({
+      ...context,
+      readBase: (file) => context.readBase(file) + (file === standalone ? '\nextra' : ''),
+    }).size,
+    0,
+  );
+});
+
+test('Pages entry rejects extra deletion and rename alongside the valid current main retirement', async (t) => {
+  const { mkdtemp, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const path = await import('node:path');
+  const { execFileSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  const { mainIntegrationBase: base, mainIntegrationFixture: head } = await import(
+    './local-game-retirement-reviews.mjs'
+  );
+  const { main } = await import('./pages-test-scope.mjs');
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const temp = await mkdtemp(path.join(tmpdir(), 'main-scope-negative-'));
+  t.after(() => rm(temp, { recursive: true, force: true }));
+  // A private index creates unreachable fixture objects; no branch, checkout or
+  // user index changes. The candidate catalog stays identical to the real head.
+  const env = {
+    ...process.env,
+    GIT_INDEX_FILE: path.join(temp, 'index'),
+    GIT_AUTHOR_NAME: 'scope fixture',
+    GIT_AUTHOR_EMAIL: 'scope@example.invalid',
+    GIT_COMMITTER_NAME: 'scope fixture',
+    GIT_COMMITTER_EMAIL: 'scope@example.invalid',
+  };
+  const git = (...args) =>
+    execFileSync('git', args, {
+      cwd: root,
+      env,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+  const source = 'scripts/platform-config.mjs';
+  const blob = git('rev-parse', head + ':' + source);
+  for (const rename of [false, true]) {
+    git('read-tree', head);
+    git('update-index', '--force-remove', source);
+    if (rename)
+      git(
+        'update-index',
+        '--add',
+        '--cacheinfo',
+        '100644,' + blob + ',scripts/platform-config-extra.mjs',
+      );
+    const candidate = git(
+      'commit-tree',
+      git('write-tree'),
+      '-p',
+      head,
+      '-m',
+      'extra unknown scope fixture',
+    );
+    await assert.rejects(
+      main(
+        {
+          PAGES_DIFF_BASE: base,
+          PAGES_DIFF_HEAD: candidate,
+          GITHUB_EVENT_NAME: 'push',
+          GITHUB_REF_NAME: 'main',
+          VALIDATION_RISK_PLAN: 'true',
+        },
+        root,
+      ),
+      /Relevant deletion or rename/,
+    );
+  }
+});
 const root = 'games/local/retired-fixture';
 const file = root + '/main.js';
 const tree = `040000 tree ${'a'.repeat(40)}\t${root}\n`;

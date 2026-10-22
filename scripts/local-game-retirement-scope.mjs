@@ -4,6 +4,9 @@ import {
   localRetirementTrees,
   portfolioRetirementReviews,
   portfolioRetirementTrees,
+  mainIntegrationBase,
+  mainRetirementTrees,
+  mainRetirementMoves,
 } from './local-game-retirement-reviews.mjs';
 
 const proofs = new WeakMap();
@@ -16,6 +19,8 @@ export function localRetirementHeadQueryPaths(changedPaths) {
       ...Object.keys(localRetirementReviews),
       ...Object.keys(portfolioRetirementTrees),
       ...Object.keys(portfolioRetirementReviews),
+      ...Object.keys(mainRetirementMoves),
+      ...Object.values(mainRetirementMoves).map((move) => move.to),
     ]),
   ];
 }
@@ -88,7 +93,74 @@ export function localRetirementFileScopes(context) {
       portfolioRetirementTrees,
       portfolioRetirementReviews,
     ),
+    ...mainRetirementDeletionScopes(context),
   ]);
+}
+
+export function mainRetirementTreesMatch(context) {
+  try {
+    if (context.baseCommit !== mainIntegrationBase) return false;
+    for (const [root, entry] of Object.entries(mainRetirementTrees))
+      if (context.readBaseEntry(root) !== entry || context.headHasPath(root) !== false)
+        return false;
+    const games = JSON.parse(context.readHead('apps/shell-web/src/standalone-games.json'));
+    return (
+      Array.isArray(games) &&
+      games.every(
+        (game) =>
+          typeof game.source === 'string' &&
+          !Object.keys(mainRetirementTrees).some(
+            (root) => game.source === root || game.source.startsWith(root + '/'),
+          ),
+      )
+    );
+  } catch {
+    return false;
+  }
+}
+
+// Cumulative proof covers only removals. Every surviving rename destination goes
+// through its ordinary workspace/shared-source checks, including Creator inputs.
+export function mainRetirementDeletionScopes(context) {
+  const scopes = new Map();
+  if (!mainRetirementTreesMatch(context)) return scopes;
+  const reviews = { ...localRetirementReviews, ...portfolioRetirementReviews };
+  try {
+    for (const [from, move] of Object.entries(mainRetirementMoves)) {
+      if (
+        !Object.keys(mainRetirementTrees).some((root) => from.startsWith(root + '/')) ||
+        context.readBaseEntry(from) !== move.beforeEntry ||
+        context.readBaseEntry(move.to) !== '' ||
+        context.readHeadEntry(move.to) !== move.afterEntry ||
+        context.headHasPath(from) !== false ||
+        context.headHasPath(move.to) !== true
+      )
+        return new Map();
+    }
+    for (const file of context.changedPaths) {
+      const root = Object.keys(mainRetirementTrees).find(
+        (dir) => file === dir || file.startsWith(dir + '/'),
+      );
+      const review = reviews[file];
+      if (!root && review?.after !== null) continue;
+      if (context.headHasPath(file) !== false) return new Map();
+      if (root) {
+        const entry = context.readBaseEntry(file);
+        if (
+          !(file === root
+            ? /^160000 commit [a-f\d]{40}\t[^\n]+\n$/.test(entry)
+            : /^(?:100644|100755) blob [a-f\d]{40}\t[^\n]+\n$/.test(entry))
+        )
+          return new Map();
+      } else if (digest(context.readBase(file)) !== review.before) return new Map();
+      const value = Object.freeze([...(root ? [] : review.sources)]);
+      scopes.set(file, value);
+      proofs.set(value, { file, deleted: true, move: mainRetirementMoves[file] });
+    }
+  } catch {
+    return new Map();
+  }
+  return scopes;
 }
 export function hasLocalRetirementDeletionProof(file, value) {
   const proof = proofs.get(value);
@@ -106,6 +178,17 @@ export function hasLocalRetirementFileProof(file, value, readSource) {
 export function isReviewedLocalRetirementDeletion(change, scopes) {
   if (change.status === 'D' && change.paths.length === 1)
     return hasLocalRetirementDeletionProof(change.paths[0], scopes.get(change.paths[0]));
+  if (/^R\d{3}$/.test(change.status) && change.paths.length === 2) {
+    const [before, after] = change.paths;
+    const proof = proofs.get(scopes.get(before));
+    if (
+      proof?.file === before &&
+      proof.deleted &&
+      proof.move?.to === after &&
+      proof.move.status === change.status
+    )
+      return true;
+  }
   if (change.status === 'R100' && change.paths.length === 2) {
     const [before, after] = change.paths;
     const destination = proofs.get(scopes.get(after));

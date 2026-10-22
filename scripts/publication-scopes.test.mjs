@@ -59,6 +59,293 @@ import {
 import { executeCompetitionChecks } from './run-selected-competition.mjs';
 import { shellContractTargets, shellContractFiles, requiresCocos } from './validation-plan.mjs';
 import { ingressPreflightGuard } from './competition-ingress.mjs';
+
+test('current main integration proves each exact shared file and rejects unrelated bytes, identities and lock changes', async () => {
+  const {
+    mainIntegrationBase: base,
+    mainIntegrationFixture: head,
+    mainRetirementTrees,
+  } = await import('./local-game-retirement-reviews.mjs');
+  const { mainIntegrationFileScopes, mainIntegrationReviews } = await import(
+    './publication-scopes.mjs'
+  );
+  const { workspacePackages } = await import('./validation-plan.mjs');
+  const { loadAll } = await import('js-yaml');
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const cache = new Map();
+  const git = (...args) =>
+    execFileSync('git', args, {
+      cwd: root,
+      encoding: 'utf8',
+      maxBuffer: 32 * 1024 * 1024,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+  const read = (ref, file) => {
+    const key = ref + ':' + file;
+    if (!cache.has(key)) cache.set(key, git('show', key));
+    return cache.get(key);
+  };
+  const tree = (ref) =>
+    new Map(
+      git('ls-tree', '-r', '-t', ref)
+        .trimEnd()
+        .split('\n')
+        .map((line) => [line.split('\t')[1], line + '\n']),
+    );
+  const before = tree(base),
+    after = tree(head);
+  const packages = (await workspacePackages(root)).map((pkg) =>
+    after.has(pkg.dir + '/package.json')
+      ? { dir: pkg.dir, ...JSON.parse(read(head, pkg.dir + '/package.json')) }
+      : pkg,
+  );
+  const games = JSON.parse(read(head, 'apps/shell-web/src/standalone-games.json'));
+  const context = {
+    baseCommit: base,
+    changedPaths: Object.keys(mainIntegrationReviews),
+    packages,
+    games,
+    readBase: (file) => read(base, file),
+    readHead: (file) => read(head, file),
+    readBaseEntry: (file) => before.get(file) ?? '',
+    readHeadEntry: (file) => after.get(file) ?? '',
+    headHasPath: (file) => after.has(file),
+  };
+  const scopes = mainIntegrationFileScopes(context);
+  assert.equal(scopes.size, 23);
+  for (const [file, review] of Object.entries(mainIntegrationReviews)) {
+    assert.deepEqual(scopes.get(file), review.sources, file);
+    assert(Object.isFrozen(review) && Object.isFrozen(review.sources));
+    const one = { ...context, changedPaths: [file] };
+    for (const field of ['readBase', 'readHead']) {
+      const changed = {
+        ...one,
+        [field]: (name) => context[field](name) + (name === file ? '\n// unrelated change' : ''),
+      };
+      if (field !== 'readBase' || review.before !== null)
+        assert(!mainIntegrationFileScopes(changed).has(file), field + ':' + file);
+    }
+    assert(
+      !mainIntegrationFileScopes({
+        ...one,
+        readHead: () => {
+          throw new Error('missing snapshot');
+        },
+      }).has(file),
+    );
+    for (const source of review.sources) {
+      assert(
+        !mainIntegrationFileScopes({
+          ...one,
+          packages: packages.filter((pkg) => pkg.dir !== source),
+        }).has(file),
+      );
+      const pkg = packages.find((pkg) => pkg.dir === source);
+      assert(
+        !mainIntegrationFileScopes({
+          ...one,
+          packages: [...packages, { ...pkg, dir: 'packages/duplicate' }],
+        }).has(file),
+      );
+      if (pkg.creator)
+        for (const altered of [
+          { ...pkg, creator: { version: '3.9.0' } },
+          { ...pkg, scripts: { ...pkg.scripts, build: 'node unknown.mjs' } },
+        ])
+          assert(
+            !mainIntegrationFileScopes({
+              ...one,
+              packages: packages.map((item) => (item === pkg ? altered : item)),
+            }).has(file),
+          );
+      const game = games.find((item) => item.source === source);
+      if (game)
+        assert(
+          !mainIntegrationFileScopes({
+            ...one,
+            games: [...games, { ...game, source: 'games/local/duplicate' }],
+          }).has(file),
+        );
+    }
+  }
+  assert.equal(mainIntegrationFileScopes({ ...context, baseCommit: head }).size, 0);
+  assert.equal(mainIntegrationFileScopes({ ...context, headHasPath: () => undefined }).size, 0);
+  const lock = 'pnpm-lock.yaml';
+  const oldDocuments = loadAll(read(base, lock)),
+    newDocuments = loadAll(read(head, lock));
+  assert.equal(oldDocuments.length, 2);
+  assert.equal(newDocuments.length, 2);
+  assert.deepEqual(oldDocuments[0], newDocuments[0], 'The first YAML document is unchanged');
+  const oldLock = Object.assign({}, ...oldDocuments),
+    newLock = Object.assign({}, ...newDocuments);
+  assert.deepEqual(
+    { ...oldLock, importers: null },
+    { ...newLock, importers: null },
+    'No resolution, integrity or snapshot changes',
+  );
+  assert.deepEqual(
+    Object.keys(newLock.importers).filter((name) => !oldLock.importers[name]),
+    [],
+  );
+  const removed = Object.keys(oldLock.importers).filter((name) => !newLock.importers[name]);
+  assert.equal(removed.length, 25);
+  assert(removed.every((name) => Object.hasOwn(mainRetirementTrees, name)));
+  const changed = Object.keys(newLock.importers).filter(
+    (name) => JSON.stringify(oldLock.importers[name]) !== JSON.stringify(newLock.importers[name]),
+  );
+  assert.deepEqual(
+    changed.sort(),
+    [
+      '.',
+      'apps/shell-minigame',
+      'apps/shell-web',
+      'apps/studio-web',
+      'games/local/bullet-garden',
+      'games/local/echo-lab',
+      'games/local/merge-front',
+      'services/management-api',
+    ].sort(),
+  );
+  const oldTuples = new Set(
+    Object.values(oldLock.importers).flatMap((importer) =>
+      Object.values(importer).flatMap((section) =>
+        Object.entries(section).map(([name, value]) => name + ':' + JSON.stringify(value)),
+      ),
+    ),
+  );
+  let addedTuples = 0;
+  for (const importer of changed) {
+    const oldValue = oldLock.importers[importer],
+      newValue = newLock.importers[importer];
+    for (const [section, tuples] of Object.entries(newValue))
+      for (const [name, value] of Object.entries(tuples)) {
+        if (oldValue[section]?.[name]) assert.deepEqual(value, oldValue[section][name]);
+        else {
+          addedTuples++;
+          assert.equal(section, 'devDependencies');
+          assert(oldTuples.has(name + ':' + JSON.stringify(value)), `${importer}:${name}`);
+        }
+      }
+    const manifest = importer === '.' ? 'package.json' : importer + '/package.json';
+    assert(
+      !mainIntegrationFileScopes({
+        ...context,
+        changedPaths: [lock],
+        readHead: (file) => context.readHead(file) + (file === manifest ? '\n' : ''),
+      }).has(lock),
+    );
+    assert(
+      !mainIntegrationFileScopes({
+        ...context,
+        changedPaths: [lock],
+        readBase: (file) => context.readBase(file) + (file === manifest ? '\n' : ''),
+      }).has(lock),
+    );
+  }
+  for (const mutate of [
+    (text) => text.replace('lockfileVersion:', 'unknownFirstDocument: true\nlockfileVersion:'),
+    (text) => text.replace('packages:', 'packages:\n  unreviewed@1.0.0: {}'),
+    (text) => text.replace('snapshots:', 'snapshots:\n  unreviewed@1.0.0: {}'),
+  ])
+    assert(
+      !mainIntegrationFileScopes({
+        ...context,
+        changedPaths: [lock],
+        readHead: (file) =>
+          file === lock ? mutate(context.readHead(file)) : context.readHead(file),
+      }).has(lock),
+    );
+  assert.equal(addedTuples, 5);
+  const readSource = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  for (const file of [
+    'apps/shell-web/package.json',
+    'apps/shell-web/src/game-meta.json',
+    'apps/shell-web/src/standalone-games.json',
+  ]) {
+    const selected = incrementalPlan({
+      ...context,
+      changedPaths: [file],
+      fileScopes: scopes,
+      readSource,
+    });
+    assert(selected.catalog_rollout_checks && selected.browser);
+    for (const id of ['letters-words2', 'xiangqi-five']) assert(selected.browser_ids.includes(id));
+  }
+  for (const unknown of [
+    '.github/workflows/unreviewed.yml',
+    'scripts/platform-extra.mjs',
+    'infra/migrations/016-unreviewed.sql',
+  ])
+    assert.throws(
+      () =>
+        incrementalPlan({
+          ...context,
+          changedPaths: [unknown],
+          fileScopes: scopes,
+          readSource: () => '',
+        }),
+      /Incremental scope undefined/,
+    );
+  const toolFlags = [
+    ['scripts/platform-apps.mjs', 'platform_process_checks'],
+    ['scripts/platform-process.test.mjs', 'platform_process_checks'],
+    ['scripts/check-game-config.mjs', 'game_config_checks'],
+    ['games/local/letters-words2/scripts/test-export.py', 'vocabulary_export_checks'],
+    ['scripts/deploy-tencent.mjs', 'ranked_deployment_checks'],
+    ['package.json', 'validation_tools'],
+  ];
+  for (const [file, flag] of toolFlags)
+    assert(
+      incrementalPlan({ ...context, changedPaths: [file], fileScopes: scopes, readSource })[flag],
+      file,
+    );
+});
+
+test('moved competition audio selects its three actual games across six native platforms', async () => {
+  const { workspacePackages } = await import('./validation-plan.mjs');
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const packages = await workspacePackages(root);
+  const games = JSON.parse(
+    readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url), 'utf8'),
+  );
+  const file = 'platforms/competition/assets/action.wav';
+  const context = {
+    changedPaths: [file],
+    packages,
+    games,
+    readSource: (name) => readFileSync(new URL('../' + name, import.meta.url), 'utf8'),
+  };
+  const fileScopes = reviewedSharedFileScopes(context);
+  assert(fileScopes.has(file));
+  const selected = incrementalPlan({ ...context, fileScopes });
+  const targets = ['letters-words2', 'travel-bund', 'vibeJam-myself-history-guess'].flatMap(
+    (game) =>
+      ['alipay', 'bilibili', 'douyin', 'kuaishou', 'taptap', 'wechat'].map(
+        (platform) => `${game}:${platform}`,
+      ),
+  );
+  assert.deepEqual(
+    selected.nine_native_targets.map((target) => target.game + ':' + target.platform).sort(),
+    targets.sort(),
+  );
+  assert(selected.nine_native_targets.every((target) => !target.requiresCreator));
+  assert.deepEqual(selected.nine_native_blocked, []);
+  assert.throws(
+    () =>
+      incrementalPlan({
+        ...context,
+        changedPaths: ['platforms/competition/assets/unreviewed.wav'],
+        fileScopes,
+      }),
+    /Incremental scope undefined/,
+  );
+  assert(
+    !reviewedSharedFileScopes({
+      ...context,
+      packages: packages.filter((pkg) => pkg.dir !== 'platforms/taptap'),
+    }).has(file),
+  );
+});
 import { requiresIncrementalCocos } from './pages-test-scope.mjs';
 
 const tianxiaBase = 'd4a677542c5a034c4fef21798845dbf16e5bcfdd';
@@ -358,6 +645,8 @@ test('fourth Creator classification works in a bare planner with only Prettier a
   t.after(() => rm(directory, { recursive: true, force: true }));
   for (const module of [
     'publication-scopes.mjs',
+    'local-game-retirement-scope.mjs',
+    'local-game-retirement-reviews.mjs',
     'vite-patch-scope.mjs',
     'competition-ingress.mjs',
     'admin-csp.mjs',
@@ -2374,6 +2663,8 @@ test('reviewed quality budget can be planned without installed YAML dependencies
   try {
     for (const module of [
       'publication-scopes.mjs',
+      'local-game-retirement-scope.mjs',
+      'local-game-retirement-reviews.mjs',
       'vite-patch-scope.mjs',
       'competition-ingress.mjs',
       'admin-csp.mjs',
@@ -2418,6 +2709,8 @@ test('cache writer reduction has an exact dependency-free scope and rejects unre
   try {
     for (const module of [
       'publication-scopes.mjs',
+      'local-game-retirement-scope.mjs',
+      'local-game-retirement-reviews.mjs',
       'vite-patch-scope.mjs',
       'competition-ingress.mjs',
       'admin-csp.mjs',
@@ -3934,6 +4227,8 @@ test('admin lock proof plans without installed YAML dependencies', async () => {
   try {
     for (const module of [
       'publication-scopes.mjs',
+      'local-game-retirement-scope.mjs',
+      'local-game-retirement-reviews.mjs',
       'vite-patch-scope.mjs',
       'competition-ingress.mjs',
       'admin-csp.mjs',
@@ -4139,6 +4434,8 @@ test('shared authority helper selects only its three backend consumers and bound
     // Keep this bare fixture explicit: scope planning must not need the probe or YAML installs.
     for (const module of [
       'publication-scopes.mjs',
+      'local-game-retirement-scope.mjs',
+      'local-game-retirement-reviews.mjs',
       'vite-patch-scope.mjs',
       'competition-ingress.mjs',
       'admin-csp.mjs',

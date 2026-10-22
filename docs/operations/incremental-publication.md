@@ -77,3 +77,9 @@ merge-front 改为第六款 Creator 工程。CI Producer 保留已有五款的�
 最后成功 Pages 的 `39388e3a89df1b1a0d573bb800016fdbfbc4ac86` 到 `b652c346dfdee952194c2ab267c167894b7718e4` 同时包含 Merge 与 Bullet 接线。四个已有工作流、`pnpm-lock.yaml`、`turbo.json` 的累计证明分别绑定完整前后字节，核对两款唯一 registry/package 身份、Creator 版本及构建命令，并选择两款实际消费者及 Creator/浏览器验证。原单步证明保留；额外字节、未知路径或身份冲突仍阻断。历史树缺少 Bullet manifest 时只放弃 Bullet 锁文件证明，继续尝试原有 Admin 等独立证明，不改变未知范围的最终拒绝。
 
 Merge 宿主冒烟检查使用沉浸式 Creator 契约：准确 iframe 地址与标题、可见画布、已就绪首页及可用开始控件、可用返回目录按钮。分享、前进后退、刷新、手机独立入口、资源完整性和 Runtime 隔离检查保留。修复范围分别绑定最后成功 Pages 与 `5af700e8` 的原脚本及修复后完整字节，核对唯一 Merge 身份并选择 Shell 和 Merge 消费者；额外编辑不能沿用该证明。
+
+当前 main 集成以 `0459b0cb3c89a748f3a6bd252858951ba1ca073d` 为精确基线，历史正例固定在 `bf68adb31aaf27be4f809c5e875aa8babee8c147`。删除证明复用 27 项既有 Git tree/gitlink 条目并确认 HEAD 中不存在；16 个非文档重命名分别绑定原路径、新路径、Git 状态和前后 blob。证明仅授权源路径删除，保留目标继续进入真实工作区、Creator 或原生消费者验证。额外删除、目标漂移、复活目录、读取失败和复制的 scope 数组均不能取得删除证明，旧 main 区间不变。
+
+23 个累计共享文件分别绑定前后完整字节和唯一 package/game 身份。工作流和 Turbo 接线选择对应 Creator 消费者；锁文件还绑定 8 个相关 manifest。该锁文件只删除已退役 importer、移除其 workspace link，并复用基线已有的 5 个开发依赖 tuple；其余 resolution、integrity 和 snapshot 未变。Shell 的三个目录文件仍触发目录上线和导航检查。迁移后的音效按实际复制关系选择三个游戏的六个平台；平台进程、游戏配置、词库导出和部署迁移文件复制均执行对应工具测试。未知文件或额外共享字节仍拒绝分类，不降为全量。
+
+数据库迁移映射到 Management 与 Studio 的规则、构建和类型检查。日常 Pages 质量门禁不要求 Docker，也不执行后台部署或数据库迁移；真实 PostgreSQL 升级与对象库存取属于独立的 `test:platform` 验收，不能用内存接口测试声称已经验证。

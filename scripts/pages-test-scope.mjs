@@ -452,6 +452,7 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
   let fileScopes = new Map();
   let headCommitForRisk;
   let diffBaseForRisk;
+  let treeContextForRisk;
   if (!['schedule', 'workflow_dispatch'].includes(eventName)) {
     try {
       // A newer dev push can cancel earlier validation. Diff from the last successful
@@ -510,6 +511,7 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
         return headPaths.has(file);
       };
       const retirementContext = {
+        baseCommit: diffBase,
         changedPaths,
         readBase: (file) => git(root, ['show', `${diffBase}:${file}`]),
         readBaseEntry: (file) =>
@@ -519,6 +521,7 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
           git(root, ['--literal-pathspecs', 'ls-tree', headCommit, '--', file]),
         headHasPath,
       };
+      treeContextForRisk = retirementContext;
       const retiredScopes = new Map([
         ...retirementFileScopes(retirementContext),
         ...localRetirementFileScopes(retirementContext),
@@ -586,6 +589,7 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
     const packages = await workspacePackages(root);
     const sourcePaths = changedPaths.filter((file) => !isValidationDocumentation(file));
     const context = {
+      ...treeContextForRisk,
       changedPaths: sourcePaths,
       games: catalog.standaloneGames,
       packages,

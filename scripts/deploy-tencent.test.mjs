@@ -4,6 +4,9 @@ import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import vm from 'node:vm';
+import { cp, readdir } from 'node:fs/promises';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
 import yaml from 'js-yaml';
 import {
   deploymentConfig,
@@ -26,6 +29,51 @@ const sample = {
   RUNTIME_DB_PASSWORD: 'b'.repeat(64),
   COMPETITION_INTERNAL_KEY: 'c'.repeat(64),
 };
+
+test('the deployment staging loop copies every migration including generic drafts with exact bytes', async () => {
+  const source = await readFile(new URL('./deploy-tencent.mjs', import.meta.url), 'utf8');
+  const { parsers } = createRequire(import.meta.url)('prettier/plugins/babel');
+  const loops = [];
+  function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (
+      node.type === 'ForOfStatement' &&
+      source.slice(node.start, node.end).includes("path.join(root, 'infra/migrations', file)")
+    )
+      loops.push(node);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  }
+  visit(parsers.babel.parse(source, {}));
+  assert.equal(loops.length, 1);
+  const directory = await mkdtemp(path.join(tmpdir(), 'tencent-migrations-'));
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  try {
+    await mkdir(path.join(directory, 'migrations'));
+    await vm.runInNewContext(
+      '(async () => {' + source.slice(loops[0].start, loops[0].end) + '})()',
+      { root, bundle: directory, cp, path },
+    );
+    const expected = [
+      '010-competition.sql',
+      '011-competition-profiles.sql',
+      '012-three-choose-two.sql',
+      '013-competition-identities.sql',
+      '014-player-sessions.sql',
+      '015-generic-content-drafts.sql',
+    ];
+    assert.deepEqual((await readdir(path.join(directory, 'migrations'))).sort(), expected);
+    for (const file of expected)
+      assert.deepEqual(
+        await readFile(path.join(directory, 'migrations', file)),
+        await readFile(path.join(root, 'infra/migrations', file)),
+      );
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
 
 test('deployment rejects missing secrets, command/config injection and traversal before remote actions', () => {
   const config = deploymentConfig(sample);

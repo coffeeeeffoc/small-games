@@ -4,8 +4,246 @@ import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
 import { vitePatchFileScopes } from './vite-patch-scope.mjs';
 import { ingressShellGuard, ingressPreflightGuard } from './competition-ingress.mjs';
+import { mainRetirementTreesMatch } from './local-game-retirement-scope.mjs';
 
 const loadDependency = createRequire(import.meta.url);
+
+// Exact main-base review; unrelated bytes and consumers remain unclassified.
+export const mainIntegrationReviews = Object.freeze({
+  '.github/workflows/carding-car.yml': {
+    before: '79c7e62376cb93cfcf894fcbb6518f88d68a83f6dd22f161539a381a73fe119e',
+    after: '420192e8c991ff7166a1828e48b3087cdbf65604b8d659393c4802bdad6ac2c7',
+    sources: [
+      'games/local/carding-car',
+      'games/local/night-overwatch',
+      'games/local/orbit-atelier',
+      'games/local/tianxia-chalu',
+      'games/local/homebound-station',
+      'games/local/merge-front',
+      'games/local/bullet-garden',
+    ],
+  },
+  '.github/workflows/ci.yml': {
+    before: '7dc23c17a7b8180c0abc4eb5869b872d41e466a755da9757cae56235bcd2bf12',
+    after: '073903ff62e45572e1b2f07a25d64ca19ad381800f7859bd73b3c6bb3da96e9f',
+    sources: [
+      'games/local/orbit-atelier',
+      'games/local/tianxia-chalu',
+      'games/local/homebound-station',
+      'games/local/merge-front',
+      'games/local/bullet-garden',
+    ],
+  },
+  '.github/workflows/pages-validate.yml': {
+    before: 'c4766cd65e637f9baadea7659184e154bfe5fb9951a0f97d95d1bcc4010de244',
+    after: 'f7c119db7da3a46f682da323558a38214f3fed2f7cb79b8b9cbfbcf16378d258',
+    sources: [
+      'games/local/orbit-atelier',
+      'games/local/tianxia-chalu',
+      'games/local/homebound-station',
+      'games/local/merge-front',
+      'games/local/bullet-garden',
+    ],
+  },
+  '.github/workflows/mobile.yml': {
+    before: '860a6b07cc7b9acf17033726fd44c6f768b58ef9e316a48bce55fb05ff80f3c3',
+    after: '046cada0323b6b92a6d95a894acc8a9c31881faa874e98d9f25f5b47ff7ed5f5',
+    sources: [
+      'games/local/orbit-atelier',
+      'games/local/tianxia-chalu',
+      'games/local/homebound-station',
+      'games/local/merge-front',
+      'games/local/bullet-garden',
+    ],
+  },
+  '.github/workflows/pages.yml': {
+    before: '013b6713eab6344a5ec2d77ff88542c825874c1888eb6b1b1f3dcf5c9010989e',
+    after: '228364b8559ed1ff24890594999d8c4adfff46af57b7f11a2861fb305a5e5419',
+    sources: [],
+  },
+  '.gitmodules': {
+    before: 'fd6fee180db917e510df608c4620ee5227aea7d85fc54473a677b5bc2e1cfdfd',
+    after: '7148d0cc476f0c5f8cf45156c60a4bd5360010a2a6aa4909b5ae1d0e1895d47b',
+    sources: ['apps/shell-web'],
+  },
+  '.prettierignore': {
+    before: 'f5b7244238ddc228cb70961aa872fc4eeeddf5a226d8740b60b5feacfa4a8eed',
+    after: 'b62aa1aca97995c32b1b8cf6e3c53f499578799b9ed5aee0765f30f2b9e39056',
+    sources: [],
+  },
+  'package.json': {
+    before: 'db55d5e6ec2effe93b512311e5e7470eaba81d17b63f599929fe2ea6d63115a2',
+    after: '1219ff74515170e5b17a133373050ec14ae93cb610431575cf9ba20e75b181f0',
+    sources: [
+      'apps/shell-web',
+      'apps/shell-minigame',
+      'apps/studio-web',
+      'services/management-api',
+    ],
+  },
+  'pnpm-lock.yaml': {
+    before: '39b5be38d1b6e2b421a7cbf88a3e954db69ef4bef397b82d2a3a9a9324bcc9e9',
+    after: 'b23918aa79186aa5922438925c7df51d6433d07eec54cc0af3f3996d47b8c9c7',
+    sources: [
+      'apps/shell-web',
+      'apps/shell-minigame',
+      'apps/studio-web',
+      'services/management-api',
+      'games/local/echo-lab',
+      'games/local/bullet-garden',
+      'games/local/merge-front',
+    ],
+  },
+  'turbo.json': {
+    before: '87cffb64731a1e510934645439f1f23e3ecbbd60e3e076c7237caeddb22268c9',
+    after: '8e715b054f404963935c195b1fb8dccc4d90ccab8a40c826411f033e810ca6fa',
+    sources: [
+      'games/local/orbit-atelier',
+      'games/local/tianxia-chalu',
+      'games/local/homebound-station',
+      'games/local/merge-front',
+      'games/local/bullet-garden',
+      'apps/shell-minigame',
+    ],
+  },
+  'infra/migrations/003-content-drafts.sql': {
+    before: '744d3ffbc3ce992e6a9b8a6c9d2a15d98bd331fe79d7d56ce22d4237f24afd26',
+    after: 'e1f9d69a82826ddaf9ac4b272d01f3a0d6888e5850858303eddbeab414d316c5',
+    sources: ['services/management-api', 'apps/studio-web'],
+  },
+  'infra/migrations/015-generic-content-drafts.sql': {
+    before: null,
+    after: 'd51a5c661c34cb8a3bb5ce69eddbe4a1e4b9fb878f9460384f537c33a40f0b85',
+    sources: ['services/management-api', 'apps/studio-web'],
+  },
+  'scripts/artifact.integration.mjs': {
+    before: 'd62715f1d4a5e8030a3496ffc17d26c5ad8cf554ba789fc0d43eb750d9d222c7',
+    after: 'f209beedb83c14203ad03ccc0ef6034de7416e0da0143765ab2baae42632fa69',
+    sources: ['services/management-api', 'packages/game-artifact'],
+  },
+  'scripts/auth.integration.mjs': {
+    before: '3db33588e9d455ca02f7c74cfe369513bbf56f03a924032dd53a01bd0418fea8',
+    after: '8a77862887bacc9cbbb1fe58e9eb5f91770da4f89244749d891632bba7b565c6',
+    sources: ['services/management-api'],
+  },
+  'scripts/check-game-config.mjs': {
+    before: '4618a187bdd69c4ddb9e6e09c5ebabc29e3f5c62ef4d6b450c9643412f97fa93',
+    after: 'b94272674ffaf5e9df04589f3a5e9b438d8049e51f05203519224d327c0cc38e',
+    sources: [],
+  },
+  'scripts/deploy-tencent.mjs': {
+    before: 'cf2d1df8a6106fdf5ede892802963d480e1506e5b5f7dc3b18b4747b95bd2f75',
+    after: 'ef83f5e926bdd57e6b5743c09c69fba7c21735b6d117a83b2b9896f12d2b54b4',
+    sources: ['services/management-api'],
+  },
+  'scripts/platform-apps.mjs': {
+    before: '33de52996e096939a0a0ff478751d133083fb3499acbc0e3386352b3d7f8d0f6',
+    after: '8160c23e78b2b02a6d7d2b1a8a603e5dda2f5c0dd939a80074b193921ca9fc28',
+    sources: [],
+  },
+  'scripts/platform-process.test.mjs': {
+    before: '444ca3d87c5370357b2d06cb369968bd467ca712293f1f4a7f31110dda38224a',
+    after: '94ff5fc6a4af3738ed1fa3c196458d0d7a613f8d59950a5a4950100ef2ab1abe',
+    sources: [],
+  },
+  'scripts/platform.mjs': {
+    before: '7f8a88433229acbf7d131f8812b84f2fcf13c7b8d514c045413bfbee8c4b11f9',
+    after: 'd557e68e536132f7164d987565c317f67a92db27a143fe87ee38f4bcf2cd25f2',
+    sources: ['services/management-api'],
+  },
+  'scripts/test-game-dev-mode.mjs': {
+    before: 'db3f9ed8b7106baa7e868b7d4dc926dc9f41ab82ae9ee5474edce52c522b3c51',
+    after: 'de3df3cddcfa91f7005570a17d9c27483cc58ef2df0d3310cf598e4e4686d801',
+    sources: [
+      'apps/shell-web',
+      'games/local/bullet-garden',
+      'games/local/homebound-station',
+      'games/local/tianxia-chalu',
+      'games/local/merge-front',
+      'games/local/wulong-city',
+    ],
+  },
+  'apps/shell-web/package.json': {
+    before: 'bb21e2eafd28ca91922f7e6cd42916a7b8c69929934c06556f93476c0b4d0bdd',
+    after: '12633e0d00275065080519b5ad1372e3827999a1a4acde6b71af48e9b5091ddd',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/src/game-meta.json': {
+    before: '6b22589def2a349182e2e1dad19b9a8e5abc0564fdc0aed54cc7bb743ef340d8',
+    after: '80a8683eb547705a488145b71976ccf6ecfcb02faa64f84ea68a56265595758b',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/src/standalone-games.json': {
+    before: '0b0ddec4114d335ba88fb95ba74f0624c8e1e299611d742869405e83020894fa',
+    after: 'edc4f65dbe89a68385987264ae871d22fa50a1d1936d228405529683d4a9dd89',
+    sources: ['apps/shell-web', 'games/local/merge-front', 'games/local/bullet-garden'],
+  },
+});
+for (const review of Object.values(mainIntegrationReviews)) {
+  Object.freeze(review.sources);
+  Object.freeze(review);
+}
+const mainLockManifestHashes = Object.freeze({
+  'package.json': {
+    before: 'db55d5e6ec2effe93b512311e5e7470eaba81d17b63f599929fe2ea6d63115a2',
+    after: '1219ff74515170e5b17a133373050ec14ae93cb610431575cf9ba20e75b181f0',
+  },
+  'apps/shell-web/package.json': {
+    before: 'bb21e2eafd28ca91922f7e6cd42916a7b8c69929934c06556f93476c0b4d0bdd',
+    after: '12633e0d00275065080519b5ad1372e3827999a1a4acde6b71af48e9b5091ddd',
+  },
+  'apps/shell-minigame/package.json': {
+    before: '4aa92bd462c741b324d6d6b86e4c9140ebbd8aaa8b7df61e3dbb6449678f0f71',
+    after: 'aa28f0baebb07ea7eb741b3d644d4937a263cb998737b2e1362ac3307dfbc5d3',
+  },
+  'apps/studio-web/package.json': {
+    before: '34a71615b8a85fc72eda485cb01251eb5fb9336f803fbc3f806fe1e62d160fd4',
+    after: '0e37c4253728587587635a1d63bc98506b100c21625de6cc8968fadad4d7015d',
+  },
+  'services/management-api/package.json': {
+    before: 'fbeea00d06c89ada8c90826465c675350bf3eb9cd08363b512c6441530784b31',
+    after: '744d87faa39c4ebeac39d9d169d38db0ea56028cf9dd26b175c310da519232c9',
+  },
+  'games/local/echo-lab/package.json': {
+    before: 'aa8d80fc64a902f8f5648b657a82d2058055f6ba077ccc4f3a12ea72c4095e58',
+    after: 'e8e39dd67f910e9f13f75b9b90e53edf5fb92b670dd05b7140148f61f38858bb',
+  },
+  'games/local/bullet-garden/package.json': {
+    before: '57a566b2cb489ca96db04c5a6f2fbd2914df662a40c2b9edcc0f885ad5fa9ebe',
+    after: '103ffa2b80c66479e8c67931e5af78d13ffca118fb378bff5e03a13e11fb3cd5',
+  },
+  'games/local/merge-front/package.json': {
+    before: 'bf31881da9ef054bb61281cdbe4538d3e7ad6fbd3fd74dc113f9d601d93bb8a6',
+    after: 'efda63d3c7e0f5c40c94ab9f72c416af7dbf4b109819008aa75205e01cac7443',
+  },
+});
+const mainIntegrationNames = Object.freeze({
+  'games/local/carding-car': '@coffeeeeffoc/carding-car',
+  'games/local/night-overwatch': '@coffeeeeffoc/night-overwatch',
+  'games/local/orbit-atelier': '@coffeeeeffoc/orbit-atelier',
+  'games/local/tianxia-chalu': '@coffeeeeffoc/tianxia-chalu',
+  'games/local/homebound-station': '@coffeeeeffoc/homebound-station',
+  'games/local/merge-front': '@small-games/merge-front',
+  'games/local/bullet-garden': '@coffeeeeffoc/bullet-garden',
+  'apps/shell-web': '@coffeeeeffoc/shell-web',
+  'apps/shell-minigame': '@coffeeeeffoc/shell-minigame',
+  'apps/studio-web': '@coffeeeeffoc/studio-web',
+  'services/management-api': '@coffeeeeffoc/management-api',
+  'games/local/echo-lab': '@coffeeeeffoc/echo-lab',
+  'packages/game-artifact': '@coffeeeeffoc/game-artifact',
+  'games/local/wulong-city': '@coffeeeeffoc/wulong-city',
+});
+const mainIntegrationIds = Object.freeze({
+  'games/local/orbit-atelier': 'orbit-atelier',
+  'games/local/tianxia-chalu': 'tianxia-chalu',
+  'games/local/echo-lab': 'echo-lab',
+  'games/local/homebound-station': 'homebound-station',
+  'games/local/carding-car': 'carding-car',
+  'games/local/merge-front': 'merge-front',
+  'games/local/wulong-city': 'wulong-city',
+  'games/local/night-overwatch': 'night-overwatch',
+  'games/local/bullet-garden': 'bullet-garden',
+});
 
 // Reviewed merge-front migration: only these exact artifact, ad and entry routes changed.
 export const mergeCreatorIntegrationHashes = Object.freeze({
@@ -2751,15 +2989,109 @@ const independentPreviewConsumers = mobileViewportConsumers;
 /** Structural proofs for config-only changes; explicit consumers for known tools.
  * No prefix wildcard accepts a new workflow, shared runtime or test script.
  */
+export function mainIntegrationFileScopes(context) {
+  const scopes = new Map();
+  if (!mainRetirementTreesMatch(context)) return scopes;
+  const { changedPaths, readBase, readHead, readBaseEntry, packages, games } = context;
+  const exact = (file, review) =>
+    (review.before === null
+      ? readBaseEntry(file) === ''
+      : createHash('sha256').update(readBase(file)).digest('hex') === review.before) &&
+    createHash('sha256').update(readHead(file)).digest('hex') === review.after;
+  for (const file of changedPaths) {
+    const review = mainIntegrationReviews[file];
+    if (!review) continue;
+    try {
+      if (!exact(file, review)) continue;
+      if (
+        file === 'pnpm-lock.yaml' &&
+        !Object.entries(mainLockManifestHashes).every(([name, pair]) => exact(name, pair))
+      )
+        continue;
+      for (const source of review.sources) {
+        const name = mainIntegrationNames[source];
+        const matches = packages.filter((pkg) => pkg.dir === source || pkg.name === name);
+        assert.equal(matches.length, 1);
+        assert.equal(matches[0].dir, source);
+        assert.equal(matches[0].name, name);
+        if (mainIntegrationIds[source]) {
+          const id = mainIntegrationIds[source];
+          const entries = games.filter((game) => game.id === id || game.source === source);
+          assert.equal(entries.length, 1);
+          assert.equal(entries[0].id, id);
+          assert.equal(entries[0].source, source);
+          if (!['echo-lab', 'wulong-city'].includes(id)) {
+            assert.equal(matches[0].creator?.version, '3.8.8');
+            assert.equal(matches[0].scripts?.build, 'node scripts/build.mjs web-mobile');
+          }
+        }
+      }
+      scopes.set(file, Object.freeze([...review.sources]));
+    } catch {
+      // Failed/missing snapshots or identities cannot establish this file's scope.
+    }
+  }
+  return scopes;
+}
+
 export function reviewedSharedFileScopes({
   changedPaths,
   readBase,
   readHead,
   games,
   packages = [],
+  ...treeContext
 }) {
   const scopes = vitePatchFileScopes({ changedPaths, readBase, readHead });
+  const mainScopes = mainIntegrationFileScopes({
+    changedPaths,
+    readBase,
+    readHead,
+    games,
+    packages,
+    ...treeContext,
+  });
   for (const file of changedPaths) {
+    if (mainScopes.has(file)) {
+      scopes.set(file, mainScopes.get(file));
+      continue;
+    }
+    if (file === 'platforms/competition/assets/action.wav') {
+      const ids = ['letters-words2', 'vibeJam-myself-history-guess', 'travel-bund'];
+      const sources = ids.map((id) => `games/local/${id}`);
+      const consumers = [
+        ...sources,
+        'apps/shell-minigame',
+        ...['alipay', 'bilibili', 'douyin', 'kuaishou', 'wechat', 'taptap'].map(
+          (platform) => `platforms/${platform}`,
+        ),
+      ];
+      const names = [
+        'ciyu-word-tiles',
+        'here-and-then',
+        '@coffeeeeffoc/travel-bund',
+        '@coffeeeeffoc/shell-minigame',
+        ...['alipay', 'bilibili', 'douyin', 'kuaishou', 'wechat', 'taptap'].map(
+          (platform) => `@coffeeeeffoc/platform-${platform}`,
+        ),
+      ];
+      if (
+        ids.every((id, index) => {
+          const entries = games.filter((game) => game.id === id || game.source === sources[index]);
+          return (
+            entries.length === 1 && entries[0].id === id && entries[0].source === sources[index]
+          );
+        }) &&
+        consumers.every((source, index) => {
+          const entries = packages.filter((pkg) => pkg.dir === source || pkg.name === names[index]);
+          return (
+            entries.length === 1 && entries[0].dir === source && entries[0].name === names[index]
+          );
+        })
+      )
+        scopes.set(file, consumers);
+      continue;
+    }
     let mergeBulletIntegration = false;
     if (Object.hasOwn(mergeBulletCreatorIntegrationHashes, file)) {
       try {

@@ -256,7 +256,15 @@ export function incrementalPlan({
       ids.add(game.id);
   }
   const shellChanged = paths.some(
-    (file) => file.startsWith('apps/shell-web/') && !fileScopes.has(file),
+    (file) =>
+      file.startsWith('apps/shell-web/') &&
+      (!fileScopes.has(file) ||
+        ([
+          'apps/shell-web/package.json',
+          'apps/shell-web/src/game-meta.json',
+          'apps/shell-web/src/standalone-games.json',
+        ].includes(file) &&
+          fileScopes.get(file).includes('apps/shell-web'))),
   );
   if (
     shellChanged ||
@@ -373,6 +381,7 @@ export function incrementalPlan({
     validation_tools: paths.some(
       (file) =>
         validationTool.test(file) ||
+        (file === 'package.json' && fileScopes.get(file)?.includes('services/management-api')) ||
         cacheToolPaths.includes(file) ||
         file === mobileViewportScopeFile ||
         file === 'apps/shell-web/scripts/pages-validation.test.mjs' ||
@@ -461,7 +470,26 @@ export function incrementalPlan({
     ),
     ranked_deployment_checks:
       paths.includes('scripts/deploy-tencent.mjs') &&
-      fileScopes.get('scripts/deploy-tencent.mjs')?.includes('games/local/cage-rescue'),
+      ['games/local/cage-rescue', 'services/management-api'].some((source) =>
+        fileScopes.get('scripts/deploy-tencent.mjs')?.includes(source),
+      ),
+    platform_process_checks: paths.some((file) =>
+      [
+        'scripts/platform-apps.mjs',
+        'scripts/platform-process.mjs',
+        'scripts/platform-process.test.mjs',
+      ].includes(file),
+    ),
+    game_config_checks: paths.some((file) =>
+      ['scripts/check-game-config.mjs', 'scripts/check-game-config.test.mjs'].includes(file),
+    ),
+    vocabulary_export_checks: paths.some((file) =>
+      [
+        'games/local/letters-words2/scripts/export-vocabulary.py',
+        'games/local/letters-words2/scripts/test-export.py',
+        'games/local/letters-words2/scripts/sync-vocabulary.py',
+      ].includes(file),
+    ),
     publishing_checks: publishingChanged,
     safe_area_checks: paths.some((file) => safeAreaScopePaths.includes(file)),
     platform_ads_checks: paths.some((file) => platformAdsScopePaths.includes(file)),

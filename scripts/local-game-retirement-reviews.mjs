@@ -845,3 +845,80 @@ export const portfolioRetirementReviews = Object.freeze({
     sources: [],
   },
 });
+
+// Independent cumulative review for the actual main integration base. It does
+// not extend either earlier retirement transition or grant proofs to live files.
+export const mainIntegrationBase = '0459b0cb3c89a748f3a6bd252858951ba1ca073d';
+export const mainIntegrationFixture = 'bf68adb31aaf27be4f809c5e875aa8babee8c147';
+export const mainRetirementTrees = Object.freeze({
+  ...localRetirementTrees,
+  ...portfolioRetirementTrees,
+});
+const moved = (from, to, status, before, after = before) => [
+  from,
+  Object.freeze({
+    to,
+    status,
+    beforeEntry: `100644 blob ${before}\t${from}\n`,
+    afterEntry: `100644 blob ${after}\t${to}\n`,
+  }),
+];
+export const mainRetirementMoves = Object.freeze(
+  Object.fromEntries([
+    ...[
+      ['afterimage-arena', 'bullet-garden'],
+      ['balloon-movers', 'homebound-station'],
+      ['game-arena', 'merge-front'],
+      ['game-building-power', 'orbit-atelier'],
+      ['game-cricket', 'tianxia-chalu'],
+    ].flatMap(([from, to]) =>
+      [
+        ['dev-mode.js', 'b184ed2ed1f23f612143491235bbfe348c42e627'],
+        ['dev-mode.d.ts', '19ecd63375b8c703a717e650860e303b67af3ab5'],
+      ].map(([file, blob]) =>
+        moved(`games/local/${from}/${file}`, `games/local/${to}/scripts/${file}`, 'R100', blob),
+      ),
+    ),
+    moved(
+      'games/local/letters-words/scripts/export-vocabulary.py',
+      'games/local/letters-words2/scripts/export-vocabulary.py',
+      'R100',
+      '4e533642d524c890425dea6c4e57af933991f5fe',
+    ),
+    moved(
+      'games/local/letters-words/scripts/test-export.py',
+      'games/local/letters-words2/scripts/test-export.py',
+      'R100',
+      '4a10bfc2dbdfcae3f10787005dabd1145a8dc5bf',
+    ),
+    moved(
+      'games/local/game-cricket/public/cricket-audio/perfect.wav',
+      'platforms/competition/assets/action.wav',
+      'R100',
+      '93d1978b99333a0cfdb9781ea2c79432d625b8de',
+    ),
+    // Git detects these separately reviewed deletions/additions as partial renames.
+    // Their different destination blobs retain normal game/Creator validation.
+    moved(
+      'games/local/travel-bund-2.5D/tsconfig.json',
+      'games/local/bullet-garden/tsconfig.json',
+      'R050',
+      '8764f603c5e21fc3f8e8dc84398f15876549e006',
+      '73d4d35b268eaf878e444c6b62930908e0a1f465',
+    ),
+    moved(
+      'games/local/night-merge/tsconfig.json',
+      'games/local/tianxia-chalu/tsconfig.json',
+      'R055',
+      '6dee0ea6200dd0dec495b0e4fa7c39b6abfa1691',
+      '10af18e21c1405859671e1979b6a484b8d06f36d',
+    ),
+    moved(
+      'games/local/letters-words/assets/english-dict/LICENSE-ECDICT.txt',
+      'games/local/ball-roguelite/vendor/cocos/LICENSE',
+      'R089',
+      '594da8a1009c6a9b96d0fe8d1689aa192cf187fe',
+      'bc24fb9700aa43adf14d65a2ed53cafe6cd90f10',
+    ),
+  ]),
+);
