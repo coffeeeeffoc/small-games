@@ -749,7 +749,12 @@ export class StationWorld {
   reset(simulation: Simulation) {
     if (this.disposed) return;
     this.state = simulation;
-    for (const visual of [...this.carViews.values(), ...this.personViews.values()])
+    // Creator's production transpiler treats spread operands as arrays.
+    // Materialize Map iterators before concatenating the render lists.
+    for (const visual of [
+      ...Array.from(this.carViews.values()),
+      ...Array.from(this.personViews.values()),
+    ])
       visual.node.destroy();
     this.cars.clear();
     this.people.clear();
@@ -890,9 +895,11 @@ export class StationWorld {
     }
     for (const [id, visual] of this.personViews) if (!visible.has(id)) visual.node.active = false;
     this.paintBays(simulation);
-    const ordered = [...this.props, ...this.carViews.values(), ...this.personViews.values()].sort(
-      (a, b) => a.depth - b.depth || a.id.localeCompare(b.id),
-    );
+    const ordered = [
+      ...this.props,
+      ...Array.from(this.carViews.values()),
+      ...Array.from(this.personViews.values()),
+    ].sort((a, b) => a.depth - b.depth || a.id.localeCompare(b.id));
     const orderKey = ordered.map((visual) => visual.id).join('|');
     if (orderKey !== this.lastOrder) {
       ordered.forEach((visual, index) => visual.node.setSiblingIndex(index));
