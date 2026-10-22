@@ -41,6 +41,88 @@ const REGISTRY = 'apps/shell-web/src/standalone-games.json';
 const META = 'apps/shell-web/src/game-meta.json';
 const SHELL = 'apps/shell-web/package.json';
 const LOCK = 'pnpm-lock.yaml';
+
+test('navigation checks request Creator emitted inputs required by Shell static checks', () => {
+  const creator = {
+    name: 'creator',
+    dir: 'games/local/creator',
+    creator: { version: '3.8.8' },
+    exports: { './dist/*': './dist/*' },
+    scripts: { build: 'node build.mjs' },
+  };
+  const shell = {
+    name: 'shell',
+    dir: 'apps/shell-web',
+    dependencies: { creator: 'workspace:*' },
+  };
+  const sample = {
+    name: 'sample',
+    dir: 'games/local/sample',
+    scripts: { build: 'node build.mjs' },
+  };
+  const games = [{ id: 'sample', source: sample.dir }];
+  const scope = {
+    full: false,
+    game_sources: [],
+    consumer_sources: [],
+    nine_native_targets: [],
+    nine_native_blocked: [],
+    browser: true,
+    browser_ids: ['sample'],
+  };
+  const options = {
+    packages: [creator, shell, sample],
+    games,
+    changedPaths: ['scripts/validate-push.mjs'],
+    scope,
+    risk: 'incremental',
+  };
+  assert.equal(requiresIncrementalCocos(options), true);
+  assert.equal(requiresIncrementalCocos({ ...options, packages: [creator, sample] }), false);
+  assert.equal(
+    requiresIncrementalCocos({
+      ...options,
+      packages: [{ ...creator, exports: { './engine': './src/core.mjs' } }, shell, sample],
+    }),
+    false,
+  );
+  assert.equal(
+    requiresIncrementalCocos({ ...options, scope: { ...scope, browser: false, browser_ids: [] } }),
+    false,
+  );
+  assert.equal(
+    requiresIncrementalCocos({
+      ...options,
+      packages: [creator],
+      games: [{ id: 'creator', source: creator.dir }],
+      scope: { ...scope, browser_ids: ['creator'] },
+    }),
+    true,
+  );
+});
+
+test('exact pnpm repair comparison supplies Creator prerequisites without broadening browser games', async () => {
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const base = '4bbc897656ae4e2eac3f56cb187d3947f29d9353';
+  const head = 'bf68adb31aaf27be4f809c5e875aa8babee8c147';
+  const plan = await main(
+    {
+      GITHUB_EVENT_NAME: 'push',
+      GITHUB_REF_NAME: 'dev',
+      PAGES_VALIDATED_BASE: base,
+      PAGES_DIFF_HEAD: head,
+      VALIDATION_RISK_PLAN: 'true',
+    },
+    root,
+  );
+  assert.equal(plan.diff_base, base);
+  assert.equal(plan.diff_head, head);
+  assert.equal(plan.full, false);
+  assert.equal(plan.cocos, true);
+  assert.deepEqual(plan.game_sources, []);
+  assert.deepEqual(plan.browser_ids, ['letters-words2', 'xiangqi-five']);
+  assert.equal(plan.validation_tools, true);
+});
 const registration = (id) => ({
   id,
   source: `games/local/${id}`,
@@ -1302,7 +1384,7 @@ test('affected logical test command uses exact filters and safely rejects invali
   }
 });
 
-test('actual e48 to c68 CI changes select two H5 navigation games without native or Creator builds', async () => {
+test('actual e48 to c68 CI changes retain two navigation games and their emitted Creator prerequisites', async () => {
   const root = fileURLToPath(new URL('../', import.meta.url));
   const base = 'e48a4c8b5c82311683611c9a5fe1f6786d6ebed2';
   const head = 'c68deaeaea48c138f9a4613dbb719b2031ec1207';
@@ -1321,7 +1403,8 @@ test('actual e48 to c68 CI changes select two H5 navigation games without native
   assert.equal(result.diff_base, base);
   assert.equal(result.diff_head, head);
   assert.equal(result.full, false);
-  assert.equal(result.cocos, false);
+  // Current Shell consumes Tianxia's emitted dist during navigation static checks.
+  assert.equal(result.cocos, true);
   assert.deepEqual(result.browser_ids, ['letters-words2', 'xiangqi-five']);
   assert.deepEqual(result.browser_ids, local.browser_ids);
   assert.deepEqual(result.nine_native_targets, []);
@@ -1417,7 +1500,7 @@ test('shared competition files keep actual Creator H5 consumers and native Creat
   const { standaloneGames: games } = await loadGameCatalog(root);
   const packages = await workspacePackages(root);
   const read = (file) => readFileSync(path.join(root, file), 'utf8');
-  for (const [file, expectedCreator] of [
+  for (const [file, expectedCarding] of [
     ['platforms/competition/client.js', true],
     ['platforms/competition/format.js', false],
   ]) {
@@ -1427,10 +1510,10 @@ test('shared competition files keep actual Creator H5 consumers and native Creat
       fileScopes: nineNativeFileScopes(context),
       readSource: read,
     });
-    assert.equal(scope.game_sources.includes('games/local/carding-car'), expectedCreator);
+    assert.equal(scope.game_sources.includes('games/local/carding-car'), expectedCarding);
     assert.equal(
       requiresIncrementalCocos({ packages, games, changedPaths: [file], scope }),
-      expectedCreator,
+      true, // Shell's emitted Tianxia input is required even when Carding is not selected.
     );
   }
   const native = incrementalPlan({

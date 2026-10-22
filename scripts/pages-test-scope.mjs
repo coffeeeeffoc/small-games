@@ -14,6 +14,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
   riskPlan,
   requiresCocos,
+  affectedPackages,
+  staticBuildTargets,
   workspacePackages,
   isDocumentation as isValidationDocumentation,
 } from './validation-plan.mjs';
@@ -371,7 +373,23 @@ export function requiresIncrementalCocos({
   readSource,
 }) {
   const creatorSources = new Set(packages.filter((pkg) => pkg.creator).map((pkg) => pkg.dir));
+  // Navigation samples also typecheck Shell. Its emitted workspace dependencies
+  // are built by validateTree even when the changed files are validation tools.
+  const browserPrerequisites = (() => {
+    if (!scope.browser) return [];
+    const affected = affectedPackages(packages, [
+      ...changedPaths,
+      ...(scope.consumer_sources || []).map((source) => source + '/package.json'),
+    ]);
+    const shell = packages.find((pkg) => pkg.dir === 'apps/shell-web');
+    if (shell && !affected.includes(shell)) affected.push(shell);
+    const direct = packages.filter((pkg) =>
+      games.some((game) => scope.browser_ids.includes(game.id) && game.source === pkg.dir),
+    );
+    return staticBuildTargets(packages, direct, affected);
+  })();
   return (
+    browserPrerequisites.some((pkg) => pkg.creator) ||
     requiresCocos(
       packages,
       changedPaths.filter(
