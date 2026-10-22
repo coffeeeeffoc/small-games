@@ -19,7 +19,7 @@ import {
   macro,
 } from 'cc';
 
-export const W = 960,
+export const W = 1152,
   H = 540;
 export const C = {
   ink: '#123d37',
@@ -54,6 +54,7 @@ export class MergeView {
   seen = new Set<string>();
   controls: Control[] = [];
   pressed = '';
+  offsetX = 0;
   ready = false;
   error = '';
   disposed = false;
@@ -94,7 +95,7 @@ export class MergeView {
   }
   load() {
     this.error = '';
-    for (const key of ['units', 'world']) {
+    for (const key of ['units', 'world', 'arena', 'crystals']) {
       if (this.assets.has(key)) continue;
       resources.load(key, ImageAsset, (error, asset) => {
         if (this.disposed) return;
@@ -115,6 +116,11 @@ export class MergeView {
         if (key === 'world') {
           frame('home', 0, 0, asset.width, asset.height / 2);
           frame('field', 0, asset.height / 2, asset.width, asset.height / 2);
+        } else if (key === 'arena') {
+          frame('arena', 0, 0, asset.width, asset.height);
+        } else if (key === 'crystals') {
+          frame('crystal0', 0, 0, asset.width / 2, asset.height);
+          frame('crystal1', asset.width / 2, 0, asset.width / 2, asset.height);
         } else {
           const rows = [0, 297, 599, 836, 1086];
           for (let i = 0; i < 16; i++) {
@@ -128,11 +134,15 @@ export class MergeView {
             );
           }
         }
-        this.ready = this.assets.size === 2;
+        this.ready = this.assets.size === 4;
       });
     }
   }
   begin() {
+    this.offsetX = 0;
+    // The camera renders the whole canvas; SHOW_ALL's input viewport alone does not letterbox it.
+    const canvasSize = view.getCanvasSize();
+    this.camera.orthoHeight = Math.max(H / 2, (W * canvasSize.height) / canvasSize.width / 2);
     this.controls = [];
     this.seen.clear();
     this.graphics.forEach((g) => g.clear());
@@ -167,7 +177,7 @@ export class MergeView {
   ) {
     const g = this.graphics[layer];
     g.fillColor = color(fill);
-    g.roundRect(x - W / 2, H / 2 - y - h, w, h, radius);
+    g.roundRect(x + this.offsetX - W / 2, H / 2 - y - h, w, h, radius);
     g.fill();
     if (stroke) {
       g.strokeColor = color(stroke);
@@ -178,7 +188,7 @@ export class MergeView {
   circle(x: number, y: number, r: number, fill: string, stroke = '', layer = 3) {
     const g = this.graphics[layer];
     g.fillColor = color(fill);
-    g.circle(x - W / 2, H / 2 - y, r);
+    g.circle(x + this.offsetX - W / 2, H / 2 - y, r);
     g.fill();
     if (stroke) {
       g.strokeColor = color(stroke);
@@ -190,8 +200,8 @@ export class MergeView {
     const g = this.graphics[layer];
     g.strokeColor = color(stroke);
     g.lineWidth = width;
-    g.moveTo(x - W / 2, H / 2 - y);
-    g.lineTo(tx - W / 2, H / 2 - ty);
+    g.moveTo(x + this.offsetX - W / 2, H / 2 - y);
+    g.lineTo(tx + this.offsetX - W / 2, H / 2 - ty);
     g.stroke();
   }
   text(
@@ -206,7 +216,7 @@ export class MergeView {
     height = size * 1.5,
   ) {
     const n = this.cached('text:' + id, layer);
-    n.setPosition(x - W / 2, H / 2 - y);
+    n.setPosition(x + this.offsetX - W / 2, H / 2 - y);
     n.getComponent(UITransform)!.setContentSize(width, height);
     const l = n.getComponent(Label) || n.addComponent(Label);
     if (l.string !== value) l.string = value;
@@ -236,7 +246,7 @@ export class MergeView {
     angle = 0,
   ) {
     const n = this.cached('image:' + id, layer);
-    n.setPosition(x - W / 2, H / 2 - y);
+    n.setPosition(x + this.offsetX - W / 2, H / 2 - y);
     n.setScale(flip ? -1 : 1, 1, 1);
     n.angle = angle;
     n.getComponent(UITransform)!.setContentSize(w, h);
@@ -283,7 +293,7 @@ export class MergeView {
     this.hit(id, label, x, y, w, h, disabled);
   }
   hit(id: string, label: string, x: number, y: number, w: number, h: number, disabled = false) {
-    this.controls.push({ id, label, x, y, w, h, disabled });
+    this.controls.push({ id, label, x: x + this.offsetX, y, w, h, disabled });
   }
   at(x: number, y: number) {
     return [...this.controls]
@@ -296,37 +306,52 @@ export class MergeView {
     if (p > 0) this.panel(x, y, Math.max(h, w * p), h, fill, '', h / 2, layer);
   }
   crystal(x: number, y: number, enemy: boolean, pulse: number) {
-    this.circle(x, y + 20, 30, '#173d3790', '', 2);
-    this.circle(x, y + 20, 24 + Math.sin(pulse) * 2, enemy ? '#aa434f88' : '#45ceb088', C.gold, 2);
-    const g = this.graphics[2];
-    const polygon = (points: number[][], fill: string) => {
-      g.fillColor = color(fill);
-      g.moveTo(points[0][0] - W / 2, H / 2 - points[0][1]);
-      for (const p of points.slice(1)) g.lineTo(p[0] - W / 2, H / 2 - p[1]);
-      g.close();
-      g.fill();
-      g.strokeColor = color(C.paper);
-      g.lineWidth = 2;
-      g.stroke();
-    };
-    polygon(
-      [
-        [x, y - 54],
-        [x + 24, y - 9],
-        [x, y + 23],
-        [x - 23, y - 9],
-      ],
-      enemy ? '#ec7a8e' : '#72e4d1',
-    );
-    polygon(
-      [
-        [x, y - 54],
-        [x + 24, y - 9],
-        [x, y + 23],
-      ],
-      enemy ? '#ad3d63' : '#279e9c',
-    );
-    this.line(x, y - 44, x - 12, y - 8, '#ffffff', 4, 2);
+    this.circle(x, y, 35 + Math.sin(pulse) * 2, enemy ? '#b52e5733' : '#56e2c033', '', 1);
+    this.image('crystal:' + Number(enemy), 'crystal' + Number(enemy), x, y - 22, 125, 125, 1);
+  }
+  icon(
+    id: string,
+    label: string,
+    kind: 'settings' | 'retry' | 'home' | 'lock',
+    x: number,
+    y: number,
+    size = 64,
+    layer = 3,
+  ) {
+    this.button(id, '', x, y, size, size, false, false, layer);
+    const cx = x + size / 2,
+      cy = y + size / 2,
+      ink = C.paper;
+    if (kind === 'settings') {
+      this.circle(cx, cy, 13, C.ink, ink, layer);
+      this.circle(cx, cy, 4, ink, '', layer);
+      for (let n = 0; n < 8; n++) {
+        const a = (n * Math.PI) / 4;
+        this.line(
+          cx + Math.cos(a) * 13,
+          cy + Math.sin(a) * 13,
+          cx + Math.cos(a) * 20,
+          cy + Math.sin(a) * 20,
+          ink,
+          5,
+          layer,
+        );
+      }
+    } else if (kind === 'retry') {
+      this.circle(cx, cy, 15, C.ink, ink, layer);
+      this.line(cx - 17, cy - 17, cx - 17, cy - 3, ink, 4, layer);
+      this.line(cx - 17, cy - 3, cx - 3, cy - 3, ink, 4, layer);
+    } else if (kind === 'home') {
+      this.line(cx - 20, cy - 1, cx, cy - 18, ink, 4, layer);
+      this.line(cx, cy - 18, cx + 20, cy - 1, ink, 4, layer);
+      this.panel(cx - 13, cy, 26, 20, ink, '', 2, layer);
+      this.panel(cx - 4, cy + 7, 8, 13, C.ink, '', 0, layer);
+    } else {
+      this.circle(cx, cy - 6, 10, C.ink, ink, layer);
+      this.panel(cx - 14, cy - 4, 28, 22, ink, '', 4, layer);
+    }
+    const control = this.controls[this.controls.length - 1];
+    control.label = label;
   }
   pause(x: number, y: number) {
     this.panel(x, y, 76, 72, C.ink, C.gold, 18);

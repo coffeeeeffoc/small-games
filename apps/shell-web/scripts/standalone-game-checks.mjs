@@ -1389,12 +1389,16 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
         timeout: 60000,
       })
       .toBe(true);
-    const tap = async (id) => {
-      const c = await canvas.evaluate(
-        (_, id) =>
-          globalThis.__mergeFront.snapshot().controls.find((c) => c.id === id && !c.disabled),
-        id,
-      );
+    const pointFor = async (id) => {
+      const state = await canvas.evaluate(() => globalThis.__mergeFront.snapshot());
+      const c =
+        typeof id === 'object'
+          ? { ...id, w: 0, h: 0 }
+          : await canvas.evaluate(
+              (_, id) =>
+                globalThis.__mergeFront.snapshot().controls.find((c) => c.id === id && !c.disabled),
+              id,
+            );
       expect(c, id).toBeTruthy();
       const box = await canvas.boundingBox();
       const rotated = await canvas.evaluate(() =>
@@ -1404,12 +1408,16 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       );
       const width = rotated ? box.height : box.width,
         height = rotated ? box.width : box.height;
-      const scale = Math.min(width / 960, height / 540);
-      const x = (width - 960 * scale) / 2 + (c.x + c.w / 2) * scale;
-      const y = (height - 540 * scale) / 2 + (c.y + c.h / 2) * scale;
+      const scale = Math.min(width / state.viewport.width, height / state.viewport.height);
+      const x = (width - state.viewport.width * scale) / 2 + (c.x + c.w / 2) * scale;
+      const y = (height - state.viewport.height * scale) / 2 + (c.y + c.h / 2) * scale;
       const point = rotated
         ? { x: box.x + box.width - y, y: box.y + x }
         : { x: box.x + x, y: box.y + y };
+      return point;
+    };
+    const tap = async (id) => {
+      const point = await pointFor(id);
       if (mobile) await canvas.page().touchscreen.tap(point.x, point.y);
       else await canvas.page().mouse.click(point.x, point.y);
     };
@@ -1418,22 +1426,42 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect
       .poll(() => canvas.evaluate(() => globalThis.__mergeFront.snapshot().screen))
       .toBe('playing');
-    await tap('draw:hero');
-    await tap('fill');
+    const state = await canvas.evaluate(() => globalThis.__mergeFront.snapshot());
+    const a = await pointFor(state.controls.find((c) => c.id.startsWith('card:')).id);
+    const b = await pointFor({
+      x: state.board.x + state.board.w * 0.25,
+      y: state.board.y + state.board.h / 2,
+    });
+    if (mobile) {
+      const session = await canvas.page().context().newCDPSession(canvas.page());
+      try {
+        await session.send('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints: [{ ...a, id: 1 }],
+        });
+        await session.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [{ ...b, id: 1 }],
+        });
+        await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      } finally {
+        await session.detach();
+      }
+    } else {
+      await canvas.page().mouse.move(a.x, a.y);
+      await canvas.page().mouse.down();
+      await canvas.page().mouse.move(b.x, b.y, { steps: 5 });
+      await canvas.page().mouse.up();
+    }
     await expect
       .poll(() =>
-        canvas.evaluate(() => globalThis.__mergeFront.snapshot().match.sides[0].slots[0].level),
+        canvas.evaluate(() => globalThis.__mergeFront.snapshot().match.sides[0].formation.length),
       )
       .toBe(1);
+    await tap('start-round');
     await expect
-      .poll(
-        () =>
-          canvas.evaluate(() =>
-            globalThis.__mergeFront.snapshot().match.units.some((u) => u.side === 0),
-          ),
-        { timeout: 15000 },
-      )
-      .toBe(true);
+      .poll(() => canvas.evaluate(() => globalThis.__mergeFront.snapshot().match.roundStage))
+      .toBe('battle');
     await tap('pause');
     await expect
       .poll(() => canvas.evaluate(() => globalThis.__mergeFront.snapshot().screen))
