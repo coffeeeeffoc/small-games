@@ -20,7 +20,7 @@ it('filters, explains evaluations, restores shared URLs, and retains selections 
   }
   try {
     await act(async () => root.render(<ShellApp runtimeClient={false} />));
-    expect(ids()).toHaveLength(2);
+    expect(ids()).toHaveLength(1);
     expect(ids()).not.toContain('merge-front');
     expect(ids()).not.toContain('travel-bund');
     await click('全部游戏');
@@ -35,7 +35,7 @@ it('filters, explains evaluations, restores shared URLs, and retains selections 
     expect(ids()).toHaveLength(7);
     await click('清空筛选');
     await click('毫无潜力');
-    expect(ids().sort()).toEqual(['chase-thief', 'retreat-rally']);
+    expect(ids().sort()).toEqual(['chase-thief']);
     await click('重置全部');
     await click('上轮已改造');
     await click('详情卡片');
@@ -64,7 +64,7 @@ it('filters, explains evaluations, restores shared URLs, and retains selections 
       window.history.replaceState(null, '', '/?catalogTab=hold');
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
-    expect(ids()).toHaveLength(2);
+    expect(ids()).toHaveLength(1);
   } finally {
     await act(async () => root.unmount());
     window.history.replaceState(null, '', '/');
@@ -96,7 +96,7 @@ it('shows every exclusive rollout, visible implementation states, and filtered c
       tabs()
         .slice(0, 5)
         .map((button) => button.textContent),
-    ).toEqual(['全部游戏43', '上轮已改造7', '本轮改造14', '有潜力 · 后续改造20', '暂缓投入2']);
+    ).toEqual(['全部游戏42', '上轮已改造7', '本轮改造14', '有潜力 · 后续改造20', '暂缓投入1']);
     for (const article of articles()) {
       expect(article.querySelector('.game-rollout strong')?.textContent).toBeTruthy();
       expect(article.querySelector('.game-rollout span')?.textContent).toBeTruthy();
@@ -119,7 +119,7 @@ it('shows every exclusive rollout, visible implementation states, and filtered c
     await click('全部游戏');
     expect(articles()).toHaveLength(41);
     expect(tabs().find((button) => button.textContent?.startsWith('暂缓投入'))?.textContent).toBe(
-      '暂缓投入0 / 2',
+      '暂缓投入0 / 1',
     );
   } finally {
     await act(async () => root.unmount());

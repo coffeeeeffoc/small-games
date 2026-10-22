@@ -46,7 +46,6 @@
 | 双面机关盒               | `two-sided-box`                | [two-sided-box](../games/local/two-sided-box/)                               | 从随机两个角度观察六面机关，逐面揭示线索、对齐孔板，让小球穿过五十个谜盒，通关后旋转查看完整三维结构。                       |
 | 榫间 · 鲁班锁            | `luban-workshop`               | [luban-workshop](../games/local/luban-workshop/)                             | 按真实结构重建的鲁班锁与互锁木构，从完整形态拆解或复原，旋转单件与组合，对照同步三维参考探索榫卯。                           |
 | 惊喜别穿帮               | `surprise-kept`                | [surprise-kept](../games/local/surprise-kept/)                               | 安排倒茶与屏风，搬动礼物和钥匙，利用不同目击记忆解开八关生日惊喜。                                                           |
-| 收兵再冲                 | `retreat-rally`                | [retreat-rally](../games/local/retreat-rally/)                               | 按住收兵，松手进攻。带六名士兵躲过箭雨，再趁装填夺下敌旗；三关战役、模拟匹配与同屏好友对战。                                 |
 | 一炮拆城                 | `castle-cannon`                | [game-castle-cannon](../games/local/game-castle-cannon/)                     | 隔城实时互轰！调炮蓄力、望远镜校射，切换炮位与地堡补给，守住炮手生命，摧毁对方城防。                                         |
 | 重力方舱                 | `tetracube`                    | [tetracube](../games/local/tetracube/)                                       | 拖动并三轴旋转四连立方体，填满水平层；颠倒 6×6×12 容器，让方块向下落定，制造连锁消除。                                       |
 | 打破笼子接住人           | `cage-rescue`                  | [cage-rescue](../games/local/cage-rescue/)                                   | 拖动挡板反弹小球、击碎笼子，安排接球与接人的顺序，在六种阵形中救出至少四名队友。                                             |

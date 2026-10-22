@@ -21,7 +21,6 @@ const immersiveGame = (id) =>
     'ashfall-front',
     'carrom-club',
     'three-choose-two',
-    'retreat-rally',
     'cage-rescue',
     'chase-thief',
     'orbit-atelier',
@@ -201,14 +200,6 @@ try {
         await frame.getByRole('button', { name: /^退出关卡/ }).click();
         await expect(frame.locator('#game')).toHaveAttribute('data-screen', 'home');
         await expect(page.locator('.standalone-page nav')).toBeVisible();
-        await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
-      } else if (game.id === 'retreat-rally') {
-        await expect(page.locator('.standalone-page nav')).toBeHidden();
-        await frame.locator('#pause').click();
-        await expect(frame.locator('#paused')).toBeVisible();
-        await expect(page.locator('.standalone-page nav')).toBeVisible();
-        await frame.locator('#paused [data-go="home"]').click();
-        await expect(frame.locator('#home')).toBeVisible();
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
       } else if (game.id === 'ink-is-everything') {
         await frame.locator('#pause').click();

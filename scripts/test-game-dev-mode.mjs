@@ -137,7 +137,6 @@ try {
           game.id === 'ashfall-front' ||
           game.id === 'carrom-club' ||
           game.id === 'three-choose-two' ||
-          game.id === 'retreat-rally' ||
           game.id === 'cage-rescue' ||
           game.id === 'chase-thief' ||
           game.id === 'orbit-atelier' ||

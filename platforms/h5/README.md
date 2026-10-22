@@ -40,7 +40,7 @@ publishing.dispose();
 
 ## 打包与本地预览
 
-Vite 入口可直接相对导入公共源，会被打入本游戏产物。静态游戏使用本地 URL `./publishing.js`：`build.mjs` 从 `platforms/h5/publishing.js` 复制到产物根，开发服务器将 `/publishing.js` 映射到同一公共源。不要让公开站点引用 `/../../../platforms/`，也不要手工维护游戏副本。已接入入口：tower-brake、cage-rescue、ball-roguelite、three-choose-two、flick-arena、game-moss-garden、ember-bounce、chase-thief、retreat-rally、tiny-signals、orbit-atelier、wulong-city、surprise-kept、homebound-station、waterline-station、rescue-team、out-of-frame、fold-the-world、two-sided-box。各游戏只启用适合自身循环的分享/广告能力；接入公共发布适配不等于全部启用广告。
+Vite 入口可直接相对导入公共源，会被打入本游戏产物。静态游戏使用本地 URL `./publishing.js`：`build.mjs` 从 `platforms/h5/publishing.js` 复制到产物根，开发服务器将 `/publishing.js` 映射到同一公共源。不要让公开站点引用 `/../../../platforms/`，也不要手工维护游戏副本。已接入入口：tower-brake、cage-rescue、ball-roguelite、three-choose-two、flick-arena、game-moss-garden、ember-bounce、chase-thief、tiny-signals、orbit-atelier、wulong-city、surprise-kept、homebound-station、waterline-station、rescue-team、out-of-frame、fold-the-world、two-sided-box。各游戏只启用适合自身循环的分享/广告能力；接入公共发布适配不等于全部启用广告。
 
 验证命令：`node --test platforms/h5/tests/publishing.test.mjs`。测试覆盖公开参数清理、取消/复制失败、频控、前后台、完整观看、销毁、超时及暂停恢复。浏览器触屏、各游戏独立发布路径、真实系统分享由游戏回归补充；SDK fixture 或桌面浏览器均不能替代渠道真机验收。
 

@@ -259,13 +259,6 @@
     "output": "dist"
   },
   {
-    "id": "retreat-rally",
-    "source": "games/local/retreat-rally",
-    "title": "收兵再冲",
-    "description": "按住收兵，松手进攻。带六名士兵躲过箭雨，再趁装填夺下敌旗；三关战役、模拟匹配与同屏好友对战。",
-    "output": "dist"
-  },
-  {
     "id": "castle-cannon",
     "source": "games/local/game-castle-cannon",
     "title": "一炮拆城",
