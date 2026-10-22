@@ -60,7 +60,7 @@ const paint = (hex: string) => new Color().fromHEX(hex);
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 type ScreenPoint = { x: number; y: number };
 type ScreenBox = ScreenPoint & { w: number; h: number };
-type Kind = 'taxi' | 'person' | 'station' | 'tree' | 'flowers' | 'bench' | 'lamp';
+type Kind = 'taxi' | 'person' | 'station' | 'station-door' | 'tree' | 'flowers' | 'bench' | 'lamp';
 type Visual = {
   node: Node;
   sprite: Sprite;
@@ -124,6 +124,7 @@ export class StationWorld {
   private taxiFrames: SpriteFrame[] = [];
   private propFrames: SpriteFrame[] = [];
   private stationFrame?: SpriteFrame;
+  private stationDoorFrames: SpriteFrame[] = [];
   private readonly carViews = new Map<string, Visual>();
   private readonly personViews = new Map<string, Visual>();
   private readonly props: Visual[] = [];
@@ -314,6 +315,17 @@ export class StationWorld {
         (80 * station.height) / 780,
         (1973 * station.width) / 2017,
         (584 * station.height) / 780,
+      ),
+    );
+    this.stationDoorFrames = [360, 795, 1225, 1662].map((x) =>
+      this.frame(
+        this.stationFrame!.texture as Texture2D,
+        new Rect(
+          ((x - 155) * station.width) / 2017,
+          (360 * station.height) / 780,
+          (310 * station.width) / 2017,
+          (304 * station.height) / 780,
+        ),
       ),
     );
   }
@@ -654,8 +666,8 @@ export class StationWorld {
         );
     }
     const labelPoint = this.project({ x: 0, z: -6 });
-    const signY = this.landscape ? labelPoint.y : labelPoint.y - this.facadeHeight * 0.48;
-    const signX = this.landscape ? labelPoint.x - this.facadeHeight * 0.48 : labelPoint.x;
+    const signY = this.landscape ? this.area.y + 18 : labelPoint.y - this.facadeHeight * 0.48;
+    const signX = this.landscape ? this.area.x + this.facadeHeight * 0.48 : labelPoint.x;
     const signWidth = this.landscape ? 70 : Math.min(118, this.axisWidth * 0.36);
     this.rect(g, { x: signX - signWidth / 2, y: signY - 14, w: signWidth, h: 28 }, '#fff2d6', 8);
     this.stationSign.node.setPosition(signX - this.w / 2, this.h / 2 - signY);
@@ -684,7 +696,7 @@ export class StationWorld {
     const shadow = this.node(`${id} contact shadow`, node).addComponent(Graphics);
     const body = this.node(`${id} painted sprite`, node);
     const transform = body.getComponent(UITransform)!;
-    transform.setAnchorPoint(0.5, kind === 'taxi' ? 0.5 : 0.08);
+    transform.setAnchorPoint(0.5, kind === 'taxi' || kind === 'station-door' ? 0.5 : 0.08);
     const sprite = body.addComponent(Sprite);
     sprite.sizeMode = Sprite.SizeMode.CUSTOM;
     sprite.spriteFrame = frame;
@@ -755,12 +767,17 @@ export class StationWorld {
         this.fit(visual, this.personSize, this.personSize);
         break;
       case 'station': {
+        visual.node.active = !this.landscape;
         visual.width = this.axisWidth - 16;
         visual.height = this.facadeHeight;
         visual.transform.setContentSize(visual.width, visual.height);
-        visual.sprite.node.setRotationFromEuler(0, 0, this.landscape ? 90 : 0);
+        visual.sprite.node.setRotationFromEuler(0, 0, 0);
         break;
       }
+      case 'station-door':
+        visual.node.active = this.landscape;
+        this.fit(visual, Math.min(50, this.facadeHeight * 0.65), 42);
+        break;
       case 'tree':
         this.fit(visual, this.taxiSize * 1.24, this.taxiSize * 1.42);
         break;
@@ -792,12 +809,22 @@ export class StationWorld {
   private place(visual: Visual, point: Point) {
     visual.point = point;
     const p = this.project(point, 0);
+    if (visual.kind === 'station-door') p.x -= this.facadeHeight * 0.54;
     visual.depth = p.y;
     visual.node.setPosition(p.x - this.w / 2, this.h / 2 - p.y, 0);
   }
 
   private buildScenery() {
     this.props.push(this.visual('Station facade', this.stationFrame!, 'station', { x: 0, z: -6 }));
+    for (const [index, bay] of this.geometry.bays.entries())
+      this.props.push(
+        this.visual(
+          `Side station door ${index + 1}`,
+          this.stationDoorFrames[index]!,
+          'station-door',
+          bay.door,
+        ),
+      );
   }
 
   reset(simulation: Simulation) {
