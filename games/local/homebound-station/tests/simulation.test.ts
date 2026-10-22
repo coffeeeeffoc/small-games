@@ -14,6 +14,7 @@ import {
   queuePosition,
 } from '../src/simulation.ts';
 import type { Simulation } from '../src/simulation.ts';
+import { solveLevel } from './support/solver.ts';
 
 function invariant(s: Simulation) {
   const leaves = s.groups.filter((g) => !s.groups.some((c) => c.parentGroupId === g.id));
@@ -81,25 +82,7 @@ function drive(s: Simulation, seconds: number) {
   }
 }
 function solve(config: LevelConfig, order: 'forward' | 'reverse' | 'random') {
-  const s = createSimulation(config);
-  let seed = config.id * 7919;
-  const rand = () => {
-    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-    return seed / 4294967296;
-  };
-  for (let i = 0; i < 14000 && !s.won; i++) {
-    const cars =
-      order === 'forward'
-        ? s.vehicles
-        : order === 'reverse'
-          ? [...s.vehicles].reverse()
-          : s.vehicles
-              .map((v) => ({ v, key: rand() }))
-              .sort((a, b) => a.key - b.key)
-              .map((item) => item.v);
-    for (const v of cars) if (canDispatch(s, v.id).ok) assert(dispatch(s, v.id).ok);
-    drive(s, 0.05);
-  }
+  const { state: s } = solveLevel(config, order, { onStep: invariant });
   assert(
     s.won,
     `${config.id}/${order} 关卡应可解；t=${s.time}，已接${s.delivered.size}/${s.target}`,

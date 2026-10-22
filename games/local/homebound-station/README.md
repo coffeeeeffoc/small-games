@@ -57,6 +57,38 @@ node apps/shell-minigame/scripts/taptap-cocos.mjs --game homebound-station --pre
 
 ## 验证
 
+### 固定节奏诊断与异常回放
+
+2026-10-22 的真实 Creator 1 倍速触屏复核已通过：`90/random` 用时 203.5 秒、三星余量 6.6 秒；`90/reverse` 用时 203.6 秒、余量 6.5 秒。两例正式进度保持不变、浏览器零错误，最大观测输入迟到均为 0.6 秒。见[完整交互证据与截图](docs/diagnostics/touch-2026-10-22/evidence.json)。这与确定性模拟报告分开记录，不声称其时间或 RAF 采样队列峰值等同精确 tick 回放。
+
+`diagnose` 复用规则测试中的同一个 solver，按正序、倒序和固定种子随机顺序运行全部 100 关。默认每 0.5 秒最多派出一辆当前可派车辆，第一拍为模拟时间 0；无可派车辆时空过这一拍，不补发。节奏必须是模拟步长 0.05 秒的正整数倍。随机种子为关卡 ID × 7919，每拍按既有 LCG 对车辆排序。旧规则测试仍保留每 tick 批量派车和逐步 SAT、乘客守恒等断言。
+
+```powershell
+pnpm --filter @coffeeeeffoc/homebound-station diagnose
+pnpm --filter @coffeeeeffoc/homebound-station diagnose --interval 0.75 --out reports/dispatch-0.75s.json
+pnpm --filter @coffeeeeffoc/homebound-station diagnose --replay reports/dispatch-diagnostics.json
+pnpm --filter @coffeeeeffoc/homebound-station diagnose --replay reports/dispatch-diagnostics.json --case 100/random
+```
+
+报告包含 300 条结果、每次派车的模拟 tick 和车辆 ID、配置与最终状态摘要、异常排行及 10 个优先复核案例。报告不写入墙钟时间，因此相同源码与参数生成的 JSON 可逐字节比较。生成时会把全部动作日志重新输入真实规则模拟，逐 tick 推进并核对最终状态、计时、星级与峰值；单独回放也会拒绝源码/配置漂移、同一拍多次输入、非法派车或被改写的结果。
+
+本次 [0.5 秒基线报告](docs/diagnostics/dispatch-0.5s.json) 为 300/300 通关、300/300 三星，通关时间 22.8–203.35 秒。最小三星余量为 6.75 秒（`90/random`、`90/reverse`），未触发上述异常标记；真实交互优先复核这两个最接近阈值的案例。全表最大排队峰值为 14 辆，道路受阻峰值为 17 辆。该报告是规则模拟结果，浏览器复核结果单独保存。
+
+- **通关时间**是最后完成时的模拟秒数；超出默认 700 秒限额则标记未完成，不能算作通关。
+- **星级余量**按生产规则的 `maxWait` 计算：最大登车等待时间距离三星、二星阈值各还剩多少秒。它不是“星级阈值减通关时间”；负值表示已超出该档阈值，未完成时为 `null`。
+- **最大排队**是已经分配泊位、尚未清场、但还未成为对应泊位当前占用者的车辆数峰值；含等待入位的在途车辆。另列因道路冲突受阻的车辆峰值，避免混为乘客人数或仅统计车辆堵塞。每次派车及每个 0.05 秒步长后取样。
+- **异常排行**先列未完成，再按三星余量从小到大、两种峰值从大到小、耗时从长到短排序。标记未完成、低于三星和三星余量不超过 5 秒；这是人工复核顺序，不直接证明关卡有缺陷，也不会修改难度或奖励。
+
+真实产物复核使用同一报告，默认选排行最前的两个案例；可指定异常案例。先完成当前源码的 Creator 构建，再执行：
+
+```powershell
+pnpm --filter @coffeeeeffoc/homebound-station build
+pnpm --filter @coffeeeeffoc/homebound-station diagnose:browser
+pnpm --filter @coffeeeeffoc/homebound-station diagnose:browser --report reports/dispatch-diagnostics.json --cases 100/random,99/reverse
+```
+
+浏览器脚本只读 `homeboundSnapshot` / `homeboundView`，通过真实投影坐标触摸车辆，不调用派车/推进接口或修改游戏状态。在隔离试玩模式以 1 倍速等待模拟时间，迟到的输入不批量追赶；输出每次输入的计划时间、接收观测时间、延迟、RAF 采样峰值、结果截图和正式进度未改变的断言，保存到 `test-results/dispatch/`。加载结束时模拟可能已经前进，输入与渲染也有调度延迟，因此这是实际交互复核，不冒充 Node 中精确到 tick 的回放。星级不一致会明确失败，须结合记录的延迟分析。默认环境为桌面 Chromium 的 390×844 触屏模拟，不能替代手机宿主实测或人类试玩。缺失、过期的 Creator 产物直接报错，不跳过验证。
+
 规则测试包含100关正向/反向/固定随机顺序共300次完整清场，逐tick独立SAT碰撞检测、乘客ID守恒、固定接客位置、8车同tick出发、暂停和1/2/3/5×一致性；另验证存档迁移、奖励完成/失败/取消/重开及加载品牌。
 
 `test:browser` 必须使用真实 Creator `dist`，以触屏经过首页、选关、派车、暂停、重试、结算、解锁、存档、开发模式和广告回调，记录390×844、320×568及844×390截图。`CAPTURE_GAME_EVIDENCE=1` 把证据存入本轮设计目录。浏览器触屏模拟不等于手机实机验收。

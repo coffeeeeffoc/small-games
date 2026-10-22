@@ -611,9 +611,11 @@ export class GardenView {
     return { x: ox + rect.x * scale, y: oy + rect.y * scale, w: rect.w * scale, h: rect.h * scale };
   }
   dispose() {
+    if (this.disposed) return;
     this.disposed = true;
     this.root.destroy();
-    this.camera.node.destroy();
+    // The owning node may have already destroyed its Camera child.
+    this.camera.node?.destroy();
     for (const asset of [...this.owned].reverse()) asset.destroy();
     for (const asset of this.images) asset.decRef();
   }

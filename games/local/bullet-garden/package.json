@@ -21,7 +21,9 @@
     "build:wechat": "node scripts/build.mjs wechatgame",
     "build:desktop": "node scripts/build.mjs web-desktop",
     "build:taptap": "node scripts/build-taptap.mjs",
-    "test:ads-browser": "node tests/cocos-ads.browser.mjs"
+    "test:ads-browser": "node tests/cocos-ads.browser.mjs",
+    "test:audio-browser": "node tests/cocos-audio.browser.mjs",
+    "test:performance": "node tests/cocos-performance.mjs"
   },
   "engines": {
     "node": ">=20"

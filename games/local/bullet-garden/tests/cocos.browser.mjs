@@ -217,3 +217,4 @@ try {
   await h.close();
 }
 console.log('Creator production touch acceptance passed.');
+await import('./cocos-audio.browser.mjs');

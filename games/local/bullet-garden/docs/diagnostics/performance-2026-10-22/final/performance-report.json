@@ -1,0 +1,1046 @@
+{
+  "schema": 1,
+  "createdAt": "2026-10-22T07:21:15.817Z",
+  "sourceHash": "d8bc6077484acd06ebac1c47620363d69f07cd019fabc541faa730558a6586a5",
+  "measuredUrl": "http://127.0.0.1:51491",
+  "scriptHash": "6c0e1a45f77377123b4c75b5d90f9d5553c1d6ec2c590b1df2175ab63d2ec770",
+  "creator": "3.8.8",
+  "browser": "140.0.7339.186",
+  "machine": {
+    "platform": "win32",
+    "arch": "x64",
+    "cpu": "12th Gen Intel(R) Core(TM) i7-12700KF"
+  },
+  "method": {
+    "seed": 20261022,
+    "stepSeconds": 0.016666666666666666,
+    "warmup": 120,
+    "samples": 600,
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 1
+    },
+    "timing": "One fixed simulation step per real Creator update; real browser clock and renderer. Pre-advance uses individual fixed steps. Frame phase is wall time, not GPU time; Creator frame-start interval is not raw rAF or presentation time.",
+    "input": "moveX=cos(step/60*0.45)*0.6; moveY=sin(step/60*0.45)*0.6; autoFire=true; lexicographically first offered upgrade",
+    "limitations": "Desktop headless Chromium touch viewport; not a physical phone. Pre-advance skips earlier rendering/GC history. No claim that other computer workloads were absent."
+  },
+  "results": [
+    {
+      "scenario": "first",
+      "run": 1,
+      "diagnostic": false,
+      "metadata": {
+        "profile": {
+          "version": 1,
+          "xp": 0,
+          "coins": 0,
+          "completed": [],
+          "settledRuns": [],
+          "upgrades": {
+            "attack": 0,
+            "fireRate": 0,
+            "health": 0,
+            "armor": 0,
+            "seedMastery": 0,
+            "pet": 0,
+            "weaponDamage": 0,
+            "weaponRate": 0,
+            "weaponPierce": 0
+          },
+          "equippedWeapon": "bloom-rifle",
+          "equippedPet": "sprout-helper",
+          "selectedLevelId": "ruins"
+        },
+        "player": {
+          "x": 837.2507164694134,
+          "y": 496.3734728912421,
+          "hp": 100,
+          "maxHp": 100,
+          "armor": 0,
+          "layer": "ground",
+          "radius": 18,
+          "angle": -0.15,
+          "invulnerable": 0,
+          "dashCooldown": 0,
+          "dashTime": 0,
+          "dashX": 0,
+          "dashY": 0,
+          "terrainSlipCooldown": 0,
+          "terrainLastX": 835.425274813009,
+          "terrainLastY": 495.5085088694104,
+          "terrainContacts": []
+        },
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "vendor": "Google Inc. (Google)",
+        "gfxAPI": 7,
+        "visibility": "visible",
+        "preAdvance": 60
+      },
+      "startHash": "3ac964167764539f20b18569bf14f938199c826360d6c3057ca99b81011ef07b",
+      "endHash": "dc96af6bd7ce8aff11d2b67ef42988937d639cce074a2d230d4d800bbefafd08",
+      "simulationTime": [
+        2.9999999999999942,
+        13.000000000000226
+      ],
+      "metrics": {
+        "intervalMs": {
+          "mean": 16.6661666666468,
+          "p50": 16.69999998807907,
+          "p95": 17.600000023841858,
+          "min": 15.099999964237213,
+          "max": 18.30000001192093
+        },
+        "phaseMs": {
+          "mean": 0.6484999998410543,
+          "p50": 0.6000000238418579,
+          "p95": 0.8999999761581421,
+          "min": 0.2999999523162842,
+          "max": 10.600000023841858
+        },
+        "updateMs": {
+          "mean": 0.4049999992052714,
+          "p50": 0.3999999761581421,
+          "p95": 0.5999999642372131,
+          "min": 0.10000002384185791,
+          "max": 10
+        },
+        "drawCalls": {
+          "mean": 10.4,
+          "p50": 10,
+          "p95": 11,
+          "min": 10,
+          "max": 11
+        },
+        "enemies": {
+          "mean": 0.2866666666666667,
+          "p50": 0,
+          "p95": 1,
+          "min": 0,
+          "max": 1
+        },
+        "bullets": {
+          "mean": 1.7883333333333333,
+          "p50": 2,
+          "p95": 3,
+          "min": 0,
+          "max": 3
+        },
+        "plants": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0
+        },
+        "particles": {
+          "mean": 2.6783333333333332,
+          "p50": 0,
+          "p95": 11,
+          "min": 0,
+          "max": 14
+        },
+        "telegraphs": {
+          "mean": 0.21,
+          "p50": 0,
+          "p95": 1,
+          "min": 0,
+          "max": 1
+        },
+        "spritePool": {
+          "mean": 2,
+          "p50": 2,
+          "p95": 2,
+          "min": 2,
+          "max": 2
+        },
+        "labelPool": {
+          "mean": 8,
+          "p50": 8,
+          "p95": 8,
+          "min": 8,
+          "max": 8
+        }
+      }
+    },
+    {
+      "scenario": "dense",
+      "run": 1,
+      "diagnostic": false,
+      "metadata": {
+        "profile": {
+          "version": 1,
+          "xp": 10000,
+          "coins": 0,
+          "completed": [
+            "ruins",
+            "meadow",
+            "wetland",
+            "quarry",
+            "windpass",
+            "hollow",
+            "terraces",
+            "bastion",
+            "mistwood",
+            "hailfield",
+            "heartgarden",
+            "deepsoil",
+            "stonebloom"
+          ],
+          "settledRuns": [],
+          "upgrades": {
+            "attack": 0,
+            "fireRate": 0,
+            "health": 20,
+            "armor": 15,
+            "seedMastery": 0,
+            "pet": 0,
+            "weaponDamage": 0,
+            "weaponRate": 0,
+            "weaponPierce": 0
+          },
+          "equippedWeapon": "bloom-rifle",
+          "equippedPet": "sprout-helper",
+          "selectedLevelId": "skyreach"
+        },
+        "player": {
+          "x": 820.0564389955704,
+          "y": 225.94412722461735,
+          "hp": 260.77000000000675,
+          "maxHp": 400,
+          "armor": 45,
+          "layer": "ground",
+          "radius": 18,
+          "angle": 0.973482082769289,
+          "invulnerable": 0.983333333333334,
+          "dashCooldown": 0,
+          "dashTime": 0,
+          "dashX": 0,
+          "dashY": 0,
+          "terrainSlipCooldown": 0,
+          "terrainLastX": 818.0744399651983,
+          "terrainLastY": 225.5541530670067,
+          "terrainContacts": []
+        },
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "vendor": "Google Inc. (Google)",
+        "gfxAPI": 7,
+        "visibility": "visible",
+        "preAdvance": 10080
+      },
+      "startHash": "c5ee24b43fc6edd02eea9625232ca48d29aa170e39a146089049532f82c2a64a",
+      "endHash": "0d5e6c4b961af200dcbf2da519947bf9ba758dfeff33d4cf29427a69fe219c48",
+      "simulationTime": [
+        170.00000000002743,
+        180.00000000003539
+      ],
+      "metrics": {
+        "intervalMs": {
+          "mean": 16.664666666686536,
+          "p50": 16.600000023841858,
+          "p95": 17.80000001192093,
+          "min": 15,
+          "max": 18.69999998807907
+        },
+        "phaseMs": {
+          "mean": 1.0793333326776822,
+          "p50": 1.0999999642372131,
+          "p95": 1.5,
+          "min": 0.5999999642372131,
+          "max": 2.100000023841858
+        },
+        "updateMs": {
+          "mean": 0.8036666665474573,
+          "p50": 0.800000011920929,
+          "p95": 1.100000023841858,
+          "min": 0.3999999761581421,
+          "max": 1.5
+        },
+        "drawCalls": {
+          "mean": 11,
+          "p50": 11,
+          "p95": 11,
+          "min": 11,
+          "max": 11
+        },
+        "enemies": {
+          "mean": 7.656666666666666,
+          "p50": 7,
+          "p95": 10,
+          "min": 6,
+          "max": 11
+        },
+        "bullets": {
+          "mean": 1.145,
+          "p50": 1,
+          "p95": 3,
+          "min": 0,
+          "max": 3
+        },
+        "plants": {
+          "mean": 9.811666666666667,
+          "p50": 10,
+          "p95": 11,
+          "min": 8,
+          "max": 11
+        },
+        "particles": {
+          "mean": 19.955,
+          "p50": 18,
+          "p95": 35,
+          "min": 3,
+          "max": 50
+        },
+        "telegraphs": {
+          "mean": 1.2733333333333334,
+          "p50": 1,
+          "p95": 3,
+          "min": 0,
+          "max": 4
+        },
+        "spritePool": {
+          "mean": 22.411666666666665,
+          "p50": 23,
+          "p95": 23,
+          "min": 19,
+          "max": 23
+        },
+        "labelPool": {
+          "mean": 8,
+          "p50": 8,
+          "p95": 8,
+          "min": 8,
+          "max": 8
+        }
+      }
+    },
+    {
+      "scenario": "first",
+      "run": 2,
+      "diagnostic": false,
+      "metadata": {
+        "profile": {
+          "version": 1,
+          "xp": 0,
+          "coins": 0,
+          "completed": [],
+          "settledRuns": [],
+          "upgrades": {
+            "attack": 0,
+            "fireRate": 0,
+            "health": 0,
+            "armor": 0,
+            "seedMastery": 0,
+            "pet": 0,
+            "weaponDamage": 0,
+            "weaponRate": 0,
+            "weaponPierce": 0
+          },
+          "equippedWeapon": "bloom-rifle",
+          "equippedPet": "sprout-helper",
+          "selectedLevelId": "ruins"
+        },
+        "player": {
+          "x": 837.2507164694134,
+          "y": 496.3734728912421,
+          "hp": 100,
+          "maxHp": 100,
+          "armor": 0,
+          "layer": "ground",
+          "radius": 18,
+          "angle": -0.15,
+          "invulnerable": 0,
+          "dashCooldown": 0,
+          "dashTime": 0,
+          "dashX": 0,
+          "dashY": 0,
+          "terrainSlipCooldown": 0,
+          "terrainLastX": 835.425274813009,
+          "terrainLastY": 495.5085088694104,
+          "terrainContacts": []
+        },
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "vendor": "Google Inc. (Google)",
+        "gfxAPI": 7,
+        "visibility": "visible",
+        "preAdvance": 60
+      },
+      "startHash": "3ac964167764539f20b18569bf14f938199c826360d6c3057ca99b81011ef07b",
+      "endHash": "dc96af6bd7ce8aff11d2b67ef42988937d639cce074a2d230d4d800bbefafd08",
+      "simulationTime": [
+        2.9999999999999942,
+        13.000000000000226
+      ],
+      "metrics": {
+        "intervalMs": {
+          "mean": 16.666000000039737,
+          "p50": 16.69999998807907,
+          "p95": 17.700000047683716,
+          "min": 14.799999952316284,
+          "max": 18.5
+        },
+        "phaseMs": {
+          "mean": 0.6479999990264574,
+          "p50": 0.6000000238418579,
+          "p95": 0.9000000357627869,
+          "min": 0.2999999523162842,
+          "max": 1.800000011920929
+        },
+        "updateMs": {
+          "mean": 0.39683333377043406,
+          "p50": 0.3999999761581421,
+          "p95": 0.5999999642372131,
+          "min": 0.19999998807907104,
+          "max": 0.7000000476837158
+        },
+        "drawCalls": {
+          "mean": 10.4,
+          "p50": 10,
+          "p95": 11,
+          "min": 10,
+          "max": 11
+        },
+        "enemies": {
+          "mean": 0.2866666666666667,
+          "p50": 0,
+          "p95": 1,
+          "min": 0,
+          "max": 1
+        },
+        "bullets": {
+          "mean": 1.7883333333333333,
+          "p50": 2,
+          "p95": 3,
+          "min": 0,
+          "max": 3
+        },
+        "plants": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0
+        },
+        "particles": {
+          "mean": 2.6783333333333332,
+          "p50": 0,
+          "p95": 11,
+          "min": 0,
+          "max": 14
+        },
+        "telegraphs": {
+          "mean": 0.21,
+          "p50": 0,
+          "p95": 1,
+          "min": 0,
+          "max": 1
+        },
+        "spritePool": {
+          "mean": 2,
+          "p50": 2,
+          "p95": 2,
+          "min": 2,
+          "max": 2
+        },
+        "labelPool": {
+          "mean": 8,
+          "p50": 8,
+          "p95": 8,
+          "min": 8,
+          "max": 8
+        }
+      }
+    },
+    {
+      "scenario": "dense",
+      "run": 2,
+      "diagnostic": false,
+      "metadata": {
+        "profile": {
+          "version": 1,
+          "xp": 10000,
+          "coins": 0,
+          "completed": [
+            "ruins",
+            "meadow",
+            "wetland",
+            "quarry",
+            "windpass",
+            "hollow",
+            "terraces",
+            "bastion",
+            "mistwood",
+            "hailfield",
+            "heartgarden",
+            "deepsoil",
+            "stonebloom"
+          ],
+          "settledRuns": [],
+          "upgrades": {
+            "attack": 0,
+            "fireRate": 0,
+            "health": 20,
+            "armor": 15,
+            "seedMastery": 0,
+            "pet": 0,
+            "weaponDamage": 0,
+            "weaponRate": 0,
+            "weaponPierce": 0
+          },
+          "equippedWeapon": "bloom-rifle",
+          "equippedPet": "sprout-helper",
+          "selectedLevelId": "skyreach"
+        },
+        "player": {
+          "x": 820.0564389955704,
+          "y": 225.94412722461735,
+          "hp": 260.77000000000675,
+          "maxHp": 400,
+          "armor": 45,
+          "layer": "ground",
+          "radius": 18,
+          "angle": 0.973482082769289,
+          "invulnerable": 0.983333333333334,
+          "dashCooldown": 0,
+          "dashTime": 0,
+          "dashX": 0,
+          "dashY": 0,
+          "terrainSlipCooldown": 0,
+          "terrainLastX": 818.0744399651983,
+          "terrainLastY": 225.5541530670067,
+          "terrainContacts": []
+        },
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "vendor": "Google Inc. (Google)",
+        "gfxAPI": 7,
+        "visibility": "visible",
+        "preAdvance": 10080
+      },
+      "startHash": "c5ee24b43fc6edd02eea9625232ca48d29aa170e39a146089049532f82c2a64a",
+      "endHash": "0d5e6c4b961af200dcbf2da519947bf9ba758dfeff33d4cf29427a69fe219c48",
+      "simulationTime": [
+        170.00000000002743,
+        180.00000000003539
+      ],
+      "metrics": {
+        "intervalMs": {
+          "mean": 16.66583333333333,
+          "p50": 16.69999998807907,
+          "p95": 17.80000001192093,
+          "min": 14.899999976158142,
+          "max": 18.600000023841858
+        },
+        "phaseMs": {
+          "mean": 1.112666666805744,
+          "p50": 1.100000023841858,
+          "p95": 1.5,
+          "min": 0.6000000238418579,
+          "max": 2.399999976158142
+        },
+        "updateMs": {
+          "mean": 0.8233333339293798,
+          "p50": 0.800000011920929,
+          "p95": 1.100000023841858,
+          "min": 0.3999999761581421,
+          "max": 1.600000023841858
+        },
+        "drawCalls": {
+          "mean": 11,
+          "p50": 11,
+          "p95": 11,
+          "min": 11,
+          "max": 11
+        },
+        "enemies": {
+          "mean": 7.656666666666666,
+          "p50": 7,
+          "p95": 10,
+          "min": 6,
+          "max": 11
+        },
+        "bullets": {
+          "mean": 1.145,
+          "p50": 1,
+          "p95": 3,
+          "min": 0,
+          "max": 3
+        },
+        "plants": {
+          "mean": 9.811666666666667,
+          "p50": 10,
+          "p95": 11,
+          "min": 8,
+          "max": 11
+        },
+        "particles": {
+          "mean": 19.955,
+          "p50": 18,
+          "p95": 35,
+          "min": 3,
+          "max": 50
+        },
+        "telegraphs": {
+          "mean": 1.2733333333333334,
+          "p50": 1,
+          "p95": 3,
+          "min": 0,
+          "max": 4
+        },
+        "spritePool": {
+          "mean": 22.411666666666665,
+          "p50": 23,
+          "p95": 23,
+          "min": 19,
+          "max": 23
+        },
+        "labelPool": {
+          "mean": 8,
+          "p50": 8,
+          "p95": 8,
+          "min": 8,
+          "max": 8
+        }
+      }
+    },
+    {
+      "scenario": "first",
+      "run": 3,
+      "diagnostic": false,
+      "metadata": {
+        "profile": {
+          "version": 1,
+          "xp": 0,
+          "coins": 0,
+          "completed": [],
+          "settledRuns": [],
+          "upgrades": {
+            "attack": 0,
+            "fireRate": 0,
+            "health": 0,
+            "armor": 0,
+            "seedMastery": 0,
+            "pet": 0,
+            "weaponDamage": 0,
+            "weaponRate": 0,
+            "weaponPierce": 0
+          },
+          "equippedWeapon": "bloom-rifle",
+          "equippedPet": "sprout-helper",
+          "selectedLevelId": "ruins"
+        },
+        "player": {
+          "x": 837.2507164694134,
+          "y": 496.3734728912421,
+          "hp": 100,
+          "maxHp": 100,
+          "armor": 0,
+          "layer": "ground",
+          "radius": 18,
+          "angle": -0.15,
+          "invulnerable": 0,
+          "dashCooldown": 0,
+          "dashTime": 0,
+          "dashX": 0,
+          "dashY": 0,
+          "terrainSlipCooldown": 0,
+          "terrainLastX": 835.425274813009,
+          "terrainLastY": 495.5085088694104,
+          "terrainContacts": []
+        },
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "vendor": "Google Inc. (Google)",
+        "gfxAPI": 7,
+        "visibility": "visible",
+        "preAdvance": 60
+      },
+      "startHash": "3ac964167764539f20b18569bf14f938199c826360d6c3057ca99b81011ef07b",
+      "endHash": "dc96af6bd7ce8aff11d2b67ef42988937d639cce074a2d230d4d800bbefafd08",
+      "simulationTime": [
+        2.9999999999999942,
+        13.000000000000226
+      ],
+      "metrics": {
+        "intervalMs": {
+          "mean": 16.666500000059603,
+          "p50": 16.600000023841858,
+          "p95": 17.899999976158142,
+          "min": 14.5,
+          "max": 18.700000047683716
+        },
+        "phaseMs": {
+          "mean": 0.6540000012516975,
+          "p50": 0.6000000238418579,
+          "p95": 0.9000000357627869,
+          "min": 0.30000001192092896,
+          "max": 1.5999999642372131
+        },
+        "updateMs": {
+          "mean": 0.40433333317438763,
+          "p50": 0.3999999761581421,
+          "p95": 0.5999999642372131,
+          "min": 0.10000002384185791,
+          "max": 0.800000011920929
+        },
+        "drawCalls": {
+          "mean": 10.4,
+          "p50": 10,
+          "p95": 11,
+          "min": 10,
+          "max": 11
+        },
+        "enemies": {
+          "mean": 0.2866666666666667,
+          "p50": 0,
+          "p95": 1,
+          "min": 0,
+          "max": 1
+        },
+        "bullets": {
+          "mean": 1.7883333333333333,
+          "p50": 2,
+          "p95": 3,
+          "min": 0,
+          "max": 3
+        },
+        "plants": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0
+        },
+        "particles": {
+          "mean": 2.6783333333333332,
+          "p50": 0,
+          "p95": 11,
+          "min": 0,
+          "max": 14
+        },
+        "telegraphs": {
+          "mean": 0.21,
+          "p50": 0,
+          "p95": 1,
+          "min": 0,
+          "max": 1
+        },
+        "spritePool": {
+          "mean": 2,
+          "p50": 2,
+          "p95": 2,
+          "min": 2,
+          "max": 2
+        },
+        "labelPool": {
+          "mean": 8,
+          "p50": 8,
+          "p95": 8,
+          "min": 8,
+          "max": 8
+        }
+      }
+    },
+    {
+      "scenario": "dense",
+      "run": 3,
+      "diagnostic": false,
+      "metadata": {
+        "profile": {
+          "version": 1,
+          "xp": 10000,
+          "coins": 0,
+          "completed": [
+            "ruins",
+            "meadow",
+            "wetland",
+            "quarry",
+            "windpass",
+            "hollow",
+            "terraces",
+            "bastion",
+            "mistwood",
+            "hailfield",
+            "heartgarden",
+            "deepsoil",
+            "stonebloom"
+          ],
+          "settledRuns": [],
+          "upgrades": {
+            "attack": 0,
+            "fireRate": 0,
+            "health": 20,
+            "armor": 15,
+            "seedMastery": 0,
+            "pet": 0,
+            "weaponDamage": 0,
+            "weaponRate": 0,
+            "weaponPierce": 0
+          },
+          "equippedWeapon": "bloom-rifle",
+          "equippedPet": "sprout-helper",
+          "selectedLevelId": "skyreach"
+        },
+        "player": {
+          "x": 820.0564389955704,
+          "y": 225.94412722461735,
+          "hp": 260.77000000000675,
+          "maxHp": 400,
+          "armor": 45,
+          "layer": "ground",
+          "radius": 18,
+          "angle": 0.973482082769289,
+          "invulnerable": 0.983333333333334,
+          "dashCooldown": 0,
+          "dashTime": 0,
+          "dashX": 0,
+          "dashY": 0,
+          "terrainSlipCooldown": 0,
+          "terrainLastX": 818.0744399651983,
+          "terrainLastY": 225.5541530670067,
+          "terrainContacts": []
+        },
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "vendor": "Google Inc. (Google)",
+        "gfxAPI": 7,
+        "visibility": "visible",
+        "preAdvance": 10080
+      },
+      "startHash": "c5ee24b43fc6edd02eea9625232ca48d29aa170e39a146089049532f82c2a64a",
+      "endHash": "0d5e6c4b961af200dcbf2da519947bf9ba758dfeff33d4cf29427a69fe219c48",
+      "simulationTime": [
+        170.00000000002743,
+        180.00000000003539
+      ],
+      "metrics": {
+        "intervalMs": {
+          "mean": 16.6673333332936,
+          "p50": 16.69999998807907,
+          "p95": 17.600000023841858,
+          "min": 14.300000011920929,
+          "max": 18.599999964237213
+        },
+        "phaseMs": {
+          "mean": 1.0941666678587596,
+          "p50": 1.100000023841858,
+          "p95": 1.4000000357627869,
+          "min": 0.6000000238418579,
+          "max": 2.299999952316284
+        },
+        "updateMs": {
+          "mean": 0.8146666661898295,
+          "p50": 0.800000011920929,
+          "p95": 1.100000023841858,
+          "min": 0.3999999761581421,
+          "max": 1.800000011920929
+        },
+        "drawCalls": {
+          "mean": 11,
+          "p50": 11,
+          "p95": 11,
+          "min": 11,
+          "max": 11
+        },
+        "enemies": {
+          "mean": 7.656666666666666,
+          "p50": 7,
+          "p95": 10,
+          "min": 6,
+          "max": 11
+        },
+        "bullets": {
+          "mean": 1.145,
+          "p50": 1,
+          "p95": 3,
+          "min": 0,
+          "max": 3
+        },
+        "plants": {
+          "mean": 9.811666666666667,
+          "p50": 10,
+          "p95": 11,
+          "min": 8,
+          "max": 11
+        },
+        "particles": {
+          "mean": 19.955,
+          "p50": 18,
+          "p95": 35,
+          "min": 3,
+          "max": 50
+        },
+        "telegraphs": {
+          "mean": 1.2733333333333334,
+          "p50": 1,
+          "p95": 3,
+          "min": 0,
+          "max": 4
+        },
+        "spritePool": {
+          "mean": 22.411666666666665,
+          "p50": 23,
+          "p95": 23,
+          "min": 19,
+          "max": 23
+        },
+        "labelPool": {
+          "mean": 8,
+          "p50": 8,
+          "p95": 8,
+          "min": 8,
+          "max": 8
+        }
+      }
+    },
+    {
+      "scenario": "dense",
+      "run": 0,
+      "diagnostic": true,
+      "metadata": {
+        "profile": {
+          "version": 1,
+          "xp": 10000,
+          "coins": 0,
+          "completed": [
+            "ruins",
+            "meadow",
+            "wetland",
+            "quarry",
+            "windpass",
+            "hollow",
+            "terraces",
+            "bastion",
+            "mistwood",
+            "hailfield",
+            "heartgarden",
+            "deepsoil",
+            "stonebloom"
+          ],
+          "settledRuns": [],
+          "upgrades": {
+            "attack": 0,
+            "fireRate": 0,
+            "health": 20,
+            "armor": 15,
+            "seedMastery": 0,
+            "pet": 0,
+            "weaponDamage": 0,
+            "weaponRate": 0,
+            "weaponPierce": 0
+          },
+          "equippedWeapon": "bloom-rifle",
+          "equippedPet": "sprout-helper",
+          "selectedLevelId": "skyreach"
+        },
+        "player": {
+          "x": 820.0564389955704,
+          "y": 225.94412722461735,
+          "hp": 260.77000000000675,
+          "maxHp": 400,
+          "armor": 45,
+          "layer": "ground",
+          "radius": 18,
+          "angle": 0.973482082769289,
+          "invulnerable": 0.983333333333334,
+          "dashCooldown": 0,
+          "dashTime": 0,
+          "dashX": 0,
+          "dashY": 0,
+          "terrainSlipCooldown": 0,
+          "terrainLastX": 818.0744399651983,
+          "terrainLastY": 225.5541530670067,
+          "terrainContacts": []
+        },
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "vendor": "Google Inc. (Google)",
+        "gfxAPI": 7,
+        "visibility": "visible",
+        "preAdvance": 10080
+      },
+      "startHash": "c5ee24b43fc6edd02eea9625232ca48d29aa170e39a146089049532f82c2a64a",
+      "endHash": "0d5e6c4b961af200dcbf2da519947bf9ba758dfeff33d4cf29427a69fe219c48",
+      "simulationTime": [
+        170.00000000002743,
+        180.00000000003539
+      ],
+      "metrics": {
+        "intervalMs": {
+          "mean": 16.665,
+          "p50": 16.899999976158142,
+          "p95": 17.900000035762787,
+          "min": 14.899999976158142,
+          "max": 18.799999952316284
+        },
+        "phaseMs": {
+          "mean": 1.1124999988079072,
+          "p50": 1.100000023841858,
+          "p95": 1.5,
+          "min": 0.5999999642372131,
+          "max": 11.699999988079071
+        },
+        "updateMs": {
+          "mean": 0.8389999989668528,
+          "p50": 0.800000011920929,
+          "p95": 1.100000023841858,
+          "min": 0.5,
+          "max": 11.300000011920929
+        },
+        "drawCalls": {
+          "mean": 11,
+          "p50": 11,
+          "p95": 11,
+          "min": 11,
+          "max": 11
+        },
+        "enemies": {
+          "mean": 7.656666666666666,
+          "p50": 7,
+          "p95": 10,
+          "min": 6,
+          "max": 11
+        },
+        "bullets": {
+          "mean": 1.145,
+          "p50": 1,
+          "p95": 3,
+          "min": 0,
+          "max": 3
+        },
+        "plants": {
+          "mean": 9.811666666666667,
+          "p50": 10,
+          "p95": 11,
+          "min": 8,
+          "max": 11
+        },
+        "particles": {
+          "mean": 19.955,
+          "p50": 18,
+          "p95": 35,
+          "min": 3,
+          "max": 50
+        },
+        "telegraphs": {
+          "mean": 1.2733333333333334,
+          "p50": 1,
+          "p95": 3,
+          "min": 0,
+          "max": 4
+        },
+        "spritePool": {
+          "mean": 22.411666666666665,
+          "p50": 23,
+          "p95": 23,
+          "min": 19,
+          "max": 23
+        },
+        "labelPool": {
+          "mean": 8,
+          "p50": 8,
+          "p95": 8,
+          "min": 8,
+          "max": 8
+        }
+      }
+    }
+  ],
+  "passed": true
+}

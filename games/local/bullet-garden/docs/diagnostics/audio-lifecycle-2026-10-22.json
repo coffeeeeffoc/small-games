@@ -1,0 +1,1165 @@
+{
+  "runtime": "Cocos Creator 3.8.8 production web-mobile; desktop Chromium touch emulation",
+  "sourceHash": "d8bc6077484acd06ebac1c47620363d69f07cd019fabc541faa730558a6586a5",
+  "observed": "Native WebAudio start/stop/ended, running context, gain and nonzero decoded samples",
+  "limitations": "No acoustic/physical-speaker measurement or phone/mini-game host acceptance. Browser blur and Creator lifecycle events are explicit desktop fixtures; delayed load/resume are fault injection.",
+  "checks": [
+    {
+      "check": "First real touch starts native playback",
+      "errorStacks": [],
+      "nodes": [
+        {
+          "id": 0,
+          "at": 1540.2000000476837,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 0.25,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": false,
+          "ended": false,
+          "currentGain": 0.25
+        }
+      ],
+      "events": [
+        {
+          "type": "start",
+          "id": 0,
+          "at": 1540.2000000476837
+        }
+      ],
+      "contexts": [
+        "running"
+      ],
+      "decoded": 1,
+      "pendingResumes": 0
+    },
+    {
+      "check": "Mute stops live sound, persists, and enabling plays only the new gesture",
+      "errorStacks": [],
+      "nodes": [
+        {
+          "id": 0,
+          "at": 1540.2000000476837,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 0.25,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 1589,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 1,
+          "at": 2188.5,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 1,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": false,
+          "ended": false,
+          "currentGain": 0.25
+        }
+      ],
+      "events": [
+        {
+          "type": "start",
+          "id": 0,
+          "at": 1540.2000000476837
+        },
+        {
+          "type": "stop",
+          "id": 0,
+          "at": 1589
+        },
+        {
+          "type": "ended",
+          "id": 0,
+          "at": 1607.800000011921
+        },
+        {
+          "type": "start",
+          "id": 1,
+          "at": 2188.5
+        }
+      ],
+      "contexts": [
+        "running"
+      ],
+      "decoded": 1,
+      "pendingResumes": 0
+    },
+    {
+      "check": "Background stops real source and foreground cannot revive it",
+      "errorStacks": [],
+      "nodes": [
+        {
+          "id": 0,
+          "at": 1540.2000000476837,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 0.25,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 1589,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 1,
+          "at": 2188.5,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 1,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 2238.2000000476837,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 2,
+          "at": 2238.400000035763,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 0.25,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 2244.900000035763,
+          "disconnected": true,
+          "currentGain": 0.25
+        }
+      ],
+      "events": [
+        {
+          "type": "start",
+          "id": 0,
+          "at": 1540.2000000476837
+        },
+        {
+          "type": "stop",
+          "id": 0,
+          "at": 1589
+        },
+        {
+          "type": "ended",
+          "id": 0,
+          "at": 1607.800000011921
+        },
+        {
+          "type": "start",
+          "id": 1,
+          "at": 2188.5
+        },
+        {
+          "type": "stop",
+          "id": 1,
+          "at": 2238.2000000476837
+        },
+        {
+          "type": "start",
+          "id": 2,
+          "at": 2238.400000035763
+        },
+        {
+          "type": "stop",
+          "id": 2,
+          "at": 2244.900000035763
+        },
+        {
+          "type": "ended",
+          "id": 1,
+          "at": 2256.5
+        },
+        {
+          "type": "ended",
+          "id": 2,
+          "at": 2256.5
+        }
+      ],
+      "contexts": [
+        "running"
+      ],
+      "decoded": 1,
+      "pendingResumes": 0
+    },
+    {
+      "check": "Manual pause/resume and paused-menu touch feedback remain available",
+      "errorStacks": [],
+      "nodes": [
+        {
+          "id": 0,
+          "at": 1540.2000000476837,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 0.25,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 1589,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 1,
+          "at": 2188.5,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 1,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 2238.2000000476837,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 2,
+          "at": 2238.400000035763,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 0.25,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 2244.900000035763,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 3,
+          "at": 3073.2000000476837,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 1,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 3137.600000023842,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 4,
+          "at": 3137.800000011921,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 0.25,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 3971,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 5,
+          "at": 3971,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 0.25,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 4020.600000023842,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 6,
+          "at": 4020.7000000476837,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 0.25,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": false,
+          "stopAt": 4071.600000023842,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 7,
+          "at": 4071.800000011921,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 0.25,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": false,
+          "ended": false,
+          "currentGain": 0.25
+        }
+      ],
+      "events": [
+        {
+          "type": "start",
+          "id": 0,
+          "at": 1540.2000000476837
+        },
+        {
+          "type": "stop",
+          "id": 0,
+          "at": 1589
+        },
+        {
+          "type": "ended",
+          "id": 0,
+          "at": 1607.800000011921
+        },
+        {
+          "type": "start",
+          "id": 1,
+          "at": 2188.5
+        },
+        {
+          "type": "stop",
+          "id": 1,
+          "at": 2238.2000000476837
+        },
+        {
+          "type": "start",
+          "id": 2,
+          "at": 2238.400000035763
+        },
+        {
+          "type": "stop",
+          "id": 2,
+          "at": 2244.900000035763
+        },
+        {
+          "type": "ended",
+          "id": 1,
+          "at": 2256.5
+        },
+        {
+          "type": "ended",
+          "id": 2,
+          "at": 2256.5
+        },
+        {
+          "type": "start",
+          "id": 3,
+          "at": 3073.2000000476837
+        },
+        {
+          "type": "stop",
+          "id": 3,
+          "at": 3137.600000023842
+        },
+        {
+          "type": "start",
+          "id": 4,
+          "at": 3137.800000011921
+        },
+        {
+          "type": "ended",
+          "id": 3,
+          "at": 3159.5
+        },
+        {
+          "type": "ended",
+          "id": 4,
+          "at": 3779.7000000476837
+        },
+        {
+          "type": "stop",
+          "id": 4,
+          "at": 3971
+        },
+        {
+          "type": "start",
+          "id": 5,
+          "at": 3971
+        },
+        {
+          "type": "stop",
+          "id": 5,
+          "at": 4020.600000023842
+        },
+        {
+          "type": "start",
+          "id": 6,
+          "at": 4020.7000000476837
+        },
+        {
+          "type": "ended",
+          "id": 5,
+          "at": 4040.100000023842
+        },
+        {
+          "type": "stop",
+          "id": 6,
+          "at": 4071.600000023842
+        },
+        {
+          "type": "start",
+          "id": 7,
+          "at": 4071.800000011921
+        }
+      ],
+      "contexts": [
+        "running"
+      ],
+      "decoded": 1,
+      "pendingResumes": 0
+    },
+    {
+      "check": "Pending context unlock is cancelled by mute; fresh gesture still works",
+      "errorStacks": [],
+      "nodes": [
+        {
+          "id": 0,
+          "at": 1540.2000000476837,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 0.25,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 1589,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 1,
+          "at": 2188.5,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 1,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 2238.2000000476837,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 2,
+          "at": 2238.400000035763,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 0.25,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 2244.900000035763,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 3,
+          "at": 3073.2000000476837,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 1,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 3137.600000023842,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 4,
+          "at": 3137.800000011921,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 0.25,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 3971,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 5,
+          "at": 3971,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 0.25,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 4020.600000023842,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 6,
+          "at": 4020.7000000476837,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 0.25,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 4071.600000023842,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 7,
+          "at": 4071.800000011921,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 0.25,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 4120.700000047684,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 8,
+          "at": 4120.800000011921,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 0.25,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": false,
+          "ended": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 9,
+          "at": 5971.400000035763,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 1,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": false,
+          "ended": false,
+          "currentGain": 0.25
+        }
+      ],
+      "events": [
+        {
+          "type": "start",
+          "id": 0,
+          "at": 1540.2000000476837
+        },
+        {
+          "type": "stop",
+          "id": 0,
+          "at": 1589
+        },
+        {
+          "type": "ended",
+          "id": 0,
+          "at": 1607.800000011921
+        },
+        {
+          "type": "start",
+          "id": 1,
+          "at": 2188.5
+        },
+        {
+          "type": "stop",
+          "id": 1,
+          "at": 2238.2000000476837
+        },
+        {
+          "type": "start",
+          "id": 2,
+          "at": 2238.400000035763
+        },
+        {
+          "type": "stop",
+          "id": 2,
+          "at": 2244.900000035763
+        },
+        {
+          "type": "ended",
+          "id": 1,
+          "at": 2256.5
+        },
+        {
+          "type": "ended",
+          "id": 2,
+          "at": 2256.5
+        },
+        {
+          "type": "start",
+          "id": 3,
+          "at": 3073.2000000476837
+        },
+        {
+          "type": "stop",
+          "id": 3,
+          "at": 3137.600000023842
+        },
+        {
+          "type": "start",
+          "id": 4,
+          "at": 3137.800000011921
+        },
+        {
+          "type": "ended",
+          "id": 3,
+          "at": 3159.5
+        },
+        {
+          "type": "ended",
+          "id": 4,
+          "at": 3779.7000000476837
+        },
+        {
+          "type": "stop",
+          "id": 4,
+          "at": 3971
+        },
+        {
+          "type": "start",
+          "id": 5,
+          "at": 3971
+        },
+        {
+          "type": "stop",
+          "id": 5,
+          "at": 4020.600000023842
+        },
+        {
+          "type": "start",
+          "id": 6,
+          "at": 4020.7000000476837
+        },
+        {
+          "type": "ended",
+          "id": 5,
+          "at": 4040.100000023842
+        },
+        {
+          "type": "stop",
+          "id": 6,
+          "at": 4071.600000023842
+        },
+        {
+          "type": "start",
+          "id": 7,
+          "at": 4071.800000011921
+        },
+        {
+          "type": "ended",
+          "id": 6,
+          "at": 4091.100000023842
+        },
+        {
+          "type": "stop",
+          "id": 7,
+          "at": 4120.700000047684
+        },
+        {
+          "type": "start",
+          "id": 8,
+          "at": 4120.800000011921
+        },
+        {
+          "type": "ended",
+          "id": 7,
+          "at": 4139.200000047684
+        },
+        {
+          "type": "ended",
+          "id": 8,
+          "at": 4770.900000035763
+        },
+        {
+          "type": "start",
+          "id": 9,
+          "at": 5971.400000035763
+        }
+      ],
+      "contexts": [
+        "running"
+      ],
+      "decoded": 1,
+      "pendingResumes": 0
+    },
+    {
+      "check": "Scene destruction stops actual playback and unregisters resume",
+      "errorStacks": [],
+      "nodes": [
+        {
+          "id": 0,
+          "at": 1540.2000000476837,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 0.25,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 1589,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 1,
+          "at": 2188.5,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 1,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 2238.2000000476837,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 2,
+          "at": 2238.400000035763,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 0.25,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 2244.900000035763,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 3,
+          "at": 3073.2000000476837,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 1,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 3137.600000023842,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 4,
+          "at": 3137.800000011921,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 0.25,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 3971,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 5,
+          "at": 3971,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 0.25,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 4020.600000023842,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 6,
+          "at": 4020.7000000476837,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 0.25,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 4071.600000023842,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 7,
+          "at": 4071.800000011921,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 0.25,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 4120.700000047684,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 8,
+          "at": 4120.800000011921,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 0.25,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": false,
+          "ended": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 9,
+          "at": 5971.400000035763,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 1,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 6022.200000047684,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 10,
+          "at": 6022.300000011921,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 0.25,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 6030.400000035763,
+          "disconnected": true,
+          "currentGain": 0.25
+        }
+      ],
+      "events": [
+        {
+          "type": "start",
+          "id": 0,
+          "at": 1540.2000000476837
+        },
+        {
+          "type": "stop",
+          "id": 0,
+          "at": 1589
+        },
+        {
+          "type": "ended",
+          "id": 0,
+          "at": 1607.800000011921
+        },
+        {
+          "type": "start",
+          "id": 1,
+          "at": 2188.5
+        },
+        {
+          "type": "stop",
+          "id": 1,
+          "at": 2238.2000000476837
+        },
+        {
+          "type": "start",
+          "id": 2,
+          "at": 2238.400000035763
+        },
+        {
+          "type": "stop",
+          "id": 2,
+          "at": 2244.900000035763
+        },
+        {
+          "type": "ended",
+          "id": 1,
+          "at": 2256.5
+        },
+        {
+          "type": "ended",
+          "id": 2,
+          "at": 2256.5
+        },
+        {
+          "type": "start",
+          "id": 3,
+          "at": 3073.2000000476837
+        },
+        {
+          "type": "stop",
+          "id": 3,
+          "at": 3137.600000023842
+        },
+        {
+          "type": "start",
+          "id": 4,
+          "at": 3137.800000011921
+        },
+        {
+          "type": "ended",
+          "id": 3,
+          "at": 3159.5
+        },
+        {
+          "type": "ended",
+          "id": 4,
+          "at": 3779.7000000476837
+        },
+        {
+          "type": "stop",
+          "id": 4,
+          "at": 3971
+        },
+        {
+          "type": "start",
+          "id": 5,
+          "at": 3971
+        },
+        {
+          "type": "stop",
+          "id": 5,
+          "at": 4020.600000023842
+        },
+        {
+          "type": "start",
+          "id": 6,
+          "at": 4020.7000000476837
+        },
+        {
+          "type": "ended",
+          "id": 5,
+          "at": 4040.100000023842
+        },
+        {
+          "type": "stop",
+          "id": 6,
+          "at": 4071.600000023842
+        },
+        {
+          "type": "start",
+          "id": 7,
+          "at": 4071.800000011921
+        },
+        {
+          "type": "ended",
+          "id": 6,
+          "at": 4091.100000023842
+        },
+        {
+          "type": "stop",
+          "id": 7,
+          "at": 4120.700000047684
+        },
+        {
+          "type": "start",
+          "id": 8,
+          "at": 4120.800000011921
+        },
+        {
+          "type": "ended",
+          "id": 7,
+          "at": 4139.200000047684
+        },
+        {
+          "type": "ended",
+          "id": 8,
+          "at": 4770.900000035763
+        },
+        {
+          "type": "start",
+          "id": 9,
+          "at": 5971.400000035763
+        },
+        {
+          "type": "stop",
+          "id": 9,
+          "at": 6022.200000047684
+        },
+        {
+          "type": "start",
+          "id": 10,
+          "at": 6022.300000011921
+        },
+        {
+          "type": "stop",
+          "id": 10,
+          "at": 6030.400000035763
+        },
+        {
+          "type": "ended",
+          "id": 9,
+          "at": 6033.600000023842
+        },
+        {
+          "type": "ended",
+          "id": 10,
+          "at": 6039.700000047684
+        }
+      ],
+      "contexts": [
+        "running"
+      ],
+      "decoded": 1,
+      "pendingResumes": 0
+    },
+    {
+      "check": "Cancelled player load cannot replace a fresh source for the same clip",
+      "errorStacks": [],
+      "nodes": [
+        {
+          "id": 0,
+          "at": 675.1999999880791,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 0.25,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 1523.6000000238419,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 1,
+          "at": 1890.6000000238419,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 1,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": true,
+          "ended": true,
+          "stopAt": 2706.100000023842,
+          "disconnected": true,
+          "currentGain": 0.25
+        },
+        {
+          "id": 2,
+          "at": 2706.300000011921,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 0.25,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": false,
+          "ended": false,
+          "currentGain": 0.25
+        }
+      ],
+      "events": [
+        {
+          "type": "start",
+          "id": 0,
+          "at": 675.1999999880791
+        },
+        {
+          "type": "ended",
+          "id": 0,
+          "at": 1323.5
+        },
+        {
+          "type": "stop",
+          "id": 0,
+          "at": 1523.6000000238419
+        },
+        {
+          "type": "start",
+          "id": 1,
+          "at": 1890.6000000238419
+        },
+        {
+          "type": "ended",
+          "id": 1,
+          "at": 2539.199999988079
+        },
+        {
+          "type": "stop",
+          "id": 1,
+          "at": 2706.199999988079
+        },
+        {
+          "type": "start",
+          "id": 2,
+          "at": 2706.300000011921
+        }
+      ],
+      "contexts": [
+        "running"
+      ],
+      "decoded": 1,
+      "pendingResumes": 0
+    },
+    {
+      "check": "Late production audio response after background cannot replay stale input",
+      "errorStacks": [],
+      "nodes": [
+        {
+          "id": 0,
+          "at": 1536.300000011921,
+          "duration": 0.6499739583333334,
+          "contextState": "running",
+          "gain": 1,
+          "samplePeak": 0.28960078954696655,
+          "offset": 0,
+          "stopped": false,
+          "ended": false,
+          "currentGain": 0.25
+        }
+      ],
+      "events": [
+        {
+          "type": "start",
+          "id": 0,
+          "at": 1536.300000011921
+        }
+      ],
+      "contexts": [
+        "running"
+      ],
+      "decoded": 1,
+      "pendingResumes": 0
+    },
+    {
+      "check": "Late production audio response after destroy cannot replay stale input",
+      "errorStacks": [],
+      "nodes": [],
+      "events": [],
+      "contexts": [
+        "running"
+      ],
+      "decoded": 1,
+      "pendingResumes": 0
+    }
+  ],
+  "errors": [],
+  "passed": true
+}

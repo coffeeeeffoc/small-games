@@ -27,6 +27,7 @@ declare module '*generated/core.js' {
     pending: any;
     used: any;
     adStatus: string;
+    hidden: boolean;
     begin(id: string, options?: any): boolean;
     tick(dt: number, input: any): void;
     upgrade(id: string): boolean;

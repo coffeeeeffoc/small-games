@@ -75,7 +75,7 @@ export class BulletGarden extends Component {
   a11yKey = '';
   announcedScreen = '';
   settings = { sound: true, vibration: true };
-  audio!: AudioSource;
+  audio?: AudioSource;
   soundClip?: AudioClip;
   message = '';
   messageUntil = 0;
@@ -108,11 +108,11 @@ export class BulletGarden extends Component {
       if (this.ui.ready) host.BulletGardenLoading?.ready();
       if (this.ui.failed) host.BulletGardenLoading?.fail('花园素材加载失败，请重试');
     });
-    this.audio = this.node.addComponent(AudioSource);
     resources.load('audio/confirm', AudioClip, (err, clip) => {
       if (!err && !this.disposed) {
         clip.addRef();
         this.soundClip = clip;
+        if (this.settings.sound && !this.session.hidden) this.feedbackSource().clip = clip;
       }
     });
     input.on(Input.EventType.TOUCH_START, this.touchStart, this);
@@ -183,8 +183,35 @@ export class BulletGarden extends Component {
     this.dirty = true;
   }
   feedback() {
-    if (this.settings.sound && this.soundClip) this.audio.playOneShot(this.soundClip, 0.25);
+    if (this.disposed || this.session.hidden || (sys.isBrowser && document.hidden)) return;
+    if (this.settings.sound && this.soundClip) {
+      const audio = this.feedbackSource();
+      audio.clip = this.soundClip;
+      audio.volume = 0.25;
+      audio.play();
+    }
     if (this.settings.vibration && sys.isBrowser) navigator.vibrate?.(12);
+  }
+  feedbackSource() {
+    if (!this.audio) {
+      this.audio = this.node.addComponent(AudioSource);
+      this.audio.playOnAwake = false;
+      this.audio.volume = 0.25;
+    }
+    return this.audio;
+  }
+  stopFeedback() {
+    const audio = this.audio;
+    if (!audio) return;
+    this.audio = undefined;
+    // A detached one-shot cannot be stopped. Clear the controllable clip as well
+    // so a pending load/context unlock cannot replay an old gesture on return.
+    audio.volume = 0;
+    audio.stop();
+    audio.clip = null;
+    // Creator matches async loads by clip identity. A fresh source after cancel
+    // prevents clip A -> null -> A from accepting the previous load's callback.
+    audio.destroy();
   }
   clearInput() {
     this.presses.clear();
@@ -194,6 +221,7 @@ export class BulletGarden extends Component {
     this.aim = null;
   }
   suspend = () => {
+    this.stopFeedback();
     if (!this.session) return;
     this.clearInput();
     this.session.suspend({ nativeAdTransition: !sys.isBrowser });
@@ -698,7 +726,7 @@ export class BulletGarden extends Component {
   activate(id: string) {
     const s = this.session;
     this.clearInput();
-    this.feedback();
+    if (id !== 'setting:sound') this.feedback();
     if (id === 'retry-art') this.ui.loadArt();
     else if (id === 'start') {
       this.practice = false;
@@ -748,6 +776,10 @@ export class BulletGarden extends Component {
     } else if (id.startsWith('setting:')) {
       const key = id.slice(8) as keyof typeof this.settings;
       this.settings[key] = !this.settings[key];
+      if (key === 'sound') {
+        if (!this.settings.sound) this.stopFeedback();
+        this.feedback();
+      }
       this.write('bullet-garden.settings.v1', this.settings);
     } else if (id.startsWith('ad:')) {
       void s.reward(id.slice(3)).then(() => {
@@ -952,6 +984,7 @@ export class BulletGarden extends Component {
   }
   onDestroy() {
     this.disposed = true;
+    this.stopFeedback();
     this.clearInput();
     this.session?.dispose();
     input.off(Input.EventType.TOUCH_START, this.touchStart, this);
