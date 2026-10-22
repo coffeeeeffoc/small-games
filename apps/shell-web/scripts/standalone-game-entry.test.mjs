@@ -54,6 +54,12 @@ test('street chase uses real Cocos canvas controls', () => {
   assert.equal(entryMode('chase-thief'), 'legacy');
 });
 
+test('Three Choose Two uses its visible Creator canvas and game-owned start flow', () => {
+  assert.equal(markers['three-choose-two'], '#GameCanvas');
+  assert.equal(homeControls['three-choose-two'], undefined);
+  assert.equal(entryMode('three-choose-two'), 'legacy');
+});
+
 test('Tianxia enters its ready Creator battlefield through preparation', () => {
   assert.equal(markers['tianxia-chalu'], '#start');
   assert.deepEqual(homeControls['tianxia-chalu'], ['#start', '#begin-battle']);

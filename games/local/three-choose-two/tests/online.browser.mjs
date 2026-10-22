@@ -1,3 +1,4 @@
+import { inputFor } from './cocos-input.mjs';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { openDatabase } from '@coffeeeeffoc/service-kit';
@@ -16,7 +17,7 @@ if (!databaseUrl || new URL(databaseUrl).pathname !== '/competition_test')
   throw new Error('Set THREE_CHOOSE_TWO_TEST_DATABASE_URL to isolated competition_test');
 const workspace = fileURLToPath(new URL('../../../../', import.meta.url));
 const output = fileURLToPath(new URL('../docs/design/actual/', import.meta.url));
-const baseURL = process.env.THREE_CHOOSE_TWO_ONLINE_BROWSER_URL || 'http://localhost:4422/dist/';
+const baseURL = process.env.THREE_CHOOSE_TWO_ONLINE_BROWSER_URL || 'http://localhost:4422/';
 const port = Number(process.env.THREE_CHOOSE_TWO_ONLINE_API_PORT || 4424);
 const apiURL = `http://127.0.0.1:${port}/api/competition/v1`;
 const configuredPsql = process.env.PSQL_PATH || 'psql';
@@ -101,33 +102,14 @@ async function phone(credential) {
 }
 async function snapshot(page) { return page.evaluate(() => window.getThreeChooseTwoSnapshot()); }
 async function screen(page, name) { await expect(page.locator('#game')).toHaveAttribute('data-screen', name); }
-async function action(page, name) {
-  const button = page.locator(`[data-action="${name}"]`).first();
-  await expect(button).toBeVisible();
-  await button.tap();
-}
+async function action(page,name){return inputFor(page).control(name);}
 async function startOnline(page) { await action(page, 'endless'); await screen(page, 'endless'); await action(page, 'online-start'); await screen(page, 'playing'); }
 function legalNoClear(state) {
   for (let slot = 0; slot < 3; slot++) for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++)
     if (canPlace(state, slot, x, y) && previewPlacement(state, slot, x, y).lines === 0) return { slot, x, y };
   throw new Error('Current fixture has no legal non-scoring placement');
 }
-async function drag(page, cdp, move) {
-  const candidate = page.locator(`[data-slot="${move.slot}"]`);
-  const [boardBox, candidateBox, shape] = await Promise.all([
-    page.locator('#board').boundingBox(), candidate.boundingBox(),
-    candidate.evaluate(node => ({ width: Number(node.dataset.width), height: Number(node.dataset.height) })),
-  ]);
-  assert(boardBox && candidateBox);
-  const pitch = boardBox.width * 40 / 360, pad = boardBox.width * 20 / 360;
-  const start = { x: candidateBox.x + candidateBox.width / 2, y: candidateBox.y + candidateBox.height / 2 };
-  const target = { x: boardBox.x + pad + (move.x + shape.width / 2) * pitch, y: boardBox.y + pad + (move.y + shape.height) * pitch + 46 };
-  const touch = (type, points = []) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: points.map(point => ({ id: 1, radiusX: 3, radiusY: 3, force: 1, ...point })) });
-  await touch('touchStart', [start]);
-  for (let i = 1; i <= 6; i++) await touch('touchMove', [{ x: start.x + (target.x - start.x) * i / 6, y: start.y + (target.y - start.y) * i / 6 }]);
-  await touch('touchEnd');
-  await page.waitForTimeout(340);
-}
+async function drag(page,cdp,move){return inputFor(page).drag(move);}
 async function capture(page, name) {
   const filename = 'online-' + name + '.png';
   await page.screenshot({ path: output + '/' + filename });
@@ -192,7 +174,7 @@ try {
   await capture(first.page, 'reload-restored');
   record('Reload resumes the same server session and confirmed board');
   await finish(first.page);
-  await expect(first.page.locator('.result-status')).toContainText('成绩已校验');
+  await expect.poll(async()=>(await snapshot(first.page)).onlineSession.settlement?.status).toBe('verified');
   const ended = await api('/three-choose-two/session/' + id, a);
   assert.equal(ended.settlement.status, 'verified');
   assert.equal(ended.state.score, 0);
@@ -214,8 +196,8 @@ try {
   assert(rowA.position < rowB.position);
   await action(first.page, 'leaderboard');
   await screen(first.page, 'leaderboard');
-  await expect(first.page.locator('.ranking-player').filter({ hasText: '触屏甲' + suffix }).first()).toBeVisible();
-  await expect(first.page.locator('.ranking-player').filter({ hasText: '触屏乙' + suffix }).first()).toBeVisible();
+  assert((await snapshot(first.page)).ranking.top.some(e=>e.name==='触屏甲'+suffix));
+  assert((await snapshot(first.page)).ranking.top.some(e=>e.name==='触屏乙'+suffix));
   await capture(first.page, 'real-tied-board');
   record('WeChat and B站 fixture identities appear in one real board with tied competition rank');
   const guest = await phone();
@@ -223,10 +205,10 @@ try {
   const guestCredential = await recordedCredential(guest.page);
   fixtureIds.push(guestCredential.playerId);
   assert.equal((await snapshot(guest.page)).online.eligible, false);
-  await expect(guest.page.locator('.screen-header h2')).toContainText('不入榜');
+  assert.equal((await snapshot(guest.page)).onlineSession.eligible,false);
   await capture(guest.page, 'guest-ineligible');
   await finish(guest.page);
-  await expect(guest.page.locator('.result-status')).toContainText('登录');
+  assert.notEqual((await snapshot(guest.page)).onlineSession.settlement?.status,'verified');
   const guestBoard = await api('/three-choose-two/board', guestCredential);
   assert.equal(guestBoard.me, null);
   assert.equal(guestBoard.top.some(row => row.playerId === guestCredential.playerId), false);
@@ -266,7 +248,7 @@ try {
   await action(recovery.page, 'end-run');
   await screen(recovery.page, 'result');
   await expect.poll(() => recovery.page.evaluate(() => JSON.parse(localStorage.getItem('three-choose-two-online-v1')).finish)).toBe(true);
-  await expect(recovery.page.locator('.result-status')).toContainText('网络');
+  await expect.poll(async()=>(await snapshot(recovery.page)).onlineError).not.toBe('');
   await capture(recovery.page, 'pending-finish');
   // Hold an actual successful server reply to verify it cannot overwrite a later local game.
   let finishedOnServer;

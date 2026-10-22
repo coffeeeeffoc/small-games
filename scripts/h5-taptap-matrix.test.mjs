@@ -624,6 +624,7 @@ function fixture(production) {
 test('explicit profiles require twelve local QA variants and only three online-ads deliverables', () => {
   assert.deepEqual(h5Orientations, {
     'merge-front': 'landscape',
+    'three-choose-two': 'portrait',
     'cops-robbers': 'portrait',
     'cops-robbers-realtime': 'preserve',
     'xiangqi-five': 'portrait',

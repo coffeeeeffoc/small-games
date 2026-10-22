@@ -4,7 +4,7 @@ import { expect } from '@playwright/test';
 export const markers = {
   'ashfall-front': '#start-game',
   'carrom-club': '#start',
-  'three-choose-two': '#game[data-ready="true"]',
+  'three-choose-two': '#GameCanvas',
   'cage-rescue': '#start',
   'flick-arena': '#start',
   'tower-brake': '#start-game',
@@ -55,7 +55,6 @@ export const markers = {
 export const homeControls = {
   'ashfall-front': '#start-game',
   'carrom-club': '#start',
-  'three-choose-two': ['[data-action="start"]', '[data-action="begin"]'],
   'cage-rescue': '#start',
   'flick-arena': ['#start', '#play-level'],
   'tower-brake': '#start-game',
@@ -82,6 +81,7 @@ export const homeControls = {
 
 // Explicit compatibility list: these existing assertions still own their setup flow.
 export const legacyEntryIds = [
+  'three-choose-two',
   'chase-thief',
   'merge-front',
   'orbit-atelier',

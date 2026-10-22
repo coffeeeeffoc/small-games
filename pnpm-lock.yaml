@@ -885,6 +885,13 @@ importers:
       '@coffeeeeffoc/game-contract':
         specifier: workspace:*
         version: link:../../../packages/game-contract
+    devDependencies:
+      '@playwright/test':
+        specifier: 1.55.1
+        version: 1.55.1
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
 
   games/local/tianxia-chalu: {}
 

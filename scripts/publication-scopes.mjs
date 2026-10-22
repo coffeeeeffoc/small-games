@@ -906,22 +906,28 @@ const sharedH5PackagePaths = [
 ];
 function assertSixH5(games, packages, readHead) {
   const registered = literalDeclaration(readHead('scripts/h5-ad-config.mjs'), 'additionalH5Games');
+  const extraIds = ['merge-front', 'three-choose-two'];
   assert.deepEqual(
-    registered.filter((id) => id !== 'merge-front'),
+    registered.filter((id) => !extraIds.includes(id)),
     sixH5Ids,
   );
-  if (registered.includes('merge-front')) {
-    assert.equal(registered.filter((id) => id === 'merge-front').length, 1);
-    assert.equal(
-      games.filter((g) => g.id === 'merge-front' && g.source === 'games/local/merge-front').length,
-      1,
-    );
-    assert.equal(packages.filter((p) => p.dir === 'games/local/merge-front').length, 1);
+  for (const id of extraIds.filter((id) => registered.includes(id))) {
+    const source = `games/local/${id}`;
+    assert.equal(registered.filter((item) => item === id).length, 1);
+    const entries = games.filter((g) => g.id === id || g.source === source);
+    assert.equal(entries.length, 1);
+    assert.equal(entries[0].id, id);
+    assert.equal(entries[0].source, source);
+    assert.equal(packages.filter((p) => p.dir === source).length, 1);
   }
   for (const [i, id] of sixH5Ids.entries()) {
     assert.equal(games.filter((g) => g.id === id && g.source === sixH5Sources[i]).length, 1);
     assert.equal(packages.filter((p) => p.dir === sixH5Sources[i]).length, 1);
   }
+  return [
+    ...sixH5Sources,
+    ...extraIds.filter((id) => registered.includes(id)).map((id) => `games/local/${id}`),
+  ];
 }
 export function sixH5PresetOnly(source, five = false) {
   try {
@@ -3033,6 +3039,266 @@ export function mainIntegrationFileScopes(context) {
   return scopes;
 }
 
+// Exact Creator migration wiring; unrelated bytes retain the normal shared-file gates.
+export const threeChooseTwoCreatorReviews = Object.freeze({
+  '.github/workflows/carding-car.yml': {
+    before: [
+      {
+        hash: '420192e8c991ff7166a1828e48b3087cdbf65604b8d659393c4802bdad6ac2c7',
+        sources: ['games/local/three-choose-two'],
+      },
+    ],
+    after: 'a5330499552ecb96566fde60247c11264fb2e5605a57d7d9a91f0cd09c99c1e8',
+  },
+  '.github/workflows/ci.yml': {
+    before: [
+      {
+        hash: '073903ff62e45572e1b2f07a25d64ca19ad381800f7859bd73b3c6bb3da96e9f',
+        sources: ['games/local/three-choose-two'],
+      },
+    ],
+    after: '1cdca7af8af5b9c781637c1261af419e4f224b53d32a5f7e366423801e6bad09',
+  },
+  '.github/workflows/mobile.yml': {
+    before: [
+      {
+        hash: '046cada0323b6b92a6d95a894acc8a9c31881faa874e98d9f25f5b47ff7ed5f5',
+        sources: ['games/local/three-choose-two'],
+      },
+    ],
+    after: '678853cc604734036a667ac103f42214bfdef497a58a8cec3dd4e3eafea30b69',
+  },
+  '.github/workflows/pages-validate.yml': {
+    before: [
+      {
+        hash: 'f7c119db7da3a46f682da323558a38214f3fed2f7cb79b8b9cbfbcf16378d258',
+        sources: ['games/local/three-choose-two'],
+      },
+    ],
+    after: 'a468f4d1821b289971adaef6e8cf7b4318141b4c505b222b0a4d15efa319f1bf',
+  },
+  'apps/shell-web/scripts/pages-smoke.mjs': {
+    before: [
+      {
+        hash: '173f91964552dc5b73919f4007d7419092c7eafb27ed6e0d0e741254c0d668e3',
+        sources: ['apps/shell-web', 'games/local/three-choose-two'],
+      },
+      {
+        hash: '8f2fc3ba828ac4ca2c91f58d7199465121cf9eeb3c6ef76f0706410f41ba17c9',
+        sources: ['apps/shell-web', 'games/local/three-choose-two', 'games/local/chase-thief'],
+      },
+    ],
+    after: '5c9ee1cb92f0a85e4a8c657304f20dd10a4a51f9cb39c36ae286796fea048085',
+  },
+  'apps/shell-web/scripts/standalone-game-checks.mjs': {
+    before: [
+      {
+        hash: '93ab6fd3d3e94f8bf4f3efae1c0ac288d0b7d7cf33718e768595ffb45afd0609',
+        sources: ['apps/shell-web', 'games/local/three-choose-two'],
+      },
+      {
+        hash: 'be16d0ad7be4290296e2e9eed1c34e1e20b07c465b7b988e579696ce37f81670',
+        sources: [
+          'apps/shell-web',
+          'games/local/three-choose-two',
+          'games/local/chase-thief',
+          'games/local/merge-front',
+        ],
+      },
+    ],
+    after: '5f1e68a1bc3289b3ccb84b5c26d46f9eca3715dceaa070a3cf06c9eda6d52c4e',
+  },
+  'apps/shell-web/scripts/standalone-game-entry.mjs': {
+    before: [
+      {
+        hash: 'b7da91bb3b61b4ce6199af69650224fa8fc5e6944a92c93240730ae7722732c8',
+        sources: ['apps/shell-web', 'games/local/three-choose-two'],
+      },
+      {
+        hash: '402e1783f800475d55f9d0f70b73943b7543723e8de585701f1c80d91bf1b7f4',
+        sources: ['apps/shell-web', 'games/local/three-choose-two', 'games/local/chase-thief'],
+      },
+    ],
+    after: '0c31e1c7aa96f6332090c1f6beb3b852a3cda4f6c20e781ac7853edfb59c972b',
+  },
+  'pnpm-lock.yaml': {
+    before: [
+      {
+        hash: 'bf37f530bd0253a9fdcff185ea435f94a3a7ab9969b6925c06377c92fa4ca9cc',
+        sources: ['games/local/three-choose-two'],
+      },
+    ],
+    after: '7ae41b5561b4e226a60aae7ffd3d711e13141de66d8615ad357b88a7318fc876',
+  },
+  'scripts/check-game-config.test.mjs': {
+    before: [
+      {
+        hash: '2d6edbffc2267d38ff0c45605c846058cd08d5a83fe1c90ed77407e6b057336f',
+        sources: ['games/local/three-choose-two'],
+      },
+    ],
+    after: '64ea95bb3eb0f96e727495f3a560283fc2f333312a300b141925922ba34cb14d',
+  },
+  'scripts/check-workspace-dependencies.mjs': {
+    before: [
+      {
+        hash: 'e304693617a8005ba383149caaf72fe5ad06d4a0ad01261a6b701422cd38452a',
+        sources: ['games/local/three-choose-two'],
+      },
+    ],
+    after: '65ef5242da3e2a4811d3f0704f94ff8d0212c35865c7c2a50f3559a4be7f705d',
+  },
+  'scripts/cocos-validation.mjs': {
+    before: [
+      {
+        hash: '86535b0a4adf2592479090729ecaee34ff2f71070fea948604cedc76be1eafc2',
+        sources: ['games/local/three-choose-two'],
+      },
+    ],
+    after: 'fa0a3edc6f454db3ea77a8f60e45801f430fccd78a28877885d50486818492a0',
+  },
+  'scripts/cocos-validation.test.mjs': {
+    before: [
+      {
+        hash: '715f010d7b5aa8407e9fcc101145aaf21cc1fafe2317ff3d95dad22cbe5a3699',
+        sources: ['games/local/three-choose-two'],
+      },
+    ],
+    after: 'c24bda97b74117ccc01f26906d0b944821ae96fa413357e4573b2e3f2c56cd42',
+  },
+  'scripts/h5-ad-config.mjs': {
+    before: [
+      {
+        hash: '3619e524dfb5ecd4ddcc5e9939a2ef243685150beb063913a7cbf5af236f385c',
+        sources: ['games/local/three-choose-two'],
+      },
+    ],
+    after: 'eb0046a4c5d967ce1f6b320f541d1ad86de5ce4f86ac3fad2e8d5783d80cd8f1',
+  },
+  'scripts/h5-ad-config.test.mjs': {
+    before: [
+      {
+        hash: '6a8a3c60e00b0b1ef29f49f55d0755e1271b54c3abd62caa22d8cc96cdda18ba',
+        sources: ['games/local/three-choose-two'],
+      },
+    ],
+    after: '6e3e2ee08ffea3f0255b810d3886338c175a0f5fbb734f0cdc48c884da739d66',
+  },
+  'scripts/h5-game-build.mjs': {
+    before: [
+      {
+        hash: '5a76a4e6e968193b244177c2c268becc14a1c022107045bebe719a2c2fd2380f',
+        sources: ['games/local/three-choose-two'],
+      },
+    ],
+    after: '5834c7d3cc985506092783a8d2fb839b25c92f50922c43e6c96692230e69ecf4',
+  },
+  'scripts/h5-taptap-build.mjs': {
+    before: [
+      {
+        hash: 'ccbbf960a1f33c8fda6f7d447ad06a2234f306db478f06c18bc4df69b7c57a89',
+        sources: ['games/local/three-choose-two'],
+      },
+    ],
+    after: '426d548a11d169aec0012c58dc3b114b17525d00e9bb718cc571cc3bec2c957a',
+  },
+  'scripts/h5-taptap-matrix.mjs': {
+    before: [
+      {
+        hash: '71257b7d52add72213aff79dfd05b0d4a4a240d42a0a2c292fb64a958fc78cac',
+        sources: ['games/local/three-choose-two'],
+      },
+    ],
+    after: '186f67c8e58e6e2943a19ee6aacad2dc32701a6427e64c16d48a72c9da7ce460',
+  },
+  'scripts/h5-taptap-matrix.test.mjs': {
+    before: [
+      {
+        hash: '14bd65e0520191061b4cb5b42df71325de12e2c4f21f6479ff78ddada81fe041',
+        sources: ['games/local/three-choose-two'],
+      },
+    ],
+    after: 'fb0972765dda2fb4bd84e34f66784e20401c98816ed382412a39ca5a78122359',
+  },
+  'scripts/reuse-cocos-artifacts.mjs': {
+    before: [
+      {
+        hash: 'c626dd77cf003383f2ce6bcdbd28b4769f938077f0b7ee2700af77c3810247de',
+        sources: ['games/local/three-choose-two'],
+      },
+    ],
+    after: '1511ffe97b489ee70fb2fe24cac841c59946bc66a9fd6f584fb5757975d4d886',
+  },
+  'scripts/reuse-cocos-artifacts.test.mjs': {
+    before: [
+      {
+        hash: '02f244e69079861469b8b458fc7ce9e34ce758444667b7771a1496532f5868b1',
+        sources: ['games/local/three-choose-two'],
+      },
+    ],
+    after: '5f35eb09c8ca1788fdd7250715574aafbb242f811ab6c2bd18640acdd68240cc',
+  },
+  'turbo.json': {
+    before: [
+      {
+        hash: '8e715b054f404963935c195b1fb8dccc4d90ccab8a40c826411f033e810ca6fa',
+        sources: ['games/local/three-choose-two'],
+      },
+    ],
+    after: 'def8038a43605ae66bdc0a3dfd61ab1068c08be5475a5041976656f184e9da9e',
+  },
+});
+const threeChooseTwoLockManifest = {
+  before: '9d9cfee4fff466dbdcf3988a99779a594f66d2667037821e9ff75f8432db05f2',
+  after: '03ef026afb20568563306543666100d6674e05d0b6794a7c5999ee70596cad13',
+};
+export function threeChooseTwoCreatorFileScope(
+  file,
+  before,
+  after,
+  { games, packages, readBase, readHead },
+) {
+  try {
+    const review = threeChooseTwoCreatorReviews[file];
+    if (!review || typeof before !== 'string' || typeof after !== 'string') return null;
+    const digest = (value) =>
+      createHash('sha256').update(value.replaceAll('\r\n', '\n')).digest('hex');
+    const prior = review.before.find((entry) => entry.hash === digest(before));
+    if (!prior || review.after !== digest(after)) return null;
+    const names = {
+      'apps/shell-web': '@coffeeeeffoc/shell-web',
+      'games/local/three-choose-two': '@coffeeeeffoc/three-choose-two',
+      'games/local/chase-thief': '@coffeeeeffoc/chase-thief',
+      'games/local/merge-front': '@small-games/merge-front',
+    };
+    for (const source of prior.sources) {
+      const entries = packages.filter((p) => p.dir === source || p.name === names[source]);
+      assert.equal(entries.length, 1);
+      assert.equal(entries[0].dir, source);
+      assert.equal(entries[0].name, names[source]);
+      if (source.startsWith('games/')) {
+        const id = source.split('/').at(-1),
+          registered = games.filter((g) => g.source === source || g.id === id);
+        assert.equal(registered.length, 1);
+        assert.equal(registered[0].source, source);
+        assert.equal(registered[0].id, id);
+      }
+      if (source === 'games/local/three-choose-two') {
+        assert.equal(entries[0].creator?.version, '3.8.8');
+        assert.equal(entries[0].scripts?.build, 'node scripts/build.mjs web-mobile');
+      }
+    }
+    if (file === 'pnpm-lock.yaml') {
+      const manifest = 'games/local/three-choose-two/package.json';
+      assert.equal(digest(readBase(manifest)), threeChooseTwoLockManifest.before);
+      assert.equal(digest(readHead(manifest)), threeChooseTwoLockManifest.after);
+    }
+    return [...prior.sources];
+  } catch {
+    return null;
+  }
+}
+
 export function reviewedSharedFileScopes({
   changedPaths,
   readBase,
@@ -3053,6 +3319,20 @@ export function reviewedSharedFileScopes({
   for (const file of changedPaths) {
     if (mainScopes.has(file)) {
       scopes.set(file, mainScopes.get(file));
+      continue;
+    }
+    let threeScope;
+    if (Object.hasOwn(threeChooseTwoCreatorReviews, file))
+      try {
+        threeScope = threeChooseTwoCreatorFileScope(file, readBase?.(file), readHead?.(file), {
+          games,
+          packages,
+          readBase,
+          readHead,
+        });
+      } catch {}
+    if (threeScope) {
+      scopes.set(file, threeScope);
       continue;
     }
     if (file === 'platforms/competition/assets/action.wav') {
@@ -3308,6 +3588,7 @@ export function reviewedSharedFileScopes({
           ...cocosWebSources,
           ...(ids.includes('merge-front') ? ['games/local/merge-front'] : []),
           ...(ids.includes('bullet-garden') ? ['games/local/bullet-garden'] : []),
+          ...(ids.includes('three-choose-two') ? ['games/local/three-choose-two'] : []),
         ];
         assert.deepEqual(
           ids,
@@ -3700,26 +3981,30 @@ export function reviewedSharedFileScopes({
             ? ['games/local/bullet-garden']
             : []),
           'games/local/homebound-station',
+          ...(packages.some(
+            (pkg) => pkg.dir === 'games/local/three-choose-two' && pkg.creator?.version === '3.8.8',
+          )
+            ? ['games/local/three-choose-two']
+            : []),
         ]);
         continue;
       }
       if (sixH5ScopePaths.includes(file)) {
         if (file.endsWith('.test.mjs')) scopes.set(file, []);
         else {
-          assertSixH5(games, packages, readHead);
+          const h5Sources = assertSixH5(games, packages, readHead);
           if (file === 'infra/builds/six-taptap-h5.mjs') assert(sixH5PresetOnly(readHead(file)));
-          const mergeConsumer =
-            [
-              'platforms/h5/game-rewards.js',
-              'platforms/h5/interstitial.js',
-              'scripts/h5-game-build.mjs',
-            ].includes(file) && games.some((g) => g.id === 'merge-front');
+          const sharedConsumer = [
+            'platforms/h5/game-rewards.js',
+            'platforms/h5/interstitial.js',
+            'scripts/h5-game-build.mjs',
+          ].includes(file);
           scopes.set(
             file,
             file === 'infra/builds/six-taptap-h5.mjs'
               ? presetH5Ids.map((id) => `games/local/${id}`)
-              : mergeConsumer
-                ? [...sixH5Sources, 'games/local/merge-front']
+              : sharedConsumer
+                ? h5Sources
                 : sixH5Sources,
           );
         }
@@ -3775,14 +4060,7 @@ export function reviewedSharedFileScopes({
           sharedH5PackagePaths.includes(file) &&
           readHead('scripts/h5-ad-config.mjs').includes('additionalH5Games')
         ) {
-          assertSixH5(games, packages, readHead);
-          sources.push(...sixH5Sources);
-          if (
-            literalDeclaration(readHead('scripts/h5-ad-config.mjs'), 'additionalH5Games').includes(
-              'merge-front',
-            )
-          )
-            sources.push('games/local/merge-front');
+          sources.push(...assertSixH5(games, packages, readHead));
         }
         if (file === 'scripts/competition-service-config.mjs') {
           assertSixH5(games, packages, readHead);
@@ -3918,7 +4196,7 @@ export function reviewedSharedFileScopes({
         );
         assert(packages.some((pkg) => pkg.dir === source));
         const adapter = !file.includes('deploy-taptap');
-        if (adapter) assertSixH5(games, packages, readHead);
+        const h5Sources = adapter ? assertSixH5(games, packages, readHead) : [];
         scopes.set(
           file,
           adapter
@@ -3926,14 +4204,13 @@ export function reviewedSharedFileScopes({
                 source,
                 'games/local/cops-robbers-realtime',
                 'games/submodules/xiangqi-five',
-                ...sixH5Sources,
+                ...h5Sources,
                 ...packages
                   .filter(
                     (pkg) =>
                       pkg.dir === 'games/local/bullet-garden' && pkg.creator?.version === '3.8.8',
                   )
                   .map((pkg) => pkg.dir),
-                ...(games.some((g) => g.id === 'merge-front') ? ['games/local/merge-front'] : []),
               ]
             : [source],
         );

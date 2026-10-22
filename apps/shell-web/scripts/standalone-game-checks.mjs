@@ -60,89 +60,81 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect(game).toHaveAttribute('data-screen', 'home');
     await expect(frame.locator('#start-game')).toBeFocused();
   } else if (id === 'three-choose-two') {
-    const game = frame.locator('#game');
-    await expect(game).toHaveAttribute('data-screen', 'playing');
-    await expect(frame.locator('#board')).toBeVisible();
-    await expect(frame.locator('[data-slot]')).toHaveCount(3);
-    await click(frame.locator('[data-action="pause"]').last());
-    await expect(game).toHaveAttribute('data-screen', 'pause');
-    await click(frame.locator('[data-action="resume"]').last());
-    await expect(game).toHaveAttribute('data-screen', 'playing');
-    // Read the catalog's verified move, then perform it through real input.
-    // The fixture never edits the board, progress or the game's current state.
-    const move = await game.evaluate(async (node) => {
-      const { getLevel } = await import(new URL('./src/levels.mjs', node.baseURI).href);
-      return getLevel(1).solution[0];
+    const { snapshot, control, point, canvas, page } = threeChooseTwoInput(frame, mobile);
+    await expect.poll(async () => (await snapshot())?.ready, { timeout: 60000 }).toBe(true);
+    expect((await snapshot()).creator).toBe('3.8.8');
+    await expect(canvas).toBeVisible();
+    await control('start');
+    if ((await snapshot()).screen === 'brief') await control('begin');
+    await expect.poll(async () => (await snapshot()).screen).toBe('playing');
+    expect((await snapshot()).layout.candidates).toHaveLength(3);
+    await control('pause');
+    await expect.poll(async () => (await snapshot()).screen).toBe('pause');
+    await control('resume');
+    const state = await snapshot(),
+      move = state.state.config.solution[0];
+    const candidate = state.layout.candidates[move.slot],
+      board = state.layout.board;
+    // Read the published shape catalog; actual native input performs the move.
+    const shape = state.state.candidates[move.slot].shapeId;
+    expect(shape).toBe('dot');
+    const from = await point({
+      x: candidate.x + candidate.w / 2,
+      y: candidate.y + candidate.h / 2,
     });
-    const candidate = frame.locator(`[data-slot="${move.slot}"]`);
-    const source = await candidate.boundingBox();
-    const board = await frame.locator('#board').boundingBox();
-    const width = Number(await candidate.getAttribute('data-width'));
-    const height = Number(await candidate.getAttribute('data-height'));
-    const pitch = (board.width * 40) / 360;
-    const pad = (board.width * 20) / 360;
-    const start = { x: source.x + source.width / 2, y: source.y + source.height / 2 };
-    const end = {
-      x: board.x + pad + (move.x + width / 2) * pitch,
-      y: board.y + pad + (move.y + (mobile ? height : height / 2)) * pitch + (mobile ? 46 : 0),
-    };
-    const page = game.page();
+    const to = await point({
+      x: board.x + board.inset + (move.x + 0.5) * board.pitch,
+      y: board.y + board.inset + (move.y + (mobile ? 1 : 0.5)) * board.pitch + (mobile ? 46 : 0),
+    });
     if (mobile) {
       const touch = await page.context().newCDPSession(page);
       try {
-        await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [start] });
-        await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [end] });
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [from] });
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [to] });
         await touch.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
-        await expect(game).toHaveAttribute('data-placements', '0');
-        await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [start] });
-        await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [end] });
+        expect((await snapshot()).state.stats.placements).toBe(0);
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [from] });
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [to] });
         await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
       } finally {
         await touch.detach();
       }
     } else {
-      await page.mouse.move(start.x, start.y);
+      await page.mouse.move(from.x, from.y);
       await page.mouse.down();
-      await page.mouse.move(4, 4, { steps: 4 });
+      const box = await canvas.boundingBox();
+      await page.mouse.move(box.x + 2, box.y + 2, { steps: 4 });
       await page.mouse.up();
-      await expect(game).toHaveAttribute('data-placements', '0');
-      await page.mouse.move(start.x, start.y);
+      expect((await snapshot()).state.stats.placements).toBe(0);
+      await page.mouse.move(from.x, from.y);
       await page.mouse.down();
-      await page.mouse.move(end.x, end.y, { steps: 8 });
+      await page.mouse.move(to.x, to.y, { steps: 8 });
       await page.mouse.up();
     }
-    await expect(game).toHaveAttribute('data-screen', 'result');
-    await expect(game).toHaveAttribute('data-status', 'won');
-    await expect(game).toHaveAttribute('data-placements', '1');
-    await expect(game).toHaveAttribute('data-lines', '1');
-    await click(frame.locator('[data-action="retry"]'));
-    await expect(game).toHaveAttribute('data-screen', 'playing');
-    const savedBoard = await game.evaluate(
-      () => globalThis.getThreeChooseTwoSnapshot().state.board,
-    );
-    await click(frame.getByRole('button', { name: '返回首页', exact: true }));
-    await expect(game).toHaveAttribute('data-screen', 'home');
-    await click(frame.locator('[data-action="start"]'));
-    await expect(game).toHaveAttribute('data-screen', 'playing');
-    expect(await game.evaluate(() => globalThis.getThreeChooseTwoSnapshot().state.board)).toEqual(
-      savedBoard,
-    );
-    await click(frame.locator('[data-action="pause"]').last());
-    await click(frame.getByRole('button', { name: /^退出关卡/ }));
-    await expect(game).toHaveAttribute('data-screen', 'home');
+    await expect.poll(async () => (await snapshot()).screen).toBe('result');
+    const won = (await snapshot()).state;
+    expect(won.status).toBe('won');
+    expect(won.stats.placements).toBe(1);
+    expect(won.stats.lines).toBe(1);
+    await control('retry');
+    const saved = (await snapshot()).state.board;
+    await control('home');
+    await control('start');
+    expect((await snapshot()).state.board).toEqual(saved);
+    await control('pause');
+    await control('exit-level');
+    await expect.poll(async () => (await snapshot()).screen).toBe('home');
     expect(
-      await game.evaluate(
-        () =>
-          JSON.parse(globalThis.localStorage.getItem('three-choose-two-progress-v1')).currentGame,
+      await canvas.evaluate(
+        () => JSON.parse(localStorage.getItem('three-choose-two-progress-v1')).currentGame,
       ),
     ).toBeNull();
-    await expect(frame.locator('[data-action="start"]')).toBeVisible();
-    await click(frame.locator('[data-action="levels"]'));
-    await expect(frame.locator('[data-level="1"]')).toBeEnabled();
-    await expect(frame.locator('[data-level="2"]')).toBeEnabled();
-    await expect(frame.locator('[data-level="30"]')).toBeDisabled();
-    await click(frame.locator('[data-action="home"]'));
-    await expect(game).toHaveAttribute('data-screen', 'home');
+    await control('levels');
+    const levels = (await snapshot()).controls;
+    expect(levels.find((c) => c.id === 'level:1').disabled).toBe(false);
+    expect(levels.find((c) => c.id === 'level:2').disabled).toBe(false);
+    expect(levels.find((c) => c.id === 'level:30').disabled).toBe(true);
+    await control('home');
   } else if (id === 'flick-arena') {
     await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
     await expect(frame.locator('#game')).toHaveAttribute('data-shots', '0');
@@ -1670,4 +1662,31 @@ async function pressWebGLControl(frame, control, selector, mobile = false, docum
   }
   if (mobile) await control.page().touchscreen.tap(x, y);
   else await control.page().mouse.click(x, y);
+}
+
+export function threeChooseTwoInput(frame, mobile = false) {
+  const canvas = frame.locator('#GameCanvas'),
+    page = canvas.page();
+  const snapshot = () => canvas.evaluate(() => globalThis.getThreeChooseTwoSnapshot?.());
+  const point = async (p) => {
+    const s = await snapshot(),
+      b = await canvas.boundingBox();
+    const scale = Math.min(b.width / s.viewport.width, b.height / s.viewport.height);
+    return {
+      x: b.x + (b.width - s.viewport.width * scale) / 2 + p.x * scale,
+      y: b.y + (b.height - s.viewport.height * scale) / 2 + p.y * scale,
+    };
+  };
+  const control = async (id) => {
+    await expect
+      .poll(async () => (await snapshot())?.controls.some((c) => c.id === id && !c.disabled))
+      .toBe(true);
+    const c = (await snapshot()).controls.find((c) => c.id === id);
+    const p = await point({ x: c.x + c.w / 2, y: c.y + c.h / 2 });
+    if (mobile) await page.touchscreen.tap(p.x, p.y);
+    else await page.mouse.click(p.x, p.y);
+    await expect.poll(async () => (await snapshot()).controls.length).toBeGreaterThan(0);
+    await page.waitForTimeout(80);
+  };
+  return { snapshot, control, point, canvas, page };
 }

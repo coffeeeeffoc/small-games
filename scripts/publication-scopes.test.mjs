@@ -690,12 +690,13 @@ test('fourth Creator classification works in a bare planner with only Prettier a
   });
 });
 
-test('unified package tools keep the three H5 consumers and reject unknown siblings', () => {
+test('unified package tools keep their H5 consumers and reject unknown siblings', () => {
   const ids = ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'];
   const games = [
     ...ids.map((id) => ({ id, source: competitionConsumers[id] })),
     ...sixH5Ids.map((id) => ({ id, source: `games/local/${id}` })),
     { id: 'merge-front', source: 'games/local/merge-front' },
+    { id: 'three-choose-two', source: 'games/local/three-choose-two' },
   ];
   const packages = games.map((game) => ({ name: game.id, dir: game.source }));
   const readSource = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
@@ -740,7 +741,10 @@ test('unified package tools keep the three H5 consumers and reject unknown sibli
 });
 
 test('six H5 tools declare exact consumers and preserve fail-closed configuration scope', () => {
-  const games = [...sixH5Ids, 'merge-front'].map((id) => ({ id, source: `games/local/${id}` }));
+  const games = [...sixH5Ids, 'merge-front', 'three-choose-two'].map((id) => ({
+    id,
+    source: `games/local/${id}`,
+  }));
   const packages = games.map((g) => ({ name: g.id, dir: g.source }));
   const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
   for (const file of sixH5ScopePaths) {
@@ -754,7 +758,7 @@ test('six H5 tools declare exact consumers and preserve fail-closed configuratio
             .filter(
               (g) =>
                 (file !== 'infra/builds/six-taptap-h5.mjs' || g.id !== 'homebound-station') &&
-                (g.id !== 'merge-front' ||
+                (!['merge-front', 'three-choose-two'].includes(g.id) ||
                   [
                     'platforms/h5/game-rewards.js',
                     'platforms/h5/interstitial.js',
@@ -1244,13 +1248,14 @@ test('H5 safe areas select the three standalone consumers and require their geom
   );
 });
 
-test('shared channel advertising covers all ten consumers; the uploader stays chase-only', () => {
+test('shared channel advertising covers every registered consumer; the uploader stays chase-only', () => {
   const games = [
     { id: 'cops-robbers', source: 'games/local/cops-robbers' },
     { id: 'cops-robbers-realtime', source: 'games/local/cops-robbers-realtime' },
     { id: 'xiangqi-five', source: 'games/submodules/xiangqi-five' },
     ...sixH5Ids.map((id) => ({ id, source: `games/local/${id}` })),
     { id: 'merge-front', source: 'games/local/merge-front' },
+    { id: 'three-choose-two', source: 'games/local/three-choose-two' },
   ];
   const packages = games.map((game) => ({ name: game.id, dir: game.source }));
   const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
@@ -4953,10 +4958,9 @@ test('Bullet Garden Creator routing preserves every old producer and consumer ga
     '.github/workflows/pages-validate.yml',
     '.github/workflows/mobile.yml',
   ]) {
-    const head = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
-      '\r\n',
-      '\n',
-    );
+    const head = execFileSync('git', ['show', '0885df730b4d68798e278e916d0e407fd4fdaa82:' + file], {
+      encoding: 'utf8',
+    }).replaceAll('\r\n', '\n');
     const base = execFileSync('git', ['show', '53eb4b69bd1c2c3bbfe01349624235a1636b121e:' + file], {
       encoding: 'utf8',
     }).replaceAll('\r\n', '\n');
@@ -5108,16 +5112,17 @@ test('Homebound Creator readiness guard preserves gameplay and scopes only its r
   assert.equal(reviewedSharedFileScopes({ ...context, games: [] }).size, 0);
 });
 
-test('ordinary Creator reuse changes include Bullet while preserving the historical five-game fixture', () => {
+test('ordinary Creator reuse changes include Three Choose Two while preserving historical fixtures', () => {
   const file = 'scripts/reuse-cocos-artifacts.mjs';
   const current = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
     '\r\n',
     '\n',
   );
-  for (const [includeMerge, includeBullet] of [
-    [false, false],
-    [true, false],
-    [true, true],
+  for (const [includeMerge, includeBullet, includeThree] of [
+    [false, false, false],
+    [true, false, false],
+    [true, true, false],
+    [true, true, true],
   ]) {
     const ids = [
       'carding-car',
@@ -5127,8 +5132,10 @@ test('ordinary Creator reuse changes include Bullet while preserving the histori
       'homebound-station',
       ...(includeMerge ? ['merge-front'] : []),
       ...(includeBullet ? ['bullet-garden'] : []),
+      ...(includeThree ? ['three-choose-two'] : []),
     ];
     let source = includeBullet ? current : current.replace("  'bullet-garden',\n", '');
+    if (!includeThree) source = source.replace("  'three-choose-two',\n", '');
     if (!includeMerge) source = source.replace("  'merge-front',\n", '');
     const packages = ids.map((id) => ({ dir: 'games/local/' + id }));
     const scopes = reviewedSharedFileScopes({
@@ -5153,4 +5160,115 @@ test('ordinary Creator reuse changes include Bullet while preserving the histori
       0,
     );
   }
+});
+
+test('Three Choose Two Creator wiring binds exact bytes, identities and both release baselines', async () => {
+  const { threeChooseTwoCreatorReviews, threeChooseTwoCreatorFileScope } = await import(
+    './publication-scopes.mjs'
+  );
+  const games = ['three-choose-two', 'chase-thief', 'merge-front'].map((id) => ({
+    id,
+    source: 'games/local/' + id,
+  }));
+  const packages = [
+    { dir: 'apps/shell-web', name: '@coffeeeeffoc/shell-web' },
+    ...games.map((g) => ({
+      dir: g.source,
+      name: g.id === 'merge-front' ? '@small-games/merge-front' : '@coffeeeeffoc/' + g.id,
+      creator: { version: '3.8.8' },
+      scripts: { build: 'node scripts/build.mjs web-mobile' },
+    })),
+  ];
+  const read = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  for (const ref of [
+    '90aae860a583395403d8cb15578e5b731c1227fe',
+    'cbee0202b8cd6ea3f5dd626851a10e6dd602dd75',
+  ]) {
+    const before = (file) =>
+      execFileSync('git', ['show', ref + ':' + file], { encoding: 'utf8', maxBuffer: 8e6 });
+    for (const file of Object.keys(threeChooseTwoCreatorReviews)) {
+      const context = { games, packages, readBase: before, readHead: read, changedPaths: [file] },
+        old = before(file),
+        head = read(file),
+        scope = threeChooseTwoCreatorFileScope(file, old, head, context);
+      assert(scope?.includes('games/local/three-choose-two'), file);
+      assert.deepEqual(reviewedSharedFileScopes(context).get(file), scope);
+      if (file.startsWith('apps/shell-web/scripts/')) {
+        const cumulative = ref.startsWith('cbee');
+        const expected = [
+          'apps/shell-web',
+          'games/local/three-choose-two',
+          ...(cumulative ? ['games/local/chase-thief'] : []),
+          ...(cumulative && file.endsWith('/standalone-game-checks.mjs')
+            ? ['games/local/merge-front']
+            : []),
+        ];
+        assert.deepEqual(scope, expected, ref + ':' + file);
+        const plan = incrementalPlan({
+          ...context,
+          fileScopes: reviewedSharedFileScopes(context),
+          readSource: read,
+        });
+        for (const source of expected.filter((source) => source.startsWith('games/'))) {
+          assert(plan.browser_ids.includes(source.split('/').at(-1)), file + ':' + source);
+          assert(requiresCocos(packages, [source], plan));
+        }
+      }
+      if (file === 'pnpm-lock.yaml') {
+        for (const side of ['readBase', 'readHead']) {
+          const original = context[side];
+          assert.equal(
+            threeChooseTwoCreatorFileScope(file, old, head, {
+              ...context,
+              [side]: (name) => original(name) + '\nextra',
+            }),
+            null,
+          );
+          assert.equal(
+            threeChooseTwoCreatorFileScope(file, old, head, {
+              ...context,
+              [side]: () => {
+                throw Error('missing manifest');
+              },
+            }),
+            null,
+          );
+        }
+      }
+      for (const side of ['before', 'after'])
+        assert.equal(
+          threeChooseTwoCreatorFileScope(
+            file,
+            side === 'before' ? old + '\nextra();' : old,
+            side === 'after' ? head + '\nextra();' : head,
+            context,
+          ),
+          null,
+        );
+      for (const invalid of [
+        { games: [] },
+        { games: [...games, { id: 'alias', source: games[0].source }] },
+        { packages: packages.filter((p) => p.dir !== games[0].source) },
+        {
+          packages: packages.map((p) =>
+            p.dir === games[0].source ? { ...p, creator: { version: '3.8.9' } } : p,
+          ),
+        },
+        {
+          packages: packages.map((p) =>
+            p.dir === games[0].source ? { ...p, scripts: { build: 'node bypass.mjs' } } : p,
+          ),
+        },
+      ])
+        assert.equal(
+          threeChooseTwoCreatorFileScope(file, old, head, { ...context, ...invalid }),
+          null,
+        );
+    }
+  }
+  const context = { games, packages, readBase: () => '', readHead: () => '' };
+  assert.equal(
+    threeChooseTwoCreatorFileScope('scripts/unreviewed-three.mjs', '', '', context),
+    null,
+  );
 });

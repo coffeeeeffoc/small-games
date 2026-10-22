@@ -5,6 +5,7 @@ export const h5AdGames = ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five
 export const additionalH5Games = [
   'carding-car',
   'merge-front',
+  'three-choose-two',
   'vibeJam-myself-history-guess',
   'wulong-city',
   'night-overwatch',

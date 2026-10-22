@@ -163,3 +163,35 @@ test('standalone H5 host preserves full-view rewards through visibility changes 
     }
   }
 });
+
+test('three-choose-two Creator packages use the shared optional reward bridge', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'three-rewards-'));
+  try {
+    await writeFile(
+      path.join(directory, 'index.html'),
+      '<html><head></head><body><canvas id="GameCanvas"></canvas></body></html>',
+    );
+    await prepareH5Ads('three-choose-two', directory, { env: {} });
+    assert.deepEqual(h5AdConfig('three-choose-two', { env: {} }), {
+      adMode: 'off',
+      adsEnabled: false,
+    });
+    const config = await readFile(path.join(directory, 'platform-config.js'), 'utf8');
+    assert.match(config, /"game":"three-choose-two"/);
+    assert.match(config, /"adsEnabled":false/);
+    const html = await readFile(path.join(directory, 'index.html'), 'utf8');
+    assert.equal((html.match(/src=".\/game-rewards.js"/g) || []).length, 1);
+    assert.equal(
+      await readFile(path.join(directory, 'game-rewards.js'), 'utf8'),
+      await readFile(new URL('../platforms/h5/game-rewards.js', import.meta.url), 'utf8'),
+    );
+    assert.equal(
+      h5AdConfig('three-choose-two', {
+        env: { H5_ADS_ENABLED: '1', TAPTAP_THREE_CHOOSE_TWO_AD_UNIT_ID: 'future-slot' },
+      }).adMode,
+      'host',
+    );
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});

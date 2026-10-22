@@ -37,7 +37,7 @@ export const h5ExpandedBudgetBytes = 256 * 1024 * 1024;
 const retained = 'h5-packages';
 export function compilerEnvironment(env = process.env) {
   const allowed =
-    /^(?:PATH|PATHEXT|SYSTEMROOT|WINDIR|COMSPEC|HOME|USERPROFILE|APPDATA|LOCALAPPDATA|TEMP|TMP|TMPDIR|LANG|LC_[A-Z_]+|CI|COCOS_CREATOR|KART_PREBUILT_DIR|NIGHT_OVERWATCH_PREBUILT_DIR|HOMEBOUND_STATION_PREBUILT_DIR|MERGE_FRONT_PREBUILT_DIR|H5_ADS_ENABLED|COMPETITION_SERVICE_ENABLED|COMPETITION_PUBLIC_API_URL|TAPTAP_(?:COPS_ROBBERS|COPS_ROBBERS_REALTIME|XIANGQI_FIVE|CARDING_CAR|VIBEJAM_MYSELF_HISTORY_GUESS|WULONG_CITY|NIGHT_OVERWATCH|TRAVEL_BUND|LETTERS_WORDS2|HOMEBOUND_STATION|MERGE_FRONT)_(?:AD_UNIT_ID|SERVICES))$/i;
+    /^(?:PATH|PATHEXT|SYSTEMROOT|WINDIR|COMSPEC|HOME|USERPROFILE|APPDATA|LOCALAPPDATA|TEMP|TMP|TMPDIR|LANG|LC_[A-Z_]+|CI|COCOS_CREATOR|KART_PREBUILT_DIR|NIGHT_OVERWATCH_PREBUILT_DIR|HOMEBOUND_STATION_PREBUILT_DIR|MERGE_FRONT_PREBUILT_DIR|THREE_CHOOSE_TWO_PREBUILT_DIR|H5_ADS_ENABLED|COMPETITION_SERVICE_ENABLED|COMPETITION_PUBLIC_API_URL|TAPTAP_(?:COPS_ROBBERS|COPS_ROBBERS_REALTIME|XIANGQI_FIVE|CARDING_CAR|VIBEJAM_MYSELF_HISTORY_GUESS|WULONG_CITY|NIGHT_OVERWATCH|TRAVEL_BUND|LETTERS_WORDS2|HOMEBOUND_STATION|MERGE_FRONT|THREE_CHOOSE_TWO)_(?:AD_UNIT_ID|SERVICES))$/i;
   return {
     ...Object.fromEntries(
       Object.keys(env)
@@ -351,6 +351,7 @@ export async function buildH5Packages(
       'night-overwatch': 'NIGHT_OVERWATCH_PREBUILT_DIR',
       'homebound-station': 'HOMEBOUND_STATION_PREBUILT_DIR',
       'merge-front': 'MERGE_FRONT_PREBUILT_DIR',
+      'three-choose-two': 'THREE_CHOOSE_TWO_PREBUILT_DIR',
     }[game];
     let prebuilt;
     if (prebuiltKey && env[prebuiltKey]) {
@@ -369,7 +370,7 @@ export async function buildH5Packages(
           return path.relative(source, file).split(path.sep)[0] !== retained;
         },
       });
-      if (game === 'night-overwatch')
+      if (['night-overwatch', 'three-choose-two'].includes(game))
         await cp(
           path.join(path.resolve(env[prebuiltKey]), 'cc.d.ts'),
           path.join(prebuilt, 'cc.d.ts'),

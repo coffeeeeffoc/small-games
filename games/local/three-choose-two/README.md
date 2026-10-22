@@ -1,67 +1,59 @@
 # 三块选两块
 
-竖屏 8×8 积木消除游戏。每组三块，摆放两块后自动舍弃第三块；行列同时清除，无旋转、重力或时间限制。
+竖屏 8×8 积木消除游戏：每组三块，放下两块，剩下一块自动舍弃；填满整行或整列就会消除。保留原花园插画、音效、120 关、两种无尽玩法和旧存档。
 
-无尽页提供「三选二」和「立即补位」：立即补位每次合法落子并消除后，只补回原槽，其余两块保留；三块均不可放时结束。两种模式分别保存本地最高分，立即补位暂不参与在线排行榜。关卡及现有在线三选二规则不变。
+## Cocos Creator 3.8.8
 
-积木花园美术的效果图、生成提示与实机画面模拟记录见 `docs/design/garden-2026-10-07/`。设置「消除闪光」开启表示允许亮光；关闭后仍保留得分提示，旧 `reducedFlash` 存档语义保持不变。
+唯一 Web 发布入口为 Creator 构建的 dist/index.html。assets/scripts/ThreeChooseTwo.ts、GardenView.ts、GameSession.ts 使用 Sprite、Graphics、Label、input 和 AudioSource；游戏画面及交互在 Creator 场景中执行，HTML 仅承载启动、共享平台桥和无障碍镜像。
 
-## 本地运行
+在仓库根安装冻结依赖，再在本目录运行：
 
-```sh
-pnpm --filter @coffeeeeffoc/three-choose-two dev
-```
+~~~sh
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm dev
+pnpm test:browser
+pnpm test:publishing:browser
+~~~
 
-打开 `http://localhost:4422/`。H5 大厅入口为 `#/games/three-choose-two`，生产独立入口为 `/three-choose-two/`。
+预览 [http://localhost:4422](http://localhost:4422)。开发前先构建；修改后重新构建。浏览器专项会启动自己的临时端口，也可用 THREE_CHOOSE_TWO_BROWSER_URL 指向已有生产预览。PLAYWRIGHT_EXECUTABLE_PATH 可指定 Chromium。
 
-```sh
-pnpm --filter @coffeeeeffoc/three-choose-two test
-pnpm --filter @coffeeeeffoc/three-choose-two build
-pnpm --filter @coffeeeeffoc/three-choose-two test:browser
-```
+构建需要真实 Creator 3.8.8，或 sourceHash、运行产物摘要和引擎声明均匹配的 THREE_CHOOSE_TWO_PREBUILT_DIR。纯规则 src/*.mjs 是服务端和兼容宿主的同一来源；prepare.mjs 确定性生成 Creator 使用的 JS 模块，不维护第二份规则。
 
-浏览器测试使用 Playwright 和 Chromium，可通过 `PLAYWRIGHT_EXECUTABLE_PATH` 指定可执行文件。手机触屏模拟记录和截图保存在 `docs/design/garden-2026-10-07/actual/`；这类测试不等同于真机验收。分享测试检查真实应用产生的 payload，以测试替身承接系统分享面板；网页全屏仍通过真实浏览器 API 检查。
+## 操作和开发模式
 
-## 内容与规则
+- 手机拖动积木，或先点候选、再点棋盘落点；电脑也可鼠标拖放/点选。
+- 选关、帮助、暂停等长页面可滑动或滚轮滚动。取消手势不会落子。
+- 首页返回保留本局；暂停页“退出关卡”放弃当前局，保留已获星级和解锁。
+- 默认关闭开发模式。?dev=1 或统一 localStorage.dev 开启，?dev=0 显式关闭。开发选关四页共 120 关，可任意试玩，不修改正式进度、纪录或排位。
+- ThreeChooseTwoDev 保留参考解、撤销补充、重置、清空棋盘、参数调整和调试动作注册。分享不会携带开发参数。
+- “消除闪光”关闭后仍保留得分文字；原 reducedFlash 存档语义不变。
+- 游戏不显示或注入“全屏”按钮。
 
-- `src/engine.mjs`：纯规则、行列同步消除、计分、三选二、胜负、单步撤销、奖励幂等及重放。
-- `src/shapes.mjs`：冻结朝向的形状库及统一的分段随机权重。
-- `src/levels.mjs`：30 关独立配置、固定候选序列、目标、星级阈值和可验证路径。
-- 前 5 关用于教学；第 6–10 关开始跨组铺垫，第 11–20 关加入更多多线和交叉组合，第 21–30 关同时考验空间规划与弃块预算。所有关卡都有可达到三星的合法参考路径，旧局继续按已保存配置恢复。
-- `src/progress.mjs`：关卡解锁、最高星级、最好组数、本地练习纪录、当前局及设置。
-- `native/canvas.mjs`：使用同一规则和内容的原生 Canvas GameDefinition。
+getThreeChooseTwoSnapshot() 是只读验收接口，包含 Creator 版本、ready、screen/state、controls、viewport 和 layout（棋盘 inset/pitch、候选位置）。浏览器门禁读取布局后发出真实鼠标或触屏输入，不靠改写状态通关。
 
-每关三次免费撤销，只回退最近一次落子；撤销跨组会恢复弃块、原候选及下一组随机状态。先检查胜利，再处理弃块、预算、耗尽和无合法落子。无尽只由消除得分，排位不可撤销。
+## 可选的激励重置
 
-## 在线能力
+游玩中点击“重置选项”，确认“看广告并重置”。仅 completed 完成回调替换未放置候选；棋盘、分数、组数、目标、已用槽和正常出块随机序列保持。重置后不允许撤销回奖励前。取消、失败、不可用、旧局/旧请求迟到均不发奖。
 
-API 路径为 `/api/competition/v1/three-choose-two`。服务端创建并保存 24 小时会话，以秘密种子产生当前组，确认每步操作并在终结时重新重放。客户端不能提交权威分数。重复操作和结算幂等；排行榜按当前规则版本的最高单局分数，同分并列，按首次达到时间展示。
+复用 SmallGamesRewardAds.offer；原生宿主可提供 ThreeChooseTwoHost.ads。当前无广告位，按钮会提示暂不可用，正常游玩、重开和免费撤销不受影响。后续 H5 配置 H5_ADS_ENABLED=1 和 TAPTAP_THREE_CHOOSE_TWO_AD_UNIT_ID 后重新构建，使用共享 provider。没有默认模拟完成广告。
 
-复用仓库 competition 身份：微信/B站由服务端交换官方登录 code；平台 AppID 和 secret 必须在部署环境配置。H5 现有 guest 身份仅匿名在线试玩，不入正式榜。离线练习成绩仅保存在本地，不转成排位成绩。API 未运行或平台登录未配置时，本地玩法仍可用，界面明确显示网络/身份状态，不填充虚假成绩。
+在线排位与好友同种子挑战不允许重置；已重置无尽局仅分享成绩，不生成公平同局挑战链接。完成奖励先写收据，正式存档成功后清理，恢复时不会用旧收据覆盖较新的局面。
 
-迁移 `infra/migrations/012-three-choose-two.sql` 必须随 runtime-api 部署。异常成绩进入待复核状态；正常玩家的跨设备恢复使用同一平台身份和活动会话。
+## 规则、存档与在线
 
-在线浏览器回归使用独立 `competition_test` 数据库：先应用 010–012 迁移、构建 runtime-api，并启动本游戏的静态服务；设置 `THREE_CHOOSE_TWO_TEST_DATABASE_URL` 后运行 `pnpm --filter @coffeeeeffoc/three-choose-two test:online:browser`。`PSQL_PATH` 可指定 psql，`THREE_CHOOSE_TWO_ONLINE_BROWSER_URL` 可指定生产页面地址。该流程用隔离的测试身份，不等同于官方登录验收。
+120 关配置和全部合法参考路径保留。每关有三次免费单步撤销；普通三选二放两块后弃一块，“立即补位”每放一块仅补原槽，分别保存本地纪录。规则版本 three-choose-two-v1、进度 key three-choose-two-progress-v1 和在线恢复 key three-choose-two-online-v1 不变。
 
-## 微信与 B站预览工程
+API 路径 /api/competition/v1/three-choose-two，沿用现有服务器秘密种子、顺序动作、幂等结算和排行榜。H5 匿名在线试玩不入正式榜；离线分数不上传为排位。服务不可用时离线玩法仍可继续。开发模式不修改正式在线成绩。
 
-```sh
-pnpm minigame:build --game three-choose-two --platform wechat --preview
-pnpm minigame:build --game three-choose-two --platform bilibili --preview
-```
+真实服务与 PostgreSQL 专项保留在 tests/online.browser.mjs，需要隔离的 THREE_CHOOSE_TWO_TEST_DATABASE_URL（数据库名 competition_test）、已构建的 Runtime 和迁移 010–012，运行 pnpm test:online:browser。平台身份夹具不能代替官方 SDK 登录或真机验收。
 
-导入 `apps/shell-minigame/dist/<platform>/three-choose-two/`。预览构建不等于平台发布；真机、正式平台身份、审核和广告需要平台环境验收。激励广告未配置时不展示可领取的续局奖励；核心规则已提供完成奖励后增加固定两组的幂等接口。
+## 兼容和交付证据
 
-配置后的原生在线模式复用正式平台登录。通过 `--config` 指定 `apps/shell-minigame/release-config.example.json` 格式的配置，每个平台填写自己的 `appId` 与 HTTPS `apiUrl`（包含 `/api/competition/v1`）；服务端同时配置官方 AppID/secret 和允许来源。也可通过 `THREE_CHOOSE_TWO_API_URL` 提供公开 API 地址。缺少身份或 API 配置时保持离线练习。开发预览只允许回环 HTTP 地址，发行模式要求 HTTPS。微信激励广告使用该平台真实广告单元；B站广告能力依已有适配器验收状态，不假设已可上线。
+原 ./engine、./shapes、./levels、./progress、./canvas 导出保留。build:native:legacy / test:native:legacy 明确服务旧 Canvas 宿主，不能当成本次 Cocos 原生包。main.mjs/style.css 仅为历史外观参考，根 index.html 不再加载它们；fullscreen.js 仅保留未引用的兼容副本。新原生目标需独立构建和真机验收。
 
-H5 使用共享 `dev-mode.js`、`fullscreen.js`、`competition.js`。`?dev=1` 或 `localStorage.dev` 可启用按需调试；默认关闭，`?dev=0` 显式关闭。调试成绩与正常进度/排位隔离，公开分享不带开发参数。
-
-首页突出开始/继续、选关和无尽入口。游玩左上角返回按钮（无障碍名称“返回首页”）保存当前局，回首页后可继续；暂停页“退出关卡”放弃当前局并保留已有星级与解锁进度。原生 Canvas 的“首页”使用相同保存规则。
-
-花园主题的最新效果图对齐、四页实际截图及验证见 [第二版视觉记录](docs/design/garden-2026-10-07/refinement.md)。
-
-开发模式下普通选关页也可选择全部 30 关，选关进入独立试玩。开发工具提供参考解、撤销补充、重置、清空棋盘和参数调整；`window.ThreeChooseTwoDev` 的统一权限及扩展动作接口供后续调试功能复用。主页开始/继续仍可正常推进正式关卡，退出试玩会保留原有真实存档。修改试玩状态的权限不用于修改在线排位。
-
-本次难度依据、先行效果图和手机触屏模拟验证见 [2026-10-07 调整记录](docs/design/refresh-2026-10-07/h5-layout.md)。
-
-原始产品说明、先行手机效果图、布局参数和验收记录见 [设计目录](docs/design/README.md)。
+- [设计及素材来源](docs/design/cocos-2026-10-23/design.md)
+- [本次验证](docs/design/cocos-2026-10-23/VALIDATION.md)
+- [上架资料八类清单](publishing/STATUS.md)
+- [历史花园设计](docs/design/garden-2026-10-07/refinement.md)
