@@ -96,26 +96,26 @@ it('shows every exclusive rollout, visible implementation states, and filtered c
       tabs()
         .slice(0, 5)
         .map((button) => button.textContent),
-    ).toEqual(['全部游戏42', '上轮已改造7', '本轮改造15', '有潜力 · 后续改造20', '暂缓投入0']);
+    ).toEqual(['全部游戏42', '上轮已改造7', '本轮改造16', '有潜力 · 后续改造19', '暂缓投入0']);
     for (const article of articles()) {
       expect(article.querySelector('.game-rollout strong')?.textContent).toBeTruthy();
       expect(article.querySelector('.game-rollout span')?.textContent).toBeTruthy();
       expect(article.querySelector('.game-rollout')?.closest('details')).toBeNull();
     }
     await click('本轮改造');
-    expect(articles()).toHaveLength(15);
+    expect(articles()).toHaveLength(16);
     await click('移动端小游戏');
-    expect(articles()).toHaveLength(13);
+    expect(articles()).toHaveLength(14);
     expect(tabs().find((button) => button.textContent?.startsWith('本轮改造'))?.textContent).toBe(
-      '本轮改造13 / 15',
+      '本轮改造14 / 16',
     );
     expect(window.location.search).toContain('catalogTab=current');
     expect(window.location.search).toContain('catalog_platforms=mobile');
     await click('清空筛选');
     await click('有潜力 · 后续改造');
-    expect(articles()).toHaveLength(20);
+    expect(articles()).toHaveLength(19);
     await click('有潜力');
-    expect(articles()).toHaveLength(20);
+    expect(articles()).toHaveLength(19);
     await click('全部游戏');
     expect(articles()).toHaveLength(42);
     expect(tabs().find((button) => button.textContent?.startsWith('暂缓投入'))?.textContent).toBe(
