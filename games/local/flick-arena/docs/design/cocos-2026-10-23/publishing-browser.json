@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "environment": "Chromium desktop mobile simulation; actual CDP touch; not physical hardware",
+  "checks": [
+    "received seed/layout/target invitation",
+    "cancelled touch",
+    "four-shot real touch win",
+    "safe score-carrying share",
+    "same-seed rematch",
+    "390×844 / 320×568 screenshots and 44px controls"
+  ],
+  "errors": []
+}

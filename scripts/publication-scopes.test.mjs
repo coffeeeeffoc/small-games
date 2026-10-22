@@ -1342,6 +1342,40 @@ test('shared channel advertising covers every configured consumer; the uploader 
   }
 });
 
+test('Flick consumes only the three shared reward runtime files, with unique identity', () => {
+  const games = [
+    { id: 'cops-robbers', source: 'games/local/cops-robbers' },
+    { id: 'cops-robbers-realtime', source: 'games/local/cops-robbers-realtime' },
+    { id: 'xiangqi-five', source: 'games/submodules/xiangqi-five' },
+    ...[...sixH5Ids, 'merge-front', 'tetracube', 'flick-arena'].map((id) => ({
+      id,
+      source: `games/local/${id}`,
+    })),
+  ];
+  const packages = games.map((game) => ({ name: game.id, dir: game.source }));
+  const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const runtime = [
+    'platforms/h5/game-rewards.js',
+    'platforms/h5/platform-ads.js',
+    'platforms/h5/interstitial.js',
+  ];
+  for (const file of [...sixH5ScopePaths, ...platformAdsScopePaths]) {
+    const context = { games, packages, changedPaths: [file], readHead, readSource: readHead };
+    const scopes = reviewedSharedFileScopes(context);
+    assert(scopes.has(file), `unclassified ${file}`);
+    assert.equal(
+      scopes.get(file).includes('games/local/flick-arena'),
+      runtime.includes(file),
+      file,
+    );
+    if (!runtime.includes(file)) continue;
+    assert(incrementalPlan({ ...context, fileScopes: scopes }).browser_ids.includes('flick-arena'));
+    assert.equal(reviewedSharedFileScopes({ ...context, packages: packages.slice(0, -1) }).size, 0);
+    assert.equal(reviewedSharedFileScopes({ ...context, games: [...games, games.at(-1)] }).size, 0);
+    assert.equal(reviewedSharedFileScopes({ ...context, games: games.slice(0, -1) }).size, 0);
+  }
+});
+
 test('company deployment selects only the website and rejects unknown siblings and root commands', () => {
   const packages = [
     { name: '@coffeeeeffoc/company-web', dir: 'apps/company-web' },
@@ -5024,10 +5058,11 @@ test('Bullet Garden Creator routing preserves every old producer and consumer ga
     '.github/workflows/pages-validate.yml',
     '.github/workflows/mobile.yml',
   ]) {
-    const head = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
-      '\r\n',
-      '\n',
-    );
+    // Later Creator integrations legitimately change these workflows. Keep this proof
+    // bound to the reviewed Bullet transition, as in the fixed-predecessors test below.
+    const head = execFileSync('git', ['show', '0885df730b4d68798e278e916d0e407fd4fdaa82:' + file], {
+      encoding: 'utf8',
+    }).replaceAll('\r\n', '\n');
     const base = execFileSync('git', ['show', '53eb4b69bd1c2c3bbfe01349624235a1636b121e:' + file], {
       encoding: 'utf8',
     }).replaceAll('\r\n', '\n');

@@ -82,18 +82,10 @@ try {
   await frame.locator('#pause').tap();
   await frame.locator('#home').tap();
   await navigation.waitFor({ state: 'visible' });
-  // The game's complete stage is the fullscreen target. Rejection preserves ordinary play.
-  await frame.locator('#fullscreen').tap();
-  await page.waitForTimeout(250);
-  assert(await frame.locator('#start').isVisible());
+  assert.equal(await frame.locator('[data-game-fullscreen], #fullscreen').count(), 0);
   const child = page.frames().find((candidate) => candidate.url().includes('/games/flick-arena/'));
   assert.equal(await child.evaluate(() => typeof window.__flickArena), 'undefined');
-  const fullscreenEntered = await child.evaluate(() => Boolean(document.fullscreenElement));
-  if (fullscreenEntered) {
-    assert.equal(await child.evaluate(() => document.fullscreenElement.id), 'stage');
-    await frame.locator('#fullscreen').tap();
-    await page.waitForFunction(() => !document.fullscreenElement);
-  }
+  assert.equal(await frame.locator('#game').getAttribute('data-engine'), 'cocos-3.8.8');
   await page.setViewportSize({ width: 844, height: 390 });
   await page.waitForTimeout(100);
   assert(await frame.locator('#start').isVisible());
@@ -120,10 +112,9 @@ try {
       'home return',
       'Shell navigation hidden during play and pause, restored at home',
       'touch return to catalog',
-      'complete-stage fullscreen control with ordinary-play fallback',
+      'Cocos scene with no fullscreen control',
       'landscape and small-screen resize',
     ],
-    fullscreenEntered,
     pageErrors: errors,
     wallSeconds: Math.round((performance.now() - started) / 100) / 10,
   };

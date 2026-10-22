@@ -1021,6 +1021,23 @@ export const sixH5Ids = [
 // Historical six/five-game presets retain their existing exact membership.
 const presetH5Ids = sixH5Ids.filter((id) => id !== 'homebound-station');
 const sixH5Sources = sixH5Ids.map((id) => `games/local/${id}`);
+// Flick uses these shared runtime ports, but is not part of the channel build presets.
+const flickRewardRuntimePaths = [
+  'platforms/h5/game-rewards.js',
+  'platforms/h5/platform-ads.js',
+  'platforms/h5/interstitial.js',
+];
+function flickRewardConsumers(file, games, packages) {
+  if (!flickRewardRuntimePaths.includes(file)) return [];
+  const source = 'games/local/flick-arena';
+  const bindings = games.filter((game) => game.id === 'flick-arena' || game.source === source);
+  if (!bindings.length && !packages.some((pkg) => pkg.dir === source)) return [];
+  assert.equal(bindings.length, 1);
+  assert.equal(bindings[0].id, 'flick-arena');
+  assert.equal(bindings[0].source, source);
+  assert.equal(packages.filter((pkg) => pkg.dir === source).length, 1);
+  return [source];
+}
 export const sixH5ScopePaths = [
   'scripts/h5-game-build.mjs',
   'scripts/six-taptap-h5.test.mjs',
@@ -3894,9 +3911,12 @@ export function reviewedSharedFileScopes({
             file,
             file === 'infra/builds/six-taptap-h5.mjs'
               ? presetH5Ids.map((id) => `games/local/${id}`)
-              : mergeConsumer
-                ? [...sixH5Sources, 'games/local/merge-front', ...tetracubeConsumer]
-                : [...sixH5Sources, ...tetracubeConsumer],
+              : [
+                  ...sixH5Sources,
+                  ...(mergeConsumer ? ['games/local/merge-front'] : []),
+                  ...tetracubeConsumer,
+                  ...flickRewardConsumers(file, games, packages),
+                ],
           );
         }
         continue;
@@ -4117,6 +4137,7 @@ export function reviewedSharedFileScopes({
                   .map((pkg) => pkg.dir),
                 ...(games.some((g) => g.id === 'merge-front') ? ['games/local/merge-front'] : []),
                 ...(games.some((g) => g.id === 'tetracube') ? ['games/local/tetracube'] : []),
+                ...flickRewardConsumers(file, games, packages),
               ]
             : [source],
         );

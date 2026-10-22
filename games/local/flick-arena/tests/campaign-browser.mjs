@@ -1,3 +1,4 @@
+import { ready } from './ready.mjs';
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
@@ -61,11 +62,14 @@ async function client({ clock = false, suffix = '' } = {}) {
     await page.clock.pauseAt(new Date('2026-10-11T15:00:01Z'));
   }
   await page.goto(origin + suffix);
+  await ready(page, clock);
   const session = await context.newCDPSession(page);
   const advance = (ms) => (clock ? page.clock.runFor(ms) : page.waitForTimeout(ms));
   const phase = () => page.locator('body').getAttribute('data-phase');
-  const screenshot = (name) =>
-    page.screenshot({ path: new URL(`actual-${name}.png`, out).pathname });
+  const screenshot = async (name) => {
+    await advance(32);
+    return page.screenshot({ path: new URL(`actual-${name}.png`, out).pathname });
+  };
   const touch = (type, points) =>
     session.send('Input.dispatchTouchEvent', {
       type,
@@ -203,6 +207,7 @@ try {
     await page.locator('#pause').tap();
     await page.locator('#home').tap();
     await page.reload();
+    await ready(page);
     await page.locator('#levels').tap();
     assert.equal(
       await page.locator(`#level-${levels[1].id}`).isDisabled(),
@@ -291,6 +296,7 @@ try {
     await solo.screenshot('small-screen-levels');
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(origin + '?dev=1');
+    await ready(page);
     const terrainChecks = [];
     for (const index of [10, 12, 15, 19]) {
       await page.getByRole('button', { name: '开发者调试', exact: true }).tap();
@@ -356,6 +362,7 @@ try {
         await player.page.locator('body[data-phase="playing"]').waitFor();
       if (count === 2) {
         await host.page.reload();
+        await ready(host.page, false);
         await host.page.locator('body[data-phase="playing"]').waitFor();
         assert.equal(
           (await host.visible()).room.code,
