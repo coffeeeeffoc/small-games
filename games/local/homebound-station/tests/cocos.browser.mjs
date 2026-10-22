@@ -110,6 +110,86 @@ const tap = async (id) => {
   );
 };
 const shot = async (name) => page.screenshot({ path: path.join(out, name + '.png') });
+const viewportEvidence = { dispatches: [], pan: null };
+const insideButton = (point, button) =>
+  point.x >= button.x &&
+  point.x <= button.x + button.w &&
+  point.y >= button.y &&
+  point.y <= button.y + button.h;
+const assertButtonsFit = (view, width, height) => {
+  for (const button of view.buttons) {
+    assert.ok(button.w >= 44 && button.h >= 44, `${button.id} needs a 44px touch target`);
+    assert.ok(
+      button.x >= 0 &&
+        button.y >= 0 &&
+        button.x + button.w <= width + 1 &&
+        button.y + button.h <= height + 1,
+      `${button.id} must fit ${width}×${height}`,
+    );
+  }
+};
+const touchVisibleCar = async (width, height) => {
+  const view = await screen(),
+    before = await snap();
+  assert.equal(before.level, 100);
+  assert.equal(view.speed, 1);
+  assert.equal(before.services.length, 0);
+  const car = view.cars.find(
+    (car) => car.available && !view.buttons.some((button) => insideButton(car, button)),
+  );
+  assert.ok(car, `${width}×${height} must expose a legally dispatchable car`);
+  await page.touchscreen.tap(car.x, car.y);
+  await page.waitForFunction(
+    (id) => window.homeboundSnapshot().services.some((job) => job.vehicleId === id),
+    car.id,
+  );
+  const after = await snap();
+  assert.equal(after.services.length, 1, 'One real touch must dispatch exactly one car');
+  viewportEvidence.dispatches.push({
+    width,
+    height,
+    touch: car,
+    before: { time: before.time, scroll: view.scroll, services: before.services },
+    after: { time: after.time, services: after.services },
+  });
+  await shot(`level100-dispatched-${width}`);
+};
+const dragBoardUp = async () => {
+  const view = await screen();
+  // Start on an actual holding car: a drag must cancel this otherwise valid car press.
+  const start = view.cars
+    .filter(
+      (car) =>
+        car.y > 190 &&
+        car.y < 548 &&
+        car.x > 24 &&
+        car.x < 296 &&
+        !view.buttons.some((button) => insideButton(car, button)),
+    )
+    .sort((a, b) => b.y - a.y)[0];
+  assert.ok(start, 'The small board needs a visible car from which to drag');
+  const cdp = await context.newCDPSession(page);
+  try {
+    await cdp.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ id: 1, x: start.x, y: start.y }],
+    });
+    for (let step = 1; step <= 10; step++) {
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [{ id: 1, x: start.x, y: start.y + ((100 - start.y) * step) / 10 }],
+      });
+      await page.waitForTimeout(20);
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  } finally {
+    await cdp.detach();
+  }
+  await page.evaluate(
+    () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+  );
+  return { from: { x: start.x, y: start.y, vehicleId: start.id }, to: { x: start.x, y: 100 } };
+};
 // Level 1: two unobstructed cars must move concurrently before the first boarding.
 const parallelEvidence = { clickOrder: ['巡02', '巡01'], snapshots: {} };
 const parallelFrame = async (label) => {
@@ -218,7 +298,12 @@ try {
   await tap('speed-menu');
   assert.equal((await screen()).buttons.filter((b) => b.id.startsWith('speed:')).length, 4);
   await shot('speed-menu-390');
-  await page.touchscreen.tap(18, 290);
+  const menuView = await screen();
+  const carBehindMenu = menuView.cars.find(
+    (car) => car.available && !menuView.buttons.some((button) => insideButton(car, button)),
+  );
+  assert.ok(carBehindMenu, 'Menu dismissal must be tested over a real available car');
+  await page.touchscreen.tap(carBehindMenu.x, carBehindMenu.y);
   assert.equal((await screen()).speedExpanded, false);
   assert.equal(
     (await snap()).services.length,
@@ -303,9 +388,26 @@ try {
     (await screen()).buttons.some((button) => button.id === 'fullscreen'),
     false,
   );
-  const frozen = (await snap()).time;
+  const pausedView = await screen(),
+    pausedState = await snap();
+  const frozen = pausedState.time;
+  assert.equal(pausedView.speedExpanded, false);
+  assert.equal(
+    pausedView.buttons.some(
+      (button) => button.id === 'speed-menu' || button.id.startsWith('speed:'),
+    ),
+    false,
+  );
+  const carBehindPause = pausedView.cars.find(
+    (car) => !pausedView.buttons.some((button) => insideButton(car, button)),
+  );
+  assert.ok(carBehindPause, 'Pause input blocking must be tested over a real holding car');
+  await page.touchscreen.tap(carBehindPause.x, carBehindPause.y);
   await page.waitForTimeout(250);
+  assert.equal((await screen()).page, 'pause');
   assert.equal((await snap()).time, frozen);
+  assert.deepEqual((await snap()).services, pausedState.services);
+  checks.push('pause modal blocks real car touches and keeps the simulation clock frozen');
   await shot('pause-390');
   await tap('resume');
   // A genuine pointer focus transfer triggers browser blur without synthetic lifecycle events.
@@ -346,11 +448,8 @@ try {
     const raw = await snap(),
       s = { ...raw, delivered: new Set(raw.delivered) };
     assertParallelAssignments(raw);
-    const next = s.vehicles.find((v) => canDispatch(s, v.id).ok);
-    if (next) {
-      const c = (await screen()).cars.find((v) => v.id === next.id);
-      if (c) await page.touchscreen.tap(c.x, c.y);
-    }
+    const next = (await screen()).cars.find((car) => car.available && canDispatch(s, car.id).ok);
+    if (next) await page.touchscreen.tap(next.x, next.y);
     await page.waitForTimeout(65);
   }
   assert.equal((await snap()).won, true);
@@ -381,8 +480,100 @@ try {
   assert.equal((await screen()).layout.columns, 6);
   assert.ok((await screen()).layout.rows >= 8);
   await shot('level100-390');
+  await touchVisibleCar(390, 844);
+  // A new practice run keeps the pan probe independent of any travelling vehicle.
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto(base + '?dev=1&level=100');
+  await mode('playing');
+  await page.waitForFunction(() => window.homeboundView().scroll.max > 0);
+  const beforePanView = await screen(),
+    beforePanState = await snap();
+  assert.equal(beforePanState.services.length, 0);
+  assert.equal(beforePanView.scroll.y, 0);
+  assertButtonsFit(beforePanView, 320, 568);
+  const bottomRow = Math.max(...beforePanState.vehicles.map((car) => car.row));
+  const bottomIds = beforePanState.vehicles
+    .filter((car) => car.row === bottomRow)
+    .map((car) => car.id);
+  assert.ok(
+    bottomIds.some((id) => !beforePanView.cars.some((car) => car.id === id)),
+    'At least part of the bottom row must initially be clipped on 320×568',
+  );
+  const gestures = [];
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const view = await screen();
+    if (view.scroll.y >= view.scroll.max - 1) break;
+    gestures.push(await dragBoardUp());
+    assert.equal((await snap()).services.length, 0, 'Dragging must never dispatch the pressed car');
+  }
+  const afterPanView = await screen(),
+    afterPanState = await snap();
+  viewportEvidence.pan = {
+    width: 320,
+    height: 568,
+    bottomRow,
+    bottomIds,
+    gestures,
+    before: {
+      time: beforePanState.time,
+      scroll: beforePanView.scroll,
+      cars: beforePanView.cars,
+      services: beforePanState.services,
+    },
+    after: {
+      time: afterPanState.time,
+      scroll: afterPanView.scroll,
+      cars: afterPanView.cars,
+      services: afterPanState.services,
+    },
+  };
+  await writeFile(path.join(out, 'viewport-input.json'), JSON.stringify(viewportEvidence, null, 2));
+  assert.ok(afterPanView.scroll.y > 0, 'Real touch dragging must move the board upward');
+  assert.ok(
+    afterPanView.scroll.y >= afterPanView.scroll.max - 1,
+    'Repeated drags must reach the bottom',
+  );
+  assert.ok(
+    bottomIds.every((id) => afterPanView.cars.some((car) => car.id === id)),
+    'Every bottom-row car must become visible after scrolling',
+  );
+  assert.deepEqual(
+    afterPanState.vehicles.map((car) => ({ id: car.id, position: car.position, state: car.state })),
+    beforePanState.vehicles.map((car) => ({
+      id: car.id,
+      position: car.position,
+      state: car.state,
+    })),
+    'Dragging moves the viewport, not parked vehicles',
+  );
+  assert.deepEqual(
+    afterPanView.buttons,
+    beforePanView.buttons,
+    'The HUD stays fixed while the board pans',
+  );
+  await shot('level100-scrolled-320');
   await tap('pause');
   await tap('home');
+  assertButtonsFit(await screen(), 320, 568);
+  await shot('home-320');
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.goto(base + '?dev=1&level=100');
+  await mode('playing');
+  assert.equal((await screen()).scroll.max, 0, 'The landscape board fits without vertical panning');
+  assertButtonsFit(await screen(), 844, 390);
+  await shot('level100-844');
+  await touchVisibleCar(844, 390);
+  await writeFile(path.join(out, 'viewport-input.json'), JSON.stringify(viewportEvidence, null, 2));
+  checks.push(
+    'level 100: genuine 320×568 touch pan reveals the bottom row without dispatch; fixed HUD; real available-car touches dispatch on 390×844 and 844×390',
+  );
+  await tap('pause');
+  await tap('home');
+  assertButtonsFit(await screen(), 844, 390);
+  await shot('home-844');
+  // Chapter buttons differ on short screens; return to portrait before selecting chapter ten.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(200);
   await tap('levels');
   await tap('chapter:9');
   assert.equal((await screen()).buttons.find((b) => b.id === 'level:99').disabled, false);
@@ -446,6 +637,7 @@ try {
         creator: info,
         checks,
         parallelDeparture: parallelEvidence,
+        viewportInput: viewportEvidence,
         errors,
         environment:
           'Chromium touch emulation of real Creator web build, not physical-device certification',

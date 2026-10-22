@@ -1,71 +1,120 @@
 {
-  "date": "2026-10-22",
-  "sourceHash": "b86bdc9a2234c57c39066e5a8e9ac7279d4b9b4889ae8b1ea436484c6c33568a",
+  "date": "2026-10-23",
+  "sourceCommit": "86d93d6d781650cdd1528567bb8085e5f5a0a66e",
+  "sourceHash": "a483af6a5b1ddb2db83c2b9e4a848b5e5986404407d6633baf127864a092beef",
+  "environment": "Creator 3.8.8 Web Mobile, Chromium touch emulation at 390x844; short/landscape screenshots at indicated dimensions; not physical-device certification",
+  "video": "No audio captured. Runtime sound-switch persistence checked separately. Icon and historical key art retained; all gameplay screenshots and videos refreshed.",
   "files": [
     {
       "path": "gameplay/screenshots/home-390.png",
-      "bytes": 542306,
-      "sha256": "c2de1c6054df9e8fdafd9661a2ccc36b71a003440606ba261369691b22e79759",
+      "bytes": 128636,
+      "sha256": "03e949e4f508bdcb2d456578ee1e7e0356c56d88528504857c287883e5fee3a7",
       "width": 390,
       "height": 844,
-      "mode": "RGB"
+      "mode": "RGB",
+      "role": "current Creator runtime screenshot"
+    },
+    {
+      "path": "gameplay/screenshots/home-844.png",
+      "bytes": 60336,
+      "sha256": "a87efc1737832e97cea285a886adc55989c240274ea9ffeb49ebd168ee4c2535",
+      "width": 844,
+      "height": 390,
+      "mode": "RGB",
+      "role": "current Creator runtime screenshot"
     },
     {
       "path": "gameplay/screenshots/level100-390.png",
-      "bytes": 203791,
-      "sha256": "0101b8fed36d53141a53877218a029b8b43664fa63738b023b6186e3cea7e9e7",
+      "bytes": 176505,
+      "sha256": "241366b0b91f388562b0bacdb3c11a76072be89b10f35ef8d47628d35d3df6c7",
       "width": 390,
       "height": 844,
-      "mode": "RGB"
+      "mode": "RGB",
+      "role": "current Creator runtime screenshot"
+    },
+    {
+      "path": "gameplay/screenshots/level100-844.png",
+      "bytes": 138248,
+      "sha256": "e87bc6149dc4de1de1adfb0742b2cec6ba13fdf48b707f74512dbcd27c20997b",
+      "width": 844,
+      "height": 390,
+      "mode": "RGB",
+      "role": "current Creator runtime screenshot"
+    },
+    {
+      "path": "gameplay/screenshots/level100-scrolled-320.png",
+      "bytes": 73220,
+      "sha256": "a1bfec5e5ebb503a80748a017c42c8c06bb43e8061377c014084a995905ac7bb",
+      "width": 320,
+      "height": 568,
+      "mode": "RGB",
+      "role": "current Creator runtime screenshot"
     },
     {
       "path": "gameplay/screenshots/levels-390.png",
-      "bytes": 479265,
-      "sha256": "9b17dcca36da5ccfe65b7ad2a29a2080ebec9765ec12f0a5bab50266ad469b34",
+      "bytes": 510341,
+      "sha256": "0d57621b9ae01c8821bb298b2dbe9a66c95f9c686684208fe4de5dc004166b46",
       "width": 390,
       "height": 844,
-      "mode": "RGB"
+      "mode": "RGB",
+      "role": "current Creator runtime screenshot"
     },
     {
       "path": "gameplay/screenshots/parallel-390x844.png",
-      "bytes": 149392,
-      "sha256": "d26fe478dc576f1bd001c3c75ed9b8e332b343dedd8b66ac94c7191782d6d9c0",
+      "bytes": 90216,
+      "sha256": "a38c8bc2069ff510d5286e836c8c274941a7eadfdcdd0c89e7c5112fdb33164e",
       "width": 390,
       "height": 844,
-      "mode": "RGB"
+      "mode": "RGB",
+      "role": "current Creator runtime screenshot"
+    },
+    {
+      "path": "gameplay/screenshots/pause-390.png",
+      "bytes": 76747,
+      "sha256": "9a92042f16c7cd009fc79e2c8aaf07558c4dde41d2f2ad9f1c510dfbcc773d30",
+      "width": 390,
+      "height": 844,
+      "mode": "RGB",
+      "role": "current Creator runtime screenshot"
     },
     {
       "path": "gameplay/screenshots/playing-390.png",
-      "bytes": 152794,
-      "sha256": "611ab69b983ec147c8546635155abc0f76f36c3b1f66667c8b80628668ca85e7",
+      "bytes": 99070,
+      "sha256": "fccd20b07b0bc31e2029434116c6f35262ce769ea5b02a8bbc49fe4233d11b1c",
       "width": 390,
       "height": 844,
-      "mode": "RGB"
+      "mode": "RGB",
+      "role": "current Creator runtime screenshot"
     },
     {
       "path": "gameplay/screenshots/result-390.png",
-      "bytes": 22878,
-      "sha256": "00a7366270165ec1039d6a8bafb279bd442c2992c2f5c59411ea3b831fbb64c6",
+      "bytes": 64783,
+      "sha256": "071bee61bf7099213c6ec6cec30e1f8e4cde916a1a904e2c2dc1bcfe91c67df8",
       "width": 390,
       "height": 844,
-      "mode": "RGB"
+      "mode": "RGB",
+      "role": "current Creator runtime screenshot"
+    },
+    {
+      "path": "gameplay/screenshots/speed-menu-390.png",
+      "bytes": 99945,
+      "sha256": "92d6407cd2edf53510277c1fffa4a9b029aa3187dc47cbd7f3d60cace4db594b",
+      "width": 390,
+      "height": 844,
+      "mode": "RGB",
+      "role": "current Creator runtime screenshot"
     },
     {
       "path": "gameplay/videos/level01-1x-390x844.mp4",
-      "bytes": 1206158,
-      "sha256": "e9dad60f8a4909012c3a3fb8b7418e045609e931572fb1342c9424e1005e4246",
-      "programs": [],
-      "stream_groups": [],
-      "streams": [
-        {
-          "codec_name": "h264",
-          "width": 390,
-          "height": 844
-        }
-      ],
-      "format": {
-        "duration": "60.680000"
-      }
+      "bytes": 667072,
+      "sha256": "605f4d92499b28d2959c3048d10bcadc278bf49f197938699dab5e770dff38da",
+      "width": 390,
+      "height": 844,
+      "durationSeconds": 25.32,
+      "codec": "h264",
+      "audioTracks": 0,
+      "fullDecode": "passed",
+      "editing": "complete recording; no cuts or speed change"
     },
     {
       "path": "icon/homebound-1254.png",
@@ -73,7 +122,8 @@
       "sha256": "0e16a2645ea4a1016f605dc0ebdb37128faa3541a0cec2e20e58b89198495452",
       "width": 1254,
       "height": 1254,
-      "mode": "RGB"
+      "mode": "RGB",
+      "role": "game icon"
     },
     {
       "path": "promo/images/homebound-keyart-portrait.png",
@@ -81,24 +131,20 @@
       "sha256": "9d7f3fe6bae829a84f6d502c1d6fc9c221ff72e41ac4184314ad845ef8cb7005",
       "width": 852,
       "height": 1846,
-      "mode": "RGB"
+      "mode": "RGB",
+      "role": "historical promotional illustration"
     },
     {
       "path": "promo/videos/homebound-mobile-preview-390x844.mp4",
-      "bytes": 631491,
-      "sha256": "4fe7ec8041e729ef45b5e3ccfc8bdf116e1e32681d5757e1093f66656a738250",
-      "programs": [],
-      "stream_groups": [],
-      "streams": [
-        {
-          "codec_name": "h264",
-          "width": 390,
-          "height": 844
-        }
-      ],
-      "format": {
-        "duration": "26.640000"
-      }
+      "bytes": 509989,
+      "sha256": "380626c00c58f84b44eb0932eff3815b78c254683e4221f1ff5d40b314cf1e43",
+      "width": 390,
+      "height": 844,
+      "durationSeconds": 18.0,
+      "codec": "h264",
+      "audioTracks": 0,
+      "fullDecode": "passed",
+      "editing": "first 18 seconds of current full capture; no speed change"
     }
   ]
 }
