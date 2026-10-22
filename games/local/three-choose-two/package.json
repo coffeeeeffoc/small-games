@@ -15,6 +15,7 @@
     "./canvas": "./native/canvas.mjs"
   },
   "scripts": {
+    "postinstall": "node scripts/prepare.mjs",
     "dev": "node scripts/serve.mjs",
     "start": "node scripts/serve.mjs",
     "build": "node scripts/build.mjs web-mobile",

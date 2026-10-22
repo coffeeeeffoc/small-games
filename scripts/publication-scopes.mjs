@@ -3351,7 +3351,7 @@ export const threeChooseTwoCreatorReviews = Object.freeze({
         sources: ['apps/shell-web', 'games/local/three-choose-two'],
       },
     ],
-    after: '994181c43566aa13b6d1cc529ccb91aa7721d3b4248e6ad84f8dcc8383792d76',
+    after: 'f1d36fc3f37c22009e04894d5728634fef31abd24016e5a4667a257208ca1f57',
   },
   'apps/shell-web/scripts/standalone-game-entry.mjs': {
     before: [
@@ -3594,7 +3594,7 @@ export const threeChooseTwoCreatorReviews = Object.freeze({
 });
 const threeChooseTwoLockManifest = {
   before: '9d9cfee4fff466dbdcf3988a99779a594f66d2667037821e9ff75f8432db05f2',
-  after: '03ef026afb20568563306543666100d6674e05d0b6794a7c5999ee70596cad13',
+  after: '31174e289f7e41a44d3774993b1c2aa3479d86d83f8cd4b19d86e06095788e8b',
 };
 export function threeChooseTwoCreatorFileScope(
   file,

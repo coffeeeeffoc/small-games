@@ -1716,7 +1716,33 @@ export function threeChooseTwoInput(frame, mobile = false) {
     await expect
       .poll(async () => (await snapshot())?.controls.some((c) => c.id === id && !c.disabled))
       .toBe(true);
-    const c = (await snapshot()).controls.find((c) => c.id === id);
+    let c;
+    for (let attempt = 0; attempt < 12; attempt++) {
+      const s = await snapshot();
+      c = s.controls.find((item) => item.id === id && !item.disabled);
+      if (c.y >= 0 && c.y + c.h <= s.viewport.height) break;
+      const down = c.y > 0;
+      const from = await point({ x: 8, y: s.viewport.height * (down ? 0.8 : 0.25) });
+      const to = await point({ x: 8, y: s.viewport.height * (down ? 0.25 : 0.8) });
+      if (mobile) {
+        const touch = await page.context().newCDPSession(page);
+        try {
+          await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [from] });
+          await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [to] });
+          await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        } finally {
+          await touch.detach();
+        }
+      } else {
+        await page.mouse.move(from.x, from.y);
+        await page.mouse.down();
+        await page.mouse.move(to.x, to.y, { steps: 5 });
+        await page.mouse.up();
+      }
+      await page.waitForTimeout(100);
+    }
+    expect(c.y, `${id} must be inside the visible viewport`).toBeGreaterThanOrEqual(0);
+    expect(c.y + c.h).toBeLessThanOrEqual((await snapshot()).viewport.height);
     const p = await point({ x: c.x + c.w / 2, y: c.y + c.h / 2 });
     if (mobile) await page.touchscreen.tap(p.x, p.y);
     else await page.mouse.click(p.x, p.y);

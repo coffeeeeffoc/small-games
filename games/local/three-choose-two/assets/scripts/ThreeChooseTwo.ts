@@ -44,6 +44,10 @@ export class ThreeChooseTwo extends Component {
   disposed = false;
   time = 0;
   lastTouch = -10;
+  touchPointer = sys.isMobile;
+  trackPointer = (event: PointerEvent) => {
+    this.touchPointer = event.pointerType !== 'mouse';
+  };
   inputCount = 0;
   observedState: any = null;
   feedback: { event: any; until: number } | null = null;
@@ -124,6 +128,8 @@ export class ThreeChooseTwo extends Component {
     game.on(Game.EVENT_HIDE, this.suspend, this);
     game.on(Game.EVENT_SHOW, this.visible, this);
     if (sys.isBrowser) {
+      // Creator 3.8.8 leaves simulate unset on mouse-derived touch events.
+      window.addEventListener('pointerdown', this.trackPointer, true);
       window.addEventListener('resize', this.resize);
       window.addEventListener('blur', this.suspend);
       window.addEventListener('pagehide', this.exit);
@@ -1498,15 +1504,18 @@ export class ThreeChooseTwo extends Component {
     this.dirty = true;
   };
   touchStart(e: EventTouch) {
+    if (e.simulate || (sys.isBrowser && !this.touchPointer)) return;
     this.lastTouch = this.time;
     const p = e.getUILocation();
     this.down(e.getID() ?? -2, p.x, this.ui.H - p.y, true);
   }
   touchMove(e: EventTouch) {
+    if (e.simulate || !this.press?.touch) return;
     const p = e.getUILocation();
     this.move(e.getID() ?? -2, p.x, this.ui.H - p.y);
   }
   touchEnd(e: EventTouch) {
+    if (e.simulate || !this.press?.touch) return;
     const p = e.getUILocation();
     this.up(e.getID() ?? -2, p.x, this.ui.H - p.y);
   }
@@ -1550,6 +1559,7 @@ export class ThreeChooseTwo extends Component {
     game.off(Game.EVENT_HIDE, this.suspend, this);
     game.off(Game.EVENT_SHOW, this.visible, this);
     if (sys.isBrowser) {
+      window.removeEventListener('pointerdown', this.trackPointer, true);
       window.removeEventListener('resize', this.resize);
       window.removeEventListener('blur', this.suspend);
       window.removeEventListener('pagehide', this.exit);

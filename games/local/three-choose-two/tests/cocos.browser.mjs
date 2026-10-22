@@ -181,6 +181,19 @@ try {
   pass('BFCache pagehide keeps the live session usable');
   await p.context.close();
   const videoPath = await video.path();
+  const desktopContext = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const desktopPage = await desktopContext.newPage();
+  const desktop = { page: desktopPage, ...inputFor(desktopPage, false) };
+  await open(desktop);
+  await desktop.control('start');
+  await desktop.control('begin');
+  await desktop.drag(getLevel(1).solution[0], true);
+  assert.equal((await desktop.snapshot()).state.stats.placements, 0);
+  await desktop.drag(getLevel(1).solution[0]);
+  await desktop.screen('result');
+  assert.equal((await desktop.snapshot()).state.status, 'won');
+  await desktopContext.close();
+  pass('Desktop mouse drag uses its own cursor position and ignores simulated touch duplicates');
   for (const [width, height] of [
     [320, 568],
     [360, 740],
