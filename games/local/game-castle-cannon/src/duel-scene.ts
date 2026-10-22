@@ -104,7 +104,7 @@ export class DuelScene {
     for (const p of v.duel.fighters) {
       const figure = this.world.people[p.side]!,
         g = activeGun(p);
-      const loading = !!g && (g.reload < 1 || g.repair !== null) && !p.crouched && !p.route.length;
+      const loading = !!g && g.reload < 1 && !p.crouched && !p.route.length;
       figure.march.visible = !loading;
       figure.load.visible = loading;
       figure.group.position.set(p.position.x, p.position.y, p.position.z);
@@ -184,13 +184,10 @@ export class DuelScene {
       this.camera.position.set(-66 * d, 3.5, 6 * d);
       this.camera.lookAt(-69 * d, 1.2, 0);
     } else {
+      const origin = me.route.length ? me.position : gun.position;
       this.camera.fov = 52;
-      this.camera.position.set(
-        gun.position.x - 5 * d,
-        gun.position.y + 4.5,
-        gun.position.z + 2 * d,
-      );
-      this.camera.lookAt(gun.position.x + 32 * d, gun.position.y + 1.5, gun.position.z - d);
+      this.camera.position.set(origin.x - 5 * d, origin.y + 4.5, origin.z + 2 * d);
+      this.camera.lookAt(origin.x + 32 * d, origin.y + 1.5, origin.z - d);
     }
     this.camera.updateProjectionMatrix();
     this.camera.updateMatrixWorld(true);

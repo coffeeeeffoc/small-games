@@ -54,28 +54,41 @@ describe('120 关炮战战役', () => {
   });
   it('全部关卡在有限生命、弹道、装填、撤退与医疗规则下可获胜', () => {
     const losses: string[] = [];
+    // Prove a legal winning tactic, without requiring every level to suit one firing pattern.
+    const tactics = [
+      { name: '混合攻城', ammo: 'mixed', structureEvery: 4 },
+      { name: '爆破弹瞄准炮手', ammo: 'blast', structureEvery: Number.MAX_SAFE_INTEGER },
+    ] as const;
     for (const level of CAMPAIGN) {
-      const duel = createCampaignDuel(level),
-        player = new DuelBot(0, {
-          initialDelay: 0.2,
-          reaction: 0.7,
-          error: 0.7,
-          correction: 0.45,
-          structureEvery: 4,
-          relocateEvery: 0,
-          ammo: 'mixed',
-        }),
-        enemy = new DuelBot(1, level.bot);
-      for (let frame = 0; frame < 60 * 600 && !duel.result; frame++) {
-        player.tick(duel);
-        enemy.tick(duel);
-        stepDuel(duel);
-      }
-      if (duel.result?.winner !== 0)
-        losses.push(
-          `${level.id}:${duel.result?.winner ?? 'timeout'}:${Math.round(duel.fighters[0].hp)}/${Math.round(duel.fighters[1].hp)}`,
+      const attempts: string[] = [];
+      let won = false;
+      for (const tactic of tactics) {
+        const duel = createCampaignDuel(level),
+          player = new DuelBot(0, {
+            initialDelay: 0.2,
+            reaction: 0.7,
+            error: 0.7,
+            correction: 0.45,
+            structureEvery: tactic.structureEvery,
+            relocateEvery: 0,
+            ammo: tactic.ammo,
+          }),
+          enemy = new DuelBot(1, level.bot);
+        for (let frame = 0; frame < 60 * 600 && !duel.result; frame++) {
+          player.tick(duel);
+          enemy.tick(duel);
+          stepDuel(duel);
+        }
+        attempts.push(
+          `${tactic.name}:${duel.result?.winner ?? 'timeout'}:${Math.round(duel.fighters[0].hp)}/${Math.round(duel.fighters[1].hp)}`,
         );
-      expect(duel.fighters.every((p) => p.medicines >= 0 && p.medicines <= 3)).toBe(true);
+        expect(duel.fighters.every((p) => p.medicines >= 0 && p.medicines <= 3)).toBe(true);
+        if (duel.result?.winner === 0) {
+          won = true;
+          break;
+        }
+      }
+      if (!won) losses.push(`${level.id}:${attempts.join(';')}`);
     }
     expect(losses).toEqual([]);
   }, 120000);

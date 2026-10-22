@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { PerspectiveCamera, Vector3 } from 'three';
+import { activeGun, gunDirection } from './duel-actions.js';
+import { direction } from './duel-types.js';
 import { createInMemoryGameHost } from '@coffeeeeffoc/game-host';
 import { defaultCastleCannonEnvelope } from './index.js';
 import { createDuelSession } from './duel-session.js';
@@ -15,6 +18,134 @@ const host = () =>
     content: defaultCastleCannonEnvelope,
   });
 describe('对战输入与旧存档', () => {
+  it.each(['silent', 'error', 'old-version', 'queue-error', 'queue-stalled'])(
+    '匹配事件流 %s 时超时或失败后静默进入本地玩法',
+    async (failure) => {
+      const s = await createDuelSession(host(), () => {});
+      const streams: FakeStream[] = [];
+      class FakeStream {
+        onmessage: ((event: { data: string }) => void) | null = null;
+        onerror: (() => void) | null = null;
+        onopen: (() => void) | null = null;
+        close = vi.fn();
+        constructor() {
+          streams.push(this);
+        }
+      }
+      vi.useFakeTimers();
+      vi.stubGlobal('location', { origin: 'https://castle.test', protocol: 'https:' });
+      vi.stubGlobal('EventSource', FakeStream);
+      vi.stubGlobal(
+        'fetch',
+        vi
+          .fn()
+          .mockImplementation(async () => new Response(JSON.stringify({ token: 'a'.repeat(48) }))),
+      );
+      try {
+        s.action('start');
+        await vi.advanceTimersByTimeAsync(0);
+        expect(streams).toHaveLength(1);
+        expect(s.v.screen).toBe('matching');
+        if (failure.startsWith('queue-'))
+          streams[0]!.onmessage?.({ data: JSON.stringify({ kind: 'waiting', seconds: 8 }) });
+        if (failure === 'error') streams[0]!.onerror?.();
+        if (failure === 'queue-error') streams[0]!.onerror?.();
+        if (failure === 'old-version')
+          streams[0]!.onmessage?.({
+            data: JSON.stringify({
+              kind: 'state',
+              side: 0,
+              mode: 'bot',
+              matchId: 'old',
+              state: { ...s.v.duel, version: 'duel-v1' },
+            }),
+          });
+        await vi.advanceTimersByTimeAsync(failure.startsWith('queue-') ? 13001 : 5001);
+        expect(s.v.screen).toBe('playing');
+        expect(s.v.mode).toBe('practice');
+        expect(s.v.message).toBe('');
+        expect(streams[0]!.close).toHaveBeenCalled();
+        expect(vi.getTimerCount()).toBe(0);
+      } finally {
+        await s.dispose();
+        vi.unstubAllGlobals();
+        vi.useRealTimers();
+      }
+    },
+  );
+  it('双方视角右拖炮口向右、上拖炮口向上，额外触点不抢瞄准', async () => {
+    const s = await createDuelSession(host(), () => {});
+    try {
+      for (const side of [0, 1] as const) {
+        s.practice();
+        s.v.side = side;
+        const gun = activeGun(s.v.duel.fighters[side])!,
+          d = direction(side);
+        const camera = new PerspectiveCamera(52, 16 / 9, 0.2, 550);
+        camera.position.set(gun.position.x - 5 * d, gun.position.y + 4.5, gun.position.z + 2 * d);
+        camera.lookAt(gun.position.x + 32 * d, gun.position.y + 1.5, gun.position.z - d);
+        camera.updateMatrixWorld(true);
+        const projected = () => {
+          const vector = gunDirection(side, gun);
+          return new Vector3(
+            gun.position.x + vector.x * 3,
+            gun.position.y + 2.05 + vector.y * 3,
+            gun.position.z + vector.z * 3,
+          ).project(camera);
+        };
+        const before = projected();
+        s.input('down', 1, 470, 320, null);
+        s.input('down', 2, 440, 300, null);
+        s.input('move', 2, 200, 100, null);
+        expect(gun.pitch).toBe(38);
+        expect(gun.yaw).toBe(0);
+        s.input('move', 1, 510, 280, null);
+        s.input('up', 1, 510, 280, null);
+        expect(projected().x).toBeGreaterThan(before.x);
+        expect(projected().y).toBeGreaterThan(before.y);
+      }
+    } finally {
+      await s.dispose();
+    }
+  });
+  it('切炮取消未完成蓄力并收起望远镜，不在抵达后误射', async () => {
+    const s = await createDuelSession(host(), () => {});
+    try {
+      s.practice();
+      s.input('down', 1, 850, 460, 'fire');
+      s.v.scope = true;
+      s.action('station:wall');
+      expect(s.v.scope).toBe(false);
+      expect(s.v.duel.fighters[0].guns[0].charge).toBeNull();
+      s.input('up', 1, 850, 460, 'fire');
+      expect(s.v.duel.fighters[0].lastShot).toBeNull();
+    } finally {
+      await s.dispose();
+    }
+  });
+  it('联网不可用静默进入本地玩法，再战继续本地模式且无残留提示', async () => {
+    const s = await createDuelSession(host(), () => {});
+    vi.stubGlobal('location', { origin: 'https://castle.test', protocol: 'https:' });
+    const fetch = vi.fn().mockRejectedValue(new Error('offline'));
+    vi.stubGlobal('fetch', fetch);
+    try {
+      s.action('start');
+      await expect.poll(() => s.v.screen).toBe('playing');
+      expect(s.v.mode).toBe('practice');
+      expect(s.v.message).toBe('');
+      s.v.duel.fighters[1].hp = 0;
+      s.tick(0.1);
+      expect(s.v.screen).toBe('result');
+      s.v.message = '旧提示';
+      s.action('rematch');
+      expect(s.v.screen).toBe('playing');
+      expect(s.v.message).toBe('');
+      expect(fetch).toHaveBeenCalledTimes(1);
+    } finally {
+      await s.dispose();
+      vi.unstubAllGlobals();
+    }
+  });
   it('战役开发跳关仅由统一开发开关开放，不写进度或奖励', async () => {
     const h = host(),
       normal = await createDuelSession(h, () => {});

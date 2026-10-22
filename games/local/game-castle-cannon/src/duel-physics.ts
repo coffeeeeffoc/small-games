@@ -1,5 +1,5 @@
 import { DUEL_RULES as R, nodePoint, duelGroundHeight, trenchFor } from './duel-map.js';
-import { cancelCharge, travel, activeGun } from './duel-actions.js';
+import { cancelCharge, travel } from './duel-actions.js';
 import { distance, type Duel, type Point, type Shell } from './duel-types.js';
 export function segmentBox(a: Point, b: Point, center: Point, size: Point): number | null {
   let near = 0,
@@ -96,19 +96,7 @@ export function explode(duel: Duel, shell: Shell, hit: string) {
       s.hp = Math.max(0, s.hp - damage);
     }
   for (const p of duel.fighters) {
-    for (const gun of p.guns)
-      if (gun.repair !== null && distance(gun.position, shell.position) < cfg.radius)
-        gun.repair = 0;
-    for (const gun of p.guns)
-      if (!gun.bunker && gun.hp > 0) {
-        const d = distance(gun.position, shell.position);
-        gun.hp = Math.max(
-          0,
-          gun.hp -
-            (hit === `gun:${p.side}:${gun.id}` ? 65 : Math.max(0, 1 - d / cfg.radius) * 35) *
-              energy,
-        );
-      }
+    // Blasts damage the operator and castle, but never lock a cannon into repairs.
     const d = distance({ ...p.position, y: p.position.y + 0.8 }, shell.position);
     let damage = cfg.character * energy * Math.max(0, 1 - d / cfg.radius);
     if (hit === `player:${p.side}`) damage = cfg.character * energy * 1.15;
@@ -176,7 +164,6 @@ export function advanceShells(duel: Duel, dt: number) {
       for (const g of p.guns) if (!g.bunker) g.hp = 0;
       cancelCharge(p);
       if (p.hp > 0 && p.node !== 'shelter') travel(p, 'shelter');
-    } else if (p.station && activeGun(p)?.hp === 0 && activeGun(p)?.repair === null && p.hp > 0)
-      travel(p, 'shelter');
+    }
   }
 }
