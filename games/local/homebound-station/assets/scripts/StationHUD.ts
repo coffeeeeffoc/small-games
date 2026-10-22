@@ -658,7 +658,7 @@ export class StationHUD {
     }
     this.toastInk.clear();
     if (v.page === 'playing' && world.maxScroll > 0) {
-      this.textParent = this.baseLabels;
+      this.textParent = this.toastLabels;
       this.rect(this.toastInk, cx - 62, bottom - 22, 124, 22, '#123e47d9', 11);
       this.text('scroll-hint', '↕ 上下拖动车场', cx, bottom - 11, 11, 120, 22, C.cream);
     } else {

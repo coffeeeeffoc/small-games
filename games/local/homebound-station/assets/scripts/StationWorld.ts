@@ -111,6 +111,7 @@ export class StationWorld {
   private readonly actors: Node;
   private readonly bayNumbers: Label[] = [];
   private readonly stationSign: Label;
+  private readonly signBacking: Graphics;
   private readonly roadSigns: Label[] = [];
   private geometry: StationGeometry = getStationGeometry(LEVELS[0]!);
   private axisWidth = 390;
@@ -182,6 +183,7 @@ export class StationWorld {
     }
     this.actors = this.node('Depth-sorted painted town');
     const signage = this.node('Station signage');
+    this.signBacking = this.node('Station name plaque', signage).addComponent(Graphics);
     this.stationSign = this.makeLabel('Station name', signage, '归途站');
     for (const name of ['进站 ↑', '离站 →'])
       this.roadSigns.push(this.makeLabel(name, signage, name));
@@ -685,10 +687,22 @@ export class StationWorld {
         2,
       );
     }
-    const signY = this.landscape ? this.area.y + 18 : labelPoint.y - this.facadeHeight * 0.56;
+    const signY = this.landscape ? this.area.y + 18 : labelPoint.y - this.facadeHeight * 0.48;
     const signX = this.landscape ? this.area.x + this.facadeHeight * 0.48 : labelPoint.x;
-    const signWidth = this.landscape ? 70 : Math.min(118, this.axisWidth * 0.36);
-    this.rect(g, { x: signX - signWidth / 2, y: signY - 14, w: signWidth, h: 28 }, '#fff2d6', 8);
+    const signWidth = this.landscape ? 70 : 82;
+    this.signBacking.clear();
+    this.rect(
+      this.signBacking,
+      { x: signX - signWidth / 2, y: signY - 12, w: signWidth, h: 24 },
+      '#c2ad88',
+      6,
+    );
+    this.rect(
+      this.signBacking,
+      { x: signX - signWidth / 2 + 2, y: signY - 11, w: signWidth - 4, h: 21 },
+      '#fff2d6',
+      5,
+    );
     this.stationSign.node.setPosition(signX - this.w / 2, this.h / 2 - signY);
     this.stationSign.node.getComponent(UITransform)!.setContentSize(signWidth, 28);
     this.stationSign.fontSize = this.landscape ? 16 : 19;
