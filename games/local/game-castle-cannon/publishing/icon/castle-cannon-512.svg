@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#263c48"/><stop offset="1" stop-color="#8b9d91"/></linearGradient>
+    <linearGradient id="iron" x2="0" y2="1"><stop stop-color="#63716f"/><stop offset=".4" stop-color="#353c3a"/><stop offset="1" stop-color="#171e20"/></linearGradient>
+    <linearGradient id="wood" x2="0" y2="1"><stop stop-color="#ca9351"/><stop offset="1" stop-color="#754720"/></linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#sky)"/>
+  <path d="M290 122h28V92h30v30h30V92h30v30h30V92h30v195H290z" fill="#c4b897" stroke="#625b49" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M306 164h144M306 208h144M340 126v38m62 0v44m-62 0v63" stroke="#877c62" stroke-width="7"/>
+  <path d="m332 132 25 35-12 27 31 17-13 56" fill="none" stroke="#313c3b" stroke-width="12"/>
+  <path d="M28 347q130-100 267-29t217 3v111q0 80-80 80H80q-52-8-52-80z" fill="#4b5740"/>
+  <path d="m116 357 93-88 96 61 14 80H95z" fill="url(#wood)" stroke="#3e2e21" stroke-width="12" stroke-linejoin="round"/>
+  <g transform="rotate(-27 230 278)">
+    <path d="M92 230h238v91H92q-27-45 0-91z" fill="url(#iron)" stroke="#192225" stroke-width="12"/>
+    <rect x="266" y="217" width="64" height="116" rx="12" fill="#343f40" stroke="#141f22" stroke-width="12"/>
+    <path d="M122 235v80m109-80v80" stroke="#87938a" stroke-width="10"/>
+  </g>
+  <circle cx="215" cy="385" r="69" fill="url(#wood)" stroke="#252d2c" stroke-width="17"/>
+  <path d="M215 330v110m-55-55h110m-94-39 78 78m0-78-78 78" stroke="#5c402b" stroke-width="12"/>
+  <circle cx="215" cy="385" r="20" fill="#b0afa0" stroke="#303b3b" stroke-width="9"/>
+  <path d="m366 201 11-25m-8 56 30-9m-48-43-3-25" stroke="#f8d88c" stroke-width="9" stroke-linecap="round"/>
+</svg>
