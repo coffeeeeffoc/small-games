@@ -287,17 +287,6 @@
         "time": "2026-10-11T13:23:08+08:00"
       }
     },
-    "retreat-rally": {
-      "source": "games/local/retreat-rally",
-      "created": {
-        "commit": "8d90679798bff1031a911586d3214df78d5af8cc",
-        "time": "2026-10-05T20:48:51Z"
-      },
-      "updated": {
-        "commit": "7446f42f0937565c310e0261a4db9ecc17ef2ff2",
-        "time": "2026-10-12T02:18:18+08:00"
-      }
-    },
     "surprise-kept": {
       "source": "games/local/surprise-kept",
       "created": {

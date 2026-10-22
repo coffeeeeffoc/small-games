@@ -7,7 +7,6 @@ const copies = [
   'games/local/ashfall-front/fullscreen.js',
   'games/local/carrom-club/fullscreen.js',
   'games/local/three-choose-two/fullscreen.js',
-  'games/local/retreat-rally/fullscreen.js',
   'games/local/cage-rescue/fullscreen.js',
   'games/local/flick-arena/fullscreen.js',
   'games/local/chase-thief/fullscreen.js',

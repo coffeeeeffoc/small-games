@@ -5021,8 +5021,11 @@ test('Bullet Garden lock scope only adds three existing exact importer tuples', 
 });
 
 test('Bullet Garden routes preserve fixed predecessors, identity and config-sensitive validation', () => {
+  // Historical byte proofs must not depend on later catalog cleanups.
   const read = (file) =>
-    readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll('\r\n', '\n');
+    execFileSync('git', ['show', '0885df730b4d68798e278e916d0e407fd4fdaa82:' + file], {
+      encoding: 'utf8',
+    }).replaceAll('\r\n', '\n');
   const base = (file) =>
     execFileSync('git', ['show', '53eb4b69bd1c2c3bbfe01349624235a1636b121e:' + file], {
       encoding: 'utf8',

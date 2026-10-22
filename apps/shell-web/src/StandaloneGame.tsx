@@ -26,7 +26,6 @@ export function StandaloneGame({
     id === 'ashfall-front' ||
     id === 'carrom-club' ||
     id === 'three-choose-two' ||
-    id === 'retreat-rally' ||
     id === 'cage-rescue' ||
     id === 'chase-thief' ||
     id === 'orbit-atelier' ||

@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
 import {
+  catalogCleanupReviews,
+  catalogCleanupTrees,
   localRetirementReviews,
   localRetirementTrees,
   portfolioRetirementReviews,
@@ -15,6 +17,8 @@ export function localRetirementHeadQueryPaths(changedPaths) {
   return [
     ...new Set([
       ...changedPaths,
+      ...Object.keys(catalogCleanupTrees),
+      ...Object.keys(catalogCleanupReviews),
       ...Object.keys(localRetirementTrees),
       ...Object.keys(localRetirementReviews),
       ...Object.keys(portfolioRetirementTrees),
@@ -70,6 +74,7 @@ export function localRetirementScopesForReview(context, trees, reviews) {
       const value = Object.freeze([...(review?.sources ?? [])]);
       scopes.set(file, value);
       if (
+        (trees === catalogCleanupTrees && reviews === catalogCleanupReviews) ||
         (trees === localRetirementTrees && reviews === localRetirementReviews) ||
         (trees === portfolioRetirementTrees && reviews === portfolioRetirementReviews)
       )
@@ -87,6 +92,7 @@ export function localRetirementScopesForReview(context, trees, reviews) {
 }
 export function localRetirementFileScopes(context) {
   return new Map([
+    ...localRetirementScopesForReview(context, catalogCleanupTrees, catalogCleanupReviews),
     ...localRetirementScopesForReview(context, localRetirementTrees, localRetirementReviews),
     ...localRetirementScopesForReview(
       context,

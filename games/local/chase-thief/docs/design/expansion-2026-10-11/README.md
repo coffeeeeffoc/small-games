@@ -14,7 +14,7 @@
 
 - 26 项规则、挑战参数校验、普通存档隔离和服务/进度测试通过。
 - `node games/local/chase-thief/tests/publishing.browser.mjs`：主页/选关/游玩/暂停/结算/返回；未解锁后关挑战、成绩分享和进度隔离；第三次自然结算模拟插屏关闭；部署 adMode=off 连续三次结算关闭弹窗。浏览器结果以本目录 browser-report.json 为准。
-- 配置边界：`pnpm check:games chase-thief retreat-rally`，0 个问题。
+- 配置边界：`pnpm check:games chase-thief`，0 个问题。
 - 实际截图：[主页](home.png)、[游玩](play.png)、[暂停](pause.png)、[正常结算](result.png)、[挑战主页](challenge-home.png)、[挑战结算](challenge-result.png)、[模拟广告](result-ad.png)。
 
 未完成：物理手机、iOS Safari、真实渠道广告、跨设备分享送达、服务端验分与完整生产部署。公开挑战是同配置异步比成绩，不是真人实时对战。

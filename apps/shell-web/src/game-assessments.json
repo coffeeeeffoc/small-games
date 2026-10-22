@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "reviewedOn": "2026-10-13",
-  "basis": "静态人工初评：逐款阅读目录登记与可用 README；本次未进行全量真机、用户留存或付费验证。潜力判断与改造排期独立；平台为推荐目标，分享/对战为适合方向，不代表渠道或功能已经上线。已落实记录只列有实现依据的改造。2026-10-13 按用户决定将收兵再冲、追贼别撞墙归为毫无潜力并暂缓投入。",
+  "basis": "静态人工初评：逐款阅读目录登记与可用 README；本次未进行全量真机、用户留存或付费验证。潜力判断与改造排期独立；平台为推荐目标，分享/对战为适合方向，不代表渠道或功能已经上线。已落实记录只列有实现依据的改造。2026-10-13 按用户决定将追贼别撞墙归为毫无潜力并暂缓投入。",
   "games": [
     {
       "id": "carrom-club",
@@ -887,33 +887,6 @@
       "delivered": [
         "记忆气泡说明最后目击后错过的搬运步骤及离席、屏风原因，帮助理解记忆与当前位置的差异",
         "内置八关无剧透同关邀请，好友试玩不覆盖正常安排与完成数并可返回自己的安排；自然结算每三次且间隔60秒接可关闭模拟广告，挑战不出广告"
-      ]
-    },
-    {
-      "id": "retreat-rally",
-      "title": "收兵再冲",
-      "source": "games/local/retreat-rally",
-      "disposition": "hold",
-      "potential": ["none"],
-      "platforms": ["mobile"],
-      "primaryPlatform": "mobile",
-      "orientation": "landscape",
-      "genres": ["action", "strategy"],
-      "opportunities": ["versus", "share"],
-      "schedule": "hold",
-      "implementationStatus": "held",
-      "scheduleReason": "2026-10-13 用户明确归类为没潜力，保留现有入口与已落实记录，暂缓继续投入。",
-      "strengths": ["按住撤退松手进攻操作极简，箭雨装填形成攻守节拍"],
-      "weaknesses": ["三关战役较短，模拟匹配需与真实联机明显区分"],
-      "improvements": ["按用户决定暂缓继续改造；保留现有可玩内容和历史验证记录。"],
-      "evidence": [
-        "games/local/retreat-rally/README.md",
-        "games/local/retreat-rally/docs/design/expansion-2026-10-11/README.md",
-        "games/local/retreat-rally/docs/design/expansion-2026-10-11/browser-report.json"
-      ],
-      "delivered": [
-        "加入箭雨波次节拍条与最后一箭后的两秒反攻窗口提示，保留按住撤退、松手进攻的操作",
-        "同关人数与夺旗用时成绩邀请允许锁关挑战但不写普通军功和解锁；分享过滤开发参数并降级，自然结算接可关闭且可配置关闭的频控模拟插屏"
       ]
     },
     {

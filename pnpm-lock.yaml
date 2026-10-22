@@ -296,9 +296,6 @@ importers:
       '@coffeeeeffoc/platform-wechat':
         specifier: workspace:*
         version: link:../../platforms/wechat
-      '@coffeeeeffoc/retreat-rally':
-        specifier: workspace:*
-        version: link:../../games/local/retreat-rally
       '@coffeeeeffoc/three-choose-two':
         specifier: workspace:*
         version: link:../../games/local/three-choose-two
@@ -417,9 +414,6 @@ importers:
       '@coffeeeeffoc/rescue-team':
         specifier: workspace:*
         version: link:../../games/local/rescue-team
-      '@coffeeeeffoc/retreat-rally':
-        specifier: workspace:*
-        version: link:../../games/local/retreat-rally
       '@coffeeeeffoc/surprise-kept':
         specifier: workspace:*
         version: link:../../games/local/surprise-kept
@@ -881,8 +875,6 @@ importers:
   games/local/out-of-frame: {}
 
   games/local/rescue-team: {}
-
-  games/local/retreat-rally: {}
 
   games/local/surprise-kept: {}
 

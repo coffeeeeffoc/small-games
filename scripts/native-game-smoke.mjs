@@ -25,13 +25,12 @@ export async function verifyNativeArtifact({
   assert.ok(standalone, 'Only independent native artifacts are supported');
   const games = [
     ['flick-arena', '弹指擂台'],
-    ['retreat-rally', '收兵再冲'],
     ['moss-garden', '苔光花园'],
     ['wulong-city', '乌龙城'],
     ['three-choose-two', '三块选两块'],
   ];
   if (standalone) {
-    assert.equal(config.deviceOrientation, game === 'retreat-rally' ? 'landscape' : 'portrait');
+    assert.equal(config.deviceOrientation, 'portrait');
     assert.equal(config.subpackages, undefined);
     const release = JSON.parse(readFileSync(path.join(root, 'release.json'), 'utf8'));
     assert.equal(release.platform, platform);
@@ -40,7 +39,6 @@ export async function verifyNativeArtifact({
     assert.equal(project.compileType, 'game');
     const assets = {
       'three-choose-two': 'assets',
-      'retreat-rally': 'rally-assets',
       'flick-arena': 'audio',
       'moss-garden': 'moss-garden-audio',
       'wulong-city': 'assets',
@@ -354,60 +352,6 @@ export async function verifyNativeArtifact({
     assert.ok(rendered.includes(ready), `${gameId} Artifact must launch without a DOM`);
     assert.equal(canvases, 1, 'Native Game must reuse the first visible Canvas');
     if (standalone && platform === 'bilibili') assert.equal(launches, 1);
-    if (gameId === 'retreat-rally') {
-      const physical = (x, y) =>
-        config.deviceOrientation === 'landscape'
-          ? [(x * 844) / 1200, (y * 390) / 675]
-          : [390 - (y * 390) / 675, (x * 844) / 1200];
-      const click = (x, y) => {
-        tap(...physical(x, y));
-        advance(50);
-      };
-      const pointer = (listeners, id, x, y) => {
-        const [clientX, clientY] = physical(x, y);
-        for (const fn of [...listeners])
-          fn({ changedTouches: [{ identifier: id, clientX, clientY }] });
-        advance(50);
-      };
-      click(225, 510);
-      assert.ok(rendered.includes('山河三关'));
-      assert.ok(rendered.includes('未解锁'));
-      click(90, 65);
-      click(300, 410);
-      assert.ok(rendered.includes('山谷初战'));
-      pointer(presses, 1, 950, 600);
-      assert.ok(rendered.includes('青岚 · 收兵中'));
-      pointer(cancels, 1, 950, 600);
-      assert.ok(rendered.includes('按住收兵 · 松手进攻'));
-      for (const hide of hidden) hide();
-      const paused = JSON.stringify(rendered);
-      advance(30000);
-      assert.equal(JSON.stringify(rendered), paused);
-      for (const show of shown) show();
-      assert.ok(rendered.includes('整军，再出发'));
-      click(600, 520);
-      click(1030, 600);
-      click(600, 510);
-      assert.ok(rendered.includes('好友同屏'));
-      pointer(presses, 1, 210, 600);
-      pointer(presses, 2, 1000, 600);
-      assert.ok(rendered.includes('青岚 · 收兵中'));
-      assert.ok(rendered.includes('赤焰 · 收兵中'));
-      pointer(touches, 1, 210, 600);
-      assert.ok(!rendered.includes('青岚 · 收兵中'));
-      assert.ok(rendered.includes('赤焰 · 收兵中'));
-      pointer(cancels, 2, 1000, 600);
-      assert.ok(!rendered.includes('赤焰 · 收兵中'));
-      assert.ok(!rendered.some((t) => t.includes('全屏')));
-      await (await entry.ready).dispose();
-      assert.equal(intervals.size, 0);
-      assert.equal(
-        presses.size + touches.size + moves.size + cancels.size + hidden.size + shown.size,
-        0,
-      );
-      assert.deepEqual(logs, []);
-      return;
-    }
     if (gameId === 'flick-arena') {
       const click = (label, x = 195) => {
         assert.ok(labels.has(label), 'Missing control: ' + label);
@@ -781,13 +725,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   });
   const platforms = ['wechat', 'bilibili', 'douyin', 'kuaishou'];
   assert.ok(!values.platform || platforms.includes(values.platform), 'Unknown native platform');
-  const standaloneGames = [
-    'moss-garden',
-    'wulong-city',
-    'retreat-rally',
-    'flick-arena',
-    'three-choose-two',
-  ];
+  const standaloneGames = ['moss-garden', 'wulong-city', 'flick-arena', 'three-choose-two'];
   assert.ok(!values.game || standaloneGames.includes(values.game), 'Unknown game');
   for (const game of values.game ? [values.game] : standaloneGames) {
     for (const platform of values.platform ? [values.platform] : platforms) {
