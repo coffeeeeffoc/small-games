@@ -26,7 +26,7 @@ import { StationWorld } from './StationWorld';
 import { StationHUD, type Page } from './StationHUD';
 import { StationPlatform } from './StationPlatform';
 const { ccclass } = _decorator;
-type Press = { x: number; y: number; target: string; page: Page };
+type Press = { x: number; y: number; lastY: number; dragging: boolean; target: string; page: Page };
 @ccclass('StationGame')
 export class StationGame extends Component {
   state!: Simulation;
@@ -80,10 +80,12 @@ export class StationGame extends Component {
     this.touchInput = sys.isMobile;
     this.cleanup.push(this.platform.registerLevels(() => this.changePage('levels')));
     input.on(Input.EventType.TOUCH_START, this.touchStart, this);
+    input.on(Input.EventType.TOUCH_MOVE, this.touchMove, this);
     input.on(Input.EventType.TOUCH_END, this.touchEnd, this);
     input.on(Input.EventType.TOUCH_CANCEL, this.clear, this);
     input.on(Input.EventType.MOUSE_DOWN, this.mouseDown, this);
     input.on(Input.EventType.MOUSE_UP, this.mouseUp, this);
+    input.on(Input.EventType.MOUSE_WHEEL, this.mouseWheel, this);
     input.on(Input.EventType.KEY_DOWN, this.keyDown, this);
     game.on(Game.EVENT_HIDE, this.hide, this);
     game.on(Game.EVENT_SHOW, this.show, this);
@@ -302,7 +304,7 @@ export class StationGame extends Component {
     const button = this.hud.hit(x, y);
     if (button) return button.id;
     if (this.speedExpanded) return 'speed-dismiss';
-    if (this.page !== 'playing' || this.hidden) return '';
+    if (this.page !== 'playing' || this.hidden || !this.world.inViewport({ x, y })) return '';
     const nearest = this.state.vehicles
       .filter((v) => v.state === 'holding')
       .map((v) => {
@@ -314,14 +316,18 @@ export class StationGame extends Component {
         };
       })
       .sort((a, b) => a.d - b.d)[0];
-    return nearest && nearest.d <= 24 ? `car:${nearest.id}` : '';
+    return nearest && nearest.d <= 24
+      ? `car:${nearest.id}`
+      : this.world.maxScroll
+        ? 'board-pan'
+        : '';
   }
   private press(id: number, x: number, y: number) {
     if (this.presses.size) return;
     this.platform.activate();
     const target = this.target(x, y);
     if (target) {
-      this.presses.set(id, { x, y, target, page: this.page });
+      this.presses.set(id, { x, y, lastY: y, dragging: false, target, page: this.page });
       this.hud.setPressed(target);
     }
   }
@@ -329,7 +335,7 @@ export class StationGame extends Component {
     const p = this.presses.get(id);
     this.presses.delete(id);
     this.hud.setPressed('');
-    if (!p || p.page !== this.page || this.hidden) return;
+    if (!p || p.page !== this.page || this.hidden || p.dragging) return;
     if (p.target.startsWith('car:')) {
       if (Math.hypot(x - p.x, y - p.y) < 65) this.action(p.target);
     } else if (this.target(x, y) === p.target && Math.hypot(x - p.x, y - p.y) < 18)
@@ -339,6 +345,24 @@ export class StationGame extends Component {
     if (e.simulate || (sys.isBrowser && !this.touchInput)) return;
     const p = e.getUILocation();
     this.press(e.getID() ?? 0, p.x, this.hud.h - p.y);
+  }
+  touchMove(e: EventTouch) {
+    const p = this.presses.get(e.getID() ?? 0);
+    if (
+      !p ||
+      this.page !== 'playing' ||
+      !this.world.maxScroll ||
+      !(p.target.startsWith('car:') || p.target === 'board-pan')
+    )
+      return;
+    const at = e.getUILocation(),
+      y = this.hud.h - at.y;
+    if (p.dragging || Math.hypot(at.x - p.x, y - p.y) > 10) {
+      p.dragging = true;
+      this.hud.setPressed('');
+      this.world.pan(y - p.lastY);
+    }
+    p.lastY = y;
   }
   touchEnd(e: EventTouch) {
     if (e.simulate || (sys.isBrowser && !this.touchInput)) return;
@@ -354,6 +378,10 @@ export class StationGame extends Component {
     if (this.touchInput || e.getButton() !== 0) return;
     const p = e.getUILocation();
     this.release(-1, p.x, this.hud.h - p.y);
+  }
+  mouseWheel(e: EventMouse) {
+    if (this.page === 'playing' && !this.speedExpanded && !this.hidden)
+      this.world.pan(e.getScrollY() * 0.3);
   }
   keyDown(e: EventKeyboard) {
     if (e.keyCode === 27) {
@@ -462,13 +490,14 @@ export class StationGame extends Component {
       adPending: this.gate.pending,
       speedExpanded: this.speedExpanded,
       demoTime: this.demoTime,
+      scroll: { y: this.world.scrollY, max: this.world.maxScroll },
       layout: {
         columns: this.state.geometry.parking.columns,
         rows: this.state.geometry.parking.rows,
       },
       buttons: structuredClone(this.hud.buttons),
       cars: this.state.vehicles
-        .filter((v) => v.state === 'holding')
+        .filter((v) => v.state === 'holding' && this.world.inViewport(this.world.arrow(v)))
         .map((v) => ({
           id: v.id,
           available: canDispatch(this.state, v.id).ok,
@@ -485,10 +514,12 @@ export class StationGame extends Component {
     this.cleanup.forEach((fn) => fn());
     this.platform?.stop();
     input.off(Input.EventType.TOUCH_START, this.touchStart, this);
+    input.off(Input.EventType.TOUCH_MOVE, this.touchMove, this);
     input.off(Input.EventType.TOUCH_END, this.touchEnd, this);
     input.off(Input.EventType.TOUCH_CANCEL, this.clear, this);
     input.off(Input.EventType.MOUSE_DOWN, this.mouseDown, this);
     input.off(Input.EventType.MOUSE_UP, this.mouseUp, this);
+    input.off(Input.EventType.MOUSE_WHEEL, this.mouseWheel, this);
     input.off(Input.EventType.KEY_DOWN, this.keyDown, this);
     game.off(Game.EVENT_HIDE, this.hide, this);
     game.off(Game.EVENT_SHOW, this.show, this);

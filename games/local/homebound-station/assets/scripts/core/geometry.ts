@@ -88,7 +88,8 @@ export function getStationGeometry(config: Pick<LevelConfig, 'columns' | 'rows'>
     { x: bays[3]!.point.x + 4, z: approachZ },
   ];
   const departurePoints = range(bays[0]!.point.x, exitPoint.x).map((x) => ({ x, z: departureZ }));
-  if (departurePoints.at(-1)!.x !== exitPoint.x) departurePoints.push(exitPoint);
+  if (departurePoints[departurePoints.length - 1]!.x !== exitPoint.x)
+    departurePoints.push(exitPoint);
   const lanes: Lane[] = [
     {
       id: 'north-collector',
@@ -155,9 +156,9 @@ export function getStationGeometry(config: Pick<LevelConfig, 'columns' | 'rows'>
       id: 'empty-taxi-exit',
       kind: 'bay-exit',
       points: [
-        approachPoints.at(-1)!,
-        { x: approachPoints.at(-1)!.x, z: 0 },
-        { x: approachPoints.at(-1)!.x, z: departureZ },
+        approachPoints[approachPoints.length - 1]!,
+        { x: approachPoints[approachPoints.length - 1]!.x, z: 0 },
+        { x: approachPoints[approachPoints.length - 1]!.x, z: departureZ },
       ],
       width: 3.4,
       oneWay: true as const,
@@ -194,7 +195,7 @@ export function getStationGeometry(config: Pick<LevelConfig, 'columns' | 'rows'>
   };
 }
 function append(points: Point[], point: Point) {
-  const last = points.at(-1);
+  const last = points[points.length - 1];
   if (!last || Math.hypot(last.x - point.x, last.z - point.z) > 0.0001) points.push({ ...point });
 }
 export function stationEntryPath(
@@ -213,7 +214,7 @@ export function stationEntryPath(
     for (const z of [...zs].reverse()) if (z < position.z) append(path, { x: right, z });
   }
   if (direction === 'N' || direction === 'E') {
-    const x = path.at(-1)!.x;
+    const x = path[path.length - 1]!.x;
     for (const next of [...xs].reverse()) if (next < x) append(path, { x: next, z: north });
   }
   if (direction === 'S') {
@@ -222,7 +223,8 @@ export function stationEntryPath(
   }
   if (direction === 'W') append(path, { x: left, z: position.z });
   if (direction === 'S' || direction === 'W')
-    for (const z of [...zs].reverse()) if (z < path.at(-1)!.z) append(path, { x: left, z });
+    for (const z of [...zs].reverse())
+      if (z < path[path.length - 1]!.z) append(path, { x: left, z });
   append(path, { x: left, z: g.approachZ });
   const bay = g.bays.find((b) => b.id === bayId);
   for (const b of g.bays) {
@@ -231,7 +233,7 @@ export function stationEntryPath(
   }
   if (bay) append(path, bay.point);
   else {
-    const x = g.bays.at(-1)!.point.x + 4;
+    const x = g.bays[g.bays.length - 1]!.point.x + 4;
     append(path, { x, z: g.approachZ });
     append(path, { x, z: 0 });
     append(path, { x, z: g.departureZ });

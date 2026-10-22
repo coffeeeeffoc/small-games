@@ -5,6 +5,7 @@ import {
   Graphics,
   ImageAsset,
   Label,
+  Mask,
   Node,
   Rect,
   Size,
@@ -100,6 +101,12 @@ export class StationWorld {
   loadError: Error | null = null;
 
   private readonly ground: Graphics;
+  private readonly viewport: Node;
+  private readonly content: Node;
+  scrollY = 0;
+  maxScroll = 0;
+  clipTop = 58;
+  clipBottom = 844;
   private readonly bayInk: Graphics;
   private readonly actors: Node;
   private readonly bayNumbers: Label[] = [];
@@ -156,6 +163,9 @@ export class StationWorld {
     this.camera.visibility = STATION_WORLD_LAYER;
     this.camera.priority = 0;
     canvas.cameraComponent = this.camera;
+    this.viewport = this.node('Board viewport', this.root);
+    this.viewport.addComponent(Mask).type = Mask.Type.GRAPHICS_RECT;
+    this.content = this.node('Board content', this.viewport);
     this.ground = this.node('Paved streets and garden').addComponent(Graphics);
     this.bayInk = this.node('Pickup bay status').addComponent(Graphics);
     const signs = this.node('Pickup bay numbers');
@@ -204,7 +214,7 @@ export class StationWorld {
     });
   }
 
-  private node(name: string, parent = this.root) {
+  private node(name: string, parent = this.content ?? this.root) {
     const node = new Node(name);
     // Layers do not inherit. Setting only the Canvas layer is insufficient.
     node.layer = STATION_WORLD_LAYER;
@@ -329,14 +339,12 @@ export class StationWorld {
   private logicalProjection(point: Point) {
     const b = this.geometry.bounds,
       p = this.geometry.parking;
-    const plainX = ((point.x - b.left) / (b.right - b.left)) * this.axisWidth;
     const gridX = this.map(
       point.x,
       [b.left, p.bounds.left, p.bounds.right, b.right],
-      [0, 36, this.axisWidth - 36, this.axisWidth],
+      [0, 48, this.axisWidth - 48, this.axisWidth],
     );
-    const gridWeight = clamp((point.z - 8) / 2, 0, 1);
-    const x = plainX + (gridX - plainX) * gridWeight;
+    const x = gridX;
     const last = p.origin.z + (p.rows - 1) * p.pitch;
     const fieldTop = this.facadeHeight + 117,
       fieldBottom = this.axisHeight - 36;
@@ -364,7 +372,7 @@ export class StationWorld {
     const p = this.logicalProjection(point);
     return this.landscape
       ? { x: this.area.x + p.y, y: this.area.y + this.axisWidth - p.x - height * this.elevation }
-      : { x: this.area.x + p.x, y: this.area.y + p.y - height * this.elevation };
+      : { x: this.area.x + p.x, y: this.area.y + p.y - this.scrollY - height * this.elevation };
   }
 
   arrow(vehicle: Vehicle) {
@@ -401,6 +409,19 @@ export class StationWorld {
     };
     this.axisWidth = this.landscape ? this.area.h : this.area.w;
     this.axisHeight = this.landscape ? this.area.w : this.area.h;
+    this.clipTop = this.area.y;
+    this.clipBottom = this.area.y + this.area.h;
+    const visibleHeight = this.area.h;
+    if (!this.landscape && !home) {
+      this.axisHeight = Math.max(this.axisHeight, 94 + 117 + this.geometry.parking.rows * 52 + 36);
+      this.area.h = this.axisHeight;
+    }
+    this.maxScroll = this.landscape || home ? 0 : Math.max(0, this.axisHeight - visibleHeight);
+    this.scrollY = clamp(this.scrollY, 0, this.maxScroll);
+    const clipY = (this.h - this.clipTop - this.clipBottom) / 2;
+    this.viewport.getComponent(UITransform)!.setContentSize(this.area.w, visibleHeight);
+    this.viewport.setPosition(this.area.x + this.area.w / 2 - this.w / 2, clipY);
+    this.content.setPosition(-(this.area.x + this.area.w / 2 - this.w / 2), -clipY);
     this.facadeHeight = Math.min(home ? 88 : 94, this.axisWidth / 3.7, this.axisHeight * 0.15);
     const rows = this.geometry.parking.rows;
     this.gridStart = this.facadeHeight + 133;
@@ -411,10 +432,10 @@ export class StationWorld {
       this.gridStart = this.facadeHeight + 133;
     }
     const sx =
-      (this.axisWidth - 72) /
+      (this.axisWidth - 96) /
       (this.geometry.parking.bounds.right - this.geometry.parking.bounds.left);
     const sy = (this.gridEnd - this.gridStart) / Math.max(4, (rows - 1) * 4);
-    this.taxiSize = Math.min(96, sx * 3.35, sy * 3.3);
+    this.taxiSize = Math.min(64, sx * 3.35, sy * 3.3);
     this.personSize = clamp(sx * 2.1, 15, 25);
     this.elevation = 0;
     this.root.getComponent(UITransform)!.setContentSize(this.w, this.h);
@@ -426,6 +447,18 @@ export class StationWorld {
     for (const v of this.carViews.values()) this.layoutVisual(v);
     for (const v of this.personViews.values()) this.layoutVisual(v);
     this.baySignature = '';
+  }
+
+  pan(delta: number) {
+    if (!this.maxScroll || !Number.isFinite(delta)) return;
+    this.scrollY = clamp(this.scrollY - delta, 0, this.maxScroll);
+    this.drawGround();
+    for (const visual of this.props) this.layoutVisual(visual);
+    this.baySignature = '';
+  }
+
+  inViewport(point: ScreenPoint) {
+    return point.y >= this.clipTop + 12 && point.y <= this.clipBottom - 12;
   }
 
   private rect(graphics: Graphics, box: ScreenBox, hex: string, radius = 0) {
@@ -574,6 +607,18 @@ export class StationWorld {
         this.flowMark(mid, Math.atan2(to.y - from.y, to.x - from.x));
       }
     }
+    // A raised divider prevents visually suggesting a shortcut across the two
+    // opposing station roads. Its west end is the actual entrance in geometry.
+    const divider = this.box(geo.collector.left + 2, 5.7, geo.collector.right + 1, 6.3);
+    this.rect(g, divider, '#d5c69d', 3);
+    this.worldLine(
+      [
+        { x: geo.collector.left + 2, z: 6 },
+        { x: geo.collector.right + 1, z: 6 },
+      ],
+      '#f8e5a4',
+      2,
+    );
     // Continuous stop lines and separate outbound lane make the traffic topology explicit.
     for (const [i, bay] of geo.bays.entries()) {
       const x = bay.point.x,
@@ -680,7 +725,10 @@ export class StationWorld {
       b[axis] = a[axis] + radius / 6;
       const p = this.project(a),
         q = this.project(b);
-      minimum = Math.min(minimum, Math.hypot(q.x - p.x, q.y - p.y) / (radius / 6));
+      minimum = Math.min(
+        minimum,
+        Math.abs(axis === (this.landscape ? 'z' : 'x') ? q.x - p.x : q.y - p.y) / (radius / 6),
+      );
     }
     return Math.max(0.01, minimum);
   }
@@ -755,6 +803,7 @@ export class StationWorld {
   reset(simulation: Simulation) {
     if (this.disposed) return;
     this.state = simulation;
+    this.scrollY = 0;
     this.geometry = simulation.geometry;
     this.resize(this.w, this.h, this.home);
     // Creator's production transpiler treats spread operands as arrays.

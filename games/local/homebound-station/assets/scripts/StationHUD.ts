@@ -597,6 +597,7 @@ export class StationHUD {
         if (vehicle.state !== 'holding') continue;
         const p = world.arrow(vehicle),
           r = 10;
+        if (!world.inViewport(p)) continue;
         if (v.page === 'home') {
           const pulse = 0.5 + 0.5 * Math.sin(v.demoTime * 3 + vehicle.sequence * 0.7);
           this.circle(this.marks, p.x, p.y, 12 + pulse * 2, '#fff3bf80');
@@ -637,6 +638,14 @@ export class StationHUD {
       }
     }
     this.toastInk.clear();
+    if (v.page === 'playing' && world.maxScroll > 0) {
+      this.textParent = this.baseLabels;
+      this.rect(this.toastInk, cx - 62, bottom - 22, 124, 22, '#123e47d9', 11);
+      this.text('scroll-hint', '↕ 上下拖动车场', cx, bottom - 11, 11, 120, 22, C.cream);
+    } else {
+      const hint = this.labels.get('scroll-hint');
+      if (hint) hint.node.active = false;
+    }
     this.textParent = this.toastLabels;
     if (v.toast) {
       const toastW = Math.min(300, availableW - 32),
