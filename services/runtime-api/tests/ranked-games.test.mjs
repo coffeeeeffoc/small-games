@@ -70,3 +70,28 @@ describe('advanced mechanic checkpoints', () => {
     expect(rule.result(restored)).toEqual(rule.result(state));
   });
 });
+
+it('rescue replays a naturally activated splitter across a JSON checkpoint', async () => {
+  const { createRoutePlayer } = await import(
+    '../../../games/local/cage-rescue/tests/route-player.mjs'
+  );
+  const rule = rankedRules.find((item) => item.id === 'cage-rescue');
+  const state = rule.create('campaign', 73, 'rescue-08');
+  const play = createRoutePlayer();
+  const opening = [];
+  for (let tick = 0; tick < 120 * 90 && !state.game.extraBalls.length; tick++) {
+    const frame = { ticks: 1, input: play(state.game) };
+    opening.push(frame);
+    rule.apply(state, [frame]);
+  }
+  expect(state.game.extraBalls).toHaveLength(2);
+  const restored = JSON.parse(JSON.stringify(state));
+  const fresh = rule.create('campaign', 73, 'rescue-08');
+  rule.apply(fresh, opening);
+  expect(fresh).toEqual(state);
+  rule.apply(state, [{ ticks: 120, input: { targetX: 195 } }]);
+  for (let tick = 0; tick < 120; tick++)
+    rule.apply(restored, [{ ticks: 1, input: { targetX: 195 } }]);
+  expect(restored).toEqual(state);
+  expect(rule.result(restored)).toEqual(rule.result(state));
+});

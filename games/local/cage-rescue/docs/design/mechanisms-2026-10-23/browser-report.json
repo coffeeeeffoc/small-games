@@ -1,0 +1,34 @@
+{
+  "browser": "151.0.7922.173",
+  "viewport": "390x844",
+  "checks": [
+    "Normal pointer input enters the slit, triggers three balls, freezes all balls during pause, resumes and rescues all six teammates.",
+    "Route 7: visible mechanic activated through pointer input.",
+    "Route 11: visible mechanic activated through pointer input.",
+    "Route 17: visible mechanic activated through pointer input.",
+    "Route 24: visible mechanic activated through pointer input.",
+    "Route 29: visible mechanic activated through pointer input."
+  ],
+  "shots": [
+    "home-390",
+    "levels-390",
+    "chamber-ready-390",
+    "chamber-multiball-390",
+    "multiball-pause-390",
+    "chamber-result-390",
+    "route-7-390",
+    "route-7-triggered-390",
+    "route-11-390",
+    "route-11-triggered-390",
+    "route-17-390",
+    "route-17-triggered-390",
+    "route-24-390",
+    "route-24-triggered-390",
+    "route-29-390",
+    "route-29-triggered-390",
+    "chamber-ready-320"
+  ],
+  "errors": [],
+  "limitation": "Desktop Chromium touch emulation. Saved-progress fixture selects later levels; gameplay uses native touch activation and scripted pointer moves, without changing simulation state. Recording runs at real speed.",
+  "passed": true
+}
