@@ -1,0 +1,5 @@
+dist/
+.creator-project/
+library/
+temp/
+art-source/*.blend1

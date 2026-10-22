@@ -1,0 +1,47 @@
+{
+  "engine": "Cocos Engine",
+  "version": "3.8.8",
+  "buildKind": "official-engine-source-web",
+  "sourceRepository": "https://github.com/cocos/cocos-engine",
+  "sourceBranch": "v3.8.8",
+  "sourceCommit": "411f98df047c25902f93440d4b22925c2fb65461",
+  "sourceArchiveSha256": "f8cddbb7ffac468922f71391f86d5c715e2c26406c97dd421668026789138c50",
+  "packageLockSha256": "12269fb637c5987375797a2f095b015f19fe55d08b5903c403ef1abeec19dfd6",
+  "builder": "@cocos/ccbuild@2.3.16",
+  "features": [
+    "base",
+    "gfx-webgl",
+    "gfx-webgl2",
+    "3d",
+    "primitive",
+    "animation",
+    "skeletal-animation",
+    "2d",
+    "ui",
+    "graphics",
+    "tween",
+    "audio",
+    "legacy-pipeline"
+  ],
+  "moduleFormat": "esm",
+  "platform": "HTML5",
+  "targets": {
+    "chrome": "80",
+    "safari": "13"
+  },
+  "flags": {
+    "DEBUG": false,
+    "CULL_MESHOPT": true
+  },
+  "node": "v24.19.0",
+  "files": {
+    "cc.js": {
+      "sha256": "a926698c579e40155a10fb86fc7f02763645086d947879d8c85fe13c482618f2",
+      "bytes": 1700576
+    },
+    "LICENSE": {
+      "sha256": "e8799a9198184e8cc31e45e66521b1cca52f9099a932de7a56abb9d212311318",
+      "bytes": 1164
+    }
+  }
+}

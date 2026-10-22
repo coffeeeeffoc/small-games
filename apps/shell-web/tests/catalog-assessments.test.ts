@@ -13,9 +13,9 @@ import {
   rolloutGroups,
 } from '../src/catalog-assessments.js';
 
-const heldIds = ['chase-thief'];
+const heldIds: string[] = [];
 
-it('covers every registered and on-disk Game once and preserves the remaining hold decision and resumed Merge Front', () => {
+it('covers every registered and on-disk Game once and includes the resumed city chase', () => {
   const ids = [...builtInGameRegistry, ...standalone].map((g) => g.id).sort();
   expect(ids).toHaveLength(42);
   expect(assessmentData.games.map((g) => g.id).sort()).toEqual(ids);
@@ -53,11 +53,11 @@ it('covers every registered and on-disk Game once and preserves the remaining ho
   expect(assessments['travel-bund'].disposition).toBe('potential');
 });
 
-it('exhaustively partitions 42 games into 7 previous, 14 current, 20 later and 1 held with the latest user decisions', () => {
+it('exhaustively partitions 42 games into 7 previous, 15 current, 20 later and 0 held with the latest user decisions', () => {
   const games = Object.values(assessments);
   const scheduled = rolloutGroups.flatMap(([tab]) => {
     const matches = games.filter((game) => matchesAssessment(game, { ...emptyFilters(), tab }));
-    expect(matches).toHaveLength({ previous: 7, current: 14, later: 20, hold: 1 }[tab]);
+    expect(matches).toHaveLength({ previous: 7, current: 15, later: 20, hold: 0 }[tab]);
     return matches.map((game) => game.id);
   });
   expect(scheduled.sort()).toEqual(games.map((game) => game.id).sort());
@@ -66,14 +66,14 @@ it('exhaustively partitions 42 games into 7 previous, 14 current, 20 later and 1
     games.filter((game) =>
       matchesAssessment(game, { ...emptyFilters(), potential: ['potential'] }),
     ),
-  ).toHaveLength(41);
+  ).toHaveLength(42);
   expect(
     games
       .filter((game) => game.schedule === 'current')
       .map((game) => game.id)
       .sort(),
   ).toEqual(
-    'merge-front ashfall-front tiny-signals orbit-atelier letters-words2 wulong-city surprise-kept homebound-station waterline-station rescue-team tianxia-chalu out-of-frame fold-the-world two-sided-box'
+    'chase-thief merge-front ashfall-front tiny-signals orbit-atelier letters-words2 wulong-city surprise-kept homebound-station waterline-station rescue-team tianxia-chalu out-of-frame fold-the-world two-sided-box'
       .split(' ')
       .sort(),
   );

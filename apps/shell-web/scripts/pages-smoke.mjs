@@ -1,3 +1,4 @@
+import { tapControl as tapChaseControl } from './game-checks/chase-thief.mjs';
 import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -225,12 +226,12 @@ try {
       } else if (game.id === 'chase-thief') {
         await expect(page.locator('.standalone-page nav')).toBeVisible();
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
-        await frame.locator('#start').click();
+        await tapChaseControl(frame, 'start');
         await expect(frame.locator('body')).toHaveAttribute('data-phase', 'running');
         await expect(page.locator('.standalone-page nav')).toBeHidden();
-        await frame.locator('#pause').click();
+        await tapChaseControl(frame, 'pause');
         await expect(page.locator('.standalone-page nav')).toBeHidden();
-        await frame.locator('#pause-home').click();
+        await tapChaseControl(frame, 'home');
         await expect(frame.locator('body')).toHaveAttribute('data-phase', 'home');
         await expect(page.locator('.standalone-page nav')).toBeVisible();
       } else if (game.id === 'flick-arena') {
