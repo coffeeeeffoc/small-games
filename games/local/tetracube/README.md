@@ -1,47 +1,30 @@
-# 重力方舱
+# 重力方舱 · Tetracube
 
-移动端优先的 3D Tetracube 堆叠消除原型。调整四连立方体的位置与三轴姿态，观察幽灵落点，填满平面获得消除；颠倒整个容器后，所有小方块统一向下落到底面或其他方块上，继续检测消除。
+Cocos Creator 3.8.8 的手机竖屏空间消除游戏，兼容桌面与横屏。保持原来的 8×8×18 方舱、八种四连立方体、三轴旋转、暂存、落点预览和整层连锁。游戏由 Cocos 场景、Graphics 几何、Sprite、Label、输入与音频运行；不再使用旧 Canvas 游戏入口。
+
+- 拖动场景移动方块；“观察”模式拖动镜头并切换立体／俯视／正面／侧面。
+- XY、XZ、YZ 各有正反 90°；直接落下，填满水平层消除。
+- 左／右侧翻 90° 保持免费。颠倒 180° 在配置激励广告时须完整观看；没有指定广告位则直接使用，不展示广告提示。
+- 出生区域堵塞时结束；配置广告后可以选择复活，清理当前世界顶部四层并重新生成原本被挡住的方块。每局最多成功两次，失败、取消、不填充不扣次数也不发奖励。
+- 键盘：方向键/WASD 移动，Q/E/R 旋转，Shift 反转，空格落下，C 暂存，G 颠倒，P/Esc 暂停。
+
+规则保存在 assets/scripts/core，src 下保留规则／投影测试的兼容导出。旧 tetracube.save.v1 和 game snapshot v1–v4 继续迁移；原 rescueUsed 计入已用复活次数。读档异常时保留原始内容，当前游玩不会覆盖它。后台暂停、触摸取消和迟到广告回调分别处理，复活不会重置分数、随机序列或预览。
 
 ## 运行与验证
 
-```sh
-pnpm --filter @coffeeeeffoc/tetracube dev
-# http://localhost:4178/
-pnpm --filter @coffeeeeffoc/tetracube test
-pnpm --filter @coffeeeeffoc/tetracube build
-pnpm --filter @coffeeeeffoc/tetracube preview
-pnpm --filter @coffeeeeffoc/tetracube test:browser
-```
+安装仓库锁定依赖并准备 Creator 3.8.8：
 
-无需运行时依赖，也可直接在本目录使用 `node server.mjs`、`node build.mjs` 和 `node --test tests/*.test.mjs`。服务支持 `--port`、`--host` 以及 `PORT`、`HOST` 环境变量。浏览器检查使用仓库的 Playwright；可用 `PLAYWRIGHT_EXECUTABLE_PATH` 指定 Chromium。
+    pnpm --filter @coffeeeeffoc/tetracube test
+    pnpm --filter @coffeeeeffoc/tetracube typecheck
+    pnpm --filter @coffeeeeffoc/tetracube build
+    pnpm --filter @coffeeeeffoc/tetracube dev
 
-独立静态入口为 `/games/tetracube/index.html`；Shell 通过同源 iframe 装载。构建仅复制明确列出的入口、样式、公共 H5 控件与 `src/`，所有资源路径相对当前目录，支持子路径部署。
+开发服务端口 4178，服务 dist 中实际 Creator 构建。源码改动后重新 build，或用 Creator 打开本项目。可设置 COCOS_CREATOR 为编辑器路径。Linux/CI 可用 TETRACUBE_PREBUILT_DIR 指向包含源码匹配 dist 与 cc.d.ts 的真实构建。
 
-## 操作与范围
+    pnpm --filter @coffeeeeffoc/tetracube test:browser
 
-- 在场景中拖动移动方块；XY 平转、XZ 前后转、YZ 左右转各提供正反向 90°，立体图标标明对应平面和方向。靠近舱壁、舱顶时自动尝试最多 3 格的同平面避让；“落下”立即放置。
-- 切换「观察」后拖动连续改变镜头角度，可以越过俯视位置。镜头采用透视投影，俯视略微偏心，避免同 XY 的不同层完全重合。
-- 已放置方块按层调整明暗和色调，顶面数字与侧面标尺表示从底部起的层号；虚线落点同时显示真实落点所在层。
-- 暂存不合适的方块，取下一块或与暂存槽交换；每块可用一次，落地或转动容器后恢复。
-- 幽灵轮廓显示真实碰撞计算得出的落点；完整平面消除后继续压实，连续消除累积 Combo。
-- 常驻「转动容器」按钮直接向左右侧翻 90°或颠倒 180°；世界重力始终向下。当前方块参与翻转并落定，随后从顶部生成下一块。
-- 移动、三轴旋转和自然下落均有连续过渡；快速下落带速度残影，落地与连锁消除带冲击环、碎光及短暂震屏。减少动态效果偏好下停止摆动、残影、粒子和震屏，保留简短状态过渡。
-- 主页、暂停与返回流程保持对局状态；帮助集中说明规则与快捷键。
+浏览器专项使用真实画布点击、CDP 触控和已标注的广告结果模拟。覆盖 320×640、390×844、844×390、1280×800。?dev 使用公共开发工具的只读快照和明确“试玩不保存”测试局；普通模式不暴露改分入口。
 
-本版验证核心堆叠、三轴操作、容器翻转和连锁反馈；未接入广告、在线排行榜、付费皮肤或原生小游戏 SDK。
+广告复用 [公共接入规范](../../../..//docs/operations/taptap-rewarded-ads.md)。构建默认关闭；配置 H5_ADS_ENABLED=1 和 TAPTAP_TETRACUBE_AD_UNIT_ID 后启用。仅广告 completed 回调生效。浏览器模拟不代表平台真实填充／设备验收。
 
-本版提供经典无尽。方舱为 8×8×18，底面从 6×6 的 36 格扩大到 64 格，横向面积增加约 78%，总容量为 1152 格。容器可不限次数翻转；出生区堵塞时另外提供一次最后干预。随机袋包含 8 种四连立方体。每格落定得 5 分，快速下落每格距离 2 分，每次消层得 `250 × Combo` 分；连续成功消层延续 Combo，无消层的落定或重构会重置当前连锁。v4 存档保留暂存槽和本块交换状态，兼容旧版存档并按实际舱体朝向无损扩容；旧方块位置、分数、队列和随机状态保留。
-
-## 验收记录
-
-89 项规则测试和 5 项渲染测试覆盖物理翻转、固定向下落定、碰撞、64 格整层消除、正反向旋转、舱顶和墙角避让、暂存、透视分层、连续镜头与四代存档。浏览器用例覆盖触屏直达侧翻、正反旋转、暂存、动作过渡、下落反馈、手势取消、暂停恢复、救场、不同视口、iframe 和存储禁用降级。见 [实际截图与测试记录](docs/qa/README.md) 及 [底面扩展方案与手机效果图](docs/design/wider-base-2026-10-07/README.md)。测试环境是桌面 Chromium 的手机触控模拟，尚未进行真机或原生平台 SDK 验收。
-
-## 文件边界
-
-- `src/config.mjs`：棋盘、方块与玩法配置。
-- `src/engine.mjs`：不依赖 DOM 的碰撞、姿态、堆叠、压实、消除和状态规则。
-- `src/render.mjs`：三维投影、容器与方块表现。
-- `src/app.mjs`：页面流程、触屏输入、镜头、计时与本地记录。
-- `tests/`：规则测试与浏览器验收；`docs/design/`：手机效果图及设计说明。
-
-Web 开发模式遵循仓库统一约定：URL `?dev=1` 或 `localStorage.dev` 开启，`?dev=0` 显式关闭。`dev-mode.js`、`dev-mode.d.ts` 和 `fullscreen.js` 是 `platforms/h5/` 的同步副本，不在游戏内单独修改。
+[设计效果图与实际对照](docs/design/cocos-2026-10-23/README.md) · [上架素材](publishing/STATUS.md)

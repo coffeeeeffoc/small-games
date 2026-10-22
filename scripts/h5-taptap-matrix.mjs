@@ -4,6 +4,7 @@ export const matrixGames = ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-fi
 // H5 orientation belongs to app upload metadata, not native game.json.
 export const h5Orientations = Object.freeze({
   'merge-front': 'landscape',
+  tetracube: 'portrait',
   'cops-robbers': 'portrait',
   'cops-robbers-realtime': 'preserve',
   'xiangqi-five': 'portrait',

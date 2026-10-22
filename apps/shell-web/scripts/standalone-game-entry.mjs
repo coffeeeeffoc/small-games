@@ -31,7 +31,7 @@ export const markers = {
   'two-sided-box': '#board[data-level]',
   'luban-workshop': '#home-level-list [data-level-id="first-lift-v1"]',
   'surprise-kept': '#game[data-ready="true"]',
-  tetracube: '#start-game',
+  tetracube: 'body[data-tetracube-ready="true"]',
 
   'wulong-city': '#start-game',
   'fold-the-world': '[data-action="start"]',
@@ -59,7 +59,6 @@ export const homeControls = {
   'cage-rescue': '#start',
   'flick-arena': ['#start', '#play-level'],
   'tower-brake': '#start-game',
-  tetracube: '#start-game',
   'wulong-city': '#start-game',
   'moss-garden': '[data-action="start"]',
   'ball-roguelite': '#start',
@@ -83,6 +82,7 @@ export const homeControls = {
 // Explicit compatibility list: these existing assertions still own their setup flow.
 export const legacyEntryIds = [
   'chase-thief',
+  'tetracube',
   'merge-front',
   'orbit-atelier',
   'homebound-station',

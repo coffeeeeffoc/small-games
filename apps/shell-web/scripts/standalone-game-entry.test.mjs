@@ -77,3 +77,9 @@ test('Orbit Creator owns its native home and interaction checks instead of click
     'legacy',
   );
 });
+
+test('Tetracube waits for the real Creator scene and owns its canvas input flow', () => {
+  assert.equal(markers.tetracube, 'body[data-tetracube-ready="true"]');
+  assert.equal(homeControls.tetracube, undefined);
+  assert.equal(entryMode('tetracube'), 'legacy');
+});

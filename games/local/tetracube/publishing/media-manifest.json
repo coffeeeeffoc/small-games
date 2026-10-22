@@ -1,0 +1,60 @@
+{
+  "gameId": "tetracube",
+  "version": "2.0.0",
+  "creator": "3.8.8",
+  "sourceHash": "c68df948aabcf79be044d845acb848a2815157325f71ed186262239c12559db7",
+  "date": "2026-10-23",
+  "environment": "Windows Chromium, mobile viewport; not native device",
+  "files": [
+    {
+      "file": "copy/developer-note.md",
+      "bytes": 410,
+      "sha256": "d5807a66e14ade5932df6be9eb2c3bbc57573ce6476d3ae10a3c8f9963397866"
+    },
+    {
+      "file": "copy/introduction.md",
+      "bytes": 353,
+      "sha256": "efd54518f893ed345c3ffd6b4a6eae37c9b90f21319b4372fde6eb6d260f7576"
+    },
+    {
+      "file": "copy/tagline.md",
+      "bytes": 61,
+      "sha256": "46f3f1d2eb8f3e9558f65e6eff01510bec33055ef748e4815291cbfff0a59327"
+    },
+    {
+      "file": "icon/tetracube.png",
+      "bytes": 2080265,
+      "sha256": "edba747fb3bb59bb6322156c51a5d9273f5ebac87006e784754105f0f863b3ae"
+    },
+    {
+      "file": "gameplay/screenshots/home-390x844.png",
+      "bytes": 266578,
+      "sha256": "743b5992c761a80650ec626108eb9eb89319660d0c20562cf8f7e23a1cc89fc6"
+    },
+    {
+      "file": "gameplay/screenshots/paused-390x844.png",
+      "bytes": 96354,
+      "sha256": "201d6ff7c954db6478c7b0dfd4f0515029c9fadc91fcc86cbc273de21b9bdac2"
+    },
+    {
+      "file": "gameplay/screenshots/play-390x844.png",
+      "bytes": 261766,
+      "sha256": "1165ae4ab844a46cba6c1d6103cae9fb4795b0079beac52cf2b42e2767890f1d"
+    },
+    {
+      "file": "gameplay/videos/real-play-390x844.webm",
+      "bytes": 1034746,
+      "sha256": "9a34a88ccbe8074336077f03ae2ad4ffd76f13272d90fd1f0bee667330991f56"
+    },
+    {
+      "file": "promo/images/tetracube-home-390x844.png",
+      "bytes": 266578,
+      "sha256": "743b5992c761a80650ec626108eb9eb89319660d0c20562cf8f7e23a1cc89fc6"
+    },
+    {
+      "file": "promo/videos/tetracube-preview-390x844.mp4",
+      "bytes": 469488,
+      "sha256": "02584ab9fafe8a0779881429a86ab4d9b8e5ffd48f0e6898b7018746fe8eb3a3"
+    }
+  ]
+}

@@ -26,7 +26,8 @@
     "HOMEBOUND_STATION_PREBUILT_DIR",
     "MERGE_FRONT_PREBUILT_DIR",
     "BULLET_GARDEN_PREBUILT_DIR",
-    "BULLET_GARDEN_PLATFORM_CONFIG"
+    "BULLET_GARDEN_PLATFORM_CONFIG",
+    "TETRACUBE_PREBUILT_DIR"
   ],
   "tasks": {
     "dev": {
@@ -193,6 +194,22 @@
       "cache": false,
       "outputs": [],
       "env": ["COCOS_CREATOR", "BULLET_GARDEN_PREBUILT_DIR", "BULLET_GARDEN_PLATFORM_CONFIG"]
+    },
+    "@coffeeeeffoc/tetracube#build": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "outputs": ["dist/**"],
+      "env": [
+        "COCOS_CREATOR",
+        "TETRACUBE_PREBUILT_DIR",
+        "H5_ADS_ENABLED",
+        "TAPTAP_TETRACUBE_AD_UNIT_ID"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/games/local/tetracube/.prebuilt/**",
+        "$TURBO_ROOT$/scripts/h5-ad-config.mjs"
+      ]
     }
   }
 }
