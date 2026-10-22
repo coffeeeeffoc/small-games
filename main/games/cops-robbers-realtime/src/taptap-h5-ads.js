@@ -1,36 +1,31 @@
-// TapTap H5 supplies tap; ordinary browsers must keep advertising unavailable.
-export function createTapTapAdProvider(sdk, adUnitId) {
-  let pending, disposed = false;
-  return {
-    show() {
-      if (disposed || pending || !sdk?.createRewardedVideoAd || typeof adUnitId !== 'string' || !adUnitId.trim())
-        return Promise.resolve({ status: 'unavailable' });
-      return new Promise(resolve => {
-        let ad, settled = false, timer;
-        const finish = status => {
-          if (settled) return;
-          settled = true;
-          clearTimeout(timer);
-          try { ad?.offClose(close); } catch {}
-          try { ad?.offError(error); } catch {}
-          pending = undefined;
-          resolve({ status });
-        };
-        const close = result => finish(result?.isEnded === true ? 'completed' : 'dismissed');
-        const error = () => finish('failed');
-        pending = () => finish('dismissed');
+import { createPlatformAdProvider } from '../platform-ads.js';
+
+// Resolve the SDK per request for both H5 startup and the existing native caller.
+export function createTapTapAdProvider(sdk, adUnitId, showTimeoutMs = 44000) {
+  let disposed = false;
+  const provider = createPlatformAdProvider({
+    platform: 'taptap-h5',
+    adUnitId,
+    timeoutMs: showTimeoutMs,
+    environment: {
+      get tap() {
         try {
-          ad = sdk.createRewardedVideoAd({ adUnitId, multiton: false });
-          ad.onClose(close);
-          ad.onError(error);
-          timer = setTimeout(() => finish('failed'), 44000);
-          Promise.resolve(ad.show()).catch(async () => {
-            if (settled) return;
-            try { await ad.load(); if (!settled) await ad.show(); } catch { error(); }
-          });
-        } catch { error(); }
-      });
+          const current = typeof sdk === 'function' ? sdk() : sdk;
+          if (typeof current?.createRewardedVideoAd !== 'function') return undefined;
+          return {
+            createRewardedVideoAd: options =>
+              current.createRewardedVideoAd({ ...options, multiton: false }),
+          };
+        } catch { return undefined; }
+      },
     },
-    dispose() { disposed = true; pending?.(); },
+    onEvent: event => console.info('[TapTapReward]', JSON.stringify(event)),
+  });
+  return {
+    show(request) {
+      return disposed ? Promise.resolve({ status: 'unavailable' }) : provider.show(request);
+    },
+    cancel() { provider.cancel(); },
+    dispose() { disposed = true; provider.dispose(); },
   };
 }

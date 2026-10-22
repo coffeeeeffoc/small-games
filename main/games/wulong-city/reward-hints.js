@@ -4,7 +4,7 @@
     let generation = 0, remaining = 0, pending = false, providerBusy = false, cancel;
     const statuses = new Set(['completed', 'dismissed', 'unavailable', 'failed']);
     return {
-      get available() { return typeof provider?.show === 'function'; },
+      get available() { return provider?.available !== false && typeof provider?.show === 'function'; },
       get pending() { return pending; },
       get remaining() { return remaining; },
       reset() { this.cancel(); generation++; remaining = 0; },
@@ -22,6 +22,7 @@
           });
           const shown = Promise.resolve().then(() => cancelled ? { status: 'dismissed' } : provider.show({
             opportunityId: 'wulong-city:hint-highlight', kind: 'rewarded',
+            onShown: () => clearTimeout(timer),
           })).finally(() => { providerBusy = false; });
           const result = await Promise.race([shown, interrupted]);
           const status = requested === generation && statuses.has(result?.status) ? result.status : 'dismissed';

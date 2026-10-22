@@ -1,4 +1,4 @@
-// Download integrity/cache flow follows ../letters-words/library.mjs.
+// Downloaded vocabulary is verified before entering the local cache.
 import { letters, validateEntries } from './engine.js';
 import { openScreen } from './mobile-ui.js';
 

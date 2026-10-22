@@ -1,16 +1,17 @@
 <!doctype html>
 <html lang="zh-CN">
-  <head>
+  <head><script data-competition-service>globalThis.__COMPETITION_CONFIG__={"tapServices":{"enabled":false},"game":"cops-robbers","platform":"h5","serviceManaged":true,"competitionEnabled":true,"apiUrl":"https://api.nenggongzhiren.cn/small-games/v1"};</script>
     <script src="./dev-mode.js"></script>
     <script src="./platform-config.js"></script>
     <meta charset="UTF-8" />
+    <script defer src="./src/safe-area.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#b6e8ee" />
     <meta
       name="description"
-      content="突围队员会从出口逃走！点路口立即调动追逐队员，在三种各120关的挑战与对抗中选择双方角色。"
+      content="小区保安协作围堵小偷！点路口立即调动保安队员，在三种各120关的挑战与对抗中选择双方角色。"
     />
-    <title>围捕小队 · 街区追逃计划</title>
+    <title>围捕小队 · 小区保安出动</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="preload" as="image" href="./assets/patrol-characters.svg" />
     <link rel="preload" as="image" href="./assets/patrol-garden.webp" />
@@ -19,12 +20,11 @@
     <link rel="stylesheet" href="./src/viewport.css" />
     <script type="module" src="./src/main.js"></script>
 
-    <script defer src="./src/fullscreen.js"></script>
   </head>
   <body class="game-shell">
     <header class="topbar">
       <a class="brand" href="./" aria-label="围捕小队首页"
-        ><span class="brand-badge" aria-hidden="true">★</span><span>围捕小队</span></a
+        ><span class="brand-badge" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8M6 9v12h12V9M10 21v-7h4v7"/></svg></span><span class="sr-only">围捕小队</span></a
       >
       <button type="button" id="focus-toggle" class="map-button" aria-label="返回大厅">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7M7 12h13" /></svg>
@@ -44,7 +44,7 @@
       <aside class="briefing" aria-label="游戏首页">
         <div class="home-scene" aria-hidden="true"></div>
         <div class="home-title">
-          <span class="home-kicker">街区追逃计划</span>
+          <span class="home-kicker">小区保安出动</span>
           <h1>围捕<span>小队</span></h1>
           <span class="home-tagline">每个路口，都有新主意</span>
         </div>
@@ -61,7 +61,7 @@
               <svg id="appearance-art" viewBox="0 0 100 80" aria-hidden="true"></svg
               ><span>换装</span>
             </button>
-            <button type="button" id="friend-duel" data-competition-launch disabled aria-label="好友 PK 暂未开放">
+            <button type="button" id="friend-duel" data-competition-launch hidden disabled aria-label="好友 PK 暂未开放">
               <svg viewBox="0 0 64 56" aria-hidden="true">
                 <circle cx="22" cy="19" r="12" fill="#ffca87" />
                 <circle cx="43" cy="22" r="10" fill="#ffb188" />
@@ -71,7 +71,7 @@
                   stroke="#16465a"
                   stroke-width="3"
                 /></svg
-              ><span>好友 · 未开放</span>
+              ><span>好友挑战</span>
             </button>
             <button type="button" id="mode-settings">
               <svg viewBox="0 0 64 56" aria-hidden="true">
@@ -120,12 +120,10 @@
             <button type="button" id="level-select">
               街区地图 <strong id="completed-count">0 / 120</strong></button
             ><button type="button" id="quick-start">两步试炼</button
-            ><button type="button" class="fullscreen-button" data-game-fullscreen hidden>
-              全屏
-            </button>
+            >
           </div>
           <div class="home-share">
-            <button type="button" id="share-challenge">分享同题</button>
+            <button type="button" id="share-challenge">分享游戏</button>
             <p id="friend-note" role="status"></p>
           </div>
         </div>
@@ -143,6 +141,7 @@
             <h2><span id="level-number">01</span><span id="level-name">堵住出口</span></h2>
           </div>
           <button id="mobile-level-select" data-testid="level-select" hidden>选择关卡</button>
+          <button id="share-level" class="map-button" data-share-level aria-label="分享当前关卡">分享当前关卡</button>
         </div>
         <div class="board-hud">
           <span class="sr-only" id="phase-label">轮到你了</span>
@@ -197,8 +196,8 @@
               <path d="M4 10a8 8 0 1 1 1 8M4 4v6h6" /></svg
             ><span>重来</span>
           </button>
-          <button class="secondary-action" id="hint" data-testid="hint" aria-label="看广告获取提示">
-            <span id="hint-icon"></span><span>看广告</span>
+          <button class="secondary-action" id="hint" data-testid="hint" aria-label="获取提示">
+            <span id="hint-icon"></span><span>提示</span>
           </button>
         </div>
         <div class="game-footnote sr-only">
@@ -209,6 +208,7 @@
       <section id="duel-game" class="duel-game" aria-label="角色对抗" hidden>
         <div class="game-heading">
           <h2 id="duel-title"></h2>
+          <button id="duel-share" class="map-button" aria-label="分享当前关卡">分享当前关卡</button>
           <button id="duel-back" class="map-button" aria-label="返回大厅" hidden>返回大厅</button>
         </div>
         <p id="duel-rules" class="dialog-description sr-only"></p>
@@ -226,7 +226,6 @@
           ><button id="duel-retry" class="secondary-action">重新挑战</button
           ><button id="duel-next" class="secondary-action">下一关</button>
         </div>
-        <button id="duel-share" class="text-button" hidden>分享这张地图与先手</button>
       </section>
     </main>
     <dialog id="level-dialog" aria-labelledby="level-dialog-title">
@@ -267,7 +266,7 @@
         <p id="mode-description"></p>
         <label id="solo-role-row"
           >我的角色<select id="solo-role">
-            <option value="pursuer">警察 · 蓝色盾牌</option>
+            <option value="pursuer">保安 · 灰衣队员</option>
             <option value="runner">小偷 · 橙色闪电</option>
           </select></label
         ><label id="solo-initiative-row"
@@ -299,6 +298,7 @@
       </div>
       <div class="dialog-actions">
         <button type="button" class="secondary-action dialog-close">查看完成局面</button>
+        <button type="button" class="secondary-action" data-share-level>分享当前关卡</button>
       </div>
     </dialog>
     <dialog id="loss-dialog" data-testid="defeat" aria-labelledby="loss-title">
@@ -314,6 +314,7 @@
       </div>
       <div class="dialog-actions">
         <button type="button" class="secondary-action dialog-close">查看失守局面</button>
+        <button type="button" class="secondary-action" data-share-level>分享当前关卡</button>
       </div>
     </dialog>
     <dialog id="help-dialog" aria-labelledby="help-title">
@@ -386,9 +387,9 @@
       </div>
     </dialog>
     <dialog id="share-dialog" aria-labelledby="share-title">
-      <div class="dialog-heading"><h2 id="share-title">分享同题</h2></div>
-      <div class="dialog-body" tabindex="0" aria-label="同题分享信息">
-        <label for="share-url">同题链接</label><input id="share-url" class="share-url" readonly />
+      <div class="dialog-heading"><h2 id="share-title">分享游戏</h2></div>
+      <div class="dialog-body" tabindex="0" aria-label="分享信息">
+        <label for="share-url">分享链接</label><input id="share-url" class="share-url" readonly />
         <p id="share-note" class="dialog-description" role="status"></p>
       </div>
       <div class="duel-controls">
@@ -400,5 +401,5 @@
       </div>
     </dialog>
     <noscript>围捕小队需要启用 JavaScript 才能开始游戏。</noscript>
-  </body>
+  <script defer src="./competition.js"></script></body>
 </html>

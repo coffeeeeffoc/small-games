@@ -1,7 +1,7 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-platform="web">
   <head>
-  <script src="./dev-mode.js"></script>
+    <script src="./dev-mode.js"></script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#101815" />
@@ -10,8 +10,8 @@
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'%3E%3Crect width='80' height='80' rx='22' fill='%2318201c'/%3E%3Cpath d='M20 31v18m13-28v38m14-31v24m13-18v12' stroke='%23b7ee81' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E"
     />
-    <link rel="stylesheet" href="styles.css" />
-  </head>
+    <link rel="stylesheet" href="./shared/browser/styles.css" />
+  <script defer src="./shared/browser/fullscreen.js"></script></head>
   <body>
     <header class="topbar">
       <a class="brand" href="./" aria-label="回声实验室首页"
@@ -22,7 +22,7 @@
         ></a
       >
       <div class="top-actions">
-        <span class="local-badge"><b></b> 声音留在你的设备</span
+        <button data-game-fullscreen type="button" aria-label="进入全屏">全屏</button><span class="local-badge"><b></b> 声音留在你的设备</span
         ><button class="icon-button" id="helpButton" aria-label="打开使用说明">?</button>
       </div>
     </header>
@@ -555,6 +555,6 @@
       </p>
       <button id="startExperiment" class="primary-button">开始实验 →</button>
     </dialog>
-    <script type="module" src="src/app.js"></script>
+    <script type="module" src="./web/entry.js"></script>
   </body>
 </html>

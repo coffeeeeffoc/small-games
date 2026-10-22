@@ -185,6 +185,15 @@ function buildMap(level, rotation = 0) {
   bg.height = H * 2;
   const ctx = bg.getContext('2d');
   ctx.scale(2, 2);
+  drawMapBackground(ctx, level, rotation);
+  return bg;
+}
+
+// Pure drawing shared with native hosts; canvas allocation belongs to the host.
+export function drawMapBackground(ctx, level, rotation = 0) {
+  const W = level.worldWidth || 1000,
+    H = level.worldHeight || 600;
+  ctx.save();
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.fillStyle = '#a7d6b6';
@@ -295,7 +304,7 @@ function buildMap(level, rotation = 0) {
   ctx.fillStyle = '#7d997d';
   ctx.fillText('NEIGHBORHOOD PATROL', 0, 0);
   ctx.restore();
-  return bg;
+  ctx.restore();
 }
 
 export function route(ctx, actor, selected, rotation = 0) {
@@ -633,6 +642,7 @@ export function actorBody(
   celebrating,
   escapedAge,
   rotation = 0,
+  drawAvatar = drawRoleAvatar,
 ) {
   const role = cop ? 'cop' : 'robber',
     { color } = getRoleAppearance(role);
@@ -667,7 +677,7 @@ export function actorBody(
     color,
     7,
   );
-  drawRoleAvatar(ctx, role, -23, -52 - Math.abs(stride) * 0.4, 46);
+  drawAvatar(ctx, role, -23, -52 - Math.abs(stride) * 0.4, 46);
   ellipse(ctx, 22, -49, 10, 10, '#fff9e9', color, 2);
   ctx.font = `bold 12px ${FONT}`;
   ctx.textAlign = 'center';
@@ -713,17 +723,24 @@ export function createRenderer(canvas) {
     const previousRotation = rotation;
     rotation = height > width ? Math.PI / 2 : 0;
     const dock = canvas.parentElement?.querySelector('.squad-dock');
+    const hud = canvas.parentElement?.querySelector('.board-top');
+    const leftSpace = Math.max(12, hud?.offsetLeft || 0);
+    const rightSpace = Math.max(12, width > height && height <= 560 && dock?.offsetHeight
+      ? width - dock.offsetLeft - dock.offsetWidth
+      : hud ? width - hud.offsetLeft - hud.offsetWidth : 12);
+    const topSpace = Math.max(62, (hud ? hud.offsetTop + hud.offsetHeight : 0) + 8);
     // Short landscape screens use a side dock; other sizes use a bottom dock.
     const sideDock = width > height && height <= 560;
-    const bottomSpace = sideDock ? 10 : (dock?.offsetHeight || 0) + 24;
-    const availableWidth = Math.max(1, width - 24 - (sideDock ? (dock?.offsetWidth || 0) + 20 : 0));
+    const bottomSpace = dock?.offsetHeight
+      ? sideDock ? Math.max(10, height - dock.offsetTop - dock.offsetHeight) : height - dock.offsetTop + 12
+      : 24;
+    const availableWidth = Math.max(1, width - leftSpace - rightSpace - (sideDock ? (dock?.offsetWidth || 0) + 20 : 0));
     const mapWidth = rotation ? H : W,
       mapHeight = rotation ? W : H,
-      availableHeight = Math.max(1, height - 72 - bottomSpace);
+      availableHeight = Math.max(1, height - topSpace - 10 - bottomSpace);
     scale = Math.min(availableWidth / mapWidth, availableHeight / mapHeight);
-    ox = 12 + (availableWidth - mapWidth * scale) / 2;
-    oy = 62 + (availableHeight - mapHeight * scale) / 2;
-    const hud = canvas.parentElement?.querySelector('.board-top');
+    ox = leftSpace + (availableWidth - mapWidth * scale) / 2;
+    oy = topSpace + (availableHeight - mapHeight * scale) / 2;
     labelTop = Math.max(34, ((hud ? hud.offsetTop + hud.offsetHeight : 0) + 8 - oy) / scale);
     if (cachedLevel) {
       labels = exitLabels(cachedLevel, labelTop, rotation);
@@ -733,6 +750,8 @@ export function createRenderer(canvas) {
   resize();
   const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(resize) : null;
   observer?.observe(canvas);
+  const hostObserver = typeof MutationObserver !== 'undefined' ? new MutationObserver(resize) : null;
+  hostObserver?.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
   function toWorld(clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
     const localX = clientX - rect.left;
@@ -938,6 +957,7 @@ export function createRenderer(canvas) {
     resize,
     destroy() {
       observer?.disconnect();
+      hostObserver?.disconnect();
       orders.clear();
       captures.clear();
       escapes.clear();

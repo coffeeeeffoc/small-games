@@ -14,6 +14,40 @@ let busy = false;
 let audioContext;
 let soundEnabled = false;
 let hintId = null;
+let rewardPending = false, guidedWord = null, guidedGame = null;
+const rewardPort = () => globalThis.SmallGamesRewardAds;
+const guideButton = document.createElement('button');
+guideButton.id = 'reward-guidance'; guideButton.className = 'menu-button';
+guideButton.textContent = '逐字提示'; guideButton.hidden = true;
+document.querySelector('.pause-options').insertBefore(guideButton, $('home-button'));
+const rewardDialog = document.createElement('dialog');
+rewardDialog.id = 'reward-dialog'; rewardDialog.setAttribute('aria-label', '逐字提示');
+rewardDialog.innerHTML = '<h1 class="page-title">逐字提示</h1><p class="subtitle" id="reward-message"></p><button class="primary-button" id="reward-return">取消领取</button>';
+document.body.append(rewardDialog);
+$('reward-return').onclick = () => { if (rewardPending) rewardPort()?.cancel(); else closeScreens(); };
+rewardDialog.addEventListener('close', () => {
+  if (rewardPending) { rewardPort()?.cancel(); feedback('观看已中断，未开启逐字提示；普通提示仍可免费使用。'); }
+});
+guideButton.onclick = async () => {
+  const port = rewardPort(), word = getActiveWord(), target = game;
+  if (!port?.available || rewardPending || busy || competitionOpen || challenge || mini || !word || !findSpelling(game, word.id)) return;
+  rewardPending = true; openScreen(rewardDialog);
+  const version = screenVersion(); updateClock();
+  $('reward-message').textContent = '完整观看后，金色边框会连续指引当前词的每个字母。';
+  $('reward-return').textContent = '取消领取';
+  try {
+    const outcome = await port.offer({id:'letters-words2:word-guidance'});
+    if (game !== target || game.activeWordId !== word.id || version !== screenVersion() || !rewardDialog.open) return;
+    if (outcome.status === 'completed') {
+      guidedGame = game; guidedWord = word.id;
+      clearSelection(game); interruptWordFlow(wordFlow); markReview();
+      render(); saveProgress();
+      $('reward-message').textContent = '逐字提示已开启，跟着金色边框拾取字母吧。';
+    } else $('reward-message').textContent = outcome.status === 'dismissed' ? '观看已中断，未开启逐字提示；普通提示仍可免费使用。' : '未开启逐字提示，请稍后再试；普通提示仍可免费使用。';
+    $('reward-return').textContent = '回去试试';
+  } finally { rewardPending = false; updateClock(); }
+};
+window.addEventListener('smallgames-rewards-ready', () => { if (game) renderChallenge(); });
 let activeSince = null;
 let activeDuration = 0;
 let practice = null;
@@ -50,6 +84,8 @@ function clearIslandInvitation() {
   }
 }
 function renderChallenge() {
+  guideButton.hidden = !rewardPort()?.available || competitionOpen || !!challenge || !!mini || !getActiveWord();
+  guideButton.disabled = rewardPending || (guidedGame === game && guidedWord === game.activeWordId);
   $('daily-note').textContent = challenge
     ? `${challenge} · 提示 ${dailyStats.hints} 次 / 重排 ${dailyStats.shuffles} 次 / 拼错 ${dailyStats.mistakes} 次`
     : `${invitedDay || today()} · 每天一座新词岛`;
@@ -181,6 +217,10 @@ function selectedText() { return game.selected.map(id => game.tiles.find(tile =>
 function hasPlayableWord() { return game.words.some(word => !word.done && findSpelling(game, word.id)); }
 
 function renderBoard() {
+  if (guidedGame === game && guidedWord === game.activeWordId && !getActiveWord()?.done) {
+    const word = getActiveWord(), chars = letters(word.word);
+    hintId = chars.join('').startsWith(selectedText()) ? getAvailableTiles(game).sort((a,b)=>b.z-a.z).find(tile=>tile.char===chars[game.selected.length]&&!game.selected.includes(tile.id))?.id ?? null : null;
+  }
   const focusedTile = document.activeElement?.dataset.tileId;
   const fragment = document.createDocumentFragment();
   for (const tile of game.tiles) {
@@ -312,6 +352,8 @@ function renderWords() {
 function render() { renderBoard(); renderWords(); renderAnswer(); renderChallenge(); }
 
 function startGame(entries, name, focus = true, random = Math.random) {
+  if (rewardPending) rewardPort()?.cancel();
+  guidedGame = guidedWord = null;
   clearTimeout(pending);
   busy = false;
   hintId = null;
@@ -364,7 +406,11 @@ function showWin() {
     return span;
   }));
   // A modal opened by the player takes precedence over the delayed celebration.
-  if (focused && !document.hidden && !document.querySelector('dialog[open]')) openScreen('win-dialog');
+  if (focused && !document.hidden && !document.querySelector('dialog[open]')) {
+    openScreen('win-dialog');
+    const completedGame = game;
+    rewardPort()?.atBreak?.(game, () => game === completedGame && $('win-dialog').open);
+  }
 }
 
 function checkSpelling() {

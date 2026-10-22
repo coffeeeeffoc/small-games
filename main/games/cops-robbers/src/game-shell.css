@@ -40,8 +40,8 @@ body.game-shell {
   z-index: 5;
   max-width: 480px;
   width: 100%;
-  height: calc(64px + env(safe-area-inset-top));
-  padding: env(safe-area-inset-top) 16px 0;
+  height: calc(64px + var(--game-safe-area-top, env(safe-area-inset-top)));
+  padding: var(--game-safe-area-top, env(safe-area-inset-top)) 16px 0;
   border: 0;
   background: transparent;
 }
@@ -56,6 +56,10 @@ body.game-shell {
   font-size: 18px;
   background: #1687a6;
   color: #ffe077;
+  clip-path: none;
+  border-radius: 9px;
+  padding: 0;
+  transform: none;
 }
 .game-shell .top-actions {
   gap: 8px;
@@ -291,9 +295,9 @@ body.game-shell {
   display: none !important;
 }
 .game-shell.focus-play .topbar {
-  height: calc(56px + env(safe-area-inset-top));
+  height: calc(56px + var(--game-safe-area-top, env(safe-area-inset-top)));
   max-width: 620px;
-  padding-left: max(12px, env(safe-area-inset-left));
+  padding-left: max(12px, var(--game-safe-area-left, env(safe-area-inset-left)));
 }
 .game-shell #focus-toggle {
   padding: 0;
@@ -307,7 +311,7 @@ body.game-shell {
   display: block;
   max-width: 620px;
   margin: 0 auto;
-  padding: 0 max(10px, env(safe-area-inset-left));
+  padding: 0 max(10px, var(--game-safe-area-left, env(safe-area-inset-left)));
 }
 .game-shell.focus-play .game {
   display: grid;
@@ -317,7 +321,7 @@ body.game-shell {
 .game-shell.focus-play .game-heading {
   grid-column: 1/3;
   grid-row: 1;
-  margin: -49px 50px 5px;
+  margin: -49px 0 5px 50px;
   min-height: 39px;
   justify-content: center;
   pointer-events: none;
@@ -360,7 +364,7 @@ body.game-shell {
   width: min(
     100%,
     calc(
-      (100dvh - 232px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) /
+      (100dvh - 240px - var(--game-safe-area-top, env(safe-area-inset-top)) - var(--game-safe-area-bottom, env(safe-area-inset-bottom))) /
         var(--board-aspect, 1)
     )
   );
@@ -777,12 +781,12 @@ body.game-shell {
   margin: auto;
 }
 .game-shell.focus-play .duel-game .game-heading {
-  margin: -49px 50px 6px;
+  margin: -49px 0 6px 50px;
   min-height: 39px;
   text-align: center;
 }
 .game-shell.focus-play .duel-game .board-frame {
-  width: min(100%, calc((100dvh - 270px) / var(--board-aspect, 1)));
+  width: min(100%, calc((100dvh - 278px - var(--game-safe-area-top, 0px) - var(--game-safe-area-bottom, 0px)) / var(--board-aspect, 1)));
 }
 .game-shell .duel-game .instruction {
   font-size: 12px;
@@ -959,7 +963,7 @@ body.game-shell {
     width: min(
       100%,
       calc(
-        (100dvh - 300px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) /
+        (100dvh - 308px - var(--game-safe-area-top, env(safe-area-inset-top)) - var(--game-safe-area-bottom, env(safe-area-inset-bottom))) /
           var(--board-aspect, 1)
       )
     );

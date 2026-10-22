@@ -42,7 +42,7 @@ export const CHAPTERS = [
   {
     id: 6,
     name: "紧缺队员",
-    subtitle: "每一位警察员都要站对地方",
+    subtitle: "每一位保安队员都要站对地方",
     color: "#b7b36c",
   },
   { id: 7, name: "全城围捕", subtitle: "整个街区，听你指挥", color: "#d093a5" },
@@ -54,7 +54,7 @@ export const PRACTICE = {
   id: 0, name: "双人夹击练习", chapter: 0, par: 0,
   nodes: [{ x: 220, y: 300 }, { x: 500, y: 300 }, { x: 780, y: 300 }],
   edges: [[0, 1], [1, 2]], cops: [0, 2], robbers: [1], exits: [0, 2],
-  hint: "两人已守住两侧出口。分别向中央推进，小偷员不能穿过警察员。",
+  hint: "两人已守住两侧出口。分别向中央推进，小偷员不能穿过保安队员。",
 };
 
 // Each path is authored on a 7 × 5 street grid. Shared labels are junctions;
@@ -655,8 +655,8 @@ const AUTHORED_LEVELS = [
 export const MODES = [
   {id:'quick',name:'快速战术试炼',description:'三张专编短场：两侧夹击、三岔收口、双街协作。20–25秒内收网，先玩一局，再进阶。'},
   { id: "challenge", name: "街区挑战", description: "固定同时起步 · 100 个有解局面，挑战合围与突围技巧" },
-  { id: "classic", name: "自由追逐", description: "无出口 · 警察须限时合围全部成员，小偷坚持到计时结束获胜" },
-  { id: "escape", name: "出口竞速", description: "开放出口 · 突围任意一人或坚持到计时结束获胜，警察须全部合围" },
+  { id: "classic", name: "自由追逐", description: "无出口 · 保安须限时合围全部成员，小偷坚持到计时结束获胜" },
+  { id: "escape", name: "出口竞速", description: "开放出口 · 突围任意一人或坚持到计时结束获胜，保安须全部合围" },
 ];
 function generatedLevel(id, mode) {
   const variant = LAYOUT_VARIANTS[`${mode}:${id}`];
@@ -727,6 +727,6 @@ export const LEVELS = [...AUTHORED_LEVELS, ...CHALLENGE_EXTENSIONS.map((spec,ind
     robbers:spec.robbers || base.robbers,
     nodes:[...base.nodes.map(node=>({...node,x:80+(node.x-80)/140*120,y:80+(node.y-80)/110*88})),...spec.nodes],edges:[...base.edges,...spec.edges],
     briefing:"分头抢占出口，再深入新增岔路，及时补上同伴留下的缺口。",par:Math.max(25,base.par-5)};
-}), ...FINAL_CHALLENGES].map(level=>({...level,chapter:Math.min(7,Math.floor((level.id-1)/13)),mode:"challenge",timeLimit:180,guarantee:"已验证警察解法"}));
+}), ...FINAL_CHALLENGES].map(level=>({...level,chapter:Math.min(7,Math.floor((level.id-1)/13)),mode:"challenge",timeLimit:180,guarantee:"已验证保安解法"}));
 const MODE_LEVELS = {challenge:LEVELS, classic:Array.from({length:100},(_,i)=>generatedLevel(i+1,"classic")), escape:Array.from({length:100},(_,i)=>generatedLevel(i+1,"escape"))};
 export function getLevels(mode = "challenge") { return mode === 'quick' ? QUICK_TRIALS : MODE_LEVELS[mode] || LEVELS; }

@@ -9,7 +9,7 @@ import { levels } from './levels.js';
 import { quickTrials } from './quick-trials.js';
 
 export function setupDuelLobby({ selectLevels, startChallenge, returnLobby, stopChallenge, sharedPuzzle, savedPatrol, canSelect }) {
-  const $ = id => document.getElementById(id), label = side => side === 'pursuer' ? '警察' : '小偷';
+  const $ = id => document.getElementById(id), label = side => side === 'pursuer' ? '保安' : '小偷';
   let level, sourceLevel, state, role = 'pursuer', selected = 0, timer, serial = 0, firstSide;
   const developer = globalThis.SmallGamesDev?.isEnabled() === true;
   const saveKey = developer ? 'cops-robbers-duel-practice-v1' : 'cops-robbers-duel-v1'; let saved = {};
@@ -110,7 +110,6 @@ export function setupDuelLobby({ selectLevels, startChallenge, returnLobby, stop
     state = stepDuel(level, state, { type: 'move', side: role, actor: selected, target });
     playSound(state.winner ? state.winner === role ? 'win' : 'lose' : 'step'); render(); scheduleAI();
   }
-  $('friend-duel').addEventListener('click', () => { const entry = document.querySelector('[data-competition-launch]'); if (entry) entry.click(); else $('friend-note').textContent = '当前是单机预览。好友房间请从游戏大厅的联机入口进入。'; });
   $('solo-mode').addEventListener('change', () => { renderOptions(); const mode = $('solo-mode').value, patrol = savedPatrol(mode === 'quick' ? 'quick' : 'challenge',mode === 'relay' ? 'relay' : 'standard'); if (['quick','relay'].includes(mode) && patrol && [...$('solo-level').options].some(option=>Number(option.value)===patrol.levelId)) $('solo-level').value=String(patrol.levelId); updateMode(); persistOptions(); });
   for (const id of ['solo-role','solo-initiative','solo-level']) $(id).addEventListener('change', () => { renderOptions(); updateMode(); persistOptions(); });
   $('start-mode').addEventListener('click', () => { stop(); if (['quick','challenge','relay'].includes($('solo-mode').value)) selectLevels(); else start(); });

@@ -1,3 +1,4 @@
+import { validateTapProgress, mergeTapProgress, writeTapProgress, tapProgressScore, tapProgressSummary } from './tap-save.js';
 import {
   BOARDS,
   TYPES,
@@ -16,8 +17,40 @@ import {
 
 import { animateTurn } from './pieces.js';
 import { setupBoardZoom } from './board-view.js';
+import { createHintAccess } from './rewarded-hints.js';
+import { createComputerHints } from './computer-hints.js';
+import { createComputerUndo } from './computer-undo.js';
+const hintAccess = createHintAccess();
+const computerUndo = createComputerUndo(hintAccess);
+let hintWorker = null;
+let rejectHint = null;
+const computerHints = createComputerHints({
+  access: hintAccess,
+  cancelAnalysis() {
+    hintWorker?.terminate(); hintWorker = null;
+    rejectHint?.(new Error('cancelled')); rejectHint = null;
+  },
+  analyze(state) {
+    return new Promise((resolve, reject) => {
+      rejectHint = reject;
+      hintWorker = new Worker(new URL('./computer-worker.js', import.meta.url), { type: 'module' });
+      hintWorker.onerror = () => { hintWorker?.terminate(); hintWorker = null; rejectHint = null; reject(new Error('analysis failed')); };
+      hintWorker.onmessage = ({ data }) => {
+        hintWorker?.terminate(); hintWorker = null; rejectHint = null;
+        if (data.error) reject(new Error(data.error)); else resolve(data);
+      };
+      hintWorker.postMessage({ state, difficulty: 'hint' });
+    });
+  },
+});
+document.addEventListener('visibilitychange', () => {
+  hintAccess.setHidden(document.hidden);
+  if (document.hidden) { if (!hintAccess.pending) computerHints.cancel(); cancelComputer(); }
+  else render();
+});
+addEventListener('pagehide', () => { computerHints.cancel(); computerUndo.cancel(); hintAccess.cancel(); cancelComputer(); });
 import { applyComputerAction, winningActions } from './computer.js';
-import { SAVE_KEY, encodeGame, decodeGame } from './local-game.js';
+import { SAVE_KEY, encodeGame, decodeGame, canUndoComputerTurn } from './local-game.js';
 import {
   CHALLENGES,
   CHALLENGE_SAVE_KEY,
@@ -34,6 +67,7 @@ import {
 } from './challenges.js';
 
 let state = newGame();
+let tapPortalActive = false;
 let opponent = 'computer';
 let difficulty = 'standard';
 let storageAvailable = true;
@@ -65,12 +99,19 @@ let cells = [];
 let boardFocusIndex = 0;
 let resumeBoardFocus = false;
 let room = null;
+function roomServiceEnabled() {
+  return globalThis.__XIANGQI_ROOM_SERVICE__ !== false && !globalThis.__COMPETITION_CONFIG__?.serviceManaged;
+}
 let networkBusy = false;
 let networkHealthy = true;
 let roomError = '';
 let pollTask = null;
 let focused = false;
 let currentScreen = 'home';
+globalThis.SmallGamesDev?.registerSnapshot?.(() => ({
+  gameId: 'xiangqi-five', screen: currentScreen,
+  ads: globalThis.SmallGamesRewardAds?.diagnostics,
+}));
 let setupDraft = null;
 let onlineActive = false;
 let challenge = null;
@@ -122,6 +163,8 @@ function notifyDisplayState(name = currentScreen) {
 
 // Navigation changes the visible page only; game state stays in memory.
 function showScreen(name, { replace = false, push = true } = {}) {
+  if (name === 'room' && !roomServiceEnabled()) name = 'modes';
+  if (name !== currentScreen) { computerHints.cancel(); computerUndo.cancel(); hintAccess.cancel(); cancelComputer(); }
   if (name === 'result' && challenge) name = 'game';
   if (name === 'result' && !state.result && (!challenge || challenge.status === 'playing'))
     name = 'game';
@@ -212,7 +255,8 @@ function renderSetup() {
   }[setupDraft?.difficulty || difficulty];
   setChevronLabel(
     'setup-start',
-    setupDraft?.mode === state.mode &&
+    !state.result &&
+      setupDraft?.mode === state.mode &&
       setupDraft?.opponent === opponent &&
       (state.ply || state.pending)
       ? '继续这一局'
@@ -221,6 +265,7 @@ function renderSetup() {
 }
 $('home-start').addEventListener('click', () => showScreen('modes'));
 $('home-continue').addEventListener('click', () => {
+  if (state.result && !challenge) resultAnnounced = true;
   showScreen('game');
   render();
 });
@@ -233,6 +278,8 @@ $('home-settings').addEventListener('click', () => {
 $('mode-computer').addEventListener('click', () => openSetup('computer'));
 $('mode-local').addEventListener('click', () => openSetup('local'));
 function arrangeOnlineEntry() {
+  $('room-open').hidden = !roomServiceEnabled();
+  if (!roomServiceEnabled()) return;
   if ($('mode-online').hidden) return;
   $('mode-extras').hidden = false;
   const legacy = $('room-open');
@@ -411,6 +458,7 @@ function cancelComputer() {
 }
 function scheduleComputer() {
   if (
+    tapPortalActive || currentScreen !== 'game' || document.hidden ||
     onlineActive ||
     room ||
     challenge ||
@@ -438,7 +486,7 @@ function scheduleComputer() {
       });
       computerWorker.onerror = fail;
       computerWorker.onmessage = async ({ data }) => {
-        if (state !== currentState || state.ply !== ply || room || opponent !== 'computer') return;
+        if (tapPortalActive || state !== currentState || state.ply !== ply || room || opponent !== 'computer') return;
         if (data.error || !data.action) {
           fail();
           return;
@@ -539,6 +587,8 @@ async function play(index) {
 
 function inputLocked() {
   return (
+    Boolean(!room && !challenge && opponent === 'computer' && computerHints.sync(state).phase) ||
+    computerUndo.sync(state).pending ||
     busy ||
     networkBusy ||
     Boolean(challenge && (challenge.status !== 'playing' || state.turn === 'black')) ||
@@ -551,6 +601,8 @@ function inputLocked() {
 }
 
 function render() {
+  const advice = !room && !challenge && opponent === 'computer' ? computerHints.sync(state) : {};
+  const undo = !room && !challenge && opponent === 'computer' ? computerUndo.sync(state) : {};
   scheduleComputer();
   const ended = Boolean(state.result) || Boolean(challenge && challenge.status !== 'playing');
   if (currentScreen === 'result' && !ended) showScreen('game', { replace: true });
@@ -578,8 +630,21 @@ function render() {
   $('home-continue').hidden = !(state.ply || state.pending || room || challenge);
   setChevronLabel('home-continue', challenge ? '继续战术练习' : room ? '返回好友对弈' : '继续棋局');
   $('training-dock').hidden = !challenge;
+  const canHint = !room && !challenge && !onlineActive && opponent === 'computer' && !state.result;
+  $('computer-hint').hidden = !canHint;
+  $('computer-hint').disabled = !canHint || state.turn !== 'red' || busy || Boolean(advice.phase) || undo.pending;
+  $('computer-hint').textContent = advice.phase === 'analyzing' ? '正在分析…'
+    : advice.phase === 'advertising' ? '准备广告…'
+    : advice.result ? '重看提示' : advice.earned ? '更新提示'
+    : '获取提示';
+  $('computer-undo').hidden = !canHint;
+  $('computer-undo').disabled = !canHint || !canUndoComputerTurn(state) || busy || Boolean(advice.phase) || undo.pending;
+  $('computer-undo').textContent = undo.pending ? '准备广告…' : state.freeUndoUsed ? '悔棋' : '悔棋·免费1次';
   $('tools-settings').hidden = Boolean(room || challenge);
-  $('tools-room').hidden = !room;
+  $('room-open').hidden = !roomServiceEnabled();
+  $('tools-room').hidden = !roomServiceEnabled() || !room;
+  $('tools-share').textContent = challenge ? '分享当前关卡' : '分享游戏';
+  $('result-share').hidden = Boolean(challenge);
   $('challenge-select').hidden = $('challenge-exit').hidden = !challenge;
   $('draw-button').setAttribute(
     'aria-label',
@@ -587,7 +652,7 @@ function render() {
       ? '本局结束'
       : state.pending
         ? `已抽到「${label(state.pending)}」，点棋盘空位放置，不能重抽或改为移动`
-      : '先抽子，看清棋子后再选择空位放置',
+        : '先抽子，看清棋子后再选择空位放置',
   );
   $('save-status').textContent = challenge
     ? challengeStorageAvailable
@@ -604,7 +669,7 @@ function render() {
     const enemy = side === 'red' ? 'black' : 'red';
     threats = ended ? [] : winningActions({ ...state, pending: null, turn: enemy }, enemy);
   }
-  $('room-open').disabled = busy || networkBusy || Boolean(challenge);
+  $('room-open').disabled = !roomServiceEnabled() || busy || networkBusy || Boolean(challenge);
   $('challenge-open').disabled = busy || networkBusy || Boolean(room);
   $('challenge-quick-start').disabled = busy || networkBusy || Boolean(room);
   $('new-game').disabled =
@@ -631,6 +696,8 @@ function render() {
       last?.to === i ? 'last-play' : '',
       state.winningLine.includes(i) ? 'winning' : '',
       threat ? 'threat-target' : '',
+      canHint && advice.result?.action.from === i ? 'hint-source' : '',
+      canHint && advice.result?.action.to === i ? 'hint-destination' : '',
       !ended && (state.pending || direct) && !p ? 'deploy-target' : '',
     ]
       .filter(Boolean)
@@ -642,7 +709,7 @@ function render() {
     cell.innerHTML = (p ? pieceMarkup(p, 'embodied') : '') + coordinate;
     cell.setAttribute(
       'aria-label',
-      `${coord(i)} ${p ? sideName(p.side) + label(p) : '空位'}${legal ? '，可' + (p ? '吃子' : '移动') : ''}${threat ? '，对方下一手可在此成五' : ''}`,
+      `${coord(i)} ${p ? sideName(p.side) + label(p) : '空位'}${legal ? '，可' + (p ? '吃子' : '移动') : ''}${threat ? '，对方下一手可在此成五' : ''}${canHint && advice.result?.action.from === i ? '，提示起点' : ''}${canHint && advice.result?.action.to === i ? '，提示落点' : ''}`,
     );
     cell.setAttribute('aria-pressed', String(selected === i));
     cell.disabled = boardLocked;
@@ -740,11 +807,12 @@ function render() {
         : direct
           ? '先抽子可以看清棋子后再选落点；直接点空位，则落下后才揭晓棋子。也可点己方棋子移动。'
           : '选择己方棋子，再点标记位置移动。';
-  $('draw-preview').innerHTML = state.pending && !ended
-    ? `${pieceMarkup(state.pending, 'drawn')}<div><strong>已抽到「${label(state.pending)}」</strong><small>点棋盘空位放置</small></div>`
-    : ended
-      ? `<span class="mystery-piece result-symbol">${state.result === 'draw' ? '和' : '胜'}</span><div><strong>${outcome}</strong><small>共 ${state.ply} 手 · 本局结束</small></div>`
-      : '<span class="mystery-piece">?</span><div><strong>先抽子，看清再放</strong><small>直接点空位，落下后揭晓</small></div>';
+  $('draw-preview').innerHTML =
+    state.pending && !ended
+      ? `${pieceMarkup(state.pending, 'drawn')}<div><strong>已抽到「${label(state.pending)}」</strong><small>点棋盘空位放置</small></div>`
+      : ended
+        ? `<span class="mystery-piece result-symbol">${state.result === 'draw' ? '和' : '胜'}</span><div><strong>${outcome}</strong><small>共 ${state.ply} 手 · 本局结束</small></div>`
+        : '<span class="mystery-piece">?</span><div><strong>先抽子，看清再放</strong><small>直接点空位，落下后揭晓</small></div>';
   $('draw-button').disabled =
     inputLocked() ||
     ended ||
@@ -754,10 +822,10 @@ function render() {
   $('draw-button').firstElementChild.textContent = ended
     ? '本局结束'
     : state.pending
-    ? `已抽到「${label(state.pending)}」`
-    : !state.pools[side].length
-      ? '无剩余棋子'
-      : '先抽子';
+      ? `已抽到「${label(state.pending)}」`
+      : !state.pools[side].length
+        ? '无剩余棋子'
+        : '先抽子';
   $('draw-button').querySelector('.draw-button-note').hidden =
     $('draw-button').disabled || moving || selected !== null;
   $('move-button').disabled = inputLocked() || ended || Boolean(state.pending) || !hasMove(state);
@@ -808,6 +876,8 @@ function render() {
     hint('');
   }
   if (!computerError && selected === null && !threats.length) $('coach-hint').textContent = '';
+  if (canHint && advice.message) $('coach-hint').textContent = advice.message;
+  if (canHint && undo.message) $('coach-hint').textContent = undo.message;
   const historyMarkup = (events) =>
     events
       .slice()
@@ -856,6 +926,12 @@ function render() {
       : room.restartVotes.length
         ? '同意重开'
         : '申请再来一局';
+  if (ended && !challenge) {
+    const restartLabel = room ? $('result-restart').textContent : '重新开局';
+    $('draw-button').disabled = $('result-restart').disabled;
+    $('draw-button').firstElementChild.textContent = restartLabel;
+    $('draw-button').setAttribute('aria-label', restartLabel);
+  }
   if (challenge) {
     $('result-restart').textContent = challenge.status === 'solved' ? '下一题' : '重试本题';
     const next = CHALLENGES[(CHALLENGES.indexOf(challenge.definition) + 1) % CHALLENGES.length];
@@ -867,8 +943,8 @@ function render() {
           : challenge.definition.goal === 'defend'
             ? '重试本题，消除黑方的全部连五威胁。'
             : '重试本题，找到连五的缺口。';
-    $('challenge-result-share').textContent = '分享';
-    $('challenge-result-share').setAttribute('aria-label', '邀请朋友解同一道题');
+    $('challenge-result-share').textContent = '分享当前关卡';
+    $('challenge-result-share').setAttribute('aria-label', '分享当前关卡');
     const lastRed = state.history.filter((event) => event.side === 'red').at(-1);
     $('result-description').textContent =
       challenge.status === 'solved'
@@ -892,6 +968,7 @@ function render() {
 }
 
 function renderChallenge() {
+  for (const button of document.querySelectorAll('[data-share-game]')) button.disabled = busy || networkBusy || challengeSharing;
   const milestones = challengeMilestones(challengeProgress);
   $('challenge-summary').textContent =
     `已完成 ${milestones.basics + milestones.combos}/8 题　·　★ ${milestones.stars}/16`;
@@ -925,8 +1002,13 @@ function renderChallenge() {
     : reply
       ? definition.replyHint
       : definition.hint;
-  $('challenge-hint').textContent = challenge.hintShown ? '提示已展开' : '提示';
-  $('challenge-hint').disabled = busy || challenge.hintShown || challenge.status === 'solved';
+  $('challenge-hint').textContent = challenge.hintShown
+    ? '提示已展开'
+    : hintAccess.pending
+      ? '准备广告…'
+      : '获取提示';
+  $('challenge-hint').disabled =
+    busy || hintAccess.pending || challenge.hintShown || challenge.status === 'solved';
   $('challenge-share').disabled = busy || networkBusy || challengeSharing;
   $('challenge-result-share').disabled = busy || networkBusy || challengeSharing;
   for (const id of ['challenge-select', 'challenge-exit']) $(id).disabled = busy || networkBusy;
@@ -1032,38 +1114,56 @@ $('challenge-start-next').addEventListener('click', () =>
 );
 $('challenge-select').addEventListener('click', openChallenges);
 $('challenge-exit').addEventListener('click', exitChallenge);
-$('challenge-hint').addEventListener('click', () => {
-  if (challenge && !busy && challenge.status !== 'solved') {
-    challenge.hintShown = true;
-    render();
-  }
+$('challenge-hint').addEventListener('click', async () => {
+  if (
+    !challenge ||
+    busy ||
+    hintAccess.pending ||
+    challenge.hintShown ||
+    challenge.status === 'solved'
+  )
+    return;
+  const active = challenge;
+  const result = hintAccess.request();
+  renderChallenge();
+  const outcome = await result;
+  if (challenge !== active || currentScreen !== 'challenge-help') return;
+  if (outcome.status === 'free' || outcome.status === 'completed') active.hintShown = true;
+  render();
+  $('challenge-hint-status').textContent = active.hintShown
+    ? ''
+    : outcome.status === 'dismissed'
+      ? '广告未看完，提示未成功生成。'
+      : '广告暂不可用，提示未成功生成，请重试。';
 });
-async function shareChallenge() {
-  if (!challenge || busy || networkBusy || challengeSharing) return;
-  const activeChallenge = challenge;
+async function shareChallenge(activeChallenge = challenge) {
+  if (busy || networkBusy || challengeSharing) return;
+  const sourceChallenge = challenge;
   const shareOrigin = currentScreen;
-  const isCurrent = () => challenge === activeChallenge;
+  const sharePrefix = activeChallenge ? 'challenge' : shareOrigin;
+  const isCurrent = () => challenge === sourceChallenge && (activeChallenge || currentScreen === shareOrigin);
   const feedback = (message) => {
     if (isCurrent()) {
-      $('challenge-share-message').textContent = message;
-      $('challenge-result-message').textContent = message;
+      $(`${sharePrefix}-share-message`).textContent = message;
+      if (activeChallenge) $('challenge-result-message').textContent = message;
     }
   };
   challengeSharing = true;
   renderChallenge();
   try {
-    const url = challengeLink(location.href, activeChallenge.definition.id);
+    const url = challengeLink(location.href, activeChallenge?.definition.id ?? null);
+    $(`${sharePrefix}-share-fallback`).hidden = true;
     if (typeof navigator.share === 'function') {
       try {
         await navigator.share({
-          title: `象五子棋 · ${activeChallenge.definition.title}`,
-          text: challengeInvitation(
+          title: activeChallenge ? `象五子棋 · ${activeChallenge.definition.title}` : '象五子棋',
+          text: activeChallenge ? challengeInvitation(
             activeChallenge.definition.id,
             activeChallenge.status === 'solved',
-          ),
+          ) : '象棋走法，同色连五。一起来下象五子棋。',
           url,
         });
-        feedback('已打开分享，邀请好友解同一道题。');
+        feedback(activeChallenge ? '已打开分享，邀请好友挑战当前关卡。' : '已打开游戏分享。');
         return;
       } catch (error) {
         if (error?.name === 'AbortError') {
@@ -1075,27 +1175,29 @@ async function shareChallenge() {
     if (!isCurrent()) return;
     try {
       await navigator.clipboard.writeText(url);
-      feedback('同题链接已复制。');
+      feedback(activeChallenge ? '关卡链接已复制。' : '游戏链接已复制。');
     } catch {
       if (!isCurrent()) return;
-      $('challenge-share-link').value = url;
-      $('challenge-share-fallback').hidden = false;
+      $(`${sharePrefix}-share-link`).value = url;
+      $(`${sharePrefix}-share-fallback`).hidden = false;
       if (currentScreen === shareOrigin) {
-        if (currentScreen !== 'challenge-help') showScreen('challenge-help');
-        $('challenge-share-link').focus();
-        $('challenge-share-link').select();
+        if (activeChallenge && currentScreen !== 'challenge-help') showScreen('challenge-help');
+        $(`${sharePrefix}-share-link`).focus();
+        $(`${sharePrefix}-share-link`).select();
         feedback('请长按或使用 Ctrl+C 复制下方链接。');
-      } else feedback('同题链接已准备好，可在战术提示页长按复制。');
+      } else feedback('关卡链接已准备好，可在战术提示页长按复制。');
     }
   } finally {
     challengeSharing = false;
     renderChallenge();
   }
 }
-$('challenge-share').addEventListener('click', shareChallenge);
-$('challenge-result-share').addEventListener('click', shareChallenge);
+$('challenge-share').addEventListener('click', () => shareChallenge());
+$('challenge-result-share').addEventListener('click', () => shareChallenge());
+document.querySelectorAll('[data-share-game]').forEach(button => button.addEventListener('click', () => shareChallenge(button.id === 'home-share' ? null : challenge)));
 
 $('draw-button').addEventListener('click', () => {
+  if (state.result && !challenge) return restartResult();
   if (inputLocked()) return;
   setFocus(true);
   if (room) {
@@ -1111,6 +1213,28 @@ $('draw-button').addEventListener('click', () => {
   } catch (error) {
     hint(error.message);
   }
+});
+$('computer-hint').addEventListener('click', () => {
+  if (room || challenge || onlineActive || opponent !== 'computer' || currentScreen !== 'game' || inputLocked()) return;
+  computerUndo.clearMessage();
+  const requestedState = state;
+  void computerHints.request(state, () => {
+    if (challenge || tapPortalActive || state !== requestedState) return;
+    const advice = computerHints.sync(state).result;
+    if (advice) {
+      selected = advice.action.type === 'move' ? advice.action.from : null;
+      moving = selected !== null;
+    }
+    render();
+  });
+});
+$('computer-undo').addEventListener('click', () => {
+  if (room || challenge || onlineActive || opponent !== 'computer' || currentScreen !== 'game' || inputLocked()) return;
+  computerHints.cancel();
+  void computerUndo.request(state, next => {
+    cancelComputer(); state = next; selected = null; moving = false; threatPly = -1;
+    saveLocal();
+  }, render);
 });
 $('move-button').addEventListener('click', () => {
   if (inputLocked()) return;
@@ -1159,10 +1283,10 @@ document.querySelectorAll('[data-board], [data-difficulty]').forEach((button) =>
 $('setup-start').addEventListener('click', () => {
   if (busy || networkBusy || room || challenge || !setupDraft) return;
   const changed = setupDraft.mode !== state.mode || setupDraft.opponent !== opponent;
-  if (changed && (state.ply || state.pending)) requestRestart(setupDraft.mode, setupDraft.opponent);
+  if (!state.result && changed && (state.ply || state.pending)) requestRestart(setupDraft.mode, setupDraft.opponent);
   else {
     difficulty = setupDraft.difficulty;
-    if (changed) resetGame(setupDraft.mode, setupDraft.opponent);
+    if (changed || state.result) resetGame(setupDraft.mode, setupDraft.opponent);
     else saveLocal();
     showScreen('game');
     render();
@@ -1252,6 +1376,7 @@ function validSnapshot(data) {
   );
 }
 async function roomRequest(server, path, body, token) {
+  if (!roomServiceEnabled()) throw new Error('当前版本未开放好友房间。');
   const response = await fetch(`${server}/api/rooms${path}`, {
     method: body ? 'POST' : 'GET',
     headers: {
@@ -1352,6 +1477,7 @@ function endpoint() {
   return url.origin;
 }
 async function connectRoom(join) {
+  if (!roomServiceEnabled()) return;
   if (room || challenge || networkBusy || busy || !roomServiceReady) return;
   cancelComputer();
   roomError = '';
@@ -1409,12 +1535,13 @@ function prepareInvite() {
 }
 let roomServiceReady = false;
 $('room-server').value = new URLSearchParams(location.search).get('server') || location.origin;
-const invitation = new URLSearchParams(location.hash.slice(1));
+const invitation = new URLSearchParams(roomServiceEnabled() ? location.hash.slice(1) : '');
 if (invitation.has('room')) {
   $('room-code').value = invitation.get('room');
   $('room-server').value = invitation.get('server') || location.origin;
 }
 async function checkRoomService() {
+  if (!roomServiceEnabled()) return;
   if (room) return;
   roomServiceReady = false;
   renderRoom();
@@ -1434,6 +1561,7 @@ async function checkRoomService() {
   renderRoom();
 }
 function openRoom() {
+  if (!roomServiceEnabled()) return;
   showScreen('room');
   void checkRoomService();
 }
@@ -1492,6 +1620,7 @@ $('room-leave').addEventListener('click', () => {
   } else resetGame(state.mode);
 });
 async function pollRoom() {
+  if (!roomServiceEnabled()) return;
   if (!room || busy || networkBusy || pollTask) return;
   const currentRoom = room;
   pollTask = (async () => {
@@ -1527,11 +1656,12 @@ async function pollRoom() {
     pollTask = null;
   }
 }
-setInterval(pollRoom, 1000);
+if (roomServiceEnabled()) setInterval(pollRoom, 1000);
 try {
   const saved = JSON.parse(sessionStorage.getItem('xiangqi-room') || 'null');
   if (
     saved &&
+    roomServiceEnabled() &&
     /^[A-F0-9]{8}$/.test(saved.code) &&
     /^[a-f0-9]{48}$/.test(saved.token) &&
     ['red', 'black'].includes(saved.side) &&
@@ -1557,9 +1687,32 @@ if (invitation.has('room') && !room) {
 }
 const initialChallenge = challengeFromUrl(location.href);
 if (initialChallenge && !room && !invitation.has('room')) startChallenge(initialChallenge);
+document.getElementById('loading-screen').hidden = true;
+document.querySelector('.app-shell').inert = false;
+document.dispatchEvent(new Event('xiangqi-ready'));
 
 // The host resets its display state when the iframe finishes loading.
 // Notify again on the next task so deep links retain the immersive game view.
 const notifyAfterLoad = () => setTimeout(() => notifyDisplayState(), 0);
 if (document.readyState === 'complete') notifyAfterLoad();
 else window.addEventListener('load', notifyAfterLoad, { once: true });
+
+const tapPort = {
+  container: document.querySelector('.home-links'),
+  export: () => validateTapProgress({ local: challenge ? localStorage.getItem(SAVE_KEY) : encodeGame(state, opponent, difficulty), progress: challengeProgress }),
+  validate: validateTapProgress, summary: tapProgressSummary,
+  score() { return tapProgressScore(this.export()); },
+  developer: () => globalThis.SmallGamesDev?.isEnabled() === true,
+  canRestore: () => currentScreen === 'home' && !room && !onlineActive && !challenge,
+  pause() { tapPortalActive = true; cancelComputer(); computerHints.cancel(); computerUndo.cancel(); hintAccess.cancel(); saveLocal(); },
+  resume() { tapPortalActive = false; showScreen('home', { replace: true }); render(); },
+  restore(value) {
+    cancelComputer(); computerHints.cancel(); computerUndo.cancel(); hintAccess.cancel();
+    const merged = mergeTapProgress(this.export(), value), restored = merged.local ? decodeGame(merged.local) : null;
+    writeTapProgress(localStorage, merged);
+    challengeProgress = merged.progress;
+    if (restored) { ({ state, opponent, difficulty } = restored); selected = null; moving = false; threatPly = -1; buildBoard(); }
+  },
+};
+globalThis.__tapGamePort = tapPort;
+globalThis.__mountTapGameServices?.(tapPort);

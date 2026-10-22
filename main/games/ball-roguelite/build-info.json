@@ -1,0 +1,7 @@
+{
+  "engine": "Cocos",
+  "version": "3.8.8",
+  "build": "official-engine-source",
+  "engineCommit": "411f98df047c25902f93440d4b22925c2fb65461",
+  "engineSha256": "fffa27f1b13fa7e9385f39d3d6bd6fd8fec8a820d86db7aae77e1133ba521495"
+}
