@@ -328,13 +328,32 @@ export class StationHUD {
         }
       }
       if (v.page === 'home') {
-        const title = this.text('home-title', '归途站', cx, top + 34, 48, width, 64, C.ink);
+        const landscape = this.w > this.h;
+        const title = this.text(
+          'home-title',
+          '归途站',
+          cx,
+          top + (landscape ? 17 : 34),
+          landscape ? 28 : 48,
+          width,
+          landscape ? 38 : 64,
+          C.ink,
+        );
         title.isBold = true;
         const outline = title.getComponent(LabelOutline) ?? title.node.addComponent(LabelOutline);
         outline.color = col(C.cream);
         outline.width = 2;
-        this.text('home-hint', '看箭头 · 点动车 · 接大家回家', cx, top + 86, 15, width, 28, C.ink);
-        if (v.developer)
+        this.text(
+          'home-hint',
+          '看箭头 · 点动车 · 接大家回家',
+          cx,
+          top + (landscape ? 43 : 86),
+          landscape ? 12 : 15,
+          width,
+          landscape ? 20 : 28,
+          C.ink,
+        );
+        if (v.developer && !landscape)
           this.text('dev', '开发试玩 · 任意选关', cx, top + 115, 12, width, 22, C.teal);
         this.button(
           'continue',

@@ -412,7 +412,7 @@ export class StationWorld {
     const t = clamp(this.h - safe.y - safe.height, 0, this.h * 0.2),
       b = clamp(safe.y, 0, this.h * 0.2);
     const top = home ? (this.landscape ? 62 : 140) : 58;
-    const bottom = home ? (this.landscape ? 104 : 146) : 8;
+    const bottom = home ? (this.landscape ? 136 : 146) : 8;
     this.area = {
       x: l + 4,
       y: t + top,
