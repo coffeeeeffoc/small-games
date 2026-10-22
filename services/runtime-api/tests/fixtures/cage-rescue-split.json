@@ -1,0 +1,20 @@
+{
+  "ruleVersion": "rescue-ranked-v2",
+  "levelId": "rescue-08",
+  "description": "Normal launch and paddle input; captured until the first split without editing simulation state.",
+  "frames": [
+    {
+      "ticks": 125,
+      "input": {
+        "launch": true,
+        "targetX": 195
+      }
+    },
+    {
+      "ticks": 294,
+      "input": {
+        "targetX": 139.915
+      }
+    }
+  ]
+}

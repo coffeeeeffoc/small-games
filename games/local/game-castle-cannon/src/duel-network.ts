@@ -1,6 +1,6 @@
-import { DUEL_MAP } from './duel-map.js';
+import { DUEL_MAP, DUEL_RULES as R } from './duel-map.js';
 import type { DuelMessage } from './duel-protocol.js';
-import type { Command } from './duel-types.js';
+import { DUEL_VERSION, type Command } from './duel-types.js';
 export function serverAddress(value = '') {
   const fallback = typeof location !== 'undefined' ? location.origin : '';
   const url = new URL(value || fallback);
@@ -23,6 +23,7 @@ export function serverAddress(value = '') {
 export class DuelConnection {
   private pendingAim: Extract<Command, { type: 'aim' }> | null = null;
   private aimTimer: ReturnType<typeof setTimeout> | null = null;
+  private matchTimer: ReturnType<typeof setTimeout> | null = null;
   private inputEpoch = 0;
   private inputAbort = new AbortController();
   private token = '';
@@ -42,7 +43,7 @@ export class DuelConnection {
       const response = await fetch(`${this.address}/duel/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ version: 'duel-v1', mapId: DUEL_MAP.id }),
+        body: JSON.stringify({ version: DUEL_VERSION, mapId: DUEL_MAP.id }),
         signal: this.abort.signal,
       });
       if (!response.ok) throw new Error('对战服务暂时不可用');
@@ -54,34 +55,59 @@ export class DuelConnection {
         await this.cancelRemote();
         return;
       }
-      this.stream = new EventSource(`${this.address}/duel/events?token=${this.token}`);
-      this.stream.onmessage = (event) => {
-        try {
-          const m = JSON.parse(event.data) as DuelMessage;
-          if (m.kind === 'waiting' && Number.isFinite(m.seconds)) this.receive(m);
-          else if (
-            m.kind === 'state' &&
-            (m.side === 0 || m.side === 1) &&
-            ['human', 'bot'].includes(m.mode) &&
-            m.state?.version === 'duel-v1' &&
-            m.state.mapId === DUEL_MAP.id &&
-            m.state.fighters?.length === 2 &&
-            m.state.fighters.every((p) => Number.isFinite(p.hp) && p.hp >= 0 && p.hp <= 100)
-          )
-            this.receive(m);
-        } catch {
-          this.status('对战同步异常，请重新连接');
-        }
-      };
-      this.stream.onerror = () => {
-        if (!this.disposed) {
-          this.send({ type: 'cancel' });
-          this.status('连接中断，正在重连 · 20秒内返回');
-        }
-      };
-      this.stream.onopen = () => {
-        if (!this.disposed) this.status('');
-      };
+      this.abort.signal.throwIfAborted();
+      const stream = new EventSource(`${this.address}/duel/events?token=${this.token}`);
+      this.stream = stream;
+      this.matchTimer = setTimeout(() => this.status('对战连接未就绪'), (R.matchWait + 5) * 1000);
+      await new Promise<void>((resolve, reject) => {
+        let received = false;
+        const abort = () => reject(new Error('对战连接超时'));
+        const ready = () => {
+          if (received) return;
+          received = true;
+          this.abort.signal.removeEventListener('abort', abort);
+          resolve();
+        };
+        this.abort.signal.addEventListener('abort', abort, { once: true });
+        stream.onmessage = (event) => {
+          try {
+            const m = JSON.parse(event.data) as DuelMessage;
+            if (m.kind === 'waiting' && Number.isFinite(m.seconds)) {
+              ready();
+              this.receive(m);
+            } else if (
+              m.kind === 'state' &&
+              (m.side === 0 || m.side === 1) &&
+              ['human', 'bot'].includes(m.mode) &&
+              m.state?.version === DUEL_VERSION &&
+              m.state.mapId === DUEL_MAP.id &&
+              m.state.fighters?.length === 2 &&
+              m.state.fighters.every((p) => Number.isFinite(p.hp) && p.hp >= 0 && p.hp <= 100)
+            ) {
+              if (this.matchTimer) clearTimeout(this.matchTimer);
+              this.matchTimer = null;
+              ready();
+              this.receive(m);
+            }
+          } catch {
+            if (received) this.status('对战同步异常，请重新连接');
+          }
+        };
+        stream.onerror = () => {
+          if (!this.disposed) {
+            if (!received) {
+              this.abort.signal.removeEventListener('abort', abort);
+              reject(new Error('对战连接未就绪'));
+              return;
+            }
+            this.send({ type: 'cancel' });
+            this.status('连接中断，正在重连 · 20秒内返回');
+          }
+        };
+        stream.onopen = () => {
+          if (!this.disposed) this.status('');
+        };
+      });
     } finally {
       clearTimeout(timer);
     }
@@ -148,6 +174,7 @@ export class DuelConnection {
   dispose() {
     this.disposed = true;
     if (this.aimTimer) clearTimeout(this.aimTimer);
+    if (this.matchTimer) clearTimeout(this.matchTimer);
     this.inputAbort.abort();
     this.abort.abort();
     this.stream?.close();

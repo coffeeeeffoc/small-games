@@ -241,7 +241,7 @@ it('writes require identity, refuse client result fields and expose game-scoped 
 it('ranked HTTP creation rejects legacy, mismatched and missing versions with an update error', async () => {
   const headers = { authorization: 'Bearer ' + token };
   for (const [game, version] of [
-    ['cage-rescue', 'rescue-ranked-v1'],
+    ['cage-rescue', 'rescue-ranked-v2'],
     ['tower-brake', 'tower-ranked-v1'],
   ]) {
     const { app } = await setup(false, false, game);

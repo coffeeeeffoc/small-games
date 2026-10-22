@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { activeGun, command, available } from './duel-actions.js';
+import { activeGun, command, available, transferSeconds } from './duel-actions.js';
 import { DuelBot } from './duel-bot.js';
 import { DUEL_RULES as R, validateDuelMap } from './duel-map.js';
 import { segmentBox, explode } from './duel-physics.js';
@@ -48,7 +48,7 @@ describe('双城实时炮战', () => {
     expect(shoot(38, 0.5)).not.toEqual(shoot(55, 0.5));
     expect(shoot(38, 0.5)).not.toEqual(shoot(38, 0.8));
   });
-  it('换位必须走路，无人炮停止装填，趴下取消蓄力', () => {
+  it('换位必须走路，冷却在离开和趴下时继续，趴下取消蓄力', () => {
     const d = createDuel(),
       p = d.fighters[0],
       ground = p.guns[0];
@@ -56,17 +56,57 @@ describe('双城实时炮战', () => {
     run(d, 0.4);
     command(d, 0, { type: 'fire' });
     command(d, 0, { type: 'station', id: 'wall' });
-    const loaded = ground.reload;
     expect(p.route.length).toBeGreaterThan(0);
     expect(p.station).toBeNull();
     run(d, 10);
-    expect(ground.reload).toBe(loaded);
+    expect(ground.reload).toBe(1);
     expect(p.station).toBe('wall');
     command(d, 0, { type: 'charge' });
     command(d, 0, { type: 'crouch', down: true });
     expect(activeGun(p)!.charge).toBeNull();
     command(d, 0, { type: 'fire' });
     expect(d.nextId).toBe(2);
+    command(d, 0, { type: 'crouch', down: false });
+    command(d, 0, { type: 'charge' });
+    command(d, 0, { type: 'fire' });
+    command(d, 0, { type: 'crouch', down: true });
+    run(d, R.reload + R.step);
+    expect(activeGun(p)!.reload).toBe(1);
+  });
+  it('重复点正在前往的炮位不回头、不重置剩余时间', () => {
+    const d = createDuel(),
+      p = d.fighters[0];
+    command(d, 0, { type: 'station', id: 'wall' });
+    const total = transferSeconds(p);
+    run(d, 1);
+    const route = structuredClone(p.route),
+      position = { ...p.position };
+    const remaining = transferSeconds(p);
+    command(d, 0, { type: 'station', id: 'wall' });
+    expect(p.route).toEqual(route);
+    expect(p.position).toEqual(position);
+    expect(transferSeconds(p)).toBe(remaining);
+    expect(remaining).toBeLessThan(total);
+    run(d, remaining + 0.2);
+    expect(p.station).toBe('wall');
+  });
+  it('移动和治疗中重复回地堡不重置路线、治疗或重复扣补给', () => {
+    const d = createDuel(),
+      p = d.fighters[0];
+    p.hp = 40;
+    command(d, 0, { type: 'retreat' });
+    run(d, 0.5);
+    const route = structuredClone(p.route);
+    command(d, 0, { type: 'retreat' });
+    expect(p.route).toEqual(route);
+    run(d, 5);
+    const healing = p.healing;
+    expect(healing).not.toBeNull();
+    expect(p.medicines).toBe(2);
+    command(d, 0, { type: 'retreat' });
+    command(d, 0, { type: 'retreat' });
+    expect(p.healing).toBe(healing);
+    expect(p.medicines).toBe(2);
   });
   it('治疗抵达后扣补给，按时间恢复；取消不退款', () => {
     const d = createDuel(),
@@ -102,6 +142,23 @@ describe('双城实时炮战', () => {
       expect(p.medicines).toBe(medicines);
     }
   });
+  it('城毁自动撤离途中请求治疗保留路线，并在抵达后治疗一次', () => {
+    const d = createDuel(),
+      p = d.fighters[0];
+    p.hp = 40;
+    for (const s of d.structures) if (s.side === 0) s.hp = 0;
+    stepDuel(d);
+    expect(p.healOnArrival).toBe(false);
+    const route = structuredClone(p.route);
+    command(d, 0, { type: 'retreat' });
+    expect(p.route).toEqual(route);
+    expect(p.healOnArrival).toBe(true);
+    run(d, 5);
+    expect(p.node).toBe('shelter');
+    expect(p.healing).not.toBeNull();
+    expect(p.medicines).toBe(2);
+    expect(p.hp).toBeGreaterThan(40);
+  });
   it('城毁强制撤离，不回血或补给；只可使用地堡炮', () => {
     const d = createDuel(),
       p = d.fighters[0];
@@ -134,32 +191,46 @@ describe('双城实时炮战', () => {
     stepDuel(tie);
     expect(tie.tick).toBe(tick);
   });
-  it('两门普通炮失效仍可到场检修，趴下和离开暂停；修好后必须装填', () => {
+  it('连续炮击不损坏炮台、不强制撤离或重置冷却，冷却后可再次发射', () => {
     const d = createDuel(),
       p = d.fighters[0],
       g = p.guns[0];
-    p.guns.filter((g) => !g.bunker).forEach((g) => (g.hp = 0));
-    stepDuel(d);
-    expect(p.route.length).toBeGreaterThan(0);
-    run(d, 5);
-    command(d, 0, { type: 'station', id: 'ground' });
-    run(d, 4);
-    expect(g.repair).not.toBeNull();
-    const partial = g.repair;
-    command(d, 0, { type: 'crouch', down: true });
-    run(d, 2);
-    expect(g.repair).toBe(partial);
-    command(d, 0, { type: 'crouch', down: false });
-    command(d, 0, { type: 'retreat' });
-    run(d, 6);
-    expect(g.repair).toBe(partial);
-    command(d, 0, { type: 'station', id: 'ground' });
-    run(d, 4);
+    command(d, 0, { type: 'charge' });
+    command(d, 0, { type: 'fire' });
+    for (let i = 0; i < 4; i++) {
+      // Isolate repeated cannon hits from the separate operator death rule.
+      p.hp = R.hp;
+      const cooldown = g.reload;
+      explode(
+        d,
+        {
+          id: d.nextId++,
+          side: 1,
+          ammo: 'blast',
+          position: { ...g.position, y: g.position.y + 1 },
+          velocity: { x: 0, y: 0, z: 0 },
+          power: 1,
+          age: 0,
+          trail: [],
+        },
+        'gun:0:ground',
+      );
+      expect(p.hp).toBeLessThan(R.hp);
+      expect(g.reload).toBe(cooldown);
+      stepDuel(d);
+      expect(g.hp).toBe(100);
+      expect(p.station).toBe('ground');
+      expect(p.route).toHaveLength(0);
+    }
+    expect(g.reload).toBeLessThan(1);
     command(d, 0, { type: 'charge' });
     expect(g.charge).toBeNull();
-    for (let i = 0; i < 600 && g.hp === 0; i++) stepDuel(d);
-    expect(g.hp).toBe(100);
-    expect(g.reload).toBeLessThan(1);
+    run(d, R.reload);
+    command(d, 0, { type: 'charge' });
+    expect(g.charge).not.toBeNull();
+    const nextId = d.nextId;
+    command(d, 0, { type: 'fire' });
+    expect(d.nextId).toBe(nextId + 1);
     expect(p.medicines).toBe(3);
     expect(p.destroyed).toBe(false);
   });

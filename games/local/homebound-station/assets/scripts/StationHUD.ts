@@ -608,6 +608,10 @@ export class StationHUD {
       );
     }
     this.marks.clear();
+    this.marks.strokeColor = col(C.cream);
+    this.marks.lineWidth = 2;
+    this.marks.lineCap = Graphics.LineCap.ROUND;
+    this.marks.lineJoin = Graphics.LineJoin.ROUND;
     for (const [id, label] of this.labels)
       if (id.startsWith('capacity:')) label.node.active = false;
     this.textParent = this.roadLabels;
@@ -637,23 +641,26 @@ export class StationHUD {
         const dx = Math.cos(p.angle),
           dy = Math.sin(p.angle),
           perp = { x: -dy, y: dx };
-        this.marks.fillColor = col(C.cream);
-        [
-          [-6, -2],
-          [1, -2],
-          [1, -5],
-          [7, 0],
-          [1, 5],
-          [1, 2],
-          [-6, 2],
-        ].forEach(([x, y], i) => {
-          const xx = p.x + dx * x! + perp.x * y! - this.w / 2,
-            yy = this.h / 2 - (p.y + dy * x! + perp.y * y!);
-          if (i === 0) this.marks.moveTo(xx, yy);
-          else this.marks.lineTo(xx, yy);
-        });
-        this.marks.close();
-        this.marks.fill();
+        // Open arrowhead and a narrow shaft stay distinct inside the small badge.
+        for (const path of [
+          [
+            [-5, 0],
+            [5, 0],
+          ],
+          [
+            [0, -4],
+            [5, 0],
+            [0, 4],
+          ],
+        ]) {
+          path.forEach(([x, y], i) => {
+            const xx = p.x + dx * x! + perp.x * y! - this.w / 2,
+              yy = this.h / 2 - (p.y + dy * x! + perp.y * y!);
+            if (i === 0) this.marks.moveTo(xx, yy);
+            else this.marks.lineTo(xx, yy);
+          });
+        }
+        this.marks.stroke();
       }
     }
     this.toastInk.clear();

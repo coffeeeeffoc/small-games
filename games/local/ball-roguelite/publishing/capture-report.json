@@ -1,0 +1,495 @@
+{
+  "date": "2026-10-23",
+  "environment": "Linux Chromium 390x844 touch emulation; Cocos production dist; silent video, not physical device footage",
+  "coreSha256": "de0e3812d0c8a8e1516cff2af222a9e34a171a59e6d9bbfed3115148b5e32acd",
+  "actions": [
+    {
+      "action": "real-touch-launch",
+      "before": {
+        "screen": "playing",
+        "engine": "cocos-3.8.8",
+        "phase": "aim",
+        "levelId": "endless",
+        "turn": 0,
+        "score": 0,
+        "count": 5,
+        "damage": 1,
+        "seed": 4278102141,
+        "initialSeed": 2913367342,
+        "challenge": false,
+        "nextId": 13,
+        "cards": [],
+        "shots": 0,
+        "waveIndex": 3,
+        "practice": false,
+        "launchX": 195,
+        "upgrades": {},
+        "rewards": {
+          "resonance": 0,
+          "rescue": 0
+        },
+        "collisionCount": 0,
+        "emitted": 0,
+        "volley": 0,
+        "absorbed": 0,
+        "elapsed": 0,
+        "bestCombo": 0,
+        "balls": [],
+        "bricks": [
+          {
+            "id": 1,
+            "c": 0,
+            "r": 2,
+            "kind": "pickup",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 2,
+            "c": 1,
+            "r": 2,
+            "kind": "brick",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 3,
+            "c": 2,
+            "r": 2,
+            "kind": "brick",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 4,
+            "c": 3,
+            "r": 2,
+            "kind": "brick",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 5,
+            "c": 6,
+            "r": 2,
+            "kind": "brick",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 6,
+            "c": 0,
+            "r": 1,
+            "kind": "bomb",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 7,
+            "c": 1,
+            "r": 1,
+            "kind": "brick",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 8,
+            "c": 2,
+            "r": 1,
+            "kind": "bomb",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 9,
+            "c": 5,
+            "r": 1,
+            "kind": "brick",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 10,
+            "c": 6,
+            "r": 1,
+            "kind": "brick",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 11,
+            "c": 1,
+            "r": 0,
+            "kind": "brick",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 12,
+            "c": 2,
+            "r": 0,
+            "kind": "brick",
+            "hp": 1,
+            "maxHp": 1
+          }
+        ],
+        "aiming": false,
+        "audio": {
+          "impacts": 0,
+          "shatters": 0,
+          "returns": 0,
+          "absorbs": 0,
+          "recalls": 0,
+          "lastFrequency": 0,
+          "voices": 0
+        },
+        "visuals": {
+          "shatters": 0,
+          "absorptions": 0,
+          "returns": 0,
+          "recalls": 0,
+          "maxShards": 0,
+          "chains": 0,
+          "blasts": 0,
+          "shards": 0,
+          "shardNodes": 0,
+          "cracked": 0
+        },
+        "flight": 0
+      },
+      "after": {
+        "screen": "playing",
+        "engine": "cocos-3.8.8",
+        "phase": "flight",
+        "levelId": "endless",
+        "turn": 0,
+        "score": 0,
+        "count": 5,
+        "damage": 1,
+        "seed": 4278102141,
+        "initialSeed": 2913367342,
+        "challenge": false,
+        "nextId": 13,
+        "cards": [],
+        "shots": 1,
+        "waveIndex": 3,
+        "practice": false,
+        "launchX": 195,
+        "upgrades": {},
+        "rewards": {
+          "resonance": 0,
+          "rescue": 0
+        },
+        "collisionCount": 0,
+        "emitted": 2,
+        "volley": 5,
+        "absorbed": 0,
+        "elapsed": 0.06666666666666667,
+        "bestCombo": 0,
+        "balls": [
+          {
+            "id": "1:0",
+            "x": 212.75168920581552,
+            "y": 517.7663035054595,
+            "vx": 218.19715855161817,
+            "vy": -654.0581423215217,
+            "returning": false
+          },
+          {
+            "id": "1:1",
+            "x": 201.55690300745178,
+            "y": 551.3324846032176,
+            "vx": 218.19715855161817,
+            "vy": -654.3781423215214,
+            "returning": false
+          }
+        ],
+        "bricks": [
+          {
+            "id": 1,
+            "c": 0,
+            "r": 2,
+            "kind": "pickup",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 2,
+            "c": 1,
+            "r": 2,
+            "kind": "brick",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 3,
+            "c": 2,
+            "r": 2,
+            "kind": "brick",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 4,
+            "c": 3,
+            "r": 2,
+            "kind": "brick",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 5,
+            "c": 6,
+            "r": 2,
+            "kind": "brick",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 6,
+            "c": 0,
+            "r": 1,
+            "kind": "bomb",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 7,
+            "c": 1,
+            "r": 1,
+            "kind": "brick",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 8,
+            "c": 2,
+            "r": 1,
+            "kind": "bomb",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 9,
+            "c": 5,
+            "r": 1,
+            "kind": "brick",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 10,
+            "c": 6,
+            "r": 1,
+            "kind": "brick",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 11,
+            "c": 1,
+            "r": 0,
+            "kind": "brick",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 12,
+            "c": 2,
+            "r": 0,
+            "kind": "brick",
+            "hp": 1,
+            "maxHp": 1
+          }
+        ],
+        "aiming": false,
+        "audio": {
+          "impacts": 0,
+          "shatters": 0,
+          "returns": 0,
+          "absorbs": 0,
+          "recalls": 0,
+          "lastFrequency": 0,
+          "voices": 1
+        },
+        "visuals": {
+          "shatters": 0,
+          "absorptions": 0,
+          "returns": 0,
+          "recalls": 0,
+          "maxShards": 0,
+          "chains": 0,
+          "blasts": 0,
+          "shards": 0,
+          "shardNodes": 0,
+          "cracked": 0
+        },
+        "flight": 0.06666666666666667
+      }
+    },
+    {
+      "action": "volley-completed",
+      "state": {
+        "screen": "playing",
+        "engine": "cocos-3.8.8",
+        "phase": "aim",
+        "levelId": "endless",
+        "turn": 1,
+        "score": 2,
+        "count": 5,
+        "damage": 1,
+        "seed": 2827616547,
+        "initialSeed": 2913367342,
+        "challenge": false,
+        "nextId": 16,
+        "cards": [],
+        "shots": 1,
+        "waveIndex": 4,
+        "practice": false,
+        "launchX": 74.36453147669894,
+        "upgrades": {},
+        "rewards": {
+          "resonance": 0,
+          "rescue": 0
+        },
+        "collisionCount": 10,
+        "emitted": 5,
+        "volley": 5,
+        "absorbed": 0,
+        "elapsed": 2.2083333333333375,
+        "bestCombo": 2,
+        "balls": [],
+        "bricks": [
+          {
+            "id": 1,
+            "c": 0,
+            "r": 3,
+            "kind": "pickup",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 2,
+            "c": 1,
+            "r": 3,
+            "kind": "brick",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 3,
+            "c": 2,
+            "r": 3,
+            "kind": "brick",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 4,
+            "c": 3,
+            "r": 3,
+            "kind": "brick",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 6,
+            "c": 0,
+            "r": 2,
+            "kind": "bomb",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 7,
+            "c": 1,
+            "r": 2,
+            "kind": "brick",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 8,
+            "c": 2,
+            "r": 2,
+            "kind": "bomb",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 9,
+            "c": 5,
+            "r": 2,
+            "kind": "brick",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 11,
+            "c": 1,
+            "r": 1,
+            "kind": "brick",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 12,
+            "c": 2,
+            "r": 1,
+            "kind": "brick",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 13,
+            "c": 2,
+            "r": 0,
+            "kind": "brick",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 14,
+            "c": 3,
+            "r": 0,
+            "kind": "bomb",
+            "hp": 1,
+            "maxHp": 1
+          },
+          {
+            "id": 15,
+            "c": 5,
+            "r": 0,
+            "kind": "brick",
+            "hp": 1,
+            "maxHp": 1
+          }
+        ],
+        "aiming": false,
+        "audio": {
+          "impacts": 7,
+          "shatters": 2,
+          "returns": 6,
+          "absorbs": 0,
+          "recalls": 0,
+          "lastFrequency": 659.25,
+          "voices": 0
+        },
+        "visuals": {
+          "shatters": 2,
+          "absorptions": 0,
+          "returns": 5,
+          "recalls": 0,
+          "maxShards": 12,
+          "chains": 0,
+          "blasts": 0,
+          "shards": 0,
+          "shardNodes": 12,
+          "cracked": 0
+        },
+        "flight": 2.2083333333333375
+      }
+    }
+  ],
+  "errors": []
+}

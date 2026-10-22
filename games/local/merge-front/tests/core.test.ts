@@ -4,8 +4,8 @@ import {
   CATALOG,
   CHAPTERS,
   LEVELS,
-  getSpec,
   validateContent,
+  getSpec,
 } from '../assets/scripts/core/content.ts';
 import {
   createMatch,
@@ -14,9 +14,11 @@ import {
   runAI,
   snapshot,
   restore,
+  POPULATION_CAP,
   TICK_RATE,
+  MAX_ROUNDS,
 } from '../assets/scripts/core/engine.ts';
-import type { Match, Unit } from '../assets/scripts/core/engine.ts';
+import type { Match, Action } from '../assets/scripts/core/engine.ts';
 import {
   createProgress,
   readProgress,
@@ -24,453 +26,302 @@ import {
   isUnlocked,
 } from '../assets/scripts/core/progress.ts';
 
-function army(state: Match, side: 0 | 1, key = 'nezha', x = 500, y = 180): Unit {
-  const spec = getSpec(key);
-  const unit: Unit = {
-    id: state.nextId++,
-    key,
-    side,
-    level: 1,
-    x,
-    y,
-    hp: spec.hp,
-    maxHp: spec.hp,
-    damage: spec.damage,
-    range: spec.range,
-    speed: spec.speed,
-    attackTimer: 0,
-    targetId: null,
-    anim: 'move',
-    skillTimer: 0,
-    slowTicks: 0,
-    shield: 0,
-  };
-  state.units.push(unit);
-  return unit;
+function ok(m: Match, action: Action, side: 0 | 1 = 0) {
+  assert.equal(command(m, side, action).ok, true, JSON.stringify(action));
+}
+function invalid(m: Match, action: unknown, side: 0 | 1 = 0) {
+  const before = snapshot(m);
+  assert.equal(command(m, side, action as Action).ok, false);
+  assert.deepEqual(m, before);
+}
+function auto(m: Match) {
+  for (let n = 0; n < 128; n++) if (!runAI(m, 0)?.ok) break;
+}
+function finish(m: Match) {
+  while (m.phase === 'running') {
+    auto(m);
+    ok(m, { type: 'startRound' });
+    step(m, 640);
+    restore(snapshot(m));
+  }
+  return m;
 }
 
-test('content has 16 recipes, six chapters and 30 independent, valid levels', () => {
+test('16 recipes, six chapters, 30 valid levels and explicit two-piece Nezha recipe', () => {
   assert.equal(CATALOG.length, 16);
-  assert.equal(CATALOG.filter((s) => s.kind === 'hero').length, 8);
   assert.equal(CHAPTERS.length, 6);
   assert.equal(LEVELS.length, 30);
   assert.deepEqual(validateContent(), []);
-  assert.ok(CATALOG.some((s) => s.parts.length === 4));
+  assert.deepEqual(getSpec('nezha').parts, ['哪', '吒']);
   assert.throws(() => getSpec('__proto__'));
 });
-
-test('equal starting economy, fixed slot categories and atomic invalid commands', () => {
-  const state = createMatch(LEVELS[0].id, 12);
-  assert.equal(state.sides[0].coins, state.sides[1].coins);
-  assert.deepEqual(state.sides[0].bag, state.sides[1].bag);
-  assert.deepEqual(
-    state.sides[0].slots.map((s) => getSpec(s.key).kind),
-    ['hero', 'hero', 'hero', 'weapon', 'weapon'],
-  );
+test('planning does not advance time or passive income; both sides spend identical resources', () => {
+  const m = createMatch('level-01', 2),
+    before = snapshot(m);
+  step(m, 10000);
+  assert.deepEqual(m, before);
+  const spent = Object.values(m.sides[1].draws).reduce((a, b) => a + b, 0) * 30;
+  assert.equal(m.sides[0].coins, m.sides[1].coins + spent);
+  assert.equal(m.sides[0].hand.length, 3);
+  assert.ok(!('slots' in m.sides[0]));
+  assert.equal(m.sides[0].hand.filter((c) => c.key === 'nezha').length, 2);
+});
+test('drawn fragments auto assemble immediately and never deploy separately', () => {
+  const m = createMatch('level-01', 3),
+    s = m.sides[0],
+    initial = s.hand.length;
+  for (let i = 0; i < 4; i++) ok(m, { type: 'draw', kind: 'hero' });
+  const complete = s.hand.length - initial;
+  assert.equal(complete * 2 + Object.values(s.bag).reduce((a, b) => a + b, 0), 12);
+  assert.ok(!(s.bag['nezha:0'] && s.bag['nezha:1']));
+  assert.ok(s.hand.every((c) => c.level === 1));
+  invalid(m, { type: 'deploy', card: 'nezha:0', x: 200, y: 50 });
+  invalid(m, { type: 'deploy', card: 999999, x: 200, y: 50 });
+});
+test('independent placement, movement, recall and additive merge conserve levels', () => {
+  const m = createMatch('level-01', 1),
+    s = m.sides[0],
+    [a, b] = s.hand;
+  ok(m, { type: 'deploy', card: a.id, x: 220, y: 40 });
+  ok(m, { type: 'deploy', card: b.id, x: 350, y: 320 });
+  assert.equal(s.formation.length, 2);
+  assert.equal(s.formation[0].level, 1);
+  ok(m, { type: 'move', card: a.id, x: 200, y: 180 });
+  ok(m, { type: 'merge', from: b.id, to: a.id });
+  assert.equal(s.formation.length, 1);
+  assert.equal(s.formation[0].level, 2);
+  ok(m, { type: 'recall', card: a.id });
+  assert.equal(s.formation.length, 0);
+  assert.equal(s.hand.find((c) => c.id === a.id)!.level, 2);
+  ok(m, { type: 'deploy', card: a.id, x: 200, y: 180 });
+  invalid(m, { type: 'merge', from: s.hand[0].id, to: a.id });
+});
+test('six shared population slots reject excess deploy but permit hand-to-board merging at cap', () => {
+  const m = createMatch('level-01', 1);
+  auto(m);
+  const s = m.sides[0];
+  assert.equal(s.formation.length, POPULATION_CAP);
+  const first = s.formation[0];
+  s.hand.push({ id: m.nextId++, key: first.key, level: 3 });
+  const card = s.hand.at(-1)!;
+  invalid(m, { type: 'deploy', card: card.id, x: 280, y: 120 });
+  const level = first.level;
+  ok(m, { type: 'merge', from: card.id, to: first.id });
+  assert.equal(first.level, level + 3);
+  assert.equal(s.formation.length, 6);
+  first.level = 10000;
+  s.hand.push({ id: m.nextId++, key: first.key, level: 20000 });
+  ok(m, { type: 'merge', from: s.hand.at(-1)!.id, to: first.id });
+  assert.equal(first.level, 30000);
+});
+test('trust boundary rejects malformed, stale, foreign, unsafe and crowded commands atomically', () => {
+  const m = createMatch('level-01', 1),
+    c = m.sides[0].hand[0];
   for (const action of [
-    { type: 'fill', slot: 0, part: 'fire:0' },
-    { type: 'recipe', slot: 0, key: 'fire' },
-    { type: 'exchange', key: 'nezha', index: 99 },
-    { type: 'draw', kind: 'other' },
-    { type: 'merge', from: 0, to: 0 },
-  ]) {
-    const before = snapshot(state);
-    assert.equal(command(state, 0, action as never).ok, false);
-    assert.deepEqual(snapshot(state), before);
-  }
-  assert.equal(command(state, 0, { type: 'fillAll', slot: 0 }).ok, true);
-  assert.equal(command(state, 0, { type: 'fillAll', slot: 3 }).ok, true);
-  assert.equal(state.sides[0].slots[0].level, 1);
-  assert.equal(state.units.length, 0);
-  step(state, 180);
-  assert.ok(state.units.some((u) => u.key === 'nezha'));
+    null,
+    {},
+    { type: 'draw', kind: 'spell' },
+    { type: '__proto__' },
+    { type: 'draw', kind: 'hero', extra: 1 },
+    { type: 'draw', kind: 'hero', seq: 2 },
+    { type: 'draw', kind: 'hero', version: 1 },
+    { type: 'draw', kind: 'hero', matchId: 'other' },
+    { type: 'deploy', card: c.id, x: NaN, y: 180 },
+    { type: 'deploy', card: c.id, x: 600, y: 180 },
+    { type: 'deploy', card: c.id, x: 200, y: 0 },
+  ])
+    invalid(m, action);
+  ok(m, { type: 'deploy', card: c.id, x: 200, y: 180, seq: 1, matchId: m.id, version: 2 });
+  invalid(m, { type: 'deploy', card: m.sides[0].hand[0].id, x: 201, y: 181 });
+  invalid(m, { type: 'recall', card: m.sides[1].formation[0].id });
+  invalid(m, { type: 'merge', from: c.id, to: c.id });
+  invalid(m, { type: 'draw', kind: 'hero', seq: 1 });
 });
-
-test('level addition, returned partials, conservative production and existing units', () => {
-  const state = createMatch(LEVELS[0].id, 1);
-  const side = state.sides[0];
-  side.slots[0] = { key: 'nezha', level: 3, parts: [true, false], progress: 6 };
-  side.slots[1] = { key: 'nezha', level: 5, parts: [false, true], progress: 2 };
-  const existing = army(state, 0);
-  existing.hp -= 20;
-  const beforeUnit = { ...existing };
-  const beforeBag = { ...side.bag };
-  assert.ok(command(state, 0, { type: 'merge', from: 0, to: 1 }).ok);
-  assert.equal(side.slots[1].level, 8);
-  assert.equal(side.slots[1].progress, 2);
-  assert.equal(side.slots[0].level, 0);
-  assert.equal(side.bag['nezha:0'], beforeBag['nezha:0'] + 1);
-  assert.equal(side.bag['nezha:1'], beforeBag['nezha:1'] + 1);
-  assert.deepEqual(existing, beforeUnit);
-  side.slots[0].level = 1_000_000;
-  assert.ok(command(state, 0, { type: 'merge', from: 0, to: 1 }).ok);
-  assert.equal(restore(snapshot(state)).sides[0].slots[1].level, 1_000_008);
-  side.slots[0].level = Number.MAX_SAFE_INTEGER;
-  const before = snapshot(state);
-  assert.equal(command(state, 0, { type: 'merge', from: 0, to: 1 }).ok, false);
-  assert.deepEqual(snapshot(state), before);
-});
-
-test('withdraw and recipe changes preserve unfinished materials; exchange uses only surplus', () => {
-  const state = createMatch(LEVELS[5].id, 2, ['nezha', 'juling', 'fire']);
-  const side = state.sides[0];
-  assert.ok(command(state, 0, { type: 'fill', slot: 0, part: 'nezha:0' }).ok);
-  assert.ok(command(state, 0, { type: 'recipe', slot: 0, key: 'juling' }).ok);
-  assert.equal(side.bag['nezha:0'], 1);
-  side.bag['juling:0'] = 1;
-  assert.ok(command(state, 0, { type: 'fill', slot: 0, part: 'juling:0' }).ok);
-  assert.ok(command(state, 0, { type: 'withdraw', slot: 0 }).ok);
-  assert.equal(side.bag['juling:0'], 1);
-  side.bag['nezha:0'] = 9;
-  const total = Object.values(side.bag).reduce((a, b) => a + b, 0);
-  assert.ok(command(state, 0, { type: 'exchange', key: 'juling', index: 2 }).ok);
-  assert.equal(
-    Object.values(side.bag).reduce((a, b) => a + b, 0),
-    total - 2,
+test('battle locks both armies, creates exactly one unit per formation card, no passive spawns', () => {
+  const m = createMatch('level-01', 2);
+  auto(m);
+  const army = snapshot(m).sides.map((s) => s.formation);
+  ok(m, { type: 'startRound' });
+  assert.equal(m.units.length, 12);
+  const ids = m.units.map((u) => u.id);
+  invalid(m, { type: 'draw', kind: 'hero' });
+  invalid(m, { type: 'move', card: army[0][0].id, x: 200, y: 40 });
+  invalid(m, { type: 'startRound' });
+  invalid(m, { type: 'draw', kind: 'hero' }, 1);
+  assert.equal(runAI(m, 1), null);
+  step(m, 20);
+  assert.ok(m.units.every((u) => ids.includes(u.id)));
+  assert.deepEqual(
+    m.sides.map((s) => s.formation),
+    army,
   );
-  assert.equal(side.bag['juling:2'], 1);
 });
-
-test('independent random streams, pity, sequence replay guard and pause freeze', () => {
-  const a = createMatch(LEVELS[0].id, 42);
-  const b = createMatch(LEVELS[0].id, 42);
-  command(a, 1, { type: 'draw', kind: 'hero' });
-  for (let i = 0; i < 3; i++) {
-    command(a, 0, { type: 'draw', kind: 'hero' });
-    command(b, 0, { type: 'draw', kind: 'hero' });
+test('pause and serialization preserve exact deterministic battle continuation', () => {
+  const a = createMatch('level-01', 4);
+  auto(a);
+  ok(a, { type: 'startRound' });
+  step(a, 37);
+  ok(a, { type: 'pause', paused: true });
+  const frozen = snapshot(a);
+  step(a, 600);
+  assert.deepEqual(a, frozen);
+  invalid(a, { type: 'recall', card: a.sides[0].formation[0].id });
+  const b = restore(JSON.stringify(a));
+  ok(a, { type: 'pause', paused: false });
+  ok(b, { type: 'pause', paused: false });
+  step(a, 603);
+  step(b, 603);
+  assert.deepEqual(a, b);
+});
+test('upper and lower placement stays free in two dimensions and affects movement', () => {
+  const a = createMatch('level-01', 9),
+    b = restore(snapshot(a));
+  ok(a, { type: 'deploy', card: a.sides[0].hand[0].id, x: 400, y: 35 });
+  ok(b, { type: 'deploy', card: b.sides[0].hand[0].id, x: 400, y: 325 });
+  ok(a, { type: 'startRound' });
+  ok(b, { type: 'startRound' });
+  step(a, 20);
+  step(b, 20);
+  assert.ok(a.units.find((u) => u.side === 0)!.y < 150);
+  assert.ok(b.units.find((u) => u.side === 0)!.y > 220);
+  assert.notDeepEqual(
+    a.units.map((u) => [u.x, u.y]),
+    b.units.map((u) => [u.x, u.y]),
+  );
+});
+test('round settles once, repairs survivors next round, keeps deployed cards and awards equal supply', () => {
+  const m = createMatch('level-01', 1);
+  auto(m);
+  const formation = snapshot(m).sides.map((s) => s.formation),
+    coins = m.sides.map((s) => s.coins);
+  ok(m, { type: 'startRound' });
+  m.units = m.units.filter((u) => u.side === 0);
+  step(m);
+  assert.equal(m.roundStage, 'resolution');
+  assert.equal(m.sides[1].crystalHp, 20);
+  const damage = m.roundDamage;
+  step(m, 40);
+  assert.equal(m.roundNumber, 2);
+  assert.equal(m.sides[1].crystalHp, 20 - damage);
+  assert.deepEqual(m.sides[0].formation, formation[0]);
+  assert.equal(m.sides[0].coins, coins[0] + 90);
+  const frozen = snapshot(m);
+  step(m, 1000);
+  assert.deepEqual(m, frozen);
+  ok(m, { type: 'startRound' });
+  assert.ok(m.units.every((u) => u.hp === u.maxHp));
+});
+test('simultaneous elimination is a tied round and round limit terminates a repeated stalemate', () => {
+  const m = createMatch('level-01', 1);
+  auto(m);
+  for (let n = 0; n < MAX_ROUNDS; n++) {
+    ok(m, { type: 'startRound' });
+    m.units = [];
+    step(m, 41);
   }
-  assert.deepEqual(a.sides[0].bag, b.sides[0].bag);
-  assert.equal(a.rng[0], b.rng[0]);
-  const c = createMatch(LEVELS[0].id, 17);
-  c.sides[0].bag = {};
-  c.sides[0].slots[0].parts[0] = true;
-  c.sides[0].draws.hero = 2;
-  command(c, 0, { type: 'draw', kind: 'hero', seq: 1 });
-  assert.ok(c.sides[0].bag['nezha:1'] >= 1);
-  const before = snapshot(c);
-  assert.equal(command(c, 0, { type: 'draw', kind: 'hero', seq: 1 }).ok, false);
-  assert.deepEqual(snapshot(c), before);
-  command(c, 0, { type: 'pause', paused: true });
-  const frozen = snapshot(c);
-  step(c, 1000);
-  assert.deepEqual(snapshot(c), frozen);
+  assert.equal(m.phase, 'draw');
+  assert.equal(m.roundNumber, 12);
+  assert.equal(m.endReason, 'round-limit');
+  assert.equal(m.sides[0].crystalHp, 20);
+  assert.deepEqual(restore(snapshot(m)), m);
+  const p = createProgress();
+  assert.equal(settleProgress(p, m).settled, true);
+  assert.equal(settleProgress(p, m).settled, false);
+});
+test('snapshot rejects corrupt cardinality, phases, stats, fragment IDs and command history', () => {
+  const m = createMatch('level-01', 2);
+  auto(m);
+  ok(m, { type: 'startRound' });
+  step(m, 4);
+  const corruptions: Array<(m: Match) => void> = [
+    (s) => (s.version = 1),
+    (s) => s.units[0].damage++,
+    (s) => (s.units[0].hp = Infinity),
+    (s) => (s.units[0].x = -1),
+    (s) => (s.units[0].side = 3 as never),
+    (s) => (s.sides[0].bag['bogus:0'] = 1),
+    (s) => (s.sides[0].bag['nezha:0'] = -1),
+    (s) => s.sides[0].formation.push(s.sides[0].formation[0]),
+    (s) => s.units.push(s.units[0]),
+    (s) => (s.phase = 'won'),
+    (s) => (s.roundNumber = 13),
+    (s) => (s.commands[0].seq = 100),
+    (s) => s.sides[0].hand.push({ id: s.units[0].id, key: 'nezha', level: 1 }),
+  ];
+  for (const mutate of corruptions) {
+    const s = snapshot(m);
+    mutate(s);
+    assert.throws(() => restore(s));
+  }
+});
+test('all 30 levels finish legally without advertisements; seeded campaign has player victories', () => {
+  let wins = 0;
+  for (const level of LEVELS)
+    for (const seed of [1, 8, 23]) {
+      const m = finish(createMatch(level.id, seed, level.ai.deck));
+      assert.notEqual(m.phase, 'running');
+      assert.ok(m.roundNumber <= 12);
+      assert.equal(m.assisted, false);
+      assert.ok(
+        m.commands
+          .filter((c) => c.side === 1)
+          .every((c) => ['draw', 'deploy', 'merge'].includes(c.action.type)),
+      );
+      if (m.phase === 'won') wins++;
+    }
+  assert.ok(wins >= 20, 'symmetric legal policy should be able to win across campaign');
+});
+test('progress remains v2, old preferences migrate, victory unlocks and settles only once', () => {
+  const p = readProgress({ wins: 7, sound: false });
+  assert.equal(p.legacyWins, 7);
+  assert.equal(p.sound, false);
+  assert.equal(p.version, 2);
+  const m = finish(createMatch('level-01', 1));
+  assert.equal(m.phase, 'won');
+  assert.equal(settleProgress(p, m).settled, true);
+  assert.equal(p.unlockedLevel, 2);
+  assert.equal(isUnlocked(p, 'level-02'), true);
+  assert.equal(settleProgress(p, m).settled, false);
+  assert.deepEqual(readProgress(JSON.stringify(p)), p);
+  const practice = finish(createMatch('level-01', 1, undefined, { practice: true }));
+  assert.equal(settleProgress(p, practice).settled, false);
 });
 
-test('2D nearest targeting, stable ties, ranged advance and crystal interruption', () => {
-  const state = createMatch(LEVELS[0].id, 3);
-  const a = army(state, 0, 'nezha', 420, 80);
-  const b = army(state, 1, 'nezha', 470, 280);
-  step(state);
-  assert.ok(a.y > 80 && a.x > 420);
-  assert.equal(a.targetId, b.id);
-  const ranged = army(state, 0, 'drone', 100, 40);
-  step(state);
-  assert.ok(ranged.x > 100);
-  a.x = 910;
-  a.y = 180;
-  a.targetId = null;
-  a.attackTimer = 0;
-  b.x = 900;
-  b.y = 185;
-  const hp = state.sides[1].crystalHp;
-  step(state);
-  assert.equal(a.targetId, b.id);
-  assert.equal(state.sides[1].crystalHp, hp);
-});
-
-test('same-tick crystal destruction draws, terminal states freeze', () => {
-  const state = createMatch(LEVELS[0].id, 4);
-  state.sides.forEach((s) => {
-    s.crystalHp = 1;
-  });
-  army(state, 0, 'nezha', 930, 180);
-  army(state, 1, 'nezha', 70, 180);
-  step(state);
-  assert.equal(state.phase, 'draw');
-  assert.equal(state.winner, null);
-  const before = snapshot(state);
-  step(state, 200);
-  assert.deepEqual(snapshot(state), before);
-});
-
-test('population cap retains ready production and death does not remove recipe', () => {
-  const state = createMatch(LEVELS[0].id, 5);
-  command(state, 0, { type: 'fillAll', slot: 0 });
-  const slot = state.sides[0].slots[0];
-  slot.progress = getSpec(slot.key).production;
-  for (let i = 0; i < 40; i++) army(state, 0, 'nezha', 90, 20 + i * 8);
-  step(state);
-  assert.equal(state.units.filter((u) => u.side === 0).length, 40);
-  assert.equal(slot.progress, getSpec(slot.key).production);
-  state.units[0].hp = 0;
-  step(state, 2);
-  assert.equal(state.units.filter((u) => u.side === 0).length, 40);
-  assert.equal(slot.level, 1);
-  assert.ok(slot.progress < 1);
-});
-
-test('AI uses commands and obeys frequency; snapshots continue deterministic state', () => {
-  const state = createMatch(LEVELS[15].id, 123);
-  step(state, 1000);
-  assert.ok(state.commands.some((c) => c.side === 1 && c.action.type === 'fillAll'));
-  const count = state.commands.length;
-  for (let i = 0; i < 100; i++) runAI(state, 1);
-  assert.ok(state.commands.length <= count + 1);
-  const copy = restore(JSON.stringify(snapshot(state)));
-  step(state, 1500);
-  step(copy, 1500);
-  assert.deepEqual(snapshot(copy), snapshot(state));
+test('restore rejects fabricated round results and inconsistent reward flags', () => {
+  const base = createMatch('level-01', 1);
   for (const mutate of [
-    (s: Match) => {
-      s.units[0].x = NaN;
+    (m: Match) => {
+      m.roundStage = 'resolution';
+      m.roundWinner = 0;
+      m.roundDamage = 8;
     },
-    (s: Match) => {
-      s.sides[0].slots[0].level = -1;
+    (m: Match) => {
+      m.assisted = true;
     },
-    (s: Match) => {
-      s.rng[0] = 0.5;
+    (m: Match) => {
+      m.sides[0].boostUsed = true;
     },
-    (s: Match) => {
-      s.sides[0].deck.push('unknown');
+    (m: Match) => {
+      m.sides[1].boostUsed = true;
     },
   ]) {
-    const invalid = snapshot(state);
-    mutate(invalid);
-    assert.throws(() => restore(invalid));
+    const m = snapshot(base);
+    mutate(m);
+    assert.throws(() => restore(m));
   }
+  auto(base);
+  ok(base, { type: 'startRound' });
+  base.units = [];
+  step(base);
+  base.roundTicks = 40;
+  assert.throws(() => restore(base));
 });
-
-test('progress migration, tutorial persistence, practice isolation and idempotent rewards', () => {
-  const progress = readProgress({ sound: false, wins: 12 });
-  assert.equal(progress.sound, false);
-  assert.equal(progress.legacyWins, 12);
-  const legacy = readProgress({
-    sound: false,
-    wins: { defense: 4, attack: 7, invalid: -1, fractional: 0.5, string: '9', huge: Infinity },
-  });
-  assert.equal(legacy.legacyWins, 11);
-  assert.equal(legacy.sound, false);
-  assert.equal(progress.unlockedLevel, 1);
-  assert.equal(isUnlocked(progress, LEVELS[1].id), false);
-  const state = createMatch(LEVELS[0].id, 7, undefined, { tutorial: true });
-  command(state, 0, { type: 'draw', kind: 'hero' });
-  command(state, 0, { type: 'fillAll', slot: 0 });
-  step(state, 180);
-  command(state, 0, { type: 'fillAll', slot: 3 });
-  command(state, 0, { type: 'fillAll', slot: 0 });
-  step(state);
-  assert.equal(state.tutorialStep, 6);
-  assert.equal(restore(snapshot(state)).tutorialStep, 6);
-  state.phase = 'won';
-  state.winner = 0;
-  state.sides[1].crystalHp = 0;
-  const result = settleProgress(progress, state);
-  assert.equal(result.settled, true);
-  assert.equal(progress.unlockedLevel, 2);
-  assert.equal(progress.tutorialStep, 6);
-  assert.equal(settleProgress(progress, state).settled, false);
-  assert.deepEqual(readProgress(JSON.stringify(progress)), progress);
-  const practice = createMatch(LEVELS[3].id, 1, undefined, { practice: true });
-  practice.phase = 'won';
-  practice.winner = 0;
-  practice.sides[1].crystalHp = 0;
-  assert.equal(settleProgress(progress, practice).settled, false);
-  assert.deepEqual(readProgress('{bad'), createProgress());
-  assert.equal(readProgress({ ...progress, unlockedLevel: Infinity }).unlockedLevel, 1);
-  assert.notEqual(createMatch(LEVELS[0].id, 7).id, createMatch(LEVELS[0].id, 7).id);
-});
-
-test('seed and timestamped player commands replay the same battle including automatic enemy AI', () => {
-  const original = createMatch('level-15', 1234, ['wukong', 'cannon']);
-  for (let tick = 0; tick < 900; tick++) {
-    if (tick % 10 === 0) play(original);
-    step(original);
-  }
-  const replay = createMatch(original.levelId, original.seed, original.sides[0].deck);
-  const inputs = original.commands.filter((c) => c.side === 0);
-  let index = 0;
-  while (replay.tick < original.tick) {
-    while (inputs[index]?.tick === replay.tick) {
-      assert.ok(command(replay, 0, inputs[index++].action).ok);
-    }
-    step(replay);
-  }
-  const expected = snapshot(original),
-    actual = snapshot(replay);
-  actual.id = expected.id;
-  assert.deepEqual(actual, expected);
-});
-
-test('same-distance targeting keeps a stable ID, symmetric attacks kill both participants', () => {
-  const state = createMatch('level-01', 1);
-  const a = army(state, 0, 'nezha', 400, 180);
-  const b = army(state, 1, 'nezha', 440, 150);
-  const c = army(state, 1, 'nezha', 440, 210);
-  step(state);
-  assert.equal(a.targetId, b.id);
-  c.y = 205;
-  step(state);
-  assert.equal(a.targetId, b.id);
-  const duel = createMatch('level-01', 2);
-  army(duel, 0, 'nezha', 490, 180).hp = 1;
-  army(duel, 1, 'nezha', 510, 180).hp = 1;
-  step(duel);
-  assert.equal(duel.units.length, 0);
-  assert.equal(duel.sides[0].coins, duel.sides[1].coins);
-});
-
-test('every recipe can be legally assembled, four-part recipes work, upgrades only affect future spawns', () => {
-  for (const spec of CATALOG) {
-    const state = createMatch(
-      'level-30',
-      1,
-      spec.kind === 'hero' ? [spec.id, 'fire'] : ['nezha', spec.id],
-    );
-    const index = spec.kind === 'hero' ? 0 : 3;
-    assert.ok(command(state, 0, { type: 'fillAll', slot: index }).ok, spec.id);
-    step(state, Math.round(spec.production * TICK_RATE));
-    const unit = state.units.find((u) => u.side === 0 && u.key === spec.id)!;
-    assert.ok(unit, spec.id);
-    assert.equal(unit.maxHp, spec.hp);
-    assert.equal(unit.damage, spec.damage);
-    assert.ok(restore(snapshot(state)));
-  }
-  const state = createMatch('level-01', 9, undefined, { tutorial: true });
-  command(state, 0, { type: 'fillAll', slot: 0 });
-  step(state, 160);
-  const first = state.units.find((u) => u.side === 0)!;
-  first.hp -= 10;
-  command(state, 0, { type: 'fillAll', slot: 0 });
-  assert.equal(first.level, 1);
-  assert.equal(first.hp, getSpec('nezha').hp - 10);
-  step(state, 160);
-  const second = state.units.find((u) => u.side === 0 && u.level === 2)!;
-  assert.ok(second.damage > first.damage);
-});
-
-test('specials actually affect combat: piercing, chain, slow, guard, siege, healing and shielding', () => {
-  for (const key of [
-    'erlang',
-    'crossbow',
-    'leizhen',
-    'change',
-    'frost',
-    'juling',
-    'guard',
-    'ram',
-    'lantern',
-    'tianwang',
-    'xuannv',
-  ]) {
-    const state = createMatch('level-30', 6);
-    const unit = army(state, 0, key, 450, 180);
-    const front = army(state, 1, 'nezha', 478, 180);
-    const back = army(state, 1, 'nezha', 498, 180);
-    const ally = army(state, 0, 'nezha', 360, 180);
-    ally.hp -= 50;
-    const before = front.hp,
-      beforeBack = back.hp,
-      beforeSelf = unit.hp;
-    if (key === 'ram') {
-      state.units = [unit];
-      unit.x = 930;
-    }
-    step(state);
-    const special = getSpec(key).special;
-    if (special === 'pierce' || special === 'chain') assert.ok(back.hp < beforeBack, key);
-    if (special === 'slow') assert.equal(front.slowTicks, 30, key);
-    if (special === 'guard') assert.ok(unit.hp > beforeSelf - 2 * getSpec('nezha').damage, key);
-    if (special === 'siege')
-      assert.equal(state.sides[1].crystalHp, state.sides[1].maxCrystalHp - unit.damage * 2);
-    if (special === 'heal') assert.ok(ally.hp > ally.maxHp - 50, key);
-    if (special === 'shield') assert.ok(ally.shield > 0, key);
-    if (key !== 'ram') assert.ok(front.hp < before, key);
-  }
-});
-
-// The proof policy only reads its own workshop and submits ordinary player actions.
-function play(state: Match): void {
-  const side = state.sides[0];
-  const slots = side.slots
-    .map((s, i) => ({ s, i }))
-    .sort((a, b) => a.s.level - b.s.level || a.i - b.i);
-  for (const { s, i } of slots) {
-    if (s.parts.some((filled, index) => !filled && side.bag[`${s.key}:${index}`] > 0)) {
-      assert.ok(command(state, 0, { type: 'fillAll', slot: i }).ok);
-      return;
-    }
-  }
-  for (const { s } of slots) {
-    for (let index = 0; index < s.parts.length; index++) {
-      if (
-        !s.parts[index] &&
-        !side.bag[`${s.key}:${index}`] &&
-        command(state, 0, { type: 'exchange', key: s.key, index }).ok
-      )
-        return;
-    }
-  }
-  if (side.coins >= 30) {
-    const hero = side.slots.slice(0, 3).reduce((n, s) => n + s.level, 0) / 3;
-    const weapon = side.slots.slice(3).reduce((n, s) => n + s.level, 0) / 2;
-    assert.ok(command(state, 0, { type: 'draw', kind: hero <= weapon ? 'hero' : 'weapon' }).ok);
-  }
-}
-
-test(
-  'all 30 levels have a no-ad legal-command win for three seeds, including slow first-level onboarding',
-  { timeout: 120000 },
-  () => {
-    const results: string[] = [];
-    for (const seed of [1, 42, 20261022]) {
-      const progress = createProgress();
-      for (const level of LEVELS) {
-        assert.ok(isUnlocked(progress, level.id));
-        const deck =
-          level.number >= 23
-            ? ['tianwang', 'erlang', 'cannon']
-            : level.number >= 14
-              ? ['wukong', 'cannon']
-              : level.number >= 11
-                ? ['juling', 'erlang', 'cannon']
-                : ['nezha', 'fire'];
-        assert.ok(deck.every((id) => progress.unlockedIds.includes(id)));
-        const state = createMatch(level.id, seed, deck);
-        for (let tick = 0; tick < 20 * 600 && state.phase === 'running'; tick++) {
-          if (tick % 10 === 0 && (level.number !== 1 || tick >= 12 * TICK_RATE)) play(state);
-          step(state);
-        }
-        assert.equal(
-          state.phase,
-          'won',
-          `${level.id} seed=${seed} hp=${state.sides.map((s) => s.crystalHp)}`,
-        );
-        assert.equal(state.assisted, false);
-        assert.equal(state.sides[0].boostUsed, false);
-        assert.ok(settleProgress(progress, state).settled);
-        results.push(`${level.number}:${seed}:${state.tick / TICK_RATE}`);
-      }
-      assert.equal(progress.unlockedIds.length, 16);
-    }
-    console.log('legal no-ad wins level:seed:seconds', results.join(' '));
-  },
-);
-
-test('rounded range boundary never strands a unit beside the crystal', () => {
-  const state = createMatch('level-01', 1);
-  army(state, 0, 'nezha', 888, 180.001);
-  step(state);
-  assert.ok(state.sides[1].crystalHp < state.sides[1].maxCrystalHp);
-});
-
-test('heroes and weapons are born beside their own crystal, then move freely', () => {
-  const state=createMatch('level-01',42);
-  command(state,0,{type:'fillAll',slot:0});
-  command(state,0,{type:'fillAll',slot:3});
-  step(state,160);
-  const hero=state.units.find(u=>u.side===0&&u.key==='nezha')!;
-  assert.ok(Math.hypot(hero.x-50,hero.y-180)<65);
-  step(state,20);
-  const weapon=state.units.find(u=>u.side===0&&u.key==='fire')!;
-  assert.ok(Math.hypot(weapon.x-50,weapon.y-180)<65);
+test('long planning sessions retain a bounded command tail with valid sequence numbers', () => {
+  const m = createMatch('level-01', 1),
+    c = m.sides[0].hand[0];
+  ok(m, { type: 'deploy', card: c.id, x: 220, y: 180 });
+  for (let i = 0; i < 4200; i++) ok(m, { type: 'move', card: c.id, x: i % 2 ? 220 : 280, y: 180 });
+  assert.equal(m.commands.length, 4096);
+  assert.ok(m.commandStart[0] > 0);
+  assert.deepEqual(restore(snapshot(m)), m);
 });

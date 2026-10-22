@@ -2,7 +2,7 @@
 import { expect, it, vi } from 'vitest';
 import { createInMemoryGameHost } from '@coffeeeeffoc/game-host';
 import { castleCannonCanvasDefinition } from './index.js';
-import { castleCannonGameDefinition } from './definition.js';
+import { castleCannonGameDefinition } from './definition-dom.js';
 
 vi.mock('./index.js', () => ({
   castleCannonManifest: {},

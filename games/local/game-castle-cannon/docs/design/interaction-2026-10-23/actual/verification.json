@@ -1,0 +1,110 @@
+{
+  "environment": "Chrome desktop with mobile viewport and CDP touch, not physical devices",
+  "quality": "low-power",
+  "records": [
+    {
+      "name": "landscape",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "touch": true,
+      "iframe": false,
+      "checks": [
+        "home/maps/battle/menu/result routes",
+        "aim drag",
+        "right swipe follows cannon direction",
+        "independent telescope",
+        "charge release",
+        "cancel no shot",
+        "reload",
+        "disabled cooldown button does not drag aim",
+        "real transfer",
+        "immediate destination feedback and repeated click preserves progress",
+        "practice pause",
+        "settings/help/skins",
+        "multitouch crouch cancels charge",
+        "touch cancellation"
+      ]
+    },
+    {
+      "name": "portrait",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "iframe": false,
+      "checks": [
+        "home/maps/battle/menu/result routes",
+        "aim drag",
+        "right swipe follows cannon direction",
+        "independent telescope",
+        "charge release",
+        "cancel no shot",
+        "reload",
+        "disabled cooldown button does not drag aim",
+        "real transfer",
+        "immediate destination feedback and repeated click preserves progress",
+        "practice pause",
+        "settings/help/skins",
+        "multitouch crouch cancels charge",
+        "touch cancellation"
+      ]
+    },
+    {
+      "name": "iframe",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "touch": true,
+      "iframe": true,
+      "checks": [
+        "home/maps/battle/menu/result routes",
+        "aim drag",
+        "right swipe follows cannon direction",
+        "independent telescope",
+        "charge release",
+        "cancel no shot",
+        "reload",
+        "disabled cooldown button does not drag aim",
+        "real transfer",
+        "immediate destination feedback and repeated click preserves progress",
+        "practice pause",
+        "settings/help/skins",
+        "multitouch crouch cancels charge",
+        "touch cancellation"
+      ]
+    },
+    {
+      "name": "two-client-online",
+      "checks": [
+        "real human matchmaking",
+        "same match/authoritative shell",
+        "human menu does not pause",
+        "same-match reconnect",
+        "leave result",
+        "cancel queue",
+        "production 8s bot fallback"
+      ]
+    },
+    {
+      "name": "unavailable-service",
+      "checks": ["silent local fallback", "local charge and fire still work"]
+    },
+    {
+      "name": "critical-and-collapse",
+      "checks": [
+        "isolated dev previews",
+        "critical red vignette",
+        "route retreat",
+        "finite progressive treatment",
+        "city collapse auto route",
+        "only bunker gun",
+        "fullscreen exit keeps navigation"
+      ]
+    }
+  ],
+  "errors": []
+}
