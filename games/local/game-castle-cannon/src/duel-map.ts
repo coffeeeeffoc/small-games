@@ -17,7 +17,6 @@ export const DUEL_RULES = {
   healSeconds: 4,
   speed: 5,
   reload: 2.6,
-  repairSeconds: 6,
   bunkerReload: 3.3,
   chargeSeconds: 1.8,
   gravity: 18,

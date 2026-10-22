@@ -1,4 +1,4 @@
-/* global window, document */
+/* global window, document, localStorage */
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -24,8 +24,29 @@ const browser = await chromium.launch({
 });
 const records = [],
   errors = [];
+const lowPower = process.env.DUEL_LOW_POWER === '1';
 async function fixture(name, viewport, touch, iframe = false, dev = false) {
   const context = await browser.newContext({ viewport, hasTouch: touch, isMobile: touch });
+  if (lowPower)
+    await context.addInitScript(() => {
+      localStorage.setItem(
+        'small-games:castle-cannon:progress',
+        JSON.stringify({
+          version: '1',
+          value: {
+            version: 1,
+            cleared: [],
+            bonus: [],
+            materials: 0,
+            owned: [0],
+            skin: 0,
+            sound: false,
+            motion: true,
+            lowPower: true,
+          },
+        }),
+      );
+    });
   const page = await context.newPage();
   page.on('pageerror', (error) => errors.push(`${name}: ${error.message}`));
   if (iframe)
@@ -97,6 +118,18 @@ async function fixture(name, viewport, touch, iframe = false, dev = false) {
 }
 async function practice(name, viewport, touch, iframe = false) {
   const f = await fixture(name, viewport, touch, iframe);
+  const restart = async () => {
+    await f.click('pause');
+    // A normal battle may end while software-rendered QA is taking screenshots.
+    if ((await f.frame.locator('.castle-root').getAttribute('data-screen')) === 'result')
+      await f.click('home');
+    else {
+      await f.click('leave');
+      await f.click('leave-confirm');
+    }
+    await f.click('practice');
+    await f.click('map-ravine');
+  };
   try {
     await f.capture('home');
     await f.click('practice');
@@ -106,30 +139,6 @@ async function practice(name, viewport, touch, iframe = false) {
     const first = await f.snapshot();
     assert.equal(first.mode, 'practice');
     assert.equal(first.renderer, 'three-duel');
-    await f.gesture([470, 320], [495, 285]);
-    await expect
-      .poll(async () => (await f.snapshot()).fighters[0].guns[0].pitch)
-      .toBeGreaterThan(40);
-    const angle = (await f.snapshot()).fighters[0].guns[0].pitch;
-    await f.click('scope');
-    await f.gesture([470, 260], [520, 235]);
-    const observed = await f.snapshot();
-    assert.equal(observed.fighters[0].guns[0].pitch, angle);
-    assert.ok(observed.scopeX > 0);
-    await f.capture('scope');
-    await f.click('scope');
-    const before = (await f.snapshot()).fighters[0].lastShot;
-    await f.gesture([850, 460], [850, 460], 300, true);
-    await expect.poll(async () => (await f.snapshot()).fighters[0].guns[0].charge).toBeNull();
-    assert.deepEqual((await f.snapshot()).fighters[0].lastShot, before);
-    await f.gesture([850, 460], [850, 460], 650);
-    await expect
-      .poll(async () => (await f.snapshot()).fighters[0].lastShot?.power ?? -1)
-      .toBeGreaterThan(0.2);
-    await f.capture('shot');
-    await expect
-      .poll(async () => (await f.snapshot()).fighters[0].guns[0].reload, { timeout: 6000 })
-      .toBe(1);
     if (touch) {
       const fire = await f.logical(850, 460),
         prone = await f.logical(260, 470);
@@ -141,8 +150,61 @@ async function practice(name, viewport, touch, iframe = false) {
       await f.event('touchCancel', []);
       await expect.poll(async () => (await f.snapshot()).fighters[0].crouched).toBe(false);
     }
+    await f.gesture([470, 320], [495, 285]);
+    await expect
+      .poll(async () => (await f.snapshot()).fighters[0].guns[0].pitch)
+      .toBeGreaterThan(40);
+    assert.ok((await f.snapshot()).fighters[0].guns[0].yaw < 0, 'right swipe aims right');
+    const angle = (await f.snapshot()).fighters[0].guns[0].pitch;
+    await f.click('scope');
+    await f.gesture([470, 260], [520, 235]);
+    const observed = await f.snapshot();
+    assert.equal(observed.fighters[0].guns[0].pitch, angle);
+    assert.ok(observed.scopeX > 0);
+    await f.capture('scope');
+    await f.click('scope');
+    await restart();
+    const before = (await f.snapshot()).fighters[0].lastShot;
+    await f.gesture([850, 460], [850, 460], 300, true);
+    await expect.poll(async () => (await f.snapshot()).fighters[0].guns[0].charge).toBeNull();
+    assert.deepEqual((await f.snapshot()).fighters[0].lastShot, before);
+    await f.gesture([850, 460], [850, 460], 650);
+    await expect
+      .poll(async () => (await f.snapshot()).fighters[0].lastShot?.power ?? -1)
+      .toBeGreaterThan(0.2);
+    await f.capture('shot');
+    await expect(f.frame.locator('[data-action="fire"]')).toHaveAttribute('aria-label', /冷却/);
+    const coolingGun = (await f.snapshot()).fighters[0].guns[0];
+    await f.gesture([850, 460], [790, 415]);
+    const afterCooldownDrag = (await f.snapshot()).fighters[0].guns[0];
+    assert.equal(afterCooldownDrag.pitch, coolingGun.pitch);
+    assert.equal(afterCooldownDrag.yaw, coolingGun.yaw);
+    await expect
+      .poll(async () => (await f.snapshot()).fighters[0].guns[0].reload, { timeout: 6000 })
+      .toBe(1);
+    await restart();
     await f.click('station:wall');
     await expect.poll(async () => (await f.snapshot()).fighters[0].route.length).toBeGreaterThan(0);
+    await expect(f.frame.locator('[data-action="station:wall"]')).toHaveAttribute(
+      'aria-label',
+      '→ 城墙炮',
+    );
+    const routeTime = (fighter) => {
+      let from = fighter.position,
+        total = 0;
+      for (const to of fighter.route) {
+        total += Math.hypot(to.x - from.x, to.y - from.y, to.z - from.z);
+        from = to;
+      }
+      return total;
+    };
+    await f.page.waitForTimeout(450);
+    const remaining = routeTime((await f.snapshot()).fighters[0]);
+    await f.click('station:wall');
+    assert.ok(
+      routeTime((await f.snapshot()).fighters[0]) <= remaining,
+      'repeated destination never resets route',
+    );
     await f.capture('moving');
     await expect
       .poll(async () => (await f.snapshot()).fighters[0].station, { timeout: 12000 })
@@ -174,16 +236,35 @@ async function practice(name, viewport, touch, iframe = false) {
       checks: [
         'home/maps/battle/menu/result routes',
         'aim drag',
+        'right swipe follows cannon direction',
         'independent telescope',
         'charge release',
         'cancel no shot',
         'reload',
+        'disabled cooldown button does not drag aim',
         'real transfer',
+        'immediate destination feedback and repeated click preserves progress',
         'practice pause',
         'settings/help/skins',
         ...(touch ? ['multitouch crouch cancels charge', 'touch cancellation'] : []),
       ],
     });
+  } catch (error) {
+    console.error(
+      'Practice failed',
+      name,
+      JSON.stringify({
+        screen: await f.frame.locator('.castle-root').getAttribute('data-screen'),
+        fighters: (await f.snapshot()).fighters.map((p) => ({
+          hp: p.hp,
+          station: p.station,
+          crouched: p.crouched,
+          route: p.route.length,
+        })),
+      }),
+    );
+    await f.capture('failure');
+    throw error;
   } finally {
     await f.close();
   }
@@ -204,6 +285,10 @@ async function online() {
     assert.equal(sa.mode, 'human');
     assert.equal(sa.matchId, sb.matchId);
     assert.notEqual(sa.side, sb.side);
+    await b.gesture([470, 320], [495, 285]);
+    await expect
+      .poll(async () => (await b.snapshot()).fighters[sb.side].guns[0].yaw)
+      .toBeLessThan(0);
     await a.gesture([470, 320], [480, 313]);
     await a.gesture([850, 460], [850, 460], 700);
     await expect
@@ -260,6 +345,30 @@ async function online() {
   } finally {
     await a.close();
     await b.close();
+  }
+}
+async function unavailableService() {
+  const f = await fixture('offline', { width: 844, height: 390 }, true);
+  try {
+    await f.page.route('**/duel/join', (route) =>
+      route.fulfill({ status: 503, body: 'unavailable' }),
+    );
+    await f.click('start');
+    await expect(f.frame.locator('.castle-root')).toHaveAttribute('data-screen', 'playing');
+    assert.equal((await f.snapshot()).mode, 'practice');
+    await expect(f.frame.locator('#battle')).not.toHaveAttribute(
+      'aria-label',
+      /不可用|连接中断|未匹配/,
+    );
+    await f.gesture([850, 460], [850, 460], 400);
+    await expect.poll(async () => (await f.snapshot()).fighters[0].lastShot).not.toBeNull();
+    await f.capture('local-play');
+    records.push({
+      name: 'unavailable-service',
+      checks: ['silent local fallback', 'local charge and fire still work'],
+    });
+  } finally {
+    await f.close();
   }
 }
 async function criticalStates() {
@@ -324,6 +433,7 @@ try {
   await practice('portrait', { width: 390, height: 844 }, true);
   await practice('iframe', { width: 844, height: 390 }, true, true);
   await online();
+  await unavailableService();
   await criticalStates();
   assert.deepEqual(errors, []);
   await writeFile(
@@ -331,6 +441,7 @@ try {
     JSON.stringify(
       {
         environment: 'Chrome desktop with mobile viewport and CDP touch, not physical devices',
+        quality: lowPower ? 'low-power' : 'standard',
         records,
         errors,
       },
