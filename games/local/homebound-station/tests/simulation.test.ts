@@ -12,9 +12,12 @@ import {
   splitGroup,
   splitPlans,
   queuePosition,
+  getStationGeometry,
+  parkingPosition,
 } from '../src/simulation.ts';
 import type { Simulation } from '../src/simulation.ts';
 import { solveLevel } from './support/solver.ts';
+import { LEGACY_TRAFFIC_CASES } from './fixtures/legacy-traffic.ts';
 
 function invariant(s: Simulation) {
   const leaves = s.groups.filter((g) => !s.groups.some((c) => c.parentGroupId === g.id));
@@ -39,8 +42,14 @@ function invariant(s: Simulation) {
     );
     if (b.state !== 'free') {
       assert(jobs.length);
-      assert.equal(b.vehicleId, jobs[0]!.vehicleId, '停靠位保持分配顺序，后来点击不能抢占');
-      assert.equal(b.groupId, jobs[0]!.groupId);
+      if (s.geometry.mode === 'legacy') {
+        assert.equal(b.vehicleId, jobs[0]!.vehicleId, '旧fixture保留按分配顺序停靠');
+        assert.equal(b.groupId, jobs[0]!.groupId);
+      } else {
+        const owner = jobs.find((j) => j.vehicleId === b.vehicleId);
+        assert(owner, '物理泊位只能由真实到达的活跃任务占用');
+        assert.equal(owner.groupId, b.groupId);
+      }
     }
   }
   assert.equal(new Set(s.services.map((j) => j.vehicleId)).size, s.services.length);
@@ -56,6 +65,12 @@ function invariant(s: Simulation) {
     for (let j = i + 1; j < cars.length; j++) {
       const a = cars[i]!,
         b = cars[j]!;
+      // Independent broad phase: enclosing circles of the rendered 3m x 1.5m
+      // rectangles prove separation; close pairs still use the full SAT below.
+      if (
+        Math.hypot(b.position.x - a.position.x, b.position.z - a.position.z) >= Math.hypot(3, 1.5)
+      )
+        continue;
       const axes = [a, b].flatMap((v) => [
         [Math.sin(v.angle), Math.cos(v.angle)],
         [Math.cos(v.angle), -Math.sin(v.angle)],
@@ -238,3 +253,262 @@ for (const order of ['forward', 'reverse', 'random'] as const)
   test(`全部100关 ${order} 点击顺序：完整通关、无穿模、乘客守恒、固定接客位置`, () => {
     for (const level of LEVELS) solve(level, order);
   });
+
+test('无关的北向出口立即真实移动，无需等待前车接客', () => {
+  const config: LevelConfig = {
+    id: 901,
+    title: 'Parallel north exits',
+    subtitle: '',
+    hint: '',
+    stars: [100, 200],
+    groups: [
+      { id: 'G1', size: 1 },
+      { id: 'G2', size: 1 },
+    ],
+    vehicles: [
+      { id: 'A', capacity: 4, column: 0, row: 0, direction: 'N' },
+      { id: 'B', capacity: 4, column: 4, row: 0, direction: 'N' },
+    ],
+  };
+  const s = createSimulation(config);
+  assert(dispatch(s, 'A').ok);
+  drive(s, 0.5);
+  assert(dispatch(s, 'B').ok);
+  drive(s, 0.1);
+  assert(s.vehicles[1]!.position.z < 7.5);
+  assert.equal(s.services[0]!.phase, 'driving');
+  drive(s, 1);
+  assert(s.vehicles[1]!.position.x > 8);
+  assert.equal(s.delivered.size, 0);
+  for (let i = 0; i < 2000 && !s.won; i++) drive(s, 0.05);
+  assert(s.won);
+});
+test('北向出库和邻近湾位驶出的对向汇入不会互相锁死', () => {
+  for (const delay of [3.5, 4, 4.5, 5, 5.5]) {
+    const config: LevelConfig = {
+      id: 902,
+      title: 'Local merge',
+      subtitle: '',
+      hint: '',
+      stars: [100, 200],
+      groups: [
+        { id: 'G1', size: 2 },
+        { id: 'G2', size: 2 },
+      ],
+      vehicles: [
+        { id: 'A', capacity: 4, column: 0, row: 0, direction: 'W' },
+        { id: 'B', capacity: 4, column: 1, row: 0, direction: 'N' },
+      ],
+    };
+    const s = createSimulation(config);
+    assert(dispatch(s, 'A').ok);
+    drive(s, delay);
+    assert(dispatch(s, 'B').ok);
+    for (let i = 0; i < 2000 && !s.won; i++) drive(s, 0.05);
+    assert(s.won, `merge delay ${delay}`);
+  }
+});
+test('后来分配同一湾位的车继续绕行，不在通过道堵住先分配车辆', () => {
+  const config: LevelConfig = {
+    id: 903,
+    title: 'Occupied bay through lane',
+    subtitle: '',
+    hint: '',
+    stars: [100, 200],
+    groups: Array.from({ length: 5 }, (_, i) => ({ id: `G${i}`, size: 1 })),
+    vehicles: [
+      { id: 'A', capacity: 4, column: 4, row: 0, direction: 'N' },
+      { id: 'B', capacity: 4, column: 4, row: 1, direction: 'E' },
+      { id: 'C', capacity: 4, column: 2, row: 3, direction: 'S' },
+      { id: 'D', capacity: 4, column: 0, row: 2, direction: 'W' },
+      { id: 'E', capacity: 4, column: 0, row: 0, direction: 'W' },
+    ],
+  };
+  const s = createSimulation(config);
+  for (const id of ['A', 'B', 'C', 'D', 'E']) {
+    assert(dispatch(s, id).ok);
+    drive(s, 0.5);
+  }
+  assert.equal(s.services[4]!.bayId, s.services[0]!.bayId);
+  drive(s, 1);
+  assert(s.vehicles[4]!.position.x < -11);
+  assert.equal(s.services[0]!.phase, 'driving');
+  for (let i = 0; i < 3000 && !s.won; i++) drive(s, 0.05);
+  assert(s.won);
+});
+
+test('路口先行权在不同上车时长和点击时刻保持可清场', () => {
+  // Sweep both sides of boarding/departure boundaries. A fixed dispatch cadence
+  // misses priority reversals after a car has already entered a crossing.
+  const delayTicks = [
+    ...new Set([
+      ...Array.from({ length: 81 }, (_, i) => i * 5),
+      ...Array.from({ length: 21 }, (_, i) => 90 + i),
+    ]),
+  ];
+  for (const firstDirection of ['N', 'W'] as const)
+    for (const size of [1, 2, 3, 4])
+      for (const delay of delayTicks) {
+        const config: LevelConfig = {
+          id: 904,
+          title: '局部路口延时回归',
+          subtitle: '',
+          hint: '',
+          stars: [100, 200],
+          groups: [
+            { id: 'G1', size },
+            { id: 'G2', size },
+          ],
+          vehicles: [
+            { id: 'A', capacity: 4, column: 0, row: 0, direction: firstDirection },
+            {
+              id: 'B',
+              capacity: 4,
+              column: firstDirection === 'N' ? 4 : 1,
+              row: 0,
+              direction: 'N',
+            },
+          ],
+        };
+        const s = createSimulation(config);
+        assert(dispatch(s, 'A').ok);
+        drive(s, delay * 0.05);
+        assert(dispatch(s, 'B').ok);
+        for (let i = 0; i < 3000 && !s.won; i++) drive(s, 0.05);
+        assert(s.won, firstDirection + '/' + size + '/' + delay);
+      }
+});
+
+function modernFixture(): LevelConfig {
+  return {
+    id: 910,
+    title: '直达站台',
+    subtitle: '',
+    hint: '',
+    columns: 6,
+    rows: 9,
+    stars: [100, 200],
+    groups: Array.from({ length: 6 }, (_, i) => ({ id: `G${i}`, size: 2 })),
+    vehicles: Array.from({ length: 6 }, (_, i) => ({
+      id: `N${i}`,
+      capacity: 4,
+      column: i,
+      row: 0,
+      direction: 'N',
+    })),
+  };
+}
+test('新版100关从3x3六车推进到6x9五十车，World读取同一几何', () => {
+  assert.equal(LEVELS[0]!.vehicles.length, 6);
+  assert.deepEqual([LEVELS[0]!.columns, LEVELS[0]!.rows], [3, 3]);
+  assert.equal(LEVELS[99]!.vehicles.length, 50);
+  assert.deepEqual([LEVELS[99]!.columns, LEVELS[99]!.rows], [6, 9]);
+  for (const level of LEVELS) {
+    const g = getStationGeometry(level);
+    assert.equal(g.parking.columns, level.columns);
+    assert.equal(g.parking.rows, level.rows);
+    assert(g.lanes.every((l) => l.oneWay));
+    assert.equal(g.bays.length, 4);
+    for (const v of level.vehicles) {
+      const p = parkingPosition(g, v.column, v.row);
+      assert(p.x > g.parking.bounds.left && p.x < g.parking.bounds.right);
+      assert(p.z > g.parking.bounds.top && p.z < g.parking.bounds.bottom);
+    }
+  }
+});
+test('六条独立北出口立即真实并行；空湾直达，不经过底边、不修改既定路线', () => {
+  const s = createSimulation(modernFixture());
+  for (const v of s.vehicles) assert(dispatch(s, v.id).ok);
+  assert(
+    s.bays.every((b) => b.state === 'free'),
+    '点击只绑定乘客，不远程占用空湾',
+  );
+  const paths = s.services.map((j) => JSON.stringify(j.path));
+  drive(s, 0.1);
+  assert(s.vehicles.every((v) => v.position.z < 11.5));
+  assert.equal(s.delivered.size, 0);
+  assert(
+    s.services.every((j) => j.path.every((p) => p.z <= 12)),
+    '北出口只走站前支路，不能绕到底边',
+  );
+  for (let i = 0; i < 3000 && !s.won; i++) {
+    drive(s, 0.05);
+    s.services.forEach((j, n) => {
+      if (j.phase === 'driving')
+        assert.equal(JSON.stringify(j.path), paths[n], '去接客途中不能临时绕圈');
+    });
+    for (const j of s.services.filter((j) => j.waitingForTraffic)) {
+      const v = s.vehicles.find((v) => v.id === j.vehicleId)!;
+      const cells = [
+        ...s.geometry.waitingSlots,
+        ...s.geometry.bays.map((b) => b.point),
+        parkingPosition(s.geometry, v.column, v.row),
+      ];
+      assert(
+        cells.some((p) => Math.hypot(p.x - v.position.x, p.z - v.position.z) < 0.0001),
+        '只能在标出的安全等待格停下',
+      );
+    }
+  }
+  assert(s.won);
+});
+test('早点击的远车不预占空湾；先到的同湾车可以立即接自己的固定乘客', () => {
+  const config: LevelConfig = {
+    ...modernFixture(),
+    groups: Array.from({ length: 5 }, (_, i) => ({ id: `G${i}`, size: 1 })),
+    vehicles: [
+      { id: 'far', capacity: 4, column: 5, row: 8, direction: 'S' },
+      { id: 'east0', capacity: 4, column: 5, row: 0, direction: 'E' },
+      { id: 'east1', capacity: 4, column: 5, row: 1, direction: 'E' },
+      { id: 'east2', capacity: 4, column: 5, row: 2, direction: 'E' },
+      { id: 'near', capacity: 4, column: 0, row: 0, direction: 'N' },
+    ],
+  };
+  const s = createSimulation(config);
+  for (const v of s.vehicles) assert(dispatch(s, v.id).ok);
+  const near = s.services[4]!,
+    far = s.services[0]!;
+  assert.equal(near.bayId, far.bayId);
+  const bound = { ...near.pickupPoint! };
+  while (near.phase === 'driving' && s.time < 50) drive(s, 0.05);
+  assert.equal(s.bays.find((b) => b.id === near.bayId)!.vehicleId, 'near');
+  assert.equal(far.phase, 'driving');
+  assert.deepEqual(near.pickupPoint, bound);
+  for (let i = 0; i < 4000 && !s.won; i++) drive(s, 0.05);
+  assert(s.won);
+});
+test('新版交通预约与行人横道服从暂停，固定步长下所有倍速一致', () => {
+  const result = [1, 2, 3, 5].map((speed) => {
+    const s = createSimulation(modernFixture());
+    for (const v of s.vehicles) dispatch(s, v.id);
+    for (let i = 0; i < 1800 / speed; i++) advance(s, speed / 60);
+    return snapshot(s);
+  });
+  result.forEach((s) => assert.deepEqual(s, result[0]));
+  const s = createSimulation(modernFixture());
+  for (const v of s.vehicles) dispatch(s, v.id);
+  drive(s, 2);
+  s.paused = true;
+  const before = JSON.stringify({ snapshot: snapshot(s), movements: s.movements });
+  advance(s, 10);
+  assert.equal(JSON.stringify({ snapshot: snapshot(s), movements: s.movements }), before);
+});
+
+test('18个历史交通失败场景冻结旧5x4关卡内容并按原点击动作回放', () => {
+  assert.equal(LEGACY_TRAFFIC_CASES.length, 18);
+  for (const example of LEGACY_TRAFFIC_CASES) {
+    assert.equal(example.config.columns, undefined);
+    const s = createSimulation(example.config);
+    let next = 0;
+    while (!s.won && s.time < 220) {
+      const action = example.actions[next];
+      if (action && action[0] === s.ticks) {
+        assert(dispatch(s, action[1]).ok, example.label + '/' + action[1]);
+        next++;
+      }
+      drive(s, 0.05);
+    }
+    assert.equal(next, example.actions.length, example.label);
+    assert(s.won, example.label);
+  }
+});

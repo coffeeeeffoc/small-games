@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium, expect } from '@playwright/test';
 import { planRoutes, LEVELS } from '../src/core/index.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
-const evidence = new URL('../docs/design/cocos-2026-10-22/actual/', import.meta.url);
+const evidence = new URL('../reports/browser/', import.meta.url);
 await mkdir(evidence, { recursive: true });
 const report = {
   environment:
@@ -216,6 +216,9 @@ try {
     'Home, 100-level catalogue and zero-troop preparation use actual Cocos art',
     async () => {
       const page = await session();
+      await expect(page).toHaveTitle('夺城令');
+      await expect(page.locator('.home h1')).toHaveText('夺城令');
+      await expect(page.locator('#game')).toHaveAttribute('aria-label', '夺城令');
       await shot(page, 'home-390x844');
       assert.equal(await page.locator('[data-game-dev-tools]').count(), 0);
       await page.locator('#levels').tap();
@@ -741,7 +744,7 @@ try {
   await browser.close();
   server?.kill();
   await writeFile(
-    new URL('../browser-report.json', evidence),
+    new URL('browser-report.json', evidence),
     JSON.stringify(report, null, 2) + '\n',
   );
 }

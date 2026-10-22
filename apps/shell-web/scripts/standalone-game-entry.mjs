@@ -5,11 +5,10 @@ export const markers = {
   'ashfall-front': '#start-game',
   'carrom-club': '#start',
   'three-choose-two': '#game[data-ready="true"]',
-  'retreat-rally': '#start',
   'cage-rescue': '#start',
   'flick-arena': '#start',
   'tower-brake': '#start-game',
-  'chase-thief': '#game[data-ready="true"]',
+  'chase-thief': '#GameCanvas',
   'orbit-atelier': '#GameCanvas',
   'moss-garden': '[data-action="start"]',
   'ball-roguelite': '#start',
@@ -57,12 +56,10 @@ export const homeControls = {
   'ashfall-front': '#start-game',
   'carrom-club': '#start',
   'three-choose-two': ['[data-action="start"]', '[data-action="begin"]'],
-  'retreat-rally': '#start',
   'cage-rescue': '#start',
   'flick-arena': ['#start', '#play-level'],
   'tower-brake': '#start-game',
   tetracube: '#start-game',
-  'chase-thief': '#start',
   'wulong-city': '#start-game',
   'moss-garden': '[data-action="start"]',
   'ball-roguelite': '#start',
@@ -85,6 +82,7 @@ export const homeControls = {
 
 // Explicit compatibility list: these existing assertions still own their setup flow.
 export const legacyEntryIds = [
+  'chase-thief',
   'merge-front',
   'orbit-atelier',
   'homebound-station',

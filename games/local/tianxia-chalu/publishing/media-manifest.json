@@ -1,0 +1,85 @@
+{
+  "sourceHash": "86de06a489c21eb1751241bd0336996bfc4e6e924ba33107790cf641cd6ed675",
+  "verifiedAt": "2026-10-22",
+  "files": [
+    {
+      "file": "gameplay/screenshots/battle-390x844.png",
+      "bytes": 358826,
+      "sha256": "82192190bde9385be8afaaae59042eb96fee004519b09c0b6ba5e2f6e4f07901",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "gameplay/screenshots/home-320x844.png",
+      "bytes": 434826,
+      "sha256": "3dd8f2d59c657728db4d4feeec810178aec0b635fa3577ac51f863e2d06d3bbb",
+      "width": 320,
+      "height": 844
+    },
+    {
+      "file": "gameplay/screenshots/home-390x844.png",
+      "bytes": 524808,
+      "sha256": "b9eed8b65421467f89b318f7b3c0d0c75c03cc6f18f8ac21f871aae19bfa22c9",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "gameplay/screenshots/levels-390x844.png",
+      "bytes": 145176,
+      "sha256": "b6815b87ec709ddc37f85f527d80421d4ecda291171239532b0b01088d048bd0",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "gameplay/videos/duochengling-gameplay-390x844.webm",
+      "bytes": 2063276,
+      "sha256": "0fecfc9820703090fbc035fdcf6f9a83b2375117f07e787dfb53cac2b4e193a8",
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp8",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {
+          "duration": "32.800000"
+        }
+      }
+    },
+    {
+      "file": "icon/duochengling.svg",
+      "bytes": 257,
+      "sha256": "90927b8984f1d5a9fe792fcfe6414a7028eaf51082aa05a954a2110d1a18c320",
+      "normalization": "CRLF normalized to LF for text SVG"
+    },
+    {
+      "file": "promo/images/duochengling-home-390x844.png",
+      "bytes": 524808,
+      "sha256": "b9eed8b65421467f89b318f7b3c0d0c75c03cc6f18f8ac21f871aae19bfa22c9",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "promo/videos/duochengling-preview-390x844.mp4",
+      "bytes": 617383,
+      "sha256": "9712c81eb8ebdd9fddcca5ce56842c564699a8aa9b4fb18ff71b89fe25bd4153",
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {
+          "duration": "24.000000"
+        }
+      }
+    }
+  ]
+}

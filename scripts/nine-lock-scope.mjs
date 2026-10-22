@@ -358,19 +358,17 @@ export function nineLockFileScopes(context) {
       digest(context.readHead(LOCK)) ===
         'f1c5a9ee12eeb850200dc0e16483ed2a7265141e00a9244563222569d247822a'
     ) {
-      taptap.set(LOCK, [
-        SHELL,
-        'apps/shell-web',
-        'games/local/cage-rescue',
-        'games/local/flick-arena',
-        'games/local/retreat-rally',
-        'games/local/three-choose-two',
-        'games/local/tower-brake',
-        TRAVEL,
-        ALIPAY,
-        TAPTAP,
-        'services/runtime-api',
-      ]);
+      // Both snapshots are byte-bound above. Derive historical consumers from
+      // those snapshots so retired games need no current hard-coded entry.
+      const baseImporters = importers(context.readBase(LOCK));
+      const headImporters = importers(context.readHead(LOCK));
+      const previousText = (name) => baseImporters.find((block) => block.name === name)?.text;
+      taptap.set(
+        LOCK,
+        headImporters
+          .filter((block) => block.name !== '.' && block.text !== previousText(block.name))
+          .map((block) => block.name),
+      );
       const webManifest = 'apps/shell-web/package.json';
       if (
         context.changedPaths.includes(webManifest) &&
@@ -379,13 +377,14 @@ export function nineLockFileScopes(context) {
         digest(context.readHead(webManifest)) ===
           '12d02b1ea85a73280a082ed70675373067935d25539d12247b3e036988c19856'
       )
-        taptap.set(webManifest, [
-          'games/local/cage-rescue',
-          'games/local/flick-arena',
-          'games/local/retreat-rally',
-          'games/local/three-choose-two',
-          'games/local/tower-brake',
-        ]);
+        taptap.set(
+          webManifest,
+          headImporters
+            .filter(
+              (block) => block.name.startsWith('games/') && previousText(block.name) === undefined,
+            )
+            .map((block) => block.name),
+        );
     }
   } catch {
     /* Missing snapshots remain unclassified. */

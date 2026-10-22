@@ -2,7 +2,7 @@ import { LEVELS, VIEWPORT, createEndlessLevel } from './levels.mjs';
 
 export { LEVELS, VIEWPORT } from './levels.mjs';
 // Bump for ranked simulation/content/scoring changes; presentation changes keep this version.
-export const RANKED_RULE_VERSION = 'rescue-ranked-v1';
+export const RANKED_RULE_VERSION = 'rescue-ranked-v2';
 export const FIXED_STEP = 1 / 120;
 export const RULES = Object.freeze({
   left: 16,
@@ -14,6 +14,7 @@ export const RULES = Object.freeze({
   paddleSpeed: 1100,
   personRadius: 11,
   ballRadius: 7,
+  maxBalls: 3,
   maxBounceAngle: Math.PI * 0.365,
   slowFactor: 0.43,
   slowDuration: 1.8,
@@ -59,8 +60,12 @@ function createState(level, levelIndex = -1) {
     cages: level.cages.map((c) => ({ ...c, hp: c.hp, maxHp: c.hp, person: `person-${c.id}` })),
     bricks: level.bricks.map((b) => ({ ...b, hp: b.hp, maxHp: b.hp })),
     barriers: (level.barriers || []).map((item) => ({ ...item })),
+    devices: (level.devices || []).map((item) => ({ ...item })),
+    extraBalls: [],
+    _nextBallId: 1,
     people: [],
     ball: {
+      id: 0,
       x: 195,
       y: RULES.paddleY - RULES.ballRadius - 1,
       vx: 0,
@@ -180,7 +185,7 @@ function checkResult(state) {
       return;
     }
     setPhase(state, 'won');
-    state.ball.active = false;
+    stopBalls(state);
     state.slowMotion = false;
     state.timeScale = 1;
     event(state, 'win', { rescued: state.rescued });
@@ -194,13 +199,19 @@ function checkResult(state) {
 function lose(state, reason) {
   state.lossReason = reason;
   setPhase(state, 'lost');
-  state.ball.active = false;
+  stopBalls(state);
   state.slowMotion = false;
   state.timeScale = 1;
   event(state, 'lose', { reason });
 }
 
+function stopBalls(state) {
+  state.ball.active = false;
+  for (const ball of state.extraBalls) ball.active = false;
+}
+
 function resetBall(state) {
+  state.extraBalls = [];
   Object.assign(state.ball, {
     active: false,
     vx: 0,
@@ -242,26 +253,68 @@ function releasePerson(state, cage) {
   event(state, 'release', { id: person.id, x: person.x, y: person.y, releaseAt });
 }
 
-function hitEntity(state, entity, kind) {
+function hitEntity(state, entity, kind, ball) {
+  const x = entity.x + entity.w / 2,
+    y = entity.y + entity.h / 2;
+  if (kind === 'device') {
+    if (entity.charges <= 0) return;
+    if (entity.kind === 'splitter') {
+      const available =
+        RULES.maxBalls - [state.ball, ...state.extraBalls].filter((item) => item.active).length;
+      if (available <= 0) return; // Do not consume a reward that cannot be granted.
+      for (let i = 0; i < Math.min(2, available); i++) {
+        const angle = Math.atan2(ball.vy, ball.vx) + (i ? 0.6 : -0.6);
+        const speed = state.level.ballSpeed;
+        let vx = Math.cos(angle) * speed,
+          vy = Math.sin(angle) * speed;
+        // A split must not create an axis-aligned orbit inside a closed chamber.
+        if (Math.abs(vx) < 18) {
+          vx = (vx < 0 ? -1 : 1) * 18;
+          vy = (vy < 0 ? -1 : 1) * Math.sqrt(speed ** 2 - vx ** 2);
+        }
+        if (Math.abs(vy) < speed * 0.22) {
+          vy = (vy < 0 ? -1 : 1) * speed * 0.22;
+          vx = (vx < 0 ? -1 : 1) * Math.sqrt(speed ** 2 - vy ** 2);
+        }
+        state.extraBalls.push({
+          id: state._nextBallId++,
+          x: ball.x,
+          y: ball.y,
+          r: ball.r,
+          active: true,
+          vx,
+          vy,
+        });
+      }
+    } else if (entity.kind === 'switch') {
+      for (const wall of state.barriers) if (wall.group === entity.group) wall.open = true;
+    } else if (entity.kind === 'pulse') {
+      for (const brick of state.bricks) {
+        const nearX = clamp(x, brick.x, brick.x + brick.w),
+          nearY = clamp(y, brick.y, brick.y + brick.h);
+        if (Math.hypot(nearX - x, nearY - y) > entity.radius) continue;
+        for (let hit = 0; hit < 2 && brick.hp > 0; hit++) hitEntity(state, brick, 'brick');
+      }
+    }
+    entity.charges--;
+    event(state, 'mechanism', {
+      kind: entity.kind,
+      id: entity.id,
+      x,
+      y,
+      radius: entity.radius,
+      balls: [state.ball, ...state.extraBalls].filter((item) => item.active).length,
+    });
+    return;
+  }
   if (kind === 'barrier') {
-    event(state, 'metal', { x: entity.x + entity.w / 2, y: entity.y + entity.h / 2 });
+    event(state, 'metal', { x, y, gate: Boolean(entity.group) });
     return;
   }
   entity.hp--;
-  event(state, 'hit', {
-    kind,
-    id: entity.id,
-    x: entity.x + entity.w / 2,
-    y: entity.y + entity.h / 2,
-    hp: entity.hp,
-  });
+  event(state, 'hit', { kind, id: entity.id, x, y, hp: entity.hp, maxHp: entity.maxHp });
   if (entity.hp === 0) {
-    event(state, 'break', {
-      kind,
-      id: entity.id,
-      x: entity.x + entity.w / 2,
-      y: entity.y + entity.h / 2,
-    });
+    event(state, 'break', { kind, id: entity.id, x, y });
     if (kind === 'cage') releasePerson(state, entity);
   }
 }
@@ -305,13 +358,9 @@ function bounceRect(ball, rect, previousX, previousY) {
   return true;
 }
 
-function moveBall(state, dt) {
-  const b = state.ball,
-    p = state.paddle;
-  if (!b.active) {
-    resetBall(state);
-    return;
-  }
+function moveBall(state, b, dt) {
+  const p = state.paddle;
+  if (!b.active) return;
   const previousX = b.x,
     previousY = b.y;
   b.x += b.vx * dt;
@@ -350,21 +399,38 @@ function moveBall(state, dt) {
     ['cage', state.cages],
     ['brick', state.bricks],
     ['barrier', state.barriers],
+    ['device', state.devices],
   ]) {
     let hit = false;
     for (const entity of entities) {
-      if ((kind === 'barrier' || entity.hp > 0) && bounceRect(b, entity, previousX, previousY)) {
-        hitEntity(state, entity, kind);
+      const solid =
+        kind === 'barrier' ? !entity.open : kind === 'device' ? entity.charges > 0 : entity.hp > 0;
+      if (solid && bounceRect(b, entity, previousX, previousY)) {
+        hitEntity(state, entity, kind, b);
         hit = true;
         break;
       }
     }
     if (hit) break;
   }
-  if (b.y - b.r > VIEWPORT.height) {
+  if (b.y - b.r > VIEWPORT.height) b.active = false;
+}
+
+function moveBalls(state, dt) {
+  if (state.phase === 'ready') {
+    resetBall(state);
+    return;
+  }
+  const moving = [state.ball, ...state.extraBalls].filter((ball) => ball.active);
+  if (!moving.length) return;
+  // A reward joins on the next substep, never midway through its spawn collision.
+  for (const ball of moving) moveBall(state, ball, dt);
+  state.extraBalls = state.extraBalls.filter((ball) => ball.active);
+  if (!state.ball.active && state.extraBalls.length) state.ball = state.extraBalls.shift();
+  if (!state.ball.active) {
     state.lives--;
     state.rescueCombo = 0;
-    event(state, 'ball-lost', { x: b.x, y: VIEWPORT.height, lives: state.lives });
+    event(state, 'ball-lost', { x: state.ball.x, y: VIEWPORT.height, lives: state.lives });
     resetBall(state);
     setPhase(state, 'ready');
     checkResult(state);
@@ -441,22 +507,21 @@ function movePeople(state, dt) {
 }
 
 function updateSlowMotion(state) {
-  const ball = state.ball;
-  const urgentPerson = state.people.some(
-    (p) =>
-      p.status === 'falling' &&
-      p.y > state.paddle.y - 115 &&
-      p.y < state.paddle.y &&
-      Math.abs(p.x - ball.x) > state.paddle.w * 0.8,
+  const urgent = [state.ball, ...state.extraBalls].some(
+    (ball) =>
+      ball.active &&
+      ball.vy > 0 &&
+      ball.y > state.paddle.y - 145 &&
+      ball.y < state.paddle.y &&
+      state.people.some(
+        (person) =>
+          person.status === 'falling' &&
+          person.y > state.paddle.y - 115 &&
+          person.y < state.paddle.y &&
+          Math.abs(person.x - ball.x) > state.paddle.w * 0.8,
+      ),
   );
-  if (
-    state.realTime >= state._slowAvailableAt &&
-    ball.active &&
-    ball.vy > 0 &&
-    ball.y > state.paddle.y - 145 &&
-    ball.y < state.paddle.y &&
-    urgentPerson
-  ) {
+  if (state.realTime >= state._slowAvailableAt && urgent) {
     state._slowUntil = state.realTime + RULES.slowDuration;
     state._slowAvailableAt = state._slowUntil + RULES.slowCooldown;
     event(state, 'slow-motion', { duration: RULES.slowDuration });
@@ -492,7 +557,7 @@ export function stepGame(state, dt, input = {}) {
     const simulationDt = FIXED_STEP * state.timeScale;
     state.time += simulationDt;
     movePeople(state, simulationDt);
-    if (isRunning(state)) moveBall(state, simulationDt);
+    if (isRunning(state)) moveBalls(state, simulationDt);
     checkResult(state);
   }
   return state;

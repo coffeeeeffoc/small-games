@@ -1,0 +1,146 @@
+[
+  {
+    "firstDirection": "N",
+    "version": "baseline",
+    "firstMove": 17.150000000000002,
+    "frames": [
+      {
+        "time": 0.5,
+        "second": {
+          "x": 8,
+          "z": 8
+        },
+        "firstPhase": "driving",
+        "delivered": 0
+      },
+      {
+        "time": 0.6000000000000001,
+        "second": {
+          "x": 8,
+          "z": 8
+        },
+        "firstPhase": "driving",
+        "delivered": 0
+      },
+      {
+        "time": 1.6,
+        "second": {
+          "x": 8,
+          "z": 8
+        },
+        "firstPhase": "driving",
+        "delivered": 0
+      }
+    ],
+    "completion": 34.1,
+    "won": true
+  },
+  {
+    "firstDirection": "N",
+    "version": "candidate",
+    "firstMove": 0.55,
+    "frames": [
+      {
+        "time": 0.5,
+        "second": {
+          "x": 8,
+          "z": 8
+        },
+        "firstPhase": "driving",
+        "delivered": 0
+      },
+      {
+        "time": 0.6000000000000001,
+        "second": {
+          "x": 8,
+          "z": 7.100000000000003
+        },
+        "firstPhase": "driving",
+        "delivered": 0
+      },
+      {
+        "time": 1.6,
+        "second": {
+          "x": 14.399999999999977,
+          "z": 4.5
+        },
+        "firstPhase": "driving",
+        "delivered": 0
+      }
+    ],
+    "completion": 31,
+    "won": true
+  },
+  {
+    "firstDirection": "W",
+    "version": "baseline",
+    "firstMove": 5.300000000000001,
+    "frames": [
+      {
+        "time": 0.5,
+        "second": {
+          "x": -4,
+          "z": 8
+        },
+        "firstPhase": "driving",
+        "delivered": 0
+      },
+      {
+        "time": 0.6000000000000001,
+        "second": {
+          "x": -4,
+          "z": 8
+        },
+        "firstPhase": "driving",
+        "delivered": 0
+      },
+      {
+        "time": 1.6,
+        "second": {
+          "x": -4,
+          "z": 8
+        },
+        "firstPhase": "driving",
+        "delivered": 0
+      }
+    ],
+    "completion": 23.55,
+    "won": true
+  },
+  {
+    "firstDirection": "W",
+    "version": "candidate",
+    "firstMove": 0.55,
+    "frames": [
+      {
+        "time": 0.5,
+        "second": {
+          "x": -4,
+          "z": 8
+        },
+        "firstPhase": "driving",
+        "delivered": 0
+      },
+      {
+        "time": 0.6000000000000001,
+        "second": {
+          "x": -4,
+          "z": 7.100000000000003
+        },
+        "firstPhase": "driving",
+        "delivered": 0
+      },
+      {
+        "time": 1.6,
+        "second": {
+          "x": 2.3999999999999897,
+          "z": 4.5
+        },
+        "firstPhase": "driving",
+        "delivered": 0
+      }
+    ],
+    "completion": 18.7,
+    "won": true
+  }
+]

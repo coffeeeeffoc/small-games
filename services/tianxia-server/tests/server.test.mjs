@@ -298,12 +298,12 @@ test('static game assets stay inside the built application, including with dev q
   t.after(() => rm(directory, { recursive: true, force: true }));
   const root = path.join(directory, 'dist');
   await mkdir(root);
-  await writeFile(path.join(root, 'index.html'), '<!doctype html><title>天下岔路</title>');
+  await writeFile(path.join(root, 'index.html'), '<!doctype html><title>夺城令</title>');
   await writeFile(path.join(directory, 'private.txt'), 'secret');
   const f = await fixture(t, { staticDir: root });
   const page = await fetch(`${f.base}/play/?dev=1`);
   assert.equal(page.status, 200);
-  assert.match(await page.text(), /天下岔路/);
+  assert.match(await page.text(), /夺城令/);
   assert.equal((await fetch(`${f.base}/play/%2e%2e%2fprivate.txt`)).status, 404);
   assert.equal((await fetch(`${f.base}/play/.data/results.json`)).status, 404);
 });

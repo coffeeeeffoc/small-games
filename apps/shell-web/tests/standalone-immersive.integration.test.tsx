@@ -38,7 +38,6 @@ it.each([
   'ashfall-front',
   'carrom-club',
   'three-choose-two',
-  'retreat-rally',
   'cage-rescue',
   'chase-thief',
   'orbit-atelier',

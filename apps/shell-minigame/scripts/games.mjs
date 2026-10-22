@@ -17,15 +17,6 @@ export const games = {
     orientation: 'portrait',
     assets: [{ source: 'native/assets', target: 'assets' }],
   },
-  'retreat-rally': {
-    title: '收兵再冲',
-    root: 'retreat-rally',
-    orientation: 'landscape',
-    module: '@coffeeeeffoc/retreat-rally/canvas',
-    definition: 'rallyCanvasDefinition',
-    content: 'defaultRallyEnvelope',
-    assets: [{ source: 'assets', target: 'rally-assets' }],
-  },
   'flick-arena': {
     title: '弹指擂台',
     root: 'flick-arena',

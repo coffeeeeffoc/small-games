@@ -773,7 +773,6 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
     'flick-arena': ['publishing.browser.mjs'],
     'moss-garden': ['publishing.browser.mjs'],
     'chase-thief': ['publishing.browser.mjs'],
-    'retreat-rally': ['publishing.browser.mjs'],
     'tiny-signals': ['publishing.browser.mjs'],
     'orbit-atelier': ['publishing.browser.mjs', 'browser.mjs'],
     'wulong-city': ['publishing.browser.mjs'],

@@ -48,15 +48,6 @@ const challengeProtocols: Readonly<Record<string, ChallengeProtocol>> = {
     },
     required: ['chaseChallenge', 'level', 'time', 'mistakes'],
   },
-  'retreat-rally': {
-    fields: {
-      rallyChallenge: oneOf('1'),
-      level: oneOf('valley', 'pursuit', 'crossbow'),
-      time: integer(180, 1),
-      survivors: integer(6, 1),
-    },
-    required: ['rallyChallenge', 'level', 'time', 'survivors'],
-  },
   'tiny-signals': {
     fields: {
       challenge: oneOf('1'),

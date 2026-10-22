@@ -1,5 +1,7 @@
 # 统一 H5 游戏包构建
 
+本文件维护当前批量入口的配置与产物边界。通用产品要求见[游戏开发规范](../game-development.md)，广告接口与多渠道接线见[广告指南](taptap-rewarded-ads.md)，上架资料在各游戏 `publishing/` 中按[统一规范](../game-publishing.md)维护。可扩展多平台不表示当前命令已经支持所有目标。
+
 `pnpm build:games` 按根目录 `game-build.local.mjs` 打包围捕小队、街区追捕与象五子棋的 TapTap H5 版本。带注释的模板见 `infra/builds/games.example.mjs`。三款游戏只保留 H5，原生小游戏目标会在编译前报错。
 
 五款游戏的广告＋统一基础服务使用 `infra/builds/five-taptap-h5.mjs`，通过 `pnpm build:games --config infra/builds/five-taptap-h5.mjs` 构建。AppID、广告位和注意事项见 [TapTap 广告指南](taptap-rewarded-ads.md)。
@@ -52,7 +54,9 @@ export default {
 };
 ```
 
-`games` 显式选择游戏，空数组不会自动全选。目标仅支持 `taptap` / `h5`，重复目标、原生 `appIds` / `release` 和未知字段均拒绝。应用归属由 H5 上传后台关联；可选 `tapServices` 按游戏保存 H5 应用公开的 `appConsoleId`、`appId`、`leaderboardId`。
+`games` 显式选择游戏，空数组不会自动全选；可选名单以 `scripts/build-games.mjs` 及 `scripts/h5-ad-config.mjs` 的校验为准，上面的六款预设不是全部支持名单，当前也有归途站、神机合阵等后续调用者。目标仅支持 `taptap` / `h5`，重复目标、原生 `appIds` / `release` 和未知字段均拒绝。应用归属由 H5 上传后台关联；原三款可选 `tapServices` 按游戏保存 `enabled` 和 H5 应用公开的 `appConsoleId`、`appId`、`leaderboardId`，与统一后端及广告开关分别控制。
+
+广告配置按 `targets[].adUnits[gameId]` 传入，构建器转为 `H5_ADS_ENABLED` 与 `TAPTAP_<GAME>_AD_UNIT_ID`，由 `prepareH5Ads()` 生成运行配置；游戏只消费公共奖励端口。新增目标沿现有构建描述和校验扩展，不在游戏页面中拼装 SDK／广告位。Cocos 原生自动注入的实际范围及独立转换流程见[广告指南](taptap-rewarded-ads.md#平台扩展与实际支持2026-10-22-核对)，不属于本 H5 配置 schema。
 
 `ads` 与 `backend` 为布尔数组，按所有组合生成包；目标内可覆盖全局值。原三款广告开启时必须填写所选游戏的 H5 广告位；新增六款的空广告位会关闭奖励入口。后端关闭会清空产物的 API 地址，开启时要求公开 HTTPS；`localBackend: true` 只允许本机 H5 的 loopback HTTP。缺失配置会在首款编译前报错。
 

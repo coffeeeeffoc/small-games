@@ -13,7 +13,7 @@ const app = await createTianxiaServer({
   maxMatches,
 });
 await app.listen(port, host);
-console.log(`天下岔路权威对局服务 http://${host}:${port}/play/`);
+console.log(`夺城令权威对局服务 http://${host}:${port}/play/`);
 for (const signal of ['SIGINT', 'SIGTERM'])
   process.once(signal, async () => {
     await app.close();

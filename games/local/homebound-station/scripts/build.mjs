@@ -38,6 +38,7 @@ const config = {
     '2d',
     'ui',
     'graphics',
+    'mask',
     'audio',
     'primitive',
   ],

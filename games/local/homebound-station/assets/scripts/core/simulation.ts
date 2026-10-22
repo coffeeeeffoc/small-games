@@ -1,6 +1,16 @@
 import { DIRECTIONS, type LevelConfig, type VehicleConfig } from './levels.ts';
 
-export type Point = { x: number; z: number };
+import {
+  getStationGeometry,
+  parkingPosition,
+  stationEntryPath,
+  stationDeparturePath,
+  type Point,
+  type StationGeometry,
+} from './geometry.ts';
+import { moveStation, canStartPassengerWalk, type StationMovement } from './station-traffic.ts';
+export { getStationGeometry, parkingPosition } from './geometry.ts';
+export type { Point, Bounds, Lane, StationBayGeometry, StationGeometry } from './geometry.ts';
 export const BAY_X: Record<string, number> = { T1: -7.5, T2: -2.5, T3: 2.5, T4: 7.5 };
 export const STEP = 0.05;
 export interface Passenger {
@@ -64,8 +74,15 @@ export interface Service {
   assignmentOrder: number;
   pickupPoint?: Point;
   waitingForTraffic?: boolean;
+  /** Exclusive use of this bay’s final approach and adjacent entry/exit weave. */
+  bayManeuver?: boolean;
+  crosswalkActive?: boolean;
+  /** Actual distance moved, used to release short crossing priorities after clearance. */
+  travelled?: number;
 }
 export interface Simulation {
+  geometry: StationGeometry;
+  movements?: Record<string, StationMovement>;
   config: LevelConfig;
   time: number;
   ticks: number;
@@ -78,6 +95,8 @@ export interface Simulation {
   services: Service[];
   delivered: Set<string>;
   roadOwner?: string;
+  /** Per-pair local crossing priority; never reserves a future boarding/departure route. */
+  crossingOwners?: Record<string, { vehicleId: string; clearAtDistance: number }>;
   target: number;
   maxWait: number;
   splits: number;
@@ -90,6 +109,7 @@ export interface Check {
 }
 const no = (reason: string): Check => ({ ok: false, reason });
 export function createSimulation(config: LevelConfig): Simulation {
+  const geometry = getStationGeometry(config);
   for (const g of config.groups)
     if (!Number.isInteger(g.size) || g.size < 1 || g.size > 6) throw new Error('乘客组须为 1—6 人');
   const groups: Group[] = config.groups.map((g, sequence) => ({
@@ -114,7 +134,7 @@ export function createSimulation(config: LevelConfig): Simulation {
     driverSeatCount: 1,
     passengerCapacity: v.capacity,
     state: 'holding',
-    position: { x: -8 + v.column * 4, z: 8 + v.row * 4 },
+    position: parkingPosition(geometry, v.column, v.row),
     angle: Math.atan2(DIRECTIONS[v.direction].x, DIRECTIONS[v.direction].z),
   }));
   if (
@@ -130,15 +150,16 @@ export function createSimulation(config: LevelConfig): Simulation {
       !Number.isInteger(v.column) ||
       !Number.isInteger(v.row) ||
       v.column < 0 ||
-      v.column > 4 ||
+      v.column >= geometry.parking.columns ||
       v.row < 0 ||
-      v.row > 3
+      v.row >= geometry.parking.rows
     )
       throw new Error('车辆容量或格位无效');
   if (new Set(vehicles.map((v) => `${v.column},${v.row}`)).size !== vehicles.length)
     throw new Error('车辆不能重叠停放');
   return {
     config,
+    geometry,
     time: 0,
     ticks: 0,
     remainder: 0,
@@ -166,7 +187,10 @@ export function blocker(s: Simulation, v: Vehicle, ignoreId?: string): Vehicle |
         return false;
       if (
         w.state === 'movingToBay' &&
-        (Math.abs(w.position.x) > 10 || w.position.z < 6 || w.position.z > 22)
+        (w.position.x < s.geometry.parking.bounds.left ||
+          w.position.x > s.geometry.parking.bounds.right ||
+          w.position.z < s.geometry.parking.bounds.top ||
+          w.position.z > s.geometry.parking.bounds.bottom)
       )
         return false;
       const dx = w.position.x - v.position.x,
@@ -245,6 +269,7 @@ export function dispatch(s: Simulation, vehicleId: string, bayId?: string): Chec
     g.vehicleId = v.id;
     g.bayId = b.id;
     if (
+      s.geometry.mode === 'legacy' &&
       b.state === 'free' &&
       !s.services.some((j) => j.bayId === b.id && j.clearedAt === undefined && j.phase !== 'done')
     ) {
@@ -354,6 +379,8 @@ export function splitGroup(
   };
 }
 export function queuePosition(s: Simulation, g: Group): Point {
+  if (s.geometry.mode === 'station')
+    return { ...s.geometry.bays.find((b) => b.id === g.queueBayId)!.door };
   const root = g.parentGroupId ? s.groups.find((p) => p.id === g.parentGroupId)! : g;
   const rank = s.groups.filter(
     (p) => !p.parentGroupId && p.queueBayId === g.queueBayId && p.sequence < root.sequence,
@@ -401,87 +428,222 @@ export function entryPath(v: Vehicle, bayId?: string): Point[] {
       : [{ x: 22, z: 4.5 }]),
   ];
 }
+function releaseCrossingPriorities(s: Simulation, vehicleId: string) {
+  // A different route or a stop at the bay is a different crossing event. Keeping
+  // the old priority would reserve a departure that did not exist when it was won.
+  for (const key of Object.keys(s.crossingOwners ?? {})) {
+    if ((JSON.parse(key) as string[]).includes(vehicleId)) delete s.crossingOwners![key];
+  }
+}
+function adjacentBayManeuverActive(s: Simulation, job: Service) {
+  if (!job.bayId) return false;
+  const bx = BAY_X[job.bayId]!;
+  return s.services.some(
+    (other) =>
+      other !== job && other.bayManeuver && other.bayId && Math.abs(BAY_X[other.bayId]! - bx) < 6,
+  );
+}
+function mustCircleBay(s: Simulation, job: Service) {
+  return (
+    s.bays.find((b) => b.id === job.bayId)?.vehicleId !== job.vehicleId ||
+    (!job.bayManeuver && adjacentBayManeuverActive(s, job))
+  );
+}
 function beginPath(s: Simulation, job: Service, departing: boolean) {
+  releaseCrossingPriorities(s, job.vehicleId);
   const v = s.vehicles.find((v) => v.id === job.vehicleId)!;
   job.elapsed = 0;
   job.pathIndex = 1;
   job.phase = departing ? 'departing' : 'driving';
   v.state = departing ? 'departing' : 'movingToBay';
-  job.path = departing
-    ? [
-        { ...v.position },
-        { x: v.position.x + 1.3, z: 0.5 },
-        { x: v.position.x + 2.1, z: 4.5 },
-        { x: 22, z: 4.5 },
-      ]
-    : entryPath(v, job.bayId);
+  job.path =
+    s.geometry.mode === 'station'
+      ? departing
+        ? stationDeparturePath(s.geometry, v.position)
+        : stationEntryPath(s.geometry, v.position, v.direction, job.bayId)
+      : departing
+        ? [
+            { ...v.position },
+            { x: v.position.x + 1.3, z: 0.5 },
+            { x: v.position.x + 2.1, z: 4.5 },
+            { x: 22, z: 4.5 },
+          ]
+        : entryPath(v, job.bayId);
   if (departing) {
     const b = s.bays.find((b) => b.id === job.bayId);
     if (b?.vehicleId === v.id) b.state = 'clearing';
   }
 }
-// Reserve crossing corridors in click order, including the later departure merge.
-// Parallel lanes remain free; a car already leaving a corridor may keep moving out.
-// Looking through the departure avoids a later car trapping an earlier car at its pocket.
+// Inspect only nearby traffic on its current route (18m = two seconds at 9m/s).
+// The first car to reach a local conflict goes first; click order breaks ties.
+// Keep that choice until the car clears the conflict, so rounding a corner cannot
+// reverse priority after another car has already entered the shared space.
 function crossingReserved(
   s: Simulation,
   candidate: Pick<Vehicle, 'position' | 'angle'>,
   job: Service,
   current: Vehicle,
 ) {
+  const heading = { x: Math.sin(candidate.angle), z: Math.cos(candidate.angle) };
   for (const other of s.services) {
-    if (other.assignmentOrder >= job.assignmentOrder || other.phase === 'done') continue;
+    if (
+      other === job ||
+      !['driving', 'departing'].includes(other.phase) ||
+      (other.phase === 'departing' && other.pathIndex < 3 && !other.bayManeuver)
+    )
+      continue;
     const car = s.vehicles.find((v) => v.id === other.vehicleId)!;
-    let start = car.position;
-    const bx = other.bayId ? BAY_X[other.bayId]! : undefined;
-    const path = ['driving', 'departing'].includes(other.phase)
-      ? other.path.slice(other.pathIndex)
-      : [];
-    if (bx !== undefined && other.phase !== 'departing')
-      path.push({ x: bx + 1.3, z: 0.5 }, { x: bx + 2.1, z: 4.5 }, { x: 22, z: 4.5 });
-    for (let i = 0; i < path.length; i++) {
-      const end = path[i]!,
-        dx = end.x - start.x,
+    let start = car.position,
+      along = 0;
+    const route = other.path.slice(other.pathIndex);
+    // Before committing to the final bay approach, a car can still go straight.
+    // Protect that local through-lane envelope so another car never waits inside
+    // a route that may become necessary. A committed entry keeps its actual route.
+    if (
+      other.phase === 'driving' &&
+      other.bayId &&
+      !other.bayManeuver &&
+      other.pathIndex <= other.path.length - 3
+    ) {
+      route.splice(
+        route.length - 3,
+        3,
+        { x: 16, z: 4.5 },
+        { x: 16, z: 28 },
+        { x: -16, z: 28 },
+        { x: -16, z: 4.5 },
+      );
+    }
+    for (const end of route) {
+      const dx = end.x - start.x,
         dz = end.z - start.z,
         length = Math.hypot(dx, dz);
       if (length < 0.0001) {
         start = end;
         continue;
       }
-      const travel = length,
-        ux = dx / length,
+      const ux = dx / length,
         uz = dz / length;
-      if (Math.abs(ux * Math.sin(candidate.angle) + uz * Math.cos(candidate.angle)) < 0.95) {
-        const projected = Math.max(
-          0,
-          Math.min(
-            travel,
-            (candidate.position.x - start.x) * ux + (candidate.position.z - start.z) * uz,
-          ),
-        );
+      const dot = ux * heading.x + uz * heading.z;
+      if (dot < 0.95 && Math.abs(heading.x * uz - heading.z * ux) > 0.0001) {
+        const project = (p: Point) =>
+          Math.max(0, Math.min(length, (p.x - start.x) * ux + (p.z - start.z) * uz));
+        const nextProjection = project(candidate.position),
+          oldProjection = project(current.position);
         const nextDistance = Math.hypot(
-          candidate.position.x - start.x - ux * projected,
-          candidate.position.z - start.z - uz * projected,
-        );
-        const oldProjection = Math.max(
-          0,
-          Math.min(
-            travel,
-            (current.position.x - start.x) * ux + (current.position.z - start.z) * uz,
-          ),
+          candidate.position.x - start.x - ux * nextProjection,
+          candidate.position.z - start.z - uz * nextProjection,
         );
         const oldDistance = Math.hypot(
           current.position.x - start.x - ux * oldProjection,
           current.position.z - start.z - uz * oldProjection,
         );
-        if (nextDistance < 3.43 && nextDistance < oldDistance - 0.00001) return true;
+        if (nextDistance < 3.55 && nextDistance < oldDistance - 0.00001) {
+          // Use finite segments: their intersection, or their closest point pair.
+          // Extended lines may intersect behind a car or beyond its next turn;
+          // treating that imaginary point as distance zero causes mutual yielding.
+          const ownEnd = job.path[job.pathIndex]!;
+          const ownX = ownEnd.x - current.position.x,
+            ownZ = ownEnd.z - current.position.z;
+          const ownLength = Math.hypot(ownX, ownZ);
+          const ownUx = ownX / ownLength,
+            ownUz = ownZ / ownLength;
+          const cross = ownUx * uz - ownUz * ux;
+          const rx = start.x - current.position.x,
+            rz = start.z - current.position.z;
+          const t = (rx * uz - rz * ux) / cross,
+            u = (rx * ownUz - rz * ownUx) / cross;
+          const approaches: { own: number; other: number; distance: number }[] = [];
+          const add = (a: number, b: number) =>
+            approaches.push({
+              own: a,
+              other: b,
+              distance: Math.hypot(
+                current.position.x + ownUx * a - start.x - ux * b,
+                current.position.z + ownUz * a - start.z - uz * b,
+              ),
+            });
+          if (t >= 0 && t <= ownLength && u >= 0 && u <= length) add(t, u);
+          else {
+            const projectOther = (p: Point) =>
+              Math.max(0, Math.min(length, (p.x - start.x) * ux + (p.z - start.z) * uz));
+            const projectOwn = (p: Point) =>
+              Math.max(
+                0,
+                Math.min(
+                  ownLength,
+                  (p.x - current.position.x) * ownUx + (p.z - current.position.z) * ownUz,
+                ),
+              );
+            add(0, projectOther(current.position));
+            add(ownLength, projectOther(ownEnd));
+            add(projectOwn(start), 0);
+            add(projectOwn(end), length);
+          }
+          approaches.sort((a, b) => a.distance - b.distance || a.own + a.other - (b.own + b.other));
+          const closest = approaches[0]!;
+          if (closest.distance >= 3.43) {
+            along += length;
+            start = end;
+            continue;
+          }
+          const ownDistance = closest.own;
+          const otherDistance = along + closest.other;
+          if (otherDistance <= 18) {
+            const key = JSON.stringify([job.vehicleId, other.vehicleId].sort());
+            const leases = (s.crossingOwners ??= {});
+            let lease: (typeof leases)[string] | undefined = leases[key];
+            if (lease) {
+              const owner = lease.vehicleId === job.vehicleId ? job : other;
+              if (
+                !['driving', 'departing'].includes(owner.phase) ||
+                (owner.travelled ?? 0) >= lease.clearAtDistance
+              ) {
+                delete leases[key];
+                lease = undefined;
+              }
+            }
+            if (!lease) {
+              const otherFirst =
+                otherDistance < ownDistance - 0.05 ||
+                (Math.abs(otherDistance - ownDistance) <= 0.05 &&
+                  other.assignmentOrder < job.assignmentOrder);
+              const owner = otherFirst ? other : job;
+              // Hold through two clearance radii around this local conflict. This
+              // accounts for nearby turning segments without reserving the circuit.
+              lease = leases[key] = {
+                vehicleId: owner.vehicleId,
+                clearAtDistance:
+                  (owner.travelled ?? 0) + (otherFirst ? otherDistance : ownDistance) + 7.1,
+              };
+            }
+            if (lease.vehicleId === other.vehicleId) return true;
+          }
+        }
       }
+      along += length;
+      if (along > 18) break;
       start = end;
     }
   }
   return false;
 }
 function move(s: Simulation, v: Vehicle, job: Service) {
+  if (s.geometry.mode === 'station') return moveStation(s, v, job);
+  const bx = job.bayId ? BAY_X[job.bayId] : undefined;
+  // Adjacent bay turns overlap; the final approach and turn own this short weave.
+  // Commit before the final approach, so an occupied neighboring bay cannot
+  // force a last-moment route change into another car's safe waiting space.
+  // Walking/boarding releases it, and nonadjacent bays remain independent.
+  const occupied = () => adjacentBayManeuverActive(s, job);
+  if (job.phase === 'departing' && job.pathIndex < 3 && !job.bayManeuver && bx !== undefined) {
+    if (occupied()) {
+      job.waitingForTraffic = true;
+      return false;
+    }
+    job.bayManeuver = true;
+  }
+
   let remaining = 9 * STEP;
   job.waitingForTraffic = false;
   // The 3.43m separation encloses two rotating 3m × 1.5m bodies, with a safety margin.
@@ -492,12 +654,26 @@ function move(s: Simulation, v: Vehicle, job: Service) {
     if (
       job.phase === 'driving' &&
       bay &&
-      job.pathIndex >= job.path.length - 2 &&
-      bay.vehicleId !== v.id
+      job.pathIndex >= job.path.length - 3 &&
+      mustCircleBay(s, job)
     ) {
-      job.waitingForTraffic = true;
-      break;
+      // A later arrival must not park on the through lane and trap the assigned
+      // bay owner. Keep circulating until the bay and its short entry weave are free.
+      const bx = BAY_X[job.bayId!]!;
+      releaseCrossingPriorities(s, job.vehicleId);
+      job.path = [
+        { ...v.position },
+        { x: 16, z: 4.5 },
+        { x: 16, z: 28 },
+        { x: -16, z: 28 },
+        { x: -16, z: 4.5 },
+        { x: bx - 2.1, z: 4.5 },
+        { x: bx - 1.1, z: 0.5 },
+        { x: bx, z: 0.5 },
+      ];
+      job.pathIndex = 1;
     }
+    if (job.phase === 'driving' && job.pathIndex >= job.path.length - 3) job.bayManeuver = true;
     const p = job.path[job.pathIndex]!,
       dx = p.x - v.position.x,
       dz = p.z - v.position.z,
@@ -528,6 +704,7 @@ function move(s: Simulation, v: Vehicle, job: Service) {
       job.waitingForTraffic = true;
       break;
     }
+    job.travelled = (job.travelled ?? 0) + distance;
     v.position = position;
     v.angle = angle;
     remaining -= distance;
@@ -536,6 +713,13 @@ function move(s: Simulation, v: Vehicle, job: Service) {
       job.pathIndex++;
     }
   }
+  // Release only after the rear has cleared the neighboring bay's turning space.
+  if (
+    job.bayManeuver &&
+    ((job.phase === 'departing' && v.position.x > (bx ?? 0) + 5.7) ||
+      job.pathIndex >= job.path.length)
+  )
+    delete job.bayManeuver;
   return job.pathIndex >= job.path.length;
 }
 function clearBay(s: Simulation, job: Service, v: Vehicle, g: Group, b: Bay) {
@@ -570,7 +754,7 @@ function tick(s: Simulation) {
       g.commitmentUntil = undefined;
     }
   for (const bay of s.bays)
-    if (bay.state === 'free') {
+    if (s.geometry.mode === 'legacy' && bay.state === 'free') {
       const next = s.services.find(
         (j) => j.bayId === bay.id && j.clearedAt === undefined && j.phase !== 'done',
       );
@@ -588,10 +772,29 @@ function tick(s: Simulation) {
     const v = s.vehicles.find((v) => v.id === job.vehicleId)!,
       g = s.groups.find((g) => g.id === job.groupId),
       b = s.bays.find((b) => b.id === job.bayId);
+    if (
+      s.geometry.mode === 'station' &&
+      job.phase === 'walking' &&
+      !canStartPassengerWalk(s, job)
+    ) {
+      job.elapsed = 0;
+      continue;
+    }
     job.elapsed += STEP;
     if (job.phase === 'driving' || job.phase === 'departing') {
       const finished = move(s, v, job);
-      if (job.phase === 'departing' && job.pathIndex >= 3 && job.clearedAt === undefined && g && b)
+      if (
+        job.phase === 'departing' &&
+        (s.geometry.mode === 'station' && b
+          ? Math.hypot(
+              v.position.x - s.geometry.bays.find((p) => p.id === b?.id)!.point.x,
+              v.position.z - s.geometry.bays.find((p) => p.id === b?.id)!.point.z,
+            ) > 3.6
+          : job.pathIndex >= 3) &&
+        job.clearedAt === undefined &&
+        g &&
+        b
+      )
         clearBay(s, job, v, g, b);
       if (!finished) continue;
       if (job.phase === 'driving' && g && b) {
@@ -599,10 +802,16 @@ function tick(s: Simulation) {
         b.state = 'occupied';
         g.state = 'walking';
         job.phase = 'walking';
+        releaseCrossingPriorities(s, job.vehicleId);
         job.elapsed = 0;
         job.walkFrom = job.pickupPoint ?? queuePosition(s, g);
         job.duration =
-          (Math.abs(job.walkFrom.x - BAY_X[b.id]!) + Math.abs(job.walkFrom.z + 0.4)) / 3.5;
+          (s.geometry.mode === 'station'
+            ? Math.hypot(
+                job.walkFrom.x - s.geometry.bays.find((p) => p.id === b.id)!.point.x,
+                job.walkFrom.z - s.geometry.bays.find((p) => p.id === b.id)!.point.z,
+              )
+            : Math.abs(job.walkFrom.x - BAY_X[b.id]!) + Math.abs(job.walkFrom.z + 0.4)) / 3.5;
       } else {
         v.state = 'removed';
         job.phase = 'done';
@@ -610,6 +819,7 @@ function tick(s: Simulation) {
       }
     } else if (g) {
       if (job.phase === 'walking' && job.elapsed >= job.duration) {
+        job.crosswalkActive = false;
         job.phase = 'boarding';
         g.state = 'boarding';
         job.elapsed = 0;
@@ -646,6 +856,7 @@ export function snapshot(s: Simulation) {
     paused: s.paused,
     won: s.won,
     level: s.config.id,
+    geometry: s.geometry,
     delivered: Array.from(s.delivered),
     target: s.target,
     roadOwner: s.roadOwner,

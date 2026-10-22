@@ -13,11 +13,11 @@ import {
   rolloutGroups,
 } from '../src/catalog-assessments.js';
 
-const heldIds = ['chase-thief', 'retreat-rally'];
+const heldIds: string[] = [];
 
-it('covers every registered and on-disk Game once and preserves the two remaining hold decisions and resumed Merge Front', () => {
+it('covers every registered and on-disk Game once and includes the resumed city chase', () => {
   const ids = [...builtInGameRegistry, ...standalone].map((g) => g.id).sort();
-  expect(ids).toHaveLength(43);
+  expect(ids).toHaveLength(42);
   expect(assessmentData.games.map((g) => g.id).sort()).toEqual(ids);
   expect(Object.keys(assessments).sort()).toEqual(ids);
   expect(new Set(ids).size).toBe(ids.length);
@@ -47,35 +47,33 @@ it('covers every registered and on-disk Game once and preserves the two remainin
     expect(game.potential).not.toContain('hit');
     if (heldIds.includes(game.id)) {
       expect(game.schedule).toBe('hold');
-      expect(game.potential).toEqual(
-        ['chase-thief', 'retreat-rally'].includes(game.id) ? ['none'] : ['low'],
-      );
+      expect(game.potential).toEqual(['none']);
     } else expect(game.potential).toContain('potential');
   }
   expect(assessments['travel-bund'].disposition).toBe('potential');
 });
 
-it('exhaustively partitions 43 games into 7 previous, 14 current, 20 later and 2 held with the latest user decisions', () => {
+it('exhaustively partitions 42 games into 7 previous, 15 current, 20 later and 0 held with the latest user decisions', () => {
   const games = Object.values(assessments);
   const scheduled = rolloutGroups.flatMap(([tab]) => {
     const matches = games.filter((game) => matchesAssessment(game, { ...emptyFilters(), tab }));
-    expect(matches).toHaveLength({ previous: 7, current: 14, later: 20, hold: 2 }[tab]);
+    expect(matches).toHaveLength({ previous: 7, current: 15, later: 20, hold: 0 }[tab]);
     return matches.map((game) => game.id);
   });
   expect(scheduled.sort()).toEqual(games.map((game) => game.id).sort());
-  expect(new Set(scheduled).size).toBe(43);
+  expect(new Set(scheduled).size).toBe(42);
   expect(
     games.filter((game) =>
       matchesAssessment(game, { ...emptyFilters(), potential: ['potential'] }),
     ),
-  ).toHaveLength(41);
+  ).toHaveLength(42);
   expect(
     games
       .filter((game) => game.schedule === 'current')
       .map((game) => game.id)
       .sort(),
   ).toEqual(
-    'merge-front ashfall-front tiny-signals orbit-atelier letters-words2 wulong-city surprise-kept homebound-station waterline-station rescue-team tianxia-chalu out-of-frame fold-the-world two-sided-box'
+    'chase-thief merge-front ashfall-front tiny-signals orbit-atelier letters-words2 wulong-city surprise-kept homebound-station waterline-station rescue-team tianxia-chalu out-of-frame fold-the-world two-sided-box'
       .split(' ')
       .sort(),
   );

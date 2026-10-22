@@ -1,5 +1,7 @@
 # Creator rewarded advertising
 
+Shared product requirements and integration boundaries live in the [game guidelines](../../docs/game-development.md) and [advertising guide](../../docs/operations/taptap-rewarded-ads.md). This file documents the bridge API; selecting an adapter does not establish per-game build integration or device acceptance.
+
 `@coffeeeeffoc/native-game-shell/creator-ads` is the lightweight entry for an existing Creator game. It creates no Canvas, browser shim, touch handler or game lifecycle. It composes the shared `createAdRuntime` policy with `createNativeAdProvider` and exposes the normal `AdvertisingPort.offer({ id, reward })` contract.
 
 ```ts

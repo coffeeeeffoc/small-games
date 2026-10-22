@@ -11,4 +11,4 @@ for (const directory of ['src', 'scripts', 'tests']) {
   }
 }
 await import('../src/server.mjs');
-console.log('天下岔路服务语法与共享引擎导入检查通过');
+console.log('夺城令服务语法与共享引擎导入检查通过');

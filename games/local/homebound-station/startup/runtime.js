@@ -8,6 +8,7 @@
   function clean() {
     clearTimeout(timer);
     window.removeEventListener('homebound-ready', ready);
+    window.removeEventListener('homebound-load-error', fail);
   }
   function fail() {
     if (settled) return;
@@ -31,6 +32,7 @@
   }
   retry.onclick = () => location.reload();
   window.addEventListener('homebound-ready', ready);
+  window.addEventListener('homebound-load-error', fail);
   window.HomeboundStartup = {
     async boot(applicationPath) {
       document.getElementById('GameDiv')?.setAttribute('inert', '');

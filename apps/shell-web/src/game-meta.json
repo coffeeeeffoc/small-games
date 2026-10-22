@@ -85,8 +85,8 @@
         "time": "2026-10-06T18:26:31Z"
       },
       "updated": {
-        "commit": "7446f42f0937565c310e0261a4db9ecc17ef2ff2",
-        "time": "2026-10-12T02:18:18+08:00"
+        "commit": "f0f2576b38fba2d41642c7dbe7af05b75ce87b55",
+        "time": "2026-10-22T17:05:08Z"
       }
     },
     "cops-robbers": {
@@ -285,17 +285,6 @@
       "updated": {
         "commit": "b0cb8b691d85327a67f5b1cec4d544b1a020552d",
         "time": "2026-10-11T13:23:08+08:00"
-      }
-    },
-    "retreat-rally": {
-      "source": "games/local/retreat-rally",
-      "created": {
-        "commit": "8d90679798bff1031a911586d3214df78d5af8cc",
-        "time": "2026-10-05T20:48:51Z"
-      },
-      "updated": {
-        "commit": "7446f42f0937565c310e0261a4db9ecc17ef2ff2",
-        "time": "2026-10-12T02:18:18+08:00"
       }
     },
     "surprise-kept": {

@@ -105,7 +105,7 @@ const provider =
 const newPublishing = () =>
   createH5Publishing({
     gameId: 'tianxia-chalu',
-    title: '天下岔路',
+    title: '夺城令',
     adMode: provider ? 'host' : 'off',
     provider,
     pause: () => {
@@ -215,7 +215,7 @@ function home() {
   const next = nextLevel();
   show(
     'home',
-    '<section class="screen home"><div class="home-title"><p class="eyebrow">百 战 山 河</p><h1>天下<br><span>岔路</span></h1><p class="home-tagline">一指改军令，寸土定山河。</p></div><div class="home-actions"><p class="chapter-note">第 ' +
+    '<section class="screen home"><div class="home-title"><p class="eyebrow">百 战 山 河</p><h1>夺城令</h1><p class="home-tagline">一指改军令，寸土定山河。</p></div><div class="home-actions"><p class="chapter-note">第 ' +
       next.chapter +
       ' 章 · ' +
       esc(next.chapterName) +

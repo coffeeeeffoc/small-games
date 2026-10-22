@@ -1,5 +1,7 @@
 # Game 目录与统一运行
 
+本文件负责源码归属、注册与构建接入。新增、修改及迁移游戏先遵循[通用开发规范](game-development.md)，交付时按[上架资料规范](game-publishing.md)检查本游戏 `publishing/STATUS.md`；这里不重复产品与素材规则。
+
 所有游戏源码集中在 `games/`，按 Git 归属区分：
 
 - `games/local/*`：父仓库直接管理源码，普通 clone 即可取得；`local` 不代表忽略提交。
@@ -14,7 +16,7 @@
 
 | 源码目录（相对 games/local） | Game                | workspace 包名              | 装载方式 |
 | ---------------------------- | ------------------- | --------------------------- | -------- |
-| tianxia-chalu                | 天下岔路            | @coffeeeeffoc/tianxia-chalu | iframe   |
+| tianxia-chalu                | 夺城令              | @coffeeeeffoc/tianxia-chalu | iframe   |
 | cops-robbers                 | 围捕小队            | cops-robbers                | iframe   |
 | cops-robbers-realtime        | 别跑！街区围捕      | cops-robbers-realtime       | iframe   |
 | letters-words2               | 词屿 · 字母叠叠乐   | ciyu-word-tiles             | iframe   |
@@ -24,7 +26,7 @@
 | vibeJam-myself-history-guess | 此时 · 此地         | here-and-then               | iframe   |
 | vibeJam-myself-nullrange     | 零域 · NULL RANGE   | null-range-mobile-cn        | iframe   |
 
-《天下岔路》由两个子应用组成：`games/local/tianxia-chalu` 提供移动端 H5 游戏，`services/tianxia-server` 提供独立对局后端。游戏以适合单拇指点击岔路的竖屏地图为主，通过 iframe 装载，独立地址为 `/games/tianxia-chalu/index.html`。核心规则和关卡配置独立维护，后端复用游戏公开导出的规则；离线游玩不依赖服务器。开发与验证见 [游戏 README](../games/local/tianxia-chalu/README.md) 和 [后端 README](../services/tianxia-server/README.md)。
+《夺城令》由两个子应用组成：`games/local/tianxia-chalu` 提供移动端 H5 游戏，`services/tianxia-server` 提供独立对局后端。游戏以适合单拇指点击岔路的竖屏地图为主，通过 iframe 装载，独立地址为 `/games/tianxia-chalu/index.html`。核心规则和关卡配置独立维护，后端复用游戏公开导出的规则；离线游玩不依赖服务器。开发与验证见 [游戏 README](../games/local/tianxia-chalu/README.md) 和 [后端 README](../services/tianxia-server/README.md)。
 
 《星扣工坊》位于 `games/local/orbit-atelier`，workspace 包名为 `@coffeeeeffoc/orbit-atelier`，通过 iframe 装载，独立地址为 `/games/orbit-atelier/index.html`。竖屏星图提供八个章节共 74 关（原 24 关新增 50 关），拖动圆环调整缺口，完整让开两处连接后松手滑离；两处交点交替上穿下穿，净空判定包含金属环带宽度。分岔、宽开口、微隙及接力星栓逐章组合。核心几何、规则与关卡配置独立维护，浏览器入口复用统一开发者模式及 H5 全屏。开发、构建、规则测试与浏览器验收分别使用包内 `dev`、`build`、`test` 和 `test:browser`。
 
@@ -200,7 +202,6 @@ Android 的 Web 素材流程复用大厅制品。B 站原生 Canvas Shell 继续
 
 这里验证的是本机浏览器模拟手机与 Web 资源包；没有执行真机 APK/iOS 安装、远端 GitHub Actions 或线上发布。全部运行入口保留原玩法，测试适配了横屏提示、不可选字母牌和旅游风景画卷的实际行为。
 
-《收兵再冲》位于 `games/local/retreat-rally`，包名 `@coffeeeeffoc/retreat-rally`，Shell 入口 `#/games/retreat-rally`，独立入口 `/games/retreat-rally/index.html`。三关单线战役、明确标注的本地模拟匹配及同屏双人；本轮没有后端。微信 Canvas 预览通过 `pnpm minigame:build --platform wechat --game retreat-rally --preview` 构建，与 H5 共用模拟规则和渲染。详见[游戏说明](../games/local/retreat-rally/README.md)。
 《一炮拆城》位于 `games/local/game-castle-cannon`，访问 ID 为 `castle-cannon`，workspace 包名为 `@coffeeeeffoc/game-castle-cannon`。独立 H5 通过同源 iframe 装载，Canvas 规则和绘制同时经既有 Native Game Shell 生成微信横屏预览工程。三关以破门通路、箭塔减损、两种炮弹与自动士兵占领为核心；基础弹种不受广告限制，材料仅用于外观。构建、规则和桌面/模拟触屏、模拟 wx SDK 验收记录见 [游戏 README](../games/local/game-castle-cannon/README.md)。未验证微信开发者工具、微信真机或真实广告位，预览不是微信上线。
 
 《克朗棋 · Carrom Club》位于 `games/local/carrom-club`，包名 `@coffeeeeffoc/carrom-club`。通过 `#/games/carrom-club` 或 `/games/carrom-club/index.html` 打开。竖屏木质棋盘、滑轨摆位、回拉击球、人机九子对局和六关顺序解锁练习；独立物理核心、休闲红后/罚子规则、本地回合存档与沉浸 iframe 接入见[游戏说明](../games/local/carrom-club/README.md)。本次为 H5/手机 Web，未接入原生渠道。

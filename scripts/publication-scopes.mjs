@@ -2492,7 +2492,6 @@ export const publishingConsumers = {
   'moss-garden': 'games/local/game-moss-garden',
   'ember-bounce': 'games/local/ember-bounce',
   'chase-thief': 'games/local/chase-thief',
-  'retreat-rally': 'games/local/retreat-rally',
   'tiny-signals': 'games/local/tiny-signals',
   'orbit-atelier': 'games/local/orbit-atelier',
   'wulong-city': 'games/local/wulong-city',

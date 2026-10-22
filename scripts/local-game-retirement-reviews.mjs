@@ -922,3 +922,142 @@ export const mainRetirementMoves = Object.freeze(
     ),
   ]),
 );
+
+// Catalog cleanup: bind the removed tree and every surviving executable edit.
+export const catalogCleanupBase = '89b24fb923a6b44aa022c2b9bb302c9f12686ae3';
+export const catalogCleanupTrees = Object.freeze({
+  'games/local/retreat-rally':
+    '040000 tree a70506bed2f7ce84c96f767f4c7cc50afa8a3bc5\tgames/local/retreat-rally\n',
+});
+export const catalogCleanupReviews = Object.freeze({
+  'apps/shell-minigame/package.json': {
+    before: 'aa28f0baebb07ea7eb741b3d644d4937a263cb998737b2e1362ac3307dfbc5d3',
+    after: '58a0eb3b27ff168a967fea5463065a2ff3c2776affb6c978af4cc2018bba740d',
+    sources: ['apps/shell-minigame'],
+  },
+  'apps/shell-minigame/scripts/games.mjs': {
+    before: 'be0b987c00dcf8c56e1445df57d7cb19ee208d841ee8cddd83717ff4e57d2e3f',
+    after: '15619b9231d5d3299150eeb2de0d91ee3bf7af5a0346739143d7a567cb03dbe5',
+    sources: ['apps/shell-minigame'],
+  },
+  'apps/shell-web/package.json': {
+    before: '12633e0d00275065080519b5ad1372e3827999a1a4acde6b71af48e9b5091ddd',
+    after: '05fd51dc8cd2b738552c71cbe1842d4cb5fac81242b32e152b559565c3415ede',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/scripts/catalog-rollout-smoke.mjs': {
+    before: 'be5e0a0d38ec6d6d72389492c72b176d85b9735648ae331261c923608542e662',
+    after: '05e9a6da2b44be68f8ece67ad075b2f6f48150983ab34a902c50c93b40cdd54d',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/scripts/pages-smoke.mjs': {
+    before: '0b17f12fc5de1db2eb555a6dabc3e79c996ed214bdaf40a766c12f829e92ba5e',
+    after: '8f2fc3ba828ac4ca2c91f58d7199465121cf9eeb3c6ef76f0706410f41ba17c9',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/scripts/standalone-game-checks.mjs': {
+    before: 'e676be9ed613c7abae499fe9f5962709496b842b10ef79f852b0b8cbd1f2e5c1',
+    after: 'be16d0ad7be4290296e2e9eed1c34e1e20b07c465b7b988e579696ce37f81670',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/scripts/standalone-game-entry.mjs': {
+    before: '6c9185d1c0a6a9a69e54276e617669b33363438ae2d149c8103b3cbc5a0ba2c6',
+    after: '402e1783f800475d55f9d0f70b73943b7543723e8de585701f1c80d91bf1b7f4',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/src/StandaloneGame.tsx': {
+    before: 'a073cc0dc901da461ca3e455331178d1cf9547e21520d9af65946fe6b5421f94',
+    after: 'c5b576c61c47f68fe2e65c66864c7fecf68a6f36414f45fce1ad10a71289a003',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/src/game-assessments.json': {
+    before: '9427a3297cfff57ea4b71183463385bd0d901aff6169dbb4e6853bd6b36fe9bf',
+    after: '3d2c610cd8d44e2fbbeffc6c646c3207375254b93a8fa3806acf32bc7f96a6fe',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/src/game-meta.json': {
+    before: '80a8683eb547705a488145b71976ccf6ecfcb02faa64f84ea68a56265595758b',
+    after: '462b3153ad38b932573e2ecfa67a3785fbb45fc54ff01af3cb8c0afee1b7f402',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/src/game-sharing.ts': {
+    before: 'a7307ac7f5c8f00931da71374d562c2c924f8f4ea091d0828e91ab30d29f8563',
+    after: 'c4520e3b01b74d92252af659bb68ed9392d47471c0092b01fbd3de39cfb44523',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/src/standalone-games.json': {
+    before: 'edc4f65dbe89a68385987264ae871d22fa50a1d1936d228405529683d4a9dd89',
+    after: '3f7bb180a5c59470e12852fa4f11bf940d134afe5d56bb5de5944b346aa8a128',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/tests/catalog-assessments.test.ts': {
+    before: '8dd6db5646c0f8e3f047f9872bd71c939ca681faf82e18f2a881df78233b4333',
+    after: '1bde8c982117a13e44ee06a72b9d81f68899361b23ea08f3159039f2efe9f013',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/tests/catalog-filters.integration.test.tsx': {
+    before: 'dd9d4b3c4666d0535eae0e122c687272844a65c810007978b1d5ebe4106d3b0d',
+    after: 'cccbc547e2a5b168a04e3fbbf7cc65cb88fcce40d568d50e24a347f43d01696a',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/tests/game-sharing.test.tsx': {
+    before: 'f5622994f2ffb6fab998db14f525691e436557d82f633b25db59d62009212dea',
+    after: 'e59c68960d839a18b53549b25b2ecade3aac6d099261a763136a33d05165e095',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/tests/standalone-immersive.integration.test.tsx': {
+    before: '98e468ef41741d7c393833b28d4a3eb6323f7158865b3e22cf98776b28626642',
+    after: '60b592bb4b5133793c1ff62438ffd96899dcfffc53a6eb8fbfa0d21cfbaefaab',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/tests/standalone.integration.test.tsx': {
+    before: '176522c7db16551db09fbf863a0c41a67d4d3ae02a2d3eab70ad8b3500d49901',
+    after: 'd51f359b9cce5e46295d19d0cce8fddea443c954c276939720ad5f2840262890',
+    sources: ['apps/shell-web'],
+  },
+  'pnpm-lock.yaml': {
+    before: 'b23918aa79186aa5922438925c7df51d6433d07eec54cc0af3f3996d47b8c9c7',
+    after: 'bf37f530bd0253a9fdcff185ea435f94a3a7ab9969b6925c06377c92fa4ca9cc',
+    sources: ['apps/shell-web', 'apps/shell-minigame'],
+  },
+  'scripts/native-game-smoke.mjs': {
+    before: '722d4eef3f0bd1efa81031664755ade8a361f681e8d0a3abf6e614df50057e94',
+    after: 'bbf5acd58be12f144f861f716a94f2bf8ba25170a527d6302d93904a9ec00ef0',
+    sources: ['apps/shell-minigame'],
+  },
+  'scripts/nine-lock-scope.mjs': {
+    before: 'bbdc10347538d29aa3f6c6fad0df0850a5076ef28ead992ffcf06a04a4fbe427',
+    after: '81105ceccf3747e1dad7e371dda15af3321e1659c379fb57d01f3ada5bf12225',
+    sources: [],
+  },
+  'scripts/publication-scopes.mjs': {
+    before: 'f691f077a4c5b3f402b0481c0389e7ede43e409e25f575c118f3c3be9c0754df',
+    after: 'fb9662c46583c204eb9285cfe935ecd4fb9650b8c33db812da6000d225ddc4ff',
+    sources: [],
+  },
+  'scripts/publication-scopes.test.mjs': {
+    before: 'bdaa5e3d49578b624aa64ef1971b24ff99e7984ca5bbcd7ea95af10e9ca5f15e',
+    after: 'a11c2e66d818dc2bc3ed403ed76676ad0c642cd0e974116546e466f82ff856b6',
+    sources: [],
+  },
+  'scripts/sync-h5-fullscreen.mjs': {
+    before: '13c2e80cb9bdcee4cdfbdf7d502c0e1a51f2f4e4070230eaccbe091e22a84d47',
+    after: '444c0792a85d7cf3713555abfc12904972b26c2c7d03ca4330a9b03478c161cf',
+    sources: [],
+  },
+  'scripts/test-game-dev-mode.mjs': {
+    before: 'de3df3cddcfa91f7005570a17d9c27483cc58ef2df0d3310cf598e4e4686d801',
+    after: 'f916c53b903f180056aaa35cdb8137ac9b6b4f42592d1f44416914006e4a8423',
+    sources: ['games/local/letters-words2', 'games/submodules/xiangqi-five'],
+  },
+  'scripts/validate-tree.mjs': {
+    before: 'ccf945093a2e72c444e9d60256f40dbdef68835da40028c15f043f2509c290a3',
+    after: '3ee9964438a6972bb1de158fb7c57d6c3c094bd1ddb957f11c32ae31ae089098',
+    sources: [],
+  },
+  'scripts/validate-tree.test.mjs': {
+    before: 'b9ce651877a004e5284f7b7c5789bec25050a65a5fa5f1e81f924f25dcdedf78',
+    after: '84d8e45ef0ace5c3a630855198db7c44a5a4b8da3a123c5241c533fbce8b81a3',
+    sources: [],
+  },
+});

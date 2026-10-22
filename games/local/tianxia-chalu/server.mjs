@@ -68,10 +68,10 @@ const server = http.createServer(async (request, response) => {
   }
 });
 server.on('error', (error) => {
-  console.error(`天下岔路启动失败：${error.code} ${error.message}`);
+  console.error(`夺城令启动失败：${error.code} ${error.message}`);
   process.exitCode = 1;
 });
 server.listen(port, host, () => {
   const hostname = host === '0.0.0.0' ? 'localhost' : host.includes(':') ? `[${host}]` : host;
-  console.log(`天下岔路 http://${hostname}:${port}/`);
+  console.log(`夺城令 http://${hostname}:${port}/`);
 });

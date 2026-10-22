@@ -1,3 +1,4 @@
+import { tapControl as tapChaseControl } from './game-checks/chase-thief.mjs';
 import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -21,7 +22,6 @@ const immersiveGame = (id) =>
     'ashfall-front',
     'carrom-club',
     'three-choose-two',
-    'retreat-rally',
     'cage-rescue',
     'chase-thief',
     'orbit-atelier',
@@ -202,14 +202,6 @@ try {
         await expect(frame.locator('#game')).toHaveAttribute('data-screen', 'home');
         await expect(page.locator('.standalone-page nav')).toBeVisible();
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
-      } else if (game.id === 'retreat-rally') {
-        await expect(page.locator('.standalone-page nav')).toBeHidden();
-        await frame.locator('#pause').click();
-        await expect(frame.locator('#paused')).toBeVisible();
-        await expect(page.locator('.standalone-page nav')).toBeVisible();
-        await frame.locator('#paused [data-go="home"]').click();
-        await expect(frame.locator('#home')).toBeVisible();
-        await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
       } else if (game.id === 'ink-is-everything') {
         await frame.locator('#pause').click();
         await frame.locator('#modal [data-home]').click();
@@ -234,12 +226,12 @@ try {
       } else if (game.id === 'chase-thief') {
         await expect(page.locator('.standalone-page nav')).toBeVisible();
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
-        await frame.locator('#start').click();
+        await tapChaseControl(frame, 'start');
         await expect(frame.locator('body')).toHaveAttribute('data-phase', 'running');
         await expect(page.locator('.standalone-page nav')).toBeHidden();
-        await frame.locator('#pause').click();
+        await tapChaseControl(frame, 'pause');
         await expect(page.locator('.standalone-page nav')).toBeHidden();
-        await frame.locator('#pause-home').click();
+        await tapChaseControl(frame, 'home');
         await expect(frame.locator('body')).toHaveAttribute('data-phase', 'home');
         await expect(page.locator('.standalone-page nav')).toBeVisible();
       } else if (game.id === 'flick-arena') {

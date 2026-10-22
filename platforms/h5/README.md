@@ -40,13 +40,15 @@ publishing.dispose();
 
 ## 打包与本地预览
 
-Vite 入口可直接相对导入公共源，会被打入本游戏产物。静态游戏使用本地 URL `./publishing.js`：`build.mjs` 从 `platforms/h5/publishing.js` 复制到产物根，开发服务器将 `/publishing.js` 映射到同一公共源。不要让公开站点引用 `/../../../platforms/`，也不要手工维护游戏副本。已接入入口：tower-brake、cage-rescue、ball-roguelite、three-choose-two、flick-arena、game-moss-garden、ember-bounce、chase-thief、retreat-rally、tiny-signals、orbit-atelier、wulong-city、surprise-kept、homebound-station、waterline-station、rescue-team、out-of-frame、fold-the-world、two-sided-box。各游戏只启用适合自身循环的分享/广告能力；接入公共发布适配不等于全部启用广告。
+Vite 入口可直接相对导入公共源，会被打入本游戏产物。静态游戏使用本地 URL `./publishing.js`：`build.mjs` 从 `platforms/h5/publishing.js` 复制到产物根，开发服务器将 `/publishing.js` 映射到同一公共源。不要让公开站点引用 `/../../../platforms/`，也不要手工维护游戏副本。已接入入口：tower-brake、cage-rescue、ball-roguelite、three-choose-two、flick-arena、game-moss-garden、ember-bounce、chase-thief、tiny-signals、orbit-atelier、wulong-city、surprise-kept、homebound-station、waterline-station、rescue-team、out-of-frame、fold-the-world、two-sided-box。各游戏只启用适合自身循环的分享/广告能力；接入公共发布适配不等于全部启用广告。
 
 验证命令：`node --test platforms/h5/tests/publishing.test.mjs`。测试覆盖公开参数清理、取消/复制失败、频控、前后台、完整观看、销毁、超时及暂停恢复。浏览器触屏、各游戏独立发布路径、真实系统分享由游戏回归补充；SDK fixture 或桌面浏览器均不能替代渠道真机验收。
 
 国内发布配置与支持边界见 [国内渠道发布](../README.md)。
 
 ## 不同平台的激励视频提供方
+
+奖励产品约束见[通用开发规范](../../docs/game-development.md)，调用链、生命周期与跨平台接入边界统一维护在[广告指南](../../docs/operations/taptap-rewarded-ads.md)。本节说明 provider 接口，不代表每款游戏都已完成目标渠道接线。
 
 `platform-ads.js` 是显式渠道的公共 AdProvider，可传给已有 Game Host 广告运行能力或 `createH5Publishing({ adMode: 'host', provider })`。不改变已有游戏的默认来源。
 
@@ -61,12 +63,12 @@ const result = await provider.show({ opportunityId: 'example:hint', kind: 'rewar
 provider.dispose();
 ```
 
-| 运行渠道    | 宿主  | 接入区别                                                          |
-| ----------- | ----- | ----------------------------------------------------------------- |
-| `taptap-h5` | `tap` | H5 商业广告；load 后 show，只认 isEnded=true                      |
-| `wechat`    | `wx`  | 微信小游戏宿主；load 后 show                                      |
-| `douyin`    | `tt`  | 抖音小游戏宿主；multiton=false，直接 show，等待销毁完成才释放单例 |
-| `bilibili`  | `bl`  | B 站小游戏宿主；load 后 show                                      |
+| 运行渠道    | 宿主  | 接入区别                                                                 |
+| ----------- | ----- | ------------------------------------------------------------------------ |
+| `taptap-h5` | `tap` | H5 商业广告；优先 show，失败后至多一次 load/show 恢复，只认 isEnded=true |
+| `wechat`    | `wx`  | 微信小游戏宿主；load 后 show                                             |
+| `douyin`    | `tt`  | 抖音小游戏宿主；multiton=false，直接 show，等待销毁完成才释放单例        |
+| `bilibili`  | `bl`  | B 站小游戏宿主；load 后 show                                             |
 
 SDK 方法保持原接收者。缺广告位、SDK 或不支持的渠道返回 unavailable；无填充、拒绝、抛错或超时返回 failed；关闭不完整返回 dismissed；不会读其他渠道或自动弹模拟广告。广告位不能跨平台使用。仅实现提示所需的激励视频，插屏和 Banner 不在此接口范围。
 

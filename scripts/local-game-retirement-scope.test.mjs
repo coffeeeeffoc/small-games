@@ -7,6 +7,95 @@ import {
   isReviewedLocalRetirementDeletion,
 } from './local-game-retirement-scope.mjs';
 const hash = (value) => createHash('sha256').update(value).digest('hex');
+test('catalog cleanup binds its real deleted tree and exact surviving edits without reusable proofs', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const {
+    catalogCleanupBase: base,
+    catalogCleanupTrees: trees,
+    catalogCleanupReviews: reviews,
+  } = await import('./local-game-retirement-reviews.mjs');
+  const { localRetirementFileScopes, hasLocalRetirementFileProof } = await import(
+    './local-game-retirement-scope.mjs'
+  );
+  const head = '2dea9a2a14cd4071435af927042ca83cd241853a';
+  const git = (...args) =>
+    execFileSync('git', args, {
+      cwd: new URL('../', import.meta.url),
+      encoding: 'utf8',
+      maxBuffer: 32 * 1024 * 1024,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+  const tree = (ref) =>
+    new Map(
+      git('ls-tree', '-r', '-t', ref)
+        .trimEnd()
+        .split('\n')
+        .map((line) => [line.split('\t')[1], line + '\n']),
+    );
+  const before = tree(base),
+    after = tree(head),
+    cache = new Map();
+  const read = (ref, file) => {
+    const key = ref + ':' + file;
+    if (!cache.has(key)) cache.set(key, git('show', key));
+    return cache.get(key);
+  };
+  const changedPaths = git('diff', '--name-only', '-z', base, head).split('\0').filter(Boolean);
+  const context = {
+    baseCommit: base,
+    changedPaths,
+    readBaseEntry: (file) => before.get(file) ?? '',
+    readHeadEntry: (file) => after.get(file) ?? '',
+    readBase: (file) => read(base, file),
+    readHead: (file) => read(head, file),
+    headHasPath: (file) => after.has(file),
+  };
+  const scopes = localRetirementFileScopes(context);
+  const roots = Object.keys(trees);
+  const deleted = changedPaths.filter((file) => roots.some((root) => file.startsWith(root + '/')));
+  assert.equal(deleted.length, 63);
+  for (const file of deleted) {
+    assert(!after.has(file));
+    const change = { status: 'D', paths: [file] };
+    assert(isReviewedLocalRetirementDeletion(change, scopes), file);
+    assert(!isReviewedLocalRetirementDeletion(change, new Map([[file, [...scopes.get(file)]]])));
+    assert(
+      !isReviewedLocalRetirementDeletion({ status: 'R100', paths: [file, 'extra.mjs'] }, scopes),
+    );
+  }
+  for (const [file, review] of Object.entries(reviews)) {
+    assert.deepEqual(scopes.get(file), review.sources, file);
+    assert(hasLocalRetirementFileProof(file, scopes.get(file), context.readHead), file);
+    assert(!hasLocalRetirementFileProof(file, [...scopes.get(file)], context.readHead));
+    for (const reader of ['readBase', 'readHead'])
+      assert.equal(
+        localRetirementFileScopes({
+          ...context,
+          [reader]: (name) => context[reader](name) + (name === file ? '\nextra' : ''),
+        }).size,
+        0,
+        `${file}: ${reader} drift`,
+      );
+  }
+  for (const override of [
+    { readBaseEntry: (file) => (roots.includes(file) ? '' : context.readBaseEntry(file)) },
+    { headHasPath: (file) => roots.includes(file) || context.headHasPath(file) },
+    { headHasPath: () => undefined },
+    {
+      readHead: () => {
+        throw new Error('query failed');
+      },
+    },
+  ])
+    assert.equal(localRetirementFileScopes({ ...context, ...override }).size, 0);
+  for (const file of ['scripts/unknown-deletion.mjs', roots[0] + '/unknown-extra.mjs']) {
+    const unknown = localRetirementFileScopes({
+      ...context,
+      changedPaths: [...changedPaths, file],
+    });
+    assert(!isReviewedLocalRetirementDeletion({ status: 'D', paths: [file] }, unknown));
+  }
+});
 test('current main retirement binds the real Git deletions and moves without lending proofs to surviving files', async () => {
   const { execFileSync } = await import('node:child_process');
   const { fileURLToPath } = await import('node:url');
