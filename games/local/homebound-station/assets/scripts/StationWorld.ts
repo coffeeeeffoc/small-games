@@ -314,7 +314,7 @@ export class StationWorld {
         (22 * station.width) / 2017,
         (80 * station.height) / 780,
         (1973 * station.width) / 2017,
-        (584 * station.height) / 780,
+        (280 * station.height) / 780,
       ),
     );
     this.stationDoorFrames = [360, 795, 1225, 1662].map((x) =>
@@ -666,13 +666,32 @@ export class StationWorld {
         );
     }
     const labelPoint = this.project({ x: 0, z: -6 });
-    const signY = this.landscape ? this.area.y + 18 : labelPoint.y - this.facadeHeight * 0.48;
+    if (!this.landscape) {
+      this.rect(
+        g,
+        {
+          x: this.area.x + 8,
+          y: labelPoint.y - this.facadeHeight * 0.53,
+          w: this.axisWidth - 16,
+          h: this.facadeHeight * 0.53 + 4,
+        },
+        '#e6d1ad',
+        3,
+      );
+      this.rect(
+        g,
+        { x: this.area.x + 6, y: labelPoint.y - 3, w: this.axisWidth - 12, h: 6 },
+        '#c2ad88',
+        2,
+      );
+    }
+    const signY = this.landscape ? this.area.y + 18 : labelPoint.y - this.facadeHeight * 0.56;
     const signX = this.landscape ? this.area.x + this.facadeHeight * 0.48 : labelPoint.x;
     const signWidth = this.landscape ? 70 : Math.min(118, this.axisWidth * 0.36);
     this.rect(g, { x: signX - signWidth / 2, y: signY - 14, w: signWidth, h: 28 }, '#fff2d6', 8);
     this.stationSign.node.setPosition(signX - this.w / 2, this.h / 2 - signY);
     this.stationSign.node.getComponent(UITransform)!.setContentSize(signWidth, 28);
-    this.stationSign.fontSize = this.landscape ? 16 : 22;
+    this.stationSign.fontSize = this.landscape ? 16 : 19;
     this.stationSign.lineHeight = 28;
     for (const [i, label] of this.roadSigns.entries()) {
       // Legible roadway labels use existing lanes; no decorative posts in narrow verges.
@@ -769,14 +788,21 @@ export class StationWorld {
       case 'station': {
         visual.node.active = !this.landscape;
         visual.width = this.axisWidth - 16;
-        visual.height = this.facadeHeight;
+        visual.height = this.facadeHeight * 0.52;
         visual.transform.setContentSize(visual.width, visual.height);
         visual.sprite.node.setRotationFromEuler(0, 0, 0);
         break;
       }
       case 'station-door':
-        visual.node.active = this.landscape;
-        this.fit(visual, Math.min(50, this.facadeHeight * 0.65), 42);
+        visual.node.active = true;
+        const bayWidth = Math.abs(
+          this.project(this.geometry.bays[1]!.door).x - this.project(this.geometry.bays[0]!.door).x,
+        );
+        this.fit(
+          visual,
+          this.landscape ? Math.min(50, this.facadeHeight * 0.65) : Math.min(62, bayWidth - 6),
+          this.landscape ? 42 : this.facadeHeight * 0.52,
+        );
         break;
       case 'tree':
         this.fit(visual, this.taxiSize * 1.24, this.taxiSize * 1.42);
@@ -809,7 +835,11 @@ export class StationWorld {
   private place(visual: Visual, point: Point) {
     visual.point = point;
     const p = this.project(point, 0);
-    if (visual.kind === 'station-door') p.x -= this.facadeHeight * 0.54;
+    if (visual.kind === 'station') p.y -= this.facadeHeight * 0.48 - visual.height * 0.08;
+    if (visual.kind === 'station-door') {
+      if (this.landscape) p.x -= this.facadeHeight * 0.54;
+      else p.y -= visual.height * 0.5;
+    }
     visual.depth = p.y;
     visual.node.setPosition(p.x - this.w / 2, this.h / 2 - p.y, 0);
   }
