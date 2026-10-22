@@ -259,7 +259,7 @@ try {
     await context.close();
   }
   // A terminal fixture is derived entirely through legal commands and simulation.
-  for (const seed of [1, 8]) {
+  for (const seed of [1, 0]) {
     const m = createMatch('level-01', seed);
     let before;
     while (m.phase === 'running') {
@@ -274,6 +274,12 @@ try {
     await tap(page, 'start');
     await screen(page, 'result');
     assert.equal((await state(page)).match.phase, m.phase);
+    if (m.phase === 'lost') {
+      assert.equal((await state(page)).progress.unlockedLevel, 1);
+      await tap(page, 'retry');
+      assert.equal((await state(page)).match.roundStage, 'planning');
+      assert.equal((await state(page)).match.roundNumber, 1);
+    }
     await shot(page, 'result-' + m.phase);
     await context.close();
   }
