@@ -1,0 +1,130 @@
+{
+  "purpose": "Independent validation of frozen Homebound DAG draft; no repository writes",
+  "testedSources": {
+    "simulation": "208bab2d66b660841d35d8ed64ea404f6c470e816ce8a7d5b4a7027256e28f41",
+    "geometry": "ce44c7407ffa455b47f831dcadbe795f185db6b24d7fb3586a853225a19e9e8b",
+    "levels": "2eb061dd3444298bbc20406cefd6385a34e5b441284bb25cf15380f333d03d71",
+    "station-traffic": "e6ab20f05c4b5b49f270c7167f6c203acc2ee5f79b3c00fce9efea01bd7331b4"
+  },
+  "cases": 400,
+  "failures": 0,
+  "randomCases": 300,
+  "burstCases": 100,
+  "randomSeeds": [
+    1,
+    982451653,
+    2654435761
+  ],
+  "burstSeed": 521288629,
+  "randomClickIntervalSeconds": [
+    0.05,
+    1
+  ],
+  "tickSeconds": 0.05,
+  "requiredCenterClearance": 3.43,
+  "observedMinimumCenterClearance": 4,
+  "maximumCompletionSeconds": 117.4,
+  "simultaneousBeforeFirstBoarding": {
+    "random": {
+      "min": 4,
+      "max": 13
+    },
+    "burst": {
+      "min": 5,
+      "max": 23
+    }
+  },
+  "selectedBurstResults": [
+    {
+      "level": 1,
+      "seed": 521288629,
+      "mode": "burst",
+      "won": true,
+      "time": 18.05,
+      "minDistance": 4,
+      "minPair": {
+        "time": 0.05,
+        "a": "巡04",
+        "b": "巡06"
+      },
+      "maxConcurrentBeforeBoard": 6,
+      "firstBoardTime": 6.45,
+      "maxUnchanged": 0.40000000000000036,
+      "maxTravel": 91.99999999999872,
+      "clicks": 6
+    },
+    {
+      "level": 50,
+      "seed": 521288629,
+      "mode": "burst",
+      "won": true,
+      "time": 49.7,
+      "minDistance": 4,
+      "minPair": {
+        "time": 0.05,
+        "a": "巡02",
+        "b": "巡06"
+      },
+      "maxConcurrentBeforeBoard": 13,
+      "firstBoardTime": 4.45,
+      "maxUnchanged": 1.4499999999999957,
+      "maxTravel": 87.99999999999889,
+      "clicks": 24
+    },
+    {
+      "level": 100,
+      "seed": 521288629,
+      "mode": "burst",
+      "won": true,
+      "time": 101.2,
+      "minDistance": 4,
+      "minPair": {
+        "time": 0.05,
+        "a": "巡02",
+        "b": "巡03"
+      },
+      "maxConcurrentBeforeBoard": 20,
+      "firstBoardTime": 6.2,
+      "maxUnchanged": 0.15000000000000568,
+      "maxTravel": 123.99999999999649,
+      "clicks": 50
+    }
+  ],
+  "invariants": [
+    "All clicks selected from current real canDispatch; no forced dispatch",
+    "Earliest compatible group bound in actual click order",
+    "Pickup point / walkFrom / bay / assignmentOrder fixed",
+    "One service per vehicle; one vehicle per passenger group",
+    "Passenger identities unique and delivered set exactly equals departed groups",
+    "No repeated path nodes or driving / departure path rewrite",
+    "Northbound path never travels south of its initial parking row",
+    "Walking / boarding / closing / exitWait vehicle at assigned bay point with correct bay owner",
+    "Every active reserved whole segment stays at least 3.43m from every other live vehicle center",
+    "No vehicle moves more than 0.45m in a 0.05s tick",
+    "No unchanged position / phase state beyond 10 seconds",
+    "All 400 cases terminate and remove all vehicles"
+  ],
+  "staticRoadGraph": {
+    "levelsChecked": 100,
+    "allDirectedAcyclic": true,
+    "uniqueBoards": 100,
+    "maximumVehicles": 50,
+    "nondecreasingDifficulty": true
+  },
+  "sourceEquivalenceNote": "Core agent confirmed subsequent draft edits are Prettier formatting, comments, .at(-1) replaced with equivalent [length-1] for ES2020, and snapshot metadata only; no routing, movement admission, pedestrian or level-generation algorithm changes.",
+  "limits": "Random and burst schedules sample many legal orders; this is not an exhaustive proof of every real-valued click timing. Headless simulation does not verify browser rendering, Android native ads, or mobile deployment.",
+  "adsReview": {
+    "sessionTsModified": false,
+    "defaultFreeSpeeds": [
+      1
+    ],
+    "rewardedSpeeds": [
+      2,
+      3,
+      5
+    ],
+    "rewardRequired": "completed",
+    "nativeAndroidAds": "Java SDK / Cocos JSB not implemented; remains explicitly unaccepted",
+    "actualTapHostAdPlayback": "unverified"
+  }
+}
