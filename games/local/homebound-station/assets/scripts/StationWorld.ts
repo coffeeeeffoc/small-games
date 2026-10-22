@@ -1,342 +1,866 @@
 import {
   Camera,
+  Canvas,
   Color,
-  Layers,
-  Material,
-  Mesh,
-  MeshRenderer,
+  Graphics,
+  ImageAsset,
+  Label,
   Node,
-  Vec3,
-  primitives,
-  utils,
+  Rect,
+  Size,
+  Sprite,
+  SpriteFrame,
+  Texture2D,
+  UITransform,
+  Vec2,
+  resources,
+  sys,
   view,
 } from 'cc';
 import { BAY_X, queuePosition, type Simulation, type Vehicle, type Point } from './core/simulation';
 import { DIRECTIONS } from './core/levels';
-const INK = '#24524f',
-  CREAM = '#eee2c8',
-  GOLD = '#f4be4f',
-  ROAD = '#7d9198';
-const color = (hex: string) => new Color().fromHEX(hex);
-/** Colour-batched geometry with deterministic baked daylight: no external model downloads. */
-class Batch {
-  groups = new Map<
-    string,
-    { positions: number[]; normals: number[]; colors: number[]; indices: number[] }
-  >();
-  add(
-    hex: string,
-    geo: primitives.IGeometry,
-    x: number,
-    y: number,
-    z: number,
-    sx: number,
-    sy: number,
-    sz: number,
-  ) {
-    const paint = color(hex);
-    // Bake palette and light into vertex colours: one draw call per town/car/person.
-    const materialKey = '#ffffff';
-    let g = this.groups.get(materialKey);
-    if (!g) {
-      g = { positions: [], normals: [], colors: [], indices: [] };
-      this.groups.set(materialKey, g);
-    }
-    const base = g.positions.length / 3;
-    for (let i = 0; i < geo.positions.length; i += 3) {
-      g.positions.push(
-        x + geo.positions[i]! * sx,
-        y + geo.positions[i + 1]! * sy,
-        z + geo.positions[i + 2]! * sz,
-      );
-      const nx = geo.normals?.[i] ?? 0,
-        ny = geo.normals?.[i + 1] ?? 1,
-        nz = geo.normals?.[i + 2] ?? 0;
-      const light = 0.67 + 0.33 * Math.max(0, -nx * 0.35 + ny * 0.8 + nz * 0.4);
-      g.normals.push(nx, ny, nz);
-      g.colors.push((paint.r / 255) * light, (paint.g / 255) * light, (paint.b / 255) * light, 1);
-    }
-    g.indices.push(...(geo.indices ?? []).map((i) => i + base));
-  }
-  box(hex: string, x: number, y: number, z: number, w: number, h: number, d: number) {
-    this.add(hex, primitives.box(), x, y, z, w, h, d);
-  }
-  ball(hex: string, x: number, y: number, z: number, w: number, h = w, d = w) {
-    this.add(hex, primitives.sphere(0.5, { segments: 10 }), x, y, z, w, h, d);
-  }
-  cylinder(hex: string, x: number, y: number, z: number, r: number, h: number) {
-    this.add(
-      hex,
-      primitives.cylinder(0.5, 0.5, 1, { radialSegments: 10 }),
-      x,
-      y,
-      z,
-      r * 2,
-      h,
-      r * 2,
-    );
-  }
-}
+
+/** This layer must be reserved for the world; the HUD camera sees UI_2D only. */
+export const STATION_WORLD_LAYER = 1 << 19;
+const PALETTE = {
+  lawn: '#dce8ca',
+  lawnLight: '#edf1dc',
+  ink: '#244e50',
+  cream: '#fcf1d6',
+  paving: '#d8ccb0',
+  pavingLight: '#eee2c6',
+  road: '#506672',
+  parking: '#607680',
+  roadLine: '#e7dfc5',
+  teal: '#3f8d85',
+};
+const paint = (hex: string) => new Color().fromHEX(hex);
+const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
+type ScreenPoint = { x: number; y: number };
+type ScreenBox = ScreenPoint & { w: number; h: number };
+type Kind = 'taxi' | 'person' | 'station' | 'tree' | 'flowers' | 'bench' | 'lamp';
+type Visual = {
+  node: Node;
+  sprite: Sprite;
+  transform: UITransform;
+  shadow: Graphics;
+  kind: Kind;
+  id: string;
+  point: Point;
+  depth: number;
+  width: number;
+  height: number;
+  frameIndex: number;
+  previousState?: Vehicle['state'];
+  releasedAt: number;
+};
+
+/**
+ * Asset-driven, orthographic Cocos world. All presentation and input coordinates
+ * use project(); there is no DOM/canvas rendering and no primitive-art fallback.
+ *
+ * Art contract (assets/resources/art, extension omitted when loading):
+ * taxis: 4 columns x 2 rows, N NE E SE / S SW W NW.
+ * props: 4 columns x 2 rows, coral blue green purple travellers /
+ *        tree flowers bench streetlamp. Each frame has ~8% transparent padding.
+ * station: a tightly framed, wide transparent facade (about 2.6:1 preferred).
+ * Sprite art faces screen north/east/south/west; the camera never rotates it.
+ *
+ * Integration: await world.ready before exposing gameplay/ready events. Catch
+ * rejection in the actual loading UI. HUD alone owns design-resolution changes.
+ */
 export class StationWorld {
-  root: Node;
-  camera: Camera;
-  private scenery: Node;
-  private entities: Node;
-  private materials = new Map<string, Material>();
-  private meshes: Mesh[] = [];
-  private entityMeshes: Mesh[] = [];
-  cars = new Map<string, Node>();
-  people = new Map<string, Node>();
+  readonly root: Node;
+  readonly camera: Camera;
+  readonly ready: Promise<void>;
+  readonly cars = new Map<string, Node>();
+  readonly people = new Map<string, Node>();
+  loadError: Error | null = null;
+
+  private readonly ground: Graphics;
+  private readonly bayInk: Graphics;
+  private readonly actors: Node;
+  private readonly bayNumbers: Label[] = [];
+  private readonly images: ImageAsset[] = [];
+  private readonly textures: Texture2D[] = [];
+  private readonly frames: SpriteFrame[] = [];
+  private taxiFrames: SpriteFrame[] = [];
+  private propFrames: SpriteFrame[] = [];
+  private stationFrame?: SpriteFrame;
+  private readonly carViews = new Map<string, Visual>();
+  private readonly personViews = new Map<string, Visual>();
+  private readonly props: Visual[] = [];
+  private lastOrder = '';
+  private baySignature = '';
+  private state?: Simulation;
+  private loaded = false;
+  private disposed = false;
+  private stopLoading = false;
+  private rejectReady?: (reason: Error) => void;
+  private w = 390;
+  private h = 844;
+  private home = false;
+  private landscape = false;
+  private area: ScreenBox = { x: 8, y: 64, w: 374, h: 690 };
+  private taxiSize = 54;
+  private personSize = 29;
+  private elevation = 11;
+
   constructor(parent: Node) {
-    this.root = new Node('Homebound miniature town');
+    this.root = new Node('Station art canvas');
+    this.root.layer = STATION_WORLD_LAYER;
     parent.addChild(this.root);
-    this.scenery = new Node('Station district');
-    this.root.addChild(this.scenery);
-    this.entities = new Node('Vehicles and passengers');
-    this.root.addChild(this.entities);
-    const cn = new Node('Station camera');
-    parent.addChild(cn);
-    this.camera = cn.addComponent(Camera);
+    this.root.addComponent(UITransform);
+    const canvas = this.root.addComponent(Canvas);
+    // Canvas's automatic alignment otherwise rewrites the camera on HUD resize.
+    canvas.alignCanvasWithScreen = false;
+    const cameraNode = new Node('Station art camera');
+    cameraNode.layer = STATION_WORLD_LAYER;
+    parent.addChild(cameraNode);
+    this.camera = cameraNode.addComponent(Camera);
     this.camera.projection = Camera.ProjectionType.ORTHO;
     this.camera.near = 0.1;
-    this.camera.far = 200;
-    this.camera.visibility = Layers.Enum.DEFAULT;
-    this.camera.clearColor = color('#dce7d4');
-    cn.setPosition(0, 45, 42);
-    cn.lookAt(new Vec3(0, 0, 8));
-    this.buildDistrict();
+    this.camera.far = 2000;
+    this.camera.clearFlags = Camera.ClearFlag.SOLID_COLOR;
+    this.camera.clearColor = paint(PALETTE.lawn);
+    this.camera.visibility = STATION_WORLD_LAYER;
+    this.camera.priority = 0;
+    canvas.cameraComponent = this.camera;
+    this.ground = this.node('Paved streets and garden').addComponent(Graphics);
+    this.bayInk = this.node('Pickup bay status').addComponent(Graphics);
+    const signs = this.node('Pickup bay numbers');
+    for (let i = 0; i < 4; i++) {
+      const label = this.node(`Bay ${i + 1}`, signs).addComponent(Label);
+      label.string = String(i + 1);
+      label.fontFamily = 'sans-serif';
+      label.horizontalAlign = Label.HorizontalAlign.CENTER;
+      label.verticalAlign = Label.VerticalAlign.CENTER;
+      label.overflow = Label.Overflow.CLAMP;
+      label.color = paint(PALETTE.cream);
+      this.bayNumbers.push(label);
+    }
+    this.actors = this.node('Depth-sorted painted town');
+    const frame = view.getFrameSize();
+    this.resize(frame.width, frame.height);
+    this.ready = new Promise<void>((resolve, reject) => {
+      this.rejectReady = reject;
+      void this.loadArt()
+        .then(() => {
+          if (this.disposed) return;
+          this.loaded = true;
+          this.buildScenery();
+          this.resize(this.w, this.h, this.home);
+          if (this.state) this.reset(this.state);
+        })
+        .then(
+          () => {
+            if (this.disposed) return;
+            this.rejectReady = undefined;
+            resolve();
+          },
+          (cause: unknown) => {
+            this.stopLoading = true;
+            const error = cause instanceof Error ? cause : new Error(String(cause));
+            this.loadError = error;
+            this.releaseAssets();
+            this.rejectReady?.(error);
+            this.rejectReady = undefined;
+          },
+        );
+    });
   }
-  private make(batch: Batch, parent: Node, name: string, entity = false) {
-    const root = new Node(name);
-    parent.addChild(root);
-    for (const [hex, geo] of batch.groups) {
-      const n = new Node(hex);
-      root.addChild(n);
-      n.layer = Layers.Enum.DEFAULT;
-      let mat = this.materials.get(hex);
-      if (!mat) {
-        mat = new Material();
-        mat.initialize({ effectName: 'builtin-unlit', defines: { USE_VERTEX_COLOR: true } });
-        mat.setProperty('mainColor', color(hex));
-        this.materials.set(hex, mat);
-      }
-      const mesh = utils.createMesh(geo, undefined, { calculateBounds: true });
-      (entity ? this.entityMeshes : this.meshes).push(mesh);
-      const renderer = n.addComponent(MeshRenderer);
-      renderer.mesh = mesh;
-      renderer.setMaterial(mat, 0);
-    }
-    return root;
+
+  private node(name: string, parent = this.root) {
+    const node = new Node(name);
+    // Layers do not inherit. Setting only the Canvas layer is insufficient.
+    node.layer = STATION_WORLD_LAYER;
+    parent.addChild(node);
+    node.addComponent(UITransform);
+    return node;
   }
-  private buildDistrict() {
-    const b = new Batch();
-    b.box('#bbd0b1', 0, -0.65, 8, 56, 1, 57);
-    b.box('#d9cdb4', 0, -0.12, -4, 33, 0.3, 16);
-    b.box(ROAD, 0, -0.1, 15, 35, 0.24, 30);
-    // Parallel curb lanes and warm stone edges make traffic legible.
-    b.box('#d9cdb4', -18, 0.05, 15, 1.8, 0.35, 31);
-    b.box('#d9cdb4', 18, 0.05, 15, 1.8, 0.35, 31);
-    b.box('#abbca2', 0, 0.03, 30, 37, 0.3, 2);
-    for (let z = 3; z < 29; z += 3)
-      for (const x of [-16, 16]) b.box('#edf0df', x, 0.05, z, 0.13, 0.03, 1.1);
-    for (let x = -13; x < 16; x += 3) b.box('#edf0df', x, 0.05, 28, 1.2, 0.03, 0.12);
-    for (let r = 0; r < 4; r++)
-      for (let c = 0; c < 5; c++) {
-        const x = -8 + c * 4,
-          z = 8 + r * 4;
-        for (const k of [-1.7, 1.7]) b.box('#c3d0c9', x + k, 0.04, z, 0.055, 0.025, 2.9);
-        b.box('#c3d0c9', x, 0.04, z + 1.65, 3.4, 0.025, 0.055);
-      }
-    // Train-station facade, recessed glazing, clock tower and generous canopy.
-    b.box(CREAM, 0, 2, -10.4, 27, 4, 3.6);
-    b.box('#f7efd9', 0, 4.06, -10.4, 27.7, 0.22, 4);
-    b.box('#337b73', 0, 4.4, -10.4, 28, 0.55, 4.5);
-    b.box('#26645f', 0, 4.75, -10.4, 25, 0.22, 3.2);
-    for (let x = -13; x <= 13; x += 1.1) b.box('#4a9083', x, 4.72, -10.4, 0.035, 0.03, 4.1);
-    b.box('#f5e9d1', 0, 4.8, -10.3, 5.3, 3, 3.8);
-    b.ball('#f5e9d1', 0, 6.2, -10.3, 5.3, 2.3, 3.8);
-    b.ball('#26716c', 0, 6.55, -10.3, 5.7, 2.2, 4);
-    b.box('#f6eddb', 0, 5.2, -8.2, 4.5, 2.9, 0.35);
-    b.ball('#d4b77b', 0, 5.7, -7.97, 1.7, 1.7, 0.18);
-    b.ball('#fff5dc', 0, 5.7, -7.85, 1.43, 1.43, 0.1);
-    b.box(INK, 0, 5.92, -7.77, 0.07, 0.56, 0.04);
-    b.box(INK, 0.23, 5.7, -7.77, 0.5, 0.07, 0.04);
-    b.box(INK, 0, 3.38, -8.23, 7, 0.86, 0.2);
-    for (let x = -11.6; x <= 12; x += 2.6) {
-      b.box('#28494a', x, 1.5, -8.55, 1.9, 2.7, 0.15);
-      b.box('#78a5a0', x, 2.25, -8.42, 1.7, 0.9, 0.05);
-      b.box('#f8eacf', x - 1.06, 1.7, -8.35, 0.17, 3.2, 0.3);
-      b.box('#d9c29c', x, 1.1, -8.32, 1.9, 0.08, 0.16);
-    }
-    b.box('#337b73', 0, 2.9, -7.5, 28, 0.18, 2);
-    b.box('#a8c5a9', 0, 3.03, -7.5, 28, 0.07, 2);
-    for (const x of [-13, -8, -3, 3, 8, 13]) b.cylinder(INK, x, 1.4, -6.8, 0.07, 2.8);
-    for (let x = -14; x <= 14; x += 2) b.box('#bdc3b1', x, 0.06, -3.2, 0.03, 0.02, 7.4);
-    for (let z = -6; z < 1; z += 1.4) b.box('#bdc3b1', 0, 0.06, z, 30, 0.02, 0.03);
-    for (const x of Object.values(BAY_X)) {
-      b.box('#478b7a', x, 0.06, 0.5, 4.5, 0.06, 2.6);
-      for (const z of [-0.9, 1.9]) b.box('#f4d897', x, 0.11, z, 4.5, 0.02, 0.06);
-      for (const dx of [-2.2, 2.2]) b.box('#f4d897', x + dx, 0.11, 0.5, 0.06, 0.02, 2.8);
-      b.box('#ead6ac', x, 0.14, -1.15, 4, 0.24, 0.24);
-      for (const dx of [-1.8, 1.8])
-        for (const z of [-2.5, -4.5]) b.cylinder('#8b9c8e', x + dx, 0.45, z, 0.035, 0.9);
-    }
-    const tree = (x: number, z: number, seed: number) => {
-      b.box('#c6b991', x, 0.15, z, 1.7, 0.4, 1.7);
-      b.cylinder('#8b7054', x, 1.1, z, 0.13, 1.8);
-      b.ball(seed % 2 ? '#81a66c' : '#619774', x, 2.5, z, 2.6, 3.1, 2.4);
-      b.ball('#a2bd79', x - 0.5, 3.1, z - 0.3, 1.7, 1.9, 1.8);
-      for (let i = 0; i < 4; i++)
-        b.ball(i % 2 ? '#f4ca73' : '#d49187', x - 0.6 + i * 0.4, 0.6, z + 0.7, 0.33, 0.42, 0.32);
+
+  private loadImage(path: string): Promise<ImageAsset> {
+    return new Promise((resolve, reject) => {
+      resources.load(path, ImageAsset, (error, image) => {
+        if (this.disposed || this.stopLoading) {
+          reject(new Error(`Station artwork load cancelled: ${path}`));
+          return;
+        }
+        if (error || !image) {
+          reject(
+            new Error(
+              `Unable to load station artwork ${path}: ${error?.message ?? 'missing image'}`,
+            ),
+          );
+          return;
+        }
+        if (!image.width || !image.height) {
+          reject(new Error(`Station artwork has an empty image: ${path}`));
+          return;
+        }
+        image.addRef();
+        this.images.push(image);
+        resolve(image);
+      });
+    });
+  }
+
+  private texture(image: ImageAsset) {
+    const texture = new Texture2D();
+    texture.image = image;
+    this.textures.push(texture);
+    return texture;
+  }
+
+  private frame(texture: Texture2D, rect: Rect) {
+    const frame = new SpriteFrame();
+    frame.reset(
+      {
+        texture,
+        rect,
+        originalSize: new Size(rect.width, rect.height),
+        offset: new Vec2(0, 0),
+      },
+      true,
+    );
+    // Already an atlas: keep original UVs and avoid another runtime texture copy.
+    frame.packable = false;
+    this.frames.push(frame);
+    return frame;
+  }
+
+  private sheet(image: ImageAsset, label: string) {
+    if (image.width < 8 || image.height < 4)
+      throw new Error(`${label} is too small for a 4-column, 2-row sprite sheet`);
+    // Exported art may have fractional pixel cell boundaries (1774 x 887).
+    // Rect UVs support them; all cells keep identical dimensions and scale.
+    const texture = this.texture(image);
+    const cellW = image.width / 4;
+    const cellH = image.height / 2;
+    return Array.from({ length: 8 }, (_, i) =>
+      // Cocos SpriteFrame rectangles start at the texture's TOP left.
+      this.frame(texture, new Rect((i % 4) * cellW, Math.floor(i / 4) * cellH, cellW, cellH)),
+    );
+  }
+
+  private async loadArt() {
+    const [taxis, props, station] = await Promise.all([
+      this.loadImage('art/taxis'),
+      this.loadImage('art/props'),
+      this.loadImage('art/station'),
+    ]);
+    if (this.disposed || this.stopLoading) throw new Error('Station artwork load cancelled');
+    this.taxiFrames = this.sheet(taxis, 'art/taxis');
+    this.propFrames = this.sheet(props, 'art/props');
+    this.stationFrame = this.frame(
+      this.texture(station),
+      new Rect(0, 0, station.width, station.height),
+    );
+  }
+
+  /** Piecewise projection gives the playable grid more room than empty verges. */
+  private map(value: number, knots: readonly number[], fractions: readonly number[]) {
+    let i = 0;
+    while (i < knots.length - 2 && value > knots[i + 1]!) i++;
+    const t = (value - knots[i]!) / (knots[i + 1]! - knots[i]!);
+    return fractions[i]! + (fractions[i + 1]! - fractions[i]!) * t;
+  }
+
+  project(point: Point, height = 1.5): ScreenPoint {
+    const xf = this.map(point.x, [-20, -16, -10, 10, 16, 20], [0, 0.08, 0.14, 0.86, 0.92, 1]);
+    const zf = this.map(
+      point.z,
+      [-13, -7, 0.5, 4.5, 8, 20, 28, 31],
+      this.landscape
+        ? [0, 0.1, 0.21, 0.25, 0.31, 0.83, 0.95, 1]
+        : [0, 0.19, 0.34, 0.4, 0.46, 0.82, 0.95, 1],
+    );
+    return {
+      x: this.area.x + xf * this.area.w,
+      y: this.area.y + zf * this.area.h - height * this.elevation,
     };
-    for (let z = -8, i = 0; z <= 28; z += 6, i++) {
-      tree(-20, z, i);
-      tree(20, z, i + 1);
-    }
-    // A rear street and foreground garden remain visible in the narrow phone framing.
-    for (const side of [-1, 1]) {
-      const x = side * 10.5;
-      b.box('#e6c6a4', x, 1.55, -16.4, 7.6, 3.1, 4.5);
-      b.box('#b87860', x, 3.25, -16.4, 8.1, 0.4, 5);
-      b.box('#d39270', x, 3.54, -16.4, 7.4, 0.18, 4.3);
-      for (const dx of [-2.3, 0, 2.3]) b.box('#527e76', x + dx, 1.9, -14.1, 1.2, 1.3, 0.08);
-      tree(side * 16, -14.5, side + 2);
-      tree(side * 12.5, 33.5, side + 3);
-      b.box('#d6c8a4', side * 6.4, 0.1, 33.2, 6, 0.2, 2.5);
-      b.box('#a97850', side * 6.4, 0.7, 33.2, 3.7, 0.2, 0.85);
-      b.box('#a97850', side * 6.4, 1.1, 33.6, 3.7, 0.6, 0.12);
-      for (const dx of [-1.4, 1.4]) b.box(INK, side * 6.4 + dx, 0.35, 33.2, 0.14, 0.7, 0.6);
-    }
-    // Side streets and small terracotta shops frame the playfield without filling it.
-    for (const side of [-1, 1])
-      for (let j = 0; j < 3; j++) {
-        const x = side * 24,
-          z = -7 + j * 10;
-        b.box(j % 2 ? '#d7ad91' : '#e9caa8', x, 2.2, z, 6, 4.4, 6);
-        b.box('#b8745d', x, 4.6, z, 6.4, 0.5, 6.5);
-        b.box('#da9875', x, 4.96, z, 5.6, 0.24, 5.8);
-        for (let k = -1; k <= 1; k++) b.box('#426f6b', x + k * 1.4, 2.6, z + 3.04, 0.9, 1.3, 0.1);
-        b.box('#f7dbad', x, 1.5, z + 3.7, 6, 0.17, 1.5);
-        for (let k = -2; k <= 2; k++)
-          b.box(k % 2 ? '#f6e4be' : '#b97758', x + k, 1.61, z + 3.7, 0.75, 0.08, 1.5);
-      }
-    for (const x of [-18.5, 18.5])
-      for (const z of [-3, 8, 20]) {
-        b.cylinder(INK, x, 1.6, z, 0.075, 3.2);
-        b.box(INK, x, 3.14, z, 0.6, 0.12, 0.6);
-        b.box('#ffe1a0', x, 2.88, z, 0.37, 0.45, 0.37);
-        b.box('#345d51', x, 0.12, z, 0.4, 0.22, 0.4);
-      }
-    this.make(b, this.scenery, 'Batched station and neighbourhood');
   }
-  reset(s: Simulation) {
-    for (const n of [...this.entities.children]) n.destroy();
+
+  arrow(vehicle: Vehicle) {
+    const direction = DIRECTIONS[vehicle.direction];
+    const ground = this.project(vehicle.position, 0);
+    const toward = this.project(
+      {
+        x: vehicle.position.x + direction.x,
+        z: vehicle.position.z + direction.z,
+      },
+      0,
+    );
+    // An independent badge beside the upper edge leaves the taxi visible.
+    const badge = this.project(vehicle.position, 2.5);
+    return {
+      x: badge.x + this.taxiSize * 0.3,
+      y: badge.y - this.taxiSize * 0.04,
+      angle: Math.atan2(toward.y - ground.y, toward.x - ground.x),
+    };
+  }
+
+  resize(width: number, height: number, home = false) {
+    if (this.disposed) return;
+    this.w = Math.max(1, width);
+    this.h = Math.max(1, height);
+    this.home = home;
+    this.landscape = width > height;
+    const safe = sys.getSafeAreaRect();
+    const safeLeft = clamp(safe.x, 0, this.w * 0.2);
+    const safeRight = clamp(this.w - safe.x - safe.width, 0, this.w * 0.2);
+    const safeTop = clamp(this.h - safe.y - safe.height, 0, this.h * 0.2);
+    const safeBottom = clamp(safe.y, 0, this.h * 0.2);
+    const top = home ? (this.landscape ? 70 : 150) : 64;
+    const bottom = home ? (this.landscape ? 112 : 174) : 90;
+    const availableH = Math.max(80, this.h - safeTop - safeBottom - top - bottom);
+    const availableW = Math.max(80, this.w - safeLeft - safeRight - 16);
+    const sceneW = this.landscape
+      ? Math.min(availableW, Math.max(360, availableH * 1.8))
+      : availableW;
+    this.area = {
+      x: safeLeft + (this.w - safeLeft - safeRight - sceneW) / 2,
+      y: safeTop + top,
+      w: sceneW,
+      h: availableH,
+    };
+    const centralX =
+      (this.project({ x: 10, z: 8 }, 0).x - this.project({ x: -10, z: 8 }, 0).x) / 20;
+    const rowStep = (this.project({ x: 0, z: 20 }, 0).y - this.project({ x: 0, z: 8 }, 0).y) / 3;
+    this.taxiSize = Math.min(centralX * 4.55, rowStep * 1.1);
+    this.personSize = Math.max(13, Math.min(30, centralX * 2.5, availableH * 0.05));
+    this.elevation = this.taxiSize * 0.22;
+    this.root.getComponent(UITransform)!.setContentSize(this.w, this.h);
+    this.root.setPosition(this.w / 2, this.h / 2, 0);
+    this.camera.node.setPosition(this.w / 2, this.h / 2, 1000);
+    this.camera.orthoHeight = this.h / 2;
+    this.drawGround();
+    for (const visual of this.props) this.layoutVisual(visual);
+    for (const visual of this.carViews.values()) this.layoutVisual(visual);
+    for (const visual of this.personViews.values()) this.layoutVisual(visual);
+    this.baySignature = '';
+    if (this.state && this.loaded) this.sync(this.state);
+  }
+
+  private rect(graphics: Graphics, box: ScreenBox, hex: string, radius = 0) {
+    graphics.fillColor = paint(hex);
+    graphics.roundRect(
+      box.x - this.w / 2,
+      this.h / 2 - box.y - box.h,
+      box.w,
+      box.h,
+      clamp(radius, 0, Math.min(box.w, box.h) / 2),
+    );
+    graphics.fill();
+  }
+
+  private box(x1: number, z1: number, x2: number, z2: number): ScreenBox {
+    const a = this.project({ x: x1, z: z1 }, 0);
+    const b = this.project({ x: x2, z: z2 }, 0);
+    return { ...a, w: b.x - a.x, h: b.y - a.y };
+  }
+
+  private line(graphics: Graphics, points: ScreenPoint[], hex: string, width: number) {
+    if (!points.length) return;
+    graphics.strokeColor = paint(hex);
+    graphics.lineWidth = width;
+    points.forEach((point, i) => {
+      if (i) graphics.lineTo(point.x - this.w / 2, this.h / 2 - point.y);
+      else graphics.moveTo(point.x - this.w / 2, this.h / 2 - point.y);
+    });
+    graphics.stroke();
+  }
+
+  private worldLine(points: Point[], hex: string, width: number, graphics = this.ground) {
+    this.line(
+      graphics,
+      points.map((p) => this.project(p, 0)),
+      hex,
+      width,
+    );
+  }
+
+  private dashed(a: Point, b: Point) {
+    const from = this.project(a, 0);
+    const to = this.project(b, 0);
+    const length = Math.hypot(to.x - from.x, to.y - from.y);
+    const count = Math.max(1, Math.floor(length / 19));
+    for (let i = 0; i < count; i++) {
+      const t1 = (i + 0.22) / count;
+      const t2 = (i + 0.67) / count;
+      this.line(
+        this.ground,
+        [
+          {
+            x: from.x + (to.x - from.x) * t1,
+            y: from.y + (to.y - from.y) * t1,
+          },
+          {
+            x: from.x + (to.x - from.x) * t2,
+            y: from.y + (to.y - from.y) * t2,
+          },
+        ],
+        '#e3ddc3aa',
+        1.15,
+      );
+    }
+  }
+
+  private flowMark(point: Point, angle: number) {
+    const p = this.project(point, 0);
+    const dx = Math.cos(angle);
+    const dy = Math.sin(angle);
+    const size = Math.max(3, Math.min(5, this.taxiSize * 0.09));
+    this.line(
+      this.ground,
+      [
+        { x: p.x - dx * size - dy * size, y: p.y - dy * size + dx * size },
+        { x: p.x + dx * size, y: p.y + dy * size },
+        { x: p.x - dx * size + dy * size, y: p.y - dy * size - dx * size },
+      ],
+      '#dce1cd9c',
+      1.7,
+    );
+  }
+
+  private drawGround() {
+    const g = this.ground;
+    g.clear();
+    this.rect(g, { x: 0, y: 0, w: this.w, h: this.h }, PALETTE.lawn);
+    const garden = this.box(-20, -13, 20, 31);
+    this.rect(g, { ...garden, x: garden.x - 3, y: garden.y + 6, w: garden.w + 6 }, '#54795b13', 24);
+    this.rect(g, garden, PALETTE.lawnLight, 22);
+    const plaza = this.box(-17.5, -10.5, 17.5, 2.5);
+    this.rect(g, { ...plaza, y: plaza.y + 3 }, '#aab6a044', 13);
+    this.rect(g, plaza, PALETTE.pavingLight, 12);
+    // Small paving joints establish scale without making the station a flat slab.
+    for (let z = -9.8; z < 2.4; z += 1.45)
+      this.worldLine(
+        [
+          { x: -17, z },
+          { x: 17, z },
+        ],
+        '#c7bba341',
+        0.7,
+      );
+    for (let x = -16; x < 17; x += 2.4)
+      this.worldLine(
+        [
+          { x, z: -10 },
+          { x, z: 2.4 },
+        ],
+        '#cabda037',
+        0.65,
+      );
+
+    const curb = this.box(-18.2, 2.4, 18.2, 30.1);
+    this.rect(g, { ...curb, x: curb.x - 2, y: curb.y + 5, w: curb.w + 4 }, '#29495125', 21);
+    this.rect(g, curb, PALETTE.paving, 19);
+    const road = this.box(-17.6, 2.7, 17.6, 29.6);
+    this.rect(g, road, '#3c535e', 16);
+    this.rect(g, { ...road, y: road.y + 1.5, h: road.h - 4 }, PALETTE.road, 15);
+    const parking = this.box(-12.5, 6, 12.5, 24.1);
+    this.rect(g, { ...parking, y: parking.y + 2 }, '#384f5960', 12);
+    this.rect(g, parking, PALETTE.parking, 10);
+    this.rect(
+      g,
+      {
+        ...parking,
+        x: parking.x + 2,
+        y: parking.y + 2,
+        w: parking.w - 4,
+        h: 1,
+      },
+      '#a2b1af55',
+    );
+    // Road grain is static and restrained; all objects come from real art assets.
+    for (let i = 0; i < 54; i++) {
+      const x = road.x + 7 + ((i * 71) % Math.max(1, Math.floor(road.w - 14)));
+      const y = road.y + 7 + ((i * 107) % Math.max(1, Math.floor(road.h - 14)));
+      this.rect(g, { x, y, w: 1.2, h: 0.7 }, '#c6d0ce17');
+    }
+    this.dashed({ x: -16, z: 6 }, { x: -16, z: 26.5 });
+    this.dashed({ x: 16, z: 6 }, { x: 16, z: 26.5 });
+    this.dashed({ x: -13.8, z: 28 }, { x: 13.8, z: 28 });
+    this.dashed({ x: -13.8, z: 4.5 }, { x: 13.8, z: 4.5 });
+    for (const x of [-11, 11]) this.flowMark({ x, z: 4.5 }, 0);
+    for (const z of [11.5, 21.5]) {
+      this.flowMark({ x: 16, z }, Math.PI / 2);
+      this.flowMark({ x: -16, z }, -Math.PI / 2);
+    }
+    for (const x of [-8, 8]) this.flowMark({ x, z: 28 }, Math.PI);
+
+    for (let row = 0; row < 4; row++) {
+      for (let column = 0; column < 5; column++) {
+        const x = -8 + column * 4;
+        const z = 8 + row * 4;
+        const cell = this.box(x - 1.8, z - 1.85, x + 1.8, z + 1.85);
+        this.rect(
+          g,
+          {
+            ...cell,
+            x: cell.x + 1,
+            y: cell.y + 1,
+            w: cell.w - 2,
+            h: cell.h - 2,
+          },
+          (row + column) % 2 ? '#81959c10' : '#adc0c118',
+          4,
+        );
+        this.worldLine(
+          [
+            { x: x - 1.8, z: z - 1.75 },
+            { x: x - 1.8, z: z + 1.75 },
+            { x: x + 1.8, z: z + 1.75 },
+            { x: x + 1.8, z: z - 1.75 },
+          ],
+          '#e8e1cbb0',
+          1.05,
+        );
+      }
+    }
+
+    Object.values(BAY_X).forEach((x, index) => {
+      const bay = this.box(x - 2.15, -0.9, x + 2.15, 2.1);
+      this.rect(g, { ...bay, y: bay.y + 2.5 }, '#355d602e', 7);
+      this.rect(g, bay, '#397c78', 7);
+      this.rect(
+        g,
+        { ...bay, x: bay.x + 1.5, y: bay.y + 1.5, w: bay.w - 3, h: bay.h - 3 },
+        '#58998b',
+        5.5,
+      );
+      this.worldLine(
+        [
+          { x: x - 2.1, z: -1.12 },
+          { x: x + 2.1, z: -1.12 },
+        ],
+        '#b8a37b',
+        3.5,
+      );
+      this.worldLine(
+        [
+          { x: x - 2.1, z: -1.2 },
+          { x: x + 2.1, z: -1.2 },
+        ],
+        '#fff4d7',
+        1.5,
+      );
+      const sign = this.project({ x, z: -1.55 }, 0);
+      const diameter = clamp(this.taxiSize * 0.34, 13, 19);
+      this.rect(
+        g,
+        {
+          x: sign.x - diameter / 2,
+          y: sign.y - diameter / 2,
+          w: diameter,
+          h: diameter,
+        },
+        '#285b5b',
+        6,
+      );
+      const label = this.bayNumbers[index]!;
+      label.node.setPosition(sign.x - this.w / 2, this.h / 2 - sign.y);
+      label.node.getComponent(UITransform)!.setContentSize(diameter, diameter);
+      label.fontSize = Math.max(10, diameter * 0.67);
+      label.lineHeight = diameter;
+    });
+    // Curved garden verges stay outside the ring, including the exit on the right.
+    for (const side of [-1, 1]) {
+      for (const z of [8, 16, 24]) {
+        const flowerbed = this.box(side < 0 ? -20 : 18.8, z - 1.2, side < 0 ? -18.8 : 20, z + 1.2);
+        this.rect(g, { ...flowerbed, y: flowerbed.y + 1.5 }, '#92a783', 6);
+        this.rect(g, flowerbed, '#a8c28e', 6);
+      }
+    }
+  }
+
+  private visual(id: string, frame: SpriteFrame, kind: Kind, point: Point): Visual {
+    const node = this.node(id, this.actors);
+    const shadow = this.node(`${id} contact shadow`, node).addComponent(Graphics);
+    const body = this.node(`${id} painted sprite`, node);
+    const transform = body.getComponent(UITransform)!;
+    transform.setAnchorPoint(0.5, 0.08);
+    const sprite = body.addComponent(Sprite);
+    sprite.sizeMode = Sprite.SizeMode.CUSTOM;
+    sprite.spriteFrame = frame;
+    const visual: Visual = {
+      node,
+      sprite,
+      transform,
+      shadow,
+      kind,
+      id,
+      point,
+      depth: 0,
+      width: 0,
+      height: 0,
+      frameIndex: -1,
+      releasedAt: -Infinity,
+    };
+    this.layoutVisual(visual);
+    return visual;
+  }
+
+  private fit(visual: Visual, maxWidth: number, maxHeight: number) {
+    const rect = visual.sprite.spriteFrame!.rect;
+    const scale = Math.min(maxWidth / rect.width, maxHeight / rect.height);
+    visual.width = rect.width * scale;
+    visual.height = rect.height * scale;
+    visual.transform.setContentSize(visual.width, visual.height);
+  }
+
+  private layoutVisual(visual: Visual) {
+    switch (visual.kind) {
+      case 'taxi':
+        this.fit(visual, this.taxiSize, this.taxiSize);
+        // Ground positions are car centres, while image frames use a foot anchor.
+        visual.sprite.node.setPosition(0, -visual.height * 0.21);
+        break;
+      case 'person':
+        this.fit(visual, this.personSize, this.personSize);
+        break;
+      case 'station': {
+        const foot = this.project(visual.point, 0);
+        const maxHeight = Math.max(20, (foot.y - this.area.y + 4) / 0.9);
+        const maxWidth =
+          this.project({ x: 14.6, z: 0 }, 0).x - this.project({ x: -14.6, z: 0 }, 0).x;
+        this.fit(visual, maxWidth, maxHeight);
+        break;
+      }
+      case 'tree':
+        this.fit(visual, this.taxiSize * 1.24, this.taxiSize * 1.42);
+        break;
+      case 'flowers':
+        this.fit(visual, this.taxiSize * 0.43, this.taxiSize * 0.43);
+        break;
+      case 'bench':
+        this.fit(visual, this.taxiSize * 0.77, this.taxiSize * 0.77);
+        break;
+      case 'lamp':
+        this.fit(visual, this.taxiSize * 0.74, this.taxiSize * 0.93);
+        break;
+    }
+    const shadow = visual.shadow;
+    shadow.clear();
+    const person = visual.kind === 'person';
+    const station = visual.kind === 'station';
+    const radiusX = visual.width * (person ? 0.19 : station ? 0.42 : 0.31);
+    const radiusY = Math.max(1, visual.height * (station ? 0.037 : person ? 0.03 : 0.065));
+    shadow.fillColor = paint('#1d43451c');
+    shadow.ellipse(1, -1, radiusX * 1.18, radiusY * 1.4);
+    shadow.fill();
+    shadow.fillColor = paint('#1d434523');
+    shadow.ellipse(0, 0, radiusX, radiusY);
+    shadow.fill();
+    this.place(visual, visual.point);
+  }
+
+  private place(visual: Visual, point: Point) {
+    visual.point = point;
+    const p = this.project(point, 0);
+    visual.depth = p.y;
+    visual.node.setPosition(p.x - this.w / 2, this.h / 2 - p.y, 0);
+  }
+
+  private buildScenery() {
+    this.props.push(
+      this.visual('Station facade', this.stationFrame!, 'station', {
+        x: 0,
+        z: -7.8,
+      }),
+    );
+    const add = (kind: Kind, index: number, x: number, z: number) =>
+      this.props.push(
+        this.visual(`${kind}:${x}:${z}`, this.propFrames[index]!, kind, {
+          x,
+          z,
+        }),
+      );
+    for (const side of [-1, 1]) {
+      add('tree', 4, side * 17.9, -7.7);
+      add('tree', 4, side * 15.8, -10.7);
+      add('flowers', 5, side * 13.5, -2.2);
+      add('bench', 6, side * 15.7, -2.6);
+      for (const z of [8, 16, 24]) add('flowers', 5, side * 19.55, z + 0.8);
+      // Narrow lamp silhouettes sit beyond the kerb, never in the circulation lane.
+      for (const z of [5.8, 20]) add('lamp', 7, side * 19.05, z);
+    }
+  }
+
+  reset(simulation: Simulation) {
+    if (this.disposed) return;
+    this.state = simulation;
+    for (const visual of [...this.carViews.values(), ...this.personViews.values()])
+      visual.node.destroy();
     this.cars.clear();
     this.people.clear();
-    this.entityMeshes.forEach((m) => m.destroy());
-    this.entityMeshes = [];
-    for (const v of s.vehicles) this.car(v);
-    for (const g of s.groups)
-      for (const [i, p] of g.passengers.entries()) this.person(p.id, g.sequence + i);
-    this.sync(s);
+    this.carViews.clear();
+    this.personViews.clear();
+    this.lastOrder = '';
+    this.baySignature = '';
+    if (!this.loaded) return;
+    for (const vehicle of simulation.vehicles) this.car(vehicle);
+    for (const group of simulation.groups)
+      for (const [i, passenger] of group.passengers.entries())
+        this.person(passenger.id, group.sequence + i);
+    this.sync(simulation);
   }
-  private car(v: Vehicle) {
-    const b = new Batch(),
-      paint = [GOLD, '#efb13f', '#e8c869'][v.sequence % 3]!;
-    b.box('#637b75', 0, 0.08, 0, 1.8, 0.04, 3.2);
-    b.box(paint, 0, 0.6, 0, 1.45, 0.7, 2.9);
-    b.ball(paint, 0, 0.62, 1, 1.45, 0.65, 0.9);
-    b.ball(paint, 0, 0.62, -1, 1.45, 0.65, 0.9);
-    b.box('#28494c', 0, 1.06, -0.1, 1.22, 0.65, 1.45);
-    b.box(paint, 0, 1.4, -0.2, 1.32, 0.16, 1.22);
-    b.box('#92c2bd', 0, 1.12, 0.66, 1.1, 0.4, 0.06);
-    b.box('#c2c9b4', 0, 0.42, 1.49, 1.3, 0.16, 0.09);
-    b.box('#264944', 0, 0.62, 1.48, 0.65, 0.24, 0.06);
-    for (const x of [-0.47, 0.47]) {
-      b.ball('#fff0b5', x, 0.75, 1.46, 0.28, 0.24, 0.08);
-      b.box('#cb7158', x, 0.7, -1.46, 0.26, 0.19, 0.08);
-    }
-    b.box('#fff3cd', 0, 1.6, -0.1, 0.6, 0.22, 0.32);
-    b.box(INK, 0, 1.61, 0.07, 0.35, 0.1, 0.02);
-    for (const x of [-0.76, 0.76])
-      for (const z of [-0.9, 0.9]) {
-        b.ball('#2f4748', x, 0.33, z, 0.26, 0.63, 0.63);
-        b.ball('#d0c3a6', x * 1.1, 0.33, z, 0.08, 0.28, 0.28);
-      }
-    const node = this.make(b, this.entities, `Taxi ${v.id}`, true);
-    if (v.capacity === 6) node.setScale(1, 1, 1.03);
-    this.cars.set(v.id, node);
-    return node;
+
+  private heading(angle: number) {
+    return ((Math.round((Math.PI - angle) / (Math.PI / 4)) % 8) + 8) % 8;
   }
+
+  private car(vehicle: Vehicle) {
+    const direction = this.heading(vehicle.angle);
+    const visual = this.visual(
+      `Taxi ${vehicle.id}`,
+      this.taxiFrames[direction]!,
+      'taxi',
+      vehicle.position,
+    );
+    visual.frameIndex = direction;
+    visual.previousState = vehicle.state;
+    this.carViews.set(vehicle.id, visual);
+    this.cars.set(vehicle.id, visual.node);
+    return visual;
+  }
+
   private person(id: string, index: number) {
-    const b = new Batch(),
-      shirt = ['#dd916a', '#648d99', '#8aa87a', '#b59abb', '#e7bc65'][index % 5]!;
-    b.box('#486373', 0, 0.22, 0, 0.3, 0.44, 0.25);
-    b.ball(shirt, 0, 0.65, 0, 0.57, 0.72, 0.35);
-    b.ball('#e8c39e', 0, 1.16, 0, 0.45, 0.48, 0.43);
-    b.ball('#64594d', 0, 1.32, -0.035, 0.46, 0.27, 0.43);
-    b.box('#be9772', 0.38, 0.22, 0, 0.27, 0.42, 0.25);
-    const node = this.make(b, this.entities, `Passenger ${id}`, true);
-    this.people.set(id, node);
-    return node;
+    const visual = this.visual(`Passenger ${id}`, this.propFrames[index % 4]!, 'person', {
+      x: 0,
+      z: 0,
+    });
+    this.personViews.set(id, visual);
+    this.people.set(id, visual.node);
+    return visual;
   }
-  resize(w: number, h: number, home = false) {
-    const aspect = w / h;
-    this.camera.orthoHeight = Math.max(24, (home ? 22 : 18.5) / aspect);
-    this.camera.node.setPosition(home ? 9 : 0, home ? 38 : 45, home ? 46 : 42);
-    this.camera.node.lookAt(new Vec3(0, 0, home ? 6 : 8));
-  }
-  project(p: Point, height = 1.5) {
-    const q = this.camera.worldToScreen(new Vec3(p.x, height, p.z));
-    return { x: q.x / view.getScaleX(), y: view.getVisibleSize().height - q.y / view.getScaleY() };
-  }
-  arrow(v: Vehicle) {
-    const d = DIRECTIONS[v.direction],
-      a = this.project(v.position, 2.5),
-      b = this.project({ x: v.position.x + d.x, z: v.position.z + d.z }, 2.5);
-    return { x: a.x, y: a.y, angle: Math.atan2(b.y - a.y, b.x - a.x) };
-  }
-  sync(s: Simulation) {
-    for (const v of s.vehicles) {
-      const n = this.cars.get(v.id) ?? this.car(v);
-      n.active = v.state !== 'removed';
-      n.setPosition(v.position.x, 0, v.position.z);
-      n.setRotationFromEuler(0, (v.angle * 180) / Math.PI, 0);
+
+  private paintBays(simulation: Simulation) {
+    const signature = simulation.bays.map((bay) => `${bay.id}:${bay.state}`).join('|');
+    if (signature === this.baySignature) return;
+    this.baySignature = signature;
+    this.bayInk.clear();
+    for (const bay of simulation.bays) {
+      const x = BAY_X[bay.id];
+      if (x === undefined) continue;
+      const busy = bay.state !== 'free';
+      const area = this.box(x - 1.94, -0.7, x + 1.94, 1.9);
+      this.rect(
+        this.bayInk,
+        { ...area, x: area.x + 1, y: area.y + 1, w: area.w - 2, h: area.h - 2 },
+        busy ? '#ffe3a050' : '#d3efd214',
+        4,
+      );
+      this.worldLine(
+        [
+          { x: x - 1.94, z: -0.7 },
+          { x: x - 1.94, z: 1.9 },
+          { x: x + 1.94, z: 1.9 },
+          { x: x + 1.94, z: -0.7 },
+        ],
+        busy ? '#ffe1a5' : '#bfe0ba',
+        busy ? 1.7 : 1,
+        this.bayInk,
+      );
     }
+  }
+
+  sync(simulation: Simulation) {
+    if (this.disposed) return;
+    this.state = simulation;
+    if (!this.loaded) return;
+    for (const vehicle of simulation.vehicles) {
+      const visual = this.carViews.get(vehicle.id) ?? this.car(vehicle);
+      visual.node.active = vehicle.state !== 'removed';
+      if (!visual.node.active) continue;
+      const direction = this.heading(vehicle.angle);
+      if (direction !== visual.frameIndex) {
+        visual.sprite.spriteFrame = this.taxiFrames[direction]!;
+        visual.frameIndex = direction;
+      }
+      if (visual.previousState === 'holding' && vehicle.state !== 'holding')
+        visual.releasedAt = simulation.time;
+      visual.previousState = vehicle.state;
+      const phase = clamp((simulation.time - visual.releasedAt) / 0.25, 0, 1);
+      const pulse = Math.sin(phase * Math.PI);
+      visual.node.setScale(1 + pulse * 0.035, 1 + pulse * 0.025, 1);
+      visual.sprite.node.setRotationFromEuler(0, 0, pulse * 1.2);
+      this.place(visual, vehicle.position);
+    }
+
     const visible = new Set<string>();
-    for (const g of s.groups) {
-      if (g.state === 'split' || g.state === 'departed') continue;
-      const job = s.services.find((j) => j.groupId === g.id),
-        origin = job?.walkFrom ?? queuePosition(s, g),
-        car = s.vehicles.find((v) => v.id === g.vehicleId);
-      const f =
-        g.state === 'walking' && job
+    const services = new Map(simulation.services.map((job) => [job.groupId, job]));
+    const vehicles = new Map(simulation.vehicles.map((vehicle) => [vehicle.id, vehicle]));
+    for (const group of simulation.groups) {
+      if (group.state === 'split' || group.state === 'departed') continue;
+      const job = services.get(group.id);
+      // Committed pickup origins remain the ones captured at dispatch time.
+      const origin = job?.walkFrom ?? job?.pickupPoint ?? queuePosition(simulation, group);
+      const car = group.vehicleId ? vehicles.get(group.vehicleId) : undefined;
+      const fraction =
+        group.state === 'walking' && job
           ? Math.min(1, job.elapsed / Math.max(0.01, job.duration))
-          : g.state === 'boarding'
+          : group.state === 'boarding'
             ? 1
             : 0;
-      for (const [i, p] of g.passengers.entries()) {
-        if (i < g.boarded || s.delivered.has(p.id)) continue;
-        const n = this.people.get(p.id) ?? this.person(p.id, g.sequence + i);
-        n.active = true;
-        visible.add(p.id);
-        const target = car ? { x: car.position.x + 0.9, z: car.position.z - 0.4 } : origin;
-        const x = origin.x + (target.x - origin.x) * f,
-          z = origin.z + (target.z - origin.z) * f;
-        n.setPosition(
-          x + ((i % 3) - 1) * 0.55 * (1 - f),
-          g.state === 'walking' ? Math.sin(s.time * 13 + i) * 0.045 : 0,
-          z + Math.floor(i / 3) * 0.55 * (1 - f),
+      const target = car ? { x: car.position.x + 0.9, z: car.position.z - 0.4 } : origin;
+      for (const [i, passenger] of group.passengers.entries()) {
+        if (i < group.boarded || simulation.delivered.has(passenger.id)) continue;
+        const visual =
+          this.personViews.get(passenger.id) ?? this.person(passenger.id, group.sequence + i);
+        visual.node.active = true;
+        visible.add(passenger.id);
+        this.place(visual, {
+          x: origin.x + (target.x - origin.x) * fraction + ((i % 3) - 1) * 0.92 * (1 - fraction),
+          z:
+            origin.z + (target.z - origin.z) * fraction + Math.floor(i / 3) * 0.73 * (1 - fraction),
+        });
+        const walking = group.state === 'walking';
+        const step = Math.sin(simulation.time * 13 + i * 1.7);
+        visual.sprite.node.setPosition(
+          0,
+          walking ? Math.abs(step) * Math.min(1.3, this.personSize * 0.045) : 0,
         );
-        n.setRotationFromEuler(0, Math.sin(s.time * 0.6 + g.sequence + i) * 8, 0);
+        visual.sprite.node.setRotationFromEuler(
+          0,
+          0,
+          walking ? step * 2.3 : Math.sin(simulation.time * 0.8 + i) * 0.45,
+        );
       }
     }
-    for (const [id, n] of this.people) if (!visible.has(id)) n.active = false;
+    for (const [id, visual] of this.personViews) if (!visible.has(id)) visual.node.active = false;
+    this.paintBays(simulation);
+    const ordered = [...this.props, ...this.carViews.values(), ...this.personViews.values()].sort(
+      (a, b) => a.depth - b.depth || a.id.localeCompare(b.id),
+    );
+    const orderKey = ordered.map((visual) => visual.id).join('|');
+    if (orderKey !== this.lastOrder) {
+      ordered.forEach((visual, index) => visual.node.setSiblingIndex(index));
+      this.lastOrder = orderKey;
+    }
   }
+
+  private releaseAssets() {
+    for (const frame of this.frames.splice(0)) frame.destroy();
+    for (const texture of this.textures.splice(0)) texture.destroy();
+    for (const image of this.images.splice(0)) image.decRef();
+  }
+
   dispose() {
+    if (this.disposed) return;
+    this.disposed = true;
+    this.stopLoading = true;
+    this.rejectReady?.(new Error('Station world disposed before artwork finished loading'));
+    this.rejectReady = undefined;
+    this.root.active = false;
     this.root.destroy();
     this.camera.node.destroy();
-    for (const m of [...this.meshes, ...this.entityMeshes]) m.destroy();
-    for (const m of this.materials.values()) m.destroy();
+    this.releaseAssets();
+    this.cars.clear();
+    this.people.clear();
+    this.carViews.clear();
+    this.personViews.clear();
+    this.props.length = 0;
   }
 }

@@ -52,12 +52,20 @@ export class StationGame extends Component {
   private returnPage: Page = 'home';
   private previousDelivered = 0;
   private resizeKey = '';
-  start() {
+  async start() {
     view.enableAutoFullScreen(false);
     view.resizeWithBrowserSize(true);
     this.platform = new StationPlatform(this.node, LEVELS.length);
     this.world = new StationWorld(this.node);
     this.hud = new StationHUD(this.node);
+    try {
+      await Promise.all([this.world.ready, this.hud.ready]);
+    } catch (error) {
+      if (sys.isBrowser) window.dispatchEvent(new Event('homebound-load-error'));
+      console.error('[homebound-station artwork]', error);
+      return;
+    }
+    if (this.disposed) return;
     this.state = createSimulation(LEVELS[0]!);
     this.state.paused = true;
     this.world.reset(this.state);
@@ -287,11 +295,15 @@ export class StationGame extends Component {
     if (this.presses.size) return;
     this.platform.activate();
     const target = this.target(x, y);
-    if (target) this.presses.set(id, { x, y, target, page: this.page });
+    if (target) {
+      this.presses.set(id, { x, y, target, page: this.page });
+      this.hud.setPressed(target);
+    }
   }
   private release(id: number, x: number, y: number) {
     const p = this.presses.get(id);
     this.presses.delete(id);
+    this.hud.setPressed('');
     if (!p || p.page !== this.page || this.hidden) return;
     if (p.target.startsWith('car:')) {
       if (Math.hypot(x - p.x, y - p.y) < 65) this.action(p.target);
@@ -327,6 +339,7 @@ export class StationGame extends Component {
   }
   clear() {
     this.presses.clear();
+    this.hud?.setPressed('');
   }
   hide() {
     if (this.page === 'ad') this.adInterrupted = true;
@@ -341,7 +354,7 @@ export class StationGame extends Component {
     this.clear(); /* Explicit resume prevents a background/advert callback overriding pause. */
   }
   update(dt: number) {
-    if (!this.hud) return;
+    if (!this.hud || !this.state) return;
     const f = view.getFrameSize(),
       key = `${f.width}:${f.height}:${this.page === 'home'}`;
     if (key !== this.resizeKey) {
@@ -380,6 +393,7 @@ export class StationGame extends Component {
     this.render();
   }
   private render() {
+    this.world.root.active = this.page === 'playing' || this.page === 'pause';
     this.world.sync(this.state);
     this.hud.render(
       this.state,

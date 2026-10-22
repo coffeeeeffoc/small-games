@@ -3,6 +3,12 @@ import {
   Canvas,
   Color,
   Graphics,
+  ImageAsset,
+  LabelOutline,
+  Sprite,
+  SpriteFrame,
+  Texture2D,
+  resources,
   Label,
   Layers,
   Node,
@@ -37,13 +43,19 @@ export interface ViewState {
   elapsed: number;
   invitedLevel?: number;
 }
-const C = { ink: '#225953', cream: '#fcf4e2', dim: '#78867a', gold: '#e8b64e', line: '#ded8bf' };
+const C = { ink: '#174b4e', cream: '#fff4da', dim: '#6c7a75', gold: '#f9bf37', line: '#d8b780' };
 const col = (hex: string) => new Color().fromHEX(hex);
 export class StationHUD {
   root: Node;
   camera: Camera;
   g: Graphics;
   marks: Graphics;
+  readonly ready: Promise<void>;
+  private backdrop: Sprite;
+  private art = new Map<string, SpriteFrame>();
+  private textures: Texture2D[] = [];
+  private disposed = false;
+  private pressed = '';
   private labels = new Map<string, Label>();
   private signature = '';
   w = 390;
@@ -66,6 +78,27 @@ export class StationHUD {
     this.camera.visibility = Layers.Enum.UI_2D;
     this.camera.priority = 10;
     canvas.cameraComponent = this.camera;
+    this.backdrop = this.node('Illustrated town').addComponent(Sprite);
+    this.backdrop.sizeMode = Sprite.SizeMode.CUSTOM;
+    this.ready = Promise.all(
+      ['home', 'levels'].map(
+        (name) =>
+          new Promise<void>((resolve, reject) => {
+            resources.load(`art/${name}`, ImageAsset, (error, asset) => {
+              if (error || !asset) return reject(error || new Error(`Missing artwork: ${name}`));
+              if (this.disposed) return resolve();
+              const texture = new Texture2D();
+              texture.image = asset;
+              const frame = new SpriteFrame();
+              frame.texture = texture;
+              this.textures.push(texture);
+              this.art.set(name, frame);
+              this.signature = '';
+              resolve();
+            });
+          }),
+      ),
+    ).then(() => undefined);
     this.g = this.node('Panels').addComponent(Graphics);
     this.marks = this.node('Road direction badges').addComponent(Graphics);
     this.resize();
@@ -114,7 +147,7 @@ export class StationHUD {
     if (!l) {
       const n = this.node(id);
       l = n.addComponent(Label);
-      l.fontFamily = 'sans-serif';
+      l.fontFamily = 'Microsoft YaHei, sans-serif';
       l.horizontalAlign = Label.HorizontalAlign.CENTER;
       l.verticalAlign = Label.VerticalAlign.CENTER;
       l.overflow = Label.Overflow.CLAMP;
@@ -140,15 +173,28 @@ export class StationHUD {
     disabled = false,
   ) {
     this.buttons.push({ id, label, x, y, w, h, disabled });
+    const down = this.pressed === id;
+    const radius = Math.min(20, h / 2);
     this.rect(
       this.g,
       x,
-      y,
+      y + 4,
       w,
       h,
-      disabled ? '#e9e5d8' : primary ? C.ink : '#fff9eb',
-      Math.min(24, h / 2),
+      disabled ? '#a6b3a9' : primary ? '#bd772b' : '#9e805c',
+      radius,
     );
+    this.rect(
+      this.g,
+      x,
+      y + (down ? 3 : 0),
+      w,
+      h,
+      disabled ? '#dce4d9' : primary ? C.gold : C.cream,
+      radius,
+    );
+    if (!disabled)
+      this.rect(this.g, x + 3, y + (down ? 5 : 2), w - 6, 3, primary ? '#ffeb93' : '#fffef0', 2);
     this.text(
       `button:${id}`,
       label,
@@ -157,7 +203,7 @@ export class StationHUD {
       16,
       w - 12,
       h,
-      disabled ? '#9a9e90' : primary ? C.cream : C.ink,
+      disabled ? '#7e9088' : C.ink,
     );
   }
   private circle(g: Graphics, x: number, y: number, r: number, fill: string) {
@@ -181,6 +227,7 @@ export class StationHUD {
     const short = this.h < 560;
     const key = [
       v.page,
+      this.pressed,
       v.invitedLevel,
       v.chapter,
       v.practice,
@@ -197,20 +244,39 @@ export class StationHUD {
       this.g.clear();
       this.buttons = [];
       for (const l of this.labels.values()) l.node.active = false;
-      if (['levels', 'settings', 'help', 'result', 'ad'].includes(v.page))
+      this.backdrop.node.active = v.page === 'home' || v.page === 'levels';
+      if (this.backdrop.node.active) {
+        const frame = this.art.get(v.page)!;
+        this.backdrop.spriteFrame = frame;
+        const scale = Math.max(
+          this.w / frame.originalSize.width,
+          this.h / frame.originalSize.height,
+        );
+        this.backdrop.node
+          .getComponent(UITransform)!
+          .setContentSize(frame.originalSize.width * scale, frame.originalSize.height * scale);
+      }
+      if (['settings', 'help', 'result', 'ad'].includes(v.page))
         this.rect(this.g, 0, 0, this.w, this.h, C.cream, 0);
       else if (v.page === 'pause') this.rect(this.g, 0, 0, this.w, this.h, '#fcf4e2ed', 0);
       if (v.page === 'home') {
-        this.rect(this.g, 0, 0, this.w, short ? 110 : 175 + top, '#fcf4e2ed', 0);
+        this.rect(this.g, left, top + (short ? 1 : 24), width, short ? 88 : 146, '#144b5726', 28);
         this.text(
           'home-title',
           '归途站',
           this.w / 2,
           top + (short ? 22 : 65),
-          short ? 38 : 58,
+          short ? 38 : 64,
           width,
           90,
+          '#fff3ce',
         );
+        const title = this.labels.get('home-title')!;
+        title.isBold = true;
+        const outline = (title.getComponent(LabelOutline) ??
+          title.node.addComponent(LabelOutline))!;
+        outline.color = col('#275e68');
+        outline.width = 3;
         this.text(
           'home-en',
           'H O M E B O U N D  S T A T I O N',
@@ -219,7 +285,7 @@ export class StationHUD {
           11,
           width,
           30,
-          C.dim,
+          '#fff7e2',
         );
         this.rect(
           this.g,
@@ -227,7 +293,7 @@ export class StationHUD {
           bottom - (short ? 116 : 152),
           width + 16,
           short ? 124 : 160,
-          '#fcf4e2ed',
+          '#123f4a42',
           26,
         );
         this.button(
@@ -255,6 +321,7 @@ export class StationHUD {
             '#aa7244',
           );
       } else if (v.page === 'levels') {
+        this.rect(this.g, left - 6, top - 4, width + 12, short ? 58 : 86, '#fff4dae8', 26);
         this.text('levels-title', '归途手记', this.w / 2, top + 28, 32, width, 55);
         if (!short)
           this.text(
@@ -321,8 +388,8 @@ export class StationHUD {
           stepX = width / cols;
         // Paths end outside each button and status label, keeping every stop legible.
         if (rows === 5) {
-          this.g.strokeColor = col('#b9ccba');
-          this.g.lineWidth = 2.5;
+          this.g.strokeColor = col('#fff1c9');
+          this.g.lineWidth = 8;
           for (let i = 0; i < 9; i++) {
             const point = (n: number) => {
               const row = Math.floor(n / cols);
@@ -353,6 +420,8 @@ export class StationHUD {
             y = mapTop + stepY * (row + 0.5);
           const enabled = v.developer || unlocked(v.progress, index),
             done = v.progress.stars[index]!;
+          this.circle(this.g, x + 1, y + 5, 29, '#866f46');
+          this.circle(this.g, x, y, 29, '#fff0c9');
           this.button(`level:${index}`, String(l.id), x - 24, y - 22, 48, 44, enabled, !enabled);
           if (stepY >= 76)
             this.text(
@@ -368,6 +437,7 @@ export class StationHUD {
         }
         this.button('home', '返回首页', left, bottom - 48, width, 48);
       } else if (v.page === 'playing') {
+        this.rect(this.g, left, top + 3, width - 58, 44, '#a88451', 22);
         this.rect(this.g, left, top, width - 58, 44, C.cream, 22);
         this.text('level', `第 ${s.config.id} 关`, left + 48, top + 22, 16, 88, 35);
         this.button('pause', '', left + width - 48, top, 48, 44);
@@ -532,16 +602,17 @@ export class StationHUD {
       for (const vehicle of s.vehicles) {
         if (vehicle.state !== 'holding') continue;
         const p = world.arrow(vehicle),
-          r = 13;
-        this.rect(this.marks, p.x + 9, p.y + 8, 19, 18, C.cream, 5);
+          r = 10;
+        this.rect(this.marks, p.x + 10, p.y + 3, 16, 17, '#ad8147', 4);
+        this.rect(this.marks, p.x + 10, p.y + 2, 16, 16, C.cream, 4);
         this.text(
           `capacity:${vehicle.id}`,
           String(vehicle.passengerCapacity),
-          p.x + 18.5,
-          p.y + 17,
-          13,
-          19,
-          18,
+          p.x + 18,
+          p.y + 10,
+          11,
+          16,
+          16,
           C.ink,
         );
         this.circle(this.marks, p.x, p.y, r, '#fcf4e2');
@@ -587,10 +658,16 @@ export class StationHUD {
       if (t) t.node.active = false;
     }
   }
+  setPressed(id: string) {
+    this.pressed = id;
+  }
   invalidate() {
     this.signature = '';
   }
   dispose() {
+    this.disposed = true;
+    for (const frame of this.art.values()) frame.destroy();
+    for (const texture of this.textures) texture.destroy();
     this.root.destroy();
     this.camera.node.destroy();
   }
