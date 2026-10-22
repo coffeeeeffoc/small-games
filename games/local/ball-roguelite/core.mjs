@@ -8,7 +8,7 @@ export const FIELD = Object.freeze({
   floor: 580,
   cell: 50,
   row: 50,
-  radius: 6,
+  radius: 8,
   speed: 690,
   maxRow: 9,
 });
@@ -523,8 +523,9 @@ function moveBall(game, ball, dt) {
       if (brick.kind === 'pickup' || ball.pierce > 0) {
         if (brick.kind !== 'pickup') ball.pierce--;
         ball.ignored.push(brick.id);
-        ball.x += Math.sign(ball.vx) * EPS * 2;
-        ball.y += Math.sign(ball.vy) * EPS * 2;
+        // Keep the exact entry point until natural travel leaves this body.
+        // A component-wise nudge can push a grazing contact outside `inside`,
+        // clear the ignore entry and charge damage again at the same surface.
         continue;
       }
     }

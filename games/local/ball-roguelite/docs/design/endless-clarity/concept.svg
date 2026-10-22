@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="844" viewBox="0 0 780 844">
+<defs><radialGradient id="bg"><stop stop-color="#253b82"/><stop offset="1" stop-color="#10153c"/></radialGradient><radialGradient id="orb" cx="30%" cy="25%"><stop stop-color="#fff"/><stop offset=".25" stop-color="#a1ffe8"/><stop offset=".7" stop-color="#284b79"/><stop offset="1" stop-color="#c1fff0"/></radialGradient></defs>
+<rect width="780" height="844" fill="url(#bg)"/>
+<g fill="none" stroke="#7ccfff" stroke-width="2"><rect x="20" y="130" width="350" height="570" rx="8"/><rect x="410" y="130" width="350" height="570" rx="8"/></g>
+<g fill="url(#orb)"><circle cx="80" cy="175" r="22"/><circle cx="245" cy="195" r="20"/><circle cx="490" cy="325" r="22"/><circle cx="585" cy="270" r="20"/><circle cx="585" cy="510" r="8"/><circle cx="585" cy="540" r="8"/><circle cx="585" cy="570" r="8"/></g>
+<g font-family="sans-serif" fill="#e9f9f7" text-anchor="middle"><text x="195" y="50" font-size="20">奖励弹窗 · 仅保留强化选择</text><text x="585" y="50" font-size="20">游玩 · 图标操作与清晰命中</text></g>
+<rect x="15" y="272" width="360" height="300" rx="24" fill="#25205b" stroke="#cd9aff" stroke-width="2"/>
+<g font-family="sans-serif" fill="#e9f9f7" text-anchor="middle"><text x="195" y="316" font-size="25">星光共鸣</text><text x="195" y="343" font-size="12" fill="#bcc8ee">选择一项 · 本局生效</text></g>
+<g fill="#262565" stroke="#727be1"><rect x="24" y="354" width="107" height="202" rx="20"/><rect x="141" y="354" width="107" height="202" rx="20"/><rect x="258" y="354" width="107" height="202" rx="20"/></g>
+<g fill="url(#orb)"><circle cx="77" cy="400" r="20"/><circle cx="194" cy="400" r="20"/><circle cx="311" cy="400" r="20"/></g>
+<g font-family="sans-serif" fill="#e9f9f7" text-anchor="middle" font-size="14"><text x="77" y="460">重击核心</text><text x="194" y="460">分裂弹群</text><text x="311" y="460">相位穿透</text><text x="77" y="505" font-size="11">伤害 +1</text><text x="194" y="505" font-size="11">每轮 +2 颗</text><text x="311" y="505" font-size="11">额外穿透 1 颗</text></g>
+<path d="M490 325 L518 300 L527 315 L553 283 L560 293 L585 270" fill="none" stroke="#72f4ff" stroke-width="3"/>
+<circle cx="490" cy="325" r="65" fill="none" stroke="#ffda7b" stroke-width="2"/>
+<g fill="#262565" stroke="#727be1"><rect x="480" y="752" width="72" height="48" rx="18"/><rect x="560" y="752" width="72" height="48" rx="18"/><rect x="640" y="752" width="72" height="48" rx="18"/></g>
+<g fill="none" stroke="#e9f9f7" stroke-width="2.5"><path d="M525 783 A11 11 0 1 0 505 777 M505 768 V777 H514"/><rect x="584" y="767" width="24" height="18" rx="3"/><path d="M672 765 V782 M665 776 L672 783 L679 776 M661 785 V790 H683 V785"/></g><path d="M593 770 L601 776 L593 782 Z" fill="#ffda7b"/>
+<g font-family="sans-serif" fill="#bcc8ee" text-anchor="middle" font-size="12"><text x="585" y="630">弹丸直径 12 → 16 · 碰撞与外观同步</text><text x="585" y="655">连锁连线 · 金色爆裂范围反馈</text><text x="585" y="825">图标保留无障碍名称与至少 44px 热区</text></g>
+</svg>
