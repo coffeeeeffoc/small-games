@@ -72,12 +72,17 @@ function drawField(ctx, p, theme, game = null, home = false) {
   const height = ctx.canvas.height;
   const cages = game?.cages || [];
   const bricks = game?.bricks || [];
+  const mechanismKey = JSON.stringify([
+    game?.barriers.map((item) => Boolean(item.open)),
+    game?.devices?.map((item) => item.charges),
+  ]);
   const changed =
     layer.canvas.width !== width ||
     layer.canvas.height !== height ||
     layer.theme !== theme ||
     layer.home !== home ||
     layer.game !== game ||
+    layer.mechanismKey !== mechanismKey ||
     cages.some((cage, i) => cage.hp !== layer.cageHp?.[i]) ||
     bricks.some((brick, i) => brick.hp !== layer.brickHp?.[i]);
   if (changed) {
@@ -89,8 +94,10 @@ function drawField(ctx, p, theme, game = null, home = false) {
     drawBackground(background, p, 0, home, true);
     if (!home) {
       drawNet(background, p);
+      for (const item of game?.devices || []) drawDeviceLinks(background, item, game.barriers);
       for (const brick of bricks) drawBrick(background, brick, p);
       for (const barrier of game?.barriers || []) drawBarrier(background, barrier);
+      for (const item of game?.devices || []) drawDevice(background, item);
       for (const [index, cage] of cages.entries()) {
         if (cage.hp > 0) drawCage(background, cage, index, p);
       }
@@ -99,6 +106,7 @@ function drawField(ctx, p, theme, game = null, home = false) {
       theme,
       home,
       game,
+      mechanismKey,
       cageHp: cages.map((cage) => cage.hp),
       brickHp: bricks.map((brick) => brick.hp),
     });
@@ -241,10 +249,31 @@ function drawBackground(ctx, p, time, home = false, reducedMotion = false) {
 
   // Construction silhouettes and a moon give the field a place, rather than a grid.
   const moonX = home ? 61 : 286;
-  const moonY = home ? 323 : 518;
+  const moonY = home ? 323 : 486;
   glow(ctx, moonX, moonY, 61, '#a9d9ed', 0.09);
-  circle(ctx, moonX, moonY, home ? 22 : 26, '#bdd5dd');
-  circle(ctx, moonX + 7, moonY - 7, home ? 17 : 21, p.sky);
+  // Draw only the illuminated crescent. The hollow reveals the actual gradient sky.
+  const moonR = home ? 22 : 26;
+  ctx.beginPath();
+  ctx.moveTo(moonX + moonR * 0.4, moonY - moonR * 0.92);
+  ctx.bezierCurveTo(
+    moonX - moonR * 1.35,
+    moonY - moonR * 0.9,
+    moonX - moonR * 1.35,
+    moonY + moonR * 1.1,
+    moonX + moonR * 0.48,
+    moonY + moonR * 0.88,
+  );
+  ctx.bezierCurveTo(
+    moonX - moonR * 0.66,
+    moonY + moonR * 0.57,
+    moonX - moonR * 0.69,
+    moonY - moonR * 0.47,
+    moonX + moonR * 0.4,
+    moonY - moonR * 0.92,
+  );
+  ctx.closePath();
+  ctx.fillStyle = '#bdd5dd';
+  ctx.fill();
   ctx.save();
   ctx.globalAlpha = 0.45;
   for (const [x, y, direction] of [
@@ -496,8 +525,16 @@ function drawRoleBadge(ctx, x, y, role, scale = 1) {
 function drawBarrier(ctx, barrier) {
   const { x, y, w, h } = barrier;
   ctx.save();
+  if (barrier.open) {
+    ctx.setLineDash([3, 5]);
+    ctx.strokeStyle = '#56737e';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x, y, w, h);
+    ctx.restore();
+    return;
+  }
   rounded(ctx, x, y, w, h, 3);
-  ctx.fillStyle = '#718392';
+  ctx.fillStyle = barrier.group ? '#ac7937' : '#718392';
   ctx.fill();
   ctx.strokeStyle = '#d1e0e9';
   ctx.lineWidth = 2;
@@ -507,6 +544,74 @@ function drawBarrier(ctx, barrier) {
     line(ctx, x + offset, y + 1, x + offset + h, y + h - 1, '#293a48', 5);
   circle(ctx, x + 5, y + h / 2, 2, '#f0f4ed');
   circle(ctx, x + w - 5, y + h / 2, 2, '#f0f4ed');
+  if (barrier.group) {
+    ctx.fillStyle = '#fff0bf';
+    ctx.font = 'bold 10px system-ui';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(barrier.group, x + w / 2, y + h / 2);
+  }
+  ctx.restore();
+}
+
+function drawDeviceLinks(ctx, device, barriers = []) {
+  if (device.kind !== 'switch' || device.charges <= 0) return;
+  ctx.save();
+  ctx.setLineDash([2, 5]);
+  for (const gate of barriers.filter((item) => item.group === device.group && !item.open))
+    line(
+      ctx,
+      device.x + device.w / 2,
+      device.y + device.h / 2,
+      gate.x + gate.w / 2,
+      gate.y + gate.h / 2,
+      'rgba(255,204,103,.25)',
+      1,
+    );
+  ctx.restore();
+}
+
+function drawDevice(ctx, device) {
+  const { x, y, w, h, kind } = device;
+  const active = device.charges > 0;
+  const color = !active
+    ? '#51677a'
+    : kind === 'splitter'
+      ? '#c0a6ff'
+      : kind === 'switch'
+        ? '#ffe296'
+        : '#ffac74';
+  ctx.save();
+  rounded(ctx, x - 2, y - 2, w + 4, h + 4, 8);
+  ctx.fillStyle = '#091d32';
+  ctx.fill();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  rounded(ctx, x + 2, y + 2, w - 4, h - 4, 5);
+  ctx.fillStyle = active ? (kind === 'splitter' ? '#53437e' : '#63482d') : '#243440';
+  ctx.fill();
+  const cx = x + w / 2,
+    cy = y + h / 2;
+  if (!active) {
+    line(ctx, cx - 5, cy, cx - 1, cy + 4, color, 2);
+    line(ctx, cx - 1, cy + 4, cx + 6, cy - 5, color, 2);
+  } else if (kind === 'splitter') {
+    for (const [dx, dy] of [
+      [-7, 4],
+      [0, -5],
+      [7, 4],
+    ])
+      circle(ctx, cx + dx, cy + dy, 3, color);
+  } else if (kind === 'switch') {
+    ctx.beginPath();
+    ctx.arc(cx - 5, cy - 2, 4, 0, Math.PI * 2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    line(ctx, cx - 1, cy - 2, cx + 8, cy - 2, color, 2);
+    line(ctx, cx + 5, cy - 2, cx + 5, cy + 3, color, 2);
+  } else star(ctx, cx, cy, 9, color);
   ctx.restore();
 }
 
@@ -656,6 +761,8 @@ function drawCage(
 function drawBrick(ctx, brick, p, accent = false) {
   if (brick.hp <= 0) return;
   const { x, y, w, h } = brick;
+  const armored = (brick.maxHp || brick.hp) > 2;
+  accent ||= armored;
   ctx.save();
   rounded(ctx, x - 1, y + 3, w + 2, h + 1, 5);
   ctx.fillStyle = '#031727';
@@ -677,6 +784,28 @@ function drawBrick(ctx, brick, p, accent = false) {
   for (const bx of [x + 4, x + w - 4]) {
     circle(ctx, bx, y + h / 2, 1.8, '#0a5b70');
     circle(ctx, bx - 0.3, y + h / 2 - 0.4, 0.7, p.mintLight);
+  }
+  if (armored) {
+    const max = brick.maxHp || brick.hp;
+    for (let i = 0; i < max; i++) {
+      ctx.fillStyle = i < brick.hp ? '#ffe8a8' : '#784427';
+      ctx.fillRect(x + 9 + i * ((w - 18) / max), y + h - 4, Math.max(2, (w - 18) / max - 2), 2);
+    }
+    ctx.fillStyle = '#382415';
+    ctx.font = '900 11px system-ui';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(brick.hp), x + w / 2, y + h / 2 - 1);
+    if (brick.hp < max) {
+      ctx.beginPath();
+      ctx.moveTo(x + 13, y + 1);
+      ctx.lineTo(x + 18, y + 6);
+      ctx.lineTo(x + 14, y + 10);
+      ctx.lineTo(x + 21, y + h - 3);
+      ctx.strokeStyle = '#75472d';
+      ctx.lineWidth = 1.3;
+      ctx.stroke();
+    }
   }
   ctx.restore();
 }
@@ -881,7 +1010,22 @@ export function drawGame(
   }
   drawPaddle(ctx, paddle, p, reducedMotion ? 0 : time, game.phase === 'ready');
   if (game.ball && (game.ball.active || game.phase === 'ready' || game.phase === 'paused'))
-    drawBall(ctx, game.ball, p, trails, reducedMotion);
+    drawBall(
+      ctx,
+      game.ball,
+      p,
+      trails.filter((point) => point.id === game.ball.id),
+      reducedMotion,
+    );
+  for (const ball of game.extraBalls || [])
+    if (ball.active)
+      drawBall(
+        ctx,
+        ball,
+        p,
+        trails.filter((point) => point.id === ball.id),
+        reducedMotion,
+      );
   drawParticles(ctx, particles, p);
   ctx.restore();
 }
@@ -977,6 +1121,8 @@ export function drawLevel(ctx, level, { locked = false, theme = 'rescue' } = {})
   ctx.scale(0.369, 0.21);
   for (const cage of level?.cages || []) drawCage(ctx, cage, undefined, p);
   for (const brick of level?.bricks || []) drawBrick(ctx, brick, p);
+  for (const wall of level?.barriers || []) drawBarrier(ctx, wall);
+  for (const item of level?.devices || []) drawDevice(ctx, item);
   ctx.restore();
   ctx.globalAlpha = 1;
   if (locked) {
