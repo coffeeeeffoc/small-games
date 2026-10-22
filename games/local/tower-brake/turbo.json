@@ -5,7 +5,8 @@
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/platforms/competition/client.js",
-        "$TURBO_ROOT$/platforms/competition/game-services.js"
+        "$TURBO_ROOT$/platforms/competition/game-services.js",
+        "$TURBO_ROOT$/platforms/h5/publishing.js"
       ]
     }
   }

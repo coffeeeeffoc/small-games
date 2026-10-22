@@ -27,7 +27,7 @@ const jobs = games.map((game) => ({
   status: 'completed',
   conclusion: 'success',
 }));
-test('reuse waits for all eight successful producer gates, not downstream CI', () => {
+test('reuse waits for all ten successful producer gates, not downstream CI', () => {
   assert.deepEqual(games, [
     'carding-car',
     'night-overwatch',
@@ -36,6 +36,8 @@ test('reuse waits for all eight successful producer gates, not downstream CI', (
     'homebound-station',
     'merge-front',
     'bullet-garden',
+    'tower-brake',
+    'tetracube',
     'three-choose-two',
   ]);
   assert.equal(inspectProducer(run, jobs, expected), 'ready');
@@ -144,7 +146,7 @@ test('CI is the sole producer direction and fallback retains original gates', as
   const verify = producer.jobs.reuse.steps.find((step) => step.id === 'verify');
   assert.equal(
     verify.if,
-    "steps.kart.outcome == 'success' && steps.night.outcome == 'success' && steps.orbit.outcome == 'success' && steps.tianxia.outcome == 'success' && steps.homebound.outcome == 'success' && steps.merge.outcome == 'success' && steps.garden.outcome == 'success' && steps.three.outcome == 'success'",
+    "steps.kart.outcome == 'success' && steps.night.outcome == 'success' && steps.orbit.outcome == 'success' && steps.tianxia.outcome == 'success' && steps.homebound.outcome == 'success' && steps.merge.outcome == 'success' && steps.garden.outcome == 'success' && steps.tower.outcome == 'success' && steps.tetra.outcome == 'success' && steps.three.outcome == 'success'",
   );
   for (const game of games) {
     const transfers = producer.jobs.reuse.steps.filter(
@@ -207,6 +209,8 @@ test('reuse verifies and republishes every Creator game before skipping the prod
         'homebound-station': 'homebound',
         'merge-front': 'merge',
         'bullet-garden': 'garden',
+        'tower-brake': 'tower',
+        tetracube: 'tetra',
         'three-choose-two': 'three',
       }[game],
     );

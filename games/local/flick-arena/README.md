@@ -13,6 +13,16 @@
 
 瞄准虚线按同一物理积分计算，包含冰面和石柱，忽略其他圆盘碰撞。拖拽可拉回取消，触点取消、失焦和尺寸变化不会误发射；第二根手指不能接管。横屏缩放后圆盘仍保留至少 44 CSS px 的有效热区。人机局玩家出局后缩短 AI 思考等待，物理速度与在线计时保持原规则。结算可回放最后一弹，回放不重复结算。
 
+## Cocos 渲染与广告
+
+Web 已使用真实 Cocos Engine 3.8.8 官方源码运行库；`src/cocos-runtime.mjs` 管理场景与引擎帧，`src/cocos-render.mjs` 用 Sprite/Graphics/Mask 呈现既有布局。按钮保留原绘制纹理和透明无障碍热区，全屏入口已移除。引擎源码和二进制摘要由 `scripts/build-cocos-engine.mjs` 离线校验；`--rebuild` 可按固定来源重建。此版本不是 Creator 编辑器导出，原生 Canvas 兼容入口保留。
+
+公共激励广告端口为 `globalThis.SmallGamesRewardAds`，由公共 H5 模块提供。当前没有广告位和具体奖励入口，默认 `available=false`，请求返回 `unavailable`，游戏照常运行；旧发布适配默认广告模式为 `off`。后续配置真实广告位和奖励点时，只在 `completed` 后发放奖励，取消、失败和过期请求不得发奖。
+
+迁移说明、截图和实际验证见 [Cocos 迁移记录](docs/design/cocos-2026-10-23/verification.md)。
+
+当前文案、图标、宣传素材及实际录屏见 [上架资料](publishing/STATUS.md)。
+
 ## 运行
 
 ```sh

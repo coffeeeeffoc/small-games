@@ -1,18 +1,27 @@
 {
   "name": "@coffeeeeffoc/tower-brake",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "转塔留一脚刹车：30 条路线、无尽下落与排行榜",
+  "description": "穿云落星：转动青玉轨道，穿越星际与云海",
   "scripts": {
-    "dev": "node server.mjs",
-    "start": "node server.mjs",
-    "build": "node build.mjs",
-    "preview": "node server.mjs --dist",
-    "test": "node --test tests/*.test.mjs",
-    "test:browser": "node tests/browser.mjs && node tests/publishing-browser.mjs && node tests/expansion-browser.mjs"
+    "dev": "node scripts/serve.mjs",
+    "start": "node scripts/serve.mjs",
+    "preview": "node scripts/serve.mjs",
+    "build": "node scripts/build.mjs web-mobile",
+    "typecheck": "node scripts/typecheck.mjs",
+    "test": "node --test --test-concurrency=1 tests/*.test.mjs",
+    "test:browser": "node tests/browser.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.55.1",
+    "typescript": "7.0.2"
   },
   "coffeeeeffoc": {
     "role": "game"
-  }
+  },
+  "creator": {
+    "version": "3.8.8"
+  },
+  "uuid": "b3bc463c-3518-467d-a2b6-66dfe1d48c39"
 }

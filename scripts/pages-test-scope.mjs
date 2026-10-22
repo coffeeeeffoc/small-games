@@ -60,6 +60,26 @@ const SHARED_COCOS_SCRIPTS = new Set(
 // 457bc63. Keep the deleted paths in normal game regression selection; this
 // proof only permits those exact D records through the global deletion guard.
 const reviewedCleanupDeletions = Object.freeze({
+  // Former Canvas renderer and superseded browser suites; Cocos owns the full flow.
+  'games/local/tower-brake/leaderboard.mjs':
+    '6e6b2688c126ef77d5e3411ae14f7d29bc9c4a1d78c75f58dd494c98c40e1606',
+  'games/local/tower-brake/main.mjs':
+    '411b88700d8df3a802c0af7a959e1983abdb987fc16bccd35c2f79fd6c7c94e5',
+  'games/local/tower-brake/render.mjs':
+    'f75b8dbb792d48e4724141a504ce87f11db66fd2b83baae3e2658b572df32694',
+  'games/local/tower-brake/style.css':
+    '5d3de377848db7eccb0befbb199255b443198c71ebb2040d9ee02ccf3c2edc54',
+  'games/local/tower-brake/tests/expansion-browser.mjs':
+    '33adbbae1fae87ea455ef3dbbcf17a6d2c2d1483e1a9f28c28f6847faeaa7af3',
+  'games/local/tower-brake/tests/publishing-browser.mjs':
+    '131a8ee029294dabd9301cb3340312fc23bca881074e668470e2e0459084372f',
+
+  'games/local/tetracube/index.html':
+    '475d14a286a3ab5d46307c2ba39aa02a413d5433b9459b68538f8e68f95e4b4a',
+  'games/local/tetracube/src/app.mjs':
+    '5a626c3d81ef0761a697cbeef35dc961ed2645b867c3f4fe5fdd9c90f9c754c7',
+  'games/local/tetracube/style.css':
+    '77b284ea1bbda998b56654d3bf9f5491fcc083f1e87b1116e6d53b69bb1eefb9',
   // f0f2576 replaces these exact legacy Chase sources/tests with the city-chase runtime.
   // Only their deletion is exempted; the retained game still receives normal regression.
   'games/local/chase-thief/audio.mjs':
@@ -140,6 +160,54 @@ const reviewedCleanupDeletions = Object.freeze({
   'games/local/cops-robbers/scripts/generate-levels.mjs':
     '5792406bf617165e74a34887cb045b582416c657c03b402bd942b00f4e758bc7',
 });
+const tetracubeMoves = Object.freeze({
+  'games/local/tetracube/dev-mode.js': {
+    to: 'games/local/tetracube/scripts/dev-mode.js',
+    hash: '986844491337ac0bb53394d44917356a820f346f0d2b0d63b2ab34e36a7a4a2f',
+  },
+  'games/local/tetracube/dev-mode.d.ts': {
+    to: 'games/local/tetracube/scripts/dev-mode.d.ts',
+    hash: 'b72515b11a1a65cf101125ce3bc23bf2aa3236cdb2331e0b018a962571f7a195',
+  },
+  'games/local/tetracube/fullscreen.js': {
+    to: 'games/local/tetracube/scripts/fullscreen.js',
+    hash: '72acd28e8258e9e49b91288dc67b9af8f857c9eda6eaa5b80a4dfaa4009bedc7',
+  },
+});
+export function isReviewedTetracubeMove({
+  change,
+  readBase,
+  readHead,
+  headHasPath,
+  standaloneGames,
+  gameSources,
+}) {
+  const [from, to] = change.paths,
+    review = tetracubeMoves[from],
+    source = 'games/local/tetracube';
+  if (change.status !== 'R100' || change.paths.length !== 2 || !review || to !== review.to)
+    return false;
+  try {
+    const entries = standaloneGames.filter((g) => g.id === 'tetracube' || g.source === source);
+    if (
+      entries.length !== 1 ||
+      entries[0].id !== 'tetracube' ||
+      entries[0].source !== source ||
+      gameSources.filter((s) => s === source).length !== 1
+    )
+      return false;
+    const hash = (value) => createHash('sha256').update(value).digest('hex');
+    return (
+      headHasPath(from) === false &&
+      headHasPath(to) === true &&
+      hash(readBase(from)) === review.hash &&
+      hash(readHead(to)) === review.hash
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function isReviewedCleanupDeletion({
   change,
   readBase,
@@ -516,6 +584,8 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
       const headQueries = [
         ...new Set([
           ...changedPaths.filter((file) => Object.hasOwn(reviewedCleanupDeletions, file)),
+          ...Object.keys(tetracubeMoves),
+          ...Object.values(tetracubeMoves).map((move) => move.to),
           ...retirementHeadQueryPaths(changedPaths),
           ...localRetirementHeadQueryPaths(changedPaths),
         ]),
@@ -558,6 +628,7 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
               readBase: (file) => git(root, ['show', `${diffBase}:${file}`]),
               headHasPath,
             }) &&
+            !isReviewedTetracubeMove({ change, ...catalog, ...retirementContext }) &&
             !isReviewedRetirementDeletion(change, retiredScopes) &&
             !isReviewedLocalRetirementDeletion(change, retiredScopes),
         )

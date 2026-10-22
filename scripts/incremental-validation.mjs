@@ -285,9 +285,16 @@ export function incrementalPlan({
       paths.some(
         (file) =>
           (gameServiceScopePaths.includes(file) && fileScopes.get(file)?.includes(game.source)) ||
-          ['build.mjs', 'api-config.mjs', 'index.html', 'main.mjs', 'src/main.mjs'].some(
-            (entry) => file === game.source + '/' + entry,
-          ),
+          [
+            'build.mjs',
+            'scripts/build.mjs',
+            'api-config.mjs',
+            'index.html',
+            'main.mjs',
+            'src/main.mjs',
+            'startup/host.js',
+            'assets/scripts/TowerBrake.ts',
+          ].some((entry) => file === game.source + '/' + entry),
       )
     )
       devModeIds.push(id);
@@ -420,7 +427,7 @@ export function incrementalPlan({
       shellChanged ||
       paths.includes('apps/shell-web/src/game-assessments.json') ||
       paths.includes('apps/shell-web/scripts/catalog-rollout-smoke.mjs'),
-    interaction_browser_ids: ['letters-words2', 'tianxia-chalu'].filter(
+    interaction_browser_ids: ['letters-words2', 'tianxia-chalu', 'tetracube'].filter(
       (id) => ids.has(id) && directGames.some((game) => game.id === id),
     ),
     game_services_checks: paths.some(

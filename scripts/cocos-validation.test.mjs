@@ -9,6 +9,8 @@ for (const [game, variable] of [
   ['night-overwatch', 'NIGHT_OVERWATCH_PREBUILT_DIR'],
   ['tianxia-chalu', 'TIANXIA_PREBUILT_DIR'],
   ['merge-front', 'MERGE_FRONT_PREBUILT_DIR'],
+  ['tower-brake', 'TOWER_BRAKE_PREBUILT_DIR'],
+  ['tetracube', 'TETRACUBE_PREBUILT_DIR'],
   ['three-choose-two', 'THREE_CHOOSE_TWO_PREBUILT_DIR'],
 ])
   test(`${game}: required Cocos inputs are checked before cache reuse`, async () => {

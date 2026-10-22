@@ -141,6 +141,8 @@ try {
           game.id === 'chase-thief' ||
           game.id === 'orbit-atelier' ||
           game.id === 'merge-front' ||
+          game.id === 'tower-brake' ||
+          game.id === 'tetracube' ||
           game.id === 'ink-is-everything' ||
           game.id === 'ball-roguelite' ||
           game.id === 'flick-arena' ||

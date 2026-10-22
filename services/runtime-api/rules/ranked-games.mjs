@@ -90,7 +90,7 @@ export const rankedRules = [
   },
   {
     id: 'tower-brake',
-    title: '转塔留一脚刹车',
+    title: '穿云落星',
     version: tower.RANKED_RULE_VERSION,
     boards: boards('层'),
     create: (board, seed, levelId) => create(board, seed, levelId, tower, towerLevels),

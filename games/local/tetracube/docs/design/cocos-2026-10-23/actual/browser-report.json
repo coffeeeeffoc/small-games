@@ -1,0 +1,22 @@
+{
+  "environment": "win32 Chromium real mouse/CDP touch; no physical device or live ad fill",
+  "browser": "155.0.8059.85",
+  "checks": [
+    "flow/rotation/hold/views/drag/drop/free-invert/save 320x640",
+    "flow/rotation/hold/views/drag/drop/free-invert/save 390x844",
+    "flow/rotation/hold/views/drag/drop/free-invert/save 844x390",
+    "flow/rotation/hold/views/drag/drop/free-invert/save 1280x800",
+    "inversion completed",
+    "inversion dismissed",
+    "inversion unavailable",
+    "inversion failed",
+    "persisted revive quota 0",
+    "persisted revive quota 1",
+    "persisted revive quota 2",
+    "unconfigured result and restart",
+    "late completion after cancellation",
+    "simulated visibility during advertisement completed",
+    "simulated visibility during advertisement failed"
+  ],
+  "errors": []
+}

@@ -1,0 +1,25 @@
+vite v8.2.4 building client environment for pages...
+transforming...
+<script src="./fullscreen.js"> in "/index.html" can't be bundled without type="module" attribute
+✓ 142 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/.vite/manifest.json          0.18 kB │ gzip:   0.14 kB
+dist/index.html                   0.48 kB │ gzip:   0.33 kB
+dist/assets/index-0icH9aFC.css   10.73 kB │ gzip:   2.90 kB
+dist/assets/index-JGRtcScZ.js   378.98 kB │ gzip: 120.32 kB
+
+✓ built in 280ms
+Started game: tower-brake
+Started: tower-brake / embedded-load
+Finished: tower-brake / embedded-load (571 ms)
+Started: tower-brake / embedded-gameplay
+Finished: tower-brake / embedded-gameplay (1197 ms)
+Started: tower-brake / embedded-return
+Finished: tower-brake / embedded-return (82 ms)
+Started: tower-brake / mobile-load
+Finished: tower-brake / mobile-load (210 ms)
+Started: tower-brake / mobile-gameplay
+Finished: tower-brake / mobile-gameplay (1408 ms)
+Passed: tower-brake (embedded and 390x844 touch, 3600 ms)
+Pages: 42 catalog entries, 1/42 embedded/direct games, return navigation, mobile width and Runtime isolation passed.

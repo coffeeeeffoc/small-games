@@ -1,0 +1,9 @@
+PASS Native Cocos home, locked chapter grid, help and persisted settings; offline play has no leaderboard button
+PASS Touch brake, drag, touchcancel, pause freeze and simulated browser blur preserve input and timer boundaries
+PASS First route completed through real touch input, result and second-route unlock saved
+PASS Failure, one free continue, second failure and retry form a complete loop
+PASS Thin, middle, snow and rain routes completed through shared-challenge touch input; returning home restores camera and normal progress
+PASS Blur while a delayed start request is pending requires explicit resume and preserves zero elapsed time
+PASS Endless passes 80 floors through the first natural atmosphere transition; failed-run buttons have unique, visible labels and retry works
+PASS Development mode snapshot remains read-only; developer actions are isolated from saved progress
+PASS 320px narrow screen and landscape letterbox retain playable native controls with at least 44px hit areas

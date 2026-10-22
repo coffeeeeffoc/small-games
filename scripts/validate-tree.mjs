@@ -652,6 +652,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
   const interactionBrowsers = {
     'letters-words2': 'word-flow.browser.mjs',
     'tianxia-chalu': 'browser.mjs',
+    tetracube: 'browser.mjs',
   };
   for (const [id, file] of Object.entries(interactionBrowsers)) {
     const source = `games/local/${id}`;
@@ -760,7 +761,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
   const publishingBrowsers = {
     'cops-robbers': ['check-rewarded-hints.mjs'],
     'cops-robbers-realtime': ['publishing.browser.mjs', 'start-lifecycle.browser.mjs'],
-    'tower-brake': ['publishing-browser.mjs', 'browser.mjs', 'expansion-browser.mjs'],
+    'tower-brake': ['browser.mjs'],
     'cage-rescue': [
       'reward-browser.mjs',
       'browser.mjs',

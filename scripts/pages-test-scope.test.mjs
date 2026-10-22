@@ -1,4 +1,42 @@
 import assert from 'node:assert/strict';
+
+test('Tetracube retired DOM entry and exact shared-script moves remain bounded to its game', async () => {
+  const { isReviewedCleanupDeletion: deletion, isReviewedTetracubeMove: move } = await import(
+    './pages-test-scope.mjs'
+  );
+  const base = '90aae860a583395403d8cb15578e5b731c1227fe',
+    head = 'a2217586d60b579f4f3cae0d0f871d8f8c11a06c',
+    source = 'games/local/tetracube';
+  const read = (ref, file) => execFileSync('git', ['show', ref + ':' + file], { encoding: 'utf8' });
+  const options = {
+    standaloneGames: [{ id: 'tetracube', source }],
+    gameSources: [source],
+    readBase: (f) => read(base, f),
+    readHead: (f) => read(head, f),
+    headHasPath: (f) => f.includes('/scripts/'),
+  };
+  for (const file of ['index.html', 'src/app.mjs', 'style.css']) {
+    const change = { status: 'D', paths: [source + '/' + file] };
+    assert(deletion({ ...options, change }), file);
+    assert.equal(deletion({ ...options, change, headHasPath: () => true }), false);
+    assert.equal(deletion({ ...options, change, readBase: (f) => read(base, f) + '\n' }), false);
+  }
+  for (const file of ['dev-mode.js', 'dev-mode.d.ts', 'fullscreen.js']) {
+    const change = { status: 'R100', paths: [source + '/' + file, source + '/scripts/' + file] };
+    assert(move({ ...options, change }), file);
+    for (const extra of [
+      { readHead: (f) => read(head, f) + '\n' },
+      { readBase: (f) => read(base, f) + '\n' },
+      { headHasPath: () => true },
+      { gameSources: [] },
+      { standaloneGames: [...options.standaloneGames, ...options.standaloneGames] },
+      { change: { ...change, status: 'R099' } },
+      { change: { ...change, paths: [change.paths[0], source + '/unknown.js'] } },
+    ])
+      assert.equal(move({ ...options, change, ...extra }), false, file);
+  }
+});
+
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';

@@ -160,6 +160,8 @@ test('all Cocos consumers download every source-verified artifact and pass them 
     'homebound-station': 'HOMEBOUND_STATION_PREBUILT_DIR',
     'merge-front': 'MERGE_FRONT_PREBUILT_DIR',
     'bullet-garden': 'BULLET_GARDEN_PREBUILT_DIR',
+    'tower-brake': 'TOWER_BRAKE_PREBUILT_DIR',
+    tetracube: 'TETRACUBE_PREBUILT_DIR',
     'three-choose-two': 'THREE_CHOOSE_TWO_PREBUILT_DIR',
   };
   const producer = await read('.github/workflows/carding-car.yml');

@@ -42,6 +42,8 @@ it.each([
   'chase-thief',
   'orbit-atelier',
   'merge-front',
+  'tetracube',
+  'tower-brake',
   'ink-is-everything',
   'ball-roguelite',
   'flick-arena',

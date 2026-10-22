@@ -59,3 +59,16 @@ test('homebound H5 compiler receives only its explicit Creator artifact and adve
   assert.equal(env.TAPTAP_HOMEBOUND_STATION_AD_UNIT_ID, 'homebound-slot');
   assert.equal(env.OTHER_PRIVATE_TOKEN, undefined);
 });
+
+test('Tetracube H5 compiler preserves its explicit artifact and advertisement configuration', () => {
+  const env = compilerEnvironment({
+    TETRACUBE_PREBUILT_DIR: '/verified/tetracube',
+    TAPTAP_TETRACUBE_AD_UNIT_ID: 'tetracube-slot',
+    H5_ADS_ENABLED: '1',
+    PRIVATE_TOKEN: 'omit',
+  });
+  assert.equal(env.TETRACUBE_PREBUILT_DIR, '/verified/tetracube');
+  assert.equal(env.TAPTAP_TETRACUBE_AD_UNIT_ID, 'tetracube-slot');
+  assert.equal(env.H5_ADS_ENABLED, '1');
+  assert.equal(env.PRIVATE_TOKEN, undefined);
+});

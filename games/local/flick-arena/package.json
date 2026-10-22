@@ -11,12 +11,15 @@
     "build": "node build.mjs",
     "preview": "node server.mjs --dist",
     "test": "node --test tests/*.test.mjs",
-    "test:browser": "node tests/browser.mjs && node tests/campaign-browser.mjs && node tests/publishing.browser.mjs && node tests/review-browser.mjs",
+    "test:browser": "node tests/browser.mjs && node tests/campaign-browser.mjs && node tests/publishing.browser.mjs && node tests/review-browser.mjs && node tests/cocos.browser.mjs",
     "test:campaign:browser": "node tests/campaign-browser.mjs",
     "test:review:browser": "node tests/review-browser.mjs",
-    "test:shell": "node tests/shell.mjs"
+    "test:shell": "node tests/shell.mjs",
+    "build:engine": "node scripts/build-cocos-engine.mjs",
+    "test:cocos:browser": "node tests/cocos.browser.mjs"
   },
   "coffeeeeffoc": {
-    "role": "game"
+    "role": "game",
+    "engine": "cocos-source-3.8.8"
   }
 }

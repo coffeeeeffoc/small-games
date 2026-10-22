@@ -14,6 +14,7 @@ if (
     'night-overwatch',
     'homebound-station',
     'merge-front',
+    'tetracube',
     'three-choose-two',
   ].includes(game)
 ) {

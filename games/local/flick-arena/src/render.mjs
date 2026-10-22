@@ -23,6 +23,7 @@ function circle(c, x, y, r, fill, stroke, line = 1) {
   }
 }
 function text(c, str, x, y, size = 16, color = cream, font = 'sans-serif') {
+  if (c.isCocosPainter === true) return c.text(str, x, y, size, color, font);
   c.fillStyle = color;
   c.font = `bold ${size}px ${font}`;
   c.textAlign = 'center';
@@ -78,7 +79,7 @@ function cloud(c, x, y, s) {
   );
   c.restore();
 }
-function background(c, t) {
+function backgroundArt(c) {
   const g = c.createLinearGradient(0, 0, 0, H);
   g.addColorStop(0, '#102b32');
   g.addColorStop(0.55, '#203738');
@@ -153,6 +154,10 @@ function background(c, t) {
   cloud(c, 278, 246, 1.5);
   cloud(c, 22, 605, 1);
   cloud(c, 289, 680, 1.1);
+}
+function background(c, t) {
+  if (c.isCocosPainter === true) c.art('background', 0, 0, W, H, backgroundArt);
+  else backgroundArt(c);
   for (let i = 0; i < 8; i++) {
     c.globalAlpha = 0.15 + Math.sin(t * 0.5 + i) * 0.12;
     circle(c, 40 + ((i * 47) % 320), 150 + ((i * 91) % 550), 1.2, '#ffda8e');
@@ -160,6 +165,12 @@ function background(c, t) {
   c.globalAlpha = 1;
 }
 export function table(c, x, y, r) {
+  if (c.isCocosPainter === true) {
+    const pad = 32;
+    return c.art(`table:${r}`, x - r - pad, y - r - pad, 2 * (r + pad), 2 * (r + pad), (ctx) =>
+      table(ctx, r + pad, r + pad, r),
+    );
+  }
   c.save();
   c.shadowColor = '#0009';
   c.shadowBlur = 22;
@@ -242,6 +253,21 @@ export function table(c, x, y, r) {
   c.restore();
 }
 export function fighter(c, x, y, r, id, active = false, t = 0) {
+  if (c.isCocosPainter === true) {
+    if (r <= 0) return;
+    if (active) circle(c, x, y + 2, r + 7 + Math.sin(t * 4) * 1.3, null, '#fff1b6', 2);
+    // Fixed source size: falling/moving discs change Cocos transforms, never upload a frame.
+    return c.art(
+      `fighter:${id}`,
+      x - r * 1.5,
+      y - r * 1.5,
+      r * 3,
+      r * 3,
+      (ctx) => fighter(ctx, 60, 60, 40, id),
+      120,
+      120,
+    );
+  }
   const color = colors[id];
   c.save();
   c.translate(x, y);
@@ -414,16 +440,7 @@ function clipGaps(c, state, x, y, scale, radius) {
     c.clip();
   }
 }
-function terrainTable(c, state, x, y, scale) {
-  const radius = arenaRadius(state),
-    r = radius * scale;
-  c.save();
-  clipGaps(c, state, x, y, scale, radius);
-  table(c, x, y, r);
-  c.save();
-  c.beginPath();
-  c.arc(x, y, Math.max(0, r - 2), 0, Math.PI * 2);
-  c.clip();
+export function terrainDecorations(c, state, x, y, scale) {
   for (const ice of state.ice ?? []) {
     const xx = x + ice.x * scale,
       yy = y + ice.y * scale,
@@ -477,6 +494,19 @@ function terrainTable(c, state, x, y, scale) {
       1.3,
     );
   }
+}
+function terrainTable(c, state, x, y, scale) {
+  if (c.isCocosPainter === true) return c.terrain(state, x, y, scale);
+  const radius = arenaRadius(state),
+    r = radius * scale;
+  c.save();
+  clipGaps(c, state, x, y, scale, radius);
+  table(c, x, y, r);
+  c.save();
+  c.beginPath();
+  c.arc(x, y, Math.max(0, r - 2), 0, Math.PI * 2);
+  c.clip();
+  terrainDecorations(c, state, x, y, scale);
   c.restore();
   // The bright chord is the exact collision boundary of a clipped edge.
   for (const gap of state.gaps ?? []) {
@@ -504,6 +534,25 @@ function miniature(c, level, x, y, radius, t = 0) {
   );
 }
 
+export function buttonFace(c, label, x, y, w, h, primary, icon) {
+  c.save();
+  rect(c, x, y + 4, w, h, 12, '#0c1b1e');
+  const grad = c.createLinearGradient(0, y, 0, y + h);
+  grad.addColorStop(0, primary ? '#ffe0a0' : '#785037');
+  grad.addColorStop(1, primary ? '#d79a42' : '#492f23');
+  rect(c, x, y, w, h, 12, grad, primary ? '#ffdf96' : '#a2784c');
+  rect(c, x + 4, y + 4, w - 8, h - 8, 9, '#00000000', primary ? '#b77a35' : '#c3995a55');
+  if (icon === 'pause') {
+    c.fillStyle = cream;
+    c.fillRect(x + w / 2 - 7, y + h / 2 - 8, 5, 16);
+    c.fillRect(x + w / 2 + 2, y + h / 2 - 8, 5, 16);
+  } else if (label) {
+    const size = primary && w >= 210 ? 23 : w < 90 ? 15 : 17;
+    text(c, label, x + w / 2, y + h / 2 + 1, size, primary ? '#442a1b' : cream, 'serif');
+  }
+  c.restore();
+}
+
 export function draw(c, app) {
   const { time: t = 0, screen, state, layouts = [] } = app;
   const buttons = [];
@@ -524,20 +573,11 @@ export function draw(c, app) {
   ) => {
     c.save();
     if (disabled) c.globalAlpha = 0.48;
-    rect(c, x, y + 4, w, h, 12, '#0c1b1e');
-    const grad = c.createLinearGradient(0, y, 0, y + h);
-    grad.addColorStop(0, primary ? '#ffe0a0' : '#785037');
-    grad.addColorStop(1, primary ? '#d79a42' : '#492f23');
-    rect(c, x, y, w, h, 12, grad, primary ? '#ffdf96' : '#a2784c');
-    rect(c, x + 4, y + 4, w - 8, h - 8, 9, '#00000000', primary ? '#b77a35' : '#c3995a55');
-    if (icon === 'pause') {
-      c.fillStyle = cream;
-      c.fillRect(x + w / 2 - 7, y + h / 2 - 8, 5, 16);
-      c.fillRect(x + w / 2 + 2, y + h / 2 - 8, 5, 16);
-    } else if (label) {
-      const size = primary && w >= 210 ? 23 : w < 90 ? 15 : 17;
-      text(c, label, x + w / 2, y + h / 2 + 1, size, primary ? '#442a1b' : cream, 'serif');
-    }
+    if (c.isCocosPainter === true)
+      c.art(`button:${label}:${w}:${h}:${primary}:${icon}`, x - 2, y - 2, w + 4, h + 8, (ctx) =>
+        buttonFace(ctx, label, 2, 2, w, h, primary, icon),
+      );
+    else buttonFace(c, label, x, y, w, h, primary, icon);
     c.restore();
     buttons.push({ id, label, x, y, w, h, disabled });
   };

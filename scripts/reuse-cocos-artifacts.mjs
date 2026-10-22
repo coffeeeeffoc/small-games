@@ -11,6 +11,8 @@ export const games = [
   'homebound-station',
   'merge-front',
   'bullet-garden',
+  'tower-brake',
+  'tetracube',
   'three-choose-two',
 ];
 const creator = '3.8.8';
