@@ -6,7 +6,13 @@ export function createPlatformAdProvider({
   timeoutMs = 45000,
   onEvent,
 }) {
-  const globalName = { 'taptap-h5': 'tap', wechat: 'wx', douyin: 'tt', bilibili: 'bl' }[platform];
+  const globalName = {
+    taptap: 'tap',
+    'taptap-h5': 'tap',
+    wechat: 'wx',
+    douyin: 'tt',
+    bilibili: 'bl',
+  }[platform];
   let active,
     prepared,
     blocked = false;
@@ -165,7 +171,8 @@ export function createPlatformAdProvider({
           phase = 'opening';
           trace('show');
           const showing = ad.show();
-          if (platform !== 'taptap-h5' || typeof showing?.then !== 'function') return showing;
+          if (!['taptap', 'taptap-h5'].includes(platform) || typeof showing?.then !== 'function')
+            return showing;
           return Promise.resolve(showing).then(() => {
             if (done) return;
             // Only opening has a deadline; playback/end-card duration belongs to the SDK.
@@ -187,7 +194,11 @@ export function createPlatformAdProvider({
           ad =
             warmup?.ad ||
             sdk.createRewardedVideoAd(
-              platform === 'douyin' ? { adUnitId, multiton: false } : { adUnitId },
+              platform === 'taptap'
+                ? { adUnitId, multiton: true }
+                : platform === 'douyin'
+                  ? { adUnitId, multiton: false }
+                  : { adUnitId },
             );
           ad.onClose(close);
           if (done) return;
