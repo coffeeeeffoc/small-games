@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { h5AdConfig, h5AdGames, prepareH5Ads } from './h5-ad-config.mjs';
+import { h5AdConfig, h5PackageGames, prepareH5Ads } from './h5-ad-config.mjs';
 import { mkdtemp, mkdir, readFile, writeFile, copyFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createHintAccess } from '../games/submodules/xiangqi-five/rewarded-hints.js';
 test('missing ad units use the free path; configured host failures never select it', () => {
-  for (const game of h5AdGames) {
+  for (const game of h5PackageGames) {
     assert.deepEqual(h5AdConfig(game, { env: {} }), { adMode: 'off', adsEnabled: false });
     const env = { H5_ADS_ENABLED: '1', SECRET: 'must-not-escape' };
     assert.equal(h5AdConfig(game, { env }).adMode, 'off');

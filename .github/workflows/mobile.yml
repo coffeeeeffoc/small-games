@@ -29,6 +29,7 @@ jobs:
       HOMEBOUND_STATION_PREBUILT_DIR: ${{ github.workspace }}/games/local/homebound-station/.prebuilt
       MERGE_FRONT_PREBUILT_DIR: ${{ github.workspace }}/games/local/merge-front/.prebuilt
       TOWER_BRAKE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tower-brake/.prebuilt
+      TETRACUBE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tetracube/.prebuilt
       GOMAXPROCS: '1'
       APP_VERSION: '0.2.0'
       # Reserve the first 1000 codes for local builds; reruns retain the same application version.
@@ -76,6 +77,10 @@ jobs:
         with:
           name: tower-brake-${{ github.sha }}
           path: games/local/tower-brake/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: tetracube-${{ github.sha }}
+          path: games/local/tetracube/.prebuilt
       - run: pnpm check:games
       - uses: actions/setup-java@v5
         with:
@@ -138,6 +143,7 @@ jobs:
       HOMEBOUND_STATION_PREBUILT_DIR: ${{ github.workspace }}/games/local/homebound-station/.prebuilt
       MERGE_FRONT_PREBUILT_DIR: ${{ github.workspace }}/games/local/merge-front/.prebuilt
       TOWER_BRAKE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tower-brake/.prebuilt
+      TETRACUBE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tetracube/.prebuilt
       GOMAXPROCS: '1'
       APP_VERSION: '0.2.0'
       IOS_BUILD_NUMBER: ${{ github.run_number }}
@@ -184,6 +190,10 @@ jobs:
         with:
           name: tower-brake-${{ github.sha }}
           path: games/local/tower-brake/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: tetracube-${{ github.sha }}
+          path: games/local/tetracube/.prebuilt
       - run: pnpm check:games
       - run: pnpm ios:simulator
       - run: python3 apps/shell-ios/scripts/test-install-manifest.py

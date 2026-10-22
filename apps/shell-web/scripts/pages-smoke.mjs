@@ -27,6 +27,7 @@ const immersiveGame = (id) =>
     'orbit-atelier',
     'merge-front',
     'tower-brake',
+    'tetracube',
     'ink-is-everything',
     'ball-roguelite',
     'flick-arena',
@@ -252,7 +253,8 @@ try {
         game.id === 'ball-roguelite' ||
         game.id === 'orbit-atelier' ||
         game.id === 'merge-front' ||
-        game.id === 'tower-brake'
+        game.id === 'tower-brake' ||
+        game.id === 'tetracube'
       ) {
         await expect(page.locator('.standalone-page nav')).toBeVisible();
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);

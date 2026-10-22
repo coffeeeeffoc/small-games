@@ -427,7 +427,7 @@ export function incrementalPlan({
       shellChanged ||
       paths.includes('apps/shell-web/src/game-assessments.json') ||
       paths.includes('apps/shell-web/scripts/catalog-rollout-smoke.mjs'),
-    interaction_browser_ids: ['letters-words2', 'tianxia-chalu'].filter(
+    interaction_browser_ids: ['letters-words2', 'tianxia-chalu', 'tetracube'].filter(
       (id) => ids.has(id) && directGames.some((game) => game.id === id),
     ),
     game_services_checks: paths.some(

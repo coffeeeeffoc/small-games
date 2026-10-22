@@ -12,6 +12,7 @@ export const games = [
   'merge-front',
   'bullet-garden',
   'tower-brake',
+  'tetracube',
 ];
 const creator = '3.8.8';
 const platform = 'web-mobile';

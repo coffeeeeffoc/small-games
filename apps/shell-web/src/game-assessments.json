@@ -918,19 +918,26 @@
       "source": "games/local/tetracube",
       "disposition": "potential",
       "potential": ["fun", "potential"],
-      "platforms": ["web", "app"],
-      "primaryPlatform": "web",
-      "orientation": "landscape",
+      "platforms": ["mobile", "web"],
+      "primaryPlatform": "mobile",
+      "orientation": "portrait",
       "genres": ["puzzle", "arcade"],
       "opportunities": ["challenge", "share"],
-      "schedule": "later",
-      "implementationStatus": "deferred",
-      "scheduleReason": "三轴旋转与翻转消层有创新；后续先解决遮挡、轴向教学和幽灵落点，空间交互需要专门验证。",
+      "schedule": "current",
+      "implementationStatus": "implemented",
+      "scheduleReason": "Cocos Creator 3.8.8 已覆盖首页、经典无尽、暂停、说明与结束流程；继续优化空间可读性。",
       "strengths": ["三轴旋转与容器翻转让层消除具有空间创新"],
-      "weaknesses": ["3D遮挡与多轴输入比平面消除难学，手机精细操作风险高"],
-      "improvements": ["Web先增强层切片与幽灵落点，手机分步旋转并做同序列挑战"],
-      "evidence": ["games/local/tetracube/README.md"],
-      "delivered": []
+      "weaknesses": ["三轴空间旋转需要学习；原生设备与真实广告填充尚未验收"],
+      "improvements": ["继续验证真机触控与空间遮挡体验"],
+      "evidence": [
+        "games/local/tetracube/README.md",
+        "games/local/tetracube/docs/design/cocos-2026-10-23/actual/browser-report.json"
+      ],
+      "delivered": [
+        "Cocos 场景与触控迁移",
+        "8×8×18 经典无尽与旧存档兼容",
+        "可选颠倒广告与每局最多两次广告复活"
+      ]
     },
     {
       "id": "cage-rescue",

@@ -105,9 +105,19 @@ jobs:
           path: .scratch/ci-cocos/tower-brake
           run-id: ${{ steps.producer.outputs.run_id }}
           github-token: ${{ github.token }}
+      - name: Download CI tetracube artifact
+        id: tetra
+        if: steps.producer.outputs.run_id != ''
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: tetracube-${{ github.sha }}
+          path: .scratch/ci-cocos/tetracube
+          run-id: ${{ steps.producer.outputs.run_id }}
+          github-token: ${{ github.token }}
       - name: Verify all downloaded artifacts or rebuild
         id: verify
-        if: steps.kart.outcome == 'success' && steps.night.outcome == 'success' && steps.orbit.outcome == 'success' && steps.tianxia.outcome == 'success' && steps.homebound.outcome == 'success' && steps.merge.outcome == 'success' && steps.garden.outcome == 'success' && steps.tower.outcome == 'success'
+        if: steps.kart.outcome == 'success' && steps.night.outcome == 'success' && steps.orbit.outcome == 'success' && steps.tianxia.outcome == 'success' && steps.homebound.outcome == 'success' && steps.merge.outcome == 'success' && steps.garden.outcome == 'success' && steps.tower.outcome == 'success' && steps.tetra.outcome == 'success'
         continue-on-error: true
         env:
           PRODUCER_RUN_ID: ${{ steps.producer.outputs.run_id }}
@@ -121,6 +131,7 @@ jobs:
           node scripts/reuse-cocos-artifacts.mjs verify homebound-station .scratch/ci-cocos/homebound-station
           node scripts/reuse-cocos-artifacts.mjs verify merge-front .scratch/ci-cocos/merge-front
           node scripts/reuse-cocos-artifacts.mjs verify tower-brake .scratch/ci-cocos/tower-brake
+          node scripts/reuse-cocos-artifacts.mjs verify tetracube .scratch/ci-cocos/tetracube
       - uses: actions/upload-artifact@v7
         if: steps.verify.outcome == 'success'
         with:
@@ -169,6 +180,12 @@ jobs:
           name: tower-brake-${{ github.sha }}
           path: .scratch/ci-cocos/tower-brake
           if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: steps.verify.outcome == 'success'
+        with:
+          name: tetracube-${{ github.sha }}
+          path: .scratch/ci-cocos/tetracube
+          if-no-files-found: error
   creator:
     needs: reuse
     if: always() && !cancelled() && (needs.reuse.result == 'skipped' || (needs.reuse.result == 'success' && needs.reuse.outputs.available != 'true'))
@@ -185,6 +202,7 @@ jobs:
             merge-front,
             bullet-garden,
             tower-brake,
+            tetracube,
           ]
     runs-on: windows-latest
     timeout-minutes: 25
@@ -243,6 +261,7 @@ jobs:
           HOMEBOUND_STATION_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/homebound-station', github.workspace) || '' }}
           MERGE_FRONT_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/merge-front', github.workspace) || '' }}
           TOWER_BRAKE_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/tower-brake', github.workspace) || '' }}
+          TETRACUBE_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/tetracube', github.workspace) || '' }}
       - run: pnpm --dir games/local/${{ matrix.game }} run test
       - run: pnpm --dir games/local/${{ matrix.game }} run build
         if: steps.artifact.outputs.cache-hit != 'true'

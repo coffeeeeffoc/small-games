@@ -31,6 +31,7 @@ export function StandaloneGame({
     id === 'orbit-atelier' ||
     id === 'merge-front' ||
     id === 'tower-brake' ||
+    id === 'tetracube' ||
     id === 'ink-is-everything' ||
     id === 'ball-roguelite' ||
     id === 'flick-arena' ||

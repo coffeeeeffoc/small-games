@@ -1,0 +1,64 @@
+[
+  {
+    "__type__": "cc.SceneAsset",
+    "_name": "main",
+    "scene": {
+      "__id__": 1
+    }
+  },
+  {
+    "__type__": "cc.Scene",
+    "_name": "main",
+    "_children": [
+      {
+        "__id__": 2
+      }
+    ],
+    "_active": true,
+    "_components": [],
+    "_prefab": null,
+    "_id": "c31e9d80-20b5-4f16-8ca2-d57ce5b178bc"
+  },
+  {
+    "__type__": "cc.Node",
+    "_name": "Tetracube",
+    "_parent": {
+      "__id__": 1
+    },
+    "_children": [],
+    "_active": true,
+    "_components": [
+      {
+        "__id__": 3
+      }
+    ],
+    "_prefab": null,
+    "_lpos": {
+      "__type__": "cc.Vec3",
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "_lrot": {
+      "__type__": "cc.Quat",
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "w": 1
+    },
+    "_lscale": {
+      "__type__": "cc.Vec3",
+      "x": 1,
+      "y": 1,
+      "z": 1
+    },
+    "_layer": 1073741824
+  },
+  {
+    "__type__": "58553GMHJtDsYUzrOKHHk5g",
+    "node": {
+      "__id__": 2
+    },
+    "_enabled": true
+  }
+]

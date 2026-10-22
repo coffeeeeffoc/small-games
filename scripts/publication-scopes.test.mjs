@@ -1,4 +1,70 @@
 import { test } from 'node:test';
+
+test('Tetracube migration scopes bind exact reviewed bytes, identities and existing lock tuples', async () => {
+  const {
+    tetracubeCreatorReviews: reviews,
+    tetracubeCreatorFileScopes: scope,
+    tetracubeLockOnly,
+  } = await import('./publication-scopes.mjs');
+  const base = '90aae860a583395403d8cb15578e5b731c1227fe',
+    head = 'a2217586d60b579f4f3cae0d0f871d8f8c11a06c';
+  const read = (ref, file) => execFileSync('git', ['show', ref + ':' + file], { encoding: 'utf8' });
+  const source = 'games/local/tetracube';
+  const games = [{ id: 'tetracube', source }];
+  const packages = [
+    { dir: source, ...JSON.parse(read(head, source + '/package.json')) },
+    ...['games/local/homebound-station', 'games/local/wulong-city', 'apps/shell-web'].map(
+      (dir) => ({ dir }),
+    ),
+  ];
+  const options = {
+    changedPaths: Object.keys(reviews),
+    readBase: (f) => read(base, f),
+    readHead: (f) => read(head, f),
+    games,
+    packages,
+  };
+  const result = scope(options);
+  for (const [file, review] of Object.entries(reviews)) {
+    assert.deepEqual(result.get(file), review.sources, file);
+    assert.equal(
+      scope({ ...options, changedPaths: [file], readBase: (f) => read(base, f) + '\n' }).has(file),
+      false,
+      file,
+    );
+    assert.equal(
+      scope({ ...options, changedPaths: [file], readHead: (f) => read(head, f) + '\n' }).has(file),
+      false,
+      file,
+    );
+  }
+  for (const extra of [
+    { games: [...games, ...games] },
+    { games: [{ id: 'other', source }] },
+    { packages: [...packages, packages[0]] },
+    { packages: [{ ...packages[0], creator: { version: '3.8.7' } }, ...packages.slice(1)] },
+    { packages: [{ ...packages[0], scripts: { build: 'fake' } }, ...packages.slice(1)] },
+  ])
+    assert.equal(scope({ ...options, ...extra }).size, 0);
+  assert.equal(scope({ ...options, changedPaths: ['scripts/unknown.mjs'] }).size, 0);
+  const before = read(base, 'pnpm-lock.yaml'),
+    after = read(head, 'pnpm-lock.yaml'),
+    manifest = JSON.parse(read(head, source + '/package.json'));
+  assert(tetracubeLockOnly(before, after, manifest));
+  assert.equal(tetracubeLockOnly(before, after + '\n', manifest), false);
+  assert.equal(
+    tetracubeLockOnly(before, after, { ...manifest, dependencies: { unexpected: '1' } }),
+    false,
+  );
+  assert.equal(
+    tetracubeLockOnly(before, after, {
+      ...manifest,
+      devDependencies: { ...manifest.devDependencies, typescript: '99' },
+    }),
+    false,
+  );
+});
+
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
@@ -806,6 +872,7 @@ test('unified package tools keep the three H5 consumers and reject unknown sibli
     ...ids.map((id) => ({ id, source: competitionConsumers[id] })),
     ...sixH5Ids.map((id) => ({ id, source: `games/local/${id}` })),
     { id: 'merge-front', source: 'games/local/merge-front' },
+    { id: 'tetracube', source: 'games/local/tetracube' },
   ];
   const packages = games.map((game) => ({ name: game.id, dir: game.source }));
   const readSource = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
@@ -850,7 +917,10 @@ test('unified package tools keep the three H5 consumers and reject unknown sibli
 });
 
 test('six H5 tools declare exact consumers and preserve fail-closed configuration scope', () => {
-  const games = [...sixH5Ids, 'merge-front'].map((id) => ({ id, source: `games/local/${id}` }));
+  const games = [...sixH5Ids, 'merge-front', 'tetracube'].map((id) => ({
+    id,
+    source: `games/local/${id}`,
+  }));
   const packages = games.map((g) => ({ name: g.id, dir: g.source }));
   const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
   for (const file of sixH5ScopePaths) {
@@ -864,7 +934,7 @@ test('six H5 tools declare exact consumers and preserve fail-closed configuratio
             .filter(
               (g) =>
                 (file !== 'infra/builds/six-taptap-h5.mjs' || g.id !== 'homebound-station') &&
-                (g.id !== 'merge-front' ||
+                (!['merge-front', 'tetracube'].includes(g.id) ||
                   [
                     'platforms/h5/game-rewards.js',
                     'platforms/h5/interstitial.js',
@@ -1354,13 +1424,14 @@ test('H5 safe areas select the three standalone consumers and require their geom
   );
 });
 
-test('shared channel advertising covers all ten consumers; the uploader stays chase-only', () => {
+test('shared channel advertising covers every configured consumer; the uploader stays chase-only', () => {
   const games = [
     { id: 'cops-robbers', source: 'games/local/cops-robbers' },
     { id: 'cops-robbers-realtime', source: 'games/local/cops-robbers-realtime' },
     { id: 'xiangqi-five', source: 'games/submodules/xiangqi-five' },
     ...sixH5Ids.map((id) => ({ id, source: `games/local/${id}` })),
     { id: 'merge-front', source: 'games/local/merge-front' },
+    { id: 'tetracube', source: 'games/local/tetracube' },
   ];
   const packages = games.map((game) => ({ name: game.id, dir: game.source }));
   const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
@@ -5224,17 +5295,19 @@ test('Homebound Creator readiness guard preserves gameplay and scopes only its r
   assert.equal(reviewedSharedFileScopes({ ...context, games: [] }).size, 0);
 });
 
-test('ordinary Creator reuse includes Tower while preserving historical five to seven game fixtures', () => {
+test('ordinary Creator reuse includes Tower and Tetracube while preserving historical producer fixtures', () => {
   const file = 'scripts/reuse-cocos-artifacts.mjs';
   const current = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
     '\r\n',
     '\n',
   );
-  for (const [includeMerge, includeBullet, includeTower] of [
-    [false, false, false],
-    [true, false, false],
-    [true, true, false],
-    [true, true, true],
+  for (const [includeMerge, includeBullet, includeTower, includeTetracube] of [
+    [false, false, false, false],
+    [true, false, false, false],
+    [true, true, false, false],
+    [true, true, true, false],
+    [true, true, false, true],
+    [true, true, true, true],
   ]) {
     const ids = [
       'carding-car',
@@ -5245,10 +5318,12 @@ test('ordinary Creator reuse includes Tower while preserving historical five to 
       ...(includeMerge ? ['merge-front'] : []),
       ...(includeBullet ? ['bullet-garden'] : []),
       ...(includeTower ? ['tower-brake'] : []),
+      ...(includeTetracube ? ['tetracube'] : []),
     ];
     let source = includeBullet ? current : current.replace("  'bullet-garden',\n", '');
     if (!includeMerge) source = source.replace("  'merge-front',\n", '');
     if (!includeTower) source = source.replace("  'tower-brake',\n", '');
+    if (!includeTetracube) source = source.replace("  'tetracube',\n", '');
     const packages = ids.map((id) => ({ dir: 'games/local/' + id }));
     const scopes = reviewedSharedFileScopes({
       changedPaths: [file],

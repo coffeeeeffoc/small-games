@@ -88,6 +88,7 @@ jobs:
       HOMEBOUND_STATION_PREBUILT_DIR: ${{ github.workspace }}/games/local/homebound-station/.prebuilt
       MERGE_FRONT_PREBUILT_DIR: ${{ github.workspace }}/games/local/merge-front/.prebuilt
       TOWER_BRAKE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tower-brake/.prebuilt
+      TETRACUBE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tetracube/.prebuilt
       TURBO_SCM_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
       TURBO_SCM_HEAD: ${{ github.sha }}
       CI_VALIDATION_PLAN: ${{ needs.plan.outputs.plan }}
@@ -165,6 +166,12 @@ jobs:
         with:
           name: tower-brake-${{ github.sha }}
           path: games/local/tower-brake/.prebuilt
+
+      - uses: actions/download-artifact@v8
+        if: needs.plan.outputs.cocos == 'true'
+        with:
+          name: tetracube-${{ github.sha }}
+          path: games/local/tetracube/.prebuilt
 
       - name: Check all game registrations
         run: pnpm check:games

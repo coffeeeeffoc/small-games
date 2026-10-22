@@ -28,7 +28,7 @@ const copies = [
   'games/local/letters-words2/fullscreen.js',
   'games/local/tower-brake/fullscreen.js',
   'games/local/tower-brake/scripts/fullscreen.js',
-  'games/local/tetracube/fullscreen.js',
+  'games/local/tetracube/scripts/fullscreen.js',
   'games/local/vibeJam-myself-history-guess/public/fullscreen.js',
   'games/submodules/xiangqi-five/fullscreen.js',
 ];

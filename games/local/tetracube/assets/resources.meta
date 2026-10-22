@@ -1,0 +1,14 @@
+{
+  "ver": "1.2.0",
+  "importer": "directory",
+  "imported": true,
+  "uuid": "643e8c7c-a0d0-4979-b420-4c830261db6d",
+  "files": [],
+  "subMetas": {},
+  "userData": {
+    "isBundle": true,
+    "bundleConfigID": "tetracube-art",
+    "bundleName": "resources",
+    "priority": 8
+  }
+}

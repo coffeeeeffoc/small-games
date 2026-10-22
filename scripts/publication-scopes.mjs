@@ -8,6 +8,144 @@ import { mainRetirementTreesMatch } from './local-game-retirement-scope.mjs';
 
 const loadDependency = createRequire(import.meta.url);
 
+// Tetracube routes reviewed against 90aae860; unrelated bytes keep their original consumers.
+export const tetracubeCreatorReviews = Object.freeze({
+  'scripts/h5-ad-config.test.mjs': {
+    before: '6a8a3c60e00b0b1ef29f49f55d0755e1271b54c3abd62caa22d8cc96cdda18ba',
+    after: '716b6c536eee1b2731a3bd043da0971e5e2317df1817043b6fbf37af21b42fcb',
+    sources: [],
+  },
+  '.github/workflows/carding-car.yml': {
+    before: '420192e8c991ff7166a1828e48b3087cdbf65604b8d659393c4802bdad6ac2c7',
+    after: '8e65a86cb76f00de5bef025c4fafa09d022e38b3157529e6b6874b1cf145754d',
+    sources: ['games/local/tetracube'],
+  },
+  '.github/workflows/ci.yml': {
+    before: '073903ff62e45572e1b2f07a25d64ca19ad381800f7859bd73b3c6bb3da96e9f',
+    after: 'c8a3dd2a8a9052bc8f655d7dcffba2813a0171f77512aeb72ce8876ae55ce5ff',
+    sources: ['games/local/tetracube'],
+  },
+  '.github/workflows/mobile.yml': {
+    before: '046cada0323b6b92a6d95a894acc8a9c31881faa874e98d9f25f5b47ff7ed5f5',
+    after: '2dce51a636fc13fd5b29a085320567ee3939128d3749f8d8653e9817aa7682d8',
+    sources: ['games/local/tetracube'],
+  },
+  '.github/workflows/pages-validate.yml': {
+    before: 'f7c119db7da3a46f682da323558a38214f3fed2f7cb79b8b9cbfbcf16378d258',
+    after: 'b7ae553e2e4046d676cb3419df392f54c926d1473370c62ea9faf464ff106271',
+    sources: ['games/local/tetracube'],
+  },
+  'turbo.json': {
+    before: '8e715b054f404963935c195b1fb8dccc4d90ccab8a40c826411f033e810ca6fa',
+    after: 'dd0b8881e1ed540d66f3da77b10c5e12b6ea5d07c9b536c5f59a18da42cb7793',
+    sources: ['games/local/tetracube'],
+  },
+  'pnpm-lock.yaml': {
+    before: 'bf37f530bd0253a9fdcff185ea435f94a3a7ab9969b6925c06377c92fa4ca9cc',
+    after: '8871279d6efa7623ffd0562a0ab45b376ba2844072862dbbbed4c0d6a3f2a821',
+    sources: ['games/local/tetracube'],
+  },
+  'scripts/reuse-cocos-artifacts.mjs': {
+    before: 'c626dd77cf003383f2ce6bcdbd28b4769f938077f0b7ee2700af77c3810247de',
+    after: '8fefae65629d55d628960d8e11aba129475f43195e66eb21c110820832f10daf',
+    sources: ['games/local/tetracube'],
+  },
+  'scripts/h5-ad-config.mjs': {
+    before: '3619e524dfb5ecd4ddcc5e9939a2ef243685150beb063913a7cbf5af236f385c',
+    after: 'add9c24b2ee744d2ee3f6759ad3bcd8b866b1a04256307fb8dfe648944d6b46c',
+    sources: ['games/local/tetracube', 'games/local/homebound-station'],
+  },
+  'scripts/h5-game-build.mjs': {
+    before: '5a76a4e6e968193b244177c2c268becc14a1c022107045bebe719a2c2fd2380f',
+    after: '5820316069dc3e103004b81562ec374f82bc9b5efb7f6800c13920d44ed40228',
+    sources: ['games/local/tetracube'],
+  },
+  'scripts/h5-taptap-build.mjs': {
+    before: 'ccbbf960a1f33c8fda6f7d447ad06a2234f306db478f06c18bc4df69b7c57a89',
+    after: 'd3d3e15a02d63e53690e9e510f58f20b7ff44092cf5b1bf1db36739e1a70d38e',
+    sources: ['games/local/tetracube'],
+  },
+  'scripts/h5-taptap-matrix.mjs': {
+    before: '71257b7d52add72213aff79dfd05b0d4a4a240d42a0a2c292fb64a958fc78cac',
+    after: '032ef04dccde57ccd892bd1bcda9189fd444c35a8bb186a39750f4902958a48e',
+    sources: ['games/local/tetracube'],
+  },
+  'scripts/sync-h5-fullscreen.mjs': {
+    before: '444c0792a85d7cf3713555abfc12904972b26c2c7d03ca4330a9b03478c161cf',
+    after: '564f3ae2b4c1e423d495dbd399d7ef339ac87483885d0e0d089e81f93b2bd053',
+    sources: ['games/local/tetracube'],
+  },
+  'scripts/test-game-dev-mode.mjs': {
+    before: 'f916c53b903f180056aaa35cdb8137ac9b6b4f42592d1f44416914006e4a8423',
+    after: '20ae1e5a48e927e3b1a382c96bb50eff28e9c2b103137e3e657e2b193d7a978e',
+    sources: ['games/local/tetracube', 'apps/shell-web', 'games/local/wulong-city'],
+  },
+  'apps/shell-web/src/StandaloneGame.tsx': {
+    before: 'c5b576c61c47f68fe2e65c66864c7fecf68a6f36414f45fce1ad10a71289a003',
+    after: '0981d15b383cd6faa9896159c44f76c0ed55d7c7f32908aa987ab37add81c1b6',
+    sources: ['games/local/tetracube', 'apps/shell-web'],
+  },
+  'apps/shell-web/scripts/pages-smoke.mjs': {
+    before: '173f91964552dc5b73919f4007d7419092c7eafb27ed6e0d0e741254c0d668e3',
+    after: 'c54ce6078385f4d26570e9d5825468b4cef83ed927da73c4260263e66e449b72',
+    sources: ['games/local/tetracube', 'apps/shell-web'],
+  },
+  'apps/shell-web/scripts/standalone-game-checks.mjs': {
+    before: '93ab6fd3d3e94f8bf4f3efae1c0ac288d0b7d7cf33718e768595ffb45afd0609',
+    after: '09dc45561f6c8f56bf1e87f2db804723818c7309bb17b2c28f643604a1c0a694',
+    sources: ['games/local/tetracube', 'apps/shell-web'],
+  },
+});
+export function tetracubeCreatorFileScopes({ changedPaths, readBase, readHead, games, packages }) {
+  const scopes = new Map(),
+    source = 'games/local/tetracube';
+  try {
+    const entries = games.filter((g) => g.id === 'tetracube' || g.source === source);
+    assert.equal(entries.length, 1);
+    assert.equal(entries[0].id, 'tetracube');
+    assert.equal(entries[0].source, source);
+    const targets = packages.filter(
+      (p) => p.dir === source || p.name === '@coffeeeeffoc/tetracube',
+    );
+    assert.equal(targets.length, 1);
+    assert.equal(targets[0].dir, source);
+    assert.equal(targets[0].name, '@coffeeeeffoc/tetracube');
+    assert.equal(targets[0].creator?.version, '3.8.8');
+    assert.equal(targets[0].scripts?.build, 'node scripts/build.mjs web-mobile');
+    const digest = (s) => createHash('sha256').update(s.replaceAll('\r\n', '\n')).digest('hex');
+    for (const file of changedPaths) {
+      const review = tetracubeCreatorReviews[file];
+      if (!review) continue;
+      if (digest(readBase(file)) !== review.before || digest(readHead(file)) !== review.after)
+        continue;
+      if (
+        file === 'pnpm-lock.yaml' &&
+        !tetracubeLockOnly(
+          readBase(file),
+          readHead(file),
+          JSON.parse(readHead(source + '/package.json')),
+        )
+      )
+        continue;
+      if (review.sources.some((dir) => !packages.some((p) => p.dir === dir))) continue;
+      scopes.set(file, Object.freeze([...review.sources]));
+    }
+  } catch {
+    return new Map();
+  }
+  return scopes;
+}
+export function tetracubeLockOnly(before, after, manifest) {
+  return existingDevImporterOnly(
+    before,
+    after,
+    manifest,
+    'games/local/tetracube',
+    '@coffeeeeffoc/tetracube',
+    { '@playwright/test': '1.55.1', typescript: '7.0.2' },
+  );
+}
+
 // Exact main-base review; unrelated bytes and consumers remain unclassified.
 export const mainIntegrationReviews = Object.freeze({
   '.github/workflows/carding-car.yml': {
@@ -907,9 +1045,19 @@ const sharedH5PackagePaths = [
 function assertSixH5(games, packages, readHead) {
   const registered = literalDeclaration(readHead('scripts/h5-ad-config.mjs'), 'additionalH5Games');
   assert.deepEqual(
-    registered.filter((id) => id !== 'merge-front'),
+    registered.filter((id) => !['merge-front', 'tetracube'].includes(id)),
     sixH5Ids,
   );
+  if (registered.includes('tetracube')) {
+    assert.equal(registered.filter((id) => id === 'tetracube').length, 1);
+    const matches = games.filter(
+      (g) => g.id === 'tetracube' || g.source === 'games/local/tetracube',
+    );
+    assert.equal(matches.length, 1);
+    assert.equal(matches[0].id, 'tetracube');
+    assert.equal(matches[0].source, 'games/local/tetracube');
+    assert.equal(packages.filter((p) => p.dir === 'games/local/tetracube').length, 1);
+  }
   if (registered.includes('merge-front')) {
     assert.equal(registered.filter((id) => id === 'merge-front').length, 1);
     assert.equal(
@@ -2026,10 +2174,18 @@ function tianxiaWiringOnly(file, before, after) {
   }
 }
 export function bulletGardenLockOnly(before, after, manifest) {
+  return existingDevImporterOnly(
+    before,
+    after,
+    manifest,
+    'games/local/bullet-garden',
+    '@coffeeeeffoc/bullet-garden',
+    { '@playwright/test': '1.55.1', esbuild: '0.28.2', typescript: '7.0.2' },
+  );
+}
+function existingDevImporterOnly(before, after, manifest, source, name, deps) {
   try {
-    const source = 'games/local/bullet-garden';
-    const deps = { '@playwright/test': '1.55.1', esbuild: '0.28.2', typescript: '7.0.2' };
-    assert.equal(manifest.name, '@coffeeeeffoc/bullet-garden');
+    assert.equal(manifest.name, name);
     assert.deepEqual(manifest.devDependencies, deps);
     for (const field of ['dependencies', 'optionalDependencies', 'peerDependencies'])
       assert(!manifest[field]);
@@ -3085,6 +3241,19 @@ export const towerCreatorIntegrationHashes = Object.freeze({
   ],
 });
 
+// Exact combined Tower/Tetracube wiring; retain both original single-game proofs.
+export const towerTetracubeIntegrationHashes = Object.freeze({
+  '.github/workflows/carding-car.yml':
+    'ed37f62fe6afb8bc23154cf5449dec571577000238a9e7af256548a18f6e27c0',
+  '.github/workflows/ci.yml': 'eb409c1e039a2f9c1b689c5edf0d740783be64e93a5a9886e83e55d4e2fd7da7',
+  '.github/workflows/pages-validate.yml':
+    'bb7ea514e20f6565185f8a7026b46b0af34f0ef7fdb47c69dc46ce141939137d',
+  '.github/workflows/mobile.yml':
+    '61599c743ca6e6ec7eb654a8bdbc8cb8263ae33b338df73fcfeac0e782f97cfa',
+  'turbo.json': '23bf97ae3be4a5e1e35cdeb3cf68ef47c9d4d24941fed93e8200969779f92725',
+  'pnpm-lock.yaml': '6779080d02bd8f6cc0a83543b3193b59ce2a28b8967108b15be20e1e01be666a',
+});
+
 export function reviewedSharedFileScopes({
   changedPaths,
   readBase,
@@ -3102,7 +3271,18 @@ export function reviewedSharedFileScopes({
     packages,
     ...treeContext,
   });
+  const tetracubeScopes = tetracubeCreatorFileScopes({
+    changedPaths,
+    readBase,
+    readHead,
+    games,
+    packages,
+  });
   for (const file of changedPaths) {
+    if (tetracubeScopes.has(file)) {
+      scopes.set(file, tetracubeScopes.get(file));
+      continue;
+    }
     if (mainScopes.has(file)) {
       scopes.set(file, mainScopes.get(file));
       continue;
@@ -3184,14 +3364,28 @@ export function reviewedSharedFileScopes({
       if (towerPair) {
         const digest = (text) =>
           createHash('sha256').update(text.replaceAll('\r\n', '\n')).digest('hex');
-        if (digest(readBase(file)) === towerPair[0] && digest(readHead(file)) === towerPair[1]) {
-          const source = 'games/local/tower-brake',
-            name = '@coffeeeeffoc/tower-brake';
-          const entries = games.filter(
-            (game) => game.id === 'tower-brake' || game.source === source,
-          );
+        const before = digest(readBase(file)),
+          after = digest(readHead(file));
+        let ids = [],
+          consumers = [];
+        if (before === towerPair[0] && after === towerPair[1]) {
+          ids = ['tower-brake'];
+          consumers = ['games/local/tower-brake'];
+        } else if (after === towerTetracubeIntegrationHashes[file]) {
+          if (before === towerPair[0]) {
+            ids = ['tower-brake', 'tetracube'];
+            consumers = ids.map((id) => 'games/local/' + id);
+          } else if (before === tetracubeCreatorReviews[file]?.after) {
+            ids = ['tower-brake', 'tetracube'];
+            consumers = ['games/local/tower-brake'];
+          }
+        }
+        for (const id of ids) {
+          const source = 'games/local/' + id,
+            name = '@coffeeeeffoc/' + id;
+          const entries = games.filter((game) => game.id === id || game.source === source);
           assert.equal(entries.length, 1);
-          assert.equal(entries[0].id, 'tower-brake');
+          assert.equal(entries[0].id, id);
           assert.equal(entries[0].source, source);
           assert.equal(entries[0].output, 'dist');
           const targets = packages.filter((pkg) => pkg.dir === source || pkg.name === name);
@@ -3210,7 +3404,9 @@ export function reviewedSharedFileScopes({
             for (const field of ['dependencies', 'optionalDependencies', 'peerDependencies'])
               assert(!manifest[field]);
           }
-          scopes.set(file, [source]);
+        }
+        if (ids.length) {
+          scopes.set(file, consumers);
           continue;
         }
       }
@@ -3395,6 +3591,7 @@ export function reviewedSharedFileScopes({
           ...(ids.includes('merge-front') ? ['games/local/merge-front'] : []),
           ...(ids.includes('bullet-garden') ? ['games/local/bullet-garden'] : []),
           ...(ids.includes('tower-brake') ? ['games/local/tower-brake'] : []),
+          ...(ids.includes('tetracube') ? ['games/local/tetracube'] : []),
         ];
         assert.deepEqual(
           ids,
@@ -3795,6 +3992,14 @@ export function reviewedSharedFileScopes({
         else {
           assertSixH5(games, packages, readHead);
           if (file === 'infra/builds/six-taptap-h5.mjs') assert(sixH5PresetOnly(readHead(file)));
+          const tetracubeConsumer =
+            [
+              'platforms/h5/game-rewards.js',
+              'platforms/h5/interstitial.js',
+              'scripts/h5-game-build.mjs',
+            ].includes(file) && games.some((g) => g.id === 'tetracube')
+              ? ['games/local/tetracube']
+              : [];
           const mergeConsumer =
             [
               'platforms/h5/game-rewards.js',
@@ -3806,8 +4011,8 @@ export function reviewedSharedFileScopes({
             file === 'infra/builds/six-taptap-h5.mjs'
               ? presetH5Ids.map((id) => `games/local/${id}`)
               : mergeConsumer
-                ? [...sixH5Sources, 'games/local/merge-front']
-                : sixH5Sources,
+                ? [...sixH5Sources, 'games/local/merge-front', ...tetracubeConsumer]
+                : [...sixH5Sources, ...tetracubeConsumer],
           );
         }
         continue;
@@ -3870,6 +4075,12 @@ export function reviewedSharedFileScopes({
             )
           )
             sources.push('games/local/merge-front');
+          if (
+            literalDeclaration(readHead('scripts/h5-ad-config.mjs'), 'additionalH5Games').includes(
+              'tetracube',
+            )
+          )
+            sources.push('games/local/tetracube');
         }
         if (file === 'scripts/competition-service-config.mjs') {
           assertSixH5(games, packages, readHead);
@@ -4021,6 +4232,7 @@ export function reviewedSharedFileScopes({
                   )
                   .map((pkg) => pkg.dir),
                 ...(games.some((g) => g.id === 'merge-front') ? ['games/local/merge-front'] : []),
+                ...(games.some((g) => g.id === 'tetracube') ? ['games/local/tetracube'] : []),
               ]
             : [source],
         );

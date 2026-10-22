@@ -652,6 +652,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
   const interactionBrowsers = {
     'letters-words2': 'word-flow.browser.mjs',
     'tianxia-chalu': 'browser.mjs',
+    tetracube: 'browser.mjs',
   };
   for (const [id, file] of Object.entries(interactionBrowsers)) {
     const source = `games/local/${id}`;

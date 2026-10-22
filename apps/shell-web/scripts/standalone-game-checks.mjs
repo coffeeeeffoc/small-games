@@ -500,21 +500,39 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await click(frame.locator('#stop'));
     await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'false');
   } else if (id === 'tetracube') {
-    const snapshot = () => frame.locator('body').evaluate(() => globalThis.tetracubeSnapshot());
-    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
-    await expect(frame.locator('#game-canvas')).toBeVisible();
+    const canvas = frame.locator('#GameCanvas');
+    const snapshot = () => canvas.evaluate(() => globalThis.__tetracube?.snapshot());
+    await expect(frame.locator('body')).toHaveAttribute('data-tetracube-ready', 'true', {
+      timeout: 60000,
+    });
+    await expect(canvas).toBeVisible();
+    const control = async (id) => {
+      await expect
+        .poll(async () => (await snapshot())?.controls.some((c) => c.id === id && !c.disabled))
+        .toBe(true);
+      const state = await snapshot(),
+        c = state.controls.find((c) => c.id === id);
+      const bounds = await canvas.boundingBox();
+      const position = {
+        x: ((c.x + c.w / 2) * bounds.width) / state.viewport.width,
+        y: ((c.y + c.h / 2) * bounds.height) / state.viewport.height,
+      };
+      await (mobile ? canvas.tap({ position }) : canvas.click({ position }));
+    };
+    await expect.poll(async () => (await snapshot())?.screen).toBe('home');
+    await control('start');
+    await expect.poll(async () => (await snapshot()).screen).toBe('playing');
     const placed = (await snapshot()).game.placed;
-    await click(frame.locator('#hard-drop'));
+    await control('drop');
     await expect.poll(async () => (await snapshot()).game.placed).toBe(placed + 1);
-    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
-    await click(frame.locator('#pause-game'));
-    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'paused');
-    await click(frame.locator('#resume-game'));
-    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
-    await click(frame.locator('#pause-game'));
-    await click(frame.locator('#home-game'));
-    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'home');
-    await expect(frame.locator('#start-game')).toBeVisible();
+    await expect.poll(async () => (await snapshot()).animating).toBe(false);
+    await control('pause');
+    await expect.poll(async () => (await snapshot()).screen).toBe('paused');
+    await control('resume');
+    await expect.poll(async () => (await snapshot()).screen).toBe('playing');
+    await control('pause');
+    await control('home');
+    await expect.poll(async () => (await snapshot()).screen).toBe('home');
     expect((await snapshot()).game.placed).toBe(placed + 1);
   } else if (id === 'surprise-kept') {
     await expect(frame.locator('#game')).toHaveAttribute('data-steps', '0');

@@ -3,9 +3,7 @@ import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const root = fileURLToPath(
-  new URL(process.argv.includes('--dist') ? './dist/' : './', import.meta.url),
-);
+const root = fileURLToPath(new URL('./dist/', import.meta.url));
 const option = (flag, fallback) => {
   const index = process.argv.indexOf(flag);
   return index < 0 ? fallback : process.argv[index + 1];
