@@ -48,6 +48,8 @@ Vite 入口可直接相对导入公共源，会被打入本游戏产物。静态
 
 ## 不同平台的激励视频提供方
 
+奖励产品约束见[通用开发规范](../../docs/game-development.md)，调用链、生命周期与跨平台接入边界统一维护在[广告指南](../../docs/operations/taptap-rewarded-ads.md)。本节说明 provider 接口，不代表每款游戏都已完成目标渠道接线。
+
 `platform-ads.js` 是显式渠道的公共 AdProvider，可传给已有 Game Host 广告运行能力或 `createH5Publishing({ adMode: 'host', provider })`。不改变已有游戏的默认来源。
 
 ```js
@@ -61,12 +63,12 @@ const result = await provider.show({ opportunityId: 'example:hint', kind: 'rewar
 provider.dispose();
 ```
 
-| 运行渠道    | 宿主  | 接入区别                                                          |
-| ----------- | ----- | ----------------------------------------------------------------- |
-| `taptap-h5` | `tap` | H5 商业广告；load 后 show，只认 isEnded=true                      |
-| `wechat`    | `wx`  | 微信小游戏宿主；load 后 show                                      |
-| `douyin`    | `tt`  | 抖音小游戏宿主；multiton=false，直接 show，等待销毁完成才释放单例 |
-| `bilibili`  | `bl`  | B 站小游戏宿主；load 后 show                                      |
+| 运行渠道    | 宿主  | 接入区别                                                                 |
+| ----------- | ----- | ------------------------------------------------------------------------ |
+| `taptap-h5` | `tap` | H5 商业广告；优先 show，失败后至多一次 load/show 恢复，只认 isEnded=true |
+| `wechat`    | `wx`  | 微信小游戏宿主；load 后 show                                             |
+| `douyin`    | `tt`  | 抖音小游戏宿主；multiton=false，直接 show，等待销毁完成才释放单例        |
+| `bilibili`  | `bl`  | B 站小游戏宿主；load 后 show                                             |
 
 SDK 方法保持原接收者。缺广告位、SDK 或不支持的渠道返回 unavailable；无填充、拒绝、抛错或超时返回 failed；关闭不完整返回 dismissed；不会读其他渠道或自动弹模拟广告。广告位不能跨平台使用。仅实现提示所需的激励视频，插屏和 Banner 不在此接口范围。
 

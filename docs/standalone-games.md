@@ -1,5 +1,7 @@
 # Game 目录与统一运行
 
+本文件负责源码归属、注册与构建接入。新增、修改及迁移游戏先遵循[通用开发规范](game-development.md)，交付时按[上架资料规范](game-publishing.md)检查本游戏 `publishing/STATUS.md`；这里不重复产品与素材规则。
+
 所有游戏源码集中在 `games/`，按 Git 归属区分：
 
 - `games/local/*`：父仓库直接管理源码，普通 clone 即可取得；`local` 不代表忽略提交。
