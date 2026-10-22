@@ -60,6 +60,28 @@ const SHARED_COCOS_SCRIPTS = new Set(
 // 457bc63. Keep the deleted paths in normal game regression selection; this
 // proof only permits those exact D records through the global deletion guard.
 const reviewedCleanupDeletions = Object.freeze({
+  // f0f2576 replaces these exact legacy Chase sources/tests with the city-chase runtime.
+  // Only their deletion is exempted; the retained game still receives normal regression.
+  'games/local/chase-thief/audio.mjs':
+    'fce36f9f6e5fc88f65da5502ba75d67e51e6d5db1f2540b02b3c59e902a56f31',
+  'games/local/chase-thief/challenge.mjs':
+    'fbe97d6ee077a05eddf8fdb5f67ec03e62c0507401ab066382db1c3df60ce07a',
+  'games/local/chase-thief/engine.mjs':
+    '1f0255495d6e35bcb8695af4848172a5e7d13110377f4673fb63dc3c19ed9bd1',
+  'games/local/chase-thief/levels.mjs':
+    '5c429d2e20c5efe70ef880c2020ed3a419aac84bf628251ae8833bcb1bc73522',
+  'games/local/chase-thief/main.mjs':
+    'ee23f8ef447c352356a8b56013179116f8e0db340c4454163a9564259bfda3a2',
+  'games/local/chase-thief/progress.mjs':
+    '905387335974263b61b05e3b8d7bda9184df2d51e5cf5a4c93a23745a3618bce',
+  'games/local/chase-thief/scene.mjs':
+    'b3c8702e46d43365bf1d219135efe4df19d701cde539b250dd441c168601104f',
+  'games/local/chase-thief/tests/challenge.test.mjs':
+    'cd8432b00000e986406a2ccf2096acc4fd822e47a4064078ef08fb065657e3e7',
+  'games/local/chase-thief/tests/core.test.mjs':
+    '5d3c486804dd6249fe75c0ce760545da25725a7ae3946670d9be5c3cbf167fbb',
+  'games/local/chase-thief/tests/progress.test.mjs':
+    '4b081ba561934d6897d78bc9415473be4714bf0d3dd5d404b892582029802d9f',
   'games/local/merge-front/favicon.svg':
     'c17665fab3504b77fce9b6b107f46e4250ed704deb5848f5c07088194cad4489',
   'games/local/merge-front/index.html':
