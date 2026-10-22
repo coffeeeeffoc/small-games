@@ -351,6 +351,9 @@ small {
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
+.order-buttons > button {
+  min-height: 45px;
+}
 .order-buttons button:first-child {
   color: #f6efde;
   background: #354f45;

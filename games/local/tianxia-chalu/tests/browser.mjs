@@ -553,7 +553,10 @@ try {
         );
         for (const id of ['pause', 'hold', 'cycle', 'intel']) {
           const b = await page.locator('#' + id).boundingBox();
-          assert(b.width >= 44 && b.height >= 44, id + ' has at least 44 CSS px hit area');
+          assert(
+            b.width >= 44 && b.height >= 44,
+            `${id} has at least 44 CSS px hit area at ${viewport.width}x${viewport.height}: ${b.width}x${b.height}`,
+          );
         }
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
         const canvas = await page.locator('#GameCanvas').boundingBox();
