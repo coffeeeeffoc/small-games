@@ -34,6 +34,20 @@ const PALETTE = {
   roadLine: '#e7dfc5',
   teal: '#3f8d85',
 };
+const X_KNOTS = [-20, -16, -10, 10, 16, 20] as const;
+const Z_KNOTS = [-13, -7, 0.5, 4.5, 8, 20, 28, 31] as const;
+// Tight crops measured from the current 1774 x 887 sheet, including padding.
+// They also exclude stray pixels from neighbours crossing nominal cell edges.
+const TAXI_CROPS = [
+  [104, 77, 230, 323],
+  [440, 71, 406, 328],
+  [887, 100, 437, 281],
+  [1352, 76, 385, 324],
+  [90, 481, 239, 328],
+  [440, 481, 397, 323],
+  [887, 506, 434, 279],
+  [1360, 470, 390, 335],
+] as const;
 const paint = (hex: string) => new Color().fromHEX(hex);
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 type ScreenPoint = { x: number; y: number };
@@ -250,7 +264,18 @@ export class StationWorld {
       this.loadImage('art/station'),
     ]);
     if (this.disposed || this.stopLoading) throw new Error('Station artwork load cancelled');
-    this.taxiFrames = this.sheet(taxis, 'art/taxis');
+    const taxiTexture = this.texture(taxis);
+    this.taxiFrames = TAXI_CROPS.map(([x, y, w, h]) =>
+      this.frame(
+        taxiTexture,
+        new Rect(
+          (x * taxis.width) / 1774,
+          (y * taxis.height) / 887,
+          (w * taxis.width) / 1774,
+          (h * taxis.height) / 887,
+        ),
+      ),
+    );
     this.propFrames = this.sheet(props, 'art/props');
     this.stationFrame = this.frame(
       this.texture(station),
@@ -267,13 +292,13 @@ export class StationWorld {
   }
 
   project(point: Point, height = 1.5): ScreenPoint {
-    const xf = this.map(point.x, [-20, -16, -10, 10, 16, 20], [0, 0.08, 0.14, 0.86, 0.92, 1]);
+    const xf = this.map(point.x, X_KNOTS, [0, 0.08, 0.2, 0.8, 0.92, 1]);
     const zf = this.map(
       point.z,
-      [-13, -7, 0.5, 4.5, 8, 20, 28, 31],
+      Z_KNOTS,
       this.landscape
         ? [0, 0.1, 0.21, 0.25, 0.31, 0.83, 0.95, 1]
-        : [0, 0.19, 0.34, 0.4, 0.46, 0.82, 0.95, 1],
+        : [0, 0.14, 0.3, 0.39, 0.47, 0.76, 0.93, 1],
     );
     return {
       x: this.area.x + xf * this.area.w,
@@ -291,11 +316,12 @@ export class StationWorld {
       },
       0,
     );
-    // An independent badge beside the upper edge leaves the taxi visible.
-    const badge = this.project(vehicle.position, 2.5);
+    const visual = this.carViews.get(vehicle.id);
+    const width = visual?.width ?? this.taxiSize * 0.55;
+    const height = visual?.height ?? this.taxiSize * 0.7;
     return {
-      x: badge.x + this.taxiSize * 0.3,
-      y: badge.y - this.taxiSize * 0.04,
+      x: ground.x + width * 0.18,
+      y: ground.y - height / 2 - 11,
       angle: Math.atan2(toward.y - ground.y, toward.x - ground.x),
     };
   }
@@ -580,7 +606,7 @@ export class StationWorld {
     const shadow = this.node(`${id} contact shadow`, node).addComponent(Graphics);
     const body = this.node(`${id} painted sprite`, node);
     const transform = body.getComponent(UITransform)!;
-    transform.setAnchorPoint(0.5, 0.08);
+    transform.setAnchorPoint(0.5, kind === 'taxi' ? 0.5 : 0.08);
     const sprite = body.addComponent(Sprite);
     sprite.sizeMode = Sprite.SizeMode.CUSTOM;
     sprite.spriteFrame = frame;
@@ -610,13 +636,45 @@ export class StationWorld {
     visual.transform.setContentSize(visual.width, visual.height);
   }
 
+  private minimumScale(point: Point, axis: 'x' | 'z', radius: number) {
+    const value = point[axis];
+    const knots = axis === 'x' ? X_KNOTS : Z_KNOTS;
+    const cuts = [
+      value - radius,
+      ...knots.filter((k) => k > value - radius && k < value + radius),
+      value + radius,
+    ];
+    const projected = (v: number) => {
+      const p = this.project(axis === 'x' ? { x: v, z: point.z } : { x: point.x, z: v }, 0);
+      return axis === 'x' ? p.x : p.y;
+    };
+    let minimum = Infinity;
+    for (let i = 1; i < cuts.length; i++)
+      minimum = Math.min(
+        minimum,
+        Math.abs(projected(cuts[i]!) - projected(cuts[i - 1]!)) / (cuts[i]! - cuts[i - 1]!),
+      );
+    return Math.max(0.01, minimum);
+  }
+
   private layoutVisual(visual: Visual) {
     switch (visual.kind) {
-      case 'taxi':
-        this.fit(visual, this.taxiSize, this.taxiSize);
-        // Ground positions are car centres, while image frames use a foot anchor.
-        visual.sprite.node.setPosition(0, -visual.height * 0.21);
+      case 'taxi': {
+        // Keep visible corners inside a projected 1.58m circle, while the
+        // simulation guarantees >=3.43m between vehicle centres. This includes
+        // projection breakpoints, so a compressed road cannot cause art overlap.
+        const radius = 1.58;
+        const sx = this.minimumScale(visual.point, 'x', radius);
+        const sy = this.minimumScale(visual.point, 'z', radius);
+        const rect = visual.sprite.spriteFrame!.rect;
+        const longest = Math.max(rect.width, rect.height);
+        const nw = rect.width / longest,
+          nh = rect.height / longest;
+        const side = Math.min(this.taxiSize, (2 * radius) / Math.hypot(nw / sx, nh / sy));
+        this.fit(visual, side * nw, side * nh);
+        visual.sprite.node.setPosition(0, 0);
         break;
+      }
       case 'person':
         this.fit(visual, this.personSize, this.personSize);
         break;
@@ -786,7 +844,8 @@ export class StationWorld {
       const pulse = Math.sin(phase * Math.PI);
       visual.node.setScale(1 + pulse * 0.035, 1 + pulse * 0.025, 1);
       visual.sprite.node.setRotationFromEuler(0, 0, pulse * 1.2);
-      this.place(visual, vehicle.position);
+      visual.point = vehicle.position;
+      this.layoutVisual(visual);
     }
 
     const visible = new Set<string>();
@@ -853,9 +912,11 @@ export class StationWorld {
     this.stopLoading = true;
     this.rejectReady?.(new Error('Station world disposed before artwork finished loading'));
     this.rejectReady = undefined;
-    this.root.active = false;
-    this.root.destroy();
-    this.camera.node.destroy();
+    if (this.root.isValid) {
+      this.root.active = false;
+      this.root.destroy();
+    }
+    this.camera.node?.destroy();
     this.releaseAssets();
     this.cars.clear();
     this.people.clear();

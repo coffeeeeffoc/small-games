@@ -61,6 +61,7 @@ export class StationGame extends Component {
     try {
       await Promise.all([this.world.ready, this.hud.ready]);
     } catch (error) {
+      if (this.disposed) return;
       if (sys.isBrowser) window.dispatchEvent(new Event('homebound-load-error'));
       console.error('[homebound-station artwork]', error);
       return;
