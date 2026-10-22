@@ -1,52 +1,60 @@
 # 追贼别撞墙
 
-蓝衣玩家追着橙衣小偷穿过老城街巷。跳路障、钻低杆、换道绕木箱；连续稳住三段，冲刺把小偷拉近三米。
+沿着起伏弯曲的老城街道，一路追着同一个橙衣小偷跑下去。真实 Cocos 3D 城市无尽跑酷：骑楼街、居民巷、集市连续变化，建筑与道具从远处进入、掠过身侧并回收。
 
 ## 运行
 
-在仓库根目录使用配置的 Node 24.21.0、pnpm 12.6.0：
+仓库工具链：Node 24.21.0、pnpm 12.6.0。
 
 ```sh
 pnpm --filter @coffeeeeffoc/chase-thief dev
 ```
 
-打开 `http://127.0.0.1:4417/`。本游戏运行时无外部依赖，可直接在游戏目录执行 `node server.mjs`。局域网运行使用 `node server.mjs --host 0.0.0.0 --port 4417`；生产预览使用 `node build.mjs` 后执行 `node server.mjs --dist`。
+打开 `http://127.0.0.1:4417/`。也可在游戏目录运行 `node build.mjs`、`node server.mjs --host 0.0.0.0 --port 4417`。独立静态入口 `/games/chase-thief/index.html`；大厅入口 `#/games/chase-thief`。构建产物无外部 CDN 依赖，服务器只暴露发行资源。
 
-Shell 入口是 `#/games/chase-thief`，独立静态入口是 `/games/chase-thief/index.html`。游戏、暂停和结算采用沉浸显示，主页保留 Shell 返回入口。
+## 玩法
 
-## 操作与规则
+- 自动前进，左右滑动换道，上滑跳跃、下滑滑铲。方向键 / WASD、空格同样可用；设置可开启触控按钮。
+- 没有倒计时、终点抓捕或追丢失败。小偷保持在前方，远近变化营造追逐感；纪录由距离、追回的掉落物与连续动作组成。
+- 跳过矮栏、滚桶和沟壑；滑过低横杆；绕开高箱堆和装货推车。每波保留可通过的通道，速度逐渐增加并封顶。
+- 分路口提前选左右，中央分隔带不可穿过；有障碍的一侧拾取回报更多，另一侧更稳妥，两条路随后汇合。
+- 轻碰撞扣一点耐力并短暂减速；三次碰撞结束本局，未跳过沟壑直接结束。重试免费。暂停、设置、后台切换均冻结玩法。
+- 三个出发街区直接可选，随后仍会经过其他街区。声音、震动、减弱镜头动态及触控按钮设置保存在本地。
 
-- 左右滑动换道，上滑跳跃，下滑滑铲；屏幕按钮可完成所有操作。电脑支持方向键 / WASD，空格跳跃，Esc 暂停。
-- 晨光里、骑楼巷、灯火街三个街区各限时 60 秒，正常通关依次解锁，重试免费。
-- 小偷起始领先 12 米；每波无碰撞通过追近 0.15 米，连续三波触发两秒冲刺，额外追近三米。双方距离同步反映在角色投影与顶部 HUD。
-- 碰撞减速 1.2 秒，距离增加 2.5 米、连续次数清空。第三次碰撞立即失败，计时耗尽也失败；进入 1.5 米范围自动抓捕。
-- 每波保留可走的安全道，前三波先教跳跃、滑铲、換道；后续组合增加，冲刺最高速度下仍有至少 2.5 秒的波次间隔。小偷使用固定路线，接近抓捕时不会加速。
-- 保存已解锁街区、最快正常抓捕记录、声音和震动设置；存储不可用时继续使用内存进度。切换尺寸、方向及全屏不会重置对局，切到后台自动暂停。
+## 实现与素材
 
-## 文件边界
+`assets/scripts/core/` 为纯 TypeScript 路线、固定步长模拟和存档；`World.ts` 使用 Cocos Scene / Camera / MeshRenderer 生成连续街区，`Hud.ts` 使用 Canvas / Graphics / Label 绘制菜单；输入、音效、生命周期由 Cocos 管理。HTML 只承担加载、全屏及公共开发工具接入。
 
-`engine.mjs` 只管理模拟、动作、连击与胜败；`levels.mjs` 独立管理内容、配色和 schema 校验；`progress.mjs` 校验版本化存档及纯结算。它们不依赖 DOM、SDK 或 Shell。
-
-`scene.mjs` 使用原创 Canvas 插画和缓存绘制角色、街巷及三类障碍；`audio.mjs` 合成原创短音效；`main.mjs` 负责触屏、页面、存储和生命周期。运行资源仅使用相对路径，静态构建不会带入文档、测试或服务器。
-
-公共 `dev-mode.js` / `fullscreen.js` 复用仓库 H5 能力并保留独立运行副本。`?dev=1` 或统一 `localStorage.dev` 启用开发面板，`?dev=0` 优先关闭；默认不暴露 `__chaseDev`。开发跳关、手动时钟与参数修改会将对局标记为试玩，不解锁或记录成绩。
-
-## 验证
+当前 Web 使用固定官方 **Cocos Engine 3.8.8** 源码构建，提交 `411f98df047c25902f93440d4b22925c2fb65461`，完整来源及 SHA-256 见 `vendor/cocos/provenance.json`。`build.mjs` 验证真实引擎后编译 TypeScript，产出 `dist/build-info.json`。这不是 Creator 编辑器导出制品。
 
 ```sh
-pnpm --filter @coffeeeeffoc/chase-thief test
+node scripts/build-cocos-engine.mjs --check
+# 重新编译官方引擎，需要网络、npm、curl、tar：
+node scripts/build-cocos-engine.mjs --rebuild
+# 生成可交接的 Creator 3.8.8 工程：
+node scripts/prepare-creator.mjs
+```
+
+Creator 工程生成在忽略的 `.creator-project/`，打开 `assets/scenes/main.scene`；共享 `Entry.ts` 与同一套玩法源码。当前环境没有 Creator 编辑器，尚未完成编辑器导出、微信/抖音小游戏和物理手机验收，不能把浏览器证据当作这些平台的结果。Creator 导出前还需配置目标平台、检查资源导入及目标设备性能。
+
+建筑立面与图标由 AI 生成，13 类道具和 13 骨角色由原创 Blender 脚本制作。`art-source/city-kit.blend` 保存可编辑模型、骨架及顶点组；运行时采用各部件绑定单骨骼的层级节点动画，未使用自动平滑蒙皮。重新生成：`blender -b --python scripts/create-art.py`。来源与规格见 [素材清单](assets/ASSETS.md)。
+
+## 兼容与开发模式
+
+旧 `chase-thief.progress.v1` 只读取设置及历史抓捕纪录，原键不改写；无尽纪录独立保存在 `chase-thief.progress.v2`。旧挑战链接明确提示规则已更新，不把旧用时当成无尽成绩。此前限时玩法、分享成绩协议和模拟插屏已退役；目前无广告奖励或付费续跑。
+
+复用公共 `dev-mode.js` / `fullscreen.js`。`?dev=1` 启用开发面板，`?dev=0` 显式关闭。`__chase.snapshot()` 是只读画面语义诊断；修改时钟、无敌和街区试玩仅在开发模式提供，都会隔离个人纪录。存储损坏时不覆盖原数据，存储被禁用时仍可玩。
+
+## 验证与交付
+
+```sh
 pnpm --filter @coffeeeeffoc/chase-thief build
+pnpm --filter @coffeeeeffoc/chase-thief test
 PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium pnpm --filter @coffeeeeffoc/chase-thief test:browser
 ```
 
-规则测试覆盖可通过关卡、三连冲刺、动作窗口、两次失误后恢复、三撞失败、超时、暂停、不同帧长、固定小偷路线、解锁、试玩隔离及坏存档；服务测试覆盖资源白名单、请求方法和路径检查。浏览器脚本使用生产制品、手机尺寸及真实触屏事件走通页面和操作。
+测试覆盖 2,000 处分段连接、10,000 个障碍波次、正常策略跑过 2 公里、1 小时有界模拟、分岔提交、动作判定、碰撞保护、暂停、存档迁移与试玩隔离。浏览器流程包含真实滑动/点按、鼠标单次触发、三种竖屏尺寸、正常失败重试、存档恢复、后台暂停与 20 公里场景回收。大厅沉浸显示、独立入口与公共开发工具也有针对性回归。
 
-效果图、页面关系和实际截图见 [设计说明](docs/design/README.md)。2026-10-06 验收：23 项规则/存档/服务测试通过；Chromium 151 生产制品的 12 组浏览器流程通过，覆盖三个手机尺寸、三关正常通关及坏存储降级；Web Shell 生产构建、iframe 与手机 Pages 操作回归通过。详细记录保存在 [浏览器报告](docs/design/report.json)。
+当前验证范围和证据见 [验收记录](docs/design/endless-city-2026-10-22/verification/README.md)，设计过程见 [方案](docs/design/endless-city-2026-10-22/plan.md)。历史设计目录仅保留旧版本证据。
 
-2026-10-11 扩围优化：正常抓捕结算可生成同街区挑战链接，对比用时与失误上限，并展示本局冲刺次数。接收链接明确显示目标，可挑战未解锁街区，但不写个人最佳或正常解锁；开发试玩不生成成绩分享。分享支持系统面板、剪贴板与手动复制，公开链接去除 dev/无关参数。场景第二触点不再发出额外动作，取消后下一手势可正常输入。
-
-复用公共 H5 发布适配器，每三次自然结算最多出现一次可立即关闭的模拟插屏（至少60秒间隔、每次游戏会话最多3次）。无广告奖励、续关付费或真实渠道广告。生产构建直接复制公共适配器，开发服务读取公共源，不维护私有副本。已验证的手机尺寸浏览器模拟不代表物理手机、原生小游戏渠道或 iOS Safari 验收。
-
-专项验证：`node games/local/chase-thief/tests/publishing.browser.mjs`（从仓库根运行），设计及手机实际截图见 [扩围记录](docs/design/expansion-2026-10-11/README.md)。
-
-部署可通过 `SmallGamesPublishingConfig.adMode`（由 `DEPLOY_H5_AD_MODE` 注入）选择 off/mock/host，并接受 publicUrl 和 Game Host provider。默认使用明确标识的模拟广告；off 模式完全关闭结算插屏。
+上架文案、图标、概念宣传图、宣传视频、实际截图及实际录屏集中在 [publishing/STATUS.md](publishing/STATUS.md)。素材准备不代表已上架。

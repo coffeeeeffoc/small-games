@@ -1,0 +1,50 @@
+{
+  "captured": "2026-10-22T16:46:50.438Z",
+  "artifactSha256": "f87875ca0e45d5bc7b58270ebc658c16e7f07d86061d43005a87e875d37a66c4",
+  "browser": "151.0.7922.173",
+  "input": "real touchscreen menus and keyboard gameplay; no dev API, no manual clock",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "elapsedRealSeconds": 42.138,
+  "final": {
+    "ready": true,
+    "engine": "Cocos Engine 3.8.8",
+    "buildKind": "official-engine-source-web",
+    "screen": "running",
+    "width": 390,
+    "height": 844,
+    "inputCount": 10,
+    "controls": [
+      {
+        "id": "pause",
+        "label": "暂停",
+        "x": 326,
+        "y": 28,
+        "w": 52,
+        "h": 64
+      }
+    ],
+    "phase": "running",
+    "distance": 372.32501249999996,
+    "lane": 2,
+    "laneVisual": 1.9999999999999996,
+    "action": "run",
+    "health": 3,
+    "coins": 12,
+    "combo": 6,
+    "practice": false,
+    "seed": 406555073,
+    "departure": "old-town",
+    "district": "alley",
+    "world": {
+      "chunks": 6,
+      "objects": 20,
+      "renderers": 76
+    },
+    "best": {},
+    "legacyBest": {}
+  },
+  "errors": []
+}

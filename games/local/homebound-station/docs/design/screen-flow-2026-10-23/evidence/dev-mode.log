@@ -1,0 +1,16 @@
+$ node scripts/sync-game-dev-mode.mjs --check
+Developer mode: 42 games checked, 0 issues.
+$ node --test scripts/game-dev-mode.test.mjs
+✔ production defaults off; URL and localStorage use the same explicit opt-in (18.844172ms)
+✔ iframe URL overrides parent URL, which overrides shared storage (5.895813ms)
+✔ Shell hash query and independently opened URLs preserve mode and challenge parameters (3.4229ms)
+✔ developer snapshots report actual state and can be removed on game disposal (0.836889ms)
+✔ new game directories must carry the shared runtime, entry and independent build (29.471043ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 117.176319

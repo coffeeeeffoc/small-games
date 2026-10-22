@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { AddressInfo } from 'node:net';
 import { createDuelServer } from './duel-server.js';
 import type { DuelMessage } from './duel-protocol.js';
+import { DUEL_VERSION } from './duel-types.js';
 const services: ReturnType<typeof createDuelServer>[] = [];
 afterEach(() => {
   for (const service of services.splice(0)) service.stop();
@@ -18,7 +19,7 @@ async function fixture(waitSeconds = 1) {
       body: JSON.stringify(body),
     });
   const join = async () =>
-    (await (await post('/duel/join', { version: 'duel-v1', mapId: 'ravine-v1' })).json()) as {
+    (await (await post('/duel/join', { version: DUEL_VERSION, mapId: 'ravine-v1' })).json()) as {
       token: string;
     };
   async function stream(token: string) {
@@ -106,11 +107,14 @@ describe('真人匹配与服务端权威', () => {
   it('兼容版本、来源、请求体和会话凭证均校验', async () => {
     const f = await fixture();
     expect((await f.post('/duel/join', { version: 'old', mapId: 'ravine-v1' })).status).toBe(409);
+    expect((await f.post('/duel/join', { version: 'duel-v1', mapId: 'ravine-v1' })).status).toBe(
+      409,
+    );
     expect(
       (
         await f.post(
           '/duel/join',
-          { version: 'duel-v1', mapId: 'ravine-v1' },
+          { version: DUEL_VERSION, mapId: 'ravine-v1' },
           'https://untrusted.example',
         )
       ).status,

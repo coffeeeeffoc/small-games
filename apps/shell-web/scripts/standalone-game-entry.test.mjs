@@ -48,10 +48,10 @@ test('word island readiness is home, with an explicit start adapter before board
   assert.equal(entryMode('letters-words2'), 'adapter');
 });
 
-test('street chase waits for the game and enters through the home start button', () => {
-  assert.equal(markers['chase-thief'], '#game[data-ready="true"]');
-  assert.equal(homeControls['chase-thief'], '#start');
-  assert.equal(entryMode('chase-thief'), 'adapter');
+test('street chase uses real Cocos canvas controls', () => {
+  assert.equal(markers['chase-thief'], '#GameCanvas');
+  assert.equal(homeControls['chase-thief'], undefined);
+  assert.equal(entryMode('chase-thief'), 'legacy');
 });
 
 test('Tianxia enters its ready Creator battlefield through preparation', () => {

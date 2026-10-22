@@ -1991,3 +1991,138 @@ test('merge-front replaces only the exact reviewed legacy runtime files', async 
       assert.equal(isReviewedCleanupDeletion({ ...options, ...extra }), false, file);
   }
 });
+
+const chaseCleanupBase = 'cbee0202b8cd6ea3f5dd626851a10e6dd602dd75';
+const chaseCleanupPaths = [
+  'games/local/chase-thief/audio.mjs',
+  'games/local/chase-thief/challenge.mjs',
+  'games/local/chase-thief/engine.mjs',
+  'games/local/chase-thief/levels.mjs',
+  'games/local/chase-thief/main.mjs',
+  'games/local/chase-thief/progress.mjs',
+  'games/local/chase-thief/scene.mjs',
+  'games/local/chase-thief/tests/challenge.test.mjs',
+  'games/local/chase-thief/tests/core.test.mjs',
+  'games/local/chase-thief/tests/progress.test.mjs',
+];
+const chaseCleanupCatalog = {
+  standaloneGames: [{ id: 'chase-thief', source: 'games/local/chase-thief' }],
+  gameSources: ['games/local/chase-thief'],
+};
+
+test('Chase rewrite deletion proof binds all ten exact legacy blobs, absence and retained identity', async () => {
+  const { isReviewedCleanupDeletion } = await import('./pages-test-scope.mjs');
+  for (const file of chaseCleanupPaths) {
+    const options = {
+      ...chaseCleanupCatalog,
+      change: { status: 'D', paths: [file] },
+      readBase: (name) => cleanupOriginal(name, chaseCleanupBase),
+      headHasPath: () => false,
+    };
+    assert(isReviewedCleanupDeletion(options), file);
+    for (const extra of [
+      { headHasPath: () => true },
+      { headHasPath: () => undefined },
+      {
+        headHasPath: () => {
+          throw Error('tree unavailable');
+        },
+      },
+      { readBase: (name) => options.readBase(name) + '\n' },
+      {
+        readBase: () => {
+          throw Error('blob unavailable');
+        },
+      },
+      { change: { status: 'R100', paths: [file, file + '.moved'] } },
+      { change: { status: 'D', paths: [file, file + '.extra'] } },
+      { change: { status: 'M', paths: [file] } },
+      { change: { status: 'D', paths: ['games/local/chase-thief/unreviewed.mjs'] } },
+      { gameSources: [] },
+      { gameSources: [...chaseCleanupCatalog.gameSources, ...chaseCleanupCatalog.gameSources] },
+      { standaloneGames: [] },
+      {
+        standaloneGames: [
+          ...chaseCleanupCatalog.standaloneGames,
+          ...chaseCleanupCatalog.standaloneGames,
+        ],
+      },
+      { standaloneGames: [{ id: 'renamed-chase', source: 'games/local/chase-thief' }] },
+    ])
+      assert.equal(isReviewedCleanupDeletion({ ...options, ...extra }), false, file);
+  }
+});
+
+test('cumulative Chase rewrite and Homebound change keep both real game consumers and reject adjacent deletion or rename', async (t) => {
+  const { root, git } = await temporaryRepository(t);
+  const ids = ['chase-thief', 'homebound-station'];
+  await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });
+  await writeFile(path.join(root, REGISTRY), JSON.stringify(ids.map(registration)));
+  for (const id of ids) {
+    const directory = path.join(root, 'games/local', id);
+    await mkdir(directory, { recursive: true });
+    await writeFile(
+      path.join(directory, 'package.json'),
+      JSON.stringify({
+        name: `@coffeeeeffoc/${id}`,
+        scripts: { test: 'node --test tests/*.test.mjs', build: 'node build.mjs' },
+      }),
+    );
+  }
+  for (const file of chaseCleanupPaths) {
+    await mkdir(path.dirname(path.join(root, file)), { recursive: true });
+    await writeFile(path.join(root, file), cleanupOriginal(file, chaseCleanupBase));
+  }
+  const neighbor = 'games/local/chase-thief/unreviewed.mjs';
+  const homebound = 'games/local/homebound-station/runtime.mjs';
+  await writeFile(path.join(root, neighbor), 'export const keep = true;\n');
+  await writeFile(path.join(root, homebound), 'export const layout = 1;\n');
+  git('add', '.');
+  git('commit', '-m', 'successful baseline');
+  const base = git('rev-parse', 'HEAD');
+  git('rm', ...chaseCleanupPaths);
+  git('commit', '-m', 'rewrite Chase before later game push');
+  const intermediate = git('rev-parse', 'HEAD');
+  await writeFile(path.join(root, homebound), 'export const layout = 2;\n');
+  git('add', '.');
+  git('commit', '-m', 'later Homebound push');
+  const selected = await main(
+    {
+      GITHUB_EVENT_NAME: 'push',
+      GITHUB_REF_NAME: 'dev',
+      PAGES_DIFF_BASE: intermediate,
+      PAGES_VALIDATED_BASE: base,
+      VALIDATION_RISK_PLAN: 'true',
+    },
+    root,
+  );
+  assert.equal(selected.diff_base, base, 'The last successful baseline remains authoritative');
+  assert.equal(selected.full, false);
+  assert.deepEqual(
+    selected.game_sources,
+    ids.map((id) => `games/local/${id}`),
+  );
+  assert.deepEqual(selected.browser_ids, ids);
+  assert.deepEqual(selected.publishing_browser_ids, ids);
+  const current = git('rev-parse', 'HEAD');
+  git('rm', neighbor);
+  git('commit', '-m', 'unknown deletion alongside reviewed rewrite');
+  await assert.rejects(
+    main({ PAGES_DIFF_BASE: base, VALIDATION_RISK_PLAN: 'true' }, root),
+    /Relevant deletion or rename/,
+  );
+  git('checkout', '--detach', current);
+  git('mv', neighbor, neighbor + '.renamed');
+  git('commit', '-m', 'unknown rename alongside reviewed rewrite');
+  await assert.rejects(
+    main({ PAGES_DIFF_BASE: base, VALIDATION_RISK_PLAN: 'true' }, root),
+    /Relevant deletion or rename/,
+  );
+  git('checkout', '--detach', base);
+  git('mv', chaseCleanupPaths[0], chaseCleanupPaths[0] + '.renamed');
+  git('commit', '-m', 'reviewed source renamed rather than deleted');
+  await assert.rejects(
+    main({ PAGES_DIFF_BASE: base, VALIDATION_RISK_PLAN: 'true' }, root),
+    /Relevant deletion or rename/,
+  );
+});

@@ -105,7 +105,7 @@ class RequestLimits {
 }
 
 async function serveStatic(request, response, pathname, root) {
-  if (!root) throw new ApiError(404, 'game-not-built', '请先构建天下岔路客户端');
+  if (!root) throw new ApiError(404, 'game-not-built', '请先构建夺城令客户端');
   let suffix;
   try {
     suffix = decodeURIComponent(pathname.slice('/play/'.length));
@@ -240,7 +240,7 @@ export async function createTianxiaServer({
       throw new ApiError(405, 'method-not-allowed', '不支持此请求方法');
     } catch (error) {
       if (response.destroyed || response.headersSent) return;
-      if (!(error instanceof ApiError)) onError('天下岔路 API 请求失败', error.message);
+      if (!(error instanceof ApiError)) onError('夺城令 API 请求失败', error.message);
       json(response, error.status || 500, {
         error: {
           code: error.code || 'internal-error',
@@ -259,7 +259,7 @@ export async function createTianxiaServer({
   ticker?.unref();
   const sweeper = autoTick
     ? setInterval(() => {
-        results.sweep(now()).catch((error) => onError('天下岔路过期战报清理失败', error.message));
+        results.sweep(now()).catch((error) => onError('夺城令过期战报清理失败', error.message));
       }, 60_000)
     : null;
   sweeper?.unref();

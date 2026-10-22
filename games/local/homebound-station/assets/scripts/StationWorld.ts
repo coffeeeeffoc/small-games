@@ -5,6 +5,7 @@ import {
   Graphics,
   ImageAsset,
   Label,
+  Mask,
   Node,
   Rect,
   Size,
@@ -17,7 +18,15 @@ import {
   sys,
   view,
 } from 'cc';
-import { BAY_X, queuePosition, type Simulation, type Vehicle, type Point } from './core/simulation';
+import {
+  getStationGeometry,
+  queuePosition,
+  type StationGeometry,
+  type Simulation,
+  type Vehicle,
+  type Point,
+} from './core/simulation';
+import { LEVELS } from './core/levels';
 import { DIRECTIONS } from './core/levels';
 
 /** This layer must be reserved for the world; the HUD camera sees UI_2D only. */
@@ -34,10 +43,7 @@ const PALETTE = {
   roadLine: '#e7dfc5',
   teal: '#3f8d85',
 };
-const X_KNOTS = [-20, -16, -10, 10, 16, 20] as const;
-// Extend the grid's scale beyond the first/last row so a parked car's body
-// never crosses straight into a compressed road band.
-const Z_KNOTS = [-13, -9.5, -7, 0.5, 4.5, 6.2, 8, 20, 21.8, 28, 31] as const;
+
 // Tight crops measured from the current 1774 x 887 sheet, including padding.
 // They also exclude stray pixels from neighbours crossing nominal cell edges.
 const TAXI_CROPS = [
@@ -54,7 +60,7 @@ const paint = (hex: string) => new Color().fromHEX(hex);
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 type ScreenPoint = { x: number; y: number };
 type ScreenBox = ScreenPoint & { w: number; h: number };
-type Kind = 'taxi' | 'person' | 'station' | 'tree' | 'flowers' | 'bench' | 'lamp';
+type Kind = 'taxi' | 'person' | 'station' | 'station-door' | 'tree' | 'flowers' | 'bench' | 'lamp';
 type Visual = {
   node: Node;
   sprite: Sprite;
@@ -95,15 +101,31 @@ export class StationWorld {
   loadError: Error | null = null;
 
   private readonly ground: Graphics;
+  private readonly viewport: Node;
+  private readonly content: Node;
+  scrollY = 0;
+  maxScroll = 0;
+  clipTop = 58;
+  clipBottom = 844;
   private readonly bayInk: Graphics;
   private readonly actors: Node;
   private readonly bayNumbers: Label[] = [];
+  private readonly stationSign: Label;
+  private readonly signBacking: Graphics;
+  private readonly roadSigns: Label[] = [];
+  private geometry: StationGeometry = getStationGeometry(LEVELS[0]!);
+  private axisWidth = 390;
+  private axisHeight = 760;
+  private facadeHeight = 90;
+  private gridStart = 230;
+  private gridEnd = 700;
   private readonly images: ImageAsset[] = [];
   private readonly textures: Texture2D[] = [];
   private readonly frames: SpriteFrame[] = [];
   private taxiFrames: SpriteFrame[] = [];
   private propFrames: SpriteFrame[] = [];
   private stationFrame?: SpriteFrame;
+  private stationDoorFrames: SpriteFrame[] = [];
   private readonly carViews = new Map<string, Visual>();
   private readonly personViews = new Map<string, Visual>();
   private readonly props: Visual[] = [];
@@ -143,6 +165,9 @@ export class StationWorld {
     this.camera.visibility = STATION_WORLD_LAYER;
     this.camera.priority = 0;
     canvas.cameraComponent = this.camera;
+    this.viewport = this.node('Board viewport', this.root);
+    this.viewport.addComponent(Mask).type = Mask.Type.GRAPHICS_RECT;
+    this.content = this.node('Board content', this.viewport);
     this.ground = this.node('Paved streets and garden').addComponent(Graphics);
     this.bayInk = this.node('Pickup bay status').addComponent(Graphics);
     const signs = this.node('Pickup bay numbers');
@@ -157,6 +182,11 @@ export class StationWorld {
       this.bayNumbers.push(label);
     }
     this.actors = this.node('Depth-sorted painted town');
+    const signage = this.node('Station signage');
+    this.signBacking = this.node('Station name plaque', signage).addComponent(Graphics);
+    this.stationSign = this.makeLabel('Station name', signage, '归途站');
+    for (const name of ['进站 ↑', '离站 →'])
+      this.roadSigns.push(this.makeLabel(name, signage, name));
     const frame = view.getFrameSize();
     this.resize(frame.width, frame.height);
     this.ready = new Promise<void>((resolve, reject) => {
@@ -187,7 +217,7 @@ export class StationWorld {
     });
   }
 
-  private node(name: string, parent = this.root) {
+  private node(name: string, parent = this.content ?? this.root) {
     const node = new Node(name);
     // Layers do not inherit. Setting only the Canvas layer is insufficient.
     node.layer = STATION_WORLD_LAYER;
@@ -282,50 +312,93 @@ export class StationWorld {
     this.propFrames = this.sheet(props, 'art/props');
     this.stationFrame = this.frame(
       this.texture(station),
-      new Rect(0, 0, station.width, station.height),
+      new Rect(
+        (22 * station.width) / 2017,
+        (80 * station.height) / 780,
+        (1973 * station.width) / 2017,
+        (280 * station.height) / 780,
+      ),
+    );
+    this.stationDoorFrames = [360, 795, 1225, 1662].map((x) =>
+      this.frame(
+        this.stationFrame!.texture as Texture2D,
+        new Rect(
+          ((x - 155) * station.width) / 2017,
+          (360 * station.height) / 780,
+          (310 * station.width) / 2017,
+          (304 * station.height) / 780,
+        ),
+      ),
     );
   }
 
-  /** Piecewise projection gives the playable grid more room than empty verges. */
-  private map(value: number, knots: readonly number[], fractions: readonly number[]) {
+  private makeLabel(name: string, parent: Node, text: string) {
+    const label = this.node(name, parent).addComponent(Label);
+    label.string = text;
+    label.fontFamily = 'Microsoft YaHei, sans-serif';
+    label.horizontalAlign = Label.HorizontalAlign.CENTER;
+    label.verticalAlign = Label.VerticalAlign.CENTER;
+    label.overflow = Label.Overflow.CLAMP;
+    label.color = paint(PALETTE.ink);
+    return label;
+  }
+
+  private map(value: number, knots: readonly number[], pixels: readonly number[]) {
     let i = 0;
     while (i < knots.length - 2 && value > knots[i + 1]!) i++;
-    const t = (value - knots[i]!) / (knots[i + 1]! - knots[i]!);
-    return fractions[i]! + (fractions[i + 1]! - fractions[i]!) * t;
+    const t = (value - knots[i]!) / Math.max(0.01, knots[i + 1]! - knots[i]!);
+    return pixels[i]! + (pixels[i + 1]! - pixels[i]!) * t;
   }
 
-  project(point: Point, height = 1.5): ScreenPoint {
-    const xf = this.map(point.x, X_KNOTS, [0, 0.072, 0.18, 0.82, 0.928, 1]);
-    const zf = this.map(
-      point.z,
-      Z_KNOTS,
-      this.landscape
-        ? [0, 0.1, 0.18, 0.3, 0.36, 0.4, 0.447, 0.76, 0.807, 0.94, 1]
-        : [0, 0.14, 0.18, 0.33, 0.41, 0.445, 0.49, 0.79, 0.835, 0.93, 1],
+  private logicalProjection(point: Point) {
+    const b = this.geometry.bounds,
+      p = this.geometry.parking;
+    const gridX = this.map(
+      point.x,
+      [b.left, p.bounds.left, p.bounds.right, b.right],
+      [0, 48, this.axisWidth - 48, this.axisWidth],
     );
-    return {
-      x: this.area.x + xf * this.area.w,
-      y: this.area.y + zf * this.area.h - height * this.elevation,
-    };
+    const x = gridX;
+    const last = p.origin.z + (p.rows - 1) * p.pitch;
+    const fieldTop = this.facadeHeight + 117,
+      fieldBottom = this.axisHeight - 36;
+    const rowSize = (fieldBottom - fieldTop) / p.rows;
+    const z = this.map(
+      point.z,
+      [-6, -4, 0, 4, 8, 10, 12, Math.max(16, last), last + 2, this.geometry.collector.south + 2],
+      [
+        this.facadeHeight,
+        this.facadeHeight + 15,
+        this.facadeHeight + 43,
+        this.facadeHeight + 73,
+        this.facadeHeight + 103,
+        fieldTop,
+        fieldTop + rowSize / 2,
+        fieldBottom - rowSize / 2,
+        fieldBottom,
+        this.axisHeight,
+      ],
+    );
+    return { x, y: z };
+  }
+
+  project(point: Point, height = 0): ScreenPoint {
+    const p = this.logicalProjection(point);
+    return this.landscape
+      ? { x: this.area.x + p.y, y: this.area.y + this.axisWidth - p.x - height * this.elevation }
+      : { x: this.area.x + p.x, y: this.area.y + p.y - this.scrollY - height * this.elevation };
   }
 
   arrow(vehicle: Vehicle) {
-    const direction = DIRECTIONS[vehicle.direction];
-    const ground = this.project(vehicle.position, 0);
-    const toward = this.project(
-      {
-        x: vehicle.position.x + direction.x,
-        z: vehicle.position.z + direction.z,
-      },
-      0,
-    );
+    const d = DIRECTIONS[vehicle.direction];
+    const p = this.project(vehicle.position);
+    const toward = this.project({ x: vehicle.position.x + d.x, z: vehicle.position.z + d.z });
     const visual = this.carViews.get(vehicle.id);
-    const width = visual?.width ?? this.taxiSize * 0.55;
-    const height = visual?.height ?? this.taxiSize * 0.7;
+    // Badges stay inside the car's own cell. Arrows are independent of painted headlights.
     return {
-      x: ground.x + (this.landscape ? width / 2 + 12 : width * 0.18),
-      y: this.landscape ? ground.y - 8 : ground.y - height / 2 - 11,
-      angle: Math.atan2(toward.y - ground.y, toward.x - ground.x),
+      x: p.x - (visual?.width ?? 28) * 0.32,
+      y: p.y - (visual?.height ?? 36) / 2 - 8,
+      angle: Math.atan2(toward.y - p.y, toward.x - p.x),
     };
   }
 
@@ -336,40 +409,70 @@ export class StationWorld {
     this.home = home;
     this.landscape = width > height;
     const safe = sys.getSafeAreaRect();
-    const safeLeft = clamp(safe.x, 0, this.w * 0.2);
-    const safeRight = clamp(this.w - safe.x - safe.width, 0, this.w * 0.2);
-    const safeTop = clamp(this.h - safe.y - safe.height, 0, this.h * 0.2);
-    const safeBottom = clamp(safe.y, 0, this.h * 0.2);
-    const top = home ? (this.landscape ? 70 : 150) : 64;
-    const bottom = home ? (this.landscape ? 112 : 174) : this.landscape ? 76 : 90;
-    const availableH = Math.max(80, this.h - safeTop - safeBottom - top - bottom);
-    const availableW = Math.max(80, this.w - safeLeft - safeRight - 16);
-    const sceneW = this.landscape
-      ? Math.min(availableW, Math.max(360, availableH * 2.2))
-      : availableW;
+    const l = clamp(safe.x, 0, this.w * 0.2),
+      r = clamp(this.w - safe.x - safe.width, 0, this.w * 0.2);
+    const t = clamp(this.h - safe.y - safe.height, 0, this.h * 0.2),
+      b = clamp(safe.y, 0, this.h * 0.2);
+    const top = home ? (this.landscape ? 62 : 140) : 58;
+    const bottom = home ? (this.landscape ? 136 : 146) : 8;
     this.area = {
-      x: safeLeft + (this.w - safeLeft - safeRight - sceneW) / 2,
-      y: safeTop + top,
-      w: sceneW,
-      h: availableH,
+      x: l + 4,
+      y: t + top,
+      w: this.w - l - r - 8,
+      h: Math.max(100, this.h - t - b - top - bottom),
     };
-    const centralX =
-      (this.project({ x: 10, z: 8 }, 0).x - this.project({ x: -10, z: 8 }, 0).x) / 20;
-    const rowStep = (this.project({ x: 0, z: 20 }, 0).y - this.project({ x: 0, z: 8 }, 0).y) / 3;
-    this.taxiSize = Math.min(centralX * 4.55, rowStep * 1.1);
-    const queueStep = this.project({ x: 0, z: -3.3 }, 0).y - this.project({ x: 0, z: -4.6 }, 0).y;
-    this.personSize = Math.max(12, Math.min(25, queueStep * 1.05));
-    this.elevation = this.taxiSize * 0.22;
+    this.axisWidth = this.landscape ? this.area.h : this.area.w;
+    this.axisHeight = this.landscape ? this.area.w : this.area.h;
+    this.clipTop = this.area.y;
+    this.clipBottom = this.area.y + this.area.h;
+    const visibleHeight = this.area.h;
+    if (!this.landscape && !home) {
+      this.axisHeight = Math.max(this.axisHeight, 94 + 117 + this.geometry.parking.rows * 52 + 36);
+      this.area.h = this.axisHeight;
+    }
+    this.maxScroll = this.landscape || home ? 0 : Math.max(0, this.axisHeight - visibleHeight);
+    this.scrollY = clamp(this.scrollY, 0, this.maxScroll);
+    const clipY = (this.h - this.clipTop - this.clipBottom) / 2;
+    this.viewport.getComponent(UITransform)!.setContentSize(this.area.w, visibleHeight);
+    this.viewport.setPosition(this.area.x + this.area.w / 2 - this.w / 2, clipY);
+    this.content.setPosition(-(this.area.x + this.area.w / 2 - this.w / 2), -clipY);
+    this.facadeHeight = Math.min(home ? 88 : 94, this.axisWidth / 3.7, this.axisHeight * 0.15);
+    const rows = this.geometry.parking.rows;
+    this.gridStart = this.facadeHeight + 133;
+    this.gridEnd = this.axisHeight - 32;
+    // Compress only the three service-road bands on short viewports, never the station roof.
+    if (this.gridEnd - this.gridStart < (rows - 1) * 36) {
+      this.facadeHeight = Math.max(44, this.facadeHeight - 22);
+      this.gridStart = this.facadeHeight + 133;
+    }
+    const sx =
+      (this.axisWidth - 96) /
+      (this.geometry.parking.bounds.right - this.geometry.parking.bounds.left);
+    const sy = (this.gridEnd - this.gridStart) / Math.max(4, (rows - 1) * 4);
+    this.taxiSize = Math.min(64, sx * 3.35, sy * 3.3);
+    this.personSize = clamp(sx * 2.1, 15, 25);
+    this.elevation = 0;
     this.root.getComponent(UITransform)!.setContentSize(this.w, this.h);
     this.root.setPosition(this.w / 2, this.h / 2, 0);
     this.camera.node.setPosition(this.w / 2, this.h / 2, 1000);
     this.camera.orthoHeight = this.h / 2;
     this.drawGround();
-    for (const visual of this.props) this.layoutVisual(visual);
-    for (const visual of this.carViews.values()) this.layoutVisual(visual);
-    for (const visual of this.personViews.values()) this.layoutVisual(visual);
+    for (const v of this.props) this.layoutVisual(v);
+    for (const v of this.carViews.values()) this.layoutVisual(v);
+    for (const v of this.personViews.values()) this.layoutVisual(v);
     this.baySignature = '';
-    if (this.state && this.loaded) this.sync(this.state);
+  }
+
+  pan(delta: number) {
+    if (!this.maxScroll || !Number.isFinite(delta)) return;
+    this.scrollY = clamp(this.scrollY - delta, 0, this.maxScroll);
+    this.drawGround();
+    for (const visual of this.props) this.layoutVisual(visual);
+    this.baySignature = '';
+  }
+
+  inViewport(point: ScreenPoint) {
+    return point.y >= this.clipTop + 12 && point.y <= this.clipBottom - 12;
   }
 
   private rect(graphics: Graphics, box: ScreenBox, hex: string, radius = 0) {
@@ -387,7 +490,12 @@ export class StationWorld {
   private box(x1: number, z1: number, x2: number, z2: number): ScreenBox {
     const a = this.project({ x: x1, z: z1 }, 0);
     const b = this.project({ x: x2, z: z2 }, 0);
-    return { ...a, w: b.x - a.x, h: b.y - a.y };
+    return {
+      x: Math.min(a.x, b.x),
+      y: Math.min(a.y, b.y),
+      w: Math.abs(b.x - a.x),
+      h: Math.abs(b.y - a.y),
+    };
   }
 
   private line(graphics: Graphics, points: ScreenPoint[], hex: string, width: number) {
@@ -456,163 +564,163 @@ export class StationWorld {
   private drawGround() {
     const g = this.ground;
     g.clear();
-    this.rect(g, { x: 0, y: 0, w: this.w, h: this.h }, PALETTE.lawn);
-    const garden = this.box(-20, -13, 20, 31);
-    this.rect(g, { ...garden, x: garden.x - 3, y: garden.y + 6, w: garden.w + 6 }, '#54795b13', 24);
-    this.rect(g, garden, PALETTE.lawnLight, 22);
-    const plaza = this.box(-17.5, -10.5, 17.5, 2.5);
-    this.rect(g, { ...plaza, y: plaza.y + 3 }, '#aab6a044', 13);
-    this.rect(g, plaza, PALETTE.pavingLight, 12);
-    // Small paving joints establish scale without making the station a flat slab.
-    for (let z = -9.8; z < 2.4; z += 1.45)
-      this.worldLine(
-        [
-          { x: -17, z },
-          { x: 17, z },
-        ],
-        '#b9a98b88',
-        1,
-      );
-    for (let x = -16; x < 17; x += 2.4)
-      this.worldLine(
-        [
-          { x, z: -10 },
-          { x, z: 2.4 },
-        ],
-        '#b9a98b66',
-        0.85,
-      );
-
-    const curb = this.box(-18.2, 2.4, 18.2, 30.1);
-    this.rect(g, { ...curb, x: curb.x - 2, y: curb.y + 5, w: curb.w + 4 }, '#29495125', 21);
-    this.rect(g, curb, PALETTE.paving, 19);
-    for (const side of [-1, 1]) {
-      for (let z = 4; z < 29; z += 1.6)
-        this.worldLine(
-          [
-            { x: side * 17.4, z },
-            { x: side * 18.2, z },
-          ],
-          '#b1a17b99',
-          1,
-        );
-    }
-    const road = this.box(-17.6, 2.7, 17.6, 29.6);
-    this.rect(g, road, '#3c535e', 16);
-    this.rect(g, { ...road, y: road.y + 1.5, h: road.h - 4 }, PALETTE.road, 15);
-    const parking = this.box(-12.5, 6, 12.5, 24.1);
-    this.rect(g, { ...parking, y: parking.y + 2 }, '#384f5960', 12);
-    this.rect(g, parking, PALETTE.parking, 10);
+    const geo = this.geometry,
+      p = geo.parking,
+      b = geo.bounds;
+    this.rect(g, { x: 0, y: 0, w: this.w, h: this.h }, '#e8ddc4');
+    this.rect(g, { ...this.area, y: this.area.y + 3 }, '#b4a98f', 12);
+    this.rect(g, this.area, '#ebe0c9', 12);
+    const road = this.box(b.left + 0.3, -4.8, b.right - 0.3, geo.collector.south + 1.7);
+    this.rect(g, road, '#3b535e', 10);
     this.rect(
       g,
-      {
-        ...parking,
-        x: parking.x + 2,
-        y: parking.y + 2,
-        w: parking.w - 4,
-        h: 1,
-      },
-      '#a2b1af55',
+      { ...road, x: road.x + 2, y: road.y + 2, w: road.w - 4, h: road.h - 4 },
+      PALETTE.road,
+      9,
     );
-    // Road grain is static and restrained; all objects come from real art assets.
-    for (let i = 0; i < 180; i++) {
-      const x = road.x + 7 + ((i * 71) % Math.max(1, Math.floor(road.w - 14)));
-      const y = road.y + 7 + ((i * 107) % Math.max(1, Math.floor(road.h - 14)));
-      this.rect(g, { x, y, w: 1.6, h: 0.85 }, '#c6d0ce2c');
-    }
-    this.dashed({ x: -16, z: 6 }, { x: -16, z: 26.5 });
-    this.dashed({ x: 16, z: 6 }, { x: 16, z: 26.5 });
-    this.dashed({ x: -13.8, z: 28 }, { x: 13.8, z: 28 });
-    this.dashed({ x: -13.8, z: 4.5 }, { x: 13.8, z: 4.5 });
-    for (const x of [-11, 11]) this.flowMark({ x, z: 4.5 }, 0);
-    for (const z of [11.5, 21.5]) {
-      this.flowMark({ x: 16, z }, Math.PI / 2);
-      this.flowMark({ x: -16, z }, -Math.PI / 2);
-    }
-    for (const x of [-8, 8]) this.flowMark({ x, z: 28 }, Math.PI);
-
-    for (let row = 0; row < 4; row++) {
-      for (let column = 0; column < 5; column++) {
-        const x = -8 + column * 4;
-        const z = 8 + row * 4;
-        const cell = this.box(x - 1.8, z - 1.85, x + 1.8, z + 1.85);
-        this.rect(
-          g,
-          {
-            ...cell,
-            x: cell.x + 1,
-            y: cell.y + 1,
-            w: cell.w - 2,
-            h: cell.h - 2,
-          },
-          (row + column) % 2 ? '#81959c10' : '#adc0c118',
-          4,
-        );
-        this.worldLine(
-          [
-            { x: x - 1.8, z: z - 1.75 },
-            { x: x - 1.8, z: z + 1.75 },
-            { x: x + 1.8, z: z + 1.75 },
-            { x: x + 1.8, z: z - 1.75 },
-          ],
-          '#e8e1cbb0',
-          1.05,
-        );
-      }
-    }
-
-    Object.values(BAY_X).forEach((x, index) => {
-      const bay = this.box(x - 2.15, -0.9, x + 2.15, 2.1);
-      this.rect(g, { ...bay, y: bay.y + 2.5 }, '#355d602e', 7);
-      this.rect(g, bay, '#397c78', 7);
-      this.rect(
-        g,
-        { ...bay, x: bay.x + 1.5, y: bay.y + 1.5, w: bay.w - 3, h: bay.h - 3 },
-        '#58998b',
-        5.5,
-      );
-      this.worldLine(
-        [
-          { x: x - 2.1, z: -1.12 },
-          { x: x + 2.1, z: -1.12 },
-        ],
-        '#b8a37b',
-        3.5,
-      );
-      this.worldLine(
-        [
-          { x: x - 2.1, z: -1.2 },
-          { x: x + 2.1, z: -1.2 },
-        ],
-        '#fff4d7',
-        1.5,
-      );
-      const sign = this.project({ x, z: -1.55 }, 0);
-      const diameter = clamp(this.taxiSize * 0.34, 13, 19);
+    const park = this.box(p.bounds.left, p.bounds.top, p.bounds.right, p.bounds.bottom);
+    this.rect(g, park, '#627983', 6);
+    // Fine static asphalt grain, kept behind every actionable element.
+    for (let i = 0; i < 200; i++)
       this.rect(
         g,
         {
-          x: sign.x - diameter / 2,
-          y: sign.y - diameter / 2,
-          w: diameter,
-          h: diameter,
+          x: road.x + 4 + ((i * 71) % Math.max(1, road.w - 8)),
+          y: road.y + 4 + ((i * 107) % Math.max(1, road.h - 8)),
+          w: 1.2,
+          h: 0.7,
         },
-        '#285b5b',
-        6,
+        '#d4dfda20',
       );
-      const label = this.bayNumbers[index]!;
-      label.node.setPosition(sign.x - this.w / 2, this.h / 2 - sign.y);
-      label.node.getComponent(UITransform)!.setContentSize(diameter, diameter);
-      label.fontSize = Math.max(10, diameter * 0.67);
-      label.lineHeight = diameter;
-    });
-    // Curved garden verges stay outside the ring, including the exit on the right.
-    for (const side of [-1, 1]) {
-      for (const z of [8, 16, 24]) {
-        const flowerbed = this.box(side < 0 ? -20 : 18.8, z - 1.2, side < 0 ? -18.8 : 20, z + 1.2);
-        this.rect(g, { ...flowerbed, y: flowerbed.y + 1.5 }, '#92a783', 6);
-        this.rect(g, flowerbed, '#a8c28e', 6);
+    for (let row = 0; row < p.rows; row++)
+      for (let column = 0; column < p.columns; column++) {
+        const x = p.origin.x + column * p.pitch,
+          z = p.origin.z + row * p.pitch;
+        const cell = this.box(x - 1.83, z - 1.8, x + 1.83, z + 1.8);
+        this.rect(g, cell, (row + column) % 2 ? '#a8babc12' : '#c8d5d51e', 3);
+        this.worldLine(
+          [
+            { x: x - 1.83, z: z - 1.75 },
+            { x: x - 1.83, z: z + 1.75 },
+            { x: x + 1.83, z: z + 1.75 },
+            { x: x + 1.83, z: z - 1.75 },
+          ],
+          '#eae2c096',
+          1,
+        );
       }
+    for (const lane of geo.lanes) {
+      if (lane.kind === 'bay-entry' || lane.kind === 'bay-exit') continue;
+      for (let i = 1; i < lane.points.length; i++) {
+        const a = lane.points[i - 1]!,
+          b = lane.points[i]!;
+        this.dashed(a, b);
+        const mid = { x: (a.x + b.x) / 2, z: (a.z + b.z) / 2 };
+        const from = this.project(a),
+          to = this.project(b);
+        this.flowMark(mid, Math.atan2(to.y - from.y, to.x - from.x));
+      }
+    }
+    // A raised divider prevents visually suggesting a shortcut across the two
+    // opposing station roads. Its west end is the actual entrance in geometry.
+    const divider = this.box(geo.collector.left + 2, 5.7, geo.collector.right + 1, 6.3);
+    this.rect(g, divider, '#d5c69d', 3);
+    this.worldLine(
+      [
+        { x: geo.collector.left + 2, z: 6 },
+        { x: geo.collector.right + 1, z: 6 },
+      ],
+      '#f8e5a4',
+      2,
+    );
+    // Continuous stop lines and separate outbound lane make the traffic topology explicit.
+    for (const [i, bay] of geo.bays.entries()) {
+      const x = bay.point.x,
+        z = bay.point.z;
+      const bayBox = this.box(x - 1.72, z - 1.6, x + 1.72, z + 1.6);
+      this.rect(g, bayBox, '#568a82', 4);
+      this.worldLine(
+        [
+          { x: x - 1.72, z: z - 1.6 },
+          { x: x - 1.72, z: z + 1.6 },
+          { x: x + 1.72, z: z + 1.6 },
+          { x: x + 1.72, z: z - 1.6 },
+        ],
+        '#f4d47d',
+        1.4,
+      );
+      const sign = this.project({ x, z: -2.5 });
+      this.rect(g, { x: sign.x - 10, y: sign.y - 8, w: 20, h: 16 }, '#214b51', 5);
+      const label = this.bayNumbers[i]!;
+      label.node.setPosition(sign.x - this.w / 2, this.h / 2 - sign.y);
+      label.node.getComponent(UITransform)!.setContentSize(20, 16);
+      label.fontSize = 11;
+      label.lineHeight = 16;
+      // A short pedestrian route starts at the station doorway, not in a remote square.
+      for (let j = 0; j < 4; j++)
+        this.worldLine(
+          [
+            { x: x - 0.75, z: -5.7 + j * 0.65 },
+            { x: x + 0.75, z: -5.7 + j * 0.65 },
+          ],
+          '#ede6cdbb',
+          2,
+        );
+    }
+    const labelPoint = this.project({ x: 0, z: -6 });
+    if (!this.landscape) {
+      this.rect(
+        g,
+        {
+          x: this.area.x + 8,
+          y: labelPoint.y - this.facadeHeight * 0.53,
+          w: this.axisWidth - 16,
+          h: this.facadeHeight * 0.53 + 4,
+        },
+        '#e6d1ad',
+        3,
+      );
+      this.rect(
+        g,
+        { x: this.area.x + 6, y: labelPoint.y - 3, w: this.axisWidth - 12, h: 6 },
+        '#c2ad88',
+        2,
+      );
+    }
+    const signY = this.landscape ? this.area.y + 18 : labelPoint.y - this.facadeHeight * 0.48;
+    const signX = this.landscape ? this.area.x + this.facadeHeight * 0.48 : labelPoint.x;
+    const signWidth = this.landscape ? 70 : 82;
+    this.signBacking.clear();
+    this.rect(
+      this.signBacking,
+      { x: signX - signWidth / 2, y: signY - 12, w: signWidth, h: 24 },
+      '#c2ad88',
+      6,
+    );
+    this.rect(
+      this.signBacking,
+      { x: signX - signWidth / 2 + 2, y: signY - 11, w: signWidth - 4, h: 21 },
+      '#fff2d6',
+      5,
+    );
+    this.stationSign.node.setPosition(signX - this.w / 2, this.h / 2 - signY);
+    this.stationSign.node.getComponent(UITransform)!.setContentSize(signWidth, 28);
+    this.stationSign.fontSize = this.landscape ? 16 : 19;
+    this.stationSign.lineHeight = 28;
+    for (const [i, label] of this.roadSigns.entries()) {
+      // Legible roadway labels use existing lanes; no decorative posts in narrow verges.
+      const point = this.project(
+        i
+          ? { x: geo.collector.right - 2, z: geo.departureZ }
+          : { x: geo.collector.left, z: geo.collector.north + 3 },
+      );
+      label.node.active = !this.home;
+      label.node.setPosition(point.x - this.w / 2, this.h / 2 - point.y);
+      label.node.getComponent(UITransform)!.setContentSize(52, 20);
+      label.fontSize = 10;
+      label.lineHeight = 18;
+      label.color = paint('#f6e8c8');
+      label.string = i ? '离站 →' : this.landscape ? '进站 →' : '↑ 进站';
     }
   }
 
@@ -621,7 +729,7 @@ export class StationWorld {
     const shadow = this.node(`${id} contact shadow`, node).addComponent(Graphics);
     const body = this.node(`${id} painted sprite`, node);
     const transform = body.getComponent(UITransform)!;
-    transform.setAnchorPoint(0.5, kind === 'taxi' ? 0.5 : 0.08);
+    transform.setAnchorPoint(0.5, kind === 'taxi' || kind === 'station-door' ? 0.5 : 0.08);
     const sprite = body.addComponent(Sprite);
     sprite.sizeMode = Sprite.SizeMode.CUSTOM;
     sprite.spriteFrame = frame;
@@ -652,23 +760,21 @@ export class StationWorld {
   }
 
   private minimumScale(point: Point, axis: 'x' | 'z', radius: number) {
-    const value = point[axis];
-    const knots = axis === 'x' ? X_KNOTS : Z_KNOTS;
-    const cuts = [
-      value - radius,
-      ...knots.filter((k) => k > value - radius && k < value + radius),
-      value + radius,
-    ];
-    const projected = (v: number) => {
-      const p = this.project(axis === 'x' ? { x: v, z: point.z } : { x: point.x, z: v }, 0);
-      return axis === 'x' ? p.x : p.y;
-    };
+    // Sample every band boundary crossed by the body, so moving sprites remain
+    // within the same collision envelope as the simulation after resizing.
     let minimum = Infinity;
-    for (let i = 1; i < cuts.length; i++)
+    for (let i = 0; i < 12; i++) {
+      const a = { ...point },
+        b = { ...point };
+      a[axis] -= radius - (i * radius) / 6;
+      b[axis] = a[axis] + radius / 6;
+      const p = this.project(a),
+        q = this.project(b);
       minimum = Math.min(
         minimum,
-        Math.abs(projected(cuts[i]!) - projected(cuts[i - 1]!)) / (cuts[i]! - cuts[i - 1]!),
+        Math.abs(axis === (this.landscape ? 'z' : 'x') ? q.x - p.x : q.y - p.y) / (radius / 6),
       );
+    }
     return Math.max(0.01, minimum);
   }
 
@@ -679,8 +785,8 @@ export class StationWorld {
         // simulation guarantees >=3.43m between vehicle centres. This includes
         // projection breakpoints, so a compressed road cannot cause art overlap.
         const radius = 1.68;
-        const sx = this.minimumScale(visual.point, 'x', radius);
-        const sy = this.minimumScale(visual.point, 'z', radius);
+        const sx = this.minimumScale(visual.point, this.landscape ? 'z' : 'x', radius);
+        const sy = this.minimumScale(visual.point, this.landscape ? 'x' : 'z', radius);
         const rect = visual.sprite.spriteFrame!.rect;
         const longest = Math.max(rect.width, rect.height);
         const nw = rect.width / longest,
@@ -694,13 +800,24 @@ export class StationWorld {
         this.fit(visual, this.personSize, this.personSize);
         break;
       case 'station': {
-        // The roof can extend behind the HUD; its feet stay behind the queue.
-        // Do not squash the facade into the short band above its ground point.
-        const maxWidth = this.area.w * (this.landscape ? 0.48 : 0.82);
-        const maxHeight = this.landscape ? 62 : 145;
-        this.fit(visual, maxWidth, maxHeight);
+        visual.node.active = !this.landscape;
+        visual.width = this.axisWidth - 16;
+        visual.height = this.facadeHeight * 0.52;
+        visual.transform.setContentSize(visual.width, visual.height);
+        visual.sprite.node.setRotationFromEuler(0, 0, 0);
         break;
       }
+      case 'station-door':
+        visual.node.active = true;
+        const bayWidth = Math.abs(
+          this.project(this.geometry.bays[1]!.door).x - this.project(this.geometry.bays[0]!.door).x,
+        );
+        this.fit(
+          visual,
+          this.landscape ? Math.min(50, this.facadeHeight * 0.65) : Math.min(62, bayWidth - 6),
+          this.landscape ? 42 : this.facadeHeight * 0.52,
+        );
+        break;
       case 'tree':
         this.fit(visual, this.taxiSize * 1.24, this.taxiSize * 1.42);
         break;
@@ -732,38 +849,34 @@ export class StationWorld {
   private place(visual: Visual, point: Point) {
     visual.point = point;
     const p = this.project(point, 0);
+    if (visual.kind === 'station') p.y -= this.facadeHeight * 0.48 - visual.height * 0.08;
+    if (visual.kind === 'station-door') {
+      if (this.landscape) p.x -= this.facadeHeight * 0.54;
+      else p.y -= visual.height * 0.5;
+    }
     visual.depth = p.y;
     visual.node.setPosition(p.x - this.w / 2, this.h / 2 - p.y, 0);
   }
 
   private buildScenery() {
-    this.props.push(
-      this.visual('Station facade', this.stationFrame!, 'station', {
-        x: 0,
-        z: -10.1,
-      }),
-    );
-    const add = (kind: Kind, index: number, x: number, z: number) =>
+    this.props.push(this.visual('Station facade', this.stationFrame!, 'station', { x: 0, z: -6 }));
+    for (const [index, bay] of this.geometry.bays.entries())
       this.props.push(
-        this.visual(`${kind}:${x}:${z}`, this.propFrames[index]!, kind, {
-          x,
-          z,
-        }),
+        this.visual(
+          `Side station door ${index + 1}`,
+          this.stationDoorFrames[index]!,
+          'station-door',
+          bay.door,
+        ),
       );
-    for (const side of [-1, 1]) {
-      add('tree', 4, side * 17.9, -7.7);
-      add('tree', 4, side * 15.8, -10.7);
-      add('flowers', 5, side * 13.5, -2.2);
-      add('bench', 6, side * 15.7, -2.6);
-      for (const z of [8, 16, 24]) add('flowers', 5, side * 19.55, z + 0.8);
-      // Narrow lamp silhouettes sit beyond the kerb, never in the circulation lane.
-      for (const z of [5.8, 20]) add('lamp', 7, side * 19.05, z);
-    }
   }
 
   reset(simulation: Simulation) {
     if (this.disposed) return;
     this.state = simulation;
+    this.scrollY = 0;
+    this.geometry = simulation.geometry;
+    this.resize(this.w, this.h, this.home);
     // Creator's production transpiler treats spread operands as arrays.
     // Materialize Map iterators before concatenating the render lists.
     for (const visual of [
@@ -785,12 +898,17 @@ export class StationWorld {
     this.sync(simulation);
   }
 
-  private heading(angle: number) {
-    return ((Math.round((Math.PI - angle) / (Math.PI / 4)) % 8) + 8) % 8;
+  private heading(vehicle: Vehicle) {
+    const a = this.project(vehicle.position),
+      b = this.project({
+        x: vehicle.position.x + Math.sin(vehicle.angle) * 0.1,
+        z: vehicle.position.z + Math.cos(vehicle.angle) * 0.1,
+      });
+    return ((Math.round(Math.atan2(b.x - a.x, a.y - b.y) / (Math.PI / 4)) % 8) + 8) % 8;
   }
 
   private car(vehicle: Vehicle) {
-    const direction = this.heading(vehicle.angle);
+    const direction = this.heading(vehicle);
     const visual = this.visual(
       `Taxi ${vehicle.id}`,
       this.taxiFrames[direction]!,
@@ -844,27 +962,24 @@ export class StationWorld {
     this.baySignature = signature;
     this.bayInk.clear();
     for (const bay of simulation.bays) {
-      const x = BAY_X[bay.id];
-      if (x === undefined) continue;
-      const busy = bay.state !== 'free';
-      const area = this.box(x - 1.94, -0.7, x + 1.94, 1.9);
-      this.rect(
-        this.bayInk,
-        { ...area, x: area.x + 1, y: area.y + 1, w: area.w - 2, h: area.h - 2 },
-        busy ? '#ffe3a050' : '#d3efd214',
-        4,
-      );
-      this.worldLine(
-        [
-          { x: x - 1.94, z: -0.7 },
-          { x: x - 1.94, z: 1.9 },
-          { x: x + 1.94, z: 1.9 },
-          { x: x + 1.94, z: -0.7 },
-        ],
-        busy ? '#ffe1a5' : '#bfe0ba',
-        busy ? 1.7 : 1,
-        this.bayInk,
-      );
+      const point = this.geometry.bays.find((b) => b.id === bay.id)?.point;
+      if (!point) continue;
+      const { x, z } = point,
+        busy = bay.state !== 'free';
+      const area = this.box(x - 1.6, z - 1.5, x + 1.6, z + 1.5);
+      this.rect(this.bayInk, area, busy ? '#ffe3a030' : '#d3efd20a', 4);
+      if (busy)
+        this.worldLine(
+          [
+            { x: x - 1.6, z: z - 1.5 },
+            { x: x - 1.6, z: z + 1.5 },
+            { x: x + 1.6, z: z + 1.5 },
+            { x: x + 1.6, z: z - 1.5 },
+          ],
+          '#ffe1a5',
+          1.5,
+          this.bayInk,
+        );
     }
   }
 
@@ -876,7 +991,7 @@ export class StationWorld {
       const visual = this.carViews.get(vehicle.id) ?? this.car(vehicle);
       visual.node.active = vehicle.state !== 'removed';
       if (!visual.node.active) continue;
-      const direction = this.heading(vehicle.angle);
+      const direction = this.heading(vehicle);
       if (direction !== visual.frameIndex) {
         visual.sprite.spriteFrame = this.taxiFrames[direction]!;
         visual.frameIndex = direction;
@@ -901,7 +1016,7 @@ export class StationWorld {
     const services = new Map(simulation.services.map((job) => [job.groupId, job]));
     const vehicles = new Map(simulation.vehicles.map((vehicle) => [vehicle.id, vehicle]));
     for (const group of simulation.groups) {
-      if (group.state === 'split' || group.state === 'departed') continue;
+      if (!['walking', 'boarding'].includes(group.state)) continue;
       const job = services.get(group.id);
       // Committed pickup origins remain the ones captured at dispatch time.
       const origin = job?.walkFrom ?? job?.pickupPoint ?? queuePosition(simulation, group);
@@ -922,6 +1037,12 @@ export class StationWorld {
         const visual =
           this.personViews.get(passenger.id) ?? this.person(passenger.id, group.sequence + i);
         visual.node.active = true;
+        visual.sprite.color = new Color(
+          255,
+          255,
+          255,
+          Math.round(255 * clamp(fraction * 5 - i * 0.18, 0, 1)),
+        );
         visible.add(passenger.id);
         this.groupCount(visual, group.passengers.length - group.boarded, queued);
         this.place(visual, {

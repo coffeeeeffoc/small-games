@@ -1,4 +1,4 @@
-import { activeGun, available, selectable } from './duel-actions.js';
+import { activeGun, available, selectable, transferSeconds } from './duel-actions.js';
 import { DUEL_RULES as R } from './duel-map.js';
 import type { DuelView } from './duel-session.js';
 import { direction } from './duel-types.js';
@@ -152,12 +152,12 @@ export function drawDuel(
       for (const [i, gun] of guns.entries())
         button(
           `station:${gun.id}`,
-          gun.hp <= 0 ? `${gun.label} · 检修` : gun.label,
+          me.route.length && me.destination === gun.node ? `→ ${gun.label}` : gun.label,
           351 + i * 136,
           442,
           124,
           76,
-          gun.id === me.station,
+          gun.id === me.station || (!!me.route.length && me.destination === gun.node),
           !selectable(me, gun),
         );
       if (me.node === 'shelter' && !me.route.length) {
@@ -188,14 +188,15 @@ export function drawDuel(
         const ready = available(me, g) && g.reload >= 1 && !me.crouched && !me.route.length;
         const charge =
           g.charge === null ? 0 : Math.min(1, (v.duel.time - g.charge) / R.chargeSeconds);
+        const cooldown = Math.max(0, (1 - g.reload) * (g.bunker ? R.bunkerReload : R.reload));
         panel(22, 120, 216, 74);
         label(`仰角 ${g.pitch.toFixed(1)}°  转角 ${g.yaw.toFixed(1)}°`, 130, 149, 16);
         label(
-          g.repair !== null
-            ? `检修 ${Math.round((g.repair / R.repairSeconds) * 100)}%`
-            : ready
-              ? '拖动画面调炮'
-              : `装填 ${Math.round(g.reload * 100)}%`,
+          cooldown > 0
+            ? `冷却 ${cooldown.toFixed(1)} 秒`
+            : me.crouched
+              ? '松手起身即可开火'
+              : '拖动画面调炮',
           130,
           179,
           16,
@@ -210,9 +211,7 @@ export function drawDuel(
               : '按住蓄力'
             : me.crouched
               ? '趴下中'
-              : g.repair !== null
-                ? '检修中'
-                : '装填中',
+              : `冷却 ${cooldown.toFixed(1)} 秒`,
           777,
           410,
           161,
@@ -233,7 +232,7 @@ export function drawDuel(
         );
       }
       const notice = me.route.length
-        ? '沿路线转移中'
+        ? `前往${me.guns.find((gun) => gun.node === me.destination)?.label ?? '地堡'} · ${transferSeconds(me).toFixed(1)} 秒`
         : me.hp < 15
           ? '濒死！尽快回地堡'
           : me.hp < 35
@@ -243,7 +242,7 @@ export function drawDuel(
               : '';
       if (notice || v.message) {
         panel(278, 205, 404, 39);
-        label(me.hp < 35 ? notice : v.message || notice, 480, 232, 16);
+        label(me.route.length || me.hp < 35 ? notice : v.message || notice, 480, 232, 16);
       }
     }
   }

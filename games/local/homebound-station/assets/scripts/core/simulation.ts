@@ -1,6 +1,16 @@
 import { DIRECTIONS, type LevelConfig, type VehicleConfig } from './levels.ts';
 
-export type Point = { x: number; z: number };
+import {
+  getStationGeometry,
+  parkingPosition,
+  stationEntryPath,
+  stationDeparturePath,
+  type Point,
+  type StationGeometry,
+} from './geometry.ts';
+import { moveStation, canStartPassengerWalk, type StationMovement } from './station-traffic.ts';
+export { getStationGeometry, parkingPosition } from './geometry.ts';
+export type { Point, Bounds, Lane, StationBayGeometry, StationGeometry } from './geometry.ts';
 export const BAY_X: Record<string, number> = { T1: -7.5, T2: -2.5, T3: 2.5, T4: 7.5 };
 export const STEP = 0.05;
 export interface Passenger {
@@ -66,10 +76,13 @@ export interface Service {
   waitingForTraffic?: boolean;
   /** Exclusive use of this bay’s final approach and adjacent entry/exit weave. */
   bayManeuver?: boolean;
+  crosswalkActive?: boolean;
   /** Actual distance moved, used to release short crossing priorities after clearance. */
   travelled?: number;
 }
 export interface Simulation {
+  geometry: StationGeometry;
+  movements?: Record<string, StationMovement>;
   config: LevelConfig;
   time: number;
   ticks: number;
@@ -96,6 +109,7 @@ export interface Check {
 }
 const no = (reason: string): Check => ({ ok: false, reason });
 export function createSimulation(config: LevelConfig): Simulation {
+  const geometry = getStationGeometry(config);
   for (const g of config.groups)
     if (!Number.isInteger(g.size) || g.size < 1 || g.size > 6) throw new Error('乘客组须为 1—6 人');
   const groups: Group[] = config.groups.map((g, sequence) => ({
@@ -120,7 +134,7 @@ export function createSimulation(config: LevelConfig): Simulation {
     driverSeatCount: 1,
     passengerCapacity: v.capacity,
     state: 'holding',
-    position: { x: -8 + v.column * 4, z: 8 + v.row * 4 },
+    position: parkingPosition(geometry, v.column, v.row),
     angle: Math.atan2(DIRECTIONS[v.direction].x, DIRECTIONS[v.direction].z),
   }));
   if (
@@ -136,15 +150,16 @@ export function createSimulation(config: LevelConfig): Simulation {
       !Number.isInteger(v.column) ||
       !Number.isInteger(v.row) ||
       v.column < 0 ||
-      v.column > 4 ||
+      v.column >= geometry.parking.columns ||
       v.row < 0 ||
-      v.row > 3
+      v.row >= geometry.parking.rows
     )
       throw new Error('车辆容量或格位无效');
   if (new Set(vehicles.map((v) => `${v.column},${v.row}`)).size !== vehicles.length)
     throw new Error('车辆不能重叠停放');
   return {
     config,
+    geometry,
     time: 0,
     ticks: 0,
     remainder: 0,
@@ -172,7 +187,10 @@ export function blocker(s: Simulation, v: Vehicle, ignoreId?: string): Vehicle |
         return false;
       if (
         w.state === 'movingToBay' &&
-        (Math.abs(w.position.x) > 10 || w.position.z < 6 || w.position.z > 22)
+        (w.position.x < s.geometry.parking.bounds.left ||
+          w.position.x > s.geometry.parking.bounds.right ||
+          w.position.z < s.geometry.parking.bounds.top ||
+          w.position.z > s.geometry.parking.bounds.bottom)
       )
         return false;
       const dx = w.position.x - v.position.x,
@@ -251,6 +269,7 @@ export function dispatch(s: Simulation, vehicleId: string, bayId?: string): Chec
     g.vehicleId = v.id;
     g.bayId = b.id;
     if (
+      s.geometry.mode === 'legacy' &&
       b.state === 'free' &&
       !s.services.some((j) => j.bayId === b.id && j.clearedAt === undefined && j.phase !== 'done')
     ) {
@@ -360,6 +379,8 @@ export function splitGroup(
   };
 }
 export function queuePosition(s: Simulation, g: Group): Point {
+  if (s.geometry.mode === 'station')
+    return { ...s.geometry.bays.find((b) => b.id === g.queueBayId)!.door };
   const root = g.parentGroupId ? s.groups.find((p) => p.id === g.parentGroupId)! : g;
   const rank = s.groups.filter(
     (p) => !p.parentGroupId && p.queueBayId === g.queueBayId && p.sequence < root.sequence,
@@ -435,14 +456,19 @@ function beginPath(s: Simulation, job: Service, departing: boolean) {
   job.pathIndex = 1;
   job.phase = departing ? 'departing' : 'driving';
   v.state = departing ? 'departing' : 'movingToBay';
-  job.path = departing
-    ? [
-        { ...v.position },
-        { x: v.position.x + 1.3, z: 0.5 },
-        { x: v.position.x + 2.1, z: 4.5 },
-        { x: 22, z: 4.5 },
-      ]
-    : entryPath(v, job.bayId);
+  job.path =
+    s.geometry.mode === 'station'
+      ? departing
+        ? stationDeparturePath(s.geometry, v.position)
+        : stationEntryPath(s.geometry, v.position, v.direction, job.bayId)
+      : departing
+        ? [
+            { ...v.position },
+            { x: v.position.x + 1.3, z: 0.5 },
+            { x: v.position.x + 2.1, z: 4.5 },
+            { x: 22, z: 4.5 },
+          ]
+        : entryPath(v, job.bayId);
   if (departing) {
     const b = s.bays.find((b) => b.id === job.bayId);
     if (b?.vehicleId === v.id) b.state = 'clearing';
@@ -603,6 +629,7 @@ function crossingReserved(
   return false;
 }
 function move(s: Simulation, v: Vehicle, job: Service) {
+  if (s.geometry.mode === 'station') return moveStation(s, v, job);
   const bx = job.bayId ? BAY_X[job.bayId] : undefined;
   // Adjacent bay turns overlap; the final approach and turn own this short weave.
   // Commit before the final approach, so an occupied neighboring bay cannot
@@ -727,7 +754,7 @@ function tick(s: Simulation) {
       g.commitmentUntil = undefined;
     }
   for (const bay of s.bays)
-    if (bay.state === 'free') {
+    if (s.geometry.mode === 'legacy' && bay.state === 'free') {
       const next = s.services.find(
         (j) => j.bayId === bay.id && j.clearedAt === undefined && j.phase !== 'done',
       );
@@ -745,10 +772,29 @@ function tick(s: Simulation) {
     const v = s.vehicles.find((v) => v.id === job.vehicleId)!,
       g = s.groups.find((g) => g.id === job.groupId),
       b = s.bays.find((b) => b.id === job.bayId);
+    if (
+      s.geometry.mode === 'station' &&
+      job.phase === 'walking' &&
+      !canStartPassengerWalk(s, job)
+    ) {
+      job.elapsed = 0;
+      continue;
+    }
     job.elapsed += STEP;
     if (job.phase === 'driving' || job.phase === 'departing') {
       const finished = move(s, v, job);
-      if (job.phase === 'departing' && job.pathIndex >= 3 && job.clearedAt === undefined && g && b)
+      if (
+        job.phase === 'departing' &&
+        (s.geometry.mode === 'station' && b
+          ? Math.hypot(
+              v.position.x - s.geometry.bays.find((p) => p.id === b?.id)!.point.x,
+              v.position.z - s.geometry.bays.find((p) => p.id === b?.id)!.point.z,
+            ) > 3.6
+          : job.pathIndex >= 3) &&
+        job.clearedAt === undefined &&
+        g &&
+        b
+      )
         clearBay(s, job, v, g, b);
       if (!finished) continue;
       if (job.phase === 'driving' && g && b) {
@@ -760,7 +806,12 @@ function tick(s: Simulation) {
         job.elapsed = 0;
         job.walkFrom = job.pickupPoint ?? queuePosition(s, g);
         job.duration =
-          (Math.abs(job.walkFrom.x - BAY_X[b.id]!) + Math.abs(job.walkFrom.z + 0.4)) / 3.5;
+          (s.geometry.mode === 'station'
+            ? Math.hypot(
+                job.walkFrom.x - s.geometry.bays.find((p) => p.id === b.id)!.point.x,
+                job.walkFrom.z - s.geometry.bays.find((p) => p.id === b.id)!.point.z,
+              )
+            : Math.abs(job.walkFrom.x - BAY_X[b.id]!) + Math.abs(job.walkFrom.z + 0.4)) / 3.5;
       } else {
         v.state = 'removed';
         job.phase = 'done';
@@ -768,6 +819,7 @@ function tick(s: Simulation) {
       }
     } else if (g) {
       if (job.phase === 'walking' && job.elapsed >= job.duration) {
+        job.crosswalkActive = false;
         job.phase = 'boarding';
         g.state = 'boarding';
         job.elapsed = 0;
@@ -804,6 +856,7 @@ export function snapshot(s: Simulation) {
     paused: s.paused,
     won: s.won,
     level: s.config.id,
+    geometry: s.geometry,
     delivered: Array.from(s.delivered),
     target: s.target,
     roadOwner: s.roadOwner,

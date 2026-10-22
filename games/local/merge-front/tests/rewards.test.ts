@@ -12,29 +12,23 @@ function deferred() {
   return { promise, resolve };
 }
 
-test('completed grants 20% base income for exactly 600 simulation ticks once per match', async () => {
-  const match = createMatch('level-01', 1);
-  const plain = createMatch('level-01', 1);
+test('completed grants one extra draw once per match, survives pause and restore', async () => {
+  const match = createMatch('level-01', 1),
+    coins = match.sides[0].coins;
   const rewards = createRewardController(match, async () => ({ status: 'completed' }));
   command(match, 0, { type: 'pause', paused: true });
-  assert.deepEqual(await rewards.request(), { status: 'completed' });
+  assert.equal((await rewards.request()).status, 'completed');
+  assert.equal(match.sides[0].coins, coins + 30);
+  step(match, 600);
+  assert.equal(match.sides[0].coins, coins + 30);
   assert.equal(match.assisted, true);
-  assert.equal(match.sides[0].buffTicks, 600);
-  step(match, 600);
-  assert.equal(match.sides[0].buffTicks, 600);
-  command(match, 0, { type: 'pause', paused: false });
-  step(match, 600);
-  step(plain, 600);
-  assert.equal(match.sides[0].buffTicks, 0);
-  assert.equal(match.sides[0].coins - plain.sides[0].coins, 60);
-  step(match, 20);
-  step(plain, 20);
-  assert.equal(match.sides[0].coins - plain.sides[0].coins, 60);
   assert.equal((await rewards.request()).status, 'unavailable');
-  const restored = restore(snapshot(match));
   assert.equal(
-    (await createRewardController(restored, async () => ({ status: 'completed' })).request())
-      .status,
+    (
+      await createRewardController(restore(snapshot(match)), async () => ({
+        status: 'completed',
+      })).request()
+    ).status,
     'unavailable',
   );
 });
@@ -100,7 +94,7 @@ test('concurrent controllers cannot overwrite pending requests or grant twice; c
   provider.resolve({ status: 'completed' });
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal((await b.request()).status, 'completed');
-  assert.equal(match.sides[0].buffTicks, 600);
+  assert.equal(match.sides[0].coins, 150);
   assert.equal((await a.request()).status, 'unavailable');
 });
 

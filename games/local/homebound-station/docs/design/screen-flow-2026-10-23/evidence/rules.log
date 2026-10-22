@@ -1,0 +1,45 @@
+✔ fixed cadence dispatches at most one vehicle per beat, while legacy burst semantics stay intact (196.659286ms)
+✔ random decisions and serialized action replay are deterministic; other cadences remain quantized (21.528104ms)
+✔ star margins use maximum boarding wait, not the later completion time (136.273824ms)
+✔ queue metric counts waiting bay assignments, separately from traffic-blocked services (37.171302ms)
+✔ incomplete cases remain replayable and rank before star/time-margin concerns (4.419164ms)
+✔ report metadata rejects cadence, time limit, simulation step and source drift (15.562448ms)
+✔ replay rejects configuration drift, extra same-tick input, illegal actions and forged final metrics (89.812594ms)
+✔ 100-level progress migrates v2 and rejects corrupt entries (3.380436ms)
+✔ only normal unlocked completions update progress; replay preserves better stars (0.277161ms)
+✔ only 1x starts free; each advertised speed grants independently after completion (0.490026ms)
+✔ ad dismissed never grants speed (0.241898ms)
+✔ ad failed never grants speed (0.18229ms)
+✔ ad unavailable never grants speed (0.18226ms)
+✔ unconfigured or throwing provider keeps basic speed playable (0.264462ms)
+✔ duplicate offer, cancellation, late reward and new-run isolation (0.437448ms)
+✔ completed offers are not cancelled by normal page navigation (0.218063ms)
+✔ 100个稳定且独立的关卡；车辆数量、依赖难度渐进；所有方向图可解 (11.853033ms)
+✔ 连续点击立即绑定乘客和位置；八辆车可同时发车，超过四个停靠位也可接单 (89.208375ms)
+✔ 重复点击和被挡点击无副作用，车不能穿过仍在停车场的车辆 (32.332716ms)
+✔ 已分配乘客的固定站位不受前组离开影响；后来点击不抢占已排队停靠位 (64.371385ms)
+✔ 大组分乘 API 保留，需同意和两辆车，人员ID守恒，子组可并行排队 (36.18108ms)
+✔ 暂停冻结分配、移动和计时；重试重建空状态；1/2/3/5倍速在相同模拟时间一致 (174.656499ms)
+✔ 待机动作保持轻量、确定且不偏离候车位置 (1.499391ms)
+✔ 全部100关 forward 点击顺序：完整通关、无穿模、乘客守恒、固定接客位置 (7110.959161ms)
+✔ 全部100关 reverse 点击顺序：完整通关、无穿模、乘客守恒、固定接客位置 (7106.955302ms)
+✔ 全部100关 random 点击顺序：完整通关、无穿模、乘客守恒、固定接客位置 (7646.119603ms)
+✔ 无关的北向出口立即真实移动，无需等待前车接客 (3.781601ms)
+✔ 北向出库和邻近湾位驶出的对向汇入不会互相锁死 (10.737944ms)
+✔ 后来分配同一湾位的车继续绕行，不在通过道堵住先分配车辆 (17.161197ms)
+✔ 路口先行权在不同上车时长和点击时刻保持可清场 (1567.851058ms)
+✔ 新版100关从3x3六车推进到6x9五十车，World读取同一几何 (1.711796ms)
+✔ 六条独立北出口立即真实并行；空湾直达，不经过底边、不修改既定路线 (6.469322ms)
+✔ 早点击的远车不预占空湾；先到的同湾车可以立即接自己的固定乘客 (2.879455ms)
+✔ 新版交通预约与行人横道服从暂停，固定步长下所有倍速一致 (7.58945ms)
+✔ 18个历史交通失败场景冻结旧5x4关卡内容并按原点击动作回放 (3366.094405ms)
+✔ branding installer replaces one Creator boot chain and adds accessible real loading states (26.516271ms)
+✔ unknown Creator bootstrap fails closed rather than publishing a broken loader (3.153019ms)
+ℹ tests 37
+ℹ suites 0
+ℹ pass 37
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 27735.488943

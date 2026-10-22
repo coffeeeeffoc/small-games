@@ -1,17 +1,20 @@
 {
   "name": "@coffeeeeffoc/chase-thief",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "追贼别撞墙：原创老城三道追捕小游戏",
+  "description": "追贼别撞墙：穿街过巷的 3D 无尽城市追逐",
   "coffeeeeffoc": {
-    "role": "game"
+    "role": "game",
+    "engine": "cocos-source"
   },
   "scripts": {
-    "dev": "node server.mjs",
+    "dev": "node build.mjs && node server.mjs",
     "build": "node build.mjs",
     "test": "node --test tests/*.test.mjs",
     "test:browser": "node tests/browser.mjs",
-    "smoke": "node tests/browser.mjs"
+    "smoke": "node tests/browser.mjs",
+    "build:engine": "node scripts/build-cocos-engine.mjs --rebuild",
+    "prepare:creator": "node scripts/prepare-creator.mjs"
   }
 }

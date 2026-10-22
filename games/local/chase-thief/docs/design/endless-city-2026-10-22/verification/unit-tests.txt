@@ -1,0 +1,25 @@
+✔ runtime is pinned official Cocos, including 3D and skeletal features (28.462264ms)
+✔ Blender export has finite indexed meshes and a valid parent-first skeleton (41.431262ms)
+✔ city centerline, tangent, road width and height are continuous at 2000 seams (13.339808ms)
+✔ same seed is reproducible, all districts occur and independent waves have a safe lane at maximum speed (47.78847ms)
+✔ fork provides two spatially separated passages, fixed risk obstacle and safe alternative (0.386244ms)
+✔ tutorial actions clear the first three obstacles and preserve health (6.558841ms)
+✔ untouched tutorial produces three collisions, one failure and cannot resume (7.211919ms)
+✔ jumping a crate does not bypass it, gaps require a jump and collision protection prevents multi-hit damage (0.665006ms)
+✔ fixed steps produce the same simulation across coarse and fine frames (8.192943ms)
+✔ pause freezes every gameplay clock and rejects input (0.339083ms)
+✔ normal safe-lane play can run two kilometers without a timeout or forced capture (51.129172ms)
+✔ very long runs have bounded active content and capped speed (357.841006ms)
+✔ legacy settings and records migrate without treating old time as endless score (0.537703ms)
+✔ settlement is idempotent and practice cannot change records (1.966044ms)
+✔ fork commits the physical passage even if the target lane changes at the last moment (3.262405ms)
+✔ static asset lookup rejects private files and all traversal forms (1.488712ms)
+✔ HTTP server serves runtime JavaScript with MIME, HEAD and safe error responses (53.596434ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 757.547721

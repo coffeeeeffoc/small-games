@@ -60,8 +60,12 @@ canvas {
 .castle-controls button {
   position: absolute;
   opacity: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding: 0;
   pointer-events: auto;
-  touch-action: manipulation;
+  touch-action: none;
   cursor: pointer;
   border-radius: 14px;
   font: 700 20px sans-serif;

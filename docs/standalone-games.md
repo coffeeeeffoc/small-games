@@ -16,7 +16,7 @@
 
 | 源码目录（相对 games/local） | Game                | workspace 包名              | 装载方式 |
 | ---------------------------- | ------------------- | --------------------------- | -------- |
-| tianxia-chalu                | 天下岔路            | @coffeeeeffoc/tianxia-chalu | iframe   |
+| tianxia-chalu                | 夺城令              | @coffeeeeffoc/tianxia-chalu | iframe   |
 | cops-robbers                 | 围捕小队            | cops-robbers                | iframe   |
 | cops-robbers-realtime        | 别跑！街区围捕      | cops-robbers-realtime       | iframe   |
 | letters-words2               | 词屿 · 字母叠叠乐   | ciyu-word-tiles             | iframe   |
@@ -26,7 +26,7 @@
 | vibeJam-myself-history-guess | 此时 · 此地         | here-and-then               | iframe   |
 | vibeJam-myself-nullrange     | 零域 · NULL RANGE   | null-range-mobile-cn        | iframe   |
 
-《天下岔路》由两个子应用组成：`games/local/tianxia-chalu` 提供移动端 H5 游戏，`services/tianxia-server` 提供独立对局后端。游戏以适合单拇指点击岔路的竖屏地图为主，通过 iframe 装载，独立地址为 `/games/tianxia-chalu/index.html`。核心规则和关卡配置独立维护，后端复用游戏公开导出的规则；离线游玩不依赖服务器。开发与验证见 [游戏 README](../games/local/tianxia-chalu/README.md) 和 [后端 README](../services/tianxia-server/README.md)。
+《夺城令》由两个子应用组成：`games/local/tianxia-chalu` 提供移动端 H5 游戏，`services/tianxia-server` 提供独立对局后端。游戏以适合单拇指点击岔路的竖屏地图为主，通过 iframe 装载，独立地址为 `/games/tianxia-chalu/index.html`。核心规则和关卡配置独立维护，后端复用游戏公开导出的规则；离线游玩不依赖服务器。开发与验证见 [游戏 README](../games/local/tianxia-chalu/README.md) 和 [后端 README](../services/tianxia-server/README.md)。
 
 《星扣工坊》位于 `games/local/orbit-atelier`，workspace 包名为 `@coffeeeeffoc/orbit-atelier`，通过 iframe 装载，独立地址为 `/games/orbit-atelier/index.html`。竖屏星图提供八个章节共 74 关（原 24 关新增 50 关），拖动圆环调整缺口，完整让开两处连接后松手滑离；两处交点交替上穿下穿，净空判定包含金属环带宽度。分岔、宽开口、微隙及接力星栓逐章组合。核心几何、规则与关卡配置独立维护，浏览器入口复用统一开发者模式及 H5 全屏。开发、构建、规则测试与浏览器验收分别使用包内 `dev`、`build`、`test` 和 `test:browser`。
 

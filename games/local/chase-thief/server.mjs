@@ -3,31 +3,43 @@ import { readFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { pathToFileURL } from 'node:url';
 
-const assets = new Map([
-  ['index.html', 'text/html; charset=utf-8'],
-  ['style.css', 'text/css; charset=utf-8'],
-  ...[
-    'main.mjs',
-    'challenge.mjs',
-    'publishing.js',
-    'scene.mjs',
-    'engine.mjs',
-    'levels.mjs',
-    'progress.mjs',
-    'audio.mjs',
-    'dev-mode.js',
-    'fullscreen.js',
-  ].map((name) => [name, 'text/javascript; charset=utf-8']),
+const types = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.json': 'application/json',
+  '.png': 'image/png',
+  '.wav': 'audio/wav',
+};
+const fixed = new Set([
+  'index.html',
+  'style.css',
+  'bootstrap.mjs',
+  'dev-mode.js',
+  'fullscreen.js',
+  'build-info.json',
 ]);
-
 export function assetFor(requestUrl) {
   const pathname = decodeURIComponent(requestUrl.split('?')[0]);
   const asset = pathname === '/' ? 'index.html' : pathname.slice(1);
-  return pathname.startsWith('/') && assets.has(asset) ? asset : null;
+  if (
+    !pathname.startsWith('/') ||
+    asset.includes('..') ||
+    asset.includes('\\') ||
+    asset.includes('\0')
+  )
+    return null;
+  return fixed.has(asset) ||
+    /^(?:game\/(?:core\/)?[A-Za-z]+\.js|art\/[a-z-]+\.(?:json|png|wav)|vendor\/cocos\/(?:cc\.js|provenance\.json|LICENSE))$/.test(
+      asset,
+    )
+    ? asset
+    : null;
 }
 
 export function createStaticServer({ dist = false } = {}) {
-  const root = new URL(dist ? './dist/' : './', import.meta.url);
+  const root = new URL('./dist/', import.meta.url);
   return createServer(async (request, response) => {
     const fail = (status, message) => {
       response.writeHead(status, {
@@ -46,13 +58,9 @@ export function createStaticServer({ dist = false } = {}) {
     }
     if (!asset) return fail(404, 'Not found');
     try {
-      const content = await readFile(
-        !dist && asset === 'publishing.js'
-          ? new URL('../../../platforms/h5/publishing.js', import.meta.url)
-          : new URL(asset, root),
-      );
+      const content = await readFile(new URL(asset, root));
       response.writeHead(200, {
-        'Content-Type': assets.get(asset),
+        'Content-Type': types[asset.slice(asset.lastIndexOf('.'))] || 'text/plain; charset=utf-8',
         'Content-Length': content.length,
         'Cache-Control': 'no-cache',
         'X-Content-Type-Options': 'nosniff',

@@ -1,6 +1,6 @@
 import { CATALOG, LEVELS, getSpec } from './content.ts';
 import type { Match } from './engine.ts';
-import { TICK_RATE } from './engine.ts';
+import { TICK_RATE, MAX_ROUNDS } from './engine.ts';
 
 export interface Progress {
   version: 2;
@@ -114,11 +114,18 @@ export function settleProgress(progress: Progress, match: Match): Settlement {
   )
     return result;
   if (!['won', 'lost', 'draw'].includes(match.phase)) return result;
+  const expected =
+    match.sides[0].crystalHp === match.sides[1].crystalHp
+      ? null
+      : match.sides[0].crystalHp > match.sides[1].crystalHp
+        ? 0
+        : 1;
   if (
-    (match.phase === 'won' && (match.winner !== 0 || match.sides[1].crystalHp !== 0)) ||
-    (match.phase === 'lost' && (match.winner !== 1 || match.sides[0].crystalHp !== 0)) ||
-    (match.phase === 'draw' &&
-      (match.winner !== null || match.sides.some((s) => s.crystalHp !== 0)))
+    match.winner !== expected ||
+    match.phase !== (expected === null ? 'draw' : expected === 0 ? 'won' : 'lost') ||
+    (match.endReason === 'round-limit'
+      ? match.roundNumber !== MAX_ROUNDS
+      : match.endReason !== 'crystal' || !match.sides.some((s) => s.crystalHp === 0))
   )
     return result;
   progress.settledMatchIds.push(match.id);

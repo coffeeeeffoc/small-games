@@ -58,27 +58,27 @@
       "id": "chase-thief",
       "title": "追贼别撞墙",
       "source": "games/local/chase-thief",
-      "disposition": "hold",
-      "potential": ["none"],
+      "disposition": "potential",
+      "potential": ["potential"],
       "platforms": ["mobile"],
       "primaryPlatform": "mobile",
       "orientation": "portrait",
       "genres": ["arcade", "action"],
       "opportunities": ["challenge", "share"],
-      "schedule": "hold",
-      "implementationStatus": "held",
-      "scheduleReason": "2026-10-13 用户明确归类为没潜力，保留现有入口与已落实记录，暂缓继续投入。",
-      "strengths": ["滑动换道、跳跃、滑铲符合手机直觉，稳三段换冲刺"],
-      "weaknesses": ["三街区的障碍组合和目标变化有限，动作窗口需实测"],
-      "improvements": ["按用户决定暂缓继续改造；保留现有可玩内容和历史验证记录。"],
+      "schedule": "current",
+      "implementationStatus": "implemented",
+      "scheduleReason": "2026-10-22 用户明确恢复投入，重构为单次追逐的 3D 城市无尽跑酷。",
+      "strengths": [
+        "真实弯道、高差与三类街区连续变化；同一小偷持续引导追逐，侧路选择提供风险回报。"
+      ],
+      "weaknesses": ["当前完成浏览器版；仍需物理手机性能与操作手感验收。"],
+      "improvements": ["继续在真实手机验证障碍辨识度、连续游玩帧率与首局学习成本。"],
       "evidence": [
         "games/local/chase-thief/README.md",
-        "games/local/chase-thief/docs/design/expansion-2026-10-11/README.md",
-        "games/local/chase-thief/docs/design/expansion-2026-10-11/browser-report.json"
+        "games/local/chase-thief/docs/design/endless-city-2026-10-22/plan.md"
       ],
       "delivered": [
-        "新增同街区用时、冲刺与失误成绩挑战，可接受未解锁街区邀请且不写普通最佳和解锁；开发试玩成绩不可分享，失败提供手动复制降级",
-        "场景第二触点不触发额外动作，取消和失焦清除手势；自然结算接可关闭、可配置关闭的频控模拟插屏"
+        "Cocos 3D 无尽街区、六类障碍、分路选择、层级骨架角色、暂停恢复与独立新版存档；旧抓捕限时规则退役。"
       ]
     },
     {
@@ -199,7 +199,7 @@
     },
     {
       "id": "tianxia-chalu",
-      "title": "天下岔路",
+      "title": "夺城令",
       "source": "games/local/tianxia-chalu",
       "disposition": "potential",
       "potential": ["fun", "potential"],
