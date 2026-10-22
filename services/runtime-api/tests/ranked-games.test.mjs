@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { rankedRules } from '../rules/ranked-games.mjs';
 
@@ -71,23 +72,18 @@ describe('advanced mechanic checkpoints', () => {
   });
 });
 
-it('rescue replays a naturally activated splitter across a JSON checkpoint', async () => {
-  const { createRoutePlayer } = await import(
-    '../../../games/local/cage-rescue/tests/route-player.mjs'
+it('rescue replays an input-only splitter recording across a JSON checkpoint', () => {
+  const recording = JSON.parse(
+    readFileSync(new URL('./fixtures/cage-rescue-split.json', import.meta.url), 'utf8'),
   );
   const rule = rankedRules.find((item) => item.id === 'cage-rescue');
-  const state = rule.create('campaign', 73, 'rescue-08');
-  const play = createRoutePlayer();
-  const opening = [];
-  for (let tick = 0; tick < 120 * 90 && !state.game.extraBalls.length; tick++) {
-    const frame = { ticks: 1, input: play(state.game) };
-    opening.push(frame);
-    rule.apply(state, [frame]);
-  }
+  expect(recording.ruleVersion).toBe(rule.version);
+  const state = rule.create('campaign', 73, recording.levelId);
+  rule.apply(state, recording.frames);
   expect(state.game.extraBalls).toHaveLength(2);
   const restored = JSON.parse(JSON.stringify(state));
-  const fresh = rule.create('campaign', 73, 'rescue-08');
-  rule.apply(fresh, opening);
+  const fresh = rule.create('campaign', 73, recording.levelId);
+  rule.apply(fresh, recording.frames);
   expect(fresh).toEqual(state);
   rule.apply(state, [{ ticks: 120, input: { targetX: 195 } }]);
   for (let tick = 0; tick < 120; tick++)
