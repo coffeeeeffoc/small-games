@@ -1,0 +1,135 @@
+{
+  "date": "2026-10-23",
+  "baseCommit": "a0b4e324c26655fabcb049d40ba0c4508b051621",
+  "uncommitted": true,
+  "sourceHash": "1b6c1e1c815806623a1a27a9ace60257ee2baaaa75c2a1fc4cd06b89b67e28cc",
+  "creator": "3.8.8",
+  "target": "web-mobile",
+  "runtimeManifestMatches": true,
+  "rules": {
+    "passed": 50,
+    "failed": 0
+  },
+  "touchBrowser": {
+    "checks": 9,
+    "errors": [],
+    "engineWarnings": [
+      "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted."
+    ]
+  },
+  "creatorIntegration": {
+    "passed": 56,
+    "skipped": 1,
+    "failed": 0
+  },
+  "developerBrowser": {
+    "checks": 10,
+    "passed": true
+  },
+  "runtimeAPI": {
+    "passed": 198,
+    "skipped": 20,
+    "failed": 0
+  },
+  "gameConfig": {
+    "towerErrors": [],
+    "globalErrors": [
+      {
+        "code": "missing-package",
+        "path": "games/local/afterimage-arena",
+        "message": "游戏目录缺少有效 package.json；子模块请先 pnpm games:init"
+      },
+      {
+        "code": "missing-package",
+        "path": "games/local/balloon-movers",
+        "message": "游戏目录缺少有效 package.json；子模块请先 pnpm games:init"
+      },
+      {
+        "code": "missing-package",
+        "path": "games/local/game-arena",
+        "message": "游戏目录缺少有效 package.json；子模块请先 pnpm games:init"
+      },
+      {
+        "code": "missing-package",
+        "path": "games/local/game-building-power",
+        "message": "游戏目录缺少有效 package.json；子模块请先 pnpm games:init"
+      },
+      {
+        "code": "missing-package",
+        "path": "games/local/game-cricket",
+        "message": "游戏目录缺少有效 package.json；子模块请先 pnpm games:init"
+      },
+      {
+        "code": "missing-package",
+        "path": "games/local/game-cultivation",
+        "message": "游戏目录缺少有效 package.json；子模块请先 pnpm games:init"
+      },
+      {
+        "code": "missing-package",
+        "path": "games/local/ghost-shift-manager",
+        "message": "游戏目录缺少有效 package.json；子模块请先 pnpm games:init"
+      },
+      {
+        "code": "missing-package",
+        "path": "games/local/multi-battle",
+        "message": "游戏目录缺少有效 package.json；子模块请先 pnpm games:init"
+      },
+      {
+        "code": "missing-package",
+        "path": "games/local/night-merge",
+        "message": "游戏目录缺少有效 package.json；子模块请先 pnpm games:init"
+      },
+      {
+        "code": "missing-package",
+        "path": "games/local/off-camera",
+        "message": "游戏目录缺少有效 package.json；子模块请先 pnpm games:init"
+      },
+      {
+        "code": "missing-package",
+        "path": "games/local/precision-demolition",
+        "message": "游戏目录缺少有效 package.json；子模块请先 pnpm games:init"
+      },
+      {
+        "code": "missing-package",
+        "path": "games/local/puzzle",
+        "message": "游戏目录缺少有效 package.json；子模块请先 pnpm games:init"
+      },
+      {
+        "code": "missing-package",
+        "path": "games/local/retreat-rally",
+        "message": "游戏目录缺少有效 package.json；子模块请先 pnpm games:init"
+      },
+      {
+        "code": "missing-package",
+        "path": "games/local/rule-thief",
+        "message": "游戏目录缺少有效 package.json；子模块请先 pnpm games:init"
+      },
+      {
+        "code": "missing-package",
+        "path": "games/local/travel",
+        "message": "游戏目录缺少有效 package.json；子模块请先 pnpm games:init"
+      },
+      {
+        "code": "missing-package",
+        "path": "games/local/travel-bund-2.5D",
+        "message": "游戏目录缺少有效 package.json；子模块请先 pnpm games:init"
+      },
+      {
+        "code": "missing-package",
+        "path": "games/local/travel2",
+        "message": "游戏目录缺少有效 package.json；子模块请先 pnpm games:init"
+      },
+      {
+        "code": "missing-package",
+        "path": "games/local/weather-command",
+        "message": "游戏目录缺少有效 package.json；子模块请先 pnpm games:init"
+      }
+    ]
+  },
+  "limits": [
+    "Chromium emulated touch, not physical phone",
+    "Native mini-game targets and live backend not verified",
+    "Deep endless transition shown using isolated developer fixture; natural touch play reached 80 floors and completed the first transition",
+    "Local evidence only; remote CI/deployment checked separately; no platform review"
+  ]
+}

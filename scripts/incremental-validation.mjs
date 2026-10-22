@@ -285,9 +285,16 @@ export function incrementalPlan({
       paths.some(
         (file) =>
           (gameServiceScopePaths.includes(file) && fileScopes.get(file)?.includes(game.source)) ||
-          ['build.mjs', 'api-config.mjs', 'index.html', 'main.mjs', 'src/main.mjs'].some(
-            (entry) => file === game.source + '/' + entry,
-          ),
+          [
+            'build.mjs',
+            'scripts/build.mjs',
+            'api-config.mjs',
+            'index.html',
+            'main.mjs',
+            'src/main.mjs',
+            'startup/host.js',
+            'assets/scripts/TowerBrake.ts',
+          ].some((entry) => file === game.source + '/' + entry),
       )
     )
       devModeIds.push(id);

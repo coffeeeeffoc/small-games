@@ -107,7 +107,7 @@ it('public metadata and boards distinguish anonymous identity; expired credentia
       })
     ).statusCode,
   ).toBe(200);
-  expect(ranking).toHaveBeenCalledWith('tower-brake:endless:tower-ranked-v1', {
+  expect(ranking).toHaveBeenCalledWith('tower-brake:endless:tower-ranked-v2', {
     playerId: 'member-player',
     game: 'tower-brake',
   });
@@ -129,7 +129,7 @@ it('a game can combine solo boards and multiplayer through one gateway, with exp
     leaderboards: true,
     multiplayer: true,
   });
-  expect(response.json().versions).toEqual({ ranked: 'tower-ranked-v1', multiplayer: 'duel-v1' });
+  expect(response.json().versions).toEqual({ ranked: 'tower-ranked-v2', multiplayer: 'duel-v1' });
   expect(response.json().boards.map((item: { id: string }) => item.id)).toEqual([
     'campaign',
     'endless',
@@ -194,7 +194,7 @@ it('writes require identity, refuse client result fields and expose game-scoped 
     method: 'POST',
     url: path + '/runs',
     headers,
-    payload: { board: 'endless', version: 'tower-ranked-v1' },
+    payload: { board: 'endless', version: 'tower-ranked-v2' },
   });
   expect(created.statusCode).toBe(200);
   const action = path + '/runs/' + created.json().id + '/actions';
@@ -242,7 +242,7 @@ it('ranked HTTP creation rejects legacy, mismatched and missing versions with an
   const headers = { authorization: 'Bearer ' + token };
   for (const [game, version] of [
     ['cage-rescue', 'rescue-ranked-v1'],
-    ['tower-brake', 'tower-ranked-v1'],
+    ['tower-brake', 'tower-ranked-v2'],
   ]) {
     const { app } = await setup(false, false, game);
     const url = `/api/competition/v1/games/${game}/runs`;

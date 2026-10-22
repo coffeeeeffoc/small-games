@@ -25,7 +25,7 @@
     },
     {
       "id": "tower-brake",
-      "title": "转塔留一脚刹车",
+      "title": "穿云落星",
       "source": "games/local/tower-brake",
       "disposition": "potential",
       "potential": ["fun", "potential"],
@@ -36,19 +36,22 @@
       "opportunities": ["challenge", "share"],
       "schedule": "previous",
       "implementationStatus": "implemented",
-      "scheduleReason": "上轮已针对转塔与一次刹车易上手，连穿三层补刹车形成风险回报落实触控、反馈或挑战改造；保留已改造记录，后续按真实试玩、渠道与发布验收结果继续迭代。",
-      "strengths": ["转塔与一次刹车易上手，连穿三层补刹车形成风险回报"],
-      "weaknesses": ["被上层遮住的危险区影响公平感，八塔复玩目标较少"],
-      "improvements": [
-        "继续验证小屏落点预告与连穿风险回报，补真实用户首局完成率、复玩率及原生渠道验收。"
+      "scheduleReason": "已完成 Cocos 3D 改造，区分固定环境短关与慢速换景的无尽旅程；继续依据真实手机体验和渠道验收迭代。",
+      "strengths": [
+        "转塔、0.8秒刹车与三层连穿形成清楚的风险回报",
+        "30关渐进机制，四层天空和无尽的连续环境变化"
       ],
+      "weaknesses": ["真实手机和原生渠道尚未验证", "复杂场景在低端设备上的性能仍需真机测量"],
+      "improvements": ["验证低端手机帧率、触摸和音频恢复，收集首局完成率与复玩反馈。"],
       "evidence": [
         "games/local/tower-brake/README.md",
-        "games/local/tower-brake/docs/design/publishing/README.md",
-        "games/local/tower-brake/docs/design/publishing/browser-report.json"
+        "games/local/tower-brake/docs/design/cocos-2026-10-22/browser-report.json",
+        "games/local/tower-brake/publishing/STATUS.md"
       ],
       "delivered": [
-        "连穿倍率得分与目标分比较；固定路线分享挑战隔离正常解锁；下一关自然断点接入频控模拟广告，保留免费续关。"
+        "真实 Cocos 3D 轨道、菜单、HUD、分层云与沿途景物；短关固定环境，无尽长距离过渡。",
+        "护盾、侧风、刹车补给、缓降逐步解锁；环境影响真实球体碰撞半径和速度。",
+        "保留旧存档、免费续关及同关分享，公共排名使用 tower-ranked-v2 规则回放；离线正常可玩。"
       ]
     },
     {

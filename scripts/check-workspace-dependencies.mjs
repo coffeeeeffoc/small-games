@@ -23,6 +23,9 @@ const DEPENDENCY_FIELDS = [
 // rules on the authoritative server, or exercise those rules from repository tests.
 // Runtime game code must still never import service implementations.
 const REPOSITORY_IMPORTS = new Set([
+  'games/local/tower-brake/scripts/build.mjs -> games/local/carding-car/scripts/toolchain.mjs',
+  'games/local/tower-brake/scripts/build.mjs -> games/local/carding-car/scripts/cocos-branding.mjs',
+  'games/local/tower-brake/scripts/typecheck.mjs -> games/local/carding-car/scripts/toolchain.mjs',
   'games/local/homebound-station/scripts/build.mjs -> games/local/carding-car/scripts/cocos-branding.mjs',
   'games/local/homebound-station/scripts/build.mjs -> games/local/carding-car/scripts/toolchain.mjs',
   'games/local/homebound-station/scripts/typecheck.mjs -> games/local/carding-car/scripts/toolchain.mjs',

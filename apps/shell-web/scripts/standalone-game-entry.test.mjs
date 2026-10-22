@@ -77,3 +77,21 @@ test('Orbit Creator owns its native home and interaction checks instead of click
     'legacy',
   );
 });
+
+test('Tower Creator owns its native menu and touch flow', async () => {
+  assert.equal(markers['tower-brake'], '#GameCanvas');
+  assert.equal(homeControls['tower-brake'], undefined);
+  assert.equal(entryMode('tower-brake'), 'legacy');
+  assert.equal(
+    await enterStandalone(
+      {
+        locator() {
+          throw Error('No DOM click for Creator');
+        },
+      },
+      'tower-brake',
+      true,
+    ),
+    'legacy',
+  );
+});

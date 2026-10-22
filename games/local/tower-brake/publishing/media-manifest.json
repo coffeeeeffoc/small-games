@@ -1,0 +1,240 @@
+{
+  "version": "2.0.0",
+  "date": "2026-10-23",
+  "sourceHash": "1b6c1e1c815806623a1a27a9ace60257ee2baaaa75c2a1fc4cd06b89b67e28cc",
+  "files": [
+    {
+      "path": "copy/developer-note.md",
+      "bytes": 572,
+      "sha256": "e01e3402f41842229399046ed5ded65ef36dec456e97aca64a9c6675c22c9bac"
+    },
+    {
+      "path": "copy/introduction.md",
+      "bytes": 772,
+      "sha256": "2c66c3644143f7e0549a52263ddbbfccf2a41a0e55b7b6e997cdfc2d96d0e3a9"
+    },
+    {
+      "path": "copy/tagline.md",
+      "bytes": 49,
+      "sha256": "c1a7fe6fa9ec1673a601dd3c9c880636c5e6ca1975bae1e0e65871f365454ab3"
+    },
+    {
+      "path": "gameplay/screenshots/01-home-390x844.png",
+      "bytes": 365741,
+      "sha256": "0ca9fbba5e9b527bf7871e5e4d2876801f2bb90903eb458ffbc531134f65a8fd",
+      "codec_name": "png",
+      "width": 390,
+      "height": 844,
+      "pix_fmt": "rgb24"
+    },
+    {
+      "path": "gameplay/screenshots/02-chapters-390x844.png",
+      "bytes": 336857,
+      "sha256": "b377372b901620dbebb20e74369354d48106030d6d100b36770825cc728e8087",
+      "codec_name": "png",
+      "width": 390,
+      "height": 844,
+      "pix_fmt": "rgb24"
+    },
+    {
+      "path": "gameplay/screenshots/03-guide-390x844.png",
+      "bytes": 323208,
+      "sha256": "2395cb7b347cfea7bb7f35016cde3e6f6e7a46c8b703772073d84c452c58fbba",
+      "codec_name": "png",
+      "width": 390,
+      "height": 844,
+      "pix_fmt": "rgb24"
+    },
+    {
+      "path": "gameplay/screenshots/04-space-390x844.png",
+      "bytes": 372100,
+      "sha256": "58b5db3c858ff0ff9e990296a60c279effd115fec21fd48a2f3508a0cb9a841e",
+      "codec_name": "png",
+      "width": 390,
+      "height": 844,
+      "pix_fmt": "rgb24"
+    },
+    {
+      "path": "gameplay/screenshots/05-pause-390x844.png",
+      "bytes": 273286,
+      "sha256": "e860774749fe7506a5787fb5e77b10e819ddfe6172cd1716a64c28b8d4bce6d3",
+      "codec_name": "png",
+      "width": 390,
+      "height": 844,
+      "pix_fmt": "rgb24"
+    },
+    {
+      "path": "gameplay/screenshots/06-result-390x844.png",
+      "bytes": 276358,
+      "sha256": "0646c4d42ab1d24abfd9faa7aaacc6d5a49923d65498712260f98bbbc22eabf5",
+      "codec_name": "png",
+      "width": 390,
+      "height": 844,
+      "pix_fmt": "rgb24"
+    },
+    {
+      "path": "gameplay/screenshots/07-thin-air-390x844.png",
+      "bytes": 323782,
+      "sha256": "0ef5e3a81bab2e8adaa9cc7e03c785c6452e9e33955ef67073bbd8d113e19e0d",
+      "codec_name": "png",
+      "width": 390,
+      "height": 844,
+      "pix_fmt": "rgb24"
+    },
+    {
+      "path": "gameplay/screenshots/08-middle-clouds-390x844.png",
+      "bytes": 307828,
+      "sha256": "1330cc9c71a774f7139f84d59055f496852e4b5fe9ff0b0a6a03433fd26297c0",
+      "codec_name": "png",
+      "width": 390,
+      "height": 844,
+      "pix_fmt": "rgb24"
+    },
+    {
+      "path": "gameplay/screenshots/09-low-snow-390x844.png",
+      "bytes": 298582,
+      "sha256": "c2e41ddc4eb092efb8f3ff8b03895aa3fd408abe35a05b6080bc6687220dc581",
+      "codec_name": "png",
+      "width": 390,
+      "height": 844,
+      "pix_fmt": "rgb24"
+    },
+    {
+      "path": "gameplay/screenshots/09b-low-rain-390x844.png",
+      "bytes": 302087,
+      "sha256": "c7b1ddad3366e916561a064e5aaaf751e15bc98f7197506258d042df00deea90",
+      "codec_name": "png",
+      "width": 390,
+      "height": 844,
+      "pix_fmt": "rgb24"
+    },
+    {
+      "path": "gameplay/screenshots/10-endless-first-transition-390x844.png",
+      "bytes": 312679,
+      "sha256": "69d26d84f5d5ded268740abf418d45fbb889cc42fe30c36acbba7a15d1df9eaf",
+      "codec_name": "png",
+      "width": 390,
+      "height": 844,
+      "pix_fmt": "rgb24"
+    },
+    {
+      "path": "gameplay/screenshots/10b-endless-result-390x844.png",
+      "bytes": 218441,
+      "sha256": "27a004725045a79a40e0a73dd2e18be270c6b9dd217f3b285c158f7b4a583c82",
+      "codec_name": "png",
+      "width": 390,
+      "height": 844,
+      "pix_fmt": "rgb24"
+    },
+    {
+      "path": "gameplay/screenshots/11-endless-transition-fixture-390x844.png",
+      "bytes": 350996,
+      "sha256": "3014f2520c59c4a5be1b40c2c6677fcf587c925b2cd9bc3348cf3d73723e62d6",
+      "codec_name": "png",
+      "width": 390,
+      "height": 844,
+      "pix_fmt": "rgb24"
+    },
+    {
+      "path": "gameplay/screenshots/cycle-1-to-0-fixture-390x844.png",
+      "bytes": 334007,
+      "sha256": "7bc4990e2289d3a95e4a59730b6776b0020e54a95ae5a61f3a83efc3075a205e",
+      "codec_name": "png",
+      "width": 390,
+      "height": 844,
+      "pix_fmt": "rgb24"
+    },
+    {
+      "path": "gameplay/screenshots/cycle-1-to-2-fixture-390x844.png",
+      "bytes": 305847,
+      "sha256": "6b33add6aa632224ad51e77453382f2fa464a21cd0641ba933266a36799a8de8",
+      "codec_name": "png",
+      "width": 390,
+      "height": 844,
+      "pix_fmt": "rgb24"
+    },
+    {
+      "path": "gameplay/screenshots/cycle-2-to-1-fixture-390x844.png",
+      "bytes": 308362,
+      "sha256": "de0ae7870fa9e976d4215764cee1eac1645ba7ebf3b3daab17154bd934862654",
+      "codec_name": "png",
+      "width": 390,
+      "height": 844,
+      "pix_fmt": "rgb24"
+    },
+    {
+      "path": "gameplay/screenshots/cycle-2-to-3-fixture-390x844.png",
+      "bytes": 285300,
+      "sha256": "c28cfb3495493fd3158209e577e4eb2a915f2b5b03eefebdb654bef115364a50",
+      "codec_name": "png",
+      "width": 390,
+      "height": 844,
+      "pix_fmt": "rgb24"
+    },
+    {
+      "path": "gameplay/screenshots/cycle-3-to-2-fixture-390x844.png",
+      "bytes": 289332,
+      "sha256": "1246061634c9868361b4f7ced22b3fd5b4b034589163d128e815999b864cb1b8",
+      "codec_name": "png",
+      "width": 390,
+      "height": 844,
+      "pix_fmt": "rgb24"
+    },
+    {
+      "path": "gameplay/screenshots/responsive-320x568.png",
+      "bytes": 238448,
+      "sha256": "79eaf601240d1ff335d5f36a3c622b4a9ac802e66d7779f992d54990b03b72dc",
+      "codec_name": "png",
+      "width": 320,
+      "height": 568,
+      "pix_fmt": "rgb24"
+    },
+    {
+      "path": "gameplay/screenshots/responsive-844x390.png",
+      "bytes": 159015,
+      "sha256": "2b083cb9c5b4aff50a729fbf7241330d0a51c3ec444c644140a91022835612e1",
+      "codec_name": "png",
+      "width": 844,
+      "height": 390,
+      "pix_fmt": "rgb24"
+    },
+    {
+      "path": "gameplay/videos/tower-brake-cocos-touch-390x844.webm",
+      "bytes": 7315842,
+      "sha256": "c7af0164e8a3187c5df021d067c1d236bdb45b69e88230fb1fbc7d2e73cf3608",
+      "codec_name": "vp8",
+      "width": 390,
+      "height": 844,
+      "pix_fmt": "yuv420p",
+      "durationSeconds": 58.84
+    },
+    {
+      "path": "icon/tower-brake-icon-1254.png",
+      "bytes": 2443771,
+      "sha256": "e8b76357cf7cb7fb26a37e675009b88c66714dfa71b0870850050f98934907d4",
+      "codec_name": "png",
+      "width": 1254,
+      "height": 1254,
+      "pix_fmt": "rgb24"
+    },
+    {
+      "path": "promo/images/tower-brake-poster-portrait.png",
+      "bytes": 2611399,
+      "sha256": "d92da9a58635bf8be214cd290a0a043d6376709bff2da32dbc0d01c90be6b067",
+      "codec_name": "png",
+      "width": 941,
+      "height": 1672,
+      "pix_fmt": "rgb24"
+    },
+    {
+      "path": "promo/videos/tower-brake-promo-720x1280.mp4",
+      "bytes": 10447155,
+      "sha256": "8974c6b099754ad8caf40717ae97e63003f6c75919e0116d008d2e243594b9e6",
+      "codec_name": "h264",
+      "width": 720,
+      "height": 1280,
+      "pix_fmt": "yuv420p",
+      "durationSeconds": 22
+    }
+  ]
+}

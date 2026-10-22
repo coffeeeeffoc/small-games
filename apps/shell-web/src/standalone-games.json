@@ -16,8 +16,8 @@
   {
     "id": "tower-brake",
     "source": "games/local/tower-brake",
-    "title": "转塔留一脚刹车",
-    "description": "转动圆塔穿过十二层缺口，连续落三层补回一次 0.8 秒刹车，在危险落点前转出一条生路。八座短塔逐步解锁。",
+    "title": "穿云落星",
+    "description": "转动青玉轨道，让小球从星际落入云海。30 关与无尽下落，护盾、侧风和缓降逐步登场，连穿三层补回刹车。",
     "output": "dist"
   },
   {

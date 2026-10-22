@@ -60,6 +60,20 @@ const SHARED_COCOS_SCRIPTS = new Set(
 // 457bc63. Keep the deleted paths in normal game regression selection; this
 // proof only permits those exact D records through the global deletion guard.
 const reviewedCleanupDeletions = Object.freeze({
+  // Former Canvas renderer and superseded browser suites; Cocos owns the full flow.
+  'games/local/tower-brake/leaderboard.mjs':
+    '6e6b2688c126ef77d5e3411ae14f7d29bc9c4a1d78c75f58dd494c98c40e1606',
+  'games/local/tower-brake/main.mjs':
+    '411b88700d8df3a802c0af7a959e1983abdb987fc16bccd35c2f79fd6c7c94e5',
+  'games/local/tower-brake/render.mjs':
+    'f75b8dbb792d48e4724141a504ce87f11db66fd2b83baae3e2658b572df32694',
+  'games/local/tower-brake/style.css':
+    '5d3de377848db7eccb0befbb199255b443198c71ebb2040d9ee02ccf3c2edc54',
+  'games/local/tower-brake/tests/expansion-browser.mjs':
+    '33adbbae1fae87ea455ef3dbbcf17a6d2c2d1483e1a9f28c28f6847faeaa7af3',
+  'games/local/tower-brake/tests/publishing-browser.mjs':
+    '131a8ee029294dabd9301cb3340312fc23bca881074e668470e2e0459084372f',
+
   'games/local/merge-front/favicon.svg':
     'c17665fab3504b77fce9b6b107f46e4250ed704deb5848f5c07088194cad4489',
   'games/local/merge-front/index.html':

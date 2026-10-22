@@ -7,7 +7,7 @@ export const markers = {
   'three-choose-two': '#game[data-ready="true"]',
   'cage-rescue': '#start',
   'flick-arena': '#start',
-  'tower-brake': '#start-game',
+  'tower-brake': '#GameCanvas',
   'chase-thief': '#game[data-ready="true"]',
   'orbit-atelier': '#GameCanvas',
   'moss-garden': '[data-action="start"]',
@@ -58,7 +58,6 @@ export const homeControls = {
   'three-choose-two': ['[data-action="start"]', '[data-action="begin"]'],
   'cage-rescue': '#start',
   'flick-arena': ['#start', '#play-level'],
-  'tower-brake': '#start-game',
   tetracube: '#start-game',
   'chase-thief': '#start',
   'wulong-city': '#start-game',
@@ -83,6 +82,7 @@ export const homeControls = {
 
 // Explicit compatibility list: these existing assertions still own their setup flow.
 export const legacyEntryIds = [
+  'tower-brake',
   'merge-front',
   'orbit-atelier',
   'homebound-station',

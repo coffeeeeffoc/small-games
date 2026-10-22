@@ -15,6 +15,7 @@ function defaults() {
     unlocked: 1,
     selected: 0,
     sound: true,
+    reducedMotion: false,
     skin: 'mint',
     best: {},
     continuedBest: {},
@@ -75,6 +76,7 @@ function sanitizeProgress(saved, levels) {
   progress.endlessBest =
     Number.isSafeInteger(saved.endlessBest) && saved.endlessBest >= 0 ? saved.endlessBest : 0;
   progress.sound = saved.sound !== false;
+  progress.reducedMotion = saved.reducedMotion === true;
   progress.skin = SKINS.has(saved.skin) ? saved.skin : 'mint';
   progress.best = sanitizeScores(saved.best, allowedIds);
   progress.continuedBest = sanitizeScores(saved.continuedBest, allowedIds);

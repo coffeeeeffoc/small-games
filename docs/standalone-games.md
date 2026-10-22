@@ -30,7 +30,7 @@
 
 《星扣工坊》位于 `games/local/orbit-atelier`，workspace 包名为 `@coffeeeeffoc/orbit-atelier`，通过 iframe 装载，独立地址为 `/games/orbit-atelier/index.html`。竖屏星图提供八个章节共 74 关（原 24 关新增 50 关），拖动圆环调整缺口，完整让开两处连接后松手滑离；两处交点交替上穿下穿，净空判定包含金属环带宽度。分岔、宽开口、微隙及接力星栓逐章组合。核心几何、规则与关卡配置独立维护，浏览器入口复用统一开发者模式及 H5 全屏。开发、构建、规则测试与浏览器验收分别使用包内 `dev`、`build`、`test` 和 `test:browser`。
 
-《转塔留一脚刹车》位于 `games/local/tower-brake`，workspace 包名为 `@coffeeeeffoc/tower-brake`，通过 iframe 装载，独立地址为 `/games/tower-brake/index.html`。竖屏 Canvas 短挑战提供八套十二层圆塔，滑动转塔穿过缺口，连续穿过三层可补回一次 0.8 秒主动刹车。游戏无第三方运行依赖，使用 `pnpm --filter @coffeeeeffoc/tower-brake dev` 开发，`build` 生成静态 `dist/`，`test` 验证规则。核心模拟、关卡配置、渲染和存档分开维护，开发模式与全屏复用公共 H5 入口；玩法、操作与验证说明见 [游戏 README](../games/local/tower-brake/README.md)。
+《穿云落星》位于 `games/local/tower-brake`，workspace 包名为 `@coffeeeeffoc/tower-brake`，独立地址为 `/games/tower-brake/index.html`，大厅使用沉浸式 iframe。Cocos Creator 3.8.8 渲染真实 3D 轨道、球体和近远景，提供 30 关与无尽下落。关卡各自固定环境，无尽模式按高度缓慢过渡局部空间与云层；护盾、侧风、补充刹车、缓降逐步解锁。规则与服务端回放继续共用根目录纯模块，旧存档沿用。`build` 使用 Creator 导出 `dist/`，`dev`／`preview` 提供该制品；预构建复用必须验证引擎与源码摘要。运行命令、设计图与验证边界见[游戏 README](../games/local/tower-brake/README.md)，素材见[上架资料](../games/local/tower-brake/publishing/STATUS.md)。
 
 《水位联动站》位于 `games/local/waterline-station`，workspace 包名为 `@coffeeeeffoc/waterline-station`，通过 iframe 装载。游戏用离散水量结算相连水槽的共享液位，提供落箱开关、船只出口与溢流水轮机关。
 

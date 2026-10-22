@@ -11,6 +11,7 @@ export const games = [
   'homebound-station',
   'merge-front',
   'bullet-garden',
+  'tower-brake',
 ];
 const creator = '3.8.8';
 const platform = 'web-mobile';

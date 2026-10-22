@@ -1380,14 +1380,37 @@ function assertGameServiceCopies(readHead) {
   assert(!/\bimport\s*\(|\brequire\s*\(/m.test(service));
   for (const [id, source] of Object.entries(rankedConsumers)) {
     const build = readHead(source + '/build.mjs');
-    for (const file of ['game-services.js', 'client.js'])
-      assert(hasCopyReference(build, '../../../platforms/competition/' + file, file));
-    const server = readHead(source + '/server.mjs');
-    assert.equal(
-      server.split("pathname === '/client.js' && !process.argv.includes('--dist')").length,
-      2,
-    );
-    assert(hasUrlReference(server, '../../../platforms/competition/client.js'));
+    const creator = id === 'tower-brake' && importsModule(build, './scripts/build.mjs');
+    if (creator) {
+      const manifest = JSON.parse(readHead(source + '/package.json'));
+      assert.equal(manifest.creator?.version, '3.8.8');
+      assert.equal(manifest.scripts?.build, 'node scripts/build.mjs web-mobile');
+      assert.equal(manifest.scripts?.dev, 'node scripts/serve.mjs');
+      for (const file of ['game-services.js', 'client.js'])
+        assert(
+          hasCopyReference(
+            readHead(source + '/scripts/build.mjs'),
+            '../../../../platforms/competition/' + file,
+            file,
+          ),
+        );
+      assert(importsModule(readHead(source + '/startup/host.js'), './game-services.js'));
+      assert(importsModule(readHead(source + '/server.mjs'), './scripts/serve.mjs'));
+      assert(
+        readHead(source + '/scripts/serve.mjs').includes(
+          "desktop ? '../build/web-desktop/' : '../dist/'",
+        ),
+      );
+    } else {
+      for (const file of ['game-services.js', 'client.js'])
+        assert(hasCopyReference(build, '../../../platforms/competition/' + file, file));
+      const server = readHead(source + '/server.mjs');
+      assert.equal(
+        server.split("pathname === '/client.js' && !process.argv.includes('--dist')").length,
+        2,
+      );
+      assert(hasUrlReference(server, '../../../platforms/competition/client.js'));
+    }
     const turbo = JSON.parse(readHead(source + '/turbo.json'));
     assert.deepEqual(turbo.extends, ['//']);
     const inputs = turbo.tasks?.build?.inputs;
@@ -1399,12 +1422,13 @@ function assertGameServiceCopies(readHead) {
     ])
       assert(inputs.includes(input));
     const entry = id === 'cage-rescue' ? '/src/main.mjs' : '/main.mjs';
-    assert(
-      hasUrlReference(
-        readHead(source + entry),
-        id === 'cage-rescue' ? '../game-services.js' : './game-services.js',
-      ),
-    );
+    if (!creator)
+      assert(
+        hasUrlReference(
+          readHead(source + entry),
+          id === 'cage-rescue' ? '../game-services.js' : './game-services.js',
+        ),
+      );
   }
 }
 
@@ -3033,6 +3057,34 @@ export function mainIntegrationFileScopes(context) {
   return scopes;
 }
 
+// Saved Pages cbee0202 and migration base a0b4e324 have identical inputs here.
+export const towerCreatorIntegrationHashes = Object.freeze({
+  '.github/workflows/carding-car.yml': [
+    '420192e8c991ff7166a1828e48b3087cdbf65604b8d659393c4802bdad6ac2c7',
+    '35a72e638feb6d5d698cce35fd28f3be805d4613d68a64840b3d6279f93276b1',
+  ],
+  '.github/workflows/ci.yml': [
+    '073903ff62e45572e1b2f07a25d64ca19ad381800f7859bd73b3c6bb3da96e9f',
+    '3a281e527f82b5f4e84faa66a1ec5e9c2fb5133d882d2a6a1d61c2cb03596b90',
+  ],
+  '.github/workflows/pages-validate.yml': [
+    'f7c119db7da3a46f682da323558a38214f3fed2f7cb79b8b9cbfbcf16378d258',
+    '8ecec73c79ac505cd7b6df1b503f06bb0a00c0c3b23826319e39de4176610d12',
+  ],
+  '.github/workflows/mobile.yml': [
+    '046cada0323b6b92a6d95a894acc8a9c31881faa874e98d9f25f5b47ff7ed5f5',
+    'b805ce80fbb9c6276df298afcc4476f9e72f78565ca5c9814153eaafbcbf7199',
+  ],
+  'turbo.json': [
+    '8e715b054f404963935c195b1fb8dccc4d90ccab8a40c826411f033e810ca6fa',
+    'f92efc5e14d3db1a0cc44ea8ece75014c5dc444a14fdce8bb43fc120dcebc86e',
+  ],
+  'pnpm-lock.yaml': [
+    'bf37f530bd0253a9fdcff185ea435f94a3a7ab9969b6925c06377c92fa4ca9cc',
+    'a3625e137817b27d05e464ee2aa3f3391b53e04cbbc045adc2c9640017aa3a93',
+  ],
+});
+
 export function reviewedSharedFileScopes({
   changedPaths,
   readBase,
@@ -3128,6 +3180,40 @@ export function reviewedSharedFileScopes({
       }
     }
     try {
+      const towerPair = towerCreatorIntegrationHashes[file];
+      if (towerPair) {
+        const digest = (text) =>
+          createHash('sha256').update(text.replaceAll('\r\n', '\n')).digest('hex');
+        if (digest(readBase(file)) === towerPair[0] && digest(readHead(file)) === towerPair[1]) {
+          const source = 'games/local/tower-brake',
+            name = '@coffeeeeffoc/tower-brake';
+          const entries = games.filter(
+            (game) => game.id === 'tower-brake' || game.source === source,
+          );
+          assert.equal(entries.length, 1);
+          assert.equal(entries[0].id, 'tower-brake');
+          assert.equal(entries[0].source, source);
+          assert.equal(entries[0].output, 'dist');
+          const targets = packages.filter((pkg) => pkg.dir === source || pkg.name === name);
+          assert.equal(targets.length, 1);
+          assert.equal(targets[0].dir, source);
+          assert.equal(targets[0].name, name);
+          assert.equal(targets[0].creator?.version, '3.8.8');
+          assert.equal(targets[0].scripts?.build, 'node scripts/build.mjs web-mobile');
+          if (file === 'pnpm-lock.yaml') {
+            const manifest = JSON.parse(readHead(source + '/package.json'));
+            assert.equal(manifest.name, name);
+            assert.deepEqual(manifest.devDependencies, {
+              '@playwright/test': '1.55.1',
+              typescript: '7.0.2',
+            });
+            for (const field of ['dependencies', 'optionalDependencies', 'peerDependencies'])
+              assert(!manifest[field]);
+          }
+          scopes.set(file, [source]);
+          continue;
+        }
+      }
       if (file === 'apps/shell-web/scripts/pages-host-smoke.mjs') {
         const digest = (value) =>
           createHash('sha256').update(value.replaceAll('\r\n', '\n')).digest('hex');
@@ -3308,6 +3394,7 @@ export function reviewedSharedFileScopes({
           ...cocosWebSources,
           ...(ids.includes('merge-front') ? ['games/local/merge-front'] : []),
           ...(ids.includes('bullet-garden') ? ['games/local/bullet-garden'] : []),
+          ...(ids.includes('tower-brake') ? ['games/local/tower-brake'] : []),
         ];
         assert.deepEqual(
           ids,

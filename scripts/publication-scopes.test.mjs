@@ -3668,10 +3668,17 @@ test('shared identity client proves all thirteen consumers and native compositio
       ),
     ],
     [
-      'games/local/tower-brake/build.mjs',
-      read('games/local/tower-brake/build.mjs').replace(
-        "new URL('../../../platforms/competition/client.js', import.meta.url)",
-        "new URL('../../../platforms/competition/other.js', import.meta.url)",
+      'games/local/tower-brake/scripts/build.mjs',
+      read('games/local/tower-brake/scripts/build.mjs').replace(
+        "new URL('../../../../platforms/competition/client.js', import.meta.url)",
+        "new URL('../../../../platforms/competition/other.js', import.meta.url)",
+      ),
+    ],
+    [
+      'games/local/tower-brake/startup/host.js',
+      read('games/local/tower-brake/startup/host.js').replace(
+        "from './game-services.js'",
+        "from './wrong.js'",
       ),
     ],
     [
@@ -4946,17 +4953,16 @@ test('merged Homebound Creator routes preserve Orbit and Tianxia and reject chan
   }
 });
 
-test('Bullet Garden Creator routing preserves every old producer and consumer gate', () => {
+test('historical Bullet Garden Creator routing preserves every old producer and consumer gate', () => {
   for (const file of [
     '.github/workflows/carding-car.yml',
     '.github/workflows/ci.yml',
     '.github/workflows/pages-validate.yml',
     '.github/workflows/mobile.yml',
   ]) {
-    const head = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
-      '\r\n',
-      '\n',
-    );
+    const head = execFileSync('git', ['show', 'a0b4e324c26655fabcb049d40ba0c4508b051621:' + file], {
+      encoding: 'utf8',
+    }).replaceAll('\r\n', '\n');
     const base = execFileSync('git', ['show', '53eb4b69bd1c2c3bbfe01349624235a1636b121e:' + file], {
       encoding: 'utf8',
     }).replaceAll('\r\n', '\n');
@@ -5108,16 +5114,17 @@ test('Homebound Creator readiness guard preserves gameplay and scopes only its r
   assert.equal(reviewedSharedFileScopes({ ...context, games: [] }).size, 0);
 });
 
-test('ordinary Creator reuse changes include Bullet while preserving the historical five-game fixture', () => {
+test('ordinary Creator reuse includes Tower while preserving historical five to seven game fixtures', () => {
   const file = 'scripts/reuse-cocos-artifacts.mjs';
   const current = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
     '\r\n',
     '\n',
   );
-  for (const [includeMerge, includeBullet] of [
-    [false, false],
-    [true, false],
-    [true, true],
+  for (const [includeMerge, includeBullet, includeTower] of [
+    [false, false, false],
+    [true, false, false],
+    [true, true, false],
+    [true, true, true],
   ]) {
     const ids = [
       'carding-car',
@@ -5127,9 +5134,11 @@ test('ordinary Creator reuse changes include Bullet while preserving the histori
       'homebound-station',
       ...(includeMerge ? ['merge-front'] : []),
       ...(includeBullet ? ['bullet-garden'] : []),
+      ...(includeTower ? ['tower-brake'] : []),
     ];
     let source = includeBullet ? current : current.replace("  'bullet-garden',\n", '');
     if (!includeMerge) source = source.replace("  'merge-front',\n", '');
+    if (!includeTower) source = source.replace("  'tower-brake',\n", '');
     const packages = ids.map((id) => ({ dir: 'games/local/' + id }));
     const scopes = reviewedSharedFileScopes({
       changedPaths: [file],

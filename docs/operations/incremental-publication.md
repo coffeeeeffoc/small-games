@@ -83,3 +83,5 @@ Merge 宿主冒烟检查使用沉浸式 Creator 契约：准确 iframe 地址与
 23 个累计共享文件分别绑定前后完整字节和唯一 package/game 身份。工作流和 Turbo 接线选择对应 Creator 消费者；锁文件还绑定 8 个相关 manifest。该锁文件只删除已退役 importer、移除其 workspace link，并复用基线已有的 5 个开发依赖 tuple；其余 resolution、integrity 和 snapshot 未变。Shell 的三个目录文件仍触发目录上线和导航检查。迁移后的音效按实际复制关系选择三个游戏的六个平台；平台进程、游戏配置、词库导出和部署迁移文件复制均执行对应工具测试。未知文件或额外共享字节仍拒绝分类，不降为全量。
 
 数据库迁移映射到 Management 与 Studio 的规则、构建和类型检查。日常 Pages 质量门禁不要求 Docker，也不执行后台部署或数据库迁移；真实 PostgreSQL 升级与对象库存取属于独立的 `test:platform` 验收，不能用内存接口测试声称已经验证。
+
+Tower Brake 改为第八款 Creator 工程。四个既有工作流、Turbo 与锁文件绑定完整前后摘要，最后保存的 Pages `cbee0202b8cd6ea3f5dd626851a10e6dd602dd75` 和迁移基线 `a0b4e324c26655fabcb049d40ba0c4508b051621` 的对应输入相同。核对唯一 registry/package、输出目录、Creator 3.8.8 与实际构建命令；锁文件只复用已锁定的 Playwright/TypeScript tuple，并核对 manifest。旧 Canvas 入口/渲染/样式、排行包装及两份被整合的浏览器脚本删除绑定原始完整摘要及候选树不存在，仍选择 Tower 真实消费者。未知字节、身份冲突或重命名继续拒绝分类。
