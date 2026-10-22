@@ -24,7 +24,7 @@
     "id": "chase-thief",
     "source": "games/local/chase-thief",
     "title": "追贼别撞墙",
-    "description": "穿过老城三条街巷，跳路障、钻低杆、换道躲箱子；连续稳住三段就冲刺追近，抓住前方的小偷。",
+    "description": "沿着起伏弯曲的老城街道一路追逐，跳栏、滑铲、换道与分路选择，挑战无尽距离纪录。",
     "output": "dist"
   },
   {
