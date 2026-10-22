@@ -238,3 +238,224 @@ for (const order of ['forward', 'reverse', 'random'] as const)
   test(`全部100关 ${order} 点击顺序：完整通关、无穿模、乘客守恒、固定接客位置`, () => {
     for (const level of LEVELS) solve(level, order);
   });
+
+test('无关的北向出口立即真实移动，无需等待前车接客', () => {
+  const config: LevelConfig = {
+    id: 901,
+    title: 'Parallel north exits',
+    subtitle: '',
+    hint: '',
+    stars: [100, 200],
+    groups: [
+      { id: 'G1', size: 1 },
+      { id: 'G2', size: 1 },
+    ],
+    vehicles: [
+      { id: 'A', capacity: 4, column: 0, row: 0, direction: 'N' },
+      { id: 'B', capacity: 4, column: 4, row: 0, direction: 'N' },
+    ],
+  };
+  const s = createSimulation(config);
+  assert(dispatch(s, 'A').ok);
+  drive(s, 0.5);
+  assert(dispatch(s, 'B').ok);
+  drive(s, 0.1);
+  assert(s.vehicles[1]!.position.z < 7.5);
+  assert.equal(s.services[0]!.phase, 'driving');
+  drive(s, 1);
+  assert(s.vehicles[1]!.position.x > 8);
+  assert.equal(s.delivered.size, 0);
+  for (let i = 0; i < 2000 && !s.won; i++) drive(s, 0.05);
+  assert(s.won);
+});
+test('北向出库和邻近湾位驶出的对向汇入不会互相锁死', () => {
+  for (const delay of [3.5, 4, 4.5, 5, 5.5]) {
+    const config: LevelConfig = {
+      id: 902,
+      title: 'Local merge',
+      subtitle: '',
+      hint: '',
+      stars: [100, 200],
+      groups: [
+        { id: 'G1', size: 2 },
+        { id: 'G2', size: 2 },
+      ],
+      vehicles: [
+        { id: 'A', capacity: 4, column: 0, row: 0, direction: 'W' },
+        { id: 'B', capacity: 4, column: 1, row: 0, direction: 'N' },
+      ],
+    };
+    const s = createSimulation(config);
+    assert(dispatch(s, 'A').ok);
+    drive(s, delay);
+    assert(dispatch(s, 'B').ok);
+    for (let i = 0; i < 2000 && !s.won; i++) drive(s, 0.05);
+    assert(s.won, `merge delay ${delay}`);
+  }
+});
+test('后来分配同一湾位的车继续绕行，不在通过道堵住先分配车辆', () => {
+  const config: LevelConfig = {
+    id: 903,
+    title: 'Occupied bay through lane',
+    subtitle: '',
+    hint: '',
+    stars: [100, 200],
+    groups: Array.from({ length: 5 }, (_, i) => ({ id: `G${i}`, size: 1 })),
+    vehicles: [
+      { id: 'A', capacity: 4, column: 4, row: 0, direction: 'N' },
+      { id: 'B', capacity: 4, column: 4, row: 1, direction: 'E' },
+      { id: 'C', capacity: 4, column: 2, row: 3, direction: 'S' },
+      { id: 'D', capacity: 4, column: 0, row: 2, direction: 'W' },
+      { id: 'E', capacity: 4, column: 0, row: 0, direction: 'W' },
+    ],
+  };
+  const s = createSimulation(config);
+  for (const id of ['A', 'B', 'C', 'D', 'E']) {
+    assert(dispatch(s, id).ok);
+    drive(s, 0.5);
+  }
+  assert.equal(s.services[4]!.bayId, s.services[0]!.bayId);
+  drive(s, 1);
+  assert(s.vehicles[4]!.position.x < -11);
+  assert.equal(s.services[0]!.phase, 'driving');
+  for (let i = 0; i < 3000 && !s.won; i++) drive(s, 0.05);
+  assert(s.won);
+});
+
+test('路口先行权在不同上车时长和点击时刻保持可清场', () => {
+  // Sweep both sides of boarding/departure boundaries. A fixed dispatch cadence
+  // misses priority reversals after a car has already entered a crossing.
+  const delayTicks = [
+    ...new Set([
+      ...Array.from({ length: 81 }, (_, i) => i * 5),
+      ...Array.from({ length: 21 }, (_, i) => 90 + i),
+    ]),
+  ];
+  for (const firstDirection of ['N', 'W'] as const)
+    for (const size of [1, 2, 3, 4])
+      for (const delay of delayTicks) {
+        const config: LevelConfig = {
+          id: 904,
+          title: '局部路口延时回归',
+          subtitle: '',
+          hint: '',
+          stars: [100, 200],
+          groups: [
+            { id: 'G1', size },
+            { id: 'G2', size },
+          ],
+          vehicles: [
+            { id: 'A', capacity: 4, column: 0, row: 0, direction: firstDirection },
+            {
+              id: 'B',
+              capacity: 4,
+              column: firstDirection === 'N' ? 4 : 1,
+              row: 0,
+              direction: 'N',
+            },
+          ],
+        };
+        const s = createSimulation(config);
+        assert(dispatch(s, 'A').ok);
+        drive(s, delay * 0.05);
+        assert(dispatch(s, 'B').ok);
+        for (let i = 0; i < 3000 && !s.won; i++) drive(s, 0.05);
+        assert(s.won, firstDirection + '/' + size + '/' + delay);
+      }
+});
+
+test('真实关卡的错峰点击回放：有限交点、离站、绕行和湾口承诺都不锁死', () => {
+  const cases: { level: number; actions: [number, string][] }[] = [
+    {
+      level: 56,
+      actions: [
+        [0, '巡02'],
+        [8, '巡09'],
+        [23, '巡01'],
+        [31, '巡12'],
+        [43, '巡03'],
+        [56, '巡06'],
+        [65, '巡10'],
+        [82, '巡04'],
+        [102, '巡13'],
+        [109, '巡11'],
+        [120, '巡07'],
+        [125, '巡08'],
+        [143, '巡05'],
+      ],
+    },
+    {
+      level: 94,
+      actions: [
+        [0, '巡04'],
+        [19, '巡15'],
+        [38, '巡01'],
+        [56, '巡09'],
+        [58, '巡02'],
+        [78, '巡19'],
+        [89, '巡08'],
+        [100, '巡16'],
+        [116, '巡17'],
+        [125, '巡12'],
+        [143, '巡05'],
+        [153, '巡06'],
+        [168, '巡18'],
+        [176, '巡03'],
+        [196, '巡07'],
+        [206, '巡14'],
+        [212, '巡13'],
+        [228, '巡10'],
+        [241, '巡11'],
+      ],
+    },
+    {
+      level: 1,
+      actions: [
+        [0, '巡02'],
+        [13, '巡04'],
+        [30, '巡01'],
+        [43, '巡03'],
+        [50, '巡06'],
+        [67, '巡05'],
+      ],
+    },
+    {
+      level: 98,
+      actions: [
+        [0, '巡04'],
+        [12, '巡18'],
+        [28, '巡09'],
+        [46, '巡16'],
+        [54, '巡03'],
+        [70, '巡02'],
+        [86, '巡14'],
+        [101, '巡17'],
+        [120, '巡01'],
+        [128, '巡05'],
+        [135, '巡10'],
+        [140, '巡11'],
+        [150, '巡08'],
+        [162, '巡19'],
+        [181, '巡15'],
+        [201, '巡12'],
+        [211, '巡06'],
+        [227, '巡07'],
+        [240, '巡13'],
+      ],
+    },
+  ];
+  for (const example of cases) {
+    const s = createSimulation(LEVELS[example.level - 1]!);
+    let nextAction = 0;
+    while (!s.won && s.time < 200) {
+      const action = example.actions[nextAction];
+      if (action && s.ticks === action[0]) {
+        assert(dispatch(s, action[1]).ok, example.level + '/' + action[1]);
+        nextAction++;
+      }
+      drive(s, 0.05);
+    }
+    assert.equal(nextAction, example.actions.length);
+    assert(s.won, 'replay level ' + example.level);
+  }
+});
