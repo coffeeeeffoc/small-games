@@ -123,18 +123,24 @@ const snap = async () => {
 };
 const waitScreen = (screen) =>
   page.waitForFunction((value) => globalThis.__tower?.snapshot().screen === value, screen);
+let canvasGeometry;
 async function ready(query = '') {
   await page.goto(origin + '/' + query);
   await page.waitForFunction(() => globalThis.__tower?.snapshot().assetReady);
   await page.waitForTimeout(120);
+  const s = await snap();
+  const box = await page.locator('#GameCanvas').boundingBox();
+  assert.ok(box?.width && box?.height, 'ready canvas has a visible layout');
+  canvasGeometry = { width: s.width, height: s.height, box };
 }
 async function point(x, y) {
-  const s = await snap(),
-    b = await page.locator('#GameCanvas').boundingBox(),
-    scale = Math.min(b.width / s.width, b.height / s.height);
+  // Every navigation and viewport change runs ready(); layout is fixed during play.
+  // Avoid extra browser round trips between sampling a landing and applying the drag.
+  const { width, height, box: b } = canvasGeometry,
+    scale = Math.min(b.width / width, b.height / height);
   return {
-    x: b.x + (b.width - s.width * scale) / 2 + x * scale,
-    y: b.y + (b.height - s.height * scale) / 2 + y * scale,
+    x: b.x + (b.width - width * scale) / 2 + x * scale,
+    y: b.y + (b.height - height * scale) / 2 + y * scale,
   };
 }
 async function tap(id) {
@@ -175,7 +181,12 @@ async function win() {
     await turn(s.landing?.rotationToGap || 0);
     await page.waitForTimeout(40);
   }
-  assert.equal((await snap()).state.status, 'won');
+  const result = await snap();
+  assert.equal(
+    result.state.status,
+    'won',
+    'route ' + result.selected + ', floor ' + result.landing?.number + ', elapsed ' + result.state.elapsed,
+  );
 }
 async function lose() {
   // A frame or screenshot can cross a floor before a physical drag reaches the canvas.
