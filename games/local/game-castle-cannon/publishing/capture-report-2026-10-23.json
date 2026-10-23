@@ -1,0 +1,39 @@
+{
+  "source": "619debaf",
+  "environment": "Linux Chromium, simulated 844x390 mobile touch, 3D low-power preference, muted",
+  "events": [
+    {
+      "label": "home",
+      "seconds": 4.03
+    },
+    {
+      "label": "practice",
+      "seconds": 5.178
+    },
+    {
+      "label": "aim",
+      "seconds": 6.913
+    },
+    {
+      "label": "fire",
+      "seconds": 9.079
+    },
+    {
+      "label": "transfer-to-wall",
+      "seconds": 14.926
+    },
+    {
+      "label": "wall-ready",
+      "seconds": 24.35
+    },
+    {
+      "label": "fire",
+      "seconds": 25.905
+    },
+    {
+      "label": "pause",
+      "seconds": 31.075
+    }
+  ],
+  "errors": []
+}

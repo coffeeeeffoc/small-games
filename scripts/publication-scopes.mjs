@@ -10,6 +10,11 @@ const loadDependency = createRequire(import.meta.url);
 
 // Castle Cannon Creator migration: exact reviewed base/head bytes only.
 export const castleCreatorReviews = Object.freeze({
+  'scripts/h5-taptap-matrix.test.mjs': {
+    before: '8952a0a92f463cd20169ba30b581219efc3be59038b1480f62dfe26b8a091cb3',
+    after: '6fe5a1d627474b3cf619f24e4de21b3d92cac2eb2dec129ea85dfd82dc0c2dd6',
+    sources: [],
+  },
   '.github/workflows/carding-car.yml': {
     before: '689c4edd7ec46f6f6caa6dfd2c6eff628f47a3985ed3e882e56a2f7afd157e3f',
     after: '156789c9b27107e43481c612fdf0583acd9c2aaecd131202f2adfd39e6a7a9dd',

@@ -5,7 +5,7 @@ test('Castle Creator migration binds reviewed bytes and unique runtime identitie
     './publication-scopes.mjs'
   );
   const base = '0fadabdfc6d3144f36ef9ff004e0fc14e54e3e4d',
-    head = 'aac82db834ad68db46c3846f6dff0c7bdaf238ab',
+    head = 'c887b9b5dd397029955deb64495d5dba5c22ff33',
     source = 'games/local/game-castle-cannon';
   const cache = new Map();
   const read = (ref, file) => {

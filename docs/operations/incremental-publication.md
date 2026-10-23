@@ -91,4 +91,4 @@ Tower Brake 改为第八款 Creator 工程。四个既有工作流、Turbo 与�
 
 Tower 与并行合入的 Tetracube 构成九款 Creator Producer。组合证明绑定工作流、Turbo、锁文件与全屏副本路由共七个文件的最终完整摘要：从保存的 Pages 基线比较选择两款，从 `731dfd1188fc6a5a0f444bd0f1bb2d9a4c966d74` 比较选择 Tower；两种情况都校验两款完整身份与锁文件 manifest。原单款证明和 Tetracube 精确迁移证明保留，额外字节与未知基线继续阻断。
 
-一炮拆城改为第十一款 Creator Web 工程。本次精确证明以 0fadabdfc6d3144f36ef9ff004e0fc14e54e3e4d 为基线，历史正例固定为 aac82db834ad68db46c3846f6dff0c7bdaf238ab；19 个共享接线文件绑定完整前后摘要，并核对 castle-cannon 的唯一目录、包名、dist、Creator 3.8.8 和构建命令。Shell 相关改动保留宿主消费者，开发模式保留乌龙城 fixture；额外字节、重复身份、未知路径和错误引擎均不能借用证明。实际门禁保留源码匹配的 Creator 制品、四尺寸触控、战役胜利／下一关／存档及失败重试验证。Web 不再加载全屏脚本，原生 Canvas 兼容入口另行验收。
+一炮拆城改为第十一款 Creator Web 工程。本次精确证明以 0fadabdfc6d3144f36ef9ff004e0fc14e54e3e4d 为基线，历史正例固定为 c887b9b5dd397029955deb64495d5dba5c22ff33；20 个共享接线文件及测试预期绑定完整前后摘要，并核对 castle-cannon 的唯一目录、包名、dist、Creator 3.8.8 和构建命令。Shell 相关改动保留宿主消费者，开发模式保留乌龙城 fixture；额外字节、重复身份、未知路径和错误引擎均不能借用证明。实际门禁保留源码匹配的 Creator 制品、四尺寸触控、战役胜利／下一关／存档及失败重试验证。Web 不再加载全屏脚本，原生 Canvas 兼容入口另行验收。同步修复最新 dev 的横竖屏测试预期遗漏：仅补齐实际已有九个配置值，以完整前后摘要限定为空运行消费者，H5 构建矩阵契约仍执行。
