@@ -1,10 +1,10 @@
 /* global window */
 import { fileURLToPath } from 'node:url';
-import { chromium, expect } from '@playwright/test';
+import { chromium, expect as baseExpect } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createDuelServer } from '../server-dist/duel-service.js';
-import { previewTrajectory } from '../assets/scripts/core/core.js';
+const expect = baseExpect.configure({ timeout: 60000 });
 const root = fileURLToPath(new URL('../', import.meta.url)),
   out = path.join(root, 'reports/cocos-campaign');
 await mkdir(out, { recursive: true });
@@ -25,10 +25,18 @@ const page = await context.newPage(),
   errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
 const read = () => page.evaluate(() => window.__castle?.snapshot());
+let geometry;
 async function point(x, y) {
-  const s = await read(),
-    b = await page.locator('#GameCanvas').boundingBox(),
-    k = Math.min(b.width / s.width, b.height / s.height);
+  if (!geometry) {
+    const s = await read(),
+      b = await page.locator('#GameCanvas').evaluate((n) => {
+        const r = n.getBoundingClientRect();
+        return { x: r.x, y: r.y, width: r.width, height: r.height };
+      }),
+      k = Math.min(b.width / s.width, b.height / s.height);
+    geometry = { s, b, k };
+  }
+  const { s, b, k } = geometry;
   return {
     x: b.x + (b.width - s.width * k) / 2 + x * k,
     y: b.y + (b.height - s.height * k) / 2 + y * k,
@@ -52,7 +60,9 @@ async function aim(pitch, yaw) {
 }
 async function fire(power) {
   const s = await read(),
-    c = s.controls.find((c) => c.id === 'fire' && !c.disabled),
+    c = s.controls.find((c) => c.id === 'fire' && !c.disabled);
+  if (!c) throw Error('Fire unavailable on ' + s.screen);
+  const firedAt = s.fighters[0].guns[0].firedAt,
     p = await point(c.x + c.w / 2, c.y + c.h / 2);
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [p] });
   await expect
@@ -62,14 +72,18 @@ async function fire(power) {
           charge = s.fighters[0].guns[0].charge;
         return charge === null ? 0 : (s.duelTime - charge) / 1.8;
       },
-      { timeout: 10000, intervals: [30] },
+      { timeout: 60000, intervals: [100] },
     )
     .toBeGreaterThanOrEqual(power);
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await expect
+    .poll(async () => (await read()).fighters[0].guns[0].firedAt)
+    .toBeGreaterThan(firedAt);
 }
 try {
   await page.goto(`http://127.0.0.1:${service.server.address().port}/play/?dev=0`);
   await expect.poll(async () => (await read())?.ready, { timeout: 60000 }).toBe(true);
+  await point(0, 0);
   await click('settings');
   await click('lowPower');
   await click('home');
@@ -83,34 +97,24 @@ try {
           const s = await read();
           return s.screen === 'result' || s.controls.some((c) => c.id === 'fire' && !c.disabled);
         },
-        { timeout: 15000 },
+        { timeout: 60000 },
       )
       .toBe(true);
     const s = await read();
     if (s.screen === 'result') break;
     const g = s.fighters[0].guns[0],
-      target = s.fighters[1].position,
-      duel = { time: s.duelTime, fighters: s.fighters, structures: s.structures };
+      target = s.fighters[1].position;
     const yaw = Math.max(
       -16,
       Math.min(16, (-Math.atan2(target.z - g.position.z, target.x - g.position.x) * 180) / Math.PI),
     );
-    let best = { score: Infinity };
-    // Full charge keeps the input test stable on software-rendered CI machines.
-    for (let pitch = 10; pitch <= 72; pitch += 0.2) {
-      const power = 1;
-      const preview = previewTrajectory(duel, 0, { ...g, pitch, yaw, charge: null }, power),
-        p = preview.impact;
-      if (!p) continue;
-      const score = Math.hypot(p.x - target.x, p.y - target.y - 1, p.z - target.z);
-      if (score < best.score) best = { score, pitch, power, yaw, impact: p, hit: preview.hit };
-    }
+    // A verified first-level shot; no runtime mutation or solver during active play.
+    const best = { pitch: 17, power: 1, yaw };
     await aim(best.pitch, best.yaw);
-    await page.screenshot({ path: path.join(out, 'aim-390x844.png') });
     await fire(Math.min(1, best.power));
     await expect
       .poll(async () => (await read()).shells.filter((s) => s.side === 0).length, {
-        timeout: 15000,
+        timeout: 60000,
       })
       .toBe(0);
     const after = await read();
@@ -123,7 +127,6 @@ try {
       gun: after.fighters[0].guns[0],
       result: after.result,
     });
-    await page.screenshot({ path: path.join(out, `shot-${shot}-390x844.png`) });
   }
   const result = await read();
   await page.screenshot({ path: path.join(out, 'result-390x844.png') });

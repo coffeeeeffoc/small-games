@@ -25,7 +25,7 @@ export class CastleUI {
   }
   begin(){this.controls=[];this.seen.clear();}
   end(){for(const[id,n]of this.nodes)if(!this.seen.has(id))n.active=false;}
-  cached(id:string){this.seen.add(id);let n=this.nodes.get(id);if(!n){n=this.node(id);this.nodes.set(id,n);}n.active=true;n.setSiblingIndex(this.root.children.length-1);return n;}
+  cached(id:string){this.seen.add(id);let n=this.nodes.get(id);if(!n){n=this.node(id);this.nodes.set(id,n);}n.active=true;const order=this.seen.size-1;if(n.getSiblingIndex()!==order)n.setSiblingIndex(order);return n;}
   place(n:Node,x:number,y:number,w:number,h:number){n.setPosition(x+w/2-W/2,this.H/2-y-h/2);n.getComponent(UITransform)!.setContentSize(w,h);}
   sprite(id:string,kind:string,x:number,y:number,w:number,h:number,tint='#ffffff'){const n=this.cached(id);this.place(n,x,y,w,h);if(kind!=='fire'){n.getComponent(UITransform)!.setContentSize(w/0.15,h/0.15);n.setScale(0.15,0.15,1);}const s=n.getComponent(Sprite)||n.addComponent(Sprite);s.spriteFrame=this.frames.get(kind)!;s.type=kind==='fire'?Sprite.Type.SIMPLE:Sprite.Type.SLICED;s.sizeMode=Sprite.SizeMode.CUSTOM;s.color=color(tint);return n;}
   panel(id:string,x:number,y:number,w:number,h:number){return this.sprite(id,'panel',x,y,w,h);}
@@ -38,6 +38,6 @@ export class CastleUI {
   at(x:number,y:number){return [...this.controls].reverse().find(c=>x>=c.x&&x<=c.x+c.w&&y>=c.y&&y<=c.y+c.h);}
   bar(id:string,value:number,x:number,y:number,w:number,fill:string){this.rect(id+'bg',x,y,w,7,'#101d27');this.rect(id,x,y,Math.max(0,Math.min(1,value))*w,7,fill);}
   charge(x:number,y:number,size:number,power:number){const n=this.cached('charge-ring');this.place(n,x,y,size,size);const g=n.getComponent(Graphics)||n.addComponent(Graphics);g.clear();g.strokeColor=color('#ffe3a0');g.lineWidth=3;g.arc(0,0,size/2-2,Math.PI/2,Math.PI/2-Math.PI*2*power,true);g.stroke();}
-  serverField(value:string,y:number){const n=this.cached('server-input');this.place(n,30,y,300,this.hitSize);if(!this.server){this.server=n.addComponent(EditBox);this.server.inputMode=EditBox.InputMode.URL;this.server.maxLength=250;const text=this.node('server-value',n),label=text.addComponent(Label);text.getComponent(UITransform)!.setContentSize(280,this.hitSize);label.fontSize=14;label.color=color('#fff1cd');label.overflow=Label.Overflow.SHRINK;this.server.textLabel=label;this.server.string=value;}return this.server;}
+  serverField(value:string,y:number){const n=this.cached('server-input');this.place(n,30,y,300,this.hitSize);if(!this.server){this.server=n.addComponent(EditBox);this.server.inputMode=EditBox.InputMode.URL;this.server.maxLength=250;this.server.placeholder='当前站点';for(const label of [this.server.textLabel,this.server.placeholderLabel])if(label){label.node.getComponent(UITransform)!.setAnchorPoint(0,1);label.horizontalAlign=Label.HorizontalAlign.LEFT;label.verticalAlign=Label.VerticalAlign.CENTER;label.fontSize=14;label.lineHeight=20;label.color=color('#fff1cd');label.overflow=Label.Overflow.SHRINK;}this.server.string=value;}return this.server;}
   dispose(){this.disposed=true;this.root.destroy();this.camera.node.destroy();for(const f of this.frames.values())f.destroy();this.texture?.destroy();}
 }
