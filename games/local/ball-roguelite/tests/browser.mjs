@@ -63,6 +63,7 @@ const report = {
   passed: false,
 };
 let active;
+const touchSessions = new WeakMap();
 const snap = (page) => page.locator('#arena').evaluate((element) => element.getOrbitSnapshot());
 const saved = (page) => page.evaluate((key) => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
 const busy = (phase) => ['flight', 'recall'].includes(phase);
@@ -148,23 +149,38 @@ async function shot(page, dx, dy, cancel = false) {
   );
   assert(scale > 0 && dy * scale < -6, 'planned direction remains valid within the touch board');
   const map = (x, y) => ({ x: box.x + (x * box.width) / 390, y: box.y + (y * box.height) / 620 });
-  const cdp = await page.context().newCDPSession(page);
-  try {
-    await cdp.send('Input.dispatchTouchEvent', {
-      type: 'touchStart',
-      touchPoints: [map(state.launchX, baseY)],
-    });
-    await cdp.send('Input.dispatchTouchEvent', {
-      type: 'touchMove',
-      touchPoints: [map(state.launchX + dx * scale, baseY + dy * scale)],
-    });
-    await cdp.send('Input.dispatchTouchEvent', {
-      type: cancel ? 'touchCancel' : 'touchEnd',
-      touchPoints: [],
-    });
-  } finally {
-    await cdp.detach();
+  // Chromium 140 clears touch emulation when an input CDP session detaches.
+  // Keep one per page until its context closes, including across reloads.
+  let cdp = touchSessions.get(page);
+  if (!cdp) {
+    cdp = await page.context().newCDPSession(page);
+    touchSessions.set(page, cdp);
   }
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [map(state.launchX, baseY)],
+  });
+  await expect
+    .poll(async () => (await snap(page)).aiming, { message: 'touchStart must begin aiming' })
+    .toBe(true);
+  assert.equal((await snap(page)).shots, state.shots, 'touchStart must not launch');
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: 'touchMove',
+    touchPoints: [map(state.launchX + dx * scale, baseY + dy * scale)],
+  });
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: cancel ? 'touchCancel' : 'touchEnd',
+    touchPoints: [],
+  });
+  await expect
+    .poll(
+      async () => {
+        const { aiming, shots } = await snap(page);
+        return { aiming, shots };
+      },
+      { message: cancel ? 'cancelled touch must not launch' : 'touchEnd must launch exactly once' },
+    )
+    .toEqual({ aiming: false, shots: state.shots + (cancel ? 0 : 1) });
 }
 async function capture(page, name, scene = page) {
   // Semantic controls update before Cocos submits its new display list.
@@ -493,6 +509,10 @@ try {
   await leave(page);
   const savedTurn = (await saved(page)).runs.campaign.turn;
   await page.reload();
+  assert(
+    await page.evaluate(() => 'ontouchstart' in document.documentElement && navigator.maxTouchPoints > 0),
+    'CDP gestures must preserve mobile touch capability across reload',
+  );
   await page.locator('#settings-button').tap();
   await expect(page.locator('#settings-sound')).toHaveAttribute('aria-pressed', 'false');
   await expect(page.locator('#settings-haptics')).toHaveAttribute('aria-pressed', 'true');
@@ -522,6 +542,13 @@ try {
     }
   }
   assert.equal((await snap(page)).phase, 'won');
+  const won = await snap(page);
+  report.naturalCampaign = {
+    seed: won.initialSeed,
+    shots: won.shots,
+    turn: won.turn,
+    phase: won.phase,
+  };
   await capture(page, 'victory-390');
   await page.locator('#next').tap();
   assert.equal((await snap(page)).levelId, 'prism');

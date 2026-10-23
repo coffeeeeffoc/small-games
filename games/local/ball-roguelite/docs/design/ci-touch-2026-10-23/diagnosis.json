@@ -1,0 +1,105 @@
+{
+  "base": "aa154c5d6bd7c4398ef31e69ff18b02c481250f2",
+  "environment": {
+    "node": "24.21.0",
+    "pnpm": "12.6.0",
+    "playwright": "1.55.1",
+    "chromium": "140.0.7339.186",
+    "platform": "Linux mobile touch emulation; not a physical device"
+  },
+  "baseline": {
+    "assertion": "aim !== won at tests/browser.mjs:524",
+    "rounds": 40,
+    "unchangedState": {
+      "shots": 1,
+      "turn": 1,
+      "phase": "aim",
+      "aiming": false,
+      "launchX": 90.81143529584222
+    },
+    "allRoundsSame": true,
+    "domTouchEvents": 120,
+    "cocosTouchEvents": 0,
+    "firstGesture": [
+      {
+        "type": "touchstart",
+        "target": "GameCanvas",
+        "points": [
+          {
+            "id": 0,
+            "x": 90.81143188476562,
+            "y": 663
+          }
+        ],
+        "state": {
+          "screen": "playing",
+          "phase": "aim",
+          "shots": 1,
+          "aiming": false,
+          "turn": 1
+        }
+      },
+      {
+        "type": "touchmove",
+        "target": "GameCanvas",
+        "points": [
+          {
+            "id": 0,
+            "x": 23,
+            "y": 627.3226928710938
+          }
+        ],
+        "state": {
+          "screen": "playing",
+          "phase": "aim",
+          "shots": 1,
+          "aiming": false,
+          "turn": 1
+        }
+      },
+      {
+        "type": "touchend",
+        "target": "GameCanvas",
+        "points": [
+          {
+            "id": 0,
+            "x": 23,
+            "y": 627.3226928710938
+          }
+        ],
+        "state": {
+          "screen": "playing",
+          "phase": "aim",
+          "shots": 1,
+          "aiming": false,
+          "turn": 1
+        }
+      }
+    ]
+  },
+  "lifecycleProbe": [
+    {
+      "point": "initial",
+      "ontouchstart": true,
+      "maxTouchPoints": 1,
+      "cocosTouchCanvas": "GameCanvas"
+    },
+    {
+      "point": "after cancelling a gesture and detaching its CDP session",
+      "ontouchstart": true,
+      "maxTouchPoints": 0,
+      "cocosTouchCanvas": "GameCanvas"
+    },
+    {
+      "point": "after page reload",
+      "ontouchstart": false,
+      "maxTouchPoints": 0,
+      "cocosTouchCanvas": null
+    },
+    {
+      "point": "after another full CDP gesture",
+      "phase": "aim",
+      "shots": 0
+    }
+  ]
+}
