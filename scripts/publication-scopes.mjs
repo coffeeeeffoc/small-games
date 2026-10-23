@@ -37,7 +37,7 @@ export const castleCreatorReviews = Object.freeze({
   },
   'apps/shell-web/scripts/game-checks/castle-cannon.mjs': {
     before: '6e2b0fd6a44a776e553fe09ed6f7235c1225282d8613b23168156a4fc0eeadcb',
-    after: '348464e0001fa86a2b6574b3bab8ed3c4ec82b2626b30389c41d2ea020dc6b9d',
+    after: '5c655baca51a037d8642f9c1862a0bfc20045c812e07ec2f94735dfc960c39ee',
     sources: ['games/local/game-castle-cannon', 'apps/shell-web'],
   },
   'apps/shell-web/scripts/pages-smoke.mjs': {
