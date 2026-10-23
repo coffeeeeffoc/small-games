@@ -178,23 +178,30 @@ async function win() {
   assert.equal((await snap()).state.status, 'won');
 }
 async function lose() {
-  const s = await snap(),
-    l =
-      s.state.mode === 'endless'
-        ? createEndlessLayer(s.state.totalFloors, 0)
-        : LEVELS[s.selected].layers[s.state.nextLayer],
-    d = l.danger[0];
-  const angle =
-    normalizeAngle(
-      BALL_ANGLE -
-        d.start -
-        normalizeAngle(d.end - d.start) / 2 -
-        s.state.rotation -
-        layerRotationAt(l, s.state.elapsed) +
-        Math.PI,
-    ) - Math.PI;
-  await turn(angle);
-  await waitScreen('result');
+  // A frame or screenshot can cross a floor before a physical drag reaches the canvas.
+  // Keep aiming at the current landing, including a second hit after a shield bounce.
+  const deadline = performance.now() + 30_000;
+  for (let attempt = 0; attempt < 500 && performance.now() < deadline; attempt++) {
+    const s = await snap();
+    if (s.screen === 'result') break;
+    const l =
+        s.state.mode === 'endless'
+          ? createEndlessLayer(s.landing.number - 1, 0)
+          : LEVELS[s.selected].layers[s.state.nextLayer],
+      d = l.danger[0];
+    const angle =
+      normalizeAngle(
+        BALL_ANGLE -
+          d.start -
+          normalizeAngle(d.end - d.start) / 2 -
+          s.state.rotation -
+          layerRotationAt(l, s.state.elapsed) +
+          Math.PI,
+      ) - Math.PI;
+    await turn(angle);
+    await page.waitForTimeout(40);
+  }
+  assert.equal((await snap()).screen, 'result');
   assert.equal((await snap()).state.status, 'lost');
 }
 async function challenge(index) {

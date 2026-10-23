@@ -23,3 +23,5 @@ The two new newline regressions failed on the unmodified code and passed after t
 ## Production-config browser follow-up
 
 The first exact candidate (697d1a1d40901c167be385c6f2596c26a665549d) passed real Creator builds, static checks and Three Choose Two browser checks. Tower reached five gameplay groups, then its delayed-connect test timed out: the test mocked only /api/competition/, while the production artifact calls /small-games/v1. The test now reads the generated competition-config.js and intercepts that exact API base, preserving the emitted production configuration and all connecting/blur/timer assertions. A request-count assertion proves that starting a run actually reaches the delayed mock. No gameplay code changed.
+
+The production browser run also exposed a timing-sensitive failure helper after endless floor 80: one drag could use a landing sampled before the next floor was reached. The helper now re-reads the actual landing and physically aims at its danger area within the original 30-second bound, including shield consumption, and still requires a lost result. Runtime rules are unchanged.
