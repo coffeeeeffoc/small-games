@@ -66,11 +66,15 @@ const apiBase = new URL(
 ).href.replace(/\/$/, '');
 const isCompetitionRequest = (url) => new URL(url).href.startsWith(apiBase + '/');
 report.apiBase = apiBase;
-let requestDelay = 0,
+let requestGate = null,
+  releaseRequests = () => {},
   delayedRequests = 0;
 await context.route(isCompetitionRequest, async (route) => {
-  if (requestDelay) delayedRequests++;
-  if (requestDelay) await new Promise((resolve) => setTimeout(resolve, requestDelay));
+  const gate = requestGate;
+  if (gate) {
+    delayedRequests++;
+    await gate;
+  }
   await route.fulfill({
     status: 503,
     contentType: 'application/json',
@@ -175,11 +179,32 @@ async function shot(name) {
   report.videoCues.push({ name, timeSeconds: (performance.now() - videoStart) / 1000 });
 }
 async function win() {
-  for (let i = 0; i < 500; i++) {
-    const s = await snap();
-    if (s.screen === 'result') break;
-    await turn(s.landing?.rotationToGap || 0);
-    await page.waitForTimeout(40);
+  // Keep a real finger down while steering; restarting a gesture for every sample
+  // adds three protocol round trips and can miss a fast layer transition.
+  let x = 180;
+  const touch = async (type) => cdp.send('Input.dispatchTouchEvent', {
+    type,
+    touchPoints: type === 'touchEnd' ? [] : [{ ...(await point(x, 350)), id: 1 }],
+  });
+  await touch('touchStart');
+  const deadline = performance.now() + 30_000;
+  try {
+    for (let i = 0; i < 500 && performance.now() < deadline; i++) {
+      const s = await snap();
+      if (s.screen === 'result') break;
+      const dx = (-(s.landing?.rotationToGap || 0) / (Math.PI * 1.7)) * 360;
+      if (x + dx < 20 || x + dx > 340) {
+        await touch('touchEnd');
+        x = dx < 0 ? 300 : 60;
+        await touch('touchStart');
+        continue; // Re-sample the landing after re-positioning the finger.
+      }
+      x += dx;
+      await touch('touchMove');
+      await page.waitForTimeout(16);
+    }
+  } finally {
+    await touch('touchEnd');
   }
   const result = await snap();
   assert.equal(
@@ -341,13 +366,23 @@ try {
   check(
     'Thin, middle, snow and rain routes completed through shared-challenge touch input; returning home restores camera and normal progress',
   );
-  requestDelay = 500;
+  // Keep shared initialization/start authentication pending until blur is observed.
+  requestGate = new Promise((resolve) => {
+    releaseRequests = resolve;
+  });
   const delayedBeforeStart = delayedRequests;
   await ready();
   await tap('start');
   await waitScreen('connecting');
   assert.ok(delayedRequests > delayedBeforeStart, 'start must wait on a request intercepted by the delayed API mock');
-  await page.evaluate(() => dispatchEvent(new Event('blur')));
+  const screenAtBlur = await page.evaluate(() => {
+    const screen = globalThis.__tower.snapshot().screen;
+    dispatchEvent(new Event('blur'));
+    return screen;
+  });
+  assert.equal(screenAtBlur, 'connecting', 'blur must happen while start is pending');
+  releaseRequests();
+  requestGate = null;
   await waitScreen('paused');
   assert.equal((await snap()).state.elapsed, 0, 'blur during connection must not start the clock');
   await page.waitForTimeout(250);
@@ -356,7 +391,6 @@ try {
   await waitScreen('playing');
   await tap('pause');
   await tap('home');
-  requestDelay = 0;
   check(
     'Blur while a delayed start request is pending requires explicit resume and preserves zero elapsed time',
   );
@@ -464,6 +498,7 @@ try {
   await copyFile(raw, new URL('tower-brake-cocos-touch-390x844.webm', videos));
   report.video = 'publishing/gameplay/videos/tower-brake-cocos-touch-390x844.webm';
 } finally {
+  releaseRequests();
   report.errors = [...errors];
   report.engineWarnings = [...engineWarnings];
   await writeFile(new URL('browser-report.json', evidence), JSON.stringify(report, null, 2) + '\n');
