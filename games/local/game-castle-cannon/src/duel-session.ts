@@ -190,11 +190,11 @@ export async function createDuelSession(
       v.campaignLevel = null;
       return;
     }
-    if (id === 'pause') {
-      if (v.screen !== 'playing') return;
+    if (id === 'pause' || id === 'leave') {
+      if (v.screen !== 'playing' && !(id === 'leave' && v.screen === 'paused')) return;
       cancel();
       autoPaused = false;
-      v.screen = 'paused';
+      v.screen = id === 'leave' ? 'confirm' : 'paused';
       return;
     }
     if (id === 'resume') {
@@ -202,11 +202,6 @@ export async function createDuelSession(
       cancel();
       autoPaused = false;
       v.screen = 'playing';
-      return;
-    }
-    if (id === 'leave') {
-      cancel();
-      v.screen = 'confirm';
       return;
     }
     if (id === 'back') {
@@ -250,6 +245,9 @@ export async function createDuelSession(
     action,
     input,
     cancel,
+    get online() {
+      return !!connection;
+    },
     practice,
     previewCampaign(index: number) {
       if (developer) startCampaign(index, true);

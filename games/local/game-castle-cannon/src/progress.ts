@@ -29,7 +29,9 @@ export function readProgress(raw: JsonValue): Progress {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw) || raw.version !== 1) return p;
   const ids = new Set(CAMPAIGN.map((l) => l.id));
   p.cleared = Array.isArray(raw.cleared)
-    ? [...new Set(raw.cleared.filter((id): id is string => typeof id === 'string' && ids.has(id)))]
+    ? Array.from(
+        new Set(raw.cleared.filter((id): id is string => typeof id === 'string' && ids.has(id))),
+      )
     : [];
   p.bonus = Array.isArray(raw.bonus)
     ? raw.bonus.filter((id): id is string => typeof id === 'string' && p.cleared.includes(id))
@@ -43,7 +45,7 @@ export function readProgress(raw: JsonValue): Progress {
       ? Math.max(0, Math.min(10000, raw.materials))
       : 0;
   p.owned = Array.isArray(raw.owned)
-    ? [0, ...new Set(raw.owned.filter((n): n is number => n === 1 || n === 2))]
+    ? [0, ...Array.from(new Set(raw.owned.filter((n): n is number => n === 1 || n === 2)))]
     : [0];
   p.skin = raw.skin === 1 || raw.skin === 2 ? (p.owned.includes(raw.skin) ? raw.skin : 0) : 0;
   p.sound = typeof raw.sound === 'boolean' ? raw.sound : true;

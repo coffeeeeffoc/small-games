@@ -32,6 +32,7 @@ export function StandaloneGame({
     id === 'merge-front' ||
     id === 'tower-brake' ||
     id === 'tetracube' ||
+    id === 'castle-cannon' ||
     id === 'ink-is-everything' ||
     id === 'ball-roguelite' ||
     id === 'flick-arena' ||

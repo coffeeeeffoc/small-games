@@ -14,6 +14,7 @@ export const games = [
   'tower-brake',
   'tetracube',
   'three-choose-two',
+  'game-castle-cannon',
 ];
 const creator = '3.8.8';
 const platform = 'web-mobile';

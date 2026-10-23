@@ -12,6 +12,7 @@ for (const [game, variable] of [
   ['tower-brake', 'TOWER_BRAKE_PREBUILT_DIR'],
   ['tetracube', 'TETRACUBE_PREBUILT_DIR'],
   ['three-choose-two', 'THREE_CHOOSE_TWO_PREBUILT_DIR'],
+  ['game-castle-cannon', 'CASTLE_CANNON_PREBUILT_DIR'],
 ])
   test(`${game}: required Cocos inputs are checked before cache reuse`, async () => {
     const root = await mkdtemp(path.join(tmpdir(), 'cocos-input-'));

@@ -666,6 +666,14 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
     );
     execute(process.execPath, [`${source}/tests/${file}`], root, env, 'logged');
   }
+  if (plan.browser && plan.browser_ids?.includes('castle-cannon'))
+    execute(
+      process.execPath,
+      ['games/local/game-castle-cannon/scripts/cocos-smoke.mjs'],
+      root,
+      env,
+      'logged',
+    );
   if (plan.safe_area_checks) {
     execute(
       process.execPath,
