@@ -124,7 +124,7 @@ Shell 保留全部 42 款可玩入口，提供 **全部游戏 / 上轮已改造 
 - **上轮已落实**：连穿倍率得分与目标分比较；固定路线分享挑战隔离正常解锁；下一关自然断点接入频控模拟广告，保留免费续关。
 - **下一步**：继续验证小屏落点预告与连穿风险回报，补真实用户首局完成率、复玩率及原生渠道验收。
 - **拓展方向**：同题挑战、内容分享；是适配方向，已有能力与待做能力以证据和实现为准。
-- **证据**：[games/local/tower-brake/README.md](../../games/local/tower-brake/README.md)、[games/local/tower-brake/docs/design/publishing/README.md](../../games/local/tower-brake/docs/design/publishing/README.md)、[games/local/tower-brake/docs/design/publishing/browser-report.json](../../games/local/tower-brake/docs/design/publishing/browser-report.json)；上轮有 Linux Chromium 触屏模拟记录，不是真机验证。
+- **证据**：[games/local/tower-brake/README.md](../../games/local/tower-brake/README.md)、[games/local/tower-brake/docs/design/publishing/README.md](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/tower-brake/docs/design/publishing/README.md)、[games/local/tower-brake/docs/design/publishing/browser-report.json](../../games/local/tower-brake/docs/design/publishing/browser-report.json)；上轮有 Linux Chromium 触屏模拟记录，不是真机验证。
 
 <a id="game-chase-thief"></a>
 
@@ -140,7 +140,7 @@ Shell 保留全部 42 款可玩入口，提供 **全部游戏 / 上轮已改造 
 - **本轮已落实**：新增同街区用时、冲刺与失误成绩挑战，可接受未解锁街区邀请且不写普通最佳和解锁；开发试玩成绩不可分享，失败提供手动复制降级；场景第二触点不触发额外动作，取消和失焦清除手势；自然结算接可关闭、可配置关闭的频控模拟插屏。
 - **下一步**：暂缓继续改造，保留现有内容与历史验证记录。
 - **拓展方向**：同题挑战、内容分享；是适配方向，已有能力与待做能力以证据和实现为准。
-- **证据**：[games/local/chase-thief/README.md](../../games/local/chase-thief/README.md)、[games/local/chase-thief/docs/design/expansion-2026-10-11/README.md](../../games/local/chase-thief/docs/design/expansion-2026-10-11/README.md)、[games/local/chase-thief/docs/design/expansion-2026-10-11/browser-report.json](../../games/local/chase-thief/docs/design/expansion-2026-10-11/browser-report.json)；本轮有 Linux Chromium 触屏模拟记录，不是真机验证。
+- **证据**：[games/local/chase-thief/README.md](../../games/local/chase-thief/README.md)、[games/local/chase-thief/docs/design/expansion-2026-10-11/README.md](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/chase-thief/docs/design/expansion-2026-10-11/README.md)、[games/local/chase-thief/docs/design/expansion-2026-10-11/browser-report.json](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/chase-thief/docs/design/expansion-2026-10-11/browser-report.json)；本轮有 Linux Chromium 触屏模拟记录，不是真机验证。
 
 <a id="game-orbit-atelier"></a>
 

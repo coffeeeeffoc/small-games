@@ -54,7 +54,7 @@ FLICK_COMPETITION_API=http://127.0.0.1:4430/api/competition/v1 node games/local/
 
 ## 验证记录
 
-本次复查与扩展方案、效果图、实际手机截图和报告见 [120 关复查](docs/design/review-2026-10-11/README.md)。原有记录保留在 [闯关与好友擂台](docs/design/campaign-friends-2026-10-11/README.md)、[首版](docs/design/README.md) 与 [多回合改造](docs/design/multi-round-2026-10-09/README.md)。
+本次复查与扩展方案、效果图、实际手机截图和报告见 [120 关复查](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/flick-arena/docs/design/review-2026-10-11/README.md)。原有记录保留在 [闯关与好友擂台](docs/design/campaign-friends-2026-10-11/README.md)、[首版](docs/design/README.md) 与 [多回合改造](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/flick-arena/docs/design/multi-round-2026-10-09/README.md)。
 
 浏览器使用 Chromium 手机模拟和真实触屏事件；在线使用独立身份、实际 HTTP 服务和 PostgreSQL。尚未执行微信开发者工具、iOS/Android 真机或原生渠道联机验收。
 

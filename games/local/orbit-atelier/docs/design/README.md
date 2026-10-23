@@ -1,27 +1,7 @@
-# 星扣工坊 · Orbit Atelier
+# 星扣工坊 · 当前设计
 
-**2026-10-22 当前重构：** [Cocos玩法](cocos-rebuild-2026-10-21/01-gameplay.md) · [效果图](cocos-rebuild-2026-10-21/02-concept.png) · [24关设计](cocos-rebuild-2026-10-21/03-levels.md) · [实际验证记录](cocos-rebuild-2026-10-21/05-verification.md) · [Cocos运行截图](cocos-rebuild-2026-10-21/actual/mobile-home.png)。已完成真实Creator构建和桌面触屏模拟。下文及旧子目录均为历史SVG版本记录，不是新版本验收证据。
+[当前玩法](cocos-rebuild-2026-10-21/01-gameplay.md)、[关卡设计](cocos-rebuild-2026-10-21/03-levels.md)、[实现说明](cocos-rebuild-2026-10-21/04-implementation.md)、[Cocos 验收](cocos-rebuild-2026-10-21/05-verification.md)、[奖励流程](rewards-2026-10-24.md)。
 
-`concept.png` 是原创视觉概念板，包含主页、游玩和选关三种手机页面，作为 UI 实现前的方向参考。目标视口为 390 × 844；概念图中的设备外框、纹理和插画细节不要求逐像素实现。
+[游戏入口与命令](../../README.md) · [上架资料](../../publishing/STATUS.md)。概念图、浏览器模拟、真机与渠道验收按各记录的环境区分。
 
-2026-10-13 新增可见穿扣及 50 关，现为八章 74 关。该历史版本的设计与运行证据见 [穿扣扩展](real-interlock-2026-10-13/README.md)，下文三章和原截图保留为初版设计记录。
-
-## 视觉方向
-
-温暖的机械天文工坊：奶油纸底 `#f5f1e7`，墨黑文字 `#243b3b`，青绿 `#27766e`，珊瑚 `#de7b63`，金铜 `#c99845`。C 形圆环采用原创几何构形，配合细铜色刻度、小星图与轻微金属高光。页面保持留白与简洁，主要注意力落在圆环解扣上。
-
-主页展示标题「星扣工坊」、主按钮「开始解扣」以及「选关」「设置」入口。游玩页顶部仅保留返回、关卡和暂停，中央放置可旋转的 C 环阵列，底部提供撤回和提示。选关以三个章节展示，每章八关，以圆形编号表达进度。
-
-## 布局
-
-竖屏适合圆形解扣：上方状态区与底部工具区围绕中央的圆形棋盘，手指在环缘拖动时能保留足够空间。高视口桌面保持居中的手机卡面；手机横屏改用左侧棋盘、右侧状态与操作的紧凑布局，所有操作在视口内可达，方向变化保留对局。
-
-## 实现对照
-
-实际界面保留图稿的纸色背景、铜色边框、衬线标题和双色工具按钮。星环用独立 SVG 绘制边缘、刻度、铆钉与锁栓，主页采用同一套视觉元素；选关通过三章的星图徽记和圆形编号显示正常解锁进度。
-
-`mobile-home.png`、`mobile-playing.png`、`mobile-levels.png` 为手机生产运行画面；`mobile-paused.png`、`mobile-result.png` 记录暂停及结算；`mobile-small.png` 与 `mobile-landscape.png` 分别覆盖 320 × 640 和 844 × 390。`mobile-final-playing.png` 与 `mobile-star-locks.png` 展示最终复杂星盘及锁栓倒计时。`iframe-home.png` 记录嵌入入口。概念图与这些运行截图分别保存，验证环境和触屏动作以 `browser-report.json` 为准。
-
-## 原创边界
-
-参考的是旋转开口圆环、调整方位并解开相互阻挡关系的玩法方向。名称、界面构图、配色、装饰、关卡数据和代码均需独立设计；不复用参考游戏的截图、素材、音效、文字或关卡排布。
+旧方案、被替代的页面和多轮截图已精简；需要追溯时查看[整理前的设计记录](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/orbit-atelier/docs/design/README.md)。仍被评估清单引用的旧报告保留其原始日期，不代表本次重新验证。

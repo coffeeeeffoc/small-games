@@ -2,7 +2,7 @@
 
 这是独立的 Node.js 24 API 服务，使用内置 `node:sqlite`，无需安装运行时 npm 依赖。服务端负责计时、发题、判分、好友挑战和榜单；只返回评分，不返回正确年份、坐标或答案解析。默认只启动 API；配置 `HISTORY_STATIC_DIR` 后，也可在同一端口托管已构建的前端。
 
-本目录提供后端预实现及部署配置，**不代表生产环境已经上线**。已实际验证 Docker 镜像构建、非 root 只读容器启动、健康检查及容器重启/重建后的账号与成绩恢复，见 [容器验证记录](../docs/design/mobile-pk-2026-10-09/container-verification.json)。上线仍需真实 HTTPS 域名、可信身份服务和持续更新的私有题库；公网部署和生产压测未执行。
+本目录提供后端预实现及部署配置，**不代表生产环境已经上线**。已实际验证 Docker 镜像构建、非 root 只读容器启动、健康检查及容器重启/重建后的账号与成绩恢复，见 [容器验证记录](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/vibeJam-myself-history-guess/docs/design/mobile-pk-2026-10-09/container-verification.json)。上线仍需真实 HTTPS 域名、可信身份服务和持续更新的私有题库；公网部署和生产压测未执行。
 
 ## 本地启动
 

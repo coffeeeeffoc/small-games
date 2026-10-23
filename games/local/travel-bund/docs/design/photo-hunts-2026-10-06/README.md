@@ -2,7 +2,7 @@
 
 ![首页、照片选关、游玩和通关效果图](concept.png)
 
-本轮在既有奶油纸色、深青文字、珊瑚按钮与薄荷色卡片中增加照片寻景玩法。先查看了 `../revision-2026-10-05/home.png` 与 `../revision-2026-10-05/tour-portrait.png`，随后依据最新 `../mobile-2026-10-06/concept.png` 与设计说明，统一改为横屏逻辑视口，沿用首页的实际场景预览。本图由内置 imagegen 参考以上截图与最新布局生成，是设计预览；实际游戏界面、材质和照片以本轮运行截图为准。生成图中的局部字形、建筑比例和重复动作图标仅作示意，实际游玩保留一个拍照入口与一个手记入口。首轮竖屏探索图保存在 `concept-portrait-revision.png`，不作为最终布局依据。
+本轮在既有奶油纸色、深青文字、珊瑚按钮与薄荷色卡片中增加照片寻景玩法。先查看了 [历史记录：../revision-2026-10-05/home.png](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/travel-bund/docs/design/revision-2026-10-05/home.png) 与 [历史记录：../revision-2026-10-05/tour-portrait.png](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/travel-bund/docs/design/revision-2026-10-05/tour-portrait.png)，随后依据最新 `../mobile-2026-10-06/concept.png` 与设计说明，统一改为横屏逻辑视口，沿用首页的实际场景预览。本图由内置 imagegen 参考以上截图与最新布局生成，是设计预览；实际游戏界面、材质和照片以本轮运行截图为准。生成图中的局部字形、建筑比例和重复动作图标仅作示意，实际游玩保留一个拍照入口与一个手记入口。首轮竖屏探索图保存在 `concept-portrait-revision.png`，不作为最终布局依据。
 
 ## 页面与操作
 

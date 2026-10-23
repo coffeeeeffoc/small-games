@@ -23,7 +23,7 @@
   "coreTests": {
     "passed": 31,
     "failed": 0,
-    "evidence": "reports/balance-overhaul/core-tests.log",
+    "evidence": "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/night-overwatch/reports/balance-overhaul/core-tests.log",
     "diagnostics": [
       {
         "at180": {
@@ -258,12 +258,12 @@
       "12 friendly vehicles and 80/30 ammunition are visible in the game"
     ],
     "evidence": [
-      "reports/balance-overhaul/1366-forest-detail.png",
-      "reports/balance-overhaul/844-forest-detail.png",
-      "reports/balance-overhaul/1366-pause.png",
-      "reports/balance-overhaul/568-pause.png"
+      "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/night-overwatch/reports/balance-overhaul/1366-forest-detail.png",
+      "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/night-overwatch/reports/balance-overhaul/844-forest-detail.png",
+      "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/night-overwatch/reports/balance-overhaul/1366-pause.png",
+      "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/night-overwatch/reports/balance-overhaul/568-pause.png"
     ],
-    "rejectedIteration": "reports/balance-overhaul/1366-forest-too-dark.png"
+    "rejectedIteration": "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/night-overwatch/reports/balance-overhaul/1366-forest-too-dark.png"
   },
   "previews": [
     {
@@ -302,17 +302,17 @@
     "bufferBytes": 8437056,
     "newDrawCalls": 0,
     "newTextures": 0,
-    "evidence": "reports/balance-overhaul/tree-geometry.log"
+    "evidence": "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/night-overwatch/reports/balance-overhaul/tree-geometry.log"
   },
   "evidence": [
-    "reports/balance-overhaul/flight/2026-09-28T19-32-12.682Z-42812/desktop-success.json",
-    "reports/balance-overhaul/flight/2026-09-28T19-40-02.401Z-42036/forgiving-touch-results.json",
-    "reports/polish/balance-overhaul/h5/results.json",
+    "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/night-overwatch/reports/balance-overhaul/flight/2026-09-28T19-32-12.682Z-42812/desktop-success.json",
+    "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/night-overwatch/reports/balance-overhaul/flight/2026-09-28T19-40-02.401Z-42036/forgiving-touch-results.json",
+    "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/night-overwatch/reports/polish/balance-overhaul/h5/results.json",
     "reports/final-smoke.json"
   ],
   "previousRound": {
     "sourceHash": "f509cac21fd919de0b8fde34dbe4ba208153931c5c7c317996386b6c5aeb8008",
-    "evidence": "reports/balance-overhaul/previous-verification.json",
+    "evidence": "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/night-overwatch/reports/balance-overhaul/previous-verification.json",
     "note": "Historical results only; current balance and ammunition differ."
   },
   "lifecycle": {

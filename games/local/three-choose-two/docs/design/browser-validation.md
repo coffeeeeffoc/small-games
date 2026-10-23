@@ -1,6 +1,6 @@
 # 三块选两块浏览器验证记录
 
-日期：2026-10-07。结果：**16 项通过，19 张实际截图，未捕获到未处理的页面异常**。机器可读完整结果见 [actual/verification.json](actual/verification.json)，可重复执行的流程见 [../../tests/browser.mjs](../../tests/browser.mjs)。
+日期：2026-10-07。结果：**16 项通过，19 张实际截图，未捕获到未处理的页面异常**。机器可读完整结果见 [actual/verification.json](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/three-choose-two/docs/design/actual/verification.json)，可重复执行的流程见 [../../tests/browser.mjs](../../tests/browser.mjs)。
 
 ## 环境与方法
 
@@ -39,21 +39,21 @@
 
 | 页面/状态 | 实际截图 |
 | --- | --- |
-| 首页 | [home-390x844.png](actual/home-390x844.png) |
-| 选关 | [levels-390x844.png](actual/levels-390x844.png) |
-| 准备 | [brief-390x844.png](actual/brief-390x844.png) |
-| 游戏 | [game-390x844.png](actual/game-390x844.png) |
-| 合法预览 | [game-valid-preview-390x844.png](actual/game-valid-preview-390x844.png) |
-| 非法预览 | [game-invalid-preview-390x844.png](actual/game-invalid-preview-390x844.png) |
-| 第一次落子后 | [game-after-first-390x844.png](actual/game-after-first-390x844.png) |
-| 暂停 | [pause-390x844.png](actual/pause-390x844.png) |
-| 成功结算 | [result-win-390x844.png](actual/result-win-390x844.png) |
-| 失败结算 | [result-failure-390x844.png](actual/result-failure-390x844.png) |
-| 无尽结算 | [practice-result-390x844.png](actual/practice-result-390x844.png) |
-| 排行榜断连 | [ranking-offline-390x844.png](actual/ranking-offline-390x844.png) |
-| 设置 | [settings-390x844.png](actual/settings-390x844.png) |
-| 320 × 568 游戏 | [game-320x568.png](actual/game-320x568.png) |
-| 确认奖励重启 fixture | [confirmed-reward-fixture-restored-390x844.png](actual/confirmed-reward-fixture-restored-390x844.png) |
+| 首页 | [home-390x844.png](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/three-choose-two/docs/design/actual/home-390x844.png) |
+| 选关 | [levels-390x844.png](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/three-choose-two/docs/design/actual/levels-390x844.png) |
+| 准备 | [brief-390x844.png](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/three-choose-two/docs/design/actual/brief-390x844.png) |
+| 游戏 | [game-390x844.png](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/three-choose-two/docs/design/actual/game-390x844.png) |
+| 合法预览 | [game-valid-preview-390x844.png](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/three-choose-two/docs/design/actual/game-valid-preview-390x844.png) |
+| 非法预览 | [game-invalid-preview-390x844.png](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/three-choose-two/docs/design/actual/game-invalid-preview-390x844.png) |
+| 第一次落子后 | [game-after-first-390x844.png](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/three-choose-two/docs/design/actual/game-after-first-390x844.png) |
+| 暂停 | [pause-390x844.png](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/three-choose-two/docs/design/actual/pause-390x844.png) |
+| 成功结算 | [result-win-390x844.png](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/three-choose-two/docs/design/actual/result-win-390x844.png) |
+| 失败结算 | [result-failure-390x844.png](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/three-choose-two/docs/design/actual/result-failure-390x844.png) |
+| 无尽结算 | [practice-result-390x844.png](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/three-choose-two/docs/design/actual/practice-result-390x844.png) |
+| 排行榜断连 | [ranking-offline-390x844.png](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/three-choose-two/docs/design/actual/ranking-offline-390x844.png) |
+| 设置 | [settings-390x844.png](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/three-choose-two/docs/design/actual/settings-390x844.png) |
+| 320 × 568 游戏 | [game-320x568.png](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/three-choose-two/docs/design/actual/game-320x568.png) |
+| 确认奖励重启 fixture | [confirmed-reward-fixture-restored-390x844.png](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/three-choose-two/docs/design/actual/confirmed-reward-fixture-restored-390x844.png) |
 
 ## 实际范围
 

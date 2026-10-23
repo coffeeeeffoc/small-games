@@ -53,7 +53,7 @@ Web/H5 `?dev=1`、`?dev=0` 和 `localStorage.dev` 通过公共 `SmallGamesDev` �
 - `src/progress.mjs`、`host.mjs`、`audio.mjs`：本机成长、宿主适配、原创合成音效。
 - `tests/`：规则、30 关正常输入可达性、存档及宿主、浏览器流程与广告奖励回归。
 - [设计与验收](docs/design/README.md)：效果图、手机运行图、平衡参数和验证边界。
-- [本轮全员救援、街机画面及性能记录](docs/design/arcade-2026-10-11/README.md)。普通浏览器回归覆盖渲染生命周期；设 `CAGE_RESCUE_STRESS=1` 运行电脑/触屏各连续两遍六关。实际 Shell 检查先构建 Shell 和本游戏，再执行 `node games/local/cage-rescue/tests/shell-performance.mjs`。
+- [本轮全员救援、街机画面及性能记录](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/cage-rescue/docs/design/arcade-2026-10-11/README.md)。普通浏览器回归覆盖渲染生命周期；设 `CAGE_RESCUE_STRESS=1` 运行电脑/触屏各连续两遍六关。实际 Shell 检查先构建 Shell 和本游戏，再执行 `node games/local/cage-rescue/tests/shell-performance.mjs`。
 
 新增游戏尚未产生 Git 提交时，仓库的 `check:games` 会要求真实提交元数据。按仓库规范，在提交源码后运行 `pnpm sync:game-meta`，不要填入伪造的提交时间或 SHA。未初始化的独立游戏子模块也会阻止全仓配置及全屏副本检查。
 

@@ -101,7 +101,7 @@ Web/H5 公开入口支持 `?mission=corridor-01` / `ambush-02` / `patrol-03` / `
 - `tests/presentation.mjs`：四个视口的真实全屏出入、操作文案、友伤警报、落点快照与日光/热成像截图。
 - `tests/polish.mjs`：同场景前后截图、实际双指输入与滑出/滑回、录像和初次加载采样。
 - `tests/h5.mjs`：实际 Shell iframe、低高度面板、旋屏、全屏失败回退、模拟安全区和偏好持久化。
-- `docs/POLISH.md`：本次逐轮问题、修改、证据与固定质量门槛。
+- [历史记录：docs/POLISH.md](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/night-overwatch/docs/POLISH.md)：本次逐轮问题、修改、证据与固定质量门槛。
 - `docs/STATUS.md`：实际验收结果、截图与未验证边界。
 
 浏览器测试需要运行中的预览服务和 Chrome，或设置 `PLAYWRIGHT_EXECUTABLE_PATH`。QA 入口要求显式指定已确认的构建哈希，入口会同时核对服务端构建和当前源码；不匹配则停止：

@@ -171,8 +171,8 @@ cops-robbers 曾仍有游戏端 `ads.js` 的 45 秒总超时，以及 `main.js` 
 ## 本次归档与边界
 
 - [最终修复与失败／通过证据](../../games/submodules/xiangqi-five/docs/design/h5-ad-open-timeout-2026-10-19/README.md)：47 项相关回归、三种手机尺寸的整包触屏流程、虚拟时钟十分钟结束页案例通过。
-- [此前 180 秒方案的记录](../../games/submodules/xiangqi-five/docs/design/h5-ad-timing-fix-2026-10-18/README.md)：仅是中间版本，已被最终方案替代。
-- [可见性问题记录](../../games/submodules/xiangqi-five/docs/design/h5-ad-host-fix-2026-10-18/validation.md)：记录 Window 监听遗漏，不能单独证明超时已修好。
+- [此前 180 秒方案的历史记录](https://github.com/coffeeeeffoc/xiangqi-five/blob/fe1c870f3713bb0b19e2ea503a137f86c5c51fa4/docs/design/h5-ad-timing-fix-2026-10-18/README.md)：仅是中间版本，已被最终方案替代。
+- [可见性问题与最终修复](../../games/submodules/xiangqi-five/docs/design/h5-ad-open-timeout-2026-10-19/README.md)：保留 Window 监听遗漏和旧测试未冒泡造成误通过的原因，分别说明历史证据与最终超时验证。
 - 最终本地包：`outputs/xiangqi-five-h5-ad-open-timeout-2026-10-19/xiangqi-five-taptap-h5-ads-on-service-off.zip`，SHA-256 `cb521b295ccef16c100f347067b402f98d8cd70bb5213478482246385b07e228`。
 - 未完成本包的 TapTap 上传、真机真实广告和平台验收。不能把其他会话截图中的“实机成功”移用为本包证据；发布时另按[增量发布验证](incremental-publication.md)执行。
 

@@ -13,15 +13,15 @@
 
 游戏 Vitest 64 条测试，包括保留的旧存档/素材测试及新增对战规则、网络、输入和存档测试。类型检查、lint、生产前端及服务端构建通过。仓库游戏登记和依赖边界通过；统一 dev 静态/单元检查、定向生产浏览器 10 项检查通过；Shell 嵌入、390×844 实际触屏操作和返回通过。发布分类 25 项测试通过，新的游戏行为契约只选择 castle-cannon，不放宽其他共享脚本检查。
 
-`smoke` 的 5 组详细清单见 [actual/verification.json](actual/verification.json)。[concept.png](concept.png) 为设计依据，实际截图来自运行的新版本。
+`smoke` 的 5 组详细清单见 [actual/verification.json](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/game-castle-cannon/docs/design/artillery-duel-2026-10-09/actual/verification.json)。[concept.png](concept.png) 为设计依据，实际截图来自运行的新版本。
 
 ## 画面对照
 
-- [主页](actual/landscape-home.png)、[练习地图](actual/landscape-maps.png)：沿用石木和黄铜风格，突出主要操作。
-- [炮战](actual/landscape-shot.png)、[望远镜](actual/landscape-scope.png)、[城墙炮](actual/landscape-wall-gun.png)：远城、近炮、装填/蓄力反馈及拇指操作。保留上一炮真实轨迹，没有必中预览。
-- [转移](actual/landscape-moving.png)、[趴下](actual/landscape-crouch.png)、[竖屏](actual/portrait-shot.png)、[iframe](actual/iframe-shot.png)：完整界面旋转与触点映射。暂停为两根等高分离实心竖条。
-- [濒死](actual/critical-injury.png)、[治疗](actual/critical-healing.png)、[城毁](actual/critical-exposed-bunker.png)、[地堡炮](actual/critical-bunker-gun.png)：红边不挡操作，地堡采用集成的 Hyper3D 模型。
-- [真人战斗](actual/human-blue-battle.png)、[另一侧](actual/human-red-battle.png)、[胜利](actual/human-red-victory.png)：来自两个实际配对客户端。
+- [主页](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/game-castle-cannon/docs/design/artillery-duel-2026-10-09/actual/landscape-home.png)、[练习地图](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/game-castle-cannon/docs/design/artillery-duel-2026-10-09/actual/landscape-maps.png)：沿用石木和黄铜风格，突出主要操作。
+- [炮战](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/game-castle-cannon/docs/design/artillery-duel-2026-10-09/actual/landscape-shot.png)、[望远镜](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/game-castle-cannon/docs/design/artillery-duel-2026-10-09/actual/landscape-scope.png)、[城墙炮](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/game-castle-cannon/docs/design/artillery-duel-2026-10-09/actual/landscape-wall-gun.png)：远城、近炮、装填/蓄力反馈及拇指操作。保留上一炮真实轨迹，没有必中预览。
+- [转移](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/game-castle-cannon/docs/design/artillery-duel-2026-10-09/actual/landscape-moving.png)、[趴下](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/game-castle-cannon/docs/design/artillery-duel-2026-10-09/actual/landscape-crouch.png)、[竖屏](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/game-castle-cannon/docs/design/artillery-duel-2026-10-09/actual/portrait-shot.png)、[iframe](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/game-castle-cannon/docs/design/artillery-duel-2026-10-09/actual/iframe-shot.png)：完整界面旋转与触点映射。暂停为两根等高分离实心竖条。
+- [濒死](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/game-castle-cannon/docs/design/artillery-duel-2026-10-09/actual/critical-injury.png)、[治疗](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/game-castle-cannon/docs/design/artillery-duel-2026-10-09/actual/critical-healing.png)、[城毁](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/game-castle-cannon/docs/design/artillery-duel-2026-10-09/actual/critical-exposed-bunker.png)、[地堡炮](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/game-castle-cannon/docs/design/artillery-duel-2026-10-09/actual/critical-bunker-gun.png)：红边不挡操作，地堡采用集成的 Hyper3D 模型。
+- [真人战斗](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/game-castle-cannon/docs/design/artillery-duel-2026-10-09/actual/human-blue-battle.png)、[另一侧](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/game-castle-cannon/docs/design/artillery-duel-2026-10-09/actual/human-red-battle.png)、[胜利](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/game-castle-cannon/docs/design/artillery-duel-2026-10-09/actual/human-red-victory.png)：来自两个实际配对客户端。
 
 实际画面复用现有模型和常驻炮位控件，没有逐像素复制概念图的电影光照及装饰。摄像机已调整以避免支撑柱遮挡近景炮身。
 
@@ -29,6 +29,6 @@
 
 素材缺口仅新增地堡，Rodin ID `cc9076e8-ca33-4927-9c41-d8572ccf9a91`，[永久来源](https://hyper3d.ai/workspace/rodin/cc9076e8-ca33-4927-9c41-d8572ccf9a91)，源文件和哈希在 `source/`。炮、角色、城楼、山地、树石、材质及音效复用。
 
-标准画质 768×432 3D 渲染，省电 384×216 且关闭阴影；HUD 独立保持清晰。[性能记录](actual/performance-evidence.json) 为这台桌面 RTX 3070 Ti 的 15 秒采样，约 61 FPS，不代表手机性能。
+标准画质 768×432 3D 渲染，省电 384×216 且关闭阴影；HUD 独立保持清晰。[性能记录](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/game-castle-cannon/docs/design/artillery-duel-2026-10-09/actual/performance-evidence.json) 为这台桌面 RTX 3070 Ti 的 15 秒采样，约 61 FPS，不代表手机性能。
 
 原生发布门禁依仓库当前默认暂缓；未运行微信开发者工具、真机、原生联网桥或公网负载验收。没有修改腾讯云部署。准确候选的正常门禁、dev 推送、CI/Pages 状态在最终交付核对，不将本地通过写成线上发布成功。

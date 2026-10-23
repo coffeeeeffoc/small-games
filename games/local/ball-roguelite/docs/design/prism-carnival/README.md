@@ -20,4 +20,4 @@
 
 真机与真实广告 SDK 仍是独立验收范围；不得将浏览器触屏模拟称为手机真机。
 
-实施与验证见 [验证记录](verification.md)、[规则策略对照](balance-report.json) 和 `actual/` 中的生产构建截图。
+实施与验证见 [验证记录](verification.md)、[规则策略对照](balance-report.json) 和 [历史记录：actual/](https://github.com/coffeeeeffoc/small-games/tree/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/ball-roguelite/docs/design/prism-carnival/actual) 中的生产构建截图。
