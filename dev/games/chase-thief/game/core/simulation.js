@@ -57,6 +57,7 @@ export const RULES = Object.freeze({
                      
                     
                      
+                                
                         
                    
                         
@@ -106,6 +107,7 @@ export function createRun({
     collisions: 0,
     successes: 0,
     protection: 0,
+    rewardProtectionUsed: false,
     slowRemaining: 0,
     nextWave: 0,
     obstacles: [],
@@ -149,6 +151,12 @@ export function resumeRun(run     ) {
     run.phase = 'running';
     run.accumulator = 0;
   }
+}
+export function rewardProtection(run     )          {
+  if (run.phase !== 'paused' || run.rewardProtectionUsed) return false;
+  run.rewardProtectionUsed = true;
+  run.protection = Math.max(run.protection, 5);
+  return true;
 }
 export function markPractice(run     ) {
   run.practice = true;

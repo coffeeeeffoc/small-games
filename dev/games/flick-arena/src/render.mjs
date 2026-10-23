@@ -714,11 +714,12 @@ export function draw(c, app) {
     button('play-level', '上擂台', 50, 606, 290, 55, true);
     button('levels', '返回选关', 80, 683, 230, 48);
   } else if (screen === 'friends') {
-    heading('好友擂台', '同机切磋，或邀请朋友各自入席');
+    heading('好友擂台', app.onlineAvailable === false ? '共用一台设备，轮流出招' : '同机切磋，或邀请朋友各自入席');
     table(c, 195, 316, 87);
     fighter(c, 145, 308, 30, 0, false, t);
     fighter(c, 245, 308, 30, 1, false, t);
     button('local2', '同机双人 · 三局两胜', 40, 440, 310, 55, true);
+    if (app.onlineAvailable !== false) {
     button(
       'online-create',
       '创建房间 · 2–4 人',
@@ -741,6 +742,7 @@ export function draw(c, app) {
       null,
       app.onlineAvailable === false,
     );
+    }
     text(
       c,
       app.onlineAvailable === false
@@ -1103,9 +1105,10 @@ export function draw(c, app) {
           3,
         );
       }
-      if (app.drag) {
-        const dx = app.drag.dx,
-          dy = app.drag.dy,
+      const aim = app.drag || (canAim ? app.aimHint : null);
+      if (aim) {
+        const dx = aim.dx,
+          dy = aim.dy,
           len = Math.hypot(dx, dy),
           power = Math.min(1, len / 115);
         const preview = previewAim(state, -dx, -dy, power),
@@ -1138,7 +1141,7 @@ export function draw(c, app) {
           c.restore();
           circle(c, arena.x + end.x * arena.scale, arena.y + end.y * arena.scale, 2, previewColor);
         }
-        text(c, `力度 ${Math.round(power * 100)}% · 预计滑行`, 195, 605, 18, '#f9d58b');
+        text(c, `力度 ${Math.round(power * 100)}% · ${app.drag ? '预计滑行' : '提示方向 · 自行拖拽出手'}`, 195, 605, 18, '#f9d58b');
         rect(c, 90, 632, 210, 7, 3, '#07191e');
         if (power > 0.01)
           rect(c, 90, 632, 210 * power, 7, 3, out || ringRisk ? '#e97950' : '#f4ca77');
@@ -1213,6 +1216,12 @@ export function draw(c, app) {
         .forEach((d) =>
           fighter(c, 195 + d.x * scale, 363 + d.y * scale, physics.puck * scale, identity(d.id)),
         );
+      if (app.rewardHintEligible) {
+        button(app.rewardPending ? 'reward-cancel' : 'reward-hint',
+          app.rewardPending ? '取消提示' : app.rewardHintUsed ? '本局提示已使用' : '观看后获取瞄准提示 · 一次',
+          45, 444, 300, 48, false, null, !app.rewardPending && app.rewardHintUsed);
+        text(c, app.rewardMessage || '完整观看领取 · 免费拖拽预览保留', 195, 713, 13, '#f9d58b');
+      }
       button('resume', '继续切磋', 60, 518, 270, 54, true);
       button('sound', app.save.sound ? '音效：开' : '音效：关', 60, 586, 270, 48);
       button(

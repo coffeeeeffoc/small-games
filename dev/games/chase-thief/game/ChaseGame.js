@@ -9,6 +9,7 @@ import {
   resumeRun,
   drainEvents,
   markPractice,
+  rewardProtection,
 } from './core/simulation.js';
 import { loadProgress, recordRun, SAVE_KEY, LEGACY_KEY } from './core/progress.js';
 import { sampleRoute, DISTRICTS, DISTRICT_NAMES } from './core/route.js';
@@ -52,6 +53,10 @@ export class ChaseGame {
   ready = false;
   manual = false;
   disposed = false;
+  rewardToken = 0;
+  rewardPending = false;
+  rewardPort      = null;
+  rewardMessage = '';
   activeTouch                = null;
   startPoint      = null;
   pressed      = null;
@@ -164,6 +169,7 @@ export class ChaseGame {
     this.height = Math.max(660, Math.min(950, 390 * ratio));
     this.width = 390;
     cc.view.setDesignResolutionSize(this.width, this.height, cc.ResolutionPolicy.SHOW_ALL);
+    if (canvas) cc.director.root?.resize(canvas.width, canvas.height);
     this.hud.resize(this.width, this.height);
     this.activeTouch = null;
     this.startPoint = null;
@@ -192,6 +198,7 @@ export class ChaseGame {
     }
   }
   show(screen        ) {
+    this.cancelReward();
     this.screen = screen;
     this.activeTouch = null;
     this.startPoint = null;
@@ -200,6 +207,8 @@ export class ChaseGame {
     this.syncHost();
   }
   start(practice = false) {
+    this.cancelReward();
+    this.rewardMessage = '';
     this.run = createRun({
       seed: ((Date.now() >>> 0) ^ Math.floor(Math.random() * 0x7fffffff)) >>> 0,
       departure: this.progress.selected,
@@ -219,6 +228,13 @@ export class ChaseGame {
     if (this.disposed) return;
     this.inputCount++;
     this.play('click', 0.2);
+    if (id === 'reward-protection') { void this.requestProtection(); return; }
+    if (id === 'reward-cancel') {
+      this.cancelReward();
+      this.rewardMessage = '已取消 · 未获得保护';
+      return;
+    }
+    this.cancelReward();
     if (id === 'start' || id === 'retry') this.start();
     else if (id === 'home') {
       pauseRun(this.run);
@@ -252,6 +268,34 @@ export class ChaseGame {
       this.inputCount++;
       if (action === 'jump' || action === 'slide') this.play(action);
     }
+  }
+  cancelReward() {
+    ++this.rewardToken;
+    const port = this.rewardPort;
+    this.rewardPort = null;
+    this.rewardPending = false;
+    port?.cancel?.();
+  }
+  async requestProtection() {
+    const run = this.run, port = host.SmallGamesRewardAds;
+    if (this.disposed || this.rewardPending || this.screen !== 'paused' ||
+        run.phase !== 'paused' || run.rewardProtectionUsed) return;
+    if (!port?.available) {
+      this.rewardMessage = '保护暂不可用 · 可继续免费游玩';
+      return;
+    }
+    const token = ++this.rewardToken;
+    this.rewardPending = true;
+    this.rewardPort = port;
+    this.rewardMessage = '正在准备保护 · 可取消';
+    let status = 'failed';
+    try { status = (await port.offer({ id: 'chase-thief:protection' }))?.status; } catch {}
+    if (this.disposed || token !== this.rewardToken || this.run !== run || this.screen !== 'paused') return;
+    this.rewardPending = false;
+    this.rewardPort = null;
+    this.rewardMessage = status === 'completed' && rewardProtection(run)
+      ? '保护已就绪 · 继续后计时，不计纪录'
+      : status === 'dismissed' ? '已取消 · 未获得保护' : '未获得保护 · 可继续游玩';
   }
   pause() {
     if (this.screen !== 'running') return;
@@ -338,14 +382,23 @@ export class ChaseGame {
       const visibility = () => {
         if (host.document.hidden) blur();
       };
+      const pagehide = () => {
+        this.cancelReward();
+        blur();
+      };
+      // Reapply the HUD after Cocos updates its viewport and Canvas camera.
+      cc.view.on('canvas-resize', resize);
       host.addEventListener('resize', resize);
       host.addEventListener('blur', blur);
+      host.addEventListener('pagehide', pagehide);
       host.document.addEventListener('visibilitychange', visibility);
       host.document.addEventListener('game-displaychange', resize);
       this.removers.push(
+        () => cc.view.off('canvas-resize', resize),
         () => host.document.removeEventListener('game-displaychange', resize),
         () => host.removeEventListener('resize', resize),
         () => host.removeEventListener('blur', blur),
+        () => host.removeEventListener('pagehide', pagehide),
         () => host.document.removeEventListener('visibilitychange', visibility),
       );
     }
@@ -368,7 +421,7 @@ export class ChaseGame {
     }
     if (this.run.phase === 'lost' && this.screen === 'running') {
       this.resultNewRecord =
-        !this.run.practice && this.run.s > (this.progress.best[this.run.departure]?.distance || 0);
+        !this.run.practice && !this.run.rewardProtectionUsed && this.run.s > (this.progress.best[this.run.departure]?.distance || 0);
       this.progress = recordRun(this.progress, this.run);
       this.persist();
       this.play('hit', 0.7);
@@ -398,6 +451,8 @@ export class ChaseGame {
       district,
       toast: this.toast,
       resultNewRecord: this.resultNewRecord,
+      rewardPending: this.rewardPending,
+      rewardMessage: this.rewardMessage,
       legacyLink: this.legacyLink,
       fullscreen: !!host.document?.fullscreenElement,
       canFullscreen: !!host.document?.documentElement?.requestFullscreen,
@@ -428,6 +483,8 @@ export class ChaseGame {
       coins: r.coins,
       combo: r.combo,
       practice: r.practice,
+      rewardProtectionUsed: r.rewardProtectionUsed,
+      rewardPending: this.rewardPending,
       seed: r.seed,
       departure: r.departure,
       district: sampleRoute(r.s, r.seed, r.departure).district,
@@ -440,6 +497,7 @@ export class ChaseGame {
   destroy() {
     if (this.disposed) return;
     this.disposed = true;
+    this.cancelReward();
     for (const fn of this.removers) fn();
     this.sound.stop();
     this.sound.node.destroy();

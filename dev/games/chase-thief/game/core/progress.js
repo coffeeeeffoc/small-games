@@ -94,7 +94,7 @@ export function loadProgress(raw         , legacyRaw          = null)           
 /** Only maxima are recorded, so repeated result delivery is idempotent. No currency is minted here. */
 export function recordRun(progress          , run     )           {
   const next = loadProgress(progress);
-  if (run.practice || run.invincible || run.phase !== 'lost') return next;
+  if (run.practice || run.invincible || run.rewardProtectionUsed || run.phase !== 'lost') return next;
   const result = {
     distance: Math.floor(run.s),
     score: run.score,

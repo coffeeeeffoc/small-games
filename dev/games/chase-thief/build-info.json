@@ -8,7 +8,7 @@
   "sources": [
     [
       "ChaseGame.ts",
-      "742736d459e2ba389639a40ffcc9af846f41849e530db5fda14f186726c4bdc3"
+      "0bb443b1ff2b884e4af54d84db63cecddfa98b1dbe2f21ba69c85081c9b06bd1"
     ],
     [
       "Geometry.ts",
@@ -16,7 +16,7 @@
     ],
     [
       "Hud.ts",
-      "c84e323479bcb7a85ef5ea76219137fdad66f4eb9845697b8e5346ed73dad56f"
+      "8e604d17ae117a2adb89d0239ec8533466eedc1f121c61010d0d3e85fb04d6e8"
     ],
     [
       "Materials.ts",
@@ -32,7 +32,7 @@
     ],
     [
       "core/progress.ts",
-      "4e79998439d8662189c315a647341c91c0a9e0b7e37ebe5150189717a8dcfc06"
+      "29610c30612fc31714e849dc34499c57a9b37c9f23960fccad77d84df6a44c58"
     ],
     [
       "core/route.ts",
@@ -40,10 +40,10 @@
     ],
     [
       "core/simulation.ts",
-      "b694030e136f9d73488f85c207805d556c5aefc8aa51385519f62b5c9ada2a3d"
+      "fccb1b13c082242a2d2e57ce2ae42765f8df46605e0e2f02864759c4c4d4a8ce"
     ]
   ],
-  "artifactSha256": "f87875ca0e45d5bc7b58270ebc658c16e7f07d86061d43005a87e875d37a66c4",
+  "artifactSha256": "6d35cb05525246d5002280bfb4b8f4df2ae05540ed07e140345ff4c3746d5862",
   "runtimeFiles": [
     {
       "path": "art/city-models.json",
@@ -107,13 +107,13 @@
     },
     {
       "path": "game/ChaseGame.js",
-      "bytes": 15140,
-      "sha256": "583a926205adbeccc3b723fc06bbbafbd92cf0dac37256b6f0568494b75035f5"
+      "bytes": 17453,
+      "sha256": "2faf2c89808b8d25d41f2d14af7058bda17b767c9faeb43c8c5fa5adab91e973"
     },
     {
       "path": "game/core/progress.js",
-      "bytes": 3680,
-      "sha256": "6775f4b66abd15e88e11b2d883b110068ecc2af96b73d3e59c3ff4bdc6749e79"
+      "bytes": 3708,
+      "sha256": "3f2b0b0ab623b88e5361fc8de0c107ff358a8c0451c7339d3c4d60b5d39a8132"
     },
     {
       "path": "game/core/route.js",
@@ -122,8 +122,8 @@
     },
     {
       "path": "game/core/simulation.js",
-      "bytes": 9933,
-      "sha256": "8e9ef44006d210c1369ee7bc48f75f07cca057e9bc982cc6ec1639e1ac89f9c3"
+      "bytes": 10225,
+      "sha256": "db44671a77c51f9fc2dfa073fb5f3843bab4a06cd6d82e01d2605043146eab6e"
     },
     {
       "path": "game/Geometry.js",
@@ -132,8 +132,8 @@
     },
     {
       "path": "game/Hud.js",
-      "bytes": 12422,
-      "sha256": "f588cc22f5baf132eb9ff1923a556827eca65eeceb3156f07fcde2ce7c90c408"
+      "bytes": 13250,
+      "sha256": "d8be0586dfa89ac7c09f068ef7a00f6cffc2376b7d2f4acc9f7ec0e8069ccae4"
     },
     {
       "path": "game/Materials.js",

@@ -35,7 +35,7 @@ export function createLeaderboard({ gameId, ruleVersion, moduleUrl, onStatus = (
   const status = (value) => {
     onStatus(labels[value] || labels.local, value);
   };
-  const ready = import(moduleUrl)
+  const ready = globalThis.__COMPETITION_CONFIG__?.enabled === false ? Promise.resolve() : import(moduleUrl)
     .then(({ createGameServices, createRunRecorder }) => {
       services = createGameServices({ gameId, ruleVersion });
       recorder = createRunRecorder(services, { onStatus: status });

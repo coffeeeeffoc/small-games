@@ -131,6 +131,9 @@ export class Hud {
       state.resultNewRecord,
       state.legacyLink,
       state.fullscreen,
+      state.rewardPending,
+      state.rewardMessage,
+      run.rewardProtectionUsed,
     ].join(':');
     if (this.key !== key) {
       this.key = key;
@@ -204,7 +207,7 @@ export class Hud {
           this.button('home', '返回', 125, Math.max(608, h - 76), 140, 48);
         } else if (screen === 'paused') {
           const y = Math.max(120, h / 2 - 210);
-          this.panel(24, y, 342, 420, '#f5e9d1', 24);
+          this.panel(24, y, 342, 480, '#f5e9d1', 24);
           this.text('title', '歇一口气', 195, y + 50, 33, '#244641');
           this.text(
             'pause-distance',
@@ -218,7 +221,12 @@ export class Hud {
           this.button('retry', '重新开始', 46, y + 216, 298, 50);
           this.button('settings', '设置', 46, y + 282, 140, 50);
           this.button('home', '返回街区', 204, y + 282, 140, 50);
-          this.text('pause-note', '暂停期间不会前进', 195, y + 374, 14, '#697366');
+          if (state.rewardPending || !run.rewardProtectionUsed)
+            this.button(state.rewardPending ? 'reward-cancel' : 'reward-protection',
+              state.rewardPending ? '取消保护' : '观看后保护5秒 · 本局一次', 46, y + 346, 298, 50);
+          this.text('pause-note', state.rewardMessage || (run.rewardProtectionUsed
+            ? '保护已使用 · 本局不计纪录' : '完整观看领取 · 沟壑仍需跳跃'), 195, y + 424, 14, '#697366', 320);
+          this.text('reward-record', '补给局不计纪录 · 暂停不消耗保护', 195, y + 451, 13, '#697366', 320);
         } else if (screen === 'settings') {
           this.text('title', '设置', 195, 85, 32);
           for (const [i, item] of [
@@ -275,6 +283,8 @@ export class Hud {
             'result-new',
             run.practice
               ? '开发试玩 · 不记录成绩'
+              : run.rewardProtectionUsed
+                ? '辅助追逐 · 不记录成绩'
               : state.resultNewRecord
                 ? '新的最远纪录'
                 : '下一次，再追远一点',
@@ -308,7 +318,9 @@ export class Hud {
       }
       for (const x of [344, 354]) this.panel(x, 48, 5, 25, '#fff4d8', 1, this.live);
       this.text('district-live', DISTRICT_NAMES[state.district], 295, 111, 14, '#f9efd8', 155);
-      const hint = state.toast || run.hint;
+      const hint = run.rewardProtectionUsed && run.protection > 0
+        ? `碰撞保护 ${run.protection.toFixed(1)}秒 · 沟壑仍需跳跃`
+        : state.toast || run.hint;
       if (hint) {
         this.panel(29, 151, 332, 44, '#173e3ddd', 14, this.live);
         this.text('hint', hint, 195, 173, 16, '#fff1d1', 324);

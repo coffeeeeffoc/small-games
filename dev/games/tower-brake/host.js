@@ -27,6 +27,7 @@ globalThis.__towerHost = {
   },
   connect(value) {
     controller = value;
+    if (globalThis.__COMPETITION_CONFIG__?.enabled === false) return;
     services = createGameServices({ gameId: 'tower-brake', ruleVersion: value.version });
     recorder = createRunRecorder(services, { onStatus: value.status });
     services

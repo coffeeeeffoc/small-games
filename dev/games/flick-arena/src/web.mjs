@@ -9,7 +9,8 @@ import { W, H } from './render.mjs';
 import '../competition-client.js';
 import { createOnlineClient, invitationCode } from './online.mjs';
 import { levels } from './levels.mjs';
-globalThis.__installCompetition({ ...globalThis.__COMPETITION_CONFIG__, game: 'flick-arena' });
+if (globalThis.__COMPETITION_CONFIG__?.enabled !== false)
+  globalThis.__installCompetition({ ...globalThis.__COMPETITION_CONFIG__, game: 'flick-arena' });
 const canvas = document.querySelector('#game'),
   stage = document.querySelector('#stage'),
   controls = document.querySelector('#controls'),
@@ -19,7 +20,7 @@ let game;
 const runtime = await startCocos(canvas, (dt) => game?.tick(dt));
 const renderer = createCocosRenderer(runtime);
 canvas.dataset.engine = 'cocos-3.8.8';
-canvas.dataset.rewardAdsAvailable = String(globalThis.SmallGamesRewardAds.available);
+canvas.dataset.rewardAdsAvailable = String(globalThis.SmallGamesRewardAds?.available === true);
 let saved;
 try {
   saved = JSON.parse(localStorage.getItem(saveKey));
@@ -396,12 +397,13 @@ if (dev?.isEnabled()) {
   cleanSnapshot = dev.registerSnapshot(() => ({ ...game.debug(), rendering: renderer.stats() }));
 }
 const invited = invitationCode(location.href);
-if (invited && online.savedCode() === invited) void game.restoreRoom();
-else if (invited) game.joinInvitation(invited);
-else if (!challenge && online.savedCode()) void game.restoreRoom();
+if (online.available && invited && online.savedCode() === invited) void game.restoreRoom();
+else if (online.available && invited) game.joinInvitation(invited);
+else if (online.available && !challenge && online.savedCode()) void game.restoreRoom();
 window.addEventListener(
   'pagehide',
   (e) => {
+    game.cancelReward();
     if (e.persisted) {
       game.pause();
       return;
@@ -409,7 +411,7 @@ window.addEventListener(
     observer.disconnect();
     game.dispose();
     publishing.dispose();
-    globalThis.SmallGamesRewardAds.dispose();
+    globalThis.SmallGamesRewardAds?.dispose();
     runtime.dispose();
     cleanActions?.();
     cleanSnapshot?.();
