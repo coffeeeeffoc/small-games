@@ -3691,6 +3691,65 @@ export const towerTetracubeIntegrationHashes = Object.freeze({
   'pnpm-lock.yaml': '6779080d02bd8f6cc0a83543b3193b59ce2a28b8967108b15be20e1e01be666a',
 });
 
+// Only the reviewed Tower configuration wiring is removed before applying the
+// existing cumulative migration proof; every other byte and consumer stays bound.
+const towerArtifactConfigChanges = {
+  '.github/workflows/carding-car.yml': [
+    [
+      '    inputs:\n',
+      "    inputs:\n      competition_public_api_url:\n        description: Public API URL used to fingerprint and build Tower Brake artifacts.\n        type: string\n        default: ''\n",
+    ],
+    [
+      '  reuse:\n    if: inputs.reuse_ci\n',
+      '  reuse:\n    if: inputs.reuse_ci\n    env:\n      COMPETITION_PUBLIC_API_URL: ${{ inputs.competition_public_api_url }}\n',
+    ],
+    [
+      '    runs-on: windows-latest\n',
+      "    runs-on: windows-latest\n    env:\n      COMPETITION_PUBLIC_API_URL: ${{ matrix.game == 'tower-brake' && inputs.competition_public_api_url || '' }}\n",
+    ],
+  ],
+  '.github/workflows/pages-validate.yml': [
+    [
+      "      reuse_ci: ${{ github.event_name == 'push' && inputs.cocos }}\n",
+      "      reuse_ci: ${{ github.event_name == 'push' && inputs.cocos }}\n      competition_public_api_url: 'https://api.nenggongzhiren.cn/small-games/v1'\n",
+    ],
+  ],
+};
+export function towerArtifactConfigFileScope(file, before, after, context) {
+  try {
+    const changes = towerArtifactConfigChanges[file];
+    if (!changes || typeof before !== 'string' || typeof after !== 'string') return null;
+    before = before.replaceAll('\r\n', '\n');
+    let stripped = after.replaceAll('\r\n', '\n');
+    for (const [oldText, newText] of changes) {
+      assert.equal(stripped.split(newText).length, 2);
+      stripped = stripped.replace(newText, oldText);
+    }
+    const digest = createHash('sha256').update(stripped).digest('hex');
+    assert.equal(digest, threeChooseTwoCreatorReviews[file].after);
+    const source = 'games/local/tower-brake';
+    const entries = context.games.filter((g) => g.id === 'tower-brake' || g.source === source);
+    assert.equal(entries.length, 1);
+    assert.equal(entries[0].id, 'tower-brake');
+    assert.equal(entries[0].source, source);
+    assert.equal(entries[0].output, 'dist');
+    const targets = context.packages.filter(
+      (p) => p.dir === source || p.name === '@coffeeeeffoc/tower-brake',
+    );
+    assert.equal(targets.length, 1);
+    assert.equal(targets[0].dir, source);
+    assert.equal(targets[0].name, '@coffeeeeffoc/tower-brake');
+    assert.equal(targets[0].creator?.version, '3.8.8');
+    assert.equal(targets[0].scripts?.build, 'node scripts/build.mjs web-mobile');
+    const inherited =
+      before === stripped ? [] : threeChooseTwoCreatorFileScope(file, before, stripped, context);
+    assert(inherited, 'Unreviewed workflow baseline');
+    return [...new Set([...inherited, source])];
+  } catch {
+    return null;
+  }
+}
+
 export function reviewedSharedFileScopes({
   changedPaths,
   readBase,
@@ -3722,6 +3781,20 @@ export function reviewedSharedFileScopes({
     }
     if (mainScopes.has(file)) {
       scopes.set(file, mainScopes.get(file));
+      continue;
+    }
+    let towerConfig;
+    if (Object.hasOwn(towerArtifactConfigChanges, file))
+      try {
+        towerConfig = towerArtifactConfigFileScope(file, readBase?.(file), readHead?.(file), {
+          games,
+          packages,
+          readBase,
+          readHead,
+        });
+      } catch {}
+    if (towerConfig) {
+      scopes.set(file, towerConfig);
       continue;
     }
     let threeScope;

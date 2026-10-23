@@ -5407,7 +5407,20 @@ test('Three Choose Two Creator wiring binds exact bytes, identities and both rel
       scripts: { build: 'node scripts/build.mjs web-mobile' },
     })),
   ];
-  const read = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const historical = new Map();
+  const read = (file) => {
+    if (!Object.hasOwn(threeChooseTwoCreatorReviews, file))
+      return readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+    if (!historical.has(file))
+      historical.set(
+        file,
+        execFileSync('git', ['show', 'f6fd892b64ddda057797746fc08233746ce9d38a:' + file], {
+          encoding: 'utf8',
+          maxBuffer: 8e6,
+        }),
+      );
+    return historical.get(file);
+  };
   for (const ref of [
     '90aae860a583395403d8cb15578e5b731c1227fe',
     'cbee0202b8cd6ea3f5dd626851a10e6dd602dd75',
@@ -5574,5 +5587,81 @@ test('combined Tower and Tetracube wiring selects exact cumulative consumers and
         .size,
       0,
     );
+  }
+});
+
+test('Tower artifact API wiring preserves precise immediate and cumulative release scopes', async () => {
+  const { towerArtifactConfigFileScope } = await import('./publication-scopes.mjs');
+  const games = ['three-choose-two', 'tower-brake', 'tetracube'].map((id) => ({
+    id,
+    source: 'games/local/' + id,
+    output: 'dist',
+  }));
+  const packages = games.map((g) => ({
+    dir: g.source,
+    name: '@coffeeeeffoc/' + g.id,
+    creator: { version: '3.8.8' },
+    scripts: { build: 'node scripts/build.mjs web-mobile' },
+  }));
+  const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  for (const base of [
+    'f6fd892b64ddda057797746fc08233746ce9d38a',
+    'cbee0202b8cd6ea3f5dd626851a10e6dd602dd75',
+  ]) {
+    const readBase = (file) =>
+      execFileSync('git', ['show', base + ':' + file], { encoding: 'utf8' });
+    for (const file of [
+      '.github/workflows/carding-car.yml',
+      '.github/workflows/pages-validate.yml',
+    ]) {
+      const context = { games, packages, readBase, readHead, changedPaths: [file] };
+      const before = readBase(file),
+        after = readHead(file);
+      const expected = base.startsWith('f6')
+        ? ['games/local/tower-brake']
+        : ['games/local/three-choose-two', 'games/local/tower-brake', 'games/local/tetracube'];
+      assert.deepEqual(towerArtifactConfigFileScope(file, before, after, context), expected);
+      assert.deepEqual(reviewedSharedFileScopes(context).get(file), expected);
+      assert.deepEqual(
+        towerArtifactConfigFileScope(
+          file,
+          before,
+          after.replaceAll('\r\n', '\n').replaceAll('\n', '\r\n'),
+          context,
+        ),
+        expected,
+      );
+      for (const bad of [
+        after + '\n# extra step\n',
+        after.replace('competition_public_api_url', 'other_input'),
+        after.replace('tower-brake', 'carding-car'),
+        after.replace('contents: read', 'contents: write'),
+        after.replace('type: string', 'type: boolean'),
+        after.replace('https://api.nenggongzhiren.cn', 'https://example.com'),
+      ].filter((value) => value !== after))
+        assert.equal(towerArtifactConfigFileScope(file, before, bad, context), null);
+      assert.equal(towerArtifactConfigFileScope(file, before + '\n', after, context), null);
+      for (const invalid of [
+        { games: [] },
+        { games: [...games, games[1]] },
+        { packages: packages.filter((p) => !p.dir.endsWith('tower-brake')) },
+        {
+          packages: packages.map((p) =>
+            p.dir.endsWith('tower-brake') ? { ...p, creator: { version: '3.8.9' } } : p,
+          ),
+        },
+        {
+          packages: packages.map((p) =>
+            p.dir.endsWith('tower-brake') ? { ...p, scripts: { build: 'node bypass.mjs' } } : p,
+          ),
+        },
+      ])
+        assert.equal(
+          towerArtifactConfigFileScope(file, before, after, { ...context, ...invalid }),
+          null,
+        );
+      const unknown = { ...context, changedPaths: ['.github/workflows/unreviewed.yml'] };
+      assert.equal(reviewedSharedFileScopes(unknown).size, 0);
+    }
   }
 });

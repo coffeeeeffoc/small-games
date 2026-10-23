@@ -2,6 +2,10 @@ name: Build Cocos game artifacts
 on:
   workflow_call:
     inputs:
+      competition_public_api_url:
+        description: Public API URL used to fingerprint and build Tower Brake artifacts.
+        type: string
+        default: ''
       reuse_ci:
         description: Reuse successful same-SHA CI Creator jobs on push events.
         type: boolean
@@ -9,6 +13,8 @@ on:
 jobs:
   reuse:
     if: inputs.reuse_ci
+    env:
+      COMPETITION_PUBLIC_API_URL: ${{ inputs.competition_public_api_url }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     outputs:
@@ -223,6 +229,8 @@ jobs:
             three-choose-two,
           ]
     runs-on: windows-latest
+    env:
+      COMPETITION_PUBLIC_API_URL: ${{ matrix.game == 'tower-brake' && inputs.competition_public_api_url || '' }}
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v5
