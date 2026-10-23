@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdir, writeFile, copyFile, readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { runInNewContext } from 'node:vm';
 import { chromium } from '@playwright/test';
 import { LEVELS, createEndlessLayer } from '../levels.mjs';
 import { normalizeAngle, BALL_ANGLE, layerRotationAt } from '../engine.mjs';
@@ -53,8 +54,22 @@ const context = await browser.newContext({
     size: { width: 390, height: 844 },
   },
 });
-let requestDelay = 0;
-await context.route('**/api/competition/**', async (route) => {
+// Mock the API encoded in the actual artifact, including production Pages builds.
+const bootstrap = {};
+runInNewContext(
+  await readFile(new URL('../dist/competition-config.js', import.meta.url), 'utf8'),
+  bootstrap,
+);
+const apiBase = new URL(
+  bootstrap.__COMPETITION_CONFIG__?.apiUrl || '/api/competition/v1',
+  origin,
+).href.replace(/\/$/, '');
+const isCompetitionRequest = (url) => new URL(url).href.startsWith(apiBase + '/');
+report.apiBase = apiBase;
+let requestDelay = 0,
+  delayedRequests = 0;
+await context.route(isCompetitionRequest, async (route) => {
+  if (requestDelay) delayedRequests++;
   if (requestDelay) await new Promise((resolve) => setTimeout(resolve, requestDelay));
   await route.fulfill({
     status: 503,
@@ -76,7 +91,7 @@ page.on('console', (m) => {
     errors.add(m.text().split('\n')[0]);
 });
 page.on('response', (r) => {
-  if (r.status() >= 400 && !r.url().includes('/api/competition/'))
+  if (r.status() >= 400 && !isCompetitionRequest(r.url()))
     errors.add(r.status() + ' ' + r.url());
 });
 const snap = async () => {
@@ -310,8 +325,10 @@ try {
   );
   requestDelay = 500;
   await ready();
+  const delayedBeforeStart = delayedRequests;
   await tap('start');
   await waitScreen('connecting');
+  assert.ok(delayedRequests > delayedBeforeStart, 'start must reach the delayed API mock');
   await page.evaluate(() => dispatchEvent(new Event('blur')));
   await waitScreen('paused');
   assert.equal((await snap()).state.elapsed, 0, 'blur during connection must not start the clock');

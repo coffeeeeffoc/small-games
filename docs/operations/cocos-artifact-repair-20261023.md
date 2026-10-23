@@ -19,3 +19,7 @@ The scope proof strips exactly these workflow additions and binds the remaining 
 ## Validation evidence
 
 The two new newline regressions failed on the unmodified code and passed after the patch. Content changes and binary-byte changes still change sourceHash; the existing Tower artifact tests retain runtime tamper, path-boundary and API configuration rejection checks. Exact candidate, real Creator, browser and remote deployment evidence will be recorded after completion.
+
+## Production-config browser follow-up
+
+The first exact candidate (697d1a1d40901c167be385c6f2596c26a665549d) passed real Creator builds, static checks and Three Choose Two browser checks. Tower reached five gameplay groups, then its delayed-connect test timed out: the test mocked only /api/competition/, while the production artifact calls /small-games/v1. The test now reads the generated competition-config.js and intercepts that exact API base, preserving the emitted production configuration and all connecting/blur/timer assertions. A request-count assertion proves that starting a run actually reaches the delayed mock. No gameplay code changed.
