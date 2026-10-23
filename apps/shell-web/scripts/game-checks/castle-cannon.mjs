@@ -8,12 +8,17 @@ export async function assertCastleDuelEntry(frame, mobile = false) {
   await expect.poll(async () => (await snapshot())?.ready, { timeout: 90000 }).toBe(true);
   expect((await snapshot()).renderer).toBe('cocos');
   await expect.poll(async () => (await snapshot()).screen).toBe('home');
+  let battleBox;
+  const battleControls = new Map();
   const position = async (id) => {
+    if (battleControls.has(id)) return battleControls.get(id);
     const s = await snapshot(),
       c = s.controls.find((c) => c.id === id);
-    expect(c, 'Missing control: ' + id).toBeTruthy();
+    expect(c, `Missing control: ${id} on ${s.screen}`).toBeTruthy();
     expect(c.disabled, 'Disabled control: ' + id).toBe(false);
-    const box = await canvas.boundingBox();
+    const box = ['playing', 'confirm'].includes(s.screen)
+      ? (battleBox ??= await canvas.boundingBox())
+      : await canvas.boundingBox();
     expect(box).toBeTruthy();
     const scale = Math.min(box.width / s.width, box.height / s.height);
     return {
@@ -29,14 +34,27 @@ export async function assertCastleDuelEntry(frame, mobile = false) {
   expect((await snapshot()).controls.some((c) => ['pause', 'fullscreen'].includes(c.id))).toBe(
     false,
   );
-  await click('practice');
-  await expect.poll(async () => (await snapshot()).screen).toBe('maps');
-  await click('map-ravine');
+  const originalLowPower = (await snapshot()).progress.lowPower;
+  if (!originalLowPower) {
+    await click('settings');
+    await click('lowPower');
+    await click('home');
+  }
+  await click('campaign');
+  await expect.poll(async () => (await snapshot()).screen).toBe('campaign');
+  await click('selected-start');
   await expect.poll(async () => (await snapshot()).screen).toBe('playing');
   await expect.poll(async () => (await snapshot()).trajectory.points.length).toBeGreaterThan(3);
   const beforeAim = await snapshot();
   const box = await canvas.boundingBox();
+  battleBox = box;
   const scale = Math.min(box.width / beforeAim.width, box.height / beforeAim.height);
+  // Query fixed viewport geometry once so software rendering cannot consume battle time in CDP reads.
+  for (const c of beforeAim.controls)
+    battleControls.set(c.id, {
+      x: box.x + (box.width - beforeAim.width * scale) / 2 + (c.x + c.w / 2) * scale,
+      y: box.y + (box.height - beforeAim.height * scale) / 2 + (c.y + c.h / 2) * scale,
+    });
   const aim = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
   const end = { x: aim.x + 12 * scale, y: aim.y - 30 * scale };
   if (mobile) {
@@ -58,13 +76,17 @@ export async function assertCastleDuelEntry(frame, mobile = false) {
     }
   }
   await expect
-    .poll(async () => (await snapshot()).fighters[beforeAim.side].guns[0].pitch)
-    .toBeGreaterThan(beforeAim.fighters[beforeAim.side].guns[0].pitch);
-  await expect
-    .poll(async () => JSON.stringify((await snapshot()).trajectory.points))
-    .not.toBe(JSON.stringify(beforeAim.trajectory.points));
+    .poll(async () => {
+      const s = await snapshot();
+      return (
+        s.fighters[beforeAim.side].guns[0].pitch >
+          beforeAim.fighters[beforeAim.side].guns[0].pitch &&
+        JSON.stringify(s.trajectory.points) !== JSON.stringify(beforeAim.trajectory.points)
+      );
+    })
+    .toBe(true);
   await click('blast');
-  const first = await snapshot();
+  const first = beforeAim;
   const p = await position('fire');
   const charged = () =>
     expect
@@ -106,10 +128,28 @@ export async function assertCastleDuelEntry(frame, mobile = false) {
   await page.waitForTimeout(350);
   expect((await snapshot()).duelTime).toBe(stoppedAt);
   await click('resume');
-  await expect.poll(async () => (await snapshot()).screen).toBe('playing');
-  await expect.poll(async () => (await snapshot()).duelTime).toBeGreaterThan(stoppedAt);
+  await expect
+    .poll(async () => {
+      const s = await snapshot();
+      return s.screen === 'playing' && s.duelTime > stoppedAt;
+    })
+    .toBe(true);
   await click('leave');
   await click('leave-confirm');
   await expect.poll(async () => (await snapshot()).screen).toBe('home');
+  battleBox = undefined;
+  battleControls.clear();
+  await click('practice');
+  await expect.poll(async () => (await snapshot()).screen).toBe('maps');
+  await click('map-ravine');
+  await expect.poll(async () => (await snapshot()).screen).toBe('playing');
+  await click('leave');
+  await click('leave-confirm');
+  await expect.poll(async () => (await snapshot()).screen).toBe('home');
+  if (!originalLowPower) {
+    await click('settings');
+    await click('lowPower');
+    await click('home');
+  }
   await position('start');
 }
