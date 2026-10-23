@@ -8,6 +8,139 @@ import { mainRetirementTreesMatch } from './local-game-retirement-scope.mjs';
 
 const loadDependency = createRequire(import.meta.url);
 
+// Castle Cannon Creator migration: exact reviewed base/head bytes only.
+export const castleCreatorReviews = Object.freeze({
+  '.github/workflows/carding-car.yml': {
+    before: '689c4edd7ec46f6f6caa6dfd2c6eff628f47a3985ed3e882e56a2f7afd157e3f',
+    after: '156789c9b27107e43481c612fdf0583acd9c2aaecd131202f2adfd39e6a7a9dd',
+    sources: ['games/local/game-castle-cannon'],
+  },
+  '.github/workflows/ci.yml': {
+    before: '504f25c7c90beb1d45c6d43f9bb7eb40aec763cd5d1465e09674a34510c8b093',
+    after: '2ff2324c75192d8c49253c881d828e0d96843f55503dd0227dc2503212fab2a0',
+    sources: ['games/local/game-castle-cannon'],
+  },
+  '.github/workflows/mobile.yml': {
+    before: '1ec7608f8cfc9057a575a395227f8563b5b7db0935d45102d29f5aa1287cf5c1',
+    after: 'a8b816e6b5187cfc42180fbe796a454501b8f81873151f8bf8c8d344e1f1e919',
+    sources: ['games/local/game-castle-cannon'],
+  },
+  '.github/workflows/pages-validate.yml': {
+    before: 'd485fd62cb95943485e01c0fba6d332950601efa524eb446976e6f698b024d2b',
+    after: 'b6d0e2eeb4c64eff7e78305a6a745ddfac86da48fc0f1e40ec84bca51c223f1a',
+    sources: ['games/local/game-castle-cannon'],
+  },
+  'apps/shell-web/scripts/game-checks/castle-cannon.mjs': {
+    before: '6e2b0fd6a44a776e553fe09ed6f7235c1225282d8613b23168156a4fc0eeadcb',
+    after: '348464e0001fa86a2b6574b3bab8ed3c4ec82b2626b30389c41d2ea020dc6b9d',
+    sources: ['games/local/game-castle-cannon', 'apps/shell-web'],
+  },
+  'apps/shell-web/scripts/pages-smoke.mjs': {
+    before: '57361de65e6f84fc79951be178ea8796a6a8e7b49918f90388322cd985a856d9',
+    after: '34a39129aa775595c21ec6c3e055f98909193beb69102996e8bfaa686a7c4306',
+    sources: ['games/local/game-castle-cannon', 'apps/shell-web'],
+  },
+  'apps/shell-web/scripts/standalone-game-entry.mjs': {
+    before: 'b5cadbb403ce37bbab9a70b431238e9198c9cf8edefbb0a90f00eb44e41e9eca',
+    after: 'd57f4b42bd35848cdf9dd44310d02cc795722e16a23cba656ed63ac62bc0bb4a',
+    sources: ['games/local/game-castle-cannon', 'apps/shell-web'],
+  },
+  'apps/shell-web/scripts/standalone-game-entry.test.mjs': {
+    before: 'dad4f355f2ed244779e8f74ff2402818549eff228a4aebe388e8d9efa64051b0',
+    after: '57fefbc516b1e2e84972d7d183c6a4d514075066d828de6de9ea3b611ce312a1',
+    sources: ['games/local/game-castle-cannon', 'apps/shell-web'],
+  },
+  'apps/shell-web/src/StandaloneGame.tsx': {
+    before: '6373e72764ea5f518b258a46c6b9af884cf7e0d0b5ed11ebf614bf0bf8360d41',
+    after: '331d000450110ede5ffefb2332269b99011fb8d5f3eb587fd7f1065520a99b6f',
+    sources: ['games/local/game-castle-cannon', 'apps/shell-web'],
+  },
+  'apps/shell-web/tests/standalone-immersive.integration.test.tsx': {
+    before: '75b962ab101fb473ad4e604800bd1f2b78982dd60bebeb97a2548ca10a25a4f4',
+    after: '8c4e1fc79e056c9a2266233909125590be507bcdd6b5e892ba18df4afe54dac8',
+    sources: ['games/local/game-castle-cannon', 'apps/shell-web'],
+  },
+  'scripts/check-game-config.test.mjs': {
+    before: '83257dfe8558dc6164729cd3b6cb4061f9a7e721c5a8b15f2412937ed54271f1',
+    after: 'd3c973703a9ee73c551fbfab55b84f9b3d5dcac51ee1e1828bef8aac405fd07a',
+    sources: ['games/local/game-castle-cannon'],
+  },
+  'scripts/check-workspace-dependencies.mjs': {
+    before: '81406bc8e6b8f33677b85e608f42ba10a7d2070fb1221bb34dc91e5bfd50bfbd',
+    after: 'c63ac98faeb1c028193010739f9fbefab6c06e7832d22a0310999786ec12c3de',
+    sources: ['games/local/game-castle-cannon'],
+  },
+  'scripts/cocos-validation.mjs': {
+    before: '9fca2edc2d3e0485f20a63930de78bbf8d5bd2702e1c322ad03d96c0e39aacb5',
+    after: 'df65e6f13eb92aa19d4dc034ce0fa47a81ea53eded61aaa2789a18c921591e47',
+    sources: ['games/local/game-castle-cannon'],
+  },
+  'scripts/cocos-validation.test.mjs': {
+    before: 'fe8b7a02ff3d2fd6a3991a5742272b9e6d6a485373ec1836af7ef1a514fdde1e',
+    after: '2f48fd1f93c5b9dd4192058693bde5276557a5d974767ded18dc9e6af40558c1',
+    sources: ['games/local/game-castle-cannon'],
+  },
+  'scripts/reuse-cocos-artifacts.mjs': {
+    before: '97311301cf068af5e6f607e214fa9fd8bf25956b64465335f837b588a2a13ff2',
+    after: '7fd0d6fd7527127a2b32421c7b85b384e6818bd5edb321b8fbfa7d58d7e18f41',
+    sources: ['games/local/game-castle-cannon'],
+  },
+  'scripts/reuse-cocos-artifacts.test.mjs': {
+    before: '04b29083de780c4c9a695084e026acbaf5c53ed5a60fa523b1998c705c8a9898',
+    after: 'ffac04bcbe08b0b0ba5da93ce0e9516cfc573d51ebf965f4d7d39f7aa3777a92',
+    sources: ['games/local/game-castle-cannon'],
+  },
+  'scripts/sync-h5-fullscreen.mjs': {
+    before: '13ba2904af89e73207f2809fa861b7d5c23b72ff6df77ebdb73dfd27e332c363',
+    after: '5cc3a429c77d376929c0be7e1f17ae2aae3b2356d7a6ace9b5cca74ac5ee1d64',
+    sources: ['games/local/game-castle-cannon'],
+  },
+  'scripts/test-game-dev-mode.mjs': {
+    before: 'e5ea1284cb2d040076aa35a747acea3604c5e1881af76ac06d6b18c51bed9166',
+    after: 'f911bb11751f1ade391613a622fcd915ec8a19f737f7d7eadd6acd708b08027b',
+    sources: ['games/local/game-castle-cannon', 'apps/shell-web', 'games/local/wulong-city'],
+  },
+  'turbo.json': {
+    before: 'c6c6f3d6bcd2a77b1e7e3457f3b4ecb2493a0bbaef7fa5882d5e070cc5b8c568',
+    after: '2939bab45107ebb53888d6f5a0a77420f2e05551bf464a91e4c8fef7c79d7c3a',
+    sources: ['games/local/game-castle-cannon'],
+  },
+});
+export function castleCreatorFileScopes({ changedPaths, readBase, readHead, games, packages }) {
+  const scopes = new Map(),
+    source = 'games/local/game-castle-cannon';
+  try {
+    const entries = games.filter((g) => g.id === 'castle-cannon' || g.source === source);
+    assert.equal(entries.length, 1);
+    assert.equal(entries[0].id, 'castle-cannon');
+    assert.equal(entries[0].source, source);
+    assert.equal(entries[0].output, 'dist');
+    const targets = packages.filter(
+      (p) => p.dir === source || p.name === '@coffeeeeffoc/game-castle-cannon',
+    );
+    assert.equal(targets.length, 1);
+    assert.equal(targets[0].dir, source);
+    assert.equal(targets[0].name, '@coffeeeeffoc/game-castle-cannon');
+    assert.equal(targets[0].creator?.version, '3.8.8');
+    assert.equal(targets[0].scripts?.build, 'node scripts/build.mjs web-mobile');
+    const digest = (s) => createHash('sha256').update(s.replaceAll('\r\n', '\n')).digest('hex');
+    for (const file of changedPaths) {
+      const review = castleCreatorReviews[file];
+      if (
+        !review ||
+        digest(readBase(file)) !== review.before ||
+        digest(readHead(file)) !== review.after
+      )
+        continue;
+      if (review.sources.some((dir) => !packages.some((p) => p.dir === dir))) continue;
+      scopes.set(file, Object.freeze([...review.sources]));
+    }
+  } catch {
+    return new Map();
+  }
+  return scopes;
+}
+
 // Tetracube routes reviewed against 90aae860; unrelated bytes keep their original consumers.
 export const tetracubeCreatorReviews = Object.freeze({
   'scripts/h5-ad-config.test.mjs': {
@@ -3767,6 +3900,13 @@ export function reviewedSharedFileScopes({
     packages,
     ...treeContext,
   });
+  const castleScopes = castleCreatorFileScopes({
+    changedPaths,
+    readBase,
+    readHead,
+    games,
+    packages,
+  });
   const tetracubeScopes = tetracubeCreatorFileScopes({
     changedPaths,
     readBase,
@@ -3775,6 +3915,10 @@ export function reviewedSharedFileScopes({
     packages,
   });
   for (const file of changedPaths) {
+    if (castleScopes.has(file)) {
+      scopes.set(file, castleScopes.get(file));
+      continue;
+    }
     if (tetracubeScopes.has(file)) {
       scopes.set(file, tetracubeScopes.get(file));
       continue;

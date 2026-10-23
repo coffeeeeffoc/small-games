@@ -1,5 +1,59 @@
 import { test } from 'node:test';
 
+test('Castle Creator migration binds reviewed bytes and unique runtime identities', async () => {
+  const { castleCreatorReviews: reviews, castleCreatorFileScopes: scope } = await import(
+    './publication-scopes.mjs'
+  );
+  const base = '0fadabdfc6d3144f36ef9ff004e0fc14e54e3e4d',
+    head = 'aac82db834ad68db46c3846f6dff0c7bdaf238ab',
+    source = 'games/local/game-castle-cannon';
+  const cache = new Map();
+  const read = (ref, file) => {
+    const key = ref + ':' + file;
+    if (!cache.has(key)) cache.set(key, execFileSync('git', ['show', key], { encoding: 'utf8' }));
+    return cache.get(key);
+  };
+  const games = [{ id: 'castle-cannon', source, output: 'dist' }],
+    packages = [
+      { dir: source, ...JSON.parse(read(head, source + '/package.json')) },
+      { dir: 'apps/shell-web' },
+      { dir: 'games/local/wulong-city' },
+    ];
+  const options = {
+    changedPaths: Object.keys(reviews),
+    readBase: (f) => read(base, f),
+    readHead: (f) => read(head, f),
+    games,
+    packages,
+  };
+  for (const [file, review] of Object.entries(reviews)) {
+    assert.deepEqual(scope(options).get(file), review.sources, file);
+    for (const side of ['readBase', 'readHead'])
+      assert.equal(
+        scope({ ...options, changedPaths: [file], [side]: (f) => options[side](f) + '\n' }).has(
+          file,
+        ),
+        false,
+        file,
+      );
+  }
+  for (const extra of [
+    { games: [...games, ...games] },
+    { games: [{ ...games[0], id: 'other' }] },
+    { games: [{ ...games[0], output: 'other' }] },
+    { packages: [...packages, packages[0]] },
+    { packages: [{ ...packages[0], creator: { version: '3.8.7' } }, ...packages.slice(1)] },
+    { packages: [{ ...packages[0], scripts: { build: 'fake' } }, ...packages.slice(1)] },
+    {
+      readHead: () => {
+        throw Error('unreadable tree');
+      },
+    },
+    { changedPaths: ['scripts/unknown.mjs'] },
+  ])
+    assert.equal(scope({ ...options, ...extra }).size, 0);
+});
+
 test('Tetracube migration scopes bind exact reviewed bytes, identities and existing lock tuples', async () => {
   const {
     tetracubeCreatorReviews: reviews,

@@ -153,6 +153,10 @@ try {
   events.push({ defeatAndRetry: true });
   expect(errors).toEqual([]);
   console.log('Creator campaign win, next level, saved progress, defeat and retry passed.');
+} catch (error) {
+  events.push({ failure: error.message, state: await read() });
+  await page.screenshot({ path: path.join(out, 'failure-390x844.png') });
+  throw error;
 } finally {
   await writeFile(path.join(out, 'report.json'), JSON.stringify({ events, errors }, null, 2));
   await cdp.detach();
