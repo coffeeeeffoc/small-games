@@ -324,11 +324,11 @@ try {
     'Thin, middle, snow and rain routes completed through shared-challenge touch input; returning home restores camera and normal progress',
   );
   requestDelay = 500;
-  await ready();
   const delayedBeforeStart = delayedRequests;
+  await ready();
   await tap('start');
   await waitScreen('connecting');
-  assert.ok(delayedRequests > delayedBeforeStart, 'start must reach the delayed API mock');
+  assert.ok(delayedRequests > delayedBeforeStart, 'start must wait on a request intercepted by the delayed API mock');
   await page.evaluate(() => dispatchEvent(new Event('blur')));
   await waitScreen('paused');
   assert.equal((await snap()).state.elapsed, 0, 'blur during connection must not start the clock');
