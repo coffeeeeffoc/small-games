@@ -101,5 +101,143 @@
       "phase": "aim",
       "shots": 0
     }
-  ]
+  ],
+  "rescueRecallRace": {
+    "base": "cae153824b9aadc2f64b9006c729a3d32352acde",
+    "failedJob": "https://github.com/coffeeeeffoc/small-games/actions/runs/39924321390/job/120319135558",
+    "failure": "#recall tap loses its DOM target when the natural volley finishes and shows result",
+    "probes": {
+      "vertical": {
+        "gesture": {
+          "dx": 0,
+          "dy": -400
+        },
+        "control": "No recall input; observe unchanged production simulation",
+        "afterShot": {
+          "phase": "flight",
+          "shots": 1,
+          "turn": 0,
+          "flight": 0.42916666666666603
+        },
+        "phaseTransitions": [
+          {
+            "ms": 95,
+            "screen": "playing",
+            "phase": "aim",
+            "shots": 0,
+            "flight": 0,
+            "balls": 0,
+            "recall": true,
+            "enabled": false
+          },
+          {
+            "ms": 1156,
+            "screen": "playing",
+            "phase": "flight",
+            "shots": 1,
+            "flight": 0.07083333333333333,
+            "balls": 2,
+            "recall": true,
+            "enabled": true
+          },
+          {
+            "ms": 1906,
+            "screen": "result",
+            "phase": "lost",
+            "shots": 1,
+            "flight": 0.7249999999999983,
+            "balls": 0,
+            "recall": false,
+            "enabled": null
+          }
+        ],
+        "final": {
+          "phase": "lost",
+          "shots": 1,
+          "turn": 1,
+          "flight": 0.7249999999999983
+        }
+      },
+      "shallowLeft": {
+        "gesture": {
+          "dx": -150,
+          "dy": -12
+        },
+        "control": "No recall input; observe unchanged production simulation",
+        "afterShot": {
+          "phase": "flight",
+          "shots": 1,
+          "turn": 0,
+          "flight": 0.5333333333333323
+        },
+        "phaseTransitions": [
+          {
+            "ms": 81,
+            "screen": "playing",
+            "phase": "aim",
+            "shots": 0,
+            "flight": 0,
+            "balls": 0,
+            "recall": true,
+            "enabled": false
+          },
+          {
+            "ms": 1369,
+            "screen": "playing",
+            "phase": "flight",
+            "shots": 1,
+            "flight": 0.049999999999999996,
+            "balls": 2,
+            "recall": true,
+            "enabled": true
+          },
+          {
+            "ms": 20842,
+            "screen": "result",
+            "phase": "lost",
+            "shots": 1,
+            "flight": 14.004166666666192,
+            "balls": 0,
+            "recall": false,
+            "enabled": null
+          }
+        ],
+        "final": {
+          "phase": "lost",
+          "shots": 1,
+          "turn": 1,
+          "flight": 14.004166666666192
+        }
+      }
+    },
+    "delayedInputValidation": {
+      "artificialDelayMs": 2000,
+      "purpose": "Verify actual touch recall after a deliberate delay longer than the original vertical volley; no production timing changes",
+      "observations": {
+        "BEFORE_DELAYED_RECALL": {
+          "phase": "flight",
+          "shots": 1,
+          "turn": 0,
+          "flight": 2.1791666666666694,
+          "rewards": {
+            "resonance": 1,
+            "rescue": 0
+          },
+          "recalls": 0
+        },
+        "AFTER_MANUAL_RECALL": {
+          "phase": "lost",
+          "shots": 1,
+          "turn": 1,
+          "flight": 2.329166666666677,
+          "rewards": {
+            "resonance": 1,
+            "rescue": 0
+          },
+          "recalls": 1
+        }
+      },
+      "fullRescueAndPersistenceAssertionsPassed": true
+    }
+  }
 }

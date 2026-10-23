@@ -895,8 +895,19 @@ try {
   assert(await page.locator('#reward-resonance').isDisabled());
   await capture(page, 'reward-ad-completed');
   await page.locator('#supply-back').tap();
-  await shot(page, 0, -400);
-  await page.locator('#recall').tap();
+  const recallBox = await page.locator('#recall').boundingBox();
+  assert(recallBox, 'recall has measurable geometry before launch');
+  const recallsBefore = (await snap(page)).visuals.recalls;
+  // The vertical volley returns in under a second. Launch left at a shallow angle
+  // and tap the stable control directly so actionability waits cannot miss flight.
+  await shot(page, -150, -12);
+  await page.touchscreen.tap(recallBox.x + recallBox.width / 2, recallBox.y + recallBox.height / 2);
+  await expect
+    .poll(async () => (await snap(page)).visuals.recalls, {
+      message: 'rescue fixture must accept exactly one manual recall',
+    })
+    .toBe(recallsBefore + 1);
+  assert((await snap(page)).flight < PHYSICS.maxFlight, 'recall must be manual, before timeout');
   await settle(page);
   await expect(page.locator('#result')).toBeVisible();
   await capture(page, 'failure-390');

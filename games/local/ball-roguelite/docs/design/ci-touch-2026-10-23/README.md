@@ -26,9 +26,17 @@
 - 重载后明确检查手机触控能力，保留 40 轮、27 秒 settle、取消及最终 won 断言。
 - 生产游戏、玩法难度、关卡、引擎和 CI 门禁均未修改。
 
+## 后续救援场景的短时窗口
+
+第一笔修复 `cae153824b9aadc2f64b9006c729a3d32352acde` 的 [CI quality](https://github.com/coffeeeeffoc/small-games/actions/runs/39924321390/job/120319135558) 已通过自然通关，随后在救援场景的 `#recall` 点击遇到目标移除。该提交的 [Pages](https://github.com/coffeeeeffoc/small-games/actions/runs/39924321381) 已部署成功，但 CI 尚未整体通过。
+
+相同生产构建的独立浏览器观测确认：原竖直发射仅有约 0.725 秒 flight，近处砖反弹后所有球立即归位；最低砖随回合下降到失败线，结果页移除旧按钮。Playwright 的定位点击包含滚动、稳定性及命中检查，CI 日志在重试时已经失去目标。此时延长点击超时也不能恢复已结束的回合。
+
+救援测试改为左浅角真实发射（`-150, -12`），保持全部砖、血量和规则不变；独立无召回观测的自然 flight 为约 14 秒。发射前读取按钮几何，发射确认后直接发送真实触屏点击，并新增 `visuals.recalls` 恰好增加 1 及 `flight < PHYSICS.maxFlight` 的断言，避免自然结算或超时召回冒充手动召回。原失败结果、救援不增加分数/回合和奖励持久化断言全部保留。额外针对性验证故意在发射后等待 2 秒，再触屏召回；召回计数从 0 到 1，约 2.329 秒 flight 后正常失败，完整救援与持久化断言通过。该延迟仅存在于临时验证副本，未加入正式套件。数据见 `diagnosis.json` 的 `rescueRecallRace`。
+
 ## 验证边界
 
-生产浏览器完整结果保存在本目录的 `browser-report.json`。准确候选验证使用 `pnpm validate:candidate --base aa154c5d6bd7c4398ef31e69ff18b02c481250f2 --head <candidate SHA>`，以命令最终输出的 `CANDIDATE_VALIDATED` 为通过依据。
+生产浏览器完整结果保存在本目录的 `browser-report.json`。准确候选验证使用 `pnpm validate:candidate --base aa154c5d6bd7c4398ef31e69ff18b02c481250f2 --head <candidate SHA>`，以命令最终输出的 `CANDIDATE_VALIDATED` 为通过依据。后续救援修复以 `cae153824b9aadc2f64b9006c729a3d32352acde` 为 base 再验证准确 head。
 
 真实依赖闭包包含 Shell 及天下岔路的 emitted export；天下岔路复用上述基线成功 CI 的 artifact `12479336133`，通过现有 `verifyPrebuilt` 校验 Creator 3.8.8、web-mobile、源码摘要、index.html 和 cc.d.ts。其他 Creator 的发布构建继续由远端既有工作流检查。
 
