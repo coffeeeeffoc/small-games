@@ -3720,14 +3720,12 @@ test('castle duel entry contract is scoped without accepting another game or sha
 
 test('castle dedicated contract selects its game and rejects unreviewed code', () => {
   const file = 'apps/shell-web/scripts/game-checks/castle-cannon.mjs';
-  const shared = readFileSync(
-    new URL('../apps/shell-web/scripts/standalone-game-checks.mjs', import.meta.url),
-    'utf8',
-  ).replaceAll('\r\n', '\n');
-  const source = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
-    '\r\n',
-    '\n',
-  );
+  const historical = (name) =>
+    execFileSync('git', ['show', '0fadabdfc6d3144f36ef9ff004e0fc14e54e3e4d:' + name], {
+      encoding: 'utf8',
+    });
+  const shared = historical('apps/shell-web/scripts/standalone-game-checks.mjs');
+  const source = historical(file);
   const context = {
     changedPaths: [file],
     games: [{ id: 'castle-cannon', source: 'games/local/game-castle-cannon' }],
@@ -5405,9 +5403,10 @@ test('Homebound Creator readiness guard preserves gameplay and scopes only its r
 
 test('ordinary Creator reuse preserves all historical producer fixtures', () => {
   const file = 'scripts/reuse-cocos-artifacts.mjs';
-  const current = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
-    '\r\n',
-    '\n',
+  const current = execFileSync(
+    'git',
+    ['show', '0fadabdfc6d3144f36ef9ff004e0fc14e54e3e4d:' + file],
+    { encoding: 'utf8' },
   );
   for (const [includeMerge, includeBullet, includeTower, includeTetracube, includeThree] of [
     [false, false, false, false, false],
@@ -5675,7 +5674,10 @@ test('Tower artifact API wiring preserves precise immediate and cumulative relea
     creator: { version: '3.8.8' },
     scripts: { build: 'node scripts/build.mjs web-mobile' },
   }));
-  const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const readHead = (file) =>
+    execFileSync('git', ['show', '0fadabdfc6d3144f36ef9ff004e0fc14e54e3e4d:' + file], {
+      encoding: 'utf8',
+    });
   for (const base of [
     'f6fd892b64ddda057797746fc08233746ce9d38a',
     'cbee0202b8cd6ea3f5dd626851a10e6dd602dd75',
