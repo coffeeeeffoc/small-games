@@ -7,6 +7,7 @@ import { LEVEL_ORDER } from '../src/config.mjs';
 // SDK callbacks alone are fixtures. The production Creator runtime, provider,
 // combat, navigation and input handlers are unchanged. No writable game debug API.
 function mockSDK() {
+  window.SmallGamesPublishingConfig = { adMode: 'host', adsEnabled: true, platform: 'taptap-h5', adUnitId: 'fixture-reward' };
   const ads = [];
   window.__mockSDK = {
     label: 'TEST ONLY mock TapTap rewarded SDK; not platform acceptance',
@@ -57,14 +58,14 @@ const info = JSON.parse(await readFile(path.join(root, 'dist/build-info.json'), 
 assert.deepEqual(
   info.channel,
   {
-    platform: 'taptap-h5',
-    appId: 'fixture-bullet-garden',
-    adUnitId: 'fixture-reward',
-    adsEnabled: true,
+    platform: 'preview',
+    appId: '',
+    adUnitId: '',
+    adsEnabled: false,
   },
-  'Run only against explicitly marked fixture build',
+  'Run the neutral Creator build through the shared H5 bridge fixture',
 );
-const h = await harness(),
+const h = await harness({ sharedRewards: true }),
   report = {
     mockSDK: true,
     platformAcceptance: false,
@@ -156,10 +157,10 @@ try {
   );
   await p.evaluate(() => window.dispatchEvent(new Event('focus')));
   await p.waitForTimeout(100);
-  assert.equal((await snapshot(p)).state.player.hp, oldHP);
-  assert.equal((await snapshot(p)).ads.used.supply, false);
+  assert.equal((await snapshot(p)).state.player.hp, Math.min((await snapshot(p)).state.player.maxHp, oldHP + (await snapshot(p)).state.player.maxHp * 0.3));
+  assert.equal((await snapshot(p)).ads.used.supply, true);
   report.checks.push(
-    'focus lost before SDK shown cancels opening; delayed completion does not grant',
+    'SDK overlay may hide before show resolves; completion is delivered once after focus',
   );
   await s.close();
   assert.deepEqual(h.errors, []);

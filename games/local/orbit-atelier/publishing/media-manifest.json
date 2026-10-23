@@ -1,0 +1,116 @@
+{
+  "date": "2026-10-24",
+  "environment": "Chromium touch emulation 390x844; actual local build; no ad fixture",
+  "sourceHash": "6464e78f3d55d9684e865f508a075883b280f22a8961252431ee5f4b811ed849",
+  "files": {
+    "icon/armillary.png": {
+      "bytes": 623758,
+      "sha256": "057d7c6506610e17af53b21c3338db358f15fb55281b86a6c3692750de7b49e6",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "width": 540,
+            "height": 810
+          }
+        ],
+        "format": {}
+      }
+    },
+    "gameplay/screenshots/home-390x844.png": {
+      "bytes": 428191,
+      "sha256": "5b6cfda34af302a0f034ccc57fe67740dfa4ec11aaa52ec4564ccbfa0bf6f3fa",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {}
+      }
+    },
+    "gameplay/screenshots/play-390x844.png": {
+      "bytes": 333439,
+      "sha256": "dfade1648321b9018153d4147126fbe0eecdd26045fc266d738cce38b0d7b7a1",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {}
+      }
+    },
+    "gameplay/screenshots/result-390x844.png": {
+      "bytes": 313262,
+      "sha256": "1244e190df08a52c8ad4e5382b7ecb2d32f43269ccf05123b76f62a1c0216840",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {}
+      }
+    },
+    "gameplay/videos/actual-play-390x844.webm": {
+      "bytes": 837766,
+      "sha256": "d5c9053bc42752b714d0de98d6998ec676ceecf065798be4c5793f46cac28c09",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {
+          "duration": "10.840000"
+        }
+      }
+    },
+    "promo/images/gameplay-390x844.png": {
+      "bytes": 333439,
+      "sha256": "dfade1648321b9018153d4147126fbe0eecdd26045fc266d738cce38b0d7b7a1",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {}
+      }
+    },
+    "promo/videos/gameplay-cut-390x844.mp4": {
+      "bytes": 325628,
+      "sha256": "88b029514bbec3647f9852c4928e79dbea53912720d0c9905d4586fd7db98585",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {
+          "duration": "8.000000"
+        }
+      }
+    }
+  }
+}

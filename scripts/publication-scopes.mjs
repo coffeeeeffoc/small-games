@@ -1061,13 +1061,26 @@ const sharedH5PackagePaths = [
 ];
 function assertSixH5(games, packages, readHead) {
   const registered = literalDeclaration(readHead('scripts/h5-ad-config.mjs'), 'additionalH5Games');
-  const extraIds = ['merge-front', 'tetracube', 'three-choose-two'];
+  const extraIds = [
+    'merge-front',
+    'tetracube',
+    'three-choose-two',
+    'bullet-garden',
+    'tower-brake',
+    'orbit-atelier',
+    'tianxia-chalu',
+    'ball-roguelite',
+    'flick-arena',
+    'chase-thief',
+    'moss-garden',
+    'cage-rescue',
+  ];
   assert.deepEqual(
     registered.filter((id) => !extraIds.includes(id)),
     sixH5Ids,
   );
   for (const id of extraIds.filter((id) => registered.includes(id))) {
-    const source = `games/local/${id}`;
+    const source = `games/local/${id === 'moss-garden' ? 'game-moss-garden' : id}`;
     assert.equal(registered.filter((item) => item === id).length, 1);
     const entries = games.filter((g) => g.id === id || g.source === source);
     assert.equal(entries.length, 1);
@@ -1081,7 +1094,9 @@ function assertSixH5(games, packages, readHead) {
   }
   return [
     ...sixH5Sources,
-    ...extraIds.filter((id) => registered.includes(id)).map((id) => `games/local/${id}`),
+    ...extraIds
+      .filter((id) => registered.includes(id))
+      .map((id) => `games/local/${id === 'moss-garden' ? 'game-moss-garden' : id}`),
   ];
 }
 export function sixH5PresetOnly(source, five = false) {
@@ -4533,7 +4548,9 @@ export function reviewedSharedFileScopes({
               ? presetH5Ids.map((id) => `games/local/${id}`)
               : [
                   ...(sharedConsumer ? h5Sources : sixH5Sources),
-                  ...flickRewardConsumers(file, games, packages),
+                  ...flickRewardConsumers(file, games, packages).filter(
+                    (source) => !h5Sources.includes(source),
+                  ),
                 ],
           );
         }
@@ -4737,10 +4754,14 @@ export function reviewedSharedFileScopes({
                 ...packages
                   .filter(
                     (pkg) =>
-                      pkg.dir === 'games/local/bullet-garden' && pkg.creator?.version === '3.8.8',
+                      pkg.dir === 'games/local/bullet-garden' &&
+                      pkg.creator?.version === '3.8.8' &&
+                      !h5Sources.includes(pkg.dir),
                   )
                   .map((pkg) => pkg.dir),
-                ...flickRewardConsumers(file, games, packages),
+                ...flickRewardConsumers(file, games, packages).filter(
+                  (source) => !h5Sources.includes(source),
+                ),
               ]
             : [source],
         );

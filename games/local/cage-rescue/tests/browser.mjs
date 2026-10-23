@@ -516,11 +516,7 @@ try {
             assert.equal(result.game.lossReason, 'no-lives');
             assert.equal(result.game.lives, 0);
             await shot(page, 'natural-failure');
-            await expect(page.locator('#revive')).toBeVisible();
-            await page.locator('#revive').tap();
-            await expect(page.getByRole('dialog', { name: '模拟广告' })).toBeVisible();
-            await page.getByRole('button', { name: '关闭并继续', exact: true }).tap();
-            await expect(page.locator('#reward-message')).toContainText('未完整观看');
+            await expect(page.locator('#revive')).toBeHidden();
             assert.equal((await snapshot(page)).game.lives, 0);
             await page.locator('#retry').tap();
             assert.equal((await snapshot(page)).game.phase, 'ready');

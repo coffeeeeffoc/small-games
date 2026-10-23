@@ -5,12 +5,14 @@ import {
   isComplete,
   isReachableRemoval,
   normalizeAngle,
+  findHint,
+  rotateRing,
   type State,
 } from './rules.ts';
 
 export const SAVE_KEY = 'orbit-atelier.v2';
 export const LEGACY_SAVE_KEY = 'orbit-atelier.v1';
-export type Run = { state: State; moves: number; hints: number };
+export type Run = { state: State; moves: number; hints: number; rewardAlignUsed?: boolean };
 export type Progress = {
   version: 2;
   medals: Record<string, number>;
@@ -55,7 +57,8 @@ function rebuildRun(value: unknown, legacy: boolean): Run | null {
     !object(value) ||
     !object(value.state) ||
     !integer(value.moves, 100000) ||
-    !integer(value.hints, 100000)
+    !integer(value.hints, 100000) ||
+    (value.rewardAlignUsed !== undefined && typeof value.rewardAlignUsed !== 'boolean')
   )
     return null;
   const savedState = value.state;
@@ -84,7 +87,8 @@ function rebuildRun(value: unknown, legacy: boolean): Run | null {
   }
   if (value.moves < removed.size || !isReachableRemoval(level, removed)) return null;
   state.releasedCount = removed.size;
-  return { state, moves: value.moves, hints: value.hints };
+  return { state, moves: value.moves, hints: Math.max(value.hints, value.rewardAlignUsed ? 1 : 0),
+    rewardAlignUsed: value.rewardAlignUsed === true };
 }
 
 /** Accept v2 first; if unavailable, import v1 read-only. No browser storage dependency. */
@@ -126,7 +130,19 @@ export function restoreUndo(current: Run, before: Run): Run {
     state: cloneState(before.state),
     moves: before.moves,
     hints: Math.max(current.hints, before.hints),
+    rewardAlignUsed: current.rewardAlignUsed === true || before.rewardAlignUsed === true,
   };
+}
+
+/** Align only; the player's next release still decides when to remove the ring. */
+export function alignReward(run: Run) {
+  if (run.rewardAlignUsed || isComplete(run.state)) return null;
+  const hint = findHint(run.state);
+  if (!hint || !rotateRing(run.state, hint.ringId, hint.angle)) return null;
+  run.rewardAlignUsed = true;
+  run.hints++;
+  run.moves++;
+  return hint;
 }
 
 /** One star for completion; two without hints; three for the shortest release route. */

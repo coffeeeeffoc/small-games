@@ -866,14 +866,31 @@ test('fourth Creator classification works in a bare planner with only Prettier a
   });
 });
 
+const rewardH5Extras = [
+  'merge-front',
+  'tetracube',
+  'three-choose-two',
+  'bullet-garden',
+  'tower-brake',
+  'orbit-atelier',
+  'tianxia-chalu',
+  'ball-roguelite',
+  'flick-arena',
+  'chase-thief',
+  'moss-garden',
+  'cage-rescue',
+];
+const rewardH5Fixture = rewardH5Extras.map((id) => ({
+  id,
+  source: 'games/local/' + (id === 'moss-garden' ? 'game-moss-garden' : id),
+}));
+
 test('unified package tools keep their H5 consumers and reject unknown siblings', () => {
   const ids = ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'];
   const games = [
     ...ids.map((id) => ({ id, source: competitionConsumers[id] })),
     ...sixH5Ids.map((id) => ({ id, source: `games/local/${id}` })),
-    { id: 'merge-front', source: 'games/local/merge-front' },
-    { id: 'tetracube', source: 'games/local/tetracube' },
-    { id: 'three-choose-two', source: 'games/local/three-choose-two' },
+    ...rewardH5Fixture,
   ];
   const packages = games.map((game) => ({ name: game.id, dir: game.source }));
   const readSource = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
@@ -918,10 +935,10 @@ test('unified package tools keep their H5 consumers and reject unknown siblings'
 });
 
 test('six H5 tools declare exact consumers and preserve fail-closed configuration scope', () => {
-  const games = [...sixH5Ids, 'merge-front', 'tetracube', 'three-choose-two'].map((id) => ({
-    id,
-    source: `games/local/${id}`,
-  }));
+  const games = [
+    ...sixH5Ids.map((id) => ({ id, source: `games/local/${id}` })),
+    ...rewardH5Fixture,
+  ];
   const packages = games.map((g) => ({ name: g.id, dir: g.source }));
   const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
   for (const file of sixH5ScopePaths) {
@@ -935,7 +952,7 @@ test('six H5 tools declare exact consumers and preserve fail-closed configuratio
             .filter(
               (g) =>
                 (file !== 'infra/builds/six-taptap-h5.mjs' || g.id !== 'homebound-station') &&
-                (!['merge-front', 'tetracube', 'three-choose-two'].includes(g.id) ||
+                (!rewardH5Extras.includes(g.id) ||
                   [
                     'platforms/h5/game-rewards.js',
                     'platforms/h5/interstitial.js',
@@ -1431,11 +1448,13 @@ test('shared channel advertising covers every registered consumer; the uploader 
     { id: 'cops-robbers-realtime', source: 'games/local/cops-robbers-realtime' },
     { id: 'xiangqi-five', source: 'games/submodules/xiangqi-five' },
     ...sixH5Ids.map((id) => ({ id, source: `games/local/${id}` })),
-    { id: 'merge-front', source: 'games/local/merge-front' },
-    { id: 'tetracube', source: 'games/local/tetracube' },
-    { id: 'three-choose-two', source: 'games/local/three-choose-two' },
+    ...rewardH5Fixture,
   ];
-  const packages = games.map((game) => ({ name: game.id, dir: game.source }));
+  const packages = games.map((game) => ({
+    name: game.id,
+    dir: game.source,
+    ...(game.id === 'bullet-garden' ? { creator: { version: '3.8.8' } } : {}),
+  }));
   const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
   for (const file of platformAdsScopePaths) {
     const adapter = !file.includes('deploy-taptap');
@@ -1454,21 +1473,20 @@ test('shared channel advertising covers every registered consumer; the uploader 
   }
 });
 
-test('Flick consumes only the three shared reward runtime files, with unique identity', () => {
+test('Flick consumes shared rewards and the H5 compiler, with unique identity', () => {
   const games = [
     { id: 'cops-robbers', source: 'games/local/cops-robbers' },
     { id: 'cops-robbers-realtime', source: 'games/local/cops-robbers-realtime' },
     { id: 'xiangqi-five', source: 'games/submodules/xiangqi-five' },
-    ...[...sixH5Ids, 'merge-front', 'tetracube', 'three-choose-two', 'flick-arena'].map((id) => ({
-      id,
-      source: `games/local/${id}`,
-    })),
+    ...sixH5Ids.map((id) => ({ id, source: `games/local/${id}` })),
+    ...rewardH5Fixture,
   ];
   const packages = games.map((game) => ({ name: game.id, dir: game.source }));
   const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
   const runtime = [
+    'scripts/h5-game-build.mjs',
     'platforms/h5/game-rewards.js',
-    'platforms/h5/platform-ads.js',
+    ...platformAdsScopePaths.filter((file) => !file.includes('deploy-taptap')),
     'platforms/h5/interstitial.js',
   ];
   for (const file of [...sixH5ScopePaths, ...platformAdsScopePaths]) {

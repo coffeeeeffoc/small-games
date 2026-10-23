@@ -34,6 +34,7 @@ import {
   normalizeAngle,
   parseProgress,
   restoreUndo,
+  alignReward,
   rotateRing,
   settle,
   snapAngle,
@@ -70,6 +71,7 @@ type Dev = {
 };
 const platform = globalThis as typeof globalThis & {
   SmallGamesDev?: Dev;
+  SmallGamesRewardAds?: { available: boolean; offer(request: { id: string }): Promise<{ status: string }>; cancel?(): void };
   OrbitPublishing?: Publishing;
   __orbit?: { snapshot(): unknown };
   __orbitTrustedInput?: { count: number; type: string };
@@ -107,6 +109,9 @@ export class OrbitAtelier extends Component {
   accessibility?: HTMLDivElement;
   fullscreen?: HTMLButtonElement;
   disposed = false;
+  rewardToken = 0;
+  rewardPending = false;
+  rewardPort: typeof platform.SmallGamesRewardAds;
   start() {
     view.enableAutoFullScreen(false);
     view.resizeWithBrowserSize(true);
@@ -221,6 +226,7 @@ export class OrbitAtelier extends Component {
     return CATALOG.find((l) => l.id === this.run?.state.levelId);
   }
   begin(id: string, practice = false, challenge = false) {
+    this.cancelReward();
     const level = CATALOG.find((l) => l.id === id);
     if (!level) return;
     const campaign = level.campaign || 'classic';
@@ -234,7 +240,7 @@ export class OrbitAtelier extends Component {
     this.practice = practice;
     this.challenge = challenge;
     this.campaign = campaign;
-    this.run = { state: createState(level), moves: 0, hints: 0 };
+    this.run = { state: createState(level), moves: 0, hints: 0, rewardAlignUsed: false };
     this.history = [];
     this.selected = null;
     this.hint = null;
@@ -254,6 +260,7 @@ export class OrbitAtelier extends Component {
     if (this.ui) this.ui.pressed = null;
   }
   navigate(screen: Screen) {
+    this.cancelReward();
     this.cancel();
     this.flights = [];
     this.ui.pulses = [];
@@ -285,6 +292,9 @@ export class OrbitAtelier extends Component {
     if (document.hidden) this.suspend();
   };
   pageHide = () => {
+    this.cancelReward();
+    this.suspend();
+    this.render();
     this.cancel();
     this.save();
     this.audioSource?.stop();
@@ -293,6 +303,44 @@ export class OrbitAtelier extends Component {
     this.feedback = message;
     this.feedbackUntil = this.time + 2.6;
     this.draw();
+  }
+  cancelReward() {
+    ++this.rewardToken;
+    const port = this.rewardPort;
+    this.rewardPort = undefined;
+    this.rewardPending = false;
+    port?.cancel?.();
+  }
+  async requestAlignment() {
+    const run = this.run, port = platform.SmallGamesRewardAds;
+    if (this.disposed || this.rewardPending || this.screen !== 'paused' || !run ||
+        run.rewardAlignUsed || isComplete(run.state)) return;
+    if (!port?.available) {
+      this.feedback = '辅助暂不可用 · 普通提示仍免费';
+      this.render();
+      return;
+    }
+    const token = ++this.rewardToken;
+    this.rewardPending = true;
+    this.rewardPort = port;
+    this.feedback = '正在准备辅助 · 可取消';
+    this.render();
+    let status = 'failed';
+    try { status = (await port.offer({ id: 'orbit-atelier:align' }))?.status; } catch {}
+    if (this.disposed || token !== this.rewardToken || this.run !== run || this.screen !== 'paused') return;
+    this.rewardPending = false;
+    this.rewardPort = undefined;
+    const before = structuredClone(run);
+    const hint = status === 'completed' ? alignReward(run) : null;
+    if (hint) {
+      this.history.push(before);
+      if (this.history.length > 80) this.history.shift();
+      this.hint = hint;
+      this.selected = hint.ringId;
+      this.feedback = '已对齐一环 · 继续后轻触释放';
+      this.save();
+    } else this.feedback = status === 'dismissed' ? '已取消 · 未获得辅助' : '未获得辅助 · 普通提示仍免费';
+    this.render();
   }
   render() {
     if (!this.ui || !this.progress) return;
@@ -416,12 +464,17 @@ export class OrbitAtelier extends Component {
       this.draw();
     } else if (this.screen === 'paused') {
       u.header('让星光歇一会儿', 'A MOMENT OF STILLNESS', 'resume');
-      u.showHero(landscape ? w * 0.7 : w / 2, landscape ? 215 : h * 0.39, landscape ? 250 : 240);
+      u.showHero(landscape ? w * 0.7 : w / 2, landscape ? 215 : h * 0.30, landscape ? 250 : 180);
       const x = landscape ? w * 0.26 : w / 2,
-        y = landscape ? 175 : h * 0.64;
+        y = landscape ? 146 : h * 0.56;
       u.button('resume', '继续修复', x, y, 260, true);
-      u.button('retry', '重新开始', x, y + 68, 260);
-      u.button('home', '返回工坊', x, y + 136, 260);
+      u.button(this.rewardPending ? 'reward-cancel' : 'reward-align',
+        this.rewardPending ? '取消辅助' : this.run?.rewardAlignUsed ? '本局辅助已使用' : '观看后对齐一环 · 一次',
+        x, y + 62, 280, false, !this.rewardPending && !!this.run?.rewardAlignUsed);
+      u.button('retry', '重新开始', x, y + 124, 260);
+      u.button('home', '返回工坊', x, y + 186, 260);
+      u.text(this.feedback || '完整观看才对齐 · 计入提示星级',
+        landscape ? w * 0.7 : x, landscape ? h - 40 : y - 48, 12, '#b9ced0', 320);
     } else if (this.screen === 'result' && this.run) {
       const level = this.level()!,
         chapter = CHAPTERS[Math.min(3, level.chapter - 1)]!;
@@ -659,6 +712,14 @@ export class OrbitAtelier extends Component {
     );
   }
   activate(id: string) {
+    if (id === 'reward-align') { void this.requestAlignment(); return; }
+    if (id === 'reward-cancel') {
+      this.cancelReward();
+      this.feedback = '已取消 · 未获得辅助';
+      this.render();
+      return;
+    }
+    this.cancelReward();
     if (id === 'retry-art') {
       this.ui.loadArt();
       this.render();
@@ -1047,6 +1108,8 @@ export class OrbitAtelier extends Component {
       progress: structuredClone(this.progress),
       moves: this.run?.moves,
       hints: this.run?.hints,
+      rewardAlignUsed: this.run?.rewardAlignUsed === true,
+      rewardPending: this.rewardPending,
       practice: this.practice,
       challenge: this.challenge,
       selectedRingId: this.selected,
@@ -1101,6 +1164,7 @@ export class OrbitAtelier extends Component {
   }
   onDestroy() {
     this.disposed = true;
+    this.cancelReward();
     this.cancel();
     this.save();
     this.unregister.forEach((fn) => fn());
