@@ -4,7 +4,7 @@ const expect = baseExpect.configure({ timeout: 20000 });
 export async function assertCastleDuelEntry(frame, mobile = false) {
   const canvas = frame.locator('#GameCanvas');
   const page = canvas.page();
-  const snapshot = () => frame.locator('body').evaluate(() => window.__castle?.snapshot());
+  const snapshot = () => frame.locator('body').evaluate(() => globalThis.__castle?.snapshot());
   await expect.poll(async () => (await snapshot())?.ready, { timeout: 90000 }).toBe(true);
   expect((await snapshot()).renderer).toBe('cocos');
   await expect.poll(async () => (await snapshot()).screen).toBe('home');
