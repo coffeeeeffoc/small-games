@@ -293,6 +293,264 @@ export function createView(cc, root, dimensions, actions) {
     }
     return l;
   }
+  function drawIcon(g, icon, cx, cy, tint) {
+    const path = (points, width = 2.5) =>
+      line(
+        g,
+        points.map(([x, y]) => ({ x: cx + x, y: cy + y })),
+        tint,
+        width,
+      );
+    const ring = (x, y, r) => circle(g, cx + x, cy + y, r, tint, 255, 2);
+    const triangle = (x = 0, size = 10) => {
+      g.fillColor = color(tint);
+      g.moveTo(cx + x - size * 0.55, -cy + size);
+      g.lineTo(cx + x + size * 0.9, -cy);
+      g.lineTo(cx + x - size * 0.55, -cy - size);
+      g.close();
+      g.fill();
+    };
+    if (icon === 'pause') {
+      g.fillColor = color(tint);
+      for (const x of [-7, 3]) {
+        g.rect(cx + x, -cy - 8, 4, 16);
+        g.fill();
+      }
+    } else if (icon === 'settings') {
+      ring(0, 0, 10);
+      ring(0, 0, 4);
+      for (let i = 0; i < 8; i++) {
+        const a = (i * TAU) / 8;
+        path(
+          [
+            [Math.cos(a) * 10, Math.sin(a) * 10],
+            [Math.cos(a) * 14, Math.sin(a) * 14],
+          ],
+          3,
+        );
+      }
+    } else if (icon === 'back' || icon === 'next') {
+      const direction = icon === 'back' ? -1 : 1;
+      path(
+        [
+          [-5 * direction, -10],
+          [5 * direction, 0],
+          [-5 * direction, 10],
+        ],
+        3,
+      );
+      if (icon === 'next')
+        path([
+          [12, -10],
+          [12, 10],
+        ]);
+    } else if (icon === 'play') triangle();
+    else if (icon === 'close') {
+      path([
+        [-8, -8],
+        [8, 8],
+      ]);
+      path([
+        [8, -8],
+        [-8, 8],
+      ]);
+    } else if (icon.startsWith('restart')) {
+      path(
+        Array.from({ length: 33 }, (_, i) => {
+          const a = -Math.PI * 0.15 + (i / 32) * Math.PI * 1.55;
+          return [Math.cos(a) * 11, Math.sin(a) * 11];
+        }),
+      );
+      path([
+        [-12, -11],
+        [-2, -11],
+        [-2, -1],
+      ]);
+      if (icon === 'restart-endless')
+        path(
+          Array.from({ length: 49 }, (_, i) => {
+            const a = (i / 48) * TAU;
+            return [Math.cos(a) * 6, Math.sin(a * 2) * 3];
+          }),
+          1.5,
+        );
+    } else if (icon === 'reward') {
+      path(
+        [
+          [-13, -9],
+          [13, -9],
+          [13, 9],
+          [-13, 9],
+          [-13, -9],
+        ],
+        2,
+      );
+      triangle(0, 5);
+      path(
+        [
+          [15, -17],
+          [15, -11],
+        ],
+        2,
+      );
+      path(
+        [
+          [12, -14],
+          [18, -14],
+        ],
+        2,
+      );
+    } else if (icon === 'recall') {
+      path([
+        [0, -13],
+        [0, 4],
+      ]);
+      path([
+        [-7, -2],
+        [0, 5],
+        [7, -2],
+      ]);
+      path([
+        [-12, 6],
+        [-12, 12],
+        [12, 12],
+        [12, 6],
+      ]);
+    } else if (icon === 'home') {
+      path([
+        [-14, -1],
+        [0, -13],
+        [14, -1],
+      ]);
+      path([
+        [-10, -4],
+        [-10, 12],
+        [-3, 12],
+        [-3, 4],
+        [3, 4],
+        [3, 12],
+        [10, 12],
+        [10, -4],
+      ]);
+    } else if (icon === 'share') {
+      path([
+        [-12, 1],
+        [-12, 12],
+        [12, 12],
+        [12, 1],
+      ]);
+      path([
+        [0, 5],
+        [0, -13],
+      ]);
+      path([
+        [-7, -6],
+        [0, -13],
+        [7, -6],
+      ]);
+    } else if (icon === 'help') {
+      ring(0, 0, 13);
+      path(
+        [
+          [-5, -5],
+          [-4, -8],
+          [3, -8],
+          [6, -5],
+          [5, -2],
+          [0, 1],
+          [0, 4],
+        ],
+        2,
+      );
+      circle(g, cx, cy + 8, 1.4, tint, 255, 1, true);
+    } else if (icon.startsWith('sound')) {
+      path(
+        [
+          [-12, -4],
+          [-7, -4],
+          [0, -10],
+          [0, 10],
+          [-7, 4],
+          [-12, 4],
+          [-12, -4],
+        ],
+        2,
+      );
+      if (icon === 'sound-on') {
+        path(
+          [
+            [5, -6],
+            [8, -3],
+            [8, 3],
+            [5, 6],
+          ],
+          2,
+        );
+        path(
+          [
+            [9, -10],
+            [13, -5],
+            [13, 5],
+            [9, 10],
+          ],
+          2,
+        );
+      } else {
+        path(
+          [
+            [5, -4],
+            [13, 4],
+          ],
+          2,
+        );
+        path(
+          [
+            [5, 4],
+            [13, -4],
+          ],
+          2,
+        );
+      }
+    } else if (icon.startsWith('haptics')) {
+      path(
+        [
+          [-6, -11],
+          [6, -11],
+          [6, 11],
+          [-6, 11],
+          [-6, -11],
+        ],
+        2,
+      );
+      if (icon === 'haptics-on') {
+        path(
+          [
+            [-11, -7],
+            [-14, -3],
+            [-11, 1],
+            [-14, 5],
+          ],
+          2,
+        );
+        path(
+          [
+            [11, -7],
+            [14, -3],
+            [11, 1],
+            [14, 5],
+          ],
+          2,
+        );
+      } else
+        path(
+          [
+            [-13, 13],
+            [13, -13],
+          ],
+          2,
+        );
+    }
+  }
   function button(
     id,
     value,
@@ -303,6 +561,24 @@ export function createView(cc, root, dimensions, actions) {
     action,
     { primary = false, disabled = false, tint = null, data = {}, aria = value, icon = null } = {},
   ) {
+    icon ||= {
+      continue: 'play',
+      campaign: 'play',
+      'restart-endless': 'restart-endless',
+      'restart-run': 'restart',
+      supply: 'reward',
+      recall: 'recall',
+      resume: 'play',
+      'overlay-back': 'back',
+      help: 'help',
+      retry: 'restart',
+      next: 'next',
+      leave: 'home',
+      share: 'share',
+      'supply-back': 'back',
+      'levels-prev': 'back',
+      'levels-next': 'next',
+    }[action];
     const n = panel(
       menu,
       x,
@@ -314,43 +590,10 @@ export function createView(cc, root, dimensions, actions) {
     );
     n.name = `Button ${id || value}`;
     if (disabled) n.addComponent(UIOpacity).opacity = 100;
-    if (icon === 'pause') {
+    if (icon) {
       const g = graphics(menu);
-      g.fillColor = color(C.text);
-      for (const bx of [x + w / 2 - 7, x + w / 2 + 3]) {
-        g.rect(bx, -y - h / 2 - 8, 4, 16);
-        g.fill();
-      }
-    } else if (icon === 'settings') {
-      const g = graphics(menu),
-        cx = x + w / 2,
-        cy = y + h / 2;
-      circle(g, cx, cy, 10, C.text, 255, 2);
-      circle(g, cx, cy, 4, C.text, 255, 2);
-      for (let i = 0; i < 8; i++) {
-        const a = (i * TAU) / 8;
-        line(
-          g,
-          [
-            { x: cx + Math.cos(a) * 10, y: cy + Math.sin(a) * 10 },
-            { x: cx + Math.cos(a) * 14, y: cy + Math.sin(a) * 14 },
-          ],
-          C.text,
-          3,
-        );
-      }
-    } else if (icon === 'back') {
-      const g = graphics(menu);
-      line(
-        g,
-        [
-          { x: x + w * 0.58, y: y + h * 0.3 },
-          { x: x + w * 0.38, y: y + h * 0.5 },
-          { x: x + w * 0.58, y: y + h * 0.7 },
-        ],
-        C.text,
-        3,
-      );
+      if (disabled) g.node.addComponent(UIOpacity).opacity = 100;
+      drawIcon(g, icon, x + w / 2, y + h / 2, tint || (primary ? '#33245c' : C.text));
     } else
       text(
         menu,
@@ -367,7 +610,8 @@ export function createView(cc, root, dimensions, actions) {
       if (!disabled) actions.activate(action);
     };
     n.on(cc.Button.EventType.CLICK, handler);
-    const el = semantic(id, value, x, y, w, h, 'button');
+    const el = semantic(id, icon ? '' : value, x, y, w, h, 'button');
+    if (icon) el.dataset.icon = icon;
     el.disabled = disabled;
     el.setAttribute('aria-label', aria);
     for (const [key, v] of Object.entries(data)) el.dataset[key] = v;
@@ -605,14 +849,14 @@ export function createView(cc, root, dimensions, actions) {
   function upgrade(game) {
     begin('upgrade', true);
     battleHeader(game);
-    const sheetH = Math.min(330, Math.max(285, H * 0.41)),
+    const sheetH = Math.min(300, Math.max(270, H * 0.37)),
       top = (H - sheetH) / 2;
     modal(sheetH, C.purple);
     label(null, '星光共鸣', 195, top + 33, 25);
     label(null, '选择一项 · 本局生效', 195, top + 62, 12, C.muted);
     const gap = 10,
       width = (342 - (game.cards.length - 1) * gap) / game.cards.length,
-      cardH = sheetH - 106 - touch();
+      cardH = sheetH - 98;
     game.cards.forEach((id, index) => {
       const card = UPGRADES.find((u) => u.id === id),
         x = 24 + index * (width + gap),
@@ -644,20 +888,6 @@ export function createView(cc, root, dimensions, actions) {
         width - 12,
       );
     });
-    button('upgrade-home', '保存离开', 24, top + sheetH - touch() - 12, 128, touch(), 'leave');
-    button(
-      'upgrade-supply',
-      '激励补给  ▷',
-      165,
-      top + sheetH - touch() - 12,
-      201,
-      touch(),
-      'supply',
-      {
-        disabled: game.practice || game.challenge,
-        tint: C.gold,
-      },
-    );
   }
   function paused() {
     begin('paused', true);
@@ -676,6 +906,7 @@ export function createView(cc, root, dimensions, actions) {
       top = modal(h);
     button('settings-close', '×', W - min - 20, top + 12, min, min, 'overlay-back', {
       aria: '关闭设置',
+      icon: 'close',
     });
     label(null, '星轨设置', 170, top + 40, 25, C.text, 220);
     button(
@@ -686,7 +917,7 @@ export function createView(cc, root, dimensions, actions) {
       151,
       min,
       'sound',
-      { data: { action: 'sound' } },
+      { data: { action: 'sound' }, icon: data.sound ? 'sound-on' : 'sound-off' },
     ).setAttribute('aria-pressed', String(data.sound));
     button(
       'settings-haptics',
@@ -696,6 +927,7 @@ export function createView(cc, root, dimensions, actions) {
       151,
       min,
       'haptics',
+      { icon: data.haptics ? 'haptics-on' : 'haptics-off' },
     ).setAttribute('aria-pressed', String(data.haptics));
     button('settings-help', '玩法与特殊球珠', 38, top + 108 + min, 314, min, 'help');
     if (canRestart)
@@ -719,7 +951,9 @@ export function createView(cc, root, dimensions, actions) {
       14,
       C.muted,
     );
-    button('confirm-cancel', '继续当前对局', 35, top + 164, 154, min, 'overlay-back');
+    button('confirm-cancel', '继续当前对局', 35, top + 164, 154, min, 'overlay-back', {
+      icon: 'close',
+    });
     button(
       'confirm-accept',
       kind === 'leave' ? '保存并返回' : '确认重开',
@@ -728,7 +962,7 @@ export function createView(cc, root, dimensions, actions) {
       154,
       min,
       'confirm-accept',
-      { primary: true },
+      { primary: true, icon: kind === 'leave' ? 'home' : 'restart' },
     );
   }
   function help(persistent, battle) {
@@ -740,12 +974,18 @@ export function createView(cc, root, dimensions, actions) {
     label(null, '折射指南', 214, top + 38, 24, C.text, 200);
     const entries = [
       [
-        '找角度，别只直射',
-        '浅角贴墙切入珠群，弱重力让轨迹微弯。\n多次撞击会略微损能，侧面更容易连弹。',
+        '球数与伤害分开计算',
+        '每次碰撞扣当前伤害，重击最高 4，暴击翻倍。\n穿透一次只扣一次；反弹后再次命中会再扣。',
       ],
       ['紫色漩涡会吞球', '未击碎的吸收器会吞掉当前弹珠。\n本轮减少连弹机会，永久球数不变。'],
-      ['收回也有代价', '主动或超时召回，弹珠沿弧线加速归仓。\n全部归位后珠群下降，先拆低处目标。'],
-      ['成长有上限', '每五轮选一次强化；无尽加球点每四波。\n需要时可看广告领取共鸣或应急清行。'],
+      [
+        '周围掉数来自技能',
+        '爆裂余波伤邻珠，闪电连线指向连锁目标。\n爆裂晶体碎裂时，对邻珠造成自身满血 45% 伤害。',
+      ],
+      [
+        '收回与成长',
+        '全部弹珠归位后珠群下降，每五轮选强化。\n补给可看广告：共鸣有 8% 概率额外扣 1。',
+      ],
     ];
     const step = (h - min - 105) / 4;
     entries.forEach(([title, body], i) => {
@@ -939,11 +1179,29 @@ export function createView(cc, root, dimensions, actions) {
         stats.recalls++;
         collectorPulse = 0.7;
       }
-      if (['bounce', 'break', 'blast', 'pickup', 'absorb', 'returned'].includes(e.type))
+      if (
+        [
+          'bounce',
+          'break',
+          'blast',
+          'chain',
+          'critical',
+          'resonance',
+          'pickup',
+          'absorb',
+          'returned',
+        ].includes(e.type)
+      )
         effects.push({
           ...e,
           age: 0,
-          duration: e.type === 'break' ? 0.42 : e.type === 'absorb' ? 0.4 : 0.28,
+          duration: ['chain', 'blast'].includes(e.type)
+            ? 0.42
+            : e.type === 'break'
+              ? 0.42
+              : e.type === 'absorb'
+                ? 0.4
+                : 0.28,
         });
     }
     effects = effects.slice(-18);
@@ -1116,7 +1374,36 @@ export function createView(cc, root, dimensions, actions) {
       const p = e.age / e.duration,
         fade = Math.round(Math.max(0, 1 - p) * 185),
         tint =
-          e.type === 'absorb' ? C.purple : e.type === 'break' ? e.profile?.color || C.gold : C.mint;
+          e.type === 'absorb' || e.type === 'critical'
+            ? C.purple
+            : e.type === 'blast' || e.type === 'resonance'
+              ? C.gold
+              : e.type === 'break'
+                ? e.profile?.color || C.gold
+                : C.mint;
+      // Secondary damage remains legible even when decorative motion is reduced.
+      if (e.type === 'chain') {
+        const dx = e.to.x - e.from.x,
+          dy = e.to.y - e.from.y;
+        const length = Math.hypot(dx, dy) || 1;
+        const points = Array.from({ length: 7 }, (_, i) => {
+          const offset = reduced || i === 0 || i === 6 ? 0 : i % 2 ? 4 : -4;
+          return {
+            x: e.from.x + (dx * i) / 6 - (dy / length) * offset,
+            y: e.from.y + (dy * i) / 6 + (dx / length) * offset,
+          };
+        });
+        line(fx, points, C.mint, 2, fade);
+        circle(fx, e.to.x, e.to.y, 10, C.mint, fade, 2);
+        continue;
+      }
+      if (e.type === 'blast') {
+        fx.strokeColor = color(C.gold, fade);
+        fx.lineWidth = 2;
+        const size = FIELD.cell * 3;
+        fx.roundRect(e.x - size / 2, -e.y - size / 2, size, size, 12);
+        fx.stroke();
+      }
       if (reduced) continue;
       circle(
         fx,
@@ -1209,6 +1496,8 @@ export function createView(cc, root, dimensions, actions) {
     get stats() {
       return {
         ...stats,
+        chains: effects.filter((e) => e.type === 'chain').length,
+        blasts: effects.filter((e) => e.type === 'blast').length,
         shards: shards.length,
         shardNodes: shards.length + spareShards.length,
         cracked: [...targetNodes.values()].filter((e) => e.crackStage > 0).length,

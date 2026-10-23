@@ -26,8 +26,8 @@ export const themes = [
 ];
 const copy = (value) => JSON.parse(JSON.stringify(value));
 export function createGame(target, options = {}) {
-  const ctx = target.canvas.getContext('2d');
-  if (!ctx) throw new Error('当前设备不支持 Canvas 2D');
+  const ctx = target.renderer ? null : target.canvas.getContext('2d');
+  if (!ctx && !target.renderer) throw new Error('当前设备不支持 Canvas 2D');
   const catalog = options.layouts ?? layouts;
   const app = {
     layouts: catalog,
@@ -537,13 +537,16 @@ export function createGame(target, options = {}) {
       s = Math.min(width / W, height / H),
       ox = (width - W * s) / 2,
       oy = (height - H * s) / 2;
-    ctx.fillStyle = '#0d2026';
-    ctx.fillRect(0, 0, width, height);
-    ctx.save();
-    ctx.translate(ox, oy);
-    ctx.scale(s, s);
-    app.buttons = draw(ctx, app);
-    ctx.restore();
+    if (target.renderer) app.buttons = target.renderer.draw(app);
+    else {
+      ctx.fillStyle = '#0d2026';
+      ctx.fillRect(0, 0, width, height);
+      ctx.save();
+      ctx.translate(ox, oy);
+      ctx.scale(s, s);
+      app.buttons = draw(ctx, app);
+      ctx.restore();
+    }
     options.onRender?.(app, { scale: s, ox, oy });
   }
   function coords(e) {
@@ -731,6 +734,7 @@ export function createGame(target, options = {}) {
     app,
     tick,
     render,
+    cancelInput: cancel,
     action,
     cancel,
     isSuspended: () => suspended,
@@ -767,7 +771,8 @@ export function createGame(target, options = {}) {
       stop?.();
       options.online?.dispose();
       for (const s of Object.values(sounds)) s?.dispose();
-      ctx.clearRect(0, 0, target.canvas.width, target.canvas.height);
+      if (target.renderer) target.renderer.dispose();
+      else ctx.clearRect(0, 0, target.canvas.width, target.canvas.height);
     },
     debug() {
       return {
