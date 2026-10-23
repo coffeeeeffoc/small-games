@@ -42,6 +42,8 @@ export async function mountCageRescue(host) {
   let starting = false,
     startSequence = 0,
     frameAccumulator = 0;
+  const offline = globalThis.__COMPETITION_CONFIG__?.enabled === false;
+  $('leaderboard').hidden = offline;
   let competitionStatus = '本地挑战';
   const competition = createLeaderboard({
     gameId: 'cage-rescue',
@@ -69,7 +71,7 @@ export async function mountCageRescue(host) {
   const publishing = createH5Publishing({
     gameId: 'cage-rescue',
     title: '打破笼子接住人',
-    adMode: globalThis.SmallGamesPublishingConfig?.adMode ?? 'mock',
+    adMode: globalThis.SmallGamesPublishingConfig?.adMode ?? 'off',
     provider: globalThis.SmallGamesPublishingConfig?.provider,
     publicUrl: globalThis.SmallGamesPublishingConfig?.publicUrl,
     pause: () => {
@@ -86,6 +88,7 @@ export async function mountCageRescue(host) {
     pageActive = true,
     saveQueue = Promise.resolve(),
     disposed = false;
+  let rewardEpoch = 0, activeReward;
   let rewardBusy = false,
     lastHud = '',
     lastTip = '',
@@ -205,7 +208,15 @@ export async function mountCageRescue(host) {
     targetX = game.paddle.x;
     if (id !== null && canvas.hasPointerCapture?.(id)) canvas.releasePointerCapture(id);
   }
+  function cancelReward() {
+    rewardEpoch++;
+    rewardBusy = false;
+    try { activeReward?.cancel?.(); } catch { /* Navigation remains available. */ }
+    activeReward = undefined;
+    $('revive').disabled = false;
+  }
   function changeScreen(next) {
+    if (next !== screen) cancelReward();
     clearInput();
     screen = next;
     document.body.dataset.screen = next;
@@ -485,7 +496,7 @@ export async function mountCageRescue(host) {
         `坚持到第 ${game.endlessWave} 波 · 本机最佳 ${progress.endlessBest} 人`;
       $('next').hidden = true;
     }
-    $('revive').hidden = !canRevive(game) || trial;
+    $('revive').hidden = !canRevive(game) || trial || (local && !globalThis.SmallGamesRewardAds?.available);
     $('revive').disabled = false;
     $('reward-message').textContent =
       canRevive(game) && !trial && !local && host.session.adAuthority === 'none'
@@ -581,22 +592,22 @@ export async function mountCageRescue(host) {
   });
   on($('revive'), 'click', async () => {
     if (rewardBusy || !canRevive(game) || trial) return;
-    const attempt = game;
+    const attempt = game, token = ++rewardEpoch;
+    activeReward = local ? globalThis.SmallGamesRewardAds : host.ads;
     rewardBusy = true;
     $('revive').disabled = true;
     $('reward-message').textContent = '正在请求补球机会…';
     let outcome;
     try {
-      outcome = local
-        ? await publishing.rewarded({ placement: 'cage-rescue.revive' })
-        : await host.ads.offer({
-            id: 'cage-rescue.revive',
-            reward: { ballLives: 1, levelId: game.levelId },
-          });
+      outcome = await activeReward?.offer({
+        id: 'cage-rescue.revive',
+        reward: { ballLives: 1, levelId: game.levelId },
+      }) ?? { status: 'unavailable' };
     } catch {
       outcome = { status: 'failed' };
     }
-    if (disposed || game !== attempt || screen !== 'result') return;
+    if (disposed || token !== rewardEpoch || game !== attempt || screen !== 'result') return;
+    activeReward = undefined;
     rewardBusy = false;
     $('revive').disabled = false;
     if (outcome?.status === 'completed' && (competition.invalidate('revived'), reviveGame(game))) {
@@ -665,6 +676,7 @@ export async function mountCageRescue(host) {
     }
   });
   on(window, 'pagehide', () => {
+    cancelReward();
     pageActive = false;
     clearInput();
     pause();
@@ -929,6 +941,7 @@ export async function mountCageRescue(host) {
     pause,
     resume,
     async dispose() {
+      cancelReward();
       if (disposed) return;
       disposed = true;
       ++startSequence;

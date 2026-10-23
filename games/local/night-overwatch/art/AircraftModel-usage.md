@@ -1,6 +1,6 @@
 # AircraftModel
 
-World 已接入构造、逐帧姿态更新和销毁；Overwatch snapshot 暴露 `status/error/triangles/muzzle`。当前资产为 **2132 tris**，已通过 Blender 导出验证；`88d68995` 构建在 1366×768 与 844×390 实际浏览器均加载为 `ready`，截图及只读快照在 `reports/flight-overhaul/`。
+World 已接入构造、逐帧姿态更新和销毁；Overwatch snapshot 暴露 `status/error/triangles/muzzle`。当前资产为 **2132 tris**，已通过 Blender 导出验证；`88d68995` 构建在 1366×768 与 844×390 实际浏览器均加载为 `ready`，截图及只读快照在 [历史记录：reports/flight-overhaul/](https://github.com/coffeeeeffoc/small-games/tree/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/night-overwatch/reports/flight-overhaul)。
 
 ## 资源与姿态
 
@@ -27,4 +27,4 @@ Set-Location 'C:/Users/15211/.codex/worktrees/night-overwatch-flight/small-games
 & 'D:/setup/Blender/blender.exe' --background --factory-startup --python-exit-code 1 --python scripts/model-aircraft.py -- --camera-study
 ```
 
-`art/validation.json` 记录当前网格统计、SHA-256 与通过状态；`art/camera-study.json` 记录构图测量。实际构建已确认当前 2132-tris 资产加载、相机挂点效果、旋转观察与暂停恢复；炮口/弹道一致由核心检查及浏览器发射点快照验证。证据在 `reports/flight-overhaul/interaction-results.json` 及两视口 `*-preview.json`。
+`art/validation.json` 记录当前网格统计、SHA-256 与通过状态；`art/camera-study.json` 记录构图测量。实际构建已确认当前 2132-tris 资产加载、相机挂点效果、旋转观察与暂停恢复；炮口/弹道一致由核心检查及浏览器发射点快照验证。证据在 [历史记录：reports/flight-overhaul/interaction-results.json](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/night-overwatch/reports/flight-overhaul/interaction-results.json) 及两视口 `*-preview.json`。

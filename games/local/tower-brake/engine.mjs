@@ -77,6 +77,7 @@ export function createGame(level) {
     streak: 0,
     maxStreak: 0,
     charge: 1,
+    rewardRefillUsed: false,
     brakeLeft: 0,
     elapsed: 0,
     brakesUsed: 0,
@@ -123,6 +124,14 @@ export function brake(state) {
   state.streak = 0;
   state.brakesUsed += 1;
   emit(state, 'brake', { layer: state.nextLayer });
+  return true;
+}
+
+export function refillBrake(state) {
+  if (state.status !== 'playing' || !state.paused || state.charge !== 0 || state.rewardRefillUsed)
+    return false;
+  state.rewardRefillUsed = true;
+  state.charge = 1;
   return true;
 }
 

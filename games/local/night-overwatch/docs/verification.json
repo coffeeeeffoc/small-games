@@ -10,11 +10,11 @@
   "coreTests": {
     "passed": 44,
     "failed": 0,
-    "evidence": "reports/interaction-overhaul/core-tests.log"
+    "evidence": "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/night-overwatch/reports/interaction-overhaul/core-tests.log"
   },
   "typecheck": {
     "status": "passed",
-    "evidence": "reports/interaction-overhaul/typecheck.log"
+    "evidence": "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/night-overwatch/reports/interaction-overhaul/typecheck.log"
   },
   "liveBuilds": [
     {
@@ -56,7 +56,7 @@
       }
     ],
     "errors": [],
-    "evidence": "reports/interaction-overhaul/interaction-results.json"
+    "evidence": "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/night-overwatch/reports/interaction-overhaul/interaction-results.json"
   },
   "startup": {
     "actualRuntimeSplash": {
@@ -79,7 +79,7 @@
       "friendlyDamage": 0,
       "alliesAlive": 12,
       "errors": [],
-      "evidence": "reports/interaction-overhaul/desktop-mission.json"
+      "evidence": "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/night-overwatch/reports/interaction-overhaul/desktop-mission.json"
     },
     {
       "mode": "touch",
@@ -89,7 +89,7 @@
       "friendlyDamage": 0,
       "alliesAlive": 12,
       "errors": [],
-      "evidence": "reports/interaction-overhaul/touch-mission.json"
+      "evidence": "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/night-overwatch/reports/interaction-overhaul/touch-mission.json"
     }
   ],
   "presentation": {
@@ -112,7 +112,7 @@
         "height": 320
       }
     ],
-    "evidence": "reports/interaction-overhaul/presentation/2026-09-29T18-18-20.036Z-40636/presentation.json"
+    "evidence": "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/night-overwatch/reports/interaction-overhaul/presentation/2026-09-29T18-18-20.036Z-40636/presentation.json"
   },
   "independentReview": {
     "browserChecks": [
@@ -120,35 +120,35 @@
         "name": "friendly-warning-overlap",
         "width": 568,
         "status": "passed",
-        "evidence": "reports/interaction-overhaul/review/2026-09-29T18-18-22.746Z-21140/results.json"
+        "evidence": "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/night-overwatch/reports/interaction-overhaul/review/2026-09-29T18-18-22.746Z-21140/results.json"
       },
       {
         "name": "focused-target-label",
         "width": 568,
         "status": "passed",
-        "evidence": "reports/interaction-overhaul/review/2026-09-29T18-18-27.351Z-41472/results.json"
+        "evidence": "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/night-overwatch/reports/interaction-overhaul/review/2026-09-29T18-18-27.351Z-41472/results.json"
       },
       {
         "name": "right-click-controls",
         "width": 1366,
         "status": "passed",
-        "evidence": "reports/interaction-overhaul/review/2026-09-29T18-18-36.034Z-48348/results.json"
+        "evidence": "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/night-overwatch/reports/interaction-overhaul/review/2026-09-29T18-18-36.034Z-48348/results.json"
       },
       {
         "name": "friendly-group-focus",
         "width": 568,
         "status": "passed",
-        "evidence": "reports/interaction-overhaul/review/2026-09-29T18-24-30.464Z-5776/results.json"
+        "evidence": "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/night-overwatch/reports/interaction-overhaul/review/2026-09-29T18-24-30.464Z-5776/results.json"
       },
       {
         "name": "friendly-group-focus",
         "width": 844,
         "status": "passed",
-        "evidence": "reports/interaction-overhaul/review/2026-09-29T18-24-34.070Z-20552/results.json"
+        "evidence": "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/night-overwatch/reports/interaction-overhaul/review/2026-09-29T18-24-34.070Z-20552/results.json"
       }
     ],
     "visualReview": "passed: independent agent opened and inspected the final screenshots",
-    "report": "reports/interaction-overhaul/review/REVIEW-f8f28eab.md",
+    "report": "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/night-overwatch/reports/interaction-overhaul/review/REVIEW-f8f28eab.md",
     "fixedFindings": [
       "568px friendly warning no longer covers reticle",
       "568px focused label survives wave notice",

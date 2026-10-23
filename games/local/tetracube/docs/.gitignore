@@ -1,0 +1,4 @@
+# Retired evidence is available in Git history; local reruns stay untracked.
+/qa/
+/design/arcade-2026-10-07/
+/design/wider-base-2026-10-07/

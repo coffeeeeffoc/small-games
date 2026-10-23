@@ -2,18 +2,18 @@
 
 # 验证记录
 
-2026-10-05，先完成两张页面效果图与六位角色素材，再实现 H5 移动端页面。截图与 [触屏测试报告](implemented/report.json) 一同保留，便于对照设计和实际界面。
+2026-10-05，先完成两张页面效果图与六位角色素材，再实现 H5 移动端页面。截图与 [触屏测试报告](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/cops-robbers-realtime/docs/design/mobile-2026-10-05/implemented/report.json) 一同保留，便于对照设计和实际界面。
 
 ## 实际界面
 
 | 页面     | 竖屏                                                                                                                          | 横屏                                 |
 | -------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| 首页     | [390×844](implemented/home-390.png)、[320×740](implemented/home-320.png)                                                      | [844×390](implemented/home-844.png)  |
-| 出发准备 | [390×844](implemented/setup-390.png)                                                                                          | [844×390](implemented/setup-844.png) |
-| 实时围捕 | [390×844](implemented/game-390.png)                                                                                           | [844×390](implemented/game-844.png)  |
-| 角色装扮 | [六位角色与上传入口](implemented/avatars-390.png)                                                                             | —                                    |
-| 榜单     | [单人通关榜](implemented/records-390.png)、[好友积分榜](implemented/friend-board-390.png)                                     | —                                    |
-| 好友 PK  | [房间](implemented/friend-room-390.png)、[警察实战](implemented/friend-play-0.png)、[小偷实战](implemented/friend-play-1.png) | —                                    |
+| 首页     | [390×844](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/cops-robbers-realtime/docs/design/mobile-2026-10-05/implemented/home-390.png)、[320×740](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/cops-robbers-realtime/docs/design/mobile-2026-10-05/implemented/home-320.png)                                                      | [844×390](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/cops-robbers-realtime/docs/design/mobile-2026-10-05/implemented/home-844.png)  |
+| 出发准备 | [390×844](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/cops-robbers-realtime/docs/design/mobile-2026-10-05/implemented/setup-390.png)                                                                                          | [844×390](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/cops-robbers-realtime/docs/design/mobile-2026-10-05/implemented/setup-844.png) |
+| 实时围捕 | [390×844](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/cops-robbers-realtime/docs/design/mobile-2026-10-05/implemented/game-390.png)                                                                                           | [844×390](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/cops-robbers-realtime/docs/design/mobile-2026-10-05/implemented/game-844.png)  |
+| 角色装扮 | [六位角色与上传入口](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/cops-robbers-realtime/docs/design/mobile-2026-10-05/implemented/avatars-390.png)                                                                             | —                                    |
+| 榜单     | [单人通关榜](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/cops-robbers-realtime/docs/design/mobile-2026-10-05/implemented/records-390.png)、[好友积分榜](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/cops-robbers-realtime/docs/design/mobile-2026-10-05/implemented/friend-board-390.png)                                     | —                                    |
+| 好友 PK  | [房间](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/cops-robbers-realtime/docs/design/mobile-2026-10-05/implemented/friend-room-390.png)、[警察实战](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/cops-robbers-realtime/docs/design/mobile-2026-10-05/implemented/friend-play-0.png)、[小偷实战](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/cops-robbers-realtime/docs/design/mobile-2026-10-05/implemented/friend-play-1.png) | —                                    |
 
 ## 执行结果
 
@@ -35,7 +35,7 @@
 
 好友 PK 使用两个独立浏览器身份，验证昵称持久化、创建与加入、玩法和先手选择、双方阵营交换、邀请、准备、双方实际地图指令及服务端接受的原世界坐标、退出和积分榜。延迟真实创建房间响应时，退出后旧房间会在服务端放弃；立即重新进入并创建新房间后，旧响应不会覆盖新页面、房间或存储。
 
-最终在游戏目录执行 `BACK_ONLY=1 node scripts/mobile-pages-playtest.mjs`，[返回回归报告](implemented/navigation-report.json) 无运行时错误。等待房间顶栏返回和实战浏览器返回完成实际 `/leave` 200，服务端状态成为 `abandoned`，本机房间码清空。从单人纪录直接进入好友积分榜后，返回恢复原纪录页。该回归也保留在默认完整触屏脚本内。
+最终在游戏目录执行 `BACK_ONLY=1 node scripts/mobile-pages-playtest.mjs`，[返回回归报告](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/cops-robbers-realtime/docs/design/mobile-2026-10-05/implemented/navigation-report.json) 无运行时错误。等待房间顶栏返回和实战浏览器返回完成实际 `/leave` 200，服务端状态成为 `abandoned`，本机房间码清空。从单人纪录直接进入好友积分榜后，返回恢复原纪录页。该回归也保留在默认完整触屏脚本内。
 
 独立页面与 iframe 分别验证开发者模式默认关闭、URL 开启、本地存储开启、URL 显式关闭；iframe 内实际触屏下令与取消通过。
 

@@ -4,7 +4,7 @@
 
 先保存产品方案并生成 `concept.png`，再实现 UI。生成的星云背景用于正式素材 `assets/nebula.png`；球珠、裂纹、碎片、按钮与文字由真实 Cocos 3.8.8 Sprite / Graphics / Label 绘制。游戏仍采用官方源码编译的 Cocos Web 引擎，不将其描述成 Creator 工程或已验收原生包。
 
-实际截图位于 `actual/`。检查 390×844、320×568、844×390 三种视口、2× 像素比及触屏输入。已逐页对照首页、选关、游戏、设置、暂停、奖励和补给：保留蓝紫/青金配色与透明球珠，中心选择区周围仍可观察场地，顶边明确可见，44 CSS px 热区适应小屏与横屏。横屏采用完整竖屏场景居中，不裁切或重置对局。
+实际截图位于 [历史记录：actual/](https://github.com/coffeeeeffoc/small-games/tree/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/ball-roguelite/docs/design/prism-carnival/actual)。检查 390×844、320×568、844×390 三种视口、2× 像素比及触屏输入。已逐页对照首页、选关、游戏、设置、暂停、奖励和补给：保留蓝紫/青金配色与透明球珠，中心选择区周围仍可观察场地，顶边明确可见，44 CSS px 热区适应小屏与横屏。横屏采用完整竖屏场景居中，不裁切或重置对局。
 
 ## 规则、存档与音效
 
@@ -24,4 +24,4 @@
 
 环境为 Linux、Node 24.21.0、pnpm 12.6.0、Chromium 151 手机触屏模拟。广告完成、关闭、迟到回调和一次性奖励使用明确的本地 SDK 夹具；生产未配置 SDK 时补给入口显示未就绪，不模拟观看发奖。TapTap 实际广告位、真机声音/振动、原生包和真实广告结算仍需渠道验收。
 
-生产构建浏览器结果见 `actual/browser-report.json`；发布前另对已提交的准确 base/head 执行仓库增量候选校验。远端 CI 与 Pages 状态在交付时独立核对，本地验证不代替线上部署成功。
+生产构建浏览器结果见 [历史记录：actual/browser-report.json](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/ball-roguelite/docs/design/prism-carnival/actual/browser-report.json)；发布前另对已提交的准确 base/head 执行仓库增量候选校验。远端 CI 与 Pages 状态在交付时独立核对，本地验证不代替线上部署成功。

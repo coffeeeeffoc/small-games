@@ -6,13 +6,13 @@
 
 | 页面 | 先行效果图 | H5 实际运行 | 原生 Canvas 实际运行 | 核对内容 |
 | --- | --- | --- | --- | --- |
-| 主页 | [效果图](home.png) | [截图](implemented/home-390.png) | [截图](native-actual/home.png) | 青瓦小城、深青题字、金色开始按钮、选关与小工具入口 |
-| 选关 | [效果图](levels.png) | [截图](implemented/levels-390.png) | [截图](native-actual/levels.png) | 奶油章节卡、5×2 关卡、十章切换、真实解锁与完成数 |
-| 游玩 | [效果图](play.png) | [截图](implemented/play-390.png) | [截图](native-actual/play.png) | 室内材质、黄色帽子角色、会走的木门、目标和双拇指操作 |
-| 暂停 | [效果图](pause.png) | [截图](implemented/pause-390.png) | [截图](native-actual/pause.png) | 喝茶插画、继续/重试/返回、当前关、声音设置 |
-| 提示 | [效果图](hint.png) | [截图](implemented/hint-390.png) | [截图](native-actual/hint.png) | 背对害羞门插画、真实三级提示、回关卡保留状态 |
-| 记录 | [效果图](records.png) | [截图](implemented/records-390.png) | [截图](native-actual/records.png) | 手记插画、已发现数量、事实记录和锁定状态 |
-| 结算 | [效果图](result.png) | [截图](implemented/result-390.png) | [截图](native-actual/result.png) | 完成印章、欢呼插画、真实笑点、下一关与重玩 |
+| 主页 | [效果图](home.png) | [截图](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/wulong-city/docs/design/mobile-2026-10-06/implemented/home-390.png) | [截图](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/wulong-city/docs/design/mobile-2026-10-06/native-actual/home.png) | 青瓦小城、深青题字、金色开始按钮、选关与小工具入口 |
+| 选关 | [效果图](levels.png) | [截图](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/wulong-city/docs/design/mobile-2026-10-06/implemented/levels-390.png) | [截图](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/wulong-city/docs/design/mobile-2026-10-06/native-actual/levels.png) | 奶油章节卡、5×2 关卡、十章切换、真实解锁与完成数 |
+| 游玩 | [效果图](play.png) | [截图](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/wulong-city/docs/design/mobile-2026-10-06/implemented/play-390.png) | [截图](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/wulong-city/docs/design/mobile-2026-10-06/native-actual/play.png) | 室内材质、黄色帽子角色、会走的木门、目标和双拇指操作 |
+| 暂停 | [效果图](pause.png) | [截图](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/wulong-city/docs/design/mobile-2026-10-06/implemented/pause-390.png) | [截图](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/wulong-city/docs/design/mobile-2026-10-06/native-actual/pause.png) | 喝茶插画、继续/重试/返回、当前关、声音设置 |
+| 提示 | [效果图](hint.png) | [截图](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/wulong-city/docs/design/mobile-2026-10-06/implemented/hint-390.png) | [截图](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/wulong-city/docs/design/mobile-2026-10-06/native-actual/hint.png) | 背对害羞门插画、真实三级提示、回关卡保留状态 |
+| 记录 | [效果图](records.png) | [截图](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/wulong-city/docs/design/mobile-2026-10-06/implemented/records-390.png) | [截图](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/wulong-city/docs/design/mobile-2026-10-06/native-actual/records.png) | 手记插画、已发现数量、事实记录和锁定状态 |
+| 结算 | [效果图](result.png) | [截图](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/wulong-city/docs/design/mobile-2026-10-06/implemented/result-390.png) | [截图](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/wulong-city/docs/design/mobile-2026-10-06/native-actual/result.png) | 完成印章、欢呼插画、真实笑点、下一关与重玩 |
 
 效果图决定页面关系、艺术素材、按钮层级和布局；运行画面按真实文字、进度、安全区与触屏热区排版。H5 横屏使用场景与控件分列，原生渠道工程固定竖屏。提示页和暂停页不再覆盖仍在运行的关卡。
 
@@ -33,7 +33,7 @@
 
 回归脚本已将旧弹窗、网页顶栏、26 关总数等断言改为当前页面语义；仍检查真实触屏通关、未解锁关限制和生命周期，没有用更新截图代替行为检查。过程中修复了原生场景裁剪为空、回主页继续重置机关、分享关进入主线未解锁关、小屏机关热区不足以及已通关主线从试演返回时停在不可操作游玩页等实际问题。
 
-运行元数据：[H5 捕获记录](implemented/capture.json)、[原生捕获记录](native-actual/verification.json)。原生场景采样有 655 种颜色，切回主页再继续的机关状态一致；销毁后事件监听已释放。游戏测试脚本可按游戏 README 重跑，详细临时证据输出到被忽略的 `tests/evidence/`。
+运行元数据：[H5 捕获记录](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/wulong-city/docs/design/mobile-2026-10-06/implemented/capture.json)、[原生捕获记录](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/wulong-city/docs/design/mobile-2026-10-06/native-actual/verification.json)。原生场景采样有 655 种颜色，切回主页再继续的机关状态一致；销毁后事件监听已释放。游戏测试脚本可按游戏 README 重跑，详细临时证据输出到被忽略的 `tests/evidence/`。
 
 ## 验证边界
 

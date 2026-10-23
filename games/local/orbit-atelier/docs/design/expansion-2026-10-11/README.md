@@ -4,4 +4,4 @@
 
 先保存本局部布局示意，再实现。现有主页、选关、暂停保持原画风与页面关系；本轮不新增模式菜单。主要动作沿用不少于 44 CSS px 热区；分享必须来自用户点按，取消不视为分享成功。
 
-[局部手机布局示意](layout.svg)。验收采用实际 Chromium 触屏模拟，覆盖 320/390 px、现有主页/开始/游玩/暂停/结算/返回，取消手势与本次新增行为。测试证据与未验收渠道在 verification.md 记录。
+[局部手机布局示意](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/orbit-atelier/docs/design/expansion-2026-10-11/layout.svg)。验收采用实际 Chromium 触屏模拟，覆盖 320/390 px、现有主页/开始/游玩/暂停/结算/返回，取消手势与本次新增行为。测试证据与未验收渠道在 verification.md 记录。

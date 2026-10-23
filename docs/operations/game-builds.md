@@ -69,3 +69,9 @@ export default {
 `--dry-run` 只校验并列出计划，不创建输出。正式构建串行执行，允许未提交源码，不自动上传、提审、部署或提交代码。`qualityChecks: "not-run"` 与 `platformAcceptance: "not-run"` 表示本命令未执行质量和平台验收；仍需实际检查功能、宿主广告和真机表现。
 
 首次执行需使用仓库规定的 Node / pnpm，并运行 `pnpm install --frozen-lockfile`。其他游戏沿用自身构建入口；`games:build` / `build` 是工作区编译命令，不替代 H5 渠道包交付。
+
+## 十三款奖励游戏的 H5 配置
+
+本轮支持名单和可选奖励见[广告接入表](taptap-rewarded-ads.md#十三款可选激励接入2026-10-24)。根 game-build.local.mjs 保留已有配置并加入十三款，新增空广告位保持关闭。一炮拆城未加入。moss-garden 对应源码目录 games/local/game-moss-garden。构建器使用各游戏现有 Creator、Cocos 源码或 Vite 入口，不更换引擎。
+
+先执行 pnpm build:games --dry-run 检查选择、广告有效开关与后端关闭状态，再执行 pnpm build:games。需要只编译一款时缩减配置中的 games；每款 ID 必须由该应用的 MCP 返回。此次新增游戏不支持 backend:true。原有六款/五款预设成员保持原样。

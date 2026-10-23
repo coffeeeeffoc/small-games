@@ -65,7 +65,7 @@ node apps/shell-minigame/scripts/taptap-cocos.mjs --game homebound-station --pre
 
 ### 固定节奏诊断与异常回放
 
-2026-10-22 的真实 Creator 1 倍速触屏复核已通过：`90/random` 用时 203.5 秒、三星余量 6.6 秒；`90/reverse` 用时 203.6 秒、余量 6.5 秒。两例正式进度保持不变、浏览器零错误，最大观测输入迟到均为 0.6 秒。见[完整交互证据与截图](docs/diagnostics/touch-2026-10-22/evidence.json)。这与确定性模拟报告分开记录，不声称其时间或 RAF 采样队列峰值等同精确 tick 回放。
+2026-10-22 的真实 Creator 1 倍速触屏复核已通过：`90/random` 用时 203.5 秒、三星余量 6.6 秒；`90/reverse` 用时 203.6 秒、余量 6.5 秒。两例正式进度保持不变、浏览器零错误，最大观测输入迟到均为 0.6 秒。见[完整交互证据与截图](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/homebound-station/docs/diagnostics/touch-2026-10-22/evidence.json)。这与确定性模拟报告分开记录，不声称其时间或 RAF 采样队列峰值等同精确 tick 回放。
 
 `diagnose` 复用规则测试中的同一个 solver，按正序、倒序和固定种子随机顺序运行全部 100 关。默认每 0.5 秒最多派出一辆当前可派车辆，第一拍为模拟时间 0；无可派车辆时空过这一拍，不补发。节奏必须是模拟步长 0.05 秒的正整数倍。随机种子为关卡 ID × 7919，每拍按既有 LCG 对车辆排序。旧规则测试仍保留每 tick 批量派车和逐步 SAT、乘客守恒等断言。
 
@@ -78,7 +78,7 @@ pnpm --filter @coffeeeeffoc/homebound-station diagnose --replay reports/dispatch
 
 报告包含 300 条结果、每次派车的模拟 tick 和车辆 ID、配置与最终状态摘要、异常排行及 10 个优先复核案例。报告不写入墙钟时间，因此相同源码与参数生成的 JSON 可逐字节比较。生成时会把全部动作日志重新输入真实规则模拟，逐 tick 推进并核对最终状态、计时、星级与峰值；单独回放也会拒绝源码/配置漂移、同一拍多次输入、非法派车或被改写的结果。
 
-前版 [0.5 秒基线报告](docs/diagnostics/dispatch-0.5s.json) 为 300/300 通关、300/300 三星，通关时间 22.8–203.35 秒。最小三星余量为 6.75 秒（`90/random`、`90/reverse`），未触发上述异常标记；真实交互优先复核这两个最接近阈值的案例。全表最大排队峰值为 14 辆，道路受阻峰值为 17 辆。该报告是规则模拟结果，浏览器复核结果单独保存。
+前版 [0.5 秒基线报告](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/homebound-station/docs/diagnostics/dispatch-0.5s.json) 为 300/300 通关、300/300 三星，通关时间 22.8–203.35 秒。最小三星余量为 6.75 秒（`90/random`、`90/reverse`），未触发上述异常标记；真实交互优先复核这两个最接近阈值的案例。全表最大排队峰值为 14 辆，道路受阻峰值为 17 辆。该报告是规则模拟结果，浏览器复核结果单独保存。
 
 - **通关时间**是最后完成时的模拟秒数；超出默认 700 秒限额则标记未完成，不能算作通关。
 - **星级余量**按生产规则的 `maxWait` 计算：最大登车等待时间距离三星、二星阈值各还剩多少秒。它不是“星级阈值减通关时间”；负值表示已超出该档阈值，未完成时为 `null`。

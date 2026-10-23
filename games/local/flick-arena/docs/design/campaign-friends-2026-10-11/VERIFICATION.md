@@ -47,7 +47,7 @@ FLICK_FOCUS_ONLINE=2 node games/local/flick-arena/tests/campaign-browser.mjs
 - [石柱](actual-terrain-11.png)、[冰面](actual-terrain-13.png)、[缺口](actual-terrain-16.png)、[最终组合](actual-terrain-20.png)
 - [好友入口](actual-friends.png)、[同机冠军](actual-local-champion.png)、[四人游玩](actual-online-4-play.png)、[四人冠军](actual-online-4-champion.png)
 
-旧练习模式的独立回归结果保存在 [regression/browser-validation.json](regression/browser-validation.json)，覆盖拖拽取消、多指隔离、失焦暂停、真实缩圈、暂停收圈、回放幂等、横屏与小屏坐标、显式关闭开发模式及存储不可用降级。其结果同样是 Chromium 模拟验证。
+旧练习模式的独立回归结果保存在 [regression/browser-validation.json](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/flick-arena/docs/design/campaign-friends-2026-10-11/regression/browser-validation.json)，覆盖拖拽取消、多指隔离、失焦暂停、真实缩圈、暂停收圈、回放幂等、横屏与小屏坐标、显式关闭开发模式及存储不可用降级。其结果同样是 Chromium 模拟验证。
 
 本记录不代表微信/抖音宿主、实际手机或公网跨设备网络已验收；生产 CI、准确候选 SHA 与部署结果由发布验证单独记录。
 
@@ -57,7 +57,7 @@ FLICK_FOCUS_ONLINE=2 node games/local/flick-arena/tests/campaign-browser.mjs
 
 - [合并后闯关／同机复测](browser-merged-local.json)：第 1 关 7 次触摸获 3 星、重载解锁、同机两局轮换先手、地形与小屏通过；此份明确未重复 3/4 人在线流程，完整多人结果保留在前面的原始记录。
 - [合并后开发模式检查](developer-mode-validation.json)：独立／Shell 的开关语义、触屏取消、同源继承和跨源显式传递，共 10 项通过。
-- [Shell 实际触屏检查](regression/shell-validation.json)：拖拽、取消、暂停恢复、沉浸导航、全屏降级、横竖屏和返回目录通过。
+- [Shell 实际触屏检查](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/flick-arena/docs/design/campaign-friends-2026-10-11/regression/shell-validation.json)：拖拽、取消、暂停恢复、沉浸导航、全屏降级、横竖屏和返回目录通过。
 - 远端保留的 `tests/publishing.browser.mjs`：邀请接收、真实四次出手获胜分享、同 seed 再战、敏感参数隔离、390×844／320×568 热区，共 6 项通过。更新截图仍在原分享设计目录。
 - 新部署包测试实际复制 runtime 所需文件，并从独立目录加载 Flick 规则，确认共享核心和赛制模块随包交付。
 

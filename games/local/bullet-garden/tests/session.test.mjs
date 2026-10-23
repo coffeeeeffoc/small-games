@@ -11,6 +11,7 @@ function fixture() {
     save: () => saves++,
     provider: {
       show(options) {
+        assert.equal(options.opportunityId, `bullet-garden:${options.placement}`);
         request = options;
         return new Promise((done) => {
           resolve = done;
@@ -87,13 +88,13 @@ test('SDK hide defers completed grant until visible and never auto-resumes', asy
   s.show();
   assert.equal(s.state.player.hp, 60);
 });
-test('native hide may precede the SDK onShown promise without losing its lease', async () => {
+test('H5 or native hide may precede the SDK onShown promise without losing its lease', async () => {
   const f = fixture(),
     s = f.session;
   s.pause();
   s.state.player.hp = 30;
   const promise = s.reward('supply');
-  s.suspend({ nativeAdTransition: true });
+  s.suspend();
   f.shown();
   f.done('completed');
   await promise;
@@ -101,8 +102,8 @@ test('native hide may precede the SDK onShown promise without losing its lease',
   s.show();
   assert.equal(s.state.player.hp, 60);
 });
-test('blur before shown, restart, leave and destroy invalidate late reward', async () => {
-  for (const action of ['suspend', 'begin', 'home', 'dispose']) {
+test('restart, leave and destroy invalidate late reward', async () => {
+  for (const action of ['cancelAd', 'begin', 'home', 'dispose']) {
     const f = fixture(),
       s = f.session;
     s.pause();

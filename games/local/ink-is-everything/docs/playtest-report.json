@@ -362,20 +362,20 @@
       }
     }
   ],
-  "screenshots": [
-    "screenshots/v3-desktop-opening.png",
-    "screenshots/v3-desktop-resource-loop.png",
-    "screenshots/v3-desktop-pending-reward.png",
-    "screenshots/v3-desktop-bridge.png",
-    "screenshots/v3-desktop-growth.png",
-    "screenshots/v3-desktop-boss.png",
-    "screenshots/v3-desktop-victory.png",
-    "screenshots/v3-mobile-resource-loop.png",
-    "screenshots/v3-mobile-pending-reward.png",
-    "screenshots/v3-mobile-bridge.png",
-    "screenshots/v3-mobile-growth.png",
-    "screenshots/v3-mobile-boss.png",
-    "screenshots/v3-mobile-victory.png"
+  "https://github.com/coffeeeeffoc/small-games/tree/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/ink-is-everything/docs/screenshots": [
+    "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/ink-is-everything/docs/screenshots/v3-desktop-opening.png",
+    "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/ink-is-everything/docs/screenshots/v3-desktop-resource-loop.png",
+    "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/ink-is-everything/docs/screenshots/v3-desktop-pending-reward.png",
+    "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/ink-is-everything/docs/screenshots/v3-desktop-bridge.png",
+    "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/ink-is-everything/docs/screenshots/v3-desktop-growth.png",
+    "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/ink-is-everything/docs/screenshots/v3-desktop-boss.png",
+    "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/ink-is-everything/docs/screenshots/v3-desktop-victory.png",
+    "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/ink-is-everything/docs/screenshots/v3-mobile-resource-loop.png",
+    "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/ink-is-everything/docs/screenshots/v3-mobile-pending-reward.png",
+    "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/ink-is-everything/docs/screenshots/v3-mobile-bridge.png",
+    "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/ink-is-everything/docs/screenshots/v3-mobile-growth.png",
+    "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/ink-is-everything/docs/screenshots/v3-mobile-boss.png",
+    "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/ink-is-everything/docs/screenshots/v3-mobile-victory.png"
   ],
   "errors": [],
   "status": "passed"

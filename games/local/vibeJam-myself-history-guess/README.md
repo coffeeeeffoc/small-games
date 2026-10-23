@@ -2,7 +2,7 @@
 
 观察历史全景，猜测地点与年代。竖屏移动端以历史档案、旧地图和朱砂印记组织首页、探索章节、小关卡、好友战书、全站榜、玩法说明、设置和个人手记。所有结算仅显示评分，不公布正确答案或误差。图片属于 AI 历史想象复原，不是史料照片，年份为游戏设定。
 
-美术效果图与玩法方案：[移动端 PK 改造](docs/design/mobile-pk-2026-10-09/README.md)。先出效果图，再实现界面；同目录保存实际浏览器截图与验证记录。
+美术效果图与玩法方案：[移动端 PK 改造](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/vibeJam-myself-history-guess/docs/design/mobile-pk-2026-10-09/README.md)。先出效果图，再实现界面；同目录保存实际浏览器截图与验证记录。
 
 ## 本地运行
 

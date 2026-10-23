@@ -14,20 +14,20 @@
 
 ## 画面对照
 
-效果参考为 [concept.png](concept.png)，实际证据独立保存在 [actual/browser-report.json](actual/browser-report.json)。图稿的金属材质与纹理采用轻量 SVG 环带、刻度、高光及阴影表达；不把生成图当作游戏截图。生成图中的章节编号是参考文字，真实关卡范围和数目以目录配置为准。
+效果参考为 [concept.png](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/orbit-atelier/docs/design/real-interlock-2026-10-13/concept.png)，实际证据独立保存在 [actual/browser-report.json](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/orbit-atelier/docs/design/real-interlock-2026-10-13/actual/browser-report.json)。图稿的金属材质与纹理采用轻量 SVG 环带、刻度、高光及阴影表达；不把生成图当作游戏截图。生成图中的章节编号是参考文字，真实关卡范围和数目以目录配置为准。
 
 | 实际画面 | 验收重点 |
 | --- | --- |
-| [主页](actual/mobile-home.png) | 工坊风格、真实上下穿扣绘制、开始/选关/设置 |
-| [第八章选关](actual/mobile-levels-late.png) | 完整74关目录、真实解锁锁定、滚动后仍可返回 |
-| [首关](actual/mobile-playing.png) | 28 单位交叠、两个接触位置交替上穿/下穿、真实暂停双条 |
-| [对齐](actual/mobile-aligned.png) / [滑离](actual/mobile-extracting.png) | 反馈与规则同源；按住等待松手；出口方向正确 |
-| [圆头临界接触](actual/mobile-cap-contact.png) | 交点刚进入名义缺口时，圆头仍有上下穿扣且规则仍阻挡 |
-| [宽口回窗](actual/mobile-wide-mouth.png) | 宽口解转角，两方向连接的观察难度 |
-| [织星](actual/mobile-woven.png) / [最终关](actual/mobile-final-playing.png) | 大小环、回窗、接力星栓的组合 |
-| [小屏](actual/mobile-small.png) / [横屏](actual/mobile-landscape.png) | 控件可达、尺寸变化保留对局、触控坐标正确 |
-| [暂停](actual/mobile-paused.png) / [结算](actual/mobile-result.png) | 页面返回路径、星级与解锁、暂停图标形状 |
-| [74关同盘](actual/challenge-playing.png) / [同盘结算](actual/challenge-result.png) | 不改主线的实际最终关解扣和分享 |
+| [主页](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/orbit-atelier/docs/design/real-interlock-2026-10-13/actual/mobile-home.png) | 工坊风格、真实上下穿扣绘制、开始/选关/设置 |
+| [第八章选关](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/orbit-atelier/docs/design/real-interlock-2026-10-13/actual/mobile-levels-late.png) | 完整74关目录、真实解锁锁定、滚动后仍可返回 |
+| [首关](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/orbit-atelier/docs/design/real-interlock-2026-10-13/actual/mobile-playing.png) | 28 单位交叠、两个接触位置交替上穿/下穿、真实暂停双条 |
+| [对齐](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/orbit-atelier/docs/design/real-interlock-2026-10-13/actual/mobile-aligned.png) / [滑离](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/orbit-atelier/docs/design/real-interlock-2026-10-13/actual/mobile-extracting.png) | 反馈与规则同源；按住等待松手；出口方向正确 |
+| [圆头临界接触](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/orbit-atelier/docs/design/real-interlock-2026-10-13/actual/mobile-cap-contact.png) | 交点刚进入名义缺口时，圆头仍有上下穿扣且规则仍阻挡 |
+| [宽口回窗](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/orbit-atelier/docs/design/real-interlock-2026-10-13/actual/mobile-wide-mouth.png) | 宽口解转角，两方向连接的观察难度 |
+| [织星](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/orbit-atelier/docs/design/real-interlock-2026-10-13/actual/mobile-woven.png) / [最终关](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/orbit-atelier/docs/design/real-interlock-2026-10-13/actual/mobile-final-playing.png) | 大小环、回窗、接力星栓的组合 |
+| [小屏](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/orbit-atelier/docs/design/real-interlock-2026-10-13/actual/mobile-small.png) / [横屏](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/orbit-atelier/docs/design/real-interlock-2026-10-13/actual/mobile-landscape.png) | 控件可达、尺寸变化保留对局、触控坐标正确 |
+| [暂停](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/orbit-atelier/docs/design/real-interlock-2026-10-13/actual/mobile-paused.png) / [结算](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/orbit-atelier/docs/design/real-interlock-2026-10-13/actual/mobile-result.png) | 页面返回路径、星级与解锁、暂停图标形状 |
+| [74关同盘](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/orbit-atelier/docs/design/real-interlock-2026-10-13/actual/challenge-playing.png) / [同盘结算](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/orbit-atelier/docs/design/real-interlock-2026-10-13/actual/challenge-result.png) | 不改主线的实际最终关解扣和分享 |
 
 ## 发布及边界
 

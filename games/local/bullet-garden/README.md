@@ -71,3 +71,5 @@ pnpm test:browser
 所有正式 browser/rendering/screens/display package scripts 都进入生产 Creator 验收，浏览器串行1个worker。默认自建短期 dist 静态服务器；`GAME_URL` 可指定同一生产产物，`QA_OUTPUT` 可改证据目录。覆盖320/390/430及横屏、菜单/选关、真实多指摇杆与冲刺、技能拖动取消、暂停/失焦/resize、60秒自然首关胜利与存档重载。后期技能/自然失败使用明确的历史进度存档 fixture，战斗仍由真实输入驱动，没有可写游戏调试注入。
 
 只读快照契约见 [03-runtime-contract.md](docs/design/cocos-mobile-2026-10-22/03-runtime-contract.md)。效果图、实际截图和执行记录位于 `docs/design/cocos-mobile-2026-10-22/`。桌面 Chromium 手机视口不等于手机真机，官方转换成功不等于平台审核通过。
+
+上架资料与验证边界：[publishing/STATUS.md](publishing/STATUS.md)。

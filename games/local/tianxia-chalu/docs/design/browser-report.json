@@ -6,7 +6,7 @@
       "name": "Preview before committing routes; drag, cancellation and multitouch never issue a command",
       "passed": true,
       "durationMs": 4496,
-      "screenshots": [
+      "https://github.com/coffeeeeffoc/small-games/tree/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/tianxia-chalu/docs/design/screenshots": [
         "route-preview-390x844.png"
       ],
       "methods": [
@@ -30,7 +30,7 @@
           "height": 44
         }
       },
-      "screenshots": [
+      "https://github.com/coffeeeeffoc/small-games/tree/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/tianxia-chalu/docs/design/screenshots": [
         "home-390x844.png",
         "levels-390x844.png",
         "battle-390x844.png",

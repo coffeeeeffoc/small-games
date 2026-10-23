@@ -110,7 +110,7 @@ pnpm --filter cops-robbers deploy:taptap             # 上传并创建 H5 版本
 
 2026-10-10 按[四屏效果图与小屏设计](docs/design/viewport-refresh-2026-10-10/README.md)统一首页外围、插画与弹层主题；首页按视口分配空间，短横屏左右布局。弹层固定标题和关键操作，仅长内容滚动。好友大厅与等待房间收紧信息密度，好友对局保留独立退出底栏，短Canvas将棋盘和操作并排。原有玩法和存档保持兼容。
 
-历史多角色复核、普通玩家与生产构建触屏验收见 [2026-10-11 review](docs/design/review-2026-10-11/README.md)。`pnpm test:progress` 检查 3 × 120 顺序解锁、旧存档、开发试玩隔离与末关真实触屏胜利。
+历史多角色复核、普通玩家与生产构建触屏验收见 [2026-10-11 review](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/cops-robbers/docs/design/review-2026-10-11/README.md)。`pnpm test:progress` 检查 3 × 120 顺序解锁、旧存档、开发试玩隔离与末关真实触屏胜利。
 
 ## H5 入口
 

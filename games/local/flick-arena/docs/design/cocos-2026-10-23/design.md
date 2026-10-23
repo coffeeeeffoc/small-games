@@ -4,7 +4,7 @@
 
 ## 外观基准与实现
 
-基准为 `../campaign-friends-2026-10-11/actual-home.png` 及 `../review-2026-10-11/actual-final-play.png` 等既有实拍。另在当前 Chromium/字体环境运行准确基线进行按钮对比，避免把系统字体差异误判为迁移差异。
+基准为 `../campaign-friends-2026-10-11/actual-home.png` 及 [历史记录：../review-2026-10-11/actual-final-play.png](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/flick-arena/docs/design/review-2026-10-11/actual-final-play.png) 等既有实拍。另在当前 Chromium/字体环境运行准确基线进行按钮对比，避免把系统字体差异误判为迁移差异。
 
 按钮保留原金色/木色纵向渐变、两层圆角边框、底部阴影、衬线粗体、禁用透明度、文字尺寸和排列；暂停图标仍为两根实心分离竖条。原绘制函数只烘焙各个静态美术/文字纹理，Cocos Sprite 呈现，不逐帧上传整屏 Canvas。背景粒子、瞄准虚线、拖尾和反馈使用 Graphics；角色移动/淘汰使用精灵变换；擂台收圈使用 Cocos 遮罩，石柱和冰面位置不随半径缩放。
 
