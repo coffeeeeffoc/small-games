@@ -20,7 +20,7 @@ export async function sourceHash(directory = root) {
         .relative(directory, path.join(entry.parentPath, entry.name))
         .replaceAll('\\', '/');
       const generated =
-        /^(assets\/scripts\/core\/(core\.js|core\.d\.ts)|assets\/scenes\/main\.scene|assets\/resources\/(world\.json|castle-surface\.mtl|(shot|impact|win|lose)\.wav|castle-cannon-art\/.+))$/.test(
+        /^(assets\/scripts\/core\/(core\.js|core\.d\.ts)|assets\/scenes\/main\.scene|assets\/resources\/(world\.json|world-geometries\/.+|castle-surface\.mtl|(shot|impact|win|lose)\.wav|castle-cannon-art\/.+))$/.test(
           relative,
         );
       if (entry.isFile() && !entry.name.endsWith('.meta') && !generated)

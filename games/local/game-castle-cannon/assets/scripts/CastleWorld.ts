@@ -4,7 +4,7 @@ import { activeGun, direction, gunDirection, previewTrajectory, type DuelView } 
 type Geometry = {positions:number[];normals?:number[];uvs?:number[];colors?:number[];tangents?:number[];indices?:number[];lines:boolean};
 type Surface = {color:string;opacity:number;transparent:boolean;side:number;roughness:number;metallic:number;vertexColors:boolean;map:string;maps?:{color:string;normal:string;metalRoughness:string};tint?:number[]};
 type Model = {name:string;position:number[];rotation:number[];scale:number[];visible:boolean;geometry?:string;material?:string;children:Model[]};
-type WorldAsset = {tree:Model;geometries:Record<string,Geometry>;materials:Record<string,Surface>};
+type WorldAsset = {version:2;tree:Model;geometries:Record<string,string>;materials:Record<string,Surface>};
 export class CastleWorld {
   root: Node;
   camera: Camera;
@@ -55,6 +55,7 @@ export class CastleWorld {
     const asset=await new Promise<JsonAsset>((resolve,reject)=>resources.load('world',JsonAsset,(e,a)=>e?reject(e):resolve(a)));
     if(this.disposed||token!==this.generation)return;
     const data=asset.json as WorldAsset;
+    if(data.version!==2)throw Error('Unsupported Castle world asset version');
     const paths=Array.from(new Set(Object.values(data.materials).flatMap(m=>m.maps?Object.values(m.maps):m.map?[m.map]:[])));
     for(let i=0;i<paths.length;i+=4) await Promise.all(paths.slice(i,i+4).map(async path=>{
       const image=await new Promise<ImageAsset>((resolve,reject)=>resources.load(path.replace(/\.[^.]+$/,''),ImageAsset,(e,a)=>e?reject(e):resolve(a)));
@@ -62,7 +63,14 @@ export class CastleWorld {
       const texture=new Texture2D();texture.image=image;texture.setWrapMode(Texture2D.WrapMode.REPEAT,Texture2D.WrapMode.REPEAT);this.textures.set(path,texture);
     }));
     if(this.disposed||token!==this.generation)return;
-    for(const [key,g] of Object.entries(data.geometries))this.meshes.set(key,utils.createMesh({...g,primitiveMode:g.lines?gfx.PrimitiveMode.LINE_LIST:gfx.PrimitiveMode.TRIANGLE_LIST}));
+    const geometries:Record<string,Geometry>={},entries=Object.entries(data.geometries);
+    for(let i=0;i<entries.length;i+=4)await Promise.all(entries.slice(i,i+4).map(async([key,path])=>{
+      const asset=await new Promise<JsonAsset>((resolve,reject)=>resources.load(path,JsonAsset,(e,a)=>e?reject(e):resolve(a)));
+      if(this.disposed||token!==this.generation)return;
+      const g=asset.json as Geometry;geometries[key]=g;
+      this.meshes.set(key,utils.createMesh({...g,primitiveMode:g.lines?gfx.PrimitiveMode.LINE_LIST:gfx.PrimitiveMode.TRIANGLE_LIST}));
+    }));
+    if(this.disposed||token!==this.generation)return;
     for(const [key,m] of Object.entries(data.materials)) {
       const mat=new Material();
       mat.initialize({effectAsset:this.surface.effectAsset!,technique:m.transparent?1:0,defines:{USE_VERTEX_COLOR:m.vertexColors,USE_ALBEDO_MAP:!!(m.maps||m.map),USE_NORMAL_MAP:!!m.maps,USE_PBR_MAP:!!m.maps,CC_SURFACES_USE_TWO_SIDED:m.side===2},states:{rasterizerState:{cullMode:m.side===2?gfx.CullMode.NONE:m.side===1?gfx.CullMode.FRONT:gfx.CullMode.BACK}}});
@@ -77,7 +85,7 @@ export class CastleWorld {
       const n=this.node(m.name||'OriginalMesh',parent);
       if(m.name)this.nodes.set(m.name,n);
       n.setPosition(m.position[0],m.position[1],m.position[2]);n.setRotation(new Quat(...m.rotation as [number,number,number,number]));n.setScale(m.scale[0],m.scale[1],m.scale[2]);n.active=m.visible;
-      if(m.geometry){const r=n.addComponent(MeshRenderer);r.mesh=this.meshes.get(m.geometry)!;r.setMaterial(this.materials.get(m.material!)!,0);if(!data.geometries[m.geometry].lines){r.shadowCastingMode=1;r.receiveShadow=1;}}
+      if(m.geometry){const r=n.addComponent(MeshRenderer);r.mesh=this.meshes.get(m.geometry)!;r.setMaterial(this.materials.get(m.material!)!,0);if(!geometries[m.geometry].lines){r.shadowCastingMode=1;r.receiveShadow=1;}}
       m.children.forEach(c=>spawn(c,n));return n;
     };
     spawn(data.tree,this.root);this.ready=true;

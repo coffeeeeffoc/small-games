@@ -4,6 +4,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
 import { build } from 'vite';
 import { alias } from './workspace-inputs.mjs';
+import { writeWorld } from './world-resources.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 export const sceneUuid = '3a4d7981-9491-4229-88ed-e82ae7ac8997';
 export const componentUuid = '73c17a9c-d373-4d23-8273-9725342ee11b';
@@ -78,7 +79,7 @@ export async function prepare() {
     pathToFileURL(path.join(root, 'reports/baker/bake-world.mjs')).href + '?v=' + Date.now()
   );
   const world = bakeWorld();
-  await writeFile(path.join(root, 'assets/resources/world.json'), JSON.stringify(world));
+  await writeWorld(path.join(root, 'assets/resources'), world);
   const copiedArt = path.resolve(root, 'assets/resources/castle-cannon-art');
   if (!copiedArt.startsWith(path.resolve(root) + path.sep))
     throw Error('Invalid generated art path');

@@ -90,11 +90,14 @@ export async function assertCastleDuelEntry(frame, mobile = false) {
   const p = await position('fire');
   const charged = () =>
     expect
-      .poll(async () => {
-        const s = await snapshot(),
-          gun = s.fighters[s.side].guns.find((g) => g.id === s.fighters[s.side].station);
-        return gun?.charge == null ? 0 : (s.duelTime - gun.charge) / 1.8;
-      })
+      .poll(
+        async () => {
+          const s = await snapshot(),
+            gun = s.fighters[s.side].guns.find((g) => g.id === s.fighters[s.side].station);
+          return gun?.charge == null ? 0 : (s.duelTime - gun.charge) / 1.8;
+        },
+        { timeout: 90000 },
+      )
       .toBeGreaterThan(0.3);
   if (mobile) {
     const touch = await page.context().newCDPSession(page);

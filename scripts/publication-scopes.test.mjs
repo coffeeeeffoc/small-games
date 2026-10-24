@@ -54,6 +54,48 @@ test('Castle Creator migration binds reviewed bytes and unique runtime identitie
     assert.equal(scope({ ...options, ...extra }).size, 0);
 });
 
+test('Castle charge wait binds immediate and cumulative bytes without weakening gameplay assertions', async () => {
+  const { castleCreatorFileScopes: scope } = await import('./publication-scopes.mjs');
+  const file = 'apps/shell-web/scripts/game-checks/castle-cannon.mjs';
+  const source = 'games/local/game-castle-cannon';
+  const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
+    '\r\n',
+    '\n',
+  );
+  const options = {
+    changedPaths: [file],
+    games: [{ id: 'castle-cannon', source, output: 'dist' }],
+    packages: [
+      {
+        dir: source,
+        ...JSON.parse(
+          readFileSync(new URL('../' + source + '/package.json', import.meta.url), 'utf8'),
+        ),
+      },
+      { dir: 'apps/shell-web' },
+    ],
+    readHead: () => after,
+  };
+  assert.match(after, /timeout: 90000/);
+  assert.match(after, /toBeGreaterThan\(0\.3\)/);
+  assert.match(after, /toBeGreaterThan\(0\.15\)/);
+  for (const base of [
+    '795211b46400ea1d046ac44f8afb99b8333511c1',
+    '0fadabdfc6d3144f36ef9ff004e0fc14e54e3e4d',
+  ]) {
+    const before = execFileSync('git', ['show', base + ':' + file], { encoding: 'utf8' });
+    const context = { ...options, readBase: () => before };
+    assert.deepEqual(scope(context).get(file), [source, 'apps/shell-web']);
+    for (const changed of [
+      after + '\n',
+      after.replace('timeout: 90000', 'timeout: 60000'),
+      after.replace('toBeGreaterThan(0.3)', 'toBeGreaterThan(0.1)'),
+    ])
+      assert.equal(scope({ ...context, readHead: () => changed }).size, 0);
+    assert.equal(scope({ ...context, readBase: () => before + '\n' }).size, 0);
+  }
+});
+
 test('Tetracube migration scopes bind exact reviewed bytes, identities and existing lock tuples', async () => {
   const {
     tetracubeCreatorReviews: reviews,

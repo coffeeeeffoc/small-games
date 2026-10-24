@@ -10,6 +10,8 @@ cc.d.ts
 assets/scripts/core/
 assets/scripts/core.meta
 assets/resources/world.json*
+assets/resources/world-geometries/
+assets/resources/world-geometries.meta
 assets/resources/castle-cannon-art/
 assets/resources/castle-cannon-art.meta
 assets/resources/*.wav*
