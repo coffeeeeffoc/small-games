@@ -138,7 +138,12 @@ export function castleCreatorFileScopes({ changedPaths, readBase, readHead, game
         file === 'apps/shell-web/scripts/game-checks/castle-cannon.mjs' &&
         [review.before, review.after].includes(before) &&
         after === '71ad9d9507dfbbdf534f3a9b6f860be4e52df8a0b04a28c546c0d1e05a7bb302';
-      if (!chargeWait && (before !== review.before || after !== review.after)) continue;
+      const qualityBudget =
+        file === '.github/workflows/ci.yml' &&
+        before === review.before &&
+        after === 'd983ffe34a30e39b8a8d4675197cb73b193ddea9a5adfaac4f95a42ad39926c9';
+      if (!chargeWait && !qualityBudget && (before !== review.before || after !== review.after))
+        continue;
       if (review.sources.some((dir) => !packages.some((p) => p.dir === dir))) continue;
       scopes.set(file, Object.freeze([...review.sources]));
     }
@@ -960,6 +965,7 @@ function exactPlanningCheckout(file, before, after) {
   if (oldHash === hashes.nativeGate && newHash === hashes.qualityBudget) return true;
   // Serial Castle Web checks exceed 60 minutes on software rendering; only grow the job budget.
   if (
+    file === '.github/workflows/ci.yml' &&
     oldHash === '2ff2324c75192d8c49253c881d828e0d96843f55503dd0227dc2503212fab2a0' &&
     newHash === 'd983ffe34a30e39b8a8d4675197cb73b193ddea9a5adfaac4f95a42ad39926c9'
   )

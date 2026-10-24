@@ -54,6 +54,40 @@ test('Castle Creator migration binds reviewed bytes and unique runtime identitie
     assert.equal(scope({ ...options, ...extra }).size, 0);
 });
 
+test('Castle CI budget retains the cumulative migration consumer and binds all workflow bytes', async () => {
+  const { castleCreatorFileScopes: scope } = await import('./publication-scopes.mjs');
+  const file = '.github/workflows/ci.yml',
+    source = 'games/local/game-castle-cannon';
+  const before = execFileSync('git', ['show', 'ac7560124:' + file], { encoding: 'utf8' });
+  const after = execFileSync('git', ['show', '05b71fa581b83271f77aa8fd6e0bb4e1c743b008:' + file], {
+    encoding: 'utf8',
+  });
+  const context = {
+    changedPaths: [file],
+    readBase: () => before,
+    readHead: () => after,
+    games: [{ id: 'castle-cannon', source, output: 'dist' }],
+    packages: [
+      {
+        dir: source,
+        ...JSON.parse(
+          readFileSync(new URL('../' + source + '/package.json', import.meta.url), 'utf8'),
+        ),
+      },
+    ],
+  };
+  assert.deepEqual(scope(context).get(file), [source]);
+  for (const invalid of [
+    after + '\n',
+    after.replace('timeout-minutes: 90', 'timeout-minutes: 89'),
+    after.replace('node scripts/ci-validation.mjs', 'echo skipped'),
+    after + '\npermissions:\n  contents: write\n',
+  ])
+    assert.equal(scope({ ...context, readHead: () => invalid }).size, 0);
+  assert.equal(scope({ ...context, readBase: () => before + '\n' }).size, 0);
+  assert.equal(scope({ ...context, games: [] }).size, 0);
+});
+
 test('Castle charge wait binds immediate and cumulative bytes without weakening gameplay assertions', async () => {
   const { castleCreatorFileScopes: scope } = await import('./publication-scopes.mjs');
   const file = 'apps/shell-web/scripts/game-checks/castle-cannon.mjs';
@@ -3029,6 +3063,10 @@ test('reviewed quality budget can be planned without installed YAML dependencies
         readBase: () => old, readHead: () => current,
       });
       assert.deepEqual(classify(before, after).get(${JSON.stringify(file)}), []);
+      assert.equal(reviewedSharedFileScopes({
+        changedPaths: ['.github/workflows/pages.yml'], games: [],
+        readBase: () => before, readHead: () => after,
+      }).size, 0);
       for (const [old, current] of [
         [before + '\\n', after], [before, after + '\\n'],
         [before, after.replace('timeout-minutes: ${minutes}', 'timeout-minutes: ${minutes + 1}')],
