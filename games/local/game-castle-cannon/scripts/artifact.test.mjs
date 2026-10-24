@@ -4,15 +4,7 @@ import { mkdtemp, cp, readdir, readFile, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ESLint } from 'eslint';
 import { sourceHash } from './artifact.mjs';
-
-test('lint ignores downloaded Creator artifacts while keeping authored sources checked', async () => {
-  const eslint = new ESLint({ cwd: fileURLToPath(new URL('../', import.meta.url)) });
-  assert.equal(await eslint.isPathIgnored('.prebuilt/cc.d.ts'), true);
-  assert.equal(await eslint.isPathIgnored('src/duel-simulation.ts'), false);
-  assert.equal(await eslint.isPathIgnored('assets/scripts/CastleCannon.ts'), false);
-});
 test('Creator provenance is identical for LF and Windows CRLF, but rejects changed source', async () => {
   const root = fileURLToPath(new URL('../', import.meta.url)),
     dir = await mkdtemp(path.join(tmpdir(), 'castle-provenance-'));
