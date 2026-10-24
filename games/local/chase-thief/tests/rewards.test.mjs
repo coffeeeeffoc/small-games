@@ -16,7 +16,9 @@ async function harness(port) {
     addEventListener: (key, fn) => events.set(key, fn), removeEventListener() {},
     document: { hidden: false, body: { dataset: {} },
       addEventListener: (key, fn) => listeners.set(key, fn), removeEventListener() {} } };
-  const cc = { input: { on() {}, off() {} }, Input: { EventType: {} },
+  const inputEvents = new Map();
+  const cc = { input: { on: (key, fn) => inputEvents.set(key, fn), off() {} },
+    Input: { EventType: Object.fromEntries(['TOUCH_START', 'TOUCH_MOVE', 'TOUCH_END', 'TOUCH_CANCEL', 'KEY_DOWN'].map(k => [k, k])) },
     view: { on: (key, fn) => viewEvents.set(key, fn), off: key => viewEvents.delete(key) },
     game: { on() {}, off() {} }, Game: {} };
   const Controller = await compile('../assets/scripts/ChaseGame.ts', 'ChaseGame',
@@ -27,8 +29,33 @@ async function harness(port) {
     removers: [], hud: { key: '', destroy() {} }, world: { reset() {}, destroy() {} },
     sound: { stop() {}, node: { destroy() {} } }, play() {}, persist() {} });
   simulation.pauseRun(c.run); c.installInput();
-  return { c, events, listeners, viewEvents, cc, environment };
+  return { c, events, listeners, viewEvents, inputEvents, cc, environment };
 }
+
+test('swipes trigger at threshold before release, once per touch, and cancel clears pending input', async () => {
+  const { c, inputEvents } = await harness();
+  Object.assign(c, { screen: 'running', activeTouch: null, startPoint: null, pressed: null, height: 844 });
+  simulation.resumeRun(c.run);
+  c.hud.at = () => null;
+  const actions = [];
+  c.action = action => actions.push(action);
+  const event = (x, y, id = 1) => ({ getID: () => id, getUILocation: () => ({ x, y: 844 - y }) });
+  const send = (type, x, y, id) => inputEvents.get(type)(event(x, y, id));
+  send('TOUCH_START', 200, 500); send('TOUCH_MOVE', 210, 500);
+  assert.deepEqual(actions, []);
+  send('TOUCH_MOVE', 240, 500, 2); assert.deepEqual(actions, []);
+  send('TOUCH_MOVE', 240, 500); assert.deepEqual(actions, ['right']);
+  send('TOUCH_MOVE', 290, 500); send('TOUCH_END', 290, 500);
+  assert.deepEqual(actions, ['right']);
+  send('TOUCH_START', 200, 500); send('TOUCH_CANCEL', 200, 500); send('TOUCH_END', 200, 430);
+  assert.deepEqual(actions, ['right']);
+  send('TOUCH_START', 200, 500); send('TOUCH_END', 200, 430);
+  assert.deepEqual(actions, ['right', 'jump']);
+  const commands = []; c.command = id => commands.push(id); c.hud.at = () => ({ id: 'pause' });
+  send('TOUCH_START', 200, 500); send('TOUCH_MOVE', 240, 500);
+  assert.deepEqual(commands, []); send('TOUCH_END', 240, 500);
+  assert.deepEqual(commands, ['pause']); assert.deepEqual(actions, ['right', 'jump']);
+});
 test('resize updates render-buffer cameras as well as CSS-sized HUD geometry', async () => {
   const { c, cc, environment } = await harness();
   const calls = [];

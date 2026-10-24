@@ -317,8 +317,17 @@ export class ChaseGame {
       this.startPoint = point(e);
       this.pressed = this.hud.at(this.startPoint.x, this.startPoint.y);
     });
+    const swipe = (e: cc.EventTouch) => {
+      if (e.getID() !== this.activeTouch || !this.startPoint || this.pressed) return;
+      const p = point(e), dx = p.x - this.startPoint.x, dy = p.y - this.startPoint.y;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < 22) return;
+      this.startPoint = null;
+      this.action(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'slide' : 'jump');
+    };
+    bind(cc.Input.EventType.TOUCH_MOVE, swipe);
     bind(cc.Input.EventType.TOUCH_END, (e: cc.EventTouch) => {
       if (e.getID() !== this.activeTouch) return;
+      swipe(e);
       const p = point(e),
         a = this.startPoint,
         pressed = this.pressed;
@@ -330,12 +339,6 @@ export class ChaseGame {
         if (this.hud.at(p.x, p.y)?.id === pressed.id) this.command(pressed.id);
         return;
       }
-      const dx = p.x - a.x,
-        dy = p.y - a.y;
-      if (Math.max(Math.abs(dx), Math.abs(dy)) < 22) return;
-      this.action(
-        Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'slide' : 'jump',
-      );
     });
     bind(cc.Input.EventType.TOUCH_CANCEL, (e: cc.EventTouch) => {
       if (e.getID() === this.activeTouch) {
@@ -468,6 +471,7 @@ export class ChaseGame {
       controls: this.hud.controls.map((c) => ({ ...c })),
       phase: r.phase,
       distance: r.s,
+      speed: r.speed,
       lane: r.lane,
       laneVisual: r.laneVisual,
       action: r.action,
