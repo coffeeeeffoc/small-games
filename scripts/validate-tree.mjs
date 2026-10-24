@@ -2,6 +2,10 @@ import {
   localRetirementFileScopes,
   localRetirementHeadQueryPaths,
 } from './local-game-retirement-scope.mjs';
+import {
+  fullscreenRemovalReviews,
+  fullscreenRemovalFileScopes,
+} from './fullscreen-removal-scope.mjs';
 import assert from 'node:assert/strict';
 import { readFile, stat, glob } from 'node:fs/promises';
 import path from 'node:path';
@@ -966,6 +970,7 @@ export async function validateTree({
       ...new Set([
         ...retirementHeadQueryPaths(sourcePaths),
         ...localRetirementHeadQueryPaths(sourcePaths),
+        ...sourcePaths.filter((file) => Object.hasOwn(fullscreenRemovalReviews, file)),
       ]),
     ];
     const headPaths = new Set(
@@ -996,6 +1001,7 @@ export async function validateTree({
       developerModeFileScopes,
       nativeWorkspaceFileScopes,
       reviewedSharedFileScopes,
+      fullscreenRemovalFileScopes,
       nineNativeFileScopes,
       nineLockFileScopes,
       localRetirementFileScopes,

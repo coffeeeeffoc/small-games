@@ -59,12 +59,16 @@ export async function sourceHash(directory = root) {
 export async function verifyPrebuilt(directory) {
   const dist = path.resolve(directory, 'dist');
   const info = JSON.parse(await readFile(path.join(dist, 'build-info.json'), 'utf8'));
+  const currentSourceHash = await sourceHash();
   if (
     info.creator !== '3.8.8' ||
     info.target !== 'web-mobile' ||
-    info.sourceHash !== (await sourceHash())
+    info.sourceHash !== currentSourceHash
   )
-    throw Error('Ashfall artifact does not match current sources; rebuild with Creator 3.8.8.');
+    throw Error(
+      `Ashfall artifact does not match current sources; rebuild with Creator 3.8.8. ` +
+        `Artifact: ${info.sourceHash} (${info.creator}/${info.target}); current: ${currentSourceHash}.`,
+    );
   await access(path.join(dist, 'index.html'));
   await access(path.resolve(directory, 'cc.d.ts'));
   const files = info.files;
