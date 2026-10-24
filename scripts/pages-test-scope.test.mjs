@@ -7,14 +7,23 @@ test('fullscreen retirement accepts only reviewed bytes and proven deletions wit
   const catalog = await loadGameCatalog(root);
   const packages = await workspacePackages(root);
   const base = '171423331a4bdc0f8d45369b047dbc9e3d971b5c';
+  // Pin both sides of the review; later game registrations may legitimately change these files.
+  const head = '3b08f528a764ca48163b9acbc2a66ceba1486e6e';
+  const headPaths = new Set(
+    execFileSync('git', ['ls-tree', '-r', '--name-only', '-z', head], {
+      cwd: root,
+      encoding: 'utf8',
+    }).split('\0'),
+  );
   const context = {
     ...catalog,
     games: catalog.standaloneGames,
     packages,
     readBase: (file) =>
       execFileSync('git', ['show', `${base}:${file}`], { cwd: root, encoding: 'utf8' }),
-    readHead: (file) => readFileSync(path.join(root, file), 'utf8'),
-    headHasPath: (file) => existsSync(path.join(root, file)),
+    readHead: (file) =>
+      execFileSync('git', ['show', `${head}:${file}`], { cwd: root, encoding: 'utf8' }),
+    headHasPath: (file) => headPaths.has(file),
   };
   for (const [file, [, after]] of Object.entries(fullscreenRemovalReviews)) {
     const options = { ...context, changedPaths: [file] };
