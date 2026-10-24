@@ -2990,6 +2990,21 @@ test('reviewed quality budget can be planned without installed YAML dependencies
     encoding: 'utf8',
   });
   assert.equal(after, before.replace('    timeout-minutes: 40\n', '    timeout-minutes: 60\n'));
+  const castleBefore = execFileSync(
+    'git',
+    ['show', 'ebc1536a217b3e4cb529dd49cf710ed1c53134f0:' + file],
+    {
+      encoding: 'utf8',
+    },
+  );
+  const budgets = [
+    [before, after, 60],
+    [
+      castleBefore,
+      castleBefore.replace('    timeout-minutes: 60\n', '    timeout-minutes: 90\n'),
+      90,
+    ],
+  ];
   const directory = await mkdtemp(join(tmpdir(), 'quality-budget-no-deps-'));
   try {
     for (const module of [
@@ -3001,13 +3016,14 @@ test('reviewed quality budget can be planned without installed YAML dependencies
       'admin-csp.mjs',
     ])
       await copyFile(new URL(module, import.meta.url), join(directory, module));
-    const code = `
+    for (const [baseText, headText, minutes] of budgets) {
+      const code = `
       import assert from 'node:assert/strict';
       import { createRequire } from 'node:module';
       import { reviewedSharedFileScopes } from './publication-scopes.mjs';
       assert.throws(() => createRequire(import.meta.url).resolve('js-yaml'));
-      const before = ${JSON.stringify(before)};
-      const after = ${JSON.stringify(after)};
+      const before = ${JSON.stringify(baseText)};
+      const after = ${JSON.stringify(headText)};
       const classify = (old, current) => reviewedSharedFileScopes({
         changedPaths: [${JSON.stringify(file)}], games: [],
         readBase: () => old, readHead: () => current,
@@ -3015,17 +3031,18 @@ test('reviewed quality budget can be planned without installed YAML dependencies
       assert.deepEqual(classify(before, after).get(${JSON.stringify(file)}), []);
       for (const [old, current] of [
         [before + '\\n', after], [before, after + '\\n'],
-        [before, after.replace('timeout-minutes: 60', 'timeout-minutes: 61')],
+        [before, after.replace('timeout-minutes: ${minutes}', 'timeout-minutes: ${minutes + 1}')],
         [before, after.replace('node scripts/ci-validation.mjs', 'echo skipped')],
         [before, after + '\\npermissions:\\n  contents: write\\n'],
       ]) assert.equal(classify(old, current).has(${JSON.stringify(file)}), false);
     `;
-    execFileSync(process.execPath, ['--input-type=module', '-e', code], {
-      cwd: directory,
-      env: { ...process.env, NODE_PATH: '' },
-      stdio: 'pipe',
-      encoding: 'utf8',
-    });
+      execFileSync(process.execPath, ['--input-type=module', '-e', code], {
+        cwd: directory,
+        env: { ...process.env, NODE_PATH: '' },
+        stdio: 'pipe',
+        encoding: 'utf8',
+      });
+    }
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

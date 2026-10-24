@@ -16,6 +16,8 @@ Optional, separately approved competition HTTPS ingress uses the exact `competit
 
 普通 `git push` 的 `pre-push` 仅提示手动命令，不自动执行长时校验。`core.hooksPath` 与 `pre-commit` 格式检查保留；Git 的非快进保护和远端接收检查仍生效。需要完整增量校验时，先提交并同步远端，再运行 `pnpm validate:candidate --base <远端准确SHA> --head <候选准确SHA>`。原始 `pnpm validate:push` stdin 协议及 `pnpm push:no-verify` 兼容入口继续保留。
 
+CI 的 `quality` 总时限为 90 分钟，容纳软件渲染环境下串行执行的嵌入/触屏、四尺寸 Cocos 与完整关卡、独立入口检查；命令、断言及各项等待上限不变。`ebc1536a` 的四尺寸及关卡检查已通过，但末尾独立入口检查触发原 60 分钟总时限。仅此次 60→90 的准确文件摘要可在未安装 YAML 依赖的规划任务中按配置变更处理，额外修改仍执行原有验证规则。
+
 未显式执行时没有本地候选校验通过记录，远端 CI/Pages 仍可能失败。正式发布的候选验证及部署验收继续按本文执行；不能把普通推送当作验证通过。
 
 ## 当前 Web 测试阶段与原生发布开关

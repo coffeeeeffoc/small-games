@@ -958,6 +958,12 @@ function exactPlanningCheckout(file, before, after) {
   // The planning job has no YAML dependency. This exact reviewed 40 -> 60
   // minute quality budget changes no command, condition or permission.
   if (oldHash === hashes.nativeGate && newHash === hashes.qualityBudget) return true;
+  // Serial Castle Web checks exceed 60 minutes on software rendering; only grow the job budget.
+  if (
+    oldHash === '2ff2324c75192d8c49253c881d828e0d96843f55503dd0227dc2503212fab2a0' &&
+    newHash === 'd983ffe34a30e39b8a8d4675197cb73b193ddea9a5adfaac4f95a42ad39926c9'
+  )
+    return true;
   // Exact reviewed parser bootstrap only; all execution, permissions and gates stay bound.
   if (
     [hashes.original, hashes.recursive, hashes.locked].includes(oldHash) &&
