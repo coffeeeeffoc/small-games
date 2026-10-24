@@ -1,6 +1,6 @@
 # 灰烬防线上架资料
 
-- Game ID：`ashfall-front`；名称：灰烬防线；更新时间：2026-10-24。
+- Game ID：`ashfall-front`；名称：灰烬防线；更新时间：2026-10-25。
 - 当前版本：2.0.0，Cocos Creator 3.8.8，23关战役；准确源码/制品身份见[当前QA](../docs/qa/verification.md)。
 - 目标：移动横屏Web/H5及Shell iframe，竖持由Creator旋转兜底。
 - 闭环：成立。规则纯输入抽样完成第1/3/23关，真实Creator浏览器完成开始、选关、多点操作、暂停、开发夹具胜负、重试和返回；夹具胜负不作为自然通关证据。
@@ -12,9 +12,10 @@
 | 一句话推荐 | 已提供 | [tagline.md](copy/tagline.md)，中文，可直接使用。                                                                                                                                                                              |
 | 开发者的话 | 已提供 | [developer-note.md](copy/developer-note.md)，说明迁移、免费基础玩法和正式广告未开通。                                                                                                                                          |
 | 图标       | 已提供 | [512×512 PNG](icon/ashfall-front-512.png)，由本游戏原创emblem.svg栅格化；已打开并核对PNG尺寸。                                                                                                                                 |
-| 宣传图     | 已提供 | [横屏概念宣传图](promo/images/cocos-campaign-concept.png)，1844×854 PNG，内置imagegen生成的改版四页概念，明确不是运行截图；生成说明见设计文档。                                                                                |
-| 宣传视频   | 已提供 | [横屏MP4](promo/videos/ashfall-front-cocos-promo.mp4)，1280×720，约17秒，无声；来自本版实际触控录像，经FFmpeg加边框、淡入淡出，ffprobe及帧抽样验证。                                                                           |
+| 宣传图     | 已提供 | [横屏概念宣传图](promo/images/cocos-campaign-concept.png)，1844×853 PNG，内置imagegen生成的改版四页概念，明确不是运行截图；生成说明见设计文档。                                                                                |
+| 宣传视频   | 已提供 | [横屏MP4](promo/videos/ashfall-front-cocos-promo.mp4)，1280×720，约16秒，无声；来自本版实际触控录像，经FFmpeg加边框、淡入淡出，ffprobe及帧抽样验证。                                                                           |
 | 游戏内截图 | 已提供 | [正常模式选关](gameplay/screenshots/levels-normal-844x390.png)、[实玩画面](gameplay/screenshots/combat-live-844x390.png)及同目录首页/暂停。844×390 PNG，实际Creator Chromium Android触屏模拟；另有QA中的竖持、小屏和宽屏截图。 |
-| 游戏内录屏 | 已提供 | [真实触控MP4](gameplay/videos/cocos-touch-844x390.mp4)，844×390，约17秒，无声；普通模式、真实多点输入、未修改生命/敌人/胜负，98次射击、5次击破；[媒体信息](media-info.json)。                                                  |
+| 游戏内录屏 | 已提供 | [真实触控MP4](gameplay/videos/cocos-touch-844x390.mp4)，844×390，约16秒，无声；普通模式、真实多点输入、未修改生命/敌人/胜负，99次射击、5次击破；[媒体信息](media-info.json)。                                                  |
 
 这些是基础素材，不表示满足所有渠道的最新提审规格。正式广告配置默认关闭：2026-10-24用户确认App998795（Developer492506），MCP查询状态为未开通，无可用正式广告位。奖励完成/取消/失败、前后台顺序及迟到结果已用隔离SDK夹具验证；真实广告库存、物理手机、上传、审核与上线均未验证。
+

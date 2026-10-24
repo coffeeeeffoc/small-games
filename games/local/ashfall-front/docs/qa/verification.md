@@ -11,6 +11,8 @@
 - 正常桌面模式检查锁定关卡、无开发修改API、无SDK仍可玩及真实鼠标场景瞄准。Cocos3.8.8会将鼠标合成未标记Touch；去重时间仅由真实DOM touchstart更新，避免阻断鼠标开火。
 - SDK隔离夹具覆盖completed、dismissed、failed、先关闭后可见、先可见后关闭、跨局迟到回调，以及50%续战后实际恢复；隐藏不取消已展示广告，无成功show后的墙钟超时。夹具不是正式库存证据。
 
+175项共享接线/构建计划/制品复用/横屏矩阵/入口契约测试通过；配置检查42款零问题、开发模式同步42款零问题、依赖边界通过。仓库实际run-selected-browser也完成本款desktop与touch检查；run-selected-shell完成生产Shell iframe、返回目录、手机独立入口与Runtime隔离，见[cocos/shell-report.json](cocos/shell-report.json)。独立只读复核未发现重要缺陷。当前合并源提交：9c654b111352e1fdd1da6d54ca419eca0478ff9f；[实际制品清单](cocos/build-info.json)源码指纹：4fff2998e62ec7a641186e3a51267e7aa2cc18fb7dc9ce5243ca1e4cbd69b152。H5 ZIP的98项资源大小与哈希一致，未上传。
+
 ## 当前画面与素材
 
 [首页](cocos/home-844x390.png)、[选关](cocos/levels-844x390.png)、[战斗](cocos/combat-844x390.png)、[暂停](cocos/pause-844x390.png)、[补给确认](cocos/supply-confirmation.png)是实际Creator画面，竖持、小屏、宽屏同目录。四页方案图仅为概念，见[方案](../design/cocos-campaign.md)。八类基础上架资料及普通模式实玩录屏见[publishing/STATUS.md](../../publishing/STATUS.md)。

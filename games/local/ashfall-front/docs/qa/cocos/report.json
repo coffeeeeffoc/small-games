@@ -65,5 +65,8 @@
     "Desktop Chromium with emulated touch, not a physical phone or TapTap inventory.",
     "Only explicit development fixtures change battle state; timing samples are separate pure-input rule tests."
   ],
-  "video": "F:\\playground\\playground-ai\\ashfall-cocos-delivery\\outputs\\ashfall-front\\video\\964d957d574461b34d6c2e9c8795a3d5.webm"
+  "video": "F:\\playground\\playground-ai\\ashfall-cocos-delivery\\outputs\\ashfall-front\\video\\6ee1d2778ec7baa3f7e948ebe6184ac8.webm",
+  "testedSourceCommit": "9c654b111352e1fdd1da6d54ca419eca0478ff9f",
+  "sourceHash": "4fff2998e62ec7a641186e3a51267e7aa2cc18fb7dc9ce5243ca1e4cbd69b152",
+  "verifiedAt": "2026-10-24T16:13:15.992Z"
 }
