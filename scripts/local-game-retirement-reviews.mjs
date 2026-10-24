@@ -1061,3 +1061,425 @@ export const catalogCleanupReviews = Object.freeze({
     sources: [],
   },
 });
+
+// One complete game removal; surviving edits bind exact Git bytes and retained consumers.
+export const singleGameRetirementBase = 'b5105c58d82270908303042d4874cc5b3d82733a';
+export const singleGameRetirementFixture = 'd9f5913416a656851a16e97ebc671b08b3719a3e';
+export const singleGameRetirementTrees = Object.freeze({
+  'games/local/orbit-atelier':
+    '040000 tree c4cd2c47a1acf7f4d18ec3b8c62fd7a25bf87077\tgames/local/orbit-atelier\n',
+});
+export const singleGameRetirementReviews = Object.freeze({
+  '.github/workflows/carding-car.yml': {
+    before: '717092deb39241e5e481eed2163f38d4090996d876c6ace9177149516ed01084',
+    after: '29bda512463659ed022b1e2bd16b70f9f0a74103c27b9600a4df3c8df8cabef4',
+    sources: [],
+  },
+  '.github/workflows/ci.yml': {
+    before: '49710171c3d1db587f2b413da6f17c2fdc6670f0d1cd65f851a642b62ec3b6f2',
+    after: '349e197269c39ecbc02694ab654b9cdff837220a4f85fda36edd58173a391ddf',
+    sources: [],
+  },
+  '.github/workflows/mobile.yml': {
+    before: '04cf72867c6d3e508e31c1a9a9ae7fa099078cb7d9798e37ef6996db5880521b',
+    after: 'd771d80a3c9a5de9202559b5083636b75b04220a486904458286d3e874bcc4c2',
+    sources: [],
+  },
+  '.github/workflows/pages-validate.yml': {
+    before: 'c236fb0627ee3fc288aaf45145d39d6054ca882da60cd523105f0499a27b1396',
+    after: '2de509f645b0351bbeafb057614f6113583d4e0e9efec60a9ee65692196345e7',
+    sources: [],
+  },
+  'apps/shell-web/package.json': {
+    before: '8dd903436188b5cd1dbb48a749ebc04cb1a13d745a6e617909e8b983b8099164',
+    after: '34b9b61e8106b032ebc5ccf457aac7186af25f856912a15325780cff3421e3fc',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/scripts/catalog-rollout-smoke.mjs': {
+    before: 'af59d43f449098a9ab3058633de9032b5bc02dbeedc6be100574b1694a380963',
+    after: 'ccde9c5f05dda932f104495aa8620485d8eaed2118fca1bd0c6a3d98bc697a02',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/scripts/pages-smoke.mjs': {
+    before: '13ab44f5c97f902a4a3022cbdebf6558b1bb241eccaf8398157d9bb07db9f111',
+    after: '3d6053ceaca61859f6a807932be4632a431c54ea7be6ce728010ec3aa024409e',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/scripts/standalone-game-checks.mjs': {
+    before: 'e1811e3d2f3d8a5d339c13d63f63aa186e531e442cf1af0f0f6e8f0632b7c6d8',
+    after: '8642a6da0f812d7cbafb2cf3f955dffa18e877f9f757645b4d8203313029e4af',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/scripts/standalone-game-entry.mjs': {
+    before: '49135976574bfb3b471f8ff6fd3ea7d978072523735575f2840aac9eaabacb19',
+    after: '28908fa1b5a49f844e457e80d2f3e7127f0b6a245e09903d08c13e9ddb75bc24',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/scripts/standalone-game-entry.test.mjs': {
+    before: '8e4cf5eb1bcb2fabeeda2f2c152a9e41f32f4f377cebaf0326f04efbea24e0b0',
+    after: '297e48707b662ab1601f772508227d91c68cd64bbab64651252df0d160d5c312',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/src/StandaloneGame.tsx': {
+    before: '7416b008adf38d051df8ae0f28e6add18605268b4baceaf995197c299e0c885c',
+    after: 'a4618a25ec15ce38c17623aa988b68d6c80409bb162eb5f48280a492bc6a8d1c',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/src/game-assessments.json': {
+    before: '925025032df7b69e02cbee2cc3e90f792118cd50aefd747f367a2c4cc6fdc1d9',
+    after: 'e76c9c28a07ca60cd4bc8f8fae247a0842fc2de224c466accd2e86142f18d493',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/src/game-meta.json': {
+    before: '83ca53302800c1348512aaa2f00056a60ebea30e4a6a3223989398b32bef3a0c',
+    after: '37fd4bd10f228bb1405183d7e7857bf901eb09e2790f3f859fec57ef18abeda3',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/src/game-sharing.ts': {
+    before: '8852bf41fbbf7ccf077d2de670087716de8692bb123f1d4f8cca515358ecdf44',
+    after: '60e545c5a1d690ce5dff0ed78c2c62c3558418ebe1a2dbe40b8726076d2b81eb',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/src/standalone-games.json': {
+    before: 'e8033f575d1a1e9a2227916c2d6da2158e5f93dfa0a6f603a65b1ea26d0ef170',
+    after: '38738f0a9fe41072960969957ac5802f0677f630ae9cf634b4bf89af9e90ef7e',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/tests/catalog-assessments.test.ts': {
+    before: '2d2ecdd9cf319ecbefc3d5aae03b47480f6af5dcdaee6c732f8195be080779b3',
+    after: '512594ee3789783eb26174c8722b03b2caf2c63bc0fa4cdd39edf7fe417e6f5a',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/tests/catalog-filters.integration.test.tsx': {
+    before: 'ae976bb0839eb0d3180f287f7b1bfcbe6a37ad60e8545278d2565721bca90058',
+    after: '101d8d0645f7bf26a400ef06da844549cfec2af9b918fb3c973b4d9241c8b760',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/tests/game-sharing.test.tsx': {
+    before: 'be2b5739711ee519658bbe8343471aa89a78b17839ba59e81381c60b60af0d4f',
+    after: '1b804dd9b9efee45b978dbce5e8ee173787725f3acbe9d3b76f464b86f8a10b5',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/tests/standalone-immersive.integration.test.tsx': {
+    before: '0b99dff1225eec9f0d8cf3e55d577691ac4cefdb35d5f082de666e22b0b8457d',
+    after: 'eb5561286268f0004e75f0f528e08a3db5120959cb13105f82aa9b7f283cd27f',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/tests/standalone.integration.test.tsx': {
+    before: '22615cf6550ab5fcfde850f447aa3dbae690e040283ee76c1661d58c29b1adb2',
+    after: 'd82ceb3fad5e81f1f9fce82eeba48ddee1978d77638ddcc41a971339e5887e0c',
+    sources: ['apps/shell-web'],
+  },
+  'game-build.local.mjs': {
+    before: '35a4e394feed1435ae71951b93ff8074fa9f983d3bd5d02e3a03a10f9e03c3f5',
+    after: '691d6085bf35d29b9545946ba4772d5a322032dde2e23d834329839d1a86a40b',
+    sources: [],
+  },
+  'pnpm-lock.yaml': {
+    before: 'fe6169c2abc5b69726c54856b37c8ac2e3ff30f9e6921127989dbcc908cdbced',
+    after: '2614344f65b1483c2997f9e2866c1e2b06d0a385c26fd916341f63ad5f7f4762',
+    sources: ['apps/shell-web'],
+  },
+  'scripts/build-games.test.mjs': {
+    before: '43b332f96b95f50bac2a9a67732558ce1ccb7697d918531bbb0a08bcd848c110',
+    after: 'd6463b56f8c40eeb9db07caf0a79d83d7013d1e18173af20ace9632b44e697e2',
+    sources: [],
+  },
+  'scripts/check-game-config.test.mjs': {
+    before: '290b5b2ec79f9ecaef9b98d1af69bfa8eb55467be86887033116f390932212c9',
+    after: '2d74251977f01a2d976a25ddb10e13eda55712438604efefb1f5e45d9bca1441',
+    sources: [],
+  },
+  'scripts/check-workspace-dependencies.mjs': {
+    before: '87dd8c0471e7915295fb3a46058f5e7ff41bdbc3ea654aabc800c77cf7fce87c',
+    after: '3d61e62cdfa9d03f9969b2149e1971df158a4788b1da68b13ac03ac3e954ecab',
+    sources: [],
+  },
+  'scripts/check-workspace-dependencies.test.mjs': {
+    before: '7fce33e5f4e0730311f512038bdfaf292247a2ff4e83a2837b8e5d946b98a00b',
+    after: '275c300320f3f0755265af5d739b0624aa818d964509d5aaa85c1a2140af60f4',
+    sources: [],
+  },
+  'scripts/cocos-validation.mjs': {
+    before: '7581f6b85ee28c5c1541866a365d848d5d040a0b37d2ba75ecc35c2f5818c919',
+    after: '00ac32f5a9b097cb635c472c3158e41d7546678684161f71f653ea89b6285d52',
+    sources: [],
+  },
+  'scripts/cocos-validation.test.mjs': {
+    before: '7c1ca66cede7f6935450cc24f2071e87cb6871eafcab258aced65709f3824948',
+    after: '4fe529566be2b434b966f742419b626bf8b15825f8d7e26c3eeeda28c89525f3',
+    sources: [],
+  },
+  'scripts/fullscreen-removal-scope.mjs': {
+    before: 'b08c792041c1a2cacd6bd160829682952844f30cf901748aaa3cb3843e855168',
+    after: '536f7a23372c13ea2fa15f75ce4f54753988a47e009b6f7e862e6267f6ebc4a4',
+    sources: [],
+  },
+  'scripts/h5-ad-config.mjs': {
+    before: 'e075f10a3e0f18147f97ef0cef66bf823b5709893c00ad84f219b3259c763c71',
+    after: 'b54e752e6b9185ca1cd93c361ce1b1bc366935513799463c6609f561c93cc538',
+    sources: [],
+  },
+  'scripts/h5-game-build.mjs': {
+    before: '76034eee6d03fd200211aea469672e7841cd398ed1f757ce8e06fcb369841f22',
+    after: '111888f9e86dd9f3b6c707ae6e43dc90ac6b999000a74286b665f2d0351f8f6e',
+    sources: [],
+  },
+  'scripts/h5-taptap-build.mjs': {
+    before: 'ea03001d9c693b8b45599dcf52728e8bb3d0289ce307d63c67a04913c5533c33',
+    after: 'c7a86b78b7db0518d3a4dc101282655b0c1f1e9dbdd4a7cc369f0412ef7852db',
+    sources: [],
+  },
+  'scripts/h5-taptap-matrix.mjs': {
+    before: 'c63d8fef1b9a7ad4219c80a6fe102801820e73c0890e787585bf2ed9200ec9ee',
+    after: '18f5ec36f778586facb0cc65110e76d3e0eac7cae5ef5e9782751fe00ff9a0c9',
+    sources: [],
+  },
+  'scripts/h5-taptap-matrix.test.mjs': {
+    before: 'e115b48adaf1e727e4208dafdccdb308ede25301d4bde9c5a648580fc8d922ff',
+    after: 'b19c72649d171b003c61a24d3772329c525b17d507a5464105348ac8c610a764',
+    sources: [],
+  },
+  'scripts/incremental-validation.test.mjs': {
+    before: '8be1eeeb18f1a60c72c115f1df5dbe60ed7d91883aaac074f8a5e1b7c6040cf6',
+    after: 'af4a4c3913ddb0a6d204ac77bdfaacfad6d7a0814f558fa39e2a36640f81e94f',
+    sources: [],
+  },
+  'scripts/publication-scopes.mjs': {
+    before: '28fcc94086ac09d82e6387f9e72cfa60adf132bc5a2bdf5e4ab45e84a4442476',
+    after: '6484ed152335c475fee5b5c99787c01f2ba14217e93eb6fe7c7240bd678bef90',
+    sources: [],
+  },
+  'scripts/publication-scopes.test.mjs': {
+    before: '992667a33badaea2f689f0498e79dc8424e983aa234559d4f7208a5d3aa49174',
+    after: '05e44d1e5d56c4742cb4107d60a73c939de9d7cf9374be3a1b33447fde82adb1',
+    sources: [],
+  },
+  'scripts/reuse-cocos-artifacts.mjs': {
+    before: 'cba653456b3be4201d46c68ca76219030646e9e0c5b7c86e9f130ff103e85858',
+    after: '9bc4931e8fd9b3e63cb8cbd2091f805579588a58ca943581915ddea4bc619560',
+    sources: [],
+  },
+  'scripts/reuse-cocos-artifacts.test.mjs': {
+    before: '10f9abc4157fa3e87558c666e206f67a90ec2b8cdfbdcd363b53abda910909a2',
+    after: '60767daa24019127aef8cf2d0325b8118090b9520f90f8c368bdce968d9864ed',
+    sources: [],
+  },
+  'scripts/test-game-dev-mode.mjs': {
+    before: '7dcb753faff1fbc315a075bf6cd8d768a65a6602820b55d584b0c94777e89524',
+    after: '657ba38e4aac440e50314db3194f0ecfac71ba8061410cfd1bb8a2025c33fea2',
+    sources: ['games/local/letters-words2', 'games/submodules/xiangqi-five'],
+  },
+  'scripts/validate-tree.mjs': {
+    before: '4efecff555e75de1e46e3c4fc536068288338c00391f5b4137037e1be4b84c10',
+    after: 'eba50791f61064dcf897bdcc940ea2f5202b201932db2078aea94ceb7076063a',
+    sources: [],
+  },
+  'scripts/validate-tree.test.mjs': {
+    before: '36fdd8abd3ae80e7c4a335ff1f102b95bec453af870c85042001e14184d6f72c',
+    after: '2fa35179e1c8198fa953a6da074d2c691bc87eec1580b5e1756fb759f615c690',
+    sources: [],
+  },
+  'scripts/vite-patch-scope.mjs': {
+    before: 'f447b4026fb11161df97fd297099ac13c4934301267c463cbbc3e96bec1a18aa',
+    after: '0827d55a53a9c65778d6b0cd567b0856d87256862416552bda78667021456eee',
+    sources: [],
+  },
+  'turbo.json': {
+    before: 'f4a408d39885a61838d157911a5c0d82a9d95a06a2d7d60c2f4377a3cecbcb9d',
+    after: '33c37ca3d37d890b92b56e52d3a4ac9e1c1b5f80ffcbffdc643fb790ebd45cb9',
+    sources: [],
+  },
+});
+export const singleGamePagesRetirementBase = '171423331a4bdc0f8d45369b047dbc9e3d971b5c';
+export const singleGamePagesRetirementTrees = Object.freeze({
+  'games/local/orbit-atelier':
+    '040000 tree 8edd94ccfe3ac7f79ce18815d08a0bfb9a7f6917\tgames/local/orbit-atelier\n',
+});
+export const singleGamePagesRetirementReviews = Object.freeze({
+  ...singleGameRetirementReviews,
+  '.github/workflows/carding-car.yml': {
+    ...singleGameRetirementReviews['.github/workflows/carding-car.yml'],
+    before: '156789c9b27107e43481c612fdf0583acd9c2aaecd131202f2adfd39e6a7a9dd',
+    sources: ['games/local/ashfall-front'],
+  },
+  '.github/workflows/ci.yml': {
+    ...singleGameRetirementReviews['.github/workflows/ci.yml'],
+    before: 'd983ffe34a30e39b8a8d4675197cb73b193ddea9a5adfaac4f95a42ad39926c9',
+    sources: ['games/local/ashfall-front'],
+  },
+  '.github/workflows/mobile.yml': {
+    ...singleGameRetirementReviews['.github/workflows/mobile.yml'],
+    before: 'a8b816e6b5187cfc42180fbe796a454501b8f81873151f8bf8c8d344e1f1e919',
+    sources: ['games/local/ashfall-front'],
+  },
+  '.github/workflows/pages-validate.yml': {
+    ...singleGameRetirementReviews['.github/workflows/pages-validate.yml'],
+    before: 'b6d0e2eeb4c64eff7e78305a6a745ddfac86da48fc0f1e40ec84bca51c223f1a',
+    sources: ['games/local/ashfall-front'],
+  },
+  'apps/shell-web/package.json': {
+    ...singleGameRetirementReviews['apps/shell-web/package.json'],
+    before: '05fd51dc8cd2b738552c71cbe1842d4cb5fac81242b32e152b559565c3415ede',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/scripts/pages-smoke.mjs': {
+    ...singleGameRetirementReviews['apps/shell-web/scripts/pages-smoke.mjs'],
+    before: '34a39129aa775595c21ec6c3e055f98909193beb69102996e8bfaa686a7c4306',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/scripts/standalone-game-checks.mjs': {
+    ...singleGameRetirementReviews['apps/shell-web/scripts/standalone-game-checks.mjs'],
+    before: 'ac6e7418d1f7b3f672287e6847e83729c18770695fecf4abe77ecd76384ee9ec',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/scripts/standalone-game-entry.mjs': {
+    ...singleGameRetirementReviews['apps/shell-web/scripts/standalone-game-entry.mjs'],
+    before: 'd57f4b42bd35848cdf9dd44310d02cc795722e16a23cba656ed63ac62bc0bb4a',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/scripts/standalone-game-entry.test.mjs': {
+    ...singleGameRetirementReviews['apps/shell-web/scripts/standalone-game-entry.test.mjs'],
+    before: '57fefbc516b1e2e84972d7d183c6a4d514075066d828de6de9ea3b611ce312a1',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/src/StandaloneGame.tsx': {
+    ...singleGameRetirementReviews['apps/shell-web/src/StandaloneGame.tsx'],
+    before: '897fc6d95c5cf064b97d4ce671510e37714e25c79ec340e2a86d5af1aae1441c',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/src/game-assessments.json': {
+    ...singleGameRetirementReviews['apps/shell-web/src/game-assessments.json'],
+    before: 'f99063d969b5bd5dbe3cd27785ca0497229de8bc0e038d75225a7b41482cd3a3',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/src/game-meta.json': {
+    ...singleGameRetirementReviews['apps/shell-web/src/game-meta.json'],
+    before: '4e4298f0f0a4b1dd09f55c6cf3bd0c7f91b665e58e65f909aec56992c4b3c921',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/src/game-sharing.ts': {
+    ...singleGameRetirementReviews['apps/shell-web/src/game-sharing.ts'],
+    before: 'c4520e3b01b74d92252af659bb68ed9392d47471c0092b01fbd3de39cfb44523',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/src/standalone-games.json': {
+    ...singleGameRetirementReviews['apps/shell-web/src/standalone-games.json'],
+    before: '41228efe4f04ba978f09b4580222481d7c35de41b65987a059e612b65fda6d21',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/tests/game-sharing.test.tsx': {
+    ...singleGameRetirementReviews['apps/shell-web/tests/game-sharing.test.tsx'],
+    before: 'e59c68960d839a18b53549b25b2ecade3aac6d099261a763136a33d05165e095',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/tests/standalone.integration.test.tsx': {
+    ...singleGameRetirementReviews['apps/shell-web/tests/standalone.integration.test.tsx'],
+    before: '6ef47c2cc729d2d4e5a05618d6de0ba8044c68ade266e6bb060225f54690724b',
+    sources: ['apps/shell-web'],
+  },
+  'pnpm-lock.yaml': {
+    ...singleGameRetirementReviews['pnpm-lock.yaml'],
+    before: '8d2f2811eda6b51e0008662e352e27c9c8f5218a0e985d76c62a356caca775c0',
+    sources: ['apps/shell-web', 'games/local/ashfall-front', 'games/local/porcelain-puzzle'],
+  },
+  'scripts/build-games.test.mjs': {
+    ...singleGameRetirementReviews['scripts/build-games.test.mjs'],
+    before: 'e09827846b666382b30ff3ebaae570dcc08aaa0713a0b40ab443b59592d081a6',
+    sources: [],
+  },
+  'scripts/check-game-config.test.mjs': {
+    ...singleGameRetirementReviews['scripts/check-game-config.test.mjs'],
+    before: 'd3c973703a9ee73c551fbfab55b84f9b3d5dcac51ee1e1828bef8aac405fd07a',
+    sources: [],
+  },
+  'scripts/check-workspace-dependencies.mjs': {
+    ...singleGameRetirementReviews['scripts/check-workspace-dependencies.mjs'],
+    before: 'c63ac98faeb1c028193010739f9fbefab6c06e7832d22a0310999786ec12c3de',
+    sources: [],
+  },
+  'scripts/cocos-validation.mjs': {
+    ...singleGameRetirementReviews['scripts/cocos-validation.mjs'],
+    before: 'df65e6f13eb92aa19d4dc034ce0fa47a81ea53eded61aaa2789a18c921591e47',
+    sources: [],
+  },
+  'scripts/cocos-validation.test.mjs': {
+    ...singleGameRetirementReviews['scripts/cocos-validation.test.mjs'],
+    before: '2f48fd1f93c5b9dd4192058693bde5276557a5d974767ded18dc9e6af40558c1',
+    sources: [],
+  },
+  'scripts/fullscreen-removal-scope.mjs': {
+    ...singleGameRetirementReviews['scripts/fullscreen-removal-scope.mjs'],
+    before: null,
+    sources: [],
+  },
+  'scripts/h5-ad-config.mjs': {
+    ...singleGameRetirementReviews['scripts/h5-ad-config.mjs'],
+    before: 'b0f8cf1c666f01d2a2e5cd0fb1c1de2ab849cb35996369b8270c47312edf950b',
+    sources: [],
+  },
+  'scripts/h5-game-build.mjs': {
+    ...singleGameRetirementReviews['scripts/h5-game-build.mjs'],
+    before: '8cb6f9c6430c42a01e9b4eae833ca84a61388340ddb3cc4d17e0de49126b0438',
+    sources: [],
+  },
+  'scripts/h5-taptap-build.mjs': {
+    ...singleGameRetirementReviews['scripts/h5-taptap-build.mjs'],
+    before: '4cdea763a2e71cb31563d887db1d17f1deb0d8f66381cd5ad9d37a140f5130a4',
+    sources: [],
+  },
+  'scripts/h5-taptap-matrix.mjs': {
+    ...singleGameRetirementReviews['scripts/h5-taptap-matrix.mjs'],
+    before: '67e0c2510a16af1656606920a5b2bb323d5b38e84dabc668f0a017f5d6ffac3a',
+    sources: [],
+  },
+  'scripts/h5-taptap-matrix.test.mjs': {
+    ...singleGameRetirementReviews['scripts/h5-taptap-matrix.test.mjs'],
+    before: '6fe5a1d627474b3cf619f24e4de21b3d92cac2eb2dec129ea85dfd82dc0c2dd6',
+    sources: [],
+  },
+  'scripts/publication-scopes.mjs': {
+    ...singleGameRetirementReviews['scripts/publication-scopes.mjs'],
+    before: 'c90f6cccd56cfc7351b9b904c1422f3ed7a928ab45dc39ed2de8fcfee2236976',
+    sources: [],
+  },
+  'scripts/publication-scopes.test.mjs': {
+    ...singleGameRetirementReviews['scripts/publication-scopes.test.mjs'],
+    before: 'cecee2d88f38c4fbd9e483a82d992f798483701ff29fceedfb271d6476ef7e67',
+    sources: [],
+  },
+  'scripts/reuse-cocos-artifacts.mjs': {
+    ...singleGameRetirementReviews['scripts/reuse-cocos-artifacts.mjs'],
+    before: '7fd0d6fd7527127a2b32421c7b85b384e6818bd5edb321b8fbfa7d58d7e18f41',
+    sources: [],
+  },
+  'scripts/reuse-cocos-artifacts.test.mjs': {
+    ...singleGameRetirementReviews['scripts/reuse-cocos-artifacts.test.mjs'],
+    before: 'ffac04bcbe08b0b0ba5da93ce0e9516cfc573d51ebf965f4d7d39f7aa3777a92',
+    sources: [],
+  },
+  'scripts/test-game-dev-mode.mjs': {
+    ...singleGameRetirementReviews['scripts/test-game-dev-mode.mjs'],
+    before: 'f911bb11751f1ade391613a622fcd915ec8a19f737f7d7eadd6acd708b08027b',
+    sources: [
+      'games/local/letters-words2',
+      'games/submodules/xiangqi-five',
+      'games/local/porcelain-puzzle',
+    ],
+  },
+  'scripts/validate-tree.mjs': {
+    ...singleGameRetirementReviews['scripts/validate-tree.mjs'],
+    before: '337b204edf32844bf2affdf5a95c73a5cf52626fc64366897bcaac2a7503cf7f',
+    sources: [],
+  },
+  'scripts/validate-tree.test.mjs': {
+    ...singleGameRetirementReviews['scripts/validate-tree.test.mjs'],
+    before: 'd4ab2a4c56bb104e11276ecfc45c2f896b63076f8dbf03fbe7e79cf85d29aaea',
+    sources: [],
+  },
+  'turbo.json': {
+    ...singleGameRetirementReviews['turbo.json'],
+    before: '2939bab45107ebb53888d6f5a0a77420f2e05551bf464a91e4c8fef7c79d7c3a',
+    sources: ['games/local/ashfall-front'],
+  },
+});

@@ -9,6 +9,10 @@ import {
   mainIntegrationBase,
   mainRetirementTrees,
   mainRetirementMoves,
+  singleGameRetirementTrees,
+  singleGameRetirementReviews,
+  singleGamePagesRetirementTrees,
+  singleGamePagesRetirementReviews,
 } from './local-game-retirement-reviews.mjs';
 
 const proofs = new WeakMap();
@@ -23,6 +27,10 @@ export function localRetirementHeadQueryPaths(changedPaths) {
       ...Object.keys(localRetirementReviews),
       ...Object.keys(portfolioRetirementTrees),
       ...Object.keys(portfolioRetirementReviews),
+      ...Object.keys(singleGameRetirementTrees),
+      ...Object.keys(singleGameRetirementReviews),
+      ...Object.keys(singleGamePagesRetirementTrees),
+      ...Object.keys(singleGamePagesRetirementReviews),
       ...Object.keys(mainRetirementMoves),
       ...Object.values(mainRetirementMoves).map((move) => move.to),
     ]),
@@ -76,7 +84,9 @@ export function localRetirementScopesForReview(context, trees, reviews) {
       if (
         (trees === catalogCleanupTrees && reviews === catalogCleanupReviews) ||
         (trees === localRetirementTrees && reviews === localRetirementReviews) ||
-        (trees === portfolioRetirementTrees && reviews === portfolioRetirementReviews)
+        (trees === portfolioRetirementTrees && reviews === portfolioRetirementReviews) ||
+        (trees === singleGameRetirementTrees && reviews === singleGameRetirementReviews) ||
+        (trees === singleGamePagesRetirementTrees && reviews === singleGamePagesRetirementReviews)
       )
         proofs.set(value, {
           file,
@@ -98,6 +108,16 @@ export function localRetirementFileScopes(context) {
       context,
       portfolioRetirementTrees,
       portfolioRetirementReviews,
+    ),
+    ...localRetirementScopesForReview(
+      context,
+      singleGameRetirementTrees,
+      singleGameRetirementReviews,
+    ),
+    ...localRetirementScopesForReview(
+      context,
+      singleGamePagesRetirementTrees,
+      singleGamePagesRetirementReviews,
     ),
     ...mainRetirementDeletionScopes(context),
   ]);

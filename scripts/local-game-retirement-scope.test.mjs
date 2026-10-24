@@ -605,3 +605,120 @@ test('portfolio retirement binds the selected games, retained catalog and exact 
   );
   assert(!scopes.has('unreviewed-file.mjs'));
 });
+
+test('single game retirement binds both comparison trees and retains Shell consumers', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const review = await import('./local-game-retirement-reviews.mjs');
+  const { localRetirementFileScopes, hasLocalRetirementFileProof, localRetirementHeadQueryPaths } =
+    await import('./local-game-retirement-scope.mjs');
+  const git = (...args) =>
+    execFileSync('git', args, {
+      cwd: new URL('../', import.meta.url),
+      encoding: 'utf8',
+      maxBuffer: 32 * 1024 * 1024,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+  const tree = (ref) =>
+    new Map(
+      git('ls-tree', '-r', '-t', ref)
+        .trimEnd()
+        .split('\n')
+        .map((line) => [line.split('\t')[1], line + '\n']),
+    );
+  const head = review.singleGameRetirementFixture,
+    after = tree(head),
+    cache = new Map();
+  const read = (ref, file) => {
+    const key = ref + ':' + file;
+    if (!cache.has(key)) cache.set(key, git('show', key));
+    return cache.get(key);
+  };
+  for (const [base, trees, reviews] of [
+    [
+      review.singleGameRetirementBase,
+      review.singleGameRetirementTrees,
+      review.singleGameRetirementReviews,
+    ],
+    [
+      review.singleGamePagesRetirementBase,
+      review.singleGamePagesRetirementTrees,
+      review.singleGamePagesRetirementReviews,
+    ],
+  ]) {
+    const before = tree(base),
+      roots = Object.keys(trees);
+    const changedPaths = git('diff', '--name-only', '-z', base, head).split('\0').filter(Boolean);
+    const context = {
+      baseCommit: base,
+      changedPaths,
+      readBaseEntry: (file) => before.get(file) ?? '',
+      readHeadEntry: (file) => after.get(file) ?? '',
+      readBase: (file) => read(base, file),
+      readHead: (file) => read(head, file),
+      headHasPath: (file) => after.has(file),
+    };
+    const scopes = localRetirementFileScopes(context);
+    const deleted = changedPaths.filter((file) =>
+      roots.some((root) => file.startsWith(root + '/')),
+    );
+    assert(deleted.length > 100);
+    for (const file of deleted)
+      assert(isReviewedLocalRetirementDeletion({ status: 'D', paths: [file] }, scopes), file);
+    for (const [file, entry] of Object.entries(reviews)) {
+      assert.deepEqual(scopes.get(file), entry.sources, file);
+      assert(hasLocalRetirementFileProof(file, scopes.get(file), context.readHead), file);
+      assert(localRetirementHeadQueryPaths([]).includes(file));
+    }
+    assert.deepEqual(scopes.get('apps/shell-web/src/standalone-games.json'), ['apps/shell-web']);
+    const file = deleted[0],
+      value = scopes.get(file);
+    assert(
+      !isReviewedLocalRetirementDeletion(
+        { status: 'D', paths: [file] },
+        new Map([[file, [...value]]]),
+      ),
+    );
+    assert(
+      !isReviewedLocalRetirementDeletion({ status: 'R100', paths: [file, 'extra.mjs'] }, scopes),
+    );
+    assert(
+      !isReviewedLocalRetirementDeletion(
+        { status: 'D', paths: ['scripts/unknown-deletion.mjs'] },
+        scopes,
+      ),
+    );
+    const shared = 'apps/shell-web/package.json';
+    for (const override of [
+      { readBaseEntry: (path) => (roots.includes(path) ? '' : context.readBaseEntry(path)) },
+      { headHasPath: (path) => roots.includes(path) || context.headHasPath(path) },
+      { headHasPath: () => undefined },
+      { readHead: (path) => context.readHead(path) + (path === shared ? '\nextra' : '') },
+      {
+        readHead: () => {
+          throw Error('query failed');
+        },
+      },
+      { changedPaths: [...changedPaths, roots[0] + '/unknown-extra.mjs'] },
+    ])
+      assert.equal(localRetirementFileScopes({ ...context, ...override }).size, 0);
+    const lock = 'pnpm-lock.yaml';
+    if (base === review.singleGameRetirementBase) {
+      const old = context.readBase(lock);
+      const removed = old
+        .replace(
+          /      '@coffeeeeffoc\/orbit-atelier':\n        specifier: workspace:\*\n        version: link:\.\.\/\.\.\/games\/local\/orbit-atelier\n/,
+          '',
+        )
+        .replace(/  games\/local\/orbit-atelier:\n[\s\S]*?(?=  games\/local\/out-of-frame:)/, '');
+      assert.equal(
+        context.readHead(lock),
+        removed,
+        'Only the retired importer and workspace link leave the lockfile',
+      );
+    } else
+      assert(
+        scopes.get(lock).includes('games/local/ashfall-front') &&
+          scopes.get(lock).includes('games/local/porcelain-puzzle'),
+      );
+  }
+});
