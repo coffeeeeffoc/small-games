@@ -51,6 +51,8 @@ it('retains only the selected Game public parameters', () => {
 });
 
 const challenges = [
+  ['porcelain-puzzle', 'level=100'],
+  ['porcelain-puzzle', 'room=ABC123'],
   ['chase-thief', 'chaseChallenge=1&level=canal&time=59.9&mistakes=2'],
   ['retreat-rally', 'rallyChallenge=1&level=crossbow&time=180&survivors=6'],
   ['tiny-signals', 'challenge=1&level=echo&targetMoves=100000'],

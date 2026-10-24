@@ -33,6 +33,7 @@ export function StandaloneGame({
     id === 'merge-front' ||
     id === 'ink-is-everything' ||
     id === 'ball-roguelite' ||
+    id === 'porcelain-puzzle' ||
     id === 'flick-arena' ||
     id === 'xiangqi-five' ||
     id === 'letters-words2' ||

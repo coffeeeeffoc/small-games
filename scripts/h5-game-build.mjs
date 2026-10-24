@@ -14,7 +14,7 @@ if (['carding-car', 'night-overwatch', 'homebound-station', 'merge-front'].inclu
     stdio: 'inherit',
     timeout: 1100000,
   });
-} else if (['wulong-city', 'letters-words2'].includes(game)) {
+} else if (['wulong-city', 'letters-words2', 'porcelain-puzzle'].includes(game)) {
   execFileSync(process.execPath, ['build.mjs'], { cwd: root, stdio: 'inherit' });
 } else {
   const require = createRequire(path.join(root, 'package.json'));

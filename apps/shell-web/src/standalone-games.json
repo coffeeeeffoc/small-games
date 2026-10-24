@@ -299,5 +299,12 @@
     "title": "三块选两块",
     "description": "拖动三块，摆下两块。留住棋盘空间，完成120关取舍挑战，或在无尽练习中追逐交叉消除与连续高分。",
     "output": "dist"
+  },
+  {
+    "id": "porcelain-puzzle",
+    "source": "games/local/porcelain-puzzle",
+    "title": "青花拾光",
+    "description": "把时光，一片片拾起。限时拼合100款青花、彩瓷、琉璃与镜面器物，和淘气宝宝走过器物长廊，邀请好友一起闯关。",
+    "output": "dist"
   }
 ]

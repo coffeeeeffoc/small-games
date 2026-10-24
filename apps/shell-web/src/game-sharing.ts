@@ -39,6 +39,10 @@ const boxFaces = (value: string) => {
 // Public challenge contracts, kept separate from development/session parameters.
 // A malformed or incomplete contract must not turn into a different valid challenge.
 const challengeProtocols: Readonly<Record<string, ChallengeProtocol>> = {
+  'porcelain-puzzle': {
+    fields: { level: integer(100, 1), room: (value) => /^[A-F0-9]{6}$/.test(value) },
+    required: [],
+  },
   'chase-thief': {
     fields: {
       chaseChallenge: oneOf('1'),

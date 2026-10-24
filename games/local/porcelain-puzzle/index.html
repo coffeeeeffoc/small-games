@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
+    />
+    <meta name="theme-color" content="#f2eddf" />
+    <title>青花拾光 · 限时拼图</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./style.css" />
+    <script src="./dev-mode.js"></script>
+    <script src="./platform-config.js"></script>
+    <script type="module" src="./game-rewards.js"></script>
+    <script type="module" src="./main.mjs"></script>
+  </head>
+  <body data-screen="loading">
+    <main id="viewport" data-game-display-host>
+      <div id="GameDiv">
+        <div id="Cocos3dGameContainer">
+          <canvas id="GameCanvas" aria-label="青花瓷碎片拼图" tabindex="0"></canvas>
+        </div>
+        <div id="ui" aria-live="polite"></div>
+        <div id="toast" role="status"></div>
+        <div id="loading">
+          <div class="seal">瓷</div>
+          <p>正在拾起一抹青花…</p>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

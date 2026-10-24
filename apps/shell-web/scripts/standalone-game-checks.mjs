@@ -8,6 +8,22 @@ export async function exerciseStandalone(frame, id, mobile = false) {
 }
 
 export async function assertStandaloneGameplay(frame, id, mobile = false) {
+  if (id === 'porcelain-puzzle') {
+    const click = (locator) => (mobile ? locator.tap() : locator.click());
+    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'playing', {
+      timeout: 20000,
+    });
+    await expect(frame.locator('#GameCanvas')).toBeVisible();
+    await expect(frame.locator('.piece-count')).toContainText('6');
+    await click(frame.getByRole('button', { name: '暂停', exact: true }));
+    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'paused');
+    await click(frame.getByRole('button', { name: '继续拼合', exact: true }));
+    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'playing');
+    await click(frame.getByRole('button', { name: '暂停', exact: true }));
+    await click(frame.getByRole('button', { name: '返回长廊', exact: true }));
+    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'gallery');
+    return;
+  }
   if (id === 'carrom-club') {
     const { assertCarromGameplay } = await import('./game-checks/carrom-club.mjs');
     return assertCarromGameplay(frame, mobile);

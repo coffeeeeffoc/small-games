@@ -76,7 +76,8 @@
     "@coffeeeeffoc/tower-brake": "workspace:*",
     "@coffeeeeffoc/cage-rescue": "workspace:*",
     "@coffeeeeffoc/three-choose-two": "workspace:*",
-    "@coffeeeeffoc/ashfall-front": "workspace:*"
+    "@coffeeeeffoc/ashfall-front": "workspace:*",
+    "@coffeeeeffoc/porcelain-puzzle": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-eslint": "workspace:*",
