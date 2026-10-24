@@ -1,0 +1,229 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "681d33ad97da627270bd07dd0f92fe401cda00ed9da0d94e853284ea2565cdcc"
+  },
+  "checks": [
+    {
+      "width": 1366,
+      "height": 768,
+      "touch": false,
+      "layout": true,
+      "dayDuskNight": true,
+      "radioLifecycle": true,
+      "relativeRelease": false,
+      "supplyFixture": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "touch": true,
+      "layout": true,
+      "dayDuskNight": true,
+      "radioLifecycle": true,
+      "relativeRelease": true,
+      "supplyFixture": true
+    },
+    {
+      "width": 568,
+      "height": 320,
+      "touch": true,
+      "layout": true,
+      "dayDuskNight": true,
+      "radioLifecycle": true,
+      "relativeRelease": true,
+      "supplyFixture": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "orientationPause": true,
+      "manualPausePreserved": true
+    }
+  ],
+  "errors": [],
+  "captures": [
+    {
+      "width": 1366,
+      "name": "home",
+      "seconds": 2.259
+    },
+    {
+      "width": 1366,
+      "name": "missions",
+      "seconds": 3.765
+    },
+    {
+      "width": 1366,
+      "name": "day",
+      "seconds": 5.736
+    },
+    {
+      "width": 1366,
+      "name": "pause",
+      "seconds": 7.189
+    },
+    {
+      "width": 1366,
+      "name": "settings",
+      "seconds": 8.612
+    },
+    {
+      "width": 1366,
+      "name": "help",
+      "seconds": 9.95
+    },
+    {
+      "width": 1366,
+      "name": "supply-offer",
+      "seconds": 12.097
+    },
+    {
+      "width": 1366,
+      "name": "supply-choice",
+      "seconds": 13.346
+    },
+    {
+      "width": 1366,
+      "name": "support-countdown",
+      "seconds": 14.574
+    },
+    {
+      "width": 1366,
+      "name": "night",
+      "seconds": 22.969
+    },
+    {
+      "width": 1366,
+      "name": "thermal",
+      "seconds": 24.946
+    },
+    {
+      "width": 844,
+      "name": "home",
+      "seconds": 2.061
+    },
+    {
+      "width": 844,
+      "name": "missions",
+      "seconds": 3.493
+    },
+    {
+      "width": 844,
+      "name": "day",
+      "seconds": 5.349
+    },
+    {
+      "width": 844,
+      "name": "pause",
+      "seconds": 10.438
+    },
+    {
+      "width": 844,
+      "name": "settings",
+      "seconds": 11.71
+    },
+    {
+      "width": 844,
+      "name": "help",
+      "seconds": 12.87
+    },
+    {
+      "width": 844,
+      "name": "supply-offer",
+      "seconds": 15.078
+    },
+    {
+      "width": 844,
+      "name": "supply-choice",
+      "seconds": 16.16
+    },
+    {
+      "width": 844,
+      "name": "support-countdown",
+      "seconds": 17.238
+    },
+    {
+      "width": 844,
+      "name": "impact",
+      "seconds": 25.116
+    },
+    {
+      "width": 844,
+      "name": "priority",
+      "seconds": 25.944
+    },
+    {
+      "width": 844,
+      "name": "night",
+      "seconds": 33.064
+    },
+    {
+      "width": 844,
+      "name": "thermal",
+      "seconds": 35.15
+    },
+    {
+      "width": 568,
+      "name": "home",
+      "seconds": 1.884
+    },
+    {
+      "width": 568,
+      "name": "missions",
+      "seconds": 3.058
+    },
+    {
+      "width": 568,
+      "name": "day",
+      "seconds": 4.651
+    },
+    {
+      "width": 568,
+      "name": "pause",
+      "seconds": 9.317
+    },
+    {
+      "width": 568,
+      "name": "settings",
+      "seconds": 10.475
+    },
+    {
+      "width": 568,
+      "name": "help",
+      "seconds": 11.558
+    },
+    {
+      "width": 568,
+      "name": "supply-offer",
+      "seconds": 13.61
+    },
+    {
+      "width": 568,
+      "name": "supply-choice",
+      "seconds": 14.692
+    },
+    {
+      "width": 568,
+      "name": "support-countdown",
+      "seconds": 15.778
+    },
+    {
+      "width": 568,
+      "name": "night",
+      "seconds": 24.996
+    },
+    {
+      "width": 568,
+      "name": "thermal",
+      "seconds": 27.095
+    },
+    {
+      "width": 390,
+      "name": "orientation",
+      "seconds": 1.989
+    }
+  ],
+  "fixtures": "Local saved unlocks; completed rewarded-provider fixture only for supply UI. No simulation state writes."
+}

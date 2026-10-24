@@ -7,9 +7,10 @@ import { buildPlatform } from '../platforms/build.mjs';
 import * as actions from '../assets/scripts/core/Actions.ts';
 import * as data from '../assets/scripts/core/Data.ts';
 import { Simulation } from '../assets/scripts/core/Simulation.ts';
+import { MISSIONS } from '../assets/scripts/core/MissionCatalog.ts';
 
 // Exercise the real HUD layout/drawing logic without building or launching Creator.
-// These doubles record UI geometry; actual rendering and platform fullscreen need runtime QA.
+// These doubles record UI geometry; actual rendering still needs runtime QA.
 class Transform {
   contentSize = { width: 0, height: 0 };
   setContentSize(width: number, height: number) { this.contentSize = { width, height }; }
@@ -48,14 +49,15 @@ class Color {
   fromHEX(hex: string) { this.hex = hex; return this; }
 }
 class Graphics {
-  calls: { op: string; args: number[]; color: string; width: number }[] = [];
+  calls: { op: string; args: number[]; color: string; fill: string; width: number }[] = [];
   strokeColor = new Color();
+  fillColor = new Color();
   lineWidth = 1;
   clear() { this.calls = []; }
 }
 for (const op of ['rect', 'roundRect', 'circle', 'moveTo', 'lineTo', 'close', 'stroke', 'fill'])
   Graphics.prototype[op] = function (...args: number[]) {
-    this.calls.push({ op, args, color: this.strokeColor.hex, width: this.lineWidth });
+    this.calls.push({ op, args, color: this.strokeColor.hex, fill: this.fillColor.hex, width: this.lineWidth });
   };
 const frame = { width: 568, height: 320 };
 let inset = 0;
@@ -97,6 +99,25 @@ const world = { zoom: 1, thermal: false, project(p: data.Point, y = 0) {
   return { x: frame.width / 2 + p.x, y: frame.height / 2 - p.z + y * 10, z: 0.5 };
 } };
 const overlaps = (a: any, b: any) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+
+test('HUD: real urgent targets avoid convoy, supply and zoom controls on small screens', () => {
+  for (const [width, height] of [[1366, 768], [844, 390], [568, 320]]) {
+    Object.assign(frame, { width, height }); inset = 0;
+    const hud = new HUD(new SceneNode()), sim = new Simulation(); sim.start();
+    hud.touch = width < 1000; hud.rewardsAvailable = true;
+    const enemy = sim.units.find(u => !u.friendly)!;
+    enemy.x = sim.rescue.x + 5; enemy.z = sim.rescue.z; enemy.born = -30; enemy.attack = 3;
+    hud.update(sim, world);
+    const priority = hud.buttons.find((b: any) => b.id === 'priority');
+    assert(priority.label.node.activeInHierarchy);
+    for (const button of hud.buttons.filter((b: any) => b !== priority && b.label.node.activeInHierarchy))
+      assert(!overlaps(priority, button), `${width}: priority overlaps ${button.id}`);
+    hud.zoomOpen = true; hud.update(sim, world); assert(!priority.label.node.activeInHierarchy);
+    assert(!hud.labels.get('priorityMarker').node.active);
+    hud.zoomOpen = false; hud.toolsOpen = true; hud.update(sim, world);
+    assert(!priority.label.node.activeInHierarchy); assert(!hud.labels.get('priorityMarker').node.active);
+  }
+});
 
 test('HUD: desktop bottom battlefield accepts aim while controls and touch footer remain blocked', () => {
   for (const [width, height] of [[1366, 768], [1151, 798], [844, 390]]) {
@@ -141,7 +162,7 @@ test('HUD: escort and range entries are discoverable, and range results show a s
         }
         const labels = hud.modal.children.map((node: any) => node.getComponent(cc.Label)?.string).filter(Boolean).join('\n');
         assert.doesNotMatch(labels, /车队安全抵达|CONVOY EXTRACTED/);
-        if (phase === 'briefing') assert.match(labels, lang === 'zh' ? /高地伏击/ : /HIGHLAND AMBUSH/);
+        if (phase === 'briefing') assert.match(labels, lang === 'zh' ? /高地警戒/ : /HIGHLAND WATCH/);
         else {
           assert.match(labels, lang === 'zh' ? /再练一轮|重甲用重炮/ : /TRY AGAIN|Heavy for armor/);
           assert.match(labels, lang === 'zh' ? /最佳20.0s/ : /BEST 20.0s/);
@@ -165,12 +186,11 @@ test('HUD: persistent global actions, compact modal layout, focus markers and zo
       hud.rewardsAvailable = true;
       hud.resize();
       const globals = hud.buttons.filter((b: any) => hud.isGlobalAction(b.id));
-      assert.equal(globals.length, cc.sys.isBrowser ? 2 : 1);
+      assert.equal(globals.length, 1);
       for (const reason of ['briefing', 'manual', 'settings', 'help', 'settings', 'mission', 'orientation', 'success', 'failure', 'playing']) {
         sim.pauses.clear();
         sim.phase = ['briefing', 'success', 'failure'].includes(reason) ? reason as Simulation['phase'] : 'playing';
         if (!['briefing', 'success', 'failure', 'playing'].includes(reason)) sim.pauses.add(reason as any);
-        hud.fullscreen = reason === 'help';
         hud.update(sim, world);
         assert.equal(hud.root.children.at(-1), hud.globalControls, 'global graphics render above the modal');
         for (const b of globals) {
@@ -191,7 +211,6 @@ test('HUD: persistent global actions, compact modal layout, focus markers and zo
         }
         if (reason === 'manual') assert.equal(controls.map((b: any) => b.id).join(','), 'supply,resume,home');
         if (reason === 'settings') assert.equal(controls.map((b: any) => b.id).join(','), 'close,sound,effects,help,language');
-        if (reason === 'help' && cc.sys.isBrowser) assert.equal(globals.find((b: any) => b.id === 'fullscreen').label.string, lang === 'zh' ? '退出全屏' : 'EXIT FULL');
       }
       hud.toolsOpen = true;
       hud.update(sim, world);
@@ -218,7 +237,7 @@ test('HUD: persistent global actions, compact modal layout, focus markers and zo
       assert.equal(hud.modalKey, 'pause');
       hud.resize();
       hud.update(sim, world);
-      assert.equal(hud.buttons.filter((b: any) => hud.isGlobalAction(b.id)).length, cc.sys.isBrowser ? 2 : 1, 'resize never duplicates global actions');
+      assert.equal(hud.buttons.filter((b: any) => hud.isGlobalAction(b.id)).length, 1, 'resize never duplicates global actions');
     }
   }
 
@@ -244,8 +263,8 @@ test('HUD: persistent global actions, compact modal layout, focus markers and zo
       assert.doesNotMatch(active()[0].string, /%/);
       const calls = hud.marks.calls;
       assert(!calls.some((c: any) => c.op === 'rect' && c.args[3] === 2), 'no unit health bars');
-      assert(calls.some((c: any) => c.op === 'rect' && c.color === '#91e6cb' && c.width === 2), 'friendly squares keep their color in thermal');
-      assert(calls.some((c: any) => c.op === 'lineTo' && c.args[0] === 95 && c.color === '#f2bc77' && c.width === 2), '10px hostile diamonds keep their color in thermal');
+      assert(calls.some((c: any) => c.op === 'rect' && c.color === '#5ed9f5' && c.width === 2), 'friendly squares keep their color in thermal');
+      assert(calls.some((c: any) => c.op === 'lineTo' && c.args[0] === 95 && c.color === '#ff525b' && c.width === 2), '10px hostile diamonds keep their color in thermal');
       assert(calls.some((c: any) => c.op === 'lineTo' && c.args[0] === 32 && c.args[1] === 0 && c.width === 6 && c.color === '#061116'), 'reticle has a wide dark outline');
       assert(calls.some((c: any) => c.op === 'lineTo' && c.args[0] === 32 && c.args[1] === 0 && c.width === 3), 'reticle spans 64 pixels');
     }
@@ -330,14 +349,14 @@ test('HUD: short-screen information priority, focus clearance and friendly group
   hud.mousePointer = undefined;
   const visibleLabels = () => [...hud.unitLabels.values()].filter((l: any) => l.node.activeInHierarchy) as any[];
   const counts = () => visibleLabels().filter((l) => l.string.startsWith('×'));
-  const squares = () => hud.marks.calls.filter((c: any) => c.op === 'rect' && c.args[2] === c.args[3] && c.color === '#91e6cb' && c.width === 2);
+  const squares = () => hud.marks.calls.filter((c: any) => c.op === 'rect' && c.args[2] === c.args[3] && c.color === '#5ed9f5' && c.width === 2);
   for (const thermal of [false, true]) {
     distant.thermal = thermal;
     hud.update(sim, distant);
     assert.deepEqual(counts().map((l) => l.string), ['×3'], 'only same-group friendlies aggregate, never the nearby hostile');
     assert.equal(squares().length, 2, 'one rescue square and one grouped square');
     assert(squares().every((c: any) => c.args[2] === 10));
-    assert(hud.marks.calls.some((c: any) => c.op === 'lineTo' && c.args[0] === 97 && c.color === '#f2bc77' && c.width === 2), 'unfocused heavy marker is 14px');
+    assert(hud.marks.calls.some((c: any) => c.op === 'lineTo' && c.args[0] === 97 && c.color === '#ff525b' && c.width === 2), 'unfocused heavy marker is 14px');
     const lead = hud.unitLabels.get(group[0].id);
     assert.equal(lead.node.getComponent(Transform).contentSize.width, 28);
     hud.mousePointer = { x: 284, y: 160 };
@@ -389,7 +408,7 @@ test('HUD: desktop controls stay compact, touch keeps FIRE, reload has a single 
     const fire = hud.buttons.find((b: any) => b.id === 'fire');
     assert.equal(fire.label.node.activeInHierarchy, touch);
     assert.equal(hud.hit(fire.x + fire.w / 2, fire.y + fire.h / 2)?.id === 'fire', touch);
-    for (const id of ['pause', 'settings', ...(cc.sys.isBrowser ? ['fullscreen'] : []), 'weapon0', 'weapon1', 'weapon2']) {
+    for (const id of ['pause', 'settings', 'weapon0', 'weapon1', 'weapon2']) {
       const b = hud.buttons.find((b: any) => b.id === id);
       assert(touch ? b.h >= 44 : b.h <= 44);
       if (!touch) assert(b.w <= 104);
@@ -421,7 +440,7 @@ test('HUD: rewards, zoom panel and mock ads fit small phones with safe areas and
       const buttons = hud.buttons.filter((b: any) => b.label.node.activeInHierarchy);
       assert.deepEqual(buttons.map((b: any) => b.id), ['adClose', 'adCancel']);
       assert.match(buttons[0].label.string, /完成模拟广告/);
-      assert.match(buttons[1].label.string, /取消.*暂停/);
+      assert.match(buttons[1].label.string, /取消.*选择/);
       for (const b of buttons) {
         assert(b.h >= 44 && b.x >= safe && b.x + b.w <= width - safe);
         assert(b.y >= safe && b.y + b.h <= height - safe);
@@ -481,12 +500,12 @@ test('HUD: combat supply, choices and buff countdown fit phones and the rotated 
         assert.equal(hud.modalKey, 'pause'); assert(control('supply'));
         hud.supplyOpen = true; sim.pause('supply', true); hud.update(sim, world); checkLayout();
         assert.equal(hud.modalKey, 'supply:offer');
-        assert.deepEqual(visible().map((b: any) => b.id), ['supplyWatch', 'supplyLater']);
+        assert.deepEqual(visible().map((b: any) => b.id), ['reward:tracking', 'reward:ammo', 'reward:rate', 'supplyLater', 'supplyWatch']);
         hud.pendingSupply = true; hud.update(sim, world); checkLayout();
         assert.equal(hud.modalKey, 'supply:choice');
-        assert.deepEqual(visible().map((b: any) => b.id), ['supplyLater', 'reward:tracking', 'reward:ammo', 'reward:rate']);
-        assert.match(panelText(), lang === 'zh' ? /手动锁定并发射/ : /Lock & launch manually/);
-        assert.match(panelText(), /60/); assert.match(panelText(), /\+2/); assert.match(panelText(), /×1\.3/);
+        assert.deepEqual(visible().map((b: any) => b.id), ['reward:tracking', 'reward:ammo', 'reward:rate', 'supplyLater', 'supplyWatch']);
+        assert.match(panelText(), lang === 'zh' ? /点选敌人，再按开火/ : /Tap an enemy, then FIRE/);
+        assert.match(panelText(), /60/); assert.match(panelText(), /\+2/); assert.match(panelText(), /30%/);
         assert.doesNotMatch(panelText(), /恢复耐久|治疗|HEAL/i);
         const choiceLabels = hud.modal.children.map((n: any) => n.getComponent(cc.Label)).filter(Boolean);
         for (const l of choiceLabels) {
@@ -510,9 +529,9 @@ test('HUD: combat supply, choices and buff countdown fit phones and the rotated 
         assert.equal(hud.modalKey, '');
         assert.match(control('supply').label.string, lang === 'zh' ? /增益生效中/ : /BUFF ACTIVE/);
         assert.equal(control('supply').label.color.hex, '#a2b5b5');
-        assert.equal(hud.labels.get('buff').color.hex, '#91e6cb');
+        assert.equal(hud.labels.get('buff').color.hex, '#5ed9f5');
         sim.buff.remaining = 4.2; hud.update(sim, world); checkLayout();
-        assert.equal(hud.labels.get('buff').color.hex, '#f2bc77');
+        assert.equal(hud.labels.get('buff').color.hex, '#ffbf55');
         assert.match(hud.labels.get('buff').string, /5/);
         hud.zoomOpen = true; hud.update(sim, world); checkLayout();
         assert.equal(control('zoomUpgrade').label.color.hex, '#a2b5b5');
@@ -520,7 +539,7 @@ test('HUD: combat supply, choices and buff countdown fit phones and the rotated 
         hud.zoomOpen = false; hud.supplyOpen = true; sim.pause('supply', true); hud.update(sim, world); checkLayout();
         assert.equal(hud.modalKey, 'supply:offer', 'buff still allows opening the offer');
         assert.equal(control('supplyWatch').label.color.hex, '#a2b5b5');
-        assert.match(panelText(), lang === 'zh' ? /增益生效中.*所有广告暂不可用/ : /BUFF ACTIVE.*ALL ADS PAUSED/);
+        assert.match(panelText(), lang === 'zh' ? /支援已生效，结束后可再次领取/ : /SUPPORT ACTIVE.*WAIT UNTIL IT ENDS/);
         assert(control('supplyLater'), 'blocked offer can return to pause');
         hud.supplyOpen = false; sim.pause('supply', false);
         sim.buff = { kind: 'rate', remaining: 60 }; hud.update(sim, world); checkLayout();
@@ -537,7 +556,7 @@ test('HUD: combat supply, choices and buff countdown fit phones and the rotated 
 });
 
 
-test('HUD: browser has one fullscreen action; native hosts keep only settings across every game state', () => {
+test('HUD: browser and native hosts have no fullscreen control or state in any screen', () => {
   const previousWindow = (globalThis as any).window;
   (globalThis as any).window = { matchMedia: () => ({ matches: false }) };
   try {
@@ -545,11 +564,17 @@ test('HUD: browser has one fullscreen action; native hosts keep only settings ac
       cc.sys.isBrowser = browser;
       Object.assign(frame, { width: 844, height: 390 }); inset = 12;
       const hud = new HUD(new SceneNode()), sim = new Simulation();
-      for (const phase of ['briefing', 'playing', 'success', 'failure'] as const) {
-        sim.phase = phase; hud.update(sim, world);
-        const fullscreens = hud.buttons.filter((button: any) => button.id === 'fullscreen' && button.label.node.activeInHierarchy);
-        assert.equal(fullscreens.length, browser ? 1 : 0);
-        assert.equal(hud.buttons.filter((button: any) => button.id === 'settings' && button.label.node.activeInHierarchy).length, 1);
+      for (const reason of ['home', 'missions', 'playing', 'manual', 'settings', 'help', 'offer', 'choice', 'success', 'failure']) {
+        sim.pauses.clear(); hud.supplyOpen = false;
+        sim.phase = reason === 'success' || reason === 'failure' ? reason : ['home', 'missions'].includes(reason) ? 'briefing' : 'playing';
+        hud.missionsOpen = reason === 'missions';
+        if (['manual', 'settings', 'help'].includes(reason)) sim.pauses.add(reason as any);
+        if (reason === 'offer' || reason === 'choice') { hud.supplyOpen = true; hud.pendingSupply = reason === 'choice'; }
+        hud.update(sim, world);
+        assert.equal(hud.buttons.some((button: any) => /fullscreen/i.test(button.id)), false, reason);
+        assert.equal('fullscreen' in hud, false, 'removed state must not return');
+        assert.equal(hud.isGlobalAction('fullscreen'), false);
+        assert.equal(hud.buttons.filter((button: any) => button.id === 'settings' && button.label.node.activeInHierarchy).length, hud.supplyOpen ? 0 : 1);
       }
     }
   } finally {
@@ -590,5 +615,130 @@ test('HUD: every operation page keeps three reachable cards and pagination withi
     sim.phase = 'success'; hud.update(sim, world);
     assert.deepEqual(hud.buttons.filter((button: any) => button.label.node.parent === hud.modal).map((button: any) => button.id), ['home', 'retry', 'missionNext']);
   }
+  inset = 0;
+});
+
+const panelLabels = (hud: any) => hud.modal.children.map((node: any) => node.getComponent(cc.Label)).filter(Boolean);
+const labelBounds = (hud: any, label: any) => {
+  const size = label.node.getComponent(Transform).contentSize, p = label.node.position;
+  return { x: p.x + hud.w / 2 - size.width / 2, y: hud.h / 2 - p.y - size.height / 2, w: size.width, h: size.height };
+};
+const assertPanelTargets = (hud: any) => {
+  const buttons = hud.buttons.filter((b: any) => b.label.node.activeInHierarchy);
+  for (const button of buttons) {
+    assert(button.w >= 44 && button.h >= 44, `${button.id}: at least 44px`);
+    assert(button.x >= inset && button.x + button.w <= hud.w - inset);
+    assert(button.y >= inset && button.y + button.h <= hud.h - inset);
+    assert(!buttons.some((other: any) => other !== button && overlaps(button, other)), `${button.id}: no overlap`);
+    assert.equal(hud.hit(button.x + button.w / 2, button.y + button.h / 2)?.id, button.id);
+  }
+  const labels = panelLabels(hud).filter((label: any) => label.string);
+  for (const label of labels) {
+    const box = labelBounds(hud, label);
+    assert(!labels.some((other: any) => other !== label && overlaps(box, labelBounds(hud, other))), `${label.string}: text stays separate`);
+  }
+};
+
+test('HUD: home leaves the battlefield visible and pause is a compact three-stat mission brief', () => {
+  for (const [width, height] of [[568, 320], [844, 320], [844, 390], [1366, 768]])
+    for (const safe of [0, 12]) for (const lang of ['zh', 'en']) {
+      Object.assign(frame, { width, height }); inset = safe;
+      const hud = new HUD(new SceneNode()), sim = new Simulation();
+      hud.lang = lang; hud.rewardsAvailable = true; hud.resize(); hud.update(sim, world);
+      assertPanelTargets(hud);
+      for (const id of ['help', 'start', 'missions']) assert(hud.buttons.some((b: any) => b.id === id && b.label.node.parent === hud.modal));
+      assert(hud.modal.getComponent(Graphics).calls.some((c: any) => c.op === 'rect' && c.args[2] === width && c.args[3] === height && c.fill === '#07121c28'), 'home uses only a light battlefield tint');
+      sim.start(); sim.time = 38; sim.pause('manual', true); hud.update(sim, world);
+      assertPanelTargets(hud);
+      const labels = panelLabels(hud), captions = labels.map((l: any) => l.string);
+      for (const caption of lang === 'zh' ? ['友军', '威胁', '用时'] : ['ALLIES', 'THREATS', 'ELAPSED']) assert(captions.includes(caption));
+      assert(captions.includes('00:38'), 'pause shows elapsed time, not the remaining time');
+      const graphics = hud.modal.getComponent(Graphics).calls;
+      const panel = graphics.find((c: any) => c.op === 'roundRect' && c.fill === '#091b2df5');
+      assert(panel && panel.args[2] <= 580 && panel.args[3] <= 238, 'pause does not expand into an empty full-height panel');
+      const resume = hud.buttons.find((b: any) => b.id === 'resume');
+      assert(graphics.some((c: any) => c.op === 'roundRect' && c.fill === '#ffbf55' && c.args[0] === resume.x - width / 2), 'resume is the amber primary action');
+      for (const pending of [false, true]) {
+        hud.supplyOpen = true; hud.pendingSupply = pending; hud.update(sim, world);
+        assertPanelTargets(hud);
+        const copy = panelLabels(hud).map((l: any) => l.string).join('\n');
+        assert.match(copy, /60/); assert.match(copy, /\+2/); assert.match(copy, /30%/);
+        if (height >= 390) assert(hud.modal.getComponent(Graphics).calls.some((c: any) => c.op === 'circle' && c.args[2] === 9), 'tracking offer has a drawn icon');
+        assert.match(copy, pending ? lang === 'zh' ? /启用并返回战斗/ : /ACTIVATE & RESUME/ : lang === 'zh' ? /看广告并启用/ : /WATCH AD & ACTIVATE/);
+      }
+      hud.supplyOpen = false; hud.pendingSupply = false; hud.rewardsAvailable = false; hud.modalKey = 'rebuild'; hud.update(sim, world);
+      assertPanelTargets(hud);
+      assert.deepEqual(hud.buttons.filter((b: any) => b.label.node.parent === hud.modal).map((b: any) => b.id), ['resume', 'home'], 'offline play keeps both essential actions');
+    }
+  inset = 0;
+});
+
+test('HUD: mission cards expose their actual enemy count, lighting, selection, lock and cleared state', () => {
+  for (const lang of ['zh', 'en']) {
+    Object.assign(frame, { width: 568, height: 320 }); inset = 12;
+    const hud = new HUD(new SceneNode()), sim = new Simulation();
+    hud.lang = lang; hud.missionsOpen = true; hud.resize();
+    const text = () => panelLabels(hud).map((l: any) => l.string).join('\n');
+    hud.update(sim, world); assertPanelTargets(hud);
+    assert.match(text(), /001/); assert.match(text(), /002/); assert.match(text(), /003/);
+    assert.match(text(), lang === 'zh' ? /当前/ : /SELECTED/);
+    assert.match(text(), lang === 'zh' ? /白天.*入门/ : /DAY.*INTRO/);
+    for (const mission of MISSIONS.slice(0, 3)) assert.match(text(), new RegExp(lang === 'zh' ? `敌方 ${mission.events.length}` : `${mission.events.length} HOSTILES`));
+    hud.missionPage = 1; hud.modalKey = 'rebuild'; hud.update(sim, world); assertPanelTargets(hud);
+    assert.match(text(), lang === 'zh' ? /黄昏/ : /DUSK/); assert.match(text(), lang === 'zh' ? /夜间/ : /NIGHT/);
+    assert.match(text(), lang === 'zh' ? /锁定/ : /LOCKED/);
+    hud.missionProgress = { version: 1, cleared: ['patrol-03', MISSIONS[3].id] };
+    hud.modalKey = 'rebuild'; hud.update(sim, world);
+    assert.match(text(), lang === 'zh' ? /已完成/ : /CLEARED/);
+    assert.match(text(), lang === 'zh' ? /可出动/ : /AVAILABLE/);
+    hud.developer = true; hud.modalKey = 'rebuild'; hud.update(sim, world);
+    assert.match(text(), lang === 'zh' ? /试玩.*不计进度/ : /PRACTICE/);
+  }
+  inset = 0;
+});
+
+test('HUD: compact guide keeps its tabs and footer reachable while content scrolls', () => {
+  Object.assign(frame, { width: 568, height: 320 }); inset = 12;
+  for (const lang of ['zh', 'en']) {
+    const hud = new HUD(new SceneNode()), sim = new Simulation();
+    hud.lang = lang; hud.resize(); sim.pause('help', true); hud.update(sim, world);
+    assertPanelTargets(hud);
+    assert(hud.scrollMax > 0 && hud.scrollArea.h >= 56);
+    const close = hud.buttons.find((b: any) => b.id === 'close');
+    hud.scrollBy(Infinity);
+    assert.equal(hud.scroll, hud.scrollMax); assert.equal(hud.scrollNode.position.y, hud.scrollMax);
+    assert.equal(hud.hit(close.x + close.w / 2, close.y + close.h / 2)?.id, 'close');
+    hud.scrollBy(-Infinity); assert.equal(hud.scroll, 0);
+    sim.pause('help', false); sim.pause('settings', true); hud.update(sim, world);
+    const controls = hud.buttons.filter((b: any) => b.label.node.parent === hud.modal);
+    for (const b of controls) assert(b.h >= 44 && b.y + b.h <= frame.height - inset);
+  }
+  inset = 0;
+});
+
+
+test('mission previews draw distinct terrain and lighting, with actual contacts and endpoints', () => {
+  Object.assign(frame, { width: 844, height: 390 }); inset = 0;
+  const hud = new HUD(new SceneNode()), pictures = [];
+  for (const [map, light] of [['valley', 'day'], ['highland', 'day'], ['valley', 'dusk'], ['valley', 'night']]) {
+    const g = new Graphics(); hud.routeGraphic(g, 0, 0, 240, 120, 0, map, light, MISSIONS[0].events);
+    assert(g.calls.filter(c => c.op === 'fill').length > 1000, 'height-field terrain replaces the empty rectangle');
+    assert(g.calls.some(c => c.op === 'stroke' && c.color === '#5ed9f5'));
+    assert.equal(g.calls.filter(c => c.op === 'stroke' && c.color === '#ff525b').length, MISSIONS[0].events.length);
+    assert(g.calls.every(c => c.args.every(Number.isFinite)));
+    pictures.push(JSON.stringify(g.calls));
+  }
+  assert.equal(new Set(pictures).size, 4);
+});
+
+
+test('an earned support remains activatable with no ad provider', () => {
+  Object.assign(frame, { width: 568, height: 320 }); inset = 12;
+  const hud = new HUD(new SceneNode()), sim = new Simulation(); sim.start();
+  hud.rewardsAvailable = false; hud.pendingSupply = true; hud.supplyOpen = true;
+  hud.update(sim, world); assertPanelTargets(hud);
+  const claim = hud.buttons.find((b: any) => b.id === 'supplyWatch');
+  assert(claim.label.node.activeInHierarchy); assert.match(claim.label.string, /启用并返回战斗/);
+  assert.equal(hud.hit(claim.x + claim.w / 2, claim.y + claim.h / 2)?.id, 'supplyWatch');
   inset = 0;
 });

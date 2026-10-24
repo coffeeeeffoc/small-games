@@ -93,9 +93,11 @@ export function StandaloneGame({
         )}
         {!immersive && (
           <>
-            <button type="button" data-game-fullscreen>
-              全屏
-            </button>
+            {id !== 'night-overwatch' && (
+              <button type="button" data-game-fullscreen>
+                全屏
+              </button>
+            )}
             <a href={entry} target="_blank" rel="noreferrer">
               独立打开
             </a>

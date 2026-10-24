@@ -31,7 +31,7 @@ test('larger battlefield disperses mission actors, preserves journey time and us
 });
 
 test('defenders withstand three minutes without air support, but cannot win the mission alone', (t) => {
-  const s = new Simulation(); s.start();
+  const s = new Simulation('operation-007'); s.start();
   tick(s, 180);
   assert.equal(s.phase, 'playing');
   assert.equal(s.units.filter(u => u.friendly && u.hp > 0).length, 12);
@@ -49,7 +49,7 @@ test('defenders withstand three minutes without air support, but cannot win the 
 });
 
 test('late air support with inaccurate aim and deliberate misses can still finish', (t) => {
-  const s = new Simulation(); s.start(); tick(s, 60);
+  const s = new Simulation('operation-007'); s.start(); tick(s, 60);
   let attempts = 0, deliberateMisses = 0, nextShot = s.time;
   while (s.phase === 'playing') {
     if (s.time >= nextShot) {
@@ -84,11 +84,11 @@ test('late air support with inaccurate aim and deliberate misses can still finis
 });
 
 test('defender armor, return-fire ownership and pause obey the same simulation clock', () => {
-  const s = new Simulation(); s.start(); s.convoy = 'holding';
+  const s = new Simulation('operation-007'); s.start(); s.convoy = 'holding';
   const defender = s.units.find(u => u.friendly && u.kind === 'escort' && u.group === 1)!;
   s.units = [s.rescue, defender];
   const enemy = s.addUnit('turret', {x:defender.x-8,z:defender.z});
-  tick(s, MISSION.warmup + 0.1);
+  tick(s, s.mission.warmup + 0.1);
   assert(defender.hp < defender.maxHp && defender.maxHp-defender.hp < UNITS.turret.damage/2);
   assert(enemy.hp < enemy.maxHp);
   const frozen=JSON.stringify({units:s.units,events:s.events});

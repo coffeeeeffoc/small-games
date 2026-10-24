@@ -1,0 +1,41 @@
+✔ actual native guards preserve canonical source and independently compute the two fingerprints (1466.0593ms)
+✔ fresh persistent stages exclude caches, release secrets, and old outputs (2194.3031ms)
+✔ unreviewed or already adapted canonical files fail closed before staging (273.4194ms)
+✔ normalized CRLF input has an honest raw receipt and unchanged source hash (1169.6813ms)
+✔ all legitimate hash inputs are copied and mutations produce their real native hash (1217.9766ms)
+✔ existing extension is copied with digest evidence but no authenticity claim (1144.1678ms)
+✔ non-Night projects return their actual fingerprint without staging or adaptation (4.9665ms)
+(node:31960) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ offset aim survives slow microdrags, release-only displacement, taps and cancelled gestures (2.6152ms)
+✔ homing tap locks but cumulative movement and end-only displacement do not become taps (0.5223ms)
+✔ radio has one voice, honors mute, stops with lifecycle and never queues a missing clip (0.3776ms)
+✔ extraction waits for the actual radio end, and pauses resume the unfinished line (8.2363ms)
+✔ silent, unavailable and rejected audio cannot strand extraction; retry drops the old radio wait (10.1386ms)
+✔ two-finger translation preserves both midpoint positions and cancels the remaining finger (0.5762ms)
+✔ browser mouse-generated touches with simulate=false never replace or cancel mouse input (0.7185ms)
+✔ supply completion earns one choice, ammo grants two once, and inventory never blocks ads (1.8207ms)
+✔ timed buffs block supply and zoom providers; cancellation never grants and expiry reopens ads (1.7851ms)
+✔ completed entitlement survives close, home, reload and background; repeated completion and claims are ignored (0.8384ms)
+✔ storage failure preserves in-session choice and completion after disposal still records the entitlement (0.423ms)
+✔ practice rewards stay in their startup namespace when developer mode changes (0.333ms)
+✔ a real touch activates initially desktop-classified native devices and trigger release stays safe (0.2329ms)
+✔ changing missions requires a briefing or result; retry preserves the chosen mission and system pauses (0.4182ms)
+✔ actual warmup entry, retry and return keep saved escort preferences and system pauses independent (0.6906ms)
+✔ training result saves only a clean successful range score in its separate key (0.3605ms)
+✔ actual task choices update public entry URLs without carrying private fields or credentials (0.4679ms)
+✔ returning home aborts a live mission, clears input and starts the next map cleanly (0.3054ms)
+✔ operation lock applies to ordinary menu/URL, developer practice stays isolated, and denied storage keeps progression (0.6052ms)
+✔ explicit dev=0 is retained when mission shortcuts are synchronized (0.2644ms)
+✔ support flow selects before the ad and activates exactly the chosen support on completion (5.1244ms)
+✔ failed support ads return to the choice with no award; skip resumes battle without another ad (0.9785ms)
+✔ a chosen timed support completed in background activates once on foreground without a second ad (0.8466ms)
+✔ deferred support waits for every system pause and never consumes credit after skipping or changing battle (2.6051ms)
+ℹ tests 31
+ℹ suites 0
+ℹ pass 31
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7761.6836

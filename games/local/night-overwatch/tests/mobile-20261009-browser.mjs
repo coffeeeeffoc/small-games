@@ -66,13 +66,10 @@ try {
     await press('close'); await press('close'); assert.equal((await snapshot(page)).modal, 'pause');
     await press('home'); await press('missions'); await press('training'); await press('start');
     await press('supply'); await layout(); await capture('supply');
-    await press('supplyWatch');
+    await press('reward:ammo'); await layout(); await capture('reward-choice'); await press('supplyWatch');
     await page.waitForFunction(() => typeof globalThis.__testAdClose === 'function');
     await page.evaluate(() => globalThis.__testAdClose(true));
-    await page.waitForFunction(() => __night.snapshot().pendingSupply);
-    assert.equal((await snapshot(page)).homingAmmo, 0);
-    assert.equal((await snapshot(page)).pendingSupply, true);
-    await layout(); await capture('reward-choice'); await press('reward:ammo');
+    await page.waitForFunction(() => __night.snapshot().resumeCountdown > 0);
     const countdown = await snapshot(page);
     assert(countdown.resumeCountdown > 2 && countdown.resumeCountdown <= 3);
     assert(countdown.homingSelected); assert.equal(countdown.homingAmmo, 2);
@@ -122,8 +119,6 @@ try {
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await page.waitForFunction(id => __night.snapshot().units.find(u => u.id === id).hp === 0, target.id, { timeout: 15000 });
     assert.equal((await snapshot(page)).friendlyDamage, 0); await capture('hit');
-    await press('fullscreen'); await page.waitForFunction(() => !!document.fullscreenElement);
-    await press('fullscreen'); await page.waitForFunction(() => !document.fullscreenElement);
     assert.equal((await snapshot(page)).homingAmmo, 1);
     if (width === 390) {
       await page.setViewportSize({ width: 844, height: 390 }); await page.waitForTimeout(250);
@@ -138,7 +133,7 @@ try {
     assert.equal((await snapshot(page)).homingAmmo, 1);
     results.push({ width, height, viewport: s0.ui, pinch: [pinchBefore.zoom, zoomed.zoom],
       pan: [zoomed.camera.center, panned.camera.center, reversed.camera.center], homingTarget: target.id,
-      fired: launched.fired, inventory: 1, menus: true, fullscreen: true, rotation: width === 390 });
+      fired: launched.fired, inventory: 1, menus: true, noFullscreenControl: true, rotation: width === 390 });
     await cdp.detach(); await page.close();
   }
   assert.deepEqual(errors, []);

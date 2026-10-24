@@ -1,0 +1,2744 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "b5b66e9d3f678aa1ec2032b75d8490257c72e85df3444a1a34d5a09d7e45deba"
+  },
+  "phase": "success",
+  "kills": 4,
+  "time": 114.86666666666143,
+  "clearTime": 111.84999999999494,
+  "extractionSeconds": 3.016666666666495,
+  "wallSeconds": 49.517,
+  "fired": 8,
+  "friendlyDamage": 0,
+  "resumedHold": true,
+  "retry": true,
+  "radioDuration": 4.752608,
+  "lastAudible": 4.566899999998526,
+  "accelerated": {
+    "id": 57,
+    "weapon": 1,
+    "x": 132.4570918349063,
+    "z": -38.519785543134255,
+    "born": 111.84999999999494,
+    "origin": {
+      "x": 152.6760178864764,
+      "y": 33.90630125456493,
+      "z": -9.8473930148254
+    },
+    "velocity": {
+      "x": -23.933651330425086,
+      "y": -39.250537330261324,
+      "z": -33.940232227534175
+    },
+    "targetY": 0.3977565779261693,
+    "due": 112.06119767489659,
+    "timeScale": 4
+  },
+  "samples": [
+    {
+      "time": 111.93333333332826,
+      "progress": 0.3,
+      "shots": 3,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 0.00009999999778642632,
+      "phase": "playing"
+    },
+    {
+      "time": 112.03333333332826,
+      "progress": 0.3239999999999999,
+      "shots": 3,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 0.19909999999777028,
+      "phase": "playing"
+    },
+    {
+      "time": 112.13333333332825,
+      "progress": 0.3479999999999998,
+      "shots": 2,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 0.47759999999777847,
+      "phase": "playing"
+    },
+    {
+      "time": 112.23333333332825,
+      "progress": 0.37199999999999994,
+      "shots": 2,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 0.6826999999992722,
+      "phase": "playing"
+    },
+    {
+      "time": 112.33333333332824,
+      "progress": 0.3960000000000001,
+      "shots": 1,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 0.9220999999977835,
+      "phase": "playing"
+    },
+    {
+      "time": 112.43333333332824,
+      "progress": 0.42000000000000026,
+      "shots": 1,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 1.1225999999977603,
+      "phase": "playing"
+    },
+    {
+      "time": 112.53333333332823,
+      "progress": 0.4440000000000004,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 1.3278000000007637,
+      "phase": "playing"
+    },
+    {
+      "time": 112.63333333332822,
+      "progress": 0.4680000000000006,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 1.5250000000000057,
+      "phase": "playing"
+    },
+    {
+      "time": 112.73333333332822,
+      "progress": 0.4920000000000007,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 1.7288999999985037,
+      "phase": "playing"
+    },
+    {
+      "time": 112.83333333332821,
+      "progress": 0.5160000000000008,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 1.9279999999999973,
+      "phase": "playing"
+    },
+    {
+      "time": 112.9333333333282,
+      "progress": 0.5400000000000006,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 2.1270000000000095,
+      "phase": "playing"
+    },
+    {
+      "time": 113.0333333333282,
+      "progress": 0.5640000000000004,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 2.325399999998524,
+      "phase": "playing"
+    },
+    {
+      "time": 113.1333333333282,
+      "progress": 0.5880000000000003,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 2.5260999999977685,
+      "phase": "playing"
+    },
+    {
+      "time": 113.23333333332819,
+      "progress": 0.6120000000000001,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 2.730300000000767,
+      "phase": "playing"
+    },
+    {
+      "time": 113.33333333332818,
+      "progress": 0.636,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 2.9306999999992627,
+      "phase": "playing"
+    },
+    {
+      "time": 113.43333333332818,
+      "progress": 0.6599999999999998,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 3.131399999998507,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 3.3326999999992495,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.53333333332817,
+      "progress": 0.6839999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 3.532499999999999,
+      "phase": "playing"
+    },
+    {
+      "time": 113.63333333332817,
+      "progress": 0.7079999999999995,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 3.5530999999977553,
+      "phase": "playing"
+    },
+    {
+      "time": 113.73333333332816,
+      "progress": 0.7319999999999997,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 3.752199999999249,
+      "phase": "playing"
+    },
+    {
+      "time": 113.83333333332816,
+      "progress": 0.7559999999999998,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 3.9538999999985265,
+      "phase": "playing"
+    },
+    {
+      "time": 113.93333333332815,
+      "progress": 0.7799999999999999,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 4.160099999997755,
+      "phase": "playing"
+    },
+    {
+      "time": 114.03333333332814,
+      "progress": 0.8040000000000002,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 4.363799999997013,
+      "phase": "playing"
+    },
+    {
+      "time": 114.13333333332814,
+      "progress": 0.8280000000000003,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 4.566899999998526,
+      "phase": "playing"
+    },
+    {
+      "time": 114.23333333332813,
+      "progress": 0.8520000000000004,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": false,
+      "radioPlaying": false,
+      "radioTime": 0,
+      "phase": "playing"
+    },
+    {
+      "time": 114.33333333332813,
+      "progress": 0.8760000000000003,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": false,
+      "radioPlaying": false,
+      "radioTime": 0,
+      "phase": "playing"
+    },
+    {
+      "time": 114.43333333332812,
+      "progress": 0.9,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": false,
+      "radioPlaying": false,
+      "radioTime": 0,
+      "phase": "playing"
+    },
+    {
+      "time": 114.53333333332812,
+      "progress": 0.9239999999999996,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": false,
+      "radioPlaying": false,
+      "radioTime": 0,
+      "phase": "playing"
+    },
+    {
+      "time": 114.63333333332811,
+      "progress": 0.9479999999999993,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": false,
+      "radioPlaying": false,
+      "radioTime": 0,
+      "phase": "playing"
+    },
+    {
+      "time": 114.7333333333281,
+      "progress": 0.971999999999999,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": false,
+      "radioPlaying": false,
+      "radioTime": 0,
+      "phase": "playing"
+    },
+    {
+      "time": 114.8333333333281,
+      "progress": 0.9959999999999987,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": false,
+      "radioPlaying": false,
+      "radioTime": 0,
+      "phase": "playing"
+    },
+    {
+      "time": 114.86666666666143,
+      "progress": 1,
+      "shots": 0,
+      "fired": 8,
+      "radioPending": false,
+      "radioPlaying": false,
+      "radioTime": 0,
+      "phase": "success"
+    }
+  ],
+  "mode": "pause",
+  "errors": [],
+  "input": "Actual mouse/keyboard/touch; no simulation state writes or reward fixture"
+}

@@ -55,12 +55,8 @@ try {
     state = await snapshot(page);
     assert.equal(state.modal, 'pause');
     assert(!state.buttons.some(b => ['sound', 'effects', 'help'].includes(b.id)), 'Pause has no settings row');
-    assert(state.buttons.some(b => b.id === 'fullscreen'));
+    assert(!state.buttons.some(b => b.id === 'fullscreen'));
     assertLayout(state, width, height);
-    await press(page, 'fullscreen', touch);
-    await page.waitForFunction(() => !!document.fullscreenElement);
-    await press(page, 'fullscreen', touch);
-    await page.waitForFunction(() => !document.fullscreenElement);
     assert.equal((await snapshot(page)).modal, 'pause', 'Fullscreen preserves pause');
     await page.screenshot({ path: new URL(`pause-${width}.png`, dir).pathname.replace(/^\/([A-Z]:)/, '$1') });
     await press(page, 'resume', touch);

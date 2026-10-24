@@ -17,3 +17,7 @@ reports/startup-integration-mobile/*
 reports/browser-results.json
 
 /reports/kuaishou-source*.json
+/reports/2026-10-24-redesign/*.webm
+
+/reports/2026-10-24-flow/*.webm
+/reports/2026-10-24-sync/*.webm
