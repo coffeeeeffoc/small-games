@@ -5,7 +5,7 @@ import { acceptanceBuild, assertLayout, snapshot, press, navigateMap, aimAt, wai
 
 const base = process.env.NIGHT_URL;
 const build = await acceptanceBuild(base);
-const dir = new URL('../reports/interaction-overhaul/', import.meta.url);
+const dir = new URL('../reports/2026-10-24-compact-hud/interaction/', import.meta.url);
 await mkdir(dir, { recursive: true });
 const browser = await chromium.launch({ headless: true,
   executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe' });
@@ -53,11 +53,11 @@ try {
     await press(page, 'close', touch);
     await press(page, 'pause', touch);
     state = await snapshot(page);
-    assert.equal(state.modal, 'pause');
-    assert(!state.buttons.some(b => ['sound', 'effects', 'help'].includes(b.id)), 'Pause has no settings row');
+    assert.equal(state.modal, 'settings');
+    assert(['sound', 'effects', 'help'].every(id => state.buttons.some(b => b.id === id)), 'Pause uses the unified settings panel');
     assert(!state.buttons.some(b => b.id === 'fullscreen'));
     assertLayout(state, width, height);
-    assert.equal((await snapshot(page)).modal, 'pause', 'Fullscreen preserves pause');
+    assert.equal((await snapshot(page)).modal, 'settings', 'Settings remain paused');
     await page.screenshot({ path: new URL(`pause-${width}.png`, dir).pathname.replace(/^\/([A-Z]:)/, '$1') });
     await press(page, 'resume', touch);
     state = await snapshot(page);

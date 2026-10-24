@@ -6,7 +6,7 @@ import { acceptanceBuild, snapshot, assertLayout, aimAt, navigateMap } from './f
 
 const base = process.env.NIGHT_URL;
 const build = await acceptanceBuild(base);
-const dir = fileURLToPath(new URL('../reports/2026-10-24-flow/', import.meta.url));
+const dir = fileURLToPath(new URL('../reports/2026-10-24-compact-hud/', import.meta.url));
 await mkdir(dir, { recursive: true });
 const browser = await chromium.launch({ headless: true, args: ['--autoplay-policy=no-user-gesture-required'] });
 const report = { build, checks: [], errors: [], captures: [], fixtures: 'Local saved unlocks; completed rewarded-provider fixture only for supply UI. No simulation state writes.' };
@@ -31,7 +31,10 @@ try {
         : { x: r.left + x / s.ui.width * r.width, y: r.top + y / s.ui.height * r.height };
     }, { x, y });
     const hit = async id => {
-      const s = await snapshot(page), b = s.buttons.find(b => b.id === id);
+      const s = await snapshot(page);
+      if (id === 'pause') id = 'settings';
+      if (id === 'resume' && s.modal === 'settings') id = 'close';
+      const b = s.buttons.find(b => b.id === id);
       assert(b, `${width}: missing ${id} in ${s.modal}`);
       const p = await point(b.x + b.w / 2, b.y + b.h / 2);
       if (touch) await page.touchscreen.tap(p.x, p.y); else await page.mouse.click(p.x, p.y);
@@ -53,7 +56,7 @@ try {
       await page.setViewportSize({ width, height }); await page.waitForTimeout(400);
       assert.equal((await snapshot(page)).time, time);
       await page.setViewportSize({ width: height, height: width }); await page.waitForTimeout(400);
-      assert.equal((await snapshot(page)).modal, 'pause'); await hit('resume');
+      assert.equal((await snapshot(page)).modal, 'settings'); await hit('resume');
       assert.deepEqual((await snapshot(page)).held, []);
       report.checks.push({ width, height, orientationPause: true, manualPausePreserved: true });
       await context.close(); continue;
@@ -61,9 +64,16 @@ try {
     await capture('home'); await hit('missions'); await capture('missions'); await hit('homeMenu');
     await hit('start');
     let s = await snapshot(page); assert.equal(s.light, 'day'); assert.equal(s.mission.total, 4); assert.equal(s.selected, 1);
+    assert(['terrain.grass', 'terrain.gravel'].every(id => s.assets.includes(id)));
     assert(s.radioPlaying, 'local spoken intro plays after the start gesture');
     await capture('day');
     if (touch) {
+      const tap = { x: s.ui.width * .52, y: s.ui.height * .55 };
+      const actualTap = await point(tap.x, tap.y), fired = s.fired;
+      await page.touchscreen.tap(actualTap.x, actualTap.y); await page.waitForTimeout(80);
+      const placed = await page.evaluate(() => __night.screenPoint(__night.snapshot().aim));
+      assert(Math.hypot(placed.x - tap.x, placed.y - tap.y) < 3, 'single tap places the reticle');
+      assert.equal((await snapshot(page)).fired, fired);
       const origin = await point(s.ui.width * .42, s.ui.height * .53);
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ id: 7, ...origin }] });
       for (let i = 1; i <= 12; i++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ id: 7, x: origin.x + i, y: origin.y + i / 2 }] });
@@ -74,11 +84,19 @@ try {
       assert(Math.hypot(before.x - after.x, before.y - after.y) < 2, 'release preserves the offset reticle');
       assert.deepEqual((await snapshot(page)).held, []);
     }
+    await hit('pause'); await hit('home'); await capture('exit-confirm');
+    const originalBattle = await snapshot(page); await hit('exitCancel');
+    assert.equal((await snapshot(page)).mission.id, originalBattle.mission.id);
+    assert.equal((await snapshot(page)).phase, 'playing');
+    assert.equal((await snapshot(page)).resumeCountdown, 0);
     await hit('pause'); await capture('pause');
     s = await snapshot(page); assert(!s.radioPlaying); const frozen = s.time;
-    await hit('settings'); await capture('settings'); await hit('help'); await capture('help');
+    await capture('settings');
+    await hit('sound'); assert((await snapshot(page)).ui.muted); await capture('sound-off');
+    await hit('sound'); assert(!(await snapshot(page)).ui.muted);
+    await hit('help'); await capture('help');
     assert.equal((await snapshot(page)).time, frozen);
-    await hit('close'); await hit('close');
+    await hit('close');
     await hit('supply'); await capture('supply-offer'); await hit('reward:rate');
     await capture('supply-choice'); await hit('supplyWatch'); await capture('support-countdown');
     await page.waitForFunction(() => __night.snapshot().resumeCountdown === 0);
@@ -91,16 +109,28 @@ try {
       assert((await snapshot(page)).fired > before.fired);
       await capture('impact');
       await page.waitForFunction(() => !!__night.snapshot().priority, null, { timeout: 25000 });
-      await capture('priority'); await hit('priority');
-      assert.deepEqual((await snapshot(page)).held, []);
+      await capture('priority');
+      const priorityState = await snapshot(page);
+      const urgent = priorityState.units.find(u => u.id === priorityState.priority.id); await hit('priority');
+      const located = await snapshot(page);
+      assert(Math.hypot(located.camera.center.x - urgent.x, located.camera.center.z - urgent.z) < 1);
+      assert(Math.hypot(located.aim.x - urgent.x, located.aim.z - urgent.z) < 1);
+      assert.deepEqual(located.held, []);
     }
-    await hit('pause'); await hit('home'); await hit('missions'); await hit('missionsNext');
+    await hit('pause'); await hit('home'); await capture('exit-confirm'); await hit('exitConfirm'); await hit('missions'); await hit('missionsNext');
     await hit('mission:operation-004'); await hit('start'); assert.equal((await snapshot(page)).light, 'dusk');
-    await hit('pause'); await hit('home'); await hit('missions');
+    await hit('pause'); await hit('home'); await capture('exit-confirm'); await hit('exitConfirm'); await hit('missions');
     await hit('mission:operation-006'); await hit('start');
     await page.waitForFunction(() => __night.snapshot().modelImport === 'loaded');
     assert.equal((await snapshot(page)).light, 'night'); await capture('night');
-    await hit('flightControls'); await hit('sensor'); await hit('flightControls'); await capture('thermal');
+    await hit('settings'); await hit('flightControls'); await hit('mission');
+    assert.equal((await snapshot(page)).modal, 'mission'); await hit('resume');
+    assert.equal((await snapshot(page)).modal, 'settings:flight');
+    const configTime = (await snapshot(page)).time;
+    await hit('orbitLeft'); assert.equal((await snapshot(page)).aircraft.direction, -1);
+    await hit('orbitRight'); assert.equal((await snapshot(page)).aircraft.direction, 1);
+    assert.equal((await snapshot(page)).time, configTime, 'configuration keeps the battle frozen');
+    await hit('sensor'); await hit('resume'); await capture('thermal');
     assert.equal((await snapshot(page)).thermal, true);
     await hit('pause'); assert.equal((await snapshot(page)).radioPlaying, false);
     report.checks.push({ width, height, touch, layout: true, dayDuskNight: true, radioLifecycle: true, relativeRelease: touch, supplyFixture: true });

@@ -86,6 +86,7 @@ export class HUD {
   zoomLimit = 5;
   rewardsAvailable = false;
   supplyOpen = false;
+  exitConfirm = false;
   supplySelection: SupplyReward = 'tracking';
   supplyMessage = '';
   pendingSupply = false;
@@ -109,20 +110,12 @@ export class HUD {
   get mouseDesktop() {
     return this.desktop && !this.touch;
   }
-  get panelLayout() {
-    const available = this.w - this.safe.left - this.safe.right - 24;
-    const short = this.h - this.safe.top - this.safe.bottom < 340;
-    const columns = short ? 8 : 4;
-    const w = Math.min(available, short ? 720 : 388);
-    const h = Math.ceil((this.desktop ? panelActions.length - flightActions.length : panelActions.length) / columns) * 48 + 4;
-    return { x: 12 + this.safe.left + (this.desktop ? 148 : 0), y: Math.min(112 + this.safe.top, this.h - this.footer - this.safe.bottom - h - 6), w, h, columns };
-  }
   get minimapLayout() {
     const w = this.compact ? 112 : 156;
     return { x: this.w - 12 - this.safe.right - w, y: this.safe.top + 64, w, h: this.compact ? 84 : 108 };
   }
   minimapPoint(x: number, y: number): Point | undefined {
-    if (this.modal || this.toolsOpen || ![x, y].every(Number.isFinite)) return;
+    if (this.modal || ![x, y].every(Number.isFinite)) return;
     const map = this.minimapLayout, left = map.x + 8, top = map.y + 25,
       width = map.w - 16, height = map.h - 33;
     if (x < left || x > left + width || y < top || y > top + height) return;
@@ -230,25 +223,15 @@ export class HUD {
   buildControls() {
     const w = this.w, h = this.h, left = 12 + this.safe.left,
       right = w - 12 - this.safe.right, top = this.safe.top;
-    const statsX = left + (this.desktop ? 183 : 80);
-    this.live('title', left + 49, top + 24, 18, 98, 34, C.mint).isBold = true;
-    this.live('health', statsX, top + 18, 13, 160, 25);
-    this.live('progress', statsX, top + 40, 11, 160, 20, C.dim);
-    const small = this.mouseDesktop;
-    this.live('status', right - 184, top + 26, 11, 60, 40, C.dim);
-    this.button('settings', this.t('设置', 'SETTINGS'), right - 80, top + 6, 80, 44, this.globalControls).fontSize = 12;
-    const pause = this.button('pause', this.t('暂停', 'PAUSE'), right - 144, top + 6, 56, 44);
-    pause.fontSize = 12;
-    pause.lineHeight = 16;
-    if (!small) {
-      pause.node.setPosition(right - 116 - w / 2, h / 2 - top - 39);
-      pause.node.getComponent(UITransform)!.setContentSize(48, 18);
-    }
-    const telemetryLeft = statsX + 84, telemetryWidth = Math.max(0, right - 224 - telemetryLeft);
-    this.live('telemetry', telemetryLeft + telemetryWidth / 2, top + 28, this.desktop ? 14 : 11, telemetryWidth, 48, C.dim);
-    this.live('buff', telemetryLeft + telemetryWidth / 2, top + 28, telemetryWidth < 170 ? 10 : 12,
-      Math.min(220, telemetryWidth), 44, C.mint).node.parent = this.globalControls;
-    this.live('globalToast', w / 2, h - this.safe.bottom - 24, 12, w - this.safe.left - this.safe.right - 32, 36, C.amber).node.parent = this.globalControls;
+    this.live('health', left + 80, top + 18, 13, 160, 25);
+    this.live('progress', left + 80, top + 40, 11, 160, 20, C.dim);
+    const small = this.mouseDesktop, settingsX = right - 44 - (this.touch ? 88 : 0);
+    this.live('status', settingsX - 40, top + 26, 11, 70, 40, C.white);
+    this.button('settings', '', settingsX, top + 6, 44, 44, this.globalControls);
+    this.live('buff', (left + 164 + settingsX - 80) / 2, top + 26, 11,
+      Math.max(80, settingsX - 80 - left - 164), 40, C.mint).node.parent = this.globalControls;
+    const toastWidth = Math.min(420, settingsX - left - 12);
+    this.live('globalToast', left + toastWidth / 2, top + 26, 12, toastWidth, 36, C.amber).node.parent = this.globalControls;
     const by = h - this.footer - this.safe.bottom;
     const cardW = small ? 88 : this.compact ? 72 : 96;
     const fireW = this.compact ? 64 : 76;
@@ -267,52 +250,13 @@ export class HUD {
     this.live('tutorial', w / 2, by - 17, this.compact ? 11 : 13, w - 40, 28, C.mint);
     this.live('target', w / 2, by - 45, 12, 156, 24, C.amber);
     this.live('flight', w / 2, h / 2, 12, 130, 24, C.white);
-    this.live('hold', left + (this.desktop ? 208 : 172), top + 121, 11, 140, 22, C.dim);
-    this.button('flightControls', this.t('飞行 ▾', 'FLIGHT ▾'), left, top + 64, this.desktop ? 128 : 96);
-    const priorityX = left + (this.desktop ? 280 : 144), priorityW = Math.max(120, Math.min(400, this.minimapLayout.x - priorityX - 8));
-    this.button('priority', '', priorityX, top + 112, priorityW, 44).fontSize = 12;
-    this.live('priorityMarker', w / 2, h / 2, 12, 150, 24, C.red).isBold = true;
-    this.button('convoy', '', left + (this.desktop ? 144 : 102), top + 64, this.desktop ? 128 : 102, 44);
-    this.button('zoomControls', '', left + (this.desktop ? 280 : 210), top + 64, this.desktop ? 120 : 96, 44).fontSize = 12;
-    const supply = this.button('supply', '', left + (this.desktop ? 144 : 0), top + 112, 128, 44);
-    supply.fontSize = 12;
-    supply.lineHeight = 16;
-    const lensX = left + (this.desktop ? 144 : 0), lensY = top + 112;
-    const lensW = Math.min(360, w - this.safe.left - this.safe.right - 24), cellW = (lensW - 12) / 2;
-    for (const [i, id] of ['lensOut', 'lensIn', 'homingReward', 'zoomUpgrade'].entries())
-      this.button(id, '', lensX + 4 + i % 2 * (cellW + 4), lensY + 4 + Math.floor(i / 2) * 48, cellW, 44).fontSize = 12;
-    const panel = this.panelLayout, toolWidth = (panel.w - 8 - (panel.columns - 1) * 4) / panel.columns;
-    for (const [i, id] of panelActions.entries()) {
-      const fixed = this.desktop && flightActions.includes(id);
-      const index = this.desktop ? i - flightActions.length : i;
-      const label = this.button(id,
-        id === 'zoomIn' ? this.t('放大 +', 'ZOOM +') : id === 'zoomOut' ? this.t('缩小 −', 'ZOOM −') : actionLabel(id, this.lang, true),
-        fixed ? left + (i === 2 || i === 3 ? 0 : (i % 2) * 62) : panel.x + 4 + (index % panel.columns) * (toolWidth + 4),
-        fixed ? top + [366, 366, 116, 162, 230, 230, 298, 298][i] : panel.y + 4 + Math.floor(index / panel.columns) * 48,
-        fixed ? i === 2 || i === 3 ? 128 : 44 : toolWidth, 44);
-      if (fixed) {
-        label.string = [ '←', '→', this.t('逆时针', 'CCW'), this.t('顺时针', 'CW'), '+', '−', '−', '+' ][i];
-        label.fontSize = i === 2 || i === 3 ? 12 : 22;
-        if (i === 2 || i === 3) {
-          label.node.setPosition(left + 85 - w / 2, h / 2 - top - (i === 2 ? 138 : 184));
-          label.node.getComponent(UITransform)!.setContentSize(84, 42);
-        }
-      }
-    }
+    const priority = this.button('priority', '', 0, 0, 96, 68);
+    priority.fontSize = 12;
+    priority.color = col(C.red);
+    priority.isBold = true;
+    this.labels.set('priorityMarker', priority);
     const map = this.minimapLayout;
     this.live('mapLegend', map.x + map.w / 2, map.y + 11, 10, map.w - 4, 20, C.dim);
-    const nextCell = this.desktop ? panelActions.length - flightActions.length : panelActions.length;
-    const metricsColumn = nextCell % panel.columns;
-    const metricsWidth = (panel.columns - metricsColumn - (panel.columns === 8 ? 1 : 0)) * (toolWidth + 4) - 4;
-    this.live('orbit', panel.x + 4 + metricsColumn * (toolWidth + 4) + metricsWidth / 2,
-      panel.y + 26 + Math.floor(nextCell / panel.columns) * 48, 11, metricsWidth - 8, 44, C.dim);
-    if (this.desktop) {
-      this.live('flightAltitude', left + 64, top + 216, 11, 128, 20, C.dim);
-      this.live('flightRadius', left + 64, top + 284, 11, 128, 20, C.dim);
-      this.live('flightView', left + 64, top + 352, 11, 128, 20, C.dim).string = this.t('查看方位', 'VIEW BEARING');
-      this.live('orbitIconLeft', left + 21, top + 138, 24, 38, 42, C.mint).string = '↶';
-      this.live('orbitIconRight', left + 21, top + 184, 24, 38, 42, C.mint).string = '↷';
-    }
   }
   rect(g: Graphics, x: number, y: number, w: number, h: number, fill: string, stroke?: string, radius = 0) {
     if (w <= 0 || h <= 0) return;
@@ -346,15 +290,10 @@ export class HUD {
       );
   }
   blocksBattlefield(x: number, y: number) {
-    const panel = this.panelLayout, map = this.minimapLayout;
+    const map = this.minimapLayout;
     return !!this.hit(x, y) || y < 58 + this.safe.top ||
       (!this.desktop && y > this.h - this.footer - this.safe.bottom) ||
-      (this.desktop && x < 152 + this.safe.left && y >= 110 + this.safe.top && y <= 414 + this.safe.top) ||
-      (this.toolsOpen && x >= panel.x && x <= panel.x + panel.w && y >= panel.y && y <= panel.y + panel.h) ||
-      (this.zoomOpen && x >= 12 + this.safe.left + (this.desktop ? 144 : 0) &&
-        x <= 12 + this.safe.left + (this.desktop ? 144 : 0) + Math.min(360, this.w - this.safe.left - this.safe.right - 24) &&
-        y >= this.safe.top + 112 && y <= this.safe.top + 212) ||
-      (!this.toolsOpen && x >= map.x && x <= map.x + map.w && y >= map.y && y <= map.y + map.h);
+      (x >= map.x && x <= map.x + map.w && y >= map.y && y <= map.y + map.h);
   }
   scrollBy(amount: number) {
     this.scroll = Math.max(0, Math.min(this.scrollMax, this.scroll + amount));
@@ -542,7 +481,7 @@ export class HUD {
       label.color = col(primary ? '#10252a' : selected ? C.mint : C.white); label.isBold = primary;
     }
   }
-  renderModal(key: string, s: Simulation) {
+  renderModal(key: string, s: Simulation, world: World) {
     if (key === this.modalKey) return;
     this.buttons = this.buttons.filter((b) => {
       if (b.label.node.parent !== this.root && !this.isGlobalAction(b.id)) {
@@ -558,7 +497,6 @@ export class HUD {
     this.scrollMax = 0;
     this.modalKey = key;
     if (!key) return;
-    this.toolsOpen = false;
     const n = this.node('Panel', this.root);
     this.modal = n;
     const g = n.addComponent(Graphics);
@@ -621,39 +559,77 @@ export class HUD {
       watch.color = col(s.buff ? C.dim : '#10252a'); watch.isBold = !s.buff;
       return;
     }
-    if (key === 'pause') {
-      const pw = Math.min(580, this.w - this.safe.left - this.safe.right - 32),
-        ph = Math.min(238, this.h - this.safe.top - this.safe.bottom - 74),
-        px = this.safe.left + (this.w - this.safe.left - this.safe.right - pw) / 2,
-        py = this.safe.top + 58 + (this.h - this.safe.top - this.safe.bottom - 58 - ph) / 2;
+    if (key === 'exit') {
+      const pw = Math.min(440, this.w - this.safe.left - this.safe.right - 32), ph = 178;
+      const px = this.safe.left + (this.w - this.safe.left - this.safe.right - pw) / 2;
+      const py = this.safe.top + 58 + (this.h - this.safe.top - this.safe.bottom - 58 - ph) / 2;
       this.rect(g, 0, 0, this.w, this.h, '#050f1d8c');
       this.rect(g, px, py, pw, ph, C.ink, C.line, 3);
-      this.rect(g, px + 20, py + 17, 5, 18, C.amber);
-      this.rect(g, px + 29, py + 17, 5, 18, C.amber);
-      this.label(n, this.t('行动暂停', 'OPERATION PAUSED'), px + pw / 2, py + 26, 22, pw - 104, 36).isBold = true;
-      const sw = (pw - 48) / 3, sy = py + 54;
-      for (const [i, [caption, value, color]] of [
-        [this.t('友军', 'ALLIES'), `${s.units.filter(u => u.friendly && u.hp > 0).length}`, C.mint],
-        [this.t('威胁', 'THREATS'), String(s.threatsRemaining).padStart(2, '0'), C.red],
-        [this.t('用时', 'ELAPSED'), `${Math.floor(s.time / 60).toString().padStart(2, '0')}:${Math.floor(s.time % 60).toString().padStart(2, '0')}`, C.white],
-      ].entries()) {
-        const x = px + 16 + i * (sw + 8);
-        this.rect(g, x, sy, sw, 64, '#102b42', C.line, 3);
-        this.label(n, caption, x + sw / 2, sy + 15, 12, sw - 12, 20, color);
-        this.label(n, value, x + sw / 2, sy + 43, 25, sw - 12, 34, color).isBold = true;
+      this.label(n, this.t('返回基地？', 'RETURN TO BASE?'), px + pw / 2, py + 30, 22, pw - 32, 34).isBold = true;
+      this.label(n, this.t('将会中断本次游戏并退出。', 'This will end the current battle and exit.'), px + pw / 2, py + 76, 14, pw - 32, 40, C.dim);
+      const bw = (pw - 40) / 2;
+      for (const [i, id] of ['exitCancel', 'exitConfirm'].entries()) {
+        const x = px + 16 + i * (bw + 8), y = py + ph - 56;
+        this.rect(g, x, y, bw, 44, i ? C.amber : '#102b42', i ? undefined : C.line, 3);
+        this.button(id, i ? this.t('确认退出', 'CONFIRM EXIT') : this.t('继续战斗', 'CONTINUE'), x, y, bw, 44, n).color = col(i ? '#10252a' : C.white);
       }
-      this.label(n, text(s.mission.name, this.lang), px + pw / 2, py + 139, 12, pw - 32, 24, C.dim);
-      const supply = this.rewardsAvailable || this.pendingSupply, bw = (pw - (supply ? 48 : 40)) / (supply ? 3 : 2), by = py + ph - 56;
-      // Keep the existing action order so controller dispatch and touch priority stay unchanged.
-      if (supply) this.button('supply', this.supplyLabel(s), px + 24 + bw, by, bw, 44, n).lineHeight = 16;
-      this.button('resume', this.t('继续行动 →', 'RESUME →'), px + 16, by, bw, 44, n);
-      this.button('home', this.t('返回基地', 'END · HOME'), px + pw - 16 - bw, by, bw, 44, n);
-      for (const b of this.buttons.filter(b => b.label.node.parent === n)) {
-        const primary = b.id === 'resume';
-        this.rect(g, b.x, b.y, b.w, b.h, primary ? C.amber : '#102b42', primary ? undefined : C.line, 3);
-        b.label.color = col(b.id === 'supply' && s.buff && !this.pendingSupply ? C.dim : primary ? '#10252a' : C.white);
-        b.label.isBold = primary;
+      return;
+    }
+    if (key === 'pause' || key.startsWith('settings')) {
+      const playing = s.phase === 'playing', flight = this.toolsOpen, zoom = this.zoomOpen;
+      const ids = flight ? panelActions : zoom ? ['lensOut', 'lensIn', 'zoomUpgrade']
+        : [...(playing ? ['flightControls', 'convoy', 'zoomControls', 'supply'] : []), 'sound', 'effects', 'help', 'language'];
+      const available = ids.filter(id => !(id === 'convoy' && s.mission.mode === 'training') &&
+        !(id === 'supply' && !this.rewardsAvailable && !this.pendingSupply) && !(id === 'zoomUpgrade' && !this.rewardsAvailable));
+      const pw = Math.min(640, this.w - this.safe.left - this.safe.right - 32);
+      const short = this.h - this.safe.top - this.safe.bottom < 360;
+      const columns = pw < 360 ? 2 : flight ? (short ? 5 : 4) : short ? 4 : 2;
+      const rows = Math.ceil(available.length / columns), cellW = (pw - 32 - (columns - 1) * 8) / columns;
+      const ph = rows * 48 + 104, px = this.safe.left + (this.w - this.safe.left - this.safe.right - pw) / 2;
+      const py = this.safe.top + 58 + (this.h - this.safe.top - this.safe.bottom - 58 - ph) / 2;
+      this.rect(g, 0, 0, this.w, this.h, '#050f1d8c');
+      this.rect(g, px, py, pw, ph, C.ink, C.line, 3);
+      this.label(n, flight ? this.t('飞行 / 视野', 'FLIGHT / VIEW') : zoom ? this.t(`视野倍率 ${world.zoom.toFixed(1)}×`, `ZOOM ${world.zoom.toFixed(1)}×`)
+        : this.t(playing ? '战斗设置' : '设置', playing ? 'BATTLE SETTINGS' : 'SETTINGS'), px + pw / 2, py + 24, 20, pw - 32, 32).isBold = true;
+      const captions: Record<string, string> = {
+        flightControls: this.t('飞行 / 视野', 'FLIGHT / VIEW'), zoomControls: this.t('视野倍率', 'ZOOM'),
+        convoy: s.convoy === 'moving' ? this.t('车队等待', 'HOLD CONVOY') : s.convoy === 'holdRequested' ? this.t('取消等待', 'CANCEL HOLD') : this.t('车队继续', 'CONVOY GO'),
+        supply: this.supplyLabel(s), sound: this.muted ? this.t('声音 关', 'SOUND OFF') : this.t('声音 开', 'SOUND ON'),
+        effects: this.reducedEffects ? this.t('效果 简', 'FX LOW') : this.t('效果 全', 'FX FULL'), help: this.t('帮助', 'HELP'), language: this.lang === 'zh' ? '语言 中文' : 'LANGUAGE EN',
+        lensOut: this.t('缩小 −', 'ZOOM −'), lensIn: this.t('放大 +', 'ZOOM +'),
+        zoomOut: this.t('缩小 −', 'ZOOM −'), zoomIn: this.t('放大 +', 'ZOOM +'),
+        sensor: world.thermal ? this.t('光学视野', 'OPTICAL') : this.t('热成像', 'THERMAL'),
+        zoomUpgrade: s.buff ? this.t('支援生效中', 'SUPPORT ACTIVE') : this.pendingSupply ? this.t('请先领取补给', 'CLAIM SUPPLY FIRST') : nextZoomLimit(this.zoomLimit)
+          ? this.t(`升至 ${nextZoomLimit(this.zoomLimit)}×`, `UNLOCK ${nextZoomLimit(this.zoomLimit)}×`) : this.t('已解锁 160×', '160× UNLOCKED'),
+      };
+      for (const [i, id] of available.entries()) {
+        const x = px + 16 + i % columns * (cellW + 8), y = py + 48 + Math.floor(i / columns) * 48;
+        this.rect(g, x, y, cellW, 44, '#102b42', C.line, 3);
+        const b = this.button(id, captions[id] ?? actionLabel(id, this.lang, true), x, y, cellW, 44, n);
+        b.fontSize = cellW < 130 ? 11 : 13; b.lineHeight = 16;
+        if (id === 'sound') {
+          b.node.setPosition(x + cellW / 2 + 12 - this.w / 2, this.h / 2 - y - 22);
+          b.node.getComponent(UITransform)!.setContentSize(cellW - 38, 42);
+          const sx = x + 18 - this.w / 2, sy = this.h / 2 - y - 22;
+          g.strokeColor = col(this.muted ? C.dim : C.mint); g.lineWidth = 2;
+          g.moveTo(sx - 10, sy - 4); g.lineTo(sx - 5, sy - 4); g.lineTo(sx + 1, sy - 10);
+          g.lineTo(sx + 1, sy + 10); g.lineTo(sx - 5, sy + 4); g.lineTo(sx - 10, sy + 4); g.close(); g.stroke();
+          if (this.muted) { g.moveTo(sx + 5, sy - 6); g.lineTo(sx + 13, sy + 6); g.moveTo(sx + 5, sy + 6); g.lineTo(sx + 13, sy - 6); }
+          else { g.moveTo(sx + 6, sy - 7); g.lineTo(sx + 11, sy); g.lineTo(sx + 6, sy + 7); }
+          g.stroke();
+        }
+        if ((id === 'supply' || id === 'zoomUpgrade') && s.buff) b.color = col(C.dim);
       }
+      const by = py + ph - 52, bw = (pw - 40) / 2;
+      const secondary = flight || zoom ? 'close' : playing ? 'home' : 'close';
+      const primary = playing && (flight || zoom || key === 'pause') ? 'resume' : 'close';
+      if (playing) {
+        this.rect(g, px + 16, by, bw, 44, '#102b42', C.line, 3);
+        this.button(secondary, secondary === 'home' ? this.t('返回基地', 'RETURN TO BASE') : this.t('返回设置', 'BACK'), px + 16, by, bw, 44, n);
+      }
+      const bx = playing ? px + 24 + bw : px + 16, buttonW = playing ? bw : pw - 32;
+      this.rect(g, bx, by, buttonW, 44, C.amber, undefined, 3);
+      this.button(primary, playing ? this.t('继续战斗', 'RESUME BATTLE') : this.t('返回', 'BACK'), bx, by, buttonW, 44, n).color = col('#10252a');
       return;
     }
     if (key.startsWith('advert:')) {
@@ -680,13 +656,13 @@ export class HUD {
         px + pw / 2, py + ph - 17, 11, pw - 32, 22, C.dim);
       return;
     }
-    const settings = key === 'settings', help = key.startsWith('help');
+    const help = key.startsWith('help');
     const allies = s.units.filter((u) => u.friendly).length;
     const training = s.mission.mode === 'training';
     this.rect(g, 0, 0, this.w, this.h, '#061116b8');
     const result = key === 'success' || key === 'failure';
-    const pw = Math.min(settings ? 480 : help ? 680 : result ? 720 : 880, this.w - this.safe.left - this.safe.right - 32),
-      ph = Math.min(settings ? 218 : help ? 390 : result ? 340 : 540, this.h - this.safe.top - this.safe.bottom - 72);
+    const pw = Math.min(help ? 680 : result ? 720 : 880, this.w - this.safe.left - this.safe.right - 32),
+      ph = Math.min(help ? 390 : result ? 340 : 540, this.h - this.safe.top - this.safe.bottom - 72);
     const px = this.safe.left + (this.w - this.safe.left - this.safe.right - pw) / 2,
       py = this.safe.top + 58 + (this.h - this.safe.top - this.safe.bottom - 58 - ph) / 2;
     this.rect(g, px, py, pw, ph, C.ink, C.line, 3);
@@ -706,20 +682,20 @@ export class HUD {
                 ? this.t('飞行值勤手册', 'FIELD GUIDE')
                 : key === 'mission'
                   ? this.t('山谷公路撤离', 'VALLEY EVACUATION')
-                  : settings ? this.t('设置', 'SETTINGS') : this.t('暂停', 'PAUSED');
+                  : this.t('暂停', 'PAUSED');
     const headingLabel = this.label(
       n,
       heading,
       px + pw / 2,
-      py + (settings || help ? 26 : small ? 29 : 48),
-      settings || help ? 22 : small ? 23 : 36,
+      py + (help ? 26 : small ? 29 : 48),
+      help ? 22 : small ? 23 : 36,
       pw - (help ? 112 : 56),
-      settings || help ? 36 : small ? 46 : 60,
+      help ? 36 : small ? 46 : 60,
       C.white,
     );
     headingLabel.isBold = true;
     const bottom = py + ph - 58;
-    if (help || settings)
+    if (help)
       this.button('close', this.t('返回', 'BACK'), px + pw - (pw < 360 ? 104 : 116), bottom, pw < 360 ? 88 : 100, 44, n);
     if (help) {
       const tabs = [
@@ -805,15 +781,6 @@ export class HUD {
         30,
         C.dim,
       );
-    } else if (settings) {
-      const bw = (pw - 72) / 4, row = py + 54, tileH = ph - 126;
-      for (const [i, id] of ['sound', 'effects', 'help', 'language'].entries()) {
-        const labels = [this.muted ? this.t('声音 关', 'SOUND OFF') : this.t('声音 开', 'SOUND ON'),
-          this.reducedEffects ? this.t('效果 简', 'FX LOW') : this.t('效果 全', 'FX FULL'), this.t('帮助', 'HELP'), this.lang === 'zh' ? '中文' : 'EN'];
-        const label = this.button(id, labels[i], px + 24 + i * (bw + 8), row, bw, tileH, n);
-        label.node.setPosition(px + 24 + i * (bw + 8) + bw / 2 - this.w / 2, this.h / 2 - row - tileH + 18);
-        label.node.getComponent(UITransform)!.setContentSize(bw - 4, 28);
-      }
     } else if (key === 'briefing' || key === 'mission') {
       const split = !small,
         contentTop = py + (low ? 52 : small ? 65 : 118);
@@ -1025,20 +992,6 @@ export class HUD {
     for (const b of this.buttons.filter((b) => b.label.node.parent === n)) {
       const primary = ['start', 'retry', 'resume'].includes(b.id);
       this.rect(g, b.x, b.y, b.w, b.h, primary ? C.amber : '#102b42', primary ? C.amber : C.line, 3);
-      if (settings && b.id !== 'close') {
-        const x = b.x + b.w / 2 - this.w / 2, y = this.h / 2 - b.y - 28;
-        g.strokeColor = col(C.mint); g.fillColor = col(C.mint); g.lineWidth = 2;
-        if (b.id === 'sound') {
-          g.moveTo(x - 12, y - 4); g.lineTo(x - 5, y - 4); g.lineTo(x + 3, y - 11);
-          g.lineTo(x + 3, y + 11); g.lineTo(x - 5, y + 4); g.lineTo(x - 12, y + 4); g.close(); g.stroke();
-          g.moveTo(x + 9, y - 8); g.lineTo(x + 13, y); g.lineTo(x + 9, y + 8); g.stroke();
-        } else if (b.id === 'effects') {
-          for (let i = -1; i <= 1; i++) { g.moveTo(x + i * 10, y - 13); g.lineTo(x + i * 10, y + 13); g.stroke(); g.circle(x + i * 10, y + i * 6, 3); g.fill(); }
-        } else {
-          g.circle(x, y, 15); g.stroke();
-          this.label(n, b.id === 'help' ? '?' : this.lang === 'zh' ? '文' : 'A', b.x + b.w / 2, b.y + 28, 18, 30, 30, C.mint);
-        }
-      }
       b.label.color = col(b.id === 'supply' && s.buff && !this.pendingSupply ? C.dim : primary ? '#10252a' : C.white);
       b.label.isBold = primary;
     }
@@ -1055,14 +1008,15 @@ export class HUD {
       left = 12 + this.safe.left, by = h - this.footer - this.safe.bottom;
     let key = s.phase === 'briefing' ? this.missionsOpen ? 'missions' : 'home' : s.phase === 'playing' ? '' : s.phase;
     if (this.advert) key = `advert:${this.advert.kind}:${this.advert.mock}:${this.lang}`;
+    else if (this.exitConfirm) key = 'exit';
     else if (s.pauses.has('help')) key = 'help:' + this.helpGroup + this.helpTouch + this.lang;
-    else if (s.pauses.has('settings')) key = 'settings';
+    else if (s.pauses.has('mission')) key = 'mission';
+    else if (s.pauses.has('settings')) key = this.toolsOpen ? 'settings:flight' : this.zoomOpen ? 'settings:zoom' : 'settings';
     else if (s.pauses.has('orientation')) key = 'orientation';
     else if (this.supplyOpen) key = this.pendingSupply ? 'supply:choice' : 'supply:offer';
-    else if (s.pauses.has('mission')) key = 'mission';
     else if (s.resumeCountdown > 0) key = `countdown:${Math.ceil(s.resumeCountdown)}`;
     else if (s.paused && s.phase !== 'briefing') key = 'pause';
-    this.renderModal(key, s);
+    this.renderModal(key, s, world);
     g.clear();
     this.marks.clear();
     this.globalGraphics.clear();
@@ -1080,93 +1034,54 @@ export class HUD {
         continue;
       }
       if (b.label.node.parent === this.root)
-        b.label.node.active = !key && (b.id !== 'fire' || this.touch || s.homingSelected) && (!panelActions.includes(b.id) || this.toolsOpen || this.desktop && flightActions.includes(b.id));
-      if (b.id === 'priority') b.label.node.active = !key && !this.toolsOpen && !this.zoomOpen && !!s.priorityThreat;
-      if (['lensOut', 'lensIn', 'homingReward', 'zoomUpgrade'].includes(b.id))
-        b.label.node.active = !key && this.zoomOpen;
-      if (b.id === 'supply' && b.label.node.parent === this.root)
-        b.label.node.active = !key && !this.toolsOpen && !this.zoomOpen;
-      if (b.id === 'zoomControls')
-        b.label.node.active = !key && !this.toolsOpen && !this.zoomOpen;
-      if (b.id === 'zoomControls') {
-        b.label.node.active = !key && !this.toolsOpen;
-      }
+        b.label.node.active = !key && b.id !== 'priority' && (b.id !== 'fire' || this.touch || s.homingSelected);
       if (this.isGlobalAction(b.id)) {
-        b.label.node.active = !this.advert && !this.supplyOpen && !key.startsWith('countdown:');
+        b.label.node.active = !this.advert && !this.supplyOpen && !this.exitConfirm && !key.startsWith('countdown:');
         if (!b.label.node.active) continue;
-        this.rect(this.globalGraphics, b.x, b.y, b.w, b.h, '#0c171df5', b.id === 'settings' && s.pauses.has('settings') ? C.mint : '#91e6cb88', 5);
+        const gx = b.x + b.w / 2 - w / 2, gy = h / 2 - b.y - b.h / 2, gear = this.globalGraphics;
+        gear.strokeColor = col(!key && !world.thermal && s.mission.light === 'day' ? '#123844' : C.white); gear.lineWidth = 2;
+        gear.circle(gx, gy, 10); gear.stroke(); gear.circle(gx, gy, 4); gear.stroke();
+        for (let i = 0; i < 8; i++) { const angle = i * Math.PI / 4;
+          gear.moveTo(gx + Math.cos(angle) * 10, gy + Math.sin(angle) * 10);
+          gear.lineTo(gx + Math.cos(angle) * 14, gy + Math.sin(angle) * 14); }
+        gear.stroke();
       }
     }
     const toast = this.labels.get('globalToast')!;
-    toast.node.active = !!key && !!this.toast && Date.now() < this.toastUntil;
+    toast.node.active = ['missions', 'pause', 'settings', 'settings:zoom'].includes(key) && !!this.toast && Date.now() < this.toastUntil;
     toast.string = this.toast;
-    if (toast.node.active) this.rect(this.globalGraphics, this.safe.left + 16, h - this.safe.bottom - 42,
-      w - this.safe.left - this.safe.right - 32, 36, C.ink);
+    if (toast.node.active) {
+      const tw = toast.node.getComponent(UITransform)!.contentSize.width;
+      this.rect(this.globalGraphics, toast.node.position.x + w / 2 - tw / 2, top + 8, tw, 36, C.ink);
+    }
     const buff = this.labels.get('buff')!;
-    buff.node.active = s.phase === 'playing' && !!s.buff;
+    buff.node.active = !key && s.phase === 'playing' && !!s.buff;
     if (s.buff && buff.node.active) {
       const size = buff.node.getComponent(UITransform)!.contentSize, p = buff.node.position,
         name = s.buff.kind === 'tracking' ? this.t('追踪模式', 'TRACKING') : this.t('射速提升', 'RATE ×1.3'),
         remaining = Math.ceil(s.buff.remaining), tint = s.buff.remaining <= 5 ? C.amber : C.mint;
       buff.string = name + (size.width < 170 ? '\n' : ' · ') + this.t(`${remaining}秒`, `${remaining}s`);
       buff.color = col(tint);
-      this.rect(this.globalGraphics, p.x + w / 2 - size.width / 2, h / 2 - p.y - size.height / 2,
-        size.width, size.height, '#0c171df5', tint, 12);
     }
     if (key) {
       if (s.phase === 'playing') this.effects = drawEffects(this.marks, s, world, this.w, this.h, this.reducedEffects);
       return;
     }
-    if (this.zoomOpen) this.rect(g, left + (this.desktop ? 144 : 0), top + 112,
-      Math.min(360, w - this.safe.left - this.safe.right - 24), 100, C.ink, C.line, 5);
-
-    this.labels.get('title')!.node.active = this.desktop;
-    this.labels.get('mapLegend')!.node.active = !this.toolsOpen;
-    this.labels.get('orbit')!.node.active = this.toolsOpen;
-    this.labels.get('telemetry')!.node.active = !s.buff && this.toolsOpen && this.labels.get('telemetry')!.node.getComponent(UITransform)!.contentSize.width >= 100;
-    this.rect(g, 0, 0, w, 58 + top, '#0c171dbb');
-
-    this.rect(g, left, 56 + top, (w - 24 - this.safe.left - this.safe.right) * s.ratio, 1, '#91e6cb88');
-    if (this.desktop) {
-      this.rect(g, 0, top + 110, 152 + this.safe.left, 304, '#0c171d88');
-      for (const y of [110, 206, 274, 342, 414])
-        this.rect(g, left, top + y, 128, 1, '#91e6cb44');
-    }
     const gun = s.guns[s.selected], weapon = WEAPONS[s.selected], reason = s.reason(),
       danger = s.friendlyRisk || s.time - s.friendHitAt < 2;
-    for (const b of this.buttons) {
-      if (b.id === 'homing') b.label.string = this.t('追踪', 'HOMING') + '\n' + (s.homingAmmo || '+');
-      if (b.id === 'zoomControls') b.label.string = `${world.zoom.toFixed(world.zoom >= 10 ? 0 : 1)}×  +`;
-      if (b.id === 'lensOut') b.label.string = this.t('缩小 −', 'ZOOM −');
-      if (b.id === 'lensIn') b.label.string = this.t('放大 +', 'ZOOM +');
-      if (b.id === 'supply' || b.id === 'homingReward') b.label.string = this.supplyLabel(s);
-      if (b.id === 'homingReward') b.label.lineHeight = 16;
-      if (b.id === 'zoomUpgrade') b.label.string = s.buff ? this.t('增益生效中', 'BUFF ACTIVE')
-        : this.pendingSupply ? this.t('请先领取战斗补给', 'CLAIM SUPPLY FIRST') : nextZoomLimit(this.zoomLimit)
-        ? this.t(`升至 ${nextZoomLimit(this.zoomLimit)}×`, `UNLOCK ${nextZoomLimit(this.zoomLimit)}×`)
-        : this.t('已解锁 160×', '160× UNLOCKED');
-    }
     const plane = s.aircraft;
-    const metres = (value: number) => Math.round(value * FLIGHT.metersPerUnit);
-    const range = Math.hypot(plane.x - s.aim.x, plane.z - s.aim.z, plane.y - s.height(s.aim.x, s.aim.z));
     const flightTime = s.flightTime(), flightText = Number.isFinite(flightTime) ? flightTime.toFixed(1) + 's' : '—';
-    this.set('title', this.t('夜航守望', 'OVERWATCH'));
     const allies = s.units.filter((u) => u.friendly).length;
     this.set('health', this.t(`□ 友军 ${allies - s.friendlyLosses} / ${allies}`, `□ ALLIES ${allies - s.friendlyLosses} / ${allies}`));
-    this.labels.get('health')!.color = col(s.rescue.hp / s.rescue.maxHp < 0.3 ? C.red : C.mint);
+    const bright = !world.thermal && s.mission.light === 'day';
+    this.labels.get('health')!.color = col(s.rescue.hp / s.rescue.maxHp < 0.3 ? bright ? '#982536' : C.red : bright ? '#124652' : C.mint);
+    this.labels.get('progress')!.color = col(bright ? '#243c42' : C.dim);
+    this.labels.get('status')!.color = col(bright ? '#123844' : C.white);
     this.set('progress', s.mission.mode === 'training'
       ? this.t(`热身清靶 ${s.kills} / 3 · 友伤 ${Math.round(s.friendlyDamage)}`, `WARMUP ${s.kills}/3 · FRIENDLY ${Math.round(s.friendlyDamage)}`)
       : this.t(`撤离 ${Math.floor(s.ratio * 100)}% · 威胁 ${s.threatsRemaining}`, `ROUTE ${Math.floor(s.ratio * 100)}% · THREATS ${s.threatsRemaining}`));
     const clock = Math.ceil(s.remaining);
     this.set('status', `${world.thermal ? this.t('热像', 'IR') : this.t(s.mission.light === 'day' ? '白天' : s.mission.light === 'dusk' ? '黄昏' : '夜间', s.mission.light.toUpperCase())}\n${Math.floor(clock / 60)}:${String(clock % 60).padStart(2, '0')}`);
-    this.set('telemetry', this.desktop
-      ? this.t(`高度 ${metres(plane.altitude)}m   │   斜距 ${metres(range)}m   │   弹着 ${flightText}`, `ALT ${metres(plane.altitude)}m  │  SLANT ${metres(range)}m  │  IMPACT ${flightText}`)
-      : this.t(`斜距 ${metres(range)}m\n高度 ${metres(plane.altitude)}m`, `SLANT ${metres(range)}m\nALT ${metres(plane.altitude)}m`));
-    const radiusKm = (plane.radius * FLIGHT.metersPerUnit / 1000).toFixed(1);
-    this.set('orbit', `${Math.round(FLIGHT.speed * FLIGHT.metersPerUnit * 3.6)} km/h\n${this.t('半径', 'RADIUS')} ${radiusKm} km`);
-    this.set('flightAltitude', this.t(`高度 ${metres(plane.altitude)}m`, `ALT ${metres(plane.altitude)}m`));
-    this.set('flightRadius', this.t(`轨道 ${radiusKm} km`, `ORBIT ${radiusKm} km`));
-    this.set('hold', s.convoy === 'holdRequested' ? this.t('前往下一待命点', 'TO NEXT HOLD POINT') : s.convoy === 'holding' ? this.t('待命中 · 时间继续', 'HOLDING · CLOCK RUNS') : '');
     this.set('weaponState', this.t(
       `${this.mouseDesktop ? '' : flightText + ' 弹着\n'}${gun.overheated ? '过热 · 冷却至40' : gun.cooldown > 0 && s.selected > 0 ? '装填 ' + gun.cooldown.toFixed(1) + 's' : '热量 ' + Math.round(gun.heat) + '%'}`,
       `${this.mouseDesktop ? '' : flightText + ' IMPACT\n'}${gun.overheated ? 'OVERHEATED' : gun.cooldown > 0 && s.selected > 0 ? 'RELOAD ' + gun.cooldown.toFixed(1) + 's' : 'HEAT ' + Math.round(gun.heat) + '%'}`));
@@ -1202,12 +1117,6 @@ export class HUD {
       const active = messages.find((id) => this.labels.get(id)!.string);
       for (const id of messages) this.labels.get(id)!.node.active = id === active;
     }
-    const panel = this.panelLayout;
-    if (this.toolsOpen) {
-      this.rect(g, panel.x, panel.y, panel.w, panel.h, C.ink, '#91e6cb55');
-      for (const id of ['notice', 'friendWarning', 'hold', 'target', 'flight', 'tutorial'])
-        this.labels.get(id)!.node.active = false;
-    }
     for (const id of ['notice', 'friendWarning', 'tutorial']) {
       const label = this.labels.get(id)!;
       if (!label.node.active || !label.string) continue;
@@ -1215,52 +1124,22 @@ export class HUD {
       const size = label.node.getComponent(UITransform)!.contentSize, p = label.node.position;
       this.rect(g, p.x + w / 2 - size.width / 2, h / 2 - p.y - size.height / 2, size.width, size.height, id === 'friendWarning' ? '#381c26dd' : '#0c171da0');
     }
-    const toggle = this.buttons.find((b) => b.id === 'flightControls')!;
-    const inlineToggle = this.toolsOpen && panel.columns === 8;
-    toggle.w = inlineToggle ? (panel.w - 36) / 8 : this.desktop ? 128 : 96;
-    toggle.x = inlineToggle ? panel.x + 4 + 7 * (toggle.w + 4) : left;
-    toggle.y = inlineToggle ? panel.y + 52 : top + 64;
-    toggle.label.node.setPosition(toggle.x + toggle.w / 2 - w / 2, h / 2 - toggle.y - 22);
-    toggle.label.node.getComponent(UITransform)!.setContentSize(toggle.w - 8, 42);
-    toggle.label.string = this.toolsOpen ? this.t('收起 ▴', 'CLOSE ▴')
-      : this.desktop ? this.t('飞行控制 ▾', 'FLIGHT ▾') : this.t('飞行 ▾', 'FLIGHT ▾');
-    this.buttons.find((b) => b.id === 'convoy')!.label.node.active = s.mission.mode !== 'training' && !(this.toolsOpen && !this.desktop && panel.y < top + 110);
     for (const b of this.buttons.filter((b) => b.label.node.parent === this.root && b.label.node.active)) {
+      if (b.id === 'priority') continue;
+      if (b.id === 'homing') b.label.string = this.t('追踪', 'HOMING') + '\n' + (s.homingAmmo || '+');
       const selected = (!s.homingSelected && b.id === 'weapon' + s.selected) || (s.homingSelected && b.id === 'homing') || b.id === (plane.direction < 0 ? 'orbitLeft' : 'orbitRight');
       if (b.id.startsWith('weapon')) {
         const i = Number(b.id.slice(-1)), a = s.guns[i];
         b.label.string = this.t(['速射', '爆破', '重炮'][i], ['RAPID', 'BURST', 'HEAVY'][i]) + '\n' + (a.ammo === Infinity ? '∞' : a.ammo);
       }
-      if (b.id === 'convoy') b.label.string = s.extractionRemaining !== undefined ? this.t('快速撤离中', 'EXTRACTING') : (this.touch ? '' : 'T · ') + (s.convoy === 'moving' ? this.t('车队等待', 'HOLD CONVOY') : s.convoy === 'holdRequested' ? this.t('取消等待', 'CANCEL HOLD') : this.t('车队继续 →', 'CONVOY GO →'));
-      if (b.id === 'priority' && s.priorityThreat) {
-        const threat = s.priorityThreat;
-        b.label.string = this.t(`! 优先压制 · ${Math.ceil(threat.dueIn)}秒后开火  ↗\n${threat.critical ? '友军危急' : '威胁友军'} · 点击定位`,
-          `! PRIORITY · FIRES IN ${Math.ceil(threat.dueIn)}s ↗\n${threat.critical ? 'CRITICAL' : 'ALLIES EXPOSED'} · TAP TO LOCATE`);
-      }
       if (b.id === 'fire') b.label.string = reason === 'extracting' ? this.t('停火', 'CEASE FIRE') : s.homingSelected
         ? s.homingAmmo <= 0 ? this.t('无弹药', 'EMPTY') : s.homingTarget ? this.t('发射', 'LAUNCH') : this.t('待锁定', 'LOCK')
         : reason === 'protected' ? this.t('禁射', 'BLOCKED') : reason === 'overheated' ? this.t('冷却', 'COOL')
         : reason === 'empty' ? this.t('无弹药', 'EMPTY') : this.t('开火', 'FIRE');
-      if (b.id === 'sensor') b.label.string = world.thermal ? this.t('光学视野', 'OPTICAL') : this.t('热成像', 'THERMAL');
-      if (b.id === 'sound') b.label.string = this.muted ? this.t('声音：关', 'SOUND OFF') : this.t('声音：开', 'SOUND ON');
-      const fire = b.id === 'fire', flight = this.desktop && flightActions.includes(b.id),
-        blockedAd = b.id === 'zoomUpgrade' && (!!s.buff || this.pendingSupply)
-          || ['supply', 'homingReward'].includes(b.id) && !!s.buff && !this.pendingSupply;
-      if (flight) {
-        const orbit = b.id === 'orbitLeft' || b.id === 'orbitRight';
-        const x = b.x + (orbit ? 21 : b.w / 2) - w / 2, y = h / 2 - b.y - b.h / 2;
-        g.fillColor = col(selected ? '#3b706455' : '#0c171d55');
-        g.circle(x, y, 18); g.fill();
-        g.strokeColor = col(selected ? C.mint : '#91e6cb88');
-        g.lineWidth = 1;
-        g.circle(x, y, 18); g.stroke();
-      } else this.rect(g, b.x, b.y, b.w, b.h, fire ? danger ? '#482832' : C.mint : selected ? '#29463ee0' : '#0c171daa', blockedAd ? C.line : fire && danger ? C.red : selected || fire ? C.mint : '#91e6cb55', fire ? b.w / 2 : 12);
-      b.label.color = col(b.id === 'priority' ? C.red : blockedAd ? C.dim : fire && !danger ? '#10252a' : selected ? C.mint : C.white);
+      const fire = b.id === 'fire';
+      this.rect(g, b.x, b.y, b.w, b.h, fire ? danger ? '#482832' : C.mint : selected ? '#29463ee0' : '#0c171daa', fire && danger ? C.red : selected || fire ? C.mint : '#91e6cb55', fire ? b.w / 2 : 12);
+      b.label.color = col(fire && !danger ? '#10252a' : selected ? C.mint : C.white);
       b.label.isBold = selected || fire;
-      if (b.id === 'pause' && !this.mouseDesktop) {
-        this.rect(g, b.x + b.w / 2 - 6, b.y + 6, 4, 14, C.white);
-        this.rect(g, b.x + b.w / 2 + 2, b.y + 6, 4, 14, C.white);
-      }
       if (b.id.startsWith('weapon') || b.id === 'homing') {
         const x = b.x + 17 - w / 2, y = h / 2 - b.y - b.h / 2;
         g.strokeColor = col(selected ? C.mint : C.dim); g.lineWidth = 2;
@@ -1282,11 +1161,8 @@ export class HUD {
       }
     }
     this.labels.get('priorityMarker')!.node.active = false;
-    if (s.priorityThreat) this.labels.get('hold')!.node.active = false;
-    if (!this.toolsOpen) {
-      this.drawWorld(s, world);
-      this.drawMinimap(s);
-    }
+    this.drawWorld(s, world);
+    this.drawMinimap(s);
   }
   drawMinimap(s: Simulation) {
     const g = this.marks, map = this.minimapLayout, priorityId = s.priorityThreat?.unit.id;
@@ -1345,11 +1221,16 @@ export class HUD {
     const priorityLabel = this.labels.get('priorityMarker')!;
     priorityLabel.node.active = false;
     const threat = s.priorityThreat;
-    if (threat && !this.zoomOpen) {
+    if (threat) {
       const p = project(threat.unit, 1.5);
       if (p.visible) {
-        const x = Math.max(-this.w / 2 + 30, Math.min(this.w / 2 - 30, p.x));
-        const y = Math.max(-this.h / 2 + this.footer + 60, Math.min(this.h / 2 - 176, p.y));
+        let x = Math.max(-this.w / 2 + this.safe.left + 48, Math.min(this.w / 2 - this.safe.right - 48, p.x));
+        const y = Math.max(-this.h / 2 + this.safe.bottom + this.footer + 52, Math.min(this.h / 2 - this.safe.top - 82, p.y));
+        const map = this.minimapLayout;
+        if (x + this.w / 2 + 48 > map.x && this.h / 2 - y - 24 < map.y + map.h) x = map.x - 56 - this.w / 2;
+        const marker = this.buttons.find(b => b.id === 'priority')!;
+        marker.x = x + this.w / 2 - 48; marker.y = this.h / 2 - y - 24;
+
         const clipped = x !== p.x || y !== p.y;
         g.strokeColor = col(C.red); g.lineWidth = 2;
         for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
@@ -1358,7 +1239,8 @@ export class HUD {
         g.stroke();
         if (clipped) { const angle = Math.atan2(p.y - y, p.x - x); g.moveTo(x, y); g.lineTo(x + Math.cos(angle) * 28, y + Math.sin(angle) * 28); g.stroke(); }
         priorityLabel.string = this.t(`优先 ${Math.ceil(threat.dueIn)}s${clipped ? ' ↗' : ''}`, `PRIORITY ${Math.ceil(threat.dueIn)}s${clipped ? ' ↗' : ''}`);
-        priorityLabel.node.setPosition(Math.max(-this.w / 2 + 80, Math.min(this.w / 2 - 80, x)), y - 33);
+        priorityLabel.node.setPosition(x, y - 33);
+        priorityLabel.node.getComponent(UITransform)!.setContentSize(96, 24);
         priorityLabel.node.active = true;
       }
     }
@@ -1393,7 +1275,7 @@ export class HUD {
     const placed: { x: number; y: number }[] = [],
       bottom = -this.h / 2 + this.footer + this.safe.bottom + 44,
       top = this.h / 2 - 64 - this.safe.top;
-    const banners = ['notice', 'friendWarning', 'tutorial', 'hold']
+    const banners = ['notice', 'friendWarning', 'tutorial']
       .map((id) => this.labels.get(id)!)
       .filter((l) => l.node.active && l.string);
     const overBanner = (x: number, y: number, halfWidth: number) =>
