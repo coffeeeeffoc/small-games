@@ -8,6 +8,7 @@ import {
   DISTRICTS,
   SEGMENT_LENGTH,
   WAVE_SPACING,
+  GAP,
 } from '../assets/scripts/core/route.ts';
 import {
   createRun,
@@ -35,21 +36,25 @@ test('city centerline, tangent, road width and height are continuous at 2000 sea
   }
 });
 
-test('same seed is reproducible, all districts occur and independent waves have a safe lane at maximum speed', () => {
+test('10000 waves are reproducible and always have a free lane or one compatible action', () => {
   const types = new Set(),
     districts = new Set();
   for (let seed = 1; seed <= 20; seed++)
     for (let wave = 0; wave < 500; wave++) {
       const obstacles = waveAt(wave, seed, 'old-town');
       assert.deepEqual(obstacles, waveAt(wave, seed, 'old-town'));
-      assert.ok(new Set(obstacles.map((o) => o.lane)).size < 3);
+      if (new Set(obstacles.map((o) => o.lane)).size === 3) {
+        assert.ok(obstacles.every((o) => o.fullWidth));
+        assert.equal(new Set(obstacles.map((o) => o.type)).size, 1);
+        assert.ok(['barrier', 'beam'].includes(obstacles[0].type));
+      }
       obstacles.forEach((o) => types.add(o.type));
       districts.add(sampleRoute(38 + wave * WAVE_SPACING, seed).district);
     }
   assert.equal(types.size, 6);
   assert.equal(districts.size, 3);
   assert.ok(
-    WAVE_SPACING / RULES.maxSpeed > Math.max(RULES.jumpDuration, RULES.slideDuration) + 0.8,
+    WAVE_SPACING / RULES.maxSpeed > Math.max(RULES.jumpDuration, RULES.slideDuration) + 0.3,
   );
 });
 
@@ -59,16 +64,16 @@ test('fork provides two spatially separated passages, fixed risk obstacle and sa
   const a = lanePosition(s, 0, 15),
     b = lanePosition(s, 2, 15);
   assert.ok(Math.hypot(a.x - b.x, a.z - b.z) > 7);
-  const waves = Array.from({ length: 5 }, (_, i) => waveAt(8 + i, 15, 'old-town'))
+  const waves = Array.from({ length: 4 }, (_, i) => waveAt(12 + i, 15, 'old-town'))
     .flat()
     .filter((o) => o.id.endsWith('-fork'));
-  assert.ok(waves.length >= 1);
+  assert.equal(waves.length, 1);
   assert.ok(waves.every((o) => o.lane === info.riskSide));
 });
 
 test('tutorial actions clear the first three obstacles and preserve health', () => {
   const run = createRun();
-  while (run.s < 115 && run.phase === 'running') {
+  while (run.s < 94 && run.phase === 'running') {
     const next = run.obstacles.find((o) => !o.resolved);
     if (next && next.at - run.s < 3.5 && next.at > run.s) {
       if (next.type === 'barrier' && run.action === 'run') act(run, 'jump');
@@ -144,21 +149,32 @@ test('pause freezes every gameplay clock and rejects input', () => {
   assert.ok(run.elapsed > 0.2);
 });
 
-test('normal safe-lane play can run two kilometers without a timeout or forced capture', () => {
+function playSafely(run) {
+  const route = sampleRoute(run.s, run.seed, run.departure),
+    info = segmentInfo(route.index, run.seed, run.departure);
+  const next = run.obstacles.find(
+    (o) => !o.resolved && o.at + (o.type === 'gap' ? GAP.length / 2 : 0) > run.s,
+  );
+  if (route.fork) {
+    const lane = info.riskSide === 0 ? 2 : 0;
+    if (run.lane !== lane) act(run, lane < run.lane ? 'left' : 'right');
+  } else if (next && next.at - run.s < run.speed * 0.85) {
+    const wave = run.obstacles.filter((o) => o.wave === next.wave);
+    const lane = [0, 1, 2].find((l) => !wave.some((o) => o.lane === l)) ?? run.lane;
+    if (run.lane !== lane) act(run, lane < run.lane ? 'left' : 'right');
+    const obstacle = wave.find((o) => o.lane === lane);
+    if (obstacle && obstacle.at - run.s < run.speed * 0.38 && run.action === 'run')
+      act(run, obstacle.type === 'beam' ? 'slide' : 'jump');
+  }
+}
+
+test('normal play combining lane choice, jumping and sliding can run two kilometers', () => {
   const run = createRun({ seed: 12 });
   for (let i = 0; i < 25000 && run.s < 2000 && run.phase === 'running'; i++) {
-    const route = sampleRoute(run.s, run.seed),
-      info = segmentInfo(route.index, run.seed);
-    let lane;
-    if (route.fork) lane = info.riskSide === 0 ? 2 : 0;
-    else {
-      const near = run.obstacles.filter((o) => !o.resolved && o.at - run.s < 24);
-      lane = [0, 1, 2].find((l) => !near.some((o) => o.lane === l));
-    }
-    if (lane !== undefined && run.lane !== lane) act(run, lane < run.lane ? 'left' : 'right');
+    playSafely(run);
     updateRun(run, 1 / 60);
-    assert.ok(run.obstacles.length <= 16);
-    assert.ok(run.pickups.length <= 24);
+    assert.ok(run.obstacles.length <= 27);
+    assert.ok(run.pickups.length <= 27);
     assert.ok(run.events.length <= 24);
   }
   assert.equal(run.phase, 'running');
@@ -166,6 +182,79 @@ test('normal safe-lane play can run two kilometers without a timeout or forced c
   assert.equal(run.health, 3);
   assert.ok(run.thiefDistance >= 9);
   assert.ok(run.forks > 0);
+  assert.ok(run.successes > 20);
+});
+
+test('top speed routes remain playable across seeds and all three districts', () => {
+  for (const departure of DISTRICTS)
+    for (let seed = 1; seed <= 5; seed++) {
+      const run = createRun({ seed, departure });
+      run.ticks = Math.ceil(
+        (RULES.maxSpeed - RULES.startSpeed) / RULES.acceleration / RULES.fixedStep,
+      );
+      while (run.s < 3000 && run.phase === 'running') {
+        playSafely(run);
+        updateRun(run, RULES.fixedStep);
+      }
+      assert.equal(run.health, 3, `${departure} seed=${seed} at=${run.s}`);
+      assert.ok(run.s >= 3000);
+      assert.equal(run.speed, RULES.maxSpeed);
+    }
+});
+
+test('full rows require the correct timed action, including between lane centers', () => {
+  for (const wave of [3, 6])
+    for (const lane of [0, 0.49, 0.51, 1, 1.5, 2]) {
+      for (const action of [null, 'jump', 'slide']) {
+        const run = createRun();
+        run.obstacles = waveAt(wave, run.seed, run.departure);
+        run.s = run.obstacles[0].at - RULES.startSpeed * 0.38;
+        run.lane = run.laneVisual = lane;
+        run.nextWave = 1000;
+        if (action) act(run, action);
+        updateRun(run, 0.5);
+        const correct = action === (wave === 3 ? 'jump' : 'slide');
+        assert.equal(run.health, correct ? 3 : 2, `${wave}/${lane}/${action}`);
+        assert.equal(run.successes, correct ? 1 : 0);
+      }
+    }
+});
+
+test('trench collision covers entry, landing and lane changes until the far lip', () => {
+  const make = () => {
+    const run = createRun();
+    run.obstacles = [
+      { id: 'gap', type: 'gap', lane: 1, at: 12, wave: 0, resolved: false, offset: 0 },
+    ];
+    run.nextWave = 1000;
+    return run;
+  };
+  const walk = make();
+  walk.s = 9.9;
+  updateRun(walk, 0.03);
+  assert.equal(walk.phase, 'lost');
+  const jump = make();
+  jump.s = 12 - RULES.startSpeed * 0.38;
+  act(jump, 'jump');
+  updateRun(jump, 0.6);
+  assert.equal(jump.health, 3);
+  assert.equal(jump.successes, 1);
+  const early = make();
+  early.s = 10.1;
+  early.action = 'jump';
+  early.actionRemaining = 0.11;
+  updateRun(early, 0.12);
+  assert.equal(early.phase, 'lost');
+  const switchIn = make();
+  switchIn.s = 12;
+  switchIn.lane = switchIn.laneVisual = 0;
+  act(switchIn, 'right');
+  updateRun(switchIn, 0.1);
+  assert.equal(switchIn.phase, 'lost');
+  const around = make();
+  around.lane = around.laneVisual = 0;
+  updateRun(around, 1.2);
+  assert.equal(around.phase, 'running');
 });
 
 test('very long runs have bounded active content and capped speed', () => {
@@ -174,8 +263,8 @@ test('very long runs have bounded active content and capped speed', () => {
   updateRun(run, 3600);
   assert.equal(run.phase, 'running');
   assert.ok(run.s > 50000);
-  assert.ok(run.obstacles.length <= 16);
-  assert.ok(run.pickups.length <= 24);
+  assert.ok(run.obstacles.length <= 27);
+  assert.ok(run.pickups.length <= 27);
   assert.ok(run.speed <= RULES.maxSpeed);
   assert.ok(run.practice);
 });

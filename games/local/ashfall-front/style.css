@@ -287,8 +287,7 @@ h1:after {
   display: flex;
   gap: 8px;
 }
-#system-tools button,
-#game button[data-game-fullscreen] {
+#system-tools button {
   min-height: 44px !important;
   min-width: 44px !important;
   border: 1px solid var(--line) !important;

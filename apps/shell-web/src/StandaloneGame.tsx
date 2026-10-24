@@ -93,11 +93,6 @@ export function StandaloneGame({
         )}
         {!immersive && (
           <>
-            {id !== 'night-overwatch' && (
-              <button type="button" data-game-fullscreen>
-                全屏
-              </button>
-            )}
             <a href={entry} target="_blank" rel="noreferrer">
               独立打开
             </a>
@@ -111,8 +106,7 @@ export function StandaloneGame({
         }}
         title={title}
         src={entry}
-        allow={id === 'echo-lab' ? 'autoplay; fullscreen; microphone' : 'autoplay; fullscreen'}
-        allowFullScreen
+        allow={id === 'echo-lab' ? 'autoplay; microphone' : 'autoplay'}
       />
     </main>
   );

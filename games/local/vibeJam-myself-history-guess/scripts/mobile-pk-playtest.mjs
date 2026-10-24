@@ -340,10 +340,7 @@ async function coreSuite() {
   assert.notEqual(await page.locator('#sound').getAttribute('aria-pressed'), sound);
   await capture(page, 'settings-390');
   await touchTargets(page);
-  await page.locator('[data-game-fullscreen]').tap();
-  await page.waitForFunction(() => Boolean(document.fullscreenElement));
-  await page.locator('[data-game-fullscreen]').tap();
-  await page.waitForFunction(() => !document.fullscreenElement);
+  assert.equal(await page.locator('[data-game-fullscreen]').count(), 0);
   await page.reload();
   await page.locator('#start').tap();
   await capture(page, 'prepare-390');
@@ -461,7 +458,7 @@ async function coreSuite() {
   assert.equal(await page.locator('.source-link').count(), 0);
   await context.close();
   observations.push(
-    '390px touch flow: home/help/settings/fullscreen, panorama drag/cancel, true map tap, invalid year/BCE, pause/resume, persisted guesses/results, one-time score, three-round completion, retry and private journal',
+    '390px touch flow: home/help/settings without fullscreen, panorama drag/cancel, true map tap, invalid year/BCE, pause/resume, persisted guesses/results, one-time score, three-round completion, retry and private journal',
   );
 
   for (const [width, height, label] of [

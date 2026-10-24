@@ -68,12 +68,12 @@
       "assertion": "44px thumb target completes the stage"
     },
     {
-      "id": "fullscreen",
+      "id": "no-fullscreen",
       "orientation": "landscape",
       "input": "mouse",
       "container": "standalone",
-      "sequence": "settings → fullscreen entry/exit where supported → rejected request",
-      "assertion": "rejection preserves saved rings and usable settings"
+      "sequence": "settings opened in the normal browser viewport",
+      "assertion": "settings has no fullscreen control"
     },
     {
       "id": "storage-corrupt",
@@ -119,7 +119,7 @@
   "constraints": [
     "Portrait is Orbit's product orientation; landscape uses a compact responsive layout, not a rotated container.",
     "CDP touch requires Chromium with hasTouch=true. It cannot attest native host or real device input.",
-    "Mouse fullscreen success is conditional on fullscreenEnabled; rejection fallback is mandatory.",
+    "Browser entries expose no fullscreen controls or requests.",
     "A lifecycle interruption requires an active drag with a changed angle before blur/hidden, then stale release before fresh input.",
     "Sandbox iframe uses allow-scripts allow-same-origin and fullscreen, matching the existing test fixture; it is not the Shell host."
   ],

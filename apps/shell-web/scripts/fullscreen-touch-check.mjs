@@ -51,20 +51,12 @@ try {
       const frame = await (await page.locator('iframe').elementHandle()).contentFrame();
       await expect(frame.locator('#board button').first()).toBeVisible();
       const body = await frame.locator('body').elementHandle();
-      const toggle = page.locator('nav [data-game-fullscreen]');
-      await toggle.tap();
-      await expect
-        .poll(() => page.evaluate(() => globalThis.document.fullscreenElement?.tagName))
-        .toBe('MAIN');
+      await expect(page.locator('[data-game-fullscreen]')).toHaveCount(0);
+      await expect(frame.locator('[data-game-fullscreen]')).toHaveCount(0);
       await exerciseStandalone(frame, 'letters-words2', true);
       const storage = await frame.evaluate(() =>
         JSON.stringify(Object.fromEntries(Object.entries(globalThis.localStorage))),
       );
-      await toggle.tap();
-      await expect(toggle).toHaveText('全屏');
-      await expect
-        .poll(() => page.evaluate(() => !!globalThis.document.fullscreenElement))
-        .toBe(false);
       assert.equal(await body.evaluate((element) => element.isConnected), true);
       assert.equal(
         await frame.evaluate(() =>
@@ -74,8 +66,6 @@ try {
       );
       await frame.locator('#board button:enabled:not([aria-disabled="true"])').first().tap();
       await expect(frame.locator('#answer-slots .filled')).toHaveCount(1);
-      await toggle.tap();
-      await expect(toggle).toHaveText('退出全屏');
       await page.getByRole('button', { name: '返回目录', exact: true }).tap();
       await expect(page.locator('iframe')).toHaveCount(0);
       await expect
@@ -83,7 +73,7 @@ try {
         .toBe(false);
       assert.deepEqual(result.errors, []);
       result.status = 'passed';
-      console.log(`PASS fullscreen touch ${attempt + 1}: undo, exit, continue and return`);
+      console.log(`PASS normal viewport touch ${attempt + 1}: undo, exit, continue and return`);
     } catch (error) {
       result.status = 'failed';
       result.error = error.stack || error.message;

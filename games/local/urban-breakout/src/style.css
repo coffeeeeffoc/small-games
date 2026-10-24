@@ -61,11 +61,6 @@ button:active:not(:disabled) {
   isolation: isolate;
   box-shadow: 0 12px 60px #1d3b4338;
 }
-.stage:fullscreen {
-  width: 100vw;
-  height: 100dvh;
-  max-width: none;
-}
 .scene {
   position: absolute;
   inset: 0;
@@ -993,9 +988,6 @@ kbd {
   .start-screen {
     padding-left: 23px;
     padding-right: 23px;
-  }
-  .stage:fullscreen {
-    height: 100dvh;
   }
   .focus-status {
     font-size: 9px;

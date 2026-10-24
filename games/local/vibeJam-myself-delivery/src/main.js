@@ -185,14 +185,6 @@ $('minimap-button').onclick = showMap;
 $('interact').onclick = doInteract;
 $('sound').onclick = () => { audio.unlock(); muted = !muted; audio.mute(muted); soundLabel(); save(); };
 function soundLabel() { $('sound').textContent = muted ? '♪̸' : '♫'; $('sound').setAttribute('aria-label', muted ? '开启声音' : '关闭声音'); $('sound').setAttribute('aria-pressed', String(muted)); }
-$('fullscreen').onclick = async () => {
-  try {
-    if (document.fullscreenElement) await document.exitFullscreen();
-    else if (document.documentElement.requestFullscreen) { await document.documentElement.requestFullscreen(); await screen.orientation?.lock?.('landscape').catch(() => {}); }
-    else { s.message = '此浏览器可通过“添加到主屏幕”进入独立窗口'; s.messageTime = 5; if (mode === 'home') showHelp(); }
-  } catch { s.message = '暂时无法全屏，横屏同样可以玩'; s.messageTime = 4; }
-};
-document.addEventListener('fullscreenchange', () => { $('fullscreen').setAttribute('aria-label', document.fullscreenElement ? '退出全屏' : '进入全屏'); resize(); });
 canvas.tabIndex = -1;
 
 function suspend() {

@@ -140,10 +140,9 @@ window.W = (() => {
   }
   window.addEventListener('blur',()=>{clearInput();if(s&&!modal&&!s.won)pause();});document.addEventListener('visibilitychange',()=>{if(document.hidden){clearInput();if(s&&!modal&&!s.won)pause();}});
   $('pause').onclick=()=>pause();$('menu').onclick=()=>tryoutReturn?returnFromTryout():home();$('hint').onclick=()=>showHint();$('home-settings').onclick=()=>pause(true);$('home-levels').onclick=()=>menu();$('home-records').onclick=recordPage;$('start-game').onclick=()=>s.won?start(route.next(s.id)||s.id,false):close();
-  $('sound').onclick=()=>{sound=!sound;$('sound').textContent=sound?'音效：开':'音效：关';$('sound').setAttribute('aria-label',sound?'关闭音效':'开启音效');save();tone();};$('fullscreen').onclick=async()=>{clearInput();try{if(document.fullscreenElement)await document.exitFullscreen();else if($('game').requestFullscreen)await $('game').requestFullscreen();else $('fullscreen').textContent='当前设备不支持全屏';}catch{$('fullscreen').textContent='保持当前画面游玩';}};document.addEventListener('fullscreenchange',()=>{$('fullscreen').setAttribute('aria-label',document.fullscreenElement?'退出全屏':'进入全屏');$('fullscreen').textContent=document.fullscreenElement?'退出全屏':'进入全屏';});
+  $('sound').onclick=()=>{sound=!sound;$('sound').textContent=sound?'音效：开':'音效：关';$('sound').setAttribute('aria-label',sound?'关闭音效':'开启音效');save();tone();};
   window.addEventListener('pagehide',()=>{guide.cancel();clearInput();audio?.suspend?.();});
   if(native){
-    $('fullscreen').hidden=true;
     const privacyButton=document.createElement('button');privacyButton.className='secondary';privacyButton.textContent='广告与隐私';privacyButton.onclick=()=>native.privacy();$('settings-tools').append(privacyButton);
     window.addEventListener('wulong:native-pause',()=>{nativeBackground=true;last=0;clearInput();audio?.suspend?.();if(s&&!modal&&!s.won)pause();});
     window.addEventListener('wulong:native-resume',()=>{nativeBackground=false;last=0;});

@@ -17,7 +17,6 @@ const fixed = new Set([
   'style.css',
   'bootstrap.mjs',
   'dev-mode.js',
-  'fullscreen.js',
   'build-info.json',
 ]);
 export function assetFor(requestUrl) {

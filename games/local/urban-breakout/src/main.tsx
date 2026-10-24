@@ -82,15 +82,6 @@ function App() {
                   : s.tick < 77 * HZ
                     ? 'Boss 红色预警出现后，横移躲避'
                     : '攻击左侧吊架控制器，砸落重物破甲';
-  const fullscreen = async () => {
-    try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      else if (stage.current?.requestFullscreen) await stage.current.requestFullscreen();
-      else setNotice('当前浏览器未提供全屏接口');
-    } catch {
-      setNotice('全屏未获浏览器允许，可继续游玩');
-    }
-  };
   return (
     <main className={inBattle ? 'app in-battle' : 'app'}>
       <aside className="desktop-brand">
@@ -351,9 +342,7 @@ function App() {
                 <br />
                 <b>URBAN BREAKOUT</b>
               </span>
-              <button className="icon-btn" onClick={fullscreen} aria-label="全屏">
-                ⛶
-              </button>
+
             </div>
             <div className="start-title">
               <span>第一章 / 老街救援</span>

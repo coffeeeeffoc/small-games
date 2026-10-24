@@ -30,7 +30,7 @@ async function solve(p,touch){const t=touch?await contacts(p):null;
 }
 try{await ready();
  const desktop=await browser.newContext({viewport:{width:1280,height:800}}),p=await open(desktop,base+'?dev=1');
- await p.locator('#intro [data-game-fullscreen]').click();await p.waitForFunction(()=>!!document.fullscreenElement);await p.locator('#intro [data-game-fullscreen]').click();await p.waitForFunction(()=>!document.fullscreenElement);await advance(p,100);checks.push('standalone enter/exit fullscreen');
+ assert.equal(await p.locator('[data-game-fullscreen]').count(),0);await advance(p,100);checks.push('standalone has no fullscreen controls');
  await p.locator('#start-button').click();await advance(p,100);await p.locator('#pause').click();const paused=await snap(p);await advance(p,500);assert.equal((await snap(p)).state.time,paused.state.time);await p.locator('#resume').click();
  await solve(p,false);assert.equal(await p.locator('[data-game-ad]').count(),0);await p.screenshot({path:fileURLToPath(new URL('desktop-result.png',output))});await p.evaluate(()=>{dispatchEvent(new PageTransitionEvent('pagehide',{persisted:true}));dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true}));});checks.push('BFCache restore preserves publishing adapter');await p.locator('#share-challenge').click();await advance(p,30);await expect.poll(()=>p.evaluate(()=>window.__copied)).toEqual(expect.any(String));const shared=await p.evaluate(()=>window.__copied);assert.ok(shared.includes('challenge=frame-v1'));assert.ok(!shared.includes('dev='));checks.push('desktop solve, pause, public challenge URL');
  const saved=await desktop.storageState();

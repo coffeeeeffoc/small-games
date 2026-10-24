@@ -1,4 +1,9 @@
 import {
+  fullscreenRemovalReviews,
+  fullscreenRemovalFileScopes,
+  isFullscreenRemovalDeletion,
+} from './fullscreen-removal-scope.mjs';
+import {
   localRetirementFileScopes,
   localRetirementHeadQueryPaths,
   isReviewedLocalRetirementDeletion,
@@ -584,6 +589,7 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
       const headQueries = [
         ...new Set([
           ...changedPaths.filter((file) => Object.hasOwn(reviewedCleanupDeletions, file)),
+          ...changedPaths.filter((file) => Object.hasOwn(fullscreenRemovalReviews, file)),
           ...Object.keys(tetracubeMoves),
           ...Object.values(tetracubeMoves).map((move) => move.to),
           ...retirementHeadQueryPaths(changedPaths),
@@ -628,6 +634,7 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
               readBase: (file) => git(root, ['show', `${diffBase}:${file}`]),
               headHasPath,
             }) &&
+            !isFullscreenRemovalDeletion({ change, ...catalog, ...retirementContext }) &&
             !isReviewedTetracubeMove({ change, ...catalog, ...retirementContext }) &&
             !isReviewedRetirementDeletion(change, retiredScopes) &&
             !isReviewedLocalRetirementDeletion(change, retiredScopes),
@@ -695,6 +702,7 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
       developerModeFileScopes,
       nativeWorkspaceFileScopes,
       reviewedSharedFileScopes,
+      fullscreenRemovalFileScopes,
       nineNativeFileScopes,
       nineLockFileScopes,
     ])

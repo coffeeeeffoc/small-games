@@ -34,10 +34,7 @@ try {
   assert.equal(await page.evaluate(() => window.urbanSnapshot().tick), paused.tick);
   assert.equal(await page.locator('[role=dialog]').getByRole('button', { name: '切换全屏', exact: true }).count(), 0);
   await page.locator('#resume').click();
-  await page.getByRole('button', { name: '全屏', exact: true }).click();
-  assert.equal(await page.evaluate(() => Boolean(document.fullscreenElement)), true);
-  await page.getByRole('button', { name: '全屏', exact: true }).click();
-  assert.equal(await page.evaluate(() => Boolean(document.fullscreenElement)), false);
+  assert.equal(await page.getByRole('button', { name: '全屏', exact: true }).count(), 0);
   await page.keyboard.down('a');
   await page.waitForFunction(() => window.urbanSnapshot().x <= -3.3);
   await page.keyboard.up('a');

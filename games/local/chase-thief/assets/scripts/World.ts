@@ -1,8 +1,16 @@
 import * as cc from 'cc';
 import { Batch, rgb, disposeMeshNode } from './Geometry.ts';
 import { material } from './Materials.ts';
-import { sampleRoute, lanePosition, segmentInfo, hash } from './core/route.ts';
-import { visibleObstacles, visibleCoins } from './core/simulation.ts';
+import {
+  sampleRoute,
+  lanePosition,
+  segmentInfo,
+  hash,
+  waveAt,
+  WAVE_SPACING,
+  GAP,
+} from './core/route.ts';
+import { visibleObstacles, visibleCoins, RULES } from './core/simulation.ts';
 import type { Run } from './core/simulation.ts';
 
 const SKY = new cc.Color(186, 209, 212, 255);
@@ -41,7 +49,13 @@ class Runner {
     const hips = this.joints.get('hips')!;
     hips.setPosition(0, 0.91 + (action === 'run' ? Math.abs(Math.sin(phase)) * 0.035 : 0), 0);
     for (const n of this.joints.values()) n.setRotationFromEuler(0, 0, 0);
-    this.joints.get('spine')!.setRotationFromEuler(9, Math.sin(phase) * 3, Math.sin(phase) * 2);
+    this.joints
+      .get('spine')!
+      .setRotationFromEuler(
+        15 + Math.max(0, speed - RULES.startSpeed) * 0.6,
+        Math.sin(phase) * 3,
+        Math.sin(phase) * 2,
+      );
     for (const side of ['L', 'R']) {
       const v = side === 'L' ? swing : -swing;
       this.joints.get('thigh' + side)!.setRotationFromEuler(v * 37, 0, 0);
@@ -173,6 +187,14 @@ export class World {
     const parent = new cc.Node('Street ' + index);
     this.root.addChild(parent);
     const start = index * 40;
+    const gaps = [];
+    for (
+      let wave = Math.max(0, Math.floor((start - GAP.length - 38) / WAVE_SPACING));
+      38 + wave * WAVE_SPACING < start + 40 + GAP.length;
+      wave++
+    ) {
+      gaps.push(...waveAt(wave, run.seed, run.departure).filter((o) => o.type === 'gap'));
+    }
     const solids = new Batch(),
       facades = new Batch(),
       road = new Batch(),
@@ -187,17 +209,123 @@ export class World {
       const color = rgb(
         a.district === 'market' ? '#b7a284' : a.district === 'alley' ? '#a9a79c' : '#b8ad96',
       );
-      road.quad(
-        [
-          point(s, -a.width / 2),
-          point(s, a.width / 2),
-          point(s + 2, b.width / 2),
-          point(s + 2, -b.width / 2),
-        ],
-        color,
-        [0, 1, 0],
-        [-a.width / 2, s, a.width / 2, s, b.width / 2, s + 2, -b.width / 2, s + 2],
-      );
+      for (const lane of [0, 1, 2]) {
+        const hole = gaps.find(
+          (o) => o.lane === lane && s >= o.at - GAP.length / 2 && s < o.at + GAP.length / 2,
+        );
+        const center = 1 - lane,
+          left = center - GAP.width / 2,
+          right = center + GAP.width / 2;
+        const bands = hole
+          ? [
+              [center - 0.5, left],
+              [right, center + 0.5],
+            ]
+          : [[center - 0.5, center + 0.5]];
+        for (const [lo, hi] of bands) {
+          road.quad(
+            [
+              point(s, (lo * a.width) / 3),
+              point(s, (hi * a.width) / 3),
+              point(s + 2, (hi * b.width) / 3),
+              point(s + 2, (lo * b.width) / 3),
+            ],
+            color,
+            [0, 1, 0],
+            [
+              (lo * a.width) / 3,
+              s,
+              (hi * a.width) / 3,
+              s,
+              (hi * b.width) / 3,
+              s + 2,
+              (lo * b.width) / 3,
+              s + 2,
+            ],
+          );
+        }
+        if (!hole) continue;
+        const edge = (at: number, lateral: number, depth = 0) =>
+          point(at, lateral * sampleRoute(at, run.seed, run.departure).laneWidth, depth);
+        solids.quad(
+          [
+            edge(s, left, -GAP.depth),
+            edge(s, right, -GAP.depth),
+            edge(s + 2, right, -GAP.depth),
+            edge(s + 2, left, -GAP.depth),
+          ],
+          rgb('#101719'),
+          [0, 1, 0],
+        );
+        for (const side of [left, right]) {
+          for (let layer = 0; layer < 3; layer++)
+            solids.quad(
+              [
+                edge(s, side, (-layer * GAP.depth) / 3),
+                edge(s + 2, side, (-layer * GAP.depth) / 3),
+                edge(s + 2, side, (-(layer + 1) * GAP.depth) / 3),
+                edge(s, side, (-(layer + 1) * GAP.depth) / 3),
+              ],
+              rgb(['#70583f', '#3d332b', '#171d1e'][layer]),
+              [side === left ? 1 : -1, 0, 0],
+            );
+          for (let z = s; z < s + 2; z += 0.5) {
+            const lip = edge(z + 0.25, side);
+            solids.box(lip[0], lip[1] - 0.04, lip[2], 0.16, 0.17, 0.44, rgb('#b6aa90'), a.heading);
+          }
+        }
+        for (const z of [s, s + 2]) {
+          if (Math.abs(z - hole.at) !== GAP.length / 2) continue;
+          for (let layer = 0; layer < 3; layer++)
+            solids.quad(
+              [
+                edge(z, left, (-layer * GAP.depth) / 3),
+                edge(z, right, (-layer * GAP.depth) / 3),
+                edge(z, right, (-(layer + 1) * GAP.depth) / 3),
+                edge(z, left, (-(layer + 1) * GAP.depth) / 3),
+              ],
+              rgb(['#927654', '#4b3b2b', '#1a2020'][layer]),
+              [0, 0, z < hole.at ? 1 : -1],
+            );
+          for (let k = 0; k < 6; k++) {
+            const lip = edge(z, left + (GAP.width * (k + 0.5)) / 6);
+            const rough = hash(hole.wave * 31 + k, run.seed);
+            solids.box(
+              lip[0],
+              lip[1] - 0.06,
+              lip[2],
+              (a.laneWidth * GAP.width) / 6 - 0.025,
+              0.18 + rough * 0.08,
+              0.2 + rough * 0.12,
+              rgb(k % 2 ? '#b4a487' : '#c9b99a'),
+              a.heading,
+            );
+          }
+          for (const side of [-1, 1]) {
+            const marker = edge(z + (z < hole.at ? -0.3 : 0.3), center + side * 0.34);
+            solids.box(
+              marker[0],
+              marker[1] + 0.025,
+              marker[2],
+              0.45,
+              0.04,
+              0.24,
+              rgb('#e5b63e'),
+              a.heading,
+            );
+            solids.box(
+              marker[0],
+              marker[1] + 0.049,
+              marker[2],
+              0.12,
+              0.01,
+              0.25,
+              rgb('#302e26'),
+              a.heading,
+            );
+          }
+        }
+      }
       for (const side of [-1, 1]) {
         solids.quad(
           [
@@ -369,7 +497,8 @@ export class World {
           shadeB = point(s + 4, (side * p.width) / 2, 0.012);
         const shadeC = point(s + 5, side * (p.width / 2 - 1.35), 0.012),
           shadeD = point(s - 3, side * (p.width / 2 - 1.35), 0.012);
-        shadows.quad([shadeA, shadeB, shadeC, shadeD], [0.15, 0.2, 0.19, 0.18], [0, 1, 0]);
+        if (!gaps.some((o) => Math.abs(o.at - s) < 7))
+          shadows.quad([shadeA, shadeB, shadeC, shadeD], [0.15, 0.2, 0.19, 0.18], [0, 1, 0]);
       }
       if (p.split > 0.65) {
         solids.add(this.art.meshes.pot, p.x, p.y + 0.38, p.z, 0.9, yaw);
@@ -411,30 +540,14 @@ export class World {
     if (n) return n;
     n = new cc.Node(type + ' ' + id);
     this.root.addChild(n);
-    if (type === 'gap') {
-      const b = new Batch();
-      b.box(0, 0.013, 0, 2.3, 0.025, 1.8, rgb('#283c3c'));
-      for (const side of [-1, 1]) b.box(side * 1.2, 0.04, 0, 0.1, 0.08, 2, rgb('#ddc97d'));
-      const mesh = cc.utils.createMesh(b.data as any, undefined, { calculateBounds: true });
-      const r = n.addComponent(cc.MeshRenderer);
-      r.setMaterial(this.solid, 0);
-      r.mesh = mesh;
-      n['ownedMesh'] = mesh;
-    } else {
-      const r = n.addComponent(cc.MeshRenderer);
-      r.setMaterial(this.solid, 0);
-      r.mesh = this.meshes.get(type)!;
-    }
-    if (type !== 'coin' && type !== 'gap' && type !== 'barrel')
-      this.contact(n, type === 'beam' ? 1.3 : 0.7, 0.6);
+    const r = n.addComponent(cc.MeshRenderer);
+    r.setMaterial(this.solid, 0);
+    r.mesh = this.meshes.get(type)!;
+    if (type !== 'coin' && type !== 'barrel') this.contact(n, type === 'beam' ? 1.3 : 0.7, 0.6);
     this.objects.set(id, n);
     return n;
   }
   releaseObject(n: cc.Node) {
-    if (n['ownedMesh']) {
-      n.getComponent(cc.MeshRenderer)!.mesh = null;
-      n['ownedMesh'].destroy();
-    }
     n.destroy();
   }
   update(run: Run, dt: number, home = false, reducedMotion = false) {
@@ -450,6 +563,7 @@ export class World {
       }
     const active = new Set<string>();
     for (const o of visibleObstacles(run)) {
+      if (o.type === 'gap') continue; // Trenches belong to the cut road mesh and share its lifetime.
       active.add(o.id);
       const p = sampleRoute(o.at, run.seed, run.departure);
       const at = lanePosition(
@@ -459,6 +573,7 @@ export class World {
         run.departure,
       );
       const n = this.object(o.id, o.type);
+      if (o.fullWidth) n.setScale((p.laneWidth + 0.08) / (o.type === 'beam' ? 2.3 : 1.9), 1, 1);
       n.setPosition(at.x, at.y, at.z);
       n.setRotationFromEuler(0, at.heading * radians, 0);
       if (o.type === 'barrel') {
@@ -568,7 +683,8 @@ export class World {
         ahead.z - Math.sin(ahead.heading) * follow - this.origin,
       ),
     );
-    this.camera.fov = reducedMotion ? 57 : 57 + Math.max(0, run.speed - 9) * 0.55;
+    this.camera.fov =
+      reducedMotion || home ? 57 : 60 + Math.max(0, run.speed - RULES.startSpeed) * 0.65;
   }
   stats() {
     return {

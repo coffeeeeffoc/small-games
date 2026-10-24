@@ -118,8 +118,7 @@ export async function mountCageRescue(host) {
       touchAction =
         button &&
         $('game').contains(button) &&
-        !button.disabled &&
-        !button.hasAttribute('data-game-fullscreen')
+        !button.disabled
           ? { button, id: event.pointerId, x: event.clientX, y: event.clientY }
           : null;
     },
@@ -171,8 +170,7 @@ export async function mountCageRescue(host) {
       if (
         event.isTrusted &&
         event.detail > 0 &&
-        performance.now() - lastTouchActivation < 700 &&
-        !event.target.closest('[data-game-fullscreen]')
+        performance.now() - lastTouchActivation < 700
       ) {
         event.preventDefault();
         event.stopImmediatePropagation();

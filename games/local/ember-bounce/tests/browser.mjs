@@ -320,21 +320,10 @@ try {
   await expect.poll(async () => (await snapshot(desk)).shots).toBeGreaterThan(before.shots);
   await desk.locator('#pause').click();
   await expect(desk.locator('body')).toHaveAttribute('data-phase', 'paused');
-  const beforeFullscreen = await snapshot(desk);
-  const full = desk.locator('[data-game-fullscreen]:visible').first();
-  await expect(full).toBeVisible();
-  await full.click();
-  await expect(full).toHaveAttribute('aria-pressed', 'true');
-  assert.equal(
-    (await snapshot(desk)).turn,
-    beforeFullscreen.turn,
-    'Fullscreen must keep the current turn',
-  );
-  await full.click();
-  await expect(full).toHaveAttribute('aria-pressed', 'false');
+  await expect(desk.locator('[data-game-fullscreen]')).toHaveCount(0);
   await desk.screenshot({ path: fileURLToPath(new URL('desktop-paused.png', output)) });
   await desk.locator('#back-home').click();
-  checks.push('desktop mouse and fullscreen entry/exit');
+  checks.push('desktop mouse and pause without fullscreen controls');
   // Deliberately abandon every real volley through the player's recall control.
   // This exercises the actual warning boundary, normal loss and retry without
   // a developer result action or state mutation.

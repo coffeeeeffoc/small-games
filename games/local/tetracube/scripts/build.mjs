@@ -76,13 +76,14 @@ if (target === 'web-mobile' && process.env.TETRACUBE_PREBUILT_DIR) {
   let html = await readFile(path.join(out, 'index.html'), 'utf8');
   html = html
     .replace(/<title>.*?<\/title>/, '<title>重力方舱 · Tetracube</title>')
+    .replace(/<meta name="(?:full-screen|x5-fullscreen|360-fullscreen)"[^>]*>/g, '')
     .replace('minimal-ui=true', 'viewport-fit=cover')
     .replace(
       '</head>',
-      '<link rel="icon" href="data:,"><style>:root{--safe-top:env(safe-area-inset-top,0px);--safe-right:env(safe-area-inset-right,0px);--safe-bottom:env(safe-area-inset-bottom,0px);--safe-left:env(safe-area-inset-left,0px)}html,body{height:100%;width:100%;margin:0;background:#061522;overflow:hidden}canvas{touch-action:none;outline:none}[hidden]{display:none!important}#GameDiv{position:fixed;inset:0;width:100%;height:100%;border:0;margin:0}#GameCanvas{width:100%;height:100%}</style><script src="./dev-mode.js"></script><script src="./fullscreen.js"></script><script type="module" src="./host.js"></script></head>',
+      '<link rel="icon" href="data:,"><style>:root{--safe-top:env(safe-area-inset-top,0px);--safe-right:env(safe-area-inset-right,0px);--safe-bottom:env(safe-area-inset-bottom,0px);--safe-left:env(safe-area-inset-left,0px)}html,body{height:100%;width:100%;margin:0;background:#061522;overflow:hidden}canvas{touch-action:none;outline:none}[hidden]{display:none!important}#GameDiv{position:fixed;inset:0;width:100%;height:100%;border:0;margin:0}#GameCanvas{width:100%;height:100%}</style><script src="./dev-mode.js"></script><script type="module" src="./host.js"></script></head>',
     );
   await writeFile(path.join(out, 'index.html'), html);
-  for (const file of ['dev-mode.js', 'fullscreen.js'])
+  for (const file of ['dev-mode.js'])
     await cp(path.join(root, 'scripts', file), path.join(out, file));
   await cp(path.join(root, 'startup/host.js'), path.join(out, 'host.js'));
   await cp(

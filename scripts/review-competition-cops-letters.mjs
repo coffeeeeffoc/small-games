@@ -217,17 +217,7 @@ async function playLetters(player) {
   );
 }
 async function fullscreenCheck(player) {
-  if (player.game === 'cops-robbers') {
-    await expect(player.page.locator('[data-game-fullscreen]')).toHaveCount(0);
-    return;
-  }
-  const before = JSON.stringify(player.room.state);
-  await player.page.locator('dialog[open] [data-game-fullscreen]').click();
-  await expect.poll(() => player.page.evaluate(() => !!document.fullscreenElement)).toBe(true);
-  await player.page.locator('dialog[open] [data-game-fullscreen]').click();
-  await expect.poll(() => player.page.evaluate(() => !!document.fullscreenElement)).toBe(false);
-  assert.equal(JSON.stringify(player.room.state), before);
-  record(`${player.game}: actual browser fullscreen entry/exit preserves board`, true);
+  await expect(player.page.locator('[data-game-fullscreen]')).toHaveCount(0);
 }
 async function failures() {
   const a = await makePlayer('cops-robbers', 'crossgame-a'),
@@ -339,12 +329,7 @@ async function focusChecks() {
       await page.locator('#focus-button').click();
       assert.equal(await page.locator('#answer-slots').innerText(), selected);
     }
-    if (game === 'letters-words2') {
-      await page.locator('[data-game-fullscreen]').first().click();
-      await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(true);
-      await page.locator('[data-game-fullscreen]').first().click();
-      await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(false);
-    } else await expect(page.locator('[data-game-fullscreen]')).toHaveCount(0);
+    await expect(page.locator('[data-game-fullscreen]')).toHaveCount(0);
     record(`${game}: single-player 390x844 board visibility and display controls`, board);
     if (game === 'letters-words2') {
       await page.locator('#pause-button').click();
@@ -446,13 +431,8 @@ async function focusChecks() {
       continue;
     }
     if (game === 'letters-words2') await frame.locator('#focus-button').click();
-    await frame.locator('[data-game-fullscreen]').first().click();
-    await expect(frame.locator('#game-display-notice')).toContainText('浏览器未允许全屏');
+    await expect(frame.locator('[data-game-fullscreen]')).toHaveCount(0);
     assert.equal(await page.frames()[1].evaluate(() => !!document.fullscreenElement), false);
-    record(
-      `${game}: actual iframe Permissions Policy denial has Chinese feedback`,
-      await frame.locator('#game-display-notice').innerText(),
-    );
     await context.close();
   }
 }

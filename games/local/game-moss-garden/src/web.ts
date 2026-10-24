@@ -112,7 +112,6 @@ function resize() {
   game?.redraw();
 }
 function emit(event: PointerEvent, phase: CanvasPointerEvent['phase']) {
-  if ((event.target as HTMLElement).closest?.('[data-game-fullscreen]')) return;
   const bounds = canvas.getBoundingClientRect();
   const x = ((event.clientX - bounds.left) * canvas.width) / bounds.width;
   const y = ((event.clientY - bounds.top) * canvas.height) / bounds.height;
@@ -146,8 +145,7 @@ root.addEventListener(
     // Pointer gestures already dispatch once; keyboard and screen-reader clicks use actions.
     if (!isAccessibleActionClick(event)) return;
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>('button[data-hit-id]');
-    if (button && !button.hasAttribute('data-game-fullscreen'))
-      actionListener?.(button.dataset.hitId!);
+    if (button) actionListener?.(button.dataset.hitId!);
   },
   options,
 );
@@ -170,7 +168,6 @@ function mirror(view: View, hits: HitArea[]) {
     button.setAttribute('aria-label', hit.label);
     button.textContent = hit.label;
     button.dataset.action = hit.id === 'home:start' ? 'start' : hit.id;
-    if (hit.id === 'settings:fullscreen') button.setAttribute('data-game-fullscreen', '');
     button.style.left = `${(hit.x / view.width) * 100}%`;
     button.style.top = `${(hit.y / view.height) * 100}%`;
     button.style.width = `${(hit.width / view.width) * 100}%`;
@@ -320,9 +317,6 @@ try {
       },
       onView: mirror,
       feedback,
-      async fullscreen() {
-        buttons.get('settings:fullscreen')?.click();
-      },
     },
     host,
   );

@@ -39,7 +39,6 @@ let browserVersion;
 let server;
 let browser;
 let status = 'running';
-const fullscreenResult = { supported: false, entered: false, exited: false, denialFallback: false };
 let baseUrl = process.env.ORBIT_URL;
 let core;
 let storageKey;
@@ -824,33 +823,9 @@ try {
   await action(desk, 'home').click();
   await action(desk, 'settings').click();
   await screen(desk, 'settings');
-  const beforeFullscreen = stateOf(await inspect(desk));
-  const fullscreen = desk.locator('[data-game-fullscreen]:visible').first();
-  await expect(fullscreen).toBeVisible();
-  fullscreenResult.supported = await desk.evaluate(() =>
-    Boolean(document.fullscreenEnabled && Element.prototype.requestFullscreen),
-  );
-  if (fullscreenResult.supported) {
-    await fullscreen.click();
-    await expect.poll(() => desk.evaluate(() => Boolean(document.fullscreenElement))).toBe(true);
-    fullscreenResult.entered = true;
-    assertSavedRings(stateOf(await inspect(desk)).rings, beforeFullscreen.rings);
-    await fullscreen.click();
-    await expect.poll(() => desk.evaluate(() => Boolean(document.fullscreenElement))).toBe(false);
-    fullscreenResult.exited = true;
-    assertSavedRings(stateOf(await inspect(desk)).rings, beforeFullscreen.rings);
-  }
-  await desk.evaluate(() => {
-    Element.prototype.requestFullscreen = () =>
-      Promise.reject(new DOMException('Fullscreen denied', 'NotAllowedError'));
+  await verify('no-fullscreen', desk, async () => {
+    await expect(desk.locator('[data-game-fullscreen]')).toHaveCount(0);
   });
-  await fullscreen.click();
-  await screen(desk, 'settings');
-  await expect(app(desk)).toHaveAttribute('data-ready', 'true');
-  await verify('fullscreen', desk, async () =>
-    assertSavedRings(stateOf(await inspect(desk)).rings, beforeFullscreen.rings),
-  );
-  fullscreenResult.denialFallback = true;
   await action(desk, 'help').click();
   await screen(desk, 'help');
   await action(desk, 'back').click();
@@ -992,7 +967,7 @@ try {
       input: 'CDP native touch + mouse',
       viewports: ['390×844', '320×640', '844×390', '1280×900'],
       realDevice: false,
-      fullscreen: fullscreenResult,
+      noFullscreenControls: true,
     },
     checks,
     screenshots,

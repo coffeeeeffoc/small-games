@@ -107,7 +107,6 @@ export class OrbitAtelier extends Component {
   sharePending = false;
   shareStatus = '';
   accessibility?: HTMLDivElement;
-  fullscreen?: HTMLButtonElement;
   disposed = false;
   rewardToken = 0;
   rewardPending = false;
@@ -142,11 +141,6 @@ export class OrbitAtelier extends Component {
       this.accessibility.id = 'orbit-app';
       this.accessibility.setAttribute('aria-label', '星扣工坊');
       document.body.appendChild(this.accessibility);
-      this.fullscreen = document.createElement('button');
-      this.fullscreen.dataset.gameFullscreen = '';
-      this.fullscreen.style.cssText = 'position:fixed;left:-1000px;top:0';
-      this.fullscreen.tabIndex = -1;
-      document.body.appendChild(this.fullscreen);
       platform.__orbit = { snapshot: () => this.snapshot() };
       const invitation = new URLSearchParams(location.search);
       const invited =
@@ -554,14 +548,6 @@ export class OrbitAtelier extends Component {
         );
       }
       u.button('help', '解扣指南', landscape ? x - 120 : x, landscape ? 250 : start + 235, 220);
-      if (sys.isBrowser)
-        u.button(
-          'fullscreen',
-          '全屏显示',
-          landscape ? x + 120 : x,
-          landscape ? 250 : start + 303,
-          220,
-        );
       u.button('classic', '经典星盘 · 原有 74 关', x, landscape ? 328 : start + 371, 280);
     } else if (this.screen === 'help') {
       u.header('指尖的一点星光', 'HOW TO RESTORE A STAR', 'back');
@@ -775,7 +761,6 @@ export class OrbitAtelier extends Component {
       this.mapPage += id === 'map-prev' ? -1 : 1;
       this.render();
     }
-    if (id === 'fullscreen') this.fullscreen?.click();
     if (id === 'undo' && this.run && this.history.length && !isComplete(this.run.state)) {
       this.cancel();
       this.run = restoreUndo(this.run!, this.history.pop()!);
@@ -1184,7 +1169,6 @@ export class OrbitAtelier extends Component {
       delete platform.__orbit;
     }
     this.accessibility?.remove();
-    this.fullscreen?.remove();
     this.ui?.destroy();
   }
 }

@@ -27,7 +27,7 @@ async function invite() {
 let storageWarning = '';
 function save() { try { localStorage.setItem(KEY, JSON.stringify(progress)); storageWarning = ''; } catch { storageWarning = '浏览器未允许本地保存，本次成绩仅在当前页面保留。'; } }
 app.innerHTML = `<header class="topbar"><div class="brand"><span class="stamp">归</span><div><h1>归途站</h1><p id="level-title"></p></div></div><div class="stats"><span>剩余 <b id="remaining">0</b><em> 辆</em></span><div class="progress-track"><i id="progress"></i></div></div><button id="pause" class="square" aria-label="暂停"><svg viewBox="0 0 20 20" width="16" height="20" aria-hidden="true"><rect x="4" y="2" width="4" height="16" fill="currentColor"/><rect x="12" y="2" width="4" height="16" fill="currentColor"/></svg><span>暂停</span></button></header>
-<main id="stage"><div class="stage-caption"><span id="station-status">清空车场 · 有序回家</span><span id="clock">00:00</span></div><div class="stage-tools"><span id="passenger-count"></span><button id="fullscreen" aria-label="切换全屏">⛶</button></div></main>
+<main id="stage"><div class="stage-caption"><span id="station-status">清空车场 · 有序回家</span><span id="clock">00:00</span></div><div class="stage-tools"><span id="passenger-count"></span></div></main>
 <footer class="console"><div class="guidance"><span class="guide-step" id="step">01</span><p id="hint"></p><button id="speed" aria-label="切换模拟速度">1×</button></div><div id="selection"></div><div class="console-foot"><span>有序出发 · 好好团圆</span><button id="sound">声音 开</button></div></footer>
 <div id="notice" role="status" aria-live="polite"></div><dialog id="dialog" aria-labelledby="dialog-title"></dialog>`;
 const el = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -175,13 +175,6 @@ el('pause').onclick = pause;
 el('speed').onclick = () => { speed = speed === 3 ? 1 : speed + 1; updateHud(); };
 el('sound').onclick = () => { progress.sound = !progress.sound; save(); beep(); updateHud(); };
 
-el('fullscreen').onclick = async () => {
-  try {
-    if (document.fullscreenElement) await document.exitFullscreen();
-    else if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
-    else notice('此浏览器暂不提供全屏接口；可添加到主屏幕游玩');
-  } catch { notice('浏览器未允许全屏，请在独立页面再次尝试'); }
-};
 document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal.open) { if (selectedGroup || selectedVehicle) clearSelection(); else pause(); } });
 document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); lastFrame = performance.now(); });
 window.addEventListener('pagehide', () => { state.paused = true; });

@@ -285,14 +285,11 @@ test('hung host playback times out without blocking play or granting reward', as
   assert.equal(resumed, 1);
 });
 
-test('fullscreen entered after setup keeps the dismiss button inside the visible game tree', async () => {
+test('simulation modal uses the ordinary page body by default', async () => {
   const doc = fixture();
   const provider = createSimulationAdProvider({ document: doc });
-  const fullscreen = new Element(doc);
-  doc.body.append(fullscreen);
-  doc.fullscreenElement = fullscreen;
   const pending = provider.show({});
-  assert.equal(fullscreen.children[0].attributes['data-game-ad'], 'mock');
+  assert.equal(doc.body.children[0].attributes['data-game-ad'], 'mock');
   assert.equal(doc.body.children.length, 1);
   provider.dispose();
   assert.deepEqual(await pending, { status: 'dismissed' });

@@ -11,7 +11,6 @@ for (const file of [
   'index.html',
   'style.css',
   'dev-mode.js',
-  'fullscreen.js',
   'leaderboard.mjs',
   'src',
 ]) {

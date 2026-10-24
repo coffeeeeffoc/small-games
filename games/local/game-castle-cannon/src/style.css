@@ -77,15 +77,6 @@ canvas {
   outline: 4px solid #2a779e;
   outline-offset: -3px;
 }
-.castle-fullscreen {
-  position: absolute !important;
-  right: max(14px, env(safe-area-inset-right));
-  bottom: max(10px, env(safe-area-inset-bottom));
-  z-index: 3;
-}
-.castle-fullscreen[hidden] {
-  display: none !important;
-}
 .castle-server-editor {
   position: absolute;
   z-index: 5;

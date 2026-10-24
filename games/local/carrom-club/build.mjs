@@ -10,7 +10,6 @@ for (const file of [
   'style.css',
   'favicon.svg',
   'dev-mode.js',
-  'fullscreen.js',
   'src',
   'assets',
 ]) {

@@ -330,16 +330,7 @@ async function edges(players) {
     await a.page.locator('[data-rules]').click();
   }
   await a.page.setViewportSize({ width: 390, height: 844 });
-  const code = a.room.code;
-  if (a.game === 'cops-robbers-realtime') {
-    await expect(a.page.locator('[data-game-fullscreen]')).toHaveCount(0);
-  } else {
-    await a.page.locator('dialog [data-game-fullscreen]').click();
-    await a.page.waitForTimeout(300);
-    const fullscreen = await a.page.evaluate(() => !!document.fullscreenElement);
-    record(`${a.game}: actual fullscreen`, { fullscreen, roomUnchanged: code === a.room.code });
-    if (fullscreen) await a.page.locator('dialog [data-game-fullscreen]').click();
-  }
+  await expect(a.page.locator('[data-game-fullscreen]')).toHaveCount(0);
   const before = a.room.state.elapsedMs,
     beforeServerTime = a.room.serverNow;
   await a.context.setOffline(true);

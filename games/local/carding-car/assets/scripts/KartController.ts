@@ -21,7 +21,6 @@ export class KartController {
     private toggleMode: () => void = () => {},
     private settings: () => void = () => {},
     private settingsOpen: () => boolean = () => false,
-    private fullscreen: () => void = () => {},
     private home?: () => void,
   ) {
     input.on(Input.EventType.KEY_DOWN, this.keyDown, this);
@@ -153,7 +152,6 @@ export class KartController {
       if (contains(settingsLayout.close, x, y)) this.settings();
       else if (contains(settingsLayout.sound, x, y)) this.sound();
       else if (contains(settingsLayout.help, x, y)) this.help();
-      else if (contains(settingsLayout.fullscreen, x, y)) this.fullscreen();
       return;
     }
     if (contains(settingsLayout.open, x, y)) {

@@ -1,5 +1,4 @@
 import '../dev-mode.js';
-import './fullscreen.js';
 import './style.css';
 import { createH5Publishing } from '../../../../platforms/h5/publishing.js';
 import { pickTouchRing } from './touch.ts';
@@ -209,7 +208,7 @@ function render() {
       )
       .join(
         '',
-      )}<div class="stack">${button('help', '解扣指南', 'secondary')}<button type="button" data-game-fullscreen>全屏</button></div></section>`;
+      )}<div class="stack">${button('help', '解扣指南', 'secondary')}</div></section>`;
   if (screen === 'help')
     content = `${topbar('解扣指南', 'back')}<section class="help"><div class="help-illustration">${heroArt()}</div><h2>转一转，找一个出口</h2><p>按住圆环的实心部分，沿圆周拖动。让缺口盖住与其他圆环的两处交点，再松手。</p><h3>从外围开始</h3><p>一只圆环连着多个方向时，先解开它旁边的圆环。已经没有连接的圆环，点一下即可收起。</p><h3>解开星栓</h3><p>带锁标记的圆环暂时固定。先解开其他圆环，达到所需数量后，星栓会自动开启。</p><h3>随时慢下来</h3><p>撤回可恢复上一次转动。提示会标出能解开的圆环和缺口方向。使用提示会获得一颗星，独立完成可获得更多星光。</p>${button('back', '明白了', 'primary')}</section>`;
   app.innerHTML = `<div class="paper-frame">${content}<div id="feedback" role="status" aria-live="polite"></div></div>`;

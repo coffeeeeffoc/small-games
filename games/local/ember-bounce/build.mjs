@@ -10,7 +10,6 @@ await mkdir(dist, { recursive: true });
 for (const file of [
   'index.html',
   'dev-mode.js',
-  'fullscreen.js',
   'style.css',
   'main.mjs',
   'render.mjs',
