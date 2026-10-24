@@ -9,7 +9,7 @@ export const output = path.resolve(
   root,
   process.env.QA_OUTPUT || 'docs/design/cocos-mobile-2026-10-22/actual',
 );
-export async function harness() {
+export async function harness({ sharedRewards = false } = {}) {
   await mkdir(output, { recursive: true });
   const server = createServer(async (req, res) => {
     try {
@@ -21,6 +21,13 @@ export async function harness() {
         return;
       }
       const pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+      if (sharedRewards && pathname.startsWith('/reward-host/')) {
+        const name = pathname.slice('/reward-host/'.length);
+        assert(['game-rewards.js', 'platform-ads.js', 'interstitial.js'].includes(name));
+        res.setHeader('Content-Type', 'text/javascript');
+        res.end(await readFile(new URL('../../../../platforms/h5/' + name, import.meta.url)));
+        return;
+      }
       const base = path.join(root, 'dist');
       const file = path.resolve(base, '.' + (pathname === '/' ? '/index.html' : pathname));
       assert(file.startsWith(base + path.sep));
@@ -34,7 +41,9 @@ export async function harness() {
         '.wav': 'audio/wav',
       }[path.extname(file)];
       res.setHeader('Content-Type', type || 'application/octet-stream');
-      res.end(await readFile(file));
+      let body = await readFile(file);
+      if (sharedRewards && pathname === '/') body = body.toString().replace('<head>', '<head><script type="module" src="/reward-host/game-rewards.js"></script>');
+      res.end(body);
     } catch {
       res.writeHead(404).end();
     }
@@ -43,12 +52,13 @@ export async function harness() {
   const url = process.env.GAME_URL || `http://127.0.0.1:${server.address().port}`;
   const browser = await chromium.launch({ headless: true });
   const errors = [];
-  const open = async ({ width = 390, height = 844, profile, query = '', sdk, storageDev } = {}) => {
+  const open = async ({ width = 390, height = 844, profile, query = '', sdk, storageDev, recordVideo = false, touchEnabled = true } = {}) => {
     const context = await browser.newContext({
       viewport: { width, height },
-      hasTouch: true,
-      isMobile: true,
+      hasTouch: touchEnabled,
+      isMobile: touchEnabled,
       deviceScaleFactor: 1,
+      ...(recordVideo ? { recordVideo: { dir: path.join(output, 'recordings'), size: { width, height } } } : {}),
     });
     if (profile || storageDev !== undefined)
       await context.addInitScript(

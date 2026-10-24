@@ -3,6 +3,7 @@ import { chromium } from '@playwright/test';
 import { writeFile, mkdir } from 'node:fs/promises';
 import { sourceHash } from '../scripts/artifact.mjs';
 import { waitForImpact, evidenceDirectory, acceptanceBuild } from './flight-browser.mjs';
+import { press as press } from './flight-browser.mjs';
 
 const base = process.env.NIGHT_URL || 'http://localhost:4318';
 const build = await acceptanceBuild(base);
@@ -40,38 +41,15 @@ try {
       p.screenshot({
         path: `${dir}/refined-${width}-${name}.png`,
       });
-    async function click(id) {
-      const visible = await snap();
-      if (
-        !visible.buttons.some((b) => b.id === id) &&
-        visible.buttons.some((b) => b.id === 'flightControls')
-      )
-        await click('flightControls');
-      await p.waitForFunction(
-        (id) => globalThis.__night?.snapshot().buttons.some((b) => b.id === id),
-        id,
-      );
-      const b = (await snap()).buttons.find((b) => b.id === id);
-      assert(
-        b.x >= 0 && b.y >= 0 && b.x + b.w <= width && b.y + b.h <= height,
-        `${id} inside viewport`,
-      );
-      if (touch) await p.touchscreen.tap(b.x + b.w / 2, b.y + b.h / 2);
-      else await p.mouse.click(b.x + b.w / 2, b.y + b.h / 2);
-      await p.waitForTimeout(100);
-    }
+    const click = id => press(p, id, touch);
     await p.goto(base);
     await p.waitForFunction(() => globalThis.__night?.snapshot().audio === 'ready');
     await p.waitForFunction(() => !document.getElementById('night-startup'));
-    await click('fullscreen');
-    await p.waitForFunction(() => !!document.fullscreenElement);
-    await click('fullscreen');
-    await p.waitForFunction(() => !document.fullscreenElement);
     await click('start');
     let s = await snap();
     assert(
-      s.buttons.some((b) => b.id === 'fullscreen'),
-      'Live fullscreen never requires opening tools',
+      !s.buttons.some((b) => b.id === 'fullscreen'),
+      'No fullscreen action remains',
     );
     assert(!s.ui.fire.includes('LMB'));
     if (touch) assert(s.ui.fire.includes('按住开火'));
@@ -116,10 +94,6 @@ try {
       await shot('heavy-impact');
     }
     const beforeFullscreen = await snap();
-    await click('fullscreen');
-    await p.waitForFunction(() => !!document.fullscreenElement);
-    await click('fullscreen');
-    await p.waitForFunction(() => !document.fullscreenElement);
     s = await snap();
     assert(s.time >= beforeFullscreen.time && s.progress >= beforeFullscreen.progress);
     assert.equal(s.held.length, 0);
@@ -129,10 +103,6 @@ try {
     assert((await snap()).pauses.includes('settings'));
     await click('help');
     const helpTime = (await snap()).time;
-    await click('fullscreen');
-    await p.waitForFunction(() => !!document.fullscreenElement);
-    await click('fullscreen');
-    await p.waitForFunction(() => !document.fullscreenElement);
     assert.equal((await snap()).time, helpTime);
     await click('close');
     assert.equal((await snap()).modal, 'settings');
@@ -146,8 +116,8 @@ try {
     }
     results.push({
       viewport: { width, height },
-      fullScreenBriefingAndBattle: true,
-      fullScreenHelpKeepsPause: true,
+      noFullscreenControl: true,
+      helpKeepsPause: true,
       fireHint: s.ui.fire,
       renderNodes: s.renderNodes,
       triangles: s.triangles,
@@ -165,7 +135,7 @@ try {
     JSON.stringify({ build, base, results, errors }, null, 2),
   );
   console.log(
-    'Presentation, red friendly warning, launch snapshot and actual fullscreen passed at all 4 viewports',
+    'Presentation, red friendly warning, launch snapshot and fullscreen absence passed at all 4 viewports',
   );
 } finally {
   await browser.close();

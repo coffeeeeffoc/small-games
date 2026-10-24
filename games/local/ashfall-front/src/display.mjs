@@ -34,7 +34,6 @@ export function setupDisplay(game, onChange) {
         new URLSearchParams(location.search).get('platform'),
       ),
   );
-  if (native) game.querySelector('[data-game-fullscreen]').hidden = true;
   function fit() {
     const viewport = window.visualViewport;
     const physicalWidth = Math.max(1, Math.round(viewport?.width || innerWidth));

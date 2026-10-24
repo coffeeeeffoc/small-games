@@ -103,7 +103,7 @@ test('purchase is atomic at insufficient funds, locks, unknown IDs, and maximum 
 test('passive effects combine while pet and penetration respect level unlocks', () => {
   const fresh = profileStats(createProfile());
   assert.equal(fresh.damage, 19);
-  assert.equal(fresh.fireInterval, 0.245);
+  assert.equal(fresh.fireInterval, 0.4);
   assert.equal(fresh.maxHp, 100);
   assert.equal(fresh.petUnlocked, false);
   const upgrades = {
@@ -119,7 +119,7 @@ test('passive effects combine while pet and penetration respect level unlocks', 
   };
   const grown = profileStats(createProfile({ xp: 670, upgrades }));
   assert.ok(Math.abs(grown.damage - 19 * 1.26) < 1e-10);
-  assert.ok(Math.abs(grown.fireInterval - 0.245 / 1.14) < 1e-10);
+  assert.ok(Math.abs(grown.fireInterval - 0.4 / 1.14) < 1e-10);
   assert.equal(grown.maxHp, 130);
   assert.equal(grown.armor, 6);
   assert.equal(grown.seedPower, 1.24);

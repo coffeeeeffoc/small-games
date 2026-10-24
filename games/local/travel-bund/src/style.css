@@ -775,20 +775,6 @@ dialog[open] {
   box-shadow: none;
   border-radius: 16px;
 }
-.fullscreen-control {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-width: 104px;
-  min-height: 44px;
-  padding: 11px 12px;
-  font-size: 12px;
-  white-space: nowrap;
-}
-.fullscreen-control svg {
-  flex: 0 0 18px;
-}
 .display-message {
   flex-shrink: 0;
   margin: 0;
@@ -1631,10 +1617,6 @@ dialog[data-compact-landscape='true'] .settings-footer .primary {
   width: min(280px, 100%);
   min-height: 44px;
   padding: 12px;
-}
-dialog[data-compact-landscape='true'] .fullscreen-control {
-  min-width: 106px;
-  min-height: 44px;
 }
 dialog.panel-map[data-compact-landscape='true'] .panel-content {
   display: grid;

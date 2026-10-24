@@ -1,0 +1,52 @@
+[
+  {
+    "path": "gameplay/screenshots/battle-moving-390.png",
+    "bytes": 396004,
+    "sha256": "e61883cf9fe3d554d10e6e04fde565b67d339435bf931d47a1ec008cbb39e86a"
+  },
+  {
+    "path": "gameplay/screenshots/home-390.png",
+    "bytes": 563904,
+    "sha256": "d1f9eda53983085b906a20b9fbb10d233ff16588874c82c97ecb8bf6e1e08221"
+  },
+  {
+    "path": "gameplay/screenshots/levels-390.png",
+    "bytes": 582622,
+    "sha256": "b8c3ec46ac9624bcb64f6c6558f36589d0da47c1d65016f072c3442f3ac78323"
+  },
+  {
+    "path": "gameplay/screenshots/upgrade-1-390.png",
+    "bytes": 168812,
+    "sha256": "186d55e3e561b9a357f7dd44a456a36796b49185c7488eaadf3bdd03892e36d1"
+  },
+  {
+    "path": "gameplay/screenshots/victory-390.png",
+    "bytes": 229074,
+    "sha256": "42cad416479985d94ed5a096bd49f52149ab58f96638b55ac2e2b78909bf7265"
+  },
+  {
+    "path": "gameplay/videos/first-clear-390x844.webm",
+    "bytes": 3985056,
+    "sha256": "8c130ad377b418644625b841eb024ce9ece91ce6f56f4ccd6c1374198015f698"
+  },
+  {
+    "path": "icon/icon-20261024.png",
+    "bytes": 147720,
+    "sha256": "85d6839f4fe0d8c54f461208e11308e17c89db148db89c4a9dc201c7d9074178"
+  },
+  {
+    "path": "promo/images/garden-adventure-390x844.png",
+    "bytes": 563904,
+    "sha256": "d1f9eda53983085b906a20b9fbb10d233ff16588874c82c97ecb8bf6e1e08221"
+  },
+  {
+    "path": "promo/images/garden-battle-390x844.png",
+    "bytes": 396004,
+    "sha256": "e61883cf9fe3d554d10e6e04fde565b67d339435bf931d47a1ec008cbb39e86a"
+  },
+  {
+    "path": "promo/videos/garden-adventure-390x844.mp4",
+    "bytes": 370133,
+    "sha256": "5238554822973da9507e6629eacdb6f9df5c5ecfbdd8e6fb398a1a6a753d2394"
+  }
+]

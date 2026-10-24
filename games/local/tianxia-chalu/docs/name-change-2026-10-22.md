@@ -1,0 +1,25 @@
+# 《夺城令》更名与历史资料
+
+2026-10-22，游戏由“天下岔路”（更早称“天下插旗”）统一更名为《夺城令》。本次仅调整产品名称和相应交付资料，不改变古代路网改道、屯兵、合流、夺城的规则。
+
+## 当前名称
+
+页面标题、首页主标题与无障碍名称、H5 分享配置、Shell 首页卡片与游戏目录、评估清单、Web 构建输出标题、服务说明与诊断、当前使用说明和相关测试断言均使用“夺城令”。“百战山河”保留为页面副标题。
+
+Cocos 场景、图集、背景及工程配置没有嵌入两个旧中文产品名，不更改其节点、资源或 UUID。当前构建目标为 `web-mobile`；本游戏没有已登记的原生平台包显示名，本次未新增原生包或上传平台后台。
+
+## 兼容标识
+
+保留 `tianxia-chalu` Game ID、目录、包名、独立入口和 Shell 路由、`tianxia-server` 服务名与接口路径、存档 key `tianxia-chalu:v1`、`Tianxia` / `tianxiaSnapshot` 桥接名称、`TIANXIA_*` 环境变量、Cocos 场景和资源 UUID。已存进度、部署脚本和消费者继续使用相同技术标识。
+
+## 保留真实历史
+
+以下旧名属于历史资料，不能把当时的标题、生成提示、截图和验证结果改写成新名称：
+
+- `docs/design/README.md`：早期设计及当时的流程。
+- [历史记录：docs/design/expansion-2026-10-11/](https://github.com/coffeeeeffoc/small-games/tree/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/tianxia-chalu/docs/design/expansion-2026-10-11)：旧版扩展设计和概念图。
+- `docs/design/cocos-2026-10-22/`：更名前的设计、实施、交接、生成提示及实测证据。
+- 仓库 `docs/plans/2026-10-11-game-portfolio-assessment.md`：当日游戏组合评估。
+- 仓库 `docs/agents/game-requirements-sources.md`：原始需求会话标题“讨论并优化天下插旗设计”。
+
+这些位置出现“天下岔路”或“天下插旗”时均指本游戏的旧称；旧截图只证明当时的版本。当前交付材料见[上架资料状态](../publishing/STATUS.md)，新一轮测试报告写入 `reports/`，不覆盖旧证据。

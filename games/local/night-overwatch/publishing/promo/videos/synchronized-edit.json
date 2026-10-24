@@ -1,0 +1,26 @@
+{
+  "sourceHash": "b5b66e9d3f678aa1ec2032b75d8490257c72e85df3444a1a34d5a09d7e45deba",
+  "audio": "silent",
+  "source": "gameplay\\videos\\escort-synchronized-844x390-silent.webm",
+  "segments": [
+    "title 2s",
+    "actual escort 12s starting at 158.352s",
+    "title 2s"
+  ],
+  "filter": "[0:v]trim=duration=2,setpts=PTS-STARTPTS,scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2:color=0x091b2d,setsar=1,fps=25,split=2[intro][outro];[1:v]trim=duration=12,setpts=PTS-STARTPTS,scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2:color=0x091b2d,setsar=1,fps=25[play];[intro][play][outro]concat=n=3:v=1:a=0[out]",
+  "probe": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "codec_type": "video",
+        "width": 1280,
+        "height": 720
+      }
+    ],
+    "format": {
+      "duration": "16.000000"
+    }
+  }
+}

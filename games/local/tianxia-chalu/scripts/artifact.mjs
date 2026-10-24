@@ -15,7 +15,6 @@ export async function sourceHash(directory = fileURLToPath(root)) {
     'audio.mjs',
     'rewards.mjs',
     'publishing.js',
-    'fullscreen.js',
     'favicon.svg',
   ];
   for (const dir of ['assets', 'scripts', 'settings', 'art', 'src'])
@@ -59,7 +58,7 @@ export async function verifyPrebuilt(directory) {
     info.sourceHash !== (await sourceHash())
   )
     throw Error(
-      'Tianxia Chalu artifact does not match current sources; rebuild it with Creator 3.8.8.',
+      '夺城令 artifact does not match current sources; rebuild it with Creator 3.8.8.',
     );
   await access(path.join(dist, 'index.html'));
   await access(path.resolve(directory, 'cc.d.ts'));

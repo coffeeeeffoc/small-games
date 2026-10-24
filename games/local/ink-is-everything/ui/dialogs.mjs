@@ -21,8 +21,6 @@ export function createDialogs({
   getSelectedChapter = () => getDefinition().id,
   selectChapter = () => {},
   getChapterState = () => getState(),
-  onFullscreen = () => {},
-  isFullscreen = () => false,
   isMiniGame = () => false,
 }) {
   const dialog = $('#modal');
@@ -76,7 +74,7 @@ export function createDialogs({
     const state = getState(),
       finished = ['won', 'lost'].includes(state.status);
     open(
-      `<div class="pause-layout"><div class="pause-verse"><div class="pause-emblem" aria-hidden="true">墨</div><span class="modal-kicker">${finished ? '这一页已写完' : '旅程已暂停'}</span><h2 id="modal-title">暂且收笔</h2><p>${storage.available ? '墨汁与成长已保存' : '暂无法保存，请保持页面打开'}</p></div><div class="pause-options"><button class="primary-button" ${finished ? 'id="result-restart"' : 'id="resume" data-close'}>${finished ? '再写一页' : '继续旅程'}</button><button class="secondary-button" data-menu="equipment">装备与技能</button><button class="secondary-button" data-menu="reward" ${state.pendingRewards.length && state.status !== 'lost' ? '' : 'disabled'}>可选装备 ${state.pendingRewards.length || ''}</button><button class="secondary-button" id="modal-sound">${audio.muted ? '开启声音' : '关闭声音'}</button>${isMiniGame() ? '' : `<button class="secondary-button" id="modal-fullscreen" aria-pressed="${isFullscreen()}">${isFullscreen() ? '退出全屏' : '全屏'}</button>`}<button class="secondary-button" data-menu="help">帮助</button><button class="secondary-button" data-restart>重新开始</button><button class="secondary-button home-return" data-home>返回主页</button></div></div>`,
+      `<div class="pause-layout"><div class="pause-verse"><div class="pause-emblem" aria-hidden="true">墨</div><span class="modal-kicker">${finished ? '这一页已写完' : '旅程已暂停'}</span><h2 id="modal-title">暂且收笔</h2><p>${storage.available ? '墨汁与成长已保存' : '暂无法保存，请保持页面打开'}</p></div><div class="pause-options"><button class="primary-button" ${finished ? 'id="result-restart"' : 'id="resume" data-close'}>${finished ? '再写一页' : '继续旅程'}</button><button class="secondary-button" data-menu="equipment">装备与技能</button><button class="secondary-button" data-menu="reward" ${state.pendingRewards.length && state.status !== 'lost' ? '' : 'disabled'}>可选装备 ${state.pendingRewards.length || ''}</button><button class="secondary-button" id="modal-sound">${audio.muted ? '开启声音' : '关闭声音'}</button>${isMiniGame() ? '' : ``}<button class="secondary-button" data-menu="help">帮助</button><button class="secondary-button" data-restart>重新开始</button><button class="secondary-button home-return" data-home>返回主页</button></div></div>`,
       'pause',
     );
   }
@@ -259,7 +257,6 @@ export function createDialogs({
       onSoundChange();
       button.textContent = audio.muted ? '开启声音' : '关闭声音';
     }
-    if (button.id === 'modal-fullscreen') onFullscreen();
     if (button.dataset.buy) {
       const result = perform(
         { type: 'buy', itemId: button.dataset.buy, contractId: button.dataset.buy },

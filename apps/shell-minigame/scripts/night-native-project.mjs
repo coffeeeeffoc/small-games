@@ -5,35 +5,20 @@ import { pathToFileURL } from 'node:url';
 
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const normalize = (text) => text.replaceAll('\r\n', '\n');
+// Source no longer exposes fullscreen. Keep reviewed source pins and staging receipts.
 const recipe = [
   {
     file: 'assets/scripts/HUD.ts',
-    originalSha256: '6a35a831c21cc9c95640f0bb18ec6c9956027dabd51e8140d5067d3e8731f9a1',
-    changes: [
-      {
-        before:
-          "    this.button('fullscreen', this.t('全屏', 'FULL SCREEN'), right - (small ? 64 : 88), top + (small ? 12 : 6), small ? 64 : 88, small ? 32 : 44, this.globalControls).fontSize = small ? 11 : 12;",
-        after:
-          "    if (sys.isBrowser) this.button('fullscreen', this.t('全屏', 'FULL SCREEN'), right - (small ? 64 : 88), top + (small ? 12 : 6), small ? 64 : 88, small ? 32 : 44, this.globalControls).fontSize = small ? 11 : 12;",
-      },
-    ],
+    originalSha256: 'eab40aefb34539e6f2c8b941a9db226945409aaaeb35f531abc1aebbe00491ec',
+    changes: [],
   },
   {
     file: 'assets/scripts/Platform.ts',
-    originalSha256: '24eef8e158453c4ac027b2a87afde68fd8fd6c86d3bce34a6dfde2f83b102fc7',
-    changes: [
-      {
-        before: '    return screen.fullScreen();',
-        after: '    return sys.isBrowser && screen.fullScreen();',
-      },
-      {
-        before: '  async fullscreen() {\n    try {',
-        after: '  async fullscreen() {\n    if (!sys.isBrowser) return false;\n    try {',
-      },
-    ],
+    originalSha256: '3709cffde1da1f1e3161936cdf2156a8310bfd6a348244a18a3e7d75a37f2db3',
+    changes: [],
   },
 ];
-export const adaptationRecipeSha256 = sha(JSON.stringify({ version: 1, recipe }));
+export const adaptationRecipeSha256 = sha(JSON.stringify({ version: 2, recipe }));
 async function inventory(root) {
   const files = [];
   async function walk(current) {

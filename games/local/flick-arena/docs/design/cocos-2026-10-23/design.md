@@ -1,0 +1,26 @@
+# 弹指擂台 Cocos 迁移
+
+本次基于 dev `a1f0a810c67ff10dc6491f8d3240c547d5009c22`，保留既有竖屏 390×780 设计、120 关、练习、同机/在线好友、暂停、回放、结算与旧存档。沿用现有认可画面，不重新设计页面：主页突出开始闯关，章节选关与好友擂台保持入口及返回路径；横屏按原比例居中，小屏热区保持至少 44 CSS px。
+
+## 外观基准与实现
+
+基准为 `../campaign-friends-2026-10-11/actual-home.png` 及 [历史记录：../review-2026-10-11/actual-final-play.png](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/flick-arena/docs/design/review-2026-10-11/actual-final-play.png) 等既有实拍。另在当前 Chromium/字体环境运行准确基线进行按钮对比，避免把系统字体差异误判为迁移差异。
+
+按钮保留原金色/木色纵向渐变、两层圆角边框、底部阴影、衬线粗体、禁用透明度、文字尺寸和排列；暂停图标仍为两根实心分离竖条。原绘制函数只烘焙各个静态美术/文字纹理，Cocos Sprite 呈现，不逐帧上传整屏 Canvas。背景粒子、瞄准虚线、拖尾和反馈使用 Graphics；角色移动/淘汰使用精灵变换；擂台收圈使用 Cocos 遮罩，石柱和冰面位置不随半径缩放。
+
+透明 DOM 控件继续提供触屏、键盘和无障碍热区，房间码继续使用输入框。保留 pointer cancel、第二触点隔离、尺寸变化取消拖拽、前后台暂停和资源清理。
+
+## 要求
+
+- 移除主页和暂停页全屏按钮，不加载 H5 全屏脚本。保留仓库管理的闲置同步副本，避免公共同步语义分叉。
+- 继续使用统一 SmallGamesDev：URL/祖先 URL/存储优先级不变，默认关闭、显式 dev=0 优先。面板注册全部 120 关，跳到未解锁关不会写正式存档，普通玩家仍按解锁顺序选关。
+- 加载公共 game-rewards、platform-ads、interstitial 模块。暂无广告位，不显示新广告按钮、不模拟发奖、不改变免费重试/回放。旧发布适配默认广告模式改为 off。
+- 后续由宿主提供 SmallGamesPublishingConfig 中的真实广告配置，使用 SmallGamesRewardAds.offer({id})；只有 completed 可由具体玩法发放奖励。每个新奖励点仍需定义资格、暂停/恢复、局次绑定和防重复发放；本次没有虚构奖励点。
+
+## 引擎及验证边界
+
+使用固定官方 Cocos Engine 3.8.8 源码 commit `411f98df047c25902f93440d4b22925c2fb65461` 的真实 Web 运行库与来源/摘要校验。构建输出记录引擎版本、源码 commit、引擎/渲染器摘要。该路线与仓库 ball-roguelite 一致，**不是 Creator 编辑器导出**。
+
+Web 独立与 Shell/iframe 运行 Cocos；现有原生 Canvas 兼容入口继续共享规则和布局。本次不声称生成 Creator 原生工程或通过微信/抖音真机验收。在线协议与服务端规则未变，未提供真实 Runtime/PostgreSQL 时不以模拟房间冒充联机验收。
+
+验收覆盖原有规则与实际触屏回归、Cocos WebGL/Scene/Sprite/Graphics 运行证据、120 关面板及存档隔离、广告未配置返回 unavailable、连续收圈无新纹理上传、手机/小屏/横屏、Shell 与开关语义。实际结果见 verification.md。

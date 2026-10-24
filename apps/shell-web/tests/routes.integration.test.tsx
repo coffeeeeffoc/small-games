@@ -83,8 +83,11 @@ describe('Web Shell routes', () => {
       const independent = [...container.querySelectorAll('a')].find(
         (link) => link.textContent === '独立打开',
       );
-      if (['tower-brake', 'ember-bounce', 'moss-garden'].includes(id)) {
+      if (['ember-bounce', 'moss-garden'].includes(id)) {
         expect(independent?.getAttribute('href')).toBe(source);
+      } else if (id === 'tower-brake') {
+        expect(independent).toBeUndefined();
+        expect(container.querySelector('main')?.getAttribute('data-immersive')).toBe('true');
       }
       expect(source).not.toContain('token=');
       expect(source).not.toContain('seed=999');

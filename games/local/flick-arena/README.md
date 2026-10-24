@@ -13,6 +13,16 @@
 
 瞄准虚线按同一物理积分计算，包含冰面和石柱，忽略其他圆盘碰撞。拖拽可拉回取消，触点取消、失焦和尺寸变化不会误发射；第二根手指不能接管。横屏缩放后圆盘仍保留至少 44 CSS px 的有效热区。人机局玩家出局后缩短 AI 思考等待，物理速度与在线计时保持原规则。结算可回放最后一弹，回放不重复结算。
 
+## Cocos 渲染与广告
+
+Web 已使用真实 Cocos Engine 3.8.8 官方源码运行库；`src/cocos-runtime.mjs` 管理场景与引擎帧，`src/cocos-render.mjs` 用 Sprite/Graphics/Mask 呈现既有布局。按钮保留原绘制纹理和透明无障碍热区，全屏入口已移除。引擎源码和二进制摘要由 `scripts/build-cocos-engine.mjs` 离线校验；`--rebuild` 可按固定来源重建。此版本不是 Creator 编辑器导出，原生 Canvas 兼容入口保留。
+
+公共激励广告端口为 `globalThis.SmallGamesRewardAds`，由公共 H5 模块提供。单人练习的可选瞄准提示见下方说明；未配置或不可用时正常游玩和拖拽预览不受影响。
+
+迁移说明、截图和实际验证见 [Cocos 迁移记录](docs/design/cocos-2026-10-23/verification.md)。
+
+当前文案、图标、宣传素材及实际录屏见 [上架资料](publishing/STATUS.md)。
+
 ## 运行
 
 ```sh
@@ -44,6 +54,14 @@ FLICK_COMPETITION_API=http://127.0.0.1:4430/api/competition/v1 node games/local/
 
 ## 验证记录
 
-本次复查与扩展方案、效果图、实际手机截图和报告见 [120 关复查](docs/design/review-2026-10-11/README.md)。原有记录保留在 [闯关与好友擂台](docs/design/campaign-friends-2026-10-11/README.md)、[首版](docs/design/README.md) 与 [多回合改造](docs/design/multi-round-2026-10-09/README.md)。
+本次复查与扩展方案、效果图、实际手机截图和报告见 [120 关复查](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/flick-arena/docs/design/review-2026-10-11/README.md)。原有记录保留在 [闯关与好友擂台](docs/design/campaign-friends-2026-10-11/README.md)、[首版](docs/design/README.md) 与 [多回合改造](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/flick-arena/docs/design/multi-round-2026-10-09/README.md)。
 
 浏览器使用 Chromium 手机模拟和真实触屏事件；在线使用独立身份、实际 HTTP 服务和 PostgreSQL。尚未执行微信开发者工具、iOS/Android 真机或原生渠道联机验收。
+
+## 可选奖励（2026-10-24）
+
+只在单人练习、本人瞄准回合的暂停页，完整观看后给出一次方向/力度建议，继续后用现有物理预览画虚线；不自动出手，首次出手即清除。本局一次；普通拖拽预览免费。主线、好友邀请、同机、在线、目标成绩挑战不提供奖励，不改变权威规则或计分。
+
+通过现有全局 `SmallGamesRewardAds.offer` 领取，仅 `completed` 生效；不可用、取消、失败不消耗次数。请求绑定当前局面和令牌，重开、导航、pagehide、销毁取消，普通隐藏/失焦不取消观看；没有播放总超时，完成后仍暂停，需主动继续。H5 公共模块由构建注入，不复制 SDK，不修改源指纹规则。
+
+设计与验证边界见 [奖励说明](docs/design/rewards-2026-10-24.md)。

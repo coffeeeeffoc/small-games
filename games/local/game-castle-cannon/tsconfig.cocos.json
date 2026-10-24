@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "allowJs": true,
+    "checkJs": false,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "experimentalDecorators": true,
+    "resolveJsonModule": true,
+    "types": [],
+    "lib": ["ES2023", "DOM"],
+    "paths": {
+      "@coffeeeeffoc/game-host": ["../../../packages/game-host/src/index.ts"],
+      "@coffeeeeffoc/game-contract": ["../../../packages/game-contract/src/index.ts"],
+      "@coffeeeeffoc/content-schema": ["../../../packages/content-schema/src/index.ts"],
+      "@coffeeeeffoc/canvas-game-adapter": ["../../../packages/canvas-game-adapter/src/index.ts"]
+    }
+  },
+  "include": ["assets/scripts/**/*.ts", "reports/engine.d.ts"]
+}

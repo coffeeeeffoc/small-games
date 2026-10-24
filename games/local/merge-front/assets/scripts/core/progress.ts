@@ -1,6 +1,6 @@
 import { CATALOG, LEVELS, getSpec } from './content.ts';
 import type { Match } from './engine.ts';
-import { TICK_RATE } from './engine.ts';
+import { TICK_RATE, MAX_ROUNDS } from './engine.ts';
 
 export interface Progress {
   version: 2;
@@ -31,7 +31,7 @@ export function createProgress(): Progress {
   return {
     version: 2,
     unlockedLevel: 1,
-    unlockedIds: CATALOG.filter((s) => s.unlock === 0).map((s) => s.id),
+    unlockedIds: CATALOG.map((s) => s.id),
     medals: {},
     maxLevels: {},
     uses: {},
@@ -63,8 +63,8 @@ export function readProgress(input: unknown): Progress {
     );
   if (data.version !== 2) return progress;
   if (integer(data.unlockedLevel, 1, LEVELS.length)) progress.unlockedLevel = data.unlockedLevel;
-  // Unlocks are reconstructed from the verified level range, never from arbitrary recipe IDs.
-  progress.unlockedIds = CATALOG.filter((s) => s.unlock < progress.unlockedLevel).map((s) => s.id);
+  // All units are available; legacy level progression and statistics remain intact.
+  progress.unlockedIds = CATALOG.map((s) => s.id);
   if (integer(data.tutorialStep, 0, 6)) progress.tutorialStep = data.tutorialStep;
   if (object(data.medals))
     for (const level of LEVELS) {
@@ -114,18 +114,25 @@ export function settleProgress(progress: Progress, match: Match): Settlement {
   )
     return result;
   if (!['won', 'lost', 'draw'].includes(match.phase)) return result;
+  const expected =
+    match.sides[0].crystalHp === match.sides[1].crystalHp
+      ? null
+      : match.sides[0].crystalHp > match.sides[1].crystalHp
+        ? 0
+        : 1;
   if (
-    (match.phase === 'won' && (match.winner !== 0 || match.sides[1].crystalHp !== 0)) ||
-    (match.phase === 'lost' && (match.winner !== 1 || match.sides[0].crystalHp !== 0)) ||
-    (match.phase === 'draw' &&
-      (match.winner !== null || match.sides.some((s) => s.crystalHp !== 0)))
+    match.winner !== expected ||
+    match.phase !== (expected === null ? 'draw' : expected === 0 ? 'won' : 'lost') ||
+    (match.endReason === 'round-limit'
+      ? match.roundNumber !== MAX_ROUNDS
+      : match.endReason !== 'crystal' || !match.sides.some((s) => s.crystalHp === 0))
   )
     return result;
   progress.settledMatchIds.push(match.id);
   if (match.assisted) progress.assistedMatchIds.push(match.id);
   if (match.tutorial) progress.tutorialStep = Math.max(progress.tutorialStep, match.tutorialStep);
   for (const [key, value] of Object.entries(match.maxLevels)) {
-    if (progress.unlockedIds.includes(key) && integer(value, 1)) {
+    if (CATALOG.some((s) => s.id === key) && integer(value, 1)) {
       progress.maxLevels[key] = Math.max(progress.maxLevels[key] || 0, value);
       progress.uses[key] = Math.min(Number.MAX_SAFE_INTEGER, (progress.uses[key] || 0) + 1);
     }
@@ -142,6 +149,6 @@ export function settleProgress(progress: Progress, match: Match): Settlement {
     progress.unlockedLevel,
     Math.min(LEVELS.length, level.number + 1),
   );
-  progress.unlockedIds = CATALOG.filter((s) => s.unlock < progress.unlockedLevel).map((s) => s.id);
+  progress.unlockedIds = CATALOG.map((s) => s.id);
   return result;
 }

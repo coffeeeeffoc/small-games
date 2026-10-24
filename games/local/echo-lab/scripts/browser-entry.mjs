@@ -10,10 +10,6 @@ export async function browserEntry(target, prefix = './') {
     .replace('src="src/app.js"', `src="${prefix}${target}/entry.js"`)
     .replace(
       '</head>',
-      `${target === 'h5' ? `<link rel="stylesheet" href="${prefix}h5/styles.css" />` : ''}<script defer src="${prefix}shared/browser/fullscreen.js"></script></head>`,
-    )
-    .replace(
-      '<span class="local-badge">',
-      '<button data-game-fullscreen type="button" aria-label="进入全屏">全屏</button><span class="local-badge">',
+      `${target === 'h5' ? `<link rel="stylesheet" href="${prefix}h5/styles.css" />` : ''}</head>`,
     );
 }

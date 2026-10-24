@@ -54,7 +54,6 @@ const challenges = [
   ['porcelain-puzzle', 'level=100'],
   ['porcelain-puzzle', 'room=ABC123'],
   ['chase-thief', 'chaseChallenge=1&level=canal&time=59.9&mistakes=2'],
-  ['retreat-rally', 'rallyChallenge=1&level=crossbow&time=180&survivors=6'],
   ['tiny-signals', 'challenge=1&level=echo&targetMoves=100000'],
   ['orbit-atelier', 'challenge=orbit-24'],
   ['orbit-atelier', 'challenge=orbit-25'],
@@ -122,8 +121,6 @@ it.each([
 it.each([
   ['chase-thief', 'chaseChallenge=1&level=canal&time=60.1&mistakes=2'],
   ['chase-thief', 'chaseChallenge=1&level=canal&time=10.0'],
-  ['retreat-rally', 'rallyChallenge=1&level=valley&time=181&survivors=6'],
-  ['retreat-rally', 'rallyChallenge=1&level=valley&time=10&survivors=7'],
   ['tiny-signals', 'challenge=1&level=garden&targetMoves=0'],
   ['orbit-atelier', 'challenge=orbit-75'],
   ['orbit-atelier', 'challenge=orbit-00'],

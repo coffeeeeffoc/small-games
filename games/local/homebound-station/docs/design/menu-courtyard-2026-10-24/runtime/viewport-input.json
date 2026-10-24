@@ -1,0 +1,760 @@
+{
+  "dispatches": [
+    {
+      "width": 390,
+      "height": 844,
+      "touch": {
+        "id": "巡01",
+        "available": true,
+        "x": 75.625,
+        "y": 329.071875,
+        "angle": 3.141592653589793
+      },
+      "before": {
+        "time": 0.2,
+        "scroll": {
+          "y": 0,
+          "max": 0.07187499999997726
+        },
+        "services": []
+      },
+      "after": {
+        "time": 0.25,
+        "services": [
+          {
+            "vehicleId": "巡01",
+            "groupId": "T01",
+            "bayId": "T1",
+            "phase": "driving",
+            "elapsed": 0,
+            "duration": 0,
+            "path": [
+              {
+                "x": -10,
+                "z": 12
+              },
+              {
+                "x": -14,
+                "z": 12
+              },
+              {
+                "x": -14,
+                "z": 8
+              },
+              {
+                "x": -14,
+                "z": 4
+              },
+              {
+                "x": -8,
+                "z": 4
+              },
+              {
+                "x": -6,
+                "z": 0
+              }
+            ],
+            "pathIndex": 1,
+            "assignmentOrder": 0,
+            "pickupPoint": {
+              "x": -6,
+              "z": -2.5
+            },
+            "walkFrom": {
+              "x": -6,
+              "z": -2.5
+            }
+          }
+        ]
+      }
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "touch": {
+        "id": "巡01",
+        "available": true,
+        "x": 257.81204268292686,
+        "y": 321.25,
+        "angle": 1.5707963267948966
+      },
+      "before": {
+        "time": 0.45,
+        "scroll": {
+          "y": 0,
+          "max": 0
+        },
+        "services": []
+      },
+      "after": {
+        "time": 0.55,
+        "services": [
+          {
+            "vehicleId": "巡01",
+            "groupId": "T01",
+            "bayId": "T1",
+            "phase": "driving",
+            "elapsed": 0.05,
+            "duration": 0,
+            "path": [
+              {
+                "x": -10,
+                "z": 12
+              },
+              {
+                "x": -14,
+                "z": 12
+              },
+              {
+                "x": -14,
+                "z": 8
+              },
+              {
+                "x": -14,
+                "z": 4
+              },
+              {
+                "x": -8,
+                "z": 4
+              },
+              {
+                "x": -6,
+                "z": 0
+              }
+            ],
+            "pathIndex": 1,
+            "assignmentOrder": 0,
+            "pickupPoint": {
+              "x": -6,
+              "z": -2.5
+            },
+            "walkFrom": {
+              "x": -6,
+              "z": -2.5
+            },
+            "waitingForTraffic": false,
+            "travelled": 0.44999999999999996
+          }
+        ]
+      }
+    },
+    {
+      "width": 800,
+      "height": 600,
+      "touch": {
+        "id": "巡01",
+        "available": true,
+        "x": 276.775424992544,
+        "y": 491.875,
+        "angle": 1.5707963267948966
+      },
+      "before": {
+        "time": 0.30000000000000004,
+        "scroll": {
+          "y": 0,
+          "max": 0
+        },
+        "services": []
+      },
+      "after": {
+        "time": 0.35000000000000003,
+        "services": [
+          {
+            "vehicleId": "巡01",
+            "groupId": "T01",
+            "bayId": "T1",
+            "phase": "driving",
+            "elapsed": 0,
+            "duration": 0,
+            "path": [
+              {
+                "x": -10,
+                "z": 12
+              },
+              {
+                "x": -14,
+                "z": 12
+              },
+              {
+                "x": -14,
+                "z": 8
+              },
+              {
+                "x": -14,
+                "z": 4
+              },
+              {
+                "x": -8,
+                "z": 4
+              },
+              {
+                "x": -6,
+                "z": 0
+              }
+            ],
+            "pathIndex": 1,
+            "assignmentOrder": 0,
+            "pickupPoint": {
+              "x": -6,
+              "z": -2.5
+            },
+            "walkFrom": {
+              "x": -6,
+              "z": -2.5
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "pan": {
+    "width": 320,
+    "height": 568,
+    "bottomRow": 8,
+    "bottomIds": [
+      "巡45",
+      "巡46",
+      "巡47",
+      "巡48",
+      "巡49",
+      "巡50"
+    ],
+    "gestures": [
+      {
+        "from": {
+          "x": 62.5,
+          "y": 511.5875,
+          "vehicleId": "巡23"
+        },
+        "to": {
+          "x": 62.5,
+          "y": 100
+        }
+      }
+    ],
+    "before": {
+      "time": 0.2,
+      "scroll": {
+        "y": 0,
+        "max": 250.58749999999998
+      },
+      "cars": [
+        {
+          "id": "巡01",
+          "available": true,
+          "x": 62.5,
+          "y": 303.5875,
+          "angle": 3.141592653589793
+        },
+        {
+          "id": "巡02",
+          "available": true,
+          "x": 101.5,
+          "y": 303.5875,
+          "angle": -1.5707963267948966
+        },
+        {
+          "id": "巡03",
+          "available": true,
+          "x": 140.5,
+          "y": 303.5875,
+          "angle": -1.5707963267948966
+        },
+        {
+          "id": "巡04",
+          "available": true,
+          "x": 179.5,
+          "y": 303.5875,
+          "angle": -1.5707963267948966
+        },
+        {
+          "id": "巡05",
+          "available": false,
+          "x": 218.5,
+          "y": 303.5875,
+          "angle": 0
+        },
+        {
+          "id": "巡06",
+          "available": true,
+          "x": 257.5,
+          "y": 303.5875,
+          "angle": 0
+        },
+        {
+          "id": "巡07",
+          "available": false,
+          "x": 62.5,
+          "y": 355.5875,
+          "angle": -1.5707963267948966
+        },
+        {
+          "id": "巡08",
+          "available": false,
+          "x": 140.5,
+          "y": 355.5875,
+          "angle": -1.5707963267948966
+        },
+        {
+          "id": "巡09",
+          "available": false,
+          "x": 179.5,
+          "y": 355.5875,
+          "angle": 3.141592653589793
+        },
+        {
+          "id": "巡10",
+          "available": false,
+          "x": 218.5,
+          "y": 355.5875,
+          "angle": 0
+        },
+        {
+          "id": "巡11",
+          "available": false,
+          "x": 257.5,
+          "y": 355.5875,
+          "angle": -1.5707963267948966
+        },
+        {
+          "id": "巡12",
+          "available": false,
+          "x": 62.5,
+          "y": 407.5875,
+          "angle": -1.5707963267948966
+        },
+        {
+          "id": "巡13",
+          "available": false,
+          "x": 101.5,
+          "y": 407.5875,
+          "angle": 3.141592653589793
+        },
+        {
+          "id": "巡14",
+          "available": false,
+          "x": 140.5,
+          "y": 407.5875,
+          "angle": 0
+        },
+        {
+          "id": "巡15",
+          "available": false,
+          "x": 218.5,
+          "y": 407.5875,
+          "angle": 0
+        },
+        {
+          "id": "巡16",
+          "available": true,
+          "x": 257.5,
+          "y": 407.5875,
+          "angle": 0
+        },
+        {
+          "id": "巡17",
+          "available": true,
+          "x": 62.5,
+          "y": 459.5875,
+          "angle": 3.141592653589793
+        },
+        {
+          "id": "巡18",
+          "available": false,
+          "x": 101.5,
+          "y": 459.5875,
+          "angle": 3.141592653589793
+        },
+        {
+          "id": "巡19",
+          "available": false,
+          "x": 140.5,
+          "y": 459.5875,
+          "angle": 3.141592653589793
+        },
+        {
+          "id": "巡20",
+          "available": false,
+          "x": 179.5,
+          "y": 459.5875,
+          "angle": 3.141592653589793
+        },
+        {
+          "id": "巡21",
+          "available": false,
+          "x": 218.5,
+          "y": 459.5875,
+          "angle": 0
+        },
+        {
+          "id": "巡22",
+          "available": true,
+          "x": 257.5,
+          "y": 459.5875,
+          "angle": 0
+        },
+        {
+          "id": "巡23",
+          "available": false,
+          "x": 62.5,
+          "y": 511.5875,
+          "angle": -1.5707963267948966
+        },
+        {
+          "id": "巡24",
+          "available": false,
+          "x": 101.5,
+          "y": 511.5875,
+          "angle": 3.141592653589793
+        },
+        {
+          "id": "巡25",
+          "available": false,
+          "x": 140.5,
+          "y": 511.5875,
+          "angle": 0
+        },
+        {
+          "id": "巡26",
+          "available": false,
+          "x": 179.5,
+          "y": 511.5875,
+          "angle": 1.5707963267948966
+        },
+        {
+          "id": "巡27",
+          "available": false,
+          "x": 218.5,
+          "y": 511.5875,
+          "angle": 0
+        },
+        {
+          "id": "巡28",
+          "available": true,
+          "x": 257.5,
+          "y": 511.5875,
+          "angle": 0
+        }
+      ],
+      "services": []
+    },
+    "after": {
+      "time": 1.05,
+      "scroll": {
+        "y": 250.58749999999998,
+        "max": 250.58749999999998
+      },
+      "cars": [
+        {
+          "id": "巡07",
+          "available": false,
+          "x": 62.5,
+          "y": 105,
+          "angle": -1.5707963267948966
+        },
+        {
+          "id": "巡08",
+          "available": false,
+          "x": 140.5,
+          "y": 105,
+          "angle": -1.5707963267948966
+        },
+        {
+          "id": "巡09",
+          "available": false,
+          "x": 179.5,
+          "y": 105,
+          "angle": 3.141592653589793
+        },
+        {
+          "id": "巡10",
+          "available": false,
+          "x": 218.5,
+          "y": 105,
+          "angle": 0
+        },
+        {
+          "id": "巡11",
+          "available": false,
+          "x": 257.5,
+          "y": 105,
+          "angle": -1.5707963267948966
+        },
+        {
+          "id": "巡12",
+          "available": false,
+          "x": 62.5,
+          "y": 157,
+          "angle": -1.5707963267948966
+        },
+        {
+          "id": "巡13",
+          "available": false,
+          "x": 101.5,
+          "y": 157,
+          "angle": 3.141592653589793
+        },
+        {
+          "id": "巡14",
+          "available": false,
+          "x": 140.5,
+          "y": 157,
+          "angle": 0
+        },
+        {
+          "id": "巡15",
+          "available": false,
+          "x": 218.5,
+          "y": 157,
+          "angle": 0
+        },
+        {
+          "id": "巡16",
+          "available": true,
+          "x": 257.5,
+          "y": 157,
+          "angle": 0
+        },
+        {
+          "id": "巡17",
+          "available": true,
+          "x": 62.5,
+          "y": 209,
+          "angle": 3.141592653589793
+        },
+        {
+          "id": "巡18",
+          "available": false,
+          "x": 101.5,
+          "y": 209,
+          "angle": 3.141592653589793
+        },
+        {
+          "id": "巡19",
+          "available": false,
+          "x": 140.5,
+          "y": 209,
+          "angle": 3.141592653589793
+        },
+        {
+          "id": "巡20",
+          "available": false,
+          "x": 179.5,
+          "y": 209,
+          "angle": 3.141592653589793
+        },
+        {
+          "id": "巡21",
+          "available": false,
+          "x": 218.5,
+          "y": 209,
+          "angle": 0
+        },
+        {
+          "id": "巡22",
+          "available": true,
+          "x": 257.5,
+          "y": 209,
+          "angle": 0
+        },
+        {
+          "id": "巡23",
+          "available": false,
+          "x": 62.5,
+          "y": 261,
+          "angle": -1.5707963267948966
+        },
+        {
+          "id": "巡24",
+          "available": false,
+          "x": 101.5,
+          "y": 261,
+          "angle": 3.141592653589793
+        },
+        {
+          "id": "巡25",
+          "available": false,
+          "x": 140.5,
+          "y": 261,
+          "angle": 0
+        },
+        {
+          "id": "巡26",
+          "available": false,
+          "x": 179.5,
+          "y": 261,
+          "angle": 1.5707963267948966
+        },
+        {
+          "id": "巡27",
+          "available": false,
+          "x": 218.5,
+          "y": 261,
+          "angle": 0
+        },
+        {
+          "id": "巡28",
+          "available": true,
+          "x": 257.5,
+          "y": 261,
+          "angle": 0
+        },
+        {
+          "id": "巡29",
+          "available": false,
+          "x": 62.5,
+          "y": 313,
+          "angle": 1.5707963267948966
+        },
+        {
+          "id": "巡30",
+          "available": false,
+          "x": 101.5,
+          "y": 313,
+          "angle": -1.5707963267948966
+        },
+        {
+          "id": "巡31",
+          "available": false,
+          "x": 140.5,
+          "y": 313,
+          "angle": 0
+        },
+        {
+          "id": "巡32",
+          "available": false,
+          "x": 179.5,
+          "y": 313,
+          "angle": 0
+        },
+        {
+          "id": "巡33",
+          "available": false,
+          "x": 218.5,
+          "y": 313,
+          "angle": 0
+        },
+        {
+          "id": "巡34",
+          "available": true,
+          "x": 257.5,
+          "y": 313,
+          "angle": 0
+        },
+        {
+          "id": "巡35",
+          "available": true,
+          "x": 62.5,
+          "y": 365,
+          "angle": 3.141592653589793
+        },
+        {
+          "id": "巡36",
+          "available": false,
+          "x": 101.5,
+          "y": 365,
+          "angle": 3.141592653589793
+        },
+        {
+          "id": "巡37",
+          "available": false,
+          "x": 218.5,
+          "y": 365,
+          "angle": 1.5707963267948966
+        },
+        {
+          "id": "巡38",
+          "available": true,
+          "x": 257.5,
+          "y": 365,
+          "angle": 0
+        },
+        {
+          "id": "巡39",
+          "available": true,
+          "x": 62.5,
+          "y": 417,
+          "angle": 3.141592653589793
+        },
+        {
+          "id": "巡40",
+          "available": false,
+          "x": 101.5,
+          "y": 417,
+          "angle": 1.5707963267948966
+        },
+        {
+          "id": "巡41",
+          "available": false,
+          "x": 140.5,
+          "y": 417,
+          "angle": 3.141592653589793
+        },
+        {
+          "id": "巡42",
+          "available": false,
+          "x": 179.5,
+          "y": 417,
+          "angle": 1.5707963267948966
+        },
+        {
+          "id": "巡43",
+          "available": false,
+          "x": 218.5,
+          "y": 417,
+          "angle": 0
+        },
+        {
+          "id": "巡44",
+          "available": false,
+          "x": 257.5,
+          "y": 417,
+          "angle": 1.5707963267948966
+        },
+        {
+          "id": "巡45",
+          "available": true,
+          "x": 62.5,
+          "y": 469,
+          "angle": 1.5707963267948966
+        },
+        {
+          "id": "巡46",
+          "available": true,
+          "x": 101.5,
+          "y": 469,
+          "angle": 1.5707963267948966
+        },
+        {
+          "id": "巡47",
+          "available": false,
+          "x": 140.5,
+          "y": 469,
+          "angle": 3.141592653589793
+        },
+        {
+          "id": "巡48",
+          "available": false,
+          "x": 179.5,
+          "y": 469,
+          "angle": 3.141592653589793
+        },
+        {
+          "id": "巡49",
+          "available": true,
+          "x": 218.5,
+          "y": 469,
+          "angle": 1.5707963267948966
+        },
+        {
+          "id": "巡50",
+          "available": true,
+          "x": 257.5,
+          "y": 469,
+          "angle": 0
+        }
+      ],
+      "services": []
+    }
+  }
+}

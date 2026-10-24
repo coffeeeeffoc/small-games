@@ -7,7 +7,7 @@ import {
 } from './duel-map.js';
 import { activeGun, arrive, available, operatorPoint } from './duel-actions.js';
 import { advanceShells } from './duel-physics.js';
-import { distance, type Duel, type Fighter, type Side } from './duel-types.js';
+import { DUEL_VERSION, distance, type Duel, type Fighter, type Side } from './duel-types.js';
 export function createDuel(): Duel {
   validateDuelMap();
   const fighter = (side: Side): Fighter => {
@@ -30,7 +30,6 @@ export function createDuel(): Duel {
         ...g,
         position: nodePoint(side, g.node),
         hp: 100,
-        repair: null,
         pitch: 38,
         yaw: 0,
         reload: 1,
@@ -43,7 +42,7 @@ export function createDuel(): Duel {
     return p;
   };
   return {
-    version: 'duel-v1',
+    version: DUEL_VERSION,
     mapId: DUEL_MAP.id,
     time: 0,
     tick: 0,
@@ -62,6 +61,10 @@ export function stepDuel(duel: Duel) {
   duel.tick++;
   for (const p of duel.fighters) {
     if (p.hp <= 0) continue;
+    // Firing cooldowns run independently of movement, cover and medical treatment.
+    for (const g of p.guns)
+      if (available(p, g))
+        g.reload = Math.min(1, g.reload + dt / (g.bunker ? R.bunkerReload : R.reload));
     if (p.route.length) {
       const next = p.route[0]!,
         d = distance(p.position, next),
@@ -83,17 +86,7 @@ export function stepDuel(duel: Duel) {
       if (p.hp >= R.hp || p.healing >= R.healSeconds - 1e-6) p.healing = null;
     } else {
       const g = activeGun(p);
-      if (g && g.repair !== null && !p.crouched && g.bunker === p.destroyed) {
-        g.repair += dt;
-        p.position = operatorPoint(p, g);
-        if (g.repair >= R.repairSeconds) {
-          g.hp = 100;
-          g.reload = 0;
-          g.repair = null;
-        }
-      }
       if (g && available(p, g) && !p.crouched) {
-        g.reload = Math.min(1, g.reload + dt / (g.bunker ? R.bunkerReload : R.reload));
         p.position = operatorPoint(p, g);
         // Short trips to the ammunition crate are part of the reload clock.
         if (g.reload < 1) p.position.z += Math.sin(g.reload * Math.PI * 2) * 0.8;

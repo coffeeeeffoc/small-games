@@ -26,11 +26,13 @@ export function StandaloneGame({
     id === 'ashfall-front' ||
     id === 'carrom-club' ||
     id === 'three-choose-two' ||
-    id === 'retreat-rally' ||
     id === 'cage-rescue' ||
     id === 'chase-thief' ||
     id === 'orbit-atelier' ||
     id === 'merge-front' ||
+    id === 'tower-brake' ||
+    id === 'tetracube' ||
+    id === 'castle-cannon' ||
     id === 'ink-is-everything' ||
     id === 'ball-roguelite' ||
     id === 'porcelain-puzzle' ||
@@ -92,9 +94,6 @@ export function StandaloneGame({
         )}
         {!immersive && (
           <>
-            <button type="button" data-game-fullscreen>
-              全屏
-            </button>
             <a href={entry} target="_blank" rel="noreferrer">
               独立打开
             </a>
@@ -108,8 +107,7 @@ export function StandaloneGame({
         }}
         title={title}
         src={entry}
-        allow={id === 'echo-lab' ? 'autoplay; fullscreen; microphone' : 'autoplay; fullscreen'}
-        allowFullScreen
+        allow={id === 'echo-lab' ? 'autoplay; microphone' : 'autoplay'}
       />
     </main>
   );

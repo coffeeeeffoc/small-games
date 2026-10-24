@@ -1,0 +1,36 @@
+{
+  "sourceHash": "681d33ad97da627270bd07dd0f92fe401cda00ed9da0d94e853284ea2565cdcc",
+  "audio": "silent",
+  "sources": [
+    "reports/2026-10-24-flow/gameplay-source.webm",
+    "reports/2026-10-24-flow/escort-source.webm",
+    "gameplay/screenshots/2026-10-24-flow/missions-844.png",
+    "gameplay/screenshots/2026-10-24-flow/escort-success-1280.png",
+    "promo/images/title-1920x1080.png"
+  ],
+  "segments": [
+    "title still 2s",
+    "actual mission-map still 2s",
+    "support selection 14.6s + 3s",
+    "actual escort 40s + 12.12s",
+    "actual success still 2s",
+    "night gameplay 32s + 3s",
+    "title still 2s"
+  ],
+  "filter": "[0:v]trim=duration=2,setpts=PTS-STARTPTS,scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2:color=0x091b2d,setsar=1,fps=25,split=2[intro][outro];[1:v]trim=duration=2,setpts=PTS-STARTPTS,scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2:color=0x091b2d,setsar=1,fps=25[map];[2:v]split=2[supportin][nightin];[supportin]trim=start=14.6:duration=3,setpts=PTS-STARTPTS,scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2:color=0x091b2d,setsar=1,fps=25[support];[nightin]trim=start=32:duration=3,setpts=PTS-STARTPTS,scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2:color=0x091b2d,setsar=1,fps=25[night];[3:v]trim=start=40:duration=12.12,setpts=PTS-STARTPTS,scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2:color=0x091b2d,setsar=1,fps=25[escort];[4:v]trim=duration=2,setpts=PTS-STARTPTS,scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2:color=0x091b2d,setsar=1,fps=25[success];[intro][map][support][escort][success][night][outro]concat=n=7:v=1:a=0[out]",
+  "probe": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "codec_type": "video",
+        "width": 1280,
+        "height": 720
+      }
+    ],
+    "format": {
+      "duration": "26.120000"
+    }
+  }
+}

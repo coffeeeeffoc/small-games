@@ -1,0 +1,39 @@
+✔ actual native guards preserve canonical source and independently compute the two fingerprints (1864.2748ms)
+✔ fresh persistent stages exclude caches, release secrets, and old outputs (2123.2187ms)
+✔ unreviewed or already adapted canonical files fail closed before staging (264.2881ms)
+✔ normalized CRLF input has an honest raw receipt and unchanged source hash (1203.9339ms)
+✔ all legitimate hash inputs are copied and mutations produce their real native hash (1295.6135ms)
+✔ existing extension is copied with digest evidence but no authenticity claim (1170.9199ms)
+✔ non-Night projects return their actual fingerprint without staging or adaptation (12.5736ms)
+(node:42000) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ offset aim survives slow microdrags, release-only displacement, taps and cancelled gestures (2.7879ms)
+✔ homing tap locks but cumulative movement and end-only displacement do not become taps (0.5596ms)
+✔ radio has one voice, honors mute, stops with lifecycle and never queues a missing clip (0.338ms)
+✔ two-finger translation preserves both midpoint positions and cancels the remaining finger (0.4117ms)
+✔ browser mouse-generated touches with simulate=false never replace or cancel mouse input (0.5278ms)
+✔ supply completion earns one choice, ammo grants two once, and inventory never blocks ads (1.521ms)
+✔ timed buffs block supply and zoom providers; cancellation never grants and expiry reopens ads (2.2813ms)
+✔ completed entitlement survives close, home, reload and background; repeated completion and claims are ignored (0.7149ms)
+✔ storage failure preserves in-session choice and completion after disposal still records the entitlement (0.4371ms)
+✔ practice rewards stay in their startup namespace when developer mode changes (0.4392ms)
+✔ a real touch activates initially desktop-classified native devices and trigger release stays safe (0.6689ms)
+✔ changing missions requires a briefing or result; retry preserves the chosen mission and system pauses (0.5761ms)
+✔ actual warmup entry, retry and return keep saved escort preferences and system pauses independent (0.7017ms)
+✔ training result saves only a clean successful range score in its separate key (0.5708ms)
+✔ actual task choices update public entry URLs without carrying private fields or credentials (0.5035ms)
+✔ returning home aborts a live mission, clears input and starts the next map cleanly (0.3399ms)
+✔ operation lock applies to ordinary menu/URL, developer practice stays isolated, and denied storage keeps progression (0.6583ms)
+✔ explicit dev=0 is retained when mission shortcuts are synchronized (0.3503ms)
+✔ support flow selects before the ad and activates exactly the chosen support on completion (4.5547ms)
+✔ failed support ads return to the choice with no award; skip resumes battle without another ad (1.7856ms)
+✔ a chosen timed support completed in background activates once on foreground without a second ad (0.7472ms)
+✔ deferred support waits for every system pause and never consumes credit after skipping or changing battle (0.9568ms)
+ℹ tests 29
+ℹ suites 0
+ℹ pass 29
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8209.1565

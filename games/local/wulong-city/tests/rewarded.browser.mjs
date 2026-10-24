@@ -23,7 +23,7 @@ try {
   await page.goto(base + '?dev=1');
   await shot('home-390');
   await page.locator('#home-settings').tap();
-  await expect(page.locator('#fullscreen')).toBeHidden();
+  await expect(page.locator('#fullscreen')).toHaveCount(0);
   await page.evaluate(() => window.dispatchEvent(new Event('wulong:native-back')));
   await expect(page.locator('#game')).toHaveAttribute('data-page', 'home');
   await page.locator('#home-levels').tap(); await shot('levels-390');

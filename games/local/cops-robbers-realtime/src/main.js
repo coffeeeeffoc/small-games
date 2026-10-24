@@ -1321,7 +1321,6 @@ function displayChanged() {
   renderer.resize();
   clearGesture();
 }
-document.addEventListener('fullscreenchange', displayChanged);
 document.addEventListener('game-displaychange', displayChanged);
 document
   .querySelectorAll('[data-close]')

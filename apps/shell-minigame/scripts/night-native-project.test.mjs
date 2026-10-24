@@ -46,33 +46,20 @@ test('actual native guards preserve canonical source and independently compute t
   runFixture(async ({ gameRoot, artifact, stageBase }) => {
     const hud = await readFile(path.join(gameRoot, 'assets/scripts/HUD.ts'));
     const platform = await readFile(path.join(gameRoot, 'assets/scripts/Platform.ts'));
-    assert.equal(
-      await artifact.sourceHash(gameRoot),
-      '93e91ce2d5194118e25757c08d1dbbb4543cd51beab166588f539dc5be76ee93',
-    );
+    const before = await artifact.sourceHash(gameRoot);
     const result = await prepareNativeProject(gameRoot, { stageBase });
     assert.equal(result.canonicalSourceHash, await artifact.sourceHash(gameRoot));
     assert.equal(result.sourceHash, await artifact.sourceHash(result.projectRoot));
-    assert.equal(
-      result.sourceHash,
-      'c39b6456eeb65fa56a1e036d58b517df586dd02883759d2175c5ab10709205ab',
-    );
+    assert.equal(result.sourceHash, before);
     assert.equal(result.adaptationRecipeSha256, adaptationRecipeSha256);
     assert.equal(result.adaptation.creatorBuildVerified, false);
     assert.deepEqual(await readFile(path.join(gameRoot, 'assets/scripts/HUD.ts')), hud);
     assert.deepEqual(await readFile(path.join(gameRoot, 'assets/scripts/Platform.ts')), platform);
-    assert.match(
-      await readFile(path.join(result.projectRoot, 'assets/scripts/HUD.ts'), 'utf8'),
-      /if \(sys.isBrowser\) this.button\('fullscreen'/,
-    );
-    assert.match(
-      await readFile(path.join(result.projectRoot, 'assets/scripts/Platform.ts'), 'utf8'),
-      /return sys.isBrowser && screen.fullScreen\(\)/,
-    );
-    assert.match(
-      await readFile(path.join(result.projectRoot, 'assets/scripts/Platform.ts'), 'utf8'),
-      /if \(!sys.isBrowser\) return false/,
-    );
+    for (const file of ['HUD.ts', 'Platform.ts'])
+      assert.doesNotMatch(
+        await readFile(path.join(result.projectRoot, 'assets/scripts', file), 'utf8'),
+        /fullscreen/i,
+      );
     assert.equal(result.adaptation.inputs.length, 2);
     for (const file of ['build-native.mjs', 'artifact.mjs'])
       assert.deepEqual(
@@ -112,7 +99,7 @@ test('unreviewed or already adapted canonical files fail closed before staging',
     const original = await readFile(hudPath, 'utf8');
     for (const candidate of [
       original + '\n',
-      original.replace("this.button('fullscreen'", "if (sys.isBrowser) this.button('fullscreen'"),
+      original.replace('isGlobalAction', 'changedGlobalAction'),
     ]) {
       await writeFile(hudPath, candidate);
       await assert.rejects(
@@ -122,7 +109,8 @@ test('unreviewed or already adapted canonical files fail closed before staging',
     }
   }));
 test('normalized CRLF input has an honest raw receipt and unchanged source hash', () =>
-  runFixture(async ({ gameRoot, stageBase }) => {
+  runFixture(async ({ gameRoot, artifact, stageBase }) => {
+    const before = await artifact.sourceHash(gameRoot);
     for (const file of ['HUD.ts', 'Platform.ts']) {
       const name = path.join(gameRoot, 'assets/scripts', file);
       await writeFile(
@@ -131,10 +119,7 @@ test('normalized CRLF input has an honest raw receipt and unchanged source hash'
       );
     }
     const result = await prepareNativeProject(gameRoot, { stageBase });
-    assert.equal(
-      result.canonicalSourceHash,
-      '93e91ce2d5194118e25757c08d1dbbb4543cd51beab166588f539dc5be76ee93',
-    );
+    assert.equal(result.canonicalSourceHash, before);
     assert.notEqual(
       result.adaptation.inputs[0].canonicalSha256,
       result.adaptation.inputs[0].normalizedCanonicalSha256,
@@ -142,6 +127,7 @@ test('normalized CRLF input has an honest raw receipt and unchanged source hash'
   }));
 test('all legitimate hash inputs are copied and mutations produce their real native hash', () =>
   runFixture(async ({ gameRoot, artifact, stageBase }) => {
+    const before = await artifact.sourceHash(gameRoot);
     await writeFile(path.join(gameRoot, 'startup/fixture.txt'), 'synthetic hash input');
     const result = await prepareNativeProject(gameRoot, { stageBase });
     assert.equal(
@@ -149,10 +135,7 @@ test('all legitimate hash inputs are copied and mutations produce their real nat
       'synthetic hash input',
     );
     assert.equal(result.sourceHash, await artifact.sourceHash(result.projectRoot));
-    assert.notEqual(
-      result.sourceHash,
-      'c39b6456eeb65fa56a1e036d58b517df586dd02883759d2175c5ab10709205ab',
-    );
+    assert.notEqual(result.sourceHash, before);
   }));
 test('existing extension is copied with digest evidence but no authenticity claim', () =>
   runFixture(async ({ gameRoot, stageBase }) => {

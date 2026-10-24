@@ -1,0 +1,487 @@
+{
+  "baseline": "9f90bad3d2a52c5e921792d9e5caf3a30aad9f9b",
+  "currentCoreSha256": "de0e3812d0c8a8e1516cff2af222a9e34a171a59e6d9bbfed3115148b5e32acd",
+  "scope": "Radius and pierce change; no level data changes. Deterministic policies are regression evidence, not player win rates.",
+  "records": [
+    {
+      "version": "before",
+      "radius": 6,
+      "id": "stardust",
+      "policy": "fixed",
+      "seed": 1234,
+      "phase": "lost",
+      "turns": 9,
+      "score": 7
+    },
+    {
+      "version": "before",
+      "radius": 6,
+      "id": "stardust",
+      "policy": "fixed",
+      "seed": 20261006,
+      "phase": "lost",
+      "turns": 9,
+      "score": 7
+    },
+    {
+      "version": "before",
+      "radius": 6,
+      "id": "stardust",
+      "policy": "fixed",
+      "seed": 998811,
+      "phase": "lost",
+      "turns": 9,
+      "score": 7
+    },
+    {
+      "version": "before",
+      "radius": 6,
+      "id": "stardust",
+      "policy": "direct",
+      "seed": 1234,
+      "phase": "won",
+      "turns": 10,
+      "score": 15
+    },
+    {
+      "version": "before",
+      "radius": 6,
+      "id": "stardust",
+      "policy": "direct",
+      "seed": 20261006,
+      "phase": "won",
+      "turns": 10,
+      "score": 15
+    },
+    {
+      "version": "before",
+      "radius": 6,
+      "id": "stardust",
+      "policy": "direct",
+      "seed": 998811,
+      "phase": "won",
+      "turns": 10,
+      "score": 15
+    },
+    {
+      "version": "before",
+      "radius": 6,
+      "id": "prism",
+      "policy": "fixed",
+      "seed": 1234,
+      "phase": "lost",
+      "turns": 8,
+      "score": 3
+    },
+    {
+      "version": "before",
+      "radius": 6,
+      "id": "prism",
+      "policy": "fixed",
+      "seed": 20261006,
+      "phase": "lost",
+      "turns": 8,
+      "score": 3
+    },
+    {
+      "version": "before",
+      "radius": 6,
+      "id": "prism",
+      "policy": "fixed",
+      "seed": 998811,
+      "phase": "lost",
+      "turns": 8,
+      "score": 3
+    },
+    {
+      "version": "before",
+      "radius": 6,
+      "id": "prism",
+      "policy": "direct",
+      "seed": 1234,
+      "phase": "won",
+      "turns": 11,
+      "score": 21
+    },
+    {
+      "version": "before",
+      "radius": 6,
+      "id": "prism",
+      "policy": "direct",
+      "seed": 20261006,
+      "phase": "won",
+      "turns": 11,
+      "score": 21
+    },
+    {
+      "version": "before",
+      "radius": 6,
+      "id": "prism",
+      "policy": "direct",
+      "seed": 998811,
+      "phase": "won",
+      "turns": 10,
+      "score": 21
+    },
+    {
+      "version": "before",
+      "radius": 6,
+      "id": "lattice",
+      "policy": "fixed",
+      "seed": 1234,
+      "phase": "lost",
+      "turns": 7,
+      "score": 8
+    },
+    {
+      "version": "before",
+      "radius": 6,
+      "id": "lattice",
+      "policy": "fixed",
+      "seed": 20261006,
+      "phase": "lost",
+      "turns": 7,
+      "score": 8
+    },
+    {
+      "version": "before",
+      "radius": 6,
+      "id": "lattice",
+      "policy": "fixed",
+      "seed": 998811,
+      "phase": "lost",
+      "turns": 7,
+      "score": 11
+    },
+    {
+      "version": "before",
+      "radius": 6,
+      "id": "lattice",
+      "policy": "direct",
+      "seed": 1234,
+      "phase": "lost",
+      "turns": 8,
+      "score": 16
+    },
+    {
+      "version": "before",
+      "radius": 6,
+      "id": "lattice",
+      "policy": "direct",
+      "seed": 20261006,
+      "phase": "lost",
+      "turns": 8,
+      "score": 18
+    },
+    {
+      "version": "before",
+      "radius": 6,
+      "id": "lattice",
+      "policy": "direct",
+      "seed": 998811,
+      "phase": "lost",
+      "turns": 8,
+      "score": 16
+    },
+    {
+      "version": "before",
+      "radius": 6,
+      "id": "eclipse",
+      "policy": "fixed",
+      "seed": 1234,
+      "phase": "lost",
+      "turns": 6,
+      "score": 9
+    },
+    {
+      "version": "before",
+      "radius": 6,
+      "id": "eclipse",
+      "policy": "fixed",
+      "seed": 20261006,
+      "phase": "lost",
+      "turns": 6,
+      "score": 9
+    },
+    {
+      "version": "before",
+      "radius": 6,
+      "id": "eclipse",
+      "policy": "fixed",
+      "seed": 998811,
+      "phase": "lost",
+      "turns": 6,
+      "score": 9
+    },
+    {
+      "version": "before",
+      "radius": 6,
+      "id": "eclipse",
+      "policy": "direct",
+      "seed": 1234,
+      "phase": "lost",
+      "turns": 7,
+      "score": 7
+    },
+    {
+      "version": "before",
+      "radius": 6,
+      "id": "eclipse",
+      "policy": "direct",
+      "seed": 20261006,
+      "phase": "lost",
+      "turns": 7,
+      "score": 6
+    },
+    {
+      "version": "before",
+      "radius": 6,
+      "id": "eclipse",
+      "policy": "direct",
+      "seed": 998811,
+      "phase": "lost",
+      "turns": 7,
+      "score": 6
+    },
+    {
+      "version": "after",
+      "radius": 8,
+      "id": "stardust",
+      "policy": "fixed",
+      "seed": 1234,
+      "phase": "lost",
+      "turns": 9,
+      "score": 9
+    },
+    {
+      "version": "after",
+      "radius": 8,
+      "id": "stardust",
+      "policy": "fixed",
+      "seed": 20261006,
+      "phase": "lost",
+      "turns": 9,
+      "score": 9
+    },
+    {
+      "version": "after",
+      "radius": 8,
+      "id": "stardust",
+      "policy": "fixed",
+      "seed": 998811,
+      "phase": "lost",
+      "turns": 9,
+      "score": 9
+    },
+    {
+      "version": "after",
+      "radius": 8,
+      "id": "stardust",
+      "policy": "direct",
+      "seed": 1234,
+      "phase": "won",
+      "turns": 12,
+      "score": 15
+    },
+    {
+      "version": "after",
+      "radius": 8,
+      "id": "stardust",
+      "policy": "direct",
+      "seed": 20261006,
+      "phase": "won",
+      "turns": 10,
+      "score": 15
+    },
+    {
+      "version": "after",
+      "radius": 8,
+      "id": "stardust",
+      "policy": "direct",
+      "seed": 998811,
+      "phase": "won",
+      "turns": 10,
+      "score": 15
+    },
+    {
+      "version": "after",
+      "radius": 8,
+      "id": "prism",
+      "policy": "fixed",
+      "seed": 1234,
+      "phase": "lost",
+      "turns": 8,
+      "score": 3
+    },
+    {
+      "version": "after",
+      "radius": 8,
+      "id": "prism",
+      "policy": "fixed",
+      "seed": 20261006,
+      "phase": "lost",
+      "turns": 8,
+      "score": 3
+    },
+    {
+      "version": "after",
+      "radius": 8,
+      "id": "prism",
+      "policy": "fixed",
+      "seed": 998811,
+      "phase": "lost",
+      "turns": 8,
+      "score": 3
+    },
+    {
+      "version": "after",
+      "radius": 8,
+      "id": "prism",
+      "policy": "direct",
+      "seed": 1234,
+      "phase": "won",
+      "turns": 11,
+      "score": 21
+    },
+    {
+      "version": "after",
+      "radius": 8,
+      "id": "prism",
+      "policy": "direct",
+      "seed": 20261006,
+      "phase": "won",
+      "turns": 10,
+      "score": 21
+    },
+    {
+      "version": "after",
+      "radius": 8,
+      "id": "prism",
+      "policy": "direct",
+      "seed": 998811,
+      "phase": "won",
+      "turns": 10,
+      "score": 21
+    },
+    {
+      "version": "after",
+      "radius": 8,
+      "id": "lattice",
+      "policy": "fixed",
+      "seed": 1234,
+      "phase": "lost",
+      "turns": 7,
+      "score": 7
+    },
+    {
+      "version": "after",
+      "radius": 8,
+      "id": "lattice",
+      "policy": "fixed",
+      "seed": 20261006,
+      "phase": "lost",
+      "turns": 7,
+      "score": 7
+    },
+    {
+      "version": "after",
+      "radius": 8,
+      "id": "lattice",
+      "policy": "fixed",
+      "seed": 998811,
+      "phase": "lost",
+      "turns": 7,
+      "score": 12
+    },
+    {
+      "version": "after",
+      "radius": 8,
+      "id": "lattice",
+      "policy": "direct",
+      "seed": 1234,
+      "phase": "won",
+      "turns": 15,
+      "score": 35
+    },
+    {
+      "version": "after",
+      "radius": 8,
+      "id": "lattice",
+      "policy": "direct",
+      "seed": 20261006,
+      "phase": "won",
+      "turns": 15,
+      "score": 35
+    },
+    {
+      "version": "after",
+      "radius": 8,
+      "id": "lattice",
+      "policy": "direct",
+      "seed": 998811,
+      "phase": "won",
+      "turns": 11,
+      "score": 35
+    },
+    {
+      "version": "after",
+      "radius": 8,
+      "id": "eclipse",
+      "policy": "fixed",
+      "seed": 1234,
+      "phase": "lost",
+      "turns": 6,
+      "score": 8
+    },
+    {
+      "version": "after",
+      "radius": 8,
+      "id": "eclipse",
+      "policy": "fixed",
+      "seed": 20261006,
+      "phase": "lost",
+      "turns": 6,
+      "score": 8
+    },
+    {
+      "version": "after",
+      "radius": 8,
+      "id": "eclipse",
+      "policy": "fixed",
+      "seed": 998811,
+      "phase": "lost",
+      "turns": 6,
+      "score": 8
+    },
+    {
+      "version": "after",
+      "radius": 8,
+      "id": "eclipse",
+      "policy": "direct",
+      "seed": 1234,
+      "phase": "lost",
+      "turns": 8,
+      "score": 13
+    },
+    {
+      "version": "after",
+      "radius": 8,
+      "id": "eclipse",
+      "policy": "direct",
+      "seed": 20261006,
+      "phase": "lost",
+      "turns": 7,
+      "score": 8
+    },
+    {
+      "version": "after",
+      "radius": 8,
+      "id": "eclipse",
+      "policy": "direct",
+      "seed": 998811,
+      "phase": "lost",
+      "turns": 7,
+      "score": 8
+    }
+  ]
+}

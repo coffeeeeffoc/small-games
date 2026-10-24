@@ -2,6 +2,10 @@ name: Build Cocos game artifacts
 on:
   workflow_call:
     inputs:
+      competition_public_api_url:
+        description: Public API URL used to fingerprint and build Tower Brake artifacts.
+        type: string
+        default: ''
       reuse_ci:
         description: Reuse successful same-SHA CI Creator jobs on push events.
         type: boolean
@@ -9,6 +13,8 @@ on:
 jobs:
   reuse:
     if: inputs.reuse_ci
+    env:
+      COMPETITION_PUBLIC_API_URL: ${{ inputs.competition_public_api_url }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     outputs:
@@ -95,9 +101,59 @@ jobs:
           path: .scratch/ci-cocos/merge-front
           run-id: ${{ steps.producer.outputs.run_id }}
           github-token: ${{ github.token }}
+      - name: Download CI tower-brake artifact
+        id: tower
+        if: steps.producer.outputs.run_id != ''
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: tower-brake-${{ github.sha }}
+          path: .scratch/ci-cocos/tower-brake
+          run-id: ${{ steps.producer.outputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Download CI tetracube artifact
+        id: tetra
+        if: steps.producer.outputs.run_id != ''
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: tetracube-${{ github.sha }}
+          path: .scratch/ci-cocos/tetracube
+          run-id: ${{ steps.producer.outputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Download CI three-choose-two artifact
+        id: three
+        if: steps.producer.outputs.run_id != ''
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: three-choose-two-${{ github.sha }}
+          path: .scratch/ci-cocos/three-choose-two
+          run-id: ${{ steps.producer.outputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Download CI game-castle-cannon artifact
+        id: castle
+        if: steps.producer.outputs.run_id != ''
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: game-castle-cannon-${{ github.sha }}
+          path: .scratch/ci-cocos/game-castle-cannon
+          run-id: ${{ steps.producer.outputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Download CI ashfall-front artifact
+        id: ashfall
+        if: steps.producer.outputs.run_id != ''
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: ashfall-front-${{ github.sha }}
+          path: .scratch/ci-cocos/ashfall-front
+          run-id: ${{ steps.producer.outputs.run_id }}
+          github-token: ${{ github.token }}
       - name: Verify all downloaded artifacts or rebuild
         id: verify
-        if: steps.kart.outcome == 'success' && steps.night.outcome == 'success' && steps.orbit.outcome == 'success' && steps.tianxia.outcome == 'success' && steps.homebound.outcome == 'success' && steps.merge.outcome == 'success' && steps.garden.outcome == 'success'
+        if: steps.kart.outcome == 'success' && steps.night.outcome == 'success' && steps.orbit.outcome == 'success' && steps.tianxia.outcome == 'success' && steps.homebound.outcome == 'success' && steps.merge.outcome == 'success' && steps.garden.outcome == 'success' && steps.tower.outcome == 'success' && steps.tetra.outcome == 'success' && steps.three.outcome == 'success' && steps.castle.outcome == 'success' && steps.ashfall.outcome == 'success'
         continue-on-error: true
         env:
           PRODUCER_RUN_ID: ${{ steps.producer.outputs.run_id }}
@@ -110,6 +166,11 @@ jobs:
           node scripts/reuse-cocos-artifacts.mjs verify tianxia-chalu .scratch/ci-cocos/tianxia-chalu
           node scripts/reuse-cocos-artifacts.mjs verify homebound-station .scratch/ci-cocos/homebound-station
           node scripts/reuse-cocos-artifacts.mjs verify merge-front .scratch/ci-cocos/merge-front
+          node scripts/reuse-cocos-artifacts.mjs verify tower-brake .scratch/ci-cocos/tower-brake
+          node scripts/reuse-cocos-artifacts.mjs verify tetracube .scratch/ci-cocos/tetracube
+          node scripts/reuse-cocos-artifacts.mjs verify three-choose-two .scratch/ci-cocos/three-choose-two
+          node scripts/reuse-cocos-artifacts.mjs verify game-castle-cannon .scratch/ci-cocos/game-castle-cannon
+          node scripts/reuse-cocos-artifacts.mjs verify ashfall-front .scratch/ci-cocos/ashfall-front
       - uses: actions/upload-artifact@v7
         if: steps.verify.outcome == 'success'
         with:
@@ -152,6 +213,36 @@ jobs:
           name: merge-front-${{ github.sha }}
           path: .scratch/ci-cocos/merge-front
           if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: steps.verify.outcome == 'success'
+        with:
+          name: tower-brake-${{ github.sha }}
+          path: .scratch/ci-cocos/tower-brake
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: steps.verify.outcome == 'success'
+        with:
+          name: tetracube-${{ github.sha }}
+          path: .scratch/ci-cocos/tetracube
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: steps.verify.outcome == 'success'
+        with:
+          name: three-choose-two-${{ github.sha }}
+          path: .scratch/ci-cocos/three-choose-two
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: steps.verify.outcome == 'success'
+        with:
+          name: game-castle-cannon-${{ github.sha }}
+          path: .scratch/ci-cocos/game-castle-cannon
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: steps.verify.outcome == 'success'
+        with:
+          name: ashfall-front-${{ github.sha }}
+          path: .scratch/ci-cocos/ashfall-front
+          if-no-files-found: error
   creator:
     needs: reuse
     if: always() && !cancelled() && (needs.reuse.result == 'skipped' || (needs.reuse.result == 'success' && needs.reuse.outputs.available != 'true'))
@@ -167,8 +258,15 @@ jobs:
             homebound-station,
             merge-front,
             bullet-garden,
+            tower-brake,
+            tetracube,
+            three-choose-two,
+            game-castle-cannon,
+            ashfall-front,
           ]
     runs-on: windows-latest
+    env:
+      COMPETITION_PUBLIC_API_URL: ${{ matrix.game == 'tower-brake' && inputs.competition_public_api_url || '' }}
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v5
@@ -224,6 +322,11 @@ jobs:
           TIANXIA_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/tianxia-chalu', github.workspace) || '' }}
           HOMEBOUND_STATION_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/homebound-station', github.workspace) || '' }}
           MERGE_FRONT_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/merge-front', github.workspace) || '' }}
+          TOWER_BRAKE_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/tower-brake', github.workspace) || '' }}
+          TETRACUBE_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/tetracube', github.workspace) || '' }}
+          THREE_CHOOSE_TWO_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/three-choose-two', github.workspace) || '' }}
+          CASTLE_CANNON_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/game-castle-cannon', github.workspace) || '' }}
+          ASHFALL_FRONT_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/ashfall-front', github.workspace) || '' }}
       - run: pnpm --dir games/local/${{ matrix.game }} run test
       - run: pnpm --dir games/local/${{ matrix.game }} run build
         if: steps.artifact.outputs.cache-hit != 'true'

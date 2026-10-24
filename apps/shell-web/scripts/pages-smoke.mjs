@@ -1,3 +1,5 @@
+import { threeChooseTwoInput } from './standalone-game-checks.mjs';
+import { tapControl as tapChaseControl } from './game-checks/chase-thief.mjs';
 import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -21,11 +23,13 @@ const immersiveGame = (id) =>
     'ashfall-front',
     'carrom-club',
     'three-choose-two',
-    'retreat-rally',
     'cage-rescue',
     'chase-thief',
     'orbit-atelier',
     'merge-front',
+    'tower-brake',
+    'tetracube',
+    'castle-cannon',
     'ink-is-everything',
     'ball-roguelite',
     'flick-arena',
@@ -182,33 +186,23 @@ try {
         await expect(page.locator('.standalone-page nav')).toBeVisible();
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
       } else if (game.id === 'three-choose-two') {
-        await expect(frame.locator('#game')).toHaveAttribute('data-screen', 'home');
+        const { snapshot, control } = threeChooseTwoInput(frame);
+        await expect.poll(async () => (await snapshot()).screen).toBe('home');
         await expect(page.locator('.standalone-page nav')).toBeVisible();
-        await frame.locator('[data-action="start"]').click();
-        if ((await frame.locator('#game').getAttribute('data-screen')) === 'brief')
-          await frame.locator('[data-action="begin"]').click();
-        await expect(frame.locator('#game')).toHaveAttribute('data-screen', 'playing');
+        await control('start');
+        if ((await snapshot()).screen === 'brief') await control('begin');
+        await expect.poll(async () => (await snapshot()).screen).toBe('playing');
         await expect(page.locator('.standalone-page nav')).toBeHidden();
-        await frame.getByRole('button', { name: '返回首页', exact: true }).click();
-        await expect(frame.locator('#game')).toHaveAttribute('data-screen', 'home');
+        await control('home');
         await expect(page.locator('.standalone-page nav')).toBeVisible();
-        await frame.locator('[data-action="start"]').click();
-        await expect(frame.locator('#game')).toHaveAttribute('data-screen', 'playing');
+        await control('start');
         await expect(page.locator('.standalone-page nav')).toBeHidden();
-        await frame.locator('[data-action="pause"]').last().click();
-        await expect(frame.locator('#game')).toHaveAttribute('data-screen', 'pause');
+        await control('pause');
+        await expect.poll(async () => (await snapshot()).screen).toBe('pause');
         await expect(page.locator('.standalone-page nav')).toBeHidden();
-        await frame.getByRole('button', { name: /^退出关卡/ }).click();
-        await expect(frame.locator('#game')).toHaveAttribute('data-screen', 'home');
+        await control('exit-level');
+        await expect.poll(async () => (await snapshot()).screen).toBe('home');
         await expect(page.locator('.standalone-page nav')).toBeVisible();
-        await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
-      } else if (game.id === 'retreat-rally') {
-        await expect(page.locator('.standalone-page nav')).toBeHidden();
-        await frame.locator('#pause').click();
-        await expect(frame.locator('#paused')).toBeVisible();
-        await expect(page.locator('.standalone-page nav')).toBeVisible();
-        await frame.locator('#paused [data-go="home"]').click();
-        await expect(frame.locator('#home')).toBeVisible();
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
       } else if (game.id === 'ink-is-everything') {
         await frame.locator('#pause').click();
@@ -234,12 +228,12 @@ try {
       } else if (game.id === 'chase-thief') {
         await expect(page.locator('.standalone-page nav')).toBeVisible();
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
-        await frame.locator('#start').click();
+        await tapChaseControl(frame, 'start');
         await expect(frame.locator('body')).toHaveAttribute('data-phase', 'running');
         await expect(page.locator('.standalone-page nav')).toBeHidden();
-        await frame.locator('#pause').click();
+        await tapChaseControl(frame, 'pause');
         await expect(page.locator('.standalone-page nav')).toBeHidden();
-        await frame.locator('#pause-home').click();
+        await tapChaseControl(frame, 'home');
         await expect(frame.locator('body')).toHaveAttribute('data-phase', 'home');
         await expect(page.locator('.standalone-page nav')).toBeVisible();
       } else if (game.id === 'flick-arena') {
@@ -258,7 +252,10 @@ try {
         game.id === 'cage-rescue' ||
         game.id === 'ball-roguelite' ||
         game.id === 'orbit-atelier' ||
-        game.id === 'merge-front'
+        game.id === 'merge-front' ||
+        game.id === 'tower-brake' ||
+        game.id === 'tetracube' ||
+        game.id === 'castle-cannon'
       ) {
         await expect(page.locator('.standalone-page nav')).toBeVisible();
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);

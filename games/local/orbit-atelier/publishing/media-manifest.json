@@ -1,0 +1,166 @@
+{
+  "date": "2026-10-25",
+  "environment": "Windows desktop Chromium mobile emulation; actual Creator build; real mouse and native CDP touch; no gameplay-state injection or ad fixture in media recording",
+  "sourceHash": "b59812a65e62217ef841935050ae0c5f9260bd761276d784a958cd2bb1503ccf",
+  "rawCapture": {
+    "file": "gameplay/videos/actual-play-390x844.webm",
+    "scope": "Normal sequential unlocks of metal-01 through metal-12, tilt and undo demonstration, then metal-12 challenge with four viewport samples",
+    "audio": "none"
+  },
+  "promo": {
+    "file": "promo/videos/gameplay-cut-390x844.mp4",
+    "source": "gameplay/videos/actual-play-390x844.webm",
+    "startSeconds": 67,
+    "durationSeconds": 20
+  },
+  "files": {
+    "icon/armillary.png": {
+      "bytes": 623758,
+      "sha256": "057d7c6506610e17af53b21c3338db358f15fb55281b86a6c3692750de7b49e6",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "png",
+            "width": 540,
+            "height": 810
+          }
+        ],
+        "format": {
+          "size": "623758"
+        }
+      }
+    },
+    "gameplay/screenshots/home-390x844.png": {
+      "bytes": 425086,
+      "sha256": "9125007aa831d5a72abb4a635cea5e33e45d381838e5e1a1d39e6d91bc6ffefb",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "png",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {
+          "size": "425086"
+        }
+      }
+    },
+    "gameplay/screenshots/play-390x844.png": {
+      "bytes": 340342,
+      "sha256": "6dd9a58367c8aafb9ab58ce581a7ce1315bd9a3218110bf7d5ba5419cf6340ee",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "png",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {
+          "size": "340342"
+        }
+      }
+    },
+    "gameplay/screenshots/metal-levels-390x844.png": {
+      "bytes": 327181,
+      "sha256": "f78371585de4c831f79f4e66d331aadd865a7e5639ef57529c45260850266260",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "png",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {
+          "size": "327181"
+        }
+      }
+    },
+    "gameplay/screenshots/result-390x844.png": {
+      "bytes": 323036,
+      "sha256": "550ff353b64fcc7fa41553d3d0957e95ec85a502972abee7e5febed71538c930",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "png",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {
+          "size": "323036"
+        }
+      },
+      "capture": "Actual public metal-12 challenge, solved using native touch; captured after the three-star animation; no progress or gameplay-state injection"
+    },
+    "promo/images/gameplay-390x844.png": {
+      "bytes": 332942,
+      "sha256": "34d0724545b2f99f60e1b9e100ce34370ddf049faf2f6f25a173689e7ec61e62",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "png",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {
+          "size": "332942"
+        }
+      }
+    },
+    "gameplay/videos/actual-play-390x844.webm": {
+      "bytes": 6496054,
+      "sha256": "0f9486051ce4bd6a428ce10fcafa1d53ea2eab182eba17ca7ec71afe3ee8ef4c",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp8",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {
+          "duration": "109.000000",
+          "size": "6496054"
+        }
+      }
+    },
+    "promo/videos/gameplay-cut-390x844.mp4": {
+      "bytes": 525669,
+      "sha256": "0ce0c83f5b2b7083f0ac4ce69242092a70f0a56ff638e82dabbf7037589daa1a",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 390,
+            "height": 844,
+            "duration": "20.000000"
+          }
+        ],
+        "format": {
+          "duration": "20.000000",
+          "size": "525669"
+        }
+      }
+    }
+  }
+}

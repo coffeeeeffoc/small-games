@@ -42,6 +42,8 @@ export async function mountCageRescue(host) {
   let starting = false,
     startSequence = 0,
     frameAccumulator = 0;
+  const offline = globalThis.__COMPETITION_CONFIG__?.enabled === false;
+  $('leaderboard').hidden = offline;
   let competitionStatus = '本地挑战';
   const competition = createLeaderboard({
     gameId: 'cage-rescue',
@@ -69,7 +71,7 @@ export async function mountCageRescue(host) {
   const publishing = createH5Publishing({
     gameId: 'cage-rescue',
     title: '打破笼子接住人',
-    adMode: globalThis.SmallGamesPublishingConfig?.adMode ?? 'mock',
+    adMode: globalThis.SmallGamesPublishingConfig?.adMode ?? 'off',
     provider: globalThis.SmallGamesPublishingConfig?.provider,
     publicUrl: globalThis.SmallGamesPublishingConfig?.publicUrl,
     pause: () => {
@@ -86,6 +88,7 @@ export async function mountCageRescue(host) {
     pageActive = true,
     saveQueue = Promise.resolve(),
     disposed = false;
+  let rewardEpoch = 0, activeReward;
   let rewardBusy = false,
     lastHud = '',
     lastTip = '',
@@ -115,8 +118,7 @@ export async function mountCageRescue(host) {
       touchAction =
         button &&
         $('game').contains(button) &&
-        !button.disabled &&
-        !button.hasAttribute('data-game-fullscreen')
+        !button.disabled
           ? { button, id: event.pointerId, x: event.clientX, y: event.clientY }
           : null;
     },
@@ -168,8 +170,7 @@ export async function mountCageRescue(host) {
       if (
         event.isTrusted &&
         event.detail > 0 &&
-        performance.now() - lastTouchActivation < 700 &&
-        !event.target.closest('[data-game-fullscreen]')
+        performance.now() - lastTouchActivation < 700
       ) {
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -205,7 +206,15 @@ export async function mountCageRescue(host) {
     targetX = game.paddle.x;
     if (id !== null && canvas.hasPointerCapture?.(id)) canvas.releasePointerCapture(id);
   }
+  function cancelReward() {
+    rewardEpoch++;
+    rewardBusy = false;
+    try { activeReward?.cancel?.(); } catch { /* Navigation remains available. */ }
+    activeReward = undefined;
+    $('revive').disabled = false;
+  }
   function changeScreen(next) {
+    if (next !== screen) cancelReward();
     clearInput();
     screen = next;
     document.body.dataset.screen = next;
@@ -411,16 +420,18 @@ export async function mountCageRescue(host) {
     $('play-tip').hidden = game.phase === 'ready';
     const tip =
       game.mode === 'endless' && performance.now() >= feedbackUntil
-        ? `累计救回 ${game.totalRescued} 人 · 本波 ${game.rescued}/${game.target}`
+        ? `累计救回 ${game.totalRescued} 人 · 本波 ${game.rescued}/${game.target}${game.extraBalls.length ? ` · ${1 + game.extraBalls.length} 球` : ''}`
         : performance.now() < feedbackUntil
           ? feedback
-          : game.realTime < game.wideUntil
-            ? `${game.rescueCombo} 连救 · 宽板救援中`
-            : game.people.some((p) => p.status === 'falling' || p.status === 'waiting')
-              ? '先接球，再移到队友下方'
-              : game.rescued
-                ? '打破下一个笼子，接队友回家'
-                : `拖动挡板 · 救回全部 ${game.target} 位队友`;
+          : game.extraBalls.length
+            ? `场上 ${1 + game.extraBalls.length} 球 · 全部掉落才扣机会`
+            : game.realTime < game.wideUntil
+              ? `${game.rescueCombo} 连救 · 宽板救援中`
+              : game.people.some((p) => p.status === 'falling' || p.status === 'waiting')
+                ? '先接球，再移到队友下方'
+                : game.rescued
+                  ? '打破下一个笼子，接队友回家'
+                  : `拖动挡板 · 救回全部 ${game.target} 位队友`;
     if (tip !== lastTip) {
       $('play-tip').textContent = tip;
       lastTip = tip;
@@ -483,7 +494,7 @@ export async function mountCageRescue(host) {
         `坚持到第 ${game.endlessWave} 波 · 本机最佳 ${progress.endlessBest} 人`;
       $('next').hidden = true;
     }
-    $('revive').hidden = !canRevive(game) || trial;
+    $('revive').hidden = !canRevive(game) || trial || (local && !globalThis.SmallGamesRewardAds?.available);
     $('revive').disabled = false;
     $('reward-message').textContent =
       canRevive(game) && !trial && !local && host.session.adAuthority === 'none'
@@ -579,22 +590,22 @@ export async function mountCageRescue(host) {
   });
   on($('revive'), 'click', async () => {
     if (rewardBusy || !canRevive(game) || trial) return;
-    const attempt = game;
+    const attempt = game, token = ++rewardEpoch;
+    activeReward = local ? globalThis.SmallGamesRewardAds : host.ads;
     rewardBusy = true;
     $('revive').disabled = true;
     $('reward-message').textContent = '正在请求补球机会…';
     let outcome;
     try {
-      outcome = local
-        ? await publishing.rewarded({ placement: 'cage-rescue.revive' })
-        : await host.ads.offer({
-            id: 'cage-rescue.revive',
-            reward: { ballLives: 1, levelId: game.levelId },
-          });
+      outcome = await activeReward?.offer({
+        id: 'cage-rescue.revive',
+        reward: { ballLives: 1, levelId: game.levelId },
+      }) ?? { status: 'unavailable' };
     } catch {
       outcome = { status: 'failed' };
     }
-    if (disposed || game !== attempt || screen !== 'result') return;
+    if (disposed || token !== rewardEpoch || game !== attempt || screen !== 'result') return;
+    activeReward = undefined;
     rewardBusy = false;
     $('revive').disabled = false;
     if (outcome?.status === 'completed' && (competition.invalidate('revived'), reviveGame(game))) {
@@ -663,6 +674,7 @@ export async function mountCageRescue(host) {
     }
   });
   on(window, 'pagehide', () => {
+    cancelReward();
     pageActive = false;
     clearInput();
     pause();
@@ -727,6 +739,12 @@ export async function mountCageRescue(host) {
   }
   function handleEvents() {
     for (const event of game.events) {
+      if (event.type === 'wave') {
+        trails.length = 0;
+        particles.length = 0;
+        feedback = game.level.hint;
+        feedbackUntil = performance.now() + 3200;
+      }
       if (event.type === 'bounce') audio.play('bounce');
       if (event.type === 'hit') audio.play('brick');
       if (event.type === 'release') {
@@ -758,10 +776,30 @@ export async function mountCageRescue(host) {
               : '医疗员安全归队 · 球机会已满';
         feedbackUntil = performance.now() + 3000;
       }
-      if (event.type === 'metal') {
+      if (event.type === 'metal' && performance.now() >= feedbackUntil) {
         audio.play('brick');
-        feedback = '钢梁无法打碎，从两侧绕过去';
+        feedback = event.gate ? '带字母的闸门要用钥匙机关打开' : '钢墙无法打碎，寻找缺口再调整角度';
         feedbackUntil = performance.now() + 1800;
+      }
+      if (event.type === 'mechanism') {
+        audio.play('cage');
+        feedback =
+          event.kind === 'splitter'
+            ? `分球启动！场上 ${event.balls} 球 · 全部掉落才扣机会`
+            : event.kind === 'switch'
+              ? '闸门已开启！新的救援路线打通了'
+              : '爆破启动！附近装甲削弱两层';
+        feedbackUntil = performance.now() + 3200;
+      }
+      if (
+        event.type === 'hit' &&
+        event.kind === 'brick' &&
+        event.maxHp > 2 &&
+        event.hp > 0 &&
+        performance.now() >= feedbackUntil
+      ) {
+        feedback = `装甲裂开了 · 还需 ${event.hp} 次撞击`;
+        feedbackUntil = performance.now() + 1600;
       }
       if (event.type === 'miss') {
         audio.play('miss');
@@ -771,19 +809,26 @@ export async function mountCageRescue(host) {
       if (event.type === 'ball-lost') audio.play('miss');
       const impact = event.type === 'hit' && event.hp > 0;
       if (
-        (['break', 'rescue', 'miss', 'bounce'].includes(event.type) || impact) &&
+        (['break', 'rescue', 'miss', 'bounce', 'mechanism'].includes(event.type) || impact) &&
         !reducedMotion
       ) {
         const color =
-          event.type === 'miss' ? '#8fa8bd' : event.type === 'rescue' ? '#5fe1c6' : '#ffc44e';
+          event.type === 'mechanism'
+            ? '#c5abff'
+            : event.type === 'miss'
+              ? '#8fa8bd'
+              : event.type === 'rescue'
+                ? '#5fe1c6'
+                : '#ffc44e';
         particles.push({
           type: 'ring',
           x: event.x,
           y: event.y,
           vx: 0,
           vy: 0,
-          life: 0.32,
-          maxLife: 0.32,
+          life: event.type === 'mechanism' ? 0.55 : 0.32,
+          maxLife: event.type === 'mechanism' ? 0.55 : 0.32,
+          growth: event.kind === 'pulse' ? event.radius / 0.55 : 95,
           color,
           size: 4,
         });
@@ -851,15 +896,16 @@ export async function mountCageRescue(host) {
       if (game.phase === 'won' || game.phase === 'lost') showResult();
       else syncHud();
       if (!reducedMotion && game.ball.active) {
-        trails.push({ x: game.ball.x, y: game.ball.y, life: 0.15 });
-        if (trails.length > 12) trails.shift();
+        for (const ball of [game.ball, ...game.extraBalls])
+          if (ball.active) trails.push({ id: ball.id, x: ball.x, y: ball.y, life: 0.15 });
+        while (trails.length > 36) trails.shift();
       }
     }
     if (screen === 'play') {
       for (const particle of particles) {
         particle.x += particle.vx * dt;
         particle.y += particle.vy * dt;
-        if (particle.type === 'ring') particle.size += 95 * dt;
+        if (particle.type === 'ring') particle.size += (particle.growth || 95) * dt;
         else if (particle.type !== 'label') particle.vy += 120 * dt;
         particle.life -= dt;
       }
@@ -893,6 +939,7 @@ export async function mountCageRescue(host) {
     pause,
     resume,
     async dispose() {
+      cancelReward();
       if (disposed) return;
       disposed = true;
       ++startSequence;

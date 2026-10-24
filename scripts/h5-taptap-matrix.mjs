@@ -3,7 +3,19 @@ import assert from 'node:assert/strict';
 export const matrixGames = ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'];
 // H5 orientation belongs to app upload metadata, not native game.json.
 export const h5Orientations = Object.freeze({
+  'ashfall-front': 'landscape',
   'merge-front': 'landscape',
+  tetracube: 'portrait',
+  'three-choose-two': 'portrait',
+  'bullet-garden': 'portrait',
+  'tower-brake': 'portrait',
+  'orbit-atelier': 'portrait',
+  'tianxia-chalu': 'portrait',
+  'ball-roguelite': 'portrait',
+  'flick-arena': 'portrait',
+  'chase-thief': 'portrait',
+  'moss-garden': 'portrait',
+  'cage-rescue': 'portrait',
   'cops-robbers': 'portrait',
   'cops-robbers-realtime': 'preserve',
   'xiangqi-five': 'portrait',

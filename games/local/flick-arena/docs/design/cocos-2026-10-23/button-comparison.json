@@ -1,0 +1,30 @@
+{
+  "baseline": "a1f0a810c67ff10dc6491f8d3240c547d5009c22",
+  "environment": "same Chromium, 390x844, DPR2, same installed fonts",
+  "buttonRegionCss": {
+    "x": 24,
+    "y": 620,
+    "width": 342,
+    "height": 180
+  },
+  "meanAbsoluteChannelErrorOutOf255": [
+    0.05644899285250162,
+    0.057001299545159194,
+    0.052716861598440544
+  ],
+  "buttonBounds": {
+    "before": {
+      "x": 45,
+      "y": 621,
+      "width": 300,
+      "height": 55
+    },
+    "after": {
+      "x": 45,
+      "y": 621,
+      "width": 300,
+      "height": 55
+    }
+  },
+  "automatedSamePageParity": 0.05538905133203379
+}

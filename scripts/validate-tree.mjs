@@ -2,6 +2,10 @@ import {
   localRetirementFileScopes,
   localRetirementHeadQueryPaths,
 } from './local-game-retirement-scope.mjs';
+import {
+  fullscreenRemovalReviews,
+  fullscreenRemovalFileScopes,
+} from './fullscreen-removal-scope.mjs';
 import assert from 'node:assert/strict';
 import { readFile, stat, glob } from 'node:fs/promises';
 import path from 'node:path';
@@ -652,6 +656,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
   const interactionBrowsers = {
     'letters-words2': 'word-flow.browser.mjs',
     'tianxia-chalu': 'browser.mjs',
+    tetracube: 'browser.mjs',
   };
   for (const [id, file] of Object.entries(interactionBrowsers)) {
     const source = `games/local/${id}`;
@@ -665,6 +670,16 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
     );
     execute(process.execPath, [`${source}/tests/${file}`], root, env, 'logged');
   }
+  if (plan.browser && plan.browser_ids?.includes('ashfall-front'))
+    execute(process.execPath, ['games/local/ashfall-front/tests/browser.mjs'], root, env, 'logged');
+  if (plan.browser && plan.browser_ids?.includes('castle-cannon'))
+    execute(
+      process.execPath,
+      ['games/local/game-castle-cannon/scripts/cocos-smoke.mjs'],
+      root,
+      env,
+      'logged',
+    );
   if (plan.safe_area_checks) {
     execute(
       process.execPath,
@@ -760,7 +775,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
   const publishingBrowsers = {
     'cops-robbers': ['check-rewarded-hints.mjs'],
     'cops-robbers-realtime': ['publishing.browser.mjs', 'start-lifecycle.browser.mjs'],
-    'tower-brake': ['publishing-browser.mjs', 'browser.mjs', 'expansion-browser.mjs'],
+    'tower-brake': ['browser.mjs'],
     'cage-rescue': [
       'reward-browser.mjs',
       'browser.mjs',
@@ -773,7 +788,6 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
     'flick-arena': ['publishing.browser.mjs'],
     'moss-garden': ['publishing.browser.mjs'],
     'chase-thief': ['publishing.browser.mjs'],
-    'retreat-rally': ['publishing.browser.mjs'],
     'tiny-signals': ['publishing.browser.mjs'],
     'orbit-atelier': ['publishing.browser.mjs', 'browser.mjs'],
     'wulong-city': ['publishing.browser.mjs'],
@@ -956,6 +970,7 @@ export async function validateTree({
       ...new Set([
         ...retirementHeadQueryPaths(sourcePaths),
         ...localRetirementHeadQueryPaths(sourcePaths),
+        ...sourcePaths.filter((file) => Object.hasOwn(fullscreenRemovalReviews, file)),
       ]),
     ];
     const headPaths = new Set(
@@ -986,6 +1001,7 @@ export async function validateTree({
       developerModeFileScopes,
       nativeWorkspaceFileScopes,
       reviewedSharedFileScopes,
+      fullscreenRemovalFileScopes,
       nineNativeFileScopes,
       nineLockFileScopes,
       localRetirementFileScopes,

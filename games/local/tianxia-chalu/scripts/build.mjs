@@ -16,7 +16,7 @@ if (process.env.TIANXIA_PREBUILT_DIR) {
     await rm(dist, { recursive: true, force: true });
     await cp(source, dist, { recursive: true });
   }
-  console.log('Restored verified Tianxia Chalu Creator artifact');
+  console.log('Restored verified 夺城令 Creator artifact');
   process.exit(0);
 }
 if (!existsSync(editor)) throw Error('Install Cocos Creator 3.8.8 or set COCOS_CREATOR.');
@@ -73,7 +73,7 @@ const template = await readFile(path.join(root, 'index.html'), 'utf8');
 const extra = template.match(/<!-- GAME_HEAD -->([\s\S]*?)<!-- \/GAME_HEAD -->/)[1];
 const ui = template.match(/<!-- GAME_UI -->([\s\S]*?)<!-- \/GAME_UI -->/)[1];
 html = html
-  .replace(/<title>.*?<\/title>/, '<title>天下岔路 · 百战山河</title>')
+  .replace(/<title>.*?<\/title>/, '<title>夺城令</title>')
   .replace('</head>', extra + '</head>')
   .replace(/<body([^>]*)>/, '<body$1 data-screen="home">' + ui)
   .replace('minimal-ui=true', 'viewport-fit=cover');
@@ -86,7 +86,6 @@ for (const file of [
   'audio.mjs',
   'rewards.mjs',
   'publishing.js',
-  'fullscreen.js',
   'favicon.svg',
   'art',
   'src',

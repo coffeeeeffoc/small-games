@@ -1,0 +1,51 @@
+import { expect } from '@playwright/test';
+export const snapshot = (frame) =>
+  frame.locator('#GameCanvas').evaluate(() => globalThis.__chase?.snapshot());
+export async function tapControl(frame, id, mobile = false) {
+  await expect
+    .poll(async () => (await snapshot(frame))?.controls.some((c) => c.id === id && !c.disabled))
+    .toBe(true);
+  const state = await snapshot(frame),
+    control = state.controls.find((c) => c.id === id);
+  const canvas = frame.locator('#GameCanvas'),
+    bounds = await canvas.boundingBox();
+  expect(bounds).toBeTruthy();
+  const x = bounds.x + ((control.x + control.w / 2) / state.width) * bounds.width;
+  const y = bounds.y + ((control.y + control.h / 2) / state.height) * bounds.height;
+  if (mobile) await canvas.page().touchscreen.tap(x, y);
+  else await canvas.page().mouse.click(x, y);
+}
+export async function assertChaseGameplay(frame, mobile = false) {
+  await expect.poll(async () => (await snapshot(frame))?.ready, { timeout: 60000 }).toBe(true);
+  await tapControl(frame, 'settings', mobile);
+  await expect
+    .poll(async () => (await snapshot(frame))?.controls.some((c) => c.id === 'toggle:touchButtons'))
+    .toBe(true);
+  if (
+    (await snapshot(frame)).controls
+      .find((c) => c.id === 'toggle:touchButtons')
+      .label.endsWith('关')
+  )
+    await tapControl(frame, 'toggle:touchButtons', mobile);
+  await tapControl(frame, 'back', mobile);
+  await tapControl(frame, 'start', mobile);
+  await expect.poll(async () => (await snapshot(frame))?.distance).toBeGreaterThan(0);
+  for (const [id, key, value] of [
+    ['left', 'lane', 0],
+    ['right', 'lane', 1],
+    ['jump', 'action', 'jump'],
+  ]) {
+    await tapControl(frame, id, mobile);
+    await expect.poll(async () => (await snapshot(frame))?.[key]).toBe(value);
+  }
+  await expect.poll(async () => (await snapshot(frame))?.action).toBe('run');
+  await tapControl(frame, 'slide', mobile);
+  await expect.poll(async () => (await snapshot(frame))?.action).toBe('slide');
+  await tapControl(frame, 'pause', mobile);
+  await expect.poll(async () => (await snapshot(frame))?.screen).toBe('paused');
+  await tapControl(frame, 'resume', mobile);
+  await expect.poll(async () => (await snapshot(frame))?.screen).toBe('running');
+  await tapControl(frame, 'pause', mobile);
+  await tapControl(frame, 'home', mobile);
+  await expect.poll(async () => (await snapshot(frame))?.screen).toBe('home');
+}

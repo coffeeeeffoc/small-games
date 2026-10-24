@@ -1,0 +1,668 @@
+✔ every registered standalone has one explicit adapter or legacy mode and a gameplay branch (7.3367ms)
+✔ explicit legacy mode leaves the original native interaction flow in charge (0.3842ms)
+✔ entry adapters never force clicks and have only stable semantic selectors (4.2752ms)
+✔ word island readiness is home, with an explicit start adapter before board assertions (0.3706ms)
+✔ street chase uses real Cocos canvas controls (0.1707ms)
+✔ Tianxia enters its ready Creator battlefield through preparation (0.7803ms)
+✔ Orbit Creator owns its native home and interaction checks instead of clicking invisible DOM controls (0.1691ms)
+✔ Tower Creator owns its native menu and touch flow (0.1353ms)
+Verified carding-car prebuilt sources, Creator version, entry and declarations before cache lookup.
+✔ carding-car: required Cocos inputs are checked before cache reuse (79.6047ms)
+Verified night-overwatch prebuilt sources, Creator version, entry and declarations before cache lookup.
+✔ night-overwatch: required Cocos inputs are checked before cache reuse (65.7959ms)
+Verified tianxia-chalu prebuilt sources, Creator version, entry and declarations before cache lookup.
+✔ tianxia-chalu: required Cocos inputs are checked before cache reuse (65.956ms)
+Verified merge-front prebuilt sources, Creator version, entry and declarations before cache lookup.
+✔ merge-front: required Cocos inputs are checked before cache reuse (68.6196ms)
+Verified tower-brake prebuilt sources, Creator version, entry and declarations before cache lookup.
+✔ tower-brake: required Cocos inputs are checked before cache reuse (55.5248ms)
+✔ Creator preflight follows only actual builds, type consumers and source-matching native targets (1.1508ms)
+Verified orbit prebuilt sources, Creator version, entry and declarations before cache lookup.
+✔ Orbit Creator accepts only complete source-matching prebuilt inputs and never an unrelated artifact variable (37.4654ms)
+Verified homebound prebuilt sources, Creator version, entry and declarations before cache lookup.
+✔ homebound uses its own verified Creator artifact and rejects missing or stale inputs (39.5461ms)
+✔ cache maintenance paths run tooling checks without game consumers; siblings fail closed (7.9328ms)
+✔ Tianxia engine changes retain the actual service dependency and complete rule suite (1.6853ms)
+✔ reuse artifact tests are in the validation execution path and keep navigation samples (0.914ms)
+✔ scripts/browser-preparation.mjs is validation tooling with only the existing navigation samples (1.0725ms)
+✔ scripts/hook-diagnostics.mjs is validation tooling with only the existing navigation samples (0.5739ms)
+✔ publishing UI regressions select only reviewed consumer browsers; shared publishing selects every registered consumer (37.6162ms)
+Native platform publication gates: deferred (Web validation remains required)
+Native platform publication gates: deferred (Web validation remains required)
+✔ large documentation changes check every file within Windows command limits and still reject formatting errors (6892.0766ms)
+✔ Shell-only, game and transitive shared consumer changes select fast Shell contracts; docs do not (0.3179ms)
+✔ pure rules retain related static consumers without launching any browser; own unknown code checks only its game (1.258ms)
+✔ shared UI follows actual dependency closure, excluding unrelated games (0.4602ms)
+✔ structured single/multiple registrations check only registered games, including wiring outside Shell (0.9511ms)
+✔ generic logic in the same Shell directory still exercises reviewed navigation families (0.2881ms)
+✔ unknown shared paths block with a classification gap, never silently expand to all games (0.2922ms)
+✔ Pages assembly changes run isolation, native archive and size checks without changing game scope (0.8904ms)
+✔ only the exact workspace boundary checker and tests select static tooling without game consumers (1.6418ms)
+✔ shard planning and measured timing changes select tool checks without any game browser (0.871ms)
+✔ registration classifier changes validate tooling and reviewed navigation, unknown tools block (0.5866ms)
+✔ real registration parser feeds narrow single/multiple-game browser selection (1.5977ms)
+✔ per-game literal adapters are narrow, executable changes in the same file remain shared (0.8226ms)
+✔ unrecognized Shell registry or task graph edits cannot silently become generic navigation samples (0.9253ms)
+✔ native smoke selects the current native host without retired game evidence (1.6751ms)
+✔ additive developer guards retain only new games, the mobile fixture and navigation samples (27.6589ms)
+✔ developer-mode game guards select every old/new assertion consumer and retain navigation samples (15.6373ms)
+✔ existing-game native wiring proves both new workspace links and all remaining lock bytes (1.4112ms)
+✔ unproven lock/manifests fail closed: no external updates, extra resolutions, mismatched links or missing baseline (3.5544ms)
+✔ additive H5 fullscreen and developer adapters select only their registered game (2.3597ms)
+✔ H5 adapters reject deletion, renaming, reordering, duplicates and unknown registration (2.4053ms)
+✔ H5 literal parsing rejects executable, ambiguous and disguised data without evaluating it (3.8412ms)
+✔ H5 changes outside literal ranges remain unknown and block incremental publication (2.1569ms)
+✔ scoped platform consumers traverse actual intermediate package dependencies and exclude unrelated games (1.1689ms)
+✔ first-nine classifier tooling recognizes only exact source/test files; adjacent names remain unknown (1.6395ms)
+✔ actual native changes select channel builds without unrelated H5; H5-only does not select native (2.0553ms)
+✔ Word native bundle contract and native entry select native without H5 (0.7677ms)
+✔ five competition renderers retain H5 consumers and only active games select native channels (1.5777ms)
+✔ shared competition protocol modules select all actual H5 consumers and native dependencies (243.7459ms)
+✔ developer helper proves actual Git producer bytes and rejects CRLF producer fixtures (213.8075ms)
+✔ file URL workspace roots retain Windows drive identity and decode path segments (0.286ms)
+✔ native smoke accepts the current platform test aggregate and rejects incomplete commands (2.5794ms)
+✔ fullscreen registration planning works in a checkout without installed formatter dependencies (264.9835ms)
+✔ admin checks stay separate from game browsers and backend changes include their UI build consumer (2.2613ms)
+✔ Tap services retain three H5 consumers and contracts without retired native targets (611.0666ms)
+✔ every actual chess H5 or shared Canvas consumer retains the standalone build contract (412.2219ms)
+✔ navigation checks request Creator emitted inputs required by Shell static checks (2.2823ms)
+Pages comparison: 4bbc897656ae4e2eac3f56cb187d3947f29d9353..bf68adb31aaf27be4f809c5e875aa8babee8c147
+Pages scope: {"required":true,"full":false,"game_ids":[],"game_sources":[],"browser_ids":["letters-words2","xiangqi-five"],"risk":"incremental","reason":"Reviewed source graph from an exact comparison","browser":true,"admin_console_checks":false,"xiangqi_build_checks":true,"tap_services_checks":false,"hook_checks":false,"submodule_dialog_ids":[],"pages_deploy":false,"validation_tools":true,"competition":{"h5":false,"native":false,"letters":false,"config_tests":false,"consumer_sources":[]},"consumer_sources":[],"nine_native_paths":[],"nine_native_checks":[],"nine_native_targets":[],"nine_native_root_checks":[],"nine_native_blocked":[],"nine_native_travel_contract":null,"native_consumers":[],"developer_mode_ids":[],"catalog_rollout_checks":false,"interaction_browser_ids":[],"game_services_checks":false,"identity_checks":false,"competition_service_checks":false,"h5_acceptance_checks":false,"six_h5_checks":false,"ranked_deployment_checks":false,"platform_process_checks":false,"game_config_checks":false,"vocabulary_export_checks":false,"publishing_checks":false,"safe_area_checks":false,"platform_ads_checks":false,"publishing_browser_ids":[],"publication_config_checks":false,"deployment_bundle_checks":false,"company_deployment_checks":false,"competition_ingress_checks":false,"service_rule_sources":[],"cocos":true,"diff_base":"4bbc897656ae4e2eac3f56cb187d3947f29d9353","diff_head":"bf68adb31aaf27be4f809c5e875aa8babee8c147"}
+✔ exact pnpm repair comparison supplies Creator prerequisites without broadening browser games (41531.809ms)
+✔ existing source service may add only an exact workspace link to a newly registered game (2.482ms)
+✔ combined new-game runtime, native and source-service wiring proves one additive lock delta (3.2641ms)
+✔ combined wiring rejects external resolution, importer syntax and remaining-byte drift (2.3981ms)
+✔ combined wiring rejects mismatched manifests, native changes and unrelated source services (3.8613ms)
+✔ registration-only manifest and multi-document lock wiring select the new game (0.3316ms)
+✔ new game development tools reuse exact base importer tuples without expanding scope (0.3159ms)
+✔ development wiring rejects undeclared fields, duplicate entries and unproven tool resolutions (0.9818ms)
+✔ tool tuples outside real baseline dependency sections cannot prove reuse (0.4077ms)
+✔ one registration presentation or output change selects only its game (0.2018ms)
+✔ metadata history changes retain host gates without unrelated gameplay tests (0.5208ms)
+✔ registration removals, identity changes, duplicates, reordering and unknown fields stay full (0.3216ms)
+✔ invalid or removed metadata and changed source mappings stay full (0.2651ms)
+✔ shared runtime, global configuration and shared browser assertions still override local registration (0.5482ms)
+✔ real Shell dependency, script and lock resolution changes cannot masquerade as registration wiring (0.6665ms)
+✔ dev and PR game changes select the registry ID and exact package directory (0.123ms)
+✔ built-in game changes retain logical package tests without a standalone ID (0.0605ms)
+✔ submodule gitlink updates select the corresponding game (0.0379ms)
+✔ Shell, shared dependencies, assets and build configuration select all games (0.1422ms)
+✔ Carding Car toolchain scripts shared with Night Overwatch expand coverage (0.0846ms)
+✔ known documentation and separate applications skip Pages (0.1088ms)
+✔ main and test publication run full regression only for relevant changes (0.0604ms)
+✔ nightly, manual and unavailable bases cannot silently skip checks (0.0648ms)
+✔ unknown sources, removed packages and unknown application groups expand coverage (0.067ms)
+✔ changed paths and selected games are deduplicated and sorted deterministically (0.0412ms)
+✔ NUL-delimited diff preserves rename sides, deletions and unusual filenames (0.3221ms)
+Pages comparison: 3a176cbed38faeaa6d60f20881c15604abd72fcc..fe67c91843a51c38c3fe42344c22fb61615c1f2f
+Pages scoped registration: apps/shell-web/src/standalone-games.json -> games/local/new-game
+Pages scope: {"required":true,"full":false,"game_ids":["new-game"],"game_sources":["games/local/new-game"]}
+✔ adding one standalone registration selects only that game and keeps Pages required (2325.6175ms)
+Switched to a new branch 'feature'
+Switched to branch 'main'
+Switched to branch 'feature'
+Pages comparison: 395bb3816a26e7de117ae6bcaadd936e16a13e1d..d7a69ab2344d58bcd2cd49716a79b10eac46f141
+Pages scoped registration: apps/shell-web/src/standalone-games.json -> games/local/new-game
+Pages scope: {"required":true,"full":false,"game_ids":["new-game"],"game_sources":["games/local/new-game"]}
+✔ CLI semantic comparison uses the PR merge base, not unrelated target-branch registrations (2744.2277ms)
+Pages comparison: 1d46cb170b1fb104a8e15d2f71c9e55d4760153b..9cfefa97add4dc83e4049c42576d48090fd37fe3
+Pages scope: falling back to full regression (Relevant deletion or rename requires full regression)
+Pages scope: {"required":true,"full":true,"game_ids":["echo-lab"],"game_sources":["games/local/echo-lab"]}
+Pages comparison: 9cfefa97add4dc83e4049c42576d48090fd37fe3..36d504d1469fc7a408f3091ed7ac35118de68bd5
+Pages scope: falling back to full regression (Relevant deletion or rename requires full regression)
+Pages scope: {"required":true,"full":true,"game_ids":["echo-lab"],"game_sources":["games/local/echo-lab"]}
+✔ CLI retains full coverage for relevant deletion and rename, even within one game (2830.923ms)
+Pages comparison: 42cba329978ce3e6578063db3282d88b3350f5d2..2b99af38d22c4ac7923b43540e807aa37b891be2
+Pages scoped registration: apps/shell-web/src/game-meta.json -> host checks
+Pages scope: {"required":true,"full":false,"game_ids":[],"game_sources":[]}
+✔ CLI metadata-only commit keeps required=true and empty gameplay selection in GitHub outputs (2060.565ms)
+warning: in the working copy of 'README.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'old.txt', LF will be replaced by CRLF the next time Git touches it
+Switched to a new branch 'feature'
+Switched to branch 'main'
+warning: in the working copy of 'packages/shared/index.ts', LF will be replaced by CRLF the next time Git touches it
+✔ real git diff uses a merge base for PRs and keeps rename and gitlink paths (2102.8685ms)
+Pages comparison: f9517d44a472640893d9f119047220fa0788cd61..a80fd419a1368ffc88a0ed7b40d4fcd25c8246bb
+Pages scope: {"required":false,"full":false,"game_ids":[],"game_sources":[]}
+✔ exact candidate tree checks support path lists beyond Windows command-line limits (2311.4005ms)
+Pages comparison: c136748af21e1d2d185dbff46782dfba833c5862..3f868d661ef6c93dae2467c04f11c48cd5633bb8
+Pages scope: {"required":false,"full":false,"game_ids":[],"game_sources":[]}
+Pages scope: falling back to full regression (No usable diff base)
+Pages scope: {"required":true,"full":true,"game_ids":["echo-lab","fixture-chess"],"game_sources":["games/local/echo-lab","games/local/game-fixture","games/submodules/fixture-chess"]}
+Pages scope: falling back to full regression (No usable diff base)
+Pages scope: {"required":true,"full":true,"game_ids":["echo-lab","fixture-chess"],"game_sources":["games/local/echo-lab","games/local/game-fixture","games/submodules/fixture-chess"]}
+Pages scope: falling back to full regression (fatal: Needed a single revision)
+Pages scope: {"required":true,"full":true,"game_ids":["echo-lab","fixture-chess"],"game_sources":["games/local/echo-lab","games/local/game-fixture","games/submodules/fixture-chess"]}
+✔ CLI output is valid GitHub output and an empty or unknown base selects full (1933.0414ms)
+✔ saved dev baseline reads validated deployment metadata and rejects missing or invalid data (1.1075ms)
+warning: in the working copy of 'README.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/echo-lab/src/index.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/z-fixture-2.5D/src/index.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/echo-lab/src/index.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/z-fixture-2.5D/src/index.ts', LF will be replaced by CRLF the next time Git touches it
+Pages comparison: 74df6dc021a6449e9ed6cd9e69e8b2b008c14404..3e882f104273b3df65652168f340a62fd4d8e703
+Pages scope: {"required":true,"full":false,"game_ids":["echo-lab","z-fixture-25d"],"game_sources":["games/local/echo-lab","games/local/z-fixture-2.5D"]}
+warning: in the working copy of 'README.md', LF will be replaced by CRLF the next time Git touches it
+Pages comparison: 74df6dc021a6449e9ed6cd9e69e8b2b008c14404..725582f8f35d92847fe7b940774e21c909dfee90
+Pages scope: {"required":true,"full":false,"game_ids":["echo-lab","z-fixture-25d"],"game_sources":["games/local/echo-lab","games/local/z-fixture-2.5D"]}
+Pages comparison: 3e882f104273b3df65652168f340a62fd4d8e703..725582f8f35d92847fe7b940774e21c909dfee90
+Pages scope: {"required":false,"full":false,"game_ids":[],"game_sources":[]}
+Pages scope: falling back to full regression (Saved dev baseline unavailable (HTTP 404))
+Pages scope: {"required":true,"full":true,"game_ids":["echo-lab","z-fixture-25d"],"game_sources":["games/local/echo-lab","games/local/z-fixture-2.5D"]}
+Pages scope: falling back to full regression (Invalid saved dev deployment content)
+Pages scope: {"required":true,"full":true,"game_ids":["echo-lab","z-fixture-25d"],"game_sources":["games/local/echo-lab","games/local/z-fixture-2.5D"]}
+Pages scope: falling back to full regression (fatal: Needed a single revision)
+Pages scope: {"required":true,"full":true,"game_ids":["echo-lab","z-fixture-25d"],"game_sources":["games/local/echo-lab","games/local/z-fixture-2.5D"]}
+✔ new dev pushes include pending changes from cancelled earlier runs and docs successors (4046.528ms)
+✔ affected logical test command uses exact filters and safely rejects invalid selections (0.527ms)
+Pages comparison: e48a4c8b5c82311683611c9a5fe1f6786d6ebed2..c68deaeaea48c138f9a4613dbb719b2031ec1207
+Pages scope: {"required":true,"full":false,"game_ids":[],"game_sources":[],"browser_ids":["letters-words2","xiangqi-five"],"risk":"incremental","reason":"Reviewed source graph from an exact comparison","browser":true,"admin_console_checks":false,"xiangqi_build_checks":true,"tap_services_checks":false,"hook_checks":false,"submodule_dialog_ids":[],"pages_deploy":false,"validation_tools":true,"competition":{"h5":false,"native":false,"letters":false,"config_tests":false,"consumer_sources":[]},"consumer_sources":[],"nine_native_paths":[],"nine_native_checks":[],"nine_native_targets":[],"nine_native_root_checks":[],"nine_native_blocked":[],"nine_native_travel_contract":null,"native_consumers":[],"developer_mode_ids":[],"catalog_rollout_checks":false,"interaction_browser_ids":[],"game_services_checks":false,"identity_checks":false,"competition_service_checks":false,"h5_acceptance_checks":false,"six_h5_checks":false,"ranked_deployment_checks":false,"platform_process_checks":false,"game_config_checks":false,"vocabulary_export_checks":false,"publishing_checks":false,"safe_area_checks":false,"platform_ads_checks":false,"publishing_browser_ids":[],"publication_config_checks":false,"deployment_bundle_checks":false,"company_deployment_checks":false,"competition_ingress_checks":false,"service_rule_sources":[],"cocos":true,"diff_base":"e48a4c8b5c82311683611c9a5fe1f6786d6ebed2","diff_head":"c68deaeaea48c138f9a4613dbb719b2031ec1207"}
+fatal: path 'platforms/taptap/package.json' exists on disk, but not in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/resources' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/resources.ts' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/resources.tsx' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/resources.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/resources.mjs' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/resources.json' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/resources/index.ts' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/resources/index.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/native/react-three-rapier.mjs' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/audio' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/audio.ts' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/audio.tsx' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/audio.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/audio.mjs' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/audio.json' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/audio/index.ts' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/audio/index.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/diagnostics' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/diagnostics.ts' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/diagnostics.tsx' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/diagnostics.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/diagnostics.mjs' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/diagnostics.json' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/diagnostics/index.ts' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/diagnostics/index.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/resources' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/resources.ts' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/resources.tsx' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/resources.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/resources.mjs' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/resources.json' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/resources/index.ts' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/resources/index.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/wasm' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/wasm.ts' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/wasm.tsx' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/wasm.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/wasm.mjs' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/wasm.json' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/wasm/index.ts' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/wasm/index.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/suspend' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/suspend.ts' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/suspend.tsx' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/suspend.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/suspend.mjs' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/suspend.json' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/suspend/index.ts' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/suspend/index.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/src/world' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/src/photo-hunts' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/native/resources' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/native/utf8' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/native/resources' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/native/wasm' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/native/audio' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/native/state' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/native/hud' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/native/input' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/src/camera-controls' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/src/world' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/src/world' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/native/sha256' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/native/utf8' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/native/draco' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/src/world' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/src/settings' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/src/render-settings' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/src/routes' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/src/photo-hunts' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/native/audio' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/src/life' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/src/world' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/native/audio' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/src/physics' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/src/render-budget' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/src/render-settings' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/src/StreetLife' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/src/StreetLife.ts' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/src/life' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/src/camera-controls' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/src/facade-detail' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/src/photo-hunts' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/src/physics' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/src/render-budget' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/src/clouds' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/src/world' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/native/diagnostics' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/travel-bund/src/life' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/wulong-city/native/levels-data.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/wulong-city/native/levels-data.ts' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/wulong-city/native/levels-data.tsx' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/wulong-city/native/levels-data.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/wulong-city/native/levels-data.ts' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/wulong-city/native/levels-data.tsx' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/ad-config/src/policy.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/ad-config/src/managed.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/ad-config/src/policy.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/ad-runtime/src/runtime.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/ad-runtime/src/adapters.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-contract/src/errors.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-contract/src/schemas.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-contract/src/schemas.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-contract/src/capabilities.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-contract/src/errors.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-contract/src/game.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-contract/src/ports.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-contract/src/schemas.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-host/src/ports.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-host/src/session.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-host/src/storage.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-host/src/types.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-host/src/ports.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-host/src/session.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-host/src/storage.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-host/src/types.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-host/src/browser.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-host/src/in-memory.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-host/src/test.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-host/src/types.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-host/src/storage.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-host/src/session.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-host/src/storage.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-host/src/types.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-host/src/types.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-host/src/in-memory.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-host/src/types.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/native-game-shell/src/sdk.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/native-game-shell/src/ads.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/native-game-shell/src/sdk.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/native-game-shell/src/sdk.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/native-game-shell/src/shell.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/native-game-shell/src/host.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/native-game-shell/src/media.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/native-game-shell/src/ads.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/native-game-shell/src/sdk.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/native-game-shell/src/render-surface.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/native-game-shell/src/sdk.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/native-game-shell/src/host.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/native-game-shell/src/media.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/native-game-shell/src/sdk.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/native-game-shell/src/viewport.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/native-game-shell/src/viewport.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/native-game-shell/src/sdk.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/ad-runtime/src/runtime.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-contract/src/ports.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-contract/src/schemas.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'packages/game-contract/src/schemas.js' does not exist in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'platforms/taptap/browser-entry.mjs' exists on disk, but not in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'platforms/taptap/calls.mjs' exists on disk, but not in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'platforms/taptap/competition-identity.mjs' exists on disk, but not in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'platforms/taptap/game-services.mjs' exists on disk, but not in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'platforms/taptap/service-screen.mjs' exists on disk, but not in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'platforms/taptap/multiplayer-screen.mjs' exists on disk, but not in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'platforms/taptap/multiplayer-session.mjs' exists on disk, but not in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'scripts/taptap-services-config.mjs' exists on disk, but not in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'scripts/competition-h5-service.mjs' exists on disk, but not in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'scripts/check-tap-multiplayer.mjs' exists on disk, but not in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'platforms/taptap/tests/tap-services.test.mjs' exists on disk, but not in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'platforms/taptap/tests/tap-services.browser.mjs' exists on disk, but not in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'platforms/taptap/tests/tap-multiplayer-fixture.mjs' exists on disk, but not in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'platforms/taptap/tests/tap-multiplayer.test.mjs' exists on disk, but not in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'platforms/taptap/tests/tap-multiplayer.browser.mjs' exists on disk, but not in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/cops-robbers/src/tap-save.js' exists on disk, but not in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/cops-robbers/src/tap-multiplayer.js' exists on disk, but not in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/cops-robbers-realtime/src/tap-save.js' exists on disk, but not in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+fatal: path 'games/local/cops-robbers-realtime/src/tap-multiplayer.js' exists on disk, but not in 'c68deaeaea48c138f9a4613dbb719b2031ec1207'
+✔ actual e48 to c68 CI changes retain two navigation games and their emitted Creator prerequisites (63200.3862ms)
+Pages comparison: dcf778794c36562634a969b8b8975889c4001d0c..e48a4c8b5c82311683611c9a5fe1f6786d6ebed2
+Pages scope: {"required":true,"full":false,"game_ids":[],"game_sources":[],"browser_ids":["letters-words2","xiangqi-five"],"risk":"incremental","reason":"Reviewed source graph from an exact comparison","browser":true,"admin_console_checks":false,"xiangqi_build_checks":true,"tap_services_checks":false,"hook_checks":false,"submodule_dialog_ids":[],"pages_deploy":false,"validation_tools":true,"competition":{"h5":false,"native":false,"letters":false,"config_tests":false,"consumer_sources":[]},"consumer_sources":["games/local/vibeJam-myself-history-guess","apps/shell-minigame","games/local/wulong-city","games/local/travel-bund","games/local/letters-words2"],"nine_native_paths":["scripts/nine-canvas-games-smoke.mjs","scripts/nine-wulong-smoke.mjs"],"nine_native_checks":[{"path":"scripts/nine-canvas-games-smoke.mjs","type":"canvas","games":["vibeJam-myself-history-guess"],"consumer_sources":["apps/shell-minigame"],"command":{"file":"scripts/nine-canvas-games-smoke.mjs","args":["scripts/nine-canvas-games-smoke.mjs"],"browser":false}},{"path":"scripts/nine-wulong-smoke.mjs","type":"wulong","games":["wulong-city"],"consumer_sources":["apps/shell-minigame"],"command":{"file":"scripts/nine-wulong-smoke.mjs","args":["scripts/nine-wulong-smoke.mjs"],"browser":false}}],"nine_native_targets":[{"game":"letters-words2","platform":"alipay","source":"games/local/letters-words2"},{"game":"letters-words2","platform":"bilibili","source":"games/local/letters-words2"},{"game":"letters-words2","platform":"douyin","source":"games/local/letters-words2"},{"game":"letters-words2","platform":"kuaishou","source":"games/local/letters-words2"},{"game":"letters-words2","platform":"wechat","source":"games/local/letters-words2"},{"game":"travel-bund","platform":"alipay","source":"games/local/travel-bund"},{"game":"travel-bund","platform":"bilibili","source":"games/local/travel-bund"},{"game":"travel-bund","platform":"douyin","source":"games/local/travel-bund"},{"game":"travel-bund","platform":"kuaishou","source":"games/local/travel-bund"},{"game":"travel-bund","platform":"wechat","source":"games/local/travel-bund"},{"game":"vibeJam-myself-history-guess","platform":"alipay","source":"games/local/vibeJam-myself-history-guess"},{"game":"vibeJam-myself-history-guess","platform":"bilibili","source":"games/local/vibeJam-myself-history-guess"},{"game":"vibeJam-myself-history-guess","platform":"douyin","source":"games/local/vibeJam-myself-history-guess"},{"game":"vibeJam-myself-history-guess","platform":"kuaishou","source":"games/local/vibeJam-myself-history-guess"},{"game":"vibeJam-myself-history-guess","platform":"wechat","source":"games/local/vibeJam-myself-history-guess"},{"game":"wulong-city","platform":"alipay","source":"games/local/wulong-city"},{"game":"wulong-city","platform":"bilibili","source":"games/local/wulong-city"},{"game":"wulong-city","platform":"douyin","source":"games/local/wulong-city"},{"game":"wulong-city","platform":"kuaishou","source":"games/local/wulong-city"},{"game":"wulong-city","platform":"wechat","source":"games/local/wulong-city"}],"nine_native_root_checks":[],"nine_native_blocked":[],"nine_native_travel_contract":{"file":"games/local/travel-bund/native/tests/contracts.mjs","args":["games/local/travel-bund/native/tests/contracts.mjs"]},"native_consumers":[],"developer_mode_ids":[],"catalog_rollout_checks":false,"interaction_browser_ids":[],"game_services_checks":false,"identity_checks":false,"competition_service_checks":false,"h5_acceptance_checks":false,"six_h5_checks":false,"ranked_deployment_checks":false,"platform_process_checks":false,"game_config_checks":false,"vocabulary_export_checks":false,"publishing_checks":false,"safe_area_checks":false,"platform_ads_checks":false,"publishing_browser_ids":[],"publication_config_checks":false,"deployment_bundle_checks":false,"company_deployment_checks":false,"competition_ingress_checks":false,"service_rule_sources":[],"cocos":true,"diff_base":"dcf778794c36562634a969b8b8975889c4001d0c","diff_head":"e48a4c8b5c82311683611c9a5fe1f6786d6ebed2"}
+✔ actual dcf to e48 selects twenty active native targets and two H5 navigation samples (40997.9967ms)
+Pages comparison: ed293473304174719b101a268485bf0badbb64eb..01c6111d6512448d538bbb9199be82966308c994
+warning: in the working copy of 'pnpm-lock.yaml', LF will be replaced by CRLF the next time Git touches it
+Pages comparison: 4b5fda8a770f4cbf6f0732b000900fc15df6d4fc..9e3801485a64f2adffa769c6ad82c1deb7b4c1fc
+✔ a valid risk comparison rejects unknown inputs and missing registration proof instead of broadening (19118.5594ms)
+Pages scope: falling back to full regression (No usable diff base)
+Pages scope: {"required":true,"full":true,"game_ids":["echo-lab"],"game_sources":["games/local/echo-lab"],"browser_ids":["echo-lab"],"risk":"full","reason":"full scope or unavailable comparison","cocos":true,"browser":true,"diff_base":"","diff_head":"HEAD"}
+Pages scope: {"required":true,"full":true,"game_ids":["echo-lab"],"game_sources":["games/local/echo-lab"],"browser_ids":["echo-lab"],"risk":"full","reason":"full scope or unavailable comparison","cocos":true,"browser":true,"diff_base":"","diff_head":"HEAD"}
+Pages scope: {"required":true,"full":true,"game_ids":["echo-lab"],"game_sources":["games/local/echo-lab"],"browser_ids":["echo-lab"],"risk":"full","reason":"full scope or unavailable comparison","cocos":true,"browser":true,"diff_base":"","diff_head":"HEAD"}
+✔ risk plans without a usable baseline keep full coverage including Creator (697.2956ms)
+✔ shared competition files keep actual Creator H5 consumers and native Creator requirements (384.5896ms)
+✔ planning checks out the retained locked game workspace and retains complete comparison history (2.7013ms)
+✔ actual dcf to 9180 canvas proof rejects a missing active history workspace identity (551.9785ms)
+✔ TapTap platform files have no Pages consumer while an unknown platform remains full (0.2259ms)
+warning: in the working copy of 'pnpm-lock.yaml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pnpm-lock.yaml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'apps/admin-web/package.json', LF will be replaced by CRLF the next time Git touches it
+Pages comparison: fafc69bafca8997a098868e779fcbb7b9e647444..a9632664eee08916409999d9ed808d1350f8b356
+Pages scope: {"required":true,"full":false,"game_ids":[],"game_sources":[],"browser_ids":[],"risk":"incremental","reason":"Reviewed source graph from an exact comparison","browser":false,"admin_console_checks":true,"xiangqi_build_checks":false,"tap_services_checks":false,"hook_checks":false,"submodule_dialog_ids":[],"pages_deploy":false,"validation_tools":false,"competition":{"h5":false,"native":false,"letters":false,"config_tests":false,"consumer_sources":[]},"consumer_sources":["apps/admin-web"],"nine_native_paths":[],"nine_native_checks":[],"nine_native_targets":[],"nine_native_root_checks":[],"nine_native_blocked":[],"nine_native_travel_contract":null,"native_consumers":[],"developer_mode_ids":[],"catalog_rollout_checks":false,"interaction_browser_ids":[],"game_services_checks":false,"identity_checks":false,"competition_service_checks":false,"h5_acceptance_checks":false,"six_h5_checks":false,"ranked_deployment_checks":false,"platform_process_checks":false,"game_config_checks":false,"vocabulary_export_checks":false,"publishing_checks":false,"safe_area_checks":false,"platform_ads_checks":false,"publishing_browser_ids":[],"publication_config_checks":false,"deployment_bundle_checks":false,"company_deployment_checks":false,"competition_ingress_checks":false,"service_rule_sources":[],"cocos":false,"diff_base":"fafc69bafca8997a098868e779fcbb7b9e647444","diff_head":"a9632664eee08916409999d9ed808d1350f8b356"}
+warning: in the working copy of 'pnpm-lock.yaml', LF will be replaced by CRLF the next time Git touches it
+Pages comparison: fafc69bafca8997a098868e779fcbb7b9e647444..805d5c16ae7b071f90392edef4eccb892d4b2ee0
+warning: in the working copy of 'pnpm-lock.yaml', LF will be replaced by CRLF the next time Git touches it
+Pages comparison: a9632664eee08916409999d9ed808d1350f8b356..b6c38fc62a47d9c296d8b85e067897a6050726c9
+▶ accurate base/head admin lock additions select only admin checks and block unknown lock/infra deltas
+  ✔ initial admin addition (32635.7157ms)
+warning: in the working copy of 'apps/admin-web/package.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pnpm-lock.yaml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'apps/admin-web/package.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pnpm-lock.yaml', LF will be replaced by CRLF the next time Git touches it
+Pages comparison: 5e281818f384deb53d01847d247b487d44e355d9..b085165f3e1fe1fa88938b8ec1e89735273ef6fb
+Pages scope: {"required":true,"full":false,"game_ids":[],"game_sources":[],"browser_ids":[],"risk":"incremental","reason":"Reviewed source graph from an exact comparison","browser":false,"admin_console_checks":true,"xiangqi_build_checks":false,"tap_services_checks":false,"hook_checks":false,"submodule_dialog_ids":[],"pages_deploy":false,"validation_tools":false,"competition":{"h5":false,"native":false,"letters":false,"config_tests":false,"consumer_sources":[]},"consumer_sources":["apps/admin-web"],"nine_native_paths":[],"nine_native_checks":[],"nine_native_targets":[],"nine_native_root_checks":[],"nine_native_blocked":[],"nine_native_travel_contract":null,"native_consumers":[],"developer_mode_ids":[],"catalog_rollout_checks":false,"interaction_browser_ids":[],"game_services_checks":false,"identity_checks":false,"competition_service_checks":false,"h5_acceptance_checks":false,"six_h5_checks":false,"ranked_deployment_checks":false,"platform_process_checks":false,"game_config_checks":false,"vocabulary_export_checks":false,"publishing_checks":false,"safe_area_checks":false,"platform_ads_checks":false,"publishing_browser_ids":[],"publication_config_checks":false,"deployment_bundle_checks":false,"company_deployment_checks":false,"competition_ingress_checks":false,"service_rule_sources":[],"cocos":false,"diff_base":"5e281818f384deb53d01847d247b487d44e355d9","diff_head":"b085165f3e1fe1fa88938b8ec1e89735273ef6fb"}
+warning: in the working copy of 'pnpm-lock.yaml', LF will be replaced by CRLF the next time Git touches it
+Pages comparison: 5e281818f384deb53d01847d247b487d44e355d9..564b5c9db2d2069886586830a6fe6b82670cf5a3
+warning: in the working copy of 'pnpm-lock.yaml', LF will be replaced by CRLF the next time Git touches it
+Pages comparison: b085165f3e1fe1fa88938b8ec1e89735273ef6fb..f008098a5ebf6183792c6978f60d0942e9796a08
+  ✔ AntD extension (30580.172ms)
+warning: in the working copy of 'pnpm-lock.yaml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pnpm-lock.yaml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'apps/admin-web/package.json', LF will be replaced by CRLF the next time Git touches it
+Pages comparison: c337e0318ed96d7c07204dec53c72ae3f574c4de..e6765695bc3d51ffdb56674ad4a787acedbefc7f
+  ✔ unreviewed combined additions (10367.6866ms)
+✔ accurate base/head admin lock additions select only admin checks and block unknown lock/infra deltas (74027.681ms)
+✔ cleanup deletion proof binds exact source bytes at both publication bases and proven HEAD absence (4532.3073ms)
+✔ Tianxia Cocos cleanup binds exact former renderer/build/test, absence and retained identity (401.4062ms)
+warning: in the working copy of 'games/local/cops-robbers-realtime/package-lock.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/cops-robbers-realtime/scripts/cartoon-playtest.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/cops-robbers-realtime/scripts/guided-playtest.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/cops-robbers-realtime/scripts/home-playtest.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/cops-robbers-realtime/scripts/input-playtest.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/cops-robbers-realtime/scripts/lifecycle-playtest.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/cops-robbers-realtime/scripts/mobile-pages-playtest.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/cops-robbers-realtime/scripts/mobile-roster-playtest.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/cops-robbers-realtime/scripts/playtest.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/cops-robbers-realtime/scripts/quick-playtest.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/cops-robbers-realtime/scripts/relay-playtest.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/cops-robbers-realtime/scripts/review-repro.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/cops-robbers/package-lock.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/cops-robbers/scripts/extend-levels.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/cops-robbers/scripts/generate-levels.mjs', LF will be replaced by CRLF the next time Git touches it
+Pages comparison: c4b6103aa6b485711072f515f60f6cd9bf02e80b..702cf5208dfbec71551a7f4b336136572fd7bb30
+Pages scope: {"required":true,"full":false,"game_ids":["cops-robbers","cops-robbers-realtime"],"game_sources":["games/local/cops-robbers","games/local/cops-robbers-realtime"],"browser_ids":["cops-robbers","cops-robbers-realtime"],"risk":"incremental","reason":"Reviewed source graph from an exact comparison","browser":true,"admin_console_checks":false,"xiangqi_build_checks":false,"tap_services_checks":false,"hook_checks":false,"submodule_dialog_ids":[],"pages_deploy":false,"validation_tools":false,"competition":{"h5":false,"native":false,"letters":false,"config_tests":false,"consumer_sources":[]},"consumer_sources":[],"nine_native_paths":[],"nine_native_checks":[],"nine_native_targets":[],"nine_native_root_checks":[],"nine_native_blocked":[],"nine_native_travel_contract":null,"native_consumers":[],"developer_mode_ids":[],"catalog_rollout_checks":false,"interaction_browser_ids":[],"game_services_checks":false,"identity_checks":false,"competition_service_checks":false,"h5_acceptance_checks":false,"six_h5_checks":false,"ranked_deployment_checks":false,"platform_process_checks":false,"game_config_checks":false,"vocabulary_export_checks":false,"publishing_checks":false,"safe_area_checks":false,"platform_ads_checks":false,"publishing_browser_ids":["cops-robbers","cops-robbers-realtime"],"publication_config_checks":false,"deployment_bundle_checks":false,"company_deployment_checks":false,"competition_ingress_checks":false,"service_rule_sources":[],"cocos":false,"diff_base":"c4b6103aa6b485711072f515f60f6cd9bf02e80b","diff_head":"702cf5208dfbec71551a7f4b336136572fd7bb30"}
+Pages comparison: 702cf5208dfbec71551a7f4b336136572fd7bb30..7f94be196f56002b59f78c144980ac28688a76d2
+Pages scope: falling back to full regression (Relevant deletion or rename requires full regression)
+Pages scope: {"required":true,"full":true,"game_ids":["cops-robbers","cops-robbers-realtime"],"game_sources":["games/local/cops-robbers","games/local/cops-robbers-realtime"]}
+Pages comparison: 702cf5208dfbec71551a7f4b336136572fd7bb30..7f94be196f56002b59f78c144980ac28688a76d2
+HEAD is now at c4b6103 reviewed cleanup baseline
+Pages comparison: c4b6103aa6b485711072f515f60f6cd9bf02e80b..76c8439c6fcc740de6a920cd7c83dcf05ec3cf40
+Pages scope: falling back to full regression (Relevant deletion or rename requires full regression)
+Pages scope: {"required":true,"full":true,"game_ids":["cops-robbers","cops-robbers-realtime"],"game_sources":["games/local/cops-robbers","games/local/cops-robbers-realtime"]}
+Pages comparison: c4b6103aa6b485711072f515f60f6cd9bf02e80b..76c8439c6fcc740de6a920cd7c83dcf05ec3cf40
+Warning: you are leaving 1 commit behind, not connected to
+any of your branches:
+
+  76c8439 reviewed source renamed
+
+If you want to keep it by creating a new branch, this may be a good time
+to do so with:
+
+ git branch <new-branch-name> 76c8439
+
+HEAD is now at c4b6103 reviewed cleanup baseline
+warning: in the working copy of 'games/local/cops-robbers/scripts/extend-levels.mjs', LF will be replaced by CRLF the next time Git touches it
+Pages comparison: 88d1c1529304930f87925d82ad1ad367041c2068..b641321955cbe4e934ffb6e8c27f0d3aae900de8
+✔ real name-status cleanup keeps both game regressions while unknown deletion, changed baseline and reviewed-source rename remain blocked (18505.4865ms)
+✔ Echo Lab native compiler reuses only its exact existing esbuild tuple (1.8334ms)
+✔ merge-front replaces only the exact reviewed legacy runtime files (1274.684ms)
+✔ Chase rewrite deletion proof binds all ten exact legacy blobs, absence and retained identity (1374.136ms)
+warning: in the working copy of 'games/local/chase-thief/audio.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/chase-thief/challenge.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/chase-thief/engine.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/chase-thief/levels.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/chase-thief/main.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/chase-thief/progress.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/chase-thief/scene.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/chase-thief/tests/challenge.test.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/chase-thief/tests/core.test.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/chase-thief/tests/progress.test.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/chase-thief/unreviewed.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/homebound-station/runtime.mjs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'games/local/homebound-station/runtime.mjs', LF will be replaced by CRLF the next time Git touches it
+Pages comparison: ee3303d9e60401e0919d4445b14894056cbb8841..620485c8e6cecb23abe8d7c0e2d9e528c395628d
+Pages scope: {"required":true,"full":false,"game_ids":["chase-thief","homebound-station"],"game_sources":["games/local/chase-thief","games/local/homebound-station"],"browser_ids":["chase-thief","homebound-station"],"risk":"incremental","reason":"Reviewed source graph from an exact comparison","browser":true,"admin_console_checks":false,"xiangqi_build_checks":false,"tap_services_checks":false,"hook_checks":false,"submodule_dialog_ids":[],"pages_deploy":false,"validation_tools":false,"competition":{"h5":false,"native":false,"letters":false,"config_tests":false,"consumer_sources":[]},"consumer_sources":[],"nine_native_paths":[],"nine_native_checks":[],"nine_native_targets":[],"nine_native_root_checks":[],"nine_native_blocked":[],"nine_native_travel_contract":null,"native_consumers":[],"developer_mode_ids":[],"catalog_rollout_checks":false,"interaction_browser_ids":[],"game_services_checks":false,"identity_checks":false,"competition_service_checks":false,"h5_acceptance_checks":false,"six_h5_checks":false,"ranked_deployment_checks":false,"platform_process_checks":false,"game_config_checks":false,"vocabulary_export_checks":false,"publishing_checks":false,"safe_area_checks":false,"platform_ads_checks":false,"publishing_browser_ids":["chase-thief","homebound-station"],"publication_config_checks":false,"deployment_bundle_checks":false,"company_deployment_checks":false,"competition_ingress_checks":false,"service_rule_sources":[],"cocos":false,"diff_base":"ee3303d9e60401e0919d4445b14894056cbb8841","diff_head":"620485c8e6cecb23abe8d7c0e2d9e528c395628d"}
+Pages comparison: ee3303d9e60401e0919d4445b14894056cbb8841..9683969f7c60494042d738d21883cdb9ffbf6694
+HEAD is now at 620485c later Homebound push
+Pages comparison: ee3303d9e60401e0919d4445b14894056cbb8841..5826fcf69724a0b763035d1c428f4e88099265cd
+Warning: you are leaving 1 commit behind, not connected to
+any of your branches:
+
+  5826fcf unknown rename alongside reviewed rewrite
+
+If you want to keep it by creating a new branch, this may be a good time
+to do so with:
+
+ git branch <new-branch-name> 5826fcf
+
+HEAD is now at ee3303d successful baseline
+Pages comparison: ee3303d9e60401e0919d4445b14894056cbb8841..66caa7aed58eae85ad33b318991477992b20f73c
+✔ cumulative Chase rewrite and Homebound change keep both real game consumers and reject adjacent deletion or rename (16190.0734ms)
+✔ Tower Creator wiring and Canvas retirement bind exact historical bytes and unique consumers (2805.1225ms)
+✔ current main integration proves each exact shared file and rejects unrelated bytes, identities and lock changes (9745.1365ms)
+✔ moved competition audio selects its three actual games across six native platforms (159.9891ms)
+✔ fourth Creator wiring is proved against the handoff base without expanding to the old producers (22480.4729ms)
+✔ fourth artifact workflow proofs reject changed old steps, duplicate IDs, wrong env/path, conditions and omissions (32.2038ms)
+✔ fourth Creator literal/Turbo proofs reject duplicate registrations and executable changes outside the declaration (55.5356ms)
+✔ Tianxia semantic checks change only its real AST branch and exact immersive ID additions (269.3635ms)
+✔ the local validation aggregate includes reuse tests without allowing other root command changes (134.057ms)
+✔ combined Tianxia wiring keeps only its entry, navigation samples, tooling and real server checks (358.2915ms)
+✔ fourth Creator classification works in a bare planner with only Prettier and no YAML package (290.8878ms)
+✔ unified package tools keep the three H5 consumers and reject unknown siblings (307.794ms)
+✔ six H5 tools declare exact consumers and preserve fail-closed configuration scope (635.4844ms)
+✔ Cocos branding implementation and its test trigger the actual branding contract (135.3862ms)
+✔ new H5 acceptance helpers have finite unit-only scope and unknown siblings remain blocked (2.7869ms)
+✔ admin deployment paths select exact consumers, including the control policy readers (10.505ms)
+✔ company Pages publication adds only its tested artifact and preserves game gates (198.6363ms)
+✔ viewport retirement selects all remaining real consumers and rejects any unreviewed bytes (99.0064ms)
+✔ independent preview selects retained viewport consumers and fails closed (184.6999ms)
+✔ flick runtime integration accepts only the exact reviewed deployment, MIME and import deltas (196.8419ms)
+✔ reviewed Codex roles select no game consumers; extra settings and unknown files stay blocked (11.3892ms)
+✔ publishing adapter selects all registered standalone consumers and rejects missing identities (5.8642ms)
+✔ H5 safe areas select the three standalone consumers and require their geometry checks (2.8591ms)
+✔ shared channel advertising covers all ten consumers; the uploader stays chase-only (231.5733ms)
+✔ company deployment selects only the website and rejects unknown siblings and root commands (6.8056ms)
+✔ competition ingress selects the actual website and both API/frontend consumers, with legacy deltas still bounded (6.1195ms)
+✔ generic Runtime proxy defaults admit exactly the reviewed producer bytes and block extra changes (2.1954ms)
+✔ deployment and public platform configuration select mandatory checks without unrelated games (3.3259ms)
+✔ carrom deployment proof accepts only the two shared rule files with unchanged surrounding bytes (0.1253ms)
+✔ carrom deployment selects its game and server; unknown deployment edits remain blocked (19.8833ms)
+✔ carrom friends deployment only appends both rule files to the existing carrom copy list (0.2317ms)
+✔ carrom friends proof preserves an existing Flick input without accepting other list changes (1.2019ms)
+✔ cumulative runtime deployment additions select Flick, Carrom and the server (352.47ms)
+✔ friends deployment and engine changes select their real consumers only with executable inputs (8.6573ms)
+✔ shared carrom rule inputs select the real authoritative server without unrelated consumers (8.5367ms)
+✔ three choose two migration wiring is exact and does not authorize other deployment edits (1.2356ms)
+✔ optional service configuration has finite H5 consumers and rejects unknown siblings or game identities (7726.0846ms)
+✔ historical pnpm installer compatibility selects actual backends and preserves deployment provenance gates (3063.5607ms)
+✔ service command and Turbo environment changes preserve every unrelated task and cache setting (285.6236ms)
+✔ the native gate variable wiring is exact and cannot authorize other CI changes (80.5712ms)
+✔ CI timeout growth is a bounded configuration change; commands, conditions and reduced budgets block (3.7319ms)
+✔ only additive local machine configuration ignores are accepted; source exclusions and negations block (1.5288ms)
+✔ format exclusions must point to registered byte-identical fullscreen copies with checked sync entries (1.5382ms)
+✔ competition shared paths select exactly five registry consumers, while letter tests select one game (3.8263ms)
+✔ new or renamed competition consumers and missing native packages remain classification gaps (1.0568ms)
+✔ only the two chase games may declare their online functionality disabled (1.943ms)
+✔ the exact cops offline flag selects only its game; surrounding builder changes retain the shared scope (1.7611ms)
+✔ offline chase competition builds discard stale service addresses and bundles (57.3987ms)
+✔ shared dependency closure and explicit shared-runtime consumers are combined (0.816ms)
+✔ competition runner builds each native game on all default platforms before its real smoke and propagates failures (1.0373ms)
+✔ developer-mode exact legacy-to-immersive migration selects new guarded entries without accepting shared edits (1.4133ms)
+✔ planning checkout scope accepts only both exact reviewed producer byte changes (134.9409ms)
+✔ planning checkout narrows both real producers to one locked gitlink without changing other execution (281.1278ms)
+✔ Pages logic history repair preserves all other jobs and execution bytes (88.4854ms)
+✔ bare planning jobs install only the reviewed pinned parser without changing gates (344.5778ms)
+✔ reviewed quality budget can be planned without installed YAML dependencies (297.5361ms)
+✔ cache writer reduction has an exact dependency-free scope and rejects unrelated workflow changes (793.8626ms)
+✔ cumulative main workflow repairs retain exact reviewed producer boundaries (267.9222ms)
+✔ Tower expanded-level contract checks its game and rejects unrelated or weakened assertions (368.6554ms)
+✔ cops rewarded hint guard stays in its game branch and rejects unrelated edits (217.8887ms)
+✔ cops free-hint contract remains scoped and rejects weakened or unrelated assertions (472.2054ms)
+✔ cops start-to-play guard keeps a single-game scope and rejects changes outside its exact assertions (69.0843ms)
+✔ Orbit masked-SVG offset repair preserves input and gameplay assertions in a single-game scope (415.087ms)
+✔ cage rescue lazy gameplay delegation selects only its catalog source and keeps finite Shell contracts (2.3827ms)
+✔ dedicated gameplay module is bounded when its delegation already exists in the baseline (0.6353ms)
+✔ gameplay proof rejects changed shared behavior, moved/duplicate delegates and unconditional imports (11.6987ms)
+✔ dedicated gameplay proof rejects extra dependencies and nested executable injections without executing source (4.9621ms)
+✔ single-game classification requires a unique exact catalog id/source binding (2.7843ms)
+✔ exact cage rescue immersion allowlist additions stay game-scoped without dropping Shell contracts (3.737ms)
+✔ immersion proof rejects origin/source changes, unsafe selectors, duplicates and lookalike strings (13.9102ms)
+✔ new cage gameplay, entry selectors and immersion wiring compose without unrelated browser targets (3.1142ms)
+✔ Pages cage rescue home-state guard and immersion list compose while every other byte stays fixed (7.7398ms)
+✔ castle duel entry contract is scoped without accepting another game or shared edits (1.9707ms)
+✔ castle dedicated contract selects its game and rejects unreviewed code (1.1801ms)
+✔ shared game services select only their proven game consumers and fail closed on broken edges (5342.311ms)
+✔ shared identity client proves all thirteen consumers and native composition never loses any (327.9194ms)
+✔ identity display and security files have their real H5 consumers; unknown siblings stay blocked (549.9569ms)
+✔ identity migration and registrations are exact additive runtime-only changes (12921.3373ms)
+✔ identity gateway routing has exact consumers and rejects any other proxy change (294.1232ms)
+✔ identity compatibility fixtures keep the existing finite Runtime package scope (23.9136ms)
+✔ admin infrastructure has exact consumers and unknown neighboring paths fail closed (5.3122ms)
+✔ AntD lock extension preserves all other importers and resolutions and rejects extra dependency or byte changes (214.4876ms)
+✔ cross-service PostgreSQL acceptance selects both real services and rejects adjacent tools (1.1528ms)
+✔ CSP tools select only actual admin/company consumers, exact Turbo inputs and mandatory Caddy checks (131.5795ms)
+✔ admin lock proof accepts only the 11 reviewed complete blocks, manifest tuple, and unchanged two-document remainder (389.7249ms)
+✔ admin lock proof plans without installed YAML dependencies (573.9723ms)
+✔ the push:no-verify command has no game consumers and rejects unrelated package changes (4.6057ms)
+✔ the validate:candidate command has no game consumers and rejects unrelated package changes (3.6804ms)
+✔ selected backend tools and additive local build commands have finite consumers (2.749ms)
+✔ shared authority helper selects only its three backend consumers and bounded contracts (138.2876ms)
+✔ anonymous session migration and Pages service defaults admit only the reviewed delta (475.0247ms)
+✔ review tools, submodule dialogs and the realtime preset have finite validated consumers (198.6973ms)
+✔ Homebound Creator wiring admits only the reviewed additive compiler change (128.4043ms)
+✔ Orbit Creator routing permits its exact new consumer and rejects altered existing gates (0.1823ms)
+✔ Orbit Creator Turbo routing retains every previous input and task (0.2032ms)
+✔ Orbit Cocos gameplay scope isolates the real exported branch without admitting other game changes (5.2446ms)
+✔ merge Creator routes bind exact reviewed base/head bytes and reject extra changes (2402.0402ms)
+✔ Creator host smoke repair binds both real baselines and retains its game consumer (140.6045ms)
+✔ cumulative Merge/Bullet wiring proves exact bytes and both Creator consumers (1430.2958ms)
+✔ merged Homebound Creator routes preserve Orbit and Tianxia and reject changes to existing gates (2085.4943ms)
+✔ historical Bullet Garden Creator routing preserves every old producer and consumer gate (512.2093ms)
+✔ Bullet Garden lock scope only adds three existing exact importer tuples (0.4957ms)
+✔ Bullet Garden routes preserve fixed predecessors, identity and config-sensitive validation (14926.8134ms)
+✔ Homebound Creator readiness guard preserves gameplay and scopes only its registered game (305.1871ms)
+✔ ordinary Creator reuse includes Tower while preserving historical five to seven game fixtures (27.5085ms)
+No matching CI producer found; rebuilding with the normal Creator gates.
+✔ reuse waits for all eight successful producer gates, not downstream CI (2.4804ms)
+✔ missing producer falls back, active producer has a finite deadline (0.7807ms)
+✔ discovery ignores other commits and branches and uses completed producer jobs (0.2198ms)
+✔ provenance rejects wrong source, platform, engine, run, or repository (1.1118ms)
+✔ CI is the sole producer direction and fallback retains original gates (10.9101ms)
+✔ reuse verifies and republishes every Creator game before skipping the producer (1.6907ms)
+✔ main integration tool contracts execute independently and propagate regressions (2.621ms)
+✔ H5 acceptance hooks execute only bounded unit contracts, never PG or the matrix browser (0.2203ms)
+✔ admin deployment contract actually executes and fails closed independently of game browsers (0.1616ms)
+✔ Street admission contracts execute without running unrelated game suites (0.1003ms)
+✔ actual Caddy CSP contracts execute independently and failures stop the candidate (0.3749ms)
+✔ optional service and importer contracts still run with native release gates disabled (0.2266ms)
+Native platform publication gates: deferred (Web validation remains required)
+Incremental scope: {"full":false,"browser":false,"browser_ids":[],"admin_console_checks":false,"xiangqi_build_checks":false,"tap_services_checks":false,"hook_checks":false,"submodule_dialog_ids":[],"game_sources":[],"pages_deploy":false,"validation_tools":false,"competition":{"h5":false,"native":false,"letters":false,"config_tests":false,"consumer_sources":[]},"consumer_sources":[],"nine_native_paths":[],"nine_native_checks":[],"nine_native_targets":[],"nine_native_root_checks":[],"nine_native_blocked":[],"nine_native_travel_contract":null,"native_consumers":[],"developer_mode_ids":[],"catalog_rollout_checks":false,"interaction_browser_ids":[],"game_services_checks":false,"identity_checks":false,"competition_service_checks":false,"h5_acceptance_checks":false,"six_h5_checks":false,"ranked_deployment_checks":false,"platform_process_checks":false,"game_config_checks":false,"vocabulary_export_checks":false,"publishing_checks":false,"safe_area_checks":false,"platform_ads_checks":false,"publishing_browser_ids":[],"publication_config_checks":false,"deployment_bundle_checks":false,"company_deployment_checks":false,"competition_ingress_checks":false,"service_rule_sources":["services/runtime-api"]}
+Native platform publication gates: deferred (Web validation remains required)
+Incremental scope: {"full":false,"browser":false,"browser_ids":[],"admin_console_checks":false,"xiangqi_build_checks":false,"tap_services_checks":false,"hook_checks":false,"submodule_dialog_ids":[],"game_sources":[],"pages_deploy":false,"validation_tools":false,"competition":{"h5":false,"native":false,"letters":false,"config_tests":false,"consumer_sources":[]},"consumer_sources":[],"nine_native_paths":[],"nine_native_checks":[],"nine_native_targets":[],"nine_native_root_checks":[],"nine_native_blocked":[],"nine_native_travel_contract":null,"native_consumers":[],"developer_mode_ids":[],"catalog_rollout_checks":false,"interaction_browser_ids":[],"game_services_checks":false,"identity_checks":false,"competition_service_checks":false,"h5_acceptance_checks":false,"six_h5_checks":false,"ranked_deployment_checks":false,"platform_process_checks":false,"game_config_checks":false,"vocabulary_export_checks":false,"publishing_checks":false,"safe_area_checks":false,"platform_ads_checks":false,"publishing_browser_ids":[],"publication_config_checks":false,"deployment_bundle_checks":false,"company_deployment_checks":false,"competition_ingress_checks":false,"service_rule_sources":["services/runtime-api"]}
+✔ actual incremental builds preserve emitted dependency order without building source-only Creator inputs (1783.4072ms)
+✔ cached and explicit browsers are launch-checked without reaching a forbidden download (3.1085ms)
+✔ invalid explicit browser paths fail before validation without installing a replacement (0.3373ms)
+✔ missing default browsers install then probe once with the local or CI dependency policy (0.3144ms)
+✔ browser preparation resolves Playwright using the candidate package and cache environment (80.6742ms)
+✔ browser installation and launch failures block preparation and never mark it ready (0.3865ms)
+Reusing launch-checked browser: C:\Users\15211\AppData\Local\Temp\reuse browser 4BBs1I\cached
+Browser cannot start, trying the next installed browser: C:\Users\15211\AppData\Local\Temp\reuse browser 4BBs1I\cached
+Reusing launch-checked browser: C:\Users\15211\AppData\Local\Temp\reuse browser 4BBs1I\chrome
+Browser cannot start, trying the next installed browser: C:\Users\15211\AppData\Local\Temp\reuse browser 4BBs1I\cached
+Browser cannot start, trying the next installed browser: C:\Users\15211\AppData\Local\Temp\reuse browser 4BBs1I\chrome
+Reusing launch-checked browser: C:\Users\15211\AppData\Local\Temp\reuse browser 4BBs1I\edge
+✔ local deployment skips broken browsers, reuses a working installation, and never downloads it again (6.5573ms)
+Browser cannot start, trying the next installed browser: C:\Users\15211\AppData\Local\Temp\install browser B6nhoX\broken
+✔ local deployment installs only after every existing browser is unavailable, then launch-checks the download (3.1518ms)
+✔ automatic reuse never replaces an invalid explicitly configured browser (0.2337ms)
+✔ browser preparation CLI returns the launch-checked executable from its caller package (244.2823ms)
+Browser cannot start, trying the next installed browser: C:\Users\15211\AppData\Local\Temp\discover Chrome YrcaEe\cached-browser
+Reusing launch-checked browser: C:\Users\15211\AppData\Local\Temp\discover Chrome YrcaEe\Program Files\Google\Chrome\Application\chrome.exe
+✔ Windows local browser discovery selects Chrome after cached Chromium fails (166.6539ms)
+Native platform publication gates: deferred (Web validation remains required)
+Incremental scope: {"full":false,"browser":true,"browser_ids":["letters-words2"],"admin_console_checks":false,"xiangqi_build_checks":false,"tap_services_checks":false,"hook_checks":false,"submodule_dialog_ids":[],"game_sources":[],"pages_deploy":false,"validation_tools":true,"competition":{"h5":false,"native":false,"letters":false,"config_tests":false,"consumer_sources":[]},"consumer_sources":[],"nine_native_paths":[],"nine_native_checks":[],"nine_native_targets":[],"nine_native_root_checks":[],"nine_native_blocked":[],"nine_native_travel_contract":null,"native_consumers":[],"developer_mode_ids":[],"catalog_rollout_checks":false,"interaction_browser_ids":[],"game_services_checks":false,"identity_checks":false,"competition_service_checks":false,"h5_acceptance_checks":false,"six_h5_checks":false,"ranked_deployment_checks":false,"platform_process_checks":false,"game_config_checks":false,"vocabulary_export_checks":false,"publishing_checks":false,"safe_area_checks":false,"platform_ads_checks":false,"publishing_browser_ids":[],"publication_config_checks":false,"deployment_bundle_checks":false,"company_deployment_checks":false,"competition_ingress_checks":false,"service_rule_sources":[]}
+✔ an H5 preflight failure stops the candidate before validation suites or builds (16.0697ms)
+Native platform publication gates: deferred (Web validation remains required)
+Incremental scope: {"full":false,"browser":false,"browser_ids":[],"admin_console_checks":false,"xiangqi_build_checks":false,"tap_services_checks":false,"hook_checks":false,"submodule_dialog_ids":[],"game_sources":[],"pages_deploy":false,"validation_tools":false,"competition":{"h5":false,"native":false,"letters":false,"config_tests":false,"consumer_sources":[]},"consumer_sources":[],"nine_native_paths":[],"nine_native_checks":[],"nine_native_targets":[],"nine_native_root_checks":[],"nine_native_blocked":[],"nine_native_travel_contract":null,"native_consumers":[],"developer_mode_ids":[],"catalog_rollout_checks":false,"interaction_browser_ids":[],"game_services_checks":false,"identity_checks":false,"competition_service_checks":false,"h5_acceptance_checks":false,"six_h5_checks":false,"ranked_deployment_checks":false,"platform_process_checks":false,"game_config_checks":false,"vocabulary_export_checks":false,"publishing_checks":false,"safe_area_checks":false,"platform_ads_checks":false,"publishing_browser_ids":[],"publication_config_checks":true,"deployment_bundle_checks":false,"company_deployment_checks":false,"competition_ingress_checks":false,"service_rule_sources":[]}
+Native platform publication gates: deferred (Web validation remains required)
+Incremental scope: {"full":false,"browser":false,"browser_ids":[],"admin_console_checks":false,"xiangqi_build_checks":false,"tap_services_checks":false,"hook_checks":false,"submodule_dialog_ids":[],"game_sources":[],"pages_deploy":false,"validation_tools":false,"competition":{"h5":false,"native":false,"letters":false,"config_tests":false,"consumer_sources":[]},"consumer_sources":[],"nine_native_paths":[],"nine_native_checks":[],"nine_native_targets":[],"nine_native_root_checks":[],"nine_native_blocked":[],"nine_native_travel_contract":null,"native_consumers":[],"developer_mode_ids":[],"catalog_rollout_checks":false,"interaction_browser_ids":[],"game_services_checks":false,"identity_checks":false,"competition_service_checks":false,"h5_acceptance_checks":false,"six_h5_checks":false,"ranked_deployment_checks":false,"platform_process_checks":false,"game_config_checks":false,"vocabulary_export_checks":false,"publishing_checks":false,"safe_area_checks":false,"platform_ads_checks":false,"publishing_browser_ids":[],"publication_config_checks":true,"deployment_bundle_checks":false,"company_deployment_checks":false,"competition_ingress_checks":false,"service_rule_sources":[]}
+MINIGAME_RELEASE_GATES=0: deferred 1 native platform targets; platform acceptance unverified.
+MINIGAME_RELEASE_GATES=0: deferred 1 native platform targets; platform acceptance unverified.
+MINIGAME_RELEASE_GATES=0: deferred 1 native platform targets; platform acceptance unverified.
+✔ metadata early return retains mandatory publication checks and propagates their failure (16.6529ms)
+✔ catalog and non-publishing interaction checks require explicit affected consumers (0.6727ms)
+✔ publishing browsers run exact bounded suites with native gates off and failures stop publication (1.9693ms)
+✔ publishing and deployment contracts run with native gates deferred and service failures propagate (0.3432ms)
+✔ competition ingress has a mandatory finite candidate gate and propagates failures (0.1798ms)
+✔ native publication gates default off, retain root rules and preserve Web checks (0.626ms)
+✔ developer-mode touch fixture is required even outside the selected game matrix (0.2181ms)
+✔ pure test dependency traversal and glob expansion; browser, unknown and missing tests fail closed (77.3299ms)
+✔ Cocos pure rule policy retains exact files without modifying Creator package inputs (190.6912ms)
+MINIGAME_RELEASE_GATES=0: deferred 1 native platform targets; platform acceptance unverified.
+MINIGAME_RELEASE_GATES=0: deferred 1 native platform targets; platform acceptance unverified.
+✔ node-only traversal validates imported JSON as data and rejects invalid JSON (25.7437ms)
+✔ lint follows explicit tracked repository scope; absent or unknown exclusions never skip (0.4112ms)
+✔ aggregate coverage requires the exact same rule command and an unfiltered root task (0.3861ms)
+✔ first-nine native checks build only mapped games across five platforms, then execute real CJS checks (1.1015ms)
+✔ explicit source targets select only their actual platform and include compiled Travel contracts (0.4972ms)
+✔ Homebound standalone Tap target retains strict selection, deferral, build and smoke gates (0.4747ms)
+✔ selected Cocos targets attempt the genuine native builder and missing tools block (0.2127ms)
+✔ TapTap targets execute their own builder, package tests and smoke without five-channel packaging (0.3414ms)
+✔ a TapTap Creator conversion failure blocks before an old platform package can substitute (0.2082ms)
+✔ selected kart-sharing root contracts run before the TapTap Creator gate and unreviewed descriptors never execute (0.2481ms)
+Native platform publication gates: enabled
+Pages comparison: 28a57d989aa0ac2ec31e882dbb873cc70d905460..f4cd6d58ed335a09fa9db3578ffe7af175d4c556
+Pages scope: {"required":true,"full":false,"game_ids":[],"game_sources":[],"browser_ids":[],"risk":"incremental","reason":"Reviewed source graph from an exact comparison","browser":false,"admin_console_checks":false,"xiangqi_build_checks":false,"tap_services_checks":false,"hook_checks":false,"submodule_dialog_ids":[],"pages_deploy":false,"validation_tools":true,"competition":{"h5":false,"native":false,"letters":false,"config_tests":false,"consumer_sources":[]},"consumer_sources":["games/local/carding-car","apps/shell-minigame","platforms/taptap"],"nine_native_paths":[],"nine_native_checks":[],"nine_native_targets":[{"game":"carding-car","platform":"taptap","source":"games/local/carding-car","requiresCreator":"3.8.8"}],"nine_native_root_checks":[{"file":"scripts/kart-sharing.test.mjs","args":["--test","scripts/kart-sharing.test.mjs"]}],"nine_native_blocked":[{"game":"carding-car","reason":"Requires real Creator 3.8.8 native build and exact matching artifact; no H5 substitute or silent skip."}],"nine_native_travel_contract":null,"native_consumers":[],"developer_mode_ids":[],"catalog_rollout_checks":false,"interaction_browser_ids":[],"game_services_checks":false,"identity_checks":false,"competition_service_checks":false,"h5_acceptance_checks":false,"six_h5_checks":false,"ranked_deployment_checks":false,"platform_process_checks":false,"game_config_checks":false,"vocabulary_export_checks":false,"publishing_checks":false,"safe_area_checks":false,"platform_ads_checks":false,"publishing_browser_ids":[],"publication_config_checks":false,"deployment_bundle_checks":false,"company_deployment_checks":false,"competition_ingress_checks":false,"service_rule_sources":["platforms/taptap"],"cocos":true,"diff_base":"28a57d989aa0ac2ec31e882dbb873cc70d905460","diff_head":"f4cd6d58ed335a09fa9db3578ffe7af175d4c556"}
+Incremental scope: {"full":false,"browser":false,"browser_ids":[],"admin_console_checks":false,"xiangqi_build_checks":false,"tap_services_checks":false,"hook_checks":false,"submodule_dialog_ids":[],"game_sources":[],"pages_deploy":false,"validation_tools":true,"competition":{"h5":false,"native":false,"letters":false,"config_tests":false,"consumer_sources":[]},"consumer_sources":["games/local/carding-car","apps/shell-minigame","platforms/taptap"],"nine_native_paths":[],"nine_native_checks":[],"nine_native_targets":[{"game":"carding-car","platform":"taptap","source":"games/local/carding-car","requiresCreator":"3.8.8"}],"nine_native_root_checks":[{"file":"scripts/kart-sharing.test.mjs","args":["--test","scripts/kart-sharing.test.mjs"]}],"nine_native_blocked":[{"game":"carding-car","reason":"Requires real Creator 3.8.8 native build and exact matching artifact; no H5 substitute or silent skip."}],"nine_native_travel_contract":null,"native_consumers":[],"developer_mode_ids":[],"catalog_rollout_checks":false,"interaction_browser_ids":[],"game_services_checks":false,"identity_checks":false,"competition_service_checks":false,"h5_acceptance_checks":false,"six_h5_checks":false,"ranked_deployment_checks":false,"platform_process_checks":false,"game_config_checks":false,"vocabulary_export_checks":false,"publishing_checks":false,"safe_area_checks":false,"platform_ads_checks":false,"publishing_browser_ids":[],"publication_config_checks":false,"deployment_bundle_checks":false,"company_deployment_checks":false,"competition_ingress_checks":false,"service_rule_sources":["platforms/taptap"]}
+Native platform publication gates: enabled
+Pages comparison: 28a57d989aa0ac2ec31e882dbb873cc70d905460..f4cd6d58ed335a09fa9db3578ffe7af175d4c556
+Pages scope: {"required":true,"full":false,"game_ids":[],"game_sources":[],"browser_ids":[],"risk":"incremental","reason":"Reviewed source graph from an exact comparison","browser":false,"admin_console_checks":false,"xiangqi_build_checks":false,"tap_services_checks":false,"hook_checks":false,"submodule_dialog_ids":[],"pages_deploy":false,"validation_tools":true,"competition":{"h5":false,"native":false,"letters":false,"config_tests":false,"consumer_sources":[]},"consumer_sources":["games/local/carding-car","apps/shell-minigame","platforms/taptap"],"nine_native_paths":[],"nine_native_checks":[],"nine_native_targets":[{"game":"carding-car","platform":"taptap","source":"games/local/carding-car","requiresCreator":"3.8.8"}],"nine_native_root_checks":[{"file":"scripts/kart-sharing.test.mjs","args":["--test","scripts/kart-sharing.test.mjs"]}],"nine_native_blocked":[{"game":"carding-car","reason":"Requires real Creator 3.8.8 native build and exact matching artifact; no H5 substitute or silent skip."}],"nine_native_travel_contract":null,"native_consumers":[],"developer_mode_ids":[],"catalog_rollout_checks":false,"interaction_browser_ids":[],"game_services_checks":false,"identity_checks":false,"competition_service_checks":false,"h5_acceptance_checks":false,"six_h5_checks":false,"ranked_deployment_checks":false,"platform_process_checks":false,"game_config_checks":false,"vocabulary_export_checks":false,"publishing_checks":false,"safe_area_checks":false,"platform_ads_checks":false,"publishing_browser_ids":[],"publication_config_checks":false,"deployment_bundle_checks":false,"company_deployment_checks":false,"competition_ingress_checks":false,"service_rule_sources":["platforms/taptap"],"cocos":true,"diff_base":"28a57d989aa0ac2ec31e882dbb873cc70d905460","diff_head":"f4cd6d58ed335a09fa9db3578ffe7af175d4c556"}
+Incremental scope: {"full":false,"browser":false,"browser_ids":[],"admin_console_checks":false,"xiangqi_build_checks":false,"tap_services_checks":false,"hook_checks":false,"submodule_dialog_ids":[],"game_sources":[],"pages_deploy":false,"validation_tools":true,"competition":{"h5":false,"native":false,"letters":false,"config_tests":false,"consumer_sources":[]},"consumer_sources":["games/local/carding-car","apps/shell-minigame","platforms/taptap"],"nine_native_paths":[],"nine_native_checks":[],"nine_native_targets":[{"game":"carding-car","platform":"taptap","source":"games/local/carding-car","requiresCreator":"3.8.8"}],"nine_native_root_checks":[{"file":"scripts/kart-sharing.test.mjs","args":["--test","scripts/kart-sharing.test.mjs"]}],"nine_native_blocked":[{"game":"carding-car","reason":"Requires real Creator 3.8.8 native build and exact matching artifact; no H5 substitute or silent skip."}],"nine_native_travel_contract":null,"native_consumers":[],"developer_mode_ids":[],"catalog_rollout_checks":false,"interaction_browser_ids":[],"game_services_checks":false,"identity_checks":false,"competition_service_checks":false,"h5_acceptance_checks":false,"six_h5_checks":false,"ranked_deployment_checks":false,"platform_process_checks":false,"game_config_checks":false,"vocabulary_export_checks":false,"publishing_checks":false,"safe_area_checks":false,"platform_ads_checks":false,"publishing_browser_ids":[],"publication_config_checks":false,"deployment_bundle_checks":false,"company_deployment_checks":false,"competition_ingress_checks":false,"service_rule_sources":["platforms/taptap"]}
+✔ native-only Creator consumers are checked before types without rebuilding unchanged H5 or including unrelated games (46369.1601ms)
+✔ game service client, gateway and deployment checks run in the candidate and fail publication on regression (0.3793ms)
+✔ identity checks execute only the finite Node suites and propagate failures (0.1768ms)
+✔ identity and game-service checks share their Node suite without duplicating it (0.1067ms)
+file:///C:/Users/15211/AppData/Local/Temp/admin-gate-contract-MXgkEV/apps/admin-web/tests/browser.mjs:1
+throw Error('admin browser regression');
+      ^
+
+Error: admin browser regression
+    at file:///C:/Users/15211/AppData/Local/Temp/admin-gate-contract-MXgkEV/apps/admin-web/tests/browser.mjs:1:7
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.21.0
+✔ admin gate executes the actual browser entry and finite service suites, propagating failures (161.8272ms)
+Native platform publication gates: deferred (Web validation remains required)
+Incremental scope: {"full":false,"browser":false,"browser_ids":[],"admin_console_checks":true,"xiangqi_build_checks":false,"tap_services_checks":false,"hook_checks":false,"submodule_dialog_ids":[],"game_sources":[],"pages_deploy":false,"validation_tools":false,"competition":{"h5":false,"native":false,"letters":false,"config_tests":false,"consumer_sources":[]},"consumer_sources":["apps/admin-web"],"nine_native_paths":[],"nine_native_checks":[],"nine_native_targets":[],"nine_native_root_checks":[],"nine_native_blocked":[],"nine_native_travel_contract":null,"native_consumers":[],"developer_mode_ids":[],"catalog_rollout_checks":false,"interaction_browser_ids":[],"game_services_checks":false,"identity_checks":false,"competition_service_checks":false,"h5_acceptance_checks":false,"six_h5_checks":false,"ranked_deployment_checks":false,"platform_process_checks":false,"game_config_checks":false,"vocabulary_export_checks":false,"publishing_checks":false,"safe_area_checks":false,"platform_ads_checks":false,"publishing_browser_ids":[],"publication_config_checks":false,"deployment_bundle_checks":false,"company_deployment_checks":false,"competition_ingress_checks":false,"service_rule_sources":["services/management-api"]}
+Native platform publication gates: deferred (Web validation remains required)
+Incremental scope: {"full":false,"browser":false,"browser_ids":[],"admin_console_checks":true,"xiangqi_build_checks":false,"tap_services_checks":false,"hook_checks":false,"submodule_dialog_ids":[],"game_sources":[],"pages_deploy":false,"validation_tools":false,"competition":{"h5":false,"native":false,"letters":false,"config_tests":false,"consumer_sources":[]},"consumer_sources":["apps/admin-web"],"nine_native_paths":[],"nine_native_checks":[],"nine_native_targets":[],"nine_native_root_checks":[],"nine_native_blocked":[],"nine_native_travel_contract":null,"native_consumers":[],"developer_mode_ids":[],"catalog_rollout_checks":false,"interaction_browser_ids":[],"game_services_checks":false,"identity_checks":false,"competition_service_checks":false,"h5_acceptance_checks":false,"six_h5_checks":false,"ranked_deployment_checks":false,"platform_process_checks":false,"game_config_checks":false,"vocabulary_export_checks":false,"publishing_checks":false,"safe_area_checks":false,"platform_ads_checks":false,"publishing_browser_ids":[],"publication_config_checks":false,"deployment_bundle_checks":false,"company_deployment_checks":false,"competition_ingress_checks":false,"service_rule_sources":["services/management-api"]}
+✔ management-only metadata candidates prepare a browser and build fresh UI before its mandatory gate (89.1182ms)
+✔ backend contracts execute independently and failure blocks candidate validation (0.3071ms)
+✔ shared authority helper contracts run once even alongside backend deployment checks (0.197ms)
+✔ Tap default contracts stop on failure and always restore all three candidate H5 builds serially (0.5891ms)
+Native platform publication gates: deferred (Web validation remains required)
+Incremental scope: {"full":false,"browser":true,"browser_ids":["cops-robbers","cops-robbers-realtime","xiangqi-five"],"admin_console_checks":false,"xiangqi_build_checks":true,"tap_services_checks":true,"hook_checks":false,"submodule_dialog_ids":[],"game_sources":["games/local/cops-robbers","games/local/cops-robbers-realtime","games/submodules/xiangqi-five"],"pages_deploy":false,"validation_tools":false,"competition":{"h5":false,"native":false,"letters":false,"config_tests":false,"consumer_sources":[]},"consumer_sources":["games/local/cops-robbers","games/local/cops-robbers-realtime","games/submodules/xiangqi-five"],"nine_native_paths":[],"nine_native_checks":[],"nine_native_targets":[],"nine_native_root_checks":[],"nine_native_blocked":[],"nine_native_travel_contract":null,"native_consumers":[],"developer_mode_ids":[],"catalog_rollout_checks":false,"interaction_browser_ids":[],"game_services_checks":false,"identity_checks":false,"competition_service_checks":true,"h5_acceptance_checks":false,"six_h5_checks":false,"ranked_deployment_checks":false,"platform_process_checks":false,"game_config_checks":false,"vocabulary_export_checks":false,"publishing_checks":false,"safe_area_checks":false,"platform_ads_checks":false,"publishing_browser_ids":[],"publication_config_checks":false,"deployment_bundle_checks":false,"company_deployment_checks":false,"competition_ingress_checks":false,"service_rule_sources":[]}
+Native platform publication gates: deferred (Web validation remains required)
+Incremental scope: {"full":false,"browser":true,"browser_ids":["cops-robbers","cops-robbers-realtime","xiangqi-five"],"admin_console_checks":false,"xiangqi_build_checks":true,"tap_services_checks":true,"hook_checks":false,"submodule_dialog_ids":[],"game_sources":["games/local/cops-robbers","games/local/cops-robbers-realtime","games/submodules/xiangqi-five"],"pages_deploy":false,"validation_tools":false,"competition":{"h5":false,"native":false,"letters":false,"config_tests":false,"consumer_sources":[]},"consumer_sources":["games/local/cops-robbers","games/local/cops-robbers-realtime","games/submodules/xiangqi-five"],"nine_native_paths":[],"nine_native_checks":[],"nine_native_targets":[],"nine_native_root_checks":[],"nine_native_blocked":[],"nine_native_travel_contract":null,"native_consumers":[],"developer_mode_ids":[],"catalog_rollout_checks":false,"interaction_browser_ids":[],"game_services_checks":false,"identity_checks":false,"competition_service_checks":true,"h5_acceptance_checks":false,"six_h5_checks":false,"ranked_deployment_checks":false,"platform_process_checks":false,"game_config_checks":false,"vocabulary_export_checks":false,"publishing_checks":false,"safe_area_checks":false,"platform_ads_checks":false,"publishing_browser_ids":[],"publication_config_checks":false,"deployment_bundle_checks":false,"company_deployment_checks":false,"competition_ingress_checks":false,"service_rule_sources":[]}
+✔ the H5 Tap multiplayer checker prepares the browser before mandatory default contracts (33.0115ms)
+✔ standalone chess separates the exact subprocess contract without relaxing pure rule traversal (72.5595ms)
+✔ chess build subprocess contracts are mandatory with native gates off and propagate failure (0.2732ms)
+✔ node-only dependency scanning distinguishes generated modules from executable imports (78.945ms)
+ℹ tests 274
+ℹ suites 0
+ℹ pass 274
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 460552.2181

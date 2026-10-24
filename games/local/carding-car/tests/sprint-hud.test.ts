@@ -159,7 +159,7 @@ test('settings replaces the menu and race view restores only essential state', (
   assert.equal(hud.noticeBackground.node.active, false, 'no empty message bar');
 });
 
-test('settings keeps preference feedback separate from row labels and omits browser fullscreen on native hosts', () => {
+test('settings keeps preference feedback separate from row labels and omits browser fullscreen on every host', () => {
   const hud = new HUD(new SceneNode()), race = new RaceManager();
   hud.settingsVisible = true;
   hud.coach.enabled = false;
@@ -183,25 +183,13 @@ test('settings keeps preference feedback separate from row labels and omits brow
   assert.equal(hud.helpState.string, '开');
   assert.match(hud.settingsHelp.string, /不会暂停/);
 
-  const previousDisplay = (globalThis as any).KartDisplay;
-  try {
-    (globalThis as any).KartDisplay = { getFullscreen: () => true };
-    hud.update(race, idle, false);
-    assert.equal(hud.fullscreen.string, '退出');
-    assert.equal(hud.fullscreen.node.parent.active, true);
-    cc.sys.isBrowser = false;
-    hud.update(race, idle, false);
-    assert.equal(hud.fullscreen.node.parent.active, false, 'native hosts never show a browser-only action');
-    assert.equal(hud.sound.node.parent.active, true);
-    assert.equal(hud.help.node.parent.active, true);
-  } finally {
-    cc.sys.isBrowser = true;
-    (globalThis as any).KartDisplay = previousDisplay;
-  }
+  assert.equal('fullscreen' in hud, false);
+  assert.equal(hud.sound.node.parent.active, true);
+  assert.equal(hud.help.node.parent.active, true);
 });
 
 test('compact settings switches retain full-row touch targets and separate close action', () => {
-  const actions = ['sound', 'fullscreen', 'help', 'close'] as const;
+  const actions = ['sound', 'help', 'close'] as const;
   for (const action of actions) {
     const rect = settingsLayout[action];
     assert.ok(rect.width >= 60 && rect.height >= 60, `${action} keeps a generous touch target`);

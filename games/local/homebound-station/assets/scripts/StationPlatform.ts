@@ -1,4 +1,4 @@
-import { AudioClip, AudioSource, Node, resources, screen, sys } from 'cc';
+import { AudioClip, AudioSource, Node, resources, sys } from 'cc';
 import { readProgress, type Progress, type RewardProvider } from './core/session';
 const KEY = 'homebound-station.progress.v2';
 type Bridge = typeof globalThis & {
@@ -101,16 +101,6 @@ export class StationPlatform {
       this.storageWarning = '';
     } catch {
       this.storageWarning = '本次进度暂存于当前页面';
-    }
-  }
-  async fullscreen() {
-    if (!sys.isBrowser) return false;
-    try {
-      if (screen.fullScreen()) await screen.exitFullScreen();
-      else await screen.requestFullScreen();
-      return true;
-    } catch {
-      return false;
     }
   }
   registerLevels(open: () => void) {

@@ -1,4 +1,32 @@
-# TapTap 广告接入与统一避坑指南
+# 通用激励广告接入与避坑指南（当前优先 TapTap）
+
+本文件是公共广告接口、接线边界与故障处理的唯一维护入口。奖励在玩法中的位置、免费基础体验及改造要求见[通用开发规范](../game-development.md#可选激励与公共能力)；配置与交付类型见[构建指南](game-builds.md)。新增问题更新这里，单款游戏只记录其奖励内容、配置来源及实际验收。
+
+## 新游戏先选实际运行路径
+
+游戏只声明奖励机会、资格、局面归属和结算，不读取渠道 SDK 或硬编码广告位。构建按 game × platform × 交付形态选择公共适配器并注入公开配置，Host 的广告控制权遵循 [ADR-0005](../adr/0005-ad-authority-is-host-owned.md)。未配置／关闭／不支持时正常玩法仍可继续，不跨渠道回退或伪造完成。
+
+| 入口             | 复用实现与请求                                                                                                                        | 构建接线与当前边界                                                                                                                                  |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TapTap H5        | `platforms/h5/platform-ads.js` 的 `show({ opportunityId, kind, onShown })`；已有游戏通过 `game-rewards.js` 或 `rewarded-host.js` 组装 | `scripts/h5-ad-config.mjs` 生成 `platform-config.js`，运行时读取 `SmallGamesPublishingConfig`；字段、支持游戏与批量入口见[构建指南](game-builds.md) |
+| 已有 Game Host   | `host.ads.offer({ id, reward })`                                                                                                      | 复用当前 Host，游戏不另建一套广告运行时                                                                                                             |
+| Cocos 原生小游戏 | `@coffeeeeffoc/native-game-shell/creator-ads` 安装同一 `AdvertisingPort.offer({ id, reward })`                                        | 配置为 `platform / adsEnabled / adUnitId`；具体接入见[Creator 广告桥](../../packages/native-game-shell/README.md)                                   |
+
+这些端口均以 `completed / dismissed / unavailable / failed` 表示结果，只有严格 `completed` 才结算一次。`kind: 'rewarded'` 表示广告种类，不是成功状态。游戏层必须处理取消、失败、实例退出和过期局面，避免迟到结果落入下一局；接口名字相似不代表可交换请求参数。
+
+### 平台扩展与实际支持（2026-10-22 核对）
+
+Creator 广告桥已有 `taptap → tap`、`wechat → wx`、`douyin → tt`、`bilibili → bl` 的显式选择，使用共享 `createAdRuntime` 与 native provider，不创建第二个 Canvas、输入或生命周期。**当前自动构建注入仅核实归途站 TapTap Creator 目标**：`apps/shell-minigame/scripts/taptap-targets.mjs` 的 `nativeRewards` 声明，经 `taptap-login.mjs` 的 `--prepare-login` 阶段生成 bundle 并安装。归途站 `build:wechat`／`build:douyin` 生成工程，不等于这些工程已接入该广告桥；其他游戏／平台同样需要各自接线和制品验证。
+
+后续接微信、抖音、B站时扩展已有目标配置和 Adapter 接线，注册真实消费者、纳入源指纹及产物清单，并验证生成的目标包中 SDK、公开配置、完成和失败路径；不复制游戏规则、不预建无需求的空框架。构建注入、平台官方工具、真实 SDK、广告开通／库存和真机验收分别记录。
+
+TapTap H5 广告位、原生小游戏广告位、Android APK 的 Java／JSB 接入是不同路径。原生当前使用 `MINIGAME_<GAME>_TAPTAP_AD_UNIT_ID`；AppID 不是广告位，H5 ID 不能复用为 native ID，AppSecret 不能注入客户端。归途站转换与最终打包步骤见[该游戏说明](../../games/local/homebound-station/README.md)。批量 `pnpm build:games` 当前仍只接受 TapTap H5，不能靠更改 `type` 生成原生包。
+
+### 共享语义与现有实现差距
+
+以下长视频／结束页的打开超时修复是 **H5 链路**证据。Creator 当前复用的 native provider 仍有默认约 120 秒的总等待边界，不能宣称已有同等长广告支持；接入或改动该路径时应复核长播放、结束页、取消后 SDK 占用及迟到回调，必要时在共享实现修复，并运行对应测试。本次规范整理未改变运行代码。
+
+完成判定必须同时审查 provider、Host 与游戏外层包装；游戏暂停和广告请求保活分开管理，广告引发隐藏不等于玩家退出。统一最低回归见下文[诊断与验证方法](#诊断与验证方法)。
 
 ## 五款 H5 当前配置（2026-10-21）
 
@@ -12,7 +40,7 @@
 | 浪湾卡丁车 / carding-car                | 984547 | tapmcgymnoqi9kdbls | 1054323              | 金币补给 +100；每场完成后的机会只结算一次            |
 | 词屿 / letters-words2                   | 987557 | tapmca1ytzeqiyk93j | 1054324              | 自由拾词的逐字提示；普通提示免费，挑战模式不开放辅助 |
 
-配置源是 [`infra/builds/five-taptap-h5.mjs`](../../infra/builds/five-taptap-h5.mjs)，`game-build.local.mjs` 引用它。执行 `pnpm build:games --dry-run` 检查，再执行 `pnpm build:games`，每款生成独立 ZIP。原六款离线预设继续保留；travel-bund 没有本次核实的 AppID，仍默认关闭广告。
+五款配置源是 [`infra/builds/five-taptap-h5.mjs`](../../infra/builds/five-taptap-h5.mjs)，用 `pnpm build:games --config infra/builds/five-taptap-h5.mjs --dry-run` 检查，再去掉 `--dry-run` 构建。根默认 `game-build.local.mjs` 的当前选择见文末十三款接入说明；该历史五款预设保持不变。原六款离线预设继续保留；travel-bund 没有本次核实的 AppID，仍默认关闭广告。
 
 本轮包体、截图、通过记录及未验收范围见 [五款最终包验证](../verification/2026-10-21-five-taptap-h5/README.md)。
 
@@ -136,20 +164,42 @@ cops-robbers 曾仍有游戏端 `ads.js` 的 45 秒总超时，以及 `main.js` 
 
 最低回归覆盖：长加载＋长视频＋结束页停留、打开永不返回、show 拒绝或缺少 Promise、取消观看、SDK 错误、重复／迟到完成、迟到显示成功、隐藏与恢复的两种顺序、退出旧局后开始新局、首免悔棋及存档恢复。验证显示成功本身不会发奖，完成后提示落点确实可执行，未完成悔棋后存档完全不变。
 
-从仓库根运行相关逻辑检查：
-
-```powershell
-
-```
+从仓库根按变更路径运行现有回归，例如 H5 使用 `node --test platforms/h5/tests/platform-ads.test.mjs platforms/h5/tests/game-rewards.test.mjs`；Creator 桥使用 `pnpm --filter @coffeeeeffoc/native-game-shell test`。实际消费者与发布检查按[增量验证](incremental-publication.md)选择，不能以这些单元检查代替整包验收。
 
 整包浏览器检查需把 `HINT_AD_HOST_CHECK` 设为 `1`，`HINT_DIST_DIR` 指向该批 H5 包的绝对 `dist` 路径，再运行 `node games/submodules/xiangqi-five/computer-hints-check.mjs`。生成新交付批次时使用新目录，保留旧包用于回溯；核对 manifest、ZIP 和测试文件哈希，不能只测源码后上传另一个包。
 
 ## 本次归档与边界
 
 - [最终修复与失败／通过证据](../../games/submodules/xiangqi-five/docs/design/h5-ad-open-timeout-2026-10-19/README.md)：47 项相关回归、三种手机尺寸的整包触屏流程、虚拟时钟十分钟结束页案例通过。
-- [此前 180 秒方案的记录](../../games/submodules/xiangqi-five/docs/design/h5-ad-timing-fix-2026-10-18/README.md)：仅是中间版本，已被最终方案替代。
-- [可见性问题记录](../../games/submodules/xiangqi-five/docs/design/h5-ad-host-fix-2026-10-18/validation.md)：记录 Window 监听遗漏，不能单独证明超时已修好。
+- [此前 180 秒方案的历史记录](https://github.com/coffeeeeffoc/xiangqi-five/blob/fe1c870f3713bb0b19e2ea503a137f86c5c51fa4/docs/design/h5-ad-timing-fix-2026-10-18/README.md)：仅是中间版本，已被最终方案替代。
+- [可见性问题与最终修复](../../games/submodules/xiangqi-five/docs/design/h5-ad-open-timeout-2026-10-19/README.md)：保留 Window 监听遗漏和旧测试未冒泡造成误通过的原因，分别说明历史证据与最终超时验证。
 - 最终本地包：`outputs/xiangqi-five-h5-ad-open-timeout-2026-10-19/xiangqi-five-taptap-h5-ads-on-service-off.zip`，SHA-256 `cb521b295ccef16c100f347067b402f98d8cd70bb5213478482246385b07e228`。
 - 未完成本包的 TapTap 上传、真机真实广告和平台验收。不能把其他会话截图中的“实机成功”移用为本包证据；发布时另按[增量发布验证](incremental-publication.md)执行。
 
-## 原生 Canvas 适配回归（2026-10-19）
+## 十三款可选激励接入（2026-10-24）
+
+根配置保留原有四款并新增以下十三款；本轮是 TapTap H5 接线，一炮拆城未改动。新十三款的广告位为空，打包会关闭广告，不会借用旧游戏 ID。后续逐款通过 MCP 核实后填入目标的 adUnits 并重新构建；这一步之后无需再改玩法代码。没有 SDK、取消或失败不发奖，基础游玩仍可继续。
+
+| 游戏 / ID                     | 触发位置与奖励                                                         |
+| ----------------------------- | ---------------------------------------------------------------------- |
+| 归途站 / homebound-station    | 主动请求额外调度、2/3 倍速；1 倍速免费                                 |
+| 子弹花园 / bullet-garden      | 暂停补给恢复 30% 生命；失败续战恢复 50% 生命，各一次                   |
+| 神机合阵 / merge-front        | 每局一次额外 2 枚补给币                                                |
+| 穿云落星 / tower-brake        | 暂停且刹车耗尽后补满一次，辅助局不记纪录，免费续关保留                 |
+| 重力方舱 / tetracube          | 倒转和失败续局；无广告配置时保留既有免费基础操作                       |
+| 三块选两块 / three-choose-two | 重抽候选、失败后追加 2 组继续                                          |
+| 星扣工坊 / orbit-atelier      | 暂停时辅助对齐一环，不自动释放；每局一次，计入提示和步数，普通提示免费 |
+| 夺城令 / tianxia-chalu        | 结算后升级本局免费获得的排名卡一次                                     |
+| 星轨弹珠 / ball-roguelite     | 晶体共鸣、应急清除底部两排，各一次                                     |
+| 弹指擂台 / flick-arena        | 仅单人练习暂停时领取一次瞄准建议，不自动出手；对战和挑战禁用           |
+| 追贼别撞墙 / chase-thief      | 暂停时领取一次 5 秒普通碰撞保护，沟壑仍失败，辅助局不记纪录            |
+| 苔光花园 / moss-garden        | 每关首次提示免费，之后主动选择额外提示                                 |
+| 打破笼子接住人 / cage-rescue  | 普通局球机会耗尽时补 1 球，每局一次，免费重试保留                      |
+
+复用 SmallGamesRewardAds.offer/show 和公共 platform-ads.js，不经过有总时限的旧 publishing.rewarded 包装。子弹花园仍保留独立原生 provider；H5 优先共享端口。穿云落星、打破笼子接住人、弹指擂台的统一 H5 包仅支持 backend:false，覆盖编译制品中的旧 API 默认值，不初始化联网服务或显示不可用联网入口。
+
+验证记录见各游戏 tests/rewards.test.mjs、子弹花园 tests/cocos-ads.browser.mjs、打破笼子接住人 tests/reward-browser.mjs、夺城令 tests/browser.mjs 及苔光花园 tests/expansion.browser.mjs。SDK 回调夹具不等于真实广告库存或 TapTap 真机验收。
+
+## 灰烬防线 / 2026-10-24
+
+新增`ashfall-front`的Creator Web/H5构建与公共奖励端口，手机方向为landscape。暂停补给恢复40%生命、失败续战恢复50%，各每关一次，普通开始和重试免费，辅助行动不计最佳。用户确认App998795（Developer492506）；本次MCP查询状态为未开通，默认广告关闭，无正式广告位，不使用其他应用的ID。开通后重新查询，再经`TAPTAP_ASHFALL_FRONT_AD_UNIT_ID`注入。当前只通过SDK夹具与Creator浏览器验证，不表示真机库存或上传通过。

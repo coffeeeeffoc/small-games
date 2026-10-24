@@ -1,3 +1,4 @@
+import { wireCollision, type WireRing } from './metal.ts';
 import { CATALOG, getCampaignLevels, type Campaign } from './catalog.ts';
 import {
   cloneState,
@@ -5,17 +6,20 @@ import {
   isComplete,
   isReachableRemoval,
   normalizeAngle,
+  findHint,
+  rotateRing,
   type State,
 } from './rules.ts';
 
 export const SAVE_KEY = 'orbit-atelier.v2';
 export const LEGACY_SAVE_KEY = 'orbit-atelier.v1';
-export type Run = { state: State; moves: number; hints: number };
+export type Run = { state: State; moves: number; hints: number; rewardAlignUsed?: boolean };
 export type Progress = {
   version: 2;
   medals: Record<string, number>;
   settings: { sound: boolean; vibration: boolean; reducedMotion: boolean };
   run: Run | null;
+  runs?: Partial<Record<Campaign, Run>>;
 };
 
 export function freshProgress(): Progress {
@@ -24,6 +28,7 @@ export function freshProgress(): Progress {
     medals: {},
     settings: { sound: true, vibration: false, reducedMotion: false },
     run: null,
+    runs: {},
   };
 }
 
@@ -55,7 +60,8 @@ function rebuildRun(value: unknown, legacy: boolean): Run | null {
     !object(value) ||
     !object(value.state) ||
     !integer(value.moves, 100000) ||
-    !integer(value.hints, 100000)
+    !integer(value.hints, 100000) ||
+    (value.rewardAlignUsed !== undefined && typeof value.rewardAlignUsed !== 'boolean')
   )
     return null;
   const savedState = value.state;
@@ -78,13 +84,40 @@ function rebuildRun(value: unknown, legacy: boolean): Run | null {
       typeof entry.removed !== 'boolean'
     )
       return null;
+    if (ring.wire) {
+      if (
+        entry.tilt !== undefined &&
+        (typeof entry.tilt !== 'number' ||
+          !Number.isFinite(entry.tilt) ||
+          Math.abs(entry.tilt) > Math.PI / 2)
+      )
+        return null;
+      const tilt = typeof entry.tilt === 'number' ? entry.tilt : 0;
+      if (
+        ring.wire.fixed &&
+        (Math.abs(normalizeAngle(entry.angle - ring.angle)) > 1e-9 ||
+          Math.abs(tilt - (ring.tilt ?? 0)) > 1e-9)
+      )
+        return null;
+      ring.tilt = tilt;
+    }
     ring.angle = normalizeAngle(entry.angle);
     ring.removed = entry.removed;
     if (ring.removed) removed.add(ring.id);
   }
   if (value.moves < removed.size || !isReachableRemoval(level, removed)) return null;
+  if (
+    state.rings[0]?.wire &&
+    state.rings.some((r) => !r.removed && wireCollision(state.rings as WireRing[], r.id))
+  )
+    return null;
   state.releasedCount = removed.size;
-  return { state, moves: value.moves, hints: value.hints };
+  return {
+    state,
+    moves: value.moves,
+    hints: Math.max(value.hints, value.rewardAlignUsed ? 1 : 0),
+    rewardAlignUsed: value.rewardAlignUsed === true,
+  };
 }
 
 /** Accept v2 first; if unavailable, import v1 read-only. No browser storage dependency. */
@@ -95,8 +128,8 @@ export function parseProgress(rawV2: string | null, rawV1?: string | null): Prog
   if (!data || (data.version !== 1 && data.version !== 2)) return result;
   const legacy = data.version === 1;
   const medals = object(data.medals) ? data.medals : {};
-  for (const campaign of ['nova', 'classic'] as const) {
-    if (legacy && campaign === 'nova') continue;
+  for (const campaign of ['metal', 'nova', 'classic', 'expert'] as const) {
+    if (legacy && campaign !== 'classic') continue;
     let gap = false;
     for (const level of getCampaignLevels(campaign)) {
       const medal = medals[level.id];
@@ -109,11 +142,25 @@ export function parseProgress(rawV2: string | null, rawV1?: string | null): Prog
       if (typeof data.settings[key] === 'boolean') result.settings[key] = data.settings[key];
     }
   }
+  if (object(data.runs) && !legacy)
+    for (const campaign of ['metal', 'nova', 'classic', 'expert'] as const) {
+      const saved = rebuildRun(data.runs[campaign], false);
+      if (!saved || isComplete(saved.state)) continue;
+      const level = CATALOG.find((l) => l.id === saved.state.levelId)!;
+      if (
+        (level.campaign ?? 'nova') === campaign &&
+        getCampaignLevels(campaign).indexOf(level) <= unlockedIndex(result, campaign)
+      )
+        result.runs![campaign] = saved;
+    }
   const run = rebuildRun(data.run, legacy);
   if (run && !isComplete(run.state)) {
     const level = CATALOG.find((candidate) => candidate.id === run.state.levelId)!;
     const levels = getCampaignLevels(level.campaign ?? 'nova');
-    if (levels.indexOf(level) <= unlockedIndex(result, level.campaign ?? 'nova')) result.run = run;
+    if (levels.indexOf(level) <= unlockedIndex(result, level.campaign ?? 'nova')) {
+      result.run = run;
+      result.runs![level.campaign ?? 'nova'] = structuredClone(run);
+    }
   }
   return result;
 }
@@ -126,7 +173,19 @@ export function restoreUndo(current: Run, before: Run): Run {
     state: cloneState(before.state),
     moves: before.moves,
     hints: Math.max(current.hints, before.hints),
+    rewardAlignUsed: current.rewardAlignUsed === true || before.rewardAlignUsed === true,
   };
+}
+
+/** Align only; the player's next release still decides when to remove the ring. */
+export function alignReward(run: Run) {
+  if (run.rewardAlignUsed || isComplete(run.state)) return null;
+  const hint = findHint(run.state);
+  if (!hint || !rotateRing(run.state, hint.ringId, hint.angle, hint.tilt)) return null;
+  run.rewardAlignUsed = true;
+  run.hints++;
+  run.moves++;
+  return hint;
 }
 
 /** One star for completion; two without hints; three for the shortest release route. */
@@ -140,5 +199,6 @@ export function settle(progress: Progress, run: Run): number {
   const medal = valid.hints ? 1 : valid.state.releasedCount <= par ? 3 : 2;
   progress.medals[level.id] = Math.max(progress.medals[level.id] ?? 0, medal);
   progress.run = null;
+  if (progress.runs) delete progress.runs[campaign];
   return medal;
 }

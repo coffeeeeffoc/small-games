@@ -34,9 +34,7 @@ try {
       return probe.matches >= 3;
     }, { probe: displayProbe, width, height, rotated });
   };
-  const fullscreen = page.locator('[data-game-fullscreen]');
-  // Fullscreen is a global setting. Its shared DOM controller is deliberately hidden.
-  assert.equal(await fullscreen.isVisible(), false);
+  assert.equal(await page.locator('[data-game-fullscreen]').count(), 0);
   const openSettings = async () => {
     if (!(await state()).hud.settingsVisible) {
       await tap(910, 46);
@@ -53,18 +51,12 @@ try {
   await openSettings();
   const paused = await state();
   assert.equal(paused.phase, 'paused');
-  await tap(480, 244);
-  await page.waitForFunction(() => document.fullscreenElement === document.documentElement);
-  assert.equal(await fullscreen.getAttribute('aria-pressed'), 'true');
   await page.waitForTimeout(250);
   assert.equal((await state()).time, paused.time);
   assert.equal((await state()).seed, before.seed);
   await closeSettings();
   await page.waitForFunction(() => __kart.snapshot().phase === 'racing');
   await openSettings();
-  await tap(480, 244);
-  await page.waitForFunction(() => !document.fullscreenElement);
-  assert.equal(await fullscreen.getAttribute('aria-pressed'), 'false');
   await closeSettings();
   await page.waitForFunction(() => __kart.snapshot().phase === 'racing');
   await tap(56, 126);
@@ -90,8 +82,6 @@ try {
   await page.setViewportSize({ width: 844, height: 390 });
   await waitForDisplay(844, 390, false);
   await openSettings();
-  await tap(480, 244);
-  await page.waitForFunction(() => !!document.fullscreenElement);
   await closeSettings();
   await tap(743, 395);
   await waitForReady(page);
@@ -102,9 +92,6 @@ try {
   await page.waitForFunction(() => __kart.snapshot().time > 1);
   await tap(56, 126);
   await page.waitForFunction(() => __kart.snapshot().phase === 'paused');
-  // Browser/system exit, without invoking the game's setting.
-  await page.evaluate(() => document.exitFullscreen());
-  await page.waitForFunction(() => document.querySelector('[data-game-fullscreen]').getAttribute('aria-pressed') === 'false');
   await tap(480, 395);
   await page.waitForFunction(() => __kart.snapshot().phase === 'racing');
   const cdp = await page.context().newCDPSession(page);
@@ -115,21 +102,8 @@ try {
   evidence.after = await state();
   await page.screenshot({ path: fileURLToPath(new URL('display-modes.png', reportsURL)) });
   await openSettings();
-  // Synthetic capability branches verify feedback only; physical Safari/Android remain unverified.
-  for (const mode of ['unsupported', 'denied']) {
-    await page.evaluate((mode) => {
-      document.documentElement.requestFullscreen = mode === 'unsupported' ? undefined : () => Promise.reject(new Error('Denied'));
-      document.documentElement.webkitRequestFullscreen = undefined;
-    }, mode);
-    const current = await state();
-    await tap(480, 244);
-    await page.waitForFunction(() => !document.getElementById('game-display-notice').hidden);
-    assert.match(await page.locator('#game-display-notice').textContent(), /仍可在当前页面正常游玩/);
-    assert.equal((await state()).seed, current.seed);
-    assert.equal(await fullscreen.getAttribute('aria-pressed'), 'false');
-    evidence[mode] = await page.locator('#game-display-notice').textContent();
-  }
+  assert.equal(await page.locator('[data-game-fullscreen]').count(), 0);
   assert.deepEqual(evidence.errors, []);
   await writeFile(new URL('display-modes.json', reportsURL), JSON.stringify(evidence, null, 2));
-  console.log('PASS: settings fullscreen, pause/retry/resume, external exit, 305/360/390 portrait-held landscape and accurate touches, unsupported/denied feedback');
+  console.log('PASS: settings without fullscreen, pause/retry/resume, 305/360/390 portrait-held landscape and accurate touches');
 } finally { await browser.close(); }

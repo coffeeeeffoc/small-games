@@ -1,3 +1,4 @@
+import { ready } from './ready.mjs';
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
@@ -46,8 +47,11 @@ try {
   await page.clock.install({ time: new Date('2026-10-09T12:00:00Z') });
   await page.clock.pauseAt(new Date('2026-10-09T12:00:01Z'));
   await page.goto(origin);
-  const screenshot = (name) =>
-    page.screenshot({ path: new URL('actual-' + name + '.png', out).pathname });
+  await ready(page);
+  const screenshot = async (name) => {
+    await advance(32);
+    return page.screenshot({ path: new URL('actual-' + name + '.png', out).pathname });
+  };
   const advance = (ms) => page.clock.runFor(ms);
   const phase = () => page.locator('body').getAttribute('data-phase');
   const stored = () => page.evaluate((key) => JSON.parse(localStorage.getItem(key)), saveKey);
@@ -192,6 +196,7 @@ try {
 
   // A separate full developer-mode match uses read-only debug positions and real CDP gestures.
   await page.goto(origin + '?dev=1');
+  await ready(page);
   await practice();
   assert.deepEqual(await stored(), normalSave);
   const p = await map(position((await debug()).state.discs.map((disc) => [disc.x, disc.y])[0]));
@@ -312,6 +317,7 @@ try {
 
   await page.evaluate(() => localStorage.setItem('dev', '1'));
   await page.goto(origin + '?dev=0');
+  await ready(page);
   assert.equal(
     await page.evaluate(() => typeof window.__flickArena),
     'undefined',
@@ -336,6 +342,7 @@ try {
   await fallbackPage.clock.install({ time: new Date('2026-10-09T15:00:00Z') });
   await fallbackPage.clock.pauseAt(new Date('2026-10-09T15:00:01Z'));
   await fallbackPage.goto(origin + '?dev=0');
+  await ready(fallbackPage);
   await fallbackPage.locator('#start').tap();
   await fallbackPage.locator('#play-level').tap();
   await fallbackPage.clock.runFor(1400);

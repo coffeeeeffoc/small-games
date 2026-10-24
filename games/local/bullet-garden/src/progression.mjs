@@ -299,7 +299,7 @@ export function profileStats(profile) {
   const level = levelFromXp(clean.xp).level;
   const values = {
     damage: 19,
-    fireRate: 1 / 0.245,
+    fireRate: 1 / 0.4,
     maxHp: 100,
     armor: 0,
     seedPower: 1,

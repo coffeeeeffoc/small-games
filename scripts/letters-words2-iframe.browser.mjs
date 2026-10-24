@@ -89,17 +89,8 @@ try {
     const partial = await boardSnapshot(frame);
     await frame.locator('#pause-button').tap();
     await frame.locator('#pause-settings').tap();
-    await frame.locator('#settings-dialog [data-game-fullscreen]').tap();
-    await page.waitForFunction(
-      () => document.fullscreenElement === document.querySelector('[data-game-display-host]'),
-    );
-    assert.deepEqual(
-      await boardSnapshot(frame),
-      partial,
-      'host fullscreen includes the entire game without clearing selection',
-    );
-    await frame.locator('#settings-dialog [data-game-fullscreen]').tap();
-    await page.waitForFunction(() => !document.fullscreenElement);
+    assert.equal(await frame.locator('[data-game-fullscreen]').count(), 0);
+    assert.deepEqual(await boardSnapshot(frame), partial, 'settings preserve unfinished selection');
     await frame.locator('#settings-dialog [data-close]').last().tap();
     await frame.locator('#home-button').tap();
     await page.waitForFunction(() => document.querySelector('main').dataset.screen === 'home');
@@ -111,7 +102,7 @@ try {
     await page.screenshot({ path: join(output, `iframe-play-${viewport.width}.png`) });
     await context.close();
     console.log(
-      `PASS minimal Shell iframe ${viewport.width}×${viewport.height}: actual entry adapter, touch navigation, fullscreen host and saved selection`,
+      `PASS minimal Shell iframe ${viewport.width}×${viewport.height}: actual entry adapter, touch navigation, normal viewport and saved selection`,
     );
   }
   assert.deepEqual(errors, []);

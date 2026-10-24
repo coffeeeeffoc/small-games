@@ -78,7 +78,6 @@ type Icon =
   | 'hint'
   | 'sound'
   | 'vibration'
-  | 'fullscreen'
   | 'check'
   | 'lock'
   | 'leaf'
@@ -412,17 +411,6 @@ function icon(ctx: Ink, kind: Icon, x: number, y: number, size = 21, color = MOS
     line(ctx, -11, 0, -9, 5, color, 1.5);
     line(ctx, 9, -5, 11, 0, color, 1.5);
     line(ctx, 11, 0, 9, 5, color, 1.5);
-  } else if (kind === 'fullscreen') {
-    for (let i = 0; i < 4; i++) {
-      ctx.save();
-      ctx.rotate((i * Math.PI) / 2);
-      ctx.beginPath();
-      ctx.moveTo(3, -9);
-      ctx.lineTo(9, -9);
-      ctx.lineTo(9, -3);
-      ctx.stroke();
-      ctx.restore();
-    }
   }
   ctx.restore();
 }
@@ -786,9 +774,6 @@ export function renderGame(ctx: Ink, view: View): HitArea[] {
     button('pause:restart', '重新播种', 36, 604, 153, 56);
     button('pause:levels', '关卡选择', 201, 604, 153, 56);
     button('pause:home', '返回花园', 36, 690, 318, 56);
-    if (!view.native) {
-      circleButton('settings:fullscreen', '切换全屏', 'fullscreen', 173, 774, 44);
-    }
   } else if (view.page === 'help') {
     cornerGarden(ctx, true);
     header('玩法手册', '用观察与排除，点亮整座花园');
@@ -856,8 +841,6 @@ export function renderGame(ctx: Ink, view: View): HitArea[] {
       dot(ctx, enabled ? 313 : 289, y + 37, 11.5, '#f9f6e9');
       hit(id, 37, y, 316, 74, `${label}：${enabled ? '开启' : '关闭'}`);
     });
-    if (!view.native)
-      button('settings:fullscreen', '切换全屏', 67, 548, 256, 50, false, 'fullscreen');
     text(ctx, '进度自动保存在当前设备', 195, 657, 13, MID);
     button('nav:back', '返回花园', 67, 724, 256, 50, true);
   } else if (view.page === 'result') {

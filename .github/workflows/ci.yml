@@ -77,7 +77,7 @@ jobs:
        (needs.plan.outputs.cocos == 'false' && needs.kart.result == 'skipped'))
     runs-on: ubuntu-latest
     # Full validation includes serial browser smoke tests after builds and rule tests.
-    timeout-minutes: 60
+    timeout-minutes: 90
     env:
       MINIGAME_RELEASE_GATES: ${{ vars.MINIGAME_RELEASE_GATES || '0' }}
       KART_PREBUILT_DIR: ${{ github.workspace }}/games/local/carding-car/.prebuilt
@@ -87,6 +87,11 @@ jobs:
       TIANXIA_PREBUILT_DIR: ${{ github.workspace }}/games/local/tianxia-chalu/.prebuilt
       HOMEBOUND_STATION_PREBUILT_DIR: ${{ github.workspace }}/games/local/homebound-station/.prebuilt
       MERGE_FRONT_PREBUILT_DIR: ${{ github.workspace }}/games/local/merge-front/.prebuilt
+      TOWER_BRAKE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tower-brake/.prebuilt
+      TETRACUBE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tetracube/.prebuilt
+      THREE_CHOOSE_TWO_PREBUILT_DIR: ${{ github.workspace }}/games/local/three-choose-two/.prebuilt
+      CASTLE_CANNON_PREBUILT_DIR: ${{ github.workspace }}/games/local/game-castle-cannon/.prebuilt
+      ASHFALL_FRONT_PREBUILT_DIR: ${{ github.workspace }}/games/local/ashfall-front/.prebuilt
       TURBO_SCM_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
       TURBO_SCM_HEAD: ${{ github.sha }}
       CI_VALIDATION_PLAN: ${{ needs.plan.outputs.plan }}
@@ -158,6 +163,34 @@ jobs:
         with:
           name: merge-front-${{ github.sha }}
           path: games/local/merge-front/.prebuilt
+
+      - uses: actions/download-artifact@v8
+        if: needs.plan.outputs.cocos == 'true'
+        with:
+          name: tower-brake-${{ github.sha }}
+          path: games/local/tower-brake/.prebuilt
+
+      - uses: actions/download-artifact@v8
+        if: needs.plan.outputs.cocos == 'true'
+        with:
+          name: tetracube-${{ github.sha }}
+          path: games/local/tetracube/.prebuilt
+      - uses: actions/download-artifact@v8
+        if: needs.plan.outputs.cocos == 'true'
+        with:
+          name: three-choose-two-${{ github.sha }}
+          path: games/local/three-choose-two/.prebuilt
+
+      - uses: actions/download-artifact@v8
+        if: needs.plan.outputs.cocos == 'true'
+        with:
+          name: game-castle-cannon-${{ github.sha }}
+          path: games/local/game-castle-cannon/.prebuilt
+      - uses: actions/download-artifact@v8
+        if: needs.plan.outputs.cocos == 'true'
+        with:
+          name: ashfall-front-${{ github.sha }}
+          path: games/local/ashfall-front/.prebuilt
 
       - name: Check all game registrations
         run: pnpm check:games

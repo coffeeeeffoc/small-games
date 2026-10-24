@@ -38,6 +38,14 @@ export function startHealing(p: Fighter) {
   }
 }
 export function travel(p: Fighter, destination: string, heal = false) {
+  if (p.route.length && p.destination === destination) {
+    p.healOnArrival ||= heal;
+    return;
+  }
+  if (!p.route.length && p.node === destination) {
+    if (heal) startHealing(p);
+    return;
+  }
   cancelCharge(p);
   p.crouched = false;
   p.healing = null;
@@ -50,10 +58,18 @@ export function travel(p: Fighter, destination: string, heal = false) {
   p.station = null;
   if (!p.route.length) arrive(p);
 }
+export function transferSeconds(p: Fighter) {
+  let from = p.position;
+  let remaining = 0;
+  for (const point of p.route) {
+    remaining += distance(from, point);
+    from = point;
+  }
+  return remaining / R.speed;
+}
 export function arrive(p: Fighter) {
   p.node = p.destination;
   const gun = p.guns.find((g) => g.node === p.node && selectable(p, g));
-  if (gun?.hp === 0) gun.repair ??= 0;
   p.station = gun?.id ?? null;
   p.position = gun ? operatorPoint(p, gun) : nodePoint(p.side, p.node);
   if (p.healOnArrival) {

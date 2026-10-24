@@ -2,12 +2,12 @@ import { Simulation, type PauseReason } from './Simulation.ts';
 import { WEAPONS } from './Data.ts';
 import { MISSIONS, TRAINING } from './MissionCatalog.ts';
 
-export const RANKED_RULE_VERSION = 'night-input-replay-v1';
+export const RANKED_RULE_VERSION = 'night-input-replay-v6';
 export type ReplayFrame = { input: Record<string, unknown>; ticks: number };
 export type NightReplay = { simulation: ReturnType<Simulation['checkpoint']>; assisted: boolean };
 const commands = ['setOrbitDirection', 'adjustAltitude', 'adjustRadius', 'pause',
   'beginResumeCountdown', 'stepCountdown', 'clearInput', 'choose', 'selectHoming',
-  'lockHoming', 'setAim', 'setFire', 'command', 'fire', 'grantBuff'] as const;
+  'lockHoming', 'setAim', 'setFire', 'command', 'fire', 'grantBuff', 'setExtractionRadioPending'] as const;
 const pauseReasons: PauseReason[] = ['help', 'settings', 'mission', 'manual', 'orientation',
   'background', 'focus', 'advert', 'supply', 'countdown'];
 function requireInput(ok: unknown): asserts ok {
@@ -63,6 +63,8 @@ function command(sim: Simulation, input: Record<string, unknown>, state: NightRe
       requireInput(!args[1] || sim.held.has(args[0]) || sim.held.size < 10);
       sim.setFire(args[0], args[1]); break;
     case 'command': none(); sim.command(); break;
+    case 'setExtractionRadioPending':
+      one(); requireInput(typeof args[0] === 'boolean'); sim.setExtractionRadioPending(args[0]); break;
     case 'fire': none(); sim.fire(); break;
     case 'grantBuff':
       one(); requireInput(args[0] === 'tracking' || args[0] === 'rate');

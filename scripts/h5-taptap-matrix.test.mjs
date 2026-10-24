@@ -623,7 +623,19 @@ function fixture(production) {
 }
 test('explicit profiles require twelve local QA variants and only three online-ads deliverables', () => {
   assert.deepEqual(h5Orientations, {
+    'ashfall-front': 'landscape',
     'merge-front': 'landscape',
+    tetracube: 'portrait',
+    'three-choose-two': 'portrait',
+    'bullet-garden': 'portrait',
+    'tower-brake': 'portrait',
+    'orbit-atelier': 'portrait',
+    'tianxia-chalu': 'portrait',
+    'ball-roguelite': 'portrait',
+    'flick-arena': 'portrait',
+    'chase-thief': 'portrait',
+    'moss-garden': 'portrait',
+    'cage-rescue': 'portrait',
     'cops-robbers': 'portrait',
     'cops-robbers-realtime': 'preserve',
     'xiangqi-five': 'portrait',

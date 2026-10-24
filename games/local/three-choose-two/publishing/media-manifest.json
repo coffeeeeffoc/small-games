@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-23",
+  "creator": "3.8.8",
+  "sourceHash": "0e7386e91e8871c0e9eabb817237aa027683778d1d3c17196df7577d05416c6e",
+  "environment": "Chromium touch emulation, 390x844; not a physical device",
+  "audio": "Videos have no audio track",
+  "media": [
+    {
+      "file": "gameplay/screenshots/game-390x844.png",
+      "sha256": "24d006fd1cf3c00e2598e7fa98f1476bbb67de27f52240f36d443017f5c1eb76"
+    },
+    {
+      "file": "gameplay/screenshots/home-390x844.png",
+      "sha256": "249049e76c2be9044b7eb6bcc6a20201585e159b4e1e611ebd43a3e517e3f4f6"
+    },
+    {
+      "file": "gameplay/screenshots/reset-390x844.png",
+      "sha256": "fc769b64fe945cb7c21ef1be06c3f25a21f1e495fa5dc9ff3fc33e9bfb7ead82"
+    },
+    {
+      "file": "gameplay/screenshots/win-390x844.png",
+      "sha256": "b61eea45e0946f7cdb5a0a06274db9cc54b0bbc2201779c19f4adf7aef367a04"
+    },
+    {
+      "file": "gameplay/videos/creator-touch-levels1-3-390x844.mp4",
+      "sha256": "9aef1eb26a27416ec149c5c6649878da4251660cd1e965fb11cb370ef0e6ab93"
+    },
+    {
+      "file": "icon/icon.png",
+      "sha256": "21b880b7107936d6f53694af1d5d4d36a9b6d0ce710675d286f16aa4b440375d"
+    },
+    {
+      "file": "promo/images/garden-title-portrait-1024x1536.png",
+      "sha256": "243f6ed8fe1d7ae348c712d80e4a20ed28c3ad6d8ca84bcc8e47b4aa3420c9f5"
+    },
+    {
+      "file": "promo/videos/garden-creator-promo-720x1280.mp4",
+      "sha256": "7d153d7249d8bb18bd132b8d29a7c2e2ac3218e9346cb65bddcd02535d927843"
+    }
+  ]
+}

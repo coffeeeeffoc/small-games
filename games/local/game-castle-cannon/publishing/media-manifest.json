@@ -1,0 +1,128 @@
+{
+  "verified": "2026-10-24",
+  "creator": "3.8.8",
+  "runtimeSourceCommit": "aac82db834ad68db46c3846f6dff0c7bdaf238ab",
+  "sourceHash": "f6be4ef4e2e04b2743f06ee3a2c8b6143e69eeeb79f740b16ad9771a1e4d0893",
+  "files": [
+    {
+      "file": "gameplay/screenshots/home-cocos-390x844.png",
+      "sha256": "e2979262d4305caad62249f29f245cafcc23ea2d81a2463c84f309b8dde9c8fd",
+      "bytes": 374580
+    },
+    {
+      "file": "gameplay/screenshots/battle-cocos-390x844.png",
+      "sha256": "23d10e706472d924df5944df5d9235bd88314117524ffeebbb880cd5e6a33307",
+      "bytes": 413308
+    },
+    {
+      "file": "gameplay/screenshots/campaign-cocos-390x844.png",
+      "sha256": "e0893330fcfec553c2bf96df91c7112704241718b1e948d69815cf16dd26f0d7",
+      "bytes": 489928
+    },
+    {
+      "file": "gameplay/screenshots/settings-cocos-390x844.png",
+      "sha256": "fcaf9ce543597c2ef9cd370a4c3f691947ba8b91e4e66543ca1627fa8a055dc3",
+      "bytes": 445532
+    },
+    {
+      "file": "gameplay/screenshots/exit-cocos-390x844.png",
+      "sha256": "b64929a54e1622ea15ea355c21dc4a929f2c04d058f9002ba12e952e9e7dc1db",
+      "bytes": 302289
+    },
+    {
+      "file": "gameplay/screenshots/help-cocos-390x844.png",
+      "sha256": "2eb1f3723ee38f3776f3cdcdecd18370e4ddf66a1572ede0c295c59c2ff9fe02",
+      "bytes": 424892
+    },
+    {
+      "file": "gameplay/screenshots/skins-cocos-390x844.png",
+      "sha256": "cc7c2253c30658aefea0b1ba98c84e80435f3b8366146df0e1cd9e471253a037",
+      "bytes": 417200
+    },
+    {
+      "file": "gameplay/screenshots/victory-cocos-390x844.png",
+      "sha256": "89e0b076d1d6513c9ddcc695c03ad61999d0eba94406e987f86a549e20b74293",
+      "bytes": 362204
+    },
+    {
+      "file": "gameplay/screenshots/defeat-cocos-390x844.png",
+      "sha256": "d1d51e73be604b109bc2a54ca537de15af3bd7d1517556bec6e28df6e98d84e0",
+      "bytes": 361158
+    },
+    {
+      "file": "gameplay/screenshots/trajectory-cocos-390x844.png",
+      "sha256": "2fb60d10e01d43d40c1bd732dee50095969542ecae72d77be3531de8f102d4fb",
+      "bytes": 399424
+    },
+    {
+      "file": "promo/images/cocos-portrait-preview-390x844.png",
+      "sha256": "2fb60d10e01d43d40c1bd732dee50095969542ecae72d77be3531de8f102d4fb",
+      "bytes": 399424
+    },
+    {
+      "file": "gameplay/videos/cocos-portrait-campaign-390x844.mp4",
+      "sha256": "676c78c93adb1afc43c690d5be409c14d6d2983547eaef4887a7f48a557e822b",
+      "bytes": 730671,
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 390,
+            "height": 844,
+            "r_frame_rate": "25/1"
+          }
+        ],
+        "format": {
+          "duration": "37.000000"
+        }
+      }
+    },
+    {
+      "file": "promo/videos/cocos-portrait-preview-390x844.mp4",
+      "sha256": "56ddf13104a7b0ccf6da1e8aeade03163b8c6ca30744167e031c9b61ef89337e",
+      "bytes": 656430,
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 390,
+            "height": 844,
+            "r_frame_rate": "25/1"
+          }
+        ],
+        "format": {
+          "duration": "27.000000"
+        }
+      }
+    },
+    {
+      "file": "icon/castle-cannon-512.png",
+      "sha256": "e7dbd60e6e8df5b915176c82d3f933427b2ea4d470ab90b170fe0bf9fcb31dd5",
+      "bytes": 43590
+    },
+    {
+      "file": "icon/castle-cannon-512.svg",
+      "sha256": "07c204453710132fecfd4e9f0cf040fafc78b17ac8c35efa90ada3283be9634f",
+      "bytes": 1877
+    },
+    {
+      "file": "copy/introduction.md",
+      "sha256": "2674deb2f0b18b491e2519e03c804b313f8239a53480bdcf4b900c0d16a3c8df",
+      "bytes": 835
+    },
+    {
+      "file": "copy/tagline.md",
+      "sha256": "76f08729dbe6cc38a000e408c7d389f5456637470b16689fbd5dbb5148f44fbf",
+      "bytes": 68
+    },
+    {
+      "file": "copy/developer-note.md",
+      "sha256": "e1c7a2470ce0c02779c18ee666da7e5498f62baae670202885f31a49dc2a03e7",
+      "bytes": 716
+    }
+  ]
+}

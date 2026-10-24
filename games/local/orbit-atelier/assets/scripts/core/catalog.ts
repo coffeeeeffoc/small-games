@@ -1,8 +1,26 @@
+import { METAL_LEVELS } from './metal-levels.ts';
+export { METAL_LEVELS } from './metal-levels.ts';
+export const METAL_CHAPTERS = [
+  {
+    id: 1,
+    name: '普通圆环',
+    artifact: '金属解环',
+    description: '从一对圆环理解穿扣与小缺口。',
+    color: '#82c9c3',
+  },
+  {
+    id: 2,
+    name: '异形机关',
+    artifact: '复合机关',
+    description: '长环、U形与焊杆带来真实结构变化。',
+    color: '#d9b77d',
+  },
+] as const;
 import { circleIntersections, solveLevel, type Level, type Ring } from './rules.ts';
 import { CLASSIC_LEVELS } from './classic.ts';
 
 export { CLASSIC_LEVELS } from './classic.ts';
-export type Campaign = 'nova' | 'classic';
+export type Campaign = 'nova' | 'classic' | 'expert' | 'metal';
 export const CHAPTERS = [
   {
     id: 1,
@@ -32,13 +50,20 @@ export const CHAPTERS = [
     description: '组合钥环与回窗，唤醒整座工坊。',
     color: '#ae9cdb',
   },
+  {
+    id: 5,
+    name: '机关挑战',
+    artifact: '群星机关',
+    description: '交错星环、双星核与钥光迷宫。',
+    color: '#8fbddf',
+  },
 ] as const;
 
 type Cell = readonly [number, number];
 type Blueprint = {
   name: string;
   cells: Cell[];
-  goal: number;
+  goal: number | number[];
   intro?: string;
   requires?: Record<number, number[]>;
   gaps?: Record<number, number>;
@@ -353,8 +378,128 @@ const BLUEPRINTS: Blueprint[] = [
   },
 ];
 
+const EXPERT_BLUEPRINTS: Blueprint[] = [
+  {
+    name: '九环星阵',
+    cells: [
+      [0, 0],
+      [1, 0],
+      [2, 0],
+      [0, 1],
+      [1, 1],
+      [2, 1],
+      [0, 2],
+      [1, 2],
+      [2, 2],
+    ],
+    goal: 4,
+    gaps: { 0: 218, 2: 218, 6: 218, 8: 218 },
+    requires: { 4: [0, 8] },
+    intro: '从宽口打开闭环，找到通向中央星核的短路。',
+  },
+  {
+    name: '双星回廊',
+    cells: [
+      [0, 0],
+      [1, 0],
+      [2, 0],
+      [0, 1],
+      [1, 1],
+      [2, 1],
+      [0, 2],
+      [1, 2],
+      [2, 2],
+      [1, 3],
+    ],
+    goal: [4, 7],
+    gaps: { 0: 218, 2: 218, 6: 218, 8: 218 },
+    requires: { 4: [0], 7: [9] },
+    intro: '两枚星核都要释放；先看哪条钥光可以共用。',
+  },
+  {
+    name: '对角钥光',
+    cells: [
+      [0, 0],
+      [1, 0],
+      [2, 0],
+      [0, 1],
+      [1, 1],
+      [2, 1],
+      [0, 2],
+      [1, 2],
+      [2, 2],
+      [3, 1],
+    ],
+    goal: [1, 7],
+    gaps: { 0: 218, 2: 218, 6: 218, 8: 218 },
+    requires: { 1: [8], 7: [0], 5: [9] },
+  },
+  {
+    name: '三重星栓',
+    cells: [
+      [0, 0],
+      [1, 0],
+      [2, 0],
+      [3, 0],
+      [0, 1],
+      [1, 1],
+      [2, 1],
+      [3, 1],
+      [0, 2],
+      [1, 2],
+      [2, 2],
+    ],
+    goal: [5, 6],
+    gaps: { 0: 218, 2: 218, 3: 218, 8: 218, 10: 218 },
+    requires: { 5: [1, 8], 1: [3], 6: [10] },
+    intro: '钥环也有前置星栓，沿着星纹逐层拆解。',
+  },
+  {
+    name: '双窗迷宫',
+    cells: [
+      [0, 0],
+      [1, 0],
+      [2, 0],
+      [3, 0],
+      [0, 1],
+      [1, 1],
+      [2, 1],
+      [3, 1],
+      [0, 2],
+      [1, 2],
+      [2, 2],
+      [3, 2],
+    ],
+    goal: [5, 6],
+    gaps: { 0: 218, 1: 218, 3: 218, 8: 218, 10: 218, 11: 218 },
+    requires: { 5: [0, 11], 6: [3, 8] },
+  },
+  {
+    name: '群星锁阵',
+    cells: [
+      [0, 0],
+      [1, 0],
+      [2, 0],
+      [3, 0],
+      [0, 1],
+      [1, 1],
+      [2, 1],
+      [3, 1],
+      [0, 2],
+      [1, 2],
+      [2, 2],
+      [3, 2],
+    ],
+    goal: [5, 6],
+    gaps: { 0: 218, 1: 218, 3: 218, 8: 218, 10: 218, 11: 218 },
+    radii: { 0: 60, 2: 68, 5: 68, 7: 60, 8: 68, 10: 60 },
+    requires: { 5: [1, 11], 1: [3], 6: [9, 0], 9: [8] },
+    intro: '让两路钥光汇合；留下无关支路，争取最短解。',
+  },
+];
+
 const COLORS = ['#54c8ba', '#e4b773', '#db8e83', '#8aa8cd', '#b7a0d7', '#a8c995'];
-export const NOVA_LEVELS: Level[] = BLUEPRINTS.map((blueprint, index) => {
+function buildLevel(blueprint: Blueprint, index: number, campaign: 'nova' | 'expert'): Level {
   const ringId = (n: number) => `ring-${n + 1}`;
   const xs = blueprint.cells.map((cell) => cell[0]),
     ys = blueprint.cells.map((cell) => cell[1]);
@@ -377,12 +522,12 @@ export const NOVA_LEVELS: Level[] = BLUEPRINTS.map((blueprint, index) => {
       ring.angle = Math.atan2(ring.y - neighbors[0]!.y, ring.x - neighbors[0]!.x);
   }
   const level: Level = {
-    id: `nova-${String(index + 1).padStart(2, '0')}`,
+    id: `${campaign}-${String(index + 1).padStart(2, '0')}`,
     name: blueprint.name,
-    chapter: (Math.floor(index / 6) + 1) as Level['chapter'],
-    campaign: 'nova',
+    chapter: (campaign === 'expert' ? 5 : Math.floor(index / 6) + 1) as Level['chapter'],
+    campaign,
     revision: 1,
-    goalRingIds: [ringId(blueprint.goal)],
+    goalRingIds: (Array.isArray(blueprint.goal) ? blueprint.goal : [blueprint.goal]).map(ringId),
     rings,
     intro: blueprint.intro,
   };
@@ -390,9 +535,25 @@ export const NOVA_LEVELS: Level[] = BLUEPRINTS.map((blueprint, index) => {
   if (!solution) throw new Error(`Unsolvable authored star chart: ${level.id}`);
   level.parMoves = solution.length;
   return level;
-});
+}
 
-export const CATALOG: Level[] = [...NOVA_LEVELS, ...CLASSIC_LEVELS];
+export const NOVA_LEVELS: Level[] = BLUEPRINTS.map((blueprint, index) =>
+  buildLevel(blueprint, index, 'nova'),
+);
+export const EXPERT_LEVELS: Level[] = EXPERT_BLUEPRINTS.map((blueprint, index) =>
+  buildLevel(blueprint, index, 'expert'),
+);
+export const CATALOG: Level[] = [
+  ...METAL_LEVELS,
+  ...NOVA_LEVELS,
+  ...CLASSIC_LEVELS,
+  ...EXPERT_LEVELS,
+];
 export function getCampaignLevels(campaign: Campaign = 'nova'): Level[] {
-  return campaign === 'classic' ? CLASSIC_LEVELS : NOVA_LEVELS;
+  if (campaign === 'metal') return METAL_LEVELS;
+  return campaign === 'classic'
+    ? CLASSIC_LEVELS
+    : campaign === 'expert'
+      ? EXPERT_LEVELS
+      : NOVA_LEVELS;
 }

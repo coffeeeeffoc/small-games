@@ -28,6 +28,11 @@ jobs:
       TIANXIA_PREBUILT_DIR: ${{ github.workspace }}/games/local/tianxia-chalu/.prebuilt
       HOMEBOUND_STATION_PREBUILT_DIR: ${{ github.workspace }}/games/local/homebound-station/.prebuilt
       MERGE_FRONT_PREBUILT_DIR: ${{ github.workspace }}/games/local/merge-front/.prebuilt
+      TOWER_BRAKE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tower-brake/.prebuilt
+      TETRACUBE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tetracube/.prebuilt
+      THREE_CHOOSE_TWO_PREBUILT_DIR: ${{ github.workspace }}/games/local/three-choose-two/.prebuilt
+      CASTLE_CANNON_PREBUILT_DIR: ${{ github.workspace }}/games/local/game-castle-cannon/.prebuilt
+      ASHFALL_FRONT_PREBUILT_DIR: ${{ github.workspace }}/games/local/ashfall-front/.prebuilt
       GOMAXPROCS: '1'
       APP_VERSION: '0.2.0'
       # Reserve the first 1000 codes for local builds; reruns retain the same application version.
@@ -71,6 +76,26 @@ jobs:
         with:
           name: merge-front-${{ github.sha }}
           path: games/local/merge-front/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: tower-brake-${{ github.sha }}
+          path: games/local/tower-brake/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: tetracube-${{ github.sha }}
+          path: games/local/tetracube/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: three-choose-two-${{ github.sha }}
+          path: games/local/three-choose-two/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: game-castle-cannon-${{ github.sha }}
+          path: games/local/game-castle-cannon/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: ashfall-front-${{ github.sha }}
+          path: games/local/ashfall-front/.prebuilt
       - run: pnpm check:games
       - uses: actions/setup-java@v5
         with:
@@ -132,6 +157,11 @@ jobs:
       TIANXIA_PREBUILT_DIR: ${{ github.workspace }}/games/local/tianxia-chalu/.prebuilt
       HOMEBOUND_STATION_PREBUILT_DIR: ${{ github.workspace }}/games/local/homebound-station/.prebuilt
       MERGE_FRONT_PREBUILT_DIR: ${{ github.workspace }}/games/local/merge-front/.prebuilt
+      TOWER_BRAKE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tower-brake/.prebuilt
+      TETRACUBE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tetracube/.prebuilt
+      THREE_CHOOSE_TWO_PREBUILT_DIR: ${{ github.workspace }}/games/local/three-choose-two/.prebuilt
+      CASTLE_CANNON_PREBUILT_DIR: ${{ github.workspace }}/games/local/game-castle-cannon/.prebuilt
+      ASHFALL_FRONT_PREBUILT_DIR: ${{ github.workspace }}/games/local/ashfall-front/.prebuilt
       GOMAXPROCS: '1'
       APP_VERSION: '0.2.0'
       IOS_BUILD_NUMBER: ${{ github.run_number }}
@@ -174,6 +204,26 @@ jobs:
         with:
           name: merge-front-${{ github.sha }}
           path: games/local/merge-front/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: tower-brake-${{ github.sha }}
+          path: games/local/tower-brake/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: tetracube-${{ github.sha }}
+          path: games/local/tetracube/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: three-choose-two-${{ github.sha }}
+          path: games/local/three-choose-two/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: game-castle-cannon-${{ github.sha }}
+          path: games/local/game-castle-cannon/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: ashfall-front-${{ github.sha }}
+          path: games/local/ashfall-front/.prebuilt
       - run: pnpm check:games
       - run: pnpm ios:simulator
       - run: python3 apps/shell-ios/scripts/test-install-manifest.py

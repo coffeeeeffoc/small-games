@@ -97,6 +97,7 @@ try {
       const canvas = frame.locator('#GameCanvas');
       // The exported flight-browser press helper uses top-page coordinates; iframe input needs this mapping.
       const press = async id => {
+        if (id === 'start' && (await snapshot(frame)).modal === 'home') await press('missions');
         await expect.poll(async () => (await snapshot(frame)).buttons.some(b => b.id === id)).toBe(true);
         const b = (await snapshot(frame)).buttons.find(b => b.id === id);
         const position = await canvas.evaluate((element, button) => {
@@ -118,7 +119,7 @@ try {
       };
       const resume = async () => {
         const time = (await snapshot(frame)).time;
-        await press('resume');
+        await press((await snapshot(frame)).modal.startsWith('supply:') ? 'supplyLater' : 'resume');
         await expect.poll(async () => (await snapshot(frame)).time).toBeGreaterThan(time);
         assert.deepEqual((await snapshot(frame)).pauses, []);
       };
@@ -130,7 +131,7 @@ try {
       await frozen('supply freezes battle and clears input'); await capture('supply');
       await press('supplyWatch');
       if (scenario.fixture) {
-        await expect.poll(async () => (await snapshot(frame)).modal).toBe('pause');
+        await expect.poll(async () => (await snapshot(frame)).modal).toBe('supply:offer');
         const failed = await frozen('failed provider returns to paused battle');
         assert.equal(failed.pendingSupply, false); assert.equal(failed.homingAmmo, initial.homingAmmo);
         result.offers = await frame.evaluate(() => globalThis.__shellSupplyOffers);
@@ -141,19 +142,14 @@ try {
         await expect.poll(async () => (await snapshot(frame)).advert?.mock).toBe(true);
         await frozen('built-in mock advert freezes battle');
         await press('adCancel');
-        assert.equal((await snapshot(frame)).modal, 'pause');
+        assert.equal((await snapshot(frame)).modal, 'supply:offer');
         assert.equal((await snapshot(frame)).pendingSupply, false);
         assert.equal((await snapshot(frame)).homingAmmo, initial.homingAmmo);
         await frozen('cancel grants nothing and returns to pause'); await resume();
         await press('pause'); await frozen('manual pause freezes battle');
-        await press('supply'); await press('supplyWatch');
+        await press('supply'); await press('reward:ammo'); await capture('choice'); await press('supplyWatch');
         await expect.poll(async () => (await snapshot(frame)).advert?.mock).toBe(true);
         await press('adClose');
-        const choice = await frozen('completed ad persists one pending choice while battle stays frozen');
-        assert.equal(choice.pendingSupply, true); assert.equal(choice.homingAmmo, initial.homingAmmo);
-        assert.deepEqual(choice.buttons.filter(b => b.id.startsWith('reward:')).map(b => b.id).sort(),
-          ['reward:ammo', 'reward:rate', 'reward:tracking']);
-        await capture('choice'); await press('reward:ammo');
         const claimed = await snapshot(frame);
         assert.equal(claimed.homingAmmo, initial.homingAmmo + 2); assert.equal(claimed.pendingSupply, false);
         assert.equal(claimed.buff, null); assert.equal(claimed.fired, initial.fired);

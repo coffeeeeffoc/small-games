@@ -1,0 +1,29 @@
+{
+  "environment": "Linux Chromium mobile touch emulation, production dist; not physical-device validation",
+  "fixtures": "Explicit saved-board fixtures test rare states; ad callbacks use a declared local SDK fixture, never a real advertising SDK.",
+  "browser": "140.0.7339.186",
+  "checks": [
+    "real Cocos WebGL Sprite/Label scene; eight levels in two locked pages; cancelled touch; global settings/help back paths; settings/pause/confirmation freeze; mute survives resume/reload; pre-volley checkpoint; no fullscreen controls",
+    "unmodified first campaign naturally won through actual touch trajectories; next level unlocked; campaign and endless checkpoints stay independent",
+    "explicit two-mode save fixture: home endless-new and in-game restart require confirmation, cancellation preserves state/save, acceptance resets only current endless run and retains campaign, record and settings",
+    "explicit fifth-turn upgrade fixture: centered choice region preserves visible board; settings returns to pending upgrade; absent SDK never grants simulated production rewards",
+    "320x568 and 844x390 touch targets, both level pages, centered settings/help/upgrade/supply/confirmation, real gestures and rotation preserve paused volley",
+    "explicit two-hit glass fixture uses real launches: visible cracks, six-piece crystal shatter, clear breaking audio and animated natural returns reported by scene statistics",
+    "explicit absorber fixture consumes actual emitted marbles and reduces this volley while permanent ball count remains unchanged",
+    "chain source/destination line and blast neighbourhood outline accompany secondary damage, including reduced motion",
+    "actual shallow-angle touch is accepted; recall remains visible with moving marbles, pauses exactly, resumes and settles only after return animation",
+    "declared local SDK fixture: dismissed/completed callbacks, once-only resonance, animated-recall loss, rescue without score/turn awards, persisted grants; no real SDK claimed",
+    "late ad completion after cancellation is ignored; current same-seed challenge disables advertising buffs",
+    "blocked storage remains playable",
+    "dev practice isolation and production iframe settings/play/pause/direct-return cancellation and confirmation",
+    "non-BFCache teardown releases the scene and pauses Cocos without closing the script-opened window"
+  ],
+  "errors": [],
+  "passed": true,
+  "naturalCampaign": {
+    "seed": 20261006,
+    "shots": 4,
+    "turn": 4,
+    "phase": "won"
+  }
+}

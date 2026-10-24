@@ -4,9 +4,11 @@ import {
   AudioSource,
   Component,
   EventMouse,
+  EventKeyboard,
   EventTouch,
   Game,
   Input,
+  KeyCode,
   game,
   input,
   resources,
@@ -50,6 +52,12 @@ const host = globalThis as typeof globalThis & {
   BulletGardenLoading?: { progress(n: number): void; ready(): void; fail(s: string): void };
   __bulletGarden?: { snapshot(): unknown };
   tap?: { createRewardedVideoAd?: unknown };
+  SmallGamesRewardAds?: {
+    available: boolean;
+    show(request: unknown): Promise<{ status: string }>;
+    cancel?(): void;
+    dispose?(): void;
+  };
 };
 
 @ccclass('BulletGarden')
@@ -65,6 +73,7 @@ export class BulletGarden extends Component {
   joystick: number | null = null;
   skillTouch: number | null = null;
   move = { x: 0, y: 0 };
+  keys = new Set<number>();
   aim: (Point & { index: number }) | null = null;
   lastTouch = -1000;
   clock = 0;
@@ -72,6 +81,7 @@ export class BulletGarden extends Component {
   disposed = false;
   unregister: (() => void)[] = [];
   accessibility?: HTMLDivElement;
+  pointerCanvas?: HTMLCanvasElement;
   a11yKey = '';
   announcedScreen = '';
   settings = { sound: true, vibration: true };
@@ -83,12 +93,16 @@ export class BulletGarden extends Component {
     view.enableAutoFullScreen(false);
     view.resizeWithBrowserSize(true);
     const adAvailable = () =>
-      channel.adsEnabled &&
-      (sys.isBrowser ? channel.platform === 'taptap-h5' : channel.platform === 'taptap') &&
+      (sys.isBrowser && host.SmallGamesRewardAds
+        ? host.SmallGamesRewardAds.available
+        : channel.adsEnabled &&
+          (sys.isBrowser ? channel.platform === 'taptap-h5' : channel.platform === 'taptap')) &&
       typeof host.tap?.createRewardedVideoAd === 'function';
-    const provider = channel.adsEnabled
-      ? createPlatformAdProvider({ platform: channel.platform, adUnitId: channel.adUnitId })
-      : null;
+    const provider = sys.isBrowser && host.SmallGamesRewardAds
+      ? host.SmallGamesRewardAds
+      : channel.adsEnabled
+        ? createPlatformAdProvider({ platform: channel.platform, adUnitId: channel.adUnitId })
+        : null;
     this.session = new GardenSession({
       profile: this.read(SAVE_KEY),
       provider,
@@ -104,7 +118,7 @@ export class BulletGarden extends Component {
         if (typeof settings[key] === 'boolean') this.settings[key] = settings[key];
     this.ui = new GardenView(this.node, () => {
       this.dirty = true;
-      host.BulletGardenLoading?.progress(this.ui.loaded.size / 5);
+      host.BulletGardenLoading?.progress(this.ui.loaded.size / this.ui.artCount);
       if (this.ui.ready) host.BulletGardenLoading?.ready();
       if (this.ui.failed) host.BulletGardenLoading?.fail('花园素材加载失败，请重试');
     });
@@ -115,6 +129,15 @@ export class BulletGarden extends Component {
         if (this.settings.sound && !this.session.hidden) this.feedbackSource().clip = clip;
       }
     });
+    if (sys.isBrowser && typeof PointerEvent !== 'undefined') {
+      this.pointerCanvas = document.getElementById('GameCanvas') as HTMLCanvasElement;
+      this.pointerCanvas.style.touchAction = 'none';
+      this.pointerCanvas.addEventListener('pointerdown', this.pointerDown);
+      this.pointerCanvas.addEventListener('pointermove', this.pointerMove);
+      this.pointerCanvas.addEventListener('pointerup', this.pointerUp);
+      this.pointerCanvas.addEventListener('pointercancel', this.pointerCancel);
+      this.pointerCanvas.addEventListener('lostpointercapture', this.pointerCancel);
+    } else {
     input.on(Input.EventType.TOUCH_START, this.touchStart, this);
     input.on(Input.EventType.TOUCH_MOVE, this.touchMove, this);
     input.on(Input.EventType.TOUCH_END, this.touchEnd, this);
@@ -122,6 +145,9 @@ export class BulletGarden extends Component {
     input.on(Input.EventType.MOUSE_DOWN, this.mouseDown, this);
     input.on(Input.EventType.MOUSE_MOVE, this.mouseMove, this);
     input.on(Input.EventType.MOUSE_UP, this.mouseUp, this);
+    }
+    input.on(Input.EventType.KEY_DOWN, this.keyDown, this);
+    input.on(Input.EventType.KEY_UP, this.keyUp, this);
     game.on(Game.EVENT_HIDE, this.suspend, this);
     game.on(Game.EVENT_SHOW, this.show, this);
     view.on('canvas-resize', this.resize, this);
@@ -214,24 +240,28 @@ export class BulletGarden extends Component {
     audio.destroy();
   }
   clearInput() {
+    const pointers = [...this.presses.keys()];
+    this.keys.clear();
     this.presses.clear();
     this.joystick = null;
     this.skillTouch = null;
     this.move = { x: 0, y: 0 };
     this.aim = null;
+    for (const id of pointers)
+      if (this.pointerCanvas?.hasPointerCapture(id)) this.pointerCanvas.releasePointerCapture(id);
   }
   suspend = () => {
     this.stopFeedback();
     if (!this.session) return;
     this.clearInput();
-    this.session.suspend({ nativeAdTransition: !sys.isBrowser });
+    this.session.suspend();
     this.dirty = true;
   };
   show = () => {
     if (!this.session) return;
     if (sys.isBrowser && document.hidden) return;
     this.session.show();
-    this.clearInput();
+    // Suspend clears stale input; focus can arrive after a fresh pointerdown.
     this.dirty = true;
   };
   leave = () => {
@@ -252,6 +282,7 @@ export class BulletGarden extends Component {
     if (!this.session || !this.ui) return;
     this.clock += Math.min(dt, 0.1);
     const before = this.session.screen;
+    if (this.joystick === null) this.keyboardMove();
     this.session.tick(Math.min(dt, 0.1), {
       moveX: this.move.x,
       moveY: this.move.y,
@@ -282,8 +313,8 @@ export class BulletGarden extends Component {
   title(label: string) {
     const u = this.ui;
     u.panel(10, u.top - 2, u.w - 20, 64);
-    u.button('back', '返回', u.left + 33, u.top + 30, 58, 48, false, !!this.session.pending);
-    u.text(label, u.w / 2 + 20, u.top + 30, 26, CREAM, u.w - 160);
+    u.badge('back', '返回', 'back', u.left + 31, u.top + 29, 23, !!this.session.pending);
+    u.heading(label, u.w / 2 + 19, u.top + 28, 25, u.w - 128);
   }
   render() {
     this.dirty = false;
@@ -297,7 +328,7 @@ export class BulletGarden extends Component {
     if (!u.ready) {
       u.actor('icon', w / 2, h / 2 - 135, 84);
       u.panel(20, h / 2 - 75, w - 40, 150);
-      u.text(u.failed ? '素材加载失败' : `正在唤醒花园… ${u.loaded.size}/5`, w / 2, h / 2 - 20);
+      u.text(u.failed ? '素材加载失败' : `正在唤醒花园… ${u.loaded.size}/${u.artCount}`, w / 2, h / 2 - 20);
       if (u.failed) u.button('retry-art', '重试', w / 2, h / 2 + 35, 180);
       u.end();
       return;
@@ -305,47 +336,48 @@ export class BulletGarden extends Component {
     if (battle) this.drawGame();
     else if (s.screen === 'home') {
       const cx = u.landscape ? w * 0.73 : w / 2,
-        bw = Math.min(300, u.landscape ? w * 0.43 : w - 40),
-        base = u.landscape ? h * 0.34 : h * 0.72;
-      u.panel(14, u.top, w - 28, 42);
-      u.text(`金币 ${s.profile.coins}`, w * 0.25, u.top + 21, 16);
-      u.text(`守园人 Lv.${levelFromXp(s.profile.xp).level}`, w * 0.74, u.top + 21, 16);
+        bw = Math.min(310, u.landscape ? w * 0.43 : w - 42),
+        base = u.landscape ? h * 0.34 : Math.min(h * 0.72, h - u.bottom - 182);
+      u.panel(14, u.top, w * 0.4, 39);
+      u.icon('coin', 35, u.top + 19, 18);
+      u.text(`${s.profile.coins}`, 24 + w * 0.2, u.top + 19, 15, CREAM, w * 0.3, 24);
+      u.panel(w * 0.51, u.top, w * 0.49 - 14, 39);
+      u.text(`守园人 Lv.${levelFromXp(s.profile.xp).level}`, w * 0.74, u.top + 19, 14);
       if (u.landscape) u.panel(w * 0.49, 76, w * 0.49, h - 88);
-      else u.box(u.ui, 42, h * 0.145 - 36, w - 84, 72, '#203c2c', 24, 160);
-      u.text(
+      const tx = u.landscape ? w * 0.25 : w / 2, ty = u.landscape ? 105 : h * 0.15;
+      u.heading('子弹花园', tx + 2, ty + 3, Math.min(49, w * 0.13), u.landscape ? w * 0.47 : w - 20, '#183624');
+      u.heading(
         '子弹花园',
-        u.landscape ? w * 0.25 : w / 2,
-        u.landscape ? 105 : h * 0.145,
-        Math.min(52, w * 0.135),
-        GOLD,
+        tx, ty,
+        Math.min(49, w * 0.13),
         u.landscape ? w * 0.47 : w - 24,
-        85,
+        '#fff0bd',
       );
-      u.button('start', '继续冒险', cx, base, bw, 60, true);
-      u.button('levels', '选择关卡', cx, base + 67, bw, 52);
-      const navY = Math.min(h - u.bottom - 31, base + 131);
-      for (const [i, label] of ['营地', '帮助', '设置'].entries())
-        u.button(
-          ['camp', 'help', 'settings'][i],
-          label,
-          cx + (i - 1) * (bw / 3 + 2),
-          navY,
-          bw / 3 - 8,
-          48,
-        );
+      u.sprig(tx - 8, ty + 39, -1, 1.2);
+      u.sprig(tx + 8, ty + 39, 1, 1.2);
+      u.button('start', '继续冒险', cx, base, bw, 64, true);
+      u.button('levels', '花园旅程', cx, base + 65, bw - 38, 48);
+      const navY = Math.min(h - u.bottom - 45, base + 132);
+      for (const [i, label] of ['营地', '手册', '设置'].entries()) {
+        const x = cx + (i - 1) * bw / 3;
+        u.badge(['camp', 'help', 'settings'][i], label, ['camp', 'book', 'gear'][i], x, navY, 24);
+        u.text(label, x, navY + 35, 13, CREAM, 65, 22);
+      }
       if (this.dev()) u.button('developer', '开发试玩', w - 64, u.top + 78, 104, 46);
     } else if (s.screen === 'levels') this.drawLevels();
     else if (s.screen === 'upgrade') {
       this.title('花园的馈赠');
+      u.text('选择一项，继续守护花园', w / 2, u.top + 90, 15, GOLD);
       const choices = s.state.upgradeChoices,
-        count = choices.length,
-        available = h - u.top - 130;
+        count = u.landscape ? Math.ceil(choices.length / 2) : choices.length,
+        available = h - u.top - 145 - u.bottom;
       choices.forEach((id: string, i: number) => {
         const entry = UPGRADES.find((x) => x.id === id),
-          hh = Math.min(114, available / count - 10),
-          y = u.top + 96 + i * (hh + 10);
-        u.button(`upgrade:${id}`, entry.name, w / 2, y + hh / 2, w - 30, hh, false);
-        u.text(entry.description, w / 2, y + hh * 0.75, 13, '#d7dbb3', w - 70, hh * 0.35);
+          hh = Math.min(136, available / count - 12),
+          y = u.top + 119 + (u.landscape ? Math.floor(i / 2) : i) * (hh + 12),
+          cw = u.landscape ? (w - 42) / 2 : w - 30;
+        u.card(`upgrade:${id}`, entry.name, entry.description,
+          entry.category === 'terrain' ? 'leaf' : id === 'wild-heart' ? 'bloom' : 'bolt', 15 + (u.landscape ? i % 2 * (cw + 12) : 0), y, cw, hh);
       });
     } else if (s.screen === 'paused' || s.screen === 'failed') {
       this.title(s.screen === 'failed' ? '花园需要你' : '暂歇片刻');
@@ -408,7 +440,7 @@ export class BulletGarden extends Component {
         u.landscape ? h * 0.55 : h * 0.25,
         u.landscape ? 150 : 110,
       );
-      u.panel(cx - Math.min(170, w / 2 - 14), y, Math.min(340, w - 28), h - y - u.bottom - 12);
+      u.panel(cx - Math.min(170, w / 2 - 14), y, Math.min(340, w - 28), Math.min(238, h - y - u.bottom - 12));
       u.text(
         s.state.dev
           ? '试玩完成 · 不计正式成长'
@@ -434,7 +466,7 @@ export class BulletGarden extends Component {
       this.title('设置');
       const x = w / 2,
         y = u.top + 135;
-      u.panel(16, u.top + 88, w - 32, h - u.top - 110);
+      u.panel(16, u.top + 88, w - 32, Math.min(222, h - u.top - 110));
       u.button(
         'setting:sound',
         `音效：${this.settings.sound ? '开启' : '关闭'}`,
@@ -455,13 +487,13 @@ export class BulletGarden extends Component {
       u.panel(16, u.top + 88, w - 32, h - u.top - 108);
       u.text('移动即战斗', w / 2, u.top + 126, 24, GOLD);
       u.text(
-        '左侧摇杆移动，武器自动瞄准。\n右侧冲刺避开危险。\n升级时选择植物祝福或武器成长。\n技能拖入战场瞄准，松手施放；\n拖回按钮或取消区不消耗蓄力。\n每个技能最多储存三次。\n倒计时结束后，清空余敌即可过关。\n永久等级解锁新植物和技能。',
+        '按住摇杆方向或拖动即可移动。\n武器自动瞄准，冲刺避开危险。\n电脑：WASD / 方向键移动，空格冲刺。\n击退敌人积累经验，再选择成长。\n技能拖入战场瞄准，松手施放；\n拖回操作带或取消均不耗能。\n每个技能最多储存三次。\n倒计时结束后，清空余敌即可过关。',
         w / 2,
-        u.top + 240,
-        u.landscape ? 15 : 17,
+        u.top + 164 + (h - u.top - 188 - u.bottom) / 2,
+        15,
         CREAM,
         w - 62,
-        Math.min(285, h - u.top - 190),
+        h - u.top - 188 - u.bottom,
       );
     }
     if (this.message) {
@@ -478,17 +510,21 @@ export class BulletGarden extends Component {
       h = u.h;
     this.title(this.practice ? '开发者试玩' : '花园旅程');
     const ids = LEVEL_ORDER.slice(this.page * 5, this.page * 5 + 5),
-      mapBottom = h * 0.76;
+      mapBottom = h - u.bottom - 162;
     const points = ids.map((id, i) => ({
       id,
       x: u.landscape ? w * 0.13 + i * w * 0.14 : w * (0.3 + (i % 2) * 0.35),
-      y: u.landscape ? h * 0.48 : u.top + 110 + (i * (mapBottom - u.top - 147)) / 4,
+      y: u.landscape ? u.top + 112 : u.top + 110 + (i * (mapBottom - u.top - 147)) / 4,
     }));
     points.forEach((p, i) => {
       if (i) {
         const prev = points[i - 1];
-        u.line(u.ui, prev.x, prev.y, p.x, p.y, '#59683b', 7);
-        u.line(u.ui, prev.x, prev.y, p.x, p.y, '#e2ca88', 2);
+        const length = Math.hypot(p.x - prev.x, p.y - prev.y);
+        for (let d = 32; d < length - 28; d += 13) {
+          const t = d / length;
+          u.circle(u.ui, prev.x + (p.x - prev.x) * t, prev.y + (p.y - prev.y) * t, 3, '#72562d');
+          u.circle(u.ui, prev.x + (p.x - prev.x) * t, prev.y + (p.y - prev.y) * t - 1, 2, '#f1d996');
+        }
       }
     });
     points.forEach((p) =>
@@ -502,24 +538,23 @@ export class BulletGarden extends Component {
         s.profile.completed.includes(p.id),
       ),
     );
-    const panelY = u.landscape ? h * 0.73 : h * 0.78,
+    const panelY = h - u.bottom - 105,
       detail = LEVELS[this.selected];
-    u.panel(u.left, panelY, w - u.left - u.right, h - panelY - u.bottom);
-    u.text(
+    u.panel(u.left, panelY, w - u.left - u.right, 105, true);
+    u.heading(
       detail.name,
       u.landscape ? w * 0.24 : w * 0.34,
-      panelY + 27,
-      23,
-      GOLD,
+      panelY + 31,
+      22,
       u.landscape ? w * 0.35 : w * 0.59,
-      34,
+      GREEN,
     );
     u.text(
       detail.duration + '秒 · 清理余敌',
       u.landscape ? w * 0.24 : w * 0.34,
-      panelY + 54,
+      panelY + 62,
       14,
-      CREAM,
+      '#5f654a',
       u.landscape ? w * 0.35 : w * 0.59,
       25,
     );
@@ -527,8 +562,8 @@ export class BulletGarden extends Component {
       'depart',
       '出发',
       u.landscape ? w * 0.64 : w * 0.78,
-      panelY + 44,
-      u.landscape ? 160 : w * 0.3,
+      panelY + 51,
+      u.landscape ? 160 : w * 0.31,
       55,
       true,
     );
@@ -559,24 +594,18 @@ export class BulletGarden extends Component {
       w = u.w,
       h = u.h;
     this.title(`营地 · ${s.profile.coins} 金币`);
-    const per = u.landscape ? 2 : 4,
+    const available = h - u.bottom - u.top - 195,
+      per = Math.max(1, Math.min(u.landscape ? 2 : 4, Math.floor((available + 8) / 84))),
       items = PERMANENT_UPGRADES.slice(this.page * per, this.page * per + per),
       level = levelFromXp(s.profile.xp).level;
     items.forEach((item, i) => {
       const cost = upgradeCost(s.profile, item.id),
         locked = level < item.unlockLevel,
-        y = u.top + 112 + i * Math.min(84, (h - u.top - 205) / per);
-      u.button(
-        `buy:${item.id}`,
-        `${item.name} ${s.profile.upgrades[item.id]}级 · ${locked ? `Lv.${item.unlockLevel}解锁` : cost === null ? '已满级' : cost + '金币'}`,
-        w / 2,
-        y,
-        w - 28,
-        64,
-        false,
-        locked || cost === null || s.profile.coins < cost,
-      );
-      u.text(item.description, w / 2, y + 17, 12, '#bfcbae', w - 50, 23);
+        y = u.top + 112 + i * 84;
+      u.card(`buy:${item.id}`, `${item.name} · ${s.profile.upgrades[item.id]}级`,
+        `${item.description}\n${locked ? `Lv.${item.unlockLevel}解锁` : cost === null ? '已满级' : cost + ' 金币'}`,
+        locked ? 'lock' : 'leaf', 14, y - 34, w - 28, 76,
+        locked || cost === null || s.profile.coins < cost);
     });
     u.button('prev', '上页', 47, h - u.bottom - 86, 70, 46, false, this.page === 0);
     u.button(
@@ -634,7 +663,8 @@ export class BulletGarden extends Component {
       w = u.w,
       h = u.h;
     u.drawBattle(s, this.aim);
-    u.box(u.ui, 0, 0, w, u.battle.y, GREEN, 0);
+    u.box(u.ui, 0, 0, w, u.battle.y, '#112b20', 0);
+    u.line(u.ui, 0, u.battle.y - 2, w, u.battle.y - 2, '#b89a56', 1.5);
     u.box(u.ui, 12, u.top, Math.min(145, w * 0.4), 25, '#572f34', 9);
     u.box(
       u.ui,
@@ -645,13 +675,14 @@ export class BulletGarden extends Component {
       '#cc6153',
       8,
     );
+    u.box(u.ui, 11, u.top - 1, Math.min(147, w * 0.4 + 2), 27, '#b89a56', 10, 255, 1);
     u.text(
       `${Math.ceil(s.player.hp)} / ${s.player.maxHp}`,
-      w * 0.2,
+      12 + Math.min(145, w * 0.4) / 2,
       u.top + 12,
       16,
       CREAM,
-      w * 0.39,
+      Math.min(145, w * 0.4),
       25,
     );
     const remain = Math.max(0, Math.ceil(s.duration - s.time));
@@ -669,19 +700,28 @@ export class BulletGarden extends Component {
     u.button('pause', '暂停', w - u.right - 26, u.top + 24, 48, 48);
     u.text(`Lv.${s.progression.level}`, 32, u.top + 48, 14, CREAM, 56, 24);
     u.box(u.ui, 60, u.top + 43, w - 132, 10, '#101e16', 5);
+    u.box(u.ui, 59, u.top + 42, w - 130, 12, '#758052', 6, 255, 1);
     u.box(
       u.ui,
       61,
       u.top + 44,
-      (w - 134) * Math.min(1, s.progression.xp / s.progression.nextXp),
+      (w - 134) * (s.progression.pending ? 1 : Math.min(1, s.progression.xp / s.progression.nextXp)),
       8,
       '#a5cf65',
       4,
     );
     const edge = u.battle.y + u.battle.h;
-    u.box(u.ui, 0, edge, w, h - edge, GREEN, 0);
+    if (u.landscape) {
+      for (const x of [8, w - 148]) u.panel(x, u.battle.y + 12, 140, u.battle.h - 20);
+    } else {
+    u.box(u.ui, 0, edge, w, h - edge, '#142f23', 0);
+    u.box(u.ui, 7, edge + 7, w - 14, h - edge - u.bottom - 4, '#29452e', 17, 140);
+    u.box(u.ui, 7, edge + 7, w - 14, h - edge - u.bottom - 4, '#607448', 17, 150, 1);
     u.line(u.ui, 0, edge, w, edge, GOLD, 2);
-    const jy = edge + (h - edge - u.bottom) / 2,
+    u.sprig(8, edge + 13, 1, 0.8);
+    u.sprig(w - 8, edge + 13, -1, 0.8);
+    }
+    const jy = u.landscape ? h - u.bottom - 72 : edge + (h - edge - u.bottom) / 2,
       jx = u.landscape ? 80 : Math.max(68, w * 0.22),
       jr = u.landscape ? 43 : 49;
     u.controls.push({
@@ -693,35 +733,55 @@ export class BulletGarden extends Component {
     u.circle(u.ui, jx, jy, jr + 7, '#0f261c');
     u.circle(u.ui, jx, jy, jr + 7, GOLD, 150, 2);
     u.circle(u.ui, jx, jy, jr - 5, '#34523a');
+    u.circle(u.ui, jx, jy, jr - 8, '#7c8a55', 170, 1);
+    for (const [dx, dy] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+      const x = jx + dx * (jr - 12), y = jy + dy * (jr - 12);
+      u.polygon([[x + dx * 5, y + dy * 5], [x - dy * 4 - dx * 3, y + dx * 4 - dy * 3], [x + dy * 4 - dx * 3, y - dx * 4 - dy * 3]], '#b9c189');
+    }
+    u.circle(u.ui, jx + this.move.x * 25, jy + this.move.y * 25 + 3, 25, '#14291d');
     u.circle(u.ui, jx + this.move.x * 25, jy + this.move.y * 25, 24, '#e5d098');
-    u.circle(u.ui, jx + this.move.x * 25, jy + this.move.y * 25, 24, CREAM, 220, 2);
-    u.button(
+    u.circle(u.ui, jx + this.move.x * 25, jy + this.move.y * 25 - 1, 20, CREAM, 220, 1);
+    u.text('移动', jx, jy + jr + 16, 12, '#c7d0a9', 75, 20);
+    const compact = h - edge - u.bottom < 170,
+      dashX = w - u.right - (u.landscape ? 60 : compact ? 29 : 47),
+      dashY = compact ? jy : Math.min(edge + (h - edge) * 0.72, h - u.bottom - 43);
+    u.badge(
       'dash',
-      s.player.dashCooldown > 0 ? `${s.player.dashCooldown.toFixed(1)}s` : '冲刺',
-      w - u.right - 47,
-      edge + (h - edge) * 0.69,
-      82,
-      60,
-      true,
+      '冲刺',
+      'bolt',
+      dashX,
+      dashY,
+      29,
       s.player.dashCooldown > 0,
+      true,
     );
+    u.text(s.player.dashCooldown > 0 ? `${s.player.dashCooldown.toFixed(1)}s` : '冲刺', dashX, dashY + 34, 12, GOLD, 60, 18);
     if (s.skillSlots.length) {
       s.skillSlots.forEach((slot: any, i: number) => {
-        const x = u.landscape ? w - u.right - 250 + i * 91 : w - 143 + i * 86,
-          y = edge + 37;
-        u.button(`skill:${i}`, SKILLS[slot.kind].name, x, y, 78, 49, false, slot.energy < 100);
+        const x = u.landscape ? dashX : compact ? w - u.right - 151 + i * 61 : w - 143 + i * 86,
+          y = u.landscape ? jy - 150 + i * 68 : compact ? jy : edge + 34;
+        u.badge(`skill:${i}`, SKILLS[slot.kind].name, slot.kind === 'blast' ? 'bloom' : 'leaf', x, y, 22, slot.energy < 100);
+        u.text(SKILLS[slot.kind].name, x, y + 35, 11, '#cfdbb1', compact ? 60 : 78, 18);
         for (let k = 0; k < 3; k++)
           u.circle(
             u.ui,
             x + (k - 1) * 12,
-            y + 32,
-            4,
+            y + 24,
+            3,
             slot.energy >= (k + 1) * 100 ? GOLD : '#566b4a',
           );
       });
-    } else u.text('自动射击\n升级解锁技能', w * 0.58, jy, 14, '#c1cba6', 110, 50);
+    } else {
+      const infoX = u.landscape ? w - 78 : w * 0.61, infoY = u.landscape ? u.battle.y + 45 : edge + 42;
+      u.icon('leaf', infoX, infoY, 25);
+      u.text('遇敌自动射击', infoX, infoY + 32, 13, '#c1cba6', 100, 23);
+      u.text('守园人 Lv.2 解锁技能', u.landscape ? infoX : w * 0.66, infoY + 56, 10, '#a4b68c', u.landscape ? 130 : 150, 20);
+    }
     if (this.aim) u.button('cancel-skill', '拖到此处取消', w / 2, edge - 29, 166, 48);
-    if (s.time < 7) u.text('推动摇杆 · 自动攻击', w / 2, edge - 30, 17, GREEN, w - 25, 40);
+    if (s.time < 7) {
+      u.box(u.ui, w / 2 - 112, edge - 47, 224, 30, '#183526', 12, 220);
+      u.text('拖动摇杆移动 · 遇敌自动攻击', w / 2, edge - 32, 13, CREAM, 220, 30);
+    }
   }
   activate(id: string) {
     const s = this.session;
@@ -799,6 +859,10 @@ export class BulletGarden extends Component {
         return;
       }
       this.joystick = id;
+      // A fixed stick is measured from its visible center, including the initial press.
+      press.x = button.rect.x + button.rect.w / 2;
+      press.y = button.rect.y + button.rect.h / 2;
+      this.drag(id, p);
     }
     if (button.id.startsWith('skill:')) {
       if (this.skillTouch !== null) {
@@ -863,6 +927,30 @@ export class BulletGarden extends Component {
     const p = e.getUILocation();
     this.down(e.getID() ?? 0, { x: p.x, y: this.ui.h - p.y });
   }
+  pointerPoint(e: PointerEvent) {
+    const rect = this.pointerCanvas!.getBoundingClientRect();
+    const scale = Math.min(rect.width / this.ui.w, rect.height / this.ui.h);
+    return {
+      x: (e.clientX - rect.left - (rect.width - this.ui.w * scale) / 2) / scale,
+      y: (e.clientY - rect.top - (rect.height - this.ui.h * scale) / 2) / scale,
+    };
+  }
+  pointerDown = (e: PointerEvent) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    e.preventDefault();
+    this.down(e.pointerId, this.pointerPoint(e));
+    if (this.presses.has(e.pointerId)) this.pointerCanvas!.setPointerCapture(e.pointerId);
+  };
+  pointerMove = (e: PointerEvent) => {
+    if (!this.presses.has(e.pointerId)) return;
+    e.preventDefault();
+    this.drag(e.pointerId, this.pointerPoint(e));
+  };
+  pointerUp = (e: PointerEvent) => {
+    this.up(e.pointerId, this.pointerPoint(e));
+    if (this.pointerCanvas!.hasPointerCapture(e.pointerId)) this.pointerCanvas!.releasePointerCapture(e.pointerId);
+  };
+  pointerCancel = (e: PointerEvent) => this.up(e.pointerId, this.pointerPoint(e), true);
   touchMove(e: EventTouch) {
     const p = e.getUILocation();
     this.drag(e.getID() ?? 0, { x: p.x, y: this.ui.h - p.y });
@@ -887,6 +975,24 @@ export class BulletGarden extends Component {
   mouseUp(e: EventMouse) {
     const p = e.getUILocation();
     this.up(-1, { x: p.x, y: this.ui.h - p.y });
+  }
+  keyboardMove() {
+    const has = (...codes: number[]) => codes.some((code) => this.keys.has(code));
+    this.move = {
+      x: Number(has(KeyCode.KEY_D, KeyCode.ARROW_RIGHT)) - Number(has(KeyCode.KEY_A, KeyCode.ARROW_LEFT)),
+      y: Number(has(KeyCode.KEY_S, KeyCode.ARROW_DOWN)) - Number(has(KeyCode.KEY_W, KeyCode.ARROW_UP)),
+    };
+  }
+  keyDown(e: EventKeyboard) {
+    if (this.session.screen !== 'playing' || this.session.hidden) return;
+    const first = !this.keys.has(e.keyCode);
+    this.keys.add(e.keyCode);
+    if (this.joystick === null) this.keyboardMove();
+    if (first && e.keyCode === KeyCode.SPACE) dash(this.session.state, this.move);
+  }
+  keyUp(e: EventKeyboard) {
+    this.keys.delete(e.keyCode);
+    if (this.joystick === null) this.keyboardMove();
   }
   syncAccessibility() {
     if (!this.accessibility) return;
@@ -939,6 +1045,7 @@ export class BulletGarden extends Component {
         joystickActive: this.joystick !== null,
         skillAiming: this.skillTouch !== null,
         move: { ...this.move },
+        pointerInput: !!this.pointerCanvas,
       },
       viewport: {
         width: this.ui.w,
@@ -947,6 +1054,7 @@ export class BulletGarden extends Component {
         safeBottom: this.ui.bottom,
         battle: { ...this.ui.battle },
         camera: { x: this.ui.cameraX, y: this.ui.cameraY, zoom: this.ui.zoom },
+        hero: this.ui.heroPose ? JSON.parse(JSON.stringify(this.ui.heroPose)) : null,
       },
       buttons: this.ui.controls.map((b) => ({
         ...b,
@@ -987,6 +1095,11 @@ export class BulletGarden extends Component {
     this.stopFeedback();
     this.clearInput();
     this.session?.dispose();
+    this.pointerCanvas?.removeEventListener('pointerdown', this.pointerDown);
+    this.pointerCanvas?.removeEventListener('pointermove', this.pointerMove);
+    this.pointerCanvas?.removeEventListener('pointerup', this.pointerUp);
+    this.pointerCanvas?.removeEventListener('pointercancel', this.pointerCancel);
+    this.pointerCanvas?.removeEventListener('lostpointercapture', this.pointerCancel);
     input.off(Input.EventType.TOUCH_START, this.touchStart, this);
     input.off(Input.EventType.TOUCH_MOVE, this.touchMove, this);
     input.off(Input.EventType.TOUCH_END, this.touchEnd, this);
@@ -994,6 +1107,8 @@ export class BulletGarden extends Component {
     input.off(Input.EventType.MOUSE_DOWN, this.mouseDown, this);
     input.off(Input.EventType.MOUSE_MOVE, this.mouseMove, this);
     input.off(Input.EventType.MOUSE_UP, this.mouseUp, this);
+    input.off(Input.EventType.KEY_DOWN, this.keyDown, this);
+    input.off(Input.EventType.KEY_UP, this.keyUp, this);
     game.off(Game.EVENT_HIDE, this.suspend, this);
     game.off(Game.EVENT_SHOW, this.show, this);
     view.off('canvas-resize', this.resize, this);

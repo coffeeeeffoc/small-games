@@ -1,0 +1,42 @@
+✔ runtime is pinned official Cocos, including 3D and skeletal features (5.9776ms)
+✔ offline integrity verification rejects changed provenance, missing entries and modified bytes (430.8824ms)
+✔ Blender export has finite indexed meshes and a valid parent-first skeleton (19.5759ms)
+✔ city centerline, tangent, road width and height are continuous at 2000 seams (8.1078ms)
+✔ 10000 waves are reproducible and always have a free lane or one compatible action (24.923ms)
+✔ fork provides two spatially separated passages, fixed risk obstacle and safe alternative (0.2437ms)
+✔ tutorial actions clear the first three obstacles and preserve health (4.0671ms)
+✔ untouched tutorial produces three collisions, one failure and cannot resume (3.2168ms)
+✔ jumping a crate does not bypass it, gaps require a jump and collision protection prevents multi-hit damage (0.4945ms)
+✔ fixed steps produce the same simulation across coarse and fine frames (6.6831ms)
+✔ pause freezes every gameplay clock and rejects input (0.2638ms)
+✔ normal play combining lane choice, jumping and sliding can run two kilometers (24.4823ms)
+✔ top speed routes remain playable across seeds and all three districts (192.6133ms)
+✔ full rows require the correct timed action, including between lane centers (2.8024ms)
+✔ trench collision covers entry, landing and lane changes until the far lip (0.5502ms)
+✔ very long runs have bounded active content and capped speed (431.8654ms)
+✔ legacy settings and records migrate without treating old time as endless score (0.5239ms)
+✔ settlement is idempotent and practice cannot change records (1.1613ms)
+✔ fork commits the physical passage even if the target lane changes at the last moment (1.3801ms)
+(node:32732) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ swipes trigger at threshold before release, once per touch, and cancel clears pending input (9.4376ms)
+✔ resize updates render-buffer cameras as well as CSS-sized HUD geometry (3.3455ms)
+✔ engine viewport resize reapplies HUD geometry and is removed on disposal (2.6764ms)
+✔ five seconds of ordinary protection freeze while paused, expire in play, and never protect gaps (4.0624ms)
+✔ completed protection stays paused through blur/visibility and suppresses new-record UI (3.006ms)
+✔ failed, dismissed, unavailable and thrown offers keep normal resume available (11.4866ms)
+✔ cancel, navigation, restart, pagehide and disposal reject late protection (11.034ms)
+✔ paused HUD cache updates pending, cancel and success feedback with touch-sized controls (2.7243ms)
+(node:50656) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ real road mesh removes trench surfaces and contains recessed floors across streets and chunk edges (1242.7351ms)
+✔ static asset lookup rejects private files and all traversal forms (0.933ms)
+✔ HTTP server serves runtime JavaScript with MIME, HEAD and safe error responses (53.8554ms)
+ℹ tests 30
+ℹ suites 0
+ℹ pass 30
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1477.0599

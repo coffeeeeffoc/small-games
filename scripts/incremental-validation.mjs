@@ -52,7 +52,7 @@ export const cacheToolPaths = Object.freeze([
 ]);
 
 const validationTool =
-  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|hook-diagnostics|run-selected-(?:shell|browser)|ci-validation|browser-preparation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope|local-game-retirement-(?:scope|reviews)|game-retirement-scope|pages-regression-shards|publication-scopes|vite-patch-scope|run-selected-competition)(?:\.[^/]+)?\.mjs|scripts\/reuse-cocos-artifacts\.test\.mjs|scripts\/nine-(?:native|lock)-scope(?:\.test)?\.mjs|scripts\/check-staged-format(?:\.test)?\.mjs|\.githooks\/[^/]+)$/;
+  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|hook-diagnostics|run-selected-(?:shell|browser)|ci-validation|browser-preparation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope|fullscreen-removal-scope|test-no-fullscreen|local-game-retirement-(?:scope|reviews)|game-retirement-scope|pages-regression-shards|publication-scopes|vite-patch-scope|run-selected-competition)(?:\.[^/]+)?\.mjs|scripts\/reuse-cocos-artifacts\.test\.mjs|scripts\/nine-(?:native|lock)-scope(?:\.test)?\.mjs|scripts\/check-staged-format(?:\.test)?\.mjs|\.githooks\/[^/]+)$/;
 export const tapServiceCheckPaths = Object.freeze([
   ...tapServiceSharedScopePaths,
   tapServiceConfigScopePath,
@@ -285,9 +285,16 @@ export function incrementalPlan({
       paths.some(
         (file) =>
           (gameServiceScopePaths.includes(file) && fileScopes.get(file)?.includes(game.source)) ||
-          ['build.mjs', 'api-config.mjs', 'index.html', 'main.mjs', 'src/main.mjs'].some(
-            (entry) => file === game.source + '/' + entry,
-          ),
+          [
+            'build.mjs',
+            'scripts/build.mjs',
+            'api-config.mjs',
+            'index.html',
+            'main.mjs',
+            'src/main.mjs',
+            'startup/host.js',
+            'assets/scripts/TowerBrake.ts',
+          ].some((entry) => file === game.source + '/' + entry),
       )
     )
       devModeIds.push(id);
@@ -420,7 +427,7 @@ export function incrementalPlan({
       shellChanged ||
       paths.includes('apps/shell-web/src/game-assessments.json') ||
       paths.includes('apps/shell-web/scripts/catalog-rollout-smoke.mjs'),
-    interaction_browser_ids: ['letters-words2', 'tianxia-chalu'].filter(
+    interaction_browser_ids: ['letters-words2', 'tianxia-chalu', 'tetracube'].filter(
       (id) => ids.has(id) && directGames.some((game) => game.id === id),
     ),
     game_services_checks: paths.some(

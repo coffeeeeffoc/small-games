@@ -19,8 +19,7 @@ export const settingsLayout = {
   close: { x: 160, y: 156, width: 60, height: 60 },
   // The whole row is tappable; the smaller switch is only its visual affordance.
   sound: { x: 0, y: 86, width: 360, height: 60 },
-  fullscreen: { x: 0, y: 26, width: 360, height: 60 },
-  help: { x: 0, y: -34, width: 360, height: 60 },
+  help: { x: 0, y: 26, width: 360, height: 60 },
 };
 export function contains(rect: HitRect, x: number, y: number) {
   return Math.abs(x - rect.x) <= rect.width / 2 && Math.abs(y - rect.y) <= rect.height / 2;

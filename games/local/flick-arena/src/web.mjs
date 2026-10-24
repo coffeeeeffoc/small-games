@@ -1,3 +1,6 @@
+import '../game-rewards.js';
+import { startCocos } from './cocos-runtime.mjs';
+import { createCocosRenderer } from './cocos-render.mjs';
 import { createH5Publishing } from '../publishing.js';
 import { layouts } from './layouts.mjs';
 import { createGame } from './game.mjs';
@@ -6,12 +9,18 @@ import { W, H } from './render.mjs';
 import '../competition-client.js';
 import { createOnlineClient, invitationCode } from './online.mjs';
 import { levels } from './levels.mjs';
-globalThis.__installCompetition({ ...globalThis.__COMPETITION_CONFIG__, game: 'flick-arena' });
+if (globalThis.__COMPETITION_CONFIG__?.enabled !== false)
+  globalThis.__installCompetition({ ...globalThis.__COMPETITION_CONFIG__, game: 'flick-arena' });
 const canvas = document.querySelector('#game'),
   stage = document.querySelector('#stage'),
   controls = document.querySelector('#controls'),
   fields = document.querySelector('#fields'),
   status = document.querySelector('#status');
+let game;
+const runtime = await startCocos(canvas, (dt) => game?.tick(dt));
+const renderer = createCocosRenderer(runtime);
+canvas.dataset.engine = 'cocos-3.8.8';
+canvas.dataset.rewardAdsAvailable = String(globalThis.SmallGamesRewardAds?.available === true);
 let saved;
 try {
   saved = JSON.parse(localStorage.getItem(saveKey));
@@ -19,11 +28,10 @@ try {
 let listener = () => {},
   signature = '',
   fieldSignature = '',
-  lastControlPointerAction = -Infinity,
-  last = performance.now(),
-  frame;
+  lastControlPointerAction = -Infinity;
 const target = {
   canvas,
+  renderer,
   onPointer(fn) {
     listener = fn;
     return () => {
@@ -72,14 +80,14 @@ const publishingConfig = globalThis.SmallGamesPublishingConfig ?? {};
 const publishing = createH5Publishing({
   gameId: 'flick-arena',
   title: '弹指擂台',
-  adMode: publishingConfig.adMode ?? 'mock',
+  adMode: publishingConfig.adMode ?? 'off',
   provider: publishingConfig.provider,
   publicUrl: publishingConfig.publicUrl,
   pause() {
     const wasSuspended = game.isSuspended();
     game.pause();
     return () => {
-      last = performance.now();
+      runtime.resetClock();
       if (!wasSuspended && !document.hidden) game.resume();
     };
   },
@@ -100,7 +108,7 @@ async function action(id) {
   }
   game.action(id);
 }
-const game = createGame(target, {
+game = createGame(target, {
   backingPerCssPixel: () => canvas.width / canvas.getBoundingClientRect().width,
   challenge,
   async share(state) {
@@ -322,19 +330,14 @@ const game = createGame(target, {
         fontSize: Math.max(16, 21 * s) + 'px',
       });
     }
-    document.querySelector('#fullscreen').hidden = !['home', 'paused'].includes(app.screen);
   },
 });
-function resize() {
-  const b = stage.getBoundingClientRect(),
-    dpr = Math.min(devicePixelRatio || 1, 2);
-  canvas.width = Math.round(b.width * dpr);
-  canvas.height = Math.round(b.height * dpr);
+const observer = new ResizeObserver(() => {
+  game.cancelInput();
+  runtime.resize(stage.clientWidth, stage.clientHeight);
   game.render();
-}
-const observer = new ResizeObserver(resize);
+});
 observer.observe(stage);
-resize();
 function input(e) {
   if (e.type === 'pointerdown') {
     canvas.setPointerCapture(e.pointerId);
@@ -365,7 +368,7 @@ for (const type of [
 function lifecycle() {
   if (document.hidden) game.pause();
   else {
-    last = performance.now();
+    runtime.resetClock();
     if (!publishingBusy) game.resume();
   }
 }
@@ -373,18 +376,12 @@ function blur() {
   game.pause();
 }
 function focus() {
-  last = performance.now();
+  runtime.resetClock();
   if (!publishingBusy) game.resume();
 }
 document.addEventListener('visibilitychange', lifecycle);
 window.addEventListener('blur', blur);
 window.addEventListener('focus', focus);
-function loop(now) {
-  game.tick((now - last) / 1000);
-  last = now;
-  frame = requestAnimationFrame(loop);
-}
-frame = requestAnimationFrame(loop);
 const dev = window.SmallGamesDev;
 let cleanActions, cleanSnapshot;
 if (dev?.isEnabled()) {
@@ -397,23 +394,25 @@ if (dev?.isEnabled()) {
       run: () => game.debugLevel(index),
     })),
   ]);
-  cleanSnapshot = dev.registerSnapshot(() => game.debug());
+  cleanSnapshot = dev.registerSnapshot(() => ({ ...game.debug(), rendering: renderer.stats() }));
 }
 const invited = invitationCode(location.href);
-if (invited && online.savedCode() === invited) void game.restoreRoom();
-else if (invited) game.joinInvitation(invited);
-else if (!challenge && online.savedCode()) void game.restoreRoom();
+if (online.available && invited && online.savedCode() === invited) void game.restoreRoom();
+else if (online.available && invited) game.joinInvitation(invited);
+else if (online.available && !challenge && online.savedCode()) void game.restoreRoom();
 window.addEventListener(
   'pagehide',
   (e) => {
+    game.cancelReward();
     if (e.persisted) {
       game.pause();
       return;
     }
-    cancelAnimationFrame(frame);
     observer.disconnect();
     game.dispose();
     publishing.dispose();
+    globalThis.SmallGamesRewardAds?.dispose();
+    runtime.dispose();
     cleanActions?.();
     cleanSnapshot?.();
     document.removeEventListener('visibilitychange', lifecycle);
@@ -432,7 +431,7 @@ window.addEventListener(
 );
 window.addEventListener('pageshow', (e) => {
   if (e.persisted) {
-    last = performance.now();
+    runtime.resetClock();
     if (!publishingBusy) game.resume();
   }
 });

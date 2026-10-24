@@ -23,7 +23,9 @@ function disjoint(buttons, width, height) {
 }
 async function press(f,id,touch=true) {
   let s=await snap(f);
-  if(!s.buttons.some(b=>b.id===id)&&s.buttons.some(b=>b.id==='flightControls')) {await press(f,'flightControls',touch);s=await snap(f);}
+  if(id==='start' && s.modal==='home') {await press(f,'missions',touch);s=await snap(f);}
+  if(!s.buttons.some(b=>b.id===id) && s.modal.startsWith('settings:')) {await press(f,'close',touch);s=await snap(f);}
+  if(!s.buttons.some(b=>b.id===id)&&s.buttons.some(b=>b.id==='flightControls')) {await press(f,['effects','sensor','lensIn','lensOut'].includes(id)?'zoomControls':'flightControls',touch);s=await snap(f);}
   const b=s.buttons.find(b=>b.id===id); assert(b,id);
   const position={x:b.x+b.w/2,y:b.y+b.h/2};
   if(touch) await f.locator('canvas').tap({position}); else await f.locator('canvas').click({position});
@@ -68,13 +70,10 @@ try {
   await p.setViewportSize({width:568,height:320});await p.waitForTimeout(200);
   await press(frame,'resume');
   const before=(await snap(frame)).time;
-  await p.locator('[data-game-fullscreen]').click();
-  await p.waitForFunction(()=>!!document.fullscreenElement);
-  await p.locator('[data-game-fullscreen]').click();
-  await p.waitForFunction(()=>!document.fullscreenElement);
+  assert.equal(await p.locator('[data-game-fullscreen]').count(), 0);
   assert((await snap(frame)).time>=before);
   assert.equal((await snap(frame)).held.length,0);
-  report.checks.push('Actual Shell: entry, weapons, help, nested pause/orientation, host fullscreen entry/exit');
+  report.checks.push('Actual Shell: entry, weapons, help, nested pause/orientation, no host fullscreen button');
   await context.close();
 
   // Browser capability rejection and safe-area CSS simulation; never modify game state.
@@ -83,11 +82,10 @@ try {
   const q=await fallback.newPage();observe(q);
   await q.goto(base);await q.waitForFunction(()=>globalThis.__night?.snapshot().audio==='ready');
   await q.waitForFunction(()=>!document.getElementById('night-startup'));
-  await press(q,'fullscreen');
+  assert(!(await snap(q)).buttons.some(b=>b.id==='fullscreen'));
   assert.equal(await q.evaluate(()=>!!document.fullscreenElement),false);
   await press(q,'start');
   await q.waitForTimeout(300);assert((await snap(q)).time>0);
-  assert((await snap(q)).ui.notice.includes('浏览器'));
   await q.addStyleTag({content:':root{--safe-left:44px!important;--safe-right:44px!important;--safe-bottom:21px!important}'});
   await q.setViewportSize({width:569,height:320});await q.waitForTimeout(200);
   const safe=await snap(q);assert.equal(Math.round(safe.safe.left),44);assert.equal(Math.round(safe.safe.bottom),21);
@@ -103,7 +101,7 @@ try {
   assert.equal((await snap(q)).ui.muted,prefs.muted);assert.equal((await snap(q)).ui.reducedEffects,prefs.reducedEffects);
   await press(q,'start');await press(q,'fire');
   assert((await snap(q)).fired>0,'windowed controls remain playable');
-  report.checks.push('Fullscreen rejection: windowed play works; synthetic 44/44/21 insets respected; mute/reduced effects persist after reload');
+  report.checks.push('Fullscreen unavailable: play works without fullscreen controls; synthetic 44/44/21 insets respected; mute/reduced effects persist after reload');
   await fallback.close();
   assert.deepEqual(report.errors,[]);assert.deepEqual(report.resourceFailures,[]);
 } finally {

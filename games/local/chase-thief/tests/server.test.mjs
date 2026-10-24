@@ -6,7 +6,9 @@ import { assetFor, createStaticServer } from '../server.mjs';
 
 test('static asset lookup rejects private files and all traversal forms', () => {
   assert.equal(assetFor('/'), 'index.html');
-  assert.equal(assetFor('/engine.mjs?v=1'), 'engine.mjs');
+  assert.equal(assetFor('/game/core/simulation.js?v=1'), 'game/core/simulation.js');
+  assert.equal(assetFor('/art/facades.png'), 'art/facades.png');
+  assert.equal(assetFor('/vendor/cocos/cc.js'), 'vendor/cocos/cc.js');
   for (const path of [
     '/package.json',
     '/server.mjs',

@@ -26,8 +26,8 @@ export const themes = [
 ];
 const copy = (value) => JSON.parse(JSON.stringify(value));
 export function createGame(target, options = {}) {
-  const ctx = target.canvas.getContext('2d');
-  if (!ctx) throw new Error('当前设备不支持 Canvas 2D');
+  const ctx = target.renderer ? null : target.canvas.getContext('2d');
+  if (!ctx && !target.renderer) throw new Error('当前设备不支持 Canvas 2D');
   const catalog = options.layouts ?? layouts;
   const app = {
     layouts: catalog,
@@ -70,6 +70,10 @@ export function createGame(target, options = {}) {
     localDisc: 0,
     canAim: false,
     theme: 'wood',
+    rewardHintUsed: false,
+    rewardPending: false,
+    rewardMessage: '',
+    aimHint: null,
   };
   let pointer = null,
     pressed = null,
@@ -98,6 +102,44 @@ export function createGame(target, options = {}) {
     renderedWidth = target.canvas.width,
     renderedHeight = target.canvas.height;
   const now = options.now ?? Date.now;
+  let rewardToken = 0, rewardPort = null;
+  function cancelReward() {
+    ++rewardToken;
+    const port = rewardPort;
+    rewardPort = null;
+    app.rewardPending = false;
+    port?.cancel?.();
+  }
+  function hintEligible() {
+    return app.mode === 'practice' && !app.invited && app.targetShots === null &&
+      !app.room && !app.series && app.state?.phase === 'aim' && app.state.active === 0;
+  }
+  async function requestHint() {
+    if (disposed || app.rewardPending || app.screen !== 'paused' || app.rewardHintUsed || !hintEligible()) return;
+    const port = globalThis.SmallGamesRewardAds, state = app.state;
+    if (!port?.available) {
+      app.rewardMessage = '提示暂不可用 · 拖拽预览仍免费';
+      render();
+      return;
+    }
+    const token = ++rewardToken;
+    rewardPort = port;
+    app.rewardPending = true;
+    app.rewardMessage = '正在准备提示 · 可取消';
+    render();
+    let status = 'failed';
+    try { status = (await port.offer({ id: 'flick-arena:practice-aim' }))?.status; } catch {}
+    if (disposed || token !== rewardToken || app.state !== state || app.screen !== 'paused' || !hintEligible()) return;
+    app.rewardPending = false;
+    rewardPort = null;
+    const move = status === 'completed' ? chooseBot(state) : null;
+    if (move) {
+      app.rewardHintUsed = true;
+      app.aimHint = { dx: -move.x * move.power * 115, dy: -move.y * move.power * 115, shots: state.shots };
+      app.rewardMessage = `提示就绪 · 力度 ${Math.round(move.power * 100)}%，继续查看虚线`;
+    } else app.rewardMessage = status === 'dismissed' ? '已取消 · 未获得提示' : '未获得提示 · 拖拽预览仍免费';
+    render();
+  }
   const sounds = {};
   for (const cue of ['shot', 'hit', 'out', 'win']) {
     try {
@@ -121,6 +163,7 @@ export function createGame(target, options = {}) {
     pressed = null;
   }
   function screen(value) {
+    cancelReward();
     if (['home', 'paused'].includes(value)) for (const s of Object.values(sounds)) s?.stop();
     cancel();
     app.screen = value;
@@ -139,6 +182,8 @@ export function createGame(target, options = {}) {
   }
   function presentation() {
     const s = app.state;
+    app.rewardHintEligible = hintEligible();
+    if (!app.rewardHintEligible || app.aimHint?.shots !== s?.shots) app.aimHint = null;
     app.hasReplay = replayFrames.length > 0;
     if (app.mode === 'local' && s?.phase === 'aim') {
       const token = `${s.turn}:${s.shots}:${s.active}`;
@@ -182,6 +227,10 @@ export function createGame(target, options = {}) {
     else app.remainingSeconds = null;
   }
   function prepareState(state) {
+    cancelReward();
+    app.rewardHintUsed = false;
+    app.aimHint = null;
+    app.rewardMessage = '';
     app.state = state;
     app.playerKnockouts = 0;
     app.shareNotice = '';
@@ -389,6 +438,13 @@ export function createGame(target, options = {}) {
   }
   function action(id) {
     if (disposed || suspended || app.buttons.find((b) => b.id === id)?.disabled) return;
+    if (id === 'reward-hint') { void requestHint(); return; }
+    if (id === 'reward-cancel') {
+      cancelReward();
+      app.rewardMessage = '已取消 · 未获得提示';
+      render();
+      return;
+    }
     app.error = '';
     if (id === 'start') {
       const invite = app.invited;
@@ -537,13 +593,16 @@ export function createGame(target, options = {}) {
       s = Math.min(width / W, height / H),
       ox = (width - W * s) / 2,
       oy = (height - H * s) / 2;
-    ctx.fillStyle = '#0d2026';
-    ctx.fillRect(0, 0, width, height);
-    ctx.save();
-    ctx.translate(ox, oy);
-    ctx.scale(s, s);
-    app.buttons = draw(ctx, app);
-    ctx.restore();
+    if (target.renderer) app.buttons = target.renderer.draw(app);
+    else {
+      ctx.fillStyle = '#0d2026';
+      ctx.fillRect(0, 0, width, height);
+      ctx.save();
+      ctx.translate(ox, oy);
+      ctx.scale(s, s);
+      app.buttons = draw(ctx, app);
+      ctx.restore();
+    }
     options.onRender?.(app, { scale: s, ox, oy });
   }
   function coords(e) {
@@ -731,6 +790,8 @@ export function createGame(target, options = {}) {
     app,
     tick,
     render,
+    cancelInput: cancel,
+    cancelReward,
     action,
     cancel,
     isSuspended: () => suspended,
@@ -762,12 +823,14 @@ export function createGame(target, options = {}) {
       render();
     },
     dispose() {
+      cancelReward();
       disposed = true;
       cancel();
       stop?.();
       options.online?.dispose();
       for (const s of Object.values(sounds)) s?.dispose();
-      ctx.clearRect(0, 0, target.canvas.width, target.canvas.height);
+      if (target.renderer) target.renderer.dispose();
+      else ctx.clearRect(0, 0, target.canvas.width, target.canvas.height);
     },
     debug() {
       return {

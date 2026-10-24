@@ -1,0 +1,15 @@
+{
+  "engine": "3.8.8",
+  "viewport": "390x844",
+  "touch": true,
+  "checks": [
+    "home",
+    "brief",
+    "playing",
+    "reset-unavailable",
+    "pause-resume",
+    "actual-touch-placement",
+    "no-fullscreen"
+  ],
+  "errors": []
+}

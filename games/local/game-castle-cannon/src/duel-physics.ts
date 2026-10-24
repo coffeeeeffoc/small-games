@@ -1,5 +1,5 @@
 import { DUEL_RULES as R, nodePoint, duelGroundHeight, trenchFor } from './duel-map.js';
-import { cancelCharge, travel, activeGun } from './duel-actions.js';
+import { cancelCharge, travel } from './duel-actions.js';
 import { distance, type Duel, type Point, type Shell } from './duel-types.js';
 export function segmentBox(a: Point, b: Point, center: Point, size: Point): number | null {
   let near = 0,
@@ -32,7 +32,8 @@ export function cover(duel: Duel, from: Point, to: Point, exclude = '') {
     })
   );
 }
-function hitShell(duel: Duel, shell: Shell, previous: Point) {
+// Shared read-only sweep: the preview and the authoritative shell stop at the same surface.
+export function shellCollision(duel: Duel, shell: Shell, previous: Point) {
   const floor = duelGroundHeight(shell.position.x, shell.position.z);
   const before = previous.y - duelGroundHeight(previous.x, previous.z),
     after = shell.position.y - floor;
@@ -66,14 +67,20 @@ function hitShell(duel: Duel, shell: Shell, previous: Point) {
     const bunker = nodePoint(p.side, 'shelter');
     consider(`bunker:${p.side}`, { ...bunker, y: 1.1 }, { x: 7, y: 2.2, z: 6 });
   }
-  if (fraction > 1) return false;
-  shell.position = {
+  if (fraction > 1) return null;
+  const position = {
     x: previous.x + (shell.position.x - previous.x) * fraction,
     y: previous.y + (shell.position.y - previous.y) * fraction,
     z: previous.z + (shell.position.z - previous.z) * fraction,
   };
-  explode(duel, shell, hit);
-  return true;
+  return { position, hit };
+}
+export function stepShell(s: Shell, dt: number) {
+  s.position.x += s.velocity.x * dt;
+  s.position.z += s.velocity.z * dt;
+  s.position.y += s.velocity.y * dt - (R.gravity * dt * dt) / 2;
+  s.velocity.y -= R.gravity * dt;
+  s.age += dt;
 }
 export function explode(duel: Duel, shell: Shell, hit: string) {
   const cfg = R[shell.ammo],
@@ -96,19 +103,7 @@ export function explode(duel: Duel, shell: Shell, hit: string) {
       s.hp = Math.max(0, s.hp - damage);
     }
   for (const p of duel.fighters) {
-    for (const gun of p.guns)
-      if (gun.repair !== null && distance(gun.position, shell.position) < cfg.radius)
-        gun.repair = 0;
-    for (const gun of p.guns)
-      if (!gun.bunker && gun.hp > 0) {
-        const d = distance(gun.position, shell.position);
-        gun.hp = Math.max(
-          0,
-          gun.hp -
-            (hit === `gun:${p.side}:${gun.id}` ? 65 : Math.max(0, 1 - d / cfg.radius) * 35) *
-              energy,
-        );
-      }
+    // Blasts damage the operator and castle, but never lock a cannon into repairs.
     const d = distance({ ...p.position, y: p.position.y + 0.8 }, shell.position);
     let damage = cfg.character * energy * Math.max(0, 1 - d / cfg.radius);
     if (hit === `player:${p.side}`) damage = cfg.character * energy * 1.15;
@@ -136,19 +131,15 @@ export function advanceShells(duel: Duel, dt: number) {
   const survivors: Shell[] = [];
   for (const s of duel.shells) {
     const before = { ...s.position };
-    s.position.x += s.velocity.x * dt;
-    s.position.z += s.velocity.z * dt;
-    s.position.y += s.velocity.y * dt - (R.gravity * dt * dt) / 2;
-    s.velocity.y -= R.gravity * dt;
-    s.age += dt;
+    stepShell(s, dt);
     if (duel.tick % 6 === 0) s.trail.push({ ...s.position });
     if (s.trail.length > 90) s.trail.shift();
-    if (
-      !hitShell(duel, s, before) &&
-      s.age < 12 &&
-      Math.abs(s.position.x) < 220 &&
-      Math.abs(s.position.z) < 130
-    )
+    const collision = shellCollision(duel, s, before);
+    if (collision) {
+      s.position = collision.position;
+      explode(duel, s, collision.hit);
+    }
+    if (!collision && s.age < 12 && Math.abs(s.position.x) < 220 && Math.abs(s.position.z) < 130)
       survivors.push(s);
   }
   duel.shells = survivors;
@@ -176,7 +167,6 @@ export function advanceShells(duel: Duel, dt: number) {
       for (const g of p.guns) if (!g.bunker) g.hp = 0;
       cancelCharge(p);
       if (p.hp > 0 && p.node !== 'shelter') travel(p, 'shelter');
-    } else if (p.station && activeGun(p)?.hp === 0 && activeGun(p)?.repair === null && p.hp > 0)
-      travel(p, 'shelter');
+    }
   }
 }

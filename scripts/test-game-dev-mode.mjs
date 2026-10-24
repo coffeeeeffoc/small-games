@@ -137,11 +137,13 @@ try {
           game.id === 'ashfall-front' ||
           game.id === 'carrom-club' ||
           game.id === 'three-choose-two' ||
-          game.id === 'retreat-rally' ||
           game.id === 'cage-rescue' ||
           game.id === 'chase-thief' ||
           game.id === 'orbit-atelier' ||
           game.id === 'merge-front' ||
+          game.id === 'tower-brake' ||
+          game.id === 'tetracube' ||
+          game.id === 'castle-cannon' ||
           game.id === 'ink-is-everything' ||
           game.id === 'ball-roguelite' ||
           game.id === 'porcelain-puzzle' ||

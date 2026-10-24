@@ -62,6 +62,7 @@ async function open(width, height, provider, touch = true) {
     await page.waitForTimeout(80);
   };
   const press = async id => {
+      if (id === 'start' && (await snapshot(page)).modal === 'home') await press('missions');
     const s = await snapshot(page), b = s.buttons.find(b => b.id === id);
     assert(b, `visible ${id}: ${s.buttons.map(b => b.id)}`);
     await tap(b.x + b.w / 2, b.y + b.h / 2);
@@ -112,18 +113,16 @@ async function countdown(page, capture) {
   assert.equal(end.resumeCountdown, 0); assert.deepEqual(end.pauses, []);
   assert.equal(end.phase, 'playing');
 }
-async function earn({ page, press }) {
+async function earn({ page, press }, kind = 'ammo') {
   const before = await snapshot(page);
-  await press('supply'); await press('supplyWatch');
+  await press('supply'); await press('reward:' + kind); await press('supplyWatch');
   assert.equal((await snapshot(page)).advert?.mock, true);
   await press('adClose');
-  const pending = await snapshot(page);
-  assert.equal(pending.pendingSupply, true);
-  assert.equal(pending.homingAmmo, before.homingAmmo, 'ad completion grants entitlement, not ammo');
-  assert.equal(pending.buff, null);
-  assert.deepEqual(pending.buttons.filter(b => b.id.startsWith('reward:')).map(b => b.id).sort(),
-    ['reward:ammo', 'reward:rate', 'reward:tracking']);
-  assert(!pending.buttons.some(b => b.id === 'supplyWatch'), 'pending choice cannot request another ad');
+  const claimed = await snapshot(page);
+  assert.equal(claimed.pendingSupply, false);
+  assert.equal(claimed.homingAmmo, before.homingAmmo + (kind === 'ammo' ? 2 : 0));
+  if (kind !== 'ammo') assert.equal(claimed.buff.kind, kind);
+  assert(claimed.resumeCountdown > 2);
 }
 async function aim({ page, tap }, target) {
   const map = (await snapshot(page)).ui.minimap;
@@ -143,30 +142,13 @@ try {
     await capture('supply'); await press('supplyWatch');
     assert.deepEqual(combat(await frozen(page, 'mock advert')), combat(held));
     await capture('advert'); await press('adCancel');
-    assert.equal((await snapshot(page)).modal, 'pause');
+    assert.equal((await snapshot(page)).modal, 'supply:offer');
     assert.equal((await snapshot(page)).pendingSupply, false);
     assert.deepEqual(combat(await frozen(page, 'cancelled advert')), combat(held));
     await earn(ui);
-    assert.deepEqual(combat(await frozen(page, 'pending choice')), combat(held));
-    await capture('choice'); await press('supplyLater');
-    assert.equal((await snapshot(page)).modal, 'pause');
-    assert.equal((await snapshot(page)).pendingSupply, true);
-    await press('resume');
-    await page.waitForFunction(time => __night.snapshot().time > time, held.time);
-    assert.equal((await snapshot(page)).pendingSupply, true, 'battle may resume before choosing');
-    await press('supply');
-    assert(!(await snapshot(page)).advert && !(await snapshot(page)).buttons.some(b => b.id === 'supplyWatch'));
-    await press('supplyLater'); await press('home');
-    assert.equal((await snapshot(page)).pendingSupply, true);
-    await page.reload(); await ready(page);
-    assert.equal((await snapshot(page)).pendingSupply, true, 'refresh preserves unclaimed entitlement');
-    assert.equal((await snapshot(page)).homingAmmo, 0);
-    await press('start'); await press('supply');
-    const reward = (await snapshot(page)).buttons.find(b => b.id === 'reward:ammo');
-    await press('reward:ammo'); await tap(reward.x + reward.w / 2, reward.y + reward.h / 2);
     let s = await snapshot(page);
     assert.equal(s.homingAmmo, 2); assert.equal(s.pendingSupply, false); assert.equal(s.buff, null);
-    assert.equal(s.homingSelected, true); assert.equal(s.fired, 0, 'claiming never auto-fires');
+    assert.equal(s.homingSelected, true); assert.equal(s.fired, held.fired, 'activation never auto-fires');
     await countdown(page, capture);
     await press('pause'); await press('home'); await page.reload(); await ready(page);
     assert.equal((await snapshot(page)).pendingSupply, false, 'consumed entitlement stays consumed');
@@ -175,7 +157,7 @@ try {
     // Escort has enough battle time for a real sixty-second expiry, without changing the simulation clock.
     await press('missions'); await press('mission:ambush-02'); await press('start');
     const kind = width === 568 ? 'rate' : 'tracking';
-    await earn(ui); await press(`reward:${kind}`);
+    await earn(ui, kind);
     s = await snapshot(page);
     assert.deepEqual(s.buff, { kind, remaining: 60 }); assert.equal(s.homingAmmo, 2);
     assert.equal(s.pendingSupply, false);
@@ -212,7 +194,7 @@ try {
     if ((await snapshot(page)).buttons.some(b => b.id === 'supplyWatch')) await press('supplyWatch');
     s = await frozen(page, 'buff blocks supply and freezes buff time');
     assert(!s.advert); assert.equal(s.pendingSupply, false); assert.equal(s.buff.kind, kind);
-    await capture(`${kind}-blocked`); await press('supplyLater'); await press('resume');
+    await capture(`${kind}-blocked`); await press('supplyLater'); await countdown(page);
     await press('weapon0');
     const target = (await snapshot(page)).units.find(u => !u.friendly && u.hp > 0);
     await aim(ui, target);
@@ -249,12 +231,12 @@ try {
       expiry = { time: s.time, elapsed: s.time - buffStarted };
       await capture('expired'); await press('supply'); await press('supplyWatch');
       assert.equal((await snapshot(page)).advert?.mock, true, 'advertising reopens after expiry');
-      await press('adCancel');
+      await press('adCancel'); await press('supplyLater'); await countdown(page); await press('pause');
     } else await press('pause');
     await press('home'); await press('start');
     assert.equal((await snapshot(page)).buff, null, 'timed buff does not survive a new mission');
     assert.equal((await snapshot(page)).homingAmmo, 2);
-    report.results.push({ width, height, touch: true, fullFreeze: true, pendingRefresh: true, oneOfThree: true,
+    report.results.push({ width, height, touch: true, fullFreeze: true, inventoryRefresh: true, oneOfThree: true,
       inventory: 2, buff: kind, expiry, backgroundCountdown: width === 390,
       lifecycleBoundarySimulated: width === 390, realTabLifecycle: false });
     await page.close();
@@ -262,16 +244,16 @@ try {
 
   for (const outcome of ['dismissed', 'unavailable', 'failed', 'throw', 'malformed', 'duplicate']) {
     const ui = await open(844, 390, outcome, false), { page, press, capture } = ui;
-    await press('start'); await press('supply'); await press('supplyWatch');
+    await press('start'); await press('supply'); await press('reward:ammo'); await press('supplyWatch');
     assert.equal((await snapshot(page)).advert?.mock, false);
     await frozen(page, `provider ${outcome}`);
     await page.waitForFunction(() => !__night.snapshot().advert);
     let s = await snapshot(page);
-    assert.equal(s.homingAmmo, 0); assert.equal(s.buff, null);
+    assert.equal(s.homingAmmo, outcome === 'duplicate' ? 2 : 0); assert.equal(s.buff, null);
     assert.deepEqual(await page.evaluate(() => __supplyOffers), [{ id: 'night-overwatch:supply', reward: { supplyChoice: 1 } }]);
     if (outcome === 'duplicate') {
-      assert.equal(s.pendingSupply, true);
-      await press('reward:ammo'); assert.equal((await snapshot(page)).homingAmmo, 2);
+      assert.equal(s.pendingSupply, false);
+      assert.equal((await snapshot(page)).homingAmmo, 2);
       await countdown(page);
       assert.equal((await snapshot(page)).homingAmmo, 2, 'duplicate completion cannot grant twice');
       await press('zoomControls'); await press('zoomUpgrade');
@@ -279,8 +261,8 @@ try {
       assert.equal((await snapshot(page)).zoomLimit, 10);
       await countdown(page);
     } else {
-      assert.equal(s.pendingSupply, false); assert.equal(s.modal, 'pause');
-      await frozen(page, `${outcome} recovery`); await capture('failure'); await press('resume');
+      assert.equal(s.pendingSupply, false); assert.equal(s.modal, 'supply:offer');
+      await frozen(page, `${outcome} recovery`); await capture('failure'); await press('supplyLater'); await countdown(page);
       await press('zoomControls'); await press('zoomUpgrade');
       await page.waitForFunction(() => !__night.snapshot().advert);
       s = await snapshot(page);

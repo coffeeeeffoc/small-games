@@ -8,7 +8,10 @@ import { playCampaign } from './campaign-touch-play.mjs';
 import { createDuelServer } from '../server-dist/duel-service.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url)),
-  out = path.join(root, 'docs/design/review-2026-10-11/actual'),
+  out = path.resolve(
+    root,
+    process.env.CAMPAIGN_EVIDENCE_DIR ?? 'docs/design/review-2026-10-11/actual',
+  ),
   service = createDuelServer({ staticRoot: path.join(root, 'dist') });
 await mkdir(out, { recursive: true });
 await new Promise((resolve) => service.server.listen(0, '127.0.0.1', resolve));

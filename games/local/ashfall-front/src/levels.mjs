@@ -117,6 +117,105 @@ export const LEVELS = [
   },
 ];
 
+// Stable original IDs stay first; every sector combines traversal and contested capture.
+const sectorNames = [
+  '灰渣码头',
+  '裂轨货站',
+  '风蚀泵房',
+  '冷却回廊',
+  '铆钉高架',
+  '焦土仓库',
+  '烟囱阵列',
+  '废钢矿场',
+  '炉心栈桥',
+  '断电车库',
+  '灰雨管线',
+  '重压工坊',
+  '荒原中继',
+  '黑烟港口',
+  '熔渣深井',
+  '风暴前哨',
+  '铁幕内环',
+  '余烬基地',
+  '核心防线',
+  '黎明撤离',
+];
+// Explicit routes, platform formations and reinforcement rosters define the 23 sectors.
+const routes = [
+  [[900, 2450, 4150, 5900, 7720, 9610], 'LLULUL', 'scd', 330],
+  [[920, 2660, 4380, 6020, 7960, 9840], 'ULUULL', 'sdc', 336],
+  [[940, 2520, 4470, 6280, 8100, 10040], 'LULULU', 'csd', 332],
+  [[960, 2420, 3990, 5580, 7180, 8840, 10480], 'LLUULUL', 'ccd', 338],
+  [[980, 3010, 5220, 7580, 10120], 'UULUL', 'ssd', 340],
+  [[1000, 2720, 4510, 6200, 8070, 10240], 'ULULLU', 'dcs', 342],
+  [[1020, 2550, 4090, 5670, 7280, 8960, 10520], 'LULUULL', 'dsc', 344],
+  [[1040, 2810, 4620, 6490, 8380, 10360], 'UULLUL', 'ccs', 346],
+  [[1060, 3180, 5390, 7800, 10540], 'ULULU', 'ddc', 348],
+  [[1080, 2640, 4210, 5790, 7420, 9090, 10600], 'UUULULL', 'sdd', 350],
+  [[1100, 2890, 4720, 6580, 8500, 10480], 'LLUUUL', 'css', 352],
+  [[1120, 2770, 4600, 6410, 8460, 10620], 'ULLULU', 'dcd', 354],
+  [[1140, 2680, 4300, 5930, 7560, 9200, 10700], 'ULUULUL', 'cdd', 356],
+  [[1160, 3340, 5700, 8120, 10680], 'UULLU', 'sds', 358],
+  [[1180, 2970, 4850, 6800, 8820, 10840], 'LUULUU', 'dss', 360],
+  [[1200, 2790, 4400, 6060, 7700, 9380, 10880], 'UULULUU', 'cdc', 362],
+  [[1220, 3100, 5050, 7010, 9020, 10920], 'UUULLU', 'dsc', 364],
+  [[1240, 3480, 5890, 8360, 11020], 'ULUUU', 'sdc', 366],
+  [[1260, 2860, 4520, 6200, 7910, 9620, 11120], 'LULLUUU', 'dds', 368],
+  [[1280, 3190, 5190, 7240, 9300, 11160], 'ULLUUU', 'scs', 370],
+  [[1300, 3000, 4710, 6450, 8170, 9900, 11300], 'UUUULUL', 'dcs', 372],
+  [[1320, 3660, 6100, 8670, 11360], 'UUULU', 'csd', 374],
+  [[1340, 3340, 5400, 7490, 9600, 11500], 'ULUUUL', 'dsc', 376],
+];
+for (const [i, name] of sectorNames.entries()) {
+  LEVELS.push({
+    ...structuredClone(LEVELS[i % 3]),
+    id: `campaign-${String(i + 4).padStart(2, '0')}`,
+    name,
+  });
+}
+for (const [index, level] of LEVELS.entries()) {
+  const [positions, formation, roster, budget] = routes[index];
+  level.width = positions.at(-1) + 1300;
+  level.exitX = level.width - 180;
+  level.subtitle = `推进${positions.length}处阵地，掩护中继接通`;
+  level.targetSeconds = [360, 540];
+  level.platforms = [];
+  level.barrels = [];
+  level.waves = positions.map((x, checkpoint) => {
+    const upper = formation[checkpoint] === 'U';
+    const platformX = x + (upper ? -240 : 180);
+    level.platforms.push({ x: platformX, y: 442, w: upper ? 320 : 280, h: 22 });
+    if (upper) level.platforms.push({ x: x + 30, y: 328, w: 220, h: 22 });
+    level.barrels.push({ x: x + 250, y: 570 }, { x: x + 380, y: 570 });
+    const enemies = [
+      { type: 'shooter', x: x + 410, y: 570 },
+      { type: 'chaser', x: x + 520, y: 570 },
+      { type: 'drone', x: x + 610, y: 365 },
+      { type: upper ? 'drone' : 'shooter', x: platformX + 160, y: upper ? 320 : 442 },
+    ];
+    if (checkpoint === positions.length - 1 && (index === 2 || index === 22 || index % 5 === 4))
+      enemies.push({ type: 'boss', x: x + 700, y: 570 });
+    return {
+      id: `${level.id}-relay-${checkpoint + 1}`,
+      checkpointX: x,
+      captureSeconds: budget / positions.length,
+      radius: upper ? 380 : 360,
+      contestRadius: index < 6 ? 95 : 105,
+      reinforcementInterval: index < 8 ? 8.5 : index < 16 ? 8 : 7.5,
+      reinforcements: roster
+        .split('')
+        .map((letter, i) => ({
+          type: { s: 'shooter', c: 'chaser', d: 'drone' }[letter],
+          x: x + (i === 0 ? 590 : -560 + i * 50),
+          y: letter === 'd' ? 360 : 570,
+        })),
+      enemies,
+    };
+  });
+  level.reward = { heal: 30, upgrade: index < LEVELS.length - 1 };
+  level.unlocks = index + 1 < LEVELS.length ? [LEVELS[index + 1].id] : [];
+}
+
 const ENEMY_TYPES = new Set(['shooter', 'chaser', 'drone', 'boss']);
 
 /** Validate this game's content schema without DOM or build-tool dependencies. */
@@ -165,11 +264,30 @@ export function validateLevels(levels = LEVELS) {
     if (!Array.isArray(level.waves) || !level.waves.length)
       errors.push(`${label}: 至少需要一波敌人`);
     for (const [waveIndex, wave] of (level.waves || []).entries()) {
+      if (
+        !inside(wave.checkpointX, level.ground) ||
+        ![wave.captureSeconds, wave.reinforcementInterval, wave.radius, wave.contestRadius].every(
+          Number.isFinite,
+        ) ||
+        wave.captureSeconds < 1 ||
+        wave.reinforcementInterval < 1 ||
+        wave.radius < 120 ||
+        wave.contestRadius < 0 ||
+        wave.contestRadius >= wave.radius ||
+        !Array.isArray(wave.reinforcements) ||
+        !wave.reinforcements.length
+      )
+        errors.push(`${label}: 无效推进阵地`);
       if (!Array.isArray(wave.enemies) || !wave.enemies.length) errors.push(`${label}: 空敌人波次`);
-      for (const enemy of wave.enemies || []) {
+      for (const enemy of [...(wave.enemies || []), ...(wave.reinforcements || [])]) {
         if (!ENEMY_TYPES.has(enemy.type)) errors.push(`${label}: 未知敌人 ${enemy.type}`);
         if (!inside(enemy.x, enemy.y)) errors.push(`${label}: 敌人越界`);
-        if (waveIndex === 0 && level.spawn && Math.abs(enemy.x - level.spawn.x) < 350)
+        if (
+          waveIndex === 0 &&
+          wave.enemies.includes(enemy) &&
+          level.spawn &&
+          Math.abs(enemy.x - level.spawn.x) < 350
+        )
           errors.push(`${label}: 敌人距离起点过近`);
       }
     }

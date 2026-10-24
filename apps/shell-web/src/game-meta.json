@@ -85,8 +85,8 @@
         "time": "2026-10-06T18:26:31Z"
       },
       "updated": {
-        "commit": "7446f42f0937565c310e0261a4db9ecc17ef2ff2",
-        "time": "2026-10-12T02:18:18+08:00"
+        "commit": "f0f2576b38fba2d41642c7dbe7af05b75ce87b55",
+        "time": "2026-10-22T17:05:08Z"
       }
     },
     "cops-robbers": {
@@ -287,17 +287,6 @@
         "time": "2026-10-11T13:23:08+08:00"
       }
     },
-    "retreat-rally": {
-      "source": "games/local/retreat-rally",
-      "created": {
-        "commit": "8d90679798bff1031a911586d3214df78d5af8cc",
-        "time": "2026-10-05T20:48:51Z"
-      },
-      "updated": {
-        "commit": "7446f42f0937565c310e0261a4db9ecc17ef2ff2",
-        "time": "2026-10-12T02:18:18+08:00"
-      }
-    },
     "surprise-kept": {
       "source": "games/local/surprise-kept",
       "created": {
@@ -324,11 +313,11 @@
       "source": "games/local/three-choose-two",
       "created": {
         "commit": "044e8fd2ff4fc74b30eb975738e60a5ce62b0856",
-        "time": "2026-10-07T10:31:05Z"
+        "time": "2026-10-07T10:31:05+00:00"
       },
       "updated": {
-        "commit": "7446f42f0937565c310e0261a4db9ecc17ef2ff2",
-        "time": "2026-10-12T02:18:18+08:00"
+        "commit": "c49a8b1bb574acc125b4b61d94a7a067502d861c",
+        "time": "2026-10-23T10:44:15+08:00"
       }
     },
     "tianxia-chalu": {
@@ -357,11 +346,11 @@
       "source": "games/local/tower-brake",
       "created": {
         "commit": "de1494150215319b6ea0d25f9b6625dacff8e111",
-        "time": "2026-10-06T21:21:45Z"
+        "time": "2026-10-06T21:21:45+00:00"
       },
       "updated": {
-        "commit": "53aa67112f887101a0540ec52f49ee89d060fd96",
-        "time": "2026-10-12T01:46:12+08:00"
+        "commit": "18b33e9690f0b261308c1a37dceb02d260ae6b5a",
+        "time": "2026-10-23T12:24:13+08:00"
       }
     },
     "travel-bund": {

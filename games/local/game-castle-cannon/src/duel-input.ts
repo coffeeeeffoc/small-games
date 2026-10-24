@@ -29,14 +29,10 @@ export function duelInput(
               ? 'crouch'
               : hit
                 ? 'button'
-                : v.scope && x > 220 && x < 700 && y < 360
+                : v.scope
                   ? 'scope'
                   : 'aim';
-      if (
-        (kind === 'fire' || kind === 'crouch') &&
-        [...touches.values()].some((t) => t.kind === kind)
-      )
-        return;
+      if (kind !== 'button' && Array.from(touches.values()).some((t) => t.kind === kind)) return;
       touches.set(pointerId, { kind, x, y, action: hit ?? undefined });
       if (kind === 'fire') send({ type: 'charge' });
       if (kind === 'crouch') {
@@ -54,8 +50,9 @@ export function duelInput(
       } else if (t.kind === 'aim') {
         const g = activeGun(v.duel.fighters[v.side]);
         if (g) {
+          const limit = g.bunker ? R.bunkerYaw : R.maxYaw;
           const pitch = clamp(g.pitch - (y - t.y) * 0.15, R.minPitch, R.maxPitch),
-            yaw = clamp(g.yaw + (x - t.x) * 0.09, -R.maxYaw, R.maxYaw);
+            yaw = clamp(g.yaw - (x - t.x) * 0.09, -limit, limit);
           send({ type: 'aim', pitch, yaw });
           if (remote()) {
             g.pitch = pitch;

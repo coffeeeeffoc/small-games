@@ -1,3 +1,4 @@
+import { ready } from './ready.mjs';
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
@@ -7,7 +8,10 @@ import { W, H, arena } from '../src/render.mjs';
 import { saveKey } from '../src/progress.mjs';
 import { chooseBot } from '../src/core.mjs';
 
-const out = new URL('../docs/design/review-2026-10-11/', import.meta.url);
+const out = new URL(
+  process.env.FLICK_VALIDATION_DIR ?? '../docs/design/review-2026-10-11/',
+  import.meta.url,
+);
 const root = new URL('../', import.meta.url);
 await mkdir(out, { recursive: true });
 const server = spawn(process.execPath, ['server.mjs', '--dist', '--port', '4440'], {
@@ -38,6 +42,7 @@ try {
   await page.clock.pauseAt(new Date('2026-10-11T19:00:01Z'));
   const origin = 'http://127.0.0.1:4440/';
   await page.goto(origin);
+  await ready(page);
   assert.equal(await page.evaluate(() => typeof window.__flickArena), 'undefined');
   const oldSave = {
     version: 1,
@@ -62,10 +67,12 @@ try {
     save: oldSave,
   });
   await page.reload();
+  await ready(page);
   await page.locator('#start').tap();
   assert.equal(await page.locator('#game').getAttribute('data-level-id'), levels[20].id);
   await page.locator('#play-level').tap();
   await page.clock.runFor(100);
+  await page.clock.runFor(32);
   await page.screenshot({ path: new URL('actual-advanced-play.png', out).pathname });
   await page.locator('#pause').tap();
   await page.locator('#home').tap();
@@ -79,6 +86,7 @@ try {
   assert.equal(await page.locator('#chapter-next').isDisabled(), true);
   assert.equal(await page.locator(`#level-${levels.at(-1).id}`).isDisabled(), true);
   assert.equal(await page.locator('#controls button[id^="level-"]').count(), 5);
+  await page.clock.runFor(32);
   await page.screenshot({ path: new URL('actual-final-chapter.png', out).pathname });
   await page.setViewportSize({ width: 320, height: 568 });
   await page.clock.runFor(100);
@@ -86,10 +94,12 @@ try {
     const box = await control.boundingBox();
     assert(box.width >= 44 && box.height >= 44, 'small-screen controls retain 44 CSS px');
   }
+  await page.clock.runFor(32);
   await page.screenshot({ path: new URL('actual-small-levels.png', out).pathname });
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(origin + '?dev=1');
+  await ready(page);
   await page.getByRole('button', { name: '开发者调试', exact: true }).tap();
   await page.locator(`[data-dev-action="level-${levels.at(-1).id}"]`).tap();
   await page.locator('[data-close]').tap();
@@ -167,6 +177,7 @@ try {
   await page.clock.runFor(100);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.clock.runFor(100);
+  await page.clock.runFor(32);
   await page.screenshot({ path: new URL('actual-final-play.png', out).pathname });
   await page.locator('#pause').tap();
   await page.locator('#home').tap();
@@ -192,12 +203,14 @@ try {
   });
   await page.clock.setFixedTime(new Date(3));
   await page.goto(origin + '?dev=0');
+  await ready(page);
   assert.equal(await page.evaluate(() => typeof window.__flickArena), 'undefined');
   await page.locator('#start').tap();
   assert.equal(await page.locator('#game').getAttribute('data-level-id'), levels.at(-1).id);
   await page.locator('#play-level').tap();
   await page.clock.runFor(100);
   assert.equal(await page.locator('#game').getAttribute('data-seed'), '3');
+  await page.clock.runFor(32);
   await page.screenshot({ path: new URL('actual-final-play.png', out).pathname });
   await page.locator('#pause').tap();
   const visible = () =>
@@ -233,6 +246,7 @@ try {
   const finalSave = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), saveKey);
   assert.equal(finalSave.played, 120);
   assert(finalSave.campaign.levels[levels.at(-1).id].stars >= 1);
+  await page.clock.runFor(32);
   await page.screenshot({ path: new URL('actual-final-result.png', out).pathname });
   await page.locator('#replay').tap();
   await page.clock.runFor(100);

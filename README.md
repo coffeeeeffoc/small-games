@@ -2,6 +2,8 @@
 
 完整游戏目录见 [游戏一览](docs/games.md)，包含各游戏的中文名、文件夹名、源码目录链接和简介。
 
+开发或修改游戏先读 [通用开发与改造规范](docs/game-development.md)；每款游戏的上架资料统一放 `publishing/`，按 [上架资料规范](docs/game-publishing.md)维护 `STATUS.md` 并主动补齐。
+
 公司官网子应用见 [能工智人官网](apps/company-web/README.md)，介绍上海能工智人科技有限公司的软件开发、小游戏与 AI 应用业务。运行 `pnpm --filter @coffeeeeffoc/company-web dev` 本地预览。
 
 小游戏创作与运行平台，包含独立游戏、Web 大厅、原生小游戏构建和创作后管。当前游戏清单见 [游戏目录](docs/games.md)。

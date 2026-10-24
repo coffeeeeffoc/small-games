@@ -1,0 +1,1122 @@
+{
+  "runtime": "real Creator production dist; desktop Chromium touch emulation",
+  "checks": [
+    {
+      "viewport": [
+        320,
+        568
+      ],
+      "menus": true,
+      "multitouch": true,
+      "cancel": true,
+      "resize": true,
+      "pause": true
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "menus": true,
+      "multitouch": true,
+      "cancel": true,
+      "resize": true,
+      "pause": true
+    },
+    {
+      "viewport": [
+        430,
+        932
+      ],
+      "menus": true,
+      "multitouch": true,
+      "cancel": true,
+      "resize": true,
+      "pause": true
+    },
+    {
+      "viewport": [
+        844,
+        390
+      ],
+      "menus": true,
+      "multitouch": true,
+      "cancel": true,
+      "resize": true,
+      "pause": true
+    },
+    {
+      "naturalFirstClear": true,
+      "unlockReload": true,
+      "observation": [
+        {
+          "time": 0.08319999999925494,
+          "hp": 100,
+          "kills": 0,
+          "visible": 0
+        },
+        {
+          "time": 0.35009999999776487,
+          "hp": 100,
+          "kills": 0,
+          "visible": 0
+        },
+        {
+          "time": 0.6171999999992549,
+          "hp": 100,
+          "kills": 0,
+          "visible": 0
+        },
+        {
+          "time": 0.8841999999992554,
+          "hp": 100,
+          "kills": 0,
+          "visible": 0
+        },
+        {
+          "time": 1.16739999999851,
+          "hp": 100,
+          "kills": 0,
+          "visible": 0
+        },
+        {
+          "time": 1.6001999999992542,
+          "hp": 100,
+          "kills": 0,
+          "visible": 0
+        },
+        {
+          "time": 1.8665999999977636,
+          "hp": 100,
+          "kills": 0,
+          "visible": 0
+        },
+        {
+          "time": 2.1344999999999983,
+          "hp": 100,
+          "kills": 0,
+          "visible": 0
+        },
+        {
+          "time": 2.3998999999985076,
+          "hp": 100,
+          "kills": 0,
+          "visible": 0
+        },
+        {
+          "time": 2.666699999999252,
+          "hp": 100,
+          "kills": 0,
+          "visible": 1
+        },
+        {
+          "time": 3.550999999999996,
+          "hp": 100,
+          "kills": 1,
+          "visible": 0
+        },
+        {
+          "time": 3.828699999999251,
+          "hp": 100,
+          "kills": 1,
+          "visible": 0
+        },
+        {
+          "time": 4.216299999997014,
+          "hp": 100,
+          "kills": 1,
+          "visible": 0
+        },
+        {
+          "time": 4.517499999999995,
+          "hp": 100,
+          "kills": 1,
+          "visible": 0
+        },
+        {
+          "time": 4.799899999998507,
+          "hp": 100,
+          "kills": 1,
+          "visible": 0
+        },
+        {
+          "time": 5.083499999999996,
+          "hp": 100,
+          "kills": 1,
+          "visible": 0
+        },
+        {
+          "time": 5.400699999999252,
+          "hp": 100,
+          "kills": 1,
+          "visible": 1
+        },
+        {
+          "time": 5.765899999998507,
+          "hp": 100,
+          "kills": 1,
+          "visible": 1
+        },
+        {
+          "time": 6.199999999999999,
+          "hp": 100,
+          "kills": 1,
+          "visible": 1
+        },
+        {
+          "time": 6.566199999999254,
+          "hp": 100,
+          "kills": 2,
+          "visible": 0
+        },
+        {
+          "time": 6.8826999999992555,
+          "hp": 100,
+          "kills": 2,
+          "visible": 0
+        },
+        {
+          "time": 7.182500000000002,
+          "hp": 100,
+          "kills": 2,
+          "visible": 0
+        },
+        {
+          "time": 7.465799999997023,
+          "hp": 100,
+          "kills": 2,
+          "visible": 0
+        },
+        {
+          "time": 7.941399999998516,
+          "hp": 100,
+          "kills": 2,
+          "visible": 0
+        },
+        {
+          "time": 8.216399999998522,
+          "hp": 100,
+          "kills": 2,
+          "visible": 1
+        },
+        {
+          "time": 8.500299999997042,
+          "hp": 100,
+          "kills": 2,
+          "visible": 1
+        },
+        {
+          "time": 8.966000000000037,
+          "hp": 100,
+          "kills": 2,
+          "visible": 1
+        },
+        {
+          "time": 9.400000000000047,
+          "hp": 100,
+          "kills": 3,
+          "visible": 0
+        },
+        {
+          "time": 10.134099999997837,
+          "hp": 100,
+          "kills": 3,
+          "visible": 0
+        },
+        {
+          "time": 10.433099999997847,
+          "hp": 100,
+          "kills": 3,
+          "visible": 0
+        },
+        {
+          "time": 10.715699999999345,
+          "hp": 100,
+          "kills": 3,
+          "visible": 0
+        },
+        {
+          "time": 11.00039999999861,
+          "hp": 100,
+          "kills": 3,
+          "visible": 0
+        },
+        {
+          "time": 11.29979999999713,
+          "hp": 100,
+          "kills": 3,
+          "visible": 0
+        },
+        {
+          "time": 11.64100000000012,
+          "hp": 100,
+          "kills": 3,
+          "visible": 0
+        },
+        {
+          "time": 11.916299999997152,
+          "hp": 100,
+          "kills": 3,
+          "visible": 1
+        },
+        {
+          "time": 12.216199999999393,
+          "hp": 100,
+          "kills": 3,
+          "visible": 1
+        },
+        {
+          "time": 12.483199999999403,
+          "hp": 100,
+          "kills": 3,
+          "visible": 1
+        },
+        {
+          "time": 12.765599999997923,
+          "hp": 100,
+          "kills": 4,
+          "visible": 0
+        },
+        {
+          "time": 13.033099999997928,
+          "hp": 100,
+          "kills": 4,
+          "visible": 0
+        },
+        {
+          "time": 13.316399999998684,
+          "hp": 100,
+          "kills": 4,
+          "visible": 0
+        },
+        {
+          "time": 13.59959999999795,
+          "hp": 100,
+          "kills": 4,
+          "visible": 0
+        },
+        {
+          "time": 13.900000000000194,
+          "hp": 100,
+          "kills": 4,
+          "visible": 0
+        },
+        {
+          "time": 14.232299999997224,
+          "hp": 100,
+          "kills": 4,
+          "visible": 0
+        },
+        {
+          "time": 14.516399999998724,
+          "hp": 100,
+          "kills": 4,
+          "visible": 0
+        },
+        {
+          "time": 14.782599999997984,
+          "hp": 100,
+          "kills": 4,
+          "visible": 0
+        },
+        {
+          "time": 15.065699999999485,
+          "hp": 100,
+          "kills": 4,
+          "visible": 1
+        },
+        {
+          "time": 15.366199999999493,
+          "hp": 100,
+          "kills": 4,
+          "visible": 1
+        },
+        {
+          "time": 15.649500000000243,
+          "hp": 100,
+          "kills": 4,
+          "visible": 1
+        },
+        {
+          "time": 15.918399999998766,
+          "hp": 100,
+          "kills": 4,
+          "visible": 1
+        },
+        {
+          "time": 16.200299999997274,
+          "hp": 100,
+          "kills": 5,
+          "visible": 0
+        },
+        {
+          "time": 16.466799999997264,
+          "hp": 100,
+          "kills": 5,
+          "visible": 0
+        },
+        {
+          "time": 16.749899999998746,
+          "hp": 100,
+          "kills": 5,
+          "visible": 0
+        },
+        {
+          "time": 17.032799999997252,
+          "hp": 100,
+          "kills": 5,
+          "visible": 0
+        },
+        {
+          "time": 17.300399999998728,
+          "hp": 100,
+          "kills": 5,
+          "visible": 0
+        },
+        {
+          "time": 17.599199999999463,
+          "hp": 100,
+          "kills": 5,
+          "visible": 0
+        },
+        {
+          "time": 17.865699999999453,
+          "hp": 100,
+          "kills": 5,
+          "visible": 0
+        },
+        {
+          "time": 18.150099999997952,
+          "hp": 100,
+          "kills": 5,
+          "visible": 0
+        },
+        {
+          "time": 18.449799999997204,
+          "hp": 100,
+          "kills": 5,
+          "visible": 1
+        },
+        {
+          "time": 18.765399999998678,
+          "hp": 100,
+          "kills": 5,
+          "visible": 1
+        },
+        {
+          "time": 19.082099999997922,
+          "hp": 100,
+          "kills": 5,
+          "visible": 1
+        },
+        {
+          "time": 19.382599999997915,
+          "hp": 100,
+          "kills": 5,
+          "visible": 1
+        },
+        {
+          "time": 19.665699999999394,
+          "hp": 100,
+          "kills": 6,
+          "visible": 0
+        },
+        {
+          "time": 19.950000000000127,
+          "hp": 100,
+          "kills": 6,
+          "visible": 0
+        },
+        {
+          "time": 20.233199999999364,
+          "hp": 100,
+          "kills": 6,
+          "visible": 0
+        },
+        {
+          "time": 20.51759999999787,
+          "hp": 100,
+          "kills": 6,
+          "visible": 0
+        },
+        {
+          "time": 20.799199999999345,
+          "hp": 100,
+          "kills": 6,
+          "visible": 0
+        },
+        {
+          "time": 21.082199999999332,
+          "hp": 100,
+          "kills": 6,
+          "visible": 0
+        },
+        {
+          "time": 21.36539999999858,
+          "hp": 100,
+          "kills": 6,
+          "visible": 0
+        },
+        {
+          "time": 21.667699999999304,
+          "hp": 100,
+          "kills": 6,
+          "visible": 1
+        },
+        {
+          "time": 21.949099999997802,
+          "hp": 100,
+          "kills": 6,
+          "visible": 1
+        },
+        {
+          "time": 22.249099999997792,
+          "hp": 100,
+          "kills": 6,
+          "visible": 1
+        },
+        {
+          "time": 22.51559999999778,
+          "hp": 100,
+          "kills": 6,
+          "visible": 1
+        },
+        {
+          "time": 22.815799999997022,
+          "hp": 100,
+          "kills": 7,
+          "visible": 0
+        },
+        {
+          "time": 23.132299999997013,
+          "hp": 100,
+          "kills": 7,
+          "visible": 0
+        },
+        {
+          "time": 23.43359999999775,
+          "hp": 100,
+          "kills": 7,
+          "visible": 0
+        },
+        {
+          "time": 23.732799999996995,
+          "hp": 100,
+          "kills": 7,
+          "visible": 0
+        },
+        {
+          "time": 24.06519999999922,
+          "hp": 100,
+          "kills": 7,
+          "visible": 0
+        },
+        {
+          "time": 24.382599999997712,
+          "hp": 100,
+          "kills": 7,
+          "visible": 0
+        },
+        {
+          "time": 24.68199999999993,
+          "hp": 100,
+          "kills": 7,
+          "visible": 0
+        },
+        {
+          "time": 24.96579999999694,
+          "hp": 100,
+          "kills": 7,
+          "visible": 0
+        },
+        {
+          "time": 25.282199999999172,
+          "hp": 100,
+          "kills": 7,
+          "visible": 1
+        },
+        {
+          "time": 25.565999999999907,
+          "hp": 100,
+          "kills": 7,
+          "visible": 1
+        },
+        {
+          "time": 25.885899999998404,
+          "hp": 100,
+          "kills": 7,
+          "visible": 1
+        },
+        {
+          "time": 26.223366666662073,
+          "hp": 100,
+          "kills": 8,
+          "visible": 0
+        },
+        {
+          "time": 26.539466666663547,
+          "hp": 100,
+          "kills": 8,
+          "visible": 0
+        },
+        {
+          "time": 26.889066666665023,
+          "hp": 100,
+          "kills": 8,
+          "visible": 0
+        },
+        {
+          "time": 27.199466666663522,
+          "hp": 100,
+          "kills": 8,
+          "visible": 0
+        },
+        {
+          "time": 27.557966666663503,
+          "hp": 100,
+          "kills": 8,
+          "visible": 0
+        },
+        {
+          "time": 27.939366666661996,
+          "hp": 100,
+          "kills": 8,
+          "visible": 0
+        },
+        {
+          "time": 28.355666666662717,
+          "hp": 100,
+          "kills": 8,
+          "visible": 0
+        },
+        {
+          "time": 28.648366666661964,
+          "hp": 100,
+          "kills": 8,
+          "visible": 1
+        },
+        {
+          "time": 28.974266666664185,
+          "hp": 100,
+          "kills": 8,
+          "visible": 1
+        },
+        {
+          "time": 29.422166666662672,
+          "hp": 100,
+          "kills": 8,
+          "visible": 1
+        },
+        {
+          "time": 29.755466666663406,
+          "hp": 100,
+          "kills": 9,
+          "visible": 0
+        },
+        {
+          "time": 30.12206666666489,
+          "hp": 100,
+          "kills": 9,
+          "visible": 0
+        },
+        {
+          "time": 30.406166666662642,
+          "hp": 100,
+          "kills": 9,
+          "visible": 0
+        },
+        {
+          "time": 30.721766666664113,
+          "hp": 100,
+          "kills": 9,
+          "visible": 0
+        },
+        {
+          "time": 31.043066666664846,
+          "hp": 100,
+          "kills": 9,
+          "visible": 0
+        },
+        {
+          "time": 31.373166666662595,
+          "hp": 100,
+          "kills": 9,
+          "visible": 0
+        },
+        {
+          "time": 31.656066666664824,
+          "hp": 100,
+          "kills": 9,
+          "visible": 1
+        },
+        {
+          "time": 31.95746666666332,
+          "hp": 100,
+          "kills": 9,
+          "visible": 1
+        },
+        {
+          "time": 32.23886666666183,
+          "hp": 100,
+          "kills": 9,
+          "visible": 1
+        },
+        {
+          "time": 32.55576666666406,
+          "hp": 100,
+          "kills": 10,
+          "visible": 0
+        },
+        {
+          "time": 32.88886666666182,
+          "hp": 100,
+          "kills": 10,
+          "visible": 0
+        },
+        {
+          "time": 33.339166666662564,
+          "hp": 100,
+          "kills": 10,
+          "visible": 0
+        },
+        {
+          "time": 33.789166666662545,
+          "hp": 100,
+          "kills": 10,
+          "visible": 0
+        },
+        {
+          "time": 34.07196666666327,
+          "hp": 100,
+          "kills": 10,
+          "visible": 0
+        },
+        {
+          "time": 34.47196666666325,
+          "hp": 100,
+          "kills": 10,
+          "visible": 0
+        },
+        {
+          "time": 34.78986666666174,
+          "hp": 100,
+          "kills": 10,
+          "visible": 1
+        },
+        {
+          "time": 35.15546666666321,
+          "hp": 100,
+          "kills": 10,
+          "visible": 1
+        },
+        {
+          "time": 35.47216666666247,
+          "hp": 100,
+          "kills": 10,
+          "visible": 1
+        },
+        {
+          "time": 35.78326666666394,
+          "hp": 100,
+          "kills": 11,
+          "visible": 0
+        },
+        {
+          "time": 36.074266666663924,
+          "hp": 100,
+          "kills": 11,
+          "visible": 0
+        },
+        {
+          "time": 36.53896666666317,
+          "hp": 100,
+          "kills": 11,
+          "visible": 0
+        },
+        {
+          "time": 37.05126666666389,
+          "hp": 100,
+          "kills": 11,
+          "visible": 0
+        },
+        {
+          "time": 37.371866666661624,
+          "hp": 100,
+          "kills": 11,
+          "visible": 0
+        },
+        {
+          "time": 37.83936666666159,
+          "hp": 100,
+          "kills": 11,
+          "visible": 1
+        },
+        {
+          "time": 38.25646666666306,
+          "hp": 100,
+          "kills": 12,
+          "visible": 0
+        },
+        {
+          "time": 38.602166666662306,
+          "hp": 100,
+          "kills": 12,
+          "visible": 0
+        },
+        {
+          "time": 39.99006666666447,
+          "hp": 100,
+          "kills": 12,
+          "visible": 0
+        },
+        {
+          "time": 40.40736666666148,
+          "hp": 100,
+          "kills": 12,
+          "visible": 1
+        },
+        {
+          "time": 40.71956666666445,
+          "hp": 100,
+          "kills": 12,
+          "visible": 1
+        },
+        {
+          "time": 41.16906666666443,
+          "hp": 100,
+          "kills": 13,
+          "visible": 0
+        },
+        {
+          "time": 41.59206666666441,
+          "hp": 100,
+          "kills": 13,
+          "visible": 0
+        },
+        {
+          "time": 42.12816666666216,
+          "hp": 100,
+          "kills": 13,
+          "visible": 0
+        },
+        {
+          "time": 42.49946666666289,
+          "hp": 100,
+          "kills": 13,
+          "visible": 0
+        },
+        {
+          "time": 42.96106666666435,
+          "hp": 100,
+          "kills": 13,
+          "visible": 1
+        },
+        {
+          "time": 43.75326666666357,
+          "hp": 100,
+          "kills": 13,
+          "visible": 1
+        },
+        {
+          "time": 44.29236666666132,
+          "hp": 100,
+          "kills": 14,
+          "visible": 0
+        },
+        {
+          "time": 44.83346666666278,
+          "hp": 100,
+          "kills": 14,
+          "visible": 0
+        },
+        {
+          "time": 45.40536666666126,
+          "hp": 100,
+          "kills": 14,
+          "visible": 0
+        },
+        {
+          "time": 45.78896666666273,
+          "hp": 100,
+          "kills": 14,
+          "visible": 1
+        },
+        {
+          "time": 46.7894666666627,
+          "hp": 100,
+          "kills": 15,
+          "visible": 0
+        },
+        {
+          "time": 47.094066666664176,
+          "hp": 100,
+          "kills": 15,
+          "visible": 0
+        },
+        {
+          "time": 47.70746666666265,
+          "hp": 100,
+          "kills": 15,
+          "visible": 0
+        },
+        {
+          "time": 48.07246666666264,
+          "hp": 100,
+          "kills": 15,
+          "visible": 0
+        },
+        {
+          "time": 48.47626666666336,
+          "hp": 100,
+          "kills": 15,
+          "visible": 0
+        },
+        {
+          "time": 48.85486666666112,
+          "hp": 100,
+          "kills": 15,
+          "visible": 1
+        },
+        {
+          "time": 49.23836666666111,
+          "hp": 100,
+          "kills": 15,
+          "visible": 1
+        },
+        {
+          "time": 49.55546666666259,
+          "hp": 100,
+          "kills": 15,
+          "visible": 1
+        },
+        {
+          "time": 49.838366666661074,
+          "hp": 100,
+          "kills": 16,
+          "visible": 0
+        },
+        {
+          "time": 50.138066666664045,
+          "hp": 100,
+          "kills": 16,
+          "visible": 0
+        },
+        {
+          "time": 50.421766666663295,
+          "hp": 100,
+          "kills": 16,
+          "visible": 0
+        },
+        {
+          "time": 50.721766666663285,
+          "hp": 100,
+          "kills": 16,
+          "visible": 0
+        },
+        {
+          "time": 51.05676666666327,
+          "hp": 100,
+          "kills": 16,
+          "visible": 0
+        },
+        {
+          "time": 51.35526666666326,
+          "hp": 100,
+          "kills": 16,
+          "visible": 1
+        },
+        {
+          "time": 51.6909666666625,
+          "hp": 100,
+          "kills": 16,
+          "visible": 1
+        },
+        {
+          "time": 52.068566666663976,
+          "hp": 100,
+          "kills": 17,
+          "visible": 0
+        },
+        {
+          "time": 52.33866666666174,
+          "hp": 100,
+          "kills": 17,
+          "visible": 0
+        },
+        {
+          "time": 52.62126666666321,
+          "hp": 100,
+          "kills": 17,
+          "visible": 0
+        },
+        {
+          "time": 52.88846666666246,
+          "hp": 100,
+          "kills": 17,
+          "visible": 0
+        },
+        {
+          "time": 53.32106666666393,
+          "hp": 100,
+          "kills": 17,
+          "visible": 0
+        },
+        {
+          "time": 53.87126666666317,
+          "hp": 100,
+          "kills": 17,
+          "visible": 0
+        },
+        {
+          "time": 54.155066666663906,
+          "hp": 100,
+          "kills": 17,
+          "visible": 0
+        },
+        {
+          "time": 54.44976666666315,
+          "hp": 100,
+          "kills": 17,
+          "visible": 1
+        },
+        {
+          "time": 54.75556666666388,
+          "hp": 100,
+          "kills": 17,
+          "visible": 1
+        },
+        {
+          "time": 55.05116666666164,
+          "hp": 100,
+          "kills": 18,
+          "visible": 0
+        },
+        {
+          "time": 55.337566666663854,
+          "hp": 100,
+          "kills": 18,
+          "visible": 0
+        },
+        {
+          "time": 55.62296666666235,
+          "hp": 100,
+          "kills": 18,
+          "visible": 0
+        },
+        {
+          "time": 55.90556666666383,
+          "hp": 100,
+          "kills": 18,
+          "visible": 0
+        },
+        {
+          "time": 56.17186666666083,
+          "hp": 100,
+          "kills": 18,
+          "visible": 0
+        },
+        {
+          "time": 56.48816666666155,
+          "hp": 100,
+          "kills": 18,
+          "visible": 0
+        },
+        {
+          "time": 56.77136666666079,
+          "hp": 100,
+          "kills": 18,
+          "visible": 0
+        },
+        {
+          "time": 57.054666666661525,
+          "hp": 100,
+          "kills": 18,
+          "visible": 0
+        },
+        {
+          "time": 57.35486666666075,
+          "hp": 100,
+          "kills": 18,
+          "visible": 0
+        },
+        {
+          "time": 57.655666666661496,
+          "hp": 100,
+          "kills": 18,
+          "visible": 1
+        },
+        {
+          "time": 57.954766666662984,
+          "hp": 100,
+          "kills": 18,
+          "visible": 1
+        },
+        {
+          "time": 58.23836666666074,
+          "hp": 100,
+          "kills": 18,
+          "visible": 1
+        },
+        {
+          "time": 58.53876666666298,
+          "hp": 100,
+          "kills": 19,
+          "visible": 0
+        },
+        {
+          "time": 58.82126666666297,
+          "hp": 100,
+          "kills": 19,
+          "visible": 0
+        },
+        {
+          "time": 59.237766666662935,
+          "hp": 100,
+          "kills": 19,
+          "visible": 0
+        },
+        {
+          "time": 59.8712666666629,
+          "hp": 100,
+          "kills": 19,
+          "visible": 0
+        },
+        {
+          "time": 60.18866666666138,
+          "hp": 100,
+          "kills": 19,
+          "visible": 1
+        },
+        {
+          "time": 60.48896666666212,
+          "hp": 100,
+          "kills": 19,
+          "visible": 1
+        },
+        {
+          "time": 60.53773333333028,
+          "hp": 100,
+          "kills": 20,
+          "visible": 0
+        }
+      ]
+    },
+    {
+      "advancedSaveFixture": true,
+      "naturalCollisionFailure": true,
+      "explicitFailureSettlement": true,
+      "retry": true,
+      "skillDragCancel": true
+    },
+    {
+      "developerSwitches": true,
+      "sameOriginHostMessages": [
+        "home",
+        "playing",
+        "home"
+      ]
+    }
+  ],
+  "errors": [],
+  "passed": true
+}

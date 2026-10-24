@@ -27,10 +27,6 @@ try {
     assert.equal((await snapshot(page)).modal, 'settings');
     await press(page, 'help', touch);
     assert((await snapshot(page)).modal.startsWith('help'));
-    await press(page, 'fullscreen', touch);
-    await page.waitForFunction(() => !!document.fullscreenElement);
-    await press(page, 'fullscreen', touch);
-    await page.waitForFunction(() => !document.fullscreenElement);
     await press(page, 'close', touch);
     assert.equal((await snapshot(page)).modal, 'settings');
     await press(page, 'close', touch);
@@ -56,7 +52,7 @@ try {
       assert.equal(s.assets.includes('terrain.water'), !highland);
       assert(s.assets.includes('terrain.clouds') && s.assets.includes('terrain.moon'));
       assert.equal(s.buttons.some(b => b.id === 'fire'), touch);
-      if (!touch) for (const id of ['pause', 'settings', 'fullscreen', 'weapon0', 'weapon1', 'weapon2']) {
+      if (!touch) for (const id of ['settings', 'weapon0', 'weapon1', 'weapon2']) {
         const b = s.buttons.find(b => b.id === id);
         assert(b.w <= 104 && b.h <= 44, `${width}: ${id} compact`);
       }
@@ -79,6 +75,7 @@ try {
       s = await snapshot(page); assert.deepEqual(s.recoil, { x: 0, y: 0 });
       assert(s.buttons.some(b => b.id === 'home'));
       await press(page, 'home', touch);
+      assert.equal((await snapshot(page)).modal, 'exit'); await press(page, 'exitConfirm', touch);
       s = await snapshot(page);
       assert.equal(s.modal, 'home'); assert.equal(s.time, 0); assert.equal(s.shots.length, 0);
       assert.deepEqual(s.held, []); assert.deepEqual(s.pauses, []);

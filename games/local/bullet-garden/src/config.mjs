@@ -880,7 +880,7 @@ export const LEVELS = catalog(
           playerStart: PLAYER_START,
           waveDuration: duration / waves,
           plantCap: 18,
-          progression: { firstXp: 12, xpStep: 10, fourChoicesAt: 5 },
+          progression: { firstXp: 16, xpStep: 12, fourChoicesAt: 5 },
           difficulty: {
             healthScale: order === 1 ? 0.8 : 1 + index * 0.045,
             damageScale: order === 1 ? 0.75 : 1 + index * 0.018,

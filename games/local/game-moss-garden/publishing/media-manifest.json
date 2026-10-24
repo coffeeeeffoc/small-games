@@ -1,0 +1,105 @@
+{
+  "date": "2026-10-24",
+  "environment": "Chromium touch emulation 390x844; actual local build; no ad fixture",
+  "sourceHash": null,
+  "files": {
+    "icon/leaf.svg": {
+      "bytes": 242,
+      "sha256": "9ce21471198798ff9a77969cb2163ac189c92f56d7d8885917ba3332b647b295"
+    },
+    "gameplay/screenshots/home-390x844.png": {
+      "bytes": 116216,
+      "sha256": "7825dbe92d1ca939868a4b8638da67f02f883a28ee26eb48a083c0ab472cc5d9",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {}
+      }
+    },
+    "gameplay/screenshots/play-390x844.png": {
+      "bytes": 28948,
+      "sha256": "643c6de0dbad2d96b027e9960b89c9085d81f7ae19786ea794dcbd2a8d3ffe8b",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {}
+      }
+    },
+    "gameplay/screenshots/result-390x844.png": {
+      "bytes": 64600,
+      "sha256": "0e8750acd1011478681e82c54db5c67b1d3cd7b65f49839e3a4135b5476acf7d",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {}
+      }
+    },
+    "gameplay/videos/actual-play-390x844.webm": {
+      "bytes": 336228,
+      "sha256": "c33c80ce7926e08ff5aca157f7cb3ecf1f1dd0644206acde7b9ddbdaf8f5ba3d",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {
+          "duration": "13.000000"
+        }
+      }
+    },
+    "promo/images/gameplay-390x844.png": {
+      "bytes": 28948,
+      "sha256": "643c6de0dbad2d96b027e9960b89c9085d81f7ae19786ea794dcbd2a8d3ffe8b",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {}
+      }
+    },
+    "promo/videos/gameplay-cut-390x844.mp4": {
+      "bytes": 73362,
+      "sha256": "80c32f7b1f3846e4de0cee858d5b559d19512ce15019021effc4a73f77cd6eb6",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {
+          "duration": "8.000000"
+        }
+      }
+    }
+  }
+}

@@ -420,7 +420,7 @@ try {
 
   for (const cross of [false, true]) {
     await check(
-      `${cross ? 'cross-origin' : 'same-origin'} iframe mode forwarding and fullscreen`,
+      `${cross ? 'cross-origin' : 'same-origin'} iframe mode forwarding and normal viewport`,
       async () => {
         const { context, page } = await fresh(undefined, 'iframe');
         try {
@@ -432,12 +432,7 @@ try {
           await moveDev(page);
           await moveDev(page, frame);
           await frame.locator('#settings').tap();
-          await frame.locator('[data-game-fullscreen]').tap();
-          await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(true);
-          await frame.locator('[data-game-fullscreen]').tap();
-          await expect
-            .poll(() => page.evaluate(() => document.fullscreenElement === null))
-            .toBe(true);
+          await expect(frame.locator('[data-game-fullscreen]')).toHaveCount(0);
           await frame.locator('#settings-screen [data-back]').tap();
           await frame.locator('#start').tap();
           await frame.locator('#launch').tap();
@@ -457,7 +452,7 @@ try {
             fixture: true,
             crossOrigin: cross,
             explicitModeForwarding: true,
-            realFullscreen: true,
+            noFullscreenControls: true,
           };
         } finally {
           await context.close();
@@ -516,11 +511,7 @@ try {
             assert.equal(result.game.lossReason, 'no-lives');
             assert.equal(result.game.lives, 0);
             await shot(page, 'natural-failure');
-            await expect(page.locator('#revive')).toBeVisible();
-            await page.locator('#revive').tap();
-            await expect(page.getByRole('dialog', { name: '模拟广告' })).toBeVisible();
-            await page.getByRole('button', { name: '关闭并继续', exact: true }).tap();
-            await expect(page.locator('#reward-message')).toContainText('未完整观看');
+            await expect(page.locator('#revive')).toBeHidden();
             assert.equal((await snapshot(page)).game.lives, 0);
             await page.locator('#retry').tap();
             assert.equal((await snapshot(page)).game.phase, 'ready');

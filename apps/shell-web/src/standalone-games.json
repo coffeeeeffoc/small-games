@@ -3,7 +3,7 @@
     "id": "ashfall-front",
     "source": "games/local/ashfall-front",
     "title": "灰烬防线",
-    "description": "冲进灰烬工厂，跳跃连射、冲刺闪避，引爆油桶清场，组合战地升级迎战拆解者。三间房，一场短促而激烈的突围。",
+    "description": "穿越23处工业战区，跳跃连射、冲刺闪避，守住中继阵地、引爆油桶并组合战地改装。移动端横屏射击，逐关推进迎战拆解者。",
     "output": "dist"
   },
   {
@@ -16,15 +16,15 @@
   {
     "id": "tower-brake",
     "source": "games/local/tower-brake",
-    "title": "转塔留一脚刹车",
-    "description": "转动圆塔穿过十二层缺口，连续落三层补回一次 0.8 秒刹车，在危险落点前转出一条生路。八座短塔逐步解锁。",
+    "title": "穿云落星",
+    "description": "转动青玉轨道，让小球从星际落入云海。30 关与无尽下落，护盾、侧风和缓降逐步登场，连穿三层补回刹车。",
     "output": "dist"
   },
   {
     "id": "chase-thief",
     "source": "games/local/chase-thief",
     "title": "追贼别撞墙",
-    "description": "穿过老城三条街巷，跳路障、钻低杆、换道躲箱子；连续稳住三段就冲刺追近，抓住前方的小偷。",
+    "description": "沿着起伏弯曲的老城街道一路追逐，跳栏、滑铲、换道与分路选择，挑战无尽距离纪录。",
     "output": "dist"
   },
   {
@@ -58,7 +58,7 @@
   {
     "id": "tianxia-chalu",
     "source": "games/local/tianxia-chalu",
-    "title": "天下岔路",
+    "title": "夺城令",
     "description": "四方城寨自动出兵，轻点岔路切换行军方向，抢占村镇、截断援军，在一张山水战图上统一天下。",
     "output": "dist"
   },
@@ -259,13 +259,6 @@
     "output": "dist"
   },
   {
-    "id": "retreat-rally",
-    "source": "games/local/retreat-rally",
-    "title": "收兵再冲",
-    "description": "按住收兵，松手进攻。带六名士兵躲过箭雨，再趁装填夺下敌旗；三关战役、模拟匹配与同屏好友对战。",
-    "output": "dist"
-  },
-  {
     "id": "castle-cannon",
     "source": "games/local/game-castle-cannon",
     "title": "一炮拆城",
@@ -276,7 +269,7 @@
     "id": "tetracube",
     "source": "games/local/tetracube",
     "title": "重力方舱",
-    "description": "拖动并三轴旋转四连立方体，填满水平层；颠倒 6×6×12 容器，让方块向下落定，制造连锁消除。",
+    "description": "拖动并三轴旋转四连立方体，填满水平层；翻转 8×8×18 方舱，让方块重新下落，创造连锁消除。",
     "output": "dist"
   },
   {

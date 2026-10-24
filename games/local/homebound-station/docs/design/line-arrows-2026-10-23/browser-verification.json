@@ -1,0 +1,7384 @@
+{
+  "browser": "151.0.7922.173",
+  "creator": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "7319832c0632d06fe9418f77da23d9a273f70cd8c02294d17da98dea3e21b715"
+  },
+  "checks": [
+    "home has an independent moving arrow-puzzle demonstration; respects reduced motion",
+    "settings, sound persistence and help return; no fullscreen control",
+    "touch cancellation",
+    "level 1 at 1×: two real touches about 0.5 simulated seconds apart; both leave parking before first boarding; fixed passenger/pickup bindings",
+    "pause modal blocks real car touches and keeps the simulation clock frozen",
+    "browser focus loss pauses; explicit resume restores play",
+    "rewarded speed completion/cancellation/failure; no premature grant",
+    "real touch solve with concurrent taxis; settlement and unlock",
+    "public invitation sharing removes developer mode",
+    "level 100: genuine 320×568 touch pan reveals the bottom row without dispatch; fixed HUD; real available-car touches dispatch on 390×844 and 844×390",
+    "URL dev free selection, explicit-off precedence, saved progress, portrait/landscape",
+    "invited level 100 is practice and does not bypass normal progression"
+  ],
+  "parallelDeparture": {
+    "clickOrder": ["巡02", "巡01"],
+    "snapshots": {
+      "before": {
+        "wallTimeMs": 6083.5,
+        "state": {
+          "time": 1.35,
+          "paused": false,
+          "won": false,
+          "level": 1,
+          "geometry": {
+            "mode": "station",
+            "bounds": {
+              "left": -15,
+              "right": 15,
+              "top": -11,
+              "bottom": 27
+            },
+            "parking": {
+              "columns": 3,
+              "rows": 3,
+              "pitch": 4,
+              "origin": {
+                "x": -4,
+                "z": 12
+              },
+              "bounds": {
+                "left": -6,
+                "right": 6,
+                "top": 10,
+                "bottom": 22
+              }
+            },
+            "station": {
+              "bounds": {
+                "left": -10,
+                "right": 10,
+                "top": -10,
+                "bottom": -6
+              }
+            },
+            "lanes": [
+              {
+                "id": "north-collector",
+                "kind": "collector",
+                "points": [
+                  {
+                    "x": 12,
+                    "z": 8
+                  },
+                  {
+                    "x": 8,
+                    "z": 8
+                  },
+                  {
+                    "x": 4,
+                    "z": 8
+                  },
+                  {
+                    "x": 0,
+                    "z": 8
+                  },
+                  {
+                    "x": -4,
+                    "z": 8
+                  },
+                  {
+                    "x": -8,
+                    "z": 8
+                  },
+                  {
+                    "x": -12,
+                    "z": 8
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "east-collector",
+                "kind": "collector",
+                "points": [
+                  {
+                    "x": 12,
+                    "z": 24
+                  },
+                  {
+                    "x": 12,
+                    "z": 20
+                  },
+                  {
+                    "x": 12,
+                    "z": 16
+                  },
+                  {
+                    "x": 12,
+                    "z": 12
+                  },
+                  {
+                    "x": 12,
+                    "z": 8
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "south-collector",
+                "kind": "collector",
+                "points": [
+                  {
+                    "x": 12,
+                    "z": 24
+                  },
+                  {
+                    "x": 8,
+                    "z": 24
+                  },
+                  {
+                    "x": 4,
+                    "z": 24
+                  },
+                  {
+                    "x": 0,
+                    "z": 24
+                  },
+                  {
+                    "x": -4,
+                    "z": 24
+                  },
+                  {
+                    "x": -8,
+                    "z": 24
+                  },
+                  {
+                    "x": -12,
+                    "z": 24
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "west-collector",
+                "kind": "collector",
+                "points": [
+                  {
+                    "x": -12,
+                    "z": 24
+                  },
+                  {
+                    "x": -12,
+                    "z": 20
+                  },
+                  {
+                    "x": -12,
+                    "z": 16
+                  },
+                  {
+                    "x": -12,
+                    "z": 12
+                  },
+                  {
+                    "x": -12,
+                    "z": 8
+                  },
+                  {
+                    "x": -12,
+                    "z": 4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "station-approach",
+                "kind": "approach",
+                "points": [
+                  {
+                    "x": -12,
+                    "z": 4
+                  },
+                  {
+                    "x": -6,
+                    "z": 4
+                  },
+                  {
+                    "x": -2,
+                    "z": 4
+                  },
+                  {
+                    "x": 2,
+                    "z": 4
+                  },
+                  {
+                    "x": 6,
+                    "z": 4
+                  },
+                  {
+                    "x": 10,
+                    "z": 4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "station-departure",
+                "kind": "departure",
+                "points": [
+                  {
+                    "x": -6,
+                    "z": -4
+                  },
+                  {
+                    "x": -2,
+                    "z": -4
+                  },
+                  {
+                    "x": 2,
+                    "z": -4
+                  },
+                  {
+                    "x": 6,
+                    "z": -4
+                  },
+                  {
+                    "x": 10,
+                    "z": -4
+                  },
+                  {
+                    "x": 14,
+                    "z": -4
+                  },
+                  {
+                    "x": 18,
+                    "z": -4
+                  },
+                  {
+                    "x": 20,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T1-entry",
+                "kind": "bay-entry",
+                "points": [
+                  {
+                    "x": -6,
+                    "z": 4
+                  },
+                  {
+                    "x": -6,
+                    "z": 0
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T1-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": -6,
+                    "z": 0
+                  },
+                  {
+                    "x": -6,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T2-entry",
+                "kind": "bay-entry",
+                "points": [
+                  {
+                    "x": -2,
+                    "z": 4
+                  },
+                  {
+                    "x": -2,
+                    "z": 0
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T2-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": -2,
+                    "z": 0
+                  },
+                  {
+                    "x": -2,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T3-entry",
+                "kind": "bay-entry",
+                "points": [
+                  {
+                    "x": 2,
+                    "z": 4
+                  },
+                  {
+                    "x": 2,
+                    "z": 0
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T3-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": 2,
+                    "z": 0
+                  },
+                  {
+                    "x": 2,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T4-entry",
+                "kind": "bay-entry",
+                "points": [
+                  {
+                    "x": 6,
+                    "z": 4
+                  },
+                  {
+                    "x": 6,
+                    "z": 0
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T4-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": 6,
+                    "z": 0
+                  },
+                  {
+                    "x": 6,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "empty-taxi-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": 10,
+                    "z": 4
+                  },
+                  {
+                    "x": 10,
+                    "z": 0
+                  },
+                  {
+                    "x": 10,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              }
+            ],
+            "bays": [
+              {
+                "id": "T1",
+                "point": {
+                  "x": -6,
+                  "z": 0
+                },
+                "entry": {
+                  "x": -6,
+                  "z": 4
+                },
+                "exit": {
+                  "x": -6,
+                  "z": -4
+                },
+                "door": {
+                  "x": -6,
+                  "z": -6
+                }
+              },
+              {
+                "id": "T2",
+                "point": {
+                  "x": -2,
+                  "z": 0
+                },
+                "entry": {
+                  "x": -2,
+                  "z": 4
+                },
+                "exit": {
+                  "x": -2,
+                  "z": -4
+                },
+                "door": {
+                  "x": -2,
+                  "z": -6
+                }
+              },
+              {
+                "id": "T3",
+                "point": {
+                  "x": 2,
+                  "z": 0
+                },
+                "entry": {
+                  "x": 2,
+                  "z": 4
+                },
+                "exit": {
+                  "x": 2,
+                  "z": -4
+                },
+                "door": {
+                  "x": 2,
+                  "z": -6
+                }
+              },
+              {
+                "id": "T4",
+                "point": {
+                  "x": 6,
+                  "z": 0
+                },
+                "entry": {
+                  "x": 6,
+                  "z": 4
+                },
+                "exit": {
+                  "x": 6,
+                  "z": -4
+                },
+                "door": {
+                  "x": 6,
+                  "z": -6
+                }
+              }
+            ],
+            "waitingSlots": [
+              {
+                "x": 12,
+                "z": 8
+              },
+              {
+                "x": 8,
+                "z": 8
+              },
+              {
+                "x": 4,
+                "z": 8
+              },
+              {
+                "x": 0,
+                "z": 8
+              },
+              {
+                "x": -4,
+                "z": 8
+              },
+              {
+                "x": -8,
+                "z": 8
+              },
+              {
+                "x": -12,
+                "z": 8
+              },
+              {
+                "x": 12,
+                "z": 24
+              },
+              {
+                "x": 12,
+                "z": 20
+              },
+              {
+                "x": 12,
+                "z": 16
+              },
+              {
+                "x": 12,
+                "z": 12
+              },
+              {
+                "x": 8,
+                "z": 24
+              },
+              {
+                "x": 4,
+                "z": 24
+              },
+              {
+                "x": 0,
+                "z": 24
+              },
+              {
+                "x": -4,
+                "z": 24
+              },
+              {
+                "x": -8,
+                "z": 24
+              },
+              {
+                "x": -12,
+                "z": 24
+              },
+              {
+                "x": -12,
+                "z": 20
+              },
+              {
+                "x": -12,
+                "z": 16
+              },
+              {
+                "x": -12,
+                "z": 12
+              },
+              {
+                "x": -12,
+                "z": 4
+              },
+              {
+                "x": -6,
+                "z": 4
+              },
+              {
+                "x": -2,
+                "z": 4
+              },
+              {
+                "x": 2,
+                "z": 4
+              },
+              {
+                "x": 6,
+                "z": 4
+              },
+              {
+                "x": 10,
+                "z": 4
+              },
+              {
+                "x": -6,
+                "z": -4
+              },
+              {
+                "x": -2,
+                "z": -4
+              },
+              {
+                "x": 2,
+                "z": -4
+              },
+              {
+                "x": 6,
+                "z": -4
+              },
+              {
+                "x": 10,
+                "z": -4
+              },
+              {
+                "x": 14,
+                "z": -4
+              }
+            ],
+            "crosswalks": [
+              {
+                "bayId": "T1",
+                "from": {
+                  "x": -6,
+                  "z": -6
+                },
+                "to": {
+                  "x": -6,
+                  "z": 0
+                }
+              },
+              {
+                "bayId": "T2",
+                "from": {
+                  "x": -2,
+                  "z": -6
+                },
+                "to": {
+                  "x": -2,
+                  "z": 0
+                }
+              },
+              {
+                "bayId": "T3",
+                "from": {
+                  "x": 2,
+                  "z": -6
+                },
+                "to": {
+                  "x": 2,
+                  "z": 0
+                }
+              },
+              {
+                "bayId": "T4",
+                "from": {
+                  "x": 6,
+                  "z": -6
+                },
+                "to": {
+                  "x": 6,
+                  "z": 0
+                }
+              }
+            ],
+            "collector": {
+              "left": -12,
+              "right": 12,
+              "north": 8,
+              "south": 24
+            },
+            "approachZ": 4,
+            "departureZ": -4,
+            "exitPoint": {
+              "x": 20,
+              "z": -4
+            }
+          },
+          "delivered": [],
+          "target": 17,
+          "groups": [
+            {
+              "id": "T01",
+              "sequence": 0,
+              "queueBayId": "T1",
+              "passengers": [
+                {
+                  "id": "T01/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T01/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T01/p3",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "ready",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0
+            },
+            {
+              "id": "T02",
+              "sequence": 1,
+              "queueBayId": "T2",
+              "passengers": [
+                {
+                  "id": "T02/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T02/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "ready",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0
+            },
+            {
+              "id": "T03",
+              "sequence": 2,
+              "queueBayId": "T3",
+              "passengers": [
+                {
+                  "id": "T03/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T03/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T03/p3",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "ready",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0
+            },
+            {
+              "id": "T04",
+              "sequence": 3,
+              "queueBayId": "T4",
+              "passengers": [
+                {
+                  "id": "T04/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T04/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T04/p3",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "ready",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0
+            },
+            {
+              "id": "T05",
+              "sequence": 4,
+              "queueBayId": "T1",
+              "passengers": [
+                {
+                  "id": "T05/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T05/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "ready",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0
+            },
+            {
+              "id": "T06",
+              "sequence": 5,
+              "queueBayId": "T2",
+              "passengers": [
+                {
+                  "id": "T06/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T06/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T06/p3",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T06/p4",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "ready",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0
+            }
+          ],
+          "vehicles": [
+            {
+              "id": "巡01",
+              "capacity": 4,
+              "column": 1,
+              "row": 0,
+              "direction": "W",
+              "sequence": 0,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "holding",
+              "position": {
+                "x": 0,
+                "z": 12
+              },
+              "angle": -1.5707963267948966
+            },
+            {
+              "id": "巡02",
+              "capacity": 4,
+              "column": 2,
+              "row": 0,
+              "direction": "N",
+              "sequence": 1,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "holding",
+              "position": {
+                "x": 4,
+                "z": 12
+              },
+              "angle": 3.141592653589793
+            },
+            {
+              "id": "巡03",
+              "capacity": 4,
+              "column": 0,
+              "row": 1,
+              "direction": "N",
+              "sequence": 2,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "holding",
+              "position": {
+                "x": -4,
+                "z": 16
+              },
+              "angle": 3.141592653589793
+            },
+            {
+              "id": "巡04",
+              "capacity": 4,
+              "column": 1,
+              "row": 1,
+              "direction": "E",
+              "sequence": 3,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "holding",
+              "position": {
+                "x": 0,
+                "z": 16
+              },
+              "angle": 1.5707963267948966
+            },
+            {
+              "id": "巡05",
+              "capacity": 6,
+              "column": 0,
+              "row": 2,
+              "direction": "W",
+              "sequence": 4,
+              "seatCount": 7,
+              "driverSeatCount": 1,
+              "passengerCapacity": 6,
+              "state": "holding",
+              "position": {
+                "x": -4,
+                "z": 20
+              },
+              "angle": -1.5707963267948966
+            },
+            {
+              "id": "巡06",
+              "capacity": 4,
+              "column": 1,
+              "row": 2,
+              "direction": "E",
+              "sequence": 5,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "holding",
+              "position": {
+                "x": 0,
+                "z": 20
+              },
+              "angle": 1.5707963267948966
+            }
+          ],
+          "bays": [
+            {
+              "id": "T1",
+              "state": "free"
+            },
+            {
+              "id": "T2",
+              "state": "free"
+            },
+            {
+              "id": "T3",
+              "state": "free"
+            },
+            {
+              "id": "T4",
+              "state": "free"
+            }
+          ],
+          "services": [],
+          "splits": 0
+        },
+        "view": {
+          "page": "playing",
+          "speed": 1,
+          "unlockedSpeeds": [1],
+          "practice": false,
+          "adPending": false,
+          "cars": [
+            {
+              "id": "巡01",
+              "available": true,
+              "x": 174.52,
+              "y": 328.92857142857144,
+              "angle": 3.141592653589793
+            },
+            {
+              "id": "巡02",
+              "available": true,
+              "x": 275.75005159958727,
+              "y": 317.5,
+              "angle": -1.5707963267948966
+            },
+            {
+              "id": "巡03",
+              "available": true,
+              "x": 85.08338493292052,
+              "y": 494.5,
+              "angle": -1.5707963267948966
+            },
+            {
+              "id": "巡04",
+              "available": true,
+              "x": 174.52,
+              "y": 505.92334096109835,
+              "angle": 0
+            },
+            {
+              "id": "巡05",
+              "available": true,
+              "x": 79.18666666666665,
+              "y": 682.9285714285714,
+              "angle": 3.141592653589793
+            },
+            {
+              "id": "巡06",
+              "available": true,
+              "x": 174.52,
+              "y": 682.9233409610983,
+              "angle": 0
+            }
+          ]
+        }
+      },
+      "afterFirst": {
+        "wallTimeMs": 6124.0999999996275,
+        "state": {
+          "time": 1.4000000000000001,
+          "paused": false,
+          "won": false,
+          "level": 1,
+          "geometry": {
+            "mode": "station",
+            "bounds": {
+              "left": -15,
+              "right": 15,
+              "top": -11,
+              "bottom": 27
+            },
+            "parking": {
+              "columns": 3,
+              "rows": 3,
+              "pitch": 4,
+              "origin": {
+                "x": -4,
+                "z": 12
+              },
+              "bounds": {
+                "left": -6,
+                "right": 6,
+                "top": 10,
+                "bottom": 22
+              }
+            },
+            "station": {
+              "bounds": {
+                "left": -10,
+                "right": 10,
+                "top": -10,
+                "bottom": -6
+              }
+            },
+            "lanes": [
+              {
+                "id": "north-collector",
+                "kind": "collector",
+                "points": [
+                  {
+                    "x": 12,
+                    "z": 8
+                  },
+                  {
+                    "x": 8,
+                    "z": 8
+                  },
+                  {
+                    "x": 4,
+                    "z": 8
+                  },
+                  {
+                    "x": 0,
+                    "z": 8
+                  },
+                  {
+                    "x": -4,
+                    "z": 8
+                  },
+                  {
+                    "x": -8,
+                    "z": 8
+                  },
+                  {
+                    "x": -12,
+                    "z": 8
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "east-collector",
+                "kind": "collector",
+                "points": [
+                  {
+                    "x": 12,
+                    "z": 24
+                  },
+                  {
+                    "x": 12,
+                    "z": 20
+                  },
+                  {
+                    "x": 12,
+                    "z": 16
+                  },
+                  {
+                    "x": 12,
+                    "z": 12
+                  },
+                  {
+                    "x": 12,
+                    "z": 8
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "south-collector",
+                "kind": "collector",
+                "points": [
+                  {
+                    "x": 12,
+                    "z": 24
+                  },
+                  {
+                    "x": 8,
+                    "z": 24
+                  },
+                  {
+                    "x": 4,
+                    "z": 24
+                  },
+                  {
+                    "x": 0,
+                    "z": 24
+                  },
+                  {
+                    "x": -4,
+                    "z": 24
+                  },
+                  {
+                    "x": -8,
+                    "z": 24
+                  },
+                  {
+                    "x": -12,
+                    "z": 24
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "west-collector",
+                "kind": "collector",
+                "points": [
+                  {
+                    "x": -12,
+                    "z": 24
+                  },
+                  {
+                    "x": -12,
+                    "z": 20
+                  },
+                  {
+                    "x": -12,
+                    "z": 16
+                  },
+                  {
+                    "x": -12,
+                    "z": 12
+                  },
+                  {
+                    "x": -12,
+                    "z": 8
+                  },
+                  {
+                    "x": -12,
+                    "z": 4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "station-approach",
+                "kind": "approach",
+                "points": [
+                  {
+                    "x": -12,
+                    "z": 4
+                  },
+                  {
+                    "x": -6,
+                    "z": 4
+                  },
+                  {
+                    "x": -2,
+                    "z": 4
+                  },
+                  {
+                    "x": 2,
+                    "z": 4
+                  },
+                  {
+                    "x": 6,
+                    "z": 4
+                  },
+                  {
+                    "x": 10,
+                    "z": 4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "station-departure",
+                "kind": "departure",
+                "points": [
+                  {
+                    "x": -6,
+                    "z": -4
+                  },
+                  {
+                    "x": -2,
+                    "z": -4
+                  },
+                  {
+                    "x": 2,
+                    "z": -4
+                  },
+                  {
+                    "x": 6,
+                    "z": -4
+                  },
+                  {
+                    "x": 10,
+                    "z": -4
+                  },
+                  {
+                    "x": 14,
+                    "z": -4
+                  },
+                  {
+                    "x": 18,
+                    "z": -4
+                  },
+                  {
+                    "x": 20,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T1-entry",
+                "kind": "bay-entry",
+                "points": [
+                  {
+                    "x": -6,
+                    "z": 4
+                  },
+                  {
+                    "x": -6,
+                    "z": 0
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T1-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": -6,
+                    "z": 0
+                  },
+                  {
+                    "x": -6,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T2-entry",
+                "kind": "bay-entry",
+                "points": [
+                  {
+                    "x": -2,
+                    "z": 4
+                  },
+                  {
+                    "x": -2,
+                    "z": 0
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T2-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": -2,
+                    "z": 0
+                  },
+                  {
+                    "x": -2,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T3-entry",
+                "kind": "bay-entry",
+                "points": [
+                  {
+                    "x": 2,
+                    "z": 4
+                  },
+                  {
+                    "x": 2,
+                    "z": 0
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T3-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": 2,
+                    "z": 0
+                  },
+                  {
+                    "x": 2,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T4-entry",
+                "kind": "bay-entry",
+                "points": [
+                  {
+                    "x": 6,
+                    "z": 4
+                  },
+                  {
+                    "x": 6,
+                    "z": 0
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T4-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": 6,
+                    "z": 0
+                  },
+                  {
+                    "x": 6,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "empty-taxi-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": 10,
+                    "z": 4
+                  },
+                  {
+                    "x": 10,
+                    "z": 0
+                  },
+                  {
+                    "x": 10,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              }
+            ],
+            "bays": [
+              {
+                "id": "T1",
+                "point": {
+                  "x": -6,
+                  "z": 0
+                },
+                "entry": {
+                  "x": -6,
+                  "z": 4
+                },
+                "exit": {
+                  "x": -6,
+                  "z": -4
+                },
+                "door": {
+                  "x": -6,
+                  "z": -6
+                }
+              },
+              {
+                "id": "T2",
+                "point": {
+                  "x": -2,
+                  "z": 0
+                },
+                "entry": {
+                  "x": -2,
+                  "z": 4
+                },
+                "exit": {
+                  "x": -2,
+                  "z": -4
+                },
+                "door": {
+                  "x": -2,
+                  "z": -6
+                }
+              },
+              {
+                "id": "T3",
+                "point": {
+                  "x": 2,
+                  "z": 0
+                },
+                "entry": {
+                  "x": 2,
+                  "z": 4
+                },
+                "exit": {
+                  "x": 2,
+                  "z": -4
+                },
+                "door": {
+                  "x": 2,
+                  "z": -6
+                }
+              },
+              {
+                "id": "T4",
+                "point": {
+                  "x": 6,
+                  "z": 0
+                },
+                "entry": {
+                  "x": 6,
+                  "z": 4
+                },
+                "exit": {
+                  "x": 6,
+                  "z": -4
+                },
+                "door": {
+                  "x": 6,
+                  "z": -6
+                }
+              }
+            ],
+            "waitingSlots": [
+              {
+                "x": 12,
+                "z": 8
+              },
+              {
+                "x": 8,
+                "z": 8
+              },
+              {
+                "x": 4,
+                "z": 8
+              },
+              {
+                "x": 0,
+                "z": 8
+              },
+              {
+                "x": -4,
+                "z": 8
+              },
+              {
+                "x": -8,
+                "z": 8
+              },
+              {
+                "x": -12,
+                "z": 8
+              },
+              {
+                "x": 12,
+                "z": 24
+              },
+              {
+                "x": 12,
+                "z": 20
+              },
+              {
+                "x": 12,
+                "z": 16
+              },
+              {
+                "x": 12,
+                "z": 12
+              },
+              {
+                "x": 8,
+                "z": 24
+              },
+              {
+                "x": 4,
+                "z": 24
+              },
+              {
+                "x": 0,
+                "z": 24
+              },
+              {
+                "x": -4,
+                "z": 24
+              },
+              {
+                "x": -8,
+                "z": 24
+              },
+              {
+                "x": -12,
+                "z": 24
+              },
+              {
+                "x": -12,
+                "z": 20
+              },
+              {
+                "x": -12,
+                "z": 16
+              },
+              {
+                "x": -12,
+                "z": 12
+              },
+              {
+                "x": -12,
+                "z": 4
+              },
+              {
+                "x": -6,
+                "z": 4
+              },
+              {
+                "x": -2,
+                "z": 4
+              },
+              {
+                "x": 2,
+                "z": 4
+              },
+              {
+                "x": 6,
+                "z": 4
+              },
+              {
+                "x": 10,
+                "z": 4
+              },
+              {
+                "x": -6,
+                "z": -4
+              },
+              {
+                "x": -2,
+                "z": -4
+              },
+              {
+                "x": 2,
+                "z": -4
+              },
+              {
+                "x": 6,
+                "z": -4
+              },
+              {
+                "x": 10,
+                "z": -4
+              },
+              {
+                "x": 14,
+                "z": -4
+              }
+            ],
+            "crosswalks": [
+              {
+                "bayId": "T1",
+                "from": {
+                  "x": -6,
+                  "z": -6
+                },
+                "to": {
+                  "x": -6,
+                  "z": 0
+                }
+              },
+              {
+                "bayId": "T2",
+                "from": {
+                  "x": -2,
+                  "z": -6
+                },
+                "to": {
+                  "x": -2,
+                  "z": 0
+                }
+              },
+              {
+                "bayId": "T3",
+                "from": {
+                  "x": 2,
+                  "z": -6
+                },
+                "to": {
+                  "x": 2,
+                  "z": 0
+                }
+              },
+              {
+                "bayId": "T4",
+                "from": {
+                  "x": 6,
+                  "z": -6
+                },
+                "to": {
+                  "x": 6,
+                  "z": 0
+                }
+              }
+            ],
+            "collector": {
+              "left": -12,
+              "right": 12,
+              "north": 8,
+              "south": 24
+            },
+            "approachZ": 4,
+            "departureZ": -4,
+            "exitPoint": {
+              "x": 20,
+              "z": -4
+            }
+          },
+          "delivered": [],
+          "target": 17,
+          "groups": [
+            {
+              "id": "T01",
+              "sequence": 0,
+              "queueBayId": "T1",
+              "passengers": [
+                {
+                  "id": "T01/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T01/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T01/p3",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "reserved",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0,
+              "vehicleId": "巡02",
+              "bayId": "T1"
+            },
+            {
+              "id": "T02",
+              "sequence": 1,
+              "queueBayId": "T2",
+              "passengers": [
+                {
+                  "id": "T02/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T02/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "ready",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0
+            },
+            {
+              "id": "T03",
+              "sequence": 2,
+              "queueBayId": "T3",
+              "passengers": [
+                {
+                  "id": "T03/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T03/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T03/p3",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "ready",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0
+            },
+            {
+              "id": "T04",
+              "sequence": 3,
+              "queueBayId": "T4",
+              "passengers": [
+                {
+                  "id": "T04/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T04/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T04/p3",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "ready",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0
+            },
+            {
+              "id": "T05",
+              "sequence": 4,
+              "queueBayId": "T1",
+              "passengers": [
+                {
+                  "id": "T05/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T05/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "ready",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0
+            },
+            {
+              "id": "T06",
+              "sequence": 5,
+              "queueBayId": "T2",
+              "passengers": [
+                {
+                  "id": "T06/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T06/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T06/p3",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T06/p4",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "ready",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0
+            }
+          ],
+          "vehicles": [
+            {
+              "id": "巡01",
+              "capacity": 4,
+              "column": 1,
+              "row": 0,
+              "direction": "W",
+              "sequence": 0,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "holding",
+              "position": {
+                "x": 0,
+                "z": 12
+              },
+              "angle": -1.5707963267948966
+            },
+            {
+              "id": "巡02",
+              "capacity": 4,
+              "column": 2,
+              "row": 0,
+              "direction": "N",
+              "sequence": 1,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "movingToBay",
+              "position": {
+                "x": 4,
+                "z": 12
+              },
+              "angle": 3.141592653589793,
+              "groupId": "T01",
+              "bayId": "T1"
+            },
+            {
+              "id": "巡03",
+              "capacity": 4,
+              "column": 0,
+              "row": 1,
+              "direction": "N",
+              "sequence": 2,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "holding",
+              "position": {
+                "x": -4,
+                "z": 16
+              },
+              "angle": 3.141592653589793
+            },
+            {
+              "id": "巡04",
+              "capacity": 4,
+              "column": 1,
+              "row": 1,
+              "direction": "E",
+              "sequence": 3,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "holding",
+              "position": {
+                "x": 0,
+                "z": 16
+              },
+              "angle": 1.5707963267948966
+            },
+            {
+              "id": "巡05",
+              "capacity": 6,
+              "column": 0,
+              "row": 2,
+              "direction": "W",
+              "sequence": 4,
+              "seatCount": 7,
+              "driverSeatCount": 1,
+              "passengerCapacity": 6,
+              "state": "holding",
+              "position": {
+                "x": -4,
+                "z": 20
+              },
+              "angle": -1.5707963267948966
+            },
+            {
+              "id": "巡06",
+              "capacity": 4,
+              "column": 1,
+              "row": 2,
+              "direction": "E",
+              "sequence": 5,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "holding",
+              "position": {
+                "x": 0,
+                "z": 20
+              },
+              "angle": 1.5707963267948966
+            }
+          ],
+          "bays": [
+            {
+              "id": "T1",
+              "state": "free"
+            },
+            {
+              "id": "T2",
+              "state": "free"
+            },
+            {
+              "id": "T3",
+              "state": "free"
+            },
+            {
+              "id": "T4",
+              "state": "free"
+            }
+          ],
+          "services": [
+            {
+              "vehicleId": "巡02",
+              "groupId": "T01",
+              "bayId": "T1",
+              "phase": "driving",
+              "elapsed": 0,
+              "duration": 0,
+              "path": [
+                {
+                  "x": 4,
+                  "z": 12
+                },
+                {
+                  "x": 4,
+                  "z": 8
+                },
+                {
+                  "x": 0,
+                  "z": 8
+                },
+                {
+                  "x": -4,
+                  "z": 8
+                },
+                {
+                  "x": -8,
+                  "z": 8
+                },
+                {
+                  "x": -12,
+                  "z": 8
+                },
+                {
+                  "x": -12,
+                  "z": 4
+                },
+                {
+                  "x": -6,
+                  "z": 4
+                },
+                {
+                  "x": -6,
+                  "z": 0
+                }
+              ],
+              "pathIndex": 1,
+              "assignmentOrder": 0,
+              "pickupPoint": {
+                "x": -6,
+                "z": -6
+              },
+              "walkFrom": {
+                "x": -6,
+                "z": -6
+              }
+            }
+          ],
+          "splits": 0
+        },
+        "view": {
+          "page": "playing",
+          "speed": 1,
+          "unlockedSpeeds": [1],
+          "practice": false,
+          "adPending": false,
+          "cars": [
+            {
+              "id": "巡01",
+              "available": true,
+              "x": 174.52,
+              "y": 328.92857142857144,
+              "angle": 3.141592653589793
+            },
+            {
+              "id": "巡03",
+              "available": true,
+              "x": 85.08338493292052,
+              "y": 494.5,
+              "angle": -1.5707963267948966
+            },
+            {
+              "id": "巡04",
+              "available": true,
+              "x": 174.52,
+              "y": 505.92334096109835,
+              "angle": 0
+            },
+            {
+              "id": "巡05",
+              "available": true,
+              "x": 79.18666666666665,
+              "y": 682.9285714285714,
+              "angle": 3.141592653589793
+            },
+            {
+              "id": "巡06",
+              "available": true,
+              "x": 174.52,
+              "y": 682.9233409610983,
+              "angle": 0
+            }
+          ]
+        }
+      },
+      "beforeSecond": {
+        "wallTimeMs": 6608.299999998882,
+        "state": {
+          "time": 1.9000000000000001,
+          "paused": false,
+          "won": false,
+          "level": 1,
+          "geometry": {
+            "mode": "station",
+            "bounds": {
+              "left": -15,
+              "right": 15,
+              "top": -11,
+              "bottom": 27
+            },
+            "parking": {
+              "columns": 3,
+              "rows": 3,
+              "pitch": 4,
+              "origin": {
+                "x": -4,
+                "z": 12
+              },
+              "bounds": {
+                "left": -6,
+                "right": 6,
+                "top": 10,
+                "bottom": 22
+              }
+            },
+            "station": {
+              "bounds": {
+                "left": -10,
+                "right": 10,
+                "top": -10,
+                "bottom": -6
+              }
+            },
+            "lanes": [
+              {
+                "id": "north-collector",
+                "kind": "collector",
+                "points": [
+                  {
+                    "x": 12,
+                    "z": 8
+                  },
+                  {
+                    "x": 8,
+                    "z": 8
+                  },
+                  {
+                    "x": 4,
+                    "z": 8
+                  },
+                  {
+                    "x": 0,
+                    "z": 8
+                  },
+                  {
+                    "x": -4,
+                    "z": 8
+                  },
+                  {
+                    "x": -8,
+                    "z": 8
+                  },
+                  {
+                    "x": -12,
+                    "z": 8
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "east-collector",
+                "kind": "collector",
+                "points": [
+                  {
+                    "x": 12,
+                    "z": 24
+                  },
+                  {
+                    "x": 12,
+                    "z": 20
+                  },
+                  {
+                    "x": 12,
+                    "z": 16
+                  },
+                  {
+                    "x": 12,
+                    "z": 12
+                  },
+                  {
+                    "x": 12,
+                    "z": 8
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "south-collector",
+                "kind": "collector",
+                "points": [
+                  {
+                    "x": 12,
+                    "z": 24
+                  },
+                  {
+                    "x": 8,
+                    "z": 24
+                  },
+                  {
+                    "x": 4,
+                    "z": 24
+                  },
+                  {
+                    "x": 0,
+                    "z": 24
+                  },
+                  {
+                    "x": -4,
+                    "z": 24
+                  },
+                  {
+                    "x": -8,
+                    "z": 24
+                  },
+                  {
+                    "x": -12,
+                    "z": 24
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "west-collector",
+                "kind": "collector",
+                "points": [
+                  {
+                    "x": -12,
+                    "z": 24
+                  },
+                  {
+                    "x": -12,
+                    "z": 20
+                  },
+                  {
+                    "x": -12,
+                    "z": 16
+                  },
+                  {
+                    "x": -12,
+                    "z": 12
+                  },
+                  {
+                    "x": -12,
+                    "z": 8
+                  },
+                  {
+                    "x": -12,
+                    "z": 4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "station-approach",
+                "kind": "approach",
+                "points": [
+                  {
+                    "x": -12,
+                    "z": 4
+                  },
+                  {
+                    "x": -6,
+                    "z": 4
+                  },
+                  {
+                    "x": -2,
+                    "z": 4
+                  },
+                  {
+                    "x": 2,
+                    "z": 4
+                  },
+                  {
+                    "x": 6,
+                    "z": 4
+                  },
+                  {
+                    "x": 10,
+                    "z": 4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "station-departure",
+                "kind": "departure",
+                "points": [
+                  {
+                    "x": -6,
+                    "z": -4
+                  },
+                  {
+                    "x": -2,
+                    "z": -4
+                  },
+                  {
+                    "x": 2,
+                    "z": -4
+                  },
+                  {
+                    "x": 6,
+                    "z": -4
+                  },
+                  {
+                    "x": 10,
+                    "z": -4
+                  },
+                  {
+                    "x": 14,
+                    "z": -4
+                  },
+                  {
+                    "x": 18,
+                    "z": -4
+                  },
+                  {
+                    "x": 20,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T1-entry",
+                "kind": "bay-entry",
+                "points": [
+                  {
+                    "x": -6,
+                    "z": 4
+                  },
+                  {
+                    "x": -6,
+                    "z": 0
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T1-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": -6,
+                    "z": 0
+                  },
+                  {
+                    "x": -6,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T2-entry",
+                "kind": "bay-entry",
+                "points": [
+                  {
+                    "x": -2,
+                    "z": 4
+                  },
+                  {
+                    "x": -2,
+                    "z": 0
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T2-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": -2,
+                    "z": 0
+                  },
+                  {
+                    "x": -2,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T3-entry",
+                "kind": "bay-entry",
+                "points": [
+                  {
+                    "x": 2,
+                    "z": 4
+                  },
+                  {
+                    "x": 2,
+                    "z": 0
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T3-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": 2,
+                    "z": 0
+                  },
+                  {
+                    "x": 2,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T4-entry",
+                "kind": "bay-entry",
+                "points": [
+                  {
+                    "x": 6,
+                    "z": 4
+                  },
+                  {
+                    "x": 6,
+                    "z": 0
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T4-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": 6,
+                    "z": 0
+                  },
+                  {
+                    "x": 6,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "empty-taxi-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": 10,
+                    "z": 4
+                  },
+                  {
+                    "x": 10,
+                    "z": 0
+                  },
+                  {
+                    "x": 10,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              }
+            ],
+            "bays": [
+              {
+                "id": "T1",
+                "point": {
+                  "x": -6,
+                  "z": 0
+                },
+                "entry": {
+                  "x": -6,
+                  "z": 4
+                },
+                "exit": {
+                  "x": -6,
+                  "z": -4
+                },
+                "door": {
+                  "x": -6,
+                  "z": -6
+                }
+              },
+              {
+                "id": "T2",
+                "point": {
+                  "x": -2,
+                  "z": 0
+                },
+                "entry": {
+                  "x": -2,
+                  "z": 4
+                },
+                "exit": {
+                  "x": -2,
+                  "z": -4
+                },
+                "door": {
+                  "x": -2,
+                  "z": -6
+                }
+              },
+              {
+                "id": "T3",
+                "point": {
+                  "x": 2,
+                  "z": 0
+                },
+                "entry": {
+                  "x": 2,
+                  "z": 4
+                },
+                "exit": {
+                  "x": 2,
+                  "z": -4
+                },
+                "door": {
+                  "x": 2,
+                  "z": -6
+                }
+              },
+              {
+                "id": "T4",
+                "point": {
+                  "x": 6,
+                  "z": 0
+                },
+                "entry": {
+                  "x": 6,
+                  "z": 4
+                },
+                "exit": {
+                  "x": 6,
+                  "z": -4
+                },
+                "door": {
+                  "x": 6,
+                  "z": -6
+                }
+              }
+            ],
+            "waitingSlots": [
+              {
+                "x": 12,
+                "z": 8
+              },
+              {
+                "x": 8,
+                "z": 8
+              },
+              {
+                "x": 4,
+                "z": 8
+              },
+              {
+                "x": 0,
+                "z": 8
+              },
+              {
+                "x": -4,
+                "z": 8
+              },
+              {
+                "x": -8,
+                "z": 8
+              },
+              {
+                "x": -12,
+                "z": 8
+              },
+              {
+                "x": 12,
+                "z": 24
+              },
+              {
+                "x": 12,
+                "z": 20
+              },
+              {
+                "x": 12,
+                "z": 16
+              },
+              {
+                "x": 12,
+                "z": 12
+              },
+              {
+                "x": 8,
+                "z": 24
+              },
+              {
+                "x": 4,
+                "z": 24
+              },
+              {
+                "x": 0,
+                "z": 24
+              },
+              {
+                "x": -4,
+                "z": 24
+              },
+              {
+                "x": -8,
+                "z": 24
+              },
+              {
+                "x": -12,
+                "z": 24
+              },
+              {
+                "x": -12,
+                "z": 20
+              },
+              {
+                "x": -12,
+                "z": 16
+              },
+              {
+                "x": -12,
+                "z": 12
+              },
+              {
+                "x": -12,
+                "z": 4
+              },
+              {
+                "x": -6,
+                "z": 4
+              },
+              {
+                "x": -2,
+                "z": 4
+              },
+              {
+                "x": 2,
+                "z": 4
+              },
+              {
+                "x": 6,
+                "z": 4
+              },
+              {
+                "x": 10,
+                "z": 4
+              },
+              {
+                "x": -6,
+                "z": -4
+              },
+              {
+                "x": -2,
+                "z": -4
+              },
+              {
+                "x": 2,
+                "z": -4
+              },
+              {
+                "x": 6,
+                "z": -4
+              },
+              {
+                "x": 10,
+                "z": -4
+              },
+              {
+                "x": 14,
+                "z": -4
+              }
+            ],
+            "crosswalks": [
+              {
+                "bayId": "T1",
+                "from": {
+                  "x": -6,
+                  "z": -6
+                },
+                "to": {
+                  "x": -6,
+                  "z": 0
+                }
+              },
+              {
+                "bayId": "T2",
+                "from": {
+                  "x": -2,
+                  "z": -6
+                },
+                "to": {
+                  "x": -2,
+                  "z": 0
+                }
+              },
+              {
+                "bayId": "T3",
+                "from": {
+                  "x": 2,
+                  "z": -6
+                },
+                "to": {
+                  "x": 2,
+                  "z": 0
+                }
+              },
+              {
+                "bayId": "T4",
+                "from": {
+                  "x": 6,
+                  "z": -6
+                },
+                "to": {
+                  "x": 6,
+                  "z": 0
+                }
+              }
+            ],
+            "collector": {
+              "left": -12,
+              "right": 12,
+              "north": 8,
+              "south": 24
+            },
+            "approachZ": 4,
+            "departureZ": -4,
+            "exitPoint": {
+              "x": 20,
+              "z": -4
+            }
+          },
+          "delivered": [],
+          "target": 17,
+          "groups": [
+            {
+              "id": "T01",
+              "sequence": 0,
+              "queueBayId": "T1",
+              "passengers": [
+                {
+                  "id": "T01/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T01/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T01/p3",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "reserved",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0,
+              "vehicleId": "巡02",
+              "bayId": "T1"
+            },
+            {
+              "id": "T02",
+              "sequence": 1,
+              "queueBayId": "T2",
+              "passengers": [
+                {
+                  "id": "T02/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T02/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "ready",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0
+            },
+            {
+              "id": "T03",
+              "sequence": 2,
+              "queueBayId": "T3",
+              "passengers": [
+                {
+                  "id": "T03/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T03/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T03/p3",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "ready",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0
+            },
+            {
+              "id": "T04",
+              "sequence": 3,
+              "queueBayId": "T4",
+              "passengers": [
+                {
+                  "id": "T04/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T04/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T04/p3",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "ready",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0
+            },
+            {
+              "id": "T05",
+              "sequence": 4,
+              "queueBayId": "T1",
+              "passengers": [
+                {
+                  "id": "T05/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T05/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "ready",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0
+            },
+            {
+              "id": "T06",
+              "sequence": 5,
+              "queueBayId": "T2",
+              "passengers": [
+                {
+                  "id": "T06/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T06/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T06/p3",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T06/p4",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "ready",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0
+            }
+          ],
+          "vehicles": [
+            {
+              "id": "巡01",
+              "capacity": 4,
+              "column": 1,
+              "row": 0,
+              "direction": "W",
+              "sequence": 0,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "holding",
+              "position": {
+                "x": 0,
+                "z": 12
+              },
+              "angle": -1.5707963267948966
+            },
+            {
+              "id": "巡02",
+              "capacity": 4,
+              "column": 2,
+              "row": 0,
+              "direction": "N",
+              "sequence": 1,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "movingToBay",
+              "position": {
+                "x": 3.5,
+                "z": 8
+              },
+              "angle": -1.5707963267948966,
+              "groupId": "T01",
+              "bayId": "T1"
+            },
+            {
+              "id": "巡03",
+              "capacity": 4,
+              "column": 0,
+              "row": 1,
+              "direction": "N",
+              "sequence": 2,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "holding",
+              "position": {
+                "x": -4,
+                "z": 16
+              },
+              "angle": 3.141592653589793
+            },
+            {
+              "id": "巡04",
+              "capacity": 4,
+              "column": 1,
+              "row": 1,
+              "direction": "E",
+              "sequence": 3,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "holding",
+              "position": {
+                "x": 0,
+                "z": 16
+              },
+              "angle": 1.5707963267948966
+            },
+            {
+              "id": "巡05",
+              "capacity": 6,
+              "column": 0,
+              "row": 2,
+              "direction": "W",
+              "sequence": 4,
+              "seatCount": 7,
+              "driverSeatCount": 1,
+              "passengerCapacity": 6,
+              "state": "holding",
+              "position": {
+                "x": -4,
+                "z": 20
+              },
+              "angle": -1.5707963267948966
+            },
+            {
+              "id": "巡06",
+              "capacity": 4,
+              "column": 1,
+              "row": 2,
+              "direction": "E",
+              "sequence": 5,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "holding",
+              "position": {
+                "x": 0,
+                "z": 20
+              },
+              "angle": 1.5707963267948966
+            }
+          ],
+          "bays": [
+            {
+              "id": "T1",
+              "state": "free"
+            },
+            {
+              "id": "T2",
+              "state": "free"
+            },
+            {
+              "id": "T3",
+              "state": "free"
+            },
+            {
+              "id": "T4",
+              "state": "free"
+            }
+          ],
+          "services": [
+            {
+              "vehicleId": "巡02",
+              "groupId": "T01",
+              "bayId": "T1",
+              "phase": "driving",
+              "elapsed": 0.49999999999999994,
+              "duration": 0,
+              "path": [
+                {
+                  "x": 4,
+                  "z": 12
+                },
+                {
+                  "x": 4,
+                  "z": 8
+                },
+                {
+                  "x": 0,
+                  "z": 8
+                },
+                {
+                  "x": -4,
+                  "z": 8
+                },
+                {
+                  "x": -8,
+                  "z": 8
+                },
+                {
+                  "x": -12,
+                  "z": 8
+                },
+                {
+                  "x": -12,
+                  "z": 4
+                },
+                {
+                  "x": -6,
+                  "z": 4
+                },
+                {
+                  "x": -6,
+                  "z": 0
+                }
+              ],
+              "pathIndex": 2,
+              "assignmentOrder": 0,
+              "pickupPoint": {
+                "x": -6,
+                "z": -6
+              },
+              "walkFrom": {
+                "x": -6,
+                "z": -6
+              },
+              "waitingForTraffic": false,
+              "travelled": 4.499999999999999
+            }
+          ],
+          "splits": 0
+        },
+        "view": {
+          "page": "playing",
+          "speed": 1,
+          "unlockedSpeeds": [1],
+          "practice": false,
+          "adPending": false,
+          "cars": [
+            {
+              "id": "巡01",
+              "available": true,
+              "x": 174.52,
+              "y": 328.92857142857144,
+              "angle": 3.141592653589793
+            },
+            {
+              "id": "巡03",
+              "available": true,
+              "x": 85.08338493292052,
+              "y": 494.5,
+              "angle": -1.5707963267948966
+            },
+            {
+              "id": "巡04",
+              "available": true,
+              "x": 174.52,
+              "y": 505.92334096109835,
+              "angle": 0
+            },
+            {
+              "id": "巡05",
+              "available": true,
+              "x": 79.18666666666665,
+              "y": 682.9285714285714,
+              "angle": 3.141592653589793
+            },
+            {
+              "id": "巡06",
+              "available": true,
+              "x": 174.52,
+              "y": 682.9233409610983,
+              "angle": 0
+            }
+          ]
+        }
+      },
+      "afterSecond": {
+        "wallTimeMs": 6705.5999999996275,
+        "state": {
+          "time": 1.9500000000000002,
+          "paused": false,
+          "won": false,
+          "level": 1,
+          "geometry": {
+            "mode": "station",
+            "bounds": {
+              "left": -15,
+              "right": 15,
+              "top": -11,
+              "bottom": 27
+            },
+            "parking": {
+              "columns": 3,
+              "rows": 3,
+              "pitch": 4,
+              "origin": {
+                "x": -4,
+                "z": 12
+              },
+              "bounds": {
+                "left": -6,
+                "right": 6,
+                "top": 10,
+                "bottom": 22
+              }
+            },
+            "station": {
+              "bounds": {
+                "left": -10,
+                "right": 10,
+                "top": -10,
+                "bottom": -6
+              }
+            },
+            "lanes": [
+              {
+                "id": "north-collector",
+                "kind": "collector",
+                "points": [
+                  {
+                    "x": 12,
+                    "z": 8
+                  },
+                  {
+                    "x": 8,
+                    "z": 8
+                  },
+                  {
+                    "x": 4,
+                    "z": 8
+                  },
+                  {
+                    "x": 0,
+                    "z": 8
+                  },
+                  {
+                    "x": -4,
+                    "z": 8
+                  },
+                  {
+                    "x": -8,
+                    "z": 8
+                  },
+                  {
+                    "x": -12,
+                    "z": 8
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "east-collector",
+                "kind": "collector",
+                "points": [
+                  {
+                    "x": 12,
+                    "z": 24
+                  },
+                  {
+                    "x": 12,
+                    "z": 20
+                  },
+                  {
+                    "x": 12,
+                    "z": 16
+                  },
+                  {
+                    "x": 12,
+                    "z": 12
+                  },
+                  {
+                    "x": 12,
+                    "z": 8
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "south-collector",
+                "kind": "collector",
+                "points": [
+                  {
+                    "x": 12,
+                    "z": 24
+                  },
+                  {
+                    "x": 8,
+                    "z": 24
+                  },
+                  {
+                    "x": 4,
+                    "z": 24
+                  },
+                  {
+                    "x": 0,
+                    "z": 24
+                  },
+                  {
+                    "x": -4,
+                    "z": 24
+                  },
+                  {
+                    "x": -8,
+                    "z": 24
+                  },
+                  {
+                    "x": -12,
+                    "z": 24
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "west-collector",
+                "kind": "collector",
+                "points": [
+                  {
+                    "x": -12,
+                    "z": 24
+                  },
+                  {
+                    "x": -12,
+                    "z": 20
+                  },
+                  {
+                    "x": -12,
+                    "z": 16
+                  },
+                  {
+                    "x": -12,
+                    "z": 12
+                  },
+                  {
+                    "x": -12,
+                    "z": 8
+                  },
+                  {
+                    "x": -12,
+                    "z": 4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "station-approach",
+                "kind": "approach",
+                "points": [
+                  {
+                    "x": -12,
+                    "z": 4
+                  },
+                  {
+                    "x": -6,
+                    "z": 4
+                  },
+                  {
+                    "x": -2,
+                    "z": 4
+                  },
+                  {
+                    "x": 2,
+                    "z": 4
+                  },
+                  {
+                    "x": 6,
+                    "z": 4
+                  },
+                  {
+                    "x": 10,
+                    "z": 4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "station-departure",
+                "kind": "departure",
+                "points": [
+                  {
+                    "x": -6,
+                    "z": -4
+                  },
+                  {
+                    "x": -2,
+                    "z": -4
+                  },
+                  {
+                    "x": 2,
+                    "z": -4
+                  },
+                  {
+                    "x": 6,
+                    "z": -4
+                  },
+                  {
+                    "x": 10,
+                    "z": -4
+                  },
+                  {
+                    "x": 14,
+                    "z": -4
+                  },
+                  {
+                    "x": 18,
+                    "z": -4
+                  },
+                  {
+                    "x": 20,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T1-entry",
+                "kind": "bay-entry",
+                "points": [
+                  {
+                    "x": -6,
+                    "z": 4
+                  },
+                  {
+                    "x": -6,
+                    "z": 0
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T1-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": -6,
+                    "z": 0
+                  },
+                  {
+                    "x": -6,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T2-entry",
+                "kind": "bay-entry",
+                "points": [
+                  {
+                    "x": -2,
+                    "z": 4
+                  },
+                  {
+                    "x": -2,
+                    "z": 0
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T2-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": -2,
+                    "z": 0
+                  },
+                  {
+                    "x": -2,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T3-entry",
+                "kind": "bay-entry",
+                "points": [
+                  {
+                    "x": 2,
+                    "z": 4
+                  },
+                  {
+                    "x": 2,
+                    "z": 0
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T3-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": 2,
+                    "z": 0
+                  },
+                  {
+                    "x": 2,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T4-entry",
+                "kind": "bay-entry",
+                "points": [
+                  {
+                    "x": 6,
+                    "z": 4
+                  },
+                  {
+                    "x": 6,
+                    "z": 0
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T4-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": 6,
+                    "z": 0
+                  },
+                  {
+                    "x": 6,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "empty-taxi-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": 10,
+                    "z": 4
+                  },
+                  {
+                    "x": 10,
+                    "z": 0
+                  },
+                  {
+                    "x": 10,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              }
+            ],
+            "bays": [
+              {
+                "id": "T1",
+                "point": {
+                  "x": -6,
+                  "z": 0
+                },
+                "entry": {
+                  "x": -6,
+                  "z": 4
+                },
+                "exit": {
+                  "x": -6,
+                  "z": -4
+                },
+                "door": {
+                  "x": -6,
+                  "z": -6
+                }
+              },
+              {
+                "id": "T2",
+                "point": {
+                  "x": -2,
+                  "z": 0
+                },
+                "entry": {
+                  "x": -2,
+                  "z": 4
+                },
+                "exit": {
+                  "x": -2,
+                  "z": -4
+                },
+                "door": {
+                  "x": -2,
+                  "z": -6
+                }
+              },
+              {
+                "id": "T3",
+                "point": {
+                  "x": 2,
+                  "z": 0
+                },
+                "entry": {
+                  "x": 2,
+                  "z": 4
+                },
+                "exit": {
+                  "x": 2,
+                  "z": -4
+                },
+                "door": {
+                  "x": 2,
+                  "z": -6
+                }
+              },
+              {
+                "id": "T4",
+                "point": {
+                  "x": 6,
+                  "z": 0
+                },
+                "entry": {
+                  "x": 6,
+                  "z": 4
+                },
+                "exit": {
+                  "x": 6,
+                  "z": -4
+                },
+                "door": {
+                  "x": 6,
+                  "z": -6
+                }
+              }
+            ],
+            "waitingSlots": [
+              {
+                "x": 12,
+                "z": 8
+              },
+              {
+                "x": 8,
+                "z": 8
+              },
+              {
+                "x": 4,
+                "z": 8
+              },
+              {
+                "x": 0,
+                "z": 8
+              },
+              {
+                "x": -4,
+                "z": 8
+              },
+              {
+                "x": -8,
+                "z": 8
+              },
+              {
+                "x": -12,
+                "z": 8
+              },
+              {
+                "x": 12,
+                "z": 24
+              },
+              {
+                "x": 12,
+                "z": 20
+              },
+              {
+                "x": 12,
+                "z": 16
+              },
+              {
+                "x": 12,
+                "z": 12
+              },
+              {
+                "x": 8,
+                "z": 24
+              },
+              {
+                "x": 4,
+                "z": 24
+              },
+              {
+                "x": 0,
+                "z": 24
+              },
+              {
+                "x": -4,
+                "z": 24
+              },
+              {
+                "x": -8,
+                "z": 24
+              },
+              {
+                "x": -12,
+                "z": 24
+              },
+              {
+                "x": -12,
+                "z": 20
+              },
+              {
+                "x": -12,
+                "z": 16
+              },
+              {
+                "x": -12,
+                "z": 12
+              },
+              {
+                "x": -12,
+                "z": 4
+              },
+              {
+                "x": -6,
+                "z": 4
+              },
+              {
+                "x": -2,
+                "z": 4
+              },
+              {
+                "x": 2,
+                "z": 4
+              },
+              {
+                "x": 6,
+                "z": 4
+              },
+              {
+                "x": 10,
+                "z": 4
+              },
+              {
+                "x": -6,
+                "z": -4
+              },
+              {
+                "x": -2,
+                "z": -4
+              },
+              {
+                "x": 2,
+                "z": -4
+              },
+              {
+                "x": 6,
+                "z": -4
+              },
+              {
+                "x": 10,
+                "z": -4
+              },
+              {
+                "x": 14,
+                "z": -4
+              }
+            ],
+            "crosswalks": [
+              {
+                "bayId": "T1",
+                "from": {
+                  "x": -6,
+                  "z": -6
+                },
+                "to": {
+                  "x": -6,
+                  "z": 0
+                }
+              },
+              {
+                "bayId": "T2",
+                "from": {
+                  "x": -2,
+                  "z": -6
+                },
+                "to": {
+                  "x": -2,
+                  "z": 0
+                }
+              },
+              {
+                "bayId": "T3",
+                "from": {
+                  "x": 2,
+                  "z": -6
+                },
+                "to": {
+                  "x": 2,
+                  "z": 0
+                }
+              },
+              {
+                "bayId": "T4",
+                "from": {
+                  "x": 6,
+                  "z": -6
+                },
+                "to": {
+                  "x": 6,
+                  "z": 0
+                }
+              }
+            ],
+            "collector": {
+              "left": -12,
+              "right": 12,
+              "north": 8,
+              "south": 24
+            },
+            "approachZ": 4,
+            "departureZ": -4,
+            "exitPoint": {
+              "x": 20,
+              "z": -4
+            }
+          },
+          "delivered": [],
+          "target": 17,
+          "groups": [
+            {
+              "id": "T01",
+              "sequence": 0,
+              "queueBayId": "T1",
+              "passengers": [
+                {
+                  "id": "T01/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T01/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T01/p3",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "reserved",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0,
+              "vehicleId": "巡02",
+              "bayId": "T1"
+            },
+            {
+              "id": "T02",
+              "sequence": 1,
+              "queueBayId": "T2",
+              "passengers": [
+                {
+                  "id": "T02/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T02/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "reserved",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0,
+              "vehicleId": "巡01",
+              "bayId": "T2"
+            },
+            {
+              "id": "T03",
+              "sequence": 2,
+              "queueBayId": "T3",
+              "passengers": [
+                {
+                  "id": "T03/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T03/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T03/p3",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "ready",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0
+            },
+            {
+              "id": "T04",
+              "sequence": 3,
+              "queueBayId": "T4",
+              "passengers": [
+                {
+                  "id": "T04/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T04/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T04/p3",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "ready",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0
+            },
+            {
+              "id": "T05",
+              "sequence": 4,
+              "queueBayId": "T1",
+              "passengers": [
+                {
+                  "id": "T05/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T05/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "ready",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0
+            },
+            {
+              "id": "T06",
+              "sequence": 5,
+              "queueBayId": "T2",
+              "passengers": [
+                {
+                  "id": "T06/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T06/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T06/p3",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T06/p4",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "ready",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0
+            }
+          ],
+          "vehicles": [
+            {
+              "id": "巡01",
+              "capacity": 4,
+              "column": 1,
+              "row": 0,
+              "direction": "W",
+              "sequence": 0,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "movingToBay",
+              "position": {
+                "x": 0,
+                "z": 12
+              },
+              "angle": -1.5707963267948966,
+              "groupId": "T02",
+              "bayId": "T2"
+            },
+            {
+              "id": "巡02",
+              "capacity": 4,
+              "column": 2,
+              "row": 0,
+              "direction": "N",
+              "sequence": 1,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "movingToBay",
+              "position": {
+                "x": 3.05,
+                "z": 8
+              },
+              "angle": -1.5707963267948966,
+              "groupId": "T01",
+              "bayId": "T1"
+            },
+            {
+              "id": "巡03",
+              "capacity": 4,
+              "column": 0,
+              "row": 1,
+              "direction": "N",
+              "sequence": 2,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "holding",
+              "position": {
+                "x": -4,
+                "z": 16
+              },
+              "angle": 3.141592653589793
+            },
+            {
+              "id": "巡04",
+              "capacity": 4,
+              "column": 1,
+              "row": 1,
+              "direction": "E",
+              "sequence": 3,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "holding",
+              "position": {
+                "x": 0,
+                "z": 16
+              },
+              "angle": 1.5707963267948966
+            },
+            {
+              "id": "巡05",
+              "capacity": 6,
+              "column": 0,
+              "row": 2,
+              "direction": "W",
+              "sequence": 4,
+              "seatCount": 7,
+              "driverSeatCount": 1,
+              "passengerCapacity": 6,
+              "state": "holding",
+              "position": {
+                "x": -4,
+                "z": 20
+              },
+              "angle": -1.5707963267948966
+            },
+            {
+              "id": "巡06",
+              "capacity": 4,
+              "column": 1,
+              "row": 2,
+              "direction": "E",
+              "sequence": 5,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "holding",
+              "position": {
+                "x": 0,
+                "z": 20
+              },
+              "angle": 1.5707963267948966
+            }
+          ],
+          "bays": [
+            {
+              "id": "T1",
+              "state": "free"
+            },
+            {
+              "id": "T2",
+              "state": "free"
+            },
+            {
+              "id": "T3",
+              "state": "free"
+            },
+            {
+              "id": "T4",
+              "state": "free"
+            }
+          ],
+          "services": [
+            {
+              "vehicleId": "巡02",
+              "groupId": "T01",
+              "bayId": "T1",
+              "phase": "driving",
+              "elapsed": 0.5499999999999999,
+              "duration": 0,
+              "path": [
+                {
+                  "x": 4,
+                  "z": 12
+                },
+                {
+                  "x": 4,
+                  "z": 8
+                },
+                {
+                  "x": 0,
+                  "z": 8
+                },
+                {
+                  "x": -4,
+                  "z": 8
+                },
+                {
+                  "x": -8,
+                  "z": 8
+                },
+                {
+                  "x": -12,
+                  "z": 8
+                },
+                {
+                  "x": -12,
+                  "z": 4
+                },
+                {
+                  "x": -6,
+                  "z": 4
+                },
+                {
+                  "x": -6,
+                  "z": 0
+                }
+              ],
+              "pathIndex": 2,
+              "assignmentOrder": 0,
+              "pickupPoint": {
+                "x": -6,
+                "z": -6
+              },
+              "walkFrom": {
+                "x": -6,
+                "z": -6
+              },
+              "waitingForTraffic": false,
+              "travelled": 4.9499999999999975
+            },
+            {
+              "vehicleId": "巡01",
+              "groupId": "T02",
+              "bayId": "T2",
+              "phase": "driving",
+              "elapsed": 0,
+              "duration": 0,
+              "path": [
+                {
+                  "x": 0,
+                  "z": 12
+                },
+                {
+                  "x": -12,
+                  "z": 12
+                },
+                {
+                  "x": -12,
+                  "z": 8
+                },
+                {
+                  "x": -12,
+                  "z": 4
+                },
+                {
+                  "x": -6,
+                  "z": 4
+                },
+                {
+                  "x": -2,
+                  "z": 4
+                },
+                {
+                  "x": -2,
+                  "z": 0
+                }
+              ],
+              "pathIndex": 1,
+              "assignmentOrder": 1,
+              "pickupPoint": {
+                "x": -2,
+                "z": -6
+              },
+              "walkFrom": {
+                "x": -2,
+                "z": -6
+              }
+            }
+          ],
+          "splits": 0
+        },
+        "view": {
+          "page": "playing",
+          "speed": 1,
+          "unlockedSpeeds": [1],
+          "practice": false,
+          "adPending": false,
+          "cars": [
+            {
+              "id": "巡03",
+              "available": true,
+              "x": 85.08338493292052,
+              "y": 494.5,
+              "angle": -1.5707963267948966
+            },
+            {
+              "id": "巡04",
+              "available": true,
+              "x": 174.52,
+              "y": 505.92334096109835,
+              "angle": 0
+            },
+            {
+              "id": "巡05",
+              "available": true,
+              "x": 79.18666666666665,
+              "y": 682.9285714285714,
+              "angle": 3.141592653589793
+            },
+            {
+              "id": "巡06",
+              "available": true,
+              "x": 174.52,
+              "y": 682.9233409610983,
+              "angle": 0
+            }
+          ]
+        }
+      },
+      "movedTogether": {
+        "wallTimeMs": 7175.4000000003725,
+        "state": {
+          "time": 2.45,
+          "paused": false,
+          "won": false,
+          "level": 1,
+          "geometry": {
+            "mode": "station",
+            "bounds": {
+              "left": -15,
+              "right": 15,
+              "top": -11,
+              "bottom": 27
+            },
+            "parking": {
+              "columns": 3,
+              "rows": 3,
+              "pitch": 4,
+              "origin": {
+                "x": -4,
+                "z": 12
+              },
+              "bounds": {
+                "left": -6,
+                "right": 6,
+                "top": 10,
+                "bottom": 22
+              }
+            },
+            "station": {
+              "bounds": {
+                "left": -10,
+                "right": 10,
+                "top": -10,
+                "bottom": -6
+              }
+            },
+            "lanes": [
+              {
+                "id": "north-collector",
+                "kind": "collector",
+                "points": [
+                  {
+                    "x": 12,
+                    "z": 8
+                  },
+                  {
+                    "x": 8,
+                    "z": 8
+                  },
+                  {
+                    "x": 4,
+                    "z": 8
+                  },
+                  {
+                    "x": 0,
+                    "z": 8
+                  },
+                  {
+                    "x": -4,
+                    "z": 8
+                  },
+                  {
+                    "x": -8,
+                    "z": 8
+                  },
+                  {
+                    "x": -12,
+                    "z": 8
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "east-collector",
+                "kind": "collector",
+                "points": [
+                  {
+                    "x": 12,
+                    "z": 24
+                  },
+                  {
+                    "x": 12,
+                    "z": 20
+                  },
+                  {
+                    "x": 12,
+                    "z": 16
+                  },
+                  {
+                    "x": 12,
+                    "z": 12
+                  },
+                  {
+                    "x": 12,
+                    "z": 8
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "south-collector",
+                "kind": "collector",
+                "points": [
+                  {
+                    "x": 12,
+                    "z": 24
+                  },
+                  {
+                    "x": 8,
+                    "z": 24
+                  },
+                  {
+                    "x": 4,
+                    "z": 24
+                  },
+                  {
+                    "x": 0,
+                    "z": 24
+                  },
+                  {
+                    "x": -4,
+                    "z": 24
+                  },
+                  {
+                    "x": -8,
+                    "z": 24
+                  },
+                  {
+                    "x": -12,
+                    "z": 24
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "west-collector",
+                "kind": "collector",
+                "points": [
+                  {
+                    "x": -12,
+                    "z": 24
+                  },
+                  {
+                    "x": -12,
+                    "z": 20
+                  },
+                  {
+                    "x": -12,
+                    "z": 16
+                  },
+                  {
+                    "x": -12,
+                    "z": 12
+                  },
+                  {
+                    "x": -12,
+                    "z": 8
+                  },
+                  {
+                    "x": -12,
+                    "z": 4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "station-approach",
+                "kind": "approach",
+                "points": [
+                  {
+                    "x": -12,
+                    "z": 4
+                  },
+                  {
+                    "x": -6,
+                    "z": 4
+                  },
+                  {
+                    "x": -2,
+                    "z": 4
+                  },
+                  {
+                    "x": 2,
+                    "z": 4
+                  },
+                  {
+                    "x": 6,
+                    "z": 4
+                  },
+                  {
+                    "x": 10,
+                    "z": 4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "station-departure",
+                "kind": "departure",
+                "points": [
+                  {
+                    "x": -6,
+                    "z": -4
+                  },
+                  {
+                    "x": -2,
+                    "z": -4
+                  },
+                  {
+                    "x": 2,
+                    "z": -4
+                  },
+                  {
+                    "x": 6,
+                    "z": -4
+                  },
+                  {
+                    "x": 10,
+                    "z": -4
+                  },
+                  {
+                    "x": 14,
+                    "z": -4
+                  },
+                  {
+                    "x": 18,
+                    "z": -4
+                  },
+                  {
+                    "x": 20,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T1-entry",
+                "kind": "bay-entry",
+                "points": [
+                  {
+                    "x": -6,
+                    "z": 4
+                  },
+                  {
+                    "x": -6,
+                    "z": 0
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T1-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": -6,
+                    "z": 0
+                  },
+                  {
+                    "x": -6,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T2-entry",
+                "kind": "bay-entry",
+                "points": [
+                  {
+                    "x": -2,
+                    "z": 4
+                  },
+                  {
+                    "x": -2,
+                    "z": 0
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T2-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": -2,
+                    "z": 0
+                  },
+                  {
+                    "x": -2,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T3-entry",
+                "kind": "bay-entry",
+                "points": [
+                  {
+                    "x": 2,
+                    "z": 4
+                  },
+                  {
+                    "x": 2,
+                    "z": 0
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T3-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": 2,
+                    "z": 0
+                  },
+                  {
+                    "x": 2,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T4-entry",
+                "kind": "bay-entry",
+                "points": [
+                  {
+                    "x": 6,
+                    "z": 4
+                  },
+                  {
+                    "x": 6,
+                    "z": 0
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T4-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": 6,
+                    "z": 0
+                  },
+                  {
+                    "x": 6,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "empty-taxi-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": 10,
+                    "z": 4
+                  },
+                  {
+                    "x": 10,
+                    "z": 0
+                  },
+                  {
+                    "x": 10,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              }
+            ],
+            "bays": [
+              {
+                "id": "T1",
+                "point": {
+                  "x": -6,
+                  "z": 0
+                },
+                "entry": {
+                  "x": -6,
+                  "z": 4
+                },
+                "exit": {
+                  "x": -6,
+                  "z": -4
+                },
+                "door": {
+                  "x": -6,
+                  "z": -6
+                }
+              },
+              {
+                "id": "T2",
+                "point": {
+                  "x": -2,
+                  "z": 0
+                },
+                "entry": {
+                  "x": -2,
+                  "z": 4
+                },
+                "exit": {
+                  "x": -2,
+                  "z": -4
+                },
+                "door": {
+                  "x": -2,
+                  "z": -6
+                }
+              },
+              {
+                "id": "T3",
+                "point": {
+                  "x": 2,
+                  "z": 0
+                },
+                "entry": {
+                  "x": 2,
+                  "z": 4
+                },
+                "exit": {
+                  "x": 2,
+                  "z": -4
+                },
+                "door": {
+                  "x": 2,
+                  "z": -6
+                }
+              },
+              {
+                "id": "T4",
+                "point": {
+                  "x": 6,
+                  "z": 0
+                },
+                "entry": {
+                  "x": 6,
+                  "z": 4
+                },
+                "exit": {
+                  "x": 6,
+                  "z": -4
+                },
+                "door": {
+                  "x": 6,
+                  "z": -6
+                }
+              }
+            ],
+            "waitingSlots": [
+              {
+                "x": 12,
+                "z": 8
+              },
+              {
+                "x": 8,
+                "z": 8
+              },
+              {
+                "x": 4,
+                "z": 8
+              },
+              {
+                "x": 0,
+                "z": 8
+              },
+              {
+                "x": -4,
+                "z": 8
+              },
+              {
+                "x": -8,
+                "z": 8
+              },
+              {
+                "x": -12,
+                "z": 8
+              },
+              {
+                "x": 12,
+                "z": 24
+              },
+              {
+                "x": 12,
+                "z": 20
+              },
+              {
+                "x": 12,
+                "z": 16
+              },
+              {
+                "x": 12,
+                "z": 12
+              },
+              {
+                "x": 8,
+                "z": 24
+              },
+              {
+                "x": 4,
+                "z": 24
+              },
+              {
+                "x": 0,
+                "z": 24
+              },
+              {
+                "x": -4,
+                "z": 24
+              },
+              {
+                "x": -8,
+                "z": 24
+              },
+              {
+                "x": -12,
+                "z": 24
+              },
+              {
+                "x": -12,
+                "z": 20
+              },
+              {
+                "x": -12,
+                "z": 16
+              },
+              {
+                "x": -12,
+                "z": 12
+              },
+              {
+                "x": -12,
+                "z": 4
+              },
+              {
+                "x": -6,
+                "z": 4
+              },
+              {
+                "x": -2,
+                "z": 4
+              },
+              {
+                "x": 2,
+                "z": 4
+              },
+              {
+                "x": 6,
+                "z": 4
+              },
+              {
+                "x": 10,
+                "z": 4
+              },
+              {
+                "x": -6,
+                "z": -4
+              },
+              {
+                "x": -2,
+                "z": -4
+              },
+              {
+                "x": 2,
+                "z": -4
+              },
+              {
+                "x": 6,
+                "z": -4
+              },
+              {
+                "x": 10,
+                "z": -4
+              },
+              {
+                "x": 14,
+                "z": -4
+              }
+            ],
+            "crosswalks": [
+              {
+                "bayId": "T1",
+                "from": {
+                  "x": -6,
+                  "z": -6
+                },
+                "to": {
+                  "x": -6,
+                  "z": 0
+                }
+              },
+              {
+                "bayId": "T2",
+                "from": {
+                  "x": -2,
+                  "z": -6
+                },
+                "to": {
+                  "x": -2,
+                  "z": 0
+                }
+              },
+              {
+                "bayId": "T3",
+                "from": {
+                  "x": 2,
+                  "z": -6
+                },
+                "to": {
+                  "x": 2,
+                  "z": 0
+                }
+              },
+              {
+                "bayId": "T4",
+                "from": {
+                  "x": 6,
+                  "z": -6
+                },
+                "to": {
+                  "x": 6,
+                  "z": 0
+                }
+              }
+            ],
+            "collector": {
+              "left": -12,
+              "right": 12,
+              "north": 8,
+              "south": 24
+            },
+            "approachZ": 4,
+            "departureZ": -4,
+            "exitPoint": {
+              "x": 20,
+              "z": -4
+            }
+          },
+          "delivered": [],
+          "target": 17,
+          "groups": [
+            {
+              "id": "T01",
+              "sequence": 0,
+              "queueBayId": "T1",
+              "passengers": [
+                {
+                  "id": "T01/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T01/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T01/p3",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "reserved",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0,
+              "vehicleId": "巡02",
+              "bayId": "T1"
+            },
+            {
+              "id": "T02",
+              "sequence": 1,
+              "queueBayId": "T2",
+              "passengers": [
+                {
+                  "id": "T02/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T02/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "reserved",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0,
+              "vehicleId": "巡01",
+              "bayId": "T2"
+            },
+            {
+              "id": "T03",
+              "sequence": 2,
+              "queueBayId": "T3",
+              "passengers": [
+                {
+                  "id": "T03/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T03/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T03/p3",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "ready",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0
+            },
+            {
+              "id": "T04",
+              "sequence": 3,
+              "queueBayId": "T4",
+              "passengers": [
+                {
+                  "id": "T04/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T04/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T04/p3",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "ready",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0
+            },
+            {
+              "id": "T05",
+              "sequence": 4,
+              "queueBayId": "T1",
+              "passengers": [
+                {
+                  "id": "T05/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T05/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "ready",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0
+            },
+            {
+              "id": "T06",
+              "sequence": 5,
+              "queueBayId": "T2",
+              "passengers": [
+                {
+                  "id": "T06/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T06/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T06/p3",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T06/p4",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "ready",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 0,
+              "waitSeconds": 0
+            }
+          ],
+          "vehicles": [
+            {
+              "id": "巡01",
+              "capacity": 4,
+              "column": 1,
+              "row": 0,
+              "direction": "W",
+              "sequence": 0,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "movingToBay",
+              "position": {
+                "x": -4.499999999999999,
+                "z": 12
+              },
+              "angle": -1.5707963267948966,
+              "groupId": "T02",
+              "bayId": "T2"
+            },
+            {
+              "id": "巡02",
+              "capacity": 4,
+              "column": 2,
+              "row": 0,
+              "direction": "N",
+              "sequence": 1,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "movingToBay",
+              "position": {
+                "x": -1.4500000000000002,
+                "z": 8
+              },
+              "angle": -1.5707963267948966,
+              "groupId": "T01",
+              "bayId": "T1"
+            },
+            {
+              "id": "巡03",
+              "capacity": 4,
+              "column": 0,
+              "row": 1,
+              "direction": "N",
+              "sequence": 2,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "holding",
+              "position": {
+                "x": -4,
+                "z": 16
+              },
+              "angle": 3.141592653589793
+            },
+            {
+              "id": "巡04",
+              "capacity": 4,
+              "column": 1,
+              "row": 1,
+              "direction": "E",
+              "sequence": 3,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "holding",
+              "position": {
+                "x": 0,
+                "z": 16
+              },
+              "angle": 1.5707963267948966
+            },
+            {
+              "id": "巡05",
+              "capacity": 6,
+              "column": 0,
+              "row": 2,
+              "direction": "W",
+              "sequence": 4,
+              "seatCount": 7,
+              "driverSeatCount": 1,
+              "passengerCapacity": 6,
+              "state": "holding",
+              "position": {
+                "x": -4,
+                "z": 20
+              },
+              "angle": -1.5707963267948966
+            },
+            {
+              "id": "巡06",
+              "capacity": 4,
+              "column": 1,
+              "row": 2,
+              "direction": "E",
+              "sequence": 5,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "holding",
+              "position": {
+                "x": 0,
+                "z": 20
+              },
+              "angle": 1.5707963267948966
+            }
+          ],
+          "bays": [
+            {
+              "id": "T1",
+              "state": "free"
+            },
+            {
+              "id": "T2",
+              "state": "free"
+            },
+            {
+              "id": "T3",
+              "state": "free"
+            },
+            {
+              "id": "T4",
+              "state": "free"
+            }
+          ],
+          "services": [
+            {
+              "vehicleId": "巡02",
+              "groupId": "T01",
+              "bayId": "T1",
+              "phase": "driving",
+              "elapsed": 1.0500000000000003,
+              "duration": 0,
+              "path": [
+                {
+                  "x": 4,
+                  "z": 12
+                },
+                {
+                  "x": 4,
+                  "z": 8
+                },
+                {
+                  "x": 0,
+                  "z": 8
+                },
+                {
+                  "x": -4,
+                  "z": 8
+                },
+                {
+                  "x": -8,
+                  "z": 8
+                },
+                {
+                  "x": -12,
+                  "z": 8
+                },
+                {
+                  "x": -12,
+                  "z": 4
+                },
+                {
+                  "x": -6,
+                  "z": 4
+                },
+                {
+                  "x": -6,
+                  "z": 0
+                }
+              ],
+              "pathIndex": 3,
+              "assignmentOrder": 0,
+              "pickupPoint": {
+                "x": -6,
+                "z": -6
+              },
+              "walkFrom": {
+                "x": -6,
+                "z": -6
+              },
+              "waitingForTraffic": false,
+              "travelled": 9.449999999999983
+            },
+            {
+              "vehicleId": "巡01",
+              "groupId": "T02",
+              "bayId": "T2",
+              "phase": "driving",
+              "elapsed": 0.49999999999999994,
+              "duration": 0,
+              "path": [
+                {
+                  "x": 0,
+                  "z": 12
+                },
+                {
+                  "x": -12,
+                  "z": 12
+                },
+                {
+                  "x": -12,
+                  "z": 8
+                },
+                {
+                  "x": -12,
+                  "z": 4
+                },
+                {
+                  "x": -6,
+                  "z": 4
+                },
+                {
+                  "x": -2,
+                  "z": 4
+                },
+                {
+                  "x": -2,
+                  "z": 0
+                }
+              ],
+              "pathIndex": 1,
+              "assignmentOrder": 1,
+              "pickupPoint": {
+                "x": -2,
+                "z": -6
+              },
+              "walkFrom": {
+                "x": -2,
+                "z": -6
+              },
+              "waitingForTraffic": false,
+              "travelled": 4.499999999999999
+            }
+          ],
+          "splits": 0
+        },
+        "view": {
+          "page": "playing",
+          "speed": 1,
+          "unlockedSpeeds": [1],
+          "practice": false,
+          "adPending": false,
+          "cars": [
+            {
+              "id": "巡03",
+              "available": false,
+              "x": 85.08338493292052,
+              "y": 494.5,
+              "angle": -1.5707963267948966
+            },
+            {
+              "id": "巡04",
+              "available": true,
+              "x": 174.52,
+              "y": 505.92334096109835,
+              "angle": 0
+            },
+            {
+              "id": "巡05",
+              "available": true,
+              "x": 79.18666666666665,
+              "y": 682.9285714285714,
+              "angle": 3.141592653589793
+            },
+            {
+              "id": "巡06",
+              "available": true,
+              "x": 174.52,
+              "y": 682.9233409610983,
+              "angle": 0
+            }
+          ]
+        }
+      },
+      "completed": {
+        "wallTimeMs": 14286.400000000373,
+        "state": {
+          "time": 23.85,
+          "paused": true,
+          "won": true,
+          "level": 1,
+          "geometry": {
+            "mode": "station",
+            "bounds": {
+              "left": -15,
+              "right": 15,
+              "top": -11,
+              "bottom": 27
+            },
+            "parking": {
+              "columns": 3,
+              "rows": 3,
+              "pitch": 4,
+              "origin": {
+                "x": -4,
+                "z": 12
+              },
+              "bounds": {
+                "left": -6,
+                "right": 6,
+                "top": 10,
+                "bottom": 22
+              }
+            },
+            "station": {
+              "bounds": {
+                "left": -10,
+                "right": 10,
+                "top": -10,
+                "bottom": -6
+              }
+            },
+            "lanes": [
+              {
+                "id": "north-collector",
+                "kind": "collector",
+                "points": [
+                  {
+                    "x": 12,
+                    "z": 8
+                  },
+                  {
+                    "x": 8,
+                    "z": 8
+                  },
+                  {
+                    "x": 4,
+                    "z": 8
+                  },
+                  {
+                    "x": 0,
+                    "z": 8
+                  },
+                  {
+                    "x": -4,
+                    "z": 8
+                  },
+                  {
+                    "x": -8,
+                    "z": 8
+                  },
+                  {
+                    "x": -12,
+                    "z": 8
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "east-collector",
+                "kind": "collector",
+                "points": [
+                  {
+                    "x": 12,
+                    "z": 24
+                  },
+                  {
+                    "x": 12,
+                    "z": 20
+                  },
+                  {
+                    "x": 12,
+                    "z": 16
+                  },
+                  {
+                    "x": 12,
+                    "z": 12
+                  },
+                  {
+                    "x": 12,
+                    "z": 8
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "south-collector",
+                "kind": "collector",
+                "points": [
+                  {
+                    "x": 12,
+                    "z": 24
+                  },
+                  {
+                    "x": 8,
+                    "z": 24
+                  },
+                  {
+                    "x": 4,
+                    "z": 24
+                  },
+                  {
+                    "x": 0,
+                    "z": 24
+                  },
+                  {
+                    "x": -4,
+                    "z": 24
+                  },
+                  {
+                    "x": -8,
+                    "z": 24
+                  },
+                  {
+                    "x": -12,
+                    "z": 24
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "west-collector",
+                "kind": "collector",
+                "points": [
+                  {
+                    "x": -12,
+                    "z": 24
+                  },
+                  {
+                    "x": -12,
+                    "z": 20
+                  },
+                  {
+                    "x": -12,
+                    "z": 16
+                  },
+                  {
+                    "x": -12,
+                    "z": 12
+                  },
+                  {
+                    "x": -12,
+                    "z": 8
+                  },
+                  {
+                    "x": -12,
+                    "z": 4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "station-approach",
+                "kind": "approach",
+                "points": [
+                  {
+                    "x": -12,
+                    "z": 4
+                  },
+                  {
+                    "x": -6,
+                    "z": 4
+                  },
+                  {
+                    "x": -2,
+                    "z": 4
+                  },
+                  {
+                    "x": 2,
+                    "z": 4
+                  },
+                  {
+                    "x": 6,
+                    "z": 4
+                  },
+                  {
+                    "x": 10,
+                    "z": 4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "station-departure",
+                "kind": "departure",
+                "points": [
+                  {
+                    "x": -6,
+                    "z": -4
+                  },
+                  {
+                    "x": -2,
+                    "z": -4
+                  },
+                  {
+                    "x": 2,
+                    "z": -4
+                  },
+                  {
+                    "x": 6,
+                    "z": -4
+                  },
+                  {
+                    "x": 10,
+                    "z": -4
+                  },
+                  {
+                    "x": 14,
+                    "z": -4
+                  },
+                  {
+                    "x": 18,
+                    "z": -4
+                  },
+                  {
+                    "x": 20,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T1-entry",
+                "kind": "bay-entry",
+                "points": [
+                  {
+                    "x": -6,
+                    "z": 4
+                  },
+                  {
+                    "x": -6,
+                    "z": 0
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T1-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": -6,
+                    "z": 0
+                  },
+                  {
+                    "x": -6,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T2-entry",
+                "kind": "bay-entry",
+                "points": [
+                  {
+                    "x": -2,
+                    "z": 4
+                  },
+                  {
+                    "x": -2,
+                    "z": 0
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T2-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": -2,
+                    "z": 0
+                  },
+                  {
+                    "x": -2,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T3-entry",
+                "kind": "bay-entry",
+                "points": [
+                  {
+                    "x": 2,
+                    "z": 4
+                  },
+                  {
+                    "x": 2,
+                    "z": 0
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T3-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": 2,
+                    "z": 0
+                  },
+                  {
+                    "x": 2,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T4-entry",
+                "kind": "bay-entry",
+                "points": [
+                  {
+                    "x": 6,
+                    "z": 4
+                  },
+                  {
+                    "x": 6,
+                    "z": 0
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "T4-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": 6,
+                    "z": 0
+                  },
+                  {
+                    "x": 6,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              },
+              {
+                "id": "empty-taxi-exit",
+                "kind": "bay-exit",
+                "points": [
+                  {
+                    "x": 10,
+                    "z": 4
+                  },
+                  {
+                    "x": 10,
+                    "z": 0
+                  },
+                  {
+                    "x": 10,
+                    "z": -4
+                  }
+                ],
+                "width": 3.4,
+                "oneWay": true
+              }
+            ],
+            "bays": [
+              {
+                "id": "T1",
+                "point": {
+                  "x": -6,
+                  "z": 0
+                },
+                "entry": {
+                  "x": -6,
+                  "z": 4
+                },
+                "exit": {
+                  "x": -6,
+                  "z": -4
+                },
+                "door": {
+                  "x": -6,
+                  "z": -6
+                }
+              },
+              {
+                "id": "T2",
+                "point": {
+                  "x": -2,
+                  "z": 0
+                },
+                "entry": {
+                  "x": -2,
+                  "z": 4
+                },
+                "exit": {
+                  "x": -2,
+                  "z": -4
+                },
+                "door": {
+                  "x": -2,
+                  "z": -6
+                }
+              },
+              {
+                "id": "T3",
+                "point": {
+                  "x": 2,
+                  "z": 0
+                },
+                "entry": {
+                  "x": 2,
+                  "z": 4
+                },
+                "exit": {
+                  "x": 2,
+                  "z": -4
+                },
+                "door": {
+                  "x": 2,
+                  "z": -6
+                }
+              },
+              {
+                "id": "T4",
+                "point": {
+                  "x": 6,
+                  "z": 0
+                },
+                "entry": {
+                  "x": 6,
+                  "z": 4
+                },
+                "exit": {
+                  "x": 6,
+                  "z": -4
+                },
+                "door": {
+                  "x": 6,
+                  "z": -6
+                }
+              }
+            ],
+            "waitingSlots": [
+              {
+                "x": 12,
+                "z": 8
+              },
+              {
+                "x": 8,
+                "z": 8
+              },
+              {
+                "x": 4,
+                "z": 8
+              },
+              {
+                "x": 0,
+                "z": 8
+              },
+              {
+                "x": -4,
+                "z": 8
+              },
+              {
+                "x": -8,
+                "z": 8
+              },
+              {
+                "x": -12,
+                "z": 8
+              },
+              {
+                "x": 12,
+                "z": 24
+              },
+              {
+                "x": 12,
+                "z": 20
+              },
+              {
+                "x": 12,
+                "z": 16
+              },
+              {
+                "x": 12,
+                "z": 12
+              },
+              {
+                "x": 8,
+                "z": 24
+              },
+              {
+                "x": 4,
+                "z": 24
+              },
+              {
+                "x": 0,
+                "z": 24
+              },
+              {
+                "x": -4,
+                "z": 24
+              },
+              {
+                "x": -8,
+                "z": 24
+              },
+              {
+                "x": -12,
+                "z": 24
+              },
+              {
+                "x": -12,
+                "z": 20
+              },
+              {
+                "x": -12,
+                "z": 16
+              },
+              {
+                "x": -12,
+                "z": 12
+              },
+              {
+                "x": -12,
+                "z": 4
+              },
+              {
+                "x": -6,
+                "z": 4
+              },
+              {
+                "x": -2,
+                "z": 4
+              },
+              {
+                "x": 2,
+                "z": 4
+              },
+              {
+                "x": 6,
+                "z": 4
+              },
+              {
+                "x": 10,
+                "z": 4
+              },
+              {
+                "x": -6,
+                "z": -4
+              },
+              {
+                "x": -2,
+                "z": -4
+              },
+              {
+                "x": 2,
+                "z": -4
+              },
+              {
+                "x": 6,
+                "z": -4
+              },
+              {
+                "x": 10,
+                "z": -4
+              },
+              {
+                "x": 14,
+                "z": -4
+              }
+            ],
+            "crosswalks": [
+              {
+                "bayId": "T1",
+                "from": {
+                  "x": -6,
+                  "z": -6
+                },
+                "to": {
+                  "x": -6,
+                  "z": 0
+                }
+              },
+              {
+                "bayId": "T2",
+                "from": {
+                  "x": -2,
+                  "z": -6
+                },
+                "to": {
+                  "x": -2,
+                  "z": 0
+                }
+              },
+              {
+                "bayId": "T3",
+                "from": {
+                  "x": 2,
+                  "z": -6
+                },
+                "to": {
+                  "x": 2,
+                  "z": 0
+                }
+              },
+              {
+                "bayId": "T4",
+                "from": {
+                  "x": 6,
+                  "z": -6
+                },
+                "to": {
+                  "x": 6,
+                  "z": 0
+                }
+              }
+            ],
+            "collector": {
+              "left": -12,
+              "right": 12,
+              "north": 8,
+              "south": 24
+            },
+            "approachZ": 4,
+            "departureZ": -4,
+            "exitPoint": {
+              "x": 20,
+              "z": -4
+            }
+          },
+          "delivered": [
+            "T01/p1",
+            "T01/p2",
+            "T01/p3",
+            "T02/p1",
+            "T02/p2",
+            "T05/p1",
+            "T05/p2",
+            "T03/p1",
+            "T03/p2",
+            "T03/p3",
+            "T04/p1",
+            "T04/p2",
+            "T04/p3",
+            "T06/p1",
+            "T06/p2",
+            "T06/p3",
+            "T06/p4"
+          ],
+          "target": 17,
+          "groups": [
+            {
+              "id": "T01",
+              "sequence": 0,
+              "queueBayId": "T1",
+              "passengers": [
+                {
+                  "id": "T01/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T01/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T01/p3",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "departed",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 3,
+              "waitSeconds": 6.95,
+              "vehicleId": "巡02"
+            },
+            {
+              "id": "T02",
+              "sequence": 1,
+              "queueBayId": "T2",
+              "passengers": [
+                {
+                  "id": "T02/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T02/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "departed",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 2,
+              "waitSeconds": 8.5,
+              "vehicleId": "巡01"
+            },
+            {
+              "id": "T03",
+              "sequence": 2,
+              "queueBayId": "T3",
+              "passengers": [
+                {
+                  "id": "T03/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T03/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T03/p3",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "departed",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 3,
+              "waitSeconds": 13.05,
+              "vehicleId": "巡03"
+            },
+            {
+              "id": "T04",
+              "sequence": 3,
+              "queueBayId": "T4",
+              "passengers": [
+                {
+                  "id": "T04/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T04/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T04/p3",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "departed",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 3,
+              "waitSeconds": 16.25,
+              "vehicleId": "巡04"
+            },
+            {
+              "id": "T05",
+              "sequence": 4,
+              "queueBayId": "T1",
+              "passengers": [
+                {
+                  "id": "T05/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T05/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "departed",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 2,
+              "waitSeconds": 13.200000000000001,
+              "vehicleId": "巡05"
+            },
+            {
+              "id": "T06",
+              "sequence": 5,
+              "queueBayId": "T2",
+              "passengers": [
+                {
+                  "id": "T06/p1",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T06/p2",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T06/p3",
+                  "adult": true,
+                  "needsGuardian": false
+                },
+                {
+                  "id": "T06/p4",
+                  "adult": true,
+                  "needsGuardian": false
+                }
+              ],
+              "state": "departed",
+              "allowSplit": false,
+              "splitOrder": 0,
+              "boarded": 4,
+              "waitSeconds": 18.8,
+              "vehicleId": "巡06"
+            }
+          ],
+          "vehicles": [
+            {
+              "id": "巡01",
+              "capacity": 4,
+              "column": 1,
+              "row": 0,
+              "direction": "W",
+              "sequence": 0,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "removed",
+              "position": {
+                "x": 20,
+                "z": -4
+              },
+              "angle": 1.5707963267948966,
+              "groupId": "T02"
+            },
+            {
+              "id": "巡02",
+              "capacity": 4,
+              "column": 2,
+              "row": 0,
+              "direction": "N",
+              "sequence": 1,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "removed",
+              "position": {
+                "x": 20,
+                "z": -4
+              },
+              "angle": 1.5707963267948966,
+              "groupId": "T01"
+            },
+            {
+              "id": "巡03",
+              "capacity": 4,
+              "column": 0,
+              "row": 1,
+              "direction": "N",
+              "sequence": 2,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "removed",
+              "position": {
+                "x": 20,
+                "z": -4
+              },
+              "angle": 1.5707963267948966,
+              "groupId": "T03"
+            },
+            {
+              "id": "巡04",
+              "capacity": 4,
+              "column": 1,
+              "row": 1,
+              "direction": "E",
+              "sequence": 3,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "removed",
+              "position": {
+                "x": 20,
+                "z": -4
+              },
+              "angle": 1.5707963267948966,
+              "groupId": "T04"
+            },
+            {
+              "id": "巡05",
+              "capacity": 6,
+              "column": 0,
+              "row": 2,
+              "direction": "W",
+              "sequence": 4,
+              "seatCount": 7,
+              "driverSeatCount": 1,
+              "passengerCapacity": 6,
+              "state": "removed",
+              "position": {
+                "x": 20,
+                "z": -4
+              },
+              "angle": 1.5707963267948966,
+              "groupId": "T05"
+            },
+            {
+              "id": "巡06",
+              "capacity": 4,
+              "column": 1,
+              "row": 2,
+              "direction": "E",
+              "sequence": 5,
+              "seatCount": 5,
+              "driverSeatCount": 1,
+              "passengerCapacity": 4,
+              "state": "removed",
+              "position": {
+                "x": 20,
+                "z": -4
+              },
+              "angle": 1.5707963267948966,
+              "groupId": "T06"
+            }
+          ],
+          "bays": [
+            {
+              "id": "T1",
+              "state": "free"
+            },
+            {
+              "id": "T2",
+              "state": "free"
+            },
+            {
+              "id": "T3",
+              "state": "free"
+            },
+            {
+              "id": "T4",
+              "state": "free"
+            }
+          ],
+          "services": [
+            {
+              "vehicleId": "巡02",
+              "groupId": "T01",
+              "bayId": "T1",
+              "phase": "done",
+              "elapsed": 3.349999999999996,
+              "duration": 1.7142857142857142,
+              "path": [
+                {
+                  "x": -6,
+                  "z": 0
+                },
+                {
+                  "x": -6,
+                  "z": -4
+                },
+                {
+                  "x": -2,
+                  "z": -4
+                },
+                {
+                  "x": 2,
+                  "z": -4
+                },
+                {
+                  "x": 6,
+                  "z": -4
+                },
+                {
+                  "x": 10,
+                  "z": -4
+                },
+                {
+                  "x": 14,
+                  "z": -4
+                },
+                {
+                  "x": 18,
+                  "z": -4
+                },
+                {
+                  "x": 20,
+                  "z": -4
+                }
+              ],
+              "pathIndex": 9,
+              "assignmentOrder": 0,
+              "pickupPoint": {
+                "x": -6,
+                "z": -6
+              },
+              "walkFrom": {
+                "x": -6,
+                "z": -6
+              },
+              "waitingForTraffic": false,
+              "travelled": 64.00000000000037,
+              "crosswalkActive": false,
+              "clearedAt": 9.1
+            },
+            {
+              "vehicleId": "巡01",
+              "groupId": "T02",
+              "bayId": "T2",
+              "phase": "done",
+              "elapsed": 3.099999999999997,
+              "duration": 1.7142857142857142,
+              "path": [
+                {
+                  "x": -2,
+                  "z": 0
+                },
+                {
+                  "x": -2,
+                  "z": -4
+                },
+                {
+                  "x": 2,
+                  "z": -4
+                },
+                {
+                  "x": 6,
+                  "z": -4
+                },
+                {
+                  "x": 10,
+                  "z": -4
+                },
+                {
+                  "x": 14,
+                  "z": -4
+                },
+                {
+                  "x": 18,
+                  "z": -4
+                },
+                {
+                  "x": 20,
+                  "z": -4
+                }
+              ],
+              "pathIndex": 8,
+              "assignmentOrder": 1,
+              "pickupPoint": {
+                "x": -2,
+                "z": -6
+              },
+              "walkFrom": {
+                "x": -2,
+                "z": -6
+              },
+              "waitingForTraffic": false,
+              "travelled": 60.000000000000334,
+              "crosswalkActive": false,
+              "clearedAt": 10.4
+            },
+            {
+              "vehicleId": "巡03",
+              "groupId": "T03",
+              "bayId": "T3",
+              "phase": "done",
+              "elapsed": 3.4499999999999957,
+              "duration": 1.7142857142857142,
+              "path": [
+                {
+                  "x": 2,
+                  "z": 0
+                },
+                {
+                  "x": 2,
+                  "z": -4
+                },
+                {
+                  "x": 6,
+                  "z": -4
+                },
+                {
+                  "x": 10,
+                  "z": -4
+                },
+                {
+                  "x": 14,
+                  "z": -4
+                },
+                {
+                  "x": 18,
+                  "z": -4
+                },
+                {
+                  "x": 20,
+                  "z": -4
+                }
+              ],
+              "pathIndex": 7,
+              "assignmentOrder": 2,
+              "pickupPoint": {
+                "x": 2,
+                "z": -6
+              },
+              "walkFrom": {
+                "x": 2,
+                "z": -6
+              },
+              "waitingForTraffic": false,
+              "travelled": 60.00000000000033,
+              "crosswalkActive": false,
+              "clearedAt": 15.200000000000001
+            },
+            {
+              "vehicleId": "巡04",
+              "groupId": "T04",
+              "bayId": "T4",
+              "phase": "done",
+              "elapsed": 2.0500000000000007,
+              "duration": 1.7142857142857142,
+              "path": [
+                {
+                  "x": 6,
+                  "z": 0
+                },
+                {
+                  "x": 6,
+                  "z": -4
+                },
+                {
+                  "x": 10,
+                  "z": -4
+                },
+                {
+                  "x": 14,
+                  "z": -4
+                },
+                {
+                  "x": 18,
+                  "z": -4
+                },
+                {
+                  "x": 20,
+                  "z": -4
+                }
+              ],
+              "pathIndex": 6,
+              "assignmentOrder": 3,
+              "pickupPoint": {
+                "x": 6,
+                "z": -6
+              },
+              "walkFrom": {
+                "x": 6,
+                "z": -6
+              },
+              "waitingForTraffic": false,
+              "travelled": 87.99999999999898,
+              "crosswalkActive": false,
+              "clearedAt": 18.400000000000002
+            },
+            {
+              "vehicleId": "巡05",
+              "groupId": "T05",
+              "bayId": "T1",
+              "phase": "done",
+              "elapsed": 4.599999999999992,
+              "duration": 1.7142857142857142,
+              "path": [
+                {
+                  "x": -6,
+                  "z": 0
+                },
+                {
+                  "x": -6,
+                  "z": -4
+                },
+                {
+                  "x": -2,
+                  "z": -4
+                },
+                {
+                  "x": 2,
+                  "z": -4
+                },
+                {
+                  "x": 6,
+                  "z": -4
+                },
+                {
+                  "x": 10,
+                  "z": -4
+                },
+                {
+                  "x": 14,
+                  "z": -4
+                },
+                {
+                  "x": 18,
+                  "z": -4
+                },
+                {
+                  "x": 20,
+                  "z": -4
+                }
+              ],
+              "pathIndex": 9,
+              "assignmentOrder": 4,
+              "pickupPoint": {
+                "x": -6,
+                "z": -6
+              },
+              "walkFrom": {
+                "x": -6,
+                "z": -6
+              },
+              "waitingForTraffic": false,
+              "travelled": 64.00000000000034,
+              "crosswalkActive": false,
+              "clearedAt": 14.950000000000001
+            },
+            {
+              "vehicleId": "巡06",
+              "groupId": "T06",
+              "bayId": "T2",
+              "phase": "done",
+              "elapsed": 2.8999999999999977,
+              "duration": 1.7142857142857142,
+              "path": [
+                {
+                  "x": -2,
+                  "z": 0
+                },
+                {
+                  "x": -2,
+                  "z": -4
+                },
+                {
+                  "x": 2,
+                  "z": -4
+                },
+                {
+                  "x": 6,
+                  "z": -4
+                },
+                {
+                  "x": 10,
+                  "z": -4
+                },
+                {
+                  "x": 14,
+                  "z": -4
+                },
+                {
+                  "x": 18,
+                  "z": -4
+                },
+                {
+                  "x": 20,
+                  "z": -4
+                }
+              ],
+              "pathIndex": 8,
+              "assignmentOrder": 5,
+              "pickupPoint": {
+                "x": -2,
+                "z": -6
+              },
+              "walkFrom": {
+                "x": -2,
+                "z": -6
+              },
+              "waitingForTraffic": false,
+              "travelled": 91.99999999999872,
+              "crosswalkActive": false,
+              "clearedAt": 21.35
+            }
+          ],
+          "splits": 0
+        },
+        "view": {
+          "page": "result",
+          "speed": 5,
+          "unlockedSpeeds": [1, 2, 5],
+          "practice": false,
+          "adPending": false,
+          "cars": []
+        }
+      }
+    },
+    "clickIntervalSeconds": 0.55,
+    "sharedWindowSeconds": 0.5,
+    "movement": [
+      {
+        "vehicleId": "巡02",
+        "fromParking": 6.760362416320593,
+        "duringSharedWindow": 4.5
+      },
+      {
+        "vehicleId": "巡01",
+        "fromParking": 4.499999999999999,
+        "duringSharedWindow": 4.499999999999999
+      }
+    ]
+  },
+  "viewportInput": {
+    "dispatches": [
+      {
+        "width": 390,
+        "height": 844,
+        "touch": {
+          "id": "巡01",
+          "available": true,
+          "x": 64.46267327054284,
+          "y": 279.0785780619292,
+          "angle": 3.141592653589793
+        },
+        "before": {
+          "time": 0.8,
+          "scroll": {
+            "y": 0,
+            "max": 0
+          },
+          "services": []
+        },
+        "after": {
+          "time": 0.9500000000000001,
+          "services": [
+            {
+              "vehicleId": "巡01",
+              "groupId": "T01",
+              "bayId": "T1",
+              "phase": "driving",
+              "elapsed": 0,
+              "duration": 0,
+              "path": [
+                {
+                  "x": -10,
+                  "z": 12
+                },
+                {
+                  "x": -14,
+                  "z": 12
+                },
+                {
+                  "x": -14,
+                  "z": 8
+                },
+                {
+                  "x": -14,
+                  "z": 4
+                },
+                {
+                  "x": -6,
+                  "z": 4
+                },
+                {
+                  "x": -6,
+                  "z": 0
+                }
+              ],
+              "pathIndex": 1,
+              "assignmentOrder": 0,
+              "pickupPoint": {
+                "x": -6,
+                "z": -6
+              },
+              "walkFrom": {
+                "x": -6,
+                "z": -6
+              }
+            }
+          ]
+        }
+      },
+      {
+        "width": 844,
+        "height": 390,
+        "touch": {
+          "id": "巡01",
+          "available": true,
+          "x": 234.7813908031829,
+          "y": 292.27740532936537,
+          "angle": 1.5707963267948966
+        },
+        "before": {
+          "time": 0.45,
+          "scroll": {
+            "y": 0,
+            "max": 0
+          },
+          "services": []
+        },
+        "after": {
+          "time": 0.6000000000000001,
+          "services": [
+            {
+              "vehicleId": "巡01",
+              "groupId": "T01",
+              "bayId": "T1",
+              "phase": "driving",
+              "elapsed": 0,
+              "duration": 0,
+              "path": [
+                {
+                  "x": -10,
+                  "z": 12
+                },
+                {
+                  "x": -14,
+                  "z": 12
+                },
+                {
+                  "x": -14,
+                  "z": 8
+                },
+                {
+                  "x": -14,
+                  "z": 4
+                },
+                {
+                  "x": -6,
+                  "z": 4
+                },
+                {
+                  "x": -6,
+                  "z": 0
+                }
+              ],
+              "pathIndex": 1,
+              "assignmentOrder": 0,
+              "pickupPoint": {
+                "x": -6,
+                "z": -6
+              },
+              "walkFrom": {
+                "x": -6,
+                "z": -6
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "pan": {
+      "width": 320,
+      "height": 568,
+      "bottomRow": 8,
+      "bottomIds": ["巡45", "巡46", "巡47", "巡48", "巡49", "巡50"],
+      "gestures": [
+        {
+          "from": {
+            "x": 205.1301401775519,
+            "y": 534.3255145180299,
+            "vehicleId": "巡33"
+          },
+          "to": {
+            "x": 205.1301401775519,
+            "y": 100
+          }
+        }
+      ],
+      "before": {
+        "time": 0.1,
+        "scroll": {
+          "y": 0,
+          "max": 213
+        },
+        "cars": [
+          {
+            "id": "巡01",
+            "available": true,
+            "x": 61.12977985024249,
+            "y": 268.9520425150072,
+            "angle": 3.141592653589793
+          },
+          {
+            "id": "巡02",
+            "available": true,
+            "x": 99.12990712074303,
+            "y": 262.78686186186184,
+            "angle": -1.5707963267948966
+          },
+          {
+            "id": "巡03",
+            "available": true,
+            "x": 135.12990712074304,
+            "y": 262.78686186186184,
+            "angle": -1.5707963267948966
+          },
+          {
+            "id": "巡04",
+            "available": true,
+            "x": 171.12990712074304,
+            "y": 262.78686186186184,
+            "angle": -1.5707963267948966
+          },
+          {
+            "id": "巡05",
+            "available": false,
+            "x": 205.1301401775519,
+            "y": 268.95013914265445,
+            "angle": 0
+          },
+          {
+            "id": "巡06",
+            "available": true,
+            "x": 241.13014017755182,
+            "y": 268.9501391426544,
+            "angle": 0
+          },
+          {
+            "id": "巡07",
+            "available": false,
+            "x": 63.129907120743034,
+            "y": 315.86193693693696,
+            "angle": -1.5707963267948966
+          },
+          {
+            "id": "巡08",
+            "available": false,
+            "x": 135.12990712074304,
+            "y": 315.86193693693696,
+            "angle": -1.5707963267948966
+          },
+          {
+            "id": "巡09",
+            "available": false,
+            "x": 169.1297798502425,
+            "y": 322.0271175900823,
+            "angle": 3.141592653589793
+          },
+          {
+            "id": "巡10",
+            "available": false,
+            "x": 205.1301401775519,
+            "y": 322.02521421772957,
+            "angle": 0
+          },
+          {
+            "id": "巡11",
+            "available": false,
+            "x": 243.12990712074304,
+            "y": 315.86193693693696,
+            "angle": -1.5707963267948966
+          },
+          {
+            "id": "巡12",
+            "available": false,
+            "x": 63.129907120743034,
+            "y": 368.937012012012,
+            "angle": -1.5707963267948966
+          },
+          {
+            "id": "巡13",
+            "available": false,
+            "x": 97.12977985024249,
+            "y": 375.10219266515736,
+            "angle": 3.141592653589793
+          },
+          {
+            "id": "巡14",
+            "available": false,
+            "x": 133.1301401775518,
+            "y": 375.1002892928046,
+            "angle": 0
+          },
+          {
+            "id": "巡15",
+            "available": false,
+            "x": 205.13014017755188,
+            "y": 375.10028929280463,
+            "angle": 0
+          },
+          {
+            "id": "巡16",
+            "available": true,
+            "x": 241.1301401775518,
+            "y": 375.1002892928046,
+            "angle": 0
+          },
+          {
+            "id": "巡17",
+            "available": true,
+            "x": 61.12977985024249,
+            "y": 428.1772677402324,
+            "angle": 3.141592653589793
+          },
+          {
+            "id": "巡18",
+            "available": false,
+            "x": 97.12977985024251,
+            "y": 428.1772677402324,
+            "angle": 3.141592653589793
+          },
+          {
+            "id": "巡19",
+            "available": false,
+            "x": 133.1297798502425,
+            "y": 428.1772677402324,
+            "angle": 3.141592653589793
+          },
+          {
+            "id": "巡20",
+            "available": false,
+            "x": 169.1297798502425,
+            "y": 428.1772677402324,
+            "angle": 3.141592653589793
+          },
+          {
+            "id": "巡21",
+            "available": false,
+            "x": 205.1301401775519,
+            "y": 428.1753643678797,
+            "angle": 0
+          },
+          {
+            "id": "巡22",
+            "available": true,
+            "x": 241.13014017755182,
+            "y": 428.17536436787964,
+            "angle": 0
+          },
+          {
+            "id": "巡23",
+            "available": false,
+            "x": 63.129907120743034,
+            "y": 475.0871621621622,
+            "angle": -1.5707963267948966
+          },
+          {
+            "id": "巡24",
+            "available": false,
+            "x": 97.12977985024251,
+            "y": 481.25234281530754,
+            "angle": 3.141592653589793
+          },
+          {
+            "id": "巡25",
+            "available": false,
+            "x": 133.13014017755182,
+            "y": 481.25043944295476,
+            "angle": 0
+          },
+          {
+            "id": "巡26",
+            "available": false,
+            "x": 170.9699024390244,
+            "y": 475.0871621621622,
+            "angle": 1.5707963267948966
+          },
+          {
+            "id": "巡27",
+            "available": false,
+            "x": 205.1301401775519,
+            "y": 481.2504394429548,
+            "angle": 0
+          },
+          {
+            "id": "巡28",
+            "available": true,
+            "x": 241.13014017755182,
+            "y": 481.25043944295476,
+            "angle": 0
+          },
+          {
+            "id": "巡29",
+            "available": false,
+            "x": 62.96990243902439,
+            "y": 528.1622372372372,
+            "angle": 1.5707963267948966
+          },
+          {
+            "id": "巡30",
+            "available": false,
+            "x": 99.12990712074303,
+            "y": 528.1622372372372,
+            "angle": -1.5707963267948966
+          },
+          {
+            "id": "巡31",
+            "available": false,
+            "x": 133.13014017755182,
+            "y": 534.3255145180298,
+            "angle": 0
+          },
+          {
+            "id": "巡32",
+            "available": false,
+            "x": 169.13014017755182,
+            "y": 534.3255145180298,
+            "angle": 0
+          },
+          {
+            "id": "巡33",
+            "available": false,
+            "x": 205.1301401775519,
+            "y": 534.3255145180299,
+            "angle": 0
+          },
+          {
+            "id": "巡34",
+            "available": true,
+            "x": 241.13014017755182,
+            "y": 534.3255145180298,
+            "angle": 0
+          }
+        ],
+        "services": []
+      },
+      "after": {
+        "time": 1.55,
+        "scroll": {
+          "y": 213,
+          "max": 213
+        },
+        "cars": [
+          {
+            "id": "巡07",
+            "available": false,
+            "x": 63.129907120743034,
+            "y": 102.86193693693694,
+            "angle": -1.5707963267948966
+          },
+          {
+            "id": "巡08",
+            "available": false,
+            "x": 135.12990712074304,
+            "y": 102.86193693693694,
+            "angle": -1.5707963267948966
+          },
+          {
+            "id": "巡09",
+            "available": false,
+            "x": 169.1297798502425,
+            "y": 109.02711759008233,
+            "angle": 3.141592653589793
+          },
+          {
+            "id": "巡10",
+            "available": false,
+            "x": 205.1301401775519,
+            "y": 109.0252142177296,
+            "angle": 0
+          },
+          {
+            "id": "巡11",
+            "available": false,
+            "x": 243.12990712074304,
+            "y": 102.86193693693694,
+            "angle": -1.5707963267948966
+          },
+          {
+            "id": "巡12",
+            "available": false,
+            "x": 63.129907120743034,
+            "y": 155.93701201201202,
+            "angle": -1.5707963267948966
+          },
+          {
+            "id": "巡13",
+            "available": false,
+            "x": 97.12977985024249,
+            "y": 162.10219266515736,
+            "angle": 3.141592653589793
+          },
+          {
+            "id": "巡14",
+            "available": false,
+            "x": 133.1301401775518,
+            "y": 162.10028929280455,
+            "angle": 0
+          },
+          {
+            "id": "巡15",
+            "available": false,
+            "x": 205.13014017755188,
+            "y": 162.10028929280463,
+            "angle": 0
+          },
+          {
+            "id": "巡16",
+            "available": true,
+            "x": 241.1301401775518,
+            "y": 162.10028929280455,
+            "angle": 0
+          },
+          {
+            "id": "巡17",
+            "available": true,
+            "x": 61.12977985024249,
+            "y": 215.17726774023242,
+            "angle": 3.141592653589793
+          },
+          {
+            "id": "巡18",
+            "available": false,
+            "x": 97.12977985024251,
+            "y": 215.17726774023245,
+            "angle": 3.141592653589793
+          },
+          {
+            "id": "巡19",
+            "available": false,
+            "x": 133.1297798502425,
+            "y": 215.17726774023245,
+            "angle": 3.141592653589793
+          },
+          {
+            "id": "巡20",
+            "available": false,
+            "x": 169.1297798502425,
+            "y": 215.17726774023245,
+            "angle": 3.141592653589793
+          },
+          {
+            "id": "巡21",
+            "available": false,
+            "x": 205.1301401775519,
+            "y": 215.17536436787972,
+            "angle": 0
+          },
+          {
+            "id": "巡22",
+            "available": true,
+            "x": 241.13014017755182,
+            "y": 215.17536436787964,
+            "angle": 0
+          },
+          {
+            "id": "巡23",
+            "available": false,
+            "x": 63.129907120743034,
+            "y": 262.0871621621622,
+            "angle": -1.5707963267948966
+          },
+          {
+            "id": "巡24",
+            "available": false,
+            "x": 97.12977985024251,
+            "y": 268.25234281530754,
+            "angle": 3.141592653589793
+          },
+          {
+            "id": "巡25",
+            "available": false,
+            "x": 133.13014017755182,
+            "y": 268.25043944295476,
+            "angle": 0
+          },
+          {
+            "id": "巡26",
+            "available": false,
+            "x": 170.9699024390244,
+            "y": 262.0871621621622,
+            "angle": 1.5707963267948966
+          },
+          {
+            "id": "巡27",
+            "available": false,
+            "x": 205.1301401775519,
+            "y": 268.2504394429548,
+            "angle": 0
+          },
+          {
+            "id": "巡28",
+            "available": true,
+            "x": 241.13014017755182,
+            "y": 268.25043944295476,
+            "angle": 0
+          },
+          {
+            "id": "巡29",
+            "available": false,
+            "x": 62.96990243902439,
+            "y": 315.1622372372372,
+            "angle": 1.5707963267948966
+          },
+          {
+            "id": "巡30",
+            "available": false,
+            "x": 99.12990712074303,
+            "y": 315.1622372372372,
+            "angle": -1.5707963267948966
+          },
+          {
+            "id": "巡31",
+            "available": false,
+            "x": 133.13014017755182,
+            "y": 321.32551451802976,
+            "angle": 0
+          },
+          {
+            "id": "巡32",
+            "available": false,
+            "x": 169.13014017755182,
+            "y": 321.32551451802976,
+            "angle": 0
+          },
+          {
+            "id": "巡33",
+            "available": false,
+            "x": 205.1301401775519,
+            "y": 321.3255145180298,
+            "angle": 0
+          },
+          {
+            "id": "巡34",
+            "available": true,
+            "x": 241.13014017755182,
+            "y": 321.32551451802976,
+            "angle": 0
+          },
+          {
+            "id": "巡35",
+            "available": true,
+            "x": 61.12977985024249,
+            "y": 374.40249296545767,
+            "angle": 3.141592653589793
+          },
+          {
+            "id": "巡36",
+            "available": false,
+            "x": 97.12977985024251,
+            "y": 374.40249296545767,
+            "angle": 3.141592653589793
+          },
+          {
+            "id": "巡37",
+            "available": false,
+            "x": 206.9699024390244,
+            "y": 368.2373123123123,
+            "angle": 1.5707963267948966
+          },
+          {
+            "id": "巡38",
+            "available": true,
+            "x": 241.13014017755182,
+            "y": 374.4005895931049,
+            "angle": 0
+          },
+          {
+            "id": "巡39",
+            "available": true,
+            "x": 61.12977985024249,
+            "y": 427.4775680405328,
+            "angle": 3.141592653589793
+          },
+          {
+            "id": "巡40",
+            "available": false,
+            "x": 98.9699024390244,
+            "y": 421.31238738738745,
+            "angle": 1.5707963267948966
+          },
+          {
+            "id": "巡41",
+            "available": false,
+            "x": 133.1297798502425,
+            "y": 427.4775680405328,
+            "angle": 3.141592653589793
+          },
+          {
+            "id": "巡42",
+            "available": false,
+            "x": 170.9699024390244,
+            "y": 421.31238738738745,
+            "angle": 1.5707963267948966
+          },
+          {
+            "id": "巡43",
+            "available": false,
+            "x": 205.1301401775519,
+            "y": 427.47566466818006,
+            "angle": 0
+          },
+          {
+            "id": "巡44",
+            "available": false,
+            "x": 242.9699024390244,
+            "y": 421.31238738738745,
+            "angle": 1.5707963267948966
+          },
+          {
+            "id": "巡45",
+            "available": true,
+            "x": 62.96990243902439,
+            "y": 474.38746246246245,
+            "angle": 1.5707963267948966
+          },
+          {
+            "id": "巡46",
+            "available": true,
+            "x": 98.9699024390244,
+            "y": 474.38746246246245,
+            "angle": 1.5707963267948966
+          },
+          {
+            "id": "巡47",
+            "available": false,
+            "x": 133.1297798502425,
+            "y": 480.5526431156078,
+            "angle": 3.141592653589793
+          },
+          {
+            "id": "巡48",
+            "available": false,
+            "x": 169.1297798502425,
+            "y": 480.5526431156078,
+            "angle": 3.141592653589793
+          },
+          {
+            "id": "巡49",
+            "available": true,
+            "x": 206.9699024390244,
+            "y": 474.38746246246245,
+            "angle": 1.5707963267948966
+          },
+          {
+            "id": "巡50",
+            "available": true,
+            "x": 241.13014017755182,
+            "y": 480.550739743255,
+            "angle": 0
+          }
+        ],
+        "services": []
+      }
+    }
+  },
+  "errors": [],
+  "environment": "Chromium touch emulation of real Creator web build, not physical-device certification"
+}

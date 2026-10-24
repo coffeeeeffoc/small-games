@@ -4,6 +4,87 @@ import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { assertNodeOnly, validateTree, runIncrementalToolChecks } from './validate-tree.mjs';
+
+test('candidate execution applies fullscreen removal proofs and still rejects drift or revived files', async (t) => {
+  const { execFileSync } = await import('node:child_process');
+  const root = await mkdtemp(path.join(os.tmpdir(), 'fullscreen-candidate-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const changed = [
+    '.prettierignore',
+    'package.json',
+    'platforms/h5/dev-mode.js',
+    'platforms/h5/role-appearance.js',
+    'platforms/h5/fullscreen.js',
+    'scripts/sync-h5-fullscreen.mjs',
+    'scripts/test-h5-fullscreen.mjs',
+  ];
+  const removed = changed.slice(4);
+  const before = new Map(),
+    after = new Map();
+  for (const [ref, files, contents] of [
+    ['171423331a4bdc0f8d45369b047dbc9e3d971b5c', changed, before],
+    ['d8fd03d9b46b75bc96292aa51a3c01588a13df43', changed.slice(0, 4), after],
+  ])
+    for (const file of files)
+      contents.set(
+        file,
+        execFileSync('git', ['show', `${ref}:${file}`], {
+          cwd: new URL('../', import.meta.url),
+          encoding: 'utf8',
+        }),
+      );
+  const put = async (file, value) => {
+    await mkdir(path.dirname(path.join(root, file)), { recursive: true });
+    await writeFile(path.join(root, file), JSON.stringify(value));
+  };
+  await put('package.json', {
+    volta: { node: process.versions.node },
+    packageManager: 'pnpm@12.6.0',
+  });
+  await put('apps/shell-web/package.json', { name: 'shell' });
+  const catalog = JSON.parse(
+    execFileSync('git', ['show', 'd8fd03d9:apps/shell-web/src/standalone-games.json'], {
+      cwd: new URL('../', import.meta.url),
+      encoding: 'utf8',
+    }),
+  );
+  await put('apps/shell-web/src/standalone-games.json', catalog);
+  for (const game of catalog) await put(`${game.source}/package.json`, { name: game.id });
+  let drift, revived;
+  const browserGate = Error('actual consumers require browser validation');
+  const options = {
+    root,
+    head: 'candidate',
+    incremental: true,
+    env: { MINIGAME_RELEASE_GATES: '0' },
+    selectScope: async () => ({ required: true, full: false }),
+    prepareBrowser() {
+      throw browserGate;
+    },
+    execute(command, args) {
+      if (args[0] === '--version') return '12.6.0';
+      if (command !== 'git') return '';
+      if (args[0] === 'ls-tree')
+        return (
+          args.includes('-t') ? [...after.keys(), ...(revived ? [revived] : [])] : changed
+        ).join('\0');
+      if (args[0] === 'show') {
+        const [ref, file] = args[1].split(':');
+        const text = (ref === 'candidate' ? after : before).get(file);
+        if (text === undefined) throw Error('absent fixture source');
+        return text + (drift === ref ? '\n// unexpected edit' : '');
+      }
+      return '';
+    },
+  };
+  await assert.rejects(validateTree(options), (error) => error === browserGate);
+  for (drift of ['undefined', 'candidate'])
+    await assert.rejects(validateTree(options), /Incremental scope undefined/);
+  drift = undefined;
+  for (revived of removed)
+    await assert.rejects(validateTree(options), /Incremental scope undefined/);
+});
+
 test('main integration tool contracts execute independently and propagate regressions', () => {
   for (const [flag, command, args] of [
     ['platform_process_checks', process.execPath, ['--test', 'scripts/platform-process.test.mjs']],
@@ -700,7 +781,7 @@ test('publishing browsers run exact bounded suites with native gates off and fai
   const expected = {
     'cops-robbers': ['check-rewarded-hints.mjs'],
     'cops-robbers-realtime': ['publishing.browser.mjs', 'start-lifecycle.browser.mjs'],
-    'tower-brake': ['publishing-browser.mjs', 'browser.mjs', 'expansion-browser.mjs'],
+    'tower-brake': ['browser.mjs'],
     'cage-rescue': [
       'reward-browser.mjs',
       'browser.mjs',
@@ -713,7 +794,6 @@ test('publishing browsers run exact bounded suites with native gates off and fai
     'flick-arena': ['publishing.browser.mjs'],
     'moss-garden': ['publishing.browser.mjs'],
     'chase-thief': ['publishing.browser.mjs'],
-    'retreat-rally': ['publishing.browser.mjs'],
     'tiny-signals': ['publishing.browser.mjs'],
     'orbit-atelier': ['publishing.browser.mjs', 'browser.mjs'],
     'wulong-city': ['publishing.browser.mjs'],

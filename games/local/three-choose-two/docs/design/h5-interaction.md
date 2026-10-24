@@ -14,4 +14,4 @@
 
 正式榜单只显示接口返回的真实成绩与名次。H5 匿名在线试用及离线练习均不入正式榜，在线成绩也不写入本地练习纪录。服务不可用时显示明确错误、重试和离线练习入口。分享只附已校验的真实名次，链接不包含开发开关。
 
-浏览器验收使用 Chromium 的真实 CDP 触摸输入，读取只读快照辅助计算拖放目标；不通过调试操作替代玩家落子。结果、环境与截图见 `actual/verification.json` 及对应浏览器测试。广告回执恢复使用受控测试回执，不代表实际广告渠道已上线。
+浏览器验收使用 Chromium 的真实 CDP 触摸输入，读取只读快照辅助计算拖放目标；不通过调试操作替代玩家落子。结果、环境与截图见 [历史记录：actual/verification.json](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/three-choose-two/docs/design/actual/verification.json) 及对应浏览器测试。广告回执恢复使用受控测试回执，不代表实际广告渠道已上线。

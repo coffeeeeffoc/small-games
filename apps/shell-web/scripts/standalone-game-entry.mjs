@@ -2,19 +2,18 @@ import assert from 'node:assert/strict';
 import { expect } from '@playwright/test';
 
 export const markers = {
-  'ashfall-front': '#start-game',
+  'porcelain-puzzle': 'body[data-screen="home"]',
+  'ashfall-front': '#GameCanvas',
   'carrom-club': '#start',
-  'three-choose-two': '#game[data-ready="true"]',
-  'retreat-rally': '#start',
+  'three-choose-two': '#GameCanvas',
   'cage-rescue': '#start',
   'flick-arena': '#start',
-  'tower-brake': '#start-game',
-  'chase-thief': '#game[data-ready="true"]',
+  'tower-brake': '#GameCanvas',
+  'chase-thief': '#GameCanvas',
   'orbit-atelier': '#GameCanvas',
   'moss-garden': '[data-action="start"]',
   'ball-roguelite': '#start',
-  'porcelain-puzzle': '[data-action="start"]',
-  'castle-cannon': '.castle-root[data-ready="true"]',
+  'castle-cannon': '#GameCanvas',
   'ember-bounce': '#start',
   'tianxia-chalu': '#start',
   'voiceprint-case': '#start',
@@ -33,7 +32,7 @@ export const markers = {
   'two-sided-box': '#board[data-level]',
   'luban-workshop': '#home-level-list [data-level-id="first-lift-v1"]',
   'surprise-kept': '#game[data-ready="true"]',
-  tetracube: '#start-game',
+  tetracube: 'body[data-tetracube-ready="true"]',
 
   'wulong-city': '#start-game',
   'fold-the-world': '[data-action="start"]',
@@ -55,20 +54,13 @@ export const markers = {
 
 // Semantic IDs are intentionally independent of layout, position and display wording.
 export const homeControls = {
-  'ashfall-front': '#start-game',
+  'porcelain-puzzle': '[data-action="start"]',
   'carrom-club': '#start',
-  'three-choose-two': ['[data-action="start"]', '[data-action="begin"]'],
-  'retreat-rally': '#start',
   'cage-rescue': '#start',
   'flick-arena': ['#start', '#play-level'],
-  'tower-brake': '#start-game',
-  tetracube: '#start-game',
-  'chase-thief': '#start',
   'wulong-city': '#start-game',
   'moss-garden': '[data-action="start"]',
   'ball-roguelite': '#start',
-  'porcelain-puzzle': '[data-action="start"]',
-  'castle-cannon': '[data-action="start"]',
   'ember-bounce': '#start',
   'tianxia-chalu': ['#start', '#begin-battle'],
   'voiceprint-case': '#start',
@@ -87,6 +79,12 @@ export const homeControls = {
 
 // Explicit compatibility list: these existing assertions still own their setup flow.
 export const legacyEntryIds = [
+  'ashfall-front',
+  'castle-cannon',
+  'tower-brake',
+  'three-choose-two',
+  'chase-thief',
+  'tetracube',
   'merge-front',
   'orbit-atelier',
   'homebound-station',

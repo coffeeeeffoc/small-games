@@ -11,6 +11,7 @@ import {
   KeyCode,
   game,
   input,
+  macro,
   resources,
   sys,
   view,
@@ -19,6 +20,12 @@ import {
 import { AtelierView, GOLD, MINT, type Flight } from './AtelierView';
 import {
   CATALOG,
+  METAL_LEVELS,
+  METAL_CHAPTERS,
+  tiltRing,
+  testExtraction,
+  type WireRing,
+  type Extraction,
   CHAPTERS,
   NOVA_LEVELS,
   LEGACY_SAVE_KEY,
@@ -34,6 +41,7 @@ import {
   normalizeAngle,
   parseProgress,
   restoreUndo,
+  alignReward,
   rotateRing,
   settle,
   snapAngle,
@@ -70,6 +78,11 @@ type Dev = {
 };
 const platform = globalThis as typeof globalThis & {
   SmallGamesDev?: Dev;
+  SmallGamesRewardAds?: {
+    available: boolean;
+    offer(request: { id: string }): Promise<{ status: string }>;
+    cancel?(): void;
+  };
   OrbitPublishing?: Publishing;
   __orbit?: { snapshot(): unknown };
   __orbitTrustedInput?: { count: number; type: string };
@@ -81,8 +94,17 @@ export class OrbitAtelier extends Component {
   progress!: Progress;
   run: Run | null = null;
   screen: Screen = 'home';
-  campaign: Campaign = 'nova';
+  campaign: Campaign = 'metal';
   mapPage = 0;
+  metalGesture: 'turn' | 'tilt' = 'turn';
+  viewDrag: { id: number; x: number; y: number; yaw: number; pitch: number } | null = null;
+  metalPull: { ringId: string; before: Run; plan: Extraction; age: number } | null = null;
+  get isMetal() {
+    return !!this.run?.state.rings[0]?.wire;
+  }
+  get chapters() {
+    return this.campaign === 'metal' ? METAL_CHAPTERS : CHAPTERS;
+  }
   selected: string | null = null;
   hint: Hint | null = null;
   drag: Drag | null = null;
@@ -105,10 +127,14 @@ export class OrbitAtelier extends Component {
   sharePending = false;
   shareStatus = '';
   accessibility?: HTMLDivElement;
-  fullscreen?: HTMLButtonElement;
+  pointerCanvas?: HTMLCanvasElement;
   disposed = false;
+  rewardToken = 0;
+  rewardPending = false;
+  rewardPort: typeof platform.SmallGamesRewardAds;
   start() {
     view.enableAutoFullScreen(false);
+    if (sys.isBrowser) view.setOrientation(macro.ORIENTATION_AUTO);
     view.resizeWithBrowserSize(true);
     this.progress = parseProgress(this.read(SAVE_KEY), this.read(LEGACY_SAVE_KEY));
     this.run = this.progress.run ? structuredClone(this.progress.run) : null;
@@ -120,13 +146,33 @@ export class OrbitAtelier extends Component {
       resources.load(`audio/${key}`, AudioClip, (error, clip) => {
         if (!error && !this.disposed) this.clips[key] = clip;
       });
-    input.on(Input.EventType.TOUCH_START, this.touchStart, this);
-    input.on(Input.EventType.TOUCH_MOVE, this.touchMove, this);
-    input.on(Input.EventType.TOUCH_END, this.touchEnd, this);
-    input.on(Input.EventType.TOUCH_CANCEL, this.touchCancel, this);
-    input.on(Input.EventType.MOUSE_DOWN, this.mouseDown, this);
-    input.on(Input.EventType.MOUSE_MOVE, this.mouseMove, this);
-    input.on(Input.EventType.MOUSE_UP, this.mouseUp, this);
+    if (sys.isBrowser && typeof PointerEvent !== 'undefined') {
+      this.pointerCanvas = document.querySelector<HTMLCanvasElement>('#GameCanvas') || undefined;
+    }
+    if (this.pointerCanvas) {
+      const canvas = this.pointerCanvas;
+      canvas.style.touchAction = 'none';
+      canvas.addEventListener('pointerdown', this.pointerDown);
+      canvas.addEventListener('pointermove', this.pointerMove);
+      canvas.addEventListener('pointerup', this.pointerUp);
+      canvas.addEventListener('pointercancel', this.pointerCancel);
+      canvas.addEventListener('lostpointercapture', this.pointerCancel);
+      this.unregister.push(() => {
+        canvas.removeEventListener('pointerdown', this.pointerDown);
+        canvas.removeEventListener('pointermove', this.pointerMove);
+        canvas.removeEventListener('pointerup', this.pointerUp);
+        canvas.removeEventListener('pointercancel', this.pointerCancel);
+        canvas.removeEventListener('lostpointercapture', this.pointerCancel);
+      });
+    } else {
+      input.on(Input.EventType.TOUCH_START, this.touchStart, this);
+      input.on(Input.EventType.TOUCH_MOVE, this.touchMove, this);
+      input.on(Input.EventType.TOUCH_END, this.touchEnd, this);
+      input.on(Input.EventType.TOUCH_CANCEL, this.touchCancel, this);
+      input.on(Input.EventType.MOUSE_DOWN, this.mouseDown, this);
+      input.on(Input.EventType.MOUSE_MOVE, this.mouseMove, this);
+      input.on(Input.EventType.MOUSE_UP, this.mouseUp, this);
+    }
     input.on(Input.EventType.KEY_DOWN, this.keyDown, this);
     game.on(Game.EVENT_HIDE, this.suspend, this);
     if (sys.isBrowser) {
@@ -137,11 +183,6 @@ export class OrbitAtelier extends Component {
       this.accessibility.id = 'orbit-app';
       this.accessibility.setAttribute('aria-label', '星扣工坊');
       document.body.appendChild(this.accessibility);
-      this.fullscreen = document.createElement('button');
-      this.fullscreen.dataset.gameFullscreen = '';
-      this.fullscreen.style.cssText = 'position:fixed;left:-1000px;top:0';
-      this.fullscreen.tabIndex = -1;
-      document.body.appendChild(this.fullscreen);
       platform.__orbit = { snapshot: () => this.snapshot() };
       const invitation = new URLSearchParams(location.search);
       const invited =
@@ -205,6 +246,12 @@ export class OrbitAtelier extends Component {
   save() {
     if (!this.progress || this.practice || this.challenge) return;
     this.progress.run = this.run && !isComplete(this.run.state) ? structuredClone(this.run) : null;
+    this.progress.runs ||= {};
+    const campaign = this.level()?.campaign;
+    if (campaign) {
+      if (this.progress.run) this.progress.runs[campaign] = structuredClone(this.progress.run);
+      else delete this.progress.runs[campaign];
+    }
     try {
       sys.localStorage.setItem(SAVE_KEY, JSON.stringify(this.progress));
     } catch {
@@ -221,6 +268,7 @@ export class OrbitAtelier extends Component {
     return CATALOG.find((l) => l.id === this.run?.state.levelId);
   }
   begin(id: string, practice = false, challenge = false) {
+    this.cancelReward();
     const level = CATALOG.find((l) => l.id === id);
     if (!level) return;
     const campaign = level.campaign || 'classic';
@@ -231,34 +279,73 @@ export class OrbitAtelier extends Component {
     )
       return;
     this.cancel();
+    if (this.run && !practice && !challenge) this.save();
     this.practice = practice;
     this.challenge = challenge;
     this.campaign = campaign;
-    this.run = { state: createState(level), moves: 0, hints: 0 };
+    this.run = { state: createState(level), moves: 0, hints: 0, rewardAlignUsed: false };
     this.history = [];
     this.selected = null;
     this.hint = null;
     this.flights = [];
     this.ui.pulses = [];
     this.completionAge = -1;
-    this.feedback = '';
+    this.feedback = level.campaign === 'metal' ? level.intro || '' : '';
+    this.feedbackUntil = this.time + 8;
     this.shareStatus = '';
+    this.screen = 'playing';
+    this.metalGesture = 'turn';
+    this.ui.metalScene.yaw = Math.PI / 6;
+    this.ui.metalScene.pitch = 0.7;
+    this.save();
+    this.render();
+  }
+  resumeCampaign(campaign: Campaign, id?: string) {
+    const saved = this.progress.runs?.[campaign];
+    if (!saved || (id && saved.state.levelId !== id)) {
+      this.begin(id || getCampaignLevels(campaign)[unlockedIndex(this.progress, campaign)]!.id);
+      return;
+    }
+    const run = structuredClone(saved);
+    this.cancel();
+    this.save();
+    this.practice = false;
+    this.challenge = false;
+    this.campaign = campaign;
+    this.run = run;
+    this.history = [];
+    this.hint = null;
+    this.selected = null;
+    this.flights = [];
+    this.completionAge = -1;
     this.screen = 'playing';
     this.save();
     this.render();
   }
   cancel() {
     if (this.drag) this.run = structuredClone(this.drag.before);
+    const pointerId = this.drag?.id ?? this.press?.id ?? this.viewDrag?.id;
     this.drag = null;
     this.press = null;
+    this.viewDrag = null;
+    this.metalPull = null;
+    if (this.ui?.metalScene) {
+      this.ui.metalScene.offset = null;
+      this.ui.metalScene.contact = null;
+    }
+    if (pointerId !== undefined && this.pointerCanvas?.hasPointerCapture(pointerId))
+      this.pointerCanvas.releasePointerCapture(pointerId);
     if (this.ui) this.ui.pressed = null;
   }
   navigate(screen: Screen) {
+    this.cancelReward();
     this.cancel();
     this.flights = [];
     this.ui.pulses = [];
     this.completionAge = -1;
-    if ((screen === 'home' || screen === 'levels') && (this.practice || this.challenge)) {
+    const leavingPreview =
+      (screen === 'home' || screen === 'levels') && (this.practice || this.challenge);
+    if (leavingPreview) {
       this.run = this.progress.run ? structuredClone(this.progress.run) : null;
       this.practice = false;
       this.challenge = false;
@@ -270,7 +357,7 @@ export class OrbitAtelier extends Component {
       screen = 'result';
     this.screen = screen;
     this.feedback = '';
-    this.save();
+    if (!leavingPreview) this.save();
     this.render();
   }
   suspend = () => {
@@ -285,6 +372,9 @@ export class OrbitAtelier extends Component {
     if (document.hidden) this.suspend();
   };
   pageHide = () => {
+    this.cancelReward();
+    this.suspend();
+    this.render();
     this.cancel();
     this.save();
     this.audioSource?.stop();
@@ -293,6 +383,57 @@ export class OrbitAtelier extends Component {
     this.feedback = message;
     this.feedbackUntil = this.time + 2.6;
     this.draw();
+  }
+  cancelReward() {
+    ++this.rewardToken;
+    const port = this.rewardPort;
+    this.rewardPort = undefined;
+    this.rewardPending = false;
+    port?.cancel?.();
+  }
+  async requestAlignment() {
+    const run = this.run,
+      port = platform.SmallGamesRewardAds;
+    if (
+      this.disposed ||
+      this.rewardPending ||
+      this.screen !== 'paused' ||
+      !run ||
+      run.rewardAlignUsed ||
+      isComplete(run.state)
+    )
+      return;
+    if (!port?.available) {
+      this.feedback = '辅助暂不可用 · 普通提示仍免费';
+      this.render();
+      return;
+    }
+    const token = ++this.rewardToken;
+    this.rewardPending = true;
+    this.rewardPort = port;
+    this.feedback = '正在准备辅助 · 可取消';
+    this.render();
+    let status = 'failed';
+    try {
+      status = (await port.offer({ id: 'orbit-atelier:align' }))?.status;
+    } catch {}
+    if (this.disposed || token !== this.rewardToken || this.run !== run || this.screen !== 'paused')
+      return;
+    this.rewardPending = false;
+    this.rewardPort = undefined;
+    const before = structuredClone(run);
+    const hint = status === 'completed' ? alignReward(run) : null;
+    if (hint) {
+      this.history.push(before);
+      if (this.history.length > 80) this.history.shift();
+      this.hint = hint;
+      this.selected = hint.ringId;
+      this.feedback = '已对齐一环 · 继续后轻触释放';
+      this.save();
+    } else
+      this.feedback =
+        status === 'dismissed' ? '已取消 · 未获得辅助' : '未获得辅助 · 普通提示仍免费';
+    this.render();
   }
   render() {
     if (!this.ui || !this.progress) return;
@@ -303,7 +444,7 @@ export class OrbitAtelier extends Component {
     const cx = landscape ? w * 0.18 : w / 2;
     u.begin();
     if (this.screen === 'home') {
-      const completed = NOVA_LEVELS.filter((l) => this.progress.medals[l.id]).length;
+      const completed = METAL_LEVELS.filter((l) => this.progress.medals[l.id]).length;
       u.star(u.ui, cx, landscape ? 30 : h * 0.083, 12, GOLD);
       u.text(
         '星扣工坊',
@@ -324,19 +465,23 @@ export class OrbitAtelier extends Component {
       );
       u.button(
         'start',
-        this.run ? '继续修复' : '唤醒第一颗星',
+        this.progress.runs?.metal ? '继续解环' : '开始解环',
         cx,
         landscape ? 225 : h - 155,
         landscape ? 235 : 280,
         true,
       );
       const y = landscape ? 309 : h - 82;
-      u.roundButton('levels', '星图选关', cx - 62, y, 'levels');
-      u.roundButton('settings', '设置', cx + 62, y, 'settings');
-      u.text('星图', cx - 62, y + 36, 11);
-      u.text('设置', cx + 62, y + 36, 11);
+      u.roundButton('levels', '星图选关', cx - 94, y, 'levels');
+      u.roundButton('expert', '异形机关', cx, y, 'levels');
+      u.roundButton('settings', '设置', cx + 94, y, 'settings');
+      u.text('星图', cx - 94, y + 36, 11);
+      u.text('异形机关', cx, y + 36, 11);
+      u.text('设置', cx + 94, y + 36, 11);
       u.text(
-        completed ? `已唤醒 ${completed} / 24 颗星核` : '指尖轻旋，让星光重归天穹',
+        completed
+          ? `已解开 ${completed} / ${METAL_LEVELS.length} 组机关`
+          : '从普通圆环，解开异形机关',
         landscape ? w * 0.69 : cx,
         landscape ? h - 18 : h - 25,
         11,
@@ -365,8 +510,8 @@ export class OrbitAtelier extends Component {
             ? '好友同盘 · 不改变主线进度'
             : this.practice
               ? '开发试玩 · 不记录进度'
-              : this.campaign === 'nova'
-                ? CHAPTERS[level.chapter - 1]!.name
+              : this.campaign !== 'classic'
+                ? this.chapters[level.chapter - 1]!.name
                 : '经典星盘',
           'pause',
           true,
@@ -375,7 +520,13 @@ export class OrbitAtelier extends Component {
         statusY = landscape ? 122 : 139 + u.safeTop;
       u.star(u.ui, statusX - 78, statusY, 6, MINT);
       u.text(
-        this.campaign === 'nova' ? '释放星核' : '解开全部星环',
+        this.isMetal
+          ? '取出星标件'
+          : this.campaign !== 'classic'
+            ? this.run.state.goalRingIds!.length > 1
+              ? '释放双星核'
+              : '释放星核'
+            : '解开全部星环',
         statusX - 12,
         statusY,
         14,
@@ -383,8 +534,8 @@ export class OrbitAtelier extends Component {
         140,
       );
       u.text(
-        this.campaign === 'nova'
-          ? '0 / 1'
+        this.campaign !== 'classic'
+          ? `${this.run.state.goalRingIds!.filter((id) => this.run!.state.rings.find((r) => r.id === id)?.removed).length} / ${this.run.state.goalRingIds!.length}`
           : `${this.run.state.releasedCount} / ${this.run.state.rings.length}`,
         statusX + 91,
         statusY,
@@ -392,50 +543,107 @@ export class OrbitAtelier extends Component {
         GOLD,
         70,
       );
-      const toolsY = landscape ? 294 : h - 80;
-      u.roundButton(
-        'undo',
-        '撤回',
-        statusX - 66,
-        toolsY,
-        'undo',
-        !this.history.length || isComplete(this.run.state),
-      );
-      u.roundButton('hint', '提示', statusX + 66, toolsY, 'hint', isComplete(this.run.state));
-      u.text('撤回', statusX - 66, toolsY + 35, 11);
-      u.text('提示', statusX + 66, toolsY + 35, 11);
-      u.text(
-        this.campaign === 'nova'
-          ? `最优 ${level.parMoves} 环 · 已释放 ${this.run.state.releasedCount}`
-          : `已转动 ${this.run.moves} 次`,
-        statusX,
-        landscape ? 192 : h - 25,
-        10,
-        '#8daeb4',
-      );
+      if (this.isMetal) {
+        const tools = [
+          ['undo', '撤回', 'undo'],
+          ['metal-turn', '旋转', 'undo'],
+          ['metal-tilt', '倾斜', 'tilt'],
+          ['metal-pull', '抽离', 'pull'],
+          ['hint', '提示', 'hint'],
+        ];
+        for (let i = 0; i < tools.length; i++) {
+          const [id, label, icon] = tools[i]!;
+          const x = landscape
+            ? i < 3
+              ? statusX + (i - 1) * 66
+              : statusX + (i === 3 ? -42 : 42)
+            : statusX + (i - 2) * 62;
+          const y = landscape ? (i < 3 ? 248 : 326) : h - 80;
+          const disabled =
+            id === 'undo' ? !this.history.length : !!this.metalPull || isComplete(this.run.state);
+          u.roundButton(id!, label!, x, y, icon!, disabled);
+          u.text(label!, x, y + 35, 11);
+          if (id === 'metal-' + this.metalGesture) u.circle(u.ui, x, y, 27, MINT, 160, 1);
+        }
+        u.text(
+          '环上操作 · 空处查看背面',
+          statusX,
+          landscape ? 170 : h - 25,
+          10,
+          '#8daeb4',
+          landscape ? w * 0.31 : 340,
+        );
+      } else {
+        const toolsY = landscape ? 294 : h - 80;
+        u.roundButton(
+          'undo',
+          '撤回',
+          statusX - 66,
+          toolsY,
+          'undo',
+          !this.history.length || isComplete(this.run.state),
+        );
+        u.roundButton('hint', '提示', statusX + 66, toolsY, 'hint', isComplete(this.run.state));
+        u.text('撤回', statusX - 66, toolsY + 35, 11);
+        u.text('提示', statusX + 66, toolsY + 35, 11);
+        u.text(
+          this.campaign !== 'classic'
+            ? `最优 ${level.parMoves} 环 · 已释放 ${this.run.state.releasedCount}`
+            : `已转动 ${this.run.moves} 次`,
+          statusX,
+          landscape ? 192 : h - 25,
+          10,
+          '#8daeb4',
+        );
+      }
       this.draw();
     } else if (this.screen === 'paused') {
       u.header('让星光歇一会儿', 'A MOMENT OF STILLNESS', 'resume');
-      u.showHero(landscape ? w * 0.7 : w / 2, landscape ? 215 : h * 0.39, landscape ? 250 : 240);
+      u.showHero(landscape ? w * 0.7 : w / 2, landscape ? 215 : h * 0.3, landscape ? 250 : 180);
       const x = landscape ? w * 0.26 : w / 2,
-        y = landscape ? 175 : h * 0.64;
+        y = landscape ? 146 : h * 0.56;
       u.button('resume', '继续修复', x, y, 260, true);
-      u.button('retry', '重新开始', x, y + 68, 260);
-      u.button('home', '返回工坊', x, y + 136, 260);
+      u.button(
+        this.rewardPending ? 'reward-cancel' : 'reward-align',
+        this.rewardPending
+          ? '取消辅助'
+          : this.run?.rewardAlignUsed
+            ? '本局辅助已使用'
+            : '观看后对齐一环 · 一次',
+        x,
+        y + 62,
+        280,
+        false,
+        !this.rewardPending && !!this.run?.rewardAlignUsed,
+      );
+      u.button('retry', '重新开始', x, y + 124, 260);
+      u.button('home', '返回工坊', x, y + 186, 260);
+      u.text(
+        this.feedback || '完整观看才对齐 · 计入提示星级',
+        landscape ? w * 0.7 : x,
+        landscape ? h - 40 : y - 48,
+        12,
+        '#b9ced0',
+        320,
+      );
     } else if (this.screen === 'result' && this.run) {
       const level = this.level()!,
-        chapter = CHAPTERS[Math.min(3, level.chapter - 1)]!;
-      u.header(this.practice ? '试玩完成' : '星核已归位', 'CONSTELLATION RESTORED');
+        chapter = this.chapters[Math.min(this.chapters.length - 1, level.chapter - 1)]!;
+      u.header(
+        this.practice ? '试玩完成' : this.isMetal ? '金属机关已解开' : '星核已归位',
+        'CONSTELLATION RESTORED',
+      );
       const artX = landscape ? w * 0.72 : w / 2,
         artY = landscape ? 200 : h * 0.35;
       u.artifact(
-        Math.min(4, level.chapter),
+        this.isMetal ? 4 : Math.min(4, level.chapter),
         artX,
         artY,
         landscape ? 210 : Math.min(240, h * 0.29),
-        this.campaign === 'nova'
-          ? NOVA_LEVELS.filter((l) => l.chapter === level.chapter && this.progress.medals[l.id])
-              .length
+        this.campaign !== 'classic'
+          ? getCampaignLevels(this.campaign).filter(
+              (l) => l.chapter === level.chapter && this.progress.medals[l.id],
+            ).length
           : 6,
       );
       for (let i = 0; i < 3; i++)
@@ -449,7 +657,7 @@ export class OrbitAtelier extends Component {
       const x = landscape ? w * 0.26 : w / 2,
         y = landscape ? 150 : h * 0.61;
       u.text(
-        this.campaign === 'nova' ? chapter.artifact : '一张星盘，重新点亮',
+        this.campaign !== 'classic' ? chapter.artifact : '一张星盘，重新点亮',
         x,
         y,
         24,
@@ -471,7 +679,9 @@ export class OrbitAtelier extends Component {
           ? '返回我的工坊'
           : this.level() === getCampaignLevels(this.campaign).at(-1)
             ? '查看星图'
-            : '下一颗星核',
+            : this.isMetal
+              ? '下一组机关'
+              : '下一颗星核',
         x,
         y + 87,
         272,
@@ -500,28 +710,53 @@ export class OrbitAtelier extends Component {
           landscape ? 205 : 280,
         );
       }
-      u.button('help', '解扣指南', landscape ? x - 120 : x, landscape ? 250 : start + 235, 220);
-      if (sys.isBrowser)
-        u.button(
-          'fullscreen',
-          '全屏显示',
-          landscape ? x + 120 : x,
-          landscape ? 250 : start + 303,
-          220,
-        );
-      u.button('classic', '经典星盘 · 原有 74 关', x, landscape ? 328 : start + 371, 280);
+      u.button('help', '解扣指南', landscape ? x - 230 : x, landscape ? 245 : start + 235, 205);
+      u.button(
+        'legacy-nova',
+        '旧星核主线 · 24 关',
+        landscape ? x : x,
+        landscape ? 245 : start + 303,
+        landscape ? 205 : 280,
+      );
+      u.button(
+        'legacy-expert',
+        '旧机关星盘 · 6 关',
+        landscape ? x + 230 : x,
+        landscape ? 245 : start + 365,
+        landscape ? 205 : 280,
+      );
+      u.button('classic', '经典星盘 · 原有 74 关', x, landscape ? 328 : start + 427, 280);
     } else if (this.screen === 'help') {
       u.header('指尖的一点星光', 'HOW TO RESTORE A STAR', 'back');
       const x = w / 2,
         y = landscape ? 150 : h * 0.23;
-      u.text('转动缺口，释放星核', x, y, 25, GOLD, 340, u.labels, true);
-      const lines = [
-        '按住环缘，沿圆周拖动。',
-        '缺口让开两个接点后，松手抽离。',
-        '带星核的目标环解开，即可过关。',
-        '锁住的环会点亮它需要的钥环。',
-        '撤回不扣星；提示会计入星级。',
-      ];
+      u.text(
+        this.campaign === 'metal' ? '转动、倾斜，抽出金属件' : '转动缺口，释放星核',
+        x,
+        y,
+        25,
+        GOLD,
+        340,
+        u.labels,
+        true,
+      );
+      const lines =
+        this.campaign === 'metal'
+          ? [
+              '按住金属杆拖动，转动小缺口。',
+              '点“倾斜”后，上下拖动改变姿态。',
+              '点“抽离”，金属会沿箭头真实穿出。',
+              '碰到杆件会停下，不能穿过实体。',
+              '空处拖动看背面；取出带星标的件。',
+              '键盘左右旋转、Q/E倾斜、空格抽离。',
+            ]
+          : [
+              '按住环缘，沿圆周拖动。',
+              '缺口让开两个接点后，松手抽离。',
+              '释放全部带星核的目标环，即可过关。',
+              '锁住的环会点亮它需要的钥环。',
+              '撤回不扣星；提示会计入星级。',
+            ];
       u.text(lines.join('\n'), x, landscape ? 230 : h * 0.43, 15, '#b9ced0', landscape ? 560 : 325);
       u.button('back', '开始修复', x, landscape ? 336 : h * 0.72, 270, true);
     }
@@ -537,7 +772,9 @@ export class OrbitAtelier extends Component {
     const classic = this.campaign === 'classic',
       per = classic ? 12 : 6;
     this.mapPage = Math.max(0, Math.min(Math.ceil(levels.length / per) - 1, this.mapPage));
-    const chapter = CHAPTERS[this.mapPage % 4]!;
+    const expert = this.campaign === 'expert';
+    const chapters = this.chapters;
+    const chapter = chapters[expert ? 4 : this.mapPage % chapters.length]!;
     u.header(
       classic ? '经典星盘' : chapter.name,
       classic
@@ -594,10 +831,10 @@ export class OrbitAtelier extends Component {
       });
     });
     const tabY = u.landscape ? h - 55 : h - 90;
-    if (!classic)
-      for (let i = 0; i < 4; i++) {
-        const x = w / 2 + (i - 1.5) * 77;
-        u.roundButton(`chapter:${i}`, CHAPTERS[i]!.name, x, tabY, 'levels');
+    if (!classic && !expert)
+      for (let i = 0; i < Math.ceil(levels.length / per); i++) {
+        const x = w / 2 + (i - (Math.ceil(levels.length / per) - 1) / 2) * 77;
+        u.roundButton(`chapter:${i}`, chapters[i]!.name, x, tabY, 'levels');
         u.text(
           String(i + 1).padStart(2, '0'),
           x,
@@ -607,6 +844,7 @@ export class OrbitAtelier extends Component {
         );
         if (i === this.mapPage) u.circle(u.ui, x, tabY, 27, MINT, 180, 1);
       }
+    else if (expert) u.button('levels', '返回主线星图', w / 2, tabY, 240);
     else {
       u.button('map-prev', '上一页', w / 2 - 85, tabY, 140, false, this.mapPage === 0);
       u.button(
@@ -623,7 +861,11 @@ export class OrbitAtelier extends Component {
       u.text(
         classic
           ? `${this.mapPage + 1} / ${Math.ceil(levels.length / per)}`
-          : '每六颗星核，修复一件星仪',
+          : expert
+            ? '9–12 环 · 双星核 · 独立进度'
+            : this.campaign === 'metal'
+              ? '圆环入门 → 异形机关'
+              : '每六颗星核，修复一件星仪',
         w / 2,
         h - 22,
         10,
@@ -634,6 +876,27 @@ export class OrbitAtelier extends Component {
     if (!this.run || this.screen !== 'playing') return;
     const u = this.ui;
     u.drawBoard(this.run.state, this.selected, this.hint, this.feedback ? this.selected : null);
+    if (this.isMetal) {
+      const note =
+        this.feedback ||
+        (this.metalPull
+          ? this.metalPull.plan.clear
+            ? '正在穿过缺口'
+            : '碰到金属，返回原位'
+          : this.metalGesture === 'tilt'
+            ? '上下拖动金属件，改变倾斜角度'
+            : '转动小缺口，再点抽离');
+      u.text(
+        note,
+        u.landscape ? u.w * 0.18 : u.w / 2,
+        u.landscape ? 199 : u.h - 153,
+        12,
+        '#c6d9d6',
+        u.landscape ? u.w * 0.31 : 340,
+        u.boardLabels,
+      );
+      return;
+    }
     const focused = this.run.state.rings.find((r) => r.id === this.selected && !r.removed);
     const note =
       this.feedback ||
@@ -659,13 +922,37 @@ export class OrbitAtelier extends Component {
     );
   }
   activate(id: string) {
+    if (id === 'metal-turn' || id === 'metal-tilt') {
+      this.cancel();
+      this.metalGesture = id === 'metal-turn' ? 'turn' : 'tilt';
+      this.feedback = '';
+      this.render();
+      return;
+    }
+    if (id === 'metal-pull') {
+      this.startMetalPull();
+      return;
+    }
+    if (id === 'reward-align') {
+      void this.requestAlignment();
+      return;
+    }
+    if (id === 'reward-cancel') {
+      this.cancelReward();
+      this.feedback = '已取消 · 未获得辅助';
+      this.render();
+      return;
+    }
+    this.cancelReward();
     if (id === 'retry-art') {
       this.ui.loadArt();
       this.render();
       return;
     }
     if (id.startsWith('level:')) {
-      this.begin(id.slice(6), this.practice && !!platform.SmallGamesDev?.isEnabled());
+      const level = CATALOG.find((l) => l.id === id.slice(6));
+      if (level && !this.practice) this.resumeCampaign(level.campaign || 'classic', level.id);
+      else this.begin(id.slice(6), this.practice && !!platform.SmallGamesDev?.isEnabled());
       return;
     }
     if (id.startsWith('chapter:')) {
@@ -680,17 +967,22 @@ export class OrbitAtelier extends Component {
       this.render();
       return;
     }
-    if (id === 'start') {
-      if (this.run && !isComplete(this.run.state)) {
-        this.campaign = this.level()?.campaign || 'classic';
-        this.navigate('playing');
-      } else this.begin(NOVA_LEVELS[unlockedIndex(this.progress)]!.id);
-    }
-    if (id === 'levels' || id === 'classic') {
-      this.campaign = id === 'classic' ? 'classic' : 'nova';
-      this.mapPage = Math.floor(
-        unlockedIndex(this.progress, this.campaign) / (this.campaign === 'nova' ? 6 : 12),
-      );
+    if (id === 'start') this.resumeCampaign('metal');
+    if (['levels', 'expert', 'legacy-nova', 'legacy-expert', 'classic'].includes(id)) {
+      this.campaign =
+        id === 'classic'
+          ? 'classic'
+          : id === 'legacy-nova'
+            ? 'nova'
+            : id === 'legacy-expert'
+              ? 'expert'
+              : 'metal';
+      this.mapPage =
+        id === 'expert'
+          ? 1
+          : Math.floor(
+              unlockedIndex(this.progress, this.campaign) / (this.campaign === 'classic' ? 12 : 6),
+            );
       this.navigate('levels');
     }
     if (id === 'home') this.navigate('home');
@@ -714,7 +1006,6 @@ export class OrbitAtelier extends Component {
       this.mapPage += id === 'map-prev' ? -1 : 1;
       this.render();
     }
-    if (id === 'fullscreen') this.fullscreen?.click();
     if (id === 'undo' && this.run && this.history.length && !isComplete(this.run.state)) {
       this.cancel();
       this.run = restoreUndo(this.run!, this.history.pop()!);
@@ -745,7 +1036,9 @@ export class OrbitAtelier extends Component {
     try {
       const result = await platform.OrbitPublishing.share({
         params: { challenge: this.run.state.levelId },
-        text: `我用 ${this.run.state.releasedCount} 个星环唤醒了星核，来试试这张星盘。`,
+        text: this.isMetal
+          ? `我解开了「${this.level()?.name}」，来试试这组金属机关。`
+          : `我用 ${this.run.state.releasedCount} 个星环唤醒了星核，来试试这张星盘。`,
       });
       if (this.run !== requested || this.screen !== 'result') return;
       this.shareStatus =
@@ -780,7 +1073,7 @@ export class OrbitAtelier extends Component {
     }
   }
   down(id: number, x: number, y: number) {
-    if (this.press || this.drag) return;
+    if (this.press || this.drag || this.viewDrag) return;
     const control = this.ui.hit(x, y);
     if (control) {
       this.press = { id, control: control.id, x, y };
@@ -789,6 +1082,33 @@ export class OrbitAtelier extends Component {
       return;
     }
     if (this.screen !== 'playing' || !this.run || isComplete(this.run.state)) return;
+    if (this.isMetal) {
+      if (this.metalPull) return;
+      this.ui.metalScene.contact = null;
+      const picked = this.ui.metalScene.pick(this.run.state, x, y, this.selected);
+      if (!picked) {
+        this.viewDrag = { id, x, y, yaw: this.ui.metalScene.yaw, pitch: this.ui.metalScene.pitch };
+        return;
+      }
+      this.selected = picked.ring.id;
+      this.feedback = '';
+      if (picked.ring.wire.fixed) {
+        this.notify('底环固定，操作带星标的活动件');
+        return;
+      }
+      this.drag = {
+        id,
+        ringId: picked.ring.id,
+        angle: picked.angle,
+        rawAngle: picked.ring.angle,
+        x,
+        y,
+        moved: false,
+        before: structuredClone(this.run),
+      };
+      this.draw();
+      return;
+    }
     const p = this.ui.unproject(x, y),
       scale = this.ui.fit.scale;
     const candidates = this.run.state.rings
@@ -837,9 +1157,47 @@ export class OrbitAtelier extends Component {
     this.draw();
   }
   move(id: number, x: number, y: number) {
+    if (this.viewDrag?.id === id) {
+      this.ui.metalScene.yaw = this.viewDrag.yaw + (x - this.viewDrag.x) * 0.008;
+      this.ui.metalScene.pitch = Math.max(
+        0.18,
+        Math.min(1.35, this.viewDrag.pitch + (y - this.viewDrag.y) * 0.006),
+      );
+      this.draw();
+      return;
+    }
     if (this.press?.id === id && Math.hypot(x - this.press.x, y - this.press.y) > 12)
       this.press = null;
     if (!this.drag || this.drag.id !== id || !this.run) return;
+    if (this.isMetal) {
+      const d = this.drag,
+        r = this.run.state.rings.find((r) => r.id === d.ringId)!;
+      if (!d.moved && Math.hypot(x - d.x, y - d.y) < 3) return;
+      const beforeAngle = r.angle,
+        beforeTilt = r.tilt ?? 0;
+      let changed = false;
+      if (this.metalGesture === 'tilt') {
+        const initial = d.before.state.rings.find((r) => r.id === d.ringId)!.tilt ?? 0;
+        changed = tiltRing(
+          this.run.state,
+          r.id,
+          Math.max(-1.35, Math.min(1.35, initial + ((d.y - y) * Math.PI) / 240)),
+        );
+      } else {
+        const a = this.ui.metalScene.inputAngle(r, x, y);
+        changed = rotateRing(this.run.state, r.id, r.angle + normalizeAngle(a - d.angle));
+        d.angle = a;
+      }
+      d.moved ||=
+        Math.abs(normalizeAngle(r.angle - beforeAngle)) > 1e-7 ||
+        Math.abs((r.tilt ?? 0) - beforeTilt) > 1e-7;
+      if (!changed) {
+        this.feedback = '碰到金属杆，换个角度';
+        this.feedbackUntil = this.time + 1.2;
+      } else this.feedback = '';
+      this.draw();
+      return;
+    }
     const d = this.drag,
       p = this.ui.unproject(x, y),
       ring = this.run.state.rings.find((r) => r.id === d.ringId)!;
@@ -855,6 +1213,10 @@ export class OrbitAtelier extends Component {
     this.draw();
   }
   up(id: number, x: number, y: number) {
+    if (this.viewDrag?.id === id) {
+      this.viewDrag = null;
+      return;
+    }
     if (this.press?.id === id) {
       const press = this.press;
       this.press = null;
@@ -867,6 +1229,15 @@ export class OrbitAtelier extends Component {
     const d = this.drag;
     this.drag = null;
     const ring = this.run.state.rings.find((r) => r.id === d.ringId)!;
+    if (ring.wire && id !== -3) {
+      if (d.moved) {
+        this.history.push(d.before);
+        this.run.moves++;
+        this.save();
+      }
+      this.render();
+      return;
+    }
     const locked = this.run.state.rings.filter((r) => isLocked(this.run!.state, r.id));
     const released = tryRelease(this.run.state, d.ringId);
     if (d.moved || released) {
@@ -877,11 +1248,12 @@ export class OrbitAtelier extends Component {
     if (released) {
       for (const r of locked.filter((r) => !isLocked(this.run!.state, r.id)))
         this.ui.pulses.push({ x: r.x, y: r.y, start: this.time, unlocked: true });
-      this.flights.push({
-        ring: { ...ring },
-        age: 0,
-        goal: !!this.run.state.goalRingIds?.includes(ring.id),
-      });
+      if (!ring.wire)
+        this.flights.push({
+          ring: { ...ring },
+          age: 0,
+          goal: !!this.run.state.goalRingIds?.includes(ring.id),
+        });
       this.hint = null;
       this.selected = null;
       this.sound('release');
@@ -912,6 +1284,79 @@ export class OrbitAtelier extends Component {
       this.notify(d.moved ? '接点仍被挡住，再转一转' : '沿着环缘拖动');
     }
   }
+  startMetalPull() {
+    if (!this.isMetal || !this.run || this.metalPull || isComplete(this.run.state)) return;
+    this.cancel();
+    const ring =
+      this.run.state.rings.find((r) => r.id === this.selected && !r.removed && !r.wire?.fixed) ||
+      this.run.state.rings.find((r) => !r.removed && !r.wire?.fixed);
+    if (!ring) return;
+    this.selected = ring.id;
+    const plan = testExtraction(this.run.state.rings as WireRing[], ring.id);
+    this.metalPull = { ringId: ring.id, before: structuredClone(this.run), plan, age: 0 };
+    this.feedback = '';
+    this.render();
+  }
+  canvasRect(canvas: HTMLCanvasElement) {
+    const rect = canvas.getBoundingClientRect(),
+      viewport = view.getViewportRect();
+    // SHOW_ALL can add bars inside the canvas; input and accessible controls share that inset.
+    return {
+      left: rect.left + (viewport.x * rect.width) / canvas.width,
+      top:
+        rect.top + ((canvas.height - viewport.y - viewport.height) * rect.height) / canvas.height,
+      width: (viewport.width * rect.width) / canvas.width,
+      height: (viewport.height * rect.height) / canvas.height,
+    };
+  }
+  pointerPoint(e: PointerEvent) {
+    const rect = this.canvasRect(this.pointerCanvas!);
+    return {
+      x: ((e.clientX - rect.left) * this.ui.w) / rect.width,
+      y: ((e.clientY - rect.top) * this.ui.h) / rect.height,
+    };
+  }
+  pointerDown = (e: PointerEvent) => {
+    if (this.disposed || e.button !== 0 || this.drag || this.press || this.viewDrag) return;
+    e.preventDefault();
+    this.pointerCanvas!.focus({ preventScroll: true });
+    const p = this.pointerPoint(e);
+    this.trusted(e.pointerType);
+    this.down(e.pointerId, p.x, p.y);
+    this.pointerCanvas!.setPointerCapture(e.pointerId);
+  };
+  pointerMove = (e: PointerEvent) => {
+    if (
+      this.drag?.id !== e.pointerId &&
+      this.press?.id !== e.pointerId &&
+      this.viewDrag?.id !== e.pointerId
+    )
+      return;
+    if (e.pointerType === 'mouse' && !(e.buttons & 1)) {
+      this.pointerCancel(e);
+      return;
+    }
+    const p = this.pointerPoint(e);
+    this.move(e.pointerId, p.x, p.y);
+  };
+  pointerUp = (e: PointerEvent) => {
+    if (e.button !== 0) return;
+    const p = this.pointerPoint(e);
+    this.up(e.pointerId, p.x, p.y);
+    if (this.pointerCanvas!.hasPointerCapture(e.pointerId))
+      this.pointerCanvas!.releasePointerCapture(e.pointerId);
+  };
+  pointerCancel = (e: PointerEvent) => {
+    if (
+      this.drag?.id !== e.pointerId &&
+      this.press?.id !== e.pointerId &&
+      this.viewDrag?.id !== e.pointerId
+    )
+      return;
+    this.cancel();
+    this.save();
+    this.draw();
+  };
   touchStart(e: EventTouch) {
     this.lastTouch = this.time;
     const p = e.getUILocation();
@@ -927,7 +1372,11 @@ export class OrbitAtelier extends Component {
     this.up(e.getID() ?? 0, p.x, this.ui.h - p.y);
   }
   touchCancel(e: EventTouch) {
-    if (this.drag?.id === (e.getID() ?? 0) || this.press?.id === (e.getID() ?? 0)) {
+    if (
+      this.drag?.id === (e.getID() ?? 0) ||
+      this.press?.id === (e.getID() ?? 0) ||
+      this.viewDrag?.id === (e.getID() ?? 0)
+    ) {
       this.cancel();
       this.save();
       this.draw();
@@ -955,7 +1404,15 @@ export class OrbitAtelier extends Component {
       else if (this.screen === 'paused') this.navigate('playing');
       return;
     }
-    if (this.screen !== 'playing' || !this.run || this.drag || isComplete(this.run.state)) return;
+    if (
+      this.screen !== 'playing' ||
+      !this.run ||
+      this.drag ||
+      this.metalPull ||
+      this.viewDrag ||
+      isComplete(this.run.state)
+    )
+      return;
     const live = this.run.state.rings.filter((r) => !r.removed);
     if (e.keyCode === KeyCode.ARROW_UP || e.keyCode === KeyCode.ARROW_DOWN) {
       const at = live.findIndex((r) => r.id === this.selected);
@@ -964,15 +1421,60 @@ export class OrbitAtelier extends Component {
           (at + (e.keyCode === KeyCode.ARROW_DOWN ? 1 : live.length - 1) + live.length) %
             live.length
         ]?.id || null;
-      this.draw();
+      this.render();
       return;
     }
     const ring = live.find((r) => r.id === this.selected) || live[0];
+    if (ring?.wire && [KeyCode.KEY_Q, KeyCode.KEY_E].includes(e.keyCode)) {
+      const before = structuredClone(this.run);
+      if (
+        tiltRing(
+          this.run.state,
+          ring.id,
+          (ring.tilt ?? 0) + ((e.keyCode === KeyCode.KEY_Q ? -1 : 1) * Math.PI) / 36,
+        )
+      ) {
+        this.history.push(before);
+        if (this.history.length > 80) this.history.shift();
+        this.run.moves++;
+        this.save();
+        this.render();
+      }
+      return;
+    }
     if (!ring || isLocked(this.run.state, ring.id)) return;
     if (
-      ![KeyCode.ARROW_LEFT, KeyCode.ARROW_RIGHT, KeyCode.SPACE, KeyCode.ENTER].includes(e.keyCode)
+      ![
+        KeyCode.ARROW_LEFT,
+        KeyCode.ARROW_RIGHT,
+        KeyCode.SPACE,
+        KeyCode.ENTER,
+        KeyCode.KEY_Q,
+        KeyCode.KEY_E,
+      ].includes(e.keyCode)
     )
       return;
+    if (ring.wire) {
+      this.selected = ring.id;
+      if (e.keyCode === KeyCode.SPACE || e.keyCode === KeyCode.ENTER) this.startMetalPull();
+      else {
+        const before = structuredClone(this.run);
+        if (
+          rotateRing(
+            this.run.state,
+            ring.id,
+            ring.angle + ((e.keyCode === KeyCode.ARROW_LEFT ? -1 : 1) * Math.PI) / 90,
+          )
+        ) {
+          this.history.push(before);
+          if (this.history.length > 80) this.history.shift();
+          this.run.moves++;
+          this.save();
+          this.render();
+        }
+      }
+      return;
+    }
     const before = structuredClone(this.run);
     this.selected = ring.id;
     const moved = e.keyCode === KeyCode.ARROW_LEFT || e.keyCode === KeyCode.ARROW_RIGHT;
@@ -1014,8 +1516,47 @@ export class OrbitAtelier extends Component {
     this.time += Math.min(dt, 0.05);
     for (const f of this.flights) f.age += Math.min(dt, 0.05);
     this.flights = this.flights.filter((f) => f.age < (f.goal ? 0.7 : 0.4));
+    if (this.metalPull && this.screen === 'playing' && this.run) {
+      const pull = this.metalPull;
+      pull.age += Math.min(dt, 0.05);
+      const t = Math.min(1, pull.age / (this.progress.settings.reducedMotion ? 0.9 : 1.25));
+      const distance = pull.plan.clear
+        ? pull.plan.distance * t
+        : pull.plan.blockedAt * Math.sin(t * Math.PI);
+      this.ui.metalScene.offset = {
+        id: pull.ringId,
+        translation: {
+          x: pull.plan.direction.x * distance,
+          y: pull.plan.direction.y * distance,
+          z: pull.plan.direction.z * distance,
+        },
+      };
+      if (t >= 1) {
+        this.metalPull = null;
+        this.ui.metalScene.offset = null;
+        if (pull.plan.clear) {
+          const r = this.run.state.rings.find((r) => r.id === pull.ringId)!;
+          this.drag = {
+            id: -3,
+            ringId: r.id,
+            angle: r.angle,
+            rawAngle: r.angle,
+            x: 0,
+            y: 0,
+            moved: true,
+            before: pull.before,
+          };
+          this.up(-3, 0, 0);
+        } else {
+          this.ui.metalScene.contact = pull.plan.contact || null;
+          this.notify('这里碰到金属，先转动缺口或倾斜');
+        }
+        this.render();
+      } else this.draw();
+    }
     if (this.feedback && this.time > this.feedbackUntil) {
       this.feedback = '';
+      this.ui.metalScene.contact = null;
       this.draw();
     }
     if (this.completionAge >= 0 && this.screen === 'playing') {
@@ -1047,9 +1588,21 @@ export class OrbitAtelier extends Component {
       progress: structuredClone(this.progress),
       moves: this.run?.moves,
       hints: this.run?.hints,
+      rewardAlignUsed: this.run?.rewardAlignUsed === true,
+      rewardPending: this.rewardPending,
       practice: this.practice,
       challenge: this.challenge,
       selectedRingId: this.selected,
+      metalGesture: this.metalGesture,
+      metalView: this.isMetal ? this.ui.metalScene.snapshot() : null,
+      metalPull: this.metalPull
+        ? {
+            ringId: this.metalPull.ringId,
+            clear: this.metalPull.plan.clear,
+            age: this.metalPull.age,
+            blockedAt: this.metalPull.plan.blockedAt,
+          }
+        : null,
       drag: this.drag ? { ringId: this.drag.ringId } : null,
       flights: this.flights.length,
       medal: this.medal,
@@ -1069,9 +1622,14 @@ export class OrbitAtelier extends Component {
     this.accessibility.dataset.ready = String(this.ui.assetReady);
     this.accessibility.replaceChildren();
     const canvas = document.querySelector('canvas'),
-      rect = canvas?.getBoundingClientRect();
+      rect = canvas ? this.canvasRect(canvas) : null;
     if (!rect) return;
-    canvas?.setAttribute('aria-label', '拖动圆环转动缺口，松手释放星核');
+    canvas?.setAttribute(
+      'aria-label',
+      this.isMetal
+        ? '拖动金属件旋转，切换倾斜后上下拖动，点击抽离取出；空处拖动观察'
+        : '拖动圆环转动缺口，松手释放星核',
+    );
     canvas?.setAttribute('tabindex', '0');
     for (const control of this.ui.controls) {
       const button = document.createElement('button');
@@ -1101,6 +1659,7 @@ export class OrbitAtelier extends Component {
   }
   onDestroy() {
     this.disposed = true;
+    this.cancelReward();
     this.cancel();
     this.save();
     this.unregister.forEach((fn) => fn());
@@ -1120,7 +1679,6 @@ export class OrbitAtelier extends Component {
       delete platform.__orbit;
     }
     this.accessibility?.remove();
-    this.fullscreen?.remove();
     this.ui?.destroy();
   }
 }

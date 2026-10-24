@@ -48,10 +48,16 @@ test('word island readiness is home, with an explicit start adapter before board
   assert.equal(entryMode('letters-words2'), 'adapter');
 });
 
-test('street chase waits for the game and enters through the home start button', () => {
-  assert.equal(markers['chase-thief'], '#game[data-ready="true"]');
-  assert.equal(homeControls['chase-thief'], '#start');
-  assert.equal(entryMode('chase-thief'), 'adapter');
+test('street chase uses real Cocos canvas controls', () => {
+  assert.equal(markers['chase-thief'], '#GameCanvas');
+  assert.equal(homeControls['chase-thief'], undefined);
+  assert.equal(entryMode('chase-thief'), 'legacy');
+});
+
+test('Three Choose Two uses its visible Creator canvas and game-owned start flow', () => {
+  assert.equal(markers['three-choose-two'], '#GameCanvas');
+  assert.equal(homeControls['three-choose-two'], undefined);
+  assert.equal(entryMode('three-choose-two'), 'legacy');
 });
 
 test('Tianxia enters its ready Creator battlefield through preparation', () => {
@@ -76,4 +82,40 @@ test('Orbit Creator owns its native home and interaction checks instead of click
     ),
     'legacy',
   );
+});
+
+test('Tower Creator owns its native menu and touch flow', async () => {
+  assert.equal(markers['tower-brake'], '#GameCanvas');
+  assert.equal(homeControls['tower-brake'], undefined);
+  assert.equal(entryMode('tower-brake'), 'legacy');
+  assert.equal(
+    await enterStandalone(
+      {
+        locator() {
+          throw Error('No DOM click for Creator');
+        },
+      },
+      'tower-brake',
+      true,
+    ),
+    'legacy',
+  );
+});
+
+test('Tetracube waits for the real Creator scene and owns its canvas input flow', () => {
+  assert.equal(markers.tetracube, 'body[data-tetracube-ready="true"]');
+  assert.equal(homeControls.tetracube, undefined);
+  assert.equal(entryMode('tetracube'), 'legacy');
+});
+
+test('Castle Cannon uses the Creator canvas and game-owned portrait controls', () => {
+  assert.equal(markers['castle-cannon'], '#GameCanvas');
+  assert.equal(homeControls['castle-cannon'], undefined);
+  assert.equal(entryMode('castle-cannon'), 'legacy');
+});
+
+test('Ashfall uses the visible Creator canvas and game-owned touch flow', () => {
+  assert.equal(markers['ashfall-front'], '#GameCanvas');
+  assert.equal(homeControls['ashfall-front'], undefined);
+  assert.equal(entryMode('ashfall-front'), 'legacy');
 });

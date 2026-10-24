@@ -1,0 +1,25 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c"
+  },
+  "results": [
+    {
+      "width": 1366,
+      "height": 768,
+      "smokeAge": 6.010679792906243
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "pinchZoom": 0.9900000000000001
+    },
+    {
+      "width": 568,
+      "height": 320,
+      "pinchZoom": 0.990000091552711
+    }
+  ],
+  "errors": []
+}

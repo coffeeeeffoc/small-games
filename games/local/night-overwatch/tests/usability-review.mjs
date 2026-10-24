@@ -42,6 +42,7 @@ try {
       current.evidence.push(`${prefix}.png`);
     };
     const hit = async (id) => {
+      if (id === 'start' && (await snapshot(page)).modal === 'home') await hit('missions');
       current.steps.push({ action: 'press', id, button: (await snapshot(page)).buttons.find((b) => b.id === id) });
       await press(page, id, touch, false);
       assertLayout(await snapshot(page), width, height);
@@ -67,25 +68,14 @@ try {
       const after = await snapshot(page);
       for (const key of ['time', 'aircraft', 'shots', 'shotPositions', 'fired']) assert.deepEqual(after[key], before[key], `Pause freezes ${key}`);
     };
-    const fullscreen = async () => {
-      const before = await snapshot(page);
-      await hit('fullscreen');
-      await page.waitForFunction(() => !!document.fullscreenElement);
-      await capture(`fullscreen-${current.evidence.length}`);
-      await hit('fullscreen');
-      await page.waitForFunction(() => !document.fullscreenElement);
-      const after = await snapshot(page);
-      assert.deepEqual(after.pauses, before.pauses, 'Fullscreen preserves pause stack');
-      if (before.pauses.length) assert.equal(after.time, before.time, 'Fullscreen never advances paused mission');
-      noFire(before, after);
-    };
+    const noFullscreen = async () => { assert(!(await snapshot(page)).buttons.some(b => b.id === 'fullscreen')); };
     const run = async (name, check, playing = true) => {
       if (process.env.NIGHT_REVIEW_CASE && !name.includes(process.env.NIGHT_REVIEW_CASE)) return;
       current = { width, height, touch, name, status: 'running', steps: [], evidence: [] };
       report.checks.push(current);
       try {
         await page.goto(base);
-        await page.waitForFunction(() => globalThis.__night?.snapshot().audio === 'ready' && __night.snapshot().buttons.some((b) => b.id === 'start'));
+        await page.waitForFunction(() => globalThis.__night?.snapshot().audio === 'ready' && __night.snapshot().buttons.some((b) => b.id === 'missions'));
         await page.waitForFunction(() => {
           const startup = document.querySelector('#night-startup');
           return !startup || startup.hidden || getComputedStyle(startup).display === 'none' || getComputedStyle(startup).visibility === 'hidden';
@@ -106,7 +96,7 @@ try {
 
     await run('briefing-globals', async () => {
       await capture('briefing');
-      await fullscreen();
+      await noFullscreen();
       await hit('settings');
       assert.equal((await snapshot(page)).modal, 'settings');
       await hit('help');
@@ -114,7 +104,7 @@ try {
       await hit('close');
       assert.equal((await snapshot(page)).modal, 'settings');
       await hit('close');
-      assert.equal((await snapshot(page)).modal, 'briefing');
+      assert.equal((await snapshot(page)).modal, 'home');
       await hit('start');
       assert.equal((await snapshot(page)).phase, 'playing');
     }, false);
@@ -124,7 +114,7 @@ try {
       await hit('pause');
       await frozen();
       await capture('pause');
-      assert.deepEqual((await snapshot(page)).buttons.map((b) => b.id).sort(), ['fullscreen', 'resume', 'settings']);
+      assert.deepEqual((await snapshot(page)).buttons.map((b) => b.id).sort(), ['home', 'resume', 'settings']);
       await hit('settings');
       await capture('settings');
       for (const [id, key] of [['sound', 'muted'], ['effects', 'reducedEffects']]) {
@@ -138,7 +128,7 @@ try {
       await hit('language');
       await hit('help');
       await capture('help');
-      await fullscreen();
+      await noFullscreen();
       await hit('tab:advanced');
       if (touch) {
         await touchEvent('touchStart', [{ id: 1, x: width / 2, y: height * 0.62 }]);
@@ -156,7 +146,7 @@ try {
       assert.equal((await snapshot(page)).modal, 'settings');
       await hit('close');
       assert.equal((await snapshot(page)).modal, 'pause');
-      await fullscreen();
+      await noFullscreen();
       if (touch) await page.touchscreen.tap(4, height / 2);
       else await page.mouse.click(4, height / 2);
       assert.equal((await snapshot(page)).modal, 'pause', 'Outside tap cannot dismiss pause');
@@ -168,7 +158,7 @@ try {
 
     await run('live-fullscreen-and-drawer', async () => {
       const before = await snapshot(page);
-      await fullscreen();
+      await noFullscreen();
       await capture('battle');
       await hit('flightControls');
       await capture('drawer');

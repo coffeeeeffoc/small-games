@@ -49,6 +49,7 @@ export type Shot = Point & {
   origin: Point & { y: number };
   velocity: Point3;
   targetY: number;
+  timeScale?: number;
   guidance?: { kind: 'tracking' | 'consumable'; target: number; position: Point3; trail: (Point3 & { time: number })[] };
 };
 export type BattleEvent = Point & {
@@ -70,6 +71,7 @@ export type FireReason =
   | 'briefing'
   | 'paused'
   | 'finished'
+  | 'extracting'
   | 'protected'
   | 'overheated'
   | 'empty'
@@ -86,6 +88,8 @@ export class Simulation {
   time = 0;
   progress = 0;
   convoy: ConvoyState = 'moving';
+  extractionRemaining?: number;
+  extractionRadioPending = false;
   selected = 0;
   homingAmmo = 0;
   homingSelected = false;
@@ -142,6 +146,7 @@ export class Simulation {
   constructor(missionId: MissionId = 'corridor-01') {
     validateData();
     this.mission = missionDefinition(missionId);
+    this.selected = this.mission.initialWeapon;
     this.aim = { x: this.mission.events[0].x, z: this.mission.events[0].z };
     Object.assign(this.addUnit('rescue', this.routePoint(0), true), { group: 0, routeOffset: 0 });
     Object.assign(this.addUnit('escort', this.routePoint(5), true), { group: 0, routeOffset: 5 });
@@ -174,14 +179,18 @@ export class Simulation {
   get friendlyLosses() {
     return this.units.filter((u) => u.friendly && u.hp <= 0).length;
   }
+  get canConfigure() {
+    return this.phase === 'playing' && (!this.paused || this.pauses.has('settings') &&
+      Array.from(this.pauses).every(reason => reason === 'settings' || reason === 'manual'));
+  }
   setOrbitDirection(direction: -1 | 1) {
-    if (!this.paused && this.phase === 'playing') this.flight.setDirection(direction);
+    if (this.canConfigure) this.flight.setDirection(direction, this.paused);
   }
   adjustAltitude(delta: number) {
-    if (!this.paused && this.phase === 'playing') this.flight.adjustAltitude(delta);
+    if (this.canConfigure) this.flight.adjustAltitude(delta, this.paused);
   }
   adjustRadius(delta: number) {
-    if (!this.paused && this.phase === 'playing') this.flight.adjustRadius(delta);
+    if (this.canConfigure) this.flight.adjustRadius(delta, this.paused);
   }
   flightTime(weapon = this.selected, p: Point | null = this.aim) {
     if (!p || !Number.isInteger(weapon) || !WEAPONS[weapon] || ![p.x, p.z].every(Number.isFinite) ||
@@ -237,6 +246,7 @@ export class Simulation {
     } else {
       this.pauses.delete(reason);
       if (reason === 'countdown') this.resumeCountdown = 0;
+      if (reason === 'manual') this.resumeRequired = false;
     }
   }
   grantBuff(kind: BuffKind): boolean {
@@ -302,13 +312,13 @@ export class Simulation {
       this.held.delete(source);
       return;
     }
-    if (this.phase !== 'playing' || this.paused || this.held.has(source)) return;
+    if (this.phase !== 'playing' || this.paused || this.extractionRemaining !== undefined || this.held.has(source)) return;
     const pressed = this.held.size === 0;
     this.held.add(source);
     if (pressed) this.fire();
   }
   command() {
-    if (this.mission.mode === 'training' || this.phase !== 'playing' || this.paused || this.convoy === 'arrived') return;
+    if (this.mission.mode === 'training' || !this.canConfigure || this.convoy === 'arrived' || this.extractionRemaining !== undefined) return;
     if (this.convoy === 'moving') {
       if (!this.holdPoints.some((p) => p > this.progress + 0.01)) return;
       this.convoy = 'holdRequested';
@@ -318,10 +328,14 @@ export class Simulation {
       this.convoy = 'moving';
     }
   }
+  setExtractionRadioPending(pending: boolean) {
+    if (this.phase === 'playing') this.extractionRadioPending = pending;
+  }
   reason(): FireReason {
     if (this.phase === 'briefing') return 'briefing';
     if (this.phase !== 'playing') return 'finished';
     if (this.paused) return 'paused';
+    if (this.extractionRemaining !== undefined) return 'extracting';
     if (this.homingSelected) return this.homingAmmo <= 0 ? 'empty' : this.homingTarget ? 'ready' : 'target';
     const w = WEAPONS[this.selected],
       g = this.guns[this.selected];
@@ -395,7 +409,7 @@ export class Simulation {
   }
   fireHoming() {
     const target = this.homingTarget;
-    if (this.phase !== 'playing' || this.paused || this.homingAmmo <= 0 || !target || target.friendly ||
+    if (this.phase !== 'playing' || this.paused || this.extractionRemaining !== undefined || this.homingAmmo <= 0 || !target || target.friendly ||
         PROTECTED.some(p => distance(p, target) <= p.radius + UNITS[target.kind].radius)) return false;
     const origin = muzzlePosition(this.aircraft, 2);
     const delta = { x: target.x - origin.x, y: target.y - origin.y, z: target.z - origin.z };
@@ -554,7 +568,8 @@ export class Simulation {
       if (g.overheated && g.heat <= 40) g.overheated = false;
     }
     if (this.convoy !== 'holding' && this.convoy !== 'arrived') {
-      let next = this.progress + this.mission.speed * dt;
+      let next = this.extractionRemaining === undefined ? this.progress + this.mission.speed * dt
+        : this.progress + (this.routeLength - this.progress) * Math.min(1, dt / Math.max(dt, this.extractionRemaining));
       if (this.convoy === 'holdRequested') {
         const stop = this.holdPoints.find((p) => p >= this.progress - 0.001);
         if (stop !== undefined && next >= stop) {
@@ -564,6 +579,7 @@ export class Simulation {
       }
       this.progress = Math.min(this.routeLength, next);
     }
+    if (this.extractionRemaining !== undefined) this.extractionRemaining = Math.max(0, this.extractionRemaining - dt);
     for (const u of this.units) {
       u.hit = Math.max(0, u.hit - dt);
       if (u.hp <= 0) continue;
@@ -638,15 +654,9 @@ export class Simulation {
     }
     for (const u of this.units) {
       if (u.hp <= 0) continue;
-      const spec = UNITS[u.kind], target = this.nearestOpponent(u);
-      if (
-        this.mission.mode !== 'training' && target &&
-        spec.damage > 0 &&
-        this.time - u.born >= this.mission.warmup &&
-        u.attack <= 0 &&
-        distance(u, target) < spec.range
-      ) {
-        const damage = Math.min(target.hp, spec.damage * (target.friendly ? this.mission.friendlyArmor : target.kind === 'heavy' ? 0.25 : 1));
+      const intent = this.attackIntent(u);
+      if (intent && intent.dueIn <= 0) {
+        const { target, damage } = intent;
         target.hp = Math.max(0, target.hp - damage);
         if (target === this.rescue) {
           this.rescueDamage.enemy += damage;
@@ -667,16 +677,29 @@ export class Simulation {
       }
     }
     this.spawn();
+    if (this.mission.mode === 'escort' && this.threatsRemaining === 0 && this.extractionRemaining === undefined) {
+      this.extractionRemaining = this.progress >= this.routeLength ? 0 : 3;
+      this.convoy = 'moving';
+      this.clearInput();
+      this.shots = this.shots.map(shot => {
+        if (shot.guidance?.kind === 'consumable') return shot;
+        if (shot.guidance) this.releaseTracking(shot, this.time);
+        // Rebase at the current position; fast-forward the same remaining arc and terrain sweep.
+        return Object.freeze({ ...shot, origin: shotPosition(shot, this.time),
+          velocity: { ...shot.velocity, y: shot.velocity.y - FLIGHT.gravity * (this.time - shot.born) },
+          born: this.time, due: this.time + (shot.due - this.time) / 4, timeScale: 4 });
+      });
+    }
     if (this.progress >= this.routeLength) this.convoy = 'arrived';
     if (this.rescue.hp <= 0 || this.failedGroup !== undefined || this.mission.mode === 'training' && this.friendlyLosses > 0) {
       this.failedGroup ??= this.mission.mode === 'training'
         ? this.units.find((unit) => unit.friendly && unit.hp <= 0)?.group ?? 0 : 0;
       this.phase = 'failure';
       this.failure = 'vehicle';
-    } else if ((this.convoy === 'arrived' || this.mission.mode === 'training') && this.threatsRemaining === 0) {
+    } else if ((this.convoy === 'arrived' && this.shots.length === 0 && !this.extractionRadioPending || this.mission.mode === 'training') && this.threatsRemaining === 0) {
       this.phase = 'success';
       if (this.mission.mode === 'escort') this.completed.add('arrived');
-    } else if (this.time >= this.mission.duration) {
+    } else if (this.time >= this.mission.duration && this.extractionRemaining === undefined) {
       this.phase = 'failure';
       this.failure = 'timeout';
     }
@@ -706,6 +729,26 @@ export class Simulation {
       if (d < range) { nearest = u; range = d; }
     }
     return nearest;
+  }
+  attackIntent(unit: Unit) {
+    if (this.mission.mode === 'training' || unit.hp <= 0) return;
+    const spec = UNITS[unit.kind], target = this.nearestOpponent(unit);
+    if (!target || spec.damage <= 0 || distance(unit, target) >= spec.range) return;
+    return { target,
+      damage: Math.min(target.hp, spec.damage * (target.friendly ? this.mission.friendlyArmor : target.kind === 'heavy' ? .25 : 1)),
+      dueIn: Math.max(0, unit.attack, this.mission.warmup - (this.time - unit.born)) };
+  }
+  get priorityThreat() {
+    if (this.phase !== 'playing') return;
+    return this.units.filter(unit => !unit.friendly).flatMap(unit => {
+      const intent = this.attackIntent(unit);
+      if (!intent || intent.dueIn > 8) return [];
+      const lethal = intent.damage >= intent.target.hp;
+      const critical = lethal && (intent.target === this.rescue ||
+        !this.units.some(other => other !== intent.target && other.friendly && other.hp > 0 && other.group === intent.target.group));
+      return [{ unit, ...intent, lethal, critical }];
+    }).sort((a, b) => Number(b.critical) - Number(a.critical) || Number(b.lethal) - Number(a.lethal) ||
+      a.dueIn - b.dueIn || b.damage - a.damage || a.unit.id - b.unit.id)[0];
   }
   get rating() {
     if (this.phase !== 'success') return '—';

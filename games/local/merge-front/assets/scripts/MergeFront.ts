@@ -14,7 +14,17 @@ import {
   view,
   VERSION,
 } from 'cc';
-import { CATALOG, CHAPTERS, LEVELS, getSpec, type Kind } from './core/content.ts';
+import {
+  CATALOG,
+  CHAPTERS,
+  LEVELS,
+  getSpec,
+  getTrait,
+  TRAITS,
+  SPELLS,
+  starterChoices,
+  type Kind,
+} from './core/content.ts';
 import {
   command,
   createMatch,
@@ -22,6 +32,14 @@ import {
   snapshot,
   step,
   TICK_RATE,
+  POPULATION_CAP,
+  ROUND_SECONDS,
+  incomeForRound,
+  inventoryCount,
+  traitCounts,
+  crystalStyle,
+  legalPosition,
+  type Card,
   type Action,
   type Match,
 } from './core/engine.ts';
@@ -39,10 +57,11 @@ import {
   type RewardResult,
 } from './core/rewards.ts';
 import { C, H, W, MergeView } from './MergeView';
+import { attackEffects, troopPose, crystalImpact } from './BattleEffects';
 
 const { ccclass } = _decorator;
 const SAVE = 'merge-front:progress:v2',
-  RUN = 'merge-front:match:v2';
+  RUN = 'merge-front:match:v4';
 type Screen =
   | 'home'
   | 'levels'
@@ -83,8 +102,12 @@ export class MergeFront extends Component {
   levelId = LEVELS[0].id;
   deck: string[] = ['nezha', 'fire'];
   selected = 0;
-  selectedPart = '';
-  recipes = false;
+  supplyChoices = starterChoices(1);
+  supplyIndex = 0;
+  reducedMotion = false;
+  cardInfo: { title: string; body: string } | null = null;
+  handPage = 0;
+  confirmRetry = false;
   codexKind: Kind = 'hero';
   detail = 'nezha';
   demo = false;
@@ -96,6 +119,7 @@ export class MergeFront extends Component {
   lastTouch = -10;
   lastSave = 0;
   lastEvent = 0;
+  lastAttackSound = -10;
   feedback = '';
   feedbackUntil = 0;
   settlement: Settlement = { settled: false, unlocks: [], medals: 0 };
@@ -106,7 +130,6 @@ export class MergeFront extends Component {
   clips: Record<string, AudioClip> = {};
   unregister: (() => void)[] = [];
   accessibility?: HTMLDivElement;
-  fullscreen?: HTMLButtonElement;
   accessibilityKey = '';
   inputCount = 0;
   start() {
@@ -115,6 +138,8 @@ export class MergeFront extends Component {
     this.progress = readProgress(this.read(SAVE) || this.read('merge-front:preferences:v1'));
     try {
       const saved = this.read(RUN);
+      if (!saved && (this.read('merge-front:match:v2') || this.read('merge-front:match:v3')))
+        this.notify('商店玩法已更新，旧对局备份和关卡进度已保留');
       if (saved) {
         const restored = restore(saved);
         if (
@@ -131,10 +156,13 @@ export class MergeFront extends Component {
     } catch {
       this.notify('上次对局无法恢复，关卡进度已保留');
     }
+    this.reducedMotion =
+      this.read('merge-front:reduced-motion') === '1' ||
+      (sys.isBrowser && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
     this.chapter = Math.ceil(this.progress.unlockedLevel / 5);
     this.ui = new MergeView(this.node);
     this.audio = this.node.addComponent(AudioSource);
-    for (const key of ['click', 'merge', 'win'])
+    for (const key of ['click', 'merge', 'win', 'strike', 'shot', 'magic', 'impact'])
       resources.load('audio/' + key, AudioClip, (error, clip) => {
         if (!error && !this.disposed) this.clips[key] = clip;
       });
@@ -148,6 +176,7 @@ export class MergeFront extends Component {
     game.on(Game.EVENT_HIDE, this.suspend, this);
     if (sys.isBrowser) {
       window.addEventListener('blur', this.suspend);
+      window.addEventListener('resize', this.clear);
       window.addEventListener('pagehide', this.pageHide);
       document.addEventListener('visibilitychange', this.visibility);
       this.accessibility = document.createElement('div');
@@ -156,11 +185,6 @@ export class MergeFront extends Component {
       this.accessibility.style.cssText =
         'position:fixed;left:-10000px;width:1px;height:1px;overflow:hidden';
       document.body.append(this.accessibility);
-      this.fullscreen = document.createElement('button');
-      this.fullscreen.dataset.gameFullscreen = '';
-      this.fullscreen.tabIndex = -1;
-      this.fullscreen.style.cssText = 'position:fixed;left:-10000px';
-      document.body.append(this.fullscreen);
       platform.__mergeFront = { snapshot: () => this.inspect() };
     }
     if (platform.SmallGamesDev) {
@@ -194,7 +218,8 @@ export class MergeFront extends Component {
               if (platform.SmallGamesDev?.isEnabled() && this.match) {
                 this.practice = true;
                 this.match.practice = true;
-                this.match.sides[0].slots[this.selected].level = 100;
+                const card = this.match.sides[0].formation[0] || this.match.sides[0].hand[0];
+                if (card) card.level = 100;
                 this.notify('试玩等级 100');
               }
             },
@@ -242,7 +267,6 @@ export class MergeFront extends Component {
   }
   clear = () => {
     this.press = null;
-    this.selectedPart = '';
     if (this.ui) this.ui.pressed = '';
   };
   suspend = () => {
@@ -261,12 +285,14 @@ export class MergeFront extends Component {
   pageHide = () => {
     this.suspend();
     this.rewards?.cancel();
-    platform.SmallGamesRewardAds?.cancel?.();
+    this.provider()?.cancel?.();
   };
   goto(screen: Screen) {
     this.clear();
     this.screen = screen;
-    this.recipes = false;
+    this.confirmRetry = false;
+    this.cardInfo = null;
+    this.feedbackUntil = 0;
     if (this.match) this.match.paused = screen !== 'playing';
     if (sys.isBrowser) {
       document.body.dataset.screen = screen;
@@ -284,16 +310,14 @@ export class MergeFront extends Component {
   prepare(id: string) {
     if (!this.practice && !isUnlocked(this.progress, id)) return;
     this.levelId = id;
-    const allowed = LEVELS.find((l) => l.id === id)!.allowed;
-    this.deck = this.deck.filter((key) => allowed.includes(key));
-    for (const kind of ['hero', 'weapon'] as const)
-      if (!this.deck.some((key) => getSpec(key).kind === kind))
-        this.deck.push(allowed.find((key) => getSpec(key).kind === kind)!);
+    this.supplyChoices = starterChoices(Date.now() >>> 0);
+    this.supplyIndex = 0;
+    this.deck = [...this.supplyChoices[0].keys];
     this.goto('prepare');
   }
   begin(tutorial = this.progress.tutorialStep < 6 && this.levelId === LEVELS[0].id) {
     this.rewards?.dispose();
-    platform.SmallGamesRewardAds?.cancel?.();
+    this.provider()?.cancel?.();
     this.match = createMatch(this.levelId, Date.now() >>> 0, this.deck, {
       tutorial,
       practice: this.practice,
@@ -311,12 +335,11 @@ export class MergeFront extends Component {
     const result = command(this.match, 0, action);
     if (!result.ok) this.notify(result.message);
     else {
-      this.sound(['fill', 'fillAll', 'merge'].includes(action.type) ? 'merge' : 'click');
-      if (['fill', 'fillAll', 'merge'].includes(action.type)) this.vibrate();
-      if (action.type === 'draw')
-        this.notify(action.kind === 'hero' ? '神将残字已入库' : '武器残字已入库');
+      this.sound(['merge'].includes(action.type) ? 'merge' : 'click');
+      if (['merge'].includes(action.type)) this.vibrate();
       if (!this.match.practice)
         this.progress.tutorialStep = Math.max(this.progress.tutorialStep, this.match.tutorialStep);
+      if (result.message !== '操作成功') this.notify(result.message);
       this.save();
     }
     this.render();
@@ -342,7 +365,7 @@ export class MergeFront extends Component {
     this.rewards = createRewardController(match, () =>
       provider.offer({
         id: 'merge-front:income-boost',
-        reward: { incomePercent: 20, durationSeconds: 30, matchId: match.id },
+        reward: { coins: 2, matchId: match.id },
       }),
     );
     this.render();
@@ -351,7 +374,7 @@ export class MergeFront extends Component {
     this.rewardPending = false;
     this.notify(
       result.status === 'completed'
-        ? '助力已就绪：灵石产出 +20%，持续30秒'
+        ? '已领取 2 金币'
         : result.status === 'dismissed'
           ? '未完成观看，未领取助力'
           : '暂时无法领取助力，可直接继续战斗',
@@ -359,21 +382,9 @@ export class MergeFront extends Component {
     this.save();
     this.render();
   }
-  allowedTutorial(id: string) {
-    const m = this.match;
-    if (!m?.tutorial || m.tutorialStep >= 5 || ['pause', 'skip'].includes(id)) return true;
-    if (m.tutorialStep === 0) return id === 'draw:hero';
-    if (m.tutorialStep === 2) return false;
-    const slot = m.tutorialStep === 3 ? 3 : 0;
-    return (
-      id === 'slot:' + slot ||
-      id === 'fill' ||
-      id.startsWith('part:' + m.sides[0].slots[slot].key + ':')
-    );
-  }
+
   action(id: string) {
     if (this.rewardPending && id !== 'reward-close') return;
-    if (this.screen === 'playing' && !this.allowedTutorial(id)) return;
     if (id === 'load-retry') {
       this.ui.load();
       return;
@@ -401,55 +412,70 @@ export class MergeFront extends Component {
     } else if (id === 'back') this.goto(this.returnScreen);
     else if (id.startsWith('chapter:')) this.chapter = Number(id.split(':')[1]);
     else if (id.startsWith('level:')) this.prepare(id.slice(6));
-    else if (id.startsWith('deck:')) {
-      const key = id.slice(5),
-        spec = getSpec(key);
-      if (!LEVELS.find((l) => l.id === this.levelId)!.allowed.includes(key)) return;
-      if (this.deck.includes(key)) {
-        if (this.deck.filter((k) => getSpec(k).kind === spec.kind).length > 1)
-          this.deck = this.deck.filter((k) => k !== key);
-      } else if (
-        this.deck.filter((k) => getSpec(k).kind === spec.kind).length <
-        (spec.kind === 'hero' ? 3 : 2)
-      )
-        this.deck.push(key);
-      else
-        this.notify(
-          spec.kind === 'hero' ? '最多选择3位神将，可先取消一位' : '最多选择2种武器，可先取消一种',
-        );
+    else if (id.startsWith('supply:')) {
+      const index = Number(id.slice(7));
+      if (!this.supplyChoices[index]) return;
+      this.supplyIndex = index;
+      this.deck = [...this.supplyChoices[index].keys];
     } else if (id === 'begin') this.begin();
+    else if (id === 'start-round') this.act({ type: 'startRound' });
+    else if (id === 'hand-prev') this.handPage = Math.max(0, this.handPage - 1);
+    else if (id === 'hand-next') this.handPage++;
+    else if (id === 'cancel-retry') this.confirmRetry = false;
+    else if (id === 'confirm-retry') this.begin(false);
     else if (id === 'pause') {
       this.goto('paused');
       this.save();
     } else if (id === 'resume') this.goto('playing');
     else if (id === 'retry') {
-      if (this.match) this.levelId = this.match.levelId;
-      this.begin(false);
+      if (this.screen === 'paused') this.confirmRetry = true;
+      else this.begin(false);
     } else if (id === 'next') {
       const n = LEVELS.find((l) => l.id === this.match?.levelId)!.number;
       this.practice = false;
       if (n === 30) this.goto('levels');
       else this.prepare(LEVELS[n].id);
-    } else if (id.startsWith('draw:')) this.act({ type: 'draw', kind: id.slice(5) as Kind });
-    else if (id.startsWith('slot:')) {
-      const slot = Number(id.slice(5));
-      if (this.selectedPart) {
-        this.act({ type: 'fill', slot, part: this.selectedPart });
-        this.selectedPart = '';
-      }
-      this.selected = slot;
-      this.recipes = false;
-    } else if (id.startsWith('part:') && this.match) {
-      const part = id.slice(5),
-        [key, index] = part.split(':');
-      if (this.match.sides[0].bag[part]) this.selectedPart = this.selectedPart === part ? '' : part;
-      else this.act({ type: 'exchange', key, index: Number(index) });
-    } else if (id === 'fill') this.act({ type: 'fillAll', slot: this.selected });
-    else if (id === 'recipes') this.recipes = !this.recipes;
-    else if (id.startsWith('recipe:')) {
-      this.act({ type: 'recipe', slot: this.selected, key: id.slice(7) });
-      this.recipes = false;
-    } else if (id === 'withdraw') this.act({ type: 'withdraw', slot: this.selected });
+    } else if (id === 'refresh') this.act({ type: 'refresh' });
+    else if (id === 'info-close') this.cardInfo = null;
+    else if (id === 'motion') {
+      this.reducedMotion = !this.reducedMotion;
+      try {
+        sys.localStorage.setItem('merge-front:reduced-motion', this.reducedMotion ? '1' : '0');
+      } catch {}
+    } else if (id.startsWith('trait:')) {
+      const t = getTrait(id.slice(6));
+      this.cardInfo = {
+        title: t.name,
+        body: t.description + '\n只计算不同名字，合并不减少已激活的名字。',
+      };
+    } else if (id.startsWith('offer:')) {
+      const offer = this.match?.sides[0].shop.find((o) => o.id === Number(id.slice(6)));
+      if (offer)
+        this.showItem(
+          offer.kind === 'part'
+            ? 'part:' + offer.part
+            : offer.kind === 'spell'
+              ? 'spellkey:' + offer.key
+              : 'key:' + offer.key,
+          '◆ ' + offer.cost + ' · 拖到手牌区购买',
+        );
+    } else if (id.startsWith('spell:')) {
+      const spell = this.match?.sides[0].spells.find((c) => c.id === Number(id.slice(6)));
+      if (spell) this.showItem('spellkey:' + spell.key);
+    } else if (id.startsWith('card:') || id.startsWith('unit:')) {
+      const card = this.heldCard(id);
+      if (card)
+        this.showItem(
+          'key:' + card.key,
+          'Lv.' +
+            card.level +
+            ' · 永久攻击 +' +
+            card.bonusDamage +
+            ' / 生命 +' +
+            card.bonusHp +
+            (card.entered ? ' · 已出战' : ' · 未出战'),
+        );
+    } else if (id.startsWith('part:')) this.showItem(id);
     else if (id === 'skip') {
       this.act({ type: 'skipTutorial' });
       if (!this.match?.practice) this.progress.tutorialStep = 6;
@@ -481,8 +507,7 @@ export class MergeFront extends Component {
     } else if (id === 'vibration') {
       this.progress.vibration = !this.progress.vibration;
       this.save();
-    } else if (id === 'fullscreen') this.fullscreen?.click();
-    else if (id === 'reward') void this.reward();
+    } else if (id === 'reward') void this.reward();
     else if (id === 'reward-close') {
       this.rewards?.cancel();
       this.provider()?.cancel?.();
@@ -493,18 +518,23 @@ export class MergeFront extends Component {
     this.time += Math.min(dt, 0.1);
     const m = this.match;
     if (m && this.screen === 'playing' && !this.rewardPending && !m.paused) {
-      const lessonPause = m.tutorial && [0, 1, 3, 4].includes(m.tutorialStep);
-      if (!lessonPause) {
+      if (m.roundStage !== 'planning') {
         this.accumulator += Math.min(dt, 0.25);
         while (this.accumulator >= 1 / TICK_RATE && m.phase === 'running') {
           step(m);
           this.accumulator -= 1 / TICK_RATE;
         }
-      } else {
-        this.accumulator = 0;
-        if (m.tutorialStep === 3) this.selected = 3;
-        else if (m.tutorialStep === 1 || m.tutorialStep === 4) this.selected = 0;
+      } else this.accumulator = 0;
+      const audible = m.events.filter((e) => e.id > this.lastEvent && m.tick - e.tick <= 3);
+      const impact = audible.find((e) => e.type === 'crystal-hit');
+      const attack = audible.find((e) => e.type === 'attack');
+      if (impact) this.sound('impact');
+      else if (attack?.key && this.time - this.lastAttackSound > 0.14) {
+        const spec = getSpec(attack.key);
+        this.sound(spec.range < 100 ? 'strike' : spec.kind === 'weapon' ? 'shot' : 'magic');
+        this.lastAttackSound = this.time;
       }
+      this.lastEvent = Math.max(this.lastEvent, ...m.events.map((e) => e.id));
       if (!m.practice)
         this.progress.tutorialStep = Math.max(this.progress.tutorialStep, m.tutorialStep);
       if (m.phase !== 'running') {
@@ -537,16 +567,18 @@ export class MergeFront extends Component {
       return;
     }
     const battle = ['playing', 'paused', 'result'].includes(this.screen) && this.match;
+    const planning = battle && this.match!.roundStage === 'planning';
     u.image(
       'background',
-      battle ? 'field' : 'home',
-      480,
-      battle ? 188 : 270,
-      960,
-      battle ? 380 : 540,
+      battle ? 'arena' : 'home',
+      W / 2,
+      battle && planning ? 188 : H / 2,
+      W,
+      battle && planning ? 376 : H,
       0,
     );
     if (battle) this.battlefield();
+    u.offsetX = battle && this.screen !== 'result' ? 0 : (W - 960) / 2;
     if (this.screen === 'home') this.homeView();
     else if (this.screen === 'levels') this.levelView();
     else if (this.screen === 'prepare') this.prepareView();
@@ -561,22 +593,118 @@ export class MergeFront extends Component {
       u.panel(210, 84, 540, 52, '#102f2beb', C.gold, 16, 6);
       u.text('toast', this.feedback, 480, 110, 22, 520, C.paper, 7, 48);
     }
-    if (this.press?.moved && this.press.control.startsWith('part:')) {
-      const [key, index] = this.press.control.slice(5).split(':');
-      u.panel(this.pointer.x - 40, this.pointer.y - 55, 80, 80, C.paper, C.gold, 15, 6);
-      u.text(
+    u.offsetX = 0;
+    const held = this.press?.moved ? this.heldCard(this.press.control) : null;
+    if (held) {
+      const spec = getSpec(held.key);
+      u.image(
         'drag',
-        getSpec(key).parts[Number(index)],
+        'unit' + spec.atlas,
         this.pointer.x,
-        this.pointer.y - 15,
-        44,
-        80,
-        C.ink,
+        this.pointer.y - 48,
+        104,
+        96,
+        7,
+        false,
+        '#ffffffbb',
+      );
+      u.circle(this.pointer.x, this.pointer.y, 25, '#6fe3c544', C.mint, 6);
+      u.text(
+        'drag-rank',
+        'Lv.' + held.level,
+        this.pointer.x,
+        this.pointer.y - 103,
+        22,
+        110,
+        C.gold,
         7,
       );
     }
+    if (this.press?.moved && !held) {
+      const id = this.press.control,
+        side = this.match?.sides[0];
+      if (side && /^(offer|spell|part):/.test(id)) {
+        let name = '',
+          atlas = -1;
+        if (id.startsWith('offer:')) {
+          const o = side.shop.find((o) => o.id === Number(id.slice(6)));
+          if (o) {
+            if (o.kind === 'unit') atlas = getSpec(o.key).atlas;
+            else
+              name =
+                o.kind === 'part'
+                  ? o.part === 'nezha:0'
+                    ? '哪'
+                    : '吒'
+                  : SPELLS.find((s) => s.id === o.key)!.name;
+          }
+        } else if (id.startsWith('part:')) name = id.endsWith(':0') ? '哪' : '吒';
+        else {
+          const c = side.spells.find((c) => c.id === Number(id.slice(6)));
+          name = SPELLS.find((s) => s.id === c?.key)?.name || '';
+        }
+        u.panel(this.pointer.x - 46, this.pointer.y - 90, 92, 92, '#164d45dd', C.gold, 12, 6);
+        if (atlas >= 0)
+          u.image('drag-offer', 'unit' + atlas, this.pointer.x, this.pointer.y - 47, 80, 80, 7);
+        else u.text('drag-spell', name, this.pointer.x, this.pointer.y - 45, 28, 88, C.gold, 7);
+      }
+    }
+    if (this.cardInfo) {
+      u.controls = [];
+      u.panel(0, 0, W, H, '#092b2abd', '', 0, 6);
+      u.panel(W / 2 - 335, 130, 670, 300, C.ink, C.gold, 24, 6);
+      u.text('info-title', this.cardInfo.title, W / 2, 172, 32, 620, C.gold, 7);
+      u.text('info-body', this.cardInfo.body, W / 2, 265, 23, 618, C.paper, 7, 142);
+      u.button('info-close', '知道了', W / 2 - 115, 341, 230, 70, true, false, 6);
+    }
     u.end();
     this.syncAccessibility();
+  }
+  showItem(id: string, extra = '') {
+    if (id.startsWith('part:')) {
+      this.cardInfo = {
+        title: id.endsWith(':0') ? '哪' : '吒',
+        body:
+          '残字不能出战。哪 + 吒自动合为完整哪吒。\n持有一字后，下一次刷新保证出现另一字。\n' +
+          extra,
+      };
+      return;
+    }
+    if (id.startsWith('spellkey:')) {
+      const spell = SPELLS.find((s) => s.id === id.slice(9))!;
+      this.cardInfo = {
+        title: spell.name,
+        body:
+          spell.description +
+          '\n' +
+          (spell.id === 'inspire' ? '拖到己方场地施放。' : '拖到己方场上单位施放。') +
+          '\n' +
+          extra,
+      };
+      return;
+    }
+    const spec = getSpec(id.slice(4)),
+      trait = getTrait(spec.id);
+    const trigger: Record<string, string> = {
+      juling: '首次出战：最近另一友军永久+20生命。',
+      leizhen: '首次出战：最近另一雷霆永久+4攻击。',
+      xuannv: '首次出战：其他灵泽永久+6生命。',
+      fire: '售出：获得磨刃，不返金币。',
+      lantern: '售出：获得护符，不返金币。',
+      drone: '售出：+1金币，并存一次免费刷新。',
+      ram: '胜局存活：额外攻晶1点，不叠加。',
+    };
+    this.cardInfo = {
+      title: spec.name + ' · ' + trait.name,
+      body:
+        spec.role +
+        ' · ' +
+        spec.skill +
+        '\n' +
+        (trigger[spec.id] || '同名合并等级相加，或分兵独立出战。') +
+        '\n' +
+        extra,
+    };
   }
   homeView() {
     const u = this.ui;
@@ -669,266 +797,443 @@ export class MergeFront extends Component {
       .map((k) => getSpec(k).name)
       .join(' · ');
     u.panel(100, 452, 760, 60, C.ink, C.gold, 18);
-    u.text('chapter-rewards', '本章解锁  ' + rewards, 480, 482, 24, 730);
+    u.text('chapter-rewards', '五场挑战 · 全部16种神将机关可在商店获取', 480, 482, 24, 730);
   }
   prepareView() {
     const u = this.ui,
       level = LEVELS.find((l) => l.id === this.levelId)!;
-    this.header('第' + level.number + '关 · ' + level.title, 'levels');
-    u.button('codex', '图鉴', 800, 8, 140, 72);
-    u.text(
-      'hero-group',
-      '神将 ' + this.deck.filter((k) => getSpec(k).kind === 'hero').length + '/3',
-      250,
-      108,
-      26,
-      400,
-      C.gold,
-    );
-    u.text(
-      'weapon-group',
-      '武器 ' + this.deck.filter((k) => getSpec(k).kind === 'weapon').length + '/2',
-      710,
-      108,
-      26,
-      400,
-      C.gold,
-    );
-    CATALOG.forEach((spec, n) => {
-      const i = n % 8,
-        x = (n < 8 ? 30 : 500) + (i % 4) * 108,
-        y = 137 + Math.floor(i / 4) * 130;
-      const open = level.allowed.includes(spec.id),
-        selected = this.deck.includes(spec.id);
-      u.panel(x, y, 99, 120, selected ? '#3a7866' : C.ink, selected ? C.gold : '#789b82', 14);
-      u.image(
-        'deck:' + spec.id,
-        'unit' + spec.atlas,
-        x + 50,
-        y + 47,
-        85,
-        73,
-        4,
-        false,
-        open ? '#ffffff' : '#233e36',
-      );
+    this.header('开局补给 · 第' + level.number + '关', 'levels');
+    u.text('supply-tip', '三选一 · 商店全部开放', 480, 102, 25, 700, C.gold);
+    this.supplyChoices.forEach((pack, i) => {
+      const x = 24 + i * 312,
+        chosen = i === this.supplyIndex;
+      u.panel(x, 142, 288, 262, chosen ? '#27695b' : '#103e39', chosen ? C.gold : '#6e9486', 22);
+      pack.keys.forEach((key, j) => {
+        const spec = getSpec(key);
+        u.image('starter:' + i + ':' + j, 'unit' + spec.atlas, x + 80 + j * 127, 252, 143, 143, 4);
+        u.text('starter-name:' + i + ':' + j, spec.name, x + 78 + j * 130, 327, 20, 140);
+      });
+      u.text('starter-title:' + i, pack.name, x + 144, 178, 27, 270, C.gold);
       u.text(
-        'deck-name:' + spec.id,
-        open ? spec.name : '第' + spec.unlock + '关解锁',
-        x + 50,
-        y + 96,
-        open ? 21 : 17,
-        97,
-        open ? C.paper : C.muted,
+        'starter-trait:' + i,
+        pack.keys.map((k) => getTrait(k).name).join(' · '),
+        x + 144,
+        371,
+        20,
+        270,
+        C.mint,
       );
-      if (selected) u.text('chosen:' + spec.id, '✓', x + 83, y + 18, 25, 30, C.gold);
-      u.hit('deck:' + spec.id, spec.name, x, y, 99, 120, !open);
+      u.hit('supply:' + i, pack.name + '，选择开局两张卡', x, 142, 288, 262);
     });
-    u.text(
-      'opponent',
-      '对手：' +
-        { expand: '扩军推进', focus: '集中升级', balanced: '稳扎稳打', counter: '灵活应变' }[
-          level.ai.style
-        ],
-      250,
-      450,
-      24,
-      430,
-    );
     u.button('begin', '出阵', 570, 433, 330, 83, true);
+    u.text('supply-choice', this.supplyChoices[this.supplyIndex].name, 255, 473, 26, 430, C.paper);
+  }
+  board() {
+    const planning = this.match?.roundStage === 'planning';
+    return { x: 66, y: planning ? 120 : 144, w: W - 132, h: planning ? 216 : 312 };
+  }
+  fieldPoint(x: number, y: number) {
+    const b = this.board();
+    return { x: b.x + (x / 1000) * b.w, y: b.y + (y / 360) * b.h };
+  }
+  heldCard(control: string): Card | undefined {
+    if (!this.match || !/^(card|unit):/.test(control)) return;
+    return [...this.match.sides[0].hand, ...this.match.sides[0].formation].find(
+      (c) => c.id === Number(control.split(':')[1]),
+    );
+  }
+  mergeTarget(card: Card, x: number, y: number) {
+    return this.match?.sides[0].formation
+      .filter((c) => c.id !== card.id && c.key === card.key)
+      .sort((a, b) => b.y - a.y || b.id - a.id)
+      .find((c) => {
+        const p = this.fieldPoint(c.x, c.y);
+        return Math.hypot(p.x - x, p.y - y) < 48;
+      });
   }
   battlefield() {
     const u = this.ui,
-      m = this.match!;
-    u.panel(0, 0, 960, 68, '#123d37ef', '', 0);
-    for (const side of [0, 1]) {
+      m = this.match!,
+      planning = m.roundStage === 'planning',
+      b = this.board();
+    u.panel(0, 0, W, 66, '#123d37e8', '', 0);
+    for (const side of [0, 1] as const) {
       const s = m.sides[side],
-        x = side === 0 ? 22 : 570;
-      u.progress(x, 28, 280, s.crystalHp / s.maxCrystalHp, side ? C.red : C.mint, 22);
+        x = side ? W - 352 : 30;
+      u.progress(x, 22, 235, s.crystalHp / s.maxCrystalHp, side ? C.red : C.mint, 18);
       u.text(
         'core:' + side,
-        (side ? '敌晶 ' : '我方 ') + Math.ceil(s.crystalHp) + '/' + s.maxCrystalHp,
-        x + 140,
-        39,
-        20,
-        270,
+        (side ? '敌晶 ' : '我方 ') + s.crystalHp + '/' + s.maxCrystalHp,
+        x + 117,
+        32,
+        19,
+        230,
       );
-      u.crystal(side ? 880 : 80, 211, !!side, this.time * 3);
+      const pos = this.fieldPoint(side ? 950 : 50, 180);
+      u.crystal(pos.x, pos.y, !!side, (m.tick / TICK_RATE) * 3);
     }
+    u.text('round', '第 ' + m.roundNumber + ' 回合', W / 2, 22, 24, 240, C.gold);
     u.text(
-      'clock',
-      Math.floor(m.tick / 1200)
-        .toString()
-        .padStart(2, '0') +
-        ':' +
-        (Math.floor(m.tick / 20) % 60).toString().padStart(2, '0'),
-      436,
-      31,
-      26,
-      160,
-      C.gold,
+      'phase',
+      planning
+        ? '整备'
+        : m.roundStage === 'battle'
+          ? '战斗  ·  ' + Math.max(0, ROUND_SECONDS - Math.floor(m.roundTicks / TICK_RATE))
+          : '回合结算',
+      W / 2,
+      49,
+      18,
+      280,
+      C.paper,
     );
-    if (m.tick >= 4800) u.text('exposure', '晶核暴露', 436, 61, 18, 160, C.red);
-    for (const unit of [...m.units].sort((a, b) => a.y - b.y || a.id - b.id)) {
-      const spec = getSpec(unit.key),
-        x = 46 + unit.x * 0.868,
-        y = 85 + unit.y * 0.65;
-      const bob =
-        unit.anim === 'move'
-          ? Math.sin(this.time * 12 + unit.id) * 3
-          : Math.sin(this.time * 3 + unit.id) * 1;
-      const attacking = unit.anim === 'attack' || unit.anim === 'skill';
-      const size = spec.kind === 'hero' ? 61 : 54;
-      u.circle(x, y + 13, 15, unit.side ? '#ad364fbb' : '#1b9c8bbb', '', 2);
-      u.image(
-        'troop:' + unit.id,
-        'unit' + spec.atlas,
-        x + (attacking ? Math.sin(this.time * 26) * 3 : 0),
-        y - 13 + bob,
-        size * 1.15,
-        size,
-        1,
-        unit.side === 1,
-        unit.anim === 'hit' ? '#ffd0b0' : '#ffffff',
-        attacking ? Math.sin(this.time * 20) * 6 : 0,
-      );
-      u.progress(x - 22, y - 47, 44, unit.hp / unit.maxHp, unit.side ? C.red : C.mint, 4, 2);
-      if (unit.level > 1)
-        u.text('rank:' + unit.id, String(unit.level), x, y - 57, 14, 50, C.gold, 2, 20);
-      if (attacking && unit.targetId) {
-        const t = m.units.find((v) => v.id === unit.targetId);
-        if (t && unit.range > 80)
-          u.line(
-            x,
-            y - 13,
-            46 + t.x * 0.868,
-            72 + t.y * 0.65,
-            spec.special === 'slow' ? '#a9e9ff' : C.gold,
-            2,
+    if (this.screen === 'playing') u.pause(W - 86, 3);
+    if (planning) {
+      const counts = traitCounts(m.sides[0].formation);
+      TRAITS.forEach((t, i) => {
+        const x = 310 + i * 135;
+        u.panel(x, 70, 128, 38, '#163e35dd', counts[t.id] >= 2 ? t.color : '#638d78', 10, 3);
+        u.text(
+          'trait:' + t.id,
+          t.name + ' ' + counts[t.id] + '/4',
+          x + 64,
+          89,
+          18,
+          124,
+          counts[t.id] >= 2 ? t.color : C.muted,
+        );
+      });
+      const dragging = !!this.press?.moved && !!this.heldCard(this.press.control);
+      if (dragging) {
+        const tl = this.fieldPoint(120, 30),
+          br = this.fieldPoint(440, 330);
+        u.panel(
+          tl.x - 20,
+          tl.y - 15,
+          br.x - tl.x + 40,
+          br.y - tl.y + 30,
+          '#72dfbd22',
+          '#a5e9ca99',
+          30,
+          0,
+        );
+      }
+      for (const side of [0, 1] as const)
+        for (const card of [...m.sides[side].formation].sort((a, b) => a.y - b.y)) {
+          const p = this.fieldPoint(card.x, card.y),
+            spec = getSpec(card.key),
+            held = this.press?.moved ? this.heldCard(this.press.control) : null;
+          if (side === 0 && held?.id === card.id) continue;
+          const merge =
+            held &&
+            side === 0 &&
+            this.mergeTarget(held, this.pointer.x, this.pointer.y)?.id === card.id;
+          u.ellipse(p.x + 4, p.y + 4, 29, 10, '#15382c77', '', 1);
+          u.ellipse(
+            p.x,
+            p.y,
+            25,
+            9,
+            side ? '#e6615c33' : '#73e7c833',
+            merge ? C.gold : side ? C.red : C.mint,
+            1,
+          );
+          u.image(
+            'plan:' + card.id,
+            'unit' + spec.atlas,
+            p.x,
+            p.y - 27,
+            86 * (0.87 + card.y / 1600),
+            86 * (0.87 + card.y / 1600),
+            1,
+            !!side,
+            this.press?.moved && held?.id === card.id ? '#ffffff55' : '#ffffff',
+          );
+          u.text(
+            'plan-level:' + card.id,
+            merge
+              ? card.level + '+' + held.level + ' → ' + (card.level + held.level)
+              : 'Lv.' + card.level,
+            p.x,
+            p.y + 24,
+            19,
+            merge ? 200 : 100,
+            C.gold,
             2,
           );
+          if (side === 0 && this.screen === 'playing')
+            u.hit(
+              'unit:' + card.id,
+              spec.name + ' ' + card.level + '级，拖动调整',
+              p.x - 40,
+              p.y - 70,
+              80,
+              100,
+            );
+        }
+      TRAITS.forEach((t, i) =>
+        u.hit('trait:' + t.id, t.name + '流派详情', 310 + i * 135, 67, 128, 44),
+      );
+    } else {
+      for (const unit of [...m.units].sort((a, b) => a.y - b.y || a.id - b.id)) {
+        const spec = getSpec(unit.key),
+          p = this.fieldPoint(unit.x, unit.y),
+          pose = troopPose(m, unit, this.reducedMotion),
+          size = 94 * (0.85 + unit.y / 1600);
+        u.ellipse(p.x + 5, p.y + 4, size * 0.3, size * 0.1, '#12362a88', '', 1);
+        u.ellipse(
+          p.x,
+          p.y,
+          size * 0.26,
+          size * 0.085,
+          unit.side ? '#d74b4b33' : '#4ed8bd33',
+          unit.side ? '#ed969b99' : '#98e6cd99',
+          1,
+        );
+        u.image(
+          'troop:' + unit.id,
+          'unit' + spec.atlas,
+          p.x + pose.dx,
+          p.y - size * 0.42 + pose.dy,
+          size,
+          size,
+          1,
+          !!unit.side,
+          '#ffffff',
+          pose.angle,
+        );
+        u.progress(
+          p.x - 28,
+          p.y - size * 0.91,
+          56,
+          unit.hp / unit.maxHp,
+          unit.side ? C.red : C.mint,
+          5,
+          2,
+        );
+        if (unit.shield > 0)
+          u.progress(
+            p.x - 28,
+            p.y - size * 0.91 - 6,
+            56,
+            unit.shield / unit.maxHp,
+            '#b5e8fc',
+            3,
+            2,
+          );
+        u.text(
+          'rank:' + unit.id,
+          'Lv.' + unit.level,
+          p.x,
+          p.y - size * 0.91 - 18,
+          16,
+          90,
+          C.gold,
+          2,
+          24,
+        );
       }
-    }
-    for (const e of m.events.filter(
-      (e) => m.tick - e.tick < 8 && ['hit', 'death', 'spawn'].includes(e.type),
-    )) {
-      const age = (m.tick - e.tick) / 8,
-        x = 46 + e.x * 0.868,
-        y = 85 + e.y * 0.65;
-      if (e.type === 'hit') u.circle(x, y - 12, 4 + age * 8, '#fff1b888', '', 2);
-      else u.circle(x, y + 12, 15 + age * 14, '#63d6b54c', age < 0.5 ? C.gold : '', 2);
+      attackEffects(u, m, (x, y) => this.fieldPoint(x, y), this.reducedMotion);
+      if (m.roundStage === 'resolution') {
+        u.panel(W / 2 - 180, 76, 360, 58, '#123d37ed', C.gold, 20, 3);
+        u.text(
+          'round-result',
+          m.roundWinner === null
+            ? '势均力敌 · 下回合再战'
+            : m.roundWinner === 0
+              ? '本回合胜利  ·  敌晶 −' + m.roundDamage
+              : '本回合失利  ·  我方 −' + m.roundDamage,
+          W / 2,
+          105,
+          23,
+          350,
+          C.gold,
+        );
+        if (m.roundWinner !== null) {
+          const end = this.fieldPoint(m.roundWinner === 0 ? 950 : 50, 180);
+          crystalImpact(u, m, end, this.reducedMotion);
+        }
+      }
     }
   }
   workshop() {
     const u = this.ui,
       m = this.match!,
       side = m.sides[0];
-    u.pause(872, 4);
-    u.panel(0, 332, 960, 208, C.deep, C.gold, 0);
-    u.text('coins', '◆ ' + Math.floor(side.coins), 79, 354, 29, 150, C.gold);
-    u.button('draw:hero', '求将 30', 10, 378, 138, 72, true, side.coins < 30);
-    u.button('draw:weapon', '铸器 30', 10, 457, 138, 72, true, side.coins < 30);
-    side.slots.forEach((slot, i) => {
-      const spec = getSpec(slot.key),
-        x = 163 + i * 158;
+    if (m.roundStage !== 'planning') return;
+    u.panel(0, 370, W, 170, '#103b34f5', '#a9a06b', 0);
+    u.line(488, 382, 488, 527, '#8a9c70', 2, 3);
+    u.text('coins', '◆ ' + side.coins, 58, 397, 27, 110, C.gold);
+    u.text('income', '下轮 +' + incomeForRound(m.roundNumber + 1), 58, 424, 16, 110, C.muted);
+    u.button('refresh', '↻', 12, 445, 88, 78, false, !side.freeRefresh && side.coins < 1);
+    u.text('refresh-cost', side.freeRefresh ? '免费' : '◆ 1', 56, 511, 17, 80, C.gold);
+    u.controls[u.controls.length - 1].label = '刷新商店，' + (side.freeRefresh ? '免费' : '1金币');
+    u.text('shop-title', '商店', 291, 389, 19, 300, C.gold);
+    side.shop.forEach((o, i) => {
+      const x = 112 + i * 120,
+        y = 410;
+      const trait = o.kind === 'spell' ? null : getTrait(o.key),
+        name =
+          o.kind === 'spell'
+            ? SPELLS.find((s) => s.id === o.key)!.name
+            : o.kind === 'part'
+              ? o.part === 'nezha:0'
+                ? '哪'
+                : '吒'
+              : getSpec(o.key).name;
+      if (this.press?.moved && this.press.control === 'offer:' + o.id) return;
       u.panel(
         x,
-        344,
-        149,
-        86,
-        i === this.selected ? '#347562' : C.ink,
-        i === this.selected ? C.gold : '#618679',
-        13,
+        y,
+        108,
+        118,
+        o.kind === 'spell' ? '#294c60' : '#215f52',
+        trait?.color || '#a6b4f0',
+        12,
       );
-      u.image(
-        'slot:' + i,
-        'unit' + spec.atlas,
-        x + 34,
-        380,
-        58,
-        57,
-        4,
-        false,
-        slot.level ? '#ffffff' : '#819b88',
+      if (o.kind === 'unit')
+        u.image('shop:' + o.id, 'unit' + getSpec(o.key).atlas, x + 54, y + 47, 78, 78, 4);
+      else
+        u.text(
+          'shop-glyph:' + o.id,
+          o.kind === 'part'
+            ? name
+            : { sharpen: '刃', fortify: '体', ward: '盾', inspire: '鼓' }[o.key] || '符',
+          x + 54,
+          y + 46,
+          38,
+          94,
+          C.gold,
+        );
+      u.text('shop-price:' + o.id, '◆' + o.cost, x + 85, y + 12, 17, 44, C.gold);
+      u.text('shop-name:' + o.id, name, x + 54, y + 96, 19, 104);
+      u.hit('offer:' + o.id, name + '，' + o.cost + '金币，拖到手牌购买', x, y, 108, 118);
+    });
+    const items = [
+      ...side.hand.map((c) => ({ id: 'card:' + c.id, card: c, part: '', spell: '' })),
+      ...Object.keys(side.bag).flatMap((part) =>
+        Array.from({ length: side.bag[part] }, (_, i) => ({
+          id: 'part:' + part + ':' + i,
+          part,
+          spell: '',
+          card: undefined,
+        })),
+      ),
+      ...side.spells.map((c) => ({ id: 'spell:' + c.id, part: '', spell: c.key, card: undefined })),
+    ];
+    const pages = Math.max(1, Math.ceil(items.length / 4));
+    this.handPage = Math.max(0, Math.min(this.handPage, pages - 1));
+    u.text('hand-title', '手牌 ' + inventoryCount(side) + '/12', 615, 389, 20, 240, C.gold);
+    if (pages > 1) {
+      u.button('hand-prev', '‹', 760, 341, 90, 62, false, this.handPage === 0);
+      u.button('hand-next', '›', 861, 341, 90, 62, false, this.handPage === pages - 1);
+      u.text('hand-page', this.handPage + 1 + '/' + pages, 977, 390, 17, 60, C.muted);
+    }
+    items.slice(this.handPage * 4, this.handPage * 4 + 4).forEach((item, i) => {
+      const x = 506 + i * 119,
+        y = 410;
+      const control = item.part ? 'part:' + item.part : item.id;
+      if (this.press?.moved && this.press.control === control) return;
+      const name = item.card
+        ? getSpec(item.card.key).name
+        : item.part
+          ? item.part.endsWith(':0')
+            ? '哪'
+            : '吒'
+          : SPELLS.find((s) => s.id === item.spell)!.name;
+      u.panel(
+        x,
+        y,
+        108,
+        118,
+        item.part ? '#d8c59b' : item.spell ? '#294c60' : '#1c5b4e',
+        item.card ? getTrait(item.card.key).color : C.gold,
+        12,
       );
-      u.text('slot-name:' + i, spec.name, x + 102, 362, 20, 92);
+      if (item.card)
+        u.image(
+          'hand:' + item.id,
+          'unit' + getSpec(item.card.key).atlas,
+          x + 54,
+          y + 44,
+          80,
+          80,
+          4,
+        );
+      else
+        u.text(
+          'hand-glyph:' + item.id,
+          item.part
+            ? name
+            : { sharpen: '刃', fortify: '体', ward: '盾', inspire: '鼓' }[item.spell] || '符',
+          x + 54,
+          y + 44,
+          38,
+          100,
+          item.part ? C.ink : C.gold,
+        );
+      u.text('hand-name:' + item.id, name, x + 54, y + 94, 19, 104, item.part ? C.ink : C.paper);
+      if (item.card) {
+        u.text('hand-lv:' + item.id, 'Lv.' + item.card.level, x + 79, y + 12, 16, 58, C.gold);
+        if (item.card.ward) u.text('ward:' + item.id, '盾', x + 15, y + 15, 17, 28, '#a4e9ff');
+      }
+      u.hit(
+        control,
+        name +
+          (item.card
+            ? '完整卡，拖动上阵'
+            : item.part
+              ? '残字，凑齐自动合体'
+              : '法术，拖到己方目标'),
+        x,
+        y,
+        108,
+        118,
+      );
+    });
+    u.text('population', side.formation.length + '/' + POPULATION_CAP, 1072, 397, 26, 140, C.gold);
+    u.button('start-round', '开战', 1008, 445, 132, 78, true, !side.formation.length);
+    if (this.press?.moved) {
+      const id = this.press.control,
+        held = this.heldCard(id);
+      if (id.startsWith('offer:') || id.startsWith('unit:')) {
+        u.panel(498, 405, 484, 126, '#73d9bb22', C.mint, 14, 6);
+        u.text(
+          'drop-hint',
+          id.startsWith('offer:') ? '↓ 购买到手牌' : '↓ 回收',
+          740,
+          471,
+          26,
+          400,
+          C.mint,
+          7,
+        );
+      }
+      if (held || id.startsWith('part:')) {
+        const reward = id.startsWith('part:')
+          ? '弃置'
+          : held?.key === 'fire'
+            ? '换磨刃'
+            : held?.key === 'lantern'
+              ? '换护符'
+              : held?.key === 'drone'
+                ? '+1 · 免费刷'
+                : '+1金币';
+        u.panel(1000, 278, 144, 92, '#753a36ec', C.red, 14, 6);
+        u.text('sell-hint', reward, 1072, 325, 22, 138, C.paper, 7);
+      }
+    }
+    if (m.tutorial && m.tutorialStep < 6)
       u.text(
-        'slot-rank:' + i,
-        slot.level ? 'Lv.' + slot.level : '待拼装',
-        x + 103,
-        386,
-        22,
-        94,
-        C.gold,
-      );
-      u.text(
-        'slot-parts:' + i,
-        spec.parts.map((p, j) => (slot.parts[j] ? p : '□')).join(''),
-        x + 75,
-        414,
-        21,
-        140,
+        'planning-tip',
+        m.tutorialStep === 0 ? '拖手牌上阵 · 商店拖入手牌购买' : '同名拖一起升级 · 空地分兵',
+        W / 2,
+        350,
+        18,
+        720,
         C.paper,
       );
-      if (slot.level) u.progress(x + 6, 432, 137, slot.progress / spec.production, C.mint, 5);
-      u.hit('slot:' + i, spec.name + '兵符 ' + slot.level + '级', x, 344, 149, 94);
-    });
-    const slot = side.slots[this.selected],
-      spec = getSpec(slot.key);
-    if (this.recipes) {
-      side.deck
-        .filter((k) => getSpec(k).kind === spec.kind)
-        .forEach((key, i) =>
-          u.button(
-            'recipe:' + key,
-            getSpec(key).name,
-            175 + i * 160,
-            450,
-            150,
-            78,
-            false,
-            slot.level > 0,
-          ),
-        );
-      u.button('withdraw', '取回残字', 666, 450, 140, 78);
-      u.button('recipes', '返回', 816, 450, 130, 78);
-    } else {
-      spec.parts.forEach((part, i) => {
-        const key = spec.id + ':' + i,
-          count = side.bag[key] || 0,
-          x = 177 + i * 112;
-        u.panel(x, 451, 100, 77, this.selectedPart === key ? '#f3cb79' : '#fff2cf', C.gold, 12);
-        u.text('glyph:' + i, part, x + 50, 476, 35, 90, C.ink);
-        u.text('amount:' + i, count ? '×' + count : '3换1', x + 50, 510, 18, 90, C.ink);
-        u.hit('part:' + key, part + '残字，' + count + '枚', x, 451, 100, 77);
-      });
-      u.button('fill', '填入残字', 638, 451, 148, 77, true);
-      u.button('recipes', slot.level ? '调整残字' : '换配方', 800, 451, 146, 77);
-    }
-    if (side.buffTicks)
-      u.text(
-        'boost',
-        '灵石 +20% · ' + Math.ceil(side.buffTicks / 20) + '秒',
-        700,
-        315,
-        20,
-        360,
-        C.gold,
-      );
-    if (m.tutorial && m.tutorialStep < 6) {
-      const tips = [
-        '点击「求将」，获得新的姓名残字',
-        '把残字拖到第一个兵符，唤醒哪吒',
-        '看！哪吒正在从水晶出阵',
-        '点选武器兵符，填入离火铳的残字',
-        '再填一套哪吒残字，等级直接 +1',
-        '击破敌方水晶，赢得胜利',
-      ];
-      u.panel(170, 78, 610, 56, '#123d37ee', C.gold, 16, 6);
-      u.text('tutorial', tips[m.tutorialStep], 475, 106, 24, 590, C.paper, 7, 54);
-      u.button('skip', '跳过', 804, 84, 136, 76, false, false, 6);
-    }
   }
+
   codexView() {
     const u = this.ui;
     this.header('神机图鉴');
@@ -938,7 +1243,7 @@ export class MergeFront extends Component {
     CATALOG.filter((s) => s.kind === this.codexKind).forEach((spec, i) => {
       const x = 42 + (i % 4) * 225,
         y = 100 + Math.floor(i / 4) * 208,
-        open = this.progress.unlockedIds.includes(spec.id);
+        open = true;
       u.panel(x, y, 201, 190, C.ink, open ? C.gold : '#789181', 20);
       u.image(
         'codex:' + spec.id,
@@ -966,7 +1271,7 @@ export class MergeFront extends Component {
   detailView() {
     const u = this.ui,
       spec = getSpec(this.detail),
-      open = this.progress.unlockedIds.includes(spec.id);
+      open = true;
     this.header(spec.name, 'codex-back');
     u.panel(450, 108, 470, 408, '#123d37ee', C.gold, 24);
     u.circle(225, 423, 110, '#214d3caa', C.gold, 2);
@@ -1005,9 +1310,16 @@ export class MergeFront extends Component {
       430,
       C.muted,
     );
-    u.text('recipe-title', '残字配方', 685, 214, 22, 400);
-    spec.parts.forEach((part, i) => {
-      const x = 685 - spec.parts.length * 42 + i * 84;
+    u.text(
+      'recipe-title',
+      spec.id === 'nezha' ? '哪 + 吒自动合体' : getTrait(spec.id).name + ' · ◆' + spec.cost,
+      685,
+      214,
+      22,
+      400,
+    );
+    (spec.id === 'nezha' ? spec.parts : [getTrait(spec.id).name]).forEach((part, i, parts) => {
+      const x = 685 - parts.length * 42 + i * 84;
       u.panel(x, 246, 70, 72, C.paper, C.gold, 12);
       u.text('recipe-part:' + i, part, x + 35, 282, 38, 68, C.ink);
     });
@@ -1023,9 +1335,8 @@ export class MergeFront extends Component {
             spec.hp +
             ' · 攻击 ' +
             spec.damage +
-            ' · 出兵 ' +
-            spec.production +
-            '秒'
+            ' · 射程 ' +
+            spec.range
         : '通关第' + spec.unlock + '关后解锁\n解锁后可加入你的出阵残字池',
       685,
       362,
@@ -1046,59 +1357,34 @@ export class MergeFront extends Component {
     );
   }
   pauseView() {
-    const u = this.ui;
-    u.panel(0, 0, W, H, '#0c242bd9', '', 0, 6);
-    u.panel(220, 40, 520, 470, C.ink, C.gold, 28, 6);
-    u.text('paused', '暂停', 480, 94, 44, 440, C.gold, 7);
-    if (!this.rewardPending) {
-      u.button('codex', '图鉴', 50, 178, 140, 78, false, false, 6);
-      u.button('help', '玩法', 770, 178, 140, 78, false, false, 6);
-    }
-    if (this.rewardPending) {
-      u.text(
-        'ad-wait',
-        '正在播放激励视频\n完整观看后领取30秒临时助力',
-        480,
-        244,
-        28,
-        480,
-        C.paper,
-        7,
-        120,
-      );
-      u.button('reward-close', '取消领取', 330, 390, 300, 78, false, false, 6);
+    const u = this.ui,
+      x = W / 2;
+    u.controls = [];
+    u.panel(0, 0, W, H, '#0a272caa', '', 0, 6);
+    u.panel(x - 218, 108, 436, 327, '#123d37f5', C.gold, 28, 6);
+    u.text('paused', this.confirmRetry ? '重新开始本关？' : '已暂停', x, 155, 32, 400, C.gold, 7);
+    if (this.confirmRetry) {
+      u.text('retry-tip', '本局阵容会重置，关卡进度保留', x, 226, 22, 400, C.paper, 7);
+      u.button('cancel-retry', '取消', x - 180, 319, 168, 76, false, false, 6);
+      u.button('confirm-retry', '重新开始', x + 12, 319, 168, 76, true, false, 6);
       return;
     }
-    u.button('resume', '继续战斗', 280, 148, 400, 80, true, false, 6);
-    const available =
-      this.provider() && this.provider()?.available !== false && !this.match?.sides[0].boostUsed;
-    if (available) {
-      u.button('reward', '▶ 临时助力', 280, 242, 400, 76, false, false, 6);
-      u.text(
-        'reward-explain',
-        '观看视频 · 灵石产出 +20%，30秒 · 每局一次',
-        480,
-        336,
-        20,
-        480,
-        C.muted,
-        7,
-      );
-    } else
-      u.text(
-        'pause-tip',
-        this.match?.sides[0].boostUsed ? '本局助力已领取，继续后生效' : '调整阵容，准备下一次推进',
-        480,
-        280,
-        25,
-        460,
-        C.paper,
-        7,
-      );
-    u.button('retry', '重试', 250, 385, 140, 78, false, false, 6);
-    u.button('settings', '设置', 410, 385, 140, 78, false, false, 6);
-    u.button('home', '首页', 570, 385, 140, 78, false, false, 6);
+    u.button('resume', '继续', x - 169, 202, 338, 80, true, false, 6);
+    u.text(
+      'pause-tip',
+      this.match?.roundStage === 'planning' ? '阵容已保存' : '战斗已冻结',
+      x,
+      303,
+      18,
+      370,
+      C.muted,
+      7,
+    );
+    u.icon('settings', '设置', 'settings', x - 157, 337, 76, 6);
+    u.icon('retry', '重新开始', 'retry', x - 38, 337, 76, 6);
+    u.icon('home', '保存并返回首页', 'home', x + 81, 337, 76, 6);
   }
+
   resultView() {
     const u = this.ui,
       m = this.match!,
@@ -1118,7 +1404,7 @@ export class MergeFront extends Component {
     );
     u.text(
       'result-medals',
-      won ? '★'.repeat(this.settlement.medals || 1) : '水晶失守，试试先扩充生产阵容',
+      won ? '★'.repeat(this.settlement.medals || 1) : '调整站位，试试分兵或集中升级',
       480,
       182,
       27,
@@ -1135,7 +1421,7 @@ export class MergeFront extends Component {
     } else {
       u.text(
         'result-info',
-        won ? '配方与时机，成就这一场合阵' : '相同残字可升级，也可保留多条生产线',
+        won ? '布阵与取舍，成就这一场合阵' : '同名卡可合并升级，也可分成多个单位',
         480,
         276,
         27,
@@ -1177,10 +1463,10 @@ export class MergeFront extends Component {
     const u = this.ui;
     this.header('玩法说明');
     const items = [
-      ['求字', '花灵石抽取神将或武器残字'],
-      ['拼装', '拖字到兵符，拼齐后持续出兵'],
-      ['成长', '同类等级相加，扩军或升级由你选择'],
-      ['攻晶', '自由行军、就近攻击，击破敌晶获胜'],
+      ['商店', '三张商品 · 拖入手牌购买 · 1金刷新'],
+      ['合体', '哪+吒自动合体；同名拖叠等级相加'],
+      ['流派', '不同名字凑2/4件；法术拖己方单位'],
+      ['经营', '6人口 · 首次出战触发 · 拖出售出'],
     ];
     items.forEach(([title, body], i) => {
       const x = 35 + (i % 2) * 470,
@@ -1204,8 +1490,20 @@ export class MergeFront extends Component {
       420,
       78,
     );
-    if (sys.isBrowser) u.button('fullscreen', '全屏', 270, 332, 420, 78);
-    u.text('settings-tip', '进度自动保存 · 触屏拖动或点选都可操作', 480, 455, 22, 480, C.muted);
+    u.button('motion', '减弱动态  ' + (this.reducedMotion ? '开启' : '关闭'), 270, 332, 420, 70);
+    if (
+      this.returnScreen === 'paused' &&
+      this.provider()?.available !== false &&
+      this.provider() &&
+      !this.match?.sides[0].boostUsed
+    )
+      u.button('reward', '视频补给 +2金币', 750, 190, 200, 100);
+    if (this.rewardPending) {
+      u.panel(0, 0, W, H, '#0c242bed', '', 0, 6);
+      u.text('ad-wait', '完整观看领取2金币', 480, 230, 30, 650, C.paper, 7);
+      u.button('reward-close', '取消领取', 320, 320, 320, 82, false, false, 6);
+    }
+    u.text('settings-tip', '拖动卡牌布阵 · 第12回合后比较水晶', 480, 455, 22, 480, C.muted);
   }
   syncAccessibility() {
     if (!this.accessibility) return;
@@ -1246,7 +1544,15 @@ export class MergeFront extends Component {
       match: this.match ? snapshot(this.match) : null,
       controls: this.ui?.controls.map((c) => ({ ...c })) || [],
       viewport: { width: W, height: H },
+      board: this.board(),
       assets: this.ui?.frames.size || 0,
+      supplyChoices: this.supplyChoices,
+      detailTitle: this.cardInfo?.title || null,
+      reducedMotion: this.reducedMotion,
+      crystalStyle: this.match ? crystalStyle(this.match.seed, this.match.roundNumber) : null,
+      visibleTroops: Array.from(this.ui?.nodes.keys() || []).filter(
+        (k) => k.startsWith('image:plan:') || k.startsWith('image:troop:'),
+      ),
     };
   }
   down(id: number, x: number, y: number) {
@@ -1266,24 +1572,52 @@ export class MergeFront extends Component {
   up(id: number, x: number, y: number) {
     const p = this.press;
     if (!p || p.id !== id) return;
+    const card = this.heldCard(p.control);
     this.press = null;
     this.ui.pressed = '';
     const target = this.ui.at(x, y);
-    if (
-      p.moved &&
-      target?.id.startsWith('slot:') &&
-      this.allowedTutorial(p.control) &&
-      this.allowedTutorial(target.id)
-    ) {
-      const slot = Number(target.id.slice(5));
-      if (p.control.startsWith('part:')) this.act({ type: 'fill', slot, part: p.control.slice(5) });
-      else if (p.control.startsWith('slot:'))
-        this.act({ type: 'merge', from: Number(p.control.slice(5)), to: slot });
-      this.selected = slot;
-      this.selectedPart = '';
+    if (p.moved && this.screen === 'playing' && this.match?.roundStage === 'planning') {
+      const b = this.board(),
+        side = this.match.sides[0],
+        world = { x: ((x - b.x) / b.w) * 1000, y: ((y - b.y) / b.h) * 360 };
+      const own = legalPosition(0, world.x, world.y),
+        inHand = x >= 498 && x <= 992 && y >= 405 && y <= 540,
+        inSell = x >= 1000 && x <= 1144 && y >= 278 && y <= 370;
+      const merge = card ? this.mergeTarget(card, x, y) : undefined;
+      const near = side.formation
+        .filter((c) => c.id !== card?.id)
+        .sort((a, b) => b.y - a.y)
+        .find((c) => {
+          const q = this.fieldPoint(c.x, c.y);
+          return Math.hypot(q.x - x, q.y - y) < 48;
+        });
+      if (p.control.startsWith('offer:')) {
+        if (inHand) this.act({ type: 'buy', offer: Number(p.control.slice(6)) });
+      } else if (p.control.startsWith('spell:')) {
+        const spell = side.spells.find((c) => c.id === Number(p.control.slice(6)));
+        if (spell) {
+          if (spell.key === 'inspire' && own) this.act({ type: 'cast', spell: spell.id });
+          else if (spell.key !== 'inspire' && near)
+            this.act({ type: 'cast', spell: spell.id, target: near.id });
+        }
+      } else if (p.control.startsWith('part:')) {
+        if (inSell) this.act({ type: 'discard', part: p.control.slice(5) });
+      } else if (card) {
+        if (inSell) this.act({ type: 'sell', card: card.id });
+        else if (merge) this.act({ type: 'merge', from: card.id, to: merge.id });
+        else if (p.control.startsWith('unit:') && inHand)
+          this.act({ type: 'recall', card: card.id });
+        else if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h)
+          this.act({
+            type: p.control.startsWith('card:') ? 'deploy' : 'move',
+            card: card.id,
+            ...world,
+          });
+      }
     } else if (!p.moved && target?.id === p.control) this.action(p.control);
     this.render();
   }
+
   touchStart(e: EventTouch) {
     this.lastTouch = this.time;
     const p = e.getUILocation();
@@ -1327,13 +1661,13 @@ export class MergeFront extends Component {
     game.off(Game.EVENT_HIDE, this.suspend, this);
     if (sys.isBrowser) {
       window.removeEventListener('blur', this.suspend);
+      window.removeEventListener('resize', this.clear);
       window.removeEventListener('pagehide', this.pageHide);
       document.removeEventListener('visibilitychange', this.visibility);
       delete platform.__mergeFront;
     }
     for (const key of Object.keys(this.clips)) resources.release('audio/' + key, AudioClip);
     this.accessibility?.remove();
-    this.fullscreen?.remove();
     this.ui?.dispose();
   }
 }

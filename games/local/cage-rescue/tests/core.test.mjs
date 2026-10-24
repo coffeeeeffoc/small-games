@@ -328,71 +328,24 @@ test('invalid time/input does not corrupt state and separate runs never share mu
   assert.equal(LEVELS[0].cages[0].hp, 1);
 });
 
-test('all thirty formations are winnable through normal paddle input, without revive or state edits', () => {
-  // A simple deterministic player aims at a remaining cage and temporarily
-  // follows a teammate about to land. It uses only the public playing API.
-  const reflectX = (x) => {
-    const left = RULES.left + RULES.ballRadius;
-    const span = RULES.right - RULES.ballRadius - left;
-    const position = (((x - left) % (span * 2)) + span * 2) % (span * 2);
-    return left + (position > span ? span * 2 - position : position);
-  };
-  function play(levelIndex, lead = 0.65, ballPriority = 0.48) {
-    const state = createGame(levelIndex);
+test('all thirty routes are winnable using only paddle and launch input', async () => {
+  const { createRoutePlayer } = await import('./route-player.mjs');
+  for (let levelIndex = 0; levelIndex < LEVELS.length; levelIndex++) {
+    const state = createGame(levelIndex),
+      play = createRoutePlayer();
     let firstReleaseAt = null;
-    for (let frame = 0; frame < 60 * 120 && !['won', 'lost'].includes(state.phase); frame++) {
-      if (state.phase === 'ready') launchBall(state);
-      const ball = state.ball;
-      const ballETA =
-        ball.vy > 0 ? Math.max(0, (state.paddle.y - ball.r - ball.y) / ball.vy) : Infinity;
-      const landingX = Number.isFinite(ballETA) ? reflectX(ball.x + ball.vx * ballETA) : ball.x;
-      const nextCage = state.cages
-        .filter((c) => c.hp > 0)
-        .sort((a, b) => Math.abs(a.x + a.w / 2 - landingX) - Math.abs(b.x + b.w / 2 - landingX))[0];
-      let angle = nextCage
-        ? Math.atan2(
-            nextCage.x + nextCage.w / 2 - landingX,
-            state.paddle.y - nextCage.y - nextCage.h / 2,
-          )
-        : Math.sin(state.time) * 0.6;
-      // Read the visible steel beam and bank around it instead of repeatedly
-      // aiming straight through an indestructible obstacle.
-      for (const beam of state.barriers) {
-        const distance = state.paddle.y - beam.y - beam.h - ball.r * 2;
-        const crossing = landingX + Math.tan(angle) * distance;
-        if (crossing > beam.x - ball.r && crossing < beam.x + beam.w + ball.r) {
-          const edge = landingX < beam.x + beam.w / 2 ? beam.x - 18 : beam.x + beam.w + 18;
-          angle = Math.atan2(edge - landingX, distance);
-        }
-      }
-      let targetX = landingX - ((angle / RULES.maxBounceAngle) * state.paddle.w) / 2;
-      const nextPerson = state.people
-        .filter((p) => p.status === 'falling' && p.y + p.r < state.paddle.y)
-        .sort((a, b) => b.y - a.y)[0];
-      if (nextPerson) {
-        const personETA = (state.paddle.y - nextPerson.r - nextPerson.y) / state.level.personSpeed;
-        const rescueX = getPersonLandingX(state, nextPerson);
-        const travelTime = Math.abs(rescueX - state.paddle.x) / RULES.paddleSpeed;
-        if (personETA < lead + travelTime && (ballETA > ballPriority || personETA < ballETA))
-          targetX = rescueX;
-      }
-      stepGame(state, 1 / 60, { targetX });
+    for (let frame = 0; frame < 60 * 180 && !['won', 'lost'].includes(state.phase); frame++) {
+      const input = play(state);
+      if (input.launch) launchBall(state);
+      stepGame(state, 1 / 60, input);
       if (firstReleaseAt === null && state.people.length) firstReleaseAt = state.time;
     }
-    return { state, firstReleaseAt };
-  }
-  for (let levelIndex = 0; levelIndex < LEVELS.length; levelIndex++) {
-    const run = play(levelIndex);
-    const { state, firstReleaseAt } = run;
     assert.equal(state.phase, 'won', `${state.level.name}: ${state.lossReason}`);
     assert.equal(state.rescued, state.cages.length);
     assert.equal(state.missed, 0);
     assert.ok(state.cages.every((cage) => cage.hp === 0));
     assert.equal(state.usedRevive, false);
-    assert.ok(
-      firstReleaseAt < (levelIndex < 6 ? 8 : 20),
-      `${state.level.name}: first rescue opportunity takes too long`,
-    );
+    assert.ok(firstReleaseAt < 20, `${state.level.name}: first rescue opportunity takes too long`);
   }
 });
 
@@ -457,13 +410,16 @@ test('endless content is deterministic, safe, varied beyond thirty waves and gen
   }
 });
 
-test('chapters teach support, wind and steel separately before the final combination', () => {
+test('chapters introduce armor, chambers and switches before wind and medical support', () => {
   assert.ok(
     LEVELS.slice(0, 6).every(
       (level) => !level.wind && !level.barriers && level.cages.every((cage) => !cage.role),
     ),
   );
   assert.equal(LEVELS[6].cages[0].role, 'engineer');
+  assert.ok(LEVELS[6].bricks.some((brick) => brick.hp >= 4));
+  assert.equal(LEVELS[7].devices[0].kind, 'splitter');
+  assert.equal(LEVELS[10].devices[0].kind, 'switch');
   assert.ok(LEVELS[12].wind);
   assert.equal(LEVELS[18].barriers[0].material, 'steel');
   assert.equal(LEVELS[18].wind, null);

@@ -14,9 +14,9 @@ assert.ok(
   'choose known submodule games',
 );
 // Copied assets must match source; bundled games are freshly built before this runner.
-for (const [game, files] of [
-  ['xiangqi-five', ['index.html', 'app.js', 'style.css', 'fullscreen.js']],
-].filter(([game]) => games.includes(game)))
+for (const [game, files] of [['xiangqi-five', ['index.html', 'app.js', 'style.css']]].filter(
+  ([game]) => games.includes(game),
+))
   for (const file of files) {
     const source = new URL(`../games/submodules/${game}/${file}`, import.meta.url);
     const built = new URL(`../games/submodules/${game}/dist/${file}`, import.meta.url);

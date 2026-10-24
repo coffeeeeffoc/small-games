@@ -34,6 +34,7 @@ function isolatedGame(seed = 42, skills = ['blast', 'gale'], profile = null) {
   state.terrain = [];
   state.bullets = [];
   state.spawnTimer = 1e6;
+  state.duration = 600;
   return state;
 }
 
@@ -103,6 +104,7 @@ function killWithGun(state, kind = 'sprout') {
 }
 
 function triggerUpgrade(state) {
+  advance(state, Math.max(0, state.progression.nextOfferAt - state.time));
   state.progression.xp = state.progression.nextXp - ENEMIES.sprout.xp;
   killWithGun(state);
   assert.equal(state.phase, 'upgrade');
@@ -122,10 +124,10 @@ test('the first level starts ready and only advances after starting', () => {
   assert.ok(state.time > 0);
 });
 
-test('automatic fire continues in the last direction in an empty arena and targets nearby enemies', () => {
+test('automatic fire waits in an empty arena and targets nearby enemies', () => {
   const empty = isolatedGame();
   advance(empty, 2.5, { ...idle, autoFire: true });
-  assert.ok(empty.stats.shots > 0);
+  assert.equal(empty.stats.shots, 0);
   assert.equal(empty.stats.plantsGrown, 0, 'empty shots cannot unlock unchosen terrain');
   assert.equal(empty.progression.xp, 0);
   const state = isolatedGame();
@@ -167,7 +169,7 @@ test('experience opens unique upgrade choices and freezes combat until a valid s
   assert.ok(state.player.invulnerable > 0);
 });
 
-test('one active blast retains overflow experience for consecutive upgrades', () => {
+test('one active blast banks overflow without consecutive upgrade interruptions', () => {
   const state = isolatedGame();
   const center = { x: 1000, y: 400 };
   state.skillSlots[0].energy = 100;
@@ -178,16 +180,24 @@ test('one active blast retains overflow experience for consecutive upgrades', ()
   advance(state, 0.7);
   assert.equal(state.kills, 6);
   assert.equal(state.stats.skillKills, 6);
+  assert.equal(state.phase, 'playing', 'earned XP cannot interrupt the opening combat');
+  assert.equal(state.progression.pending, 2);
+  advance(state, 19.4);
   assert.equal(state.phase, 'upgrade');
-  let selections = 0;
-  while (state.phase === 'upgrade' && selections < 10) {
-    assert.equal(chooseUpgrade(state, state.upgradeChoices[0]), true);
-    selections += 1;
-  }
-  assert.equal(selections, 2, '48 XP must pay the first 12 and next 22 XP thresholds');
-  assert.equal(state.progression.xp, 14);
+  assert.equal(chooseUpgrade(state, state.upgradeChoices[0]), true);
+  assert.equal(state.phase, 'playing');
+  assert.equal(state.progression.pending, 1);
+  const at = state.time;
+  advance(state, 14.9);
+  assert.equal(state.phase, 'playing');
+  advance(state, 0.2);
+  assert.equal(state.phase, 'upgrade');
+  assert.ok(state.time - at >= 15);
+  assert.equal(chooseUpgrade(state, state.upgradeChoices[0]), true);
+  assert.equal(state.progression.pending, 0);
+  assert.equal(state.progression.xp, 4);
   assert.equal(state.progression.level, 3);
-  assert.equal(state.progression.nextXp, 32);
+  assert.equal(state.progression.nextXp, 40);
   advance(state, 1);
   assert.equal(state.kills, 6, 'expired blast cannot pay experience again');
 });
@@ -225,6 +235,7 @@ test('pause freezes all timers, bullets, terrain and energy, then resumes the sa
 
 test('wave transitions alone do not grant upgrades, and an empty field wins after the introductory minute', () => {
   const state = isolatedGame();
+  state.duration = LEVELS.ruins.duration;
   for (let iterations = 0; state.phase !== 'won' && iterations < 4000; iterations += 1) {
     step(state, 0.1, idle);
     assert.notEqual(state.phase, 'upgrade', 'upgrades must depend on experience rather than waves');
@@ -236,6 +247,19 @@ test('wave transitions alone do not grant upgrades, and an empty field wins afte
   const won = structuredClone(state);
   step(state, 0.1, idle);
   assert.deepEqual(state, won);
+});
+
+test('baseline firing leaves measurable room for attack-speed growth', () => {
+  const counts = [];
+  for (const upgraded of [false, true]) {
+    const state = isolatedGame();
+    if (upgraded) state.upgrades.push('attack-speed');
+    enemy(state, { x: state.player.x + 100, hp: 100000, maxHp: 100000, speed: 0 });
+    advance(state, 10, { ...idle, autoFire: true });
+    counts.push(state.stats.shots);
+  }
+  assert.ok(counts[0] >= 24 && counts[0] <= 26, `base shots: ${counts[0]}`);
+  assert.ok(counts[1] >= counts[0] + 3, `attack speed must be visible: ${counts}`);
 });
 
 test('enemy contact can end the run and a lost run cannot keep advancing', () => {
@@ -489,7 +513,7 @@ test('loadout choices are atomic, unique, and locked during combat', () => {
 
 test('no boon means no terrain; full energy never automatically releases a skill', () => {
   const state = isolatedGame();
-  advance(state, 25, { ...idle, autoFire: true });
+  advance(state, 25, { ...idle, aimActive: true, aimX:state.player.x+100, aimY:state.player.y });
   assert.ok(state.stats.shots > 0);
   assert.equal(state.plants.length, 0);
   assert.equal(state.stats.plantsGrown, 0);
@@ -501,6 +525,7 @@ test('no boon means no terrain; full energy never automatically releases a skill
 });
 
 function earnUpgrade(state) {
+  advance(state, Math.max(0, state.progression.nextOfferAt - state.time));
   // Earn configured XP through real projectile kills; no level/XP edits.
   while (state.phase === 'playing') killWithGun(state);
   assert.equal(state.phase, 'upgrade');

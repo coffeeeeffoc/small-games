@@ -9,7 +9,7 @@ import { sourceHash } from '../../../games/local/tianxia-chalu/scripts/artifact.
 const repository = fileURLToPath(new URL('../../../', import.meta.url));
 const reportPath = path.join(
   repository,
-  'games/local/tianxia-chalu/docs/design/cocos-2026-10-22/server-browser-report.json',
+  'games/local/tianxia-chalu/reports/server-browser-report.json',
 );
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tianxia-server-browser-'));
 const checks = [],
@@ -95,6 +95,8 @@ try {
   };
   await page.goto(base + '/play/');
   await screen('home');
+  await expect(page).toHaveTitle('夺城令');
+  await expect(page.locator('.home h1')).toHaveText('夺城令');
   await page.locator('#settings').tap();
   await expect(page.locator('#online')).toBeChecked();
   await expect(page.locator('#server-url')).toHaveValue(base);

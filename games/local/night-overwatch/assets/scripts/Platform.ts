@@ -1,9 +1,16 @@
-import { AudioClip, AudioSource, Node, resources, sys, screen } from 'cc';
+import { AudioClip, AudioSource, Node, resources, sys } from 'cc';
 import type { PauseReason } from './core/Simulation';
 import { missionDefinition, type MissionId } from './core/MissionCatalog';
 import { newMissionProgress, readMissionProgress, type MissionProgress } from './core/MissionProgress';
 import { readTrainingRecord as parseTrainingRecord, type TrainingRecord } from './core/TrainingRecords';
 import { readRewards, nextZoomLimit, type RewardKind, type RewardSave, type RewardProvider, type SupplyReward } from './core/Rewards';
+export const RADIO = {
+  day: ['指挥部：视野良好。拖动准星，清除友军附近的炮位。', 'Command: visibility clear. Drag the sight. Clear guns near our convoy.'],
+  night: ['指挥部：进入夜间战区。切换热成像，优先处理红色标记。', 'Command: night operation. Use thermal vision. Prioritize the red marker.'],
+  priority: ['车队呼叫！敌方即将开火，优先压制红色标记！', 'Convoy calling! Enemy preparing to fire. Suppress the red marker!'],
+  critical: ['紧急呼叫！友军撑不住了，立即处理红色目标！', 'Urgent! Our position is critical. Engage the red target now!'],
+  clear: ['收到，威胁已解除。继续掩护友军。', 'Confirmed. Threat eliminated. Keep covering our units.'],
+} as const;
 export class Platform {
   touchInput = sys.isMobile || (sys.isBrowser && window.matchMedia('(pointer: coarse)').matches);
   muted = false;
@@ -11,6 +18,12 @@ export class Platform {
   activated = false;
   voices = new Map<string, AudioSource>();
   engine: AudioSource;
+  radio: AudioSource;
+  radioPending = false;
+  private radioPaused = false;
+  private radioStartWait = 0;
+  private radioLastTime = 0;
+  private disposed = false;
   clips = new Map<string, AudioClip>();
   audioStatus = 'loading';
   cleanup: (() => void)[] = [];
@@ -41,9 +54,25 @@ export class Platform {
     this.engine.playOnAwake = false;
     this.engine.loop = true;
     this.engine.volume = 0.13;
-    const names = ['rapid', 'blast', 'heavy', 'hit', 'alert', 'impact1', 'impact2', 'engine'];
+    const radioNode = new Node('CommandRadio');
+    parent.addChild(radioNode);
+    this.radio = radioNode.addComponent(AudioSource);
+    this.radio.playOnAwake = false;
+    this.radio.volume = .85;
+    radioNode.on(AudioSource.EventType.ENDED, () => { this.radioPending = false; this.radioPaused = false; });
+    const names = ['rapid', 'blast', 'heavy', 'hit', 'alert', 'impact1', 'impact2', 'engine',
+      ...Object.keys(RADIO).flatMap(id => ['zh', 'en'].map(lang => `radio-${id}-${lang}`))];
     let pending = names.length;
     for (const name of names) {
+      if (name.startsWith('radio-')) {
+        resources.load('audio/' + name, AudioClip, (error, clip) => {
+          if (this.disposed) return;
+          if (error) this.audioStatus = 'unavailable';
+          else this.clips.set(name, clip);
+          if (--pending === 0 && this.clips.size === names.length) this.audioStatus = 'ready';
+        });
+        continue;
+      }
       let source = this.engine;
       if (name !== 'engine') {
         const n = new Node('Audio:' + name);
@@ -54,6 +83,7 @@ export class Platform {
       if (name !== 'engine') source.volume = 0.3;
       this.voices.set(name, source);
       resources.load('audio/' + name, AudioClip, (error, clip) => {
+        if (this.disposed) return;
         if (error) this.audioStatus = 'unavailable';
         else {
           this.clips.set(name, clip);
@@ -70,13 +100,11 @@ export class Platform {
       listen(window, 'blur', () => {
         clear();
         pause('focus', true);
-        this.stop();
       });
       listen(window, 'focus', () => pause('focus', false));
       listen(document, 'visibilitychange', () => {
         clear();
         pause('background', document.hidden);
-        if (document.hidden) this.stop();
       });
       const canvas = document.querySelector('canvas');
       if (canvas) {
@@ -132,29 +160,51 @@ export class Platform {
       source.play();
     }
   }
-  stop() {
+  stop(preserveRadio = false) {
+    if (preserveRadio && this.radioPending) {
+      if (!this.radioPaused) this.radio.pause();
+      this.radioPaused = true;
+    } else this.stopRadio();
     for (const source of Array.from(this.voices.values())) source.stop();
   }
+  stopRadio() {
+    this.radio.stop();
+    this.radioPending = false;
+    this.radioPaused = false;
+  }
+  speak(id: keyof typeof RADIO, lang: 'zh' | 'en') {
+    this.stopRadio();
+    const clip = this.clips.get(`radio-${id}-${lang}`);
+    if (!clip || this.muted || !this.activated || this.disposed) return;
+    this.radio.clip = clip;
+    this.radioPending = true;
+    this.radioStartWait = 0;
+    this.radioLastTime = 0;
+    this.radio.play();
+  }
+  advanceRadio(dt: number) {
+    if (!this.radioPending) return;
+    if (this.muted || this.disposed) { this.stopRadio(); return; }
+    if (this.radioPaused) {
+      this.radioPaused = false;
+      this.radioStartWait = 0;
+      this.radioLastTime = this.radio.currentTime;
+      this.radio.play();
+    }
+    const time = this.radio.currentTime;
+    this.radioStartWait = time > this.radioLastTime + .0001 ? 0 : this.radioStartWait + dt;
+    this.radioLastTime = time;
+    // A blocked/stalled audio device must not strand the mission; advancing playback waits for ENDED.
+    if (this.radioStartWait >= 2) this.stopRadio();
+  }
   ambience(playing: boolean) {
+    this.engine.volume = this.radio.playing ? .04 : .13;
     const clip = this.clips.get('engine');
     if (clip && playing && this.activated && !this.muted) {
       if (!this.engine.playing) {
         this.engine.play();
       }
     } else if (this.engine.playing) this.engine.stop();
-  }
-  get isFullscreen() {
-    return screen.fullScreen();
-  }
-  async fullscreen() {
-    try {
-      const target = !screen.fullScreen();
-      if (!target) await screen.exitFullScreen();
-      else await screen.requestFullScreen();
-      return screen.fullScreen() === target;
-    } catch {
-      return false;
-    }
   }
   readCoach() {
     try {
@@ -250,6 +300,7 @@ export class Platform {
     catch { /* A denied optional record never blocks another attempt. */ }
   }
   dispose() {
+    this.disposed = true;
     for (const fn of this.cleanup) fn();
     this.stop();
   }

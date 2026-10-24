@@ -4,6 +4,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { writeFile, mkdir } from 'node:fs/promises';
 import { sourceHash } from '../scripts/artifact.mjs';
 import {
+  press as button,
   missionReplay,
   friendlyFailure,
   waitForImpact,
@@ -59,18 +60,6 @@ async function open(width, height, touch = false) {
   await page.waitForFunction(() => !document.getElementById('night-startup'));
   return page;
 }
-async function button(p, id, touch = false) {
-  let s = await snapshot(p);
-  if (!s.buttons.some((b) => b.id === id) && s.buttons.some((b) => b.id === 'flightControls')) {
-    await button(p, 'flightControls', touch);
-    s = await snapshot(p);
-  }
-  const b = s.buttons.find((b) => b.id === id);
-  assert(b, 'visible button ' + id);
-  if (touch) await p.touchscreen.tap(b.x + b.w / 2, b.y + b.h / 2);
-  else await p.mouse.click(b.x + b.w / 2, b.y + b.h / 2);
-  await p.waitForTimeout(70);
-}
 async function aim(p, point) {
   const q = await p.evaluate((p) => __night.screenPoint(p), point);
   await p.mouse.move(q.x, q.y);
@@ -92,7 +81,6 @@ try {
     await button(p, 'start');
     await p.keyboard.press('p');
     await p.waitForTimeout(60);
-    await button(p, 'settings');
     assert((await snapshot(p)).pauses.includes('settings'));
     await p.keyboard.press('h');
     const before = await snapshot(p);
@@ -106,17 +94,15 @@ try {
     const help = await snapshot(p);
     assert.equal(help.scroll, help.scrollMax);
     assert(help.scrollMax > 0);
-    assert(help.buttons.some((b) => b.id === 'fullscreen'));
+    assert(!help.buttons.some((b) => b.id === 'fullscreen'));
     await screenshot(p, 'desktop-help-last');
     await button(p, 'close');
     console.log('closed help', (await snapshot(p)).pauses);
     assert.equal((await snapshot(p)).modal, 'settings');
-    assert((await snapshot(p)).pauses.includes('manual'));
+    assert((await snapshot(p)).pauses.includes('settings'));
     await button(p, 'close');
     assert(!(await snapshot(p)).pauses.includes('settings'));
-    assert((await snapshot(p)).pauses.includes('manual'));
-    await p.keyboard.press('p');
-    await p.waitForTimeout(60);
+
     assert.equal((await snapshot(p)).pauses.length, 0);
     await p.keyboard.press('3');
     const heavyAmmo = (await snapshot(p)).guns[2].ammo;
@@ -133,7 +119,7 @@ try {
       phase: (await snapshot(p)).phase,
       friendlyDamage: (await snapshot(p)).friendlyDamage,
     };
-    assert((await snapshot(p)).buttons.some((b) => b.id === 'fullscreen'));
+    assert(!(await snapshot(p)).buttons.some((b) => b.id === 'fullscreen'));
     await screenshot(p, 'friendly-fire-failure');
     await button(p, 'retry');
     await p.keyboard.press('t');
@@ -216,34 +202,33 @@ try {
     await m.waitForTimeout(220);
     assert.equal((await snapshot(m)).fired, cancelled);
     await button(m, 'pause', true);
-    await button(m, 'settings', true);
     assert((await snapshot(m)).pauses.includes('settings'));
     await button(m, 'help', true);
     await m.setViewportSize({ width: h, height: w });
     await m.waitForTimeout(250);
     await button(m, 'close', true);
     assert.equal((await snapshot(m)).modal, 'settings');
-    assert((await snapshot(m)).pauses.includes('manual'));
+    assert((await snapshot(m)).pauses.includes('settings'));
     await button(m, 'close', true);
     s = await snapshot(m);
     assert(!s.pauses.includes('settings'));
-    assert(s.pauses.includes('manual'));
+    assert(!s.pauses.includes('manual'));
     assert(s.pauses.includes('orientation'));
-    assert(s.buttons.some((b) => b.id === 'fullscreen'));
+    assert(!s.buttons.some((b) => b.id === 'fullscreen'));
     await m.setViewportSize({ width: w, height: h });
     await m.waitForTimeout(250);
-    assert((await snapshot(m)).pauses.includes('manual'));
-    await button(m, 'resume', true);
+    assert.equal((await snapshot(m)).pauses.length, 0);
     await screenshot(m, `mobile-${w}-battle`);
     report['mobile' + w] = { multitouch: true, cancel: true, orientation: true };
     if (w === 844) {
       await m.reload();
       await m.waitForFunction(() =>
-        globalThis.__night?.snapshot().buttons.some((b) => b.id === 'start'),
+        globalThis.__night?.snapshot().buttons.some((b) => b.id === 'missions'),
       );
       await m.waitForFunction(() => !document.getElementById('night-startup'));
       await button(m, 'start', true);
       await button(m, 'convoy', true);
+      await button(m, 'resume', true);
       report.mobileWin = await mobileWin(m);
       await screenshot(m, 'mobile-success');
       console.log('Touch-only full mission passed');

@@ -13,7 +13,6 @@ const assets = new Map([
   ['word-flow.js', 'text/javascript; charset=utf-8'],
   ['library.js', 'text/javascript; charset=utf-8'],
   ['competition-renderer.js', 'text/javascript; charset=utf-8'],
-  ['fullscreen.js', 'text/javascript; charset=utf-8'],
   ['favicon.svg', 'image/svg+xml'],
   ['assets/ui/island.svg', 'image/svg+xml'],
 ]);
@@ -28,7 +27,7 @@ function assetFor(requestPath) {
 if (process.argv.includes('--check')) {
   assert.equal(assetFor('/'), 'index.html');
   assert.equal(assetFor('/app.js?v=1'), 'app.js');
-  assert.equal(assetFor('/fullscreen.js'), 'fullscreen.js');
+  assert.equal(assetFor('/fullscreen.js'), null);
   for (const path of ['/../app.js', '/%2e%2e/app.js', '/C:/app.js', '/C:\\app.js', '//app.js', '/package.json', '/server.mjs', 'app.js']) {
     assert.equal(assetFor(path), null, path);
   }

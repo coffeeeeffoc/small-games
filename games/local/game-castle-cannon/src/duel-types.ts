@@ -1,3 +1,4 @@
+export const DUEL_VERSION = 'duel-v2';
 export type Side = 0 | 1;
 export type Point = { x: number; y: number; z: number };
 export type Ammo = 'solid' | 'blast';
@@ -8,7 +9,6 @@ export type Command =
   | { type: 'station'; id: string }
   | { type: 'ammo'; ammo: Ammo };
 export interface Gun {
-  repair: number | null;
   id: string;
   label: string;
   node: string;
@@ -72,7 +72,7 @@ export interface Impact {
   hit: string;
 }
 export interface Duel {
-  version: 'duel-v1';
+  version: typeof DUEL_VERSION;
   mapId: string;
   time: number;
   tick: number;

@@ -1,3 +1,4 @@
+import { assertChaseGameplay } from './game-checks/chase-thief.mjs';
 import { expect } from '@playwright/test';
 import { enterStandalone } from './standalone-game-entry.mjs';
 export { markers } from './standalone-game-entry.mjs';
@@ -23,6 +24,10 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await click(frame.getByRole('button', { name: '返回长廊', exact: true }));
     await expect(frame.locator('body')).toHaveAttribute('data-screen', 'gallery');
     return;
+  }
+  if (id === 'ashfall-front') {
+    const { assertAshfallGameplay } = await import('./game-checks/ashfall-front.mjs');
+    return assertAshfallGameplay(frame, mobile);
   }
   if (id === 'carrom-club') {
     const { assertCarromGameplay } = await import('./game-checks/carrom-club.mjs');
@@ -57,58 +62,127 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       }
     }
   };
-  if (id === 'ashfall-front') {
-    const game = frame.locator('#game');
-    await expect(game).toHaveAttribute('data-screen', 'play');
-    await expect(frame.locator('#game-canvas')).toBeVisible();
-    await holdControl('#move-right', 'd', async () => {
-      await expect(frame.locator('#move-right')).toHaveAttribute('aria-pressed', 'true');
+  if (id === 'three-choose-two') {
+    const { snapshot, control, point, canvas, page } = threeChooseTwoInput(frame, mobile);
+    await expect.poll(async () => (await snapshot())?.ready, { timeout: 60000 }).toBe(true);
+    expect((await snapshot()).creator).toBe('3.8.8');
+    await expect(canvas).toBeVisible();
+    await control('start');
+    if ((await snapshot()).screen === 'brief') await control('begin');
+    await expect.poll(async () => (await snapshot()).screen).toBe('playing');
+    expect((await snapshot()).layout.candidates).toHaveLength(3);
+    await control('pause');
+    await expect.poll(async () => (await snapshot()).screen).toBe('pause');
+    await control('resume');
+    const state = await snapshot(),
+      move = state.state.config.solution[0];
+    const candidate = state.layout.candidates[move.slot],
+      board = state.layout.board;
+    // Read the published shape catalog; actual native input performs the move.
+    const shape = state.state.candidates[move.slot].shapeId;
+    expect(shape).toBe('dot');
+    const from = await point({
+      x: candidate.x + candidate.w / 2,
+      y: candidate.y + candidate.h / 2,
     });
-    await expect(frame.locator('#move-right')).toHaveAttribute('aria-pressed', 'false');
-    await click(frame.getByRole('button', { name: '暂停', exact: true }));
-    await expect(frame.getByRole('button', { name: '继续战斗', exact: true })).toBeFocused();
-    await frame.locator('#game-canvas').page().keyboard.press('Enter');
-    await expect(game).toHaveAttribute('data-screen', 'play');
-    await expect(frame.locator('#game-canvas')).toBeFocused();
-    await click(frame.getByRole('button', { name: '暂停', exact: true }));
-    await click(frame.getByRole('button', { name: '返回主页', exact: true }));
-    await expect(game).toHaveAttribute('data-screen', 'home');
-    await expect(frame.locator('#start-game')).toBeFocused();
-  } else if (id === 'three-choose-two') {
-    const game = frame.locator('#game');
-    await expect(game).toHaveAttribute('data-screen', 'playing');
-    await expect(frame.locator('#board')).toBeVisible();
-    await expect(frame.locator('[data-slot]')).toHaveCount(3);
-    await click(frame.locator('[data-action="pause"]').last());
-    await expect(game).toHaveAttribute('data-screen', 'pause');
-    await click(frame.locator('[data-action="resume"]').last());
-    await expect(game).toHaveAttribute('data-screen', 'playing');
-    // Read the catalog's verified move, then perform it through real input.
-    // The fixture never edits the board, progress or the game's current state.
-    const move = await game.evaluate(async (node) => {
-      const { getLevel } = await import(new URL('./src/levels.mjs', node.baseURI).href);
-      return getLevel(1).solution[0];
+    const to = await point({
+      x: board.x + board.inset + (move.x + 0.5) * board.pitch,
+      y: board.y + board.inset + (move.y + (mobile ? 1 : 0.5)) * board.pitch + (mobile ? 46 : 0),
     });
-    const candidate = frame.locator(`[data-slot="${move.slot}"]`);
-    const source = await candidate.boundingBox();
-    const board = await frame.locator('#board').boundingBox();
-    const width = Number(await candidate.getAttribute('data-width'));
-    const height = Number(await candidate.getAttribute('data-height'));
-    const pitch = (board.width * 40) / 360;
-    const pad = (board.width * 20) / 360;
-    const start = { x: source.x + source.width / 2, y: source.y + source.height / 2 };
-    const end = {
-      x: board.x + pad + (move.x + width / 2) * pitch,
-      y: board.y + pad + (move.y + (mobile ? height : height / 2)) * pitch + (mobile ? 46 : 0),
-    };
-    const page = game.page();
     if (mobile) {
       const touch = await page.context().newCDPSession(page);
       try {
-        await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [start] });
-        await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [end] });
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [from] });
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [to] });
         await touch.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
-        await expect(game).toHaveAttribute('data-placements', '0');
+        expect((await snapshot()).state.stats.placements).toBe(0);
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [from] });
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [to] });
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      } finally {
+        await touch.detach();
+      }
+    } else {
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down();
+      const box = await canvas.boundingBox();
+      await page.mouse.move(box.x + 2, box.y + 2, { steps: 4 });
+      await page.mouse.up();
+      expect((await snapshot()).state.stats.placements).toBe(0);
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down();
+      await page.mouse.move(to.x, to.y, { steps: 8 });
+      await page.mouse.up();
+    }
+    await expect.poll(async () => (await snapshot()).screen).toBe('result');
+    const won = (await snapshot()).state;
+    expect(won.status).toBe('won');
+    expect(won.stats.placements).toBe(1);
+    expect(won.stats.lines).toBe(1);
+    await control('retry');
+    const saved = (await snapshot()).state.board;
+    await control('home');
+    await control('start');
+    expect((await snapshot()).state.board).toEqual(saved);
+    await control('pause');
+    await control('exit-level');
+    await expect.poll(async () => (await snapshot()).screen).toBe('home');
+    expect(
+      await canvas.evaluate(
+        () =>
+          JSON.parse(globalThis.localStorage.getItem('three-choose-two-progress-v1')).currentGame,
+      ),
+    ).toBeNull();
+    await control('levels');
+    const levels = (await snapshot()).controls;
+    expect(levels.find((c) => c.id === 'level:1').disabled).toBe(false);
+    expect(levels.find((c) => c.id === 'level:2').disabled).toBe(false);
+    expect(levels.find((c) => c.id === 'level:30').disabled).toBe(true);
+    await control('home');
+  } else if (id === 'flick-arena') {
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
+    await expect(frame.locator('#game')).toHaveAttribute('data-shots', '0');
+    await click(frame.locator('#pause'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'paused');
+    await click(frame.locator('#resume'));
+    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
+  } else if (id === 'tower-brake') {
+    const canvas = frame.locator('#GameCanvas'),
+      page = canvas.page();
+    const snapshot = () => canvas.evaluate(() => globalThis.__tower?.snapshot());
+    await expect.poll(async () => (await snapshot())?.assetReady, { timeout: 60000 }).toBe(true);
+    await expect.poll(async () => (await snapshot())?.screen).toBe('home');
+    expect((await snapshot()).engine).toBe('Cocos Creator 3.8.8');
+    const point = async (x, y) => {
+      const state = await snapshot(),
+        bounds = await canvas.boundingBox();
+      const scale = Math.min(bounds.width / state.width, bounds.height / state.height);
+      return {
+        x: bounds.x + (bounds.width - state.width * scale) / 2 + x * scale,
+        y: bounds.y + (bounds.height - state.height * scale) / 2 + y * scale,
+      };
+    };
+    const tap = async (id) => {
+      const c = (await snapshot()).controls.find((item) => item.id === id && !item.disabled);
+      expect(c, id).toBeTruthy();
+      const p = await point(c.x + c.w / 2, c.y + c.h / 2);
+      if (mobile) await page.touchscreen.tap(p.x, p.y);
+      else await page.mouse.click(p.x, p.y);
+    };
+    await tap('levels');
+    expect((await snapshot()).controls.filter((c) => c.id.startsWith('level-')).length).toBe(8);
+    expect((await snapshot()).controls.find((c) => c.id === 'level-7').disabled).toBe(true);
+    await tap('home');
+    await tap('start');
+    await expect.poll(async () => (await snapshot())?.screen).toBe('playing');
+    const before = await snapshot();
+    await tap('brake');
+    await expect.poll(async () => (await snapshot()).state.charge).toBe(0);
+    const start = await point(110, 350),
+      end = await point(190, 350);
+    if (mobile) {
+      const touch = await page.context().newCDPSession(page);
+      try {
         await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [start] });
         await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [end] });
         await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
@@ -118,131 +192,23 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     } else {
       await page.mouse.move(start.x, start.y);
       await page.mouse.down();
-      await page.mouse.move(4, 4, { steps: 4 });
-      await page.mouse.up();
-      await expect(game).toHaveAttribute('data-placements', '0');
-      await page.mouse.move(start.x, start.y);
-      await page.mouse.down();
-      await page.mouse.move(end.x, end.y, { steps: 8 });
-      await page.mouse.up();
-    }
-    await expect(game).toHaveAttribute('data-screen', 'result');
-    await expect(game).toHaveAttribute('data-status', 'won');
-    await expect(game).toHaveAttribute('data-placements', '1');
-    await expect(game).toHaveAttribute('data-lines', '1');
-    await click(frame.locator('[data-action="retry"]'));
-    await expect(game).toHaveAttribute('data-screen', 'playing');
-    const savedBoard = await game.evaluate(
-      () => globalThis.getThreeChooseTwoSnapshot().state.board,
-    );
-    await click(frame.getByRole('button', { name: '返回首页', exact: true }));
-    await expect(game).toHaveAttribute('data-screen', 'home');
-    await click(frame.locator('[data-action="start"]'));
-    await expect(game).toHaveAttribute('data-screen', 'playing');
-    expect(await game.evaluate(() => globalThis.getThreeChooseTwoSnapshot().state.board)).toEqual(
-      savedBoard,
-    );
-    await click(frame.locator('[data-action="pause"]').last());
-    await click(frame.getByRole('button', { name: /^退出关卡/ }));
-    await expect(game).toHaveAttribute('data-screen', 'home');
-    expect(
-      await game.evaluate(
-        () =>
-          JSON.parse(globalThis.localStorage.getItem('three-choose-two-progress-v1')).currentGame,
-      ),
-    ).toBeNull();
-    await expect(frame.locator('[data-action="start"]')).toBeVisible();
-    await click(frame.locator('[data-action="levels"]'));
-    await expect(frame.locator('[data-level="1"]')).toBeEnabled();
-    await expect(frame.locator('[data-level="2"]')).toBeEnabled();
-    await expect(frame.locator('[data-level="30"]')).toBeDisabled();
-    await click(frame.locator('[data-action="home"]'));
-    await expect(game).toHaveAttribute('data-screen', 'home');
-  } else if (id === 'retreat-rally') {
-    await expect(frame.locator('#game')).toHaveAttribute('data-screen', 'battle');
-    await holdControl('#retreat-blue', 'Space', async () => {
-      await expect(frame.locator('#retreat-blue')).toHaveAttribute('aria-pressed', 'true');
-      await expect(frame.locator('#game')).toHaveAttribute('data-retreat', 'true');
-    });
-    await expect(frame.locator('#retreat-blue')).toHaveAttribute('aria-pressed', 'false');
-    await click(frame.locator('#pause'));
-    await expect(frame.locator('#paused')).toBeVisible();
-    await click(frame.locator('#resume'));
-    await expect(frame.locator('#battle')).toBeVisible();
-  } else if (id === 'flick-arena') {
-    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
-    await expect(frame.locator('#game')).toHaveAttribute('data-shots', '0');
-    await click(frame.locator('#pause'));
-    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'paused');
-    await click(frame.locator('#resume'));
-    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
-  } else if (id === 'tower-brake') {
-    const play = frame.locator('#play-screen');
-    const scene = frame.locator('#scene');
-    await expect(play).toBeVisible();
-    await expect(play).toHaveAttribute('data-phase', 'playing');
-    await expect(scene).toBeVisible();
-    const initialAngle = await play.getAttribute('data-angle');
-    await click(frame.locator('#brake-button'));
-    await expect(frame.locator('#brake-button')).toHaveAttribute('data-charges', '0');
-    const page = scene.page();
-    const bounds = await scene.boundingBox();
-    const start = { x: bounds.x + bounds.width * 0.35, y: bounds.y + bounds.height * 0.5 };
-    const end = { x: bounds.x + bounds.width * 0.7, y: start.y };
-    if (mobile) {
-      const touch = await page.context().newCDPSession(page);
-      try {
-        await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [start] });
-        await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [end] });
-        await touch.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
-      } finally {
-        await touch.detach();
-      }
-    } else {
-      await page.mouse.move(start.x, start.y);
-      await page.mouse.down();
       await page.mouse.move(end.x, end.y, { steps: 3 });
       await page.mouse.up();
     }
-    await click(frame.locator('#pause-button'));
-    await expect(play).toHaveAttribute('data-phase', 'paused');
-    expect(await play.getAttribute('data-angle')).not.toBe(initialAngle);
-    await expect(frame.locator('#pause-screen')).toBeVisible();
-    await click(frame.locator('#resume-game'));
-    await expect(play).toHaveAttribute('data-phase', 'playing');
-    await click(frame.locator('#pause-button'));
-    await click(frame.locator('#pause-home'));
-    await expect(frame.locator('#home')).toBeVisible();
-    await click(frame.locator('#choose-level'));
-    await expect(frame.locator('#levels-screen')).toBeVisible();
-    await expect(frame.locator('#levels-screen button[data-level]')).toHaveCount(30);
-    await expect(frame.locator('#levels-screen button[data-level="0"]')).toBeEnabled();
-    await expect(frame.locator('#levels-screen button[data-level="29"]')).toBeDisabled();
-    await click(frame.locator('#levels-home'));
-    await expect(frame.locator('#start-game')).toBeVisible();
+    expect((await snapshot()).state.rotation).not.toBe(before.state.rotation);
+    expect((await snapshot()).pointerActive).toBe(false);
+    await tap('pause');
+    await expect.poll(async () => (await snapshot()).screen).toBe('paused');
+    const frozen = (await snapshot()).state.elapsed;
+    await page.waitForTimeout(150);
+    expect((await snapshot()).state.elapsed).toBe(frozen);
+    await tap('resume');
+    await expect.poll(async () => (await snapshot()).screen).toBe('playing');
+    await tap('pause');
+    await tap('home');
+    await expect.poll(async () => (await snapshot()).screen).toBe('home');
   } else if (id === 'chase-thief') {
-    const game = frame.locator('#game');
-    const body = frame.locator('body');
-    await expect(body).toHaveAttribute('data-phase', 'running');
-    await click(frame.locator('[data-action="left"]'));
-    await expect(game).toHaveAttribute('data-lane', '0');
-    await click(frame.locator('[data-action="right"]'));
-    await expect(game).toHaveAttribute('data-lane', '1');
-    await click(frame.locator('[data-action="jump"]'));
-    await expect(game).toHaveAttribute('data-action', 'jump');
-    await expect(game).toHaveAttribute('data-action', 'run');
-    await click(frame.locator('[data-action="slide"]'));
-    await expect(game).toHaveAttribute('data-action', 'slide');
-    await click(frame.locator('#pause'));
-    await expect(body).toHaveAttribute('data-phase', 'paused');
-    await click(frame.locator('#resume'));
-    await expect(body).toHaveAttribute('data-phase', 'running');
-    await click(frame.locator('#pause'));
-    await click(frame.locator('#pause-home'));
-    await expect(body).toHaveAttribute('data-phase', 'home');
-    await expect(frame.locator('#home')).toBeVisible();
-    await expect(frame.locator('#start')).toBeVisible();
-    await expect(frame.locator('#choose-levels')).toBeVisible();
+    await assertChaseGameplay(frame, mobile);
   } else if (id === 'orbit-atelier') {
     const canvas = frame.locator('#GameCanvas');
     const page = canvas.page();
@@ -530,21 +496,39 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await click(frame.locator('#stop'));
     await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'false');
   } else if (id === 'tetracube') {
-    const snapshot = () => frame.locator('body').evaluate(() => globalThis.tetracubeSnapshot());
-    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
-    await expect(frame.locator('#game-canvas')).toBeVisible();
+    const canvas = frame.locator('#GameCanvas');
+    const snapshot = () => canvas.evaluate(() => globalThis.__tetracube?.snapshot());
+    await expect(frame.locator('body')).toHaveAttribute('data-tetracube-ready', 'true', {
+      timeout: 60000,
+    });
+    await expect(canvas).toBeVisible();
+    const control = async (id) => {
+      await expect
+        .poll(async () => (await snapshot())?.controls.some((c) => c.id === id && !c.disabled))
+        .toBe(true);
+      const state = await snapshot(),
+        c = state.controls.find((c) => c.id === id);
+      const bounds = await canvas.boundingBox();
+      const position = {
+        x: ((c.x + c.w / 2) * bounds.width) / state.viewport.width,
+        y: ((c.y + c.h / 2) * bounds.height) / state.viewport.height,
+      };
+      await (mobile ? canvas.tap({ position }) : canvas.click({ position }));
+    };
+    await expect.poll(async () => (await snapshot())?.screen).toBe('home');
+    await control('start');
+    await expect.poll(async () => (await snapshot()).screen).toBe('playing');
     const placed = (await snapshot()).game.placed;
-    await click(frame.locator('#hard-drop'));
+    await control('drop');
     await expect.poll(async () => (await snapshot()).game.placed).toBe(placed + 1);
-    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
-    await click(frame.locator('#pause-game'));
-    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'paused');
-    await click(frame.locator('#resume-game'));
-    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
-    await click(frame.locator('#pause-game'));
-    await click(frame.locator('#home-game'));
-    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'home');
-    await expect(frame.locator('#start-game')).toBeVisible();
+    await expect.poll(async () => (await snapshot()).animating).toBe(false);
+    await control('pause');
+    await expect.poll(async () => (await snapshot()).screen).toBe('paused');
+    await control('resume');
+    await expect.poll(async () => (await snapshot()).screen).toBe('playing');
+    await control('pause');
+    await control('home');
+    await expect.poll(async () => (await snapshot()).screen).toBe('home');
     expect((await snapshot()).game.placed).toBe(placed + 1);
   } else if (id === 'surprise-kept') {
     await expect(frame.locator('#game')).toHaveAttribute('data-steps', '0');
@@ -1416,12 +1400,16 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
         timeout: 60000,
       })
       .toBe(true);
-    const tap = async (id) => {
-      const c = await canvas.evaluate(
-        (_, id) =>
-          globalThis.__mergeFront.snapshot().controls.find((c) => c.id === id && !c.disabled),
-        id,
-      );
+    const pointFor = async (id) => {
+      const state = await canvas.evaluate(() => globalThis.__mergeFront.snapshot());
+      const c =
+        typeof id === 'object'
+          ? { ...id, w: 0, h: 0 }
+          : await canvas.evaluate(
+              (_, id) =>
+                globalThis.__mergeFront.snapshot().controls.find((c) => c.id === id && !c.disabled),
+              id,
+            );
       expect(c, id).toBeTruthy();
       const box = await canvas.boundingBox();
       const rotated = await canvas.evaluate(() =>
@@ -1431,12 +1419,16 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       );
       const width = rotated ? box.height : box.width,
         height = rotated ? box.width : box.height;
-      const scale = Math.min(width / 960, height / 540);
-      const x = (width - 960 * scale) / 2 + (c.x + c.w / 2) * scale;
-      const y = (height - 540 * scale) / 2 + (c.y + c.h / 2) * scale;
+      const scale = Math.min(width / state.viewport.width, height / state.viewport.height);
+      const x = (width - state.viewport.width * scale) / 2 + (c.x + c.w / 2) * scale;
+      const y = (height - state.viewport.height * scale) / 2 + (c.y + c.h / 2) * scale;
       const point = rotated
         ? { x: box.x + box.width - y, y: box.y + x }
         : { x: box.x + x, y: box.y + y };
+      return point;
+    };
+    const tap = async (id) => {
+      const point = await pointFor(id);
       if (mobile) await canvas.page().touchscreen.tap(point.x, point.y);
       else await canvas.page().mouse.click(point.x, point.y);
     };
@@ -1445,22 +1437,42 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect
       .poll(() => canvas.evaluate(() => globalThis.__mergeFront.snapshot().screen))
       .toBe('playing');
-    await tap('draw:hero');
-    await tap('fill');
+    const state = await canvas.evaluate(() => globalThis.__mergeFront.snapshot());
+    const a = await pointFor(state.controls.find((c) => c.id.startsWith('card:')).id);
+    const b = await pointFor({
+      x: state.board.x + state.board.w * 0.25,
+      y: state.board.y + state.board.h / 2,
+    });
+    if (mobile) {
+      const session = await canvas.page().context().newCDPSession(canvas.page());
+      try {
+        await session.send('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints: [{ ...a, id: 1 }],
+        });
+        await session.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [{ ...b, id: 1 }],
+        });
+        await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      } finally {
+        await session.detach();
+      }
+    } else {
+      await canvas.page().mouse.move(a.x, a.y);
+      await canvas.page().mouse.down();
+      await canvas.page().mouse.move(b.x, b.y, { steps: 5 });
+      await canvas.page().mouse.up();
+    }
     await expect
       .poll(() =>
-        canvas.evaluate(() => globalThis.__mergeFront.snapshot().match.sides[0].slots[0].level),
+        canvas.evaluate(() => globalThis.__mergeFront.snapshot().match.sides[0].formation.length),
       )
       .toBe(1);
+    await tap('start-round');
     await expect
-      .poll(
-        () =>
-          canvas.evaluate(() =>
-            globalThis.__mergeFront.snapshot().match.units.some((u) => u.side === 0),
-          ),
-        { timeout: 15000 },
-      )
-      .toBe(true);
+      .poll(() => canvas.evaluate(() => globalThis.__mergeFront.snapshot().match.roundStage))
+      .toBe('battle');
     await tap('pause');
     await expect
       .poll(() => canvas.evaluate(() => globalThis.__mergeFront.snapshot().screen))
@@ -1689,4 +1701,57 @@ async function pressWebGLControl(frame, control, selector, mobile = false, docum
   }
   if (mobile) await control.page().touchscreen.tap(x, y);
   else await control.page().mouse.click(x, y);
+}
+
+export function threeChooseTwoInput(frame, mobile = false) {
+  const canvas = frame.locator('#GameCanvas'),
+    page = canvas.page();
+  const snapshot = () => canvas.evaluate(() => globalThis.getThreeChooseTwoSnapshot?.());
+  const point = async (p) => {
+    const s = await snapshot(),
+      b = await canvas.boundingBox();
+    const scale = Math.min(b.width / s.viewport.width, b.height / s.viewport.height);
+    return {
+      x: b.x + (b.width - s.viewport.width * scale) / 2 + p.x * scale,
+      y: b.y + (b.height - s.viewport.height * scale) / 2 + p.y * scale,
+    };
+  };
+  const control = async (id) => {
+    await expect
+      .poll(async () => (await snapshot())?.controls.some((c) => c.id === id && !c.disabled))
+      .toBe(true);
+    let c;
+    for (let attempt = 0; attempt < 12; attempt++) {
+      const s = await snapshot();
+      c = s.controls.find((item) => item.id === id && !item.disabled);
+      if (c.y >= 0 && c.y + c.h <= s.viewport.height) break;
+      const down = c.y > 0;
+      const from = await point({ x: 8, y: s.viewport.height * (down ? 0.8 : 0.25) });
+      const to = await point({ x: 8, y: s.viewport.height * (down ? 0.25 : 0.8) });
+      if (mobile) {
+        const touch = await page.context().newCDPSession(page);
+        try {
+          await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [from] });
+          await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [to] });
+          await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        } finally {
+          await touch.detach();
+        }
+      } else {
+        await page.mouse.move(from.x, from.y);
+        await page.mouse.down();
+        await page.mouse.move(to.x, to.y, { steps: 5 });
+        await page.mouse.up();
+      }
+      await page.waitForTimeout(100);
+    }
+    expect(c.y, `${id} must be inside the visible viewport`).toBeGreaterThanOrEqual(0);
+    expect(c.y + c.h).toBeLessThanOrEqual((await snapshot()).viewport.height);
+    const p = await point({ x: c.x + c.w / 2, y: c.y + c.h / 2 });
+    if (mobile) await page.touchscreen.tap(p.x, p.y);
+    else await page.mouse.click(p.x, p.y);
+    await expect.poll(async () => (await snapshot()).controls.length).toBeGreaterThan(0);
+    await page.waitForTimeout(80);
+  };
+  return { snapshot, control, point, canvas, page };
 }

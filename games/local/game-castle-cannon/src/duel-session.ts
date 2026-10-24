@@ -78,8 +78,7 @@ export async function createDuelSession(
       if (v.campaignLevel !== null && v.duel.nextId > shots) v.message = '';
     }
   };
-  const controls = duelInput(v, send, action, () => !!connection);
-  const cancel = controls.cancel;
+  const { input, cancel } = duelInput(v, send, action, () => !!connection);
   function practice(dev = false) {
     generation++;
     connection?.dispose();
@@ -94,6 +93,7 @@ export async function createDuelSession(
     v.screen = 'playing';
     v.scope = false;
     v.scopeX = v.scopeY = 0;
+    v.message = '';
     bot = new DuelBot(1);
     accumulator = 0;
     persisted = '';
@@ -137,20 +137,17 @@ export async function createDuelSession(
           }
         },
         (message) => {
-          if (id === generation) {
-            if (message) cancel();
-            v.message = message;
-          }
+          if (id !== generation) return;
+          if (message && v.screen === 'matching') return practice();
+          if (message) cancel();
+          v.message = message;
         },
       );
       connection = client;
       await client.join();
     } catch {
       if (disposed || id !== generation) return;
-      connection?.dispose();
-      connection = null;
       practice();
-      v.message = '联网服务不可用 · 已进入本地机器人练习';
     }
   }
   function finish() {
@@ -170,7 +167,8 @@ export async function createDuelSession(
     const me = v.duel.fighters[v.side],
       gun = activeGun(me);
     if (id === 'start' || id === 'rematch') {
-      void match();
+      if (id === 'rematch' && v.mode === 'practice') practice();
+      else void match();
       return;
     }
     if (id === 'practice') {
@@ -192,11 +190,11 @@ export async function createDuelSession(
       v.campaignLevel = null;
       return;
     }
-    if (id === 'pause') {
-      if (v.screen !== 'playing') return;
+    if (id === 'pause' || id === 'leave') {
+      if (v.screen !== 'playing' && !(id === 'leave' && v.screen === 'paused')) return;
       cancel();
       autoPaused = false;
-      v.screen = 'paused';
+      v.screen = id === 'leave' ? 'confirm' : 'paused';
       return;
     }
     if (id === 'resume') {
@@ -204,11 +202,6 @@ export async function createDuelSession(
       cancel();
       autoPaused = false;
       v.screen = 'playing';
-      return;
-    }
-    if (id === 'leave') {
-      cancel();
-      v.screen = 'confirm';
       return;
     }
     if (id === 'back') {
@@ -239,15 +232,22 @@ export async function createDuelSession(
       v.scope = !v.scope;
       return;
     }
-    if (id === 'retreat' || id === 'heal') send({ type: id });
-    if (id.startsWith('station:')) send({ type: 'station', id: id.slice(8) });
+    if (id === 'retreat' || id === 'heal' || id.startsWith('station:')) {
+      cancel();
+      v.scope = false;
+      if (id.startsWith('station:')) send({ type: 'station', id: id.slice(8) });
+      else send({ type: id as 'retreat' | 'heal' });
+    }
     if ((id === 'solid' || id === 'blast') && gun) send({ type: 'ammo', ammo: id });
   }
   return {
     v,
     action,
-    input: controls.input,
+    input,
     cancel,
+    get online() {
+      return !!connection;
+    },
     practice,
     previewCampaign(index: number) {
       if (developer) startCampaign(index, true);

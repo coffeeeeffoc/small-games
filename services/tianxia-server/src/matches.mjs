@@ -227,7 +227,7 @@ export class MatchService {
       })
       .catch((error) => {
         match.persistError = true;
-        this.onError('天下岔路战报保存失败', error.message);
+        this.onError('夺城令战报保存失败', error.message);
       });
   }
 

@@ -12,14 +12,14 @@ const validPair = (skills) =>
   skills.every((kind) => Object.hasOwn(SKILLS, kind));
 const count = (state, key) => state.upgrades.filter((id) => id === key).length;
 const rulesOf = (state) => ({
-  firstXp: 12,
-  xpStep: 10,
+  firstXp: 16,
+  xpStep: 12,
   fourChoicesAt: 5,
   ...LEVELS[state.levelId]?.progression,
 });
 
 /** Fresh run state never inherits terrain ownership, energy or run XP. */
-export function createRunLoadout(skills = ['blast', 'gale'], firstXp = 12) {
+export function createRunLoadout(skills = ['blast', 'gale'], firstXp = 16) {
   const valid =
     Array.isArray(skills) &&
     skills.length <= 2 &&
@@ -33,7 +33,8 @@ export function createRunLoadout(skills = ['blast', 'gale'], firstXp = 12) {
     progression: {
       level: 1,
       xp: 0,
-      nextXp: Math.max(1, Number.isFinite(firstXp) ? firstXp : 12),
+      nextXp: Math.max(1, Number.isFinite(firstXp) ? firstXp : 16),
+      nextOfferAt: 20,
       pending: 0,
       queue: [],
     },

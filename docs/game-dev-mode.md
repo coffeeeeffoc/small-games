@@ -1,6 +1,6 @@
 # 小游戏开发者模式
 
-本约定适用于所有现有及后续新增小游戏的 Web/H5 入口，包含 Shell 内置游戏、独立页面及 iframe。模式由运行时显式开关决定，正式静态构建也保留开发功能。
+本约定是开发模式语义、接线与验证的唯一维护入口；产品与改造要求见[通用开发规范](game-development.md)。适用于所有现有及后续新增小游戏的 Web/H5 入口，包含 Shell 内置游戏、独立页面及 iframe。模式由运行时显式开关决定，正式静态构建也保留开发功能。
 
 ## 启用与关闭
 
@@ -40,6 +40,6 @@ if (window.SmallGamesDev.isEnabled()) {
 
 ## 新游戏接入与验证
 
-新增游戏仍按 `docs/standalone-games.md` 注册。同步公共副本，接入入口及独立构建，并根据玩法注册有用的附加动作或快照。自定义入口或构建格式应同时扩展 `scripts/sync-game-dev-mode.mjs` 的发现与检查逻辑。
+新增游戏仍按 `docs/standalone-games.md` 注册。新增游戏或修改入口、开发功能及构建流程时，运行 `pnpm check:dev-mode`、`pnpm test:dev-mode`，并对相应生产构建执行 `pnpm test:dev-mode:browser`；检查实际支持的独立、Shell 内置与 iframe 入口。同步公共副本，接入入口及独立构建，并根据玩法注册有用的附加动作或快照。自定义入口或构建格式应同时扩展 `scripts/sync-game-dev-mode.mjs` 的发现与检查逻辑。
 
 `pnpm check:games` 已包含开发模式一致性检查，扫描实际游戏目录；漏接入口、独立构建或副本不同步会失败。`pnpm test:dev-mode` 检查开关语义、iframe 优先级、禁用存储、跨域父页面及新增游戏漏接。生产构建的手机浏览器检查使用 `pnpm test:dev-mode:browser`，覆盖每款游戏的独立页面及 Shell 入口，验证 URL、存储、默认关闭和显式关闭，以及可拖动面板、触点取消和已有开发功能。

@@ -1,1087 +1,342 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 import { Game } from '../src/engine.mjs';
-import { SHAPES } from '../src/config.mjs';
-
-const root = fileURLToPath(new URL('../', import.meta.url));
-const evidence = new URL('../docs/qa/interaction-merged-2026-10-07/', import.meta.url);
-await mkdir(evidence, { recursive: true });
+const publish = process.env.TETRACUBE_CAPTURE === '1';
+const root = fileURLToPath(new URL('../', import.meta.url)),
+  out = root + (publish ? 'docs/design/cocos-2026-10-23/actual/' : 'reports/browser/');
+await mkdir(out, { recursive: true });
+if (publish) await mkdir(root + 'publishing/gameplay/screenshots', { recursive: true });
 const server = spawn(process.execPath, ['server.mjs', '--dist', '--port', '4189'], {
   cwd: root,
   stdio: ['ignore', 'pipe', 'pipe'],
 });
-await new Promise((resolve, reject) => {
-  server.once('error', reject);
-  server.once('exit', (code) => reject(new Error(`Server exited ${code}`)));
-  server.stdout.once('data', resolve);
+await new Promise((ok, no) => {
+  server.once('error', no);
+  server.once('exit', (c) => no(Error('server ' + c)));
+  server.stdout.once('data', ok);
 });
-const executablePath =
-  process.env.PLAYWRIGHT_EXECUTABLE_PATH ||
-  (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined);
-const browser = await chromium.launch({ headless: true, executablePath });
+const browser = await chromium.launch({
+  headless: true,
+  executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH,
+});
 const report = {
-  environment: 'Linux Chromium; mobile viewports and CDP touch simulation, not physical device QA',
-  browserVersion: browser.version(),
-  nodeVersion: process.version,
+  environment:
+    process.platform + ' Chromium real mouse/CDP touch; no physical device or live ad fill',
+  browser: browser.version(),
   checks: [],
   errors: [],
 };
-const origin = 'http://127.0.0.1:4189';
-const saveKey = 'tetracube.save.v1';
-const snapshot = (page) => page.evaluate(() => window.tetracubeSnapshot());
-const phase = (page, name) => page.waitForFunction((p) => document.body.dataset.phase === p, name);
-const idle = (page) => page.waitForFunction(() => !window.tetracubeSnapshot().animating);
-const ready = (page) => page.locator('#app[data-ready="true"]').waitFor();
-const capture = (page, name) => page.screenshot({ path: fileURLToPath(new URL(name, evidence)) });
-const xy = (state) => state.game.active.pos.slice(0, 2);
-const watch = (page) => page.on('pageerror', (error) => report.errors.push(error.message));
-const recordEffects = (page) =>
-  page.evaluate(() => {
-    window.__qaEffects = [];
-    window.__qaRecording = true;
-    const sample = () => {
-      if (!window.__qaRecording) return;
-      const { motionKind, animationKind, animationRole, impact, trails, reducedMotion } =
-        window.tetracubeSnapshot();
-      window.__qaEffects.push({
-        motionKind,
-        animationKind,
-        animationRole,
-        impact,
-        trails,
-        reducedMotion,
-      });
-      requestAnimationFrame(sample);
-    };
-    requestAnimationFrame(sample);
-  });
-const recordedEffects = (page) =>
-  page.evaluate(() => {
-    window.__qaRecording = false;
-    return window.__qaEffects;
-  });
-const motion = (page, kind) =>
-  page.waitForFunction((k) => window.__qaEffects.some((sample) => sample.motionKind === k), kind);
-const fits = async (page, selector, viewport) => {
-  const bounds = await page.locator(selector).boundingBox();
-  assert(
-    bounds &&
-      bounds.x >= -1 &&
-      bounds.y >= -1 &&
-      bounds.x + bounds.width <= viewport.width + 1 &&
-      bounds.y + bounds.height <= viewport.height + 1,
-    `${selector} fits ${viewport.width}×${viewport.height}`,
+const snap = (p) => p.evaluate(() => globalThis.__tetracube?.snapshot());
+const phase = (p, s) =>
+  p.waitForFunction((s) => globalThis.__tetracube?.snapshot().screen === s, s);
+const idle = (p) => p.waitForFunction(() => !globalThis.__tetracube?.snapshot().animating);
+async function press(p, id, mobile = true) {
+  await p.waitForFunction(
+    (id) => globalThis.__tetracube?.snapshot().controls.some((c) => c.id === id && !c.disabled),
+    id,
   );
-  assert(bounds.width >= 43 && bounds.height >= 43, `${selector} has a mobile-sized touch target`);
-};
-const noOverflow = async (page) =>
-  assert.deepEqual(
-    await page.evaluate(() => ({
-      horizontal: document.documentElement.scrollWidth > innerWidth,
-      vertical: document.documentElement.scrollHeight > innerHeight + 1,
-    })),
-    { horizontal: false, vertical: false },
-    'The complete page fits its viewport without horizontal or vertical overflow',
-  );
-const worldDown = (state) => assert.deepEqual(state.game.gravity, { axis: 2, sign: -1 });
-const stored = (page) => page.evaluate((key) => localStorage.getItem(key), saveKey);
-const touch = (cdp, type, touchPoints = []) =>
-  cdp.send('Input.dispatchTouchEvent', { type, touchPoints });
-const point = (x, y, id = 1) => ({ x, y, id });
-const rotation = (page, plane, direction = 1) =>
-  page.locator(`[data-rotate="${plane}"][data-rotate-direction="${direction}"]`);
-const coordinates = (cells) => cells.map((cell) => cell.join(',')).sort();
-const touchButton = async (page, cdp, selector) => {
-  const box = await page.locator(selector).boundingBox();
-  assert(box);
-  await touch(cdp, 'touchStart', [point(box.x + box.width / 2, box.y + box.height / 2)]);
-  await touch(cdp, 'touchEnd');
-};
-const canvasPoint = async (page) => {
-  const box = await page.locator('#game-canvas').boundingBox();
-  assert(box && box.width > 150 && box.height > 150, 'Game canvas is visible and usable');
-  return point(box.x + box.width * 0.45, box.y + box.height * 0.47);
-};
-const swipe = async (page, cdp, dx, dy, cancel = false) => {
-  const start = await canvasPoint(page);
-  await touch(cdp, 'touchStart', [start]);
-  for (let i = 1; i <= 4; i++)
-    await touch(cdp, 'touchMove', [point(start.x + (dx * i) / 4, start.y + (dy * i) / 4)]);
-  await touch(cdp, cancel ? 'touchCancel' : 'touchEnd');
-  await page.waitForFunction(() => !window.tetracubeSnapshot().input.dragging);
-};
-const devFixture = async (page, action) => {
-  await page.getByRole('button', { name: '开发者调试', exact: true }).tap();
-  await page.locator(`[data-dev-action="${action}"]`).tap();
-  await page.locator('[data-close]').tap();
-};
-const mobile = {
-  viewport: { width: 390, height: 844 },
-  deviceScaleFactor: 2,
-  isMobile: true,
-  hasTouch: true,
-};
-
-try {
-  const context = await browser.newContext(mobile);
-  const page = await context.newPage();
-  watch(page);
-  const cdp = await context.newCDPSession(page);
-  await page.goto(origin);
-  await ready(page);
-  await noOverflow(page);
-  await fits(page, '#start-game', mobile.viewport);
-  await capture(page, 'mobile-home.png');
-  await page.locator('#help-home').tap();
-  await phase(page, 'help');
-  await fits(page, '#help-back', mobile.viewport);
-  await capture(page, 'mobile-help.png');
-  await page.locator('#help-back').tap();
-  await phase(page, 'home');
-  assert.equal(await stored(page), null, 'Opening help must not manufacture a saved run');
-  await page.locator('#start-game').tap();
-  await phase(page, 'playing');
-  assert.deepEqual((await snapshot(page)).game.dims, [8, 8, 18]);
-  assert.equal(await page.locator('#occupancy').textContent(), '0 / 1152');
-  await capture(page, 'mobile-tutorial.png');
-  await page.locator('#skip-tutorial').tap();
-  assert.equal(await page.locator('[data-move]').count(), 0, 'Movement is directly on the board');
-  assert.equal(await page.locator('#gravity-open').count(), 0, 'Flip needs no direction picker');
-  for (const selector of [
-    '[data-flip="left"]',
-    '[data-flip="right"]',
-    '#flip-container',
-    '#hold-piece',
-  ]) {
-    await fits(page, selector, mobile.viewport);
-    assert.equal(
-      await page.locator(selector).isVisible(),
-      true,
-      `${selector} is directly available in move mode`,
+  const s = await snap(p),
+    c = s.controls.find((c) => c.id === id),
+    canvas = p.locator('#GameCanvas'),
+    b = await canvas.boundingBox();
+  const position = {
+    x: ((c.x + c.w / 2) * b.width) / s.viewport.width,
+    y: ((c.y + c.h / 2) * b.height) / s.viewport.height,
+  };
+  await (mobile ? canvas.tap({ position }) : canvas.click({ position }));
+}
+async function capture(p, name) {
+  await p.screenshot({ path: out + name + '.png' });
+}
+async function fits(p) {
+  const s = await snap(p);
+  for (const c of s.controls) {
+    assert(c.w >= 43 && c.h >= 43, c.id + ' target');
+    assert(
+      c.x >= 0 &&
+        c.y >= 0 &&
+        c.x + c.w <= s.viewport.width + 1 &&
+        c.y + c.h <= s.viewport.height + 1,
+      c.id + ' fits',
     );
   }
   assert.equal(
-    await page.locator('#view-tools').isVisible(),
+    await p.evaluate(
+      () =>
+        document.documentElement.scrollWidth > innerWidth ||
+        document.documentElement.scrollHeight > innerHeight + 1,
+    ),
     false,
-    'Camera tools stay separate from physical turns',
   );
-  const beforeMove = await snapshot(page);
-  await recordEffects(page);
-  await swipe(page, cdp, 70, 24);
-  await motion(page, 'move');
-  await capture(page, 'mobile-move.png');
-  const afterMove = await snapshot(page);
-  assert.notDeepEqual(
-    xy(afterMove),
-    xy(beforeMove),
-    'Board swipe moves the active piece horizontally',
-  );
-  assert.deepEqual(afterMove.camera, beforeMove.camera, 'Move gesture cannot orbit the camera');
-  const moveEffects = await recordedEffects(page);
-  assert(
-    moveEffects.some((sample) => sample.motionKind === 'move'),
-    'Movement renders interpolation frames',
-  );
-  for (const plane of ['XY', 'XZ', 'YZ']) {
-    await recordEffects(page);
-    await rotation(page, plane).tap();
-    await motion(page, 'rotate');
-    if (plane === 'XY') await capture(page, 'mobile-rotate.png');
-    await recordedEffects(page);
-  }
-  const beforeHold = await snapshot(page);
-  await page.locator('#hold-piece').tap();
-  const afterHold = await snapshot(page);
-  assert.equal(afterHold.game.held.id, beforeHold.game.active.id);
-  assert.equal(afterHold.game.active.id, beforeHold.game.next[0].id);
-  assert.equal(afterHold.game.holdUsed, true);
-  assert.equal(
-    afterHold.game.placed,
-    beforeHold.game.placed,
-    'Hold cannot place or score the airborne piece',
-  );
-  assert.equal(afterHold.game.score, beforeHold.game.score);
-  assert.equal(
-    await page.locator('#hold-piece').isDisabled(),
-    true,
-    'Hold is allowed once per airborne piece',
-  );
-  await touchButton(page, cdp, '#hold-piece');
-  assert.equal((await snapshot(page)).game.held.id, afterHold.game.held.id);
-  assert.equal((await snapshot(page)).game.active.id, afterHold.game.active.id);
-  await capture(page, 'mobile-hold.png');
-  await recordEffects(page);
-  await page.locator('#hard-drop').tap();
-  await page.waitForFunction(() =>
-    window.__qaEffects.some(
-      (sample) => sample.animationKind === 'compact' && sample.animationRole === 'drop',
-    ),
-  );
-  await capture(page, 'mobile-drop.png');
-  await idle(page);
-  await page.waitForFunction(() => window.__qaEffects.some((sample) => sample.impact));
-  await capture(page, 'mobile-impact.png');
-  const dropEffects = await recordedEffects(page);
-  assert(
-    dropEffects.some((sample) => sample.trails > 0),
-    'Hard drop has visible velocity trails',
-  );
-  assert.equal((await snapshot(page)).game.placed, 1);
-  assert.equal((await snapshot(page)).game.holdUsed, false);
-  const beforeSwap = await snapshot(page);
-  await page.locator('#hold-piece').tap();
-  const afterSwap = await snapshot(page);
-  assert.equal(afterSwap.game.active.id, beforeSwap.game.held.id);
-  assert.equal(afterSwap.game.held.id, beforeSwap.game.active.id);
-  assert.deepEqual(
-    afterSwap.game.next,
-    beforeSwap.game.next,
-    'Swapping with hold leaves the next queue intact',
-  );
-  await recordEffects(page);
-  const beforeFall = await snapshot(page);
-  await motion(page, 'fall');
-  const afterFall = await snapshot(page);
-  assert.equal(afterFall.game.active.id, beforeFall.game.active.id);
-  assert(
-    afterFall.game.active.pos[2] < beforeFall.game.active.pos[2],
-    'Natural fall advances the active piece',
-  );
-  await capture(page, 'mobile-natural-fall.png');
-  await recordedEffects(page);
-  worldDown(await snapshot(page));
-  await capture(page, 'mobile-play.png');
-  report.checks.push(
-    'Touch home/help/start, 8×8×18 container, permanent three physical turns, direct movement/three rotations/natural fall with motion, hard-drop trail and impact',
-  );
-  report.checks.push(
-    'One hold per airborne piece, disabled repeat tap, reset after landing, held-piece swap with queue and score conservation',
-  );
-
-  await page.locator('[data-input="observe"]').tap();
-  const beforeObserve = await snapshot(page);
-  await swipe(page, cdp, 60, 20, true);
-  const afterObserve = await snapshot(page);
-  assert.notDeepEqual(
-    afterObserve.camera,
-    beforeObserve.camera,
-    'Observe gesture orbits the camera',
-  );
-  assert.deepEqual(
-    xy(afterObserve),
-    xy(beforeObserve),
-    'Observe gesture cannot move the piece in XY',
-  );
-  for (const view of ['top', 'front', 'side', 'iso']) {
-    await page.locator(`[data-view="${view}"]`).tap();
-    if (view === 'top') {
-      const top = await snapshot(page);
-      assert.equal(top.projection.mode, 'perspective');
-      const [lower, upper] = top.projection.samples;
-      assert.ok(
-        Math.hypot(upper.x - lower.x, upper.y - lower.y) > 3,
-        'Top view separates a vertical stack into distinct projected layers',
-      );
-      await capture(page, 'mobile-top.png');
-      await swipe(page, cdp, 0, 115);
-      const overTop = await snapshot(page);
-      assert.ok(overTop.camera.pitch > Math.PI / 2, 'Observation drag passes over top view');
-      await swipe(page, cdp, 0, 30);
-      assert.ok(
-        (await snapshot(page)).camera.pitch > overTop.camera.pitch,
-        'Dragging in the same direction continues rotating beyond top view',
-      );
-      assert.deepEqual(xy(await snapshot(page)), xy(top), 'Observation never moves the piece');
-    }
-  }
-  await capture(page, 'mobile-observe.png');
-  await page.locator('[data-input="move"]').tap();
-  const beforeCancel = await snapshot(page);
-  await swipe(page, cdp, -45, 10, true);
-  const afterCancel = await snapshot(page);
-  assert.deepEqual(afterCancel.camera, beforeCancel.camera);
-  await page.waitForTimeout(150);
-  assert.deepEqual(
-    xy(await snapshot(page)),
-    xy(afterCancel),
-    'Cancelled move has no continuing drift',
-  );
-  const start = await canvasPoint(page);
-  const second = point(start.x + 42, start.y + 30, 2);
-  const beforeMulti = await snapshot(page);
-  await touch(cdp, 'touchStart', [start]);
-  await touch(cdp, 'touchStart', [start, second]);
-  await touch(cdp, 'touchMove', [
-    point(start.x + 40, start.y, 1),
-    point(second.x + 40, second.y, 2),
-  ]);
-  await touch(cdp, 'touchCancel');
-  await page.waitForFunction(() => !window.tetracubeSnapshot().input.dragging);
-  const afterMulti = await snapshot(page);
-  assert.deepEqual(
-    xy(afterMulti),
-    xy(beforeMulti),
-    'Second finger cancels single-finger board movement',
-  );
-  assert.deepEqual(afterMulti.camera, beforeMulti.camera, 'Multitouch cannot accidentally orbit');
-  report.checks.push(
-    'Explicit observe/move modes, camera presets, cancelled drags and multitouch isolation',
-  );
-
-  const beforeFlip = await snapshot(page);
-  await page.locator('#flip-container').tap();
-  await page.waitForFunction(() => window.tetracubeSnapshot().animationKind === 'flip');
-  await page.waitForFunction(() => document.querySelector('#hard-drop').disabled);
-  for (const selector of [
-    '#hard-drop',
-    '#flip-container',
-    ...['XY', 'XZ', 'YZ'].flatMap((plane) =>
-      [1, -1].map((direction) => `[data-rotate="${plane}"][data-rotate-direction="${direction}"]`),
-    ),
-  ])
-    assert.equal(
-      await page.locator(selector).isDisabled(),
-      true,
-      `${selector} is disabled during reconstruction`,
-    );
-  worldDown(await snapshot(page));
-  await page.waitForTimeout(240);
-  const midFlip = await snapshot(page);
-  assert.equal(
-    midFlip.animationKind,
-    'flip',
-    'Screenshot samples physical rotation, before collapse',
-  );
-  assert.deepEqual(
-    midFlip.camera,
-    beforeFlip.camera,
-    'The container rotates independently of the camera',
-  );
-  await capture(page, 'mobile-mid-flip.png');
-  await page.locator('#pause-game').tap();
-  await phase(page, 'paused');
-  const pausedFlip = await snapshot(page);
-  await page.waitForTimeout(900);
-  assert.equal(
-    (await snapshot(page)).animationKind,
-    pausedFlip.animationKind,
-    'Pause freezes the physical-turn animation',
-  );
-  assert.deepEqual(
-    (await snapshot(page)).game,
-    pausedFlip.game,
-    'Pausing freezes the reconstruction state',
-  );
-  await page.locator('#resume-game').tap();
-  await idle(page);
-  const afterFlip = await snapshot(page);
-  worldDown(afterFlip);
-  assert.deepEqual(afterFlip.game.dims, [8, 8, 18]);
-  assert.equal(afterFlip.game.flipCount, beforeFlip.game.flipCount + 1);
-  assert.equal(
-    afterFlip.game.placed,
-    beforeFlip.game.placed + 1,
-    'Flip commits airborne tetracube exactly once',
-  );
-  assert.equal(
-    afterFlip.game.active.id,
-    beforeFlip.game.next[0].id,
-    'The next queued tetracube spawns after a flip',
-  );
-  assert.deepEqual(afterFlip.camera, beforeFlip.camera);
-  await capture(page, 'mobile-after-flip.png');
-  report.checks.push(
-    'One-tap 180° physical flip, fixed world-down gravity/camera, disabled controls, airborne commitment, next spawn and animation pause/resume',
-  );
-
-  for (const [turn, dims] of [
-    ['left', [18, 8, 8]],
-    ['right', [8, 8, 18]],
-  ]) {
-    const before = await snapshot(page);
-    await page.locator(`[data-flip="${turn}"]`).tap();
-    await idle(page);
-    const after = await snapshot(page);
-    worldDown(after);
-    assert.deepEqual(after.game.dims, dims, `${turn} swaps physical container extents`);
-    assert.equal(after.game.placed, before.game.placed + 1);
-    assert.equal(after.game.flipCount, before.game.flipCount + 1);
-    assert.deepEqual(after.camera, before.camera);
-    assert.equal(after.inputMode, 'move', 'Physical turn requires no observe-mode detour');
-    assert.equal(after.game.status, 'playing');
-    if (turn === 'left') await capture(page, 'mobile-side-flip.png');
-  }
-  report.checks.push(
-    'Left/right physical quarter-turns are directly usable in move mode and update container dimensions without changing gravity or camera',
-  );
-  await page.locator('[data-input="move"]').tap();
-  await page.locator('#hold-piece').tap();
-  await page.locator('#pause-game').tap();
-  await phase(page, 'paused');
-  await fits(page, '#resume-game', mobile.viewport);
-  await fits(page, '#home-game', mobile.viewport);
-  await capture(page, 'mobile-pause.png');
-  await page.locator('#help-pause').tap();
-  await phase(page, 'help');
-  await page.locator('#help-back').tap();
-  await phase(page, 'paused');
-  const paused = (await snapshot(page)).game;
-  await page.waitForTimeout(1800);
-  assert.deepEqual((await snapshot(page)).game, paused);
-  await page.locator('#resume-game').tap();
-  await page.locator('#pause-game').tap();
-  const expectedSave = (await snapshot(page)).game;
-  await page.locator('#home-game').tap();
-  const saved = await stored(page);
-  await page.reload();
-  await ready(page);
-  await page.locator('#help-home').tap();
-  await page.locator('#help-back').tap();
-  assert.equal(await stored(page), saved, 'Home help preserves prior game');
-  await page.locator('#continue-game').tap();
-  await page.locator('#pause-game').tap();
-  assert.deepEqual(
-    (await snapshot(page)).game,
-    expectedSave,
-    'Reload restores board, orientation, queue and RNG exactly',
-  );
-  await page.locator('#resume-game').tap();
-  report.checks.push(
-    'Touch pause/help/back/resume; pause freezes simulation; home/reload/help/continue restores full v4 game including physical orientation, hold and queue',
-  );
-
-  for (const viewport of [
-    { width: 320, height: 640 },
-    { width: 844, height: 390 },
-    { width: 1440, height: 1000 },
-  ]) {
-    await page.setViewportSize(viewport);
-    await page.waitForTimeout(100);
-    for (const selector of [
-      '#hard-drop',
-      '#flip-container',
-      '[data-flip="left"]',
-      '[data-flip="right"]',
-      '#hold-piece',
-      '[data-input="move"]',
-      '[data-input="observe"]',
-      ...['XY', 'XZ', 'YZ'].flatMap((plane) =>
-        [1, -1].map((direction) => `[data-rotate="${plane}"][data-rotate-direction="${direction}"]`),
-      ),
-    ]) {
-      await fits(page, selector, viewport);
-    }
-    await noOverflow(page);
-    worldDown(await snapshot(page));
-    await capture(page, `play-${viewport.width}x${viewport.height}.png`);
-  }
-  report.checks.push(
-    'Responsive 320×640, 390×844, 844×390 and 1440×1000 layouts without page overflow; drop, all three physical turns, hold, modes and rotations have visible usable touch targets',
-  );
-
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto(`${origin}/?dev=1`);
-  await ready(page);
-  const beforeDebugSave = await stored(page);
-  await devFixture(page, 'cascade');
-  assert.equal(
-    await stored(page),
-    beforeDebugSave,
-    'Developer fixture never overwrites normal save',
-  );
-  const cascadeBefore = await snapshot(page);
-  assert.equal(cascadeBefore.game.board.length, 128);
-  await page.locator('#flip-container').tap();
-  await idle(page);
-  const result = await snapshot(page);
-  worldDown(result);
-  assert.equal(result.game.lines, 2);
-  assert.equal(result.game.bestCombo, 2);
-  assert.equal(
-    result.game.board.length,
-    4,
-    '128 fixture cubes clear; four committed airborne cubes remain',
-  );
-  assert.equal(result.game.placed, cascadeBefore.game.placed + 1);
-  await capture(page, 'mobile-combo.png');
-  report.checks.push(
-    'Visible cascade fixture + real flip control: two sequential planes clear, Combo ×2, four airborne cubes conserved',
-  );
-
-  await devFixture(page, 'danger');
-  await phase(page, 'danger');
-  await page.locator('#rescue-game').tap();
-  await idle(page);
-  await phase(page, 'playing');
-  assert.equal((await snapshot(page)).rescueUsed, true);
-  worldDown(await snapshot(page));
-  await devFixture(page, 'danger');
-  await page.locator('#end-game').tap();
-  await phase(page, 'over');
-  await fits(page, '#retry-game', mobile.viewport);
-  await fits(page, '#result-home', mobile.viewport);
-  await capture(page, 'mobile-result.png');
-  await page.locator('#result-home').tap();
-  await phase(page, 'home');
-  await page.locator('#start-game').tap();
-  await phase(page, 'playing');
-  await devFixture(page, 'danger');
-  await page.locator('#end-game').tap();
-  await phase(page, 'over');
-  await page.locator('#retry-game').tap();
-  await phase(page, 'playing');
-  report.checks.push(
-    'Touch danger → one-tap physical flip rescue → playing; danger → result → home/start and result → retry',
-  );
-  await context.close();
-
-  const rotationContext = await browser.newContext(mobile);
-  const rotationGame = new Game({ seed: 711 });
-  rotationGame.board = [
-    { id: 1, x: 1, y: 1, z: 0, color: '#63e7ff' },
-    { id: 2, x: 1, y: 1, z: 1, color: '#63e7ff' },
-    { id: 3, x: 2, y: 1, z: 0, color: '#63e7ff' },
-  ];
-  rotationGame.serial = 3;
-  rotationGame.active = {
-    ...structuredClone(SHAPES.find(({ id }) => id === 'tripod')),
-    pos: [3, 3, 9],
-  };
-  const rotationSave = {
-    version: 1,
-    game: rotationGame.getSnapshot(),
-    tutorialStep: 4,
-    rescueUsed: false,
-  };
-  await rotationContext.addInitScript(
-    ({ key, value }) => {
-      localStorage.setItem(key, JSON.stringify(value));
-      localStorage.setItem('tetracube.settings.v1', JSON.stringify({ tutorialDone: true }));
-    },
-    { key: saveKey, value: rotationSave },
-  );
-  const rotationPage = await rotationContext.newPage();
-  watch(rotationPage);
-  await rotationPage.goto(origin);
-  await ready(rotationPage);
-  await rotationPage.locator('#continue-game').tap();
-  await phase(rotationPage, 'playing');
-  await rotationPage.waitForFunction(() => {
-    const layers = window.tetracubeSnapshot().layers;
-    return layers.visible.includes(1) && layers.visible.includes(2) && layers.landing.length > 0;
+}
+function blocked(used = 0) {
+  const g = new Game({ seed: 42 }),
+    s = g.getSnapshot();
+  s.active = null;
+  s.pending = structuredClone(s.next[0]);
+  s.status = 'danger';
+  s.board = [];
+  for (let x = 0; x < 8; x++)
+    for (let y = 0; y < 8; y++)
+      s.board.push({ id: s.board.length + 1, x, y, z: 17, color: '#86ddbe' });
+  s.serial = s.board.length;
+  return { version: 1, game: s, revivesUsed: used, tutorialStep: 4 };
+}
+async function open({ width = 390, height = 844, mobile = true, save, ad, video = false } = {}) {
+  const context = await browser.newContext({
+    viewport: { width, height },
+    deviceScaleFactor: 1,
+    isMobile: mobile,
+    hasTouch: mobile,
+    ...(video ? { recordVideo: { dir: root + 'reports/video', size: { width, height } } } : {}),
   });
-  assert.match(
-    await rotationPage.locator('#stage-hint').innerText(),
-    /落点.*层/,
-    'Landing height is visible',
+  await context.addInitScript(
+    ({ save, ad }) => {
+      if (save && !sessionStorage.getItem('qa-initialized')) {
+        localStorage.setItem('tetracube.save.v1', JSON.stringify(save));
+        sessionStorage.setItem('qa-initialized', '1');
+      }
+      if (ad) {
+        globalThis.__adStatus = ad;
+        globalThis.__adCalls = 0;
+        globalThis.TetracubeHost = {
+          ads: {
+            available: true,
+            offer: async () => {
+              globalThis.__adCalls++;
+              return new Promise((resolve) =>
+                setTimeout(() => resolve({ status: globalThis.__adStatus }), 800),
+              );
+            },
+          },
+        };
+      }
+    },
+    { save, ad },
   );
-  for (const plane of ['XY', 'XZ', 'YZ']) {
-    const before = await snapshot(rotationPage);
-    for (const direction of [1, -1]) {
-      const button = rotation(rotationPage, plane, direction);
-      assert.equal(
-        await button.locator('svg').count(),
-        1,
-        `${plane} ${direction} has a spatial icon`,
+  const page = await context.newPage();
+  page.on('pageerror', (e) => report.errors.push(e.message));
+  await page.goto('http://127.0.0.1:4189/');
+  await page.locator('body[data-tetracube-ready="true"]').waitFor({ timeout: 60000 });
+  assert.equal((await snap(page)).engine, '3.8.8');
+  return { page, context };
+}
+try {
+  for (const [width, height, mobile] of [
+    [320, 640, true],
+    [390, 844, true],
+    [844, 390, true],
+    [1280, 800, false],
+  ]) {
+    const { page: p, context } = await open({
+      width,
+      height,
+      mobile,
+      video: publish && width === 390,
+    });
+    try {
+      await fits(p);
+      await capture(p, 'home-' + width);
+      await press(p, 'help', mobile);
+      await phase(p, 'help');
+      await fits(p);
+      await capture(p, 'help-' + width);
+      await press(p, 'back', mobile);
+      await press(p, 'start', mobile);
+      await phase(p, 'playing');
+      await fits(p);
+      await capture(p, 'play-' + width);
+      const before = await snap(p);
+      await press(p, 'rotate-XY-plus', mobile);
+      assert.notDeepEqual((await snap(p)).game.active.cells, before.game.active.cells, 'rotation');
+      const holdBefore = (await snap(p)).game.active.id;
+      await press(p, 'hold', mobile);
+      assert.equal((await snap(p)).game.held.id, holdBefore);
+      await press(p, 'observe', mobile);
+      await press(p, 'view-top', mobile);
+      assert.equal((await snap(p)).view, 'top');
+      await press(p, 'view-iso', mobile);
+      await press(p, 'move', mobile);
+      const s = await snap(p),
+        r = s.scene,
+        b = await p.locator('#GameCanvas').boundingBox(),
+        x = b.x + r.x + r.w * 0.5,
+        y = b.y + r.y + r.h * 0.5;
+      if (mobile) {
+        const cdp = await context.newCDPSession(p);
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+        await cdp.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [{ x: x + 65, y: y - 10 }],
+        });
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await cdp.detach();
+      } else {
+        await p.mouse.move(x, y);
+        await p.mouse.down();
+        await p.mouse.move(x + 65, y - 10, { steps: 6 });
+        await p.mouse.up();
+      }
+      assert.notDeepEqual(
+        (await snap(p)).game.active.pos.slice(0, 2),
+        s.game.active.pos.slice(0, 2),
+        'drag',
       );
-      assert.ok(await button.getAttribute('aria-label'), 'Rotation control has an accessible name');
-      await button.tap();
-      if (direction === 1) {
-        assert.notDeepEqual(
-          coordinates((await snapshot(rotationPage)).game.active.cells),
-          coordinates(before.game.active.cells),
-          `${plane} forward control changes orientation`,
-        );
+      await press(p, 'drop', mobile);
+      await idle(p);
+      assert.equal((await snap(p)).game.placed, 1);
+      await press(p, 'invert', mobile);
+      await idle(p);
+      assert.equal((await snap(p)).game.flipCount, 1);
+      assert.equal((await snap(p)).screen, 'playing');
+      await press(p, 'pause', mobile);
+      await phase(p, 'paused');
+      await fits(p);
+      await capture(p, 'paused-' + width);
+      await press(p, 'resume', mobile);
+      await phase(p, 'playing');
+      if (width === 390) {
+        for (let i = 0; i < 9; i++) {
+          await press(p, 'rotate-XZ-plus');
+          await press(p, 'drop');
+          await idle(p);
+          if ((await snap(p)).screen !== 'playing') break;
+          await p.waitForTimeout(500);
+        }
+        await capture(p, 'stack-390');
+        if (publish)
+          await p.screenshot({ path: root + 'publishing/gameplay/screenshots/play-390x844.png' });
+      }
+      if ((await snap(p)).screen === 'playing') await press(p, 'pause', mobile);
+      await press(p, 'home', mobile);
+      await phase(p, 'home');
+      const saved = (await snap(p)).game;
+      await p.reload();
+      await p.locator('body[data-tetracube-ready="true"]').waitFor();
+      assert.deepEqual((await snap(p)).game, saved, 'reload');
+      report.checks.push(
+        'flow/rotation/hold/views/drag/drop/free-invert/save ' + width + 'x' + height,
+      );
+    } finally {
+      const video = p.video();
+      await context.close();
+      if (width === 390 && video) {
+        await mkdir(root + 'publishing/gameplay/videos', { recursive: true });
+        await video.saveAs(root + 'publishing/gameplay/videos/real-play-390x844.webm');
       }
     }
-    const restored = await snapshot(rotationPage);
-    assert.deepEqual(
-      coordinates(restored.game.active.cells),
-      coordinates(before.game.active.cells),
-      `${plane} reverse control undoes one forward turn`,
-    );
-    assert.deepEqual(
-      xy(restored),
-      xy(before),
-      'Free-space inverse rotation preserves horizontal position',
-    );
   }
-  await rotation(rotationPage, 'XZ', -1).tap();
-  await rotation(rotationPage, 'YZ', 1).tap();
-  const beforeRotatedDrop = await snapshot(rotationPage);
-  const expectedGame = new Game().restore(beforeRotatedDrop.game);
-  const expectedLanding = coordinates(expectedGame.ghost());
-  await rotationPage.locator('[data-input="observe"]').tap();
-  await rotationPage.locator('[data-view="top"]').tap();
-  await capture(rotationPage, 'mobile-layer-stack.png');
-  await rotationPage.locator('#hard-drop').tap();
-  await idle(rotationPage);
-  const dropped = await snapshot(rotationPage);
-  assert.equal(dropped.game.placed, beforeRotatedDrop.game.placed + 1);
-  assert.deepEqual(
-    coordinates(
-      dropped.game.board
-        .filter(({ id }) => id > rotationGame.serial)
-        .map(({ x, y, z }) => [x, y, z]),
-    ),
-    expectedLanding,
-    'The real drop control commits the rotated piece at its predicted landing cells',
-  );
-  report.checks.push(
-    'Six spatial rotation controls, inverse turns on XY/XZ/YZ, perspective layer separation, continuous orbit across top view and exact landing after rotation',
-  );
-  await rotationContext.close();
-
-  const legacyContext = await browser.newContext(mobile);
-  const legacyShape = {
-    id: 'line',
-    name: '长桥',
-    color: '#63e7ff',
-    cells: [
-      [-1, 0, 0],
-      [0, 0, 0],
-      [1, 0, 0],
-      [2, 0, 0],
-    ],
-  };
-  const legacy = {
-    version: 1,
-    rescueUsed: false,
-    tutorialStep: 4,
-    game: {
-      version: 1,
-      configId: 'classic',
-      dims: [5, 5, 10],
-      board: [
-        { id: 1, x: 0, y: 0, z: 0, color: '#63e7ff' },
-        { id: 2, x: 4, y: 4, z: 9, color: '#ffe08a' },
-      ],
-      active: { ...legacyShape, pos: [2, 2, 5] },
-      pending: null,
-      next: [legacyShape, legacyShape, legacyShape],
-      bag: [],
-      gravity: { axis: 0, sign: -1 },
-      score: 230,
-      lines: 2,
-      combo: 0,
-      bestCombo: 2,
-      placed: 3,
-      gravityChanges: 3,
-      serial: 2,
-      rngState: 123,
-      initialSeed: 123,
-      status: 'playing',
-    },
-  };
-  await legacyContext.addInitScript(
-    ({ key, value }) => {
-      if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(value));
-      localStorage.setItem('tetracube.settings.v1', JSON.stringify({ tutorialDone: true }));
-    },
-    { key: saveKey, value: legacy },
-  );
-  const legacyPage = await legacyContext.newPage();
-  watch(legacyPage);
-  await legacyPage.goto(origin);
-  await ready(legacyPage);
-  await legacyPage.locator('#continue-game').tap();
-  await phase(legacyPage, 'playing');
-  await legacyPage.locator('#pause-game').tap();
-  const migrated = await snapshot(legacyPage);
-  worldDown(migrated);
-  assert.equal(migrated.game.version, 4);
-  assert.deepEqual(migrated.game.dims, [18, 8, 8]);
-  assert.equal(migrated.game.held, null);
-  assert.equal(migrated.game.holdUsed, false);
-  assert.equal(migrated.game.flipCount, 3);
-  assert.equal(migrated.game.score, legacy.game.score);
-  assert.equal(migrated.game.lines, legacy.game.lines);
-  assert.equal(migrated.game.placed, legacy.game.placed);
-  assert.deepEqual(
-    migrated.game.board.map(({ id, x, y, z }) => ({ id, x, y, z })),
-    [
-      { id: 1, x: 9, y: 0, z: 0 },
-      { id: 2, x: 0, y: 4, z: 4 },
-    ],
-  );
-  assert.equal(migrated.game.active.cells.length, 4);
-  await legacyPage.locator('#resume-game').tap();
-  await legacyPage.locator('#hard-drop').tap();
-  await idle(legacyPage);
-  assert.equal((await snapshot(legacyPage)).game.placed, 4);
-  await legacyPage.locator('#pause-game').tap();
-  await legacyPage.locator('#home-game').tap();
-  assert.equal(JSON.parse(await stored(legacyPage)).game.version, 4);
-  await legacyPage.reload();
-  await ready(legacyPage);
-  await legacyPage.locator('#continue-game').tap();
-  await phase(legacyPage, 'playing');
-  assert.deepEqual((await snapshot(legacyPage)).game.dims, [18, 8, 8]);
-  report.checks.push(
-    'Authentic v1 sideways-gravity save migrates to v4 world-down 18×8×8 coordinates with empty hold, preserving cubes/score, remains playable and reloads',
-  );
-  await legacyContext.close();
-
-  const previousContext = await browser.newContext(mobile);
-  const previous = {
-    ...legacy,
-    game: {
-      ...legacy.game,
-      version: 2,
-      dims: [6, 6, 12],
-      orientation: [
-        [1, 0, 0],
-        [0, 1, 0],
-        [0, 0, 1],
-      ],
-      gravity: { axis: 2, sign: -1 },
-      flipCount: 3,
-      active: { ...legacyShape, pos: [2, 2, 10] },
-      board: [{ id: 1, x: 0, y: 0, z: 0, color: '#63e7ff' }],
-    },
-  };
-  delete previous.game.gravityChanges;
-  await previousContext.addInitScript(
-    ({ key, value }) => {
-      if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(value));
-      localStorage.setItem('tetracube.settings.v1', JSON.stringify({ tutorialDone: true }));
-    },
-    { key: saveKey, value: previous },
-  );
-  const previousPage = await previousContext.newPage();
-  watch(previousPage);
-  await previousPage.goto(origin);
-  await ready(previousPage);
-  await previousPage.locator('#continue-game').tap();
-  await previousPage.locator('#pause-game').tap();
-  const fromV2 = (await snapshot(previousPage)).game;
-  assert.equal(fromV2.version, 4);
-  assert.deepEqual(fromV2.dims, [8, 8, 18]);
-  assert.deepEqual(fromV2.board, previous.game.board);
-  assert.deepEqual(fromV2.active, previous.game.active);
-  assert.deepEqual(fromV2.next, previous.game.next);
-  for (const key of ['score', 'lines', 'placed', 'flipCount', 'rngState'])
-    assert.equal(fromV2[key], previous.game[key], `v2 migration preserves ${key}`);
-  assert.equal(fromV2.held, null);
-  assert.equal(fromV2.holdUsed, false);
-  await previousPage.locator('#resume-game').tap();
-  await previousPage.locator('#hold-piece').tap();
-  assert.equal((await snapshot(previousPage)).game.held.id, previous.game.active.id);
-  report.checks.push(
-    'Authentic v2 6×6×12 save grows to 8×8×18 without moving board/active/queue or changing progression/RNG; new hold works',
-  );
-  await previousContext.close();
-
-  const v3Context = await browser.newContext(mobile);
-  // Piece/queue/RNG fields come from the released v3 Game({ seed: 448 })
-  // after one real hold; the 36-cell floor is a migration regression fixture.
-  const heldShape = {
-    id: 'elbow',
-    name: '折角',
-    color: '#ffae7a',
-    cells: [
-      [-1, 0, 0],
-      [0, 0, 0],
-      [1, 0, 0],
-      [1, 1, 0],
-    ],
-  };
-  const oldFloor = [];
-  for (let x = 0; x < 6; x++)
-    for (let y = 0; y < 6; y++)
-      oldFloor.push({ id: oldFloor.length + 1, x, y, z: 0, color: '#63e7ff' });
-  const v3 = {
-    ...previous,
-    game: {
-      ...previous.game,
-      version: 3,
-      dims: [6, 6, 18],
-      board: oldFloor,
-      active: { ...legacyShape, pos: [2, 2, 17] },
-      held: heldShape,
-      holdUsed: true,
-      next: [
-        {
-          id: 'square',
-          name: '方庭',
-          color: '#ffe08a',
-          cells: [
-            [0, 0, 0],
-            [1, 0, 0],
-            [0, 1, 0],
-            [1, 1, 0],
-          ],
-        },
-        {
-          id: 'step',
-          name: '阶梯',
-          color: '#7cf0bf',
-          cells: [
-            [-1, 0, 0],
-            [0, 0, 0],
-            [0, 1, 0],
-            [1, 1, 0],
-          ],
-        },
-        {
-          id: 'helix',
-          name: '回旋',
-          color: '#f9a1e3',
-          cells: [
-            [-1, 0, 1],
-            [0, 0, 1],
-            [0, 1, 1],
-            [0, 1, 0],
-          ],
-        },
-      ],
-      bag: ['tee', 'twist', 'tripod'],
-      rngState: 4231026547,
-      initialSeed: 448,
-      serial: oldFloor.length,
-    },
-  };
-  await v3Context.addInitScript(
-    ({ key, value }) => {
-      if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(value));
-      localStorage.setItem('tetracube.settings.v1', JSON.stringify({ tutorialDone: true }));
-    },
-    { key: saveKey, value: v3 },
-  );
-  const v3Page = await v3Context.newPage();
-  watch(v3Page);
-  await v3Page.goto(origin);
-  await ready(v3Page);
-  await v3Page.locator('#continue-game').tap();
-  await phase(v3Page, 'playing');
-  await v3Page.locator('#pause-game').tap();
-  const fromV3 = (await snapshot(v3Page)).game;
-  assert.equal(fromV3.version, 4);
-  assert.deepEqual(fromV3.dims, [8, 8, 18]);
-  for (const key of [
-    'board',
-    'active',
-    'held',
-    'holdUsed',
-    'next',
-    'bag',
-    'orientation',
-    'score',
-    'lines',
-    'placed',
-    'flipCount',
-    'rngState',
-  ])
-    assert.deepEqual(fromV3[key], v3.game[key], `v3 widening preserves ${key}`);
-  await v3Page.locator('#resume-game').tap();
-  assert.equal(await v3Page.locator('#hold-piece').isDisabled(), true);
-  assert.equal(await v3Page.locator('#occupancy').textContent(), '36 / 1152');
-  await capture(v3Page, 'mobile-v3-save-migrated.png');
-  await v3Page.locator('#hard-drop').tap();
-  await idle(v3Page);
-  const afterV3Drop = (await snapshot(v3Page)).game;
-  assert.equal(
-    afterV3Drop.lines,
-    v3.game.lines,
-    'The old 36-cell floor is not a complete 64-cell layer',
-  );
-  assert.equal(
-    afterV3Drop.board.length,
-    40,
-    'The widened floor keeps all 36 old cubes and four newly landed cubes',
-  );
-  assert.deepEqual(
-    afterV3Drop.board.filter((cube) => cube.id <= oldFloor.length),
-    oldFloor,
-  );
-  assert.equal(afterV3Drop.placed, v3.game.placed + 1);
-  assert.deepEqual(afterV3Drop.held, heldShape);
-  assert.equal(afterV3Drop.holdUsed, false);
-  const beforeV3Swap = afterV3Drop;
-  await v3Page.locator('#hold-piece').tap();
-  const afterV3Swap = (await snapshot(v3Page)).game;
-  assert.equal(afterV3Swap.active.id, heldShape.id);
-  assert.equal(afterV3Swap.held.id, beforeV3Swap.active.id);
-  assert.deepEqual(afterV3Swap.next, beforeV3Swap.next);
-  await capture(v3Page, 'mobile-v3-save-play.png');
-  await v3Page.locator('#pause-game').tap();
-  const v4Save = (await snapshot(v3Page)).game;
-  await v3Page.locator('#home-game').tap();
-  assert.equal(JSON.parse(await stored(v3Page)).game.version, 4);
-  await v3Page.reload();
-  await ready(v3Page);
-  await v3Page.locator('#continue-game').tap();
-  await v3Page.locator('#pause-game').tap();
-  assert.deepEqual(
-    (await snapshot(v3Page)).game,
-    v4Save,
-    'Migrated v3 progression survives v4 save and reload',
-  );
-  report.checks.push(
-    'Authentic v3 6×6×18 save widens to 8×8×18 while preserving 36 cube IDs/coordinates, airborne/held pieces, hold cooldown, queue, RNG and score; 36 old floor cubes do not clear as a 64-cell layer; touch drop/swap and v4 reload work',
-  );
-  await v3Context.close();
-
-  const reduced = await browser.newContext({ ...mobile, reducedMotion: 'reduce' });
-  await reduced.addInitScript(() =>
-    localStorage.setItem('tetracube.settings.v1', JSON.stringify({ tutorialDone: true })),
-  );
-  const reducedPage = await reduced.newPage();
-  watch(reducedPage);
-  await reducedPage.goto(origin);
-  await ready(reducedPage);
-  await reducedPage.locator('#start-game').tap();
-  assert.equal((await snapshot(reducedPage)).reducedMotion, true);
-  const reducedCDP = await reduced.newCDPSession(reducedPage);
-  await recordEffects(reducedPage);
-  const reducedBefore = await snapshot(reducedPage);
-  await swipe(reducedPage, reducedCDP, 70, 24);
-  assert.notDeepEqual(xy(await snapshot(reducedPage)), xy(reducedBefore));
-  await rotation(reducedPage, 'XY').tap();
-  await reducedPage.locator('#hold-piece').tap();
-  await reducedPage.locator('#hard-drop').tap();
-  await idle(reducedPage);
-  assert.equal((await snapshot(reducedPage)).game.placed, 1);
-  await reducedPage.locator('[data-flip="left"]').tap();
-  await idle(reducedPage);
-  assert.deepEqual((await snapshot(reducedPage)).game.dims, [18, 8, 8]);
-  const reducedEffects = await recordedEffects(reducedPage);
-  assert(reducedEffects.length > 0);
-  assert(
-    reducedEffects.every((sample) => sample.trails === 0),
-    'Reduced motion suppresses motion trails',
-  );
-  await capture(reducedPage, 'mobile-reduced-motion.png');
-  report.checks.push(
-    'prefers-reduced-motion preserves touch movement/rotation/hold/drop/quarter-turn while suppressing trails',
-  );
-  await reduced.close();
-
-  const teaching = await browser.newContext(mobile);
-  const teachingPage = await teaching.newPage();
-  watch(teachingPage);
-  await teachingPage.goto(origin);
-  await ready(teachingPage);
-  await teachingPage.locator('#start-game').tap();
-  assert.equal(await teachingPage.locator('#tutorial').isVisible(), true);
-  const teachingCDP = await teaching.newCDPSession(teachingPage);
-  await swipe(teachingPage, teachingCDP, 70, 24);
-  const rotateInstruction = await teachingPage.locator('#tutorial-text').textContent();
-  assert.match(rotateInstruction, /旋转方块/);
-  await teachingPage.locator('#hold-piece').tap();
-  assert.equal(
-    await teachingPage.locator('#tutorial-text').textContent(),
-    rotateInstruction,
-    'Hold does not complete the instruction to rotate the piece',
-  );
-  await capture(teachingPage, 'mobile-tutorial-hold.png');
-  await rotation(teachingPage, 'XY').tap();
-  assert.match(await teachingPage.locator('#tutorial-text').textContent(), /直接落下/);
-  await teachingPage.locator('#hard-drop').tap();
-  await idle(teachingPage);
-  assert.match(await teachingPage.locator('#tutorial-text').textContent(), /颠倒容器/);
-  await teachingPage.locator('#flip-container').tap();
-  await idle(teachingPage);
-  assert.equal(await teachingPage.locator('#tutorial').isVisible(), false);
-  report.checks.push(
-    'First-run touch teaching advances only on move → actual rotation → drop → physical turn; hold does not incorrectly complete the rotation step',
-  );
-  await teaching.close();
-
-  const embedded = await browser.newContext(mobile);
-  const embeddedPage = await embedded.newPage();
-  watch(embeddedPage);
-  await embeddedPage.route(`${origin}/qa-embed`, (route) =>
-    route.fulfill({
-      contentType: 'text/html',
-      body: '<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>html,body{margin:0;width:100%;height:100%;overflow:hidden}iframe{display:block;width:100%;height:100%;border:0}</style><main data-game-display-host style="width:100%;height:100%"><iframe title="重力方舱" src="/?dev=0" allow="fullscreen" sandbox="allow-scripts allow-same-origin"></iframe></main>',
-    }),
-  );
-  await embeddedPage.goto(`${origin}/qa-embed`);
-  const iframe = await embeddedPage.locator('iframe').elementHandle();
-  const frame = await iframe.contentFrame();
-  assert(frame);
-  await ready(frame);
-  assert.equal(await frame.getByRole('button', { name: '开发者调试', exact: true }).count(), 0);
-  await frame.locator('#start-game').tap();
-  await phase(frame, 'playing');
-  await frame.locator('#skip-tutorial').tap();
-  await frame.locator('#hold-piece').tap();
-  assert.equal((await snapshot(frame)).game.holdUsed, true);
-  await frame.locator('[data-flip="left"]').tap();
-  await idle(frame);
-  assert.deepEqual((await snapshot(frame)).game.dims, [18, 8, 8]);
-  for (const viewport of [
-    { width: 320, height: 640 },
-    mobile.viewport,
-    { width: 844, height: 390 },
-  ]) {
-    await embeddedPage.setViewportSize(viewport);
-    await embeddedPage.waitForTimeout(100);
-    await noOverflow(embeddedPage);
-    await noOverflow(frame);
-    for (const selector of [
-      '#hold-piece',
-      '[data-flip="left"]',
-      '[data-flip="right"]',
-      '#flip-container',
-      '#hard-drop',
-      '[data-input="move"]',
-      '[data-input="observe"]',
-      ...['XY', 'XZ', 'YZ'].flatMap((plane) =>
-        [1, -1].map((direction) => `[data-rotate="${plane}"][data-rotate-direction="${direction}"]`),
-      ),
-    ])
-      await fits(frame, selector, viewport);
-    await capture(embeddedPage, `iframe-${viewport.width}x${viewport.height}.png`);
+  for (const status of ['completed', 'dismissed', 'unavailable', 'failed']) {
+    const { page: p, context } = await open({ ad: status });
+    try {
+      await press(p, 'start');
+      const before = (await snap(p)).game;
+      await press(p, 'invert');
+      await phase(p, 'reward');
+      await press(p, 'watch');
+      await phase(p, status === 'completed' ? 'paused' : 'playing');
+      assert.equal((await snap(p)).game.flipCount, status === 'completed' ? 1 : 0);
+      if (status !== 'completed') assert.deepEqual((await snap(p)).game, before);
+      assert.equal(await p.evaluate(() => globalThis.__adCalls), 1);
+      report.checks.push('inversion ' + status);
+    } finally {
+      await context.close();
+    }
   }
-  await embeddedPage.setViewportSize(mobile.viewport);
-  await frame.locator('#pause-game').tap();
-  await phase(frame, 'paused');
-  await frame.locator('#home-game').tap();
-  await phase(frame, 'home');
-  await frame.locator('#continue-game').tap();
-  await phase(frame, 'playing');
-  assert.deepEqual((await snapshot(frame)).game.dims, [18, 8, 8]);
-  report.checks.push(
-    'Production iframe touch start/hold/direct left turn/pause/home/continue; 320×640, 390×844 and 844×390 iframe/host fit without overflow and explicit dev=0 stays off',
-  );
-  await embedded.close();
-
-  const blocked = await browser.newContext(mobile);
-  await blocked.addInitScript(() => {
-    Object.defineProperty(window, 'localStorage', {
-      get() {
-        throw new Error('disabled');
-      },
-    });
-  });
-  const deniedPage = await blocked.newPage();
-  watch(deniedPage);
-  await deniedPage.goto(origin);
-  await ready(deniedPage);
-  await deniedPage.locator('#start-game').tap();
-  await deniedPage.locator('#hard-drop').tap();
-  await idle(deniedPage);
-  assert.equal((await snapshot(deniedPage)).game.placed, 1);
-  await deniedPage.locator('#flip-container').tap();
-  await idle(deniedPage);
-  worldDown(await snapshot(deniedPage));
-  assert.equal((await snapshot(deniedPage)).game.flipCount, 1);
-  report.checks.push('Unavailable storage still allows starting, dropping and physically flipping');
-  await blocked.close();
+  for (const used of [0, 1, 2]) {
+    const { page: p, context } = await open({ save: blocked(used), ad: 'completed' });
+    try {
+      await press(p, 'continue');
+      await phase(p, 'result');
+      await fits(p);
+      await capture(p, 'result-' + used);
+      const s = await snap(p);
+      assert.equal(
+        s.controls.some((c) => c.id === 'revive'),
+        used < 2,
+      );
+      if (used < 2) {
+        const pending = s.game.pending;
+        await press(p, 'revive');
+        await phase(p, 'reward');
+        await fits(p);
+        await capture(p, 'revive-' + used);
+        await press(p, 'watch');
+        await phase(p, 'paused');
+        assert.equal((await snap(p)).revivesUsed, used + 1);
+        assert.equal((await snap(p)).game.active.id, pending.id);
+        assert.equal((await snap(p)).game.board.length, 0);
+        await p.reload();
+        await p.locator('body[data-tetracube-ready="true"]').waitFor();
+        assert.equal((await snap(p)).revivesUsed, used + 1);
+      }
+      report.checks.push('persisted revive quota ' + used);
+    } finally {
+      await context.close();
+    }
+  }
+  {
+    const { page: p, context } = await open({ save: blocked() });
+    try {
+      await press(p, 'continue');
+      await phase(p, 'result');
+      assert.equal(
+        (await snap(p)).controls.some((c) => c.id === 'revive'),
+        false,
+      );
+      await press(p, 'restart');
+      await phase(p, 'playing');
+      assert.equal((await snap(p)).revivesUsed, 0);
+      report.checks.push('unconfigured result and restart');
+    } finally {
+      await context.close();
+    }
+  }
+  {
+    const { page: p, context } = await open({ ad: 'completed' });
+    try {
+      await press(p, 'start');
+      await press(p, 'invert');
+      await press(p, 'watch');
+      await press(p, 'cancel');
+      await p.waitForTimeout(1000);
+      assert.equal((await snap(p)).game.flipCount, 0);
+      assert.equal((await snap(p)).screen, 'playing');
+      report.checks.push('late completion after cancellation');
+    } finally {
+      await context.close();
+    }
+  }
+  for (const status of ['completed', 'failed']) {
+    const { page: p, context } = await open({ ad: status });
+    try {
+      await press(p, 'start');
+      await press(p, 'invert');
+      await press(p, 'watch');
+      await p.evaluate(() => {
+        Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+      await p.waitForTimeout(1000);
+      assert.equal((await snap(p)).game.flipCount, 0);
+      await p.evaluate(() => {
+        Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+      await phase(p, 'paused');
+      assert.equal((await snap(p)).game.flipCount, status === 'completed' ? 1 : 0);
+      report.checks.push('simulated visibility during advertisement ' + status);
+    } finally {
+      await context.close();
+    }
+  }
   assert.deepEqual(report.errors, []);
-  report.passed = true;
-} catch (error) {
-  report.failure = error.stack;
-  throw error;
+  console.log(JSON.stringify(report, null, 2));
 } finally {
+  await writeFile(out + 'browser-report.json', JSON.stringify(report, null, 2) + '\n');
   await browser.close();
   server.kill();
-  await writeFile(new URL('browser-report.json', evidence), JSON.stringify(report, null, 2) + '\n');
 }
-console.log(`Tetracube browser: ${report.checks.length} flows passed; no page errors.`);

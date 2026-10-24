@@ -124,10 +124,8 @@ export const castleCannonCanvasDefinition: GameDefinition<CastleTarget> = {
         rawY = g.rotated ? g.width - e.x : e.y;
       const x = (rawX - g.ox) / g.scale,
         y = (rawY - g.oy) / g.scale;
-      const hit = hits.find(
-        (h) => !h.disabled && x >= h.x && x <= h.x + h.w && y >= h.y && y <= h.y + h.h,
-      );
-      session.input(e.phase, e.pointerId, x, y, hit?.id ?? null);
+      const hit = hits.find((h) => x >= h.x && x <= h.x + h.w && y >= h.y && y <= h.y + h.h);
+      session.input(e.phase, e.pointerId, x, y, hit?.disabled ? 'blocked' : (hit?.id ?? null));
     }
     const stops = [
       target.onPointer?.(pointer) ??

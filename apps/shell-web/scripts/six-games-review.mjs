@@ -106,21 +106,8 @@ try {
             ? await (await page.locator('iframe').elementHandle()).contentFrame()
             : page.mainFrame();
         await actualFrame.waitForLoadState();
-        const fullscreen =
-          entry === 'embedded'
-            ? page.locator('nav [data-game-fullscreen]')
-            : frame.locator('[data-game-fullscreen]').first();
-        await expect(fullscreen).toBeVisible();
-        await fullscreen.click();
-        if (entry === 'unsupported') {
-          await expect(frame.locator('#game-display-notice')).toContainText('不支持');
-          assert.equal(await page.evaluate(() => globalThis.document.fullscreenElement), null);
-        } else {
-          await expect
-            .poll(() => page.evaluate(() => !!globalThis.document.fullscreenElement))
-            .toBe(true);
-          await expect(fullscreen).toHaveText('退出全屏');
-        }
+        await expect(page.locator('[data-game-fullscreen]')).toHaveCount(0);
+        await expect(frame.locator('[data-game-fullscreen]')).toHaveCount(0);
         await exerciseStandalone(frame, game.id, true);
         // Prove the same globalThis.document survives mode changes. Per-game tests cover its full loop.
         const identity = await actualFrame.evaluate(() => {
@@ -130,10 +117,6 @@ try {
         const storage = await actualFrame.evaluate(() =>
           JSON.stringify(Object.fromEntries(Object.entries(globalThis.localStorage))),
         );
-        if (entry !== 'unsupported') {
-          await page.evaluate(() => globalThis.document.exitFullscreen());
-          await expect(fullscreen).toHaveText('全屏');
-        }
         assert.equal(
           await actualFrame.evaluate(() => globalThis.__displayTestIdentity),
           identity,

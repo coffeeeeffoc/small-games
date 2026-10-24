@@ -5,7 +5,7 @@ import { spawn } from 'node:child_process';
 import { chromium, expect } from '@playwright/test';
 import { LEVELS, CHAPTER_SIZE } from '../src/content.mjs';
 
-const output = new URL('../docs/design/validation/2026-10-11/', import.meta.url);
+const output = new URL('../outputs/no-fullscreen/', import.meta.url);
 await mkdir(output, { recursive: true });
 const server = spawn(process.execPath, ['server.mjs', '--dist', '--port', '4429'], {
   cwd: new URL('../', import.meta.url),
@@ -375,18 +375,9 @@ try {
   await page.setViewportSize({ width: 390, height: 844 });
   await advance(100);
   await tap('#pause');
-  await page.locator('#pause-screen [data-game-fullscreen]').tap();
-  await advance(300);
-  const full = await page.evaluate(() => Boolean(document.fullscreenElement));
-  if (full) {
-    await page.locator('#pause-screen [data-game-fullscreen]').tap();
-    await advance(300);
-    assert(!(await page.evaluate(() => Boolean(document.fullscreenElement))));
-  }
+  await expect(page.locator('[data-game-fullscreen]')).toHaveCount(0);
   await tap('#resume');
-  checks.push(
-    `fullscreen gesture ${full ? 'enter and exit verified' : 'unavailable; game still usable'}`,
-  );
+  checks.push('pause has no fullscreen control and resumes normally');
   await tap('#pause');
   await tap('#pause-home');
   await tap('#settings-open');
@@ -471,7 +462,6 @@ try {
         throw new DOMException('denied', 'SecurityError');
       },
     });
-    Element.prototype.requestFullscreen = () => Promise.reject(new Error('denied'));
   });
   const deniedPage = await denied.newPage();
   deniedPage.on('pageerror', (error) => errors.push(error.message));
@@ -479,11 +469,10 @@ try {
   await deniedPage.locator('#start').tap();
   await expect(deniedPage.locator('#board')).toBeVisible();
   await deniedPage.locator('#pause').tap();
-  await deniedPage.locator('#pause-screen [data-game-fullscreen]').tap();
-  await expect(deniedPage.locator('#game-display-notice')).toBeVisible();
+  await expect(deniedPage.locator('[data-game-fullscreen]')).toHaveCount(0);
   await deniedPage.locator('#resume').tap();
   await expect(deniedPage.locator('#board')).toBeVisible();
-  checks.push('disabled storage and rejected fullscreen keep play usable');
+  checks.push('disabled storage keeps play usable without fullscreen controls');
   await denied.close();
   assert.deepEqual(errors, []);
   const report = {

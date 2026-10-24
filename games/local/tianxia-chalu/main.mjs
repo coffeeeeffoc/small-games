@@ -74,6 +74,7 @@ let lastFrame = 0,
   tutorialSeen = new Set(),
   startedCards = [],
   adBusy = false,
+  adEpoch = 0,
   backgrounded = false;
 const debug =
   globalThis.SmallGamesDev?.enabled === true || globalThis.SmallGamesDev?.isEnabled?.() === true;
@@ -96,7 +97,7 @@ const hostAds = globalThis.SmallGamesRewardAds;
 const provider =
   config?.adMode === 'host' && config.provider?.show
     ? config.provider
-    : hostAds?.offer
+    : hostAds?.available !== false && hostAds?.offer
       ? {
           show: ({ opportunityId }) => hostAds.offer({ id: opportunityId }),
           dispose: () => hostAds.cancel?.(),
@@ -105,7 +106,7 @@ const provider =
 const newPublishing = () =>
   createH5Publishing({
     gameId: 'tianxia-chalu',
-    title: '天下岔路',
+    title: '夺城令',
     adMode: provider ? 'host' : 'off',
     provider,
     pause: () => {
@@ -140,7 +141,15 @@ function header(title, back = home) {
     '</h2><span></span></header>'
   );
 }
+function cancelUpgrade() {
+  adEpoch++;
+  if (adBusy) {
+    try { provider?.dispose?.(); } catch { /* Navigation remains available. */ }
+  }
+  adBusy = false;
+}
 function show(next, html) {
+  if (next !== screen) cancelUpgrade();
   gesture = null;
   bridge.preview = null;
   screen = next;
@@ -215,7 +224,7 @@ function home() {
   const next = nextLevel();
   show(
     'home',
-    '<section class="screen home"><div class="home-title"><p class="eyebrow">百 战 山 河</p><h1>天下<br><span>岔路</span></h1><p class="home-tagline">一指改军令，寸土定山河。</p></div><div class="home-actions"><p class="chapter-note">第 ' +
+    '<section class="screen home"><div class="home-title"><p class="eyebrow">百 战 山 河</p><h1>夺城令</h1><p class="home-tagline">一指改军令，寸土定山河。</p></div><div class="home-actions"><p class="chapter-note">第 ' +
       next.chapter +
       ' 章 · ' +
       esc(next.chapterName) +
@@ -791,7 +800,7 @@ async function pause(reason = '') {
       '</div><div class="quiet-links">' +
       button('sound-toggle', save.settings.sound ? '音效：开' : '音效：关') +
       button('music-toggle', save.settings.music ? '氛围：开' : '氛围：关') +
-      '</div><button data-game-fullscreen>全屏</button></section>',
+      '</div></section>',
   );
   on('resume', resume);
   on('retry', () => prepare(state.levelId, practice, seed));
@@ -1107,7 +1116,7 @@ function settings() {
       (save.settings.online ? 'checked' : '') +
       '></label><label class="field">配套服务地址<input id="server-url" type="url" value="' +
       esc(save.settings.serverUrl) +
-      '" placeholder="https://example.com"></label><p class="footnote">两种模式均与AI交战；关闭服务端模式可离线游玩。</p><button class="primary" type="submit">保存设置</button></form><button data-game-fullscreen>全屏</button>',
+      '" placeholder="https://example.com"></label><p class="footnote">两种模式均与AI交战；关闭服务端模式可离线游玩。</p><button class="primary" type="submit">保存设置</button></form>',
   );
   $('difficulty').value = save.settings.difficulty;
   $('settings-form').addEventListener('submit', (e) => {
@@ -1240,10 +1249,14 @@ function finish() {
 async function upgrade() {
   if (adBusy || screen !== 'result' || !reward || reward.tier >= 3) return;
   adBusy = true;
-  const id = runId;
+  const id = runId, token = ++adEpoch, armory = save.armory;
   $('upgrade-card').disabled = true;
-  const result = await publishing.rewarded({ placement: 'rank-card-' + id });
-  const changed = upgradeCard(save.armory, id, result.status);
+  let result;
+  try {
+    result = await provider?.show({ opportunityId: 'tianxia-chalu:rank-card-' + id, kind: 'rewarded' }) ?? { status: 'unavailable' };
+  } catch { result = { status: 'failed' }; }
+  if (token !== adEpoch || screen !== 'result' || runId !== id || save.armory !== armory) return;
+  const changed = upgradeCard(armory, id, result.status);
   if (changed) persist();
   adBusy = false;
   if (screen === 'result' && runId === id) {
@@ -1386,6 +1399,7 @@ window.addEventListener('focus', () => {
   backgrounded = document.hidden;
 });
 window.addEventListener('pagehide', () => {
+  cancelUpgrade();
   backgrounded = true;
   if (screen === 'battle') void pause();
   audio.dispose();

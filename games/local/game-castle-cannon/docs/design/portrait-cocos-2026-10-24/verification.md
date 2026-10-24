@@ -1,0 +1,34 @@
+# 竖屏 Cocos 验证记录
+
+2026-10-24，使用 Creator 3.8.8 实际导入、构建与运行。设计图见 [设计入口](README.md)，当前素材见 [上架资料](../../../publishing/STATUS.md)。
+
+实际画面：[首页](../../../publishing/gameplay/screenshots/home-cocos-390x844.png)、[战斗](../../../publishing/gameplay/screenshots/battle-cocos-390x844.png)、[弹道](../../../publishing/gameplay/screenshots/trajectory-cocos-390x844.png)、[退出确认](../../../publishing/gameplay/screenshots/exit-cocos-390x844.png)、[选关](../../../publishing/gameplay/screenshots/campaign-cocos-390x844.png)、[设置](../../../publishing/gameplay/screenshots/settings-cocos-390x844.png)、[胜利](../../../publishing/gameplay/screenshots/victory-cocos-390x844.png)、[战败](../../../publishing/gameplay/screenshots/defeat-cocos-390x844.png)。概念图与运行截图分开保存。
+
+## 验证内容
+
+- 89 项规则、会话、网络、关卡、存档及弹道测试通过；另有制品测试验证 LF／CRLF 源码指纹一致，实际源码改动会改变指纹。真实 Creator SDK 类型检查、构建和 lint 通过。
+- 390×844、320×568、844×390、1280×720 真实浏览器输入：首页、设置、帮助、外观、选关、拖动、预瞄、蓄力、取消手势、开火、望远镜、返回、继续和离开。手机横屏由 Creator 旋转为竖屏画布。
+- 正常战役首关通过真实触屏输入获胜，获得材料，进入下一关，返回并刷新验证解锁和存档；练习自然战败后再战。没有改写生命、计时或使用开发解锁制造结果。
+- 弹道单测覆盖双方、三个炮位、四档蓄力，预览与实际炮弹首个碰撞完全一致，预测不写入权威状态。
+- 原有 Host 存档键及封装保持兼容；本地确认冻结计时、释放按住状态，继续后恢复。联机确认期间服务端对局继续。
+- Creator 制品恢复同时核对源码、引擎、目标及逐文件输出摘要；发布范围绑定准确 base/head 字节，保留 Castle、Shell、开发模式 fixture 和导航样本。
+
+具体事件与浏览器诊断见 [采集记录](../../../publishing/capture-report.json)。Chromium 对合成 touchcancel 的 preventDefault 提示单独记录，无页面脚本错误。高负载下的自动化超时保留在临时日志，已减少重复坐标读取、调整轮询时限，并修正界面重复排序；最终结果以采集记录和准确候选门禁为准。
+
+双客户端联机浏览器验收未通过：本地服务收到加入请求并返回 HTTP 200，但浏览器仍在原有五秒期限取消请求并回退练习。独立服务进程、省电模式和直连重试未解决；尚不能确定原因。服务端与会话规则测试通过不代表双客户端端到端通过。
+
+修复了镜头穿进己方城墙、炮台偏出竖屏画面、Creator 编译 Set 展开语法造成空列表、默认输入框英文标签、Button 重复消费全局触控，以及跨系统换行造成制品摘要不一致的问题。
+
+## 验收边界
+
+本次迁移默认 Web/H5 到 Cocos；原生 Canvas 兼容入口保留，未声称已迁移或通过原生渠道验收。截图与录像来自 Windows Chromium 触屏模拟，不能证明手机真机性能。公网匹配服务未部署，静态入口回退本地练习。视频无音轨，游戏音效保留。旧横屏媒体保留，当前清单引用竖屏批次。
+
+## CI 修复复验
+
+2026-10-24，真实 Creator 3.8.8 重建的 sourceHash 为 `f66dbbe3561f029c412ac1ed05fb42df09b4275d2fc5ba32e88984a0a6b78850`。原 155.8 MiB 的单个场景 JSON 改为场景索引与 61 份独立共享几何资源；全部数值、拓扑、材质和场景节点保留。产物 161 个文件中最大为 43,273,951 字节，全部低于 Git 的 100 MiB 上限；源码及逐文件输出摘要验证通过。
+
+89 项规则／场景测试、2 项制品测试及 111 项发布范围测试通过；制品测试覆盖完整数据还原、清除过期生成资源、拒绝非法资源 ID、生成文件不改变源码指纹，以及真实源码变化使旧制品失效。类型检查、完整 lint 和 Node 测试依赖边界检查通过。软件渲染下的蓄力等待单独调整为 90 秒，仍要求真实蓄力超过 30%、松手发射后威力超过 15% 及原有瞄准、望远镜、退出确认、暂停恢复、返回和地图入口断言。
+
+重建产物通过 Windows Chromium 软件渲染的 390×844 触屏和 1280×720 鼠标完整入口流程，页面脚本错误为零；实际载入 63 个网格（含原几何和效果网格）、68 个材质及 26 个纹理。首页截图已查看，模型、材质及 UI 保持原样，现有正式媒体继续记录原采集源码身份。原始记录位于 `outputs/ci-debug-795211b4/rebuilt/verification.json`；本轮不构成手机真机、原生平台或公网联机验收。
+
+独立专项再次复验：`pnpm smoke` 连续执行四尺寸 Cocos 交互与真实战役，全部通过。专项脚本采用与 Pages 一致的完整 Chromium，并遵守 `PLAYWRIGHT_EXECUTABLE_PATH`；默认首页画面仍检查，随后通过正常设置页启用省电模式。蓄力、松手发射和取消手势保留原阈值，胜利、下一关、刷新后的解锁／存档、自然战败与重试均通过。报告分别位于 `reports/ci-cocos-smoke-20261024/report.json` 与 `reports/cocos-campaign/report.json`，页面错误为空。脚本修复后重新实际构建的 sourceHash 为 `486c77ba51c9bb014dad57f5d9b0a36b7597ecf1faff4f4b5517d84c1999e138`，场景和正式媒体内容未变。

@@ -40,7 +40,7 @@ export async function playCampaign({ page, game, tap, state, screen, touch, poin
         (-Math.atan2(enemy.position.z - gun.position.z, enemy.position.x - gun.position.x) * 180) /
         Math.PI,
       start = await point(460, 315),
-      end = await point(460 + (yaw - gun.yaw) / 0.09, 315 - (pitch - gun.pitch) / 0.15);
+      end = await point(460 - (yaw - gun.yaw) / 0.09, 315 - (pitch - gun.pitch) / 0.15);
     await touch('touchStart', [start]);
     await touch('touchMove', [end]);
     await touch('touchEnd', []);

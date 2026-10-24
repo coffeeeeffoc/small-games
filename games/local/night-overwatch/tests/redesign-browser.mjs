@@ -1,0 +1,147 @@
+import assert from 'node:assert/strict';
+import { chromium } from '@playwright/test';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import { acceptanceBuild, snapshot, assertLayout, aimAt, navigateMap } from './flight-browser.mjs';
+
+const base = process.env.NIGHT_URL;
+const build = await acceptanceBuild(base);
+const dir = fileURLToPath(new URL('../reports/2026-10-25-settings/redesign/', import.meta.url));
+await mkdir(dir, { recursive: true });
+const browser = await chromium.launch({ headless: true, args: ['--autoplay-policy=no-user-gesture-required'] });
+const report = { build, checks: [], errors: [], captures: [], fixtures: 'Local saved unlocks; completed rewarded-provider fixture only for supply UI. No simulation state writes.' };
+try {
+  for (const [width, height, touch] of [[1366, 768, false], [844, 390, true], [568, 320, true], [390, 844, true]]) {
+    const context = await browser.newContext({ viewport: { width, height }, hasTouch: touch, isMobile: touch, deviceScaleFactor: 1,
+      ...(width === 844 ? { recordVideo: { dir, size: { width, height } } } : {}) });
+    await context.addInitScript(() => {
+      localStorage.setItem('night-overwatch-coach-v2', 'done');
+      localStorage.setItem('night-overwatch-progress-v1', JSON.stringify({ version: 1,
+        cleared: ['corridor-01', 'ambush-02', 'patrol-03', 'operation-004', 'operation-005'] }));
+      globalThis.SmallGamesRewardAds = { available: true, offer: async () => ({ status: 'completed' }) };
+    });
+    const page = await context.newPage(), recordingStart = Date.now(), cdp = await context.newCDPSession(page);
+    page.on('pageerror', error => report.errors.push(error.message));
+    page.on('requestfailed', request => report.errors.push(request.url() + ': ' + request.failure()?.errorText));
+    // Creator rotates its logical landscape canvas inside portrait browser viewports.
+    const point = (x, y) => page.evaluate(({ x, y }) => {
+      const canvas = document.querySelector('canvas'), r = canvas.getBoundingClientRect(), s = __night.snapshot();
+      const rotated = r.height > r.width && s.ui.width > s.ui.height;
+      return rotated ? { x: r.right - y / s.ui.height * r.width, y: r.top + x / s.ui.width * r.height }
+        : { x: r.left + x / s.ui.width * r.width, y: r.top + y / s.ui.height * r.height };
+    }, { x, y });
+    const hit = async id => {
+      if (id === 'start' && (await snapshot(page)).modal === 'home') await hit('missions');
+      const s = await snapshot(page);
+      if (id === 'pause') id = 'settings';
+      if (id === 'resume' && s.modal === 'settings') id = 'close';
+      const b = s.buttons.find(b => b.id === id);
+      assert(b, `${width}: missing ${id} in ${s.modal}`);
+      const p = await point(b.x + b.w / 2, b.y + b.h / 2);
+      if (touch) await page.touchscreen.tap(p.x, p.y); else await page.mouse.click(p.x, p.y);
+      await page.waitForTimeout(140);
+    };
+    const capture = async name => {
+      const s = await snapshot(page); assertLayout(s, s.ui.width, s.ui.height);
+      assert(!s.buttons.some(b => /fullscreen/i.test(b.id)));
+      report.captures.push({ width, name, seconds: (Date.now() - recordingStart) / 1000 });
+      await page.screenshot({ path: `${dir}/${name}-${width}.png` });
+    };
+    await page.goto(base + '?dev=0');
+    await page.waitForFunction(() => globalThis.__night?.snapshot().audio === 'ready' && !document.getElementById('night-startup'));
+    if (width < height) {
+      await capture('orientation');
+      assert((await snapshot(page)).pauses.includes('orientation'));
+      await page.setViewportSize({ width: height, height: width }); await page.waitForTimeout(400);
+      await hit('start'); await hit('pause'); const time = (await snapshot(page)).time;
+      await page.setViewportSize({ width, height }); await page.waitForTimeout(400);
+      assert.equal((await snapshot(page)).time, time);
+      await page.setViewportSize({ width: height, height: width }); await page.waitForTimeout(400);
+      assert.equal((await snapshot(page)).modal, 'settings'); await hit('resume');
+      assert.deepEqual((await snapshot(page)).held, []);
+      report.checks.push({ width, height, orientationPause: true, manualPausePreserved: true });
+      await context.close(); continue;
+    }
+    await capture('home'); await hit('missions'); await capture('missions'); await hit('homeMenu');
+    await hit('start');
+    let s = await snapshot(page); assert.equal(s.light, 'day'); assert.equal(s.mission.total, 4); assert.equal(s.selected, 1);
+    assert(['terrain.grass', 'terrain.gravel'].every(id => s.assets.includes(id)));
+    assert(s.radioPlaying, 'local spoken intro plays after the start gesture');
+    await capture('day');
+    if (touch) {
+      const tap = { x: s.ui.width * .52, y: s.ui.height * .55 };
+      const actualTap = await point(tap.x, tap.y), fired = s.fired;
+      await page.touchscreen.tap(actualTap.x, actualTap.y); await page.waitForTimeout(80);
+      const placed = await page.evaluate(() => __night.screenPoint(__night.snapshot().aim));
+      assert(Math.hypot(placed.x - tap.x, placed.y - tap.y) < 3, 'single tap places the reticle');
+      assert.equal((await snapshot(page)).fired, fired);
+      const origin = await point(s.ui.width * .42, s.ui.height * .53);
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ id: 7, ...origin }] });
+      for (let i = 1; i <= 12; i++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ id: 7, x: origin.x + i, y: origin.y + i / 2 }] });
+      const before = await page.evaluate(() => __night.screenPoint(__night.snapshot().aim));
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await page.waitForTimeout(200);
+      const after = await page.evaluate(() => __night.screenPoint(__night.snapshot().aim));
+      assert(Math.hypot(before.x - after.x, before.y - after.y) < 2, 'release preserves the offset reticle');
+      assert.deepEqual((await snapshot(page)).held, []);
+    }
+    await hit('pause'); await hit('home'); await capture('exit-confirm');
+    const originalBattle = await snapshot(page); await hit('exitCancel');
+    assert.equal((await snapshot(page)).mission.id, originalBattle.mission.id);
+    assert.equal((await snapshot(page)).phase, 'playing');
+    assert.equal((await snapshot(page)).resumeCountdown, 0);
+    await hit('pause'); await capture('pause');
+    s = await snapshot(page); assert(!s.radioPlaying); const frozen = s.time;
+    await capture('settings');
+    await hit('sound'); assert((await snapshot(page)).ui.muted); await capture('sound-off');
+    await hit('sound'); assert(!(await snapshot(page)).ui.muted);
+    await hit('help'); await capture('help');
+    assert.equal((await snapshot(page)).time, frozen);
+    await hit('close');
+    await hit('supply'); await capture('supply-offer'); await hit('reward:rate');
+    await capture('supply-choice'); await hit('supplyWatch'); await capture('support-countdown');
+    await page.waitForFunction(() => __night.snapshot().resumeCountdown === 0);
+    assert.equal((await snapshot(page)).buff.kind, 'rate');
+    if (width === 844) {
+      const enemy = (await snapshot(page)).units.find(u => !u.friendly && u.hp > 0);
+      await navigateMap(page, enemy, true); await aimAt(page, enemy, true, cdp);
+      const before = await snapshot(page); await hit('fire');
+      await page.waitForFunction(id => __night.snapshot().units.find(u => u.id === id)?.hp < 90, enemy.id, { timeout: 15000 });
+      assert((await snapshot(page)).fired > before.fired);
+      await capture('impact');
+      await page.waitForFunction(() => !!__night.snapshot().priority, null, { timeout: 25000 });
+      await capture('priority');
+      const priorityState = await snapshot(page);
+      const urgent = priorityState.units.find(u => u.id === priorityState.priority.id); await hit('priority');
+      const located = await snapshot(page);
+      assert(Math.hypot(located.camera.center.x - urgent.x, located.camera.center.z - urgent.z) < 1);
+      assert(Math.hypot(located.aim.x - urgent.x, located.aim.z - urgent.z) < 1);
+      assert.deepEqual(located.held, []);
+    }
+    await hit('pause'); await hit('home'); await capture('exit-confirm'); await hit('exitConfirm'); await hit('missions'); await hit('missionsNext');
+    await hit('mission:operation-004'); await hit('start'); assert.equal((await snapshot(page)).light, 'dusk');
+    await hit('pause'); await hit('home'); await capture('exit-confirm'); await hit('exitConfirm'); await hit('missions');
+    await hit('mission:operation-006'); await hit('start');
+    await page.waitForFunction(() => __night.snapshot().modelImport === 'loaded');
+    assert.equal((await snapshot(page)).light, 'night'); await capture('night');
+    await hit('settings'); await hit('mission');
+    assert.equal((await snapshot(page)).modal, 'mission'); await hit('resume');
+    assert.equal((await snapshot(page)).modal, 'settings'); await hit('flightControls');
+    const configTime = (await snapshot(page)).time;
+    await hit('orbitLeft'); assert.equal((await snapshot(page)).aircraft.direction, -1);
+    await hit('orbitRight'); assert.equal((await snapshot(page)).aircraft.direction, 1);
+    assert.equal((await snapshot(page)).time, configTime, 'configuration keeps the battle frozen');
+    await hit('close'); await hit('zoomControls'); await hit('sensor'); await hit('resume'); await capture('thermal');
+    assert.equal((await snapshot(page)).thermal, true);
+    await hit('pause'); assert.equal((await snapshot(page)).radioPlaying, false);
+    report.checks.push({ width, height, touch, layout: true, dayDuskNight: true, radioLifecycle: true, relativeRelease: touch, supplyFixture: true });
+    const video = page.video(); await context.close();
+    if (video) await video.saveAs(`${dir}/gameplay-source.webm`);
+  }
+  assert.deepEqual(report.errors, []);
+  await acceptanceBuild(base);
+} finally {
+  await writeFile(`${dir}/results.json`, JSON.stringify(report, null, 2));
+  await browser.close();
+}
+console.log(JSON.stringify(report));

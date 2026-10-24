@@ -1,4 +1,9 @@
 import {
+  fullscreenRemovalReviews,
+  fullscreenRemovalFileScopes,
+  isFullscreenRemovalDeletion,
+} from './fullscreen-removal-scope.mjs';
+import {
   localRetirementFileScopes,
   localRetirementHeadQueryPaths,
   isReviewedLocalRetirementDeletion,
@@ -60,6 +65,48 @@ const SHARED_COCOS_SCRIPTS = new Set(
 // 457bc63. Keep the deleted paths in normal game regression selection; this
 // proof only permits those exact D records through the global deletion guard.
 const reviewedCleanupDeletions = Object.freeze({
+  // Former Canvas renderer and superseded browser suites; Cocos owns the full flow.
+  'games/local/tower-brake/leaderboard.mjs':
+    '6e6b2688c126ef77d5e3411ae14f7d29bc9c4a1d78c75f58dd494c98c40e1606',
+  'games/local/tower-brake/main.mjs':
+    '411b88700d8df3a802c0af7a959e1983abdb987fc16bccd35c2f79fd6c7c94e5',
+  'games/local/tower-brake/render.mjs':
+    'f75b8dbb792d48e4724141a504ce87f11db66fd2b83baae3e2658b572df32694',
+  'games/local/tower-brake/style.css':
+    '5d3de377848db7eccb0befbb199255b443198c71ebb2040d9ee02ccf3c2edc54',
+  'games/local/tower-brake/tests/expansion-browser.mjs':
+    '33adbbae1fae87ea455ef3dbbcf17a6d2c2d1483e1a9f28c28f6847faeaa7af3',
+  'games/local/tower-brake/tests/publishing-browser.mjs':
+    '131a8ee029294dabd9301cb3340312fc23bca881074e668470e2e0459084372f',
+
+  'games/local/tetracube/index.html':
+    '475d14a286a3ab5d46307c2ba39aa02a413d5433b9459b68538f8e68f95e4b4a',
+  'games/local/tetracube/src/app.mjs':
+    '5a626c3d81ef0761a697cbeef35dc961ed2645b867c3f4fe5fdd9c90f9c754c7',
+  'games/local/tetracube/style.css':
+    '77b284ea1bbda998b56654d3bf9f5491fcc083f1e87b1116e6d53b69bb1eefb9',
+  // f0f2576 replaces these exact legacy Chase sources/tests with the city-chase runtime.
+  // Only their deletion is exempted; the retained game still receives normal regression.
+  'games/local/chase-thief/audio.mjs':
+    'fce36f9f6e5fc88f65da5502ba75d67e51e6d5db1f2540b02b3c59e902a56f31',
+  'games/local/chase-thief/challenge.mjs':
+    'fbe97d6ee077a05eddf8fdb5f67ec03e62c0507401ab066382db1c3df60ce07a',
+  'games/local/chase-thief/engine.mjs':
+    '1f0255495d6e35bcb8695af4848172a5e7d13110377f4673fb63dc3c19ed9bd1',
+  'games/local/chase-thief/levels.mjs':
+    '5c429d2e20c5efe70ef880c2020ed3a419aac84bf628251ae8833bcb1bc73522',
+  'games/local/chase-thief/main.mjs':
+    'ee23f8ef447c352356a8b56013179116f8e0db340c4454163a9564259bfda3a2',
+  'games/local/chase-thief/progress.mjs':
+    '905387335974263b61b05e3b8d7bda9184df2d51e5cf5a4c93a23745a3618bce',
+  'games/local/chase-thief/scene.mjs':
+    'b3c8702e46d43365bf1d219135efe4df19d701cde539b250dd441c168601104f',
+  'games/local/chase-thief/tests/challenge.test.mjs':
+    'cd8432b00000e986406a2ccf2096acc4fd822e47a4064078ef08fb065657e3e7',
+  'games/local/chase-thief/tests/core.test.mjs':
+    '5d3c486804dd6249fe75c0ce760545da25725a7ae3946670d9be5c3cbf167fbb',
+  'games/local/chase-thief/tests/progress.test.mjs':
+    '4b081ba561934d6897d78bc9415473be4714bf0d3dd5d404b892582029802d9f',
   'games/local/merge-front/favicon.svg':
     'c17665fab3504b77fce9b6b107f46e4250ed704deb5848f5c07088194cad4489',
   'games/local/merge-front/index.html':
@@ -118,6 +165,54 @@ const reviewedCleanupDeletions = Object.freeze({
   'games/local/cops-robbers/scripts/generate-levels.mjs':
     '5792406bf617165e74a34887cb045b582416c657c03b402bd942b00f4e758bc7',
 });
+const tetracubeMoves = Object.freeze({
+  'games/local/tetracube/dev-mode.js': {
+    to: 'games/local/tetracube/scripts/dev-mode.js',
+    hash: '986844491337ac0bb53394d44917356a820f346f0d2b0d63b2ab34e36a7a4a2f',
+  },
+  'games/local/tetracube/dev-mode.d.ts': {
+    to: 'games/local/tetracube/scripts/dev-mode.d.ts',
+    hash: 'b72515b11a1a65cf101125ce3bc23bf2aa3236cdb2331e0b018a962571f7a195',
+  },
+  'games/local/tetracube/fullscreen.js': {
+    to: 'games/local/tetracube/scripts/fullscreen.js',
+    hash: '72acd28e8258e9e49b91288dc67b9af8f857c9eda6eaa5b80a4dfaa4009bedc7',
+  },
+});
+export function isReviewedTetracubeMove({
+  change,
+  readBase,
+  readHead,
+  headHasPath,
+  standaloneGames,
+  gameSources,
+}) {
+  const [from, to] = change.paths,
+    review = tetracubeMoves[from],
+    source = 'games/local/tetracube';
+  if (change.status !== 'R100' || change.paths.length !== 2 || !review || to !== review.to)
+    return false;
+  try {
+    const entries = standaloneGames.filter((g) => g.id === 'tetracube' || g.source === source);
+    if (
+      entries.length !== 1 ||
+      entries[0].id !== 'tetracube' ||
+      entries[0].source !== source ||
+      gameSources.filter((s) => s === source).length !== 1
+    )
+      return false;
+    const hash = (value) => createHash('sha256').update(value).digest('hex');
+    return (
+      headHasPath(from) === false &&
+      headHasPath(to) === true &&
+      hash(readBase(from)) === review.hash &&
+      hash(readHead(to)) === review.hash
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function isReviewedCleanupDeletion({
   change,
   readBase,
@@ -494,6 +589,9 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
       const headQueries = [
         ...new Set([
           ...changedPaths.filter((file) => Object.hasOwn(reviewedCleanupDeletions, file)),
+          ...changedPaths.filter((file) => Object.hasOwn(fullscreenRemovalReviews, file)),
+          ...Object.keys(tetracubeMoves),
+          ...Object.values(tetracubeMoves).map((move) => move.to),
           ...retirementHeadQueryPaths(changedPaths),
           ...localRetirementHeadQueryPaths(changedPaths),
         ]),
@@ -536,6 +634,8 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
               readBase: (file) => git(root, ['show', `${diffBase}:${file}`]),
               headHasPath,
             }) &&
+            !isFullscreenRemovalDeletion({ change, ...catalog, ...retirementContext }) &&
+            !isReviewedTetracubeMove({ change, ...catalog, ...retirementContext }) &&
             !isReviewedRetirementDeletion(change, retiredScopes) &&
             !isReviewedLocalRetirementDeletion(change, retiredScopes),
         )
@@ -602,6 +702,7 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
       developerModeFileScopes,
       nativeWorkspaceFileScopes,
       reviewedSharedFileScopes,
+      fullscreenRemovalFileScopes,
       nineNativeFileScopes,
       nineLockFileScopes,
     ])

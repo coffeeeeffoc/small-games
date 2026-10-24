@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "creator": "3.8.8",
+  "actualDevice": false,
+  "adProvider": "contract fixture; no real ad fill",
+  "checks": [
+    "No-ID reset does not reward or change the board",
+    "Real touch drag/cancel, clear and win",
+    "Pause, home, reload, resume and explicit exit preserve their save semantics",
+    "Both endless variants keep their original candidate rules and separate records",
+    "Developer UI can scroll/select level 120 without changing real progress",
+    "BFCache pagehide keeps the live session usable",
+    "Desktop mouse drag uses its own cursor position and ignores simulated touch duplicates",
+    "320/360/landscape scrolling and controls",
+    "Host ad outcomes: completed only, unchanged board/score/RNG, no fake default",
+    "Hidden/visible callback orders and cancelled late completions",
+    "Safe share URL and fair same-seed challenge"
+  ],
+  "errors": [],
+  "videoPath": "C:\\Users\\15211\\.codex\\worktrees\\three-choose-two-cocos\\small-games\\games\\local\\three-choose-two\\reports\\videos\\b8f5a788b9a88864636e8aedb8f06645.webm"
+}

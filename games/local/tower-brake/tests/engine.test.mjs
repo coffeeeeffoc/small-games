@@ -92,10 +92,10 @@ test('the ball begins on an ordinary platform and keeps bouncing safely until th
     step(state, 12);
     assert.equal(state.status, 'playing');
     assert.equal(state.nextLayer, 0);
-    assert.ok(state.bounces >= 18);
+    assert.ok(state.bounces >= Math.floor((12 * 900 * state.environment.speed) / 560) - 1);
     assert.equal(state.charge, 1);
     assert.equal(state.streak, 0);
-    assert.ok(state.y <= FIRST_LAYER_Y - BALL_RADIUS);
+    assert.ok(state.y <= FIRST_LAYER_Y - state.ballRadius + 1e-6);
   }
 });
 
@@ -322,7 +322,7 @@ test('endless generates over one thousand playable floors with a bounded ring bu
   for (const seed of [0, 91, 4294967295]) {
     const state = createEndlessGame(seed);
     let ticks = 0;
-    while (state.totalFloors < 1000 && state.status === 'playing' && ticks < 120 * 600) {
+    while (state.totalFloors < 1000 && state.status === 'playing' && ticks < 120 * 900) {
       const landing = getLanding(state);
       assert.equal(landing.number, state.totalFloors + 1);
       if (
@@ -398,7 +398,10 @@ test('the moving-ring forecast and collision share the simulation clock, includi
   step(state, 0.4);
   const after = getLanding(state);
   assert.notEqual(after.effectiveRotation, before.effectiveRotation);
-  assert.equal(after.type, sectorAt(after.layer, BALL_ANGLE - after.effectiveRotation));
+  assert.equal(
+    after.type,
+    sectorAt(after.layer, BALL_ANGLE - after.effectiveRotation, state.ballRadius),
+  );
   near(after.effectiveRotation, state.rotation + layerRotationAt(after.layer, state.elapsed));
   const frozen = state.y;
   step(state, 0.4);
@@ -435,7 +438,7 @@ test('continuation compensates moving machinery to restore the same safe landing
   const state = createGame(LEVELS[8]);
   state.nextLayer = 3;
   const layer = state.level.layers[3];
-  state.y = layer.y - BALL_RADIUS - 0.01;
+  state.y = layer.y - state.ballRadius - 0.01;
   state.v = 100;
   setLocalAngle(state, (160 * Math.PI) / 180);
   step(state, 1 / 120);

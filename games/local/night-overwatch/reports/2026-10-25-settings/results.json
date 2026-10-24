@@ -1,0 +1,42 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c"
+  },
+  "results": [
+    {
+      "width": 844,
+      "height": 390,
+      "pausedProjection": true,
+      "frozenBattle": true,
+      "persisted": true,
+      "video": "F:\\playground\\playground-ai\\small-games\\games\\local\\night-overwatch\\reports\\2026-10-25-settings\\b6f9dfadf7af7e688747076b85fc1906.webm"
+    },
+    {
+      "width": 568,
+      "height": 320,
+      "pausedProjection": true,
+      "frozenBattle": true,
+      "persisted": true,
+      "video": null
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "pausedProjection": true,
+      "frozenBattle": true,
+      "persisted": true,
+      "video": null
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "pausedProjection": true,
+      "frozenBattle": true,
+      "persisted": true,
+      "video": null
+    }
+  ],
+  "errors": []
+}

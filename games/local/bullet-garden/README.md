@@ -50,7 +50,9 @@ wrapper 校验官方1.2.2归档及完整安装目录（包括归档自带依赖�
 
 ## 操作与存档
 
-左摇杆移动，自动瞄准射击；右侧冲刺。永久等级2起解锁技能，拖到战场瞄准并松手施放，回到操作带或取消区、触点取消均不耗能，最多三蓄力。倒计时后清空余敌才胜利。局内经验选择植物祝福或武器强化；营地永久成长、植物及武器技能图鉴可达。
+按住左摇杆方向或拖动移动，自动瞄准射击；右侧冲刺。电脑支持 WASD / 方向键移动、空格冲刺。松手、取消、暂停或失焦会清除移动输入。永久等级2起解锁技能，拖到战场瞄准并松手施放，回到操作带或取消区、触点取消均不耗能，最多三蓄力。倒计时后清空余敌才胜利。局内经验选择植物祝福或武器强化；营地永久成长、植物及武器技能图鉴可达。
+
+基础射击间隔 0.4 秒；局内经验门槛从 16 起、每级增加 12。击杀积累足够经验后，首次强化最早在 20 战斗秒出现，选择后至少再战斗 15 秒才出现下一次；溢出经验保留，暂停/选卡不推进间隔，时间本身不产生经验。永久成长、存档字段与奖励结算不变。
 
 十四关稳定 ID、旧 `bullet-garden.profile.v1` 存档保留。地图身份绑定关卡；敌人从数据定义的竖屏范围出生。失败先进入可复活阶段，点击“结束本次冒险”才提交失败奖励；胜利结算一次。旧 `bullet-garden.sound` 设置先迁移，再读取新设置。
 
@@ -66,8 +68,20 @@ pnpm test:campaign-balance
 Remove-Item Env:QA_OUTPUT
 node tests/movement-comparison.mjs
 pnpm test:browser
+pnpm test:input
+$env:QA_OUTPUT='docs/design/garden-polish-2026-10-24/actual'
+pnpm test:polish
+Remove-Item Env:QA_OUTPUT
 ```
 
 所有正式 browser/rendering/screens/display package scripts 都进入生产 Creator 验收，浏览器串行1个worker。默认自建短期 dist 静态服务器；`GAME_URL` 可指定同一生产产物，`QA_OUTPUT` 可改证据目录。覆盖320/390/430及横屏、菜单/选关、真实多指摇杆与冲刺、技能拖动取消、暂停/失焦/resize、60秒自然首关胜利与存档重载。后期技能/自然失败使用明确的历史进度存档 fixture，战斗仍由真实输入驱动，没有可写游戏调试注入。
 
 只读快照契约见 [03-runtime-contract.md](docs/design/cocos-mobile-2026-10-22/03-runtime-contract.md)。效果图、实际截图和执行记录位于 `docs/design/cocos-mobile-2026-10-22/`。桌面 Chromium 手机视口不等于手机真机，官方转换成功不等于平台审核通过。
+
+本次操作和界面优化见 [方案](docs/design/garden-polish-2026-10-24/01-plan.md)、[验证记录](docs/design/garden-polish-2026-10-24/03-validation.md)。当前宣传及实际游戏资料统一见 [上架资料](publishing/STATUS.md)。
+
+固定战场与角色动作追加优化见 [方案](docs/design/garden-motion-2026-10-24/01-plan.md)、[验证记录](docs/design/garden-motion-2026-10-24/02-validation.md)。角色采用八方向四步态的 2.5D 图集，步伐按实际位移推进，开火反馈读取真实普通射击角度；镜头不跟随玩家。横屏将触控区放在两侧。`node tests/motion.browser.mjs` 检查真实输入下四边移动、固定投影、步态、射击与暂停。
+
+鼠标/手机输入与战斗首页更新见 [方案](docs/design/garden-input-home-2026-10-24/01-plan.md)、[验证记录](docs/design/garden-input-home-2026-10-24/02-validation.md)。Web 使用 Pointer Events 和指针捕获统一鼠标、触摸、取消及画布外松手，原生小游戏保留 Cocos 触摸路径。按住摇杆方向或从中心拖动移动，第二指操作冲刺/技能。仅在存活、可命中、射程内目标存在时自动开火，自动连射也检查目标；显式手动瞄准接口保留。`node tests/pointer.browser.mjs` 覆盖鼠标与触摸切换。
+
+dev 整合继续保留共享 H5 奖励 provider 和广告遮罩切后台的生命周期处理；补给与失败续战可选，仅完整观看发奖。素材与验收边界见 [上架资料](publishing/STATUS.md)，合并验证见 [dev 交付记录](docs/design/garden-input-home-2026-10-24/03-dev-delivery.md)。

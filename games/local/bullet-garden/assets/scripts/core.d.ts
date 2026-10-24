@@ -8,6 +8,10 @@ declare module '*generated/core.js' {
   export const PERMANENT_UPGRADES: any[];
   export const WEAPONS: any[];
   export const SAVE_KEY: string;
+  export const HERO_FRAMES: number[][];
+  export function gardenCamera(bounds: any, battle: any): { x: number; y: number; zoom: number };
+  export function createHeroMotion(state: any): any;
+  export function advanceHeroMotion(motion: any, state: any): any;
   export function createProfile(value?: unknown): any;
   export function levelFromXp(xp: number): { level: number; earned: number; required: number };
   export function isLevelUnlocked(profile: any, id: string): boolean;

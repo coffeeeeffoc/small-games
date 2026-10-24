@@ -144,6 +144,7 @@ function challenge(seed, spendCoins) {
     const state = createGame(level.id, seed, profile);
     state.runId = `campaign-${seed}-${spendCoins ? 'growth' : 'base'}-${level.id}`;
     startGame(state);
+    const choiceTimes = [];
     let frames = 0,
       maxEnemies = 0,
       maxPlants = 0,
@@ -153,6 +154,10 @@ function challenge(seed, spendCoins) {
       frames < (level.duration + 150) / delta
     ) {
       if (state.phase === 'upgrade') {
+        const previous = choiceTimes.at(-1);
+        assert.ok(state.time >= 20);
+        if (previous !== undefined) assert.ok(state.time - previous >= 15);
+        choiceTimes.push(state.time);
         const preferred = [
           ...(state.player.hp < state.player.maxHp * 0.55 ? ['wild-heart', 'boon-sunflower'] : []),
           'boon-shrub',
@@ -217,6 +222,7 @@ function challenge(seed, spendCoins) {
       maxPlants,
       maxBullets,
       purchases,
+      choiceTimes,
       startingStats: stats,
       reward: settlement?.reward,
       walletAfter: profile.coins,

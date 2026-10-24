@@ -22,7 +22,7 @@ try {
     const a = await snapshot(p);
     assert.equal(a.engine, 'Cocos Creator 3.8.8');
     assert.equal(a.screen, 'home');
-    assert.equal(a.art.loaded.length, 5);
+    assert.equal(a.art.loaded.length, 7);
     assert.equal(a.controls.developerMode, false);
     assert(!a.ads.configured);
     assert(!a.buttons.some((b) => /fullscreen|全屏/.test(b.id + b.label)));
@@ -217,4 +217,5 @@ try {
   await h.close();
 }
 console.log('Creator production touch acceptance passed.');
+await import('./movement.browser.mjs');
 await import('./cocos-audio.browser.mjs');

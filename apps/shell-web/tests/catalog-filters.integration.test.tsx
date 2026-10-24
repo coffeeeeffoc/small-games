@@ -20,14 +20,14 @@ it('filters, explains evaluations, restores shared URLs, and retains selections 
   }
   try {
     await act(async () => root.render(<ShellApp runtimeClient={false} />));
-    expect(ids()).toHaveLength(2);
+    expect(ids()).toHaveLength(0);
     expect(ids()).not.toContain('merge-front');
     expect(ids()).not.toContain('travel-bund');
     await click('全部游戏');
     await click('有潜力');
-    expect(ids()).toHaveLength(41);
+    expect(ids()).toHaveLength(42);
     await click('潜力低');
-    expect(ids()).toHaveLength(41);
+    expect(ids()).toHaveLength(42);
     await click('上轮已改造');
     expect(ids()).toHaveLength(7);
     await click('毫无潜力');
@@ -35,7 +35,7 @@ it('filters, explains evaluations, restores shared URLs, and retains selections 
     expect(ids()).toHaveLength(7);
     await click('清空筛选');
     await click('毫无潜力');
-    expect(ids().sort()).toEqual(['chase-thief', 'retreat-rally']);
+    expect(ids().sort()).toEqual([]);
     await click('重置全部');
     await click('上轮已改造');
     await click('详情卡片');
@@ -64,7 +64,7 @@ it('filters, explains evaluations, restores shared URLs, and retains selections 
       window.history.replaceState(null, '', '/?catalogTab=hold');
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
-    expect(ids()).toHaveLength(2);
+    expect(ids()).toHaveLength(0);
   } finally {
     await act(async () => root.unmount());
     window.history.replaceState(null, '', '/');
@@ -96,30 +96,30 @@ it('shows every exclusive rollout, visible implementation states, and filtered c
       tabs()
         .slice(0, 5)
         .map((button) => button.textContent),
-    ).toEqual(['全部游戏43', '上轮已改造7', '本轮改造14', '有潜力 · 后续改造20', '暂缓投入2']);
+    ).toEqual(['全部游戏42', '上轮已改造7', '本轮改造16', '有潜力 · 后续改造19', '暂缓投入0']);
     for (const article of articles()) {
       expect(article.querySelector('.game-rollout strong')?.textContent).toBeTruthy();
       expect(article.querySelector('.game-rollout span')?.textContent).toBeTruthy();
       expect(article.querySelector('.game-rollout')?.closest('details')).toBeNull();
     }
     await click('本轮改造');
-    expect(articles()).toHaveLength(14);
+    expect(articles()).toHaveLength(16);
     await click('移动端小游戏');
-    expect(articles()).toHaveLength(12);
+    expect(articles()).toHaveLength(14);
     expect(tabs().find((button) => button.textContent?.startsWith('本轮改造'))?.textContent).toBe(
-      '本轮改造12 / 14',
+      '本轮改造14 / 16',
     );
     expect(window.location.search).toContain('catalogTab=current');
     expect(window.location.search).toContain('catalog_platforms=mobile');
     await click('清空筛选');
     await click('有潜力 · 后续改造');
-    expect(articles()).toHaveLength(20);
+    expect(articles()).toHaveLength(19);
     await click('有潜力');
-    expect(articles()).toHaveLength(20);
+    expect(articles()).toHaveLength(19);
     await click('全部游戏');
-    expect(articles()).toHaveLength(41);
+    expect(articles()).toHaveLength(42);
     expect(tabs().find((button) => button.textContent?.startsWith('暂缓投入'))?.textContent).toBe(
-      '暂缓投入0 / 2',
+      '暂缓投入0',
     );
   } finally {
     await act(async () => root.unmount());

@@ -127,10 +127,10 @@ test('compact ready targets select, switch mode and start without invisible old 
 
 test('settings consumes driving touches and releases inputs, with reachable options and close', () => {
   const race = { phase: 'racing', drivers: [{ kart: { drifting: false, nitroHeld: false, charge: 0, tier: 0, driftSide: 0 } }] };
-  let open = false, sounds = 0, helps = 0, fullscreens = 0;
+  let open = false, sounds = 0, helps = 0;
   const c = new KartController(() => race, () => {}, () => sounds++, () => {},
     undefined, undefined, undefined, undefined, () => helps++, undefined, undefined,
-    () => { open = !open; }, () => open, () => fullscreens++);
+    () => { open = !open; }, () => open);
   c.touchStart(touch(1, .15, .2));
   c.touchStart(touch(2, .9, .2));
   assert.equal(c.read().drift, true);
@@ -140,8 +140,7 @@ test('settings consumes driving touches and releases inputs, with reachable opti
   assert.equal(c.read().throttle, 0); assert.equal(c.read().drift, false);
   c.touchStart(touch(5, .5, 356 / 540));
   c.touchStart(touch(6, .5, 296 / 540));
-  c.touchStart(touch(7, .5, 236 / 540));
-  assert.deepEqual([sounds, fullscreens, helps], [1, 1, 1]);
+  assert.deepEqual([sounds, helps], [1, 1]);
   c.touchStart(touch(8, 640 / 960, 426 / 540));
   assert.equal(open, false);
   c.destroy();

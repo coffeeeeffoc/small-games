@@ -37,8 +37,6 @@ export class GameView {
     $('timeline').querySelector('span').innerHTML = icon('replay');
     $('objective').querySelector('.goal-flag').innerHTML = icon('flag');
     $('pause').innerHTML = icon('pause');
-    $('fullscreen').innerHTML =
-      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
   }
   render(game, state = game.state) {
     const level = game.level;

@@ -15,20 +15,31 @@
     "./canvas": "./native/canvas.mjs"
   },
   "scripts": {
-    "dev": "node server.mjs",
-    "start": "node server.mjs",
-    "build": "node build.mjs",
-    "preview": "node server.mjs --dist",
-    "test": "node --test tests/*.test.mjs",
-    "test:browser": "node build.mjs && node tests/browser.mjs && node tests/publishing.browser.mjs",
-    "test:online:browser": "node build.mjs && node tests/online.browser.mjs",
-    "build:native": "node ../../../apps/shell-minigame/scripts/build.mjs --game three-choose-two",
-    "test:native": "node ../../../scripts/native-game-smoke.mjs --standalone --game three-choose-two --platform wechat && node ../../../scripts/native-game-smoke.mjs --standalone --game three-choose-two --platform bilibili"
+    "postinstall": "node scripts/prepare.mjs",
+    "dev": "node scripts/serve.mjs",
+    "start": "node scripts/serve.mjs",
+    "build": "node scripts/build.mjs web-mobile",
+    "preview": "node scripts/serve.mjs",
+    "test": "node --test --test-concurrency=1 tests/*.test.mjs",
+    "test:browser": "node tests/browser.mjs",
+    "test:online:browser": "node tests/online.browser.mjs",
+    "typecheck": "node scripts/typecheck.mjs",
+    "test:publishing:browser": "node tests/publishing.browser.mjs",
+    "build:native:legacy": "node ../../../apps/shell-minigame/scripts/build.mjs --game three-choose-two",
+    "test:native:legacy": "node ../../../scripts/native-game-smoke.mjs --standalone --game three-choose-two --platform wechat && node ../../../scripts/native-game-smoke.mjs --standalone --game three-choose-two --platform bilibili"
   },
   "dependencies": {
     "@coffeeeeffoc/game-contract": "workspace:*"
   },
   "coffeeeeffoc": {
     "role": "game"
+  },
+  "creator": {
+    "version": "3.8.8"
+  },
+  "uuid": "17c40c6c-8a7a-43fd-9d0a-c7f07b4f51da",
+  "devDependencies": {
+    "@playwright/test": "1.55.1",
+    "typescript": "7.0.2"
   }
 }

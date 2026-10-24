@@ -1,6 +1,6 @@
 {
   "name": "@coffeeeeffoc/tetracube",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "description": "重力方舱：三轴旋转、空间堆叠与容器颠倒连锁消除",
@@ -8,11 +8,20 @@
     "role": "game"
   },
   "scripts": {
-    "dev": "node server.mjs",
-    "start": "node server.mjs",
-    "build": "node build.mjs",
+    "dev": "node server.mjs --dist",
+    "start": "node server.mjs --dist",
+    "build": "node scripts/build.mjs web-mobile",
     "preview": "node server.mjs --dist",
-    "test": "node --test tests/*.test.mjs",
-    "test:browser": "node build.mjs && node tests/browser.mjs"
+    "test": "node --test --test-concurrency=1 tests/*.test.mjs",
+    "test:browser": "node tests/browser.mjs",
+    "typecheck": "node scripts/typecheck.mjs"
+  },
+  "uuid": "6dc37829-f802-4ac5-b5bd-d82608323f3e",
+  "creator": {
+    "version": "3.8.8"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.55.1",
+    "typescript": "7.0.2"
   }
 }

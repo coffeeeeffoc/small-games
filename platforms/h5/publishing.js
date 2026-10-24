@@ -77,10 +77,7 @@ export function createSimulationAdProvider(options = {}) {
   let active;
   return {
     show(request = {}) {
-      // A game can enter fullscreen after this adapter was created. Appending to body
-      // would put the modal outside the visible fullscreen tree and trap the player.
-      const root =
-        options.root ?? doc?.fullscreenElement ?? doc?.webkitFullscreenElement ?? doc?.body;
+      const root = options.root ?? doc?.body;
       if (!root || !doc || doc.hidden || active) return Promise.resolve({ status: 'unavailable' });
       return new Promise((resolve) => {
         const previousFocus = doc.activeElement;

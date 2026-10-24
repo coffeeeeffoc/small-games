@@ -9,17 +9,20 @@
     "./manifest": "./src/manifest.json"
   },
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "build": "tsc -b && vite build && vite build --config vite.server.config.ts",
+    "dev": "node scripts/serve.mjs",
+    "build": "node scripts/build.mjs web-mobile",
     "serve:duel": "node server-dist/duel-service.js",
-    "test": "vitest run",
-    "typecheck": "tsc -b --pretty false",
+    "test": "vitest run --maxWorkers=1 src && node --test scripts/artifact.test.mjs",
+    "typecheck": "node scripts/typecheck.mjs",
     "lint": "eslint . --max-warnings 0",
-    "smoke": "node scripts/browser-check.mjs",
-    "test:rules": "vitest run src/duel.test.ts src/duel-server.test.ts src/campaign.test.ts src/duel-session.test.ts src/definition.test.ts",
+    "smoke": "node scripts/cocos-smoke.mjs",
+    "test:rules": "vitest run --maxWorkers=1 src/duel.test.ts src/duel-server.test.ts src/campaign.test.ts src/duel-session.test.ts src/duel-trajectory.test.ts src/definition.test.ts src/cocos-session.test.ts && node --test scripts/artifact.test.mjs",
     "test:native": "node scripts/native-check.mjs",
-    "test:input": "node scripts/input-check.mjs",
-    "smoke:campaign": "node scripts/campaign-check.mjs"
+    "test:input": "node scripts/cocos-smoke.mjs",
+    "smoke:campaign": "node scripts/cocos-campaign.mjs",
+    "preview": "node scripts/serve.mjs",
+    "prepare": "node scripts/prepare.mjs",
+    "build:legacy": "tsc -b && vite build --outDir legacy-dist"
   },
   "dependencies": {
     "@coffeeeeffoc/canvas-game-adapter": "workspace:*",
@@ -41,5 +44,9 @@
   },
   "coffeeeeffoc": {
     "role": "game"
-  }
+  },
+  "creator": {
+    "version": "3.8.8"
+  },
+  "uuid": "882032e4-0bc6-43b8-abd9-885862b3692c"
 }

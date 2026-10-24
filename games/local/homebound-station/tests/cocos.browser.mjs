@@ -11,7 +11,7 @@ const root = path.resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
 const out = fileURLToPath(
   new URL(
     process.env.CAPTURE_GAME_EVIDENCE === '1'
-      ? '../docs/design/cocos-mobile-2026-10-22/runtime/'
+      ? '../docs/design/menu-courtyard-2026-10-24/runtime/'
       : '../test-results/cocos/',
     import.meta.url,
   ),
@@ -46,7 +46,9 @@ const server = http.createServer(async (req, res) => {
       );
     if (!file.startsWith(root + path.sep)) return res.writeHead(403).end();
     res
-      .writeHead(200, { 'Content-Type': mime[path.extname(file)] || 'application/octet-stream' })
+      .writeHead(200, {
+        'Content-Type': mime[path.extname(file)] || 'application/octet-stream',
+      })
       .end(await readFile(file));
   } catch {
     res.writeHead(404).end();
@@ -60,7 +62,7 @@ const browser = await chromium.launch({
     process.env.CHROMIUM_PATH ||
     process.env.PLAYWRIGHT_EXECUTABLE_PATH ||
     (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined),
-  args: ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+  args: ['--no-sandbox', '--enable-unsafe-swiftshader'],
 });
 const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
@@ -72,7 +74,10 @@ const context = await browser.newContext({
   errors = [],
   checks = [];
 await context.addInitScript(() => {
-  Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
+  Object.defineProperty(navigator, 'share', {
+    configurable: true,
+    value: undefined,
+  });
   Object.defineProperty(navigator, 'clipboard', {
     configurable: true,
     value: {
@@ -83,6 +88,14 @@ await context.addInitScript(() => {
   });
 });
 page.on('pageerror', (e) => errors.push(e.message));
+page.on('console', (message) => {
+  if (message.type() === 'error') console.error(message.text());
+});
+page.on('requestfailed', (request) => {
+  const failure = request.failure()?.errorText;
+  if (failure !== 'net::ERR_ABORTED') errors.push(`${failure}: ${request.url()}`);
+  console.error(request.url(), request.failure());
+});
 page.setDefaultTimeout(60000);
 const screen = () => page.evaluate(() => window.homeboundView());
 const snap = () => page.evaluate(() => window.homeboundSnapshot());
@@ -93,6 +106,7 @@ const mode = async (name) => {
   );
 };
 const tap = async (id) => {
+  if (id.startsWith('speed:') && !(await screen()).speedExpanded) await tap('speed-menu');
   await page.waitForFunction(
     (id) => window.homeboundView?.().buttons.some((b) => b.id === id && !b.disabled),
     id,
@@ -104,6 +118,133 @@ const tap = async (id) => {
   );
 };
 const shot = async (name) => page.screenshot({ path: path.join(out, name + '.png') });
+const viewportEvidence = { dispatches: [], pan: null };
+const insideButton = (point, button) =>
+  point.x >= button.x &&
+  point.x <= button.x + button.w &&
+  point.y >= button.y &&
+  point.y <= button.y + button.h;
+const assertButtonsFit = (view, width, height) => {
+  for (const button of view.buttons) {
+    assert.ok(button.w >= 44 && button.h >= 44, `${button.id} needs a 44px touch target`);
+    assert.ok(
+      button.x >= 0 &&
+        button.y >= 0 &&
+        button.x + button.w <= width + 1 &&
+        button.y + button.h <= height + 1,
+      `${button.id} must fit ${width}×${height}`,
+    );
+  }
+};
+const touchVisibleCar = async (width, height) => {
+  const view = await screen(),
+    before = await snap();
+  assert.equal(before.level, 100);
+  assert.equal(view.speed, 1);
+  assert.equal(before.services.length, 0);
+  const car = view.cars.find(
+    (car) => car.available && !view.buttons.some((button) => insideButton(car, button)),
+  );
+  assert.ok(car, `${width}×${height} must expose a legally dispatchable car`);
+  await page.touchscreen.tap(car.x, car.y);
+  await page.waitForFunction(
+    (id) => window.homeboundSnapshot().services.some((job) => job.vehicleId === id),
+    car.id,
+  );
+  const after = await snap();
+  assert.equal(after.services.length, 1, 'One real touch must dispatch exactly one car');
+  viewportEvidence.dispatches.push({
+    width,
+    height,
+    touch: car,
+    before: { time: before.time, scroll: view.scroll, services: before.services },
+    after: { time: after.time, services: after.services },
+  });
+  await shot(`level100-dispatched-${width}`);
+};
+const dragBoardUp = async () => {
+  const view = await screen();
+  // Start on an actual holding car: a drag must cancel this otherwise valid car press.
+  const start = view.cars
+    .filter(
+      (car) =>
+        car.y > 190 &&
+        car.y < 548 &&
+        car.x > 24 &&
+        car.x < 296 &&
+        !view.buttons.some((button) => insideButton(car, button)),
+    )
+    .sort((a, b) => b.y - a.y)[0];
+  assert.ok(start, 'The small board needs a visible car from which to drag');
+  const cdp = await context.newCDPSession(page);
+  try {
+    await cdp.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ id: 1, x: start.x, y: start.y }],
+    });
+    for (let step = 1; step <= 10; step++) {
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [{ id: 1, x: start.x, y: start.y + ((100 - start.y) * step) / 10 }],
+      });
+      await page.waitForTimeout(20);
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  } finally {
+    await cdp.detach();
+  }
+  await page.evaluate(
+    () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+  );
+  return { from: { x: start.x, y: start.y, vehicleId: start.id }, to: { x: start.x, y: 100 } };
+};
+// Level 1: two unobstructed cars must move concurrently before the first boarding.
+const parallelEvidence = { clickOrder: ['巡02', '巡01'], snapshots: {} };
+const parallelFrame = async (label) => {
+  const frame = await page.evaluate(() => {
+    const view = window.homeboundView();
+    return {
+      wallTimeMs: performance.now(),
+      state: window.homeboundSnapshot(),
+      view: {
+        page: view.page,
+        speed: view.speed,
+        unlockedSpeeds: view.unlockedSpeeds,
+        practice: view.practice,
+        adPending: view.adPending,
+        cars: view.cars,
+      },
+    };
+  });
+  parallelEvidence.snapshots[label] = frame;
+  return frame;
+};
+const expectedAssignments = [
+  {
+    vehicleId: '巡02',
+    groupId: 'T01',
+    bayId: 'T1',
+    assignmentOrder: 0,
+    pickupPoint: { x: -6, z: -2.5 },
+  },
+  {
+    vehicleId: '巡01',
+    groupId: 'T02',
+    bayId: 'T2',
+    assignmentOrder: 1,
+    pickupPoint: { x: -2, z: -2.5 },
+  },
+];
+const assertParallelAssignments = (state, count = 2) => {
+  for (const expected of expectedAssignments.slice(0, count)) {
+    const job = state.services.find((job) => job.vehicleId === expected.vehicleId);
+    assert.ok(job, `Touch must dispatch ${expected.vehicleId}.`);
+    for (const key of Object.keys(expected)) assert.deepEqual(job[key], expected[key]);
+    assert.deepEqual(job.walkFrom, expected.pickupPoint);
+    assert.equal(state.vehicles.find((v) => v.id === expected.vehicleId).groupId, expected.groupId);
+    assert.equal(state.groups.find((g) => g.id === expected.groupId).vehicleId, expected.vehicleId);
+  }
+};
 const fixture = async (status) =>
   page.evaluate((status) => {
     window.SmallGamesPublishingConfig = { adsEnabled: true };
@@ -118,6 +259,18 @@ try {
   await shot('loading-390');
   await mode('home');
   await shot('home-390');
+  assert.equal((await screen()).buttons.find((b) => b.id === 'continue').label, '开始游戏');
+  assert.equal((await screen()).presentation, null, '首页不渲染关卡世界');
+  assert.deepEqual((await screen()).cars, [], '首页不暴露可点击车辆');
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.reload();
+  await mode('home');
+  await page.waitForTimeout(200);
+  assert.equal((await snap()).time, 0, '首页停留不推进关卡');
+  assert.equal((await snap()).services.length, 0);
+  checks.push(
+    'independent illustrated home with no level board, actionable cars or background simulation',
+  );
   await tap('settings');
   await mode('settings');
   const sound = (await screen()).progress.sound;
@@ -130,14 +283,12 @@ try {
   await shot('help-390');
   await tap('back');
   await mode('settings');
-  await tap('fullscreen');
-  await page.waitForTimeout(200);
-  if (await page.evaluate(() => !!document.fullscreenElement)) {
-    await tap('fullscreen');
-    await page.waitForFunction(() => !document.fullscreenElement);
-  }
+  assert.equal(
+    (await screen()).buttons.some((button) => button.id === 'fullscreen'),
+    false,
+  );
   await tap('home');
-  checks.push('settings, sound persistence, help return and fullscreen gesture/fallback');
+  checks.push('settings, sound persistence and help return; no fullscreen control');
   await tap('levels');
   await mode('levels');
   assert.equal((await screen()).buttons.find((b) => b.id === 'level:1').disabled, true);
@@ -146,6 +297,71 @@ try {
   await tap('continue');
   await mode('playing');
   await shot('playing-390');
+  const initialArt = (await screen()).presentation;
+  assert.ok(initialArt.parking.y < 350, '第1关车阵提前至屏幕上半，避免站前道路拉伸');
+  assert.ok(844 - initialArt.parking.y > 490, '下方优先保留操作空间');
+  const stationary = await screen();
+  assert.equal(stationary.scroll.max, 0);
+  const touchCar = stationary.cars.find((car) => car.available);
+  const gesture = await context.newCDPSession(page);
+  await gesture.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [{ x: touchCar.x, y: touchCar.y }],
+  });
+  await page.waitForTimeout(80);
+  await shot('pressed-390');
+  await gesture.send('Input.dispatchTouchEvent', {
+    type: 'touchMove',
+    touchPoints: [{ x: touchCar.x + 40, y: touchCar.y }],
+  });
+  await gesture.send('Input.dispatchTouchEvent', {
+    type: 'touchMove',
+    touchPoints: [{ x: touchCar.x, y: touchCar.y }],
+  });
+  await gesture.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await page.waitForTimeout(80);
+  assert.equal((await snap()).services.length, 0, '不可滚动关卡滑开再移回也不得误派车');
+  await gesture.detach();
+  checks.push('pressed target highlight and drag-away cancellation on non-scrollable level');
+  assert.equal(
+    initialArt.people.length,
+    (await snap()).groups.slice(0, 4).reduce((n, g) => n + g.passengers.length, 0),
+    '开局旅客已在候车区',
+  );
+  const assertArt = (frame) => {
+    const art = frame.presentation;
+    for (const car of art.cars)
+      assert.ok(
+        Math.abs(Math.max(car.width, car.height) - initialArt.taxiLength) < 0.01,
+        `${car.id} 行驶与停靠不缩放车身`,
+      );
+    for (let i = 0; i < art.cars.length; i++)
+      for (const b of art.cars.slice(i + 1)) {
+        const a = art.cars[i];
+        assert.ok(
+          Math.hypot(a.x - b.x, a.y - b.y) >=
+            (Math.hypot(a.width, a.height) + Math.hypot(b.width, b.height)) / 2 - 0.1,
+          '真实Sprite包围圈不重叠',
+        );
+      }
+  };
+  assertArt(await screen());
+  assert.equal((await screen()).buttons.filter((b) => b.id.startsWith('speed:')).length, 0);
+  await tap('speed-menu');
+  assert.equal((await screen()).buttons.filter((b) => b.id.startsWith('speed:')).length, 4);
+  await shot('speed-menu-390');
+  const menuView = await screen();
+  const carBehindMenu = menuView.cars.find(
+    (car) => car.available && !menuView.buttons.some((button) => insideButton(car, button)),
+  );
+  assert.ok(carBehindMenu, 'Menu dismissal must be tested over a real available car');
+  await page.touchscreen.tap(carBehindMenu.x, carBehindMenu.y);
+  assert.equal((await screen()).speedExpanded, false);
+  assert.equal(
+    (await snap()).services.length,
+    0,
+    'Dismissing speed menu must not dispatch a car behind it',
+  );
   const car = (await screen()).cars[0],
     before = (await snap()).services.length,
     cdp = await context.newCDPSession(page);
@@ -153,15 +369,173 @@ try {
     type: 'touchStart',
     touchPoints: [{ x: car.x, y: car.y }],
   });
-  await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: 'touchCancel',
+    touchPoints: [],
+  });
   await cdp.detach();
   assert.equal((await snap()).services.length, before);
   checks.push('touch cancellation');
+  // Run before any ad fixture: genuine level 1, real touches and ordinary 1× time.
+  const initialParallel = await parallelFrame('before');
+  assert.equal(initialParallel.state.level, 1);
+  assert.equal(initialParallel.state.services.length, 0);
+  assert.equal(initialParallel.view.practice, false);
+  assert.equal(initialParallel.view.speed, 1);
+  assert.deepEqual(initialParallel.view.unlockedSpeeds, [1]);
+  // Observe in RAF so slow automation responses cannot move the sampling window past boarding.
+  await page.evaluate(() => {
+    window.__parallelTrace = {};
+    const observe = () => {
+      const view = window.homeboundView();
+      const frame = {
+        wallTimeMs: performance.now(),
+        state: window.homeboundSnapshot(),
+        view: {
+          page: view.page,
+          speed: view.speed,
+          unlockedSpeeds: view.unlockedSpeeds,
+          practice: view.practice,
+          adPending: view.adPending,
+          cars: view.cars,
+          presentation: view.presentation,
+        },
+      };
+      const trace = window.__parallelTrace;
+      if (frame.state.services.length >= 1 && !trace.afterFirst) trace.afterFirst = frame;
+      if (trace.afterFirst && frame.state.services.length < 2) trace.beforeSecond = frame;
+      if (frame.state.services.length >= 2 && !trace.afterSecond) trace.afterSecond = frame;
+      if (trace.afterSecond && frame.state.time >= trace.afterSecond.state.time + 0.5) {
+        if (!trace.movedTogether) trace.movedTogether = frame;
+      }
+      if (!trace.boarding && frame.state.services.some((job) => job.phase === 'boarding'))
+        trace.boarding = frame;
+      if (
+        frame.state.groups[4].arrivesAt !== undefined &&
+        frame.state.groups[4].arrivesAt <= frame.state.time
+      ) {
+        trace.replenished = frame;
+        return;
+      }
+      requestAnimationFrame(observe);
+    };
+    requestAnimationFrame(observe);
+  });
+  const parallelInput = await context.newCDPSession(page);
+  const inputAcks = [];
+  for (const [index, id] of parallelEvidence.clickOrder.entries()) {
+    const point = initialParallel.view.cars.find((car) => car.id === id);
+    assert.equal(point?.available, true);
+    if (index) await new Promise((resolve) => setTimeout(resolve, 500));
+    // The CDP connection preserves event order; acknowledgements need not delay the next tap.
+    inputAcks.push(
+      parallelInput.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [{ x: point.x, y: point.y }],
+      }),
+    );
+    inputAcks.push(
+      parallelInput.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }),
+    );
+  }
+  await Promise.all(inputAcks);
+  await page.waitForFunction(() => window.__parallelTrace.movedTogether);
+  Object.assign(parallelEvidence.snapshots, await page.evaluate(() => window.__parallelTrace));
+  await parallelInput.detach();
+  const { afterFirst, afterSecond, movedTogether } = parallelEvidence.snapshots;
+  assertParallelAssignments(afterFirst.state, 1);
+  assertParallelAssignments(afterSecond.state);
+  parallelEvidence.clickIntervalSeconds = afterSecond.state.time - afterFirst.state.time;
+  parallelEvidence.sharedWindowSeconds = movedTogether.state.time - afterSecond.state.time;
+  const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+  parallelEvidence.movement = parallelEvidence.clickOrder.map((id) => {
+    const position = (frame) => frame.state.vehicles.find((v) => v.id === id).position;
+    return {
+      vehicleId: id,
+      fromParking: distance(position(initialParallel), position(movedTogether)),
+      duringSharedWindow: distance(position(afterSecond), position(movedTogether)),
+    };
+  });
+  // Preserve diagnostics even if the old implementation fails the displacement check.
+  await writeFile(
+    path.join(out, 'parallel-departure.json'),
+    JSON.stringify(parallelEvidence, null, 2),
+  );
+  assert.equal(movedTogether.view.speed, 1);
+  assert.deepEqual(movedTogether.view.unlockedSpeeds, [1]);
+  assert.equal(movedTogether.state.delivered.length, 0);
+  assert.ok(movedTogether.state.groups.every((group) => group.boarded === 0));
+  assertParallelAssignments(movedTogether.state);
+  for (const movement of parallelEvidence.movement) {
+    assert.ok(
+      movement.fromParking >= 3,
+      `${movement.vehicleId} must leave its parking position by at least one car length before anyone boards.`,
+    );
+    assert.ok(
+      movement.duringSharedWindow >= 1,
+      `${movement.vehicleId} must physically move while the other taxi is also en route.`,
+    );
+  }
+  checks.push(
+    'level 1 at 1×: two real touches with RAF-observed receipt times; both leave parking before first boarding; fixed passenger/pickup bindings',
+  );
+  await page.waitForFunction(() => window.__parallelTrace.replenished);
+  Object.assign(parallelEvidence.snapshots, await page.evaluate(() => window.__parallelTrace));
+  const boardingFrame = parallelEvidence.snapshots.boarding;
+  assert.ok(
+    boardingFrame,
+    'RAF records actual horizontal boarding even if automation replies are delayed',
+  );
+  assertArt(boardingFrame.view);
+  for (const job of boardingFrame.state.services.filter((job) => job.phase === 'boarding'))
+    assert.equal(
+      boardingFrame.view.presentation.cars.find((car) => car.id === job.vehicleId)?.direction,
+      2,
+    );
+  const replenishmentFrame = parallelEvidence.snapshots.replenished;
+  const replenishing = replenishmentFrame.state;
+  assertArt(replenishmentFrame.view);
+  assert.equal(replenishing.groups[4].vehicleId, undefined, '没有下一辆车，也会独立补客');
+  assert.equal(
+    replenishmentFrame.view.presentation.people.filter((person) =>
+      person.id.startsWith(replenishing.groups[4].id + '/'),
+    ).length,
+    replenishing.groups[4].passengers.length,
+  );
+  await writeFile(
+    path.join(out, 'parallel-departure.json'),
+    JSON.stringify(parallelEvidence, null, 2),
+  );
+  await shot('waiting-replenished-390');
+  checks.push(
+    'same sprite length while parked/driving/boarding; horizontal curbside boarding; empty waiting area replenishes before another car is dispatched',
+  );
   await tap('pause');
   await mode('pause');
-  const frozen = (await snap()).time;
+  assert.equal(
+    (await screen()).buttons.some((button) => button.id === 'fullscreen'),
+    false,
+  );
+  const pausedView = await screen(),
+    pausedState = await snap();
+  const frozen = pausedState.time;
+  assert.equal(pausedView.speedExpanded, false);
+  assert.equal(
+    pausedView.buttons.some(
+      (button) => button.id === 'speed-menu' || button.id.startsWith('speed:'),
+    ),
+    false,
+  );
+  const carBehindPause = pausedView.cars.find(
+    (car) => !pausedView.buttons.some((button) => insideButton(car, button)),
+  );
+  assert.ok(carBehindPause, 'Pause input blocking must be tested over a real holding car');
+  await page.touchscreen.tap(carBehindPause.x, carBehindPause.y);
   await page.waitForTimeout(250);
+  assert.equal((await screen()).page, 'pause');
   assert.equal((await snap()).time, frozen);
+  assert.deepEqual((await snap()).services, pausedState.services);
+  checks.push('pause modal blocks real car touches and keeps the simulation clock frozen');
   await shot('pause-390');
   await tap('resume');
   // A genuine pointer focus transfer triggers browser blur without synthetic lifecycle events.
@@ -198,20 +572,16 @@ try {
   assert.equal((await screen()).speed, 5);
   checks.push('rewarded speed completion/cancellation/failure; no premature grant');
   const deadline = Date.now() + 180000;
-  let parallel = false;
   while (!(await snap()).won && Date.now() < deadline) {
     const raw = await snap(),
       s = { ...raw, delivered: new Set(raw.delivered) };
-    parallel ||= raw.services.filter((j) => j.phase === 'driving').length > 1;
-    const next = s.vehicles.find((v) => canDispatch(s, v.id).ok);
-    if (next) {
-      const c = (await screen()).cars.find((v) => v.id === next.id);
-      if (c) await page.touchscreen.tap(c.x, c.y);
-    }
+    assertParallelAssignments(raw);
+    const next = (await screen()).cars.find((car) => car.available && canDispatch(s, car.id).ok);
+    if (next) await page.touchscreen.tap(next.x, next.y);
     await page.waitForTimeout(65);
   }
   assert.equal((await snap()).won, true);
-  assert.equal(parallel, true);
+  assertParallelAssignments((await parallelFrame('completed')).state);
   await mode('result');
   await shot('result-390');
   assert.ok((await screen()).progress.stars[0] > 0);
@@ -229,14 +599,146 @@ try {
   await page.reload();
   await mode('home');
   assert.ok((await screen()).progress.stars[0] > 0);
+  assert.equal((await screen()).buttons.find((b) => b.id === 'continue').label, '继续游戏');
   const saved = await page.evaluate(() => localStorage.getItem('homebound-station.progress.v2'));
   await page.goto(base + '?dev=1&level=100');
   await mode('playing');
   assert.equal((await snap()).level, 100);
   assert.equal((await screen()).practice, true);
+  assert.ok((await snap()).vehicles.length >= 48);
+  assert.equal((await screen()).layout.columns, 6);
+  assert.ok((await screen()).layout.rows >= 8);
   await shot('level100-390');
+  const blockedCar = (await screen()).cars.find((car) => !car.available);
+  assert.ok(blockedCar);
+  await page.evaluate((id) => {
+    window.__rejectedFrame = null;
+    const observe = () => {
+      const view = window.homeboundView();
+      if (view.presentation?.rejectedCar === id) window.__rejectedFrame = view;
+      else requestAnimationFrame(observe);
+    };
+    requestAnimationFrame(observe);
+  }, blockedCar.id);
+  await page.touchscreen.tap(blockedCar.x, blockedCar.y);
+  await page.waitForFunction(() => window.__rejectedFrame);
+  assert.equal((await snap()).services.length, 0);
+  assert.equal(await page.evaluate(() => window.__rejectedFrame.presentation.rejectedCar), blockedCar.id);
+  await shot('blocked-390');
+  await tap('pause');
+  await tap('retry');
+  await mode('playing');
+  assert.equal((await screen()).presentation.rejectedCar, null, '重开清除上一局受阻标记');
+  checks.push('blocked-car local feedback preserves the run without dispatch');
+
+  assert.ok((await screen()).presentation.parking.y < 844 * 0.36, '第100关站前区域不超过屏高36%');
+  await touchVisibleCar(390, 844);
+  // A new practice run keeps the pan probe independent of any travelling vehicle.
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto(base + '?dev=1&level=100');
+  await mode('playing');
+  await page.waitForFunction(() => window.homeboundView().scroll.max > 0);
+  const beforePanView = await screen(),
+    beforePanState = await snap();
+  assert.equal(beforePanState.services.length, 0);
+  assert.equal(beforePanView.scroll.y, 0);
+  assertButtonsFit(beforePanView, 320, 568);
+  const bottomRow = Math.max(...beforePanState.vehicles.map((car) => car.row));
+  const bottomIds = beforePanState.vehicles
+    .filter((car) => car.row === bottomRow)
+    .map((car) => car.id);
+  assert.ok(
+    bottomIds.some((id) => !beforePanView.cars.some((car) => car.id === id)),
+    'At least part of the bottom row must initially be clipped on 320×568',
+  );
+  const gestures = [];
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const view = await screen();
+    if (view.scroll.y >= view.scroll.max - 1) break;
+    gestures.push(await dragBoardUp());
+    assert.equal((await snap()).services.length, 0, 'Dragging must never dispatch the pressed car');
+  }
+  const afterPanView = await screen(),
+    afterPanState = await snap();
+  viewportEvidence.pan = {
+    width: 320,
+    height: 568,
+    bottomRow,
+    bottomIds,
+    gestures,
+    before: {
+      time: beforePanState.time,
+      scroll: beforePanView.scroll,
+      cars: beforePanView.cars,
+      services: beforePanState.services,
+    },
+    after: {
+      time: afterPanState.time,
+      scroll: afterPanView.scroll,
+      cars: afterPanView.cars,
+      services: afterPanState.services,
+    },
+  };
+  await writeFile(path.join(out, 'viewport-input.json'), JSON.stringify(viewportEvidence, null, 2));
+  assert.ok(afterPanView.scroll.y > 0, 'Real touch dragging must move the board upward');
+  assert.ok(
+    afterPanView.scroll.y >= afterPanView.scroll.max - 1,
+    'Repeated drags must reach the bottom',
+  );
+  assert.ok(
+    bottomIds.every((id) => afterPanView.cars.some((car) => car.id === id)),
+    'Every bottom-row car must become visible after scrolling',
+  );
+  assert.deepEqual(
+    afterPanState.vehicles.map((car) => ({ id: car.id, position: car.position, state: car.state })),
+    beforePanState.vehicles.map((car) => ({
+      id: car.id,
+      position: car.position,
+      state: car.state,
+    })),
+    'Dragging moves the viewport, not parked vehicles',
+  );
+  assert.deepEqual(
+    afterPanView.buttons,
+    beforePanView.buttons,
+    'The HUD stays fixed while the board pans',
+  );
+  await shot('level100-scrolled-320');
   await tap('pause');
   await tap('home');
+  assertButtonsFit(await screen(), 320, 568);
+  await shot('home-320');
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.goto(base + '?dev=1&level=100');
+  await mode('playing');
+  assert.equal((await screen()).scroll.max, 0, 'The landscape board fits without vertical panning');
+  assertButtonsFit(await screen(), 844, 390);
+  await shot('level100-844');
+  await touchVisibleCar(844, 390);
+  await page.setViewportSize({ width: 800, height: 600 });
+  await page.goto(base + '?dev=1&level=100');
+  await mode('playing');
+  const squareLandscape = await screen();
+  assert.equal(squareLandscape.scroll.max, 0);
+  for (const car of squareLandscape.presentation.cars) {
+    assert.ok(car.x - car.width / 2 >= 0 && car.x + car.width / 2 <= 800);
+    assert.ok(car.y - car.height / 2 >= 58 && car.y + car.height / 2 <= 600);
+  }
+  await touchVisibleCar(800, 600);
+  checks.push('800×600 landscape fits every level-100 car and accepts real dispatch');
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.waitForTimeout(100);
+  await writeFile(path.join(out, 'viewport-input.json'), JSON.stringify(viewportEvidence, null, 2));
+  checks.push(
+    'level 100: genuine 320×568 touch pan reveals the bottom row without dispatch; fixed HUD; real available-car touches dispatch on 390×844 and 844×390',
+  );
+  await tap('pause');
+  await tap('home');
+  assertButtonsFit(await screen(), 844, 390);
+  await shot('home-844');
+  // Chapter buttons differ on short screens; return to portrait before selecting chapter ten.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(200);
   await tap('levels');
   await tap('chapter:9');
   assert.equal((await screen()).buttons.find((b) => b.id === 'level:99').disabled, false);
@@ -282,6 +784,7 @@ try {
   await mode('playing');
   assert.equal((await snap()).level, 100);
   assert.equal((await screen()).practice, true);
+  await shot('level100-public-390');
   await tap('pause');
   await tap('home');
   await tap('levels');
@@ -291,6 +794,16 @@ try {
     saved,
   );
   checks.push('invited level 100 is practice and does not bypass normal progression');
+  await tap('home');
+  for (const [width, height] of [
+    [320, 568],
+    [844, 390],
+  ]) {
+    await page.setViewportSize({ width, height });
+    await page.waitForTimeout(100);
+    assertButtonsFit(await screen(), width, height);
+    await shot(`home-public-${width}`);
+  }
   assert.deepEqual(errors, []);
   await writeFile(
     path.join(out, 'verification.json'),
@@ -299,6 +812,8 @@ try {
         browser: await browser.version(),
         creator: info,
         checks,
+        parallelDeparture: parallelEvidence,
+        viewportInput: viewportEvidence,
         errors,
         environment:
           'Chromium touch emulation of real Creator web build, not physical-device certification',
@@ -309,6 +824,7 @@ try {
   );
   console.log(JSON.stringify({ checks, errors }));
 } catch (error) {
+  console.error({ errors });
   await shot('failure');
   throw error;
 } finally {

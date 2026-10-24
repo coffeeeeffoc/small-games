@@ -9,7 +9,7 @@ import { LEVELS } from '../levels.mjs';
 import { STORAGE_KEY } from '../storage.mjs';
 
 const root = fileURLToPath(new URL('../dist/', import.meta.url));
-const evidence = fileURLToPath(new URL('../docs/design/prism-carnival/actual/', import.meta.url));
+const evidence = fileURLToPath(new URL('../docs/design/endless-clarity/actual/', import.meta.url));
 await mkdir(evidence, { recursive: true });
 const mime = {
   '.html': 'text/html',
@@ -63,6 +63,7 @@ const report = {
   passed: false,
 };
 let active;
+const touchSessions = new WeakMap();
 const snap = (page) => page.locator('#arena').evaluate((element) => element.getOrbitSnapshot());
 const saved = (page) => page.evaluate((key) => JSON.parse(localStorage.getItem(key)), STORAGE_KEY);
 const busy = (phase) => ['flight', 'recall'].includes(phase);
@@ -148,25 +149,46 @@ async function shot(page, dx, dy, cancel = false) {
   );
   assert(scale > 0 && dy * scale < -6, 'planned direction remains valid within the touch board');
   const map = (x, y) => ({ x: box.x + (x * box.width) / 390, y: box.y + (y * box.height) / 620 });
-  const cdp = await page.context().newCDPSession(page);
-  try {
-    await cdp.send('Input.dispatchTouchEvent', {
-      type: 'touchStart',
-      touchPoints: [map(state.launchX, baseY)],
-    });
-    await cdp.send('Input.dispatchTouchEvent', {
-      type: 'touchMove',
-      touchPoints: [map(state.launchX + dx * scale, baseY + dy * scale)],
-    });
-    await cdp.send('Input.dispatchTouchEvent', {
-      type: cancel ? 'touchCancel' : 'touchEnd',
-      touchPoints: [],
-    });
-  } finally {
-    await cdp.detach();
+  // Chromium 140 clears touch emulation when an input CDP session detaches.
+  // Keep one per page until its context closes, including across reloads.
+  let cdp = touchSessions.get(page);
+  if (!cdp) {
+    cdp = await page.context().newCDPSession(page);
+    touchSessions.set(page, cdp);
   }
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [map(state.launchX, baseY)],
+  });
+  await expect
+    .poll(async () => (await snap(page)).aiming, { message: 'touchStart must begin aiming' })
+    .toBe(true);
+  assert.equal((await snap(page)).shots, state.shots, 'touchStart must not launch');
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: 'touchMove',
+    touchPoints: [map(state.launchX + dx * scale, baseY + dy * scale)],
+  });
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: cancel ? 'touchCancel' : 'touchEnd',
+    touchPoints: [],
+  });
+  await expect
+    .poll(
+      async () => {
+        const { aiming, shots } = await snap(page);
+        return { aiming, shots };
+      },
+      { message: cancel ? 'cancelled touch must not launch' : 'touchEnd must launch exactly once' },
+    )
+    .toEqual({ aiming: false, shots: state.shots + (cancel ? 0 : 1) });
 }
-async function capture(page, name) {
+async function capture(page, name, scene = page) {
+  // Semantic controls update before Cocos submits its new display list.
+  await scene.locator('#GameCanvas').evaluate(async () => {
+    const { cc } = await import('/vendor/cocos/bootstrap.mjs');
+    for (let i = 0; i < 2; i++)
+      await new Promise((resolve) => cc.director.once(cc.Director.EVENT_AFTER_DRAW, resolve));
+  });
   await page.screenshot({ path: path.join(evidence, `${name}.png`) });
 }
 async function targets(page, selector) {
@@ -175,6 +197,17 @@ async function targets(page, selector) {
     const box = await element.boundingBox(),
       viewport = page.viewportSize();
     const id = await element.getAttribute('id');
+    if (await element.getAttribute('data-icon')) {
+      assert(
+        (await element.getAttribute('aria-label'))?.trim(),
+        `${id} has an accessible action name`,
+      );
+      assert.equal(
+        await element.textContent(),
+        '',
+        `${id} uses a drawn icon rather than button text`,
+      );
+    }
     assert(box.width >= 43.5 && box.height >= 43.5, `44px ${id} ${JSON.stringify(box)}`);
     assert(
       box.x >= -0.5 &&
@@ -371,11 +404,24 @@ try {
     return {
       version: cc.VERSION,
       sprites: cc.director.getScene().getComponentsInChildren(cc.Sprite).length,
-      labels: cc.director.getScene().getComponentsInChildren(cc.Label).length,
+      labels: cc.director
+        .getScene()
+        .getComponentsInChildren(cc.Label)
+        .map((label) => label.string),
+      graphics: cc.director.getScene().getComponentsInChildren(cc.Graphics).length,
     };
   });
   assert.equal(engine.version, '3.8.8');
-  assert(engine.sprites > 5 && engine.labels > 5);
+  assert(
+    engine.sprites > 5 && engine.graphics >= 3,
+    'Cocos sprites and drawn icon paths are present',
+  );
+  for (const title of ['星轨弹珠', '星域挑战', '无尽模式'])
+    assert(engine.labels.includes(title), `visible mode/title: ${title}`);
+  assert(
+    !engine.labels.some((label) => /继续旅程|重新开局/.test(label)),
+    'common actions are rendered as icons',
+  );
   await page.locator('#settings-button').tap();
   await centered(page);
   await targets(page, '#settings button');
@@ -463,6 +509,10 @@ try {
   await leave(page);
   const savedTurn = (await saved(page)).runs.campaign.turn;
   await page.reload();
+  assert(
+    await page.evaluate(() => 'ontouchstart' in document.documentElement && navigator.maxTouchPoints > 0),
+    'CDP gestures must preserve mobile touch capability across reload',
+  );
   await page.locator('#settings-button').tap();
   await expect(page.locator('#settings-sound')).toHaveAttribute('aria-pressed', 'false');
   await expect(page.locator('#settings-haptics')).toHaveAttribute('aria-pressed', 'true');
@@ -492,6 +542,13 @@ try {
     }
   }
   assert.equal((await snap(page)).phase, 'won');
+  const won = await snap(page);
+  report.naturalCampaign = {
+    seed: won.initialSeed,
+    shots: won.shots,
+    turn: won.turn,
+    phase: won.phase,
+  };
   await capture(page, 'victory-390');
   await page.locator('#next').tap();
   assert.equal((await snap(page)).levelId, 'prism');
@@ -576,6 +633,7 @@ try {
   await expect(page.locator('#upgrade')).toBeVisible();
   await centered(page);
   await targets(page, '#upgrade button');
+  await expect(page.locator('#upgrade-home, #upgrade-supply')).toHaveCount(0);
   assert(await page.locator('#arena').isVisible());
   await capture(page, 'reward-390');
   await page.locator('#settings-button').tap();
@@ -620,6 +678,7 @@ try {
     await page.locator('#start').tap();
     await centered(page);
     await targets(page, '#upgrade button');
+    await expect(page.locator('#upgrade-home, #upgrade-supply')).toHaveCount(0);
     await capture(page, `reward-${viewport.width}`);
     await page.locator('[data-upgrade="pierce"]').tap();
     await targets(page, '#playing button');
@@ -723,6 +782,43 @@ try {
     'explicit absorber fixture consumes actual emitted marbles and reduces this volley while permanent ball count remains unchanged',
   );
 
+  // Secondary damage is visible in the actual scene, including reduced-motion mode.
+  for (const [effect, seed, reduced] of [
+    ['chain', 2, false],
+    ['blast', 1, false],
+    ['chain', 2, true],
+    ['blast', 1, true],
+  ]) {
+    const feedback = createGame('endless', { seed });
+    feedback.seed = seed;
+    feedback.count = 1;
+    feedback.upgrades[effect] = 3;
+    feedback.bricks = [
+      { id: 99, c: 3, r: 1, kind: 'brick', hp: 170, maxHp: 170 },
+      { id: 101, c: 4, r: 1, kind: 'brick', hp: 170, maxHp: 170 },
+    ];
+    feedback.nextId = 102;
+    page = await open({ run: feedback });
+    if (reduced) await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.locator('#start').tap();
+    const pauseTarget = await page.locator('#pause').boundingBox();
+    await shot(page, 0, -400);
+    await expect
+      .poll(async () => (await snap(page)).visuals[`${effect}s`], { intervals: [16, 16, 16] })
+      .toBeGreaterThan(0);
+    await page.touchscreen.tap(
+      pauseTarget.x + pauseTarget.width / 2,
+      pauseTarget.y + pauseTarget.height / 2,
+    );
+    const impact = await snap(page);
+    assert.equal(impact.bricks.find((b) => b.id === 101).hp, 169);
+    assert(impact.visuals[`${effect}s`] > 0, 'secondary damage has a visible effect');
+    await capture(page, `${effect}-${reduced ? 'reduced' : 'impact'}-390`);
+  }
+  report.checks.push(
+    'chain source/destination line and blast neighbourhood outline accompany secondary damage, including reduced motion',
+  );
+
   // Empty-board fixture isolates shallow launch and visible accelerating manual recall.
   const returning = createGame('endless', { seed: 64 });
   returning.bricks = [];
@@ -799,8 +895,19 @@ try {
   assert(await page.locator('#reward-resonance').isDisabled());
   await capture(page, 'reward-ad-completed');
   await page.locator('#supply-back').tap();
-  await shot(page, 0, -400);
-  await page.locator('#recall').tap();
+  const recallBox = await page.locator('#recall').boundingBox();
+  assert(recallBox, 'recall has measurable geometry before launch');
+  const recallsBefore = (await snap(page)).visuals.recalls;
+  // The vertical volley returns in under a second. Launch left at a shallow angle
+  // and tap the stable control directly so actionability waits cannot miss flight.
+  await shot(page, -150, -12);
+  await page.touchscreen.tap(recallBox.x + recallBox.width / 2, recallBox.y + recallBox.height / 2);
+  await expect
+    .poll(async () => (await snap(page)).visuals.recalls, {
+      message: 'rescue fixture must accept exactly one manual recall',
+    })
+    .toBe(recallsBefore + 1);
+  assert((await snap(page)).flight < PHYSICS.maxFlight, 'recall must be manual, before timeout');
   await settle(page);
   await expect(page.locator('#result')).toBeVisible();
   await capture(page, 'failure-390');
@@ -864,7 +971,7 @@ try {
   await screenIs(frame, 'playing');
   await leave(frame);
   await noFullscreen(frame);
-  await capture(page, 'iframe-home');
+  await capture(page, 'iframe-home', frame);
   report.checks.push(
     'dev practice isolation and production iframe settings/play/pause/direct-return cancellation and confirmation',
   );

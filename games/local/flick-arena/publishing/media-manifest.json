@@ -1,0 +1,76 @@
+{
+  "date": "2026-10-23",
+  "build": {
+    "game": "flick-arena",
+    "engine": "Cocos",
+    "version": "3.8.8",
+    "build": "official-engine-source-web",
+    "creatorEditorBuild": false,
+    "engineCommit": "411f98df047c25902f93440d4b22925c2fb65461",
+    "engineSha256": "fffa27f1b13fa7e9385f39d3d6bd6fd8fec8a820d86db7aae77e1133ba521495",
+    "rendererSha256": "c29379a75e673c4cbe71c83511172df5ff3181315a997609699c2bb1b62843bb"
+  },
+  "recording": {
+    "shots": 4,
+    "phase": "result",
+    "errors": [],
+    "environment": "Chromium mobile touch emulation, real-time CDP gestures, no state replacement, no physical device"
+  },
+  "files": [
+    {
+      "path": "copy/developer-note.md",
+      "bytes": 474,
+      "sha256": "00b13463c3b1cfd6763c295abc5ce5434a4f3751da163868545c6d28c23fe799"
+    },
+    {
+      "path": "copy/introduction.md",
+      "bytes": 437,
+      "sha256": "a19283cd4fc56a343dd9915b8b9457d908ab0cc2b94e797ffea36b9f07f98c18"
+    },
+    {
+      "path": "copy/tagline.md",
+      "bytes": 83,
+      "sha256": "479203fb2baef19ec1e4496d9c6b868b8d8ce731f2076f4577384b499a4d4c91"
+    },
+    {
+      "path": "gameplay/screenshots/aim-390x844.png",
+      "bytes": 191622,
+      "sha256": "587641f5bfcae526314e36b33ea8909898a5ba221ea8ad966e1f7a1fbf085c53"
+    },
+    {
+      "path": "gameplay/screenshots/home-780x1688.png",
+      "bytes": 516999,
+      "sha256": "9bbd1ef828a91840383fc3fe4611a1791027d392d36a892445e70ad92af82a3e"
+    },
+    {
+      "path": "gameplay/screenshots/paused-780x1688.png",
+      "bytes": 296853,
+      "sha256": "503b768e0f59e40c8e619f80814cb2b11580bdd97a5bfa4276cf19636286527e"
+    },
+    {
+      "path": "gameplay/screenshots/result-390x844.png",
+      "bytes": 160790,
+      "sha256": "8812342ca66a91d1aa37e29ff582b09c0be8cb0aa50390d2411b4a9a5f7b5a63"
+    },
+    {
+      "path": "gameplay/videos/real-play-390x844.webm",
+      "bytes": 1413375,
+      "sha256": "2f0f4411ed5c3f5adff603aa17d707c1f5a6d442f75f673a20250992a7dcecb3"
+    },
+    {
+      "path": "icon/flick-arena-512.png",
+      "bytes": 292326,
+      "sha256": "2c83f824f15f23598af5ee9532277979744fa2b5a6dec2e2c663819542bf5403"
+    },
+    {
+      "path": "promo/images/home-780x1688.png",
+      "bytes": 516999,
+      "sha256": "9bbd1ef828a91840383fc3fe4611a1791027d392d36a892445e70ad92af82a3e"
+    },
+    {
+      "path": "promo/videos/flick-preview-390x844.mp4",
+      "bytes": 311976,
+      "sha256": "2f76f52445e5e58823cf53b570778f225a7047a1f753124deef6316f7430b6f1"
+    }
+  ]
+}

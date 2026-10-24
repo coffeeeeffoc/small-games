@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "reviewedOn": "2026-10-13",
-  "basis": "静态人工初评：逐款阅读目录登记与可用 README；本次未进行全量真机、用户留存或付费验证。潜力判断与改造排期独立；平台为推荐目标，分享/对战为适合方向，不代表渠道或功能已经上线。已落实记录只列有实现依据的改造。2026-10-13 按用户决定将收兵再冲、追贼别撞墙归为毫无潜力并暂缓投入。",
+  "basis": "静态人工初评：逐款阅读目录登记与可用 README；本次未进行全量真机、用户留存或付费验证。潜力判断与改造排期独立；平台为推荐目标，分享/对战为适合方向，不代表渠道或功能已经上线。已落实记录只列有实现依据的改造。2026-10-13 按用户决定将追贼别撞墙归为毫无潜力并暂缓投入。",
   "games": [
     {
       "id": "carrom-club",
@@ -25,7 +25,7 @@
     },
     {
       "id": "tower-brake",
-      "title": "转塔留一脚刹车",
+      "title": "穿云落星",
       "source": "games/local/tower-brake",
       "disposition": "potential",
       "potential": ["fun", "potential"],
@@ -36,46 +36,49 @@
       "opportunities": ["challenge", "share"],
       "schedule": "previous",
       "implementationStatus": "implemented",
-      "scheduleReason": "上轮已针对转塔与一次刹车易上手，连穿三层补刹车形成风险回报落实触控、反馈或挑战改造；保留已改造记录，后续按真实试玩、渠道与发布验收结果继续迭代。",
-      "strengths": ["转塔与一次刹车易上手，连穿三层补刹车形成风险回报"],
-      "weaknesses": ["被上层遮住的危险区影响公平感，八塔复玩目标较少"],
-      "improvements": [
-        "继续验证小屏落点预告与连穿风险回报，补真实用户首局完成率、复玩率及原生渠道验收。"
+      "scheduleReason": "已完成 Cocos 3D 改造，区分固定环境短关与慢速换景的无尽旅程；继续依据真实手机体验和渠道验收迭代。",
+      "strengths": [
+        "转塔、0.8秒刹车与三层连穿形成清楚的风险回报",
+        "30关渐进机制，四层天空和无尽的连续环境变化"
       ],
+      "weaknesses": ["真实手机和原生渠道尚未验证", "复杂场景在低端设备上的性能仍需真机测量"],
+      "improvements": ["验证低端手机帧率、触摸和音频恢复，收集首局完成率与复玩反馈。"],
       "evidence": [
         "games/local/tower-brake/README.md",
-        "games/local/tower-brake/docs/design/publishing/README.md",
-        "games/local/tower-brake/docs/design/publishing/browser-report.json"
+        "games/local/tower-brake/docs/design/cocos-2026-10-22/browser-report.json",
+        "games/local/tower-brake/publishing/STATUS.md"
       ],
       "delivered": [
-        "连穿倍率得分与目标分比较；固定路线分享挑战隔离正常解锁；下一关自然断点接入频控模拟广告，保留免费续关。"
+        "真实 Cocos 3D 轨道、菜单、HUD、分层云与沿途景物；短关固定环境，无尽长距离过渡。",
+        "护盾、侧风、刹车补给、缓降逐步解锁；环境影响真实球体碰撞半径和速度。",
+        "保留旧存档、免费续关及同关分享，公共排名使用 tower-ranked-v2 规则回放；离线正常可玩。"
       ]
     },
     {
       "id": "chase-thief",
       "title": "追贼别撞墙",
       "source": "games/local/chase-thief",
-      "disposition": "hold",
-      "potential": ["none"],
+      "disposition": "potential",
+      "potential": ["potential"],
       "platforms": ["mobile"],
       "primaryPlatform": "mobile",
       "orientation": "portrait",
       "genres": ["arcade", "action"],
       "opportunities": ["challenge", "share"],
-      "schedule": "hold",
-      "implementationStatus": "held",
-      "scheduleReason": "2026-10-13 用户明确归类为没潜力，保留现有入口与已落实记录，暂缓继续投入。",
-      "strengths": ["滑动换道、跳跃、滑铲符合手机直觉，稳三段换冲刺"],
-      "weaknesses": ["三街区的障碍组合和目标变化有限，动作窗口需实测"],
-      "improvements": ["按用户决定暂缓继续改造；保留现有可玩内容和历史验证记录。"],
+      "schedule": "current",
+      "implementationStatus": "implemented",
+      "scheduleReason": "2026-10-22 用户明确恢复投入，重构为单次追逐的 3D 城市无尽跑酷。",
+      "strengths": [
+        "真实弯道、高差与三类街区连续变化；同一小偷持续引导追逐，侧路选择提供风险回报。"
+      ],
+      "weaknesses": ["当前完成浏览器版；仍需物理手机性能与操作手感验收。"],
+      "improvements": ["继续在真实手机验证障碍辨识度、连续游玩帧率与首局学习成本。"],
       "evidence": [
         "games/local/chase-thief/README.md",
-        "games/local/chase-thief/docs/design/expansion-2026-10-11/README.md",
-        "games/local/chase-thief/docs/design/expansion-2026-10-11/browser-report.json"
+        "games/local/chase-thief/docs/design/endless-city-2026-10-22/plan.md"
       ],
       "delivered": [
-        "新增同街区用时、冲刺与失误成绩挑战，可接受未解锁街区邀请且不写普通最佳和解锁；开发试玩成绩不可分享，失败提供手动复制降级",
-        "场景第二触点不触发额外动作，取消和失焦清除手势；自然结算接可关闭、可配置关闭的频控模拟插屏"
+        "Cocos 3D 无尽街区、六类障碍、分路选择、层级骨架角色、暂停恢复与独立新版存档；旧抓捕限时规则退役。"
       ]
     },
     {
@@ -196,7 +199,7 @@
     },
     {
       "id": "tianxia-chalu",
-      "title": "天下岔路",
+      "title": "夺城令",
       "source": "games/local/tianxia-chalu",
       "disposition": "potential",
       "potential": ["fun", "potential"],
@@ -890,33 +893,6 @@
       ]
     },
     {
-      "id": "retreat-rally",
-      "title": "收兵再冲",
-      "source": "games/local/retreat-rally",
-      "disposition": "hold",
-      "potential": ["none"],
-      "platforms": ["mobile"],
-      "primaryPlatform": "mobile",
-      "orientation": "landscape",
-      "genres": ["action", "strategy"],
-      "opportunities": ["versus", "share"],
-      "schedule": "hold",
-      "implementationStatus": "held",
-      "scheduleReason": "2026-10-13 用户明确归类为没潜力，保留现有入口与已落实记录，暂缓继续投入。",
-      "strengths": ["按住撤退松手进攻操作极简，箭雨装填形成攻守节拍"],
-      "weaknesses": ["三关战役较短，模拟匹配需与真实联机明显区分"],
-      "improvements": ["按用户决定暂缓继续改造；保留现有可玩内容和历史验证记录。"],
-      "evidence": [
-        "games/local/retreat-rally/README.md",
-        "games/local/retreat-rally/docs/design/expansion-2026-10-11/README.md",
-        "games/local/retreat-rally/docs/design/expansion-2026-10-11/browser-report.json"
-      ],
-      "delivered": [
-        "加入箭雨波次节拍条与最后一箭后的两秒反攻窗口提示，保留按住撤退、松手进攻的操作",
-        "同关人数与夺旗用时成绩邀请允许锁关挑战但不写普通军功和解锁；分享过滤开发参数并降级，自然结算接可关闭且可配置关闭的频控模拟插屏"
-      ]
-    },
-    {
       "id": "castle-cannon",
       "title": "一炮拆城",
       "source": "games/local/game-castle-cannon",
@@ -942,19 +918,26 @@
       "source": "games/local/tetracube",
       "disposition": "potential",
       "potential": ["fun", "potential"],
-      "platforms": ["web", "app"],
-      "primaryPlatform": "web",
-      "orientation": "landscape",
+      "platforms": ["mobile", "web"],
+      "primaryPlatform": "mobile",
+      "orientation": "portrait",
       "genres": ["puzzle", "arcade"],
       "opportunities": ["challenge", "share"],
-      "schedule": "later",
-      "implementationStatus": "deferred",
-      "scheduleReason": "三轴旋转与翻转消层有创新；后续先解决遮挡、轴向教学和幽灵落点，空间交互需要专门验证。",
+      "schedule": "current",
+      "implementationStatus": "implemented",
+      "scheduleReason": "Cocos Creator 3.8.8 已覆盖首页、经典无尽、暂停、说明与结束流程；继续优化空间可读性。",
       "strengths": ["三轴旋转与容器翻转让层消除具有空间创新"],
-      "weaknesses": ["3D遮挡与多轴输入比平面消除难学，手机精细操作风险高"],
-      "improvements": ["Web先增强层切片与幽灵落点，手机分步旋转并做同序列挑战"],
-      "evidence": ["games/local/tetracube/README.md"],
-      "delivered": []
+      "weaknesses": ["三轴空间旋转需要学习；原生设备与真实广告填充尚未验收"],
+      "improvements": ["继续验证真机触控与空间遮挡体验"],
+      "evidence": [
+        "games/local/tetracube/README.md",
+        "games/local/tetracube/docs/design/cocos-2026-10-23/actual/browser-report.json"
+      ],
+      "delivered": [
+        "Cocos 场景与触控迁移",
+        "8×8×18 经典无尽与旧存档兼容",
+        "可选颠倒广告与每局最多两次广告复活"
+      ]
     },
     {
       "id": "cage-rescue",
@@ -1053,21 +1036,24 @@
       "opportunities": ["challenge"],
       "schedule": "current",
       "implementationStatus": "implemented",
-      "scheduleReason": "用户本次明确要求制作横版射击交互原型；记录本次已实现内容，后续用真人试玩校准手感和难度。",
-      "strengths": ["三战区、环境连锁爆破、五种改装和两阶段 Boss 已形成完整短局循环。"],
+      "scheduleReason": "本轮完成真实Cocos Creator迁移与23关战役扩展，移动横屏优先，继续用真人试玩校准难度。",
+      "strengths": ["23处独立路线与5–7段阵地推进，环境连锁爆破、五种改装和两阶段Boss。"],
       "weaknesses": [
-        "目前仅三个战区；浏览器触屏模拟已通关，真机握持、首次上手和重复游玩价值仍待验证。"
+        "TapTap App 998795未开通广告，正式广告位/库存/真机尚未验收。",
+        "浏览器模拟已覆盖六组尺寸，仍需物理手机的握持与长局试玩。"
       ],
       "improvements": ["收集首局死亡位置与操作反馈，优先校准右拇指区遮挡、Boss 难度和改装组合。"],
       "evidence": [
         "games/local/ashfall-front/README.md",
         "games/local/ashfall-front/docs/qa/verification.md",
-        "games/local/ashfall-front/docs/qa/browser-report.json"
+        "games/local/ashfall-front/docs/qa/cocos/report.json",
+        "games/local/ashfall-front/publishing/STATUS.md"
       ],
       "delivered": [
-        "原创工业场景、人物动作、命中火花与爆炸反馈；多点触控移动、跳跃、冲刺、自动瞄准射击。",
-        "三关解锁、两次改装选择、Boss 攻击预警和核心输出窗口；暂停、重试、本地进度及开发试玩隔离。",
-        "完成横屏、竖屏旋转、小屏、全屏和自然触屏通关的 Chromium 验证；不是物理手机或原生渠道验收。"
+        "Cocos Creator 3.8.8真实Sprite/Graphics场景、触控、AudioSource与生命周期。",
+        "原3关后新增20关，纯输入抽样约6–7分钟；分页选关、本机存档、改装耗尽免费继续。",
+        "每关一次40%补给与50%续战，严格完成发奖，未配置广告可免费游玩。",
+        "真实Creator六尺寸触控与SDK回调夹具通过；不等于TapTap库存或真机验证。"
       ]
     }
   ]

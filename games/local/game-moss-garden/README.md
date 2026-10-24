@@ -62,3 +62,5 @@ Web 全屏复用 `platforms/h5/fullscreen.js`，不支持时仍可正常游玩�
 本轮不包含 TapTap 身份/广告位配置或正式包。现有统一 `build:games` H5 白名单尚未登记 moss；后续需在 `scripts/h5-ad-config.mjs` 登记、在 `h5-game-build.mjs` 与 `h5-taptap-build.mjs` 映射 `games/local/game-moss-garden`、增加 `TAPTAP_MOSS_GARDEN_AD_UNIT_ID` 透传、在 `h5-taptap-matrix.mjs` 登记 portrait 并补增量范围契约。无需再修改本游戏提示逻辑。原生 Canvas 使用宿主 GameHost 广告能力，原生 TapADN 需单独验收，不能复用 H5 广告位。
 
 离线关卡可复现检查：`node games/local/game-moss-garden/scripts/generate-levels.mjs --check`。普通扩关不在运行时随机生成。
+
+上架资料与验证边界：[publishing/STATUS.md](publishing/STATUS.md)。

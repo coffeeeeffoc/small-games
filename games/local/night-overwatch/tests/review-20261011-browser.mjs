@@ -23,6 +23,7 @@ try {
         : { x: r.left + x * r.width / s.ui.width, y: r.top + y * r.height / s.ui.height };
     }, { x, y });
     const press = async id => {
+      if (id === 'start' && (await snapshot(page)).modal === 'home') await press('missions');
       const s = await snapshot(page), b = s.buttons.find(button => button.id === id);
       assert(b, `visible ${id}`);
       const p = await point(b.x + b.w / 2, b.y + b.h / 2);
@@ -49,8 +50,6 @@ try {
     await layout(); await capture('pause'); await press('settings'); await layout(); await capture('settings');
     await press('help'); await layout(); await press('close'); await press('close');
     assert.equal((await snapshot(page)).modal, 'pause');
-    await press('fullscreen'); await page.waitForFunction(() => !!document.fullscreenElement);
-    await press('fullscreen'); await page.waitForFunction(() => !document.fullscreenElement);
     assert.equal((await snapshot(page)).time, frozen, 'fullscreen preserves paused battle');
     await press('resume'); await press('weapon0');
     const fire = (await snapshot(page)).buttons.find(b => b.id === 'fire');

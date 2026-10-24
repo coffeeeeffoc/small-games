@@ -1,0 +1,9 @@
+/build/
+/dist/
+/library/
+/temp/
+/local/
+/profiles/
+/reports/
+/node_modules/
+/cc.d.ts

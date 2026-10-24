@@ -94,3 +94,16 @@ test('all campaign missions use registered content and reject forged states, tim
   applyNightReplay(assisted, [{ input: { command: 'grantBuff', args: ['rate'] }, ticks: 0 }]);
   assert.equal(assisted.assisted, true);
 });
+
+test('settings configuration and skipping an interrupted resume round-trip through replay', () => {
+  const sim = new Simulation(); sim.start(); const frames: ReplayFrame[] = [];
+  observeNightInputs(sim, (input, ticks) => frames.push({ input, ticks }));
+  sim.beginResumeCountdown(); sim.pause('background', true); sim.pause('background', false);
+  assert(sim.resumeRequired);
+  sim.pause('settings', true); sim.adjustAltitude(20); sim.adjustRadius(20); sim.setOrbitDirection(-1); sim.command();
+  sim.pause('supply', true); sim.pause('settings', false);
+  sim.pause('countdown', false); sim.pause('supply', false); sim.pause('manual', false);
+  assert(!sim.resumeRequired); assert(!sim.paused); assert.equal(sim.resumeCountdown, 0);
+  const state = createNightReplay('campaign', sim.mission.id); applyNightReplay(state, frames);
+  assert.deepEqual(state.simulation, sim.checkpoint());
+});

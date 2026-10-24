@@ -12,7 +12,7 @@ test('120 immutable unique operations retain old IDs and have distinct deploymen
   for (const mission of MISSIONS) {
     assert(Object.isFrozen(mission) && Object.isFrozen(mission.events));
     assert(mission.events.every(event => Object.isFrozen(event) && Object.isFrozen(event.direction)));
-    assert.equal(mission.events.length, 24);
+    assert.equal(mission.events.length, [4, 6, 8, 12, 16][MISSIONS.indexOf(mission)] ?? 24);
     assert(mission.duration > 240 && mission.attackInterval >= 4.8);
   }
   assert.equal(missionDefinition('training-60'), TRAINING);

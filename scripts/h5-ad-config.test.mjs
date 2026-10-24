@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { h5AdConfig, h5AdGames, prepareH5Ads } from './h5-ad-config.mjs';
+import { h5AdConfig, h5PackageGames, prepareH5Ads } from './h5-ad-config.mjs';
 import { mkdtemp, mkdir, readFile, writeFile, copyFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createHintAccess } from '../games/submodules/xiangqi-five/rewarded-hints.js';
 test('missing ad units use the free path; configured host failures never select it', () => {
-  for (const game of h5AdGames) {
+  for (const game of h5PackageGames) {
     assert.deepEqual(h5AdConfig(game, { env: {} }), { adMode: 'off', adsEnabled: false });
     const env = { H5_ADS_ENABLED: '1', SECRET: 'must-not-escape' };
     assert.equal(h5AdConfig(game, { env }).adMode, 'off');
@@ -161,5 +161,37 @@ test('standalone H5 host preserves full-view rewards through visibility changes 
       if (descriptor) Object.defineProperty(globalThis, key, descriptor);
       else delete globalThis[key];
     }
+  }
+});
+
+test('three-choose-two Creator packages use the shared optional reward bridge', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'three-rewards-'));
+  try {
+    await writeFile(
+      path.join(directory, 'index.html'),
+      '<html><head></head><body><canvas id="GameCanvas"></canvas></body></html>',
+    );
+    await prepareH5Ads('three-choose-two', directory, { env: {} });
+    assert.deepEqual(h5AdConfig('three-choose-two', { env: {} }), {
+      adMode: 'off',
+      adsEnabled: false,
+    });
+    const config = await readFile(path.join(directory, 'platform-config.js'), 'utf8');
+    assert.match(config, /"game":"three-choose-two"/);
+    assert.match(config, /"adsEnabled":false/);
+    const html = await readFile(path.join(directory, 'index.html'), 'utf8');
+    assert.equal((html.match(/src=".\/game-rewards.js"/g) || []).length, 1);
+    assert.equal(
+      await readFile(path.join(directory, 'game-rewards.js'), 'utf8'),
+      await readFile(new URL('../platforms/h5/game-rewards.js', import.meta.url), 'utf8'),
+    );
+    assert.equal(
+      h5AdConfig('three-choose-two', {
+        env: { H5_ADS_ENABLED: '1', TAPTAP_THREE_CHOOSE_TWO_AD_UNIT_ID: 'future-slot' },
+      }).adMode,
+      'host',
+    );
+  } finally {
+    await rm(directory, { recursive: true, force: true });
   }
 });

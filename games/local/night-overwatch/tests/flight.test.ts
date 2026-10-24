@@ -12,13 +12,30 @@ const tick = (s: Simulation, seconds: number, dt = 1 / 60) => {
   for (let i = 0; i < Math.ceil(seconds / dt); i++) s.step(dt);
 };
 const isolated = () => {
-  const s = new Simulation();
+  const s = new Simulation('operation-007');
   s.start();
   s.units = s.units.filter((u) => u.friendly);
   s.convoy = 'holding';
+  s.addUnit('turret', { x: MAP.halfWidth, z: MAP.halfDepth }); // Retain combat during flight-only tests.
   return s;
 };
 const near = (a: number, b: number, tolerance = 1e-6) => assert(Math.abs(a - b) < tolerance, `${a} ≈ ${b}`);
+
+test('paused direction and radius settle the orbit even halfway through a reversal', () => {
+  for (const direction of [-1, 1] as const) {
+    const f = new Flight();
+    f.setDirection(-1); f.step(1 / 60);
+    f.setDirection(direction, true);
+    const a = f.aircraft, radius = Math.hypot(a.x, a.z);
+    near(Math.sin(a.yaw), -a.z / radius * direction);
+    near(Math.cos(a.yaw), a.x / radius * direction);
+    f.adjustRadius(-40, true);
+    near(a.bank, Math.atan(direction * FLIGHT.speed ** 2 / (FLIGHT.gravity * a.radius)));
+    const selected = a.radius;
+    for (let i = 0; i < 600; i++) f.step(1 / 60);
+    near(Math.hypot(a.x, a.z), selected, .001);
+  }
+});
 
 test('metre scale, coordinated bank, orbit period and constant-speed reversal agree', (t) => {
   const f = new Flight(), a = f.aircraft;
@@ -93,7 +110,7 @@ test('port weapon stations, metre-authored mesh and banked model/camera transfor
 });
 
 test('aircraft is live simulation state and pauses freeze its orbit', () => {
-  const s = new Simulation();
+  const s = new Simulation('operation-007');
   s.start();
   assert(s.aircraft, 'flight must have persistent state, not aircraft(time) decoration');
   const first = { ...s.aircraft };
@@ -119,8 +136,32 @@ test('aircraft is live simulation state and pauses freeze its orbit', () => {
   assert.equal(JSON.stringify(s.aircraft), frozen);
 });
 
+test('paused settings apply flight pose immediately while every battle clock and projectile stays frozen', () => {
+  const s = new Simulation(); s.start(); s.fire(); s.grantBuff('rate'); s.pause('settings', true);
+  const battle = () => { const { flight, ...rest } = s.checkpoint(); return rest; };
+  const frozen = battle(), original = { ...s.aircraft };
+  s.adjustAltitude(20); s.adjustRadius(20); s.setOrbitDirection(-1);
+  assert.equal(s.aircraft.y, original.altitude + 20);
+  assert.equal(s.aircraft.radius, original.radius + 20);
+  near(Math.hypot(s.aircraft.x, s.aircraft.z), original.radius + 20);
+  assert.equal(s.aircraft.direction, -1); near(s.aircraft.yaw, original.yaw + Math.PI);
+  const selected = { ...s.aircraft }; s.setOrbitDirection(-1); assert.deepEqual(s.aircraft, selected);
+  for (let i = 0; i < 100; i++) s.step(.1);
+  assert.deepEqual(battle(), frozen); assert.deepEqual(s.aircraft, selected);
+  for (const reason of ['background', 'focus', 'advert', 'orientation', 'help'] as const) {
+    s.pause(reason, true); s.adjustAltitude(-20); s.adjustRadius(-20); s.setOrbitDirection(1);
+    assert.deepEqual(s.aircraft, selected, reason); s.pause(reason, false);
+  }
+  s.adjustAltitude(Infinity); s.adjustRadius(NaN); assert.deepEqual(s.aircraft, selected);
+  s.adjustAltitude(10000); s.adjustRadius(-10000);
+  assert.equal(s.aircraft.y, FLIGHT.maxAltitude); near(Math.hypot(s.aircraft.x, s.aircraft.z), FLIGHT.minRadius);
+  s.pause('settings', false); const resumed = { ...s.aircraft }; s.step(.1);
+  assert(s.time > 0); assert(Math.hypot(s.aircraft.x - resumed.x, s.aircraft.z - resumed.z) <= FLIGHT.speed * .1 + 1e-6);
+  assert.deepEqual(s.checkpoint(), Simulation.restore(s.checkpoint()).checkpoint());
+});
+
 test('arrival cannot succeed while a threat is still alive', () => {
-  const s = new Simulation();
+  const s = new Simulation('operation-007');
   assert.equal(s.threatsRemaining, 24, 'unspawned contacts also count');
   s.start();
   s.progress = 10000;
@@ -262,7 +303,7 @@ test('four friendly groups stay dispersed and enemies attack living local target
   for (let i = 0; i < groups.length; i++) for (let j = i + 1; j < groups.length; j++)
     assert(distance(groups[i], groups[j]) > 40);
   for (const target of groups) s.addUnit('turret', { x: target.x, z: target.z - 0.5 });
-  tick(s, MISSION.warmup + 0.1);
+  tick(s, s.mission.warmup + 0.1);
   for (const target of groups) {
     assert(target.hp < target.maxHp);
     const event = s.events.find((e) => e.type === 'attack' && e.unit === target.id);
@@ -336,7 +377,7 @@ test('every outpost must retain a survivor; the last lethal hit determines group
     const enemyKill = (unit: typeof first) => {
       const enemy = s.addUnit('turret', { x: unit.x - 0.5, z: unit.z });
       unit.hp = UNITS.turret.damage * MISSION.friendlyArmor;
-      tick(s, MISSION.warmup + 0.02);
+      tick(s, s.mission.warmup + 0.02);
       enemy.hp = 0;
     };
     // The first casualty comes from the opposite side, so total damage cannot identify the cause.
@@ -357,6 +398,7 @@ test('every outpost must retain a survivor; the last lethal hit determines group
       while (s.time + 1 / 60 < shot.due) s.step(1 / 60);
       s.progress = ROUTE_LENGTH;
       s.convoy = 'arrived';
+      s.units.filter(u => !u.friendly).forEach(u => { u.hp = 0; });
       assert.equal(s.threatsRemaining, 0);
       s.step(1 / 60); // Last friendly dies in the exact step that would otherwise declare success.
     }
@@ -367,7 +409,7 @@ test('every outpost must retain a survivor; the last lethal hit determines group
     assert.equal(s.failureCause, finalCause);
     assert.equal(s.rescue.hp, s.rescue.maxHp);
     assert.equal(s.rating, '—');
-    const fresh = new Simulation();
+    const fresh = new Simulation('operation-007');
     assert.equal(fresh.failedGroup, undefined);
     assert.equal(fresh.failureCause, '');
   }

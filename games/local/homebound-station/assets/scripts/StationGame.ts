@@ -26,7 +26,7 @@ import { StationWorld } from './StationWorld';
 import { StationHUD, type Page } from './StationHUD';
 import { StationPlatform } from './StationPlatform';
 const { ccclass } = _decorator;
-type Press = { x: number; y: number; target: string; page: Page };
+type Press = { x: number; y: number; lastY: number; dragging: boolean; target: string; page: Page };
 @ccclass('StationGame')
 export class StationGame extends Component {
   state!: Simulation;
@@ -52,22 +52,34 @@ export class StationGame extends Component {
   private returnPage: Page = 'home';
   private previousDelivered = 0;
   private resizeKey = '';
-  start() {
+  private speedExpanded = false;
+  async start() {
     view.enableAutoFullScreen(false);
     view.resizeWithBrowserSize(true);
     this.platform = new StationPlatform(this.node, LEVELS.length);
     this.world = new StationWorld(this.node);
     this.hud = new StationHUD(this.node);
+    try {
+      await Promise.all([this.world.ready, this.hud.ready]);
+    } catch (error) {
+      if (this.disposed) return;
+      if (sys.isBrowser) window.dispatchEvent(new Event('homebound-load-error'));
+      console.error('[homebound-station artwork]', error);
+      return;
+    }
+    if (this.disposed) return;
     this.state = createSimulation(LEVELS[0]!);
     this.state.paused = true;
     this.world.reset(this.state);
     this.touchInput = sys.isMobile;
     this.cleanup.push(this.platform.registerLevels(() => this.changePage('levels')));
     input.on(Input.EventType.TOUCH_START, this.touchStart, this);
+    input.on(Input.EventType.TOUCH_MOVE, this.touchMove, this);
     input.on(Input.EventType.TOUCH_END, this.touchEnd, this);
     input.on(Input.EventType.TOUCH_CANCEL, this.clear, this);
     input.on(Input.EventType.MOUSE_DOWN, this.mouseDown, this);
     input.on(Input.EventType.MOUSE_UP, this.mouseUp, this);
+    input.on(Input.EventType.MOUSE_WHEEL, this.mouseWheel, this);
     input.on(Input.EventType.KEY_DOWN, this.keyDown, this);
     game.on(Game.EVENT_HIDE, this.hide, this);
     game.on(Game.EVENT_SHOW, this.show, this);
@@ -142,6 +154,7 @@ export class StationGame extends Component {
   }
   private changePage(page: Page) {
     if (this.page === 'ad' && page !== 'ad') this.gate.cancel(this.platform.ads);
+    this.speedExpanded = false;
     this.page = page;
     this.platform.display(
       !['home', 'levels', 'settings', 'help'].includes(page),
@@ -154,11 +167,12 @@ export class StationGame extends Component {
   }
   private message(text: string, ok = false) {
     this.toast = text;
-    this.toastRemaining = 3.5;
+    this.toastRemaining = 1.8;
     if (!this.hidden) this.platform.play(ok ? 'depart' : 'blocked');
   }
   private async speed(value: Speed) {
     if (this.page !== 'playing' || this.gate.pending) return;
+    this.speedExpanded = false;
     if (!this.gate.unlocked.has(value)) {
       this.adInterrupted = false;
       this.changePage('ad');
@@ -187,7 +201,11 @@ export class StationGame extends Component {
     if (id.startsWith('car:')) {
       if (this.page !== 'playing' || this.hidden || this.state.paused) return;
       const result = dispatch(this.state, id.slice(4));
-      this.message(result.reason, result.ok);
+      if (result.ok) this.platform.play('depart');
+      else {
+        this.world.rejectCar(id.slice(4));
+        this.message(result.reason);
+      }
       return;
     }
     if (id.startsWith('level:')) {
@@ -205,6 +223,14 @@ export class StationGame extends Component {
       return;
     }
     switch (id) {
+      case 'speed-menu':
+        this.speedExpanded = !this.speedExpanded;
+        this.hud.invalidate();
+        break;
+      case 'speed-dismiss':
+        this.speedExpanded = false;
+        this.hud.invalidate();
+        break;
       case 'continue':
         this.startLevel(
           this.invitedLevel ? this.invitedLevel - 1 : continueIndex(this.platform.progress),
@@ -255,11 +281,6 @@ export class StationGame extends Component {
         this.platform.stop();
         this.hud.invalidate();
         break;
-      case 'fullscreen':
-        void this.platform.fullscreen().then((ok) => {
-          if (!ok) this.message('当前浏览器不支持全屏，可继续游玩');
-        });
-        break;
       case 'cancel-ad':
         this.gate.cancel(this.platform.ads);
         this.changePage(this.hidden ? 'pause' : 'playing');
@@ -269,7 +290,8 @@ export class StationGame extends Component {
   private target(x: number, y: number) {
     const button = this.hud.hit(x, y);
     if (button) return button.id;
-    if (this.page !== 'playing' || this.hidden) return '';
+    if (this.speedExpanded) return 'speed-dismiss';
+    if (this.page !== 'playing' || this.hidden || !this.world.inViewport({ x, y })) return '';
     const nearest = this.state.vehicles
       .filter((v) => v.state === 'holding')
       .map((v) => {
@@ -281,20 +303,29 @@ export class StationGame extends Component {
         };
       })
       .sort((a, b) => a.d - b.d)[0];
-    return nearest && nearest.d <= 24 ? `car:${nearest.id}` : '';
+    return nearest && nearest.d <= 24
+      ? `car:${nearest.id}`
+      : this.world.maxScroll
+        ? 'board-pan'
+        : '';
   }
   private press(id: number, x: number, y: number) {
     if (this.presses.size) return;
     this.platform.activate();
     const target = this.target(x, y);
-    if (target) this.presses.set(id, { x, y, target, page: this.page });
+    if (target) {
+      this.presses.set(id, { x, y, lastY: y, dragging: false, target, page: this.page });
+      this.hud.setPressed(target);
+    }
   }
   private release(id: number, x: number, y: number) {
     const p = this.presses.get(id);
     this.presses.delete(id);
-    if (!p || p.page !== this.page || this.hidden) return;
+    this.hud.setPressed('');
+    if (!p || p.page !== this.page || this.hidden || p.dragging) return;
     if (p.target.startsWith('car:')) {
-      if (Math.hypot(x - p.x, y - p.y) < 65) this.action(p.target);
+      if (Math.hypot(x - p.x, y - p.y) < 18 && this.target(x, y) === p.target)
+        this.action(p.target);
     } else if (this.target(x, y) === p.target && Math.hypot(x - p.x, y - p.y) < 18)
       this.action(p.target);
   }
@@ -302,6 +333,19 @@ export class StationGame extends Component {
     if (e.simulate || (sys.isBrowser && !this.touchInput)) return;
     const p = e.getUILocation();
     this.press(e.getID() ?? 0, p.x, this.hud.h - p.y);
+  }
+  touchMove(e: EventTouch) {
+    const p = this.presses.get(e.getID() ?? 0);
+    if (!p || this.page !== 'playing' || !(p.target.startsWith('car:') || p.target === 'board-pan'))
+      return;
+    const at = e.getUILocation(),
+      y = this.hud.h - at.y;
+    if (p.dragging || Math.hypot(at.x - p.x, y - p.y) > 10) {
+      p.dragging = true;
+      this.hud.setPressed('');
+      if (this.world.maxScroll) this.world.pan(y - p.lastY);
+    }
+    p.lastY = y;
   }
   touchEnd(e: EventTouch) {
     if (e.simulate || (sys.isBrowser && !this.touchInput)) return;
@@ -318,6 +362,10 @@ export class StationGame extends Component {
     const p = e.getUILocation();
     this.release(-1, p.x, this.hud.h - p.y);
   }
+  mouseWheel(e: EventMouse) {
+    if (this.page === 'playing' && !this.speedExpanded && !this.hidden)
+      this.world.pan(e.getScrollY() * 0.3);
+  }
   keyDown(e: EventKeyboard) {
     if (e.keyCode === 27) {
       if (this.page === 'playing') this.changePage('pause');
@@ -327,6 +375,7 @@ export class StationGame extends Component {
   }
   clear() {
     this.presses.clear();
+    this.hud?.setPressed('');
   }
   hide() {
     if (this.page === 'ad') this.adInterrupted = true;
@@ -341,14 +390,14 @@ export class StationGame extends Component {
     this.clear(); /* Explicit resume prevents a background/advert callback overriding pause. */
   }
   update(dt: number) {
-    if (!this.hud) return;
+    if (!this.hud || !this.state) return;
     const f = view.getFrameSize(),
-      key = `${f.width}:${f.height}:${this.page === 'home'}`;
+      key = `${f.width}:${f.height}`;
     if (key !== this.resizeKey) {
       this.resizeKey = key;
       this.clear();
       this.hud.resize();
-      this.world.resize(f.width, f.height, this.page === 'home');
+      this.world.resize(f.width, f.height);
     }
     if (this.page === 'playing' && !this.hidden && !this.state.paused) {
       const delta = Math.min(0.1, Math.max(0, dt));
@@ -380,7 +429,8 @@ export class StationGame extends Component {
     this.render();
   }
   private render() {
-    this.world.sync(this.state);
+    this.world.root.active = ['playing', 'pause', 'ad', 'result'].includes(this.page);
+    if (this.world.root.active) this.world.sync(this.state);
     this.hud.render(
       this.state,
       {
@@ -394,6 +444,7 @@ export class StationGame extends Component {
         resultStars: this.resultStars,
         elapsed: this.elapsed,
         invitedLevel: this.invitedLevel,
+        speedExpanded: this.speedExpanded,
       },
       this.world,
     );
@@ -407,9 +458,16 @@ export class StationGame extends Component {
       speed: this.gate.speed,
       unlockedSpeeds: Array.from(this.gate.unlocked),
       adPending: this.gate.pending,
+      speedExpanded: this.speedExpanded,
+      presentation: this.world.root.active ? this.world.presentation() : null,
+      scroll: { y: this.world.scrollY, max: this.world.maxScroll },
+      layout: {
+        columns: this.state.geometry.parking.columns,
+        rows: this.state.geometry.parking.rows,
+      },
       buttons: structuredClone(this.hud.buttons),
-      cars: this.state.vehicles
-        .filter((v) => v.state === 'holding')
+      cars: (this.world.root.active ? this.state.vehicles : [])
+        .filter((v) => v.state === 'holding' && this.world.inViewport(this.world.arrow(v)))
         .map((v) => ({
           id: v.id,
           available: canDispatch(this.state, v.id).ok,
@@ -426,10 +484,12 @@ export class StationGame extends Component {
     this.cleanup.forEach((fn) => fn());
     this.platform?.stop();
     input.off(Input.EventType.TOUCH_START, this.touchStart, this);
+    input.off(Input.EventType.TOUCH_MOVE, this.touchMove, this);
     input.off(Input.EventType.TOUCH_END, this.touchEnd, this);
     input.off(Input.EventType.TOUCH_CANCEL, this.clear, this);
     input.off(Input.EventType.MOUSE_DOWN, this.mouseDown, this);
     input.off(Input.EventType.MOUSE_UP, this.mouseUp, this);
+    input.off(Input.EventType.MOUSE_WHEEL, this.mouseWheel, this);
     input.off(Input.EventType.KEY_DOWN, this.keyDown, this);
     game.off(Game.EVENT_HIDE, this.hide, this);
     game.off(Game.EVENT_SHOW, this.show, this);

@@ -1,0 +1,289 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "36ce939bea942b477c4808f586eb863f1cae59a3ff1bc10b3f9b4a6b0eb35d47"
+  },
+  "checks": [
+    {
+      "width": 1366,
+      "height": 768,
+      "touch": false,
+      "layout": true,
+      "dayDuskNight": true,
+      "radioLifecycle": true,
+      "relativeRelease": false,
+      "supplyFixture": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "touch": true,
+      "layout": true,
+      "dayDuskNight": true,
+      "radioLifecycle": true,
+      "relativeRelease": true,
+      "supplyFixture": true
+    },
+    {
+      "width": 568,
+      "height": 320,
+      "touch": true,
+      "layout": true,
+      "dayDuskNight": true,
+      "radioLifecycle": true,
+      "relativeRelease": true,
+      "supplyFixture": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "orientationPause": true,
+      "manualPausePreserved": true
+    }
+  ],
+  "errors": [],
+  "captures": [
+    {
+      "width": 1366,
+      "name": "home",
+      "seconds": 2.511
+    },
+    {
+      "width": 1366,
+      "name": "missions",
+      "seconds": 4.012
+    },
+    {
+      "width": 1366,
+      "name": "day",
+      "seconds": 5.857
+    },
+    {
+      "width": 1366,
+      "name": "exit-confirm",
+      "seconds": 7.687
+    },
+    {
+      "width": 1366,
+      "name": "pause",
+      "seconds": 9.948
+    },
+    {
+      "width": 1366,
+      "name": "settings",
+      "seconds": 11.111
+    },
+    {
+      "width": 1366,
+      "name": "sound-off",
+      "seconds": 12.584
+    },
+    {
+      "width": 1366,
+      "name": "help",
+      "seconds": 14.435
+    },
+    {
+      "width": 1366,
+      "name": "supply-offer",
+      "seconds": 16.382
+    },
+    {
+      "width": 1366,
+      "name": "supply-choice",
+      "seconds": 17.733
+    },
+    {
+      "width": 1366,
+      "name": "support-countdown",
+      "seconds": 19.072
+    },
+    {
+      "width": 1366,
+      "name": "exit-confirm",
+      "seconds": 22.955
+    },
+    {
+      "width": 1366,
+      "name": "exit-confirm",
+      "seconds": 27.341
+    },
+    {
+      "width": 1366,
+      "name": "night",
+      "seconds": 30.603
+    },
+    {
+      "width": 1366,
+      "name": "thermal",
+      "seconds": 35.465
+    },
+    {
+      "width": 844,
+      "name": "home",
+      "seconds": 2
+    },
+    {
+      "width": 844,
+      "name": "missions",
+      "seconds": 3.658
+    },
+    {
+      "width": 844,
+      "name": "day",
+      "seconds": 5.575
+    },
+    {
+      "width": 844,
+      "name": "exit-confirm",
+      "seconds": 12.136
+    },
+    {
+      "width": 844,
+      "name": "pause",
+      "seconds": 14.297
+    },
+    {
+      "width": 844,
+      "name": "settings",
+      "seconds": 15.092
+    },
+    {
+      "width": 844,
+      "name": "sound-off",
+      "seconds": 16.418
+    },
+    {
+      "width": 844,
+      "name": "help",
+      "seconds": 18.332
+    },
+    {
+      "width": 844,
+      "name": "supply-offer",
+      "seconds": 20.559
+    },
+    {
+      "width": 844,
+      "name": "supply-choice",
+      "seconds": 21.799
+    },
+    {
+      "width": 844,
+      "name": "support-countdown",
+      "seconds": 23.028
+    },
+    {
+      "width": 844,
+      "name": "impact",
+      "seconds": 30.908
+    },
+    {
+      "width": 844,
+      "name": "priority",
+      "seconds": 31.857
+    },
+    {
+      "width": 844,
+      "name": "exit-confirm",
+      "seconds": 34.364
+    },
+    {
+      "width": 844,
+      "name": "exit-confirm",
+      "seconds": 39.226
+    },
+    {
+      "width": 844,
+      "name": "night",
+      "seconds": 42.532
+    },
+    {
+      "width": 844,
+      "name": "thermal",
+      "seconds": 48.093
+    },
+    {
+      "width": 568,
+      "name": "home",
+      "seconds": 1.868
+    },
+    {
+      "width": 568,
+      "name": "missions",
+      "seconds": 3.248
+    },
+    {
+      "width": 568,
+      "name": "day",
+      "seconds": 5.064
+    },
+    {
+      "width": 568,
+      "name": "exit-confirm",
+      "seconds": 11.408
+    },
+    {
+      "width": 568,
+      "name": "pause",
+      "seconds": 13.437
+    },
+    {
+      "width": 568,
+      "name": "settings",
+      "seconds": 14.194
+    },
+    {
+      "width": 568,
+      "name": "sound-off",
+      "seconds": 15.454
+    },
+    {
+      "width": 568,
+      "name": "help",
+      "seconds": 17.257
+    },
+    {
+      "width": 568,
+      "name": "supply-offer",
+      "seconds": 19.039
+    },
+    {
+      "width": 568,
+      "name": "supply-choice",
+      "seconds": 20.213
+    },
+    {
+      "width": 568,
+      "name": "support-countdown",
+      "seconds": 21.388
+    },
+    {
+      "width": 568,
+      "name": "exit-confirm",
+      "seconds": 25.373
+    },
+    {
+      "width": 568,
+      "name": "exit-confirm",
+      "seconds": 29.916
+    },
+    {
+      "width": 568,
+      "name": "night",
+      "seconds": 33.068
+    },
+    {
+      "width": 568,
+      "name": "thermal",
+      "seconds": 38.308
+    },
+    {
+      "width": 390,
+      "name": "orientation",
+      "seconds": 1.731
+    }
+  ],
+  "fixtures": "Local saved unlocks; completed rewarded-provider fixture only for supply UI. No simulation state writes."
+}

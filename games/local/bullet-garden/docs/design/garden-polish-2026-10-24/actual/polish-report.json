@@ -1,0 +1,48 @@
+{
+  "runtime": "Creator 3.8.8 production; Chromium touch emulation",
+  "sourceHash": "2960a86c45e9483779b9471efb9e04ca0bb5ed4c6a65ec22454b7b298faed332",
+  "views": [
+    {
+      "width": 320,
+      "height": 480
+    },
+    {
+      "width": 640,
+      "height": 360
+    },
+    {
+      "width": 320,
+      "height": 568
+    },
+    {
+      "width": 330,
+      "height": 717
+    },
+    {
+      "width": 390,
+      "height": 844
+    },
+    {
+      "width": 430,
+      "height": 932
+    },
+    {
+      "width": 844,
+      "height": 390
+    }
+  ],
+  "choices": [
+    {
+      "time": 24.48216666666657,
+      "kills": 8
+    }
+  ],
+  "errors": [],
+  "victory": {
+    "time": 60.86333333333193,
+    "hp": 100,
+    "kills": 20
+  },
+  "video": "F:\\playground\\playground-ai\\small-games\\games\\local\\bullet-garden\\docs\\design\\garden-polish-2026-10-24\\actual\\recordings\\abbff8263dac258b3e4e8b7dc742f3ab.webm",
+  "passed": true
+}

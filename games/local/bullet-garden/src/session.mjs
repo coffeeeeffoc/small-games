@@ -63,13 +63,9 @@ export class GardenSession {
     if (!this.hidden && !this.pending && this.screen === 'paused' && resumeGame(this.state))
       this.screen = 'playing';
   }
-  suspend({ nativeAdTransition = false } = {}) {
+  suspend() {
     this.hidden = true;
-    // An acknowledged SDK overlay owns this pause until visibility returns.
-    if (this.pending && !this.pending.shown && !nativeAdTransition) {
-      this.cancelAd();
-      this.adStatus = '已取消补给，可继续冒险';
-    }
+    // SDK overlays can hide the page before show() resolves. Navigation cancels separately.
     this.pause();
   }
   show() {
@@ -118,6 +114,7 @@ export class GardenSession {
     let result;
     try {
       result = await this.provider.show({
+        opportunityId: `bullet-garden:${kind}`,
         kind: 'rewarded',
         placement: kind,
         onShown: () => {

@@ -15,6 +15,7 @@ function defaults() {
     unlocked: 1,
     selected: 0,
     sound: true,
+    reducedMotion: false,
     skin: 'mint',
     best: {},
     continuedBest: {},
@@ -75,6 +76,7 @@ function sanitizeProgress(saved, levels) {
   progress.endlessBest =
     Number.isSafeInteger(saved.endlessBest) && saved.endlessBest >= 0 ? saved.endlessBest : 0;
   progress.sound = saved.sound !== false;
+  progress.reducedMotion = saved.reducedMotion === true;
   progress.skin = SKINS.has(saved.skin) ? saved.skin : 'mint';
   progress.best = sanitizeScores(saved.best, allowedIds);
   progress.continuedBest = sanitizeScores(saved.continuedBest, allowedIds);
@@ -120,7 +122,8 @@ export function recordWin(progress, levelIndex, levelId, result, { practice = fa
   const next = sanitizeProgress(progress);
   const scores = result.continued === true ? next.continuedBest : next.best;
   const previous = scores[levelId];
-  if (!previous || score.elapsed < previous.elapsed) scores[levelId] = score;
+  if (!result.rewardRefillUsed && (!previous || score.elapsed < previous.elapsed))
+    scores[levelId] = score;
   next.unlocked = Math.min(MAX_LEVELS, Math.max(next.unlocked, levelIndex + 2));
   Object.assign(progress, next);
   return progress;

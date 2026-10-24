@@ -296,9 +296,6 @@ importers:
       '@coffeeeeffoc/platform-wechat':
         specifier: workspace:*
         version: link:../../platforms/wechat
-      '@coffeeeeffoc/retreat-rally':
-        specifier: workspace:*
-        version: link:../../games/local/retreat-rally
       '@coffeeeeffoc/three-choose-two':
         specifier: workspace:*
         version: link:../../games/local/three-choose-two
@@ -420,9 +417,6 @@ importers:
       '@coffeeeeffoc/rescue-team':
         specifier: workspace:*
         version: link:../../games/local/rescue-team
-      '@coffeeeeffoc/retreat-rally':
-        specifier: workspace:*
-        version: link:../../games/local/retreat-rally
       '@coffeeeeffoc/surprise-kept':
         specifier: workspace:*
         version: link:../../games/local/surprise-kept
@@ -631,7 +625,14 @@ importers:
         specifier: 5.0.0
         version: 5.0.0(@types/node@24.3.1)(jsdom@26.1.0(supports-color@10.2.2))(vite@8.2.4(@types/node@24.3.1)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.20.5))
 
-  games/local/ashfall-front: {}
+  games/local/ashfall-front:
+    devDependencies:
+      '@playwright/test':
+        specifier: 1.55.1
+        version: 1.55.1
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
 
   games/local/porcelain-puzzle:
     devDependencies:
@@ -891,23 +892,42 @@ importers:
 
   games/local/rescue-team: {}
 
-  games/local/retreat-rally: {}
-
   games/local/surprise-kept: {}
 
-  games/local/tetracube: {}
+  games/local/tetracube:
+    devDependencies:
+      '@playwright/test':
+        specifier: 1.55.1
+        version: 1.55.1
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
 
   games/local/three-choose-two:
     dependencies:
       '@coffeeeeffoc/game-contract':
         specifier: workspace:*
         version: link:../../../packages/game-contract
+    devDependencies:
+      '@playwright/test':
+        specifier: 1.55.1
+        version: 1.55.1
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
 
   games/local/tianxia-chalu: {}
 
   games/local/tiny-signals: {}
 
-  games/local/tower-brake: {}
+  games/local/tower-brake:
+    devDependencies:
+      '@playwright/test':
+        specifier: 1.55.1
+        version: 1.55.1
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
 
   games/local/travel-bund:
     dependencies:

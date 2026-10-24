@@ -7,7 +7,7 @@ import { DuelBot } from './duel-bot.js';
 import { DUEL_MAP, DUEL_RULES as R } from './duel-map.js';
 import { parseCommand, type DuelMessage } from './duel-protocol.js';
 import { createDuel, stepDuel } from './duel-simulation.js';
-import type { Command, Duel, Side } from './duel-types.js';
+import { DUEL_VERSION, type Command, type Duel, type Side } from './duel-types.js';
 type Member = {
   token: string;
   joined: number;
@@ -68,7 +68,7 @@ export function createDuelServer(
       res.writeHead(status, { 'Content-Type': 'application/json' }).end(JSON.stringify(body));
     };
     if (url.pathname === '/health') {
-      json(200, { ok: true, version: 'duel-v1', rooms: rooms.size });
+      json(200, { ok: true, version: DUEL_VERSION, rooms: rooms.size });
       return;
     }
     if (url.pathname === '/duel/events' && req.method === 'GET') {
@@ -118,7 +118,7 @@ export function createDuelServer(
         if (!body || typeof body !== 'object' || Array.isArray(body))
           throw new Error('Invalid body');
         if (url.pathname === '/duel/join') {
-          if (body.version !== 'duel-v1' || body.mapId !== DUEL_MAP.id) {
+          if (body.version !== DUEL_VERSION || body.mapId !== DUEL_MAP.id) {
             json(409, { error: 'VERSION_MISMATCH' });
             return;
           }

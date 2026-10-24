@@ -271,6 +271,7 @@ if (target === 'web-mobile') {
   const index = path.join(outputDir, 'index.html');
   const html = (await readFile(index, 'utf8'))
     .replace('<title>Cocos Creator | carding-car</title>', '<title>浪湾卡丁车</title>')
+    .replace(/<meta name="(?:full-screen|x5-fullscreen|360-fullscreen)"[^>]*>/g, '')
     .replace('<head>', '<head>\n<link rel="icon" href="data:,">')
     .replace('</head>', '<script src="./dev-mode.js"></script></head>')
     .replace(
@@ -282,7 +283,6 @@ if (target === 'web-mobile') {
   await installLoading(outputDir);
   await installDisplay(outputDir);
   await writeFile(path.join(outputDir, 'competition-session.js'), competitionBridge);
-  await cp(new URL('./fullscreen.js', import.meta.url), path.join(outputDir, 'fullscreen.js'));
   await cp(new URL('./dev-mode.js', import.meta.url), path.join(outputDir, 'dev-mode.js'));
   await writeFile(
     path.join(outputDir, 'build-info.json'),

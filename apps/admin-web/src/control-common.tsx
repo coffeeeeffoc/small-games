@@ -122,7 +122,7 @@ export const gameNames: Record<string, string> = {
   'flick-arena': '弹击竞技场',
   'carrom-club': '卡罗姆俱乐部',
   'cage-rescue': '笼中救援',
-  'tower-brake': '转塔刹车',
+  'tower-brake': '穿云落星',
   'three-choose-two': '三选二',
   'carding-car': '卡丁车',
 };

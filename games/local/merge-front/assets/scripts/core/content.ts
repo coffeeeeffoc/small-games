@@ -4,6 +4,7 @@ export interface Spec {
   id: string;
   name: string;
   kind: Kind;
+  cost: number;
   parts: string[];
   atlas: number;
   unlock: number;
@@ -45,11 +46,80 @@ export interface Level {
   scene: string;
   medals: { health: number; seconds: number };
 }
-export const CONTENT_VERSION = 1;
+export const CONTENT_VERSION = 2;
+export const TRAITS = [
+  {
+    id: 'flame',
+    name: '烈焰',
+    color: '#ed704c',
+    description: '2名：攻击+12%；4名：仍+12%，溅射副伤提高至75%。',
+    keys: ['nezha', 'wukong', 'fire', 'cannon'],
+  },
+  {
+    id: 'thunder',
+    name: '雷霆',
+    color: '#deb95e',
+    description: '2/4名：攻击速度+12%/25%。',
+    keys: ['erlang', 'leizhen', 'drone', 'crossbow'],
+  },
+  {
+    id: 'armor',
+    name: '玄甲',
+    color: '#77a6c2',
+    description: '2/4名：生命+18%/35%。',
+    keys: ['juling', 'tianwang', 'guard', 'ram'],
+  },
+  {
+    id: 'spirit',
+    name: '灵泽',
+    color: '#83cfae',
+    description: '2名：开战12%护盾；4名：开战距另一灵泽125以内获24%，否则12%。',
+    keys: ['change', 'xuannv', 'frost', 'lantern'],
+  },
+];
+export function getTrait(key: string) {
+  const trait = TRAITS.find((t) => t.id === key || t.keys.includes(key));
+  if (!trait) throw new Error('Unknown trait: ' + String(key));
+  return trait;
+}
+export const SPELLS = [
+  { id: 'sharpen', name: '磨刃', cost: 2, description: '己方场上单位永久+5攻击。' },
+  { id: 'fortify', name: '锻体', cost: 2, description: '己方场上单位永久+35生命。' },
+  { id: 'ward', name: '护符', cost: 2, description: '己方场上单位下一场+30%生命护盾，不叠加。' },
+  { id: 'inspire', name: '鼓舞', cost: 3, description: '本场全军攻击+12%，每轮一次。' },
+];
+export interface Starter {
+  id: string;
+  name: string;
+  keys: [string, string];
+}
+export const STARTERS: Starter[] = [
+  { id: 'flame', name: '烈焰初阵', keys: ['nezha', 'fire'] },
+  { id: 'thunder', name: '雷霆初阵', keys: ['erlang', 'drone'] },
+  { id: 'armor', name: '玄甲初阵', keys: ['juling', 'guard'] },
+  { id: 'spirit', name: '灵泽初阵', keys: ['change', 'frost'] },
+  { id: 'guard-fire', name: '巨灵火铳', keys: ['juling', 'fire'] },
+  { id: 'lotus-drone', name: '火莲巡天', keys: ['nezha', 'drone'] },
+  { id: 'eye-guard', name: '天眼护阵', keys: ['erlang', 'guard'] },
+  { id: 'moon-ram', name: '月下破城', keys: ['change', 'ram'] },
+];
+export function starterChoices(seed: number): Starter[] {
+  if (!Number.isSafeInteger(seed) || seed < 0 || seed > 0xffffffff) throw new Error('Invalid seed');
+  let rng = seed >>> 0;
+  const pick = (n: number) => {
+    rng = (Math.imul(rng, 1664525) + 1013904223) >>> 0;
+    return Math.floor((rng / 4294967296) * n);
+  };
+  const chosen = [STARTERS[pick(4)], STARTERS[4 + pick(4)]];
+  const remaining = STARTERS.filter((s) => !chosen.includes(s));
+  chosen.push(remaining[pick(remaining.length)]);
+  return chosen.map((s) => ({ ...s, keys: [...s.keys] }));
+}
 
 export const CATALOG: Spec[] = [
   {
     id: 'nezha',
+    cost: 0,
     name: '哪吒',
     kind: 'hero',
     parts: ['哪', '吒'],
@@ -67,6 +137,7 @@ export const CATALOG: Spec[] = [
   },
   {
     id: 'juling',
+    cost: 3,
     name: '巨灵神',
     kind: 'hero',
     parts: ['巨', '灵', '神'],
@@ -74,7 +145,7 @@ export const CATALOG: Spec[] = [
     unlock: 3,
     role: '前排承伤',
     skill: '巨斧格挡',
-    hp: 540,
+    hp: 380,
     damage: 28,
     range: 30,
     speed: 46,
@@ -84,6 +155,7 @@ export const CATALOG: Spec[] = [
   },
   {
     id: 'erlang',
+    cost: 3,
     name: '杨戬',
     kind: 'hero',
     parts: ['杨', '戬'],
@@ -101,6 +173,7 @@ export const CATALOG: Spec[] = [
   },
   {
     id: 'wukong',
+    cost: 4,
     name: '孙悟空',
     kind: 'hero',
     parts: ['孙', '悟', '空'],
@@ -118,6 +191,7 @@ export const CATALOG: Spec[] = [
   },
   {
     id: 'leizhen',
+    cost: 3,
     name: '雷震子',
     kind: 'hero',
     parts: ['雷', '震', '子'],
@@ -135,6 +209,7 @@ export const CATALOG: Spec[] = [
   },
   {
     id: 'change',
+    cost: 3,
     name: '嫦娥',
     kind: 'hero',
     parts: ['嫦', '娥'],
@@ -142,8 +217,8 @@ export const CATALOG: Spec[] = [
     unlock: 20,
     role: '减速控制',
     skill: '月轮霜域',
-    hp: 180,
-    damage: 24,
+    hp: 280,
+    damage: 34,
     range: 155,
     speed: 53,
     interval: 1.1,
@@ -153,6 +228,7 @@ export const CATALOG: Spec[] = [
   },
   {
     id: 'tianwang',
+    cost: 4,
     name: '托塔天王',
     kind: 'hero',
     parts: ['托', '塔', '天', '王'],
@@ -171,6 +247,7 @@ export const CATALOG: Spec[] = [
   },
   {
     id: 'xuannv',
+    cost: 4,
     name: '九天玄女',
     kind: 'hero',
     parts: ['九', '天', '玄', '女'],
@@ -188,6 +265,7 @@ export const CATALOG: Spec[] = [
   },
   {
     id: 'fire',
+    cost: 3,
     name: '离火铳',
     kind: 'weapon',
     parts: ['离', '火', '铳'],
@@ -205,6 +283,7 @@ export const CATALOG: Spec[] = [
   },
   {
     id: 'drone',
+    cost: 3,
     name: '巡天机',
     kind: 'weapon',
     parts: ['巡', '天', '机'],
@@ -221,6 +300,7 @@ export const CATALOG: Spec[] = [
   },
   {
     id: 'cannon',
+    cost: 4,
     name: '震雷炮',
     kind: 'weapon',
     parts: ['震', '雷', '炮'],
@@ -238,6 +318,7 @@ export const CATALOG: Spec[] = [
   },
   {
     id: 'frost',
+    cost: 3,
     name: '寒霜轮',
     kind: 'weapon',
     parts: ['寒', '霜', '轮'],
@@ -245,8 +326,8 @@ export const CATALOG: Spec[] = [
     unlock: 15,
     role: '减速压制',
     skill: '冰轮凝霜',
-    hp: 290,
-    damage: 27,
+    hp: 350,
+    damage: 34,
     range: 98,
     speed: 60,
     interval: 1,
@@ -256,6 +337,7 @@ export const CATALOG: Spec[] = [
   },
   {
     id: 'crossbow',
+    cost: 3,
     name: '雷鸣弩',
     kind: 'weapon',
     parts: ['雷', '鸣', '弩'],
@@ -273,6 +355,7 @@ export const CATALOG: Spec[] = [
   },
   {
     id: 'guard',
+    cost: 3,
     name: '护阵车',
     kind: 'weapon',
     parts: ['护', '阵', '车'],
@@ -280,7 +363,7 @@ export const CATALOG: Spec[] = [
     unlock: 24,
     role: '机关前排',
     skill: '铜甲反击',
-    hp: 630,
+    hp: 420,
     damage: 24,
     range: 38,
     speed: 40,
@@ -290,6 +373,7 @@ export const CATALOG: Spec[] = [
   },
   {
     id: 'ram',
+    cost: 3,
     name: '破城锤',
     kind: 'weapon',
     parts: ['破', '城', '锤'],
@@ -307,6 +391,7 @@ export const CATALOG: Spec[] = [
   },
   {
     id: 'lantern',
+    cost: 3,
     name: '回春灯',
     kind: 'weapon',
     parts: ['回', '春', '灯'],
@@ -348,12 +433,12 @@ function level(
     chapter,
     title,
     previous: number === 1 ? null : `level-${String(number - 1).padStart(2, '0')}`,
-    allowed: CATALOG.filter((s) => s.unlock < number).map((s) => s.id),
+    allowed: CATALOG.map((s) => s.id),
     unlocks: CATALOG.filter((s) => s.unlock === number).map((s) => s.id),
     ai: { decisionTicks, warmupTicks, style, deck, reserve: style === 'counter' ? 30 : 0 },
-    initialCoins: 120,
-    income: 10,
-    crystalHp: 1800,
+    initialCoins: 6,
+    income: 6,
+    crystalHp: 30,
     scene: CHAPTERS[chapter - 1].scene,
     medals: { health, seconds },
   };
@@ -483,6 +568,12 @@ export function validateContent(): string[] {
   const atlases = new Set<number>();
   const rewards = new Set<string>();
   for (const s of CATALOG) {
+    if (
+      s.cost !==
+      (s.id === 'nezha' ? 0 : ['wukong', 'tianwang', 'xuannv', 'cannon'].includes(s.id) ? 4 : 3)
+    )
+      errors.push(`cost: ${s.id}`);
+    if (TRAITS.filter((t) => t.keys.includes(s.id)).length !== 1) errors.push(`trait: ${s.id}`);
     if (ids.has(s.id) || !/^[a-z]+$/.test(s.id)) errors.push(`recipe id: ${s.id}`);
     ids.add(s.id);
     if (atlases.has(s.atlas) || !Number.isInteger(s.atlas) || s.atlas < 0 || s.atlas >= 16)
@@ -519,7 +610,8 @@ export function validateContent(): string[] {
     )
       errors.push(`chapter: ${l.id}`);
     if (
-      l.allowed.some((id) => !ids.has(id) || getSpec(id).unlock >= l.number) ||
+      l.allowed.length !== CATALOG.length ||
+      l.allowed.some((id) => !ids.has(id)) ||
       !['nezha', 'fire'].every((id) => l.allowed.includes(id))
     )
       errors.push(`allowed: ${l.id}`);
