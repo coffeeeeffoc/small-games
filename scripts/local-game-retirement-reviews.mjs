@@ -1245,16 +1245,6 @@ export const singleGameRetirementReviews = Object.freeze({
     after: 'af4a4c3913ddb0a6d204ac77bdfaacfad6d7a0814f558fa39e2a36640f81e94f',
     sources: [],
   },
-  'scripts/publication-scopes.mjs': {
-    before: '013e26c3781b08e66952b5fe3de657ede58dffa27641a4f6f6aa9a1deb180192',
-    after: '40a159269774fa231142f89be19d15ceb90639a2e32c9829eddd53ae967776ec',
-    sources: [],
-  },
-  'scripts/publication-scopes.test.mjs': {
-    before: '3d319c70a20cf32604b554feb2a6223074527d9ea128cd401373ad9c6347604d',
-    after: '5f584c815f58e64a931d71f1167a592011e62de2be7d2c3fb287dfae246630d2',
-    sources: [],
-  },
   'scripts/reuse-cocos-artifacts.mjs': {
     before: 'cba653456b3be4201d46c68ca76219030646e9e0c5b7c86e9f130ff103e85858',
     after: '9bc4931e8fd9b3e63cb8cbd2091f805579588a58ca943581915ddea4bc619560',
@@ -1436,16 +1426,6 @@ export const singleGamePagesRetirementReviews = Object.freeze({
   'scripts/h5-taptap-matrix.test.mjs': {
     ...singleGameRetirementReviews['scripts/h5-taptap-matrix.test.mjs'],
     before: '6fe5a1d627474b3cf619f24e4de21b3d92cac2eb2dec129ea85dfd82dc0c2dd6',
-    sources: [],
-  },
-  'scripts/publication-scopes.mjs': {
-    ...singleGameRetirementReviews['scripts/publication-scopes.mjs'],
-    before: 'c90f6cccd56cfc7351b9b904c1422f3ed7a928ab45dc39ed2de8fcfee2236976',
-    sources: [],
-  },
-  'scripts/publication-scopes.test.mjs': {
-    ...singleGameRetirementReviews['scripts/publication-scopes.test.mjs'],
-    before: 'cecee2d88f38c4fbd9e483a82d992f798483701ff29fceedfb271d6476ef7e67',
     sources: [],
   },
   'scripts/reuse-cocos-artifacts.mjs': {
