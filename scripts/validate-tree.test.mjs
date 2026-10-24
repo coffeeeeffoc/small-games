@@ -6,33 +6,25 @@ import path from 'node:path';
 import { assertNodeOnly, validateTree, runIncrementalToolChecks } from './validate-tree.mjs';
 
 test('candidate execution applies fullscreen removal proofs and still rejects drift or revived files', async (t) => {
-  const { execFileSync } = await import('node:child_process');
   const root = await mkdtemp(path.join(os.tmpdir(), 'fullscreen-candidate-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const changed = [
-    '.prettierignore',
-    'package.json',
-    'platforms/h5/dev-mode.js',
-    'platforms/h5/role-appearance.js',
-    'platforms/h5/fullscreen.js',
-    'scripts/sync-h5-fullscreen.mjs',
-    'scripts/test-h5-fullscreen.mjs',
-  ];
-  const removed = changed.slice(4);
-  const before = new Map(),
-    after = new Map();
-  for (const [ref, files, contents] of [
-    ['171423331a4bdc0f8d45369b047dbc9e3d971b5c', changed, before],
-    ['d8fd03d9b46b75bc96292aa51a3c01588a13df43', changed.slice(0, 4), after],
-  ])
-    for (const file of files)
-      contents.set(
-        file,
-        execFileSync('git', ['show', `${ref}:${file}`], {
-          cwd: new URL('../', import.meta.url),
-          encoding: 'utf8',
-        }),
-      );
+  const changed = ['.prettierignore', 'scripts/sync-h5-fullscreen.mjs'];
+  const removed = changed.slice(1);
+  // Fixed reviewed bytes keep this execution regression usable in shallow CI checkouts.
+  const before = new Map(
+    Object.entries({
+      '.prettierignore':
+        'node_modules\ndist\ndist-iframe\ncoverage\n.turbo\npnpm-lock.yaml\nassets/\ngames/submodules/\n# Imported standalone games retain their existing formatting.\ngames/local/*\n!games/local/game-*\napps/shell-web/public/games/\n# Shared verbatim with standalone games; verified by test:h5-fullscreen.\nplatforms/h5/fullscreen.js\napps/shell-web/public/fullscreen.js\napps/shell-android/.gradle/\napps/shell-android/app/build/\napps/shell-android/gradlew*\napps/shell-ios/web/\napps/shell-ios/build/\n*.tsbuildinfo\n# Archived browser evidence retains its original bytes and recorded hashes.\n/reports/polish-review/\n# Canonical shared H5 fullscreen copy; checked by sync-h5-fullscreen.\ngames/local/game-castle-cannon/public/fullscreen.js\ngames/local/game-moss-garden/public/fullscreen.js\n',
+      'scripts/sync-h5-fullscreen.mjs':
+        "import assert from 'node:assert/strict';\nimport { readFile, writeFile, mkdir } from 'node:fs/promises';\n\nconst root = new URL('../', import.meta.url);\nconst source = await readFile(new URL('platforms/h5/fullscreen.js', root), 'utf8');\nconst copies = [\n  'games/local/ashfall-front/fullscreen.js',\n  'games/local/carrom-club/fullscreen.js',\n  'games/local/three-choose-two/fullscreen.js',\n  'games/local/cage-rescue/fullscreen.js',\n  'games/local/flick-arena/fullscreen.js',\n  'games/local/chase-thief/fullscreen.js',\n  'games/local/orbit-atelier/src/fullscreen.js',\n  'games/local/orbit-atelier/scripts/fullscreen.js',\n  'games/local/merge-front/scripts/fullscreen.js',\n  'games/local/out-of-frame/fullscreen.js',\n  'games/local/two-sided-box/fullscreen.js',\n  'games/local/fold-the-world/src/fullscreen.js',\n  'games/local/game-moss-garden/public/fullscreen.js',\n  'games/local/ball-roguelite/fullscreen.js',\n  'games/local/ember-bounce/fullscreen.js',\n  'games/local/tianxia-chalu/fullscreen.js',\n  'apps/shell-web/public/fullscreen.js',\n  'games/local/carding-car/scripts/fullscreen.js',\n  'games/local/cops-robbers/src/fullscreen.js',\n  'games/local/cops-robbers-realtime/src/fullscreen.js',\n  'games/local/letters-words2/fullscreen.js',\n  'games/local/tower-brake/fullscreen.js',\n  'games/local/tower-brake/scripts/fullscreen.js',\n  'games/local/tetracube/scripts/fullscreen.js',\n  'games/local/vibeJam-myself-history-guess/public/fullscreen.js',\n  'games/submodules/xiangqi-five/fullscreen.js',\n];\nfor (const path of copies) {\n  const file = new URL(path, root);\n  if (process.argv.includes('--check')) {\n    assert.equal(\n      (await readFile(file, 'utf8')).replaceAll('\\r\\n', '\\n'),\n      source.replaceAll('\\r\\n', '\\n'),\n      `${path} differs; run node scripts/sync-h5-fullscreen.mjs`,\n    );\n  } else {\n    await mkdir(new URL('./', file), { recursive: true });\n    await writeFile(file, source);\n  }\n}\nconsole.log(\n  `H5 fullscreen: ${copies.length} copies ${process.argv.includes('--check') ? 'verified' : 'updated'}.`,\n);\n",
+    }),
+  );
+  const after = new Map(
+    Object.entries({
+      '.prettierignore':
+        'node_modules\ndist\ndist-iframe\ncoverage\n.turbo\npnpm-lock.yaml\nassets/\ngames/submodules/\n# Imported standalone games retain their existing formatting.\ngames/local/*\n!games/local/game-*\napps/shell-web/public/games/\napps/shell-android/.gradle/\napps/shell-android/app/build/\napps/shell-android/gradlew*\napps/shell-ios/web/\napps/shell-ios/build/\n*.tsbuildinfo\n# Archived browser evidence retains its original bytes and recorded hashes.\n/reports/polish-review/\n',
+    }),
+  );
   const put = async (file, value) => {
     await mkdir(path.dirname(path.join(root, file)), { recursive: true });
     await writeFile(path.join(root, file), JSON.stringify(value));
@@ -42,12 +34,7 @@ test('candidate execution applies fullscreen removal proofs and still rejects dr
     packageManager: 'pnpm@12.6.0',
   });
   await put('apps/shell-web/package.json', { name: 'shell' });
-  const catalog = JSON.parse(
-    execFileSync('git', ['show', 'd8fd03d9:apps/shell-web/src/standalone-games.json'], {
-      cwd: new URL('../', import.meta.url),
-      encoding: 'utf8',
-    }),
-  );
+  const catalog = [{ id: 'fixture', source: 'games/local/fixture' }];
   await put('apps/shell-web/src/standalone-games.json', catalog);
   for (const game of catalog) await put(`${game.source}/package.json`, { name: game.id });
   let drift, revived;
