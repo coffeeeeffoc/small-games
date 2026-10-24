@@ -7,11 +7,12 @@ import { sourceHash, runtimeManifest } from '../scripts/artifact.mjs';
 import { chromium } from '@playwright/test';
 import { findHint, normalizeAngle, hasBandAt, createState } from '../assets/scripts/core/rules.ts';
 
-import { CLASSIC_LEVELS } from '../assets/scripts/core/catalog.ts';
+import { CLASSIC_LEVELS, EXPERT_LEVELS } from '../assets/scripts/core/catalog.ts';
 
 // Observation never mutates gameplay. All play actions use native CDP touch events.
 const root = fileURLToPath(new URL('../', import.meta.url));
 const publishingOnly = process.argv.includes('--publishing');
+const mediaOnly = process.argv.includes('--media');
 let server;
 let url = process.env.ORBIT_URL;
 if (!url) {
@@ -79,13 +80,27 @@ const context = await browser.newContext({
   viewport: { width: 390, height: 844 },
   hasTouch: true,
   isMobile: true,
-  deviceScaleFactor: 1,
+  userAgent:
+    'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36',
+  deviceScaleFactor: Number(process.env.ORBIT_DEVICE_SCALE || 1),
+  ...(process.env.ORBIT_RECORD_VIDEO
+    ? { recordVideo: { dir: out, size: { width: 390, height: 844 } } }
+    : {}),
 });
 const page = await context.newPage();
 page.on('pageerror', (error) => errors.push(String(error)));
 const cdp = await context.newCDPSession(page);
 let target = page;
 const snapshot = () => target.evaluate(() => globalThis.__orbit?.snapshot());
+function contentBounds(s, rect) {
+  const scale = Math.min(rect.width / s.width, rect.height / s.height);
+  return {
+    x: rect.x + (rect.width - s.width * scale) / 2,
+    y: rect.y + (rect.height - s.height * scale) / 2,
+    width: s.width * scale,
+    height: s.height * scale,
+  };
+}
 const screen = (name) =>
   target.waitForFunction((value) => globalThis.__orbit?.snapshot().screen === value, name);
 async function ready() {
@@ -96,7 +111,11 @@ async function ready() {
 async function point(x, y) {
   const [s, rect] = await Promise.all([snapshot(), target.locator('#GameCanvas').boundingBox()]);
   assert(rect);
-  return { x: rect.x + (x / s.width) * rect.width, y: rect.y + (y / s.height) * rect.height };
+  const bounds = contentBounds(s, rect);
+  return {
+    x: bounds.x + (x / s.width) * bounds.width,
+    y: bounds.y + (y / s.height) * bounds.height,
+  };
 }
 async function tap(id) {
   const s = await snapshot(),
@@ -112,9 +131,13 @@ async function touch(type, p) {
     touchPoints: p ? [{ ...p, radiusX: 5, radiusY: 5, id: 1 }] : [],
   });
 }
-async function gesture(hint, mode = 'release', expectFlight = false) {
-  const [s, bounds] = await Promise.all([snapshot(), target.locator('#GameCanvas').boundingBox()]);
-  assert(bounds);
+async function gesture(hint, mode = 'release', expectFlight = false, pointer = 'touch') {
+  const [s, canvasBounds] = await Promise.all([
+    snapshot(),
+    target.locator('#GameCanvas').boundingBox(),
+  ]);
+  assert(canvasBounds);
+  const bounds = contentBounds(s, canvasBounds);
   const r = s.state.rings.find((r) => r.id === hint.ringId),
     fit = s.fit;
   assert(r && !r.removed);
@@ -143,25 +166,38 @@ async function gesture(hint, mode = 'release', expectFlight = false) {
       bounds.y +
       ((fit.y + (r.y - fit.cy + Math.sin(angle) * r.r) * fit.scale) / s.height) * bounds.height,
   });
-  await touch('touchStart', await coord(start));
+  if (pointer === 'mouse') {
+    const p = coord(start);
+    await page.mouse.move(p.x, p.y);
+    await page.mouse.down();
+  } else await touch('touchStart', coord(start));
   if (expectFlight) {
     const started = await snapshot();
     assert.equal(started.drag?.ringId, r.id);
     assert(started.flights > 0, 'The next drag starts while the previous ring is flying');
   }
   for (let i = 1; i <= 24; i++) {
-    await touch('touchMove', await coord(start + (delta * i) / 24));
+    const p = coord(start + (delta * i) / 24);
+    if (pointer === 'mouse') await page.mouse.move(p.x, p.y);
+    else await touch('touchMove', p);
     await page.waitForTimeout(8);
   }
   const selected = await snapshot();
   assert.equal(selected.selectedRingId, r.id, 'The finger selects the intended solid ring');
+  if (Math.abs(delta) > 0.05)
+    assert.notEqual(
+      selected.state.rings.find((ring) => ring.id === r.id).angle,
+      r.angle,
+      pointer + ' dragging actually rotates the ring',
+    );
   if (mode === 'cancel') {
     assert.notDeepEqual(selected.state, s.state, 'Cancellation exercises a moved gesture');
     await touch('touchCancel');
     return;
   }
   if (mode === 'hold') return { start, coord, delta, ring: r };
-  await touch('touchEnd');
+  if (pointer === 'mouse') await page.mouse.up();
+  else await touch('touchEnd');
   await page.waitForTimeout(70);
   assert(
     (await snapshot()).state.rings.find((ring) => ring.id === r.id).removed,
@@ -203,7 +239,41 @@ try {
     await sourceHash(),
     'Browser evidence belongs to the current source',
   );
-  if (publishingOnly) {
+  if (mediaOnly) {
+    await page.goto(url);
+    await ready();
+    await shot('mobile-home');
+    await tap('settings');
+    await tap('legacy-expert');
+    await shot('expert-levels');
+    await tap('level:expert-01');
+    for (let index = 0; index < 2; index++) {
+      await shot('expert-play-' + (index + 1));
+      if (index === 0) await gesture(findHint((await snapshot()).state), 'release', false, 'mouse');
+      await finish();
+      await shot('expert-result-' + (index + 1));
+      if (!index) await tap('next');
+    }
+    await page.goto(new URL('?challenge=expert-06', url).href);
+    await ready();
+    for (const [width, height, name] of [
+      [390, 844, 'expert-12-portrait'],
+      [320, 640, 'expert-12-small'],
+      [768, 1024, 'expert-12-tablet'],
+      [844, 390, 'expert-12-landscape'],
+    ]) {
+      await page.setViewportSize({ width, height });
+      await page.waitForTimeout(300);
+      await shot(name);
+      const before = (await snapshot()).state;
+      await gesture(findHint(before), 'cancel');
+      assert.deepEqual((await snapshot()).state, before);
+    }
+    results.push({
+      name: 'Actual expert play recording, mouse/touch and four viewport checks',
+      status: 'passed',
+    });
+  } else if (publishingOnly) {
     await context.addInitScript(() => {
       globalThis.SmallGamesPublishingConfig = {
         publicUrl: 'https://example.test/orbit/?dev=1&token=private#private',
@@ -229,7 +299,9 @@ try {
     });
     await page.goto(url);
     await ready();
-    await tap('start');
+    await tap('settings');
+    await tap('legacy-nova');
+    await tap('level:nova-01');
     const baseline = await saved();
     await page.goto(new URL('?challenge=nova-02&dev=0', url).href);
     await ready();
@@ -287,14 +359,50 @@ try {
     await check('native Cocos engine, home and locked map', async () => {
       assert.equal((await snapshot()).engine, 'Cocos Creator 3.8.8');
       assert.equal(await page.locator('[data-game-fullscreen]').count(), 0);
-      await tap('levels');
+      await tap('settings');
+      await tap('legacy-nova');
       await screen('levels');
       assert((await snapshot()).controls.some((c) => c.id === 'level:nova-02' && c.disabled));
       await shot('mobile-levels');
-      await tap('home');
-      await tap('start');
+      await tap('level:nova-01');
       await screen('playing');
       await shot('mobile-playing');
+    });
+    await check(
+      'pointer cancellation restores a real mouse drag and permits the next drag',
+      async () => {
+        const before = await snapshot();
+        await gesture(findHint(before.state), 'hold', false, 'mouse');
+        await target
+          .locator('#GameCanvas')
+          .dispatchEvent('pointercancel', { pointerId: 1, pointerType: 'mouse' });
+        const after = await snapshot();
+        assert.equal(after.drag, null);
+        assert.deepEqual(after.state, before.state);
+        await page.mouse.up();
+        await page.keyboard.press('Escape');
+        await screen('paused');
+        await page.keyboard.press('Escape');
+        await screen('playing');
+      },
+    );
+    await check('capture loss restores a mouse drag after it leaves the canvas', async () => {
+      const before = await snapshot();
+      await gesture(findHint(before.state), 'hold', false, 'mouse');
+      const bounds = await target.locator('#GameCanvas').boundingBox();
+      await page.mouse.move(bounds.x + bounds.width + 25, bounds.y + bounds.height / 2);
+      assert((await snapshot()).drag, 'Captured drag continues beyond canvas bounds');
+      await target.locator('#GameCanvas').evaluate((canvas) => canvas.releasePointerCapture(1));
+      await page.mouse.move(bounds.x + bounds.width + 30, bounds.y + bounds.height / 2);
+      assert.equal((await snapshot()).drag, null);
+      assert.deepEqual((await snapshot()).state, before.state);
+      await page.mouse.up();
+    });
+    await check('mouse rotation works on a browser with mobile and touch emulation', async () => {
+      await gesture(findHint((await snapshot()).state), 'release', false, 'mouse');
+      await screen('result');
+      await tap('retry');
+      await screen('playing');
     });
     await check('touch cancellation restores the complete pre-gesture state', async () => {
       const before = await snapshot(),
@@ -306,6 +414,24 @@ try {
       assert.equal(after.hints, before.hints);
       assert.equal(await saved(), persisted);
       assert.equal((await snapshot()).drag, null);
+    });
+    await check('a second touch cannot take over a ring gesture', async () => {
+      const before = await snapshot();
+      const held = await gesture(findHint(before.state), 'hold');
+      const selected = await snapshot();
+      const primary = { ...held.coord(held.start + held.delta), id: 1 };
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [primary, { x: 15, y: 15, id: 2 }],
+      });
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [primary, { x: 25, y: 30, id: 2 }],
+      });
+      assert.deepEqual((await snapshot()).state, selected.state);
+      assert.equal((await snapshot()).drag.ringId, held.ring.id);
+      await touch('touchCancel');
+      assert.deepEqual((await snapshot()).state, before.state);
     });
     await check('slow dragging can leave magnetic alignment without sticking', async () => {
       const before = await snapshot(),
@@ -384,12 +510,14 @@ try {
       await tap('home');
       for (const [width, height, name] of [
         [320, 640, 'mobile-small'],
+        [768, 1024, 'tablet-letterbox'],
         [844, 390, 'mobile-landscape'],
       ]) {
         await page.setViewportSize({ width, height });
         await page.waitForTimeout(300);
         await shot(name);
         await tap('settings');
+        await screen('settings');
         const s = await snapshot();
         assert(
           s.controls.every((c) => c.y >= 0 && c.y + c.h <= s.height),
@@ -404,6 +532,35 @@ try {
         Object.keys((await snapshot()).progress.medals).filter((id) => id.startsWith('nova-'))
           .length,
         24,
+      );
+    });
+    await check('all six expert charts use normal unlocks and real touch input', async () => {
+      await tap('settings');
+      await tap('legacy-expert');
+      await screen('levels');
+      assert((await snapshot()).controls.some((c) => c.id === 'level:expert-01' && !c.disabled));
+      assert((await snapshot()).controls.some((c) => c.id === 'level:expert-02' && c.disabled));
+      await shot('expert-levels');
+      await tap('level:expert-01');
+      for (const [index, level] of EXPERT_LEVELS.entries()) {
+        assert.equal((await snapshot()).state.levelId, level.id);
+        await shot('expert-play-' + (index + 1));
+        await finish();
+        const s = await snapshot();
+        assert.equal(s.medal, 3);
+        assert.equal(s.progress.medals[level.id], 3);
+        assert.equal(s.progress.medals['nova-24'], 3);
+        if (index === 5) await shot('expert-result');
+        await tap('next');
+      }
+      await screen('levels');
+      await tap('home');
+      await page.reload();
+      await ready();
+      assert.equal(
+        Object.keys((await snapshot()).progress.medals).filter((id) => id.startsWith('expert-'))
+          .length,
+        6,
       );
     });
     await check('explicit developer mode stays isolated from player progress', async () => {
@@ -488,7 +645,9 @@ try {
       });
       await page.goto(url);
       await ready();
-      await tap('start');
+      await tap('settings');
+      await tap('legacy-nova');
+      await tap('level:nova-01');
       await finish();
       assert.equal((await snapshot()).medal, 3);
     });
@@ -499,7 +658,14 @@ try {
   throw error;
 } finally {
   await writeFile(
-    path.join(out, publishingOnly ? 'publishing-verification.json' : 'verification.json'),
+    path.join(
+      out,
+      mediaOnly
+        ? 'media-verification.json'
+        : publishingOnly
+          ? 'publishing-verification.json'
+          : 'verification.json',
+    ),
     JSON.stringify(
       {
         status: failure ? 'failed' : 'passed',
@@ -517,6 +683,10 @@ try {
       2,
     ),
   );
+  if (process.env.ORBIT_RECORD_VIDEO) {
+    await context.close();
+    await page.video()?.saveAs(path.join(out, 'actual-play.webm'));
+  }
   await browser.close();
   server?.close();
 }

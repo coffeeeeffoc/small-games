@@ -7,10 +7,11 @@
     "dev": "node scripts/serve.mjs",
     "preview": "node scripts/serve.mjs",
     "typecheck": "node scripts/typecheck.mjs",
-    "test": "node --test --test-concurrency=1 tests/core.test.ts tests/evidence.test.mjs tests/nova-core.test.ts tests/cocos-build.test.mjs tests/rewards.test.mjs",
-    "test:browser": "node tests/cocos.browser.mjs",
+    "test": "node --test --test-concurrency=1 tests/core.test.ts tests/evidence.test.mjs tests/nova-core.test.ts tests/cocos-build.test.mjs tests/rewards.test.mjs tests/metal.test.ts tests/metal-integration.test.ts",
+    "test:browser": "node tests/metal.browser.mjs && node tests/cocos.browser.mjs",
     "build": "node scripts/build.mjs web-mobile",
-    "test:publishing:browser": "node tests/cocos.browser.mjs --publishing"
+    "test:publishing:browser": "node tests/cocos.browser.mjs --publishing",
+    "test:metal:browser": "node tests/metal.browser.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.55.1",

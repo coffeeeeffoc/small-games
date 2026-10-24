@@ -51,7 +51,7 @@ if (target === 'web-mobile' && process.env.ORBIT_ATELIER_PREBUILT_DIR) {
     scenes: [
       { url: 'db://assets/scenes/main.scene', uuid: 'b08df903-b56d-4e61-88a2-842fb0f815b1' },
     ],
-    packages: { 'web-mobile': { embedWebDebugger: false, orientation: 'portrait' } },
+    packages: { 'web-mobile': { embedWebDebugger: false, orientation: 'auto' } },
   };
   const configPath = path.join(root, `reports/build-${target}.json`);
   await writeFile(configPath, JSON.stringify(config, null, 2));
@@ -74,7 +74,7 @@ if (target === 'web-mobile' && process.env.ORBIT_ATELIER_PREBUILT_DIR) {
     .replace('minimal-ui=true', 'viewport-fit=cover')
     .replace(
       '</head>',
-      '<link rel="icon" href="data:,"><style>html,body{margin:0;background:#061522;overflow:hidden}canvas{touch-action:none;outline:none}[hidden]{display:none!important}#GameDiv{position:absolute;inset:0;width:100%;height:100%;border:0;margin:0}#GameCanvas{width:100%;height:100%}</style><script src="./dev-mode.js"></script><script type="module" src="./host.js"></script></head>',
+      '<link rel="icon" href="data:,"><style>html,body{margin:0;width:100%;height:100%;background:#061522;overflow:hidden}canvas{touch-action:none;outline:none}[hidden]{display:none!important}#GameDiv{position:absolute;inset:0;width:100%!important;height:100%!important;border:0;margin:0}#GameCanvas{width:100%;height:100%}</style><script src="./dev-mode.js"></script><script type="module" src="./host.js"></script></head>',
     );
   await writeFile(path.join(out, 'index.html'), html);
   for (const file of ['dev-mode.js'])

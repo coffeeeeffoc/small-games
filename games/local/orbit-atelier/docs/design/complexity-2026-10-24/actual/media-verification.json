@@ -1,0 +1,15 @@
+{
+  "status": "passed",
+  "sourceHash": "b6f274bf3c4ee4cf7ddf45eaf61a956cf6bfe0a381f3cccfaa53e7548b03848d",
+  "engine": "Cocos Creator 3.8.8",
+  "environment": "Chromium desktop mobile emulation; native CDP touch; not physical-device acceptance",
+  "browser": "156.0.8078.47",
+  "url": "http://127.0.0.1:60479/",
+  "results": [
+    {
+      "name": "Actual expert play recording, mouse/touch and four viewport checks",
+      "status": "passed"
+    }
+  ],
+  "errors": []
+}

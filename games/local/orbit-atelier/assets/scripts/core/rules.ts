@@ -1,3 +1,12 @@
+import {
+  canPose,
+  testExtraction,
+  findMetalPose,
+  wirePaths,
+  wireCollision,
+  type WireSpec,
+  type WireRing,
+} from './metal.ts';
 /** Pure puzzle rules. Angles use screen coordinates: right = 0, down = π / 2. */
 export const TAU = Math.PI * 2;
 export const RING_STROKE = 15;
@@ -10,6 +19,8 @@ export interface Point {
 
 export interface Ring extends Point {
   id: string;
+  wire?: WireSpec;
+  tilt?: number;
   r: number;
   /** Width of the opening, in radians. */
   gap: number;
@@ -27,7 +38,7 @@ export interface Level {
   chapter: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
   intro?: string;
   rings: Ring[];
-  campaign?: 'nova' | 'classic';
+  campaign?: 'nova' | 'classic' | 'expert' | 'metal';
   goalRingIds?: string[];
   parMoves?: number;
   revision?: number;
@@ -48,6 +59,7 @@ export interface State {
 export interface Hint {
   ringId: string;
   angle: number;
+  tilt?: number;
 }
 
 export interface Blocker {
@@ -114,7 +126,8 @@ export function isLocked(state: State, ringId: string): boolean {
   return (
     !!ring &&
     !ring.removed &&
-    (state.releasedCount < (ring.unlockAfter ?? 0) ||
+    (ring.wire?.fixed ||
+      state.releasedCount < (ring.unlockAfter ?? 0) ||
       (ring.requires ?? []).some(
         (id) => !state.rings.find((candidate) => candidate.id === id)?.removed,
       ))
@@ -138,9 +151,19 @@ export function createState(level: Level): State {
 }
 
 /** Rotation does not release a ring; the input layer calls tryRelease on pointer-up. */
-export function rotateRing(state: State, ringId: string, angle: number): boolean {
+export function rotateRing(state: State, ringId: string, angle: number, tilt?: number): boolean {
   const ring = state.rings.find((candidate) => candidate.id === ringId);
   if (!ring || ring.removed || isLocked(state, ringId) || !Number.isFinite(angle)) return false;
+  if (ring.wire) {
+    const nextTilt = tilt ?? ring.tilt ?? 0;
+    if (
+      !Number.isFinite(nextTilt) ||
+      Math.abs(nextTilt) > Math.PI / 2 ||
+      !canPose(state.rings as WireRing[], ringId, { angle, tilt: nextTilt })
+    )
+      return false;
+    ring.tilt = nextTilt;
+  }
   ring.angle = normalizeAngle(angle);
   return true;
 }
@@ -161,9 +184,15 @@ export function clearsOpening(ring: Ring, angle: number): boolean {
   return angleDistance(ring.angle, angle) <= ring.gap / 2 - openingClearance(ring) + EPSILON;
 }
 
+export function tiltRing(state: State, ringId: string, tilt: number): boolean {
+  const ring = state.rings.find((r) => r.id === ringId);
+  return !!ring?.wire && rotateRing(state, ringId, ring.angle, tilt);
+}
+
 export function canRelease(state: State, ringId: string): boolean {
   const ring = state.rings.find((candidate) => candidate.id === ringId);
   if (!ring || ring.removed || isLocked(state, ringId)) return false;
+  if (ring.wire) return testExtraction(state.rings as WireRing[], ringId).clear;
   return getBlockers(state, ringId).every((blocker) =>
     blocker.angles.every((angle) => clearsOpening(ring, angle)),
   );
@@ -208,6 +237,7 @@ function coveringAngle(angles: number[], opening: number, currentAngle: number):
 export function releaseAngle(state: State, ringId: string): number | null {
   const ring = state.rings.find((candidate) => candidate.id === ringId);
   if (!ring || ring.removed || isLocked(state, ringId)) return null;
+  if (ring.wire) return findMetalPose(state.rings as WireRing[], ringId)?.angle ?? null;
   const angles = getBlockers(state, ringId).flatMap((blocker) => blocker.angles);
   return coveringAngle(angles, ring.gap - openingClearance(ring) * 2, ring.angle);
 }
@@ -216,6 +246,7 @@ export function releaseAngle(state: State, ringId: string): number | null {
 export function snapAngle(state: State, ringId: string, angle: number, maxDegrees = 6): number {
   if (!Number.isFinite(angle)) return angle;
   const normalized = normalizeAngle(angle);
+  if (state.rings.find((r) => r.id === ringId)?.wire) return normalized;
   const target = releaseAngle(state, ringId);
   if (target === null || !getBlockers(state, ringId).length) return normalized;
   const limit = (Math.min(6, Math.max(0, maxDegrees)) * Math.PI) / 180;
@@ -225,10 +256,10 @@ export function snapAngle(state: State, ringId: string, angle: number, maxDegree
 export function cloneState(state: State): State {
   return {
     ...state,
-    goalRingIds: state.goalRingIds ? [...state.goalRingIds] : undefined,
+    ...(state.goalRingIds ? { goalRingIds: [...state.goalRingIds] } : {}),
     rings: state.rings.map((ring) => ({
       ...ring,
-      requires: ring.requires ? [...ring.requires] : undefined,
+      ...(ring.requires ? { requires: [...ring.requires] } : {}),
     })),
   };
 }
@@ -243,12 +274,13 @@ export function shortestSolution(initial: State, allowedIds?: ReadonlySet<string
     const { state, path } = queue[head]!;
     for (const ring of state.rings) {
       if (allowedIds && !allowedIds.has(ring.id)) continue;
-      const angle = releaseAngle(state, ring.id);
+      const pose = ring.wire ? findMetalPose(state.rings as WireRing[], ring.id) : null;
+      const angle = ring.wire ? (pose?.angle ?? null) : releaseAngle(state, ring.id);
       if (angle === null) continue;
       const next = cloneState(state);
-      rotateRing(next, ring.id, angle);
+      rotateRing(next, ring.id, angle, pose?.tilt);
       if (!tryRelease(next, ring.id)) continue;
-      const move = { ringId: ring.id, angle };
+      const move: Hint = { ringId: ring.id, angle, ...(pose ? { tilt: pose.tilt } : {}) };
       const nextPath = [...path, move];
       if (isComplete(next)) return nextPath;
       const signature = key(next);
@@ -277,9 +309,11 @@ export function isReachableRemoval(level: Level, removedIds: ReadonlySet<string>
   while (pending.size) {
     let changed = false;
     for (const id of Array.from(pending)) {
-      const angle = releaseAngle(state, id);
+      const ring = state.rings.find((r) => r.id === id);
+      const pose = ring?.wire ? findMetalPose(state.rings as WireRing[], id) : null;
+      const angle = ring?.wire ? (pose?.angle ?? null) : releaseAngle(state, id);
       if (angle === null) continue;
-      rotateRing(state, id, angle);
+      rotateRing(state, id, angle, pose?.tilt);
       if (tryRelease(state, id)) {
         pending.delete(id);
         changed = true;
@@ -346,10 +380,39 @@ export function validateLevel(value: unknown): string[] {
     if (
       typeof ring.gap !== 'number' ||
       !Number.isFinite(ring.gap) ||
-      (typeof ring.r === 'number' && ring.gap <= openingClearance({ r: ring.r }) * 2) ||
+      (ring.wire
+        ? ring.gap < 0
+        : typeof ring.r === 'number' && ring.gap <= openingClearance({ r: ring.r }) * 2) ||
       ring.gap >= TAU
     ) {
       errors.push(`${label} gap must be greater than stroke clearance and less than a full turn`);
+    }
+    if (ring.wire !== undefined) {
+      try {
+        if (
+          !isObject(ring.wire) ||
+          (ring.tilt !== undefined &&
+            (typeof ring.tilt !== 'number' ||
+              !Number.isFinite(ring.tilt) ||
+              Math.abs(ring.tilt) > Math.PI / 2))
+        )
+          throw Error();
+        const wire = ring.wire;
+        if (
+          typeof wire.z !== 'number' ||
+          Math.abs(wire.z) > 10000 ||
+          (wire.fixed !== undefined && typeof wire.fixed !== 'boolean') ||
+          (wire.aspect !== undefined && (typeof wire.aspect !== 'number' || wire.aspect > 4)) ||
+          (wire.length !== undefined && (typeof wire.length !== 'number' || wire.length > 4000)) ||
+          !isObject(wire.exit) ||
+          (!wire.fixed &&
+            !Math.hypot(Number(wire.exit.x), Number(wire.exit.y), Number(wire.exit.z)))
+        )
+          throw Error();
+        wirePaths(ring as unknown as WireRing);
+      } catch {
+        errors.push(label + ' invalid metal geometry');
+      }
     }
     if (typeof ring.angle !== 'number' || !Number.isFinite(ring.angle))
       errors.push(`${label} angle must be finite`);
@@ -399,8 +462,14 @@ export function validateLevel(value: unknown): string[] {
   ) {
     errors.push('goalRingIds must contain distinct existing ring IDs');
   }
-  if (value.campaign !== undefined && value.campaign !== 'nova' && value.campaign !== 'classic')
-    errors.push('campaign must be nova or classic');
+  if (
+    value.campaign !== undefined &&
+    value.campaign !== 'nova' &&
+    value.campaign !== 'classic' &&
+    value.campaign !== 'expert' &&
+    value.campaign !== 'metal'
+  )
+    errors.push('campaign must be nova, classic, expert or metal');
   if (
     value.parMoves !== undefined &&
     (!Number.isInteger(value.parMoves) ||

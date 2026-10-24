@@ -1,3 +1,4 @@
+import { MetalBoard } from './MetalBoard';
 import {
   Camera,
   Canvas,
@@ -77,6 +78,7 @@ export class AtelierView {
   heroY = 0;
   pressed: string | null = null;
   pulses: { x: number; y: number; start: number; unlocked: boolean }[] = [];
+  metalScene = new MetalBoard(this);
   resultStars: { x: number; y: number; medal: number; start: number } | null = null;
   constructor(parent: Node, onReady: () => void) {
     this.readyCallback = onReady;
@@ -178,10 +180,10 @@ export class AtelierView {
     g.close();
     g.fill();
   }
-  line(g: Graphics, points: number[][], hex = GOLD, width = 1, alpha = 255) {
+  line(g: Graphics, points: number[][], hex = GOLD, width = 1, alpha = 255, round = true) {
     g.strokeColor = color(hex, alpha);
     g.lineWidth = width;
-    g.lineCap = Graphics.LineCap.ROUND;
+    g.lineCap = round ? Graphics.LineCap.ROUND : Graphics.LineCap.BUTT;
     points.forEach(([x, y], i) => {
       const p = this.point(x, y);
       if (i) g.lineTo(p.x, p.y);
@@ -347,6 +349,48 @@ export class AtelierView {
           [x - 13, y],
           [x - 8, y - 5],
           [x - 3, y],
+        ],
+        hex,
+        2,
+      );
+    } else if (id === 'tilt') {
+      this.line(
+        g,
+        [
+          [x - 10, y + 3],
+          [x - 6, y - 7],
+          [x + 6, y - 7],
+          [x + 10, y + 3],
+          [x - 10, y + 3],
+        ],
+        hex,
+        1.8,
+      );
+      this.line(
+        g,
+        [
+          [x - 7, y + 8],
+          [x + 7, y + 8],
+        ],
+        hex,
+        1.5,
+      );
+    } else if (id === 'pull') {
+      this.line(
+        g,
+        [
+          [x - 10, y],
+          [x + 10, y],
+          [x + 3, y - 6],
+        ],
+        hex,
+        2,
+      );
+      this.line(
+        g,
+        [
+          [x + 10, y],
+          [x + 3, y + 6],
         ],
         hex,
         2,
@@ -648,6 +692,10 @@ export class AtelierView {
     const g = this.board;
     g.clear();
     this.boardLabels.destroyAllChildren();
+    if (state.rings[0]?.wire) {
+      this.metalScene.draw(state, selected, hint);
+      return;
+    }
     this.boardFit(state);
     const f = this.fit;
     this.circle(g, f.x, f.y, Math.min(this.bounds.w, this.bounds.h) * 0.48, '#b8a472', 30, 0.7);

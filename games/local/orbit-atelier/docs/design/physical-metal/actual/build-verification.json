@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-25",
+  "status": "passed",
+  "sourceHash": "b59812a65e62217ef841935050ae0c5f9260bd761276d784a958cd2bb1503ccf",
+  "engine": "Cocos Creator 3.8.8",
+  "target": "web-mobile",
+  "unitTests": {
+    "command": "pnpm --filter @coffeeeeffoc/orbit-atelier test",
+    "passed": 66,
+    "failed": 0
+  },
+  "typecheck": {
+    "command": "pnpm --filter @coffeeeeffoc/orbit-atelier typecheck",
+    "status": "passed"
+  },
+  "build": {
+    "command": "pnpm --filter @coffeeeeffoc/orbit-atelier build",
+    "status": "passed",
+    "runtimeFiles": 34,
+    "identityAndIntegrity": "sourceHash and every runtime file digest match",
+    "startupWarning": "Editor window recovery reported invalid window data after the successful build task; artifact identity and runtime were separately checked"
+  }
+}

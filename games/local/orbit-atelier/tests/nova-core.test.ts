@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { CATALOG, NOVA_LEVELS, CLASSIC_LEVELS } from '../assets/scripts/core/catalog.ts';
+import {
+  CATALOG,
+  NOVA_LEVELS,
+  CLASSIC_LEVELS,
+  EXPERT_LEVELS,
+} from '../assets/scripts/core/catalog.ts';
 import { LEVELS as OLD_CLASSIC } from '../src/levels.ts';
 import {
   createState,
@@ -62,6 +67,47 @@ test('24 authored nova maps and 74 original classic maps validate and remain sol
     assert.equal(level.id, OLD_CLASSIC[index]!.id);
     assert.equal(finish(runFor(level)).state.releasedCount, level.rings.length);
   });
+});
+
+test('six expert charts combine dense contacts, two goals and independent save progress', () => {
+  assert.equal(EXPERT_LEVELS.length, 6);
+  const progress = freshProgress();
+  for (const [index, level] of EXPERT_LEVELS.entries()) {
+    assert.ok(level.rings.length >= 9 && level.rings.length <= 12);
+    const run = runFor(level);
+    const solution = solveLevel(level)!;
+    assert.equal(solution.length, level.parMoves);
+    assert.ok(solution.length >= 6 && solution.length < level.rings.length);
+    if (index) assert.equal(level.goalRingIds!.length, 2);
+    for (const move of solution) {
+      rotateRing(run.state, move.ringId, move.angle);
+      assert.ok(tryRelease(run.state, move.ringId));
+      run.moves++;
+      const goalsLeft = run.state.goalRingIds!.filter(
+        (id) => !run.state.rings.find((r) => r.id === id)!.removed,
+      );
+      if (goalsLeft.length) assert.equal(isComplete(run.state), false);
+    }
+    assert.equal(settle(progress, run), 3);
+    const loaded = parseProgress(JSON.stringify(progress));
+    assert.equal(loaded.medals[level.id], 3);
+    assert.equal(unlockedIndex(loaded, 'expert'), Math.min(index + 1, 5));
+    assert.equal(unlockedIndex(loaded, 'nova'), 0);
+    assert.equal(unlockedIndex(loaded, 'classic'), 0);
+  }
+  const before = freshProgress();
+  before.run = runFor(EXPERT_LEVELS[0]!);
+  const first = findHint(before.run.state)!;
+  rotateRing(before.run.state, first.ringId, first.angle);
+  tryRelease(before.run.state, first.ringId);
+  before.run.moves++;
+  assert.deepEqual(parseProgress(JSON.stringify(before)).run!.state, before.run.state);
+  const legacy = parseProgress(
+    null,
+    JSON.stringify({ version: 1, medals: { 'expert-01': 3, 'orbit-01': 2 } }),
+  );
+  assert.equal(legacy.medals['expert-01'], undefined);
+  assert.equal(legacy.medals['orbit-01'], 2);
 });
 
 test('shortest route deliberately skips long branches, and every hint stays on the route', () => {
