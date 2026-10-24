@@ -24,7 +24,9 @@ test('restores matching web artifacts without Creator and rejects stale or incom
       await writeFile(path.join(game, `settings/v2/packages/${name}.json`), '{}\n');
     const script = path.join(game, 'assets/example.js');
     const modelScript = path.join(game, 'scripts/model-aircraft.py');
+    const radioScript = path.join(game, 'scripts/generate-radio.ps1');
     await writeFile(modelScript, 'print("aircraft")\n');
+    await writeFile(radioScript, 'Write-Output "radio"\n');
     await writeFile(script, 'const active = true;\n');
     const hash = await sourceHash(game);
     const bundleSettings = path.join(game, 'settings/v2/packages/builder.json');
@@ -38,6 +40,11 @@ test('restores matching web artifacts without Creator and rejects stale or incom
     await writeFile(modelScript, 'print("changed aircraft")\n');
     assert.notEqual(await sourceHash(game), hash, 'Model script changes must invalidate the artifact');
     await writeFile(modelScript, 'print("aircraft")\n');
+    await writeFile(radioScript, 'Write-Output "radio"\r\n');
+    assert.equal(await sourceHash(game), hash, 'PowerShell radio scripts must hash identically across CI runners');
+    await writeFile(radioScript, 'Write-Output "changed radio"\n');
+    assert.notEqual(await sourceHash(game), hash, 'Radio script changes must invalidate the artifact');
+    await writeFile(radioScript, 'Write-Output "radio"\n');
     await writeFile(script, 'const active = false;\n');
     assert.notEqual(await sourceHash(game), hash);
     await writeFile(script, 'const active = true;\n');
