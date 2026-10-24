@@ -6,8 +6,10 @@ Add-Type -AssemblyName System.IO.Compression
 # Windows packaging uses .NET ZIP; the game build itself remains platform independent.
 Push-Location $PSScriptRoot
 try {
-    & node build.mjs
+    & node scripts/build.mjs web-mobile
     if ($LASTEXITCODE -ne 0) { throw 'H5 build failed' }
+    & node scripts/verify-artifact.mjs
+    if ($LASTEXITCODE -ne 0) { throw 'Creator artifact verification failed' }
     $distPath = Join-Path $PSScriptRoot 'dist'
     $outputPath = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../outputs/ashfall-front'))
     [IO.Directory]::CreateDirectory($outputPath) | Out-Null
@@ -18,7 +20,7 @@ try {
         if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Symlink in H5 build' }
         if ($item.PSIsContainer) { continue }
         $relativePath = $item.FullName.Substring($distPath.Length + 1).Replace('\', '/')
-        if ($relativePath -notmatch '^(index\.html|style\.css|dev-mode\.js|fullscreen\.js|src/[a-z0-9-]+\.mjs|assets/[a-z0-9-]+\.svg)$') {
+        if ($relativePath -match '(^|/)\.\.?(/|$)' -or $relativePath -notmatch '\.(html|css|js|json|png|jpg|jpeg|webp|gif|svg|wasm|ttf|woff2?|mp3|wav|ogg|bin|ico)$') {
             throw "Unexpected H5 resource: $relativePath"
         }
         $inventory += [ordered]@{

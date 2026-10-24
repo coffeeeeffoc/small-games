@@ -30,7 +30,8 @@
     "TOWER_BRAKE_PREBUILT_DIR",
     "TETRACUBE_PREBUILT_DIR",
     "THREE_CHOOSE_TWO_PREBUILT_DIR",
-    "CASTLE_CANNON_PREBUILT_DIR"
+    "CASTLE_CANNON_PREBUILT_DIR",
+    "ASHFALL_FRONT_PREBUILT_DIR"
   ],
   "tasks": {
     "dev": {
@@ -231,6 +232,21 @@
       "outputs": ["dist/**", "server-dist/**"],
       "env": ["COCOS_CREATOR", "CASTLE_CANNON_PREBUILT_DIR"],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/games/local/game-castle-cannon/.prebuilt/**"]
+    },
+    "@coffeeeeffoc/ashfall-front#build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"],
+      "env": [
+        "COCOS_CREATOR",
+        "ASHFALL_FRONT_PREBUILT_DIR",
+        "H5_ADS_ENABLED",
+        "TAPTAP_ASHFALL_FRONT_AD_UNIT_ID"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/games/local/ashfall-front/.prebuilt/**",
+        "$TURBO_ROOT$/scripts/h5-ad-config.mjs"
+      ]
     }
   }
 }

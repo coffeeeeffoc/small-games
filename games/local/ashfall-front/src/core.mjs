@@ -94,6 +94,9 @@ function spawnWave(run, index) {
   // grace period so their first contact is always avoidable with ordinary movement.
   if (index > 0) run.player.invulnerable = Math.max(run.player.invulnerable, 1.2);
   run.waveIndex = index;
+  run.capture = 0;
+  run.reinforcementTime = 0;
+  run.checkpointComplete = false;
   run.nextWaveDelay = null;
   run.enemies = run.level.waves[index].enemies.map((config) => spawnEnemy(run, config));
   emit(run, 'wave', { waveIndex: index, wavesTotal: run.wavesTotal });
@@ -104,6 +107,8 @@ function loadRoom(run, levelIndex) {
   run.level = LEVELS[levelIndex];
   run.phase = 'playing';
   run.roomTime = 0;
+  run.rewardUsed = { supply: false, revive: false };
+  run.roomEpoch++;
   run.choices = [];
   run.bullets = [];
   run.barrels = run.level.barrels.map((config) => ({
@@ -135,12 +140,18 @@ function loadRoom(run, levelIndex) {
   spawnWave(run, 0);
 }
 
-export function createRun(startIndex = 0, { seed = Math.floor(Math.random() * 4294967296) } = {}) {
+export function createRun(
+  startIndex = 0,
+  { seed = Math.floor(Math.random() * 4294967296), singleLevel = false } = {},
+) {
   const errors = validateLevels();
   if (errors.length) throw new Error(errors.join('\n'));
   const index = clamp(Math.trunc(Number(startIndex) || 0), 0, LEVELS.length - 1);
   const run = {
     startIndex: index,
+    singleLevel,
+    assisted: false,
+    roomEpoch: 0,
     phase: 'playing',
     levelIndex: index,
     level: LEVELS[index],
@@ -653,14 +664,41 @@ function upgradeChoices(run) {
 }
 
 function checkProgress(run, dt) {
-  if (run.phase !== 'playing' || run.enemies.some((enemy) => enemy.hp > 0)) return;
+  if (run.phase !== 'playing') return;
+  const wave = run.level.waves[run.waveIndex];
+  if (wave.captureSeconds && !run.checkpointComplete) {
+    const nearby = Math.abs(run.player.x - wave.checkpointX) <= wave.radius;
+    const contested = run.enemies.some(
+      (e) => e.hp > 0 && Math.abs(e.x - wave.checkpointX) < wave.contestRadius,
+    );
+    run.contested = contested;
+    if (nearby && !contested) run.capture = Math.min(wave.captureSeconds, run.capture + dt);
+    run.reinforcementTime += dt;
+    if (
+      run.capture < wave.captureSeconds &&
+      run.reinforcementTime >= wave.reinforcementInterval &&
+      run.enemies.length < 12
+    ) {
+      run.reinforcementTime = 0;
+      run.enemies.push(...wave.reinforcements.map((config) => spawnEnemy(run, config)));
+      emit(run, 'reinforcements', { x: wave.checkpointX, y: run.level.ground });
+    }
+    if (run.capture < wave.captureSeconds || run.enemies.some((e) => e.hp > 0)) return;
+    run.checkpointComplete = true;
+    heal(run, 18);
+    emit(run, 'checkpoint', { x: wave.checkpointX, y: run.level.ground });
+  }
+  if (run.enemies.some((enemy) => enemy.hp > 0)) return;
   if (run.waveIndex + 1 < run.wavesTotal) {
+    const next = run.level.waves[run.waveIndex + 1];
+    if (next.checkpointX && Math.abs(run.player.x - next.checkpointX) > 620) return;
     if (run.nextWaveDelay === null)
       run.nextWaveDelay = run.level.waves[run.waveIndex + 1].delay ?? 0.9;
     run.nextWaveDelay -= dt;
     if (run.nextWaveDelay <= 0) spawnWave(run, run.waveIndex + 1);
     return;
   }
+  if (wave.captureSeconds && run.player.x < run.level.exitX - 80) return;
   if (!run.roomsCleared.includes(run.level.id)) {
     run.roomsCleared.push(run.level.id);
     heal(run, run.level.reward.heal);
@@ -670,7 +708,7 @@ function checkProgress(run, dt) {
       time: run.roomTime,
     });
   }
-  if (run.level.unlocks.length && run.level.reward.upgrade) {
+  if (!run.singleLevel && run.level.unlocks.length && run.level.reward.upgrade) {
     run.phase = 'upgrade';
     run.choices = upgradeChoices(run);
   } else {
@@ -728,6 +766,14 @@ export function chooseUpgrade(run, id) {
     run.stats.moveSpeed = 345;
   }
   emit(run, 'upgrade', { upgradeId: id });
+  run.choices = [];
+  return continueRun(run);
+}
+
+/** A fully modified build still advances for free. */
+export function continueRun(run) {
+  if (run.phase !== 'upgrade') return false;
+  if (run.choices.some((id) => !run.upgrades.includes(id))) return false;
   const nextIndex = LEVELS.findIndex((level) => level.id === run.level.unlocks[0]);
   if (nextIndex >= 0) loadRoom(run, nextIndex);
   else {

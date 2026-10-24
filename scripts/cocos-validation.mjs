@@ -11,6 +11,7 @@ const prebuiltVariables = {
   'games/local/tetracube': 'TETRACUBE_PREBUILT_DIR',
   'games/local/three-choose-two': 'THREE_CHOOSE_TWO_PREBUILT_DIR',
   'games/local/game-castle-cannon': 'CASTLE_CANNON_PREBUILT_DIR',
+  'games/local/ashfall-front': 'ASHFALL_FRONT_PREBUILT_DIR',
   'games/local/tianxia-chalu': 'TIANXIA_PREBUILT_DIR',
   'games/local/bullet-garden': 'BULLET_GARDEN_PREBUILT_DIR',
   'games/local/homebound-station': 'HOMEBOUND_STATION_PREBUILT_DIR',

@@ -164,6 +164,7 @@ test('all Cocos consumers download every source-verified artifact and pass them 
     tetracube: 'TETRACUBE_PREBUILT_DIR',
     'three-choose-two': 'THREE_CHOOSE_TWO_PREBUILT_DIR',
     'game-castle-cannon': 'CASTLE_CANNON_PREBUILT_DIR',
+    'ashfall-front': 'ASHFALL_FRONT_PREBUILT_DIR',
   };
   const producer = await read('.github/workflows/carding-car.yml');
   assert.deepEqual(producer.jobs.creator.strategy.matrix.game, Object.keys(artifacts));

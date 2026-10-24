@@ -9,6 +9,10 @@ export async function exerciseStandalone(frame, id, mobile = false) {
 }
 
 export async function assertStandaloneGameplay(frame, id, mobile = false) {
+  if (id === 'ashfall-front') {
+    const { assertAshfallGameplay } = await import('./game-checks/ashfall-front.mjs');
+    return assertAshfallGameplay(frame, mobile);
+  }
   if (id === 'carrom-club') {
     const { assertCarromGameplay } = await import('./game-checks/carrom-club.mjs');
     return assertCarromGameplay(frame, mobile);
@@ -42,24 +46,7 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       }
     }
   };
-  if (id === 'ashfall-front') {
-    const game = frame.locator('#game');
-    await expect(game).toHaveAttribute('data-screen', 'play');
-    await expect(frame.locator('#game-canvas')).toBeVisible();
-    await holdControl('#move-right', 'd', async () => {
-      await expect(frame.locator('#move-right')).toHaveAttribute('aria-pressed', 'true');
-    });
-    await expect(frame.locator('#move-right')).toHaveAttribute('aria-pressed', 'false');
-    await click(frame.getByRole('button', { name: '暂停', exact: true }));
-    await expect(frame.getByRole('button', { name: '继续战斗', exact: true })).toBeFocused();
-    await frame.locator('#game-canvas').page().keyboard.press('Enter');
-    await expect(game).toHaveAttribute('data-screen', 'play');
-    await expect(frame.locator('#game-canvas')).toBeFocused();
-    await click(frame.getByRole('button', { name: '暂停', exact: true }));
-    await click(frame.getByRole('button', { name: '返回主页', exact: true }));
-    await expect(game).toHaveAttribute('data-screen', 'home');
-    await expect(frame.locator('#start-game')).toBeFocused();
-  } else if (id === 'three-choose-two') {
+  if (id === 'three-choose-two') {
     const { snapshot, control, point, canvas, page } = threeChooseTwoInput(frame, mobile);
     await expect.poll(async () => (await snapshot())?.ready, { timeout: 60000 }).toBe(true);
     expect((await snapshot()).creator).toBe('3.8.8');

@@ -622,7 +622,14 @@ importers:
         specifier: 5.0.0
         version: 5.0.0(@types/node@24.3.1)(jsdom@26.1.0(supports-color@10.2.2))(vite@8.2.4(@types/node@24.3.1)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.20.5))
 
-  games/local/ashfall-front: {}
+  games/local/ashfall-front:
+    devDependencies:
+      '@playwright/test':
+        specifier: 1.55.1
+        version: 1.55.1
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
 
   games/local/ball-roguelite: {}
 

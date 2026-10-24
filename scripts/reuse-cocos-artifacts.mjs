@@ -15,6 +15,7 @@ export const games = [
   'tetracube',
   'three-choose-two',
   'game-castle-cannon',
+  'ashfall-front',
 ];
 const creator = '3.8.8';
 const platform = 'web-mobile';

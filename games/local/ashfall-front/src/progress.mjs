@@ -5,6 +5,7 @@ export function readProgress(value) {
     schemaVersion: 1,
     completed: [],
     bestTime: null,
+    campaignVersion: 2,
     sound: true,
     reducedMotion: null,
   };
@@ -16,6 +17,7 @@ export function readProgress(value) {
   if (
     Number.isFinite(value.bestTime) &&
     value.bestTime > 0 &&
+    value.campaignVersion === 2 &&
     progress.completed.length === LEVELS.length
   )
     progress.bestTime = value.bestTime;
@@ -39,6 +41,8 @@ export function recordProgress(progress, run, trial = false) {
   }
   if (
     run.phase === 'won' &&
+    !run.assisted &&
+    !run.singleLevel &&
     run.startIndex === 0 &&
     run.roomsCleared.length === LEVELS.length &&
     (progress.bestTime === null || run.time < progress.bestTime)

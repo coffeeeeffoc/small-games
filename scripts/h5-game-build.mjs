@@ -18,6 +18,7 @@ if (
     'merge-front',
     'tetracube',
     'three-choose-two',
+    'ashfall-front',
     'bullet-garden',
     'tower-brake',
     'orbit-atelier',

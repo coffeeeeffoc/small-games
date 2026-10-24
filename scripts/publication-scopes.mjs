@@ -1214,6 +1214,7 @@ const sharedH5PackagePaths = [
 function assertSixH5(games, packages, readHead) {
   const registered = literalDeclaration(readHead('scripts/h5-ad-config.mjs'), 'additionalH5Games');
   const extraIds = [
+    'ashfall-front',
     'merge-front',
     'tetracube',
     'three-choose-two',
@@ -3917,6 +3918,129 @@ export function towerArtifactConfigFileScope(file, before, after, context) {
   }
 }
 
+// Verify an additive registration by restoring all existing consumers before comparison.
+export function ashfallCreatorWiringOnly(file, before, after) {
+  const source = 'games/local/ashfall-front',
+    variable = 'ASHFALL_FRONT_PREBUILT_DIR';
+  const yaml = loadDependency('js-yaml');
+  if (file === 'pnpm-lock.yaml') {
+    const old = yaml.loadAll(before).at(-1),
+      current = yaml.loadAll(after).at(-1);
+    assert.deepEqual(old.importers[source], {});
+    const tools = {
+      '@playwright/test': { specifier: '1.55.1', version: '1.55.1' },
+      typescript: { specifier: '7.0.2', version: '7.0.2' },
+    };
+    assert.deepEqual(current.importers[source], { devDependencies: tools });
+    for (const [name, tuple] of Object.entries(tools))
+      assert(
+        Object.values(old.importers).some((entry) =>
+          isDeepStrictEqual(entry.devDependencies?.[name], tuple),
+        ),
+      );
+    current.importers[source] = old.importers[source];
+    assert.deepEqual(current, old);
+    return true;
+  }
+  if (file === 'turbo.json') {
+    const old = JSON.parse(before),
+      current = JSON.parse(after),
+      task = '@coffeeeeffoc/ashfall-front#build';
+    assert(!old.tasks[task] && !old.globalPassThroughEnv.includes(variable));
+    assert.deepEqual(current.tasks[task], {
+      dependsOn: ['^build'],
+      outputs: ['dist/**'],
+      env: ['COCOS_CREATOR', variable, 'H5_ADS_ENABLED', 'TAPTAP_ASHFALL_FRONT_AD_UNIT_ID'],
+      inputs: [
+        '$TURBO_DEFAULT$',
+        '$TURBO_ROOT$/games/local/ashfall-front/.prebuilt/**',
+        '$TURBO_ROOT$/scripts/h5-ad-config.mjs',
+      ],
+    });
+    delete current.tasks[task];
+    assert.equal(current.globalPassThroughEnv.pop(), variable);
+    assert.deepEqual(current, old);
+    return true;
+  }
+  if (['scripts/cocos-validation.mjs', 'scripts/reuse-cocos-artifacts.mjs'].includes(file)) {
+    const mapping = file.includes('cocos-validation'),
+      name = mapping ? 'prebuiltVariables' : 'games';
+    const old = literalDeclaration(before, name),
+      current = literalDeclaration(after, name);
+    assert(mapping ? !Object.hasOwn(old, source) : !old.includes('ashfall-front'));
+    assert.deepEqual(current, mapping ? { ...old, [source]: variable } : [...old, 'ashfall-front']);
+    const strip = (text) => {
+      const node = namedVariable(parsedSource(text), name).init;
+      return text.slice(0, node.start) + 'LITERAL' + text.slice(node.end);
+    };
+    assert.equal(strip(after), strip(before));
+    return true;
+  }
+  if (
+    !['ci', 'pages-validate', 'mobile', 'carding-car'].some(
+      (name) => file === '.github/workflows/' + name + '.yml',
+    )
+  )
+    return false;
+  const old = yaml.load(before),
+    current = yaml.load(after);
+  const clone = (value) =>
+    JSON.parse(
+      JSON.stringify(value)
+        .replaceAll('game-castle-cannon', 'ashfall-front')
+        .replace('"id":"castle"', '"id":"ashfall"'),
+    );
+  let additions = 0;
+  for (const [id, job] of Object.entries(current.jobs)) {
+    const prior = old.jobs[id];
+    assert(prior);
+    if (job.env?.[variable]) {
+      assert.equal(job.env[variable], clone(prior.env.CASTLE_CANNON_PREBUILT_DIR));
+      delete job.env[variable];
+      additions++;
+    }
+    if (job.strategy?.matrix?.game?.includes('ashfall-front')) {
+      assert.deepEqual(job.strategy.matrix.game, [...prior.strategy.matrix.game, 'ashfall-front']);
+      job.strategy.matrix.game.pop();
+      additions++;
+    }
+    if (!job.steps) continue;
+    job.steps = job.steps.filter((step) => {
+      if (step.with?.name !== 'ashfall-front-${{ github.sha }}') return true;
+      const template = prior.steps.find(
+        (item) =>
+          item.uses === step.uses && item.with?.name === 'game-castle-cannon-${{ github.sha }}',
+      );
+      assert(template);
+      assert.deepEqual(step, clone(template));
+      additions++;
+      return false;
+    });
+    for (let i = 0; i < job.steps.length; i++) {
+      const step = job.steps[i],
+        previous = prior.steps[i];
+      assert(previous);
+      if (step.env?.[variable]) {
+        assert.equal(step.env[variable], clone(previous.env.CASTLE_CANNON_PREBUILT_DIR));
+        delete step.env[variable];
+        additions++;
+      }
+      if (step.id === 'verify' && step.if?.includes('steps.ashfall.outcome')) {
+        assert.equal(step.if, previous.if + " && steps.ashfall.outcome == 'success'");
+        step.if = previous.if;
+        const line =
+          'node scripts/reuse-cocos-artifacts.mjs verify ashfall-front .scratch/ci-cocos/ashfall-front\n';
+        assert.equal(step.run.split(line).length, 2);
+        step.run = step.run.replace(line, '');
+        additions++;
+      }
+    }
+  }
+  assert(additions > 0);
+  assert.deepEqual(current, old);
+  return true;
+}
+
 export function reviewedSharedFileScopes({
   changedPaths,
   readBase,
@@ -3949,6 +4073,44 @@ export function reviewedSharedFileScopes({
     packages,
   });
   for (const file of changedPaths) {
+    if (file === 'apps/shell-web/scripts/game-checks/ashfall-front.mjs') {
+      scopes.set(file, ['games/local/ashfall-front', 'apps/shell-web']);
+      continue;
+    }
+    if (
+      [
+        'pnpm-lock.yaml',
+        'turbo.json',
+        'scripts/cocos-validation.mjs',
+        'scripts/reuse-cocos-artifacts.mjs',
+        '.github/workflows/ci.yml',
+        '.github/workflows/pages-validate.yml',
+        '.github/workflows/mobile.yml',
+        '.github/workflows/carding-car.yml',
+      ].includes(file)
+    ) {
+      try {
+        const source = 'games/local/ashfall-front';
+        const entries = games.filter((g) => g.id === 'ashfall-front' || g.source === source);
+        const targets = packages.filter(
+          (p) => p.dir === source || p.name === '@coffeeeeffoc/ashfall-front',
+        );
+        assert.equal(entries.length, 1);
+        assert.equal(entries[0].source, source);
+        assert.equal(entries[0].id, 'ashfall-front');
+        assert.equal(entries[0].output, 'dist');
+        assert.equal(targets.length, 1);
+        assert.equal(targets[0].dir, source);
+        assert.equal(targets[0].creator?.version, '3.8.8');
+        assert.equal(targets[0].scripts?.build, 'node scripts/build.mjs web-mobile');
+        if (ashfallCreatorWiringOnly(file, readBase(file), readHead(file))) {
+          scopes.set(file, [source]);
+          continue;
+        }
+      } catch {
+        /* Other changes keep their existing consumer proof or remain unclassified. */
+      }
+    }
     if (castleScopes.has(file)) {
       scopes.set(file, castleScopes.get(file));
       continue;

@@ -199,3 +199,7 @@ cops-robbers 曾仍有游戏端 `ads.js` 的 45 秒总超时，以及 `main.js` 
 复用 SmallGamesRewardAds.offer/show 和公共 platform-ads.js，不经过有总时限的旧 publishing.rewarded 包装。子弹花园仍保留独立原生 provider；H5 优先共享端口。穿云落星、打破笼子接住人、弹指擂台的统一 H5 包仅支持 backend:false，覆盖编译制品中的旧 API 默认值，不初始化联网服务或显示不可用联网入口。
 
 验证记录见各游戏 tests/rewards.test.mjs、子弹花园 tests/cocos-ads.browser.mjs、打破笼子接住人 tests/reward-browser.mjs、夺城令 tests/browser.mjs 及苔光花园 tests/expansion.browser.mjs。SDK 回调夹具不等于真实广告库存或 TapTap 真机验收。
+
+## 灰烬防线 / 2026-10-24
+
+新增`ashfall-front`的Creator Web/H5构建与公共奖励端口，手机方向为landscape。暂停补给恢复40%生命、失败续战恢复50%，各每关一次，普通开始和重试免费，辅助行动不计最佳。用户确认App998795（Developer492506）；本次MCP查询状态为未开通，默认广告关闭，无正式广告位，不使用其他应用的ID。开通后重新查询，再经`TAPTAP_ASHFALL_FRONT_AD_UNIT_ID`注入。当前只通过SDK夹具与Creator浏览器验证，不表示真机库存或上传通过。

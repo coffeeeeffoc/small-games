@@ -1,0 +1,8 @@
+library/
+temp/
+profiles/
+build/
+reports/
+cc.d.ts
+assets/scripts/core/
+assets/scripts/core.meta

@@ -666,6 +666,8 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
     );
     execute(process.execPath, [`${source}/tests/${file}`], root, env, 'logged');
   }
+  if (plan.browser && plan.browser_ids?.includes('ashfall-front'))
+    execute(process.execPath, ['games/local/ashfall-front/tests/browser.mjs'], root, env, 'logged');
   if (plan.browser && plan.browser_ids?.includes('castle-cannon'))
     execute(
       process.execPath,

@@ -997,6 +997,7 @@ test('fourth Creator classification works in a bare planner with only Prettier a
 });
 
 const rewardH5Extras = [
+  'ashfall-front',
   'merge-front',
   'tetracube',
   'three-choose-two',
@@ -5835,4 +5836,91 @@ test('Tower artifact API wiring preserves precise immediate and cumulative relea
       assert.equal(reviewedSharedFileScopes(unknown).size, 0);
     }
   }
+});
+
+test('Ashfall additive Creator wiring preserves every existing workflow consumer and gate', async () => {
+  const { ashfallCreatorWiringOnly: check } = await import('./publication-scopes.mjs');
+  const before = {
+    jobs: {
+      quality: {
+        env: {
+          CASTLE_CANNON_PREBUILT_DIR:
+            '${{ github.workspace }}/games/local/game-castle-cannon/.prebuilt',
+        },
+        steps: [
+          {
+            uses: 'actions/download-artifact@v8',
+            with: {
+              name: 'game-castle-cannon-${{ github.sha }}',
+              path: 'games/local/game-castle-cannon/.prebuilt',
+            },
+          },
+          { run: 'pnpm check:games' },
+        ],
+      },
+    },
+  };
+  const after = structuredClone(before),
+    job = after.jobs.quality;
+  job.env.ASHFALL_FRONT_PREBUILT_DIR =
+    '${{ github.workspace }}/games/local/ashfall-front/.prebuilt';
+  job.steps.splice(1, 0, {
+    uses: 'actions/download-artifact@v8',
+    with: { name: 'ashfall-front-${{ github.sha }}', path: 'games/local/ashfall-front/.prebuilt' },
+  });
+  const encode = JSON.stringify;
+  assert.equal(check('.github/workflows/ci.yml', encode(before), encode(after)), true);
+  for (const corrupt of [
+    (v) => {
+      v.jobs.quality.steps.pop();
+    },
+    (v) => {
+      v.jobs.quality.steps[0].with.path = 'elsewhere';
+    },
+    (v) => {
+      v.jobs.quality.env.ASHFALL_FRONT_PREBUILT_DIR = 'unverified';
+    },
+    (v) => {
+      v.jobs.quality['continue-on-error'] = true;
+    },
+  ]) {
+    const bad = structuredClone(after);
+    corrupt(bad);
+    assert.throws(() => check('.github/workflows/ci.yml', encode(before), encode(bad)));
+  }
+  assert.equal(check('.github/workflows/unreviewed.yml', encode(before), encode(after)), false);
+});
+
+test('Ashfall lock addition reuses installed tuples and rejects unrelated resolution changes', async () => {
+  const { ashfallCreatorWiringOnly: check } = await import('./publication-scopes.mjs');
+  const tools = {
+    '@playwright/test': { specifier: '1.55.1', version: '1.55.1' },
+    typescript: { specifier: '7.0.2', version: '7.0.2' },
+  };
+  const before = {
+      importers: { 'games/local/ashfall-front': {}, other: { devDependencies: tools } },
+      packages: { original: { integrity: 'preserve' } },
+    },
+    after = structuredClone(before);
+  after.importers['games/local/ashfall-front'] = { devDependencies: tools };
+  assert.equal(check('pnpm-lock.yaml', JSON.stringify(before), JSON.stringify(after)), true);
+  const bad = structuredClone(after);
+  bad.packages.original.integrity = 'different';
+  assert.throws(() => check('pnpm-lock.yaml', JSON.stringify(before), JSON.stringify(bad)));
+  const wrong = structuredClone(after);
+  wrong.importers['games/local/ashfall-front'].devDependencies.typescript.version = '999';
+  assert.throws(() => check('pnpm-lock.yaml', JSON.stringify(before), JSON.stringify(wrong)));
+});
+
+test('Ashfall artifact list permits the single new identity and preserves executable bytes', async () => {
+  const { ashfallCreatorWiringOnly: check } = await import('./publication-scopes.mjs');
+  const before = "export const games = ['game-castle-cannon'];\n",
+    after = "export const games = ['game-castle-cannon', 'ashfall-front'];\n";
+  assert.equal(check('scripts/reuse-cocos-artifacts.mjs', before, after), true);
+  assert.throws(() =>
+    check('scripts/reuse-cocos-artifacts.mjs', before, after + 'disableChecks();'),
+  );
+  assert.throws(() =>
+    check('scripts/reuse-cocos-artifacts.mjs', before, "export const games = ['ashfall-front'];\n"),
+  );
 });

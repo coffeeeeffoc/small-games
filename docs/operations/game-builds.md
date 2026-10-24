@@ -75,3 +75,5 @@ export default {
 本轮支持名单和可选奖励见[广告接入表](taptap-rewarded-ads.md#十三款可选激励接入2026-10-24)。根 game-build.local.mjs 保留已有配置并加入十三款，新增空广告位保持关闭。一炮拆城未加入。moss-garden 对应源码目录 games/local/game-moss-garden。构建器使用各游戏现有 Creator、Cocos 源码或 Vite 入口，不更换引擎。
 
 先执行 pnpm build:games --dry-run 检查选择、广告有效开关与后端关闭状态，再执行 pnpm build:games。需要只编译一款时缩减配置中的 games；每款 ID 必须由该应用的 MCP 返回。此次新增游戏不支持 backend:true。原有六款/五款预设成员保持原样。
+
+灰烬防线`ashfall-front`新增Creator 3.8.8 Web Mobile H5编译，横屏。它接受统一配置中的单游戏选择和广告开关，不支持`backend:true`；缺广告位时默认关闭。应用998795当前未开通广告，需开通后通过MCP重查，不能复用其他游戏的ID。源码匹配预构建变量为`ASHFALL_FRONT_PREBUILT_DIR`，实际交付和素材见游戏README与publishing/STATUS.md。

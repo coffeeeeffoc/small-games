@@ -3,7 +3,7 @@
     "id": "ashfall-front",
     "source": "games/local/ashfall-front",
     "title": "灰烬防线",
-    "description": "冲进灰烬工厂，跳跃连射、冲刺闪避，引爆油桶清场，组合战地升级迎战拆解者。三间房，一场短促而激烈的突围。",
+    "description": "穿越23处工业战区，跳跃连射、冲刺闪避，守住中继阵地、引爆油桶并组合战地改装。移动端横屏射击，逐关推进迎战拆解者。",
     "output": "dist"
   },
   {

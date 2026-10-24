@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { expect } from '@playwright/test';
 
 export const markers = {
-  'ashfall-front': '#start-game',
+  'ashfall-front': '#GameCanvas',
   'carrom-club': '#start',
   'three-choose-two': '#GameCanvas',
   'cage-rescue': '#start',
@@ -53,7 +53,6 @@ export const markers = {
 
 // Semantic IDs are intentionally independent of layout, position and display wording.
 export const homeControls = {
-  'ashfall-front': '#start-game',
   'carrom-club': '#start',
   'cage-rescue': '#start',
   'flick-arena': ['#start', '#play-level'],
@@ -78,6 +77,7 @@ export const homeControls = {
 
 // Explicit compatibility list: these existing assertions still own their setup flow.
 export const legacyEntryIds = [
+  'ashfall-front',
   'castle-cannon',
   'tower-brake',
   'three-choose-two',

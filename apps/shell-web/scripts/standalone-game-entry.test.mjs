@@ -113,3 +113,9 @@ test('Castle Cannon uses the Creator canvas and game-owned portrait controls', (
   assert.equal(homeControls['castle-cannon'], undefined);
   assert.equal(entryMode('castle-cannon'), 'legacy');
 });
+
+test('Ashfall uses the visible Creator canvas and game-owned touch flow', () => {
+  assert.equal(markers['ashfall-front'], '#GameCanvas');
+  assert.equal(homeControls['ashfall-front'], undefined);
+  assert.equal(entryMode('ashfall-front'), 'legacy');
+});

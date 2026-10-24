@@ -1036,21 +1036,24 @@
       "opportunities": ["challenge"],
       "schedule": "current",
       "implementationStatus": "implemented",
-      "scheduleReason": "用户本次明确要求制作横版射击交互原型；记录本次已实现内容，后续用真人试玩校准手感和难度。",
-      "strengths": ["三战区、环境连锁爆破、五种改装和两阶段 Boss 已形成完整短局循环。"],
+      "scheduleReason": "本轮完成真实Cocos Creator迁移与23关战役扩展，移动横屏优先，继续用真人试玩校准难度。",
+      "strengths": ["23处独立路线与5–7段阵地推进，环境连锁爆破、五种改装和两阶段Boss。"],
       "weaknesses": [
-        "目前仅三个战区；浏览器触屏模拟已通关，真机握持、首次上手和重复游玩价值仍待验证。"
+        "TapTap App 998795未开通广告，正式广告位/库存/真机尚未验收。",
+        "浏览器模拟已覆盖六组尺寸，仍需物理手机的握持与长局试玩。"
       ],
       "improvements": ["收集首局死亡位置与操作反馈，优先校准右拇指区遮挡、Boss 难度和改装组合。"],
       "evidence": [
         "games/local/ashfall-front/README.md",
         "games/local/ashfall-front/docs/qa/verification.md",
-        "games/local/ashfall-front/docs/qa/browser-report.json"
+        "games/local/ashfall-front/docs/qa/cocos/report.json",
+        "games/local/ashfall-front/publishing/STATUS.md"
       ],
       "delivered": [
-        "原创工业场景、人物动作、命中火花与爆炸反馈；多点触控移动、跳跃、冲刺、自动瞄准射击。",
-        "三关解锁、两次改装选择、Boss 攻击预警和核心输出窗口；暂停、重试、本地进度及开发试玩隔离。",
-        "完成横屏、竖屏旋转、小屏、全屏和自然触屏通关的 Chromium 验证；不是物理手机或原生渠道验收。"
+        "Cocos Creator 3.8.8真实Sprite/Graphics场景、触控、AudioSource与生命周期。",
+        "原3关后新增20关，纯输入抽样约6–7分钟；分页选关、本机存档、改装耗尽免费继续。",
+        "每关一次40%补给与50%续战，严格完成发奖，未配置广告可免费游玩。",
+        "真实Creator六尺寸触控与SDK回调夹具通过；不等于TapTap库存或真机验证。"
       ]
     }
   ]

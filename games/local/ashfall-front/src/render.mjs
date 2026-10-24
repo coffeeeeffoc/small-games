@@ -1673,3 +1673,48 @@ export function renderer(
 }
 
 export default renderer;
+
+// Offline-only baking entry. Creator imports PNGs, never this Canvas renderer.
+export function bakeArt() {
+  const result = {};
+  const bake = (name, w, h, draw) => {
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    draw(c.getContext('2d'));
+    result[name] = c.toDataURL('image/png').split(',')[1];
+  };
+  bake('far', 1800, 720, paintFar);
+  bake('floor', 1800, 720, paintFloor);
+  for (let theme = 0; theme < 3; theme++)
+    bake(`mid-${theme}`, 1800, 720, (ctx) => paintMid(ctx, theme));
+  for (const kind of ['player', 'shooter', 'chaser', 'drone', 'boss']) {
+    for (let frame = 0; frame < 4; frame++) {
+      const boss = kind === 'boss',
+        size = boss ? 320 : 160,
+        feet = boss ? 290 : 170;
+      bake(`${kind}-${frame}`, size, boss ? 320 : 200, (ctx) => {
+        const a = {
+          x: size / 2,
+          y: feet,
+          w: boss ? 112 : 40,
+          h: boss ? 140 : 62,
+          facing: 1,
+          vx: frame ? 120 : 0,
+          onGround: true,
+          hp: 100,
+          maxHp: 100,
+          aimAngle: 0,
+          state: frame === 3 ? 'recover' : 'idle',
+          phase: 1,
+        };
+        if (boss) drawBoss(ctx, a, frame * 0.09, false);
+        else if (kind === 'drone') drawDrone(ctx, a, frame * 0.09, false);
+        else drawSoldier(ctx, a, frame * 0.09, kind === 'player', false);
+      });
+    }
+  }
+  bake('barrel', 100, 100, (ctx) => drawBarrel(ctx, { x: 50, y: 85, w: 32, h: 46, active: true }));
+  bake('platform', 340, 48, (ctx) => drawPlatform(ctx, { x: 0, y: 4, w: 340, h: 22 }));
+  return result;
+}

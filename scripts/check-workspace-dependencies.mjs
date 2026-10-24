@@ -23,6 +23,12 @@ const DEPENDENCY_FIELDS = [
 // rules on the authoritative server, or exercise those rules from repository tests.
 // Runtime game code must still never import service implementations.
 const REPOSITORY_IMPORTS = new Set([
+  'games/local/ashfall-front/tests/browser.mjs -> apps/shell-web/scripts/game-checks/ashfall-front.mjs',
+  'games/local/ashfall-front/scripts/build.mjs -> games/local/carding-car/scripts/toolchain.mjs',
+  'games/local/ashfall-front/scripts/build.mjs -> games/local/carding-car/scripts/cocos-branding.mjs',
+  'games/local/ashfall-front/scripts/build.mjs -> scripts/h5-ad-config.mjs',
+  'games/local/ashfall-front/scripts/artifact.mjs -> scripts/h5-ad-config.mjs',
+  'games/local/ashfall-front/scripts/typecheck.mjs -> games/local/carding-car/scripts/toolchain.mjs',
   'games/local/tower-brake/scripts/build.mjs -> games/local/carding-car/scripts/toolchain.mjs',
   'games/local/tower-brake/scripts/build.mjs -> games/local/carding-car/scripts/cocos-branding.mjs',
   'games/local/tower-brake/scripts/typecheck.mjs -> games/local/carding-car/scripts/toolchain.mjs',

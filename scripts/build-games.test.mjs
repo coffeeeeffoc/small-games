@@ -573,3 +573,26 @@ test('a terminated build recovers retained batches, while live or ambiguous owne
     await rm(folder, { recursive: true, force: true });
   }
 });
+
+test('Ashfall H5 uses its own optional configuration and rejects unavailable backend', () => {
+  const config = {
+    version: 2,
+    games: ['ashfall-front'],
+    ads: [false, true],
+    backend: [false],
+    targets: [{ platform: 'taptap', type: 'h5', adUnits: { 'ashfall-front': '' } }],
+  };
+  const parsed = parseGameBuildConfig(config);
+  assert.deepEqual(parsed.games, ['ashfall-front']);
+  assert.deepEqual(
+    gameBuildPlan(parsed).map((job) => job.effectiveAdsEnabled),
+    [false, false],
+  );
+  assert.throws(
+    () =>
+      gameBuildPlan(
+        parseGameBuildConfig({ ...config, backend: [true], apiUrl: 'https://api.example.com' }),
+      ),
+    /BUILD_SERVICE_UNSUPPORTED/,
+  );
+});
