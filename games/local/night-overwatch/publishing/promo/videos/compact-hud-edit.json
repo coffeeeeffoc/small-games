@@ -1,0 +1,78 @@
+{
+  "sourceHash": "36ce939bea942b477c4808f586eb863f1cae59a3ff1bc10b3f9b4a6b0eb35d47",
+  "sourceRecording": "reports/2026-10-24-compact-hud/gameplay-source.webm",
+  "recordingSha256": "eeef234b63dcf4b80ba35f7694cd8369762e145e415bbece9975837b7b9e6dcf",
+  "audio": "silent; browser recording has no captured audio",
+  "segments": [
+    {
+      "file": "promo/images/title-1920x1080.png",
+      "seconds": 4
+    },
+    {
+      "file": "gameplay-source.webm",
+      "from": 5,
+      "to": 10
+    },
+    {
+      "file": "gameplay-source.webm",
+      "from": 24,
+      "to": 31
+    }
+  ],
+  "operations": "Full gameplay: transcode only. Promo: source cuts and 16:9 letterbox, no gameplay speed changes.",
+  "commands": [
+    [
+      "ffmpeg",
+      "-y",
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-i",
+      "C:\\Users\\15211\\.codex\\worktrees\\night-overwatch-hud\\small-games\\games\\local\\night-overwatch\\reports\\2026-10-24-compact-hud\\gameplay-source.webm",
+      "-an",
+      "-c:v",
+      "libx264",
+      "-preset",
+      "fast",
+      "-crf",
+      "22",
+      "-pix_fmt",
+      "yuv420p",
+      "-movflags",
+      "+faststart",
+      "C:\\Users\\15211\\.codex\\worktrees\\night-overwatch-hud\\small-games\\games\\local\\night-overwatch\\publishing\\gameplay\\videos\\mobile-compact-hud-844x390-silent.mp4"
+    ],
+    [
+      "ffmpeg",
+      "-y",
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-loop",
+      "1",
+      "-t",
+      "4",
+      "-i",
+      "C:\\Users\\15211\\.codex\\worktrees\\night-overwatch-hud\\small-games\\games\\local\\night-overwatch\\publishing\\promo\\images\\title-1920x1080.png",
+      "-i",
+      "C:\\Users\\15211\\.codex\\worktrees\\night-overwatch-hud\\small-games\\games\\local\\night-overwatch\\reports\\2026-10-24-compact-hud\\gameplay-source.webm",
+      "-filter_complex",
+      "[0:v]scale=1280:720,setsar=1,fps=25,trim=duration=4,setpts=PTS-STARTPTS[a];[1:v]split=2[b][c];[b]trim=start=5:end=10,setpts=PTS-STARTPTS,scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=25[d];[c]trim=start=24:end=31,setpts=PTS-STARTPTS,scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=25[e];[a][d][e]concat=n=3:v=1:a=0[v]",
+      "-map",
+      "[v]",
+      "-an",
+      "-c:v",
+      "libx264",
+      "-preset",
+      "fast",
+      "-crf",
+      "22",
+      "-pix_fmt",
+      "yuv420p",
+      "-movflags",
+      "+faststart",
+      "C:\\Users\\15211\\.codex\\worktrees\\night-overwatch-hud\\small-games\\games\\local\\night-overwatch\\publishing\\promo\\videos\\night-overwatch-compact-hud-1280x720-silent.mp4"
+    ]
+  ],
+  "decoded": true
+}

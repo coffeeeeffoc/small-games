@@ -1,0 +1,36 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "36ce939bea942b477c4808f586eb863f1cae59a3ff1bc10b3f9b4a6b0eb35d47"
+  },
+  "results": [
+    {
+      "mode": "dismissed",
+      "returnedToBattle": true,
+      "offers": 1
+    },
+    {
+      "mode": "unavailable",
+      "returnedToBattle": true,
+      "offers": 1
+    },
+    {
+      "mode": "failed",
+      "returnedToBattle": true,
+      "offers": 1
+    },
+    {
+      "mode": "background",
+      "returnedToBattle": true,
+      "offers": 1
+    },
+    {
+      "mode": "offline-credit",
+      "returnedToBattle": true,
+      "offers": 0
+    }
+  ],
+  "errors": [],
+  "fixtures": "Public ad provider, stored credit and visibility boundary only. Actual touch controls. No simulation state writes; not real SDK fill or physical device."
+}
