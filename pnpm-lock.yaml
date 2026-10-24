@@ -327,6 +327,9 @@ importers:
 
   apps/shell-web:
     dependencies:
+      '@coffeeeeffoc/porcelain-puzzle':
+        specifier: workspace:*
+        version: link:../../games/local/porcelain-puzzle
       '@coffeeeeffoc/ad-config':
         specifier: workspace:*
         version: link:../../packages/ad-config
@@ -627,6 +630,12 @@ importers:
       typescript:
         specifier: 7.0.2
         version: 7.0.2
+
+  games/local/porcelain-puzzle:
+    devDependencies:
+      '@playwright/test':
+        specifier: 1.55.1
+        version: 1.55.1
 
   games/local/ball-roguelite: {}
 

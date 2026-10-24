@@ -995,6 +995,7 @@ test('fourth Creator classification works in a bare planner with only Prettier a
 });
 
 const rewardH5Extras = [
+  'porcelain-puzzle',
   'ashfall-front',
   'merge-front',
   'tetracube',
@@ -5817,7 +5818,8 @@ test('Ashfall planning works with only pinned Prettier and preserves every lock 
     before: execFileSync('git', ['show', '171423331a4bdc0f8d45369b047dbc9e3d971b5c:' + file], {
       encoding: 'utf8',
     }),
-    after: execFileSync('git', ['show', '70428fdef6533522c930d5d0d9c7c472ab69f672:' + file], {
+    // Keep this historical migration fixture independent of later game registrations.
+    after: execFileSync('git', ['show', '3aafcaea506533821612674971116e757a455ed3:' + file], {
       encoding: 'utf8',
     }),
   }));
@@ -5857,4 +5859,78 @@ test('Ashfall planning works with only pinned Prettier and preserves every lock 
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+});
+
+test('Porcelain H5 registration binds reviewed bytes and its actual Cocos consumer', async () => {
+  const { porcelainH5FileScopes: scope } = await import('./publication-scopes.mjs');
+  const base = '3aafcaea506533821612674971116e757a455ed3',
+    head = '6427af166660a8e0328f90d7f4279ded8963b5f4';
+  const source = 'games/local/porcelain-puzzle';
+  const read = (ref, file) => execFileSync('git', ['show', ref + ':' + file], { encoding: 'utf8' });
+  const files = [
+    'scripts/h5-ad-config.mjs',
+    'scripts/h5-game-build.mjs',
+    'scripts/h5-taptap-build.mjs',
+    'scripts/h5-taptap-matrix.mjs',
+  ];
+  const games = [
+    { id: 'porcelain-puzzle', source, output: 'dist' },
+    { id: 'ashfall-front', source: 'games/local/ashfall-front', output: 'dist' },
+  ];
+  const packages = [
+    { dir: source, ...JSON.parse(read(head, source + '/package.json')) },
+    { dir: 'games/local/ashfall-front' },
+  ];
+  const options = {
+    changedPaths: files,
+    readBase: (f) => read(base, f),
+    readHead: (f) => {
+      if (f === 'scripts/h5-taptap-build.mjs')
+        return read(base, f).replace(
+          'TAPTAP_(?:COPS_ROBBERS|',
+          'TAPTAP_(?:PORCELAIN_PUZZLE|ASHFALL_FRONT|COPS_ROBBERS|',
+        );
+      if (f === 'scripts/h5-taptap-matrix.mjs')
+        return read(base, f).replace(
+          'export const h5Orientations = Object.freeze({',
+          "export const h5Orientations = Object.freeze({\n  'porcelain-puzzle': 'portrait',",
+        );
+      return read(head, f);
+    },
+    games,
+    packages,
+  };
+  for (const file of files) {
+    assert.deepEqual(
+      scope(options).get(file),
+      file === 'scripts/h5-taptap-build.mjs' ? [source, 'games/local/ashfall-front'] : [source],
+    );
+    for (const side of ['readBase', 'readHead'])
+      assert.equal(
+        scope({ ...options, changedPaths: [file], [side]: (f) => options[side](f) + '\n' }).has(
+          file,
+        ),
+        false,
+      );
+  }
+  for (const extra of [
+    { games: [...games, ...games] },
+    { games: [{ ...games[0], id: 'other' }] },
+    { games: [{ ...games[0], output: 'other' }] },
+    { packages: [...packages, ...packages] },
+    { packages: [{ ...packages[0], name: 'other' }] },
+    { changedPaths: ['scripts/unknown.mjs'] },
+    {
+      readHead: () => {
+        throw Error('missing tree');
+      },
+    },
+    {
+      readHead: (f) =>
+        f.endsWith('/package.json')
+          ? options.readHead(f).replace('cocos-source-3.8.8', 'fake')
+          : options.readHead(f),
+    },
+  ])
+    assert.equal(scope({ ...options, ...extra }).size, 0);
 });

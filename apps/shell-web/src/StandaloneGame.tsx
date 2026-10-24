@@ -34,6 +34,7 @@ export function StandaloneGame({
     id === 'castle-cannon' ||
     id === 'ink-is-everything' ||
     id === 'ball-roguelite' ||
+    id === 'porcelain-puzzle' ||
     id === 'flick-arena' ||
     id === 'xiangqi-five' ||
     id === 'letters-words2' ||

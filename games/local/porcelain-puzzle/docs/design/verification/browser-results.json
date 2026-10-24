@@ -1,0 +1,21 @@
+{
+  "at": "2026-10-24T19:12:29.778Z",
+  "browser": "Chromium 140, Linux, mobile touch emulation, software WebGL",
+  "checks": [
+    "real touch cancellation preserves fragment position",
+    "pause freezes clock and resume restores board transform",
+    "complete level entirely by touch, with rigid group-to-group snapping",
+    "celebration, travel, next vessel smash and next challenge",
+    "unavailable room service hides multiplayer entry and leaves solo playable",
+    "reward-port fixture resumes preserved fragments with 45 seconds; no live advertising claimed",
+    "two independent browser players: ready together, authoritative organize, host exit, remaining player advances",
+    "320x568 and 390x844 mobile layouts",
+    "level 100: 40 visible shards, touchable small pieces and rigid group joins"
+  ],
+  "errors": [],
+  "limits": [
+    "Not a physical device test",
+    "Reward completion uses a test provider, not a live ad",
+    "Room service runs locally, no public deployment"
+  ]
+}

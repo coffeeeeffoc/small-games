@@ -3,6 +3,7 @@ import path from 'node:path';
 
 export const h5AdGames = ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'];
 export const additionalH5Games = [
+  'porcelain-puzzle',
   'ashfall-front',
   'carding-car',
   'merge-front',

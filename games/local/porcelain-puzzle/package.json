@@ -1,0 +1,22 @@
+{
+  "name": "@coffeeeeffoc/porcelain-puzzle",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "青花拾光：Cocos 限时器物拼图与好友闯关",
+  "scripts": {
+    "dev": "node build.mjs && node server.mjs --dist",
+    "preview": "node server.mjs --dist",
+    "build": "node build.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:browser": "node tests/browser.mjs",
+    "build:engine": "node scripts/build-cocos-engine.mjs --check"
+  },
+  "coffeeeeffoc": {
+    "role": "game",
+    "engine": "cocos-source-3.8.8"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.55.1"
+  }
+}

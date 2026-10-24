@@ -31,6 +31,7 @@ if (
   });
 } else if (
   [
+    'porcelain-puzzle',
     'wulong-city',
     'letters-words2',
     'ball-roguelite',
