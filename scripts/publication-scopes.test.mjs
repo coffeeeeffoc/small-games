@@ -5924,3 +5924,63 @@ test('Ashfall artifact list permits the single new identity and preserves execut
     check('scripts/reuse-cocos-artifacts.mjs', before, "export const games = ['ashfall-front'];\n"),
   );
 });
+
+test('Ashfall planning works with only pinned Prettier and preserves every lock document', async () => {
+  const { mkdtemp, copyFile, writeFile, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join, dirname } = await import('node:path');
+  const { createRequire } = await import('node:module');
+  const directory = await mkdtemp(join(tmpdir(), 'ashfall-planning-'));
+  const files = [
+    'pnpm-lock.yaml',
+    'turbo.json',
+    'scripts/cocos-validation.mjs',
+    'scripts/reuse-cocos-artifacts.mjs',
+    ...['ci', 'pages-validate', 'mobile', 'carding-car'].map(
+      (name) => '.github/workflows/' + name + '.yml',
+    ),
+  ];
+  const fixtures = files.map((file) => ({
+    file,
+    before: execFileSync('git', ['show', '171423331a4bdc0f8d45369b047dbc9e3d971b5c:' + file], {
+      encoding: 'utf8',
+    }),
+    after: readFileSync(new URL('../' + file, import.meta.url), 'utf8'),
+  }));
+  try {
+    for (const name of [
+      'publication-scopes.mjs',
+      'local-game-retirement-scope.mjs',
+      'local-game-retirement-reviews.mjs',
+      'vite-patch-scope.mjs',
+      'competition-ingress.mjs',
+      'admin-csp.mjs',
+    ])
+      await copyFile(new URL(name, import.meta.url), join(directory, name));
+    await writeFile(join(directory, 'fixtures.json'), JSON.stringify(fixtures));
+    const code = [
+      "import assert from 'node:assert/strict';",
+      "import fs from 'node:fs';",
+      "import {createRequire} from 'node:module';",
+      "import {ashfallCreatorWiringOnly as check} from './publication-scopes.mjs';",
+      "assert.throws(() => createRequire(import.meta.url).resolve('js-yaml'));",
+      "const fixtures = JSON.parse(fs.readFileSync('fixtures.json','utf8'));",
+      'for (const {file,before,after} of fixtures) assert.equal(check(file,before,after),true,file);',
+      "const lock=fixtures.find(f=>f.file==='pnpm-lock.yaml');",
+      "assert.throws(()=>check(lock.file, lock.before, lock.after.replace('specifier: 12.6.0','specifier: 99.0.0')));",
+    ].join('\n');
+    execFileSync(process.execPath, ['--input-type=module', '-e', code], {
+      cwd: directory,
+      env: {
+        ...process.env,
+        NODE_PATH: dirname(
+          dirname(createRequire(import.meta.url).resolve('prettier/package.json')),
+        ),
+      },
+      encoding: 'utf8',
+      timeout: 20000,
+    });
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});

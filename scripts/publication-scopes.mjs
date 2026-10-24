@@ -3918,14 +3918,56 @@ export function towerArtifactConfigFileScope(file, before, after, context) {
   }
 }
 
+// Planning installs only Prettier; use its YAML parser without a workspace dependency.
+function planningYaml(text) {
+  const ast = loadDependency('prettier/plugins/yaml').parsers.yaml.parse(text);
+  function value(node) {
+    assert(!node.anchor && !node.tag, 'Unsupported planning YAML anchor or tag');
+    if (['mapping', 'flowMapping'].includes(node.type)) {
+      const entries = node.children.map((item) => item.children.map(value));
+      assert(entries.every(([key]) => typeof key === 'string'));
+      assert.equal(new Set(entries.map(([key]) => key)).size, entries.length);
+      return Object.fromEntries(entries);
+    }
+    if (['sequence', 'flowSequence'].includes(node.type)) return node.children.map(value);
+    if (
+      ['plain', 'quoteSingle', 'quoteDouble', 'blockLiteral', 'blockFolded'].includes(node.type)
+    ) {
+      if (node.type === 'plain') {
+        if (node.value === '~') return null;
+        try {
+          return JSON.parse(node.value);
+        } catch {
+          /* Ordinary YAML string. */
+        }
+      }
+      return node.value;
+    }
+    assert(
+      ['mappingKey', 'mappingValue', 'sequenceItem', 'flowSequenceItem', 'documentBody'].includes(
+        node.type,
+      ),
+      'Unsupported planning YAML node: ' + node.type,
+    );
+    assert(node.children.length <= 1);
+    return node.children.length ? value(node.children[0]) : null;
+  }
+  return ast.children.map((document) => {
+    assert.equal(document.type, 'document');
+    assert.equal(document.children[0].children.length, 0, 'Unsupported YAML directive');
+    return value(document.children[1]);
+  });
+}
+
 // Verify an additive registration by restoring all existing consumers before comparison.
 export function ashfallCreatorWiringOnly(file, before, after) {
   const source = 'games/local/ashfall-front',
     variable = 'ASHFALL_FRONT_PREBUILT_DIR';
-  const yaml = loadDependency('js-yaml');
   if (file === 'pnpm-lock.yaml') {
-    const old = yaml.loadAll(before).at(-1),
-      current = yaml.loadAll(after).at(-1);
+    const oldDocuments = planningYaml(before),
+      currentDocuments = planningYaml(after);
+    const old = oldDocuments.at(-1),
+      current = currentDocuments.at(-1);
     assert.deepEqual(old.importers[source], {});
     const tools = {
       '@playwright/test': { specifier: '1.55.1', version: '1.55.1' },
@@ -3939,7 +3981,7 @@ export function ashfallCreatorWiringOnly(file, before, after) {
         ),
       );
     current.importers[source] = old.importers[source];
-    assert.deepEqual(current, old);
+    assert.deepEqual(currentDocuments, oldDocuments);
     return true;
   }
   if (file === 'turbo.json') {
@@ -3982,8 +4024,12 @@ export function ashfallCreatorWiringOnly(file, before, after) {
     )
   )
     return false;
-  const old = yaml.load(before),
-    current = yaml.load(after);
+  const oldDocuments = planningYaml(before),
+    currentDocuments = planningYaml(after);
+  assert.equal(oldDocuments.length, 1);
+  assert.equal(currentDocuments.length, 1);
+  const old = oldDocuments[0],
+    current = currentDocuments[0];
   const clone = (value) =>
     JSON.parse(
       JSON.stringify(value)
