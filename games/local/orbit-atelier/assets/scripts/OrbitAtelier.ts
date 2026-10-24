@@ -107,7 +107,6 @@ export class OrbitAtelier extends Component {
   sharePending = false;
   shareStatus = '';
   accessibility?: HTMLDivElement;
-  pointerCanvas?: HTMLCanvasElement;
   disposed = false;
   rewardToken = 0;
   rewardPending = false;

@@ -17,7 +17,6 @@ try {
     </head><body><div id="GameDiv"><div id="Cocos3dGameContainer"><canvas id="GameCanvas" tabindex="0"></canvas></div></div>
     <script src="./fixture.js"></script><script>System.import('./index.js')</script></body></html>`);
   await writeFile(path.join(directory, 'index.js'), `System.import('./application.js');`);
-  await writeFile(path.join(directory, 'fullscreen.js'), await readFile(new URL('../scripts/fullscreen.js', import.meta.url)));
   await writeFile(path.join(directory, 'competition-session.js'), '');
   await writeFile(path.join(directory, 'fixture.js'), `
     window.overrides = {};

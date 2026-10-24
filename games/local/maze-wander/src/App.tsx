@@ -332,7 +332,7 @@ export function App() {
                 启程 <span>→</span>
               </button>
               <button onClick={() => show('levels')}>旅行手记 · 选择关卡</button>
-              
+
               <button
                 className="quiet"
                 onClick={() => {

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium, expect } from '@playwright/test';
 import { createServer } from 'vite';
 
-// Keep the actual App, layout, browser fullscreen and pointer processing. Only
+// Keep the actual App, layout and pointer processing. Only
 // Scene is isolated so these checks do not depend on software WebGL frame rate.
 const server = await createServer({
   root: fileURLToPath(new URL('../', import.meta.url)),
@@ -39,7 +39,7 @@ await mkdir(output, { recursive: true });
 const report = {
   browser: await browser.version(),
   physicalMobile: false,
-  scene: 'isolated renderer; actual App, touch layout and browser fullscreen',
+  scene: 'isolated renderer; actual App, touch layout and ordinary browser viewport',
   checks: [],
   errors: [],
   passed: false,
@@ -419,7 +419,7 @@ try {
     report.checks.push({
       viewport,
       checks:
-        'home, entry fullscreen, touch targets, pause/settings, fullscreen exit, physical rotation with held-finger cancellation, map, landmark collection, journal and home return',
+        'home, normal viewport, touch targets, pause/settings, physical rotation with held-finger cancellation, map, landmark collection, journal and home return',
     });
     await session.context.close();
   }
@@ -525,7 +525,7 @@ try {
       embedding,
       permissions,
       checks:
-        'real browser fullscreen includes game UI and modal; owning same-origin Shell navigation hides in fullscreen and returns on exit; cross-origin host remains untouched; exit retains progress and permissions',
+        'normal viewport retains game UI, modal, host navigation, progress and permissions',
     });
     if (embedding === 'same-origin') {
       const iframeHandle = await iframe.elementHandle();
@@ -551,7 +551,7 @@ try {
   await removed.context.close();
   report.checks.push({
     hostCleanup:
-      'Real iframe navigation and direct removal restore its marker, remove the immersion stylesheet and detach both surviving parent fullscreen listeners',
+      'Iframe navigation and removal leave host styling and listeners unchanged',
   });
 
   const modalFullscreen = await open();
@@ -577,7 +577,7 @@ try {
   await modalFullscreen.context.close();
   report.checks.push({
     modalFullscreen:
-      'Real entry/exit from an already-open modal retains top-layer hit testing and tappable footer/close controls',
+      'Normal viewport modal retains top-layer hit testing and tappable footer/close controls',
   });
 
   const desktop = await open({ viewport: { width: 900, height: 1100 }, mobile: false });
