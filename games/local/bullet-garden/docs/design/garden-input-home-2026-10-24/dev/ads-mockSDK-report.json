@@ -1,0 +1,12 @@
+{
+  "mockSDK": true,
+  "platformAcceptance": false,
+  "sourceHash": "5758d9e59d661c651a26f6efcc29bc3ab7172acb5ffddafac3b4c7bea1db4aa5",
+  "checks": [
+    "supply hidden completion deferred to focus; 30 percent once; full HP hidden; duplicate ignored",
+    "revive dismiss/error/complete; 50 percent HP and 3 seconds protection; failure not settled; late callback cannot affect restart",
+    "SDK overlay may hide before show resolves; completion is delivered once after focus"
+  ],
+  "errors": [],
+  "passed": true
+}
