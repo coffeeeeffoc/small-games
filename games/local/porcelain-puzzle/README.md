@@ -31,7 +31,7 @@ pnpm --filter @coffeeeeffoc/porcelain-puzzle test:browser
 
 完成者等待；所有本轮参赛者完成、超时或跳过后，6.5 秒结算，再统一进入下一关。主动退出立即移出，断线 30 秒后释放席位，房主自动转移，剩一人仍可继续。中途加入从下一轮参加。邀请码不包含玩家凭证；凭证只保存在当前浏览器会话。
 
-独立启动时默认使用同源房间接口 `/api/porcelain/rooms`。静态站点可在 `platform-config.js` 设置公开服务地址：
+独立启动时默认使用同源房间接口 `/api/porcelain/rooms`。静态站点可在 `room-config.js` 设置公开服务地址（独立于广告打包配置）：
 
 ```js
 globalThis.PorcelainConfig = {

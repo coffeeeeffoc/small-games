@@ -18,6 +18,7 @@ for (const file of [
   'favicon.svg',
   'dev-mode.js',
   'platform-config.js',
+  'room-config.js',
 ])
   await cp(new URL(file, root), new URL(file, dist), { recursive: true });
 for (const file of ['game-rewards.js', 'platform-ads.js', 'interstitial.js'])

@@ -3,11 +3,11 @@
   "verified": "2026-10-24",
   "files": {
     "main.mjs": "99489b59a1ffb43dabc3019846daa08ec8c54d3e55bc2efadd08894994290172",
-    "index.html": "57cdfe3e3ac98973fd7205720244911b8a075a0afa5c82ca44b94d7898c4d4bc",
+    "index.html": "245f00b7ea19522e414a8182ba9aca7124eb1e1356a01e65f0399668e24ad56f",
     "style.css": "1b589aff92a9ab4dc83430855e3f80b25e58b0446957082f404566d8c3ccef67",
-    "build.mjs": "bfbd329f71419417b769f09b567d2e4154d154d58aae5bfd669cf8de10b5577d",
+    "build.mjs": "5bc77a495c168a80e724db5385e511d0d69f72c29b59569d87635047e90a8f44",
     "server.mjs": "c2e8f842a41d56f518c9638dbd04c7f1bd3e92c86120aebb5464c75ab4846c8b",
-    "platform-config.js": "ab7173859b97b91124680afe697798ccdbf48dc14b17f36e702cf3fce8b40db4",
+    "platform-config.js": "5b3bd0d49ecddf7648b0a116337869fd40a1361fc2a47ab915def5f52f198c5f",
     "vendor/cocos/cc.js": "fffa27f1b13fa7e9385f39d3d6bd6fd8fec8a820d86db7aae77e1133ba521495",
     "src/art.mjs": "c417fe18652c7cbfbd7279cb8891fceff405eb3a7279309f27e944ea2d0ba292",
     "src/content.mjs": "f4e53cf3affe38809533bbc876064b7ca4a354ba7fba0d042db5c18be1d6ea07",
@@ -17,6 +17,7 @@
     "src/storage.mjs": "83988371f045b8e188bc0c2f7b845c9e5f91530bfae19a5825c4dd9c871bc9be",
     "src/view.mjs": "622f34318f3233aa72c0a794e442f59e407b215b1f234b4dceaebc39f0f22342",
     "assets/atelier.png": "5ac7e10fffc8b0d92028c89d29e7b6c49c5662ec78b45ada769d1114bb106a8d",
-    "assets/baby-atlas.png": "869732a0eb77940a898cfe51fc7afbbdbd70c8a6ee812a8d84f81b613326395c"
+    "assets/baby-atlas.png": "869732a0eb77940a898cfe51fc7afbbdbd70c8a6ee812a8d84f81b613326395c",
+    "room-config.js": "0bfbde2bfe7de8beb8baec83e9aff8ae3adc756a27af30135ed349cd13441fc7"
   }
 }
