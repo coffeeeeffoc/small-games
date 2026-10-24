@@ -1,0 +1,5522 @@
+{
+  "date": "2026-10-23T16:29:05.210Z",
+  "policy": "normal player HP, resources, timing and enemies; only public game/progression actions; fixed-seed observed-map steering",
+  "contentCount": 14,
+  "seeds": [
+    7,
+    42,
+    81
+  ],
+  "comparisons": [
+    {
+      "seed": 7,
+      "strategy": "no-permanent-purchases",
+      "completed": 11,
+      "finalProfile": {
+        "version": 1,
+        "xp": 2308,
+        "coins": 6513,
+        "completed": [
+          "ruins",
+          "meadow",
+          "wetland",
+          "quarry",
+          "windpass",
+          "hollow",
+          "terraces",
+          "bastion",
+          "mistwood",
+          "hailfield",
+          "heartgarden"
+        ],
+        "settledRuns": [
+          "campaign-7-base-ruins",
+          "campaign-7-base-meadow",
+          "campaign-7-base-wetland",
+          "campaign-7-base-quarry",
+          "campaign-7-base-windpass",
+          "campaign-7-base-hollow",
+          "campaign-7-base-terraces",
+          "campaign-7-base-bastion",
+          "campaign-7-base-mistwood",
+          "campaign-7-base-hailfield",
+          "campaign-7-base-heartgarden",
+          "campaign-7-base-deepsoil"
+        ],
+        "upgrades": {
+          "attack": 0,
+          "fireRate": 0,
+          "health": 0,
+          "armor": 0,
+          "seedMastery": 0,
+          "pet": 0,
+          "weaponDamage": 0,
+          "weaponRate": 0,
+          "weaponPierce": 0
+        },
+        "equippedWeapon": "bloom-rifle",
+        "equippedPet": "sprout-helper",
+        "selectedLevelId": "deepsoil"
+      },
+      "runs": [
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 7,
+          "level": "ruins",
+          "order": 1,
+          "result": "won",
+          "seconds": 60,
+          "hp": 100,
+          "kills": 19,
+          "plants": 10,
+          "plantKills": 3,
+          "petKills": 0,
+          "skillCasts": 0,
+          "skillDamage": 0,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 1,
+          "maxPlants": 4,
+          "maxBullets": 2,
+          "purchases": [],
+          "choiceTimes": [
+            26.499999999999776
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 1,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 128,
+            "xp": 115,
+            "firstClear": true
+          },
+          "walletAfter": 128,
+          "playerLevelAfter": 2
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 7,
+          "level": "meadow",
+          "order": 2,
+          "result": "won",
+          "seconds": 92,
+          "hp": 100,
+          "kills": 92,
+          "plants": 23,
+          "plantKills": 3,
+          "petKills": 0,
+          "skillCasts": 24,
+          "skillDamage": 791,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 6,
+          "maxPlants": 8,
+          "maxBullets": 2,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            87.61666666666298
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 2,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 323,
+            "xp": 130,
+            "firstClear": true
+          },
+          "walletAfter": 451,
+          "playerLevelAfter": 2
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 7,
+          "level": "wetland",
+          "order": 3,
+          "result": "won",
+          "seconds": 121,
+          "hp": 100,
+          "kills": 63,
+          "plants": 42,
+          "plantKills": 5,
+          "petKills": 0,
+          "skillCasts": 24,
+          "skillDamage": 929,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 4,
+          "maxPlants": 8,
+          "maxBullets": 4,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.266666666665095,
+            82.79999999999659,
+            110.29999999999502
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 2,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 338,
+            "xp": 150,
+            "firstClear": true
+          },
+          "walletAfter": 789,
+          "playerLevelAfter": 3
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 7,
+          "level": "quarry",
+          "order": 4,
+          "result": "won",
+          "seconds": 154,
+          "hp": 125,
+          "kills": 84,
+          "plants": 55,
+          "plantKills": 2,
+          "petKills": 0,
+          "skillCasts": 30,
+          "skillDamage": 3346,
+          "encounter": {
+            "kind": "warden",
+            "spawned": true,
+            "defeated": true,
+            "enemyId": 703,
+            "retryIn": 0
+          },
+          "maxEnemies": 6,
+          "maxPlants": 11,
+          "maxBullets": 6,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            87.19999999999634,
+            116.28333333332802,
+            142.9500000000059
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 3,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 602,
+            "xp": 185,
+            "firstClear": true
+          },
+          "walletAfter": 1391,
+          "playerLevelAfter": 4
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 7,
+          "level": "windpass",
+          "order": 5,
+          "result": "won",
+          "seconds": 151,
+          "hp": 55,
+          "kills": 86,
+          "plants": 43,
+          "plantKills": 5,
+          "petKills": 0,
+          "skillCasts": 38,
+          "skillDamage": 1711,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 5,
+          "maxPlants": 9,
+          "maxBullets": 5,
+          "purchases": [],
+          "choiceTimes": [
+            20.850000000000097,
+            35.866666666665914,
+            61.716666666664445,
+            84.06666666666318,
+            108.49999999999513,
+            137.86666666666852
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 4,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 450,
+            "xp": 175,
+            "firstClear": true
+          },
+          "walletAfter": 1841,
+          "playerLevelAfter": 5
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 7,
+          "level": "hollow",
+          "order": 6,
+          "result": "won",
+          "seconds": 150,
+          "hp": 100,
+          "kills": 91,
+          "plants": 63,
+          "plantKills": 1,
+          "petKills": 3,
+          "skillCasts": 32,
+          "skillDamage": 1238,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 4,
+          "maxPlants": 11,
+          "maxBullets": 5,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.98333333333172,
+            69.01666666666404,
+            98.66666666666235,
+            129.31666666666172
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 5,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 498,
+            "xp": 195,
+            "firstClear": true
+          },
+          "walletAfter": 2339,
+          "playerLevelAfter": 6
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 7,
+          "level": "terraces",
+          "order": 7,
+          "result": "won",
+          "seconds": 151,
+          "hp": 100,
+          "kills": 94,
+          "plants": 73,
+          "plantKills": 17,
+          "petKills": 10,
+          "skillCasts": 38,
+          "skillDamage": 1821,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 3,
+          "maxPlants": 13,
+          "maxBullets": 3,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            81.44999999999666,
+            106.21666666666192,
+            138.03333333333532
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 6,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 579,
+            "xp": 215,
+            "firstClear": true
+          },
+          "walletAfter": 2918,
+          "playerLevelAfter": 6
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 7,
+          "level": "bastion",
+          "order": 8,
+          "result": "won",
+          "seconds": 182,
+          "hp": 56,
+          "kills": 121,
+          "plants": 102,
+          "plantKills": 22,
+          "petKills": 4,
+          "skillCasts": 40,
+          "skillDamage": 2452,
+          "encounter": {
+            "kind": "bastionlord",
+            "spawned": true,
+            "defeated": true,
+            "enemyId": 1207,
+            "retryIn": 0
+          },
+          "maxEnemies": 7,
+          "maxPlants": 17,
+          "maxBullets": 8,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            80.06666666666341,
+            104.29999999999536,
+            129.68333333332868,
+            156.30000000001652,
+            172.33333333336262
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 6,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 850,
+            "xp": 250,
+            "firstClear": true
+          },
+          "walletAfter": 3768,
+          "playerLevelAfter": 7
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 7,
+          "level": "mistwood",
+          "order": 9,
+          "result": "won",
+          "seconds": 181,
+          "hp": 79,
+          "kills": 129,
+          "plants": 83,
+          "plantKills": 31,
+          "petKills": 16,
+          "skillCasts": 46,
+          "skillDamage": 1904,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 6,
+          "maxPlants": 13,
+          "maxBullets": 4,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            60.7166666666645,
+            80.53333333333005,
+            102.99999999999544,
+            127.86666666666069,
+            156.55000000001672
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 7,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 629,
+            "xp": 245,
+            "firstClear": true
+          },
+          "walletAfter": 4397,
+          "playerLevelAfter": 8
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 7,
+          "level": "hailfield",
+          "order": 10,
+          "result": "won",
+          "seconds": 184,
+          "hp": 96,
+          "kills": 290,
+          "plants": 131,
+          "plantKills": 73,
+          "petKills": 21,
+          "skillCasts": 68,
+          "skillDamage": 6178,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 11,
+          "maxPlants": 15,
+          "maxBullets": 6,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            80.06666666666341,
+            95.08333333332922,
+            112.53333333332823,
+            132.04999999999723,
+            157.68333333335096
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 8,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 927,
+            "xp": 275,
+            "firstClear": true
+          },
+          "walletAfter": 5324,
+          "playerLevelAfter": 9
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 7,
+          "level": "heartgarden",
+          "order": 11,
+          "result": "won",
+          "seconds": 212,
+          "hp": 95,
+          "kills": 245,
+          "plants": 179,
+          "plantKills": 63,
+          "petKills": 12,
+          "skillCasts": 64,
+          "skillDamage": 5146,
+          "encounter": {
+            "kind": "overgrowth",
+            "spawned": true,
+            "defeated": true,
+            "enemyId": 1109,
+            "retryIn": 0
+          },
+          "maxEnemies": 10,
+          "maxPlants": 18,
+          "maxBullets": 7,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            80.06666666666341,
+            95.08333333332922,
+            115.98333333332803,
+            146.33333333334193,
+            166.68333333335812,
+            198.70000000005027
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 9,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 1183,
+            "xp": 360,
+            "firstClear": true
+          },
+          "walletAfter": 6507,
+          "playerLevelAfter": 10
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 7,
+          "level": "deepsoil",
+          "order": 12,
+          "result": "lost",
+          "seconds": 26,
+          "hp": 0,
+          "kills": 5,
+          "plants": 2,
+          "plantKills": 0,
+          "petKills": 0,
+          "skillCasts": 2,
+          "skillDamage": 38,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 13,
+          "maxPlants": 2,
+          "maxBullets": 2,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 10,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 6,
+            "xp": 13,
+            "firstClear": false
+          },
+          "walletAfter": 6513,
+          "playerLevelAfter": 10
+        }
+      ]
+    },
+    {
+      "seed": 42,
+      "strategy": "no-permanent-purchases",
+      "completed": 10,
+      "finalProfile": {
+        "version": 1,
+        "xp": 1951,
+        "coins": 5336,
+        "completed": [
+          "ruins",
+          "meadow",
+          "wetland",
+          "quarry",
+          "windpass",
+          "hollow",
+          "terraces",
+          "bastion",
+          "mistwood",
+          "hailfield"
+        ],
+        "settledRuns": [
+          "campaign-42-base-ruins",
+          "campaign-42-base-meadow",
+          "campaign-42-base-wetland",
+          "campaign-42-base-quarry",
+          "campaign-42-base-windpass",
+          "campaign-42-base-hollow",
+          "campaign-42-base-terraces",
+          "campaign-42-base-bastion",
+          "campaign-42-base-mistwood",
+          "campaign-42-base-hailfield",
+          "campaign-42-base-heartgarden"
+        ],
+        "upgrades": {
+          "attack": 0,
+          "fireRate": 0,
+          "health": 0,
+          "armor": 0,
+          "seedMastery": 0,
+          "pet": 0,
+          "weaponDamage": 0,
+          "weaponRate": 0,
+          "weaponPierce": 0
+        },
+        "equippedWeapon": "bloom-rifle",
+        "equippedPet": "sprout-helper",
+        "selectedLevelId": "heartgarden"
+      },
+      "runs": [
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 42,
+          "level": "ruins",
+          "order": 1,
+          "result": "won",
+          "seconds": 60,
+          "hp": 100,
+          "kills": 19,
+          "plants": 10,
+          "plantKills": 4,
+          "petKills": 0,
+          "skillCasts": 0,
+          "skillDamage": 0,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 1,
+          "maxPlants": 4,
+          "maxBullets": 2,
+          "purchases": [],
+          "choiceTimes": [
+            26.033333333333136
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 1,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 128,
+            "xp": 115,
+            "firstClear": true
+          },
+          "walletAfter": 128,
+          "playerLevelAfter": 2
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 42,
+          "level": "meadow",
+          "order": 2,
+          "result": "won",
+          "seconds": 90,
+          "hp": 80,
+          "kills": 90,
+          "plants": 29,
+          "plantKills": 5,
+          "petKills": 0,
+          "skillCasts": 24,
+          "skillDamage": 737,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 5,
+          "maxPlants": 8,
+          "maxBullets": 4,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            82.78333333332992
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 2,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 330,
+            "xp": 130,
+            "firstClear": true
+          },
+          "walletAfter": 458,
+          "playerLevelAfter": 2
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 42,
+          "level": "wetland",
+          "order": 3,
+          "result": "won",
+          "seconds": 120,
+          "hp": 100,
+          "kills": 64,
+          "plants": 41,
+          "plantKills": 6,
+          "petKills": 0,
+          "skillCasts": 24,
+          "skillDamage": 1189,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 5,
+          "maxPlants": 8,
+          "maxBullets": 4,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            67.49999999999746,
+            99.74999999999562
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 2,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 369,
+            "xp": 150,
+            "firstClear": true
+          },
+          "walletAfter": 827,
+          "playerLevelAfter": 3
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 42,
+          "level": "quarry",
+          "order": 4,
+          "result": "won",
+          "seconds": 154,
+          "hp": 84,
+          "kills": 83,
+          "plants": 73,
+          "plantKills": 3,
+          "petKills": 0,
+          "skillCasts": 30,
+          "skillDamage": 1747,
+          "encounter": {
+            "kind": "warden",
+            "spawned": true,
+            "defeated": true,
+            "enemyId": 537,
+            "retryIn": 0
+          },
+          "maxEnemies": 6,
+          "maxPlants": 13,
+          "maxBullets": 4,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            53.933333333331554,
+            82.4999999999966,
+            108.66666666666178,
+            134.44999999999914
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 3,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 526,
+            "xp": 185,
+            "firstClear": true
+          },
+          "walletAfter": 1353,
+          "playerLevelAfter": 4
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 42,
+          "level": "windpass",
+          "order": 5,
+          "result": "won",
+          "seconds": 153,
+          "hp": 54,
+          "kills": 86,
+          "plants": 71,
+          "plantKills": 12,
+          "petKills": 0,
+          "skillCasts": 30,
+          "skillDamage": 2440,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 7,
+          "maxPlants": 15,
+          "maxBullets": 2,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            72.21666666666385,
+            102.51666666666213,
+            129.93333333332887
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 4,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 506,
+            "xp": 175,
+            "firstClear": true
+          },
+          "walletAfter": 1859,
+          "playerLevelAfter": 5
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 42,
+          "level": "hollow",
+          "order": 6,
+          "result": "won",
+          "seconds": 153,
+          "hp": 100,
+          "kills": 91,
+          "plants": 93,
+          "plantKills": 4,
+          "petKills": 6,
+          "skillCasts": 32,
+          "skillDamage": 910,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 4,
+          "maxPlants": 14,
+          "maxBullets": 4,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            52.23333333333165,
+            77.26666666666357,
+            114.7833333333281,
+            150.2500000000117
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 5,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 454,
+            "xp": 195,
+            "firstClear": true
+          },
+          "walletAfter": 2313,
+          "playerLevelAfter": 6
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 42,
+          "level": "terraces",
+          "order": 7,
+          "result": "won",
+          "seconds": 151,
+          "hp": 100,
+          "kills": 96,
+          "plants": 78,
+          "plantKills": 7,
+          "petKills": 9,
+          "skillCasts": 32,
+          "skillDamage": 1236,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 5,
+          "maxPlants": 14,
+          "maxBullets": 12,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            81.54999999999666,
+            103.5999999999954,
+            136.1500000000005
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 6,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 595,
+            "xp": 215,
+            "firstClear": true
+          },
+          "walletAfter": 2908,
+          "playerLevelAfter": 6
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 42,
+          "level": "bastion",
+          "order": 8,
+          "result": "won",
+          "seconds": 185,
+          "hp": 125,
+          "kills": 122,
+          "plants": 108,
+          "plantKills": 48,
+          "petKills": 9,
+          "skillCasts": 40,
+          "skillDamage": 2398,
+          "encounter": {
+            "kind": "bastionlord",
+            "spawned": true,
+            "defeated": true,
+            "enemyId": 1183,
+            "retryIn": 0
+          },
+          "maxEnemies": 8,
+          "maxPlants": 18,
+          "maxBullets": 7,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            80.06666666666341,
+            96.0666666666625,
+            119.93333333332781,
+            150.3500000000118,
+            169.7666666666939
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 6,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 867,
+            "xp": 250,
+            "firstClear": true
+          },
+          "walletAfter": 3775,
+          "playerLevelAfter": 7
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 42,
+          "level": "mistwood",
+          "order": 9,
+          "result": "won",
+          "seconds": 181,
+          "hp": 100,
+          "kills": 128,
+          "plants": 45,
+          "plantKills": 9,
+          "petKills": 11,
+          "skillCasts": 42,
+          "skillDamage": 620,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 3,
+          "maxPlants": 9,
+          "maxBullets": 9,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            53.033333333331605,
+            77.76666666666354,
+            99.01666666666233,
+            129.34999999999508,
+            164.7000000000232
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 7,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 625,
+            "xp": 245,
+            "firstClear": true
+          },
+          "walletAfter": 4400,
+          "playerLevelAfter": 8
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 42,
+          "level": "hailfield",
+          "order": 10,
+          "result": "won",
+          "seconds": 185,
+          "hp": 150,
+          "kills": 265,
+          "plants": 114,
+          "plantKills": 55,
+          "petKills": 18,
+          "skillCasts": 63,
+          "skillDamage": 5740,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 9,
+          "maxPlants": 13,
+          "maxBullets": 9,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            80.06666666666341,
+            95.08333333332922,
+            110.23333333332836,
+            136.2166666666672,
+            157.36666666668404
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 8,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 921,
+            "xp": 275,
+            "firstClear": true
+          },
+          "walletAfter": 5321,
+          "playerLevelAfter": 9
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 42,
+          "level": "heartgarden",
+          "order": 11,
+          "result": "lost",
+          "seconds": 38,
+          "hp": 0,
+          "kills": 21,
+          "plants": 3,
+          "plantKills": 0,
+          "petKills": 7,
+          "skillCasts": 6,
+          "skillDamage": 402,
+          "encounter": {
+            "kind": "overgrowth",
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 10,
+          "maxPlants": 3,
+          "maxBullets": 4,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 9,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 15,
+            "xp": 16,
+            "firstClear": false
+          },
+          "walletAfter": 5336,
+          "playerLevelAfter": 9
+        }
+      ]
+    },
+    {
+      "seed": 81,
+      "strategy": "no-permanent-purchases",
+      "completed": 9,
+      "finalProfile": {
+        "version": 1,
+        "xp": 1683,
+        "coins": 4338,
+        "completed": [
+          "ruins",
+          "meadow",
+          "wetland",
+          "quarry",
+          "windpass",
+          "hollow",
+          "terraces",
+          "bastion",
+          "mistwood"
+        ],
+        "settledRuns": [
+          "campaign-81-base-ruins",
+          "campaign-81-base-meadow",
+          "campaign-81-base-wetland",
+          "campaign-81-base-quarry",
+          "campaign-81-base-windpass",
+          "campaign-81-base-hollow",
+          "campaign-81-base-terraces",
+          "campaign-81-base-bastion",
+          "campaign-81-base-mistwood",
+          "campaign-81-base-hailfield"
+        ],
+        "upgrades": {
+          "attack": 0,
+          "fireRate": 0,
+          "health": 0,
+          "armor": 0,
+          "seedMastery": 0,
+          "pet": 0,
+          "weaponDamage": 0,
+          "weaponRate": 0,
+          "weaponPierce": 0
+        },
+        "equippedWeapon": "bloom-rifle",
+        "equippedPet": "sprout-helper",
+        "selectedLevelId": "hailfield"
+      },
+      "runs": [
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 81,
+          "level": "ruins",
+          "order": 1,
+          "result": "won",
+          "seconds": 61,
+          "hp": 100,
+          "kills": 20,
+          "plants": 10,
+          "plantKills": 0,
+          "petKills": 0,
+          "skillCasts": 0,
+          "skillDamage": 0,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 1,
+          "maxPlants": 4,
+          "maxBullets": 2,
+          "purchases": [],
+          "choiceTimes": [
+            26.499999999999776
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 1,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 130,
+            "xp": 115,
+            "firstClear": true
+          },
+          "walletAfter": 130,
+          "playerLevelAfter": 2
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 81,
+          "level": "meadow",
+          "order": 2,
+          "result": "won",
+          "seconds": 91,
+          "hp": 100,
+          "kills": 90,
+          "plants": 27,
+          "plantKills": 3,
+          "petKills": 0,
+          "skillCasts": 24,
+          "skillDamage": 573,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 3,
+          "maxPlants": 8,
+          "maxBullets": 4,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            87.33333333332966
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 2,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 316,
+            "xp": 130,
+            "firstClear": true
+          },
+          "walletAfter": 446,
+          "playerLevelAfter": 2
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 81,
+          "level": "wetland",
+          "order": 3,
+          "result": "won",
+          "seconds": 121,
+          "hp": 100,
+          "kills": 63,
+          "plants": 45,
+          "plantKills": 5,
+          "petKills": 0,
+          "skillCasts": 24,
+          "skillDamage": 730,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 3,
+          "maxPlants": 8,
+          "maxBullets": 6,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            52.74999999999829,
+            86.36666666666305
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 2,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 317,
+            "xp": 150,
+            "firstClear": true
+          },
+          "walletAfter": 763,
+          "playerLevelAfter": 3
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 81,
+          "level": "quarry",
+          "order": 4,
+          "result": "won",
+          "seconds": 153,
+          "hp": 90,
+          "kills": 84,
+          "plants": 44,
+          "plantKills": 4,
+          "petKills": 0,
+          "skillCasts": 30,
+          "skillDamage": 2621,
+          "encounter": {
+            "kind": "warden",
+            "spawned": true,
+            "defeated": true,
+            "enemyId": 814,
+            "retryIn": 0
+          },
+          "maxEnemies": 6,
+          "maxPlants": 10,
+          "maxBullets": 6,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            72.33333333333051,
+            102.23333333332882,
+            126.31666666666078,
+            145.7000000000081
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 3,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 563,
+            "xp": 185,
+            "firstClear": true
+          },
+          "walletAfter": 1326,
+          "playerLevelAfter": 4
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 81,
+          "level": "windpass",
+          "order": 5,
+          "result": "won",
+          "seconds": 153,
+          "hp": 67,
+          "kills": 88,
+          "plants": 99,
+          "plantKills": 17,
+          "petKills": 0,
+          "skillCasts": 32,
+          "skillDamage": 1179,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 6,
+          "maxPlants": 15,
+          "maxBullets": 4,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.91666666666506,
+            81.36666666666333,
+            105.71666666666195,
+            145.0166666666742
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 4,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 459,
+            "xp": 175,
+            "firstClear": true
+          },
+          "walletAfter": 1785,
+          "playerLevelAfter": 5
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 81,
+          "level": "hollow",
+          "order": 6,
+          "result": "won",
+          "seconds": 156,
+          "hp": 90,
+          "kills": 92,
+          "plants": 118,
+          "plantKills": 16,
+          "petKills": 9,
+          "skillCasts": 32,
+          "skillDamage": 1325,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 5,
+          "maxPlants": 17,
+          "maxBullets": 5,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            53.033333333331605,
+            75.61666666666366,
+            106.41666666666191,
+            127.06666666666074
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 5,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 521,
+            "xp": 195,
+            "firstClear": true
+          },
+          "walletAfter": 2306,
+          "playerLevelAfter": 6
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 81,
+          "level": "terraces",
+          "order": 7,
+          "result": "won",
+          "seconds": 152,
+          "hp": 100,
+          "kills": 95,
+          "plants": 119,
+          "plantKills": 27,
+          "petKills": 3,
+          "skillCasts": 32,
+          "skillDamage": 1361,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 4,
+          "maxPlants": 18,
+          "maxBullets": 6,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            85.63333333332976,
+            107.84999999999516,
+            133.78333333333194
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 6,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 594,
+            "xp": 215,
+            "firstClear": true
+          },
+          "walletAfter": 2900,
+          "playerLevelAfter": 6
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 81,
+          "level": "bastion",
+          "order": 8,
+          "result": "won",
+          "seconds": 180,
+          "hp": 98,
+          "kills": 123,
+          "plants": 82,
+          "plantKills": 18,
+          "petKills": 7,
+          "skillCasts": 40,
+          "skillDamage": 1741,
+          "encounter": {
+            "kind": "bastionlord",
+            "spawned": true,
+            "defeated": true,
+            "enemyId": 1100,
+            "retryIn": 0
+          },
+          "maxEnemies": 6,
+          "maxPlants": 12,
+          "maxBullets": 11,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            83.43333333332988,
+            104.08333333332871,
+            129.3333333333284,
+            157.4833333333508,
+            172.48333333336274
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 6,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 830,
+            "xp": 250,
+            "firstClear": true
+          },
+          "walletAfter": 3730,
+          "playerLevelAfter": 7
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 81,
+          "level": "mistwood",
+          "order": 9,
+          "result": "won",
+          "seconds": 181,
+          "hp": 100,
+          "kills": 128,
+          "plants": 99,
+          "plantKills": 15,
+          "petKills": 19,
+          "skillCasts": 41,
+          "skillDamage": 1292,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 4,
+          "maxPlants": 13,
+          "maxBullets": 7,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            77.28333333333023,
+            104.79999999999534,
+            142.06666666667186
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 7,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 571,
+            "xp": 245,
+            "firstClear": true
+          },
+          "walletAfter": 4301,
+          "playerLevelAfter": 8
+        },
+        {
+          "strategy": "no-permanent-purchases",
+          "seed": 81,
+          "level": "hailfield",
+          "order": 10,
+          "result": "lost",
+          "seconds": 62,
+          "hp": 0,
+          "kills": 64,
+          "plants": 9,
+          "plantKills": 0,
+          "petKills": 7,
+          "skillCasts": 16,
+          "skillDamage": 1932,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 20,
+          "maxPlants": 6,
+          "maxBullets": 4,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 8,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 37,
+            "xp": 23,
+            "firstClear": false
+          },
+          "walletAfter": 4338,
+          "playerLevelAfter": 8
+        }
+      ]
+    }
+  ],
+  "upgraded": [
+    {
+      "seed": 7,
+      "strategy": "earned-growth",
+      "completed": 14,
+      "finalProfile": {
+        "version": 1,
+        "xp": 3700,
+        "coins": 3534,
+        "completed": [
+          "ruins",
+          "meadow",
+          "wetland",
+          "quarry",
+          "windpass",
+          "hollow",
+          "terraces",
+          "bastion",
+          "mistwood",
+          "hailfield",
+          "heartgarden",
+          "deepsoil",
+          "stonebloom",
+          "skyreach"
+        ],
+        "settledRuns": [
+          "campaign-7-growth-ruins",
+          "campaign-7-growth-meadow",
+          "campaign-7-growth-wetland",
+          "campaign-7-growth-quarry",
+          "campaign-7-growth-windpass",
+          "campaign-7-growth-hollow",
+          "campaign-7-growth-terraces",
+          "campaign-7-growth-bastion",
+          "campaign-7-growth-mistwood",
+          "campaign-7-growth-hailfield",
+          "campaign-7-growth-heartgarden",
+          "campaign-7-growth-deepsoil",
+          "campaign-7-growth-stonebloom",
+          "campaign-7-growth-skyreach"
+        ],
+        "upgrades": {
+          "attack": 10,
+          "fireRate": 8,
+          "health": 6,
+          "armor": 8,
+          "seedMastery": 6,
+          "pet": 3,
+          "weaponDamage": 4,
+          "weaponRate": 3,
+          "weaponPierce": 1
+        },
+        "equippedWeapon": "bloom-rifle",
+        "equippedPet": "sprout-helper",
+        "selectedLevelId": "skyreach"
+      },
+      "runs": [
+        {
+          "strategy": "earned-growth",
+          "seed": 7,
+          "level": "ruins",
+          "order": 1,
+          "result": "won",
+          "seconds": 60,
+          "hp": 100,
+          "kills": 19,
+          "plants": 10,
+          "plantKills": 3,
+          "petKills": 0,
+          "skillCasts": 0,
+          "skillDamage": 0,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 1,
+          "maxPlants": 4,
+          "maxBullets": 2,
+          "purchases": [],
+          "choiceTimes": [
+            26.499999999999776
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 1,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 128,
+            "xp": 115,
+            "firstClear": true
+          },
+          "walletAfter": 128,
+          "playerLevelAfter": 2
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 7,
+          "level": "meadow",
+          "order": 2,
+          "result": "won",
+          "seconds": 91,
+          "hp": 115,
+          "kills": 92,
+          "plants": 27,
+          "plantKills": 6,
+          "petKills": 0,
+          "skillCasts": 24,
+          "skillDamage": 535,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 4,
+          "maxPlants": 8,
+          "maxBullets": 6,
+          "purchases": [
+            {
+              "id": "health",
+              "rank": 1,
+              "cost": 30
+            },
+            {
+              "id": "attack",
+              "rank": 1,
+              "cost": 35
+            },
+            {
+              "id": "fireRate",
+              "rank": 1,
+              "cost": 35
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            85.06666666666312
+          ],
+          "startingStats": {
+            "damage": 20.520000000000003,
+            "fireRate": 2.6500000000000004,
+            "maxHp": 115,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 2,
+            "fireInterval": 0.3773584905660377,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 325,
+            "xp": 130,
+            "firstClear": true
+          },
+          "walletAfter": 353,
+          "playerLevelAfter": 2
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 7,
+          "level": "wetland",
+          "order": 3,
+          "result": "won",
+          "seconds": 120,
+          "hp": 145,
+          "kills": 64,
+          "plants": 28,
+          "plantKills": 4,
+          "petKills": 0,
+          "skillCasts": 24,
+          "skillDamage": 444,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 3,
+          "maxPlants": 4,
+          "maxBullets": 6,
+          "purchases": [
+            {
+              "id": "health",
+              "rank": 2,
+              "cost": 40
+            },
+            {
+              "id": "attack",
+              "rank": 2,
+              "cost": 48
+            },
+            {
+              "id": "fireRate",
+              "rank": 2,
+              "cost": 48
+            },
+            {
+              "id": "seedMastery",
+              "rank": 1,
+              "cost": 40
+            },
+            {
+              "id": "armor",
+              "rank": 1,
+              "cost": 45
+            },
+            {
+              "id": "weaponDamage",
+              "rank": 1,
+              "cost": 70
+            },
+            {
+              "id": "health",
+              "rank": 3,
+              "cost": 53
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.7999999999984,
+            78.34999999999684,
+            116.483333333328
+          ],
+          "startingStats": {
+            "damage": 23.94,
+            "fireRate": 2.8000000000000003,
+            "maxHp": 145,
+            "armor": 3,
+            "seedPower": 1.08,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 2,
+            "fireInterval": 0.3571428571428571,
+            "pellets": 1,
+            "weaponTier": 1,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 332,
+            "xp": 150,
+            "firstClear": true
+          },
+          "walletAfter": 341,
+          "playerLevelAfter": 3
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 7,
+          "level": "quarry",
+          "order": 4,
+          "result": "won",
+          "seconds": 151,
+          "hp": 160,
+          "kills": 83,
+          "plants": 45,
+          "plantKills": 1,
+          "petKills": 0,
+          "skillCasts": 30,
+          "skillDamage": 1485,
+          "encounter": {
+            "kind": "warden",
+            "spawned": true,
+            "defeated": true,
+            "enemyId": 1192,
+            "retryIn": 0
+          },
+          "maxEnemies": 4,
+          "maxPlants": 12,
+          "maxBullets": 12,
+          "purchases": [
+            {
+              "id": "health",
+              "rank": 4,
+              "cost": 69
+            },
+            {
+              "id": "attack",
+              "rank": 3,
+              "cost": 64
+            },
+            {
+              "id": "fireRate",
+              "rank": 3,
+              "cost": 64
+            },
+            {
+              "id": "seedMastery",
+              "rank": 2,
+              "cost": 54
+            },
+            {
+              "id": "armor",
+              "rank": 2,
+              "cost": 63
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            51.59999999999835,
+            77.06666666666358,
+            103.0666666666621,
+            134.01666666666546
+          ],
+          "startingStats": {
+            "damage": 25.459999999999997,
+            "fireRate": 2.9499999999999997,
+            "maxHp": 160,
+            "armor": 6,
+            "seedPower": 1.16,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 3,
+            "fireInterval": 0.33898305084745767,
+            "pellets": 1,
+            "weaponTier": 1,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 522,
+            "xp": 185,
+            "firstClear": true
+          },
+          "walletAfter": 549,
+          "playerLevelAfter": 4
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 7,
+          "level": "windpass",
+          "order": 5,
+          "result": "won",
+          "seconds": 150,
+          "hp": 175,
+          "kills": 87,
+          "plants": 64,
+          "plantKills": 2,
+          "petKills": 0,
+          "skillCasts": 30,
+          "skillDamage": 1275,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 2,
+          "maxPlants": 11,
+          "maxBullets": 6,
+          "purchases": [
+            {
+              "id": "health",
+              "rank": 5,
+              "cost": 92
+            },
+            {
+              "id": "attack",
+              "rank": 4,
+              "cost": 87
+            },
+            {
+              "id": "fireRate",
+              "rank": 4,
+              "cost": 87
+            },
+            {
+              "id": "seedMastery",
+              "rank": 3,
+              "cost": 73
+            },
+            {
+              "id": "armor",
+              "rank": 3,
+              "cost": 89
+            },
+            {
+              "id": "weaponDamage",
+              "rank": 2,
+              "cost": 105
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            55.58333333333146,
+            78.91666666666347,
+            107.89999999999516,
+            132.79999999999782
+          ],
+          "startingStats": {
+            "damage": 28.88,
+            "fireRate": 3.1,
+            "maxHp": 175,
+            "armor": 9,
+            "seedPower": 1.24,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 4,
+            "fireInterval": 0.3225806451612903,
+            "pellets": 1,
+            "weaponTier": 2,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 470,
+            "xp": 175,
+            "firstClear": true
+          },
+          "walletAfter": 486,
+          "playerLevelAfter": 5
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 7,
+          "level": "hollow",
+          "order": 6,
+          "result": "won",
+          "seconds": 150,
+          "hp": 190,
+          "kills": 93,
+          "plants": 75,
+          "plantKills": 2,
+          "petKills": 3,
+          "skillCasts": 32,
+          "skillDamage": 1177,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 2,
+          "maxPlants": 12,
+          "maxBullets": 10,
+          "purchases": [
+            {
+              "id": "health",
+              "rank": 6,
+              "cost": 121
+            },
+            {
+              "id": "attack",
+              "rank": 5,
+              "cost": 117
+            },
+            {
+              "id": "fireRate",
+              "rank": 5,
+              "cost": 117
+            },
+            {
+              "id": "seedMastery",
+              "rank": 4,
+              "cost": 99
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            52.04999999999833,
+            77.68333333333021,
+            106.83333333332855,
+            135.41666666666657
+          ],
+          "startingStats": {
+            "damage": 30.400000000000002,
+            "fireRate": 3.25,
+            "maxHp": 190,
+            "armor": 9,
+            "seedPower": 1.32,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 5,
+            "fireInterval": 0.3076923076923077,
+            "pellets": 1,
+            "weaponTier": 2,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 478,
+            "xp": 195,
+            "firstClear": true
+          },
+          "walletAfter": 510,
+          "playerLevelAfter": 6
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 7,
+          "level": "terraces",
+          "order": 7,
+          "result": "won",
+          "seconds": 150,
+          "hp": 190,
+          "kills": 95,
+          "plants": 72,
+          "plantKills": 10,
+          "petKills": 4,
+          "skillCasts": 36,
+          "skillDamage": 1550,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 2,
+          "maxPlants": 14,
+          "maxBullets": 8,
+          "purchases": [
+            {
+              "id": "attack",
+              "rank": 6,
+              "cost": 157
+            },
+            {
+              "id": "fireRate",
+              "rank": 6,
+              "cost": 157
+            },
+            {
+              "id": "seedMastery",
+              "rank": 5,
+              "cost": 133
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            80.06666666666341,
+            103.93333333332872,
+            130.3999999999959
+          ],
+          "startingStats": {
+            "damage": 31.919999999999998,
+            "fireRate": 3.3999999999999995,
+            "maxHp": 190,
+            "armor": 9,
+            "seedPower": 1.4,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 6,
+            "fireInterval": 0.2941176470588236,
+            "pellets": 1,
+            "weaponTier": 2,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 622,
+            "xp": 215,
+            "firstClear": true
+          },
+          "walletAfter": 685,
+          "playerLevelAfter": 6
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 7,
+          "level": "bastion",
+          "order": 8,
+          "result": "won",
+          "seconds": 180,
+          "hp": 190,
+          "kills": 123,
+          "plants": 158,
+          "plantKills": 26,
+          "petKills": 9,
+          "skillCasts": 40,
+          "skillDamage": 1669,
+          "encounter": {
+            "kind": "bastionlord",
+            "spawned": true,
+            "defeated": true,
+            "enemyId": 1047,
+            "retryIn": 0
+          },
+          "maxEnemies": 3,
+          "maxPlants": 18,
+          "maxBullets": 8,
+          "purchases": [
+            {
+              "id": "attack",
+              "rank": 7,
+              "cost": 212
+            },
+            {
+              "id": "fireRate",
+              "rank": 7,
+              "cost": 212
+            },
+            {
+              "id": "seedMastery",
+              "rank": 6,
+              "cost": 180
+            },
+            {
+              "id": "weaponRate",
+              "rank": 1,
+              "cost": 75
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            80.06666666666341,
+            97.58333333332908,
+            118.54999999999455,
+            140.2166666666704,
+            158.60000000001835
+          ],
+          "startingStats": {
+            "damage": 33.44,
+            "fireRate": 3.75,
+            "maxHp": 190,
+            "armor": 9,
+            "seedPower": 1.48,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 6,
+            "fireInterval": 0.26666666666666666,
+            "pellets": 1,
+            "weaponTier": 3,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 899,
+            "xp": 250,
+            "firstClear": true
+          },
+          "walletAfter": 905,
+          "playerLevelAfter": 7
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 7,
+          "level": "mistwood",
+          "order": 9,
+          "result": "won",
+          "seconds": 180,
+          "hp": 190,
+          "kills": 128,
+          "plants": 76,
+          "plantKills": 16,
+          "petKills": 3,
+          "skillCasts": 50,
+          "skillDamage": 1829,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 2,
+          "maxPlants": 11,
+          "maxBullets": 3,
+          "purchases": [
+            {
+              "id": "attack",
+              "rank": 8,
+              "cost": 287
+            },
+            {
+              "id": "fireRate",
+              "rank": 8,
+              "cost": 287
+            },
+            {
+              "id": "armor",
+              "rank": 4,
+              "cost": 124
+            },
+            {
+              "id": "weaponDamage",
+              "rank": 3,
+              "cost": 158
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            76.14999999999696,
+            113.06666666666153,
+            136.91666666666777,
+            178.3166666667007
+          ],
+          "startingStats": {
+            "damage": 36.86,
+            "fireRate": 3.9000000000000004,
+            "maxHp": 190,
+            "armor": 12,
+            "seedPower": 1.48,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 7,
+            "fireInterval": 0.2564102564102564,
+            "pellets": 1,
+            "weaponTier": 4,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 580,
+            "xp": 245,
+            "firstClear": true
+          },
+          "walletAfter": 629,
+          "playerLevelAfter": 8
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 7,
+          "level": "hailfield",
+          "order": 10,
+          "result": "won",
+          "seconds": 180,
+          "hp": 188,
+          "kills": 246,
+          "plants": 87,
+          "plantKills": 25,
+          "petKills": 7,
+          "skillCasts": 60,
+          "skillDamage": 3592,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 5,
+          "maxPlants": 13,
+          "maxBullets": 20,
+          "purchases": [
+            {
+              "id": "attack",
+              "rank": 9,
+              "cost": 387
+            },
+            {
+              "id": "armor",
+              "rank": 5,
+              "cost": 173
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            80.06666666666341,
+            95.08333333332922,
+            116.24999999999469,
+            134.36666666666574,
+            158.150000000018
+          ],
+          "startingStats": {
+            "damage": 38.38,
+            "fireRate": 3.9000000000000004,
+            "maxHp": 190,
+            "armor": 15,
+            "seedPower": 1.48,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 8,
+            "fireInterval": 0.2564102564102564,
+            "pellets": 1,
+            "weaponTier": 4,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 895,
+            "xp": 275,
+            "firstClear": true
+          },
+          "walletAfter": 964,
+          "playerLevelAfter": 9
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 7,
+          "level": "heartgarden",
+          "order": 11,
+          "result": "won",
+          "seconds": 210,
+          "hp": 190,
+          "kills": 253,
+          "plants": 160,
+          "plantKills": 35,
+          "petKills": 3,
+          "skillCasts": 64,
+          "skillDamage": 3182,
+          "encounter": {
+            "kind": "overgrowth",
+            "spawned": true,
+            "defeated": true,
+            "enemyId": 1254,
+            "retryIn": 0
+          },
+          "maxEnemies": 5,
+          "maxPlants": 18,
+          "maxBullets": 7,
+          "purchases": [
+            {
+              "id": "attack",
+              "rank": 10,
+              "cost": 522
+            },
+            {
+              "id": "armor",
+              "rank": 6,
+              "cost": 243
+            },
+            {
+              "id": "weaponRate",
+              "rank": 2,
+              "cost": 113
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            80.06666666666341,
+            95.08333333332922,
+            116.483333333328,
+            141.1333333333378,
+            164.033333333356,
+            184.2333333333721,
+            199.23333333338402
+          ],
+          "startingStats": {
+            "damage": 39.9,
+            "fireRate": 4.1000000000000005,
+            "maxHp": 190,
+            "armor": 18,
+            "seedPower": 1.48,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 9,
+            "fireInterval": 0.2439024390243902,
+            "pellets": 1,
+            "weaponTier": 5,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 1202,
+            "xp": 360,
+            "firstClear": true
+          },
+          "walletAfter": 1288,
+          "playerLevelAfter": 10
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 7,
+          "level": "deepsoil",
+          "order": 12,
+          "result": "won",
+          "seconds": 210,
+          "hp": 190,
+          "kills": 219,
+          "plants": 180,
+          "plantKills": 26,
+          "petKills": 17,
+          "skillCasts": 59,
+          "skillDamage": 2363,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 5,
+          "maxPlants": 18,
+          "maxBullets": 14,
+          "purchases": [
+            {
+              "id": "armor",
+              "rank": 7,
+              "cost": 339
+            },
+            {
+              "id": "weaponDamage",
+              "rank": 4,
+              "cost": 237
+            },
+            {
+              "id": "weaponRate",
+              "rank": 3,
+              "cost": 169
+            },
+            {
+              "id": "pet",
+              "rank": 1,
+              "cost": 90
+            },
+            {
+              "id": "weaponPierce",
+              "rank": 1,
+              "cost": 120
+            },
+            {
+              "id": "pet",
+              "rank": 2,
+              "cost": 131
+            },
+            {
+              "id": "pet",
+              "rank": 3,
+              "cost": 190
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            80.06666666666341,
+            95.08333333332922,
+            110.09999999999503,
+            131.71666666666363,
+            156.38333333334992,
+            179.78333333336855,
+            207.70000000005743
+          ],
+          "startingStats": {
+            "damage": 41.800000000000004,
+            "fireRate": 4.3,
+            "maxHp": 190,
+            "armor": 21,
+            "seedPower": 1.48,
+            "pierce": 1,
+            "petDamage": 21,
+            "petFireRate": 1,
+            "level": 10,
+            "fireInterval": 0.23255813953488372,
+            "pellets": 1,
+            "weaponTier": 8,
+            "petUnlocked": true,
+            "petRank": 3,
+            "petInterval": 1
+          },
+          "reward": {
+            "coins": 1180,
+            "xp": 430,
+            "firstClear": true
+          },
+          "walletAfter": 1192,
+          "playerLevelAfter": 11
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 7,
+          "level": "stonebloom",
+          "order": 13,
+          "result": "won",
+          "seconds": 210,
+          "hp": 190,
+          "kills": 236,
+          "plants": 129,
+          "plantKills": 16,
+          "petKills": 12,
+          "skillCasts": 64,
+          "skillDamage": 2427,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 5,
+          "maxPlants": 16,
+          "maxBullets": 13,
+          "purchases": [
+            {
+              "id": "armor",
+              "rank": 8,
+              "cost": 475
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            80.06666666666341,
+            95.08333333332922,
+            110.09999999999503,
+            125.11666666666085,
+            140.1166666666703,
+            169.25000000002683,
+            192.10000000004501
+          ],
+          "startingStats": {
+            "damage": 41.800000000000004,
+            "fireRate": 4.3,
+            "maxHp": 190,
+            "armor": 24,
+            "seedPower": 1.48,
+            "pierce": 1,
+            "petDamage": 21,
+            "petFireRate": 1,
+            "level": 11,
+            "fireInterval": 0.23255813953488372,
+            "pellets": 1,
+            "weaponTier": 8,
+            "petUnlocked": true,
+            "petRank": 3,
+            "petInterval": 1
+          },
+          "reward": {
+            "coins": 1313,
+            "xp": 465,
+            "firstClear": true
+          },
+          "walletAfter": 2030,
+          "playerLevelAfter": 12
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 7,
+          "level": "skyreach",
+          "order": 14,
+          "result": "won",
+          "seconds": 240,
+          "hp": 190,
+          "kills": 258,
+          "plants": 223,
+          "plantKills": 33,
+          "petKills": 15,
+          "skillCasts": 68,
+          "skillDamage": 2637,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 4,
+          "maxPlants": 18,
+          "maxBullets": 14,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            80.06666666666341,
+            95.08333333332922,
+            110.09999999999503,
+            125.68333333332748,
+            145.8666666666749,
+            173.30000000003005,
+            198.31666666671663,
+            223.21666666673644
+          ],
+          "startingStats": {
+            "damage": 41.800000000000004,
+            "fireRate": 4.3,
+            "maxHp": 190,
+            "armor": 24,
+            "seedPower": 1.48,
+            "pierce": 1,
+            "petDamage": 21,
+            "petFireRate": 1,
+            "level": 12,
+            "fireInterval": 0.23255813953488372,
+            "pellets": 1,
+            "weaponTier": 8,
+            "petUnlocked": true,
+            "petRank": 3,
+            "petInterval": 1
+          },
+          "reward": {
+            "coins": 1504,
+            "xp": 510,
+            "firstClear": true
+          },
+          "walletAfter": 3534,
+          "playerLevelAfter": 13
+        }
+      ]
+    },
+    {
+      "seed": 42,
+      "strategy": "earned-growth",
+      "completed": 14,
+      "finalProfile": {
+        "version": 1,
+        "xp": 3700,
+        "coins": 3664,
+        "completed": [
+          "ruins",
+          "meadow",
+          "wetland",
+          "quarry",
+          "windpass",
+          "hollow",
+          "terraces",
+          "bastion",
+          "mistwood",
+          "hailfield",
+          "heartgarden",
+          "deepsoil",
+          "stonebloom",
+          "skyreach"
+        ],
+        "settledRuns": [
+          "campaign-42-growth-ruins",
+          "campaign-42-growth-meadow",
+          "campaign-42-growth-wetland",
+          "campaign-42-growth-quarry",
+          "campaign-42-growth-windpass",
+          "campaign-42-growth-hollow",
+          "campaign-42-growth-terraces",
+          "campaign-42-growth-bastion",
+          "campaign-42-growth-mistwood",
+          "campaign-42-growth-hailfield",
+          "campaign-42-growth-heartgarden",
+          "campaign-42-growth-deepsoil",
+          "campaign-42-growth-stonebloom",
+          "campaign-42-growth-skyreach"
+        ],
+        "upgrades": {
+          "attack": 10,
+          "fireRate": 8,
+          "health": 6,
+          "armor": 8,
+          "seedMastery": 6,
+          "pet": 3,
+          "weaponDamage": 4,
+          "weaponRate": 3,
+          "weaponPierce": 1
+        },
+        "equippedWeapon": "bloom-rifle",
+        "equippedPet": "sprout-helper",
+        "selectedLevelId": "skyreach"
+      },
+      "runs": [
+        {
+          "strategy": "earned-growth",
+          "seed": 42,
+          "level": "ruins",
+          "order": 1,
+          "result": "won",
+          "seconds": 60,
+          "hp": 100,
+          "kills": 19,
+          "plants": 10,
+          "plantKills": 4,
+          "petKills": 0,
+          "skillCasts": 0,
+          "skillDamage": 0,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 1,
+          "maxPlants": 4,
+          "maxBullets": 2,
+          "purchases": [],
+          "choiceTimes": [
+            26.033333333333136
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 1,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 128,
+            "xp": 115,
+            "firstClear": true
+          },
+          "walletAfter": 128,
+          "playerLevelAfter": 2
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 42,
+          "level": "meadow",
+          "order": 2,
+          "result": "won",
+          "seconds": 92,
+          "hp": 115,
+          "kills": 94,
+          "plants": 30,
+          "plantKills": 0,
+          "petKills": 0,
+          "skillCasts": 24,
+          "skillDamage": 510,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 3,
+          "maxPlants": 8,
+          "maxBullets": 6,
+          "purchases": [
+            {
+              "id": "health",
+              "rank": 1,
+              "cost": 30
+            },
+            {
+              "id": "attack",
+              "rank": 1,
+              "cost": 35
+            },
+            {
+              "id": "fireRate",
+              "rank": 1,
+              "cost": 35
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            82.6499999999966
+          ],
+          "startingStats": {
+            "damage": 20.520000000000003,
+            "fireRate": 2.6500000000000004,
+            "maxHp": 115,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 2,
+            "fireInterval": 0.3773584905660377,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 331,
+            "xp": 130,
+            "firstClear": true
+          },
+          "walletAfter": 359,
+          "playerLevelAfter": 2
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 42,
+          "level": "wetland",
+          "order": 3,
+          "result": "won",
+          "seconds": 120,
+          "hp": 145,
+          "kills": 63,
+          "plants": 45,
+          "plantKills": 3,
+          "petKills": 0,
+          "skillCasts": 24,
+          "skillDamage": 1154,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 4,
+          "maxPlants": 8,
+          "maxBullets": 6,
+          "purchases": [
+            {
+              "id": "health",
+              "rank": 2,
+              "cost": 40
+            },
+            {
+              "id": "attack",
+              "rank": 2,
+              "cost": 48
+            },
+            {
+              "id": "fireRate",
+              "rank": 2,
+              "cost": 48
+            },
+            {
+              "id": "seedMastery",
+              "rank": 1,
+              "cost": 40
+            },
+            {
+              "id": "armor",
+              "rank": 1,
+              "cost": 45
+            },
+            {
+              "id": "weaponDamage",
+              "rank": 1,
+              "cost": 70
+            },
+            {
+              "id": "health",
+              "rank": 3,
+              "cost": 53
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            81.14999999999668,
+            100.56666666666224
+          ],
+          "startingStats": {
+            "damage": 23.94,
+            "fireRate": 2.8000000000000003,
+            "maxHp": 145,
+            "armor": 3,
+            "seedPower": 1.08,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 2,
+            "fireInterval": 0.3571428571428571,
+            "pellets": 1,
+            "weaponTier": 1,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 372,
+            "xp": 150,
+            "firstClear": true
+          },
+          "walletAfter": 387,
+          "playerLevelAfter": 3
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 42,
+          "level": "quarry",
+          "order": 4,
+          "result": "won",
+          "seconds": 150,
+          "hp": 160,
+          "kills": 84,
+          "plants": 52,
+          "plantKills": 2,
+          "petKills": 0,
+          "skillCasts": 30,
+          "skillDamage": 708,
+          "encounter": {
+            "kind": "warden",
+            "spawned": true,
+            "defeated": true,
+            "enemyId": 839,
+            "retryIn": 0
+          },
+          "maxEnemies": 3,
+          "maxPlants": 8,
+          "maxBullets": 8,
+          "purchases": [
+            {
+              "id": "health",
+              "rank": 4,
+              "cost": 69
+            },
+            {
+              "id": "attack",
+              "rank": 3,
+              "cost": 64
+            },
+            {
+              "id": "fireRate",
+              "rank": 3,
+              "cost": 64
+            },
+            {
+              "id": "seedMastery",
+              "rank": 2,
+              "cost": 54
+            },
+            {
+              "id": "armor",
+              "rank": 2,
+              "cost": 63
+            },
+            {
+              "id": "seedMastery",
+              "rank": 3,
+              "cost": 73
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            71.83333333333054,
+            92.31666666666271,
+            118.83333333332787,
+            133.83333333333198
+          ],
+          "startingStats": {
+            "damage": 25.459999999999997,
+            "fireRate": 2.9499999999999997,
+            "maxHp": 160,
+            "armor": 6,
+            "seedPower": 1.24,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 3,
+            "fireInterval": 0.33898305084745767,
+            "pellets": 1,
+            "weaponTier": 1,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 586,
+            "xp": 185,
+            "firstClear": true
+          },
+          "walletAfter": 586,
+          "playerLevelAfter": 4
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 42,
+          "level": "windpass",
+          "order": 5,
+          "result": "won",
+          "seconds": 151,
+          "hp": 175,
+          "kills": 86,
+          "plants": 101,
+          "plantKills": 22,
+          "petKills": 0,
+          "skillCasts": 30,
+          "skillDamage": 1268,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 3,
+          "maxPlants": 16,
+          "maxBullets": 2,
+          "purchases": [
+            {
+              "id": "health",
+              "rank": 5,
+              "cost": 92
+            },
+            {
+              "id": "attack",
+              "rank": 4,
+              "cost": 87
+            },
+            {
+              "id": "fireRate",
+              "rank": 4,
+              "cost": 87
+            },
+            {
+              "id": "seedMastery",
+              "rank": 4,
+              "cost": 99
+            },
+            {
+              "id": "armor",
+              "rank": 3,
+              "cost": 89
+            },
+            {
+              "id": "weaponDamage",
+              "rank": 2,
+              "cost": 105
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            72.44999999999717,
+            102.74999999999545,
+            134.44999999999914
+          ],
+          "startingStats": {
+            "damage": 28.88,
+            "fireRate": 3.1,
+            "maxHp": 175,
+            "armor": 9,
+            "seedPower": 1.32,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 4,
+            "fireInterval": 0.3225806451612903,
+            "pellets": 1,
+            "weaponTier": 2,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 472,
+            "xp": 175,
+            "firstClear": true
+          },
+          "walletAfter": 499,
+          "playerLevelAfter": 5
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 42,
+          "level": "hollow",
+          "order": 6,
+          "result": "won",
+          "seconds": 152,
+          "hp": 190,
+          "kills": 91,
+          "plants": 59,
+          "plantKills": 10,
+          "petKills": 4,
+          "skillCasts": 32,
+          "skillDamage": 800,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 2,
+          "maxPlants": 10,
+          "maxBullets": 8,
+          "purchases": [
+            {
+              "id": "health",
+              "rank": 6,
+              "cost": 121
+            },
+            {
+              "id": "attack",
+              "rank": 5,
+              "cost": 117
+            },
+            {
+              "id": "fireRate",
+              "rank": 5,
+              "cost": 117
+            },
+            {
+              "id": "seedMastery",
+              "rank": 5,
+              "cost": 133
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            51.48333333333169,
+            78.16666666666352,
+            108.54999999999512,
+            139.28333333333632
+          ],
+          "startingStats": {
+            "damage": 30.400000000000002,
+            "fireRate": 3.25,
+            "maxHp": 190,
+            "armor": 9,
+            "seedPower": 1.4,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 5,
+            "fireInterval": 0.3076923076923077,
+            "pellets": 1,
+            "weaponTier": 2,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 466,
+            "xp": 195,
+            "firstClear": true
+          },
+          "walletAfter": 477,
+          "playerLevelAfter": 6
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 42,
+          "level": "terraces",
+          "order": 7,
+          "result": "won",
+          "seconds": 150,
+          "hp": 190,
+          "kills": 95,
+          "plants": 125,
+          "plantKills": 10,
+          "petKills": 4,
+          "skillCasts": 32,
+          "skillDamage": 503,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 2,
+          "maxPlants": 18,
+          "maxBullets": 6,
+          "purchases": [
+            {
+              "id": "attack",
+              "rank": 6,
+              "cost": 157
+            },
+            {
+              "id": "fireRate",
+              "rank": 6,
+              "cost": 157
+            },
+            {
+              "id": "armor",
+              "rank": 4,
+              "cost": 124
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            80.06666666666341,
+            103.46666666666208,
+            127.46666666666071
+          ],
+          "startingStats": {
+            "damage": 31.919999999999998,
+            "fireRate": 3.3999999999999995,
+            "maxHp": 190,
+            "armor": 12,
+            "seedPower": 1.4,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 6,
+            "fireInterval": 0.2941176470588236,
+            "pellets": 1,
+            "weaponTier": 2,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 632,
+            "xp": 215,
+            "firstClear": true
+          },
+          "walletAfter": 671,
+          "playerLevelAfter": 6
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 42,
+          "level": "bastion",
+          "order": 8,
+          "result": "won",
+          "seconds": 180,
+          "hp": 190,
+          "kills": 123,
+          "plants": 122,
+          "plantKills": 7,
+          "petKills": 9,
+          "skillCasts": 40,
+          "skillDamage": 1752,
+          "encounter": {
+            "kind": "bastionlord",
+            "spawned": true,
+            "defeated": true,
+            "enemyId": 1087,
+            "retryIn": 0
+          },
+          "maxEnemies": 3,
+          "maxPlants": 18,
+          "maxBullets": 7,
+          "purchases": [
+            {
+              "id": "attack",
+              "rank": 7,
+              "cost": 212
+            },
+            {
+              "id": "fireRate",
+              "rank": 7,
+              "cost": 212
+            },
+            {
+              "id": "seedMastery",
+              "rank": 6,
+              "cost": 180
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            80.06666666666341,
+            95.08333333332922,
+            117.19999999999463,
+            140.41666666667055,
+            157.8166666666844
+          ],
+          "startingStats": {
+            "damage": 33.44,
+            "fireRate": 3.55,
+            "maxHp": 190,
+            "armor": 12,
+            "seedPower": 1.48,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 6,
+            "fireInterval": 0.28169014084507044,
+            "pellets": 1,
+            "weaponTier": 2,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 890,
+            "xp": 250,
+            "firstClear": true
+          },
+          "walletAfter": 957,
+          "playerLevelAfter": 7
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 42,
+          "level": "mistwood",
+          "order": 9,
+          "result": "won",
+          "seconds": 180,
+          "hp": 190,
+          "kills": 129,
+          "plants": 151,
+          "plantKills": 12,
+          "petKills": 4,
+          "skillCasts": 42,
+          "skillDamage": 965,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 2,
+          "maxPlants": 18,
+          "maxBullets": 6,
+          "purchases": [
+            {
+              "id": "attack",
+              "rank": 8,
+              "cost": 287
+            },
+            {
+              "id": "fireRate",
+              "rank": 8,
+              "cost": 287
+            },
+            {
+              "id": "armor",
+              "rank": 5,
+              "cost": 173
+            },
+            {
+              "id": "weaponDamage",
+              "rank": 3,
+              "cost": 158
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            94.3666666666626,
+            132.1499999999973,
+            159.7166666666859
+          ],
+          "startingStats": {
+            "damage": 36.86,
+            "fireRate": 3.7,
+            "maxHp": 190,
+            "armor": 15,
+            "seedPower": 1.48,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 7,
+            "fireInterval": 0.27027027027027023,
+            "pellets": 1,
+            "weaponTier": 3,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 651,
+            "xp": 245,
+            "firstClear": true
+          },
+          "walletAfter": 703,
+          "playerLevelAfter": 8
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 42,
+          "level": "hailfield",
+          "order": 10,
+          "result": "won",
+          "seconds": 181,
+          "hp": 189,
+          "kills": 262,
+          "plants": 108,
+          "plantKills": 47,
+          "petKills": 6,
+          "skillCasts": 62,
+          "skillDamage": 3098,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 8,
+          "maxPlants": 14,
+          "maxBullets": 10,
+          "purchases": [
+            {
+              "id": "attack",
+              "rank": 9,
+              "cost": 387
+            },
+            {
+              "id": "armor",
+              "rank": 6,
+              "cost": 243
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            80.06666666666341,
+            95.08333333332922,
+            110.09999999999503,
+            134.61666666666594,
+            156.43333333334996,
+            180.0666666667021
+          ],
+          "startingStats": {
+            "damage": 38.38,
+            "fireRate": 3.7,
+            "maxHp": 190,
+            "armor": 18,
+            "seedPower": 1.48,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 8,
+            "fireInterval": 0.27027027027027023,
+            "pellets": 1,
+            "weaponTier": 3,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 925,
+            "xp": 275,
+            "firstClear": true
+          },
+          "walletAfter": 998,
+          "playerLevelAfter": 9
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 42,
+          "level": "heartgarden",
+          "order": 11,
+          "result": "won",
+          "seconds": 210,
+          "hp": 170,
+          "kills": 260,
+          "plants": 149,
+          "plantKills": 64,
+          "petKills": 8,
+          "skillCasts": 66,
+          "skillDamage": 2506,
+          "encounter": {
+            "kind": "overgrowth",
+            "spawned": true,
+            "defeated": true,
+            "enemyId": 1206,
+            "retryIn": 0
+          },
+          "maxEnemies": 10,
+          "maxPlants": 17,
+          "maxBullets": 5,
+          "purchases": [
+            {
+              "id": "attack",
+              "rank": 10,
+              "cost": 522
+            },
+            {
+              "id": "armor",
+              "rank": 7,
+              "cost": 339
+            },
+            {
+              "id": "weaponRate",
+              "rank": 1,
+              "cost": 75
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            80.06666666666341,
+            98.51666666666236,
+            117.46666666666128,
+            141.3666666666713,
+            167.7000000000256,
+            189.08333333337595,
+            204.08333333338788
+          ],
+          "startingStats": {
+            "damage": 39.9,
+            "fireRate": 3.9000000000000004,
+            "maxHp": 190,
+            "armor": 21,
+            "seedPower": 1.48,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 9,
+            "fireInterval": 0.2564102564102564,
+            "pellets": 1,
+            "weaponTier": 4,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 1180,
+            "xp": 360,
+            "firstClear": true
+          },
+          "walletAfter": 1242,
+          "playerLevelAfter": 10
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 42,
+          "level": "deepsoil",
+          "order": 12,
+          "result": "won",
+          "seconds": 210,
+          "hp": 215,
+          "kills": 214,
+          "plants": 162,
+          "plantKills": 40,
+          "petKills": 5,
+          "skillCasts": 58,
+          "skillDamage": 2204,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 5,
+          "maxPlants": 15,
+          "maxBullets": 7,
+          "purchases": [
+            {
+              "id": "armor",
+              "rank": 8,
+              "cost": 475
+            },
+            {
+              "id": "weaponDamage",
+              "rank": 4,
+              "cost": 237
+            },
+            {
+              "id": "weaponRate",
+              "rank": 2,
+              "cost": 113
+            },
+            {
+              "id": "pet",
+              "rank": 1,
+              "cost": 90
+            },
+            {
+              "id": "weaponPierce",
+              "rank": 1,
+              "cost": 120
+            },
+            {
+              "id": "weaponRate",
+              "rank": 3,
+              "cost": 169
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            80.06666666666341,
+            95.08333333332922,
+            115.14999999999475,
+            137.68333333333504,
+            164.73333333335657,
+            189.25000000004275
+          ],
+          "startingStats": {
+            "damage": 41.800000000000004,
+            "fireRate": 4.3,
+            "maxHp": 190,
+            "armor": 24,
+            "seedPower": 1.48,
+            "pierce": 1,
+            "petDamage": 15,
+            "petFireRate": 0.9130434782608697,
+            "level": 10,
+            "fireInterval": 0.23255813953488372,
+            "pellets": 1,
+            "weaponTier": 8,
+            "petUnlocked": true,
+            "petRank": 1,
+            "petInterval": 1.0952380952380951
+          },
+          "reward": {
+            "coins": 1132,
+            "xp": 430,
+            "firstClear": true
+          },
+          "walletAfter": 1170,
+          "playerLevelAfter": 11
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 42,
+          "level": "stonebloom",
+          "order": 13,
+          "result": "won",
+          "seconds": 210,
+          "hp": 190,
+          "kills": 235,
+          "plants": 165,
+          "plantKills": 21,
+          "petKills": 7,
+          "skillCasts": 62,
+          "skillDamage": 2206,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 4,
+          "maxPlants": 15,
+          "maxBullets": 6,
+          "purchases": [
+            {
+              "id": "pet",
+              "rank": 2,
+              "cost": 131
+            },
+            {
+              "id": "pet",
+              "rank": 3,
+              "cost": 190
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            80.06666666666341,
+            95.08333333332922,
+            110.09999999999503,
+            125.11666666666085,
+            142.30000000000538,
+            161.85000000002094,
+            188.716666666709
+          ],
+          "startingStats": {
+            "damage": 41.800000000000004,
+            "fireRate": 4.3,
+            "maxHp": 190,
+            "armor": 24,
+            "seedPower": 1.48,
+            "pierce": 1,
+            "petDamage": 21,
+            "petFireRate": 1,
+            "level": 11,
+            "fireInterval": 0.23255813953488372,
+            "pellets": 1,
+            "weaponTier": 8,
+            "petUnlocked": true,
+            "petRank": 3,
+            "petInterval": 1
+          },
+          "reward": {
+            "coins": 1339,
+            "xp": 465,
+            "firstClear": true
+          },
+          "walletAfter": 2188,
+          "playerLevelAfter": 12
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 42,
+          "level": "skyreach",
+          "order": 14,
+          "result": "won",
+          "seconds": 240,
+          "hp": 215,
+          "kills": 290,
+          "plants": 194,
+          "plantKills": 21,
+          "petKills": 17,
+          "skillCasts": 74,
+          "skillDamage": 1952,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 4,
+          "maxPlants": 17,
+          "maxBullets": 10,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            80.06666666666341,
+            95.08333333332922,
+            110.09999999999503,
+            125.11666666666085,
+            150.03333333334487,
+            174.30000000003085,
+            202.1666666667197,
+            227.21666666673963
+          ],
+          "startingStats": {
+            "damage": 41.800000000000004,
+            "fireRate": 4.3,
+            "maxHp": 190,
+            "armor": 24,
+            "seedPower": 1.48,
+            "pierce": 1,
+            "petDamage": 21,
+            "petFireRate": 1,
+            "level": 12,
+            "fireInterval": 0.23255813953488372,
+            "pellets": 1,
+            "weaponTier": 8,
+            "petUnlocked": true,
+            "petRank": 3,
+            "petInterval": 1
+          },
+          "reward": {
+            "coins": 1476,
+            "xp": 510,
+            "firstClear": true
+          },
+          "walletAfter": 3664,
+          "playerLevelAfter": 13
+        }
+      ]
+    },
+    {
+      "seed": 81,
+      "strategy": "earned-growth",
+      "completed": 14,
+      "finalProfile": {
+        "version": 1,
+        "xp": 3700,
+        "coins": 3553,
+        "completed": [
+          "ruins",
+          "meadow",
+          "wetland",
+          "quarry",
+          "windpass",
+          "hollow",
+          "terraces",
+          "bastion",
+          "mistwood",
+          "hailfield",
+          "heartgarden",
+          "deepsoil",
+          "stonebloom",
+          "skyreach"
+        ],
+        "settledRuns": [
+          "campaign-81-growth-ruins",
+          "campaign-81-growth-meadow",
+          "campaign-81-growth-wetland",
+          "campaign-81-growth-quarry",
+          "campaign-81-growth-windpass",
+          "campaign-81-growth-hollow",
+          "campaign-81-growth-terraces",
+          "campaign-81-growth-bastion",
+          "campaign-81-growth-mistwood",
+          "campaign-81-growth-hailfield",
+          "campaign-81-growth-heartgarden",
+          "campaign-81-growth-deepsoil",
+          "campaign-81-growth-stonebloom",
+          "campaign-81-growth-skyreach"
+        ],
+        "upgrades": {
+          "attack": 10,
+          "fireRate": 8,
+          "health": 6,
+          "armor": 8,
+          "seedMastery": 6,
+          "pet": 3,
+          "weaponDamage": 4,
+          "weaponRate": 3,
+          "weaponPierce": 1
+        },
+        "equippedWeapon": "bloom-rifle",
+        "equippedPet": "sprout-helper",
+        "selectedLevelId": "skyreach"
+      },
+      "runs": [
+        {
+          "strategy": "earned-growth",
+          "seed": 81,
+          "level": "ruins",
+          "order": 1,
+          "result": "won",
+          "seconds": 61,
+          "hp": 100,
+          "kills": 20,
+          "plants": 10,
+          "plantKills": 0,
+          "petKills": 0,
+          "skillCasts": 0,
+          "skillDamage": 0,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 1,
+          "maxPlants": 4,
+          "maxBullets": 2,
+          "purchases": [],
+          "choiceTimes": [
+            26.499999999999776
+          ],
+          "startingStats": {
+            "damage": 19,
+            "fireRate": 2.5,
+            "maxHp": 100,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 1,
+            "fireInterval": 0.4,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 130,
+            "xp": 115,
+            "firstClear": true
+          },
+          "walletAfter": 130,
+          "playerLevelAfter": 2
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 81,
+          "level": "meadow",
+          "order": 2,
+          "result": "won",
+          "seconds": 90,
+          "hp": 115,
+          "kills": 90,
+          "plants": 30,
+          "plantKills": 5,
+          "petKills": 0,
+          "skillCasts": 24,
+          "skillDamage": 579,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 3,
+          "maxPlants": 8,
+          "maxBullets": 5,
+          "purchases": [
+            {
+              "id": "health",
+              "rank": 1,
+              "cost": 30
+            },
+            {
+              "id": "attack",
+              "rank": 1,
+              "cost": 35
+            },
+            {
+              "id": "fireRate",
+              "rank": 1,
+              "cost": 35
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            87.23333333332967
+          ],
+          "startingStats": {
+            "damage": 20.520000000000003,
+            "fireRate": 2.6500000000000004,
+            "maxHp": 115,
+            "armor": 0,
+            "seedPower": 1,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 2,
+            "fireInterval": 0.3773584905660377,
+            "pellets": 1,
+            "weaponTier": 0,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 315,
+            "xp": 130,
+            "firstClear": true
+          },
+          "walletAfter": 345,
+          "playerLevelAfter": 2
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 81,
+          "level": "wetland",
+          "order": 3,
+          "result": "won",
+          "seconds": 121,
+          "hp": 145,
+          "kills": 64,
+          "plants": 50,
+          "plantKills": 5,
+          "petKills": 0,
+          "skillCasts": 24,
+          "skillDamage": 584,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 3,
+          "maxPlants": 8,
+          "maxBullets": 6,
+          "purchases": [
+            {
+              "id": "health",
+              "rank": 2,
+              "cost": 40
+            },
+            {
+              "id": "attack",
+              "rank": 2,
+              "cost": 48
+            },
+            {
+              "id": "fireRate",
+              "rank": 2,
+              "cost": 48
+            },
+            {
+              "id": "seedMastery",
+              "rank": 1,
+              "cost": 40
+            },
+            {
+              "id": "armor",
+              "rank": 1,
+              "cost": 45
+            },
+            {
+              "id": "weaponDamage",
+              "rank": 1,
+              "cost": 70
+            },
+            {
+              "id": "health",
+              "rank": 3,
+              "cost": 53
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            52.88333333333161,
+            88.58333333332959
+          ],
+          "startingStats": {
+            "damage": 23.94,
+            "fireRate": 2.8000000000000003,
+            "maxHp": 145,
+            "armor": 3,
+            "seedPower": 1.08,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 2,
+            "fireInterval": 0.3571428571428571,
+            "pellets": 1,
+            "weaponTier": 1,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 308,
+            "xp": 150,
+            "firstClear": true
+          },
+          "walletAfter": 309,
+          "playerLevelAfter": 3
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 81,
+          "level": "quarry",
+          "order": 4,
+          "result": "won",
+          "seconds": 150,
+          "hp": 141,
+          "kills": 84,
+          "plants": 60,
+          "plantKills": 2,
+          "petKills": 0,
+          "skillCasts": 30,
+          "skillDamage": 1807,
+          "encounter": {
+            "kind": "warden",
+            "spawned": true,
+            "defeated": true,
+            "enemyId": 647,
+            "retryIn": 0
+          },
+          "maxEnemies": 4,
+          "maxPlants": 13,
+          "maxBullets": 7,
+          "purchases": [
+            {
+              "id": "health",
+              "rank": 4,
+              "cost": 69
+            },
+            {
+              "id": "attack",
+              "rank": 3,
+              "cost": 64
+            },
+            {
+              "id": "fireRate",
+              "rank": 3,
+              "cost": 64
+            },
+            {
+              "id": "seedMastery",
+              "rank": 2,
+              "cost": 54
+            }
+          ],
+          "choiceTimes": [
+            21.083333333333417,
+            36.099999999999234,
+            56.08333333333143,
+            71.09999999999725,
+            98.14999999999571,
+            124.63333333332754,
+            144.41666666667373
+          ],
+          "startingStats": {
+            "damage": 25.459999999999997,
+            "fireRate": 2.9499999999999997,
+            "maxHp": 160,
+            "armor": 3,
+            "seedPower": 1.16,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 3,
+            "fireInterval": 0.33898305084745767,
+            "pellets": 1,
+            "weaponTier": 1,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 560,
+            "xp": 185,
+            "firstClear": true
+          },
+          "walletAfter": 618,
+          "playerLevelAfter": 4
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 81,
+          "level": "windpass",
+          "order": 5,
+          "result": "won",
+          "seconds": 151,
+          "hp": 175,
+          "kills": 87,
+          "plants": 56,
+          "plantKills": 4,
+          "petKills": 0,
+          "skillCasts": 30,
+          "skillDamage": 901,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 2,
+          "maxPlants": 10,
+          "maxBullets": 3,
+          "purchases": [
+            {
+              "id": "health",
+              "rank": 5,
+              "cost": 92
+            },
+            {
+              "id": "attack",
+              "rank": 4,
+              "cost": 87
+            },
+            {
+              "id": "fireRate",
+              "rank": 4,
+              "cost": 87
+            },
+            {
+              "id": "seedMastery",
+              "rank": 3,
+              "cost": 73
+            },
+            {
+              "id": "armor",
+              "rank": 2,
+              "cost": 63
+            },
+            {
+              "id": "weaponDamage",
+              "rank": 2,
+              "cost": 105
+            },
+            {
+              "id": "weaponRate",
+              "rank": 1,
+              "cost": 75
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            56.5833333333314,
+            80.09999999999674,
+            105.24999999999531,
+            133.7333333333319
+          ],
+          "startingStats": {
+            "damage": 28.88,
+            "fireRate": 3.3000000000000003,
+            "maxHp": 175,
+            "armor": 6,
+            "seedPower": 1.24,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 4,
+            "fireInterval": 0.303030303030303,
+            "pellets": 1,
+            "weaponTier": 3,
+            "petUnlocked": false,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 479,
+            "xp": 175,
+            "firstClear": true
+          },
+          "walletAfter": 515,
+          "playerLevelAfter": 5
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 81,
+          "level": "hollow",
+          "order": 6,
+          "result": "won",
+          "seconds": 150,
+          "hp": 190,
+          "kills": 89,
+          "plants": 72,
+          "plantKills": 5,
+          "petKills": 10,
+          "skillCasts": 30,
+          "skillDamage": 449,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 2,
+          "maxPlants": 11,
+          "maxBullets": 7,
+          "purchases": [
+            {
+              "id": "health",
+              "rank": 6,
+              "cost": 121
+            },
+            {
+              "id": "attack",
+              "rank": 5,
+              "cost": 117
+            },
+            {
+              "id": "fireRate",
+              "rank": 5,
+              "cost": 117
+            },
+            {
+              "id": "seedMastery",
+              "rank": 4,
+              "cost": 99
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            81.44999999999666,
+            115.58333333332806,
+            144.25000000000693
+          ],
+          "startingStats": {
+            "damage": 30.400000000000002,
+            "fireRate": 3.4499999999999997,
+            "maxHp": 190,
+            "armor": 6,
+            "seedPower": 1.32,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 5,
+            "fireInterval": 0.2898550724637681,
+            "pellets": 1,
+            "weaponTier": 3,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 447,
+            "xp": 195,
+            "firstClear": true
+          },
+          "walletAfter": 508,
+          "playerLevelAfter": 6
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 81,
+          "level": "terraces",
+          "order": 7,
+          "result": "won",
+          "seconds": 150,
+          "hp": 190,
+          "kills": 96,
+          "plants": 96,
+          "plantKills": 11,
+          "petKills": 4,
+          "skillCasts": 32,
+          "skillDamage": 888,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 2,
+          "maxPlants": 17,
+          "maxBullets": 6,
+          "purchases": [
+            {
+              "id": "attack",
+              "rank": 6,
+              "cost": 157
+            },
+            {
+              "id": "fireRate",
+              "rank": 6,
+              "cost": 157
+            },
+            {
+              "id": "seedMastery",
+              "rank": 5,
+              "cost": 133
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.14999999999759,
+            88.74999999999625,
+            111.7666666666616,
+            133.08333333333138
+          ],
+          "startingStats": {
+            "damage": 31.919999999999998,
+            "fireRate": 3.5999999999999996,
+            "maxHp": 190,
+            "armor": 6,
+            "seedPower": 1.4,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 6,
+            "fireInterval": 0.2777777777777778,
+            "pellets": 1,
+            "weaponTier": 3,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 607,
+            "xp": 215,
+            "firstClear": true
+          },
+          "walletAfter": 668,
+          "playerLevelAfter": 6
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 81,
+          "level": "bastion",
+          "order": 8,
+          "result": "won",
+          "seconds": 180,
+          "hp": 190,
+          "kills": 121,
+          "plants": 115,
+          "plantKills": 14,
+          "petKills": 5,
+          "skillCasts": 40,
+          "skillDamage": 1291,
+          "encounter": {
+            "kind": "bastionlord",
+            "spawned": true,
+            "defeated": true,
+            "enemyId": 1493,
+            "retryIn": 0
+          },
+          "maxEnemies": 4,
+          "maxPlants": 18,
+          "maxBullets": 13,
+          "purchases": [
+            {
+              "id": "attack",
+              "rank": 7,
+              "cost": 212
+            },
+            {
+              "id": "fireRate",
+              "rank": 7,
+              "cost": 212
+            },
+            {
+              "id": "seedMastery",
+              "rank": 6,
+              "cost": 180
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            80.06666666666341,
+            97.64999999999574,
+            122.93333333332764,
+            152.63333333334694,
+            167.63333333335888
+          ],
+          "startingStats": {
+            "damage": 33.44,
+            "fireRate": 3.75,
+            "maxHp": 190,
+            "armor": 6,
+            "seedPower": 1.48,
+            "pierce": 0,
+            "petDamage": 12,
+            "petFireRate": 0.8695652173913044,
+            "level": 6,
+            "fireInterval": 0.26666666666666666,
+            "pellets": 1,
+            "weaponTier": 3,
+            "petUnlocked": true,
+            "petRank": 0,
+            "petInterval": 1.15
+          },
+          "reward": {
+            "coins": 850,
+            "xp": 250,
+            "firstClear": true
+          },
+          "walletAfter": 914,
+          "playerLevelAfter": 7
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 81,
+          "level": "mistwood",
+          "order": 9,
+          "result": "won",
+          "seconds": 180,
+          "hp": 190,
+          "kills": 126,
+          "plants": 93,
+          "plantKills": 4,
+          "petKills": 1,
+          "skillCasts": 40,
+          "skillDamage": 1044,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 2,
+          "maxPlants": 12,
+          "maxBullets": 5,
+          "purchases": [
+            {
+              "id": "attack",
+              "rank": 8,
+              "cost": 287
+            },
+            {
+              "id": "fireRate",
+              "rank": 8,
+              "cost": 287
+            },
+            {
+              "id": "armor",
+              "rank": 3,
+              "cost": 89
+            },
+            {
+              "id": "weaponDamage",
+              "rank": 3,
+              "cost": 158
+            },
+            {
+              "id": "pet",
+              "rank": 1,
+              "cost": 90
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            63.84999999999766,
+            88.5333333333296,
+            117.58333333332794,
+            148.10000000001,
+            173.4166666666968
+          ],
+          "startingStats": {
+            "damage": 36.86,
+            "fireRate": 3.9000000000000004,
+            "maxHp": 190,
+            "armor": 9,
+            "seedPower": 1.48,
+            "pierce": 0,
+            "petDamage": 15,
+            "petFireRate": 0.9130434782608697,
+            "level": 7,
+            "fireInterval": 0.2564102564102564,
+            "pellets": 1,
+            "weaponTier": 4,
+            "petUnlocked": true,
+            "petRank": 1,
+            "petInterval": 1.0952380952380951
+          },
+          "reward": {
+            "coins": 584,
+            "xp": 245,
+            "firstClear": true
+          },
+          "walletAfter": 587,
+          "playerLevelAfter": 8
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 81,
+          "level": "hailfield",
+          "order": 10,
+          "result": "won",
+          "seconds": 180,
+          "hp": 190,
+          "kills": 227,
+          "plants": 114,
+          "plantKills": 10,
+          "petKills": 11,
+          "skillCasts": 56,
+          "skillDamage": 2385,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 7,
+          "maxPlants": 16,
+          "maxBullets": 9,
+          "purchases": [
+            {
+              "id": "attack",
+              "rank": 9,
+              "cost": 387
+            },
+            {
+              "id": "armor",
+              "rank": 4,
+              "cost": 124
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            80.06666666666341,
+            95.08333333332922,
+            113.21666666666152,
+            137.26666666666804,
+            160.58333333335327
+          ],
+          "startingStats": {
+            "damage": 38.38,
+            "fireRate": 3.9000000000000004,
+            "maxHp": 190,
+            "armor": 12,
+            "seedPower": 1.48,
+            "pierce": 0,
+            "petDamage": 15,
+            "petFireRate": 0.9130434782608697,
+            "level": 8,
+            "fireInterval": 0.2564102564102564,
+            "pellets": 1,
+            "weaponTier": 4,
+            "petUnlocked": true,
+            "petRank": 1,
+            "petInterval": 1.0952380952380951
+          },
+          "reward": {
+            "coins": 910,
+            "xp": 275,
+            "firstClear": true
+          },
+          "walletAfter": 986,
+          "playerLevelAfter": 9
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 81,
+          "level": "heartgarden",
+          "order": 11,
+          "result": "won",
+          "seconds": 210,
+          "hp": 215,
+          "kills": 253,
+          "plants": 92,
+          "plantKills": 21,
+          "petKills": 7,
+          "skillCasts": 64,
+          "skillDamage": 2714,
+          "encounter": {
+            "kind": "overgrowth",
+            "spawned": true,
+            "defeated": true,
+            "enemyId": 2109,
+            "retryIn": 0
+          },
+          "maxEnemies": 5,
+          "maxPlants": 11,
+          "maxBullets": 16,
+          "purchases": [
+            {
+              "id": "attack",
+              "rank": 10,
+              "cost": 522
+            },
+            {
+              "id": "armor",
+              "rank": 5,
+              "cost": 173
+            },
+            {
+              "id": "weaponDamage",
+              "rank": 4,
+              "cost": 237
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            80.06666666666341,
+            95.08333333332922,
+            116.49999999999467,
+            142.15000000000526,
+            165.10000000002353,
+            185.40000000003968,
+            202.1666666667197
+          ],
+          "startingStats": {
+            "damage": 41.800000000000004,
+            "fireRate": 3.9000000000000004,
+            "maxHp": 190,
+            "armor": 15,
+            "seedPower": 1.48,
+            "pierce": 0,
+            "petDamage": 15,
+            "petFireRate": 0.9130434782608697,
+            "level": 9,
+            "fireInterval": 0.2564102564102564,
+            "pellets": 1,
+            "weaponTier": 5,
+            "petUnlocked": true,
+            "petRank": 1,
+            "petInterval": 1.0952380952380951
+          },
+          "reward": {
+            "coins": 1182,
+            "xp": 360,
+            "firstClear": true
+          },
+          "walletAfter": 1236,
+          "playerLevelAfter": 10
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 81,
+          "level": "deepsoil",
+          "order": 12,
+          "result": "won",
+          "seconds": 210,
+          "hp": 190,
+          "kills": 213,
+          "plants": 150,
+          "plantKills": 39,
+          "petKills": 7,
+          "skillCasts": 58,
+          "skillDamage": 2008,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 4,
+          "maxPlants": 16,
+          "maxBullets": 9,
+          "purchases": [
+            {
+              "id": "armor",
+              "rank": 6,
+              "cost": 243
+            },
+            {
+              "id": "weaponRate",
+              "rank": 2,
+              "cost": 113
+            },
+            {
+              "id": "pet",
+              "rank": 2,
+              "cost": 131
+            },
+            {
+              "id": "weaponPierce",
+              "rank": 1,
+              "cost": 120
+            },
+            {
+              "id": "armor",
+              "rank": 7,
+              "cost": 339
+            },
+            {
+              "id": "weaponRate",
+              "rank": 3,
+              "cost": 169
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            80.06666666666341,
+            95.08333333332922,
+            110.09999999999503,
+            128.51666666666108,
+            158.58333333335167,
+            181.45000000003654,
+            207.91666666672427
+          ],
+          "startingStats": {
+            "damage": 41.800000000000004,
+            "fireRate": 4.3,
+            "maxHp": 190,
+            "armor": 21,
+            "seedPower": 1.48,
+            "pierce": 1,
+            "petDamage": 18,
+            "petFireRate": 0.9565217391304349,
+            "level": 10,
+            "fireInterval": 0.23255813953488372,
+            "pellets": 1,
+            "weaponTier": 8,
+            "petUnlocked": true,
+            "petRank": 2,
+            "petInterval": 1.0454545454545452
+          },
+          "reward": {
+            "coins": 1172,
+            "xp": 430,
+            "firstClear": true
+          },
+          "walletAfter": 1293,
+          "playerLevelAfter": 11
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 81,
+          "level": "stonebloom",
+          "order": 13,
+          "result": "won",
+          "seconds": 210,
+          "hp": 190,
+          "kills": 231,
+          "plants": 157,
+          "plantKills": 18,
+          "petKills": 21,
+          "skillCasts": 60,
+          "skillDamage": 2389,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 5,
+          "maxPlants": 18,
+          "maxBullets": 16,
+          "purchases": [
+            {
+              "id": "armor",
+              "rank": 8,
+              "cost": 475
+            },
+            {
+              "id": "pet",
+              "rank": 3,
+              "cost": 190
+            }
+          ],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            80.06666666666341,
+            95.08333333332922,
+            110.09999999999503,
+            125.11666666666085,
+            140.1166666666703,
+            157.36666666668404,
+            176.86666666669956,
+            200.48333333338502
+          ],
+          "startingStats": {
+            "damage": 41.800000000000004,
+            "fireRate": 4.3,
+            "maxHp": 190,
+            "armor": 24,
+            "seedPower": 1.48,
+            "pierce": 1,
+            "petDamage": 21,
+            "petFireRate": 1,
+            "level": 11,
+            "fireInterval": 0.23255813953488372,
+            "pellets": 1,
+            "weaponTier": 8,
+            "petUnlocked": true,
+            "petRank": 3,
+            "petInterval": 1
+          },
+          "reward": {
+            "coins": 1403,
+            "xp": 465,
+            "firstClear": true
+          },
+          "walletAfter": 2031,
+          "playerLevelAfter": 12
+        },
+        {
+          "strategy": "earned-growth",
+          "seed": 81,
+          "level": "skyreach",
+          "order": 14,
+          "result": "won",
+          "seconds": 240,
+          "hp": 190,
+          "kills": 270,
+          "plants": 206,
+          "plantKills": 33,
+          "petKills": 15,
+          "skillCasts": 70,
+          "skillDamage": 1997,
+          "encounter": {
+            "kind": null,
+            "spawned": false,
+            "defeated": false,
+            "enemyId": null,
+            "retryIn": 0
+          },
+          "maxEnemies": 4,
+          "maxPlants": 17,
+          "maxBullets": 12,
+          "purchases": [],
+          "choiceTimes": [
+            20.000000000000146,
+            35.01666666666596,
+            50.033333333331775,
+            65.0499999999976,
+            80.06666666666341,
+            95.08333333332922,
+            110.09999999999503,
+            125.11666666666085,
+            144.71666666667397,
+            171.2666666666951,
+            194.36666666671348,
+            218.75000000006622
+          ],
+          "startingStats": {
+            "damage": 41.800000000000004,
+            "fireRate": 4.3,
+            "maxHp": 190,
+            "armor": 24,
+            "seedPower": 1.48,
+            "pierce": 1,
+            "petDamage": 21,
+            "petFireRate": 1,
+            "level": 12,
+            "fireInterval": 0.23255813953488372,
+            "pellets": 1,
+            "weaponTier": 8,
+            "petUnlocked": true,
+            "petRank": 3,
+            "petInterval": 1
+          },
+          "reward": {
+            "coins": 1522,
+            "xp": 510,
+            "firstClear": true
+          },
+          "walletAfter": 3553,
+          "playerLevelAfter": 13
+        }
+      ]
+    }
+  ]
+}

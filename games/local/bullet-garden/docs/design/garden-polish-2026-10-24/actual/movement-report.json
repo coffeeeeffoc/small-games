@@ -1,0 +1,20 @@
+{
+  "observations": [
+    {
+      "width": 330,
+      "kind": "touch-hold",
+      "dx": 60.634625487263634
+    },
+    {
+      "width": 320,
+      "kind": "touch-hold",
+      "dx": 63.54343180341448
+    },
+    {
+      "width": 844,
+      "kind": "touch-hold",
+      "dx": 63.681942857271224
+    }
+  ],
+  "errors": []
+}

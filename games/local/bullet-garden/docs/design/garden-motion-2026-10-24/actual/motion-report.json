@@ -1,0 +1,666 @@
+{
+  "sourceHash": "94b0b911e9243eec1d368bcf262c239d5c3bcba73c5542238a79dc2c5f35a330",
+  "observations": [
+    {
+      "width": 330,
+      "label": "right",
+      "player": {
+        "x": 942,
+        "y": 470.0002139112176,
+        "hp": 100,
+        "maxHp": 100,
+        "armor": 0,
+        "layer": "ground",
+        "radius": 18,
+        "angle": -0.15,
+        "invulnerable": 0,
+        "dashCooldown": 0,
+        "dashTime": 0,
+        "dashX": 0,
+        "dashY": 0,
+        "terrainSlipCooldown": 0,
+        "terrainLastX": 942,
+        "terrainLastY": 470.0002139112176,
+        "terrainContacts": []
+      },
+      "hero": {
+        "x": 942,
+        "y": 470.0002139112176,
+        "time": 2.067800000000745,
+        "shots": 6,
+        "angle": -0.15,
+        "shotAngle": -0.15,
+        "shotAt": 2.0505,
+        "stride": 221.99800000000008,
+        "direction": 0,
+        "frame": 1,
+        "moving": false,
+        "recoil": 1.650520564607413,
+        "flash": true,
+        "lean": -4.500167474306475e-7,
+        "screen": {
+          "x": 295.425,
+          "y": 321.9601256728404
+        },
+        "muzzle": {
+          "x": 317.1738640660073,
+          "y": 303.35365590419724
+        },
+        "width": 43.297872340425535,
+        "height": 42.59574468085106,
+        "frameIndex": 8
+      },
+      "camera": {
+        "x": 720,
+        "y": 442.7659574468085,
+        "zoom": 0.5875
+      }
+    },
+    {
+      "width": 330,
+      "label": "left",
+      "player": {
+        "x": 498,
+        "y": 470.00056814835074,
+        "hp": 100,
+        "maxHp": 100,
+        "armor": 0,
+        "layer": "ground",
+        "radius": 18,
+        "angle": 0.8217561443605543,
+        "invulnerable": 0,
+        "dashCooldown": 0,
+        "dashTime": 0,
+        "dashX": 0,
+        "dashY": 0,
+        "terrainSlipCooldown": 0,
+        "terrainLastX": 498,
+        "terrainLastY": 470.00056814835074,
+        "terrainContacts": []
+      },
+      "hero": {
+        "x": 498,
+        "y": 470.00056814835074,
+        "time": 5.31609999999962,
+        "shots": 14,
+        "angle": 0.8217561443605543,
+        "shotAngle": 0.8217561443605543,
+        "shotAt": 5.31609999999962,
+        "stride": 20.59999999992604,
+        "direction": 1,
+        "frame": 1,
+        "moving": false,
+        "recoil": 2.5,
+        "flash": true,
+        "lean": 6.990713523271799e-8,
+        "screen": {
+          "x": 34.57499999999999,
+          "y": 321.9603337871561
+        },
+        "muzzle": {
+          "x": 54.98968088078955,
+          "y": 304.0086816127747
+        },
+        "width": 40.95744680851064,
+        "height": 42.361702127659576,
+        "frameIndex": 9
+      },
+      "camera": {
+        "x": 720,
+        "y": 442.7659574468085,
+        "zoom": 0.5875
+      }
+    },
+    {
+      "width": 330,
+      "label": "top",
+      "player": {
+        "x": 498,
+        "y": 168,
+        "hp": 100,
+        "maxHp": 100,
+        "armor": 0,
+        "layer": "ground",
+        "radius": 18,
+        "angle": 1.4583154712729252,
+        "invulnerable": 0,
+        "dashCooldown": 0,
+        "dashTime": 0,
+        "dashX": 0,
+        "dashY": 0,
+        "terrainSlipCooldown": 0,
+        "terrainLastX": 498,
+        "terrainLastY": 168,
+        "terrainContacts": []
+      },
+      "hero": {
+        "x": 498,
+        "y": 168,
+        "time": 8.066800000000738,
+        "shots": 20,
+        "angle": 1.4583154712729252,
+        "shotAngle": 1.4583154712729252,
+        "shotAt": 7.750499999999992,
+        "stride": -281.4005681484248,
+        "direction": 2,
+        "frame": 1,
+        "moving": false,
+        "recoil": 0,
+        "flash": false,
+        "lean": 4.0017213290922115e-30,
+        "screen": {
+          "x": 34.57499999999999,
+          "y": 144.53500000000003
+        },
+        "muzzle": {
+          "x": 49.91882978723403,
+          "y": 126.74776595744683
+        },
+        "width": 34.87234042553192,
+        "height": 44.46808510638298,
+        "frameIndex": 10
+      },
+      "camera": {
+        "x": 720,
+        "y": 442.7659574468085,
+        "zoom": 0.5875
+      }
+    },
+    {
+      "width": 330,
+      "label": "bottom",
+      "player": {
+        "x": 498,
+        "y": 772,
+        "hp": 94,
+        "maxHp": 100,
+        "armor": 0,
+        "layer": "ground",
+        "radius": 18,
+        "angle": -1.3315727636711934,
+        "invulnerable": 0,
+        "dashCooldown": 0,
+        "dashTime": 0,
+        "dashX": 0,
+        "dashY": 0,
+        "terrainSlipCooldown": 0,
+        "terrainLastX": 498,
+        "terrainLastY": 772,
+        "terrainContacts": []
+      },
+      "hero": {
+        "x": 498,
+        "y": 772,
+        "time": 12.33259999999973,
+        "shots": 31,
+        "angle": -1.3315727636711934,
+        "shotAngle": -1.3315727636711934,
+        "shotAt": 12.250400000000473,
+        "stride": -77.56216814857501,
+        "direction": 6,
+        "frame": 1,
+        "moving": false,
+        "recoil": 0.34766730795284806,
+        "flash": false,
+        "lean": 1.3021754038615246e-64,
+        "screen": {
+          "x": 34.57499999999999,
+          "y": 499.38500000000005
+        },
+        "muzzle": {
+          "x": 18.66666335049451,
+          "y": 478.67545243865095
+        },
+        "width": 37.680851063829785,
+        "height": 43.53191489361702,
+        "frameIndex": 14
+      },
+      "camera": {
+        "x": 720,
+        "y": 442.7659574468085,
+        "zoom": 0.5875
+      }
+    },
+    {
+      "width": 320,
+      "label": "right",
+      "player": {
+        "x": 942,
+        "y": 469.99996432672,
+        "hp": 100,
+        "maxHp": 100,
+        "armor": 0,
+        "layer": "ground",
+        "radius": 18,
+        "angle": -0.15,
+        "invulnerable": 0,
+        "dashCooldown": 0,
+        "dashTime": 0,
+        "dashX": 0,
+        "dashY": 0,
+        "terrainSlipCooldown": 0,
+        "terrainLastX": 942,
+        "terrainLastY": 469.99996432672,
+        "terrainContacts": []
+      },
+      "hero": {
+        "x": 942,
+        "y": 469.99996432672,
+        "time": 2.0516999999992533,
+        "shots": 6,
+        "angle": -0.15,
+        "shotAngle": -0.15,
+        "shotAt": 2.0516999999992533,
+        "stride": 222.00000000000134,
+        "direction": 0,
+        "frame": 1,
+        "moving": false,
+        "recoil": 2.5,
+        "flash": true,
+        "lean": -4.477861772965389e-7,
+        "screen": {
+          "x": 257.360875,
+          "y": 265.33998435503713
+        },
+        "muzzle": {
+          "x": 272.600340523245,
+          "y": 251.34798061697558
+        },
+        "width": 32.798876329787234,
+        "height": 32.267002659574466,
+        "frameIndex": 8
+      },
+      "camera": {
+        "x": 720,
+        "y": 433.517172580875,
+        "zoom": 0.4385625
+      }
+    },
+    {
+      "width": 320,
+      "label": "left",
+      "player": {
+        "x": 498,
+        "y": 469.9999049543047,
+        "hp": 100,
+        "maxHp": 100,
+        "armor": 0,
+        "layer": "ground",
+        "radius": 18,
+        "angle": 0.7501967973764874,
+        "invulnerable": 0,
+        "dashCooldown": 0,
+        "dashTime": 0,
+        "dashX": 0,
+        "dashY": 0,
+        "terrainSlipCooldown": 0,
+        "terrainLastX": 498,
+        "terrainLastY": 469.9999049543047,
+        "terrainContacts": []
+      },
+      "hero": {
+        "x": 498,
+        "y": 469.9999049543047,
+        "time": 5.316699999999252,
+        "shots": 14,
+        "angle": 0.7501967973764874,
+        "shotAngle": 0.7501967973764874,
+        "shotAt": 5.2839000000003695,
+        "stride": -222.0000000000013,
+        "direction": 1,
+        "frame": 1,
+        "moving": false,
+        "recoil": 1.1377933536364468,
+        "flash": true,
+        "lean": 5.1126469050331344e-8,
+        "screen": {
+          "x": 62.63912499999999,
+          "y": 265.33995831652226
+        },
+        "muzzle": {
+          "x": 78.56078752485845,
+          "y": 252.07742341265
+        },
+        "width": 31.02596409574468,
+        "height": 32.08971143617021,
+        "frameIndex": 9
+      },
+      "camera": {
+        "x": 720,
+        "y": 433.517172580875,
+        "zoom": 0.4385625
+      }
+    },
+    {
+      "width": 320,
+      "label": "top",
+      "player": {
+        "x": 498.00002054741947,
+        "y": 168,
+        "hp": 100,
+        "maxHp": 100,
+        "armor": 0,
+        "layer": "ground",
+        "radius": 18,
+        "angle": 0.4577357043997792,
+        "invulnerable": 0,
+        "dashCooldown": 0,
+        "dashTime": 0,
+        "dashX": 0,
+        "dashY": 0,
+        "terrainSlipCooldown": 0,
+        "terrainLastX": 498.00002054741947,
+        "terrainLastY": 168,
+        "terrainContacts": []
+      },
+      "hero": {
+        "x": 498.00002054741947,
+        "y": 168,
+        "time": 8.083,
+        "shots": 20,
+        "angle": 0.4577357043997792,
+        "shotAngle": 0.4577357043997792,
+        "shotAt": 7.733099999999624,
+        "stride": -146.6639049543063,
+        "direction": 1,
+        "frame": 1,
+        "moving": false,
+        "recoil": 0,
+        "flash": false,
+        "lean": -5.312238655437657e-17,
+        "screen": {
+          "x": 62.63913401132764,
+          "y": 132.894125
+        },
+        "muzzle": {
+          "x": 79.39315462302977,
+          "y": 120.05824042553192
+        },
+        "width": 31.02596409574468,
+        "height": 32.08971143617021,
+        "frameIndex": 9
+      },
+      "camera": {
+        "x": 720,
+        "y": 433.517172580875,
+        "zoom": 0.4385625
+      }
+    },
+    {
+      "width": 320,
+      "label": "bottom",
+      "player": {
+        "x": 498.0000532560126,
+        "y": 772,
+        "hp": 100,
+        "maxHp": 100,
+        "armor": 0,
+        "layer": "ground",
+        "radius": 18,
+        "angle": -1.4079350704956013,
+        "invulnerable": 0,
+        "dashCooldown": 0,
+        "dashTime": 0,
+        "dashX": 0,
+        "dashY": 0,
+        "terrainSlipCooldown": 0,
+        "terrainLastX": 498.0000532560126,
+        "terrainLastY": 772,
+        "terrainContacts": []
+      },
+      "hero": {
+        "x": 498.0000532560126,
+        "y": 772,
+        "time": 12.33309999999975,
+        "shots": 31,
+        "angle": -1.4079350704956013,
+        "shotAngle": -1.4079350704956013,
+        "shotAt": 12.183199999999372,
+        "stride": -427.42350495445635,
+        "direction": 6,
+        "frame": 1,
+        "moving": false,
+        "recoil": 0.06847344534057606,
+        "flash": false,
+        "lean": -7.030456188239994e-17,
+        "screen": {
+          "x": 62.63914835609003,
+          "y": 397.78587500000003
+        },
+        "muzzle": {
+          "x": 50.639613390255725,
+          "y": 381.99447662418726
+        },
+        "width": 28.543886968085108,
+        "height": 32.97616755319149,
+        "frameIndex": 14
+      },
+      "camera": {
+        "x": 720,
+        "y": 433.517172580875,
+        "zoom": 0.4385625
+      }
+    },
+    {
+      "width": 844,
+      "label": "right",
+      "player": {
+        "x": 942,
+        "y": 470,
+        "hp": 100,
+        "maxHp": 100,
+        "armor": 0,
+        "layer": "ground",
+        "radius": 18,
+        "angle": -0.15,
+        "invulnerable": 0,
+        "dashCooldown": 0,
+        "dashTime": 0,
+        "dashX": 0,
+        "dashY": 0,
+        "terrainSlipCooldown": 0,
+        "terrainLastX": 942,
+        "terrainLastY": 470,
+        "terrainContacts": []
+      },
+      "hero": {
+        "x": 942,
+        "y": 470,
+        "time": 2.0498000000007446,
+        "shots": 5,
+        "angle": -0.15,
+        "shotAngle": -0.15,
+        "shotAt": 1.6659999999999995,
+        "stride": 222,
+        "direction": 0,
+        "frame": 1,
+        "moving": false,
+        "recoil": 0,
+        "flash": false,
+        "lean": -4.560934457942218e-7,
+        "screen": {
+          "x": 504.903125,
+          "y": 244.5
+        },
+        "muzzle": {
+          "x": 519.9844381648936,
+          "y": 232.41079521276595
+        },
+        "width": 27.928357712765955,
+        "height": 27.47546542553191,
+        "frameIndex": 8
+      },
+      "camera": {
+        "x": 720,
+        "y": 427.1548117154812,
+        "zoom": 0.3734375
+      }
+    },
+    {
+      "width": 844,
+      "label": "left",
+      "player": {
+        "x": 498,
+        "y": 470,
+        "hp": 100,
+        "maxHp": 100,
+        "armor": 0,
+        "layer": "ground",
+        "radius": 18,
+        "angle": -0.7743448682145639,
+        "invulnerable": 0,
+        "dashCooldown": 0,
+        "dashTime": 0,
+        "dashX": 0,
+        "dashY": 0,
+        "terrainSlipCooldown": 0,
+        "terrainLastX": 498,
+        "terrainLastY": 470,
+        "terrainContacts": []
+      },
+      "hero": {
+        "x": 498,
+        "y": 470,
+        "time": 5.316700000001117,
+        "shots": 14,
+        "angle": -0.7743448682145639,
+        "shotAngle": -0.7743448682145639,
+        "shotAt": 5.300099999999627,
+        "stride": -208.42560000015055,
+        "direction": 7,
+        "frame": 1,
+        "moving": false,
+        "recoil": 1.6784835413818415,
+        "flash": true,
+        "lean": 5.168494430483606e-8,
+        "screen": {
+          "x": 339.096875,
+          "y": 244.5
+        },
+        "muzzle": {
+          "x": 351.7916972551185,
+          "y": 229.9509856000447
+        },
+        "width": 26.72064494680851,
+        "height": 27.62642952127659,
+        "frameIndex": 15
+      },
+      "camera": {
+        "x": 720,
+        "y": 427.1548117154812,
+        "zoom": 0.3734375
+      }
+    },
+    {
+      "width": 844,
+      "label": "top",
+      "player": {
+        "x": 498,
+        "y": 168,
+        "hp": 94,
+        "maxHp": 100,
+        "armor": 0,
+        "layer": "ground",
+        "radius": 18,
+        "angle": 1.3808221274444628,
+        "invulnerable": 0,
+        "dashCooldown": 0,
+        "dashTime": 0,
+        "dashX": 0,
+        "dashY": 0,
+        "terrainSlipCooldown": 0,
+        "terrainLastX": 498,
+        "terrainLastY": 168,
+        "terrainContacts": []
+      },
+      "hero": {
+        "x": 498,
+        "y": 168,
+        "time": 8.082599999999626,
+        "shots": 20,
+        "angle": 1.3808221274444628,
+        "shotAngle": 1.3808221274444628,
+        "shotAt": 7.749099999999625,
+        "stride": -5.54680000045073,
+        "direction": 2,
+        "frame": 1,
+        "moving": false,
+        "recoil": 0,
+        "flash": false,
+        "lean": 2.2605079253197427e-30,
+        "screen": {
+          "x": 339.096875,
+          "y": 131.721875
+        },
+        "muzzle": {
+          "x": 348.99408111702127,
+          "y": 120.24860372340427
+        },
+        "width": 22.493650265957445,
+        "height": 28.683178191489358,
+        "frameIndex": 10
+      },
+      "camera": {
+        "x": 720,
+        "y": 427.1548117154812,
+        "zoom": 0.3734375
+      }
+    },
+    {
+      "width": 844,
+      "label": "bottom",
+      "player": {
+        "x": 498,
+        "y": 772,
+        "hp": 94,
+        "maxHp": 100,
+        "armor": 0,
+        "layer": "ground",
+        "radius": 18,
+        "angle": -0.006699826782867708,
+        "invulnerable": 0,
+        "dashCooldown": 0,
+        "dashTime": 0,
+        "dashX": 0,
+        "dashY": 0,
+        "terrainSlipCooldown": 0,
+        "terrainLastX": 498,
+        "terrainLastY": 772,
+        "terrainContacts": []
+      },
+      "hero": {
+        "x": 498,
+        "y": 772,
+        "time": 12.349700000001224,
+        "shots": 31,
+        "angle": -0.007067599047269498,
+        "shotAngle": -0.006699826782867708,
+        "shotAt": 12.216400000000476,
+        "stride": -326.8680000007513,
+        "direction": 0,
+        "frame": 1,
+        "moving": false,
+        "recoil": 0.10198706697050214,
+        "flash": false,
+        "lean": 7.231347834987613e-65,
+        "screen": {
+          "x": 339.096875,
+          "y": 357.278125
+        },
+        "muzzle": {
+          "x": 354.07620338689594,
+          "y": 345.1892960225799
+        },
+        "width": 27.928357712765955,
+        "height": 27.47546542553191,
+        "frameIndex": 8
+      },
+      "camera": {
+        "x": 720,
+        "y": 427.1548117154812,
+        "zoom": 0.3734375
+      }
+    }
+  ],
+  "errors": []
+}

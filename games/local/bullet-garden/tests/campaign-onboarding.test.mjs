@@ -58,8 +58,10 @@ test('introductory stage is short and naturally survivable without skills or per
     assert.equal(state.duration, 60);
     assert.deepEqual(state.skillSlots, []);
     assert.deepEqual(state.availableBoons, ['shrub']);
+    const choices = [];
     for (let frame = 0; frame < 4800 && ['playing', 'upgrade'].includes(state.phase); frame += 1) {
       if (state.phase === 'upgrade') {
+        choices.push(state.time);
         const choice = ['attack-power', 'attack-speed', 'wild-heart', 'boon-shrub'].find((id) =>
           state.upgradeChoices.includes(id),
         );
@@ -70,6 +72,9 @@ test('introductory stage is short and naturally survivable without skills or per
       assert.ok(state.enemies.every((enemy) => enemy.kind === 'sprout'));
     }
     assert.equal(state.phase, 'won');
+    assert.ok(choices[0] >= 20 && choices[0] <= 32, `first earned choice at ${choices[0]}`);
+    assert.ok(choices.length <= 2);
+    for (let i = 1; i < choices.length; i++) assert.ok(choices[i] - choices[i - 1] >= 15);
     assert.ok(state.player.hp >= 60);
     assert.ok(state.kills >= 10);
     assert.ok(state.time >= state.duration, 'the existing final-enemy clear phase remains intact');

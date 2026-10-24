@@ -43,12 +43,13 @@ export async function harness() {
   const url = process.env.GAME_URL || `http://127.0.0.1:${server.address().port}`;
   const browser = await chromium.launch({ headless: true });
   const errors = [];
-  const open = async ({ width = 390, height = 844, profile, query = '', sdk, storageDev } = {}) => {
+  const open = async ({ width = 390, height = 844, profile, query = '', sdk, storageDev, recordVideo = false, touchEnabled = true } = {}) => {
     const context = await browser.newContext({
       viewport: { width, height },
-      hasTouch: true,
-      isMobile: true,
+      hasTouch: touchEnabled,
+      isMobile: touchEnabled,
       deviceScaleFactor: 1,
+      ...(recordVideo ? { recordVideo: { dir: path.join(output, 'recordings'), size: { width, height } } } : {}),
     });
     if (profile || storageDev !== undefined)
       await context.addInitScript(

@@ -105,9 +105,9 @@ test('dynamic buffs reject unsupported operator semantics and preserve repeated 
   startGame(game);
   game.upgrades.push('content-effect-check', 'content-effect-check');
   game.spawnTimer = 1000;
-  // Normal auto fire also fires into an empty courtyard, using the same stat resolver.
+  // Explicit aim isolates the projectile stat resolver from automatic target acquisition.
   return import('../src/simulation.mjs').then(({ step }) => {
-    step(game, 1 / 60);
+    step(game, 1 / 60, { aimActive:true, aimX:game.player.x+100, aimY:game.player.y });
     assert.ok(Math.abs(game.bullets[0].damage - 19 * 1.2 * 1.2) < 1e-9);
   });
 });

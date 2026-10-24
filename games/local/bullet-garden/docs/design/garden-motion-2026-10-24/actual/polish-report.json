@@ -1,0 +1,48 @@
+{
+  "runtime": "Creator 3.8.8 production; Chromium touch emulation",
+  "sourceHash": "94b0b911e9243eec1d368bcf262c239d5c3bcba73c5542238a79dc2c5f35a330",
+  "views": [
+    {
+      "width": 320,
+      "height": 480
+    },
+    {
+      "width": 640,
+      "height": 360
+    },
+    {
+      "width": 320,
+      "height": 568
+    },
+    {
+      "width": 330,
+      "height": 717
+    },
+    {
+      "width": 390,
+      "height": 844
+    },
+    {
+      "width": 430,
+      "height": 932
+    },
+    {
+      "width": 844,
+      "height": 390
+    }
+  ],
+  "choices": [
+    {
+      "time": 26.58179999999874,
+      "kills": 8
+    }
+  ],
+  "errors": [],
+  "victory": {
+    "time": 60.12626666666307,
+    "hp": 100,
+    "kills": 20
+  },
+  "video": "F:\\playground\\playground-ai\\small-games\\games\\local\\bullet-garden\\docs\\design\\garden-motion-2026-10-24\\actual\\recordings\\b3e1c61bb751b9efbb164680ce24423c.webm",
+  "passed": true
+}

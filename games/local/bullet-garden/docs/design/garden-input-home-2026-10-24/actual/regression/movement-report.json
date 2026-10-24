@@ -1,0 +1,68 @@
+{
+  "observations": [
+    {
+      "width": 330,
+      "kind": "touch-hold",
+      "dx": 60.65193977235538
+    },
+    {
+      "width": 330,
+      "kind": "pause-before-exit",
+      "screen": "paused",
+      "controls": {
+        "developerMode": false,
+        "practice": false,
+        "joystickActive": false,
+        "skillAiming": false,
+        "move": {
+          "x": 0,
+          "y": 0
+        },
+        "pointerInput": true
+      }
+    },
+    {
+      "width": 320,
+      "kind": "touch-hold",
+      "dx": 60.686574515249845
+    },
+    {
+      "width": 320,
+      "kind": "pause-before-exit",
+      "screen": "paused",
+      "controls": {
+        "developerMode": false,
+        "practice": false,
+        "joystickActive": false,
+        "skillAiming": false,
+        "move": {
+          "x": 0,
+          "y": 0
+        },
+        "pointerInput": true
+      }
+    },
+    {
+      "width": 844,
+      "kind": "touch-hold",
+      "dx": 60.66925714259901
+    },
+    {
+      "width": 844,
+      "kind": "pause-before-exit",
+      "screen": "paused",
+      "controls": {
+        "developerMode": false,
+        "practice": false,
+        "joystickActive": false,
+        "skillAiming": false,
+        "move": {
+          "x": 0,
+          "y": 0
+        },
+        "pointerInput": true
+      }
+    }
+  ],
+  "errors": []
+}

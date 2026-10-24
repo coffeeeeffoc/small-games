@@ -1,0 +1,48 @@
+{
+  "sourceHash": "f8d7e3d9611d6e646c8246d714abe3bfa703b676b35e820a7e9cb99872235e46",
+  "observations": [
+    {
+      "touchEnabled": false,
+      "kind": "mouse-hold",
+      "dx": 67.44722928927422,
+      "controls": {
+        "developerMode": false,
+        "practice": false,
+        "joystickActive": true,
+        "skillAiming": false,
+        "move": {
+          "x": 0.9142858014787947,
+          "y": -8.370535722081383e-7
+        },
+        "pointerInput": true
+      }
+    },
+    {
+      "touchEnabled": true,
+      "kind": "mouse-hold",
+      "dx": 67.48416643551593,
+      "controls": {
+        "developerMode": false,
+        "practice": false,
+        "joystickActive": true,
+        "skillAiming": false,
+        "move": {
+          "x": 0.9142858014787947,
+          "y": -8.370535722081383e-7
+        },
+        "pointerInput": true
+      }
+    },
+    {
+      "touchEnabled": false,
+      "kind": "iframe-first-press",
+      "screen": "playing"
+    },
+    {
+      "touchEnabled": true,
+      "kind": "iframe-first-press",
+      "screen": "playing"
+    }
+  ],
+  "errors": []
+}

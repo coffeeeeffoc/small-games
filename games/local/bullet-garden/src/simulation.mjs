@@ -360,9 +360,10 @@ export function createGame(levelId = 'ruins', seed = 42, profile = null, options
     waveProgress: 0,
     coins: 0,
     kills: 0,
-    ...createRunLoadout(undefined, level.progression?.firstXp ?? 12),
+    ...createRunLoadout(undefined, level.progression?.firstXp),
     skillEffects: [],
     burstQueue: [],
+    lastShot: null,
     player: {
       ...level.playerStart,
       hp: permanent.maxHp,
@@ -415,7 +416,7 @@ export function createGame(levelId = 'ruins', seed = 42, profile = null, options
   state.runConfig = rollRunConfiguration(state, state.runOptions);
   state.weather = state.runConfig.weather;
   state.mapId = state.runConfig.map;
-  Object.assign(state, createRunLoadout(state.runConfig.skills, level.progression?.firstXp ?? 12));
+  Object.assign(state, createRunLoadout(state.runConfig.skills, level.progression?.firstXp));
   Object.assign(state.player, getRunLevel(state).playerStart);
   if (!state.availableEnemies.includes(state.encounter.kind)) state.encounter.kind = null;
   for (const [kind, x, y] of [
@@ -587,6 +588,8 @@ export function dash(state, direction = {}) {
 
 function offerUpgrade(state) {
   if (state.phase !== 'playing' || state.progression.pending <= 0) return;
+  // Bank earned rewards while keeping uninterrupted combat between choices.
+  if (state.time < state.progression.nextOfferAt) return;
   const choices = drawUpgradeChoices(state, () => random(state));
   if (!choices.length) {
     state.player.hp = Math.min(
@@ -625,6 +628,7 @@ export function chooseUpgrade(state, upgradeId) {
   }
   state.progression.pending = Math.max(0, state.progression.pending - 1);
   state.progression.queue.shift();
+  state.progression.nextOfferAt = state.time + 15;
   state.upgradeChoices = [];
   state.phase = 'playing';
   state.player.invulnerable = Math.max(state.player.invulnerable, 1.2);
@@ -861,6 +865,10 @@ function closestEnemy(
   return best;
 }
 
+export function normalAimTarget(state) {
+  return closestEnemy(state, NORMAL_RANGE * weatherOf(state).gunRange);
+}
+
 function projectile(state, origin, target, params) {
   if (state.bullets.length >= MAX_BULLETS) return false;
   const dx = target.x - origin.x,
@@ -931,10 +939,11 @@ function fireVolley(state, angle, damageScale = 1) {
     });
     state.stats.shots += 1;
   }
+  state.lastShot = { angle, time: state.time };
   event(state, 'shoot', { kind: 'normal', x: state.player.x, y: state.player.y });
 }
 
-function shootNormal(state, target) {
+function shootNormal(state, target, automatic = false) {
   const dx = target.x - state.player.x,
     dy = target.y - state.player.y;
   const angle = Math.hypot(dx, dy) < 1 ? state.player.angle : Math.atan2(dy, dx);
@@ -944,7 +953,7 @@ function shootNormal(state, target) {
   const interval = Math.max(0.12, state.permanent.fireInterval / buffStat(state, 'fireRate', 1));
   state.shotCooldown = interval + burstCount * 0.085;
   for (let index = 0; index < burstCount; index += 1)
-    state.burstQueue.push({ delay: (index + 1) * 0.085, angle });
+    state.burstQueue.push({ delay: (index + 1) * 0.085, angle, automatic });
 }
 
 function updatePet(state, dt) {
@@ -2209,7 +2218,11 @@ function tick(state, dt, input) {
     );
   for (const burst of state.burstQueue) {
     burst.delay -= dt;
-    if (burst.delay <= 0) fireVolley(state, burst.angle, 0.65);
+    if (burst.delay <= 0) {
+      const target = burst.automatic ? normalAimTarget(state) : null;
+      if (!burst.automatic || target)
+        fireVolley(state, target ? Math.atan2(target.y - player.y, target.x - player.x) : burst.angle, 0.65);
+    }
   }
   state.burstQueue = state.burstQueue.filter((burst) => burst.delay > 0);
   if (state.shotCooldown <= 0) {
@@ -2220,14 +2233,8 @@ function tick(state, dt, input) {
     )
       shootNormal(state, { x: input.aimX, y: input.aimY });
     else if (input.autoFire !== false) {
-      const target = closestEnemy(state, NORMAL_RANGE * weatherOf(state).gunRange);
-      shootNormal(
-        state,
-        target ?? {
-          x: player.x + Math.cos(player.angle) * 100,
-          y: player.y + Math.sin(player.angle) * 100,
-        },
-      );
+      const target = normalAimTarget(state);
+      if (target) shootNormal(state, target, true);
     }
   }
   updatePet(state, dt);

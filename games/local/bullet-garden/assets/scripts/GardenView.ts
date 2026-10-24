@@ -17,7 +17,7 @@ import {
   sys,
   view,
 } from 'cc';
-import { getRunLevel, skillTarget, SKILLS } from './generated/core.js';
+import { getRunLevel, skillTarget, SKILLS, HERO_FRAMES, gardenCamera, createHeroMotion, advanceHeroMotion } from './generated/core.js';
 export type Box = { x: number; y: number; w: number; h: number };
 export type Control = { id: string; label: string; rect: Box; disabled: boolean };
 export const GOLD = '#efd28a',
@@ -93,6 +93,11 @@ export class GardenView {
   images: ImageAsset[] = [];
   left = 10;
   right = 10;
+  artCount = 7;
+  heroRun: any = null;
+  heroMotion: any = null;
+  heroPose: any = null;
+  bulletOrigins = new Map<number, { x: number; y: number; time: number }>();
   constructor(
     parent: Node,
     private changed: () => void,
@@ -130,11 +135,11 @@ export class GardenView {
     return n;
   }
   get ready() {
-    return this.loaded.size === 5;
+    return this.loaded.size === this.artCount;
   }
   loadArt() {
     this.failed = false;
-    for (const name of ['home', 'ground', 'actors', 'icon', 'levels']) {
+    for (const name of ['home', 'home-battle', 'ground', 'actors', 'icon', 'levels', 'hero-motion']) {
       if (this.loaded.has(name) || this.loading.has(name)) continue;
       this.loading.add(name);
       resources.load(`art/${name}`, ImageAsset, (error, asset) => {
@@ -165,6 +170,14 @@ export class GardenView {
               asset.height / 4,
             );
             this.frames.set(key, tile);
+            this.owned.push(tile);
+          });
+        if (name === 'hero-motion')
+          HERO_FRAMES.forEach((rect: number[], i: number) => {
+            const tile = new SpriteFrame();
+            tile.texture = texture;
+            tile.rect = new Rect(rect[0] - 2, rect[1] - 2, rect[2] + 4, rect[3] + 4);
+            this.frames.set(`hero-${i}`, tile);
             this.owned.push(tile);
           });
         this.loaded.add(name);
@@ -199,7 +212,7 @@ export class GardenView {
       x: 0,
       y: this.top + 65,
       w: this.w,
-      h: this.h - this.top - 65 - Math.max(120, this.h * 0.24) - this.bottom,
+      h: this.h - this.top - 65 - (this.landscape ? 0 : Math.max(120, this.h * 0.24)) - this.bottom,
     };
   }
   pos(n: Node, x: number, y: number) {
@@ -270,7 +283,87 @@ export class GardenView {
     label.fontSize = size;
     label.lineHeight = size * 1.4;
     label.color = color(hex);
+    label.fontFamily = 'Microsoft YaHei, sans-serif';
+    label.isBold = false;
+    label.horizontalAlign = Label.HorizontalAlign.CENTER;
     return label;
+  }
+  heading(str: string, x: number, y: number, size: number, width = this.w - 32, hex = CREAM) {
+    const label = this.text(str, x, y, size, hex, width, size * 1.7);
+    label.fontFamily = 'Noto Serif SC, Songti SC, SimSun, serif';
+    label.isBold = true;
+    return label;
+  }
+  polygon(points: number[][], hex: string, alpha = 255) {
+    const g = this.ui;
+    points.forEach(([x, y], i) => {
+      if (i === 0) g.moveTo(x - this.w / 2, this.h / 2 - y);
+      else g.lineTo(x - this.w / 2, this.h / 2 - y);
+    });
+    g.close();
+    g.fillColor = color(hex, alpha);
+    g.fill();
+  }
+  sprig(x: number, y: number, direction = 1, size = 1) {
+    this.line(this.ui, x, y, x + 32 * size * direction, y - 12 * size, '#bca365', 1.4);
+    for (let i = 0; i < 3; i++) {
+      const xx = x + (8 + i * 10) * size * direction, yy = y - (3 + i * 4) * size;
+      this.polygon([[xx, yy], [xx - 7 * size * direction, yy - 10 * size], [xx + 3 * size * direction, yy - 6 * size]], '#9ca86b');
+      this.polygon([[xx, yy], [xx + 2 * size * direction, yy + 7 * size], [xx + 8 * size * direction, yy + 2 * size]], '#d4bb75');
+    }
+    this.circle(this.ui, x, y, 3 * size, GOLD);
+  }
+  icon(kind: string, x: number, y: number, size = 22, hex = GOLD) {
+    const s = size / 24;
+    const line = (a: number, b: number, c: number, d: number) => this.line(this.ui, x + a * s, y + b * s, x + c * s, y + d * s, hex, 2 * s);
+    const poly = (p: number[][]) => this.polygon(p.map(([a, b]) => [x + a * s, y + b * s]), hex);
+    if (kind === 'play') poly([[-6, -10], [10, 0], [-6, 10]]);
+    else if (kind === 'back') { line(5, -10, -5, 0); line(-5, 0, 5, 10); }
+    else if (kind === 'bolt') poly([[3, -13], [-10, 2], [-1, 2], [-4, 13], [11, -3], [2, -3]]);
+    else if (kind === 'camp') { poly([[0, -12], [-13, 10], [13, 10]]); this.polygon([[x, y - 3 * s], [x - 4 * s, y + 10 * s], [x + 4 * s, y + 10 * s]], GREEN); }
+    else if (kind === 'book' || kind === 'map') {
+      for (const d of [-1, 1]) { line(0, -8, d * 11, -10); line(d * 11, -10, d * 11, 10); line(d * 11, 10, 0, 8); line(d * 3, -3, d * 8, -4); line(d * 3, 2, d * 8, 1); }
+      line(0, -8, 0, 9);
+    } else if (kind === 'gear') {
+      this.circle(this.ui, x, y, 8 * s, hex, 255, 3 * s);
+      this.circle(this.ui, x, y, 2 * s, hex);
+      for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; line(Math.cos(a) * 8, Math.sin(a) * 8, Math.cos(a) * 12, Math.sin(a) * 12); }
+    } else if (kind === 'coin') {
+      this.circle(this.ui, x, y, 10 * s, hex, 255, 2 * s);
+      poly([[0, -6], [4, 0], [0, 6], [-4, 0]]);
+    } else if (kind === 'lock') {
+      this.circle(this.ui, x, y - 3 * s, 6 * s, hex, 255, 2 * s);
+      this.box(this.ui, x - 9 * s, y - 2 * s, 18 * s, 13 * s, hex, 3 * s);
+      this.circle(this.ui, x, y + 4 * s, 2 * s, GREEN);
+    } else if (kind === 'bloom') {
+      for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; this.circle(this.ui, x + Math.cos(a) * 7 * s, y + Math.sin(a) * 7 * s, 4 * s, CREAM); }
+      this.circle(this.ui, x, y, 4 * s, GOLD);
+    } else {
+      poly([[-10, 10], [-7, -5], [2, -11], [12, -12], [8, 2], [1, 8]]);
+      this.line(this.ui, x - 9 * s, y + 9 * s, x + 6 * s, y - 6 * s, GREEN, 1.5 * s);
+    }
+  }
+  badge(id: string, label: string, icon: string, x: number, y: number, r = 25, disabled = false, primary = false) {
+    this.controls.push({ id, label, disabled, rect: { x: x - r - 3, y: y - r - 3, w: r * 2 + 6, h: r * 2 + 6 } });
+    this.circle(this.ui, x, y + 3, r + 2, '#091d16');
+    this.circle(this.ui, x, y, r + 1, disabled ? '#566255' : '#ab8546');
+    this.circle(this.ui, x, y, r - 1, disabled ? '#293f33' : primary ? '#eccb7b' : '#1c3a2c');
+    this.circle(this.ui, x, y - 1, r - 4, disabled ? '#71806a' : GOLD, 240, 1);
+    this.icon(icon, x, y - 1, r * 0.95, disabled ? '#819378' : primary ? GREEN : GOLD);
+  }
+  card(id: string, title: string, description: string, icon: string, x: number, y: number, w: number, h: number, disabled = false) {
+    this.controls.push({ id, label: `${title}，${description}`, disabled, rect: { x, y, w, h } });
+    this.panel(x, y, w, h, !disabled);
+    const r = Math.min(29, h * 0.27), cx = x + r + 18;
+    this.circle(this.ui, cx, y + h / 2, r + 2, '#b59555');
+    this.circle(this.ui, cx, y + h / 2, r, GREEN);
+    this.circle(this.ui, cx, y + h / 2, r - 4, GOLD, 180, 1);
+    this.icon(icon, cx, y + h / 2, r * 1.1, disabled ? '#84977c' : GOLD);
+    const left = x + r * 2 + 32, tw = w - (left - x) - 17;
+    const heading = this.heading(title, left + tw / 2, y + h * 0.3, 21, tw, disabled ? GOLD : GREEN);
+    heading.horizontalAlign = Label.HorizontalAlign.LEFT;
+    const desc = this.text(description, left + tw / 2, y + h * 0.66, 14, disabled ? '#bfcaac' : '#586044', tw, h * 0.43);
+    desc.horizontalAlign = Label.HorizontalAlign.LEFT;
   }
   image(sprite: Sprite, key: string, x: number, y: number, w: number, h = w) {
     sprite.spriteFrame = this.frames.get(key) || this.frames.get(aliases[key]) || null;
@@ -286,6 +379,8 @@ export class GardenView {
       this.spritePool.push(sprite);
     }
     this.image(sprite, key, x, y, size);
+    sprite.node.angle = 0;
+    sprite.node.setScale(1, 1, 1);
     sprite.color = new Color(255, 255, 255, alpha);
     return sprite;
   }
@@ -296,10 +391,10 @@ export class GardenView {
     this.field.clear();
     this.effects.clear();
     this.ui.clear();
-    this.backdrop.node.active = !battle && ['home', 'levels'].includes(screen);
+    this.backdrop.node.active = !battle;
     this.ground.node.active = battle;
     if (this.backdrop.node.active) {
-      const key = screen === 'levels' ? 'levels' : 'home';
+      const key = screen === 'levels' ? 'levels' : screen === 'home' ? 'home-battle' : 'home';
       const f = this.frames.get(key);
       const scale = Math.max(this.w / (f?.width || 852), this.h / (f?.height || 1846));
       this.image(
@@ -312,14 +407,16 @@ export class GardenView {
       );
     }
     if (!battle && screen !== 'home' && screen !== 'levels') {
-      this.box(this.field, 0, 0, this.w, this.h, GREEN, 0);
-      this.circle(this.field, this.w * 0.92, this.h * 0.12, 130, '#3c5941', 70);
-      this.circle(this.field, this.w * 0.05, this.h * 0.8, 150, '#658150', 28);
+      this.box(this.field, 0, 0, this.w, this.h, '#0c241b', 0, 224);
     }
   }
   end() {
     for (let i = this.si; i < this.spritePool.length; i++) this.spritePool[i].node.active = false;
     for (let i = this.li; i < this.labelPool.length; i++) this.labelPool[i].node.active = false;
+    if (this.ground.node.active) {
+      const foot = (sprite: Sprite) => sprite.node.position.y - sprite.node.getComponent(UITransform)!.height / 2;
+      this.spritePool.slice(0, this.si).sort((a, b) => foot(b) - foot(a)).forEach((sprite, i) => sprite.node.setSiblingIndex(i));
+    }
   }
   button(
     id: string,
@@ -333,8 +430,10 @@ export class GardenView {
   ) {
     const rect = { x: x - w / 2, y: y - h / 2, w, h };
     this.controls.push({ id, label, rect, disabled });
-    this.box(this.ui, rect.x, rect.y + 4, w, h, '#0b1d16', 18);
-    this.box(this.ui, rect.x, rect.y, w, h, disabled ? '#465047' : primary ? '#dfb859' : GREEN, 18);
+    this.box(this.ui, rect.x, rect.y + 4, w, h, '#071c14', 12);
+    this.box(this.ui, rect.x, rect.y, w, h, disabled ? '#3b4d3e' : primary ? '#aa7f37' : '#0e281e', 12);
+    this.box(this.ui, rect.x + 2, rect.y + 2, w - 4, h - 6, disabled ? '#344637' : primary ? '#f5dfa3' : '#294a35', 10);
+    this.box(this.ui, rect.x + 5, rect.y + h * 0.5, w - 10, h * 0.4 - 2, primary ? '#dabb70' : '#1c3929', 7, disabled ? 0 : 120);
     this.box(
       this.ui,
       rect.x + 2,
@@ -342,28 +441,39 @@ export class GardenView {
       w - 4,
       h - 4,
       disabled ? '#7c8370' : GOLD,
-      16,
+      10,
       255,
       2,
     );
-    if (primary) this.box(this.ui, rect.x + 7, rect.y + 7, w - 14, h - 14, '#ffeb9d', 13, 255, 1);
+    if (primary) {
+      this.box(this.ui, rect.x + 7, rect.y + 7, w - 14, h - 14, '#ab853e', 6, 230, 1);
+      this.sprig(rect.x + 7, rect.y + h - 6, 1, 0.55);
+      this.sprig(rect.x + w - 7, rect.y + 10, -1, 0.55);
+    }
+    const symbol = ({ start: 'play', levels: 'map', depart: 'leaf', back: 'back', next: 'play' } as Record<string, string>)[id];
+    if (symbol) this.icon(symbol, rect.x + 25, y, primary ? 21 : 18, primary ? GREEN : GOLD);
     if (label !== '暂停')
-      this.text(
+      this.heading(
         label,
-        x,
+        x + (symbol ? 12 : 0),
         y,
         primary ? 24 : 18,
-        primary ? '#243522' : disabled ? '#b7baac' : CREAM,
-        w - 20,
-        h - 8,
+        w - (symbol ? 58 : 20),
+        primary ? '#243522' : disabled ? '#98aa91' : CREAM,
       );
     else {
       for (const offset of [-8, 4]) this.box(this.ui, x + offset, y - 11, 5, 22, CREAM, 0);
     }
   }
-  panel(x: number, y: number, w: number, h: number) {
-    this.box(this.ui, x, y, w, h, '#142d22', 20, 238);
-    this.box(this.ui, x + 2, y + 2, w - 4, h - 4, GOLD, 18, 220, 2);
+  panel(x: number, y: number, w: number, h: number, paper = false) {
+    this.box(this.ui, x, y + 4, w, h, '#091b14', 12, 220);
+    this.box(this.ui, x, y, w, h, paper ? '#eddcb0' : '#172f23', 12, 248);
+    this.box(this.ui, x + 2, y + 2, w - 4, h - 4, '#b49453', 10, 245, 2);
+    this.box(this.ui, x + 6, y + 6, w - 12, h - 12, paper ? '#b9a16a' : '#5c7047', 7, 160, 1);
+    if (h > 68) {
+      this.sprig(x + 8, y + h - 9, 1, 0.65);
+      this.sprig(x + w - 8, y + 13, -1, 0.65);
+    }
   }
   hit(x: number, y: number) {
     return [...this.controls]
@@ -393,18 +503,17 @@ export class GardenView {
       disabled: locked,
       rect: { x: x - 31, y: y - 31, w: 62, h: 62 },
     });
-    if (selected) this.circle(this.ui, x, y, r + 7, '#ffe78a', 130, 3);
+    if (selected) { this.circle(this.ui, x, y, r + 7, '#ffe78a', 180, 2); this.sprig(x - 24, y + 26, -1, 0.7); this.sprig(x + 24, y + 26, 1, 0.7); }
     this.circle(this.ui, x, y + 4, r + 2, '#16231b');
     this.circle(this.ui, x, y, r + 2, locked ? '#5e6456' : GOLD);
     this.circle(this.ui, x, y, r - 3, locked ? '#303c32' : selected ? '#325734' : '#9d6e27');
     this.circle(this.ui, x, y, r - 6, locked ? '#929686' : '#fff0bb', 255, 1);
-    this.text(String(order), x, y - 1, 27, locked ? '#b7bba9' : CREAM, 45, 40);
+    if (!locked) this.heading(String(order), x, y - 1, 27, 45);
     if (locked) {
-      this.box(this.ui, x - 7, y + 22, 14, 12, '#c3c8b1', 2);
-      this.circle(this.ui, x, y + 22, 5, '#c3c8b1', 255, 2);
+      this.icon('lock', x, y, 21, '#a2ad95');
     }
     if (cleared)
-      for (let i = 0; i < 3; i++) this.circle(this.ui, x + (i - 1) * 13, y + 35, 4, GOLD);
+      this.text('已守护', x, y + 40, 11, CREAM, 62, 20);
   }
   world(x: number, y: number) {
     return {
@@ -419,14 +528,12 @@ export class GardenView {
     };
   }
   drawBattle(state: any, aim: { x: number; y: number; index: number } | null) {
-    this.zoom = this.landscape ? 0.7 : 0.86;
     const level = getRunLevel(state),
-      world = level.world,
       bounds = level.bounds;
-    const clamp = (value: number, half: number, size: number) =>
-      half * 2 >= size ? size / 2 : Math.max(half, Math.min(size - half, value));
-    this.cameraX = clamp(state.player.x, this.battle.w / this.zoom / 2, world.width);
-    this.cameraY = clamp(state.player.y, this.battle.h / this.zoom / 2, world.height);
+    const camera = gardenCamera(bounds, this.battle);
+    this.cameraX = camera.x;
+    this.cameraY = camera.y;
+    this.zoom = camera.zoom;
     const center = this.world((bounds.left + bounds.right) / 2, (bounds.top + bounds.bottom) / 2);
     this.image(
       this.ground,
@@ -530,11 +637,48 @@ export class GardenView {
     const hero = this.world(state.player.x, state.player.y);
     if (state.player.invulnerable > 0)
       this.circle(this.effects, hero.x, hero.y, 28, '#fff4b2', 180, 2);
-    this.circle(this.field, hero.x, hero.y + 16, 15, '#213021', 95);
-    this.actor('hero', hero.x, hero.y - 5, 54);
+    if (this.heroRun !== state) {
+      this.heroRun = state;
+      this.heroMotion = createHeroMotion(state);
+      this.bulletOrigins.clear();
+    }
+    const motion = advanceHeroMotion(this.heroMotion, state);
+    const frameIndex = motion.frame * 8 + motion.direction;
+    const source = HERO_FRAMES[frameIndex];
+    const height = Math.max(22, Math.min(44, this.zoom * 76));
+    const scale = height / 188, sw = (source[2] + 4) * scale, sh = (source[3] + 4) * scale;
+    const anchor = [0.42, 0.42, 0.46, 0.57, 0.58, 0.57, 0.52, 0.44][motion.direction];
+    const rx = Math.cos(motion.shotAngle) * motion.recoil, ry = Math.sin(motion.shotAngle) * motion.recoil * 0.55;
+    const bob = motion.moving ? Math.abs(Math.sin(motion.stride / 88 * Math.PI * 2)) * 1.2 : 0;
+    this.field.fillColor = color('#213021', 90);
+    this.field.ellipse(hero.x - this.w / 2, this.h / 2 - hero.y, height * 0.24, height * 0.09);
+    this.field.fill();
+    const body = this.actor(`hero-${frameIndex}`, hero.x + sw * (0.5 - anchor) - rx, hero.y - sh / 2 - bob - ry, sw);
+    body.node.getComponent(UITransform)!.setContentSize(sw, sh);
+    body.node.angle = motion.lean;
+    const muzzleOffsets = [[0.96,0.56],[0.96,0.60],[0.9,0.60],[0.06,0.58],[0.04,0.57],[0.10,0.47],[0.10,0.52],[0.96,0.45]];
+    const offset = muzzleOffsets[motion.direction];
+    const muzzle = { x: hero.x + sw * (offset[0] - anchor) - rx, y: hero.y - sh * (1 - offset[1]) - bob - ry };
+    if (motion.flash) {
+      const dx = Math.cos(motion.shotAngle), dy = Math.sin(motion.shotAngle);
+      this.line(this.effects, muzzle.x, muzzle.y, muzzle.x + dx * 11, muzzle.y + dy * 11, '#ffca55', 5);
+      this.circle(this.effects, muzzle.x, muzzle.y, 3.5, '#fff8cf');
+    }
+    this.heroPose = { ...motion, screen: hero, muzzle, width: sw, height: sh, frameIndex };
+    const liveBullets = new Set<number>();
     for (const b of state.bullets) {
       const p = this.world(b.x, b.y),
         hostile = b.kind === 'hostile';
+      liveBullets.add(b.id);
+      if (b.source === 'normal' && b.generation === 0 && !b.reflected) {
+        if (!this.bulletOrigins.has(b.id))
+          this.bulletOrigins.set(b.id, { x: muzzle.x - hero.x, y: muzzle.y - hero.y, time: state.time });
+        const origin = this.bulletOrigins.get(b.id)!;
+        const blend = Math.max(0, 1 - (state.time - origin.time) / 0.12);
+        p.x += origin.x * blend;
+        p.y += origin.y * blend;
+        this.line(this.effects, p.x - b.vx * 0.009 * this.zoom, p.y - b.vy * 0.009 * this.zoom, p.x, p.y, '#ffe7a0', 2);
+      }
       this.circle(
         this.effects,
         p.x,
@@ -544,6 +688,7 @@ export class GardenView {
       );
       this.circle(this.effects, p.x, p.y, 7, hostile ? '#f293c0' : '#ffcb49', 65);
     }
+    for (const id of this.bulletOrigins.keys()) if (!liveBullets.has(id)) this.bulletOrigins.delete(id);
     for (const e of state.skillEffects) {
       const p = this.world(e.x, e.y);
       this.circle(

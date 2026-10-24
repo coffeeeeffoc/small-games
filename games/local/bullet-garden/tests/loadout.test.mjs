@@ -81,7 +81,7 @@ test('fresh run loadouts preserve chosen skills while clearing terrain, energy a
   assert.deepEqual(fresh.loadout.skills, ['cart', 'laser']);
   assert.deepEqual(fresh.boons, []);
   assert.deepEqual(fresh.boonTimers, {});
-  assert.deepEqual(fresh.progression, { level: 1, xp: 0, nextXp: 12, pending: 0, queue: [] });
+  assert.deepEqual(fresh.progression, { level: 1, xp: 0, nextXp: 12, nextOfferAt: 20, pending: 0, queue: [] });
   assert.deepEqual(fresh.skillEffects, []);
   assert.deepEqual(fresh.burstQueue, []);
   assert.ok(fresh.skillSlots.every((slot) => slot.energy === 0));
@@ -98,8 +98,8 @@ test('kill XP carries overflow and queued upgrade levels without touching perman
   game.profile.xp = 670;
   game.profile.coins = 99;
   const before = structuredClone(game.profile);
-  assert.equal(gainRunExperience(game, 70), 3);
-  assert.deepEqual(game.progression, { level: 4, xp: 4, nextXp: 42, pending: 3, queue: [2, 3, 4] });
+  assert.equal(gainRunExperience(game, 90), 3);
+  assert.deepEqual(game.progression, { level: 4, xp: 6, nextXp: 52, nextOfferAt: 20, pending: 3, queue: [2, 3, 4] });
   assert.deepEqual(game.profile, before);
   assert.equal(gainRunExperience(game, NaN), 0);
   assert.equal(gainRunExperience(game, -1), 0);

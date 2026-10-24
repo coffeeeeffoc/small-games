@@ -1,0 +1,295 @@
+{
+  "sourceHash": "f8d7e3d9611d6e646c8246d714abe3bfa703b676b35e820a7e9cb99872235e46",
+  "files": [
+    {
+      "path": "copy/introduction.md",
+      "bytes": 892,
+      "sha256": "f43c17a98e03d3994d622ffd9044f50779e0519c06c01c8c5f253d0db392dde8"
+    },
+    {
+      "path": "copy/tagline.md",
+      "bytes": 58,
+      "sha256": "60c86b734b081bba03991bc057a2fa154b7af45416dbb9bc61d127b9ecf18173"
+    },
+    {
+      "path": "copy/developer-note.md",
+      "bytes": 1102,
+      "sha256": "14813bce0352769987024d7f09a72e48c91f0072b384c8a6986fd5812d603ef9"
+    },
+    {
+      "path": "icon/icon-20261024.png",
+      "bytes": 147720,
+      "sha256": "85d6839f4fe0d8c54f461208e11308e17c89db148db89c4a9dc201c7d9074178"
+    },
+    {
+      "path": "promo/images/garden-battle-home-390x844.png",
+      "bytes": 600392,
+      "sha256": "77b11693e7b76dcceaed750e0cf02befffb1bb737402f895014584ff3d801c6b"
+    },
+    {
+      "path": "promo/images/garden-target-battle-390x844.png",
+      "bytes": 441900,
+      "sha256": "18b747fd5d43a70eb8854069a1bbe49bbfe6e5974ed5824b56be3119445cf22c"
+    },
+    {
+      "path": "promo/videos/garden-input-home-390x844.mp4",
+      "bytes": 662943,
+      "sha256": "342adafe5828ca8e1a635361db614b76063c809f411fd7aafa84adeda9602290"
+    },
+    {
+      "path": "gameplay/videos/first-clear-input-home-390x844.webm",
+      "bytes": 5257607,
+      "sha256": "aace7e7076277ceb7bef2e55545e0a7749577157e1cd23d3d28d7d71ff76a0f0"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/battle-320.png",
+      "bytes": 192981,
+      "sha256": "036f60289091e509d902a7448674e78ea81c4493fd5705b60ad91f0fa388003c"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/battle-320x480.png",
+      "bytes": 118773,
+      "sha256": "571a463e7b65ce94898a112c046e32e1d763e85787bd7a157258f445ba00dd21"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/battle-330.png",
+      "bytes": 317609,
+      "sha256": "c0448427ee17e89a60f7741c4c8c83ca9da574811faa041f69b7cf47a6fd53c1"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/battle-390.png",
+      "bytes": 439409,
+      "sha256": "7a2634d209f33e963ad2269d4b675c2c3db34a799b17deb490a73756a3c2ee01"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/battle-430.png",
+      "bytes": 525664,
+      "sha256": "5e2d78b1ccb5bd3e8232ad33a381b9a17b60ce8ef96ef3b922bc9fada0e4da99"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/battle-640x360.png",
+      "bytes": 125573,
+      "sha256": "f594b4bf4d49f1f2865d005adaea4aebdb293c8aac2bc13f31396a43808d8022"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/battle-844x390.png",
+      "bytes": 156162,
+      "sha256": "195f39e5980c3e944d46fd3adf46523a1cd7a83a01221cca206d8acbb4acc35a"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/battle-moving-390.png",
+      "bytes": 441900,
+      "sha256": "18b747fd5d43a70eb8854069a1bbe49bbfe6e5974ed5824b56be3119445cf22c"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/camp-320.png",
+      "bytes": 117420,
+      "sha256": "a571ecd37448242c5dc27adac4a16cf50ff70bf24b568c8744eef649ef3c8013"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/camp-320x480.png",
+      "bytes": 109526,
+      "sha256": "12c6d4538fdd702fad0b57c770b93538b4935cf9aeba98faead5ec9384264cbc"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/camp-330.png",
+      "bytes": 162690,
+      "sha256": "69c26551d8e6403ebecc7128ce16608c0509f868a878fefa6617d85bd5be5d42"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/camp-390.png",
+      "bytes": 220014,
+      "sha256": "7ae7bcc206ea597549a6cbcd66efe6fbc866ce357f25d82bdec02ffffc8641c7"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/camp-430.png",
+      "bytes": 264110,
+      "sha256": "bf6d918d922a9e8bf45a17ac7d7ac684543a002dd67b96af4879e81c47eb261b"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/camp-640x360.png",
+      "bytes": 155653,
+      "sha256": "e3a5badb7adf6ebfe77858baa65438263229d3f038e69052abf70e69e85545f8"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/camp-844x390.png",
+      "bytes": 154116,
+      "sha256": "8f058881b56628d6febd678206b8ef2531f79aa07030d306543fd3609b321b85"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/help-320.png",
+      "bytes": 75484,
+      "sha256": "ddf2f6fd98e5c16fafa5404b63873e9a258bb60004b9498ac99451ac4e587c46"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/help-320x480.png",
+      "bytes": 73642,
+      "sha256": "4d72e01c9ef3f06412ee744bc2bc888f642fa9bf30b00d901894931da0092dd8"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/help-330.png",
+      "bytes": 83759,
+      "sha256": "7d01ab9084bc788a5b75b43e5f3dc41a972f0477f9c510ca8c600d76aa516b00"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/help-390.png",
+      "bytes": 91550,
+      "sha256": "22866186bdab0f858edd8c19cb6f422b1ef56551dd9393d5118f805a54d86f84"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/help-430.png",
+      "bytes": 96592,
+      "sha256": "12b6dc8425ba68056efc1ce17066e73ea3ff7b0aa6b406290d211b6bbb8e1194"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/help-640x360.png",
+      "bytes": 89156,
+      "sha256": "8c8343ce89dcba31eac54c8453f64e7bfa206ba8157b3e1312bf9ec12c77ff7b"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/help-844x390.png",
+      "bytes": 103812,
+      "sha256": "2b4a41394988ce6e121d4b7162b9b8ba1896a78a6e400e60d7bf318850a3b084"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/home-320.png",
+      "bytes": 327510,
+      "sha256": "74fbf5c66a00daab7706eb7092fa2f231156654043b039580862e4df349c73e2"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/home-330.png",
+      "bytes": 436652,
+      "sha256": "e4f2fc478642c22b377236a1916bfcc09c9f3e62f20fab2a16f4dd0abdaa74fa"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/home-390.png",
+      "bytes": 600392,
+      "sha256": "77b11693e7b76dcceaed750e0cf02befffb1bb737402f895014584ff3d801c6b"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/home-430.png",
+      "bytes": 724815,
+      "sha256": "0033ba20cb2cb6f336be28ac1d7cd4b3f1875ffec52a338b817c2d2654e38db9"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/home-640.png",
+      "bytes": 317930,
+      "sha256": "254e7dfe69075c5dff4a468da32c73915f06c6bb76558ea07625937450191f3f"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/home-844.png",
+      "bytes": 413920,
+      "sha256": "63889989deacdca0d4db16a58f7d9f669e49115e7f122acbf0d89985437cdd7e"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/levels-320.png",
+      "bytes": 307546,
+      "sha256": "886eb4d36f3c812664c219bb486dfefb36f9edb09b70fa38208e2125ba9c5012"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/levels-320x480.png",
+      "bytes": 241863,
+      "sha256": "15752b530796dd95b748dc0771111ac0b137fb546cb1118f70acf3f6fccb3b46"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/levels-330.png",
+      "bytes": 416993,
+      "sha256": "955e81cb99916590b571d2861517278a070088bdfe6a251abe044b63d6fee51e"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/levels-390.png",
+      "bytes": 582622,
+      "sha256": "b8c3ec46ac9624bcb64f6c6558f36589d0da47c1d65016f072c3442f3ac78323"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/levels-430.png",
+      "bytes": 706560,
+      "sha256": "ca844ba54f83b57223f7bb73d2c1c1dbc8a7ef9978f9343e2c412ea95a84a725"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/levels-640x360.png",
+      "bytes": 279645,
+      "sha256": "b409a535b389dc9f20e5eed36ff377e02cbb8173094655933e9f2aa190441fff"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/levels-844x390.png",
+      "bytes": 399264,
+      "sha256": "b907c674fe4b9949a0d26e62934e59e0bb27c16b7295209c8e73ba7af54308e7"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/pause-320.png",
+      "bytes": 117315,
+      "sha256": "f78a7f4dd3918c6a4bb4b0de818a549e8377396f6ac0398ca087f8016a202f6f"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/pause-330.png",
+      "bytes": 157108,
+      "sha256": "b562d55f850b33aa40e5dc14453f3569e46f214dd86e2416928f077c5a7aa0e2"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/pause-390.png",
+      "bytes": 214950,
+      "sha256": "2ed258acbee836c68efda8135dd6735c2cdd0f02368f1dc952672dba16881478"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/pause-430.png",
+      "bytes": 264195,
+      "sha256": "640093da91b818629fe587e2d020e823af19f354ac0ed1b7ca45acac173b793b"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/pause-640.png",
+      "bytes": 179101,
+      "sha256": "1e957143cf51fbe2f820b54e93966f25ac32240d9a7fd3dfdebcaea17f6a1ca4"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/pause-844.png",
+      "bytes": 240581,
+      "sha256": "edb999f22f3ce4dd512f6cfb1cd2e9344fd1bb6908090b3b8071de4fd4e3f784"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/settings-320.png",
+      "bytes": 113054,
+      "sha256": "4ef9c5a291feaf83b01fb214d8ef8adda98d228174d134f6800bb92bf5faf06e"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/settings-320x480.png",
+      "bytes": 90164,
+      "sha256": "37559d4eea7b26c24270969410c6e550208747afbee50428336aa3b965039005"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/settings-330.png",
+      "bytes": 158842,
+      "sha256": "ce6be3070f6bfa061fa339b1fea2b837a583cff2f5e4decbd619deac16173448"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/settings-390.png",
+      "bytes": 221989,
+      "sha256": "800735d11fa642055d62c5e18b8d3ce45c5b77e855ae7d1e8145461bbb616331"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/settings-430.png",
+      "bytes": 269003,
+      "sha256": "64ae4f06f9a7051327d57b27d60bc845843d8c4ad613034fa90fc97e7554ef7c"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/settings-640x360.png",
+      "bytes": 89815,
+      "sha256": "80473324de0ed90d53cbb3ebe7b9e3b0128d1e07bcd2051b7b15b6f2b0c04cb7"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/settings-844x390.png",
+      "bytes": 125002,
+      "sha256": "1abcb083662d9eda961587ff62a9f501d9080819a14b610a64c3151af8e534cb"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/upgrade-1-390.png",
+      "bytes": 168685,
+      "sha256": "dd253b47e5df539d682b0dc80f28bf4715c60154c9462003ad168db8e43f368d"
+    },
+    {
+      "path": "gameplay/screenshots/input-home-20261024/victory-390.png",
+      "bytes": 229010,
+      "sha256": "94a0a553cba746f7d2dd82c3d000ba106b074e08866acaa2d90b63c68bce96d3"
+    }
+  ]
+}

@@ -9,6 +9,8 @@
     "test": "node --test tests/*.test.mjs",
     "test:balance": "node tests/balance.mjs",
     "test:browser": "node tests/home-browser.mjs",
+    "test:input": "node tests/movement.browser.mjs",
+    "test:polish": "node tests/polish.browser.mjs",
     "build": "node scripts/build.mjs web-mobile",
     "test:rendering": "node tests/cocos.browser.mjs",
     "test:campaign-balance": "node tests/campaign-balance.mjs",

@@ -609,6 +609,7 @@ test('buff stack limits reject forged choices without healing, spending, or resu
 
 test('exhausted buff pools skip the menu instead of trapping the run', () => {
   const state = isolated();
+  state.time = state.progression.nextOfferAt;
   state.upgrades = UPGRADES.flatMap((entry) =>
     Array(entry.maxRank ?? entry.maxStacks).fill(entry.id),
   );

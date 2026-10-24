@@ -1,0 +1,85 @@
+{
+  "sourceHash": "94b0b911e9243eec1d368bcf262c239d5c3bcba73c5542238a79dc2c5f35a330",
+  "files": [
+    {
+      "path": "promo/videos/garden-fixed-camera-390x844.mp4",
+      "bytes": 1103635,
+      "sha256": "2473f07fd9f37c77d21a8a71f0b3bfa82a04a7e3e6096b706a40a4ce4dd22fa9"
+    },
+    {
+      "path": "promo/images/garden-fixed-battle-390x844.png",
+      "bytes": 438609,
+      "sha256": "fd156ecebc46caf3426d1fec6bd737c748da86278b2a0b8a71937c6f23934736"
+    },
+    {
+      "path": "icon/icon-20261024.png",
+      "bytes": 147720,
+      "sha256": "85d6839f4fe0d8c54f461208e11308e17c89db148db89c4a9dc201c7d9074178"
+    },
+    {
+      "path": "gameplay/videos/first-clear-fixed-camera-390x844.webm",
+      "bytes": 4741238,
+      "sha256": "dc24333007302a1627f002e4d35878750a8f2c0aab264e06ea67f18ae33a2475"
+    },
+    {
+      "path": "gameplay/videos/fixed-camera-walk-330x716.mp4",
+      "bytes": 677252,
+      "sha256": "48f75f3db44b6725f225bfdf782205faba4cb1bdf685d284c0c68a82cc21441f"
+    },
+    {
+      "path": "gameplay/screenshots/fixed-camera-20261024/battle-moving-390.png",
+      "bytes": 438609,
+      "sha256": "fd156ecebc46caf3426d1fec6bd737c748da86278b2a0b8a71937c6f23934736"
+    },
+    {
+      "path": "gameplay/screenshots/fixed-camera-20261024/home-390.png",
+      "bytes": 563904,
+      "sha256": "d1f9eda53983085b906a20b9fbb10d233ff16588874c82c97ecb8bf6e1e08221"
+    },
+    {
+      "path": "gameplay/screenshots/fixed-camera-20261024/levels-390.png",
+      "bytes": 582622,
+      "sha256": "b8c3ec46ac9624bcb64f6c6558f36589d0da47c1d65016f072c3442f3ac78323"
+    },
+    {
+      "path": "gameplay/screenshots/fixed-camera-20261024/motion-330-right.png",
+      "bytes": 316423,
+      "sha256": "8d7a742579bdc51b168bba3b144e4e9c5bc6622defa8648442314009ef211a0b"
+    },
+    {
+      "path": "gameplay/screenshots/fixed-camera-20261024/motion-330-top.png",
+      "bytes": 319832,
+      "sha256": "3a6fe2d091698a0a43a106850d7472c18212cd4d06c00bad7a994275e5e6a712"
+    },
+    {
+      "path": "gameplay/screenshots/fixed-camera-20261024/motion-844-bottom.png",
+      "bytes": 156691,
+      "sha256": "eed9e5a88a70932c88b96b3c455cc6ebd70745bb378d822b96a7cf8b9ad5f1ce"
+    },
+    {
+      "path": "gameplay/screenshots/fixed-camera-20261024/upgrade-1-390.png",
+      "bytes": 172271,
+      "sha256": "b1f7fcadaf15984509d313ffbea02a804d48dc7aa355047268d476975cfaeca8"
+    },
+    {
+      "path": "gameplay/screenshots/fixed-camera-20261024/victory-390.png",
+      "bytes": 229074,
+      "sha256": "42cad416479985d94ed5a096bd49f52149ab58f96638b55ac2e2b78909bf7265"
+    },
+    {
+      "path": "copy/developer-note.md",
+      "bytes": 880,
+      "sha256": "06caba8d6cecb32c1c6264104ab9944bbf3f8bf2b2c6b4b7a74801b319df4225"
+    },
+    {
+      "path": "copy/introduction.md",
+      "bytes": 829,
+      "sha256": "eb3a70d4335b80dabcf91c2c64b1d7b69f6d6ede2477122e6f4b06ee25bdcfb4"
+    },
+    {
+      "path": "copy/tagline.md",
+      "bytes": 58,
+      "sha256": "60c86b734b081bba03991bc057a2fa154b7af45416dbb9bc61d127b9ecf18173"
+    }
+  ]
+}

@@ -210,7 +210,8 @@ test('a new plant registered after module import is offered through real kill XP
       startGame(state);
       state.terrain = [];
       state.spawnTimer = 1e6;
-      state.enemies = Array.from({ length: 6 }, (_, index) => ({
+      state.time = state.progression.nextOfferAt;
+      state.enemies = Array.from({ length: 8 }, (_, index) => ({
         id: 100 + index,
         kind: 'sprout',
         rank: 'normal',

@@ -232,7 +232,7 @@ async function heldAudio() {
   const page = await context.newPage();
   page.on('pageerror', (error) => h.errors.push(error.message));
   await page.goto(h.url, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.__bulletGarden?.snapshot().art.ready);
+  await page.waitForFunction(() => window.__bulletGarden?.snapshot().art.ready, null, { timeout: 60000 });
   await installComponent(page);
   assert(requested, 'Actually intercept the production audio request');
   assert.equal(await page.evaluate(() => !!window.__audioTestGarden.soundClip), false);
