@@ -6062,3 +6062,52 @@ test('Porcelain H5 registration binds reviewed bytes and its actual Cocos consum
   ])
     assert.equal(scope({ ...options, ...extra }).size, 0);
 });
+
+test('cumulative Ashfall and Porcelain lock changes retain both games and Shell', () => {
+  const base = '171423331a4bdc0f8d45369b047dbc9e3d971b5c';
+  const head = 'b5105c58d82270908303042d4874cc5b3d82733a';
+  const source = 'games/local/porcelain-puzzle';
+  const ashfall = 'games/local/ashfall-front';
+  const file = 'pnpm-lock.yaml';
+  const read = (ref, path) => execFileSync('git', ['show', ref + ':' + path], { encoding: 'utf8' });
+  const context = {
+    changedPaths: [file],
+    games: [
+      { id: 'porcelain-puzzle', source, output: 'dist' },
+      { id: 'ashfall-front', source: ashfall, output: 'dist' },
+    ],
+    packages: [source, ashfall, 'apps/shell-web'].map((dir) => ({
+      dir,
+      ...JSON.parse(read(head, dir + '/package.json')),
+    })),
+    readBase: (path) => read(base, path),
+    readHead: (path) => read(head, path),
+  };
+  assert.deepEqual(reviewedSharedFileScopes(context).get(file), [
+    source,
+    ashfall,
+    'apps/shell-web',
+  ]);
+  for (const side of ['readBase', 'readHead']) {
+    assert.equal(
+      reviewedSharedFileScopes({
+        ...context,
+        [side]: (path) => context[side](path) + '\n',
+      }).has(file),
+      false,
+    );
+  }
+  for (const extra of [
+    { games: context.games.slice(0, 1) },
+    { games: [...context.games, context.games[1]] },
+    { packages: context.packages.slice(0, 2) },
+    { packages: [...context.packages, context.packages[2]] },
+    {
+      readHead: (path) =>
+        path === file
+          ? context.readHead(path).replace('version: 7.0.2', 'version: 7.0.3')
+          : context.readHead(path),
+    },
+  ])
+    assert.equal(reviewedSharedFileScopes({ ...context, ...extra }).has(file), false);
+});

@@ -4093,6 +4093,10 @@ export function ashfallCreatorWiringOnly(file, before, after) {
 export function porcelainH5FileScopes({ changedPaths, readBase, readHead, games, packages = [] }) {
   const scopes = new Map();
   const reviewed = {
+    'pnpm-lock.yaml': [
+      '8d2f2811eda6b51e0008662e352e27c9c8f5218a0e985d76c62a356caca775c0',
+      'fe6169c2abc5b69726c54856b37c8ac2e3ff30f9e6921127989dbcc908cdbced',
+    ],
     'scripts/h5-taptap-build.mjs': [
       '4cdea763a2e71cb31563d887db1d17f1deb0d8f66381cd5ad9d37a140f5130a4',
       'ea03001d9c693b8b45599dcf52728e8bb3d0289ce307d63c67a04913c5533c33',
@@ -4133,7 +4137,7 @@ export function porcelainH5FileScopes({ changedPaths, readBase, readHead, games,
       const hash = (text) => createHash('sha256').update(text).digest('hex');
       if (hash(readBase(file)) === pair[0] && hash(readHead(file)) === pair[1]) {
         const consumers = [source];
-        if (file === 'scripts/h5-taptap-build.mjs') {
+        if (file === 'scripts/h5-taptap-build.mjs' || file === 'pnpm-lock.yaml') {
           // This same literal edit also repairs Ashfall's missing public ad variable.
           const ashfall = 'games/local/ashfall-front';
           assert.equal(
@@ -4142,6 +4146,11 @@ export function porcelainH5FileScopes({ changedPaths, readBase, readHead, games,
           );
           assert.equal(packages.filter((p) => p.dir === ashfall).length, 1);
           consumers.push(ashfall);
+        }
+        if (file === 'pnpm-lock.yaml') {
+          const shell = 'apps/shell-web';
+          assert.equal(packages.filter((p) => p.dir === shell).length, 1);
+          consumers.push(shell);
         }
         scopes.set(file, consumers);
       }
