@@ -6097,6 +6097,25 @@ test('cumulative Ashfall and Porcelain lock changes retain both games and Shell'
       false,
     );
   }
+  const shell = 'apps/shell-web/package.json';
+  const shellContext = { ...context, changedPaths: [shell] };
+  assert.deepEqual(reviewedSharedFileScopes(shellContext).get(shell), [source, 'apps/shell-web']);
+  for (const side of ['readBase', 'readHead']) {
+    assert.equal(
+      reviewedSharedFileScopes({
+        ...shellContext,
+        [side]: (path) => context[side](path) + '\n',
+      }).has(shell),
+      false,
+    );
+  }
+  assert.equal(
+    reviewedSharedFileScopes({
+      ...shellContext,
+      packages: context.packages.slice(0, 2),
+    }).has(shell),
+    false,
+  );
   for (const extra of [
     { games: context.games.slice(0, 1) },
     { games: [...context.games, context.games[1]] },

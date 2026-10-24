@@ -4093,6 +4093,10 @@ export function ashfallCreatorWiringOnly(file, before, after) {
 export function porcelainH5FileScopes({ changedPaths, readBase, readHead, games, packages = [] }) {
   const scopes = new Map();
   const reviewed = {
+    'apps/shell-web/package.json': [
+      '05fd51dc8cd2b738552c71cbe1842d4cb5fac81242b32e152b559565c3415ede',
+      '8dd903436188b5cd1dbb48a749ebc04cb1a13d745a6e617909e8b983b8099164',
+    ],
     'pnpm-lock.yaml': [
       '8d2f2811eda6b51e0008662e352e27c9c8f5218a0e985d76c62a356caca775c0',
       'fe6169c2abc5b69726c54856b37c8ac2e3ff30f9e6921127989dbcc908cdbced',
@@ -4147,7 +4151,7 @@ export function porcelainH5FileScopes({ changedPaths, readBase, readHead, games,
           assert.equal(packages.filter((p) => p.dir === ashfall).length, 1);
           consumers.push(ashfall);
         }
-        if (file === 'pnpm-lock.yaml') {
+        if (file === 'pnpm-lock.yaml' || file === 'apps/shell-web/package.json') {
           const shell = 'apps/shell-web';
           assert.equal(packages.filter((p) => p.dir === shell).length, 1);
           consumers.push(shell);
