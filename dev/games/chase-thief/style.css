@@ -84,7 +84,3 @@ body {
     max-width: none;
   }
 }
-
-[data-game-fullscreen][hidden] {
-  display: none !important;
-}

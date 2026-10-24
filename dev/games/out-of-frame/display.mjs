@@ -13,7 +13,6 @@ export function setupLandscape(root, onResize = () => {}) {
   };
   addEventListener('resize', fit);
   visualViewport?.addEventListener('resize', fit);
-  addEventListener('fullscreenchange', fit);
   document.addEventListener('game-displaychange', () => {
     // Rebuild the rotated layer after an ancestor iframe enters the top layer.
     // Chromium can otherwise keep a stale clip while DOM bounds look correct.

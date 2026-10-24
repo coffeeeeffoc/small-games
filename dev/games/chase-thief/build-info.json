@@ -8,7 +8,7 @@
   "sources": [
     [
       "ChaseGame.ts",
-      "0bb443b1ff2b884e4af54d84db63cecddfa98b1dbe2f21ba69c85081c9b06bd1"
+      "ccc78c5d73ed66814c2169242d86197003784d3fd252b598da59c961ccbc285b"
     ],
     [
       "Geometry.ts",
@@ -16,7 +16,7 @@
     ],
     [
       "Hud.ts",
-      "8e604d17ae117a2adb89d0239ec8533466eedc1f121c61010d0d3e85fb04d6e8"
+      "878a6dce14ee9e7594606a585bdac5ca860c4edd5396ae04fc56bc8c3ce84ddd"
     ],
     [
       "Materials.ts",
@@ -28,7 +28,7 @@
     ],
     [
       "World.ts",
-      "97f8bc4927f885ec9d8ea79bf178d63169034ecbc2bd3cf2d2d9dd07f8355607"
+      "12ec8a3f8cb2d02a0997db086ca44a78b4559558e2936426960b77927cf2195b"
     ],
     [
       "core/progress.ts",
@@ -36,14 +36,14 @@
     ],
     [
       "core/route.ts",
-      "552b3967a49d35376aa0907ec7e8d59ed2d8b998f8e92efd16e88fb33116f826"
+      "bd1fea2da777dc4338c270f8674710c393de2f4936a700039f513913d8eae6fc"
     ],
     [
       "core/simulation.ts",
-      "fccb1b13c082242a2d2e57ce2ae42765f8df46605e0e2f02864759c4c4d4a8ce"
+      "0522891eccfc3bc7f1f6eb725f53b9ad8fbea8dfa683d4c120f3f6473e87c4f3"
     ]
   ],
-  "artifactSha256": "6d35cb05525246d5002280bfb4b8f4df2ae05540ed07e140345ff4c3746d5862",
+  "artifactSha256": "923a80394a09a9cc281b5862a229606e0d377b86e7aab71f354fe7322389ffa0",
   "runtimeFiles": [
     {
       "path": "art/city-models.json",
@@ -97,18 +97,13 @@
     },
     {
       "path": "dev-mode.js",
-      "bytes": 14790,
-      "sha256": "986844491337ac0bb53394d44917356a820f346f0d2b0d63b2ab34e36a7a4a2f"
-    },
-    {
-      "path": "fullscreen.js",
-      "bytes": 6552,
-      "sha256": "72acd28e8258e9e49b91288dc67b9af8f857c9eda6eaa5b80a4dfaa4009bedc7"
+      "bytes": 14731,
+      "sha256": "fcc49bdcc071a234df52081bbb6f09ce0a002e4c633403cb460724c921cb4b39"
     },
     {
       "path": "game/ChaseGame.js",
-      "bytes": 17453,
-      "sha256": "2faf2c89808b8d25d41f2d14af7058bda17b767c9faeb43c8c5fa5adab91e973"
+      "bytes": 17414,
+      "sha256": "f1791fe963b8a73421c56de4b7c98ef6ba6464f9ee1dc08b4d1a84a9f83b6fcc"
     },
     {
       "path": "game/core/progress.js",
@@ -117,13 +112,13 @@
     },
     {
       "path": "game/core/route.js",
-      "bytes": 6603,
-      "sha256": "72a63c5eca30491949e8d5d32c0a1a540bfae1897221b228fcb4ef323b6e71eb"
+      "bytes": 7097,
+      "sha256": "bdde238f86c78ac6bb1b6c87441d4b7b6444ca87f5e97ce16b0c5e392f1e94a7"
     },
     {
       "path": "game/core/simulation.js",
-      "bytes": 10225,
-      "sha256": "db44671a77c51f9fc2dfa073fb5f3843bab4a06cd6d82e01d2605043146eab6e"
+      "bytes": 10992,
+      "sha256": "31c20c2ac35478a3123727675c2ccc8b76a73798184a630ae5d220755243db50"
     },
     {
       "path": "game/Geometry.js",
@@ -132,8 +127,8 @@
     },
     {
       "path": "game/Hud.js",
-      "bytes": 13250,
-      "sha256": "d8be0586dfa89ac7c09f068ef7a00f6cffc2376b7d2f4acc9f7ec0e8069ccae4"
+      "bytes": 13106,
+      "sha256": "b64f2444de53145fb28c222e5f5dc2e4ee0b827815a2d1b96ab914b17f8674df"
     },
     {
       "path": "game/Materials.js",
@@ -147,18 +142,23 @@
     },
     {
       "path": "game/World.js",
-      "bytes": 22023,
-      "sha256": "6cec3921a85f81c401eafc92af7ab448e52a2b8bab3a11c8a1085a366373c0d9"
+      "bytes": 25768,
+      "sha256": "5e7169c18689e226e22d099de500c2c7e6698f535aa45d10f95e62d785c2a86d"
     },
     {
       "path": "index.html",
-      "bytes": 1350,
-      "sha256": "c918aa4ec20489847a58306d36252a5915193ac8ddd82a85f72f44259f4d90c8"
+      "bytes": 1219,
+      "sha256": "f2043ceaa245388e5e530aad5015bc7ee1c7835ca178d63d3ca9c6ac0ef09d8c"
     },
     {
       "path": "style.css",
-      "bytes": 1505,
-      "sha256": "6d04094e3fe16662f62799d707fafb6c8c8da613b1c9b13223e1d0de74d73401"
+      "bytes": 1441,
+      "sha256": "06e8ecfbef865a6a3cb9ce4b75ae02859f71ab59e50073893c1f925c13e89ce6"
+    },
+    {
+      "path": "vendor/cocos/.gitattributes",
+      "bytes": 111,
+      "sha256": "468a29cc07304fa8653727e5f2e6d459c68f2429a3ffc25aedbbefd5f39c788a"
     },
     {
       "path": "vendor/cocos/cc.js",

@@ -130,7 +130,6 @@ export class Hud {
       progress.touchButtons,
       state.resultNewRecord,
       state.legacyLink,
-      state.fullscreen,
       state.rewardPending,
       state.rewardMessage,
       run.rewardProtectionUsed,
@@ -245,8 +244,6 @@ export class Hud {
               58,
             );
           }
-          if (state.canFullscreen)
-            this.button('fullscreen', state.fullscreen ? '退出全屏' : '进入全屏', 30, 472, 330, 58);
           this.button('back', '返回', 112, Math.max(552, h - 100), 166, 54, true);
           if (!progress.writable)
             this.text('save-note', '旧存档读取异常，本次可继续游玩', 195, h - 31, 12, '#e6d4b3');
@@ -254,8 +251,8 @@ export class Hud {
           this.text('title', '一路追下去', 195, 83, 32);
           const rows = [
             ['左右滑', '选择通道，绕开箱堆和推车'],
-            ['上滑跳', '跨过矮栏、滚桶和沟壑'],
-            ['下滑铲', '从低横杆与卷帘门下穿过'],
+            ['上滑跳', '整排矮栏必须跳，沟壑要跨过断口'],
+            ['下滑铲', '整排横杆必须滑铲，换道绕不过'],
             ['看路口', '提前选左右，绕过中央花坛'],
           ];
           rows.forEach(([title, desc], i) => {

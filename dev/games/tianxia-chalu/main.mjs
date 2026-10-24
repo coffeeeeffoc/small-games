@@ -800,7 +800,7 @@ async function pause(reason = '') {
       '</div><div class="quiet-links">' +
       button('sound-toggle', save.settings.sound ? '音效：开' : '音效：关') +
       button('music-toggle', save.settings.music ? '氛围：开' : '氛围：关') +
-      '</div><button data-game-fullscreen>全屏</button></section>',
+      '</div></section>',
   );
   on('resume', resume);
   on('retry', () => prepare(state.levelId, practice, seed));
@@ -1116,7 +1116,7 @@ function settings() {
       (save.settings.online ? 'checked' : '') +
       '></label><label class="field">配套服务地址<input id="server-url" type="url" value="' +
       esc(save.settings.serverUrl) +
-      '" placeholder="https://example.com"></label><p class="footnote">两种模式均与AI交战；关闭服务端模式可离线游玩。</p><button class="primary" type="submit">保存设置</button></form><button data-game-fullscreen>全屏</button>',
+      '" placeholder="https://example.com"></label><p class="footnote">两种模式均与AI交战；关闭服务端模式可离线游玩。</p><button class="primary" type="submit">保存设置</button></form>',
   );
   $('difficulty').value = save.settings.difficulty;
   $('settings-form').addEventListener('submit', (e) => {

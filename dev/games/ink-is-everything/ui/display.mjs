@@ -66,39 +66,7 @@ export function setupDisplay({ game, onChange = () => {} }) {
   probe.style.cssText =
     'position:absolute;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)';
   document.body.append(probe);
-  const notice = document.createElement('div');
-  notice.id = 'display-notice';
-  notice.setAttribute('role', 'status');
-  notice.hidden = true;
-  game.append(notice);
-  let previous = '',
-    resizeFrame = 0,
-    pending = false,
-    noticeTimer;
-  let host = document;
-  try {
-    const display =
-      scope.parent !== scope && scope.parent.document.querySelector('[data-game-display-host]');
-    if (display && scope.frameElement && display.contains(scope.frameElement))
-      host = scope.parent.document;
-  } catch {
-    /* Cross-origin iframes keep their own display boundary. */
-  }
-  const isFullscreen = () =>
-    Boolean(
-      document.fullscreenElement ||
-        document.webkitFullscreenElement ||
-        host.fullscreenElement ||
-        host.webkitFullscreenElement,
-    );
-  function feedback(message) {
-    clearTimeout(noticeTimer);
-    notice.textContent = message;
-    notice.hidden = false;
-    noticeTimer = setTimeout(() => {
-      notice.hidden = true;
-    }, 3500);
-  }
+  let previous = '', resizeFrame = 0;
   function fit() {
     const viewport = scope.visualViewport;
     const width = Math.max(1, Math.round(viewport?.width || scope.innerWidth));
@@ -120,7 +88,6 @@ export function setupDisplay({ game, onChange = () => {} }) {
       resizeFrame = scope.requestAnimationFrame(onChange);
     }
     previous = key;
-    syncFullscreen();
   }
   async function lockLandscape() {
     if (scope.navigator.maxTouchPoints === 0 && !miniGame) return;
@@ -130,58 +97,11 @@ export function setupDisplay({ game, onChange = () => {} }) {
       /* CSS rotation remains playable. */
     }
   }
-  function syncFullscreen() {
-    game.dataset.fullscreen = String(isFullscreen());
-    for (const button of game.querySelectorAll('#home-fullscreen,#modal-fullscreen')) {
-      button.hidden = miniGame;
-      button.disabled = pending;
-      button.textContent = pending ? '切换中…' : isFullscreen() ? '退出全屏' : '全屏';
-      button.setAttribute('aria-pressed', String(isFullscreen()));
-    }
-  }
-  async function toggleFullscreen() {
-    if (miniGame || pending) return;
-    const exiting = isFullscreen();
-    const owner = document.fullscreenElement || document.webkitFullscreenElement ? document : host;
-    const target = owner.querySelector('[data-game-display-host]') || owner.documentElement;
-    const method = exiting
-      ? owner.exitFullscreen || owner.webkitExitFullscreen
-      : target.requestFullscreen || target.webkitRequestFullscreen;
-    if (!method) {
-      feedback('当前浏览器不支持全屏，已适配横屏。');
-      return;
-    }
-    pending = true;
-    syncFullscreen();
-    const timeout = setTimeout(() => {
-      pending = false;
-      fit();
-    }, 1800);
-    try {
-      await method.call(exiting ? owner : target);
-      if (!exiting) void lockLandscape();
-    } catch {
-      feedback('浏览器未允许切换全屏，可继续横屏游玩。');
-    } finally {
-      clearTimeout(timeout);
-      pending = false;
-      fit();
-    }
-  }
-  const changed = () => {
-    pending = false;
-    fit();
-    if (isFullscreen()) void lockLandscape();
-  };
-  for (const owner of new Set([document, host])) {
-    owner.addEventListener('fullscreenchange', changed);
-    owner.addEventListener('webkitfullscreenchange', changed);
-  }
   scope.addEventListener('resize', fit);
   scope.visualViewport?.addEventListener('resize', fit);
   scope.screen?.orientation?.addEventListener?.('change', fit);
   document.addEventListener('pointerdown', lockLandscape, { once: true });
   scope.addEventListener('pageshow', fit);
   fit();
-  return { miniGame, refresh: fit, toggleFullscreen, isFullscreen, lockLandscape, syncFullscreen };
+  return { miniGame, refresh: fit, lockLandscape };
 }

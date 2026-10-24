@@ -2,7 +2,7 @@
 <html lang="zh-CN">
   <head>
   <script src="./dev-mode.js"></script>
-  <script src="./fullscreen.js" defer></script>
+
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#122824" />
@@ -63,7 +63,7 @@
                 </p>
                 <button id="start-button" class="primary-button">进入实验室 <span>↗</span></button>
                 <p id="challenge-note" role="status" hidden></p><button id="exit-challenge" class="text-button" hidden>退出挑战 · 回到正常进度</button>
-                <button data-game-fullscreen>全屏</button><button id="intro-levels" class="text-button">选择房间</button><p id="intro-meta" class="intro-meta">自由探索 · 免费回退</p>
+                <button id="intro-levels" class="text-button">选择房间</button><p id="intro-meta" class="intro-meta">自由探索 · 免费回退</p>
               </div>
             </div>
             <div id="result" class="scene-overlay" hidden>
@@ -172,7 +172,7 @@
       </div>
       <p id="pause-chapter-progress" class="chapter-subtitle"></p>
       <nav id="pause-levels" aria-label="暂停菜单选择房间"></nav>
-      <button data-game-fullscreen>全屏</button><button id="pause-home" class="text-button">回到开场</button>
+      <button id="pause-home" class="text-button">回到开场</button>
     </dialog>
     <dialog id="help-dialog" aria-labelledby="help-title">
       <p class="eyebrow">OBSERVER'S HANDBOOK</p>

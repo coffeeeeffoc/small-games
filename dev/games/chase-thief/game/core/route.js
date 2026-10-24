@@ -8,7 +8,8 @@ export const DISTRICT_NAMES                           = {
   market: '集市',
 };
 export const SEGMENT_LENGTH = 80;
-export const WAVE_SPACING = 32;
+export const WAVE_SPACING = 24;
+export const GAP = Object.freeze({ length: 4, width: 0.9, depth: 1.65 });
 export const LOOK_AHEAD = 156;
 export const KEEP_BEHIND = 28;
 export const OBSTACLE_TYPES                 = ['barrier', 'beam', 'crate', 'cart', 'gap', 'barrel'];
@@ -130,6 +131,7 @@ export function lanePosition(s        , lane        , seed = 1, departure       
                     
                  
                
+                      
  
                        
              
@@ -144,7 +146,7 @@ export function waveAt(index        , seed        , departure          )        
   const local = at - segment.start;
   // Fork islands use the middle lane; authored obstacle waves never obstruct a fork entrance/exit.
   if (segment.fork) {
-    return local >= 24 && local < 56
+    return local >= 52 && local < 52 + WAVE_SPACING
       ? [
           {
             id: `w${index}-fork`,
@@ -158,13 +160,30 @@ export function waveAt(index        , seed        , departure          )        
         ]
       : [];
   }
+  // Matching full-width rows teach timed actions without ever mixing incompatible moves.
+  if (index >= 3 && index % 3 === 0) {
+    return [0, 1, 2].map((lane) => ({
+      id: `w${index}-${lane}`,
+      at,
+      lane,
+      type: index % 6 === 3 ? 'barrier' : 'beam',
+      fullWidth: true,
+      resolved: false,
+      offset: 0,
+      wave: index,
+    }));
+  }
   const kind =
-    index < 3 ? OBSTACLE_TYPES[index] : OBSTACLE_TYPES[Math.floor(hash(index + 32, seed) * 6)];
+    index < 3
+      ? OBSTACLE_TYPES[index]
+      : index === 4
+        ? 'gap'
+        : OBSTACLE_TYPES[Math.floor(hash(index + 32, seed) * 6)];
   const lane = index < 3 ? 1 : Math.floor(hash(index + 87, seed) * 3);
   const result             = [
     { id: `w${index}-a`, at, lane, type: kind, resolved: false, offset: 0, wave: index },
   ];
-  if (index > 6 && hash(index + 421, seed) > 0.52) {
+  if (index >= 3) {
     const otherLane = (lane + 1 + Math.floor(hash(index + 209, seed) * 2)) % 3;
     const type = OBSTACLE_TYPES[Math.floor(hash(index + 887, seed) * 6)];
     result.push({

@@ -3,6 +3,7 @@ import {
   LOOK_AHEAD,
   KEEP_BEHIND,
   WAVE_SPACING,
+  GAP,
   SEGMENT_LENGTH,
   sampleRoute,
   segmentInfo,
@@ -12,11 +13,11 @@ import {
                                                            
 export const RULES = Object.freeze({
   fixedStep: 1 / 60,
-  startSpeed: 9,
-  maxSpeed: 15,
-  acceleration: 0.015,
-  jumpDuration: 0.94,
-  slideDuration: 0.88,
+  startSpeed: 13,
+  maxSpeed: 21,
+  acceleration: 0.12,
+  jumpDuration: 0.8,
+  slideDuration: 0.7,
   jumpHeight: 1.65,
   laneRate: 12,
   collisionProtection: 1.5,
@@ -259,9 +260,12 @@ function tick(run     ) {
         : o.type === 'barrel'
           ? Math.sin(run.elapsed * 3 + o.wave) * 0.18
           : 0;
-    if (o.resolved || o.at > run.s) continue;
-    o.resolved = true;
-    const touched = Math.abs(run.laneVisual - (o.lane + o.offset / route.laneWidth)) < 0.38;
+    const halfLength = o.type === 'gap' ? GAP.length / 2 : 0;
+    if (o.resolved || o.at - halfLength > run.s) continue;
+    const touched = o.fullWidth
+      ? Math.round(run.laneVisual) === o.lane
+      : Math.abs(run.laneVisual - (o.lane + o.offset / route.laneWidth)) <
+        (o.type === 'gap' ? GAP.width / 2 : 0.38);
     const avoids =
       ((o.type === 'barrier' || o.type === 'gap' || o.type === 'barrel') &&
         run.jumpHeight > 0.55) ||
@@ -269,8 +273,12 @@ function tick(run     ) {
         run.action === 'slide' &&
         run.actionRemaining < RULES.slideDuration - 0.025 &&
         run.actionRemaining > 0.025);
-    if (touched && !avoids) hit(run, o.type);
-    else if (touched && avoids) {
+    // Check the entire open trench, including switching into it or landing before its far lip.
+    if (touched && !avoids && before < o.at + halfLength) hit(run, o.type);
+    if (run.phase !== 'running') break;
+    if (run.s < o.at + halfLength) continue;
+    o.resolved = true;
+    if (touched && avoids && before < o.at + Math.max(halfLength, run.speed * dt)) {
       run.combo++;
       run.successes++;
       run.bestCombo = Math.max(run.bestCombo, run.combo);
@@ -309,7 +317,13 @@ function tick(run     ) {
       ? '前方分路 · 向左或向右滑动'
       : next && next.wave < 3 && next.at - run.s < 26
         ? ['上滑 · 跳过矮栏', '下滑 · 穿过横杆', '左右滑动 · 绕开箱堆'][next.wave]
-        : '';
+        : next?.fullWidth && next.at - run.s < run.speed * 1.5
+          ? next.type === 'beam'
+            ? '整排横杆 · 下滑穿过'
+            : '整排矮栏 · 上滑跳过'
+          : next?.type === 'gap' && next.at - run.s < run.speed * 1.5
+            ? '路面断口 · 提前跳跃或换道'
+            : '';
   fill(run);
 }
 /** Consumes fixed simulation steps; rendering stalls cannot skip collision planes. Pause owns its clock. */

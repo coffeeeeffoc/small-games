@@ -1,265 +1,64 @@
-<!doctype html>
-<html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1"
-    />
-    <meta name="theme-color" content="#101916" />
-    <meta name="screen-orientation" content="landscape" />
-    <meta name="x5-orientation" content="landscape" />
-    <meta
-      name="description"
-      content="灰烬防线：冲入废墟工厂，利用连锁爆炸和战地改装，突破重装机械防线。"
-    />
-    <title>灰烬防线 · ASHFALL FRONT</title>
-    <link rel="icon" href="./assets/emblem.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./style.css" />
-    <script src="./dev-mode.js"></script>
-    <script src="./fullscreen.js" defer></script>
-  </head>
-  <body>
-    <main id="game" data-screen="home" data-rotated="false">
-      <canvas
-        id="game-canvas"
-        tabindex="-1"
-        aria-label="灰烬防线战场，使用画面底部的移动、跳跃、冲刺和射击按钮操作"
-      ></canvas>
-      <div class="film-edge" aria-hidden="true"></div>
-      <div id="system-tools">
-        <button id="sound-toggle" aria-label="声音：开" aria-pressed="true">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 9h4l5-4v14l-5-4H4zM17 8q5 4 0 8" /></svg
-          ><span id="sound-label">声音 开</span>
-        </button>
-        <button data-game-fullscreen>全屏</button>
+<!DOCTYPE html>
+<html>
+<head><script type="module" src="./game-rewards.js"></script>
+  <meta charset="utf-8">
+
+  <title>灰烬防线</title>
+
+  <!--http://www.html5rocks.com/en/mobile/mobifying/-->
+  <meta name="viewport"
+        content="width=device-width,user-scalable=no,initial-scale=1,minimum-scale=1,maximum-scale=1,viewport-fit=cover"/>
+
+  <!--https://developer.apple.com/library/safari/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html-->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
+
+  <!-- force webkit on 360 -->
+  <meta name="renderer" content="webkit"/>
+  <meta name="force-rendering" content="webkit"/>
+  <!-- force edge on IE -->
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+  <meta name="msapplication-tap-highlight" content="no">
+
+  <!-- force full screen on some browser -->
+  <meta name="full-screen" content="yes"/>
+  <meta name="x5-fullscreen" content="true"/>
+  <meta name="360-fullscreen" content="true"/>
+
+  <!--fix fireball/issues/3568 -->
+  <!--<meta name="browsermode" content="application">-->
+  <meta name="x5-page-mode" content="app">
+
+  <!--<link rel="apple-touch-icon" href=".png" />-->
+  <!--<link rel="apple-touch-icon-precomposed" href=".png" />-->
+
+  <link rel="stylesheet" type="text/css" href="style.f76d1.css"/>
+
+<link rel="icon" href="./icon.png"><link rel="stylesheet" href="./ashfall.css"><script src="./dev-mode.js"></script><script src="./viewport.js"></script><script src="./platform-config.js"></script></head>
+<body><div id="ashfall-loading" role="status"><img src="./icon.png" width="96" height="96" alt=""><strong>灰烬防线</strong><span>正在接通战区…</span></div>
+  <div id="GameDiv" cc_exact_fit_screen="true">
+      <div id="Cocos3dGameContainer">
+        <canvas id="GameCanvas" oncontextmenu="event.preventDefault()" tabindex="99"></canvas>
       </div>
-      <section id="home-screen" class="screen home-screen" aria-label="游戏主页">
-        <div class="eyebrow home-eyebrow"><i></i> 第七工业隔离区 <span>SECTOR 07</span></div>
-        <div class="home-content">
-          <p class="english-title">ASHFALL <span>FRONT</span></p>
-          <h1>灰烬防线</h1>
-          <p class="home-description">火光之外，继续前进。</p>
-          <div class="home-actions">
-            <button id="start-game" class="primary" data-action="start">
-              开始行动 <span aria-hidden="true">↗</span>
-            </button>
-            <button class="secondary" data-action="levels">
-              行动地图 <span aria-hidden="true">→</span>
-            </button>
-          </div>
-          <p class="home-progress" id="home-progress">01 / 03 战区已解锁</p>
-        </div>
-        <div class="home-bottom">
-          <button class="text-button" data-action="help">
-            操作指南 <span aria-hidden="true">＋</span></button
-          ><span id="home-record">一名先锋，一条出路。</span>
-        </div>
-        <div class="scene-label" aria-hidden="true">
-          <span class="coordinate">51° 07′ N</span><b>前线无声<br />灰烬未冷</b
-          ><span>OPERATION ASHFALL</span>
-        </div>
-      </section>
-      <section id="levels-screen" class="screen page-screen" aria-label="行动地图" hidden>
-        <div class="page-heading">
-          <div>
-            <p class="eyebrow">OPERATION MAP</p>
-            <h2>选择下一段防线</h2>
-          </div>
-          <button class="back-button" data-action="home">
-            返回主页 <span aria-hidden="true">↗</span>
-          </button>
-        </div>
-        <div id="level-cards" class="level-cards"></div>
-        <p class="page-footnote">完成当前战区，解锁下一段行动。每次出发都会重新整备。</p>
-      </section>
-      <section id="play-screen" class="screen play-screen" aria-label="战斗" hidden>
-        <div class="hud">
-          <div class="vitals">
-            <div class="unit-mark" aria-hidden="true">07</div>
-            <div class="health-block">
-              <div class="health-label"><span>先锋</span><span id="hp-label">120 / 120</span></div>
-              <div class="health-meter"><i id="hp-fill"></i></div>
-              <small id="build-label">制式步枪</small>
-            </div>
-          </div>
-          <div class="room-label">
-            <strong id="room-title">01 / 运输车间</strong
-            ><small id="room-objective">清除驻守敌人</small>
-            <div class="room-pips" aria-hidden="true"><i></i><i></i><i></i></div>
-          </div>
-          <button id="pause-button" aria-label="暂停" data-action="pause">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <rect x="6" y="4" width="4" height="16" />
-              <rect x="14" y="4" width="4" height="16" />
-            </svg>
-          </button>
-        </div>
-        <div id="boss-hud" hidden>
-          <div><span>拆解者</span><small id="boss-state">重型镇压单元</small></div>
-          <div class="boss-meter"><i id="boss-fill"></i></div>
-        </div>
-        <div class="move-controls" role="group" aria-label="移动">
-          <button
-            id="move-left"
-            class="round-control"
-            aria-label="向左移动"
-            aria-pressed="false"
-            data-control="left"
-          >
-            <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M21 6L10 16l11 10" /></svg>
-          </button>
-          <button
-            id="move-right"
-            class="round-control"
-            aria-label="向右移动"
-            aria-pressed="false"
-            data-control="right"
-          >
-            <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M11 6l11 10-11 10" /></svg>
-          </button>
-        </div>
-        <div class="action-controls" role="group" aria-label="战斗操作">
-          <button
-            id="jump"
-            class="round-control"
-            aria-label="跳跃"
-            aria-pressed="false"
-            data-control="jump"
-          >
-            <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 26V6M6 16L16 6l10 10" /></svg
-            ><span>跳跃</span>
-          </button>
-          <button
-            id="dash"
-            class="round-control"
-            aria-label="冲刺"
-            aria-pressed="false"
-            data-control="dash"
-          >
-            <svg viewBox="0 0 32 32" aria-hidden="true">
-              <path d="M4 10h11M2 16h20M5 22h10M17 7l11 9-11 9" /></svg
-            ><span id="dash-label">冲刺</span>
-          </button>
-          <button
-            id="fire"
-            class="round-control fire-control"
-            aria-label="按住射击，拖动瞄准"
-            aria-pressed="false"
-            data-control="fire"
-          >
-            <svg viewBox="0 0 40 40" aria-hidden="true">
-              <circle cx="20" cy="20" r="16" opacity=".4" />
-              <line id="fire-line" x1="20" y1="20" x2="20" y2="20" />
-              <g id="fire-aim">
-                <circle cx="20" cy="20" r="7" />
-                <circle cx="20" cy="20" r="2" />
-                <path d="M20 8v5M20 27v5M8 20h5M27 20h5" />
-              </g></svg
-            ><span>拖动瞄准</span>
-          </button>
-        </div>
-        <div id="tutorial" class="tutorial"></div>
-      </section>
-      <section
-        id="upgrade-screen"
-        class="screen page-screen upgrade-screen"
-        aria-label="战地改装"
-        hidden
-      >
-        <div class="upgrade-heading">
-          <p class="eyebrow">SECTOR CLEARED / 房间已清空</p>
-          <h2>让下一枪，不一样。</h2>
-          <p>选择一项战地改装 · 生命已获得补给</p>
-        </div>
-        <div id="upgrade-cards" class="upgrade-cards"></div>
-      </section>
-      <section id="pause-screen" class="screen centered-screen" aria-label="已暂停" hidden>
-        <div class="pause-content">
-          <p class="eyebrow">HOLD YOUR FIRE</p>
-          <h2>稍作喘息</h2>
-          <p>战斗与计时已暂停</p>
-          <button class="primary" data-action="resume">
-            继续战斗 <span aria-hidden="true">→</span>
-          </button>
-          <div class="pause-row">
-            <button class="secondary" data-action="help">操作指南</button>
-            <button class="secondary" data-action="retry">重新行动</button
-            ><button class="secondary" data-action="home">返回主页</button>
-          </div>
-        </div>
-      </section>
-      <section id="result-screen" class="screen centered-screen" aria-label="行动结算" hidden>
-        <div class="result-content">
-          <p class="eyebrow" id="result-eyebrow">OPERATION COMPLETE</p>
-          <h2 id="result-title">防线突破</h2>
-          <p id="result-copy"></p>
-          <div class="result-stats">
-            <div><small>行动时间</small><strong id="result-time">00:00</strong></div>
-            <div><small>击破目标</small><strong id="result-kills">00</strong></div>
-            <div><small>战地改装</small><strong id="result-upgrades">00</strong></div>
-          </div>
-          <button class="primary" data-action="retry">
-            再战一次 <span aria-hidden="true">↗</span>
-          </button>
-          <div class="pause-row">
-            <button class="secondary" data-action="levels">行动地图</button
-            ><button class="secondary" data-action="home">返回主页</button>
-          </div>
-        </div>
-      </section>
-      <section id="help-screen" class="screen page-screen" aria-label="操作指南" hidden>
-        <div class="page-heading">
-          <div>
-            <p class="eyebrow" id="help-mode">操作指南</p>
-            <h2>活着穿过火线</h2>
-          </div>
-          <button id="help-back" class="back-button" data-action="help-back">
-            <span id="help-back-label">返回主页</span> <span aria-hidden="true">↗</span>
-          </button>
-        </div>
-        <div class="help-grid">
-          <article>
-            <b>01 <span>移动与闪避</span></b>
-            <p id="help-move"></p>
-            <small id="help-move-detail"></small>
-          </article>
-          <article>
-            <b>02 <span>火力与环境</span></b>
-            <p id="help-fire"></p>
-            <div class="aim-demo">
-              <svg id="help-aim-demo" viewBox="0 0 76 48" aria-hidden="true" hidden>
-                <circle cx="20" cy="24" r="17" fill="#f1c575" />
-                <g fill="none" stroke="#334b37" stroke-width="2">
-                  <circle cx="20" cy="24" r="6" />
-                  <path d="M20 14v5m0 10v5M10 24h5m10 0h5" />
-                </g>
-                <path
-                  d="M42 20L68 4m-10 1 10-1-3 9M42 28l26 16m-10-1 10 1-3-9"
-                  fill="none"
-                  stroke="#f1c575"
-                  stroke-width="2"
-                />
-              </svg>
-              <small id="help-fire-detail"></small>
-            </div>
-          </article>
-          <article>
-            <b>03 <span>观察，再出手</span></b>
-            <p>击爆条纹油桶触发连锁。避开拆解者的预警，核心暴露时集中开火。</p>
-            <small id="help-pause"></small>
-          </article>
-        </div>
-        <div class="help-bottom">
-          <button id="motion-toggle" class="secondary" aria-pressed="false">减弱动态：关</button
-          ><span id="help-storage"></span>
-        </div>
-      </section>
-      <div id="toast" role="status" aria-live="polite" hidden></div>
-      <span id="trial-label" hidden>开发试玩 · 不记录进度</span>
-    </main>
-    <noscript>请启用 JavaScript 以开始灰烬防线。</noscript>
-    <script type="module" src="./src/main.mjs"></script>
-  </body>
+    </div>
+  
+
+<!-- Polyfills bundle. -->
+
+<script src="src/polyfills.bundle.5adbf.js" charset="utf-8"> </script>
+
+
+<!-- SystemJS support. -->
+<script src="src/system.bundle.543e6.js" charset="utf-8"> </script>
+
+<!-- Import map -->
+<script src="src/import-map.11da7.json" type="systemjs-importmap" charset="utf-8"> </script>
+
+<script>
+    System.import('./index.02284.js').catch(function(err) { console.error(err); })
+</script>
+
+</body>
 </html>
