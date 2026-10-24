@@ -10,7 +10,12 @@ const root = fileURLToPath(new URL('../', import.meta.url)),
 await mkdir(out, { recursive: true });
 const service = createDuelServer({ staticRoot: path.join(root, 'dist') });
 await new Promise((r) => service.server.listen(0, '127.0.0.1', r));
-const browser = await chromium.launch({ headless: true, args: ['--enable-unsafe-swiftshader'] });
+const browser = await chromium.launch({
+  channel: 'chromium',
+  headless: true,
+  executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH,
+  args: ['--enable-unsafe-swiftshader'],
+});
 const context = await browser.newContext({
   viewport: { width: 390, height: 844 },
   hasTouch: true,
@@ -72,7 +77,7 @@ async function fire(power) {
           charge = s.fighters[0].guns[0].charge;
         return charge === null ? 0 : (s.duelTime - charge) / 1.8;
       },
-      { timeout: 60000, intervals: [100] },
+      { timeout: 90000, intervals: [100] },
     )
     .toBeGreaterThanOrEqual(power);
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });

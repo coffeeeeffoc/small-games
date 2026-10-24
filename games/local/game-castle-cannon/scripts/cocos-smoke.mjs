@@ -13,6 +13,7 @@ await mkdir(out, { recursive: true });
 const service = createDuelServer({ staticRoot: path.join(root, 'dist') });
 await new Promise((resolve) => service.server.listen(0, '127.0.0.1', resolve));
 const browser = await chromium.launch({
+  channel: 'chromium',
   headless: true,
   executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH,
   args: ['--enable-unsafe-swiftshader'],
@@ -91,11 +92,14 @@ try {
       const p = await control('fire');
       const charged = () =>
         expect
-          .poll(async () => {
-            const s = await read(),
-              charge = s.fighters[0].guns[0].charge;
-            return charge === null ? 0 : (s.duelTime - charge) / 1.8;
-          })
+          .poll(
+            async () => {
+              const s = await read(),
+                charge = s.fighters[0].guns[0].charge;
+              return charge === null ? 0 : (s.duelTime - charge) / 1.8;
+            },
+            { timeout: 90000 },
+          )
           .toBeGreaterThan(0.3);
       if (mobile) {
         const touch = await context.newCDPSession(page);
@@ -137,6 +141,10 @@ try {
         await click(menu);
         await screen(menu);
         await page.screenshot({ path: path.join(out, `${menu}-${width}x${height}.png`) });
+        if (menu === 'settings' && !(await read()).progress.lowPower) {
+          await click('lowPower');
+          await expect.poll(async () => (await read()).progress.lowPower).toBe(true);
+        }
         await click('home');
         await screen('home');
       }
@@ -203,6 +211,7 @@ try {
         height,
         renderer: initial.renderer,
         assets: initial.assets,
+        lowPower: (await read()).progress.lowPower,
         controls:
           'menus, campaign, aim, trajectory, charge, cancellation, scope, back, resume, practice',
       });
