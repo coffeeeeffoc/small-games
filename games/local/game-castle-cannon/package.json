@@ -12,7 +12,7 @@
     "dev": "node scripts/serve.mjs",
     "build": "node scripts/build.mjs web-mobile",
     "serve:duel": "node server-dist/duel-service.js",
-    "test": "vitest run --maxWorkers=1 && node --test scripts/artifact.test.mjs",
+    "test": "vitest run --maxWorkers=1 src && node --test scripts/artifact.test.mjs",
     "typecheck": "node scripts/typecheck.mjs",
     "lint": "eslint . --max-warnings 0",
     "smoke": "node scripts/cocos-smoke.mjs",
