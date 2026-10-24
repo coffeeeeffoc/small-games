@@ -12,7 +12,7 @@ export const markers = {
   'orbit-atelier': '#GameCanvas',
   'moss-garden': '[data-action="start"]',
   'ball-roguelite': '#start',
-  'castle-cannon': '.castle-root[data-ready="true"]',
+  'castle-cannon': '#GameCanvas',
   'ember-bounce': '#start',
   'tianxia-chalu': '#start',
   'voiceprint-case': '#start',
@@ -60,7 +60,6 @@ export const homeControls = {
   'wulong-city': '#start-game',
   'moss-garden': '[data-action="start"]',
   'ball-roguelite': '#start',
-  'castle-cannon': '[data-action="start"]',
   'ember-bounce': '#start',
   'tianxia-chalu': ['#start', '#begin-battle'],
   'voiceprint-case': '#start',
@@ -79,6 +78,7 @@ export const homeControls = {
 
 // Explicit compatibility list: these existing assertions still own their setup flow.
 export const legacyEntryIds = [
+  'castle-cannon',
   'tower-brake',
   'three-choose-two',
   'chase-thief',

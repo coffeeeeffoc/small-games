@@ -15,7 +15,7 @@
   ],
   "errors": [],
   "passed": true,
-  "evidenceDirectory": "docs/design/publishing",
+  "evidenceDirectory": "https://github.com/coffeeeeffoc/small-games/tree/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/ball-roguelite/docs/design/publishing",
   "newScreenshots": [
     "mobile-challenge-result.png",
     "mobile-challenge.png",

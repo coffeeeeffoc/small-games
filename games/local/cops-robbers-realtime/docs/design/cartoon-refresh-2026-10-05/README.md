@@ -2,7 +2,7 @@
 
 # 玩具小镇视觉改版
 
-先生成 [三屏效果图](concept.png)，再实施首页、准备页、游戏页。效果图为视觉方向参考；实现沿用现有角色与街区资产、四种玩法及真实道路图，不采用效果图中虚构的玩法名。
+先生成 [三屏效果图](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/cops-robbers-realtime/docs/design/cartoon-refresh-2026-10-05/concept.png)，再实施首页、准备页、游戏页。效果图为视觉方向参考；实现沿用现有角色与街区资产、四种玩法及真实道路图，不采用效果图中虚构的玩法名。
 
 - 蓝天、奶油色与糖果蓝构成主色，橙色对应小偷，薄荷绿对应地图与榜单。
 - 首页增加角色对话气泡、立体操作卡片。设置齿轮置于右上角，声音、全屏移入独立设置页。
@@ -18,4 +18,4 @@
 - 开发者模式同步检查：49 个游戏、0 问题；开发者模式单元测试：5/5 通过。本轮直接执行 npm script 对应的 Node 命令。
 - 构建产物触屏回归：四种尺寸的设置页、浏览器返回、声音持久化、全屏进入/退出、地图居中与队员栏避让、44px 控件、道路下令、手势取消、暂停/继续/返回首页通过。
 - 独立及 iframe 手机尺寸下：URL、存储、默认关闭、显式关闭四种开发者开关通过；iframe 触屏下令与手势取消通过。
-- [截图与报告](implemented/report.json)。运行：`GAME_URL=http://127.0.0.1:43691 node scripts/cartoon-playtest.mjs`（先启动构建产物服务器）。
+- [截图与报告](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/cops-robbers-realtime/docs/design/cartoon-refresh-2026-10-05/implemented/report.json)。运行：`GAME_URL=http://127.0.0.1:43691 node scripts/cartoon-playtest.mjs`（先启动构建产物服务器）。

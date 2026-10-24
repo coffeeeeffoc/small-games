@@ -18,4 +18,4 @@ node --test games/local/vibeJam-myself-history-guess/tests/*.test.mjs
 PLAYWRIGHT_MODULE=/tmp/cops-native-browser/node_modules/playwright/index.mjs node games/local/vibeJam-myself-history-guess/scripts/native-browser.mjs
 ```
 
-320×568、390×844、430×844三个视口通过：主页→设置→帮助→选关→全景→暂停→地图→年代键盘→提交→学习解说→总结，以及重启恢复；CDP实际多指、滑出、取消均不触发主页按钮；后台恢复保持暂停，90秒倒计时仅在可见游玩时下降。`native-2026-10-06/`保存36张真实Canvas截图（每个尺寸12种状态）。视觉检查核对主要按钮与安全区，暂停图标为两根分离实心竖条；小屏学习解说分页完整保留史料与来源。触控由真实Chromium touchscreen/CDP输入，SDK存储与生命周期由明确标注的浏览器测试宿主提供。官方开发者工具、真实设备、平台审核和发布均未验证。本测试不是45平台验收。
+320×568、390×844、430×844三个视口通过：主页→设置→帮助→选关→全景→暂停→地图→年代键盘→提交→学习解说→总结，以及重启恢复；CDP实际多指、滑出、取消均不触发主页按钮；后台恢复保持暂停，90秒倒计时仅在可见游玩时下降。[历史记录：native-2026-10-06/](https://github.com/coffeeeeffoc/small-games/tree/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/vibeJam-myself-history-guess/docs/design/native-2026-10-06)保存36张真实Canvas截图（每个尺寸12种状态）。视觉检查核对主要按钮与安全区，暂停图标为两根分离实心竖条；小屏学习解说分页完整保留史料与来源。触控由真实Chromium touchscreen/CDP输入，SDK存储与生命周期由明确标注的浏览器测试宿主提供。官方开发者工具、真实设备、平台审核和发布均未验证。本测试不是45平台验收。

@@ -1,5 +1,59 @@
 import { test } from 'node:test';
 
+test('Castle Creator migration binds reviewed bytes and unique runtime identities', async () => {
+  const { castleCreatorReviews: reviews, castleCreatorFileScopes: scope } = await import(
+    './publication-scopes.mjs'
+  );
+  const base = '0fadabdfc6d3144f36ef9ff004e0fc14e54e3e4d',
+    head = '211625eada6b6835ca21a3f14168061ab36ae53d',
+    source = 'games/local/game-castle-cannon';
+  const cache = new Map();
+  const read = (ref, file) => {
+    const key = ref + ':' + file;
+    if (!cache.has(key)) cache.set(key, execFileSync('git', ['show', key], { encoding: 'utf8' }));
+    return cache.get(key);
+  };
+  const games = [{ id: 'castle-cannon', source, output: 'dist' }],
+    packages = [
+      { dir: source, ...JSON.parse(read(head, source + '/package.json')) },
+      { dir: 'apps/shell-web' },
+      { dir: 'games/local/wulong-city' },
+    ];
+  const options = {
+    changedPaths: Object.keys(reviews),
+    readBase: (f) => read(base, f),
+    readHead: (f) => read(head, f),
+    games,
+    packages,
+  };
+  for (const [file, review] of Object.entries(reviews)) {
+    assert.deepEqual(scope(options).get(file), review.sources, file);
+    for (const side of ['readBase', 'readHead'])
+      assert.equal(
+        scope({ ...options, changedPaths: [file], [side]: (f) => options[side](f) + '\n' }).has(
+          file,
+        ),
+        false,
+        file,
+      );
+  }
+  for (const extra of [
+    { games: [...games, ...games] },
+    { games: [{ ...games[0], id: 'other' }] },
+    { games: [{ ...games[0], output: 'other' }] },
+    { packages: [...packages, packages[0]] },
+    { packages: [{ ...packages[0], creator: { version: '3.8.7' } }, ...packages.slice(1)] },
+    { packages: [{ ...packages[0], scripts: { build: 'fake' } }, ...packages.slice(1)] },
+    {
+      readHead: () => {
+        throw Error('unreadable tree');
+      },
+    },
+    { changedPaths: ['scripts/unknown.mjs'] },
+  ])
+    assert.equal(scope({ ...options, ...extra }).size, 0);
+});
+
 test('Tetracube migration scopes bind exact reviewed bytes, identities and existing lock tuples', async () => {
   const {
     tetracubeCreatorReviews: reviews,
@@ -866,14 +920,31 @@ test('fourth Creator classification works in a bare planner with only Prettier a
   });
 });
 
+const rewardH5Extras = [
+  'merge-front',
+  'tetracube',
+  'three-choose-two',
+  'bullet-garden',
+  'tower-brake',
+  'orbit-atelier',
+  'tianxia-chalu',
+  'ball-roguelite',
+  'flick-arena',
+  'chase-thief',
+  'moss-garden',
+  'cage-rescue',
+];
+const rewardH5Fixture = rewardH5Extras.map((id) => ({
+  id,
+  source: 'games/local/' + (id === 'moss-garden' ? 'game-moss-garden' : id),
+}));
+
 test('unified package tools keep their H5 consumers and reject unknown siblings', () => {
   const ids = ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'];
   const games = [
     ...ids.map((id) => ({ id, source: competitionConsumers[id] })),
     ...sixH5Ids.map((id) => ({ id, source: `games/local/${id}` })),
-    { id: 'merge-front', source: 'games/local/merge-front' },
-    { id: 'tetracube', source: 'games/local/tetracube' },
-    { id: 'three-choose-two', source: 'games/local/three-choose-two' },
+    ...rewardH5Fixture,
   ];
   const packages = games.map((game) => ({ name: game.id, dir: game.source }));
   const readSource = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
@@ -918,10 +989,10 @@ test('unified package tools keep their H5 consumers and reject unknown siblings'
 });
 
 test('six H5 tools declare exact consumers and preserve fail-closed configuration scope', () => {
-  const games = [...sixH5Ids, 'merge-front', 'tetracube', 'three-choose-two'].map((id) => ({
-    id,
-    source: `games/local/${id}`,
-  }));
+  const games = [
+    ...sixH5Ids.map((id) => ({ id, source: `games/local/${id}` })),
+    ...rewardH5Fixture,
+  ];
   const packages = games.map((g) => ({ name: g.id, dir: g.source }));
   const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
   for (const file of sixH5ScopePaths) {
@@ -935,7 +1006,7 @@ test('six H5 tools declare exact consumers and preserve fail-closed configuratio
             .filter(
               (g) =>
                 (file !== 'infra/builds/six-taptap-h5.mjs' || g.id !== 'homebound-station') &&
-                (!['merge-front', 'tetracube', 'three-choose-two'].includes(g.id) ||
+                (!rewardH5Extras.includes(g.id) ||
                   [
                     'platforms/h5/game-rewards.js',
                     'platforms/h5/interstitial.js',
@@ -1431,11 +1502,13 @@ test('shared channel advertising covers every registered consumer; the uploader 
     { id: 'cops-robbers-realtime', source: 'games/local/cops-robbers-realtime' },
     { id: 'xiangqi-five', source: 'games/submodules/xiangqi-five' },
     ...sixH5Ids.map((id) => ({ id, source: `games/local/${id}` })),
-    { id: 'merge-front', source: 'games/local/merge-front' },
-    { id: 'tetracube', source: 'games/local/tetracube' },
-    { id: 'three-choose-two', source: 'games/local/three-choose-two' },
+    ...rewardH5Fixture,
   ];
-  const packages = games.map((game) => ({ name: game.id, dir: game.source }));
+  const packages = games.map((game) => ({
+    name: game.id,
+    dir: game.source,
+    ...(game.id === 'bullet-garden' ? { creator: { version: '3.8.8' } } : {}),
+  }));
   const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
   for (const file of platformAdsScopePaths) {
     const adapter = !file.includes('deploy-taptap');
@@ -1454,21 +1527,20 @@ test('shared channel advertising covers every registered consumer; the uploader 
   }
 });
 
-test('Flick consumes only the three shared reward runtime files, with unique identity', () => {
+test('Flick consumes shared rewards and the H5 compiler, with unique identity', () => {
   const games = [
     { id: 'cops-robbers', source: 'games/local/cops-robbers' },
     { id: 'cops-robbers-realtime', source: 'games/local/cops-robbers-realtime' },
     { id: 'xiangqi-five', source: 'games/submodules/xiangqi-five' },
-    ...[...sixH5Ids, 'merge-front', 'tetracube', 'three-choose-two', 'flick-arena'].map((id) => ({
-      id,
-      source: `games/local/${id}`,
-    })),
+    ...sixH5Ids.map((id) => ({ id, source: `games/local/${id}` })),
+    ...rewardH5Fixture,
   ];
   const packages = games.map((game) => ({ name: game.id, dir: game.source }));
   const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
   const runtime = [
+    'scripts/h5-game-build.mjs',
     'platforms/h5/game-rewards.js',
-    'platforms/h5/platform-ads.js',
+    ...platformAdsScopePaths.filter((file) => !file.includes('deploy-taptap')),
     'platforms/h5/interstitial.js',
   ];
   for (const file of [...sixH5ScopePaths, ...platformAdsScopePaths]) {
@@ -3648,14 +3720,12 @@ test('castle duel entry contract is scoped without accepting another game or sha
 
 test('castle dedicated contract selects its game and rejects unreviewed code', () => {
   const file = 'apps/shell-web/scripts/game-checks/castle-cannon.mjs';
-  const shared = readFileSync(
-    new URL('../apps/shell-web/scripts/standalone-game-checks.mjs', import.meta.url),
-    'utf8',
-  ).replaceAll('\r\n', '\n');
-  const source = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
-    '\r\n',
-    '\n',
-  );
+  const historical = (name) =>
+    execFileSync('git', ['show', '0fadabdfc6d3144f36ef9ff004e0fc14e54e3e4d:' + name], {
+      encoding: 'utf8',
+    });
+  const shared = historical('apps/shell-web/scripts/standalone-game-checks.mjs');
+  const source = historical(file);
   const context = {
     changedPaths: [file],
     games: [{ id: 'castle-cannon', source: 'games/local/game-castle-cannon' }],
@@ -5333,9 +5403,10 @@ test('Homebound Creator readiness guard preserves gameplay and scopes only its r
 
 test('ordinary Creator reuse preserves all historical producer fixtures', () => {
   const file = 'scripts/reuse-cocos-artifacts.mjs';
-  const current = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
-    '\r\n',
-    '\n',
+  const current = execFileSync(
+    'git',
+    ['show', '0fadabdfc6d3144f36ef9ff004e0fc14e54e3e4d:' + file],
+    { encoding: 'utf8' },
   );
   for (const [includeMerge, includeBullet, includeTower, includeTetracube, includeThree] of [
     [false, false, false, false, false],
@@ -5603,7 +5674,10 @@ test('Tower artifact API wiring preserves precise immediate and cumulative relea
     creator: { version: '3.8.8' },
     scripts: { build: 'node scripts/build.mjs web-mobile' },
   }));
-  const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const readHead = (file) =>
+    execFileSync('git', ['show', '0fadabdfc6d3144f36ef9ff004e0fc14e54e3e4d:' + file], {
+      encoding: 'utf8',
+    });
   for (const base of [
     'f6fd892b64ddda057797746fc08233746ce9d38a',
     'cbee0202b8cd6ea3f5dd626851a10e6dd602dd75',

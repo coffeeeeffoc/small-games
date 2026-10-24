@@ -18,7 +18,6 @@ const copies = [
   'games/local/fold-the-world/src/fullscreen.js',
   'games/local/game-moss-garden/public/fullscreen.js',
   'games/local/ball-roguelite/fullscreen.js',
-  'games/local/game-castle-cannon/public/fullscreen.js',
   'games/local/ember-bounce/fullscreen.js',
   'games/local/tianxia-chalu/fullscreen.js',
   'apps/shell-web/public/fullscreen.js',

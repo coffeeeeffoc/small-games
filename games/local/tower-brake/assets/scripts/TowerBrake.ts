@@ -22,6 +22,7 @@ import {
   step,
   rotate,
   brake,
+  refillBrake,
   resumeCheckpoint,
   getLanding,
   RANKED_RULE_VERSION,
@@ -57,6 +58,9 @@ export class TowerBrake extends Component {
   lastX = 0;
   touched = -10;
   generation = 0;
+  rewardToken = 0;
+  rewardPending = false;
+  rewardPort: any = null;
   pauseOnStart = false;
   previewSegment = 0;
   environmentName = '';
@@ -102,6 +106,7 @@ export class TowerBrake extends Component {
     game.on(Game.EVENT_HIDE, this.hide, this);
     view.on('canvas-resize', this.resize, this);
     web.addEventListener?.('blur', this.hide);
+    web.addEventListener?.('pagehide', this.pageHide);
     web.document?.addEventListener('visibilitychange', this.visibility);
     web.__tower = Object.freeze({ snapshot: () => this.snapshot() });
     web.__towerHost?.connect({
@@ -152,6 +157,42 @@ export class TowerBrake extends Component {
     this.audio?.stop();
     this.windAudio?.stop();
   };
+  pageHide = () => {
+    this.cancelReward();
+    this.hide();
+  };
+  cancelReward() {
+    ++this.rewardToken;
+    const port = this.rewardPort;
+    this.rewardPort = null;
+    this.rewardPending = false;
+    port?.cancel?.();
+  }
+  async requestRefill() {
+    const state = this.state, port = web.SmallGamesRewardAds;
+    if (this.rewardPending || this.screen !== 'paused' || state.status !== 'playing' ||
+        state.charge !== 0 || state.rewardRefillUsed) return;
+    if (!port?.available) {
+      this.say('补给暂不可用 · 可继续免费游玩');
+      this.draw();
+      return;
+    }
+    const token = ++this.rewardToken;
+    this.rewardPending = true;
+    this.rewardPort = port;
+    this.say('正在准备补给 · 可取消');
+    this.draw();
+    let status = 'failed';
+    try { status = (await port.offer({ id: 'tower-brake:refill' }))?.status; } catch {}
+    if (token !== this.rewardToken || this.state !== state || this.screen !== 'paused') return;
+    this.rewardPending = false;
+    this.rewardPort = null;
+    if (status === 'completed' && refillBrake(state)) {
+      web.__towerHost?.invalidate('practice');
+      this.say('刹车已补满 · 本局不计纪录，点击继续');
+    } else this.say(status === 'dismissed' ? '已取消 · 未获得补给' : '未获得补给 · 可继续游玩');
+    this.draw();
+  }
   save() {
     if (!this.practice && !this.challenge && !web.SmallGamesDev?.isEnabled())
       saveProgress(this.storage, this.progress);
@@ -166,6 +207,7 @@ export class TowerBrake extends Component {
       this.audio.playOneShot(clip, name === 'bounce' ? 0.22 : 0.45);
   }
   async beginRun(index: number, endless = false, practice = false, challenge = false) {
+    this.cancelReward();
     if (this.screen === 'connecting') return;
     const token = ++this.generation;
     this.cancel();
@@ -219,6 +261,14 @@ export class TowerBrake extends Component {
   }
   action(id: string) {
     this.unlockAudio = true;
+    if (id === 'reward-refill') { void this.requestRefill(); return; }
+    if (id === 'reward-cancel') {
+      this.cancelReward();
+      this.say('已取消 · 未获得补给');
+      this.draw();
+      return;
+    }
+    this.cancelReward();
     if (id === 'retry-assets') {
       this.ui.load();
       return;
@@ -462,7 +512,7 @@ export class TowerBrake extends Component {
       recordWin(this.progress, this.selected, LEVELS[this.selected].id, this.state, {
         practice: this.practice || this.challenge,
       });
-    if (this.state.mode === 'endless' && !this.practice && !this.challenge)
+    if (this.state.mode === 'endless' && !this.practice && !this.challenge && !this.state.rewardRefillUsed)
       this.progress.endlessBest = Math.max(this.progress.endlessBest, this.state.totalFloors);
     this.save();
   }
@@ -627,7 +677,12 @@ export class TowerBrake extends Component {
             label: paused ? '继续下落' : next ? '下一段航线' : '再试一次',
           },
         ];
-        if (paused) actions.push({ id: 'retry', label: '重新开始' });
+        if (paused) {
+          if (this.rewardPending) actions.push({ id: 'reward-cancel', label: '取消补给' });
+          else if (s.charge === 0 && !s.rewardRefillUsed)
+            actions.push({ id: 'reward-refill', label: '观看后补满刹车 · 本局一次' });
+          actions.push({ id: 'retry', label: '重新开始' });
+        }
         else if (!won && s.mode !== 'endless' && !s.continued)
           actions.push({ id: 'continue', label: '免费续关 · 本局一次' });
         else if (s.mode !== 'endless' && !this.practice)
@@ -657,7 +712,7 @@ export class TowerBrake extends Component {
         u.text(
           'overlay-detail',
           paused
-            ? '天空会等你'
+            ? this.rewardPending ? '准备补给中 · 完成观看才领取' : s.rewardRefillUsed ? '补给已使用 · 本局不计纪录' : '天空会等你 · 补给局不计纪录'
             : `${s.mode === 'endless' ? s.totalFloors + '层' : '第' + (this.selected + 1) + '关'}  ·  连穿最高 ${s.maxStreak} 层`,
           180,
           top + 120,
@@ -799,6 +854,7 @@ export class TowerBrake extends Component {
         streak: s.streak,
         maxStreak: s.maxStreak,
         charge: s.charge,
+        rewardRefillUsed: s.rewardRefillUsed,
         brakeLeft: s.brakeLeft,
         ballRadius: s.ballRadius,
         speedScale: s.speedScale,
@@ -819,6 +875,7 @@ export class TowerBrake extends Component {
     };
   }
   onDestroy() {
+    this.cancelReward();
     ++this.generation;
     for (const [event, handler] of [
       [Input.EventType.TOUCH_START, this.touchStart],
@@ -834,6 +891,7 @@ export class TowerBrake extends Component {
     game.off(Game.EVENT_HIDE, this.hide, this);
     view.off('canvas-resize', this.resize, this);
     web.removeEventListener?.('blur', this.hide);
+    web.removeEventListener?.('pagehide', this.pageHide);
     web.document?.removeEventListener('visibilitychange', this.visibility);
     web.__towerHost?.invalidate();
     delete web.__tower;

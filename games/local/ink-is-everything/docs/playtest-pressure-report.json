@@ -271,14 +271,14 @@
       }
     }
   ],
-  "screenshots": [
-    "screenshots/v3-pressure-mobile-resource-loop.png",
-    "screenshots/v3-pressure-mobile-pending-reward.png",
-    "screenshots/v3-pressure-mobile-bridge.png",
-    "screenshots/v3-pressure-mobile-growth.png",
-    "screenshots/v3-pressure-mobile-low-positive-ink.png",
-    "screenshots/v3-pressure-mobile-boss.png",
-    "screenshots/v3-pressure-mobile-victory.png"
+  "https://github.com/coffeeeeffoc/small-games/tree/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/ink-is-everything/docs/screenshots": [
+    "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/ink-is-everything/docs/screenshots/v3-pressure-mobile-resource-loop.png",
+    "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/ink-is-everything/docs/screenshots/v3-pressure-mobile-pending-reward.png",
+    "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/ink-is-everything/docs/screenshots/v3-pressure-mobile-bridge.png",
+    "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/ink-is-everything/docs/screenshots/v3-pressure-mobile-growth.png",
+    "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/ink-is-everything/docs/screenshots/v3-pressure-mobile-low-positive-ink.png",
+    "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/ink-is-everything/docs/screenshots/v3-pressure-mobile-boss.png",
+    "https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/ink-is-everything/docs/screenshots/v3-pressure-mobile-victory.png"
   ],
   "errors": [],
   "status": "passed"

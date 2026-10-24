@@ -116,7 +116,7 @@ pnpm competition:native --game=letters-words2 --platform=kuaishou
 
 ## 移动端验证与设计证据
 
-设计和页面关系见 [移动端设计说明](docs/design/mobile-2026-10-06/README.md)，[十页效果总览](docs/design/mobile-2026-10-06/contact-sheet.png) 覆盖首页、选岛、学习、教材、游玩、暂停、结算、自定义、帮助和分享；好友与设置效果图单独保存。[H5 实装截图](docs/design/mobile-2026-10-06/actual/h5/)、[原生实装截图](docs/design/mobile-2026-10-06/implemented/) 和 [好友赛实装证据](docs/design/mobile-2026-10-06/evidence/) 使用生产渲染代码。异步分享、页面返回、教材下载取消及跨端存档核验见 [独立交互核验记录](docs/design/mobile-2026-10-06/independent-review.json)。
+设计和页面关系见 [移动端设计说明](docs/design/mobile-2026-10-06/README.md)，[十页效果总览](docs/design/mobile-2026-10-06/contact-sheet.png) 覆盖首页、选岛、学习、教材、游玩、暂停、结算、自定义、帮助和分享；好友与设置效果图单独保存。[H5 实装截图](docs/design/mobile-2026-10-06/actual/h5/)、[原生实装截图](https://github.com/coffeeeeffoc/small-games/tree/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/letters-words2/docs/design/mobile-2026-10-06/implemented) 和 [好友赛实装证据](docs/design/mobile-2026-10-06/evidence/) 使用生产渲染代码。异步分享、页面返回、教材下载取消及跨端存档核验见 [独立交互核验记录](docs/design/mobile-2026-10-06/independent-review.json)。
 
 在游戏目录、H5 本地服务启动后执行：
 

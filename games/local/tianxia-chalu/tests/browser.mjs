@@ -78,7 +78,9 @@ async function session({
         globalThis.__testAdStatus = 'completed';
         globalThis.SmallGamesPublishingConfig = {
           adMode: 'host',
-          provider: { show: async () => ({ status: globalThis.__testAdStatus }) },
+          provider: { show: async () => globalThis.__testHoldAd
+            ? new Promise(resolve => globalThis.__finishTestAd = resolve)
+            : ({ status: globalThis.__testAdStatus }) },
         };
       }
     },
@@ -417,8 +419,11 @@ try {
       saved = await page.evaluate(() => JSON.parse(localStorage.getItem('tianxia-chalu:v1')));
       assert.equal(saved.armory.cards[0].tier, base.tier);
       await page.clock.fastForward(61000);
-      await page.evaluate(() => (globalThis.__testAdStatus = 'completed'));
+      await page.evaluate(() => { globalThis.__testHoldAd = true; });
       await page.locator('#upgrade-card').tap();
+      await page.clock.fastForward(600000);
+      assert.equal((await page.evaluate(() => JSON.parse(localStorage.getItem('tianxia-chalu:v1')))).armory.cards[0].tier, base.tier);
+      await page.evaluate(() => globalThis.__finishTestAd({ status: 'completed' }));
       await expect(page.locator('#upgrade-card')).toHaveCount(0);
       saved = await page.evaluate(() => JSON.parse(localStorage.getItem('tianxia-chalu:v1')));
       assert.equal(saved.armory.cards.length, 1);
@@ -463,6 +468,21 @@ try {
       };
     },
   );
+  await check('Leaving the result invalidates a late card upgrade before mutating the armory', async () => {
+    const page = await session({ ads: true, seed: 0 });
+    await begin(page);
+    await page.locator('#skip-tutorial').tap();
+    await advance(page, 181000);
+    assert.equal((await snapshot(page)).screen, 'result');
+    const before = await page.evaluate(() => JSON.parse(localStorage.getItem('tianxia-chalu:v1')).armory);
+    await page.evaluate(() => { globalThis.__testHoldAd = true; });
+    await page.locator('#upgrade-card').tap();
+    await page.locator('#result-home').tap();
+    await page.evaluate(() => globalThis.__finishTestAd({ status: 'completed' }));
+    await advance(page, 100);
+    assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('tianxia-chalu:v1')).armory), before);
+    return { lateRewardIgnored: true };
+  });
   await check(
     'Ordinary defeat also grants its ranking card, and retry preserves the seed',
     async () => {

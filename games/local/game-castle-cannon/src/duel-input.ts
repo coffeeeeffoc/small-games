@@ -29,10 +29,10 @@ export function duelInput(
               ? 'crouch'
               : hit
                 ? 'button'
-                : v.scope && x > 220 && x < 700 && y < 360
+                : v.scope
                   ? 'scope'
                   : 'aim';
-      if (kind !== 'button' && [...touches.values()].some((t) => t.kind === kind)) return;
+      if (kind !== 'button' && Array.from(touches.values()).some((t) => t.kind === kind)) return;
       touches.set(pointerId, { kind, x, y, action: hit ?? undefined });
       if (kind === 'fire') send({ type: 'charge' });
       if (kind === 'crouch') {

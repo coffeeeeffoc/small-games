@@ -73,7 +73,7 @@ pnpm test:dev-mode
 
 规则测试覆盖 100 关初始化、全部新增关真实机关成功/失败/取消、闭门阻挡、步行出口、连续解锁及旧档。浏览器测试以当前页面行为和语义入口断言，已更新旧弹窗/顶栏/26关计数要求；覆盖七页流程、小屏、多指、键盘、暂停与重试、分享隔离和存档恢复。
 
-实际手机尺寸截图保存在 `docs/design/mobile-2026-10-06/implemented/`，原生 Canvas 截图与像素/生命周期核验保存在同目录 `native-actual/`。详细验证记录见 [本次回归报告](docs/design/mobile-2026-10-06/verification.md)。这些是 Chromium 触屏模拟与渠道工程冒烟验证，未替代实体手机或渠道开发者工具真机验收。
+实际手机尺寸截图保存在 [历史记录：docs/design/mobile-2026-10-06/implemented/](https://github.com/coffeeeeffoc/small-games/tree/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/wulong-city/docs/design/mobile-2026-10-06/implemented)，原生 Canvas 截图与像素/生命周期核验保存在同目录 `native-actual/`。详细验证记录见 [本次回归报告](docs/design/mobile-2026-10-06/verification.md)。这些是 Chromium 触屏模拟与渠道工程冒烟验证，未替代实体手机或渠道开发者工具真机验收。
 
 原设计与试玩历史见 `docs/PRODUCT.md`、`docs/LEVELS.md`、`docs/PLAYTEST.md`、`docs/PROGRESS.md`；其中原 games4 路径和 26 关状态属于改造前记录。
 

@@ -119,7 +119,7 @@
     "Developer result buttons verify UI and save isolation only. Natural play is recorded separately and uses pointer input without editing game state."
   ],
   "passed": true,
-  "evidenceDirectory": "docs/design/publishing",
+  "evidenceDirectory": "https://github.com/coffeeeeffoc/small-games/tree/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/cage-rescue/docs/design/publishing",
   "newScreenshots": [
     "mobile-challenge-pause.png",
     "mobile-result-share.png"

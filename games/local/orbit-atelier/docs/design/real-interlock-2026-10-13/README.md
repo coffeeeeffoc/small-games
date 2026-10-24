@@ -2,7 +2,7 @@
 
 2026-10-13。保留 orbit-01 至 orbit-24 及其存档，追加 orbit-25 至 orbit-74。沿用竖屏纸色、铜金、青绿和珊瑚的机械星盘风格。
 
-`concept.png` 为实现前生成的三页手机效果参考；材质、穿扣层次与留白为视觉依据。生成图中的章节范围与具体交点标记并非关卡数据，最终范围以本文及 [50 关目录](levels.md) 为准。`actual/` 仅保存真实生产构建截图。
+[历史记录：concept.png](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/orbit-atelier/docs/design/real-interlock-2026-10-13/concept.png) 为实现前生成的三页手机效果参考；材质、穿扣层次与留白为视觉依据。生成图中的章节范围与具体交点标记并非关卡数据，最终范围以本文及 [50 关目录](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/orbit-atelier/docs/design/real-interlock-2026-10-13/levels.md) 为准。`actual/` 仅保存真实生产构建截图。
 
 ## 核心动作
 

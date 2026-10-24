@@ -43,6 +43,7 @@ it.each([
   'orbit-atelier',
   'merge-front',
   'tetracube',
+  'castle-cannon',
   'tower-brake',
   'ink-is-everything',
   'ball-roguelite',

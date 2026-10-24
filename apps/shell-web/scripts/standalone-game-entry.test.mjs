@@ -107,3 +107,9 @@ test('Tetracube waits for the real Creator scene and owns its canvas input flow'
   assert.equal(homeControls.tetracube, undefined);
   assert.equal(entryMode('tetracube'), 'legacy');
 });
+
+test('Castle Cannon uses the Creator canvas and game-owned portrait controls', () => {
+  assert.equal(markers['castle-cannon'], '#GameCanvas');
+  assert.equal(homeControls['castle-cannon'], undefined);
+  assert.equal(entryMode('castle-cannon'), 'legacy');
+});

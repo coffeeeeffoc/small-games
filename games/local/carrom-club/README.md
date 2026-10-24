@@ -72,6 +72,6 @@ pnpm --filter @coffeeeeffoc/carrom-club test:browser
 
 性能调整：滑轨输入不触发全量 HUD 刷新；画布尺寸在进入/变化时更新，棋子渐变与阴影缓存为精灵，静止时按需重绘；本地存档延后到输入事件之后，并在退出页面前刷新。
 
-本次方案与效果图见 [多人好友设计](docs/design/multiplayer-2026-10-11/README.md)，本次运行截图和验收记录存放于 [多人验收目录](docs/design/multiplayer-2026-10-11/validation/)。早期双人方案与验证分别保留在 [积分与好友设计](docs/design/friends-2026-10-11/README.md) 和 [既有验证记录](docs/design/validation/README.md)。目录中的桌面 Chromium 手机模拟与 CDP 触控记录不等同于真机验收；各项最终结果以对应验收记录为准。
+本次方案与效果图见 [多人好友设计](docs/design/multiplayer-2026-10-11/README.md)，本次运行截图和验收记录存放于 [多人验收目录](docs/design/multiplayer-2026-10-11/validation/)。早期双人方案与验证分别保留在 [积分与好友设计](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/carrom-club/docs/design/friends-2026-10-11/README.md) 和 [既有验证记录](docs/design/validation/README.md)。目录中的桌面 Chromium 手机模拟与 CDP 触控记录不等同于真机验收；各项最终结果以对应验收记录为准。
 
 120 关扩展的多角色复审、局部选关设计和实际触屏验收见 [本次复审记录](docs/design/review-2026-10-11.md)。

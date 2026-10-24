@@ -33,7 +33,7 @@ node scripts/native-game-smoke.mjs --standalone --game three-choose-two --platfo
 node games/local/three-choose-two/native/browser-check.mjs
 ```
 
-两个平台实际 CJS 构建及 SDK 模拟运行冒烟均通过。Canvas 生产包在 Chromium 中使用模拟微信 SDK 和真实触屏事件，12 项流程通过：正常锁关、非法/取消拖放、多触点、首关三星与解锁、三次限额的单步撤销、前后台取消手势、首页继续、卸载后精确恢复、无尽练习、不含私有会话数据的真实练习成绩分享、320 × 640 小屏以及资源清理。实际声音加载和清理覆盖 7 个 WAV，设置保存覆盖音效、音乐、振动、高对比及减少闪光。截图与完整记录在 [native-actual/verification.json](native-actual/verification.json)。它们是浏览器与 SDK 模拟结果，尚未进行微信/B 站真机验收。
+两个平台实际 CJS 构建及 SDK 模拟运行冒烟均通过。Canvas 生产包在 Chromium 中使用模拟微信 SDK 和真实触屏事件，12 项流程通过：正常锁关、非法/取消拖放、多触点、首关三星与解锁、三次限额的单步撤销、前后台取消手势、首页继续、卸载后精确恢复、无尽练习、不含私有会话数据的真实练习成绩分享、320 × 640 小屏以及资源清理。实际声音加载和清理覆盖 7 个 WAV，设置保存覆盖音效、音乐、振动、高对比及减少闪光。截图与完整记录在 [native-actual/verification.json](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/three-choose-two/docs/design/native-actual/verification.json)。它们是浏览器与 SDK 模拟结果，尚未进行微信/B 站真机验收。
 
 最终普通 preview 的微信 `game.js` 为 231,642 字节，整个包 344,129 字节；B 站 `game.js` 为 238,258 字节，整个包 350,774 字节。7 个 WAV 合计 112,074 字节，完整包统计包含入口、平台配置、发布状态记录和音频。
 
@@ -43,13 +43,13 @@ node games/local/three-choose-two/native/browser-check.mjs
 
 只有此游戏的 `configureCompetition` 登记项显式开启配置注入，并同时拥有 AppID 与 API 地址时，生产入口才注入公共客户端配置；`release.json` 记录 `competitionConfigured`。缺少配置时仍能闯关和无尽练习，排位入口明确提示不可用，不生成成绩、玩家或排行榜。原生请求通过微信/B 站 `SDK.request`；共享客户端的 H5 fetch 回退在原生运行中没有 `fetch` 可用，冒烟真实执行验证了该边界。
 
-构建配置测试验证显式开启与关闭、HTTPS、仅预览回环 HTTP、URL 用户凭据和查询/片段拒绝。服务端重放与真实 PostgreSQL 验证见 [api-verification.md](api-verification.md)。原生两平台各 8 项、共 16 项在线实际输入检查通过，记录在 [native-actual/online-verification.json](native-actual/online-verification.json)：SDK 登录码通过模拟官方换取 openid 接口进入真实本地身份与令牌服务，SDK.request 转发真实 Runtime HTTP 和 PostgreSQL；响应丢失恢复不重复提交、发出前丢失重试仅一次、重挂确认状态、服务端重放结算与真实榜单、本组断网两步有序缓存且下一组等待服务端、旧排位回包不覆盖新本地练习，以及真实 409 冲突恢复后仍按玩家已发出的结束意图完成结算均通过。模拟只覆盖官方 code-to-openid HTTP 请求，游戏服务、身份令牌、操作序列、重放和成绩不被替换为前端夹具。
+构建配置测试验证显式开启与关闭、HTTPS、仅预览回环 HTTP、URL 用户凭据和查询/片段拒绝。服务端重放与真实 PostgreSQL 验证见 [api-verification.md](api-verification.md)。原生两平台各 8 项、共 16 项在线实际输入检查通过，记录在 [native-actual/online-verification.json](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/three-choose-two/docs/design/native-actual/online-verification.json)：SDK 登录码通过模拟官方换取 openid 接口进入真实本地身份与令牌服务，SDK.request 转发真实 Runtime HTTP 和 PostgreSQL；响应丢失恢复不重复提交、发出前丢失重试仅一次、重挂确认状态、服务端重放结算与真实榜单、本组断网两步有序缓存且下一组等待服务端、旧排位回包不覆盖新本地练习，以及真实 409 冲突恢复后仍按玩家已发出的结束意图完成结算均通过。模拟只覆盖官方 code-to-openid HTTP 请求，游戏服务、身份令牌、操作序列、重放和成绩不被替换为前端夹具。
 
 当前缺少真实平台 AppID，以上 preview 包不属于平台正式发布，也不声称完成官方登录或真机线上排位。
 
 ## 失败、撤销与广告续局
 
-`native/recovery-check.mjs` 在两个平台各通过 9 项真实触屏检查，记录为 [微信](native-actual/recovery-wechat-verification.json) 和 [B 站](native-actual/recovery-bilibili-verification.json)。前置存档由纯规则的三步合法失误生成，第四步在运行中的生产包使用触屏输入，真实产生组数耗尽失败；首页与重新挂载返回失败结算，结果页撤销恢复棋盘和候选且消耗一次机会。
+`native/recovery-check.mjs` 在两个平台各通过 9 项真实触屏检查，记录为 [微信](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/three-choose-two/docs/design/native-actual/recovery-wechat-verification.json) 和 [B 站](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/three-choose-two/docs/design/native-actual/recovery-bilibili-verification.json)。前置存档由纯规则的三步合法失误生成，第四步在运行中的生产包使用触屏输入，真实产生组数耗尽失败；首页与重新挂载返回失败结算，结果页撤销恢复棋盘和候选且消耗一次机会。
 
 测试包使用现有构建的 `--preview --ad-unit-id native-recovery-fixture` 开启广告配置，模拟 SDK 广告取消、失败与明确 `isEnded=true` 三种结果。取消和失败保留原状态与续局次数；明确完成才增加两组并清除旧撤销，重新挂载不再发放；后台收到完成回执仍保持暂停，主动继续才回到棋盘；已确认 SDK 完成回执在写入后中断，重挂恢复一次。这些结果验证平台回执处理，未播放真实渠道广告。
 

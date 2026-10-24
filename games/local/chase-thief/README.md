@@ -58,3 +58,11 @@ PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium pnpm --filter @coffeeeeffoc/chase-t
 当前验证范围和证据见 [验收记录](docs/design/endless-city-2026-10-22/verification/README.md)，设计过程见 [方案](docs/design/endless-city-2026-10-22/plan.md)。历史设计目录仅保留旧版本证据。
 
 上架文案、图标、概念宣传图、宣传视频、实际截图及实际录屏集中在 [publishing/STATUS.md](publishing/STATUS.md)。素材准备不代表已上架。
+
+## 可选奖励（2026-10-24）
+
+暂停页可完整观看后获得五秒普通碰撞保护，每局一次；复用 protection，仅游玩时间递减，沟壑仍须跳跃。辅助局不保存本地纪录，也不显示新纪录；免费重试和街区选择不变。
+
+通过现有全局 `SmallGamesRewardAds.offer` 领取，仅 `completed` 生效；不可用、取消、失败不消耗次数。请求绑定当前局面和令牌，重开、导航、pagehide、销毁取消，普通隐藏/失焦不取消观看；没有播放总超时，完成后仍暂停，需主动继续。H5 公共模块由构建注入，不复制 SDK，不修改源指纹规则。
+
+设计与验证边界见 [奖励说明](docs/design/rewards-2026-10-24.md)。

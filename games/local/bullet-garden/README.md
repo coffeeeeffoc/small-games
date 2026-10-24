@@ -83,3 +83,5 @@ Remove-Item Env:QA_OUTPUT
 固定战场与角色动作追加优化见 [方案](docs/design/garden-motion-2026-10-24/01-plan.md)、[验证记录](docs/design/garden-motion-2026-10-24/02-validation.md)。角色采用八方向四步态的 2.5D 图集，步伐按实际位移推进，开火反馈读取真实普通射击角度；镜头不跟随玩家。横屏将触控区放在两侧。`node tests/motion.browser.mjs` 检查真实输入下四边移动、固定投影、步态、射击与暂停。
 
 鼠标/手机输入与战斗首页更新见 [方案](docs/design/garden-input-home-2026-10-24/01-plan.md)、[验证记录](docs/design/garden-input-home-2026-10-24/02-validation.md)。Web 使用 Pointer Events 和指针捕获统一鼠标、触摸、取消及画布外松手，原生小游戏保留 Cocos 触摸路径。按住摇杆方向或从中心拖动移动，第二指操作冲刺/技能。仅在存活、可命中、射程内目标存在时自动开火，自动连射也检查目标；显式手动瞄准接口保留。`node tests/pointer.browser.mjs` 覆盖鼠标与触摸切换。
+
+dev 整合继续保留共享 H5 奖励 provider 和广告遮罩切后台的生命周期处理；补给与失败续战可选，仅完整观看发奖。素材与验收边界见 [上架资料](publishing/STATUS.md)，合并验证见 [dev 交付记录](docs/design/garden-input-home-2026-10-24/03-dev-delivery.md)。

@@ -18,7 +18,7 @@
 | 五款广告与后端原始请求 · `01a15a12-355a-7221-9349-90a1bab6d7c0`            | 本地 | 额外提示才看广告、点击有反馈、完整观看才奖励、取消失败有说明、公共指南维护；自有启动图、可选联网和可信榜单分开验收                          |
 | 本次规则整理与上架资料补充 · `01a163a0-c331-74a1-a399-98cf81d5429c`        | 本地 | 集中维护、修改旧游戏时主动补齐／提议改造；用户确认早期3+5名单；每游戏统一上架目录、固定进展文件、八类资料、闭环即补齐，不能“可提供但未提供” |
 
-“用 Cocos 重写 ball-roguelite”（`01a15f54-6a43-7585-9566-6860bde3708e`）出现在云端列表，但正文读取失败；未将其摘要当作独立的用户授权依据。已参考仓库中的[球球改版文档](../../games/local/ball-roguelite/docs/design/cocos-crystal/README.md)。较早移动规范历史用于定位，规则逐条与原根 `AGENTS.md`、[开发模式文档](../game-dev-mode.md)核对。
+“用 Cocos 重写 ball-roguelite”（`01a15f54-6a43-7585-9566-6860bde3708e`）出现在云端列表，但正文读取失败；未将其摘要当作独立的用户授权依据。已参考仓库中的[球球改版文档](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/ball-roguelite/docs/design/cocos-crystal/README.md)。较早移动规范历史用于定位，规则逐条与原根 `AGENTS.md`、[开发模式文档](../game-dev-mode.md)核对。
 
 ## 文档职责与冲突处理
 

@@ -1,0 +1,76 @@
+{
+  "source": "619debaf",
+  "verified": "2026-10-23",
+  "files": [
+    {
+      "file": "gameplay/screenshots/fire-cooldown-844x390.png",
+      "sha256": "8dcb254a8af9e8cdbf4d28623d05b6961d6808f9dbbf4828d73b7dc2ad7aa089",
+      "bytes": 159915
+    },
+    {
+      "file": "gameplay/screenshots/victory-960x540.png",
+      "sha256": "b8dd51ea408c9a905262f16f7320644f4a880066c48e88423fd29e8a78e1a4e2",
+      "bytes": 180899
+    },
+    {
+      "file": "gameplay/screenshots/wall-gun-844x390.png",
+      "sha256": "c210ed7540302bb3bdb5ac29fcc73218a5ee46a1295428da7857d34632af22ca",
+      "bytes": 194108
+    },
+    {
+      "file": "gameplay/videos/aim-fire-transfer-844x390.webm",
+      "sha256": "abcb341f9f6033cae8c0804ec7e685eb2785781ad03aa22f029f8b9b9bec0b5d",
+      "bytes": 1655741,
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp8",
+            "width": 844,
+            "height": 390,
+            "r_frame_rate": "25/1"
+          }
+        ],
+        "format": {
+          "duration": "32.400000"
+        }
+      }
+    },
+    {
+      "file": "icon/castle-cannon-512.png",
+      "sha256": "e7dbd60e6e8df5b915176c82d3f933427b2ea4d470ab90b170fe0bf9fcb31dd5",
+      "bytes": 43590
+    },
+    {
+      "file": "icon/castle-cannon-512.svg",
+      "sha256": "901e7240b379251a2d29d2da82a2416eca68fe9d2113078cbce81947dacab2ea",
+      "bytes": 1855
+    },
+    {
+      "file": "promo/images/gameplay-preview-844x390.png",
+      "sha256": "8dcb254a8af9e8cdbf4d28623d05b6961d6808f9dbbf4828d73b7dc2ad7aa089",
+      "bytes": 159915
+    },
+    {
+      "file": "promo/videos/castle-cannon-preview-844x390.mp4",
+      "sha256": "53b8d8f9c00dec9ecba0cb0a352e5311c50fd37db724417c090c022bbfee8ed8",
+      "bytes": 542106,
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 844,
+            "height": 390,
+            "r_frame_rate": "25/1"
+          }
+        ],
+        "format": {
+          "duration": "24.000000"
+        }
+      }
+    }
+  ]
+}

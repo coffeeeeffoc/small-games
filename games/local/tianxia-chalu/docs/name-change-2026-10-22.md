@@ -17,7 +17,7 @@ Cocos 场景、图集、背景及工程配置没有嵌入两个旧中文产品�
 以下旧名属于历史资料，不能把当时的标题、生成提示、截图和验证结果改写成新名称：
 
 - `docs/design/README.md`：早期设计及当时的流程。
-- `docs/design/expansion-2026-10-11/`：旧版扩展设计和概念图。
+- [历史记录：docs/design/expansion-2026-10-11/](https://github.com/coffeeeeffoc/small-games/tree/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/tianxia-chalu/docs/design/expansion-2026-10-11)：旧版扩展设计和概念图。
 - `docs/design/cocos-2026-10-22/`：更名前的设计、实施、交接、生成提示及实测证据。
 - 仓库 `docs/plans/2026-10-11-game-portfolio-assessment.md`：当日游戏组合评估。
 - 仓库 `docs/agents/game-requirements-sources.md`：原始需求会话标题“讨论并优化天下插旗设计”。
