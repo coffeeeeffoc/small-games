@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 
-export const snapshot = (frame) => frame.locator('body').evaluate(() => window.Ashfall?.snapshot());
+export const snapshot = (frame) =>
+  frame.locator('body').evaluate(() => globalThis.Ashfall?.snapshot());
 export async function ashfallInput(frame, mobile = false) {
   const page = frame.locator('canvas').page();
   const cdp = mobile ? await page.context().newCDPSession(page) : null;

@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-24T19:01:03.508Z",
+  "at": "2026-10-24T19:12:29.778Z",
   "browser": "Chromium 140, Linux, mobile touch emulation, software WebGL",
   "checks": [
     "real touch cancellation preserves fragment position",
@@ -9,7 +9,8 @@
     "unavailable room service hides multiplayer entry and leaves solo playable",
     "reward-port fixture resumes preserved fragments with 45 seconds; no live advertising claimed",
     "two independent browser players: ready together, authoritative organize, host exit, remaining player advances",
-    "320x568 and 390x844 mobile layouts"
+    "320x568 and 390x844 mobile layouts",
+    "level 100: 40 visible shards, touchable small pieces and rigid group joins"
   ],
   "errors": [],
   "limits": [

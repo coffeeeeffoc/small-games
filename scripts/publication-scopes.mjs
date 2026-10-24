@@ -1214,6 +1214,7 @@ const sharedH5PackagePaths = [
 function assertSixH5(games, packages, readHead) {
   const registered = literalDeclaration(readHead('scripts/h5-ad-config.mjs'), 'additionalH5Games');
   const extraIds = [
+    'porcelain-puzzle',
     'ashfall-front',
     'merge-front',
     'tetracube',
@@ -4087,6 +4088,70 @@ export function ashfallCreatorWiringOnly(file, before, after) {
   return true;
 }
 
+// Porcelain wiring adds dispatch IDs, portrait metadata and public ad environment names.
+// Exact bytes retain fail-closed behavior for all other edits and comparison bases.
+export function porcelainH5FileScopes({ changedPaths, readBase, readHead, games, packages = [] }) {
+  const scopes = new Map();
+  const reviewed = {
+    'scripts/h5-taptap-build.mjs': [
+      '4cdea763a2e71cb31563d887db1d17f1deb0d8f66381cd5ad9d37a140f5130a4',
+      'ea03001d9c693b8b45599dcf52728e8bb3d0289ce307d63c67a04913c5533c33',
+    ],
+    'scripts/h5-taptap-matrix.mjs': [
+      '12f53f7d422fdc68704c7fff95f9bc0f92d8c35cf8c43d2dfb2d6774087df9bf',
+      'c63d8fef1b9a7ad4219c80a6fe102801820e73c0890e787585bf2ed9200ec9ee',
+    ],
+    'scripts/h5-ad-config.mjs': [
+      'b272edc8d3559c6ebcd5ba6918ea63f3aeff74a34d7ff04d63d1e36c1c8e3079',
+      'e075f10a3e0f18147f97ef0cef66bf823b5709893c00ad84f219b3259c763c71',
+    ],
+    'scripts/h5-game-build.mjs': [
+      '5b5d6a6dee975cbacfc8d11e9f5e514a3433a298c215d76e3ed273a7d479fc1e',
+      '76034eee6d03fd200211aea469672e7841cd398ed1f757ce8e06fcb369841f22',
+    ],
+  };
+  try {
+    const id = 'porcelain-puzzle',
+      source = 'games/local/porcelain-puzzle',
+      name = '@coffeeeeffoc/porcelain-puzzle';
+    const entries = games.filter((g) => g.id === id || g.source === source);
+    const targets = packages.filter((p) => p.dir === source || p.name === name);
+    assert.equal(entries.length, 1);
+    assert.equal(entries[0].id, id);
+    assert.equal(entries[0].source, source);
+    assert.equal(entries[0].output, 'dist');
+    assert.equal(targets.length, 1);
+    assert.equal(targets[0].dir, source);
+    assert.equal(targets[0].name, name);
+    const manifest = JSON.parse(readHead(source + '/package.json'));
+    assert.equal(manifest.name, name);
+    assert.equal(manifest.coffeeeeffoc?.engine, 'cocos-source-3.8.8');
+    assert.equal(manifest.scripts?.build, 'node build.mjs');
+    for (const file of changedPaths) {
+      const pair = reviewed[file];
+      if (!pair) continue;
+      const hash = (text) => createHash('sha256').update(text).digest('hex');
+      if (hash(readBase(file)) === pair[0] && hash(readHead(file)) === pair[1]) {
+        const consumers = [source];
+        if (file === 'scripts/h5-taptap-build.mjs') {
+          // This same literal edit also repairs Ashfall's missing public ad variable.
+          const ashfall = 'games/local/ashfall-front';
+          assert.equal(
+            games.filter((g) => g.id === 'ashfall-front' && g.source === ashfall).length,
+            1,
+          );
+          assert.equal(packages.filter((p) => p.dir === ashfall).length, 1);
+          consumers.push(ashfall);
+        }
+        scopes.set(file, consumers);
+      }
+    }
+  } catch {
+    return new Map();
+  }
+  return scopes;
+}
+
 export function reviewedSharedFileScopes({
   changedPaths,
   readBase,
@@ -4096,6 +4161,13 @@ export function reviewedSharedFileScopes({
   ...treeContext
 }) {
   const scopes = vitePatchFileScopes({ changedPaths, readBase, readHead });
+  const porcelainScopes = porcelainH5FileScopes({
+    changedPaths,
+    readBase,
+    readHead,
+    games,
+    packages,
+  });
   const mainScopes = mainIntegrationFileScopes({
     changedPaths,
     readBase,
@@ -4119,6 +4191,10 @@ export function reviewedSharedFileScopes({
     packages,
   });
   for (const file of changedPaths) {
+    if (porcelainScopes.has(file)) {
+      scopes.set(file, porcelainScopes.get(file));
+      continue;
+    }
     if (file === 'apps/shell-web/scripts/game-checks/ashfall-front.mjs') {
       scopes.set(file, ['games/local/ashfall-front', 'apps/shell-web']);
       continue;

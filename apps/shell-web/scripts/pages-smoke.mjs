@@ -32,6 +32,7 @@ const immersiveGame = (id) =>
     'castle-cannon',
     'ink-is-everything',
     'ball-roguelite',
+    'porcelain-puzzle',
     'flick-arena',
     'xiangqi-five',
     'letters-words2',
@@ -251,6 +252,7 @@ try {
         game.id === 'ashfall-front' ||
         game.id === 'cage-rescue' ||
         game.id === 'ball-roguelite' ||
+        game.id === 'porcelain-puzzle' ||
         game.id === 'orbit-atelier' ||
         game.id === 'merge-front' ||
         game.id === 'tower-brake' ||

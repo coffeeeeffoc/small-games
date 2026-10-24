@@ -299,6 +299,30 @@ try {
   await small.screenshot({ path: output + 'gallery-320.png' });
   await small.context().close();
   checks.push('320x568 and 390x844 mobile layouts');
+  const unlocked = emptySave();
+  unlocked.unlocked = 100;
+  const late = await pageOf({ fixture: unlocked });
+  await late.getByRole('button', { name: '开始闯关', exact: true }).tap();
+  await playing(late);
+  assert.equal(await late.evaluate(() => PorcelainGame.snapshot.number), 100);
+  assert.equal(await late.evaluate(() => PorcelainGame.puzzle.pieces.length), 40);
+  await late.screenshot({ path: output + 'playing-level100.png' });
+  const first = await gesture(late);
+  assert.ok(first);
+  await touchDrag(late, first.from, first.to);
+  let lateAnchor = first.anchor;
+  for (let i = 0; i < 3; i++) {
+    const next = await gesture(late, { anchor: lateAnchor });
+    assert.ok(next, 'late-game neighboring shard remains touchable');
+    await touchDrag(late, next.from, next.to);
+    await expect
+      .poll(() => late.evaluate(() => PorcelainGame.snapshot.groups.length))
+      .toBeLessThan(next.count);
+    lateAnchor = next.anchor;
+  }
+  await late.context().close();
+  checks.push('level 100: 40 visible shards, touchable small pieces and rigid group joins');
+
   assert.deepEqual(errors, []);
   await writeFile(
     output + 'browser-results.json',
