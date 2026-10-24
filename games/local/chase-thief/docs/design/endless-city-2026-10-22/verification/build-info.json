@@ -8,42 +8,42 @@
   "sources": [
     [
       "ChaseGame.ts",
-      "742736d459e2ba389639a40ffcc9af846f41849e530db5fda14f186726c4bdc3"
-    ],
-    [
-      "Geometry.ts",
-      "3a2da21301a6d97e0fafb138a3528000c690bd0bd4af27998353e0ce71cbd6ca"
-    ],
-    [
-      "Hud.ts",
-      "c84e323479bcb7a85ef5ea76219137fdad66f4eb9845697b8e5346ed73dad56f"
-    ],
-    [
-      "Materials.ts",
-      "326ceafd67215013da06daeffe550f449db9e44c8cfb62683d62f3db0ce88475"
-    ],
-    [
-      "UiMaterials.ts",
-      "12dc6ddbf01aec2778580d84d08c84183201b8f1e638c612a732f509759d8b8c"
-    ],
-    [
-      "World.ts",
-      "97f8bc4927f885ec9d8ea79bf178d63169034ecbc2bd3cf2d2d9dd07f8355607"
+      "ccc78c5d73ed66814c2169242d86197003784d3fd252b598da59c961ccbc285b"
     ],
     [
       "core/progress.ts",
-      "4e79998439d8662189c315a647341c91c0a9e0b7e37ebe5150189717a8dcfc06"
+      "e027db7046174f3a4e292acd58b3a50f85f383b6fbf331cd6dbc43bcf13a05e9"
     ],
     [
       "core/route.ts",
-      "552b3967a49d35376aa0907ec7e8d59ed2d8b998f8e92efd16e88fb33116f826"
+      "267e2b14d45079b1b1414900d7f798eb0a57a91b30911b50a0659a17f8a4239f"
     ],
     [
       "core/simulation.ts",
-      "b694030e136f9d73488f85c207805d556c5aefc8aa51385519f62b5c9ada2a3d"
+      "25d25ce6b32a53ff039d53a1eb8bb7af4e1e3c118c69b47569c75fb240f409a7"
+    ],
+    [
+      "Geometry.ts",
+      "532bf9d4123ff61b55fb7456015398dd0c3b73844e7a341e4093c16d7f3457db"
+    ],
+    [
+      "Hud.ts",
+      "878a6dce14ee9e7594606a585bdac5ca860c4edd5396ae04fc56bc8c3ce84ddd"
+    ],
+    [
+      "Materials.ts",
+      "cc5e8eaf864de96db7bace2c93850ef13dc4f7a0a5b126ca5a533ac27016238e"
+    ],
+    [
+      "UiMaterials.ts",
+      "4a9bad61b0d3b4c59c44b2d5beccd76cabbdd597d0229797fbd29ffdbe490164"
+    ],
+    [
+      "World.ts",
+      "9f21dcadc3bce9489fd6b38906224db42b2c8695f26d0bf34a222a6fa80ad109"
     ]
   ],
-  "artifactSha256": "f87875ca0e45d5bc7b58270ebc658c16e7f07d86061d43005a87e875d37a66c4",
+  "artifactSha256": "3088a5f0c9c224084395a465c51ad90428d6b6e28ccde4cf0b83986a7ac1090a",
   "runtimeFiles": [
     {
       "path": "art/city-models.json",
@@ -92,73 +92,73 @@
     },
     {
       "path": "bootstrap.mjs",
-      "bytes": 1728,
-      "sha256": "8c8c4b229c3b0868bb8d27b010976636e11327300363d5cdbfdb65fddff108d4"
+      "bytes": 1779,
+      "sha256": "b78996200ddd7a26599d06e4906a1983d747896fde5ecd3d1ef9f3b49bac7b93"
     },
     {
       "path": "dev-mode.js",
-      "bytes": 14790,
-      "sha256": "986844491337ac0bb53394d44917356a820f346f0d2b0d63b2ab34e36a7a4a2f"
-    },
-    {
-      "path": "fullscreen.js",
-      "bytes": 6552,
-      "sha256": "72acd28e8258e9e49b91288dc67b9af8f857c9eda6eaa5b80a4dfaa4009bedc7"
+      "bytes": 14731,
+      "sha256": "fcc49bdcc071a234df52081bbb6f09ce0a002e4c633403cb460724c921cb4b39"
     },
     {
       "path": "game/ChaseGame.js",
-      "bytes": 15140,
-      "sha256": "583a926205adbeccc3b723fc06bbbafbd92cf0dac37256b6f0568494b75035f5"
+      "bytes": 17414,
+      "sha256": "f1791fe963b8a73421c56de4b7c98ef6ba6464f9ee1dc08b4d1a84a9f83b6fcc"
     },
     {
       "path": "game/core/progress.js",
-      "bytes": 3680,
-      "sha256": "6775f4b66abd15e88e11b2d883b110068ecc2af96b73d3e59c3ff4bdc6749e79"
+      "bytes": 3824,
+      "sha256": "7ec9afe15a371465378bf423ef7c465c2cf5a38ade3dd71e4cb26fb2ee5da639"
     },
     {
       "path": "game/core/route.js",
-      "bytes": 6603,
-      "sha256": "72a63c5eca30491949e8d5d32c0a1a540bfae1897221b228fcb4ef323b6e71eb"
+      "bytes": 7314,
+      "sha256": "4ad335d7fe6c94d5056a604eda1455a3a6d3dd4d4ddec71cec639fe54ad6b2e7"
     },
     {
       "path": "game/core/simulation.js",
-      "bytes": 9933,
-      "sha256": "8e9ef44006d210c1369ee7bc48f75f07cca057e9bc982cc6ec1639e1ac89f9c3"
+      "bytes": 11330,
+      "sha256": "452d92523fdf81e46961c4ddcdd29c313aa8e6b9f77a2932af8cfd71cbc88bee"
     },
     {
       "path": "game/Geometry.js",
-      "bytes": 4401,
-      "sha256": "9ea28b7b6cedcf1f65995b9a1bc64a76fa30f96f1dffd7f90daf4963a8c1ff3d"
+      "bytes": 4510,
+      "sha256": "c1660c74c44addc45502ce86a7ca8214c4f854f9eb2dc28142b168b9673188ce"
     },
     {
       "path": "game/Hud.js",
-      "bytes": 12422,
-      "sha256": "f588cc22f5baf132eb9ff1923a556827eca65eeceb3156f07fcde2ce7c90c408"
+      "bytes": 13106,
+      "sha256": "b64f2444de53145fb28c222e5f5dc2e4ee0b827815a2d1b96ab914b17f8674df"
     },
     {
       "path": "game/Materials.js",
-      "bytes": 5939,
-      "sha256": "838ac80fad3a703389d61bd14fd9f3a86254477c67e9e7dac895defd250a312e"
+      "bytes": 6118,
+      "sha256": "7c6a19b0f363007faa6b86ec618ac8312e3146904918ad6a81d31dcc58be8429"
     },
     {
       "path": "game/UiMaterials.js",
-      "bytes": 5378,
-      "sha256": "12dc6ddbf01aec2778580d84d08c84183201b8f1e638c612a732f509759d8b8c"
+      "bytes": 5525,
+      "sha256": "4a9bad61b0d3b4c59c44b2d5beccd76cabbdd597d0229797fbd29ffdbe490164"
     },
     {
       "path": "game/World.js",
-      "bytes": 22023,
-      "sha256": "6cec3921a85f81c401eafc92af7ab448e52a2b8bab3a11c8a1085a366373c0d9"
+      "bytes": 26476,
+      "sha256": "835d1aff8c973b5cf607e17b46d732f65955d5cc8d77500dd15dcefa4ddc471d"
     },
     {
       "path": "index.html",
-      "bytes": 1350,
-      "sha256": "c918aa4ec20489847a58306d36252a5915193ac8ddd82a85f72f44259f4d90c8"
+      "bytes": 1227,
+      "sha256": "dae7ae261546cfe6b67913170943e797743f718733e5ccee5a1c0f77791fcb37"
     },
     {
       "path": "style.css",
-      "bytes": 1505,
-      "sha256": "6d04094e3fe16662f62799d707fafb6c8c8da613b1c9b13223e1d0de74d73401"
+      "bytes": 1441,
+      "sha256": "06e8ecfbef865a6a3cb9ce4b75ae02859f71ab59e50073893c1f925c13e89ce6"
+    },
+    {
+      "path": "vendor/cocos/.gitattributes",
+      "bytes": 111,
+      "sha256": "468a29cc07304fa8653727e5f2e6d459c68f2429a3ffc25aedbbefd5f39c788a"
     },
     {
       "path": "vendor/cocos/cc.js",
@@ -172,8 +172,8 @@
     },
     {
       "path": "vendor/cocos/provenance.json",
-      "bytes": 1161,
-      "sha256": "4305c85ea8828f525b627c92c71bde81e78a0c9a39faf7cdf48938b0b9bd6190"
+      "bytes": 1208,
+      "sha256": "8dbca40f7d7bd69bf6c19a4aecc078beeb161687a16a8722f55e99575a5ff1a1"
     }
   ]
 }

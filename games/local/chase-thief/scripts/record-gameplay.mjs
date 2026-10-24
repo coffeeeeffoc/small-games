@@ -1,12 +1,12 @@
 import { chromium, expect } from '@playwright/test';
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { waveAt, sampleRoute, segmentInfo } from '../assets/scripts/core/route.ts';
+import { waveAt, sampleRoute, segmentInfo, WAVE_SPACING } from '../assets/scripts/core/route.ts';
 const output = new URL('../publishing/gameplay/videos/', import.meta.url);
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({
   headless: true,
-  executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || '/usr/bin/chromium',
+  executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || chromium.executablePath(),
   args: ['--no-sandbox', '--enable-unsafe-swiftshader'],
 });
 const context = await browser.newContext({
@@ -41,7 +41,7 @@ let captured = false;
 while (Date.now() - start < 42000) {
   const s = await snap();
   if (s.screen !== 'running') break;
-  if (!captured && s.distance > 80) {
+  if (!captured && s.distance > 125) {
     await page.screenshot({
       path: fileURLToPath(
         new URL('../publishing/gameplay/screenshots/chase-390x844.png', import.meta.url),
@@ -49,19 +49,20 @@ while (Date.now() - start < 42000) {
     });
     captured = true;
   }
-  const wave = Math.max(0, Math.floor((s.distance - 38) / 32));
+  const wave = Math.max(0, Math.floor((s.distance - 38) / WAVE_SPACING));
   const obstacles = [waveAt(wave, s.seed, s.departure), waveAt(wave + 1, s.seed, s.departure)]
     .flat()
     .filter((o) => o.at > s.distance);
   const next = obstacles.find((o) => o.lane === s.lane);
-  if (next && next.at - s.distance < 5) {
+  if (next && next.at - s.distance < s.speed * 0.38) {
     if (['barrier', 'barrel', 'gap'].includes(next.type) && s.action === 'run')
       await page.keyboard.press('ArrowUp');
     else if (next.type === 'beam' && s.action === 'run') await page.keyboard.press('ArrowDown');
-    else if (['crate', 'cart'].includes(next.type)) {
-      const safe = [0, 1, 2].find((l) => !obstacles.some((o) => o.at === next.at && o.lane === l));
-      if (safe !== s.lane) await page.keyboard.press(safe < s.lane ? 'ArrowLeft' : 'ArrowRight');
-    }
+  }
+  if (next && ['crate', 'cart'].includes(next.type) && next.at - s.distance < s.speed * 0.85) {
+    const safe = [0, 1, 2].find((l) => !obstacles.some((o) => o.at === next.at && o.lane === l));
+    if (safe !== undefined && safe !== s.lane)
+      await page.keyboard.press(safe < s.lane ? 'ArrowLeft' : 'ArrowRight');
   }
   const route = sampleRoute(s.distance, s.seed, s.departure),
     info = segmentInfo(route.index, s.seed, s.departure);

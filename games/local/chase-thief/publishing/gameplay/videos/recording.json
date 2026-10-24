@@ -1,13 +1,13 @@
 {
-  "captured": "2026-10-22T16:46:50.438Z",
-  "artifactSha256": "f87875ca0e45d5bc7b58270ebc658c16e7f07d86061d43005a87e875d37a66c4",
-  "browser": "151.0.7922.173",
+  "captured": "2026-10-24T14:49:25.255Z",
+  "artifactSha256": "3088a5f0c9c224084395a465c51ad90428d6b6e28ccde4cf0b83986a7ac1090a",
+  "browser": "156.0.8078.47",
   "input": "real touchscreen menus and keyboard gameplay; no dev API, no manual clock",
   "viewport": {
     "width": 390,
     "height": 844
   },
-  "elapsedRealSeconds": 42.138,
+  "elapsedRealSeconds": 42.041,
   "final": {
     "ready": true,
     "engine": "Cocos Engine 3.8.8",
@@ -15,7 +15,7 @@
     "screen": "running",
     "width": 390,
     "height": 844,
-    "inputCount": 10,
+    "inputCount": 16,
     "controls": [
       {
         "id": "pause",
@@ -27,21 +27,24 @@
       }
     ],
     "phase": "running",
-    "distance": 372.32501249999996,
+    "distance": 589.1798333333337,
+    "speed": 17.618000000000002,
     "lane": 2,
     "laneVisual": 1.9999999999999996,
-    "action": "run",
+    "action": "jump",
     "health": 3,
-    "coins": 12,
-    "combo": 6,
+    "coins": 25,
+    "combo": 11,
     "practice": false,
-    "seed": 406555073,
+    "rewardProtectionUsed": false,
+    "rewardPending": false,
+    "seed": 1274021652,
     "departure": "old-town",
-    "district": "alley",
+    "district": "market",
     "world": {
       "chunks": 6,
-      "objects": 20,
-      "renderers": 76
+      "objects": 34,
+      "renderers": 101
     },
     "best": {},
     "legacyBest": {}
