@@ -41,6 +41,11 @@ export async function assertChaseGameplay(frame, mobile = false) {
   await expect.poll(async () => (await snapshot(frame))?.action).toBe('run');
   await tapControl(frame, 'slide', mobile);
   await expect.poll(async () => (await snapshot(frame))?.action).toBe('slide');
+  // Finish the unsteered run before testing pause so slower CI cannot race the result screen.
+  await expect.poll(async () => (await snapshot(frame))?.screen, { timeout: 90000 }).toBe('result');
+  const endedDistance = (await snapshot(frame)).distance;
+  await tapControl(frame, 'retry', mobile);
+  await expect.poll(async () => (await snapshot(frame))?.distance).toBeLessThan(endedDistance);
   await tapControl(frame, 'pause', mobile);
   await expect.poll(async () => (await snapshot(frame))?.screen).toBe('paused');
   await tapControl(frame, 'resume', mobile);
