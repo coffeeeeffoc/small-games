@@ -1,0 +1,204 @@
+{
+  "sourceHash": "681d33ad97da627270bd07dd0f92fe401cda00ed9da0d94e853284ea2565cdcc",
+  "verified": "2026-10-24",
+  "previousDelivery": "manifest-2026-10-24-redesign.json",
+  "files": [
+    {
+      "path": "copy/developer-note.md",
+      "bytes": 761,
+      "sha256": "c61b96dff6a445d291c64b5393434206147da80795788aed317b195581e749ba",
+      "sourceHash": "681d33ad97da627270bd07dd0f92fe401cda00ed9da0d94e853284ea2565cdcc"
+    },
+    {
+      "path": "copy/introduction.md",
+      "bytes": 948,
+      "sha256": "07ad9d78c0f10df018619350e457778440c99bcfe4782d296c6af18a20eceab5",
+      "sourceHash": "681d33ad97da627270bd07dd0f92fe401cda00ed9da0d94e853284ea2565cdcc"
+    },
+    {
+      "path": "copy/tagline.md",
+      "bytes": 68,
+      "sha256": "711632f9f54473e1fcc7a35d6b6110b58eaf5b8693515756d61fc61bc3d51998",
+      "sourceHash": "681d33ad97da627270bd07dd0f92fe401cda00ed9da0d94e853284ea2565cdcc"
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-24-flow/day-844.png",
+      "bytes": 210512,
+      "sha256": "5632fc23ece9452f3b1f8f80477388ec060cf17389becf2f02189279472a4908",
+      "sourceHash": "681d33ad97da627270bd07dd0f92fe401cda00ed9da0d94e853284ea2565cdcc",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-24-flow/escort-success-1280.png",
+      "bytes": 169100,
+      "sha256": "8f541e82a7fc0d25c8f6343f81d1403eae0f5a3b50f3fbcdde099fa6cc0bbb61",
+      "sourceHash": "681d33ad97da627270bd07dd0f92fe401cda00ed9da0d94e853284ea2565cdcc",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-24-flow/extracting-1280.png",
+      "bytes": 462033,
+      "sha256": "7ae60141377a74f8d45bb39ad3c809ee58eb7d5cf43ef99fd5b9e6da2831f771",
+      "sourceHash": "681d33ad97da627270bd07dd0f92fe401cda00ed9da0d94e853284ea2565cdcc",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-24-flow/home-844.png",
+      "bytes": 150059,
+      "sha256": "a684337fae8cf7cea7e32e3fb68ce7333e8f10b5f8eb63a01f0262749b885799",
+      "sourceHash": "681d33ad97da627270bd07dd0f92fe401cda00ed9da0d94e853284ea2565cdcc",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-24-flow/missions-844.png",
+      "bytes": 98853,
+      "sha256": "f4176cd5513c16b52e4f1e73a4ae126b5f6b52acc59f8c6f4df21b9968be174e",
+      "sourceHash": "681d33ad97da627270bd07dd0f92fe401cda00ed9da0d94e853284ea2565cdcc",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-24-flow/night-844.png",
+      "bytes": 131450,
+      "sha256": "3fd85b3f3bb524ef34623fea9f5fd06fa652e794b03218cb044e8ff4b77288f7",
+      "sourceHash": "681d33ad97da627270bd07dd0f92fe401cda00ed9da0d94e853284ea2565cdcc",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-24-flow/pause-844.png",
+      "bytes": 112872,
+      "sha256": "ef756a7b388e39c52d5058a34ab4d884e390bfd803338ddc2c5c1d83fd8713a8",
+      "sourceHash": "681d33ad97da627270bd07dd0f92fe401cda00ed9da0d94e853284ea2565cdcc",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-24-flow/priority-844.png",
+      "bytes": 205316,
+      "sha256": "7d079b6222c7a136227f9e9eca4726f343262cb12b92bbe9004c505f10ebf06e",
+      "sourceHash": "681d33ad97da627270bd07dd0f92fe401cda00ed9da0d94e853284ea2565cdcc",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-24-flow/supply-choice-844.png",
+      "bytes": 87447,
+      "sha256": "68be31c28b6cfd734ec2b49127cc644527da08f15cc43245e19400c3d76b2fa3",
+      "sourceHash": "681d33ad97da627270bd07dd0f92fe401cda00ed9da0d94e853284ea2565cdcc",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-24-flow/thermal-844.png",
+      "bytes": 76105,
+      "sha256": "bce0595d7952c0d98757842db9280c8d0a24670cfe0a9477bc2ef0ccd7a5e721",
+      "sourceHash": "681d33ad97da627270bd07dd0f92fe401cda00ed9da0d94e853284ea2565cdcc",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "path": "gameplay/videos/escort-extraction-1280x720-silent.mp4",
+      "bytes": 8826098,
+      "sha256": "6479c22dd0b0fe164214475731a58b4d515a47c1d63a1e6549e2dbe57d832fc9",
+      "sourceHash": "681d33ad97da627270bd07dd0f92fe401cda00ed9da0d94e853284ea2565cdcc",
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1280,
+            "height": 720
+          }
+        ],
+        "format": {
+          "duration": "52.120000"
+        }
+      },
+      "audio": "silent",
+      "decoded": true
+    },
+    {
+      "path": "gameplay/videos/mobile-support-map-844x390-silent.mp4",
+      "bytes": 2014532,
+      "sha256": "8fbd37bca18de832a46c31c72683685af1c90bfbc5cd650d2d9d77b6ee60f615",
+      "sourceHash": "681d33ad97da627270bd07dd0f92fe401cda00ed9da0d94e853284ea2565cdcc",
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 844,
+            "height": 390
+          }
+        ],
+        "format": {
+          "duration": "36.800000"
+        }
+      },
+      "audio": "silent",
+      "decoded": true
+    },
+    {
+      "path": "icon/icon-1024.png",
+      "bytes": 1168540,
+      "sha256": "16eb53f945baddc89f00389715beb7b3953290d71305c4273dc74b5433e5610d",
+      "origin": "Existing night-overwatch art, copied from outputs/six-taptap-submission-20261020/night-overwatch; reused unchanged",
+      "width": 1024,
+      "height": 1024
+    },
+    {
+      "path": "promo/images/title-1440x1440.png",
+      "bytes": 2285613,
+      "sha256": "b801b40155959ebb475c01ec88a896204ff1b41240de6ceaa8a1eb8fb021983c",
+      "origin": "Existing night-overwatch art, copied from outputs/six-taptap-submission-20261020/night-overwatch; reused unchanged",
+      "width": 1440,
+      "height": 1440
+    },
+    {
+      "path": "promo/images/title-1920x1080.png",
+      "bytes": 2392478,
+      "sha256": "a81bcb3dea9e4bbeb17b3c0ca5bd9d1acd55c7361852aa8500183b2a353c14f0",
+      "origin": "Existing night-overwatch art, copied from outputs/six-taptap-submission-20261020/night-overwatch; reused unchanged",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "path": "promo/videos/flow-edit.json",
+      "bytes": 2095,
+      "sha256": "282802f0f23117367ddb91c264964ae1d46256fc55f2f5270966bb6c6464e8d2",
+      "sourceHash": "681d33ad97da627270bd07dd0f92fe401cda00ed9da0d94e853284ea2565cdcc"
+    },
+    {
+      "path": "promo/videos/night-overwatch-flow-1280x720-silent.mp4",
+      "bytes": 2951137,
+      "sha256": "589069acd442965935ea2fa73d6bc6579ae3168235acea1d8dac9398fdde574f",
+      "sourceHash": "681d33ad97da627270bd07dd0f92fe401cda00ed9da0d94e853284ea2565cdcc",
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1280,
+            "height": 720
+          }
+        ],
+        "format": {
+          "duration": "26.120000"
+        }
+      },
+      "audio": "silent",
+      "decoded": true
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "681d33ad97da627270bd07dd0f92fe401cda00ed9da0d94e853284ea2565cdcc"
+  },
+  "phase": "success",
+  "kills": 4,
+  "time": 50.09999999999844,
+  "clearTime": 47.08333333333192,
+  "extractionSeconds": 3.0166666666665165,
+  "wallSeconds": 2.699,
+  "fired": 5,
+  "friendlyDamage": 0,
+  "resumedHold": true,
+  "retry": true,
+  "errors": [],
+  "input": "Actual mouse/keyboard; no simulation state writes or reward fixture"
+}

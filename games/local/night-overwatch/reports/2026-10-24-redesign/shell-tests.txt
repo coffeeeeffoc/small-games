@@ -1,0 +1,8 @@
+
+ RUN  v5.0.0 F:/playground/playground-ai/small-games/apps/shell-web
+
+
+ Test Files  1 passed (1)
+      Tests  24 passed (24)
+   Start at  00:24:46
+   Duration  1.40s (environment 69%, tests 16%, import 9%, transform 6%, worker 1%)

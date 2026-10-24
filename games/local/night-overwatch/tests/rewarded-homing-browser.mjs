@@ -37,11 +37,8 @@ try {
     };
     const supply = async () => {
       const ammo = (await snapshot(page)).homingAmmo;
-      await press(page, 'supply', touch); await press(page, 'supplyWatch', touch);
+      await press(page, 'supply', touch); await press(page, 'reward:ammo', touch); await press(page, 'supplyWatch', touch);
       await press(page, 'adClose', touch);
-      assert.equal((await snapshot(page)).homingAmmo, ammo);
-      assert.equal((await snapshot(page)).pendingSupply, true);
-      await press(page, 'reward:ammo', touch);
       assert.equal((await snapshot(page)).homingAmmo, ammo + 2);
       assert.equal((await snapshot(page)).pendingSupply, false);
       assert.equal((await snapshot(page)).homingSelected, true);
@@ -52,7 +49,7 @@ try {
     assert.equal((await snapshot(page)).modal, 'home');
     await press(page, 'training', touch); await press(page, 'start', touch);
     assertLayout(await snapshot(page), width, height);
-    await press(page, 'supply', touch); await press(page, 'supplyWatch', touch);
+    await press(page, 'supply', touch); await press(page, 'reward:ammo', touch); await press(page, 'supplyWatch', touch);
     let s = await snapshot(page);
     assert(s.advert.mock && s.pauses.includes('advert'));
     assert.equal(s.homingAmmo, 0);
@@ -61,9 +58,6 @@ try {
     const frozen = s.time; await page.waitForTimeout(200);
     assert.equal((await snapshot(page)).time, frozen);
     await capture('mock-homing'); await press(page, 'adClose', touch);
-    assert.equal((await snapshot(page)).homingAmmo, 0);
-    assert.equal((await snapshot(page)).pendingSupply, true);
-    await press(page, 'reward:ammo', touch);
     assert.equal((await snapshot(page)).homingAmmo, 2);
     assert.equal((await snapshot(page)).pendingSupply, false);
     assert.equal((await snapshot(page)).homingSelected, true);

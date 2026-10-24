@@ -1,0 +1,22 @@
+✔ Night native configurations compile adapted project inputs while canonical H5 stays identical (16054.8433ms)
+✔ HUD: real urgent targets avoid convoy, supply and zoom controls on small screens (11.2739ms)
+✔ HUD: desktop bottom battlefield accepts aim while controls and touch footer remain blocked (4.2403ms)
+✔ HUD: escort and range entries are discoverable, and range results show a specific next goal in compact viewports (9.3301ms)
+✔ HUD: persistent global actions, compact modal layout, focus markers and zoom bindings (18.0582ms)
+✔ HUD: short-screen information priority, focus clearance and friendly group expansion (3.8796ms)
+✔ HUD: desktop controls stay compact, touch keeps FIRE, reload has a single home (2.3479ms)
+✔ HUD: rewards, zoom panel and mock ads fit small phones with safe areas and no overlapping buttons (3.6179ms)
+✔ HUD: combat supply, choices and buff countdown fit phones and the rotated logical viewport (26.441ms)
+✔ HUD: browser and native hosts have no fullscreen control or state in any screen (1.4744ms)
+✔ HUD: every operation page keeps three reachable cards and pagination within phone safe areas (15.3347ms)
+✔ HUD: home leaves the battlefield visible and pause is a compact three-stat mission brief (3.9147ms)
+✔ HUD: mission cards expose their actual enemy count, lighting, selection, lock and cleared state (0.9685ms)
+✔ HUD: compact guide keeps its tabs and footer reachable while content scrolls (1.0794ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 19386.3857

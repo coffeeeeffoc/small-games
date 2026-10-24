@@ -882,20 +882,7 @@ async function run() {
       );
       assertLayout(s, width, height);
       await capture('battle');
-      const beforeFullscreen = s;
-      await press(page, 'fullscreen', touch, false);
-      await page.waitForFunction(() => !!document.fullscreenElement);
-      assert.equal((await snapshot(page)).pauses.length, 0, 'Direct fullscreen does not pause');
-      await capture('fullscreen');
-      await press(page, 'fullscreen', touch, false);
-      await page.waitForFunction(() => !document.fullscreenElement);
-      await page.waitForTimeout(250);
-      s = await snapshot(page);
-      assert(s.time > beforeFullscreen.time && s.progress >= beforeFullscreen.progress);
-      assert.equal(s.fired, beforeFullscreen.fired);
-      assert.equal(s.phase, 'playing');
-      assert.deepEqual(s.held, []);
-      check('permanent fullscreen: real entry/exit, progress retained, no accidental shot');
+      assert(!s.buttons.some(b => b.id === 'fullscreen'));
 
       const anchor = { x: s.units[0].x, z: s.units[0].z };
       const p0 = await project(page, anchor),

@@ -1,0 +1,21 @@
+✔ HUD: real urgent targets avoid convoy, supply and zoom controls on small screens (12.3789ms)
+✔ HUD: desktop bottom battlefield accepts aim while controls and touch footer remain blocked (3.1875ms)
+✔ HUD: escort and range entries are discoverable, and range results show a specific next goal in compact viewports (8.6892ms)
+✔ HUD: persistent global actions, compact modal layout, focus markers and zoom bindings (17.3224ms)
+✔ HUD: short-screen information priority, focus clearance and friendly group expansion (3.5922ms)
+✔ HUD: desktop controls stay compact, touch keeps FIRE, reload has a single home (2.1805ms)
+✔ HUD: rewards, zoom panel and mock ads fit small phones with safe areas and no overlapping buttons (2.6974ms)
+✔ HUD: combat supply, choices and buff countdown fit phones and the rotated logical viewport (22.0986ms)
+✔ HUD: browser and native hosts have no fullscreen control or state in any screen (1.4299ms)
+✔ HUD: every operation page keeps three reachable cards and pagination within phone safe areas (12.7224ms)
+✔ HUD: home leaves the battlefield visible and pause is a compact three-stat mission brief (4.2673ms)
+✔ HUD: mission cards expose their actual enemy count, lighting, selection, lock and cleared state (1.0139ms)
+✔ HUD: compact guide keeps its tabs and footer reachable while content scrolls (1.3509ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3599.4667

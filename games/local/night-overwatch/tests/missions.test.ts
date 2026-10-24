@@ -7,34 +7,27 @@ const tick = (s: Simulation, seconds: number) => {
   for (let n = 0; n < Math.ceil(seconds * 60); n++) s.step(1 / 60);
 };
 
-test('mission combinations change deployment and motion while preserving weapon and escort rules', () => {
-  const standard = new Simulation(); standard.start();
-  assert.equal(standard.spawned.size, 24);
-  assert.equal(standard.mission.events, MISSION.events, 'existing default mission is unchanged');
-  const ambush = new Simulation('ambush-02'); ambush.start(); ambush.convoy = 'holding';
-  assert.equal(ambush.spawned.size, 8);
-  assert.equal(ambush.threatsRemaining, 24, 'unspawned waves still count toward mission completion');
-  tick(ambush, 69);
-  assert.equal(ambush.spawned.size, 8);
-  ambush.pause('manual', true); tick(ambush, 10);
-  assert.equal(ambush.spawned.size, 8, 'pausing cannot spawn reinforcements');
-  ambush.pause('manual', false); tick(ambush, 1.1);
-  assert.equal(ambush.spawned.size, 16, 'holding cannot indefinitely postpone the next wave');
-  const patrol = new Simulation('patrol-03'); patrol.start();
-  assert.equal(patrol.units.filter((u) => !u.friendly && u.kind === 'turret').length, 0);
-  assert.equal(patrol.units.filter((u) => !u.friendly && u.kind === 'heavy').length, 3);
-  const rover = patrol.units.find((u) => !u.friendly && u.kind === 'light')!;
-  const initial = { x: rover.x, z: rover.z }; tick(patrol, 1);
-  assert(distance(initial, rover) > 0.5);
-  for (const s of [ambush, patrol]) {
-    assert(Math.abs(s.routeLength / s.mission.speed - 240) < 1e-8);
-    assert.equal(s.mission.duration, standard.mission.duration);
-    assert.equal(s.rescue.maxHp, standard.rescue.maxHp);
-    assert.equal(s.guns[2].ammo, WEAPONS[2].ammo);
+test('introductory missions use fewer stationary targets in daylight before dusk and night', () => {
+  assert.deepEqual(MISSIONS.slice(0, 6).map(m => m.events.length), [4, 6, 8, 12, 16, 24]);
+  assert.deepEqual(MISSIONS.slice(0, 7).map(m => m.light), ['day', 'day', 'day', 'dusk', 'dusk', 'night', 'day']);
+  for (const mission of MISSIONS.slice(0, 3)) {
+    const sim = new Simulation(mission.id); sim.start();
+    assert.equal(sim.selected, 1);
+    assert.equal(sim.spawned.size, mission.events.length);
+    assert(mission.events.every(e => e.kind === 'turret'));
+    const before = sim.units.filter(u => !u.friendly).map(u => [u.x, u.z]); tick(sim, 1);
+    assert.deepEqual(sim.units.filter(u => !u.friendly).map(u => [u.x, u.z]), before);
+    assert.equal(sim.rescue.maxHp, UNITS.rescue.hp);
+    assert.equal(sim.guns[1].ammo, WEAPONS[1].ammo);
   }
-  assert.equal(nextMission(nextMission(nextMission('corridor-01'))), 'operation-004');
+  const ambush = new Simulation('operation-008'); ambush.start(); ambush.convoy = 'holding';
+  assert.equal(ambush.spawned.size, 8);
+  assert.equal(ambush.threatsRemaining, 24);
+  ambush.pause('manual', true); tick(ambush, 80); assert.equal(ambush.spawned.size, 8);
+  ambush.pause('manual', false); tick(ambush, 72.1); assert.equal(ambush.spawned.size, 16);
+  assert.equal(nextMission('patrol-03'), 'operation-004');
   assert.equal(nextMission(MISSIONS.at(-1)!.id), MISSIONS.at(-1)!.id);
-  assert.equal(missionDefinition('old-or-damaged-preference').id, 'corridor-01');
+  assert.equal(missionDefinition('old-preference').id, 'corridor-01');
 });
 
 for (const mission of MISSIONS) test(`${mission.name[0]} can be completed with finite ammunition and every friendly group surviving`, (t) => {
@@ -72,7 +65,7 @@ for (const mission of MISSIONS) test(`${mission.name[0]} can be completed with f
     fired: s.fired, friendlyDamage: s.friendlyDamage, ammo: s.guns.map((g) => g.ammo) }));
   assert.equal(s.phase, 'success');
   assert.equal(s.threatsRemaining, 0);
-  assert.equal(s.spawned.size, 24);
+  assert.equal(s.spawned.size, mission.events.length);
   assert.equal(s.friendlyDamage, 0);
   assert.equal(s.friendlyLosses, 0);
   assert.equal(s.training, false);

@@ -106,7 +106,7 @@ try {
     const help = await snapshot(p);
     assert.equal(help.scroll, help.scrollMax);
     assert(help.scrollMax > 0);
-    assert(help.buttons.some((b) => b.id === 'fullscreen'));
+    assert(!help.buttons.some((b) => b.id === 'fullscreen'));
     await screenshot(p, 'desktop-help-last');
     await button(p, 'close');
     console.log('closed help', (await snapshot(p)).pauses);
@@ -133,7 +133,7 @@ try {
       phase: (await snapshot(p)).phase,
       friendlyDamage: (await snapshot(p)).friendlyDamage,
     };
-    assert((await snapshot(p)).buttons.some((b) => b.id === 'fullscreen'));
+    assert(!(await snapshot(p)).buttons.some((b) => b.id === 'fullscreen'));
     await screenshot(p, 'friendly-fire-failure');
     await button(p, 'retry');
     await p.keyboard.press('t');
@@ -229,7 +229,7 @@ try {
     assert(!s.pauses.includes('settings'));
     assert(s.pauses.includes('manual'));
     assert(s.pauses.includes('orientation'));
-    assert(s.buttons.some((b) => b.id === 'fullscreen'));
+    assert(!s.buttons.some((b) => b.id === 'fullscreen'));
     await m.setViewportSize({ width: w, height: h });
     await m.waitForTimeout(250);
     assert((await snapshot(m)).pauses.includes('manual'));

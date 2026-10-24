@@ -69,20 +69,7 @@ try {
   assert.equal(foregroundObservation.hidden, false);
   await page.waitForTimeout(220);
   assert.equal((await snap()).fired, frozen.fired);
-  const beforeFullscreen = await snap();
-  assert(
-    beforeFullscreen.buttons.some((b) => b.id === 'fullscreen'),
-    'Fullscreen is visible in live play',
-  );
-  await press('fullscreen');
-  await page.waitForTimeout(150);
-  assert(await page.evaluate(() => !!document.fullscreenElement));
-  await press('fullscreen');
-  await page.waitForTimeout(150);
-  assert.equal(await page.evaluate(() => !!document.fullscreenElement), false);
-  assert.equal((await snap()).pauses.length, 0);
-  assert((await snap()).time > beforeFullscreen.time);
-  assert.equal((await snap()).fired, beforeFullscreen.fired);
+  assert(!(await snap()).buttons.some(b => b.id === 'fullscreen'));
   const counts = [];
   for (let i = 0; i < 10; i++) {
     await friendlyFailure(page);
@@ -129,7 +116,7 @@ try {
     ),
   );
   console.log(
-    'Synthetic blur/focus response, real fullscreen and 10 retries passed; real tab background unsupported here',
+    'Synthetic blur/focus response, no fullscreen control and 10 retries passed; real tab background unsupported here',
   );
 } finally {
   await browser.close();
