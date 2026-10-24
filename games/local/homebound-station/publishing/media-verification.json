@@ -1,150 +1,282 @@
 {
-  "date": "2026-10-23",
-  "sourceCommit": "298cc06f64af826512b9f60a0e96a48e8bd37925",
-  "sourceHash": "7319832c0632d06fe9418f77da23d9a273f70cd8c02294d17da98dea3e21b715",
-  "environment": "Creator 3.8.8 Web Mobile, Chromium touch emulation at 390x844; short/landscape screenshots at indicated dimensions; not physical-device certification",
-  "video": "No audio captured. Runtime sound-switch persistence checked separately. Icon and historical key art retained; all gameplay screenshots and videos refreshed.",
+  "date": "2026-10-24",
+  "sourceIdentity": "local working tree; not committed or published",
+  "sourceHash": "0b97241eb06caf9718b56577d376b422365dd28b4f31afcf7c012833be56d959",
+  "environment": "Creator 3.8.8 Web Mobile; Chromium desktop touch emulation, not physical-device certification",
+  "browserChecks": 16,
+  "video": "Two separate H.264 silent videos; full decode verified by recording.browser.mjs.",
   "files": [
     {
-      "path": "gameplay/screenshots/home-390.png",
-      "bytes": 129569,
-      "sha256": "5efa6b683da73863bef409b71a451b4b923e8ce663bcdd3002705d5ad55c68c1",
+      "path": "gameplay/screenshots/menu-courtyard-2026-10-24/blocked-390.png",
+      "role": "current Creator runtime screenshot",
+      "bytes": 138285,
+      "sha256": "aa7b14506961c72afc4b669915a785e076f90872122f944f78d8f466f5e5461c",
       "width": 390,
-      "height": 844,
-      "mode": "RGB",
-      "role": "current Creator runtime screenshot"
+      "height": 844
     },
     {
-      "path": "gameplay/screenshots/home-844.png",
-      "bytes": 61445,
-      "sha256": "25e880d435fd987af10cf2e007e0c41505918fe01d10f44aaad4e724b31c77a1",
-      "width": 844,
-      "height": 390,
-      "mode": "RGB",
-      "role": "current Creator runtime screenshot"
-    },
-    {
-      "path": "gameplay/screenshots/level100-390.png",
-      "bytes": 180960,
-      "sha256": "f963c96a13df8be4c44fc1484201a58c4bc7e4b933af888c4d95548c2661a63c",
+      "path": "gameplay/screenshots/menu-courtyard-2026-10-24/curbside-boarding-390.png",
+      "role": "current real play video frame at 6 seconds",
+      "bytes": 151072,
+      "sha256": "06b8dd14919190599e78c111aa8309bb9f501b18d87761469420b78f1acbda93",
       "width": 390,
-      "height": 844,
-      "mode": "RGB",
-      "role": "current Creator runtime screenshot"
+      "height": 844
     },
     {
-      "path": "gameplay/screenshots/level100-844.png",
-      "bytes": 143060,
-      "sha256": "176599284dab60873ca5af2cabf6107aba05e5b885aec206c0b19fdb328798f6",
-      "width": 844,
-      "height": 390,
-      "mode": "RGB",
-      "role": "current Creator runtime screenshot"
+      "path": "gameplay/screenshots/menu-courtyard-2026-10-24/help-390.png",
+      "role": "current Creator runtime screenshot",
+      "bytes": 20267,
+      "sha256": "ea132992ae3fd98432feb082f70dea769ae9eb67d481f97c30e2b6e31c863b71",
+      "width": 390,
+      "height": 844
     },
     {
-      "path": "gameplay/screenshots/level100-scrolled-320.png",
-      "bytes": 75521,
-      "sha256": "6384d534db8408f5cae098f177fe76bac09f310f5f67f73d75c3547fb298ebfb",
+      "path": "gameplay/screenshots/menu-courtyard-2026-10-24/home-320.png",
+      "role": "current Creator runtime screenshot",
+      "bytes": 297245,
+      "sha256": "c285e2dffbf63fe7ba3a760b77c94385ea2636692be8f5166d99d2429743a03a",
       "width": 320,
-      "height": 568,
-      "mode": "RGB",
-      "role": "current Creator runtime screenshot"
+      "height": 568
     },
     {
-      "path": "gameplay/screenshots/levels-390.png",
-      "bytes": 510341,
-      "sha256": "0d57621b9ae01c8821bb298b2dbe9a66c95f9c686684208fe4de5dc004166b46",
+      "path": "gameplay/screenshots/menu-courtyard-2026-10-24/home-390.png",
+      "role": "current Creator runtime screenshot",
+      "bytes": 541564,
+      "sha256": "542c1482e97b6d64b9cdf8136f5a39744123a744c987332f54e4dd74f5ad5853",
       "width": 390,
-      "height": 844,
-      "mode": "RGB",
-      "role": "current Creator runtime screenshot"
+      "height": 844
     },
     {
-      "path": "gameplay/screenshots/parallel-390x844.png",
-      "bytes": 90618,
-      "sha256": "a7685fc85e20b9f7419b6b77c5a7fda45717d582c7b797fb231122d16830d54c",
-      "width": 390,
-      "height": 844,
-      "mode": "RGB",
-      "role": "current Creator runtime screenshot"
+      "path": "gameplay/screenshots/menu-courtyard-2026-10-24/home-844.png",
+      "role": "current Creator runtime screenshot",
+      "bytes": 419985,
+      "sha256": "ec2e80dc6560a9235a0246d1d898306e0d41a79ca3ffe504df9250e4a12aa937",
+      "width": 844,
+      "height": 390
     },
     {
-      "path": "gameplay/screenshots/pause-390.png",
-      "bytes": 76931,
-      "sha256": "c89d22463fdc5d39cdc2db478b86ac1925fde0c88ebe3e83760bd4798a19c924",
-      "width": 390,
-      "height": 844,
-      "mode": "RGB",
-      "role": "current Creator runtime screenshot"
+      "path": "gameplay/screenshots/menu-courtyard-2026-10-24/home-public-320.png",
+      "role": "current Creator runtime screenshot",
+      "bytes": 300487,
+      "sha256": "e9998273115545ed84022d665587ceb9375b0c10843238d8c8fbd42dd4e66520",
+      "width": 320,
+      "height": 568
     },
     {
-      "path": "gameplay/screenshots/playing-390.png",
-      "bytes": 99631,
-      "sha256": "e72b65c02655f8cb3a2b6cffb11b4cb128ff8d1530fec2cf809cf1b38b1b311f",
-      "width": 390,
-      "height": 844,
-      "mode": "RGB",
-      "role": "current Creator runtime screenshot"
+      "path": "gameplay/screenshots/menu-courtyard-2026-10-24/home-public-844.png",
+      "role": "current Creator runtime screenshot",
+      "bytes": 417661,
+      "sha256": "0b21b8e8462084a7d8c5411904289013d2e32c1bcc66e1cf4b8bff0246bb7c44",
+      "width": 844,
+      "height": 390
     },
     {
-      "path": "gameplay/screenshots/result-390.png",
-      "bytes": 64783,
-      "sha256": "071bee61bf7099213c6ec6cec30e1f8e4cde916a1a904e2c2dc1bcfe91c67df8",
+      "path": "gameplay/screenshots/menu-courtyard-2026-10-24/level100-390.png",
+      "role": "current Creator runtime screenshot",
+      "bytes": 134646,
+      "sha256": "24f7f3b77f5461db26bc736a6f1f02e79f141c054abf35e8f3627706b596d4e6",
       "width": 390,
-      "height": 844,
-      "mode": "RGB",
-      "role": "current Creator runtime screenshot"
+      "height": 844
     },
     {
-      "path": "gameplay/screenshots/speed-menu-390.png",
-      "bytes": 100509,
-      "sha256": "affc74bbbe3ba75e67aea3c0e6d2c2d8a2d0903f5bd08ab47b0a8030edfb0f34",
-      "width": 390,
-      "height": 844,
-      "mode": "RGB",
-      "role": "current Creator runtime screenshot"
+      "path": "gameplay/screenshots/menu-courtyard-2026-10-24/level100-844.png",
+      "role": "current Creator runtime screenshot",
+      "bytes": 117912,
+      "sha256": "869655e3a6d433b2fefe7c856de3dd0c5988d5da376d8db3b633b6cdb02aec3c",
+      "width": 844,
+      "height": 390
     },
     {
-      "path": "gameplay/videos/level01-1x-390x844.mp4",
-      "bytes": 669310,
-      "sha256": "79169f5be192cb11fb0cbad279a58ea3042af30846fee53ce86eee50954af8e2",
+      "path": "gameplay/screenshots/menu-courtyard-2026-10-24/level100-dispatched-390.png",
+      "role": "current Creator runtime screenshot",
+      "bytes": 134875,
+      "sha256": "bfb20258536b3c79c4027f536471c4f53047b0ff4ab5dbaf90a8c63e291e11b6",
       "width": 390,
-      "height": 844,
-      "durationSeconds": 25.76,
-      "codec": "h264",
-      "audioTracks": 0,
-      "fullDecode": "passed",
-      "editing": "complete recording; no cuts or speed change"
+      "height": 844
+    },
+    {
+      "path": "gameplay/screenshots/menu-courtyard-2026-10-24/level100-dispatched-800.png",
+      "role": "current Creator runtime screenshot",
+      "bytes": 149905,
+      "sha256": "a58138f50bb307e080b64f7bf737c490ff865913fe61c2b0915187af6b3715c0",
+      "width": 800,
+      "height": 600
+    },
+    {
+      "path": "gameplay/screenshots/menu-courtyard-2026-10-24/level100-dispatched-844.png",
+      "role": "current Creator runtime screenshot",
+      "bytes": 117840,
+      "sha256": "f6138920f89a7959e78dfc0191f1c3d74a5ce22cb66318014810062ac279fc58",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "path": "gameplay/screenshots/menu-courtyard-2026-10-24/level100-public-390.png",
+      "role": "current Creator runtime screenshot",
+      "bytes": 132818,
+      "sha256": "53b60de63891e0b26d5c1edef0520d806d10fc9aa119760f9a592121d1e6d5c5",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "gameplay/screenshots/menu-courtyard-2026-10-24/level100-scrolled-320.png",
+      "role": "current Creator runtime screenshot",
+      "bytes": 47556,
+      "sha256": "ce77498c2bf66c0d0b40295f925c6806e6ccb11ef14b4326c8e13bf32e386058",
+      "width": 320,
+      "height": 568
+    },
+    {
+      "path": "gameplay/screenshots/menu-courtyard-2026-10-24/levels-320.png",
+      "role": "current Creator runtime screenshot",
+      "bytes": 273407,
+      "sha256": "b0357fa8c3fcbd1b3e9ea7e29dde2a0790c42de087f0538cee32a6125048b843",
+      "width": 320,
+      "height": 568
+    },
+    {
+      "path": "gameplay/screenshots/menu-courtyard-2026-10-24/levels-390.png",
+      "role": "current Creator runtime screenshot",
+      "bytes": 509800,
+      "sha256": "812bc72c2fd11e1afa8f57476d0ac358959d7ddc06aaae470a14ce5f8713bf1d",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "gameplay/screenshots/menu-courtyard-2026-10-24/levels-844.png",
+      "role": "current Creator runtime screenshot",
+      "bytes": 467645,
+      "sha256": "6745fd83099acfc5c3760334d8d5f9cc716606a70cf8afee92b0295be228cc34",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "path": "gameplay/screenshots/menu-courtyard-2026-10-24/loading-390.png",
+      "role": "current Creator runtime screenshot",
+      "bytes": 84998,
+      "sha256": "f6f7466cfdaa85902fa16e73d9800f6097a3cff5cb72ea34c98f538214e00b88",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "gameplay/screenshots/menu-courtyard-2026-10-24/parallel-390x844.png",
+      "role": "current Creator runtime screenshot",
+      "bytes": 68718,
+      "sha256": "ab48e0e44f4704a7562777409ef6597d7d3720d19b64fbfc908cb3ef9c5235fb",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "gameplay/screenshots/menu-courtyard-2026-10-24/pause-390.png",
+      "role": "current Creator runtime screenshot",
+      "bytes": 64443,
+      "sha256": "8a4e92f7b0694c7d2a854e0840d4a9bae25eafd7cd1267f91ff548a2d00bf989",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "gameplay/screenshots/menu-courtyard-2026-10-24/playing-390.png",
+      "role": "current Creator runtime screenshot",
+      "bytes": 69129,
+      "sha256": "b0c29d839cc410ac248706cd02dade1077a6190c861c5458cf8296f21dac4a43",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "gameplay/screenshots/menu-courtyard-2026-10-24/pressed-390.png",
+      "role": "current Creator runtime screenshot",
+      "bytes": 69664,
+      "sha256": "d509854448a8c555945a0a132f3fbbad7a4208b1e530ffc99860e6dd0ed5370d",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "gameplay/screenshots/menu-courtyard-2026-10-24/result-390.png",
+      "role": "current Creator runtime screenshot",
+      "bytes": 49727,
+      "sha256": "69d540aabd13b76d9f442fe6546f3814ca16270ce75f3e3c87b02e7a502c7041",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "gameplay/screenshots/menu-courtyard-2026-10-24/settings-390.png",
+      "role": "current Creator runtime screenshot",
+      "bytes": 14893,
+      "sha256": "c11295e5c2cf663b3298dfccbe0b3f44f772ef2fc79fa0a2cce647dd73579f2a",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "gameplay/screenshots/menu-courtyard-2026-10-24/speed-menu-390.png",
+      "role": "current Creator runtime screenshot",
+      "bytes": 69215,
+      "sha256": "b0a9dfa74c426ad769df0223cc6c268ed9b876d2178ad39b2b9df7d8916d1baa",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "gameplay/screenshots/menu-courtyard-2026-10-24/waiting-replenished-390.png",
+      "role": "current Creator runtime screenshot",
+      "bytes": 68488,
+      "sha256": "f9c9bee631ae7193ca0ee1432090d63de163d0c845a854d0b758b519ff9782b9",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "copy/introduction.md",
+      "role": "current game copy",
+      "bytes": 1060,
+      "sha256": "775d72b1f30a948482de60a0a7d4c106756038d259cfe9b6e08e81167dd28fa0"
+    },
+    {
+      "path": "copy/tagline.md",
+      "role": "current game copy",
+      "bytes": 59,
+      "sha256": "724032d22a57b77c19ee26574c1e841c2acd8e1bcb63912e690b34adc3ada652"
+    },
+    {
+      "path": "copy/developer-note.md",
+      "role": "current game copy",
+      "bytes": 1101,
+      "sha256": "2153b315ba6603e93aea388795f89ef92de21c6f005b1722eb8b47b952622806"
     },
     {
       "path": "icon/homebound-1254.png",
+      "role": "reused current game icon",
       "bytes": 2207946,
       "sha256": "0e16a2645ea4a1016f605dc0ebdb37128faa3541a0cec2e20e58b89198495452",
       "width": 1254,
-      "height": 1254,
-      "mode": "RGB",
-      "role": "game icon"
+      "height": 1254
     },
     {
       "path": "promo/images/homebound-keyart-portrait.png",
+      "role": "original illustration; not a runtime screenshot",
       "bytes": 2377793,
       "sha256": "9d7f3fe6bae829a84f6d502c1d6fc9c221ff72e41ac4184314ad845ef8cb7005",
       "width": 852,
-      "height": 1846,
-      "mode": "RGB",
-      "role": "historical promotional illustration"
+      "height": 1846
     },
     {
-      "path": "promo/videos/homebound-mobile-preview-390x844.mp4",
-      "bytes": 521166,
-      "sha256": "30ae3328251ebfabd356c844137bf94b1b68d28e961ea6895cde9024755e2419",
+      "path": "gameplay/videos/level01-courtyard-1x-390x844.mp4",
+      "role": "uncut real touch play, 1x, silent",
+      "bytes": 775423,
+      "sha256": "e09e5ad21b92e7b1278cee29022d949d9a149f80f0a31fe348a1ec5ea27dd0fb",
       "width": 390,
       "height": 844,
-      "durationSeconds": 18.0,
+      "duration": 52.12,
       "codec": "h264",
-      "audioTracks": 0,
-      "fullDecode": "passed",
-      "editing": "first 18 seconds of current full capture; no speed change"
+      "audio": false
+    },
+    {
+      "path": "promo/videos/homebound-courtyard-preview-390x844.mp4",
+      "role": "edited gameplay preview, silent",
+      "bytes": 456995,
+      "sha256": "12b5ef5e6530faec3a7cc525a3ffcaf578bd451e8cbe490386be4f395732c192",
+      "width": 390,
+      "height": 844,
+      "duration": 19,
+      "codec": "h264",
+      "audio": false
     }
   ]
 }

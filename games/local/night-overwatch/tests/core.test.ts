@@ -23,7 +23,7 @@ const tick = (s: Simulation, seconds: number) => {
 };
 const settle = (s: Simulation) => tick(s, Math.max(0, ...s.shots.map((shot) => shot.due - s.time)) + 0.05);
 const start = () => {
-  const s = new Simulation();
+  const s = new Simulation('operation-007');
   s.start();
   s.setAim({ x: -42, z: -25 });
   return s;
@@ -56,6 +56,7 @@ test('rapid overheats, switching preserves heat, all guns cool and unlock only a
 test('heavy fires once per press, respects reload and finite ammunition', () => {
   const s = start();
   s.units = s.units.filter((u) => u.friendly);
+  s.addUnit('turret', { x: MAP.halfWidth, z: MAP.halfDepth }); // Keep the weapon fixture in combat, outside every friendly's range.
   s.convoy = 'holding';
   s.choose(2);
   s.setFire('mouse', true);
@@ -90,6 +91,7 @@ test('burst repeats at its own cadence and cannot bypass cooldown by switching',
 test('launch snapshots aim; moving out before impact avoids damage; impacts are consumed once', () => {
   const s = start();
   s.units = s.units.filter((u) => u.friendly);
+  s.addUnit('turret', { x: MAP.halfWidth, z: MAP.halfDepth }); // Keep the weapon fixture in combat, outside every friendly's range.
   const enemy = s.addUnit('turret', { x: 0, z: -20 });
   s.setAim(enemy);
   s.choose(1);
@@ -111,6 +113,7 @@ test('launch snapshots aim; moving out before impact avoids damage; impacts are 
 test('blast damages several units once each, armor resists rapid fire', () => {
   const s = start();
   s.units = s.units.filter((u) => u.friendly);
+  s.addUnit('turret', { x: MAP.halfWidth, z: MAP.halfDepth }); // Keep the weapon fixture in combat, outside every friendly's range.
   const a = s.addUnit('turret', { x: 0, z: -20 }),
     b = s.addUnit('turret', { x: 1, z: -20 });
   s.setAim(a);
@@ -143,6 +146,7 @@ test('protection rejects overlapping blast and its tangent without consuming amm
 test('ordinary friendlies warn but do take damage; training immunity is explicit', () => {
   const s = start();
   s.units = s.units.filter((u) => u.friendly);
+  s.addUnit('turret', { x: MAP.halfWidth, z: MAP.halfDepth }); // Keep the weapon fixture in combat, outside every friendly's range.
   s.convoy = 'holding';
   s.choose(2);
   s.setAim(s.rescue);
@@ -153,6 +157,7 @@ test('ordinary friendlies warn but do take damage; training immunity is explicit
   assert.equal(s.rescue.hp, UNITS.rescue.hp - WEAPONS[2].damage);
   const training = start();
   training.units = training.units.filter((u) => u.friendly);
+  training.addUnit('turret', { x: MAP.halfWidth, z: MAP.halfDepth }); // Keep the weapon fixture in combat, outside every friendly's range.
   training.convoy = 'holding';
   training.training = true;
   training.choose(2);
@@ -164,7 +169,7 @@ test('ordinary friendlies warn but do take damage; training immunity is explicit
 test('hold request stops at next marker; time and events keep advancing; continue does not reset route', () => {
   const s = start();
   s.units.forEach((u) => {
-    if (!u.friendly) u.hp = 0;
+    if (!u.friendly) u.attack = Infinity;
   });
   s.command();
   assert.equal(s.convoy, 'holdRequested');
@@ -172,7 +177,7 @@ test('hold request stops at next marker; time and events keep advancing; continu
   while (s.progress < HOLD_POINTS[0] && s.phase === 'playing') {
     s.step(1 / 60);
     s.units.forEach((u) => {
-      if (!u.friendly) u.hp = 0;
+      if (!u.friendly) u.attack = Infinity;
     });
   }
   assert.equal(s.convoy, 'holding');
@@ -231,7 +236,7 @@ test('critical destruction fails before arrival; timeout fails; fresh retry has 
   assert.equal(s.failure, 'vehicle');
   assert.equal(s.failedGroup, 0);
   const t = start();
-  t.time = MISSION.duration - 0.001;
+  t.time = t.mission.duration - 0.001;
   t.step(1 / 60);
   assert.equal(t.failure, 'timeout');
   const fresh = new Simulation();
@@ -320,6 +325,7 @@ test('impact feedback describes actual damage and lethal rescue damage keeps its
   const s = start();
   s.convoy = 'holding';
   s.units = s.units.filter((u) => u.friendly);
+  s.addUnit('turret', { x: MAP.halfWidth, z: MAP.halfDepth }); // Keep the weapon fixture in combat, outside every friendly's range.
   const turret = s.addUnit('turret', { x: 0, z: -20 });
   s.choose(1);
   s.fire();

@@ -1,3 +1,4 @@
+import type { MissionLight } from './core/MissionCatalog';
 import {
   Camera,
   Color,
@@ -475,7 +476,7 @@ export class World {
     ? this.height(x, z) : heightfieldHeight(terrainXs, terrainZs, this.elevations, x, z);
   private roadDistance = (x: number, z: number) => Math.min(...mapRoute(this.map).slice(1)
     .map((p, i) => segmentDistance(x, z, mapRoute(this.map)[i], p)));
-  constructor(parent: Node, readonly map: BattlefieldId = 'valley') {
+  constructor(parent: Node, readonly map: BattlefieldId = 'valley', readonly light: MissionLight = 'day') {
     const terrainHeight = this.height, surfaceHeight = this.surfaceHeight, roadDistance = this.roadDistance;
     const ROUTE = mapRoute(map), ROUTE_LENGTH = routeLength(map), HOLD_POINTS = [ROUTE_LENGTH * .28, ROUTE_LENGTH * .64];
     const mapPoint = (d: number) => routePoint(d, map);
@@ -492,7 +493,7 @@ export class World {
     this.camera.projection = Camera.ProjectionType.PERSPECTIVE;
     this.camera.near = AIRFRAME.cameraNear;
     this.camera.far = 2700;
-    this.camera.clearColor = color('#26354e');
+    this.camera.clearColor = color(this.light === 'day' ? '#88b8d6' : this.light === 'dusk' ? '#a17c79' : '#26354e');
 
     this.terrainBatch('terrain.sky', '#ffffff', '#14222c', (g) => {
       const bands = [
@@ -506,7 +507,7 @@ export class World {
       for (const [y, hex] of bands)
         for (let i = 0; i <= 64; i++) {
           const angle = (i * Math.PI) / 32,
-            tint = color(hex);
+            tint = color(this.light === 'day' ? ['#c9d9d6', '#afcee0', '#8cbadd', '#679dca', '#487bab', '#305c8c'][bands.findIndex(b => b[0] === y)] : this.light === 'dusk' ? ['#ba9479', '#bc9b8b', '#988b9e', '#737a99', '#475978', '#293c5b'][bands.findIndex(b => b[0] === y)] : ['#26334b', '#293a52', '#1e304a', '#15253d', '#0d1a2d', '#070f22'][bands.findIndex(b => b[0] === y)]);
           g.positions.push(Math.sin(angle) * 1900, y, Math.cos(angle) * 1900);
           g.normals.push(-Math.sin(angle), 0, -Math.cos(angle));
           g.colors.push(tint.r / 255, tint.g / 255, tint.b / 255, 1);
@@ -562,11 +563,7 @@ export class World {
           const haze = clamp((Math.hypot(x, z) - 100) / 1500, 0, 0.78);
           g.positions.push(x, terrainHeights[ix][iz] - 0.045, z);
           g.normals.push(normal.x, normal.y, normal.z);
-          for (const [near, far] of [
-            [map === 'valley' ? 47 : 84, 116],
-            [map === 'valley' ? 67 : 77, 122],
-            [map === 'valley' ? 65 : 68, 143],
-          ])
+          for (const [near, far] of (this.light === 'day' ? [[map === 'valley' ? 104 : 143, 178], [map === 'valley' ? 133 : 133, 193], [map === 'valley' ? 94 : 110, 201]] : this.light === 'dusk' ? [[94, 152], [102, 139], [83, 150]] : [[34, 60], [45, 70], [50, 92]]))
             g.colors.push((near * light * variation * (1 - haze) + far * haze) / 255);
           g.colors.push(1);
           if (ix < xs.length - 1 && iz < zs.length - 1) {
@@ -1004,6 +1001,9 @@ export class World {
     return m;
   }
   terrainBatch(id: string, day: string, heat: string, build: (g: Geometry) => void) {
+    if (this.light === 'day') day = ({ 'terrain.water': '#80bbcb', 'terrain.roads': '#59616a', 'terrain.ridges': '#7e8979', 'terrain.fields': '#839756', 'terrain.structures': '#afb3a8', 'terrain.roofs': '#946c52', 'terrain.forest': '#6f995b', 'terrain.distantForest': '#7c9c78', 'terrain.details': '#7b856b', 'terrain.windows': '#728b98' } as Record<string, string>)[id] || day;
+    if (this.light === 'night') day = ({ 'terrain.clouds': '#5c6c84', 'terrain.water': '#203a55', 'terrain.structures': '#29313c', 'terrain.roofs': '#302b39' } as Record<string, string>)[id] || day;
+    if (this.light === 'dusk') day = ({ 'terrain.roads': '#41454c', 'terrain.structures': '#8b8078', 'terrain.forest': '#657454', 'terrain.fields': '#716e48' } as Record<string, string>)[id] || day;
     const g = geometry();
     g.grounded = !['terrain.ground', 'terrain.foothills', 'terrain.sky', 'terrain.clouds', 'terrain.moon'].includes(id);
     g.height = this.surfaceHeight;
@@ -1138,7 +1138,7 @@ export class World {
   }
   sensor() {
     this.thermal = !this.thermal;
-    this.camera.clearColor = color(this.thermal ? '#10191d' : '#26354e');
+    this.camera.clearColor = color(this.thermal ? '#10191d' : this.light === 'day' ? '#88b8d6' : this.light === 'dusk' ? '#a17c79' : '#26354e');
     for (const t of this.terrain)
       t.material.setProperty('mainColor', color(this.thermal ? t.heat : t.day));
   }
@@ -1188,7 +1188,7 @@ export class World {
   update(s: Simulation, reduced = false) {
     this.cloudLayer?.setPosition(Math.sin(s.time * .008) * 14, 0, Math.cos(s.time * .006) * 8);
     if (this.waterGlints && !this.thermal) {
-      const glint = 190 + Math.sin(s.time * 1.4) * 22;
+      const glint = (this.light === 'night' ? 75 : 190) + Math.sin(s.time * 1.4) * 22;
       this.waterGlints.getComponent(MeshRenderer)!.getMaterial(0)!.setProperty('mainColor', new Color(glint * .86, glint * .95, glint));
     }
     for (const event of s.events) {

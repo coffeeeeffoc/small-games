@@ -1,0 +1,170 @@
+{
+  "sourceHash": "e80ac6419ce7d006a9ecdd2bdbc7b28d066cb10656f1bd0d5f77649e11d140b0",
+  "verified": "2026-10-24",
+  "files": [
+    {
+      "path": "copy/developer-note.md",
+      "bytes": 577,
+      "sha256": "10c8a046905de6023d915adcd4858cbc47349c31516798100ca4108cfc1f9ea2"
+    },
+    {
+      "path": "copy/introduction.md",
+      "bytes": 668,
+      "sha256": "9b1085d968e372cc2413fb8d77b0b9910b405afb2cdbe801f4636c9eb03493f8"
+    },
+    {
+      "path": "copy/tagline.md",
+      "bytes": 68,
+      "sha256": "711632f9f54473e1fcc7a35d6b6110b58eaf5b8693515756d61fc61bc3d51998"
+    },
+    {
+      "path": "gameplay/screenshots/day-844.png",
+      "bytes": 210572,
+      "sha256": "bf498dbf2f9c1bbcbedb85cf54abf600b46989d96b1d9131fdaabf3d01c91c34",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "path": "gameplay/screenshots/home-844.png",
+      "bytes": 138115,
+      "sha256": "0a42c23fd95810121c59c99bb03bed4b0ac3ab74e9dc9ce86093a03d02b80f05",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "path": "gameplay/screenshots/missions-844.png",
+      "bytes": 58685,
+      "sha256": "a68d2e0b391d774a448f3a251921bbb5d481d3562df3a4ecd4bcae5ce455411b",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "path": "gameplay/screenshots/night-844.png",
+      "bytes": 131781,
+      "sha256": "5237acbaff09564c7b7b36198dda4fe528cadce4a578edd14544936d1f268515",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "path": "gameplay/screenshots/pause-844.png",
+      "bytes": 112136,
+      "sha256": "e20b152fd766b8b35aedddc89d05591a63729137e31ae9ae49f79a91768fc3f7",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "path": "gameplay/screenshots/priority-844.png",
+      "bytes": 206104,
+      "sha256": "2a4a0a5046da005c0e034a46fd423834cef39f3f95caaa8b4361f2b32297ae32",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "path": "gameplay/screenshots/supply-choice-844.png",
+      "bytes": 93874,
+      "sha256": "5eb2dea1e65eab5fd6603737c3fdc2cc71f6838fb8e93f36191c2cd8a3473846",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "path": "gameplay/screenshots/thermal-844.png",
+      "bytes": 75990,
+      "sha256": "6dee17e7e6c461317052e6219c2b0984eeb09a3f47eecb70c8dfb0981c46fe71",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "path": "gameplay/screenshots/training-success-1280.png",
+      "bytes": 182365,
+      "sha256": "30224f677c5dc83fe829c614a5c91e28cd418330a2abf80a70477b36d762b4b9",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/videos/mobile-day-night-844x390-silent.mp4",
+      "bytes": 2232963,
+      "sha256": "1e87470f9b4238e562d4b8674236db8c4e444ee8a7839c1b9b2464851f61a611",
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 844,
+            "height": 390
+          }
+        ],
+        "format": {
+          "duration": "36.880000"
+        }
+      }
+    },
+    {
+      "path": "gameplay/videos/training-complete-1280x720-silent.mp4",
+      "bytes": 5377665,
+      "sha256": "8d4bae7a00c52327e7cc31f9f1654bd2c736d07ac9e9c02a3cb45239db86c9ef",
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1280,
+            "height": 720
+          }
+        ],
+        "format": {
+          "duration": "27.080000"
+        }
+      }
+    },
+    {
+      "path": "icon/icon-1024.png",
+      "bytes": 1168540,
+      "sha256": "16eb53f945baddc89f00389715beb7b3953290d71305c4273dc74b5433e5610d",
+      "width": 1024,
+      "height": 1024
+    },
+    {
+      "path": "promo/images/title-1440x1440.png",
+      "bytes": 2285613,
+      "sha256": "b801b40155959ebb475c01ec88a896204ff1b41240de6ceaa8a1eb8fb021983c",
+      "width": 1440,
+      "height": 1440
+    },
+    {
+      "path": "promo/images/title-1920x1080.png",
+      "bytes": 2392478,
+      "sha256": "a81bcb3dea9e4bbeb17b3c0ca5bd9d1acd55c7361852aa8500183b2a353c14f0",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "path": "promo/videos/edit.json",
+      "bytes": 1325,
+      "sha256": "69f924fa846d2b964096d0b90fce6c48ad9dfa6acfa888871d08cd33ffab71d7"
+    },
+    {
+      "path": "promo/videos/night-overwatch-1280x720-silent.mp4",
+      "bytes": 3482057,
+      "sha256": "7352663593ed0c683538a3ed670c82497d8a2db36b870171619aa11576ce16bb",
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1280,
+            "height": 720
+          }
+        ],
+        "format": {
+          "duration": "21.560000"
+        }
+      }
+    }
+  ]
+}

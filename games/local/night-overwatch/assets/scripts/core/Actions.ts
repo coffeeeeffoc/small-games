@@ -367,8 +367,8 @@ export const ACTIONS = [
     binding: '',
     touch: ['点击顶部设置', 'Tap top Settings'],
     description: [
-      '声音、效果与帮助集中在设置中；打开时暂停任务，弹窗上方仍可切换全屏。',
-      'Sound, effects and help live here. Settings pauses the mission; full screen stays available above every panel.',
+      '声音、效果与帮助集中在设置中；打开时暂停任务。',
+      'Sound, effects and help live here. Settings pauses the mission.',
     ],
   },
   {
@@ -395,18 +395,9 @@ export const ACTIONS = [
       'Pauses world, shells, heat and clock. Press FIRE again on return.',
     ],
   },
-  {
-    id: 'fullscreen',
-    group: 'advanced',
-    name: ['全屏', 'Full screen'],
-    keys: [],
-    binding: '',
-    touch: ['点击全屏 / 退出全屏', 'Tap full screen / exit'],
-    description: [
-      '顶部全屏按钮始终可用，包括帮助、暂停等弹窗；退出保留进度。不支持时仍可窗口游玩。',
-      'The top Full screen button stays available over every panel. Exit preserves progress; windowed play remains available.',
-    ],
-  },
+  { id: 'priority', group: 'basic', name: ['紧急目标', 'Priority threat'], keys: [], binding: '',
+    touch: ['点击红色提示定位', 'Tap red alert to locate'],
+    description: ['红框标出即将攻击友军的敌人，数字是开火倒计时。电台同步提示；夜间可开启热成像。', 'Red brackets mark enemies about to attack allies. The timer shows time to fire. Listen to radio calls; use thermal at night.'] },
   {
     id: 'protection',
     group: 'rules',

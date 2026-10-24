@@ -123,9 +123,9 @@ export function ballisticLaunch(origin: Point3, target: Point, speed: number, he
   };
 }
 
-export type Trajectory = { origin: Point3; velocity: Point3; born: number; due: number };
+export type Trajectory = { origin: Point3; velocity: Point3; born: number; due: number; timeScale?: number };
 export function shotPosition(shot: Trajectory, time: number): Point3 {
-  const t = clamp(time, shot.born, shot.due) - shot.born;
+  const t = (clamp(time, shot.born, shot.due) - shot.born) * (shot.timeScale ?? 1);
   return {
     x: shot.origin.x + shot.velocity.x * t,
     y: shot.origin.y + shot.velocity.y * t - 0.5 * FLIGHT.gravity * t * t,
@@ -138,8 +138,9 @@ export function terrainContact(shot: Trajectory, from: number, to: number, heigh
   const end = Math.min(shot.due, to);
   if (end < start) return;
   // ponytail: 0.5-unit sweeps resolve these broad hills; use mesh CCD if terrain gains cliffs/caves.
-  const count = Math.max(1, Math.ceil((end - start) * Math.hypot(
-    shot.velocity.x, shot.velocity.y - FLIGHT.gravity * (end - shot.born), shot.velocity.z,
+  const scale = shot.timeScale ?? 1;
+  const count = Math.max(1, Math.ceil((end - start) * scale * Math.hypot(
+    shot.velocity.x, shot.velocity.y - FLIGHT.gravity * (end - shot.born) * scale, shot.velocity.z,
   ) / 0.5));
   const begin = start;
   for (let i = 1; i <= count; i++) {

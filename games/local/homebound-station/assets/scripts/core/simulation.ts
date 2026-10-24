@@ -8,7 +8,7 @@ import {
   type Point,
   type StationGeometry,
 } from './geometry.ts';
-import { moveStation, canStartPassengerWalk, type StationMovement } from './station-traffic.ts';
+import { moveStation, type StationMovement } from './station-traffic.ts';
 export { getStationGeometry, parkingPosition } from './geometry.ts';
 export type { Point, Bounds, Lane, StationBayGeometry, StationGeometry } from './geometry.ts';
 export const BAY_X: Record<string, number> = { T1: -7.5, T2: -2.5, T3: 2.5, T4: 7.5 };
@@ -33,6 +33,9 @@ export interface Group {
   bayId?: string;
   boarded: number;
   waitSeconds: number;
+  /** Undefined while inside the station; zero for the initial waiting parties. */
+  arrivalStartedAt?: number;
+  arrivesAt?: number;
 }
 export interface Vehicle extends VehicleConfig {
   sequence: number;
@@ -126,6 +129,7 @@ export function createSimulation(config: LevelConfig): Simulation {
     splitOrder: 0,
     boarded: 0,
     waitSeconds: 0,
+    ...(geometry.mode === 'station' && sequence < 4 ? { arrivalStartedAt: 0, arrivesAt: 0 } : {}),
   }));
   const vehicles: Vehicle[] = config.vehicles.map((v, sequence) => ({
     ...v,
@@ -222,8 +226,18 @@ export function matchGroup(s: Simulation, v: Vehicle, bayId?: string): Check {
   if (bayId && !s.bays.some((b) => b.id === bayId)) return no('找不到上车位');
   if (s.delivered.size === s.target) return { ok: true, reason: '旅客已接完，空车收班离场' };
   let reason = '旅客均已分配，车辆正在并行接驳';
+  if (
+    s.geometry.mode === 'station' &&
+    s.groups.some((g) => g.state === 'ready' && g.arrivesAt === undefined)
+  )
+    reason = '下一拨旅客正在出站，请稍等';
   const groups = s.groups
-    .filter((g) => g.state === 'ready' && (!bayId || g.queueBayId === bayId))
+    .filter(
+      (g) =>
+        g.state === 'ready' &&
+        (!bayId || g.queueBayId === bayId) &&
+        (s.geometry.mode === 'legacy' || g.arrivesAt !== undefined),
+    )
     .sort((a, b) => a.sequence - b.sequence || a.splitOrder - b.splitOrder);
   for (const g of groups) {
     if (
@@ -260,7 +274,13 @@ export function dispatch(s: Simulation, vehicleId: string, bayId?: string): Chec
   const v = s.vehicles.find((v) => v.id === vehicleId)!,
     g = check.group;
   const b = check.bay;
-  const pickupPoint = g ? { ...queuePosition(s, g) } : undefined;
+  const pickupPoint = g
+    ? {
+        ...(s.geometry.mode === 'station'
+          ? s.geometry.bays.find((bay) => bay.id === g.queueBayId)!.waitingPoint
+          : queuePosition(s, g)),
+      }
+    : undefined;
   v.state = 'reserved';
   v.groupId = g?.id;
   v.bayId = b?.id;
@@ -364,6 +384,9 @@ export function splitGroup(
       allowSplit: false,
       committedVehicleId: valid.vehicles[i],
       commitmentUntil: s.time + 120,
+      ...(s.geometry.mode === 'station' && i > 0
+        ? { arrivalStartedAt: undefined, arrivesAt: undefined }
+        : {}),
     };
     offset += n;
     return child;
@@ -379,8 +402,19 @@ export function splitGroup(
   };
 }
 export function queuePosition(s: Simulation, g: Group): Point {
-  if (s.geometry.mode === 'station')
-    return { ...s.geometry.bays.find((b) => b.id === g.queueBayId)!.door };
+  if (s.geometry.mode === 'station') {
+    const bay = s.geometry.bays.find((b) => b.id === g.queueBayId)!;
+    const progress =
+      g.arrivesAt === undefined
+        ? 0
+        : g.arrivesAt <= s.time
+          ? 1
+          : Math.max(0, (s.time - g.arrivalStartedAt!) / (g.arrivesAt - g.arrivalStartedAt!));
+    return {
+      x: bay.door.x + (bay.waitingPoint.x - bay.door.x) * progress,
+      z: bay.door.z + (bay.waitingPoint.z - bay.door.z) * progress,
+    };
+  }
   const root = g.parentGroupId ? s.groups.find((p) => p.id === g.parentGroupId)! : g;
   const rank = s.groups.filter(
     (p) => !p.parentGroupId && p.queueBayId === g.queueBayId && p.sequence < root.sequence,
@@ -772,14 +806,6 @@ function tick(s: Simulation) {
     const v = s.vehicles.find((v) => v.id === job.vehicleId)!,
       g = s.groups.find((g) => g.id === job.groupId),
       b = s.bays.find((b) => b.id === job.bayId);
-    if (
-      s.geometry.mode === 'station' &&
-      job.phase === 'walking' &&
-      !canStartPassengerWalk(s, job)
-    ) {
-      job.elapsed = 0;
-      continue;
-    }
     job.elapsed += STEP;
     if (job.phase === 'driving' || job.phase === 'departing') {
       const finished = move(s, v, job);
@@ -836,6 +862,24 @@ function tick(s: Simulation) {
       }
     }
   }
+  if (s.geometry.mode === 'station')
+    for (const bay of s.geometry.bays) {
+      const next = s.groups
+        .filter(
+          (g) =>
+            g.queueBayId === bay.id &&
+            g.state !== 'split' &&
+            g.state !== 'departed' &&
+            g.boarded < g.passengers.length,
+        )
+        .sort((a, b) => a.sequence - b.sequence || a.splitOrder - b.splitOrder)[0];
+      if (next && next.arrivesAt === undefined) {
+        next.arrivalStartedAt = s.time;
+        next.arrivesAt =
+          s.time +
+          Math.hypot(bay.waitingPoint.x - bay.door.x, bay.waitingPoint.z - bay.door.z) / 3.5;
+      }
+    }
   s.won = s.delivered.size === s.target && s.vehicles.every((v) => v.state === 'removed');
 }
 export function advance(s: Simulation, seconds: number) {

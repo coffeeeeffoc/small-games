@@ -1,4 +1,4 @@
-import type { Point } from './geometry.ts';
+import { stationDeparturePath, type Point } from './geometry.ts';
 import type { Simulation, Service, Vehicle } from './simulation.ts';
 export interface StationMovement {
   from: Point;
@@ -35,33 +35,47 @@ function segmentDistance(a: Point, b: Point, c: Point, d: Point) {
     distanceToSegment(d, a, b),
   );
 }
-export function canStartPassengerWalk(s: Simulation, job: Service) {
-  if (job.crosswalkActive) return true;
-  const crossing = s.geometry.bays.find((b) => b.id === job.bayId)!.exit;
-  if (
-    s.vehicles.some(
-      (v) =>
-        v.state !== 'removed' &&
-        Math.hypot(v.position.x - crossing.x, v.position.z - crossing.z) < CLEARANCE,
-    )
-  )
-    return false;
-  if (
-    Object.values(s.movements ?? {}).some(
-      (m) => distanceToSegment(crossing, m.from, m.to) < CLEARANCE,
-    )
-  )
-    return false;
-  job.crosswalkActive = true;
-  job.elapsed = 0;
-  return true;
-}
 function grant(s: Simulation, v: Vehicle, job: Service, to: Point): StationMovement | undefined {
   const bay =
     job.phase === 'driving' && job.bayId && job.pathIndex === job.path.length - 1
       ? s.bays.find((b) => b.id === job.bayId)
       : undefined;
   if (bay?.vehicleId && bay.vehicleId !== v.id) return undefined;
+  if (bay) {
+    const group = s.groups.find((g) => g.id === job.groupId)!;
+    if (group.arrivesAt === undefined || group.arrivesAt > s.time) return undefined;
+  }
+  // A waiting taxi must leave the neighbouring curb's complete exit clear.
+  if (
+    s.bays.some((occupied) => {
+      if (!occupied.vehicleId || occupied.vehicleId === v.id) return false;
+      const geometry = s.geometry.bays.find((b) => b.id === occupied.id)!;
+      return distanceToSegment(to, geometry.point, geometry.exit) < CLEARANCE;
+    })
+  )
+    return undefined;
+  // Let traffic already inside a merge clear, then leave a gap for the taxi at the curb.
+  if (
+    s.services.some((other) => {
+      if (
+        other === job ||
+        !other.bayId ||
+        !(
+          other.phase === 'closing' ||
+          other.phase === 'exitWait' ||
+          (other.phase === 'departing' && other.pathIndex === 1)
+        )
+      )
+        return false;
+      const origin = s.geometry.bays.find((b) => b.id === other.bayId)!.point;
+      const exit = stationDeparturePath(s.geometry, origin)[1]!;
+      return (
+        distanceToSegment(v.position, origin, exit) >= CLEARANCE &&
+        segmentDistance(v.position, to, origin, exit) < CLEARANCE
+      );
+    })
+  )
+    return undefined;
   // Acquire the complete next crossing and its safe downstream waiting cell atomically.
   // No car can enter a junction, stop inside it, then wait for another movement's lock.
   if (
@@ -76,15 +90,6 @@ function grant(s: Simulation, v: Vehicle, job: Service, to: Point): StationMovem
   if (
     Object.entries(s.movements ?? {}).some(
       ([id, m]) => id !== v.id && segmentDistance(v.position, to, m.from, m.to) < CLEARANCE,
-    )
-  )
-    return undefined;
-  if (
-    s.services.some(
-      (other) =>
-        other.crosswalkActive &&
-        distanceToSegment(s.geometry.bays.find((b) => b.id === other.bayId)!.exit, v.position, to) <
-          CLEARANCE,
     )
   )
     return undefined;
@@ -128,5 +133,7 @@ export function moveStation(s: Simulation, v: Vehicle, job: Service) {
       delete s.movements![v.id];
     }
   }
-  return job.pathIndex >= job.path.length;
+  const finished = job.pathIndex >= job.path.length;
+  if (finished && job.phase === 'driving' && job.bayId) v.angle = Math.PI / 2;
+  return finished;
 }

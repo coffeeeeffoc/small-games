@@ -181,7 +181,7 @@ it('keeps other games navigation and sharing controls after an ink display messa
     const nav = container.querySelector('nav')!;
     expect(nav.hidden).toBe(false);
     expect(nav.querySelector('strong')?.textContent).toBe('夜航守望');
-    expect(nav.querySelector('[data-game-fullscreen]')).not.toBeNull();
+    expect(nav.querySelector('[data-game-fullscreen]')).toBeNull();
     expect(nav.querySelector('a')?.textContent).toBe('独立打开');
     expect(
       [...nav.querySelectorAll('button')].some((button) => button.textContent?.includes('分享')),

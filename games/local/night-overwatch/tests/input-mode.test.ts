@@ -3,10 +3,19 @@ import test from 'node:test';
 import { registerHooks, stripTypeScriptTypes } from 'node:module';
 
 class Node {
+  listeners = new Map<string, () => void>();
+  on(event: string, callback: () => void) { this.listeners.set(event, callback); }
+  emit(event: string) { this.listeners.get(event)?.(); }
   addChild() {}
-  addComponent(type: any) { return new type(); }
+  addComponent(type: any) { const value = new type(); value.node = this; return value; }
 }
-class AudioSource { playing = false; stop() { this.playing = false; } play() { this.playing = true; } }
+class AudioSource {
+  static EventType = { ENDED: 'ended' };
+  playing = false; currentTime = 0;
+  stop() { this.playing = false; this.currentTime = 0; }
+  pause() { this.playing = false; }
+  play() { this.playing = true; }
+}
 const cc = { Node, AudioSource, AudioClip: class {}, Component: class {},
   EventKeyboard: class {}, EventTouch: class {}, EventMouse: class {},
   _decorator: { ccclass: () => (type: any) => type },
@@ -28,7 +37,7 @@ const hooks = registerHooks({
     if (url === 'night-input:cc') return { format: 'module', shortCircuit: true,
       source: `export const { ${Object.keys(cc).join(',')} } = globalThis.__nightInputCC;` };
     if (url === 'night-input:./World' || url === 'night-input:./HUD') return { format: 'module', shortCircuit: true,
-      source: `export class World { constructor(parent, map = 'valley') { this.map = map; } root = { active: true, destroy() {} }; camera = {}; reset() {} updateCamera() {} } export class HUD {}` };
+      source: `export class World { constructor(parent, map = 'valley', light = 'day') { this.map = map; this.light = light; } root = { active: true, destroy() {} }; camera = {}; reset() {} updateCamera() {} } export class HUD {}` };
     const result = next(url, context);
     if (url === sourceURL.href) return { ...result, format: 'module', source:
       stripTypeScriptTypes(result.source!.toString().replace("@ccclass('Overwatch')", ''), { mode: 'transform' }) };
@@ -44,13 +53,92 @@ const touch = (id: number, x = 950, y = 100, simulate = false) => ({ simulate,
   getTouches: () => [{ getID: () => id, getUILocation: () => ({ x, y }), getLocation: () => ({ x, y }) }] });
 function mission() {
   const g = new Overwatch();
-  g.hud = { h: 600, modal: null, hit: (x: number) => x > 900 ? { id: 'fire' } : undefined,
+  g.hud = { supplySelection: 'tracking', h: 600, modal: null, hit: (x: number) => x > 900 ? { id: 'fire' } : undefined,
     minimapPoint: () => undefined, blocksBattlefield: () => false };
-  g.world = { map: 'valley', root: { active: true, destroy() {} }, camera: {}, updateCamera() {}, reset() {} };
+  g.world = { map: 'valley', light: 'day', root: { active: true, destroy() {} }, camera: {}, updateCamera() {}, reset() {} };
   g.platform = new Platform(new Node(), g.pause, g.clear);
-  g.sim.start();
+  g.sim.start(); g.sim.choose(0);
   return g;
 }
+
+test('offset aim survives slow microdrags, release-only displacement, taps and cancelled gestures', () => {
+  const g = mission();
+  g.world.project = (p: any) => ({ x: p.x, y: p.z, z: .5 });
+  g.world.aimAt = (x: number, y: number) => ({ x, z: y });
+  g.sim.setAim({ x: 20, z: 30 });
+  g.touchStart(touch(1, 300, 200));
+  for (let i = 1; i <= 10; i++) g.touchMove(touch(1, 300 + i, 200 + i));
+  assert.deepEqual(g.sim.aim, { x: 30, z: 40 });
+  assert.equal(g.touches.get(1).moved, true, 'motion accumulates from the original finger position');
+  g.touchEnd(touch(1, 370, 260));
+  assert.deepEqual(g.sim.aim, { x: 30, z: 40 });
+  g.touchStart(touch(2, 200, 200)); g.touchEnd(touch(2, 200, 200));
+  assert.deepEqual(g.sim.aim, { x: 30, z: 40 });
+  g.touchStart(touch(3, 200, 200)); g.touchCancel(touch(3)); g.touchEnd(touch(3, 700, 200));
+  assert.deepEqual(g.sim.aim, { x: 30, z: 40 }); assert.equal(g.sim.fired, 0);
+  g.platform.dispose();
+});
+
+test('homing tap locks but cumulative movement and end-only displacement do not become taps', () => {
+  const g = mission(); g.sim.homingAmmo = 2; g.sim.selectHoming();
+  g.world.project = () => ({ x: 0, y: 0, z: .5 }); g.world.aimAt = () => ({ x: 0, z: 0 });
+  let locks = 0; g.lockAt = () => { locks++; };
+  g.touchStart(touch(1, 300, 200));
+  for (let i = 1; i <= 10; i++) g.touchMove(touch(1, 300 + i, 200));
+  g.touchMove(touch(1, 300, 200)); g.touchEnd(touch(1, 300, 200));
+  assert.equal(locks, 0);
+  g.touchStart(touch(2, 300, 200)); g.touchEnd(touch(2, 310, 200)); assert.equal(locks, 0);
+  g.touchStart(touch(3, 300, 200)); g.touchEnd(touch(3, 301, 200)); assert.equal(locks, 1);
+  g.platform.dispose();
+});
+
+test('radio has one voice, honors mute, stops with lifecycle and never queues a missing clip', () => {
+  const g = mission(), p = g.platform; p.activate();
+  p.speak('day', 'zh'); assert.equal(p.radio.playing, true);
+  p.speak('priority', 'zh'); assert.equal(p.radio.clip, p.clips.get('radio-priority-zh'));
+  g.pause('manual', true); assert.equal(p.radio.playing, false);
+  p.muted = true; p.speak('critical', 'zh'); assert.equal(p.radio.playing, false);
+  p.muted = false; p.clips.delete('radio-clear-zh'); p.speak('clear', 'zh'); assert.equal(p.radio.playing, false);
+  p.dispose(); p.speak('day', 'zh'); assert.equal(p.radio.playing, false);
+});
+
+test('extraction waits for the actual radio end, and pauses resume the unfinished line', () => {
+  const g = mission(), p = g.platform; p.activate(); g.hud.lang = 'zh';
+  for (const u of g.sim.units) if (!u.friendly) u.hp = 0;
+  g.sim.step(1 / 60); g.updateRadio(1 / 60);
+  assert(g.sim.extractionRadioPending); assert.equal(p.radio.clip, p.clips.get('radio-clear-zh'));
+  p.radio.currentTime = 1.5;
+  g.pause('manual', true); g.pause('background', true); g.updateRadio(.1);
+  assert(!p.radio.playing); assert(p.radioPending); assert.equal(p.radio.currentTime, 1.5);
+  g.pause('manual', false); g.updateRadio(.1); assert(!p.radio.playing);
+  g.pause('background', false); g.updateRadio(.1);
+  assert(p.radio.playing); assert.equal(p.radio.currentTime, 1.5);
+  for (let i = 0; i < 360; i++) { p.radio.currentTime += 1 / 60; g.sim.step(1 / 60); g.updateRadio(1 / 60); }
+  assert.equal(g.sim.convoy, 'arrived'); assert.equal(g.sim.phase, 'playing', 'not a fixed three-second voice timeout');
+  p.radio.playing = false; p.radio.node.emit(AudioSource.EventType.ENDED); g.updateRadio(1 / 60); g.sim.step(1 / 60);
+  assert.equal(g.sim.phase, 'success'); assert(!g.sim.extractionRadioPending);
+  p.dispose();
+});
+
+test('silent, unavailable and rejected audio cannot strand extraction; retry drops the old radio wait', () => {
+  for (const mode of ['muted', 'missing', 'rejected', 'stalled', 'mute-during', 'retry']) {
+    const g = mission(), p = g.platform; p.activate(); g.hud.lang = 'zh';
+    if (mode === 'muted') p.muted = true;
+    if (mode === 'missing') p.clips.delete('radio-clear-zh');
+    if (mode === 'rejected') p.radio.play = () => {};
+    for (const u of g.sim.units) if (!u.friendly) u.hp = 0;
+    g.sim.step(1 / 60); g.updateRadio(1 / 60);
+    if (mode === 'mute-during') { p.muted = true; p.stop(); }
+    if (mode === 'retry') {
+      g.retry(); g.updateRadio(1 / 60); assert(!g.sim.extractionRadioPending);
+      assert.equal(p.radio.clip, p.clips.get('radio-day-zh'));
+    } else {
+      for (let i = 0; i < 240; i++) { g.sim.step(1 / 60); g.updateRadio(1 / 60); }
+      assert.equal(g.sim.phase, 'success', mode); assert(!p.radioPending, mode);
+    }
+    p.dispose();
+  }
+});
 
 test('two-finger translation preserves both midpoint positions and cancels the remaining finger', () => {
   const g = mission(), calls: number[][] = [];
@@ -109,12 +197,13 @@ test('supply completion earns one choice, ammo grants two once, and inventory ne
     g.finishReward(true);
     assert.equal(g.sim.homingAmmo, 0); assert(g.platform.rewards.pendingSupply);
     assert(!g.sim.pauses.has('advert'));
-    g.action('supplyLater'); assert(g.sim.pauses.has('manual'));
-    g.action('resume'); assert(!g.sim.paused); assert(g.platform.rewards.pendingSupply);
+    g.action('supplyLater'); assert.equal(g.sim.resumeCountdown, 3);
+    for (let i = 0; i < 181; i++) g.sim.stepCountdown(1 / 60);
+    assert(!g.sim.paused); assert(g.platform.rewards.pendingSupply);
     await g.requestReward('zoom');
     assert(g.hud.supplyOpen, 'pending choice takes precedence over another ad');
     assert.equal(g.world.zoomLimit, 5);
-    g.action('reward:ammo'); g.action('reward:ammo');
+    g.action('reward:ammo'); g.action('supplyWatch'); g.action('reward:ammo'); g.action('supplyWatch');
     assert.equal(g.sim.homingAmmo, 2); assert.equal(g.platform.rewards.ammo, 2);
     assert.equal(g.platform.rewards.pendingSupply, false); assert.equal(g.sim.resumeCountdown, 3);
     assert.equal(g.sim.held.size, 0);
@@ -139,7 +228,7 @@ test('supply completion earns one choice, ammo grants two once, and inventory ne
       return { status: 'completed' };
     };
     await g.requestReward('supply'); assert(g.platform.rewards.pendingSupply);
-    g.action('reward:ammo'); assert.equal(g.sim.homingAmmo, 4);
+    g.action('reward:ammo'); g.action('supplyWatch'); assert.equal(g.sim.homingAmmo, 4);
     g.platform.rewardProvider = undefined; cc.sys.isBrowser = false;
     assert.equal(await g.platform.offerReward('supply'), 'unavailable');
   } finally { cc.sys.isBrowser = false; g.platform.dispose(); }
@@ -150,13 +239,14 @@ test('timed buffs block supply and zoom providers; cancellation never grants and
     const g = mission(); g.hud.t = (zh: string) => zh;
     let offers = 0;
     g.platform.rewardProvider = async () => { offers++; return { status: 'completed' }; };
-    await g.requestReward('supply'); g.action('reward:' + reward);
+    await g.requestReward('supply'); g.action('reward:' + reward); g.action('supplyWatch');
     assert.equal(g.sim.buff.kind, reward); assert.equal(g.sim.buff.remaining, 60);
     for (let i = 0; i < 181; i++) g.sim.stepCountdown(1 / 60);
     assert.equal(g.sim.buff.remaining, 60, 'countdown never spends buff time');
     await g.requestReward('supply'); await g.requestReward('zoom'); assert.equal(offers, 1);
     g.action('homing'); g.action('supplyWatch'); assert.equal(offers, 1);
-    g.action('supplyLater'); g.action('resume');
+    g.action('supplyLater');
+    for (let i = 0; i < 181; i++) g.sim.stepCountdown(1 / 60);
     g.sim.buff.remaining = .05; g.sim.step(.1); assert(!g.sim.buff);
     await g.requestReward('zoom'); assert.equal(offers, 2);
     g.platform.dispose();
@@ -168,7 +258,8 @@ test('timed buffs block supply and zoom providers; cancellation never grants and
   try {
     const request = g.requestReward('supply'); g.action('adCancel'); g.action('adClose'); await request;
     assert(!g.platform.rewards.pendingSupply); assert(g.sim.pauses.has('manual'));
-    g.action('resume'); assert(!g.sim.paused);
+    g.action('resume'); assert.equal(g.sim.resumeCountdown, 3);
+    for (let i = 0; i < 181; i++) g.sim.stepCountdown(1 / 60);
     const next = g.requestReward('supply'); g.action('close'); await next;
     assert(!g.platform.rewards.pendingSupply, 'Escape cancels without granting a reward');
   } finally { cc.sys.isBrowser = false; g.platform.dispose(); }
@@ -186,11 +277,11 @@ test('completed entitlement survives close, home, reload and background; repeate
     await g.requestReward('zoom'); assert.equal(calls, 1);
     g.hide(); complete({ status: 'completed' }); complete({ status: 'completed' }); await request;
     assert(g.platform.rewards.pendingSupply); assert(g.sim.paused);
-    g.show(); assert(g.sim.paused); g.action('supplyLater'); g.action('home');
+    g.show(); assert(g.sim.paused); g.action('supplyLater'); g.action('pause'); g.action('home');
     assert(g.platform.rewards.pendingSupply);
     const restored = mission(); restored.hud.t = (zh: string) => zh;
     assert(restored.platform.rewards.pendingSupply);
-    restored.action('supply'); restored.action('reward:ammo'); restored.action('reward:rate');
+    restored.action('supply'); restored.action('reward:ammo'); restored.action('supplyWatch'); restored.action('reward:rate'); restored.action('supplyWatch');
     assert.equal(restored.platform.rewards.ammo, 2); assert(!restored.sim.buff);
     restored.hide(); assert(restored.sim.paused); restored.show(); assert(restored.sim.paused);
     assert.equal(restored.sim.resumeCountdown, 0);
@@ -209,8 +300,10 @@ test('storage failure preserves in-session choice and completion after disposal 
   const g = mission(); g.hud.t = (zh: string) => zh;
   try {
     g.platform.rewardProvider = async () => ({ status: 'completed' });
-    await g.requestReward('supply'); g.action('supplyLater'); g.action('supply');
-    g.action('reward:ammo'); assert.equal(g.platform.rewards.ammo, 2);
+    await g.requestReward('supply'); g.action('supplyLater');
+    for (let i = 0; i < 181; i++) g.sim.stepCountdown(1 / 60);
+    g.action('supply');
+    g.action('reward:ammo'); g.action('supplyWatch'); assert.equal(g.platform.rewards.ammo, 2);
     g.retry();
     let complete: any;
     g.platform.rewardProvider = () => new Promise(resolve => { complete = resolve; });
@@ -299,7 +392,7 @@ test('changing missions requires a briefing or result; retry preserves the chose
   g.retry();
   assert.equal(g.sim.mission.id, 'ambush-02');
   assert.equal(g.sim.phase, 'playing');
-  assert.equal(g.sim.spawned.size, 8);
+  assert.equal(g.sim.spawned.size, 6);
   assert.equal(g.sim.held.size, 0);
   assert.equal(g.sim.time, 0);
 });
@@ -391,7 +484,7 @@ test('returning home aborts a live mission, clears input and starts the next map
   g.action('mission:ambush-02');
   assert.equal(g.sim.mission.map, 'highland'); assert.equal(g.world.map, 'highland');
   assert.equal(g.sim.phase, 'briefing');
-  g.action('start'); assert.equal(g.sim.phase, 'playing'); assert.equal(g.sim.spawned.size, 8);
+  g.action('start'); assert.equal(g.sim.phase, 'playing'); assert.equal(g.sim.spawned.size, 6);
   g.action('home'); assert.equal(g.sim.phase, 'briefing'); assert.equal(g.sim.fired, 0);
 });
 
@@ -442,5 +535,73 @@ test('explicit dev=0 is retained when mission shortcuts are synchronized', () =>
     cc.sys.isBrowser = false; g.platform.dispose();
     for (const [name, original] of [['location', originalLocation], ['history', originalHistory]] as const)
       if (original) Object.defineProperty(globalThis, name, original); else delete (globalThis as any)[name];
+  }
+});
+
+
+test('support flow selects before the ad and activates exactly the chosen support on completion', async () => {
+  for (const reward of ['tracking', 'ammo', 'rate']) {
+    const g = mission(); g.hud.t = (zh: string) => zh;
+    let finish: any, offers = 0;
+    g.platform.rewardProvider = () => { offers++; return new Promise(resolve => { finish = resolve; }); };
+    try {
+      g.action('supply'); g.action('reward:' + reward);
+      assert.equal(offers, 0); assert.equal(g.hud.supplySelection, reward); assert(!g.sim.buff); assert.equal(g.sim.homingAmmo, 0);
+      g.action('supplyWatch'); g.action('supplyWatch'); g.action('reward:tracking');
+      assert.equal(offers, 1); assert(g.sim.pauses.has('advert'));
+      finish({ status: 'completed' }); await new Promise(resolve => setImmediate(resolve));
+      g.finishReward(true);
+      assert.equal(g.sim.resumeCountdown, 3); assert(!g.hud.supplyOpen); assert(!g.platform.rewards.pendingSupply);
+      if (reward === 'ammo') { assert.equal(g.sim.homingAmmo, 2); assert(g.sim.homingSelected); }
+      else { assert.equal(g.sim.buff.kind, reward); assert.equal(g.sim.buff.remaining, 60); }
+      assert(g.hud.toast.includes(reward === 'ammo' ? '+2' : reward === 'rate' ? '30%' : '自动追踪'));
+    } finally { g.platform.dispose(); }
+  }
+});
+
+test('failed support ads return to the choice with no award; skip resumes battle without another ad', async () => {
+  for (const status of ['dismissed', 'unavailable', 'failed']) {
+    const g = mission(); g.hud.t = (zh: string) => zh; let offers = 0;
+    g.platform.rewardProvider = async () => { offers++; return { status }; };
+    try {
+      g.action('supply'); g.action('reward:ammo'); g.action('supplyWatch');
+      await new Promise(resolve => setImmediate(resolve));
+      assert(g.hud.supplyOpen); assert(g.hud.supplyMessage.includes('未获得奖励'));
+      assert.equal(g.hud.supplySelection, 'ammo'); assert.equal(g.sim.homingAmmo, 0); assert(!g.platform.rewards.pendingSupply);
+      g.action('supplyLater'); assert.equal(g.sim.resumeCountdown, 3); assert.equal(offers, 1);
+    } finally { g.platform.dispose(); }
+  }
+});
+
+test('a chosen timed support completed in background activates once on foreground without a second ad', async () => {
+  const g = mission(); g.hud.t = (zh: string) => zh; let finish: any, offers = 0;
+  g.platform.rewardProvider = () => { offers++; return new Promise(resolve => { finish = resolve; }); };
+  try {
+    g.action('supply'); g.action('reward:rate'); g.action('supplyWatch'); g.hide();
+    finish({ status: 'completed' }); await new Promise(resolve => setImmediate(resolve));
+    assert(g.platform.rewards.pendingSupply); assert(!g.sim.buff); assert.equal(g.sim.resumeCountdown, 0);
+    g.show();
+    assert.equal(g.sim.buff.kind, 'rate'); assert.equal(g.sim.buff.remaining, 60); assert.equal(offers, 1);
+    assert.equal(g.sim.resumeCountdown, 3);
+  } finally { g.platform.dispose(); }
+});
+
+
+test('deferred support waits for every system pause and never consumes credit after skipping or changing battle', async () => {
+  for (const action of ['restore', 'skip', 'retry']) {
+    const g = mission(); g.hud.t = (zh: string) => zh; let finish: any;
+    g.platform.rewardProvider = () => new Promise(resolve => { finish = resolve; });
+    try {
+      g.action('supply'); g.action('reward:rate'); g.action('supplyWatch');
+      g.hide(); g.pause('focus', true); g.pause('orientation', true);
+      finish({ status: 'completed' }); await new Promise(resolve => setImmediate(resolve));
+      if (action === 'skip') g.closeSupply();
+      if (action === 'retry') g.retry();
+      g.show(); g.pause('focus', false); assert(!g.sim.buff); assert(g.platform.rewards.pendingSupply);
+      g.pause('orientation', false);
+      assert.equal(g.sim.buff?.kind, action === 'restore' ? 'rate' : undefined);
+      assert.equal(g.platform.rewards.pendingSupply, action !== 'restore');
+      g.pause('focus', false); assert.equal(g.sim.buff?.remaining, action === 'restore' ? 60 : undefined);
+    } finally { g.platform.dispose(); }
   }
 });

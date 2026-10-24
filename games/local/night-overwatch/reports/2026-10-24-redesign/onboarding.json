@@ -1,0 +1,14 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "e80ac6419ce7d006a9ecdd2bdbc7b28d066cb10656f1bd0d5f77649e11d140b0"
+  },
+  "phase": "success",
+  "kills": 3,
+  "time": 25.416666666666504,
+  "fired": 4,
+  "friendlyDamage": 0,
+  "retry": true,
+  "errors": []
+}

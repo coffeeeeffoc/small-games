@@ -131,7 +131,7 @@ export function drawEffects(
         return project({ x: u.x + .3 + Math.cos(a) * r, z: u.z + .25 + Math.sin(a) * r * 1.6 }, .012 + layer * .004);
       }), new Color(3, 8, 12, world.thermal ? 12 : 28));
     }
-    if (u.hp <= 0 || u.kind === 'turret' || world.thermal) continue;
+    if (u.hp <= 0 || u.kind === 'turret' || world.thermal || world.light === 'day') continue;
     const c = Math.cos(u.heading), sn = Math.sin(u.heading);
     const point = (side: number, forward: number, y = .025) => project({
       x: u.x + c * side + sn * forward, z: u.z - sn * side + c * forward,
@@ -327,8 +327,8 @@ export function drawEffects(
     line({ x: head.x - Math.cos(heading) * bodyLength, y: head.y - Math.sin(heading) * bodyLength }, head, 1, 0.95, bodyWidth);
     if (primitives > beforeHead) frame.projectiles.push({ id: shot.id, weapon,
       x: head.x + width / 2, y: height / 2 - head.y, width: bodyWidth, length: bodyLength,
-      speed: Math.hypot(shot.velocity.x, shot.velocity.y - (shot.guidance ? 0 : FLIGHT.gravity * age), shot.velocity.z) });
-    const flash = clamp(1 - age / 0.085);
+      speed: (shot.timeScale ?? 1) * Math.hypot(shot.velocity.x, shot.velocity.y - (shot.guidance ? 0 : FLIGHT.gravity * age * (shot.timeScale ?? 1)), shot.velocity.z) });
+    const flash = shot.timeScale ? 0 : clamp(1 - age / 0.085);
     if (flash > 0) {
       const origin = airborne(shot.origin);
       blob(origin, 7 + weapon * 3, 5 + weapon * 2, 0.65, flash * 0.35);
