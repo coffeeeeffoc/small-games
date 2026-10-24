@@ -254,17 +254,6 @@
         "time": "2026-10-10T09:28:19+08:00"
       }
     },
-    "orbit-atelier": {
-      "source": "games/local/orbit-atelier",
-      "created": {
-        "commit": "e63faad94cebb0c08a739ea90d8a8ee7e2278c62",
-        "time": "2026-10-06T15:42:56Z"
-      },
-      "updated": {
-        "commit": "b0cb8b691d85327a67f5b1cec4d544b1a020552d",
-        "time": "2026-10-11T13:23:08+08:00"
-      }
-    },
     "out-of-frame": {
       "source": "games/local/out-of-frame",
       "created": {

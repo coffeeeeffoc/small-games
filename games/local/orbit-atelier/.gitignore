@@ -1,8 +1,0 @@
-library/
-temp/
-local/
-profiles/
-build/
-.prebuilt/
-reports/
-node_modules

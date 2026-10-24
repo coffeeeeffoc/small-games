@@ -155,7 +155,6 @@ test('all Cocos consumers download every source-verified artifact and pass them 
   const artifacts = {
     'carding-car': 'KART_PREBUILT_DIR',
     'night-overwatch': 'NIGHT_OVERWATCH_PREBUILT_DIR',
-    'orbit-atelier': 'ORBIT_ATELIER_PREBUILT_DIR',
     'tianxia-chalu': 'TIANXIA_PREBUILT_DIR',
     'homebound-station': 'HOMEBOUND_STATION_PREBUILT_DIR',
     'merge-front': 'MERGE_FRONT_PREBUILT_DIR',

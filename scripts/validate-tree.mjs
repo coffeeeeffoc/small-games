@@ -789,7 +789,6 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
     'moss-garden': ['publishing.browser.mjs'],
     'chase-thief': ['publishing.browser.mjs'],
     'tiny-signals': ['publishing.browser.mjs'],
-    'orbit-atelier': ['publishing.browser.mjs', 'browser.mjs'],
     'wulong-city': ['publishing.browser.mjs'],
     'surprise-kept': ['publishing.browser.mjs'],
     'homebound-station': ['publishing.browser.mjs'],

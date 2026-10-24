@@ -66,24 +66,6 @@ test('Tianxia enters its ready Creator battlefield through preparation', () => {
   assert.equal(entryMode('tianxia-chalu'), 'adapter');
 });
 
-test('Orbit Creator owns its native home and interaction checks instead of clicking invisible DOM controls', async () => {
-  assert.equal(markers['orbit-atelier'], '#GameCanvas');
-  assert.equal(homeControls['orbit-atelier'], undefined);
-  assert.equal(entryMode('orbit-atelier'), 'legacy');
-  assert.equal(
-    await enterStandalone(
-      {
-        locator() {
-          throw Error('No DOM click for Creator');
-        },
-      },
-      'orbit-atelier',
-      true,
-    ),
-    'legacy',
-  );
-});
-
 test('Tower Creator owns its native menu and touch flow', async () => {
   assert.equal(markers['tower-brake'], '#GameCanvas');
   assert.equal(homeControls['tower-brake'], undefined);

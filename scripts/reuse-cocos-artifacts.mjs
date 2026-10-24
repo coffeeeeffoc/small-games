@@ -6,7 +6,6 @@ import { pathToFileURL } from 'node:url';
 export const games = [
   'carding-car',
   'night-overwatch',
-  'orbit-atelier',
   'tianxia-chalu',
   'homebound-station',
   'merge-front',

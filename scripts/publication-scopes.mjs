@@ -299,7 +299,6 @@ export const mainIntegrationReviews = Object.freeze({
     sources: [
       'games/local/carding-car',
       'games/local/night-overwatch',
-      'games/local/orbit-atelier',
       'games/local/tianxia-chalu',
       'games/local/homebound-station',
       'games/local/merge-front',
@@ -310,7 +309,6 @@ export const mainIntegrationReviews = Object.freeze({
     before: '7dc23c17a7b8180c0abc4eb5869b872d41e466a755da9757cae56235bcd2bf12',
     after: '073903ff62e45572e1b2f07a25d64ca19ad381800f7859bd73b3c6bb3da96e9f',
     sources: [
-      'games/local/orbit-atelier',
       'games/local/tianxia-chalu',
       'games/local/homebound-station',
       'games/local/merge-front',
@@ -321,7 +319,6 @@ export const mainIntegrationReviews = Object.freeze({
     before: 'c4766cd65e637f9baadea7659184e154bfe5fb9951a0f97d95d1bcc4010de244',
     after: 'f7c119db7da3a46f682da323558a38214f3fed2f7cb79b8b9cbfbcf16378d258',
     sources: [
-      'games/local/orbit-atelier',
       'games/local/tianxia-chalu',
       'games/local/homebound-station',
       'games/local/merge-front',
@@ -332,7 +329,6 @@ export const mainIntegrationReviews = Object.freeze({
     before: '860a6b07cc7b9acf17033726fd44c6f768b58ef9e316a48bce55fb05ff80f3c3',
     after: '046cada0323b6b92a6d95a894acc8a9c31881faa874e98d9f25f5b47ff7ed5f5',
     sources: [
-      'games/local/orbit-atelier',
       'games/local/tianxia-chalu',
       'games/local/homebound-station',
       'games/local/merge-front',
@@ -381,7 +377,6 @@ export const mainIntegrationReviews = Object.freeze({
     before: '87cffb64731a1e510934645439f1f23e3ecbbd60e3e076c7237caeddb22268c9',
     after: '8e715b054f404963935c195b1fb8dccc4d90ccab8a40c826411f033e810ca6fa',
     sources: [
-      'games/local/orbit-atelier',
       'games/local/tianxia-chalu',
       'games/local/homebound-station',
       'games/local/merge-front',
@@ -503,7 +498,6 @@ const mainLockManifestHashes = Object.freeze({
 const mainIntegrationNames = Object.freeze({
   'games/local/carding-car': '@coffeeeeffoc/carding-car',
   'games/local/night-overwatch': '@coffeeeeffoc/night-overwatch',
-  'games/local/orbit-atelier': '@coffeeeeffoc/orbit-atelier',
   'games/local/tianxia-chalu': '@coffeeeeffoc/tianxia-chalu',
   'games/local/homebound-station': '@coffeeeeffoc/homebound-station',
   'games/local/merge-front': '@small-games/merge-front',
@@ -517,7 +511,6 @@ const mainIntegrationNames = Object.freeze({
   'games/local/wulong-city': '@coffeeeeffoc/wulong-city',
 });
 const mainIntegrationIds = Object.freeze({
-  'games/local/orbit-atelier': 'orbit-atelier',
   'games/local/tianxia-chalu': 'tianxia-chalu',
   'games/local/echo-lab': 'echo-lab',
   'games/local/homebound-station': 'homebound-station',
@@ -646,7 +639,7 @@ export function mergeBulletCreatorIntegrationFileScope(file, before, after) {
     createHash('sha256').update(value.replaceAll('\r\n', '\n')).digest('hex');
   return digest(before) === pair[0] && digest(after) === pair[1];
 }
-// Exact additive wiring for Homebound after the Orbit and Tianxia Creator integrations. Existing compiler paths,
+// Exact additive wiring for Homebound after the earlier Creator integrations. Existing compiler paths,
 // workflow gates, permissions and presets remain byte-for-byte unchanged.
 const homeboundCocosWiring = {
   'apps/shell-web/src/StandaloneGame.tsx': [
@@ -725,181 +718,12 @@ export function homeboundCocosWiringOnly(file, before, after) {
 const cocosWebSources = [
   'carding-car',
   'night-overwatch',
-  'orbit-atelier',
   'tianxia-chalu',
   'homebound-station',
 ].map((id) => `games/local/${id}`);
 
 // The third Creator project adds one artifact route. Prove that every existing
 // producer, consumer and build gate is byte-for-byte unchanged outside that route.
-export const orbitCreatorIntegrationPaths = [
-  '.github/workflows/carding-car.yml',
-  '.github/workflows/ci.yml',
-  '.github/workflows/pages-validate.yml',
-  '.github/workflows/mobile.yml',
-  'turbo.json',
-  'scripts/reuse-cocos-artifacts.mjs',
-  'apps/shell-web/scripts/standalone-game-checks.mjs',
-];
-export function orbitCreatorIntegrationFileScope(file, before, after) {
-  if (!orbitCreatorIntegrationPaths.includes(file)) return false;
-  try {
-    const replace = (source, old, value, count = 1) => {
-      assert.equal(source.split(old).length - 1, count, 'Unexpected Creator integration anchor');
-      return source.replaceAll(old, value);
-    };
-    if (file === 'turbo.json') {
-      const previous = JSON.parse(before),
-        current = JSON.parse(after);
-      const variable = 'ORBIT_ATELIER_PREBUILT_DIR';
-      assert(!previous.globalPassThroughEnv.includes(variable));
-      assert.equal(current.globalPassThroughEnv.filter((item) => item === variable).length, 1);
-      current.globalPassThroughEnv = current.globalPassThroughEnv.filter(
-        (item) => item !== variable,
-      );
-      const key = '@coffeeeeffoc/orbit-atelier#build';
-      assert(!Object.hasOwn(previous.tasks, key));
-      assert.deepEqual(current.tasks[key], {
-        dependsOn: ['^build'],
-        outputs: ['dist/**'],
-        env: ['COCOS_CREATOR', variable],
-        inputs: ['$TURBO_DEFAULT$', '$TURBO_ROOT$/games/local/orbit-atelier/.prebuilt/**'],
-      });
-      delete current.tasks[key];
-      return isDeepStrictEqual(previous, current);
-    }
-    if (file === 'scripts/reuse-cocos-artifacts.mjs')
-      return (
-        after ===
-        replace(
-          before,
-          "export const games = ['carding-car', 'night-overwatch'];",
-          "export const games = ['carding-car', 'night-overwatch', 'orbit-atelier'];",
-        )
-      );
-    if (file === 'apps/shell-web/scripts/standalone-game-checks.mjs') {
-      const isolate = (source) => {
-        const program = parsedSource(source);
-        const exported = program.body.filter(
-          (node) =>
-            node.type === 'ExportNamedDeclaration' &&
-            node.declaration?.id?.name === 'assertStandaloneGameplay',
-        );
-        assert.equal(exported.length, 1);
-        const matches = [];
-        const visit = (node, owner = exported[0].declaration) => {
-          if (!node || typeof node !== 'object') return;
-          if (Array.isArray(node)) {
-            node.forEach((child) => visit(child, owner));
-            return;
-          }
-          if (
-            ['FunctionDeclaration', 'FunctionExpression', 'ArrowFunctionExpression'].includes(
-              node.type,
-            )
-          )
-            owner = node;
-          if (
-            node.type === 'IfStatement' &&
-            node.test?.type === 'BinaryExpression' &&
-            node.test.operator === '===' &&
-            node.test.left?.type === 'Identifier' &&
-            node.test.left.name === 'id' &&
-            node.test.right?.type === 'StringLiteral' &&
-            node.test.right.value === 'orbit-atelier'
-          )
-            matches.push({ node, owner });
-          for (const [key, value] of Object.entries(node))
-            if (!['loc', 'comments', 'tokens', 'extra'].includes(key)) visit(value, owner);
-        };
-        visit(exported[0].declaration);
-        assert.equal(matches.length, 1);
-        assert.equal(matches[0].owner, exported[0].declaration);
-        const body = matches[0].node.consequent;
-        assert.equal(body.type, 'BlockStatement');
-        return source.slice(0, body.start) + 'ORBIT_GAMEPLAY_BODY' + source.slice(body.end);
-      };
-      return before !== after && isolate(before) === isolate(after);
-    }
-    let expected = before;
-    if (file === '.github/workflows/carding-car.yml') {
-      expected = replace(
-        expected,
-        '        game: [carding-car, night-overwatch]',
-        '        game: [carding-car, night-overwatch, orbit-atelier]',
-      );
-      const env =
-        "          NIGHT_OVERWATCH_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/night-overwatch', github.workspace) || '' }}\n";
-      expected = replace(
-        expected,
-        env,
-        env +
-          env
-            .replaceAll('NIGHT_OVERWATCH', 'ORBIT_ATELIER')
-            .replaceAll('night-overwatch', 'orbit-atelier'),
-      );
-      const download =
-        "      - name: Download CI night-overwatch artifact\n        id: night\n        if: steps.producer.outputs.run_id != ''\n        continue-on-error: true\n        uses: actions/download-artifact@v8\n        with:\n          name: night-overwatch-${{ github.sha }}\n          path: .scratch/ci-cocos/night-overwatch\n          run-id: ${{ steps.producer.outputs.run_id }}\n          github-token: ${{ github.token }}\n";
-      expected = replace(
-        expected,
-        download,
-        download +
-          download.replaceAll('night-overwatch', 'orbit-atelier').replace('id: night', 'id: orbit'),
-      );
-      expected = replace(
-        expected,
-        '      - name: Verify both downloaded artifacts or rebuild',
-        '      - name: Verify all downloaded artifacts or rebuild',
-      );
-      expected = replace(
-        expected,
-        "        if: steps.kart.outcome == 'success' && steps.night.outcome == 'success'",
-        "        if: steps.kart.outcome == 'success' && steps.night.outcome == 'success' && steps.orbit.outcome == 'success'",
-      );
-      const verify =
-        '          node scripts/reuse-cocos-artifacts.mjs verify night-overwatch .scratch/ci-cocos/night-overwatch\n';
-      expected = replace(
-        expected,
-        verify,
-        verify + verify.replaceAll('night-overwatch', 'orbit-atelier'),
-      );
-      const upload =
-        "      - uses: actions/upload-artifact@v7\n        if: steps.verify.outcome == 'success'\n        with:\n          name: night-overwatch-${{ github.sha }}\n          path: .scratch/ci-cocos/night-overwatch\n          if-no-files-found: error\n";
-      expected = replace(
-        expected,
-        upload,
-        upload + upload.replaceAll('night-overwatch', 'orbit-atelier'),
-      );
-    } else {
-      const ci = file === '.github/workflows/ci.yml',
-        count = ci ? 1 : 2;
-      const env =
-        '      NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt\n';
-      expected = replace(
-        expected,
-        env,
-        env +
-          env
-            .replaceAll('NIGHT_OVERWATCH', 'ORBIT_ATELIER')
-            .replaceAll('night-overwatch', 'orbit-atelier'),
-        count,
-      );
-      const download =
-        '      - uses: actions/download-artifact@v8\n' +
-        (ci ? "        if: needs.plan.outputs.cocos == 'true'\n" : '') +
-        '        with:\n          name: night-overwatch-${{ github.sha }}\n          path: games/local/night-overwatch/.prebuilt\n';
-      expected = replace(
-        expected,
-        download,
-        download + download.replaceAll('night-overwatch', 'orbit-atelier'),
-        count,
-      );
-    }
-    return expected === after;
-  } catch {
-    return false;
-  }
-}
 
 // Exact reviewed cache-only workflow changes. This proof works in bare planning
 // jobs without YAML dependencies and cannot admit unrelated gates or permissions.
@@ -1220,7 +1044,6 @@ function assertSixH5(games, packages, readHead) {
     'three-choose-two',
     'bullet-garden',
     'tower-brake',
-    'orbit-atelier',
     'tianxia-chalu',
     'ball-roguelite',
     'flick-arena',
@@ -2438,27 +2261,7 @@ function exactHomeboundReadyGuard(before, after) {
       )
   );
 }
-function exactOrbitBoundsGuard(before, after) {
-  // Only the reviewed masked-SVG offset fix; all input and behavior assertions stay fixed.
-  return (
-    createHash('sha256').update(before).digest('hex') ===
-      'b2ab2d1ddb7b7426b2046a238e138a0b6bc6824f555dfabe2bb0e3b90719e8f5' &&
-    after ===
-      before
-        .replace(
-          'const bounds = node.getBoundingClientRect();',
-          'const bounds = node.ownerSVGElement.getBoundingClientRect();',
-        )
-        .replace(
-          'const bounds = await ring.boundingBox();',
-          'const bounds = await board.boundingBox();',
-        )
-        .replace(
-          '// SVG screen coordinates are local to the child document; native input is page-wide.',
-          '// Masked ring bounds differ between DOM/CDP; the board gives a stable iframe offset.',
-        )
-  );
-}
+
 const towerLevelsBefore =
   "    await expect(frame.locator('#levels-screen button[data-level]')).toHaveCount(8);\n";
 const towerLevelsAfter =
@@ -2854,7 +2657,6 @@ export const publishingConsumers = {
   'ember-bounce': 'games/local/ember-bounce',
   'chase-thief': 'games/local/chase-thief',
   'tiny-signals': 'games/local/tiny-signals',
-  'orbit-atelier': 'games/local/orbit-atelier',
   'wulong-city': 'games/local/wulong-city',
   'surprise-kept': 'games/local/surprise-kept',
   'homebound-station': 'games/local/homebound-station',
@@ -4614,26 +4416,7 @@ export function reviewedSharedFileScopes({
         scopes.set(file, [source]);
         continue;
       }
-      if (
-        packages.some(
-          (pkg) => pkg.dir === 'games/local/orbit-atelier' && pkg.creator?.version === '3.8.8',
-        ) &&
-        ((orbitCreatorIntegrationPaths.includes(file) &&
-          orbitCreatorIntegrationFileScope(file, readBase(file), readHead(file))) ||
-          file === 'scripts/reuse-cocos-artifacts.test.mjs')
-      ) {
-        const source = 'games/local/orbit-atelier';
-        assert(
-          games.filter((game) => game.id === 'orbit-atelier' && game.source === source).length ===
-            1,
-        );
-        assert(
-          packages.filter((pkg) => pkg.dir === source && pkg.creator?.version === '3.8.8')
-            .length === 1,
-        );
-        scopes.set(file, file.endsWith('.test.mjs') ? [] : [source]);
-        continue;
-      }
+
       if (adminControlIntegrationScopePaths.includes(file)) {
         const consumers = ['services/management-api', 'services/runtime-api'];
         for (const dir of consumers) assert(packages.some((pkg) => pkg.dir === dir));
@@ -5219,16 +5002,6 @@ export function reviewedSharedFileScopes({
           ).length === 1,
         );
         scopes.set(file, ['games/local/homebound-station']);
-      } else if (
-        file === standaloneChecksFile &&
-        exactOrbitBoundsGuard(readBase(file), readHead(file))
-      ) {
-        assert(
-          games.filter(
-            (game) => game.id === 'orbit-atelier' && game.source === 'games/local/orbit-atelier',
-          ).length === 1,
-        );
-        scopes.set(file, ['games/local/orbit-atelier']);
       } else if (
         file === standaloneChecksFile &&
         exactTowerLevelsGuard(readBase(file), readHead(file))

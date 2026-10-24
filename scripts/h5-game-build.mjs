@@ -21,7 +21,6 @@ if (
     'ashfall-front',
     'bullet-garden',
     'tower-brake',
-    'orbit-atelier',
     'tianxia-chalu',
   ].includes(game)
 ) {

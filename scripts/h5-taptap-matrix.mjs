@@ -9,7 +9,6 @@ export const h5Orientations = Object.freeze({
   'three-choose-two': 'portrait',
   'bullet-garden': 'portrait',
   'tower-brake': 'portrait',
-  'orbit-atelier': 'portrait',
   'tianxia-chalu': 'portrait',
   'ball-roguelite': 'portrait',
   'flick-arena': 'portrait',

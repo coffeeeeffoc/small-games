@@ -419,7 +419,7 @@ const devGames = [
   'xiangqi-five',
   'letters-words2',
   'wulong-city',
-  'orbit-atelier',
+  'tiny-signals',
 ].map((id) => ({ id, source: `games/local/${id}` }));
 const devSource = (ids, updated = false) => `const shared = 1;
         if (
@@ -439,24 +439,24 @@ test('additive developer guards retain only new games, the mobile fixture and na
     changedPaths: [devModeFile],
     games: devGames,
     readBase: () => devSource(devGames.slice(0, 2).map((game) => game.id)),
-    readHead: () => devSource([...devGames.slice(0, 2).map((game) => game.id), 'orbit-atelier']),
+    readHead: () => devSource([...devGames.slice(0, 2).map((game) => game.id), 'tiny-signals']),
   };
   const fileScopes = new Map([
     ...h5AdapterFileScopes(context),
     ...developerModeFileScopes(context),
   ]);
   assert.deepEqual(fileScopes.get(devModeFile), [
-    'games/local/orbit-atelier',
+    'games/local/tiny-signals',
     'games/local/wulong-city',
   ]);
   const result = plan([devModeFile], { games: devGames, fileScopes });
   assert.deepEqual(result.browser_ids, [
     'letters-words2',
-    'orbit-atelier',
+    'tiny-signals',
     'wulong-city',
     'xiangqi-five',
   ]);
-  assert.deepEqual(result.developer_mode_ids, ['orbit-atelier', 'wulong-city']);
+  assert.deepEqual(result.developer_mode_ids, ['tiny-signals', 'wulong-city']);
 });
 
 test('developer-mode game guards select every old/new assertion consumer and retain navigation samples', async () => {
@@ -682,13 +682,13 @@ test('unproven lock/manifests fail closed: no external updates, extra resolution
 
 const fullscreenFile = 'scripts/sync-h5-fullscreen.mjs';
 const developerFile = 'scripts/test-game-dev-mode.mjs';
-const h5Games = [...games, { id: 'orbit-atelier', source: 'games/local/orbit-atelier' }];
+const h5Games = [...games, { id: 'tiny-signals', source: 'games/local/tiny-signals' }];
 const copiesSource = (copies, tail = 'verify(copies);\n') =>
   `const copies = [\n${copies.map((copy) => `  '${copy}',`).join('\n')}\n];\n${tail}`;
 const developerSource = (ids, tail = 'render(game);') =>
   `function check(game) {\n  if (\n${ids.map((id) => `    game.id === '${id}'`).join(' ||\n')}\n  ) {\n    ${tail}\n  }\n}\n`;
 const copiesBefore = ['games/local/a/fullscreen.js', 'apps/shell-web/public/fullscreen.js'];
-const orbitCopy = 'games/local/orbit-atelier/src/fullscreen.js';
+const signalCopy = 'games/local/tiny-signals/src/fullscreen.js';
 const h5Scopes = (file, before, after, catalog = h5Games) =>
   h5AdapterFileScopes({
     changedPaths: [file],
@@ -703,8 +703,8 @@ test('additive H5 fullscreen and developer adapters select only their registered
     [developerFile, developerSource(['a', 'b'])],
   ]);
   const head = new Map([
-    [fullscreenFile, copiesSource([orbitCopy, ...copiesBefore])],
-    [developerFile, developerSource(['orbit-atelier', 'a', 'b'])],
+    [fullscreenFile, copiesSource([signalCopy, ...copiesBefore])],
+    [developerFile, developerSource(['tiny-signals', 'a', 'b'])],
   ]);
   const fileScopes = h5AdapterFileScopes({
     changedPaths: [...base.keys()],
@@ -714,10 +714,10 @@ test('additive H5 fullscreen and developer adapters select only their registered
   });
   assert.deepEqual(
     [...fileScopes.values()],
-    [['games/local/orbit-atelier'], ['games/local/orbit-atelier']],
+    [['games/local/tiny-signals'], ['games/local/tiny-signals']],
   );
   assert.deepEqual(plan([...base.keys()], { games: h5Games, fileScopes }).browser_ids, [
-    'orbit-atelier',
+    'tiny-signals',
   ]);
   const multiple = h5Scopes(
     fullscreenFile,
@@ -726,25 +726,25 @@ test('additive H5 fullscreen and developer adapters select only their registered
       copiesBefore[0],
       'games/local/c/public/fullscreen.js',
       copiesBefore[1],
-      orbitCopy,
+      signalCopy,
     ]),
   );
-  assert.deepEqual(multiple.get(fullscreenFile), ['games/local/c', 'games/local/orbit-atelier']);
+  assert.deepEqual(multiple.get(fullscreenFile), ['games/local/c', 'games/local/tiny-signals']);
 });
 
 test('H5 adapters reject deletion, renaming, reordering, duplicates and unknown registration', () => {
   const invalidCopies = [
-    [orbitCopy, copiesBefore[0]],
-    [orbitCopy, ...copiesBefore.toReversed()],
-    [orbitCopy, ...copiesBefore, orbitCopy],
-    ['games/local/a/src/fullscreen.js', copiesBefore[1], orbitCopy],
+    [signalCopy, copiesBefore[0]],
+    [signalCopy, ...copiesBefore.toReversed()],
+    [signalCopy, ...copiesBefore, signalCopy],
+    ['games/local/a/src/fullscreen.js', copiesBefore[1], signalCopy],
     [...copiesBefore, 'games/local/missing/fullscreen.js'],
     [...copiesBefore, 'apps/shell-web/src/fullscreen.js'],
-    [...copiesBefore, '/games/local/orbit-atelier/fullscreen.js'],
-    [...copiesBefore, 'games/local/orbit-atelier/../a/fullscreen.js'],
-    [...copiesBefore, 'games/local/orbit-atelier/./fullscreen.js'],
-    [...copiesBefore, 'games/local/orbit-atelier//fullscreen.js'],
-    [...copiesBefore, 'games/local/orbit-atelier/src/other.js'],
+    [...copiesBefore, '/games/local/tiny-signals/fullscreen.js'],
+    [...copiesBefore, 'games/local/tiny-signals/../a/fullscreen.js'],
+    [...copiesBefore, 'games/local/tiny-signals/./fullscreen.js'],
+    [...copiesBefore, 'games/local/tiny-signals//fullscreen.js'],
+    [...copiesBefore, 'games/local/tiny-signals/src/other.js'],
   ];
   for (const copies of invalidCopies)
     assert.equal(
@@ -755,10 +755,10 @@ test('H5 adapters reject deletion, renaming, reordering, duplicates and unknown 
       JSON.stringify(copies),
     );
   for (const ids of [
-    ['orbit-atelier', 'a'],
-    ['orbit-atelier', 'b', 'a'],
-    ['orbit-atelier', 'a', 'b', 'orbit-atelier'],
-    ['orbit-atelier', 'a', 'missing'],
+    ['tiny-signals', 'a'],
+    ['tiny-signals', 'b', 'a'],
+    ['tiny-signals', 'a', 'b', 'tiny-signals'],
+    ['tiny-signals', 'a', 'missing'],
   ])
     assert.equal(
       h5Scopes(developerFile, developerSource(['a', 'b']), developerSource(ids)).has(developerFile),
@@ -769,14 +769,14 @@ test('H5 adapters reject deletion, renaming, reordering, duplicates and unknown 
     [...h5Games, h5Games[0]],
     [...h5Games, { id: 'other', source: h5Games[0].source }],
     h5Games.map((game) =>
-      game.id === 'orbit-atelier' ? { ...game, source: 'games/local/../outside' } : game,
+      game.id === 'tiny-signals' ? { ...game, source: 'games/local/../outside' } : game,
     ),
   ])
     assert.equal(
       h5Scopes(
         fullscreenFile,
         copiesSource(copiesBefore),
-        copiesSource([orbitCopy, ...copiesBefore]),
+        copiesSource([signalCopy, ...copiesBefore]),
         catalog,
       ).has(fullscreenFile),
       false,
@@ -784,14 +784,14 @@ test('H5 adapters reject deletion, renaming, reordering, duplicates and unknown 
 });
 
 test('H5 literal parsing rejects executable, ambiguous and disguised data without evaluating it', () => {
-  const validCopies = copiesSource([orbitCopy, ...copiesBefore]);
+  const validCopies = copiesSource([signalCopy, ...copiesBefore]);
   const invalidCopies = [
-    validCopies.replace(`'${orbitCopy}'`, '`' + orbitCopy + '`'),
-    validCopies.replace(`'${orbitCopy}'`, `'games/local/\\x6frbit-atelier/src/fullscreen.js'`),
-    validCopies.replace(`'${orbitCopy}',`, `/* new game */ '${orbitCopy}',`),
-    validCopies.replace(`'${orbitCopy}'`, `...['${orbitCopy}']`),
-    validCopies.replace(`'${orbitCopy}'`, `(globalThis.__h5ScopeEvaluated = true)`),
-    validCopies.replace(`'${orbitCopy}',`, `'${orbitCopy}',,`),
+    validCopies.replace(`'${signalCopy}'`, '`' + signalCopy + '`'),
+    validCopies.replace(`'${signalCopy}'`, `'games/local/\\x74iny-signals/src/fullscreen.js'`),
+    validCopies.replace(`'${signalCopy}',`, `/* new game */ '${signalCopy}',`),
+    validCopies.replace(`'${signalCopy}'`, `...['${signalCopy}']`),
+    validCopies.replace(`'${signalCopy}'`, `(globalThis.__h5ScopeEvaluated = true)`),
+    validCopies.replace(`'${signalCopy}',`, `'${signalCopy}',,`),
     validCopies + 'function duplicate() { const copies = []; }\n',
     `/* ${validCopies} */\n`,
     `const fixture = ${JSON.stringify(validCopies)};\n`,
@@ -801,19 +801,16 @@ test('H5 literal parsing rejects executable, ambiguous and disguised data withou
       h5Scopes(fullscreenFile, copiesSource(copiesBefore), after).has(fullscreenFile),
       false,
     );
-  const validDeveloper = developerSource(['orbit-atelier', 'a', 'b']);
+  const validDeveloper = developerSource(['tiny-signals', 'a', 'b']);
   for (const after of [
     validDeveloper.replace(' ||', ' &&'),
-    validDeveloper.replace(
-      "game.id === 'orbit-atelier'",
-      "game.id === 'orbit-atelier' || enabled()",
-    ),
-    validDeveloper.replace("game.id === 'orbit-atelier'", 'game.id === getId()'),
-    validDeveloper.replace("game.id === 'orbit-atelier'", "other.id === 'orbit-atelier'"),
-    validDeveloper.replace("game.id === 'orbit-atelier'", "(game.id === 'orbit-atelier')"),
-    validDeveloper.replace("'orbit-atelier'", "'\\x6frbit-atelier'"),
-    validDeveloper.replace("'orbit-atelier'", '`orbit-atelier`'),
-    validDeveloper.replace("'orbit-atelier'", "/* new game */ 'orbit-atelier'"),
+    validDeveloper.replace("game.id === 'tiny-signals'", "game.id === 'tiny-signals' || enabled()"),
+    validDeveloper.replace("game.id === 'tiny-signals'", 'game.id === getId()'),
+    validDeveloper.replace("game.id === 'tiny-signals'", "other.id === 'tiny-signals'"),
+    validDeveloper.replace("game.id === 'tiny-signals'", "(game.id === 'tiny-signals')"),
+    validDeveloper.replace("'tiny-signals'", "'\\x74iny-signals'"),
+    validDeveloper.replace("'tiny-signals'", '`tiny-signals`'),
+    validDeveloper.replace("'tiny-signals'", "/* new game */ 'tiny-signals'"),
     validDeveloper + developerSource(['a', 'b']).replace('check', 'other'),
     `/* ${validDeveloper} */\n`,
     `const fixture = ${JSON.stringify(validDeveloper)};\n`,
@@ -830,27 +827,27 @@ test('H5 changes outside literal ranges remain unknown and block incremental pub
     [
       fullscreenFile,
       copiesSource(copiesBefore),
-      copiesSource([orbitCopy, ...copiesBefore], 'verify(copies, true);\n'),
+      copiesSource([signalCopy, ...copiesBefore], 'verify(copies, true);\n'),
     ],
     [
       fullscreenFile,
       copiesSource(copiesBefore),
-      copiesSource([orbitCopy, ...copiesBefore]) + '// changed outside literal\n',
+      copiesSource([signalCopy, ...copiesBefore]) + '// changed outside literal\n',
     ],
     [
       fullscreenFile,
       copiesSource(copiesBefore),
-      copiesSource([orbitCopy, ...copiesBefore]).replaceAll('\n', '\r\n'),
+      copiesSource([signalCopy, ...copiesBefore]).replaceAll('\n', '\r\n'),
     ],
     [
       developerFile,
       developerSource(['a', 'b']),
-      developerSource(['orbit-atelier', 'a', 'b'], 'other(game);'),
+      developerSource(['tiny-signals', 'a', 'b'], 'other(game);'),
     ],
     [
       developerFile,
       developerSource(['a', 'b']),
-      developerSource(['orbit-atelier', 'a', 'b']) + '\n',
+      developerSource(['tiny-signals', 'a', 'b']) + '\n',
     ],
   ]) {
     const fileScopes = h5Scopes(file, before, after);
@@ -1191,7 +1188,7 @@ test('fullscreen registration planning works in a checkout without installed for
       changedPaths: [fullscreenFile],
       games: h5Games,
       before: copiesSource(copiesBefore),
-      after: copiesSource([orbitCopy, ...copiesBefore]),
+      after: copiesSource([signalCopy, ...copiesBefore]),
     };
     const code = `import assert from 'node:assert/strict';
       import {createRequire} from 'node:module';
@@ -1199,7 +1196,7 @@ test('fullscreen registration planning works in a checkout without installed for
       assert.throws(()=>createRequire(import.meta.url).resolve('prettier/plugins/babel'));
       const fixture=${JSON.stringify(fixture)};
       const scopes=h5AdapterFileScopes({...fixture,readBase:()=>fixture.before,readHead:()=>fixture.after});
-      assert.deepEqual(scopes.get(${JSON.stringify(fullscreenFile)}),['games/local/orbit-atelier']);`;
+      assert.deepEqual(scopes.get(${JSON.stringify(fullscreenFile)}),['games/local/tiny-signals']);`;
     execFileSync(process.execPath, ['--input-type=module', '-e', code], {
       cwd: directory,
       env: { ...process.env, NODE_PATH: '' },

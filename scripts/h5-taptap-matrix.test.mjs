@@ -629,7 +629,6 @@ test('explicit profiles require twelve local QA variants and only three online-a
     'three-choose-two': 'portrait',
     'bullet-garden': 'portrait',
     'tower-brake': 'portrait',
-    'orbit-atelier': 'portrait',
     'tianxia-chalu': 'portrait',
     'ball-roguelite': 'portrait',
     'flick-arena': 'portrait',

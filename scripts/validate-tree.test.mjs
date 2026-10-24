@@ -782,7 +782,6 @@ test('publishing browsers run exact bounded suites with native gates off and fai
     'moss-garden': ['publishing.browser.mjs'],
     'chase-thief': ['publishing.browser.mjs'],
     'tiny-signals': ['publishing.browser.mjs'],
-    'orbit-atelier': ['publishing.browser.mjs', 'browser.mjs'],
     'wulong-city': ['publishing.browser.mjs'],
     'surprise-kept': ['publishing.browser.mjs'],
     'homebound-station': ['publishing.browser.mjs'],

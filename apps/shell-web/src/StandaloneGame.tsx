@@ -28,7 +28,6 @@ export function StandaloneGame({
     id === 'three-choose-two' ||
     id === 'cage-rescue' ||
     id === 'chase-thief' ||
-    id === 'orbit-atelier' ||
     id === 'merge-front' ||
     id === 'tower-brake' ||
     id === 'tetracube' ||

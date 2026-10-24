@@ -35,7 +35,6 @@ const audited = {
     'games/local/luban-workshop',
     'games/local/maze-wander',
     'games/local/merge-front',
-    'games/local/orbit-atelier',
     'games/local/travel-bund',
     'games/local/urban-breakout',
     'games/local/vibeJam-myself-delivery',

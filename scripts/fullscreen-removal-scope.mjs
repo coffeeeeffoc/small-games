@@ -79,14 +79,6 @@ export const fullscreenRemovalReviews = Object.freeze({
     '72acd28e8258e9e49b91288dc67b9af8f857c9eda6eaa5b80a4dfaa4009bedc7',
     null,
   ],
-  'games/local/orbit-atelier/scripts/fullscreen.js': [
-    '72acd28e8258e9e49b91288dc67b9af8f857c9eda6eaa5b80a4dfaa4009bedc7',
-    null,
-  ],
-  'games/local/orbit-atelier/src/fullscreen.js': [
-    '72acd28e8258e9e49b91288dc67b9af8f857c9eda6eaa5b80a4dfaa4009bedc7',
-    null,
-  ],
   'games/local/out-of-frame/fullscreen.js': [
     '72acd28e8258e9e49b91288dc67b9af8f857c9eda6eaa5b80a4dfaa4009bedc7',
     null,

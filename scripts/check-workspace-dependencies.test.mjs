@@ -259,7 +259,6 @@ test('only reviewed H5 entries and the share-handler contract can import the pub
     ['game-moss-garden', 'src/web.ts'],
     ['fold-the-world', 'src/main.ts'],
     ['homebound-station', 'src/main.ts'],
-    ['orbit-atelier', 'src/main.ts'],
     ['wulong-city', 'tests/game.test.mjs'],
   ];
   const root = await createWorkspace(

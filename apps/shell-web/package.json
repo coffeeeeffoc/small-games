@@ -26,7 +26,6 @@
   "dependencies": {
     "@coffeeeeffoc/carrom-club": "workspace:*",
     "@coffeeeeffoc/chase-thief": "workspace:*",
-    "@coffeeeeffoc/orbit-atelier": "workspace:*",
     "@coffeeeeffoc/game-moss-garden": "workspace:*",
     "@coffeeeeffoc/ball-roguelite": "workspace:*",
     "@coffeeeeffoc/ember-bounce": "workspace:*",

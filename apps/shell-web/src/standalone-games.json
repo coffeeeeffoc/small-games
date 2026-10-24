@@ -28,13 +28,6 @@
     "output": "dist"
   },
   {
-    "id": "orbit-atelier",
-    "source": "games/local/orbit-atelier",
-    "title": "星扣工坊",
-    "description": "转动缺口解开上下穿扣的圆环，用宽口、微隙与接力星栓破解八章七十四张星盘。",
-    "output": "dist"
-  },
-  {
     "id": "moss-garden",
     "source": "games/local/game-moss-garden",
     "title": "苔光花园",

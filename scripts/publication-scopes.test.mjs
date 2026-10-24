@@ -204,7 +204,6 @@ import {
   homeboundCocosWiringOnly,
   bulletGardenCreatorFileScope,
   bulletGardenLockOnly,
-  orbitCreatorIntegrationFileScope,
   mergeCreatorIntegrationFileScope,
   mergeCreatorIntegrationHashes,
   mergeBulletCreatorIntegrationFileScope,
@@ -720,7 +719,6 @@ function tianxiaContext(file, overrides = {}) {
     'tianxia-chalu',
     'carding-car',
     'night-overwatch',
-    'orbit-atelier',
     'letters-words2',
     'xiangqi-five',
     'wulong-city',
@@ -1003,7 +1001,6 @@ const rewardH5Extras = [
   'three-choose-two',
   'bullet-garden',
   'tower-brake',
-  'orbit-atelier',
   'tianxia-chalu',
   'ball-roguelite',
   'flick-arena',
@@ -3382,54 +3379,7 @@ test('cops start-to-play guard keeps a single-game scope and rejects changes out
   );
 });
 const cageEntryFile = 'apps/shell-web/scripts/standalone-game-entry.mjs';
-test('Orbit masked-SVG offset repair preserves input and gameplay assertions in a single-game scope', () => {
-  const before = execFileSync(
-    'git',
-    ['show', '036bb4d3e98cdb1c373ff3445155bcdc783ca671:' + sharedChecksFile],
-    { encoding: 'utf8' },
-  );
-  const after = execFileSync(
-    'git',
-    ['show', '5fbc6feadf2663e1905538ab6b6feae0ed26156b:' + sharedChecksFile],
-    { encoding: 'utf8' },
-  )
-    .replaceAll('\r\n', '\n')
-    .replace(
-      `    await click(
-      frame
-        .getByRole('dialog', { name: '模拟广告' })
-        .getByRole('button', { name: '领取奖励', exact: true }),
-    );
-`,
-      '',
-    ); // Exercise the historical Orbit-only diff; the cops delta is checked separately above.
-  const context = {
-    changedPaths: [sharedChecksFile],
-    games: [{ id: 'orbit-atelier', source: 'games/local/orbit-atelier' }],
-    readBase: () => before,
-    readHead: () => after,
-  };
-  assert.deepEqual(
-    [...reviewedSharedFileScopes(context)],
-    [[sharedChecksFile, ['games/local/orbit-atelier']]],
-  );
-  for (const invalid of [
-    after.replace(
-      "not.toHaveAttribute('data-angle', initialAngle)",
-      "toHaveAttribute('data-angle', initialAngle)",
-    ),
-    after.replace("id === 'orbit-atelier'", "id === 'another-game'"),
-    after + 'globalThis.injected = true;\n',
-    after.replace(
-      'const bounds = await board.boundingBox();',
-      'const bounds = await ring.boundingBox();',
-    ),
-  ])
-    assert.equal(reviewedSharedFileScopes({ ...context, readHead: () => invalid }).size, 0);
-  assert.equal(reviewedSharedFileScopes({ ...context, readBase: () => before + '\n' }).size, 0);
-  for (const games of [[], [...context.games, ...context.games]])
-    assert.equal(reviewedSharedFileScopes({ ...context, games }).size, 0);
-});
+
 const cageModule = readFileSync(
   new URL('../' + cageChecksFile, import.meta.url),
   'utf8',
@@ -4992,83 +4942,6 @@ test('Homebound Creator wiring admits only the reviewed additive compiler change
   assert.deepEqual(scope.get(file), [games[0].source]);
 });
 
-test('Orbit Creator routing permits its exact new consumer and rejects altered existing gates', () => {
-  const file = '.github/workflows/ci.yml';
-  const env =
-    '      NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt\n';
-  const download =
-    "      - uses: actions/download-artifact@v8\n        if: needs.plan.outputs.cocos == 'true'\n        with:\n          name: night-overwatch-${{ github.sha }}\n          path: games/local/night-overwatch/.prebuilt\n";
-  const before = 'existing-gate\n' + env + download + 'existing-assertion\n';
-  const after = before
-    .replace(
-      env,
-      env +
-        env
-          .replaceAll('NIGHT_OVERWATCH', 'ORBIT_ATELIER')
-          .replaceAll('night-overwatch', 'orbit-atelier'),
-    )
-    .replace(download, download + download.replaceAll('night-overwatch', 'orbit-atelier'));
-  assert(orbitCreatorIntegrationFileScope(file, before, after));
-  for (const invalid of [
-    after.replace('existing-gate', 'skip-gate'),
-    after.replace('orbit-atelier/.prebuilt', 'other/.prebuilt'),
-    after + 'extra-command\n',
-    after.replace("if: needs.plan.outputs.cocos == 'true'", 'if: always()'),
-  ])
-    assert.equal(orbitCreatorIntegrationFileScope(file, before, invalid), false);
-  assert.equal(
-    orbitCreatorIntegrationFileScope('.github/workflows/unknown.yml', before, after),
-    false,
-  );
-});
-
-test('Orbit Creator Turbo routing retains every previous input and task', () => {
-  const before = {
-    globalPassThroughEnv: ['COCOS_CREATOR'],
-    tasks: { build: { dependsOn: ['^build'] } },
-  };
-  const after = structuredClone(before);
-  after.globalPassThroughEnv.push('ORBIT_ATELIER_PREBUILT_DIR');
-  after.tasks['@coffeeeeffoc/orbit-atelier#build'] = {
-    dependsOn: ['^build'],
-    outputs: ['dist/**'],
-    env: ['COCOS_CREATOR', 'ORBIT_ATELIER_PREBUILT_DIR'],
-    inputs: ['$TURBO_DEFAULT$', '$TURBO_ROOT$/games/local/orbit-atelier/.prebuilt/**'],
-  };
-  const accepts = () =>
-    orbitCreatorIntegrationFileScope('turbo.json', JSON.stringify(before), JSON.stringify(after));
-  assert(accepts());
-  after.tasks.build.dependsOn = [];
-  assert.equal(accepts(), false);
-});
-
-test('Orbit Cocos gameplay scope isolates the real exported branch without admitting other game changes', () => {
-  const file = 'apps/shell-web/scripts/standalone-game-checks.mjs';
-  const before =
-    "export async function assertStandaloneGameplay(frame, id) { if (id === 'orbit-atelier') { await oldOrbit(frame); } else if (id === 'other') { await keepOther(frame); } }";
-  const after = before.replace('await oldOrbit(frame);', 'await actualTouch(frame);');
-  assert(orbitCreatorIntegrationFileScope(file, before, after));
-  assert.equal(
-    orbitCreatorIntegrationFileScope(file, before, after.replace('keepOther', 'skipOther')),
-    false,
-  );
-  assert.equal(
-    orbitCreatorIntegrationFileScope(
-      file,
-      before,
-      after.replace("id === 'orbit-atelier'", "id === 'other'"),
-    ),
-    false,
-  );
-  assert.equal(orbitCreatorIntegrationFileScope(file, before, after + '\nrunUnrelated();'), false);
-  const nested =
-    "export async function assertStandaloneGameplay(frame, id) { async function nested() { if (id === 'orbit-atelier') { await oldOrbit(frame); } } }";
-  assert.equal(
-    orbitCreatorIntegrationFileScope(file, nested, nested.replace('oldOrbit', 'actualTouch')),
-    false,
-  );
-});
-
 test('merge Creator routes bind exact reviewed base/head bytes and reject extra changes', () => {
   const games = [{ id: 'merge-front', source: 'games/local/merge-front' }];
   const packages = [{ dir: games[0].source, creator: { version: '3.8.8' } }];
@@ -5499,13 +5372,13 @@ test('Homebound Creator readiness guard preserves gameplay and scopes only its r
   assert.equal(reviewedSharedFileScopes({ ...context, games: [] }).size, 0);
 });
 
-test('ordinary Creator reuse preserves all historical producer fixtures', () => {
+test('ordinary Creator reuse preserves retained producer subsets', () => {
   const file = 'scripts/reuse-cocos-artifacts.mjs';
   const current = execFileSync(
     'git',
     ['show', '0fadabdfc6d3144f36ef9ff004e0fc14e54e3e4d:' + file],
     { encoding: 'utf8' },
-  );
+  ).replace("  'orbit-atelier',\n", '');
   for (const [includeMerge, includeBullet, includeTower, includeTetracube, includeThree] of [
     [false, false, false, false, false],
     [true, false, false, false, false],
@@ -5518,7 +5391,6 @@ test('ordinary Creator reuse preserves all historical producer fixtures', () => 
     const ids = [
       'carding-car',
       'night-overwatch',
-      'orbit-atelier',
       'tianxia-chalu',
       'homebound-station',
       ...(includeMerge ? ['merge-front'] : []),
@@ -5945,7 +5817,9 @@ test('Ashfall planning works with only pinned Prettier and preserves every lock 
     before: execFileSync('git', ['show', '171423331a4bdc0f8d45369b047dbc9e3d971b5c:' + file], {
       encoding: 'utf8',
     }),
-    after: readFileSync(new URL('../' + file, import.meta.url), 'utf8'),
+    after: execFileSync('git', ['show', '70428fdef6533522c930d5d0d9c7c472ab69f672:' + file], {
+      encoding: 'utf8',
+    }),
   }));
   try {
     for (const name of [

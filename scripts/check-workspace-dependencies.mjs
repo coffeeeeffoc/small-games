@@ -72,7 +72,6 @@ const REPOSITORY_IMPORTS = new Set([
   'games/local/game-moss-garden/src/web.ts -> platforms/h5/publishing.js',
   'games/local/fold-the-world/src/main.ts -> platforms/h5/publishing.js',
   'games/local/homebound-station/src/main.ts -> platforms/h5/publishing.js',
-  'games/local/orbit-atelier/src/main.ts -> platforms/h5/publishing.js',
   // The share-handler contract uses the real public adapter; other game tests gain no edge.
   'games/local/wulong-city/tests/game.test.mjs -> platforms/h5/publishing.js',
   // These two identity fixtures reuse the actual client/session lifecycle only in tests.
@@ -118,8 +117,6 @@ const REPOSITORY_IMPORTS = new Set([
   'games/local/night-overwatch/scripts/build-native.mjs -> games/local/carding-car/scripts/native-targets.mjs',
   'games/local/night-overwatch/scripts/build-native.mjs -> games/local/carding-car/scripts/clear-output.mjs',
   'games/local/night-overwatch/scripts/typecheck.mjs -> games/local/carding-car/scripts/toolchain.mjs',
-  'games/local/orbit-atelier/scripts/build.mjs -> games/local/carding-car/scripts/toolchain.mjs',
-  'games/local/orbit-atelier/scripts/typecheck.mjs -> games/local/carding-car/scripts/toolchain.mjs',
   'games/local/night-overwatch/tests/h5.mjs -> apps/shell-web/scripts/standalone-game-checks.mjs',
   'games/local/night-overwatch/tests/smoke.mjs -> apps/shell-web/scripts/standalone-game-checks.mjs',
   'apps/shell-web/scripts/prepare-standalone-games.mjs -> scripts/competition-build.mjs',

@@ -139,7 +139,6 @@ try {
           game.id === 'three-choose-two' ||
           game.id === 'cage-rescue' ||
           game.id === 'chase-thief' ||
-          game.id === 'orbit-atelier' ||
           game.id === 'merge-front' ||
           game.id === 'tower-brake' ||
           game.id === 'tetracube' ||

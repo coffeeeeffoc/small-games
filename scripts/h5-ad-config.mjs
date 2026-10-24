@@ -10,7 +10,6 @@ export const additionalH5Games = [
   'three-choose-two',
   'bullet-garden',
   'tower-brake',
-  'orbit-atelier',
   'tianxia-chalu',
   'ball-roguelite',
   'flick-arena',

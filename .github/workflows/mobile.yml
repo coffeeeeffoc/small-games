@@ -23,7 +23,6 @@ jobs:
     env:
       KART_PREBUILT_DIR: ${{ github.workspace }}/games/local/carding-car/.prebuilt
       NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt
-      ORBIT_ATELIER_PREBUILT_DIR: ${{ github.workspace }}/games/local/orbit-atelier/.prebuilt
       BULLET_GARDEN_PREBUILT_DIR: ${{ github.workspace }}/games/local/bullet-garden/.prebuilt
       TIANXIA_PREBUILT_DIR: ${{ github.workspace }}/games/local/tianxia-chalu/.prebuilt
       HOMEBOUND_STATION_PREBUILT_DIR: ${{ github.workspace }}/games/local/homebound-station/.prebuilt
@@ -56,10 +55,6 @@ jobs:
         with:
           name: night-overwatch-${{ github.sha }}
           path: games/local/night-overwatch/.prebuilt
-      - uses: actions/download-artifact@v8
-        with:
-          name: orbit-atelier-${{ github.sha }}
-          path: games/local/orbit-atelier/.prebuilt
       - uses: actions/download-artifact@v8
         with:
           name: bullet-garden-${{ github.sha }}
@@ -152,7 +147,6 @@ jobs:
     env:
       KART_PREBUILT_DIR: ${{ github.workspace }}/games/local/carding-car/.prebuilt
       NIGHT_OVERWATCH_PREBUILT_DIR: ${{ github.workspace }}/games/local/night-overwatch/.prebuilt
-      ORBIT_ATELIER_PREBUILT_DIR: ${{ github.workspace }}/games/local/orbit-atelier/.prebuilt
       BULLET_GARDEN_PREBUILT_DIR: ${{ github.workspace }}/games/local/bullet-garden/.prebuilt
       TIANXIA_PREBUILT_DIR: ${{ github.workspace }}/games/local/tianxia-chalu/.prebuilt
       HOMEBOUND_STATION_PREBUILT_DIR: ${{ github.workspace }}/games/local/homebound-station/.prebuilt
@@ -184,10 +178,6 @@ jobs:
         with:
           name: night-overwatch-${{ github.sha }}
           path: games/local/night-overwatch/.prebuilt
-      - uses: actions/download-artifact@v8
-        with:
-          name: orbit-atelier-${{ github.sha }}
-          path: games/local/orbit-atelier/.prebuilt
       - uses: actions/download-artifact@v8
         with:
           name: bullet-garden-${{ github.sha }}

@@ -40,7 +40,6 @@ it.each([
   'three-choose-two',
   'cage-rescue',
   'chase-thief',
-  'orbit-atelier',
   'merge-front',
   'tetracube',
   'castle-cannon',

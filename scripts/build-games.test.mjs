@@ -39,7 +39,7 @@ const h5Configuration = {
   targets: [{ platform: 'taptap', type: 'h5' }],
 };
 
-test('thirteen reward games package isolated ads-on/off H5 variants; castle stays excluded', async () => {
+test('twelve reward games package isolated ads-on/off H5 variants; castle stays excluded', async () => {
   const games = [
     'homebound-station',
     'bullet-garden',
@@ -47,7 +47,6 @@ test('thirteen reward games package isolated ads-on/off H5 variants; castle stay
     'tower-brake',
     'tetracube',
     'three-choose-two',
-    'orbit-atelier',
     'tianxia-chalu',
     'ball-roguelite',
     'flick-arena',
@@ -55,7 +54,7 @@ test('thirteen reward games package isolated ads-on/off H5 variants; castle stay
     'moss-garden',
     'cage-rescue',
   ];
-  const folder = await mkdtemp(path.join(tmpdir(), 'thirteen-h5-'));
+  const folder = await mkdtemp(path.join(tmpdir(), 'twelve-h5-'));
   try {
     const adUnits = Object.fromEntries(games.map((game) => [game, `fixture-${game}`]));
     const config = parseGameBuildConfig({
@@ -63,7 +62,7 @@ test('thirteen reward games package isolated ads-on/off H5 variants; castle stay
       games,
       targets: [{ platform: 'taptap', type: 'h5', ads: [false, true], adUnits }],
     });
-    assert.equal(gameBuildPlan(config).length, 26);
+    assert.equal(gameBuildPlan(config).length, 24);
     assert.throws(
       () => parseGameBuildConfig({ ...h5Configuration, games: ['castle-cannon'] }),
       /BUILD_GAMES/,
@@ -86,8 +85,8 @@ test('thirteen reward games package isolated ads-on/off H5 variants; castle stay
           [false, false],
           [true, false],
         ],
-        output: 'outputs/thirteen',
-        batch: 'thirteen',
+        output: 'outputs/twelve',
+        batch: 'twelve',
       },
       {
         workspace: folder,
@@ -109,7 +108,7 @@ test('thirteen reward games package isolated ads-on/off H5 variants; castle stay
         },
       },
     );
-    assert.equal(result.variants.length, 26);
+    assert.equal(result.variants.length, 24);
     for (const variant of result.variants) {
       const dist = path.join(result.output, variant.name, 'dist');
       const configText = await readFile(path.join(dist, 'platform-config.js'), 'utf8');

@@ -82,38 +82,6 @@
       ]
     },
     {
-      "id": "orbit-atelier",
-      "title": "星扣工坊",
-      "source": "games/local/orbit-atelier",
-      "disposition": "potential",
-      "potential": ["fun", "potential"],
-      "platforms": ["mobile"],
-      "primaryPlatform": "mobile",
-      "orientation": "portrait",
-      "genres": ["puzzle", "physics"],
-      "opportunities": ["challenge", "share"],
-      "schedule": "current",
-      "implementationStatus": "implemented",
-      "scheduleReason": "74张星盘组合上下穿扣、宽口、微隙和接力星栓，适合短局观察与逐步拆解。",
-      "strengths": ["圆周拖动与解环反馈直接，74张星盘有可达性验证"],
-      "weaknesses": ["高阶交叠圆环仍需真人验证选中与缺口识别，分享成绩为好友自报而非认证排名"],
-      "improvements": [
-        "验证74张星盘的手指误选率、操作数目标与提示需求；补真机渠道、真实广告和同盘邀请回流验证"
-      ],
-      "evidence": [
-        "games/local/orbit-atelier/README.md",
-        "games/local/orbit-atelier/docs/design/expansion-2026-10-11/README.md",
-        "games/local/orbit-atelier/docs/design/expansion-2026-10-11/verification.md",
-        "games/local/orbit-atelier/docs/design/real-interlock-2026-10-13/README.md",
-        "games/local/orbit-atelier/docs/design/real-interlock-2026-10-13/verification.md"
-      ],
-      "delivered": [
-        "两处交点交替上下穿扣，按环带净空显示阻挡与出口；保留24关并新增五章50关，分享支持至74关",
-        "交叠处优先已选可动环，锁环不抢触点，容忍6px手指漂移；撤回不抹除已看提示计数",
-        "无解法同盘邀请携带转动与提示数，挑战隔离主线存档；自然结算每三次且间隔60秒可出现可关闭的频控模拟广告，挑战不出广告"
-      ]
-    },
-    {
       "id": "moss-garden",
       "title": "苔光花园",
       "source": "games/local/game-moss-garden",

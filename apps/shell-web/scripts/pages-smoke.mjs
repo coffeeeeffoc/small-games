@@ -25,7 +25,6 @@ const immersiveGame = (id) =>
     'three-choose-two',
     'cage-rescue',
     'chase-thief',
-    'orbit-atelier',
     'merge-front',
     'tower-brake',
     'tetracube',
@@ -251,7 +250,6 @@ try {
         game.id === 'ashfall-front' ||
         game.id === 'cage-rescue' ||
         game.id === 'ball-roguelite' ||
-        game.id === 'orbit-atelier' ||
         game.id === 'merge-front' ||
         game.id === 'tower-brake' ||
         game.id === 'tetracube' ||

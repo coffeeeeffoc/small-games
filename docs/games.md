@@ -14,7 +14,6 @@
 | 克朗棋 · Carrom Club     | `carrom-club`                  | [carrom-club](../games/local/carrom-club/)                                   | 回拉指尖，听见落袋。在木质棋盘上摆位、瞄准、击球，与阿洛切磋一局，或挑战六关手感练习。                                       |
 | 穿云落星                 | `tower-brake`                  | [tower-brake](../games/local/tower-brake/)                                   | 转动青玉轨道，让小球从星际落入云海。30 关与无尽下落，护盾、侧风和缓降逐步登场，连穿三层补回刹车。                            |
 | 追贼别撞墙               | `chase-thief`                  | [chase-thief](../games/local/chase-thief/)                                   | 穿过老城三条街巷，跳路障、钻低杆、换道躲箱子；连续稳住三段就冲刺追近，抓住前方的小偷。                                       |
-| 星扣工坊                 | `orbit-atelier`                | [orbit-atelier](../games/local/orbit-atelier/)                               | 转动缺口解开上下穿扣的圆环，用宽口、微隙与接力星栓破解八章七十四张星盘。                                                     |
 | 苔光花园                 | `moss-garden`                  | [game-moss-garden](../games/local/game-moss-garden/)                         | 在彩色花圃中安放光种，每行、每列和每片花圃各一颗，彼此不能相邻。三十关原创竖屏逻辑谜题。                                     |
 | 星轨弹珠                 | `ball-roguelite`               | [ball-roguelite](../games/local/ball-roguelite/)                             | 拖动瞄准，松手弹射。组合穿透、爆裂、闪电与暴击，击穿六片星域的砖阵，或挑战无尽星空。                                         |
 | 熔光弹珠                 | `ember-bounce`                 | [ember-bounce](../games/local/ember-bounce/)                                 | 拖动瞄准一束熔光弹珠，借墙面连锁反弹击碎熔晶，收集更多弹珠与祝福，挑战逐步解锁的熔炉关卡。                                   |
