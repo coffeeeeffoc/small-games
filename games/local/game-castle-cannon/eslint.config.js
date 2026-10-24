@@ -8,6 +8,7 @@ export default [
       'scripts/dev-mode.*',
       'public/**',
       'server-dist/**',
+      '.prebuilt/**',
       'assets/scripts/core/**',
       'build/**',
       'library/**',
