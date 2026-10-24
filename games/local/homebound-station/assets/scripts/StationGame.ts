@@ -53,10 +53,6 @@ export class StationGame extends Component {
   private previousDelivered = 0;
   private resizeKey = '';
   private speedExpanded = false;
-  private demo!: Simulation;
-  private demoTime = 0;
-  private demoNext = 0;
-  private reducedMotion = false;
   async start() {
     view.enableAutoFullScreen(false);
     view.resizeWithBrowserSize(true);
@@ -74,9 +70,7 @@ export class StationGame extends Component {
     if (this.disposed) return;
     this.state = createSimulation(LEVELS[0]!);
     this.state.paused = true;
-    this.reducedMotion =
-      sys.isBrowser && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    this.resetDemo();
+    this.world.reset(this.state);
     this.touchInput = sys.isMobile;
     this.cleanup.push(this.platform.registerLevels(() => this.changePage('levels')));
     input.on(Input.EventType.TOUCH_START, this.touchStart, this);
@@ -137,15 +131,6 @@ export class StationGame extends Component {
     this.platform.display(this.page !== 'home');
     this.render();
   }
-  private resetDemo() {
-    const config =
-      LEVELS.find((level) => level.vehicles.length >= 10 && level.vehicles.length <= 12) ??
-      LEVELS[0]!;
-    this.demo = createSimulation(config);
-    this.demoTime = 0;
-    this.demoNext = 1.6;
-    this.world.reset(this.demo);
-  }
   private startLevel(index: number, invitation = false) {
     if (
       !LEVELS[index] ||
@@ -169,7 +154,6 @@ export class StationGame extends Component {
   }
   private changePage(page: Page) {
     if (this.page === 'ad' && page !== 'ad') this.gate.cancel(this.platform.ads);
-    if (page === 'home' && this.page !== 'home') this.resetDemo();
     this.speedExpanded = false;
     this.page = page;
     this.platform.display(
@@ -218,7 +202,10 @@ export class StationGame extends Component {
       if (this.page !== 'playing' || this.hidden || this.state.paused) return;
       const result = dispatch(this.state, id.slice(4));
       if (result.ok) this.platform.play('depart');
-      else this.message(result.reason);
+      else {
+        this.world.rejectCar(id.slice(4));
+        this.message(result.reason);
+      }
       return;
     }
     if (id.startsWith('level:')) {
@@ -337,7 +324,8 @@ export class StationGame extends Component {
     this.hud.setPressed('');
     if (!p || p.page !== this.page || this.hidden || p.dragging) return;
     if (p.target.startsWith('car:')) {
-      if (Math.hypot(x - p.x, y - p.y) < 65) this.action(p.target);
+      if (Math.hypot(x - p.x, y - p.y) < 18 && this.target(x, y) === p.target)
+        this.action(p.target);
     } else if (this.target(x, y) === p.target && Math.hypot(x - p.x, y - p.y) < 18)
       this.action(p.target);
   }
@@ -348,19 +336,14 @@ export class StationGame extends Component {
   }
   touchMove(e: EventTouch) {
     const p = this.presses.get(e.getID() ?? 0);
-    if (
-      !p ||
-      this.page !== 'playing' ||
-      !this.world.maxScroll ||
-      !(p.target.startsWith('car:') || p.target === 'board-pan')
-    )
+    if (!p || this.page !== 'playing' || !(p.target.startsWith('car:') || p.target === 'board-pan'))
       return;
     const at = e.getUILocation(),
       y = this.hud.h - at.y;
     if (p.dragging || Math.hypot(at.x - p.x, y - p.y) > 10) {
       p.dragging = true;
       this.hud.setPressed('');
-      this.world.pan(y - p.lastY);
+      if (this.world.maxScroll) this.world.pan(y - p.lastY);
     }
     p.lastY = y;
   }
@@ -409,23 +392,12 @@ export class StationGame extends Component {
   update(dt: number) {
     if (!this.hud || !this.state) return;
     const f = view.getFrameSize(),
-      key = `${f.width}:${f.height}:${this.page === 'home'}`;
+      key = `${f.width}:${f.height}`;
     if (key !== this.resizeKey) {
       this.resizeKey = key;
       this.clear();
       this.hud.resize();
-      this.world.resize(f.width, f.height, this.page === 'home');
-    }
-    if (this.page === 'home' && !this.hidden && !this.reducedMotion) {
-      const delta = Math.min(0.1, Math.max(0, dt));
-      this.demoTime += delta;
-      advance(this.demo, delta);
-      if (this.demoTime >= this.demoNext) {
-        const car = this.demo.vehicles.find((v) => canDispatch(this.demo, v.id).ok);
-        if (car) dispatch(this.demo, car.id);
-        this.demoNext = this.demoTime + 1.7;
-      }
-      if (this.demo.won || this.demoTime > 26) this.resetDemo();
+      this.world.resize(f.width, f.height);
     }
     if (this.page === 'playing' && !this.hidden && !this.state.paused) {
       const delta = Math.min(0.1, Math.max(0, dt));
@@ -457,11 +429,10 @@ export class StationGame extends Component {
     this.render();
   }
   private render() {
-    this.world.root.active = ['home', 'playing', 'pause', 'ad', 'result'].includes(this.page);
-    const scene = this.page === 'home' ? this.demo : this.state;
-    this.world.sync(scene);
+    this.world.root.active = ['playing', 'pause', 'ad', 'result'].includes(this.page);
+    if (this.world.root.active) this.world.sync(this.state);
     this.hud.render(
-      scene,
+      this.state,
       {
         page: this.page,
         chapter: this.chapter,
@@ -474,7 +445,6 @@ export class StationGame extends Component {
         elapsed: this.elapsed,
         invitedLevel: this.invitedLevel,
         speedExpanded: this.speedExpanded,
-        demoTime: this.demoTime,
       },
       this.world,
     );
@@ -489,14 +459,14 @@ export class StationGame extends Component {
       unlockedSpeeds: Array.from(this.gate.unlocked),
       adPending: this.gate.pending,
       speedExpanded: this.speedExpanded,
-      demoTime: this.demoTime,
+      presentation: this.world.root.active ? this.world.presentation() : null,
       scroll: { y: this.world.scrollY, max: this.world.maxScroll },
       layout: {
         columns: this.state.geometry.parking.columns,
         rows: this.state.geometry.parking.rows,
       },
       buttons: structuredClone(this.hud.buttons),
-      cars: this.state.vehicles
+      cars: (this.world.root.active ? this.state.vehicles : [])
         .filter((v) => v.state === 'holding' && this.world.inViewport(this.world.arrow(v)))
         .map((v) => ({
           id: v.id,
