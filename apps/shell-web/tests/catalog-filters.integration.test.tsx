@@ -25,9 +25,9 @@ it('filters, explains evaluations, restores shared URLs, and retains selections 
     expect(ids()).not.toContain('travel-bund');
     await click('全部游戏');
     await click('有潜力');
-    expect(ids()).toHaveLength(41);
+    expect(ids()).toHaveLength(42);
     await click('潜力低');
-    expect(ids()).toHaveLength(41);
+    expect(ids()).toHaveLength(42);
     await click('上轮已改造');
     expect(ids()).toHaveLength(7);
     await click('毫无潜力');
@@ -96,7 +96,7 @@ it('shows every exclusive rollout, visible implementation states, and filtered c
       tabs()
         .slice(0, 5)
         .map((button) => button.textContent),
-    ).toEqual(['全部游戏41', '上轮已改造7', '本轮改造15', '有潜力 · 后续改造19', '暂缓投入0']);
+    ).toEqual(['全部游戏42', '上轮已改造7', '本轮改造15', '有潜力 · 后续改造20', '暂缓投入0']);
     for (const article of articles()) {
       expect(article.querySelector('.game-rollout strong')?.textContent).toBeTruthy();
       expect(article.querySelector('.game-rollout span')?.textContent).toBeTruthy();
@@ -113,11 +113,11 @@ it('shows every exclusive rollout, visible implementation states, and filtered c
     expect(window.location.search).toContain('catalog_platforms=mobile');
     await click('清空筛选');
     await click('有潜力 · 后续改造');
-    expect(articles()).toHaveLength(19);
+    expect(articles()).toHaveLength(20);
     await click('有潜力');
-    expect(articles()).toHaveLength(19);
+    expect(articles()).toHaveLength(20);
     await click('全部游戏');
-    expect(articles()).toHaveLength(41);
+    expect(articles()).toHaveLength(42);
     expect(tabs().find((button) => button.textContent?.startsWith('暂缓投入'))?.textContent).toBe(
       '暂缓投入0',
     );

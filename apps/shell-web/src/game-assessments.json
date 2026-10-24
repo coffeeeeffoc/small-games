@@ -1023,6 +1023,26 @@
         "每关一次40%补给与50%续战，严格完成发奖，未配置广告可免费游玩。",
         "真实Creator六尺寸触控与SDK回调夹具通过；不等于TapTap库存或真机验证。"
       ]
+    },
+    {
+      "id": "porcelain-puzzle",
+      "title": "青花拾光",
+      "source": "games/local/porcelain-puzzle",
+      "disposition": "potential",
+      "potential": ["potential"],
+      "platforms": ["mobile", "web"],
+      "primaryPlatform": "mobile",
+      "orientation": "portrait",
+      "genres": ["puzzle"],
+      "opportunities": ["share", "versus"],
+      "schedule": "later",
+      "implementationStatus": "deferred",
+      "scheduleReason": "已有单人器物拼图与好友房基础，后续结合首局完成率和真机反馈评估节奏。",
+      "strengths": ["相邻碎片吸附成组，100关器物拼图与好友同题竞速提供复玩目标"],
+      "weaknesses": ["后期碎片较小，触屏缩放与限时压力仍需真人体验验证"],
+      "improvements": ["验证首局理解率、小屏拖动与好友房重连体验"],
+      "evidence": ["games/local/porcelain-puzzle/README.md"],
+      "delivered": []
     }
   ]
 }
